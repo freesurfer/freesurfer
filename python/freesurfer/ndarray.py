@@ -187,13 +187,14 @@ class Volume(ArrayContainerTemplate, Transformable):
         self.affine = vol.affine
         self.voxsize = vol.voxsize
 
-    def reslice(self, voxsize):
+    def reslice(self, voxsize, smooth_sigma=0):
         '''
         Returns the resampled volume with a given resolution determined by voxel
         size in mm.
 
         Parameter:
             voxsize: Voxel size of target volume.
+            smooth_sigma: Apply gaussian smoothing before resampling. Default is 0.
         '''
         src_shape = self.shape[:3]
         target_shape = tuple(np.ceil(np.array(self.voxsize).astype(float) * src_shape / voxsize).astype(int))
@@ -216,7 +217,7 @@ class Volume(ArrayContainerTemplate, Transformable):
         # resample into new volume
         if self.data.ndim != 3:
             target_shape = (*target_shape, self.nframes)
-        resliced_data = resample(self.data, target_shape, trg2src)
+        resliced_data = resample(self.data, target_shape, trg2src, smooth_sigma=smooth_sigma)
         resliced_vol = Volume(resliced_data, affine=trg2ras, voxsize=voxsize)
         resliced_vol.copy_metadata(self)
         return resliced_vol

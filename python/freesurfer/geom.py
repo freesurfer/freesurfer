@@ -49,7 +49,7 @@ def cmass(image):
     return scipy.ndimage.center_of_mass(image)
 
 
-def resample(source, target_shape, affine):
+def resample(source, target_shape, trg2src, smooth_sigma=0):
     '''
     Resamples a volume array from one space to another given
     a target-to-source transformation matrix.
@@ -57,7 +57,8 @@ def resample(source, target_shape, affine):
     Parameters:
         source: Source array to sample from. Must be 3D or 4D.
         target_shape: Shape of the returned target array.
-        affine: 4x4 affine matrix that transforms target coords to source coords.
+        trg2src: 4x4 affine matrix that transforms target coords to source coords.
+        smooth_sigma: Apply gaussian smoothing before resampling. Default is 0.
     '''
     if source.ndim > 4:
         raise ValueError('resampling can not be done on arrays with more than 4 dimensions')
@@ -76,5 +77,29 @@ def resample(source, target_shape, affine):
     if target_shape[-1] != source.shape[-1]:
         raise ValueError('resampled target must have the same number of frames as the source')
 
-    affine = LinearTransform.ensure(affine).matrix
-    return bindings.vol.resample_volume(source, target_shape, affine).reshape(orig_target_shape)
+    # apply optional gaussian smoothing
+    if smooth_sigma > 0:
+        sigmas = (smooth_sigma, smooth_sigma, smooth_sigma, 0)
+        source = scipy.ndimage.gaussian_filter(source, sigma=sigmas, order=0)  # TODO order?
+
+    trg2src = LinearTransform.ensure(trg2src).matrix
+    return bindings.vol.resample_volume(source, target_shape, trg2src).reshape(orig_target_shape)
+
+
+def sample_into_volume(volume, weights, coords, values):
+    '''
+      Interpolates and adds values at given coordinates into a volume and corresponding
+      weights array. Since this function performs in-place modification of the volume and
+      weights arrays, they MUST be double or float precision to avoid being copied.
+
+      Parameters:
+        volume: Float or double array to add sampled values into.
+        weights: Float or double array to add sampling weights into.
+        coords: List of volume sampling coordinates. 
+        values: List of values at each coordinate.
+    '''
+    if volume.ndim > 4:
+        raise ValueError('resampling can not be done on arrays with more than 4 dimensions')
+    elif volume.ndim < 3:
+        raise NotImplementedError('%dD resampling is not yet supported (must be 3D or 4D)' % source.ndim)
+    bindings.vol.sample_into_volume(volume, weights, coords, values)
