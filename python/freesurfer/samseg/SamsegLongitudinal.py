@@ -91,7 +91,8 @@ class SamsegLongitudinal:
         initializeLatentDeformationToZero=False,
         threshold=None,
         thresholdSearchString=None,
-        modeNames=None):
+        modeNames=None,
+        pallidumAsWM=True):
 
         # Store input parameters as class variables
         self.imageFileNamesList = imageFileNamesList
@@ -106,6 +107,7 @@ class SamsegLongitudinal:
         self.strengthOfLatentGMMHyperprior = strengthOfLatentGMMHyperprior
         self.strengthOfLatentDeformationHyperprior = strengthOfLatentDeformationHyperprior
         self.modeNames = modeNames
+        self.pallidumAsWM = pallidumAsWM
 
         # Initialize some objects
         self.affine = Affine()
@@ -154,7 +156,23 @@ class SamsegLongitudinal:
         self.historyOfTotalTimepointCost = None
         self.historyOfLatentAtlasCost = None
 
+    def segment(self, saveWarp=False):
+        # =======================================================================================
+        #
+        # Main function that runs the whole longitudinal segmentation pipeline
+        #
+        # =======================================================================================
+        self.constructAndRegisterSubjectSpecificTemplate()
+        self.preProcess()
+        self.fitModel()
+        return self.postProcess(saveWarp=saveWarp)
+
     def constructAndRegisterSubjectSpecificTemplate(self):
+        # =======================================================================================
+        #
+        # Construction and affine registration of subject-specific template (sst)
+        #
+        # =======================================================================================
 
         # Generate the subject specific template (sst)
         self.sstFileNames = self.generateSubjectSpecificTemplate()
@@ -170,14 +188,6 @@ class SamsegLongitudinal:
 
     def preProcess(self):
 
-        # =======================================================================================
-        #
-        # Construction and affine registration of subject-specific template (sst)
-        #
-        # =======================================================================================
-
-        self.constructAndRegisterSubjectSpecificTemplate()
-
         sstDir, _ = os.path.split(self.sstFileNames[0])
 
         self.sstModel = Samseg(imageFileNames=self.sstFileNames, atlasDir=self.atlasDir, savePath=sstDir,
@@ -185,7 +195,8 @@ class SamsegLongitudinal:
                                userModelSpecifications=self.userModelSpecifications,
                                userOptimizationOptions=self.userOptimizationOptions,
                                visualizer=self.visualizer, saveHistory=True, targetIntensity=self.targetIntensity,
-                               targetSearchStrings=self.targetSearchStrings, modeNames=self.modeNames)
+                               targetSearchStrings=self.targetSearchStrings, modeNames=self.modeNames,
+                               pallidumAsWM=self.pallidumAsWM)
 
         # =======================================================================================
         #
@@ -237,7 +248,8 @@ class SamsegLongitudinal:
                 saveHistory=True,
                 targetIntensity=self.targetIntensity,
                 targetSearchStrings=self.targetSearchStrings,
-                modeNames=self.modeNames
+                modeNames=self.modeNames,
+                pallidumAsWM=self.pallidumAsWM
             ))
             self.timepointModels[timepointNumber].mask = self.sstModel.mask
             self.timepointModels[timepointNumber].imageBuffers = self.imageBuffersList[timepointNumber]
@@ -249,7 +261,7 @@ class SamsegLongitudinal:
         for timepointNumber in range(self.numberOfTimepoints):
             self.visualizer.show(images=self.imageBuffersList[timepointNumber], title='time point ' + str(timepointNumber))
 
-    def process(self):
+    def fitModel(self):
 
         # =======================================================================================
         #
@@ -257,7 +269,7 @@ class SamsegLongitudinal:
         #
         # =======================================================================================
 
-        self.sstModel.process()
+        self.sstModel.fitModel()
 
         if hasattr(self.visualizer, 'show_flag'):
             import matplotlib.pyplot as plt  # avoid importing matplotlib by default
@@ -677,7 +689,7 @@ class SamsegLongitudinal:
             #
             timepointModel.deformation = self.latentDeformation + timepointModel.deformation
             timepointModel.deformationAtlasFileName = self.latentDeformationAtlasFileName
-            posteriors, biasFields, nodePositions, _, _ = timepointModel.segment()
+            posteriors, biasFields, nodePositions, _, _ = timepointModel.computeFinalSegmentation()
 
             #
             timepointDir = os.path.join(self.savePath, 'tp%03d' % (timepointNumber + 1))
