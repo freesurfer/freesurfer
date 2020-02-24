@@ -422,7 +422,6 @@
           </property>
           <property name="font">
            <font>
-            <family>DejaVu Sans</family>
             <pointsize>8</pointsize>
            </font>
           </property>
