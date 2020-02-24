@@ -159,6 +159,7 @@
 #define Globe            134
 #define Teeth            135
 
+#define Skull            165
 #define Right_Temporal_Cerebral_White_Matter 186
 #define Left_Temporal_Cerebral_White_Matter  187
 #define Fat              189
