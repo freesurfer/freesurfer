@@ -20,11 +20,11 @@ set outdir = ()
 set refmodename = ();
 set threads = 1
 set cleanup = 1;
-set Force = 0;
 set LF = ();
 set tmpdir = ()
 set XOptsFile = ()
 set GlobXOptsFile = ()
+set ForceUpdate = 0
 
 set inputargs = ($argv);
 set PrintHelp = 0;
@@ -138,7 +138,7 @@ foreach modename ($modenamelist)
 
   # Check whether anything needs to be done
   set UN = `UpdateNeeded $average $srclist`
-  if($UN == 0 && $Force == 0) then
+  if($UN == 0 && $ForceUpdate == 0) then
     echo "$modename, within mode registration update not needed" | tee -a $LF
     continue
   endif
@@ -198,7 +198,7 @@ foreach modename ($modenamelist)
   # Run mri_coreg to create the auto lta
   set movvol = $outdir/$modename/$modename.native.mgz
   set UN = `UpdateNeeded $ltaauto $movvol`
-  if($UN == 1 || $Force == 1) then
+  if($UN == 1 || $ForceUpdate == 1) then
     set cmd = (mri_coreg --mov $movvol --ref $refvol --reg $ltaauto --threads $threads)
     set xopts = `fsr-getxopts $selfname-mri_coreg $XOptsFile $GlobXOptsFile`;
     set cmd = ($cmd $xopts)
@@ -227,7 +227,7 @@ foreach modename ($modenamelist)
   # Should concatenate the run LTAs, then resample once and average
   set outvol = $outdir/$modename/$modename.mgz
   set UN = `UpdateNeeded $outvol $ltaauto $movvol`
-  if($UN == 1 || $Force == 1) then
+  if($UN == 1 || $ForceUpdate == 1) then
     set cmd = (mri_vol2vol --mov $movvol --targ $refvol --reg $lta --o $outvol --interp cubic)
     set xopts = `fsr-getxopts $selfname-mri_vol2vol $XOptsFile $GlobXOptsFile`;
     set cmd = ($cmd $xopts)
@@ -247,7 +247,7 @@ foreach modename ($modenamelist)
   # recon-all
   set outvol = $outdir/$modename/$modename.regheader.mgz
   set UN = `UpdateNeeded $outvol $lta $movvol`
-  if($UN == 1 || $Force == 1) then
+  if($UN == 1 || $ForceUpdate == 1) then
     set cmd = (mri_vol2vol --mov $movvol --targ $refvol --reg $lta --o $outvol --no-resample)
     date | tee -a $LF
     echo "cd `pwd`" | tee -a $LF
@@ -357,8 +357,9 @@ while( $#argv != 0 )
       set threads = $argv[1]; shift;
       breaksw
 
+    case "--force-update":
     case "--force":
-      set Force = 1;
+      set ForceUpdate = 1;
       breaksw
 
     case "--expert":
@@ -479,7 +480,7 @@ usage_exit:
   echo "  --i importdir : data dir created by fsr-import"
   echo "  --ref modename : mode to use as a reference (all modes register to this mode)"
   echo "  --threads nthreads"
-  echo "  --force : force update"
+  echo "  --force-update : force update of files regardless of time stamp"
   echo "  --o outdir : set the output dir (default is importdir)"
   echo "  --expert xoptsfile"
   echo ""

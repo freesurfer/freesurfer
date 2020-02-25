@@ -60,8 +60,8 @@ function(mac_deploy_qt)
   # install the plist
   install(FILES ${APP_PLIST} DESTINATION ${APP_BUNDLE}/Contents)
   # install the resources
-  if(${APP_ICONS})
-    install_symlinks(${APP_ICONS} TYPE files DESTINATION ${BUNDLE}/Contents/Resources)
+  if(APP_ICONS)
+    install_symlinks(${APP_ICONS} TYPE files DESTINATION ${APP_BUNDLE}/Contents/Resources)
   endif()
   # run the qt deployment script
   install(CODE "

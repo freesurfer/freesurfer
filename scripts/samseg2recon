@@ -22,6 +22,8 @@ set HaveFLAIR = 0;
 set tmpdir = ()
 set LF = ()
 set cleanup = 1
+# set this to 1 until can make all commands respect updates
+set ForceUpdate = 1; 
 
 set inputargs = ($argv);
 set PrintHelp = 0;
@@ -88,8 +90,13 @@ set mdir = $SUBJECTS_DIR/$subject/mri
 # probably want to have arbitrary inputs and will have to conform it.
 set cmd = (mri_convert $input $mdir/orig.mgz)
 echo $cmd | tee -a $LF
-$cmd | tee -a $LF
-if($status) exit 1;
+set ud = `UpdateNeeded $mdir/orig.mgz $input`
+if($ud || $ForceUpdate) then
+  $cmd | tee -a $LF
+  if($status) exit 1;
+else
+  echo "$mdir/orig.mgz does not need updating"  | tee -a $LF
+endif
 
 # create a link from the orig.mgz to rawavg.mgz, needed for pctsurfcon
 pushd $mdir
@@ -99,32 +106,40 @@ $cmd | tee -a $LF
 if($status) goto error_exit;
 popd
 
-set segvol = `find "$samsegdir" -iname "*crispSegmentation.nii" -print`
+#set segvol = `find "$samsegdir" -iname "*crispSegmentation.nii" -print`
+set segvol = $samsegdir/seg.mgz
 
-if(! $KeepECS) then
-  # Remove extra cerebral stuff from samseg seg
-  # --uchar has no effect here because --replaceonly copies type of input (float)
-  set cmd = (mri_binarize  --i $segvol \
-    --replaceonly 258 0 --replaceonly 259 0 --replaceonly 165 0 \
-    --o $mdir/aseg.auto_noCCseg.mgz)
-  echo $cmd | tee -a $LF
-  fs_time $cmd | tee -a $LF
-  if($status) goto error_exit;
-  # The mri_binarize output will be float, so change to int or uchar
-  set cmd = (mri_convert $mdir/aseg.auto_noCCseg.mgz $mdir/aseg.auto_noCCseg.mgz)
-  if($DoUchar) then 
-    set cmd = ($cmd  -odt uchar --no_scale 1)
+echo $segvol
+ls $segvol
+
+set ud = `UpdateNeeded $mdir/aseg.auto_noCCseg.mgz $segvol`
+if($ud || $ForceUpdate) then
+  if(! $KeepECS) then
+    # Remove extra cerebral stuff from samseg seg
+    # --uchar has no effect here because --replaceonly copies type of input (float)
+    set cmd = (mri_binarize  --i $segvol \
+      --replaceonly 258 0 --replaceonly 259 0 --replaceonly 165 0 \
+      --o $mdir/aseg.auto_noCCseg.mgz)
+    echo $cmd | tee -a $LF
+    fs_time $cmd | tee -a $LF
+    if($status) goto error_exit;
+    # The mri_binarize output will be float, so change to int or uchar (don't do this)
+    # set cmd = (mri_convert $mdir/aseg.auto_noCCseg.mgz $mdir/aseg.auto_noCCseg.mgz)
+    # if($DoUchar) then 
+    #   set cmd = ($cmd  -odt uchar --no_scale 1)
+    # else
+    #   set cmd = ($cmd  -odt int --no_scale 1)
+    # endif
   else
-    set cmd = ($cmd  -odt int --no_scale 1)
+    echo "Keeping Extracerebral segs" | tee -a $LF
+    # odt must be int because extracerebral seg ids are > 255
+    set cmd = (mri_convert $segvol $mdir/aseg.auto_noCCseg.mgz -odt int --no_scale 1)
+    echo $cmd | tee -a $LF
+    fs_time $cmd | tee -a $LF
+    if($status) goto error_exit;
   endif
 else
-  echo "Keeping Extracerebral segs" | tee -a $LF
-  # odt must be int because extracerebral seg ids are > 255
-  set cmd = (mri_convert $segvol \
-      $mdir/aseg.auto_noCCseg.mgz -odt int --no_scale 1)
-  echo $cmd | tee -a $LF
-  fs_time $cmd | tee -a $LF
-  if($status) goto error_exit;
+  echo "$mdir/aseg.auto_noCCseg.mgz does not need updating" | tee -a $LF
 endif
 
 # Link the samseg talairach to the talairach.lta
@@ -144,21 +159,31 @@ popd
 # should write out stereotypical file names
 set vbase = `fname2stem $input`
 set vbase = `basename $vbase`
-set bc = $samsegdir/$vbase"_biasCorrected".nii
+set bc = $samsegdir/mode01_bias_corrected.mgz
 
 # Need to rescale bias corrected such that WM is 110
 # Get mask of WM, eroded
 set wm = $tmpdir/wm.mask.mgh
 set cmd = (mri_binarize --i $segvol --match 2 41 --erode 2 --o $wm)
 echo $cmd | tee -a $LF
-fs_time $cmd | tee -a $LF
-if($status) goto error_exit;
+set ud = `UpdateNeeded $wm $segvol`
+if($ud || $ForceUpdate) then
+  fs_time $cmd | tee -a $LF
+  if($status) goto error_exit;
+else
+  echo "$wm does not need updating" | tee -a $LF
+endif
 # Compute mean in the eroded WM mask
 set wmmeanfile = $tmpdir/wm.mask.mean.dat
 set cmd = (mri_segstats --id 1 --i $bc --seg $wm --avgwf $wmmeanfile)
 echo $cmd | tee -a $LF
-fs_time $cmd | tee -a $LF
-if($status) goto error_exit;
+set ud = `UpdateNeeded $wmmeanfile $bc $wm`
+if($ud || $ForceUpdate) then
+  fs_time $cmd | tee -a $LF
+  if($status) goto error_exit;
+else
+  echo "$wmmeanfile does not need updating" | tee -a $LF
+endif
 set wmmean = `cat $wmmeanfile`
 set scale = `echo 110/$wmmean | bc -l`
 echo T1w wmmean $wmmean | tee -a $LF
@@ -167,22 +192,37 @@ echo T1w scale $scale | tee -a $LF
 set nu = $mdir/nu.mgz
 set cmd = (mri_concat $bc --mul $scale --o $nu)
 echo $cmd | tee -a $LF
-fs_time $cmd | tee -a $LF
-if($status) goto error_exit;
+set ud = `UpdateNeeded $nu $bc $wmmeanfile`
+if($ud || $ForceUpdate) then
+  fs_time $cmd | tee -a $LF
+  if($status) goto error_exit;
+else
+  echo "$nu does not need updating" | tee -a $LF
+endif
 
 # Remove extracerebral stuff
 # Could just use aseg created above
 set mask = $tmpdir/mask.mgh
 set cmd = (mri_binarize --i $segvol --match 0 165 258 259 --inv --o $mask)
 echo $cmd | tee -a $LF
-fs_time $cmd | tee -a $LF
-if($status) goto error_exit;
+set ud = `UpdateNeeded $mask $segvol`
+if($ud || $ForceUpdate) then
+  fs_time $cmd | tee -a $LF
+  if($status) goto error_exit;
+else
+  echo "$mask does not need updating" | tee -a $LF
+endif
 
 # Create the norm by just masking nu with the aseg
 set cmd = (mri_mask $nu $mask $mdir/norm.mgz)
 echo $cmd | tee -a $LF
-fs_time $cmd | tee -a $LF
-if($status) goto error_exit;
+set ud = `UpdateNeeded $mdir/norm.mgz $nu $mask`
+if($ud || $ForceUpdate) then
+  fs_time $cmd | tee -a $LF
+  if($status) goto error_exit;
+else
+  echo "$mdir/norm.mgz does not need updating" | tee -a $LF
+endif
 # link norm to brainmask
 pushd $mdir
 set cmd = (ln -sf norm.mgz brainmask.mgz)
@@ -192,7 +232,10 @@ if($status) goto error_exit;
 popd
 
 echo $modenamelist | tee -a $LF
+@ nthmode = 0
 foreach mode ($modenamelist)
+  @ nthmode = $nthmode + 1
+  set nthmodestr = `printf %02d $nthmode`
   echo "$mode `date` ------------- "   | tee -a $LF
   if($mode == t1w) continue
   set modebase = $mode
@@ -203,7 +246,7 @@ foreach mode ($modenamelist)
   fs_time $cmd | tee -a $LF
   if($status) goto error_exit;
   # Compute mean $modebase in the eroded WM mask
-  set bc = $samsegdir/$mode"_biasCorrected".nii
+  set bc = $samsegdir/mode$nthmodestr"_bias_corrected".mgz
   set wmmeanfile = $tmpdir/wm.mask.mean.$modebase.dat
   set cmd = (mri_segstats --id 1 --i $bc --seg $wm --avgwf $wmmeanfile)
   echo $cmd | tee -a $LF
@@ -276,7 +319,8 @@ if($DoCC) then
     fs_time $cmd | tee -a $LF
     if($status) goto error_exit;
     # Now run mri_cc. Not sure if cc_up.lta will be valid (or needed)
-    set cmd = (mri_cc -norm norm.conf.mgz -aseg aseg.auto_noCCseg.conf.mgz -o aseg.auto.conf.mgz -lta transforms/cc_up.lta $subject)
+    set cmd = (mri_cc -norm norm.conf.mgz -aseg aseg.auto_noCCseg.conf.mgz \
+      -o aseg.auto.conf.mgz -lta transforms/cc_up.lta $subject)
     echo $cmd | tee -a $LF
     fs_time $cmd | tee -a $LF
     if($status) goto error_exit;
@@ -454,6 +498,13 @@ while( $#argv != 0 )
 
     case "--cc":
       set DoCC = 1;
+      breaksw
+
+    case "--no-force-update":
+      set ForceUpdate = 0;
+      breaksw
+    case "--force-update":
+      set ForceUpdate = 1;
       breaksw
 
     case "--tmp":
