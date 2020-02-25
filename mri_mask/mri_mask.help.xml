@@ -52,6 +52,8 @@
       <explanation>set mask in rh labels to 1 (assumes input mask is an aseg)</explanation>
       <argument>-lh</argument>
       <explanation>set mask in lh labels to 1 (assumes input mask is an aseg)</explanation>
+      <argument>-dilate <N></argument>
+      <explanation>dilate mask N times before applying</explanation>
       <argument>-no_cerebellum</argument>
       <explanation>remove cerebellum from aseg mask (assumes input mask is an aseg)</explanation>
       <argument>-oval #</argument>
