@@ -1425,6 +1425,7 @@ MRI   *MRISaccentuate(MRI *mri_src,
                       MRI *mri_dst,
                       int lo_thresh,
                       int hi_thresh);
+MRI *MRISmakeBoundingVolume(MRIS *mris, double resolution);
 MRI *MRISfillInterior(MRI_SURFACE *mris,
                       double resolution,
                       MRI *mri_interior) ;
