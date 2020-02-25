@@ -14,6 +14,7 @@ set cleanup = 1;
 set LF = ();
 set tmpdir = ()
 set debug = 0
+set ForceUpdate = 0
 
 set inputargs = ($argv);
 set PrintHelp = 0;
@@ -96,10 +97,15 @@ foreach umodename ($umodenamelist)
     # Call all outputs f or use modename?
     set ofile = $outdir/$modename/r$ithstr.mgz
     mkdir -p $outdir/$modename
-    set cmd = (mri_convert $input $ofile)
-    echo $cmd |& tee -a $LF
-    $cmd |& tee -a $LF
-    if($status) goto error_exit
+    set ud = `UpdateNeeded $ofile $input`
+    if($ud || $ForceUpdate) then
+      set cmd = (mri_convert $input $ofile)
+      echo $cmd |& tee -a $LF
+      $cmd |& tee -a $LF
+      if($status) goto error_exit
+    else
+      echo "$ofile update not needed" | tee -a $LF
+    endif
   end
   echo $ith > $outdir/$umodename/nruns.txt
 end
@@ -203,6 +209,10 @@ while( $#argv != 0 )
       set inputlist = ($inputlist $input);
       breaksw
 
+    case "--force-update":
+      set ForceUpdate = 1
+      breaksw
+
     case "--log":
       if($#argv < 1) goto arg1err;
       set LF = $argv[1]; shift;
@@ -280,6 +290,7 @@ usage_exit:
   echo "  --t2w inputfile : modename = t2w "
   echo "  --flair inputfile : modename = flair "
   echo "  --mode modename inputfile : modename cannot be t1w, t2w, for flair"
+  echo "  --force-update : update files regardless of time stamp"
   echo ""
 
   if(! $PrintHelp) exit 1;
