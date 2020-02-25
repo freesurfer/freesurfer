@@ -1,12 +1,10 @@
-import os
-import numpy as np
 import logging
 import pickle
 import scipy.io
 import freesurfer as fs
+import sys
 
-from .figures import initVisualizer
-from .utilities import requireNumpyArray, Specification
+from .utilities import Specification
 from .BiasField import BiasField
 from .ProbabilisticAtlas import ProbabilisticAtlas
 from .GMM import GMM
@@ -19,10 +17,10 @@ eps = np.finfo(float).eps
 
 
 class Samseg:
-    def __init__(self, imageFileNames, atlasDir, savePath, userModelSpecifications=None, userOptimizationOptions=None,
+    def __init__(self, imageFileNames, atlasDir, savePath, userModelSpecifications={}, userOptimizationOptions={},
                  transformedTemplateFileName=None, visualizer=None, saveHistory=None, savePosteriors=False,
                  saveWarp=None, saveMesh=None, threshold=None, thresholdSearchString=None,
-                 targetIntensity=None, targetSearchStrings=None, modeNames=None):
+                 targetIntensity=None, targetSearchStrings=None, modeNames=None, pallidumAsWM=True):
 
         # Store input parameters as class variables
         self.imageFileNames = imageFileNames
@@ -45,7 +43,7 @@ class Samseg:
         self.probabilisticAtlas = ProbabilisticAtlas()
 
         # Get full model specifications and optimization options (using default unless overridden by user)
-        self.modelSpecifications = getModelSpecifications(atlasDir, userModelSpecifications)
+        self.modelSpecifications = getModelSpecifications(atlasDir, userModelSpecifications, pallidumAsWM=pallidumAsWM)
         self.optimizationOptions = getOptimizationOptions(atlasDir, userOptimizationOptions)
 
         # Get transformed template, if any
@@ -100,7 +98,22 @@ class Samseg:
         self.deformation = None
         self.deformationAtlasFileName = None
 
-    def register(self):
+    def segment(self, costfile=None, timer=None, reg_only=False, worldToWorldTransformMatrix=None, initTransform=None):
+        # =======================================================================================
+        #
+        # Main function that runs the whole segmentation pipeline
+        #
+        # =======================================================================================
+        self.register(costfile=costfile,
+                      timer=timer,
+                      reg_only=reg_only,
+                      worldToWorldTransformMatrix=worldToWorldTransformMatrix,
+                      initTransform=initTransform)
+        self.preProcess()
+        self.fitModel()
+        return self.postProcess()
+
+    def register(self, costfile, timer, reg_only=False, worldToWorldTransformMatrix=None, initTransform=None):
         # =======================================================================================
         #
         # Perform affine registration if needed
@@ -109,11 +122,27 @@ class Samseg:
         if self.transformedTemplateFileName is None:
             templateFileName = os.path.join(self.atlasDir, 'template.nii')
             affineRegistrationMeshCollectionFileName = os.path.join(self.atlasDir, 'atlasForAffineRegistration.txt.gz')
-            _, self.transformedTemplateFileName, _ = self.affine.registerAtlas(self.imageFileNames[0],
-                                                                               affineRegistrationMeshCollectionFileName,
-                                                                               templateFileName,
-                                                                               self.savePath,
-                                                                               visualizer=self.visualizer)
+            _, self.transformedTemplateFileName, optimizationSummary = self.affine.registerAtlas(imageFileName=self.imageFileNames[0],
+                                                                            meshCollectionFileName=affineRegistrationMeshCollectionFileName,
+                                                                            templateFileName=templateFileName,
+                                                                            savePath=self.savePath,
+                                                                            visualizer=self.visualizer,
+                                                                            worldToWorldTransformMatrix=worldToWorldTransformMatrix,
+                                                                            initTransform=initTransform
+                                                                            )
+
+            # Save a summary of the optimization process
+            if optimizationSummary:
+                if costfile is not None:
+                    with open(costfile, "a") as file:
+                        file.write('templateRegistration %d %f\n' % (optimizationSummary['numberOfIterations'],
+                                                                     optimizationSummary['cost']))
+            if timer is not None:
+                timer.mark('atlas registration complete')
+
+            if reg_only:
+                print('registration-only requested, so quiting now')
+                sys.exit()
 
     def preProcess(self):
         # =======================================================================================
@@ -153,7 +182,7 @@ class Samseg:
             self.visualizer.show(images=self.imageBuffers, window_id='samsegment images',
                                  title='Samsegment Masked and Log-Transformed Contrasts')
 
-    def process(self):
+    def fitModel(self):
         # =======================================================================================
         #
         # Parameter estimation
@@ -172,7 +201,7 @@ class Samseg:
 
         # OK, now that all the parameters have been estimated, try to segment the original, full resolution image
         # with all the original labels (instead of the reduced "super"-structure labels we created)
-        posteriors, biasFields, nodePositions, _, _ = self.segment()
+        posteriors, biasFields, nodePositions, _, _ = self.computeFinalSegmentation()
 
         # Write out segmentation and bias field corrected volumes
         volumesInCubicMm = self.writeResults(biasFields, posteriors)
@@ -637,7 +666,7 @@ class Samseg:
 
         # End resolution level loop
 
-    def segment(self):
+    def computeFinalSegmentation(self):
         # Get the final mesh
         mesh = self.probabilisticAtlas.getMesh(self.modelSpecifications.atlasFileName, self.transform,
                                                initialDeformation=self.deformation,

@@ -816,7 +816,7 @@ int MRIvol2Vol(MRI *src, MRI *targ, MATRIX *Vt2s, int InterpCode, float param)
 
       } /* target col */
     }   /* target row */
-    if (tid == show_progress_thread) exec_progress_callback(ct, targ->width, 0, 1);
+    if (true || tid == show_progress_thread) exec_progress_callback(ct, targ->width, 0, 1);
     ROMP_PFLB_end
   } /* target slice */
   ROMP_PF_end

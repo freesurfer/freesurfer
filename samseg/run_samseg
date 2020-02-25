@@ -25,12 +25,14 @@ parser.add_argument('-r', '--reg', metavar='FILE', help='Skip initial affine reg
 parser.add_argument('--init-reg', metavar='FILE', help='Initial affine registration.')
 parser.add_argument('-a', '--atlas', metavar='DIR', help='Point to an alternative atlas directory.')
 parser.add_argument('--options', metavar='FILE', help='Override advanced options via a json file.')
+parser.add_argument('--pallidum-separate', action='store_true', default=False, help='Move pallidum outside of global white matter class. Use this flag when T2/flair is used.')
 # optional lesion options
 parser.add_argument('--lesion', action='store_true', default=False, help='Enable lesion segmentation (requires tensorflow).')
 parser.add_argument('--threshold', type=float, default=0.3, help='Lesion threshold for final segmentation. Lesion segmentation must be enabled.')
 parser.add_argument('--samples', type=int, default=50, help='Number of samples for lesion segmentation. Lesion segmentation must be enabled.')
 parser.add_argument('--burnin', type=int, default=50, help='Number of burn-in samples for lesion segmentation. Lesion segmentation must be enabled.')
-parser.add_argument('--lesion-mask', type=int, nargs='+', help='Lesion mask (1 for each input): -1 below WM mean, +1 above, 0 no mask. Lesion segmentation must be enabled.')
+parser.add_argument('--lesion-mask-structure', default='Cortex', help='Intensity mask brain structure. Lesion segmentation must be enabled.')
+parser.add_argument('--lesion-mask-pattern', type=int, nargs='+', help='Lesion mask (1 for each input): -1 below WM mean, +1 above, 0 no mask. Lesion segmentation must be enabled.')
 # optional debugging options
 parser.add_argument('--history', action='store_true', default=False, help='Save history.')
 parser.add_argument('--save-posteriors', nargs='*', help='Save posterior volumes to the "posteriors" subdirectory.')
@@ -80,11 +82,6 @@ if not atlasDir:
 # Setup the visualization tool
 visualizer = samseg.initVisualizer(args.showfigs, args.movie)
 
-# ------ Perform Affine Registration ------
-
-templateFileName = os.path.join(atlasDir, 'template.nii')
-affineRegistrationMeshCollectionFileName = os.path.join(atlasDir, 'atlasForAffineRegistration.txt.gz')
-
 # Initialization transform for affine registration
 initTransform = None
 if args.init_reg:
@@ -102,29 +99,7 @@ if args.reg:
 
 print(worldToWorldTransformMatrix)
 
-affine = samseg.Affine()
-_, transformedTemplateFileName, optimizationSummary = affine.registerAtlas(
-    args.inputFileNames[0],
-    affineRegistrationMeshCollectionFileName,
-    templateFileName,
-    args.outputDirectory,
-    visualizer,
-    worldToWorldTransformMatrix,
-    initTransform
-)
-
-# Save a summary of the optimization process
-if optimizationSummary:
-    with open( costfile, "a") as file:
-        file.write('templateRegistration %d %f\n' % (optimizationSummary['numberOfIterations'],
-                                                     optimizationSummary['cost']))
-
-timer.mark('atlas registration complete')
-if args.reg_only:
-    print('registration-only requested, so quiting now')
-    sys.exit()
-
-# ------ Prepare Samsegment Parameters ------
+# ------ Prepare Samseg Parameters ------
 
 # Load user options from a JSON file
 userModelSpecifications = {}
@@ -143,13 +118,12 @@ if args.save_posteriors is not None and len(args.save_posteriors) == 0:
 else:
     savePosteriors = args.save_posteriors
 
-# ------ Run Samsegment ------
+# ------ Run Samseg ------
 
 samseg_kwargs = dict(
     imageFileNames=args.inputFileNames,
     atlasDir=atlasDir,
     savePath=args.outputDirectory,
-    transformedTemplateFileName=transformedTemplateFileName,
     userModelSpecifications=userModelSpecifications,
     userOptimizationOptions=userOptimizationOptions,
     targetIntensity=110,
@@ -159,49 +133,32 @@ samseg_kwargs = dict(
     saveMesh=args.save_mesh,
     savePosteriors=savePosteriors,
     saveWarp=args.save_warp,
-    modeNames=args.mode
+    modeNames=args.mode,
+    pallidumAsWM=(not args.pallidum_separate)
 )
 
 if args.lesion:
-    # The intensities mask is used to mask false positive during the sampling process
-    # The mask is created from the intensityMaskingSearchString structure and depending on the value of
-    # intensityMaskingPattern is masking lesion below the intensityMaskingSearchString structure mean if -1,
-    # and above the mean if 1. 0 means no masking
-    # For MS lesion the best setting is the Cortex structure with 0 for T1, 1 for T2 and/or FLAIR.
-    intensityMaskingSearchString = 'Cortex'
-    
-    # If no intensity masking pattern is specified by the user,
-    # let's assume the first image is T1 and the second is FLAIR or T2 and eventually
-    # the third one is a FLAIR or T2. For extra contrasts just use 0 intensity mask pattern.
-    if args.lesion_mask is None:
-        if len(args.inputFileNames) == 1:
-            intensityMaskingPattern = [0]
-        elif len(args.inputFileNames) == 2:
-            intensityMaskingPattern = [0, 1]
-        elif len(args.inputFileNames) == 3:
-            intensityMaskingPattern = [0, 1, 1]
-        else:
-            intensityMaskingPattern = np.zeros(len(args.inputFileNames))
-            intensityMaskingPattern[1:3] = 1
-    else:
-        intensityMaskingPattern = args.lesion_mask
+    if args.lesion_mask_pattern is None:
+        fs.fatal('Lesion mask pattern must be set when using the lesion segmentation option.')
 
     # Delay import until here so that tensorflow doesn't get loaded unless needed
     from freesurfer.samseg.SamsegLesion import SamsegLesion
     samseg = SamsegLesion(**samseg_kwargs,
-        intensityMaskingSearchString=intensityMaskingSearchString,
-        intensityMaskingPattern=intensityMaskingPattern,
+        intensityMaskingSearchString=args.lesion_mask_structure,
+        intensityMaskingPattern=args.lesion_mask_pattern,
         numberOfBurnInSteps=args.burnin,
         numberOfSamplingSteps=args.samples,
-        threshold=args.threshold,
+        threshold=args.threshold
     )
 
 else:
     samseg = samseg.Samseg(**samseg_kwargs)
 
-samseg.preProcess()
-samseg.process()
-_, _, _, optimizationSummary = samseg.postProcess()
+_, _, _, optimizationSummary = samseg.segment(costfile=costfile,
+                                              timer=timer,
+                                              worldToWorldTransformMatrix=worldToWorldTransformMatrix,
+                                              initTransform=initTransform,
+                                              reg_only=args.reg_only)
 
 # Save a summary of the optimization process
 with open(costfile, 'a') as file:

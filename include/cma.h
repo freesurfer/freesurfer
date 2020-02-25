@@ -140,6 +140,7 @@
  */
 
 #define Dura              98
+#define Lesion            99
 #define Epidermis        118
 #define Conn_Tissue      119
 #define SC_FAT_MUSCLE    120
@@ -158,6 +159,8 @@
 #define Nasal_Structures 133
 #define Globe            134
 #define Teeth            135
+
+#define Skull            165
 
 #define Right_Temporal_Cerebral_White_Matter 186
 #define Left_Temporal_Cerebral_White_Matter  187
@@ -216,6 +219,7 @@
 #define VOXEL_UNCHANGED   256
 #define CSF_ExtraCerebral 257
 #define Head_ExtraCerebral 258
+#define Eye_Fluid         259
 
 // vascular and lymph labels (from Alex G)
 #define Aorta                    331

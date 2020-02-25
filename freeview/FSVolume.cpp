@@ -254,7 +254,7 @@ bool FSVolume::MRIRead( const QString& filename, const QString& reg_filename )
 #else
   int nthreads = 1 ;
 #endif
-  int max_percent = 100.0 - 50 / nthreads;
+  int max_percent = 50;
   ::SetProgressCallback(ProgressCallback, 0, max_percent);
 //  QElapsedTimer timer;
 //  timer.start();
@@ -263,12 +263,10 @@ bool FSVolume::MRIRead( const QString& filename, const QString& reg_filename )
     this->CopyMatricesFromMRI();
     ::SetProgressCallback(ProgressCallback, max_percent, 100);
 
-//    qDebug() << "Before MRI to image";
     if ( !this->MapMRIToImage() )
     {
       return false;
     }
-//    qDebug() << timer.elapsed()/1000;
 
     if ( m_volumeRef && m_volumeRef->m_MRIOrigTarget && !m_MRIOrigTarget )
     {
@@ -1889,6 +1887,7 @@ bool FSVolume::MapMRIToImage( bool do_not_create_image )
 //    qDebug() << rasMRI->width << rasMRI->height << rasMRI->depth;
 
 //    QElapsedTimer t; t.start();
+//    qDebug() << "begin vol2vol";
     MRIvol2Vol( m_MRI, rasMRI, NULL, m_nInterpolationMethod, 0 );
 //    qDebug() << "vol2vol time: " << t.elapsed()/1000;
     MATRIX* vox2vox = MRIgetVoxelToVoxelXform( m_MRI, rasMRI );

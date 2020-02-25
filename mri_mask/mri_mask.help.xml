@@ -42,6 +42,8 @@
       <explanation>target volume for -xform (if not available from the xform file)</explanation>
       <argument>-T threshold</argument>
       <explanation>threshold mask volume at threshold (i.e., all values &lt;= T considered as zero)</explanation>
+      <argument>-samseg</argument>
+      <explanation>assume mask is a samseg segmentation and mask all non-brain labels</explanation>
       <argument>-bb npad</argument>
       <explanation>Create and extract data from a bounding box around the mask. The bounding box is expanded by npad voxels in each direction. npad should be at least 1 to avoid clipping</explanation>
       <argument>-abs</argument>

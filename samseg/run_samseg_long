@@ -19,6 +19,7 @@ parser.add_argument('-m', '--mode', nargs='+', help='Output basenames for the in
 parser.add_argument('-a', '--atlas', metavar='DIR', help='Point to an alternative atlas directory.')
 parser.add_argument('--save-warp', action='store_true', help='Save the image->template warp fields.')
 parser.add_argument('--threads', type=int, default=default_threads, help='Number of threads to use. Defaults to current OMP_NUM_THREADS or 1.')
+parser.add_argument('--pallidum-separate', action='store_true', default=False, help='Move pallidum outside of global white matter class. Use this flag when T2/flair is used.')
 
 args = parser.parse_args()
 
@@ -57,11 +58,10 @@ samsegLongitudinal = samseg.SamsegLongitudinal(
     args.output,
     targetIntensity=110,
     targetSearchStrings=['Cerebral-White-Matter'],
-    modeNames=args.mode
+    modeNames=args.mode,
+    pallidumAsWM=(not args.pallidum_separate)
 )
 
-samsegLongitudinal.preProcess()
-samsegLongitudinal.process()
-samsegLongitudinal.postProcess(saveWarp=args.save_warp)
+samsegLongitudinal.segment(saveWarp=args.save_warp)
 
 timer.mark('run_samseg_long complete')

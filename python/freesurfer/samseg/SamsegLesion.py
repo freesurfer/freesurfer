@@ -13,10 +13,10 @@ eps = np.finfo(float).eps
 
 
 class SamsegLesion(Samseg):
-    def __init__(self, imageFileNames, atlasDir, savePath, userModelSpecifications=None, userOptimizationOptions=None,
+    def __init__(self, imageFileNames, atlasDir, savePath, userModelSpecifications={}, userOptimizationOptions={},
                  transformedTemplateFileName=None, visualizer=None, saveHistory=None, savePosteriors=None,
                  saveWarp=None, saveMesh=None, threshold=0.3, thresholdSearchString='Lesion',
-                 targetIntensity=None, targetSearchStrings=None, modeNames=None,
+                 targetIntensity=None, targetSearchStrings=None, modeNames=None, pallidumAsWM=True,
                  numberOfSamplingSteps=50, numberOfBurnInSteps=50,
                  numberOfPseudoSamplesMean=500, numberOfPseudoSamplesVariance=500, rho=50,
                  intensityMaskingPattern=None, intensityMaskingSearchString=None
@@ -24,14 +24,20 @@ class SamsegLesion(Samseg):
         Samseg.__init__(self, imageFileNames, atlasDir, savePath, userModelSpecifications, userOptimizationOptions,
                  transformedTemplateFileName, visualizer, saveHistory, savePosteriors,
                  saveWarp, saveMesh, threshold, thresholdSearchString,
-                 targetIntensity, targetSearchStrings, modeNames)
+                 targetIntensity, targetSearchStrings, modeNames, pallidumAsWM=pallidumAsWM)
         self.numberOfSamplingSteps = numberOfSamplingSteps
         self.numberOfBurnInSteps = numberOfBurnInSteps
         self.numberOfPseudoSamplesMean = numberOfPseudoSamplesMean
         self.numberOfPseudoSamplesVariance = numberOfPseudoSamplesVariance
         self.rho = rho
-        self.intensityMaskingPattern = intensityMaskingPattern
         self.intensityMaskingClassNumber = self.getClassNumber(intensityMaskingSearchString)
+
+        if len(intensityMaskingPattern) != len(imageFileNames):
+            raise ValueError('Number of lesion mask patterns does not match the number of input images.')
+        if not(all(pattern in (0, 1, -1) for pattern in intensityMaskingPattern)):
+            raise ValueError('Lesion mask pattern values can be only 0, 1 or -1')
+
+        self.intensityMaskingPattern = intensityMaskingPattern
 
         # Check conditions on white matter and lesion gaussian/structure and
         # get their structure numbers, class number as well as the gaussian number
@@ -46,9 +52,7 @@ class SamsegLesion(Samseg):
             return None
 
         #
-        sharedGMMParameters = kvlReadSharedGMMParameters(os.path.join(self.atlasDir, 'sharedGMMParameters.txt'))
-
-        for classNumber, mergeOption in enumerate(sharedGMMParameters):
+        for classNumber, mergeOption in enumerate(self.modelSpecifications.sharedGMMParameters):
             for searchString in mergeOption.searchStrings:
                 if structureSearchString in searchString:
                     structureClassNumber = classNumber
@@ -68,12 +72,10 @@ class SamsegLesion(Samseg):
         classNumber = self.getClassNumber(searchString)
 
         # Get class fractions
-        modelSpecifications = getModelSpecifications(self.atlasDir)
-        modelSpecifications = Specification(modelSpecifications)
-        numberOfGaussiansPerClass = [param.numberOfComponents for param in modelSpecifications.sharedGMMParameters]
+        numberOfGaussiansPerClass = [param.numberOfComponents for param in self.modelSpecifications.sharedGMMParameters]
 
-        classFractions, _ = kvlGetMergingFractionsTable(modelSpecifications.names,
-                                                          modelSpecifications.sharedGMMParameters)
+        classFractions, _ = kvlGetMergingFractionsTable(self.modelSpecifications.names,
+                                                        self.modelSpecifications.sharedGMMParameters)
 
         structureNumbers = np.flatnonzero(classFractions[classNumber, :] == 1)
         gaussianNumbers = [sum(numberOfGaussiansPerClass[0: classNumber])]
@@ -91,9 +93,9 @@ class SamsegLesion(Samseg):
         self.gmm.fullHyperVariancesNumberOfMeasurements[self.lesionGaussianNumber] = self.numberOfPseudoSamplesVariance
         self.gmm.tiedGaussiansInit(self.wmGaussianNumber, self.lesionGaussianNumber, self.rho)
 
-    def segment(self):
+    def computeFinalSegmentation(self):
 
-        _, biasFields, nodePositions, data, priors = Samseg.segment(self)
+        _, biasFields, nodePositions, data, priors = Samseg.computeFinalSegmentation(self)
 
         #
         numberOfVoxels = data.shape[0]

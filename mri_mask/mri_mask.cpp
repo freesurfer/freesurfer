@@ -69,6 +69,7 @@ static int no_cerebellum = 0 ;
 static int DoLH = 0;
 static int DoRH = 0;
 
+static int samseg = 0 ;
 static  float out_val=0;
 static int invert = 0 ;
 static char *xform_fname = NULL;
@@ -231,6 +232,32 @@ int main(int argc, char *argv[])
     printf("Found %d voxels in mask (pct=%6.2f)\n",nmask,
 	   100.0*nmask/(mri_mask->width*mri_mask->height*mri_mask->depth));
   }
+  if(samseg){
+    nmask = 0;
+    for (z = 0 ; z <mri_mask->depth ; z++) {
+      for (y = 0 ; y < mri_mask->height ; y++) {
+	for (x = 0 ; x < mri_mask->width ; x++) {
+	  value = MRIgetVoxVal(mri_mask, x, y, z, 0);
+	  switch ((int)value)
+	  {
+	  case Unknown:
+	  case CSF:
+	  case Skull:
+	  case Air:
+	  case Head_ExtraCerebral:
+	  case CSF_ExtraCerebral:
+	    MRIsetVoxVal(mri_mask,x,y,z,0,0);
+	    break;
+	  default:
+	    MRIsetVoxVal(mri_mask,x,y,z,0,1);
+	    nmask ++;
+	  }
+	}
+      }
+    }
+    printf("Found %d voxels in mask (pct=%6.2f)\n",nmask,
+	   100.0*nmask/(mri_mask->width*mri_mask->height*mri_mask->depth));
+  }
 
   if (DoLH || DoRH)  // mri_mask is an aseg - convert it to a mask
   {
@@ -337,6 +364,11 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "version"))
   {
     print_version() ;
+  }
+  else if (!stricmp(option, "samseg"))
+  {
+    samseg = 1 ;
+    printf("masking nonbrain using samseg segmentation\n") ;
   }
   else if (!stricmp(option, "abs"))
   {

@@ -39,6 +39,10 @@
       <explanation>keep edits as found in output volume</explanation>
       <argument>-keep-in</argument>
       <explanation>keep edits as found in input volume</explanation>
+      <argument>-lh</argument>
+      <explanation>erase rh labels from output</explanation>
+      <argument>-rh</argument>
+      <explanation>erase lh labels from output</explanation>
       <argument>-debug_voxel Gx Gy Gz</argument>
     </optional-flagged>
   </arguments>

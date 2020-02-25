@@ -2286,7 +2286,8 @@ MRI *MRImaskDifferentGeometry(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, int mas
 {
   MATRIX *m_vox2vox;
   VECTOR *v1, *v2;
-  int x, y, z, xd, yd, zd, f, mask_val, val;
+  int x, y, z, xd, yd, zd, f, mask_val;
+  float val ;
 
   v1 = VectorAlloc(4, MATRIX_REAL);
   v2 = VectorAlloc(4, MATRIX_REAL);
@@ -2305,17 +2306,20 @@ MRI *MRImaskDifferentGeometry(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, int mas
         xd = nint(V3_X(v2));
         yd = nint(V3_Y(v2));
         zd = nint(V3_Z(v2));
+	if (x == 616 && y == 283 && z == 627)
+	  DiagBreak() ;
+	if (xd == 154 && yd == 71 && zd == 157)
+	  DiagBreak() ;
         if (xd < 0 || xd >= mri_mask->width || yd < 0 || yd >= mri_mask->height || zd < 0 || zd >= mri_mask->depth)
           mask_val = mask + 1;  // allow it through
         else
           mask_val = nint(MRIgetVoxVal(mri_mask, xd, yd, zd, 0));
         for (f = 0; f < mri_dst->nframes; f++) {
-          val = nint(MRIgetVoxVal(mri_src, x, y, z, f));
           if (mask_val == mask)
             val = out_val;
           else
             val = MRIgetVoxVal(mri_src, x, y, z, f);
-          MRIsetVoxVal(mri_dst, x, y, z, f, val);
+           MRIsetVoxVal(mri_dst, x, y, z, f, val);
         }
       }
     }

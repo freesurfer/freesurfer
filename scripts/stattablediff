@@ -1,288 +1,103 @@
 #!/usr/bin/env python
 
-import sys;
-import os;
-import string;
-from numpy  import *;
-
-#---------------------------------------------------------
-def print_help():
-  print "USAGE: stattablediff - creates a table of the differences between two tables";
-  print "  --t1 table1 : input table 1 (output of asegstats2table or aparcstats2table)";
-  print "  --t2 table2 : input table 2 (output of asegstats2table or aparcstats2table)";
-  print "  --o  tablediff : output file";
-  print "  --percent compute percent diff with respect to mean of tables";
-  print "  --percent1 compute percent diff with respect to table1";
-  print "  --percent2 compute percent diff with respect to table2";
-  print "  --mul mulval : multiply by mulval";
-  print "  --div divval : divide by divval";
-  print "  --common : compute diff on common segs (may reorder)";
-  print "  --rm-exvivo : remove the string 'exvivo' from the column header"
-  print "  --debug : print out debugging info";
-  return 0;
-#end def print_help:
-
-#---------------------------------------------------------
-def argnerr(narg,flag):
-  print "ERROR: flag %s requires %d arguments" % (flag,narg);
-  sys.exit(1);
-#end def parse_args(argv)
-
-#---------------------------------------------------------
-def parse_args(argv):
-  global table1;
-  global table2;
-  global tablediff;
-  global debug;
-  global DoPercent;
-  global MulVal;
-  global DivVal;
-  global AllowCommon;
-  global RmExvivo;
-
-  del argv[0]; # get past program name (like shift)
-
-  while(len(argv) != 0):
-    flag = argv[0];
-    del argv[0];
-    if(debug): print "flag = %s" % flag;
-    if(flag == "--t1"):
-      if(len(argv) < 1): argnerr(1,flag);
-      table1 = argv[0]; del argv[0];
-    elif(flag == "--t2"):
-      if(len(argv) < 1): argnerr(1,flag);
-      table2 = argv[0]; del argv[0];
-    elif(flag == "--o"):
-      if(len(argv) < 1): argnerr(1,flag);
-      tablediff = argv[0]; del argv[0];
-    elif(flag == "--mul"):
-      if(len(argv) < 1): argnerr(1,flag);
-      MulVal = float(argv[0]); del argv[0];
-    elif(flag == "--div"):
-      if(len(argv) < 1): argnerr(1,flag);
-      DivVal = float(argv[0]); del argv[0];
-    elif(flag == "--percent1"):
-      DoPercent = 1;
-    elif(flag == "--percent2"):
-      DoPercent = 2;
-    elif(flag == "--percent"):
-      DoPercent = 3;
-    elif(flag == "--common"):
-      AllowCommon = 1;
-    elif(flag == "--rm-exvivo"):
-      RmExvivo = 1;
-    elif(flag == "--debug"):
-      debug = 1;
-    else:
-      print "ERROR: flag %s not recognized" % flag; 
-      sys.exit(1);
-    #endif
-  #endwhile
-  return 0;
-
-#end def parse_args(argv)
-
-#---------------------------------------------------------
-def isflag(arg):
-  if(len(arg) < 3): return 0;
-  if(arg[0] == "-" and arg[1] == "-"): return 1;
-  return 0;
-# end def isflag(arg)
-
-#---------------------------------------------------------
-def check_args():
-  global table1;
-  global table2;
-  global tablediff;
-
-  if(len(table1) == 0):
-    print "ERROR: table1 needed";
-    sys.exit(1);
-  #endif    
-  if(len(table2) == 0):
-    print "ERROR: table2 needed";
-    sys.exit(1);
-  #endif    
-  if(len(tablediff) == 0):
-    print "ERROR: output needed";
-    sys.exit(1);
-  #endif    
-
-  return 0;
-#end check_args()
-
-#-----------------------------------------------------------
-# ------ main -----------------------------------------------
-#-----------------------------------------------------------
-
-debug = 0;
-table1=();
-table2=();
-tablediff=();
-DoPercent = 0;
-MulVal = 1;
-DivVal = 1;
-AllowCommon = 0;
-RmExvivo = 0;
-
-nargs = len(sys.argv) - 1;
-if(nargs == 0):
-  print_help();
-  sys.exit(0);
-#end
-parse_args(sys.argv);
-check_args();
-
-# Count number of rows, cols in table 1
-try:
-  fp = open(table1, 'r');
-except:
-  print "ERROR: opening %s" % (table1);
-  sys.exit(1);
-#endtry
-header1 = fp.readline();
-if(RmExvivo): header1 = header1.replace("_exvivo","");
-collist1 = header1.split();
-meas1 = collist1[0];
-del collist1[0]; # remove Measure:xxx
-ncols1 = len(collist1);
-nrows1 = 0;
-for line in fp:
-  nrows1 = nrows1 + 1;
-#endfor
-fp.close;
-
-# Count number of rows, cols in table 2
-try:
-  fp = open(table2, 'r');
-except:
-  print "ERROR: opening %s" % (table2);
-  sys.exit(1);
-#endtry
-fp = open(table2, 'r');
-header2 = fp.readline();
-if(RmExvivo): header2 = header2.replace("_exvivo","");
-collist2 = header2.split();
-meas2 = collist2[0];
-del collist2[0]; # remove Measure:xxx
-ncols2 = len(collist2);
-nrows2 = 0;
-for line in fp:
-  nrows2 = nrows2 + 1;
-#endfor
-fp.close;
-
-if(debug):
-  print "nrows1 %d, ncols1 %d" % (nrows1,ncols1);
-  print "nrows2 %d, ncols2 %d" % (nrows2,ncols2);
-#endif
-
-if(nrows1 != nrows2):
-  print "ERROR: rows are not equal %d %d" % (nrows1,nrows2);
-  sys.exit(0);
-#end
-
-DoCommon = 0;
-comcollist = list(set(collist1) & set(collist2));
-ncolscom = len(comcollist);
-if(ncols1 != ncolscom or ncols2 != ncolscom):
-  if(AllowCommon): 
-    print "INFO: cols have different segs, doing common segs (%d,%d)" % (ncols1,ncols2);
-    DoCommon = 1;
-    ncols1 = ncolscom;
-    ncols2 = ncolscom;
-  else:
-    print "ERROR: cols have different segs (%d,%d)" % (ncols1,ncols2);
-    print "  Use --common to only compute the difference on the common segs"
-    sys.exit(0);
-  #end
-#end
-
-# Read in table 1
-subjlist1 = [];
-m1 = zeros((nrows1,ncols1));
-fp = open(table1, 'r');
-header = fp.readline();
-row = 0;
-for line in fp:
-  linesplit = line.split();
-  subjlist1.append(linesplit[0]);
-  del linesplit[0];
-  col = 0;
-  for v in linesplit:
-    k = col;
-    item = collist1[col];
-    if(DoCommon): 
-      if item in comcollist: k = comcollist.index(item);
-      else: continue
-    #endif
-    m1[row][k] = float(v);
-    col = col + 1;
-  #endfor
-  row = row + 1;
-#endfor
-fp.close;
-
-# Read in table 2
-subjlist2 = [];
-m2 = zeros((nrows2,ncols2));
-fp = open(table2, 'r');
-header = fp.readline();
-row = 0;
-for line in fp:
-  linesplit = line.split();
-  subjlist2.append(linesplit[0]);
-  del linesplit[0];
-  col = 0;
-  for v in linesplit:
-    k = col;
-    item = collist2[col];
-    if(DoCommon): 
-      if item in comcollist: k = comcollist.index(item);
-      else: continue
-    #endif
-    m2[row][k] = float(v);
-    col = col + 1;
-  #endfor
-  row = row + 1;
-#endfor
-fp.close;
-
-mdiff = (m1-m2)*MulVal/DivVal;
-if(DoPercent):
-  if(DoPercent==1):   den = m1;
-  elif(DoPercent==2): den = m2;
-  else:               den = ((m1+m2)/2);
-  mdiff = 100*mdiff/den;
-  # set elemnts to 0 where den=0
-  a = transpose(nonzero(den==0));
-  mdiff[a[:,0],a[:,1]] = 0;
-#end
-
-fp = open(tablediff,'w');
-if(DoCommon): 
-  fp.write(meas1);
-  fp.write(" ");
-  for item in comcollist: 
-    fp.write(item);
-    fp.write(" ");
-  fp.write("\n");
-else: fp.write(header);
-for row in range(0, nrows1):
-  fp.write("%s " % subjlist1[row]);
-  for col in range(0, ncols1):
-    fp.write("%f " % mdiff[row,col]);
-  #end
-  fp.write("\n");
-#end
-fp.close;
-
-print "stattablediff done";
-sys.exit(0);
-#-------------------------------------------------#
+import sys
+import os
+import collections
+import numpy as np
+import freesurfer as fs
 
 
+# parse input
+parser = fs.utils.ArgumentParser(description='creates a table of the differences between two stats tables')
+parser.add_argument('--t1', required=True, help='input table 1 (output of asegstats2table or aparcstats2table)')
+parser.add_argument('--t2', required=True, help='input table 2 (output of asegstats2table or aparcstats2table)')
+parser.add_argument('--o', required=True, help='output file')
+parser.add_argument('--percent', action='store_true', help='compute percent diff with respect to mean of tables')
+parser.add_argument('--percent1', action='store_true', help='compute percent diff with respect to table1')
+parser.add_argument('--percent2', action='store_true', help='compute percent diff with respect to table2')
+parser.add_argument('--mul', nargs=1, default=1, type=float, help='multiply by mulval')
+parser.add_argument('--div', nargs=1, default=1, type=float, help='divide by divval')
+parser.add_argument('--common', action='store_true', help='compute diff on common segs (may reorder)')
+parser.add_argument('--rm-exvivo', action='store_true', help='remove the string "_exvivo" from the column header')
+args = parser.parse_args()
 
+# table reading utility
+def read_table(tablefile):
 
+    # check if file exists
+    if not os.path.isfile(tablefile):
+        fs.fatal('table file does not exist at %s' % tablefile)
 
+    # read table data
+    with open(tablefile, 'r') as file:
+        header = file.readline()
+        if args.rm_exvivo:
+            header = header.replace('_exvivo', '')
+        header = header.split()
+        measure = header[0].split(':')[-1]
+        structlist = header[1:]
+        values = collections.OrderedDict()
+        for line in file:
+            splitline = line.split()
+            if not splitline:
+                continue
+            subject = splitline[0]
+            values[subject] = {struct: float(val) for struct, val in zip(structlist, splitline[1:])}
 
+    return (structlist, values, measure)
+
+# read tables
+structlist1, values1, measure1 = read_table(args.t1)
+structlist2, values2, measure2 = read_table(args.t2)
+
+# check if measures are the same
+if measure1 != measure2:
+    fs.fatal('table 1 measure (%s) does not match table 2 measure (%s)' % (measure1, measure2))
+
+# check for subject and structure differences
+def check_differences(a, b, dtype):
+    common = [x for x in a if x in b]
+    if not common:
+        fs.fatal('tables have no common %ss!' % dtype)
+    for tnum, lst in enumerate((a, b)):
+        uniques = [x for x in lst if x not in common]
+        for unique in uniques:
+            print('info: table %d has unique %s %s' % (tnum + 1, dtype, unique))
+        if uniques and not args.common:
+            fs.fatal('tables have differing %ss, to diff only on common data, use the --common flag' % dtype)
+    return common
+
+subjects = check_differences(values1.keys(), values2.keys(), 'subject')
+structures = check_differences(structlist1, structlist2, 'structure')
+
+# build matrices from common data
+mat1 = np.zeros((len(subjects), len(structures)))
+mat2 = np.zeros((len(subjects), len(structures)))
+for i, subject in enumerate(subjects):
+    for j, structure in enumerate(structures):
+        mat1[i, j] = values1[subject][structure]
+        mat2[i, j] = values2[subject][structure]
+
+# compute diff
+diff = (mat1 - mat2) * args.mul / args.div
+
+# check if computing percent diff
+perc_den = None
+if args.percent:
+    perc_den = (mat1 + mat2) / 2.0
+elif args.percent1:
+    perc_den = mat1
+elif args.percent2:
+    perc_den = mat2
+
+# compute percent diff
+if perc_den is not None:
+    diff = 100 * diff / perc_den
+    a = np.transpose(np.nonzero(perc_den == 0))
+    diff[a[:, 0], a[:, 1]] = 0
+
+# write table
+with open(args.o, 'w') as file:
+    file.write('Measure:%s-diff  %s\n' % (measure1, '  '.join(structures)))
+    for i, subject in enumerate(subjects):
+        file.write('%s  %s\n' % (subject, '  '.join(['%f' % val for val in diff[i]])))
