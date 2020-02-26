@@ -4,6 +4,7 @@
 #include "LayerMRI.h"
 #include "LayerPropertyMRI.h"
 #include "LayerROI.h"
+#include <QDebug>
 
 DialogLabelStats::DialogLabelStats(QWidget *parent) :
   QWidget(parent),

@@ -435,7 +435,7 @@ void LayerROI::GetStats(int nPlane, int *count_out, float *area_out,
     {
       for ( int k = 0; k < dim[2]; k++ )
       {
-        if ( ptr[k*dim[0]*dim[1]+j*dim[0]+i] > GetProperty()->GetThreshold() )
+        if ( ptr[k*dim[0]*dim[1]+j*dim[0]+i] >= GetProperty()->GetThreshold() )
         {
           cnt++;
           //          indices << i << j << k;
