@@ -51,7 +51,7 @@ main(int argc, char *argv[]) {
   char   **av ;
   int    ac, nargs, x0, y0, z0, dx, dy, dz ;
   MRI    *mri_src, *mri_dst = NULL ;
-  char   *in_dir, *out_dir ;
+  char   *in_dir, *out_dir = NULL;
   MRI_REGION box ;
 
   nargs = handleVersionOption(argc, argv, "mri_extract");
