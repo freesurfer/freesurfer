@@ -194,7 +194,8 @@ class Volume(ArrayContainerTemplate, Transformable):
 
         Parameter:
             voxsize: Voxel size of target volume.
-            smooth_sigma: Apply gaussian smoothing before resampling. Default is 0.
+            smooth_sigma: Apply gaussian smoothing before resampling (kernel size is
+                in voxel space). Default is 0.
         '''
         src_shape = self.shape[:3]
         target_shape = tuple(np.ceil(np.array(self.voxsize).astype(float) * src_shape / voxsize).astype(int))

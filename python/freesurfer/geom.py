@@ -58,7 +58,8 @@ def resample(source, target_shape, trg2src, smooth_sigma=0):
         source: Source array to sample from. Must be 3D or 4D.
         target_shape: Shape of the returned target array.
         trg2src: 4x4 affine matrix that transforms target coords to source coords.
-        smooth_sigma: Apply gaussian smoothing before resampling. Default is 0.
+        smooth_sigma: Apply gaussian smoothing before resampling (smoothing kernel is
+            in voxel space). Default is 0.
     '''
     if source.ndim > 4:
         raise ValueError('resampling can not be done on arrays with more than 4 dimensions')

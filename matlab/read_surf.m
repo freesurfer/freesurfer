@@ -65,7 +65,7 @@ if((magic == QUAD_FILE_MAGIC_NUMBER) | (magic == NEW_QUAD_FILE_MAGIC_NUMBER))
   end
 elseif (magic == TRIANGLE_FILE_MAGIC_NUMBER)
   fgets(fid) ;
-  fscanf('\n');
+  fscanf(fid,'\n');
   vnum = fread(fid, 1, 'int32') ;
   fnum = fread(fid, 1, 'int32') ;
   vertex_coords = fread(fid, vnum*3, 'float32') ; 

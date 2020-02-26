@@ -23,11 +23,10 @@ set regonly = 0;
 set computedice = 0;
 set diceseg = none
 set DoRecon = 0;
-set DoFill = 1; # Create filled.mgz in samseg2recon
-set DoNormalization2 = 1; # Do Normalization2 in samseg2recon
-set DoHiRes = 1;
+set DoFill = 0; # Create filled.mgz in samseg2recon
+set DoNormalization2 = 0; # Do Normalization2 in samseg2recon
+set DoHiRes = 0;
 set DoLesion = 0;
-set DoDecimate = 1; 
 set DoImport = 0
 set HaveT1w = 0;
 set HaveT2w = 0;
@@ -46,6 +45,7 @@ set DoMRF = 0;
 #set mrfgca = $FREESURFER_HOME/average/samseg/samseg.talairach.lta.mrf.gca
 set mrfgca = $FREESURFER_HOME/average/samseg/samseg.talairach.m3z.mrf.gca
 set DoRefine = 0
+set ForceUpdate = 0
 
 set inputargs = ($argv);
 set PrintHelp = 0;
@@ -73,7 +73,7 @@ set day   = `date +%d`
 set hour   = `date +%H`
 set min    = `date +%M`
 
-mkdir -p $outdir
+mkdir -p $outdir/log
 pushd $outdir > /dev/null
 set outdir = `pwd`;
 popd > /dev/null
@@ -86,8 +86,19 @@ mkdir -p $tmpdir
 
 # Set up log file
 if($#LF == 0) then
-  if($#subject == 0) set LF = $outdir/samseg.Y$year.M$month.D$day.H$hour.M$min.log
-  if($#subject != 0) set LF = $SUBJECTS_DIR/$subject/scripts/samseg.Y$year.M$month.D$day.H$hour.M$min.log
+  if($#subject == 0) then
+    set LF = $outdir/log/samseg.Y$year.M$month.D$day.H$hour.M$min.log
+    pushd $outdir 
+    ln -sf log/samseg.Y$year.M$month.D$day.H$hour.M$min.log samseg.log
+    popd
+  endif
+  if($#subject != 0) then
+    mkdir -p $SUBJECTS_DIR/$subject/scripts/log
+    set LF = $SUBJECTS_DIR/$subject/scripts/log/samseg.Y$year.M$month.D$day.H$hour.M$min.log
+    pushd $SUBJECTS_DIR/$subject/scripts
+    ln -sf log/samseg.Y$year.M$month.D$day.H$hour.M$min.log samseg.log
+    popd
+  endif
 endif
 if($LF != /dev/null) rm -f $LF
 echo "Log file for samseg" >> $LF
@@ -107,11 +118,13 @@ endif
 if($DoImport) then
   # Import the data
   set cmd = (fsr-import $inputargs --o $importdir)
+  if($ForceUpdate) set cmd = ($cmd --force-update)
   echo $cmd | tee -a $LF
   fs_time $cmd |& tee -a $LF
   if($status) goto error_exit;
   # Coregister within and between modes, resample to reference mode
   set cmd = (fsr-coreg --i $importdir --ref $refmodename --threads $threads --o $coregdir)
+  if($ForceUpdate) set cmd = ($cmd --force-update)
   echo $cmd | tee -a $LF
   fs_time $cmd |& tee -a $LF
   if($status) goto error_exit;
@@ -223,7 +236,7 @@ endif # not regonly
 
 # Prep for recon
 if($#subject != 0) then
-  set cmd = (samseg2recon --i $input --s $subject)
+  set cmd = (samseg2recon --s $subject) # --i $input 
   set cmd = ($cmd --tmpdir $tmpdir/tmp.mergeseg)
   if($cleanup) set cmd = ($cmd --cleanup)
   if($DoFill) set cmd = ($cmd --fill)
@@ -245,7 +258,6 @@ if($#subject != 0) then
     if($UseT2w)   set cmd = ($cmd -T2pial)
     if($UseFLAIR) set cmd = ($cmd -FLAIRpial)
     if($DoHiRes) set cmd = ($cmd -hires)
-    if($DoDecimate) set cmd = ($cmd -decimate)
     echo $cmd | tee -a $LF
     $cmd | tee -a $LF
     if($status) goto error_exit;
@@ -483,12 +495,12 @@ while( $#argv != 0 )
       set usebin = 0;
       breaksw
 
+    case "--hires":
+    case "-hires":
+      set DoHiRes = 1; # for recon-all
+      breaksw
     case "--no-hires":
       set DoHiRes = 0; # for recon-all
-      breaksw
-
-    case "--no-decimate":
-      set DoDecimate = 0; # for recon-all
       breaksw
 
     case "--options":
@@ -682,18 +694,18 @@ usage_exit:
   echo "  --o outdir "
   echo "  --s subject : create subject, sets outdir to subject/mri/samseg"
   echo "                the first input must be the conformed T1 weighted input"
-  echo "  --recon : run recon-all "
-  echo "  --no-fill : create filled.mgz in recon-all instead of in samseg2recon (with --recon) "
-  echo "  --no-normalization2 : create brain.mgz in recon-all instead from samseg2recon (with --recon) "
-  echo "  --use-t2w : use the t2-weighted input when running recon-all"
-  echo "  --use-flair : use the FLAIR-weighted input when running recon-all"
-  echo "  --no-hires  : do not use -hires when running recon-all"
-  echo "  --no-decimate  : do not use -decimate when running recon-all"
-  echo "  --sd SUBJECTS_DIR"
   echo "  --save-posteriors : save posterior probs"
   echo "  --no-save-warp : do not save m3z-style warp"
   echo "  --mrf/--no-mrf : do or do not do MRF (default is $DoMRF)"
   echo "  --threads nthreads : set the number of CPUs to use"
+  echo ""
+  echo "  --recon : run recon-all "
+  echo "  --fill : use samseg to create filled.mgz instead of recon-all"
+  echo "  --normalization2 : use samseg to create brain.mgz instead of recon-all (with --recon) "
+  echo "  --use-t2w : use the t2-weighted input when running recon-all"
+  echo "  --use-flair : use the FLAIR-weighted input when running recon-all"
+  echo "  --hires  : use -hires when running recon-all"
+  echo "  --sd SUBJECTS_DIR"
   echo ""
   echo " --regmat reg.mat : registration file (as output by samseg)"
   echo "    allows using the reg from one run with another run"
@@ -743,4 +755,17 @@ atlas (eg, $FREESURFER_HOME/average/samseg/20Subjects_smoothing2_down2_smoothing
 
 eg, 
 mri_coreg --mov $atlas --targ orig.mgz --dof 12 --reg coreg.lta 
+
+Example 
+
+recon samseg --t1w 001.mgz --t2w T2raw.mgz --s subject --recon --use-t2w --refmode t1w 
+
+This will do a whole-brain multimodal segmentation using the
+T1-weighted 001.mgz and the T2-weighted T2raw.mgz. The output will go
+into $SUBJECTS_DIR/$subject/samseg.  recon-all will be run using the
+SAMSEG segmentation and the bias corrected t1w and t2w. The pial
+surface will be refined with the T2 because --use-t2w was specified.
+
+
+
 

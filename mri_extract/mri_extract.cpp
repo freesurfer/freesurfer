@@ -44,13 +44,14 @@ static int reductions = 1 ;
 static int verbose = 0 ;
 static int pad = 0 ;
 static float thresh = 0.0 ;
+static MRI *mri_like = NULL ;
 
 int
 main(int argc, char *argv[]) {
   char   **av ;
   int    ac, nargs, x0, y0, z0, dx, dy, dz ;
   MRI    *mri_src, *mri_dst = NULL ;
-  char   *in_dir, *out_dir ;
+  char   *in_dir, *out_dir = NULL;
   MRI_REGION box ;
 
   nargs = handleVersionOption(argc, argv, "mri_extract");
@@ -78,31 +79,42 @@ main(int argc, char *argv[]) {
      mri_extract <src_dir> x0 y0 z0 dx dy dz <dst_dir>
   */
 
-  if (argc < 8)
-    ErrorExit(ERROR_BADPARM,
-              "usage: %s <src volume> x0 y0 z0 dx dy dz <dst volume>", Progname) ;
-
   in_dir = argv[1] ;
-  if (sscanf(argv[2], "%d", &x0) != 1)
-    ErrorExit(ERROR_BADPARM,
-              "%s: could not scan x0 from '%s'", Progname, argv[2]) ;
-  if (sscanf(argv[3], "%d", &y0) != 1)
-    ErrorExit(ERROR_BADPARM,
-              "%s: could not scan y0 from '%s'", Progname, argv[3]) ;
-  if (sscanf(argv[4], "%d", &z0) != 1)
-    ErrorExit(ERROR_BADPARM,
-              "%s: could not scan z0 from '%s'", Progname, argv[4]) ;
-  if (sscanf(argv[5], "%d", &dx) != 1)
-    ErrorExit(ERROR_BADPARM,
-              "%s: could not scan dx from '%s'", Progname, argv[5]) ;
-  if (sscanf(argv[6], "%d", &dy) != 1)
-    ErrorExit(ERROR_BADPARM,
-              "%s: could not scan dy from '%s'", Progname, argv[6]) ;
-  if (sscanf(argv[7], "%d", &dz) != 1)
-    ErrorExit(ERROR_BADPARM,
-              "%s: could not scan dz from '%s'", Progname, argv[7]) ;
+  if (mri_like != NULL)
+  {
+    if (argc < 2)
+      ErrorExit(ERROR_BADPARM,
+		"usage: %s <src volume> x0 y0 z0 dx dy dz <dst volume>", Progname) ;
 
-  out_dir = argv[8] ;
+    
+  }
+  else
+  {
+    if (argc < 8)
+      ErrorExit(ERROR_BADPARM,
+		"usage: %s <src volume> x0 y0 z0 dx dy dz <dst volume>", Progname) ;
+
+    if (sscanf(argv[2], "%d", &x0) != 1)
+      ErrorExit(ERROR_BADPARM,
+		"%s: could not scan x0 from '%s'", Progname, argv[2]) ;
+    if (sscanf(argv[3], "%d", &y0) != 1)
+      ErrorExit(ERROR_BADPARM,
+		"%s: could not scan y0 from '%s'", Progname, argv[3]) ;
+    if (sscanf(argv[4], "%d", &z0) != 1)
+      ErrorExit(ERROR_BADPARM,
+		"%s: could not scan z0 from '%s'", Progname, argv[4]) ;
+    if (sscanf(argv[5], "%d", &dx) != 1)
+      ErrorExit(ERROR_BADPARM,
+		"%s: could not scan dx from '%s'", Progname, argv[5]) ;
+    if (sscanf(argv[6], "%d", &dy) != 1)
+      ErrorExit(ERROR_BADPARM,
+		"%s: could not scan dy from '%s'", Progname, argv[6]) ;
+    if (sscanf(argv[7], "%d", &dz) != 1)
+      ErrorExit(ERROR_BADPARM,
+		"%s: could not scan dz from '%s'", Progname, argv[7]) ;
+    out_dir = argv[8] ;
+  }
+
 
   if (verbose)
     fprintf(stderr, "reading from %s...", in_dir) ;
@@ -112,6 +124,24 @@ main(int argc, char *argv[]) {
 
   if (!mri_src)
     exit(1) ;
+  
+  if (mri_like)
+  {
+    double xv0, yv0, zv0, xv1, yv1, zv1 ;
+    out_dir = argv[2] ;
+    MRIvoxelToVoxel(mri_like, mri_src, 0, 0, 0, &xv0, &yv0, &zv0);
+    MRIvoxelToVoxel(mri_like, mri_src, mri_like->width-1, mri_like->height-1, mri_like->depth-1, &xv1, &yv1, &zv1);
+    printf("corners of template MRI point to (%2.1f, %2.1f, %2.1f) and (%2.1f, %2.1f, %2.1f)\n", xv0, yv0, zv0, xv1, yv1, zv1);
+
+    x0 = MIN(nint(xv0), nint(xv1)) ;
+    y0 = MIN(nint(yv0), nint(yv1)) ;
+    z0 = MIN(nint(zv0), nint(zv1)) ;
+    dx = MAX(nint(xv0), nint(xv1)) - x0 + 1;
+    dy = MAX(nint(yv0), nint(yv1)) - y0 + 1;
+    dz = MAX(nint(zv0), nint(zv1)) - z0 + 1;
+    printf("extracting region (%d, %d, %d) size (%d, %d, %d)\n",x0,y0,z0,dx,dy,dz);
+    printf("template volume size (%d, %d, %d)\n", mri_like->width,mri_like->height,mri_like->depth) ;
+  }
 
   MRIboundingBox(mri_src, thresh, &box) ;
   if (x0 < 0)
@@ -153,7 +183,13 @@ get_option(int argc, char *argv[]) {
   char *option ;
 
   option = argv[1] + 1 ;            /* past '-' */
-  switch (toupper(*option)) {
+  if (stricmp(option, "like") == 0)
+  {
+    mri_like = MRIread(argv[2]) ;
+    printf("using RAS coordinates and size of %s to compute bounding box\n",argv[2]) ;
+    nargs = 1 ;
+  }
+  else switch (toupper(*option)) {
   case 'V':
     verbose = 1 ;
     break ;
