@@ -76,6 +76,11 @@ public:
     return m_dHeatscaleMax;
   }
 
+  void GetValueRange(double* range)
+  {
+    range[0] = m_dValueRange[0];
+    range[1] = m_dValueRange[1];
+  }
 
   vtkRGBAColorTransferFunction* GetLookupTable() const;
 
