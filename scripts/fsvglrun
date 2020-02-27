@@ -34,7 +34,7 @@ else
 fi
 if [ ! -f /etc/opt/VirtualGL/vgl_xauth_key ] ; then
   # VGL is not installed
-  set FS_ALLOW_VGLRUN=0
+  FS_ALLOW_VGLRUN=0
 fi
 
 if [[ $DISPLAY = *:0 || $DISPLAY = *:0.0 ]]; then
