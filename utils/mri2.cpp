@@ -754,7 +754,7 @@ int MRIvol2Vol(MRI *src, MRI *targ, MATRIX *Vt2s, int InterpCode, float param)
 
   ROMP_PF_begin
 #ifdef HAVE_OPENMP
-  #pragma omp parallel for if_ROMP(experimental) shared(show_progress_thread, targ, bspline, src, Vt2s, InterpCode)
+  #pragma omp parallel for if_ROMP(assume_reproducible) shared(show_progress_thread, targ, bspline, src, Vt2s, InterpCode)
 #endif
   for (ct = 0; ct < targ->width; ct++) {
     ROMP_PFLB_begin
