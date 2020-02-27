@@ -415,7 +415,7 @@ void SurfaceLabel::EditVertices(const QVector<int> &verts, bool bAdd)
       if (m_label->n_points >= m_label->max_points)
       {
         LabelRealloc(m_label, mris->nvertices);
-        qDebug() << "reallocated label";
+//        qDebug() << "reallocated label";
       }
 
       int n = m_label->n_points++;  // n is the number of points before incr

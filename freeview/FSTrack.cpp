@@ -52,7 +52,7 @@ bool FSTrack::LoadFromFiles(const QStringList &filenames, const QString &ref_fn)
     MRI* mri_ref = ::MRIreadHeader(qPrintable(ref_fn), MRI_VOLUME_TYPE_UNKNOWN);
     if (!mri_ref)
     {
-      qDebug() << QString("Could not read reference volume %1.").arg(ref_fn);
+      cout << "Could not read reference volume " << qPrintable(ref_fn) << endl;
       return false;
     }
     MATRIX* m = MRIgetVoxelToRasXform( mri_ref );

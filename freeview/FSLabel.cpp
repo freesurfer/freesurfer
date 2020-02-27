@@ -83,7 +83,7 @@ bool FSLabel::LabelRead( const QString& filename )
   if (m_label->coords != LABEL_COORDS_SCANNER_RAS && m_mri_template)
   {
     LabelToScannerRAS(m_label, m_mri_template->GetMRI(), m_label);
-    qDebug() << "Label coordinates are converted to scanner ras for " << qPrintable(filename);
+    cout << "Label coordinates are converted to scanner ras for " << qPrintable(filename) << endl;
   }
 
   if (m_label && m_label->n_points > 0)
@@ -256,7 +256,6 @@ void FSLabel::UpdateLabelFromImage( vtkImageData* rasImage,
   }
 
   m_label = ::LabelAlloc( nCount, NULL, (char*)"" );
-  qDebug() << nCount;
   m_label->n_points = nCount;
 //  m_label->coords = LABEL_COORDS_TKREG_RAS;
   for ( int i = 0; i < nCount; i++ )

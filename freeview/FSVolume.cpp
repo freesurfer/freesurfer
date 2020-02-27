@@ -3082,7 +3082,7 @@ void FSVolume::UpdateHistoCDF(int frame, float threshold, bool highThresh)
   HISTOfree(&histo);
   if (!m_histoCDF)
   {
-    qDebug() << "Could not create HISTO";
+    cout << "Could not create HISTO" << endl;
     return;
   }
 

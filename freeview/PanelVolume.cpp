@@ -793,7 +793,7 @@ void PanelVolume::OnColorTableItemDoubleClicked(QTreeWidgetItem *item_in)
       }
       else
       {
-        qDebug() << tr("Label %1 does not exist").arg(item->text(0));
+        cout << qPrintable(tr("Label %1 does not exist").arg(item->text(0))) << endl;
       }
     }
   }
@@ -1931,7 +1931,7 @@ void PanelVolume::OnGoToFirstPoint()
       }
       else
       {
-        qDebug() << tr("Label %1 does not exist").arg(item->text(0));
+        cout << qPrintable(tr("Label %1 does not exist").arg(item->text(0))) << endl;
       }
     }
   }

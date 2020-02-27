@@ -610,7 +610,7 @@ void SurfaceAnnotation::ReassignNewLabel(int nId, int ctab_id, const QString& na
   {
     if (name.isEmpty() || !color.isValid())
     {
-      qDebug() << "Invalid index in color table: " << ctab_id;
+      cerr << "Invalid index in color table: " << ctab_id << endl;
       return;
     }
     UpdateColorTable(ctab_id, name, color);

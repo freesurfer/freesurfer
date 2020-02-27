@@ -86,7 +86,7 @@ bool LayerTrack::LoadTrackFromFiles()
   {
     delete m_trackData;
     m_trackData = 0;
-    qDebug() << "Failed to load from file " << m_sFilename << ".";
+    cerr << "Failed to load from file " << qPrintable(m_sFilename) << endl;
     return false;
   }
   if (IsCluster())

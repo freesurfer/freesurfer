@@ -1083,7 +1083,7 @@ bool LayerFCD::GoToContralateralPoint(double *pos, double *pos_out)
 
   if (nVertex < 0)
   {
-    qDebug() << "Did not find any vertex at cursor on" << this->GetName();
+    cout << "Did not find any vertex at cursor on" << qPrintable(GetName()) << endl;
     return false;
   }
 

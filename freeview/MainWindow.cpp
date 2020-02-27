@@ -3762,7 +3762,6 @@ void MainWindow::CommandSetSurfaceOverlayMask(const QStringList &cmd)
     {
       if (cmd.size() > 2 && (cmd[2].toLower() == "invert" || cmd[2].toLower() == "inverse"))
         overlay->GetProperty()->SetMaskInverse(true);
-      qDebug() << overlay->GetProperty()->GetMaskInverse();
       emit OverlayMaskRequested(cmd[1]);
     }
   }
@@ -6102,7 +6101,7 @@ void MainWindow::OnIOError( Layer* layer, int jobtype )
   m_layerSettings.clear();
   if (bQuit)
   {
-    qDebug() << msg;
+    cout << qPrintable(msg) << endl;
     close();
   }
 }
@@ -7706,7 +7705,7 @@ void MainWindow::OnPlot()
 void MainWindow::ToggleSplinePicking()
 {
   m_bSplinePicking = !m_bSplinePicking;
-  qDebug() << QString("Surface spline picking %1").arg(m_bSplinePicking?"enabled":"disabled");
+  cout << qPrintable(QString("Surface spline picking %1").arg(m_bSplinePicking?"enabled":"disabled")) << endl;
 }
 
 void MainWindow::SetSplinePicking(bool b)
@@ -8462,7 +8461,7 @@ void MainWindow::GoToContralateralPoint(LayerSurface *layer_in)
   }
   else
   {
-    qDebug() << "Did not find any vertex at cursor on" << layer->GetName();
+    cout << "Did not find any vertex at cursor on " << qPrintable(layer->GetName()) << endl;
   }
 }
 
@@ -8840,7 +8839,7 @@ void MainWindow::CommandExportLineProfileThickness(const QStringList &cmd)
   }
   QString fn = ar[0];
   if (!ExportLineProfileThickness(fn, opts))
-    qDebug() << "Failed to export line profile thickness to " << fn;
+    cerr << "Failed to export line profile thickness to " << qPrintable(fn) << endl;
 }
 
 bool MainWindow::ExportLineProfileThickness(const QString &filename, const QVariantMap& opts)
