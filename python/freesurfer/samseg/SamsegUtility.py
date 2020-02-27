@@ -25,10 +25,9 @@ def getModelSpecifications(atlasDir, userModelSpecifications={}, pallidumAsWM=Tr
             elif 'GlobalWM' == mergeOption.mergedName:
                 globalWMGMMNumber = classNumber
 
-        if pallidumGMMNumber is None or globalWMGMMNumber is None:
-            raise ValueError('Cannot find Pallidum and/or GlobalWM in sharedGMMParameters')
-        sharedGMMParameters[globalWMGMMNumber].searchStrings.append('Pallidum')
-        sharedGMMParameters.pop(pallidumGMMNumber)
+        if pallidumGMMNumber is not None and globalWMGMMNumber is not None:
+            sharedGMMParameters[globalWMGMMNumber].searchStrings.append('Pallidum')
+            sharedGMMParameters.pop(pallidumGMMNumber)
 
     modelSpecifications = {
         'FreeSurferLabels': FreeSurferLabels,
