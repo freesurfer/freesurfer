@@ -1351,14 +1351,19 @@ void MainWindow::AddScripts(const QList<QStringList> &cmds)
 void MainWindow::OnIdle()
 {
   bool bBusy = IsBusy();
-  //  qDebug() << "busy: " << bBusy << "  script_running: " << m_bScriptRunning
-  //     << "  script empty: " << m_scripts.isEmpty();
+  if (!bBusy && m_scripts.isEmpty() && property("from_cmd").toBool())
+  {
+    setProperty("from_cmd", false);
+    cout << "Commands finished" << endl;
+  }
   if ( !bBusy && !m_bScriptRunning && !m_scripts.isEmpty() )
   {
     bool last_one = (m_scripts.size() == 1);
     RunScript();
     if (last_one)
+    {
       ui->widgetAllLayers->UpdateWidgets();
+    }
   }
 
   ui->actionViewSagittal->setChecked( m_nMainView == this->MV_Sagittal );
@@ -2004,6 +2009,10 @@ void MainWindow::RunScript()
     else if (sa[1] == "medial")
       ui->view3D->ResetViewMedial();
   }
+  else if (cmd == "resetview")
+  {
+    OnResetView();
+  }
   else if (cmd == "exportlineprofile")
   {
     CommandExportLineProfileThickness(sa);
@@ -2019,6 +2028,7 @@ void MainWindow::ClearScripts()
 {
   m_scripts.clear();
   m_bScriptRunning = false;
+  setProperty("from_cmd", false);
 }
 
 void MainWindow::CommandLoadCommand(const QStringList &sa)
@@ -2053,6 +2063,9 @@ void MainWindow::CommandLoadCommand(const QStringList &sa)
       AddScript(args);
     }
   }
+
+  cout << "Executing commands from " << qPrintable(sa[1]) << endl;
+  setProperty("from_cmd", true);
 }
 
 void MainWindow::CommandLoadSubject(const QStringList &sa)

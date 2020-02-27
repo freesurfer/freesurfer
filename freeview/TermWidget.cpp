@@ -151,6 +151,7 @@ void TermWidget::OnCommandTriggered(const QString &cmd)
   if (strg == "abort")
   {
     MainWindow::GetMainWindow()->AbortScripts();
+    AppendErrorString("Script aborted");
     return;
   }
 
