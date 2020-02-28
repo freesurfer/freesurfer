@@ -330,7 +330,7 @@ MRI::~MRI()
     free(frames);
   }
 
-  // if (free_transform) delete_general_transform(&transform);
+  if (free_transform) delete_general_transform(&transform);
   if (register_mat) MatrixFree(&register_mat);
   if (i_to_r__) AffineMatrixFree(&i_to_r__);
   if (r_to_i__) MatrixFree(&r_to_i__);
