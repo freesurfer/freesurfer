@@ -15,6 +15,7 @@ set LF = ();
 set tmpdir = ()
 set debug = 0
 set ForceUpdate = 0
+set Conform = 1
 
 set inputargs = ($argv);
 set PrintHelp = 0;
@@ -100,6 +101,7 @@ foreach umodename ($umodenamelist)
     set ud = `UpdateNeeded $ofile $input`
     if($ud || $ForceUpdate) then
       set cmd = (mri_convert $input $ofile)
+      if($Conform) set cmd = ($cmd --conform)
       echo $cmd |& tee -a $LF
       $cmd |& tee -a $LF
       if($status) goto error_exit
@@ -213,6 +215,14 @@ while( $#argv != 0 )
       set ForceUpdate = 1
       breaksw
 
+    case "--conform":
+      set Conform = 1
+      breaksw
+    case "--no-conform":
+    case "--hires":
+      set Conform = 0
+      breaksw
+
     case "--log":
       if($#argv < 1) goto arg1err;
       set LF = $argv[1]; shift;
@@ -291,6 +301,8 @@ usage_exit:
   echo "  --flair inputfile : modename = flair "
   echo "  --mode modename inputfile : modename cannot be t1w, t2w, for flair"
   echo "  --force-update : update files regardless of time stamp"
+  echo "  --no-conform : do not conform the input to 1mm, 256"
+  echo "  --hires : same as --no-conform"
   echo ""
 
   if(! $PrintHelp) exit 1;
