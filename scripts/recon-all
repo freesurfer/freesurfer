@@ -245,6 +245,7 @@ set DoParallel = 0; # if 1, then run with -openmp 4 and -itkthreads 4,
 set longitudinal = 0;    # if 1, will run the longitudinal scheme
 set longbaseid = ();
 set tpNid = ();
+set LongSamseg = 0
 set UseConcatLtaTal = 0; # if 1, use mri_concatenate_lta during tal creation
 set UseLongbaseCtrlVol = 0;   # if 1, use ctrl volume of longbase in norm step
 set UseLongbaseWMedits = 0;   # if 1, xfer wm edits from base (default is cross)
@@ -1134,7 +1135,7 @@ endif
 #-----------  Longitudinal -----------#
 ##---------- -long and -tp ----------#
 #-----------               -----------#
-if($longitudinal) then
+if($longitudinal && ! $LongSamseg) then
   # if adding a new timepoint was requested by -addtp flag
   if($DoAddTp) then
     echo "Adding $tpNid as timepoint to base $longbaseid" |& tee -a $LF
@@ -1165,6 +1166,12 @@ if($longitudinal) then
       set UseControlPoints = 1;
     endif
   endif
+endif
+if($longitudinal && ! $LongSamseg) then
+  set cmd = (rca-long-tp-init -long-samseg $longbaseid $subjid -log $LF -cf $CF -sf $SF)
+  echo $cmd 
+  $cmd 
+  if($status) goto error_exit
 endif
 
 #-----------                  -----------#
@@ -2733,7 +2740,8 @@ if($DoMaskBFS) then
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
   else
-    if ( $longitudinal && -e ${SUBJECTS_DIR}/${tpNid}/mri/brain.finalsurfs.manedit.mgz ) then
+    set bfmanedit = ${SUBJECTS_DIR}/${tpNid}/mri/brain.finalsurfs.manedit.mgz
+    if ( $longitudinal && -e $bfmanedit && ! $LongSamseg) then
       # transfer edits from cross
       set cmd = (mri_mask -transfer 255)
       set cmd = ($cmd -keep_mask_deletion_edits)
@@ -2867,7 +2875,7 @@ if($DoSegmentation) then
   if($RunIt) $fs_time $cmd |& tee -a $LF
   if($status) goto error_exit;
 
-  if($longitudinal && $AllowLongWMtransfers) then
+  if($longitudinal && $AllowLongWMtransfers && ! $LongSamseg) then
     if ($UseLongbaseWMedits) then
       # transfer wm edits (voxels=255) from longbase wm.mgz to long tpN wm.mgz
       # and -keep_mask_deletion_edits transfers voxel-deletion (voxels=1) edits
@@ -3794,7 +3802,7 @@ if($DoCortParc) then
   endif
 endif
 
-if($DoConf2Hires) then
+if($DoConf2Hires && ! $LongSamseg) then
   # This places the surfaces on the highres T1 (and T2)
   set cmd = (conf2hires --threads $OMP_NUM_THREADS)
   if($DoT2pial == 1)    set cmd = ($cmd --T2)
@@ -5506,6 +5514,28 @@ while( $#argv != 0 )
 
     case "-uselongbasewmedits":
       set UseLongbaseWMedits = 1;
+      breaksw
+
+    case "-long-samseg": 
+      # -long-samseg subject_base longtp
+      # where base is a subject created with 
+      #   samseg2recon --base --s subject_base  --samseg samseglongdir
+      #   recon-all -s subject_base -autorecon2-samseg -autorecon3
+      # and
+      #   longtp is a subject created with
+      #   samseg2recon --long tpno --s longtp  --samseg samseglongdir
+      # Then run
+      #   recon-all -long-samseg  subject_base longtp -autorecon2-samseg -autorecon3
+      # The subject names do not need to keep any special pattern
+      # samseglongdir is the folder created by samseg-long
+      set LongSamseg = 1
+      set longitudinal = 1;
+      set NoRandomness = 1;
+      if ( $#argv < 2) goto arg1err;
+      set longbaseid = $argv[1]; shift;
+      set longbaseid = `basename $longbaseid`; # remove trailing /
+      # get the subject name to use for timepoint
+      set subjid = $argv[1]; shift;
       breaksw
 
     case "-noasegfusion":
@@ -7451,8 +7481,10 @@ check_params:
     endif
 
     #------------ Longitudinal ---------------#
-    if($longitudinal) then
-
+    if($longitudinal || $LongSamseg) then
+      set longbasedir = $SUBJECTS_DIR/$longbaseid
+    endif
+    if($longitudinal && ! $LongSamseg) then
       # assert that $tpNid does not contain .long.
       set haslong = `echo $tpNid | grep "\.long\."`
       if ( "$haslong" != "" ) then
@@ -7510,7 +7542,6 @@ check_params:
         exit 1;
       endif
 
-      set longbasedir = $SUBJECTS_DIR/$longbaseid
       if(! -e $longbasedir) then
         echo "ERROR: cannot find base/template dir: $longbasedir"
         echo ""
@@ -7544,7 +7575,7 @@ check_params:
         endif
       endif
 
-    else # ================= if cross run or base ==========================
+    else # ================= if cross run or base or LongSamseg ==========================
 
       # make sure $subjid does not contain .long.
       set haslong  = `echo $subjid | grep "\.long\."`
