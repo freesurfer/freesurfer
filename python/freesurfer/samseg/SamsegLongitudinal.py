@@ -197,7 +197,7 @@ class SamsegLongitudinal:
                                transformedTemplateFileName=self.sstTransformedTemplateFileName,
                                userModelSpecifications=self.userModelSpecifications,
                                userOptimizationOptions=self.userOptimizationOptions,
-                               visualizer=self.visualizer, saveHistory=self.saveHistory, targetIntensity=self.targetIntensity,
+                               visualizer=self.visualizer, saveHistory=True, targetIntensity=self.targetIntensity,
                                targetSearchStrings=self.targetSearchStrings, modeNames=self.modeNames,
                                pallidumAsWM=self.pallidumAsWM)
 
@@ -248,7 +248,7 @@ class SamsegLongitudinal:
                 userModelSpecifications=self.userModelSpecifications,
                 userOptimizationOptions=self.userOptimizationOptions,
                 visualizer=self.visualizer,
-                saveHistory=self.saveHistory,
+                saveHistory=True,
                 targetIntensity=self.targetIntensity,
                 targetSearchStrings=self.targetSearchStrings,
                 modeNames=self.modeNames,
