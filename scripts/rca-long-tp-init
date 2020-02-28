@@ -32,6 +32,7 @@ set DoCANormalize = 1
 set DoWhiteSurfs = 1
 set DoSphere = 1;
 set DoPialSurfs = 1
+set LongSamseg = 0
 
 set hemilist = (lh rh)
 
@@ -111,6 +112,7 @@ set longbasedir = $SUBJECTS_DIR/$longbaseid
 #-----------  Longitudinal -----------#
 ##---------- -long and -tp ----------#
 #-----------               -----------#
+if(! $LongSamseg) then
 if($longitudinal) then
   # init regfile variable with map cross_tp to base:
   # used later in many places
@@ -185,6 +187,7 @@ if($DoCANormalize) then
     if ($RunIt) $fs_time $cmd |& tee -a $LF
     if ($status) goto error_exit;
   endif
+endif
 endif
 
 if($DoWhiteSurfs) then
@@ -285,6 +288,27 @@ while( $#argv != 0 )
       set longbaseid = `basename $longbaseid`; # remove trailing /
       # and create subjid to reflect its longitudinal relation to longbaseid
       set subjid = ${tpNid}.long.${longbaseid}
+      breaksw
+
+    case "-long-samseg": 
+      # -long-samseg subject_base longtp
+      # where base is a subject created with 
+      #   samseg2recon --base --s subject_base  --samseg samseglongdir
+      #   recon-all -s subject_base -autorecon2-samseg -autorecon3
+      # and
+      #   longtp is a subject created with
+      #   samseg2recon --long tpno --s longtp  --samseg samseglongdir
+      # Then run
+      #   recon-all -long-samseg  subject_base longtp -autorecon2-samseg -autorecon3
+      # The subject names do not need to keep any special pattern
+      set LongSamseg = 1
+      set longitudinal = 1;
+      set NoRandomness = 1;
+      if ( $#argv < 2) goto arg1err;
+      set longbaseid = $argv[1]; shift;
+      set longbaseid = `basename $longbaseid`; # remove trailing /
+      # get the subject name to use for timepoint
+      set subjid = $argv[1]; shift;
       breaksw
 
     case "-subject":
