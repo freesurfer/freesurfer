@@ -2954,7 +2954,7 @@ void FSVolume::SetCroppingBounds( double* bounds )
 }
 
 HISTOGRAM *MRIhistogramWithHighThreshold(
-    MRI *mri, int nbins, HISTOGRAM *histo, MRI_REGION* region, float thresh, int frame)
+    MRI *mri, int nbins, HISTOGRAM *histo, float thresh, bool highThresh, int frame, float fmin_in, float fmax_in)
 {
   int width, height, depth, z, x0, y0, z0, tid;
   float fmin, fmax;
@@ -2968,34 +2968,10 @@ HISTOGRAM *MRIhistogramWithHighThreshold(
   height = mri->height;
   depth = mri->depth;
 
-  width = region->x + region->dx;
-  if (width > mri->width) width = mri->width;
-  height = region->y + region->dy;
-  if (height > mri->height) height = mri->height;
-  depth = region->z + region->dz;
-  if (depth > mri->depth) depth = mri->depth;
-  x0 = region->x;
-  if (x0 < 0) x0 = 0;
-  y0 = region->y;
-  if (y0 < 0) y0 = 0;
-  z0 = region->z;
-  if (z0 < 0) z0 = 0;
+  x0 = y0 = z0 = 0;
 
-  fmin = 1e10;
-  fmax = -fmin;
-  for (z = z0; z < depth; z++) {
-    int y, x;
-    float val;
-    for (y = y0; y < height; y++) {
-      for (x = x0; x < width; x++) {
-        val = MRIgetVoxVal(mri, x, y, z, frame);
-        if (val > thresh) continue;
-        val = MRIgetVoxVal(mri, x, y, z, frame);
-        if (val < fmin) fmin = val;
-        if (val > fmax) fmax = val;
-      }
-    }
-  }
+  fmin = fmin_in;
+  fmax = fmax_in;
 
   if (!nbins) nbins = nint(fmax - fmin + 1.0);
 
@@ -3029,8 +3005,8 @@ HISTOGRAM *MRIhistogramWithHighThreshold(
     for (y = y0; y < height; y++) {
       for (x = x0; x < width; x++) {
         val = MRIgetVoxVal(mri, x, y, z, frame);
-        if (val > thresh) continue;
-        val = MRIgetVoxVal(mri, x, y, z, frame);
+        if (FZERO(val) || (highThresh && val > thresh)) continue;
+//        val = MRIgetVoxVal(mri, x, y, z, frame);
 #ifdef HAVE_OPENMP
         tid = omp_get_thread_num();
 #else
@@ -3065,6 +3041,7 @@ void FSVolume::UpdateHistoCDF(int frame, float threshold, bool highThresh)
   if (threshold < 0)
     threshold = fMinValue;
 
+  /*
   HISTO* histo = HISTOinit(NULL, 1000, fMinValue, fMaxValue);
 
   for (int x = 0; x < m_MRI->width; x++)
@@ -3074,6 +3051,8 @@ void FSVolume::UpdateHistoCDF(int frame, float threshold, bool highThresh)
         if (FZERO(val) || (highThresh && val > threshold)) continue;
         HISTOaddSample(histo, val, 0, 0);
       }
+      */
+  HISTO* histo = MRIhistogramWithHighThreshold(m_MRI, 1000, NULL, threshold, highThresh, frame, fMinValue, fMaxValue);
 
   if (m_histoCDF)
     HISTOfree(&m_histoCDF);
