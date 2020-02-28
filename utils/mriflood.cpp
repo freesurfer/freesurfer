@@ -1651,6 +1651,7 @@ MRI *MRISfillInterior(MRI_SURFACE *mris, double resolution, MRI *mri_dst)
   MRIS_freeRAS2VoxelMap(&map);
   MatrixFree(&crs);
   MatrixFree(&xyz);
+  if (vox2sras != NULL) MatrixFree(&vox2sras);
   MRIfree(&mri_vlen);
 
   // Reduce the volume size to speed things up
@@ -1715,6 +1716,7 @@ MRI *MRISfillInterior(MRI_SURFACE *mris, double resolution, MRI *mri_dst)
   MRIfree(&mri_cosa);
   MRIfree(&shellbb);
   MRIfree(&outsidebb);
+  free(region);
   // printf("  Found %d voxels in interior, volume = %g\n",nhits,
   // nhits*mri_dst->xsize*mri_dst->ysize*mri_dst->zsize);
   if (Gdiag_no > 0) printf("  MRISfillInterior t = %g\n", start.seconds());
