@@ -38,6 +38,16 @@ class Freeview:
         self.tempdir = None
         self.flags = []
 
+    def copy(self):
+        '''
+        Returns a copy of the current freeview configuration. This allows for multiple
+        freeview windows loading the same base file (without resaving it).
+        '''
+        copied = Freeview()
+        copied.flags = self.flags.copy()
+        copied.tempdir = self.tempdir
+        return copied
+
     def vol(self, volume, **kwargs):
         '''
         Loads a volume in the sessions. If the volume provided is not a filepath,
@@ -122,13 +132,15 @@ class Freeview:
         flag = '-f ' + filename + self._kwargs_to_tags(kwargs)
         self.add_flag(flag)
 
-    def show(self, background=True, opts='', verbose=False, noclean=False):
+    def show(self, background=True, opts='', verbose=False, noclean=False, threads=None):
         '''Opens the configured freeview session.
 
         Args:
             background: Run freeview as a background process. Defaults to True.
             opts: Additional arguments to append to the command.
             verbose: Print the freeview command before running. Defaults to False.
+            noclean: Do not remove temporary directory for debugging purposes.
+            threads: Set number of OMP threads available to freeview.
         '''
 
         # compile the command
@@ -137,6 +149,10 @@ class Freeview:
         # be sure to remove the temporary directory (if it exists) after freeview closes
         if self.tempdir and not noclean:
             command = '%s ; rm -rf %s' % (command, self.tempdir)
+
+        # set number of OMP threads if provided
+        if threads is not None:
+            command = 'export OMP_NUM_THREADS=%d ; %s' % (threads, command)
 
         if verbose:
             print(command)
