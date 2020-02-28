@@ -314,7 +314,7 @@ void ToolWindowEdit::OnIdle()
   ui->lineEditGeoLambda->hide();
   ui->spinBoxGeoWsize->hide();
 
-  ui->checkBoxFill3D->setVisible(nAction != Interactor2DVoxelEdit::EM_GeoSeg);
+  ui->checkBoxFill3D->setVisible(nAction != Interactor2DVoxelEdit::EM_GeoSeg && nAction != Interactor2DVoxelEdit::EM_Contour);
 
   for ( int i = 0; i < allwidgets.size(); i++ )
   {
