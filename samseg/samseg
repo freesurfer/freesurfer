@@ -118,6 +118,7 @@ endif
 if($DoImport) then
   # Import the data
   set cmd = (fsr-import $inputargs --o $importdir)
+  if($DoHiRes) set cmd = ($cmd --hires) # prevents conforming
   if($ForceUpdate) set cmd = ($cmd --force-update)
   echo $cmd | tee -a $LF
   fs_time $cmd |& tee -a $LF
@@ -690,6 +691,7 @@ usage_exit:
   echo "samseg"
   echo "  --i file.mgz <--i file2.mgz> <--i file3.mgz>... <--i>"
   echo "  --t1w t1file.mgz <--t1w t2file2.mgz> <--t2w t2file.mgz> <--flair flairfile.mgz> <--mode modename modefile.mgz>  "
+  echo "     Note: using the t1w/t2w/flair/modename will cause input to be conformed unless --hires"
   echo "      --refmode modename (t1w/t2w/flair/modename)  "
   echo "  --o outdir "
   echo "  --s subject : create subject, sets outdir to subject/mri/samseg"
