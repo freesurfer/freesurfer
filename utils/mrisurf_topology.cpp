@@ -397,7 +397,7 @@ static void mrisAddEdgeWkr(MRIS *mris, int vno1, int vno2)
     static int maxVnum = 20;
     if (maxVnum < v->vnum) {
       maxVnum = v->vnum;
-      fprintf(stdout, "vno:%d now has %d immediate neighbours  mrisurf_topology.cpp:%d\n", vnoA, v->vnum, __LINE__);
+      fs::debug() << "vertex " << vnoA << " has " << v->vnum << " immediate neighbours";
     }
   };
   

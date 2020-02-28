@@ -1751,13 +1751,8 @@ double MRISpercentDistanceError(MRIS *mris)
     }
   }
 
-  if (mean_dist == 0.0f) {
-    fprintf(stdout, "%s:%d MRISpercentDistanceError called when all dist zero\n", __FILE__, __LINE__);
-  }
-  
-  if (mean_odist == 0.0f) {
-    fprintf(stdout, "%s:%d MRISpercentDistanceError called when all dist_orig zero\n", __FILE__, __LINE__);
-  }
+  if (mean_dist == 0.0f)  fs::debug() << "MRISpercentDistanceError called when all dist zero";
+  if (mean_odist == 0.0f) fs::debug() << "MRISpercentDistanceError called when all dist_orig zero";
   
   if (nnbrs == 0) nnbrs = 1;
   

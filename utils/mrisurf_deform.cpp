@@ -314,8 +314,9 @@ public:
     }
     static int shown = 0;
     int shownMask = (1 << mris_status);
-    if (!(shown&shownMask)) { shown |= shownMask;
-      fprintf(stdout, "%s:%d need to process MRIS::status %d\n", __FILE__, __LINE__, mris_status);
+    if (!(shown&shownMask)) {
+      shown |= shownMask;
+      fs::debug() << "need to process surface status " << mris_status;
     }
     return false;
   }

@@ -7128,7 +7128,7 @@ static void detectDefectFaces(MRIS *mris, DEFECT_PATCH *dp)
           static unsigned long count,limit = 1;
           if (count++ >= limit) {
             limit *= 2;
-            fprintf(stderr, "%s:%d suppressed badly attaching a face, count:%ld\n", __FILE__,__LINE__, count);
+            fs::debug() << "suppressed badly attaching a face, count: " << count;
           }
           continue;
         }

@@ -74,8 +74,7 @@ bool areCompatible(MRIS_Status s1, MRIS_Status s2)
 
 void checkOrigXYZCompatibleWkr(MRIS_Status s1, MRIS_Status s2, const char* file, int line) {
   if (areCompatible(s1,s2)) return;
-  fprintf(stderr, "%s:%d using incompatible %s %s\n", file, line, 
-    MRIS_Status_text(s1), MRIS_Status_text(s2));
+  fs::debug() << "using incompatible " << MRIS_Status_text(s1) << " and " << MRIS_Status_text(s2);
 }
 
 

@@ -3,6 +3,7 @@
 #include <iostream>
 #include <sstream>
 
+#include "diag.h"
 #include "fsinit.h"
 
 
@@ -71,7 +72,7 @@ namespace fs {
 
   struct debug : public detail::logger
   {
-    ~debug() { std::cerr << term::cyan() << "debug: " << term::reset() << this->ss.str() << "\n"; }
+    ~debug() { if (DIAG_VERBOSE_ON) std::cerr << term::cyan() << "debug: " << term::reset() << this->ss.str() << "\n"; }
   };
 
 }
