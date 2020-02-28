@@ -345,7 +345,7 @@ class Samseg:
         # the appropriate image geometries
         matricesFileName = os.path.join(self.savePath, 'template_transforms.mat')
         if not os.path.isfile(matricesFileName):
-            matricesFileName = os.path.join(self.savePath, 'base', 'template_transforms.mat')
+            matricesFileName = os.path.join(os.path.dirname(self.savePath), 'base', 'template_transforms.mat')
         matrix = scipy.io.loadmat(matricesFileName)['imageToImageTransformMatrix']
 
         # rasterize the final node coordinates (in image space) using the initial template mesh

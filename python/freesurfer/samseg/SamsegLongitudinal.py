@@ -92,7 +92,9 @@ class SamsegLongitudinal:
         threshold=None,
         thresholdSearchString=None,
         modeNames=None,
-        pallidumAsWM=True):
+        pallidumAsWM=True,
+        savePosteriors=False
+        ):
 
         # Store input parameters as class variables
         self.imageFileNamesList = imageFileNamesList
@@ -108,6 +110,7 @@ class SamsegLongitudinal:
         self.strengthOfLatentDeformationHyperprior = strengthOfLatentDeformationHyperprior
         self.modeNames = modeNames
         self.pallidumAsWM = pallidumAsWM
+        self.savePosteriors = savePosteriors
 
         # Initialize some objects
         self.affine = Affine()
@@ -194,7 +197,7 @@ class SamsegLongitudinal:
                                transformedTemplateFileName=self.sstTransformedTemplateFileName,
                                userModelSpecifications=self.userModelSpecifications,
                                userOptimizationOptions=self.userOptimizationOptions,
-                               visualizer=self.visualizer, saveHistory=True, targetIntensity=self.targetIntensity,
+                               visualizer=self.visualizer, saveHistory=self.saveHistory, targetIntensity=self.targetIntensity,
                                targetSearchStrings=self.targetSearchStrings, modeNames=self.modeNames,
                                pallidumAsWM=self.pallidumAsWM)
 
@@ -245,11 +248,12 @@ class SamsegLongitudinal:
                 userModelSpecifications=self.userModelSpecifications,
                 userOptimizationOptions=self.userOptimizationOptions,
                 visualizer=self.visualizer,
-                saveHistory=True,
+                saveHistory=self.saveHistory,
                 targetIntensity=self.targetIntensity,
                 targetSearchStrings=self.targetSearchStrings,
                 modeNames=self.modeNames,
-                pallidumAsWM=self.pallidumAsWM
+                pallidumAsWM=self.pallidumAsWM,
+                savePosteriors=self.savePosteriors
             ))
             self.timepointModels[timepointNumber].mask = self.sstModel.mask
             self.timepointModels[timepointNumber].imageBuffers = self.imageBuffersList[timepointNumber]
