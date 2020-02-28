@@ -235,6 +235,7 @@ double Ghisto_left_outside_peak_pct = 0.5;
 double Ghisto_right_outside_peak_pct = 0.5;
 int n_averages=0;
 int UseMMRefine = 0;
+AutoDetGWStats adgws;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) 
@@ -244,7 +245,6 @@ int main(int argc, char **argv)
   MRI *invol, *seg=NULL, *wm, *involCBV, *involPS;
   Timer timer ;
   char *cmdline2, cwd[2000];
-  AutoDetGWStats adgws;
   //char *field=NULL;
 
   nargs = handleVersionOption(argc, argv, "mris_place_surface");
@@ -322,13 +322,6 @@ int main(int argc, char **argv)
     // Note: in long stream orig = orig_white
     err = adgws.AutoDetectStats(subject, hemi);
     if(err) exit(1);
-  }
-  else {
-    err = adgws.Read(adgwsinfile);
-    if(err){
-      printf("ERROR: reading %s\n",adgwsinfile);
-      exit(1);
-    }
   }
   if(adgwsoutfile){
     err = adgws.Write(adgwsoutfile);
@@ -846,6 +839,11 @@ static int parse_commandline(int argc, char **argv) {
     else if(!strcasecmp(option, "--adgws") || !strcasecmp(option, "--adgws-in")){
       if(nargc < 1) CMDargNErr(option,1);
       adgwsinfile = pargv[0];
+      err = adgws.Read(adgwsinfile);
+      if(err){
+	printf("ERROR: reading %s\n",adgwsinfile);
+	exit(1);
+      }
       nargsused = 1;
     } 
     else if(!strcasecmp(option, "--adgws-out")){
@@ -853,6 +851,61 @@ static int parse_commandline(int argc, char **argv) {
       adgwsoutfile = pargv[0];
       nargsused = 1;
     } 
+
+    // The white/pial border/inside/outside hi/low must be specified
+    // AFTER --agws-in
+    else if(!strcmp(option, "--white_border_hi")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      adgws.white_border_hi = atof(pargv[0]);
+      nargsused = 1;
+    }
+    else if(!strcmp(option, "--white_border_low")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      adgws.white_border_low = atof(pargv[0]);
+      nargsused = 1;
+    }
+    else if(!strcmp(option, "--white_outside_low")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      adgws.white_outside_low = atof(pargv[0]);
+      nargsused = 1;
+    }
+    else if(!strcmp(option, "--white_inside_hi")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      adgws.white_inside_hi = atof(pargv[0]);
+      nargsused = 1;
+    }
+    else if(!strcmp(option, "--white_outside_hi")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      adgws.white_outside_hi = atof(pargv[0]);
+      nargsused = 1;
+    }
+    else if(!strcmp(option, "--pial_border_hi")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      adgws.pial_border_hi = atof(pargv[0]);
+      nargsused = 1;
+    }
+    else if(!strcmp(option, "--pial_border_low")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      adgws.pial_border_low = atof(pargv[0]);
+      nargsused = 1;
+    }
+    else if(!strcmp(option, "--pial_outside_low")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      adgws.pial_outside_low = atof(pargv[0]);
+      nargsused = 1;
+    }
+    else if(!strcmp(option, "--pial_inside_hi")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      adgws.pial_inside_hi = atof(pargv[0]);
+      nargsused = 1;
+    }
+    else if(!strcmp(option, "--pial_outside_hi")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      adgws.pial_outside_hi = atof(pargv[0]);
+      nargsused = 1;
+    }
+
+
     else if(!strcmp(option, "--nsmooth")){
       if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&nsmoothsurf);
