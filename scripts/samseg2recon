@@ -666,7 +666,6 @@ Create and populate a subjects dir in a way that recon-all can be run
 on it. This is a work in progress as it assumes that the input to samseg
 is T1 and has been conformed.
 
-
 For longitudinal analysis
 Run samseg-long to create the samseglongdir; this will have a base
 folder and time point folders called tp001, tp002, etc
