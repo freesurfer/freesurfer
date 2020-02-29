@@ -529,9 +529,9 @@ static py::array_t<T> resampleTypedVolume(py::array_t<T> source_vol, py::object 
         bool valid_xl = (sx_low >= 0 && sx_low < sxlim);
         bool valid_yl = (sy_low >= 0 && sy_low < sylim);
         bool valid_zl = (sz_low >= 0 && sz_low < szlim);
-        bool valid_xh = (sx_high + 1 >= 0 && sx_high + 1 < sxlim);
-        bool valid_yh = (sy_high + 1 >= 0 && sy_high + 1 < sylim);
-        bool valid_zh = (sz_high + 1 >= 0 && sz_high + 1 < szlim);
+        bool valid_xh = (sx_high >= 0 && sx_high < sxlim);
+        bool valid_yh = (sy_high >= 0 && sy_high < sylim);
+        bool valid_zh = (sz_high >= 0 && sz_high < szlim);
 
         T w0 = dsx * dsy * dsz;
         T w1 = sx  * dsy * dsz;
