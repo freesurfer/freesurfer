@@ -463,6 +463,9 @@ while( $#argv != 0 )
     case "--long":
       if($#argv < 1) goto arg1err;
       set LongTP = $argv[1]; shift;
+      # Check for and remove leading 0 in LongTP, otherwise printf may think it is hex
+      set a = `echo $LongTP | cut -c1`
+      if($a == 0) set LongTP = `echo $LongTP | cut -c2-`
       set LongTPStr = `printf %03d $LongTP`
       breaksw
 
