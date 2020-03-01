@@ -1167,7 +1167,7 @@ if($longitudinal && ! $LongSamseg) then
     endif
   endif
 endif
-if($longitudinal && ! $LongSamseg) then
+if($longitudinal) then
   set cmd = (rca-long-tp-init -long-samseg $longbaseid $subjid -log $LF -cf $CF -sf $SF)
   echo $cmd 
   $cmd 
