@@ -1,6 +1,11 @@
 #!/bin/tcsh -f
 # fs_time
 
+# Check whether FS_TIME_ALLOW exists, if not assume it is ok
+if($?FS_TIME_ALLOW == 0) then
+  setenv FS_TIME_ALLOW 1
+endif
+
 set VERSION = '$Id: fs_time,v 1.11 2016/02/16 17:17:20 zkaufman Exp $';
 set outfile = ();
 set key = ("@#@FSTIME ");
@@ -30,6 +35,12 @@ goto parse_args;
 parse_args_return:
 goto check_params;
 check_params_return:
+
+# If FS_TIME_ALLOW is not set, then just run the program and exit
+if($FS_TIME_ALLOW == 0) then
+  $argv  
+  exit $status
+endif
 
 @ nargs = $#argv - 1
 
@@ -156,6 +167,11 @@ resources used by a process. The basic usage is like that of time, ie,
 fs_time [options] command args
 
 It creates a formatted output that allows for easy processing. See below.
+
+If the FS_TIME_ALLOW env var is set to 0, then fs_time will simply run
+the command and exit with the retun status. This feature allows
+fs_time to be turned off in cases where /usr/bin/time does not exist.
+If it is not set or set to non-zero, then fs_time runs as normal.
 
 If the env variable FSTIME_LOAD is set to 1 or not set at all, then
 uptime is run before and after each process to give the load on the
