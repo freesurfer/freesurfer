@@ -148,8 +148,8 @@ if($ud || $ForceUpdate) then
 endif
 
 # Create a registration to go from conformed space to rawavg. 
-set regC2R = transforms/conf2rawavg.dat
-set regC2Rlta = transforms/conf2rawavg.lta
+set regC2R = transforms/conf2rawavg.cmdc.dat
+set regC2Rlta = transforms/conf2rawavg.cmdc.lta
 set cmd = (tkregister2_cmdl --noedit --mov orig.mgz --targ rawavg.cmdc.mgz --regheader \
   --reg $regC2R  --ltaout $regC2Rlta)
 echo "\n#===============================" | tee -a $LF
@@ -166,12 +166,12 @@ if($ud || $ForceUpdate) then
 endif
 
 # Create a registration to go from rawavg to conformed space (inv of above)
-set regR2C = transforms/rawavg2conf.dat
-set regR2Clta = transforms/rawavg2conf.lta
+set regR2C = transforms/rawavg.cmdc.2conf.dat
+set regR2Clta = transforms/rawavg.cmdc.2conf.lta
 set cmd = (tkregister2_cmdl --noedit --mov rawavg.cmdc.mgz --targ orig.mgz --regheader \
   --reg $regR2C --ltaout $regR2Clta)
 echo "\n#===============================" | tee -a $LF
-echo "Creating rawavg2conf.lta"| tee -a $LF
+echo "Creating rawavg.cmdc.2conf.lta"| tee -a $LF
 echo $cmd | tee -a $LF
 set ud = `UpdateNeeded $regR2Clta orig.mgz rawavg.cmdc.mgz`
 if($ud || $ForceUpdate) then
@@ -421,10 +421,10 @@ foreach hemi ($hemilist)
   set surflist = ($surflist pial.T1.rawavg)
   foreach surf ($surflist)
     set cmd = (mri_surf2surf --s $subject --hemi $hemi --sval-xyz $surf --surfreg $surf \
-      --reg $regC2R orig.mgz --tval-xyz orig.mgz --tval $surf.conf)
+      --reg $regR2C rawavg.cmdc.mgz --tval-xyz orig.mgz --tval $surf.conf)
     echo "\n# Creating $hemi.$surf.conf ====================" | tee -a $LF
     echo $cmd | tee -a $LF
-    set ud = `UpdateNeeded ../surf/$hemi.$surf.conf ../surf/$hemi.$surf $regC2R orig.mgz`
+    set ud = `UpdateNeeded ../surf/$hemi.$surf.conf ../surf/$hemi.$surf $regR2C orig.mgz`
     if($ud || $ForceUpdate) then
       if($RunIt) then
         $fs_time $cmd |& tee -a $LF
@@ -550,9 +550,9 @@ if($#MMode) then
   endif
 
   # Map the ${MMode} back to conformed space for convenience
-  set cmd = (mri_vol2vol --targ orig.mgz --mov rawavg.${MMode}.mgz --reg transforms/rawavg2conf.dat  --o conf.${MMode}.mgz)
+  set cmd = (mri_vol2vol --targ orig.mgz --mov rawavg.${MMode}.mgz --reg $regR2C  --o conf.${MMode}.mgz)
   echo $cmd | tee -a $LF
-  set ud = `UpdateNeeded conf.${MMode}.mgz orig.mgz rawavg.${MMode}.mgz transforms/rawavg2conf.dat`
+  set ud = `UpdateNeeded conf.${MMode}.mgz orig.mgz rawavg.${MMode}.mgz $regR2C`
   if($ud || $ForceUpdate) then
     $cmd |& tee -a $LF
     if($status) goto error_exit;
@@ -573,7 +573,7 @@ if($#MMode) then
     set white = ../surf/$hemi.white.rawavg
     set pialt1 = ../surf/$hemi.pial.T1.rawavg
     set pialmm = ../surf/$hemi.pial.$MMode.rawavg
-    set mmvol = $MMode.mgz
+    set mmvol = rawavg.$MMode.mgz
     set cmd = (mris_place_surface --adgws-in $ads --seg $aseg  --wm $wm \
       --invol $bfs --$hemi  --i $pialt1 --o $pialmm --pial --nsmooth 0 \
       --rip-label $cortexha --pin-medial-wall $cortex --white-surf $white \
@@ -599,10 +599,10 @@ if($#MMode) then
     # Map the surf coords back into the conformed space, need to use regC2R here
     set surf = pial.$MMode.rawavg
     set cmd = (mri_surf2surf --s $subject --hemi $hemi --sval-xyz $surf --surfreg $surf \
-      --reg $regC2R orig.mgz --tval-xyz orig.mgz --tval $surf.conf)
+      --reg $regR2C rawavg.cmdc.mgz --tval-xyz orig.mgz --tval $surf.conf)
     echo "\n#===============================" | tee -a $LF
     echo $cmd | tee -a $LF
-    set ud = (`UpdateNeeded ../surf/$hemi.$surf.conf ../surf/$hemi.$surf $regC2R`)
+    set ud = (`UpdateNeeded ../surf/$hemi.$surf.conf ../surf/$hemi.$surf $regR2C`)
     if($ud || $ForceUpdate) then
       $cmd | tee -a $LF
       if($status) goto error_exit;
