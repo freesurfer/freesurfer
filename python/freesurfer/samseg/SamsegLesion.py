@@ -19,7 +19,7 @@ class SamsegLesion(Samseg):
                  targetIntensity=None, targetSearchStrings=None, modeNames=None, pallidumAsWM=True,
                  numberOfSamplingSteps=50, numberOfBurnInSteps=50,
                  numberOfPseudoSamplesMean=500, numberOfPseudoSamplesVariance=500, rho=50,
-                 intensityMaskingPattern=None, intensityMaskingSearchString=None
+                 intensityMaskingPattern=None, intensityMaskingSearchString='Cortex'
                  ):
         Samseg.__init__(self, imageFileNames, atlasDir, savePath, userModelSpecifications, userOptimizationOptions,
                  transformedTemplateFileName, visualizer, saveHistory, savePosteriors,
@@ -32,6 +32,8 @@ class SamsegLesion(Samseg):
         self.rho = rho
         self.intensityMaskingClassNumber = self.getClassNumber(intensityMaskingSearchString)
 
+        if intensityMaskingPattern is None:
+            raise ValueError('Intensity mask pattern must be set')
         if len(intensityMaskingPattern) != len(imageFileNames):
             raise ValueError('Number of lesion mask patterns does not match the number of input images.')
         if not(all(pattern in (0, 1, -1) for pattern in intensityMaskingPattern)):
