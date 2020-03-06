@@ -1533,18 +1533,17 @@ LABEL *MRIScortexLabel(MRI_SURFACE *mris, MRI *mri_aseg, int min_vertices, int K
   // Control whether NucAcc is medial wall. Historically, it has been
   // if a NucAcc voxel was just outside the white.preaparc. NucAcc is
   // very close to the true medial wall, so sometimes these marked
-  // vertices will get tangled up in the erode/dilate/cluster
+  // vertices would get tangled up in the erode/dilate/cluster
   // operations on the medial wall (unlike putamen where there is a
   // clear distinction). In these cases, true cortex near the NucAcc
-  // can get masked out. It seems like the best thing to do is to NOT
-  // include NucAcc as medial wall, but leaving it like for the
-  // moment. DNG 3/5/2020
-  int NucAccIsMedialWall = 1; 
+  // can get masked out. Changed so that by default NucAcc is now
+  // NOT considered part of the medial wall. DNG 3/5/2020
+  int NucAccIsMedialWall = 0; 
   if(getenv("FS_NUCACC_IS_MEDIAL_WALL") != NULL)
     sscanf(getenv("FS_NUCACC_IS_MEDIAL_WALL"),"%d",&NucAccIsMedialWall);
 
   printf(" Generating cortex label... RemoveHipAmgy=%d\n",KeepHipAmyg);
-  printf("NucAccIsMedialWall %d\n",NucAccIsMedialWall);
+  printf("NucAccIsMedialWall=%d\n",NucAccIsMedialWall);
 
   mri_aseg = MRIcopy(mri_aseg, NULL);  // so we can mess with it
 
