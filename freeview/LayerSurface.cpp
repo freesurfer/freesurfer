@@ -2558,6 +2558,12 @@ void LayerSurface::EditPathPoint(int vno, bool remove)
     m_marks->AddPoint(vno);
 }
 
+void LayerSurface::RemoveLastPathPoint()
+{
+  if (m_marks)
+    m_marks->RemoveLastPoint();
+}
+
 void LayerSurface::SetActivePath(int n)
 {
   if (m_nActivePath >=0)
