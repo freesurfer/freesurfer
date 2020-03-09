@@ -153,6 +153,8 @@ void SurfaceOverlay::InitializeData()
     }
     m_dRawMaxValue = m_dMaxValue;
     m_dRawMinValue = m_dMinValue;
+    m_dDisplayRange[0] = m_dMinValue;
+    m_dDisplayRange[1] = m_dMaxValue;
     memcpy(m_fDataRaw, m_fData, sizeof(float)*m_nDataSize);
   }
 }
@@ -183,6 +185,9 @@ void SurfaceOverlay::InitializeData(float *data_buffer_in, int nvertices, int nf
     }
     m_dRawMaxValue = m_dMaxValue;
     m_dRawMinValue = m_dMinValue;
+
+    m_dDisplayRange[0] = m_dMinValue;
+    m_dDisplayRange[1] = m_dMaxValue;
 
     if ( m_fData )
       delete[] m_fData;

@@ -167,6 +167,18 @@ public:
 
   double PositionToPercentile(double dPos, bool ignore_zeros);
 
+  void GetDisplayRange(double* range)
+  {
+    range[0] = m_dDisplayRange[0];
+    range[1] = m_dDisplayRange[1];
+  }
+
+  void SetDisplayRange(double* range)
+  {
+    m_dDisplayRange[0] = range[0];
+    m_dDisplayRange[1] = range[1];
+  }
+
   qint64 GetID()
   {
     return m_nID;
@@ -194,6 +206,7 @@ private:
   double        m_dNonZeroMinValue;
   double        m_dRawMaxValue;
   double        m_dRawMinValue;
+  double        m_dDisplayRange[2];
 
   QString       m_strName;
   QString       m_strFileName;

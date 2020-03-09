@@ -78,6 +78,7 @@ void WidgetHistogram::SetOutputRange( double* dRange )
 {
   m_dOutputRange[0] = dRange[0];
   m_dOutputRange[1] = dRange[1];
+  m_bAutoRange = false;
   UpdateData();
 }
 

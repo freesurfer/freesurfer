@@ -76,6 +76,7 @@ WindowConfigureOverlay::WindowConfigureOverlay(QWidget *parent) :
     v = true;
   ui->checkBoxAutoApply->setChecked(v.toBool());
   ui->checkBoxAutoFrame->setChecked(settings.value("WindowConfigureOverlay/AutoFrame").toBool());
+  ui->checkBoxFixedAxes->setChecked(settings.value("WindowConfigureOverlay/FixedAxes", true).toBool());
 
   LayerCollection* lc = MainWindow::GetMainWindow()->GetLayerCollection("MRI");
   connect(lc, SIGNAL(LayerAdded(Layer*)), this, SLOT(UpdateUI()));
@@ -96,6 +97,7 @@ WindowConfigureOverlay::~WindowConfigureOverlay()
   settings.setValue("WindowConfigureOverlay/Geometry", this->saveGeometry());
   settings.setValue("WindowConfigureOverlay/AutoApply", ui->checkBoxAutoApply->isChecked());
   settings.setValue("WindowConfigureOverlay/AutoFrame", ui->checkBoxAutoFrame->isChecked());
+  settings.setValue("WindowConfigureOverlay/FixedAxes", ui->checkBoxFixedAxes->isChecked());
 
   delete ui;
 }
@@ -480,7 +482,7 @@ void WindowConfigureOverlay::UpdateGraph(bool bApply)
         range[1] = m_rangeOverall[1];
       }
       else
-        overlay->GetRange( range );
+        overlay->GetDisplayRange( range );
       if (range[0] == range[1])
       {
         return;
@@ -674,8 +676,19 @@ void WindowConfigureOverlay::OnButtonAdd()
   ui->widgetHistogram->GetOutputRange(range);
   if (pos < range[0] || pos > range[1])
   {
-    QMessageBox::warning(this, "Error", "New point out of range.");
-    return;
+    if (pos < range[0])
+      range[0] = pos;
+    else
+      range[1] = pos;
+    if (m_layerSurface)
+    {
+      SurfaceOverlay* overlay = m_layerSurface->GetActiveOverlay();
+      if (overlay)
+        overlay->SetDisplayRange(range);
+      OnCheckFixedAxes(ui->checkBoxFixedAxes->isChecked(), false);
+    }
+//    QMessageBox::warning(this, "Error", "New point out of range.");
+//    return;
   }
   ui->widgetHistogram->AddMarker(pos, ui->widgetColorPicker->currentColor());
 }
@@ -956,7 +969,7 @@ void WindowConfigureOverlay::OnCheckFixedAxes(bool bChecked, bool bUpdateGraph)
       {
         SurfaceOverlay* ol = m_layerSurface->GetOverlay(i);
         double range[2];
-        ol->GetRange(range);
+        ol->GetDisplayRange(range);
         if (range[0] < m_rangeOverall[0])
           m_rangeOverall[0] = range[0];
         if (range[1] > m_rangeOverall[1])
