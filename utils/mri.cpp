@@ -11494,44 +11494,7 @@ MRI *MRIchangeType(MRI *src, int dest_type, float f_low, float f_high, int no_sc
       for (k = 0; k < src->depth; k++)
         for (j = 0; j < src->height; j++)
           for (i = 0; i < src->width; i++) {
-#if 0	    
-            if (src->type == MRI_UCHAR)
-              val = (float)MRIvox(src, i, j, k);
-            if (src->type == MRI_SHORT)
-              val = (float)MRISvox(src, i, j, k);
-            if (src->type == MRI_INT)
-              val = (float)MRIIvox(src, i, j, k);
-            if (src->type == MRI_LONG)
-              val = (float)MRILvox(src, i, j, k);
-            if (src->type == MRI_FLOAT)
-              val = (float)MRIFvox(src, i, j, k);
-#else
             val = MRIgetVoxVal(src, i, j, k, frame);
-#endif
-
-            if (dest->type == MRI_UCHAR) {
-              if (val < UCHAR_MIN) val = UCHAR_MIN;
-              if (val > UCHAR_MAX) val = UCHAR_MAX;
-              //            MRIvox(dest, i, j, k) = (unsigned char)nint(val);
-            }
-            if (dest->type == MRI_SHORT) {
-              if (val < SHORT_MIN) val = SHORT_MIN;
-              if (val > SHORT_MAX) val = SHORT_MAX;
-              //            MRISvox(dest, i, j, k) = (short)nint(val);
-            }
-            if (dest->type == MRI_INT) {
-              if (val < INT_MIN) val = INT_MIN;
-              if (val > INT_MAX) val = INT_MAX;
-              //            MRIIvox(dest, i, j, k) = (int)nint(val);
-            }
-            if (dest->type == MRI_LONG) {
-              if (val < LONG_MIN) val = LONG_MIN;
-              if (val > LONG_MAX) val = LONG_MAX;
-              //	      MRILvox(dest, i, j, k) = (long)nint(val);
-            }
-
-            //	    if (dest_type == MRI_FLOAT)
-            //            MRIFvox(dest, i, j, k) = (float)val;
             MRIsetVoxVal(dest, i, j, k, frame, val);
           }
   }
@@ -11549,21 +11512,7 @@ MRI *MRIchangeType(MRI *src, int dest_type, float f_low, float f_high, int no_sc
       for (i = 0; i < src->width; i++)
         for (j = 0; j < src->height; j++)
           for (k = 0; k < src->depth; k++) {
-#if 0	    
-            if (src->type == MRI_UCHAR)
-              val = (float)MRIvox(src, i, j, k);
-            if (src->type == MRI_SHORT)
-              val = (float)MRISvox(src, i, j, k);
-            if (src->type == MRI_INT)
-              val = (float)MRIIvox(src, i, j, k);
-            if (src->type == MRI_LONG)
-              val = (float)MRILvox(src, i, j, k);
-            if (src->type == MRI_FLOAT)
-              val = (float)MRIFvox(src, i, j, k);
-#else
             val = MRIgetVoxVal(src, i, j, k, frame);
-#endif
-
             if (!DZERO(val)) nonzero++;
             bin = (int)((val - src_min) / bin_size);
 
@@ -11629,41 +11578,9 @@ MRI *MRIchangeType(MRI *src, int dest_type, float f_low, float f_high, int no_sc
       for (i = 0; i < src->width; i++)
         for (j = 0; j < src->height; j++)
           for (k = 0; k < src->depth; k++) {
-#if 0
-            if (src->type == MRI_SHORT)
-              val = MRISvox(src, i, j, k);
-            if (src->type == MRI_INT)
-              val = MRIIvox(src, i, j, k);
-            if (src->type == MRI_LONG)
-              val = MRILvox(src, i, j, k);
-            if (src->type == MRI_FLOAT)
-              val = MRIFvox(src, i, j, k);
-#else
             val = MRIgetVoxVal(src, i, j, k, frame);
-#endif
 
             val = dest_min + scale * (val - src_min);
-
-            if (dest->type == MRI_UCHAR) {
-              if (val < UCHAR_MIN) val = UCHAR_MIN;
-              if (val > UCHAR_MAX) val = UCHAR_MAX;
-              //            MRIvox(dest, i, j, k) = (unsigned char)nint(val);
-            }
-            if (dest->type == MRI_SHORT) {
-              if (val < SHORT_MIN) val = SHORT_MIN;
-              if (val > SHORT_MAX) val = SHORT_MAX;
-              //            MRISvox(dest, i, j, k) = (short)nint(val);
-            }
-            if (dest->type == MRI_INT) {
-              if (val < INT_MIN) val = INT_MIN;
-              if (val > INT_MAX) val = INT_MAX;
-              //            MRIIvox(dest, i, j, k) = (int)nint(val);
-            }
-            if (dest->type == MRI_LONG) {
-              if (val < LONG_MIN) val = LONG_MIN;
-              if (val > LONG_MAX) val = LONG_MAX;
-              //            MRILvox(dest, i, j, k) = (long)nint(val);
-            }
             MRIsetVoxVal(dest, i, j, k, frame, val);
           }
   }
