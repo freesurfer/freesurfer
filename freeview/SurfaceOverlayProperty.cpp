@@ -312,6 +312,7 @@ void SurfaceOverlayProperty::SetMinPoint( double dValue )
   if ( dValue != m_dMinPoint )
   {
     m_dMinPoint = dValue;
+    SetColorScale(m_nColorScale);
   }
 }
 
@@ -326,6 +327,7 @@ void SurfaceOverlayProperty::SetMidPoint( double dValue )
   if ( dValue != m_dMidPoint )
   {
     m_dMidPoint = dValue;
+    SetColorScale(m_nColorScale);
   }
 }
 
@@ -339,6 +341,7 @@ void SurfaceOverlayProperty::SetMaxPoint( double dValue )
   if ( dValue != m_dMaxPoint )
   {
     m_dMaxPoint = dValue;
+    SetColorScale(m_nColorScale);
   }
 }
 
@@ -353,6 +356,7 @@ void SurfaceOverlayProperty::SetOffset(double dOffset)
   if (dOffset != m_dOffset)
   {
     m_dOffset = dOffset;
+    SetColorScale(m_nColorScale);
   }
 }
 
@@ -382,13 +386,6 @@ void SurfaceOverlayProperty::SetColorTruncate( bool bTruncate )
   m_bColorTruncate = bTruncate;
   SetColorScale( m_nColorScale );
 }
-
-/*
-void SurfaceOverlayProperty::MapOverlayColor( unsigned char* colordata, int nPoints )
-{
-  MapOverlayColor( m_overlay->GetData(), colordata, nPoints );
-}
-*/
 
 void SurfaceOverlayProperty::MapOverlayColor( float* data, unsigned char* colordata, int nPoints )
 {
