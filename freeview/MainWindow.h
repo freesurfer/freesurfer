@@ -432,6 +432,7 @@ protected:
 
 public:
   void CommandSetCamera         ( const QStringList& cmd );
+  void SetViewSize  (int x, int y);
 
 protected slots:
   void OnIdle();
