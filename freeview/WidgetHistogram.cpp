@@ -691,5 +691,5 @@ void WidgetHistogram::FlipMarkers()
 void WidgetHistogram::SetMarkerEditable(bool bFlag)
 {
   m_bMarkerEditable = bFlag;
-  setToolTip(bFlag?"Double-click to edit\r\nShift+Click to delete":"");
+  setToolTip(bFlag?"Double-click on the sliding markers to edit.\r\nShift+Click to delete":"");
 }
