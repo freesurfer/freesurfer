@@ -1366,6 +1366,8 @@ void MainWindow::OnIdle()
     }
   }
 
+  ui->actionShowToolbar->setChecked(ui->mainToolBar->isVisible());
+
   ui->actionViewSagittal->setChecked( m_nMainView == this->MV_Sagittal );
   ui->actionViewCoronal->setChecked( m_nMainView == this->MV_Coronal );
   ui->actionViewAxial->setChecked( m_nMainView == this->MV_Axial );
