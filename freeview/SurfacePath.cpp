@@ -193,6 +193,14 @@ bool SurfacePath::RemovePoint(int nVert)
   return false;
 }
 
+void SurfacePath::RemoveLastPoint()
+{
+  if (!m_listVertices.isEmpty())
+  {
+    m_listVertices.removeLast();
+    Update();
+  }
+}
 
 bool SurfacePath::RemovePoint( double* pos )
 {

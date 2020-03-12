@@ -1366,6 +1366,8 @@ void MainWindow::OnIdle()
     }
   }
 
+  ui->actionShowToolbar->setChecked(ui->mainToolBar->isVisible());
+
   ui->actionViewSagittal->setChecked( m_nMainView == this->MV_Sagittal );
   ui->actionViewCoronal->setChecked( m_nMainView == this->MV_Coronal );
   ui->actionViewAxial->setChecked( m_nMainView == this->MV_Axial );
@@ -4553,7 +4555,11 @@ void MainWindow::CommandSetViewSize( const QStringList& cmd )
     cerr << "Invalid view size.\n";
     return;
   }
+  SetViewSize(x, y);
+}
 
+void MainWindow::SetViewSize(int x, int y)
+{
   QSize sz = m_views[m_nMainView]->size();
   int offsetx = x - sz.width(), offsety = y - sz.height();
   switch( m_nViewLayout )
