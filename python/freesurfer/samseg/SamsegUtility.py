@@ -1,5 +1,7 @@
 import os
 import numpy as np
+import itertools
+import freesurfer as fs
 
 from .utilities import icv
 from .io import kvlReadCompressionLookupTable, kvlReadSharedGMMParameters
@@ -93,7 +95,47 @@ def getOptimizationOptions(atlasDir, userOptimizationOptions={}):
     return optimizationOptions
 
 
-def readCroppedImages(imageFileNames, transformedTemplateFileName):
+def readCroppedImages(imageFileNames, templateFileName, imageToImageTransform):
+    # Read the image data from disk and crop it given a template image and it's associated
+    # registration matrix.
+
+    croppedImageBuffers = []
+    for imageFileName in imageFileNames:
+
+        input_image = fs.Volume.read(imageFileName)
+        template_image = fs.Volume.read(templateFileName)
+
+        imageToImage = fs.LinearTransform(imageToImageTransform)
+
+        # Map each of the corners of the bounding box, and record minima and maxima
+        boundingLimit = np.array(template_image.shape[:3]) - 1
+        corners = np.array(list(itertools.product(*zip((0, 0, 0), boundingLimit))))
+        transformedCorners = imageToImage.transform(corners)
+
+        inputLimit = np.array(input_image.shape[:3]) - 1
+        minCoord = np.clip(transformedCorners.min(axis=0).astype(int),     (0, 0, 0), inputLimit)
+        maxCoord = np.clip(transformedCorners.max(axis=0).astype(int) + 1, (0, 0, 0), inputLimit) + 1
+
+        cropping = tuple([slice(min, max) for min, max in zip(minCoord, maxCoord)])
+        croppedImageBuffers.append(input_image.data[cropping])
+
+        # create and translate kvl transform
+        transform = imageToImage.matrix.copy()
+        transform[:3, 3] -= minCoord
+        transform = gems.KvlTransform(requireNumpyArray(transform))
+
+    croppedImageBuffers = np.transpose(croppedImageBuffers, axes=[1, 2, 3, 0])
+
+    # Also read in the voxel spacing -- this is needed since we'll be specifying bias field smoothing kernels,
+    # downsampling steps etc in mm.
+    nonCroppedImage = gems.KvlImage(imageFileNames[0])
+    imageToWorldTransformMatrix = nonCroppedImage.transform_matrix.as_numpy_array
+    voxelSpacing = np.sum(imageToWorldTransformMatrix[0:3, 0:3] ** 2, axis=0) ** (1 / 2)
+
+    return croppedImageBuffers, transform, voxelSpacing, cropping
+
+
+def readCroppedImagesLegacy(imageFileNames, transformedTemplateFileName):
     # Read the image data from disk. At the same time, construct a 3-D affine transformation (i.e.,
     # translation, rotation, scaling, and skewing) as well - this transformation will later be used
     # to initially transform the location of the atlas mesh's nodes into the coordinate system of the image.
