@@ -130,7 +130,7 @@ if($longitudinal) then
       if($RunIt) $cmd |& tee -a $LF
       if($status) goto error_exit;
     else
-      echo "Long control.dat update not needed" | |& tee -a $LF
+      echo "Long control.dat update not needed" |& tee -a $LF
     endif
   endif
 endif
