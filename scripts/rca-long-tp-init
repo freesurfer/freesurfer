@@ -123,7 +123,7 @@ if($longitudinal) then
   if ( -e $crosscpdat && ! $UseLongbaseCtrlVol ) then
     # only if it does not already exist:
     set cpdat = ${subjdir}/tmp/control.dat
-    set ud = `UpdateNeeded $cpdat $crosscpdat $tpNtobase_regfile)`
+    set ud = `UpdateNeeded $cpdat $crosscpdat $tpNtobase_regfile`
     if($ud || $ForceUpdate) then
       set cmd = (mri_map_cpdat -in $crosscpdat -lta $tpNtobase_regfile -out $cpdat)
       echo " $cmd \n"|& tee -a $LF |& tee -a $CF
