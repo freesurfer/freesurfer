@@ -1078,6 +1078,8 @@ get_option(int argc, char *argv[])
   {
     InterpMethod = SAMPLE_CUBIC;
     printf("using cubic interpolation\n");
+    printf("WARNING!!!! Cubic interpolation not implemented properly yet\n");
+    exit(1) ;
   }
   else if (!stricmp(option, "nearest"))
   {
