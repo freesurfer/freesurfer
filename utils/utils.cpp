@@ -1858,3 +1858,12 @@ double *DListStats(double *dlist, int nlist, double *stats)
   stats[4] = max;
   return(stats);
 }
+
+
+/*!
+  /brief Checks whether a string ends with a substring.
+*/
+bool stringEndsWith(const std::string& value, const std::string& ending) {
+  if (value.length() < ending.length()) return false;
+  return (0 == value.compare (value.length() - ending.length(), ending.length(), ending));
+}
