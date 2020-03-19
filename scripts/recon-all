@@ -3251,7 +3251,7 @@ if($DoFix && ( ! $longitudinal )) then
         --input $origsurfpath --output $remeshpath $xopts)
       echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
       fs_time $cmd |& tee -a $LF
-      if($status) exit 1;
+      if($status) goto error_exit;
     end
   endif
 
