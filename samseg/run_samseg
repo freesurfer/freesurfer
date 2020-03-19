@@ -154,11 +154,13 @@ if args.lesion:
 else:
     samseg = samseg.Samseg(**samseg_kwargs)
 
-_, _, _, optimizationSummary = samseg.segment(costfile=costfile,
-                                              timer=timer,
-                                              worldToWorldTransformMatrix=worldToWorldTransformMatrix,
-                                              initTransform=initTransform,
-                                              reg_only=args.reg_only)
+_, _, _, optimizationSummary = samseg.segment(
+    costfile=costfile,
+    timer=timer,
+    worldToWorldTransformMatrix=worldToWorldTransformMatrix,
+    initTransform=initTransform,
+    reg_only=args.reg_only
+)
 
 # Save a summary of the optimization process
 with open(costfile, 'a') as file:

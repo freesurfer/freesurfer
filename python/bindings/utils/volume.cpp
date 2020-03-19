@@ -1,4 +1,6 @@
 #include "volume.h"
+#include "annotation.h"
+
 
 namespace vol {
 
@@ -274,7 +276,11 @@ MRI* Bridge::mri()
 */
 py::object read(const std::string& filename)
 {
-  return Bridge(MRIread(filename.c_str()));
+  if (stringEndsWith(filename, ".annot")) {
+    return Bridge(readAnnotationIntoSeg(filename));
+  } else {
+    return Bridge(MRIread(filename.c_str()));
+  }
 }
 
 
@@ -283,7 +289,11 @@ py::object read(const std::string& filename)
 */
 void write(Bridge vol, const std::string& filename)
 {
-  MRIwrite(vol, filename.c_str());
+  if (stringEndsWith(filename, ".annot")) {
+    writeAnnotationFromSeg(vol, filename);
+  } else {
+    MRIwrite(vol, filename.c_str());
+  }
 }
 
 

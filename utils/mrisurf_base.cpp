@@ -658,9 +658,9 @@ MRIS* MRIScopyMetadata(MRIS const * source, MRIS * target)
 
   copyVolGeom(&source->vg, &target->vg);
 
-  target->lta = LTAcopy(source->lta, nullptr);
-  target->SRASToTalSRAS_ = MatrixCopy(source->SRASToTalSRAS_, nullptr);
-  target->TalSRASToSRAS_ = MatrixCopy(source->TalSRASToSRAS_, nullptr);
+  if (source->lta) target->lta = LTAcopy(source->lta, nullptr);
+  if (source->SRASToTalSRAS_) target->SRASToTalSRAS_ = MatrixCopy(source->SRASToTalSRAS_, nullptr);
+  if (source->TalSRASToSRAS_) target->TalSRASToSRAS_ = MatrixCopy(source->TalSRASToSRAS_, nullptr);
 
   return target;
 }

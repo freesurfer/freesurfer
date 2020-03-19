@@ -14,7 +14,7 @@ eps = np.finfo(float).eps
 
 class SamsegLesion(Samseg):
     def __init__(self, imageFileNames, atlasDir, savePath, userModelSpecifications={}, userOptimizationOptions={},
-                 transformedTemplateFileName=None, visualizer=None, saveHistory=None, savePosteriors=None,
+                 imageToImageTransformMatrix=None, visualizer=None, saveHistory=None, savePosteriors=None,
                  saveWarp=None, saveMesh=None, threshold=0.3, thresholdSearchString='Lesion',
                  targetIntensity=None, targetSearchStrings=None, modeNames=None, pallidumAsWM=True,
                  numberOfSamplingSteps=50, numberOfBurnInSteps=50,
@@ -22,7 +22,7 @@ class SamsegLesion(Samseg):
                  intensityMaskingPattern=None, intensityMaskingSearchString='Cortex'
                  ):
         Samseg.__init__(self, imageFileNames, atlasDir, savePath, userModelSpecifications, userOptimizationOptions,
-                 transformedTemplateFileName, visualizer, saveHistory, savePosteriors,
+                 imageToImageTransformMatrix, visualizer, saveHistory, savePosteriors,
                  saveWarp, saveMesh, threshold, thresholdSearchString,
                  targetIntensity, targetSearchStrings, modeNames, pallidumAsWM=pallidumAsWM)
         self.numberOfSamplingSteps = numberOfSamplingSteps

@@ -151,9 +151,6 @@ class Volume(ArrayContainerTemplate, Transformable):
         self.ti = None
         self.flip_angle = None
 
-        # lookup table for segmentations
-        self.lut = None
-
         # allow for Volumes to be constructed from arrays with less than 3
         # dimensions in order to act as a catch-all. The appropriate array container
         # classes should really be used if possible since this 'feature' will

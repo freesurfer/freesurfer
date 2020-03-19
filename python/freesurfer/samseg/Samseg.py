@@ -17,10 +17,25 @@ eps = np.finfo(float).eps
 
 
 class Samseg:
-    def __init__(self, imageFileNames, atlasDir, savePath, userModelSpecifications={}, userOptimizationOptions={},
-                 transformedTemplateFileName=None, visualizer=None, saveHistory=None, savePosteriors=False,
-                 saveWarp=None, saveMesh=None, threshold=None, thresholdSearchString=None,
-                 targetIntensity=None, targetSearchStrings=None, modeNames=None, pallidumAsWM=True):
+    def __init__(self,
+        imageFileNames,
+        atlasDir,
+        savePath,
+        userModelSpecifications={},
+        userOptimizationOptions={},
+        imageToImageTransformMatrix=None,
+        visualizer=None,
+        saveHistory=None,
+        savePosteriors=False,
+        saveWarp=None,
+        saveMesh=None,
+        threshold=None,
+        thresholdSearchString=None,
+        targetIntensity=None,
+        targetSearchStrings=None,
+        modeNames=None,
+        pallidumAsWM=True
+        ):
 
         # Store input parameters as class variables
         self.imageFileNames = imageFileNames
@@ -45,9 +60,9 @@ class Samseg:
         # Get full model specifications and optimization options (using default unless overridden by user)
         self.modelSpecifications = getModelSpecifications(atlasDir, userModelSpecifications, pallidumAsWM=pallidumAsWM)
         self.optimizationOptions = getOptimizationOptions(atlasDir, userOptimizationOptions)
-
-        # Get transformed template, if any
-        self.transformedTemplateFileName = transformedTemplateFileName
+        
+        # Set image-to-image matrix if provided
+        self.imageToImageTransformMatrix = imageToImageTransformMatrix
 
         # Print specifications
         print('##----------------------------------------------')
@@ -55,8 +70,6 @@ class Samseg:
         print('##----------------------------------------------')
         print('output directory:', savePath)
         print('input images:', ', '.join([imageFileName for imageFileName in imageFileNames]))
-        if self.transformedTemplateFileName is not None:
-            print('transformed template:', self.transformedTemplateFileName)
         print('modelSpecifications:', self.modelSpecifications)
         print('optimizationOptions:', self.optimizationOptions)
 
@@ -85,13 +98,13 @@ class Samseg:
         os.makedirs(savePath, exist_ok=True)
 
         # Class variables that will be used later
+        self.transform = None
         self.biasField = None
         self.gmm = None
         self.imageBuffers = None
         self.mask = None
         self.classFractions = None
         self.cropping = None
-        self.transform = None
         self.voxelSpacing = None
         self.optimizationSummary = None
         self.optimizationHistory = None
@@ -104,45 +117,49 @@ class Samseg:
         # Main function that runs the whole segmentation pipeline
         #
         # =======================================================================================
-        self.register(costfile=costfile,
-                      timer=timer,
-                      reg_only=reg_only,
-                      worldToWorldTransformMatrix=worldToWorldTransformMatrix,
-                      initTransform=initTransform)
+        if self.imageToImageTransformMatrix is None:
+            self.register(
+                costfile=costfile,
+                timer=timer,
+                reg_only=reg_only,
+                worldToWorldTransformMatrix=worldToWorldTransformMatrix,
+                initTransform=initTransform
+            )
         self.preProcess()
         self.fitModel()
         return self.postProcess()
 
-    def register(self, costfile, timer, reg_only=False, worldToWorldTransformMatrix=None, initTransform=None):
+    def register(self, costfile=None, timer=None, reg_only=False, worldToWorldTransformMatrix=None, initTransform=None):
         # =======================================================================================
         #
         # Perform affine registration if needed
         #
         # =======================================================================================
-        if self.transformedTemplateFileName is None:
-            templateFileName = os.path.join(self.atlasDir, 'template.nii')
-            affineRegistrationMeshCollectionFileName = os.path.join(self.atlasDir, 'atlasForAffineRegistration.txt.gz')
-            _, self.transformedTemplateFileName, optimizationSummary = self.affine.registerAtlas(imageFileName=self.imageFileNames[0],
-                                                                            meshCollectionFileName=affineRegistrationMeshCollectionFileName,
-                                                                            templateFileName=templateFileName,
-                                                                            savePath=self.savePath,
-                                                                            visualizer=self.visualizer,
-                                                                            worldToWorldTransformMatrix=worldToWorldTransformMatrix,
-                                                                            initTransform=initTransform
-                                                                            )
 
-            # Save a summary of the optimization process
-            if optimizationSummary:
-                if costfile is not None:
-                    with open(costfile, "a") as file:
-                        file.write('templateRegistration %d %f\n' % (optimizationSummary['numberOfIterations'],
-                                                                     optimizationSummary['cost']))
-            if timer is not None:
-                timer.mark('atlas registration complete')
+        # Perform registration on first input image
+        self.imageToImageTransformMatrix, optimizationSummary = self.affine.registerAtlas(
+            imageFileName=self.imageFileNames[0],
+            meshCollectionFileName=os.path.join(self.atlasDir, 'atlasForAffineRegistration.txt.gz'),
+            templateFileName=os.path.join(self.atlasDir, 'template.nii'),
+            savePath=self.savePath,
+            visualizer=self.visualizer,
+            worldToWorldTransformMatrix=worldToWorldTransformMatrix,
+            initTransform=initTransform
+        )
 
-            if reg_only:
-                print('registration-only requested, so quiting now')
-                sys.exit()
+        # Save a summary of the optimization process
+        if optimizationSummary and costfile is not None:
+            with open(costfile, "a") as file:
+                file.write('templateRegistration %d %f\n' % (optimizationSummary['numberOfIterations'], optimizationSummary['cost']))
+
+        # Mark registration time
+        if timer is not None:
+            timer.mark('atlas registration complete')
+
+        # Exit if specified
+        if reg_only:
+            print('registration-only requested, so quiting now')
+            sys.exit()
 
     def preProcess(self):
         # =======================================================================================
@@ -151,26 +168,42 @@ class Samseg:
         #
         # =======================================================================================
 
-        # Read the image data from disk. At the same time, construct a 3-D affine transformation (i.e.,
-        # translation, rotation, scaling, and skewing) as well - this transformation will later be used
-        # to initially transform the location of the atlas mesh's nodes into the coordinate system of the image.
-        self.imageBuffers, self.transform, self.voxelSpacing, self.cropping = readCroppedImages(
-            self.imageFileNames,
-            self.transformedTemplateFileName)
+        # Read the image data from disk and crop
+
+        # Historically, the template was resaved with a transformed header and the image-to-image transform
+        # was later extracted by comparing the input image and coregistered template transforms, but shear
+        # cannot be saved through an ITK image, so a better method is to pass the image-to-image transform matrix
+        # directly to samseg. If the SAMSEG_LEGACY_REGISTRATION env var is set, this old method is enabled
+        if os.environ.get('SAMSEG_LEGACY_REGISTRATION') is not None:
+            print('INFO: using legacy (broken) registration option')
+            transformedTemplateFileName = os.path.join(self.savePath, 'template_coregistered_legacy.nii')
+            self.imageBuffers, self.transform, self.voxelSpacing, self.cropping = readCroppedImagesLegacy(self.imageFileNames, transformedTemplateFileName)
+        else:
+            self.imageBuffers, self.transform, self.voxelSpacing, self.cropping = readCroppedImages(
+                self.imageFileNames,
+                os.path.join(self.atlasDir, 'template.nii'),
+                self.imageToImageTransformMatrix
+            )
 
         # Background masking: simply setting intensity values outside of a very rough brain mask to zero
         # ensures that they'll be skipped in all subsequent computations
-        self.imageBuffers, self.mask = maskOutBackground(self.imageBuffers,
-                                                         self.modelSpecifications.atlasFileName,
-                                                         self.transform,
-                                                         self.modelSpecifications.brainMaskingSmoothingSigma,
-                                                         self.modelSpecifications.brainMaskingThreshold,
-                                                         self.probabilisticAtlas)
+        self.imageBuffers, self.mask = maskOutBackground(
+            self.imageBuffers,
+            self.modelSpecifications.atlasFileName,
+            self.transform,
+            self.modelSpecifications.brainMaskingSmoothingSigma,
+            self.modelSpecifications.brainMaskingThreshold,
+            self.probabilisticAtlas
+        )
 
         # Let's prepare for the bias field correction that is part of the imaging model. It assumes
         # an additive effect, whereas the MR physics indicate it's a multiplicative one - so we log
         # transform the data first.
         self.imageBuffers = logTransform(self.imageBuffers, self.mask)
+
+        mesh = self.probabilisticAtlas.getMesh(self.modelSpecifications.atlasFileName, self.transform)
+        priors = mesh.rasterize(self.imageBuffers.shape[:3], 4).astype(float)
+        self.writeImage(priors, os.path.join(self.savePath, 'priors-testing.mgz'))
 
         # Visualize some stuff
         if hasattr(self.visualizer, 'show_flag'):
@@ -221,7 +254,7 @@ class Samseg:
         if self.saveHistory:
             history = {'input': {
                 'imageFileNames': self.imageFileNames,
-                'transformedTemplateFileName': self.transformedTemplateFileName,
+                'imageToImageTransformMatrix': self.imageToImageTransformMatrix,
                 'modelSpecifications': self.modelSpecifications,
                 'optimizationOptions': self.optimizationOptions,
                 'savePath': self.savePath
@@ -379,8 +412,7 @@ class Samseg:
         downSamplingTransformMatrix = np.diag(1. / downSamplingFactors)
         downSamplingTransformMatrix = np.pad(downSamplingTransformMatrix, (0, 1), mode='constant', constant_values=0)
         downSamplingTransformMatrix[3][3] = 1
-        downSampledTransform = gems.KvlTransform(
-            requireNumpyArray(downSamplingTransformMatrix @ self.transform.as_numpy_array))
+        downSampledTransform = gems.KvlTransform(requireNumpyArray(downSamplingTransformMatrix @ self.transform.as_numpy_array))
 
         # Get the mesh
         downSampledMesh, downSampledInitialDeformationApplied = self.probabilisticAtlas.getMesh(atlasFileName,

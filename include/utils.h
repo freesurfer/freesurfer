@@ -27,6 +27,7 @@
 #define UTILS_H
 
 
+#include <string>
 #include "base.h"
 
 #define MATLAB_FILE   0
@@ -86,6 +87,8 @@ char *FileNamePath(const char *fname, char *pathName) ;
 char *FileNameRemoveExtension(const char *in_fname, char *out_fname) ;
 char *FileNameExtension(const char *fname, char *ext) ;
 char *AppendString(char *src, char *app);
+
+bool stringEndsWith(const std::string& value, const std::string& ending);
 
 int devIsinf(float value);
 int devIsnan(float value);

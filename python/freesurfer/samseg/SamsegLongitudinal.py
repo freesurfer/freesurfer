@@ -142,7 +142,6 @@ class SamsegLongitudinal:
         self.timepointModels = None
         self.imageBuffersList = None
         self.sstFileNames = None
-        self.sstTransformedTemplateFileName = None
         self.combinedImageBuffers = None
         self.latentDeformation = None
         self.latentDeformationAtlasFileName = None
@@ -185,21 +184,32 @@ class SamsegLongitudinal:
         templateFileName = os.path.join(self.atlasDir, 'template.nii')
         affineRegistrationMeshCollectionFileName = os.path.join(self.atlasDir, 'atlasForAffineRegistration.txt.gz')
 
-        worldToWorldTransformMatrix, self.sstTransformedTemplateFileName, _ \
-            = self.affine.registerAtlas(self.sstFileNames[0], affineRegistrationMeshCollectionFileName,
-                                        templateFileName, sstDir, visualizer=self.visualizer)
+        self.imageToImageTransformMatrix, _ = self.affine.registerAtlas(
+            self.sstFileNames[0],
+            affineRegistrationMeshCollectionFileName,
+            templateFileName,
+            sstDir,
+            visualizer=self.visualizer
+        )
 
     def preProcess(self):
 
         sstDir, _ = os.path.split(self.sstFileNames[0])
 
-        self.sstModel = Samseg(imageFileNames=self.sstFileNames, atlasDir=self.atlasDir, savePath=sstDir,
-                               transformedTemplateFileName=self.sstTransformedTemplateFileName,
-                               userModelSpecifications=self.userModelSpecifications,
-                               userOptimizationOptions=self.userOptimizationOptions,
-                               visualizer=self.visualizer, saveHistory=True, targetIntensity=self.targetIntensity,
-                               targetSearchStrings=self.targetSearchStrings, modeNames=self.modeNames,
-                               pallidumAsWM=self.pallidumAsWM)
+        self.sstModel = Samseg(
+            imageFileNames=self.sstFileNames,
+            atlasDir=self.atlasDir,
+            savePath=sstDir,
+            imageToImageTransformMatrix=self.imageToImageTransformMatrix,
+            userModelSpecifications=self.userModelSpecifications,
+            userOptimizationOptions=self.userOptimizationOptions,
+            visualizer=self.visualizer,
+            saveHistory=True,
+            targetIntensity=self.targetIntensity,
+            targetSearchStrings=self.targetSearchStrings,
+            modeNames=self.modeNames,
+            pallidumAsWM=self.pallidumAsWM
+        )
 
         # =======================================================================================
         #
@@ -207,12 +217,12 @@ class SamsegLongitudinal:
         #
         # =======================================================================================
 
-        self.sstModel.imageBuffers, self.sstModel.transform, self.sstModel.voxelSpacing, self.sstModel.cropping = \
-            readCroppedImages(self.sstFileNames, self.sstTransformedTemplateFileName)
+        templateFileName = os.path.join(self.atlasDir, 'template.nii')
+        self.sstModel.imageBuffers, self.sstModel.transform, self.sstModel.voxelSpacing, self.sstModel.cropping = readCroppedImages(self.sstFileNames, templateFileName, self.imageToImageTransformMatrix)
 
         self.imageBuffersList = []
         for imageFileNames in self.imageFileNamesList:
-            imageBuffers, _, _, _ = readCroppedImages(imageFileNames, self.sstTransformedTemplateFileName)
+            imageBuffers, _, _, _ = readCroppedImages(imageFileNames, templateFileName, self.imageToImageTransformMatrix)
             self.imageBuffersList.append(imageBuffers)
 
         # Put everything in a big 4-D matrix to derive one consistent mask across all time points
@@ -244,7 +254,7 @@ class SamsegLongitudinal:
                 imageFileNames=self.imageFileNamesList[timepointNumber],
                 atlasDir=self.atlasDir,
                 savePath=self.savePath,
-                transformedTemplateFileName=self.sstTransformedTemplateFileName,
+                imageToImageTransformMatrix=self.imageToImageTransformMatrix,
                 userModelSpecifications=self.userModelSpecifications,
                 userOptimizationOptions=self.userOptimizationOptions,
                 visualizer=self.visualizer,

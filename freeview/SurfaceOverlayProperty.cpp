@@ -120,8 +120,10 @@ void SurfaceOverlayProperty::Reset()
 {
   if ( m_overlay )
   {
-    m_dMinPoint = fabs( m_overlay->m_dMinValue + m_overlay->m_dMaxValue ) / 2;
-    m_dMaxPoint = m_overlay->m_dMaxValue;
+    m_dMinPoint = m_overlay->PercentileToPosition(50);
+    m_dMaxPoint = m_overlay->PercentileToPosition(99);
+    if (m_dMinPoint < 0 && m_dMaxPoint > fabs(m_dMinPoint))
+        m_dMinPoint = fabs(m_dMinPoint);
     m_dMidPoint = ( m_dMinPoint + m_dMaxPoint ) / 2;
     m_dOffset = 0;
     m_customScale.clear();

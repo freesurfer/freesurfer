@@ -36,7 +36,6 @@ set UseFLAIR = 0;
 set modenamelist = ()
 set refmodename = ();
 set SaveMesh = 0
-set optionsfile = ()
 set basedir = ()
 set max_iters = ()
 set SavePosteriors = 0
@@ -46,6 +45,9 @@ set DoMRF = 0;
 set mrfgca = $FREESURFER_HOME/average/samseg/samseg.talairach.m3z.mrf.gca
 set DoRefine = 0
 set ForceUpdate = 0
+set PallidumSeparate = 0;
+set OptionsFile = ()
+set SaveHistory = 0
 
 set inputargs = ($argv);
 set PrintHelp = 0;
@@ -143,14 +145,16 @@ endif
 #========================================================
 set cmd0 = (run_samseg -o $outdir --threads $threads)
 if($SaveMesh) set cmd0 = ($cmd0 --save-mesh)
-if($#optionsfile) set cmd0 = ($cmd0 --options $optionsfile)
-if($#regmat)  set cmd0 = ($cmd0 --reg-mat $regmat)
+if($#regmat)  set cmd0 = ($cmd0 --reg $regmat)
 if($#initlta) set cmd0 = ($cmd0 --init-lta $initlta)
 if($regonly) set cmd0 = ($cmd0 --reg-only);
 if($#max_iters) set cmd0 = ($cmd0 --max-iters $max_iters);
 if($SavePosteriors) set cmd0 = ($cmd0 --save-posteriors)
 if($SaveWarp) set cmd0 = ($cmd0 --save-warp)
 if($DoLesion) set cmd0 = ($cmd0 --lesion)
+if($PallidumSeparate) set cmd0 = ($cmd0 --pallidum-separate)
+if($#OptionsFile)  set cmd0 = ($cmd0 --options $OptionsFile)
+if($SaveHistory)  set cmd0 = ($cmd0 --history)
 foreach input ($inputlist)
   set cmd0 = ($cmd0 -i $input)
 end
@@ -398,6 +402,19 @@ while( $#argv != 0 )
       set DoImport = 1
       breaksw
 
+    case "--pallidum-separate":
+      set PallidumSeparate = 1;
+      breaksw
+
+    case "--options":
+      if($#argv < 1) goto arg1err;
+      set OptionsFile = $argv[1]; shift;
+      if(! -e $OptionsFile) then
+        echo "ERROR: cannot find $OptionsFile"
+        exit 1;
+      endif
+      breaksw
+
     case "--i2":
       if($#argv < 1) goto arg1err;
       set inputlist = ($inputlist $argv[1]); shift;
@@ -504,13 +521,11 @@ while( $#argv != 0 )
       set DoHiRes = 0; # for recon-all
       breaksw
 
-    case "--options":
-      if($#argv < 1) goto arg1err;
-      set optionsfile = $argv[1]; shift;
-      if(! -e $optionsfile) then
-        echo "ERROR: cannot find $optionsfile"
-        exit 1;
-      endif
+    case "--history":
+      set SaveHistory = 1
+      breaksw
+    case "--no-history":
+      set SaveHistory = 0
       breaksw
 
     case "--max-iters":
@@ -694,6 +709,8 @@ usage_exit:
   echo "     Note: using the t1w/t2w/flair/modename will cause input to be conformed unless --hires"
   echo "      --refmode modename (t1w/t2w/flair/modename)  "
   echo "  --o outdir "
+  echo "  --options OptionsFile : json file for advanced"
+  echo "  --history : Turns on save history"
   echo "  --s subject : create subject, sets outdir to subject/mri/samseg"
   echo "                the first input must be the conformed T1 weighted input"
   echo "  --save-posteriors : save posterior probs"
@@ -709,6 +726,8 @@ usage_exit:
   echo "  --hires  : use -hires when running recon-all"
   echo "  --sd SUBJECTS_DIR"
   echo ""
+  echo " --pallidum-separate : Move pallidum outside of global white matter class. Use this flag when"
+  echo "   analyzing T2 or FLAIR"
   echo " --regmat reg.mat : registration file (as output by samseg)"
   echo "    allows using the reg from one run with another run"
   echo " --initlta init.lta : initial registration"
