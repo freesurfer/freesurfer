@@ -123,6 +123,7 @@ install(PROGRAMS
   make_cortex_label
   make_folding_atlas
   make_hemi_mask
+  make_exvivo_filled
   make_symmetric
   make_upright
   map_all_labels
