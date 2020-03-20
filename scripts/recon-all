@@ -1610,20 +1610,22 @@ talairach:
   echo $cmd > $touchdir/talairach.touch
 endif
 
-# Always convert the talairach.xfm into an LTA
-cd $subjdir/mri > /dev/null
-set xfm = transforms/talairach.xfm 
-set lta = transforms/talairach.xfm.lta
-set ud = `UpdateNeeded $lta $xfm`
-if($ud) then
-  set mni305 = $FREESURFER_HOME/average/mni305.cor.mgz
-  set cmd = (lta_convert --src orig.mgz --trg $mni305 --inxfm $xfm \
-      --outlta $lta --subject fsaverage --ltavox2vox)
-  echo $cmd |& tee -a $LF |& tee -a $CF
-  if($RunIt) then
-    $cmd |& tee -a $LF
-    if($status) then
-      goto error_exit
+if($DoTalairach) then 
+  # Always convert the talairach.xfm into an LTA
+  cd $subjdir/mri > /dev/null
+  set xfm = transforms/talairach.xfm 
+  set lta = transforms/talairach.xfm.lta
+  set ud = `UpdateNeeded $lta $xfm`
+  if($ud) then
+    set mni305 = $FREESURFER_HOME/average/mni305.cor.mgz
+    set cmd = (lta_convert --src orig.mgz --trg $mni305 --inxfm $xfm \
+        --outlta $lta --subject fsaverage --ltavox2vox)
+    echo $cmd |& tee -a $LF |& tee -a $CF
+    if($RunIt) then
+      $cmd |& tee -a $LF
+      if($status) then
+        goto error_exit
+      endif
     endif
   endif
 endif
