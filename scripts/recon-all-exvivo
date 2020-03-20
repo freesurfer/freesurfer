@@ -15,6 +15,7 @@ if ($#argv == 0) then
 endif
 
 
+set use_samseg = 0
 set norecon=0
 set cerebellum = ()
 set opts=()
@@ -31,7 +32,13 @@ while( $#argv != 0 )
     case "-norecon":
        set norecon=1 ;
        breaksw ;
-    case "--subject":
+    case "--samseg":
+    case "-samseg":
+      if ( $#argv < 2) goto arg1err;
+	set samseg_fname = $1;shift;
+	set vol_fname = $1;shift;
+	set use_samseg = 1
+	breaksw
     case "--s":
     case "-subject":
     case "-s":
@@ -85,6 +92,10 @@ while( $#argv != 0 )
        breaksw 
 # these are all pass through commands with a single argument
      case "-openmp":
+       if ( $#argv < 1) goto arg1err;
+       set opts = ($opts $flag $1)
+       shift;
+       breaksw ;
      case "-no-wsatlas":
      case "-no-wgcasatlas":
      case "-wsatlas":
@@ -108,6 +119,11 @@ end
 set sd=$SUBJECTS_DIR/$s
 if (! $?base ) then
   set base=$SUBJECTS_DIR/$s
+endif
+
+if (-e $sd == 0) then
+    echo creating subject directory tree
+    mksubjdirs $s
 endif
 
 # ------------ Create the log file --------------- #
@@ -180,6 +196,13 @@ if ($?renorm) then
 endif
 if (-e ${xfile}) then
     set opts = ($opts -xopts-overwrite -expert ${xfile})
+endif
+
+
+if ($use_samseg) then
+    make_exvivo_filled $s $samseg_fname $vol_fname
+    recon-all -s $s  -autorecon2-wm -autorecon3 -notalairach $opts -balabels
+    exit 0
 endif
 
 mkdir -p $odir/norm
