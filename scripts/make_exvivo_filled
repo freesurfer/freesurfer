@@ -2,15 +2,32 @@
 # usage: make_exvivo_filled <subject name> <input samseg> <input intensity vol>
 
 set echo=1
-if ( $#argv < 3) then
-    echo "usage: make_exvivo_filled <subject name> <input samseg> <input intensity vol>"
+if ( $#argv < 4) then
+    echo "usage: make_exvivo_filled <subject name> <input samseg> <input intensity vol> <hemi/both>"
     exit 1
 endif
 
-set hemi=lh
 set s=$1
 set samseg=$2
 set norm=$3
+set hemi=$4
+
+set lhwm=2
+set rhwm=41
+if ($4 == lh) then
+    set hemilist = (lh)
+    set hemiopt = "-lh"
+    set hemiopt2 = "-lhonly"
+else if ($4 == rh) then
+    set hemilist = (rh)
+    set hemiopt = "-rh"
+    set hemiopt2 = "-rhonly"
+else
+    set hemilist = (lh rh)
+    set hemiopt2 = ""
+    set hemiopt = ""
+endif
+
 set bdir=$SUBJECTS_DIR/$s
 set mdir=$bdir/mri
 set sdir=$bdir/surf
@@ -21,23 +38,27 @@ if (-e $bdir == 0) then
 endif
 
 
-if ($hemi == lh) then
-    set wmlabel=2
-else
-    set wmlabel=41
-endif
 
-mri_mask -no_cerebellum -${hemi} $samseg $samseg $mdir/aseg.mgz
+mri_mask -no_cerebellum ${hemiopt} $samseg $samseg $mdir/aseg.mgz
 cp $mdir/aseg.mgz $mdir/aseg.auto.mgz
 cp $mdir/aseg.mgz $mdir/aseg.presurf.mgz
-mri_mask -no_cerebellum -${hemi} $norm $samseg $mdir/norm.mgz
-foreach f (brain.mgz brainmask.mgz orig.mgz)
+mri_mask -no_cerebellum ${hemiopt} $norm $samseg $mdir/norm.mgz
+foreach f (brain.mgz brainmask.mgz orig.mgz rawavg.mgz)
     ln -fs $mdir/norm.mgz $mdir/$f
 end
-mri_extract_largest_CC -l $wmlabel $samseg $mdir/wm.seg.mgz
+if ($hemi == lh) then
+    mri_extract_largest_CC -l ${lhwm} $samseg $mdir/wm.seg.mgz
+else if ($hemi == rh) then
+    mri_extract_largest_CC -l ${rhwm} $samseg $mdir/wm.seg.mgz
+    mri_binarize --replaceonly ${rhwm} ${lhwm} --i  $mdir/wm.seg.mgz --o $mdir/wm.seg.mgz
+else
+    mri_binarize --replaceonly ${rhwm} ${lhwm} --i $samseg --o $mdir/wm.seg.mgz
+    mri_extract_largest_CC -l ${lhwm} $mdir/wm.seg.mgz $mdir/wm.seg.mgz
+endif
+
 mri_binarize --binval 255 --i $mdir/wm.seg.mgz --o $mdir/wm.seg.bin.mgz --min 1 --max 3
 mri_convert -odt uchar $mdir/wm.seg.bin.mgz $mdir/wm.seg.bin.mgz
-mri_edit_wm_with_aseg -${hemi} -keep-in $mdir/wm.seg.bin.mgz $norm $mdir/aseg.mgz $mdir/wm.asegedit.mgz 
+mri_edit_wm_with_aseg ${hemiopt} -keep-in $mdir/wm.seg.bin.mgz $norm $mdir/aseg.mgz $mdir/wm.asegedit.mgz 
 mri_extract_largest_CC -l 255 $mdir/wm.asegedit.mgz $mdir/wm.asegedit.cc.mgz
 mri_pretess $mdir/wm.asegedit.mgz wm $mdir/norm.mgz $mdir/wm.mgz 
-mri_fill -${hemi}only -a ../scripts/ponscc.cut.log -segmentation $mdir/aseg.mgz $mdir/wm.mgz $mdir/filled.mgz 
+mri_fill ${hemiopt2} -a ../scripts/ponscc.cut.log -segmentation $mdir/aseg.mgz $mdir/wm.mgz $mdir/filled.mgz 
