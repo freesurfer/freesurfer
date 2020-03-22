@@ -1039,7 +1039,7 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
               continue ;
             }
 #endif
-            if (MRIvox(mri_wm, x, y+1, z) < MIN_WM_VAL)
+            if (y < mri_wm->height-1 && MRIvox(mri_wm, x, y+1, z) < MIN_WM_VAL)
             {
               continue ;  // no white matter inferior
             }
