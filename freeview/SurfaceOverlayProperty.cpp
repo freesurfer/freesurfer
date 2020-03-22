@@ -53,13 +53,11 @@ SurfaceOverlayProperty::SurfaceOverlayProperty ( SurfaceOverlay* overlay) :
   m_mask(NULL),
   m_maskData(NULL),
   m_bInverseMask(false),
-  m_bIgnoreZeros(false)
+  m_bIgnoreZeros(false),
+  m_nColorScale(CS_Heat),
+  m_nColorMethod(CM_LinearOpaque)
 {
   m_lut = vtkRGBAColorTransferFunction::New();
-
-  Reset();
-  SetColorScale( CS_Heat );
-  SetColorMethod( CM_LinearOpaque );
 }
 
 SurfaceOverlayProperty::~SurfaceOverlayProperty ()
@@ -130,6 +128,8 @@ void SurfaceOverlayProperty::Reset()
     m_customScale << QGradientStop(m_dMinPoint, Qt::red);
     m_dMinStop = m_dMinPoint;
     m_dMaxStop = m_dMaxPoint;
+    SetColorScale( m_nColorScale );
+    SetColorMethod( m_nColorMethod );
   }
 }
 
