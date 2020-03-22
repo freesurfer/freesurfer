@@ -254,7 +254,9 @@ void InfoTreeWidget::UpdateAll()
       if (bMappingVertex && nVertex >= 0)
         surf->GetSourceSurface()->GetSurfaceRASAtVertex(nVertex, sf_pos, FSSurface::SurfaceWhite);
       else
+      {
         surf->GetSurfaceRASAtTarget( m_dRAS, sf_pos );
+      }
       QString editable = QString("%1, %2, %3")
           .arg(sf_pos[0], 0, 'f', 2)
           .arg(sf_pos[1], 0, 'f', 2)
