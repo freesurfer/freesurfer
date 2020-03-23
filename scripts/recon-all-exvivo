@@ -200,8 +200,12 @@ endif
 
 
 if ($use_samseg) then
-    make_exvivo_filled $s $samseg_fname $vol_fname
-    recon-all -s $s  -autorecon2-wm -autorecon3 -notalairach $opts -balabels
+    if ($?hemi) then
+    else
+	set hemi=both
+    endif
+    make_exvivo_filled $s $samseg_fname $vol_fname $hemi
+    recon-all -hires -s $s  -autorecon2-wm -autorecon3 -notalairach $opts -balabels
     exit 0
 endif
 

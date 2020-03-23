@@ -40,19 +40,21 @@ endif
 
 
 mri_mask -no_cerebellum ${hemiopt} $samseg $samseg $mdir/aseg.mgz
+mri_convert -rt nearest -ns 1 --conform_min  $mdir/aseg.mgz $mdir/aseg.mgz
 cp $mdir/aseg.mgz $mdir/aseg.auto.mgz
 cp $mdir/aseg.mgz $mdir/aseg.presurf.mgz
 mri_mask -no_cerebellum ${hemiopt} $norm $samseg $mdir/norm.mgz
+mri_convert --conform_min  $mdir/norm.mgz $mdir/norm.mgz
 foreach f (brain.mgz brainmask.mgz orig.mgz rawavg.mgz)
     ln -fs $mdir/norm.mgz $mdir/$f
 end
 if ($hemi == lh) then
-    mri_extract_largest_CC -l ${lhwm} $samseg $mdir/wm.seg.mgz
+    mri_extract_largest_CC -l ${lhwm} $mdir/aseg.mgz $mdir/wm.seg.mgz
 else if ($hemi == rh) then
-    mri_extract_largest_CC -l ${rhwm} $samseg $mdir/wm.seg.mgz
+    mri_extract_largest_CC -l ${rhwm} $mdir/aseg.mgz $mdir/wm.seg.mgz
     mri_binarize --replaceonly ${rhwm} ${lhwm} --i  $mdir/wm.seg.mgz --o $mdir/wm.seg.mgz
 else
-    mri_binarize --replaceonly ${rhwm} ${lhwm} --i $samseg --o $mdir/wm.seg.mgz
+    mri_binarize --replaceonly ${rhwm} ${lhwm} --i $mdir/aseg.mgz --o $mdir/wm.seg.mgz
     mri_extract_largest_CC -l ${lhwm} $mdir/wm.seg.mgz $mdir/wm.seg.mgz
 endif
 
