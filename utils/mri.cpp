@@ -11464,8 +11464,15 @@ MRI *MRIchangeType(MRI *src, int dest_type, float f_low, float f_high, int no_sc
   else if (src->type == MRI_INT && (dest_type == MRI_LONG || dest_type == MRI_FLOAT))
     no_scale_flag = TRUE;
   else {
-    MRIlimits(src, &src_min, &src_max);
-
+    MRIlimitsMultipleTimes(src, &src_min, &src_max, 2);
+    {
+      double mn = MRImeanFrameThresh(src, 0, 0) ;
+      if (src_max > 100*mn)
+      {
+	printf("original max %2.1f more than 100x larger than mean %2.2f, scaling down to 100x mn = %2.1f\n", src_max, mn, 100*mn) ;
+	src_max = 100*mn ;
+      }
+    }
     if (no_scale_option_flag > 1)
       no_scale_flag = TRUE;
     else if (no_scale_option_flag == 1) {
@@ -17406,3 +17413,38 @@ void MRI::loadITKImage(ITKImageType::Pointer image, int frame)
     }
   }
 }
+void
+MRIlimitsMultipleTimes(MRI *mri_src, float *psrc_min, float *psrc_max, int ntimes)
+{
+  int  done = 0, nmin = 0, nmax = 0, x, y, z, f ;
+  float val ;
+  MRI   *mri_copy ;
+
+  mri_copy = MRIcopy(mri_src, NULL) ;
+  do
+  {
+    MRIlimits(mri_copy, psrc_min, psrc_max) ;
+    for (f = 0 ; f < mri_src->nframes ; f++)
+      for (x = 0 ; x < mri_src->width ; x++)
+	for (y = 0 ; y < mri_src->height ; y++)
+	  for (z = 0 ; z < mri_src->depth ; z++)
+	  {
+	    val = MRIgetVoxVal(mri_src, x, y, z, f);
+	    if (val == *psrc_min)
+	    {
+	      MRIsetVoxVal(mri_copy, x, y, z, f, 0) ;
+	      nmin++ ;
+	    }
+	    if (val == *psrc_max)
+	    {
+	      MRIsetVoxVal(mri_copy, x, y, z, f, 0) ;
+	      nmax++ ;
+	    }
+	  }
+    done = (nmin >= ntimes) && (nmax >= ntimes) ;
+  } while (!done);
+  MRIfree(&mri_copy) ;
+  return ;
+}
+
+	  
