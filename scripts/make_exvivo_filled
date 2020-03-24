@@ -60,7 +60,7 @@ endif
 
 mri_binarize --binval 255 --i $mdir/wm.seg.mgz --o $mdir/wm.seg.bin.mgz --min 1 --max 3
 mri_convert -odt uchar $mdir/wm.seg.bin.mgz $mdir/wm.seg.bin.mgz
-mri_edit_wm_with_aseg ${hemiopt} -keep-in $mdir/wm.seg.bin.mgz $norm $mdir/aseg.mgz $mdir/wm.asegedit.mgz 
+mri_edit_wm_with_aseg ${hemiopt} -keep-in $mdir/wm.seg.bin.mgz $mdir/norm.mgz $mdir/aseg.mgz $mdir/wm.asegedit.mgz 
 mri_extract_largest_CC -l 255 $mdir/wm.asegedit.mgz $mdir/wm.asegedit.cc.mgz
 mri_pretess $mdir/wm.asegedit.mgz wm $mdir/norm.mgz $mdir/wm.mgz 
 mri_fill ${hemiopt2} -a ../scripts/ponscc.cut.log -segmentation $mdir/aseg.mgz $mdir/wm.mgz $mdir/filled.mgz 
