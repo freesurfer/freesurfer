@@ -473,6 +473,14 @@ get_option(int argc, char *argv[])
     keep_mask_deletion_edits = 1;
     fprintf(stderr, "Transferring mask edits ('1' voxels) to dst vol\n");
   }
+  else if (!stricmp(option, "DEBUG_VOXEL"))
+  {
+    Gx = atoi(argv[2]) ;
+    Gy = atoi(argv[3]) ;
+    Gz = atoi(argv[4]) ;
+    nargs = 3 ;
+    printf("debugging node (%d, %d, %d)\n", Gx,Gy,Gz) ;
+  }
   else
   {
     fprintf(stderr, "unknown option %s\n", argv[1]) ;
