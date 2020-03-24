@@ -11464,15 +11464,7 @@ MRI *MRIchangeType(MRI *src, int dest_type, float f_low, float f_high, int no_sc
   else if (src->type == MRI_INT && (dest_type == MRI_LONG || dest_type == MRI_FLOAT))
     no_scale_flag = TRUE;
   else {
-    MRIlimitsMultipleTimes(src, &src_min, &src_max, 2);
-    {
-      double mn = MRImeanFrameThresh(src, 0, 0) ;
-      if (src_max > 100*mn)
-      {
-	printf("original max %2.1f more than 100x larger than mean %2.2f, scaling down to 100x mn = %2.1f\n", src_max, mn, 100*mn) ;
-	src_max = 100*mn ;
-      }
-    }
+    MRIlimits(src, &src_min, &src_max);
     if (no_scale_option_flag > 1)
       no_scale_flag = TRUE;
     else if (no_scale_option_flag == 1) {
@@ -11512,6 +11504,18 @@ MRI *MRIchangeType(MRI *src, int dest_type, float f_low, float f_high, int no_sc
     printf("MRIchangeType: Building histogram %g %g %d, flo=%g, fhi=%g, dest_type=%d\n",
            src_min,src_max,N_HIST_BINS,f_low,f_high,dest_type);
     bin_size = (src_max - src_min) / (float)N_HIST_BINS;
+    {
+      double mn = MRImeanFrameThresh(src, 0, 1e-7) ;
+      int    mn_bin ;
+
+      mn_bin = (int)((mn - src_min) / bin_size);
+
+      if (mn_bin < (N_HIST_BINS/5.0))
+      {
+	printf("original bin size %2.1f (max %2.1f) too big for mean/min %2.2f/%2.2f, scaling down to %2.5f\n", bin_size, src_max, mn, src_min, (mn-src_min)/(N_HIST_BINS/5.0)) ;
+	bin_size = (mn-src_min)/(N_HIST_BINS/5.0);
+      }
+    }
 
     for (i = 0; i < N_HIST_BINS; i++) hist_bins[i] = 0;
 
