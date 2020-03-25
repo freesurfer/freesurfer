@@ -110,6 +110,14 @@ def segment_image2D(net, im_intensity, wsize, box, nlabels=3,batch_size=256,stri
     return im_pred
 
 
+def bbox2D(img):
+    rows = np.any(img, axis=1)
+    cols = np.any(img, axis=0)
+    rmin, rmax = np.where(rows)[0][[0, -1]]
+    cmin, cmax = np.where(cols)[0][[0, -1]]
+
+    return rmin, rmax, cmin, cmax
+
 def bbox2_3D(img):
     r = np.any(img, axis=(1, 2))
     c = np.any(img, axis=(0, 2))
@@ -549,6 +557,16 @@ def bbox_3D(img):
     zmin, zmax = np.where(z)[0][[0, -1]]
     return rmin, rmax, cmin, cmax, zmin, zmax
 
+def bbox2(img):
+    rows = np.any(img, axis=1)
+    cols = np.any(img, axis=0)
+    rmin, rmax = np.where(rows)[0][[0, -1]]
+    cmin, cmax = np.where(cols)[0][[0, -1]]
+
+    return rmin, rmax, cmin, cmax
+
+
+
 def histo_norm_intensities(vol, wsize,nbins=100, target_val=1.0):
     w,h,d = vol.shape
     whalf = wsize/2
@@ -571,3 +589,42 @@ def sort_batch(input_batch, input_labels, probe_patch):
     rms = np.sqrt(np.average(sq,axis=(1,2,3)))
     ind = np.argsort(rms)
     return input_batch[ind,:], input_labels[ind,:]
+
+def compute_intensity_stats(paths, vname_list, method='mean', ranges=None, vol_list = None):
+    nvols = len(vname_list)
+    means = np.zeros(nvols)
+    stds = np.zeros(nvols)
+    for pno, path in enumerate(paths):
+        for vno, vname in enumerate(vname_list):
+            fname = os.path.join(path, vname)
+            if (vol_list == None):
+                print('%d of %d: file %s' % (pno, len(paths), fname))
+                mri = fs.Volume(fname)
+            else:
+                mri = vol_list[pno][vno]
+            im = mri.image.astype('float64')
+            if (method == 'mean'):
+                val = im.mean()
+            elif method == 'histo':
+                if ranges is not None:
+                    ind = np.where(np.logical_and(im > ranges[vno,0], im < ranges[vno,1]))  
+                    im = im[ind]
+                try: 
+                    hist,edges = np.histogram(im.flatten(),bins='auto')
+                except ValueError:
+                    print('exception')
+                    hist,edges = np.histogram(im.flatten(),bins=500)
+                    
+                val = edges[hist.argmax()]
+                del edges, hist
+            shape = mri.image.shape
+            if (vol_list == None):
+                del mri
+            means[vno] += val
+            stds[vno] += (val*val)
+    
+    for vno in range(nvols):
+        means[vno] /= len(paths)
+        stds[vno] = np.sqrt(stds[vno]/len(paths) - means[vno]*means[vno])
+
+    return means, stds, shape
