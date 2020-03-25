@@ -3348,11 +3348,12 @@ main(int argc, char *argv[])
   if (lta && !lhonly && !rhonly)
   {
     int totRH, totLH;
+    double voxvol = mri_fill->xsize * mri_fill->ysize * mri_fill->zsize;
     totRH = 0;
     totLH = 0;
     verifyLRSplit(mri_fill, lta, cc_tal_x, &badRH, &badLH, &totRH, &totLH);
 
-    if ((badRH > 10000) || (badLH > 10000))
+    if ((badRH*voxvol > 10000) || (badLH*voxvol > 10000))
     {
       if (lta)
       {
