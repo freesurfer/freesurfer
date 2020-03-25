@@ -584,7 +584,7 @@ def unet_encoder_dense(feature_shape, output_shape, unet_num_filters, depth, dep
 
 
 def classnet(feature_shape, unet_num_filters, depth, depth_per_level, n_labels, initial_learning_rate,
-                 loss='binary_crossentropy', batch_norm=True, dropout_frac=None,pooling='max',num_outputs=1):
+                 loss='binary_crossentropy', batch_norm=True, dropout_frac=None,pooling='max',num_outputs=1,final_activation='softmax'):
     dim = len(feature_shape)
     num_channels = feature_shape[-1]
     if dim == 3:
@@ -670,11 +670,11 @@ def classnet(feature_shape, unet_num_filters, depth, depth_per_level, n_labels, 
     model.add(Dense(512, activation='relu', kernel_initializer="he_normal", use_bias=use_bias))
     model.add(Dropout(0.2))
     if n_labels > 0:
-        model.add(Dense(n_labels, activation='softmax', use_bias=use_bias, kernel_initializer="he_normal"))
+        model.add(Dense(n_labels, activation=final_activation, use_bias=use_bias, kernel_initializer="he_normal"))
         model.compile(optimizer=Adam(lr=initial_learning_rate), loss=loss, metrics=['accuracy'])
 
     elif n_labels == 0:
-        model.add(Dense(num_outputs, activation='softmax', kernel_initializer="he_normal", use_bias=use_bias))
+        model.add(Dense(num_outputs, activation=final_activation, kernel_initializer="he_normal", use_bias=use_bias))
         model.compile(optimizer=Adam(lr=initial_learning_rate), loss=loss)
 
     return model
