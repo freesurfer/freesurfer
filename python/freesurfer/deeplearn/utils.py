@@ -26,7 +26,7 @@ def configure(gpu=0):
     if gpu >= 0:
         config.allow_soft_placement = True
         config.gpu_options.allow_growth = True
-    tf.keras.backend.tensorflow_backend.set_session(tf.Session(config=config))
+    tf.keras.backend.set_session(tf.Session(config=config))
 
 
 class LoopingIterator:
