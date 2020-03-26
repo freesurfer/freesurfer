@@ -3,9 +3,10 @@ import pdb as gdb
 import nibabel as nib
 import numpy as np
 import freesurfer as fs
-import keras
 import tensorflow as tf
 from tensorflow.python.eager.context import context, EAGER_MODE, GRAPH_MODE
+from tensorflow.keras.callbacks import Callback
+from shutil import copyfile
 
 def switch_to_eager():
     switch_execution_mode(EAGER_MODE)
@@ -25,7 +26,7 @@ def configure(gpu=0):
     if gpu >= 0:
         config.allow_soft_placement = True
         config.gpu_options.allow_growth = True
-    keras.backend.tensorflow_backend.set_session(tf.Session(config=config))
+    tf.keras.backend.tensorflow_backend.set_session(tf.Session(config=config))
 
 
 class LoopingIterator:
@@ -186,7 +187,7 @@ def BatchGenerator3D(train_oct, train_labels, batch_size=64,wsize=32,n_labels=4,
             label_patch[:,:,:,0] = train_labels[x-whalf:x+whalf,y-whalf:y+whalf,z-whalf:z+whalf]
             if (augment_permute == True):
                 label_patch[:,:,:,0] = np.transpose(label_patch[:,:,:,0], permuted_axes)
-            batch_labels[found,:] = keras.utils.np_utils.to_categorical(label_patch, num_classes=n_labels) 
+            batch_labels[found,:] = tf.keras.utils.np_utils.to_categorical(label_patch, num_classes=n_labels) 
             
         found = found+1
 
@@ -194,11 +195,6 @@ def BatchGenerator3D(train_oct, train_labels, batch_size=64,wsize=32,n_labels=4,
             yield batch_intensity[0:found,:], batch_labels[0:found,:]
             found = 0
 
-
-
-from keras.callbacks import Callback
-from shutil import copyfile
-import os
 
 class WeightsSaver(Callback):
     def __init__(self, model, N, name, cp_iters = 0):
@@ -208,6 +204,7 @@ class WeightsSaver(Callback):
         self.name = name
         self.cp_iters = cp_iters
         self.iters = 0
+
     def on_batch_end(self, batch, logs={}):
         if self.batch % self.N == 0:
             name = 'weights%08d.h5' % self.batch

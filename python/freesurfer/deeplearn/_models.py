@@ -1,12 +1,12 @@
 import os
 import numpy as np
 import tensorflow as tf
-import keras.backend as K
-from keras.optimizers import Adam
-from keras.models import Model, Sequential
-from keras.layers import *
-from keras.losses import mse
-from keras.utils import multi_gpu_model
+import tensorflow.keras.backend as K
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.models import Model, Sequential
+from tensorflow.keras.layers import *
+from tensorflow.keras.losses import mse
+from tensorflow.keras.utils import multi_gpu_model
 from ._utility import dice_coef_loss2, grad_loss
 import pdb as gdb
 
