@@ -1808,6 +1808,10 @@ void MainWindow::RunScript()
   {
     CommandSetIsoSurfaceColor( sa );
   }
+  else if (cmd == "setisosurfacesmooth")
+  {
+    CommandSetIsoSurfaceSmooth( sa );
+  }
   else if (cmd == "setisosurfaceupsample")
   {
     CommandSetIsoSurfaceUpsample( sa );
@@ -1879,6 +1883,10 @@ void MainWindow::RunScript()
   else if ( cmd == "setsurfacecolor" )
   {
     CommandSetSurfaceColor( sa );
+  }
+  else if ( cmd == "setsurfaceopacity" )
+  {
+    CommandSetSurfaceOpacity( sa );
   }
   else if ( cmd == "setsurfaceedgecolor" )
   {
@@ -2315,6 +2323,10 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
       else if (subOption == "isosurface_color")
       {
         m_scripts.insert( 0,  (QStringList("setisosurfacecolor") << subArgu) );
+      }
+      else if (subOption == "isosurface_smooth")
+      {
+        m_scripts.insert(0, (QStringList("setisosurfacesmooth") << subArgu) );
       }
       else if (subOption == "extract_all_regions")
       {
@@ -2935,6 +2947,20 @@ void MainWindow::CommandSetIsoSurfaceUpsample(const QStringList &cmd)
   }
 }
 
+void MainWindow::CommandSetIsoSurfaceSmooth(const QStringList &cmd)
+{
+  LayerMRI* mri = (LayerMRI*)GetLayerCollection( "MRI" )->GetActiveLayer();
+  if ( mri )
+  {
+    bool bOk;
+    int nIterations = cmd[1].toInt(&bOk);
+    if (bOk && nIterations > 0)
+    {
+      mri->GetProperty()->SetContourSmoothIterations(nIterations);
+    }
+  }
+}
+
 void MainWindow::CommandSetExtractAllRegions(const QStringList &cmd)
 {
   LayerMRI* mri = (LayerMRI*)GetLayerCollection( "MRI" )->GetActiveLayer();
@@ -3339,6 +3365,10 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
         if ( subOption == "color" )
         {
           m_scripts.insert( 0, QStringList("setsurfacecolor") << subArgu );
+        }
+        else if (subOption == "opacity")
+        {
+          m_scripts.insert( 0, QStringList("setsurfaceopacity") << subArgu );
         }
         else if ( subOption == "id")
         {
@@ -4030,6 +4060,24 @@ void MainWindow::CommandSetSurfaceEdgeThickness( const QStringList& cmd )
     else
     {
       surf->GetProperty()->SetEdgeThickness( thickness );
+    }
+  }
+}
+
+void MainWindow::CommandSetSurfaceOpacity( const QStringList& cmd )
+{
+  LayerSurface* surf = (LayerSurface*)GetLayerCollection( "Surface" )->GetActiveLayer();
+  if ( surf )
+  {
+    bool bOK;
+    double opacity = cmd[1].toDouble(&bOK);
+    if ( !bOK || opacity < 0 || opacity > 1)
+    {
+      cerr << "Invalid opacity value. Must be between 0 and 1.\n";
+    }
+    else
+    {
+      surf->GetProperty()->SetOpacity(opacity);
     }
   }
 }

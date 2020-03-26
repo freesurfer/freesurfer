@@ -392,6 +392,7 @@ protected:
   void CommandSetSurfaceColor   ( const QStringList& cmd );
   void CommandSetSurfaceEdgeColor ( const QStringList& cmd );
   void CommandSetSurfaceEdgeThickness ( const QStringList& cmd );
+  void CommandSetSurfaceOpacity ( const QStringList& cmd );
   void CommandSetSurfaceOffset  ( const QStringList& cmd );
   void CommandSetSurfaceLabelOutline   ( const QStringList& cmd );
   void CommandSetSurfaceLabelOpacity   ( const QStringList& cmd );
@@ -410,6 +411,7 @@ protected:
   void CommandSetDisplayIsoSurface  ( const QStringList& cmd );
   void CommandSetIsoSurfaceColor( const QStringList& cmd );
   void CommandSetIsoSurfaceUpsample ( const QStringList& cmd );
+  void CommandSetIsoSurfaceSmooth ( const QStringList& cmd );
   void CommandSetExtractAllRegions ( const QStringList& cmd );
   void CommandLoadIsoSurfaceRegion  ( const QStringList& cmd );
   void CommandLockLayer         ( const QStringList& cmd );
