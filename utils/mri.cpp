@@ -11504,11 +11504,13 @@ MRI *MRIchangeType(MRI *src, int dest_type, float f_low, float f_high, int no_sc
     printf("MRIchangeType: Building histogram %g %g %d, flo=%g, fhi=%g, dest_type=%d\n", src_min,src_max,N_HIST_BINS,f_low,f_high,dest_type);
     bin_size = (src_max - src_min) / (float)N_HIST_BINS;
     
-    if (src->xsize < .75 || (getenv("FS_FORCE_BIN_CHECK") != NULL)) {
+    if (1) {
       double mn = MRImeanFrameThresh(src, 0, 1e-7);
       int mn_bin = (int)((mn - src_min) / bin_size);
 
       static float bin_threshold = (float)N_HIST_BINS / 5.0;
+      if (src->xsize > .75 && (getenv("FS_FORCE_BIN_CHECK") == NULL))  // make it super conservative for in vivo
+	bin_threshold = 10;
       if (mn_bin < bin_threshold) {
         float old_bin_size = bin_size;
         bin_size = (mn - src_min) / bin_threshold;
