@@ -180,7 +180,6 @@ install(PROGRAMS
   rebuild_gca_atlas.csh
   rca-base-init
   rca-long-tp-init
-  recon-all
   recon-all-exvivo
   recon-all.makefile
   reconbatchjobs
@@ -268,6 +267,11 @@ install(PROGRAMS
   xhemi-tal
   xhemireg
   xsanatreg
+  DESTINATION bin
+)
+
+install_configured(
+  recon-all
   DESTINATION bin
 )
 
