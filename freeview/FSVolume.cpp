@@ -1595,31 +1595,29 @@ MRI* FSVolume::CreateTargetMRI( MRI* src, MRI* refTarget, bool bAllocatePixel, b
         &p0[0], &p0[1], &p0[2] );
     MRIp0ToCRAS( mri, p0[0], p0[1], p0[2] );
 
-    if (true)
+    if (false) // disable this part
     {
       // make sure voxel boundaries are aligned
-      double cpt[3], cpt_ext[3];
-      ::MRIworldToVoxel(mri, refTarget->c_r, refTarget->c_a, refTarget->c_s, &cpt[0], &cpt[1], &cpt[2]);
-      ::MRIworldToVoxel(mri, mri->c_r, mri->c_a, mri->c_s, &cpt_ext[0], &cpt_ext[1], &cpt_ext[2]);
-      //        double vs[3] = { mri->xsize, mri->ysize, mri->zsize };
-      //        double vs2[3] = { refTarget->xsize, refTarget->ysize, refTarget->zsize };
+      double cpt[3], cpt_ext[3], dist[3], step_dist[3];
+      dist[0] = refTarget->c_r - mri->c_r;
+      dist[1] = refTarget->c_a - mri->c_a;
+      dist[2] = refTarget->c_s - mri->c_s;
+      step_dist[0] = qMin((float)pixelSize[0], refTarget->xsize)/2;
+      step_dist[1] = qMin((float)pixelSize[1], refTarget->ysize)/2;
+      step_dist[2] = qMin((float)pixelSize[2], refTarget->zsize)/2;
+
       for (int i = 0; i < 3; i++)
       {
-        cpt[i] = cpt[i] + ((int)(cpt_ext[i]-cpt[i]+0.5));
-        //            double vs_r = vs[i]/vs2[i];
-        //            if (vs_r < 1)
-        //                vs_r = 1.0/vs_r;
-        //            if (fabs(vs_r - (int)(vs_r+0.5)) < 1e-4)
-        //            {
-        //                if (((int)(vs_r+0.5))%2 == 0)
-        //                    cpt[i] += 0.5;
-        //            }
+        dist[i] = (qAbs(dist[i])/step_dist[i] - (int)(qAbs(dist[i])/step_dist[i]))*step_dist[i]*(dist[i]>=0?1:-1);
+        if (dist[i] < -step_dist[i]/2)
+            dist[i] += step_dist[i];
+        else if (dist[i] > step_dist[i]/2)
+            dist[i] -= step_dist[i];
       }
-      ::MRIvoxelToWorld(mri, cpt[0], cpt[1], cpt[2], &cpt_ext[0], &cpt_ext[1], &cpt_ext[2]);
 
-      mri->c_r = cpt_ext[0];
-      mri->c_a = cpt_ext[1];
-      mri->c_s = cpt_ext[2];
+      mri->c_r += dist[0];
+      mri->c_a += dist[1];
+      mri->c_s += dist[2];
 
       MATRIX *tmp;
       tmp = extract_i_to_r( mri );
