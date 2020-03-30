@@ -11,7 +11,7 @@
 
 umask 002;
 
-set VERSION = '@FS_VERSION@';
+set VERSION = '@FS_VERSION@ (@BUILD_STAMP@)';
 set ProgName = `basename $0`;
 set inputargs = ($argv);
 set subjid = ();

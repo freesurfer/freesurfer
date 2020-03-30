@@ -19,6 +19,7 @@ function(install_configured)
     install(CODE "
       message(STATUS \"Configuring: ${CMAKE_INSTALL_PREFIX}/${INSTALL_DESTINATION}/${FILE}\")
       set(FS_VERSION ${FS_VERSION})
+      set(BUILD_STAMP ${BUILD_STAMP})
       configure_file(${CMAKE_CURRENT_SOURCE_DIR}/${FILE} ${CMAKE_INSTALL_PREFIX}/${INSTALL_DESTINATION} @ONLY)"
     )
   endforeach()
