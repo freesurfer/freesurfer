@@ -18,12 +18,7 @@ function lrstats = lme_LR(lrmlfull,lrmlred,q)
 % chi-squared distributions with q and q+1 degrees of freedom). 
 % lrstats.df: Degrees of freedom.
 %
-% $Revision: 1.2 $  $Date: 2015/01/06 17:14:57 $
 % Original Author: Jorge Luis Bernal Rusiel 
-% CVS Revision Info:
-%    $Author: mreuter $
-%    $Date: 2015/01/06 17:14:57 $
-%    $Revision: 1.2 $
 % References: Fitzmaurice GM, Laird NM, Ware JH (2004): Applied longitudinal
 % analysis. Hoboken, N.J.: Wiley-Interscience. xix, 506 p. p.
 %

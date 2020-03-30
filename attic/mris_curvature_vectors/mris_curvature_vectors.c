@@ -1,14 +1,9 @@
 /**
- * @file  mris_curvature_vectors.c
  * @brief returns surface normals and directions of principal curvature directions
  *
  */
 /*
  * Original Author:
- * CVS Revision Info:
- *    $Author: jonp $
- *    $Date: 2011/11/20 01:17:34 $
- *    $Revision: 1.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

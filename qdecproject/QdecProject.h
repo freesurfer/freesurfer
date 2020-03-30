@@ -1,5 +1,4 @@
 /**
- * @file  QdecProject.h
  * @brief API class containing all qdec subject data and methods
  *
  * Top-level interface class containing all data associated with a users
@@ -8,10 +7,6 @@
  */
 /*
  * Original Author: Nick Schmansky
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:35 $
- *    $Revision: 1.16 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

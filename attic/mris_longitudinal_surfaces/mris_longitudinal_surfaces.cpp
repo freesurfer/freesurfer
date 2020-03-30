@@ -1,5 +1,4 @@
 /**
- * @file  mris_longitudinal_surfaces.c
  * @brief make surface for longitudinal stream
  *
  * This program positions the tessellation of the cortical surface
@@ -10,10 +9,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2015/11/09 04:18:29 $
- *    $Revision: 1.8 $
  *
  * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *

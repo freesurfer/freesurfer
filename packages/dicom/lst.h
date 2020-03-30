@@ -43,9 +43,7 @@
 ** Intent:  This module defines several constants and function
 **   prototypes for the LST facility which is used to
 **   manipulate objects in linked lists.
-** Last Update:  $Author: nicks $, $Date: 2006/12/29 02:09:01 $
 ** Source File:  $RCSfile: lst.h,v $
-** Revision:  $Revision: 1.4 $
 ** Status:  $State: Exp $
 */
 

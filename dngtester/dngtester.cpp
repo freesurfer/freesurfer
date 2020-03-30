@@ -1,14 +1,9 @@
 /**
- * @file  dngtester.c
  * @brief dougs super special test code
  *
  */
 /*
  * Original Author: Doug Greve
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2015/04/26 16:15:55 $
- *    $Revision: 1.59 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

@@ -1,16 +1,11 @@
 
 /**
- * @file  mri_rf_long_train.c
  * @brief Creates a Random Forest classifier for longitudinal data
  *
  * See:
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2012/06/15 12:22:28 $
- *    $Revision: 1.5 $
  *
  * Copyright © 2011-2017 The General Hospital Corporation (Boston, MA) "MGH"
  *

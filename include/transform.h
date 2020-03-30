@@ -1,14 +1,9 @@
 /**
- * @file  transform.h
  * @brief linear transform array utilities
  *
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2015/08/19 16:34:29 $
- *    $Revision: 1.83 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

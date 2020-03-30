@@ -1,14 +1,9 @@
 /**
- * @file  minc_volume_io.h
  * @brief Wrapper for MNI's volume_io.h, to decouple from MNI lib
  *
  */
 /*
  * Original Author: Nick Schmansky
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:10 $
- *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

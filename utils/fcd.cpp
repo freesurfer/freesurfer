@@ -1,14 +1,9 @@
 /**
- * @file  fcd.c
  * @brief I/O and analysis algorithms for FCDs (focal cortical dysplasias)
  *
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: ohinds $
- *    $Date: 2016/10/07 15:57:23 $
- *    $Revision: 1.18 $
  *
  * Copyright © 2013-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *

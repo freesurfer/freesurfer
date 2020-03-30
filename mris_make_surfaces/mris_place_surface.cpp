@@ -1,15 +1,10 @@
 /**
- * @file  mri_place_surface.c
  * @brief Places surface based on an intensity input image. This is meant to provide
  * replacement functionality for mris_make_surfaces in a form that is easier to 
  * maintain.
  */
 /*
  * Original Author: Douglas N Greve (but basically a rewrite of mris_make_surfaces by BF)
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2017/02/15 21:04:18 $
- *    $Revision: 1.246 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

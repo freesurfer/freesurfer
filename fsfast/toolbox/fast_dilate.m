@@ -21,10 +21,6 @@ function md = fast_dilate(m,ndilations,erodeflag,flag2d)
 % fast_dilate.m
 %
 % Original Author: Doug Greve
-% CVS Revision Info:
-%    $Author: greve $
-%    $Date: 2011/09/26 14:56:17 $
-%    $Revision: 1.6 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %

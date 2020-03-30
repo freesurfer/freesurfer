@@ -13,10 +13,6 @@ function [y, xthresh, nclip, psqueeze] = drsqueeze(x,thr)
 % drsqueeze.m
 %
 % Original Author: Doug Greve
-% CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2011/03/02 00:04:03 $
-%    $Revision: 1.3 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %

@@ -1,14 +1,9 @@
 /**
- * @file  mri_segreg.c
  * @brief compute/optimize cost function of segmentation-based registration
  *
  */
 /*
  * Original Author: Greg Grev
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2016/05/10 03:23:20 $
- *    $Revision: 1.113 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

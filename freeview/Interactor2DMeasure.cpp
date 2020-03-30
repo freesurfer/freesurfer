@@ -1,14 +1,9 @@
 /**
- * @file  Interactor2DMeasure.cpp
  * @brief Interactor for measure tool in 2D render view.
  *
  */
 /*
  * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2015/08/24 19:16:46 $
- *    $Revision: 1.15 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

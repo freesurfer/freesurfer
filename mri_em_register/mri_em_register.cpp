@@ -1,5 +1,4 @@
 /**
- * @file  mri_em_register.c
  * @brief linear registration to a gca atlas
  *
  * pick a bunch of samples and use them to find the transform that
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/10/22 17:31:12 $
- *    $Revision: 1.106 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *

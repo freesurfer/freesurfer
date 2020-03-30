@@ -1,14 +1,9 @@
 /**
- * @file  vtkSimpleLabelEdgeFilter3D.h
  * @brief A simple label edge filter ONLY for 2D label image (2D vtkImageData).
  *
  */
 /*
  * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2013/06/25 20:32:36 $
- *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

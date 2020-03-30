@@ -20,10 +20,6 @@ function [S, v, f, ORIGIN] = read_vf(fname, patch)
 % read_vf.m
 %
 % Original Author: Bruce Fischl
-% CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2011/03/02 00:04:12 $
-%    $Revision: 1.3 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %

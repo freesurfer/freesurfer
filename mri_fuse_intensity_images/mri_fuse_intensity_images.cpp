@@ -1,14 +1,9 @@
 /**
- * @file  mri_fuse_intensity_images.c
  * @brief Normalize a set of longituindal volumes 
  *
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/06/02 14:05:10 $
- *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

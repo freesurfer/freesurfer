@@ -1,5 +1,4 @@
 /**
- * @file  scanopt.cpp
  * @brief This class does option processing
  *
  *
@@ -60,10 +59,6 @@
  */
 /*
  * Original Author: Rudolph Pienaar
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/02/27 21:18:07 $
- *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

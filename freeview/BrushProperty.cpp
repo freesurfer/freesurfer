@@ -1,5 +1,4 @@
 /**
- * @file  BrushProperty.cpp
  * @brief Class to hold brush properties for voxel editing
  *
  * Simple mix-in class for use with the Listener class so text
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2017/02/08 21:01:00 $
- *    $Revision: 1.20 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

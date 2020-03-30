@@ -1,5 +1,4 @@
 /**
- * @file  mris_density.c
  * @brief fills the interior of a surface.
  *
  * program to fill the interior of a surface at an arbitrary resolution
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:32 $
- *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

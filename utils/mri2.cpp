@@ -1,14 +1,9 @@
 /**
- * @file  mri2.c
  * @brief more routines for loading, saving, and operating on MRI structures
  *
  */
 /*
  * Original Author: Douglas N. Greve
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2016/07/06 14:21:47 $
- *    $Revision: 1.123 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

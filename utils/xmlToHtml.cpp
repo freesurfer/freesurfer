@@ -1,14 +1,9 @@
 /**
- * @file  xmlToHtml.c
  * @brief Reads an .xml file and outputs it in html format
  *
  */
 /*
  * Original Author: Greg Terrono
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2014/06/26 01:32:35 $
- *    $Revision: 1.4 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *

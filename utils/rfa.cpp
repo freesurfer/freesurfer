@@ -1,14 +1,9 @@
 /**
- * @file  rfa.c
  * @brief Creates the Random Forest Array (RFA) atlas from training set
  *
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2012/06/13 20:57:16 $
- *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

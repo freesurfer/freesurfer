@@ -1,5 +1,4 @@
 /**
- * @file  resample.c
  * @brief code to perform resapling from one space to another
  *
  * Purpose: code to perform resapling from one space to another,
@@ -39,10 +38,6 @@
  **/
 /*
  * Original Author: Douglas N. Greve
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2016/02/20 22:43:17 $
- *    $Revision: 1.52 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

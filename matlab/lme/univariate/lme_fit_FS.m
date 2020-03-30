@@ -31,12 +31,7 @@ function [stats,st] = lme_fit_FS(X,Zcols,y,ni,e)
 % stats.ni: Same as ni in the input.
 % st: Termination state (1 for convergence and 0 otherwise).
 %
-% $Revision: 1.2 $  $Date: 2015/01/06 17:14:57 $
 % Original Author: Jorge Luis Bernal Rusiel 
-% CVS Revision Info:
-%    $Author: mreuter $
-%    $Date: 2015/01/06 17:14:57 $
-%    $Revision: 1.2 $
 % References: Bernal-Rusiel J.L., Greve D.N., Reuter M., Fischl B., Sabuncu
 % M.R., 2012. Statistical Analysis of Longitudinal Neuroimage Data with Linear 
 % Mixed Effects Models, NeuroImage, doi:10.1016/j.neuroimage.2012.10.065.

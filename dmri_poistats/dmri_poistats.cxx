@@ -1,11 +1,9 @@
 /**
- * @file  dmri_poistats.cxx
  * @brief Finds the most probable path between two seed regions.
  *
  */
 /*
  * Original Author: Dennis Jen, Dave Tuch (matlab prototype) 
- * CVS Revision Info:
  *    $Author $
  *    $Date $
  *    $Revision $

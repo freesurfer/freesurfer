@@ -1,15 +1,10 @@
 /**
- * @file Quaternion.h
  * @brief A class representing Quaterions
  *
  */
 
 /*
  * Original Author: Martin Reuter
- * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2012/11/14 17:20:11 $
- *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

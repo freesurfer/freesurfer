@@ -1,14 +1,9 @@
 /**
- * @file  mri_conform.c
  * @brief resample volume to isotropic 1mm^3
  *
  */
 /*
  * Original Author: Christian Haselgrove
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2015/12/17 21:05:43 $
- *    $Revision: 1.39 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

@@ -1,5 +1,4 @@
 /*
- * @file  C_mpmProg.cpp
  * @brief The internal 'program' API.
  *
  *  C_mpmProgs are overloaded classes that perform specific functions in the
@@ -11,10 +10,6 @@
  */
 /*
  * Original Author: Rudolph Pienaar
- * CVS Revision Info:
- *    $Author: rudolph $
- *    $Date: 2013/02/04 14:38:14 $
- *    $Revision: 1.30 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

@@ -1,14 +1,9 @@
 /**
- * @file  test_matrix.cpp
  * @brief Test freesurfers matrix operations
  *
  */
 /*
  * Original Author: Dennis Jen
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:55 $
- *    $Revision: 1.23 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

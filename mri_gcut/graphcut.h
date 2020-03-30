@@ -1,9 +1,5 @@
 /*
  * Original Author: Vitali Zagorodnov, ZHU Jiaqi (September, 2009)
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:16 $
- *    $Revision: 1.3 $
  *
  * Copyright © 2009 Nanyang Technological University, Singapore
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"

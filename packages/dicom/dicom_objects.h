@@ -42,9 +42,7 @@
 ** Intent:  This file contains definitions and function prototypes
 **   for the OBJECT facility which allows the user to
 **   manipulate DICOM Objects.
-** Last Update:  $Author: greve $, $Date: 2014/12/15 22:39:45 $
 ** Source File:  $RCSfile: dicom_objects.h,v $
-** Revision:  $Revision: 1.7 $
 ** Status:  $State: Exp $
 */
 

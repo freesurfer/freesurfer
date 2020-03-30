@@ -1,14 +1,9 @@
 /**
- * @file  MyCmdLineParser.h
  * @brief A simple command-line parser class.
  *
  */
 /*
  * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2015/09/15 18:29:04 $
- *    $Revision: 1.14 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

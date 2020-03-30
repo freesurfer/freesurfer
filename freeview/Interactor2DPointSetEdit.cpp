@@ -1,14 +1,9 @@
 /**
- * @file  Interactor2DPointSetEdit.cpp
  * @brief Interactor for editing way points in 2D render view.
  *
  */
 /*
  * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2015/08/24 19:16:46 $
- *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

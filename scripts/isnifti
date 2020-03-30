@@ -10,11 +10,6 @@
 #  First looks for a .nii extension (exits 1 if so)
 #  Then  looks for a .nii.gz extension (exits 2 if so)
 #
-# Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR
-# CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2011/03/02 20:16:39 $
-#    $Revision: 1.5 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #

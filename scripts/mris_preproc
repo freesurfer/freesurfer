@@ -9,10 +9,6 @@
 # can then be used by a number of programs (eg, mri_glmfit).
 #
 # Original Author: Doug Greve
-# CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2016/08/12 17:08:16 $
-#    $Revision: 1.77 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #

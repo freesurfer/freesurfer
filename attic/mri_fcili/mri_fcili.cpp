@@ -1,15 +1,9 @@
 /**
- * @file  mri_fcili.c
  * @brief Computes intrinsic laterality index (iLI) based on supplied waveforms.
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
  * Original Author: Douglas N. Greve
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2013/11/22 19:41:44 $
- *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

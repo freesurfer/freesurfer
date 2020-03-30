@@ -1,5 +1,4 @@
 /**
- * @file  mri_glmfit.c
  * @brief GLM analysis with or without FSGD files
  *
  * Performs general linear model (GLM) analysis in the volume or the
@@ -12,10 +11,6 @@
  */
 /*
  * Original Author: Douglas N Greve
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2017/02/15 21:04:18 $
- *    $Revision: 1.246 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

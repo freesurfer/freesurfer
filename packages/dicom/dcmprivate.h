@@ -42,9 +42,7 @@
 ** Intent:
 ** This file defines private structures for the DICOM information
 ** object package.
-** Last Update:  $Author: nicks $, $Date: 2006/12/29 02:09:01 $
 ** Source File:  $RCSfile: dcmprivate.h,v $
-** Revision:  $Revision: 1.4 $
 ** Status:  $State: Exp $
 */
 

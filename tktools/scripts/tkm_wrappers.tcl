@@ -1,10 +1,6 @@
 ##
 ## tkm_wrappers.tcl
 ##
-## CVS Revision Info:
-##    $Author: nicks $
-##    $Date: 2011/03/01 01:41:22 $
-##    $Revision: 1.47 $
 ##
 ## Copyright (C) 2002-2011, CorTechs Labs, Inc. (La Jolla, CA) and
 ## The General Hospital Corporation (Boston, MA).

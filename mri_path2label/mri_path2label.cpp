@@ -1,5 +1,4 @@
 /**
- * @file  mri_path2label.c
  * @brief Converts a path file format to a label file.
  *
  * Purpose: Converts a path file to a label or a label file to a path
@@ -17,10 +16,6 @@
  */
 /*
  * Original Author: Kevin Teich
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:23 $
- *    $Revision: 1.23 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

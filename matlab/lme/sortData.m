@@ -20,12 +20,7 @@ function [sX,sY,ni,ssID] = sortData(X,tcol,Y,sID)
 % sY).
 % ssID: Vector of ordered subjects'ID. 
 %
-% $Revision: 1.2 $  $Date: 2015/01/06 17:14:50 $
 % Original Author: Jorge Luis Bernal Rusiel 
-% CVS Revision Info:
-%    $Author: mreuter $
-%    $Date: 2015/01/06 17:14:50 $
-%    $Revision: 1.2 $
 %  
 if nargin < 4 
     error('Too few inputs');   

@@ -1,15 +1,10 @@
 /**
- * @file Registration.cpp
  * @brief A class to compute a robust symmetric registration
  *
  */
 
 /*
  * Original Author: Martin Reuter
- * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2015/09/23 20:35:57 $
- *    $Revision: 1.93 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

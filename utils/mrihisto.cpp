@@ -1,14 +1,9 @@
 /**
- * @file  mrihisto.c
  * @brief utilities for MRI data structure histograms
  *
  */
 /*
  * Original Author: Bruce Fischl (1/8/97)
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/06/07 12:53:07 $
- *    $Revision: 1.47 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

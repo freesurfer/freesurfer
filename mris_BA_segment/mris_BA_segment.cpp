@@ -1,5 +1,4 @@
 /**
- * @file  mris_BA_segment.c
  * @brief program for segmenting a Brodmann area from MRI.
  *
  * This program uses laminar intensity profiles to segment Brodmann areas from
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2015/02/05 23:34:40 $
- *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

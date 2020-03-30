@@ -13,10 +13,6 @@
 % fast_selxavg3.m
 %
 % Original Author: Doug Greve
-% CVS Revision Info:
-%    $Author: greve $
-%    $Date: 2015/05/08 21:04:00 $
-%    $Revision: 1.112 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %

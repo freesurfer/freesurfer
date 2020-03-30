@@ -1,5 +1,4 @@
 /**
- * @file  legacy.h
  * @brief The environment object API.
  *
  * This file contains old legacy code, consolidated here during testing
@@ -8,10 +7,6 @@
  */
 /*
  * Original Author: Rudolph Pienaar / Christian Haselgrove
- * CVS Revision Info:
- *    $Author: rudolph $
- *    $Date: 2012/07/06 14:24:02 $
- *    $Revision: 1.1 $
  *
  * Copyright © 2012 The General Hospital Corporation (Boston, MA) "MGH"
  *

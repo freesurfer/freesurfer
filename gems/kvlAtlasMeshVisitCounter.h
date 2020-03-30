@@ -9,9 +9,6 @@ namespace kvl
 {
 
 
-/**
- *
- */
 class AtlasMeshVisitCounter: public AtlasMeshRasterizor
 {
 public :

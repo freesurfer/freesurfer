@@ -1,14 +1,9 @@
 /**
- * @file  mri_volsynth.c
  * @brief Synthesizes data with various statistical properties.
  *
  */
 /*
  * Original Author: Douglas N. Greve
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2017/02/16 19:50:57 $
- *    $Revision: 1.56 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

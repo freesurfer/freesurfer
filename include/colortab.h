@@ -1,5 +1,4 @@
 /**
- * @file  colortab.h
  * @brief color table utilities
  *
  * An entry in a color table has:
@@ -10,10 +9,6 @@
  */
 /*
  * Original Authors: Kevin Teich, Bruce Fischl
- * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2015/06/22 19:13:33 $
- *    $Revision: 1.38 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

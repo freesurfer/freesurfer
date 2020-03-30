@@ -1,15 +1,10 @@
 /**
- * @file  mri_extract_largest_CC.c
  * @brief extract the largest connected component from a volume and write it into another volume
  *
  * extract the largest connected component from a volume and write it into another volume
  */
 /*
  * Original Author: Florent Segonne
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2012/06/25 18:34:05 $
- *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

@@ -1,14 +1,9 @@
 /**
- * @file  DialogRepositionSurface.h
  * @brief Dialog window to execute surface reposition.
  *
  */
 /*
  * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2014/02/04 22:05:26 $
- *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

@@ -17,10 +17,6 @@ function r = save_mgh(vol, fname, M, mr_parms)
 % save_mgh.m
 %
 % Original Author: Bruce Fischl
-% CVS Revision Info:
-%    $Author: greve $
-%    $Date: 2013/02/14 21:50:37 $
-%    $Revision: 1.9 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %

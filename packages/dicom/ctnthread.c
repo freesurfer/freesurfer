@@ -41,9 +41,7 @@
 ** Author, Date: Steve Moore, 30-Jun-96
 ** Intent:  Provide common abstractions needed for operations
 **   in a multi-threaded environment.
-** Last Update:  $Author: nicks $, $Date: 2006/12/29 02:08:57 $
 ** Source File:  $RCSfile: ctnthread.c,v $
-** Revision:  $Revision: 1.5 $
 ** Status:  $State: Exp $
 */
 

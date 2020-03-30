@@ -1,5 +1,4 @@
 /**
- * @file  mri_ca_label.c
  * @brief anisotropic nonstationary markov random field labeling
  *
  * Program for computing the MAP segmentation modeling the labeling as an
@@ -8,10 +7,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/10/22 17:31:36 $
- *    $Revision: 1.115 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *

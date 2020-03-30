@@ -1,6 +1,5 @@
 #pragma once
 /**
- * @file  mrishash.h
  * @brief Implements a hash table mechanism to speed comparing vertices
  *
  * The purpose of MRI hash tables is to vastly accelerate algorithms which 
@@ -9,10 +8,6 @@
  */
 /*
  * Original Author: Graham Wideman, based on code by Bruce Fischl
- * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2015/03/18 17:04:00 $
- *    $Revision: 1.26 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

@@ -1,5 +1,4 @@
 /**
- * @file  mri_label2vol.c
  * @brief Converts a label to a segmentation volume.
  *
  * Converts a label or a set of labels into a volume. For a single label,
@@ -12,10 +11,6 @@
  */
 /*
  * Original Author: Douglas N. Greve
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2014/12/08 21:11:54 $
- *    $Revision: 1.46 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

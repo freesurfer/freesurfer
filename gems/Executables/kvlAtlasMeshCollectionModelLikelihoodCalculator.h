@@ -9,9 +9,6 @@ namespace kvl
 {
 
 
-/**
- *
- */
 class AtlasMeshCollectionModelLikelihoodCalculator: public itk::Object
 {
 public :

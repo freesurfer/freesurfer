@@ -1,14 +1,5 @@
-/**
- * @file  MainWindow.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- */
 /*
  * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2017/02/08 21:01:00 $
- *    $Revision: 1.363 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

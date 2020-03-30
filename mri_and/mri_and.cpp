@@ -1,5 +1,4 @@
 /**
- * @file  mri_and.c
  * @brief performs a logical and at each voxel on a series of volumes
  *
  * performs a logical and at each voxel on a series of volumes
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:13 $
- *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

@@ -69,10 +69,6 @@ function [M_V] = vox2ras_ksolve(M_R, Vc_Ps, varargin)
 % vox2ras_ksolve.m
 %
 % Original Author: Rudolph Pienaar
-% CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2011/03/02 00:04:13 $
-%    $Revision: 1.7 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %

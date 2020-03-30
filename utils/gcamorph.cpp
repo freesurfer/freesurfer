@@ -3,7 +3,6 @@
 #define BEVIN_GCAMLOGLIKELIHOODENERGY_REPRODUCIBLE
 
 /**
- * @file  gcamorph.c
  * @brief Utilities to morph the Gaussian Classifier Atlas (gca) data
  *
  * Reference:
@@ -13,10 +12,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/12/18 21:45:56 $
- *    $Revision: 1.297 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *

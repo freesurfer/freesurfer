@@ -1,14 +1,9 @@
 /**
- * @file  mris_glm.c
  * @brief Computes glm inferences on the surface.
  *
  */
 /*
  * Original Author: Douglas N. Greve
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2011/05/05 15:28:03 $
- *    $Revision: 1.55 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

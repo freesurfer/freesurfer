@@ -1,5 +1,4 @@
 /**
- * @file  mri_simulate_atrophy.c
  * @brief simulate atrophy in cortical or subcortical regions
   *
  * program to simulate atrophic changes in a cortical or subcortical structure by
@@ -8,10 +7,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2014/07/24 21:37:18 $
- *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

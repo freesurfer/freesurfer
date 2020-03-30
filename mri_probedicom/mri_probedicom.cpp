@@ -1,5 +1,4 @@
 /**
- * @file  mri_probedicom.c
  * @brief program allows the user to query a dicom file
  *
  * In its most basic usage, the user supplies the DICOM group and
@@ -14,10 +13,6 @@
  */
 /*
  * Original Author: Doug Greve
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2015/07/28 21:51:22 $
- *    $Revision: 1.45 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

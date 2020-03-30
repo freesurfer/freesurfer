@@ -3,8 +3,6 @@
   Program:   Tensor ToolKit - TTK
   Module:    $URL: https://scm.gforge.inria.fr/svn/ttk/trunk/Common/itkFiber.txx $
   Language:  C++
-  Date:      $Date: 2011-04-04 17:38:45 +0200 (Mon, 04 Apr 2011) $
-  Version:   $Revision: 150 $
 
   Copyright (c) INRIA 2010. All rights reserved.
   See LICENSE.txt for details.

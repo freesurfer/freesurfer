@@ -1,5 +1,4 @@
 /**
- * @file  annotation.c
  * @brief utilities for surface-based parcellations
  *
  * utilities for surface-based parcellations (see Fischl et al.,
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2016/08/02 21:20:26 $
- *    $Revision: 1.32 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

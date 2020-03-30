@@ -5,10 +5,6 @@
 ## surfer script: mk-fieldsign    [calc,write fieldsign using patch--optional disp]
 ## This is a slight modification of fs-make.tcl
 ##
-## CVS Revision Info:
-##    $Author: nicks $
-##    $Date: 2011/03/02 00:04:35 $
-##    $Revision: 1.6 $
 ##
 ## Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 ##

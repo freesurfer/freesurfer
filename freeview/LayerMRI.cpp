@@ -1,14 +1,9 @@
 /**
- * @file  LayerMRI.cpp
  * @brief Layer class for MRI volume.
  *
  */
 /*
  * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2017/02/01 15:28:54 $
- *    $Revision: 1.177 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

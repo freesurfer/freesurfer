@@ -1,5 +1,4 @@
 /**
- * @file  QdecGlmDesign.h
  * @brief Contains the data and functions associated with a GLM design run
  *
  * Contains the data and functions associated with the selected GLM input
@@ -10,10 +9,6 @@
  */
 /*
  * Original Author: Nick Schmansky
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:35 $
- *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

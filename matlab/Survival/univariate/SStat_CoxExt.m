@@ -21,12 +21,7 @@ function [stats,st] = SStat_CoxExt(sID_ext,X_ext,d_ext,t_ext,e)
 % process.
 % st: Termination state (1 for convergence and 0 otherwise).
 %
-% $Revision: 1.1 $  $Date: 2015/01/06 17:04:02 $
 % Original Author: Jorge Luis Bernal Rusiel 
-% CVS Revision Info:
-%    $Author: mreuter $
-%    $Date: 2015/01/06 17:04:02 $
-%    $Revision: 1.1 $
 % References: Kleinbaum, D.G., Klein, M., 2005. Survival analysis. A self-
 % learning approach, second edition. New York: Springer..
 %   

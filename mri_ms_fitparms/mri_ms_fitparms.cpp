@@ -1,5 +1,4 @@
 /**
- * @file  mri_ms_fitparms.c
  * @brief estimates T1 and PD values and transform from a set of FLASH images
  *
  * This program takes an arbitrary # of FLASH images as input, and estimates
@@ -18,10 +17,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/11/30 21:46:55 $
- *    $Revision: 1.76 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

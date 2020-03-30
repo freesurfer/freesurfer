@@ -1,5 +1,4 @@
 /**
- * @file  mri_label_accuracy.c
  * @brief computes the accuracy of the labeling of two images -  one input and one reference.
  *
  * Program computes the accuracy of the labeling of two images -  one input and one reference.
@@ -8,10 +7,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:22 $
- *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

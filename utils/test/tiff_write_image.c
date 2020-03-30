@@ -1,5 +1,4 @@
 /**
- * @file  tiff_write_image.c
  * @brief Tests a call to MRItoImageView, ImageWrite, and TiffWriteImage
  *
  * This is meant to generate a TIFF from a volume. It can be used to
@@ -9,10 +8,6 @@
  */
 /*
  * Original Author: Kevin Teich
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:56 $
- *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

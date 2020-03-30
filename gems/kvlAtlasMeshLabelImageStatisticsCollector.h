@@ -8,9 +8,6 @@ namespace kvl
 {
 
 
-/**
- *
- */
 class AtlasMeshLabelImageStatisticsCollector: public AtlasMeshStatisticsCollector
 {
 public :

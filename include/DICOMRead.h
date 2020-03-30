@@ -1,14 +1,9 @@
 /**
- * @file  DICOMRead.h
  * @brief DICOM 3.0 reading functions
  *
  */
 /*
  * Original Author: Sebastien Gicquel and Douglas Greve, 06/04/2001
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2015/11/06 22:24:19 $
- *    $Revision: 1.39 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

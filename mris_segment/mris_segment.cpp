@@ -1,14 +1,9 @@
 /**
- * @file  mris_segment.c
  * @brief segments cortical areas based on connectivity/correlation/intensity profiles
  *
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/12/11 14:33:41 $
- *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

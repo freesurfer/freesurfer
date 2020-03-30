@@ -1,15 +1,10 @@
 /**
- * @file  QdecSubject.cpp
  * @brief Stores all data associated with a subject.
  *
  * This is one row from the input data table file (qdec.table.dat).
  */
 /*
  * Original Author: Nick Schmansky
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:35 $
- *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

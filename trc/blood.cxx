@@ -1,12 +1,10 @@
 /**
- * @file  blood.cxx
  * @brief Training data and methods that probabilistic tractography feeds on
  *
  * Training data and methods that probabilistic tractography feeds on
  */
 /*
  * Original Author: Anastasia Yendiki
- * CVS Revision Info:
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

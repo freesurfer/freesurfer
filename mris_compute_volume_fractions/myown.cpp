@@ -1,15 +1,5 @@
 /**
- * @file  connectgraph.c
  * @brief Convert connectivity data to graphviz data format 
- *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
- */
-/*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
- * CVS Revision Info:
- *    $Author: enderk $
- *    $Date: 2013/01/18 22:30:27 $
- *    $Revision: 1.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -25,7 +15,6 @@
 
 
 /**
- * @file   myown.c
  * @author Yasunari Tosa
  * @date   Wed Oct 13 11:48:26 2004
  *

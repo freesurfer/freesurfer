@@ -1,5 +1,4 @@
 /**
- * @file  optseq2.c
  * @brief a tool for automatically scheduling events for fMRI experiments
  *
  * optseq2 is a tool for automatically scheduling events for
@@ -8,10 +7,6 @@
  */
 /*
  * Original Author: Doug Greve
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2011/04/21 19:48:51 $
- *    $Revision: 2.22 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

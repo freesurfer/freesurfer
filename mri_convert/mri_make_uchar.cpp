@@ -1,5 +1,4 @@
 /**
- * @file  mri_make_uchar.c
  * @brief change a volume to 8 bits/voxel
  *
  * uses the Tal xform to find a ball of voxels that are mostly brain.
@@ -8,10 +7,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:14 $
- *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

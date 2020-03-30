@@ -13,10 +13,6 @@ function [order, X] = fast_polyorder(ntp,TR,fCutOffHz)
 % fast_polyorder.m
 %
 % Original Author: Doug Greve
-% CVS Revision Info:
-%    $Author: greve $
-%    $Date: 2012/02/17 23:55:40 $
-%    $Revision: 1.1 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %

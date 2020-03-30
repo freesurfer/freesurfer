@@ -1,5 +1,4 @@
 /**
- * @file  mri_ca_register.c
  * @brief high-dimensional alignment with canonical atlas
  *
  * Example usage:
@@ -22,10 +21,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2014/02/07 22:46:21 $
- *    $Revision: 1.26 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

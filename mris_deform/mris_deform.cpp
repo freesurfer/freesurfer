@@ -1,5 +1,4 @@
 /**
- * @file  mris_deform.c
  * @brief program for deforming a surface to lie at the gray/white or pial boundary from 
  *  ultra-high res data
  *
@@ -8,10 +7,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:31 $
- *    $Revision: 1.29 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

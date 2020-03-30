@@ -14,12 +14,7 @@ function [RgMeans,nRg] = lme_mass_RgMean(Rgs,Data)
 % belonging to that region.
 % nRg: Number of regions in Rgs.
 %
-% $Revision: 1.2 $  $Date: 2015/01/06 17:14:55 $
 % Original Author: Jorge Luis Bernal Rusiel 
-% CVS Revision Info:
-%    $Author: mreuter $
-%    $Date: 2015/01/06 17:14:55 $
-%    $Revision: 1.2 $
 %
 if nargin < 2
     error('Too few inputs');

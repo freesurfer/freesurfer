@@ -41,9 +41,7 @@
 ** Author, Date: Stephen M. Moore, 2-Jun-93
 ** Intent:  This include file defines constants for all of
 **   the standard UIDs defined in the DICOM standard.
-** Last Update:  $Author: nicks $, $Date: 2006/12/29 02:09:01 $
 ** Source File:  $RCSfile: dicom_uids.h,v $
-** Revision:  $Revision: 1.4 $
 ** Status:  $State: Exp $
 */
 

@@ -1,14 +1,9 @@
 /**
- * @file  WidgetTimeCoursePlot.h
  * @brief Widget drawing time course plot
  *
  */
 /*
  * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2011/08/29 15:24:59 $
- *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

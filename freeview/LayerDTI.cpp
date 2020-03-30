@@ -1,14 +1,9 @@
 /**
- * @file  LayerDTI.cpp
  * @brief Layer class for DTI volume.
  *
  */
 /*
  * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2015/11/19 19:16:51 $
- *    $Revision: 1.22 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

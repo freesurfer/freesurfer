@@ -1,5 +1,4 @@
 /**
- * @file  c_SMessage.cpp
  * @brief simple "messaging" class
  *
  *  `c_SMessage' is a simple "messaging" class that contains a string
@@ -13,10 +12,6 @@
  */
 /*
  * Original Author: Rudolph Pienaar
- * CVS Revision Info:
- *    $Author: rudolph $
- *    $Date: 2013/01/29 16:57:40 $
- *    $Revision: 1.14 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

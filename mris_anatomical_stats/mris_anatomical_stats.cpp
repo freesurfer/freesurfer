@@ -1,14 +1,9 @@
 /**
- * @file  mris_anatomical_stats.c
  * @brief measures a variety of anatomical properties
  *
  */
 /*
  * Original Author: Bruce Fischl and Doug Greve
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2016/03/14 15:15:34 $
- *    $Revision: 1.79 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

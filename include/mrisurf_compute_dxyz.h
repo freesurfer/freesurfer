@@ -1,6 +1,5 @@
 #pragma once
 /*
- * @file The various ways of calculating vertex dx dy dz
  *
  */
 /*

@@ -1,5 +1,4 @@
 /**
- * @file  mris_mef_surfaces.c
  * @brief repositions cortical surface to gray/white boundary
  *
  * This program positions the tessellation of the cortical surface
@@ -10,10 +9,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2015/02/05 23:34:41 $
- *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

@@ -1,14 +1,9 @@
 /**
- * @file  mrisegment.c
  * @brief calc and filter MRI data based on planes of least variance
  *
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2014/01/18 18:10:34 $
- *    $Revision: 1.31 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

@@ -1,15 +1,10 @@
 /**
- * @file  QdecUtilities.h
  * @brief Misc utilities
  *
  * A bunch of misc utilities for Qdec.
  */
 /*
  * Original Author: Kevin Teich
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:35 $
- *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

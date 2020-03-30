@@ -1,15 +1,9 @@
 /**
- * @file  dummy.c
  * @brief Computes whole-brain connectivity
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
  * Original Author: Douglas N. Greve
- * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2015/07/22 21:51:35 $
- *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

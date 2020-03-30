@@ -1,5 +1,4 @@
 /**
- * @file  mris_curvature_stats.c
  * @brief Determine the mean and std of curvature files, and much much more.
  *
  * 'mris_curvature_stats' calculates statistics on curvature across a surface.
@@ -10,10 +9,6 @@
  */
 /*
  * Original Author: Bruce Fischl / heavily hacked by Rudolph Pienaar
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2015/06/04 20:50:51 $
- *    $Revision: 1.65 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

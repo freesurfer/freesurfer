@@ -1,5 +1,4 @@
 /**
- * @file  mrispline.h
  * @brief Compute B-Spline Coefficients and Interpolate MRI
  *
  * This Code is based on:
@@ -13,10 +12,6 @@
  */
 /*
  * Original Author: Martin Reuter
- * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2012/11/01 19:03:46 $
- *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

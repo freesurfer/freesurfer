@@ -1,15 +1,9 @@
 /**
- * @file  mri_fit_bias.c
  * @brief Computes spatial intensity bias field by fitting to a parametric model
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
  * Original Author: Douglas N. Greve
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2012/04/30 21:32:21 $
- *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

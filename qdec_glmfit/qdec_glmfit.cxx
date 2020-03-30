@@ -1,5 +1,4 @@
 /**
- * @file  qdec_glmfit.cxx
  * @brief Wrapper for mri_glmfit: main function and option parsing
  *
  * Parses input to initialize a QdecGlmFitDesign object, runs
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Kevin Teich
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:35 $
- *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

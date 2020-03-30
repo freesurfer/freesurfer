@@ -1,7 +1,6 @@
 #define COMPILING_MRISURF_TOPOLOGY_FRIEND_CHECKED
 
 /*
- * @file utilities operating on Original
  *
  */
 /*

@@ -1,14 +1,9 @@
 /**
- * @file  Cursor2D.cpp
  * @brief Cursor for 2D view.
  *
  */
 /*
  * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2016/06/10 19:52:40 $
- *    $Revision: 1.20 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

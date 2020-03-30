@@ -1,5 +1,4 @@
 /**
- * @file  mris_expand.c
  * @brief expand a surface outwards by a specified amount
  *
  * Expands a surface (typically ?h.white) outwards while maintaining smoothness
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2017/02/16 19:45:00 $
- *    $Revision: 1.16 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

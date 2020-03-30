@@ -1,14 +1,9 @@
 /**
- * @file  mris_shrinkwrap.c
  * @brief program for shrinkwrapping BEM surfaces onto a segmentation volume
  *
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2012/11/10 20:19:46 $
- *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

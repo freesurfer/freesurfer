@@ -1,13 +1,5 @@
 /**
- * @file  DICOMRead.c
  * @brief DICOM 3.0 reading functions
- *
- */
-/*
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2016/03/03 19:44:44 $
- *    $Revision: 1.182 $
  *
  * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *

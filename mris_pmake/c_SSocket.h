@@ -1,14 +1,9 @@
 /**
- * @file  c_SSocket.h
  * @brief defines a simple wrapper class around standard Berkeley sockets.
  *
  */
 /*
  * Original Author: Rudolph Pienaar
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2016/06/11 20:50:54 $
- *    $Revision: 1.3 $
  *
  * Copyright © 2011-2016 The General Hospital Corporation (Boston, MA) "MGH"
  *

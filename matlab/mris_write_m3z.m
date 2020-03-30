@@ -13,7 +13,6 @@ function mris_write_m3z(filename_m3z, geom_orig, vol_orig, geom_dest, ...
 % oliver hinds <ohinds@nmr.mgh.harvard.edu>, 2015/dec/29
 %**************************************************************************%
 
-    VERSION = '$Revision: 1.1 $';
     if ( nargin == 0 ), help(mfilename); return; end;
 
     if nargin < 7

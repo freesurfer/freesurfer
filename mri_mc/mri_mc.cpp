@@ -1,6 +1,5 @@
 #define COMPILING_MRISURF_TOPOLOGY_FRIEND_CHECKED
 /**
- * @file  mri_mc.c
  * @brief generates a marching cubes triangulation
  *
  * Generates a marching cubes triangulation that is topologically consistent
@@ -10,10 +9,6 @@
  */
 /*
  * Original Author: Florent Segonne
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2014/03/22 01:40:02 $
- *    $Revision: 1.23 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

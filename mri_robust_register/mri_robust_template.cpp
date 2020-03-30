@@ -1,5 +1,4 @@
 /**
- * @file  mri_robust_template.cpp
  * @brief combine multiple volumes by mean or median
  *
  * Creation of robust template of several volumes together with
@@ -8,10 +7,6 @@
 
 /*
  * Original Author: Martin Reuter
- * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2016/05/05 21:17:08 $
- *    $Revision: 1.54 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

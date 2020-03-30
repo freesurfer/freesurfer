@@ -1,14 +1,9 @@
 /**
- * @file  test_nr_wrapper.cpp
  * @brief test Numerical Recipes replacements
  *
  */
 /*
  * Original Author: D. Jen
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:56 $
- *    $Revision: 1.27 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

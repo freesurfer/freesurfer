@@ -1,15 +1,10 @@
 /**
- * @file  dmri_motion.cxx
  * @brief Compute measures of head motion in DWIs
  *
  * Compute measures of head motion in DWIs
  */
 /*
  * Original Author: Anastasia Yendiki
- * CVS Revision Info:
- *    $Author: ayendiki $
- *    $Date: 2014/05/27 14:49:34 $
- *    $Revision: 1.6 $
  *
  * Copyright © 2013 The General Hospital Corporation (Boston, MA) "MGH"
  *

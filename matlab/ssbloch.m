@@ -42,10 +42,6 @@ function [s,fa] = ssbloch(tr,te,fa,t1,t2s,pd)
 % ssbloch.m
 %
 % Original Author: Doug Greve
-% CVS Revision Info:
-%    $Author: greve $
-%    $Date: 2016/10/14 19:57:57 $
-%    $Revision: 1.7 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %

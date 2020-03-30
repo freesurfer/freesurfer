@@ -1,5 +1,4 @@
 /**
- * @file  mri_hausdorff_dist.c
  * @brief Computes the modified (mean) Hausdorff distance
  *    
  *
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: lzollei $
- *    $Date: 2014/07/18 20:19:23 $
- *    $Revision: 1.14 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

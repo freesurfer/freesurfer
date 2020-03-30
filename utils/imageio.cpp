@@ -1,14 +1,9 @@
 /**
- * @file  imageio.c
  * @brief image processing utilities
  *
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/04/11 01:10:21 $
- *    $Revision: 1.56 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

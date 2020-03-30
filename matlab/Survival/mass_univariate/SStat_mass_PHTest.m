@@ -22,12 +22,7 @@ function [pval,rho] = SStat_mass_PHTest(X,d,t,Y,stats_PH,maskvtx)
 % rho: Matrix of correlations (pxnv) between Schoenfeld residuals and ranked   
 % failure times at each location.
 %
-% $Revision: 1.1 $  $Date: 2015/01/06 17:03:59 $
 % Original Author: Jorge Luis Bernal Rusiel 
-% CVS Revision Info:
-%    $Author: mreuter $
-%    $Date: 2015/01/06 17:03:59 $
-%    $Revision: 1.1 $
 % References: Kleinbaum, D.G., Klein, M., 2005. Survival analysis. A self-
 % learning approach, second edition. New York: Springer..
 %

@@ -24,12 +24,7 @@ function gr = lme_mass_RgGradient(X,Zcols,W,invH,L,phi,re,ni,invG,GDa,GDb)
 % Output
 % gr: Gradient vector.
 %
-% $Revision: 1.2 $  $Date: 2015/01/06 17:14:55 $
 % Original Author: Jorge Luis Bernal Rusiel 
-% CVS Revision Info:
-%    $Author: mreuter $
-%    $Date: 2015/01/06 17:14:55 $
-%    $Revision: 1.2 $
 %
 m = length(ni);
 q = length(Zcols);

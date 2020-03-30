@@ -1,5 +1,4 @@
 /**
- * @file  mris_extract_patches.c
  * @brief extract volume patches from a surface and a label file
  *
  * Extract volumetric patches around each labeled vertex and the corresponding vertex in the other hemi
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2017/02/16 19:45:00 $
- *    $Revision: 1.16 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

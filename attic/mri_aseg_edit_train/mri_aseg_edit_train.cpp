@@ -1,15 +1,10 @@
 /**
- * @file  mri_aseg_edit_train
  * @brief train a classifier based on manual corrections of asegs.
  *
  * use SVMs to learn to correct an aseg.
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:13 $
- *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

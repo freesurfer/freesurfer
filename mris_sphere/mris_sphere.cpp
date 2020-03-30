@@ -1,5 +1,4 @@
 /**
- * @file  mris_sphere.c
  * @brief Inflates a surface to a sphere
  *
  * "Cortical Surface-Based Analysis II: Inflation, Flattening, and a
@@ -8,10 +7,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2017/02/07 19:04:37 $
- *    $Revision: 1.62 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *

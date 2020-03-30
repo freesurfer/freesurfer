@@ -1,5 +1,4 @@
 /**
- * @file  label.c
  * @brief utilities for manipulating ROIs.
  *
  * utilities (surface and volume) for manipulating arbitrary lists of
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2017/02/07 19:04:19 $
- *    $Revision: 1.136 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

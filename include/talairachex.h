@@ -1,5 +1,4 @@
 /**
- * @file  talairachex.h
  * @brief new talairach related routines with Ex
  *
  * takes lta as the talairach transform (use LTAreadEx routine)
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Y. Tosa
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:10 $
- *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

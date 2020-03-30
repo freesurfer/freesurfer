@@ -1,5 +1,4 @@
 /**
- * @file  mri_tessellate.c
  * @brief tessellate a volume to create a surface
  *
  * "Cortical Surface-Based Analysis I: Segmentation and Surface
@@ -8,10 +7,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2016/07/20 21:05:04 $
- *    $Revision: 1.39 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

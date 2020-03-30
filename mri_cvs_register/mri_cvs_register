@@ -23,10 +23,6 @@
 #          03-07-2017: added option for masking full brain moving subject with hemimask in case only one hemi is registered (eg.: exvivo)
 #                      "maskmovinghemi"
 #
-# CVS Revision Info:
-#    $Author: lzollei $
-#    $Date: 2016/03/06 21:31:56 $
-#    $Revision: 1.48 $
 #
 # Copyright © 2010-2012 The General Hospital Corporation (Boston, MA) "MGH"
 #

@@ -1,6 +1,5 @@
 #pragma once
 /*
- * @file utilities dealing with the topology 
  *
  */
 /*

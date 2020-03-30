@@ -1,12 +1,10 @@
 /**
- * @file  spline.h
  * @brief A Catmull-Rom spline
  *
  * A Catmull-Rom spline
  */
 /*
  * Original Author: Anastasia Yendiki
- * CVS Revision Info:
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

@@ -1,5 +1,4 @@
 /**
- * @file  mrishash.c
  * @brief Implements a hash table mechanism to speed comparing vertices
  *
  * The purpose of MRI hash tables is to vastly accelerate algorithms which
@@ -8,10 +7,6 @@
  */
 /*
  * Original Author: Graham Wideman, based on code by Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/06/15 17:49:47 $
- *    $Revision: 1.53 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

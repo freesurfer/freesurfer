@@ -1,5 +1,4 @@
 /**
- * @file  mris_deform.c
  * @brief generic surface deformation binary.
  *
  * binary for deforming a surface of a voxel segmentation to more smoothly and
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:31 $
- *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

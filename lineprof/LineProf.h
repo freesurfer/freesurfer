@@ -1,15 +1,10 @@
 /**
- * @file LineProf.h
  * @brief Class to interface with the laplace solver and line profiler
  *
  */
 
 /*
  * Original Author: Martin Reuter
- * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2012/10/24 19:19:28 $
- *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

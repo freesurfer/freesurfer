@@ -1,13 +1,8 @@
 /**
- * @file  MRISdistancefield.h
  * @brief Given a MRIS surface, generate a distance field where the value at a voxel is the 
  * distance between the voxel and the closest point on the surface
  *
  * Original Author: Krish Subramaniam 
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2015/07/27 15:01:45 $
- *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

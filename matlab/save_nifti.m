@@ -16,10 +16,6 @@ function err = save_nifti(hdr,niftifile)
 % save_nifti.m
 %
 % Original Author: Doug Greve
-% CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2011/10/17 19:58:37 $
-%    $Revision: 1.14 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %

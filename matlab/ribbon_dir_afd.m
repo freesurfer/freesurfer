@@ -12,10 +12,6 @@ function [D, Isubj]=ribbon_dir_adf(dirname, th_pval)
 % ribbon_dir_afd.m
 %
 % Original Author: Laurence Wastiaux
-% CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2011/03/02 00:04:13 $
-%    $Revision: 1.3 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %

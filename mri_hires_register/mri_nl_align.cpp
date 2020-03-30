@@ -1,15 +1,10 @@
 /**
- * @file  mri_nl_align.c
  * @brief nonlinear volumetric alignment
  *
  * see (Fischl et al., Neuroimage, 2004)
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2013/01/13 14:04:27 $
- *    $Revision: 1.32 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *

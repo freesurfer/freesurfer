@@ -1,5 +1,4 @@
 /**
- * @file  QdecGlmFitResults.cpp
  * @brief Contains the results of a GLM fit run.
  *
  * The bulk of the result data is stored in files on disk, and this object
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Nick Schmansky
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:35 $
- *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

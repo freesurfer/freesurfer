@@ -1,14 +1,5 @@
-/**
- * @file  graphcut.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- */
 /*
  * Original Author: Vitali Zagorodnov, ZHU Jiaqi (September, 2009)
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:16 $
- *    $Revision: 1.2 $
  *
  * Copyright © 2009 Nanyang Technological University, Singapore
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"

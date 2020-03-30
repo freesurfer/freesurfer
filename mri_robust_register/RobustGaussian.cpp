@@ -1,15 +1,10 @@
 /**
- * @file RobustGaussian.cpp
  * @brief A class to esimate a robust Gaussian (using median and mad)
  *
  */
 
 /*
  * Original Author: Martin Reuter
- * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2012/09/21 23:05:16 $
- *    $Revision: 1.17 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

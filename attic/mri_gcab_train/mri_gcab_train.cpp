@@ -1,5 +1,4 @@
 /**
- * @file  mri_gcab_train.c
  * @brief train a gca boundary atlas
  *
  * Routines for supporting boundary deformations to refine the
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/03/16 20:23:33 $
- *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -30,9 +25,6 @@
 /* by Bruce Fischl                                                     */
 /*                                                                     */
 /* Warning: Do not edit the following four lines.  CVS maintains them. */
-/* Revision Author: $Author: fischl $                                  */
-/* Revision Date  : $Date: 2011/03/16 20:23:33 $                       */
-/* Revision       : $Revision: 1.4 $                                  */
 /***********************************************************************/
 
 #include <stdio.h>

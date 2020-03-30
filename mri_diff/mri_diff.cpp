@@ -1,5 +1,4 @@
 /**
- * @file  mri_diff.c
  * @brief Determines whether two volumes differ.
  *
  * The basic usage is something like:
@@ -18,10 +17,6 @@
  */
 /*
  * Original Author: Doug Greve
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2017/01/11 18:15:33 $
- *    $Revision: 1.37 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

@@ -1,5 +1,4 @@
 /**
- * @file  oct_register_mosaic
  * @brief main program for registring a set of OCT tiles into a mosaic
  *
  * program for registering a set of OCT subimages (tiles) into a single mosaic.
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/04/18 19:19:35 $
- *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

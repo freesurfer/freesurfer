@@ -1,14 +1,9 @@
 /**
- * @file  matrix.h
  * @brief matrix manipulation utils
  *
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2015/03/31 20:27:34 $
- *    $Revision: 1.90 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

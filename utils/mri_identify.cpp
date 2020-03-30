@@ -1,14 +1,9 @@
 /**
- * @file  mri_identify.c
  * @brief Identify MRI volume format based on filename extension.
  *
  */
 /*
  * Original Author: Christian Haselgrove
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2014/05/10 00:37:00 $
- *    $Revision: 1.75 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

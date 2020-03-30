@@ -14,12 +14,7 @@ function [detvtx,pth] = SStat_mass_FDR2(pval,maskvtx,rate)
 % detvtx: Detected vertices (1-based).
 % pth: FDR threshold.
 %
-% $Revision: 1.1 $  $Date: 2015/01/06 17:03:59 $
 % Original Author: Jorge Luis Bernal Rusiel 
-% CVS Revision Info:
-%    $Author: mreuter $
-%    $Date: 2015/01/06 17:03:59 $
-%    $Revision: 1.1 $
 % References: Benjamini, Y., Krieger, A.M., Yekutieli, D. (2006). Adaptive
 % linear step-up procedures that control the false discovery rate. 
 % Biometrika, 93, 491-507.

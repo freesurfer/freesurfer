@@ -1,14 +1,9 @@
 /**
- * @file  mri_cal_normalize.c
  * @brief Normalize a set of longituindal volumes making use of subcortical atlas data
  *
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2015/10/02 17:16:23 $
- *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

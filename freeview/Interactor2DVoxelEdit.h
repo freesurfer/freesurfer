@@ -1,14 +1,9 @@
 /**
- * @file  Interactor2DVoxelEdit.h
  * @brief Interactor for editing voxel in 2D render view.
  *
  */
 /*
  * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2016/04/18 16:37:39 $
- *    $Revision: 1.16 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

@@ -1,14 +1,9 @@
 /**
- * @file  gcut.h
  * @brief 
  *
  */
 /*
  * Original Author: Vitali Zagorodnov, ZHU Jiaqi (Sept. 2009, revised Feb. 2010)
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:16 $
- *    $Revision: 1.4 $
  *
  * Copyright © 2009-2010 Nanyang Technological University, Singapore
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"

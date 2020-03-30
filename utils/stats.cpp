@@ -1,14 +1,9 @@
 /**
- * @file  stats.c
  * @brief utilities for manipulating statistical volumes
  *
  */
 /*
  * Original Authors: Bruce Fischl and Doug Greve
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2014/10/31 21:53:24 $
- *    $Revision: 1.40 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

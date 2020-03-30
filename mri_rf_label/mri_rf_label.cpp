@@ -1,14 +1,9 @@
 /**
- * @file  mri_rf_label.c
  * @brief random forest classification
  *
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2012/05/23 23:50:50 $
- *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
