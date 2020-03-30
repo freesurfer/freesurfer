@@ -1,5 +1,4 @@
 /**
- * @file  C_mpmOverlay.cpp
  * @brief The internal 'program' API
  *
  *  The C_mpmOverlay class (and derivatives) presents an encapsulated
@@ -14,10 +13,6 @@
  */
 /*
  * Original Author: Rudolph Pienaar
- * CVS Revision Info:
- *    $Author: rudolph $
- *    $Date: 2013/01/30 19:52:03 $
- *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

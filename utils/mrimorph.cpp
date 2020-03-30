@@ -1,14 +1,9 @@
 /**
- * @file  mrimorph.c
  * @brief utilities for 3d morph of one volume into another
  *
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2015/06/24 16:02:47 $
- *    $Revision: 1.81 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

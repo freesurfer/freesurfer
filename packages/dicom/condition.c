@@ -67,9 +67,7 @@
 **   The stack is maintained as a simple stack array.  If
 **   it overflows, we dump the stack to stdout and reset it.
 **
-** Last Update:  $Author: nicks $, $Date: 2006/12/29 02:08:57 $
 ** Source File:  $RCSfile: condition.c,v $
-** Revision:  $Revision: 1.8 $
 ** Status:  $State: Exp $
 */
 

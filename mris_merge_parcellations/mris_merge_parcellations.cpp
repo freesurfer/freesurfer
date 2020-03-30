@@ -1,14 +1,9 @@
 /**
- * @file  mris_merge_parcellations
  * @brief program for merging two parcellations into one, taking some divisions from one and some from the other
  *
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:33 $
- *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

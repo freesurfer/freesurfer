@@ -1,5 +1,4 @@
 /**
- * @file  QdecMain.cxx
  * @brief Starts the application
  *
  * This starts the Tcl interpreter, inits our application library, and
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Kevin Teich
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:35 $
- *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

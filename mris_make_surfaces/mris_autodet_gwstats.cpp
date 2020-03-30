@@ -1,15 +1,10 @@
 /**
- * @file  mri_autodet_gwstats.cpp
  * @brief Manages the computation of the gray/white stats used to
  * place the surface (currently in MRIScomputeBorderValues())
  * 
  */
 /*
  * Original Author: Douglas N Greve (but basically a rewrite of mris_make_surfaces by BF)
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2017/02/15 21:04:18 $
- *    $Revision: 1.246 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

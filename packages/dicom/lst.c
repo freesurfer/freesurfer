@@ -42,9 +42,7 @@
 ** Author, Date: Thomas R. Leith, 15-Apr-93
 ** Intent:  This package implements atomic functions on
 **   linked lists.
-** Last Update:  $Author: nicks $, $Date: 2007/01/11 20:15:14 $
 ** Source File:  $RCSfile: lst.c,v $
-** Revision:  $Revision: 1.6 $
 ** Status:  $State: Exp $
 */
 

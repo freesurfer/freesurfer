@@ -1,5 +1,4 @@
 /**
- * @file  main_template.c
  * @brief MCMC for computing posterior of splines connecting cortex with ventricle
  *
  * Fit a Catmull Rom spline to each point in the cortex, initializing it with a connection along the
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2012/06/16 12:48:24 $
- *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

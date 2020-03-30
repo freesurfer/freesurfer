@@ -1,5 +1,4 @@
 /**
- * @file  mri_vol2surf.c 
  * @brief utility for sampling volumes onto a surface.
  *
  * Purpose: Resamples a volume onto a surface. The surface
@@ -25,10 +24,6 @@
  */
 /*
  * Original Author: Doug Greve
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2014/05/30 20:58:47 $
- *    $Revision: 1.68 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

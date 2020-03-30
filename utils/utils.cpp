@@ -1,15 +1,10 @@
 /**
- * @file  utils.c
  * @brief miscellaneous utility functions
  *
  * Among other junk, the central routine for random number generation is here.
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2016/06/11 20:50:55 $
- *    $Revision: 1.98 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

@@ -45,9 +45,7 @@
 **   as support for the DCM facility and for applications.
 **   These routines help parse strings and other data
 **   values that are encoded in DICOM objects.
-** Last Update:  $Author: nicks $, $Date: 2007/01/11 20:15:14 $
 ** Source File:  $RCSfile: dcmsupport.c,v $
-** Revision:  $Revision: 1.7 $
 ** Status:  $State: Exp $
 */
 

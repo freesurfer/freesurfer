@@ -1,14 +1,9 @@
 /**
- * @file  rfutils.h
  * @brief utilities for Random Forests
  *
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2012/06/07 12:57:39 $
- *    $Revision: 1.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

@@ -1,5 +1,4 @@
 /**
- * @file  mri_gdfglm.c
  * @brief performs glm analysis given group descriptor file and dep. var. table
  *
  * Things to do:
@@ -9,10 +8,6 @@
  */
 /*
  * Original Author: Douglas N. Greve
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2011/05/05 15:28:03 $
- *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

@@ -18,10 +18,6 @@ function [havg, eresvar, sxadat] = fast_ldsxabfile(sxabfile)
 % fast_ldsxabfile.m
 %
 % Original Author: Doug Greve
-% CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2011/03/02 00:04:04 $
-%    $Revision: 1.3 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %

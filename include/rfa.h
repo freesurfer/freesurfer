@@ -1,14 +1,9 @@
 /**
- * @file  rfa.h
  * @brief utilities for whole-brain segmentation with Random Forests
  *
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2012/06/13 20:57:20 $
- *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

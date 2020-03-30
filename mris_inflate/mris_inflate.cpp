@@ -1,5 +1,4 @@
 /**
- * @file  mris_inflate.c
  * @brief binary for inflating a surface.
  *
  * "Cortical Surface-Based Analysis II: Inflation, Flattening, and a
@@ -10,10 +9,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2016/01/20 23:42:15 $
- *    $Revision: 1.45 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

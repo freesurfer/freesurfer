@@ -1,5 +1,4 @@
 /**
- * @file  c_vertex.cpp
  * @brief The vertex related object API.
  *
  * Vertex type functions include conditional checks as well as functional
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Rudolph Pienaar / Christian Haselgrove
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/02/27 21:18:07 $
- *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

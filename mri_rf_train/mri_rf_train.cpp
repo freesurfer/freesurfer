@@ -1,16 +1,11 @@
 
 /**
- * @file  mri_rf_train.c
  * @brief Creates the Randomg Forest Array (RFA) atlas from training set
  *
  * See:
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2012/05/24 00:04:15 $
- *    $Revision: 1.2 $
  *
  * Copyright © 2011-2017 The General Hospital Corporation (Boston, MA) "MGH"
  *

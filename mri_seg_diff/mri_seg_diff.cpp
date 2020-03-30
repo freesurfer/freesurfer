@@ -1,5 +1,4 @@
 /**
- * @file  mri_seg_diff.c
  * @brief Computes and merge differences in segmentation.
  *
  * This program computes and merges differences in segmentation volumes
@@ -8,10 +7,6 @@
  */
 /*
  * Original Author: greve
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:24 $
- *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

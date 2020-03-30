@@ -46,9 +46,7 @@
 **   Radiology.  It also defines unique identifiers
 **   for standard classes and objects defined by the
 **   standard.
-** Last Update:  $Author: nicks $, $Date: 2006/12/29 02:09:01 $
 ** Source File:  $RCSfile: ctn_os.h,v $
-** Revision:  $Revision: 1.3 $
 ** Status:  $State: Exp $
 */
 

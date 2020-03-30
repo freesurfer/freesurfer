@@ -1,14 +1,9 @@
 /**
- * @file  chklc.h
  * @brief .license file checker
  *
  */
 /*
  * Original Author: 
- * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2015/01/13 21:00:09 $
- *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

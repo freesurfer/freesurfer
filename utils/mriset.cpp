@@ -1,5 +1,4 @@
 /**
- * @file  mriset.c
  * @brief utilities for MRI data structure
  *
  * Operators like union, intersection, erosion, dialation and masking on
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2015/04/15 20:03:00 $
- *    $Revision: 1.93 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

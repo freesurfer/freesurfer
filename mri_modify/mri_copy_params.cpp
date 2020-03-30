@@ -1,14 +1,9 @@
 /**
- * @file  mri_copy_params.cpp
  * @brief copy volume parameters from template and write out the volume
  *
  */
 /*
  * Original Author: Yasunari Tosa
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:23 $
- *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

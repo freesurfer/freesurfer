@@ -1,5 +1,4 @@
 /**
- * @file  dmri_trk2trk.cxx
  * @brief Transform streamlines in .trk file
  *
  * Transform streamlines in .trk file:
@@ -8,10 +7,6 @@
  */
 /*
  * Original Author: Anastasia Yendiki
- * CVS Revision Info:
- *    $Author: ayendiki $
- *    $Date: 2015/08/28 20:33:54 $
- *    $Revision: 1.21 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

@@ -1,15 +1,10 @@
 /**
- * @file  mris_surface_change.c
  * @brief compute the change in the normal direction of a pair of surfaces
  *
  * compute the (longitudinal) change in a surface such as the pial or white.
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:34 $
- *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

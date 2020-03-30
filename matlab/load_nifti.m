@@ -31,10 +31,6 @@ function hdr = load_nifti(niftifile,hdronly)
 % load_nifti.m
 %
 % Original Author: Doug Greve
-% CVS Revision Info:
-%    $Author: greve $
-%    $Date: 2016/01/19 21:18:27 $
-%    $Revision: 1.21 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %

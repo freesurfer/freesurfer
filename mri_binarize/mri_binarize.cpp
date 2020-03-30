@@ -1,5 +1,4 @@
 /**
- * @file  mri_binarize.c
  * @brief binarizes an image
  *
  * Program to binarize a volume (or volume-encoded surface file). Can also
@@ -8,10 +7,6 @@
  */
 /*
  * Original Author: Douglas N. Greve
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2016/06/09 20:46:21 $
- *    $Revision: 1.43 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

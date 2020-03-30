@@ -1,5 +1,4 @@
 /**
- * @file  IconLoader.h
  * @brief Loads TIF and GIF icons and sets KW Menus and Pushbuttons
  *
  * Allows you to load icons from a text file list or at run time from
@@ -8,10 +7,6 @@
  */
 /*
  * Original Author: Kevin Teich
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:56 $
- *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

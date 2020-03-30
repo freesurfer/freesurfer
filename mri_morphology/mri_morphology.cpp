@@ -1,5 +1,4 @@
 /**
- * @file  mri_morphology.c
  * @brief applies morphological operations to a volume.
  *
  * Program for applying morphological operations open, close, dilate, and erode either to an
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: lzollei $
- *    $Date: 2012/03/15 18:31:07 $
- *    $Revision: 1.15 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

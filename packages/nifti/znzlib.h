@@ -1,5 +1,4 @@
 /**
- * @file  znzlib.h
  * @brief zipped or non-zipped library
  *
  * This library provides an interface to both compressed (gzip/zlib) 
@@ -9,10 +8,6 @@
  */
 /*
  * Original Author: Mark Jenkinson, FMRIB Centre, University of Oxford
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/01/07 19:11:05 $
- *    $Revision: 1.5 $
  *
  */
 

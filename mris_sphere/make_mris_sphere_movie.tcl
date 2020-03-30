@@ -1,10 +1,6 @@
 ##
 ## make_mris_sphere_movie.tcl
 ##
-## CVS Revision Info:
-##    $Author: nicks $
-##    $Date: 2007/01/05 00:20:57 $
-##    $Revision: 1.2 $
 ##
 ## Copyright (C) 2002-2007,
 ## The General Hospital Corporation (Boston, MA). 

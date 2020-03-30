@@ -1,15 +1,10 @@
 /**
- * @file  dmri_train.cxx
  * @brief Training of priors for probabilistic global tractography
  *
  * Training of priors for probabilistic global tractography
  */
 /*
  * Original Author: Anastasia Yendiki
- * CVS Revision Info:
- *    $Author: ayendiki $
- *    $Date: 2014/05/27 14:49:34 $
- *    $Revision: 1.12 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

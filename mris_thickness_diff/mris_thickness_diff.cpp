@@ -1,5 +1,4 @@
 /**
- * @file  mris_thickness_diff.c
  * @brief  computes the difference of two surface data sets
  *
  * Given two surfaces with two functions defined on each of them,
@@ -12,10 +11,6 @@
  */
 /*
  * Original Author: Xaio Han
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:34 $
- *    $Revision: 1.16 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

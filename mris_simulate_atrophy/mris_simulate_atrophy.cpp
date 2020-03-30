@@ -1,5 +1,4 @@
 /**
- * @file  mris_simulate_atrophy.c
  * @brief simulate cortical atrophy
   *
  * program to simulate atrophic changes in the cortical by
@@ -8,10 +7,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2013/05/18 21:16:30 $
- *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

@@ -1,14 +1,9 @@
 /**
- * @file class_array.h
  * @brief prototypes and structs for using an array of classifiers to reclassify aseg voxels
  *
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:09 $
- *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

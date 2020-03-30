@@ -1,5 +1,4 @@
 /**
- * @file  mri_ms_EM_with_atlas.c
  * @brief takes an arbitrary # of FLASH images, performs EM-seg
  *
  * Trying to use more heuristics for MEF segmentation
@@ -11,10 +10,6 @@
  */
 /*
  * Original Author: Xiao Han
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/10/25 14:13:02 $
- *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

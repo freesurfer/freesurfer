@@ -1,5 +1,4 @@
 /**
- * @file  mriio.c
  * @brief utilities for reading/writing MRI data structure
  *
  * Reading and writing most of the major MRI volume types, to and from
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/10/14 19:13:08 $
- *    $Revision: 1.425 $
  *
  * Copyright © 2011-2017 The General Hospital Corporation (Boston, MA) "MGH"
  *

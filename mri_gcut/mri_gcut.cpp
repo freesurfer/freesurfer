@@ -1,5 +1,4 @@
 /**
- * @file  mri_gcut.cpp
  * @input T1.mgz; output brainmask.auto.mgz
  *
  * the main idea of the program:
@@ -45,10 +44,6 @@
  */
 /*
  * Original Authors: Vitali Zagorodnov, ZHU Jiaqi
- * CVS Revision Info: 1.4
- *    $Author: Vitali Zagorodnov, ZHU Jiaqi
- *    $Date: Feb. 2010
- *    $Revision: 1.4
  *
  * Copyright © 2009-2010 Nanyang Technological University, Singapore
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"

@@ -1,5 +1,4 @@
 /**
- * @file  env.cpp
  * @brief The environment object API.
  *
  * The environment acts as the main access / interface between the core
@@ -10,10 +9,6 @@
  */
 /*
  * Original Author: Rudolph Pienaar / Christian Haselgrove
- * CVS Revision Info:
- *    $Author: rudolph $
- *    $Date: 2013/02/04 19:23:00 $
- *    $Revision: 1.39 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

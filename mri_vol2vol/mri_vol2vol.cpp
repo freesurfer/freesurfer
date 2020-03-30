@@ -1,5 +1,4 @@
 /**
- * @file  mri_vol2vol.c
  * @brief converts values in one volume to another volume
  *
  * Resamples a volume into another field-of-view using various types of 
@@ -9,10 +8,6 @@
  */
 /*
  * Original Author: Doug Greve
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/06/22 22:33:40 $
- *    $Revision: 1.89 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

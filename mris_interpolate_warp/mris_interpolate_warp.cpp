@@ -1,5 +1,4 @@
 /**
- * @file  mris_interpolate_warp.c
  * @brief interpolate a surface warp into the volume
  *
  * take two surfaces and interpret the spatial difference in their
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/10/07 12:07:26 $
- *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

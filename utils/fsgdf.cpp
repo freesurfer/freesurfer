@@ -1,5 +1,4 @@
 /**
- * @file  fsgdf.c
  * @brief Utilities for reading freesurfer group descriptor file format
  *
  * See:   http://surfer.nmr.mgh.harvard.edu/docs/fsgdf.txt
@@ -43,10 +42,6 @@
  */
 /*
  * Original Author: Doug Greve
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2014/08/21 17:58:54 $
- *    $Revision: 1.57 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

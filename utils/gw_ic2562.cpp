@@ -1,6 +1,5 @@
 #define COMPILING_MRISURF_TOPOLOGY_FRIEND_CHECKED
 /**
- * @file  gw_ic2562.c
  *
  * GW version of ic2562.c, which creates a "surface" having two separate
  * icosahedons, which can be placed with specific sizes at specific centers.
@@ -8,10 +7,6 @@
  */
 /*
  * Original Author: Graham Wideman
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:45 $
- *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

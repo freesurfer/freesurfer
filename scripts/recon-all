@@ -3,30 +3,15 @@
 #
 # recon-all
 #
-# script to run all of the reconstruction routines
-#
+# Script to run the entire reconstruction pipline.
 # Original Author: Doug Greve
-# CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2017/02/08 21:17:33 $
-#    $Revision: 1.601 $
-	#
-# Copyright © 2011-2016 The General Hospital Corporation (Boston, MA) "MGH"
 #
-# Terms and conditions for use, reproduction, distribution and contribution
-# are found in the 'FreeSurfer Software License Agreement' contained
-# in the file 'LICENSE' found in the FreeSurfer distribution, and here:
-#
-# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
-#
-# Reporting: freesurfer@nmr.mgh.harvard.edu
-#
+# Copyright © 2011-2020 The General Hospital Corporation (Boston, MA) "MGH"
 #
 
-#
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.601 2017/02/08 21:17:33 greve Exp $';
+set VERSION = '@FS_VERSION@ (@BUILD_STAMP@)';
 set ProgName = `basename $0`;
 set inputargs = ($argv);
 set subjid = ();
@@ -4234,7 +4219,7 @@ if($DoParcStats) then
       if($surfname == white) set stats = ../stats/$hemi.aparc.stats
       if($surfname == pial)  set stats = ../stats/$hemi.aparc.pial.stats
       set cmd = (mris_anatomical_stats $TH3Opt -mgz)
-      if ($RHonly || $LHonly || !$DoTalairach) set cmd = ($cmd -noglobal)
+      if ($RHonly || $LHonly || ! $DoTalairach) set cmd = ($cmd -noglobal)
       if($UseAseg) set cmd = ($cmd -cortex ../label/$hemi.cortex.label)
       set cmd = ($cmd -f $stats -b -a $annot -c $ctab $xopts \
         $subjid $hemi $surfname);

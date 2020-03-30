@@ -1,10 +1,6 @@
 ##
 ## fsgdfPlot.tcl
 ##
-## CVS Revision Info:
-##    $Author: nicks $
-##    $Date: 2011/03/02 00:04:35 $
-##    $Revision: 1.33 $
 ##
 ## Original Author: Kevin Teich
 ##

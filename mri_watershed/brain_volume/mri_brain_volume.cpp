@@ -1,14 +1,9 @@
 /**
- * @file  mri_brain_volume.cpp
  * @brief modified mri_watershed.c
  *
  */
 /*
  * Original Author: Florent Segonne & Bruce Fischl
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:25 $
- *    $Revision: 1.11 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

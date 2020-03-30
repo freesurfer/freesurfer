@@ -1,5 +1,4 @@
 /**
- * @file  label.h
  * @brief include file for ROI utilies.
  *
  * structures, macros, constants and prototypes for the 
@@ -8,10 +7,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/12/10 22:57:22 $
- *    $Revision: 1.69 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

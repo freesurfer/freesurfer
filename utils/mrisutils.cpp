@@ -1,14 +1,9 @@
 /**
- * @file  mrisutils.c
  * @brief more surface processing utils
  *
  */
 /*
  * Original Authors: Segonne and Greve
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2015/12/03 00:36:00 $
- *    $Revision: 1.49 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

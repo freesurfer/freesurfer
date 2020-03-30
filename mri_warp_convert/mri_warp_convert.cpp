@@ -1,15 +1,10 @@
 /**
- * @file  mri_warp_convert.cpp
  * @brief A program to convert non-linear deformation field file formats
  *
  */
 
 /*
  * Original Author: Oliver Hinds
- * CVS Revision Info:
- *    $Author: ohinds $
- *    $Date: 2016/06/16 19:57:06 $
- *    $Revision: 1.1 $
  *
  * Copyright © 2016 The General Hospital Corporation (Boston, MA) "MGH"
  *

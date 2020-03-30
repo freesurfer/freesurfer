@@ -1,5 +1,4 @@
 /**
- * @file MultiRegistration.cpp
  * @brief A class to handle registration of multiple files
  *
  * MultiRegistration is a class to compute a robust registration
@@ -12,10 +11,6 @@
 
 /*
  * Original Author: Martin Reuter
- * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2015/12/15 22:30:45 $
- *    $Revision: 1.58 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

@@ -1,12 +1,9 @@
 /**
- * @file  fs_lbfgs.cpp
  * @brief This is core/vnl/algo/vnl_lbfgs.cxx
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
  * Original Author: Andrew W. Fitzgibbon, Oxford RRG
- * CVS Revision Info:
  *    $Author$
  *    $Date$
  *    $Revision$

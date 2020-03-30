@@ -1,15 +1,10 @@
 /**
- * @file  mri.h
  * @brief prototypes and structures for working with MRI volumes.
  *
  *  prototypes and structures for working with MRI volumes.
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/12/26 15:30:02 $
- *    $Revision: 1.484 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

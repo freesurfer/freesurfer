@@ -1,14 +1,9 @@
 /**
- * @file  mri_annotation2label.c
  * @brief Converts an annotation to labels files
  *
  */
 /*
  * Original Author: Douglas Greve
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2016/08/02 21:20:27 $
- *    $Revision: 1.32 $
  *
  * Copyright © 2011-2016 The General Hospital Corporation (Boston, MA) "MGH"
  *

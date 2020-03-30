@@ -1,5 +1,4 @@
 /**
- * @file  bfileio.c
  * @brief Routines for handling bfile (bshort and bfloat) I/O.
  *
  * Bfile names are assumed to have the following format:
@@ -20,10 +19,6 @@
  */
 /*
  * Original Author: Douglas Greve
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:42 $
- *    $Revision: 1.11 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

@@ -1,15 +1,10 @@
 /**
- * @file  histo.c
  * @brief 1d histogram utilities.
  *
  * Utilities for computing and analyzing 1 dimensional histograms.
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/05/13 18:06:13 $
- *    $Revision: 1.92 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

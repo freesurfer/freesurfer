@@ -1,15 +1,10 @@
 /**
- * @file  mri_create_tests.cpp
  * @brief Creates a modified image with noise or transformed 
  *
  */
 
 /*
  * Original Author: Martin Reuter
- * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2012/11/10 15:35:01 $
- *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

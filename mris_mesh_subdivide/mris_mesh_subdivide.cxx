@@ -1,15 +1,10 @@
 /**
- * @file  mris_mesh_subdivide.c
  * @brief
  *
  *
  */
 /*
  * Original Author: jonathan polimeni
- * CVS Revision Info:
- *    $Author: jonp $
- *    $Date: 2013/02/07 16:04:07 $
- *    $Revision: 1.5 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *

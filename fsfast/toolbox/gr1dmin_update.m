@@ -25,10 +25,6 @@ function [x, a, b, c, ya, yb, yc] = gr1dmin_update(a, b, c, ya, yb, yc, x, yx)
 % gr1dmin_update.m
 %
 % Original Author: Doug Greve
-% CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2011/03/02 00:04:07 $
-%    $Revision: 1.3 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %

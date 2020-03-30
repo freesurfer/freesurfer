@@ -1,14 +1,9 @@
 /**
- * @file  mriflood.c
  * @brief flood and erode voxels
  *
  */
 /*
  * Original Author: Andre van der Kouwe
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2014/05/02 22:04:26 $
- *    $Revision: 1.41 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

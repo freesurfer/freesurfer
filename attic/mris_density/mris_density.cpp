@@ -1,5 +1,4 @@
 /**
- * @file  mris_density.c
  * @brief program for generating a surface map of the density of the interior voxels.
  *
  * Compute the # of voxels that are interior to the surface in a user-specified radius
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:31 $
- *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

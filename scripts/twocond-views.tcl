@@ -4,10 +4,6 @@
 ## twocond-views.tcl
 ## surfer script: twocond-views [disp two-condition data on 3D folded/unfolded]
 ##
-## CVS Revision Info:
-##    $Author: nicks $
-##    $Date: 2011/03/02 00:04:36 $
-##    $Revision: 1.6 $
 ##
 ## Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 ##

@@ -1,14 +1,9 @@
 /**
- * @file  fsenv.c
  * @brief Utils to get, set, and print freesurfer environment vars
  *
  */
 /*
  * Original Author: Doug Greve
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2015/04/16 18:49:31 $
- *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

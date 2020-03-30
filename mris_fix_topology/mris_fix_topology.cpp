@@ -1,5 +1,4 @@
 /**
- * @file  mris_fix_topology.c
  * @brief Finds and corrects defects in surface topology.
  *
  * "Topology Correction of Subcortical Segmentation",
@@ -12,10 +11,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/10/27 19:43:58 $
- *    $Revision: 1.51 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

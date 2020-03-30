@@ -1,5 +1,4 @@
 /**
- * @file  mris_warp.c
  * @brief apply a specified displacement field to warp a surface
  *
  * applies a specified displacement field specified as a volume (M3Z)
@@ -8,10 +7,6 @@
  */
 /*
  * Original Author: jonathan polimeni
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2012/02/29 15:59:46 $
- *    $Revision: 1.3 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *

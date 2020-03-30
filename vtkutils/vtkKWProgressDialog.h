@@ -1,5 +1,4 @@
 /**
- * @file  vtkKWProgressDialog.h
  * @brief A KWWidgets progress dialog
  *
  * A simple KWWidgets dialog box with a progress bar tht listens to
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Kevin Teich
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:56 $
- *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

@@ -1,5 +1,4 @@
 /**
- * @file  vtkInflatePolyData.h
  * @brief Inflates (or deflates) a surface by moving verts along the normals
  *
  * This VTK filter class takes vtkPolyData as in put and outputs
@@ -10,10 +9,6 @@
  */
 /*
  * Original Author: Kevin Teich
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:56 $
- *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

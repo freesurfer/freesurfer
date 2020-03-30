@@ -1,14 +1,9 @@
 /**
- * @file  mripolv.c
  * @brief utils for calcing/filtring MRI data based on planes of least variance
  *
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:46 $
- *    $Revision: 1.43 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

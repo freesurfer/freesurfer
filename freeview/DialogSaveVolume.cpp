@@ -1,14 +1,9 @@
 /**
- * @file  DialogSaveVolume.cpp
  * @brief Dialog to save volume
  *
  */
 /*
  * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2011/07/08 17:28:51 $
- *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

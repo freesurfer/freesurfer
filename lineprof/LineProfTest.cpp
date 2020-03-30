@@ -1,15 +1,10 @@
 /**
- * @file  LineProfTest.cpp
  * @brief Test example for line profile library
  *
  */
 
 /*
  * Original Author: Martin Reuter, Oct. 17th ,2012
- * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2012/10/24 19:19:28 $
- *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

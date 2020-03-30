@@ -1,13 +1,9 @@
 /**
- * @file swi_preprocess.cpp
  * @brief Pre-processing for Susceptibility Weighted Imaging
  *
  */
 /*
  * Original Author: Krish Subramaniam
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2013/02/21 19:17:23 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

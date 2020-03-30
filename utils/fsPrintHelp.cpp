@@ -1,15 +1,10 @@
 /**
- * @file  fsPrintHelp.c
  * @brief utility to read an .xml file and output it in a readable format
  *
  * routines for printing of help text formated in xml
  */
 /*
  * Original Author: Greg Terrono
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:44 $
- *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

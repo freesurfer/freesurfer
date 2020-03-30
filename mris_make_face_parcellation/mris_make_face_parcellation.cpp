@@ -1,5 +1,4 @@
 /**
- * @file  mris_make_face_parcellation.c
  * @brief create a parcellation of equal areas
  *
  * make a parcellation where each unit is assigned based on the face 
@@ -8,10 +7,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/05/06 17:26:14 $
- *    $Revision: 1.22 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

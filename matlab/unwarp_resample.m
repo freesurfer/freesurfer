@@ -14,10 +14,6 @@ function [imvol_out, M_out] = unwarp_resample(imvol,M,imvol_out_size,M_out,Mdc,u
 % unwarp_resample.m
 %
 % Original Author: Elizabeth Haley
-% CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2011/03/02 00:04:13 $
-%    $Revision: 1.7 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %

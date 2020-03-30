@@ -35,10 +35,6 @@ function cdf = rft_zcluster_cdf(csize,zthresh,fwhm,ssize,D)
 % rft_zcluster_cdf.m
 %
 % Original Author: Doug Greve
-% CVS Revision Info:
-%    $Author: greve $
-%    $Date: 2016/11/01 19:44:16 $
-%    $Revision: 1.8 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %

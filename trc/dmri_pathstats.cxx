@@ -1,15 +1,10 @@
 /**
- * @file  dmri_pathstats.cxx
  * @brief Compute measures on probabilistic or deterministic tractography paths
  *
  * Compute measures on probabilistic or deterministic tractography paths
  */
 /*
  * Original Author: Anastasia Yendiki
- * CVS Revision Info:
- *    $Author: ayendiki $
- *    $Date: 2015/08/29 04:14:27 $
- *    $Revision: 1.16 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

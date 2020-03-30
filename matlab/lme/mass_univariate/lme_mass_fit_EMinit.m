@@ -25,12 +25,7 @@ function [Theta0,Re0] = lme_mass_fit_EMinit(X,Zcols,Y,ni,maskvtx,nit,prs)
 % each location.
 % Re0: Matrix of residual errors at each location.
 %
-% $Revision: 1.3 $  $Date: 2016/04/08 19:39:24 $
 % Original Author: Jorge Luis Bernal Rusiel 
-% CVS Revision Info:
-%    $Author: mreuter $
-%    $Date: 2016/04/08 19:39:24 $
-%    $Revision: 1.3 $
 % References: Bernal-Rusiel J.L., Greve D.N., Reuter M., Fischl B., Sabuncu
 % M.R., 2012. Statistical Analysis of Longitudinal Neuroimage Data with Linear 
 % Mixed Effects Models, NeuroImage, doi:10.1016/j.neuroimage.2012.10.065.

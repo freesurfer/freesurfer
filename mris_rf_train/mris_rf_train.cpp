@@ -1,5 +1,4 @@
 /**
- * @file  mris_rf_train.c
  * @brief main program for training a random forest on the surface
  *
  * program for building a set of features across subjects on the surface and using them to train
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/12/11 14:33:34 $
- *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

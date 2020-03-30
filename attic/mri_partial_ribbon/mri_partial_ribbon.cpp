@@ -1,5 +1,4 @@
 /**
- * @file  mri_partial_ribbon.c
  * @brief extract cortical ribbon
  *
  * Usage: 
@@ -10,10 +9,6 @@
  */
 /*
  * Original Author: Andre van der Kouwe
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:23 $
- *    $Revision: 1.11 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

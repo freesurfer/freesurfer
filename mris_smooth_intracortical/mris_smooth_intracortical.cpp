@@ -1,5 +1,4 @@
 /**
- * @file  mri_surf_smooth.cpp
  * @brief smoothing along the cortical surface meshes with a given tangential (neighborhood size) and radial (number of surface meshes) extent
  *
  * This method has been described in:
@@ -11,10 +10,6 @@
 
 /*
  * Original Author: Anna I. Blazejewska
- * CVS Revision Info:
- *    $Author:  $
- *    $Date:  $
- *    $Revision:  $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

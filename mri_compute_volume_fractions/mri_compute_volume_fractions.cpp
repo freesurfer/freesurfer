@@ -1,5 +1,4 @@
 /**
- * @file  mri_compute_volume_fraction.c
  * @brief compute the % of gm, wm and CSF in each voxel in a volume
  *
  * Program to compute partial volume fractions for every voxel in e.g. an EPI image using
@@ -8,10 +7,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2015/09/14 12:25:01 $
- *    $Revision: 1.22 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

@@ -1,5 +1,4 @@
 /**
- * @file  mri_label2label.c
  * @brief map a label from one subject to another
  *
  * Purpose: Converts a label in one subject's space to a label
@@ -38,10 +37,6 @@
  */
 /*
  * Original Author: Douglas Greve
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/12/10 22:57:43 $
- *    $Revision: 1.50 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

@@ -11,10 +11,6 @@ function flacnew = flac_conmat(flac,nthcon)
 % flac_conmat.m
 %
 % Original Author: Doug Greve
-% CVS Revision Info:
-%    $Author: greve $
-%    $Date: 2014/01/13 17:35:00 $
-%    $Revision: 1.6 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %

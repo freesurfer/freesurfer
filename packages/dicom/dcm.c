@@ -89,9 +89,7 @@ were not extensive. Not sure how robust it is but it seems to work. */
 **  and convert the object to and from its "stream" representation.
 **  In addition, the package can parse a file which contains a stream
 **  and create its internal object.
-** Last Update:   $Author: greve $, $Date: 2014/12/15 22:39:45 $
 ** Source File:   $RCSfile: dcm.c,v $
-** Revision:    $Revision: 1.33 $
 ** Status:    $State: Exp $
 */
 

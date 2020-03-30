@@ -1,5 +1,4 @@
 /**
- * @file  mris_compute_parc_overlap.c
  * @brief compare two parcellated (annotated) surfaces and computes accuracy.
  *
  * Compares two parcellated (annotated) surfaces
@@ -31,10 +30,6 @@
  */
 /*
  * Original Author: Nick Schmansky
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/03/28 17:20:11 $
- *    $Revision: 1.19 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

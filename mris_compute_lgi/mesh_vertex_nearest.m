@@ -16,7 +16,6 @@ function [nearestIndex,nearestValues] = mesh_vertex_nearest(vertices,points)
 % This function is just a wrapper for dsearchn.
 %
 
-% $Revision: 1.1 $ $Date: 2007/11/16 02:54:47 $
 
 % Author:   Darren.Weber_at_radiology.ucsf.edu
 % Created:  23 May 2004

@@ -1,15 +1,10 @@
 /**
- * @file  mris_diff.c
  * @brief Compare two surfaces.
  *
  */
 /*
  * Original Author: Doug Greve
  * Modifications: Bevin R Brett
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2014/03/21 23:57:48 $
- *    $Revision: 1.20 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

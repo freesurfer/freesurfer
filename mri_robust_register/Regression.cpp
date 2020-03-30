@@ -1,5 +1,4 @@
 /**
- * @file Regression.cpp
  * @brief A class to solve overconstrained system A X = B
  *
  *   it uses either least squares (standard regression)
@@ -10,10 +9,6 @@
 
 /*
  * Original Author: Martin Reuter
- * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2016/03/10 16:19:40 $
- *    $Revision: 1.29 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

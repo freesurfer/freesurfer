@@ -1,5 +1,4 @@
 /**
- * @file  mri_fill.c
  * @brief fill interior holes of components representing white matter
  *
  * "Cortical Surface-Based Analysis I: Segmentation and Surface
@@ -8,10 +7,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/10/25 14:09:58 $
- *    $Revision: 1.119 $
  *
  * Copyright © 2011-2017 The General Hospital Corporation (Boston, MA) "MGH"
  *

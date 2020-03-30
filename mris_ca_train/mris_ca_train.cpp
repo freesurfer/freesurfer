@@ -1,5 +1,4 @@
 /**
- * @file  mris_ca_train.c
  * @brief builds a cortical parcellation atlas (.gcs) file from a training set
  *
  * Creates a cortical parcellation atlas file based on one or more annotated
@@ -20,10 +19,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:27 $
- *    $Revision: 1.17 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

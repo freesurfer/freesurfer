@@ -1,15 +1,10 @@
 /**
- * @file  mris_label_calc.cpp
  * @brief A programm to calculate stuff on surface labels
  *
  */
 
 /*
  * Original Author: Martin Reuter
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/12/10 22:57:58 $
- *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

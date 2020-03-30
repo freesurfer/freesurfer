@@ -16,12 +16,7 @@ function [km] = SStat_KM(z,d,t,ptype)
 % km: Structure array with the Kaplan-Meier estimates for each category of
 % z.
 %
-% $Revision: 1.1 $  $Date: 2015/01/06 17:04:02 $
 % Original Author: Jorge Luis Bernal Rusiel 
-% CVS Revision Info:
-%    $Author: mreuter $
-%    $Date: 2015/01/06 17:04:02 $
-%    $Revision: 1.1 $
 % References: Kleinbaum, D.G., Klein, M., 2005. Survival analysis. A self-
 % learning approach, second edition. New York: Springer.
 %   

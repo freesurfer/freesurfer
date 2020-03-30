@@ -31,10 +31,6 @@
 #     aparcstatsdiff
 #
 # Original Author: Nick Schmansky
-# CVS Revision Info:
-#    $Author: zkaufman $
-#    $Date: 2016/06/16 15:21:05 $
-#    $Revision: 1.40 $
 #
 # Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
 #

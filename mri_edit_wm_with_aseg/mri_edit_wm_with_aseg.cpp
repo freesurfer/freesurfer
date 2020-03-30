@@ -1,14 +1,9 @@
 /**
- * @file  mri_edit_wm_with_aseg.c
  * @brief fixup the wm vol based on segmentations found in aseg
  *
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2012/03/29 13:17:38 $
- *    $Revision: 1.25 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

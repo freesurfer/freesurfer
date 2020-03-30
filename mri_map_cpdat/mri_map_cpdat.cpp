@@ -1,14 +1,9 @@
 /**
- * @file  mri_map_cpdat.c
  * @brief map a control.dat file (manual edits) to another space
  *
  */
 /*
  * Original Author: Martin Reuter
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2014/01/21 23:07:41 $
- *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

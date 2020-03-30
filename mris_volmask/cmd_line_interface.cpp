@@ -1,5 +1,4 @@
 /**
- * @file  cmd_line_interface.cpp
  * @brief automate the parsing of the command-line
  *
  * this class is meant to automate the parsing of the command-line
@@ -14,10 +13,6 @@
  */
 /*
  * Original Author: Gheorge Postelni
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:34 $
- *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

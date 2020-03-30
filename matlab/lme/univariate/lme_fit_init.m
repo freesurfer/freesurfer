@@ -16,12 +16,7 @@ function [D0,phisq0] = lme_fit_init(X,Zcols,y,ni)
 % phisq0: Estimated within-subject variability.
 % D0: Estimated random effects covariance matrix.
 %
-% $Revision: 1.2 $  $Date: 2015/01/06 17:14:57 $
 % Original Author: Jorge Luis Bernal Rusiel 
-% CVS Revision Info:
-%    $Author: mreuter $
-%    $Date: 2015/01/06 17:14:57 $
-%    $Revision: 1.2 $
 % References: Bernal-Rusiel J.L., Greve D.N., Reuter M., Fischl B., Sabuncu
 % M.R., 2012. Statistical Analysis of Longitudinal Neuroimage Data with Linear 
 % Mixed Effects Models, NeuroImage, doi:10.1016/j.neuroimage.2012.10.065.

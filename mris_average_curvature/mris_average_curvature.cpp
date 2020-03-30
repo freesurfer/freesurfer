@@ -1,5 +1,4 @@
 /**
- * @file  mris_average_curvature.c
  * @brief program for averaging "curvature" (scalar fields on the surface).
  *
  * average "curvature" format files (scalar fields on the surface) across subjects
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:26 $
- *    $Revision: 1.17 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

@@ -1,14 +1,9 @@
 /**
- * @file  vertex.h
  * @brief topology fixer fastloop worker routines
  *
  */
 /*
  * Original Author: F. Segonne
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:11 $
- *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

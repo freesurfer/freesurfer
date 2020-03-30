@@ -1,5 +1,4 @@
 /**
- * @file  mri_concatenate_lta.c
  * @brief Concatenate two (or more?) LTAs into one final LTA
  *
  * This program concatenate two consecutive LTA transformations into one
@@ -9,10 +8,6 @@
  */
 /*
  * Original Author: Xiao Han
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2015/11/21 00:06:20 $
- *    $Revision: 1.16 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

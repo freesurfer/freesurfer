@@ -1,5 +1,4 @@
 /**
-   @file getline.c
    @brief Implementation of replacement getline function.
 
    Copyright (C) 2005 Free Software Foundation, Inc.

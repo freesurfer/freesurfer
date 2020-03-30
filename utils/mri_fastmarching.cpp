@@ -1,11 +1,9 @@
 /**
- * @file  mri_fastmarching.cpp
  * @brief Creates a distance transform.
  *
  */
 /*
  * Original Author: Florent Segonne
- * CVS Revision Info:
  *    $Author$
  *    $Date$
  *    $Revision$

@@ -1,14 +1,9 @@
 /**
- * @file  mris_euler_number.c
  * @brief calculates the Euler number of a surface (=2 if perfect)
  *
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2013/01/14 22:39:14 $
- *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

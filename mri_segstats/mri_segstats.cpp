@@ -1,5 +1,4 @@
 /**
- * @file  mri_segstats.c
  * @brief Computes statistics from a segmentation.
  *
  * This program will compute statistics on segmented volumes. In its
@@ -10,10 +9,6 @@
  */
 /*
  * Original Author: Dougas N Greve
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2017/01/23 18:23:14 $
- *    $Revision: 1.122 $
  *
  * Copyright Â© 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

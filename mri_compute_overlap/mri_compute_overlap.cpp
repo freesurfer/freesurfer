@@ -1,15 +1,10 @@
 /**
- * @file  mri_compute_overlap.c
  * @brief computing label overlap measures
  *
  * Computing three label overlap measures: volume difference, Dice and Jaccard.
  */
 /*
  * Original Author: Nick S.?
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2015/10/20 20:07:19 $
- *    $Revision: 1.19 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

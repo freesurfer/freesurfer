@@ -1,14 +1,9 @@
 /**
- * @file  general.cpp
  * @brief Some functions shared between the various dijkstra_p1 components.
  *
  */
 /*
  * Original Author: Rudolph Pienaar / Christian Haselgrove
- * CVS Revision Info:
- *    $Author: rudolph $
- *    $Date: 2012/01/23 17:24:08 $
- *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

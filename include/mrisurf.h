@@ -1,6 +1,5 @@
 #pragma once
 /**
- * @file  mrisurf.h
  * @brief MRI_SURFACE utilities.
  *
  * Utilities, constants and structure definitions for manipulation
@@ -8,10 +7,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2017/02/16 19:42:54 $
- *    $Revision: 1.391 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

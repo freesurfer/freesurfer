@@ -1,5 +1,4 @@
 /**
- * @file  mri_aparc2aseg.c
  * @brief Maps aparc labels to aseg
  *
  * Maps the cortical labels from the automatic cortical parcellation (aparc)
@@ -19,10 +18,6 @@
  */
 /*
  * Original Author: Doug Greve
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/12/26 15:29:30 $
- *    $Revision: 1.54 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

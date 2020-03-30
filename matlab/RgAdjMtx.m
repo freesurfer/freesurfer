@@ -14,12 +14,7 @@ function RgAdj = RgAdjMtx(AdjM,Rgvtx)
 % RgAdj(i,j) is nonzero (=1) if and only if an edge connects point i to 
 % point j.
 %
-% $Revision: 1.1 $  $Date: 2012/11/15 15:17:51 $
 % Original Author: Jorge Luis Bernal Rusiel 
-% CVS Revision Info:
-%    $Author: vinke $
-%    $Date: 2012/11/15 15:17:51 $
-%    $Revision: 1.1 $
 %
 if nargin < 2 
     error('Too few inputs');   

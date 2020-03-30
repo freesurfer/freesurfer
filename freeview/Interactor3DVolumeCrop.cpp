@@ -1,14 +1,9 @@
 /**
- * @file  Interactor3DVolumeCrop.cpp
  * @brief Interactor for volume cropping in 3D render view.
  *
  */
 /*
  * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2015/09/15 18:29:04 $
- *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

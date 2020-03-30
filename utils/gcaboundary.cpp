@@ -1,5 +1,4 @@
 /**
- * @file  gcaboundary.c
  * @brief Routines for boundary deformations based on gca.
  *
  * Reference:
@@ -9,10 +8,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:44 $
- *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

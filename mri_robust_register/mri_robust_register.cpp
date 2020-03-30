@@ -1,5 +1,4 @@
 /**
- * @file  mri_robust_register.cpp
  * @brief Linear registration of two volumes using robust statistics
  *
  * Based on ideas in "Robust Multiresolution Alignment of MRI Brain Volumes"
@@ -8,10 +7,6 @@
 
 /*
  * Original Author: Martin Reuter, Nov. 4th ,2008
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2016/01/20 23:36:17 $
- *    $Revision: 1.77 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

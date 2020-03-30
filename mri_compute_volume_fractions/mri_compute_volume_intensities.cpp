@@ -1,15 +1,9 @@
 /**
- * @file  mri_compute_volume_intensities.c
  * @brief compute the unpartial-volumed intensities given an input volume and volume fracion maps
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/04/19 13:32:50 $
- *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 

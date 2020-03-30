@@ -1,14 +1,9 @@
 /**
- * @file  mri_make_bem_surfaces.c
  * @brief creates a skull surface for use with the MNE tools
  *
  */
 /*
  * Original Author: Anders Dale and Martin Sereno
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/29 16:37:02 $
- *    $Revision: 1.13 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

@@ -1,5 +1,4 @@
 /**
- * @file  mri_linear_align.c
  * @brief optimal linear alignment of two MR volumes
  *
  * compute the optimal linear alignment between two MR volumes
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:18 $
- *    $Revision: 1.13 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -32,9 +27,6 @@
 // Nov. 9th ,2000
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2011/03/02 00:04:18 $
-// Revision       : $Revision: 1.13 $
 //
 ////////////////////////////////////////////////////////////////////
 

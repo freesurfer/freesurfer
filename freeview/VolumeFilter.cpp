@@ -1,14 +1,9 @@
 /**
- * @file  VolumeFilter.cpp
  * @brief Base VolumeFilter class.
  *
  */
 /*
  * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2014/01/30 22:08:25 $
- *    $Revision: 1.11 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

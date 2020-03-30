@@ -1,14 +1,9 @@
 /**
- * @file  base.h
  * @brief common definitions we want to be widely available
  *
  */
 /*
  * Original Author: Bevin Brett
- * CVS Revision Info:
- *    $Author: bbrett $
- *    $Date: 2018/03/14 18:28:00 $
- *    $Revision: 1.0 $
  *
  * Copyright © 2018 The General Hospital Corporation (Boston, MA) "MGH"
  *

@@ -1,5 +1,4 @@
 /**
- * @file  QdecDataTable.h
  * @brief Container for the text-input file to QDEC.
  *
  * Implements loading/saving the white-space delimited data file containing
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Nick Schmansky
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:35 $
- *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

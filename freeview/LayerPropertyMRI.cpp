@@ -1,5 +1,4 @@
 /**
- * @file  LayerPropertyMRI.cxx
  * @brief Implementation for MRI layer properties.
  *
  * In 2D, the MRI is viewed as a single slice, and controls are
@@ -10,10 +9,6 @@
 /*
  * Original Author: Kevin Teich
  * Reimplemented by: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2016/10/24 20:46:53 $
- *    $Revision: 1.44 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

@@ -1,5 +1,4 @@
 /**
- * @file  LayerPropertyMRI.h
  * @brief The common properties available to MRI layers
  *
  * An interface implemented by a collection. Layers will get
@@ -9,10 +8,6 @@
 /*
  * Original Author: Kevin Teich
  * Reimplemented by: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2016/09/28 16:28:20 $
- *    $Revision: 1.22 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

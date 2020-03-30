@@ -1,14 +1,9 @@
 /**
- * @file  chklc.c
  * @brief Routine to check .license file
  *
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: ah221 $
- *    $Date: 2017/02/07 19:19:50 $
- *    $Revision: 1.25 $
  *
  * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *

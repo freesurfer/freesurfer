@@ -3,10 +3,6 @@
 ##
 ## wrappers.tcl
 ##
-## CVS Revision Info:
-##    $Author: nicks $
-##    $Date: 2011/03/02 00:04:36 $
-##    $Revision: 1.6 $
 ##
 ## Copyright (c) 1996-1999 Martin Sereno and Anders Dale
 ## Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"

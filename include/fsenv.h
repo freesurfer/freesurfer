@@ -1,14 +1,9 @@
 /**
- * @file  fsenv.h
  * @brief Load, set freesurfer environment variables
  *
  */
 /*
  * Original Author: Doug Greve
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2015/04/16 18:49:31 $
- *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

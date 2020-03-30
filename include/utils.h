@@ -1,14 +1,9 @@
 /**
- * @file  utils.h
  * @brief well....utils!
  *
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2016/01/20 23:38:54 $
- *    $Revision: 1.58 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *

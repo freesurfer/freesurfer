@@ -17,10 +17,6 @@ function err = fast_selxavg3b(configfile)
 % fast_selxavg3.m
 %
 % Original Author: Doug Greve
-% CVS Revision Info:
-%    $Author: greve $
-%    $Date: 2016/05/04 22:16:47 $
-%    $Revision: 1.4 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %

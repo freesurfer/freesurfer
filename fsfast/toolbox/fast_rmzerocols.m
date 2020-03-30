@@ -10,10 +10,6 @@ function [M, indnz, indz] = fast_rmzerocols(M0)
 % fast_rmzerocols.m
 %
 % Original Author: Doug Greve
-% CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2011/03/02 00:04:05 $
-%    $Revision: 1.3 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %

@@ -1,15 +1,9 @@
 /**
- * @file  mri_compute_layer_fraction.c
  * @brief compute the % of gm layers 1-6, wm and CSF in each voxel in a volume
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2012/04/11 17:52:45 $
- *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 

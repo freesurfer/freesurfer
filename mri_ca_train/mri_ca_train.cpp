@@ -1,5 +1,4 @@
 /**
- * @file  mri_ca_train.c
  * @brief Creates the Gaussian Classifier Array (GCA) atlas from training set
  *
  * See:
@@ -9,10 +8,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2015/07/27 20:52:08 $
- *    $Revision: 1.70 $
  *
  * Copyright © 2011-2017 The General Hospital Corporation (Boston, MA) "MGH"
  *

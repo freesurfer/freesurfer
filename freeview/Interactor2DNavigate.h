@@ -1,14 +1,9 @@
 /**
- * @file  Interactor2DNavigate.h
  * @brief Interactor for navigating (zoom, pan, etc.) in 2D render view.
  *
  */
 /*
  * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2011/03/21 21:27:40 $
- *    $Revision: 1.11 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

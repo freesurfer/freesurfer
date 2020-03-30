@@ -1,5 +1,4 @@
 /**
- * @file  pstream.h
  * @brief PStreams - POSIX Process I/O for C++
  *
  * Defines classes redi::ipstream, redi::opstream, redi::pstream
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Jonathan Wakely
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/02/27 21:18:07 $
- *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

@@ -1,5 +1,4 @@
 /**
- * @file  mri_mask.c
  * @brief applies a mask volume
  *
  * Usage: mri_mask [options] <in vol> <mask vol> <out vol>
@@ -13,10 +12,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/11/28 20:30:57 $
- *    $Revision: 1.24 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

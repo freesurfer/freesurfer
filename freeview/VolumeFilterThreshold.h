@@ -1,14 +1,9 @@
 /**
- * @file  VolumeFilterThreshold.h
  * @brief Base VolumeFilterThreshold class.
  *
  */
 /*
  * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2015/06/03 20:56:14 $
- *    $Revision: 1.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

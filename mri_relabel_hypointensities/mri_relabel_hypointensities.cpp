@@ -1,14 +1,9 @@
 /**
- * @file  mri_relabel_hypointensities.c
  * @brief relabels hypointense wm voxels
  *
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2015/05/15 18:44:10 $
- *    $Revision: 1.13 $
  *
  * Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
  *

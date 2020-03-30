@@ -1,13 +1,8 @@
 /*
- * @file utilities operating on Original
  *
  */
 /*
  * surfaces Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2017/02/16 19:43:03 $
- *    $Revision: 1.793 2011
  *
  * $ © copyright-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *

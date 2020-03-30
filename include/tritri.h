@@ -1,5 +1,4 @@
 /**
- * @file  tritri.h
  * @brief macros and prototypes for triangle/triangle intersection and some 3-vectors.
  *
  * the header file for tritri.c that implements the fast triangle/triangle intersection
@@ -10,10 +9,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:10 $
- *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

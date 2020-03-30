@@ -1,14 +1,9 @@
 /**
- * @file  mris_info.cpp
  * @brief Prints out information about a surface file
  *
  */
 /*
  * Original Author: Yasunari Tosa
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2012/12/04 19:17:57 $
- *    $Revision: 1.33 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

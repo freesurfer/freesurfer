@@ -1,15 +1,10 @@
 /**
- * @file  MRISOBBTree.h
  * @brief Constructs an Oriented Bounding Box datastructure from a MRIS surface
  *
  * Goal is to do a fast Point Inclusion Test
  */
 /*
  * Original Author: Krish Subramaniam
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:09 $
- *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

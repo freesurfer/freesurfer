@@ -1,14 +1,9 @@
 /**
- * @file  transform.c
  * @brief utilities for linear transforms
  *
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2015/08/19 16:34:29 $
- *    $Revision: 1.178 $
  *
  * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *

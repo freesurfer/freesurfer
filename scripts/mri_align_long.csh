@@ -6,10 +6,6 @@
 # aligns all tps norm.mgz and aseg.mgz to the base space
 #
 # Original Author: Martin Reuter
-# CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2011/03/02 20:16:39 $
-#    $Revision: 1.3 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #

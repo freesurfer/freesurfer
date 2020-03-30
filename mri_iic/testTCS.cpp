@@ -1,14 +1,9 @@
 /**
- * @file  testTCS.cpp
  * @brief test program of the TensorCubicSmoothing class
  *
  */
 /*
  * Original Author: Benjamin Lewin
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2014/09/03 20:31:32 $
- *    $Revision: 1.3 $
  *
  * Copyright © 2014 The General Hospital Corporation (Boston, MA) "MGH"
  *

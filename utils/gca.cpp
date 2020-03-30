@@ -2,7 +2,6 @@
 #define BEVIN_GCACOMPUTELOGSAMPLEPROBABILITY_REPRODUCIBLE
 
 /**
- * @file  gca.c
  * @brief Core routines implementing the Gaussian Classifier Atlas mechanism
  *
  * Routines implementing the mechanism of encoding voxel label information

@@ -1,15 +1,10 @@
 /**
- * @file  mris_spherical_average.c
  * @brief spherical averaging of labels, curvs and vals.
  *
  * apply spherical averaging to various scalars (see Fischl et al, HBM, 1999)
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/12/11 14:33:44 $
- *    $Revision: 1.38 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

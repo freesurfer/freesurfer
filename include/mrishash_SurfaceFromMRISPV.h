@@ -2,7 +2,6 @@
 
 /*
  * Original Author: Bevin R. Brett
- * CVS Revision Info:
  *
  * Copyright © 2019 The General Hospital Corporation (Boston, MA) "MGH"
  *

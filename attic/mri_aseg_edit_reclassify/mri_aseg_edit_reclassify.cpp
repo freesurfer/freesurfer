@@ -1,15 +1,10 @@
 /**
- * @file  mri_aseg_edit_train
  * @brief use a previously trained a classifier to correct an aseg
  *
  * use SVMs to correct an aseg.
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:13 $
- *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

@@ -1,12 +1,10 @@
 /**
- * @file  coffin.cxx
  * @brief Container of tractography data and methods
  *
  * Container of tractography data and methods
  */
 /*
  * Original Author: Anastasia Yendiki
- * CVS Revision Info:
  *
  * Copyright © 2011-2016 The General Hospital Corporation (Boston, MA) "MGH"
  *
