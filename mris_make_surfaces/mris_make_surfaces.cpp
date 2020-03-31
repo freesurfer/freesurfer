@@ -305,7 +305,6 @@ static int white_vnos[MAX_VERTICES] ;
 
 static int fill_interior = 0 ;
 static float check_contrast_direction(MRI_SURFACE *mris,MRI *mri_T1) ;
-MRI *MRIScoverSeg(MRIS *mris, MRI *mri_bin, MRI *mri_cover_seg, int surftype);
 
 int main(int argc, char *argv[])
 {
@@ -4962,61 +4961,3 @@ MRISremoveSelfIntersections(MRI_SURFACE *mris)
 
 
 
-/*!
-\fn MRI *MRIScoverSeg(MRIS *mris, MRI *mri_bin, MRI *mri_cover_seg, int surftype)
-\brief Does something to make sure that surface covers the given segmentation. Good
-for babies and exvivo (?). 
-surftype = //GRAY_WHITE; // GRAY_CSF
-*/
-MRI *MRIScoverSeg(MRIS *mris, MRI *mri_bin, MRI *mri_cover_seg, int surftype)
-{
-  MRI *mri_tmp;
-
-  printf("MRIScoverSeg(): hemi=%d, surftype=%d\n",mris->hemisphere,surftype);
-  printf("  Creating distance transform volume from segmentation\n") ;
-  if(mris->hemisphere == LEFT_HEMISPHERE) {
-    MRIcopyLabel(mri_cover_seg, mri_bin, Left_Cerebral_White_Matter) ;
-    MRIcopyLabel(mri_cover_seg, mri_bin, Left_Thalamus_Proper) ;
-    MRIcopyLabel(mri_cover_seg, mri_bin, Left_Caudate) ;
-    MRIcopyLabel(mri_cover_seg, mri_bin, Left_Pallidum) ;
-    MRIcopyLabel(mri_cover_seg, mri_bin, Left_Putamen) ;
-    MRIcopyLabel(mri_cover_seg, mri_bin, Left_VentralDC) ;
-    MRIcopyLabel(mri_cover_seg, mri_bin, Left_Lateral_Ventricle) ;
-    MRIcopyLabel(mri_cover_seg, mri_bin, Left_Lesion) ;
-    MRIcopyLabel(mri_cover_seg, mri_bin, Left_Accumbens_area) ;
-    MRIcopyLabel(mri_cover_seg, mri_bin, Left_WM_hypointensities) ;
-    MRIcopyLabel(mri_cover_seg, mri_bin, Left_non_WM_hypointensities) ;
-    MRIcopyLabel(mri_cover_seg, mri_bin, Left_vessel) ;
-    if(surftype == GRAY_CSF) MRIcopyLabel(mri_cover_seg, mri_bin, Left_Cerebral_Cortex) ; //pial
-  }
-  else {
-    MRIcopyLabel(mri_cover_seg, mri_bin, Right_Cerebral_White_Matter) ;
-    MRIcopyLabel(mri_cover_seg, mri_bin, Right_Thalamus_Proper) ;
-    MRIcopyLabel(mri_cover_seg, mri_bin, Right_Caudate) ;
-    MRIcopyLabel(mri_cover_seg, mri_bin, Right_Pallidum) ;
-    MRIcopyLabel(mri_cover_seg, mri_bin, Right_Putamen) ;
-    MRIcopyLabel(mri_cover_seg, mri_bin, Right_Lateral_Ventricle) ;
-    MRIcopyLabel(mri_cover_seg, mri_bin, Right_Lesion) ;
-    MRIcopyLabel(mri_cover_seg, mri_bin, Right_Accumbens_area) ;
-    MRIcopyLabel(mri_cover_seg, mri_bin, Right_VentralDC) ;
-    MRIcopyLabel(mri_cover_seg, mri_bin, Right_WM_hypointensities) ;
-    MRIcopyLabel(mri_cover_seg, mri_bin, Right_non_WM_hypointensities) ;
-    MRIcopyLabel(mri_cover_seg, mri_bin, Right_vessel) ;
-    if(surftype == GRAY_CSF) MRIcopyLabel(mri_cover_seg, mri_bin, Right_Cerebral_Cortex) ;  //pial
-  }
-  MRIcopyLabel(mri_cover_seg, mri_bin, Brain_Stem) ;
-  MRIcopyLabel(mri_cover_seg, mri_bin, Third_Ventricle) ;
-  MRIcopyLabel(mri_cover_seg, mri_bin, WM_hypointensities) ;
-  MRIbinarize(mri_bin, mri_bin, 1, 0, 1) ;
-  mri_tmp = MRIdistanceTransform(mri_bin, NULL, 1, 20, DTRANS_MODE_SIGNED, NULL) ;
-  // to be in same range as intensities:
-  if(surftype == GRAY_WHITE){ //white
-    MRIscalarMul(mri_tmp, mri_tmp, (100.0/mri_bin->xsize)) ;
-  }
-  if(surftype == GRAY_CSF){ //pial
-    // copied this from code imbedded in main(). Probably should be 5.0/ but this is what was there
-    MRIscalarMul(mri_tmp, mri_tmp, (5/mri_bin->xsize)) ;
-  }
-  MRISsetVals(mris, 0) ;   // target is 0 distance transform val
-  return(mri_tmp);
-}
