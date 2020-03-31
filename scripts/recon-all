@@ -11,7 +11,8 @@
 
 umask 002;
 
-set VERSION = '@FS_VERSION@ (@BUILD_STAMP@)';
+setenv FS_RECON_VERSION '@FS_VERSION@ (@BUILD_STAMP@)'
+
 set ProgName = `basename $0`;
 set inputargs = ($argv);
 set subjid = ();
@@ -617,7 +618,7 @@ endif
 ## gather all versions here
 echo "########################################" >> $LF
 echo "program versions used" >> $LF
-echo $VERSION                >> $LF
+echo $FS_RECON_VERSION       >> $LF
 set allinfocmds = (\
 	lta_convert \
 	mri_and \
@@ -776,7 +777,7 @@ if($DoIsRunning) then
   echo "PROCESSOR `uname -m`" >> $IsRunningFile
   echo "OS `uname -s`"       >> $IsRunningFile
   uname -a         >> $IsRunningFile
-  echo $VERSION    >> $IsRunningFile
+  echo $FS_RECON_VERSION    >> $IsRunningFile
   if($?PBS_JOBID) then
     echo "pbsjob $PBS_JOBID"  >> $IsRunningFile
   endif
@@ -5230,17 +5231,17 @@ if($DoIsRunning && $#IsRunningFile) rm -f $IsRunningFile
 if($#DoneFile) then
   echo "------------------------------" > $DoneFile
   echo "SUBJECT $subjid" >> $DoneFile
-  echo "START_TIME $StartTime"     >> $DoneFile
-  echo "END_TIME $EndTime"     >> $DoneFile
-  echo "RUNTIME_HOURS $tRunHours" >> $DoneFile
-  echo "USER $user"      >> $DoneFile
-  echo "HOST `hostname`" >> $DoneFile
-  echo "PROCESSOR `uname -m`" >> $DoneFile
-  echo "OS `uname -s`"       >> $DoneFile
-  echo "UNAME `uname -a`"  >> $DoneFile
-  echo "VERSION $VERSION"    >> $DoneFile
-  echo "CMDPATH $0"          >> $DoneFile
-  echo "CMDARGS $argv0"      >> $DoneFile
+  echo "START_TIME $StartTime"      >> $DoneFile
+  echo "END_TIME $EndTime"          >> $DoneFile
+  echo "RUNTIME_HOURS $tRunHours"   >> $DoneFile
+  echo "USER $user"                 >> $DoneFile
+  echo "HOST `hostname`"            >> $DoneFile
+  echo "PROCESSOR `uname -m`"       >> $DoneFile
+  echo "OS `uname -s`"              >> $DoneFile
+  echo "UNAME `uname -a`"           >> $DoneFile
+  echo "VERSION $FS_RECON_VERSION"  >> $DoneFile
+  echo "CMDPATH $0"                 >> $DoneFile
+  echo "CMDARGS $argv0"             >> $DoneFile
 endif
 
 echo "recon-all -s $subjid finished without error at `date`" \
@@ -5300,12 +5301,12 @@ error_exit:
     echo "USER $user"      >> $ErrorFile
     echo "HOST `hostname`" >> $ErrorFile
     echo "PROCESSOR `uname -m`" >> $ErrorFile
-    echo "OS `uname -s`"       >> $ErrorFile
-    uname -a         >> $ErrorFile
-    echo $VERSION    >> $ErrorFile
-    echo $0          >> $ErrorFile
-    echo "PWD `pwd`" >> $ErrorFile
-    echo "CMD $cmd"  >> $ErrorFile
+    echo "OS `uname -s`"    >> $ErrorFile
+    uname -a                >> $ErrorFile
+    echo $FS_RECON_VERSION  >> $ErrorFile
+    echo $0                 >> $ErrorFile
+    echo "PWD `pwd`"        >> $ErrorFile
+    echo "CMD $cmd"         >> $ErrorFile
   endif
   if($#DoneFile) then
     echo "1" > $DoneFile
@@ -7997,7 +7998,7 @@ usage_exit:
 
   if(! $PrintHelp) exit 1;
 
-  echo $VERSION
+  echo $FS_RECON_VERSION
   echo ""
 
   cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0;if($1 == "BEGINHELP") prt=1}'
