@@ -920,12 +920,15 @@ int main(int argc, char *argv[])
 
     if (mri_cover_seg) {
       if(i == 0){
-	MRI *mri_bin = MRIclone(mri_T1, NULL) ;
-	MRI *mri_tmp = MRIScoverSeg(mris, mri_bin, mri_cover_seg, GRAY_WHITE);
+	MRI *mri_bin, *mri_tmp;
+	int itmp=0;
+	if(mri_T1 == mri_T1_pial) itmp=1;
+	mri_bin = MRIclone(mri_T1, NULL) ;
+	mri_tmp = MRIScoverSeg(mris, mri_bin, mri_cover_seg, GRAY_WHITE);
+	MRIfree(&mri_bin) ; 
 	MRIfree(&mri_T1) ;
 	mri_T1 = mri_tmp ;
-	if(mri_T1 == mri_T1_pial) mri_T1_pial = mri_tmp ;
-	MRIfree(&mri_bin) ; 
+	if(itmp) mri_T1_pial = mri_tmp ;
       }
     }
     else if (flair_or_T2_name == NULL){ // otherwise already done
@@ -1720,12 +1723,15 @@ int main(int argc, char *argv[])
 
       if (mri_cover_seg) {// off by default
 	if(i == 0) {
-	  MRI *mri_bin = MRIclone(mri_T1, NULL) ;
-	  MRI *mri_tmp = MRIScoverSeg(mris, mri_bin, mri_cover_seg, GRAY_CSF);
+	  MRI *mri_bin, *mri_tmp;
+	  int itmp=0;
+	  if(mri_T1 == mri_T1_pial) itmp=1;
+	  mri_bin = MRIclone(mri_T1, NULL) ;
+	  mri_tmp = MRIScoverSeg(mris, mri_bin, mri_cover_seg, GRAY_CSF);
+	  MRIfree(&mri_bin) ; 
 	  MRIfree(&mri_T1) ;
 	  mri_T1 = mri_tmp ;
-	  if(mri_T1 == mri_T1_pial) mri_T1_pial = mri_tmp ;
-	  MRIfree(&mri_bin) ;
+	  if(itmp) mri_T1_pial = mri_tmp ;
 	}
       }
       else if (flair_or_T2_name == NULL) 
