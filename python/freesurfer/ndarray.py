@@ -2,6 +2,8 @@ import os
 import numpy as np
 import copy
 
+from collections.abc import Iterable
+
 from . import bindings, warning
 from .geom import resample
 from .transform import Transformable, LinearTransform, Geometry
@@ -161,7 +163,7 @@ class Volume(ArrayContainerTemplate, Transformable):
 
         ArrayContainerTemplate.__init__(self, data)
         self.affine = affine
-        self.voxsize = voxsize if voxsize else (1.0, 1.0, 1.0)
+        self.voxsize = voxsize if voxsize is not None else (1.0, 1.0, 1.0)
 
     def __getitem__(self, idx):
         '''Returns the cropped volume with a recomputed affine matrix.'''
@@ -190,10 +192,15 @@ class Volume(ArrayContainerTemplate, Transformable):
         size in mm.
 
         Parameter:
-            voxsize: Voxel size of target volume.
+            voxsize: Voxel size of target volume. Can be single value or list.
             smooth_sigma: Apply gaussian smoothing before resampling (kernel size is
                 in voxel space). Default is 0.
         '''
+
+        # convert single value to list
+        if not isinstance(voxsize, Iterable):
+            voxsize = [voxsize] * self.basedims
+
         src_shape = self.shape[:3]
         target_shape = tuple(np.ceil(np.array(self.voxsize).astype(float) * src_shape / voxsize).astype(int))
         
