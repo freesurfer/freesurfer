@@ -154,13 +154,7 @@ if($SaveWarp) set cmd0 = ($cmd0 --save-warp)
 if($PallidumSeparate) set cmd0 = ($cmd0 --pallidum-separate)
 if($#OptionsFile)  set cmd0 = ($cmd0 --options $OptionsFile)
 if($SaveHistory)  set cmd0 = ($cmd0 --history)
-# enable lesions and use lesion mask pattern of 0 by default
-if($DoLesion) then
-  set cmd0 = ($cmd0 --lesion --lesion-mask-pattern)
-  foreach input ($inputlist)
-    set cmd0 = ($cmd0 0)
-  end
-endif
+if($DoLesion) set cmd0 = ($cmd0 --lesion)  # TODO: if T2/flair is provided, --lesion-mask-pattern must be set
 # specify input list
 foreach input ($inputlist)
   set cmd0 = ($cmd0 -i $input)
