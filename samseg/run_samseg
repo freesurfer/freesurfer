@@ -36,6 +36,7 @@ parser.add_argument('--lesion-mask-pattern', type=int, nargs='+', help='Lesion m
 # optional debugging options
 parser.add_argument('--history', action='store_true', default=False, help='Save history.')
 parser.add_argument('--save-posteriors', nargs='*', help='Save posterior volumes to the "posteriors" subdirectory.')
+parser.add_argument('--save-probabilities', action='store_true', help='Save final modal class probabilities to "probabilities" subdirectory.')
 parser.add_argument('--showfigs', action='store_true', default=False, help='Show figures during run.')
 parser.add_argument('--save-mesh', action='store_true', help='Save the final mesh in template space.')
 parser.add_argument('--save-warp', action='store_true', help='Save the image->template warp field.')
@@ -132,7 +133,8 @@ samseg_kwargs = dict(
     savePosteriors=savePosteriors,
     saveWarp=args.save_warp,
     modeNames=args.mode,
-    pallidumAsWM=(not args.pallidum_separate)
+    pallidumAsWM=(not args.pallidum_separate),
+    saveModelProbabilities=args.save_probabilities
 )
 
 if args.lesion:

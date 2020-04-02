@@ -34,7 +34,8 @@ class Samseg:
         targetIntensity=None,
         targetSearchStrings=None,
         modeNames=None,
-        pallidumAsWM=True
+        pallidumAsWM=True,
+        saveModelProbabilities=False
         ):
 
         # Store input parameters as class variables
@@ -90,6 +91,7 @@ class Samseg:
         else:
             self.savePosteriors = None
 
+        self.saveModelProbabilities = saveModelProbabilities
         self.saveHistory = saveHistory
         self.saveWarp = saveWarp
         self.saveMesh = saveMesh
@@ -268,8 +270,17 @@ class Samseg:
         return self.modelSpecifications.FreeSurferLabels, self.modelSpecifications.names, volumesInCubicMm, self.optimizationSummary
 
     def writeImage(self, data, path, saveLabels=False):
+        # Read source geometry
         geom = fs.Volume.read(self.imageFileNames[0]).geometry()
-        uncropped = np.zeros(geom.shape, dtype=data.dtype, order='F')
+
+        # Account for multi-frame volumes
+        if data.ndim == 4:
+            shape = (*geom.shape, data.shape[-1])
+        else:
+            shape = geom.shape
+
+        # Uncrop image
+        uncropped = np.zeros(shape, dtype=data.dtype, order='F')
         uncropped[self.cropping] = data
         volume = fs.Volume(uncropped, affine=geom.affine, voxsize=geom.voxsize)
         if saveLabels:
@@ -697,6 +708,42 @@ class Samseg:
                 self.optimizationHistory.append(levelHistory)
 
         # End resolution level loop
+
+        # Save the final model probabilities (posteriors, priors, likelihood) for each class gaussian
+        if self.saveModelProbabilities:
+
+            classNames = [param.mergedName for param in self.modelSpecifications.sharedGMMParameters]
+            numberOfGaussiansPerClass = [param.numberOfComponents for param in self.modelSpecifications.sharedGMMParameters]
+            probabilities = np.zeros((np.sum(numberOfGaussiansPerClass), *downSampledMask.shape, 3))
+
+            # Precompute all likelihoods so we can normalize
+            for classNumber, className in enumerate(classNames):
+                for componentNumber in range(numberOfGaussiansPerClass[classNumber]):
+                    gaussianNumber = int(np.sum(numberOfGaussiansPerClass[:classNumber])) + componentNumber
+                    probabilities[gaussianNumber, downSampledMask, 0] = downSampledGaussianPosteriors[:, gaussianNumber]
+                    probabilities[gaussianNumber, downSampledMask, 1] = downSampledClassPriors[:, classNumber] * self.gmm.mixtureWeights[gaussianNumber]
+                    with np.errstate(divide='ignore', invalid='ignore'):
+                        probabilities[..., 2] = probabilities[..., 0] / probabilities[..., 1]
+                        probabilities[np.isnan(probabilities)] = 0
+
+            # Normalize likelihood across all gaussians
+            with np.errstate(divide='ignore', invalid='ignore'):
+                probabilities[..., 2] /= np.sum(probabilities[..., 2], axis=0)
+                probabilities[np.isnan(probabilities)] = 0
+
+            # Make output directory
+            probabilitiesPath = os.path.join(self.savePath, 'probabilities')
+            os.makedirs(probabilitiesPath, exist_ok=True)
+
+            # cycle through gaussians and write volumes
+            for classNumber, className in enumerate(classNames):
+                numComponents = numberOfGaussiansPerClass[classNumber]
+                for componentNumber in range(numComponents):
+                    gaussianNumber = int(np.sum(numberOfGaussiansPerClass[:classNumber])) + componentNumber
+                    basename = className
+                    if numComponents > 1:
+                        basename += '-%d' % (componentNumber + 1)
+                    self.writeImage(probabilities[gaussianNumber, ...], os.path.join(probabilitiesPath, basename + '.mgz'))
 
     def computeFinalSegmentation(self):
         # Get the final mesh
