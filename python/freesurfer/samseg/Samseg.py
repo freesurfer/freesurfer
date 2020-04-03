@@ -712,6 +712,10 @@ class Samseg:
         # Save the final model probabilities (posteriors, priors, likelihood) for each class gaussian
         if self.saveModelProbabilities:
 
+            # Make output directory
+            probabilitiesPath = os.path.join(self.savePath, 'probabilities')
+            os.makedirs(probabilitiesPath, exist_ok=True)
+
             classNames = [param.mergedName for param in self.modelSpecifications.sharedGMMParameters]
             numberOfGaussiansPerClass = [param.numberOfComponents for param in self.modelSpecifications.sharedGMMParameters]
             probabilities = np.zeros((np.sum(numberOfGaussiansPerClass), *downSampledMask.shape, 3))
@@ -731,11 +735,11 @@ class Samseg:
                 probabilities[..., 2] /= np.sum(probabilities[..., 2], axis=0)
                 probabilities[np.isnan(probabilities)] = 0
 
-            # Make output directory
-            probabilitiesPath = os.path.join(self.savePath, 'probabilities')
-            os.makedirs(probabilitiesPath, exist_ok=True)
+            # Open gaussians file
+            file = open(os.path.join(probabilitiesPath, 'gaussians.txt'), 'w')
 
-            # cycle through gaussians and write volumes
+            # Cycle through gaussians and write volumes and means/variances
+            maxNameSize = len(max(classNames, key=len)) + 2
             for classNumber, className in enumerate(classNames):
                 numComponents = numberOfGaussiansPerClass[classNumber]
                 for componentNumber in range(numComponents):
@@ -744,6 +748,14 @@ class Samseg:
                     if numComponents > 1:
                         basename += '-%d' % (componentNumber + 1)
                     self.writeImage(probabilities[gaussianNumber, ...], os.path.join(probabilitiesPath, basename + '.mgz'))
+
+                    # write gaussian information
+                    mean = self.gmm.means[gaussianNumber]
+                    var = self.gmm.variances[gaussianNumber]
+                    weight = self.gmm.mixtureWeights[gaussianNumber]
+                    file.write('%s %.4f %.4f %.4f\n' % (basename.ljust(maxNameSize), mean, var, weight))
+
+            file.close()
 
     def computeFinalSegmentation(self):
         # Get the final mesh
