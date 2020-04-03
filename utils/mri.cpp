@@ -99,11 +99,11 @@ extern int errno;
 MRI::Shape::Shape(const std::vector<int>& shape) {
   // validate dimensions
   int dims = shape.size();
-  if ((dims != 3) && (dims != 4)) logFatal(1) << "volume must be 3D or 4D (provided shape has " << dims << " dimensions)";
+  if ((dims != 3) && (dims != 4)) fs::fatal() << "volume must be 3D or 4D (provided shape has " << dims << " dimensions)";
 
   // validate size
   for (auto const & len : shape) {
-    if (len <= 0) logFatal(1) << "volume size must be greater than 0 in every dimension";
+    if (len <= 0) fs::fatal() << "volume size must be greater than 0 in every dimension";
   }
 
   width = shape[0];
@@ -150,7 +150,7 @@ MRI::MRI(Shape volshape, int dtype, bool alloc) : shape(volshape), type(dtype)
 
   // set data type
   bytes_per_vox = MRIsizeof(type);
-  if (bytes_per_vox < 1) logFatal(1) << "unsupported MRI data type: " << type;
+  if (bytes_per_vox < 1) fs::fatal() << "unsupported MRI data type: " << type;
   vox_per_row = width;
   vox_per_slice = vox_per_row * height;
   vox_per_vol = vox_per_slice * depth;
