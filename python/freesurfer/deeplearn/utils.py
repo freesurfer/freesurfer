@@ -564,22 +564,6 @@ def bbox2(img):
 
 
 
-def histo_norm_intensities(vol, wsize,nbins=100, target_val=1.0):
-    w,h,d = vol.shape
-    whalf = wsize/2
-    x0=max(0,w/2-whalf)
-    y0=max(0,h/2-whalf)
-    z0=max(0,d/2-whalf)
-    x1 = min(w,w/2+whalf)
-    y1 = min(w,h/2+whalf)
-    z1 = min(w,d/2+whalf)
-    histo = np.histogram(vol[x0:x1,y0:y1,z0:z1],bins=nbins)
-    max_bin = np.argwhere(histo[0] == max(histo[0]))[0][0]
-    max_val = histo[1][max_bin]
-    if max_val <= 0:
-        max_val = 1
-    return vol * (target_val / max_val)
-
 
 def sort_batch(input_batch, input_labels, probe_patch):
     sq = (input_batch-probe_patch)**2
@@ -625,3 +609,54 @@ def compute_intensity_stats(paths, vname_list, method='mean', ranges=None, vol_l
         stds[vno] = np.sqrt(stds[vno]/len(paths) - means[vno]*means[vno])
 
     return means, stds, shape
+
+def histo_norm_intensities_to_mode(vol, wsize = None,nbins=100, target_val=1.0):
+# place the mode of the histo at the target val
+    if wsize is None:
+        wsize = int(min(vol.shape[0:3])/2)
+    w,h,d = vol.shape[0:3]
+    whalf = int(wsize/2)
+    x0=int(max(0,w/2-whalf))
+    y0=int(max(0,h/2-whalf))
+    z0=int(max(0,d/2-whalf))
+    x1 = int(min(w,w/2+wsize))
+    y1 = int(min(w,h/2+wsize))
+    z1 = int(min(w,d/2+wsize))
+    histo = np.histogram(vol[x0:x1,y0:y1,z0:z1],bins=nbins)
+    if (histo[1][0] == 0):
+        histo[0][0] = 0   # remove 0 bin if present
+    max_bin = np.argwhere(histo[0] == max(histo[0]))[0][0]
+    max_val = histo[1][max_bin]
+    if max_val <= 0:
+        max_val = 1
+    return vol * (target_val / max_val)
+
+def histo_norm_intensities(vol,nbins=100, target_range=[0.0, 1.0], anchors=[0.1,0.9], force_zero_to_zero=True):
+# rescale intensities to 90th percentile got to 90th % of range and 10th to 10th
+# if force_zero_to_zero is true ignore bottom end of range and force 0 to map to 0
+    histo = np.histogram(vol,bins=nbins)
+    if (histo[1][0] == 0):
+        histo[0][0] = 0   # remove 0 bin if present
+    cumhisto = np.cumsum(histo[0]/histo[0].sum()) # cumulative as % of total (cdf)
+    histo_bins = histo[1][0:len(histo[0])]
+    high_bin = -1
+    low_bin = -1
+    for bin,val in enumerate(histo_bins):
+        if low_bin < 0 and cumhisto[bin] > anchors[0]:
+            low_bin = bin
+        if high_bin < 0 and cumhisto[bin] > anchors[1]:
+            hi_bin = bin
+    trange = target_range[1]-target_range[0]
+    if (force_zero_to_zero):
+        x1 = 0
+        y1 = 0
+    else:
+        x1 = histo_bins[low_bin]
+        y1 = trange * anchors[0] + target_range[0]
+    y2 = trange * anchors[0] + target_range[1]
+    x2 = histo_bins[high_bin]
+    m = (y2-y1) / (x2-x1)
+    b = y1 - m*x1
+            
+    return vol * m + b
+
