@@ -216,7 +216,7 @@ public:
   template <typename T>
   T retrieve(const String& name) {
     String unstripped = unstrip(name);
-    if (index.count(unstripped) == 0) logFatal(1) << "'" << unstripped << "' is not a known argument";
+    if (index.count(unstripped) == 0) fs::fatal() << "'" << unstripped << "' is not a known argument";
     size_t N = index[unstripped];
     T retrieved{};
     // try to cast the arguments
@@ -232,7 +232,7 @@ public:
         fulltype = "std::vector<" + arguments[N].typeName() + ">";
         sentence_starter = "These inputs are";
       }
-      logFatal(1) << "invalid cast of argument '" << name << "'. " << sentence_starter << " of type '"
+      fs::fatal() << "invalid cast of argument '" << name << "'. " << sentence_starter << " of type '"
                   << arguments[N].typeName() << "' and should be retrieved via " << term::dim()
                   << "retrieve<" << fulltype << ">(\"" << name << "\")" << term::reset() << ". " 
                   << "To change the expected type, modify the call to "

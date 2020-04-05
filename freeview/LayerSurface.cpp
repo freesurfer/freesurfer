@@ -806,19 +806,14 @@ void LayerSurface::InitializeActors()
     m_sliceActor3D[i]->GetProperty()->SetLineWidth( line_w*ratio );
     //    m_sliceActor3D[i]->GetProperty()->SetInterpolationToFlat();
 
-//    disable this part for now
-//
-//    vtkSmartPointer<vtkPolyDataMapper> mapper3 = vtkSmartPointer<vtkPolyDataMapper>::New();
-//    vtkSmartPointer<vtkMaskPoints> pts = vtkSmartPointer<vtkMaskPoints>::New();
-//    pts->GenerateVerticesOn();
-//    pts->SetOnRatio(1);
-//    pts->SetInputConnection(m_cutter[i]->GetOutputPort());
-//    mapper3->SetInputConnection( pts->GetOutputPort() );
-//    mapper3->ScalarVisibilityOff();
-//    m_vertexActor2D[i]->SetMapper(mapper3);
-//    m_vertexActor2D[i]->SetProperty( m_vertexActor2D[i]->MakeProperty() );
-//    m_vertexActor2D[i]->GetProperty()->SetPointSize(3*ratio);
-//    m_vertexActor2D[i]->GetProperty()->SetInterpolationToFlat();
+    vtkSmartPointer<vtkPolyDataMapper> mapper3 = vtkSmartPointer<vtkPolyDataMapper>::New();
+    m_vertexPoly2D[i] = vtkSmartPointer<vtkPolyData>::New();
+    mapper3->SetInputData(m_vertexPoly2D[i]);
+    mapper3->ScalarVisibilityOff();
+    m_vertexActor2D[i]->SetMapper(mapper3);
+    m_vertexActor2D[i]->SetProperty( m_vertexActor2D[i]->MakeProperty() );
+    m_vertexActor2D[i]->GetProperty()->SetPointSize(3*ratio);
+    m_vertexActor2D[i]->GetProperty()->SetInterpolationToFlat();
 
     // Set ourselves up.
     this->OnSlicePositionChanged( i );
@@ -1016,24 +1011,25 @@ void LayerSurface::OnSlicePositionChanged( int nPlane )
   double* pos = GetProperty()->GetPosition();
   double bounds[6];
   m_surfaceSource->GetPolyData()->GetBounds(bounds);
+  double dMinVS = qMin(qMin(m_dWorldVoxelSize[0], m_dWorldVoxelSize[1]), m_dWorldVoxelSize[2]);
   switch ( nPlane )
   {
   case 0:
     mReslicePlane[0]->SetOrigin( m_dSlicePosition[0]-pos[0], 0, 0  );
     m_sliceActor2D[0]->SetPosition( 0.1, pos[1], pos[2] );
-    m_vertexActor2D[0]->SetPosition( 0.1, pos[1], pos[2] );
+    m_vertexActor2D[0]->SetPosition( dMinVS+0.1, pos[1], pos[2] );
     m_vectorActor2D[0]->SetPosition( 1.0, pos[1], pos[2] );
     break;
   case 1:
     mReslicePlane[1]->SetOrigin( 0, m_dSlicePosition[1]-pos[1], 0 );
     m_sliceActor2D[1]->SetPosition( pos[0], 0.1, pos[2] );
-    m_vertexActor2D[1]->SetPosition( pos[0], 0.1, pos[2] );
+    m_vertexActor2D[1]->SetPosition( pos[0], dMinVS+0.1, pos[2] );
     m_vectorActor2D[1]->SetPosition( pos[0], 1.0, pos[2] );
     break;
   case 2:
     mReslicePlane[2]->SetOrigin( 0, 0, m_dSlicePosition[2]-pos[2]  );
     m_sliceActor2D[2]->SetPosition( pos[0], pos[1], -0.1 );
-    m_vertexActor2D[2]->SetPosition( pos[0], pos[1], -0.1 );
+    m_vertexActor2D[2]->SetPosition( pos[0], pos[1], -0.1-dMinVS );
     m_vectorActor2D[2]->SetPosition( pos[0], pos[1], -1.0 );
     break;
   }
@@ -1041,6 +1037,31 @@ void LayerSurface::OnSlicePositionChanged( int nPlane )
   bounds[nPlane*2] = m_dSlicePosition[nPlane]-dLen/2;
   bounds[nPlane*2+1] = bounds[nPlane*2]+dLen/2;
   m_box[nPlane]->SetBounds(bounds);
+
+  dLen = dMinVS/5;
+  if (GetProperty()->GetShowVertices())
+  {
+      vtkPoints* all_pts = m_surfaceSource->GetPolyData()->GetPoints();
+      vtkSmartPointer<vtkPoints> pts = vtkSmartPointer<vtkPoints>::New();
+      double pt[3];
+      for (vtkIdType i = 0; i < all_pts->GetNumberOfPoints(); i++)
+      {
+          all_pts->GetPoint(i, pt);
+          if (qAbs(m_dSlicePosition[nPlane]-pt[nPlane]) < dLen)
+          {
+              pts->InsertNextPoint(pt);
+          }
+      }
+      vtkSmartPointer<vtkCellArray> verts = vtkSmartPointer<vtkCellArray>::New();
+      verts->Allocate( pts->GetNumberOfPoints() );
+      for ( int i = 0; i < pts->GetNumberOfPoints(); i++ )
+      {
+        vtkIdType n = i;
+        verts->InsertNextCell( 1, &n );
+      }
+      m_vertexPoly2D[nPlane]->SetPoints(pts);
+      m_vertexPoly2D[nPlane]->SetVerts(verts);
+  }
 
   // update mapper so the polydata is current
   if ( IsVisible() && GetActiveVector() >= 0 )
@@ -1832,6 +1853,8 @@ void LayerSurface::UpdateVertexRender()
     m_vertexActor2D[i]->SetVisibility( GetProperty()->GetShowVertices()? 1: 0 );
     m_vertexActor2D[i]->GetProperty()->SetPointSize( GetProperty()->GetVertexPointSize()*ratio );
     m_vertexActor2D[i]->GetProperty()->SetColor( GetProperty()->GetVertexColor() );
+    if (GetProperty()->GetShowVertices())
+        OnSlicePositionChanged(i);
   }
   emit ActorUpdated();
 }

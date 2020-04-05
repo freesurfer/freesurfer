@@ -1209,6 +1209,7 @@ int MRISprettyPrintSurfQualityStats(FILE *fp, MRIS *surf);
 
 int MRISmergeIcosahedrons(MRI_SURFACE *mri_src, MRI_SURFACE *mri_dst) ;
 int MRISinverseSphericalMap(MRI_SURFACE *mris, MRI_SURFACE *mris_ico) ;
+MRI *MRIScoverSeg(MRIS *mris, MRI *mri_bin, MRI *mri_cover_seg, int surftype);
 
 ////////////////////////////////////////////////////
 /* for mris_topo_fixer */

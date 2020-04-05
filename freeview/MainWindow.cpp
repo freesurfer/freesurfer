@@ -6816,6 +6816,7 @@ void MainWindow::OnPreferences()
     m_dlgPreferences->SetSettings(m_settings);
   }
   m_dlgPreferences->show();
+  m_dlgPreferences->raise();
 }
 
 void MainWindow::SetVolumeColorMap( int nColorMap, int nColorMapScale, const QList<double>& scales_in )
@@ -6895,6 +6896,7 @@ void MainWindow::OnTransformVolume()
   {
     cout << "Warning: Transformation can only apply to volumes for now. If your data includes ROI/Surface/Way Points, please do not use this feature yet.\n";
     m_dlgTransformVolume->show();
+    m_dlgTransformVolume->raise();
     m_dlgTransformVolume->UpdateUI();
   }
 }
@@ -6904,6 +6906,7 @@ void MainWindow::OnCropVolume()
   LayerMRI* mri = (LayerMRI*)GetActiveLayer( "MRI" );
   m_dlgCropVolume->SetVolume( mri );
   m_dlgCropVolume->show();
+  m_dlgCropVolume->raise();
   m_volumeCropper->SetEnabled( true );
   m_volumeCropper->SetVolume( mri );
   m_volumeCropper->Show();
@@ -6915,11 +6918,13 @@ void MainWindow::OnCropVolume()
 void MainWindow::OnThresholdVolume()
 {
   m_dlgThresholdVolume->show();
+  m_dlgThresholdVolume->raise();
 }
 
 void MainWindow::OnSegmentVolume()
 {
   m_dlgVolumeSegmentation->show();
+  m_dlgVolumeSegmentation->raise();
 }
 
 void MainWindow::RotateVolume( std::vector<RotationElement>& rotations, bool bAllVolumes )
@@ -7004,6 +7009,7 @@ void MainWindow::OnSaveScreenshot()
     m_dlgSaveScreenshot->SetSettings(m_settingsScreenshot);
   }
   m_dlgSaveScreenshot->show();
+  m_dlgSaveScreenshot->raise();
 }
 
 void MainWindow::OnVolumeFilterMean()
@@ -7570,6 +7576,7 @@ void MainWindow::OnLoadCommand()
 void MainWindow::OnWriteMovieFrames()
 {
   m_dlgWriteMovieFrames->show();
+  m_dlgWriteMovieFrames->raise();
 }
 
 Layer* MainWindow::GetSupplementLayer(const QString &type)
@@ -7611,16 +7618,19 @@ void MainWindow::ShowNonModalMessage(const QString &title, const QString &msg)
   m_dlgMessage->setWindowTitle(title);
   m_dlgMessage->setText(msg);
   m_dlgMessage->show();
+  m_dlgMessage->raise();
 }
 
 void MainWindow::OnRepositionSurface()
 {
   m_dlgRepositionSurface->show();
+  m_dlgRepositionSurface->raise();
 }
 
 void MainWindow::OnSmoothSurface()
 {
   m_dlgSmoothSurface->show();
+  m_dlgSmoothSurface->raise();
 }
 
 void MainWindow::OnRemoveIntersectionsFromSurface()
@@ -7691,11 +7701,13 @@ void MainWindow::SaveSurfaceAs()
 void MainWindow::OnShowLabelStats()
 {
   m_dlgLabelStats->show();
+  m_dlgLabelStats->raise();
 }
 
 void MainWindow::OnLineProfile()
 {
   m_dlgLineProfile->show();
+  m_dlgLineProfile->raise();
 }
 
 void MainWindow::OnSaveIsoSurface(const QString& fn_in)
@@ -7750,6 +7762,7 @@ void MainWindow::OnPlot()
 
   this->m_wndGroupPlot->SetFsgdData(fsgd);
   this->m_wndGroupPlot->show();
+  this->m_wndGroupPlot->raise();
   this->m_wndGroupPlot->SetCurrentVertex(0);
   m_strLastFsgdDir = QFileInfo(fn).absolutePath();
 }

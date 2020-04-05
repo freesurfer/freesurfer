@@ -77,10 +77,6 @@ namespace fs {
 
 }
 
-// temporary definitions
-#define logWarning    fs::warning()
-#define logFatal(ret) fs::fatal(ret)
-
 // old c-style error functions
 void    ErrorExit(int ecode, const char *fmt, ...);
 void    ErrorPrintf(int ecode, const char *fmt, ...);

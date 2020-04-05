@@ -295,6 +295,12 @@
    </item>
    <item row="0" column="0" colspan="3">
     <widget class="QToolBar" name="widgetToolBar">
+     <property name="iconSize">
+      <size>
+       <width>24</width>
+       <height>24</height>
+      </size>
+     </property>
      <addaction name="actionSave"/>
      <addaction name="separator"/>
      <addaction name="actionUndo"/>
