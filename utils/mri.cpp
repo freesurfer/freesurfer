@@ -11499,19 +11499,18 @@ MRI *MRIchangeType(MRI *src, int dest_type, float f_low, float f_high, int no_sc
     /* ----- build a histogram ----- */
     printf("MRIchangeType: Building histogram %g %g %d, flo=%g, fhi=%g, dest_type=%d\n", src_min,src_max,N_HIST_BINS,f_low,f_high,dest_type);
     bin_size = (src_max - src_min) / (float)N_HIST_BINS;
-    
-    if (1) {
-      double mn = MRImeanFrameThresh(src, 0, 1e-7);
-      int mn_bin = (int)((mn - src_min) / bin_size);
+  
+    double mn = MRImeanFrameThresh(src, 0, 1e-7);
+    int mn_bin = (int)((mn - src_min) / bin_size);
+    float bin_threshold = (float)N_HIST_BINS / 5.0;
 
-      static float bin_threshold = (float)N_HIST_BINS / 5.0;
-      if (src->xsize > .75 && (getenv("FS_FORCE_BIN_CHECK") == NULL))  // make it super conservative for in vivo
-	bin_threshold = 10;
-      if (mn_bin < bin_threshold) {
-        float old_bin_size = bin_size;
-        bin_size = (mn - src_min) / bin_threshold;
-        printf("original bin size %2.2f (max %2.1f) too big for mean/min %2.2f/%2.2f, scaling down to %2.2f\n", old_bin_size, src_max, mn, src_min, bin_size);
-      }
+    // make threshold super conservative for in vivo
+    if (src->xsize > .75 && (getenv("FS_FORCE_BIN_CHECK") == NULL)) bin_threshold = 10;
+
+    if (mn_bin < bin_threshold) {
+      float old_bin_size = bin_size;
+      bin_size = (mn - src_min) / bin_threshold;
+      printf("original bin size %2.2f (max %2.1f) too big for mean/min %2.2f/%2.2f, scaling down to %2.2f\n", old_bin_size, src_max, mn, src_min, bin_size);
     }
 
     for (i = 0; i < N_HIST_BINS; i++) hist_bins[i] = 0;
