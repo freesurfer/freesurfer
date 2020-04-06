@@ -48,6 +48,10 @@
 #include "mrisegment.h"
 #include "cma.h"
 #include "gca.h"
+#include "cmdargs.h"
+#ifdef _OPENMP
+#include "romp_support.h"
+#endif
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -94,10 +98,8 @@ static MRIS *lhwhite, *rhwhite;
 static MRIS *lhpial, *rhpial;
 static MHT *lhwhite_hash, *rhwhite_hash;
 static MHT *lhpial_hash, *rhpial_hash;
-static struct { float x,y,z; } vtx;
 static int  lhwvtx, lhpvtx, rhwvtx, rhpvtx;
-static MATRIX *Vox2RAS, *CRS, *RAS;
-static float dlhw, dlhp, drhw, drhp;
+static MATRIX *Vox2RAS;
 static float dmaxctx = 5.0;
 static int LabelWM=0;
 static int LabelHypoAsWM=0;
@@ -121,16 +123,14 @@ MRI *CtxSeg = NULL;
 int FixParaHipWM = 1;
 double BRFdotCheck(MRIS *surf, int vtxno, int c, int r, int s, MRI *AParc);
 static double mrisFindMinDistanceVertexWithDotCheck(MRI_SURFACE *mris, int c, int r, int s, MRI *AParc, double dot_dir, int *pvtxno);
+int nthreads=1;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv)
 {
-  int nargs, err, asegid, c, r, s, nctx, annot,vtxno,nripped;
-  int annotid, IsCortex=0, IsWM=0, IsHypo=0, hemi=0, segval=0;
-  int IsCblumCtx = 0;
-  int RibbonVal=0,nbrute=0;
-  float dmin=0.0, lhRibbonVal=0, rhRibbonVal=0, dist, dthresh;
-  double dot ;
+  int nargs, err, c, nctx, annot,vtxno,nripped;
+  int annotid;
+  int nbrute=0;
   MRI    *mri_fixed = NULL, *mri_lh_dist, *mri_rh_dist, *mri_dist=NULL;
   TRANSFORM *xform  = NULL;
   GCA *gca = NULL ;
@@ -163,6 +163,10 @@ int main(int argc, char **argv)
   parse_commandline(argc, argv);
   check_options();
   dump_options(stdout);
+
+#ifdef _OPENMP
+  printf("%d avail.processors, using %d\n",omp_get_num_procs(),omp_get_max_threads());
+#endif
 
   if(DoLH){
     /* ------ Load subject's lh white surface ------ */
@@ -401,10 +405,6 @@ int main(int argc, char **argv)
   printf("ASeg Vox2RAS: -----------\n");
   MatrixPrint(stdout,Vox2RAS);
   printf("-------------------------\n");
-  CRS = MatrixAlloc(4,1,MATRIX_REAL);
-  CRS->rptr[4][1] = 1;
-  RAS = MatrixAlloc(4,1,MATRIX_REAL);
-  RAS->rptr[4][1] = 1;
 
   if (crsTest)  {
     printf("Testing point %d %d %d\n",ctest,rtest,stest);
@@ -420,7 +420,6 @@ int main(int argc, char **argv)
     exit(err);
   }
 
-  printf("\nLabeling Slice\n");
   nctx = 0;
   annot = 0;
   annotid = 0;
@@ -542,18 +541,32 @@ int main(int argc, char **argv)
   }
 
   // Go through each voxel in the aseg
+  printf("\nLabeling Slice (%d)\n",ASeg->width);
+  
+  MHT_maybeParallel_begin();
+  #ifdef HAVE_OPENMP
+  #pragma omp parallel for reduction(+ : nbrute, nctx)
+  #endif
   for (c=0; c < ASeg->width; c++){
+    int r,s,asegid,IsWM,IsCblumCtx,IsCortex,IsHypo, RibbonVal,lhRibbonVal,rhRibbonVal,lhwvtx,rhwvtx,lhpvtx,rhpvtx;
+    int annot=0,annotid,hemi=0,segval=0;
+    double dthresh,dist,dot;
+    float dlhw,drhw,dlhp,drhp,dmin=1e7;
+    struct { float x,y,z; } vtx;
+    MATRIX *CRS, *RAS;
+
     printf("%3d ",c);
     if (c%20 ==19) printf("\n");
     fflush(stdout);
     for (r=0; r < ASeg->height; r++)    {
       for (s=0; s < ASeg->depth; s++)      {
+
 	if (c == Gx && r == Gy && s == Gz)
 	  DiagBreak() ;
 
         asegid = MRIgetVoxVal(ASeg,c,r,s,0);
 	if(LHOnly && (asegid == Right_Cerebral_Cortex || asegid == Right_Cerebral_White_Matter)) continue;
-	if(RHOnly && (asegid ==  Left_Cerebral_Cortex || asegid ==  Left_Cerebral_White_Matter)) continue;
+	if(RHOnly && (asegid ==  Left_Cerebral_Cortex || asegid ==  Left_Cerebral_White_Matter))continue;
 	IsCortex = IS_CORTEX(asegid) ;
 	IsHypo = IS_HYPO(asegid) ;
         if(asegid == Left_Cerebral_White_Matter || asegid == Right_Cerebral_White_Matter)  IsWM = 1;
@@ -609,7 +622,7 @@ int main(int argc, char **argv)
 	  MRIsetVoxVal(mri_fixed, c, r, s, 0, 0) ;     // allow it to be relabeled below
 
         // If it's not labeled as cortex or wm in the aseg, skip
-        if(!IsCortex && !IsWM) continue;
+        if(!IsCortex && !IsWM)continue;
 
         // If it's wm but not labeling wm, skip
         if(IsWM && !LabelWM) continue;
@@ -632,6 +645,10 @@ int main(int argc, char **argv)
         }
 
         // Convert the CRS to RAS
+	CRS = MatrixAlloc(4,1,MATRIX_REAL);
+	CRS->rptr[4][1] = 1;
+	RAS = MatrixAlloc(4,1,MATRIX_REAL);
+	RAS->rptr[4][1] = 1;
         CRS->rptr[1][1] = c;
         CRS->rptr[2][1] = r;
         CRS->rptr[3][1] = s;
@@ -793,6 +810,8 @@ int main(int argc, char **argv)
 	  if(asegid == Left_Cerebral_Cortex)  MRIsetVoxVal(ASeg,c,r,s,0,1000);
 	  else if(asegid == Right_Cerebral_Cortex) MRIsetVoxVal(ASeg,c,r,s,0,2000);
 	  else MRIsetVoxVal(ASeg,c,r,s,0,asegid);
+	  MatrixFree(&CRS);
+	  MatrixFree(&RAS);
 	  continue;
 	  //{if(hemi == 1) MRIsetVoxVal(ASeg,c,r,s,0,Left_Cerebral_White_Matter);
 	  //if(hemi == 2) MRIsetVoxVal(ASeg,c,r,s,0,Right_Cerebral_White_Matter);
@@ -862,6 +881,8 @@ int main(int argc, char **argv)
           // This is different than having a vertex labeled as "unknown"
           if (!debug)
           {
+	    MatrixFree(&CRS);
+	    MatrixFree(&RAS);
             continue;
           }
           printf("\n");
@@ -891,13 +912,18 @@ int main(int argc, char **argv)
                                    rhpial->vertices[rhpvtx].z);
           printf("annot = %d, annotid = %d\n",annot,annotid);
           CTABprintASCII(lhwhite->ct,stdout);
+	  MatrixFree(&CRS);
+	  MatrixFree(&RAS);
           continue;
         }
 
+	MatrixFree(&CRS);
+	MatrixFree(&RAS);
         nctx++;
-      }
-    }
-  }
+      } // slice
+    } // row
+  } // col
+  MHT_maybeParallel_end();
   printf("nctx = %d\n",nctx);
   printf("Used brute-force search on %d voxels\n",nbrute);
 
@@ -1172,6 +1198,8 @@ int main(int argc, char **argv)
     MRIwrite(Dist,OutDistFile);
   }
 
+  printf("#VMPC# mri_aparc2aseg VmPeak  %d\n",GetVmPeak());
+  printf("mri_aparc2aseg done\n");
 
   return(0);
 }
@@ -1426,6 +1454,14 @@ static int parse_commandline(int argc, char **argv)
       crsTest = 1;
       nargsused = 3;
     }
+    else if(!strcasecmp(option, "--threads") || !strcasecmp(option, "--nthreads") ){
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%d",&nthreads);
+      #ifdef _OPENMP
+      omp_set_num_threads(nthreads);
+      #endif
+      nargsused = 1;
+    } 
     else
     {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
