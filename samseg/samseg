@@ -39,6 +39,7 @@ set SaveMesh = 0
 set basedir = ()
 set max_iters = ()
 set SavePosteriors = 0
+set SaveProbabilities = 0
 set SaveWarp = 1;
 set DoMRF = 0;
 #set mrfgca = $FREESURFER_HOME/average/samseg/samseg.talairach.lta.mrf.gca
@@ -150,11 +151,13 @@ if($#initlta) set cmd0 = ($cmd0 --init-lta $initlta)
 if($regonly) set cmd0 = ($cmd0 --reg-only);
 if($#max_iters) set cmd0 = ($cmd0 --max-iters $max_iters);
 if($SavePosteriors) set cmd0 = ($cmd0 --save-posteriors)
+if($SaveProbabilities) set cmd0 = ($cmd0 --save-probabilities)
 if($SaveWarp) set cmd0 = ($cmd0 --save-warp)
 if($PallidumSeparate) set cmd0 = ($cmd0 --pallidum-separate)
 if($#OptionsFile)  set cmd0 = ($cmd0 --options $OptionsFile)
 if($SaveHistory)  set cmd0 = ($cmd0 --history)
 if($DoLesion) set cmd0 = ($cmd0 --lesion)  # TODO: if T2/flair is provided, --lesion-mask-pattern must be set
+
 # specify input list
 foreach input ($inputlist)
   set cmd0 = ($cmd0 -i $input)
@@ -538,6 +541,10 @@ while( $#argv != 0 )
       set SavePosteriors = 1;
       breaksw
 
+    case "--save-probabilities":
+      set SaveProbabilities = 1;
+      breaksw
+
     case "--save-warp":
       set SaveWarp = 1;
       breaksw
@@ -715,6 +722,7 @@ usage_exit:
   echo "  --s subject : create subject, sets outdir to subject/mri/samseg"
   echo "                the first input must be the conformed T1 weighted input"
   echo "  --save-posteriors : save posterior probs"
+  echo "  --save-probabilities : save post, prior, and likelihood as 3-frame vol foreach tissue type" 
   echo "  --no-save-warp : do not save m3z-style warp"
   echo "  --mrf/--no-mrf : do or do not do MRF (default is $DoMRF)"
   echo "  --threads nthreads : set the number of CPUs to use"
