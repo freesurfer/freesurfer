@@ -297,9 +297,6 @@ class Volume(ArrayContainerTemplate, Transformable):
         if trf.shape[-1] == self.basedims:
             resampled_data = apply_warp(self.data, trf, indexing=indexing)
         elif len(trf.shape) == 2:
-            mat_size = self.basedims + 1
-            if trf.shape[0] != mat_size or trf.shape[1] != mat_size:
-                raise ValueError('expected affine transform to have shape (%d, %d)' % (mat_size, mat_size))
             resampled_data = resample(self.data, self.shape, trf)
         else:
             raise ValueError('cannot determine transform type')
