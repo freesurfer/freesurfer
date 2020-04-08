@@ -1,6 +1,7 @@
 import numpy as np
 import scipy.ndimage
 from collections.abc import Iterable
+from scipy.interpolate import interpn
 
 from . import bindings
 from .transform import LinearTransform
@@ -104,3 +105,29 @@ def sample_into_volume(volume, weights, coords, values):
     elif volume.ndim < 3:
         raise NotImplementedError('%dD resampling is not yet supported (must be 3D or 4D)' % source.ndim)
     bindings.vol.sample_into_volume(volume, weights, coords, values)
+
+
+def apply_warp(source, flow, indexing='ij'):
+    """
+    Warps a source image given a flow field. Source and flow volume sizes must match.
+
+    Parameters:
+        source: Moving image numpy array. Can be multiframe.
+        flow: Flow field numpy array.
+        indexing: Cartesian (‘xy’) or matrix (‘ij’) indexing of warp. Default is 'ij'.
+    """
+    if source.ndim > 4:
+        raise ValueError('warping can not be done on arrays with more than 4 dimensions')
+    elif source.ndim < 3:
+        raise NotImplementedError('%dD warping is not yet supported (must be 3D or 4D)' % source.ndim)
+
+    linvec = [np.arange(0, dim) for dim in source.shape[:3]]
+    loc = np.rollaxis(np.array(np.meshgrid(*linvec, indexing=indexing)), 0, 4) + flow
+    sample = np.stack((loc[:, :, :, 0], loc[:, :, :, 1], loc[:, :, :, 2]), 3)
+
+    warp = lambda src : interpn(linvec, src, sample, method='linear', bounds_error=False, fill_value=0)
+
+    if source.ndim == 3:
+        return warp(source)
+    if source.ndim == 4:
+        return np.stack([warp(source[..., f]) for f in range(source.shape[-1])], axis=-1)

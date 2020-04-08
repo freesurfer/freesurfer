@@ -5,7 +5,7 @@ import copy
 from collections.abc import Iterable
 
 from . import bindings, warning
-from .geom import resample
+from .geom import resample, apply_warp
 from .transform import Transformable, LinearTransform, Geometry
 
 
@@ -191,7 +191,7 @@ class Volume(ArrayContainerTemplate, Transformable):
         Returns the resampled volume with a given resolution determined by voxel
         size in mm.
 
-        Parameter:
+        Parameters:
             voxsize: Voxel size of target volume. Can be single value or list.
             smooth_sigma: Apply gaussian smoothing before resampling (kernel size is
                 in voxel space). Default is 0.
@@ -235,7 +235,7 @@ class Volume(ArrayContainerTemplate, Transformable):
 
             cropped = vol[:, 10:-10, :]
 
-        Parameter:
+        Parameters:
             cropping: Tuple of crop indices (slices).
         '''
         # convert cropping into list
@@ -276,6 +276,39 @@ class Volume(ArrayContainerTemplate, Transformable):
         cropped_vol = Volume(cropped_data, affine=matrix, voxsize=self.voxsize)
         cropped_vol.copy_metadata(self)
         return cropped_vol
+
+    def transform(self, trf, indexing='ij'):
+        '''
+        Returns a volume transformed by either a dense deformation field or affine
+        target-to-source matrix (4x4).
+
+        Parameters:
+            trf: Transform to apply. Can be a dense warp or an affine matrix.
+            indexing: Cartesian (‘xy’) or matrix (‘ij’) indexing of warp. Default is 'ij'.
+        '''
+
+        # convert high-level types to numpy arrays
+        if isinstance(trf, Volume):
+            trf = trf.data
+        elif isinstance(trf, LinearTransform):
+            trf = trf.matrix
+
+        # assert transform type and apply
+        if trf.shape[-1] == self.basedims:
+            resampled_data = apply_warp(self.data, trf, indexing=indexing)
+        elif len(trf.shape) == 2:
+            mat_size = self.basedims + 1
+            if trf.shape[0] != mat_size or trf.shape[1] != mat_size:
+                raise ValueError('expected affine transform to have shape (%d, %d)' % (mat_size, mat_size))
+            resampled_data = resample(self.data, self.shape, trf)
+        else:
+            raise ValueError('cannot determine transform type')
+
+        # construct new volume
+        resampled = Volume(resampled_data)
+        resampled.copy_geometry(self)
+        resampled.copy_metadata(self)
+        return resampled
 
     @property
     def image(self):
