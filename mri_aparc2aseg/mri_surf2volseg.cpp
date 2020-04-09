@@ -155,7 +155,7 @@ int main(int argc, char **argv)
 
 
   printf("#VMPC# mri_surf2volseg VmPeak  %d\n",GetVmPeak());
-  printf("mri_aparc2aseg done\n");
+  printf("mri_surf2volseg done\n");
 
   return(0);
   exit(0);
