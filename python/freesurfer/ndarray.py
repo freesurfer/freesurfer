@@ -61,9 +61,23 @@ class ArrayContainerTemplate:
         '''Data type of the array.'''
         return self.data.dtype
 
-    def copy(self):
-        '''Returns a deep copy of the instance.'''
-        return copy.deepcopy(self)
+    def copy(self, data=None):
+        '''
+        Returns a deep copy of the instance.
+
+        Parameters:
+            data: Replace internal data array. Default is None.
+        '''
+        if data is not None:
+            # to save memory if we're replacing the data, make sure not to create
+            # a duplicate instance of the original data before replacing it
+            shallow = copy.copy(self)
+            shallow.data = None
+            copied = copy.deepcopy(shallow)
+            copied.data = data
+            return copied
+        else:
+            return copy.deepcopy(self)
 
     @classmethod
     def ensure(cls, unknown):
