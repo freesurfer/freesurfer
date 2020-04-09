@@ -153,7 +153,6 @@ int main(int argc, char **argv)
   MRIwrite(s2vseg.outvolseg,OutSegFile);
   s2vseg.Free();
 
-
   printf("#VMPC# mri_surf2volseg VmPeak  %d\n",GetVmPeak());
   printf("mri_surf2volseg done\n");
 
@@ -207,6 +206,7 @@ static int parse_commandline(int argc, char **argv)
       s2vseg.DoRH = 1;
     }
     else if (!strcasecmp(option, "--hypo-as-wm"))  s2vseg.LabelHypoAsWM = 1;
+    else if (!strcasecmp(option, "--no-hypo-as-wm"))  s2vseg.LabelHypoAsWM = 0;
     else if (!strcasecmp(option, "--rip-unknown")) s2vseg.RipUnknown = 1;
     else if (!strcmp(option, "--i")){
       if(nargc < 1) CMDargNErr(option,1);
@@ -227,6 +227,7 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcmp(option, "--label-wm")){
       s2vseg.LabelWM = 1;
       s2vseg.RipUnknown = 1;
+      s2vseg.LabelHypoAsWM = 1;
     }
     else if (!strcmp(option, "--lh-white")){
       if (nargc < 1) CMDargNErr(option,1);
@@ -568,7 +569,10 @@ int Surf2VolSeg::RelabelSegVoxWithSurf(MRI *volseg, int c, int r, int s, int Lab
   *dmin = 1e9;
 
   int volsegid = MRIgetVoxVal(volseg,c,r,s,0);
-  if(debug) printf("RelabelSegVoxWithSurf(): LabelType %d volsegid %d, crs %d %d %d\n",LabelType,volsegid,c,r,s);
+  if(debug) {
+    printf("RelabelSegVoxWithSurf(): LabelType %d volsegid %d, LabelHypoAsWM %d, crs %d %d %d\n",
+	   LabelType,volsegid,LabelHypoAsWM,c,r,s);
+  }
 
   int AllowLH=0, AllowRH=0, AllowWhite=1, AllowPial=0;
   int WhiteDotDir = 0, PialDotDir = 0;
@@ -588,16 +592,21 @@ int Surf2VolSeg::RelabelSegVoxWithSurf(MRI *volseg, int c, int r, int s, int Lab
     }
   }
   else { // Label White Matter
-    if(!IS_WHITE_CLASS(volsegid)) return(volsegid);
+    if( !IS_WHITE_CLASS(volsegid) && !(LabelHypoAsWM && IS_HYPO(volsegid) )) return(volsegid);
     AllowWhite=1;
     WhiteDotDir = -1;
     AllowPial=0;
     PialDotDir=0;
-    if(volsegid == Left_Cerebral_White_Matter  && DoLH){
+    // Have to handle WM_hypointensities, which are not lateralized
+    double x=0,y=0,z=0;
+    if(volsegid == WM_hypointensities) CRS2SurfRAS(c,r,s,&x,&y,&z);
+    if(DoLH && (volsegid == Left_Cerebral_White_Matter || volsegid == Left_WM_hypointensities || 
+	       (volsegid == WM_hypointensities && x <= 0))){
       AllowLH=1;
       AllowRH=0;
     }
-    if(volsegid == Right_Cerebral_White_Matter && DoRH){
+    if(DoRH && (volsegid == Right_Cerebral_White_Matter || volsegid == Right_WM_hypointensities || 
+	       (volsegid == WM_hypointensities && x > 0))){
       AllowLH=0;
       AllowRH=1;
     }
