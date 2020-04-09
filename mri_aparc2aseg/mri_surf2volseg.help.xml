@@ -124,7 +124,7 @@
   To create an aparc.a2009s+aseg.mgz (use aseg.mgz from above)
   cd $SUBJECTS_DIR/subject/mri
   mri_surf2volseg --i aseg.mgz --label-cortex --o aparc.a2009s+aseg.mgz \
-     --lh-annot ../label/lh.aparc.a2009s.annot 1000 --rh-annot ../label/rh.aparc.a2009s.annot 2000\
+     --lh-annot ../label/lh.aparc.a2009s.annot 11100 --rh-annot ../label/rh.aparc.a2009s.annot 12100\
      --lh-cortex-mask ../label/lh.cortex.label --rh-cortex-mask ../label/rh.cortex.label \
      --lh-white ../surf/lh.white --lh-pial ../surf/lh.pial \
      --rh-white ../surf/rh.white --rh-pial ../surf/rh.pial 
