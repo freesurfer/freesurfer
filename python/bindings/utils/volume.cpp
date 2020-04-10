@@ -481,11 +481,11 @@ void sampleIntoVolume(py::array volume, py::array weights, arrayc<double> coords
 
 
 /*
-  Templated resampling function to support source inputs with either float or double precision.
+  Templated trilinear resampling function to support source inputs with either float or double precision.
   See resampleVolume() for full documentation.
 */
 template <typename T>
-static py::array_t<T> resampleTypedVolume(py::array_t<T> source_vol, py::object target_shape, py::array_t<double> target2source)
+static py::array_t<T> resampleTypedVolumeLinear(py::array_t<T> source_vol, py::object target_shape, py::array_t<double> target2source)
 {
   // make target volume
   py::module numpy = py::module::import("numpy");
@@ -585,7 +585,65 @@ static py::array_t<T> resampleTypedVolume(py::array_t<T> source_vol, py::object 
 
 
 /*
-  Resamples a volume array from one space to another given a target-to-source
+  Templated nearest neighbor resampling function to support source inputs with either float or double precision.
+  See resampleVolume() for full documentation.
+*/
+template <typename T>
+static py::array_t<T> resampleTypedVolumeNearest(py::array_t<T> source_vol, py::object target_shape, py::array_t<double> target2source)
+{
+  // make target volume
+  py::module numpy = py::module::import("numpy");
+  py::array_t<T> target_vol = numpy.attr("zeros")(target_shape);  // TODO construct with dtype instead
+  int nx = target_vol.shape(0);
+  int ny = target_vol.shape(1);
+  int nz = target_vol.shape(2);
+  int nf = target_vol.shape(3);
+
+  // get indexing functions
+  auto source_m = source_vol.template unchecked<4>();
+  auto target_m = target_vol.template mutable_unchecked<4>();
+
+  // cache affine values
+  auto t2s_m = target2source.unchecked<2>();
+  double a11 = t2s_m(0, 0); double a12 = t2s_m(0, 1); double a13 = t2s_m(0, 2); double a14 = t2s_m(0, 3);
+  double a21 = t2s_m(1, 0); double a22 = t2s_m(1, 1); double a23 = t2s_m(1, 2); double a24 = t2s_m(1, 3);
+  double a31 = t2s_m(2, 0); double a32 = t2s_m(2, 1); double a33 = t2s_m(2, 2); double a34 = t2s_m(2, 3);
+
+  // get source limits
+  int sxlim = source_vol.shape(0);
+  int sylim = source_vol.shape(1);
+  int szlim = source_vol.shape(2);
+
+  for (int z = 0; z < nz; z++) {
+    for (int y = 0; y < ny; y++) {
+      for (int x = 0; x < nx; x++) {
+
+        // compute source coordinate
+        T sx = (a11 * x) + (a12 * y) + (a13 * z) + a14;
+        T sy = (a21 * x) + (a22 * y) + (a23 * z) + a24;
+        T sz = (a31 * x) + (a32 * y) + (a33 * z) + a34;
+
+        // get rounded coord and make sure voxels are within the source volume
+        int rsx = std::round(sx);
+        if (rsx < 0 || rsx >= sxlim) continue;
+
+        int rsy = std::round(sy);
+        if (rsy < 0 || rsy >= sylim) continue;
+
+        int rsz = std::round(sz);
+        if (rsz < 0 || rsz >= szlim) continue;
+
+        for (int f = 0; f < nf; f++) target_m(x, y, z, f) = source_m(rsx, rsy, rsz, f);
+      }
+    }
+  }
+
+  return target_vol;
+}
+
+
+/*
+  Resamples (trilinear) a volume array from one space to another given a target-to-source
   transformation matrix. The source vol can be of any type, but only float and
   double precision arrays are used directly. Arrays of any other dtype will be
   converted to float arrays.
@@ -594,12 +652,32 @@ static py::array_t<T> resampleTypedVolume(py::array_t<T> source_vol, py::object 
   \param target_shape   Shape of the returned target array.
   \param target2source  4x4 affine matrix that transforms target coords to source coords.
 */
-py::array resampleVolume(py::array source_vol, py::object target_shape, py::array_t<double> target2source)
+py::array resampleVolumeLinear(py::array source_vol, py::object target_shape, py::array_t<double> target2source)
 {
   if (py::isinstance<py::array_t<double>>(source_vol)) {
-    return resampleTypedVolume<double>(source_vol, target_shape, target2source);
+    return resampleTypedVolumeLinear<double>(source_vol, target_shape, target2source);
   } else {
-    return resampleTypedVolume<float>(source_vol, target_shape, target2source);
+    return resampleTypedVolumeLinear<float>(source_vol, target_shape, target2source);
+  }
+}
+
+
+/*
+  Resamples (nearest) a volume array from one space to another given a target-to-source
+  transformation matrix. The source vol can be of any type, but only float and
+  double precision arrays are used directly. Arrays of any other dtype will be
+  converted to float arrays.
+
+  \param source_vol     Source array to sample from. Must be 4D.
+  \param target_shape   Shape of the returned target array.
+  \param target2source  4x4 affine matrix that transforms target coords to source coords.
+*/
+py::array resampleVolumeNearest(py::array source_vol, py::object target_shape, py::array_t<double> target2source)
+{
+  if (py::isinstance<py::array_t<double>>(source_vol)) {
+    return resampleTypedVolumeNearest<double>(source_vol, target_shape, target2source);
+  } else {
+    return resampleTypedVolumeNearest<float>(source_vol, target_shape, target2source);
   }
 }
 

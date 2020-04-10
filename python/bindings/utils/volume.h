@@ -38,9 +38,10 @@ py::object read(const std::string& filename);
 void write(Bridge vol, const std::string& filename);
 
 
-// TODOC
+// resampling
 void sampleIntoVolume(py::array volume, py::array weights, arrayc<double> coords, arrayc<double> values);
-py::array resampleVolume(py::array source_vol, py::object target_shape, py::array_t<double> target2source);
+py::array resampleVolumeLinear(py::array source_vol, py::object target_shape, py::array_t<double> target2source);
+py::array resampleVolumeNearest(py::array source_vol, py::object target_shape, py::array_t<double> target2source);
 
 
 // volume submodule binding
@@ -52,7 +53,8 @@ inline void bind(py::module &m)
   m.def("read", &read);
   m.def("write", &write);
   m.def("sample_into_volume", &sampleIntoVolume);
-  m.def("resample_volume", &resampleVolume);
+  m.def("resample_volume_linear", &resampleVolumeLinear);
+  m.def("resample_volume_nearest", &resampleVolumeNearest);
 }
 
 
