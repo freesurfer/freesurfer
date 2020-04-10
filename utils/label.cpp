@@ -1456,6 +1456,24 @@ int LabelMark(LABEL *area, MRI_SURFACE *mris)
   }
   return (NO_ERROR);
 }
+int LabelMark2(LABEL *area, MRI_SURFACE *mris)
+{
+  int n, vno;
+  VERTEX *v;
+
+  for (n = 0; n < area->n_points; n++) {
+    vno = area->lv[n].vno;
+    if (vno < 0 || vno >= mris->nvertices) {
+      DiagBreak();
+    }
+    if (area->lv[n].deleted > 0) {
+      continue;
+    }
+    v = &mris->vertices[vno];
+    v->marked2 = 1;
+  }
+  return (NO_ERROR);
+}
 /*-----------------------------------------------------
         Parameters:
 

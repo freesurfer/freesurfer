@@ -231,6 +231,8 @@ double Ghisto_right_outside_peak_pct = 0.5;
 int n_averages=0;
 int UseMMRefine = 0;
 AutoDetGWStats adgws;
+char *coversegpath = NULL;
+MRI *mri_cover_seg = NULL;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) 
@@ -544,6 +546,17 @@ int main(int argc, char **argv)
       ripmngr.RipVertices();
     }
 
+    if(mri_cover_seg) {
+      if(i == 0){
+	MRI *mri_bin, *mri_tmp;
+	mri_bin = MRIclone(involCBV, NULL) ;
+	mri_tmp = MRIScoverSeg(surf, mri_bin, mri_cover_seg, surftype);
+	MRIfree(&mri_bin) ; 
+	MRIfree(&involCBV);
+	involCBV = mri_tmp ;
+      }
+    }
+
     parms.sigma = current_sigma ;
     parms.n_averages = n_averages ;
 
@@ -776,6 +789,11 @@ static int parse_commandline(int argc, char **argv) {
       }
       surftype = GRAY_CSF;
       nargsused = 2;
+    } 
+    else if(!strcasecmp(option, "--cover-seg") || !strcasecmp(option, "--cover_seg")){
+      if(nargc < 1) CMDargNErr(option,1);
+      coversegpath = pargv[0];
+      nargsused = 1;
     } 
     else if(!strcasecmp(option, "--mm-refine"))   UseMMRefine = 1;
     else if(!strcmp(option, "--i")){
@@ -1203,6 +1221,12 @@ static void check_options(void) {
   if(pinlabel &&  whitesurfpath == NULL){
     printf("ERROR: must spec --white-surf with --pin-medial-wall\n");
     exit(1);
+  }
+
+  if(coversegpath){
+    printf("Reading in %s",coversegpath);
+    mri_cover_seg = MRIread(coversegpath);
+    if(!mri_cover_seg) exit(1);
   }
 
   return;

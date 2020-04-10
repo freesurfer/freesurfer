@@ -535,7 +535,8 @@ int MRISfindClosestWhiteVertex(MRI_SURFACE *mris, float x, float y,
 int MRISfindClosestVertex(MRI_SURFACE *mris,
                           float x, float y, float z,
                           float *dmin, int which_vertices);
-                              
+double MRISfindMinDistanceVertexWithDotCheck(MRI_SURFACE *mris, int c, int r, int s, 
+					     MRI *mri, double dot_dir, int *pvtxno);                              
 double       MRIScomputeCorrelationError(MRI_SURFACE *mris, MRI_SP *mrisp_template, int fno) ;
 int          MRISallocExtraGradients(MRI_SURFACE *mris) ;
 MRI_SURFACE  *MRISread(const char *fname) ;

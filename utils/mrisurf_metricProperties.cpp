@@ -4677,6 +4677,40 @@ int MRISfindClosestVertex(MRIS *mris, float x, float y, float z, float *dmin, in
   }
   return (min_v);
 }
+
+/*!
+  \fn double MRISfindMinDistanceVertexWithDotCheck(MRI_SURFACE *mris, int c, int r, int s, MRI *mri, double dot_dir, int *pvtxno)
+  \brief Finds the closest vertex to the given CRS with the constraint that the vector from the vertex to the CRS
+  is (more-or-less) in the same (dot_dir +1) or opposite (dot_dir -1) direction as the surface normal. This is used
+  to assure that the closest vertex is not on the other side of a mesh and is only closest because the truly closest
+  vertex is in a big triangle. This goes through all the non-ripped vertices, so it can be very slow. If dot_dir=0,
+  then it is the same as a brute force search to find the closest vertex. This function originally appeared in 
+  mri_aparc2aseg as mrisFindMinDistanceVertexWithDotCheck(). 
+ */
+double MRISfindMinDistanceVertexWithDotCheck(MRI_SURFACE *mris, int c, int r, int s, MRI *mri, double dot_dir, int *pvtxno)
+{
+  int     vno, min_vno ;
+  VERTEX  *v ;
+  double  dist, dot, min_dist, xs, ys, zs, dx, dy, dz ;
+
+  min_vno = -1 ; min_dist = 1e10;
+  MRIvoxelToSurfaceRAS(mri, c, r, s, &xs, &ys, &zs);
+  for (vno = 0 ; vno < mris->nvertices ; vno++){
+    v = &mris->vertices[vno] ;
+    if (v->ripflag) continue ;
+    dx = xs-v->x ; dy = ys-v->y ; dz = zs-v->z ;
+    dot = v->nx*dx + v->ny*dy + v->nz*dz ;
+    if (dot*dot_dir < 0) continue ;
+    dist = sqrt(SQR(xs-v->x) + SQR(ys-v->y) + SQR(zs-v->z)) ;
+    if (dist < min_dist){
+      min_dist = dist ;
+      min_vno = vno ;
+    }
+  }
+  *pvtxno = min_vno ;
+  return(min_dist);
+}
+
 /*-----------------------------------------------------
   Parameters:
 

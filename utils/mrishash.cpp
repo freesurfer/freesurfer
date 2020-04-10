@@ -144,12 +144,14 @@ void MHT_maybeParallel_end()
 static void checkThread0() 
 {
 #ifdef HAVE_OPENMP
-    int tid = omp_get_thread_num();
-    if (tid != 0) {
-        fprintf(stderr, "lock or unlock, not thread 0, but claiming no parallelism\n");
-        *(int*)(-1) = 0;
-        exit(1);
-    }
+  int tid = omp_get_thread_num();
+  if (tid != 0) {
+    fprintf(stderr, "lock or unlock, not thread 0, but claiming no parallelism\n");
+    fprintf(stdout, "lock or unlock, not thread 0, but claiming no parallelism\n");
+    fprintf(stdout, "You may need to surround the hash code with   MHT_maybeParallel_{begin,end}()\n");
+    *(int*)(-1) = 0;
+    exit(1);
+  }
 #endif
 }
  

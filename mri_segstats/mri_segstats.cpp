@@ -193,6 +193,7 @@ int DoAbs = 0;
 int UsePrintSegStat = 1; // use new way to print
 
 int nReplace , SrcReplace[1000], TrgReplace[1000]; // for replacing segs
+int GetCachedBrainVolStats = 1;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv)
@@ -492,8 +493,14 @@ int main(int argc, char **argv)
   if(DoSurfWMVol || DoSurfCtxVol || DoSupraTent || BrainVolFromSeg || DoSubCortGrayVol){
     sprintf(tmpstr,"%s/%s/mri/ribbon.mgz",SUBJECTS_DIR,subject);
     if(fio_FileExistsReadable(tmpstr)){
-      printf("Getting Brain Volume Statistics\n");
-      BrainVolStats = ReadCachedBrainVolumeStats(subject, SUBJECTS_DIR);
+      if(GetCachedBrainVolStats){
+	printf("Getting Brain Volume Statistics\n");
+	BrainVolStats = ReadCachedBrainVolumeStats(subject, SUBJECTS_DIR);
+      }
+      else {
+	printf("Computing Brain Volume Statistics\n");
+	BrainVolStats = ComputeBrainVolumeStats(subject, SUBJECTS_DIR);
+      }
     }
     else{
       printf("Warning: cannot find %s, not computing whole brain stats\n",tmpstr);
@@ -1494,6 +1501,7 @@ static int parse_commandline(int argc, char **argv)
     {
       NonEmptyOnly = 0;
     }
+    else if (!strcasecmp(option, "--no-cached")) GetCachedBrainVolStats = 0;
     else if ( !strcmp(option, "--brain-vol-from-seg") )
     {
       BrainVolFromSeg = 1;

@@ -4485,7 +4485,8 @@ if($DoAParc2ASeg) then
     else
       set asegintensities = $longbasedir/mri/aseg.auto_noCCseg.label_intensities.txt
     endif
-    set cmd = (mri_aparc2aseg --s $subjid --volmask --aseg aseg.presurf.hypos)
+    # Have to use 1 thread here because mrishash is not thread safe
+    set cmd = (mri_aparc2aseg --s $subjid --volmask --aseg aseg.presurf.hypos --threads 1)
     if(-e mri/transforms/talairach.m3z) then
       # These options will not work with samseg, which does not have a tal.m3z
       set cmd = ($cmd --relabel mri/norm.mgz mri/transforms/talairach.m3z ${GCADIR}/$GCA $asegintensities)
@@ -4608,7 +4609,8 @@ if($DoWMParc) then
   cd $subjdir > /dev/null
   $PWD |& tee -a $LF
   set xopts = `fsr-getxopts mri_aparc2aseg $XOptsFile $GlobXOptsFile`;
-  set cmd = (mri_aparc2aseg --s $subjid --labelwm --hypo-as-wm --rip-unknown \
+  # Have to use 1 thread here because mrishash is not thread safe
+  set cmd = (mri_aparc2aseg --s $subjid --labelwm --hypo-as-wm --rip-unknown --threads 1 \
              --volmask --o mri/wmparc.mgz --ctxseg aparc+aseg.mgz $xopts )
   if ($LHonly) set cmd = ($cmd --lh )
   if ($RHonly) set cmd = ($cmd --rh )
