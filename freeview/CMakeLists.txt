@@ -219,6 +219,11 @@ if(BUILD_GUIS AND VTK_FOUND AND PETSC_FOUND AND TARGET vtkutils)
     set(SOURCES ${SOURCES} MacRetina.mm)
   endif()
 
+  # osx helper functions
+  if(APPLE)
+    set(SOURCES ${SOURCES} MacHelper.mm)
+  endif()
+
   add_compile_options(-Wno-deprecated -Wno-reorder -Wno-uninitialized -Wno-unused-variable -Wno-sign-compare
                       -Wno-overloaded-virtual -Wno-inconsistent-missing-override -Wno-deprecated-declarations)
 
