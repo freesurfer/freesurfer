@@ -75,14 +75,13 @@ public:
   int LoadData(void);
   void Free(void);
   MRI *RelabelSegVol(void);
-  int RelabelSegVox(int c, int r, int s, int *hemi, int *surftype, double *dmin);
-  int RelabelSegVoxWithRibbon(int c, int r, int s);
-  int RelabelSegVoxWithSurf(MRI *volseg, int c, int r, int s, int LabelType, int *hemi, int *surftype, double *dmin);
-
+  int RelabelSegVox(int c, int r, int s, int *ndotcheck, int *hemi, int *surftype, double *dmin);
+  int RelabelSegVoxWithRibbon(int c, int r, int s, int *ndotcheck);
+  int RelabelSegVoxWithSurf(MRI *volseg, int c, int r, int s, int LabelType, int *ndotcheck, int *hemi, int *surftype, double *dmin);
   int CRS2SurfRAS(int c, int r, int s, double *x, double *y, double *z);
   MRIS *GetClosestVertexNo(int c, int r, int s, 
 			   int AllowLH, int AllowRH, int AllowWhite, int AllowPial,
-			   int WhiteDotDir, int PialDotDir,
+			   int WhiteDotDir, int PialDotDir, int *ndotcheck,
 			   int *vtxno, int *surftype, int *hemi, double *dmin);
   int GetNearestVertexWithAnnot(int CenterVtx, MRI_SURFACE *Surf, int nHops);
   int SetSubjectPaths(char *subject, char *SD);
@@ -142,9 +141,9 @@ int main(int argc, char **argv)
 
   if(crsTest){
     printf("Running crs test with %d %d %d %d\n",ctest, rtest, stest,s2vseg.debug);
-    int hemi,surftype;
+    int hemi,surftype,ndotcheck;
     double dmin;
-    s2vseg.RelabelSegVox(ctest, rtest, stest,&hemi,&surftype,&dmin);
+    s2vseg.RelabelSegVox(ctest, rtest, stest,&ndotcheck,&hemi,&surftype,&dmin);
     printf("Done test\n");
     return(0);
   }
@@ -423,26 +422,60 @@ static void dump_options(FILE *fp)
   return;
 }
 
+// Relabel an entire volume by running the voxel-wise method on each voxel
+MRI *Surf2VolSeg::RelabelSegVol(void)
+{
+  int c,nrelabled=0,ndotchecktot=0;
+
+  MHT_maybeParallel_begin();
+  #ifdef HAVE_OPENMP
+  #pragma omp parallel for reduction(+ : nrelabled, ndotchecktot)
+  #endif
+  for (c=0; c < involseg->width; c++){
+    printf("%3d ",c);
+    if(c%20 == 19) printf("\n");
+    fflush(stdout);
+    int r,s,volsegid,newsegid,hemi,surftype,ndotcheck=0;
+    double dmin;
+    for (r=0; r < involseg->height; r++)    {
+      for (s=0; s < involseg->depth; s++)      {
+        volsegid = MRIgetVoxVal(involseg,c,r,s,0);
+	newsegid = RelabelSegVox(c, r, s, &ndotcheck,&hemi, &surftype, &dmin);
+	MRIsetVoxVal(outvolseg,c,r,s,0,newsegid);
+	if(volsegid != newsegid) nrelabled++;
+	ndotchecktot += ndotcheck;
+      }
+    }
+  }
+  MHT_maybeParallel_end();
+  printf("\n");
+  printf("nrelabeled = %d\n",nrelabled);
+  printf("ndotcheck = %d\n",ndotchecktot);
+
+  return(outvolseg);
+}
+
 // Relabel a single voxel using the given method
-int Surf2VolSeg::RelabelSegVox(int c, int r, int s, int *hemi, int *surftype, double *dmin)
+int Surf2VolSeg::RelabelSegVox(int c, int r, int s, int *ndotcheck, int *hemi, int *surftype, double *dmin)
 {
   int volsegid,newsegid;
   volsegid = MRIgetVoxVal(involseg,c,r,s,0);
   newsegid = volsegid;
+  (*ndotcheck) = 0;
   if(debug) printf("RelabelSegVox(): %d %d %d   %d %d %d   %d\n",c,r,s,FixPresurf,LabelCortex,LabelWM,volsegid);
 
   if(FixPresurf){
-    newsegid = Surf2VolSeg::RelabelSegVoxWithRibbon(c,r,s);
+    newsegid = Surf2VolSeg::RelabelSegVoxWithRibbon(c,r,s,ndotcheck);
   }
   if(LabelCortex && IS_CORTEX(volsegid)){
-    newsegid = Surf2VolSeg::RelabelSegVoxWithSurf(involseg,c, r, s, 1, hemi, surftype, dmin);
+    newsegid = Surf2VolSeg::RelabelSegVoxWithSurf(involseg,c, r, s, 1, ndotcheck,hemi, surftype, dmin);
     if(newsegid != 0){
       if(*hemi == 1) newsegid += lhbaseoffset;
       if(*hemi == 2) newsegid += rhbaseoffset;
     }
   }
   if(LabelWM && (IS_WHITE_CLASS(volsegid) || IS_HYPO(volsegid))){
-    newsegid = Surf2VolSeg::RelabelSegVoxWithSurf(involseg,c, r, s, 2, hemi, surftype, dmin);
+    newsegid = Surf2VolSeg::RelabelSegVoxWithSurf(involseg,c, r, s, 2, ndotcheck,hemi, surftype, dmin);
     if(*dmin > wmparc_dist_thresh) newsegid = 0;
     if(*hemi == 1) {
       if(newsegid > 0) newsegid += lhbaseoffset;
@@ -453,49 +486,19 @@ int Surf2VolSeg::RelabelSegVox(int c, int r, int s, int *hemi, int *surftype, do
       else             newsegid = 5002;
     }
   }
-  if(debug) printf("RelabelSegVox(): %d %d %d   %d %d   %d %d %g\n",c,r,s,volsegid,newsegid,*hemi,*surftype,*dmin);
+  if(debug) printf("RelabelSegVox(): %d %d %d   %d %d   %d %d %d %g\n",c,r,s,volsegid,newsegid,*ndotcheck,*hemi,*surftype,*dmin);
 
   return(newsegid);
-}
-
-// Relabel an entire volume by running the voxel-wise method on each voxel
-MRI *Surf2VolSeg::RelabelSegVol(void)
-{
-  int c,nrelabled=0;
-
-  MHT_maybeParallel_begin();
-  #ifdef HAVE_OPENMP
-  #pragma omp parallel for reduction(+ : nrelabled)
-  #endif
-  for (c=0; c < involseg->width; c++){
-    printf("%3d ",c);
-    if (c%20 ==19) printf("\n");
-    fflush(stdout);
-    int r,s,volsegid,newsegid,hemi,surftype;
-    double dmin;
-    for (r=0; r < involseg->height; r++)    {
-      for (s=0; s < involseg->depth; s++)      {
-        volsegid = MRIgetVoxVal(involseg,c,r,s,0);
-	newsegid = RelabelSegVox(c, r, s, &hemi, &surftype, &dmin);
-	MRIsetVoxVal(outvolseg,c,r,s,0,newsegid);
-	if(volsegid != newsegid) nrelabled++;
-      }
-    }
-  }
-  MHT_maybeParallel_end();
-  printf("\n");
-  printf("nrelabeled = %d\n",nrelabled);
-
-  return(outvolseg);
 }
 
 // Relabel a voxel with the ribbon.mgz. Usually, the input will
 // be aseg.presurf.hypos.mgz. This will fix cortical and cerebral WM
 // voxels that are mislabled relative to the ribbon but will keep
 // almost all the other voxels the same
-int Surf2VolSeg::RelabelSegVoxWithRibbon(int c, int r, int s)
+int Surf2VolSeg::RelabelSegVoxWithRibbon(int c, int r, int s, int *ndotcheck)
 {
   int volsegid,RibbonLabel;
+  (*ndotcheck) = 0;
 
   volsegid = MRIgetVoxVal(involseg,c,r,s,0);
   RibbonLabel = MRIgetVoxVal(ribbon,c,r,s,0);
@@ -510,7 +513,6 @@ int Surf2VolSeg::RelabelSegVoxWithRibbon(int c, int r, int s)
   
   // Both are unknown. This will handle most of the background voxels
   if(RibbonLabel == Unknown && volsegid == Unknown) return(volsegid);
-
   
   if(IS_CORTEX(volsegid)){
     if(RibbonLabel == Unknown)      return(RibbonLabel); //relabel
@@ -554,7 +556,7 @@ int Surf2VolSeg::RelabelSegVoxWithRibbon(int c, int r, int s)
   // ripflags have not been set!
   int vtxno, surftype, hemi, mask;
   double dmin;
-  MRIS *ClosestSurf = Surf2VolSeg::GetClosestVertexNo(c, r, s, DoLH, DoRH, 1, 1,  0, 0, &vtxno, &surftype, &hemi, &dmin);
+  MRIS *ClosestSurf = Surf2VolSeg::GetClosestVertexNo(c, r, s, DoLH, DoRH, 1, 1,  0, 0, ndotcheck, &vtxno, &surftype, &hemi, &dmin);
   if(ClosestSurf == NULL) return(0);
   mask = ClosestSurf->vertices[vtxno].marked2;
   if(debug) printf("%d %d %d   %d %d %d %g   %d\n",c,r,s,vtxno, surftype, hemi, dmin, mask);
@@ -572,16 +574,20 @@ int Surf2VolSeg::RelabelSegVoxWithRibbon(int c, int r, int s)
 
 // Relabel a voxel with the surface annotation. The voxel to be relabeled might be cortex 
 // (eg, with aparc+aseg) or cerebral WM (as with wmparc); this is indicated by LabelType.
-int Surf2VolSeg::RelabelSegVoxWithSurf(MRI *volseg, int c, int r, int s, int LabelType, int *hemi, int *surftype, double *dmin)
+int Surf2VolSeg::RelabelSegVoxWithSurf(MRI *volseg, int c, int r, int s, int LabelType, 
+				       int *ndotcheck, int *hemi, int *surftype, double *dmin)
 {
+  double x=0,y=0,z=0;
+
   *hemi = 0;
   *surftype = 0;
   *dmin = 1e9;
 
   int volsegid = MRIgetVoxVal(volseg,c,r,s,0);
   if(debug) {
-    printf("RelabelSegVoxWithSurf(): LabelType %d volsegid %d, LabelHypoAsWM %d, crs %d %d %d\n",
-	   LabelType,volsegid,LabelHypoAsWM,c,r,s);
+    CRS2SurfRAS(c,r,s,&x,&y,&z);
+    printf("RelabelSegVoxWithSurf(): LabelType %d volsegid %d, LabelHypoAsWM %d, crs %d %d %d, xyz %g %g %g\n",
+	   LabelType,volsegid,LabelHypoAsWM,c,r,s,x,y,z);
   }
 
   int AllowLH=0, AllowRH=0, AllowWhite=1, AllowPial=0;
@@ -589,9 +595,9 @@ int Surf2VolSeg::RelabelSegVoxWithSurf(MRI *volseg, int c, int r, int s, int Lab
   if(LabelType == 1){// Label Cortex
     if(!IS_CORTEX(volsegid)) return(volsegid);
     AllowWhite=1;
-    WhiteDotDir = +1; // expecting voxel to be outside white surf
+    WhiteDotDir = +1; // expecting voxel to be outside of the local plane of white surf
     AllowPial=1;
-    PialDotDir  = -1; // expecting voxel to be inside pial surf
+    PialDotDir  = -1; // expecting voxel to be outside of the local plane of pial surf
     if(volsegid == Left_Cerebral_Cortex && DoLH){
       AllowLH=1;
       AllowRH=0;
@@ -608,7 +614,6 @@ int Surf2VolSeg::RelabelSegVoxWithSurf(MRI *volseg, int c, int r, int s, int Lab
     AllowPial=0; // dont waste time computing distance to pial
     PialDotDir=0;
     // Have to handle WM_hypointensities, which are not lateralized
-    double x=0,y=0,z=0;
     if(volsegid == WM_hypointensities) CRS2SurfRAS(c,r,s,&x,&y,&z);
     if(DoLH && (volsegid == Left_Cerebral_White_Matter || volsegid == Left_WM_hypointensities || 
 	       (volsegid == WM_hypointensities && x <= 0))){
@@ -625,9 +630,22 @@ int Surf2VolSeg::RelabelSegVoxWithSurf(MRI *volseg, int c, int r, int s, int Lab
 
   int vtxno;
   MRIS *ClosestSurf = GetClosestVertexNo(c, r, s, AllowLH, AllowRH, AllowWhite, AllowPial,
-					 WhiteDotDir,PialDotDir,&vtxno, surftype, hemi, dmin);
+					 WhiteDotDir,PialDotDir,ndotcheck, &vtxno, surftype, hemi, dmin);
   if(ClosestSurf == NULL) {
-    if(debug) printf("  Closest Surf is NULL\n");
+    // In the case where no surface is found, make sure to set the hemi so that the wmparc can be set
+    // appropriately
+    if(volsegid == Left_Cerebral_Cortex || volsegid == Left_Cerebral_White_Matter || volsegid == Left_WM_hypointensities)
+      *hemi = 1;
+    else if(volsegid == Right_Cerebral_Cortex || volsegid == Right_Cerebral_White_Matter || volsegid == Right_WM_hypointensities)
+      *hemi = 2;
+    else {
+      // This will not always work because the surface RAS might not be 
+      // centered on the midline, but it should be pretty close
+      CRS2SurfRAS(c,r,s,&x,&y,&z);
+      if(x <= 0) *hemi = 1;
+      else       *hemi = 2;
+    }
+    if(debug) printf("  Closest Surf is NULL, hemi set to %d\n",*hemi);
     return(0);
   }
 
@@ -636,9 +654,9 @@ int Surf2VolSeg::RelabelSegVoxWithSurf(MRI *volseg, int c, int r, int s, int Lab
   if(ClosestSurf->ct) CTABfindAnnotation(ClosestSurf->ct, annot, &annotid);
   else                annotid = annotation_to_index(annot);
   if(debug) {
-    double x = ClosestSurf->vertices[vtxno].x;
-    double y = ClosestSurf->vertices[vtxno].y;
-    double z = ClosestSurf->vertices[vtxno].z;
+    x = ClosestSurf->vertices[vtxno].x;
+    y = ClosestSurf->vertices[vtxno].y;
+    z = ClosestSurf->vertices[vtxno].z;
     printf("  vtxno %d vtxxyz = [%g,%g,%g] annot %d   annotid %d\n",vtxno,x,y,z,annot,annotid);
   }
   if(annotid == -1) {
@@ -654,17 +672,24 @@ int Surf2VolSeg::RelabelSegVoxWithSurf(MRI *volseg, int c, int r, int s, int Lab
 
 
 // Returns the surface (lh,rh, white,pial) and vertex no that is closest to the given col, row, slice.
-// This can prevent a vertex on the other side of a sulcus from being interpreted as closes using
+// This can prevent a vertex on the other side of a sulcus from being interpreted as closest using
 // the dot check.
 MRIS *Surf2VolSeg::GetClosestVertexNo(int c, int r, int s, 
 				      int AllowLH, int AllowRH, int AllowWhite, int AllowPial,
-				      int WhiteDotDir, int PialDotDir,
+				      int WhiteDotDir, int PialDotDir, int *ndotcheck,
 				      int *vtxno, int *surftype, int *hemi, double *dmin)
 {
   *vtxno = -1;
   *surftype = -1;
   *hemi = -1;
   *dmin = 1e10;
+  (*ndotcheck)=0;
+
+  // Checking the dot is very computationally expensive
+  int AllowDotCheck = 1;
+  // Below does not appear to do anything
+  //if(MRIneighbors(involseg, c, r, s, Left_Cerebral_Cortex)  > 0) AllowDotCheck = 1;
+  //if(MRIneighbors(involseg, c, r, s, Right_Cerebral_Cortex) > 0) AllowDotCheck = 1;
 
   // Convert this CRS to Surface RAS
   double x,y,z;
@@ -681,8 +706,8 @@ MRIS *Surf2VolSeg::GetClosestVertexNo(int c, int r, int s,
     dot = xn * v->nx + yn * v->ny + zn * v->nz;
     return(dot);
   };
-
-  // Find the closest point on the surfaces
+ 
+ // Find the closest point on the surfaces
   int lhwvtx=-1,rhwvtx=-1,lhpvtx=-1,rhpvtx=-1;
   float dlhw=1e10,drhw=1e10,dlhp=1e10,drhp=1e10;
   double dot;
@@ -690,22 +715,24 @@ MRIS *Surf2VolSeg::GetClosestVertexNo(int c, int r, int s,
     if(AllowWhite){
       lhwvtx = MHTfindClosestVertexNoXYZ(lhwhite_hash, lhwhite, x,y,z, &dlhw);
       if(lhwvtx < 0) dlhw = 1e10;
-      else if(WhiteDotDir){
+      else if(WhiteDotDir && AllowDotCheck){
 	dot = dotfunc(x,y,z,lhwhite,lhwvtx);
 	if(dot*WhiteDotDir < 0)  {
 	  if(debug) printf("lh white dot check failed dot = %g, vtxno %d \n",dot,lhwvtx);
-	  dlhw = MRISfindMinDistanceVertexWithDotCheck(lhwhite, c, r, s, involseg, WhiteDotDir, &lhwvtx) ;
+	  dlhw = MRISfindMinDistanceVertexWithDotCheckXYZ(lhwhite, x, y, z, involseg, WhiteDotDir, &lhwvtx) ;
+	  (*ndotcheck)++;
 	}
       }
     }
     if(AllowPial){
       lhpvtx = MHTfindClosestVertexNoXYZ(lhpial_hash,  lhpial,  x,y,z, &dlhp);
       if(lhpvtx < 0) dlhp = 1e10;
-      else if (PialDotDir){
+      else if (PialDotDir && AllowDotCheck){
 	dot = dotfunc(x,y,z,lhpial,lhpvtx);
 	if (dot*PialDotDir < 0)  {
 	  if(debug) printf("lh pial dot check failed dot = %g, vtxno %d\n",dot,lhpvtx);
-	  dlhp = MRISfindMinDistanceVertexWithDotCheck(lhpial, c, r, s, involseg, PialDotDir, &lhpvtx) ;
+	  dlhp = MRISfindMinDistanceVertexWithDotCheckXYZ(lhpial, x, y, z, involseg, PialDotDir, &lhpvtx) ;
+	  (*ndotcheck)++;
 	}
       }
     }
@@ -714,11 +741,12 @@ MRIS *Surf2VolSeg::GetClosestVertexNo(int c, int r, int s,
     if(AllowWhite){
       rhwvtx = MHTfindClosestVertexNoXYZ(rhwhite_hash, rhwhite, x,y,z, &drhw);
       if(rhwvtx < 0) drhw = 1e10;
-      else if(WhiteDotDir){
+      else if(WhiteDotDir && AllowDotCheck){
 	dot = dotfunc(x,y,z,rhwhite,rhwvtx);
 	if (dot*WhiteDotDir < 0)  {
 	  if(debug) printf("rh white dot check failed dot = %g, vtxno %d, d=%g\n",dot,rhwvtx,drhw);
-	  drhw = MRISfindMinDistanceVertexWithDotCheck(rhwhite, c, r, s, involseg, WhiteDotDir, &rhwvtx) ;
+	  drhw = MRISfindMinDistanceVertexWithDotCheckXYZ(rhwhite, x, y, z, involseg, WhiteDotDir, &rhwvtx) ;
+	  (*ndotcheck)++;
 	  if(debug){
 	    dot = dotfunc(x,y,z,rhwhite,rhwvtx);
 	    printf("  new dot = %g, vtxno %d, d=%g\n",dot,rhwvtx,drhw);
@@ -729,11 +757,12 @@ MRIS *Surf2VolSeg::GetClosestVertexNo(int c, int r, int s,
     if(AllowPial){
       rhpvtx = MHTfindClosestVertexNoXYZ(rhpial_hash,  rhpial,  x,y,z, &drhp);
       if(rhpvtx < 0) drhp = 1e10;
-      else if (PialDotDir){
+      else if (PialDotDir && AllowDotCheck){
 	dot = dotfunc(x,y,z,rhpial,rhpvtx);
 	if (dot*PialDotDir < 0)  {
 	  if(debug) printf("rh pial dot check failed dot = %g, vtxno %d, d=%g\n",dot,rhpvtx,drhp);
-	  drhp = MRISfindMinDistanceVertexWithDotCheck(rhpial, c, r, s, involseg, PialDotDir, &rhpvtx) ;
+	  drhp = MRISfindMinDistanceVertexWithDotCheckXYZ(rhpial, x, y, z, involseg, PialDotDir, &rhpvtx) ;
+	  (*ndotcheck)++;
 	  if(debug){
 	    dot = dotfunc(x,y,z,rhpial,rhpvtx);
 	    printf("  new dot = %g, vtxno %d, d=%g\n",dot,rhpvtx,drhp);
@@ -749,9 +778,9 @@ MRIS *Surf2VolSeg::GetClosestVertexNo(int c, int r, int s,
     printf("rhpvtx %d drhp %g\n",rhpvtx,drhp);
   }
 
-  // Not close to a surface
+  // Not close to a surface. MGHfindClosestVertexNoXYZ might not find a closest vertex
+  // if crs is too far away from any surface point.
   if(lhwvtx < 0 && lhpvtx < 0 && rhwvtx < 0 && rhpvtx < 0) return(NULL);
-
   // Now just find which one is closest
   if(dlhw <= dlhp && dlhw <= drhw && dlhw <= drhp){
     *vtxno = lhwvtx;
