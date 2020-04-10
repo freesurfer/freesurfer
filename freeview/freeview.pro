@@ -519,6 +519,12 @@ macx {
 TARGET = FreeView
 RC_FILE = resource/icons/freeview.icns
 
+HEADERS  +=  \
+    MacHelper.h
+
+OBJECTIVE_SOURCES += \
+    MacHelper.mm \
+
 greaterThan(QT_MAJOR_VERSION, 4): QT -= x11extras script
 
 QMAKE_CXXFLAGS += -DVCL_CAN_STATIC_CONST_INIT_FLOAT=0
