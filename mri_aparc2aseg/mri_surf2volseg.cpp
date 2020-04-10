@@ -423,7 +423,7 @@ static void dump_options(FILE *fp)
   return;
 }
 
-
+// Relabel a single voxel using the given method
 int Surf2VolSeg::RelabelSegVox(int c, int r, int s, int *hemi, int *surftype, double *dmin)
 {
   int volsegid,newsegid;
@@ -458,6 +458,7 @@ int Surf2VolSeg::RelabelSegVox(int c, int r, int s, int *hemi, int *surftype, do
   return(newsegid);
 }
 
+// Relabel an entire volume by running the voxel-wise method on each voxel
 MRI *Surf2VolSeg::RelabelSegVol(void)
 {
   int c,nrelabled=0;
@@ -488,6 +489,10 @@ MRI *Surf2VolSeg::RelabelSegVol(void)
   return(outvolseg);
 }
 
+// Relabel a voxel with the ribbon.mgz. Usually, the input will
+// be aseg.presurf.hypos.mgz. This will fix cortical and cerebral WM
+// voxels that are mislabled relative to the ribbon but will keep
+// almost all the other voxels the same
 int Surf2VolSeg::RelabelSegVoxWithRibbon(int c, int r, int s)
 {
   int volsegid,RibbonLabel;
@@ -497,7 +502,7 @@ int Surf2VolSeg::RelabelSegVoxWithRibbon(int c, int r, int s)
   if(debug) printf("RelabelSegVoxWithRibbon(): %d %d %d   %d %d \n",c,r,s,volsegid,RibbonLabel);
 
   // If the input seg label is not cortex or cerebral WM or cblum
-  // cortex or WM hypo or unknown, don't bother relabel it
+  // cortex or WM hypo or unknown, don't bother relabeling it
   if(!IS_CORTEX(volsegid) && !IS_WHITE_CLASS(volsegid) && 
      !IS_CEREBELLAR_GM(volsegid) && !IS_HYPO(volsegid) && 
      volsegid != Unknown)
@@ -506,15 +511,16 @@ int Surf2VolSeg::RelabelSegVoxWithRibbon(int c, int r, int s)
   // Both are unknown. This will handle most of the background voxels
   if(RibbonLabel == Unknown && volsegid == Unknown) return(volsegid);
 
+  
   if(IS_CORTEX(volsegid)){
-    if(RibbonLabel == Unknown) return(RibbonLabel); //relabel
-    if(IS_CORTEX(RibbonLabel)) return(volsegid); // not relabeled
+    if(RibbonLabel == Unknown)      return(RibbonLabel); //relabel
+    if(IS_CORTEX(RibbonLabel))      return(volsegid); // not relabeled
     if(IS_WHITE_CLASS(RibbonLabel)) return(RibbonLabel); //relabel
   }
 
   if(IS_CEREBELLAR_GM(volsegid)){
-    if(RibbonLabel == Unknown) return(volsegid);  // not relabeled
-    if(IS_CORTEX(RibbonLabel)) return(RibbonLabel);//relabel
+    if(RibbonLabel == Unknown)      return(volsegid);  // not relabeled
+    if(IS_CORTEX(RibbonLabel))      return(RibbonLabel);//relabel
     if(IS_WHITE_CLASS(RibbonLabel)) return(RibbonLabel); //relabled, rare    
   }
 
@@ -528,11 +534,11 @@ int Surf2VolSeg::RelabelSegVoxWithRibbon(int c, int r, int s)
   }
 
   if(IS_WHITE_CLASS(volsegid)){
-    if(IS_CORTEX(RibbonLabel)) return(RibbonLabel); //relabel
+    if(IS_CORTEX(RibbonLabel))      return(RibbonLabel); //relabel
     if(IS_WHITE_CLASS(RibbonLabel)) return(volsegid);
   }
 
-  // Can only get here if volsegid is WM and Ribbon is unknown
+  // Can only get here if volsegid is WM and Ribbon is unknown (?)
   // We are outside of the ribbon (unknown) and the aseg label is cerebral WM. 
   // Cases:
   // - A gyrus is badly mislabeled in the aseg such that sulcal CSF is
@@ -544,7 +550,8 @@ int Surf2VolSeg::RelabelSegVoxWithRibbon(int c, int r, int s)
   // Determine whether we are near the medial wall. The ?h.cortex.label has been
   // loaded and used to set the "marked2" field in the surfaces. Find the closest
   // vertex to this CRS and see whether it has been marked or not. Might be able
-  // to just use the white instead of white and pial. 
+  // to just use the white instead of white and pial. Make sure the medial wall 
+  // ripflags have not been set!
   int vtxno, surftype, hemi, mask;
   double dmin;
   MRIS *ClosestSurf = Surf2VolSeg::GetClosestVertexNo(c, r, s, DoLH, DoRH, 1, 1,  0, 0, &vtxno, &surftype, &hemi, &dmin);
@@ -552,8 +559,9 @@ int Surf2VolSeg::RelabelSegVoxWithRibbon(int c, int r, int s)
   mask = ClosestSurf->vertices[vtxno].marked2;
   if(debug) printf("%d %d %d   %d %d %d %g   %d\n",c,r,s,vtxno, surftype, hemi, dmin, mask);
 
-  // It is in the ?h.cortex.label (and not in the medial wall)
-  // Relabel to unknown. Could relabel to an extracerebral like CSF
+  // It is in the ?h.cortex.label (and not in the medial wall). This
+  // means that WM is outside of the ribbon. Relabel to unknown. Could
+  // relabel to an extracerebral like CSF
   if(mask) return(RibbonLabel); 
 
   // It is in the medial wall. This will fill in space between the medial wall and subcort
@@ -562,6 +570,8 @@ int Surf2VolSeg::RelabelSegVoxWithRibbon(int c, int r, int s)
   return(volsegid);
 }
 
+// Relabel a voxel with the surface annotation. The voxel to be relabeled might be cortex 
+// (eg, with aparc+aseg) or cerebral WM (as with wmparc); this is indicated by LabelType.
 int Surf2VolSeg::RelabelSegVoxWithSurf(MRI *volseg, int c, int r, int s, int LabelType, int *hemi, int *surftype, double *dmin)
 {
   *hemi = 0;
@@ -579,9 +589,9 @@ int Surf2VolSeg::RelabelSegVoxWithSurf(MRI *volseg, int c, int r, int s, int Lab
   if(LabelType == 1){// Label Cortex
     if(!IS_CORTEX(volsegid)) return(volsegid);
     AllowWhite=1;
-    WhiteDotDir = +1;
+    WhiteDotDir = +1; // expecting voxel to be outside white surf
     AllowPial=1;
-    PialDotDir  = -1;
+    PialDotDir  = -1; // expecting voxel to be inside pial surf
     if(volsegid == Left_Cerebral_Cortex && DoLH){
       AllowLH=1;
       AllowRH=0;
@@ -595,7 +605,7 @@ int Surf2VolSeg::RelabelSegVoxWithSurf(MRI *volseg, int c, int r, int s, int Lab
     if( !IS_WHITE_CLASS(volsegid) && !(LabelHypoAsWM && IS_HYPO(volsegid) )) return(volsegid);
     AllowWhite=1;
     WhiteDotDir = -1;
-    AllowPial=0;
+    AllowPial=0; // dont waste time computing distance to pial
     PialDotDir=0;
     // Have to handle WM_hypointensities, which are not lateralized
     double x=0,y=0,z=0;
@@ -632,6 +642,8 @@ int Surf2VolSeg::RelabelSegVoxWithSurf(MRI *volseg, int c, int r, int s, int Lab
     printf("  vtxno %d vtxxyz = [%g,%g,%g] annot %d   annotid %d\n",vtxno,x,y,z,annot,annotid);
   }
   if(annotid == -1) {
+    // If the given vertex is unlabeled, find a nearby vertex that has a label and use that label
+    // This should prevent "unknown" cortex voxels in the aparc+aseg
     annotid = GetNearestVertexWithAnnot(vtxno, ClosestSurf, nHopsMax);
     if(debug) printf("  nearest annot %d   annotid %d (nHopsMax %d)\n",annot,annotid,nHopsMax);
     if(annotid == -1) annotid = 0;
@@ -640,6 +652,10 @@ int Surf2VolSeg::RelabelSegVoxWithSurf(MRI *volseg, int c, int r, int s, int Lab
   return(annotid);
 }
 
+
+// Returns the surface (lh,rh, white,pial) and vertex no that is closest to the given col, row, slice.
+// This can prevent a vertex on the other side of a sulcus from being interpreted as closes using
+// the dot check.
 MRIS *Surf2VolSeg::GetClosestVertexNo(int c, int r, int s, 
 				      int AllowLH, int AllowRH, int AllowWhite, int AllowPial,
 				      int WhiteDotDir, int PialDotDir,
@@ -736,6 +752,7 @@ MRIS *Surf2VolSeg::GetClosestVertexNo(int c, int r, int s,
   // Not close to a surface
   if(lhwvtx < 0 && lhpvtx < 0 && rhwvtx < 0 && rhpvtx < 0) return(NULL);
 
+  // Now just find which one is closest
   if(dlhw <= dlhp && dlhw <= drhw && dlhw <= drhp){
     *vtxno = lhwvtx;
     *surftype = GRAY_WHITE;
@@ -768,7 +785,9 @@ MRIS *Surf2VolSeg::GetClosestVertexNo(int c, int r, int s,
   return(NULL); // should never get here
 }
 
-
+// Find a vertex near the center vertex that as an annotation
+// label. Progressively searches rings around the given vertex out to
+// nHops
 int Surf2VolSeg::GetNearestVertexWithAnnot(int CenterVtx, MRI_SURFACE *Surf, int nHops)
 {
   if(CenterVtx < 0 || CenterVtx > Surf->nvertices){
@@ -834,6 +853,8 @@ void Surf2VolSeg::Free(void){
   fflush(stdout);
 }
 
+
+// This was use during testing. Now the binary just accepts full paths
 int Surf2VolSeg::SetSubjectPaths(char *subject, char *SD){
   string SUBJECTS_DIR;
   if(SD==NULL) SUBJECTS_DIR = getenv("SUBJECTS_DIR");
