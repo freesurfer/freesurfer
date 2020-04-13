@@ -4721,7 +4721,7 @@ double MRISfindMinDistanceVertexWithDotCheck(MRI_SURFACE *mris, int c, int r, in
   double  xs, ys, zs, min_dist;
 
   MRIvoxelToSurfaceRAS(mri, c, r, s, &xs, &ys, &zs);
-  min_dist = MRISfindMinDistanceVertexWithDotCheck(mris, xs, ys, zs, mri, dot_dir, pvtxno);
+  min_dist = MRISfindMinDistanceVertexWithDotCheckXYZ(mris, xs, ys, zs, mri, dot_dir, pvtxno);
   return(min_dist);
 }
 
