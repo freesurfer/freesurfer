@@ -4513,7 +4513,7 @@ if($DoAParc2ASeg) then
       set lhbase = 1000;
       set rhbase = 2000;
     endif
-    if($parc == ${DESTRIEUX_NAME}) then
+    if($parc == aparc.${DESTRIEUX_NAME}) then
       set lhbase = 11100
       set rhbase = 12100
     endif
