@@ -109,6 +109,9 @@
 #include "PanelLayer.h"
 #include "WindowLayerInfo.h"
 #include <QDebug>
+#ifdef Q_OS_MAC
+#include "MacHelper.h"
+#endif
 
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
 #include <QtWidgets>
@@ -523,6 +526,13 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
 
   addAction(ui->actionViewLayerInfo);
   connect(ui->actionViewLayerInfo, SIGNAL(triggered(bool)), SLOT(OnViewLayerInfo()));
+
+#ifdef Q_OS_MAC
+  if (MacHelper::IsDarkMode())
+  {
+      ui->actionShowCoordinateAnnotation->setIcon(MacHelper::InvertIcon(ui->actionShowCoordinateAnnotation->icon(), QSize(), true));
+  }
+#endif
 }
 
 MainWindow::~MainWindow()

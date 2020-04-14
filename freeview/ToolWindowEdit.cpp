@@ -26,6 +26,9 @@
 #include <QSettings>
 #include <QDebug>
 #include "LayerPropertyMRI.h"
+#ifdef Q_OS_MAC
+#include "MacHelper.h"
+#endif
 
 ToolWindowEdit::ToolWindowEdit(QWidget *parent) :
   QWidget(parent),
@@ -157,6 +160,11 @@ ToolWindowEdit::ToolWindowEdit(QWidget *parent) :
 #ifdef Q_OS_MAC
   ui->labelTips->setText(ui->labelTips->text().replace("Ctrl +", "Cmd +"));
   ui->labelTipsContour->setText(ui->labelTips->text().replace("Ctrl +", "Cmd +"));
+  if (MacHelper::IsDarkMode())
+  {
+      ui->actionFreeHand->setIcon(MacHelper::InvertIcon(ui->actionFreeHand->icon(), QSize(), true));
+      ui->actionPolyLine->setIcon(MacHelper::InvertIcon(ui->actionPolyLine->icon(), QSize(), true));
+  }
 #endif
 
   m_bToUpdateWidgets = true;
