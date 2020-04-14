@@ -21,6 +21,7 @@ WindowEditAnnotation::WindowEditAnnotation(QWidget *parent) :
 {
   ui->setupUi(this);
   setWindowFlags( Qt::Tool );
+#ifdef Q_OS_MAC
   if (MacHelper::IsDarkMode())
   {
       QIcon icn(":/resource/icons/surface_path_dm.png");
@@ -29,6 +30,7 @@ WindowEditAnnotation::WindowEditAnnotation(QWidget *parent) :
       ui->actionMakeClosedPath->setIcon(QIcon(":/resource/icons/surface_path_make_closed_dm.png"));
       ui->actionDeletePath->setIcon(QIcon(":/resource/icons/surface_path_delete_dm.png"));
   }
+#endif
 
   connect(ui->treeWidgetExistingLabels, SIGNAL(currentItemChanged(QTreeWidgetItem*,QTreeWidgetItem*)),
           SLOT(OnExistingLabelClicked(QTreeWidgetItem*)), Qt::QueuedConnection);
