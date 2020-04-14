@@ -9,6 +9,11 @@
 class FnvHash {
 public:
 
+  template <typename T>
+  void add(T* ref) {
+    add((const unsigned char*)ref, sizeof(*ref));
+  }
+
   void add(const unsigned char* str, size_t size) {
     for (size_t c = 0; c < size; c++) {
       value ^= str[c];
