@@ -20,3 +20,25 @@ bool MacHelper::IsDarkMode()
             return appearance.name == NSAppearanceNameDarkAqua;
     }
 }
+
+QPixmap MacHelper::InvertPixmap(const QPixmap &pix)
+{
+    QImage img = pix.toImage();
+    img.invertPixels(QImage::InvertRgb);
+    return QPixmap::fromImage(img);
+}
+
+QIcon MacHelper::InvertIcon(const QIcon &icn_in, const QSize &size_in, bool bTwoStates)
+{
+    QIcon icn;
+    QSize size = size_in;
+    if (!size.isValid())
+        size = icn_in.availableSizes().first();
+    QPixmap pix = icn_in.pixmap(size, QIcon::Normal, QIcon::Off);
+    icn.addPixmap(InvertPixmap(pix));
+    QPixmap pix2 = icn_in.pixmap(size, QIcon::Normal, QIcon::On);
+    if (!pix2.isNull())
+        icn.addPixmap(bTwoStates?InvertPixmap(pix2):pix2, QIcon::Normal, QIcon::On);
+
+    return icn;
+}

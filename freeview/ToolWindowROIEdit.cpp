@@ -19,6 +19,9 @@
 #include "MainWindow.h"
 #include "BrushProperty.h"
 #include <QSettings>
+#ifdef Q_OS_MAC
+#include "MacHelper.h"
+#endif
 
 ToolWindowROIEdit::ToolWindowROIEdit(QWidget *parent) :
   QWidget(parent),
@@ -41,6 +44,14 @@ ToolWindowROIEdit::ToolWindowROIEdit(QWidget *parent) :
   connect( ui->spinBoxBrushSize, SIGNAL(valueChanged(int)), wnd->GetBrushProperty(), SLOT(SetBrushSize(int)));
 
   UpdateWidgets();
+
+#ifdef Q_OS_MAC
+  if (MacHelper::IsDarkMode())
+  {
+      ui->actionFreeHand->setIcon(MacHelper::InvertIcon(ui->actionFreeHand->icon(), QSize(), true));
+      ui->actionPolyLine->setIcon(MacHelper::InvertIcon(ui->actionPolyLine->icon(), QSize(), true));
+  }
+#endif
 }
 
 ToolWindowROIEdit::~ToolWindowROIEdit()

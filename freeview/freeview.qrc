@@ -123,5 +123,14 @@
         <file>resource/icons/surface_clear_marks.png</file>
         <file>resource/icons/voxel_draw_move.png</file>
         <file>resource/icons/annot_save.png</file>
+        <file>resource/icons/surface_cut_line_dm.png</file>
+        <file>resource/icons/surface_cut_clear_dm.png</file>
+        <file>resource/icons/surface_cut_closed_line_dm.png</file>
+        <file>resource/icons/surface_fill_uncut_area_dm.png</file>
+        <file>resource/icons/surface_path_delete_dm.png</file>
+        <file>resource/icons/surface_path_dm.png</file>
+        <file>resource/icons/surface_path_make_closed_dm.png</file>
+        <file>resource/icons/surface_path_make_dm.png</file>
+        <file>resource/icons/surface_undo_cut_dm.png</file>
     </qresource>
 </RCC>

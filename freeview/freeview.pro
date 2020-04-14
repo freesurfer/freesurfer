@@ -523,7 +523,7 @@ HEADERS  +=  \
     MacHelper.h
 
 OBJECTIVE_SOURCES += \
-    MacHelper.mm \
+    MacHelper.mm
 
 greaterThan(QT_MAJOR_VERSION, 4): QT -= x11extras script
 

@@ -7,6 +7,9 @@
 #include "RenderView.h"
 #include <QTreeWidgetItem>
 #include <QSettings>
+#ifdef Q_OS_MAC
+#include "MacHelper.h"
+#endif
 
 #define ANNOT_COLOR_ROLE  Qt::UserRole
 #define ANNOT_INDEX_ROLE  Qt::UserRole+1
@@ -18,6 +21,15 @@ WindowEditAnnotation::WindowEditAnnotation(QWidget *parent) :
 {
   ui->setupUi(this);
   setWindowFlags( Qt::Tool );
+  if (MacHelper::IsDarkMode())
+  {
+      QIcon icn(":/resource/icons/surface_path_dm.png");
+      icn.addPixmap(QPixmap(":/resource/icons/surface_path_dm.png"), QIcon::Normal, QIcon::On);
+      ui->actionMakePath->setIcon(QIcon(":/resource/icons/surface_path_make_dm.png"));
+      ui->actionMakeClosedPath->setIcon(QIcon(":/resource/icons/surface_path_make_closed_dm.png"));
+      ui->actionDeletePath->setIcon(QIcon(":/resource/icons/surface_path_delete_dm.png"));
+  }
+
   connect(ui->treeWidgetExistingLabels, SIGNAL(currentItemChanged(QTreeWidgetItem*,QTreeWidgetItem*)),
           SLOT(OnExistingLabelClicked(QTreeWidgetItem*)), Qt::QueuedConnection);
   connect(ui->treeWidgetExistingLabels, SIGNAL(itemChanged(QTreeWidgetItem*,int)), SLOT(OnExistingLabelItemChanged(QTreeWidgetItem*)));
