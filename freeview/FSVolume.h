@@ -134,9 +134,9 @@ public:
 
   void NativeRASToTkReg( const double* pos_in, double* pos_out );
 
-  bool RASToTalairachVoxel(const double* pos_in, double* pos_out);
+  bool RASToTalairach(const double* pos_in, double* pos_out);
 
-  void TalairachVoxelToRAS(const double* pos_in, double* pos_out);
+  void TalairachToRAS(const double* pos_in, double* pos_out);
 
   void SetMRITarget( MRI* mri );
 
