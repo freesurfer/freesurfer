@@ -195,7 +195,8 @@ set cmd = (mri_segstats --seg $aseg --sum $statsfile \
   --ctab $ctab --subject $subject \
   --brainmask brainmask.mgz --brain-vol-from-seg \
   --in-intensity-name norm.$gcabase --in-intensity-units MR )
-if(-e transforms/talairach.xfm ) set cmd = ($cmd --etiv);
+set talxfm = $SUBJECTS_DIR/$subject/mri/transforms/talairach.xfm
+if(-e $talxfm ) set cmd = ($cmd --etiv --talxfm $talxfm);
 
 echo $cmd |& tee -a $LF
 $cmd |& tee -a $LF
