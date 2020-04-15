@@ -4509,7 +4509,7 @@ if($DoAParc2ASeg) then
     echo "#-----------------------------------------" |& tee -a $LF |& tee -a $CF
     echo "#@# AParc-to-ASeg ${parc} `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
     $PWD |& tee -a $LF
-    if($parc == aparc || $parc == ${DKTATLAS_NAME}) then
+    if($parc == aparc || $parc == aparc.${DKTATLAS_NAME}) then
       set lhbase = 1000;
       set rhbase = 2000;
     endif
