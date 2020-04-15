@@ -138,11 +138,11 @@ void InfoTreeWidget::UpdateAll()
       item->setData(1, Qt::UserRole, map);
     }
     FSVolume*vol = mri->GetSourceVolume();
-    item = new QTreeWidgetItem(this);
-    item->setText(0, QString("Talairach (%1)").arg(mri->GetName()));
     double tpos[3];
-    if (vol->RASToTalairachVoxel(ras, tpos))
+    if (vol->RASToTalairach(ras, tpos))
     {
+      item = new QTreeWidgetItem(this);
+      item->setText(0, QString("MNI305 (%1)").arg(mri->GetName()));
       map.clear();
       item->setText(1, QString("%1, %2, %3")
                     .arg(tpos[0], 0, 'f', 2)
@@ -152,8 +152,6 @@ void InfoTreeWidget::UpdateAll()
       map["EditableText"] = item->text(1);
       item->setData(1, Qt::UserRole, map);
     }
-    else
-      item->setText(1, "N/A");
   }
 
   bool bDecimalIndex = MainWindow::GetMainWindow()->GetSetting("DecimalVoxelCoord").toBool();
@@ -443,7 +441,7 @@ void InfoTreeWidget::OnEditFinished()
           if ( mri )
           {
             FSVolume* vol = mri->GetSourceVolume();
-            vol->TalairachVoxelToRAS(ras, ras);
+            vol->TalairachToRAS(ras, ras);
             mri->RASToTarget( ras, ras );
           }
         }
