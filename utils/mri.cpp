@@ -3131,8 +3131,10 @@ int MRIvoxelToWorld(MRI *mri, double xv, double yv, double zv, double *pxw, doub
 
   return (NO_ERROR);
 }
-/*-----------------------------------------------------
-  ------------------------------------------------------*/
+/*!
+  \fn int MRIworldToTalairachVoxel(MRI *mri, double xw, double yw, double zw, double *pxv, double *pyv, double *pzv)
+  \brief Convert a scanner RAS to MNI305 Col,Row,Slice using the mri->linear_transform (should be talairach.xfm)
+ */
 int MRIworldToTalairachVoxel(MRI *mri, double xw, double yw, double zw, double *pxv, double *pyv, double *pzv)
 {
   double xt, yt, zt;
@@ -3142,10 +3144,27 @@ int MRIworldToTalairachVoxel(MRI *mri, double xw, double yw, double zw, double *
     yt = yw;
     zt = zw;
   }
-  else
+  else{
     transform_point(mri->linear_transform, xw, yw, zw, &xt, &yt, &zt);
+  }
 
   MRIworldToVoxel(mri, xt, yt, zt, pxv, pyv, pzv);
+  return (NO_ERROR);
+}
+/*!
+  \fn int MRIworldToTalairach(MRI *mri, double xw, double yw, double zw, double *pxt, double *pyt, double *pzt)
+  \brief Convert a scanner RAS to MNI305 RAS using the mri->linear_transform (should be talairach.xfm)
+ */
+int MRIworldToTalairach(MRI *mri, double xw, double yw, double zw, double *pxt, double *pyt, double *pzt)
+{
+  if (mri->linear_transform == NULL) {
+    *pxt = xw;
+    *pyt = yw;
+    *pzt = zw;
+  }
+  else{
+    transform_point(mri->linear_transform, xw, yw, zw, pxt, pyt, pzt);
+  }
   return (NO_ERROR);
 }
 /*-----------------------------------------------------
