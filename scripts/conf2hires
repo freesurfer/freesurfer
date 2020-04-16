@@ -31,6 +31,11 @@ set GlobXOptsFile = ()
 set ForceUpdate = 0
 set RunIt = 1
 
+# Options for mri_normalize, can strongly affect the pial placement
+set normOptsRCA = (-seed 1234 -mprage -aseg rawavg.aseg.presurf.mgz)
+set normOptsC2H = (-sigma 8 -erode 1 -min_dist 1)
+set normOpts = ($normOptsC2H)
+
 set DoTime = 0;
 if($?SET_FS_CMD_TIMING) set DoTime = 1;
 set fs_time = "";
@@ -259,7 +264,6 @@ else
 endif
 
 if($CopyBiasFromConf) then
-  # This branch might not work anymore
   echo "Copying bias field from conformed" | tee -a $LF
   # Map the rawavg into conformed space but without changing 
   # intensities. MUST use same interp as when orig.mgz was created from
@@ -296,9 +300,13 @@ if($CopyBiasFromConf) then
 else
   echo "Computing bias field from rawavg" | tee -a $LF
   # Intensity normalize the rawavg itself rather than copying over the
-  # bias field sigma=8 should be the default for v6.  Mmust have
-  # created ?h.white.preaparc.rawavg by now
-  set cmd = (mri_normalize -sigma 8 -erode 1 -min_dist 1 \
+  # bias field. This can create some differences with recon-all for
+  # several reasons. (1) the c2h default options are different (unless
+  # --norm-opts-rca is specified), and (2) mri_normalize does not work
+  # the same at high resolution because some fixed parameters are specified
+  # in terms of voxels rather than mm.
+  # Must have created ?h.white.preaparc.rawavg by now
+  set cmd = (mri_normalize $normOpts \
      -surface ../surf/lh.$srcsurf.rawavg identity.nofile \
      -surface ../surf/rh.$srcsurf.rawavg identity.nofile)
   if($UseControlPoints) set cmd = ($cmd -f $ControlPointsFile)
@@ -799,6 +807,13 @@ while( $#argv != 0 )
       set XOptsFile = `getfullpath $XOptsFile`
       breaksw
 
+    case "--norm-opts-rca":
+      set normOpts = ($normOptsRCA)
+      breaksw
+    case "--norm-opts-c2h":
+      set normOpts = ($normOptsC2H)
+      breaksw
+
     case "--log":
       if($#argv < 1) goto arg1err;
       set LF = $argv[1]; shift;
@@ -909,6 +924,7 @@ usage_exit:
   echo "  --flair, --no-flair (default $DoFLAIR)"
   echo "  --threads nthreads "
   echo "  --copy-bias-from-conf : copy bias field from conformed instead of computing directly"
+  echo "  --norm-opts-rca : compute bias directly using recon-all opts to mri_normalize"
   echo "  --cubic, --trilin (default $interp), only applies with --copy-bias-from-conf"
   echo "  --dev, --no-dev (default $usedev) : use mris_make_surfaces.dev"
   echo "      default value can be set with setenv CONF2HIRES_USEDEV"
@@ -934,6 +950,17 @@ white.preaparc. This script is then run to generate the final white
 and pial surfaces. After that, the final stages of recon-all can be
 run (making sure to skip the creation of the final white and pial
 surfaces). The recon-all.v6.hires script will do this automatically.
+
+The pial surface tends to extend further out than in the normal
+recon-all stream because the intensity normalization. mri_normalize is
+run with different parameters (unless --norm-opts-rca is used) but
+will also run differently because some of the parameters are set based
+on the number of voxels, so differences in resolution effectively
+cause these parameters to be different. The --copy-bias-from-conf
+option will cause conf2hires to use the bias field computed from the
+conformed (1mm) and makes the final surfaces much closer to that of
+recon-all. I cannot remember why I did not use this as the default
+except that the current set up might have worked better for HCP.
 
 
 
