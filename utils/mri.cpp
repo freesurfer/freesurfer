@@ -11523,9 +11523,6 @@ MRI *MRIchangeType(MRI *src, int dest_type, float f_low, float f_high, int no_sc
     int mn_bin = (int)((mn - src_min) / bin_size);
     float bin_threshold = (float)N_HIST_BINS / 5.0;
 
-    // make threshold super conservative for in vivo
-    if (src->xsize > .75 && (getenv("FS_FORCE_BIN_CHECK") == NULL)) bin_threshold = 10;
-
     if (mn_bin < bin_threshold) {
       float old_bin_size = bin_size;
       bin_size = (mn - src_min) / bin_threshold;

@@ -16,6 +16,7 @@
 #include "ui_ToolWindowEdit.h"
 #include "Interactor2DVoxelEdit.h"
 #include "MainWindow.h"
+#include "ui_MainWindow.h"
 #include "Contour2D.h"
 #include "BrushProperty.h"
 #include "LayerCollection.h"
@@ -51,6 +52,7 @@ ToolWindowEdit::ToolWindowEdit(QWidget *parent) :
   ag->addAction( ui->actionAutoSeg);
   ag->addAction( ui->actionShift );
   ag->setExclusive( true );
+
   ui->actionContour->setData( Interactor2DVoxelEdit::EM_Contour );
   ui->actionColorPicker->setData( Interactor2DVoxelEdit::EM_ColorPicker );
   ui->actionFill->setData( Interactor2DVoxelEdit::EM_Fill );
@@ -92,6 +94,14 @@ ToolWindowEdit::ToolWindowEdit(QWidget *parent) :
   connect(ui->sliderGeoOpacity, SIGNAL(valueChanged(int)), SLOT(OnSliderGeoOpacity(int)));
   connect(ui->pushButtonAbort, SIGNAL(clicked(bool)), SLOT(OnButtonGeoSegAbort()));
   connect(mainwnd, SIGNAL(SupplementLayerChanged()), this, SLOT(UpdateWidgets()));
+
+  connect(ui->pushButtonCloneCopy, SIGNAL(clicked()), mainwnd->ui->actionCopy, SLOT(trigger()));
+  connect(ui->pushButtonCloneCopyStructure, SIGNAL(clicked()), mainwnd->ui->actionCopyStructure, SLOT(trigger()));
+  connect(ui->pushButtonClonePaste, SIGNAL(clicked()), mainwnd->ui->actionPaste, SLOT(trigger()));
+
+  connect(mainwnd->ui->actionCopy, SIGNAL(triggered(bool)), SLOT(UpdateWidgets()), Qt::QueuedConnection);
+  connect(mainwnd->ui->actionCopyStructure, SIGNAL(triggered(bool)), SLOT(UpdateWidgets()), Qt::QueuedConnection);
+  connect(mainwnd->ui->actionPaste, SIGNAL(triggered(bool)), SLOT(UpdateWidgets()), Qt::QueuedConnection);
 
   for (int i = 0; i < 3; i++)
   {
@@ -313,6 +323,8 @@ void ToolWindowEdit::OnIdle()
   ui->lineEditGeoLambda->hide();
   ui->spinBoxGeoWsize->hide();
 
+  ui->widgetClone->setVisible(nAction == Interactor2DVoxelEdit::EM_Clone);
+
   ui->checkBoxFill3D->setVisible(nAction != Interactor2DVoxelEdit::EM_GeoSeg && nAction != Interactor2DVoxelEdit::EM_Contour);
 
   for ( int i = 0; i < allwidgets.size(); i++ )
@@ -335,6 +347,13 @@ void ToolWindowEdit::OnIdle()
 
 //  LayerMRI* mri_draw = qobject_cast<LayerMRI*>(MainWindow::GetMainWindow()->FindSupplementLayer("GEOS_DRAW"));
 //  ui->pushButtonGeoUndo->setEnabled(mri_draw && mri_draw->HasUndo());
+
+  LayerMRI* mri = ( LayerMRI* )mainwnd->GetActiveLayer("MRI");
+  int nWnd = mainwnd->GetActiveViewId();
+  ui->pushButtonCloneCopy->setEnabled( mri && mri->IsVisible() && nWnd >= 0 && nWnd < 3 );
+  ui->pushButtonCloneCopyStructure->setEnabled(mri && mri->IsVisible() && nWnd >= 0 && nWnd < 3);
+  ui->pushButtonClonePaste->setEnabled( mri && mri->IsVisible() && mri->IsEditable() &&
+                               nWnd >= 0 && nWnd < 3 && mri->IsValidToPaste( nWnd ) );
 }
 
 void ToolWindowEdit::OnEditMode(QAction *act)
