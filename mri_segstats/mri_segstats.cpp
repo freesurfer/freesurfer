@@ -505,7 +505,7 @@ int main(int argc, char **argv)
     else{
       printf("Warning: cannot find %s, not computing whole brain stats\n",tmpstr);
       DoSurfWMVol=DoSurfCtxVol=DoSupraTent=BrainVolFromSeg=DoSubCortGrayVol=0;
-      DoTotalGrayVol=0;DoSupraTent=0;DoETIV=0;
+      DoTotalGrayVol=0;DoSupraTent=0;
     }
   }
 

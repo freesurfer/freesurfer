@@ -54,7 +54,7 @@ void Interactor2DVolumeEdit::PreprocessMouseEvent(QMouseEvent *event)
   bool bRightButtonErase = MainWindow::GetMainWindow()->GetSetting("RightButtonErase").toBool();
   if (bRightButtonErase && event->button() == Qt::RightButton && event->modifiers() == Qt::NoModifier)
   {
-    QMouseEvent e(event->type(), event->pos(), Qt::LeftButton,Qt::LeftButton, Qt::ShiftModifier);
+    QMouseEvent e(event->type(), event->pos(), Qt::LeftButton, Qt::LeftButton, Qt::ShiftModifier);
     *event = e;
   }
 }

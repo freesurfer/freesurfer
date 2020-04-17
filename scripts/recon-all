@@ -624,7 +624,7 @@ set allinfocmds = (\
 	mri_and \
 	mri_annotation2label \
 	mri_aparc2aseg \
-	mri_aparc2wmseg \
+	mri_surf2volseg \
 	mri_binarize \
 	mri_ca_label \
 	mri_ca_normalize \
@@ -704,7 +704,7 @@ foreach cmd ($allinfocmds)
   endif
 end
 mri_motion_correct.fsl -version >> $LF
-if (-e $FREESURFER_HOME/bin/flirt.fsl) flirt.fsl -version >> $LF
+#if (-e $FREESURFER_HOME/bin/flirt.fsl) flirt.fsl -version >> $LF
 nu_correct -version >> $LF
 
 # clean-up droppings
@@ -3803,6 +3803,8 @@ if($DoConf2Hires && ! $LongSamseg) then
   if($UseCubic == 1) set cmd = ($cmd --cubic)
   if($UseCubic == 0) set cmd = ($cmd --trilin)
   if($ForceUpdate)   set cmd = ($cmd --force-update)
+  set xopts = `fsr-getxopts conf2hires $XOptsFile $GlobXOptsFile`;
+  set cmd = ($cmd $xopts)
   echo $cmd | tee -a $LF
   if($RunIt) $fs_time $cmd |& tee -a $LF
   if($status) goto error_exit;
@@ -4467,78 +4469,137 @@ if($DoRelabelHypos) then
   echo $cmd > $touchdir/relabelhypos.touch
 endif
 
-#-----------------               -----------------#
-##----------------  -aparc2aseg  -----------------#
-#-----------------               -----------------#
-if($DoAParc2ASeg) then
-  set CMDFS = () # see earlier notes on -parallel implementation
-  foreach parc (aparc ${DESTRIEUX_NAME} ${DKTATLAS_NAME})
-    echo "#-----------------------------------------" \
-      |& tee -a $LF |& tee -a $CF
-    echo "#@# AParc-to-ASeg ${parc} `date`" \
-      |& tee -a $SF |& tee -a $LF |& tee -a $CF
-    cd $subjdir > /dev/null
-    $PWD |& tee -a $LF
-    set xopts = `fsr-getxopts mri_aparc2aseg $XOptsFile $GlobXOptsFile`;
-    if(! $longitudinal) then
-      set asegintensities = mri/aseg.auto_noCCseg.label_intensities.txt
-    else
-      set asegintensities = $longbasedir/mri/aseg.auto_noCCseg.label_intensities.txt
-    endif
-    # Have to use 1 thread here because mrishash is not thread safe
-    set cmd = (mri_aparc2aseg --s $subjid --volmask --aseg aseg.presurf.hypos --threads 1)
-    if(-e mri/transforms/talairach.m3z) then
-      # These options will not work with samseg, which does not have a tal.m3z
-      set cmd = ($cmd --relabel mri/norm.mgz mri/transforms/talairach.m3z ${GCADIR}/$GCA $asegintensities)
-    endif
-    if ($LHonly) set cmd = ($cmd --lh )
-    if ($RHonly) set cmd = ($cmd --rh )
-    if(${parc} != "aparc") then
-      #  do Christophe and Mindboggle atlases (if exist)
-      if( -e ${subjdir}/label/lh.aparc.${parc}.annot && \
-          -e ${subjdir}/label/rh.aparc.${parc}.annot ) then
-        # Note: the --a2009s is needed to get the index offset correct
-        if($parc == ${DESTRIEUX_NAME}) set cmd = ($cmd --a2009s)
-        if($parc == ${DKTATLAS_NAME})  set cmd = ($cmd --annot aparc.DKTatlas --o mri/aparc.DKTatlas+aseg.mgz)
-        echo $cmd > $touchdir/aparc.$parc"2aseg".touch
-      else
-        echo "INFO: skipping ${parc} aparc2aseg" |& tee -a $LF |& tee -a $CF
-	continue;
-      endif
-    endif
-    set cmd = ($cmd $xopts)
-    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
-    if($DoParallel) then
-      set CMDF = mri_aparc2aseg_${parc}.cmd
-      echo "$cmd" > $CMDF
-      set CMDFS = ( $CMDFS $CMDF )
-    else
-      if($RunIt) $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
-    endif
-  end # Loop over parc list
-  if($RunIt && $DoParallel) then
-    reconbatchjobs $LF $CMDFS |& tee -a $LF
-    if($status) goto error_exit;
-  endif
-endif
-
 #-----------------             ------------------ #
 #-----------------  Final Aseg ------------------ #
 ##----------------  -apas2aseg ------------------ #
 #-----------------             ------------------ #
 if($DoAPas2ASeg) then
-  echo "#-----------------------------------------" \
-    |& tee -a $LF |& tee -a $CF
-  echo "#@# APas-to-ASeg `date`" \
-    |& tee -a $SF |& tee -a $LF |& tee -a $CF
+  echo "#-----------------------------------------"  |& tee -a $LF |& tee -a $CF
+  echo "#@# APas-to-ASeg `date`"  |& tee -a $SF |& tee -a $LF |& tee -a $CF
   cd $subjdir/mri > /dev/null
   $PWD |& tee -a $LF
-  set cmd = (apas2aseg --i aparc+aseg.mgz --o aseg.mgz)
+  set cmd = (mri_surf2volseg --o aseg.mgz --i aseg.presurf.hypos.mgz \
+     --fix-presurf-with-ribbon $mdir/ribbon.mgz --threads $OMP_NUM_THREADS)
+  set udlist = aseg.presurf.hypos.mgz 
+  if(! $RHonly) then
+    set udlist = ($udlist $ldir/lh.cortex.label $sdir/lh.white $sdir/lh.pial)
+    set cmd = ($cmd  --lh-cortex-mask $ldir/lh.cortex.label --lh-white $sdir/lh.white --lh-pial $sdir/lh.pial)
+  endif
+  if(! $LHonly) then
+    set udlist = ($udlist $ldir/rh.cortex.label $sdir/rh.white $sdir/rh.pial)
+    set cmd = ($cmd  --rh-cortex-mask $ldir/rh.cortex.label --rh-white $sdir/rh.white --rh-pial $sdir/rh.pial)
+  endif
+  set xopts = `fsr-getxopts mri_surf2volseg-aseg $XOptsFile $GlobXOptsFile`;
+  set cmd = ($cmd $xopts)
+  set ud = `UpdateNeeded aseg.mgz $udlist`
+  if($ud || $ForceUpdate) then
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    echo $cmd > $touchdir/apas2aseg.touch
+  else
+    echo "Updated not needed forf aseg.mgz" | tee -a $LF
+  endif
+endif
+
+#-----------------               -----------------#
+##----------------  -aparc2aseg  -----------------#
+#-----------------               -----------------#
+if($DoAParc2ASeg) then
+  cd $subjdir/mri > /dev/null
+  foreach parc (aparc aparc.$DESTRIEUX_NAME aparc.$DKTATLAS_NAME)
+    echo "#-----------------------------------------" |& tee -a $LF |& tee -a $CF
+    echo "#@# AParc-to-ASeg ${parc} `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
+    $PWD |& tee -a $LF
+    if($parc == aparc || $parc == aparc.${DKTATLAS_NAME}) then
+      set lhbase = 1000;
+      set rhbase = 2000;
+    endif
+    if($parc == aparc.${DESTRIEUX_NAME}) then
+      set lhbase = 11100
+      set rhbase = 12100
+    endif
+    set cmd = (mri_surf2volseg --o $parc+aseg.mgz --label-cortex --i aseg.mgz --threads $OMP_NUM_THREADS)
+    set udlist = aseg.mgz 
+    if(! $RHonly) then
+      set udlist = ($udlist $ldir/lh.$parc.annot $ldir/lh.cortex.label $sdir/lh.white $sdir/lh.pial)
+      set cmd = ($cmd --lh-annot $ldir/lh.$parc.annot $lhbase --lh-cortex-mask $ldir/lh.cortex.label \
+       --lh-white $sdir/lh.white --lh-pial $sdir/lh.pial)
+    endif
+    if(! $LHonly) then
+      set udlist = ($udlist $ldir/rh.$parc.annot $ldir/rh.cortex.label $sdir/rh.white $sdir/rh.pial)
+      set cmd = ($cmd --rh-annot $ldir/rh.$parc.annot $rhbase --rh-cortex-mask $ldir/rh.cortex.label \
+       --rh-white $sdir/rh.white --rh-pial $sdir/rh.pial)
+    endif
+    set xopts = `fsr-getxopts mri_surf2volseg-$parc+aseg $XOptsFile $GlobXOptsFile`;
+    set cmd = ($cmd $xopts)
+    set ud = `UpdateNeeded $parc+aseg.mgz $udlist`
+    if($ud || $ForceUpdate) then
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      if($RunIt) $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+      echo $cmd > $touchdir/apas2aseg.touch
+    else
+      echo "Updated not needed forf $parc+aseg.mgz" | tee -a $LF
+    endif
+  end
+endif
+
+#-----------------          ------------------#
+##----------------  -wmparc ------------------#
+#-----------------          ------------------#
+if($DoWMParc) then
+  echo "#-----------------------------------------"  |& tee -a $LF |& tee -a $CF
+  echo "#@# WMParc `date`"  |& tee -a $SF |& tee -a $LF |& tee -a $CF
+  cd $subjdir/mri > /dev/null
+  $PWD |& tee -a $LF
+  set lhbase = 3000;
+  set rhbase = 4000;
+  set parc = aparc
+  set cmd = (mri_surf2volseg --o wmparc.mgz --label-wm --i aparc+aseg.mgz --threads $OMP_NUM_THREADS)
+  set udlist = aparc+aseg.mgz 
+  if(! $RHonly) then
+    set udlist = ($udlist $ldir/lh.$parc.annot $ldir/lh.cortex.label $sdir/lh.white $sdir/lh.pial)
+    set cmd = ($cmd --lh-annot $ldir/lh.$parc.annot $lhbase --lh-cortex-mask $ldir/lh.cortex.label \
+     --lh-white $sdir/lh.white --lh-pial $sdir/lh.pial)
+  endif
+  if(! $LHonly) then
+    set udlist = ($udlist $ldir/rh.$parc.annot $ldir/rh.cortex.label $sdir/rh.white $sdir/rh.pial)
+    set cmd = ($cmd --rh-annot $ldir/rh.$parc.annot $rhbase --rh-cortex-mask $ldir/rh.cortex.label \
+     --rh-white $sdir/rh.white --rh-pial $sdir/rh.pial)
+  endif
+  set xopts = `fsr-getxopts mri_surf2volseg-wmparc $XOptsFile $GlobXOptsFile`;
+  set cmd = ($cmd $xopts)
+  set ud = `UpdateNeeded wmparc.mgz $udlist`
+  if($ud || $ForceUpdate) then
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    echo $cmd > $touchdir/apas2aseg.touch
+  else
+    echo "Updated not needed forf wmparc.mgz" | tee -a $LF
+  endif
+
+  cd $subjdir
+  set cmd = (mri_segstats)
+  if ($NoRandomness) set cmd = ($cmd --seed $RngSeed)
+  set cmd = ($cmd --seg mri/wmparc.mgz --sum stats/wmparc.stats \
+    --pv mri/norm.mgz --excludeid 0 \
+    --brainmask mri/brainmask.mgz --in mri/norm.mgz --in-intensity-name norm \
+    --in-intensity-units MR --subject $subjid --surf-wm-vol \
+    --ctab $FREESURFER_HOME/WMParcStatsLUT.txt )
+  if ( -e mri/transforms/talairach.xfm ) then
+    set cmd = ($cmd --etiv);
+  else
+    echo "INFO: mri_segstats will not calculate eTIV" |& tee -a $LF
+    echo "      due to missing talairach.xfm file" |& tee -a $LF
+  endif
+  if ($RHonly || $LHonly) set cmd = ($cmd --no-global-stats)
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+  set cmd = ($cmd $xopts);
   if($RunIt) $fs_time $cmd |& tee -a $LF
   if($status) goto error_exit;
-  echo $cmd > $touchdir/apas2aseg.touch
+  echo $cmd > $touchdir/wmaparc.stats.touch
 endif
 
 #--------------            --------------#
@@ -4596,49 +4657,6 @@ if($DoSegStats) then
   if($RunIt) $fs_time $cmd |& tee -a $LF
   if($status) goto error_exit;
   echo $cmd > $touchdir/segstats.touch
-endif
-
-#-----------------          ------------------#
-##----------------  -wmparc ------------------#
-#-----------------          ------------------#
-if($DoWMParc) then
-  echo "#-----------------------------------------" \
-    |& tee -a $LF |& tee -a $CF
-  echo "#@# WMParc `date`" \
-    |& tee -a $SF |& tee -a $LF |& tee -a $CF
-  cd $subjdir > /dev/null
-  $PWD |& tee -a $LF
-  set xopts = `fsr-getxopts mri_aparc2aseg $XOptsFile $GlobXOptsFile`;
-  # Have to use 1 thread here because mrishash is not thread safe
-  set cmd = (mri_aparc2aseg --s $subjid --labelwm --hypo-as-wm --rip-unknown --threads 1 \
-             --volmask --o mri/wmparc.mgz --ctxseg aparc+aseg.mgz $xopts )
-  if ($LHonly) set cmd = ($cmd --lh )
-  if ($RHonly) set cmd = ($cmd --rh )
-  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-  if($RunIt) $fs_time $cmd |& tee -a $LF
-  if($status) goto error_exit;
-  echo $cmd > $touchdir/wmaparc.touch
-  # Do wm segstats while we're here
-  set xopts = `fsr-getxopts mri_segstats $XOptsFile $GlobXOptsFile`;
-  set cmd = (mri_segstats)
-  if ($NoRandomness) set cmd = ($cmd --seed $RngSeed)
-  set cmd = ($cmd --seg mri/wmparc.mgz --sum stats/wmparc.stats \
-    --pv mri/norm.mgz --excludeid 0 \
-    --brainmask mri/brainmask.mgz --in mri/norm.mgz --in-intensity-name norm \
-    --in-intensity-units MR --subject $subjid --surf-wm-vol \
-    --ctab $FREESURFER_HOME/WMParcStatsLUT.txt )
-  if ( -e mri/transforms/talairach.xfm ) then
-    set cmd = ($cmd --etiv);
-  else
-    echo "INFO: mri_segstats will not calculate eTIV" |& tee -a $LF
-    echo "      due to missing talairach.xfm file" |& tee -a $LF
-  endif
-  if ($RHonly || $LHonly) set cmd = ($cmd --no-global-stats)
-  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-  set cmd = ($cmd $xopts);
-  if($RunIt) $fs_time $cmd |& tee -a $LF
-  if($status) goto error_exit;
-  echo $cmd > $touchdir/wmaparc.stats.touch
 endif
 
 #--------------                    -----------------#
@@ -7433,6 +7451,7 @@ check_params:
     set subjdir = $SUBJECTS_DIR/$subjid
     set mdir = $subjdir/mri
     set sdir = $subjdir/surf
+    set ldir = $subjdir/label
     set tdir = $subjdir/touch
 
     if($TH3Flag)   set TH3Opt = "-th3"

@@ -555,6 +555,7 @@ double CorticalGMVolCorrection(MRI *aseg, MRI *ribbon, int hemi);
 MRI *MRIfixAsegWithRibbon(MRI *aseg, MRI *ribbon, MRI *asegfixed);
 
 std::vector<double> ComputeBrainVolumeStats(const std::string& subject, const std::string& subjdir);
+std::vector<double> ComputeBrainVolumeStats2(const std::string& subject, const std::string& subjdir, const int KeepCSF);
 void CacheBrainVolumeStats(const std::vector<double>& stats, const std::string& subject, const std::string& subjdir);
 std::vector<double> ReadCachedBrainVolumeStats(const std::string& subject, const std::string& subjdir);
 

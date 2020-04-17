@@ -783,6 +783,7 @@ int   MRIvoxelToTalairach(MRI *mri, double xv, double yv, double zv,
                           double *pxt, double *pyt, double *pzt) ;
 int   MRItalairachToVoxel(MRI *mri, double xt, double yt, double zt,
                           double *pxv, double *pyv, double *pzv) ;
+int MRIworldToTalairach(MRI *mri, double xw, double yw, double zw, double *pxt, double *pyt, double *pzt);
 
 int   MRItransformRegion(MRI *mri_src, MRI *mri_dst, MRI_REGION *src_region,
                          MRI_REGION *dst_region) ;

@@ -79,7 +79,9 @@ if(! $UseTkRegister) then
   if($ShowConfig)  set cmd = ($cmd -transform-volume)
   set cmd = ($cmd -viewport $Plane) # currently causes FV to crash
   set targname = `basename $targ`
-  set cmd = ($cmd -v $targ":"visible=0":"name=$targname"(targ)")
+  set visible = 0
+  if($#surflist == 0) set visible = 1
+  set cmd = ($cmd -v $targ":"visible=$visible":"name=$targname"(targ)")
   @ nthaux = 0;
   foreach aux ($auxlist)
     @ nthaux = $nthaux + 1;

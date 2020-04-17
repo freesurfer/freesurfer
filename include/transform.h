@@ -275,5 +275,7 @@ LTA *LTAcreate(MRI *src, MRI *dst, MATRIX *T, int type);
 double RMSregDiffMJ(MATRIX *T1, MATRIX *T2, double radius);
 int LTAinversionNeeded(const MRI *src, const MRI *dst, const LTA *lta);
 int LTAinvertIfNeeded(const MRI *src, const MRI *dst, LTA *lta);
+int TransformCRS2MNI305(const MRI *mri, const double col, const double row, const double slice, 
+			const LTA *talxfm, double *R, double *A, double *S);
 
 #endif
