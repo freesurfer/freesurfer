@@ -157,6 +157,8 @@ int main(int narg, char* arg[])
 	FSENV *fsenv = FSENVgetenv();
 	char tmpstr[2000];	
 	sprintf(tmpstr, "%s/FreeSurferColorLUT.txt", fsenv->FREESURFER_HOME);
+	std::cout << " Color table file " << tmpstr << std::endl; 
+
 	COLOR_TABLE* ct = CTABreadASCII(tmpstr);
 	
 	// Reading in FA file
@@ -201,7 +203,7 @@ int main(int narg, char* arg[])
 	for (int i = 0; i < TRKFiles.size(); i++)
 	{
 		cerr << "TRK File " << i + 1 << ":      " << TRKFiles.at(i) << endl;
-		bundlesIndeces[(long long) atoll(makeCSV("", TRKFiles.at(i), "").c_str())]=i;	
+		bundlesIndeces[(long long) atoll(TRKFiles.at(i).c_str())]=i;	
 		
 	}
 
@@ -235,10 +237,9 @@ int main(int narg, char* arg[])
 	surfaceCL->Load(&*surfCL);
 	
 	surfCL = surfaceCL->GetFSSurface(&*surfCL);
-	surfCL->ct = ct;
 	MRISreadCurvature(surfCL, curvFileL);	
 	MRISreadAnnotation(surfCL, annotationFileL);
-
+	surfCL->ct = ct;
 	//Left Thickness
 	MRI_SURFACE *surfTL;
 	surfTL = MRISread(surfaceFileL);
@@ -258,10 +259,9 @@ int main(int narg, char* arg[])
 	surfaceCR->Load(&*surfCR);
 
 	surfCR = surfaceCR->GetFSSurface(&*surfCR);
-	surfCR->ct = ct;
 	MRISreadCurvature(surfCR, curvFileR);
 	MRISreadAnnotation(surfCR, annotationFileR);
-
+	surfCR->ct = ct;
 	//Right Thickness
 	MRI_SURFACE *surfTR;
 	surfTR = MRISread(surfaceFileR);
@@ -349,7 +349,7 @@ int main(int narg, char* arg[])
 
 		// Initialization of a new stream for every TRK files
 		
-		ColorMeshType::Pointer input = (*meshes)[bundlesIndeces[correspondences[i]]];
+		ColorMeshType::Pointer input = (*meshes)[i] ; //[bundlesIndeces[correspondences[i]]];
 		ColorMeshType::CellsContainer::Iterator  inputCellIt = input->GetCells()->Begin();
 		
 		// Cycling through the streams
@@ -399,11 +399,11 @@ int main(int narg, char* arg[])
 
 			// Changing the point to an index, then the index to the surface
 			ImageType::IndexType first_index, last_index;
-         		if( num1.search("-t"))
+       /*  		if( num1.search("-t"))
 			{
 				//TransformSampleReal2(trans, firstPt[0], firstPt[1], firstPt[2],&auxPt[0],&auxPt[1], &auxPt[2]);
 				//LTAworldToWorld(lta, firstPt[0], firstPt[1], firstPt[2],&auxPt[0],&auxPt[1], &auxPt[2]);
-	/*		       	auxPt.Fill();
+		       	auxPt.Fill();
 				for(int w=0; w<3;w++)
 				{
 					auxPt[0]+=lta->xforms[0].m_L(0,w) * firstPt[w] ;  
@@ -415,10 +415,10 @@ int main(int narg, char* arg[])
 				auxPt[2]+=lta->xforms[0]->m_L[2][3] ;  */
 				/*ref_Image.at(1)->TransformPhysicalPointToIndex(auxPt, first_index);
 				LTAworldToWorld(lta, lastPt[0], lastPt[1], lastPt[2],&auxPt[0],&auxPt[1], &auxPt[2]);
-				ref_Image.at(1)->TransformPhysicalPointToIndex(auxPt, last_index);*/
+				ref_Image.at(1)->TransformPhysicalPointToIndex(auxPt, last_index);
                 	}
 			else
-			{
+			*/{
 			       	ref_Image.at(0)->TransformPhysicalPointToIndex(firstPt, first_index);
 				ref_Image.at(0)->TransformPhysicalPointToIndex(lastPt, last_index);
                 	}
@@ -427,12 +427,12 @@ int main(int narg, char* arg[])
 
 			// Finding the vertice number
 			double distL, distR;
-			vtkIdType Left_ID1  = surfTreeL->FindClosestPointWithinRadius(1000, firstPt_array, distL);
-			vtkIdType Right_ID1 = surfTreeR->FindClosestPointWithinRadius(1000, firstPt_array, distR);		
+			vtkIdType Left_ID1  = surfTreeL->FindClosestPointWithinRadius(10, firstPt_array, distL);
+			vtkIdType Right_ID1 = surfTreeR->FindClosestPointWithinRadius(10, firstPt_array, distR);		
 			vtkIdType ID1 = which_ID(distL, distR, Left_ID1, Right_ID1);
 
-			vtkIdType Left_ID2  = surfTreeL->FindClosestPointWithinRadius(1000, lastPt_array, distL);
-			vtkIdType Right_ID2 = surfTreeR->FindClosestPointWithinRadius(1000, lastPt_array, distR);			
+			vtkIdType Left_ID2  = surfTreeL->FindClosestPointWithinRadius(10, lastPt_array, distL);
+			vtkIdType Right_ID2 = surfTreeR->FindClosestPointWithinRadius(10, lastPt_array, distR);			
 			vtkIdType ID2 = which_ID(distL, distR, Left_ID2, Right_ID2);
 
 
@@ -443,39 +443,25 @@ int main(int narg, char* arg[])
 			{
 		 		CTABfindAnnotation(surfCL->ct , surfCL->vertices[ID1].annotation, &structure);
 				std::cout << ID1 << " " <<   surfCL->vertices[ID1].annotation << " " <<structure<< std::endl;
-				if( structure <10)
-					oFile << 100 << structure << ",";
-				else
-					oFile << 10 << structure << ",";
 			}
 			else
 			{
 		 		CTABfindAnnotation(surfCR->ct , surfCR->vertices[ID1].annotation, &structure);
 				std::cout << ID1 << " " <<   surfCR->vertices[ID1].annotation << " " <<structure<< std::endl;
-				if( structure <10)
-					oFile << 200 << structure << ",";
-				else
-					oFile << 20 << structure << ",";
 			}
+			oFile << structure << ",";
 			if (ID2 == Left_ID2)
 			{
 		 		CTABfindAnnotation(surfCL->ct , surfCL->vertices[ID2].annotation, &structure);
 				std::cout << ID2 << " " <<   surfCL->vertices[ID2].annotation << " " <<structure<< std::endl;
-				if( structure <10)
-					oFile << 100 << structure << ",";
-				else
-					oFile << 10 << structure << ",";
 			}
 			else
 			{
 		 		CTABfindAnnotation(surfCR->ct , surfCR->vertices[ID2].annotation, &structure);
 				std::cout << ID2 << " " <<   surfCR->vertices[ID2].annotation << " " <<structure<< std::endl;
-				if( structure <10)
-					oFile << 200 << structure << ",";
-				else
-					oFile << 20 << structure << ",";
 			}
 
+			oFile << structure << ",";
 
 			if (ID1 == Left_ID1)
 			{

@@ -1,7 +1,13 @@
 six
 nibabel
-numpy
-scipy
+numpy 
+scipy==1.1
 sklearn
 matplotlib
 pyyaml
+pandas
+holoviews
+bokeh
+plotly
+statsmodels
+
