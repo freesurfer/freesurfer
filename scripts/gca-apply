@@ -58,7 +58,7 @@ set StartTime = `date`;
 set tSecStart = `date '+%s'`;
 
 if($#outdir) then
-  mkdir -p $outdir
+  mkdir -p $outdir/stats
   set outdir = `getfullpath $outdir`
   if($#LF == 0) set LF = $outdir/gca-apply.$gcabase.log
 endif
@@ -186,9 +186,10 @@ date | tee -a $LF
 
 # Compute segstats
 if($#outdir == 0) then
+  # putting here can make it easier to run asegstats2table
   set statsfile = ../stats/$gcabase.stats
 else
-  set statsfile = $outdir/$gcabase.stats
+  set statsfile = $outdir/stats/$gcabase.stats
 endif
 set cmd = (mri_segstats --seg $aseg --sum $statsfile \
   --in $norm --pv $norm --empty --excludeid 0 \
