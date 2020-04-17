@@ -2308,7 +2308,7 @@ MRI *MRImaskDifferentGeometry(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, int mas
 	if (xd == 154 && yd == 71 && zd == 157)
 	  DiagBreak() ;
         if (xd < 0 || xd >= mri_mask->width || yd < 0 || yd >= mri_mask->height || zd < 0 || zd >= mri_mask->depth)
-          mask_val = mask + 1;  // allow it through
+          mask_val = mask ;  // DON'T (brf, 4/17/2020) allow it through 
         else
           mask_val = nint(MRIgetVoxVal(mri_mask, xd, yd, zd, 0));
         for (f = 0; f < mri_dst->nframes; f++) {
