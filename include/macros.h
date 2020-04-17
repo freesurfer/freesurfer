@@ -109,8 +109,8 @@
 #define STRCPALLOC(str) strcpy(STRALLOC(str), str)
 
 #ifdef Linux
-#define exp2(f)     pow(2.0,(f))
-#define log2(f)     (log(f) / log(2.0))
+template <class T> T exp2(T f) { return pow(2.0,f);        }
+template <class T> T log2(T f) { return log(f) / log(2.0); }
 #endif
 
 #ifdef IRIX
