@@ -657,7 +657,7 @@ int LayerPointSet::AddPoint( double* ras_in, double value )
     ras[2] = ras_in[2];
   }
 
-  if ( m_points.size() < 2 )
+  if ( m_points.size() < 2 || !GetProperty()->GetShowSpline())
   {
     ControlPoint p;
     p.pt[0] = ras[0];
