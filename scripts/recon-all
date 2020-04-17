@@ -3803,6 +3803,8 @@ if($DoConf2Hires && ! $LongSamseg) then
   if($UseCubic == 1) set cmd = ($cmd --cubic)
   if($UseCubic == 0) set cmd = ($cmd --trilin)
   if($ForceUpdate)   set cmd = ($cmd --force-update)
+  set xopts = `fsr-getxopts conf2hires $XOptsFile $GlobXOptsFile`;
+  set cmd = ($cmd $xopts)
   echo $cmd | tee -a $LF
   if($RunIt) $fs_time $cmd |& tee -a $LF
   if($status) goto error_exit;
