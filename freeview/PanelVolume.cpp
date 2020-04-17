@@ -1,14 +1,5 @@
-/**
- * @file  PanelVolume.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- */
 /*
  * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2017/01/20 19:58:46 $
- *    $Revision: 1.107 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -793,7 +784,7 @@ void PanelVolume::OnColorTableItemDoubleClicked(QTreeWidgetItem *item_in)
       }
       else
       {
-        qDebug() << tr("Label %1 does not exist").arg(item->text(0));
+        cout << qPrintable(tr("Label %1 does not exist").arg(item->text(0))) << endl;
       }
     }
   }
@@ -1931,7 +1922,7 @@ void PanelVolume::OnGoToFirstPoint()
       }
       else
       {
-        qDebug() << tr("Label %1 does not exist").arg(item->text(0));
+        cout << qPrintable(tr("Label %1 does not exist").arg(item->text(0))) << endl;
       }
     }
   }

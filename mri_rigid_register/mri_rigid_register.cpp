@@ -1,15 +1,4 @@
-/**
- * @file  mri_rigid_register.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
- */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
- * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2015/02/05 23:34:40 $
- *    $Revision: 1.17 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -31,9 +20,6 @@
 // original date  :
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: zkaufman $
-// Revision Date  : $Date: 2015/02/05 23:34:40 $
-// Revision       : $Revision: 1.17 $
 //
 ////////////////////////////////////////////////////////////////////
 

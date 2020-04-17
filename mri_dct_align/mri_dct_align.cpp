@@ -1,5 +1,4 @@
 /**
- * @file  mri_dct_align.c
  * @brief program for computing a nonlinear alignment using a discrete cosine transform
  *
  * compute the discrete cosine transform to align two binary images, typically
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:14 $
- *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -32,9 +27,6 @@
 // Mar, 2007
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2011/03/02 00:04:14 $
-// Revision       : $Revision: 1.2 $
 //
 ////////////////////////////////////////////////////////////////////
 

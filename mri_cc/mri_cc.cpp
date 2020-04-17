@@ -1,5 +1,4 @@
 /**
- * @file  mri_cc.c
  * @brief program for segmenting the corpus callosum
  *
  * segments the callosum into 5 parts divided along the primary
@@ -8,10 +7,6 @@
  */
 /*
  * Original Authors: Bruce Fischl and Peng Yu
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2015/12/04 13:59:56 $
- *    $Revision: 1.39 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

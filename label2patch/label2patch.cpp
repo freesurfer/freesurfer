@@ -1,15 +1,10 @@
 /**
- * @file  label2patch.c
  * @brief convert a label into a patch suitable for flattening
  *
  * convert a label into a patch suitable for flattening
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/12/10 22:57:39 $
- *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

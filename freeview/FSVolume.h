@@ -1,14 +1,9 @@
 /**
- * @file  FSVolume.h
  * @brief Base volume class that takes care of I/O and data conversion.
  *
  */
 /*
  * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2016/09/27 15:45:33 $
- *    $Revision: 1.49 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -139,9 +134,9 @@ public:
 
   void NativeRASToTkReg( const double* pos_in, double* pos_out );
 
-  bool RASToTalairachVoxel(const double* pos_in, double* pos_out);
+  bool RASToTalairach(const double* pos_in, double* pos_out);
 
-  void TalairachVoxelToRAS(const double* pos_in, double* pos_out);
+  void TalairachToRAS(const double* pos_in, double* pos_out);
 
   void SetMRITarget( MRI* mri );
 

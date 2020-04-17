@@ -44,9 +44,7 @@
 ** Intent:  This header defines platform specific values for
 **   MIR CTN software.  This version happens to be for
 **   Windows NT.
-** Last Update:  $Author: nicks $, $Date: 2006/12/29 02:09:01 $
 ** Source File:  $RCSfile: dicom_platform.h,v $
-** Revision:  $Revision: 1.6 $
 ** Status:  $State: Exp $
 */
 

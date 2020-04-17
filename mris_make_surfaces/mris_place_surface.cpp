@@ -1,15 +1,10 @@
 /**
- * @file  mri_place_surface.c
  * @brief Places surface based on an intensity input image. This is meant to provide
  * replacement functionality for mris_make_surfaces in a form that is easier to 
  * maintain.
  */
 /*
  * Original Author: Douglas N Greve (but basically a rewrite of mris_make_surfaces by BF)
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2017/02/15 21:04:18 $
- *    $Revision: 1.246 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -235,6 +230,9 @@ double Ghisto_left_outside_peak_pct = 0.5;
 double Ghisto_right_outside_peak_pct = 0.5;
 int n_averages=0;
 int UseMMRefine = 0;
+AutoDetGWStats adgws;
+char *coversegpath = NULL;
+MRI *mri_cover_seg = NULL;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) 
@@ -244,7 +242,6 @@ int main(int argc, char **argv)
   MRI *invol, *seg=NULL, *wm, *involCBV, *involPS;
   Timer timer ;
   char *cmdline2, cwd[2000];
-  AutoDetGWStats adgws;
   //char *field=NULL;
 
   nargs = handleVersionOption(argc, argv, "mris_place_surface");
@@ -322,13 +319,6 @@ int main(int argc, char **argv)
     // Note: in long stream orig = orig_white
     err = adgws.AutoDetectStats(subject, hemi);
     if(err) exit(1);
-  }
-  else {
-    err = adgws.Read(adgwsinfile);
-    if(err){
-      printf("ERROR: reading %s\n",adgwsinfile);
-      exit(1);
-    }
   }
   if(adgwsoutfile){
     err = adgws.Write(adgwsoutfile);
@@ -554,6 +544,17 @@ int main(int argc, char **argv)
       // This is done each cycle with white.preaparc
       printf("Freezing midline and others\n");  fflush(stdout);
       ripmngr.RipVertices();
+    }
+
+    if(mri_cover_seg) {
+      if(i == 0){
+	MRI *mri_bin, *mri_tmp;
+	mri_bin = MRIclone(involCBV, NULL) ;
+	mri_tmp = MRIScoverSeg(surf, mri_bin, mri_cover_seg, surftype);
+	MRIfree(&mri_bin) ; 
+	MRIfree(&involCBV);
+	involCBV = mri_tmp ;
+      }
     }
 
     parms.sigma = current_sigma ;
@@ -798,6 +799,11 @@ static int parse_commandline(int argc, char **argv) {
       surftype = GRAY_CSF;
       nargsused = 2;
     } 
+    else if(!strcasecmp(option, "--cover-seg") || !strcasecmp(option, "--cover_seg")){
+      if(nargc < 1) CMDargNErr(option,1);
+      coversegpath = pargv[0];
+      nargsused = 1;
+    } 
     else if(!strcasecmp(option, "--mm-refine"))   UseMMRefine = 1;
     else if(!strcmp(option, "--i")){
       if(nargc < 1) CMDargNErr(option,1);
@@ -855,6 +861,11 @@ static int parse_commandline(int argc, char **argv) {
     else if(!strcasecmp(option, "--adgws") || !strcasecmp(option, "--adgws-in")){
       if(nargc < 1) CMDargNErr(option,1);
       adgwsinfile = pargv[0];
+      err = adgws.Read(adgwsinfile);
+      if(err){
+	printf("ERROR: reading %s\n",adgwsinfile);
+	exit(1);
+      }
       nargsused = 1;
     } 
     else if(!strcasecmp(option, "--adgws-out")){
@@ -862,6 +873,61 @@ static int parse_commandline(int argc, char **argv) {
       adgwsoutfile = pargv[0];
       nargsused = 1;
     } 
+
+    // The white/pial border/inside/outside hi/low must be specified
+    // AFTER --agws-in
+    else if(!strcmp(option, "--white_border_hi")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      adgws.white_border_hi = atof(pargv[0]);
+      nargsused = 1;
+    }
+    else if(!strcmp(option, "--white_border_low")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      adgws.white_border_low = atof(pargv[0]);
+      nargsused = 1;
+    }
+    else if(!strcmp(option, "--white_outside_low")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      adgws.white_outside_low = atof(pargv[0]);
+      nargsused = 1;
+    }
+    else if(!strcmp(option, "--white_inside_hi")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      adgws.white_inside_hi = atof(pargv[0]);
+      nargsused = 1;
+    }
+    else if(!strcmp(option, "--white_outside_hi")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      adgws.white_outside_hi = atof(pargv[0]);
+      nargsused = 1;
+    }
+    else if(!strcmp(option, "--pial_border_hi")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      adgws.pial_border_hi = atof(pargv[0]);
+      nargsused = 1;
+    }
+    else if(!strcmp(option, "--pial_border_low")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      adgws.pial_border_low = atof(pargv[0]);
+      nargsused = 1;
+    }
+    else if(!strcmp(option, "--pial_outside_low")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      adgws.pial_outside_low = atof(pargv[0]);
+      nargsused = 1;
+    }
+    else if(!strcmp(option, "--pial_inside_hi")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      adgws.pial_inside_hi = atof(pargv[0]);
+      nargsused = 1;
+    }
+    else if(!strcmp(option, "--pial_outside_hi")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      adgws.pial_outside_hi = atof(pargv[0]);
+      nargsused = 1;
+    }
+
+
     else if(!strcmp(option, "--nsmooth")){
       if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&nsmoothsurf);
@@ -1164,6 +1230,12 @@ static void check_options(void) {
   if(pinlabel &&  whitesurfpath == NULL){
     printf("ERROR: must spec --white-surf with --pin-medial-wall\n");
     exit(1);
+  }
+
+  if(coversegpath){
+    printf("Reading in %s",coversegpath);
+    mri_cover_seg = MRIread(coversegpath);
+    if(!mri_cover_seg) exit(1);
   }
 
   return;

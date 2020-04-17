@@ -1,5 +1,4 @@
 /**
- * @file  mris_refine_surfaces.c
  * @brief refines the surfaces lh(rh).pial and lh(rh).white
  *
  * This program refines the surfaces lh(rh).pial and lh(rh).white
@@ -11,10 +10,6 @@
  */
 /*
  * Original Author: Bruce Fischl (June 16, 1998)
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/12/10 22:57:53 $
- *    $Revision: 1.23 $
  *
  * Copyright © 2011-2017 The General Hospital Corporation (Boston, MA) "MGH"
  *

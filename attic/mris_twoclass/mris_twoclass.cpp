@@ -1,14 +1,9 @@
 /**
- * @file  mris_twoclass.c
  * @brief computes autocorrelation function of a curvature file
  *
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2015/02/05 23:34:41 $
- *    $Revision: 1.13 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

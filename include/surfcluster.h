@@ -1,5 +1,4 @@
 /**
- * @file  surfcluster.h
  * @brief routines for growing clusters on the surface
  *
  * routines for growing clusters on the surface
@@ -8,10 +7,6 @@
  */
 /*
  * Original Author: Doug Greve
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2012/01/11 21:53:17 $
- *    $Revision: 1.19 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

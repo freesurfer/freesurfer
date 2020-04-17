@@ -1,15 +1,10 @@
 /**
- * @file  dmri_forrest.cxx
  * @brief Random-forrest classifier for white-matter segmentation
  *
  * Random-forrest classifier for white-matter segmentation
  */
 /*
  * Original Author: Anastasia Yendiki
- * CVS Revision Info:
- *    $Author: ayendiki $
- *    $Date: 2014/05/27 14:49:34 $
- *    $Revision: 1.2 $
  *
  * Copyright © 2031 The General Hospital Corporation (Boston, MA) "MGH"
  *

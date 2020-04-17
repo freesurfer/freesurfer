@@ -1,14 +1,9 @@
 /**
- * @file  LayerVolumeTrack.cpp
  * @brief Layer class for tracks saved in a multi-frame volume.
  *
  */
 /*
  * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2013/02/06 18:35:43 $
- *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

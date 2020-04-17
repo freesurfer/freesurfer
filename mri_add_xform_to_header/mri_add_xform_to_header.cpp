@@ -1,14 +1,9 @@
 /**
- * @file  mri_add_xform_to_header.c
  * @brief Just adds specified xform to the volume header
  *
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:13 $
- *    $Revision: 1.12 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

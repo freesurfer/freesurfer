@@ -1,5 +1,4 @@
 /**
- * @file  vtkKWRGBATransferFunctionEditor.cxx
  * @brief an RGBA tfunc function editor
  *
  * A widget that allows the user to edit a color transfer
@@ -15,10 +14,6 @@
  */
 /*
  * Original Author: Kitware, Inc, modified by Kevin Teich
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:56 $
- *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -69,7 +64,6 @@
 #include <vtksys/stl/string>
 
 vtkStandardNewMacro(vtkKWRGBATransferFunctionEditor);
-vtkCxxRevisionMacro(vtkKWRGBATransferFunctionEditor, "$Revision: 1.8 $");
 
 #define VTK_KW_CTFE_COLOR_RAMP_TAG "color_ramp_tag"
 

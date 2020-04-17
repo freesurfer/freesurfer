@@ -1,5 +1,4 @@
 /**
- * @file  mri_surf2surf.c
  * @brief Resamples data from one surface onto another.
  *
  * Purpose: Resamples data from one surface onto another. If
@@ -9,10 +8,6 @@
  */
 /*
  * Original Author: Douglas Greve
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2015/11/05 22:07:33 $
- *    $Revision: 1.103 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

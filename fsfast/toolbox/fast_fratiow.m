@@ -25,10 +25,6 @@ function [F, dof1, dof2, ces, cescvm, pcc] = fast_fratiow(beta,X,rvar,C,nacf,nac
 % fast_fratiow.m
 %
 % Original Author: Doug Greve
-% CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2011/03/02 00:04:04 $
-%    $Revision: 1.15 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %

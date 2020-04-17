@@ -1,5 +1,4 @@
 /**
- * @file  mri_normalize_tp2.c
  * @brief use tp1's ctrl volume to normalize tp2
  *
  * Used in longitudinal processing.  Rather than calculating the control
@@ -8,10 +7,6 @@
  */
 /*
  * Original Author: Xaio Han
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:23 $
- *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

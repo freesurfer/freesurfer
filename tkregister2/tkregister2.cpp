@@ -1,15 +1,10 @@
 /**
- * @file  tkregister2.c
  * @brief Tcl/Tk-based MRI volume registration utility
  *
  * See: http://surfer.nmr.mgh.harvard.edu/fswiki/FsTutorial/Talairach
  */
 /*
  * Original Authors: Martin Sereno and Anders Dale, 1996; Doug Greve, 2002
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2016/08/02 21:17:11 $
- *    $Revision: 1.133 $
  *
  * Copyright (C) 2002-2011, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).

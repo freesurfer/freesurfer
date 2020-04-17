@@ -1,13 +1,8 @@
 /**
- * @file  utilsmath.h
  * @brief utilities for distance field algorithm and the OBB Tree algorithm
  */
 /*
  * Original Author: Krish Subramanium
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/03/13 01:32:40 $
- *    $Revision: 1.3 $
  *
  * Geometric Tools, LLC
  * Copyright (c) 1998-2010

@@ -12,10 +12,6 @@ function flac = fast_ldflac(flacfile,flac)
 % fast_ldflac.m
 %
 % Original Author: Doug Greve
-% CVS Revision Info:
-%    $Author: greve $
-%    $Date: 2015/11/04 20:53:30 $
-%    $Revision: 1.60 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %

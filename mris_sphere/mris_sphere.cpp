@@ -1,5 +1,4 @@
 /**
- * @file  mris_sphere.c
  * @brief Inflates a surface to a sphere
  *
  * "Cortical Surface-Based Analysis II: Inflation, Flattening, and a
@@ -8,10 +7,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2017/02/07 19:04:37 $
- *    $Revision: 1.62 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -381,7 +376,7 @@ main(int argc, char *argv[])
   }
 
   if (1) {
-    fprintf(stdout, "%s:%d should but doesn't set orig x et al here \n", __FILE__, __LINE__);
+    fs::debug() << "should but doesn't set orig xyz here";
   } else {
     MRISsetOriginalXYZfromXYZ(mris);
     mrisComputeOriginalVertexDistances(mris);

@@ -1,5 +1,4 @@
 /**
- * @file  mri_topology.c
  * @brief topology routines
  *
  * "Genetic Algorithm for the Topology Correction of Cortical Surfaces",
@@ -8,10 +7,6 @@
  */
 /*
  * Original Author: F. Segonne
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:45 $
- *    $Revision: 1.14 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

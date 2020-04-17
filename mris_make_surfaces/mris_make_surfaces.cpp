@@ -10,10 +10,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2017/02/16 19:42:36 $
- *    $Revision: 1.172 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -922,57 +918,18 @@ int main(int argc, char *argv[])
     }
 
     if (mri_cover_seg) {
-      MRI *mri_tmp, *mri_bin ;
-
-      if (i == 0){
-        mri_bin = MRIclone(mri_T1, NULL) ;
-
-        printf("creating distance transform volume from segmentation\n") ;
-        if (mris->hemisphere == LEFT_HEMISPHERE) {
-          MRIcopyLabel(mri_cover_seg, mri_bin, Left_Cerebral_White_Matter) ;
-          MRIcopyLabel(mri_cover_seg, mri_bin, Left_Thalamus_Proper) ;
-          MRIcopyLabel(mri_cover_seg, mri_bin, Left_Caudate) ;
-          MRIcopyLabel(mri_cover_seg, mri_bin, Left_Pallidum) ;
-          MRIcopyLabel(mri_cover_seg, mri_bin, Left_Putamen) ;
-          MRIcopyLabel(mri_cover_seg, mri_bin, Left_VentralDC) ;
-          MRIcopyLabel(mri_cover_seg, mri_bin, Left_Lateral_Ventricle) ;
-          MRIcopyLabel(mri_cover_seg, mri_bin, Left_Lesion) ;
-          MRIcopyLabel(mri_cover_seg, mri_bin, Left_Accumbens_area) ;
-          MRIcopyLabel(mri_cover_seg, mri_bin, Left_WM_hypointensities) ;
-          MRIcopyLabel(mri_cover_seg, mri_bin, Left_non_WM_hypointensities) ;
-          MRIcopyLabel(mri_cover_seg, mri_bin, Left_vessel) ;
-        }
-        else {
-          MRIcopyLabel(mri_cover_seg, mri_bin, Right_Cerebral_White_Matter) ;
-          MRIcopyLabel(mri_cover_seg, mri_bin, Right_Thalamus_Proper) ;
-          MRIcopyLabel(mri_cover_seg, mri_bin, Right_Caudate) ;
-          MRIcopyLabel(mri_cover_seg, mri_bin, Right_Pallidum) ;
-          MRIcopyLabel(mri_cover_seg, mri_bin, Right_Putamen) ;
-          MRIcopyLabel(mri_cover_seg, mri_bin, Right_Lateral_Ventricle) ;
-          MRIcopyLabel(mri_cover_seg, mri_bin, Right_Lesion) ;
-          MRIcopyLabel(mri_cover_seg, mri_bin, Right_Accumbens_area) ;
-          MRIcopyLabel(mri_cover_seg, mri_bin, Right_VentralDC) ;
-          MRIcopyLabel(mri_cover_seg, mri_bin, Right_WM_hypointensities) ;
-          MRIcopyLabel(mri_cover_seg, mri_bin, Right_non_WM_hypointensities) ;
-          MRIcopyLabel(mri_cover_seg, mri_bin, Right_vessel) ;
-        }
-        MRIcopyLabel(mri_cover_seg, mri_bin, Brain_Stem) ;
-        MRIcopyLabel(mri_cover_seg, mri_bin, Third_Ventricle) ;
-        MRIcopyLabel(mri_cover_seg, mri_bin, WM_hypointensities) ;
-        MRIbinarize(mri_bin, mri_bin, 1, 0, 1) ;
-        mri_tmp =
-          MRIdistanceTransform(mri_bin, NULL, 1, 20, DTRANS_MODE_SIGNED, NULL) ;
-        // to be in same range as intensities:
-        MRIscalarMul(mri_tmp, mri_tmp, (100.0/mri_bin->xsize)) ;
-	if (mri_T1 == mri_T1_pial)
-	  mri_T1_pial = mri_tmp ;
-        MRIfree(&mri_T1) ;
-        mri_T1 = mri_tmp ;
-        MRISsetVals(mris, 0) ;   // target is 0 distance transform val
-        MRIfree(&mri_bin) ;
+      if(i == 0){
+	MRI *mri_bin, *mri_tmp;
+	int itmp=0;
+	if(mri_T1 == mri_T1_pial) itmp=1;
+	mri_bin = MRIclone(mri_T1, NULL) ;
+	mri_tmp = MRIScoverSeg(mris, mri_bin, mri_cover_seg, GRAY_WHITE);
+	MRIfree(&mri_bin) ; 
+	MRIfree(&mri_T1) ;
+	mri_T1 = mri_tmp ;
+	if(itmp) mri_T1_pial = mri_tmp ;
       }
-    } // cover seg
-
+    }
     else if (flair_or_T2_name == NULL){ // otherwise already done
       // This is where most of the recon-all commands end up when placing white
 
@@ -1754,71 +1711,28 @@ int main(int argc, char *argv[])
         sockets, and ignore subtle local minima in intensity at the
         border of the sockets.  Will set to 0 after border values have
         been computed so that it doesn't mess up gradients.      */
+	printf("removing bright stuff\n");
 	MRImask(mri_T1, mri_labeled, mri_T1, BRIGHT_LABEL, 255) ;
 	MRImask(mri_T1, mri_labeled, mri_T1, BRIGHT_BORDER_LABEL, MID_GRAY) ;
+	printf("done removing bright stuff\n");
       }
 
       if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
         MRIwrite(mri_T1, "pial_masked.mgz") ; 
 
-      if (mri_cover_seg)  { // off by default
-        MRI *mri_tmp, *mri_bin ;
-        if (i == 0)        {
-          mri_bin = MRIclone(mri_T1, NULL) ;
-          printf("creating distance transform volume from segmentation\n") ;
-          if (mris->hemisphere == LEFT_HEMISPHERE) {
-            MRIcopyLabel(mri_cover_seg, mri_bin, Left_Cerebral_White_Matter) ;
-            MRIcopyLabel(mri_cover_seg, mri_bin, Left_Cerebral_Cortex) ;
-            MRIcopyLabel(mri_cover_seg, mri_bin, Left_Thalamus_Proper) ;
-            MRIcopyLabel(mri_cover_seg, mri_bin, Left_Caudate) ;
-            MRIcopyLabel(mri_cover_seg, mri_bin, Left_Pallidum) ;
-            MRIcopyLabel(mri_cover_seg, mri_bin, Left_Putamen) ;
-            MRIcopyLabel(mri_cover_seg, mri_bin, Left_VentralDC) ;
-            MRIcopyLabel(mri_cover_seg, mri_bin, Left_Lateral_Ventricle) ;
-            MRIcopyLabel(mri_cover_seg, mri_bin, Left_Lesion) ;
-            MRIcopyLabel(mri_cover_seg, mri_bin, Left_Accumbens_area) ;
-            MRIcopyLabel(mri_cover_seg, mri_bin, Left_WM_hypointensities) ;
-            MRIcopyLabel(mri_cover_seg, mri_bin, Left_non_WM_hypointensities) ;
-            MRIcopyLabel(mri_cover_seg, mri_bin, Left_vessel) ;
-          }
-          else
-          {
-            MRIcopyLabel(mri_cover_seg, mri_bin, Right_Cerebral_Cortex) ;
-            MRIcopyLabel(mri_cover_seg, mri_bin, Right_Cerebral_White_Matter) ;
-            MRIcopyLabel(mri_cover_seg, mri_bin, Right_Thalamus_Proper) ;
-            MRIcopyLabel(mri_cover_seg, mri_bin, Right_Caudate) ;
-            MRIcopyLabel(mri_cover_seg, mri_bin, Right_Pallidum) ;
-            MRIcopyLabel(mri_cover_seg, mri_bin, Right_Putamen) ;
-            MRIcopyLabel(mri_cover_seg, mri_bin, Right_Lateral_Ventricle) ;
-            MRIcopyLabel(mri_cover_seg, mri_bin, Right_Lesion) ;
-            MRIcopyLabel(mri_cover_seg, mri_bin, Right_Accumbens_area) ;
-            MRIcopyLabel(mri_cover_seg, mri_bin, Right_VentralDC) ;
-            MRIcopyLabel(mri_cover_seg, mri_bin, Right_WM_hypointensities) ;
-            MRIcopyLabel(mri_cover_seg, mri_bin, Right_non_WM_hypointensities) ;
-            MRIcopyLabel(mri_cover_seg, mri_bin, Right_vessel) ;
-          }
-          MRIcopyLabel(mri_cover_seg, mri_bin, Brain_Stem) ;
-          MRIcopyLabel(mri_cover_seg, mri_bin, Third_Ventricle) ;
-          MRIcopyLabel(mri_cover_seg, mri_bin, WM_hypointensities) ;
-          MRIbinarize(mri_bin, mri_bin, 1, 0, 1) ;
-          mri_tmp = MRIdistanceTransform(mri_bin, NULL, 1, 20,
-                                         DTRANS_MODE_SIGNED, NULL) ;
-          MRIscalarMul(mri_tmp, mri_tmp,
-                       (5/mri_tmp->xsize)) ;// same range as intensities
-	  if (Gdiag & DIAG_WRITE)
-	  {
-              sprintf(fname, "%s.cseg.dtrans%s%s.mgz", hemi, output_suffix, suffix) ;
-              printf("writing dtrans volume to %s\n", fname) ;
-              MRIwrite(mri_tmp, fname) ;
-	  }
-	  //          parms.grad_dir = 1 ;
-          MRIfree(&mri_T1) ;
-          mri_T1 = mri_tmp ;
-          MRISsetVals(mris, 0) ;   // target is 0 distance transform val
-          MRIfree(&mri_bin) ;
-        }
-      } // end if mri_cover_seg
-
+      if (mri_cover_seg) {// off by default
+	if(i == 0) {
+	  MRI *mri_bin, *mri_tmp;
+	  int itmp=0;
+	  if(mri_T1 == mri_T1_pial) itmp=1;
+	  mri_bin = MRIclone(mri_T1, NULL) ;
+	  mri_tmp = MRIScoverSeg(mris, mri_bin, mri_cover_seg, GRAY_CSF);
+	  MRIfree(&mri_bin) ; 
+	  MRIfree(&mri_T1) ;
+	  mri_T1 = mri_tmp ;
+	  if(itmp) mri_T1_pial = mri_tmp ;
+	}
+      }
       else if (flair_or_T2_name == NULL) 
       {
         // This is the main CBV for pial
@@ -5044,4 +4958,6 @@ MRISremoveSelfIntersections(MRI_SURFACE *mris)
   MHTfree(&mht) ;
   return(NO_ERROR) ; ;
 }
+
+
 

@@ -1,14 +1,9 @@
 /**
- * @file  mris_distance_transform.c
  * @brief program for computing a distance transform on the surface
  *
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2013/04/12 20:59:17 $
- *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

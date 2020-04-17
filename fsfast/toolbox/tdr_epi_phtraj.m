@@ -13,10 +13,6 @@ function [phx, phy, epipar] = tdr_epi_phtraj(arg1,delay)
 % tdr_epi_phtraj.m
 %
 % Original Author: Doug Greve
-% CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2011/03/02 00:04:07 $
-%    $Revision: 1.5 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %

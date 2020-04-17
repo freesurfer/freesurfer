@@ -1,5 +1,4 @@
 /**
- * @file  oct_rf_train.c
  * @brief main program for training a cellular classifier from labeled OCT data
  *
  * program for trainin a random forest from a set of convolutional layers, and applying the
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2014/09/26 15:27:08 $
- *    $Revision: 1.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

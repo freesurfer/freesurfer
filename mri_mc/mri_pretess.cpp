@@ -1,5 +1,4 @@
 /**
- * @file  mri_pretess.c
  * @brief make sure a filled volume can be tessellated
  *
  * Changes white matter (WM) segmentation so that the neighbors of all
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Florent Segonne
- * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2013/08/30 18:12:25 $
- *    $Revision: 1.22 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

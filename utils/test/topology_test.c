@@ -1,5 +1,4 @@
 /**
- * @file  topology_test.cpp
  * @brief mrisurf_topology tests
  *
  */

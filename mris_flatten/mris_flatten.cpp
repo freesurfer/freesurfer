@@ -1,5 +1,4 @@
 /**
- * @file  mris_flatten.c
  * @brief flatten a surface patch
  *
  * "Cortical Surface-Based Analysis II: Inflation, Flattening, and a
@@ -8,10 +7,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/12/10 22:57:46 $
- *    $Revision: 1.42 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

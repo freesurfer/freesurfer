@@ -1,5 +1,4 @@
 /**
- * @file  pathconvert.h
  * @brief convert directory path specifications in *nix.
  *
  * 'pathconvert.h' declares two functions, 'abs2rel' and 'rel2abs'
@@ -11,10 +10,6 @@
  */
 /*
  * Original Authors: Rudolph Pienaar / Christian Haselgrove
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/02/27 21:18:07 $
- *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

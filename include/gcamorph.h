@@ -1,5 +1,4 @@
 /**
- * @file  gcamorph.h
  * @brief morph is a dense vector field uniformly distributed in the atlas
  *
  *
@@ -13,10 +12,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2016/02/04 20:23:04 $
- *    $Revision: 1.117 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

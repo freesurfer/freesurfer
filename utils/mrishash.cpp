@@ -1,5 +1,4 @@
 /**
- * @file  mrishash.c
  * @brief Implements a hash table mechanism to speed comparing vertices
  *
  * The purpose of MRI hash tables is to vastly accelerate algorithms which
@@ -8,10 +7,6 @@
  */
 /*
  * Original Author: Graham Wideman, based on code by Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/06/15 17:49:47 $
- *    $Revision: 1.53 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -149,12 +144,14 @@ void MHT_maybeParallel_end()
 static void checkThread0() 
 {
 #ifdef HAVE_OPENMP
-    int tid = omp_get_thread_num();
-    if (tid != 0) {
-        fprintf(stderr, "lock or unlock, not thread 0, but claiming no parallelism\n");
-        *(int*)(-1) = 0;
-        exit(1);
-    }
+  int tid = omp_get_thread_num();
+  if (tid != 0) {
+    fprintf(stderr, "lock or unlock, not thread 0, but claiming no parallelism\n");
+    fprintf(stdout, "lock or unlock, not thread 0, but claiming no parallelism\n");
+    fprintf(stdout, "You may need to surround the hash code with   MHT_maybeParallel_{begin,end}()\n");
+    *(int*)(-1) = 0;
+    exit(1);
+  }
 #endif
 }
  

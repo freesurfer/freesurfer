@@ -1,5 +1,4 @@
 /**
- * @file  gca.h
  * @brief utilities for whole-brain segmentation
  *
  * Reference:
@@ -9,10 +8,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/12/05 16:56:12 $
- *    $Revision: 1.137 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

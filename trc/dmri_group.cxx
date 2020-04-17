@@ -1,15 +1,10 @@
 /**
- * @file  dmri_group.cxx
  * @brief Combine path measures from multiple subjects
  *
  * Combine path measures from multiple subjects
  */
 /*
  * Original Author: Anastasia Yendiki
- * CVS Revision Info:
- *    $Author: ayendiki $
- *    $Date: 2016/12/19 17:09:04 $
- *    $Revision: 1.11 $
  *
  * Copyright © 2013 The General Hospital Corporation (Boston, MA) "MGH"
  *

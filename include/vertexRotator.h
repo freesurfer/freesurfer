@@ -1,14 +1,9 @@
 /**
- * @file  vertexRotator.h
  * @brief rapidly rotate vertexs around the x=0 y=0 z=0 axes
  *
  */
 /*
  * Original Author: Bevin Brett
- * CVS Revision Info:
- *    $Author: bbrett $
- *    $Date: 2018/05/04 07:52:00 $
- *    $Revision: 1.0 $
  *
  * Copyright © 2018 The General Hospital Corporation (Boston, MA) "MGH"
  *

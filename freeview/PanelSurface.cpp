@@ -1,14 +1,5 @@
-/**
- * @file  PanelSurface.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- */
 /*
  * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2017/02/01 15:28:54 $
- *    $Revision: 1.74 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -47,6 +38,9 @@
 #include "DialogSurfaceLabelOperations.h"
 #include "WindowEditAnnotation.h"
 #include "DialogNewAnnotation.h"
+#ifdef Q_OS_MAC
+#include "MacHelper.h"
+#endif
 
 PanelSurface::PanelSurface(QWidget *parent) :
   PanelLayer("Surface", parent),
@@ -58,7 +52,23 @@ PanelSurface::PanelSurface(QWidget *parent) :
   ui->pushButtonDeleteLabel->setMaximumWidth(62);
   ui->pushButtonLoadLabel->setMaximumWidth(55);
   ui->pushButtonSaveLabel->setMaximumWidth(55);
+
+  if (MacHelper::IsDarkMode())
+  {
+      QIcon icn(":/resource/icons/surface_path_dm.png");
+      icn.addPixmap(QPixmap(":/resource/icons/surface_path_dm.png"), QIcon::Normal, QIcon::On);
+      ui->actionPath->setIcon(icn);
+      ui->actionCutLine->setIcon(QIcon(":/resource/icons/surface_cut_line_dm.png"));
+      ui->actionCutClosedLine->setIcon(QIcon(":/resource/icons/surface_cut_closed_line_dm.png"));
+      ui->actionCutClear->setIcon(QIcon(":/resource/icons/surface_cut_clear_dm.png"));
+      ui->actionFillUncutArea->setIcon(QIcon(":/resource/icons/surface_fill_uncut_area_dm.png"));
+      ui->actionUndoCut->setIcon(QIcon(":/resource/icons/surface_undo_cut_dm.png"));
+      ui->actionMakePath->setIcon(QIcon(":/resource/icons/surface_path_make_dm.png"));
+      ui->actionMakeClosedPath->setIcon(QIcon(":/resource/icons/surface_path_make_closed_dm.png"));
+      ui->actionDeletePath->setIcon(QIcon(":/resource/icons/surface_path_delete_dm.png"));
+  }
 #endif
+
   MainWindow* mainwnd = MainWindow::GetMainWindow();
   ui->toolbar->insertAction(ui->actionShowOverlay, mainwnd->ui->actionLoadSurface);
   ui->toolbar->insertAction(ui->actionShowOverlay, mainwnd->ui->actionCloseSurface);

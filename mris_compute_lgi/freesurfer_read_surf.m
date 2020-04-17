@@ -60,7 +60,6 @@ function [vertices, faces] = freesurfer_read_surf(fname)
 %          freesurfer_read_wfile
 %
 
-% $Revision: 1.2 $ $Date: 2011/02/07 21:47:40 $
 
 % Copyright (C) 2000  Darren L. Weber
 
@@ -68,7 +67,6 @@ function [vertices, faces] = freesurfer_read_surf(fname)
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-ver = '$Revision: 1.2 $ $Date: 2011/02/07 21:47:40 $';
 fprintf('FREESURFER_READ_SURF [v %s]\n',ver(11:15));
 
 if(nargin < 1)

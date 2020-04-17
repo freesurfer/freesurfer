@@ -1,14 +1,9 @@
 /**
- * @file  fnv_hash_test.c
  * @brief Tests for the hash function that can be used to replace getting a sequence of random numbers
  *
  */
 /*
  * Original Author: Bevin Brett
- * CVS Revision Info:
- *    $Author: ohinds $
- *    $Date: 2018/01/16 00:00:00 $
- *    $Revision: 1.0 $
  *
  * Copyright © 2018 The General Hospital Corporation (Boston, MA) "MGH"
  *

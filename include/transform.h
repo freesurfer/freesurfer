@@ -1,14 +1,9 @@
 /**
- * @file  transform.h
  * @brief linear transform array utilities
  *
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2015/08/19 16:34:29 $
- *    $Revision: 1.83 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -280,5 +275,7 @@ LTA *LTAcreate(MRI *src, MRI *dst, MATRIX *T, int type);
 double RMSregDiffMJ(MATRIX *T1, MATRIX *T2, double radius);
 int LTAinversionNeeded(const MRI *src, const MRI *dst, const LTA *lta);
 int LTAinvertIfNeeded(const MRI *src, const MRI *dst, LTA *lta);
+int TransformCRS2MNI305(const MRI *mri, const double col, const double row, const double slice, 
+			const LTA *talxfm, double *R, double *A, double *S);
 
 #endif

@@ -1,5 +1,4 @@
 /**
- * @file  mri_rbvpvc.c
  * @brief Peforms RBV Partial volume correction
  *
  * Implementation of Region-based Voxelwise (RBV) partial volume correction
@@ -8,10 +7,6 @@
  */
 /*
  * Original Author: Douglas N. Greve
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2014/08/17 17:47:57 $
- *    $Revision: 1.44 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

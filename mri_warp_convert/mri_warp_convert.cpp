@@ -1,15 +1,10 @@
 /**
- * @file  mri_warp_convert.cpp
  * @brief A program to convert non-linear deformation field file formats
  *
  */
 
 /*
  * Original Author: Oliver Hinds
- * CVS Revision Info:
- *    $Author: ohinds $
- *    $Date: 2016/06/16 19:57:06 $
- *    $Revision: 1.1 $
  *
  * Copyright © 2016 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -37,7 +32,7 @@
 using namespace std;
 
 namespace filetypes {
-enum FileType { UNKNOWN, M3Z, FSL, ITK, VOX };
+enum FileType { UNKNOWN, M3Z, FSL, ITK, VOX, RAS };
 }
 
 struct Parameters
@@ -143,56 +138,49 @@ GCAM* readFSL(const string& warp_file)
   return gcam;
 }
 
-GCAM* readITK(const string& warp_file, const string& src_geom)
-// Write an ITK warp file. ITK (and Ants) uses Left Posterior Superior
-// coordinates.
+// Read a warp file containing displacements in RAS or LPS space.
+GCAM* read_world(const string& warp_file, const string& src_geom,
+    bool is_lps=false)
 {
-
-  MRI* itk = MRIread(warp_file.c_str());
-  if (itk == NULL)
-  {
-    cerr << "ERROR: couldn't read input ITK warp from " << warp_file << endl;
+  MRI* in = MRIread( warp_file.c_str() );
+  if (in == NULL) {
+    cerr << "ERROR: couldn't read input warp from " << warp_file << endl;
     return NULL;
   }
-
-  MRI* src = MRIread(src_geom.c_str());
-  if (src == NULL)
-  {
+  MRI* src = MRIread( src_geom.c_str() );
+  if (src == NULL) {
 	cerr << "ERROR: couldn't read source geometry from " << src_geom << endl;
     return NULL;
   }
 
-  GCA_MORPH* gcam = GCAMalloc(itk->width, itk->height, itk->depth) ;
-  GCAMinitVolGeom(gcam, src, itk) ;
-  gcam->type = GCAM_VOX;
+  GCA_MORPH* out = GCAMalloc(in->width, in->height, in->depth) ;
+  GCAMinitVolGeom(out, src, in) ;
+  out->type = GCAM_VOX;
 
-  MATRIX *ras2lps = MatrixIdentity(4, NULL);
-  ras2lps->rptr[1][1] = -1;
-  ras2lps->rptr[2][2] = -1;
+  MATRIX* dst_vox2mm = MRIgetVoxelToRasXform(in);
+  MATRIX* src_vox2mm = MRIgetVoxelToRasXform(src);
+  if (is_lps) {
+      MATRIX *ras2lps = MatrixIdentity(4, NULL);
+      ras2lps->rptr[1][1] = -1;
+      ras2lps->rptr[2][2] = -1;
+      dst_vox2mm = MatrixMultiplyD(ras2lps, dst_vox2mm, dst_vox2mm);
+      src_vox2mm = MatrixMultiplyD(ras2lps, src_vox2mm, src_vox2mm);
+      MatrixFree(&ras2lps);
+  }
+  MATRIX* src_mm2vox = MatrixInverse(src_vox2mm, NULL);
 
-  MATRIX* ref_vox2lps = MatrixMultiplyD(ras2lps,
-                                        MRIgetVoxelToRasXform(itk),
-                                        NULL);
-  MATRIX* mov_vox2lps = MatrixMultiplyD(ras2lps,
-                                        MRIgetVoxelToRasXform(src),
-                                        NULL);
-  MATRIX* mov_lps2vox = MatrixInverse(mov_vox2lps, NULL);
+  VECTOR* src_vox = VectorAlloc(4, MATRIX_REAL);
+  VECTOR* dst_vox = VectorAlloc(4, MATRIX_REAL);
+  VECTOR* src_mm = VectorAlloc(4, MATRIX_REAL);
+  VECTOR* dst_mm = VectorAlloc(4, MATRIX_REAL);
+  VECTOR* wrp_mm = VectorAlloc(4, MATRIX_REAL);
 
-  VECTOR* orig_ind = VectorAlloc(4, MATRIX_REAL);
-  VECTOR* dest_ind = VectorAlloc(4, MATRIX_REAL);
-  VECTOR* orig_lps = VectorAlloc(4, MATRIX_REAL);
-  VECTOR* dest_lps = VectorAlloc(4, MATRIX_REAL);
-  VECTOR* warp_lps = VectorAlloc(4, MATRIX_REAL);
-
-  VECTOR_ELT(warp_lps, 4) = 0;
-  VECTOR_ELT(orig_ind, 4) = 1;
-  for(int s=0; s < itk->depth; s++)
-  {
-    for(int c=0; c < itk->width; c++)
-    {
-      for(int r=0; r < itk->height; r++)
-      {
-        GCA_MORPH_NODE* node = &gcam->nodes[c][r][s];
+  VECTOR_ELT(wrp_mm, 4) = 0;
+  VECTOR_ELT(dst_vox, 4) = 1;
+  for(int s=0; s < in->depth; s++) {
+    for(int c=0; c < in->width; c++) {
+      for(int r=0; r < in->height; r++) {
+        GCA_MORPH_NODE* node = &out->nodes[c][r][s];
         node->origx = c;
         node->origy = r;
         node->origz = s;
@@ -200,74 +188,90 @@ GCAM* readITK(const string& warp_file, const string& src_geom)
         node->yn = r;
         node->zn = s;
 
-        VECTOR3_LOAD(orig_ind, c, r, s);
-        orig_lps = MatrixMultiplyD(ref_vox2lps, orig_ind, orig_lps);
+        VECTOR3_LOAD(dst_vox, c, r, s);
+        dst_mm = MatrixMultiplyD(dst_vox2mm, dst_vox, dst_mm);
 
-        VECTOR3_LOAD(warp_lps,
-                     MRIgetVoxVal(itk, c, r, s, 0),
-                     MRIgetVoxVal(itk, c, r, s, 1),
-                     MRIgetVoxVal(itk, c, r, s, 2));
-        dest_lps = VectorAdd(orig_lps, warp_lps, dest_lps);
-        dest_ind = MatrixMultiplyD(mov_lps2vox, dest_lps, dest_ind);
+        VECTOR3_LOAD(wrp_mm, MRIgetVoxVal(in, c, r, s, 0),
+            MRIgetVoxVal(in, c, r, s, 1),
+            MRIgetVoxVal(in, c, r, s, 2));
+        src_mm = VectorAdd(dst_mm, wrp_mm, src_mm);
+        src_vox = MatrixMultiplyD(src_mm2vox, src_mm, src_vox);
 
-        node->x = VECTOR_ELT(dest_ind, 1);
-        node->y = VECTOR_ELT(dest_ind, 2);
-        node->z = VECTOR_ELT(dest_ind, 3);
+        node->x = VECTOR_ELT(src_vox, 1);
+        node->y = VECTOR_ELT(src_vox, 2);
+        node->z = VECTOR_ELT(src_vox, 3);
       }
     }
   }
-  
-  MRIfree(&itk);
-  MRIfree(&src);
-  VectorFree(&orig_ind);
-  VectorFree(&orig_lps);
-  VectorFree(&warp_lps);
-  VectorFree(&dest_lps);
-  VectorFree(&dest_ind);
-  MatrixFree(&ras2lps);
-  MatrixFree(&ref_vox2lps);
-  MatrixFree(&mov_vox2lps);
-  MatrixFree(&mov_lps2vox);
 
-  return gcam;
+  MRIfree(&in);
+  MRIfree(&src);
+  VectorFree(&src_vox);
+  VectorFree(&src_mm);
+  VectorFree(&wrp_mm);
+  VectorFree(&dst_mm);
+  VectorFree(&dst_vox);
+  MatrixFree(&dst_vox2mm);
+  MatrixFree(&src_vox2mm);
+  MatrixFree(&src_mm2vox);
+  return out;
 }
 
-GCAM* readVOX(const string& warp_file)
-// Read a warp file with same-geometry image-space displacements.
+// Read a warp file as displacements in source-voxel space.
+GCAM* read_voxel(const string& warp_file, const string& src_geom)
 {
-
-  MRI* vox = MRIread(warp_file.c_str());
-  if (vox == NULL)
-  {
-    cerr << "ERROR: couldn't read input VOX warp from " << warp_file << endl;
+  MRI* in = MRIread( warp_file.c_str() );
+  if (in == NULL) {
+    cerr << "ERROR: couldn't read input warp from " << warp_file << endl;
+    return NULL;
+  }
+  MRI* src = MRIread( src_geom.c_str() );
+  if (src == NULL) {
+	cerr << "ERROR: couldn't read source geometry from " << src_geom << endl;
     return NULL;
   }
 
-  GCA_MORPH* gcam = GCAMalloc(vox->width, vox->height, vox->depth) ;
-  GCAMinitVolGeom(gcam, vox, vox) ;
-  gcam->type = GCAM_VOX;
+  GCA_MORPH* out = GCAMalloc(in->width, in->height, in->depth) ;
+  GCAMinitVolGeom(out, src, in) ;
+  out->type = GCAM_VOX;
 
-  for(int s=0; s < vox->depth; s++)
-  {
-    for(int c=0; c < vox->width; c++)
-    {
-      for(int r=0; r < vox->height; r++)
-      {
-        GCA_MORPH_NODE* node = &gcam->nodes[c][r][s];
+  MATRIX* dst_vox2ras = MRIgetVoxelToRasXform(in);
+  MATRIX* src_vox2ras = MRIgetVoxelToRasXform(src);
+  MATRIX* src_ras2vox = MatrixInverse(src_vox2ras, NULL);
+  MATRIX* dst2src_vox = MatrixMultiplyD(src_ras2vox, dst_vox2ras, NULL);
+  MATRIX* src_vox = VectorAlloc(4, MATRIX_REAL);
+  MATRIX* dst_vox = VectorAlloc(4, MATRIX_REAL);
+  VECTOR_ELT(dst_vox, 4) = 1;
+
+  for(int s=0; s < in->depth; s++) {
+    for(int c=0; c < in->width; c++) {
+      for(int r=0; r < in->height; r++) {
+        GCA_MORPH_NODE* node = &out->nodes[c][r][s];
         node->origx = c;
         node->origy = r;
         node->origz = s;
         node->xn = c;
         node->yn = r;
         node->zn = s;
-        node->x = c + MRIgetVoxVal(vox, c, r, s, 0);
-        node->y = r + MRIgetVoxVal(vox, c, r, s, 1);
-        node->z = s + MRIgetVoxVal(vox, c, r, s, 2);
+
+        VECTOR3_LOAD(dst_vox, c, r, s);
+        src_vox = MatrixMultiplyD(dst2src_vox, dst_vox, src_vox);
+        node->x = MRIgetVoxVal(in, c, r, s, 0) + VECTOR_ELT(src_vox, 1);
+        node->y = MRIgetVoxVal(in, c, r, s, 1) + VECTOR_ELT(src_vox, 2);
+        node->z = MRIgetVoxVal(in, c, r, s, 2) + VECTOR_ELT(src_vox, 3);
       }
     }
   }
-  MRIfree(&vox);
-  return gcam;
+
+  MRIfree(&in);
+  MRIfree(&src);
+  VectorFree(&src_vox);
+  VectorFree(&dst_vox);
+  MatrixFree(&dst_vox2ras);
+  MatrixFree(&src_vox2ras);
+  MatrixFree(&src_ras2vox);
+  MatrixFree(&dst2src_vox);
+  return out;
 }
 
 void writeM3Z(const string& fname, GCAM *gcam, bool downsample=false)
@@ -286,48 +290,44 @@ void writeFSL(const string& fname, const GCAM *gcam)
 {
   cerr << "ERROR writeFSL is not implemented, sorry!" << endl;
   exit(1);
-
-  return;
 }
 
-void writeITK(const string& fname, GCAM* gcam)
-// Write an ITK warp file format.
+// Write warp as displacements in RAS or LPS space.
+void write_world(const string& fname, GCAM* gcam, bool is_lps=false)
 {
-  MATRIX *ras2lps = MatrixIdentity(4, NULL);
-  ras2lps->rptr[1][1] = -1;
-  ras2lps->rptr[2][2] = -1;
+  MATRIX* dst_vox2mm = VGgetVoxelToRasXform(&gcam->atlas, NULL, 0);
+  MATRIX* src_vox2mm = VGgetVoxelToRasXform(&gcam->image, NULL, 0);
 
-  MATRIX* ref_vox2ras = VGgetVoxelToRasXform(&gcam->atlas, NULL, 0);
-  MATRIX* ref_vox2lps = MatrixMultiplyD(ras2lps, ref_vox2ras, NULL);
-  MATRIX* mov_vox2ras = VGgetVoxelToRasXform(&gcam->image, NULL, 0);
-  MATRIX* mov_vox2lps = MatrixMultiplyD(ras2lps, mov_vox2ras, NULL);
+  MRI* out = MRIallocSequence(gcam->atlas.width, gcam->atlas.height,
+      gcam->atlas.depth, MRI_FLOAT, 3);
+  MRIsetResolution(out, gcam->atlas.xsize, gcam->atlas.ysize,
+      gcam->atlas.zsize);
+  MRIsetVox2RASFromMatrix(out, dst_vox2mm);
+  MRIcopyVolGeomToMRI(out, &gcam->atlas);
 
-  MRI* itk = MRIallocSequence(gcam->atlas.width,
-		  gcam->atlas.height,
-		  gcam->atlas.depth,
-		  MRI_FLOAT, 3);
-  MRIsetResolution(itk,
-		  gcam->atlas.xsize,
-		  gcam->atlas.ysize,
-		  gcam->atlas.zsize);
-  MRIsetVox2RASFromMatrix(itk, ref_vox2ras);
-  MRIcopyVolGeomToMRI(itk, &gcam->atlas);
+  if (is_lps) {
+      MATRIX *ras2lps = MatrixIdentity(4, NULL);
+      ras2lps->rptr[1][1] = -1;
+      ras2lps->rptr[2][2] = -1;
+      dst_vox2mm = MatrixMultiplyD(ras2lps, dst_vox2mm, dst_vox2mm);
+      src_vox2mm = MatrixMultiplyD(ras2lps, src_vox2mm, src_vox2mm);
+      MatrixFree(&ras2lps);
+  }
 
   int x, y, z;
   float xw, yw, zw;
-  MATRIX* orig_ind = VectorAlloc(4, MATRIX_REAL);
-  MATRIX* dest_ind = VectorAlloc(4, MATRIX_REAL);
-  VECTOR_ELT(orig_ind, 4) = 1;
-  VECTOR_ELT(dest_ind, 4) = 1;
-  MATRIX* orig_wld_lps = VectorAlloc(4, MATRIX_REAL);
-  MATRIX* dest_wld_lps = VectorAlloc(4, MATRIX_REAL);
-  bool samesize = itk->width==gcam->width && itk->height==gcam->height && itk->depth==gcam->depth;
-  for (x = 0; x < itk->width; x++)
-    for (y = 0; y < itk->height; y++)
-      for (z = 0; z < itk->depth; z++) {
-        VECTOR3_LOAD(orig_ind, x, y, z);
-        MatrixMultiplyD(ref_vox2lps, orig_ind, orig_wld_lps);
-        if (samesize) {
+  MATRIX* src_vox = VectorAlloc(4, MATRIX_REAL);
+  MATRIX* dst_vox = VectorAlloc(4, MATRIX_REAL);
+  VECTOR_ELT(src_vox, 4) = 1;
+  VECTOR_ELT(dst_vox, 4) = 1;
+  MATRIX* src_mm = VectorAlloc(4, MATRIX_REAL);
+  MATRIX* dst_mm = VectorAlloc(4, MATRIX_REAL);
+  const bool is_same_size = out->width==gcam->width && out->height==gcam->height
+      && out->depth==gcam->depth;
+  for (x = 0; x < out->width; x++) {
+    for (y = 0; y < out->height; y++) {
+      for (z = 0; z < out->depth; z++) {
+        if (is_same_size) {
             GCA_MORPH_NODE* node = &gcam->nodes[x][y][z];
             xw = node->x;
             yw = node->y;
@@ -336,55 +336,55 @@ void writeITK(const string& fname, GCAM* gcam)
         else {
             GCAMsampleMorph(gcam, x, y, z, &xw, &yw, &zw);
         }
-        VECTOR3_LOAD(dest_ind, xw, yw, zw);
-        MatrixMultiplyD(mov_vox2lps, dest_ind, dest_wld_lps);
+        VECTOR3_LOAD(dst_vox, x, y, z);
+        MatrixMultiplyD(dst_vox2mm, dst_vox, dst_mm);
+        VECTOR3_LOAD(src_vox, xw, yw, zw);
+        MatrixMultiplyD(src_vox2mm, src_vox, src_mm);
 
-        MRIsetVoxVal(itk, x, y, z, 0, VECTOR_ELT(dest_wld_lps,1)-VECTOR_ELT(orig_wld_lps,1));
-        MRIsetVoxVal(itk, x, y, z, 1, VECTOR_ELT(dest_wld_lps,2)-VECTOR_ELT(orig_wld_lps,2));
-        MRIsetVoxVal(itk, x, y, z, 2, VECTOR_ELT(dest_wld_lps,3)-VECTOR_ELT(orig_wld_lps,3));
+        MRIsetVoxVal(out, x, y, z, 0, VECTOR_ELT(src_mm,1)-VECTOR_ELT(dst_mm,1));
+        MRIsetVoxVal(out, x, y, z, 1, VECTOR_ELT(src_mm,2)-VECTOR_ELT(dst_mm,2));
+        MRIsetVoxVal(out, x, y, z, 2, VECTOR_ELT(src_mm,3)-VECTOR_ELT(dst_mm,3));
+      }
+    }
   }
-  MatrixFree(&orig_ind);
-  MatrixFree(&dest_ind);
-  MatrixFree(&orig_wld_lps);
-  MatrixFree(&dest_wld_lps);
 
-  if (MRIwriteType(itk, fname.c_str(), ITK_MORPH) != 0)
-  {
-    cerr << "Error writing ITK warp to " << fname << endl;
+  if (MRIwriteType(out, fname.c_str(), ITK_MORPH) != 0) {
+    cerr << "Error writing warp to " << fname << endl;
   }
-  MRIfree(&itk);
-
-  MatrixFree(&ras2lps);
-  MatrixFree(&ref_vox2ras);
-  MatrixFree(&ref_vox2lps);
-  MatrixFree(&mov_vox2ras);
-  MatrixFree(&mov_vox2lps);
-
-  return;
+  MRIfree(&out);
+  MatrixFree(&dst_vox2mm);
+  MatrixFree(&src_vox2mm);
+  MatrixFree(&src_vox);
+  MatrixFree(&dst_vox);
+  MatrixFree(&src_mm);
+  MatrixFree(&dst_mm);
 }
 
-void writeVOX(const string& fname, GCAM* gcam)
-// Write a warp file with same-geometry image-space displacements.
+// Write a warp file as displacements in source-voxel space.
+void write_voxel(const string& fname, GCAM* gcam)
 {
-  MATRIX* ref_vox2ras = VGgetVoxelToRasXform(&gcam->atlas, NULL, 0);
-  MRI* out = MRIallocSequence(gcam->atlas.width,
-		  gcam->atlas.height,
-		  gcam->atlas.depth,
-		  MRI_FLOAT, 3);
-  MRIsetResolution(out,
-		  gcam->atlas.xsize,
-		  gcam->atlas.ysize,
-		  gcam->atlas.zsize);
-  MRIsetVox2RASFromMatrix(out, ref_vox2ras);
+  MATRIX* dst_vox2ras = VGgetVoxelToRasXform(&gcam->atlas, NULL, 0);
+  MATRIX* src_vox2ras = VGgetVoxelToRasXform(&gcam->image, NULL, 0);
+  MATRIX* src_ras2vox = MatrixInverse(src_vox2ras, NULL);
+  MATRIX* dst2src_vox = MatrixMultiplyD(src_ras2vox, dst_vox2ras, NULL);
+
+  MRI* out = MRIallocSequence(gcam->atlas.width, gcam->atlas.height,
+      gcam->atlas.depth, MRI_FLOAT, 3);
+  MRIsetResolution(out, gcam->atlas.xsize, gcam->atlas.ysize,
+      gcam->atlas.zsize);
+  MRIsetVox2RASFromMatrix(out, dst_vox2ras);
   MRIcopyVolGeomToMRI(out, &gcam->atlas);
 
-  bool samesize = out->width==gcam->width && out->height==gcam->height
+  MATRIX* src_vox = VectorAlloc(4, MATRIX_REAL);
+  MATRIX* dst_vox = VectorAlloc(4, MATRIX_REAL);
+  VECTOR_ELT(dst_vox, 4) = 1;
+  const bool is_same_size = out->width==gcam->width && out->height==gcam->height
       && out->depth==gcam->depth;
   float x, y, z;
-  for (int c = 0; c < out->width; c++)
-    for (int r = 0; r < out->height; r++)
+  for (int c = 0; c < out->width; c++) {
+    for (int r = 0; r < out->height; r++) {
       for (int s = 0; s < out->depth; s++) {
-  		if (samesize) {
+        if (is_same_size) {
 			GCA_MORPH_NODE* node = &gcam->nodes[c][r][s];
 			x = node->x;
 			y = node->y;
@@ -393,16 +393,23 @@ void writeVOX(const string& fname, GCAM* gcam)
 		else {
 		  GCAMsampleMorph(gcam, c, r, s, &x, &y, &z);
 		}
-        MRIsetVoxVal(out, c, r, s, 0, x-c);
-        MRIsetVoxVal(out, c, r, s, 1, y-r);
-        MRIsetVoxVal(out, c, r, s, 2, z-s);
+        VECTOR3_LOAD(dst_vox, c, r, s);
+        MatrixMultiplyD(dst2src_vox, dst_vox, src_vox);
+        MRIsetVoxVal(out, c, r, s, 0, x - VECTOR_ELT(src_vox, 1));
+        MRIsetVoxVal(out, c, r, s, 1, y - VECTOR_ELT(src_vox, 2));
+        MRIsetVoxVal(out, c, r, s, 2, z - VECTOR_ELT(src_vox, 3));
+      }
+    }
   }
   if (MRIwrite(out, fname.c_str()) != 0)
   {
     cerr << "Error writing VOX warp to " << fname << endl;
   }
   MRIfree(&out);
-  MatrixFree(&ref_vox2ras);
+  MatrixFree(&dst_vox2ras);
+  MatrixFree(&src_vox2ras);
+  MatrixFree(&src_ras2vox);
+  MatrixFree(&dst2src_vox);
 }
 
 int main(int argc, char *argv[])
@@ -428,8 +435,8 @@ int main(int argc, char *argv[])
     exit(1);
   }
 
-  // Read input transform and convert to RAS2RAS:
   GCA_MORPH* gcam = NULL;
+  bool is_lps = false;
   switch (P.in_type) {
     case filetypes::M3Z:
       gcam = readM3Z(P.in_warp.c_str());
@@ -438,10 +445,15 @@ int main(int argc, char *argv[])
       gcam = readFSL(P.in_warp.c_str());
       break;
     case filetypes::ITK:
-      gcam = readITK(P.in_warp.c_str(),P.in_src_geom);
+      is_lps = true;
+      gcam = read_world(P.in_warp.c_str(), P.in_src_geom, is_lps);
       break;
     case filetypes::VOX:
-      gcam = readVOX(P.in_warp.c_str());
+      gcam = read_voxel(P.in_warp.c_str(), P.in_src_geom);
+      break;
+    case filetypes::RAS:
+      is_lps = false;
+      gcam = read_world(P.in_warp.c_str(), P.in_src_geom, is_lps);
       break;
     default:
       ErrorExit(ERROR_BADFILE, "%s: Unknown input type for %s",
@@ -462,10 +474,15 @@ int main(int argc, char *argv[])
       writeFSL(P.out_warp.c_str(), gcam);
       break;
     case filetypes::ITK:
-      writeITK(P.out_warp.c_str(), gcam);
+      is_lps = true;
+      write_world(P.out_warp.c_str(), gcam, is_lps);
       break;
     case filetypes::VOX:
-      writeVOX(P.out_warp.c_str(), gcam);
+      write_voxel(P.out_warp.c_str(), gcam);
+      break;
+    case filetypes::RAS:
+      is_lps = false;
+      write_world(P.out_warp.c_str(), gcam, is_lps);
       break;
     default:
       ErrorExit(ERROR_BADFILE, "%s: Unknown output type for %s",
@@ -536,7 +553,7 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     nargs = 1;
     cout << "--infsl: " << P.in_warp << " input FSL warp." << endl;
   }
-  else if (!strcmp(option, "INITK"))
+  else if (!strcmp(option, "INITK") || !strcmp(option, "INLPS"))
   {
     if (have_input) {
       cerr << endl << endl << "ERROR: Only one input warp can be specified"
@@ -549,7 +566,7 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     P.in_warp = string(argv[1]);
     P.in_type = filetypes::ITK;
     nargs = 1;
-    cout << "--initk: " << P.in_warp << " input ITK warp." << endl;
+    cout << "--inlps: " << P.in_warp << " input LPS warp." << endl;
   }
   else if (!strcmp(option, "INVOX"))
   {
@@ -565,6 +582,21 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     P.in_type = filetypes::VOX;
     nargs = 1;
     cout << "--invox: " << P.in_warp << " input VOX warp." << endl;
+  }
+  else if (!strcmp(option, "INRAS"))
+  {
+    if (have_input) {
+      cerr << endl << endl << "ERROR: Only one input warp can be specified"
+           << endl << endl;
+      printUsage();
+      exit(1);
+    }
+    have_input = true;
+
+    P.in_warp = string(argv[1]);
+    P.in_type = filetypes::RAS;
+    nargs = 1;
+    cout << "--inras: " << P.in_warp << " input RAS warp." << endl;
   }
   else if (!strcmp(option, "OUTM3Z") )
   {
@@ -596,7 +628,7 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     nargs = 1;
     cout << "--outfsl: " << P.out_warp << " output FSL warp." << endl;
   }
-  else if (!strcmp(option, "OUTITK") )
+  else if (!strcmp(option, "OUTITK") || !strcmp(option, "OUTLPS"))
   {
     if (have_output) {
       cerr << endl << endl << "ERROR: Only one output warp can be specified"
@@ -609,7 +641,7 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     P.out_warp = string(argv[1]);
     P.out_type = filetypes::ITK;
     nargs = 1;
-    cout << "--outitk: " << P.out_warp << " output ITK warp." << endl;
+    cout << "--outlps: " << P.out_warp << " output LPS warp." << endl;
   }
   else if (!strcmp(option, "OUTVOX") )
   {
@@ -626,17 +658,32 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     nargs = 1;
     cout << "--outvox: " << P.out_warp << " output VOX warp." << endl;
   }
-  else if (!strcmp(option, "INSRCGEOM") )
+  else if (!strcmp(option, "OUTRAS") )
+  {
+    if (have_output) {
+      cerr << endl << endl << "ERROR: Only one output warp can be specified"
+           << endl << endl;
+      printUsage();
+      exit(1);
+    }
+    have_output = true;
+
+    P.out_warp = string(argv[1]);
+    P.out_type = filetypes::RAS;
+    nargs = 1;
+    cout << "--outras: " << P.out_warp << " output RAS warp." << endl;
+  }
+  else if (!strcmp(option, "INSRCGEOM") || !strcmp(option, "G"))
   {
     P.in_src_geom = string(argv[1]);
     nargs = 1;
     cout << "--insrcgeom: " << P.in_src_geom
-         << " src image (geometry)." << endl;
+         << " source image (geometry)." << endl;
   }
-  else if (!strcmp(option, "DOWNSAMPLE") )
+  else if (!strcmp(option, "DOWNSAMPLE") || !strcmp(option, "D"))
   {
     if (!P.downsample)
-        cout << "--downsample: save M3Z warp at half resolution." << endl;
+        cout << "--downsample: save M3Z at half resolution." << endl;
     P.downsample = true;
     nargs = 0;
   }
@@ -682,12 +729,22 @@ static bool parseCommandLine(int argc, char *argv[], Parameters & P)
     exit(1);
   }
 
-  // validate src geom exists if input type is ITK
-  if (P.in_type == filetypes::ITK && P.in_src_geom.empty()) {
-    cerr << endl << endl << "ERROR: ITK input warp requires --insrcgeom"
+  bool need_geom;
+  switch (P.in_type) {
+    case filetypes::ITK:
+    case filetypes::RAS:
+    case filetypes::VOX:
+        need_geom = true;
+        break;
+    default:
+        need_geom = false;
+  }
+  if (P.in_src_geom.empty() && need_geom) {
+    cerr << endl << endl << "ERROR: specified input warp requires --insrcgeom"
          << endl << endl;
     return false;
   }
+
   if (P.out_type != filetypes::M3Z && P.downsample) {
     cerr << endl << endl;
     cerr << "ERROR: --downsample flag only valid for output type M3Z"

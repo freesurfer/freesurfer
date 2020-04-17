@@ -1,5 +1,4 @@
 /**
- * @file  cmat.c
  * @brief utilities for reading/writing a Connectome MATrix structure
  *
  * Reading and writing and utilities for the Connectome Matrix (CMAT)
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2014/09/05 12:58:16 $
- *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

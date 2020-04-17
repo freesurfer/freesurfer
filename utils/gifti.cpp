@@ -1,6 +1,5 @@
 #define COMPILING_MRISURF_TOPOLOGY_FRIEND_CHECKED
 /**
- * @file  gifti.c
  * @brief local utilities for GIFTI library
  *
  * This file has some some extra functions for use with the GIFTI
@@ -9,10 +8,6 @@
  */
 /*
  * Original Authors: Kevin Teich and Nick Schmansky
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2015/05/05 01:21:58 $
- *    $Revision: 1.35 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *

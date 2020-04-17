@@ -1,10 +1,6 @@
 ##
 ## tksurfer.tcl
 ##
-## CVS Revision Info:
-##    $Author: krish $
-##    $Date: 2011/06/03 22:18:12 $
-##    $Revision: 1.169 $
 ##
 ## Copyright (C) 2000-2011, CorTechs Labs, Inc. (La Jolla, CA) and
 ## The General Hospital Corporation (Boston, MA).

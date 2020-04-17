@@ -1,15 +1,9 @@
 /**
- * @file  connectcomp.c
  * @brief utilities for computing connected components
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
  * Original Author: Florent Segonne
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/10/25 13:52:38 $
- *    $Revision: 1.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -68,7 +62,7 @@ void RemoveHoles(MRI *orivol)
   for (i = 0; i < YN; i++)
     for (j = 0; j < XN; j++)
       for (k = 0; k < ZN; k++) {
-        MRIIvox(Label, j, i, k) = 0; /* Initialization */
+        MRIsetVoxVal(Label, j, i, k,0,0); /* Initialization */
 
         /* Invert the volume inorder to do Connected-Component labelling on
            background */
@@ -80,7 +74,7 @@ void RemoveHoles(MRI *orivol)
 
   /* Find a seed for the boundary CC. Here we use the boundary of X-axis */
   for (j = 0; j < XN; j++) {
-    if (MRIvox(tmpvol, j, 0, 0) != 0 && MRIIvox(Label, j, 0, 0) == 0) {
+    if (MRIvox(tmpvol, j, 0, 0) != 0 && MRIgetVoxVal(Label, j, 0, 0,0) == 0) {
       seed.x = j;
       seed.y = 0;
       seed.z = 0;
@@ -91,7 +85,7 @@ void RemoveHoles(MRI *orivol)
   for (i = 0; i < YN; i++)
     for (j = 0; j < XN; j++)
       for (k = 0; k < ZN; k++) {
-        if (MRIIvox(Label, j, i, k) == 0) MRIsetVoxVal(orivol, j, i, k, 0, 1);
+        if (MRIgetVoxVal(Label, j, i, k,0) == 0) MRIsetVoxVal(orivol, j, i, k, 0, 1);
       }
 
   MRIfree(&Label);
@@ -138,7 +132,7 @@ void GrassFire(MRI *orivol,
   (*maxZ) = Pt->z;
 
   NeiQ = myQueue(sizeof(POINTI));
-  MRIIvox(Label, Pt->x, Pt->y, Pt->z) = label;
+  MRIsetVoxVal(Label, Pt->x, Pt->y, Pt->z,0, label);
 
   myQueuePush(NeiQ, Pt);
 
@@ -165,12 +159,12 @@ void GrassFire(MRI *orivol,
           nj = cj + joff;
           nk = ck + koff;
           if (ni >= 0 && ni < YN && nj >= 0 && nj < XN && nk >= 0 && nk < ZN) {
-            if (MRIIvox(Label, nj, ni, nk) == 0 && MRIgetVoxVal(orivol, nj, ni, nk, 0) > 0) {
+            if (MRIgetVoxVal(Label, nj, ni, nk,0) == 0 && MRIgetVoxVal(orivol, nj, ni, nk, 0) > 0) {
               /* Unlabelled object point found */
               nPt.x = nj;
               nPt.y = ni;
               nPt.z = nk;
-              MRIIvox(Label, nj, ni, nk) = label;
+              MRIsetVoxVal(Label, nj, ni, nk,0, label);
               myQueuePush(NeiQ, &nPt);
             }
           }
@@ -219,7 +213,7 @@ void GrassFire6(MRI *orivol,
   (*maxZ) = Pt->z;
 
   NeiQ = myQueue(sizeof(POINTI));
-  MRIIvox(Label, Pt->x, Pt->y, Pt->z) = label;
+  MRIsetVoxVal(Label, Pt->x, Pt->y, Pt->z,0, label);
 
   myQueuePush(NeiQ, Pt);
 
@@ -245,12 +239,12 @@ void GrassFire6(MRI *orivol,
       nk = ck + zoff6[index];
 
       if (ni >= 0 && ni < YN && nj >= 0 && nj < XN && nk >= 0 && nk < ZN) {
-        if (MRIIvox(Label, nj, ni, nk) == 0 && MRIgetVoxVal(orivol, nj, ni, nk, 0) > 0) {
+        if (MRIgetVoxVal(Label, nj, ni, nk,0) == 0 && MRIgetVoxVal(orivol, nj, ni, nk, 0) > 0) {
           /* Unlabelled object point found */
           nPt.x = nj;
           nPt.y = ni;
           nPt.z = nk;
-          MRIIvox(Label, nj, ni, nk) = label;
+          MRIsetVoxVal(Label, nj, ni, nk,0, label);
           myQueuePush(NeiQ, &nPt);
         }
       }
@@ -299,7 +293,7 @@ void GrassFire18(MRI *orivol,
   (*maxZ) = Pt->z;
 
   NeiQ = myQueue(sizeof(POINTI));
-  MRIIvox(Label, Pt->x, Pt->y, Pt->z) = label;
+  MRIsetVoxVal(Label, Pt->x, Pt->y, Pt->z, 0, label);
 
   myQueuePush(NeiQ, Pt);
 
@@ -325,12 +319,12 @@ void GrassFire18(MRI *orivol,
       nk = ck + zoff26[index];
 
       if (ni >= 0 && ni < YN && nj >= 0 && nj < XN && nk >= 0 && nk < ZN) {
-        if (MRIIvox(Label, nj, ni, nk) == 0 && MRIgetVoxVal(orivol, nj, ni, nk, 0) > 0) {
+        if (MRIgetVoxVal(Label, nj, ni, nk,0) == 0 && MRIgetVoxVal(orivol, nj, ni, nk, 0) > 0) {
           /* Unlabelled object point found */
           nPt.x = nj;
           nPt.y = ni;
           nPt.z = nk;
-          MRIIvox(Label, nj, ni, nk) = label;
+          MRIsetVoxVal(Label, nj, ni, nk, 0, label);
           myQueuePush(NeiQ, &nPt);
         }
       }
@@ -360,7 +354,7 @@ void GetLargestCC6(MRI *orivol)
 
   for (i = 0; i < YN; i++)
     for (j = 0; j < XN; j++)
-      for (k = 0; k < ZN; k++) MRIIvox(Label, j, i, k) = 0;
+      for (k = 0; k < ZN; k++) MRIsetVoxVal(Label, j, i, k,0, 0);
 
   curLabel = 1;
   maxSize = 0;
@@ -369,7 +363,7 @@ void GetLargestCC6(MRI *orivol)
   for (i = 0; i < YN; i++)
     for (j = 0; j < XN; j++)
       for (k = 0; k < ZN; k++) {
-        if (MRIgetVoxVal(orivol, j, i, k, 0) > 0 && MRIIvox(Label, j, i, k) == 0) {
+        if (MRIgetVoxVal(orivol, j, i, k, 0) > 0 && MRIgetVoxVal(Label, j, i, k,0) == 0) {
           Pt.x = j;
           Pt.y = i;
           Pt.z = k;
@@ -385,7 +379,7 @@ void GetLargestCC6(MRI *orivol)
   for (i = 0; i < YN; i++)
     for (j = 0; j < XN; j++)
       for (k = 0; k < ZN; k++) {
-        if (MRIIvox(Label, j, i, k) != maxLabel) MRIsetVoxVal(orivol, j, i, k, 0, 0);
+        if (MRIgetVoxVal(Label, j, i, k,0) != maxLabel) MRIsetVoxVal(orivol, j, i, k, 0, 0);
       }
 
   MRIfree(&Label);
@@ -411,7 +405,7 @@ void GetLargestCC18(MRI *orivol)
 
   for (i = 0; i < YN; i++)
     for (j = 0; j < XN; j++)
-      for (k = 0; k < ZN; k++) MRIIvox(Label, j, i, k) = 0;
+      for (k = 0; k < ZN; k++) MRIsetVoxVal(Label, j, i, k,0,0);
 
   curLabel = 1;
   maxSize = 0;
@@ -420,7 +414,7 @@ void GetLargestCC18(MRI *orivol)
   for (i = 0; i < YN; i++)
     for (j = 0; j < XN; j++)
       for (k = 0; k < ZN; k++) {
-        if (MRIgetVoxVal(orivol, j, i, k, 0) > 0 && MRIIvox(Label, j, i, k) == 0) {
+        if (MRIgetVoxVal(orivol, j, i, k, 0) > 0 && MRIgetVoxVal(Label, j, i, k,0) == 0) {
           Pt.x = j;
           Pt.y = i;
           Pt.z = k;
@@ -436,7 +430,7 @@ void GetLargestCC18(MRI *orivol)
   for (i = 0; i < YN; i++)
     for (j = 0; j < XN; j++)
       for (k = 0; k < ZN; k++) {
-        if (MRIIvox(Label, j, i, k) != maxLabel) MRIsetVoxVal(orivol, j, i, k, 0, 0);
+        if (MRIgetVoxVal(Label, j, i, k,0) != maxLabel) MRIsetVoxVal(orivol, j, i, k, 0, 0);
       }
 
   MRIfree(&Label);
@@ -751,18 +745,7 @@ MRI *BinaryClose26(MRI *ori, MRI *out, int R)
   return (out);
 }
 
-/**
- * @file  myutils.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
- */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/10/25 13:52:38 $
- *    $Revision: 1.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

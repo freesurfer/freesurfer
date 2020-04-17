@@ -2,14 +2,9 @@
  * @mris  file_intensity_profile.c
  * @brief program for computing intensity profiles across the cortical ribbon
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2013/03/27 01:53:50 $
- *    $Revision: 1.23 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

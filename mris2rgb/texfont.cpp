@@ -1,14 +1,9 @@
 /**
- * @file  texfont.c
  * @brief OpenGL stuff
  *
  */
 /*
  * Original Author: Mark J. Kilgard, 1997
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/07/14 22:56:20 $
- *    $Revision: 1.6 $
  *
  */
 

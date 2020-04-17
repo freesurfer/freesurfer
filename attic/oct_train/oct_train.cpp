@@ -1,15 +1,5 @@
 /**
- * @file  oct_train.c
  * @brief main program for training a cellular classifier from labeled OCT data
- *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
- */
-/*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2014/04/17 13:30:03 $
- *    $Revision: 1.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

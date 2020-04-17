@@ -1,5 +1,4 @@
 /**
- * @file  talairach_afd.c
  * @brief Automatically detect Talairach alignment failures.
  *
  * Detect bad Talairach alignment by checking subjects Talairach transform
@@ -8,10 +7,6 @@
  */
 /*
  * Original Author: Laurence Wastiaux
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:40 $
- *    $Revision: 1.13 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

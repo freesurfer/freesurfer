@@ -31,10 +31,6 @@ function r = mri_surfrft_jlbr(yfile,glmdir,vwthresh,sgn,subject,hemi)
 
 %
 % Original Author: Jorge Louis Bernal-Rusiel and Douglas Greve
-% CVS Revision Info:
-%    $Author: greve $
-%    $Date: 2012/02/15 16:29:59 $
-%    $Revision: 1.5 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 

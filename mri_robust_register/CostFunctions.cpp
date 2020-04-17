@@ -1,5 +1,4 @@
 /**
- * @file  CostFunctions.cpp
  * @brief A class that makes available many different cost functions for images
  *   and to combine multiple volumes by mean or median
  *
@@ -7,10 +6,6 @@
 
 /*
  * Original Author: Martin Reuter
- * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2015/09/23 20:21:10 $
- *    $Revision: 1.26 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

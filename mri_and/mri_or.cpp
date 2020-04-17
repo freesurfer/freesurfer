@@ -1,5 +1,4 @@
 /**
- * @file  mri_or.c
  * @brief performs a logical or at each voxel on a series of volumes
  *
  * performs a logical or at each voxel on a series of volumes
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: lzollei $
- *    $Date: 2013/03/20 15:03:29 $
- *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

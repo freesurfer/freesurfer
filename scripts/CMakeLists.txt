@@ -123,6 +123,7 @@ install(PROGRAMS
   make_cortex_label
   make_folding_atlas
   make_hemi_mask
+  make_exvivo_filled
   make_symmetric
   make_upright
   map_all_labels
@@ -179,7 +180,6 @@ install(PROGRAMS
   rebuild_gca_atlas.csh
   rca-base-init
   rca-long-tp-init
-  recon-all
   recon-all-exvivo
   recon-all.makefile
   reconbatchjobs
@@ -267,6 +267,11 @@ install(PROGRAMS
   xhemi-tal
   xhemireg
   xsanatreg
+  DESTINATION bin
+)
+
+install_configured(
+  recon-all
   DESTINATION bin
 )
 

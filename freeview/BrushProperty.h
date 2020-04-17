@@ -1,5 +1,4 @@
 /**
- * @file  BrushProperty.h
  * @brief Class to hold brush properties for voxel editing
  *
  * Simpleclass for use with the Listener class so text
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2017/01/11 21:05:23 $
- *    $Revision: 1.16 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

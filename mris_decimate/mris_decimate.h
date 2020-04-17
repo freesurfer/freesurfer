@@ -1,5 +1,4 @@
 /**
- * @file  mris_decimate.h
  * @brief Reduce the number of vertices and faces in a surface. 
  *
  * This tool reduces the number of triangles in a surface using the
@@ -16,10 +15,6 @@
 
 /*
  * Original Author: Dan Ginsburg
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:30 $
- *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

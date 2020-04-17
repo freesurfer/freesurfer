@@ -43,9 +43,7 @@
 **   facility.  This facility provides functions for
 **   simple thread operations needed to make some
 **   parts of the code thread safe.
-** Last Update:  $Author: nicks $, $Date: 2006/12/29 02:09:01 $
 ** Source File:  $RCSfile: ctnthread.h,v $
-** Revision:  $Revision: 1.4 $
 ** Status:  $State: Exp $
 */
 

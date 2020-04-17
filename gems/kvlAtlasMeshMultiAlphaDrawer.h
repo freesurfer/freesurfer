@@ -9,9 +9,6 @@ namespace kvl
 {
 
 
-/**
- *
- */
 class AtlasMeshMultiAlphaDrawer: public AtlasMeshRasterizor
 {
 public :

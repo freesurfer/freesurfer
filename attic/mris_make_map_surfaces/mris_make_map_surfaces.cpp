@@ -1,15 +1,10 @@
 /**
- * @file  mris_make_map_surfaces.c
  * @brief surface deformation that maximizes likelihood of underlying MRI data
 
  *
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2013/01/08 22:01:16 $
- *    $Revision: 1.3 $
  *
  * Copyright © 2013 The General Hospital Corporation (Boston, MA) "MGH"
  *

@@ -1,5 +1,4 @@
 /**
- * @file  mri_normalize.c
  * @brief Normalize the white-matter, based on control points.
  *
  * The variation in intensity due to the B1 bias field is corrected.
@@ -11,10 +10,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: ah221 $
- *    $Date: 2017/01/27 22:31:34 $
- *    $Revision: 1.92 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *

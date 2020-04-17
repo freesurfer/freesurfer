@@ -1,5 +1,4 @@
 /**
- * @file  LayerPropertyPointSet.cxx
  * @brief Implementation for ROI layer properties.
  *
  * In 2D, the MRI is viewed as a single slice, and controls are
@@ -9,10 +8,6 @@
  */
 /*
  * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2015/06/19 18:21:50 $
- *    $Revision: 1.11 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

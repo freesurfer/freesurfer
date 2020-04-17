@@ -1,15 +1,9 @@
 /**
- * @file  mris_compute_layer_intensities.c
  * @brief compute the % of gm layers 1-6, wm and CSF in each voxel in a volume
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/04/19 13:31:39 $
- *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 

@@ -1,5 +1,4 @@
 /**
- * @file  QdecFactor.h
  * @brief Stores a factor, which can be either discrete or continuous
  *
  * An example of a discrete factor is gender (male or female) or
@@ -8,10 +7,6 @@
  */
 /*
  * Original Author: Nick Schmansky
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:35 $
- *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

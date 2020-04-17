@@ -1,5 +1,4 @@
 /**
- * @file  label.c
  * @brief utilities for manipulating ROIs.
  *
  * utilities (surface and volume) for manipulating arbitrary lists of
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2017/02/07 19:04:19 $
- *    $Revision: 1.136 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1458,6 +1453,24 @@ int LabelMark(LABEL *area, MRI_SURFACE *mris)
     }
     v = &mris->vertices[vno];
     v->marked = 1;
+  }
+  return (NO_ERROR);
+}
+int LabelMark2(LABEL *area, MRI_SURFACE *mris)
+{
+  int n, vno;
+  VERTEX *v;
+
+  for (n = 0; n < area->n_points; n++) {
+    vno = area->lv[n].vno;
+    if (vno < 0 || vno >= mris->nvertices) {
+      DiagBreak();
+    }
+    if (area->lv[n].deleted > 0) {
+      continue;
+    }
+    v = &mris->vertices[vno];
+    v->marked2 = 1;
   }
   return (NO_ERROR);
 }

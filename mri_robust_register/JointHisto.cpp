@@ -1,15 +1,10 @@
 /**
- * @file JointHisto.cpp
  * @brief A class for a joint histogram of two images
  *
  */
 
 /*
  * Original Author: Martin Reuter
- * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2014/10/20 15:08:02 $
- *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

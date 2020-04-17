@@ -37,7 +37,6 @@ main ( int iArgc, char** iArgv ) {
 }
 
 vtkStandardNewMacro( vtkKWRGBATransferFunctionEditorTester );
-vtkCxxRevisionMacro( vtkKWRGBATransferFunctionEditorTester, "$Revision: 1.3 $" );
 
 void
 vtkKWRGBATransferFunctionEditorTester::Start ( int iArgc, char** iArgv ) {

@@ -1,14 +1,9 @@
 /**
- * @file  mrisp_write.c
  * @brief extracts an array ("a variable") from surface-registration template
  *
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/03/22 14:47:57 $
- *    $Revision: 1.12 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

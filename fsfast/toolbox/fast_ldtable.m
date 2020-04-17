@@ -19,10 +19,6 @@ function [tbl, rowid, colid] = fast_ldtable(tablefile)
 % fast_ldtable.m
 %
 % Original Author: Doug Greve
-% CVS Revision Info:
-%    $Author: greve $
-%    $Date: 2012/03/09 21:21:33 $
-%    $Revision: 1.5 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %

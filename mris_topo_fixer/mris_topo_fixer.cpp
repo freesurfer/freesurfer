@@ -1,5 +1,4 @@
 /**
- * @file  mris_topo_fixer.cpp
  * @brief optimally correcting the topology of triangulated surface
  *
  * "Genetic Algorithm for the Topology Correction of Cortical Surfaces",
@@ -8,10 +7,6 @@
  */
 /*
  * Original Author: Florent Segonne
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:34 $
- *    $Revision: 1.29 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

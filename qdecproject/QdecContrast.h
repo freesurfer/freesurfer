@@ -1,5 +1,4 @@
 /**
- * @file  QdecContrast.h
  * @brief Stores a GLM contrast vector
  *
  * Stores a GLM contrast vector associated with a particular design (being
@@ -10,10 +9,6 @@
  */
 /*
  * Original Author: Nick Schmansky
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:35 $
- *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

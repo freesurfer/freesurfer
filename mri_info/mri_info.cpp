@@ -1,15 +1,10 @@
 /**
- * @file  mri_info.c
  * @brief Prints mri volume information found in .mgz file.
  *
  * Dumps information about the volume to stdout.
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2014/11/20 23:46:54 $
- *    $Revision: 1.87 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *

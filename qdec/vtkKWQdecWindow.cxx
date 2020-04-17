@@ -1,5 +1,4 @@
 /**
- * @file  vtkKWQdecWindow.cxx
  * @brief Main QDEC logic
  *
  * Loads in all types of data and manages them. Main logic for running
@@ -9,10 +8,6 @@
  */
 /*
  * Original Author: Kevin Teich
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2013/04/24 20:10:05 $
- *    $Revision: 1.69 $
  *
  * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -100,7 +95,6 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecWindow );
-vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.69 $" );
 
 const char* vtkKWQdecWindow::ksSubjectsPanelName = "Subjects";
 const char* vtkKWQdecWindow::ksDesignPanelName = "Design";

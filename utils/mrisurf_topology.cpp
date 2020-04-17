@@ -1,5 +1,4 @@
 /*
- * @file utilities dealing with the topology
  *
  */
 /*
@@ -366,8 +365,8 @@ short modVnum(MRIS const *mris, int vno, short add, bool clear)
   *p += add;
   static short maxVnumSeen = 30;
   if (*p > maxVnumSeen) {
-    maxVnumSeen =*p;
-    fprintf(stdout, "modVnum: vno:%d has %d immediate neighbours mrisurf_topology.cpp:%d\n",vno,*p,__LINE__); 
+    maxVnumSeen = *p;
+    fs::debug() << "modVnum: vertex " << vno << " has " << *p << " immediate neighbours";
   }
   return *p;
 }
@@ -397,7 +396,7 @@ static void mrisAddEdgeWkr(MRIS *mris, int vno1, int vno2)
     static int maxVnum = 20;
     if (maxVnum < v->vnum) {
       maxVnum = v->vnum;
-      fprintf(stdout, "vno:%d now has %d immediate neighbours  mrisurf_topology.cpp:%d\n", vnoA, v->vnum, __LINE__);
+      fs::debug() << "vertex " << vnoA << " has " << v->vnum << " immediate neighbours";
     }
   };
   

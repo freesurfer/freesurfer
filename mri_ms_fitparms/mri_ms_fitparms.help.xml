@@ -27,7 +27,7 @@
   <synopsis>mri_ms_fitparms [options] [vol_1] [vol_2] ... [output_dir]</synopsis>
   <description> This program takes up to 500 FLASH images as input, and estimates the T1 and PD values of the data for voxel, as well as a linear transform aligning each of the images. The T1 and PD maps are written into [output_dir] together with synthetic volumes names vol?.mgz, one for each of the input volumes. All the output volumes are generated in the common (motion-corrected) space. Note that TR, TE and the flip angle are read directly from the image header. If this information is not available, it can be specified on the command line using -tr [TR in msec] -te [TE in msec] -fa [flip angle in degrees] before each volume. Use -at [xform file name] or -ait [xform file name] to specify transformation for each individual volume. Note only one for each flip-angle is enough. -at will apply the transform to the following volume to align with others.
 
-Interpolation method.  Default is trilinear, other options are nearest, cubic, sinc.  You can say -foo or -interp foo.  For sinc, you can say -interp sinc 3 or -interp sinc -hw 3 or -sinc 3 or -sinc -hw 3.  Maybe -hw 3 should imply sinc, but right now it doesn't.
+Interpolation method.  Default is trilinear, other options are nearest, sinc.  You can say -foo or -interp foo.  For sinc, you can say -interp sinc 3 or -interp sinc -hw 3 or -sinc 3 or -sinc -hw 3.  Maybe -hw 3 should imply sinc, but right now it doesn't.
 </description>
   <arguments>
     <positional>
@@ -53,7 +53,7 @@ Interpolation method.  Default is trilinear, other options are nearest, cubic, s
 	      <argument>-correct</argument>
 		<explanation>Correct proton density map(PD) by T2* estimates</explanation>
 	      <argument>-cubic</argument>
-		<explanation>Use cubic interpolation</explanation>
+		<explanation>Use cubic interpolation (NOT WORKING!)</explanation>
 	      <argument>-debug_slice</argument>
 		<explanation>????</explanation>
 	      <argument>-debug_voxel</argument>

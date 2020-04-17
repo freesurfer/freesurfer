@@ -1,15 +1,10 @@
 /**
- * @file  mris_label2annot.c
  * @brief rogram to convert one or more labels into an annotation
  *
  * Converts a set of surface labels to an annotation file.
  */
 /*
  * Original Author: Doug Greve
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2016/01/07 23:28:11 $
- *    $Revision: 1.20 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

@@ -1,14 +1,9 @@
 /**
- * @file  flash.c
  * @brief utilities for computing flash intensities from T1/PD pairs
  *
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2015/03/12 20:22:55 $
- *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

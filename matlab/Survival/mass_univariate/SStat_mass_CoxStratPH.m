@@ -24,12 +24,7 @@ function [stats,st] = SStat_mass_CoxStratPH(X,z,d,t,Y,maskvtx,prs,e)
 % st: Array containing the termination state for each voxel/vertex
 % (1 for convergence and 0 otherwise).
 %
-% $Revision: 1.1 $  $Date: 2015/01/06 17:03:59 $
 % Original Author: Jorge Luis Bernal Rusiel 
-% CVS Revision Info:
-%    $Author: mreuter $
-%    $Date: 2015/01/06 17:03:59 $
-%    $Revision: 1.1 $
 % References: Kleinbaum, D.G., Klein, M., 2005. Survival analysis. A self-
 % learning approach, second edition. New York: Springer..
 %   

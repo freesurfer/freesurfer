@@ -1,7 +1,6 @@
 #define COMPILING_MRISURF_TOPOLOGY_FRIEND_CHECKED
 #define COMPILING_MRISURF_METRIC_PROPERTIES_FRIEND
 /*
- * @file utilities operating on Original
  *
  */
 /*

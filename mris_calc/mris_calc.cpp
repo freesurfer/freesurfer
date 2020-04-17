@@ -1,5 +1,4 @@
 /**
- * @file  mris_calc.c
  * @brief A *very* simple calculator for FreeSurfer curvature files.
  *
  * 'mris_calc' performs some simple mathematical operations on
@@ -10,10 +9,6 @@
  */
 /*
  * Original Author: Rudolph Pienaar
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2016/09/27 18:50:16 $
- *    $Revision: 1.55 $
  *
  * Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
  *

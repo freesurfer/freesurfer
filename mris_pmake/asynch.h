@@ -1,15 +1,10 @@
 /**
- * @file  asyhch.h
  * @brief The asynchronous communications related object API
  *
  * This defines the asynchronous communications parser and dispatching layer.
  */
 /*
  * Original Author: Rudolph Pienaar / Christian Haselgrove
- * CVS Revision Info:
- *    $Author: rudolph $
- *    $Date: 2012/07/05 21:21:28 $
- *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

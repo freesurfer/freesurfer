@@ -1,5 +1,4 @@
 /**
- * @file  cmd_line_interface.cpp
  * @brief automate the parsing of the command-line
  *
  * this class is meant to automate the parsing of the command-line
@@ -8,13 +7,6 @@
  *  as such, the data it holds have 2 purposes:
  *    1. will process the options, as well as the input and output files the user enters
  *    2. will help automate the print_help command, which otherwise would not be centralized
- */
-/*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2013/02/21 19:17:23 $
- *    $Revision: 1.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 

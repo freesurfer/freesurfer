@@ -198,7 +198,7 @@ set ATLASDUMP="$FREESURFER_HOME/average/ThalamicNuclei/atlas/AtlasDump.mgz";
 set LUT="$FREESURFER_HOME/average/ThalamicNuclei/atlas/compressionLookupTable.txt";
 set K="0.05";
 set OPTIMIZER="L-BFGS";
-set SUFFIX="v10";
+set SUFFIX="v12";
 set USETWOCOMPS="1";
 set MRFCONSTANT="0";
 

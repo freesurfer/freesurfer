@@ -1,5 +1,4 @@
 /**
- * @file  mri_surfacemask.cpp
  * @brief taking mri volume and surface and create volume
  *
  * where all pixels outside the surface has been zeroed
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Yasunari Tosa
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:25 $
- *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

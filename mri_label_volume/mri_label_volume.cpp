@@ -1,14 +1,9 @@
 /**
- * @file  mri_label_volume.c
  * @brief program for computing the volume of a set of labeled voxels
  *
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:22 $
- *    $Revision: 1.31 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

@@ -1,14 +1,5 @@
-/**
- * @file  MainWindow.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- */
 /*
  * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2017/02/08 21:01:00 $
- *    $Revision: 1.363 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -118,6 +109,9 @@
 #include "PanelLayer.h"
 #include "WindowLayerInfo.h"
 #include <QDebug>
+#ifdef Q_OS_MAC
+#include "MacHelper.h"
+#endif
 
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
 #include <QtWidgets>
@@ -532,6 +526,13 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
 
   addAction(ui->actionViewLayerInfo);
   connect(ui->actionViewLayerInfo, SIGNAL(triggered(bool)), SLOT(OnViewLayerInfo()));
+
+#ifdef Q_OS_MAC
+  if (MacHelper::IsDarkMode())
+  {
+      ui->actionShowCoordinateAnnotation->setIcon(MacHelper::InvertIcon(ui->actionShowCoordinateAnnotation->icon(), QSize(), true));
+  }
+#endif
 }
 
 MainWindow::~MainWindow()
@@ -1351,15 +1352,22 @@ void MainWindow::AddScripts(const QList<QStringList> &cmds)
 void MainWindow::OnIdle()
 {
   bool bBusy = IsBusy();
-  //  qDebug() << "busy: " << bBusy << "  script_running: " << m_bScriptRunning
-  //     << "  script empty: " << m_scripts.isEmpty();
+  if (!bBusy && m_scripts.isEmpty() && property("from_cmd").toBool())
+  {
+    setProperty("from_cmd", false);
+    cout << "Commands finished" << endl;
+  }
   if ( !bBusy && !m_bScriptRunning && !m_scripts.isEmpty() )
   {
     bool last_one = (m_scripts.size() == 1);
     RunScript();
     if (last_one)
+    {
       ui->widgetAllLayers->UpdateWidgets();
+    }
   }
+
+  ui->actionShowToolbar->setChecked(ui->mainToolBar->isVisible());
 
   ui->actionViewSagittal->setChecked( m_nMainView == this->MV_Sagittal );
   ui->actionViewCoronal->setChecked( m_nMainView == this->MV_Coronal );
@@ -1801,6 +1809,10 @@ void MainWindow::RunScript()
   {
     CommandSetIsoSurfaceColor( sa );
   }
+  else if (cmd == "setisosurfacesmooth")
+  {
+    CommandSetIsoSurfaceSmooth( sa );
+  }
   else if (cmd == "setisosurfaceupsample")
   {
     CommandSetIsoSurfaceUpsample( sa );
@@ -1872,6 +1884,10 @@ void MainWindow::RunScript()
   else if ( cmd == "setsurfacecolor" )
   {
     CommandSetSurfaceColor( sa );
+  }
+  else if ( cmd == "setsurfaceopacity" )
+  {
+    CommandSetSurfaceOpacity( sa );
   }
   else if ( cmd == "setsurfaceedgecolor" )
   {
@@ -2004,6 +2020,10 @@ void MainWindow::RunScript()
     else if (sa[1] == "medial")
       ui->view3D->ResetViewMedial();
   }
+  else if (cmd == "resetview")
+  {
+    OnResetView();
+  }
   else if (cmd == "exportlineprofile")
   {
     CommandExportLineProfileThickness(sa);
@@ -2019,6 +2039,7 @@ void MainWindow::ClearScripts()
 {
   m_scripts.clear();
   m_bScriptRunning = false;
+  setProperty("from_cmd", false);
 }
 
 void MainWindow::CommandLoadCommand(const QStringList &sa)
@@ -2053,6 +2074,9 @@ void MainWindow::CommandLoadCommand(const QStringList &sa)
       AddScript(args);
     }
   }
+
+  cout << "Executing commands from " << qPrintable(sa[1]) << endl;
+  setProperty("from_cmd", true);
 }
 
 void MainWindow::CommandLoadSubject(const QStringList &sa)
@@ -2300,6 +2324,10 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
       else if (subOption == "isosurface_color")
       {
         m_scripts.insert( 0,  (QStringList("setisosurfacecolor") << subArgu) );
+      }
+      else if (subOption == "isosurface_smooth")
+      {
+        m_scripts.insert(0, (QStringList("setisosurfacesmooth") << subArgu) );
       }
       else if (subOption == "extract_all_regions")
       {
@@ -2920,6 +2948,20 @@ void MainWindow::CommandSetIsoSurfaceUpsample(const QStringList &cmd)
   }
 }
 
+void MainWindow::CommandSetIsoSurfaceSmooth(const QStringList &cmd)
+{
+  LayerMRI* mri = (LayerMRI*)GetLayerCollection( "MRI" )->GetActiveLayer();
+  if ( mri )
+  {
+    bool bOk;
+    int nIterations = cmd[1].toInt(&bOk);
+    if (bOk && nIterations > 0)
+    {
+      mri->GetProperty()->SetContourSmoothIterations(nIterations);
+    }
+  }
+}
+
 void MainWindow::CommandSetExtractAllRegions(const QStringList &cmd)
 {
   LayerMRI* mri = (LayerMRI*)GetLayerCollection( "MRI" )->GetActiveLayer();
@@ -3324,6 +3366,10 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
         if ( subOption == "color" )
         {
           m_scripts.insert( 0, QStringList("setsurfacecolor") << subArgu );
+        }
+        else if (subOption == "opacity")
+        {
+          m_scripts.insert( 0, QStringList("setsurfaceopacity") << subArgu );
         }
         else if ( subOption == "id")
         {
@@ -3749,7 +3795,6 @@ void MainWindow::CommandSetSurfaceOverlayMask(const QStringList &cmd)
     {
       if (cmd.size() > 2 && (cmd[2].toLower() == "invert" || cmd[2].toLower() == "inverse"))
         overlay->GetProperty()->SetMaskInverse(true);
-      qDebug() << overlay->GetProperty()->GetMaskInverse();
       emit OverlayMaskRequested(cmd[1]);
     }
   }
@@ -4016,6 +4061,24 @@ void MainWindow::CommandSetSurfaceEdgeThickness( const QStringList& cmd )
     else
     {
       surf->GetProperty()->SetEdgeThickness( thickness );
+    }
+  }
+}
+
+void MainWindow::CommandSetSurfaceOpacity( const QStringList& cmd )
+{
+  LayerSurface* surf = (LayerSurface*)GetLayerCollection( "Surface" )->GetActiveLayer();
+  if ( surf )
+  {
+    bool bOK;
+    double opacity = cmd[1].toDouble(&bOK);
+    if ( !bOK || opacity < 0 || opacity > 1)
+    {
+      cerr << "Invalid opacity value. Must be between 0 and 1.\n";
+    }
+    else
+    {
+      surf->GetProperty()->SetOpacity(opacity);
     }
   }
 }
@@ -4541,7 +4604,11 @@ void MainWindow::CommandSetViewSize( const QStringList& cmd )
     cerr << "Invalid view size.\n";
     return;
   }
+  SetViewSize(x, y);
+}
 
+void MainWindow::SetViewSize(int x, int y)
+{
   QSize sz = m_views[m_nMainView]->size();
   int offsetx = x - sz.width(), offsety = y - sz.height();
   switch( m_nViewLayout )
@@ -5960,6 +6027,13 @@ void MainWindow::LoadSurfaceFile( const QString& filename, const QString& fn_pat
   if (sup_options.value("no_autoload").toBool())
   {
     layer->SetSphereFileName("");
+    if (fi.fileName().contains("inflated"))
+    {
+        QString fn = fi.absoluteFilePath();
+        fn.replace(".inflated", ".white");
+        if (QFile::exists(fn) && !sup_files.contains("white"))
+            sup_files << "white";
+    }
   }
   else
   {
@@ -6089,7 +6163,7 @@ void MainWindow::OnIOError( Layer* layer, int jobtype )
   m_layerSettings.clear();
   if (bQuit)
   {
-    qDebug() << msg;
+    cout << qPrintable(msg) << endl;
     close();
   }
 }
@@ -6752,6 +6826,7 @@ void MainWindow::OnPreferences()
     m_dlgPreferences->SetSettings(m_settings);
   }
   m_dlgPreferences->show();
+  m_dlgPreferences->raise();
 }
 
 void MainWindow::SetVolumeColorMap( int nColorMap, int nColorMapScale, const QList<double>& scales_in )
@@ -6831,6 +6906,7 @@ void MainWindow::OnTransformVolume()
   {
     cout << "Warning: Transformation can only apply to volumes for now. If your data includes ROI/Surface/Way Points, please do not use this feature yet.\n";
     m_dlgTransformVolume->show();
+    m_dlgTransformVolume->raise();
     m_dlgTransformVolume->UpdateUI();
   }
 }
@@ -6840,6 +6916,7 @@ void MainWindow::OnCropVolume()
   LayerMRI* mri = (LayerMRI*)GetActiveLayer( "MRI" );
   m_dlgCropVolume->SetVolume( mri );
   m_dlgCropVolume->show();
+  m_dlgCropVolume->raise();
   m_volumeCropper->SetEnabled( true );
   m_volumeCropper->SetVolume( mri );
   m_volumeCropper->Show();
@@ -6851,11 +6928,13 @@ void MainWindow::OnCropVolume()
 void MainWindow::OnThresholdVolume()
 {
   m_dlgThresholdVolume->show();
+  m_dlgThresholdVolume->raise();
 }
 
 void MainWindow::OnSegmentVolume()
 {
   m_dlgVolumeSegmentation->show();
+  m_dlgVolumeSegmentation->raise();
 }
 
 void MainWindow::RotateVolume( std::vector<RotationElement>& rotations, bool bAllVolumes )
@@ -6940,6 +7019,7 @@ void MainWindow::OnSaveScreenshot()
     m_dlgSaveScreenshot->SetSettings(m_settingsScreenshot);
   }
   m_dlgSaveScreenshot->show();
+  m_dlgSaveScreenshot->raise();
 }
 
 void MainWindow::OnVolumeFilterMean()
@@ -7506,6 +7586,7 @@ void MainWindow::OnLoadCommand()
 void MainWindow::OnWriteMovieFrames()
 {
   m_dlgWriteMovieFrames->show();
+  m_dlgWriteMovieFrames->raise();
 }
 
 Layer* MainWindow::GetSupplementLayer(const QString &type)
@@ -7547,16 +7628,19 @@ void MainWindow::ShowNonModalMessage(const QString &title, const QString &msg)
   m_dlgMessage->setWindowTitle(title);
   m_dlgMessage->setText(msg);
   m_dlgMessage->show();
+  m_dlgMessage->raise();
 }
 
 void MainWindow::OnRepositionSurface()
 {
   m_dlgRepositionSurface->show();
+  m_dlgRepositionSurface->raise();
 }
 
 void MainWindow::OnSmoothSurface()
 {
   m_dlgSmoothSurface->show();
+  m_dlgSmoothSurface->raise();
 }
 
 void MainWindow::OnRemoveIntersectionsFromSurface()
@@ -7627,11 +7711,13 @@ void MainWindow::SaveSurfaceAs()
 void MainWindow::OnShowLabelStats()
 {
   m_dlgLabelStats->show();
+  m_dlgLabelStats->raise();
 }
 
 void MainWindow::OnLineProfile()
 {
   m_dlgLineProfile->show();
+  m_dlgLineProfile->raise();
 }
 
 void MainWindow::OnSaveIsoSurface(const QString& fn_in)
@@ -7686,6 +7772,7 @@ void MainWindow::OnPlot()
 
   this->m_wndGroupPlot->SetFsgdData(fsgd);
   this->m_wndGroupPlot->show();
+  this->m_wndGroupPlot->raise();
   this->m_wndGroupPlot->SetCurrentVertex(0);
   m_strLastFsgdDir = QFileInfo(fn).absolutePath();
 }
@@ -7693,7 +7780,7 @@ void MainWindow::OnPlot()
 void MainWindow::ToggleSplinePicking()
 {
   m_bSplinePicking = !m_bSplinePicking;
-  qDebug() << QString("Surface spline picking %1").arg(m_bSplinePicking?"enabled":"disabled");
+  cout << qPrintable(QString("Surface spline picking %1").arg(m_bSplinePicking?"enabled":"disabled")) << endl;
 }
 
 void MainWindow::SetSplinePicking(bool b)
@@ -8449,7 +8536,7 @@ void MainWindow::GoToContralateralPoint(LayerSurface *layer_in)
   }
   else
   {
-    qDebug() << "Did not find any vertex at cursor on" << layer->GetName();
+    cout << "Did not find any vertex at cursor on " << qPrintable(layer->GetName()) << endl;
   }
 }
 
@@ -8827,7 +8914,7 @@ void MainWindow::CommandExportLineProfileThickness(const QStringList &cmd)
   }
   QString fn = ar[0];
   if (!ExportLineProfileThickness(fn, opts))
-    qDebug() << "Failed to export line profile thickness to " << fn;
+    cerr << "Failed to export line profile thickness to " << qPrintable(fn) << endl;
 }
 
 bool MainWindow::ExportLineProfileThickness(const QString &filename, const QVariantMap& opts)

@@ -1,5 +1,4 @@
 /**
- * @file  rbm.h
  * @brief utilities for restricted Boltzmann Machines (RBMs) and Deep Belief
  *        Networks (DBNs)
  *
@@ -10,10 +9,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2014/05/10 13:08:42 $
- *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

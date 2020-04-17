@@ -1,14 +1,9 @@
 /**
- * @file  mri_surfcluster.c
  * @brief Finds clusters on the surface.
  *
  */
 /*
  * Original Author: Douglas N. Greve
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2016/11/01 19:49:22 $
- *    $Revision: 1.60 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

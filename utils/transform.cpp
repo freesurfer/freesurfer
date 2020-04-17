@@ -1,14 +1,9 @@
 /**
- * @file  transform.c
  * @brief utilities for linear transforms
  *
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2015/08/19 16:34:29 $
- *    $Revision: 1.178 $
  *
  * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -5191,4 +5186,46 @@ int LTAinvertIfNeeded(const MRI *src, const MRI *dst, LTA *lta)
   printf("LTAinvertIfNeeded(): Inverting LTA\n");
   LTAinvert(lta,lta);
   return(InversionNeeded);  
+}
+
+
+/*!
+  \fn int TransformCRS2MNI305(const MRI *mri, 
+      const double col, const double row, const double slice, 
+      const LTA *talxfm, double *R, double *A, double *S)
+  \brief Convert a (col, row, slice) from the given volume into an RAS
+         in MNI305. The LTA must be the talairach.xfm (as read by
+         LTAreadEx(). The volume must have the same geometry as that
+         used to generate the talairach.xfm (eg, orig.mgz). Note that
+         the RAS is MNI305, not "talairach". The output agrees with
+         tkmedit MNI305 coords (but not currently (4/2020) FV, I think
+         there is a bug in FV).
+ */
+int TransformCRS2MNI305(const MRI *mri, const double col, const double row, const double slice, 
+			const LTA *talxfm, double *R, double *A, double *S)
+{
+  MATRIX *Norig = MRIxfmCRS2XYZ(mri,0);
+
+  // M = XFM*Norig
+  //MatrixPrint(stdout,Norig);
+  //MatrixPrint(stdout,talxfm->xforms[0].m_L);
+  MATRIX *M = MatrixMultiplyD(talxfm->xforms[0].m_L,Norig,NULL);
+  MATRIX *crs = MatrixAlloc(4,1,MATRIX_REAL);
+  crs->rptr[1][1] = col;
+  crs->rptr[2][1] = row;
+  crs->rptr[3][1] = slice;
+  crs->rptr[4][1] = 1;
+  MATRIX *mni305ras = MatrixMultiplyD(M,crs,NULL);
+  *R = mni305ras->rptr[1][1];
+  *A = mni305ras->rptr[2][1];
+  *S = mni305ras->rptr[3][1];
+
+  MatrixFree(&Norig);
+  MatrixFree(&crs);
+  MatrixFree(&mni305ras);
+  MatrixFree(&M);
+
+  //printf("%g %g %g    %g %g %g\n",col,row,slice,*R,*A,*S);
+
+  return(0);
 }

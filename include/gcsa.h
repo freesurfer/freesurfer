@@ -1,16 +1,8 @@
 /**
- * @file  gcsa.h
  * @brief utilities for Gaussian Classifier Surface Arrays.
  *
  * the heart of the cortical parcellation code - implements an
  * anisotropic nonstationary MRF on the surface.
- */
-/*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:09 $
- *    $Revision: 1.15 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

@@ -32,6 +32,8 @@ public:
 
   bool RemovePoint( int nvo );
 
+  void RemoveLastPoint();
+
   void Clear();
 
   QColor GetColor();

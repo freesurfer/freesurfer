@@ -1,14 +1,9 @@
 /**
- * @file  LayerPointSet.cpp
  * @brief Layer data object for MRI surface.
  *
  */
 /*
  * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2016/07/28 14:31:41 $
- *    $Revision: 1.12 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

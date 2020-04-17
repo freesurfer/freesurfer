@@ -12,10 +12,6 @@ function err = threshold_label(sname, lname, thresh, outname)
 % threshold_label.m
 %
 % Original Author: Bruce Fischl
-% CVS Revision Info:
-%    $Author: greve $
-%    $Date: 2011/09/07 22:45:19 $
-%    $Revision: 1.1 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %

@@ -1,14 +1,9 @@
 /**
- * @file  TrackIO.cpp
  * @brief I/O interface for track file (.trk)
  *
  */
 /*
  * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2011/12/05 21:16:57 $
- *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

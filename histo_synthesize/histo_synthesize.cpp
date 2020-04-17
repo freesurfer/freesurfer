@@ -1,15 +1,10 @@
 /**
- * @file  histo_synthesize.c
  * @brief synthesize a histological volume from an MRI
  *
  * synthesize a histological volume from an MRI
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2012/10/30 14:02:08 $
- *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

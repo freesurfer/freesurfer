@@ -25,9 +25,6 @@
 namespace itk
 {
 
-/**
- *
- */
 template<class TPixel, unsigned int VImageDimension>
 OrientedVectorImage<TPixel, VImageDimension>
 ::OrientedVectorImage() 
@@ -163,9 +160,6 @@ OrientedVectorImage<TPixel, VImageDimension>
   this->SetVectorLength( static_cast< VectorLengthType >(n) );
 }
 
-/**
- *
- */
 template<class TPixel, unsigned int VImageDimension>
 void 
 OrientedVectorImage<TPixel, VImageDimension>

@@ -9,10 +9,6 @@ function [ovs] = ovstruct(img,actimg,ovmin,ovmax)
 % ovstruct.m
 %
 % Original Author: Doug Greve
-% CVS Revision Info:
-%    $Author: greve $
-%    $Date: 2014/02/25 19:10:08 $
-%    $Revision: 1.4 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %

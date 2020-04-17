@@ -1,14 +1,9 @@
 /**
- * @file  MRISrigidBodyAlignGlobal.c
  * @brief functions for finding the best rotation for aligning a MRIS with a target
  *
  */
 /*
  * Original Author: Bevin Brett
- * CVS Revision Info:
- *    $Author: bbrett $
- *    $Date: 2018/05/04 07:52:00 $
- *    $Revision: 1.0 $
  *
  * Copyright © 2018 The General Hospital Corporation (Boston, MA) "MGH"
  *

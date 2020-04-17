@@ -1,14 +1,9 @@
 /**
- * @file  ctrpoints.c
  * @brief utilities handling control points
  *
  */
 /*
  * Original Author: Y. Tosa
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/11/30 21:44:46 $
- *    $Revision: 1.15 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

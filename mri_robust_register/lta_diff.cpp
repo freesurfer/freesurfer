@@ -1,15 +1,10 @@
 /**
- * @file  lta_diff.cpp
  * @brief A programm to compute differences of lta files (transforms)
  *
  */
 
 /*
  * Original Author: Martin Reuter
- * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2016/03/10 16:57:29 $
- *    $Revision: 1.27 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

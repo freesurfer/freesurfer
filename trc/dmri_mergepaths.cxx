@@ -1,15 +1,10 @@
 /**
- * @file  dmri_mergepaths.cxx
  * @brief Merge posterior distributions from multiple paths into a 4D file
  *
  * Merge posterior distributions from multiple paths into a 4D file
  */
 /*
  * Original Author: Anastasia Yendiki
- * CVS Revision Info:
- *    $Author: ayendiki $
- *    $Date: 2013/02/12 01:48:33 $
- *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

@@ -1,16 +1,11 @@
 static const int debug = 0;
 
 /**
- * @file  romp_support.c
  * @brief prototypes and structures for getting reproducible results from and for timing omp loops.
  *
  */
 /*
  * Original Author: Bevin Brett
- * CVS Revision Info:
- *    $Author: brettb $
- *    $Date: 2017/12 $
- *    $Revision: 1.0 $
  *
  * Copyright © 2017 The General Hospital Corporation (Boston, MA) "MGH"
  *

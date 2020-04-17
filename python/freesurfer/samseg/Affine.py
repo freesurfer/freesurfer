@@ -183,10 +183,12 @@ class Affine:
                           'worldToWorldTransformMatrix': worldToWorldTransformMatrix } )
 
         # Save the template transform
+        inputImage = fs.Volume.read(imageFileName)
+        templateImage = fs.Volume.read(templateFileName)
         xform = fs.LinearTransform(convertLPSTransformToRAS(worldToWorldTransformMatrix))
         xform.type = fs.LinearTransform.Type.ras
-        xform.source = fs.Volume.read(templateFileName).geometry()
-        xform.target = fs.Volume.read(imageFileName).geometry()
+        xform.source = templateImage.geometry()
+        xform.target = inputImage.geometry()
         ltaFileName = os.path.join(savePath, 'template.lta')
         print('writing template transform to %s' % ltaFileName)
         xform.write(ltaFileName)
@@ -197,12 +199,22 @@ class Affine:
         print('writing talairach transform to %s' % ltaFileName)
         xform.write(ltaFileName)
 
-        # Save the coregistered template. For historical reasons, we applied the estimated transformation to the template... let's do that now
-        desiredTemplateImageToWorldTransformMatrix = np.asfortranarray(imageToWorldTransformMatrix @ imageToImageTransformMatrix)
-        transformedTemplateFileName = os.path.join(savePath, templateFileNameBase + '_coregistered' + templateFileNameExtension)
-        template.write(transformedTemplateFileName, gems.KvlTransform(desiredTemplateImageToWorldTransformMatrix))
+        # Save the coregistered template
+        coregistered = fs.Volume(fs.geom.resample(templateImage.data, inputImage.shape[:3], np.linalg.inv(imageToImageTransformMatrix)))
+        coregistered.copy_geometry(inputImage)
+        coregistered.write(os.path.join(savePath, 'template_coregistered.mgz'))
 
-        return worldToWorldTransformMatrix, transformedTemplateFileName, optimizationSummary
+        # Historically, the template was resaved with a transformed header and the image-to-image transform
+        # was later extracted by comparing the input image and coregistered template transforms, but shear
+        # cannot be saved through an ITK image, so a better method is to pass the image-to-image transform matrix
+        # directly to samseg. If the SAMSEG_LEGACY_REGISTRATION env var is set, this old method is enabled
+        if os.environ.get('SAMSEG_LEGACY_REGISTRATION') is not None:
+            print('INFO: using legacy (broken) registration option')
+            desiredTemplateImageToWorldTransformMatrix = np.asfortranarray(imageToWorldTransformMatrix @ imageToImageTransformMatrix)
+            transformedTemplateFileName = os.path.join(savePath, 'template_coregistered_legacy.nii')
+            template.write(transformedTemplateFileName, gems.KvlTransform(desiredTemplateImageToWorldTransformMatrix))
+
+        return imageToImageTransformMatrix, optimizationSummary
 
     def computeRotationAndScalingMatrixGuessEstimates(self):
         # Rotation around X-axis (direction from left to right ear)

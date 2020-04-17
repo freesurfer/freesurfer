@@ -8,9 +8,6 @@ namespace kvl
 {
 
 
-/**
- *
- */
 class Histogrammer: public AtlasMeshRasterizor
 {
 public :

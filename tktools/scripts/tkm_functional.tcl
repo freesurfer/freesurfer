@@ -1,10 +1,6 @@
 ##
 ## tkm_functional.tcl
 ##
-## CVS Revision Info:
-##    $Author: greve $
-##    $Date: 2011/07/14 22:07:25 $
-##    $Revision: 1.44 $
 ##
 ## Copyright (C) 2002-2011, CorTechs Labs, Inc. (La Jolla, CA) and
 ## The General Hospital Corporation (Boston, MA).

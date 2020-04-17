@@ -1,6 +1,6 @@
 # project info
-project(freesurfer)
 cmake_minimum_required(VERSION 3.9)
+project(freesurfer)
 enable_language(C CXX Fortran)
 
 # a few build options
@@ -125,12 +125,24 @@ if(NOT APPLE)
 endif()
 
 # -------- openMP --------
-find_package(OpenMP)
+if(APPLE)
+  # this is an ugly hack to ensure that cmake looks for the
+  # static version of libomp on mac, since we don't want
+  # to distribute the shared library
+  set(ORIG_LIBRARY_SUFFIXES ${CMAKE_FIND_LIBRARY_SUFFIXES})
+  set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
+  find_package(OpenMP)
+  set(CMAKE_FIND_LIBRARY_SUFFIXES ${ORIG_LIBRARY_SUFFIXES})
+else()
+  find_package(OpenMP)
+endif()
+
 if(OPENMP_FOUND)
   add_definitions(-DHAVE_OPENMP)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
   set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} ${OpenMP_Fortran_FLAGS}")
+  set(OMP_CXX_LIBRARIES OpenMP::OpenMP_CXX)
 endif()
 
 # -------- openCV --------

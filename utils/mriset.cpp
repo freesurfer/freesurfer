@@ -1,5 +1,4 @@
 /**
- * @file  mriset.c
  * @brief utilities for MRI data structure
  *
  * Operators like union, intersection, erosion, dialation and masking on
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2015/04/15 20:03:00 $
- *    $Revision: 1.93 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1670,6 +1665,8 @@ MRI *MRIdilate(MRI *mri_src, MRI *mri_dst)
       double val, max_val;
       for (y = ymin; y <= ymax; y++) {
         for (x = xmin; x <= xmax; x++) {
+    if (x == Gx && y == Gy && z == Gz)
+      DiagBreak() ;
           max_val = 0;
           for (z0 = -1; z0 <= 1; z0++) {
             zi = mri_src->zi[z + z0];
@@ -2306,7 +2303,7 @@ MRI *MRImaskDifferentGeometry(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, int mas
         xd = nint(V3_X(v2));
         yd = nint(V3_Y(v2));
         zd = nint(V3_Z(v2));
-	if (x == 616 && y == 283 && z == 627)
+	if (x == Gx && y == Gy && z == Gz)
 	  DiagBreak() ;
 	if (xd == 154 && yd == 71 && zd == 157)
 	  DiagBreak() ;

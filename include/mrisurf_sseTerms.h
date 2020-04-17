@@ -1,6 +1,5 @@
 #pragma once
 /*
- * @file The SSE terms
  *
  */
 /*

@@ -1,14 +1,9 @@
 /**
- * @file aseg_edit_svm.c
  * @brief utilities for using SVMs to reclassify aseg voxels
  *
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2015/03/12 20:22:55 $
- *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

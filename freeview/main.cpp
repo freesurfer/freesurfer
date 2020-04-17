@@ -1,14 +1,9 @@
 /**
- * @file  main.cpp
  * @brief the 'main' for freeview
  *
  */
 /*
  * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2017/02/08 21:01:00 $
- *    $Revision: 1.82 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -152,6 +147,7 @@ int main(int argc, char *argv[])
     "':mask=volume_name' Use the given volume to as mask for display. The mask volume must be loaded first.\n\n"
     "':isosurface=low_threshold,high_threshold' Set 3D display as isosurface. High_threshold is optional. If no threshold or simply 'on' is given, threshold will be either automatically determined or retrieved from the save previously settings.\n\n"
     "':isosurface_color=color' Set the color of the isosurface. Color can be a color name such as 'red' or 3 values as RGB components of the color, e.g., '255,0,0'.\n\n"
+    "':isosurface_smooth=iterations' Set the number of smooth iterations. Default value is 5.\n\n"
     "':extract_all_regions=flag' Set isosurface to extract all regions. default setting is on.\n\n"
     "':isosurface_output=filename' Save isosurface to file. Extension can be .vtk or .stl.\n\n"
     "':surface_region=file' Load isosurface region(s) from the given file. isosurface display will automatically be turned on.\n\n"
@@ -192,6 +188,7 @@ int main(int argc, char *argv[])
     "':patch=patch_filename' Load given patch file.\n\n"
     "':correlation=correlation_filename' Load correlation data from file. Correlation data is treated as a special kind of overlay data.\n\n"
     "':color=colorname' Set the base color of the surface. Color can be a color name such as 'red' or 3 values as RGB components of the color, e.g., '255,0,0'.\n\n"
+    "':opacity=value' Set surface opacity. Value ranges from 0 to 1.\n\n"
     "':edgecolor=colorname' Set the color of the slice intersection outline on the surface. If set to 'overlay', will use overlay color\n\n"
     "':edgethickness=thickness' Set the thickness of the slice intersection outline on the surface. set 0 to hide it.\n\n"
     "':annot=filenames' Set annotation files to load.\n\n"

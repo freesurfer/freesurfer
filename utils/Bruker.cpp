@@ -1,15 +1,4 @@
-/**
- * @file  Bruker.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
- */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR
- * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2011/07/13 19:44:49 $
- *    $Revision: 1.12 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -28,9 +17,6 @@
 /* created by : y.tosa                    */
 /* date       :8/27/2003                  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: rpwang $
-// Revision Date  : $Date: 2011/07/13 19:44:49 $
-// Revision       : $Revision: 1.12 $
 
 // there are many files present in Bruker directory
 //

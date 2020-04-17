@@ -1,15 +1,10 @@
 /**
- * @file  mri.h
  * @brief prototypes and structures for working with MRI volumes.
  *
  *  prototypes and structures for working with MRI volumes.
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/12/26 15:30:02 $
- *    $Revision: 1.484 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -788,6 +783,7 @@ int   MRIvoxelToTalairach(MRI *mri, double xv, double yv, double zv,
                           double *pxt, double *pyt, double *pzt) ;
 int   MRItalairachToVoxel(MRI *mri, double xt, double yt, double zt,
                           double *pxv, double *pyv, double *pzv) ;
+int MRIworldToTalairach(MRI *mri, double xw, double yw, double zw, double *pxt, double *pyt, double *pzt);
 
 int   MRItransformRegion(MRI *mri_src, MRI *mri_dst, MRI_REGION *src_region,
                          MRI_REGION *dst_region) ;
@@ -1333,6 +1329,7 @@ MRI *MRISeqchangeType(MRI *vol, int dest_type, float f_low,
 
 MRI *MRIresample(MRI *src, MRI *template_vol, int resample_type);
 MATRIX *MRIgetResampleMatrix(MRI *src, MRI *template_vol);
+void MRIlimitsMultipleTimes(MRI *mri_src, float *psrc_min, float *psrc_max, int ntimes);
 int MRIlimits(MRI *mri, float *min, float *max);
 int MRIprintStats(MRI *mri, FILE *stream);
 int MRIstats(MRI *mri, float *min, float *max, int *n_voxels,

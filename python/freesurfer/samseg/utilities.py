@@ -104,6 +104,7 @@ def icv(structures, includeStructures=None):
             'Right-Caudate',
             'Left-Thalamus',
             'non-WM-hypointensities',
-            '5th-Ventricle'
+            '5th-Ventricle',
+            'Lesions'
         ]
     return sum(structure[1] for structure in structures if structure[0] in includeStructures)

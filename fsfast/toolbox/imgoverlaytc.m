@@ -12,10 +12,6 @@ function [tcimg,cmap,cscale] = imgoverlaytc(img,overlay,ovmin,ovmax,tail,rescale
 % imgoverlaytc.m
 %
 % Original Author: Doug Greve
-% CVS Revision Info:
-%    $Author: greve $
-%    $Date: 2014/02/25 19:09:45 $
-%    $Revision: 1.4 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %

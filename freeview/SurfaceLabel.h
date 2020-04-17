@@ -1,5 +1,4 @@
 /**
- * @file  SurfaceLabel.h
  * @brief The common properties available to surface label
  *
  * An interface implemented by a collection. Layers will get
@@ -8,10 +7,6 @@
  */
 /*
  * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2016/12/08 17:41:15 $
- *    $Revision: 1.15 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

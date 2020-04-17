@@ -1,5 +1,4 @@
 /**
- * @file  mris_volmask.cpp
  * @brief Uses the 4 surfaces of a scan to construct a mask volume
  *
  * Uses the 4 surfaces of a scan to construct a mask volume showing the
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Gheorghe Postelnicu
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:34 $
- *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

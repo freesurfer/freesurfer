@@ -1,5 +1,4 @@
 /**
- * @file  mri_segment.c
  * @brief segments white matter from a brain volume
  *
  * "Cortical Surface-Based Analysis I: Segmentation and Surface
@@ -8,10 +7,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/10/22 17:29:37 $
- *    $Revision: 1.44 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

@@ -3,13 +3,7 @@
 #
 # copyfreesurfer.csh
 #
-# REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
 #
-# Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR
-# CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2011/03/02 20:16:38 $
-#    $Revision: 1.6 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #

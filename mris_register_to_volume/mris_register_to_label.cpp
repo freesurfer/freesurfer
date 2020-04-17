@@ -1,5 +1,4 @@
 /**
- * @file  mris_register_to_label.c
  * @brief program for computing/optimizing registration of a surface to a volume
  *        
  *
@@ -9,10 +8,6 @@
  */
 /*
  * Original Author: Greg Grev
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2013/06/07 18:56:17 $
- *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

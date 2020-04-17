@@ -1,6 +1,5 @@
 #pragma once
 /**
- * @file  mrisurf.h
  * @brief MRI_SURFACE utilities.
  *
  * Utilities, constants and structure definitions for manipulation
@@ -8,10 +7,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2017/02/16 19:42:54 $
- *    $Revision: 1.391 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -540,7 +535,10 @@ int MRISfindClosestWhiteVertex(MRI_SURFACE *mris, float x, float y,
 int MRISfindClosestVertex(MRI_SURFACE *mris,
                           float x, float y, float z,
                           float *dmin, int which_vertices);
-                              
+double MRISfindMinDistanceVertexWithDotCheckXYZ(MRI_SURFACE *mris, double xs, double ys, double zs, 
+						MRI *mri, double dot_dir, int *pvtxno);
+double MRISfindMinDistanceVertexWithDotCheck(MRI_SURFACE *mris, int c, int r, int s, 
+					     MRI *mri, double dot_dir, int *pvtxno);                              
 double       MRIScomputeCorrelationError(MRI_SURFACE *mris, MRI_SP *mrisp_template, int fno) ;
 int          MRISallocExtraGradients(MRI_SURFACE *mris) ;
 MRI_SURFACE  *MRISread(const char *fname) ;
@@ -1214,6 +1212,7 @@ int MRISprettyPrintSurfQualityStats(FILE *fp, MRIS *surf);
 
 int MRISmergeIcosahedrons(MRI_SURFACE *mri_src, MRI_SURFACE *mri_dst) ;
 int MRISinverseSphericalMap(MRI_SURFACE *mris, MRI_SURFACE *mris_ico) ;
+MRI *MRIScoverSeg(MRIS *mris, MRI *mri_bin, MRI *mri_cover_seg, int surftype);
 
 ////////////////////////////////////////////////////
 /* for mris_topo_fixer */

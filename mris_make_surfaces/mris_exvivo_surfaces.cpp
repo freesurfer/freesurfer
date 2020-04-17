@@ -1,5 +1,4 @@
 /**
- * @file  mris_exvivo_surfaces.c
  * @brief tailored for the ex-vivo MEF data
  *
  * This version is tailored for the ex-vivo MEF data. There are 6 channels
@@ -11,10 +10,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2015/02/05 23:34:41 $
- *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

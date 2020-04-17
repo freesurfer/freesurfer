@@ -1,14 +1,9 @@
 /**
- * @file  utils.h
  * @brief well....utils!
  *
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2016/01/20 23:38:54 $
- *    $Revision: 1.58 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -27,6 +22,7 @@
 #define UTILS_H
 
 
+#include <string>
 #include "base.h"
 
 #define MATLAB_FILE   0
@@ -86,6 +82,8 @@ char *FileNamePath(const char *fname, char *pathName) ;
 char *FileNameRemoveExtension(const char *in_fname, char *out_fname) ;
 char *FileNameExtension(const char *fname, char *ext) ;
 char *AppendString(char *src, char *app);
+
+bool stringEndsWith(const std::string& value, const std::string& ending);
 
 int devIsinf(float value);
 int devIsnan(float value);

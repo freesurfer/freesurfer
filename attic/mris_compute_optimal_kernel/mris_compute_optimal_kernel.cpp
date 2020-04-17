@@ -1,5 +1,4 @@
 /**
- * @file  mris_compute_optimal_kernel.c
  * @brief program for computing the optimal blurring kernel between an individual label and a group.
  *
  * computes the isotropic gaussian blurring kernel that is optimal in the lms sense between a
@@ -8,10 +7,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:30 $
- *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

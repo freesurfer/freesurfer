@@ -1,5 +1,4 @@
 /**
- * @file  gcsa.c
  * @brief Gaussian Classifier (Surface) Atlas utilities
  *
  * Utilities for creating and using the cortical parcellation atlas.
@@ -9,10 +8,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2013/10/29 14:55:20 $
- *    $Revision: 1.39 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

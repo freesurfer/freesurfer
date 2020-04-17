@@ -1,11 +1,9 @@
 /**
- * @file  dti_tensoreig.c
  * @brief calculates eigensystem and fa
  *
  */
 /*
  * Original Author: Dennis Jen
- * CVS Revision Info:
  *    $Author$
  *    $Date$
  *    $Revision$

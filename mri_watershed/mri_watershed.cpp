@@ -1,5 +1,4 @@
 /**
- * @file  mri_watershed.cpp
  * @brief skull-strip MRI image, leaving brain
  *
  * "A Hybrid Approach to the Skull-Stripping Problem in MRI",
@@ -10,10 +9,6 @@
  */
 /*
  * Original Authors: Florent Segonne & Bruce Fischl
- * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2016/06/17 18:00:49 $
- *    $Revision: 1.103 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

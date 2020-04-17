@@ -18,8 +18,9 @@ parser.add_argument('-o', '--output', required=True, help='Output directory.')
 parser.add_argument('-m', '--mode', nargs='+', help='Output basenames for the input image mode.')
 parser.add_argument('-a', '--atlas', metavar='DIR', help='Point to an alternative atlas directory.')
 parser.add_argument('--save-warp', action='store_true', help='Save the image->template warp fields.')
-parser.add_argument('--threads', type=int, default=default_threads, help='Number of threads to use. Defaults to current OMP_NUM_THREADS or 1.')
+parser.add_argument('--save-posteriors', nargs='*', help='Save posterior volumes to the "posteriors" subdirectory.')
 parser.add_argument('--pallidum-separate', action='store_true', default=False, help='Move pallidum outside of global white matter class. Use this flag when T2/flair is used.')
+parser.add_argument('--threads', type=int, default=default_threads, help='Number of threads to use. Defaults to current OMP_NUM_THREADS or 1.')
 
 args = parser.parse_args()
 
@@ -50,6 +51,12 @@ if not atlasDir:
 # Start the process timer
 timer = fs.utils.Timer()
 
+# Check if --save-posteriors was specified without any structure search string
+if args.save_posteriors is not None and len(args.save_posteriors) == 0:
+    savePosteriors = True
+else:
+    savePosteriors = args.save_posteriors
+
 # ------ Run Samsegment ------
 
 samsegLongitudinal = samseg.SamsegLongitudinal(
@@ -59,7 +66,8 @@ samsegLongitudinal = samseg.SamsegLongitudinal(
     targetIntensity=110,
     targetSearchStrings=['Cerebral-White-Matter'],
     modeNames=args.mode,
-    pallidumAsWM=(not args.pallidum_separate)
+    pallidumAsWM=(not args.pallidum_separate),
+    savePosteriors=savePosteriors
 )
 
 samsegLongitudinal.segment(saveWarp=args.save_warp)

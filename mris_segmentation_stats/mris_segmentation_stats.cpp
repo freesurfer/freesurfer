@@ -1,15 +1,9 @@
 /**
- * @file  mris_segmentation_stats
  * @brief program to compute ROC curves for surface segmentations
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2012/08/26 00:41:44 $
- *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

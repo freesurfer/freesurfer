@@ -1,15 +1,9 @@
 /**
- * @file  mris_sample_parc.c
  * @brief program for sampling a volumetric parcellation onto a surface model
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/12/11 14:33:38 $
- *    $Revision: 1.31 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

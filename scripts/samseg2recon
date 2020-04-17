@@ -21,6 +21,9 @@ set HaveT2w = 0;
 set HaveFLAIR = 0;
 set tmpdir = ()
 set LF = ()
+set LongTP = ();
+set DoLongBase = 0;
+set LongUseMC = 1;
 set cleanup = 1
 # set this to 1 until can make all commands respect updates
 set ForceUpdate = 1; 
@@ -144,8 +147,9 @@ endif
 
 # Link the samseg talairach to the talairach.lta
 pushd $mdir/transforms
-set cmd = (ln -sf $samsegdir/samseg.talairach.lta talairach.lta)
+set cmd = (ln -sf $samsegtaldir/samseg.talairach.lta talairach.lta)
 echo $cmd | tee -a $LF
+echo cd `pwd` | tee -a $LF
 $cmd | tee -a $LF
 if($status) goto error_exit;
 # Create a talairach.xfm (needed for mris_anatomical stats) 
@@ -154,6 +158,16 @@ echo $cmd | tee -a $LF
 $cmd | tee -a $LF
 if($status) goto error_exit;
 popd
+
+# Link the samseg template.m3z to the talairach.m3z
+if(-e $samsegtaldir/template.m3z) then
+  pushd $mdir/transforms
+  # This is not the same space as the talairach.m3z
+  set cmd = (ln -sf $samsegtaldir/template.m3z talairach.m3z)
+  echo $cmd | tee -a $LF
+  echo cd `pwd` | tee -a $LF
+  $cmd | tee -a $LF
+endif
 
 # Get basename for bias corrected data. At some point samseg
 # should write out stereotypical file names
@@ -368,7 +382,7 @@ if($DoNormalization2) then
   # are built from brain.finalsurfs.mgz.
   pushd $mdir
   rm -f brain.mgz
-  ln -s norm.mgz brain.mgz
+  ln -fs norm.mgz brain.mgz
   popd
 endif
 
@@ -444,6 +458,22 @@ while( $#argv != 0 )
     case "--i":
       if($#argv < 1) goto arg1err;
       set input = $argv[1]; shift;
+      breaksw
+
+    case "--long":
+      if($#argv < 1) goto arg1err;
+      set LongTP = $argv[1]; shift;
+      # Check for and remove leading 0 in LongTP, otherwise printf may think it is hex
+      set a = `echo $LongTP | cut -c1`
+      if($a == 0) set LongTP = `echo $LongTP | cut -c2-`
+      # Do it a second time, just in case, there's another leading 0
+      set a = `echo $LongTP | cut -c1`
+      if($a == 0) set LongTP = `echo $LongTP | cut -c2-`
+      set LongTPStr = `printf %03d $LongTP`
+      breaksw
+
+    case "--base":
+      set DoLongBase = 1;
       breaksw
 
     case "--log":
@@ -556,27 +586,46 @@ pushd $samsegdir > /dev/null
 set samsegdir = `pwd`
 popd  > /dev/null
 
-set coregdir = $SUBJECTS_DIR/$subject/coreg
-if(! -e $coregdir) then
-  set coregdir = $samsegdir/coreg
+if(! $#LongTP && ! $DoLongBase) then
+  set coregdir = $SUBJECTS_DIR/$subject/coreg
   if(! -e $coregdir) then
-    echo "ERROR: cannot find coreg dir"
+    set coregdir = $samsegdir/coreg
+    if(! -e $coregdir) then
+      echo "ERROR: cannot find coreg dir"
+      exit 1;
+    endif
+  endif
+  set input = $coregdir/t1w/t1w.mgz
+  set modenamelist = (`cat $coregdir/modenames.txt`)
+  set ok = 0;
+  foreach mode ($modenamelist)
+    if($mode == t1w) set ok = 1;
+    if($mode == t2w)   set HaveT2w = 1;
+    if($mode == flair) set HaveFLAIR = 1;
+  end
+  if(! $ok) then
+    echo "ERROR: cannot find t1w in mode list $modenamelist"
     exit 1;
+  endif
+  set samsegtaldir  = $samsegdir
+else
+  set modenamelist = (t1w)
+  set samsegbasedir = $samsegdir/base
+  set samsegtaldir  = $samsegbasedir
+  if($DoLongBase) then
+    set input = $samsegdir/mc/mctemplate.mgz
+    set samsegdir = $samsegbasedir
+  else
+    set samseglongdir = $samsegdir/tp$LongTPStr
+    if($LongUseMC) then
+      set input = $samsegdir/mc/mc.$LongTPStr.mgz
+    else
+      set input = $samsegdir/mc/input_$LongTPStr.mgz
+    endif
+    set samsegdir = $samseglongdir
   endif
 endif
 
-set modenamelist = (`cat $coregdir/modenames.txt`)
-set ok = 0;
-foreach mode ($modenamelist)
-  if($mode == t1w) set ok = 1;
-  if($mode == t2w)   set HaveT2w = 1;
-  if($mode == flair) set HaveFLAIR = 1;
-end
-if(! $ok) then
-  echo "ERROR: cannot find t1w in mode list $modenamelist"
-  exit 1;
-endif
-set input = $coregdir/t1w/t1w.mgz
 if(! -e $input) then
   echo "ERROR: cannot find $input"
   exit 1;
@@ -600,13 +649,15 @@ usage_exit:
   echo ""
   echo "samseg2recon"
   echo "  --s subject"
-  echo "  --samseg samsegdir : ouput dir when samseg was run"
+  echo "  --samseg samsegdir : ouput dir when samseg or samseg-long was run"
   echo "      if not supplied, then assumes subject/mri/samseg"
   echo "  --no-cc : do not do corpus callosum segmentation"
   echo "  --fill : use samseg to create the filled.mgz used for tessellation (--no-fill)"
   echo "  --normalization2 : seg brain.mgz to norm.mgz "
   echo "  --uchar : convert to uchar"
   echo "  --no-keep-exc : do not keep extracerebral segmentations"
+  echo "  --long tpNumber : process TP, will find folder called tpXXX in samsegdir"
+  echo "  --base : process base, will find folder called base in samsegdir"
   echo ""
 
   if(! $PrintHelp) exit 1;
@@ -618,7 +669,23 @@ exit 1;
 BEGINHELP
 
 Create and populate a subjects dir in a way that recon-all can be run
-on it. It is a work in progress as it assumes that the input to samseg
+on it. This is a work in progress as it assumes that the input to samseg
 is T1 and has been conformed.
+
+For longitudinal analysis
+Run samseg-long to create the samseglongdir; this will have a base
+folder and time point folders called tp001, tp002, etc
+
+Create a base subject by transfering all the base samseg analysis to the
+recon-all base subject. The name of the base subject can be anything:
+   samseg2recon --base --s subject_base  --samseg samseglongdir
+Now run recon-all on the base
+   recon-all -s subject_base -autorecon2-samseg -autorecon3
+
+Create a subject for each time point by transfering all the samseg analysis 
+from that TP to the subject for that TP. The subject name can be anything
+   samseg2recon --long 2 --s long.tp002  --samseg samseglongdir
+Then run
+   recon-all -long-samseg subject_base long.tp002 -autorecon2-samseg -autorecon3
 
 

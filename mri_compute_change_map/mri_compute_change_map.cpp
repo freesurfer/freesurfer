@@ -1,5 +1,4 @@
 /**
- * @file  mri_compute_change_map.c
  * @brief computes longitudinal change map for a pair of (registered) images
  *
  * Program for computing a change map for a pair of registered images by
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2015/02/05 23:34:40 $
- *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

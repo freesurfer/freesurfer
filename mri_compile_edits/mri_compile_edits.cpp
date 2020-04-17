@@ -1,5 +1,4 @@
 /**
- * @file  mri_compile_edits.c
  * @brief program to find all edits made to a subject and write out
  *    a .mgz volume summarizing them.
  *
@@ -7,10 +6,6 @@
  * stream and writes them into a single volume with different labels.
  *
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2012/02/08 20:33:17 $
- *    $Revision: 1.8 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *

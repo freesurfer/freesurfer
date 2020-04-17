@@ -1,14 +1,9 @@
 /**
- * @file  Layer.cpp
  * @brief Base Layer class. A layer is an independent data object with 2D and 3D graphical representations.
  *
  */
 /*
  * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2013/09/19 19:00:50 $
- *    $Revision: 1.32 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

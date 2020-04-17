@@ -1,14 +1,9 @@
 /**
- * @file  mri_edit_wm_with_aseg.c
  * @brief fixup the wm vol based on segmentations found in aseg
  *
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2012/03/29 13:17:38 $
- *    $Revision: 1.25 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1010,7 +1005,7 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
   {
     for (z = 0 ; z < depth ; z++)
     {
-      for (y = height-1 ; y > 0 ; y--)
+      for (y = height-2 ; y > 0 ; y--)
       {
         for (x = 2 ; x < width-2 ; x++)
         {

@@ -1,14 +1,5 @@
-/**
- * @file  ToolWindowROIEdit.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- */
 /*
  * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2017/01/11 21:05:23 $
- *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -28,6 +19,9 @@
 #include "MainWindow.h"
 #include "BrushProperty.h"
 #include <QSettings>
+#ifdef Q_OS_MAC
+#include "MacHelper.h"
+#endif
 
 ToolWindowROIEdit::ToolWindowROIEdit(QWidget *parent) :
   QWidget(parent),
@@ -50,6 +44,14 @@ ToolWindowROIEdit::ToolWindowROIEdit(QWidget *parent) :
   connect( ui->spinBoxBrushSize, SIGNAL(valueChanged(int)), wnd->GetBrushProperty(), SLOT(SetBrushSize(int)));
 
   UpdateWidgets();
+
+#ifdef Q_OS_MAC
+  if (MacHelper::IsDarkMode())
+  {
+      ui->actionFreeHand->setIcon(MacHelper::InvertIcon(ui->actionFreeHand->icon(), QSize(), true));
+      ui->actionPolyLine->setIcon(MacHelper::InvertIcon(ui->actionPolyLine->icon(), QSize(), true));
+  }
+#endif
 }
 
 ToolWindowROIEdit::~ToolWindowROIEdit()

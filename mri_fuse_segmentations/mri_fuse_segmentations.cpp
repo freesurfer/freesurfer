@@ -1,5 +1,4 @@
 /**
- * @file  mri_fuse_segmentations.cpp
  * @brief fuse a set of segmentations (asegs)
  *
  * program to fuse a group of cross sectional segmentations into
@@ -8,10 +7,6 @@
  *
  *
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:15 $
- *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

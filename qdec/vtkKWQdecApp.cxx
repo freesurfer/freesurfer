@@ -1,5 +1,4 @@
 /**
- * @file  vtkKWQdecApp.cxx
  * @brief Command line parsing and registry
  *
  * Application code that parses the command line options and passes
@@ -8,10 +7,6 @@
  */
 /*
  * Original Author: Kevin Teich
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2013/04/14 21:06:37 $
- *    $Revision: 1.13 $
  *
  * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -49,7 +44,6 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecApp );
-vtkCxxRevisionMacro( vtkKWQdecApp, "$Revision: 1.13 $" );
 
 vtkKWQdecApp::vtkKWQdecApp () :
   vtkKWApplication() {

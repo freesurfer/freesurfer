@@ -1,14 +1,5 @@
-/**
- * @file  WidgetHistogram.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- */
 /*
  * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2014/03/27 20:13:34 $
- *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -78,6 +69,7 @@ void WidgetHistogram::SetOutputRange( double* dRange )
 {
   m_dOutputRange[0] = dRange[0];
   m_dOutputRange[1] = dRange[1];
+  m_bAutoRange = false;
   UpdateData();
 }
 
@@ -690,5 +682,5 @@ void WidgetHistogram::FlipMarkers()
 void WidgetHistogram::SetMarkerEditable(bool bFlag)
 {
   m_bMarkerEditable = bFlag;
-  setToolTip(bFlag?"Double-click to edit\r\nShift+Click to delete":"");
+  setToolTip(bFlag?"Double-click on the sliding markers to edit.\r\nShift+Click to delete":"");
 }

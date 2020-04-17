@@ -1,6 +1,5 @@
 #define COMPILING_MRISURF_TOPOLOGY_FRIEND_CHECKED
 /**
- * @file  mris_topology.cpp
  * @brief surface topology correction utilities
  *
  * "Automated Manifold Surgery: Constructing Geometrically Accurate and
@@ -10,10 +9,6 @@
  */
 /*
  * Original Author: Florence Segonne
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:56 $
- *    $Revision: 1.36 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

@@ -1,15 +1,10 @@
 /**
- * @file  mris_smooth.c
  * @brief iterative averaging of vertex positions to smooth a surface.
  *
  * See (Fischl et al, NeuroImage, 1999)
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2014/01/21 18:48:21 $
- *    $Revision: 1.30 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

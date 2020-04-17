@@ -1,5 +1,4 @@
 /**
- * @file  c_surface.cpp
  * @brief The surface related object API.
  *
  * Surface type functions setting whole surface function pointers, and
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Rudolph Pienaar / Christian Haselgrove
- * CVS Revision Info:
- *    $Author: rudolph $
- *    $Date: 2012/07/05 21:21:28 $
- *    $Revision: 1.15 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

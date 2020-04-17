@@ -1,5 +1,4 @@
 /**
- * @file  mri_ms_gca_EM.c
  * @brief performs EM-segmentation on the multidimensional intensity space.
  *
  * This program takes an arbitrary # of FLASH images as input,
@@ -19,10 +18,6 @@
  */
 /*
  * Original Author: Xiao Han
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:55 $
- *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

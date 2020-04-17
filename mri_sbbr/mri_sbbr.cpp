@@ -1,15 +1,10 @@
 /**
- * @file  mri_sbbr.c
  * @brief Slice-to-volume registation with in-plane bbr
  *
  * Slice-to-volume registation with in-plane bbr
  */
 /*
  * Original Author: Douglas N. Greve
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2016/09/23 20:23:11 $
- *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

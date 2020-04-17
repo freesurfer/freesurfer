@@ -13,10 +13,6 @@ function [vertex_coords, faces, magic] = read_surf(fname)
 % read_surf.m
 %
 % Original Author: Bruce Fischl
-% CVS Revision Info:
-%    $Author: fischl $
-%    $Date: 2014/04/30 12:59:03 $
-%    $Revision: 1.7 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %

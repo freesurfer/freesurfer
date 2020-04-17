@@ -1,5 +1,4 @@
 /**
- * @file  mris_surface_stats.c
  * @brief compute the stat-map of scalars defined on the surface
  *
  * This command computes the mean and std of both the signed and unsigned
@@ -10,10 +9,6 @@
  */
 /*
  * Original Author: Xiao Han
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:34 $
- *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

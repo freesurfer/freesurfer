@@ -4,10 +4,6 @@
 # preproc-sess - runs preprocessing (mc, spatsmooth, mkbrainmask, inorm)
 #
 # Original Author: Doug Greve
-# CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2016/08/02 21:18:50 $
-#    $Revision: 1.65 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 

@@ -1,14 +1,9 @@
 /**
- * @file  mriclass.c
  * @brief utilities for MRI classification using a variety of classifiers
  *
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:45 $
- *    $Revision: 1.57 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

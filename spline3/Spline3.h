@@ -1,5 +1,4 @@
 /**
- * @file Spline3.h
  * @brief A simple class representing cubic splines
  *
  */

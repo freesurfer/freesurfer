@@ -1,14 +1,9 @@
 /**
- * @file  tags.h
  * @brief utils for adding tags (meta info) to mgz/h files
  *
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2014/11/21 17:52:30 $
- *    $Revision: 1.24 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

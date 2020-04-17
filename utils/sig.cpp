@@ -1,15 +1,10 @@
 /**
- * @file  sig.c
  * @brief stats routines
  *
  * such things as FDR and beta and gamma incomplete functions
  */
 /*
  * Original Author: Bruce Fischl and Doug Greve
- * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2015/03/12 20:22:57 $
- *    $Revision: 1.24 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

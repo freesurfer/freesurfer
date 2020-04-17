@@ -1,5 +1,4 @@
 /**
- * @file  mris_left_right_register.c
  * @brief cmd line utility for registering a subject's surface with an atlas,
  *
  * Command line utility for registering a subject's surface with an atlas.
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2011/12/16 20:49:37 $
- *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

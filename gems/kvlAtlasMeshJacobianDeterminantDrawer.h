@@ -9,9 +9,6 @@ namespace kvl
 {
 
 
-/**
- *
- */
 class AtlasMeshJacobianDeterminantDrawer: public AtlasMeshRasterizor
 {
 public :

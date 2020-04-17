@@ -1,5 +1,4 @@
 /**
- * @file  mris_classify_thickness.c
  * @brief Use a random forest classifier to classify thickness patterns
  *
  * read in thickness vectors that have been mapped to a common coordinate sytem (e.g. fsaverage5)
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2012/03/08 13:30:17 $
- *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

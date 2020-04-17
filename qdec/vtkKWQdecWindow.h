@@ -1,5 +1,4 @@
 /**
- * @file  vtkKWQdecWindow.h
  * @brief Main QDEC logic
  *
  * Loads in all types of data and manages them. Main logic for running
@@ -9,10 +8,6 @@
  */
 /*
  * Original Author: Kevin Teich
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/09/08 01:35:26 $
- *    $Revision: 1.26 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

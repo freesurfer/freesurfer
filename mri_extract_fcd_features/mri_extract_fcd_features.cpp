@@ -1,15 +1,9 @@
 /**
- * @file  mri_extract_fcd_features.c
  * @brief program to extract features from a recon dir to use as input to an FCD classifier.
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/06/15 17:51:09 $
- *    $Revision: 1.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

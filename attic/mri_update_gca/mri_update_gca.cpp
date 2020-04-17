@@ -1,15 +1,9 @@
 /**
- * @file  mri_update_gca.c
  * @brief program to update intensity distributions in a gca with an example aseg/norm
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/06/29 19:35:58 $
- *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

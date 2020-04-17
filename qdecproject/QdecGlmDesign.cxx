@@ -1,5 +1,4 @@
 /**
- * @file  QdecGlmDesign.cpp
  * @brief Contains the data and functions associated with a GLM design run
  *
  * Contains the data and functions associated with the selected GLM input
@@ -10,10 +9,6 @@
  */
 /*
  * Original Author: Nick Schmansky
- * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2015/04/28 14:34:48 $
- *    $Revision: 1.23 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -293,18 +288,12 @@ int QdecGlmDesign::Create ( QdecDataTable* iDataTable,
 }
 
 
-/**
- *
- */
 void QdecGlmDesign::ClearDiscreteFactors ( )
 {
   mDiscreteFactors.clear();
 }
 
 
-/**
- *
- */
 void QdecGlmDesign::AddDiscreteFactor ( const char* isFactorName)
 {
   QdecFactor* qf = this->mDataTable->GetFactor( isFactorName );
@@ -319,9 +308,6 @@ void QdecGlmDesign::AddDiscreteFactor ( const char* isFactorName)
 }
 
 
-/**
- *
- */
 void QdecGlmDesign::ClearContinuousFactors ( )
 {
   // un-exclude any previously excluded subjects (see AddContinuousFactor)
@@ -354,9 +340,6 @@ void QdecGlmDesign::ClearContinuousFactors ( )
 }
 
 
-/**
- *
- */
 void QdecGlmDesign::AddContinuousFactor ( const char* isFactorName)
 {
   QdecFactor* qf = this->mDataTable->GetFactor( isFactorName );
@@ -387,9 +370,6 @@ void QdecGlmDesign::AddContinuousFactor ( const char* isFactorName)
 }
 
 
-/**
- *
- */
 void QdecGlmDesign::ClearNuisanceFactors ( )
 {
   // un-exclude any previously excluded subjects (see AddNuisanceFactor)
@@ -422,9 +402,6 @@ void QdecGlmDesign::ClearNuisanceFactors ( )
 }
 
 
-/**
- *
- */
 void QdecGlmDesign::AddNuisanceFactor ( const char* isFactorName)
 {
   QdecFactor* qf = this->mDataTable->GetFactor( isFactorName );
@@ -517,9 +494,6 @@ int QdecGlmDesign::GetSmoothness ( )
   return this->mSmoothness;
 }
 
-/**
- *
- */
 void QdecGlmDesign::SetSmoothness ( int iVal )
 {
   this->mSmoothness = iVal;

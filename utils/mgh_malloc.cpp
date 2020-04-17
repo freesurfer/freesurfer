@@ -3,17 +3,12 @@
 
 
 /**
- * @file  mgh_malloc.c
  * @brief overrides or wraps malloc et. al. with code that allows us
  *        to measure their uses and debug their failures
  *
  */
 /*
  * Original Author: Bevin Brett
- * CVS Revision Info:
- *    $Author: brettb $
- *    $Date: 2018/03 $
- *    $Revision: 1.0 $
  *
  * Copyright © 2018 The General Hospital Corporation (Boston, MA) "MGH"
  *

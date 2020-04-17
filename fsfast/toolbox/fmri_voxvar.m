@@ -17,10 +17,6 @@ function vvar = fmri_voxvar(e,dof,Cn,TPExcl)
 % fmri_voxvar.m
 %
 % Original Author: Doug Greve
-% CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2011/03/02 00:04:07 $
-%    $Revision: 1.3 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %

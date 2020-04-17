@@ -1,14 +1,6 @@
-/**
- * @file  endianio.c
- *
- */
 /*
  * Original Author: Avi Z. Snyder, Washington University
  * 
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2012/01/04 03:16:15 $
- *    $Revision: 1.4 $
  *
  * Copyright 1999 - 2011
  * Washington University, Mallinckrodt Institute of Radiology.

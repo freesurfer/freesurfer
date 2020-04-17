@@ -1,5 +1,4 @@
 /**
- * @file  mri_mask.c
  * @brief applies a mask volume
  *
  * Usage: mri_mask [options] <in vol> <mask vol> <out vol>
@@ -13,10 +12,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/11/28 20:30:57 $
- *    $Revision: 1.24 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -472,6 +467,14 @@ get_option(int argc, char *argv[])
   {
     keep_mask_deletion_edits = 1;
     fprintf(stderr, "Transferring mask edits ('1' voxels) to dst vol\n");
+  }
+  else if (!stricmp(option, "DEBUG_VOXEL"))
+  {
+    Gx = atoi(argv[2]) ;
+    Gy = atoi(argv[3]) ;
+    Gz = atoi(argv[4]) ;
+    nargs = 3 ;
+    printf("debugging node (%d, %d, %d)\n", Gx,Gy,Gz) ;
   }
   else
   {

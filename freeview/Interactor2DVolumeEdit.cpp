@@ -1,14 +1,9 @@
 /**
- * @file  Interactor2DVolumeEdit.cpp
  * @brief Interactor for editing volume in 2D render view.
  *
  */
 /*
  * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2015/07/30 20:22:19 $
- *    $Revision: 1.35 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -59,7 +54,7 @@ void Interactor2DVolumeEdit::PreprocessMouseEvent(QMouseEvent *event)
   bool bRightButtonErase = MainWindow::GetMainWindow()->GetSetting("RightButtonErase").toBool();
   if (bRightButtonErase && event->button() == Qt::RightButton && event->modifiers() == Qt::NoModifier)
   {
-    QMouseEvent e(event->type(), event->pos(), Qt::LeftButton,Qt::LeftButton, Qt::ShiftModifier);
+    QMouseEvent e(event->type(), event->pos(), Qt::LeftButton, Qt::LeftButton, Qt::ShiftModifier);
     *event = e;
   }
 }
@@ -595,7 +590,8 @@ bool Interactor2DVolumeEdit::ProcessKeyDownEvent( QKeyEvent* event, RenderView* 
     return false;
   }
 
-  if ((event->modifiers() & Qt::ShiftModifier) && m_nAction == EM_Shift )
+  // disable using keyboard to shift voxels
+  if (false) // (event->modifiers() & Qt::ShiftModifier) && m_nAction == EM_Shift )
   {
     int nKeyCode = event->key();
     int n[3] = {0, 0, 0};

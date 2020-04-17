@@ -1,5 +1,4 @@
 /**
- * @file  mris_resample.cpp
  * @brief resample one surface to another, given their spherical regs
  *
  * This is a stripped-down version of mris_indirect_morph
@@ -20,10 +19,6 @@
  */
 /*
  * Original Author: Gheorghe Postelnicu, 2006
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:33 $
- *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -178,8 +173,8 @@ IoParams::parse(int ac, char** av)
 
   annotation = false;
 
-  if (strAnnotationOut.empty() && !strAnnotationIn.empty()) logFatal(1) << "missing --annot_out flag";
-  if (!strAnnotationOut.empty() && strAnnotationIn.empty()) logFatal(1) << "missing --annot_in flag";
+  if (strAnnotationOut.empty() && !strAnnotationIn.empty()) fs::fatal() << "missing --annot_out flag";
+  if (!strAnnotationOut.empty() && strAnnotationIn.empty()) fs::fatal() << "missing --annot_in flag";
 
   if (!strAnnotationOut.empty() && !strAnnotationIn.empty()) {
     annotation = true;

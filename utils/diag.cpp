@@ -1,14 +1,9 @@
 /**
- * @file  diag.c
  * @brief diagnostic routines
  *
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2015/03/12 20:22:55 $
- *    $Revision: 1.38 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

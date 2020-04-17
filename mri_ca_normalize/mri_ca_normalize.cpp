@@ -1,14 +1,9 @@
 /**
- * @file  mri_ca_normalize.c
  * @brief Normalize a volume making use of subcortical atlas data
  *
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/10/22 17:30:57 $
- *    $Revision: 1.69 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

@@ -1,5 +1,4 @@
 /**
- * @file  mris_make_average_surface.c
  * @brief create single surface from averages of a subject list
  *
  * This program will average the orig surfaces from the given subject
@@ -12,10 +11,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2013/04/11 20:41:58 $
- *    $Revision: 1.30 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

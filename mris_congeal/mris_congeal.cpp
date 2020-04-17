@@ -1,5 +1,4 @@
 /**
- * @file  mris_congeal.c
  * @brief cmd line utility for registering a subject's surface with an atlas,
  *
  * Command line utility for registering a subject's surface with an atlas.
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:30 $
- *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

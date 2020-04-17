@@ -1,14 +1,9 @@
 /**
- * @file  mri_average.c
  * @brief create an average of a set of volumes
  *
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/06/01 17:49:55 $
- *    $Revision: 1.47 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
