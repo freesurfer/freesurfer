@@ -27,10 +27,6 @@ function showfigxy(varargin)
 % showfigxy.m
 %
 % Original Author: Doug Greve
-% CVS Revision Info:
-%    $Author: greve $
-%    $Date: 2011/12/15 16:35:09 $
-%    $Revision: 1.10 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %

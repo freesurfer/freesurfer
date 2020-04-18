@@ -1,14 +1,9 @@
 /**
- * @file  LayerFCD.cpp
  * @brief Support for FCD functionality
  *
  */
 /*
  * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2017/02/01 15:28:54 $
- *    $Revision: 1.22 $
  *
  * Copyright © 2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1083,7 +1078,7 @@ bool LayerFCD::GoToContralateralPoint(double *pos, double *pos_out)
 
   if (nVertex < 0)
   {
-    qDebug() << "Did not find any vertex at cursor on" << this->GetName();
+    cout << "Did not find any vertex at cursor on" << qPrintable(GetName()) << endl;
     return false;
   }
 

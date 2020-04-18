@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE help [
+<!ENTITY lt "#38;#60;">
+<!ENTITY gt "&#62;">
+<!ENTITY amp "&#38;#38;">
+<!ELEMENT help (name , synopsis , description , arguments+ , outputs* , example* , bugs* , reporting* , see-also*)*>
+<!ELEMENT name (#PCDATA)>
+<!ELEMENT synopsis (#PCDATA)>
+<!ELEMENT description (#PCDATA)>
+<!ELEMENT arguments (positional* , required-flagged* , optional-flagged*)*>
+<!ELEMENT positional (intro* , argument* , explanation*)*>
+<!ELEMENT required-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT optional-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT intro (#PCDATA)>
+<!ELEMENT argument (#PCDATA)>
+<!ELEMENT explanation (#PCDATA)>
+<!ELEMENT outputs (output* , explanation*)>
+<!ELEMENT output (#PCDATA)>
+<!ELEMENT example (#PCDATA)>
+<!ELEMENT bugs (#PCDATA)>
+<!ELEMENT reporting (#PCDATA)>
+<!ELEMENT see-also (#PCDATA)>
+]>
+
+<help>
+  <name>mri_surf2segvol</name>
+  <synopsis>mri_surf2segvol [options]</synopsis>
+	<description> Performs three functions: (1) cleans up presurf aseg cortex and WM. (2) maps cortical labels from an annotation into a volume, and (3) labels cerebral WM with closest cortical label.  This is a replacement for mri_aparc2aseg.
+</description>
+
+  <arguments>
+    <positional>
+      <intro>None.</intro>
+    </positional>
+    <required-flagged>
+      <intro>None.</intro>
+    </required-flagged>
+    <optional-flagged>
+      <argument>--i inseg</argument>
+      <explanation>Full path of input segmentation.</explanation>
+      <argument>--o output </argument>
+      <explanation>Output segmentation file.</explanation>
+
+      <argument>--lh-white lhwhitesurf</argument>
+      <explanation>White surface for left hemisphere</explanation>
+      <argument>--lh-pial lhpialsurf</argument>
+      <explanation>Pial surface for left hemisphere</explanation>
+
+      <argument>--rh-white rhwhitesurf</argument>
+      <explanation>White surface for left hemisphere</explanation>
+      <argument>--rh-pial rhpialsurf</argument>
+      <explanation>Pial surface for left hemisphere</explanation>
+
+      <argument>--lh-cortex-mask lhcortexmask</argument>
+      <explanation>Mask for lh cortex (usually lh.cortex.label)</explanation>
+      <argument>--lh-cortex-mask lhcortexmask</argument>
+      <explanation>Mask for rh cortex (usually rh.cortex.label)</explanation>
+
+      <argument>--fix-presurf-with-ribbon ribbonfile</argument>
+      <explanation>Fix the cortical and WM labels in the input segmentation</explanation>
+      <argument>--label-cortex</argument>
+      <explanation>Relabel cortex in the input segmentation with surface annotation</explanation>
+      <argument>--label-wm</argument>
+      <explanation>Relabel cerebral WM in the input segmentation with surface annotation</explanation>
+
+      <argument>--lh-annot lhannotation lhbaseoffset</argument>
+      <explanation>lh annotation for --label-cortex and --label-wm</explanation>
+      <argument>--rh-annot rhannotation rhbaseoffset</argument>
+      <explanation>rh annotation for --label-cortex and --label-wm</explanation>
+
+
+      <argument>--wmparc-dmax dmax</argument>
+      <explanation>max dist (mm) from cortex to be labeld as gyral WM (5mm)</explanation>
+      <argument>--rip-unknown</argument>
+      <explanation>do not label WM based on 'unknown' corical label</explanation>
+      <argument>--hypo-as-wm</argument>
+      <explanation>label hypointensities as WM (when fixing with ribbon)</explanation>
+      <argument>--hashres hashres</argument>
+      <explanation>Surface hash table resolution</explanation>
+      <argument>--nhops nhops</argument>
+      <explanation>Number of surface hops when searching for a nearby annot</explanation>
+      <argument>--help</argument>
+      <explanation>print out information on how to use this program</explanation>
+      <argument>--version</argument>
+      <explanation>print out version and exit</explanation>
+      <argument>--crs-test col row slice</argument>
+      <explanation>test labeling of only the voxel given by col row slice (debuggin)</explanation>
+      <argument>--threads nthreads</argument>
+      <explanation>Run in parallel with nthreads</explanation>
+    </optional-flagged>
+  </arguments>
+
+  <example>
+  To create an aseg.mgz with cortex and white matter fixed
+  cd $SUBJECTS_DIR/subject/mri
+  mri_surf2volseg --i aseg.presurf.hypos.mgz --fix-presurf-with-ribbon ribbon.mgz  --o aseg.mgz \
+     --lh-cortex-mask ../label/lh.cortex.label \
+     --rh-cortex-mask ../label/rh.cortex.label \
+     --lh-white ../surf/lh.white --lh-pial ../surf/lh.pial \
+     --rh-white ../surf/rh.white --rh-pial ../surf/rh.pial
+  </example>
+
+  <example>
+  To create an aparc+aseg.mgz (use aseg.mgz from above)
+  cd $SUBJECTS_DIR/subject/mri
+  mri_surf2volseg --i aseg.mgz --label-cortex --o aparc+aseg.mgz \
+     --lh-annot ../label/lh.aparc.annot 1000 --rh-annot ../label/rh.aparc.annot 2000\
+     --lh-cortex-mask ../label/lh.cortex.label --rh-cortex-mask ../label/rh.cortex.label \
+     --lh-white ../surf/lh.white --lh-pial ../surf/lh.pial \
+     --rh-white ../surf/rh.white --rh-pial ../surf/rh.pial 
+  </example>
+
+  <example>
+  To create an wmaparc.mgz (use aseg.mgz from above)
+  cd $SUBJECTS_DIR/subject/mri
+  mri_surf2volseg --i aparc+aseg.mgz --label-wm --o wmaparc.mgz \
+     --lh-annot ../label/lh.aparc.annot 3000 --rh-annot ../label/rh.aparc.annot 4000\
+     --lh-cortex-mask ../label/lh.cortex.label --rh-cortex-mask ../label/rh.cortex.label \
+     --lh-white ../surf/lh.white --lh-pial ../surf/lh.pial \
+     --rh-white ../surf/rh.white --rh-pial ../surf/rh.pial 
+  </example>
+
+  <example>
+  To create an aparc.a2009s+aseg.mgz (use aseg.mgz from above)
+  cd $SUBJECTS_DIR/subject/mri
+  mri_surf2volseg --i aseg.mgz --label-cortex --o aparc.a2009s+aseg.mgz \
+     --lh-annot ../label/lh.aparc.a2009s.annot 11100 --rh-annot ../label/rh.aparc.a2009s.annot 12100\
+     --lh-cortex-mask ../label/lh.cortex.label --rh-cortex-mask ../label/rh.cortex.label \
+     --lh-white ../surf/lh.white --lh-pial ../surf/lh.pial \
+     --rh-white ../surf/rh.white --rh-pial ../surf/rh.pial 
+  </example>
+
+  <bugs>None</bugs>
+  <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>
+	<see-also> </see-also>
+</help>
+

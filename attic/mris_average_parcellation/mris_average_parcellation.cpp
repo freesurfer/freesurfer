@@ -1,15 +1,4 @@
-/**
- * @file  mris_average_parcellation.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
- */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:27 $
- *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -61,11 +50,7 @@ main(int argc, char *argv[]) {
   counts=NULL;
   nvertices=0;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option
-          (argc, argv,
-           "$Id: mris_average_parcellation.c,v 1.4 2011/03/02 00:04:27 nicks Exp $",
-           "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_average_parcellation");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

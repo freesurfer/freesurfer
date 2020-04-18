@@ -1,6 +1,5 @@
 #define COMPILING_MRISURF_TOPOLOGY_FRIEND_CHECKED
 /*
- * @file utilities common to mrisurf*.c but not used outside them
  *
  */
 /*
@@ -74,8 +73,7 @@ bool areCompatible(MRIS_Status s1, MRIS_Status s2)
 
 void checkOrigXYZCompatibleWkr(MRIS_Status s1, MRIS_Status s2, const char* file, int line) {
   if (areCompatible(s1,s2)) return;
-  fprintf(stderr, "%s:%d using incompatible %s %s\n", file, line, 
-    MRIS_Status_text(s1), MRIS_Status_text(s2));
+  fs::debug() << "using incompatible " << MRIS_Status_text(s1) << " and " << MRIS_Status_text(s2);
 }
 
 
@@ -659,9 +657,9 @@ MRIS* MRIScopyMetadata(MRIS const * source, MRIS * target)
 
   copyVolGeom(&source->vg, &target->vg);
 
-  target->lta = LTAcopy(source->lta, nullptr);
-  target->SRASToTalSRAS_ = MatrixCopy(source->SRASToTalSRAS_, nullptr);
-  target->TalSRASToSRAS_ = MatrixCopy(source->TalSRASToSRAS_, nullptr);
+  if (source->lta) target->lta = LTAcopy(source->lta, nullptr);
+  if (source->SRASToTalSRAS_) target->SRASToTalSRAS_ = MatrixCopy(source->SRASToTalSRAS_, nullptr);
+  if (source->TalSRASToSRAS_) target->TalSRASToSRAS_ = MatrixCopy(source->TalSRASToSRAS_, nullptr);
 
   return target;
 }

@@ -11,9 +11,6 @@ namespace kvl
 {
 
 
-/**
- *
- */
 class AtlasMeshSummaryDrawer: public AtlasMeshRasterizor
 {
 public :

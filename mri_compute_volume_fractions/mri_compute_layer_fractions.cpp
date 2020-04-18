@@ -1,15 +1,9 @@
 /**
- * @file  mri_compute_layer_fraction.c
  * @brief compute the % of gm layers 1-6, wm and CSF in each voxel in a volume
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2012/04/11 17:52:45 $
- *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -91,8 +85,7 @@ main(int argc, char *argv[])
   MATRIX      *m_regdat ;
   float       intensity, betplaneres, inplaneres ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_compute_layer_fractions.c,v 1.4 2012/04/11 17:52:45 fischl Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_compute_layer_fractions");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

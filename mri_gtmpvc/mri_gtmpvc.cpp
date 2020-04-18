@@ -1,5 +1,4 @@
 /**
- * @file  mri_gtmpvc.c
  * @brief Peforms Partial volume correction based on the geometric transfer matrix GTM
  *
  *
@@ -8,10 +7,6 @@
  */
 /*
  * Original Author: Douglas N. Greve
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2016/07/07 15:39:49 $
- *    $Revision: 1.70 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -202,7 +197,7 @@ int main(int argc, char *argv[])
   char *stem;
   LTA *ltatmp;
 
-  nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_gtmpvc");
   if (nargs && argc - nargs == 1) exit (0);
   argc -= nargs;
   cmdline = argv2cmdline(argc,argv);

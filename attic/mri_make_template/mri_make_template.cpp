@@ -1,15 +1,4 @@
-/**
- * @file  mri_make_template.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
- */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:22 $
- *    $Revision: 1.26 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -121,8 +110,7 @@ main(int argc, char *argv[]) {
   /*  LTA    *lta;*/
   MRI *mri_tmp=0 ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_make_template.c,v 1.26 2011/03/02 00:04:22 nicks Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_make_template");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

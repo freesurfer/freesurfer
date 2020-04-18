@@ -1,14 +1,9 @@
 /**
- * @file  nmovie.c
  * @brief image display utility
  *
  */
 /*
  * Original Author: RJ Wood
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2012/03/17 20:33:11 $
- *    $Revision: 1.31 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -22,7 +17,6 @@
  *
  */
 
-char *NMOVIE_VERSION = "$Revision: 1.31 $";
 #include <stdio.h>
 #include <image.h>
 #include <stdlib.h>
@@ -621,11 +615,7 @@ int main(int argc, char **argv) {
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option
-          (argc, argv,
-           "$Id: nmovie.c,v 1.31 2012/03/17 20:33:11 nicks Exp $",
-           "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "nmovie");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

@@ -1,15 +1,10 @@
 /**
- * @file  mris_label2annot.c
  * @brief rogram to convert one or more labels into an annotation
  *
  * Converts a set of surface labels to an annotation file.
  */
 /*
  * Original Author: Doug Greve
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2016/01/07 23:28:11 $
- *    $Revision: 1.20 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -211,7 +206,7 @@ int IndexOffset=0;
 int main(int argc, char *argv[]) {
   int nargs, nthlabel, n, vtxno, ano, index, nunhit;
 
-  nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_label2annot");
   if (nargs && argc - nargs == 1) exit (0);
   argc -= nargs;
   cmdline = argv2cmdline(argc,argv);
@@ -653,6 +648,7 @@ static void check_options(void) {
     ctab2 = CTABalloc(ctab->nentries);
     nlabels = 0;
     for (n=0; n<ctab->nentries; n++) {
+      if(ctab->entries[n] == NULL) continue;
       if (strlen(ctab->entries[n]->name) == 0) continue;
       sprintf(tmpstr,"%s/%s.%s.label",labeldir,hemi,ctab->entries[n]->name);
       if(!fio_FileExistsReadable(tmpstr)) continue;

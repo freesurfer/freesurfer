@@ -1,14 +1,9 @@
 /**
- * @file  minc_internals.h
  * @brief Wrapper for MNI's volume_io.h, to decouple from MNI lib
  *
  */
 /*
  * Original Author: Bevin Brett, extracted and enhanced from various minc files
- * CVS Revision Info:
- *    $Author: bevinb $
- *    $Date: 2017/11/13 00:04:10 $
- *    $Revision: 1.0 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

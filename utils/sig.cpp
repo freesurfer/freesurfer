@@ -1,15 +1,10 @@
 /**
- * @file  sig.c
  * @brief stats routines
  *
  * such things as FDR and beta and gamma incomplete functions
  */
 /*
  * Original Author: Bruce Fischl and Doug Greve
- * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2015/03/12 20:22:57 $
- *    $Revision: 1.24 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -24,6 +19,7 @@
  */
 
 #include <float.h>
+#include <cmath>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -135,7 +131,7 @@ double sigt(double t, int df)
       sig = sig2;
   }
 
-  if (!isfinite(sig)) printf("### Numerical error: sigt(%e,%d) = %e\n", t, df, sig);
+  if (!std::isfinite(sig)) printf("### Numerical error: sigt(%e,%d) = %e\n", t, df, sig);
   if (sig > 1.0) sig = 1.0;
 
   return sig;

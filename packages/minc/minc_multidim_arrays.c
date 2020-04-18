@@ -1,13 +1,8 @@
 /**
- * @file  minc_multidim_arrays.c
  * @substitutes for the needed functionality previously obtained from minc
  */
 /*
  * Overhaul Author: Bevin Brett
- * CVS Revision Info:
- *    $Author: Brett $
- *    $Date: 2017/11/07 12:46:00 $
- *    $Revision: 1.00 $
  *
  * Copyright © 2017 The General Hospital Corporation (Boston, MA) "MGH"
  *

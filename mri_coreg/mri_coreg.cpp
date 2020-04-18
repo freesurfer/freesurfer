@@ -1,15 +1,9 @@
 /**
- * @file  mri_coreg.c
  * @brief Computes registration between two volumes
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
  * Original Author: Douglas N. Greve
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2016/04/30 15:11:49 $
- *    $Revision: 1.27 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -98,6 +92,7 @@ typedef struct {
   int DoInitCostOnly;
   int DoSmoothing;
   int cras0;
+  int AlignCentroids=0;
   double ftol,linmintol;
   int nitersmax;
   int refconf;
@@ -223,7 +218,7 @@ int main(int argc, char *argv[]) {
   cmdargs->optschema = 1;
   cmdargs->rusagefile = "";
 
-  nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_coreg");
   if (nargs && argc - nargs == 1) exit (0);
   argc -= nargs;
   cmdline = argv2cmdline(argc,argv);
@@ -300,25 +295,46 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  if(cmdargs->cras0){
-    printf("Setting cras translation parameters to align centers\n");
+  if(cmdargs->cras0 || cmdargs->AlignCentroids){
     MATRIX *Vref, *Vmov, *Imidref, *Imidmov, *Pmidref, *Pmidmov;
 
-    // Compute the location of the middle voxel in ref
+    double xc; double yc; double zc;
+
+    // Compute the location of the voxel in ref
+    if(cmdargs->AlignCentroids){
+      printf("Setting cras translation parameters to align centroids\n");
+      MRIcomputeCentroid(coreg->ref,&xc,&yc,&zc);
+      printf("Ref CRS centroid %g %g %g\n",xc,yc,zc);
+    }
+    else{
+      printf("Setting cras translation parameters to align volume centers\n");
+      xc = (coreg->ref->width-1)/2.0;
+      yc = (coreg->ref->height-1)/2.0;
+      zc = (coreg->ref->depth-1)/2.0;
+    }
     Vref = MRIxfmCRS2XYZ(coreg->ref, 0);
     Imidref = MatrixAlloc(4,1,MATRIX_REAL);
-    Imidref->rptr[1][1] = (coreg->ref->width-1)/2.0;
-    Imidref->rptr[2][1] = (coreg->ref->height-1)/2.0;
-    Imidref->rptr[3][1] = (coreg->ref->depth-1)/2.0;
+    Imidref->rptr[1][1] = xc;
+    Imidref->rptr[2][1] = yc;
+    Imidref->rptr[3][1] = zc;
     Imidref->rptr[4][1] = 1;
     Pmidref = MatrixMultiply(Vref,Imidref,NULL);
 
-    // Compute the location of the middle voxel in mov
+    // Compute the location of the voxel in mov
+    if(cmdargs->AlignCentroids){
+      MRIcomputeCentroid(coreg->mov,&xc,&yc,&zc);
+      printf("Mov CRS centroid %g %g %g\n",xc,yc,zc);
+    }
+    else{
+      xc = (coreg->mov->width-1)/2.0;
+      yc = (coreg->mov->height-1)/2.0;
+      zc = (coreg->mov->depth-1)/2.0;
+    }
     Vmov = MRIxfmCRS2XYZ(coreg->mov, 0);
     Imidmov = MatrixAlloc(4,1,MATRIX_REAL);
-    Imidmov->rptr[1][1] = (coreg->mov->width-1)/2.0;
-    Imidmov->rptr[2][1] = (coreg->mov->height-1)/2.0;
-    Imidmov->rptr[3][1] = (coreg->mov->depth-1)/2.0;
+    Imidmov->rptr[1][1] = xc;
+    Imidmov->rptr[2][1] = yc;
+    Imidmov->rptr[3][1] = zc;
     Imidmov->rptr[4][1] = 1;
     Pmidmov = MatrixMultiply(Vmov,Imidmov,NULL);
 
@@ -492,7 +508,14 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
     else if (!strcasecmp(option, "--init-cost-only")) cmdargs->DoInitCostOnly = 1;
     else if (!strcasecmp(option, "--no-smooth")) cmdargs->DoSmoothing = 0;
-    else if (!strcasecmp(option, "--cras0")) cmdargs->cras0 = 1;
+    else if (!strcasecmp(option, "--cras0")) {
+      cmdargs->cras0 = 1;
+      cmdargs->AlignCentroids = 0;
+    }
+    else if (!strcasecmp(option, "--centroid")) {
+      cmdargs->AlignCentroids = 1;
+      cmdargs->cras0 = 0;
+    }
     else if (!strcasecmp(option, "--no-cras0"))  cmdargs->cras0 = 0;
     else if (!strcasecmp(option, "--regheader")) cmdargs->cras0 = 0;
     else if (!strcasecmp(option, "--conf-ref"))  cmdargs->refconf = 1;
@@ -760,7 +783,8 @@ static void print_usage(void) {
   printf("   --scale Sx Sy Sz : initial scale\n");
   printf("   --shear Hxy Hxz Hyz : initial shear\n");
   printf("   --params outparamfile : save parameters in this file\n");
-  printf("   --no-cras0 : do not Sett translation parameters to align centers of mov and ref\n");
+  printf("   --no-cras0 : do not set translation parameters to align centers of mov and ref\n");
+  printf("   --centroid : intialize by aligning centeroids of mov and ref\n");
   printf("   --regheader : same as no-cras0\n");
   printf("   --nitersmax n : default is %d\n",cmdargs->nitersmax);
   printf("   --ftol ftol : default is %5.3le\n",cmdargs->ftol);

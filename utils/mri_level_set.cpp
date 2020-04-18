@@ -1,15 +1,4 @@
-/**
- * @file  mri_level_set.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
- */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR
- * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2015/03/12 20:22:56 $
- *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -215,7 +204,7 @@ MRI *MRIregionGrow(MRI *mri_src, MRI *mri_distance, float x0, float y0, float z0
             km = ((dyy + dzz) * SQR(dx) + (dxx + dzz) * SQR(dy) + (dxx + dyy) * SQR(dz) -
                   2.0 * (dx * dy * dxy + dx * dz * dxz + dy * dz * dyz)) /
                  denom;
-          if (!isfinite(km)) km = 0.0;
+          if (!std::isfinite(km)) km = 0.0;
 
           /* speed function F based on normal and curvature */
           F = 1.0 - km * e_curv;

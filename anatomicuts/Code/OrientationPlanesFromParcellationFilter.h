@@ -13,6 +13,7 @@
 #include "vtkPlaneSource.h"
 #include <vnl/vnl_vector.h>
 #include <vnl/vnl_cross.h>
+#include "mri.h"
 
 template< class TInputImage , class TOutputImage>
 class OrientationPlanesFromParcellationFilter: public itk::ImageToImageFilter<TInputImage,TOutputImage>
@@ -48,6 +49,9 @@ public:
 	{
 		this->m_baby = bb;
 	}
+
+	float DistanceToMidline(double x, double y, double z);
+	void GeneratePlanes(MRI* image);
 	
 protected:
 	void GenerateData() override;
@@ -57,6 +61,7 @@ private:
 	itk::Vector<float, 3> m_LeftRight;
 	itk::Vector<float, 3> m_UpDown;
 	itk::Vector<float, 3> m_FrontBack;
+	itk::Vector<float, 3> m_centerLR;
 };
 #include "OrientationPlanesFromParcellationFilter.txx"
 #endif

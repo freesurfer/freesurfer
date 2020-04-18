@@ -1,5 +1,4 @@
 /**
- * @file  mri_vol2vol.c
  * @brief converts values in one volume to another volume
  *
  * Resamples a volume into another field-of-view using various types of 
@@ -9,10 +8,6 @@
  */
 /*
  * Original Author: Doug Greve
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/06/22 22:33:40 $
- *    $Revision: 1.89 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -626,7 +621,6 @@ int DownSample[3] = {0,0,0}; // downsample source
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
   char regfile0[1000];
-  char cmdline[CMD_LINE_LEN] ;
   double costs[8];
   FILE *fp;
   int n,err;
@@ -636,14 +630,7 @@ int main(int argc, char **argv) {
 
   vg_isEqual_Threshold = 10e-4;
 
-  make_cmd_version_string(argc, argv,
-                          "$Id: mri_vol2vol.c,v 1.89 2016/06/22 22:33:40 fischl Exp $",
-                          "$Name:  $", cmdline);
-
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option(argc, argv,
-                                "$Id: mri_vol2vol.c,v 1.89 2016/06/22 22:33:40 fischl Exp $",
-                                "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_vol2vol");
   if(nargs && argc - nargs == 1) exit (0);
 
   Progname = argv[0] ;

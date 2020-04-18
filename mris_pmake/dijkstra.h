@@ -1,15 +1,10 @@
 /**
- * @file  dijkstra.h
  * @brief API for dijkstra related processing.
  *
  * Provides an API for dijkstra search through freesurfer structures.
  */
 /*
  * Original Author: Rudolph Pienaar / Christian Haselgrove
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/02/27 21:18:07 $
- *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

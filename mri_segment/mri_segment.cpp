@@ -1,5 +1,4 @@
 /**
- * @file  mri_segment.c
  * @brief segments white matter from a brain volume
  *
  * "Cortical Surface-Based Analysis I: Segmentation and Surface
@@ -8,10 +7,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/10/22 17:29:37 $
- *    $Revision: 1.44 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -50,6 +45,7 @@
 static int extract = 0 ;
 static int  verbose = 0 ;
 static int wsize = 11 ;
+double wsizemm = 0;
 static float pct = 0.8 ;
 static float pslope = 1.0f ;
 static float nslope = 1.0f ;
@@ -127,11 +123,7 @@ int main(int argc, char *argv[])
 
   TAGmakeCommandLineString(argc, argv, cmdline) ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option
-          (argc, argv,
-           "$Id: mri_segment.c,v 1.44 2016/10/22 17:29:37 fischl Exp $",
-           "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_segment");
   if (nargs && argc - nargs == 1)
   {
     exit (0);
@@ -170,6 +162,12 @@ int main(int argc, char *argv[])
     mri_tmp = MRIchangeType(mri_src, MRI_UCHAR, 0, 1000, 1) ;
     MRIfree(&mri_src) ;
     mri_src = mri_tmp ;
+  }
+
+  if(wsizemm > 0){
+    double voxres = (mri_src->xsize + mri_src->ysize + mri_src->zsize)/3.0;
+    wsize = round(wsizemm/voxres);
+    printf("wsizemm = %g, voxres = %g, wsize = %d\n",wsizemm,voxres,wsize);
   }
 
   if (thicken > 1)  {
@@ -228,8 +226,8 @@ int main(int argc, char *argv[])
       MRIcomputeClassStatistics(mri_src, mri_tmp, gray_low, WHITE_MATTER_MEAN,
 				&white_mean, &white_sigma, &gray_mean,
 				&gray_sigma) ;
-      if (!isfinite(white_mean) || !isfinite(white_sigma) ||
-	  !isfinite(gray_mean) || !isfinite(gray_sigma))
+      if (!std::isfinite(white_mean) || !std::isfinite(white_sigma) ||
+	  !std::isfinite(gray_mean) || !std::isfinite(gray_sigma))
 	ErrorExit(ERROR_BADPARM,"%s: class statistics not finite - check input volume!", Progname);
       
       printf(" white_mean %g\n",white_mean);
@@ -599,6 +597,10 @@ get_option(int argc, char *argv[])
   }
   else if (strcmp(option, "polvlen")==0){
     sscanf(argv[2],"%f",&polvlen);
+    nargs = 1 ;
+  }
+  else if (strcmp(option, "wsizemm")==0){
+    sscanf(argv[2],"%lf",&wsizemm);
     nargs = 1 ;
   }
   else if (strcmp(option, "diagno")==0 || strcmp(option, "diag_no")==0){

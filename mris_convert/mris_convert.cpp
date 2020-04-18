@@ -1,15 +1,10 @@
 #define COMPILING_MRISURF_TOPOLOGY_FRIEND_CHECKED
 /**
- * @file  mris_convert.c
  * @brief Format conversions of surface files and scalar overlay files
  *
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2015/07/24 16:13:39 $
- *    $Revision: 1.47 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -148,11 +143,7 @@ main(int argc, char *argv[])
   char *in2_fname=NULL;
   MRI_SURFACE *mris2=NULL;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option
-          (argc, argv,
-           "$Id$",
-           "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_convert");
   if (nargs && argc - nargs == 1)
   {
     exit (0);

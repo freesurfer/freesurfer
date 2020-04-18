@@ -1,6 +1,5 @@
 #pragma once
 /*
- * @file utilities common to mrisurf*.c but not used outside them
  *
  */
 /*
@@ -169,3 +168,4 @@ static void constructComputeDefectContext(ComputeDefectContext* computeDefectCon
 
 
 void MRIScomputeMetricProperties(MRIS_MP* mris);
+void MRIScomputeMetricPropertiesFaster(MRIS *mris);

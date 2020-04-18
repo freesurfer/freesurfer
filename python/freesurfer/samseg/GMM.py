@@ -276,7 +276,7 @@ class GMM:
         self.hyperMixtureWeightsNumberOfMeasurements = self.fullHyperMixtureWeightsNumberOfMeasurements / np.prod(downSamplingFactors)
 
     # Tied gaussian 2 to gaussian 1 (rho indicates outlier factor measured in std deviations)
-    # Note that this works only if the classes have only one single component
+    # Note that this implementation works only if the classes have only one single component
     def tiedGaussiansInit(self, gaussNumber1, gaussNumber2, rho):
         self.tied = True
         self.gaussNumber1Tied = gaussNumber1
@@ -302,35 +302,30 @@ class GMM:
         # Define some temporary variables
         soft_sum_1 = np.sum(posterior_1)
         soft_sum_2 = np.sum(posterior_2)
-        g12TiedMean = ((hyperMeanNumberOfMeasurements_2 * soft_sum_2) /
-                         (soft_sum_2 + hyperMeanNumberOfMeasurements_2)) * \
-                        np.linalg.solve(variance_2_previous, variance_1_previous)
+        tmp = ((hyperMeanNumberOfMeasurements_2 * soft_sum_2) /
+               (soft_sum_2 + hyperMeanNumberOfMeasurements_2)) * np.linalg.solve(variance_2_previous, variance_1_previous)
 
         # Updates for the means
         mean_1 = np.linalg.solve((soft_sum_1 + hyperMeanNumberOfMeasurements_1) * np.eye(self.numberOfContrasts) +
-                                 g12TiedMean, (data.T @ posterior_1 + hyperMean_1 * hyperMeanNumberOfMeasurements_1 +
-                                               g12TiedMean @ ((data.T @ posterior_2) / soft_sum_2)))
+                                 tmp, (data.T @ posterior_1 + hyperMean_1 * hyperMeanNumberOfMeasurements_1 +
+                                               tmp @ ((data.T @ posterior_2) / soft_sum_2)))
 
         mean_2 = (data.T @ posterior_2 + mean_1 * hyperMeanNumberOfMeasurements_2) / \
                  (soft_sum_2 + hyperMeanNumberOfMeasurements_2)
 
         # Updates for the variances
-        tmp = data - mean_1.T
+        mu_1_bar = data - mean_1.T
+        mu_2_bar = data - mean_2.T
+        tmp = mu_2_bar.T @ (mu_2_bar * posterior_2) + hyperMeanNumberOfMeasurements_2 *\
+              ((mean_2 - mean_1) @ (mean_2 - mean_1).T)
+        invRatio = variance_1_previous * np.linalg.inv(variance_2_previous)
 
-        g12TiedVariance = (2 + self.numberOfContrasts) * np.eye(self.numberOfContrasts) +\
-                          hyperVarianceNumberOfMeasurements_2 * (np.linalg.solve(variance_2_previous, self.rho * variance_1_previous)
-                                                                 - np.eye(self.numberOfContrasts))
+        variance_1 = (mu_1_bar.T @ (mu_1_bar * posterior_1) + hyperMeanNumberOfMeasurements_1 *\
+                      ((mean_1 - hyperMean_1) @ (mean_1 - hyperMean_1).T)
+                      + hyperVarianceNumberOfMeasurements_1 * hyperVariance_1 + invRatio @ tmp) /\
+                     (soft_sum_1 + hyperVarianceNumberOfMeasurements_1 + soft_sum_2 + (2 + self.numberOfContrasts))
 
-        variance_1 = np.linalg.solve((soft_sum_1 + hyperVarianceNumberOfMeasurements_1) *
-                                     np.eye(self.numberOfContrasts) + g12TiedVariance,
-                                     (tmp.T @ (tmp * posterior_1) + hyperMeanNumberOfMeasurements_1 *
-                                      ((mean_1 - hyperMean_1) @ (mean_1 - hyperMean_1).T) + hyperVariance_1))
-
-        tmp = data - mean_2.T
-
-        variance_2 = (tmp.T @ (tmp * posterior_2) + hyperMeanNumberOfMeasurements_2 *
-                      ((mean_2 - mean_1) @ (mean_2 - mean_1).T) +
-                      hyperVarianceNumberOfMeasurements_2 * self.rho * variance_1) /\
+        variance_2 = (tmp + hyperVarianceNumberOfMeasurements_2 * self.rho * variance_1) /\
                      (soft_sum_2 + hyperVarianceNumberOfMeasurements_2)
 
         if self.useDiagonalCovarianceMatrices:

@@ -1,14 +1,5 @@
-/**
- * @file  PanelSurface.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- */
 /*
  * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2017/02/01 15:28:54 $
- *    $Revision: 1.74 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -25,6 +16,7 @@
 #include "MainWindow.h"
 #include "ui_PanelSurface.h"
 #include "ui_MainWindow.h"
+#include "ui_WindowEditAnnotation.h"
 #include <QToolBar>
 #include "LayerSurface.h"
 #include "LayerPropertySurface.h"
@@ -46,6 +38,9 @@
 #include "DialogSurfaceLabelOperations.h"
 #include "WindowEditAnnotation.h"
 #include "DialogNewAnnotation.h"
+#ifdef Q_OS_MAC
+#include "MacHelper.h"
+#endif
 
 PanelSurface::PanelSurface(QWidget *parent) :
   PanelLayer("Surface", parent),
@@ -57,7 +52,23 @@ PanelSurface::PanelSurface(QWidget *parent) :
   ui->pushButtonDeleteLabel->setMaximumWidth(62);
   ui->pushButtonLoadLabel->setMaximumWidth(55);
   ui->pushButtonSaveLabel->setMaximumWidth(55);
+
+  if (MacHelper::IsDarkMode())
+  {
+      QIcon icn(":/resource/icons/surface_path_dm.png");
+      icn.addPixmap(QPixmap(":/resource/icons/surface_path_dm.png"), QIcon::Normal, QIcon::On);
+      ui->actionPath->setIcon(icn);
+      ui->actionCutLine->setIcon(QIcon(":/resource/icons/surface_cut_line_dm.png"));
+      ui->actionCutClosedLine->setIcon(QIcon(":/resource/icons/surface_cut_closed_line_dm.png"));
+      ui->actionCutClear->setIcon(QIcon(":/resource/icons/surface_cut_clear_dm.png"));
+      ui->actionFillUncutArea->setIcon(QIcon(":/resource/icons/surface_fill_uncut_area_dm.png"));
+      ui->actionUndoCut->setIcon(QIcon(":/resource/icons/surface_undo_cut_dm.png"));
+      ui->actionMakePath->setIcon(QIcon(":/resource/icons/surface_path_make_dm.png"));
+      ui->actionMakeClosedPath->setIcon(QIcon(":/resource/icons/surface_path_make_closed_dm.png"));
+      ui->actionDeletePath->setIcon(QIcon(":/resource/icons/surface_path_delete_dm.png"));
+  }
 #endif
+
   MainWindow* mainwnd = MainWindow::GetMainWindow();
   ui->toolbar->insertAction(ui->actionShowOverlay, mainwnd->ui->actionLoadSurface);
   ui->toolbar->insertAction(ui->actionShowOverlay, mainwnd->ui->actionCloseSurface);
@@ -125,8 +136,9 @@ PanelSurface::PanelSurface(QWidget *parent) :
   m_widgetsAnnotation << ui->checkBoxAnnotationOutline
                       << ui->labelLabelZOrderAnnotation
                       << ui->spinBoxZOrderAnnotation
-                      << ui->pushButtonEditAnnotation
-                      << ui->pushButtonSaveAnnotation;
+                      << ui->pushButtonEditAnnotation;
+  //                  << ui->pushButtonSaveAnnotation;
+  ui->pushButtonSaveAnnotation->hide();
 
   m_widgetsSpline << ui->colorpickerSplineColor
                   << ui->labelSplineColor
@@ -168,6 +180,12 @@ PanelSurface::PanelSurface(QWidget *parent) :
   m_wndEditAnnotation->hide();
   connect(mainwnd->GetLayerCollection("Surface"), SIGNAL(ActiveLayerChanged(Layer*)),
            m_wndEditAnnotation, SLOT(OnActiveSurfaceChanged(Layer*)));
+  connect(m_wndEditAnnotation->ui->actionMakePath, SIGNAL(triggered(bool)), ui->actionMakePath, SLOT(trigger()));
+  connect(m_wndEditAnnotation->ui->actionMakeClosedPath, SIGNAL(triggered(bool)), ui->actionMakeClosedPath, SLOT(trigger()));
+  connect(m_wndEditAnnotation->ui->actionDeletePath, SIGNAL(triggered(bool)), ui->actionDeletePath, SLOT(trigger()));
+  connect(m_wndEditAnnotation->ui->actionClearMarks, SIGNAL(triggered(bool)), ui->actionClearMarks, SLOT(trigger()));
+  connect(m_wndEditAnnotation->ui->actionPathFill, SIGNAL(triggered(bool)), ui->actionPathFill, SLOT(trigger()));
+  connect(m_wndEditAnnotation->ui->actionSave, SIGNAL(triggered(bool)), ui->pushButtonSaveAnnotation, SLOT(click()));
 
   connect(ui->checkBoxLabelOutline, SIGNAL(toggled(bool)), this, SLOT(OnCheckBoxLabelOutline(bool)));
   connect(ui->colorpickerLabelColor, SIGNAL(colorChanged(QColor)), this, SLOT(OnColorPickerLabelColor(QColor)));
@@ -824,7 +842,10 @@ void PanelSurface::OnComboAnnotation( int nSel_in )
     {
       DialogNewAnnotation dlg(this, QFileInfo(surf->GetFileName()).dir().path());
       if (dlg.exec() == QDialog::Accepted)
+      {
         surf->CreateNewAnnotation(dlg.GetColorTableFile(), dlg.GetName());
+        QTimer::singleShot(100, this, SLOT(OnButtonEditAnnotation()));
+      }
     }
     UpdateWidgets();
   }
@@ -965,6 +986,9 @@ void PanelSurface::OnButtonConfigureOverlay()
 void PanelSurface::OnButtonEditAnnotation()
 {
   m_wndEditAnnotation->show();
+  m_wndEditAnnotation->raise();
+  ui->actionPath->setChecked(true);
+  ui->actionPathFill->trigger();
 }
 
 void PanelSurface::OnButtonRemoveOverlay()
@@ -1453,11 +1477,12 @@ void PanelSurface::OnCustomFillTriggered(const QVariantMap &options_in)
     else if (surf->IsVertexRipped(vno))
       QMessageBox::information(this->parentWidget(), "Fill Cut Area", "Please move cursor to an uncut vertex");
     else
-      surf->FillPath(verts, options);
-
-    if (m_wndEditAnnotation->isVisible())
     {
-      m_wndEditAnnotation->UpdateUI();
+      surf->FillPath(verts, options);
+      if (m_wndEditAnnotation->isVisible())
+      {
+        m_wndEditAnnotation->UpdateUI(surf->GetActiveAnnotation()->property("current_fill_index").toInt());
+      }
     }
   }
 }

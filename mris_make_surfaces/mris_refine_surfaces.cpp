@@ -1,5 +1,4 @@
 /**
- * @file  mris_refine_surfaces.c
  * @brief refines the surfaces lh(rh).pial and lh(rh).white
  *
  * This program refines the surfaces lh(rh).pial and lh(rh).white
@@ -11,10 +10,6 @@
  */
 /*
  * Original Author: Bruce Fischl (June 16, 1998)
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/12/10 22:57:53 $
- *    $Revision: 1.23 $
  *
  * Copyright © 2011-2017 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -196,11 +191,7 @@ main(int argc, char *argv[]) {
   MATRIX        *m_reg = NULL ;
   /*  LT            *lt =0;*/
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option 
-    (argc, argv, 
-     "$Id: mris_refine_surfaces.c,v 1.23 2016/12/10 22:57:53 fischl Exp $", 
-     "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_refine_surfaces");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

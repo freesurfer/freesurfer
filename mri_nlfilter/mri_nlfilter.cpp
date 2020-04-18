@@ -1,15 +1,4 @@
-/**
- * @file  mri_nlfilter.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
- */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/12/08 17:27:53 $
- *    $Revision: 1.17 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -91,8 +80,7 @@ main(int argc, char *argv[]) {
   *mri_offset, *mri_up, *mri_polv, *mri_dir, *mri_clip, *mri_full ;
   MRI_REGION  region, clip_region ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_nlfilter.c,v 1.17 2016/12/08 17:27:53 fischl Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_nlfilter");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

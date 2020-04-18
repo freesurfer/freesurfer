@@ -1,5 +1,4 @@
 /**
- * @file  hiam_make_template.c
  * @brief hippocampus and amygdala version of mris_make_templace
  *
  * This code is a modified version of mris_make_template.c for being 
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:08 $
- *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

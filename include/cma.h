@@ -1,5 +1,4 @@
 /**
- * @file  cma.h
  * @brief constants for neuroanatomical structures.
  *
  * constants and macros for neuroanatomical and some vascular structures.
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2015/11/24 17:49:36 $
- *    $Revision: 1.78 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -159,6 +154,7 @@
 #define Globe            134
 #define Teeth            135
 
+#define Skull            165
 #define Right_Temporal_Cerebral_White_Matter 186
 #define Left_Temporal_Cerebral_White_Matter  187
 #define Fat              189
@@ -559,6 +555,7 @@ double CorticalGMVolCorrection(MRI *aseg, MRI *ribbon, int hemi);
 MRI *MRIfixAsegWithRibbon(MRI *aseg, MRI *ribbon, MRI *asegfixed);
 
 std::vector<double> ComputeBrainVolumeStats(const std::string& subject, const std::string& subjdir);
+std::vector<double> ComputeBrainVolumeStats2(const std::string& subject, const std::string& subjdir, const int KeepCSF);
 void CacheBrainVolumeStats(const std::vector<double>& stats, const std::string& subject, const std::string& subjdir);
 std::vector<double> ReadCachedBrainVolumeStats(const std::string& subject, const std::string& subjdir);
 

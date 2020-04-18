@@ -4,10 +4,6 @@
 # selxavg3-sess
 #
 # Original Author: Doug Greve
-# CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2016/05/10 03:24:18 $
-#    $Revision: 1.68 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -63,7 +59,7 @@ set SynthSeed = -1;
 set ReduceToMask = 1;
 set threads = "-singleCompThread"; # one single thread
 if(! $?FS_SXA3_USE_BIN)  setenv FS_SXA3_USE_BIN 0
-if(! $?FS_MCRROOT) setenv FS_MCRROOT /usr/pubsw/common/matlab/8.3
+if(! $?FS_MCRROOT) setenv FS_MCRROOT /usr/pubsw/common/matlab/9.5
 
 set UseOctave = 0;
 if($?FS_USE_OCTAVE) then

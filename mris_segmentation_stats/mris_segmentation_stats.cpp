@@ -1,15 +1,9 @@
 /**
- * @file  mris_segmentation_stats
  * @brief program to compute ROC curves for surface segmentations
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2012/08/26 00:41:44 $
- *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -74,7 +68,7 @@ main(int argc, char *argv[]) {
   MRI          *mri_overlays[MAX_SUBJECTS] ;
   MRI_SURFACE  *mris[MAX_SUBJECTS] ;
 
-  nargs = handle_version_option (argc, argv, "$Id: mris_segmentation_stats.c,v 1.2 2012/08/26 00:41:44 fischl Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_segmentation_stats");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

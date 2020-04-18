@@ -1,5 +1,4 @@
 /**
- * @file  mris_distance_to_label.cpp
  * @brief computes distance maps for subcortical structures
  *
  * compute distance maps for amygdala, hippocampus, pallidum, putamen,
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:31 $
- *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -198,11 +193,7 @@ int main(int argc, char *argv[]) {
   int msec, minutes, seconds ;
   Timer start;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option
-    (argc, argv,
-     "$Id: mris_distance_to_label.cpp,v 1.8 2011/03/02 00:04:31 nicks Exp $",
-     "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_distance_to_label");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

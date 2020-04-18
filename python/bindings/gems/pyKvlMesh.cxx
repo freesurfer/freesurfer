@@ -10,6 +10,9 @@
 #include "kvlAtlasMeshAlphaDrawer.h"
 #include "kvlAtlasMeshMultiAlphaDrawer.h"
 #include "kvlAtlasMeshValueDrawer.h"
+#include "kvlAtlasMeshProbabilityImageStatisticsCollector.h"
+#include "itkImageRegionIterator.h"
+
 
 #define XYZ_DIMENSIONS 3
 
@@ -439,6 +442,131 @@ py::array KvlMesh::RasterizeValues(std::vector<size_t> size, py::array_t<double,
     if (nframes > 1) size.push_back(nframes);
     return createNumpyArrayFStyle(size, buffer);
 }
+
+
+
+py::array_t<double> KvlMesh::FitAlphas( const py::array_t< uint16_t, 
+                                                           py::array::f_style | py::array::forcecast >& 
+                                        probabilityImageBuffer ) const
+{
+  
+  // Retrieve size of image and number of number of classes
+  if ( probabilityImageBuffer.ndim() != 4 ) 
+    {
+    itkGenericExceptionMacro( "probability image buffer must have four dimensions" );
+    }
+      
+  typedef kvl::AtlasMeshProbabilityImageStatisticsCollector::ProbabilityImageType  ProbabilityImageType; 
+  typedef ProbabilityImageType::SizeType  SizeType;
+  SizeType  imageSize;
+  for ( int i = 0; i < 3; i++ )
+    {
+    imageSize[ i ] = probabilityImageBuffer.shape( i );
+    //std::cout << "imageSize[ i ]: " << imageSize[ i ] << std::endl;
+    }
+  const int  numberOfClasses = probabilityImageBuffer.shape( 3 );
+  std::cout << "imageSize: " << imageSize << std::endl;
+  std::cout << "numberOfClasses: " << numberOfClasses << std::endl;
+
+
+  // Allocate an image of that size
+  ProbabilityImageType::Pointer  probabilityImage = ProbabilityImageType::New();
+  probabilityImage->SetRegions( imageSize );
+  probabilityImage->Allocate();
+  ProbabilityImageType::PixelType  emptyEntry( numberOfClasses );
+  emptyEntry.Fill( 0.0f );
+  probabilityImage->FillBuffer( emptyEntry );
+  
+  
+  // Fill in -- relying on the fact that we've guaranteed a F-style Numpy array input
+  auto  data = probabilityImageBuffer.data(); 
+  for ( int classNumber = 0; classNumber < numberOfClasses; classNumber++ )
+    {
+    // Loop over all voxels
+    itk::ImageRegionIterator< ProbabilityImageType >  it( probabilityImage,
+                                                          probabilityImage->GetBufferedRegion() );
+    for ( ;!it.IsAtEnd(); ++it, ++data )
+      {
+      it.Value()[ classNumber ] = static_cast< float >( *data ) / 65535.0;
+      }
+    
+    }
+  std::cout << "Created and filled probabilityImage" << std::endl;  
+  
+
+  // EM estimation of probability image in mesh representation. First we create a private mesh
+  // to play with - we initialize with a flat prior (alphas)
+  
+  // Create a flat alpha entry  
+  kvl::AtlasAlphasType   flatAlphasEntry( numberOfClasses );
+  flatAlphasEntry.Fill( 1.0f / static_cast< float >( numberOfClasses ) );
+
+  // Create a border alphas entry (only first class is possible)
+  kvl::AtlasAlphasType   borderAlphasEntry( numberOfClasses );
+  borderAlphasEntry.Fill( 0.0f );
+  borderAlphasEntry[ 0 ] = 1.0f;
+  
+  // Initialize point params with flat alphas (unless at border)
+  kvl::AtlasMesh::PointDataContainer::Pointer  privateParameters 
+                                                 = kvl::AtlasMesh::PointDataContainer::New();
+  for ( kvl::AtlasMesh::PointDataContainer::ConstIterator  it = mesh->GetPointData()->Begin();
+        it != mesh->GetPointData()->End(); ++it )
+    {
+    kvl::PointParameters  params = it.Value(); // Copy
+    if ( params.m_CanChangeAlphas )
+      {
+      params.m_Alphas = flatAlphasEntry;
+      }
+    else
+      {
+      params.m_Alphas = borderAlphasEntry;
+      }
+      
+    privateParameters->InsertElement( it.Index(), params );     
+    }  
+
+  // Create actual private mesh
+  kvl::AtlasMesh::Pointer  privateMesh = kvl::AtlasMesh::New();
+  kvl::AtlasMesh::Pointer  nonConstMesh = const_cast< kvl::AtlasMesh* >( mesh.GetPointer() );
+  privateMesh->SetPoints( nonConstMesh->GetPoints() );
+  privateMesh->SetCells( nonConstMesh->GetCells() );
+  privateMesh->SetPointData( privateParameters );
+  privateMesh->SetCellData( nonConstMesh->GetCellData() );
+
+
+  // Do the actual EM algorithm using (an updating the alphas in) our private mesh
+  for ( int iterationNumber = 0; iterationNumber < 10; iterationNumber++ )
+    {
+    // E-step: assign voxels to mesh nodes
+    kvl::AtlasMeshProbabilityImageStatisticsCollector::Pointer  statisticsCollector = 
+                                            kvl::AtlasMeshProbabilityImageStatisticsCollector::New();
+    statisticsCollector->SetProbabilityImage( probabilityImage );
+    statisticsCollector->Rasterize( privateMesh );
+    double  cost = statisticsCollector->GetMinLogLikelihood();
+    std::cout << "   EM iteration " << iterationNumber << " -> " << cost << std::endl;
+    
+    // M-step: normalize class counts in mesh nodes
+    kvl::AtlasMesh::PointDataContainer::Iterator  pointParamIt = privateParameters->Begin();
+    kvl::AtlasMeshProbabilityImageStatisticsCollector::StatisticsContainerType::ConstIterator  statIt = statisticsCollector->GetLabelStatistics()->Begin();
+    for ( ; pointParamIt != privateParameters->End(); ++pointParamIt, ++statIt )
+      {
+      if ( pointParamIt.Value().m_CanChangeAlphas )
+        {
+        pointParamIt.Value().m_Alphas = statIt.Value();
+        pointParamIt.Value().m_Alphas /= ( statIt.Value().sum() + 1e-12 );
+        }
+        
+      }
+  
+    } // End loop over EM iteration numbers
+   
+  // 
+  return AlphasToNumpy( privateParameters.GetPointer() ); // Makes a copy
+  
+}
+
+
+
 
 
 py::array_t<double> PointSetToNumpy(PointSetConstPointer points) {

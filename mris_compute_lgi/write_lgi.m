@@ -7,10 +7,6 @@ function ok = write_lgi (mesh_pial, lgi, outputfile)
 % Example: write_lgi('lh.pial',lgi,'lh.lgi.asc')
 %
 % Original Author: Doug Greve
-% CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2011/03/02 00:04:30 $
-%    $Revision: 1.2 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %

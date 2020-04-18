@@ -1,15 +1,4 @@
-/**
- * @file  main_template.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
- */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2014/05/28 20:27:57 $
- *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -66,7 +55,7 @@ main(int argc, char *argv[]) {
   MATRIX       *m_obs, *m_obs_T, *m_cov, *m_eig ;
 
   setRandomSeed(-1L) ;
-  nargs = handle_version_option (argc, argv, "$Id: mri_divide_segmentation.c,v 1.3 2014/05/28 20:27:57 fischl Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_divide_segmentation");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

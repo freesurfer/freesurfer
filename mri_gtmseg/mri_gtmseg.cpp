@@ -1,15 +1,9 @@
 /**
- * @file  mri_gtmseg.c
  * @brief Creates a segmentation used with the geometric transfer matrix.
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
  * Original Author: Douglas N. Greve
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2016/08/02 21:07:24 $
- *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -88,7 +82,7 @@ int main(int argc, char *argv[]) {
   MRI *mritmp;
   LTA *seg2new, *ltatmp;
 
-  nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_gtmseg");
   if (nargs && argc - nargs == 1) exit (0);
   argc -= nargs;
   cmdline = argv2cmdline(argc,argv);

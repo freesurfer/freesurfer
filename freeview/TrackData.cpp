@@ -1,14 +1,5 @@
-/**
- * @file  TrackData.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- */
 /*
  * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2017/02/01 15:28:54 $
- *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +14,8 @@
  */
 #include "TrackData.h"
 #include "track_io/TrackIO.h"
-#include <QDebug>
+#include <iostream>
+#include <stdlib.h>
 
 TrackData::TrackData(QObject *parent) :
   QObject(parent), m_bHasEmbeddedColor(false)
@@ -121,7 +113,7 @@ bool TrackData::LoadFromFiles(const QStringList &filenames)
       track.fPts = new float[track.nNum*3];
       if (!track.fPts)
       {
-        qDebug() << "Can not allocate memory.";
+        std::cerr << "Can not allocate memory." << std::endl;
         return false;
       }
       float* f = NULL;
@@ -130,7 +122,7 @@ bool TrackData::LoadFromFiles(const QStringList &filenames)
         f = new float[track.nNum*nScalars];
         if (!f)
         {
-          qDebug() << "Can not allocate memory.";
+          std::cerr << "Can not allocate memory." << std::endl;
           return false;
         }
       }
@@ -140,7 +132,7 @@ bool TrackData::LoadFromFiles(const QStringList &filenames)
         track.fProperty = new float[nProperties];
         if (!track.fProperty)
         {
-          qDebug() << "Can not allocate memory.";
+          std::cerr << "Can not allocate memory." << std::endl;
           return false;
         }
       }
@@ -150,7 +142,7 @@ bool TrackData::LoadFromFiles(const QStringList &filenames)
         float* p = new float[track.nNum];
         if (!p)
         {
-          qDebug() << "Can not allocate memory.";
+          std::cerr << "Can not allocate memory." << std::endl;
           return false;
         }
         track.fScalars.push_back(p);

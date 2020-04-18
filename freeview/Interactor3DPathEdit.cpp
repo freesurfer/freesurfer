@@ -23,39 +23,27 @@ bool Interactor3DPathEdit::ProcessMouseDownEvent( QMouseEvent* event, RenderView
   return Interactor3D::ProcessMouseDownEvent( event, renderview );
 }
 
-//bool Interactor3DPathEdit::ProcessMouseMoveEvent( QMouseEvent* event, RenderView* renderview )
-//{
-//  RenderView3D* view = ( RenderView3D* )renderview;
-//  if (m_bEditing)
-//  {
-//    LayerROI* roi = (LayerROI*)MainWindow::GetMainWindow()->GetActiveLayer("ROI");
-//    if (roi && roi->GetMappedSurface())
-//    {
-//      int nvo = view->PickCurrentSurfaceVertex(event->x(), event->y(), roi->GetMappedSurface());
-//      if (nvo >= 0)
-//      {
-//        if (m_nPrevVertex >= 0 && m_nPrevVertex != nvo)
-//        {
-//          LayerSurface* surf = roi->GetMappedSurface();
-//          if (surf)
-//          {
-//            QList<int> seeds;
-//            seeds << m_nPrevVertex << nvo;
-//            roi->EditVertex(surf->FindPath(seeds), !(event->modifiers() & Qt::ShiftModifier));
-//          }
-//        }
-//        else
-//          roi->EditVertex(nvo, !(event->modifiers() & Qt::ShiftModifier));
-//        m_nPrevVertex = nvo;
-//      }
-//    }
-//    renderview->setCursor( CursorFactory::CursorPencil );
-//    return false;
-//  }
-//  bool ret = Interactor3D::ProcessMouseMoveEvent(event, renderview);
-//  renderview->setCursor( CursorFactory::CursorPencil );
-//  return ret;
-//}
+bool Interactor3DPathEdit::ProcessKeyDownEvent( QKeyEvent* event, RenderView* renderview )
+{
+  if ( MainWindow::GetMainWindow()->IsEmpty() )
+  {
+    return Interactor3D::ProcessKeyDownEvent( event, renderview );
+  }
+
+  int nKeyCode = event->key();
+  if ( nKeyCode == Qt::Key_Delete )
+  {
+    LayerSurface* surf = (LayerSurface*)MainWindow::GetMainWindow()->GetActiveLayer("Surface");
+    if (surf)
+      surf->RemoveLastPathPoint();
+  }
+  else
+  {
+    return Interactor3D::ProcessKeyDownEvent( event, renderview );
+  }
+
+  return false;
+}
 
 bool Interactor3DPathEdit::ProcessMouseUpEvent( QMouseEvent* event, RenderView* renderview )
 {

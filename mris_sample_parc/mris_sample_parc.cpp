@@ -1,15 +1,9 @@
 /**
- * @file  mris_sample_parc.c
  * @brief program for sampling a volumetric parcellation onto a surface model
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/12/11 14:33:38 $
- *    $Revision: 1.31 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -101,9 +95,7 @@ main(int argc, char *argv[]) {
   double        d ;
   double        x, y, z, xw, yw, zw ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv,
-                                 "$Id: mris_sample_parc.c,v 1.31 2016/12/11 14:33:38 fischl Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_sample_parc");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

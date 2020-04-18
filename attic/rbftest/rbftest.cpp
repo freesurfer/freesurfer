@@ -1,15 +1,4 @@
-/**
- * @file  rbftest.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
- */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:35 $
- *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -75,8 +64,7 @@ main(int argc, char *argv[]) {
   /*  CLUSTER_SET  *cs ;*/
   RBF          *rbf ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: rbftest.c,v 1.7 2011/03/02 00:04:35 nicks Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "rbftest");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

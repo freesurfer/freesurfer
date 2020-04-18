@@ -1,10 +1,6 @@
 ##
 ## tkUtils.tcl
 ##
-## CVS Revision Info:
-##    $Author: nicks $
-##    $Date: 2011/03/01 01:41:22 $
-##    $Revision: 1.25 $
 ##
 ## Copyright (C) 2002-2011, CorTechs Labs, Inc. (La Jolla, CA) and
 ## The General Hospital Corporation (Boston, MA).

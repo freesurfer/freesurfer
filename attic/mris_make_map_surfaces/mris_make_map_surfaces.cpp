@@ -1,15 +1,10 @@
 /**
- * @file  mris_make_map_surfaces.c
  * @brief surface deformation that maximizes likelihood of underlying MRI data
 
  *
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2013/01/08 22:01:16 $
- *    $Revision: 1.3 $
  *
  * Copyright © 2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -72,18 +67,7 @@ main(int argc, char *argv[])
   int            ac, nargs, averages, i ;
   double         orig_dt ;
 
-  char cmdline[CMD_LINE_LEN] ;
-
-  make_cmd_version_string
-  (argc, argv,
-   "$Id: mris_make_map_surfaces.c,v 1.3 2013/01/08 22:01:16 nicks Exp $",
-   "$Name:  $", cmdline);
-
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option
-    (argc, argv,
-     "$Id: mris_make_map_surfaces.c,v 1.3 2013/01/08 22:01:16 nicks Exp $",
-     "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_make_map_surfaces");
   if (nargs && argc - nargs == 1)
   {
     exit (0);

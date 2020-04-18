@@ -1,14 +1,9 @@
 /**
- * @file  mris_shrinkwrap.c
  * @brief program for shrinkwrapping BEM surfaces onto a segmentation volume
  *
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2012/11/10 20:19:46 $
- *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -109,11 +104,7 @@ main(int argc, char *argv[])
   Timer then ;
   double        l_spring ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option 
-    (argc, argv, 
-     "$Id: mris_shrinkwrap.c,v 1.9 2012/11/10 20:19:46 fischl Exp $", 
-     "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_shrinkwrap");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

@@ -1,6 +1,5 @@
 #define COMPILING_MRISURF_TOPOLOGY_FRIEND_CHECKED
 /**
- * @file  mris_curvature.c
  * @brief program for computing various curvature metrics of a surface
  *
  * program for computing various curvature metrics of a surface.
@@ -8,10 +7,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:30 $
- *    $Revision: 1.31 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -89,11 +84,7 @@ main(int argc, char *argv[])
   MRI_SURFACE  *mris ;
   double       ici, fi, var ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option
-    (argc, argv,
-     "$Id: mris_curvature.c,v 1.31 2011/03/02 00:04:30 nicks Exp $",
-     "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_curvature");
   if (nargs && argc - nargs == 1)
   {
     exit (0);

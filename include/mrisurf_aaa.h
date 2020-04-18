@@ -1,6 +1,5 @@
 #pragma once
 /**
- * @file  mrisurf_aaa.h
  * @brief MRI_SURFACE underlying type declarations and constants.
  *        Separated from mrisurf.h to break some circular includes.
  *
@@ -9,10 +8,6 @@
  */
 /*
  * Original Author: Bruce Fischl    extracted by Bevin Brett
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2017/02/16 19:42:54 $
- *    $Revision: 1.391 $
  *
  * Copyright © 2011,2019 The General Hospital Corporation (Boston, MA) "MGH"
  *

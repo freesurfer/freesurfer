@@ -34,6 +34,7 @@
 #
 # For a variable number of arguments, set nargs to '+'.
 
+import os
 import sys
 import yaml
 import argparse
@@ -103,6 +104,11 @@ for var_name, value in vars(parsed).items():
 with open(output_config_file, 'w') as file:
 
     file.write('# auto-generated config file\n')
+
+    # tag recon-all version
+    rca_version = os.environ.get('FS_RECON_VERSION')
+    if rca_version is not None:
+        file.write('# recon-all version: %s\n' % rca_version)
 
     for var_name, var_config in config.items():
         file.write('\n%s:\n' % var_name)

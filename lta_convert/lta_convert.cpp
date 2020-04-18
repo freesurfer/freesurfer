@@ -1,15 +1,10 @@
 /**
- * @file  lta_convert.cpp
  * @brief A programm to convert linear transform file formats
  *
  */
 
 /*
  * Original Author: Martin Reuter
- * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2016/08/09 02:11:11 $
- *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -630,7 +625,7 @@ int main(int argc, char *argv[])
   cout << vcid << endl << endl;
 
   // Default initialization
-  int nargs = handle_version_option(argc, argv, vcid, "$Name:  $");
+  int nargs = handleVersionOption(argc, argv, "lta_convert");
   if (nargs && argc - nargs == 1)
   {
     exit(0);

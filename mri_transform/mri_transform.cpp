@@ -1,15 +1,5 @@
 /**
- * @file  mri_transform.c
  * @brief program to transform an mri or cmat structure using a linear transform
- *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
- */
-/*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2013/04/21 17:10:41 $
- *    $Revision: 1.18 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -104,8 +94,7 @@ main(int argc, char *argv[]) {
   exit(1);
 #endif
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_transform.c,v 1.18 2013/04/21 17:10:41 fischl Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_transform");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

@@ -54,10 +54,6 @@ function [err, racfexp] = fast_ar1w_fiterr(p,racf,R,w)
 % fast_ar1w_fiterr.m
 %
 % Original Author: Doug Greve
-% CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2011/03/02 00:04:03 $
-%    $Revision: 1.5 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %

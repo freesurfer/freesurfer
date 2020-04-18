@@ -11,10 +11,6 @@ function [dsm, g] = fast_smooth1d(d,fwhm)
 % fast_smooth1d.m
 %
 % Original Author: Doug Greve
-% CVS Revision Info:
-%    $Author: greve $
-%    $Date: 2016/10/14 19:55:11 $
-%    $Revision: 1.5 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %

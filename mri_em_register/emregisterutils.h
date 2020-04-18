@@ -1,15 +1,10 @@
 /**
- * @file  emregisterutils.h
  * @brief linear registration to a gca atlas
  *
  * Various utilities
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/04/13 19:08:22 $
- *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

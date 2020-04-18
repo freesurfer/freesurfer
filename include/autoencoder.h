@@ -1,5 +1,4 @@
 /**
- * @file  autoencoder.h
  * @brief header file for creating and training a stacked autoencoder for feature extraction.
  *
 H.-C. Shin, M. R. Orton, D. J. Collins, S. J. Doran, and M. O. Leach,
@@ -11,10 +10,6 @@ IEEE Transaction on Pattern Analysis and Machine Intelligence, 2012.
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2014/05/10 01:12:05 $
- *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

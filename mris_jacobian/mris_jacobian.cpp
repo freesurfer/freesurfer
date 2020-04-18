@@ -1,13 +1,8 @@
 /**
- * @file  mris_jacobian.c
  * @brief computes the jacobian of a surface mapping
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2015/02/05 23:34:40 $
- *    $Revision: 1.11 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -64,11 +59,7 @@ main(int argc, char *argv[])
   int          ac, nargs ;
   MRI_SURFACE  *mris ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option
-          (argc, argv,
-           "$Id: mris_jacobian.c,v 1.11 2015/02/05 23:34:40 zkaufman Exp $",
-           "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_jacobian");
   if (nargs && argc - nargs == 1)
   {
     exit (0);
@@ -241,7 +232,7 @@ compute_area_ratios(MRI_SURFACE *mris, int noscale)
       v->origarea = SMALL ;
     }
     v->curv = v->area / (v->origarea*area_scale) ;
-    if (!isfinite(v->curv))
+    if (!std::isfinite(v->curv))
       ErrorPrintf
       (ERROR_BADPARM,
        "vertex %d not finite (area %2.1f, origarea %2.1f, scale %2.1f",
@@ -273,7 +264,7 @@ log_ratios(MRI_SURFACE *mris)
       v->curv = SMALL ;
     }
     v->curv = log10(v->curv) ;
-    if (!isfinite(v->curv))
+    if (!std::isfinite(v->curv))
     {
       ErrorPrintf(ERROR_BADPARM, "vertex %d log not finite", vno) ;
     }
@@ -307,7 +298,7 @@ invert_ratios(MRI_SURFACE *mris)
     {
       v->curv = -1/v->curv ;
     }
-    if (!isfinite(v->curv))
+    if (!std::isfinite(v->curv))
     {
       ErrorPrintf(ERROR_BADPARM, "vertex %d log not finite", vno) ;
     }

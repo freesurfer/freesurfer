@@ -1,12 +1,10 @@
 /**
- * @file  forrest.h
  * @brief Random-forrest classifier for white-matter segmentation
  *
  * Random-forrest classifier for white-matter segmentation
  */
 /*
  * Original Author: Anastasia Yendiki
- * CVS Revision Info:
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

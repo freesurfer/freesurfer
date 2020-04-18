@@ -6,10 +6,6 @@
 # Use FSL's prelude and fugue to do B0 dewarping of EPI images
 #
 # Original Author: Doug Greve
-# CVS Revision Info:
-#    $Author: zkaufman $
-#    $Date: 2016/02/12 21:43:14 $
-#    $Revision: 1.46 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -102,19 +98,11 @@ if($FSLVerMaj == 3) then
   set DilFlag = -dil
   set FSLToFloat = avwmaths_32R
   set FSLToFloatFlag = ()
-else if($FSLVerMaj == 4) then
+else 
   set FSLPre = fsl
   set DilFlag = -dilM
   set FSLToFloat = (fslmaths)
   set FSLToFloatFlag = (-odt float)
-else if($FSLVerMaj == 5) then
-  set FSLPre = fsl
-  set DilFlag = -dilM
-  set FSLToFloat = (fslmaths)
-  set FSLToFloatFlag = (-odt float)
-else
-  echo "FSL Version is $FSLVersion, must be 3.X or 4.X or 5.X"
-  exit 1;
 endif
 
 # Create a log file

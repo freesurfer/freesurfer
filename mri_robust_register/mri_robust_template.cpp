@@ -1,5 +1,4 @@
 /**
- * @file  mri_robust_template.cpp
  * @brief combine multiple volumes by mean or median
  *
  * Creation of robust template of several volumes together with
@@ -8,10 +7,6 @@
 
 /*
  * Original Author: Martin Reuter
- * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2016/05/05 21:17:08 $
- *    $Revision: 1.54 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -168,7 +163,7 @@ int main(int argc, char *argv[])
 //  setenv("FS_USE_MRI_CHUNK","",1) ;
 
     // Default initialization
-    int nargs = handle_version_option(argc, argv, vcid, "$Name:  $");
+    int nargs = handleVersionOption(argc, argv, "mri_robust_template");
     if (nargs && argc - nargs == 1)
     {
       exit(0);

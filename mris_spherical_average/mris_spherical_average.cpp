@@ -1,15 +1,10 @@
 /**
- * @file  mris_spherical_average.c
  * @brief spherical averaging of labels, curvs and vals.
  *
  * apply spherical averaging to various scalars (see Fischl et al, HBM, 1999)
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/12/11 14:33:44 $
- *    $Revision: 1.38 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -97,12 +92,9 @@ main(int argc, char *argv[])
   LABEL           *area, *area_avg = NULL ;
   float           average_label_area = 0 ;
 
-  char cmdline[CMD_LINE_LEN] ;
+  std::string cmdline = getAllInfo(argc, argv, "mris_spherical_average");
 
-  make_cmd_version_string (argc, argv, "$Id: mris_spherical_average.c,v 1.38 2016/12/11 14:33:44 fischl Exp $", "$Name:  $", cmdline);
-
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_spherical_average.c,v 1.38 2016/12/11 14:33:44 fischl Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_spherical_average");
   if (nargs && argc - nargs == 1)
   {
     exit (0);

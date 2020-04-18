@@ -1,8 +1,8 @@
 import numpy as np
 import nibabel as nib
 import skimage
-from keras import backend as K
-from keras.losses import mean_squared_error as mse
+import tensorflow.keras.backend as K
+from tensorflow.keras.losses import mean_squared_error as mse
 import tensorflow as tf
 
 from .. import wm_peak_normalize

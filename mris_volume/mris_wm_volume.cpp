@@ -1,5 +1,4 @@
 /**
- * @file  mris_wm_volume.c
  * @brief computes the interior volume of the ?h.white surfaces 
  * (excluding subcortical labels)
  *
@@ -8,10 +7,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:34 $
- *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -66,11 +61,7 @@ main(int argc, char *argv[])
   double        total_volume ;
   MRI           *mri_aseg ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option 
-    (argc, argv, 
-     "$Id: mris_wm_volume.c,v 1.7 2011/03/02 00:04:34 nicks Exp $", 
-     "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_wm_volume");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

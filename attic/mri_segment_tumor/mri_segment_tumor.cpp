@@ -1,15 +1,9 @@
 /**
- * @file  mri_segment_tumor.c
  * @brief program for segmenting tumors from multispectral data.
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/10/31 18:30:41 $
- *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -155,7 +149,7 @@ int main(int argc, char *argv[])
   GCA       *gca ;
   TRANSFORM *xform ;
 
-  nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_segment_tumor");
 
   if (nargs && argc - nargs == 1) 
     exit (0);

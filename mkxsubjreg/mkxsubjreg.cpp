@@ -1,15 +1,4 @@
-/**
- * @file  mkxsubjreg.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
- */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:13 $
- *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -170,8 +159,7 @@ static int parse_commandline(int argc, char **argv) {
 
   if (argc < 1) usage_exit();
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mkxsubjreg.c,v 1.5 2011/03/02 00:04:13 nicks Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mkxsubjreg");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

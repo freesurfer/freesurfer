@@ -3,9 +3,10 @@ import pdb as gdb
 import nibabel as nib
 import numpy as np
 import freesurfer as fs
-import keras
 import tensorflow as tf
 from tensorflow.python.eager.context import context, EAGER_MODE, GRAPH_MODE
+from tensorflow.keras.callbacks import Callback
+from shutil import copyfile
 
 def switch_to_eager():
     switch_execution_mode(EAGER_MODE)
@@ -25,7 +26,7 @@ def configure(gpu=0):
     if gpu >= 0:
         config.allow_soft_placement = True
         config.gpu_options.allow_growth = True
-    keras.backend.tensorflow_backend.set_session(tf.Session(config=config))
+    tf.keras.backend.set_session(tf.Session(config=config))
 
 
 class LoopingIterator:
@@ -110,6 +111,14 @@ def segment_image2D(net, im_intensity, wsize, box, nlabels=3,batch_size=256,stri
     return im_pred
 
 
+def bbox2D(img):
+    rows = np.any(img, axis=1)
+    cols = np.any(img, axis=0)
+    rmin, rmax = np.where(rows)[0][[0, -1]]
+    cmin, cmax = np.where(cols)[0][[0, -1]]
+
+    return rmin, rmax, cmin, cmax
+
 def bbox2_3D(img):
     r = np.any(img, axis=(1, 2))
     c = np.any(img, axis=(0, 2))
@@ -178,7 +187,7 @@ def BatchGenerator3D(train_oct, train_labels, batch_size=64,wsize=32,n_labels=4,
             label_patch[:,:,:,0] = train_labels[x-whalf:x+whalf,y-whalf:y+whalf,z-whalf:z+whalf]
             if (augment_permute == True):
                 label_patch[:,:,:,0] = np.transpose(label_patch[:,:,:,0], permuted_axes)
-            batch_labels[found,:] = keras.utils.np_utils.to_categorical(label_patch, num_classes=n_labels) 
+            batch_labels[found,:] = tf.keras.utils.np_utils.to_categorical(label_patch, num_classes=n_labels) 
             
         found = found+1
 
@@ -186,11 +195,6 @@ def BatchGenerator3D(train_oct, train_labels, batch_size=64,wsize=32,n_labels=4,
             yield batch_intensity[0:found,:], batch_labels[0:found,:]
             found = 0
 
-
-
-from keras.callbacks import Callback
-from shutil import copyfile
-import os
 
 class WeightsSaver(Callback):
     def __init__(self, model, N, name, cp_iters = 0):
@@ -200,6 +204,7 @@ class WeightsSaver(Callback):
         self.name = name
         self.cp_iters = cp_iters
         self.iters = 0
+
     def on_batch_end(self, batch, logs={}):
         if self.batch % self.N == 0:
             name = 'weights%08d.h5' % self.batch
@@ -549,21 +554,15 @@ def bbox_3D(img):
     zmin, zmax = np.where(z)[0][[0, -1]]
     return rmin, rmax, cmin, cmax, zmin, zmax
 
-def histo_norm_intensities(vol, wsize,nbins=100, target_val=1.0):
-    w,h,d = vol.shape
-    whalf = wsize/2
-    x0=max(0,w/2-whalf)
-    y0=max(0,h/2-whalf)
-    z0=max(0,d/2-whalf)
-    x1 = min(w,w/2+whalf)
-    y1 = min(w,h/2+whalf)
-    z1 = min(w,d/2+whalf)
-    histo = np.histogram(vol[x0:x1,y0:y1,z0:z1],bins=nbins)
-    max_bin = np.argwhere(histo[0] == max(histo[0]))[0][0]
-    max_val = histo[1][max_bin]
-    if max_val <= 0:
-        max_val = 1
-    return vol * (target_val / max_val)
+def bbox2(img):
+    rows = np.any(img, axis=1)
+    cols = np.any(img, axis=0)
+    rmin, rmax = np.where(rows)[0][[0, -1]]
+    cmin, cmax = np.where(cols)[0][[0, -1]]
+
+    return rmin, rmax, cmin, cmax
+
+
 
 
 def sort_batch(input_batch, input_labels, probe_patch):
@@ -571,3 +570,93 @@ def sort_batch(input_batch, input_labels, probe_patch):
     rms = np.sqrt(np.average(sq,axis=(1,2,3)))
     ind = np.argsort(rms)
     return input_batch[ind,:], input_labels[ind,:]
+
+def compute_intensity_stats(paths, vname_list, method='mean', ranges=None, vol_list = None):
+    nvols = len(vname_list)
+    means = np.zeros(nvols)
+    stds = np.zeros(nvols)
+    for pno, path in enumerate(paths):
+        for vno, vname in enumerate(vname_list):
+            fname = os.path.join(path, vname)
+            if (vol_list == None):
+                print('%d of %d: file %s' % (pno, len(paths), fname))
+                mri = fs.Volume(fname)
+            else:
+                mri = vol_list[pno][vno]
+            im = mri.image.astype('float64')
+            if (method == 'mean'):
+                val = im.mean()
+            elif method == 'histo':
+                if ranges is not None:
+                    ind = np.where(np.logical_and(im > ranges[vno,0], im < ranges[vno,1]))  
+                    im = im[ind]
+                try: 
+                    hist,edges = np.histogram(im.flatten(),bins='auto')
+                except ValueError:
+                    print('exception')
+                    hist,edges = np.histogram(im.flatten(),bins=500)
+                    
+                val = edges[hist.argmax()]
+                del edges, hist
+            shape = mri.image.shape
+            if (vol_list == None):
+                del mri
+            means[vno] += val
+            stds[vno] += (val*val)
+    
+    for vno in range(nvols):
+        means[vno] /= len(paths)
+        stds[vno] = np.sqrt(stds[vno]/len(paths) - means[vno]*means[vno])
+
+    return means, stds, shape
+
+def histo_norm_intensities_to_mode(vol, wsize = None,nbins=100, target_val=1.0):
+# place the mode of the histo at the target val
+    if wsize is None:
+        wsize = int(min(vol.shape[0:3])/2)
+    w,h,d = vol.shape[0:3]
+    whalf = int(wsize/2)
+    x0=int(max(0,w/2-whalf))
+    y0=int(max(0,h/2-whalf))
+    z0=int(max(0,d/2-whalf))
+    x1 = int(min(w,w/2+wsize))
+    y1 = int(min(w,h/2+wsize))
+    z1 = int(min(w,d/2+wsize))
+    histo = np.histogram(vol[x0:x1,y0:y1,z0:z1],bins=nbins)
+    if (histo[1][0] == 0):
+        histo[0][0] = 0   # remove 0 bin if present
+    max_bin = np.argwhere(histo[0] == max(histo[0]))[0][0]
+    max_val = histo[1][max_bin]
+    if max_val <= 0:
+        max_val = 1
+    return vol * (target_val / max_val)
+
+def histo_norm_intensities(vol,nbins=100, target_range=[0.0, 1.0], anchors=[0.1,0.9], force_zero_to_zero=True):
+# rescale intensities to 90th percentile got to 90th % of range and 10th to 10th
+# if force_zero_to_zero is true ignore bottom end of range and force 0 to map to 0
+    histo = np.histogram(vol,bins=nbins)
+    if (histo[1][0] == 0):
+        histo[0][0] = 0   # remove 0 bin if present
+    cumhisto = np.cumsum(histo[0]/histo[0].sum()) # cumulative as % of total (cdf)
+    histo_bins = histo[1][0:len(histo[0])]
+    high_bin = -1
+    low_bin = -1
+    for bin,val in enumerate(histo_bins):
+        if low_bin < 0 and cumhisto[bin] > anchors[0]:
+            low_bin = bin
+        if high_bin < 0 and cumhisto[bin] > anchors[1]:
+            hi_bin = bin
+    trange = target_range[1]-target_range[0]
+    if (force_zero_to_zero):
+        x1 = 0
+        y1 = 0
+    else:
+        x1 = histo_bins[low_bin]
+        y1 = trange * anchors[0] + target_range[0]
+    y2 = trange * anchors[0] + target_range[1]
+    x2 = histo_bins[high_bin]
+    m = (y2-y1) / (x2-x1)
+    b = y1 - m*x1
+            
+    return vol * m + b
+

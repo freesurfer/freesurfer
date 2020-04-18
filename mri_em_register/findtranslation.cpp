@@ -1,15 +1,10 @@
 /**
- * @file  findtranslation.cpp
  * @brief linear registration to a gca atlas
  *
  * Find the best translation for mri_em_register
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: rge21 $
- *    $Date: 2011/04/15 17:33:17 $
- *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

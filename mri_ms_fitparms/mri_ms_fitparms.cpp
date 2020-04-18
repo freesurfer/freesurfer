@@ -1,5 +1,4 @@
 /**
- * @file  mri_ms_fitparms.c
  * @brief estimates T1 and PD values and transform from a set of FLASH images
  *
  * This program takes an arbitrary # of FLASH images as input, and estimates
@@ -18,10 +17,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/11/30 21:46:55 $
- *    $Revision: 1.76 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -226,21 +221,12 @@ main(int argc, char *argv[])
   MRI *mri_tmp = NULL;
   float thresh;
   int b, segno;
-  char cmdline[CMD_LINE_LEN] ;
 
   FA = TE = TR = 0;
 
-  make_cmd_version_string
-  (argc, argv,
-   "$Id: mri_ms_fitparms.c,v 1.76 2016/11/30 21:46:55 fischl Exp $",
-   "$Name:  $",
-   cmdline);
+  std::string cmdline = getAllInfo(argc, argv, "mri_ms_fitparms");
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (
-            argc, argv,
-            "$Id: mri_ms_fitparms.c,v 1.76 2016/11/30 21:46:55 fischl Exp $",
-            "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_ms_fitparms");
   if (nargs && argc - nargs == 1)
   {
     exit (0);
@@ -1087,6 +1073,8 @@ get_option(int argc, char *argv[])
   {
     InterpMethod = SAMPLE_CUBIC;
     printf("using cubic interpolation\n");
+    printf("WARNING!!!! Cubic interpolation not implemented properly yet\n");
+    exit(1) ;
   }
   else if (!stricmp(option, "nearest"))
   {
@@ -3006,7 +2994,7 @@ estimate_T2star(MRI **mri_flash, int nvolumes, MRI *mri_PD,
           {
             DiagBreak() ;
           }
-          if (isnan(PD))
+          if (std::isnan(PD))
           {
             DiagBreak() ;
           }
@@ -3151,7 +3139,7 @@ compute_T2star_map(MRI **mri_flash, int nvolumes, int *scan_types,
           else
             MRIsampleVolumeType(mri_flash[e], xf, yf, zf,
                                 &val, InterpMethod) ;
-          if (val <= 0 || !isfinite(val))
+          if (val <= 0 || !std::isfinite(val))
           {
             val = 1E-6 ;
           }
@@ -3172,7 +3160,7 @@ compute_T2star_map(MRI **mri_flash, int nvolumes, int *scan_types,
         {
           DiagBreak() ;
         }
-        if (!isfinite(T2star))
+        if (!std::isfinite(T2star))
         {
           T2star = 0 ;
         }

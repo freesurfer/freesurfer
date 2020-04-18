@@ -12,10 +12,6 @@ function [proba, pinf]=talmat(filename, th_pval, DirTable)
 % talairaching_afd.m
 %
 % Original Author: Laurence Wastiaux
-% CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2011/03/02 00:04:13 $
-%    $Revision: 1.5 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %

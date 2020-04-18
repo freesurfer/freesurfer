@@ -9,10 +9,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2013/03/27 01:53:50 $
- *    $Revision: 1.23 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -71,7 +67,7 @@ main(int argc, char *argv[]) {
   MRI_SURFACE   *mris ;
   MRI           *mri, *mri_grad ;
 
-  nargs = handle_version_option (argc, argv, "$Id: mris_gradient.c,v 1.23 2013/03/27 01:53:50 fischl Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_gradient");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

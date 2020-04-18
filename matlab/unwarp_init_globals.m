@@ -9,10 +9,6 @@ function unwarp_init_globals(called_by_script)
 % unwarp_init_globals.m
 %
 % Original Author: Elizabeth Haley
-% CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2011/03/02 00:04:13 $
-%    $Revision: 1.4 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %

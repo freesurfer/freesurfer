@@ -1,5 +1,4 @@
 /**
- * @file  SurfaceAnnotation.h
  * @brief Data handler for surface annotation
  *
  * An interface implemented by a collection. Layers will get
@@ -8,10 +7,6 @@
  */
 /*
  * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2014/04/11 20:06:39 $
- *    $Revision: 1.17 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -37,7 +32,9 @@
 
 #include "colortab.h"
 
+#ifndef UNASSIGNED_ANNOT_BASE
 #define UNASSIGNED_ANNOT_BASE 1000000
+#endif
 
 class vtkLookupTable;
 class vtkRGBAColorTransferFunction;
@@ -57,6 +54,7 @@ struct AnnotUndoRedoBufferItem
   AnnotUndoRedoBufferItem()
   {
     m_data = NULL;
+    m_ctab = NULL;
   }
 
   void Free()
@@ -64,11 +62,13 @@ struct AnnotUndoRedoBufferItem
     if (m_data)
       delete[] m_data;
     m_data = NULL;
+    CTABfree(&m_ctab);
   }
 
   int*          m_data;
   QList<int>    m_listVisibleLabels;
   QMap<int, NewAnnotationLabel> m_mapNewLabels;
+  COLOR_TABLE*  m_ctab;
 };
 
 class SurfaceAnnotation  : public QObject
@@ -160,7 +160,7 @@ public:
 
   void EditLabel(const QVector<int>& verts, int fill_index, const QVariantMap& options);
 
-  void ReassignNewLabel(int nId, int ctab_entry);
+  void ReassignNewLabel(int old_id, int new_id, const QString& name = "", const QColor& color = QColor());
 
   QMap<int, NewAnnotationLabel> GetNewLabels()
   {
@@ -183,6 +183,10 @@ public:
 
   bool HasUndo();
   bool HasRedo();
+
+  void DeleteLabel(int nIndex);
+
+  void CleanUpColorTable();
 
 signals:
   void Modified();
@@ -207,6 +211,7 @@ private:
   int ColorToAnnotation(const QColor& c);
   AnnotUndoRedoBufferItem SaveCurrentUndoRedoBuffer();
   void RestoreFromUndoRedoBuffer(const AnnotUndoRedoBufferItem& item);
+  void UpdateColorTable(int nIndex, const QString& name, const QColor& color);
 
   int*          m_nIndices;
   int*          m_nOutlineIndices;

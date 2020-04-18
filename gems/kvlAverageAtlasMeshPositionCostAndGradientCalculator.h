@@ -8,9 +8,6 @@ namespace kvl
 {
 
 
-/**
- *
- */
 class AverageAtlasMeshPositionCostAndGradientCalculator: public AtlasMeshPositionCostAndGradientCalculator
 {
 public :

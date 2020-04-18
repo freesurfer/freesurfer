@@ -1,15 +1,4 @@
-/**
- * @file  mri_deface.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
- */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2014/07/18 02:11:40 $
- *    $Revision: 1.25 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -275,9 +264,7 @@ main(int argc, char *argv[]) {
   DiagInit(NULL, NULL, NULL) ;
   ErrorInit(NULL, NULL, NULL) ;
 
-  nargs = handle_version_option
-          (argc, argv,
-           "$Id: mri_deface.c,v 1.25 2014/07/18 02:11:40 fischl Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_deface");
   argc -= nargs ;
   if (1 == argc)
     ErrorExit

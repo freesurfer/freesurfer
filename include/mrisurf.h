@@ -1,6 +1,5 @@
 #pragma once
 /**
- * @file  mrisurf.h
  * @brief MRI_SURFACE utilities.
  *
  * Utilities, constants and structure definitions for manipulation
@@ -8,10 +7,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2017/02/16 19:42:54 $
- *    $Revision: 1.391 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -540,7 +535,10 @@ int MRISfindClosestWhiteVertex(MRI_SURFACE *mris, float x, float y,
 int MRISfindClosestVertex(MRI_SURFACE *mris,
                           float x, float y, float z,
                           float *dmin, int which_vertices);
-                              
+double MRISfindMinDistanceVertexWithDotCheckXYZ(MRI_SURFACE *mris, double xs, double ys, double zs, 
+						MRI *mri, double dot_dir, int *pvtxno);
+double MRISfindMinDistanceVertexWithDotCheck(MRI_SURFACE *mris, int c, int r, int s, 
+					     MRI *mri, double dot_dir, int *pvtxno);                              
 double       MRIScomputeCorrelationError(MRI_SURFACE *mris, MRI_SP *mrisp_template, int fno) ;
 int          MRISallocExtraGradients(MRI_SURFACE *mris) ;
 MRI_SURFACE  *MRISread(const char *fname) ;
@@ -906,7 +904,6 @@ double       MRISPfunctionVal(MRI_SURFACE_PARAMETERIZATION *mrisp,
                               float x, float y, float z, int fno) ;
                               
 MRI_SP       *MRIStoParameterizationBarycentric(MRI_SURFACE *mris, MRI_SP *mrisp, float scale, int fno) ;
-MRI_SP       *MRIStoParameterizationBarycentric(MRIS *mris, MRI_SP *mrisp, const float *overlay, float scale, int frameno);
 MRI_SURFACE  *MRISfromParameterizationBarycentric(MRI_SP *mrisp, MRI_SURFACE *mris, int fno) ;
 
 MRI_SP       *MRIStoParameterization(MRI_SURFACE *mris, MRI_SP *mrisp,
@@ -1215,6 +1212,7 @@ int MRISprettyPrintSurfQualityStats(FILE *fp, MRIS *surf);
 
 int MRISmergeIcosahedrons(MRI_SURFACE *mri_src, MRI_SURFACE *mri_dst) ;
 int MRISinverseSphericalMap(MRI_SURFACE *mris, MRI_SURFACE *mris_ico) ;
+MRI *MRIScoverSeg(MRIS *mris, MRI *mri_bin, MRI *mri_cover_seg, int surftype);
 
 ////////////////////////////////////////////////////
 /* for mris_topo_fixer */
@@ -1426,6 +1424,7 @@ MRI   *MRISaccentuate(MRI *mri_src,
                       MRI *mri_dst,
                       int lo_thresh,
                       int hi_thresh);
+MRI *MRISmakeBoundingVolume(MRIS *mris, double resolution);
 MRI *MRISfillInterior(MRI_SURFACE *mris,
                       double resolution,
                       MRI *mri_interior) ;
@@ -1607,7 +1606,7 @@ int MRISsurf2surf(MRIS *mris, MRI *dst, LTA *lta);
 // convert all vertex positions
 int MRISsurf2surfAll(MRIS *mris, MRI *dst, LTA *lta);
 void MRISsetReadFrame(int frame);
-int MRISaddCommandLine(MRI_SURFACE *mris, char *cmdline) ;
+int MRISaddCommandLine(MRI_SURFACE *mris, const std::string& cmdline);
 int MRISgetReadFrame(void);
 int MRISabsCurvature(MRI_SURFACE *mris) ;
 int MRISabsVals(MRI_SURFACE *mris) ;

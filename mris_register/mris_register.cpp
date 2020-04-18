@@ -1,5 +1,4 @@
 /**
- * @file  mris_register.c
  * @brief cmd line utility for registering a subject's surface with an atlas,
  *
  * Command line utility for registering a subject's surface with an atlas.
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2017/02/07 19:04:44 $
- *    $Revision: 1.64 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -145,19 +140,10 @@ main(int argc, char *argv[])
   MRI_SURFACE  *mris ;
   MRI_SP       *mrisp_template ;
 
-  char cmdline[CMD_LINE_LEN],cwd[2000],*cmdline2 ;
+  char cwd[2000],*cmdline2 ;
+  std::string cmdline = getAllInfo(argc, argv, "mris_register");
 
-  make_cmd_version_string
-  (argc, argv,
-   "$Id: mris_register.c,v 1.64 2017/02/07 19:04:44 fischl Exp $",
-   "$Name:  $",
-   cmdline);
-
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option
-          (argc, argv,
-           "$Id: mris_register.c,v 1.64 2017/02/07 19:04:44 fischl Exp $",
-           "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_register");
   if (nargs && argc - nargs == 1)
   {
     exit (0);
@@ -945,8 +931,14 @@ get_option(int argc, char *argv[])
             curvature_names[2]) ;
     nargs = 1 ;
   }
-
-
+  else if (!stricmp(option, "threads")){
+    int nthreads;
+    sscanf(argv[2],"%d",&nthreads);
+    #ifdef _OPENMP
+    omp_set_num_threads(nthreads);
+    #endif
+    nargs = 1;
+  } 
   else if (!stricmp(option, "lm"))
   {
     parms.integration_type = INTEGRATE_LINE_MINIMIZE ;

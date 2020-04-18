@@ -1,12 +1,10 @@
 /**
- * @file  bite.cxx
  * @brief Tractography data and methods for an individual voxel
  *
  * Tractography data and methods for an individual voxel
  */
 /*
  * Original Author: Anastasia Yendiki
- * CVS Revision Info:
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

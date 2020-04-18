@@ -5,7 +5,7 @@
 #include "mris_annot_diff.help.xml.h"
  
 
-int main(int argc, const char *argv[])
+int main(int argc, char *argv[])
 {
   ArgumentParser parser;
   parser.addHelp(mris_annot_diff_help_xml, mris_annot_diff_help_xml_len);
@@ -19,7 +19,7 @@ int main(int argc, const char *argv[])
 
   // compare lengths
   int length = annot1.size();
-  if (length != annot2.size()) logFatal(1) << "annotation sizes (" << length << " and " << annot2.size() << ") do not match";
+  if (length != annot2.size()) fs::fatal() << "annotation sizes (" << length << " and " << annot2.size() << ") do not match";
 
   // diff labels
   int ndiffs = 0;
@@ -27,6 +27,6 @@ int main(int argc, const char *argv[])
     if (annot1[i] != annot2[i]) ndiffs++;
   }
 
-  if (ndiffs > 0) logFatal(1) << "found " << ndiffs << " differences between annotations";
+  if (ndiffs > 0) fs::fatal() << "found " << ndiffs << " differences between annotations";
   exit(0);
 }

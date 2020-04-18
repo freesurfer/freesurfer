@@ -11,20 +11,16 @@ class Surface(Transformable):
 
     def __init__(self, vertices, faces=None, hemi=None, geom=None):
 
-        # TODEP - this is a temporary fix to support the previous way of loading from a file - it
-        # is not an ideal way of handling things and should be removed as soon as possible
+        # make sure a string isn't being provided
         if isinstance(vertices, str):
-            warning('moving foward, please load surfaces via fs.Surface.read(filename)')
-            result = Surface.read(vertices)
-            vertices = result.vertices
-            faces = result.faces
-            hemi = result.hemi
-            geom = result.geom
+            raise ValueError('if loading from file, use the Surface.read() class method')
 
         self.vertices = vertices
         self.faces = faces
         self.vertex_normals = None
         self.face_normals = None
+        self.vertex_tangents_1 = None
+        self.vertex_tangents_2 = None
         self.hemi = hemi
         self.geom = geom
 
@@ -71,10 +67,26 @@ class Surface(Transformable):
     def compute_normals(self):
         '''Compute and cache face and vertex normals.'''
         bindings.surf.compute_normals(self)
+        # reset vertex tangents since normals have been updates
+        self.vertex_tangents_1 = None
+        self.vertex_tangents_2 = None
+
+    def compute_tangents(self):
+        '''Compute and cache vertex tangents along primary curvature direction.'''
+        bindings.surf.compute_tangents(self)
+
+    def compute_euler(self):
+        '''Computes euler number of the mesh.'''
+        return bindings.surf.compute_euler(self)
 
     def neighboring_faces(self, vertex):
         '''List of face indices that neighbor a vertex.'''
         return np.where(self.faces == vertex)[0]
+
+    def neighboring_vertices(self, vertex):
+        '''List of vertices that immediately neighbor a vertex.'''
+        neighbors = np.unique([self.faces[fno] for fno in self.neighboring_faces(vertex)])
+        return neighbors[neighbors != vertex]  # be sure to remove the central vertex
 
     # ---- geometry ----
 
@@ -85,6 +97,42 @@ class Surface(Transformable):
     def geometry(self):
         '''Returns the geometry associated with the source volume.'''
         return self.geom
+
+    def transform(self, lt):
+        '''
+        Returns a realigned surface in a coordinate space defined by
+        the provided LinearTransform. For example, to convert surface
+        vertices from fs surface coordinates to voxel coordinates:
+
+        xform = surf.surf2vox()
+        voxelsurf = surf.transform(xform)
+        '''
+        vertices = LinearTransform.ensure(lt).transform(self.vertices)
+        return Surface(vertices, self.faces, hemi=self.hemi, geom=self.geom)
+
+    def surf2vox(self, vol=None):
+        '''
+        LinearTransform that maps surface coordinates to crs coordinates.
+        Target coordinates correspond to the source volume geometry, unless
+        the optional vol argument is provided, in which case it will map
+        to a different volume.
+        '''
+        if vol is not None:
+            return LinearTransform.matmul(vol.geometry().ras2vox(), self.surf2ras())
+        else:
+            return super().surf2vox()
+
+    def vox2surf(self, vol=None):
+        '''
+        LinearTransform that maps crs coordinates to surface coordinates.
+        Source coordinates are assumed to be in source volume space, unless
+        the optional vol argument is provided, in which case it will map
+        from a different volume.
+        '''
+        if vol is not None:
+            return LinearTransform.matmul(self.ras2surf(), vol.geometry().vox2ras())
+        else:
+            return super().vox2surf()
 
     # ---- parameterization ----
 
@@ -140,11 +188,3 @@ class Surface(Transformable):
     def get_vertex_faces(self):  # TODEP
         '''Deprecated - use Surface.neighboring_faces instead'''
         raise DeprecationWarning('get_vertex_faces has been removed! Use Surface.neighboring_faces or email andrew if you get this!!!!')
-
-    def vox2surf(self, vol):  # TODEP
-        '''Deprecated - vol is no longer needed'''
-        return self.vox2surf()
-
-    def surf2vox(self, vol):  # TODEP
-        '''Deprecated - vol is no longer needed'''
-        return self.surf2vox()

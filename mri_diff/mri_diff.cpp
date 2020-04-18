@@ -1,5 +1,4 @@
 /**
- * @file  mri_diff.c
  * @brief Determines whether two volumes differ.
  *
  * The basic usage is something like:
@@ -18,10 +17,6 @@
  */
 /*
  * Original Author: Doug Greve
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2017/01/11 18:15:33 $
- *    $Revision: 1.37 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -218,7 +213,7 @@ int main(int argc, char *argv[]) {
   double AvgDiff=0.0,SumDiff=0.0,SumSqDiff=0.0;
   FILE *fp=NULL;
 
-  nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_diff");
   if (nargs && argc - nargs == 1) exit (0);
   argc -= nargs;
   cmdline = argv2cmdline(argc,argv);

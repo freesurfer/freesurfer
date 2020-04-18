@@ -1,5 +1,4 @@
 /**
- * @file  mris_register_to_label.c
  * @brief program for computing/optimizing registration of a surface to a volume
  *        
  *
@@ -9,10 +8,6 @@
  */
 /*
  * Original Author: Greg Grev
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2013/06/07 18:56:17 $
- *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -194,20 +189,13 @@ static char vcid[] = "$Id: mris_register_to_label.c,v 1.3 2013/06/07 18:56:17 fi
 int
 main(int argc, char **argv) 
 {
-  char          cmdline[CMD_LINE_LEN], fname[STRLEN] ;
+  char          fname[STRLEN] ;
   MRI           *mri_dist, *mri_src ;
   LABEL         *area, *ltmp ;
   int           msec, nargs ;
   Timer then ;
 
-  make_cmd_version_string(argc, argv,
-                          "$Id: mris_register_to_label.c,v 1.3 2013/06/07 18:56:17 fischl Exp $",
-                          "$Name:  $", cmdline);
-
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option(argc, argv,
-                                "$Id: mris_register_to_label.c,v 1.3 2013/06/07 18:56:17 fischl Exp $",
-                                "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_register_to_label");
   if(nargs && argc - nargs == 1) exit (0);
 
   Progname = argv[0] ;

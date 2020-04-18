@@ -1,14 +1,9 @@
 /**
- * @file  ctrpoints.h
  * @brief read and write control points
  *
  */
 /*
  * Original Author: Y.Tosa
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2014/01/21 21:19:34 $
- *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

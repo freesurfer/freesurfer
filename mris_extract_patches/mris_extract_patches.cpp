@@ -1,5 +1,4 @@
 /**
- * @file  mris_extract_patches.c
  * @brief extract volume patches from a surface and a label file
  *
  * Extract volumetric patches around each labeled vertex and the corresponding vertex in the other hemi
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2017/02/16 19:45:00 $
- *    $Revision: 1.16 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -75,11 +70,7 @@ main(int argc, char *argv[])
   LABEL        *area_tmp, *area ;
   int          random_patches, npoints, *non_fcd_vertices = NULL, augment_patches ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option
-    (argc, argv,
-     "$Id: mris_extract_patches.c,v 1.16 2017/02/16 19:45:00 fischl Exp $",
-     "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_extract_patches");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

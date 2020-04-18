@@ -1,5 +1,4 @@
 /**
- * @file  mris_deform.c
  * @brief generic surface deformation binary.
  *
  * binary for deforming a surface of a voxel segmentation to more smoothly and
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:31 $
- *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -112,7 +107,7 @@ main(int argc, char *argv[]) {
   int         msec, minutes, seconds, n_averages ;
   float        current_sigma ;
   Timer start ;
-  char         cmdline[CMD_LINE_LEN], *cp ;
+  char        *cp ;
   HISTOGRAM   *histos[MAX_LABEL+1] ;
   VERTEX_INFO *vi ;
   TRANSFORM   *transform ;
@@ -138,13 +133,9 @@ main(int argc, char *argv[]) {
   // parms.l_surf_repulse = .1 ;
   parms.dt = parms.base_dt = 0.5 ;
 
-  make_cmd_version_string
-  (argc, argv,
-   "$Id: mris_ca_deform.c,v 1.2 2011/03/02 00:04:31 nicks Exp $",
-   "$Name:  $", cmdline);
+  std::string cmdline = getAllInfo(argc, argv, "mris_ca_deform");
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_ca_deform.c,v 1.2 2011/03/02 00:04:31 nicks Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_ca_deform");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

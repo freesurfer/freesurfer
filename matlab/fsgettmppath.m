@@ -12,27 +12,27 @@ function tmppath = fsgettmppath(tmppathdefault)
 
 tmppath = getenv('TMPDIR');
 if(~isempty(tmppath)) 
-  if(exist(tmppath)) 
+  if(exist(tmppath) == 7) 
     return; 
   end
 end
 
 tmppath = getenv('TEMPDIR');
 if(~isempty(tmppath)) 
-  if(exist(tmppath)) 
+  if(exist(tmppath) == 7) 
     return; 
   end
 end  
 
 tmppath = '/scratch';
-if(exist(tmppath)) return; end
+if(exist(tmppath) == 7) return; end
 
 tmppath = '/tmp';
-if(exist(tmppath)) return; end
+if(exist(tmppath) == 7) return; end
 
 if(nargin > 0)
   tmppath = tmppathdefault;
-  if(exist(tmppath)) return; end
+  if(exist(tmppath) == 7) return; end
 end
 
 tmppath = './';
@@ -40,6 +40,3 @@ fprintf(['WARNING: fsgettmppath: could not find a temporary folder,' ...
 	 ' using current folder\n']);
 
 return;
-
-
-

@@ -1,14 +1,5 @@
-/**
- * @file  PanelVolume.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- */
 /*
  * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2017/01/20 19:58:46 $
- *    $Revision: 1.107 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -101,6 +92,7 @@ PanelVolume::PanelVolume(QWidget *parent) :
   }
 
   connect(mainwnd, SIGNAL(NewVolumeCreated()), SLOT(ShowAllLabels()));
+  connect(mainwnd, SIGNAL(RefreshLookUpTableRequested()), SLOT(RefreshColorTable()), Qt::QueuedConnection);
   connect(ui->pushButtonContourSave, SIGNAL(clicked(bool)), mainwnd, SLOT(OnSaveIsoSurface()));
 
   ui->toolbar->insertAction(ui->actionMoveLayerUp, mainwnd->ui->actionNewVolume);
@@ -221,7 +213,7 @@ PanelVolume::PanelVolume(QWidget *parent) :
 
   m_widgetlistVolumeTrack << ui->treeWidgetColorTable << m_widgetlistFrame
                           << ui->labelSmoothIteration << ui->sliderContourSmoothIteration
-                          << ui->lineEditContourSmoothIteration;
+                          << ui->lineEditContourSmoothIteration << ui->checkBoxSelectAllLabels;
   m_widgetlistVolumeTrack.removeOne(ui->checkBoxAutoAdjustFrameLevel);
 
   m_widgetlistVolumeTrackSpecs
@@ -792,7 +784,7 @@ void PanelVolume::OnColorTableItemDoubleClicked(QTreeWidgetItem *item_in)
       }
       else
       {
-        qDebug() << tr("Label %1 does not exist").arg(item->text(0));
+        cout << qPrintable(tr("Label %1 does not exist").arg(item->text(0))) << endl;
       }
     }
   }
@@ -877,6 +869,13 @@ void PanelVolume::UpdateTrackVolumeThreshold()
   EnableWidgets(this->m_widgetlistVolumeTrackSpecs, item);
 }
 
+void PanelVolume::RefreshColorTable()
+{
+  BlockAllSignals(true);
+  PopulateColorTable(m_curCTAB, true);
+  BlockAllSignals(false);
+}
+
 void PanelVolume::PopulateColorTable( COLOR_TABLE* ct, bool bForce )
 {
   if ( ct && (bForce || ct != m_curCTAB) )
@@ -900,7 +899,14 @@ void PanelVolume::PopulateColorTable( COLOR_TABLE* ct, bool bForce )
     if (layer)
     {
       labels = layer->GetAvailableLabels();
-      selectedLabels = layer->GetProperty()->GetSelectedLabels();
+      if (layer->IsTypeOf("VolumeTrack"))
+      {
+        selectedLabels = ((LayerVolumeTrack*)layer)->GetVisibleLabels();
+      }
+      else
+      {
+        selectedLabels = layer->GetProperty()->GetSelectedLabels();
+      }
     }
     int nValidCount = 0;
     bool bHasSelected = false, bHasUnselected = false;
@@ -910,7 +916,7 @@ void PanelVolume::PopulateColorTable( COLOR_TABLE* ct, bool bForce )
       if ( nValid )
       {
         CTABcopyName( ct, i, name, 1000 );
-        ColorTableItem* item = new ColorTableItem(ui->treeWidgetColorTable);
+        ColorTableItem* item = new ColorTableItem();
         if (ColorTableItem::SortType == ColorTableItem::ST_VALUE)
           item->setText( 0, QString("%1 %2").arg(i).arg(name) );
         else
@@ -937,6 +943,7 @@ void PanelVolume::PopulateColorTable( COLOR_TABLE* ct, bool bForce )
           nSel = nValidCount;
         }
         nValidCount++;
+        ui->treeWidgetColorTable->addTopLevelItem(item);
       }
     }
     if ( nSel >= 0 )
@@ -1763,10 +1770,21 @@ void PanelVolume::OnCheckBoxSelectAllLabels(int nState)
   LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
   if ( layer )
   {
-    if (nState == Qt::Unchecked)
-      layer->GetProperty()->SetUnselectAllLabels();
+    if (layer->IsTypeOf("VolumeTrack"))
+    {
+      LayerVolumeTrack* tv = qobject_cast<LayerVolumeTrack*>(layer);
+      if (tv)
+      {
+        tv->ShowAllLabels(ui->checkBoxSelectAllLabels->checkState() == Qt::Checked);
+      }
+    }
     else
-      layer->GetProperty()->SetSelectAllLabels();
+    {
+      if (nState == Qt::Unchecked)
+        layer->GetProperty()->SetUnselectAllLabels();
+      else
+        layer->GetProperty()->SetSelectAllLabels();
+    }
   }
 }
 
@@ -1778,8 +1796,12 @@ void PanelVolume::OnColorTableItemChanged(QTreeWidgetItem *item)
   if ( layer )
   {
     int nVal = item->data(0, Qt::UserRole+1).toInt();
+    QList<int> selected;
     if (!layer->IsTypeOf("VolumeTrack"))
+    {
       layer->GetProperty()->SetSelectLabel(nVal, item->checkState(0) == Qt::Checked);
+      selected = layer->GetProperty()->GetSelectedLabels();
+    }
     else
     {
       LayerVolumeTrack* tv = qobject_cast<LayerVolumeTrack*>(layer);
@@ -1787,9 +1809,10 @@ void PanelVolume::OnColorTableItemChanged(QTreeWidgetItem *item)
       {
         int nLabel = item->data(0, Qt::UserRole+1).toInt();
         tv->SetLabelVisible(nLabel, item->checkState(0) == Qt::Checked);
+        selected = tv->GetVisibleLabels();
       }
     }
-    ui->checkBoxSelectAllLabels->setCheckState(layer->GetProperty()->GetSelectedLabels().isEmpty()?Qt::Unchecked:Qt::PartiallyChecked);
+    ui->checkBoxSelectAllLabels->setCheckState(selected.isEmpty()?Qt::Unchecked:Qt::PartiallyChecked);
   }
 
   ui->checkBoxSelectAllLabels->blockSignals(false);
@@ -1899,7 +1922,7 @@ void PanelVolume::OnGoToFirstPoint()
       }
       else
       {
-        qDebug() << tr("Label %1 does not exist").arg(item->text(0));
+        cout << qPrintable(tr("Label %1 does not exist").arg(item->text(0))) << endl;
       }
     }
   }

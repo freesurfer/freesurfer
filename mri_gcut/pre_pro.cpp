@@ -1,14 +1,9 @@
 /**
- * @file  pre_pro.cpp
  * @brief 
  *
  */
 /*
  * Original Author: Vitali Zagorodnov, ZHU Jiaqi
- * CVS Revision Info: 1.4
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:16 $
- *    $Revision: 1.7 $
  *
  * Copyright © 2009 Nanyang Technological University, Singapore
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"

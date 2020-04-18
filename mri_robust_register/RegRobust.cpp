@@ -1,15 +1,10 @@
 /**
- * @file RegRobust.cpp
  * @brief A class to compute a registration using robust regression
  *
  */
 
 /*
  * Original Author: Martin Reuter
- * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2015/12/15 22:30:45 $
- *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

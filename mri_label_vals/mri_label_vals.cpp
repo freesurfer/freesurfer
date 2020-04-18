@@ -1,15 +1,4 @@
-/**
- * @file  mri_label_vals.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
- */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2015/08/24 18:22:05 $
- *    $Revision: 1.16 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -68,8 +57,7 @@ main(int argc, char *argv[]) {
   MRI    *mri,  *mri_seg ;
   double xw, yw, zw, xv, yv, zv, val;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_label_vals.c,v 1.16 2015/08/24 18:22:05 fischl Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_label_vals");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

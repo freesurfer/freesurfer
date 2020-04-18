@@ -1,14 +1,9 @@
 /**
- * @file  mrifilter.c
  * @brief filter routines on MRI data
  *
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2015/12/11 13:40:32 $
- *    $Revision: 1.113 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *

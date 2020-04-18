@@ -1,5 +1,4 @@
 /**
- * @file  mris_aseg_distance.c
  * @brief computes a map of distances between each point in the cortex and
  * a subcortical centroid
  *
@@ -8,10 +7,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:26 $
- *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -72,8 +67,7 @@ main(int argc, char *argv[]) {
 	int         vno, l ;
 	VERTEX      *v ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_aseg_distance.c,v 1.4 2011/03/02 00:04:26 nicks Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_aseg_distance");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

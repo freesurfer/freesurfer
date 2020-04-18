@@ -1,10 +1,6 @@
 ##
 ## tkm_dialog.tcl
 ##
-## CVS Revision Info:
-##    $Author: nicks $
-##    $Date: 2011/03/01 01:41:22 $
-##    $Revision: 1.6 $
 ##
 ## Copyright (C) 2000-2011, CorTechs Labs, Inc. (La Jolla, CA) and
 ## The General Hospital Corporation (Boston, MA).

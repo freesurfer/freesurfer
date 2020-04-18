@@ -1,5 +1,4 @@
 /**
- * @file  mris_interpolate_warp.c
  * @brief interpolate a surface warp into the volume
  *
  * take two surfaces and interpret the spatial difference in their
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/10/07 12:07:26 $
- *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -294,8 +289,7 @@ main(int argc, char *argv[])
   GCA_MORPH    *gcam ;
   MRI          *mri = NULL ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_interpolate_warp.c,v 1.5 2011/10/07 12:07:26 fischl Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_interpolate_warp");
   if (nargs && argc - nargs == 1)
   {
     exit (0);

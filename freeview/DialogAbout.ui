@@ -60,7 +60,7 @@ font-size:15px;</string>
        <item>
         <widget class="QLabel" name="labelVersion">
          <property name="text">
-          <string>Version 2.0
+          <string>Version 3.0
 Build xxx</string>
          </property>
         </widget>
@@ -68,7 +68,7 @@ Build xxx</string>
        <item>
         <widget class="QLabel" name="label_4">
          <property name="text">
-          <string>Copyright © 2016
+          <string>Copyright © 2020
 The General Hospital Corporation, Boston, MA.
 All rights reserved.</string>
          </property>

@@ -1,14 +1,9 @@
 /**
- * @file  mri_map_cpdat.c
  * @brief map a control.dat file (manual edits) to another space
  *
  */
 /*
  * Original Author: Martin Reuter
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2014/01/21 23:07:41 $
- *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -49,8 +44,6 @@ static struct Parameters P =
 static int get_option(int argc, char *argv[], Parameters & P) ;
 static void  usage_exit(int code) ;
 
-static char vcid[] =
-  "$Id: mri_map_cpdat.cpp,v 1.6 2014/01/21 23:07:41 greve Exp $";
 const char *Progname = NULL;
 static LTA *LTAloadTalairachXFM(const char *subject);
 static LTA *LTAloadTalairachXFMInv(const char *subject);
@@ -61,7 +54,7 @@ int main(int argc, char *argv[])
   LTA* lta=NULL;
 
   // Default initialization
-  nargs = handle_version_option(argc, argv,vcid,"$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_map_cpdat");
   if (nargs && argc - nargs == 1)
   {
     exit (0);

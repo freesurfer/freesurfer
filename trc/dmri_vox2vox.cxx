@@ -1,15 +1,10 @@
 /**
- * @file  dmri_vox2vox.cxx
  * @brief Apply affine and non-linear warp to voxel coordinates in text file
  *
  * Apply affine and non-linear warp to voxel coordinates in text file
  */
 /*
  * Original Author: Anastasia Yendiki
- * CVS Revision Info:
- *    $Author: ayendiki $
- *    $Date: 2013/02/12 01:58:07 $
- *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -91,8 +86,7 @@ int main(int argc, char **argv) {
   NonlinReg nonlinreg;
 #endif
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "dmri_vox2vox");
   if (nargs && argc - nargs == 1) exit (0);
   argc -= nargs;
   cmdline = argv2cmdline(argc,argv);

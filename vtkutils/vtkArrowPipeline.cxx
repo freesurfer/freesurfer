@@ -1,5 +1,4 @@
 /**
- * @file  vtkArrowPipeline.cxx
  * @brief A simple wrapper for a array source, transform, mapper, and actor.
  *
  * This lets you easily instantiate and place a 3D arrow. You can set
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Kevin Teich
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:56 $
- *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -41,7 +36,6 @@
 
 
 vtkStandardNewMacro( vtkArrowPipeline );
-//vtkCxxRevisionMacro( vtkArrowPipeline, "$Revision: 1.7 $" );
 
 vtkArrowPipeline::vtkArrowPipeline () {
 

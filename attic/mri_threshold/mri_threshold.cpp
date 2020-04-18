@@ -1,15 +1,7 @@
 /**
- * @file  mri_threshold.c
  * @brief Function to lower (or upper) threshold the input volume.
  *
  * This is a function that allows for intensity thresholding the input volume. By default the threshold is a lower threshold, but with the -u flag this can be changed to be an upper one.
- */
-/*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
- * CVS Revision Info:
- *    $Author: lzollei $
- *    $Date: 2015/09/02 18:33:01 $
- *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -60,12 +52,10 @@ main(int argc, char *argv[]) {
   MRI         *mri_in, *mri_out ;
   float       thresh ;
 
-  char cmdline[CMD_LINE_LEN] ;
 
-  make_cmd_version_string (argc, argv, "$Id: mri_threshold.c,v 1.10 2015/09/02 18:33:01 lzollei Exp $", "$Name:  $", cmdline);
-  /* rkt: check for and handle version tag */
+  std::string cmdline = getAllInfo(argc, argv, "mri_threshold");
   Progname = argv[0] ;
-  nargs = handle_version_option (argc, argv, "$Id: mri_threshold.c,v 1.10 2015/09/02 18:33:01 lzollei Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_threshold");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

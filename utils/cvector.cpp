@@ -1,15 +1,4 @@
-/**
- * @file  cvector.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
- */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR
- * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2015/03/12 20:22:55 $
- *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -392,7 +381,7 @@ double cvector_average_in_label(float *v, LABEL *area, int num)
   double avg;
 
   for (avg = 0.0, i = 0; i < area->n_points; i++) {
-    if (!isfinite(v[area->lv[i].vno])) DiagBreak();
+    if (!std::isfinite(v[area->lv[i].vno])) DiagBreak();
     avg += v[area->lv[i].vno];
   }
   avg /= (double)area->n_points;

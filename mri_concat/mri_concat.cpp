@@ -1,5 +1,4 @@
 /**
- * @file  mri_concat.c
  * @brief Concatenates input data sets.
  *
  * EXAMPLES:
@@ -13,10 +12,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2017/02/16 19:49:35 $
- *    $Revision: 1.67 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -145,8 +140,7 @@ int main(int argc, char **argv)
   MRI *Vpca=NULL;
   char *stem;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_concat");
   if (nargs && argc - nargs == 1)
   {
     exit (0);

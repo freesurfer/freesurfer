@@ -1,14 +1,9 @@
 /**
- * @file  diag.c
  * @brief diagnostic routines
  *
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2015/03/12 20:22:55 $
- *    $Revision: 1.38 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -25,6 +20,7 @@
 /*-----------------------------------------------------
                     INCLUDE FILES
 -------------------------------------------------------*/
+#include <cmath>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -378,7 +374,7 @@ void DiagShowPctDone(float pct_done, int nprints)
 
 int check_finite(const char *where, double what)
 {
-  if (!isfinite(what)) {
+  if (!std::isfinite(what)) {
     ErrorPrintf(ERROR_BADPARM, "%s not finite!\n", where);
     DiagBreak();
     return (0);

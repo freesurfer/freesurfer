@@ -1,14 +1,9 @@
 /**
- * @file  FSVolume.h
  * @brief Base volume class that takes care of I/O and data conversion.
  *
  */
 /*
  * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2017/02/02 18:41:17 $
- *    $Revision: 1.121 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -254,7 +249,7 @@ bool FSVolume::MRIRead( const QString& filename, const QString& reg_filename )
 #else
   int nthreads = 1 ;
 #endif
-  int max_percent = 100.0 - 50 / nthreads;
+  int max_percent = 50;
   ::SetProgressCallback(ProgressCallback, 0, max_percent);
 //  QElapsedTimer timer;
 //  timer.start();
@@ -263,12 +258,10 @@ bool FSVolume::MRIRead( const QString& filename, const QString& reg_filename )
     this->CopyMatricesFromMRI();
     ::SetProgressCallback(ProgressCallback, max_percent, 100);
 
-//    qDebug() << "Before MRI to image";
     if ( !this->MapMRIToImage() )
     {
       return false;
     }
-//    qDebug() << timer.elapsed()/1000;
 
     if ( m_volumeRef && m_volumeRef->m_MRIOrigTarget && !m_MRIOrigTarget )
     {
@@ -1401,12 +1394,12 @@ int FSVolume::RASToOriginalIndex ( float iRASX, float iRASY, float iRASZ,
   return r;
 }
 
-bool FSVolume::RASToTalairachVoxel(const double *pos_in, double *pos_out)
+bool FSVolume::RASToTalairach(const double *pos_in, double *pos_out)
 {
   if (m_MRI->linear_transform)
   {
     double x, y, z;
-    ::MRIworldToTalairachVoxel(m_MRI, pos_in[0], pos_in[1], pos_in[2], &x, &y, &z);
+    ::MRIworldToTalairach(m_MRI, pos_in[0], pos_in[1], pos_in[2], &x, &y, &z);
     pos_out[0] = x;
     pos_out[1] = y;
     pos_out[2] = z;
@@ -1416,10 +1409,11 @@ bool FSVolume::RASToTalairachVoxel(const double *pos_in, double *pos_out)
     return false;
 }
 
-void FSVolume::TalairachVoxelToRAS(const double *pos_in, double *pos_out)
+void FSVolume::TalairachToRAS(const double *pos_in, double *pos_out)
 {
-  double x, y, z;
-  ::MRItalairachVoxelToWorld(m_MRI, pos_in[0], pos_in[1], pos_in[2], &x, &y, &z);
+  double x, y, z, vx, vy, vz;
+  ::MRItalairachToVoxel(m_MRI, pos_in[0], pos_in[1], pos_in[2], &vx, &vy, &vz);
+  ::MRIvoxelToWorld(m_MRI, vx, vy, vz, &x, &y, &z);
   pos_out[0] = x;
   pos_out[1] = y;
   pos_out[2] = z;
@@ -1602,31 +1596,29 @@ MRI* FSVolume::CreateTargetMRI( MRI* src, MRI* refTarget, bool bAllocatePixel, b
         &p0[0], &p0[1], &p0[2] );
     MRIp0ToCRAS( mri, p0[0], p0[1], p0[2] );
 
-    if (true)
+    if (false) // disable this part
     {
       // make sure voxel boundaries are aligned
-      double cpt[3], cpt_ext[3];
-      ::MRIworldToVoxel(mri, refTarget->c_r, refTarget->c_a, refTarget->c_s, &cpt[0], &cpt[1], &cpt[2]);
-      ::MRIworldToVoxel(mri, mri->c_r, mri->c_a, mri->c_s, &cpt_ext[0], &cpt_ext[1], &cpt_ext[2]);
-      //        double vs[3] = { mri->xsize, mri->ysize, mri->zsize };
-      //        double vs2[3] = { refTarget->xsize, refTarget->ysize, refTarget->zsize };
+      double cpt[3], cpt_ext[3], dist[3], step_dist[3];
+      dist[0] = refTarget->c_r - mri->c_r;
+      dist[1] = refTarget->c_a - mri->c_a;
+      dist[2] = refTarget->c_s - mri->c_s;
+      step_dist[0] = qMin((float)pixelSize[0], refTarget->xsize)/2;
+      step_dist[1] = qMin((float)pixelSize[1], refTarget->ysize)/2;
+      step_dist[2] = qMin((float)pixelSize[2], refTarget->zsize)/2;
+
       for (int i = 0; i < 3; i++)
       {
-        cpt[i] = cpt[i] + ((int)(cpt_ext[i]-cpt[i]+0.5));
-        //            double vs_r = vs[i]/vs2[i];
-        //            if (vs_r < 1)
-        //                vs_r = 1.0/vs_r;
-        //            if (fabs(vs_r - (int)(vs_r+0.5)) < 1e-4)
-        //            {
-        //                if (((int)(vs_r+0.5))%2 == 0)
-        //                    cpt[i] += 0.5;
-        //            }
+        dist[i] = (qAbs(dist[i])/step_dist[i] - (int)(qAbs(dist[i])/step_dist[i]))*step_dist[i]*(dist[i]>=0?1:-1);
+        if (dist[i] < -step_dist[i]/2)
+            dist[i] += step_dist[i];
+        else if (dist[i] > step_dist[i]/2)
+            dist[i] -= step_dist[i];
       }
-      ::MRIvoxelToWorld(mri, cpt[0], cpt[1], cpt[2], &cpt_ext[0], &cpt_ext[1], &cpt_ext[2]);
 
-      mri->c_r = cpt_ext[0];
-      mri->c_a = cpt_ext[1];
-      mri->c_s = cpt_ext[2];
+      mri->c_r += dist[0];
+      mri->c_a += dist[1];
+      mri->c_s += dist[2];
 
       MATRIX *tmp;
       tmp = extract_i_to_r( mri );
@@ -1889,6 +1881,7 @@ bool FSVolume::MapMRIToImage( bool do_not_create_image )
 //    qDebug() << rasMRI->width << rasMRI->height << rasMRI->depth;
 
 //    QElapsedTimer t; t.start();
+//    qDebug() << "begin vol2vol";
     MRIvol2Vol( m_MRI, rasMRI, NULL, m_nInterpolationMethod, 0 );
 //    qDebug() << "vol2vol time: " << t.elapsed()/1000;
     MATRIX* vox2vox = MRIgetVoxelToVoxelXform( m_MRI, rasMRI );
@@ -2955,7 +2948,7 @@ void FSVolume::SetCroppingBounds( double* bounds )
 }
 
 HISTOGRAM *MRIhistogramWithHighThreshold(
-    MRI *mri, int nbins, HISTOGRAM *histo, MRI_REGION* region, float thresh, int frame)
+    MRI *mri, int nbins, HISTOGRAM *histo, float thresh, bool highThresh, int frame, float fmin_in, float fmax_in)
 {
   int width, height, depth, z, x0, y0, z0, tid;
   float fmin, fmax;
@@ -2969,34 +2962,10 @@ HISTOGRAM *MRIhistogramWithHighThreshold(
   height = mri->height;
   depth = mri->depth;
 
-  width = region->x + region->dx;
-  if (width > mri->width) width = mri->width;
-  height = region->y + region->dy;
-  if (height > mri->height) height = mri->height;
-  depth = region->z + region->dz;
-  if (depth > mri->depth) depth = mri->depth;
-  x0 = region->x;
-  if (x0 < 0) x0 = 0;
-  y0 = region->y;
-  if (y0 < 0) y0 = 0;
-  z0 = region->z;
-  if (z0 < 0) z0 = 0;
+  x0 = y0 = z0 = 0;
 
-  fmin = 1e10;
-  fmax = -fmin;
-  for (z = z0; z < depth; z++) {
-    int y, x;
-    float val;
-    for (y = y0; y < height; y++) {
-      for (x = x0; x < width; x++) {
-        val = MRIgetVoxVal(mri, x, y, z, frame);
-        if (val > thresh) continue;
-        val = MRIgetVoxVal(mri, x, y, z, frame);
-        if (val < fmin) fmin = val;
-        if (val > fmax) fmax = val;
-      }
-    }
-  }
+  fmin = fmin_in;
+  fmax = fmax_in;
 
   if (!nbins) nbins = nint(fmax - fmin + 1.0);
 
@@ -3030,8 +2999,8 @@ HISTOGRAM *MRIhistogramWithHighThreshold(
     for (y = y0; y < height; y++) {
       for (x = x0; x < width; x++) {
         val = MRIgetVoxVal(mri, x, y, z, frame);
-        if (val > thresh) continue;
-        val = MRIgetVoxVal(mri, x, y, z, frame);
+        if (FZERO(val) || (highThresh && val > thresh)) continue;
+//        val = MRIgetVoxVal(mri, x, y, z, frame);
 #ifdef HAVE_OPENMP
         tid = omp_get_thread_num();
 #else
@@ -3066,6 +3035,7 @@ void FSVolume::UpdateHistoCDF(int frame, float threshold, bool highThresh)
   if (threshold < 0)
     threshold = fMinValue;
 
+  /*
   HISTO* histo = HISTOinit(NULL, 1000, fMinValue, fMaxValue);
 
   for (int x = 0; x < m_MRI->width; x++)
@@ -3075,6 +3045,8 @@ void FSVolume::UpdateHistoCDF(int frame, float threshold, bool highThresh)
         if (FZERO(val) || (highThresh && val > threshold)) continue;
         HISTOaddSample(histo, val, 0, 0);
       }
+      */
+  HISTO* histo = MRIhistogramWithHighThreshold(m_MRI, 1000, NULL, threshold, highThresh, frame, fMinValue, fMaxValue);
 
   if (m_histoCDF)
     HISTOfree(&m_histoCDF);
@@ -3083,7 +3055,7 @@ void FSVolume::UpdateHistoCDF(int frame, float threshold, bool highThresh)
   HISTOfree(&histo);
   if (!m_histoCDF)
   {
-    qDebug() << "Could not create HISTO";
+    cout << "Could not create HISTO" << endl;
     return;
   }
 

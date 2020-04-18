@@ -1,14 +1,9 @@
 /**
- * @file  fio.c
  * @brief special file read/write routines
  *
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2014/11/21 17:45:30 $
- *    $Revision: 1.40 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

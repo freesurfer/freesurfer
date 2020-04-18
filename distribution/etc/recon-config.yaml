@@ -1,12 +1,77 @@
 # default recon-all config parameters
 
 GCA:
-    value: RB_all_2016-05-10.vc700.gca
+    value: RB_all_2020-01-02.gca
     flags: -gca
     descr: Gaussian Classifier Array atlas used for segmentation
 
 GCASkull:
-    value: RB_all_withskull_2016-05-10.vc700.gca
+    value: RB_all_withskull_2020_01_02.gca
     flags: -gca-skull
     descr: Gaussian Classifier Array atlas used for skull stripping
+
+DoAntsN3:
+    value: False
+    flags: -ants-n3
+    action: enable
+    descr: Use ANTS N3BiasFieldCorrection instead of MNI N3
+
+DoAntsN4:
+    value: True
+    flags: -ants-n4
+    action: enable
+    descr: Use ANTS N4BiasFieldCorrection instead of MNI N3
+
+DoAntsN4:
+    value: True
+    flags: -no-ants-n4
+    action: disable
+    descr: Do not use ANTS N4BiasFieldCorrection instead of MNI N3
+
+DoAntsDenoising:
+    value: True
+    flags: -ants-denoise
+    action: enable
+    descr: Use ANTS DenoiseImage before mri_segment
+
+DoAntsDenoising:
+    value: True
+    flags: -no-ants-denoise
+    action: disable
+    descr: Do not use ANTS DenoiseImage before mri_segment
+
+DoRemesh:
+    value: True
+    flags: -remesh
+    action: enable
+    descr: Use Martin's code to remesh ?h.orig to improve triangle quality after topo fix
+    
+DoRemesh:
+    value: True
+    flags: -no-remesh
+    action: disable
+    descr: Do not use Martin's code to remesh ?h.orig to improve triangle quality after topo fix
+    
+DoDecimation:
+    value: False
+    flags: -decimate
+    action: enable
+    descr: Allow decimation of surface ?h.orig.nofix, good for high res
+
+DecimationFaceArea:
+    value: 0.5
+    flags: -decimation-area
+    descr: Desired area (mm2) of a face after decimation
+
+RipWMSA:
+    value: False
+    flags: -rip-wmsa
+    action: enable
+    descr: Allow ripping/freezing of WMSA (77, 78, 79) voxels when placing white surface
+
+RipLesion:
+    value: False
+    flags: -rip-lesion
+    action: enable
+    descr: Allow ripping/freezing of Lesion-labeled (25, 57) voxels when placing white surface
 

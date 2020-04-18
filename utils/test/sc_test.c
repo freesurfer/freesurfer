@@ -1,14 +1,9 @@
 /**
- * @file  sc_test.c
  * @brief tests of core math routines
  *
  */
 /*
  * Original Author: Nick Schmansky, Silvester Czanner
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2016/02/27 20:38:29 $
- *    $Revision: 1.15 $
  *
  * Copyright (C) 2002 Jason H Stover.
  *

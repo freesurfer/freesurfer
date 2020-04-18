@@ -93,10 +93,11 @@
 87  Right_future_WMSA                       200 121  255 0
 88  future_WMSA                             200 122  255 0
 
-
 96  Left-Amygdala-Anterior                  205 10  125 0
 97  Right-Amygdala-Anterior                 205 10  125 0
 98  Dura                                    160 32  240 0
+
+99  Lesion                                  255 165 0   0
 
 100 Left-wm-intensity-abnormality           124 140 178 0
 101 Left-caudate-intensity-abnormality      125 140 178 0
@@ -247,7 +248,7 @@
 245  molecular_layer_HP-head                      100 25   25   0
 246  molecular_layer_HP-body                      128 0   0   0
 
-
+247 FreezeSurface                        10 100  100 0
 
 250 Fornix                                  255 0   0   0
 251 CC_Posterior                            0   0   64  0
@@ -261,7 +262,7 @@
 
 257 CSF-ExtraCerebral                      60  60  60  0
 258 Head-ExtraCerebral                    150 150 200  0
-259 SkullApprox                           120 120 120  0
+259 Eye-Fluid                              60  60  60  0
 260 BoneOrAir                             119 159 176 0
 261 PossibleFluid                         120  18 134 0
 262 Sinus                                 196 160 128 0

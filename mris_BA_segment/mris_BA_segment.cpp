@@ -1,5 +1,4 @@
 /**
- * @file  mris_BA_segment.c
  * @brief program for segmenting a Brodmann area from MRI.
  *
  * This program uses laminar intensity profiles to segment Brodmann areas from
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2015/02/05 23:34:40 $
- *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -75,8 +70,7 @@ main(int argc, char *argv[])
   LABEL         *lprior, *lout ;
   MRI           *mri ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_BA_segment.c,v 1.4 2015/02/05 23:34:40 zkaufman Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_BA_segment");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -359,7 +353,7 @@ compute_MT_log_likelihood(MRI_SURFACE *mris, MRI *mri_profiles, int vno0, double
       ll_vno += -SQR(u_interior[i]-val) / (2*v_interior[i]) ;
     }
     ll += ll_vno ;
-    if (!isfinite(ll))
+    if (!std::isfinite(ll))
       DiagBreak() ;
   }
   if (num == 0)

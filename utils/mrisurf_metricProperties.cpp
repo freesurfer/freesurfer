@@ -943,7 +943,7 @@ MRIS* MRISprojectOntoTranslatedSphere(
     v->y = y - d*y;
     v->z = z - d*z;
 
-    if (!isfinite(v->x) || !isfinite(v->y) || !isfinite(v->z))
+    if (!std::isfinite(v->x) || !std::isfinite(v->y) || !std::isfinite(v->z))
       DiagBreak() ;
   }
 
@@ -1314,7 +1314,7 @@ static double estimateSquaredRadius(MRIS *mris, double cx, double cy, double cz)
   int n;
   for (n = 0; n < mris->nvertices; n++) {
     R2 += SQR(mris->vertices[n].x - cx) + SQR(mris->vertices[n].y - cy) + SQR(mris->vertices[n].z - cz);
-    if (!isfinite(R2)) {
+    if (!std::isfinite(R2)) {
       DiagBreak();
     }
   }
@@ -1751,13 +1751,8 @@ double MRISpercentDistanceError(MRIS *mris)
     }
   }
 
-  if (mean_dist == 0.0f) {
-    fprintf(stdout, "%s:%d MRISpercentDistanceError called when all dist zero\n", __FILE__, __LINE__);
-  }
-  
-  if (mean_odist == 0.0f) {
-    fprintf(stdout, "%s:%d MRISpercentDistanceError called when all dist_orig zero\n", __FILE__, __LINE__);
-  }
+  if (mean_dist == 0.0f)  fs::debug() << "MRISpercentDistanceError called when all dist zero";
+  if (mean_odist == 0.0f) fs::debug() << "MRISpercentDistanceError called when all dist_orig zero";
   
   if (nnbrs == 0) nnbrs = 1;
   
@@ -1882,6 +1877,7 @@ int MRISzeroNegativeAreas(MRIS *mris)
   return (NO_ERROR);
 }
 
+
 static int count_MRIScomputeMetricProperties_calls = 0;
 
 #include "mrisurf_metricProperties_slow.h"
@@ -1889,6 +1885,13 @@ static int count_MRIScomputeMetricProperties_calls = 0;
 
 int MRIScomputeMetricProperties(MRIS *mris)
 {
+  if (!!getenv("FS_FASTER_MP")) {
+    // this method has been shown to be 3-8x faster than
+    // the "mrisurf_metricProperties_fast" implementation
+    MRIScomputeMetricPropertiesFaster(mris);
+    return NO_ERROR;
+  }
+
   static int debug_count = 0;
   count_MRIScomputeMetricProperties_calls++;
   if (count_MRIScomputeMetricProperties_calls == debug_count) {
@@ -1902,20 +1905,21 @@ int MRIScomputeMetricProperties(MRIS *mris)
   MRISMP_ctr(&mp);
 
   if (useNewBehaviour) {
-    MRISfreeDistsButNotOrig(mris);                                      // So they can be stolen to avoid unnecessary mallocs and frees
-    MRISMP_load(&mp, mris);                                             // Copy the input data before MRIScomputeMetricPropertiesWkr changes it
-    MRIScomputeMetricProperties(&mp);                                // It should not matter the order these are done in
+    MRISfreeDistsButNotOrig(mris);     // So they can be stolen to avoid unnecessary mallocs and frees
+    MRISMP_load(&mp, mris);            // Copy the input data before MRIScomputeMetricPropertiesWkr changes it
+    MRIScomputeMetricProperties(&mp);  // It should not matter the order these are done in
   }
   
   if (useOldBehaviour) {
     MRIScomputeMetricPropertiesWkr(mris);
   }
   
-  if (useNewBehaviour) MRISMP_unload(mris, &mp, useOldBehaviour);       // Verify the two approaches got the same answers, or use the new answers 
+  // Verify the two approaches got the same answers, or use the new answers 
+  if (useNewBehaviour) MRISMP_unload(mris, &mp, useOldBehaviour);
 
   MRISMP_dtr(&mp);
-  
-  return (NO_ERROR);
+
+  return NO_ERROR;
 }
 
 // Convenience functions
@@ -4673,6 +4677,54 @@ int MRISfindClosestVertex(MRIS *mris, float x, float y, float z, float *dmin, in
   }
   return (min_v);
 }
+
+/*!
+  \fn double MRISfindMinDistanceVertexWithDotCheck(MRI_SURFACE *mris, double xs, double ys, double zs, MRI *mri, double dot_dir, int *pvtxno)
+  \brief Finds the closest vertex to the given XYZ with the constraint that the vector from the vertex to the XYZ
+  is (more-or-less) in the same (dot_dir +1) or opposite (dot_dir -1) direction as the surface normal. This is used
+  to assure that the closest vertex is not on the other side of a mesh and is only closest because the truly closest
+  vertex is in a big triangle. This goes through all the non-ripped vertices, so it can be very slow. If dot_dir=0,
+  then it is the same as a brute force search to find the closest vertex. 
+ */
+double MRISfindMinDistanceVertexWithDotCheckXYZ(MRI_SURFACE *mris, double xs, double ys, double zs, MRI *mri, double dot_dir, int *pvtxno)
+{
+  int     vno, min_vno ;
+  VERTEX  *v ;
+  double  dist, dot, min_dist, dx, dy, dz ;
+
+  min_vno = -1 ; min_dist = 1e10;
+  for (vno = 0 ; vno < mris->nvertices ; vno++){
+    v = &mris->vertices[vno] ;
+    if (v->ripflag) continue ;
+    dx = xs-v->x ; dy = ys-v->y ; dz = zs-v->z ;
+    dot = v->nx*dx + v->ny*dy + v->nz*dz ;
+    if (dot*dot_dir < 0) continue ;
+    dist = sqrt(SQR(xs-v->x) + SQR(ys-v->y) + SQR(zs-v->z)) ;
+    if (dist < min_dist){
+      min_dist = dist ;
+      min_vno = vno ;
+    }
+  }
+  *pvtxno = min_vno ;
+  return(min_dist);
+}
+
+/*!
+  \fn double MRISfindMinDistanceVertexWithDotCheck(MRI_SURFACE *mris, int c, int r, int s, MRI *mri, double dot_dir, int *pvtxno)
+  \brief Finds the closest vertex to the given CRS with a vector dot
+  product constraint.  See MRISfindMinDistanceVertexWithDotCheckXYZ()
+  for more info. This function originally appeared in mri_aparc2aseg
+  as mrisFindMinDistanceVertexWithDotCheck().
+ */
+double MRISfindMinDistanceVertexWithDotCheck(MRI_SURFACE *mris, int c, int r, int s, MRI *mri, double dot_dir, int *pvtxno)
+{
+  double  xs, ys, zs, min_dist;
+
+  MRIvoxelToSurfaceRAS(mri, c, r, s, &xs, &ys, &zs);
+  min_dist = MRISfindMinDistanceVertexWithDotCheckXYZ(mris, xs, ys, zs, mri, dot_dir, pvtxno);
+  return(min_dist);
+}
+
 /*-----------------------------------------------------
   Parameters:
 
@@ -8005,7 +8057,7 @@ double MRIStotalVariationDifference(MRIS *mris)
     delta = fabs(v->k1 - v->k2);
     delta *= delta;
     var += v->area * delta;
-    if (!isfinite(var)) ErrorPrintf(ERROR_BADPARM, "curvature at vertex %d is not finite!\n", vno);
+    if (!std::isfinite(var)) ErrorPrintf(ERROR_BADPARM, "curvature at vertex %d is not finite!\n", vno);
   }
   return (var);
 }
@@ -8031,7 +8083,7 @@ double MRIStotalVariation(MRIS *mris)
     }
     delta = v->k1 * v->k1 + v->k2 * v->k2;
     var += v->area * delta;
-    if (!isfinite(var)) ErrorPrintf(ERROR_BADPARM, "curvature at vertex %d is not finite!\n", vno);
+    if (!std::isfinite(var)) ErrorPrintf(ERROR_BADPARM, "curvature at vertex %d is not finite!\n", vno);
   }
   return (var);
 }
@@ -9114,9 +9166,9 @@ static double ashburnerTriangleEnergy(MRIS *mris, int fno, double lambda)
   s11 = ((a+d)/2) + sqrt((4*b*c + (a-d)*(a-d)) / 2);
   s22 = ((a+d)/2) - sqrt((4*b*c + (a-d)*(a-d)) / 2);
 #endif
-  if (!isfinite(s11)) return (log(SMALL) * log(SMALL));
+  if (!std::isfinite(s11)) return (log(SMALL) * log(SMALL));
 
-  if (!isfinite(s22)) return (log(SMALL) * log(SMALL));
+  if (!std::isfinite(s22)) return (log(SMALL) * log(SMALL));
 
   if (s11 <= 0) s11 = SMALL;
 
@@ -9131,7 +9183,7 @@ static double ashburnerTriangleEnergy(MRIS *mris, int fno, double lambda)
 
   energy = lambda * (1 + det) * (s11 + s22);  // log and square of snn already taken
 
-  if (!isfinite(energy)) DiagBreak();
+  if (!std::isfinite(energy)) DiagBreak();
 
   return (energy / 2);
 }
@@ -9157,7 +9209,7 @@ float mrisSampleAshburnerTriangleEnergy(
   v->z = cz;  // change location to compute energy
   for (sse_total = 0.0, n = 0; n < vt->num; n++) {
     sse = ashburnerTriangleEnergy(mris, vt->f[n], parms->l_ashburner_lambda);
-    if (sse < 0 || !isfinite(sse)) DiagBreak();
+    if (sse < 0 || !std::isfinite(sse)) DiagBreak();
 
     sse_total += sse;
   }

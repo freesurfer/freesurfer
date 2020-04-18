@@ -1,14 +1,9 @@
 /**
- * @file  mri_auto_fill.c
  * @brief usage: ./mri_auto_fill filledvol T1vol m3dxform templvol outvol
  *
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:13 $
- *    $Revision: 1.14 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -87,11 +82,7 @@ main(int argc, char *argv[])
   GCAM   *gcam;
   int     msec ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option
-          (argc, argv,
-           "$Id: mri_auto_fill.c,v 1.14 2011/03/02 00:04:13 nicks Exp $",
-           "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_auto_fill");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

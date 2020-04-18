@@ -1,15 +1,10 @@
 /**
- * @file  mri.h
  * @brief prototypes and structures for working with MRI volumes.
  *
  *  prototypes and structures for working with MRI volumes.
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/12/26 15:30:02 $
- *    $Revision: 1.484 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -40,6 +35,8 @@
 #include "colortab.h"
 #include "affine.h"
 #include "fnvhash.h"
+#include "itkImage.h"
+
 
 #define BUFTYPE  unsigned char
 
@@ -82,6 +79,9 @@
 
 #define MB_RADIAL 0
 #define MB_TANGENTIAL 1
+
+// standard itk image type
+typedef itk::Image<float, 3> ITKImageType;
 
 typedef struct
 {
@@ -184,6 +184,10 @@ public:
   void initSlices();
   void write(const std::string& filename);
   FnvHash hash();
+
+  // ITK image conversions
+  ITKImageType::Pointer toITKImage(int frame = 0);
+  void loadITKImage(ITKImageType::Pointer image, int frame = 0);
 
   // ---- image geometry ----
   int width;        // number of columns
@@ -779,6 +783,7 @@ int   MRIvoxelToTalairach(MRI *mri, double xv, double yv, double zv,
                           double *pxt, double *pyt, double *pzt) ;
 int   MRItalairachToVoxel(MRI *mri, double xt, double yt, double zt,
                           double *pxv, double *pyv, double *pzv) ;
+int MRIworldToTalairach(MRI *mri, double xw, double yw, double zw, double *pxt, double *pyt, double *pzt);
 
 int   MRItransformRegion(MRI *mri_src, MRI *mri_dst, MRI_REGION *src_region,
                          MRI_REGION *dst_region) ;
@@ -1324,6 +1329,7 @@ MRI *MRISeqchangeType(MRI *vol, int dest_type, float f_low,
 
 MRI *MRIresample(MRI *src, MRI *template_vol, int resample_type);
 MATRIX *MRIgetResampleMatrix(MRI *src, MRI *template_vol);
+void MRIlimitsMultipleTimes(MRI *mri_src, float *psrc_min, float *psrc_max, int ntimes);
 int MRIlimits(MRI *mri, float *min, float *max);
 int MRIprintStats(MRI *mri, FILE *stream);
 int MRIstats(MRI *mri, float *min, float *max, int *n_voxels,
@@ -1494,7 +1500,7 @@ MRI *MRIconformSliceOrder(MRI *mri);
     Please use MRIextractDistanceMap in fastmarching.h instead */
 MRI *MRIdistanceTransform(MRI *mri_src, MRI *mri_dist,
                           int label, float max_dist, int mode, MRI *mri_mask);
-int MRIaddCommandLine(MRI *mri, char *cmdline) ;
+int MRIaddCommandLine(MRI *mri, const std::string& cmdline);
 MRI *MRInonMaxSuppress(MRI *mri_src, MRI *mri_sup,
                        float thresh, int thresh_dir) ;
 MRI *MRIextractRegionAndPad(MRI *mri_src, MRI *mri_dst,

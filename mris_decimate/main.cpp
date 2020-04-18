@@ -1,9 +1,5 @@
 /*
  * Original Author: Dan Ginsburg (@ Children's Hospital Boston)
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:30 $
- *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -136,7 +132,7 @@ int main(int argc, char *argv[])
   MRI_SURFACE *mris;
   double avgfacearea ;
 
-  nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "main");
   if (nargs && argc - nargs == 1)
   {
     exit (0);

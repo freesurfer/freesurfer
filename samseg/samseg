@@ -23,10 +23,10 @@ set regonly = 0;
 set computedice = 0;
 set diceseg = none
 set DoRecon = 0;
-set DoFill = 1; # Create filled.mgz in samseg2recon
-set DoNormalization2 = 1; # Do Normalization2 in samseg2recon
-set DoHiRes = 1; 
-set DoDecimate = 1; 
+set DoFill = 0; # Create filled.mgz in samseg2recon
+set DoNormalization2 = 0; # Do Normalization2 in samseg2recon
+set DoHiRes = 0;
+set DoLesion = 0;
 set DoImport = 0
 set HaveT1w = 0;
 set HaveT2w = 0;
@@ -36,14 +36,19 @@ set UseFLAIR = 0;
 set modenamelist = ()
 set refmodename = ();
 set SaveMesh = 0
-set optionsfile = ()
 set basedir = ()
 set max_iters = ()
 set SavePosteriors = 0
+set SaveProbabilities = 0
 set SaveWarp = 1;
-set DoMRF = 1;
-set mrfgca = $FREESURFER_HOME/average/samseg/samseg.talairach.lta.mrf.gca
+set DoMRF = 0;
+#set mrfgca = $FREESURFER_HOME/average/samseg/samseg.talairach.lta.mrf.gca
+set mrfgca = $FREESURFER_HOME/average/samseg/samseg.talairach.m3z.mrf.gca
 set DoRefine = 0
+set ForceUpdate = 0
+set PallidumSeparate = 0;
+set OptionsFile = ()
+set SaveHistory = 0
 
 set inputargs = ($argv);
 set PrintHelp = 0;
@@ -71,7 +76,7 @@ set day   = `date +%d`
 set hour   = `date +%H`
 set min    = `date +%M`
 
-mkdir -p $outdir
+mkdir -p $outdir/log
 pushd $outdir > /dev/null
 set outdir = `pwd`;
 popd > /dev/null
@@ -84,8 +89,19 @@ mkdir -p $tmpdir
 
 # Set up log file
 if($#LF == 0) then
-  if($#subject == 0) set LF = $outdir/samseg.Y$year.M$month.D$day.H$hour.M$min.log
-  if($#subject != 0) set LF = $SUBJECTS_DIR/$subject/scripts/samseg.Y$year.M$month.D$day.H$hour.M$min.log
+  if($#subject == 0) then
+    set LF = $outdir/log/samseg.Y$year.M$month.D$day.H$hour.M$min.log
+    pushd $outdir 
+    ln -sf log/samseg.Y$year.M$month.D$day.H$hour.M$min.log samseg.log
+    popd
+  endif
+  if($#subject != 0) then
+    mkdir -p $SUBJECTS_DIR/$subject/scripts/log
+    set LF = $SUBJECTS_DIR/$subject/scripts/log/samseg.Y$year.M$month.D$day.H$hour.M$min.log
+    pushd $SUBJECTS_DIR/$subject/scripts
+    ln -sf log/samseg.Y$year.M$month.D$day.H$hour.M$min.log samseg.log
+    popd
+  endif
 endif
 if($LF != /dev/null) rm -f $LF
 echo "Log file for samseg" >> $LF
@@ -105,11 +121,14 @@ endif
 if($DoImport) then
   # Import the data
   set cmd = (fsr-import $inputargs --o $importdir)
+  if($DoHiRes) set cmd = ($cmd --hires) # prevents conforming
+  if($ForceUpdate) set cmd = ($cmd --force-update)
   echo $cmd | tee -a $LF
   fs_time $cmd |& tee -a $LF
   if($status) goto error_exit;
   # Coregister within and between modes, resample to reference mode
   set cmd = (fsr-coreg --i $importdir --ref $refmodename --threads $threads --o $coregdir)
+  if($ForceUpdate) set cmd = ($cmd --force-update)
   echo $cmd | tee -a $LF
   fs_time $cmd |& tee -a $LF
   if($status) goto error_exit;
@@ -127,13 +146,19 @@ endif
 #========================================================
 set cmd0 = (run_samseg -o $outdir --threads $threads)
 if($SaveMesh) set cmd0 = ($cmd0 --save-mesh)
-if($#optionsfile) set cmd0 = ($cmd0 --options $optionsfile)
-if($#regmat)  set cmd0 = ($cmd0 --reg-mat $regmat)
+if($#regmat)  set cmd0 = ($cmd0 --reg $regmat)
 if($#initlta) set cmd0 = ($cmd0 --init-lta $initlta)
 if($regonly) set cmd0 = ($cmd0 --reg-only);
 if($#max_iters) set cmd0 = ($cmd0 --max-iters $max_iters);
 if($SavePosteriors) set cmd0 = ($cmd0 --save-posteriors)
+if($SaveProbabilities) set cmd0 = ($cmd0 --save-probabilities)
 if($SaveWarp) set cmd0 = ($cmd0 --save-warp)
+if($PallidumSeparate) set cmd0 = ($cmd0 --pallidum-separate)
+if($#OptionsFile)  set cmd0 = ($cmd0 --options $OptionsFile)
+if($SaveHistory)  set cmd0 = ($cmd0 --history)
+if($DoLesion) set cmd0 = ($cmd0 --lesion)  # TODO: if T2/flair is provided, --lesion-mask-pattern must be set
+
+# specify input list
 foreach input ($inputlist)
   set cmd0 = ($cmd0 -i $input)
 end
@@ -161,17 +186,9 @@ echo $cmd | tee -a $LF
 $cmd | tee -a $LF
 if($status) goto error_exit;
 
-if($SaveWarp) then
-  set cmd = (/autofs/space/topaz_001/users/ah221/test/fix_samseg_warp $outdir)
-  echo $cmd | tee -a $LF
-  $cmd | tee -a $LF
-  if($status) goto error_exit;
-endif
-
 if(! $regonly) then
 
-  # Need to have samseg write out a consistent file name, but until then...
-  set seg = `find "$outdir" -iname "*crispSegmentation.nii" -print`
+  set seg = "$outdir/seg.mgz"
 
   if($DoRefine) then
     set cmd = (mri_refine_seg --debug -i $seg -o $seg)
@@ -181,7 +198,7 @@ if(! $regonly) then
   endif
 
   # Compute segstats
-  set sumfile = $outdir/crispSegmentation.stats 
+  set sumfile = $outdir/seg.stats 
   set cmd = (mri_segstats --ctab-default --seg $seg --sum $sumfile)
   echo $cmd | tee -a $LF
   $cmd | tee -a $LF
@@ -190,19 +207,21 @@ if(! $regonly) then
   if($DoMRF) then
     set inputbase = `basename $inputlist[1]` 
     set inputbase = `fname2stem $inputbase`
-    set bc = $outdir/$inputbase"_biasCorrected.nii"
+    set bc = "$outdir/modality01_bias_corrected.mgz"
     if(! -e $bc) then
       echo "ERROR: cannot find $bc" | tee -a $LF
       goto error_exit;
     endif
-    set mrf = $outdir/$inputbase"_crispSegmentation.mrf.nii"
+    set mrf = "$outdir/seg.mrf.mgz"
+    #set reg = $outdir/samseg.talairach.lta
+    set reg = $outdir/template.m3z
     set cmd = (mri_ca_label -r $seg -relabel_unlikely 9 .3 \
-       -prior 0.5 -align $bc $outdir/samseg.talairach.lta $mrfgca $mrf)
+       -prior 0.5 -align $bc $reg $mrfgca $mrf)
     echo $cmd | tee -a $LF
     fs_time $cmd | tee -a $LF
     if($status) goto error_exit;
     # Compute segstats of the mrf'ed seg
-    set sumfile = $outdir/crispSegmentation.mrf.stats 
+    set sumfile = $outdir/seg.mrf.stats 
     set cmd = (mri_segstats --ctab-default --seg $mrf --sum $sumfile)
     echo $cmd | tee -a $LF
     $cmd | tee -a $LF
@@ -226,7 +245,7 @@ endif # not regonly
 
 # Prep for recon
 if($#subject != 0) then
-  set cmd = (samseg2recon --i $input --s $subject)
+  set cmd = (samseg2recon --s $subject) # --i $input 
   set cmd = ($cmd --tmpdir $tmpdir/tmp.mergeseg)
   if($cleanup) set cmd = ($cmd --cleanup)
   if($DoFill) set cmd = ($cmd --fill)
@@ -248,7 +267,6 @@ if($#subject != 0) then
     if($UseT2w)   set cmd = ($cmd -T2pial)
     if($UseFLAIR) set cmd = ($cmd -FLAIRpial)
     if($DoHiRes) set cmd = ($cmd -hires)
-    if($DoDecimate) set cmd = ($cmd -decimate)
     echo $cmd | tee -a $LF
     $cmd | tee -a $LF
     if($status) goto error_exit;
@@ -306,6 +324,10 @@ while( $#argv != 0 )
 
     case "--recon":
       set DoRecon = 1
+      breaksw
+
+    case "--lesion":
+      set DoLesion = 1
       breaksw
 
     case "--mrf":
@@ -382,6 +404,19 @@ while( $#argv != 0 )
     case "--use-flair":
       set UseFLAIR = 1;
       set DoImport = 1
+      breaksw
+
+    case "--pallidum-separate":
+      set PallidumSeparate = 1;
+      breaksw
+
+    case "--options":
+      if($#argv < 1) goto arg1err;
+      set OptionsFile = $argv[1]; shift;
+      if(! -e $OptionsFile) then
+        echo "ERROR: cannot find $OptionsFile"
+        exit 1;
+      endif
       breaksw
 
     case "--i2":
@@ -482,21 +517,19 @@ while( $#argv != 0 )
       set usebin = 0;
       breaksw
 
+    case "--hires":
+    case "-hires":
+      set DoHiRes = 1; # for recon-all
+      breaksw
     case "--no-hires":
       set DoHiRes = 0; # for recon-all
       breaksw
 
-    case "--no-decimate":
-      set DoDecimate = 0; # for recon-all
+    case "--history":
+      set SaveHistory = 1
       breaksw
-
-    case "--options":
-      if($#argv < 1) goto arg1err;
-      set optionsfile = $argv[1]; shift;
-      if(! -e $optionsfile) then
-        echo "ERROR: cannot find $optionsfile"
-        exit 1;
-      endif
+    case "--no-history":
+      set SaveHistory = 0
       breaksw
 
     case "--max-iters":
@@ -506,6 +539,10 @@ while( $#argv != 0 )
 
     case "--save-posteriors":
       set SavePosteriors = 1;
+      breaksw
+
+    case "--save-probabilities":
+      set SaveProbabilities = 1;
       breaksw
 
     case "--save-warp":
@@ -677,23 +714,29 @@ usage_exit:
   echo "samseg"
   echo "  --i file.mgz <--i file2.mgz> <--i file3.mgz>... <--i>"
   echo "  --t1w t1file.mgz <--t1w t2file2.mgz> <--t2w t2file.mgz> <--flair flairfile.mgz> <--mode modename modefile.mgz>  "
+  echo "     Note: using the t1w/t2w/flair/modename will cause input to be conformed unless --hires"
   echo "      --refmode modename (t1w/t2w/flair/modename)  "
   echo "  --o outdir "
+  echo "  --options OptionsFile : json file for advanced"
+  echo "  --history : Turns on save history"
   echo "  --s subject : create subject, sets outdir to subject/mri/samseg"
   echo "                the first input must be the conformed T1 weighted input"
-  echo "  --recon : run recon-all "
-  echo "  --no-fill : create filled.mgz in recon-all instead of in samseg2recon (with --recon) "
-  echo "  --no-normalization2 : create brain.mgz in recon-all instead from samseg2recon (with --recon) "
-  echo "  --use-t2w : use the t2-weighted input when running recon-all"
-  echo "  --use-flair : use the FLAIR-weighted input when running recon-all"
-  echo "  --no-hires  : do not use -hires when running recon-all"
-  echo "  --no-decimate  : do not use -decimate when running recon-all"
-  echo "  --sd SUBJECTS_DIR"
   echo "  --save-posteriors : save posterior probs"
+  echo "  --save-probabilities : save post, prior, and likelihood as 3-frame vol foreach tissue type" 
   echo "  --no-save-warp : do not save m3z-style warp"
   echo "  --mrf/--no-mrf : do or do not do MRF (default is $DoMRF)"
   echo "  --threads nthreads : set the number of CPUs to use"
   echo ""
+  echo "  --recon : run recon-all "
+  echo "  --fill : use samseg to create filled.mgz instead of recon-all"
+  echo "  --normalization2 : use samseg to create brain.mgz instead of recon-all (with --recon) "
+  echo "  --use-t2w : use the t2-weighted input when running recon-all"
+  echo "  --use-flair : use the FLAIR-weighted input when running recon-all"
+  echo "  --hires  : use -hires when running recon-all"
+  echo "  --sd SUBJECTS_DIR"
+  echo ""
+  echo " --pallidum-separate : Move pallidum outside of global white matter class. Use this flag when"
+  echo "   analyzing T2 or FLAIR"
   echo " --regmat reg.mat : registration file (as output by samseg)"
   echo "    allows using the reg from one run with another run"
   echo " --initlta init.lta : initial registration"
@@ -742,4 +785,17 @@ atlas (eg, $FREESURFER_HOME/average/samseg/20Subjects_smoothing2_down2_smoothing
 
 eg, 
 mri_coreg --mov $atlas --targ orig.mgz --dof 12 --reg coreg.lta 
+
+Example 
+
+recon samseg --t1w 001.mgz --t2w T2raw.mgz --s subject --recon --use-t2w --refmode t1w 
+
+This will do a whole-brain multimodal segmentation using the
+T1-weighted 001.mgz and the T2-weighted T2raw.mgz. The output will go
+into $SUBJECTS_DIR/$subject/samseg.  recon-all will be run using the
+SAMSEG segmentation and the bias corrected t1w and t2w. The pial
+surface will be refined with the T2 because --use-t2w was specified.
+
+
+
 

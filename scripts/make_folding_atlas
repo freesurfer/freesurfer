@@ -90,7 +90,7 @@ if($DoXHemi) then
       echo "  #@# $cmd" | tee -a $LF
       if($RunIt) then
         pbsubmit -n $OMP_NUM_THREADS $xhemiqueue -c "$cmd" | tee -a $LF
-        sleep 10
+        sleep 1
       endif
     endif
   end
@@ -121,7 +121,7 @@ if($DoXHemi) then
       echo "  #@# $cmd" | tee -a $LF
       if($RunIt) then
         pbsubmit -n $OMP_NUM_THREADS $xhemiqueue -c "$cmd" | tee -a $LF
-        sleep 10
+        sleep 1
         @ nRunning = $nRunning + 1;
         echo " " | tee -a $LF
       endif
@@ -254,7 +254,7 @@ while ($nthIter < $nitersmax)
         if($RunIt) then
           pbsubmit -n $OMP_NUM_THREADS $queue -c "$cmd" |& tee -a $LF
           echo " " | tee -a $LF
-          sleep 10
+          sleep 1
         endif
       endif # outreg does not exist
       if($DoXHemi) then
@@ -269,7 +269,7 @@ while ($nthIter < $nitersmax)
           if($RunIt) then
             pbsubmit -n $OMP_NUM_THREADS $xhemiqueue -c "$cmd" |& tee -a $LF
             echo " " | tee -a $LF
-            sleep 10
+            sleep 1
           endif
         endif # outreg does not exist
       endif # Do XHemi
@@ -469,7 +469,7 @@ while( $#argv != 0 )
       set icoorder = $argv[1]; shift;
       breaksw
 
-case "--no-template-only":
+    case "--no-template-only":
       # allows making average surface files under conditions when
       # usually only a surface temlate gif would be created
       # Eg, when only use one hemi or with --no-vol
@@ -484,6 +484,9 @@ case "--no-template-only":
 
     case "--no-annot":
       set UseAParc = 0;
+      breaksw
+    case "--annot":
+      set UseAParc = 1;
       breaksw
 
     case "--log":

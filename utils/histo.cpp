@@ -1,15 +1,10 @@
 /**
- * @file  histo.c
  * @brief 1d histogram utilities.
  *
  * Utilities for computing and analyzing 1 dimensional histograms.
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/05/13 18:06:13 $
- *    $Revision: 1.92 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -26,6 +21,7 @@
 /*-----------------------------------------------------
   INCLUDE FILES
   -------------------------------------------------------*/
+#include <cmath>
 #include <math.h>
 #include <memory.h>
 #include <stdio.h>
@@ -2398,7 +2394,7 @@ HISTOGRAM2D *HISTO2Dsmooth(HISTOGRAM2D *histo_src, HISTOGRAM2D *histo_dst, float
           norm += kernel[i];
           total += kernel[i] * (float)histo_src->counts[b1k][b2k];
           if ((float)histo_src->counts[b1k][b2k] > 0.00027) DiagBreak();
-          if (!isfinite(norm) || !isfinite(total) || !isfinite(kernel[i])) DiagBreak();
+          if (!std::isfinite(norm) || !std::isfinite(total) || !std::isfinite(kernel[i])) DiagBreak();
         }
       if (b1 == Gx && b2 == Gy) DiagBreak();
       if (DZERO(norm)) {
@@ -2473,7 +2469,7 @@ HISTOGRAM2D *HISTO2DsmoothAnisotropic(HISTOGRAM2D *histo_src, HISTOGRAM2D *histo
           norm += k;
           total += k * (float)histo_src->counts[b1k][b2k];
           if ((float)histo_src->counts[b1k][b2k] > 0.00027) DiagBreak();
-          if (!isfinite(norm) || !isfinite(total) || !isfinite(k)) DiagBreak();
+          if (!std::isfinite(norm) || !std::isfinite(total) || !std::isfinite(k)) DiagBreak();
         }
       if (b1 == Gx && b2 == Gy) DiagBreak();
       if (DZERO(norm)) {
@@ -2586,7 +2582,7 @@ HISTOGRAM2D *HISTO2DsmoothAnisotropic(HISTOGRAM2D *histo_src, HISTOGRAM2D *histo
           norm += k;
           total += k * (float)histo_src->counts[b1k][b2k];
           if ((float)histo_src->counts[b1k][b2k] > 0.00027) DiagBreak();
-          if (!isfinite(norm) || !isfinite(total) || !isfinite(k)) DiagBreak();
+          if (!std::isfinite(norm) || !std::isfinite(total) || !std::isfinite(k)) DiagBreak();
         }
       if (b1 == Gx && b2 == Gy) DiagBreak();
       if (DZERO(norm)) {
@@ -2676,7 +2672,7 @@ HISTOGRAM2D *HISTO2DsmoothBins1(HISTOGRAM2D *histo_src, HISTOGRAM2D *histo_dst, 
 
         norm += kernel[x];
         total += kernel[x] * (float)histo_src->counts[b1k][b2];
-        if (!isfinite(norm) || !isfinite(total) || !isfinite(kernel[x])) DiagBreak();
+        if (!std::isfinite(norm) || !std::isfinite(total) || !std::isfinite(kernel[x])) DiagBreak();
       }
       if (b1 == Gx && b2 == Gy) DiagBreak();
       if (DZERO(norm)) {
@@ -2756,7 +2752,7 @@ HISTOGRAM2D *HISTO2DsmoothBins2(HISTOGRAM2D *histo_src, HISTOGRAM2D *histo_dst, 
 
         norm += kernel[x];
         total += kernel[x] * (float)histo_src->counts[b1][b2k];
-        if (!isfinite(norm) || !isfinite(total) || !isfinite(kernel[x])) DiagBreak();
+        if (!std::isfinite(norm) || !std::isfinite(total) || !std::isfinite(kernel[x])) DiagBreak();
       }
       if (b1 == Gx && b2 == Gy) DiagBreak();
       if (DZERO(norm)) {

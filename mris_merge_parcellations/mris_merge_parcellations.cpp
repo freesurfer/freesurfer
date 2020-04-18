@@ -1,14 +1,9 @@
 /**
- * @file  mris_merge_parcellations
  * @brief program for merging two parcellations into one, taking some divisions from one and some from the other
  *
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:33 $
- *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -64,11 +59,7 @@ main(int argc, char *argv[])
   Timer then ;
   COLOR_TABLE   *ct ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option 
-    (argc, argv, 
-     "$Id: mris_merge_parcellations.c,v 1.6 2011/03/02 00:04:33 nicks Exp $", 
-     "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_merge_parcellations");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

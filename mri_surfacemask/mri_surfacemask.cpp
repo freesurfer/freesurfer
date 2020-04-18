@@ -1,5 +1,4 @@
 /**
- * @file  mri_surfacemask.cpp
  * @brief taking mri volume and surface and create volume
  *
  * where all pixels outside the surface has been zeroed
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Yasunari Tosa
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:25 $
- *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -168,11 +163,7 @@ void markOutsideVoxels(MRI *mri_filled) {
 }
 
 int main(int argc, char *argv[]) {
-  /* rkt: check for and handle version tag */
-  int nargs = handle_version_option 
-    (argc, argv, 
-     "$Id: mri_surfacemask.cpp,v 1.5 2011/03/02 00:04:25 nicks Exp $", 
-     "$Name:  $");
+  int nargs = handleVersionOption(argc, argv, "mri_surfacemask");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

@@ -1,15 +1,4 @@
-/**
- * @file  label_area.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
- */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2012/04/25 13:37:44 $
- *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -64,8 +53,7 @@ main(int argc, char *argv[]) {
   MRI_SURFACE  *mris ;
   float        area ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: label_area.c,v 1.9 2012/04/25 13:37:44 fischl Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "label_area");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

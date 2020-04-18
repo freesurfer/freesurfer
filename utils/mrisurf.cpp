@@ -1,13 +1,8 @@
 /*
- * @file utilities operating on Original
  *
  */
 /*
  * surfaces Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2017/02/16 19:43:03 $
- *    $Revision: 1.793 2011
  *
  * $ © copyright-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -107,16 +102,15 @@ int MRISSfree(SMALL_SURFACE **pmriss)
   return (NO_ERROR);
 }
 
-int MRISaddCommandLine(MRI_SURFACE *mris, char *cmdline)
+int MRISaddCommandLine(MRI_SURFACE *mris, const std::string& cmdline)
 {
-  int i;
   if (mris->ncmds >= MAX_CMDS)
-    ErrorExit(ERROR_NOMEMORY, "MRISaddCommandLine: can't add cmd %s (%d)", cmdline, mris->ncmds);
+    fs::error() << "can't add cmd to surface since max cmds (" << mris->ncmds <<  ") has been reached";
 
-  i = mris->ncmds++;
-  mris->cmdlines[i] = (char *)calloc(strlen(cmdline) + 1, sizeof(char));
-  strcpy(mris->cmdlines[i], cmdline);
-  return (NO_ERROR);
+  int i = mris->ncmds++;
+  mris->cmdlines[i] = (char *)calloc(cmdline.size() + 1, sizeof(char));
+  strcpy(mris->cmdlines[i], cmdline.c_str());
+  return NO_ERROR;
 }
 
 // Support for writing traces that can be compared across test runs to help find where differences got introduced  

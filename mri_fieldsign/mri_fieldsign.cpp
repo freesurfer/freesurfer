@@ -1,15 +1,9 @@
 /**
- * @file  mri_fieldsign
  * @brief Computes retinotopic field sign
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
  * Original Author: Douglas N. Greve
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2011/10/05 21:57:21 $
- *    $Revision: 1.15 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -128,7 +122,7 @@ int main(int argc, char *argv[]) {
   MRI *eccensfa, *polarsfa, *mri, *mritmp;
   MRI *eccenreal,*eccenimag,*polarreal,*polarimag;
 
-  nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_fieldsign");
   if (nargs && argc - nargs == 1) exit (0);
   argc -= nargs;
   cmdline = argv2cmdline(argc,argv);

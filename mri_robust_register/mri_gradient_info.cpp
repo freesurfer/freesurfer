@@ -1,15 +1,10 @@
 /**
- * @file  mri_gradient_info.cpp
  * @brief A programm to compute gradient information
  *
  */
 
 /*
  * Original Author: Martin Reuter
- * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2012/09/21 23:05:17 $
- *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -490,15 +485,7 @@ double scanXold(MRI * mri_in, MRI* mri_grad, MRI* mri_mask)
 int main(int argc, char *argv[])
 {
 
-//   // Default initialization
-//   int nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
-//   if (nargs && argc - nargs == 1) exit (0);
-//   argc -= nargs;
   Progname = argv[0];
-//   argc --;
-//   argv++;
-//  if (vcid)
-//  {};
 
   if (argc < 2)
   {

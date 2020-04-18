@@ -1,5 +1,4 @@
 /**
- * @file  mris_make_face_parcellation.c
  * @brief create a parcellation of equal areas
  *
  * make a parcellation where each unit is assigned based on the face 
@@ -8,10 +7,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/05/06 17:26:14 $
- *    $Revision: 1.22 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -171,7 +166,6 @@ main(int argc, char *argv[]) {
   MRI_SURFACE        *mris, *mris_ico ;
   float              radius ;
   int                fno, vno, annot,k ;
-  char               cmdline[CMD_LINE_LEN] ;
   double             fdist ;
   FACE               *face ;
   MHT                *mht ;
@@ -190,18 +184,11 @@ main(int argc, char *argv[]) {
   
   Timer start;
 
-  make_cmd_version_string
-  (argc, argv,
-   "$Id: mris_make_face_parcellation.c,v 1.22 2016/05/06 17:26:14 fischl Exp $",
-   "$Name:  $", cmdline);
+  std::string cmdline = getAllInfo(argc, argv, "mris_make_face_parcellation");
 
   setRandomSeed(1L) ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option
-    (argc, argv,
-     "$Id: mris_make_face_parcellation.c,v 1.22 2016/05/06 17:26:14 fischl Exp $",
-     "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_make_face_parcellation");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

@@ -1,5 +1,4 @@
 /**
- * @file  mri_ibmc.c
  * @brief Intersection-based motion correction
  *
  * Intersection-based motion correction based on Kim, et al, TMI,
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Douglas N. Greve
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2011/08/16 22:24:02 $
- *    $Revision: 1.13 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -712,7 +707,7 @@ int main(int argc, char *argv[])
   ibmc = (IBMC *) calloc(sizeof(IBMC),1);
   ibmc->DoSmooth = 0;
 
-  nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_ibmc");
   if (nargs && argc - nargs == 1) exit (0);
   argc -= nargs;
   cmdline = argv2cmdline(argc,argv);

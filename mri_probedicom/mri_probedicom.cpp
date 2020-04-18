@@ -1,5 +1,4 @@
 /**
- * @file  mri_probedicom.c
  * @brief program allows the user to query a dicom file
  *
  * In its most basic usage, the user supplies the DICOM group and
@@ -14,10 +13,6 @@
  */
 /*
  * Original Author: Doug Greve
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2015/07/28 21:51:22 $
- *    $Revision: 1.45 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -155,8 +150,7 @@ int main(int argc, char **argv) {
   int n,nvoxs,err;
   double bval, xbvec, ybvec, zbvec;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_probedicom.c,v 1.45 2015/07/28 21:51:22 greve Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_probedicom");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

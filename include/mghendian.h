@@ -1,5 +1,4 @@
 /**
- * @file  mghendian.h
  * @brief define BYTE_ORDER, LITTLE_ENDIAN, BIG_ENDIAN and BYTE_ORDER
  *
  * SGI  /usr/include/sys/endian.h (decides on _MIPSEB or _MIPSEL)
@@ -11,10 +10,6 @@
  */
 /*
  * Original Author: Yasunari Tosa
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:10 $
- *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

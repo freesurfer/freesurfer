@@ -1,5 +1,4 @@
 /**
- * @file  mri_partial_ribbon.c
  * @brief extract cortical ribbon
  *
  * Usage: 
@@ -10,10 +9,6 @@
  */
 /*
  * Original Author: Andre van der Kouwe
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:23 $
- *    $Revision: 1.11 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -54,11 +49,7 @@ int main(int argc, char *argv[]) {
   MRI_SURFACE *inner_mris_lh,*outer_mris_lh,*inner_mris_rh,*outer_mris_rh;
   int nargs;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option 
-    (argc, argv, 
-     "$Id: mri_partial_ribbon.c,v 1.11 2011/03/02 00:04:23 nicks Exp $", 
-     "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_partial_ribbon");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

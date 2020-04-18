@@ -1,15 +1,10 @@
 /**
- * @file  dct.c
  * @brief utilities for computing and applying a discrete cosine transform.
  *
  * utilities for computing and applying a discrete cosine transform.
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:42 $
- *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

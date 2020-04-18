@@ -1,14 +1,9 @@
 /**
- * @file  gcamcomputeLabelsLinearCPU.cpp
  * @brief Implement GCAMcomputeLabels using the linearised GCA on the CPU
  *
  */
 /*
  * Original Authors: Richard Edgar
- * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2016/02/26 20:19:38 $
- *    $Revision: 1.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

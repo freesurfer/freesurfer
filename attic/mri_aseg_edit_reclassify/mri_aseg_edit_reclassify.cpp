@@ -1,15 +1,10 @@
 /**
- * @file  mri_aseg_edit_train
  * @brief use a previously trained a classifier to correct an aseg
  *
  * use SVMs to correct an aseg.
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:13 $
- *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -87,8 +82,7 @@ main(int argc, char *argv[]) {
   VOXEL_LIST   *vl_border ;
   float        *svm_inputs = NULL, svm_out ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_aseg_edit_reclassify.c,v 1.5 2011/03/02 00:04:13 nicks Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_aseg_edit_reclassify");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

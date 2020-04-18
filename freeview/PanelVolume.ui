@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>360</width>
-    <height>1770</height>
+    <height>1913</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -27,13 +27,13 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>346</width>
-     <height>1843</height>
+     <width>360</width>
+     <height>1913</height>
     </rect>
    </property>
    <layout class="QVBoxLayout" name="verticalLayout">
     <property name="leftMargin">
-     <number>0</number>
+     <number>5</number>
     </property>
     <property name="topMargin">
      <number>0</number>
@@ -88,6 +88,12 @@
     </item>
     <item>
      <layout class="QGridLayout" name="gridLayout_2">
+      <property name="leftMargin">
+       <number>0</number>
+      </property>
+      <property name="rightMargin">
+       <number>0</number>
+      </property>
       <property name="verticalSpacing">
        <number>6</number>
       </property>
@@ -416,7 +422,6 @@
           </property>
           <property name="font">
            <font>
-            <family>DejaVu Sans</family>
             <pointsize>8</pointsize>
            </font>
           </property>
@@ -1093,7 +1098,7 @@ of each frame</string>
        <bool>false</bool>
       </attribute>
       <attribute name="headerShowSortIndicator" stdset="0">
-       <bool>false</bool>
+       <bool>true</bool>
       </attribute>
       <column>
        <property name="text">
@@ -1348,6 +1353,9 @@ of each frame</string>
             <height>16777215</height>
            </size>
           </property>
+          <property name="toolTip">
+           <string>Press return to apply change</string>
+          </property>
          </widget>
         </item>
        </layout>
@@ -1396,6 +1404,9 @@ of each frame</string>
             <height>16777215</height>
            </size>
           </property>
+          <property name="toolTip">
+           <string>Press return to apply change</string>
+          </property>
          </widget>
         </item>
        </layout>
@@ -1425,6 +1436,9 @@ of each frame</string>
             <width>60</width>
             <height>16777215</height>
            </size>
+          </property>
+          <property name="toolTip">
+           <string>Press return to apply change</string>
           </property>
          </widget>
         </item>

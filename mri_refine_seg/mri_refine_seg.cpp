@@ -164,7 +164,7 @@ static bool voxelTouches(MRI *seg, intvec labels, int c, int r, int s)
 }
 
 
-int main(int argc, const char **argv) {
+int main(int argc, char **argv) {
 
   // ------ setup ------
 
@@ -182,7 +182,7 @@ int main(int argc, const char **argv) {
   // load input
   std::string segname = parser.retrieve<std::string>("in");
   MRI *seg = MRIread(segname.c_str());
-  if (!seg) logFatal(1) << "could not read input volume " << segname;
+  if (!seg) fs::fatal() << "could not read input volume " << segname;
   MRI *orig_seg = MRIcopy(seg, NULL);
 
   // allocate buffer for label mask (used for efficient cluster-finding)

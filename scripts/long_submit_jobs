@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: latin-1 -*-
 
 #
 # long_submit_jobs
@@ -7,10 +6,6 @@
 # script to submit jobs for longitudinal data
 #
 # Original Author: Martin Reuter
-# CVS Revision Info:
-#    $Author: zkaufman $
-#    $Date: 2016/09/26 18:11:42 $
-#    $Revision: 1.29 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -22,10 +17,11 @@
 #
 # Reporting: freesurfer@nmr.mgh.harvard.edu
 #
-#
+
 from __future__ import print_function
 import warnings
 warnings.filterwarnings('ignore', '.*negative int.*')
+
 import os
 import sys
 import shlex
@@ -38,11 +34,8 @@ import time
 import math
 import stat
 
-#sys.path.append(os.environ['FREESURFER_HOME']+'/bin/') 
-#sys.path.append('/usr/local/freesurfer/dev/bin/') 
+from freesurfer.utils.legacy import LongQdecTable, BadFileError
 
-from subject_info import *
-from LongQdecTable import *
 
 # logging 
 ch = logging.StreamHandler()

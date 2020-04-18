@@ -1,15 +1,9 @@
 /**
- * @file  mri_train.c
  * @brief program for training voxel-based classifiers
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2012/04/12 23:18:57 $
- *    $Revision: 1.23 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -120,8 +114,7 @@ main(int argc, char *argv[]) {
   int     nargs, error, i ;
   double    accuracy =0 ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_train.c,v 1.23 2012/04/12 23:18:57 fischl Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_train");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

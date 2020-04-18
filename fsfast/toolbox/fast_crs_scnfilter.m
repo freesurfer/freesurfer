@@ -13,10 +13,6 @@ function Fcrs = fast_crs_scnfilter(c,r,s,V)
 % fast_crs_scnfilter.m
 %
 % Original Author: Doug Greve
-% CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2011/03/02 00:04:03 $
-%    $Revision: 1.3 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %

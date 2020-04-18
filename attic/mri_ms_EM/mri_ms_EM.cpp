@@ -1,5 +1,4 @@
 /**
- * @file  mri_ms_EM.c
  * @brief does bias field correction as well
  *
  * Implementation based on: H. Ichihashi et al. "Gaussian Mixture PDF
@@ -14,10 +13,6 @@
  */
 /*
  * Original Author: Xiao Han
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/10/04 18:37:30 $
- *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -217,11 +212,7 @@ main(int argc, char *argv[])
   unsigned long NRindex[MAX_CLASSES+1];
   int indexmap[MAX_CLASSES + 1];
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (
-    argc, argv,
-    "$Id: mri_ms_EM.c,v 1.8 2011/10/04 18:37:30 nicks Exp $",
-    "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_ms_EM");
   if (nargs && argc - nargs == 1)
   {
     exit (0);

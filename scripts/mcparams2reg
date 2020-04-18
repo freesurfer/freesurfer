@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 # mcparams2reg - converts an FSFAST-style or MCFLIRT-style motion
 # correction parameter file into a text file that can be used as a 

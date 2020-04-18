@@ -1,14 +1,9 @@
 /**
- * @file  LayerLandmarks.h
  * @brief Layer class for structural landmarks.
  *
  */
 /*
  * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2011/03/21 22:20:38 $
- *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

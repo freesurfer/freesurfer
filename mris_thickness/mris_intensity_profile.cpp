@@ -2,14 +2,9 @@
  * @mris  file_intensity_profile.c
  * @brief program for computing intensity profiles across the cortical ribbon
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2013/03/27 01:53:50 $
- *    $Revision: 1.23 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -148,8 +143,7 @@ main(int argc, char *argv[]) {
   float         *norm = NULL ;
 
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_intensity_profile.c,v 1.23 2013/03/27 01:53:50 fischl Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_intensity_profile");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

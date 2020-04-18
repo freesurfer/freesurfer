@@ -1,15 +1,9 @@
 /**
- * @file  mri_update_gca.c
  * @brief program to update intensity distributions in a gca with an example aseg/norm
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/06/29 19:35:58 $
- *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -56,8 +50,7 @@ main(int argc, char *argv[]) {
   GCA          *gca ;
   MRI          *mri_norm, *mri_aseg ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_update_gca.c,v 1.2 2011/06/29 19:35:58 fischl Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_update_gca");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

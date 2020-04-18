@@ -1,15 +1,10 @@
 /**
- * @file RegistrationStep.h
  * @brief A class to compute a robust symmetric registration (single step)
  *
  */
 
 /*
  * Original Author: Martin Reuter
- * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2014/11/14 17:36:16 $
- *    $Revision: 1.28 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

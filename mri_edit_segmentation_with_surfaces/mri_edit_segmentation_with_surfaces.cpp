@@ -1,14 +1,9 @@
 /**
- * @file  mri_edit_segmentation_with_surfaces.c
  * @brief relabel aseg.mgz gm/wm voxels interior/exterier to the surfaces
  *
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2015/03/24 17:57:20 $
- *    $Revision: 1.23 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

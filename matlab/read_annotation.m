@@ -68,10 +68,6 @@ function [vertices, label, colortable] = read_annotation(filename, varargin)
 %
 % read_annotation.m
 % Original Author: Bruce Fischl
-% CVS Revision Info:
-%    $Author: greve $
-%    $Date: 2014/02/25 19:54:10 $
-%    $Revision: 1.10 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %

@@ -1,6 +1,6 @@
 # project info
-project(freesurfer)
 cmake_minimum_required(VERSION 3.9)
+project(freesurfer)
 enable_language(C CXX Fortran)
 
 # a few build options
@@ -38,9 +38,12 @@ if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
   endif()
 endif()
 
-# create build stamp during install
+# version stamp
+set(FS_VERSION "$ENV{USER}-local" CACHE STRING "Distribution version")
+
+# build stamp
 string(TIMESTAMP TODAY "%Y%m%d")
-set(BUILD_STAMP "freesurfer-local-build-dev-${TODAY}" CACHE STRING "Distribution build stamp")
+set(BUILD_STAMP "freesurfer-local-build-${TODAY}" CACHE STRING "Distribution build stamp")
 install(CODE "file(WRITE ${CMAKE_INSTALL_PREFIX}/build-stamp.txt ${BUILD_STAMP}\\n)")
 
 # set the default build type to 'Release' for optimization purposes
@@ -59,7 +62,7 @@ add_custom_target(install-nmr COMMAND ${CMAKE_COMMAND} -D COMPONENT=nmr -P cmake
 # xxd is used to generate the helptext headers
 find_program(XXD xxd)
 if(NOT XXD)
-  message(FATAL_ERROR "The xxd program is required to build freesurfer")
+  message(WARNING "MISSING xxd - required to build executable help texts")
 endif()
 
 # Most of the packages required by freesurfer are located by custom find-modules stored in the
@@ -95,7 +98,7 @@ add_definitions(-DHAVE_ZLIB)
 # -------- gfortran/blas/lapack --------
 if(NOT APPLE)
   find_library(GFORTRAN_LIBRARIES
-    HINTS /usr/lib/gcc/x86_64-linux-gnu/4.8 /usr/lib/gcc/x86_64-redhat-linux/4.8.2/
+    HINTS /usr/lib/gcc/*/*/
     NAMES libgfortran.a gfortran)
   find_library(BLAS_LIBRARIES NAMES libblas.a)
   find_library(LAPACK_LIBRARIES NAMES liblapack.a)
@@ -116,16 +119,30 @@ find_package(ITK HINTS ${ITK_DIR} REQUIRED)
 find_package(ANN)
 
 # -------- gts --------
-# only used by mris_decimate
-find_package(GTS)
+# only used by mris_decimate (not available on mac)
+if(NOT APPLE)
+  find_package(GTS)
+endif()
 
 # -------- openMP --------
-find_package(OpenMP)
+if(APPLE)
+  # this is an ugly hack to ensure that cmake looks for the
+  # static version of libomp on mac, since we don't want
+  # to distribute the shared library
+  set(ORIG_LIBRARY_SUFFIXES ${CMAKE_FIND_LIBRARY_SUFFIXES})
+  set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
+  find_package(OpenMP)
+  set(CMAKE_FIND_LIBRARY_SUFFIXES ${ORIG_LIBRARY_SUFFIXES})
+else()
+  find_package(OpenMP)
+endif()
+
 if(OPENMP_FOUND)
   add_definitions(-DHAVE_OPENMP)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
   set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} ${OpenMP_Fortran_FLAGS}")
+  set(OMP_CXX_LIBRARIES OpenMP::OpenMP_CXX)
 endif()
 
 # -------- openCV --------
@@ -134,7 +151,7 @@ if(NOT APPLE)
 endif()
 
 # -------- X11 ---------
-find_package(X11 REQUIRED)
+find_package(X11)
 
 # search for GUI libraries
 if(BUILD_GUIS)
@@ -251,7 +268,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -Wno-absolute-valu
 
 # clang complains about -Wno-unused-but-set-variable and says to use -Wno-unused-const-variable
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-const-variable -Wno-inconsistent-missing-override")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-const-variable -Wno-inconsistent-missing-override -Wno-self-assign-field")
 else()
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-but-set-variable")
 endif()
@@ -285,6 +302,7 @@ add_subdirectory(distribution)
 # the top-level include dir contain the most commonly included freesurfer header files
 set(FS_INCLUDE_DIRS
   ${CMAKE_SOURCE_DIR}/include
+  ${CMAKE_BINARY_DIR}/include
   ${CMAKE_SOURCE_DIR}/packages/minc
   ${CMAKE_SOURCE_DIR}/packages/netcdf
   ${CMAKE_SOURCE_DIR}/packages/nifti
@@ -310,6 +328,8 @@ add_subdirectory(gems)
 # and should be included during a "minimal" install. Extra programs that aren't
 # used in the standard stream should be added further down
 add_subdirectories(
+  AntsDenoiseImageFs
+  AntsN4BiasFieldCorrectionFs
   lta_convert
   mri_and
   mri_add_xform_to_header
@@ -596,6 +616,7 @@ endif()
 
 if(INFANT_MODULE)
   add_subdirectory(infant)
+  add_subdirectory(sscnn_skullstripping)
 endif()
 
 if(TKTOOLS_MODULE)

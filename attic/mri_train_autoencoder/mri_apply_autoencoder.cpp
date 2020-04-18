@@ -1,5 +1,4 @@
 /**
- * @file  mri_apply_autoencoder.c
  * @brief main program for applying a stacked autoencoder for feature extraction.
  *
 H.-C. Shin, M. R. Orton, D. J. Collins, S. J. Doran, and M. O. Leach,
@@ -11,10 +10,6 @@ IEEE Transaction on Pattern Analysis and Machine Intelligence, 2012.
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2013/11/22 19:41:39 $
- *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -91,8 +86,7 @@ main(int argc, char *argv[]) {
   double       mean, train_mean ;
   AE           *ae_last ; // deepest layer
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_apply_autoencoder.c,v 1.2 2013/11/22 19:41:39 fischl Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_apply_autoencoder");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

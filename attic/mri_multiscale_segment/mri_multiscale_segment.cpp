@@ -1,15 +1,9 @@
 /**
- * @file  mri_multiscale_segment.c
  * @brief update a conformed segmentation with hires data
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/07/31 14:22:07 $
- *    $Revision: 1.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -65,8 +59,7 @@ main(int argc, char *argv[]) {
   TRANSFORM    *transform ;
   MRI_SURFACE  *mris ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_multiscale_segment.c,v 1.1 2011/07/31 14:22:07 fischl Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_multiscale_segment");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

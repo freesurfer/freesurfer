@@ -1,15 +1,4 @@
-/**
- * @file  mri_concatenate_lta.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
- */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2016/02/27 20:38:29 $
- *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -75,7 +64,7 @@ int main(int argc, char *argv[])
 
   Progname = argv[0];
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_concatenate_lta.c,v 1.6 2016/02/27 20:38:29 nicks Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_concatenate_lta");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs ;

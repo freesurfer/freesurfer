@@ -1,5 +1,4 @@
 /**
- * @file  mrinorm.c
  * @brief utilities for normalizing MRI intensity values
  *
  * "Cortical Surface-Based Analysis I: Segmentation and Surface
@@ -8,10 +7,6 @@
  */
 /*
  * Original Author: Bruce Fischl, 4/9/97
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/11/30 15:46:42 $
- *    $Revision: 1.120 $
  *
  * Copyright © 2011-2017 The General Hospital Corporation (Boston, MA) "MGH"
  *

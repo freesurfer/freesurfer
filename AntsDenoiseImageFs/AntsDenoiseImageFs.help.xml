@@ -1,0 +1,17 @@
+<help>
+  <name>AntsDenoiseImageFs</name>
+  <synopsis>AntsDenoiseImageFs [options] -i &lt;invol&gt; -o &lt;outvol&gt;</synopsis>
+  <description>Denoises an image with a spatially adaptive filter. This programs wraps the AntsDenoiseImage utility available in the ANTs package (see http://stnava.github.io/ANTs).</description>
+  <arguments>
+    <required-flagged>
+      <argument>-i, --input invol</argument>
+      <explanation>input volume file</explanation>
+      <argument>-o, --output outvol</argument>
+      <explanation>denoised volume file</explanation>
+    </required-flagged>
+    <optional-flagged>
+      <argument>--rician</argument>
+      <explanation>Enable rician noise model (otherwise gaussian is used)</explanation>
+    </optional-flagged>
+  </arguments>
+</help>

@@ -1,15 +1,10 @@
 /**
- * @file  lta_diff.cpp
  * @brief A programm to compute differences of lta files (transforms)
  *
  */
 
 /*
  * Original Author: Martin Reuter
- * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2016/03/10 16:57:29 $
- *    $Revision: 1.27 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -51,9 +46,6 @@
 #include "transform.h"
 
 using namespace std;
-
-static char vcid[] =
-    "$Id: lta_diff.cpp,v 1.77 2016/01/20 23:36:17 greve Exp $";
 
 struct Parameters
 {
@@ -168,7 +160,7 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
 static bool parseCommandLine(int argc, char *argv[], Parameters & P)
 {
   // Check for version flag and exit if nothing else is passed:
-  int nargs = handle_version_option(argc, argv, vcid, "$Name:  $");
+  int nargs = handleVersionOption(argc, argv, "lta_diff");
   if (nargs && argc - nargs == 1)
   {
     exit(0);
@@ -788,86 +780,7 @@ MATRIX* getIsoVOX(LTA *lta)
 
 int main(int argc, char *argv[])
 {
-
-//testSphereDiff();
-
-//   // Default initialization
-//   int nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
-//   if (nargs && argc - nargs == 1) exit (0);
-//   argc -= nargs;
-//  Progname = argv[0];
-//   argc --;
-//   argv++;
-//  if (vcid)
-//  {};
-
-/*  if (argc < 3)
-  {
-    cout << endl;
-    cout << argv[0] << " file1.lta file2.lta [dist-type] [norm-div] [invert]"
-        << endl;
-    cout << endl;
-    cout << "    dist-type " << endl;
-    cout << "       1            Rigid Transform Distance (||log(R)|| + ||T||)"
-        << endl;
-    cout << "       2  (default) Affine Transform Distance (RMS) " << endl;
-    cout << "       3            8-corners mean distance after transform "
-        << endl;
-    cout << "       4            Max Displacement on Sphere " << endl;
-    cout << "       5            Determinant (scaling) M1*M2" << endl;
-    cout
-        << "       6            Interpolation Smoothing (only for first transform)"
-        << endl;
-    cout << "       7            Decomposition RAS M1*M2 = Rot*Shear*Scaling"
-        << endl;
-    cout << "       8            Decomposition VOX M1*M2 = Rot*Shear*Scaling"
-        << endl;
-    cout << "                       pass 'identity.nofile' for second lta "
-        << endl;
-    cout
-        << "    norm-div  (=1)  divide final distance by this (e.g. step adjustment)"
-        << endl;
-    cout
-        << "    invert          invert LTA: 0 false (default), 1 invert first, 2 second"
-        << endl;
-    cout << endl;
-    cout
-        << " For the RMS and Sphere we use a ball with radius 10cm at the RAS center."
-        << endl;
-    cout << " Instead of 'file2.lta' you can specify 'identity.nofile'."
-        << endl;
-    cout << endl;
-    exit(1);
-  }
-  string lta1f = argv[1];
-  string lta2f = argv[2];
-
-  double d = 1.0;
-  int disttype = 2;
-  if (argc > 3)
-  {
-    disttype = atoi(argv[3]);
-    assert(double(disttype) == atof(argv[3]));
-    if (disttype == 0) 
-    {
-      cerr << "ERROR: dist-type: \"" << argv[3] << "\" not valid, expecting <int>!" << endl;
-      exit(1);
-    }
-  }
-  if (argc > 4)
-    d = atof(argv[4]);
-
-  int invert = 0;
-  if (argc > 5)
-    invert = atoi(argv[5]);
-*/
-
-  if (!parseCommandLine(argc, argv, P))
-  {
-      //printUsage();
-      exit(1);
-  }
-
+  if (!parseCommandLine(argc, argv, P)) exit(1);
 
   if (P.disttype == 100)
   {

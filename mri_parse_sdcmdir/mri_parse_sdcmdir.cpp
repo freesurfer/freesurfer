@@ -1,15 +1,4 @@
-/**
- * @file  mri_parse_sdcmdir.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
- */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2015/05/21 16:37:12 $
- *    $Revision: 1.22 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -247,8 +236,7 @@ static int parse_commandline(int argc, char **argv) {
   FILE *fptmp;
   int nargs;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_parse_sdcmdir.c,v 1.22 2015/05/21 16:37:12 greve Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_parse_sdcmdir");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

@@ -1,5 +1,4 @@
 /**
- * @file  mris_exvivo_surfaces.c
  * @brief tailored for the ex-vivo MEF data
  *
  * This version is tailored for the ex-vivo MEF data. There are 6 channels
@@ -11,10 +10,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2015/02/05 23:34:41 $
- *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -216,18 +211,10 @@ main(int argc, char *argv[]) {
   double        current_sigma ;
   Timer then ;
 
-  char cmdline[CMD_LINE_LEN] ;
 
-  make_cmd_version_string 
-    (argc, argv, 
-     "$Id: mris_exvivo_surfaces.c,v 1.9 2015/02/05 23:34:41 zkaufman Exp $", 
-     "$Name:  $", cmdline);
+  std::string cmdline = getAllInfo(argc, argv, "mris_exvivo_surfaces");
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option 
-    (argc, argv, 
-     "$Id: mris_exvivo_surfaces.c,v 1.9 2015/02/05 23:34:41 zkaufman Exp $", 
-     "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_exvivo_surfaces");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1332,7 +1319,7 @@ MRIScomputeBorderValues_MEF_WHITE(MRI_SURFACE *mris,
           break ;
       }
       outward_dist = dist-step_size/2 ;
-      if (!isfinite(outward_dist))
+      if (!std::isfinite(outward_dist))
         DiagBreak() ;
       if (inward_dist <= 0 || outward_dist >= 0)
         break ;
@@ -1723,7 +1710,7 @@ MRIScomputeBorderValues_PD_WHITE(MRI_SURFACE *mris,
           break ;
       }
       outward_dist = dist-step_size/2 ;
-      if (!isfinite(outward_dist))
+      if (!std::isfinite(outward_dist))
         DiagBreak() ;
       if (inward_dist <= 0 || outward_dist >= 0)
         break ;
@@ -2088,7 +2075,7 @@ MRIScomputeBorderValues_MEF_PIAL(MRI_SURFACE *mris,
           break ;
       }
       outward_dist = dist;
-      if (!isfinite(outward_dist))
+      if (!std::isfinite(outward_dist))
         DiagBreak() ;
       if (outward_dist >= (0.5*step_size))
         break ;
@@ -2718,7 +2705,7 @@ MRIScomputeBorderValues_PD_PIAL(MRI_SURFACE *mris,
           break ;
       }
       outward_dist = dist;
-      if (!isfinite(outward_dist))
+      if (!std::isfinite(outward_dist))
         DiagBreak() ;
       if (outward_dist >= (0.5*step_size))
         break ;
@@ -3102,7 +3089,7 @@ MRIScomputeBorderValues_T1_PIAL(MRI_SURFACE *mris,
           break ;
       }
       outward_dist = dist;
-      if (!isfinite(outward_dist))
+      if (!std::isfinite(outward_dist))
         DiagBreak() ;
       if (outward_dist >= (0.5*step_size))
         break ;

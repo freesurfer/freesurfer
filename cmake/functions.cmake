@@ -11,6 +11,21 @@ function(add_subdirectories)
 endfunction()
 
 
+# install_configured(<files>)
+# Installs a file configured with cmake variables
+function(install_configured)
+  cmake_parse_arguments(INSTALL "" "DESTINATION" "" ${ARGN})
+  foreach(FILE ${INSTALL_UNPARSED_ARGUMENTS})
+    install(CODE "
+      message(STATUS \"Configuring: ${CMAKE_INSTALL_PREFIX}/${INSTALL_DESTINATION}/${FILE}\")
+      set(FS_VERSION ${FS_VERSION})
+      set(BUILD_STAMP ${BUILD_STAMP})
+      configure_file(${CMAKE_CURRENT_SOURCE_DIR}/${FILE} ${CMAKE_INSTALL_PREFIX}/${INSTALL_DESTINATION} @ONLY)"
+    )
+  endforeach()
+endfunction()
+
+
 # install_symlinks(<files> DESTINATION <dir> TYPE <type>)
 # Unfortunately, cmake does not follow symlinks when installing files,
 # so this is a wrapper for the install() function that will actually follow
@@ -60,8 +75,8 @@ function(mac_deploy_qt)
   # install the plist
   install(FILES ${APP_PLIST} DESTINATION ${APP_BUNDLE}/Contents)
   # install the resources
-  if(${APP_ICONS})
-    install_symlinks(${APP_ICONS} TYPE files DESTINATION ${BUNDLE}/Contents/Resources)
+  if(APP_ICONS)
+    install_symlinks(${APP_ICONS} TYPE files DESTINATION ${APP_BUNDLE}/Contents/Resources)
   endif()
   # run the qt deployment script
   install(CODE "

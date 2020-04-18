@@ -2,7 +2,6 @@
 #define COMPILING_MRISURF_METRIC_PROPERTIES_FRIEND
 
 /*
- * @file utilities operating on Original
  *
  */
 /*
@@ -7128,7 +7127,7 @@ static void detectDefectFaces(MRIS *mris, DEFECT_PATCH *dp)
           static unsigned long count,limit = 1;
           if (count++ >= limit) {
             limit *= 2;
-            fprintf(stderr, "%s:%d suppressed badly attaching a face, count:%ld\n", __FILE__,__LINE__, count);
+            fs::debug() << "suppressed badly attaching a face, count: " << count;
           }
           continue;
         }
@@ -11532,7 +11531,7 @@ void MRIScomputeDistanceVolume(TOPOFIX_PARMS *parms, float distance_to_surface)
         computeVertexPseudoNormal(mris, vn, n_v2, 0);
       }
     }
-    if (isnan(n_v0[0]) || isnan(n_v1[0]) || isnan(n_v2[0])) {
+    if (std::isnan(n_v0[0]) || std::isnan(n_v1[0]) || std::isnan(n_v2[0])) {
       fprintf(stderr,
               ".%d & %d[%d(%d) %d(%d) %d(%d)][%f %f %f]\n",
               wsurf,
@@ -14315,7 +14314,7 @@ static NOINLINE int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
     else {
       fitness_sigma = sqrt(fitness_sigma);
     }
-    if (!isfinite(fitness_sigma)) {
+    if (!std::isfinite(fitness_sigma)) {
       DiagBreak();
     }
 

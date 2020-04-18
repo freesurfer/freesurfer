@@ -1,5 +1,4 @@
 /**
- * @file  mri_and.c
  * @brief performs a logical and at each voxel on a series of volumes
  *
  * performs a logical and at each voxel on a series of volumes
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:13 $
- *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -57,8 +52,7 @@ int main(int argc, char *argv[])
   char **av ;
   MRI  *mri_and = NULL, *mri ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_and");
   if (nargs && argc - nargs == 1)
     exit (0);
   Progname = argv[0] ;

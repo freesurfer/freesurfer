@@ -1,5 +1,4 @@
 /**
- * @file  mri_label_accuracy.c
  * @brief computes the accuracy of the labeling of two images -  one input and one reference.
  *
  * Program computes the accuracy of the labeling of two images -  one input and one reference.
@@ -8,10 +7,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:22 $
- *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -71,8 +66,7 @@ main(int argc, char *argv[]) {
   double accuracy ;
   MRI_REGION box ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_label_accuracy.c,v 1.2 2011/03/02 00:04:22 nicks Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_label_accuracy");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

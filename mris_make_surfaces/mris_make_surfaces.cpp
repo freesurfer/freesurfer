@@ -10,10 +10,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2017/02/16 19:42:36 $
- *    $Revision: 1.172 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -228,6 +224,7 @@ static int nowhite = 0 ;
 // to place the white surface. Whatever surface is specified, it
 // will not be smoothed prior to placing the white surface. 
 static char *orig_white = NULL ;
+static char *orig_sphere = NULL ;
 
 // orig_pial, if specified, will be used as the initial surface 
 // to place the white surface
@@ -271,6 +268,7 @@ static float variablesigma = 3.0;
 #define MID_GRAY               ((max_gray + min_gray_at_csf_border) / 2)
 #define MAX_GRAY_AT_CSF_BORDER    75
 #define MIN_CSF                10
+#undef MAX_CSF
 #define MAX_CSF                40
 
 static  int   max_border_white_set = 0,
@@ -324,22 +322,14 @@ int main(int argc, char *argv[])
   INTEGRATION_PARMS old_parms ;
   int memusage[5];
   char *cmdline2, cwd[2000];
-  char cmdline[CMD_LINE_LEN] ;
   MRIS *mristarget = NULL;
   int vno;
   VERTEX *vgdiag;
 
   FSinit() ;
-  make_cmd_version_string
-  (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.172 2017/02/16 19:42:36 fischl Exp $",
-   "$Name:  $", cmdline);
+  std::string cmdline = getAllInfo(argc, argv, "mris_make_surfaces");
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option
-          (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.172 2017/02/16 19:42:36 fischl Exp $",
-           "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_make_surfaces");
   getcwd(cwd,2000);
   cmdline2 = argv2cmdline(argc,argv);
 
@@ -928,57 +918,18 @@ int main(int argc, char *argv[])
     }
 
     if (mri_cover_seg) {
-      MRI *mri_tmp, *mri_bin ;
-
-      if (i == 0){
-        mri_bin = MRIclone(mri_T1, NULL) ;
-
-        printf("creating distance transform volume from segmentation\n") ;
-        if (mris->hemisphere == LEFT_HEMISPHERE) {
-          MRIcopyLabel(mri_cover_seg, mri_bin, Left_Cerebral_White_Matter) ;
-          MRIcopyLabel(mri_cover_seg, mri_bin, Left_Thalamus_Proper) ;
-          MRIcopyLabel(mri_cover_seg, mri_bin, Left_Caudate) ;
-          MRIcopyLabel(mri_cover_seg, mri_bin, Left_Pallidum) ;
-          MRIcopyLabel(mri_cover_seg, mri_bin, Left_Putamen) ;
-          MRIcopyLabel(mri_cover_seg, mri_bin, Left_VentralDC) ;
-          MRIcopyLabel(mri_cover_seg, mri_bin, Left_Lateral_Ventricle) ;
-          MRIcopyLabel(mri_cover_seg, mri_bin, Left_Lesion) ;
-          MRIcopyLabel(mri_cover_seg, mri_bin, Left_Accumbens_area) ;
-          MRIcopyLabel(mri_cover_seg, mri_bin, Left_WM_hypointensities) ;
-          MRIcopyLabel(mri_cover_seg, mri_bin, Left_non_WM_hypointensities) ;
-          MRIcopyLabel(mri_cover_seg, mri_bin, Left_vessel) ;
-        }
-        else {
-          MRIcopyLabel(mri_cover_seg, mri_bin, Right_Cerebral_White_Matter) ;
-          MRIcopyLabel(mri_cover_seg, mri_bin, Right_Thalamus_Proper) ;
-          MRIcopyLabel(mri_cover_seg, mri_bin, Right_Caudate) ;
-          MRIcopyLabel(mri_cover_seg, mri_bin, Right_Pallidum) ;
-          MRIcopyLabel(mri_cover_seg, mri_bin, Right_Putamen) ;
-          MRIcopyLabel(mri_cover_seg, mri_bin, Right_Lateral_Ventricle) ;
-          MRIcopyLabel(mri_cover_seg, mri_bin, Right_Lesion) ;
-          MRIcopyLabel(mri_cover_seg, mri_bin, Right_Accumbens_area) ;
-          MRIcopyLabel(mri_cover_seg, mri_bin, Right_VentralDC) ;
-          MRIcopyLabel(mri_cover_seg, mri_bin, Right_WM_hypointensities) ;
-          MRIcopyLabel(mri_cover_seg, mri_bin, Right_non_WM_hypointensities) ;
-          MRIcopyLabel(mri_cover_seg, mri_bin, Right_vessel) ;
-        }
-        MRIcopyLabel(mri_cover_seg, mri_bin, Brain_Stem) ;
-        MRIcopyLabel(mri_cover_seg, mri_bin, Third_Ventricle) ;
-        MRIcopyLabel(mri_cover_seg, mri_bin, WM_hypointensities) ;
-        MRIbinarize(mri_bin, mri_bin, 1, 0, 1) ;
-        mri_tmp =
-          MRIdistanceTransform(mri_bin, NULL, 1, 20, DTRANS_MODE_SIGNED, NULL) ;
-        // to be in same range as intensities:
-        MRIscalarMul(mri_tmp, mri_tmp, (100.0/mri_bin->xsize)) ;
-	if (mri_T1 == mri_T1_pial)
-	  mri_T1_pial = mri_tmp ;
-        MRIfree(&mri_T1) ;
-        mri_T1 = mri_tmp ;
-        MRISsetVals(mris, 0) ;   // target is 0 distance transform val
-        MRIfree(&mri_bin) ;
+      if(i == 0){
+	MRI *mri_bin, *mri_tmp;
+	int itmp=0;
+	if(mri_T1 == mri_T1_pial) itmp=1;
+	mri_bin = MRIclone(mri_T1, NULL) ;
+	mri_tmp = MRIScoverSeg(mris, mri_bin, mri_cover_seg, GRAY_WHITE);
+	MRIfree(&mri_bin) ; 
+	MRIfree(&mri_T1) ;
+	mri_T1 = mri_tmp ;
+	if(itmp) mri_T1_pial = mri_tmp ;
       }
-    } // cover seg
-
+    }
     else if (flair_or_T2_name == NULL){ // otherwise already done
       // This is where most of the recon-all commands end up when placing white
 
@@ -1592,16 +1543,32 @@ int main(int argc, char *argv[])
 	if ( followGradients)
 	{
 		std::cout << "T2/FLAIR compute target based on gradients "<< std::endl;
+		sprintf(fname, "%s/%s/surf/%s.%s%s", sdir, sname, hemi, orig_sphere, suffix) ;
+		printf("reading sphere position from %s...\n", fname) ;
+		//MRIS* sph = MRISread(fname);
+		//MRIStoParameterization(sph,NULL, 1,0);
+
 		MRIS_MultimodalRefinement* refine = new MRIS_MultimodalRefinement();
-		refine->SetStep(.25);
-		refine->SetNumberOfSteps(15);
+		MRI* whiteMR= MRIcopy(mri_T1_pial,NULL);
+		MRI* vesselMR= MRIcopy(mri_T1_pial,NULL);
+		refine->SegmentWM(mri_T1_pial,mri_flair, whiteMR);
+		refine->SegmentVessel(mri_T1_pial,mri_flair, vesselMR);
+
+		refine->SetStep(.4);
+		refine->SetNumberOfSteps(8);
 		refine->SetGradientSigma(.3);
 		refine->SetSegmentation(mri_aseg);
 		refine->FindMaximumGradient(contrast_type== CONTRAST_T2);
+		refine->addImage(mri_T1_pial);
 		refine->addImage(mri_flair);
+		refine->SetWhiteMR(whiteMR);
+		refine->SetVesselMR(vesselMR);
+		//refine->SetSphere(sph);
 		refine->getTarget(mris); //, debugVertex);
 		
-			//refine->addImage(mri_T1_pial);
+		MRIfree(&whiteMR);
+		MRIfree(&vesselMR);
+		delete refine;
 	}
 	else
 	{
@@ -1744,71 +1711,28 @@ int main(int argc, char *argv[])
         sockets, and ignore subtle local minima in intensity at the
         border of the sockets.  Will set to 0 after border values have
         been computed so that it doesn't mess up gradients.      */
+	printf("removing bright stuff\n");
 	MRImask(mri_T1, mri_labeled, mri_T1, BRIGHT_LABEL, 255) ;
 	MRImask(mri_T1, mri_labeled, mri_T1, BRIGHT_BORDER_LABEL, MID_GRAY) ;
+	printf("done removing bright stuff\n");
       }
 
       if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
         MRIwrite(mri_T1, "pial_masked.mgz") ; 
 
-      if (mri_cover_seg)  { // off by default
-        MRI *mri_tmp, *mri_bin ;
-        if (i == 0)        {
-          mri_bin = MRIclone(mri_T1, NULL) ;
-          printf("creating distance transform volume from segmentation\n") ;
-          if (mris->hemisphere == LEFT_HEMISPHERE) {
-            MRIcopyLabel(mri_cover_seg, mri_bin, Left_Cerebral_White_Matter) ;
-            MRIcopyLabel(mri_cover_seg, mri_bin, Left_Cerebral_Cortex) ;
-            MRIcopyLabel(mri_cover_seg, mri_bin, Left_Thalamus_Proper) ;
-            MRIcopyLabel(mri_cover_seg, mri_bin, Left_Caudate) ;
-            MRIcopyLabel(mri_cover_seg, mri_bin, Left_Pallidum) ;
-            MRIcopyLabel(mri_cover_seg, mri_bin, Left_Putamen) ;
-            MRIcopyLabel(mri_cover_seg, mri_bin, Left_VentralDC) ;
-            MRIcopyLabel(mri_cover_seg, mri_bin, Left_Lateral_Ventricle) ;
-            MRIcopyLabel(mri_cover_seg, mri_bin, Left_Lesion) ;
-            MRIcopyLabel(mri_cover_seg, mri_bin, Left_Accumbens_area) ;
-            MRIcopyLabel(mri_cover_seg, mri_bin, Left_WM_hypointensities) ;
-            MRIcopyLabel(mri_cover_seg, mri_bin, Left_non_WM_hypointensities) ;
-            MRIcopyLabel(mri_cover_seg, mri_bin, Left_vessel) ;
-          }
-          else
-          {
-            MRIcopyLabel(mri_cover_seg, mri_bin, Right_Cerebral_Cortex) ;
-            MRIcopyLabel(mri_cover_seg, mri_bin, Right_Cerebral_White_Matter) ;
-            MRIcopyLabel(mri_cover_seg, mri_bin, Right_Thalamus_Proper) ;
-            MRIcopyLabel(mri_cover_seg, mri_bin, Right_Caudate) ;
-            MRIcopyLabel(mri_cover_seg, mri_bin, Right_Pallidum) ;
-            MRIcopyLabel(mri_cover_seg, mri_bin, Right_Putamen) ;
-            MRIcopyLabel(mri_cover_seg, mri_bin, Right_Lateral_Ventricle) ;
-            MRIcopyLabel(mri_cover_seg, mri_bin, Right_Lesion) ;
-            MRIcopyLabel(mri_cover_seg, mri_bin, Right_Accumbens_area) ;
-            MRIcopyLabel(mri_cover_seg, mri_bin, Right_VentralDC) ;
-            MRIcopyLabel(mri_cover_seg, mri_bin, Right_WM_hypointensities) ;
-            MRIcopyLabel(mri_cover_seg, mri_bin, Right_non_WM_hypointensities) ;
-            MRIcopyLabel(mri_cover_seg, mri_bin, Right_vessel) ;
-          }
-          MRIcopyLabel(mri_cover_seg, mri_bin, Brain_Stem) ;
-          MRIcopyLabel(mri_cover_seg, mri_bin, Third_Ventricle) ;
-          MRIcopyLabel(mri_cover_seg, mri_bin, WM_hypointensities) ;
-          MRIbinarize(mri_bin, mri_bin, 1, 0, 1) ;
-          mri_tmp = MRIdistanceTransform(mri_bin, NULL, 1, 20,
-                                         DTRANS_MODE_SIGNED, NULL) ;
-          MRIscalarMul(mri_tmp, mri_tmp,
-                       (5/mri_tmp->xsize)) ;// same range as intensities
-	  if (Gdiag & DIAG_WRITE)
-	  {
-              sprintf(fname, "%s.cseg.dtrans%s%s.mgz", hemi, output_suffix, suffix) ;
-              printf("writing dtrans volume to %s\n", fname) ;
-              MRIwrite(mri_tmp, fname) ;
-	  }
-	  //          parms.grad_dir = 1 ;
-          MRIfree(&mri_T1) ;
-          mri_T1 = mri_tmp ;
-          MRISsetVals(mris, 0) ;   // target is 0 distance transform val
-          MRIfree(&mri_bin) ;
-        }
-      } // end if mri_cover_seg
-
+      if (mri_cover_seg) {// off by default
+	if(i == 0) {
+	  MRI *mri_bin, *mri_tmp;
+	  int itmp=0;
+	  if(mri_T1 == mri_T1_pial) itmp=1;
+	  mri_bin = MRIclone(mri_T1, NULL) ;
+	  mri_tmp = MRIScoverSeg(mris, mri_bin, mri_cover_seg, GRAY_CSF);
+	  MRIfree(&mri_bin) ; 
+	  MRIfree(&mri_T1) ;
+	  mri_T1 = mri_tmp ;
+	  if(itmp) mri_T1_pial = mri_tmp ;
+	}
+      }
       else if (flair_or_T2_name == NULL) 
       {
         // This is the main CBV for pial
@@ -2339,10 +2263,10 @@ get_option(int argc, char *argv[])
     fprintf(stderr,  "using min T2 exterior gray matter threshold %2.1f\n", T2_min_outside) ;
     nargs = 1 ;
   }
-  else if (!stricmp(option, "T2_max_outside"))
+  else if (!stricmp(option, "T2_min_outside"))
   {
-    T2_max_outside = atof(argv[2]) ;
-    fprintf(stderr,  "using max T2 exterior gray matter threshold %2.1f\n", T2_max_outside) ;
+    T2_min_outside = atof(argv[2]) ;
+    fprintf(stderr,  "using max T2 exterior gray matter threshold %2.1f\n", T2_min_outside) ;
     nargs = 1 ;
   }
   else if (!stricmp(option, "grad_dir"))
@@ -2669,6 +2593,12 @@ get_option(int argc, char *argv[])
   {
     orig_pial = argv[2] ;
     printf("using %s starting pial locations...\n", orig_pial) ;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "orig_sphere"))
+  {
+    orig_sphere = argv[2] ;
+    printf("using %s sphere locations...\n", orig_sphere) ;
     nargs = 1 ;
   }
   else if (!stricmp(option, "max_border_white"))
@@ -4135,7 +4065,7 @@ compute_brain_thresh(MRI_SURFACE *mris, MRI *mri_ratio, float nstd)
   MRIfree(&mri_filled) ;
   return(thresh) ;
 }
-
+#undef SAMPLE_DIST
 #define SAMPLE_DIST .1
 #define PERCENTILE   0.9
 
@@ -5028,4 +4958,6 @@ MRISremoveSelfIntersections(MRI_SURFACE *mris)
   MHTfree(&mht) ;
   return(NO_ERROR) ; ;
 }
+
+
 

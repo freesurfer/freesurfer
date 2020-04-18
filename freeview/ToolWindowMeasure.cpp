@@ -1,14 +1,5 @@
-/**
- * @file  ToolWindowMeasure.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- */
 /*
  * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2017/01/11 21:05:23 $
- *    $Revision: 1.26 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -41,6 +32,9 @@
 #include <QFile>
 #include <QTextStream>
 #include <QDebug>
+#ifdef Q_OS_MAC
+#include "MacHelper.h"
+#endif
 
 ToolWindowMeasure::ToolWindowMeasure(QWidget *parent) :
   QWidget(parent),
@@ -109,6 +103,16 @@ ToolWindowMeasure::ToolWindowMeasure(QWidget *parent) :
   QTimer* timer = new QTimer( this );
   connect( timer, SIGNAL(timeout()), this, SLOT(OnIdle()) );
   timer->start( 50 );
+
+#ifdef Q_OS_MAC
+  if (MacHelper::IsDarkMode())
+  {
+      ui->actionLine->setIcon(MacHelper::InvertIcon(ui->actionLine->icon(), QSize(), true));
+      ui->actionPolyLine->setIcon(MacHelper::InvertIcon(ui->actionPolyLine->icon(), QSize(), true));
+      ui->actionSpline->setIcon(MacHelper::InvertIcon(ui->actionSpline->icon(), QSize(), true));
+      ui->actionContour->setIcon(MacHelper::InvertIcon(ui->actionContour->icon(), QSize(), true));
+  }
+#endif
 }
 
 ToolWindowMeasure::~ToolWindowMeasure()

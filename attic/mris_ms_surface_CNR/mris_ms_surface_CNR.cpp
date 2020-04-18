@@ -1,15 +1,4 @@
-/**
- * @file  mris_ms_surface_CNR.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
- */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:33 $
- *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -30,9 +19,6 @@
 // original author: Xiao Han
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2011/03/02 00:04:33 $
-// Revision       : $Revision: 1.4 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -114,8 +100,7 @@ main(int argc, char *argv[]) {
   MATRIX *SW1, *SW2, *SW, *InvSW;
   float *weight, weight_norm;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_ms_surface_CNR.c,v 1.4 2011/03/02 00:04:33 nicks Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_ms_surface_CNR");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

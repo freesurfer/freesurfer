@@ -1,14 +1,9 @@
 /**
- * @file  mris_segment.c
  * @brief segments cortical areas based on connectivity/correlation/intensity profiles
  *
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/12/11 14:33:41 $
- *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -237,7 +232,7 @@ VectorLogLikelihood(VECTOR *v, VECTOR *v_mean, VECTOR *v_var)
       var = 1.0 ;
     }
     ll = SQR(val-mean) / (2*var) ;
-    if (!isfinite(ll) || !isfinite(total_ll))
+    if (!std::isfinite(ll) || !std::isfinite(total_ll))
     {
       DiagBreak() ;
     }
@@ -595,11 +590,7 @@ main(int argc, char *argv[])
   MRI          *mri_frame, *mri, *mri_out, *mri_prior ;
   LABEL        *labels[MAX_SUBJECTS], *area ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option
-          (argc, argv,
-           "$Id: mris_segment.c,v 1.10 2016/12/11 14:33:41 fischl Exp $",
-           "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_segment");
   if (nargs && argc - nargs == 1)
   {
     exit (0);

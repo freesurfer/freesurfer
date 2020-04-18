@@ -1,15 +1,10 @@
 /**
- * @file  mris_mesh_subdivide.c
  * @brief
  *
  *
  */
 /*
  * Original Author: jonathan polimeni
- * CVS Revision Info:
- *    $Author: jonp $
- *    $Date: 2013/02/07 16:04:07 $
- *    $Revision: 1.5 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -125,17 +120,8 @@ int main(int argc, char *argv[])
   int          msec, minutes, seconds ;
   Timer start ;
 
-  char cmdline[CMD_LINE_LEN] ;
+  std::string cmdline = getAllInfo(argc, argv, "mris_mesh_subdivide");
 
-  make_cmd_version_string
-  (argc, argv,
-   "$Id: mris_mesh_subdivide.cxx,v 1.5 2013/02/07 16:04:07 jonp Exp $",
-   "$Name:  $", cmdline);
-
-
-  //nargs = handle_version_option (argc, argv,
-  //   "$Id: mris_mesh_subdivide.cxx,v 1.5 2013/02/07 16:04:07 jonp Exp $",
-  //   "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
     exit (0);

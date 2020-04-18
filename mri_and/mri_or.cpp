@@ -1,5 +1,4 @@
 /**
- * @file  mri_or.c
  * @brief performs a logical or at each voxel on a series of volumes
  *
  * performs a logical or at each voxel on a series of volumes
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: lzollei $
- *    $Date: 2013/03/20 15:03:29 $
- *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -57,8 +52,7 @@ int main(int argc, char *argv[])
   char **av ;
   MRI  *mri_or = NULL, *mri ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_or");
   if (nargs && argc - nargs == 1)
     exit (0);
   Progname = argv[0] ;

@@ -5,10 +5,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2017/01/19 17:48:42 $
- *    $Revision: 1.575 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -103,11 +99,11 @@ extern int errno;
 MRI::Shape::Shape(const std::vector<int>& shape) {
   // validate dimensions
   int dims = shape.size();
-  if ((dims != 3) && (dims != 4)) logFatal(1) << "volume must be 3D or 4D (provided shape has " << dims << " dimensions)";
+  if ((dims != 3) && (dims != 4)) fs::fatal() << "volume must be 3D or 4D (provided shape has " << dims << " dimensions)";
 
   // validate size
   for (auto const & len : shape) {
-    if (len <= 0) logFatal(1) << "volume size must be greater than 0 in every dimension";
+    if (len <= 0) fs::fatal() << "volume size must be greater than 0 in every dimension";
   }
 
   width = shape[0];
@@ -154,7 +150,7 @@ MRI::MRI(Shape volshape, int dtype, bool alloc) : shape(volshape), type(dtype)
 
   // set data type
   bytes_per_vox = MRIsizeof(type);
-  if (bytes_per_vox < 1) logFatal(1) << "unsupported MRI data type: " << type;
+  if (bytes_per_vox < 1) fs::fatal() << "unsupported MRI data type: " << type;
   vox_per_row = width;
   vox_per_slice = vox_per_row * height;
   vox_per_vol = vox_per_slice * depth;
@@ -330,7 +326,7 @@ MRI::~MRI()
     free(frames);
   }
 
-  // if (free_transform) delete_general_transform(&transform);
+  if (free_transform) delete_general_transform(&transform);
   if (register_mat) MatrixFree(&register_mat);
   if (i_to_r__) AffineMatrixFree(&i_to_r__);
   if (r_to_i__) MatrixFree(&r_to_i__);
@@ -3135,8 +3131,10 @@ int MRIvoxelToWorld(MRI *mri, double xv, double yv, double zv, double *pxw, doub
 
   return (NO_ERROR);
 }
-/*-----------------------------------------------------
-  ------------------------------------------------------*/
+/*!
+  \fn int MRIworldToTalairachVoxel(MRI *mri, double xw, double yw, double zw, double *pxv, double *pyv, double *pzv)
+  \brief Convert a scanner RAS to MNI305 Col,Row,Slice using the mri->linear_transform (should be talairach.xfm)
+ */
 int MRIworldToTalairachVoxel(MRI *mri, double xw, double yw, double zw, double *pxv, double *pyv, double *pzv)
 {
   double xt, yt, zt;
@@ -3146,10 +3144,27 @@ int MRIworldToTalairachVoxel(MRI *mri, double xw, double yw, double zw, double *
     yt = yw;
     zt = zw;
   }
-  else
+  else{
     transform_point(mri->linear_transform, xw, yw, zw, &xt, &yt, &zt);
+  }
 
   MRIworldToVoxel(mri, xt, yt, zt, pxv, pyv, pzv);
+  return (NO_ERROR);
+}
+/*!
+  \fn int MRIworldToTalairach(MRI *mri, double xw, double yw, double zw, double *pxt, double *pyt, double *pzt)
+  \brief Convert a scanner RAS to MNI305 RAS using the mri->linear_transform (should be talairach.xfm)
+ */
+int MRIworldToTalairach(MRI *mri, double xw, double yw, double zw, double *pxt, double *pyt, double *pzt)
+{
+  if (mri->linear_transform == NULL) {
+    *pxt = xw;
+    *pyt = yw;
+    *pzt = zw;
+  }
+  else{
+    transform_point(mri->linear_transform, xw, yw, zw, pxt, pyt, pzt);
+  }
   return (NO_ERROR);
 }
 /*-----------------------------------------------------
@@ -6845,7 +6860,11 @@ MRI *ImageToMRI(IMAGE *I)
   mri->c_s = 0;
 
   // hips coordinate system is inverted
+  int pix_per_frame = I->rows * I->cols;
   for (frames = 0; frames < nframes; ++frames) {
+
+    int frame_offset = pix_per_frame * frames;
+
     for (y = 0; y < height; y++) {
       yp = height - (y + 1);
 
@@ -6856,7 +6875,7 @@ MRI *ImageToMRI(IMAGE *I)
             int rgb;
             // int r, g, b;
 
-            rgb = *(int *)IMAGERGBpix(I, x, yp) & 0x00ffffff;
+            rgb = *(int *)(IMAGERGBpix(I, x, yp) + frame_offset) & 0x00ffffff;
             // r = rgb & 0x00ff;
             // g = (rgb >> 8) & 0x00ff;
             // b = (rgb >> 16) & 0x00ff;
@@ -6870,7 +6889,7 @@ MRI *ImageToMRI(IMAGE *I)
             int rgb;
             // int r, g, b;
 
-            rgb = *(int *)IMAGERGBpix(I, x, yp) & 0x00ffffff;
+            rgb = *(int *)(IMAGERGBpix(I, x, yp) + frame_offset) & 0x00ffffff;
             if (rgb > 0) DiagBreak();
             // r = rgb & 0x00ff;
             // g = (rgb >> 8) & 0x00ff;
@@ -6880,10 +6899,10 @@ MRI *ImageToMRI(IMAGE *I)
             // conversion
           }
           else
-            MRIseq_vox(mri, x, y, 0, frames) = *IMAGEpix(I, x, yp);
+            MRIseq_vox(mri, x, y, 0, frames) = *(IMAGEpix(I, x, yp) + frame_offset);
           break;
         case MRI_SHORT:
-          MRISseq_vox(mri, x, y, 0, frames) = *IMAGESpix(I, x, yp);
+          MRISseq_vox(mri, x, y, 0, frames) = *(IMAGESpix(I, x, yp) + frame_offset);
           break;
         case MRI_INT: {
           // int val;
@@ -6892,7 +6911,7 @@ MRI *ImageToMRI(IMAGE *I)
             int rgb;
             // int r, g, b;
 
-            rgb = *(int *)IMAGERGBpix(I, x, yp);
+            rgb = *(int *)(IMAGERGBpix(I, x, yp) + frame_offset);
             if (rgb > 0) DiagBreak();
             // r = rgb & 0x00ff;
             // g = (rgb >> 8) & 0x00ff;
@@ -6902,17 +6921,16 @@ MRI *ImageToMRI(IMAGE *I)
             // conversion
           }
           else {
-            if (*IMAGESpix(I, x, yp) < 0) DiagBreak();
             if (I->pixel_format == PFSHORT)
-              MRIIseq_vox(mri, x, y, 0, frames) = (int)((unsigned short)(*IMAGESpix(I, x, yp)));
+              MRIIseq_vox(mri, x, y, 0, frames) = (int)((unsigned short)(*(IMAGESpix(I, x, yp) + frame_offset)));
             else
-              MRIIseq_vox(mri, x, y, 0, frames) = *IMAGEIpix(I, x, yp);
+              MRIIseq_vox(mri, x, y, 0, frames) = *(IMAGEIpix(I, x, yp) + frame_offset);
             // val = MRIIseq_vox(mri, x, y, 0, frames);
           }
           break;
         }
         case MRI_FLOAT:
-          MRIFseq_vox(mri, x, y, 0, frames) = *IMAGEFpix(I, x, yp);
+          MRIFseq_vox(mri, x, y, 0, frames) = *(IMAGEFpix(I, x, yp) + frame_offset);
           break;
         default:
           ErrorReturn(NULL, (ERROR_UNSUPPORTED, "MRItoImage: unsupported type %d", mri->type));
@@ -11462,7 +11480,6 @@ MRI *MRIchangeType(MRI *src, int dest_type, float f_low, float f_high, int no_sc
     no_scale_flag = TRUE;
   else {
     MRIlimits(src, &src_min, &src_max);
-
     if (no_scale_option_flag > 1)
       no_scale_flag = TRUE;
     else if (no_scale_option_flag == 1) {
@@ -11491,44 +11508,7 @@ MRI *MRIchangeType(MRI *src, int dest_type, float f_low, float f_high, int no_sc
       for (k = 0; k < src->depth; k++)
         for (j = 0; j < src->height; j++)
           for (i = 0; i < src->width; i++) {
-#if 0	    
-            if (src->type == MRI_UCHAR)
-              val = (float)MRIvox(src, i, j, k);
-            if (src->type == MRI_SHORT)
-              val = (float)MRISvox(src, i, j, k);
-            if (src->type == MRI_INT)
-              val = (float)MRIIvox(src, i, j, k);
-            if (src->type == MRI_LONG)
-              val = (float)MRILvox(src, i, j, k);
-            if (src->type == MRI_FLOAT)
-              val = (float)MRIFvox(src, i, j, k);
-#else
             val = MRIgetVoxVal(src, i, j, k, frame);
-#endif
-
-            if (dest->type == MRI_UCHAR) {
-              if (val < UCHAR_MIN) val = UCHAR_MIN;
-              if (val > UCHAR_MAX) val = UCHAR_MAX;
-              //            MRIvox(dest, i, j, k) = (unsigned char)nint(val);
-            }
-            if (dest->type == MRI_SHORT) {
-              if (val < SHORT_MIN) val = SHORT_MIN;
-              if (val > SHORT_MAX) val = SHORT_MAX;
-              //            MRISvox(dest, i, j, k) = (short)nint(val);
-            }
-            if (dest->type == MRI_INT) {
-              if (val < INT_MIN) val = INT_MIN;
-              if (val > INT_MAX) val = INT_MAX;
-              //            MRIIvox(dest, i, j, k) = (int)nint(val);
-            }
-            if (dest->type == MRI_LONG) {
-              if (val < LONG_MIN) val = LONG_MIN;
-              if (val > LONG_MAX) val = LONG_MAX;
-              //	      MRILvox(dest, i, j, k) = (long)nint(val);
-            }
-
-            //	    if (dest_type == MRI_FLOAT)
-            //            MRIFvox(dest, i, j, k) = (float)val;
             MRIsetVoxVal(dest, i, j, k, frame, val);
           }
   }
@@ -11536,9 +11516,18 @@ MRI *MRIchangeType(MRI *src, int dest_type, float f_low, float f_high, int no_sc
     long nonzero = 0;
 
     /* ----- build a histogram ----- */
-    printf("MRIchangeType: Building histogram %g %g %d, flo=%g, fhi=%g, dest_type=%d\n",
-           src_min,src_max,N_HIST_BINS,f_low,f_high,dest_type);
+    printf("MRIchangeType: Building histogram %g %g %d, flo=%g, fhi=%g, dest_type=%d\n", src_min,src_max,N_HIST_BINS,f_low,f_high,dest_type);
     bin_size = (src_max - src_min) / (float)N_HIST_BINS;
+  
+    double mn = MRImeanFrameThresh(src, 0, 1e-7);
+    int mn_bin = (int)((mn - src_min) / bin_size);
+    float bin_threshold = (float)N_HIST_BINS / 5.0;
+
+    if (mn_bin < bin_threshold) {
+      float old_bin_size = bin_size;
+      bin_size = (mn - src_min) / bin_threshold;
+      printf("original bin size %2.2f (max %2.1f) too big for mean/min %2.2f/%2.2f, scaling down to %2.2f\n", old_bin_size, src_max, mn, src_min, bin_size);
+    }
 
     for (i = 0; i < N_HIST_BINS; i++) hist_bins[i] = 0;
 
@@ -11546,21 +11535,7 @@ MRI *MRIchangeType(MRI *src, int dest_type, float f_low, float f_high, int no_sc
       for (i = 0; i < src->width; i++)
         for (j = 0; j < src->height; j++)
           for (k = 0; k < src->depth; k++) {
-#if 0	    
-            if (src->type == MRI_UCHAR)
-              val = (float)MRIvox(src, i, j, k);
-            if (src->type == MRI_SHORT)
-              val = (float)MRISvox(src, i, j, k);
-            if (src->type == MRI_INT)
-              val = (float)MRIIvox(src, i, j, k);
-            if (src->type == MRI_LONG)
-              val = (float)MRILvox(src, i, j, k);
-            if (src->type == MRI_FLOAT)
-              val = (float)MRIFvox(src, i, j, k);
-#else
             val = MRIgetVoxVal(src, i, j, k, frame);
-#endif
-
             if (!DZERO(val)) nonzero++;
             bin = (int)((val - src_min) / bin_size);
 
@@ -11626,41 +11601,9 @@ MRI *MRIchangeType(MRI *src, int dest_type, float f_low, float f_high, int no_sc
       for (i = 0; i < src->width; i++)
         for (j = 0; j < src->height; j++)
           for (k = 0; k < src->depth; k++) {
-#if 0
-            if (src->type == MRI_SHORT)
-              val = MRISvox(src, i, j, k);
-            if (src->type == MRI_INT)
-              val = MRIIvox(src, i, j, k);
-            if (src->type == MRI_LONG)
-              val = MRILvox(src, i, j, k);
-            if (src->type == MRI_FLOAT)
-              val = MRIFvox(src, i, j, k);
-#else
             val = MRIgetVoxVal(src, i, j, k, frame);
-#endif
 
             val = dest_min + scale * (val - src_min);
-
-            if (dest->type == MRI_UCHAR) {
-              if (val < UCHAR_MIN) val = UCHAR_MIN;
-              if (val > UCHAR_MAX) val = UCHAR_MAX;
-              //            MRIvox(dest, i, j, k) = (unsigned char)nint(val);
-            }
-            if (dest->type == MRI_SHORT) {
-              if (val < SHORT_MIN) val = SHORT_MIN;
-              if (val > SHORT_MAX) val = SHORT_MAX;
-              //            MRISvox(dest, i, j, k) = (short)nint(val);
-            }
-            if (dest->type == MRI_INT) {
-              if (val < INT_MIN) val = INT_MIN;
-              if (val > INT_MAX) val = INT_MAX;
-              //            MRIIvox(dest, i, j, k) = (int)nint(val);
-            }
-            if (dest->type == MRI_LONG) {
-              if (val < LONG_MIN) val = LONG_MIN;
-              if (val > LONG_MAX) val = LONG_MAX;
-              //            MRILvox(dest, i, j, k) = (long)nint(val);
-            }
             MRIsetVoxVal(dest, i, j, k, frame, val);
           }
   }
@@ -13391,7 +13334,7 @@ MRI *MRIrandexp(MRI *mrimean, MRI *binmask, unsigned long int seed, int nreps, M
             while (q < FLT_MIN) q = RFdrawVal(rfs);
             v = (log(L) - log(L * q)) / L;
             MRIsetVoxVal(mrirandexp, c, r, s, f2, v);
-            if (!isfinite(v)) {
+            if (!std::isfinite(v)) {
               printf("WARNING: MRIrandexp(): voxel not finite\n");
               printf("%3d %3d %3d %2d mu = %lf; L = %lf; q=%30.30lf; v=%lf;\n", c, r, s, f2, mu, L, q, v);
               fflush(stdout);
@@ -17410,3 +17353,114 @@ int MRIclipBrightWM(MRI *mri_T1, const MRI *mri_wm)
 
   return(NO_ERROR) ;
 }
+
+
+/*
+  Creates an 3D ITK float image from a given frame.
+*/
+ITKImageType::Pointer MRI::toITKImage(int frame)
+{
+  // configure image region
+  ITKImageType::RegionType region;
+
+  ITKImageType::IndexType start;
+  start.Fill(0);
+  region.SetIndex(start);
+
+  ITKImageType::SizeType size;
+  size[0] = this->width;
+  size[1] = this->height;
+  size[2] = this->depth;
+  region.SetSize(size);
+
+  // construct image
+  ITKImageType::Pointer image = ITKImageType::New();
+  image->SetRegions(region);
+  image->Allocate();
+
+  // copy vox size metadata
+  ITKImageType::SpacingType spacing;
+  spacing[0] = this->xsize;
+  spacing[1] = this->ysize;
+  spacing[2] = this->zsize;
+  image->SetSpacing(spacing);
+
+  // copy pixel data from MRI
+  ITKImageType::IndexType pixelIndex;
+  for (int x = 0 ; x < this->width ; x++) {
+    for (int y = 0 ; y < this->height ; y++) {
+      for (int z = 0 ; z < this->depth ; z++) {
+        pixelIndex[0] = x;
+        pixelIndex[1] = y;
+        pixelIndex[2] = z;
+        float val = MRIgetVoxVal(this, x, y, z, frame);
+        image->SetPixel(pixelIndex, val);
+      }
+    }
+  }
+
+  return image;
+}
+
+
+/*
+  Loads pixel data from a 3D ITK image into the MRI buffer
+  for a given frame.
+*/
+void MRI::loadITKImage(ITKImageType::Pointer image, int frame)
+{
+  // make sure sizes match
+  const ITKImageType::SizeType size = image->GetLargestPossibleRegion().GetSize();
+  if (size[0] != this->width || size[1] != this->height || size[2] != this->depth) {
+    fs::fatal() << "ITK image size does not match MRI size";
+  }
+
+  // copy pixel data into MRI
+  ITKImageType::IndexType pixelIndex;
+  for (int x = 0 ; x < this->width ; x++) {
+    for (int y = 0 ; y < this->height ; y++) {
+      for (int z = 0 ; z < this->depth ; z++) {
+        pixelIndex[0] = x;
+        pixelIndex[1] = y;
+        pixelIndex[2] = z;
+        float val = image->GetPixel(pixelIndex);
+        MRIsetVoxVal(this, x, y, z, frame, val);
+      }
+    }
+  }
+}
+void
+MRIlimitsMultipleTimes(MRI *mri_src, float *psrc_min, float *psrc_max, int ntimes)
+{
+  int  done = 0, nmin = 0, nmax = 0, x, y, z, f ;
+  float val ;
+  MRI   *mri_copy ;
+
+  mri_copy = MRIcopy(mri_src, NULL) ;
+  do
+  {
+    MRIlimits(mri_copy, psrc_min, psrc_max) ;
+    for (f = 0 ; f < mri_src->nframes ; f++)
+      for (x = 0 ; x < mri_src->width ; x++)
+	for (y = 0 ; y < mri_src->height ; y++)
+	  for (z = 0 ; z < mri_src->depth ; z++)
+	  {
+	    val = MRIgetVoxVal(mri_src, x, y, z, f);
+	    if (val == *psrc_min)
+	    {
+	      MRIsetVoxVal(mri_copy, x, y, z, f, 0) ;
+	      nmin++ ;
+	    }
+	    if (val == *psrc_max)
+	    {
+	      MRIsetVoxVal(mri_copy, x, y, z, f, 0) ;
+	      nmax++ ;
+	    }
+	  }
+    done = (nmin >= ntimes) && (nmax >= ntimes) ;
+  } while (!done);
+  MRIfree(&mri_copy) ;
+  return ;
+}
+
+	  

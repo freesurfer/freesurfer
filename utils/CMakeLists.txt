@@ -3,7 +3,12 @@ project(utils)
 # ATH: temporarily turning off this warning in mrisurf_defect.cpp
 add_compile_options(-Wno-for-loop-analysis)
 
+# configure cmake version macros
+file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/include)
+configure_file(version_info.h.in version_info.h)
+
 include_directories(
+  ${CMAKE_CURRENT_BINARY_DIR}
   ${CMAKE_SOURCE_DIR}/include
   ${CMAKE_SOURCE_DIR}/packages/jpeg
   ${CMAKE_SOURCE_DIR}/packages/tiff
@@ -16,7 +21,6 @@ include_directories(
   ${CMAKE_SOURCE_DIR}/packages/nifti
   ${CMAKE_SOURCE_DIR}/packages/gifti
   SYSTEM
-  ${X11_INCLUDE_DIR}
   ${ITK_INCLUDE_DIRS}
 )
 
@@ -146,8 +150,10 @@ add_library(utils STATIC
   mrisurf_io.cpp
   mrisurf_io_stl.cpp
   mrisurf_metricProperties.cpp
+  mrisurf_metricProperties_faster.cpp
   mrisurf_mri.cpp
   mrisurf_project.cpp
+  mrisurf_sphere_interp.cpp
   mrisurf_sseTerms.cpp
   mrisurf_timeStep.cpp
   mrisurf_topology.cpp
@@ -214,6 +220,7 @@ target_link_libraries(utils
   expat
   ${ZLIB_LIBRARIES}
   ${ITK_LIBRARIES}
+  ${OMP_CXX_LIBRARIES}
 )
 
 if(NOT APPLE)

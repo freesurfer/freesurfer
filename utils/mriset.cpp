@@ -1,5 +1,4 @@
 /**
- * @file  mriset.c
  * @brief utilities for MRI data structure
  *
  * Operators like union, intersection, erosion, dialation and masking on
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2015/04/15 20:03:00 $
- *    $Revision: 1.93 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1670,6 +1665,8 @@ MRI *MRIdilate(MRI *mri_src, MRI *mri_dst)
       double val, max_val;
       for (y = ymin; y <= ymax; y++) {
         for (x = xmin; x <= xmax; x++) {
+    if (x == Gx && y == Gy && z == Gz)
+      DiagBreak() ;
           max_val = 0;
           for (z0 = -1; z0 <= 1; z0++) {
             zi = mri_src->zi[z + z0];
@@ -2286,7 +2283,8 @@ MRI *MRImaskDifferentGeometry(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, int mas
 {
   MATRIX *m_vox2vox;
   VECTOR *v1, *v2;
-  int x, y, z, xd, yd, zd, f, mask_val, val;
+  int x, y, z, xd, yd, zd, f, mask_val;
+  float val ;
 
   v1 = VectorAlloc(4, MATRIX_REAL);
   v2 = VectorAlloc(4, MATRIX_REAL);
@@ -2305,17 +2303,20 @@ MRI *MRImaskDifferentGeometry(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, int mas
         xd = nint(V3_X(v2));
         yd = nint(V3_Y(v2));
         zd = nint(V3_Z(v2));
+	if (x == Gx && y == Gy && z == Gz)
+	  DiagBreak() ;
+	if (xd == 154 && yd == 71 && zd == 157)
+	  DiagBreak() ;
         if (xd < 0 || xd >= mri_mask->width || yd < 0 || yd >= mri_mask->height || zd < 0 || zd >= mri_mask->depth)
-          mask_val = mask + 1;  // allow it through
+          mask_val = mask ;  // DON'T (brf, 4/17/2020) allow it through 
         else
           mask_val = nint(MRIgetVoxVal(mri_mask, xd, yd, zd, 0));
         for (f = 0; f < mri_dst->nframes; f++) {
-          val = nint(MRIgetVoxVal(mri_src, x, y, z, f));
           if (mask_val == mask)
             val = out_val;
           else
             val = MRIgetVoxVal(mri_src, x, y, z, f);
-          MRIsetVoxVal(mri_dst, x, y, z, f, val);
+           MRIsetVoxVal(mri_dst, x, y, z, f, val);
         }
       }
     }

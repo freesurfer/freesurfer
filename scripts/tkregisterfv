@@ -27,7 +27,6 @@ set movvol2 = ();
 set reg2 = ()
 set movvol3 = ();
 set reg3 = ()
-set UseVGLRun = 0
 
 set tmpdir = ();
 set cleanup = 1;
@@ -80,7 +79,9 @@ if(! $UseTkRegister) then
   if($ShowConfig)  set cmd = ($cmd -transform-volume)
   set cmd = ($cmd -viewport $Plane) # currently causes FV to crash
   set targname = `basename $targ`
-  set cmd = ($cmd -v $targ":"visible=0":"name=$targname"(targ)")
+  set visible = 0
+  if($#surflist == 0) set visible = 1
+  set cmd = ($cmd -v $targ":"visible=$visible":"name=$targname"(targ)")
   @ nthaux = 0;
   foreach aux ($auxlist)
     @ nthaux = $nthaux + 1;
@@ -114,13 +115,7 @@ else
 endif
 echo "cd `pwd`"
 echo $cmd
-if($UseVGLRun == 0) then
-  $cmd
-else
-  setenv VGL_DISPLAY :0
-  echo "Using VGL"
-  exec /usr/pubsw/bin/vglrun $cmd
-endif
+fsvglrun $cmd
 
 #========================================================
 
@@ -328,9 +323,15 @@ while( $#argv != 0 )
       if($Plane == ax)  set Plane = axial
       breaksw
 
-    case "--vgl":
     case "-vgl":
-      set UseVGLRun = 1;
+    case "--vgl":
+      setenv FS_ALLOW_VGLRUN 1
+      breaksw
+    case "-novgl":
+    case "--novgl":
+    case "--no-vgl":
+    case "-no-vgl":
+      unsetenv FS_ALLOW_VGLRUN 
       breaksw
 
     case "--no-config"

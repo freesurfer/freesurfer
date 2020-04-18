@@ -14,10 +14,6 @@ function [Dvol,I]=check_ROI_dir(Dirname, th_pval)
 % subcortical_labeling_dir_afd.m
 %
 % Original Author: Laurence Wastiaux
-% CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2011/03/02 00:04:13 $
-%    $Revision: 1.3 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %

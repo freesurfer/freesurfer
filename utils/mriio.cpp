@@ -1,5 +1,4 @@
 /**
- * @file  mriio.c
  * @brief utilities for reading/writing MRI data structure
  *
  * Reading and writing most of the major MRI volume types, to and from
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/10/14 19:13:08 $
- *    $Revision: 1.425 $
  *
  * Copyright © 2011-2017 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -13954,7 +13949,7 @@ MRI *MRIremoveNaNs(MRI *mri_src, MRI * mri_dst)
       for (z = 0; z < depth; z++) {
         for (f = 0; f < nframes; f++) {
           float val = MRIgetVoxVal(mri_dst, x, y, z, f);
-          if (!isfinite(val)) {
+          if (!std::isfinite(val)) {
             nans++;
 	    if (getenv("FS_LEAVE_NANS") == NULL)
 	      MRIsetVoxVal(mri_dst, x, y, z, f, 0);
@@ -13978,16 +13973,15 @@ MRI *MRIremoveNaNs(MRI *mri_src, MRI * mri_dst)
   return (mri_dst);
 }
 
-int MRIaddCommandLine(MRI *mri, char *cmdline)
+int MRIaddCommandLine(MRI *mri, const std::string& cmdline)
 {
-  int i;
   if (mri->ncmds >= MAX_CMDS)
-    ErrorExit(ERROR_NOMEMORY, "MRIaddCommandLine: can't add cmd %s (%d)", cmdline, mri->ncmds);
+    fs::error() << "can't add cmd to mri since max cmds (" << mri->ncmds <<  ") has been reached";
 
-  i = mri->ncmds++;
-  mri->cmdlines[i] = (char *)calloc(strlen(cmdline) + 1, sizeof(char));
-  strcpy(mri->cmdlines[i], cmdline);
-  return (NO_ERROR);
+  int i = mri->ncmds++;
+  mri->cmdlines[i] = (char *)calloc(cmdline.size() + 1, sizeof(char));
+  strcpy(mri->cmdlines[i], cmdline.c_str());
+  return NO_ERROR;
 }
 
 /*------------------------------------------------------------------

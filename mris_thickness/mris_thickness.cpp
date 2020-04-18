@@ -7,10 +7,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2012/11/27 17:41:26 $
- *    $Revision: 1.28 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -86,8 +82,7 @@ main(int argc, char *argv[]) {
   MRI_SURFACE   *mris ;
   Timer then ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_thickness.c,v 1.28 2012/11/27 17:41:26 fischl Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_thickness");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

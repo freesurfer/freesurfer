@@ -1,15 +1,10 @@
 /**
- * @file  dmri_train.cxx
  * @brief Training of priors for probabilistic global tractography
  *
  * Training of priors for probabilistic global tractography
  */
 /*
  * Original Author: Anastasia Yendiki
- * CVS Revision Info:
- *    $Author: ayendiki $
- *    $Date: 2014/05/27 14:49:34 $
- *    $Revision: 1.12 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -89,8 +84,7 @@ int main(int argc, char **argv) {
   int nargs, cputime;
   char excfile[PATH_MAX], fbase[PATH_MAX];
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "dmri_train");
   if (nargs && argc - nargs == 1) exit (0);
   argc -= nargs;
   cmdline = argv2cmdline(argc,argv);

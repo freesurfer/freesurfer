@@ -1,15 +1,10 @@
 /**
- * @file  dmri_spline.cxx
  * @brief Interpolate a spline from its control points
  *
  * Interpolate a spline from its control points
  */
 /*
  * Original Author: Anastasia Yendiki
- * CVS Revision Info:
- *    $Author: ayendiki $
- *    $Date: 2013/02/12 01:50:37 $
- *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -83,8 +78,7 @@ Timer cputimer;
 int main(int argc, char **argv) {
   int nargs, cputime;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "dmri_spline");
   if (nargs && argc - nargs == 1) exit (0);
   argc -= nargs;
   cmdline = argv2cmdline(argc,argv);

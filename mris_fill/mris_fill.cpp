@@ -1,5 +1,4 @@
 /**
- * @file  mris_density.c
  * @brief fills the interior of a surface.
  *
  * program to fill the interior of a surface at an arbitrary resolution
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:32 $
- *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -68,15 +63,10 @@ main(int argc, char *argv[]) {
   MRI_SURFACE   *mris ;
   MRI           *mri_interior, *mri_template = NULL, *mri_buffer = NULL;
 
-  char cmdline[CMD_LINE_LEN] ;
 
-  make_cmd_version_string
-  (argc, argv,
-   "$Id: mris_fill.c,v 1.6 2011/03/02 00:04:32 nicks Exp $", "$Name:  $",
-   cmdline);
+  std::string cmdline = getAllInfo(argc, argv, "mris_fill");
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_fill.c,v 1.6 2011/03/02 00:04:32 nicks Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_fill");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

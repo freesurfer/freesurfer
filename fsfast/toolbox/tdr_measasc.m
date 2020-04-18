@@ -41,10 +41,6 @@ function val = tdr_measasc(measasc,varname,flag)
 % tdr_measasc.m
 %
 % Original Author: Doug Greve
-% CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2011/03/02 00:04:07 $
-%    $Revision: 1.8 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %

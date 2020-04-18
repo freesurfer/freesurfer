@@ -1,5 +1,4 @@
 /**
- * @file  mris_ca_label.c
  * @brief parcellate the cortex based on an atlas
  *
  * "Automatically Parcellating the Human Cerebral Cortex", Fischl et al.
@@ -11,10 +10,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2014/02/04 17:46:42 $
- *    $Revision: 1.37 $
  *
  * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -104,8 +99,7 @@ main(int argc, char *argv[])
   MRI_SURFACE  *mris ;
   GCSA         *gcsa ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_ca_label");
   if (nargs && argc - nargs == 1)
   {
     exit (0);

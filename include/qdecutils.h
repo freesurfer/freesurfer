@@ -1,14 +1,9 @@
 /**
- * @file  qdecutils.h
  * @brief QDEC Query-Design-Estimation-Contrast
  *
  */
 /*
  * Original Author: Doug Greve
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:10 $
- *    $Revision: 1.12 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

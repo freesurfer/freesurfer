@@ -1,5 +1,4 @@
 /**
- * @file  mri_mi.c
  * @brief computes the mi between two input volumes
  *
  * computes the mutual information (mi) between two input volumes
@@ -8,8 +7,6 @@
 
 /*
  * Original Author: Lilla Zollei
- * CVS Revision Info:
- *    $Date: 2017/02/07 04:02:05 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -63,8 +60,7 @@ int main(int argc, char *argv[])
 
   // printf("mri_mi 1\n") ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_mi");
   if (nargs && argc - nargs == 1)
     exit (0);
   Progname = argv[0] ;

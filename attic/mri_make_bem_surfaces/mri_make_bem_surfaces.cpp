@@ -1,14 +1,9 @@
 /**
- * @file  mri_make_bem_surfaces.c
  * @brief creates a skull surface for use with the MNE tools
  *
  */
 /*
  * Original Author: Anders Dale and Martin Sereno
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/29 16:37:02 $
- *    $Revision: 1.13 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -184,8 +179,7 @@ main(int argc,char *argv[])
   /* struct stat buf; */
   int nargs;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_make_bem_surfaces.c,v 1.13 2011/03/29 16:37:02 nicks Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_make_bem_surfaces");
   if (nargs && argc - nargs == 1)
   {
     exit (0);

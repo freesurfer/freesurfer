@@ -1,15 +1,9 @@
 /**
- * @file  mri_compute_volume_intensities.c
  * @brief compute the unpartial-volumed intensities given an input volume and volume fracion maps
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/04/19 13:32:50 $
- *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -90,8 +84,7 @@ main(int argc, char *argv[])
   char        fname[STRLEN], *stem ;
   MRI         *mri_src, *mri_vfrac_wm, *mri_vfrac_cortex, *mri_vfrac_subcort, *mri_vfrac_csf, *mri_unpv_intensities ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_compute_volume_intensities.c,v 1.3 2016/04/19 13:32:50 fischl Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_compute_volume_intensities");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

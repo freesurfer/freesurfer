@@ -1,15 +1,4 @@
-/**
- * @file  mri_histo_eq.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
- */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:18 $
- *    $Revision: 1.6 $
  *
  * Copyright © 2011-2017 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -59,8 +48,7 @@ main(int argc, char *argv[]) {
   Timer start ;
   MRI    *mri_src, *mri_template ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_histo_eq.c,v 1.6 2011/03/02 00:04:18 nicks Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_histo_eq");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

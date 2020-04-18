@@ -1,10 +1,6 @@
 ##
 ## mkmnc_index.tcl
 ##
-## CVS Revision Info:
-##    $Author: nicks $
-##    $Date: 2011/03/02 00:04:36 $
-##    $Revision: 1.3 $
 ##
 ## Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 ##

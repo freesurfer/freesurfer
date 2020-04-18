@@ -1,5 +1,4 @@
 /**
- * @file  SurfaceLabel.cxx
  * @brief Implementation for surface label.
  *
  * In 2D, the MRI is viewed as a single slice, and controls are
@@ -9,10 +8,6 @@
  */
 /*
  * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2017/02/01 15:28:54 $
- *    $Revision: 1.26 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -415,7 +410,7 @@ void SurfaceLabel::EditVertices(const QVector<int> &verts, bool bAdd)
       if (m_label->n_points >= m_label->max_points)
       {
         LabelRealloc(m_label, mris->nvertices);
-        qDebug() << "reallocated label";
+//        qDebug() << "reallocated label";
       }
 
       int n = m_label->n_points++;  // n is the number of points before incr

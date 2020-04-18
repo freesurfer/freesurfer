@@ -1,15 +1,9 @@
 /**
- * @file  mri_extract_fcd_features.c
  * @brief program to extract features from a recon dir to use as input to an FCD classifier.
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/06/15 17:51:09 $
- *    $Revision: 1.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -84,8 +78,7 @@ main(int argc, char *argv[])
   MRI_SURFACE  *mris, *mris_contra ;
   LABEL        *cortex ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_extract_fcd_features.c,v 1.1 2016/06/15 17:51:09 fischl Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_extract_fcd_features");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

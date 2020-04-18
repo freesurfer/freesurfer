@@ -1,5 +1,4 @@
 /**
- * @file  vtkKWRGBATransferFunctionEditor.h
  * @brief an RGBA tfunc function editor
  *
  * A widget that allows the user to edit a color transfer
@@ -15,10 +14,6 @@
  */
 /*
  * Original Author: Kitware, Inc, modified by Kevin Teich
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:56 $
- *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

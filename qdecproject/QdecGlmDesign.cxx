@@ -1,5 +1,4 @@
 /**
- * @file  QdecGlmDesign.cpp
  * @brief Contains the data and functions associated with a GLM design run
  *
  * Contains the data and functions associated with the selected GLM input
@@ -10,10 +9,6 @@
  */
 /*
  * Original Author: Nick Schmansky
- * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2015/04/28 14:34:48 $
- *    $Revision: 1.23 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -293,18 +288,12 @@ int QdecGlmDesign::Create ( QdecDataTable* iDataTable,
 }
 
 
-/**
- *
- */
 void QdecGlmDesign::ClearDiscreteFactors ( )
 {
   mDiscreteFactors.clear();
 }
 
 
-/**
- *
- */
 void QdecGlmDesign::AddDiscreteFactor ( const char* isFactorName)
 {
   QdecFactor* qf = this->mDataTable->GetFactor( isFactorName );
@@ -319,9 +308,6 @@ void QdecGlmDesign::AddDiscreteFactor ( const char* isFactorName)
 }
 
 
-/**
- *
- */
 void QdecGlmDesign::ClearContinuousFactors ( )
 {
   // un-exclude any previously excluded subjects (see AddContinuousFactor)
@@ -336,7 +322,7 @@ void QdecGlmDesign::ClearContinuousFactors ( )
       unsigned int nInputs = subjs.size();
       for (unsigned int m=0; m < nInputs; m++)
       {
-        if (isnan(subjs[m]->GetContinuousFactorValue( 
+        if (std::isnan(subjs[m]->GetContinuousFactorValue( 
                     this->mContinuousFactors[f]->GetFactorName().c_str() )))
         {
           fprintf( stdout,
@@ -354,9 +340,6 @@ void QdecGlmDesign::ClearContinuousFactors ( )
 }
 
 
-/**
- *
- */
 void QdecGlmDesign::AddContinuousFactor ( const char* isFactorName)
 {
   QdecFactor* qf = this->mDataTable->GetFactor( isFactorName );
@@ -375,7 +358,7 @@ void QdecGlmDesign::AddContinuousFactor ( const char* isFactorName)
   unsigned int nInputs = subjs.size();
   for (unsigned int m=0; m < nInputs; m++)
   {
-    if (isnan(subjs[m]->GetContinuousFactorValue( isFactorName )))
+    if (std::isnan(subjs[m]->GetContinuousFactorValue( isFactorName )))
     {
       fprintf( stderr,
                "\nWARNING: will exclude subject %s from analysis "
@@ -387,9 +370,6 @@ void QdecGlmDesign::AddContinuousFactor ( const char* isFactorName)
 }
 
 
-/**
- *
- */
 void QdecGlmDesign::ClearNuisanceFactors ( )
 {
   // un-exclude any previously excluded subjects (see AddNuisanceFactor)
@@ -404,7 +384,7 @@ void QdecGlmDesign::ClearNuisanceFactors ( )
       unsigned int nInputs = subjs.size();
       for (unsigned int m=0; m < nInputs; m++)
       {
-        if (isnan(subjs[m]->GetContinuousFactorValue( 
+        if (std::isnan(subjs[m]->GetContinuousFactorValue( 
                     this->mNuisanceFactors[f]->GetFactorName().c_str() )))
         {
           fprintf( stdout,
@@ -422,9 +402,6 @@ void QdecGlmDesign::ClearNuisanceFactors ( )
 }
 
 
-/**
- *
- */
 void QdecGlmDesign::AddNuisanceFactor ( const char* isFactorName)
 {
   QdecFactor* qf = this->mDataTable->GetFactor( isFactorName );
@@ -443,7 +420,7 @@ void QdecGlmDesign::AddNuisanceFactor ( const char* isFactorName)
   unsigned int nInputs = subjs.size();
   for (unsigned int m=0; m < nInputs; m++)
   {
-    if (isnan(subjs[m]->GetContinuousFactorValue( isFactorName )))
+    if (std::isnan(subjs[m]->GetContinuousFactorValue( isFactorName )))
     {
       fprintf( stderr,
                "\nWARNING: will exclude subject %s from analysis "
@@ -517,9 +494,6 @@ int QdecGlmDesign::GetSmoothness ( )
   return this->mSmoothness;
 }
 
-/**
- *
- */
 void QdecGlmDesign::SetSmoothness ( int iVal )
 {
   this->mSmoothness = iVal;

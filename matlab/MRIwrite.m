@@ -37,10 +37,6 @@ function err = MRIwrite(mri,fstring,datatype,permuteflag)
 % MRIwrite.m
 %
 % Original Author: Doug Greve
-% CVS Revision Info:
-%    $Author: greve $
-%    $Date: 2013/12/02 16:34:09 $
-%    $Revision: 1.15 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %

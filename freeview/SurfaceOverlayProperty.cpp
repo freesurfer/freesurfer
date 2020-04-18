@@ -1,5 +1,4 @@
 /**
- * @file  SurfaceOverlayProperty.cxx
  * @brief Implementation for surface layer properties.
  *
  * In 2D, the MRI is viewed as a single slice, and controls are
@@ -9,10 +8,6 @@
  */
 /*
  * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2015/07/17 16:20:35 $
- *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -53,13 +48,11 @@ SurfaceOverlayProperty::SurfaceOverlayProperty ( SurfaceOverlay* overlay) :
   m_mask(NULL),
   m_maskData(NULL),
   m_bInverseMask(false),
-  m_bIgnoreZeros(false)
+  m_bIgnoreZeros(false),
+  m_nColorScale(CS_Heat),
+  m_nColorMethod(CM_LinearOpaque)
 {
   m_lut = vtkRGBAColorTransferFunction::New();
-
-  Reset();
-  SetColorScale( CS_Heat );
-  SetColorMethod( CM_LinearOpaque );
 }
 
 SurfaceOverlayProperty::~SurfaceOverlayProperty ()
@@ -120,14 +113,18 @@ void SurfaceOverlayProperty::Reset()
 {
   if ( m_overlay )
   {
-    m_dMinPoint = fabs( m_overlay->m_dMinValue + m_overlay->m_dMaxValue ) / 2;
-    m_dMaxPoint = m_overlay->m_dMaxValue;
+    m_dMinPoint = m_overlay->PercentileToPosition(50);
+    m_dMaxPoint = m_overlay->PercentileToPosition(99);
+    if (m_dMinPoint < 0 && m_dMaxPoint > fabs(m_dMinPoint))
+        m_dMinPoint = fabs(m_dMinPoint);
     m_dMidPoint = ( m_dMinPoint + m_dMaxPoint ) / 2;
     m_dOffset = 0;
     m_customScale.clear();
     m_customScale << QGradientStop(m_dMinPoint, Qt::red);
     m_dMinStop = m_dMinPoint;
     m_dMaxStop = m_dMaxPoint;
+    SetColorScale( m_nColorScale );
+    SetColorMethod( m_nColorMethod );
   }
 }
 
@@ -312,6 +309,7 @@ void SurfaceOverlayProperty::SetMinPoint( double dValue )
   if ( dValue != m_dMinPoint )
   {
     m_dMinPoint = dValue;
+    SetColorScale(m_nColorScale);
   }
 }
 
@@ -326,6 +324,7 @@ void SurfaceOverlayProperty::SetMidPoint( double dValue )
   if ( dValue != m_dMidPoint )
   {
     m_dMidPoint = dValue;
+    SetColorScale(m_nColorScale);
   }
 }
 
@@ -339,6 +338,7 @@ void SurfaceOverlayProperty::SetMaxPoint( double dValue )
   if ( dValue != m_dMaxPoint )
   {
     m_dMaxPoint = dValue;
+    SetColorScale(m_nColorScale);
   }
 }
 
@@ -353,6 +353,7 @@ void SurfaceOverlayProperty::SetOffset(double dOffset)
   if (dOffset != m_dOffset)
   {
     m_dOffset = dOffset;
+    SetColorScale(m_nColorScale);
   }
 }
 
@@ -382,13 +383,6 @@ void SurfaceOverlayProperty::SetColorTruncate( bool bTruncate )
   m_bColorTruncate = bTruncate;
   SetColorScale( m_nColorScale );
 }
-
-/*
-void SurfaceOverlayProperty::MapOverlayColor( unsigned char* colordata, int nPoints )
-{
-  MapOverlayColor( m_overlay->GetData(), colordata, nPoints );
-}
-*/
 
 void SurfaceOverlayProperty::MapOverlayColor( float* data, unsigned char* colordata, int nPoints )
 {

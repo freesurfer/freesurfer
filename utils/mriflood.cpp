@@ -1,14 +1,9 @@
 /**
- * @file  mriflood.c
  * @brief flood and erode voxels
  *
  */
 /*
  * Original Author: Andre van der Kouwe
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2014/05/02 22:04:26 $
- *    $Revision: 1.41 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1416,6 +1411,77 @@ MRI *MRISfillInteriorOld(MRI_SURFACE *mris, double resolution, MRI *mri_interior
   return (mri_interior);
 }
 
+
+/*!
+  \brief Creates a bounding volume that encompasses a surface.
+
+  \param mris        Input surface
+  \param resolution  Resolution of bounding volume
+*/
+MRI *MRISmakeBoundingVolume(MRIS *mris, double resolution)
+{
+  // make surface source volume for reference
+  MRI *src = MRIallocFromVolGeom(&mris->vg, MRI_UCHAR, 1, 1);
+
+  // get crop coordinates of surface in the "source" voxel space
+  double clo, rlo, slo, chi, rhi, shi;
+  MRISsurfaceRASToVoxel(mris, src, mris->xlo, mris->ylo, mris->zlo, &clo, &rlo, &slo);
+  MRISsurfaceRASToVoxel(mris, src, mris->xhi, mris->yhi, mris->zhi, &chi, &rhi, &shi);
+
+  // the low surf ras coordinate might not map directly to the voxel low coordinate
+  int real_clo = floor(std::min(clo, chi));
+  int real_rlo = floor(std::min(rlo, rhi));
+  int real_slo = floor(std::min(slo, shi));
+  int real_chi = ceil(std::max(clo, chi));
+  int real_rhi = ceil(std::max(rlo, rhi));
+  int real_shi = ceil(std::max(slo, shi));
+  int cropped_width  = real_chi - real_clo + 1;
+  int cropped_height = real_rhi - real_rlo + 1;
+  int cropped_depth  = real_shi - real_slo + 1;
+
+  // make bounding volume with correct shape
+  int width  = ceil(src->xsize * cropped_width  / resolution);
+  int height = ceil(src->ysize * cropped_height / resolution);
+  int depth  = ceil(src->zsize * cropped_depth  / resolution);
+  MRI *dst = MRIalloc(width, height, depth, MRI_FLOAT);
+
+  // set voxel size
+  dst->x_r = src->x_r;
+  dst->x_a = src->x_a;
+  dst->x_s = src->x_s;
+  dst->y_r = src->y_r;
+  dst->y_a = src->y_a;
+  dst->y_s = src->y_s;
+  dst->z_r = src->z_r;
+  dst->z_a = src->z_a;
+  dst->z_s = src->z_s;
+
+  // set voxel size
+  dst->xsize = resolution;
+  dst->ysize = resolution;
+  dst->zsize = resolution;
+
+  // get ras at center of original bounding box and set as center ras
+  MATRIX *vox2ras = MRIxfmCRS2XYZ(src, 0);
+  MATRIX *c_crs = MatrixAlloc(4, 1, MATRIX_REAL);
+  c_crs->rptr[1][1] = real_clo + cropped_width  / 2.0;
+  c_crs->rptr[2][1] = real_rlo + cropped_height / 2.0;
+  c_crs->rptr[3][1] = real_slo + cropped_depth  / 2.0;
+  c_crs->rptr[4][1] = 1;
+  MATRIX *c_ras = MatrixMultiply(vox2ras, c_crs, nullptr);
+  dst->c_r = c_ras->rptr[1][1];
+  dst->c_a = c_ras->rptr[2][1];
+  dst->c_s = c_ras->rptr[3][1];
+
+  MatrixFree(&vox2ras);
+  MatrixFree(&c_crs);
+  MatrixFree(&c_ras);
+  MRIfree(&src);
+
+  return dst;
+}
+
+
 /*!
 \fn MRI *MRISfillInterior(MRI_SURFACE *mris, double resolution, MRI *mri_dst)
 \brief Fills in the interior of a surface by creating a "watertight"
@@ -1444,6 +1510,10 @@ MRI *MRISfillInterior(MRI_SURFACE *mris, double resolution, MRI *mri_dst)
 
   if (!mri_dst) {
     // not sure this will work
+    // ATH: it doesn't when the surface source geometry differs
+    // from resolution or when geometry is not LIA. In the future,
+    // this whole section should be replaced by MRISmakeBoundingVolume(),
+    // which just needs to be tested more first
     width = ceil((mris->xhi - mris->xlo) / resolution);
     height = ceil((mris->yhi - mris->ylo) / resolution);
     depth = ceil((mris->zhi - mris->zlo) / resolution);
@@ -1576,6 +1646,7 @@ MRI *MRISfillInterior(MRI_SURFACE *mris, double resolution, MRI *mri_dst)
   MRIS_freeRAS2VoxelMap(&map);
   MatrixFree(&crs);
   MatrixFree(&xyz);
+  if (vox2sras != NULL) MatrixFree(&vox2sras);
   MRIfree(&mri_vlen);
 
   // Reduce the volume size to speed things up
@@ -1640,6 +1711,7 @@ MRI *MRISfillInterior(MRI_SURFACE *mris, double resolution, MRI *mri_dst)
   MRIfree(&mri_cosa);
   MRIfree(&shellbb);
   MRIfree(&outsidebb);
+  free(region);
   // printf("  Found %d voxels in interior, volume = %g\n",nhits,
   // nhits*mri_dst->xsize*mri_dst->ysize*mri_dst->zsize);
   if (Gdiag_no > 0) printf("  MRISfillInterior t = %g\n", start.seconds());

@@ -1,5 +1,4 @@
 /**
- * @file  mri_make_uchar.c
  * @brief change a volume to 8 bits/voxel
  *
  * uses the Tal xform to find a ball of voxels that are mostly brain.
@@ -8,10 +7,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:14 $
- *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -62,11 +57,7 @@ main(int argc, char *argv[])
   MRI       *mri_in, *mri_out ;
   LTA *tal_xform ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (
-            argc, argv,
-            "$Id: mri_make_uchar.c,v 1.4 2011/03/02 00:04:14 nicks Exp $",
-            "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_make_uchar");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

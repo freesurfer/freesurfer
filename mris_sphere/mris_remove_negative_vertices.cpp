@@ -1,15 +1,5 @@
-/**
- * @file  mris_remove_negative_vertices.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
- */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:34 $
- *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -66,18 +56,9 @@ main(int argc, char *argv[])
   MRI_SURFACE  *mris ;
   Timer then ;
 
-  char cmdline[CMD_LINE_LEN] ;
+  std::string cmdline = getAllInfo(argc, argv, "mris_remove_negative_vertices");
 
-  make_cmd_version_string 
-    (argc, argv, 
-     "$Id: mris_remove_negative_vertices.c,v 1.5 2011/03/02 00:04:34 nicks Exp $", 
-     "$Name:  $", cmdline);
-
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option 
-    (argc, argv, 
-     "$Id: mris_remove_negative_vertices.c,v 1.5 2011/03/02 00:04:34 nicks Exp $", 
-     "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_remove_negative_vertices");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

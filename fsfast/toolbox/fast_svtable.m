@@ -14,10 +14,6 @@ function err = fast_svtable(tbl, rowid, colid, fname, base)
 % fast_svtable.m
 %
 % Original Author: Doug Greve
-% CVS Revision Info:
-%    $Author: greve $
-%    $Date: 2016/01/20 23:37:31 $
-%    $Revision: 1.4 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %

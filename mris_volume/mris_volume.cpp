@@ -1,15 +1,10 @@
 /**
- * @file  mris_volume.c
  * @brief compute the enclosed volume of a surface
  *
  * Use Strokes theorem to compute the volume enclosed by a surface.
  */
 /*
  * Original Author: Bruce Fischl and Xiao Han
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:34 $
- *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -30,9 +25,6 @@
 // original author: Xiao Han
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2011/03/02 00:04:34 $
-// Revision       : $Revision: 1.6 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -73,8 +65,7 @@ int main(int argc, char *argv[]) {
   Timer start ;
   double total_volume;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_volume.c,v 1.6 2011/03/02 00:04:34 nicks Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_volume");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

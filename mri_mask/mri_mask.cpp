@@ -1,5 +1,4 @@
 /**
- * @file  mri_mask.c
  * @brief applies a mask volume
  *
  * Usage: mri_mask [options] <in vol> <mask vol> <out vol>
@@ -13,10 +12,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/11/28 20:30:57 $
- *    $Revision: 1.24 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -59,6 +54,7 @@ const char *Progname;
 static int  get_option(int argc, char *argv[]) ;
 
 static int   InterpMethod = SAMPLE_NEAREST;
+static int dilate = 0 ;
 
 /* The following specifies the src and dst volumes
    of the input FSL/LTA transform */
@@ -69,6 +65,7 @@ static int no_cerebellum = 0 ;
 static int DoLH = 0;
 static int DoRH = 0;
 
+static int samseg = 0 ;
 static  float out_val=0;
 static int invert = 0 ;
 static char *xform_fname = NULL;
@@ -89,12 +86,7 @@ int main(int argc, char *argv[])
   float value;
   MRI_REGION *region;
 
-  nargs =
-    handle_version_option
-    (
-      argc, argv,
-      "$Id: mri_mask.c,v 1.24 2016/11/28 20:30:57 fischl Exp $", "$Name:  $"
-    );
+  nargs = handleVersionOption(argc, argv, "mri_mask");
   if (nargs && argc - nargs == 1)
   {
     exit (0);
@@ -236,6 +228,32 @@ int main(int argc, char *argv[])
     printf("Found %d voxels in mask (pct=%6.2f)\n",nmask,
 	   100.0*nmask/(mri_mask->width*mri_mask->height*mri_mask->depth));
   }
+  if(samseg){
+    nmask = 0;
+    for (z = 0 ; z <mri_mask->depth ; z++) {
+      for (y = 0 ; y < mri_mask->height ; y++) {
+	for (x = 0 ; x < mri_mask->width ; x++) {
+	  value = MRIgetVoxVal(mri_mask, x, y, z, 0);
+	  switch ((int)value)
+	  {
+	  case Unknown:
+	  case CSF:
+	  case Skull:
+	  case Air:
+	  case Head_ExtraCerebral:
+	  case CSF_ExtraCerebral:
+	    MRIsetVoxVal(mri_mask,x,y,z,0,0);
+	    break;
+	  default:
+	    MRIsetVoxVal(mri_mask,x,y,z,0,1);
+	    nmask ++;
+	  }
+	}
+      }
+    }
+    printf("Found %d voxels in mask (pct=%6.2f)\n",nmask,
+	   100.0*nmask/(mri_mask->width*mri_mask->height*mri_mask->depth));
+  }
 
   if (DoLH || DoRH)  // mri_mask is an aseg - convert it to a mask
   {
@@ -283,6 +301,13 @@ int main(int argc, char *argv[])
     mask = (int)transfer_val;
     out_val = transfer_val;
   }
+  if (dilate > 0)
+  {
+    int i ;
+    for (i = 0 ; i < dilate ; i++)
+      MRIdilate(mri_mask, mri_mask);
+  }
+
   mri_out = MRImask(mri_in, mri_mask, NULL, mask, out_val) ;
   if (!mri_out)
   {
@@ -343,6 +368,11 @@ get_option(int argc, char *argv[])
   {
     print_version() ;
   }
+  else if (!stricmp(option, "samseg"))
+  {
+    samseg = 1 ;
+    printf("masking nonbrain using samseg segmentation\n") ;
+  }
   else if (!stricmp(option, "abs"))
   {
     DoAbs = 1;
@@ -358,6 +388,12 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "rh"))
   {
     DoRH = 1;
+  }
+  else if (!stricmp(option, "dilate"))
+  {
+    dilate = atoi(argv[2]) ;
+    nargs = 1 ;
+    printf("dilating mask %d times before applying\n", dilate);
   }
   else if (!stricmp(option, "xform"))
   {
@@ -431,6 +467,14 @@ get_option(int argc, char *argv[])
   {
     keep_mask_deletion_edits = 1;
     fprintf(stderr, "Transferring mask edits ('1' voxels) to dst vol\n");
+  }
+  else if (!stricmp(option, "DEBUG_VOXEL"))
+  {
+    Gx = atoi(argv[2]) ;
+    Gy = atoi(argv[3]) ;
+    Gz = atoi(argv[4]) ;
+    nargs = 3 ;
+    printf("debugging node (%d, %d, %d)\n", Gx,Gy,Gz) ;
   }
   else
   {

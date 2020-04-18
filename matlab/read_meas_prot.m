@@ -7,7 +7,6 @@ function varargout = read_meas_prot(filename, varargin)
 % $Id: read_meas_prot.m,v 1.1 2008/05/21 19:01:01 greve Exp $
 %**************************************************************************%
 
-  VERSION = '$Revision: 1.1 $';
   if ( nargin == 0 ), help(mfilename); return; end;
 
   header = '';

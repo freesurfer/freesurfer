@@ -15,12 +15,7 @@ function [hr,pval,CI] = SStat_HR(x1,x2,stats)
 % pval: P-value for the hr value.
 % CI: 95% confidence interval for the hazard ratio estimate.
 %
-% $Revision: 1.1 $  $Date: 2015/01/06 17:04:02 $
 % Original Author: Jorge Luis Bernal Rusiel 
-% CVS Revision Info:
-%    $Author: mreuter $
-%    $Date: 2015/01/06 17:04:02 $
-%    $Revision: 1.1 $
 % References: Kleinbaum, D.G., Klein, M., 2005. Survival analysis. A self-
 % learning approach, second edition. New York: Springer..
 %   

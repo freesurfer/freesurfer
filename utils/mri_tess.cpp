@@ -1,15 +1,10 @@
 #define COMPILING_MRISURF_TOPOLOGY_FRIEND_CHECKED
 /**
- * @file  mri_tess.c
  * @brief tesselation routines
  *
  */
 /*
  * Original Author: F. Segonne
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2014/03/21 23:59:31 $
- *    $Revision: 1.11 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

@@ -1,14 +1,9 @@
 /**
- * @file  WidgetGroupPlot.h
  * @brief Widget drawing group plot
  *
  */
 /*
  * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2016/02/03 22:15:17 $
- *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

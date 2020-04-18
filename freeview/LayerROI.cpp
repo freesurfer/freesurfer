@@ -1,14 +1,9 @@
 /**
- * @file  LayerROI.cpp
  * @brief Layer data object for MRI volume.
  *
  */
 /*
  * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2017/02/08 21:01:00 $
- *    $Revision: 1.52 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -428,6 +423,8 @@ void LayerROI::GetStats(int nPlane, int *count_out, float *area_out,
 
   int cnt = 0;
   //  QVector<int> indices;
+  double val_range[2];
+  GetProperty()->GetValueRange(val_range);
   QVector<float> coords;
   for ( int i = 0; i < dim[0]; i++ )
   {
@@ -435,7 +432,7 @@ void LayerROI::GetStats(int nPlane, int *count_out, float *area_out,
     {
       for ( int k = 0; k < dim[2]; k++ )
       {
-        if ( ptr[k*dim[0]*dim[1]+j*dim[0]+i] > GetProperty()->GetThreshold() )
+        if ( ptr[k*dim[0]*dim[1]+j*dim[0]+i] >= val_range[0] )
         {
           cnt++;
           //          indices << i << j << k;

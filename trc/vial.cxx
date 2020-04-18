@@ -1,12 +1,10 @@
 /**
- * @file  vial.cxx
  * @brief Holds utilities for probabilistic tractography
  *
  * Holds utilities for probabilistic tractography
  */
 /*
  * Original Author: Anastasia Yendiki
- * CVS Revision Info:
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

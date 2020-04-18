@@ -1,15 +1,10 @@
 /**
- * @file  utils.c
  * @brief miscellaneous utility functions
  *
  * Among other junk, the central routine for random number generation is here.
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2016/06/11 20:50:55 $
- *    $Revision: 1.98 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1857,4 +1852,13 @@ double *DListStats(double *dlist, int nlist, double *stats)
   stats[3] = min;
   stats[4] = max;
   return(stats);
+}
+
+
+/*!
+  /brief Checks whether a string ends with a substring.
+*/
+bool stringEndsWith(const std::string& value, const std::string& ending) {
+  if (value.length() < ending.length()) return false;
+  return (0 == value.compare (value.length() - ending.length(), ending.length(), ending));
 }

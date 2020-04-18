@@ -70,10 +70,6 @@ function [M_R] = vox2ras_rsolveAA(Vc_C, inPlaneRotation, varargin)
 % vox2ras_rsolveAA.m
 %
 % Original Author: Rudolph Pienaar
-% CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2011/03/02 00:04:13 $
-%    $Revision: 1.5 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %

@@ -1,5 +1,4 @@
 /**
- * @file  cmat.h
  * @brief prototypes for reading/writing a Connectome MATrix structure
  *
  * Prototypes and structures for manipulating, reading and writing  for the Connectome Matrix (CMAT)
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2013/04/18 20:04:41 $
- *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

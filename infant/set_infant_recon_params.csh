@@ -1,7 +1,7 @@
 #!/bin/tcsh -ef
 
 # training subjects
-source atlassubjects.csh
+source $FREESURFER_HOME/bin/atlassubjects.csh
 # parcellation labels
 set parcellationlabels = (9000 9001 9002 9003 9004 9005 9006 9500 9501 9502 9503 9504 9505 9506)
 

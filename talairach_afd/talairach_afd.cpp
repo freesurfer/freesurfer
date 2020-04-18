@@ -1,5 +1,4 @@
 /**
- * @file  talairach_afd.c
  * @brief Automatically detect Talairach alignment failures.
  *
  * Detect bad Talairach alignment by checking subjects Talairach transform
@@ -8,10 +7,6 @@
  */
 /*
  * Original Author: Laurence Wastiaux
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:40 $
- *    $Revision: 1.13 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -86,11 +81,7 @@ int main(int argc, char *argv[])
   sigma=NULL;
   txfm=NULL;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option
-          (argc, argv,
-           "$Id: talairach_afd.c,v 1.13 2011/03/02 00:04:40 nicks Exp $",
-           "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "talairach_afd");
   if (nargs && argc - nargs == 1)
   {
     exit (0);

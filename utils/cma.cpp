@@ -1,5 +1,4 @@
 /**
- * @file  cma.c
  * @brief constants for neuroanatomical structures.
  *
  * constants and macros for neuroanatomical and some vascular structures.
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2015/10/05 23:59:03 $
- *    $Revision: 1.28 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1004,13 +999,217 @@ MRI *MRIfixAsegWithRibbon(MRI *aseg, MRI *ribbon, MRI *asegfixed)
   return (asegfixed);
 }
 
+/*!
+  \fn std::vector<double> ComputeBrainVolumeStats2(const std::string& subject, const std::string& subjdir)
+  \brief Computes various brain volume statistics and returns them as a vector of doubles.
+  These stats include BrainSegVol, BrainSegVolNotVent, SupraTentVol, SubCortGM, CtxGM,
+  CtxWM, etc. This function is simpler than the orignial in that it only uses the surface for
+  the cortical GM volume and just counts voxels otherwise. It also uses the ASegStatsLUT.txt
+  to define the structures that will be include or not. It also assumes that the cortical
+  ribbon will have white=pial everywhere in the medial wall (true starting with v7). This function
+  also uses the aseg.mgz which has been fixed with the ribbon.mgz. Set KeepCSF=1
+  if you want to include the "CSF" label (24) as part of the venticular system. This is the case
+  for aseg, but in SAMSEG the extracerebral CSF is also labeled as 24, and it is not clear what 
+  to do about it in terms of these stats. Differences between this function and the original
+  function are very small (less than 1%).
+*/
+ std::vector<double> ComputeBrainVolumeStats2(const std::string& subject, const std::string& subjdir, const int KeepCSF)
+{
+  auto subjfile = [subject, subjdir](const char* fname) { return subjdir + "/" + subject + "/" + fname; };
+  std::string fname;
+
+  // This must have been fixed with the ribbon as with mri_surf2volseg
+  fname = subjfile("mri/aseg.mgz");
+  MRI* aseg = MRIread(fname.c_str());
+  if (!aseg) fs::fatal() << "cannot compute vol stats without " << fname;
+
+  double VoxelVol = aseg->xsize * aseg->ysize * aseg->zsize;
+  printf("ComputeBrainVolumeStats2 VoxelVol=%g, KeepCSF=%d\n",VoxelVol,KeepCSF);
+
+  fname = subjfile("surf/lh.white");
+  MRIS* mris = MRISread(fname.c_str());
+  if (!mris) fs::fatal() << "cannot compute vol stats without " << fname;
+  double lhwhitevolTot = MRISvolumeInSurf(mris);
+  MRISfree(&mris);
+
+  fname = subjfile("surf/rh.white");
+  mris = MRISread(fname.c_str());
+  if (!mris) fs::fatal() << "cannot compute vol stats without " << fname;
+  double rhwhitevolTot = MRISvolumeInSurf(mris);
+  MRISfree(&mris);
+
+  fname = subjfile("surf/lh.pial");
+  mris = MRISread(fname.c_str());
+  if (!mris) fs::fatal() << "cannot compute vol stats without " << fname;
+  double lhpialvolTot = MRISvolumeInSurf(mris);
+  MRISfree(&mris);
+
+  fname = subjfile("surf/rh.pial");
+  mris = MRISread(fname.c_str());
+  if (!mris) fs::fatal() << "cannot compute vol stats without " << fname;
+  double rhpialvolTot = MRISvolumeInSurf(mris);
+  MRISfree(&mris);
+
+  fname = subjfile("mri/brainmask.mgz");
+  MRI* brainmask = MRIread(fname.c_str());
+  if (!brainmask) fs::fatal() << "cannot compute vol stats without " << fname;
+
+  // to get MNI305 coords for 77 hypos
+  fname = subjfile("mri/transforms/talairach.xfm");
+  LTA *talxfm =  LTAreadEx(fname.c_str());
+  if(!talxfm) fs::fatal() << "cannot compute vol stats without " << fname;
+
+  char *FREESURFER_HOME = getenv("FREESURFER_HOME");
+  char *ctabfile = (char *) calloc(sizeof(char),1000);
+  sprintf(ctabfile,"%s/ASegStatsLUT.txt",FREESURFER_HOME);
+  COLOR_TABLE *asegctab = CTABreadASCII(ctabfile);
+  if(asegctab == NULL){
+    printf("ERROR: reading %s\n",ctabfile);
+    exit(1);
+  }
+  free(ctabfile);
+
+  double BrainSegVol = 0;
+  double lhCerebralWM = 0;
+  double rhCerebralWM = 0;
+  double SubCortGMVol = 0;
+  double CerebellumVol = 0;
+  double CerebellumGMVol = 0;
+  double VentChorVol = 0;
+  double TFFC = 0;
+  double MaskVol = 0;
+  double CCVol = 0;
+  #ifdef HAVE_OPENMP
+#pragma omp parallel for reduction(+ : BrainSegVol,lhCerebralWM,rhCerebralWM,SubCortGMVol,CerebellumVol,CerebellumGMVol,VentChorVol,TFFC,MaskVol,CCVol)
+  #endif
+  for (int c = 0; c < aseg->width; c++) {
+    for (int r = 0; r < aseg->height; r++) {
+      for (int s = 0; s < aseg->depth; s++) {
+        int asegid = MRIgetVoxVal(aseg, c, r, s, 0);
+
+        // Total number of voxels in the brainmask
+        if(MRIgetVoxVal(brainmask, c, r, s, 0) > 0)MaskVol += VoxelVol;
+  
+	// Skip background
+	if(asegid == 0) continue;
+        // This asegid is not in the range of the LUT, skip it
+	if(asegid >= asegctab->nentries) continue;
+        // This asegid is BrainStem, skip it because its volume is unreliable
+	if(asegid == Brain_Stem) continue;
+        // Skip Optic Chiasm
+	if(asegid == Optic_Chiasm) continue;
+        // This asegid is also not in the LUT and it's not cerebral cortex or WM, skip it
+	if(asegctab->entries[asegid] == NULL && !IS_CORTEX(asegid) && !IS_WHITE_CLASS(asegid))
+	  continue;
+
+	// To get here, it must be cortex or WM or a structure in the
+	// ASegStatsLUT (but not brainstem or chiasm). FreezeSurface=247?
+	BrainSegVol += VoxelVol;
+
+        // Ventricle Volume
+        if(asegid == Left_choroid_plexus || asegid == Right_choroid_plexus || asegid == Left_Lateral_Ventricle ||
+           asegid == Right_Lateral_Ventricle || asegid == Left_Inf_Lat_Vent || asegid == Right_Inf_Lat_Vent)
+          VentChorVol += VoxelVol;
+        // 3rd, 4th, 5th, CSF
+        if(asegid == Third_Ventricle || asegid == Fourth_Ventricle || asegid == Fifth_Ventricle || 
+          (asegid == CSF && KeepCSF)) TFFC += VoxelVol;
+
+        // Subcortical GM structures (does not use PVC)
+        if(IsSubCorticalGray(asegid)) SubCortGMVol += VoxelVol;
+
+        // Corpus Callosum
+        if (asegid == 251 || asegid == 252 || asegid == 253 || asegid == 254 || asegid == 255) CCVol += VoxelVol;
+
+	// White matter. Not need to try to use the surface here. Include hypos
+	if(asegid == Left_Cerebral_White_Matter  || asegid == 78) lhCerebralWM += VoxelVol;
+	if(asegid == Right_Cerebral_White_Matter || asegid == 79) rhCerebralWM += VoxelVol;
+
+	// Hypo label 77 is unlateralized, so get its mni305 RAS
+	if(asegid == 77){
+          double  xs, ys, zs;
+	  TransformCRS2MNI305(aseg,  c,r,s, talxfm, &xs, &ys, &zs);
+	  if(xs <= 0) lhCerebralWM += VoxelVol;
+	  else        rhCerebralWM += VoxelVol;
+	  //printf("%d %d %d   %g %g %g\n",c,r,s,xs,ys,zs);
+        }
+
+        // Cerebellum GM volume
+        if (asegid == Left_Cerebellum_Cortex || asegid == Right_Cerebellum_Cortex) CerebellumGMVol += VoxelVol;
+        // Total Cerebellum (GM+WM) volume
+        if (asegid == Left_Cerebellum_Cortex || asegid == Right_Cerebellum_Cortex ||
+            asegid == Right_Cerebellum_White_Matter || asegid == Left_Cerebellum_White_Matter)
+          CerebellumVol += VoxelVol;
+      }
+    }
+  }
+  LTAfree(&talxfm);
+
+  // CtxGM = everything inside pial surface minus everything in white surface.
+  // With version 7, don't need to do a correction because the pial surface is
+  // pinned to the white surface in the medial wall
+  double lhCtxGM = lhpialvolTot - lhwhitevolTot;
+  double rhCtxGM = rhpialvolTot - rhwhitevolTot;
+
+  lhCerebralWM += CCVol/2.0;
+  rhCerebralWM += CCVol/2.0;
+
+  // Supratentorial volume (brainstem already not there)
+  double SupraTentVol = BrainSegVol - CerebellumVol; 
+  double SupraTentVolNotVent = SupraTentVol - VentChorVol - TFFC;
+
+  double BrainSegVolNotVent = BrainSegVol - VentChorVol - TFFC;
+
+  double TotalGMVol = SubCortGMVol + lhCtxGM + rhCtxGM + CerebellumGMVol;
+
+  printf("  #CBVS2 MaskVol             %10.1f\n", MaskVol);
+  printf("  #CBVS2 BrainSegVol         %10.1f\n", BrainSegVol);
+  printf("  #CBVS2 BrainSegVolNotVent  %10.1f\n", BrainSegVolNotVent);
+  printf("  #CBVS2 SupraTentVol        %10.1f\n", SupraTentVol);
+  printf("  #CBVS2 SupraTentVolNotVent %10.1f\n", SupraTentVolNotVent);
+  printf("  #CBVS2 lhCtxGM             %10.1f\n",lhCtxGM);
+  printf("  #CBVS2 rhCtxGM             %10.1f\n",rhCtxGM);
+  printf("  #CBVS2 lhCerebralWM        %10.1f\n",lhCerebralWM);
+  printf("  #CBVS2 rhCerebralWM        %10.1f\n",rhCerebralWM);
+  printf("  #CBVS2 SubCortGMVol        %10.1f\n", SubCortGMVol);
+  printf("  #CBVS2 CerebellumVol       %10.1f\n", CerebellumVol);
+  printf("  #CBVS2 CerebellumGMVol     %10.1f\n", CerebellumGMVol);
+  printf("  #CBVS2 VentChorVol         %10.1f\n", VentChorVol);
+  printf("  #CBVS2 3rd4th5thCSF        %10.1f\n", TFFC);
+  printf("  #CBVS2 AllCSF              %10.1f\n", TFFC+VentChorVol);
+  printf("  #CBVS2 CCVol               %10.1f\n", CCVol);
+
+  std::vector<double> stats = {
+    BrainSegVol,          // 0
+    BrainSegVolNotVent,   // 1
+    SupraTentVol,         // 2
+    SupraTentVolNotVent,  // 3
+    SubCortGMVol,         // 4
+    lhCtxGM,              // 5
+    rhCtxGM,              // 6
+    lhCtxGM + rhCtxGM,    // 7
+    TotalGMVol,           // 8
+    lhCerebralWM,                 // 9
+    rhCerebralWM,                 // 10
+    lhCerebralWM + rhCerebralWM,  // 11
+    MaskVol,          // 12
+    -1,               // 13   voxel-based supratentorial not vent volume
+    -1,               // 14   surface-based brain  not vent volume
+    VentChorVol       // 15   volume of ventricles + choroid
+  };
+
+  return stats;
+}
+
 
 /*!
-  Computes various brain volume statistics and returns them as a vector of doubles.
-  These stats include BrainSegVol, BrainSegVolNotVent, SupraTentVol, SubCortGM, CtxGM,
-  CtxWM, etc. The hope is that this one function will be able to consistently define
-  all of these parameters for a single subject. Where possible, this function returns
-  values based on surface-based analysis. It also computes the same values based on
+  \fn std::vector<double> ComputeBrainVolumeStats(const std::string& subject, const std::string& subjdir)
+  \brief See version 2 of this function as well. Computes various
+  brain volume statistics and returns them as a vector of doubles.
+  These stats include BrainSegVol, BrainSegVolNotVent, SupraTentVol,
+  SubCortGM, CtxGM, CtxWM, etc. The hope is that this one function
+  will be able to consistently define all of these parameters for a
+  single subject. Where possible, this function returns values based
+  on surface-based analysis. It also computes the same values based on
   volume-based analysis to check against the surface-based results.
 */
 std::vector<double> ComputeBrainVolumeStats(const std::string& subject, const std::string& subjdir)
@@ -1232,6 +1431,7 @@ std::vector<double> ComputeBrainVolumeStats(const std::string& subject, const st
 
   return stats;
 }
+
 
 
 static const std::string brainVolumeStatsFilename = "stats/brainvol.stats";

@@ -1,15 +1,10 @@
 /**
- * @file  dmri_mergepaths.cxx
  * @brief Merge posterior distributions from multiple paths into a 4D file
  *
  * Merge posterior distributions from multiple paths into a 4D file
  */
 /*
  * Original Author: Anastasia Yendiki
- * CVS Revision Info:
- *    $Author: ayendiki $
- *    $Date: 2013/02/12 01:48:33 $
- *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -84,8 +79,7 @@ int main(int argc, char **argv) {
   char fname[PATH_MAX];
   MRI *invol = 0, *outvol = 0;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "dmri_mergepaths");
   if (nargs && argc - nargs == 1) exit (0);
   argc -= nargs;
   cmdline = argv2cmdline(argc,argv);

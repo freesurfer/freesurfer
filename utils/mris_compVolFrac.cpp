@@ -1,5 +1,4 @@
 /**
- * @file  mris_compute_volume_fractions.c
  * @brief Computes accurate volume fractions remaining within a surface
  *
  * This program computes an accurate estimate of the fraction of the volume
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Ender Konukoglu
- * CVS Revision Info:
- *    $Author: enderk $
- *    $Date: 2013/05/17 16:16:49 $
- *    $Revision: 1.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

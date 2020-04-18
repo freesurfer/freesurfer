@@ -1,5 +1,4 @@
 /**
- * @file  mri_compute_seg_overlap.c
  * @brief Compute Dice coefficent comparing two segmentation volumes.
  *
  * This program compares two segmentation volumes and
@@ -7,10 +6,6 @@
  */
 /*
  * Original Authors: Xiao Han, Nick Schmansky
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2015/08/28 18:05:30 $
- *    $Revision: 1.18 $
  *
  * Copyright © 2011-2018 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -142,11 +137,7 @@ int main(int argc, char *argv[])
 
   Progname = argv[0];
 
-  nargs =
-    handle_version_option
-    (argc, argv,
-     "$Id: mri_compute_seg_overlap.c,v 1.18 2015/08/28 18:05:30 greve Exp $",
-     "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_compute_seg_overlap");
   if (nargs && argc - nargs == 1)
   {
     exit (0);

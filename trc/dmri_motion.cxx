@@ -1,15 +1,10 @@
 /**
- * @file  dmri_motion.cxx
  * @brief Compute measures of head motion in DWIs
  *
  * Compute measures of head motion in DWIs
  */
 /*
  * Original Author: Anastasia Yendiki
- * CVS Revision Info:
- *    $Author: ayendiki $
- *    $Date: 2014/05/27 14:49:34 $
- *    $Revision: 1.6 $
  *
  * Copyright © 2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -93,8 +88,7 @@ int main(int argc, char **argv) {
   string matline;
   ofstream outfile;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "dmri_motion");
   if (nargs && argc - nargs == 1) exit (0);
   argc -= nargs;
   cmdline = argv2cmdline(argc,argv);

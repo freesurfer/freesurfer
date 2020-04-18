@@ -1,15 +1,4 @@
-/**
- * @file  repair_siemens_file.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
- */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:35 $
- *    $Revision: 1.11 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -52,11 +41,7 @@ int main(int argc, char *argv[]) {
   int i;
   int nargs;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option 
-    (argc, argv, 
-     "$Id: repair_siemens_file.c,v 1.11 2011/03/02 00:04:35 nicks Exp $", 
-     "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "repair_siemens_file");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

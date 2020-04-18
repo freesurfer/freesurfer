@@ -1,5 +1,4 @@
 /**
- * @file  autoencoder.c
  * @brief header file for creating and training a stacked autoencoder for
 feature extraction.
  *
@@ -12,10 +11,6 @@ IEEE Transaction on Pattern Analysis and Machine Intelligence, 2012.
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2015/11/13 17:10:24 $
- *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

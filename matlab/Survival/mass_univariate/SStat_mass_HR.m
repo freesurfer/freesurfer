@@ -16,12 +16,7 @@ function [hr,pval] = SStat_mass_HR(x1,x2,y1,y2,stats)
 % hr: Hazard ratio values.
 % pval: P-values for the hr values.
 %
-% $Revision: 1.1 $  $Date: 2015/01/06 17:03:59 $
 % Original Author: Jorge Luis Bernal Rusiel 
-% CVS Revision Info:
-%    $Author: mreuter $
-%    $Date: 2015/01/06 17:03:59 $
-%    $Revision: 1.1 $
 % References: Kleinbaum, D.G., Klein, M., 2005. Survival analysis. A self-
 % learning approach, second edition. New York: Springer..
 %   

@@ -1,5 +1,4 @@
 /**
- * @file  oct_rf_train.c
  * @brief main program for training a cellular classifier from labeled OCT data
  *
  * program for trainin a random forest from a set of convolutional layers, and applying the
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2014/09/26 15:27:08 $
- *    $Revision: 1.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -110,8 +105,7 @@ main(int argc, char *argv[]) {
   int            *training_classes ;
   int xi, yi, xk, yk, fno ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: oct_rf_train.c,v 1.1 2014/09/26 15:27:08 fischl Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "oct_rf_train");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

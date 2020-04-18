@@ -1,5 +1,4 @@
 /**
- * @file  mris_make_average_surface.c
  * @brief create single surface from averages of a subject list
  *
  * This program will average the orig surfaces from the given subject
@@ -12,10 +11,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2013/04/11 20:41:58 $
- *    $Revision: 1.30 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -152,11 +147,7 @@ main(int argc, char *argv[]) {
 
   memset((void *) &vg, 0, sizeof (VOL_GEOM));
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option 
-    (argc, argv, 
-     "$Id: mris_make_average_surface.c,v 1.30 2013/04/11 20:41:58 greve Exp $",
-     "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_make_average_surface");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

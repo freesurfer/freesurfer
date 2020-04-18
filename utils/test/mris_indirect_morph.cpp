@@ -1,5 +1,4 @@
 /**
- * @file  mris_indirect_morph.cpp
  * @brief register surface2 to surface1 
  *
  * This function will register surface2 to surface1 using ICP or input linear
@@ -8,10 +7,6 @@
  */
 /*
  * Original Author: X. Han
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:55 $
- *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -130,8 +125,7 @@ int main(int argc, char *argv[])
   LTA          *lta = 0;
   int          transform_type;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_indirect_morph.cpp,v 1.7 2011/03/02 00:04:55 nicks Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_indirect_morph");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

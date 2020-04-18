@@ -1,5 +1,4 @@
 /**
- * @file  CommonDataStruct.h
  * @brief A few common structures to hold settings
  *
  * Simple mix-in class for use with the Broadcaster class so text
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:46 $
- *    $Revision: 1.16 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

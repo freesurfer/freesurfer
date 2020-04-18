@@ -1,14 +1,5 @@
-/**
- * @file  PanelVolume.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- */
 /*
  * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2017/01/20 19:58:46 $
- *    $Revision: 1.50 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -44,7 +35,8 @@ class QTreeWidget;
 class ColorTableItem : public QTreeWidgetItem
 {
 public:
-  ColorTableItem(QTreeWidget* tree) : QTreeWidgetItem(tree) {}
+  explicit ColorTableItem(int type = Type) : QTreeWidgetItem(type) {}
+  explicit ColorTableItem(QTreeWidget* tree) : QTreeWidgetItem(tree) {}
 
   enum SORT_TYPE  { ST_VALUE = 0, ST_NAME };
 
@@ -156,6 +148,8 @@ protected slots:
   void UpdateOpacity(double val);
 
   void OnLineEditClearBackgroundValue(const QString& text);
+
+  void RefreshColorTable();
 
 protected:
   void PopulateColorTable( COLOR_TABLE* ctab, bool bForce = false );

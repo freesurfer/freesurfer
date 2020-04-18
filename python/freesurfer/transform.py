@@ -21,6 +21,15 @@ class LinearTransform:
         self.target = target
         self.type = type
 
+        # make sure matrix is 4x4
+        if self.matrix.shape == (3, 4):
+            tmp = np.eye(4)
+            tmp[:3, :] = self.matrix
+            self.matrix = tmp
+
+        if self.matrix.shape != (4, 4):
+            raise ValueError('linear transform must be a 4x4 matrix')
+
     @staticmethod
     def ensure(unknown):
         '''Ensures that the unknown input is (or gets converted to) a LinearTransform'''
@@ -46,7 +55,7 @@ class LinearTransform:
         if pts.ndim == 1:
             pts = pts[np.newaxis]
         pts = np.c_[pts, np.ones(pts.shape[0])].T
-        return np.dot(self.matrix, pts).T.squeeze()[..., :-1]
+        return np.ascontiguousarray(np.dot(self.matrix, pts).T.squeeze()[..., :-1])
 
     def inverse(self):
         '''Computes the inverse linear transform.'''
@@ -176,7 +185,7 @@ class Transformable:
 
 class Warp:
     '''
-    TODO
+    TODOC
     '''
 
     def __init__(self, warp, source=None, target=None, affine=None):

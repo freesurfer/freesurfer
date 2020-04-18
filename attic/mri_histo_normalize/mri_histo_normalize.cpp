@@ -1,13 +1,8 @@
 /**
- * @file  mri_histo_normalize.c
  * @brief do linear normalization of a set of histograms
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:19 $
- *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -66,11 +61,7 @@ main(int argc, char *argv[]) {
   HISTOGRAM    *histos[MAX_SUBJECTS], *htemplate ;
   double       rms, rms_avg ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option 
-    (argc, argv, 
-     "$Id: mri_histo_normalize.c,v 1.3 2011/03/02 00:04:19 nicks Exp $", 
-     "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_histo_normalize");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

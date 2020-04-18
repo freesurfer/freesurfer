@@ -1,5 +1,4 @@
 /**
- * @file  mris_warp.c
  * @brief apply a specified displacement field to warp a surface
  *
  * applies a specified displacement field specified as a volume (M3Z)
@@ -8,10 +7,6 @@
  */
 /*
  * Original Author: jonathan polimeni
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2012/02/29 15:59:46 $
- *    $Revision: 1.3 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -127,7 +122,7 @@ int main(int argc, char *argv[])
   GCA_MORPH    *gcam1, *gcam2 ;
 
 
-  //  nargs = handle_version_option (argc, argv, "$Id: mris_warp.c,v 1.3 2012/02/29 15:59:46 nicks Exp $", "$Name:  $");
+  // nargs = handleVersionOption(argc, argv, "mris_warp");
   if (nargs && argc - nargs == 1)
   {
     exit (0);

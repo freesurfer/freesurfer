@@ -3,10 +3,6 @@
 ##
 ## tkanalyse.tcl
 ##
-## CVS Revision Info:
-##    $Author: nicks $
-##    $Date: 2011/03/01 01:41:22 $
-##    $Revision: 1.5 $
 ##
 ## Copyright (C) 1996 Martin Sereno and Anders Dale
 ## Copyright (C) 2002-2011, CorTechs Labs, Inc. (La Jolla, CA) and

@@ -10,15 +10,15 @@ import tempfile
 import scipy
 import random
 import sklearn
-import keras
-from keras.models import load_model
-from keras.callbacks import ReduceLROnPlateau, TensorBoard, ModelCheckpoint
-from keras import backend
+import tensorflow as tf
+from tensorflow.keras.models import load_model
+from tensorflow.keras.callbacks import ReduceLROnPlateau, TensorBoard, ModelCheckpoint
+from tensorflow.keras import backend
 from .. import wm_peak_normalize, robust_normalize, wm_peak_normalize_t2w
 from . import *
 
 
-class MultiGPUCheckpointCallback(keras.callbacks.Callback):
+class MultiGPUCheckpointCallback(tf.keras.callbacks.Callback):
     def __init__(self, output_prefix, save_per_epoch, save_weights, initial_epoch=1):
         super(MultiGPUCheckpointCallback, self).__init__()
         self.output_prefix = output_prefix
@@ -53,7 +53,7 @@ class MultiGPUCheckpointCallback(keras.callbacks.Callback):
         sys.stdout.flush()
 
 
-class MRIDeepNetCallback(keras.callbacks.Callback):
+class MRIDeepNetCallback(tf.keras.callbacks.Callback):
     def __init__(self, output_prefix, save_per_epoch, save_weights, initial_epoch=1):
         self.output_prefix = output_prefix
         self.save_per_epoch = save_per_epoch
@@ -290,7 +290,7 @@ class MRIDeepNet(object):
     @classmethod
     def from_file_old_model(cls, model_filename, loss, storage_loc='memory', temp_folder=os.getcwd(),
                             net='class_net', n_labels=0):
-        model = keras.load_model(model_filename)
+        model = tf.keras.load_model(model_filename)
 
         input_shape = model.input_shape
         unet_num_filters = model.get_config()[0]['config']['filters']
@@ -776,7 +776,7 @@ class MRIDeepNet(object):
         return patches, out_vec, trg_patches
 
     def apply_encoder(self, in_img_file, layer_name, step_size):
-        encoder_model = keras.Model(inputs=self.model.input, outputs=self.model.get_layer(layer_name).output)
+        encoder_model = tf.keras.Model(inputs=self.model.input, outputs=self.model.get_layer(layer_name).output)
         in_img = nib.load(in_img_file)
         print("Shape is " + str(in_img.get_data().shape))
         (in_patches, in_indices, padded_img_size) = self.feature_generator.extract_patches(in_img_file,
@@ -791,7 +791,7 @@ class MRIDeepNet(object):
         return out_patches, in_patches, in_indices, padded_img_size
 
     def apply_decoder(self, in_patches, layer_name, step_size):
-        decoder_model = keras.Model(inputs=self.model.get_layer(layer_name), outputs=self.model.output)
+        decoder_model = tf.keras.Model(inputs=self.model.get_layer(layer_name), outputs=self.model.output)
         # in_img = nib.load(in_img_file)
         # print("Shape is " + str(in_img.get_data().shape))
         # (in_patches, in_indices, padded_img_size) = self.feature_generator.extract_patches(in_img_file, intensity_threshold=0,

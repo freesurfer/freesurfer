@@ -1,5 +1,4 @@
 /**
- * @file  mri_normalize_tp2.c
  * @brief use tp1's ctrl volume to normalize tp2
  *
  * Used in longitudinal processing.  Rather than calculating the control
@@ -8,10 +7,6 @@
  */
 /*
  * Original Author: Xaio Han
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:23 $
- *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -92,10 +87,7 @@ int main(int argc, char *argv[]) {
 
   Progname = argv[0];
 
-  nargs = handle_version_option
-          (argc, argv,
-           "$Id: mri_normalize_tp2.c,v 1.8 2011/03/02 00:04:23 nicks Exp $",
-           "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_normalize_tp2");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs ;

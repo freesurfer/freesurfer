@@ -1,5 +1,4 @@
 /**
- * @file MyMatrix.cpp
  * @brief A static class with Matrix operations
  *
  *    as used for registration (rigid, affine maps)
@@ -8,10 +7,6 @@
 
 /*
  * Original Author: Martin Reuter
- * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2014/03/20 20:22:27 $
- *    $Revision: 1.20 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

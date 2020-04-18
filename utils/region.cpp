@@ -1,14 +1,9 @@
 /**
- * @file  region.c
  * @brief utilities for the REGION data structure
  *
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2014/03/04 19:41:06 $
- *    $Revision: 1.12 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

@@ -1,15 +1,10 @@
 /**
- * @file  rforest.h
  * @brief types and prototypes for random forest classifier
  *
  * Base on Leo Breiman's random forest classification algorithm
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2014/09/25 19:37:01 $
- *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

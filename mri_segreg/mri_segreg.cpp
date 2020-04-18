@@ -1,14 +1,9 @@
 /**
- * @file  mri_segreg.c
  * @brief compute/optimize cost function of segmentation-based registration
  *
  */
 /*
  * Original Author: Greg Grev
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2016/05/10 03:23:20 $
- *    $Revision: 1.113 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -347,7 +342,6 @@ int InitSurfCostOnly=0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
-  char cmdline[CMD_LINE_LEN] ;
   double costs[8], mincost, p[12], pmin[6];
   double tx, ty, tz, ax, ay, az;
   int nth, n, vno;
@@ -364,16 +358,9 @@ int main(int argc, char **argv) {
 
   memset(pmin,0,sizeof(pmin));
 
-  make_cmd_version_string
-    (argc, argv,
-     "$Id: mri_segreg.c,v 1.113 2016/05/10 03:23:20 greve Exp $",
-     "$Name:  $", cmdline);
+  std::string cmdline = getAllInfo(argc, argv, "mri_segreg");
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option
-    (argc, argv,
-     "$Id: mri_segreg.c,v 1.113 2016/05/10 03:23:20 greve Exp $",
-     "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_segreg");
   if(nargs && argc - nargs == 1) exit (0);
 
   cmdline2 = argv2cmdline(argc,argv);

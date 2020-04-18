@@ -1,6 +1,5 @@
 #define COMPILING_MRISURF_TOPOLOGY_FRIEND_CHECKED
 /**
- * @file  mri_mc.c
  * @brief generates a marching cubes triangulation
  *
  * Generates a marching cubes triangulation that is topologically consistent
@@ -10,10 +9,6 @@
  */
 /*
  * Original Author: Florent Segonne
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2014/03/22 01:40:02 $
- *    $Revision: 1.23 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -800,12 +795,9 @@ int main(int argc, char *argv[]) {
   MRIS **mris_table, *mris,*mris_corrected;
   MRI *mri;
 
-  char cmdline[CMD_LINE_LEN] ;
 
-  make_cmd_version_string 
-    (argc, argv, 
-     "$Id: mri_mc.c,v 1.23 2014/03/22 01:40:02 greve Exp $", "$Name:  $", 
-     cmdline);
+  std::string cmdline = getAllInfo(argc, argv, "mri_mc");
+
   Progname=argv[0];
 
   if (argc > 1 && (stricmp(argv[1], "-d") == 0)) {

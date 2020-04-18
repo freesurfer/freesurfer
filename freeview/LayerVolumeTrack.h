@@ -1,14 +1,9 @@
 /**
- * @file  LayerVolumeTrack.h
  * @brief Layer class for tracks saved in a multi-frame volume.
  *
  */
 /*
  * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2013/02/06 18:35:43 $
- *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -64,10 +59,14 @@ public:
 
   int GetFrameLabel(int nFrame);
 
+  QList<int> GetVisibleLabels();
+
 public slots:
   void Highlight(int nLabel);
   void RestoreColors();
+  void ShowAllLabels(bool bShow);
   void SetLabelVisible(int nLabel, bool bVisible);
+  void SetFrameVisible(int nFrame, bool bVisible);
 
 protected slots:
   void UpdateFrameActor(int n);
@@ -77,6 +76,7 @@ protected slots:
 
 protected:
   QList< vtkSmartPointer<vtkActor> >  m_actors;
+  QList< bool > m_bVisiblities;
   COLOR_TABLE* m_ctabStripped;
 };
 

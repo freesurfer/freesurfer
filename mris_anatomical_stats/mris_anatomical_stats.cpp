@@ -1,14 +1,9 @@
 /**
- * @file  mris_anatomical_stats.c
  * @brief measures a variety of anatomical properties
  *
  */
 /*
  * Original Author: Bruce Fischl and Doug Greve
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2016/03/14 15:15:34 $
- *    $Revision: 1.79 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -122,11 +117,7 @@ main(int argc, char *argv[])
   float         mean_cortex_thickness = 0;
   double voxelvolume=0;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option
-          (argc, argv,
-           "$Id: mris_anatomical_stats.c,v 1.79 2016/03/14 15:15:34 greve Exp $",
-           "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_anatomical_stats");
   if (nargs && argc - nargs == 1)
   {
     exit (0);

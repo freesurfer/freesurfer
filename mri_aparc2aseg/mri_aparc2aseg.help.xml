@@ -74,6 +74,8 @@ Note: The volumes of the cortical labels will be different than reported by mris
       <explanation>test mapping of col row slice</explanation>
       <argument>--lh, --rh</argument>
       <explanation>only process the given hemisphere</explanation>
+      <argument>--threads nthreads</argument>
+      <explanation>Run in parallel with nthreads</explanation>
     </optional-flagged>
   </arguments>
   <outputs>

@@ -1,5 +1,4 @@
 /**
- * @file  svm-kernel-param.h
  * @brief defines various kernel types and functionality.
  *
  * Name: KernelParam (abstract), LinearKernelParam, PolyKernelParam,
@@ -23,10 +22,6 @@
  */
 /*
  * Original Author: Polina Golland polina@ai.mit.edu
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:40 $
- *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

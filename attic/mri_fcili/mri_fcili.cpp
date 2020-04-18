@@ -1,15 +1,9 @@
 /**
- * @file  mri_fcili.c
  * @brief Computes intrinsic laterality index (iLI) based on supplied waveforms.
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
  * Original Author: Douglas N. Greve
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2013/11/22 19:41:44 $
- *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -96,7 +90,7 @@ int main(int argc, char *argv[]) {
   int c,f, nrois, roi1, roi2, nframes;
   double v,ss, v1,v2,den,num, LL, LR, RL, RR;
 
-  nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_fcili");
   if (nargs && argc - nargs == 1) exit (0);
   argc -= nargs;
   cmdline = argv2cmdline(argc,argv);

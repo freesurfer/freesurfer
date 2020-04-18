@@ -1,5 +1,4 @@
 /**
- * @file  mri_glmfit.c
  * @brief GLM analysis with or without FSGD files
  *
  * Performs general linear model (GLM) analysis in the volume or the
@@ -12,10 +11,6 @@
  */
 /*
  * Original Author: Douglas N Greve
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2017/02/15 21:04:18 $
- *    $Revision: 1.246 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -774,8 +769,7 @@ int main(int argc, char **argv) {
   csd = CSDalloc();
   csd->threshsign = 0; //0=abs,+1,-1
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_glmfit");
   if (nargs && argc - nargs == 1) exit (0);
   argc -= nargs;
   cmdline = argv2cmdline(argc,argv);
@@ -2590,7 +2584,7 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%lf",&FWHM);
       csd->nullfwhm = FWHM;
       printf("FWHM = %f\n",FWHM);
-      if(isnan(FWHM)){
+      if(std::isnan(FWHM)){
 	printf("ERROR: input FWHM is NaN (not a number).\n");
 	printf("  Check the mask in the glm directory.\n");
 	exit(1);

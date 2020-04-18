@@ -1,5 +1,4 @@
 /**
- * @file  annotation.c
  * @brief utilities for surface-based parcellations
  *
  * utilities for surface-based parcellations (see Fischl et al.,
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2016/08/02 21:20:26 $
- *    $Revision: 1.32 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -41,6 +36,7 @@
 #include "fio.h"
 #include "mrisurf.h"
 #include "utils.h"
+#include "tags.h"
 
 #define ANNOTATION_SRC
 #include "annotation.h"
@@ -89,7 +85,7 @@ int print_annotation_colortable(FILE *fp)
 std::vector<int> readAnnotationIntoVector(const std::string& filename)
 {
   FILE *file = fopen(filename.c_str(), "r");
-  if (!file) logFatal(1) << "could not open " << filename;
+  if (!file) fs::fatal() << "could not open " << filename;
 
   std::map<int,int> annotmap;
   int num = freadInt(file);
@@ -1050,4 +1046,89 @@ double *MRISannotDice(MRIS *surf1, MRIS *surf2, int *nsegs, int **segidlist)
   *segidlist = segidlist1;
 
   return (dice);
+}
+
+
+/*!
+  \brief Reads an annotation file into a 1D seg overlay. Expects that the
+  file has an embedded lookup table so that it can convert annotation values
+  to segmentation indices.
+*/
+MRI *readAnnotationIntoSeg(const std::string& filename)
+{
+  FILE *f = fopen(filename.c_str(), "r");
+  if (!f) fs::fatal() << "could not open annot file " << filename;
+
+  // first int is nvertices
+  int nvertices = freadInt(f);
+  MRI *overlay = new MRI({nvertices, 1, 1}, MRI_INT);
+
+  // read annotations into seg
+  for (int n = 0; n < nvertices; n++) {
+    int vno = freadInt(f);
+    int val = freadInt(f);
+    MRIsetVoxVal(overlay, vno, 0, 0, 0, val);
+  }
+
+  // check for embedded colortable
+  int tag = freadInt(f);
+  if (!feof(f) && TAG_OLD_COLORTABLE == tag) overlay->ct = CTABreadFromBinary(f);
+
+  fclose(f);
+
+  // since we're converting from annot to seg index values, we
+  // should expect that the file contains a colortable
+  if (overlay->ct) {
+    for (int vno = 0; vno < nvertices; vno++) {
+      int annot = MRIgetVoxVal(overlay, vno, 0, 0, 0);
+      CTABfindAnnotation(overlay->ct, annot, &annot);
+      MRIsetVoxVal(overlay, vno, 0, 0, 0, annot);
+    }
+  } else {
+    fs::warning() << "reading annotation without embedded lookup table";
+  }
+
+  return overlay;
+}
+
+
+/*!
+  \brief Writes an annotation file from a 1D seg overlay. Expects that the
+  seg MRI has a lookup table so that it can convert segmentation indices to
+  annotation values.
+*/
+void writeAnnotationFromSeg(const MRI *overlay, const std::string& filename)
+{
+  FILE *f = fopen(filename.c_str(), "wb");
+  if (!f) fs::fatal() << "could not write annot file " << filename;
+
+  // first int is nvertices
+  int nvertices = overlay->width;
+  fwriteInt(nvertices, f);
+
+  // convert seg values back into annotation values (if lookup table exists)
+  for (int vno = 0; vno < nvertices; vno++) {
+    int annot = MRIgetVoxVal(overlay, vno, 0, 0, 0);
+    if (overlay->ct) {
+      if (annot < 0) {
+         // set all negative seg values to 0 and don't search for annotation
+        annot = 0;
+      } else {
+        // set annotation from seg value
+        CTABannotationAtIndex(overlay->ct, annot, &annot);
+      }
+    }
+    fwriteInt(vno, f);
+    fwriteInt(annot, f);
+  }
+
+  // embed lookup table
+  if (overlay->ct) {
+    fwriteInt(TAG_OLD_COLORTABLE, f);
+    CTABwriteIntoBinary(overlay->ct, f);
+  } else {
+    fs::warning() << "writing annotation without embedded lookup table";
+  }
+
+  fclose(f);
 }

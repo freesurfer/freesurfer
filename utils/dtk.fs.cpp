@@ -1,15 +1,7 @@
 /**
- * @file  dtk.fs.c
  * @brief FS interface to Diffusion Toolkit and TrackVis data.
  *
  * DTk http://trackvis.org/docs/?subsect=fileformat
- */
-/*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:43 $
- *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

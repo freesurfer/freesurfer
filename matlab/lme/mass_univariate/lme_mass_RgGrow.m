@@ -28,12 +28,7 @@ function [Regions,RgMeans] = lme_mass_RgGrow(SphSurf,Re,Theta,maskvtx,nst,prc)
 % RgMeans: Matrix assigning the mean of Theta within a region to each vertex
 % belonging to that region.
 %
-% $Revision: 1.2 $  $Date: 2015/01/06 17:14:55 $
 % Original Author: Jorge Luis Bernal Rusiel 
-% CVS Revision Info:
-%    $Author: mreuter $
-%    $Date: 2015/01/06 17:14:55 $
-%    $Revision: 1.2 $
 % References: 
 % Gonzalez, R.C., Woods, R.E. (2002). Digital Image Processing. 2nd Edition, 
 % New Jersey: Prentice Hall, Inc.

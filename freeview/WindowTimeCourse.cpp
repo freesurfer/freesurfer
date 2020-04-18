@@ -1,14 +1,9 @@
 /**
- * @file  WindowTimeCourse.cpp
  * @brief Tool window to display time course data
  *
  */
 /*
  * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2014/04/29 18:10:42 $
- *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

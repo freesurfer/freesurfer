@@ -1,5 +1,4 @@
 /**
- * @file  mris_compute_volume_fractions.c
  * @brief Computes accurate volume fractions remaining within a surface
  *
  * This program computes an accurate estimate of the fraction of the volume 
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Ender Konukoglu
- * CVS Revision Info:
- *    $Author: enderk $
- *    $Date: 2013/05/17 15:19:06 $
- *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -64,7 +59,7 @@ int main(int argc, char *argv[]) {
   printf("working!\n");
   int nargs;
 
-  nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_compute_volume_fractions");
 
   if (nargs && argc - nargs == 1) exit (0);
 

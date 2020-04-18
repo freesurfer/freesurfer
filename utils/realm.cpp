@@ -1,7 +1,6 @@
 #include "realm.h"
 
 /**
- * @file  realm.c
  * @brief support quickly scanning all the vertices or faces on an MRI for
  *        for those that might intersect a brick
  *
@@ -9,10 +8,6 @@
  */
 /*
  * Original Author: Bevin R Brett
- * CVS Revision Info:
- *    $Author: brbrett $
- *    $Date: 2018/02/21 15:00:00 $
- *    $Revision: 1.0 $
  *
  * Copyright © 2018 The General Hospital Corporation (Boston, MA) "MGH"
  *

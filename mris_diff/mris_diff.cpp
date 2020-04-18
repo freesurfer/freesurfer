@@ -1,15 +1,10 @@
 /**
- * @file  mris_diff.c
  * @brief Compare two surfaces.
  *
  */
 /*
  * Original Author: Doug Greve
  * Modifications: Bevin R Brett
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2014/03/21 23:57:48 $
- *    $Revision: 1.20 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -378,7 +373,7 @@ int main(int argc, char *argv[]) {
   FACE *face1, *face2;
   float maxdiff, rms;
 
-  nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_diff");
   if (nargs && argc - nargs == 1) exit (0);
   argc -= nargs;
   cmdline = argv2cmdline(argc,argv);
@@ -1075,6 +1070,11 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%ld",&seed);
       nargsused = 1;
     } 
+    else if (!strcasecmp(option, "--gdiag_no")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%d",&Gdiag_no);
+      nargsused = 1;
+    } 
     else if (!strcasecmp(option, "--min-dist")) {
       if(nargc < 4) CMDargNErr(option,4);
       surf1 = MRISread(pargv[0]);
@@ -1150,6 +1150,7 @@ static void print_usage(void) {
   printf("   --aparc2 aparc2   optional different name to compare to aparc\n");
   printf("\n");
   printf("other options:\n");
+  printf("   --simple : just report whether the surfaces are different\n");
   printf("   --thresh N    threshold (default=0) [note: not currently implemented!] \n");
   printf("   --maxerrs N   stop looping after N errors (default=%d)\n",
          MAX_NUM_ERRORS);
@@ -1162,10 +1163,11 @@ static void print_usage(void) {
   printf("   --xyz-rms xyzrmsfile : compute and save rms diff between xyz\n");
   printf("   --angle-rms anglermsfile : compute angle on sphere between xyz\n");
   printf("   --seed seed : set random seed for degenerate normals\n");
-  printf("   --min-dist surf1 surf2 mindist : compute vertex-by-vert RMS distance between surfs\n");
+  printf("   --min-dist surf1 surf2 exactflag mindist : compute vertex-by-vert RMS distance between surfs\n");
   printf("     surfs do not need to have the same number of vertices. Output on surf2\n");
   printf("\n");
   printf("   --debug       turn on debugging\n");
+  printf("   --gdiag_no Gdiag_no\n");
   printf("   --checkopts   don't run anything, just check options and exit\n");
   printf("   --help        print out information on how to use program\n");
   printf("   --version     print out version and exit\n");

@@ -1,14 +1,5 @@
-/**
- * @file  PanelPointSet.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- */
 /*
  * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2016/09/06 16:09:03 $
- *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -41,6 +32,9 @@
 #include <QTreeWidgetItem>
 #include <QMessageBox>
 #include "DialogAddPointSetStat.h"
+#ifdef Q_OS_MAC
+#include "MacHelper.h"
+#endif
 
 PanelPointSet::PanelPointSet(QWidget *parent) :
   PanelLayer("PointSet", parent),
@@ -81,6 +75,11 @@ PanelPointSet::PanelPointSet(QWidget *parent) :
   m_self = qgetenv("USER");
   if (m_self.isEmpty())
     m_self = qgetenv("USERNAME");
+
+#ifdef Q_OS_MAC
+  if (MacHelper::IsDarkMode())
+      ui->commentsContentWidget->setStyleSheet(QString("#commentsContentWidget {background-color:#1E1E1E;}"));
+#endif
 }
 
 PanelPointSet::~PanelPointSet()
@@ -427,10 +426,14 @@ QLabel* PanelPointSet::MakeCommentItem(const QVariantMap& map)
   QLabel* label = new QLabel();
   label->setWordWrap(true);
   label->setTextInteractionFlags(label->textInteractionFlags() | Qt::TextSelectableByMouse);
-  QString text = tr("<span style=\"color:rgba(0,0,0,150);font-size:10px;\">[%1] (%2)</span><br />%3").arg(map["timestamp"].toDateTime().toString())
-      .arg(map["user"].toString()).arg(map["text"].toString());
+  bool bDarkMode = false;
+#ifdef Q_OS_MAC
+  bDarkMode = MacHelper::IsDarkMode();
+#endif
+  QString text = QString("<span style=\"color:rgba(%4,%4,%4,150);font-size:10px;\">[%1] (%2)</span><br />%3").arg(map["timestamp"].toDateTime().toString())
+      .arg(map["user"].toString()).arg(map["text"].toString()).arg(bDarkMode?255:0);
   if (map["user"].toString() == m_self)
-    text +=" (<a href=\"delete\" style=\"font-size:11px\">delete</a>)"; // (<a href=\"hide\" style=\"font-size:10px\">hide</a>)";
+    text += QString(" (<a href=\"delete\" style=\"font-size:11px;color:%1\">delete</a>)").arg(bDarkMode?"#00A6FF":"blue");
   label->setText(text);
   label->setStyleSheet("QLabel{font-size:12px;padding:2px;padding-top:3px;padding-bottom:3px;}");
   connect(label, SIGNAL(linkActivated(QString)), SLOT(OnCommentLabelClicked(QString)));

@@ -1,15 +1,4 @@
-/**
- * @file  mri_twoclass.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
- */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
- * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2015/02/05 23:34:40 $
- *    $Revision: 1.16 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -150,8 +139,7 @@ main(int argc, char *argv[]) {
   TRANSFORM    *transform ;
   VLI          *vli1 = NULL, *vli2 = NULL ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_twoclass.c,v 1.16 2015/02/05 23:34:40 zkaufman Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_twoclass");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -823,7 +811,7 @@ compute_voxel_statistics(VL ***voxel_labels_class1, VL ***voxel_labels_class2,
           p = 1e-20 ;
           MRIFvox(mri_stats, x, y, z) = 20 ;
         } else {
-          if (!isfinite(-log(p)))
+          if (!std::isfinite(-log(p)))
             DiagBreak() ;
           MRIFvox(mri_stats, x, y, z) = -log(p) ;
         }

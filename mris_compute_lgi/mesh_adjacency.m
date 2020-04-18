@@ -12,9 +12,6 @@ function edge = mesh_adjacency(FV)
 % edge          - edge lengths, indexed by vertex 
 %                 number (sparse NxN matrix)
 % 
-
-% $Revision: 1.1 $ $Date: 2007/11/16 02:53:53 $
-
 % 
 % Licence:  GNU GPL, no implied or express warranties
 % History:  07/2002, Darren.Weber_at_radiology.ucsf.edu

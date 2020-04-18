@@ -15,12 +15,7 @@ function fstats = lme_F(stats,C)
 % fstats.sgn: Sign of the contrast.
 % fstats.df: Degrees of freedom of the F-Statistic.
 %
-% $Revision: 1.4 $  $Date: 2016/04/08 19:36:05 $
 % Original Author: Jorge Luis Bernal Rusiel 
-% CVS Revision Info:
-%    $Author: mreuter $
-%    $Date: 2016/04/08 19:36:05 $
-%    $Revision: 1.4 $
 % References: Bernal-Rusiel J.L., Greve D.N., Reuter M., Fischl B., Sabuncu
 % M.R., 2012. Statistical Analysis of Longitudinal Neuroimage Data with Linear 
 % Mixed Effects Models, NeuroImage, doi:10.1016/j.neuroimage.2012.10.065.

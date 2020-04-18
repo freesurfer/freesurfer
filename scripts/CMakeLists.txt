@@ -2,11 +2,9 @@ install(PROGRAMS
   annot2std
   aparc2feat
   aparc_stats_aseg
-  aparcstats2table
   aparcstatsdiff
   apas2aseg
   aseg2feat
-  asegstats2table
   asegstatsdiff
   avi2talxfm
   bblabel
@@ -29,7 +27,6 @@ install(PROGRAMS
   conf2hires
   cor_to_minc
   cp-dicom
-  datastruct_utils.py
   dcmdir-info-mgh
   dcmsplit
   dcmunpack
@@ -41,7 +38,6 @@ install(PROGRAMS
   dmrirc.long.example
   dsh
   dt_recon
-  easyfv
   epidewarp.fsl
   extract_talairach_avi_QA.awk
   feat2segstats
@@ -68,17 +64,15 @@ install(PROGRAMS
   fscalc.fsl
   fsdcmdecompress
   fsfget
-  fsgd_parser.py
   fsl.5.0.2.xyztrans.sch
   fsl_rigid_register
   fsl_sub_mgh
   fslregister
-  fspalm
   fsr-checkxopts
   fsr-coreg  
   fsr-getxopts
   fsr-import
-  fsutils.py
+  fsvglrun
   fvcompare
   gca-apply
   gcainit
@@ -105,6 +99,8 @@ install(PROGRAMS
   isanalyze
   IsLTA
   isnifti
+  isolate_labels.csh
+  isolate_labels_keeporigval.csh
   jkgcatrain
   label_child
   label_elderly_subject
@@ -117,15 +113,7 @@ install(PROGRAMS
   listsubj
   long_create_base_sigma
   long_create_orig
-  long_mris_slopes
-  long_qdec_table
-  long_stats_combine
-  long_stats_slopes
-  long_stats_tps
-  long_submit_jobs
-  long_submit_postproc
   longmc
-  LongQdecTable.py
   lpcregister
   make-segvol-table
   make_average_subcort
@@ -135,6 +123,7 @@ install(PROGRAMS
   make_cortex_label
   make_folding_atlas
   make_hemi_mask
+  make_exvivo_filled
   make_symmetric
   make_upright
   map_all_labels
@@ -143,10 +132,8 @@ install(PROGRAMS
   map_to_base
   mcparams2reg
   meanval
-  merge_stats_tables
   mergeseg
   minc2seqinfo
-  misc.py
   mkheadsurf
   mkima_index.tcl
   mkmnc_index.tcl
@@ -193,7 +180,6 @@ install(PROGRAMS
   rebuild_gca_atlas.csh
   rca-base-init
   rca-long-tp-init
-  recon-all
   recon-all-exvivo
   recon-all.makefile
   reconbatchjobs
@@ -214,7 +200,6 @@ install(PROGRAMS
   renormalize_subject_keep_editting
   renormalize_T1_subject
   reregister_subject_mixed
-  rmcr
   rtview
   run-qdec-glm
   run_mris_preproc
@@ -240,9 +225,7 @@ install(PROGRAMS
   spmmat2register
   spmregister
   sratio
-  stattablediff
   stem2fname
-  subject_info.py
   surfreg
   tal_compare
   talairach
@@ -258,7 +241,6 @@ install(PROGRAMS
   trac-all
   trac-paths
   trac-preproc
-  tractstats2table
   train-gcs-atlas
   unpack_ima.tcl
   unpack_ima1.tcl
@@ -288,7 +270,28 @@ install(PROGRAMS
   DESTINATION bin
 )
 
-install_pyscript(rca-config rca-config2csh)
+install_configured(
+  recon-all
+  DESTINATION bin
+)
+
+install_pyscript(
+  long_submit_jobs
+  long_qdec_table
+  long_submit_postproc
+  long_stats_tps
+  long_stats_slopes
+  long_mris_slopes
+  long_stats_combine
+  aparcstats2table
+  asegstats2table
+  tractstats2table
+  stattablediff
+  merge_stats_tables
+  fspalm
+  rca-config
+  rca-config2csh
+)
 
 install_append_help(bbregister bbregister.help.xml bin)
 

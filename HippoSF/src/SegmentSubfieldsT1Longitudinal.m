@@ -160,6 +160,9 @@ end
 if exist(tempdir,'dir')==0
     mkdir(tempdir);
 end
+
+tempdir=getFullPath(tempdir)
+
 cd(tempdir);
 
 % Produce error if resolutions are not all the same

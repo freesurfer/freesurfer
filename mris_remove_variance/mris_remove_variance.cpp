@@ -1,15 +1,4 @@
-/**
- * @file  mris_remove_variance.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
- */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:33 $
- *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -64,8 +53,7 @@ main(int argc, char *argv[]) {
   MRI_SURFACE  *mris ;
   double       r ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_remove_variance.c,v 1.7 2011/03/02 00:04:33 nicks Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_remove_variance");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

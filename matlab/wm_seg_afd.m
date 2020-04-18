@@ -12,10 +12,6 @@ function [Dice,pval]=wm_seg_adf(subject, th_pval)
 % wm_seg_afd.m
 %
 % Original Author: Laurence Wastiaux
-% CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2011/03/02 00:04:13 $
-%    $Revision: 1.3 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %

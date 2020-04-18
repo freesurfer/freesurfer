@@ -1,14 +1,5 @@
-/**
- * @file  LayerTrack.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- */
 /*
  * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2016/05/10 19:17:30 $
- *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -86,7 +77,7 @@ bool LayerTrack::LoadTrackFromFiles()
   {
     delete m_trackData;
     m_trackData = 0;
-    qDebug() << "Failed to load from file " << m_sFilename << ".";
+    cerr << "Failed to load from file " << qPrintable(m_sFilename) << endl;
     return false;
   }
   if (IsCluster())

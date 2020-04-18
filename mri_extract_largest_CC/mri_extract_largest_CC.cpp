@@ -1,15 +1,10 @@
 /**
- * @file  mri_extract_largest_CC.c
  * @brief extract the largest connected component from a volume and write it into another volume
  *
  * extract the largest connected component from a volume and write it into another volume
  */
 /*
  * Original Author: Florent Segonne
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2012/06/25 18:34:05 $
- *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -57,6 +52,7 @@ static int inverse = 0 ;
 
 const char *Progname;
 static MRI *mri_orig = NULL ;
+static int target_value = 255;
 
 int main(int argc, char *argv[]) {
   char   **av;
@@ -64,12 +60,11 @@ int main(int argc, char *argv[]) {
   int ac, nargs;
 
   int x, y, z;
-  int target_value = 255;
 
 
   Progname = argv[0];
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_extract_largest_CC.c,v 1.9 2012/06/25 18:34:05 fischl Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_extract_largest_CC");
   argc -= nargs ;
   if (1 >= argc)
     usage (0);
@@ -85,10 +80,13 @@ int main(int argc, char *argv[]) {
   if (argc != 3)
     usage(1);
 
-  if (!stricmp(hemi, "lh")) {
-    target_value = lh_label;
-  } else {
-    target_value = rh_label;
+  if (target_value == 255)
+  {
+    if (!stricmp(hemi, "lh")) {
+      target_value = lh_label;
+    } else {
+      target_value = rh_label;
+    }
   }
 
   mri_seg = MRIread(argv[1]) ;
@@ -101,7 +99,14 @@ int main(int argc, char *argv[]) {
   for (z = 0; z < mri_seg->depth; z++)
     for (y = 0; y < mri_seg->height; y++)
       for (x = 0; x < mri_seg->width; x++) {
-	if (inverse == 0)
+	if (target_value != rh_label && target_value != lh_label)
+	{
+	  if (MRIgetVoxVal(mri_seg, x, y, z, 0) == target_value)
+	    MRIsetVoxVal(mri_seg, x, y, z, 0, 255);
+	  else
+	    MRIsetVoxVal(mri_seg, x, y, z, 0, 0);
+	} 
+	else if (inverse == 0)
 	{
 	  if (MRIgetVoxVal(mri_seg, x, y, z, 0) < threshold)
 	    MRIsetVoxVal(mri_seg, x, y, z, 0, 0);
@@ -158,6 +163,7 @@ void usage(int exit_val) {
   fprintf(fout, "\t\t -hemi lh/rh: set the target value corresponding to lh (255) or rh (127) \n") ;
   fprintf(fout, "\t\t -I : find the largest CC in the background\n") ;
   fprintf(fout, "\t\t -O <orig volume> : clone values from <orig volume> into output (used with -I)\n") ;
+  fprintf(fout, "\t\t -L <label val> : perform connected components on voxels with value <label val>\n") ;
   exit(exit_val);
 
 }  /*  end usage()  */
@@ -189,6 +195,11 @@ get_option(int argc, char *argv[]) {
       ErrorExit(ERROR_NOFILE, "%s: could not open orig volume %s", Progname, argv[2]) ;
     nargs = 1 ;
     break ;
+    case 'L':
+      target_value = atoi(argv[2]) ;
+      printf("using target value %d\n", target_value) ;
+      nargs = 1 ;
+      break ;
   case 'I':
     inverse = 1 ;
     printf("extracting CC from background instead of foreground\n") ;

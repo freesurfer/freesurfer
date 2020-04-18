@@ -1,5 +1,4 @@
 /**
- * @file  mris_register_to_volume.c
  * @brief program for computing/optimizing registration of a surface to a volume
  *        
  *
@@ -9,10 +8,6 @@
  */
 /*
  * Original Author: Greg Grev
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:33 $
- *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -255,7 +250,7 @@ static double (*similarity_func)
 int
 main(int argc, char **argv) 
 {
-  char          cmdline[CMD_LINE_LEN], *saved_pial_fname ;
+  char          *saved_pial_fname ;
   MRI_SURFACE   *mris ;
   int           skip, i, msec ;
   MRI           *mri_kernel, *mri_smooth, *mri_mask, *mri_mag ;
@@ -267,14 +262,7 @@ main(int argc, char **argv)
   MATRIX        *m_save = NULL ;
   Timer then ;
 
-  make_cmd_version_string(argc, argv,
-                          "$Id: mris_register_to_volume.c,v 1.10 2011/03/02 00:04:33 nicks Exp $",
-                          "$Name:  $", cmdline);
-
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option(argc, argv,
-                                "$Id: mris_register_to_volume.c,v 1.10 2011/03/02 00:04:33 nicks Exp $",
-                                "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_register_to_volume");
   if(nargs && argc - nargs == 1) exit (0);
 
   Progname = argv[0] ;

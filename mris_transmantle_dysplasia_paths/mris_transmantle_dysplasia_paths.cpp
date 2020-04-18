@@ -1,5 +1,4 @@
 /**
- * @file  main_template.c
  * @brief MCMC for computing posterior of splines connecting cortex with ventricle
  *
  * Fit a Catmull Rom spline to each point in the cortex, initializing it with a connection along the
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2012/06/16 12:48:24 $
- *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -101,8 +96,7 @@ main(int argc, char *argv[]) {
   MRI          *mri, *mri_aseg, *mri_pvals ;
   TRANSFORM    *xform ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_transmantle_dysplasia_paths.c,v 1.4 2012/06/16 12:48:24 fischl Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_transmantle_dysplasia_paths");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

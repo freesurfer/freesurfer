@@ -1,14 +1,5 @@
-/**
- * @file  WidgetHistogram.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- */
 /*
  * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2014/03/27 20:13:34 $
- *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -28,6 +19,7 @@
 #include <QMouseEvent>
 #include <QColorDialog>
 #include <QMessageBox>
+#include <QPalette>
 
 WidgetHistogram::WidgetHistogram(QWidget *parent) :
   QWidget(parent)
@@ -77,6 +69,7 @@ void WidgetHistogram::SetOutputRange( double* dRange )
 {
   m_dOutputRange[0] = dRange[0];
   m_dOutputRange[1] = dRange[1];
+  m_bAutoRange = false;
   UpdateData();
 }
 
@@ -222,11 +215,12 @@ void WidgetHistogram::paintEvent(QPaintEvent* event)
 
     // draw y metrics
     int nMetricInterval = 25;
+    QPalette pal = palette();
     double dMetricStep = ((double)m_nMaxCount) / ( nCavHeight / nMetricInterval );
     dMetricStep = MyUtils::RoundToGrid( dMetricStep );
     double dMetricStart = 0;
     y = m_rectGraph.bottom();
-    painter.setPen( QPen(Qt::black) );
+    painter.setPen( QPen(pal.color(QPalette::WindowText)) );
     while ( y > m_rectGraph.top() && dMetricStep > 0 )
     {
       if( y < m_rectGraph.bottom() )
@@ -296,7 +290,7 @@ void WidgetHistogram::paintEvent(QPaintEvent* event)
         }
         if (bDraw)
         {
-          painter.setPen(Qt::black);
+          painter.setPen(pal.color(QPalette::WindowText));
           if (i > 0 && i < m_nNumberOfBins-1)
             painter.drawLine( nPos, m_rectGraph.bottom(), nPos, m_rectGraph.bottom()+4 );
           QString value_strg = QString::number( (int)dVal );
@@ -310,7 +304,7 @@ void WidgetHistogram::paintEvent(QPaintEvent* event)
 
     // draw axis
     painter.setBrush( QBrush(Qt::NoBrush) );
-    painter.setPen( QPen(Qt::black) );
+    painter.setPen( QPen(pal.color(QPalette::WindowText)) );
     painter.drawRect( m_rectGraph );
 
     // draw zero line
@@ -336,7 +330,7 @@ void WidgetHistogram::paintEvent(QPaintEvent* event)
     // draw x metrics
     if (!m_bUsePercentile)
     {
-      painter.setPen(QPen(Qt::black));
+      painter.setPen(QPen(pal.color(QPalette::WindowText)));
       nMetricInterval = 50;
       dMetricStep = ( m_dOutputRange[1] - m_dOutputRange[0] ) / ( nCavWidth / nMetricInterval );
       dMetricStep = MyUtils::RoundToGrid( dMetricStep );
@@ -688,5 +682,5 @@ void WidgetHistogram::FlipMarkers()
 void WidgetHistogram::SetMarkerEditable(bool bFlag)
 {
   m_bMarkerEditable = bFlag;
-  setToolTip(bFlag?"Double-click to edit\r\nShift+Click to delete":"");
+  setToolTip(bFlag?"Double-click on the sliding markers to edit.\r\nShift+Click to delete":"");
 }

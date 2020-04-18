@@ -1,14 +1,9 @@
 /**
- * @file  RenderView3D.cpp
  * @brief 3D view
  *
  */
 /*
  * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2017/02/08 21:01:00 $
- *    $Revision: 1.97 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1538,6 +1533,11 @@ void RenderView3D::SetCamera(const QVariantMap &info)
     //    cam->SetClippingRange(clip_range);
     m_renderer->ResetCameraClippingRange();
     Render();
+    if (info.contains("ViewSize"))
+    {
+      map = info["ViewSize"].toMap();
+      MainWindow::GetMainWindow()->SetViewSize(map["width"].toInt(), map["height"].toInt());
+    }
   }
 }
 
@@ -1572,6 +1572,10 @@ QVariantMap RenderView3D::GetCamera()
     //    map["near"] = clip_range[0];
     //    map["far"] = clip_range[1];
     //    info["ClippingRange"] = map;
+    map.clear();
+    map["width"] = width();
+    map["height"] = height();
+    info["ViewSize"] = map;
   }
   return info;
 }

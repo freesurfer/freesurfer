@@ -1,14 +1,9 @@
 /**
- * @file  LayerPointSet.cpp
  * @brief Layer data object for MRI surface.
  *
  */
 /*
  * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2016/07/28 14:31:41 $
- *    $Revision: 1.12 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -662,7 +657,7 @@ int LayerPointSet::AddPoint( double* ras_in, double value )
     ras[2] = ras_in[2];
   }
 
-  if ( m_points.size() < 2 )
+  if ( m_points.size() < 2 || !GetProperty()->GetShowSpline())
   {
     ControlPoint p;
     p.pt[0] = ras[0];

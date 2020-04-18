@@ -1,14 +1,9 @@
 /**
- * @file  mri_edit_wm_with_aseg.c
  * @brief fixup the wm vol based on segmentations found in aseg
  *
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2012/03/29 13:17:38 $
- *    $Revision: 1.25 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -81,6 +76,9 @@ static int distance_to_label(MRI *mri_labeled, int label, int x,
 
 const char *Progname ;
 
+static int lh_only = 0 ;
+static int rh_only = 0 ;
+
 static int fillven = 1 ;
 static int keep_edits = 0 ;
 static int keep_edits_input = 0 ;
@@ -94,12 +92,11 @@ main(int argc, char *argv[])
   MRI    *mri_wm, *mri_aseg, *mri_T1 ;
   Timer then ;
   int    msec, nargs ;
-  char cmdline[CMD_LINE_LEN], *output_file_name,*input_file_name, *edits_file_name ;
+  char *output_file_name,*input_file_name, *edits_file_name ;
 
-  make_cmd_version_string (argc, argv, "$Id: mri_edit_wm_with_aseg.c,v 1.25 2012/03/29 13:17:38 fischl Exp $", "$Name:  $", cmdline);
+  std::string cmdline = getAllInfo(argc, argv, "mri_edit_wm_with_aseg");
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_edit_wm_with_aseg.c,v 1.25 2012/03/29 13:17:38 fischl Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_edit_wm_with_aseg");
   if (nargs && argc - nargs == 1)
   {
     exit (0);
@@ -188,9 +185,24 @@ main(int argc, char *argv[])
            MRIgetVoxVal(mri_old,115,126,128,0));
     MRIfree(&mri_old) ;
   }
+  if (lh_only || rh_only)
+  {
+    int x, y, z, label ;
+    for (x = 0 ; x < mri_wm->width ; x++)
+      for (y = 0 ; y < mri_wm->height ; y++)
+	for (z = 0 ; z < mri_wm->depth ; z++)
+	{
+	  label = MRIgetVoxVal(mri_aseg, x, y, z, 0) ;
+	  if ((lh_only && IS_RH_CLASS(label)) ||
+	      (rh_only && IS_LH_CLASS(label)))
+	    MRIsetVoxVal(mri_wm, x, y, z, 0, 0) ;
+	  
+	}
+  }
   printf("writing edited volume to %s....\n", output_file_name) ;
   MRIwrite(mri_wm, output_file_name) ;
 
+  
   msec = then.milliseconds() ;
   fprintf(stderr, "auto filling took %2.2f minutes\n",
           (float)msec/(1000.0f*60.0f));
@@ -229,6 +241,16 @@ get_option(int argc, char *argv[])
   {
     fcd = 1 ;
     fprintf(stderr, "preserving focal cortical dysplasias - not filling non-wm lesions\n");
+  }
+  else if (!stricmp(option, "lh"))
+  {
+    lh_only = 1 ;
+    fprintf(stderr, "assuming input is only lh\n") ;
+  }
+  else if (!stricmp(option, "rh"))
+  {
+    rh_only = 1 ;
+    fprintf(stderr, "assuming input is only rh\n") ;
   }
   else if (!stricmp(option, "keep-in"))
   {
@@ -983,7 +1005,7 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
   {
     for (z = 0 ; z < depth ; z++)
     {
-      for (y = height-1 ; y > 0 ; y--)
+      for (y = height-2 ; y > 0 ; y--)
       {
         for (x = 2 ; x < width-2 ; x++)
         {

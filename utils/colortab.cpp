@@ -1,5 +1,4 @@
 /**
- * @file  colortab.c
  * @brief color table utilities
  *
  * An entry in a color table has:
@@ -10,10 +9,6 @@
  */
 /*
  * Original Authors: Kevin Teich, Bruce Fischl
- * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2015/06/22 19:13:33 $
- *    $Revision: 1.66 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1907,6 +1902,8 @@ COLOR_TABLE *TissueTypeSchemaDefaultHead(COLOR_TABLE *ct)
   TTCSF = 4;
   TTHead = 5;
 
+  printf("Entering TissueTypeSchemaDefaultHead()\n");
+
   if (ct == NULL) {
     fsenv = FSENVgetenv();
     sprintf(tmpstr, "%s/FreeSurferColorLUT.txt", fsenv->FREESURFER_HOME);
@@ -2014,7 +2011,9 @@ COLOR_TABLE *TissueTypeSchemaDefaultHead(COLOR_TABLE *ct)
       case CSF:
       case CSF_ExtraCerebral:
       case Left_Lateral_Ventricle:
+      case 75: // was Left_Lateral_Ventricle
       case Right_Lateral_Ventricle:
+      case 76: // was Right_Lateral_Ventricle
       case Left_Inf_Lat_Vent:
       case Right_Inf_Lat_Vent:
       case Left_choroid_plexus:

@@ -1,5 +1,4 @@
 /**
- * @file  mri_make_density_map.c
  * @brief make a tissue density map from a segmentation
  *
  * apply a transform (optionally jacobian correcting it) to
@@ -8,10 +7,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:22 $
- *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -77,8 +72,7 @@ main(int argc, char *argv[]) {
   GCA_MORPH   *gcam ;
 
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_make_density_map.c,v 1.8 2011/03/02 00:04:22 nicks Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_make_density_map");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

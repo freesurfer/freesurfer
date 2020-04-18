@@ -1,15 +1,4 @@
-/**
- * @file  mri_compute_bias.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
- */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/10/06 01:19:35 $
- *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -71,11 +60,7 @@ main(int argc, char *argv[])
 	double       c_r, c_a, c_s ;
   MATRIX       *m_vox2vox ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option 
-    (argc, argv, 
-     "$Id: mri_compute_bias.c,v 1.7 2011/10/06 01:19:35 fischl Exp $", 
-     "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_compute_bias");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

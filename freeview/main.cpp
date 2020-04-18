@@ -1,14 +1,9 @@
 /**
- * @file  main.cpp
  * @brief the 'main' for freeview
  *
  */
 /*
  * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2017/02/08 21:01:00 $
- *    $Revision: 1.82 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -152,6 +147,7 @@ int main(int argc, char *argv[])
     "':mask=volume_name' Use the given volume to as mask for display. The mask volume must be loaded first.\n\n"
     "':isosurface=low_threshold,high_threshold' Set 3D display as isosurface. High_threshold is optional. If no threshold or simply 'on' is given, threshold will be either automatically determined or retrieved from the save previously settings.\n\n"
     "':isosurface_color=color' Set the color of the isosurface. Color can be a color name such as 'red' or 3 values as RGB components of the color, e.g., '255,0,0'.\n\n"
+    "':isosurface_smooth=iterations' Set the number of smooth iterations. Default value is 5.\n\n"
     "':extract_all_regions=flag' Set isosurface to extract all regions. default setting is on.\n\n"
     "':isosurface_output=filename' Save isosurface to file. Extension can be .vtk or .stl.\n\n"
     "':surface_region=file' Load isosurface region(s) from the given file. isosurface display will automatically be turned on.\n\n"
@@ -171,7 +167,8 @@ int main(int argc, char *argv[])
     CmdLineEntry( CMD_LINE_SWITCH, "smoothed", "smoothed", "", "Use smoothed display as the default display method for volumes." ),
     CmdLineEntry( CMD_LINE_OPTION, "colormap", "colormap", "<TYPE>", "Use the give colormap type as the colormap for all the volumes to be loaded after.", 1, 1 ),
     CmdLineEntry( CMD_LINE_OPTION, "dti", "dti", "<VECTOR> <FA>...", "Load one or more dti volumes. Need two files for each dti volume. First one is vector file. Second one is FA (brightness) file.", 2, 1000 ),
-    CmdLineEntry( CMD_LINE_OPTION, "tv", "tract-volume", "<FILE>...", "Load one or more tract volumes.", 1, 1000 ),
+    CmdLineEntry( CMD_LINE_OPTION, "tv", "tract-volume", "<FILE>...", "Load one or more tract volumes.Available sub-options are:\n\n"
+    "':frame=frame_number' Show only a single tract by frame number.\n", 1, 1000 ),
     CmdLineEntry( CMD_LINE_OPTION, "f", "surface", "<FILE>...", "Load one or multiple surface files. Available sub-options are:\n\n"
     "':curvature=curvature_filename' Load curvature data from the given curvature file. By default .curv file will be loaded if available.\n\n"
     "':curvature_method=method' method to display curvature. available options are 'off', 'binary' or 'threshold'. default is 'threshold'.\n\n"
@@ -180,6 +177,7 @@ int main(int argc, char *argv[])
     "':overlay_reg=overlay_registration_filename' Apply registration when loading overlay data.\n\n"
     "':overlay_method=method_name' Set overlay method. Valid names are 'linear', 'linearopaque' and 'piecewise'.\n\n"
     "':overlay_color=colorscale,settings' Set overlay color setttings. Valid names are 'colorwheel', 'truncate' and 'inverse'. Use comma to apply more than one.\n\n"
+    "':overlay_opacity=opacity' Set opacity of overlay.\n\n"
     "':overlay_threshold=low,(mid,)high(,percentile)' Set overlay threshold values, separated by comma. When overlay method is linear or linearopaque, only 2 numbers (low and high) are needed. When method is piecewise, 3 numbers are needed. If last element is 'percentile', use the give numbers as percentile.\n\n"
     "':overlay_mask=filename(,invert)' Use given label file as mask for overlay. If invert is specified, use the inverted mask.\n\n"
     "':overlay_frame=frame_number' Set active frame of multi-frame overlay.\n\n"
@@ -190,6 +188,7 @@ int main(int argc, char *argv[])
     "':patch=patch_filename' Load given patch file.\n\n"
     "':correlation=correlation_filename' Load correlation data from file. Correlation data is treated as a special kind of overlay data.\n\n"
     "':color=colorname' Set the base color of the surface. Color can be a color name such as 'red' or 3 values as RGB components of the color, e.g., '255,0,0'.\n\n"
+    "':opacity=value' Set surface opacity. Value ranges from 0 to 1.\n\n"
     "':edgecolor=colorname' Set the color of the slice intersection outline on the surface. If set to 'overlay', will use overlay color\n\n"
     "':edgethickness=thickness' Set the thickness of the slice intersection outline on the surface. set 0 to hide it.\n\n"
     "':annot=filenames' Set annotation files to load.\n\n"
@@ -203,6 +202,7 @@ int main(int argc, char *argv[])
     "':label_color=colorname' Set the color of the surface label.\n\n"
     "':label_centroid=flag' Move 3D cursor to the centroid of the label. flag can be 'true', 'yes' or '1'.\n\n"
     "':label_visible=flag' Set label visibility.\n\n"
+    "':label_opacity=value' Set label opacity. Value ranges from 0 to 1.\n\n"
     "':label_zorder=number' Set z-order for rendering labels.\n\n"
     "':spline=filename' Load a spline file for display.\n\n"
     "':vertex=flag' Show surface vertices on both 2D and 3D views. flag can be 'true', 'on' or '1'.\n\n"
@@ -235,7 +235,7 @@ int main(int argc, char *argv[])
     CmdLineEntry( CMD_LINE_OPTION, "p-lut", "p-lut", "<NAME>...", "Set the look up table name to use for p-label display. name can be the name of a stock lookup table or the file name of a lookup table file. default is the default freesurfer look up table.\n", 1, 1 ),
     CmdLineEntry( CMD_LINE_OPTION, "cmat", "connectome-matrix", "<CMAT_FILE> <PARCELLATION_FILE>", "Load connectome matrix data files. Requires a cmat file and a parcellation volume file. Available sub-options are:\n\n'lut=color_table' Enter the name or file name of the color table to be used. Default is the FreeSurfer default LUT.\n", 2, 2 ),
     CmdLineEntry( CMD_LINE_OPTION, "fcd", "fcd", "<SUBJECT_DIR> <SUBJECT> [SUFFIX]", "Load FCD data. Requires subject directory and subject. Suffix is optional.\n", 2, 3 ),
-    CmdLineEntry( CMD_LINE_OPTION, "t", "tract", "<FILE>...", "Load one or more tract files.\n", 1, 1000 ),
+    CmdLineEntry( CMD_LINE_OPTION, "t", "tract", "<FILE>...", "Load one or more tract files.\n\n", 1, 1000 ),
     CmdLineEntry( CMD_LINE_OPTION, "tc", "tract-cluster", "<DIRECTORY>", "Load tract cluster data from given directory.\n", 1, 1 ),
     CmdLineEntry( CMD_LINE_OPTION, "recon", "recon", "<SUBJECT_NAME>...", "Load a series of pre-defined volumes and surfaces of given subject(s).\n", 1, 1000 ),
     CmdLineEntry( CMD_LINE_OPTION, "lineprofile", "lineprofile", "<OUTPUT_FILE>", "Compute the thickness of layers along line profiles and export them to given csv file. Initial lines (waypoints) must be loaded in order with waypoint options. Available sub-options are:\n\n"
@@ -272,6 +272,9 @@ int main(int argc, char *argv[])
     CmdLineEntry( CMD_LINE_SWITCH, "nocursor", "nocursor", "", "Hide the cursor." ),
     CmdLineEntry( CMD_LINE_SWITCH, "hide-3d-slices", "hide-3d-slices", "", "Hide slices in 3D view." ),
     CmdLineEntry( CMD_LINE_SWITCH, "hide-3d-frames", "hide-3d-frames", "", "Hide slice frames in 3D view." ),
+    CmdLineEntry( CMD_LINE_SWITCH, "hide-x-slice", "hide-x-slice", "", "Hide x slice in 3D view." ),
+    CmdLineEntry( CMD_LINE_SWITCH, "hide-y-slice", "hide-y-slice", "", "Hide y slice in 3D view." ),
+    CmdLineEntry( CMD_LINE_SWITCH, "hide-z-slice", "hide-z-slice", "", "Hide z slice in 3D view." ),
     CmdLineEntry( CMD_LINE_SWITCH, "auto-load-surf", "auto-load-surf", "", "Do not automatically load sphere or other supplemental surface data." ),
     CmdLineEntry( CMD_LINE_SWITCH, "quit", "quit", "", "Quit freeview. Useful for scripting or loading comands by -cmd option." ),
     CmdLineEntry( CMD_LINE_SWITCH, "noquit", "noquit", "", "Do not quit freeview after screenshot command." ),

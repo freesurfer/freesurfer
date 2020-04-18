@@ -1,5 +1,4 @@
 /**
- * @file  label.h
  * @brief include file for ROI utilies.
  *
  * structures, macros, constants and prototypes for the 
@@ -8,10 +7,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/12/10 22:57:22 $
- *    $Revision: 1.69 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -136,6 +131,7 @@ double  LabelArea(LABEL *area, MRI_SURFACE *mris) ;
 double  LabelVariance(LABEL *area, double ux, double uy, double uz) ;
 int     LabelMean(LABEL *area, double *px, double *py, double *pz) ;
 int     LabelMark(LABEL *area, MRI_SURFACE *mris) ;
+int     LabelMark2(LABEL *area, MRI_SURFACE *mris);
 int     LabelMarkUndeleted(LABEL *area, MRI_SURFACE *mris) ;
 float   LabelMaxStat(LABEL *area) ;
 int     LabelMarkStats(LABEL *area, MRI_SURFACE *mris) ;
@@ -192,5 +188,8 @@ int   LabelAddVertex(LABEL *area, int vno, int coords) ;
 int   LabelDeleteVertex(LABEL *area, int vno, int coords) ;
 double LabelAverageVal(LABEL *area, MRI_SURFACE *mris) ;
 LABEL  *LabelFromSurface(MRI_SURFACE *mris, int which, double thresh) ;
+LABEL *LabelRemoveIslandsSurf(MRIS *surf, LABEL *lb);
+LABEL *LabelRemoveHolesSurf(MRIS *surf, LABEL *lb);
+LABEL *LabelRemoveHolesAndIslandsSurf(MRIS *surf, LABEL *lb);
 
 #endif

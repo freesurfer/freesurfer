@@ -1,5 +1,4 @@
 /**
- * @file  mri_ca_label.c
  * @brief anisotropic nonstationary markov random field labeling
  *
  * Program for computing the MAP segmentation modeling the labeling as an
@@ -8,10 +7,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/10/22 17:31:36 $
- *    $Revision: 1.115 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -241,6 +236,8 @@ static int conform_flag = FALSE ;
 struct utsname uts;
 char *cmdline2, cwd[2000];
 char *rusage_file=NULL;
+char *PreGibbsFile=NULL;
+int n_omp_threads;
 
 int main(int argc, char *argv[])
 {
@@ -253,19 +250,11 @@ int main(int argc, char *argv[])
   GCA          *gca ;
   TRANSFORM     *transform ;
 
-  char cmdline[CMD_LINE_LEN] ;
 
   FSinit() ;
-  make_cmd_version_string
-  (argc, argv,
-   "$Id: mri_ca_label.c,v 1.115 2016/10/22 17:31:36 fischl Exp $",
-   "$Name:  $", cmdline);
+  std::string cmdline = getAllInfo(argc, argv, "mri_ca_label");
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option
-          (argc, argv,
-           "$Id: mri_ca_label.c,v 1.115 2016/10/22 17:31:36 fischl Exp $",
-           "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_ca_label");
   if (nargs && argc - nargs == 1)
   {
     exit (0);
@@ -287,13 +276,6 @@ int main(int argc, char *argv[])
 
   Progname = argv[0];
 
-#ifdef HAVE_OPENMP
-  {
-    int n_omp_threads = omp_get_max_threads();
-    printf("\n== Number of threads available to %s for OpenMP = %d == \n",
-      Progname, n_omp_threads);
-  }
-#endif
 
   setRandomSeed(-1L) ;
   Progname = argv[0] ;
@@ -310,6 +292,14 @@ int main(int argc, char *argv[])
     argc -= nargs ;
     argv += nargs ;
   }
+
+#ifdef HAVE_OPENMP
+  n_omp_threads = omp_get_max_threads();
+  printf("\n== Number of threads available to for OpenMP = %d == \n",n_omp_threads);
+#else
+  printf("Do not have OpenMP\n");
+  n_omp_threads = 1;
+#endif
 
   if (getenv("BUILD_GCA_HISTO") != NULL)
   {
@@ -1197,6 +1187,13 @@ int main(int argc, char *argv[])
 
     } //else /* processing long data */
 
+    if(PreGibbsFile){
+      printf("Saving pre-gibbs to %s\n",PreGibbsFile);
+      int err;
+      err = MRIwrite(mri_labeled,PreGibbsFile);
+      if(err) exit(1);
+    }
+
     if (!no_gibbs)
     {
       if (anneal)
@@ -1211,6 +1208,7 @@ int main(int argc, char *argv[])
           GCAdump(gca, mri_inputs, Ggca_x, Ggca_y, Ggca_z,
                   transform, stdout, 0) ;
         }
+	printf("Reclassifying using Gibbs Priors\n");
         GCAreclassifyUsingGibbsPriors
         (mri_inputs, gca, mri_labeled, transform, max_iter,
          mri_fixed, 0, NULL, PRIOR_FACTOR, PRIOR_FACTOR);
@@ -1391,9 +1389,6 @@ int main(int argc, char *argv[])
   if (fcd)
     gcaCheckForFCDs(mri_labeled, mri_labeled, gca, transform, mri_inputs) ;
 
-  // convert back to uchar if possible
-  MRItoUCHAR(&mri_labeled);
-
   printf("writing labeled volume to %s\n", out_fname) ;
   if (MRIwrite(mri_labeled, out_fname) != NO_ERROR)
   {
@@ -1465,6 +1460,23 @@ get_option(int argc, char *argv[])
   {
     no_gibbs = 1 ;
     printf("disabling gibbs priors...\n") ;
+  }
+  else if (!stricmp(option, "THREADS"))
+  {
+    sscanf(argv[2],"%d",&n_omp_threads);
+    #ifdef HAVE_OPENMP
+    omp_set_num_threads(n_omp_threads);
+    printf("Setting threads to %d\n",n_omp_threads);
+    #else
+    printf("dont have openmp \n");
+    #endif
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "PREGIBBS"))
+  {
+    PreGibbsFile = argv[2];
+    printf("Saving pre-gibbs to %s\n",PreGibbsFile);
+    nargs = 1 ;
   }
   else if (!stricmp(option, "LH"))
   {
@@ -1676,6 +1688,10 @@ get_option(int argc, char *argv[])
     Ggca_label = atoi(argv[2]) ;
     nargs = 1 ;
     printf("debugging label %d\n", Ggca_label) ;
+  }
+  else if (!stricmp(option, "DEBUG"))
+  {
+    Gdiag = DIAG_WRITE | DIAG_VERBOSE_ON;
   }
   else if (!stricmp(option, "TR"))
   {

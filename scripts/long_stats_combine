@@ -1,5 +1,4 @@
-#!/usr/bin/env python2
-# -*- coding: latin-1 -*-
+#!/usr/bin/env python
 
 #
 # long_stats_tps
@@ -7,10 +6,6 @@
 # script to stack individual time point results based on longitudinal qdec table
 #
 # Original Author: Martin Reuter
-# CVS Revision Info:
-#    $Author: mreuter $
-#    $Date: 2012/05/30 22:57:25 $
-#    $Revision: 1.3 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -21,11 +16,12 @@
 # https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
 #
 # Reporting: freesurfer@nmr.mgh.harvard.edu
-#
-#
+
+
 from __future__ import print_function
 import warnings
 warnings.filterwarnings('ignore', '.*negative int.*')
+
 import os
 import sys
 import shlex
@@ -34,8 +30,9 @@ import logging
 import subprocess
 import tempfile
 import shutil
-from subject_info import *
-from LongQdecTable import *
+
+from freesurfer.utils.legacy import LongQdecTable, BadFileError
+
 
 # logging 
 ch = logging.StreamHandler()

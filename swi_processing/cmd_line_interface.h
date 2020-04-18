@@ -1,14 +1,9 @@
 /**
- * @file  cmd_line_interface.h
  * @brief simplifies the command-line parsing interface in a new application
  *
  */
 /*
  * Original Author: Gheorghe Postelnicu
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2013/02/21 19:17:23 $
- *    $Revision: 1.1 $
  *
  * Copyright (C) 2004-2009,
  * The General Hospital Corporation (Boston, MA). 

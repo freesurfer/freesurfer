@@ -1,14 +1,9 @@
 /**
- * @file  mri2.c
  * @brief more routines for loading, saving, and operating on MRI structures
  *
  */
 /*
  * Original Author: Douglas N. Greve
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2016/07/06 14:21:47 $
- *    $Revision: 1.123 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -754,7 +749,7 @@ int MRIvol2Vol(MRI *src, MRI *targ, MATRIX *Vt2s, int InterpCode, float param)
 
   ROMP_PF_begin
 #ifdef HAVE_OPENMP
-  #pragma omp parallel for if_ROMP(experimental) shared(show_progress_thread, targ, bspline, src, Vt2s, InterpCode)
+  #pragma omp parallel for if_ROMP(assume_reproducible) shared(show_progress_thread, targ, bspline, src, Vt2s, InterpCode)
 #endif
   for (ct = 0; ct < targ->width; ct++) {
     ROMP_PFLB_begin

@@ -1,15 +1,9 @@
 /**
- * @file  gtm.h
  * @brief Routines to create and analyze the Geometric Transfer Matrix (GTM)
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
  * Original Author: Douglas N. Greve
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2016/04/30 15:10:57 $
- *    $Revision: 1.31 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

@@ -1,14 +1,9 @@
 /**
- * @file  heap_mesh.c
  * @brief list utils
  *
  */
 /*
  * Original Author: Xaio Han
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:55 $
- *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

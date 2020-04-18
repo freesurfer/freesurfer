@@ -31,6 +31,11 @@ set GlobXOptsFile = ()
 set ForceUpdate = 0
 set RunIt = 1
 
+# Options for mri_normalize, can strongly affect the pial placement
+set normOptsRCA = (-seed 1234 -mprage -aseg rawavg.aseg.presurf.mgz)
+set normOptsC2H = (-sigma 8 -erode 1 -min_dist 1)
+set normOpts = ($normOptsC2H)
+
 set DoTime = 0;
 if($?SET_FS_CMD_TIMING) set DoTime = 1;
 set fs_time = "";
@@ -66,6 +71,10 @@ goto parse_args;
 parse_args_return:
 goto check_params;
 check_params_return:
+
+set PWD = pwd;
+# better yet, make sure the real pwd is used:
+if ( -e /bin/pwd ) set PWD = /bin/pwd
 
 set StartTime = `date`;
 set tSecStart = `date '+%s'`;
@@ -144,8 +153,8 @@ if($ud || $ForceUpdate) then
 endif
 
 # Create a registration to go from conformed space to rawavg. 
-set regC2R = transforms/conf2rawavg.dat
-set regC2Rlta = transforms/conf2rawavg.lta
+set regC2R = transforms/conf2rawavg.cmdc.dat
+set regC2Rlta = transforms/conf2rawavg.cmdc.lta
 set cmd = (tkregister2_cmdl --noedit --mov orig.mgz --targ rawavg.cmdc.mgz --regheader \
   --reg $regC2R  --ltaout $regC2Rlta)
 echo "\n#===============================" | tee -a $LF
@@ -162,12 +171,12 @@ if($ud || $ForceUpdate) then
 endif
 
 # Create a registration to go from rawavg to conformed space (inv of above)
-set regR2C = transforms/rawavg2conf.dat
-set regR2Clta = transforms/rawavg2conf.lta
+set regR2C = transforms/rawavg.cmdc.2conf.dat
+set regR2Clta = transforms/rawavg.cmdc.2conf.lta
 set cmd = (tkregister2_cmdl --noedit --mov rawavg.cmdc.mgz --targ orig.mgz --regheader \
   --reg $regR2C --ltaout $regR2Clta)
 echo "\n#===============================" | tee -a $LF
-echo "Creating rawavg2conf.lta"| tee -a $LF
+echo "Creating rawavg.cmdc.2conf.lta"| tee -a $LF
 echo $cmd | tee -a $LF
 set ud = `UpdateNeeded $regR2Clta orig.mgz rawavg.cmdc.mgz`
 if($ud || $ForceUpdate) then
@@ -255,7 +264,6 @@ else
 endif
 
 if($CopyBiasFromConf) then
-  # This branch might not work anymore
   echo "Copying bias field from conformed" | tee -a $LF
   # Map the rawavg into conformed space but without changing 
   # intensities. MUST use same interp as when orig.mgz was created from
@@ -292,9 +300,13 @@ if($CopyBiasFromConf) then
 else
   echo "Computing bias field from rawavg" | tee -a $LF
   # Intensity normalize the rawavg itself rather than copying over the
-  # bias field sigma=8 should be the default for v6.  Mmust have
-  # created ?h.white.preaparc.rawavg by now
-  set cmd = (mri_normalize -sigma 8 -erode 1 -min_dist 1 \
+  # bias field. This can create some differences with recon-all for
+  # several reasons. (1) the c2h default options are different (unless
+  # --norm-opts-rca is specified), and (2) mri_normalize does not work
+  # the same at high resolution because some fixed parameters are specified
+  # in terms of voxels rather than mm.
+  # Must have created ?h.white.preaparc.rawavg by now
+  set cmd = (mri_normalize $normOpts \
      -surface ../surf/lh.$srcsurf.rawavg identity.nofile \
      -surface ../surf/rh.$srcsurf.rawavg identity.nofile)
   if($UseControlPoints) set cmd = ($cmd -f $ControlPointsFile)
@@ -381,7 +393,7 @@ foreach hemi ($hemilist)
   set aparc  = ../label/$hemi.aparc.annot  
   set cortex   = ../label/$hemi.cortex.label
   set cortexha = ../label/$hemi.cortex+hipamyg.label 
-  set white = ../surf/$hemi.white
+  set white = ../surf/$hemi.white.rawavg
   set pial = ../surf/$hemi.pial.T1.rawavg
   set cmd = (mris_place_surface --adgws-in $ads --seg $aseg \
       --wm $wm --invol $bfs --$hemi  --i $inputsurf --o $pial \
@@ -414,17 +426,13 @@ foreach hemi ($hemilist)
   # Map the surf coords back into the conformed space, need to use regC2R here
   # Could do it after T2, but if T2 fails, it never gets done
   set surflist = (white.rawavg)
-  if($#MMode) then
-    set surflist = ($surflist pial.T1.rawavg)
-  else
-    set surflist = ($surflist pial.rawavg)
-  endif
+  set surflist = ($surflist pial.T1.rawavg)
   foreach surf ($surflist)
     set cmd = (mri_surf2surf --s $subject --hemi $hemi --sval-xyz $surf --surfreg $surf \
-      --reg $regC2R orig.mgz --tval-xyz orig.mgz --tval $surf.conf)
+      --reg $regR2C rawavg.cmdc.mgz --tval-xyz orig.mgz --tval $surf.conf)
     echo "\n# Creating $hemi.$surf.conf ====================" | tee -a $LF
     echo $cmd | tee -a $LF
-    set ud = `UpdateNeeded ../surf/$hemi.$surf.conf ../surf/$hemi.$surf $regC2R orig.mgz`
+    set ud = `UpdateNeeded ../surf/$hemi.$surf.conf ../surf/$hemi.$surf $regR2C orig.mgz`
     if($ud || $ForceUpdate) then
       if($RunIt) then
         $fs_time $cmd |& tee -a $LF
@@ -437,10 +445,9 @@ foreach hemi ($hemilist)
   # Create symbolic links
   pushd $sdir
   ln -sf $hemi.white.rawavg.conf $hemi.white |& tee -a $LF
+  ln -sf $hemi.pial.T1.rawavg.conf $hemi.pial.T1 |& tee -a $LF
   if(! $#MMode) then
-    ln -sf $hemi.pial.rawavg.conf  $hemi.pial |& tee -a $LF
-  else
-    ln -sf $hemi.pial.T1.rawavg.conf $hemi.pial.T1 |& tee -a $LF
+    ln -sf $hemi.pial.T1.rawavg.conf $hemi.pial |& tee -a $LF
   endif
   popd
 end #hemi
@@ -476,15 +483,22 @@ if($#MMode) then
   endif
   set cmd = (bbregister --s $subject --mov $MM --lta $MMregAuto --init-coreg \
     --$MMBBRcon --surf $srcsurf --gm-proj-abs 1.5 --wm-proj-abs 1 --threads $threads)
+  set xopts = `fsr-getxopts bbregister $XOptsFile $GlobXOptsFile`;
+  set cmd = ($cmd $xopts)
+  set ud = `UpdateNeeded $MMregAuto $MM ../surf/lh.$srcsurf ../surf/rh.$srcsurf`
   echo "\n#===============================" | tee -a $LF
   echo $cmd | tee -a $LF
-  $cmd |& tee -a $LF
-  if($status) goto error_exit;
-  if($OKtoCopy) then
-    set cmd = (cp $MMregAuto $MMreg)
-    echo $cmd | tee -a $LF
+  if($ud || $ForceUpdate) then
     $cmd |& tee -a $LF
     if($status) goto error_exit;
+    if($OKtoCopy) then
+      set cmd = (cp $MMregAuto $MMreg)
+      echo $cmd | tee -a $LF
+      $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    endif
+  else
+    echo "$MMregAuto update not needed" | tee -a $LF
   endif
 
   # Registration to go from the ${MMode}raw to rawavg
@@ -492,16 +506,26 @@ if($#MMode) then
   set cmd = (mri_concatenate_lta $MMreg $regC2Rlta $MMregRA)
   echo "\n#===============================" | tee -a $LF
   echo $cmd | tee -a $LF
-  $cmd |& tee -a $LF
-  if($status) goto error_exit;
+  set ud = `UpdateNeeded $MMregRA $MMreg $regC2Rlta `
+  if($ud || $ForceUpdate) then
+    $cmd |& tee -a $LF
+    if($status) goto error_exit;
+  else
+    echo "  Update not needed" | tee -a $LF
+  endif
 
   # Resample ${MMode}raw to rawavg space. Cubic probably important here.
   set MMRA = rawavg.${MMode}.prenorm.mgz
   set cmd = (mri_vol2vol --mov $MM --targ rawavg.cmdc.mgz --reg $MMregRA --o $MMRA --interp cubic)
   echo "\n#===============================" | tee -a $LF
   echo $cmd | tee -a $LF
-  $cmd |& tee -a $LF
-  if($status) goto error_exit;
+  set ud = `UpdateNeeded $MMRA $MM $MMregRA rawavg.cmdc.mgz`
+  if($ud || $ForceUpdate) then
+    $cmd |& tee -a $LF
+    if($status) goto error_exit;
+  else
+    echo "  Update not needed" | tee -a $LF
+  endif
 
   # Normalize the ${MMode}. Sigma important here.
   # Could include control point file here, but not done in recon-all
@@ -512,23 +536,38 @@ if($#MMode) then
   date | tee -a $LF
   echo "\n#===============================" | tee -a $LF
   echo $cmd | tee -a $LF
-  $cmd |& tee -a $LF
-  if($status) goto error_exit;
+  set ud = `UpdateNeeded rawavg.${MMode}.norm.mgz rawavg.${MMode}.prenorm.mgz $sdir/?h.white.rawavg aseg.presurf.mgz` 
+  if($ud || $ForceUpdate) then
+    $cmd |& tee -a $LF
+    if($status) goto error_exit;
+  else
+    echo "  Update not needed" | tee -a $LF
+  endif
 
   # Mask the ${MMode}
   set cmd = (mri_mask -keep_mask_deletion_edits rawavg.${MMode}.norm.mgz \
     rawavg.brain.finalsurfs.mgz rawavg.${MMode}.mgz)
   echo "\n#===============================" | tee -a $LF
   echo $cmd | tee -a $LF
-  $cmd |& tee -a $LF
-  if($status) goto error_exit;
+  set ud = `UpdateNeeded rawavg.${MMode}.mgz rawavg.${MMode}.norm.mgz rawavg.brain.finalsurfs.mgz`
+  if($ud || $ForceUpdate) then
+    $cmd |& tee -a $LF
+    if($status) goto error_exit;
+  else
+    echo "  Update not needed" | tee -a $LF
+  endif
 
   # Map the ${MMode} back to conformed space for convenience
-  set cmd = (mri_vol2vol --targ orig.mgz --mov rawavg.${MMode}.mgz --reg transforms/rawavg2conf.dat  --o conf.${MMode}.mgz)
+  set cmd = (mri_vol2vol --targ orig.mgz --mov rawavg.${MMode}.mgz --reg $regR2C  --o conf.${MMode}.mgz)
   echo $cmd | tee -a $LF
-  $cmd |& tee -a $LF
-  if($status) goto error_exit;
-  ln -sf conf.${MMode}.mgz ${MMode}.mgz
+  set ud = `UpdateNeeded conf.${MMode}.mgz orig.mgz rawavg.${MMode}.mgz $regR2C`
+  if($ud || $ForceUpdate) then
+    $cmd |& tee -a $LF
+    if($status) goto error_exit;
+  else
+    echo "  Update not needed" | tee -a $LF
+  endif
+  ln -sf conf.${MMode}.mgz ${MMode}.mgz |& tee -a $LF
 
   # Now place the pial using the ${MMode}
   # Unlike above, there are no long args for T2 or FLAIR
@@ -542,7 +581,7 @@ if($#MMode) then
     set white = ../surf/$hemi.white.rawavg
     set pialt1 = ../surf/$hemi.pial.T1.rawavg
     set pialmm = ../surf/$hemi.pial.$MMode.rawavg
-    set mmvol = $MMode.mgz
+    set mmvol = rawavg.$MMode.mgz
     set cmd = (mris_place_surface --adgws-in $ads --seg $aseg  --wm $wm \
       --invol $bfs --$hemi  --i $pialt1 --o $pialmm --pial --nsmooth 0 \
       --rip-label $cortexha --pin-medial-wall $cortex --white-surf $white \
@@ -550,7 +589,7 @@ if($#MMode) then
     if($#mps_n_averages) set cmd = ($cmd --n_averages $mps_n_averages)
     #if($DoT2)    set cmd = ($cmd -T2    rawavg.$MMode -nsigma_above 2 -nsigma_below 3)
     #if($DoFLAIR) set cmd = ($cmd -FLAIR rawavg.$MMode -nsigma_above 3 -nsigma_below 3)
-    # Things might need to add: noaseg, noaparc, UseFixMtl
+    # Things might need to add: noaseg, noaparc
     set xopts = `fsr-getxopts PlaceMMPialSurf $XOptsFile $GlobXOptsFile`;
     set cmd = ($cmd $xopts)
     echo "cd `$PWD`" |& tee -a $LF |& tee -a $CF
@@ -566,14 +605,20 @@ if($#MMode) then
       echo "   Update not needed" |& tee -a $LF |& tee -a $CF
     endif
     # Map the surf coords back into the conformed space, need to use regC2R here
-    set surf = pial.rawavg
+    set surf = pial.$MMode.rawavg
     set cmd = (mri_surf2surf --s $subject --hemi $hemi --sval-xyz $surf --surfreg $surf \
-      --reg $regC2R orig.mgz --tval-xyz orig.mgz --tval $surf.conf)
+      --reg $regR2C rawavg.cmdc.mgz --tval-xyz orig.mgz --tval $surf.conf)
     echo "\n#===============================" | tee -a $LF
     echo $cmd | tee -a $LF
-    $cmd | tee -a $LF
+    set ud = (`UpdateNeeded ../surf/$hemi.$surf.conf ../surf/$hemi.$surf $regR2C`)
+    if($ud || $ForceUpdate) then
+      $cmd | tee -a $LF
+      if($status) goto error_exit;
+    else
+      echo "  Update not needed" | tee -a $LF
+    endif
     pushd $sdir
-    ln -sf $hemi.pial.rawavg.conf  $hemi.pial
+    ln -sf $hemi.$surf.conf  $hemi.pial |& tee -a $LF
     popd
   end #hemi
 
@@ -742,13 +787,31 @@ while( $#argv != 0 )
       set CopyBiasFromConf = 0
       breaksw
 
+    case "--force-update":
     case "-force-update":
       set ForceUpdate = 1;
       breaksw
 
+    case "--mps_n_averages"
     case "-mps_n_averages"
       if ( $#argv < 1) goto arg1err;
       set mps_n_averages = $argv[1]; shift;
+      breaksw
+
+    case "--expert":
+    case "-expert":
+      if( $#argv < 1) goto arg1err;
+      set XOptsFile = $argv[1]; shift;
+      fsr-checkxopts $XOptsFile
+      if($status) goto error_exit;
+      set XOptsFile = `getfullpath $XOptsFile`
+      breaksw
+
+    case "--norm-opts-rca":
+      set normOpts = ($normOptsRCA)
+      breaksw
+    case "--norm-opts-c2h":
+      set normOpts = ($normOptsC2H)
       breaksw
 
     case "--log":
@@ -830,6 +893,14 @@ if($usedev) then
   endif
 endif
 
+set GlobXOptsFile = $SUBJECTS_DIR/global-expert-options.txt
+if(-e $GlobXOptsFile) then
+  fsr-checkxopts $GlobXOptsFile
+  if($status) goto error_exit
+else
+  set GlobXOptsFile = ()
+endif
+
 goto check_params_return;
 ############--------------##################
 
@@ -853,12 +924,15 @@ usage_exit:
   echo "  --flair, --no-flair (default $DoFLAIR)"
   echo "  --threads nthreads "
   echo "  --copy-bias-from-conf : copy bias field from conformed instead of computing directly"
+  echo "  --norm-opts-rca : compute bias directly using recon-all opts to mri_normalize"
   echo "  --cubic, --trilin (default $interp), only applies with --copy-bias-from-conf"
   echo "  --dev, --no-dev (default $usedev) : use mris_make_surfaces.dev"
   echo "      default value can be set with setenv CONF2HIRES_USEDEV"
   echo "  --bbr-con contype : set BBR contrast type (default $MMBBRcon)"
   echo "  --bbr-t1 : set BBR contrast type to t1"
   echo "  --bbr-t2 : set BBR contrast type to t2"
+  echo "  --expert xopts (or -expert)"
+  echo "  --force-update"
   echo ""
 
   if(! $PrintHelp) exit 1;
@@ -876,6 +950,17 @@ white.preaparc. This script is then run to generate the final white
 and pial surfaces. After that, the final stages of recon-all can be
 run (making sure to skip the creation of the final white and pial
 surfaces). The recon-all.v6.hires script will do this automatically.
+
+The pial surface tends to extend further out than in the normal
+recon-all stream because the intensity normalization. mri_normalize is
+run with different parameters (unless --norm-opts-rca is used) but
+will also run differently because some of the parameters are set based
+on the number of voxels, so differences in resolution effectively
+cause these parameters to be different. The --copy-bias-from-conf
+option will cause conf2hires to use the bias field computed from the
+conformed (1mm) and makes the final surfaces much closer to that of
+recon-all. I cannot remember why I did not use this as the default
+except that the current set up might have worked better for HCP.
 
 
 

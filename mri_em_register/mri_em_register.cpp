@@ -1,5 +1,4 @@
 /**
- * @file  mri_em_register.c
  * @brief linear registration to a gca atlas
  *
  * pick a bunch of samples and use them to find the transform that
@@ -7,10 +6,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/10/22 17:31:12 $
- *    $Revision: 1.106 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -250,12 +245,7 @@ main(int argc, char *argv[])
 
   FSinit() ;
 
-  /* rkt: check for and handle version tag */
-  nargs =
-    handle_version_option
-    (argc, argv,
-     "$Id: mri_em_register.c,v 1.106 2016/10/22 17:31:12 fischl Exp $",
-     "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_em_register");
   if (nargs && argc - nargs == 1)
   {
     exit (0);

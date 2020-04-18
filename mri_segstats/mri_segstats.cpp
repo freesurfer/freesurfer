@@ -1,5 +1,4 @@
 /**
- * @file  mri_segstats.c
  * @brief Computes statistics from a segmentation.
  *
  * This program will compute statistics on segmented volumes. In its
@@ -10,10 +9,6 @@
  */
 /*
  * Original Author: Dougas N Greve
- * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2017/01/23 18:23:14 $
- *    $Revision: 1.122 $
  *
  * Copyright Â© 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -198,6 +193,7 @@ int DoAbs = 0;
 int UsePrintSegStat = 1; // use new way to print
 
 int nReplace , SrcReplace[1000], TrgReplace[1000]; // for replacing segs
+int GetCachedBrainVolStats = 1;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv)
@@ -219,8 +215,7 @@ int main(int argc, char **argv)
   nhits = 0;
   vol = 0;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_segstats");
   if (nargs && argc - nargs == 1)
   {
     exit (0);
@@ -498,13 +493,19 @@ int main(int argc, char **argv)
   if(DoSurfWMVol || DoSurfCtxVol || DoSupraTent || BrainVolFromSeg || DoSubCortGrayVol){
     sprintf(tmpstr,"%s/%s/mri/ribbon.mgz",SUBJECTS_DIR,subject);
     if(fio_FileExistsReadable(tmpstr)){
-      printf("Getting Brain Volume Statistics\n");
-      BrainVolStats = ReadCachedBrainVolumeStats(subject, SUBJECTS_DIR);
+      if(GetCachedBrainVolStats){
+	printf("Getting Brain Volume Statistics\n");
+	BrainVolStats = ReadCachedBrainVolumeStats(subject, SUBJECTS_DIR);
+      }
+      else {
+	printf("Computing Brain Volume Statistics\n");
+	BrainVolStats = ComputeBrainVolumeStats(subject, SUBJECTS_DIR);
+      }
     }
     else{
       printf("Warning: cannot find %s, not computing whole brain stats\n",tmpstr);
       DoSurfWMVol=DoSurfCtxVol=DoSupraTent=BrainVolFromSeg=DoSubCortGrayVol=0;
-      DoTotalGrayVol=0;DoSupraTent=0;DoETIV=0;
+      DoTotalGrayVol=0;DoSupraTent=0;
     }
   }
 
@@ -1500,6 +1501,7 @@ static int parse_commandline(int argc, char **argv)
     {
       NonEmptyOnly = 0;
     }
+    else if (!strcasecmp(option, "--no-cached")) GetCachedBrainVolStats = 0;
     else if ( !strcmp(option, "--brain-vol-from-seg") )
     {
       BrainVolFromSeg = 1;

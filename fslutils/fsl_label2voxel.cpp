@@ -1,15 +1,10 @@
 /**
- * @file  fsl_label2voxel.cpp
  * @brief two fsl aligned label volume and src volume
  *
  * to get the voxel values of the src corresponding to the label volume
  */
 /*
  * Original Author: Doug Greve
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:08 $
- *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

@@ -1,14 +1,9 @@
 /**
- * @file  mri_add_xform_to_header.c
  * @brief Just adds specified xform to the volume header
  *
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:13 $
- *    $Revision: 1.12 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -56,11 +51,7 @@ main(int argc, char *argv[])
   MRI    *mri=NULL ;
   char   *xform_fname=NULL, *in_fname=NULL, *out_fname=NULL ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option
-          (argc, argv,
-           "$Id: mri_add_xform_to_header.c,v 1.12 2011/03/02 00:04:13 nicks Exp $",
-           "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_add_xform_to_header");
 
   argc -= nargs;
 

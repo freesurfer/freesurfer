@@ -1,14 +1,9 @@
 /**
- * @file  mris_make_template.c
  * @brief program to add a template into an average surface
  *
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:33 $
- *    $Revision: 1.27 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -101,11 +96,7 @@ main(int argc, char *argv[])
   MRI_SP       *mrisp, /* *mrisp_aligned,*/ *mrisp_template ;
   INTEGRATION_PARMS parms ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option
-          (argc, argv,
-           "$Id: mris_make_template.c,v 1.27 2011/03/02 00:04:33 nicks Exp $",
-           "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mris_make_template");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

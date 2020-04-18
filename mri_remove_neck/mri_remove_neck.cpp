@@ -1,14 +1,9 @@
 /**
- * @file  mri_remove_neck.c
  * @brief removes neck fromm t1 (stuff below brain)
  *
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:24 $
- *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -82,7 +77,7 @@ main(int argc, char *argv[])
   DiagInit(NULL, NULL, NULL) ;
   ErrorInit(NULL, NULL, NULL) ;
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_remove_neck.c,v 1.10 2011/03/02 00:04:24 nicks Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_remove_neck");
   argc -= nargs ;
   if (1 == argc)
   {

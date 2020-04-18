@@ -13,10 +13,6 @@ function r = mri_glmfit_pcc(glmdir)
 
 %
 % Original Author: Douglas Greve
-% CVS Revision Info:
-%    $Author: greve $
-%    $Date: 2015/03/31 21:23:53 $
-%    $Revision: 1.2 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 

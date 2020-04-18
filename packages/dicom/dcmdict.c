@@ -44,9 +44,7 @@
 **   static objects are maintained which define how
 **   elements in the DICOM V3.0 standard are to be
 **   interpreted.
-** Last Update:  $Author: nicks $, $Date: 2007/01/11 20:15:14 $
 ** Source File:  $RCSfile: dcmdict.c,v $
-** Revision:  $Revision: 1.7 $
 ** Status:  $State: Exp $
 */
 

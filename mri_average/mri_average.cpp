@@ -1,14 +1,9 @@
 /**
- * @file  mri_average.c
  * @brief create an average of a set of volumes
  *
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/06/01 17:49:55 $
- *    $Revision: 1.47 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -182,11 +177,7 @@ main(int argc, char *argv[])
   int          msec, minutes, seconds, skipped = 0 ;
   Timer start ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option
-          (argc, argv,
-           "$Id: mri_average.c,v 1.47 2016/06/01 17:49:55 fischl Exp $",
-           "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_average");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

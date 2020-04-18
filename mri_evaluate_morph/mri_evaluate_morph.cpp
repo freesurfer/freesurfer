@@ -1,15 +1,4 @@
-/**
- * @file  mri_evaluate_morph.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
- */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:15 $
- *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -66,8 +55,7 @@ main(int argc, char *argv[]) {
   TRANSFORM    *transform1, *transform2 ;
   FILE         *fp ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_evaluate_morph.c,v 1.5 2011/03/02 00:04:15 nicks Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_evaluate_morph");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

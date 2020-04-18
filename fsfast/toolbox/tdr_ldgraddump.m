@@ -36,10 +36,6 @@ function [d, StartTime, TimeStep, ColIds] = tdr_ldgraddump(dfile)
 % tdr_ldgraddump.m
 %
 % Original Author: Doug Greve
-% CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2011/03/02 00:04:07 $
-%    $Revision: 1.4 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %

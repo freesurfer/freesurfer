@@ -1,0 +1,66 @@
+#!/bin/tcsh -ef
+# usage: make_exvivo_filled <subject name> <input samseg> <input intensity vol>
+
+set echo=1
+if ( $#argv < 4) then
+    echo "usage: make_exvivo_filled <subject name> <input samseg> <input intensity vol> <hemi/both>"
+    exit 1
+endif
+
+set s=$1
+set samseg=$2
+set norm=$3
+set hemi=$4
+
+set lhwm=2
+set rhwm=41
+if ($4 == lh) then
+    set hemilist = (lh)
+    set hemiopt = "-lh"
+    set hemiopt2 = "-lhonly"
+else if ($4 == rh) then
+    set hemilist = (rh)
+    set hemiopt = "-rh"
+    set hemiopt2 = "-rhonly"
+else
+    set hemilist = (lh rh)
+    set hemiopt2 = ""
+    set hemiopt = ""
+endif
+
+set bdir=$SUBJECTS_DIR/$s
+set mdir=$bdir/mri
+set sdir=$bdir/surf
+
+if (-e $bdir == 0) then
+    echo creating subject directory tree
+    mksubjdirs $s
+endif
+
+
+
+mri_mask -no_cerebellum ${hemiopt} $samseg $samseg $mdir/aseg.mgz
+mri_convert -rt nearest -ns 1 --conform_min  $mdir/aseg.mgz $mdir/aseg.mgz
+cp $mdir/aseg.mgz $mdir/aseg.auto.mgz
+cp $mdir/aseg.mgz $mdir/aseg.presurf.mgz
+mri_mask -no_cerebellum ${hemiopt} $norm $samseg $mdir/norm.mgz
+mri_convert --conform_min  $mdir/norm.mgz $mdir/norm.mgz
+foreach f (brain.mgz brainmask.mgz orig.mgz rawavg.mgz)
+    ln -fs $mdir/norm.mgz $mdir/$f
+end
+if ($hemi == lh) then
+    mri_extract_largest_CC -l ${lhwm} $mdir/aseg.mgz $mdir/wm.seg.mgz
+else if ($hemi == rh) then
+    mri_extract_largest_CC -l ${rhwm} $mdir/aseg.mgz $mdir/wm.seg.mgz
+    mri_binarize --replaceonly ${rhwm} ${lhwm} --i  $mdir/wm.seg.mgz --o $mdir/wm.seg.mgz
+else
+    mri_binarize --replaceonly ${rhwm} ${lhwm} --i $mdir/aseg.mgz --o $mdir/wm.seg.mgz
+    mri_extract_largest_CC -l ${lhwm} $mdir/wm.seg.mgz $mdir/wm.seg.mgz
+endif
+
+mri_binarize --binval 255 --i $mdir/wm.seg.mgz --o $mdir/wm.seg.bin.mgz --min 1 --max 3
+mri_convert -ns 1 -rt nearest -odt uchar $mdir/wm.seg.bin.mgz $mdir/wm.seg.bin.mgz
+mri_edit_wm_with_aseg ${hemiopt} -keep-in $mdir/wm.seg.bin.mgz $mdir/norm.mgz $mdir/aseg.mgz $mdir/wm.asegedit.mgz 
+mri_extract_largest_CC -l 255 $mdir/wm.asegedit.mgz $mdir/wm.asegedit.cc.mgz
+mri_pretess $mdir/wm.asegedit.mgz wm $mdir/norm.mgz $mdir/wm.mgz 
+mri_fill ${hemiopt2} -a ../scripts/ponscc.cut.log -segmentation $mdir/aseg.mgz $mdir/wm.mgz $mdir/filled.mgz 

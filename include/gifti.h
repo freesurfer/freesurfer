@@ -1,5 +1,4 @@
 /**
- * @file  gifti.h
  * @brief local utilities for GIFTI library
  *
  * This file has some some extra functions for use with the GIFTI
@@ -8,10 +7,6 @@
  */
 /*
  * Original Author: Kevin Teich 
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:09 $
- *    $Revision: 1.13 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

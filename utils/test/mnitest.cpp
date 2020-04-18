@@ -1,14 +1,9 @@
 /**
- * @file  mnitest.cpp
  * @brief testing three kinds of mni xfm reading
  *
  */
 /*
  * Original Author: Yasanari Tosa
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:55 $
- *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

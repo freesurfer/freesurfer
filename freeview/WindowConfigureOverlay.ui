@@ -97,7 +97,7 @@
     </widget>
    </item>
    <item>
-    <layout class="QGridLayout" name="gridLayout_2" columnminimumwidth="0,0,0">
+    <layout class="QGridLayout" name="gridLayout_2" columnminimumwidth="0,0">
      <property name="leftMargin">
       <number>0</number>
      </property>
@@ -539,7 +539,7 @@ color: gray;</string>
             <bool>false</bool>
            </property>
            <property name="styleSheet">
-            <string notr="true">color:blue;</string>
+            <string notr="true">color:rgb(80,80,255)</string>
            </property>
            <property name="text">
             <string>Mid</string>
@@ -561,7 +561,7 @@ color: gray;</string>
             </size>
            </property>
            <property name="styleSheet">
-            <string notr="true">color:blue;</string>
+            <string notr="true">color:rgb(80,80,255)</string>
            </property>
           </widget>
          </item>
@@ -584,7 +584,7 @@ color: gray;</string>
          <item row="0" column="7">
           <widget class="QLabel" name="labelMax">
            <property name="styleSheet">
-            <string notr="true">color:green;</string>
+            <string notr="true">color:rgb(0,190,0);</string>
            </property>
            <property name="text">
             <string>Max</string>
@@ -603,7 +603,7 @@ color: gray;</string>
             </size>
            </property>
            <property name="styleSheet">
-            <string notr="true">color:green;</string>
+            <string notr="true">color:rgb(0,190,0);</string>
            </property>
           </widget>
          </item>

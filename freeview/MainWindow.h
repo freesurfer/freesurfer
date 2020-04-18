@@ -1,14 +1,5 @@
-/**
- * @file  MainWindow.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- */
 /*
  * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2017/02/02 16:40:06 $
- *    $Revision: 1.181 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -248,6 +239,7 @@ Q_SIGNALS:
   void CycleOverlayRequested();
   void SupplementLayerChanged();
   void OverlayMaskRequested(const QString& fn);
+  void RefreshLookUpTableRequested();
 
 public slots:
   void SetMode( int nMode );
@@ -391,8 +383,10 @@ protected:
   void CommandSetSurfaceColor   ( const QStringList& cmd );
   void CommandSetSurfaceEdgeColor ( const QStringList& cmd );
   void CommandSetSurfaceEdgeThickness ( const QStringList& cmd );
+  void CommandSetSurfaceOpacity ( const QStringList& cmd );
   void CommandSetSurfaceOffset  ( const QStringList& cmd );
   void CommandSetSurfaceLabelOutline   ( const QStringList& cmd );
+  void CommandSetSurfaceLabelOpacity   ( const QStringList& cmd );
   void CommandSetSurfaceAnnotationOutline   ( const QStringList& cmd );
   void CommandGoToSurfaceVertex        ( const QStringList& cmd );
   void CommandSetDisplaySurfaceVertex  ( const QStringList& cmd );
@@ -408,6 +402,7 @@ protected:
   void CommandSetDisplayIsoSurface  ( const QStringList& cmd );
   void CommandSetIsoSurfaceColor( const QStringList& cmd );
   void CommandSetIsoSurfaceUpsample ( const QStringList& cmd );
+  void CommandSetIsoSurfaceSmooth ( const QStringList& cmd );
   void CommandSetExtractAllRegions ( const QStringList& cmd );
   void CommandLoadIsoSurfaceRegion  ( const QStringList& cmd );
   void CommandLockLayer         ( const QStringList& cmd );
@@ -426,9 +421,11 @@ protected:
   void CommandSetActiveFrame    ( const QStringList& cmd );
   void CommandSetActiveLayer    ( const QStringList& cmd );
   void CommandExportLineProfileThickness  (const QStringList& cmd);
+  void CommandSetVolumeTrackFrame   ( const QStringList& cmd );
 
 public:
   void CommandSetCamera         ( const QStringList& cmd );
+  void SetViewSize  (int x, int y);
 
 protected slots:
   void OnIdle();

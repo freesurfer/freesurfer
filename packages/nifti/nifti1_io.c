@@ -1,14 +1,9 @@
 /**
- * @file  nifti1_io.c
  * @brief main collection of nifti1 i/o routines
  *
  */
 /*
  * Original Author: Robert W Cox
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/05/02 17:18:56 $
- *    $Revision: 1.10 $
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu

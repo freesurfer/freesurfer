@@ -1,15 +1,5 @@
-/**
- * @file  mri_interpolate.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
- */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/10/06 01:18:12 $
- *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -63,13 +53,15 @@ main(int argc, char *argv[]) {
   char         *in_fname, *out_fname, **av ;
   MRI          *mri_in, *mri_ctrl, *mri_out;
   int          ac, nargs=0, x, y, z ;
-  char         cmdline[CMD_LINE_LEN] ;
   double       val;
 
   make_cmd_version_string
     (argc, argv,
      "$Id: mri_interpolate.c,v 1.5 2011/10/06 01:18:12 fischl Exp $",
      "$Name:  $",cmdline);
+  make_cmd_version_string
+  std::string cmdline = getAllInfo(argc, argv, "mri_interpolate");
+
   setRandomSeed(-1L) ;
   Progname = argv[0] ;
 

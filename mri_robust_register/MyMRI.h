@@ -1,15 +1,10 @@
 /**
- * @file  MyMRI.h
  * @brief A class for MRI utils as used for registration
  *
  */
 
 /*
  * Original Author: Martin Reuter
- * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2014/11/15 04:02:30 $
- *    $Revision: 1.18 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

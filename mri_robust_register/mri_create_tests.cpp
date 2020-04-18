@@ -1,15 +1,10 @@
 /**
- * @file  mri_create_tests.cpp
  * @brief Creates a modified image with noise or transformed 
  *
  */
 
 /*
  * Original Author: Martin Reuter
- * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2012/11/10 15:35:01 $
- *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -167,7 +162,7 @@ int main(int argc, char *argv[])
     cout << vcid << endl;
 
     // Default initialization
-    int nargs = handle_version_option(argc, argv, vcid, "$Name:  $");
+    int nargs = handleVersionOption(argc, argv, "mri_create_tests");
     if (nargs && argc - nargs == 1)
       exit(0);
     argc -= nargs;

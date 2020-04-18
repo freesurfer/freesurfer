@@ -1,5 +1,4 @@
 /**
- * @file  rbm.h
  * @brief utilities for Restricted Boltzmann Machines
  *
  * Reference:
@@ -9,10 +8,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2014/05/10 00:37:45 $
- *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

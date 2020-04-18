@@ -1,14 +1,9 @@
 /**
- * @file  LayerSurface.h
  * @brief Layer data object for MRI volume.
  *
  */
 /*
  * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2017/02/08 21:01:00 $
- *    $Revision: 1.85 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -55,6 +50,7 @@ class SurfaceROI;
 class SurfaceSpline;
 class SurfacePath;
 class LayerROI;
+class vtkPolyData;
 
 struct RGBMap {
   QString name;
@@ -341,6 +337,8 @@ public:
 
   void RemovePathPoint(int vno);
 
+  void RemoveLastPathPoint();
+
   void SetActivePath(int n);
 
   SurfacePath* GetActivePath();
@@ -363,7 +361,7 @@ public:
 
   bool FillPath(int nvo, const QVariantMap& options);
 
-  void FillPath(const QVector<int>& verts, const QVariantMap& options);
+  int FillPath(const QVector<int>& verts, const QVariantMap& options);
 
   void ClearMarks();
 
@@ -522,6 +520,7 @@ protected:
 
   vtkSmartPointer<vtkCutter>  m_cutter[3];
   vtkSmartPointer<vtkBox>     m_box[3];
+  vtkSmartPointer<vtkPolyData>     m_vertexPoly2D[3];
 
   QList<SurfaceOverlay*>    m_overlays;
   int         m_nActiveOverlay;

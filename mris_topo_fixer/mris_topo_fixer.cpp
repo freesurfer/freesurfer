@@ -1,5 +1,4 @@
 /**
- * @file  mris_topo_fixer.cpp
  * @brief optimally correcting the topology of triangulated surface
  *
  * "Genetic Algorithm for the Topology Correction of Cortical Surfaces",
@@ -8,10 +7,6 @@
  */
 /*
  * Original Author: Florent Segonne
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:34 $
- *    $Revision: 1.29 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -160,23 +155,9 @@ int main(int argc, char *argv[]) {
   int           msec, nvert, nfaces, nedges, eno ,is_valid;
   Timer then ;
 
-  char cmdline[CMD_LINE_LEN] ;
+  std::string cmdline = getAllInfo(argc, argv, "mris_topo_fixer");
 
-  make_cmd_version_string
-  (argc,
-   argv,
-   "$Id: mris_topo_fixer.cpp,v 1.29 2011/03/02 00:04:34 nicks Exp $",
-   "$Name:  $",
-   cmdline);
-
-  /* rkt: check for and handle version tag */
-  nargs =
-    handle_version_option
-    (argc,
-     argv,
-     "$Id: mris_topo_fixer.cpp,v 1.29 2011/03/02 00:04:34 nicks Exp $",
-     "$Name:  $");
-
+  nargs = handleVersionOption(argc, argv, "mris_topo_fixer");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

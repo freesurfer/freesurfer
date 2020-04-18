@@ -36,10 +36,6 @@ function pedmat = tdr_pedmatrix(TE,echospacing,delsamp,tDwell,nrows,ncols,perev)
 % tdr_pedmatrix.m
 %
 % Original Author: Doug Greve
-% CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2011/03/02 00:04:07 $
-%    $Revision: 1.6 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %

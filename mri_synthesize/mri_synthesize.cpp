@@ -1,15 +1,4 @@
-/**
- * @file  mri_synthesize.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
- */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
- * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2015/02/05 23:34:40 $
- *    $Revision: 1.19 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -105,12 +94,10 @@ main(int argc, char *argv[]) {
   MRI         *mri_T1, *mri_PD, *mri_out, *mri_T2star = NULL ;
   float       TR, TE, alpha ;
 
-  char cmdline[CMD_LINE_LEN] ;
 
-  make_cmd_version_string (argc, argv, "$Id: mri_synthesize.c,v 1.19 2015/02/05 23:34:40 zkaufman Exp $", "$Name:  $", cmdline);
+  std::string cmdline = getAllInfo(argc, argv, "mri_synthesize");
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_synthesize.c,v 1.19 2015/02/05 23:34:40 zkaufman Exp $", "$Name:  $");
+  nargs = handleVersionOption(argc, argv, "mri_synthesize");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -465,7 +452,7 @@ MRIsynthesize(MRI *mri_T1, MRI *mri_PD, MRI *mri_T2star, MRI *mri_dst, double TR
         } else
           flash = FLASHforwardModel(T1, PD, TR, alpha, TE) ;
         MRIsetVoxVal(mri_dst, x, y, z, 0, flash) ;
-        if (!isfinite(flash))
+        if (!std::isfinite(flash))
           DiagBreak() ;
       }
     }

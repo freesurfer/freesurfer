@@ -14,7 +14,6 @@ function [vol_orig, vol_dest, vol_ind0, spacing, exp_k] = mris_read_m3z(filename
 % $Id: mris_read_m3z.m,v 1.1 2017/01/31 20:29:29 mreuter Exp $
 %**************************************************************************%
 
-  VERSION = '$Revision: 1.1 $';
   if ( nargin == 0 ), help(mfilename); return; end;
 
 

@@ -4,10 +4,6 @@
 ## fs-flat.tcl
 ## surfer script: fs-flat     [display fieldsign on patch]
 ##
-## CVS Revision Info:
-##    $Author: nicks $
-##    $Date: 2011/03/02 00:04:35 $
-##    $Revision: 1.5 $
 ##
 ## Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 ##

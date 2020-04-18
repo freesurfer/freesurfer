@@ -1,7 +1,6 @@
 import os
 import tempfile
 import numpy as np
-import nibabel as nib
 
 from . import error, run, Image, Overlay, Volume, Surface, collect_output
 
@@ -20,9 +19,34 @@ class Freeview:
 
     For a quicker but more limited way to view volumes or overlays, see `fv()` and `fvoverlay()`.
     '''
+
+    class OverlayTag:
+        '''Configuration for overlay tags. See surf() for usage.'''
+        def __init__(self, data, name=None, threshold=None, opacity=None):
+            self.data = data
+            self.name = name
+            self.threshold = threshold
+            self.opacity = opacity
+
+    class MRISPTag:
+        '''Configuration for mrisp tags. See surf() for usage.'''
+        def __init__(self, data, name=None):
+            self.data = data
+            self.name = name
+
     def __init__(self):
         self.tempdir = None
         self.flags = []
+
+    def copy(self):
+        '''
+        Returns a copy of the current freeview configuration. This allows for multiple
+        freeview windows loading the same base file (without resaving it).
+        '''
+        copied = Freeview()
+        copied.flags = self.flags.copy()
+        copied.tempdir = self.tempdir
+        return copied
 
     def vol(self, volume, **kwargs):
         '''
@@ -44,16 +68,30 @@ class Freeview:
         flag = '-v ' + filename + self._kwargs_to_tags(kwargs)
         self.add_flag(flag)
 
-    def surf(self, surface, overlay=None, mrisp=None, **kwargs):
+    def surf(self, surface, overlay=None, mrisp=None, sphere=None, curvature=None, **kwargs):
         '''
         Loads a surface in the freeview session. If the surface provided is not
         a filepath, then the input will be saved in a temporary directory. Any
         key/value tags allowed on the command line can be provided as arguments.
 
+        Overlays can be provided as filenames, numpy arrays, or Overlay instances, but in order
+        to configure overlays with custom visualization options, use the OverlayTag class to specify
+        things like desired filename and threshold:
+
+            overlay = fs.Freeview.OverlayTag(thickness, name='thickness', threshold=(1, 3))
+            fv.surf(surface, overlay=overlay)
+
+        The first argument to the OverlayTag constructor can be a filename, numpy array, or Overlay
+        instance. A list of multiple OverlayTags can be provided as input to the overlay parameter as
+        well. A similar configuration class exists for mrisps, named MRISPTag.
+
         Args:
             surface: An existing filename or Surface instance.
-            overlay: A file, array, or Overlay instance to project onto the surface.
-            mrisp: A file, array, or Image parameterization to project onto the surface.
+            overlay: A file, array, Overlay, or OverlayTag instance to project onto the surface. Multiple overlays can
+                be provided with a list.
+            mrisp: A file, array, Image, or MRISPTag to project onto the surface. Multiple parameterizations can
+                be provided with a list.
+            curvature: A file, array, or Overlay instance to load as the surface curvature.
             opts: Additional option string to append to the surface commandline argument.
         '''
 
@@ -62,32 +100,62 @@ class Freeview:
         if filename is None:
             return
 
-        # if overlay is provided as an array, make sure it's converted
-        if overlay is not None:
-            kwargs['overlay'] = self._vol_to_file(overlay, force=Overlay)
+        # if curvature is provided as a np array, make sure it's converted
+        if curvature is not None:
+            kwargs['curvature'] = self._vol_to_file(curvature, force=Overlay)
 
-        # if mrisp is provided as an array, make sure it's converted
+        # configure (potentially multiple) overlays
+        if overlay is not None:
+            overlay = list(overlay) if isinstance(overlay, (list, tuple)) else [overlay]
+            for ol in overlay:
+                config = ol if isinstance(ol, Freeview.OverlayTag) else Freeview.OverlayTag(ol)
+                tag = ':overlay=%s' % self._vol_to_file(config.data, name=config.name, force=Overlay)
+                if config.threshold is not None:
+                    tag += ':overlay_threshold=%s' % (','.join(str(x) for x in config.threshold))
+                if config.opacity is not None:
+                    tag += ':overlay_opacity=%f' % config.opacity
+                kwargs['opts'] = tag + kwargs.get('opts', '')
+
+        # configure (potentially multiple) mrisps
         if mrisp is not None:
-            kwargs['mrisp'] = self._vol_to_file(mrisp, force=Image)
+            mrisp = list(mrisp) if isinstance(mrisp, (list, tuple)) else [mrisp]
+            for sp in mrisp:
+                config = sp if isinstance(sp, Freeview.MRISPTag) else Freeview.MRISPTag(sp)
+                tag = ':mrisp=%s' % self._vol_to_file(config.data, name=config.name, force=Image)
+                kwargs['opts'] = tag + kwargs.get('opts', '')
+
+        # if sphere is provided as an array, make sure it's converted
+        if sphere is not None:
+            kwargs['sphere'] = self._surf_to_file(sphere)
 
         # build the surface flag
         flag = '-f ' + filename + self._kwargs_to_tags(kwargs)
         self.add_flag(flag)
 
-    def show(self, background=True, opts=''):
+    def show(self, background=True, opts='', verbose=False, noclean=False, threads=None):
         '''Opens the configured freeview session.
 
         Args:
             background: Run freeview as a background process. Defaults to True.
             opts: Additional arguments to append to the command.
+            verbose: Print the freeview command before running. Defaults to False.
+            noclean: Do not remove temporary directory for debugging purposes.
+            threads: Set number of OMP threads available to freeview.
         '''
 
         # compile the command
         command = '%s freeview %s %s' % (self._vgl_wrapper(), opts, ' '.join(self.flags))
 
         # be sure to remove the temporary directory (if it exists) after freeview closes
-        if self.tempdir:
+        if self.tempdir and not noclean:
             command = '%s ; rm -rf %s' % (command, self.tempdir)
+
+        # set number of OMP threads if provided
+        if threads is not None:
+            command = 'export OMP_NUM_THREADS=%d ; %s' % (threads, command)
+
+        if verbose:
+            print(command)
 
         # run it
         run(command, background=background)
@@ -104,13 +172,20 @@ class Freeview:
             kwargs['name'] = kwargs['name'].replace(' ', '-')
 
         # opts is reserved for hardcoded tags
-        tags = kwargs.pop('opts', '')
+        extra_tags = kwargs.pop('opts', '')
+
+        tags = ''
         for key, value in kwargs.items():
-            tags += ':%s=%s' % (key, str(value))
 
-        return tags
+            if isinstance(value, (list, tuple)):
+                value = ','.join(str(x) for x in value)
 
-    def _vol_to_file(self, volume, force=None):
+            if value is not None:
+                tags += ':%s=%s' % (key, str(value))
+
+        return tags + extra_tags
+
+    def _vol_to_file(self, volume, name=None, force=None):
         '''
         Converts an unknown volume type (whether it's a filename, array, or
         other object) into a valid file.
@@ -131,21 +206,19 @@ class Freeview:
                 error('cannot convert array of shape %s' % str(array.shape))
                 return None
 
-        # input is a Volume
-        if isinstance(volume, Volume):
-            filename = self._unique_filename('volume.mgz')
-            volume.write(filename)
-            return filename
+        # configure filename
+        if not name:
+            if isinstance(volume, Overlay):
+                filename = self._unique_filename('overlay.mgz')
+            elif isinstance(volume, Image):
+                filename = self._unique_filename('image.mgz')
+            else:
+                filename = self._unique_filename('volume.mgz')
+        else:
+            filename = self._unique_filename(name.replace(' ', '-') + '.mgz')
 
-        # input is an Image
-        if isinstance(volume, Image):
-            filename = self._unique_filename('image.mgz')
-            volume.write(filename)
-            return filename
-
-        # input is an Overlay
-        if isinstance(volume, Overlay):
-            filename = self._unique_filename('overlay.mgz')
+        # check if fs array container
+        if isinstance(volume, (Overlay, Image, Volume)):
             volume.write(filename)
             return filename
 
@@ -155,7 +228,7 @@ class Freeview:
             import nibabel as nib
             if isinstance(volume, nib.spatialimages.SpatialImage):
                 # convert from nib to fs volume, as it's easier to control the filename
-                filename = self._unique_filename('volume.mgz')
+                filename = self._unique_filename(filename)
                 Volume(volume.get_data(), affine=volume.affine).write(filename)
                 return filename
         except ImportError:
@@ -233,9 +306,11 @@ class Freeview:
             return fullpath
 
         # append numbers until a unique filename is created (stop after 10,000 tries)
-        name, ext = filename.split('.', 1)
+        name_ext = filename.split('.', 1)
+        name = name_ext[0]
+        ext = '.' + name_ext[1] if len(name_ext) == 2 else ''
         for n in range(2, 10000):
-            fullpath = os.path.join(directory, '%s-%d.%s' % (name, n, ext))
+            fullpath = os.path.join(directory, '%s-%d%s' % (name, n, ext))
             if not os.path.exists(fullpath):
                 return fullpath
         raise RuntimeError('could not generate a unique filename for "%s" after trying many times' % (filename))
@@ -286,14 +361,15 @@ def fv(*args, **kwargs):
     fv.show(background=background, opts=opts)
 
 
-def fvoverlay(surface, overlay, background=True, opts=''):
+def fvoverlay(surface, overlay, background=True, opts='', verbose=False):
     '''Freeview wrapper to quickly load an overlay onto a surface.
 
     Args:
         surface: An existing surface filename.
         overlay: An existing volume filename, a numpy array, or a nibabel image to apply as an overlay.
         background: Run freeview as a background process. Defaults to True.
+        verbose: Print the freeview command before running. Defaults to False.
     '''
     fv = Freeview()
     fv.surf(surface, overlay=overlay)
-    fv.show(background=background, opts=opts)
+    fv.show(background=background, opts=opts, verbose=verbose)

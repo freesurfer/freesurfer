@@ -1,7 +1,6 @@
 #define COMPILING_MRISURF_TOPOLOGY_FRIEND_CHECKED
 #define COMPILING_MRISURF_METRIC_PROPERTIES_FRIEND
 /*
- * @file utilities operating on Original
  *
  */
 /*
@@ -130,7 +129,7 @@ static MRIS* MRISprojectOntoSphereWkr(MRIS* mris, double r)
     v->y = y - dy;
     v->z = z - dz;
 
-    if (!isfinite(v->x) || !isfinite(v->y) || !isfinite(v->z)) {
+    if (!std::isfinite(v->x) || !std::isfinite(v->y) || !std::isfinite(v->z)) {
       DiagBreak();
     }
 
@@ -233,7 +232,7 @@ int MRISprojectOntoCylinder(MRI_SURFACE *mris, float radius)
     z2 = z * z;
 
     d = (-1.0 + (float)radius / sqrt(x2 + z2));
-    if (!isfinite(d)) {
+    if (!std::isfinite(d)) {
       ErrorPrintf(ERROR_BADPARM, "point (%2.2f,%2.2f,%2.2f) cannot be projected on cylinder", x, y, z);
     }
     dx = d * x;
@@ -241,7 +240,7 @@ int MRISprojectOntoCylinder(MRI_SURFACE *mris, float radius)
     v->x = x + dx;
     v->z = z + dz;
 
-    if (!isfinite(v->x) || !isfinite(v->y) || !isfinite(v->z)) {
+    if (!std::isfinite(v->x) || !std::isfinite(v->y) || !std::isfinite(v->z)) {
       DiagBreak();
     }
   }
@@ -339,7 +338,7 @@ MRI_SURFACE *MRISprojectOntoEllipsoid(MRI_SURFACE *mris_src, MRI_SURFACE *mris_d
     g = 2 * (x2 / a4 + y2 / b4 + z2 / c4);
     h = x2 / a2 + y2 / b2 + z2 / c2 - 1;
     d = (-g + (float)sqrt((double)(g * g - 4 * f * h))) / (2 * f);
-    if (!isfinite(d)) {
+    if (!std::isfinite(d)) {
       ErrorPrintf(ERROR_BADPARM,
                   "point (%2.2f,%2.2f,%2.2f) cannot be projected on ell "
                   "(%2.0f,%2.0f,%2.0f...\n",
@@ -359,7 +358,7 @@ MRI_SURFACE *MRISprojectOntoEllipsoid(MRI_SURFACE *mris_src, MRI_SURFACE *mris_d
     v->y = y + dy;
     v->z = z + dz;
 
-    if (!isfinite(v->x) || !isfinite(v->y) || !isfinite(v->z)) {
+    if (!std::isfinite(v->x) || !std::isfinite(v->y) || !std::isfinite(v->z)) {
       DiagBreak();
     }
 

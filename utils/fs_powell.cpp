@@ -1,5 +1,4 @@
 /**
- * @file  fs_powell.cpp
  * @brief This is taken from vnl_powell
  *
  * This version is created so that the initial
@@ -7,7 +6,6 @@
  */
 /*
  * Original Author: Dennis Jen
- * CVS Revision Info:
  *    $Author$
  *    $Date$f
  *    $Revision$
