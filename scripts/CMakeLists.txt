@@ -56,6 +56,7 @@ install(PROGRAMS
   fname2stem
   freesurfer
   fsfirst.fsl
+  fs_install_mcr
   fs_lib_check
   fs_time
   fs_tutorial_data
