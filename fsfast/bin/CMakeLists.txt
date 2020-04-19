@@ -2,7 +2,7 @@ install_symlinks(
   fast_selxavg3b.glnxa64
   mkcontrast2m.glnxa64
   TYPE programs
-  DESTINATION bin
+  DESTINATION fsfast/bin
 )
 
 install(PROGRAMS
