@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+
+# script to facilitate easy installation of the matlab runtime package
+
+set -e
+
+# check arguments
+if [ "$#" -ne 1 ]; then
+    echo "ERROR: must specify MCR version as argument"
+    echo "EXAMPLE: fs_install_mcr R2018b"
+    exit 1
+fi
+
+MCR_VER="$1"
+
+# check FS directory
+if [[ -z "$FREESURFER_HOME" ]]; then
+    echo "ERROR: must set FREESURFER_HOME before installing"
+    exit 1
+fi
+
+# operate in tmp directory
+TMP_DIR=$(mktemp -d 2>/dev/null || mktemp -d -t 'mytmpdir')
+cd $TMP_DIR
+
+# cleanup tmp directory at exit
+function cleanup {
+    cd $FREESURFER_HOME
+    rm -rf $TMP_DIR
+}
+trap cleanup EXIT
+
+if [ "$(uname -s)" == "Linux" ]; then
+    OS_TAG=glnxa64
+else
+    OS_TAG=maci64
+fi
+
+# download the os-specific installer
+curl https://ssd.mathworks.com/supportfiles/downloads/$MCR_VER/deployment_files/$MCR_VER/installers/$OS_TAG/MCR_${MCR_VER}_${OS_TAG}_installer.zip -o installer.zip
+unzip installer.zip
+
+# run non-interactive installation
+TMP_DEST_DIR=$TMP_DIR/install-target
+./install -mode silent -agreeToLicense yes -destinationFolder $TMP_DEST_DIR
+
+# move mcr install to freesurfer directory
+MCR_DIR="$(ls -d $TMP_DEST_DIR/v*)"
+MCR_NAME="$(basename $MCR_DIR)"
+mv $MCR_DIR $FREESURFER_HOME/MCR$MCR_NAME
+echo "$MCR_VER installed successfully in $FREESURFER_HOME/MCR$MCR_NAME"
