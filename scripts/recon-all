@@ -3238,7 +3238,7 @@ if($DoFix && ( ! $longitudinal )) then
       set cmd = (mris_remesh --remesh --iters $RemeshIterations \
         --input $origsurfpath --output $remeshpath $xopts)
       echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-      fs_time $cmd |& tee -a $LF
+      if($RunIt) $fs_time $cmd |& tee -a $LF
       if($status) goto error_exit;
     end
   endif
