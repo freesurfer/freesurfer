@@ -165,7 +165,8 @@ int main(int argc, char *argv[]) {
   printf("tissue type schema %s\n",ct->TissueTypeSchema);
 
   // embed color table in segmentation
-  gtmseg->seg->ct = ct;
+  // commenting out because ctabTissueType binary IO is not yet supported
+  // gtmseg->seg->ct = ct;
 
   sprintf(tmpstr,"%s/%s/mri/%s",SUBJECTS_DIR,gtmseg->subject,OutVolFile);
   printf("Writing output file to %s\n",tmpstr);
