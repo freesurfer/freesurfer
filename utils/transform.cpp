@@ -5229,3 +5229,183 @@ int TransformCRS2MNI305(const MRI *mri, const double col, const double row, cons
 
   return(0);
 }
+
+
+/*!
+  \fn MATRIX *TranformAffineParams2Matrix(double *p, MATRIX *M)
+  \brief Computes a RAS-to-RAS transformation matrix given
+    the 12 parameters. p[0-2] translation, p[3-5] rotation
+    in degrees, p[6-8] scale, p[9-11] shear. 
+    M = T*R1*R2*R3*SCALE*SHEAR
+    Consistent with TranformExtractAffineParams()
+*/
+MATRIX *TranformAffineParams2Matrix(double *p, MATRIX *M)
+{
+  MATRIX *T, *R1, *R2, *R3, *R, *ZZ, *S;
+
+  // translations
+  T = MatrixIdentity(4,NULL);
+  T->rptr[1][4] = p[0];
+  T->rptr[2][4] = p[1];
+  T->rptr[3][4] = p[2];
+
+  // rotations
+  R1 = MatrixIdentity(4,NULL);
+  R1->rptr[2][2] = cos(p[3]*M_PI/180);
+  R1->rptr[2][3] = sin(p[3]*M_PI/180);
+  R1->rptr[3][2] = -sin(p[3]*M_PI/180);
+  R1->rptr[3][3] = cos(p[3]*M_PI/180);
+
+  R2 = MatrixIdentity(4,NULL);
+  R2->rptr[1][1] = cos(p[4]*M_PI/180);
+  R2->rptr[1][3] = sin(p[4]*M_PI/180);
+  R2->rptr[3][1] = -sin(p[4]*M_PI/180);
+  R2->rptr[3][3] = cos(p[4]*M_PI/180);
+
+  R3 = MatrixIdentity(4,NULL);
+  R3->rptr[1][1] = cos(p[5]*M_PI/180);
+  R3->rptr[1][2] = sin(p[5]*M_PI/180);
+  R3->rptr[2][1] = -sin(p[5]*M_PI/180);
+  R3->rptr[2][2] = cos(p[5]*M_PI/180);
+
+  // R = R1*R2*R3
+  R = MatrixMultiplyD(R1,R2,NULL);
+  MatrixMultiplyD(R,R3,R);
+
+  // scale, use ZZ because some idiot #defined Z
+  ZZ = MatrixIdentity(4,NULL);
+  ZZ->rptr[1][1] = p[6];
+  ZZ->rptr[2][2] = p[7];
+  ZZ->rptr[3][3] = p[8];
+  ZZ->rptr[4][4] = 1;
+
+  // shear
+  S = MatrixIdentity(4,NULL);
+  S->rptr[1][2] = p[9];
+  S->rptr[1][3] = p[10];
+  S->rptr[2][3] = p[11];
+
+  // M = T*R*ZZ*S
+  M = MatrixMultiplyD(T,R,M);
+  MatrixMultiplyD(M,ZZ,M);
+  MatrixMultiplyD(M,S,M);
+  //MatrixPrint(stdout,M);
+
+  MatrixFree(&T);
+  MatrixFree(&R1);
+  MatrixFree(&R2);
+  MatrixFree(&R3);
+  MatrixFree(&R);
+  MatrixFree(&ZZ);
+  MatrixFree(&S);
+
+  return(M);
+}
+/*!
+  \fn double *TranformExtractAffineParams(MATRIX *M, double *p)
+  \brief Extracts parameters from a 12 dof (ie, affine) transformation
+  matrix.  This is consistent with TranfromAffineParams2Matrix().
+  Angles are in degrees.
+ */
+double *TranformExtractAffineParams(MATRIX *M, double *p)
+{
+  int c,r;
+  if(M==NULL){
+    printf("ERROR: TranformExtractAffineParams() input matrix is NULL\n");
+    return(NULL);
+  }
+
+  if(p==NULL) p = (double*) calloc(12,sizeof(double));
+
+  // Translation
+  p[0] = M->rptr[1][4];
+  p[1] = M->rptr[2][4];
+  p[2] = M->rptr[3][4];
+
+  // Decompose
+  MATRIX *Q = MatrixAlloc(4,4,MATRIX_REAL);
+  MATRIX *R = MatrixAlloc(4,4,MATRIX_REAL);
+  MatrixQRdecomposition(M,Q,R);
+
+  // Compute a new decomposition such that the diagonal of the
+  // R matrix is always positive (these are the scale parameters)
+  MATRIX *P = MatrixAlloc(4,4,MATRIX_REAL);
+  for(c=1; c <=4; c++){
+    for(r=1; r <=4; r++){
+      if(r != c) continue;
+      P->rptr[r][c] = 1;
+      if(R->rptr[r][c] < 0) P->rptr[r][c] = -1;
+    }
+  }
+  // M = (Q*P)*(P*R) where P*P=I
+  // New Q = Q*P
+  MatrixMultiply(Q,P,Q);
+  // New R = P*R
+  MatrixMultiply(P,R,R);
+  MatrixFree(&P);
+
+  // Rotation angles (in degrees)
+  p[3] = atan2(Q->rptr[2][3],Q->rptr[3][3])*180/M_PI;
+  p[4] = atan2(Q->rptr[1][3],sqrt(pow(Q->rptr[2][3],2.0) + pow(Q->rptr[3][3],2.0)))*180/M_PI;
+  p[5] = atan2(Q->rptr[1][2],Q->rptr[1][1])*180/M_PI;
+
+  // Scale is the diagonal of the R matrix. Already always positive
+  p[6] = R->rptr[1][1];
+  p[7] = R->rptr[2][2];
+  p[8] = R->rptr[3][3];
+
+  // Shear (this can fail if one of the scale parameters is 0)
+  p[ 9] = R->rptr[1][2]/R->rptr[1][1];
+  p[10] = R->rptr[1][3]/R->rptr[1][1];
+  p[11] = R->rptr[2][3]/R->rptr[2][2];
+
+  MatrixFree(&Q);
+  MatrixFree(&R);
+  return(p);
+}
+
+/*!
+  \fn double TransformAffineParamTest(int niters, double thresh)
+  \brief This is a test of TranformAffineParams2Matrix() and
+  TranformExtractAffineParams() to assure consistency. A random set of
+  affine parameters is generated and used to generate a matrix.  The
+  affine parameters are then extracted from the matrix and compared
+  with the original. The maximum abs diff across all iterations is
+  returned. If the max diff for a given iteration exceeds thresh, then
+  info is printed out. The consistency is not perfect due to lack of 
+  numerical precision (but it is very close).
+ */
+double TransformAffineParamTest(int niters, double thresh)
+{
+  MATRIX *M  = MatrixAlloc(4,4,MATRIX_REAL);
+  double p[12],p2[12],emax,en;
+  int k,n;
+
+  emax = 0;
+  for(n=0; n < niters; n++){
+    for(k=0; k < 12; k++) p[k] = drand48();
+    // dont let scale get close to 0
+    for(k=6; k <=8; k++) if(p[k] < .01) p[k] = 1;
+    TranformAffineParams2Matrix(p, M);
+    TranformExtractAffineParams(M, p2);
+    en = 0;
+    for(k=0; k < 12; k++) if(en < fabs(p[k]-p2[k])) en = fabs(p[k]-p2[k]);
+    if(emax < en) emax = en;
+    if(en > thresh){
+      // This is just a random threshold
+      printf("n = %d, en = %g\n",n,en);
+      printf("M = [\n");
+      MatrixPrint(stdout,M);
+      printf("]\n");
+      for(k=0; k < 12; k++) printf("%g ",p[k]);
+      printf("\n");
+      for(k=0; k < 12; k++) printf("%g ",p2[k]);
+      printf("\n");
+    }
+  }
+  printf("n = %d, emax = %g\n",n,emax);
+  MatrixFree(&M);
+  return(emax);
+}
+
+
