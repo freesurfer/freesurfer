@@ -71,7 +71,6 @@ void lubksb(double** a,int n,int* indx,double* b);
 static char *log_fname = NULL ;
 static  char  *subject_name = NULL ;
 
-static char vcid[] = "$Id: mris_diff.cpp,v 1.11 2011/03/02 00:04:55 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -727,7 +726,7 @@ static void print_usage(void)
   fprintf(stdout, "   -L %%s  log_file name \n");
   fprintf(stdout, "   -S %%s  subject name \n");
   fprintf(stdout, "\n");
-  printf("%s\n", vcid) ;
+  std::cout << getVersion() << std::endl;
   printf("\n");
 
 }
@@ -781,7 +780,7 @@ static void print_help(void)
 /* --------------------------------------------- */
 static void print_version(void)
 {
-  fprintf(stdout, "%s\n", vcid) ;
+  fprintf(stdout, "%s\n", getVersion().c_str()) ;
   exit(1) ;
 }
 

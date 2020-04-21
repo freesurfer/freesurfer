@@ -3,7 +3,7 @@
 
 # Creates segmentations and annotations for defect visualization
 
-set VERSION = '$Id: defect-seg,v 1.7 2017/01/23 18:24:09 greve Exp $';
+set VERSION = 'defect-seg @FS_VERSION@';
 
 set subject = ();
 set PrintHelp = 0;

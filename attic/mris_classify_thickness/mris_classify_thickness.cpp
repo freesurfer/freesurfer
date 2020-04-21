@@ -46,7 +46,6 @@
 #include "cma.h"
 #include "stats.h"
 
-static char vcid[] = "$Id: mris_classify_thickness.c,v 1.9 2012/03/08 13:30:17 fischl Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -1357,7 +1356,7 @@ print_help(void) {
 
 static void
 print_version(void) {
-  fprintf(stderr, "%s\n", vcid) ;
+  fprintf(stderr, "%s\n", getVersion().c_str()) ;
   exit(1) ;
 }
 

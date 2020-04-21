@@ -13,7 +13,6 @@
  */
 
 
-// $Id: randomfields.h,v 1.12 2016/12/06 20:25:48 greve Exp $
 
 #ifndef RANDOMFIELDS_H
 #define RANDOMFIELDS_H
@@ -42,7 +41,6 @@ typedef struct
 RANDOM_FIELD_SPEC, RFS;
 
 
-const char *RFSrcVersion(void);
 RFS *RFspecInit(unsigned long int seed, sc_rng_type *rngtype);
 int RFspecFree(RFS **prfs);
 int RFname2Code(RFS *rfs);

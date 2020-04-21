@@ -27,8 +27,6 @@
 #include "proto.h"
 #include "macros.h"
 
-static char vcid[] =
-  "$Id: mri_bc_sc_bias_correct.c,v 1.5 2011/03/02 00:04:13 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 static int  get_option(int argc, char *argv[]) ;
@@ -209,6 +207,6 @@ print_help(void) {
 
 static void
 print_version(void) {
-  fprintf(stderr, "%s\n", vcid) ;
+  fprintf(stderr, "%s\n", getVersion().c_str()) ;
   exit(1) ;
 }

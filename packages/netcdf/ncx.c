@@ -21,7 +21,6 @@
  *	they handle IEEE subnormals properly, and their "n" versions
  *	operate speedily on arrays.
  */
-/* $Id: ncx.m4,v 2.47 2004/09/30 18:47:12 russ Exp $ */
 
 /*
  * An external data representation interface.

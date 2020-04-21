@@ -19,7 +19,7 @@
 #
 
 
-set VERSION    = '$Id: mc-sess,v 1.26 2015/12/10 22:51:30 zkaufman Exp $'
+set VERSION    = 'mc-sess @FS_VERSION@';
 set cmdargs = ($argv);
 
 set fsd = "bold";

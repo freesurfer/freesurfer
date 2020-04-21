@@ -2,7 +2,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: dt_recon,v 1.23 2015/12/09 20:02:53 zkaufman Exp $';
+set VERSION = 'dt_recon @FS_VERSION@';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);

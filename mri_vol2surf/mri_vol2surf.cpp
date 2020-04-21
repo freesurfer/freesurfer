@@ -77,8 +77,6 @@ static void dump_options(FILE *fp);
 static int  singledash(char *flag);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = 
-"$Id: mri_vol2surf.c,v 1.68 2014/05/30 20:58:47 greve Exp $";
 
 const char *Progname = NULL;
 
@@ -1231,7 +1229,7 @@ static void print_usage(void) {
   printf("\n");
   printf("   --interp    interpolation method (<nearest> or trilinear)\n");
   printf("   --vg-thresh thrshold : threshold for  'ERROR: LTAconcat(): LTAs 0 and 1 do not match'\n");
-  printf("%s\n", vcid) ;
+  std::cout << getVersion() << std::endl;
   printf("\n");
   //printf("   --src_type  input volume format \n");
 }
@@ -1478,7 +1476,7 @@ static void print_help(void) {
 }
 /* --------------------------------------------- */
 static void print_version(void) {
-  printf("%s\n", vcid) ;
+  std::cout << getVersion() << std::endl;
   exit(1) ;
 }
 /* --------------------------------------------- */

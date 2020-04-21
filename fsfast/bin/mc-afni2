@@ -19,7 +19,7 @@
 #
 
 
-set VERSION = '$Id: mc-afni2,v 1.10 2015/12/10 22:51:30 zkaufman Exp $';
+set VERSION = 'mc-afni2 @FS_VERSION@';
 
 set invol = ();
 set outvol = ();

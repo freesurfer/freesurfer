@@ -51,8 +51,6 @@ static struct Parameters P =
 static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[], Parameters & P);
 
-static char vcid[] =
-    "$Id: mri_warp_convert.cpp,v 1.1 2016/06/16 19:57:06 ohinds Exp $";
 const char *Progname = NULL;
 
 GCAM* readM3Z(const string& warp_file)
@@ -414,7 +412,7 @@ void write_voxel(const string& fname, GCAM* gcam)
 
 int main(int argc, char *argv[])
 {
-  cout << vcid << endl << endl;
+  cout << getVersion() << endl << endl;
 
   // Default initialization
   int nargs = handleVersionOption(argc, argv, "mri_warp_convert");

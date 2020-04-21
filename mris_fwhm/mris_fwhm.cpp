@@ -146,7 +146,6 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_fwhm.c,v 1.45 2016/12/08 19:25:38 greve Exp $";
 const char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -736,7 +735,7 @@ static void print_usage(void) {
   printf("   --help      print out information on how to use this program\n");
   printf("   --version   print out version and exit\n");
   printf("\n");
-  printf("%s\n", vcid) ;
+  std::cout << getVersion() << std::endl;
   printf("\n");
 }
 /* --------------------------------------------- */
@@ -832,7 +831,7 @@ printf("\n");
 }
 /* --------------------------------------------- */
 static void print_version(void) {
-  printf("%s\n", vcid) ;
+  std::cout << getVersion() << std::endl;
   exit(1) ;
 }
 /* --------------------------------------------- */
@@ -885,7 +884,7 @@ static void check_options(void) {
 /* --------------------------------------------- */
 static void dump_options(FILE *fp) {
   fprintf(fp,"\n");
-  fprintf(fp,"%s\n",vcid);
+  fprintf(fp,"%s\n", getVersion().c_str());
   fprintf(fp,"%s\n",Progname);
   fprintf(fp,"FREESURFER_HOME %s\n",getenv("FREESURFER_HOME"));
   fprintf(fp,"SUBJECTS_DIR %s\n",getenv("SUBJECTS_DIR"));

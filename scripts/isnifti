@@ -23,7 +23,7 @@
 #
 #
 
-set VERSION = '$Id: isnifti,v 1.5 2011/03/02 20:16:39 nicks Exp $'
+set VERSION = 'isnifti @FS_VERSION@';
 
 if($#argv != 1) then
   echo "isnifti filename"

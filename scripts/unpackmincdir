@@ -17,7 +17,7 @@
 #
 
 
-set VERSION = '$Id: unpackmincdir,v 1.9 2016/02/16 17:17:20 zkaufman Exp $';
+set VERSION = 'unpackmincdir @FS_VERSION@';
 
 set n = `echo $argv | egrep -e -version | wc -l`
 if($n != 0) then

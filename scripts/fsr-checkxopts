@@ -21,7 +21,7 @@
 #
 #
 
-set VERSION = '$Id: fsr-checkxopts,v 1.4 2011/03/02 20:16:39 nicks Exp $';
+set VERSION = 'fsr-checkxopts @FS_VERSION@';
 
 if($#argv < 1) exit 0;
 set xoptsfile = $argv[1];

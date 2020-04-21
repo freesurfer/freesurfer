@@ -31,9 +31,6 @@
 #include "utils.h"
 #include "version.h"
 
-/* --------------------------------------------- */
-// Return the CVS version of this file.
-const char *FSENVsrcVersion(void) { return ("$Id: fsenv.c,v 1.7 2015/04/16 18:49:31 greve Exp $"); }
 
 FSENV *FSENVgetenv(void)
 {

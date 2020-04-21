@@ -51,7 +51,7 @@ global MkAnalysisClone;
 
 % Choose default command line output for mkanalysis_gui
 handles.output = hObject;
-handles.version = '$Id: mkanalysis_gui.m,v 1.22 2010/04/06 23:08:34 greve Exp $';
+handles.version = 'mkanalysis_gui.m @FS_VERSION@';
 handles.saveneeded = 1;
 handles.flac = [];
 handles.clone = '';

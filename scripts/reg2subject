@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # reg2subject
 
-set VERSION = '$Id: reg2subject,v 1.2 2016/02/16 17:17:20 zkaufman Exp $';
+set VERSION = 'reg2subject @FS_VERSION@';
 
 set outdir = ();
 set subject = ();

@@ -25,7 +25,7 @@
 #new talairach alignment utility, using Avi Snyders registration tools
 #
 
-set idstr = '$Id: mpr2mni305,v 1.5 2015/12/18 23:56:21 zkaufman Exp $'
+set idstr = 'mpr2mni305 @FS_VERSION@'
 set program = $0; set program = $program:t
 
 if (${#argv} < 1) then

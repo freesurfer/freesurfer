@@ -9,7 +9,6 @@ function [indpeak twfPer indtrough] = peakfinder(twf,fmin,fmax)
 % fmin,fmax are constraints on the fundamental frequency and are
 % given in units of items per time point (NOT IN Hz!).
 %
-% $Id: peakfinder.m,v 1.9 2010/05/18 19:31:44 greve Exp $
 
 indpeak = [];
 

@@ -40,8 +40,6 @@
 #include "version.h"
 #include "error.h"
 
-//static char vcid[] = "$Id: mri_cc_ma_fill.c,v 1.3 2011/03/02 00:04:14 nicks Exp $";
-
 
 typedef struct medial_axis_type_ {
   float x,y;            /* curr position */

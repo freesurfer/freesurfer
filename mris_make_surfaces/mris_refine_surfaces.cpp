@@ -43,8 +43,6 @@
 #include "label.h"
 #include "registerio.h"
 
-static char vcid[] = 
-"$Id: mris_refine_surfaces.c,v 1.23 2016/12/10 22:57:53 fischl Exp $";
 
 int debug__ = 0; /// tosa debug
 
@@ -1103,7 +1101,7 @@ print_help(void) {
 
 static void
 print_version(void) {
-  fprintf(stderr, "%s\n", vcid) ;
+  fprintf(stderr, "%s\n", getVersion().c_str()) ;
   exit(1) ;
 }
 

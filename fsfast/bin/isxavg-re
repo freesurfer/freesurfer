@@ -21,7 +21,7 @@
 
 set inputargs = ($argv);
 set fmrianalver = `cat $FMRI_ANALYSIS_DIR/docs/version`;
-set VERSION = '$Id: isxavg-re,v 1.5 2015/12/10 22:51:30 zkaufman Exp $'
+set VERSION = 'isxavg-re @FS_VERSION@';
 
 # Set Default Values #
 set firstslice = 0;

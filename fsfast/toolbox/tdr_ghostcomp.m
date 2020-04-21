@@ -7,7 +7,6 @@ function [gcomp, theta, thetahat, Fsig, beta, Rrow] = tdr_ghostcomp(kpcn,epipar,
 %
 % revenfixed = reven .* gcomp (careful with transpose)
 %
-% $Id: tdr_ghostcomp.m,v 1.9 2010/03/22 17:41:44 greve Exp $
 
 %order = 2;   % poly order
 rthresh = .2; % keep the top rthresh

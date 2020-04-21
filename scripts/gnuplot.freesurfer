@@ -17,7 +17,6 @@
 #
 
 # NEEDED TO OVERRIDE THE FSL gnuplot
-# $Id: gnuplot.freesurfer,v 1.4 2011/03/02 20:16:39 nicks Exp $
 if [ -x /usr/local/bin/gnuplot ] ; then
    exec /usr/local/bin/gnuplot "$@"
 elif [ -x /usr/bin/gnuplot ] ; then

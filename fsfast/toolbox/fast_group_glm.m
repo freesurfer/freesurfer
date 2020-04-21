@@ -32,7 +32,7 @@
 
 tic;
 
-ver = '$Id: fast_group_glm.m,v 1.6 2011/03/02 00:04:04 nicks Exp $';
+ver = 'fast_group_glm.m @FS_VERSION@';
 fprintf('%s\n',ver);
 
 Cflastruct = load(FLAConMat);

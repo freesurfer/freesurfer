@@ -39,7 +39,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.580.2.15 2016/12/08 22:02:41 zkaufman Exp $';
+set VERSION = 'recon-all.v6.hires @FS_VERSION@';
 set ProgName = `basename $0`;
 set inputargs = ($argv);
 set subjid = ();

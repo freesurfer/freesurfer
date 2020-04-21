@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # fcseed-sess
 #
-set VERSION    = '$Id: fcseed-sess,v 1.17 2015/12/10 22:51:29 zkaufman Exp $';
+set VERSION    = 'fcseed-sess @FS_VERSION@';
 set cmdargs = ($argv);
 
 set fcconfig = ();

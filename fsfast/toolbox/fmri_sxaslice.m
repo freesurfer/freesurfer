@@ -32,7 +32,7 @@
 
 fprintf(1,'\n');
 fprintf(1,'  --- fmri_sxaslice: Starting ------\n');
-fprintf(1,'$Id: fmri_sxaslice.m,v 1.3 2011/03/02 00:04:06 nicks Exp $\n');
+fprintf(1,'fmri_sxaslice.m @FS_VERSION@\n');
 
 if( ~exist('QuitOnError') ) QuitOnError = 1; end
 

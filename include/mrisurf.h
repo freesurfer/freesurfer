@@ -492,7 +492,6 @@ typedef struct
 }
 VALS_VP;
 
-const char *MRISurfSrcVersion(void);
 
 /* new functions */
 int MRISvectorRegister(MRI_SURFACE *mris,

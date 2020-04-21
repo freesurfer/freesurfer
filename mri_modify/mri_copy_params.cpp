@@ -30,8 +30,6 @@
 static int  get_option(int argc, char *argv[]) ;
 static void usage_exit(void) ;
 static void print_version(void) ;
-static char vcid[] =
-  "$Id: mri_copy_params.cpp,v 1.5 2011/03/02 00:04:23 nicks Exp $";
 
 static int copy_pulse_params_only = 0 ;
 static int copy_ras_only = 0 ;
@@ -196,7 +194,7 @@ get_option(int argc, char *argv[]) {
 
 static void
 print_version(void) {
-  fprintf(stderr, "%s\n", vcid) ;
+  fprintf(stderr, "%s\n", getVersion().c_str()) ;
   exit(1) ;
 }
 static void

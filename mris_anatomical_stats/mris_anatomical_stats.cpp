@@ -37,8 +37,6 @@
 #include "cma.h"
 #include "mrisutils.h"
 
-static char vcid[] =
-  "$Id: mris_anatomical_stats.c,v 1.79 2016/03/14 15:15:34 greve Exp $";
 
 int main(int argc, char *argv[]) ;
 static int  get_option(int argc, char *argv[]) ;
@@ -501,8 +499,8 @@ main(int argc, char *argv[])
     fprintf(fp,"# \n");
     fprintf(fp,"# CreationTime %s\n",VERcurTimeStamp());
     fprintf(fp,"# generating_program %s\n",Progname);
-    fprintf(fp,"# cvs_version %s\n",vcid);
-    fprintf(fp,"# mrisurf.c-cvs_version %s\n",MRISurfSrcVersion());
+    fprintf(fp,"# cvs_version %s\n",getVersion().c_str());
+    fprintf(fp,"# mrisurf.c-cvs_version %s\n",getVersion().c_str());
     fprintf(fp,"# cmdline %s\n",cmdline);
     fprintf(fp,"# sysname  %s\n",uts.sysname);
     fprintf(fp,"# hostname %s\n",uts.nodename);
@@ -1260,7 +1258,7 @@ print_help(void)
 static void
 print_version(void)
 {
-  fprintf(stderr, "%s\n", vcid) ;
+  fprintf(stderr, "%s\n", getVersion().c_str()) ;
   exit(1) ;
 }
 

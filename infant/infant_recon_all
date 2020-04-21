@@ -5,7 +5,7 @@
 ##
 
 set inputargs = ($argv);
-set VERSION = '$Id: infant_recon_all,v 1.00 2017/01/10 12:27:40 lzollei Exp $';
+set VERSION = 'infant_recon_all @FS_VERSION@';
 
 set checkresults        = 0 # after each processing step FreeView is called to visualize the results
 set nolog               = 0 # keep logging the processing steps

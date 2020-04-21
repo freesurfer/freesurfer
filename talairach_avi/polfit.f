@@ -1,5 +1,3 @@
-c $Id: polfit.f,v 1.1 2007/05/04 22:34:03 nicks Exp $
-c $Log: polfit.f,v $
 c Revision 1.1  2007/05/04 22:34:03  nicks
 c new talairach alignment utility, using Avi Snyders registration tools
 c

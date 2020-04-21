@@ -8,7 +8,6 @@
 # freesurfer writes. Can convert volume-encoded surface files with
 # --surf if nvertices is not prime.
 # 
-# $Id: fscalc.fsl,v 1.4 2009/05/14 22:02:18 greve Exp $
 #
 
 # First determine whether a surface is part of the mix

@@ -46,7 +46,7 @@ tic;
 
 
 
-fast_swfflac_nbhd_sess_ver = '$Id: fast_swfflac_nbhd_sess.m,v 1.7 2011/03/02 00:04:05 nicks Exp $';
+fast_swfflac_nbhd_sess_ver = 'fast_swfflac_nbhd_sess.m @FS_VERSION@';
 
 SynthSeed = round(sum(100*clock)); 
 randn('state',SynthSeed); 

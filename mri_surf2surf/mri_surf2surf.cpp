@@ -375,7 +375,6 @@ MATRIX *MRIleftRightRevMatrix(MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.103 2015/11/05 22:07:33 greve Exp $";
 const char *Progname = NULL;
 
 char *srcsurfregfile = NULL;
@@ -1871,7 +1870,7 @@ static void print_usage(void)
   printf("   --rms rms.dat   : save rms of reg1-reg2 (primarily for testing)\n");
   printf("   --rms-mask mask : only compute rms in mask (primarily for testing)\n");
   printf("\n");
-  printf("%s\n", vcid) ;
+  std::cout << getVersion() << std::endl;
   printf("\n");
 
 }
@@ -2157,7 +2156,7 @@ printf("\n");
 static void dump_options(FILE *fp)
 {
   fprintf(fp,"\n");
-  fprintf(fp,"%s\n",vcid);
+  fprintf(fp,"%s\n", getVersion().c_str());
   fprintf(fp,"\n");
   fprintf(fp,"setenv SUBJECTS_DIR %s\n",getenv("SUBJECTS_DIR"));
   fprintf(fp,"cd %s\n",cwd);
@@ -2190,7 +2189,7 @@ static void dump_options(FILE *fp)
 /* --------------------------------------------- */
 static void print_version(void)
 {
-  printf("%s\n", vcid) ;
+  std::cout << getVersion() << std::endl;
   exit(1) ;
 }
 /* --------------------------------------------- */

@@ -7,7 +7,6 @@ function [means covar] = gc_train(data,datacid);
 % means - nClasses x nVariates
 % covar - nVariates x nVariates x nClasses
 %
-% $Id: gc_train.m,v 1.2 2012/04/20 16:05:15 greve Exp $
 
 cids = unique(datacid);
 nClasses = length(cids);

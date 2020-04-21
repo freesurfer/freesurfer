@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # thalseg
 
-set VERSION = '$Id: surfreg,v 1.15 2016/08/12 17:07:49 greve Exp $';
+set VERSION = 'surfreg @FS_VERSION@';
 
 set subject = ();
 set hemilist  = ();

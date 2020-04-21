@@ -1,6 +1,5 @@
 function r = fast_mkdesignmtx(varargin)
 % r = fast_mkdesignmtx(varargin)
-% '$Id: fast_mkdesignmtx.m,v 1.3 2011/03/02 00:04:04 nicks Exp $'
 
 
 %
@@ -19,7 +18,7 @@ function r = fast_mkdesignmtx(varargin)
 % Reporting: freesurfer@nmr.mgh.harvard.edu
 %
 
-version = '$Id: fast_mkdesignmtx.m,v 1.3 2011/03/02 00:04:04 nicks Exp $';
+version = 'fast_mkdesignmtx.m @FS_VERSION@';
 fprintf(1,'%s\n',version);
 r = 1;
 

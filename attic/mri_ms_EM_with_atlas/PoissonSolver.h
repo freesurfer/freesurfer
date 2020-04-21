@@ -13,10 +13,6 @@
  */
 
 
-/* CVS Version Info
-   $Id: PoissonSolver.h,v 1.3 2011/03/02 00:04:23 nicks Exp $
-*/
-
 #ifndef POISSON_SOLVER_H
 #define POISSON_SOLVER_H
 

@@ -31,7 +31,7 @@
 
 fprintf(1,'\n');
 fprintf(1,'  --- fmri_sxavol: Starting ------\n');
-fprintf(1,'$Id: fmri_sxavol.m,v 1.3 2011/03/02 00:04:06 nicks Exp $\n');
+fprintf(1,'fmri_sxavol.m @FS_VERSION@\n');
 
 if( ~exist('QuitOnError') ) QuitOnError = 1; end
 

@@ -3,7 +3,7 @@
 # samseg2recon - create and populate a subjects dir in a way that
 # recon-all can be run on it.
 
-set VERSION = '$Id$'
+set VERSION = 'samseg2recon @FS_VERSION@';
 
 if(-e $FREESURFER_HOME/sources.csh) then
   source $FREESURFER_HOME/sources.csh

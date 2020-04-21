@@ -21,7 +21,6 @@ G_SYNOPSIS="
  NAME 
 
  	mris_roiCircle
-        $Id: mris_roiCircle,v 1.6 2011/09/20 12:45:12 rudolph Exp $
 
  SYNOPSIS
 

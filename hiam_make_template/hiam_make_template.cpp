@@ -25,6 +25,7 @@
 #include <math.h>
 #include <ctype.h>
 
+#include "version.h"
 #include "macros.h"
 #include "error.h"
 #include "diag.h"
@@ -33,7 +34,6 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: hiam_make_template.c,v 1.5 2011/03/02 00:04:08 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -351,6 +351,6 @@ print_help(void) {
 
 static void
 print_version(void) {
-  fprintf(stderr, "%s\n", vcid) ;
+  fprintf(stderr, "%s\n", getVersion().c_str()) ;
   exit(1) ;
 }

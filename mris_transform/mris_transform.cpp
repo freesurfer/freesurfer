@@ -28,7 +28,6 @@
 #include "transform.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_transform.c,v 1.8 2011/03/02 00:04:34 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -189,7 +188,7 @@ print_usage_exit(void) {
 
 static void
 print_version_exit(void) {
-  fprintf(stderr, "%s\n", vcid) ;
+  fprintf(stderr, "%s\n", getVersion().c_str()) ;
   exit(EXIT_SUCCESS) ;
 }
 

@@ -2,7 +2,6 @@ clear UT
 
 ## This is an FSL file. It is copied of xyztrans.sch from FSL version 
 ## 5.0.2. It is used in fslregister
-## $Id: fsl.5.0.2.xyztrans.sch,v 1.2 2013/08/08 20:51:24 greve Exp $
 
 ## X TRANSLATION ##
 

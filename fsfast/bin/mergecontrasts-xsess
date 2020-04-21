@@ -19,7 +19,7 @@
 #
 
 
-set VERSION = '$Id: mergecontrasts-xsess,v 1.7 2015/12/10 22:51:30 zkaufman Exp $';
+set VERSION = 'mergecontrasts-xsess @FS_VERSION@';
 
 set inputargs = ($argv);
 

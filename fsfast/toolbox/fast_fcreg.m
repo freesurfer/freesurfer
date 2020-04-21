@@ -1,5 +1,4 @@
 % fast_fcreg.m
-% $Id: fast_fcreg.m,v 1.6 2009/12/14 18:47:32 greve Exp $
 
 %flacfile
 %sess 

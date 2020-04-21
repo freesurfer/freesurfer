@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # vol2symsurf
 
-set VERSION = '$Id: vol2symsurf,v 1.5 2016/02/16 17:17:20 zkaufman Exp $';
+set VERSION = 'vol2symsurf @FS_VERSION@';
 
 set outstem = ();
 set outfmt = ();

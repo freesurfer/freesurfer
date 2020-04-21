@@ -22,7 +22,7 @@
 #
 
 
-set VERSION = '$Id: long_create_base_sigma,v 1.2 2015/10/20 18:14:41 mreuter Exp $';
+set VERSION = 'long_create_base_sigma @FS_VERSION@';
 
 if ($#argv < 2) then
   echo ""

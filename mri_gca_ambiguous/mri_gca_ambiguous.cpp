@@ -31,7 +31,6 @@
 #include "gca.h"
 #include "flash.h"
 
-static char vcid[] = "$Id: mri_gca_ambiguous.c,v 1.4 2011/03/02 00:04:15 nicks Exp $";
 
 static double scale = 1e12 ;
 
@@ -436,7 +435,7 @@ print_help(void) {
 
 static void
 print_version(void) {
-  fprintf(stderr, "%s\n", vcid) ;
+  fprintf(stderr, "%s\n", getVersion().c_str()) ;
   exit(1) ;
 
 }

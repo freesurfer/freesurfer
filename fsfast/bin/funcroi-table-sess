@@ -19,7 +19,7 @@
 #
 
 
-set VERSION = '$Id: funcroi-table-sess,v 1.7 2015/12/10 22:51:29 zkaufman Exp $';
+set VERSION = 'funcroi-table-sess @FS_VERSION@';
 
 set inputargs = ($argv);
 

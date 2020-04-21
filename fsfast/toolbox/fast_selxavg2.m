@@ -1,6 +1,5 @@
 function r = fast_selxavg2(varargin)
 % r = fast_selxavg2(varargin)
-% '$Id: fast_selxavg2.m,v 1.9 2011/03/02 00:04:05 nicks Exp $
 %
 % For compatibility with version 1:
 %  DOF ignores tpexcl
@@ -62,7 +61,7 @@ function r = fast_selxavg2(varargin)
 
 
 tic;
-version = '$Id: fast_selxavg2.m,v 1.9 2011/03/02 00:04:05 nicks Exp $';
+version = 'fast_selxavg2.m @FS_VERSION@';
 fprintf(1,'%s\n',version);
 r = 1;
 outfmt = 'nii';

@@ -7,7 +7,6 @@ function Cnorm = fast_norm_con(C)
 %
 % This is a replicated of code found in fast_contrastmtx.m
 %
-% $Id: fast_norm_con.m,v 1.1 2009/04/05 23:23:05 greve Exp $
 
 Cnorm = [];
 if(nargin ~= 1)

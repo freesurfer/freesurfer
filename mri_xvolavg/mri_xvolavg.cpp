@@ -15,7 +15,6 @@
 
 /*----------------------------------------------------------
   Name: mri_xvolavg
-  $Id: mri_xvolavg.c,v 1.6 2011/03/02 00:04:26 nicks Exp $
   Author: Douglas Greve
   Purpose: averages multiple volumes together into a single
   volume. The volumes can be 4D.
@@ -43,7 +42,6 @@ static int  singledash(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_xvolavg.c,v 1.6 2011/03/02 00:04:26 nicks Exp $";
 const char *Progname = NULL;
 
 char *defaulttypestring;
@@ -264,7 +262,7 @@ static void print_usage(void) {
   printf("   --help      print out information on how to use this program\n");
   printf("   --version   print out version and exit\n");
   printf("\n");
-  printf("%s\n", vcid) ;
+  std::cout << getVersion() << std::endl;
   printf("\n");
 }
 /* --------------------------------------------- */
@@ -301,7 +299,7 @@ static void print_help(void) {
 }
 /* --------------------------------------------- */
 static void print_version(void) {
-  printf("%s\n", vcid) ;
+  std::cout << getVersion() << std::endl;
   exit(-1) ;
 }
 /* --------------------------------------------- */

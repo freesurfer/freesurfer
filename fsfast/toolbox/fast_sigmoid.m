@@ -9,7 +9,6 @@ function y = fast_sigmoid(x,dx,s);
 % y = 1 at x = +inf 
 % y will be the same size as x. 
 %
-% $Id: fast_sigmoid.m,v 1.2 2011/03/02 00:04:05 nicks Exp $
 
 %
 % fast_sigmoid.m

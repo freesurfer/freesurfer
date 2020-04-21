@@ -1740,7 +1740,6 @@ int main(int argc, char *argv[])
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.227 2017/02/16 19:15:42 greve Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
   if (in_volume_type == MGH_MORPH)

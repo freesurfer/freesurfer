@@ -28,7 +28,7 @@
 #
 
 #########################################################
-set VERSION = '$Id: talairach2,v 1.14 2011/03/02 20:16:40 nicks Exp $';
+set VERSION = 'talairach2 @FS_VERSION@';
 
 set MGZ = ();
 

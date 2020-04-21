@@ -21,7 +21,7 @@
 #
 
 
-set VERSION = '$Id: mri_motion_correct2,v 1.19 2016/02/16 17:17:20 zkaufman Exp $';
+set VERSION = 'mri_motion_correct2 @FS_VERSION@';
 
 set tmpdir      = ();
 set inputlist   = ();

@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # recon-all
 
-set VERSION = '$Id: fsfast-gui-bug,v 1.2 2015/12/10 22:51:29 zkaufman Exp $';
+set VERSION = 'fsfast-gui-bug @FS_VERSION@';
 
 set DoFix = 0;
 set DoFind = 0;

@@ -1,6 +1,5 @@
 function err = juelichmat2mat(matfile)
 % err = juelichmat2mat(matfile)
-% $Id: juelichmat2mat.m,v 1.1 2007/08/16 02:10:12 greve Exp $
 
 err = 1;
 if(nargin ~= 1)

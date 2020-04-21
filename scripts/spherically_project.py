@@ -62,7 +62,7 @@ def options_parse():
     """
     Command line option parser for spherically_project.py
     """
-    parser = optparse.OptionParser(version='$Id: spherically_project,v 1.1 2017/01/30 20:42:08 ltirrell Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(usage=HELPTEXT)
     parser.add_option('--input',  '-i', dest='input_surf', help=h_input)
     parser.add_option('--output', '-o', dest='output_surf', help=h_output)
     (options, args) = parser.parse_args()

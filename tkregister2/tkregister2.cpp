@@ -29,8 +29,6 @@
 #endif
 
 #ifndef lint
-static char vcid[] =
-"$Id: tkregister2.c,v 1.133 2016/08/02 21:17:11 greve Exp $";
 #endif /* lint */
 
 #ifdef HAVE_TCL_TK_GL
@@ -488,7 +486,7 @@ int Register(ClientData clientData,
   parse_commandline(argc, argv);
   check_options();
   dump_options(stdout);
-  printf("%s\n",vcid);
+  printf("%s\n",getVersion().c_str());
   printf("Diagnostic Level %d\n",Gdiag_no);
 
   AllocBuffs();
@@ -1692,7 +1690,7 @@ static void print_help(void) {
   print_usage() ;
 
   printf("\n");
-  printf("%s\n", vcid) ;
+  std::cout << getVersion() << std::endl;
 
   printf(
 
@@ -2191,7 +2189,7 @@ static void print_help(void) {
 
 /* --------------------------------------------- */
 static void print_version(void) {
-  printf("%s\n", vcid) ;
+  std::cout << getVersion() << std::endl;
   exit(1) ;
 }
 

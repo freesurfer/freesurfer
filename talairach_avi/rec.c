@@ -33,9 +33,8 @@
 /* global variables */
 /********************/
 static char recfile[MAXL] = "";
-static char rcsid[] = "$Id: rec.c,v 1.2 2007/05/05 00:00:07 nicks Exp $";
 
-void rec_rcsid (void) {printf ("%s\n", rcsid);}
+void rec_rcsid (void) {printf ("%s\n", "freesurfer rec.c");}
 
 const char* current_date_time() {
   time_t tt = time(&tt);

@@ -36,8 +36,6 @@
 #include "transform.h"
 
 using namespace std;
-
-//static char vcid[] = "$Id: mri_gradient_info.cpp,v 1.5 2012/09/21 23:05:17 mreuter Exp $";
 const char *Progname = NULL;
 
 double scanX(MRI* mri_grad, MRI* mri_mask)

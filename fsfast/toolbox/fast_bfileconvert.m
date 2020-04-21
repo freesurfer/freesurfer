@@ -2,7 +2,6 @@ function r = fast_bfileconvert(varargin)
 % r = fast_bfileconvert(varargin)
 % Converts a bfile into another bfile. Eg, bfloat into bshort,
 % Little endian into big endian, etc.
-% '$Id: fast_bfileconvert.m,v 1.6 2011/03/02 00:04:03 nicks Exp $'
 
 
 %
@@ -21,7 +20,7 @@ function r = fast_bfileconvert(varargin)
 % Reporting: freesurfer@nmr.mgh.harvard.edu
 %
 
-version = '$Id: fast_bfileconvert.m,v 1.6 2011/03/02 00:04:03 nicks Exp $';
+version = 'fast_bfileconvert.m @FS_VERSION@';
 fprintf(1,'%s\n',version);
 r = 1;
 

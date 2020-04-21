@@ -17,7 +17,7 @@
 #
 
 #
-set VERSION = '$Id: talairach,v 1.8 2016/02/16 17:17:20 zkaufman Exp $'
+set VERSION = 'talairach @FS_VERSION@';
 setenv LANG C # needed by MNI perl module
 
 

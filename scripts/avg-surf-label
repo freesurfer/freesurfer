@@ -20,7 +20,7 @@
 # avg-surf-label
 #
 
-set VERSION = '$Id: avg-surf-label,v 1.7 2016/02/12 21:43:14 zkaufman Exp $';
+set VERSION = 'avg-surf-label @FS_VERSION@';
 set inputargs = ($argv);
 set PrintHelp = 0;
 

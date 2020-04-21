@@ -51,7 +51,6 @@ static int  singledash(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_annotation2label.c,v 1.32 2016/08/02 21:20:27 nicks Exp $";
 const char *Progname = NULL;
 
 char  *subject   = NULL;
@@ -661,7 +660,7 @@ static void print_help(void)
 /* --------------------------------------------- */
 static void print_version(void)
 {
-  printf("%s\n", vcid) ;
+  std::cout << getVersion() << std::endl;
   exit(1) ;
 }
 /* --------------------------------------------- */

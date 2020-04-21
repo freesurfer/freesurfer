@@ -27,7 +27,6 @@ function [hrf, tsamples] = fast_spmhrf_sampled(tsamples,nderiv)
 % hrf = hrf/sum(hrf(:,1));
 %
 % 
-% $Id: fast_spmhrf_sampled.m,v 1.2 2010/03/23 17:00:21 greve Exp $
 
 hrf = [];
 if(nargin < 1 | nargin > 2)

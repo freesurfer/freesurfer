@@ -19,7 +19,7 @@
 #
 
 
-set VERSION = '$Id: mris_volsmooth,v 1.12 2016/02/16 17:17:20 zkaufman Exp $'
+set VERSION = 'mris_volsmooth @FS_VERSION@';
 set invol  = ();
 set reg = ();
 set outvol = ();

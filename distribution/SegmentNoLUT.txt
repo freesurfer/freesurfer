@@ -1,4 +1,3 @@
-# '$Id: SegmentNoLUT.txt,v 1.1 2009/01/28 18:34:22 greve Exp $'
 # This is a LUT in which the segmentation name is simply "SegXXXX"
 # where XXXX is the segmentation number. This can be handy for
 # when you are visualizing segmentations that have been generated

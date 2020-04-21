@@ -38,7 +38,6 @@ typedef struct {
 }
 CLUSTER ;
 
-static char vcid[] = "$Id: mris_cluster_profiles.c,v 1.4 2011/03/02 00:04:34 nicks Exp $";
 
 //int MRISfindClosestVertex(MRI_SURFACE *mris1, MRI_SURFACE *mris2, int vno1) ;
 static int clusters_connected(MRI_SURFACE *mris, int vno1, int vno2, int n) ;
@@ -322,7 +321,7 @@ print_help(void) {
 
 static void
 print_version(void) {
-  fprintf(stderr, "%s\n", vcid) ;
+  fprintf(stderr, "%s\n", getVersion().c_str()) ;
   exit(1) ;
 }
 

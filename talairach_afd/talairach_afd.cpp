@@ -40,8 +40,6 @@
 #include "fio.h"
 #include "transform.h"
 
-static char vcid[] =
-  "$Id: talairach_afd.c,v 1.13 2011/03/02 00:04:40 nicks Exp $";
 static int get_option(int argc, char *argv[]) ;
 static void usage(int exit_value) ;
 static char *subject_name = NULL;
@@ -264,7 +262,7 @@ int main(int argc, char *argv[])
   ----------------------------------------------------------------------*/
 static void print_version(void)
 {
-  fprintf(stdout, "%s\n", vcid) ;
+  fprintf(stdout, "%s\n", getVersion().c_str()) ;
   exit(1) ;
 }
 

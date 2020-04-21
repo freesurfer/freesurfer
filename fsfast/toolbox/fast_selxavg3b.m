@@ -10,7 +10,6 @@ function err = fast_selxavg3b(configfile)
 %   mcc  -m -v -R -singleCompThread fast_selxavg3b.m
 %   cp fast_selxavg3b $DEV/fsfast/bin/fast_selxavg3b.glnxa64
 %
-% $Id: fast_selxavg3b.m,v 1.4 2016/05/04 22:16:47 greve Exp $
 
 
 %
@@ -84,7 +83,7 @@ fprintf('\n');
 fprintf('#@# %s ###############################\n',sessname);
 fprintf('%s\n',sess);
 fprintf('-------------------------\n');
-fprintf('$Id: fast_selxavg3b.m,v 1.4 2016/05/04 22:16:47 greve Exp $\n');
+fprintf('fast_selxavg3b.m @FS_VERSION@\n');
 fprintf('-------------------------\n');
 
 if(isempty(outtop)) outtop = fast_dirname(sess); end
@@ -108,7 +107,7 @@ if(isempty(flac0))
   if(~monly) quit; end
   return; 
 end
-flac0.sxaversion = '$Id: fast_selxavg3b.m,v 1.4 2016/05/04 22:16:47 greve Exp $';
+flac0.sxaversion = 'fast_selxavg3b.m @FS_VERSION@';
 
 % remove non-mask when analyzing. This does not change the results
 % at all, it just prevents the processing of voxels that are

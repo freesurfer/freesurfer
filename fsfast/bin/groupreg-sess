@@ -19,7 +19,7 @@
 #
 
 
-set VERSION = '$Id: groupreg-sess,v 1.10 2015/12/10 22:51:30 zkaufman Exp $';
+set VERSION = 'groupreg-sess @FS_VERSION@';
 
 set inputargs = ($argv);
 

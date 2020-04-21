@@ -1,6 +1,5 @@
 function [err,msg] = fast_svana(ananame,flac)
 % [err,msg] = fast_svana(ananame,ana)
-% $Id: fast_svana.m,v 1.12 2010/04/03 00:09:17 greve Exp $
 
 err = 1;
 if(nargin ~= 2)

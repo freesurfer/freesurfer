@@ -38,8 +38,6 @@
 #include "gca.h"
 #include "mrishash.h"
 
-static char vcid[] =
-  "$Id: mris_sample_parc.c,v 1.31 2016/12/11 14:33:38 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -577,7 +575,7 @@ print_help(void) {
 
 static void
 print_version(void) {
-  fprintf(stderr, "%s\n", vcid) ;
+  fprintf(stderr, "%s\n", getVersion().c_str()) ;
   exit(1) ;
 }
 

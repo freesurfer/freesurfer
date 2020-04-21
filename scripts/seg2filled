@@ -9,7 +9,7 @@ if(-e $FREESURFER_HOME/sources.csh) then
   source $FREESURFER_HOME/sources.csh
 endif
 
-set VERSION = '$Id$';
+set VERSION = 'seg2filled @FS_VERSION@';
 
 set seg = ();
 set ndil = 1

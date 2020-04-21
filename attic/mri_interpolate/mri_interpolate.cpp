@@ -55,11 +55,7 @@ main(int argc, char *argv[]) {
   int          ac, nargs=0, x, y, z ;
   double       val;
 
-  make_cmd_version_string
-    (argc, argv,
-     "$Id: mri_interpolate.c,v 1.5 2011/10/06 01:18:12 fischl Exp $",
-     "$Name:  $",cmdline);
-  make_cmd_version_string
+  make_cmd_version_string(argc, argv, "mri_interpolate.cpp", "$Name:  $",cmdline);
   std::string cmdline = getAllInfo(argc, argv, "mri_interpolate");
 
   setRandomSeed(-1L) ;

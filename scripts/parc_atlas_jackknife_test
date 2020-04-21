@@ -24,7 +24,7 @@
 #
 #
 
-set VERSION='$Id: parc_atlas_jackknife_test,v 1.17 2011/03/02 20:16:39 nicks Exp $';
+set VERSION='parc_atlas_jackknife_test @FS_VERSION@';
 
 # defaults:
 # setenv SUBJECTS_DIR /space/amaebi/26/users/buckner_cortical_atlas

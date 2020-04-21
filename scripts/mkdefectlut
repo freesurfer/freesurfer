@@ -3,7 +3,7 @@
 # $DEV/distribution/DefectLUT.txt file. It does not
 # need to be distrubted.
 
-set VERSION = '$Id: mkdefectlut,v 1.5 2013/02/15 19:44:45 greve Exp $';
+set VERSION = 'mkdefectlut @FS_VERSION@';
 
 # =================================================
 # First, create an LUT with random colors

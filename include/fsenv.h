@@ -39,7 +39,6 @@ typedef struct
 }
 FSENV;
 
-const char *FSENVsrcVersion(void);
 FSENV *FSENVgetenv(void);
 int FSENVprintenv(FILE *fp,FSENV *env);
 int FSENVsetSUBJECTS_DIR(char *SUBJECTS_DIR);

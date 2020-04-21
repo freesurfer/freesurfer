@@ -81,8 +81,6 @@ static struct Parameters P =
 static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[], Parameters & P);
 
-static char vcid[] =
-    "$Id: mri_create_tests.cpp,v 1.9 2012/11/10 15:35:01 mreuter Exp $";
 const char *Progname = NULL;
 
 std::vector<int> get_random(int lowest, int highest, int num = 3)
@@ -159,7 +157,7 @@ int main(int argc, char *argv[])
   // testvnl();
 
   { // for valgrind, so that everything is freed
-    cout << vcid << endl;
+    cout << getVersion() << endl;
 
     // Default initialization
     int nargs = handleVersionOption(argc, argv, "mri_create_tests");

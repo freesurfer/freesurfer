@@ -1,7 +1,6 @@
 function r = editmask(varargin)
 % r = editmask(varargin)
 % Edit a functional mask
-% '$Id: editmask.m,v 1.3 2011/03/02 00:04:03 nicks Exp $'
 
 
 %
@@ -20,7 +19,7 @@ function r = editmask(varargin)
 % Reporting: freesurfer@nmr.mgh.harvard.edu
 %
 
-version = '$Id: editmask.m,v 1.3 2011/03/02 00:04:03 nicks Exp $';
+version = 'editmask.m @FS_VERSION@';
 r = 1;
 
 %% Print usage if there are no arguments %%

@@ -43,8 +43,6 @@
 #include "timer.h"
 #include "version.h"
 
-static char vcid[]=
-  "$Id: mris_sphere.c,v 1.62 2017/02/07 19:04:37 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -176,8 +174,8 @@ main(int argc, char *argv[])
   in_surf_fname = argv[1] ;
   out_fname = argv[2] ;
 
-  printf("%s\n",vcid);
-  printf("  %s\n",MRISurfSrcVersion());
+  printf("%s\n",getVersion().c_str());
+  printf("  %s\n",getVersion().c_str());
 
 #ifdef HAVE_OPENMP
   {
@@ -868,7 +866,7 @@ print_help(void)
 static void
 print_version(void)
 {
-  fprintf(stderr, "%s\n", vcid) ;
+  fprintf(stderr, "%s\n", getVersion().c_str()) ;
   exit(1) ;
 }
 

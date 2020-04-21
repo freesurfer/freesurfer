@@ -19,7 +19,7 @@
 #
 
 
-set VERSION = '$Id: autoreg-sess,v 1.5 2015/12/10 22:51:29 zkaufman Exp $';
+set VERSION = 'autoreg-sess @FS_VERSION@';
 set cmdargs = ($argv);
 
 set ScriptOnly = 0;
@@ -62,7 +62,7 @@ endif
 echo "Logfile is $LF"
 
 echo "autreg-sess log file" >> $LF
-echo '$Id: autoreg-sess,v 1.5 2015/12/10 22:51:29 zkaufman Exp $'   >> $LF
+echo 'autoreg-sess @FS_VERSION@'   >> $LF
 echo $0     >> $LF
 uname -a      >> $LF
 date          >> $LF

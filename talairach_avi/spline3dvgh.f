@@ -49,7 +49,7 @@ c     call spline3dvgh_rcs
 c     end
 
       subroutine spline3dvgh_rcs
-      write (*,"('$Id: spline3dvgh.f,v 1.1 2007/05/04 22:34:03 nicks Exp $')")
+      write (*,"('spline3dvgh.f')")
       return
       end
 

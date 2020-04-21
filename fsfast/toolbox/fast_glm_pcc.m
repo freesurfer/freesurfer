@@ -7,7 +7,6 @@ function rho = fast_glm_pcc(beta,X,C,rvar)
 % WARNING: X must have a column of 1s or both X and y must have
 % been demeaned before the glm.
 %
-% $Id: fast_glm_pcc.m,v 1.2 2012/11/19 22:18:23 greve Exp $
 
 if(nargin ~= 4) 
   fprintf('rho = fast_glm_pcc(beta,X,C,rvar)\n');

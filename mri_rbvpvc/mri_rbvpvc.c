@@ -28,7 +28,6 @@
 */
 
 
-// $Id: mri_rbvpvc.c,v 1.44 2014/08/17 17:47:57 greve Exp $
 
 /*
   BEGINHELP
@@ -91,7 +90,6 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_rbvpvc.c,v 1.44 2014/08/17 17:47:57 greve Exp $";
 const char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -884,7 +882,7 @@ static void print_usage(void) {
   printf("   --help      print out information on how to use this program\n");
   printf("   --version   print out version and exit\n");
   printf("\n");
-  printf("%s\n", vcid) ;
+  std::cout << getVersion() << std::endl;
   printf("\n");
 }
 /*---------------------------------------------------------------*/
@@ -895,7 +893,7 @@ static void print_help(void) {
 }
 /*---------------------------------------------------------------*/
 static void print_version(void) {
-  printf("%s\n", vcid) ;
+  std::cout << getVersion() << std::endl;
   exit(1) ;
 }
 /*---------------------------------------------------------------*/
@@ -970,7 +968,7 @@ static void check_options(void)
 /*---------------------------------------------------------------*/
 static void dump_options(FILE *fp) {
   fprintf(fp,"\n");
-  fprintf(fp,"%s\n",vcid);
+  fprintf(fp,"%s\n", getVersion().c_str());
   fprintf(fp,"setenv SUBJECTS_DIR %s\n",SUBJECTS_DIR);
   fprintf(fp,"cd %s\n",cwd);
   fprintf(fp,"%s\n",cmdline);

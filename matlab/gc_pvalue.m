@@ -11,7 +11,6 @@ function [p kappa F] = gc_pvalue(data,means,covar)
 %
 % See also gc_synth_params, gc_synth_data, gc_train
 %
-% $Id: gc_pvalue.m,v 1.2 2012/05/01 20:23:20 greve Exp $
 
 [nClasses nVariates] = size(means);
 nData = size(data,1);

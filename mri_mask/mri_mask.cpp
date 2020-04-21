@@ -45,7 +45,6 @@
 #include "region.h"
 #include "cma.h"
 
-static char vcid[] = "$Id: mri_mask.c,v 1.24 2016/11/28 20:30:57 fischl Exp $";
 
 void usage(int exit_val);
 
@@ -349,7 +348,7 @@ void usage(int exit_val)
 /* --------------------------------------------- */
 static void print_version(void)
 {
-  fprintf(stdout, "%s\n", vcid) ;
+  fprintf(stdout, "%s\n", getVersion().c_str()) ;
   exit(1) ;
 }
 

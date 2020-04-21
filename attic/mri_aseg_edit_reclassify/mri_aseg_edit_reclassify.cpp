@@ -43,7 +43,6 @@
 #include "cma.h"
 #include "class_array.h"
 
-static char vcid[] = "$Id: mri_aseg_edit_reclassify.c,v 1.5 2011/03/02 00:04:13 nicks Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -249,7 +248,7 @@ print_help(void) {
 
 static void
 print_version(void) {
-  fprintf(stderr, "%s\n", vcid) ;
+  fprintf(stderr, "%s\n", getVersion().c_str()) ;
   exit(1) ;
 }
 

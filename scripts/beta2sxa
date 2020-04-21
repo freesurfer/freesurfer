@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # thalseg
 
-set VERSION = '$Id: beta2sxa,v 1.3 2016/02/12 21:43:14 zkaufman Exp $';
+set VERSION = 'beta2sxa @FS_VERSION@';
 
 set sxa = ();
 set betalist = ();

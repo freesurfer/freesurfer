@@ -3,7 +3,6 @@ function stem = flac_funcstem(flac,maskflag)
 % Determines the funcstem or maskstem. Should be
 % consistent with the getana script.
 % 
-% $Id: flac_funcstem.m,v 1.5 2015/11/04 20:53:30 greve Exp $
 
 stem = [];
 if(nargin < 1 | nargin > 2)

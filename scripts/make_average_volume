@@ -24,7 +24,7 @@
 # uncomment this to increase number of allowable open files to maximum:
 #limit descriptors unlimited
 
-set VERSION = '$Id: make_average_volume,v 1.37 2016/08/02 21:13:10 greve Exp $';
+set VERSION = 'make_average_volume @FS_VERSION@';
 
 set PrintHelp = 0;
 set transform_fname = talairach.xfm

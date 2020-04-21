@@ -12,7 +12,7 @@ if(-e $FREESURFER_HOME/sources.csh) then
   source $FREESURFER_HOME/sources.csh
 endif
 
-set VERSION = '$Id$';
+set VERSION = 'fsr-coreg @FS_VERSION@';
 set selfname = `basename $0`
 
 set importdir = ();

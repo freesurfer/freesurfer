@@ -24,7 +24,7 @@
 
 
 
-set YAKVIEW_VER = '\$Id: yakview,v 1.14 2015/12/10 22:51:31 zkaufman Exp $'
+set YAKVIEW_VER = 'yakview @FS_VERSION@'
 
 # Set Default Values #
 set imgstem = ();

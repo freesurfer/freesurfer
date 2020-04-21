@@ -5,7 +5,7 @@ if(-e $FREESURFER_HOME/sources.csh) then
   source $FREESURFER_HOME/sources.csh
 endif
 
-set VERSION = '$Id$';
+set VERSION = 'fsr-import @FS_VERSION@';
 
 set outdir = ();
 set modenamelist = ();

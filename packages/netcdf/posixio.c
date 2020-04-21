@@ -2,7 +2,6 @@
  *	Copyright 1996, University Corporation for Atmospheric Research
  *	See netcdf/COPYRIGHT file for copying and redistribution conditions.
  */
-/* $Id: posixio.c,v 1.74 2004/10/04 17:41:38 russ Exp $ */
 
 #ifdef WIN32
 #include <ncconfig.h>

@@ -3,7 +3,6 @@
  *	Copyright 1996, University Corporation for Atmospheric Research
  *      See netcdf/COPYRIGHT file for copying and redistribution conditions.
  */
-/* $Id: attr.m4,v 2.22 2002/06/20 14:40:57 steve Exp $ */
 
 #include "nc.h"
 #include <stdlib.h>

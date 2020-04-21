@@ -27,7 +27,6 @@
   Author:  Douglas N. Greve
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    1/2/00
-  $Id: mri_vol2roi.c,v 1.32 2011/03/02 00:04:25 nicks Exp $
 */
 
 #include <stdio.h>
@@ -79,7 +78,6 @@ int BTypeFromStem(char *stem);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2roi.c,v 1.32 2011/03/02 00:04:25 nicks Exp $";
 const char *Progname = NULL;
 
 char *roifile    = NULL;
@@ -174,7 +172,7 @@ int main(int argc, char **argv) {
   printf("%s\n",Progname);
   for (n=0;n<argc;n++) printf(" %s",argv[n]);
   printf("\n");
-  printf("version %s\n",vcid);
+  printf("version %s\n",getVersion().c_str());
   printf("--------------------------------------------------------\n");
 
   dump_options(stdout);
@@ -633,7 +631,7 @@ static void print_usage(void) {
 /* --------------------------------------------- */
 static void print_help(void) {
   print_usage() ;
-  printf("\n%s\n\n", vcid) ;
+  printf("\n%s\n\n", getVersion().c_str()) ;
   printf(
 
     "This program will extract a region-of-interest (ROI) from a\n"
@@ -796,7 +794,7 @@ static void print_help(void) {
 }
 /* --------------------------------------------- */
 static void print_version(void) {
-  printf("%s\n", vcid) ;
+  std::cout << getVersion() << std::endl;
   exit(1) ;
 }
 /* --------------------------------------------- */

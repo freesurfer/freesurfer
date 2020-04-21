@@ -26,7 +26,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mris_compute_lgi,v 1.23 2009/01/26 22:14:05 nicks Exp $'
+set VERSION = 'mris_compute_lgi @FS_VERSION@';
 set PrintHelp = 0;
 set RunIt = 1;
 set cmdargs = ($argv);

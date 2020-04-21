@@ -19,7 +19,7 @@
 #
 
 
-set VERSION = '$Id: mris_glm-sess,v 1.8 2015/12/10 22:51:30 zkaufman Exp $';
+set VERSION = 'mris_glm-sess @FS_VERSION@';
 set fsgdf = ();
 set analysis = ();
 set contrast = ();

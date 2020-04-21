@@ -158,7 +158,6 @@ static int istringnmatch(char *str1, const char *str2, int n);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_register_to_volume.c,v 1.10 2011/03/02 00:04:33 nicks Exp $";
 const char *Progname = NULL;
 
 static double tscale = 5.0 ;
@@ -903,7 +902,7 @@ printf("\n");
 /* --------------------------------------------- */
 static void print_help(void) {
   print_usage() ;
-  printf("\n%s\n\n",vcid);
+  printf("\n%s\n\n",getVersion().c_str());
   exit(1) ;
 }
 /* --------------------------------------------- */
@@ -997,7 +996,7 @@ static void dump_options(FILE *fp)
 }
 /* --------------------------------------------- */
 static void print_version(void) {
-  printf("%s\n", vcid) ;
+  std::cout << getVersion() << std::endl;
   exit(1) ;
 }
 /* --------------------------------------------- */

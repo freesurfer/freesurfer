@@ -1,5 +1,3 @@
-c$Id: imgvalx.f,v 1.1 2007/05/04 22:33:59 nicks Exp $
-c$Log: imgvalx.f,v $
 cRevision 1.1  2007/05/04 22:33:59  nicks
 cnew talairach alignment utility, using Avi Snyders registration tools
 c

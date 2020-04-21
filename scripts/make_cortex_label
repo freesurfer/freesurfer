@@ -23,7 +23,7 @@
 #
 #
 
-set VERSION = '$Id: make_cortex_label,v 1.5 2016/02/16 17:17:20 zkaufman Exp $';
+set VERSION = 'make_cortex_label @FS_VERSION@';
 set inputargs = ($argv);
 
 set subject   = ();

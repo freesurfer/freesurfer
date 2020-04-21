@@ -22,7 +22,7 @@
 
 
 set inputargs = ($argv);
-set VERSION = '$Id: mcparams2extreg,v 1.11 2015/12/10 22:51:30 zkaufman Exp $';
+set VERSION = 'mcparams2extreg @FS_VERSION@';
 
 set PrintHelp = 0;
 

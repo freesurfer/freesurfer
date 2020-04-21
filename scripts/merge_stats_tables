@@ -122,7 +122,7 @@ def options_parse():
     Command Line Options Parser for asegstats2table
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: merge_stats_tables,v 1.6 2011/05/10 20:37:18 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(usage=HELPTEXT)
     
     # help text
     h_sub = '(REQUIRED) subject1 <subject2 subject3..>'

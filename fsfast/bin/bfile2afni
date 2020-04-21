@@ -19,7 +19,7 @@
 #
 
 
-set VERSION = '$Id: bfile2afni,v 1.4 2015/12/10 22:51:29 zkaufman Exp $'
+set VERSION = 'bfile2afni @FS_VERSION@';
 
 if($#argv == 0) goto usage_exit;
 

@@ -3,7 +3,6 @@
  *	Copyright 1996, University Corporation for Atmospheric Research
  *      See netcdf/COPYRIGHT file for copying and redistribution conditions.
  */
-/* $Id: putget.m4,v 2.52 2004/11/09 20:05:27 russ Exp $ */
 
 #include "nc.h"
 #include <string.h>

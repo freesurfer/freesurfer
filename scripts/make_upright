@@ -21,7 +21,7 @@
 #
 
 
-set VERSION = '$Id: make_upright,v 1.3 2012/12/12 16:33:39 mreuter Exp $';
+set VERSION = 'make_upright @FS_VERSION@';
 
 
 if ( $#argv < 3 ) then

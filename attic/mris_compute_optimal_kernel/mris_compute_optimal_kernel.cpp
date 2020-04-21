@@ -41,7 +41,6 @@
 static int MRIScomputeOptimalGaussianKernel(MRI_SURFACE *mris, LABEL *subject_label, 
                                             LABEL *group_label, int step_size, int max_avgs, int *pavgs) ;
 
-static char vcid[] = "$Id: mris_compute_optimal_kernel.c,v 1.6 2011/03/02 00:04:30 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -204,7 +203,7 @@ print_help(void) {
 
 static void
 print_version(void) {
-  fprintf(stderr, "%s\n", vcid) ;
+  fprintf(stderr, "%s\n", getVersion().c_str()) ;
   exit(1) ;
 }
 

@@ -18,7 +18,7 @@
 #
 
 #
-set VERSION = '$Id: bbregister,v 1.75 2016/05/10 20:02:28 greve Exp $';
+set VERSION = 'bbregister @FS_VERSION@';
 set inputargs = ($argv);
 
 set subject = ();

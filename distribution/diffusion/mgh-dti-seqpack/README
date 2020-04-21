@@ -1,6 +1,3 @@
-
-$Id: README,v 1.4 2007/07/13 03:26:56 greve Exp $
-
 These are diffusion gradient direction files that describe some of the
 protocols distributed by Siemens though the MGH DTI Sequence Package.
 These are used at the Massachusetts General Hosptial (MGH) Martinos

@@ -16,8 +16,6 @@
   \file fmriutils.c
   \brief Multi-frame utilities
 
-  $Id: fmriutils.c,v 1.80 2016/11/01 20:25:12 greve Exp $
-
   Things to do:
   1. Add flag to turn use of weight on and off
 
@@ -45,10 +43,6 @@ double round(double x);
 #ifdef X
 #undef X
 #endif
-
-/* --------------------------------------------- */
-// Return the CVS version of this file.
-const char *fMRISrcVersion(void) { return ("$Id: fmriutils.c,v 1.80 2016/11/01 20:25:12 greve Exp $"); }
 
 /*--------------------------------------------------------*/
 MRI *fMRImatrixMultiply(MRI *inmri, MATRIX *M, MRI *outmri)

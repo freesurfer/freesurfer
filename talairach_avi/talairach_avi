@@ -19,7 +19,7 @@
 # Reporting: freesurfer@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: talairach_avi,v 1.13 2015/12/23 04:25:17 greve Exp $'
+set VERSION = 'talairach_avi @FS_VERSION@';
 
 set InVol = ();
 set XFM = ();

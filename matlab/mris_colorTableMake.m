@@ -3,7 +3,6 @@ function [aS_ct] = mris_colorTableMake( a_labelVar, varargin)
 % NAME
 % function [aS_ct] = mris_colorTableMake( a_labelVar, varargin)
 %
-% $Id: mris_colorTableMake.m,v 1.1 2011/07/05 20:52:45 rudolph Exp $
 %
 %
 % ARGUMENTS

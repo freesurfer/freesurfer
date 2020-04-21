@@ -38,7 +38,6 @@ extern void	vrtflip_ (int *iori, int *imgdim, float *centeri, float *mmppixi, fl
 /***********/
 /* globals */
 /***********/
-static char rcsid[] = "$Id: compute_vox2vox.c,v 1.3 2010/02/27 01:41:53 nicks Exp $";
 static char program[MAXL];
 
 void	t4list (FILE *fp, float *t4) {
@@ -54,7 +53,7 @@ void write_command_line (FILE *outfp, int argc, char *argv[]) {
 
 	fprintf (outfp, "# %s", program);
 	for (i = 1; i < argc; i++) fprintf (outfp, " %s", argv[i]);
-	fprintf (outfp, "\n# %s\n", rcsid);
+	fprintf (outfp, "\n# %s\n", "freesurfer compute_vox2vox.c");
 }
 
 int main (int argc, char *argv[]) {
@@ -79,7 +78,7 @@ int main (int argc, char *argv[]) {
 	float		t4[16];			/* affine warp */
 	float		mmppixs[3], centers[3], mmppixt[3], centert[3];
 
-	printf ("%s\n", rcsid);
+	printf ("%s\n", "freesurfer compute_vox2vox.c");
 	if (!(ptr = strrchr (argv[0], '/'))) ptr = argv[0]; else ptr++;
 	strcpy (program, ptr);
 #ifndef HAVE_GFORTRAN

@@ -7,7 +7,6 @@ function [Xirf tirf] = flac_ev2irf(ev,TR,RefEventDur)
 % sets the scaling factor. One can expect an event of this 
 % duration witha peak of 1% signal change to have a beta=1.
 %
-% $Id: flac_ev2irf.m,v 1.10 2011/03/02 00:04:05 nicks Exp $
 
 %
 % flac_ev2irf.m

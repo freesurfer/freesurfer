@@ -19,7 +19,7 @@
 #
 
 
-set VERSION = '$Id: stxgrinder-sess,v 1.15 2015/12/10 22:51:31 zkaufman Exp $';
+set VERSION = 'stxgrinder-sess @FS_VERSION@';
 
 set inputargs = ($argv);
 

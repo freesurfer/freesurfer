@@ -24,6 +24,7 @@
 #include <math.h>
 #include <ctype.h>
 
+#include "version.h"
 #include "macros.h"
 #include "error.h"
 #include "diag.h"
@@ -38,7 +39,6 @@
 #include "colortab.h"
 #include "gca.h"
 
-static char vcid[] = "$Id: mri_edit_segmentation_with_surfaces.c,v 1.23 2015/03/24 17:57:20 greve Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -471,7 +471,7 @@ print_help(void)
 static void
 print_version(void)
 {
-  fprintf(stderr, "%s\n", vcid) ;
+  fprintf(stderr, "%s\n", getVersion().c_str()) ;
   exit(1) ;
 }
 

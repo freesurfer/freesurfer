@@ -1,6 +1,5 @@
 function r = fast_svdfunctcvm(varargin)
 % r = fast_svdfunctcvm(varargin)
-% '$Id: fast_svdfunctcvm.m,v 1.4 2011/03/02 00:04:05 nicks Exp $'
 
 
 %
@@ -19,7 +18,7 @@ function r = fast_svdfunctcvm(varargin)
 % Reporting: freesurfer@nmr.mgh.harvard.edu
 %
 
-version = '$Id: fast_svdfunctcvm.m,v 1.4 2011/03/02 00:04:05 nicks Exp $'
+version = 'fast_svdfunctcvm.m @FS_VERSION@';
 fprintf(1,'%s\n',version);
 r = 1;
 

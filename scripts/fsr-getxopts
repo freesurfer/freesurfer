@@ -32,7 +32,7 @@
 #
 #
 
-set VERSION = '$Id: fsr-getxopts,v 1.6 2017/02/08 21:17:33 greve Exp $';
+set VERSION = 'fsr-getxopts @FS_VERSION@';
 
 if($#argv < 2) then
   # Dont print out anything here otherwise mess up recon-all

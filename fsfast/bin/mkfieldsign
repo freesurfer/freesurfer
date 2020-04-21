@@ -19,7 +19,7 @@
 #
 
 
-set VERSION = '$Id: mkfieldsign,v 1.9 2015/12/10 22:51:30 zkaufman Exp $';
+set VERSION = 'mkfieldsign @FS_VERSION@';
 
 set inputargs = ($argv);
 

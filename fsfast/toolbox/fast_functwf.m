@@ -1,6 +1,5 @@
 function r = fast_functwf(varargin)
 % r = fast_functwf(varargin)
-% '$Id: fast_functwf.m,v 1.3 2011/03/02 00:04:04 nicks Exp $'
 %
 % Temporal analysis of functional data.
 
@@ -22,7 +21,7 @@ function r = fast_functwf(varargin)
 %
 
 tic;
-version = '$Id: fast_functwf.m,v 1.3 2011/03/02 00:04:04 nicks Exp $';
+version = 'fast_functwf.m @FS_VERSION@';
 fprintf(1,'%s\n',version);
 r = 1;
 

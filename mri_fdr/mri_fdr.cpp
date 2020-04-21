@@ -66,7 +66,6 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_fdr.c,v 1.2 2016/01/07 22:23:57 greve Exp $";
 const char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -287,7 +286,7 @@ static void print_usage(void) {
   printf("   --help      print out information on how to use this program\n");
   printf("   --version   print out version and exit\n");
   printf("\n");
-  printf("%s\n", vcid) ;
+  std::cout << getVersion() << std::endl;
   printf("\n");
 }
 /* -------------------------------------------------------- */
@@ -316,7 +315,7 @@ static void print_help(void) {
 }
 /* -------------------------------------------------------- */
 static void print_version(void) {
-  printf("%s\n", vcid) ;
+  std::cout << getVersion() << std::endl;
   exit(1) ;
 }
 /* -------------------------------------------------------- */
@@ -334,7 +333,7 @@ static void check_options(void) {
 /* -------------------------------------------------------- */
 static void dump_options(FILE *fp) {
   fprintf(fp,"\n");
-  fprintf(fp,"%s\n",vcid);
+  fprintf(fp,"%s\n", getVersion().c_str());
   fprintf(fp,"cwd %s\n",cwd);
   fprintf(fp,"cmdline %s\n",cmdline);
   fprintf(fp,"sysname  %s\n",uts.sysname);

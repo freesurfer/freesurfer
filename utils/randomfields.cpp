@@ -30,10 +30,6 @@
 #undef SIGN
 #define SIGN(x) (((x) > 0) ? 1.0 : -1.0)
 
-/* --------------------------------------------- */
-// Return the CVS version of this file.
-const char *RFSrcVersion(void) { return ("$Id: randomfields.c,v 1.18 2016/12/06 20:25:48 greve Exp $"); }
-
 /*-------------------------------------------------------------------*/
 int RFname2Code(RFS *rfs)
 {

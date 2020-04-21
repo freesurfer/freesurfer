@@ -178,8 +178,8 @@ int main(int argc, char *argv[]) {
 
   print_parameters();
 
-  printf("%s\n",vcid);
-  printf("  %s\n",MRISurfSrcVersion());
+  printf("%s\n",getVersion().c_str());
+  printf("  %s\n",getVersion().c_str());
   fflush(stdout); */
 
   then.reset() ;

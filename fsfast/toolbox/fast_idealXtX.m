@@ -14,7 +14,6 @@ function [XtX C vrf] = fast_idealXtX(NrepsPer,TR,Ntrs,psdwin)
 % There is a simulation at the end of this file (after return) to
 % check the accuracy.
 %
-% $Id: fast_idealXtX.m,v 1.3 2011/03/02 00:04:04 nicks Exp $
 
 %
 % fast_idealXtX

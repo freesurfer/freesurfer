@@ -18,7 +18,6 @@ function [hrf,params] = fast_hrf_halfcos(t,params)
 % Constrained linear basis sets for HRF modelling using Variational
 % Bayes NeuroImage 21 (2004) 1748 1761.
 %
-% $Id: fast_hrf_halfcos.m,v 1.2 2007/07/08 20:59:51 greve Exp $
 
 hrf = [];
 if(nargin < 1 & nargin > 2)

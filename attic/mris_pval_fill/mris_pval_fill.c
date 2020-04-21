@@ -51,8 +51,6 @@
 #include "icosahedron.h"
 
 
-//static char vcid[] = "$Id: mris_pval_fill.c,v 1.4 2011/03/02 00:04:33 nicks Exp $";
-
 int             main(int argc, char *argv[]) ;
 static int      get_option(int argc, char *argv[]) ;
 const char            *Progname ;

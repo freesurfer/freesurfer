@@ -19,7 +19,7 @@
 #
 
 
-set VERSION = '$Id: spmregister-sess,v 1.19 2015/12/10 22:51:31 zkaufman Exp $';
+set VERSION = 'spmregister-sess @FS_VERSION@';
 set inputargs = ($argv);
 set DateString = "`date '+%y%m%d%H%M'`"
 

@@ -13,7 +13,6 @@
  */
 
 
-// $Id: dti.h,v 1.18 2015/04/16 18:49:31 greve Exp $
 
 #ifndef DTI_INC
 #define DTI_INC
@@ -33,7 +32,6 @@ typedef struct
 }
 DTI;
 
-const char *DTIsrcVersion(void);
 int DTIfree(DTI **pdti);
 int DTIparamsFromSiemensAscii(const char *fname, float *bValue,int *nDir, int *nB0);
 int DTIloadGradients(DTI *dti,const  char *GradFile);

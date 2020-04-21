@@ -17,7 +17,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: funcroi-config,v 1.13 2015/12/10 22:51:29 zkaufman Exp $';
+set VERSION = 'funcroi-config @FS_VERSION@';
 
 set roiconfig = ();
 set label = ();

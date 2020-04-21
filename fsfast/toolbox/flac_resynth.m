@@ -17,7 +17,7 @@
 % Reporting: freesurfer@nmr.mgh.harvard.edu
 %
 
-flac_resynth_version = '$Id: flac_resynth.m,v 1.8 2011/03/02 00:04:05 nicks Exp $';
+flac_resynth_version = 'flac_resynth.m @FS_VERSION@';
 
 flac_resynth_version_no = sscanf(flac_resynth_version,'%*s %*s %s',1);
 

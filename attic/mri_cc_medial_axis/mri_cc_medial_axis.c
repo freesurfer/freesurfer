@@ -47,8 +47,6 @@
 #include "matrix.h"
 #include "mriTransform.h"
 
-//static char vcid[] = "$Id: mri_cc_medial_axis.c,v 1.4 2011/03/02 00:04:14 nicks Exp $";
-
 
 int             main(int argc, char *argv[]) ;
 static int      get_option(int argc, char *argv[]) ;

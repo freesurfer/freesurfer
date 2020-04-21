@@ -21,7 +21,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-paths,v 1.38 2016/12/18 13:59:26 ayendiki Exp $'
+set VERSION = 'trac-paths @FS_VERSION@';
 set ProgName = `basename $0`
 set inputargs = ($argv)
 

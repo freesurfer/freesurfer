@@ -1,7 +1,6 @@
 Instructions for registering a t1-epi structural with t1-spgr structural.
 Douglas N. Greve
 August 13, 1999
-$Id: register.info,v 1.1 2005/05/04 17:00:49 greve Exp $
 
 --------------------------------------------------------------------------
 Background: Each voxel in the t1-epi must be mapped to a voxel in the

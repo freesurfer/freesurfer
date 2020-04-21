@@ -9,7 +9,6 @@ function retpar = fast_ldretpar(retparfile)
 %   stimtype eccen
 %   direction pos
 %
-% $Id: fast_ldretpar.m,v 1.1 2010/04/28 19:54:57 greve Exp $
 
 retpar = [];
 if(nargin ~= 1)

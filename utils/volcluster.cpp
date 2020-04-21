@@ -19,6 +19,7 @@
 #include <string.h>
 
 #include <numerics.h>
+#include "version.h"
 #include "diag.h"
 #include "matrix.h"
 #include "mri.h"
@@ -30,10 +31,6 @@
 #include "surfcluster.h"
 #include "volcluster.h"
 
-/*---------------------------------------------------------------
-  vculstSrcVersion(void) - returns CVS version of this file.
-  ---------------------------------------------------------------*/
-const char *vclustSrcVersion(void) { return ("$Id: volcluster.c,v 1.57 2016/11/01 19:43:00 greve Exp $"); }
 
 static int ConvertCRS2XYZ(int col, int row, int slc, MATRIX *CRS2XYZ, float *x, float *y, float *z);
 
@@ -1648,7 +1645,7 @@ int CSDprintHeader(FILE *fp, CLUSTER_SIM_DATA *csd)
   fprintf(fp, "# NOTE: nreps and nrepetitions are both valid for volume data.\n");
   fprintf(fp, "# NOTE: nreps is invalid (-1) for surface data to assure.\n");
   fprintf(fp, "# NOTE:   backwards INcompatibility.\n");
-  fprintf(fp, "# %s\n", vclustSrcVersion());
+  fprintf(fp, "# %s\n", getVersion().c_str());
 
   if (!strcmp(csd->anattype, "surface")) {
     // In Dec 2008, a bug was found in sclustSurfaceArea() which
@@ -1667,7 +1664,7 @@ int CSDprintHeader(FILE *fp, CLUSTER_SIM_DATA *csd)
     // Also assures that the new surfcluster.c is linked to.
     fprintf(fp, "# FixSurfClusterArea %d\n", FixSurfClusterArea);
     // Version of surfcluster.c
-    fprintf(fp, "# %s\n", sculstSrcVersion());
+    fprintf(fp, "# %s\n", getVersion().c_str());
   }
   else {
     // Volume

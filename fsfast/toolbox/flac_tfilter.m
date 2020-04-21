@@ -3,7 +3,6 @@ function F = flac_tfilter(flac)
 % Builds a matrix to implement a temporal filter. flac.ntp and
 % flac.TR must be set. See flac_tfilter_parse.m.
 %
-% $Id: flac_tfilter.m,v 1.2 2011/03/02 00:04:05 nicks Exp $
 
 %
 % flac_tfilter.m

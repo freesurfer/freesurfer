@@ -21,7 +21,7 @@
 # a functional data set by projecting out the eigenvectors
 # as computed from evfunc (fast_evfunc.m)
 #
-set VERSION = '$Id: mri_mergelabels,v 1.8 2016/02/16 17:17:20 zkaufman Exp $'
+set VERSION = 'mri_mergelabels @FS_VERSION@';
 set inputargs = ($argv);
 
 set PWDCMD = `getpwdcmd`;

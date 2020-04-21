@@ -44,8 +44,6 @@ extern "C"
 #include "matrix.h"
 }
 
-static char vcid[] = 
-  "$Id: MRISwaveletsTransform.cpp,v 1.4 2011/03/02 00:04:55 nicks Exp $";
 #define VERTEX_EDGE(vec, v0, v1)   VECTOR_LOAD(vec,v1->x-v0->x,v1->y-v0->y, v1->z-v0->z)
 typedef struct _double_3d
 {

@@ -21,7 +21,7 @@
 #
 #
 
-set VERSION = '$Id: make_hemi_mask,v 1.5 2014/09/29 15:29:21 mreuter Exp $';
+set VERSION = 'make_hemi_mask @FS_VERSION@';
 
 
 if ( $#argv < 3 ) then

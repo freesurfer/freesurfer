@@ -9,7 +9,7 @@
 # Created: 07-14-2010
 
 set inputargs   = ($argv);
-set VERSION     = '$Id: mri_cvs_check,v 1.2 2013/10/29 14:50:17 lzollei Exp $';
+set VERSION     = 'mri_cvs_check @FS_VERSION@';
 set PrintHelp   = 0;
 
 set movingid    = ();

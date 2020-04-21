@@ -19,7 +19,7 @@
 #
 
 
-set VERSION = '$Id: synth-tr-sess,v 1.3 2015/12/10 22:51:31 zkaufman Exp $';
+set VERSION = 'synth-tr-sess @FS_VERSION@';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"

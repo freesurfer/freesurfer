@@ -9,7 +9,6 @@ function qout = mri_qoutlier(y)
 % The output can be thresholded to do the outlier detection.
 % Typical threshold values are 1.5 or 2
 %
-% $Id: mri_qoutlier.m,v 1.2 2014/02/25 19:53:32 greve Exp $
 
 if(nargin ~= 1)
   fprintf('qout = mri_qoutlier(y)\n');

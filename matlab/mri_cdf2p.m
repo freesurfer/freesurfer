@@ -8,7 +8,6 @@ function p = mri_cdf2p(x,xcdf,cdf)
 % make sure to subtract xdelta from xcdf before
 % using this function.
 %
-% $Id: mri_cdf2p.m,v 1.2 2011/03/02 00:04:12 nicks Exp $
 
 %
 % mri_cdf2p.m

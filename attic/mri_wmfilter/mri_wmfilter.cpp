@@ -28,7 +28,6 @@
 #include "proto.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mri_wmfilter.c,v 1.18 2011/03/02 00:04:26 nicks Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
@@ -449,7 +448,7 @@ plane_filter(MRI *mri_src, MRI *mri_dst, int niter) {
 ----------------------------------------------------------------------*/
 static void
 print_version(void) {
-  fprintf(stderr, "%s version %s\n", vcid, Progname) ;
+  fprintf(stderr, "%s version %s\n", getVersion().c_str(), Progname) ;
   exit(1) ;
 }
 /*----------------------------------------------------------------------

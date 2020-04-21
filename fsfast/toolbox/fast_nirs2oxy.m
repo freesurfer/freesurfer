@@ -6,7 +6,6 @@ function [oxy deoxy] = fast_nirs2oxy(rawnirs)
 % from D Boas. Does not apply any temporal filtering. See also
 % Diamond NI 30 (2006) 88-101, eq 28.
 %
-% $Id: fast_nirs2oxy.m,v 1.2 2009/12/10 23:16:02 greve Exp $
 
 if(nargin ~= 1)
   fprintf('[oxy deoxy] = fast_nirs2oxy(rawnirs)\n');

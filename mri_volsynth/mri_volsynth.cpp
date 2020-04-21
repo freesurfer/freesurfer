@@ -25,6 +25,7 @@
 #include <sys/time.h>
 #include <ctype.h>
 
+#include "version.h"
 #include "error.h"
 #include "diag.h"
 #include "proto.h"
@@ -59,8 +60,6 @@ static int  isflag(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] =
-"$Id: mri_volsynth.c,v 1.56 2017/02/16 19:50:57 greve Exp $";
 
 const char *Progname = NULL;
 
@@ -876,7 +875,7 @@ static void print_help(void) {
 }
 /* --------------------------------------------- */
 static void print_version(void) {
-  printf("%s\n", vcid) ;
+  std::cout << getVersion() << std::endl;
   exit(1) ;
 }
 /* --------------------------------------------- */

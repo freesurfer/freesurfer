@@ -15,7 +15,6 @@ function err = convert_fieldsign(infname,outfname)
 %    tksurfer subjectname lh inflated \
 %      -overlay lh.fieldsign-masked.mgh -fthresh 0.5
 %
-% $Id: convert_fieldsign.m,v 1.1 2008/05/13 22:22:37 greve Exp $
 
 err = 1;
 fp = fopen(infname,'r','ieee-be');

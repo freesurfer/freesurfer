@@ -22,14 +22,12 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[]);
 static int parseNextCommand(int argc, char *argv[]);
 
-static char vcid[] =
-    "$Id: lta_convert.cpp,v 1.10 2016/08/09 02:11:11 zkaufman Exp $";
 const char *Progname = NULL;
 float myrand(float f);
 
 int main(int argc, char *argv[])
 {
-  cout << vcid << endl << endl;
+  cout << getVersion() << endl << endl;
 
   // Default initialization
   int nargs = handleVersionOption(argc, argv, "cpptester");

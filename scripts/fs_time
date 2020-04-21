@@ -6,7 +6,7 @@ if($?FS_TIME_ALLOW == 0) then
   setenv FS_TIME_ALLOW 1
 endif
 
-set VERSION = '$Id: fs_time,v 1.11 2016/02/16 17:17:20 zkaufman Exp $';
+set VERSION = 'fs_time @FS_VERSION@';
 set outfile = ();
 set key = ("@#@FSTIME ");
 

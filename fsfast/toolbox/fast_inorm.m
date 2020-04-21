@@ -1,7 +1,6 @@
 function r = fast_inorm(varargin)
 % r = fast_inorm(varargin)
 % Intensity normalizes and does some simple data hygene analysis.
-% '$Id'
 
 
 %
@@ -20,7 +19,7 @@ function r = fast_inorm(varargin)
 % Reporting: freesurfer@nmr.mgh.harvard.edu
 %
 
-version = '$Id';
+version = 'fast_inorm.m @FS_VERSION@';
 fprintf(1,'%s\n',version);
 r = 1;
 

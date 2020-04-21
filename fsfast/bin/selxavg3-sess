@@ -19,7 +19,7 @@
 #
 
 
-set VERSION = '$Id: selxavg3-sess,v 1.68 2016/05/10 03:24:18 greve Exp $'
+set VERSION = 'selxavg3-sess @FS_VERSION@';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M%S'`"

@@ -1,5 +1,4 @@
 # fast-log-preamble
-# $Id: fast-log-preamble.csh,v 1.2 2015/12/10 22:51:29 zkaufman Exp $
 #
 # This file is meant to be sourced at the start of one of the FAST
 # scripts.  It prints out generic information that should be stored 

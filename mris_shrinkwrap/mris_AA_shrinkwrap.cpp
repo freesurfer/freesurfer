@@ -40,7 +40,6 @@
 static double compute_surface_dist_sse(MRI_SURFACE *mris, MRI *mri_dist) ;
 static int MRISrepositionToInnerSkull(MRI_SURFACE *mris, MRI *mri_smooth, INTEGRATION_PARMS *parms) ;
 
-static char vcid[] = "$Id: mris_AA_shrinkwrap.c,v 1.6 2015/02/05 23:34:41 zkaufman Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -428,7 +427,7 @@ print_help(void) {
 
 static void
 print_version(void) {
-  fprintf(stderr, "%s\n", vcid) ;
+  fprintf(stderr, "%s\n", getVersion().c_str()) ;
   exit(1) ;
 }
 

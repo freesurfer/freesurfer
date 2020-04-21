@@ -49,7 +49,6 @@ static void print_usage(void) ;
 static void usage_exit(void);
 static void print_help(void) ;
 static double compute_hdist(MRI **mri, int nvolumes, int index, double *hdists, int which);
-static char vcid[] = "$Id: mri_hausdorff_dist.c,v 1.14 2014/07/18 20:19:23 lzollei Exp $";
 static int fromFile = 0;
 
 const char *Progname ;
@@ -486,6 +485,6 @@ get_option(int argc, char *argv[]) {
 }
 static void
 print_version(void) {
-  fprintf(stderr, "%s\n", vcid) ;
+  fprintf(stderr, "%s\n", getVersion().c_str()) ;
   exit(1) ;
 }

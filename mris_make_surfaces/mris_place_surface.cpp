@@ -164,7 +164,6 @@ int debug = 0, checkoptsonly = 0;
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id$";
 const char *Progname = "mris_place_surfaces";
 
 INTEGRATION_PARMS parms, old_parms ;
@@ -306,8 +305,8 @@ int main(int argc, char **argv)
   }
 
   // print out version of this program and mrisurf.c
-  printf("%s\n",vcid);
-  printf("%s\n",MRISurfSrcVersion());
+  printf("%s\n",getVersion().c_str());
+  printf("%s\n",getVersion().c_str());
   printf("\n");
   printf("cd %s\n",cwd);
   printf("setenv SUBJECTS_DIR %s\n",getenv("SUBJECTS_DIR"));
@@ -1254,13 +1253,13 @@ static void usage_exit(void) {
 }
 /* --------------------------------------------- */
 static void print_version(void) {
-  printf("%s\n", vcid) ;
+  std::cout << getVersion() << std::endl;
   exit(1) ;
 }
 /* --------------------------------------------- */
 static void dump_options(FILE *fp) {
   fprintf(fp,"\n");
-  fprintf(fp,"%s\n",vcid);
+  fprintf(fp,"%s\n", getVersion().c_str());
   fprintf(fp,"cwd %s\n",cwd);
   fprintf(fp,"cmdline %s\n",cmdline);
   fprintf(fp,"sysname  %s\n",uts.sysname);

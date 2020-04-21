@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # groupstats
 
-set VERSION = '$Id: groupstats,v 1.8 2016/04/30 15:14:39 greve Exp $';
+set VERSION = 'groupstats @FS_VERSION@';
 
 set fsgd = ();
 set slist = ();

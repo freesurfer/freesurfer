@@ -19,7 +19,7 @@
 #
 #
 
-VERSION='$Id: map_to_base,v 1.4 2011/03/02 20:16:39 nicks Exp $';
+VERSION='map_to_base @FS_VERSION@';
 
 # WITHOUT FREESURFER DO NOTHING
 if [ -z $FREESURFER_HOME ]

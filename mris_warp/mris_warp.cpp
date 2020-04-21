@@ -25,6 +25,7 @@
 #include <stdlib.h>
 
 // nint
+#include "version.h"
 #include "macros.h"
 
 #include "error.h"
@@ -58,8 +59,6 @@ MATRIX* mris_warp__TkReg2vox(MRI_SURFACE *);
 
 static int debug = 0;
 
-static char vcid[] =
-  "$Id: mris_warp.c,v 1.3 2012/02/29 15:59:46 nicks Exp $";
 
 
 static char *hemi    = NULL;
@@ -659,7 +658,7 @@ static void print_usage(void)
   printf("   --help        print out information on how to use this program\n");
   printf("   --version     print out version and exit\n");
   printf("\n");
-  printf("%s\n", vcid) ;
+  std::cout << getVersion() << std::endl;
   printf("\n");
 }
 
@@ -678,7 +677,7 @@ static void print_help(void)
 /* --------------------------------------------- */
 static void print_version(void)
 {
-  printf("%s\n", vcid) ;
+  std::cout << getVersion() << std::endl;
   exit(1) ;
 }
 

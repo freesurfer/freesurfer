@@ -21,7 +21,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-preproc,v 1.57 2016/12/21 20:57:53 zkaufman Exp $'
+set VERSION = 'trac-preproc @FS_VERSION@';
 set ProgName = `basename $0`
 set inputargs = ($argv)
 

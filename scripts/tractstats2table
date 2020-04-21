@@ -13,7 +13,6 @@ import freesurfer.utils.legacy as fsutils
 from freesurfer.utils.legacy import TractOverallStatsParser, TractByvoxelStatsParser, BadFileError, tractlogger
 
 # Original Version - Krish Subramaniam, MGH
-# $Id: tractstats2table,v 1.5 2011/04/02 00:54:53 krish Exp $
 
 # globals
 l = tractlogger
@@ -90,7 +89,7 @@ def options_parse():
     Command Line Options Parser for trackstats2table
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: tractstats2table,v 1.5 2011/04/02 00:54:53 krish Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(usage=HELPTEXT)
     
     # help text
     h_sub = '(REQUIRED) subject1 <subject2 subject3..>'

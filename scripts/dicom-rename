@@ -18,7 +18,7 @@
 #
 
 
-set VERSION = '$Id: dicom-rename,v 1.6 2016/02/12 21:43:14 zkaufman Exp $';
+set VERSION = 'dicom-rename @FS_VERSION@';
 set inputargs = ($argv);
 set PrintHelp = 0;
 

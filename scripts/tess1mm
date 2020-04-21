@@ -4,7 +4,7 @@ if(-e $FREESURFER_HOME/sources.csh) then
   source $FREESURFER_HOME/sources.csh
 endif
 
-set VERSION = '$Id$';
+set VERSION = 'tess1mm @FS_VERSION@';
 
 set hrsubject = ();
 set hemilist = (lh rh);

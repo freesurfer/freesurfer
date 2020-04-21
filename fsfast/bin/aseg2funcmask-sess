@@ -19,7 +19,7 @@
 #
 
 
-set VERSION = '$Id: aseg2funcmask-sess,v 1.13 2015/12/10 22:51:29 zkaufman Exp $';
+set VERSION = 'aseg2funcmask-sess @FS_VERSION@';
 
 set cmdargs = ($argv);
 

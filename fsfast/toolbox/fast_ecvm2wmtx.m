@@ -21,7 +21,6 @@ function [W AutoCor AutoCor0 ncnd] = fast_ecvm2wmtx(ErrCovMtx);
 %  WA = inv(chol(A)');
 %  Such that: WA*A*WA' is the identity.
 %
-% $Id: fast_ecvm2wmtx.m,v 1.1 2009/04/02 22:34:43 greve Exp $
 
 if(nargin ~= 1)
   fprintf('[W AutoCor AutoCor0 ncnd] = fast_ecvm2wmtx(ErrCovMtx);\n');

@@ -1,6 +1,5 @@
 function r = irepifitvol(varargin)
 
-version = '$Id: irepifitvol.m,v 1.2 2016/04/11 03:19:06 greve Exp $';
 r = 1;
 
 cmdargs.involfile = '';
@@ -32,7 +31,6 @@ if(isempty(cmdargs)) return; end
 cmdargs = check_params(cmdargs);
 if(isempty(cmdargs)) return; end
 
-fprintf(1,'%s\n',version);
 tic;
 
 dce = MRIread(cmdargs.involfile);

@@ -9,7 +9,6 @@ function M = fast_sincmtx(len,delta,rownorm,hw)
 % window, the less the effect of the window. Setting hw=0 is like
 % setting hw = infinity.
 %
-% $Id: fast_sincmtx.m,v 1.6 2011/03/02 00:04:05 nicks Exp $
 
 % fast_sincmtx.m
 %

@@ -74,8 +74,6 @@ int CCSegment(MRI *seg, int segid, int segidunknown);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] =
-  "$Id: mri_aparc2aseg.c,v 1.54 2016/12/26 15:29:30 fischl Exp $";
 const char *Progname = NULL;
 static char *relabel_gca_name = NULL ;
 static char *relabel_norm_name = NULL ;
@@ -1500,7 +1498,7 @@ static void print_help(void)
 /* --------------------------------------------- */
 static void print_version(void)
 {
-  printf("%s\n", vcid) ;
+  std::cout << getVersion() << std::endl;
   exit(1) ;
 }
 /* --------------------------------------------- */

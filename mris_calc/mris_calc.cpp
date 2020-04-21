@@ -59,8 +59,6 @@
 #define  CE( x )        fprintf(stderr, ( x ))
 #define  START_i        3
 
-static const char vcid[] =
-  "$Id: mris_calc.c,v 1.55 2016/09/27 18:50:16 greve Exp $";
 double fn_sign(float af_A);
 
 // ----------------------------------------------------------------------------
@@ -1619,7 +1617,7 @@ options_parse(int argc, char *argv[])
 static void
 version_print(void)
 {
-  fprintf(stderr, "%s\n", vcid) ;
+  fprintf(stderr, "%s\n", getVersion().c_str()) ;
   exit(1) ;
 }
 

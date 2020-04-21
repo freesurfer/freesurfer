@@ -14,7 +14,6 @@ function svstruct(strct, fid)
 %
 %  See also: ldstruct()
 %
-%  $Id: svstruct.m,v 1.3 2011/03/02 00:04:07 nicks Exp $
 
 
 %

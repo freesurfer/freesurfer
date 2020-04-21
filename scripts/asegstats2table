@@ -14,7 +14,6 @@ from freesurfer.utils.legacy import AsegStatsParser, BadFileError, aseglogger
 
 # Original Version - Douglas Greve, MGH
 # Rewrite - Krish Subramaniam, MGH
-# $Id: asegstats2table,v 1.41 2015/11/24 17:55:49 mreuter Exp $
 
 # globals
 l = aseglogger
@@ -113,7 +112,7 @@ def options_parse():
     Command Line Options Parser for asegstats2table
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: asegstats2table,v 1.41 2015/11/24 17:55:49 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(usage=HELPTEXT)
 
     # help text
     h_sub = '(REQUIRED) subject1 <subject2 subject3..>'

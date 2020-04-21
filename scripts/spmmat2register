@@ -25,7 +25,7 @@ echo "In particular, look at the section called USING WITH FSL and SPM"
 echo ""
 exit 1;
 
-set SPMMAT2REGISTER_VER = '$Id: spmmat2register,v 1.14 2016/02/16 17:17:20 zkaufman Exp $';
+set SPMMAT2REGISTER_VER = 'spmmat2register @FS_VERSION@';
 
 set OutStream = /dev/null;
 set funcvol   = ();

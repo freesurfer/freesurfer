@@ -19,7 +19,7 @@
 #
 
 
-set VERSION = '$Id: swfflac-sess,v 1.9 2015/12/10 22:51:31 zkaufman Exp $';
+set VERSION = 'swfflac-sess @FS_VERSION@';
 
 set cmdargs = ($argv);
 

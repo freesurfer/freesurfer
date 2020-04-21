@@ -24,7 +24,7 @@ set inlabel = ();
 set outlabel = ();
 set statval = ();
 
-set VERSION = '$Id: setlabelstat,v 1.6 2016/02/16 17:17:20 zkaufman Exp $';
+set VERSION = 'setlabelstat @FS_VERSION@';
 set inputargs = ($argv);
 set PrintHelp = 0;
 

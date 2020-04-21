@@ -41,8 +41,6 @@
 #include "version.h"
 #include "cma.h"
 
-static char vcid[] = 
-"$Id: mris_shrinkwrap.c,v 1.9 2012/11/10 20:19:46 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -574,7 +572,7 @@ print_help(void)
 static void
 print_version(void)
 {
-  fprintf(stderr, "%s\n", vcid) ;
+  fprintf(stderr, "%s\n", getVersion().c_str()) ;
   exit(1) ;
 }
 

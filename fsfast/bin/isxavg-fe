@@ -22,7 +22,7 @@
 #
 
 
-set ISXAVG_FE_VER = '$Id: isxavg-fe,v 1.4 2015/12/10 22:51:30 zkaufman Exp $';
+set ISXAVG_FE_VER = 'isxavg-fe @FS_VERSION@';
 
 set fmrianalver = `cat $FMRI_ANALYSIS_DIR/docs/version`;
 

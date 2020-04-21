@@ -62,7 +62,6 @@ static int  stringmatch(char *str1, char *str2);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surfcluster.c,v 1.60 2016/11/01 19:49:22 greve Exp $";
 const char *Progname = NULL;
 
 char *subjectdir = NULL;
@@ -521,8 +520,8 @@ int main(int argc, char **argv) {
       exit(1);
     }
     fprintf(fp,"# Cluster Growing Summary (mri_surfcluster)\n");
-    fprintf(fp,"# %s\n",vcid);
-    fprintf(fp,"# %s\n",MRISurfSrcVersion());
+    fprintf(fp,"# %s\n",getVersion().c_str());
+    fprintf(fp,"# %s\n",getVersion().c_str());
     fprintf(fp,"# CreationTime %s\n",VERcurTimeStamp());
     fprintf(fp,"# cmdline %s\n",cmdline);
     fprintf(fp,"# cwd %s\n",cwd);
@@ -1069,7 +1068,7 @@ static void print_usage(void) {
 static void print_help(void) {
   print_usage() ;
 
-  printf("\n%s\n\n",vcid);
+  printf("\n%s\n\n",getVersion().c_str());
 
   printf(
     "This program assigns each vertex on a cortical surface to a cluster \n"
@@ -1267,7 +1266,6 @@ static void print_help(void) {
     "summary file is shown below.\n"
     "\n"
     "Cluster Growing Summary (mri_surfcluster)\n"
-    "$Id: mri_surfcluster.c,v 1.60 2016/11/01 19:49:22 greve Exp $\n"
     "Input :      minsig-0-lh.w\n"
     "Frame Number:      0\n"
     "Minimum Threshold: 5\n"
@@ -1462,7 +1460,7 @@ static void check_options(void) {
 }
 /* --------------------------------------------- */
 static void dump_options(FILE *fp) {
-  fprintf(fp,"version %s\n",vcid);
+  fprintf(fp,"version %s\n",getVersion().c_str());
   fprintf(fp,"hemi           = %s\n",hemi);
   fprintf(fp,"srcid          = %s %s\n",srcid,srcfmt);
   fprintf(fp,"srcsubjid      = %s\n",srcsubjid);
@@ -1542,7 +1540,7 @@ static int stringmatch(char *str1, char *str2) {
 }
 /* --------------------------------------------- */
 static void print_version(void) {
-  printf("%s\n", vcid) ;
+  std::cout << getVersion() << std::endl;
   exit(1) ;
 }
 /* --------------------------------------------- */

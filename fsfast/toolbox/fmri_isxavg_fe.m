@@ -3,7 +3,6 @@
 %          for output of selxavg
 % Author: Douglas Greve
 % Questions or Comments: analysis-bugs@nmr.mgh.harvard.edu
-% Version: $Id: fmri_isxavg_fe.m,v 1.4 2011/03/02 00:04:06 nicks Exp $
 
 
 %

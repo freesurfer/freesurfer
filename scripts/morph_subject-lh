@@ -19,7 +19,7 @@
 
 
 
-set version = '$Id: morph_subject-lh,v 1.6 2011/03/02 20:16:39 nicks Exp $';
+set version = 'morph_subject-lh @FS_VERSION@';
 
 set hemi = lh
 

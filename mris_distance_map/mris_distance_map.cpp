@@ -39,8 +39,6 @@
 
 
 //------------------------------------------------------------------------
-static char vcid[] =
-  "$Id: mris_distance_map.c,v 1.2 2011/03/02 00:04:31 nicks Exp $";
 
 /*-------------------------------- CONSTANTS -----------------------------*/
 
@@ -166,7 +164,7 @@ print_help(void) {
 
 static void
 print_version(void) {
-  printf( "%s\n", vcid) ;
+  printf( "%s\n", getVersion().c_str()) ;
   exit(1) ;
 }
 MRI *

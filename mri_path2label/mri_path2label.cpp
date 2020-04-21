@@ -92,8 +92,6 @@ static void usage_exit(void);
 static void print_version(void) ;
 static int MRISfill(MRIS *mris, int seedvtxno);
 
-static char vcid[] = 
-"$Id: mri_path2label.c,v 1.23 2011/03/02 00:04:23 nicks Exp $";
 
 char* source_file          = NULL;
 char* dest_file            = NULL;
@@ -328,7 +326,7 @@ static void usage_exit(void) {
 }
 /*-----------------------------------------------------------*/
 static void print_version(void) {
-  printf("%s\n", vcid) ;
+  std::cout << getVersion() << std::endl;
   exit(1) ;
 }
 /*-----------------------------------------------------------*/

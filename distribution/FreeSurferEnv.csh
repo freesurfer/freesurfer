@@ -5,10 +5,9 @@
 # Note:    The bash equivalent script is FreeSurferEnv.sh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.csh,v 1.89 2016/06/09 14:54:31 zkaufman Exp $
 #############################################################################
 
-set VERSION = '$Id: FreeSurferEnv.csh,v 1.89 2016/06/09 14:54:31 zkaufman Exp $'
+set VERSION = 'FreeSurferEnv.csh @FS_VERSION@';
 
 ## Print help if --help or -help is specified
 if (("$1" == "--help") || ("$1" == "-help")) then

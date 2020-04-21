@@ -30,7 +30,6 @@ S. Beucher and F. Meyer introduced an algorithmic inter-pixel implementation of 
 #include "colortab.h"
 #include "fsinit.h"
 
-static char vcid[] = "$Id: mris_watershed.c,v 1.23 2013/03/27 01:53:50 fischl Exp $";
 
 const char *Progname ;
 int main(int argc, char *argv[]) ;
@@ -159,7 +158,7 @@ print_help(void) {
 
 static void
 print_version(void) {
-  fprintf(stderr, "%s\n", vcid) ;
+  fprintf(stderr, "%s\n", getVersion().c_str()) ;
   exit(1) ;
 }
 static int

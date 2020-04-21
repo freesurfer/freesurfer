@@ -19,7 +19,7 @@
 #
 
 
-set VERSION = '$Id: bfileconvert,v 1.6 2015/12/10 22:51:29 zkaufman Exp $'
+set VERSION = 'bfileconvert @FS_VERSION@';
 set cmdargs = ($argv);
 
 set invol   = ();

@@ -21,7 +21,7 @@
 
 set inputargs = ($argv);
 set fmrianalver = `cat $FMRI_ANALYSIS_DIR/docs/version`;
-set VERSION = '$Id: svdfunctcvm,v 1.3 2015/12/10 22:51:31 zkaufman Exp $';
+set VERSION = 'svdfunctcvm @FS_VERSION@';
 
 ## If there are no arguments, just print useage and exit ##
 if ( $#argv == 0  )  goto usage_exit;

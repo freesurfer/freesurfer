@@ -24,7 +24,7 @@
 
 
 
-set VERSION = '$Id: func2sph-sess,v 1.10 2015/12/10 22:51:29 zkaufman Exp $';
+set VERSION = 'func2sph-sess @FS_VERSION@';
 
 set inputargs = ($argv);
 set analysis    = ();

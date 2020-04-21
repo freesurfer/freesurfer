@@ -38,7 +38,6 @@
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_probe_ima.c,v 1.13 2011/03/02 00:04:24 nicks Exp $";
 const char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -496,13 +495,13 @@ static void print_help(void) {
          "VERSION\n"
          "\n"
         );
-  printf("   %s\n\n", vcid) ;
+  printf("   %s\n\n", getVersion().c_str()) ;
 
   exit(1) ;
 }
 /* --------------------------------------------- */
 static void print_version(void) {
-  fprintf(stderr, "%s\n", vcid) ;
+  fprintf(stderr, "%s\n", getVersion().c_str()) ;
   exit(1) ;
 }
 /* --------------------------------------------- */

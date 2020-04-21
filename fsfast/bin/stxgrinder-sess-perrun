@@ -19,7 +19,7 @@
 #
 
 
-set VERSION = '$Id'
+set VERSION = 'stxgrinder-sess-perrun @FS_VERSION@';
 
 set inputargs = "$argv";
 

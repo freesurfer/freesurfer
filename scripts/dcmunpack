@@ -2,7 +2,7 @@
 # dcmunpack
 # 
 
-set VERSION = '$Id: dcmunpack,v 1.21 2017/01/30 23:39:21 greve Exp $';
+set VERSION = 'dcmunpack @FS_VERSION@';
 
 set SeriesInfo = ();
 

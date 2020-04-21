@@ -85,8 +85,6 @@ double round(double); // why is this never defined?!?
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] =
-  "$Id: mri_volcluster.c,v 1.49 2016/11/01 19:51:04 greve Exp $";
 const char *Progname = NULL;
 
 static char tmpstr[2000];
@@ -527,7 +525,7 @@ int main(int argc, char **argv) {
 
   /* Dump summary to file or stdout */
   fprintf(fpsum,"# Cluster Growing Summary (mri_volcluster)\n");
-  fprintf(fpsum,"# %s\n",vcid);
+  fprintf(fpsum,"# %s\n",getVersion().c_str());
   fprintf(fpsum,"# cwd %s\n",cwd);
   fprintf(fpsum,"# cmdline %s\n",cmdline);
   if(SUBJECTS_DIR) fprintf(fpsum,"# SUBJECTS_DIR  %s\n",SUBJECTS_DIR);
@@ -1339,7 +1337,7 @@ static void print_help(void) {
 }
 /* --------------------------------------------- */
 static void print_version(void) {
-  fprintf(stderr, "%s\n", vcid) ;
+  fprintf(stderr, "%s\n", getVersion().c_str()) ;
   exit(1) ;
 }
 /* --------------------------------------------- */

@@ -1,6 +1,5 @@
 function r = fast_compute_cvm(varargin)
 % r = fast_compute_cvm(varargin)
-% '$Id: fast_compute_cvm.m,v 1.3 2011/03/02 00:04:03 nicks Exp $'
 %
 % Computes the temporal covariance matrix (CVM) of a functional volume.
 % Options:
@@ -33,7 +32,7 @@ function r = fast_compute_cvm(varargin)
 % Reporting: freesurfer@nmr.mgh.harvard.edu
 %
 
-version = '$Id: fast_compute_cvm.m,v 1.3 2011/03/02 00:04:03 nicks Exp $'
+version = 'fast_compute_cvm.m @FS_VERSION@';
 fprintf(1,'%s\n',version);
 r = 1;
 

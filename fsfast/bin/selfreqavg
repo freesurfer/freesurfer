@@ -21,7 +21,7 @@
 #
 
 
-set VERSION = '$Id: selfreqavg,v 1.16 2015/12/10 22:51:30 zkaufman Exp $';
+set VERSION = 'selfreqavg @FS_VERSION@';
 set cmdargv = "$argv";
 
 set n = `echo $argv | grep version | wc -l` 

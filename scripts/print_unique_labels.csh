@@ -17,7 +17,7 @@ set fscolor = $FREESURFER_HOME/FreeSurferColorLUT.txt
 set onlylist = 0
 
 set inputargs = ($argv);
-set VERSION = '$Id: print_unique_labels.csh,v 1.3 2016/02/16 17:17:20 zkaufman Exp $';
+set VERSION = 'print_unique_labels.csh @FS_VERSION@';
 
 if($#argv == 0) goto usage_exit;
 set n = `echo $argv | egrep -e --version | wc -l`

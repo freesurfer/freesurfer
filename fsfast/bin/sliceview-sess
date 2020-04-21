@@ -19,7 +19,7 @@
 #
 
 
-set VERSION = '$Id: sliceview-sess,v 1.8 2015/12/10 22:51:30 zkaufman Exp $';
+set VERSION = 'sliceview-sess @FS_VERSION@';
 
 set inputargs = ($argv);
 

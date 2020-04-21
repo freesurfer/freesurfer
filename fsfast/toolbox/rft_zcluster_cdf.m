@@ -29,7 +29,6 @@ function cdf = rft_zcluster_cdf(csize,zthresh,fwhm,ssize,D)
 % Activations in PET and fMRI: Levels of Inference and Power.
 % Neuroimage 40, 223-235 (1996).
 % 
-% $Id: rft_zcluster_cdf.m,v 1.8 2016/11/01 19:44:16 greve Exp $
 
 %
 % rft_zcluster_cdf.m

@@ -1,5 +1,4 @@
 #
-# $Id: ASegStatsLUT.txt,v 1.4 2014/10/01 21:11:38 greve Exp $
 #
 # This is a subset of the labels found in FreeSurferColorLUT.txt.
 # This is the set that will be reported in the stats/aseg.stats file.

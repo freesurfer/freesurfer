@@ -19,7 +19,7 @@
 #
 
 
-set VERSION = '$Id: inorm2,v 1.8 2015/12/10 22:51:30 zkaufman Exp $';
+set VERSION = 'inorm2 @FS_VERSION@';
 
 set cmdargs = ($argv);
 

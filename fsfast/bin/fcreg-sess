@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # fcreg-sess
 #
-set VERSION    = '$Id: fcreg-sess,v 1.6 2015/12/10 22:51:29 zkaufman Exp $';
+set VERSION    = 'fcreg-sess @FS_VERSION@';
 set cmdargs = ($argv);
 
 set flac = ();

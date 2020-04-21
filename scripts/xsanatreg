@@ -20,7 +20,7 @@
 #
 
 
-set VERSION = '$Id: xsanatreg,v 1.8 2016/02/16 17:17:20 zkaufman Exp $';
+set VERSION = 'xsanatreg @FS_VERSION@';
 
 set src      = ();
 set srcminc  = ();

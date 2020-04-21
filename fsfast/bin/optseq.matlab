@@ -19,7 +19,7 @@
 #
 
 
-set VERSION = '$Id: optseq.matlab,v 1.2 2015/12/10 22:51:30 zkaufman Exp $';
+set VERSION = 'optseq.matlab @FS_VERSION@';
 
 set pforder = 0;
 

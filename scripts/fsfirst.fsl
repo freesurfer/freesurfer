@@ -7,7 +7,7 @@ endif
 
 set FSLSTD1mm = $FSLDIR/data/standard/MNI152_T1_1mm.nii.gz 
 
-set VERSION = '$Id$';
+set VERSION = 'fsfirst.fsl @FS_VERSION@';
 set scriptname = `basename $0`
 setenv FSLOUTPUTTYPE NIFTI_GZ
 

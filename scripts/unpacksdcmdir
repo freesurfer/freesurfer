@@ -355,10 +355,6 @@ puts ""
 puts "AUTHOR"
 puts ""
 puts "Douglas N. Greve, Ph.D., MGH-NMR Center"
-puts ""
-puts "VERSION"
-puts ""
-puts {$Id: unpacksdcmdir,v 1.25 2015/02/06 19:19:50 greve Exp $}
 
 exit 1;
 
@@ -890,8 +886,6 @@ set mriconvert mri_convert
 
 # Dump some info to the screen
 puts "";
-puts {$Id: unpacksdcmdir,v 1.25 2015/02/06 19:19:50 greve Exp $};
-puts "";
 puts [pwd];
 puts "$argv"
 puts "";
@@ -939,7 +933,6 @@ if [catch {open $LogFile w} LF] {
 }
 puts "INFO: Logfile is $LogFile"
 puts $LF "Log file created by unpacksdcmdir"
-puts $LF {$Id: unpacksdcmdir,v 1.25 2015/02/06 19:19:50 greve Exp $};
 puts $LF "$LogFile"
 puts $LF [pwd];
 puts $LF [exec date];

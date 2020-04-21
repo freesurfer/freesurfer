@@ -19,7 +19,7 @@ set outprefix = ()
 
 
 set inputargs = ($argv);
-set VERSION = '$Id: isolate_labels.csh,v 1.1 2011/02/14 lzollei Exp $';
+set VERSION = 'isolate_labels_keeporigval.csh @FS_VERSION@';
 
 if($#argv == 0) goto usage_exit;
 set n = `echo $argv | egrep -e --version | wc -l`

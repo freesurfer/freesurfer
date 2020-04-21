@@ -17,7 +17,7 @@
 #
 #
 
-set VERSION = '$Id: dcmdir-info-mgh,v 1.16 2016/02/12 21:43:14 zkaufman Exp $';
+set VERSION = 'dcmdir-info-mgh @FS_VERSION@';
 
 set dcmdir = ();
 set unpackdir = ();

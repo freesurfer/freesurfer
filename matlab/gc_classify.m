@@ -11,7 +11,6 @@ function [datacid map p] = gc_classify(data,means,covar)
 % means - nClasses x nVariates
 % covar - nVariates x nVariates x nClasses
 %
-% $Id: gc_classify.m,v 1.3 2012/04/20 16:03:47 greve Exp $
 
 [nClasses nVariates] = size(means);
 nData = size(data,1);

@@ -64,7 +64,6 @@ int debug = 0, checkoptsonly = 0;
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "";
 const char *Progname = "dmri_motion";
 
 float T = 100, D = .001;
@@ -511,7 +510,7 @@ static void usage_exit(void) {
 
 /* --------------------------------------------- */
 static void print_version(void) {
-  cout << vcid << endl;
+  cout << getVersion() << endl;
   exit(1);
 }
 
@@ -539,7 +538,7 @@ static void check_options(void) {
 
 static void dump_options() {
   cout << endl
-       << vcid << endl
+       << getVersion() << endl
        << "cwd " << cwd << endl
        << "cmdline " << cmdline << endl
        << "sysname  " << uts.sysname << endl

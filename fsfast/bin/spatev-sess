@@ -19,7 +19,7 @@
 #
 
 
-set VERSION = '$Id: spatev-sess,v 1.4 2015/12/10 22:51:30 zkaufman Exp $';
+set VERSION = 'spatev-sess @FS_VERSION@';
 
 set inputargs = ($argv);
 set analysis = ();

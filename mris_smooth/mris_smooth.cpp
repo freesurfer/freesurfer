@@ -34,8 +34,6 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] =
-  "$Id: mris_smooth.c,v 1.30 2014/01/21 18:48:21 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -506,7 +504,7 @@ print_help(void)
 static void
 print_version(void)
 {
-  fprintf(stderr, "%s\n", vcid) ;
+  fprintf(stderr, "%s\n", getVersion().c_str()) ;
   exit(1) ;
 }
 

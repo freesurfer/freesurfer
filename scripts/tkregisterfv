@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # tkregisterfv
 
-set VERSION = '$Id: tkregisterfv,v 1.9 2016/03/16 21:34:54 greve Exp $';
+set VERSION = 'tkregisterfv @FS_VERSION@';
 
 set subject = ();
 set movvol = ();

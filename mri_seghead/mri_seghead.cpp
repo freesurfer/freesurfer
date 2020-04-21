@@ -19,7 +19,6 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Segment the head.
-  $Id: mri_seghead.c,v 1.8 2014/03/25 16:06:42 greve Exp $
 */
 
 #include <stdio.h>
@@ -28,6 +27,7 @@
 #include <unistd.h>
 #include <string.h>
 
+#include "version.h"
 #include "error.h"
 #include "diag.h"
 #include "proto.h"
@@ -52,7 +52,6 @@ static int  singledash(char *flag);
 static int  stringmatch(char *str1, char *str2);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_seghead.c,v 1.8 2014/03/25 16:06:42 greve Exp $";
 const char *Progname = NULL;
 int debug = 0;
 char *subjid;
@@ -540,7 +539,7 @@ static void print_usage(void) {
 static void print_help(void) {
   print_usage() ;
 
-  printf("\n%s\n\n",vcid);
+  printf("\n%s\n\n",getVersion().c_str());
 
   printf(
     "This program binarizes the input volume such that all the voxels in the \n"
@@ -575,7 +574,7 @@ static void print_help(void) {
 }
 /* --------------------------------------------- */
 static void print_version(void) {
-  printf("%s\n", vcid) ;
+  std::cout << getVersion() << std::endl;
   exit(1) ;
 }
 /* --------------------------------------------- */

@@ -34,8 +34,6 @@
 
 #define RGB_SIZE 500
 
-static char vcid[] =
-  "$Id: histo_register_block.c,v 1.9 2011/03/02 00:04:09 nicks Exp $";
 
 static int    powell_minimize(MRI *mri_block,
                               MRI *mri_histo,
@@ -384,7 +382,7 @@ print_help(void) {
 
 static void
 print_version(void) {
-  fprintf(stderr, "%s\n", vcid) ;
+  fprintf(stderr, "%s\n", getVersion().c_str()) ;
   exit(1) ;
 }
 

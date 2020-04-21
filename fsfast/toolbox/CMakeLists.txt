@@ -1,4 +1,4 @@
-install(FILES
+install_configured(
   afni2bvol.m
   arCorrFun.m
   avgrandeff.m

@@ -71,7 +71,6 @@ Can something be done to affect the off-diagonals?
 #undef X
 #endif
 
-static char vcid[] = "$Id: optseq2.c,v 2.22 2011/04/21 19:48:51 greve Exp $";
 const char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -899,7 +898,7 @@ static void print_usage(void) {
   printf("  --version : print version string \n");
 
   printf("\n");
-  printf("%s\n",vcid);
+  printf("%s\n",getVersion().c_str());
   printf("\n");
   printf("\n");
   printf("Optseq Home Page: \n"
@@ -1366,7 +1365,7 @@ static void print_help(void) {
 }
 /* --------------------------------------------- */
 static void print_version(void) {
-  printf("%s\n", vcid) ;
+  std::cout << getVersion() << std::endl;
   exit(1) ;
 }
 /* --------------------------------------------- */
@@ -1512,7 +1511,7 @@ static void dump_options(FILE *fp) {
   int n;
 
   fprintf(fp,"optseq2\n");
-  fprintf(fp,"%s\n",vcid);
+  fprintf(fp,"%s\n", getVersion().c_str());
   fprintf(fp,"NoSearch  = %d\n",NoSearch);
   if (nSearch > 0) fprintf(fp,"nSearch  = %d\n",nSearch);
   if (tSearch > 0) fprintf(fp,"tSearch  = %g hours\n",tSearch);

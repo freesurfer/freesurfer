@@ -21,7 +21,6 @@ source $FREESURFER_HOME/sources.csh
 
 if($#argv != 1) then
   echo "USAGE: getendian stem "
-  echo '$Id'
   exit 1;
 endif
 

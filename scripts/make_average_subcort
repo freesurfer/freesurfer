@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # thalseg
 
-set VERSION = '$Id: make_average_subcort,v 1.3 2016/06/13 22:24:23 greve Exp $';
+set VERSION = 'make_average_subcort @FS_VERSION@';
 
 set outvol = ();
 set subjlist = ();
