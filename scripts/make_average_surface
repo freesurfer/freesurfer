@@ -708,7 +708,7 @@ check_params:
   endif
   if($#sdout == 0) set sdout = $SUBJECTS_DIR;
   if($#hemilist == 0) set hemilist = (lh rh)
-  if($#annotlist == 0) set annotlist = (aparc aparc.a2009s)
+  if($#annotlist == 0) set annotlist = (aparc.DKTatlas aparc aparc.a2009s)
   if($#measlist == 0) set measlist = (sulc curv thickness area volume inflated.H)
 goto check_params_return;
 ############--------------##################
