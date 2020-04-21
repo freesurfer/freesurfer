@@ -69,6 +69,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
+static char vcid[] = "$Id: mri_coreg.c,v 1.27 2016/04/30 15:11:49 greve Exp $";
 const char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -171,8 +172,6 @@ long COREGvolIndex(int ncols, int nrows, int nslices, int c, int r, int s);
 double COREGsamp(unsigned char *f, const double c, const double r, const double s, 
 		  const int ncols, const int nrows, const int nslices);
 double NMICost(double **H, int cols, int rows);
-MATRIX *COREGmatrix(double *p, MATRIX *M);
-double *COREGparams9(MATRIX *M9, double *p);
 int COREGprint(FILE *fp, COREG *coreg);
 MRI *MRIconformNoScale(MRI *mri, MRI *mric);
 int COREGoptBruteForce(COREG *coreg, double lim0, int niters, int n1d);
@@ -450,10 +449,6 @@ int main(int argc, char *argv[]) {
     if(err) exit(1);
   }
 
-  // Print usage stats to the terminal (and a file is specified)
-  PrintRUsage(RUSAGE_SELF, "mri_coreg ", stdout);
-  if(cmdargs->rusagefile) WriteRUsage(RUSAGE_SELF, "", cmdargs->rusagefile);
-
   printf("Final  RefRAS-to-MovRAS\n");
   MatrixPrint(stdout,coreg->M);
   printf("Final  RefVox-to-MovVox\n");
@@ -630,7 +625,10 @@ static int parse_commandline(int argc, char **argv) {
       if(lta==NULL) exit(1);
       LTAchangeType(lta,LINEAR_RAS_TO_RAS);
       LTAinvert(lta,lta);
-      COREGparams9(lta->xforms[0].m_L,NULL);
+      double p[12];
+      TranformExtractAffineParams(lta->xforms[0].m_L,p);
+      for(int k=0; k < 12; k++) printf("%g ",p[k]);
+      printf("\n");
       nargsused = 1;
       exit(0);
     } 
@@ -717,6 +715,17 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[2],"%lf",&cmdargs->params[11]);
       nargsused = 3;
     } 
+    else if (!strcasecmp(option, "--init-reg")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      LTA *lta;
+      lta = LTAread(pargv[0]);
+      if(lta==NULL) exit(1);
+      LTAchangeType(lta,LINEAR_RAS_TO_RAS);
+      LTAinvert(lta,lta);
+      TranformExtractAffineParams(lta->xforms[0].m_L,cmdargs->params);
+      cmdargs->cras0 = 0;
+      nargsused = 1;
+    }
     else if(!strcmp(option, "--no-coord-dither")) cmdargs->DoCoordDither = 0;  
     else if(!strcmp(option, "--no-intensity-dither"))   cmdargs->DoIntensityDither = 0;
     else if(!strcmp(option, "--no-dither")){
@@ -781,6 +790,7 @@ static void print_usage(void) {
   printf("   --rot   Rx Ry Rz : initial rotation in deg\n");
   printf("   --scale Sx Sy Sz : initial scale\n");
   printf("   --shear Hxy Hxz Hyz : initial shear\n");
+  printf("   --init-reg reg0.lta : initialize with given registration file\n");
   printf("   --params outparamfile : save parameters in this file\n");
   printf("   --no-cras0 : do not set translation parameters to align centers of mov and ref\n");
   printf("   --centroid : intialize by aligning centeroids of mov and ref\n");
@@ -806,7 +816,7 @@ static void print_usage(void) {
   printf("   --help      print out information on how to use this program\n");
   printf("   --version   print out version and exit\n");
   printf("\n");
-  std::cout << getVersion() << std::endl;
+  printf("%s\n", vcid) ;
   printf("\n");
 }
 /* -------------------------------------------------------- */
@@ -819,7 +829,7 @@ static void print_help(void) {
 }
 /* -------------------------------------------------------- */
 static void print_version(void) {
-  std::cout << getVersion() << std::endl;
+  printf("%s\n", vcid) ;
   exit(1) ;
 }
 /* -------------------------------------------------------- */
@@ -858,7 +868,7 @@ static void check_options(void) {
 /* -------------------------------------------------------- */
 static void dump_options(FILE *fp) {
   fprintf(fp,"\n");
-  fprintf(fp,"%s\n", getVersion().c_str());
+  fprintf(fp,"%s\n",vcid);
   fprintf(fp,"cwd %s\n",cwd);
   fprintf(fp,"cmdline %s\n",cmdline);
   fprintf(fp,"sysname  %s\n",uts.sysname);
@@ -1420,120 +1430,6 @@ double *COREGoptSchema2MatrixPar(COREG *coreg, double *par)
   }
   return(par);
 }
-/*!
-  \fn MATRIX *COREGmatrix(double *p, MATRIX *M)
-  \brief Computes a RAS-to-RAS transformation matrix given
-  the parameters. p[0-2] translation, p[3-5] rotation
-  in degrees, p[6-8] scale, p[9-11] shear. 
-  M = T*R1*R2*R3*SCALE*SHEAR
-  Consistent with COREGparams9()
- */
-MATRIX *COREGmatrix(double *p, MATRIX *M)
-{
-  MATRIX *T, *R1, *R2, *R3, *R, *ZZ, *S;
-  //int n;
-  //printf("p = [");
-  //for(n=0; n<np; n++) printf("%10.3lf ",p[n]);
-  //printf("];\n");
-
-  // translations
-  T = MatrixIdentity(4,NULL);
-  T->rptr[1][4] = p[0];
-  T->rptr[2][4] = p[1];
-  T->rptr[3][4] = p[2];
-
-  // rotations
-  R1 = MatrixIdentity(4,NULL);
-  R1->rptr[2][2] = cos(p[3]*M_PI/180);
-  R1->rptr[2][3] = sin(p[3]*M_PI/180);
-  R1->rptr[3][2] = -sin(p[3]*M_PI/180);
-  R1->rptr[3][3] = cos(p[3]*M_PI/180);
-
-  R2 = MatrixIdentity(4,NULL);
-  R2->rptr[1][1] = cos(p[4]*M_PI/180);
-  R2->rptr[1][3] = sin(p[4]*M_PI/180);
-  R2->rptr[3][1] = -sin(p[4]*M_PI/180);
-  R2->rptr[3][3] = cos(p[4]*M_PI/180);
-
-  R3 = MatrixIdentity(4,NULL);
-  R3->rptr[1][1] = cos(p[5]*M_PI/180);
-  R3->rptr[1][2] = sin(p[5]*M_PI/180);
-  R3->rptr[2][1] = -sin(p[5]*M_PI/180);
-  R3->rptr[2][2] = cos(p[5]*M_PI/180);
-
-  R = MatrixMultiplyD(R1,R2,NULL);
-  MatrixMultiplyD(R,R3,R);
-
-  // scale, use ZZ because some idiot #defined Z
-  ZZ = MatrixIdentity(4,NULL);
-  ZZ->rptr[1][1] = p[6];
-  ZZ->rptr[2][2] = p[7];
-  ZZ->rptr[3][3] = p[8];
-  ZZ->rptr[4][4] = 1;
-
-  // shear
-  S = MatrixIdentity(4,NULL);
-  S->rptr[1][2] = p[9];
-  S->rptr[1][3] = p[10];
-  S->rptr[2][3] = p[11];
-
-  // M = T*R*ZZ*S
-  M = MatrixMultiplyD(T,R,M);
-  MatrixMultiplyD(M,ZZ,M);
-  MatrixMultiplyD(M,S,M);
-  //MatrixPrint(stdout,M);
-
-  MatrixFree(&T);
-  MatrixFree(&R1);
-  MatrixFree(&R2);
-  MatrixFree(&R3);
-  MatrixFree(&R);
-  MatrixFree(&ZZ);
-  MatrixFree(&S);
-
-  return(M);
-}
-
-/*!
-  \fn double *COREGparams9(MATRIX *M9, double *p)
-  \brief Extracts parameter from a 9 dof transformation matrix.
-  This is consistent with COREGmatrix(). Still need to figure
-  out how to do 12 dof. Note: p will be alloced to 12.
-  Angles are in degrees.
- */
-double *COREGparams9(MATRIX *M9, double *p)
-{
-  double sum;
-  int n, c, r;
-  MATRIX *R;
-
-  if(p==NULL) p = (double*) calloc(12,sizeof(double));
-
-  // translation
-  for(r=0; r < 3; r++) p[r] = M9->rptr[r+1][4];
-
-  // R is the rotation matrix
-  R = MatrixAlloc(3,3,MATRIX_REAL);
-  for(c=0; c < 3; c++){
-    sum = 0;
-    for(r=0; r < 3; r++) sum += (M9->rptr[r+1][c+1]*M9->rptr[r+1][c+1]);
-    p[c+6] = sqrt(sum); //scale
-    for(r=0; r < 3; r++) R->rptr[r+1][c+1] = M9->rptr[r+1][c+1]/sqrt(sum);
-  }
-
-  // extract rotation params
-  p[3] = atan2(R->rptr[2][3],R->rptr[3][3])*180/M_PI;
-  p[4] = atan2(R->rptr[1][3],sqrt(pow(R->rptr[2][3],2) + pow(R->rptr[3][3],2)))*180/M_PI;
-  p[5] = atan2(R->rptr[1][2],R->rptr[1][1])*180/M_PI;
-
-  MatrixFree(&R);
-
-  for(n=0; n < 9; n++) printf("%10.8lf ",p[n]);
-  printf("\n");
-
-  return(p);
-}
-
 
 double COREGcost(COREG *coreg)
 {
@@ -1545,7 +1441,7 @@ double COREGcost(COREG *coreg)
 
   // RefRAS-to-MovRAS
   params = COREGoptSchema2MatrixPar(coreg, params);
-  coreg->M = COREGmatrix(params, coreg->M);
+  coreg->M = TranformAffineParams2Matrix(params, coreg->M);
 
   // AnatVox-to-FuncVox
   coreg->V2V = MRIgetVoxelToVoxelXformBase(coreg->ref,coreg->mov,coreg->M,coreg->V2V,0);
