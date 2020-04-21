@@ -204,7 +204,10 @@ int main(int argc, char **argv) {
     mask = MRIread(maskfile);
     if (mask == NULL) exit(1);
     clabel = MaskToSurfaceLabel(mask,maskthresh,masksign);
-    if (clabel == NULL) exit(1);
+    if(clabel == NULL) {
+      printf("No voxels found in mask, so exiting now\n");
+      exit(0); // use exit 0 here for fspalm
+    }
     printf("Found %d points in clabel.\n",clabel->n_points);
   }
   if (clabelfile) {
