@@ -21,7 +21,7 @@
 #
 
 
-set VERSION = '$Id: mri_add_new_tp,v 1.8 2011/05/04 18:01:39 mreuter Exp $';
+set VERSION = 'mri_add_new_tp @FS_VERSION@';
 
 if ($#argv < 2) then
   echo

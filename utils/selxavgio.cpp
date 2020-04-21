@@ -14,7 +14,6 @@
 
 /***************************************************************
   Name:    selxavgio.c
-  $Id: selxavgio.c,v 1.10 2011/03/02 00:04:55 nicks Exp $
   Author:  Douglas Greve
   Purpose: Routines for handling header files for data created by
   selxavg or selavg (selectively averaged).

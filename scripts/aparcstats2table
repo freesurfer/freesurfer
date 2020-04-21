@@ -14,7 +14,6 @@ from freesurfer.utils.legacy import AparcStatsParser, BadFileError, aparclogger
 
 # Original Version - Douglas Greve, MGH
 # Rewrite - Krish Subramaniam, MGH
-# $Id: aparcstats2table,v 1.28 2015/11/24 17:55:49 mreuter Exp $
 
 # globals
 l = aparclogger
@@ -93,7 +92,7 @@ def options_parse():
     Command Line Options Parser for aparcstats2table
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: aparcstats2table,v 1.28 2015/11/24 17:55:49 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(usage=HELPTEXT)
     
     # help text
     h_sub = '(REQUIRED) subject1 <subject2 subject3..>'

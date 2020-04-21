@@ -62,8 +62,6 @@ static void jacobi(float **a, int n, float *d, float** v,int * nrot);
 static char *log_fname = NULL ;
 static  char  *subject_name = NULL ;
 
-static char vcid[] =
-  "$Id: mris_thickness_diff.c,v 1.16 2011/03/02 00:04:34 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -696,7 +694,7 @@ static void print_usage(void)
   fprintf(stdout, "   -S %%s              subject name \n");
   fprintf(stdout, "   --help             more help \n");
   fprintf(stdout, "\n");
-  printf("%s\n", vcid) ;
+  std::cout << getVersion() << std::endl;
   printf("\n");
 
 }
@@ -794,7 +792,7 @@ static void print_help(void)
 /* --------------------------------------------- */
 static void print_version(void)
 {
-  fprintf(stdout, "%s\n", vcid) ;
+  fprintf(stdout, "%s\n", getVersion().c_str()) ;
   exit(1) ;
 }
 

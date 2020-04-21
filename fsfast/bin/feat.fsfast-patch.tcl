@@ -3,7 +3,6 @@
 # This is a modified version of FSL's FEAT TCL program. 
 # All restrictions of the FSL LICENSE below apply.
 #
-# $Id: feat.fsfast-patch.tcl,v 1.3 2007/09/16 23:17:42 greve Exp $
 
 #{{{ copyright and setup 
 

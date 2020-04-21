@@ -19,7 +19,7 @@
 #include <math.h>
 #include <ctype.h>
 
-
+#include "version.h"
 #include "macros.h"
 #include "error.h"
 #include "diag.h"
@@ -29,7 +29,6 @@
 #include "fio.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mris_sample_label.c,v 1.5 2012/10/01 18:59:32 fischl Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -167,6 +166,6 @@ print_help(void) {
 
 static void
 print_version(void) {
-  fprintf(stderr, "%s\n", vcid) ;
+  fprintf(stderr, "%s\n", getVersion().c_str()) ;
   exit(1) ;
 }

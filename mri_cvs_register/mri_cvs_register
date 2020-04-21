@@ -36,7 +36,7 @@
 #
 
 set inputargs = ($argv);
-set VERSION = '$Id: mri_cvs_register,v 1.48 2016/03/06 21:31:56 lzollei Exp $';
+set VERSION = 'mri_cvs_register @FS_VERSION@';
 
 set movingid = ();
 set templateid = ();

@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set VERSION = '$Id: wm-anat-snr,v 1.3 2016/02/16 17:17:20 zkaufman Exp $';
+set VERSION = 'wm-anat-snr @FS_VERSION@';
 set inputargs = ($argv);
 
 set subject = ();

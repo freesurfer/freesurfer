@@ -78,8 +78,6 @@ static int nSmoothSteps = 0;
 #endif
 #define MAX_SURFACES 200
 
-static char vcid[] =
-  "$Id: mris_surface_stats.c,v 1.10 2011/03/02 00:04:34 nicks Exp $";
 
 int
 main(int argc, char *argv[])
@@ -517,7 +515,7 @@ main(int argc, char *argv[])
 /* --------------------------------------------- */
 static void print_version(void)
 {
-  fprintf(stdout, "%s\n", vcid) ;
+  fprintf(stdout, "%s\n", getVersion().c_str()) ;
   exit(1) ;
 }
 

@@ -22,7 +22,7 @@
 
 
 set inputargs = ($argv);
-set INORM_VER = '$Id: inorm,v 1.5 2015/12/10 22:51:30 zkaufman Exp $';
+set INORM_VER = 'inorm @FS_VERSION@';
 
 set n = `echo $argv | grep version | wc -l` 
 if($n != 0) then

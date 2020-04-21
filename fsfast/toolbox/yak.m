@@ -37,7 +37,6 @@ function yak(varargin)
 
 if(nargin == 0)
   msg = 'USAGE: hfig = yak(flag,options)';
-  msg = sprintf('%s\n$Id: yak.m,v 1.7 2011/03/02 00:04:08 nicks Exp $',msg);
   qoe(msg);error(msg);
 end
 

@@ -85,8 +85,6 @@ static int  nth_is_arg(int nargc, char **argv, int nth);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = 
-  "$Id: mri_label2label.c,v 1.50 2016/12/10 22:57:43 fischl Exp $";
 const char *Progname = NULL;
 
 static int label_erode = 0 ;
@@ -1349,7 +1347,7 @@ static void dump_options(FILE *fp) {
 }
 /* --------------------------------------------- */
 static void print_version(void) {
-  fprintf(stderr, "%s\n", vcid) ;
+  fprintf(stderr, "%s\n", getVersion().c_str()) ;
   exit(1) ;
 }
 /* --------------------------------------------- */

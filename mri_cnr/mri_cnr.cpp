@@ -34,7 +34,6 @@
 #include "version.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mri_cnr.c,v 1.11 2016/05/05 18:44:03 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -268,7 +267,7 @@ print_usage(void) {
 
 static void
 print_version(void) {
-  fprintf(stderr, "%s\n", vcid) ;
+  fprintf(stderr, "%s\n", getVersion().c_str()) ;
   exit(1) ;
 }
 /*

@@ -21,7 +21,7 @@
 # aseg2feat
 #
 
-set VERSION = '$Id: aseg2feat,v 1.18 2016/02/12 21:43:14 zkaufman Exp $';
+set VERSION = 'aseg2feat @FS_VERSION@';
 set FeatDirList = ();
 set debug = 0;
 set usedev = 0;

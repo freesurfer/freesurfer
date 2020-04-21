@@ -86,7 +86,6 @@ static int WriteClassDat(char *base, char *Class, FSGD *fsgd,
 //static int  stringmatch(char *str1, char *str2);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gdfglm.c,v 1.9 2011/05/05 15:28:03 greve Exp $";
 const char *Progname = "mri_gdfglm";
 
 typedef struct tagCOVARPRUNE {
@@ -164,7 +163,7 @@ int main(int argc, char **argv) {
   printf("%s ",Progname);
   for (n=0; n < argc; n++) printf("%s ",argv[n]);
   printf("\n\n");
-  printf("%s\n\n",vcid);
+  printf("%s\n\n",getVersion().c_str());
 
   parse_commandline(argc, argv);
   check_options();
@@ -600,7 +599,7 @@ static void print_help(void) {
 }
 /* --------------------------------------------- */
 static void print_version(void) {
-  printf("%s\n", vcid) ;
+  std::cout << getVersion() << std::endl;
   exit(1) ;
 }
 /* --------------------------------------------- */

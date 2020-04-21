@@ -13,7 +13,6 @@ function RM = fmri_mrestriction2(wcond,wdelay,sumconds,sumdelays)
 %       ndelays   for sumconds=1
 %       nc*nd     for sumconds=0 and sumdelays=0
 %
-% '$Id: fmri_mrestriction2.m,v 1.3 2011/03/02 00:04:06 nicks Exp $'
 
 
 %

@@ -19,7 +19,7 @@
 #
 
 
-set VERSION = '$Id: cp-dicom,v 1.6 2016/02/12 21:43:14 zkaufman Exp $';
+set VERSION = 'cp-dicom @FS_VERSION@';
 
 set inputargs = ($argv);
 set dcmdir = ();

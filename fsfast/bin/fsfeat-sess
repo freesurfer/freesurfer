@@ -20,7 +20,7 @@
 #
 
 
-set VERSION = '$Id: fsfeat-sess,v 1.7 2015/12/10 22:51:29 zkaufman Exp $';
+set VERSION = 'fsfeat-sess @FS_VERSION@';
 set inputargs = ($argv);
 
 set analysis   = ();

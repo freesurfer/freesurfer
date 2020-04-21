@@ -1,5 +1,4 @@
 
-# $Id: crossrun.ffx.fsf,v 1.1 2007/03/02 06:45:37 greve Exp $
 #
 # This is a file created to be used with fsfeatffx. It is specifically
 # coded to implement a one-sample group mean for averaging across runs

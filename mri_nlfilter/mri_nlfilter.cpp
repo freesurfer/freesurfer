@@ -29,7 +29,6 @@
 #include "region.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mri_nlfilter.c,v 1.17 2016/12/08 17:27:53 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -571,7 +570,7 @@ print_help(void) {
 
 static void
 print_version(void) {
-  fprintf(stderr, "%s\n", vcid) ;
+  fprintf(stderr, "%s\n", getVersion().c_str()) ;
   exit(1) ;
 }
 

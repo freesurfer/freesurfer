@@ -4,7 +4,6 @@
 # echoess 1 if TargetFile does not exist or is older than any of the
 # sources files. If a source does not exist, then it echoes 1 and
 # exists with 1.
-# $Id: UpdateNeeded,v 1.1 2010/04/01 19:21:16 greve Exp $
 
 if($#argv < 2) then
   echo "UpdateNeeded TargetFile SourceFile <SourceFile2 ...> "

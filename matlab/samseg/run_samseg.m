@@ -1,7 +1,6 @@
 function retval = run_samseg(varargin)
 % Run with no arguments to get help
 retval = 1;
-mfileversion = '$Id$';
  
 % This is a structure to handle reading in of command-line args.  When
 % adding a new arg, create a new field with the default value, then
@@ -34,7 +33,6 @@ cmdargs = check_params(cmdargs);
 if(isempty(cmdargs)) return; end
 dump_args(cmdargs);
 
-fprintf('%s\n',mfileversion);
 fprintf('Matlab version %s\n',version);
 fprintf('2 cmd Stiffness %g\n',cmdargs.stiffness);
     

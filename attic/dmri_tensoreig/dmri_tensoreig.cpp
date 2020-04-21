@@ -64,7 +64,6 @@ static void MRIavg4(MRI *invol, int n4, int n5);
 static void MRIavg5(MRI *invol, int n4, int n5);
 static float avgsnr(MRI *invol, MRI *mask, int frame0, int nframe);
 
-static char vcid[] = "$Id$";
 
 const char *Progname ;
 FILE *fpin;
@@ -645,7 +644,7 @@ static void print_help(void) {
 
 /* --------------------------------------------- */
 static void print_version(void) {
-  printf("%s\n", vcid) ;
+  std::cout << getVersion() << std::endl;
   exit(1) ;
 }
 
@@ -682,7 +681,7 @@ static void usage_exit(void) {
 /* --------------------------------------------- */
 static void dump_options(FILE *fp) {
   fprintf(fp, "\n");
-  fprintf(fp, "%s\n", vcid);
+  fprintf(fp, "%s\n", getVersion().c_str());
   fprintf(fp, "Cwd %s\n", cwd);
   fprintf(fp, "Cmdline %s\n", cmdline);
   fprintf(fp, "Sysname %s\n", uts.sysname);

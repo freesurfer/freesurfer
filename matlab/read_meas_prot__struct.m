@@ -4,7 +4,6 @@ function [YAPS, param_list] = read_meas_prot__struct(varargin)
 % [YAPS, param_list] = read_meas_prot__struct(varargin)
 
 % jonathan polimeni <jonp@nmr.mgh.harvard.edu>, 2007/nov/18
-% $Id: read_meas_prot__struct.m,v 1.1 2008/05/21 19:00:46 greve Exp $
 %**************************************************************************%
 
 

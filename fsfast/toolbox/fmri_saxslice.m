@@ -50,7 +50,7 @@
 
 fprintf(1,'\n');
 fprintf(1,'  --- SAXSlice: Starting ------\n');
-fprintf(1,'$Id: fmri_saxslice.m,v 1.3 2011/03/02 00:04:06 nicks Exp $');
+fprintf(1,'fmri_saxslice.m @FS_VERSION@\n');
 
 if( ~exist('QuitOnError') ) QuitOnError = 1; end
 

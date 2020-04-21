@@ -2,7 +2,6 @@
  *	Copyright 1996, University Corporation for Atmospheric Research
  *	See netcdf/COPYRIGHT file for copying and redistribution conditions.
  */
-/* "$Id: ncx.h,v 1.56 2004/09/14 13:41:22 ed Exp $" */
 
 #ifndef _NCX_H_
 #define _NCX_H_

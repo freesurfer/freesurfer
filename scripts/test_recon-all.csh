@@ -45,7 +45,7 @@
 #
 
 
-set VERSION='$Id: test_recon-all.csh,v 1.40 2016/06/16 15:21:05 zkaufman Exp $'
+set VERSION='test_recon-all.csh @FS_VERSION@'
 
 set MAIL_LIST=(zkaufman@nmr.mgh.harvard.edu)
 # failure mailing list:

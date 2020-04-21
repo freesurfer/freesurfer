@@ -5,7 +5,6 @@ function X = fast_outliermtx(outliers,ndata)
 % outliers - list of 1-based outlier numbers
 % ndata - number of data points (eg, time points)
 %
-% $Id: fast_outliermtx.m,v 1.1 2010/03/31 16:30:23 greve Exp $
 
 X = [];
 if(nargin ~= 2)

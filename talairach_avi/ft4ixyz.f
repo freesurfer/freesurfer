@@ -10,7 +10,7 @@ c Revision 1.1  1999/01/07  07:19:33  avi
 c Initial revision
 c
       subroutine ft4ixyz_rcs
-      write(*,"('$Id: ft4ixyz.f,v 1.1 2007/05/04 22:33:59 nicks Exp $')")
+      write(*,"('ft4ixyz.f')")
       return
       end
       

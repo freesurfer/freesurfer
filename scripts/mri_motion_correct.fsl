@@ -20,7 +20,7 @@
 #
 
 
-set VERSION = '$Id: mri_motion_correct.fsl,v 1.15 2016/02/16 17:17:20 zkaufman Exp $';
+set VERSION = 'mri_motion_correct.fsl @FS_VERSION@';
 
 set tmpdir      = ();
 set inputlist   = ();

@@ -40,7 +40,7 @@
 #
 
 
-set VERSION='$Id: rebuild_gca_atlas.csh,v 1.23 2015/06/25 15:31:31 nicks Exp $';
+set VERSION='rebuild_gca_atlas.csh @FS_VERSION@'
 
 #set echo=1
 

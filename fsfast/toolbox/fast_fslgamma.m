@@ -7,7 +7,6 @@ function h = fast_fslgamma(t,meanlag,stddev)
 % stddev  = 3 sec by default
 % No normalization is done (yet)
 %
-% $Id: fast_fslgamma.m,v 1.1 2007/06/19 18:49:38 greve Exp $
 
 h = [];
 if(nargin < 1 | nargin > 3)

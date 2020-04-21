@@ -218,7 +218,7 @@ def check_args():
 #-----------------------------------------------------------
 
 ProgName = sys.argv[0];
-Version = '$Id: par2schedule,v 1.4 2007/01/09 22:41:18 nicks Exp $';
+Version = 'par2schedule @FS_VERSION@';
 parfile = ();
 nevent_types  = 0;
 eventtypes = [];

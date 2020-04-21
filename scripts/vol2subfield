@@ -5,7 +5,7 @@ if(-e $FREESURFER_HOME/sources.csh) then
   source $FREESURFER_HOME/sources.csh
 endif
 
-set VERSION = '$Id$';
+set VERSION = 'vol2subfield @FS_VERSION@';
 set scriptname = `basename $0`
 
 set invol = ();

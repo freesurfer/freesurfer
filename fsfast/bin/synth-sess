@@ -18,7 +18,7 @@
 #
 
 
-set VERSION = '$Id: synth-sess,v 1.8 2015/12/10 22:51:31 zkaufman Exp $'
+set VERSION = 'synth-sess @FS_VERSION@';
 
 set inputargs = ($argv);
 

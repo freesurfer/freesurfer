@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # fscalc
 
-set VERSION = '$Id: fscalc,v 1.13 2016/09/27 18:50:56 greve Exp $';
+set VERSION = 'fscalc @FS_VERSION@';
 
 set outvol = ();
 set inops = ();

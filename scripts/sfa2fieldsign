@@ -2,7 +2,7 @@
 # sfa2fieldsign
 setenv FSLOUTPUTTYPE NIFTI
 
-set VERSION = '$Id: sfa2fieldsign,v 1.6 2016/02/16 17:17:20 zkaufman Exp $';
+set VERSION = 'sfa2fieldsign @FS_VERSION@';
 
 set sfadir = ();
 set regfile = ();

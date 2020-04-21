@@ -62,7 +62,6 @@
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_probedicom.c,v 1.45 2015/07/28 21:51:22 greve Exp $";
 const char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -629,7 +628,7 @@ static void print_help(void) {
 }
 /* --------------------------------------------- */
 static void print_version(void) {
-  fprintf(stderr, "%s\n", vcid) ;
+  fprintf(stderr, "%s\n", getVersion().c_str()) ;
   exit(1) ;
 }
 /* --------------------------------------------- */

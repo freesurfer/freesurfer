@@ -22,7 +22,7 @@
 
 
 set fmrianalver = `cat $FMRI_ANALYSIS_DIR/docs/version`;
-set STXGRINDER_VER = '\$Id: stxgrinder,v 1.5 2015/12/10 22:51:31 zkaufman Exp $';
+set STXGRINDER_VER = 'stxgrinder @FS_VERSION@';
 
 # Set Default Values #
 set firstslice = ();

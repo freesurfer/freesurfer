@@ -37,7 +37,7 @@ tic;
 % Reporting: freesurfer@nmr.mgh.harvard.edu
 %
 
-fast_swfflac_sess_ver = '$Id';
+fast_swfflac_sess_ver = 'fast_swfflac_sess.m @FS_VERSION@';
 
 SynthSeed = round(sum(100*clock)); 
 randn('state',SynthSeed); 

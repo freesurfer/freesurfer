@@ -5,7 +5,7 @@ install_symlinks(
   DESTINATION fsfast/bin
 )
 
-install(PROGRAMS
+install_configured(
   acfseg-sess
   acorfunc-sess
   addmcparams

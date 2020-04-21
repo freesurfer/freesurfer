@@ -19,7 +19,7 @@
 #
 
 
-set VERSION = '$Id: annot2std,v 1.5 2016/06/13 18:00:34 greve Exp $';
+set VERSION = 'annot2std @FS_VERSION@';
 
 set target = ();
 set subjlist = ();

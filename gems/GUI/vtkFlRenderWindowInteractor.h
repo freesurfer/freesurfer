@@ -21,7 +21,6 @@
  * 
  * See the .cxx for more notes.
  * 
- * $Id: vtkFlRenderWindowInteractor.h,v 1.1 2016/12/02 17:16:12 zkaufman Exp $
  */
 
 #ifndef _vtkFlRenderWindowInteractor_h

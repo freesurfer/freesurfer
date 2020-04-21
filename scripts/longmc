@@ -4,7 +4,7 @@ if(-e $FREESURFER_HOME/sources.csh) then
   source $FREESURFER_HOME/sources.csh
 endif
 
-set VERSION = '$Id$';
+set VERSION = 'longmc @FS_VERSION@';
 set scriptname = `basename $0`
 
 set tpNid = (); # cross-sectional subject name

@@ -7,7 +7,6 @@ function [phx, phy, epipar] = tdr_epi_phtraj(arg1,delay)
 %
 % If delay is specified, then the waveform delayed by delay usec.
 %
-% $Id: tdr_epi_phtraj.m,v 1.5 2011/03/02 00:04:07 nicks Exp $
 
 %
 % tdr_epi_phtraj.m

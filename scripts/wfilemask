@@ -20,7 +20,7 @@
 
 # wfilemask
 #
-set VERSION = '$Id: wfilemask,v 1.7 2016/02/16 17:17:20 zkaufman Exp $';
+set VERSION = 'wfilemask @FS_VERSION@';
 set inputargs = ($argv);
 
 set LabelFile = ();

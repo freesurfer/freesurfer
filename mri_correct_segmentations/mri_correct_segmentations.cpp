@@ -33,7 +33,6 @@ MRI * correct_largestCC_and_fill_holes(MRI *segmri, MRI *outmri);
 MRI * fill_leftover_voxels(MRI *segmri, MRI *inmri, MRI *outmri);
 
 static int get_option(int argc, char *argv[]) ;
-static char vcid[] = "$Id: mri_correct_segmentations.c,v 1.1 2015/08/25 01:18:09 lzollei Exp $";
 
 const char *Progname ;
 // int use_orig_value = 0;
@@ -195,7 +194,7 @@ static void print_help(void)
 /* --------------------------------------------- */
 static void print_version(void)
 {
-  printf("%s\n", vcid) ;
+  std::cout << getVersion() << std::endl;
   exit(1) ;
 }
 

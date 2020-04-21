@@ -70,8 +70,6 @@ static void argnerr(char *, int) ;
 
 static int debug = 0;
 
-static char vcid[] =
-  "$Id: mris_mesh_subdivide.cxx,v 1.5 2013/02/07 16:04:07 jonp Exp $";
 
 
 
@@ -625,7 +623,7 @@ static void print_usage(void)
   printf("   --help        print out information on how to use this program\n");
   printf("   --version     print out version and exit\n");
   printf("\n");
-  printf("%s\n", vcid) ;
+  std::cout << getVersion() << std::endl;
   printf("\n");
 }
 
@@ -655,7 +653,7 @@ static void print_help(void)
 /* --------------------------------------------------------------------------- */
 static void print_version(void)
 {
-  printf("%s\n", vcid) ;
+  std::cout << getVersion() << std::endl;
   exit(1) ;
 }
 

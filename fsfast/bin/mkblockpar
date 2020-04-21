@@ -19,7 +19,7 @@
 #
 
 
-set VERSION = '$Id: mkblockpar,v 1.6 2015/12/10 22:51:30 zkaufman Exp $';
+set VERSION = 'mkblockpar @FS_VERSION@';
 
 ##### Print out version info, if needed ####
 set n = `echo $argv | grep version | wc -l` 

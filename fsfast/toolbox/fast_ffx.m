@@ -16,7 +16,6 @@ function [p, gamma, gammavar, F] = fast_ffx(means,varmeans,dofs,X,C);
 % When X is the ones vector and C=1, then gives the same result as
 % fast_ffx_osgm.
 %
-% $Id: fast_ffx.m,v 1.3 2011/03/02 00:04:04 nicks Exp $
 
 %
 % fast_ffx.m

@@ -10,7 +10,6 @@
 #   problem completely. I have now made this change in our code base
 #   and it should get shipped with the next fsl release
 #
-# $Id: flirt.newdefault.20080811.sch,v 1.1 2008/08/11 23:11:46 greve Exp $
 
 # 8mm scale
 setscale 8

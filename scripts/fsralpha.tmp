@@ -24,7 +24,7 @@
 
 umask 002;
 
-set VERSION = '$Id: fsralpha.tmp,v 1.9 2016/02/16 17:17:20 zkaufman Exp $';
+set VERSION = 'fsralpha.tmp @FS_VERSION@';
 
 # MNI tool requires the following
 setenv LANG C

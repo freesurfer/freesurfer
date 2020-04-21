@@ -94,7 +94,7 @@ def options_parse():
     Command Line Options Parser
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_qdec_table,v 1.6 2013/08/05 18:02:41 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(usage=HELPTEXT)
     
     # help text
     h_qdec      = '(REQUIRED) qdec table file specifying the subjects and time points'

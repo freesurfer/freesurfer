@@ -255,7 +255,7 @@ G_SYNOPSIS = """
 """
 
 Gstr_SELF	= sys.argv[0]
-Gstr_VERSION	= "$Id: dsh,v 1.7 2011/12/06 22:47:29 rudolph Exp $"
+Gstr_VERSION	= "DSH v1.7 2011"
 G_dieNow	= 0
 
 class dijkResultLogHandler(SocketServer.BaseRequestHandler) :

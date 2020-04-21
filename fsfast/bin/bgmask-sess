@@ -19,7 +19,7 @@
 #
 
 #
-set VERSION = '$Id: bgmask-sess,v 1.10 2015/12/10 22:51:29 zkaufman Exp $';
+set VERSION = 'bgmask-sess @FS_VERSION@';
 
 set cmdargs = ($argv);
 

@@ -19,7 +19,7 @@
 #
 
 
-set VERSION = '$Id: tar-sess,v 1.6 2015/12/10 22:51:31 zkaufman Exp $';
+set VERSION = 'tar-sess @FS_VERSION@';
 
 set inputargs = ($argv);
 

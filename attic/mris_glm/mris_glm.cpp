@@ -88,7 +88,6 @@ static char *getstem(char *bfilename);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_glm.c,v 1.55 2011/05/05 15:28:03 greve Exp $";
 const char *Progname = "mris_glm";
 
 char *hemi        = NULL;
@@ -232,7 +231,7 @@ int main(int argc, char **argv) {
   if (ParseOnly) exit(1);
   dump_options(stdout);
 
-  printf("%s\n",vcid);
+  printf("%s\n",getVersion().c_str());
   printf("setenv SUBJECTS_DIR %s\n",SUBJECTS_DIR);
   printf("%s\n",getenv("PWD"));
   printf("%s ",Progname);
@@ -1023,7 +1022,7 @@ static void print_usage(void) {
   printf("   --version : print version and exit\n");
   printf("   --help : a short story.\n");
   printf("\n");
-  printf("%s\n",vcid);
+  printf("%s\n",getVersion().c_str());
   printf("\n");
 }
 /* --------------------------------------------- */
@@ -1412,7 +1411,7 @@ static void print_help(void) {
 }
 /* --------------------------------------------- */
 static void print_version(void) {
-  printf("%s\n", vcid) ;
+  std::cout << getVersion() << std::endl;
   exit(1) ;
 }
 /* --------------------------------------------- */

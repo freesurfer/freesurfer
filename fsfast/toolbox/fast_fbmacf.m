@@ -13,7 +13,6 @@ function acf = fast_fbmacf(H,nmax)
 %
 % nmax - max number of lags
 %
-% $Id: fast_fbmacf.m,v 1.2 2010/04/20 04:31:18 greve Exp $
 
 lag = [0:nmax-1]';
 

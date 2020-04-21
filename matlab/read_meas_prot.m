@@ -4,7 +4,6 @@ function varargout = read_meas_prot(filename, varargin)
 % YAPS = read_meas_prot(filename)
 
 % jonathan polimeni <jonp@padkeemao.nmr.mgh.harvard.edu>, 2007/jan/03
-% $Id: read_meas_prot.m,v 1.1 2008/05/21 19:01:01 greve Exp $
 %**************************************************************************%
 
   if ( nargin == 0 ), help(mfilename); return; end;

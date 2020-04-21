@@ -8,7 +8,6 @@ function s = ldstruct(fid)
 %    <val2> ...
 %  type is char or nonchar
 %
-%  $Id: ldstruct.m,v 1.5 2011/03/02 00:04:07 nicks Exp $
 
 
 %

@@ -10,7 +10,6 @@ function x2fsgd(X,fp)
 % x2fsgd(X,fp);
 % fclose(fp);
 %
-% $Id: x2fsgd.m,v 1.1 2012/01/30 17:08:50 greve Exp $
 
 if(nargin ~= 2)
   fprintf('x2fsgd(X,fp)\n');

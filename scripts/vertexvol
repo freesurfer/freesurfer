@@ -1,5 +1,4 @@
 #!/bin/tcsh -f
-# $Id: vertexvol,v 1.2 2015/12/25 23:59:19 zkaufman Exp $
 
 # Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -11,7 +10,7 @@
 #
 # Reporting: freesurfer@nmr.mgh.harvard.edu
 
-set VERSION = '$Id: vertexvol,v 1.2 2015/12/25 23:59:19 zkaufman Exp $';
+set VERSION = 'vertexvol @FS_VERSION@';
 
 set outfile = ();
 set subject = ();

@@ -7,10 +7,9 @@
 # Note:    The csh/tcsh equivalent script is FreeSurferEnv.csh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.sh,v 1.61 2016/06/09 14:54:31 zkaufman Exp $
 #############################################################################
 
-VERSION='$Id: FreeSurferEnv.sh,v 1.61 2016/06/09 14:54:31 zkaufman Exp $'
+VERSION='FreeSurferEnv.sh @FS_VERSION@'
 
 ## Print help if --help or -help is specified
 if [ $# -gt 1 ]; then

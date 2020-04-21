@@ -25,7 +25,6 @@
 #include <string.h>
 #include <math.h>
 #include <ctype.h>
-
  
 #include "macros.h"
 #include "error.h"
@@ -36,12 +35,8 @@
 #include "macros.h"
 #include "version.h"
 #include "timer.h"
-
-
 #include "fastmarching.h"
 
-static const char vcid[] = 
-  "$Id: mris_distance_to_label.cpp,v 1.8 2011/03/02 00:04:31 nicks Exp $";
 
 static char *aseg_fname=NULL;
 
@@ -427,7 +422,7 @@ print_help(void) {
 
 static void
 print_version(void) {
-  fprintf(stderr, "%s\n", vcid) ;
+  fprintf(stderr, "%s\n", getVersion().c_str()) ;
   exit(1) ;
 }
 

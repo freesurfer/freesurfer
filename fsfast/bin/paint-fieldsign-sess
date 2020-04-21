@@ -19,7 +19,7 @@
 #
 
 #
-set VERSION = '$Id: paint-fieldsign-sess,v 1.6 2015/12/10 22:51:30 zkaufman Exp $'
+set VERSION = 'paint-fieldsign-sess @FS_VERSION@';
 
 set inputargs = ($argv);
 

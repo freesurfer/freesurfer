@@ -99,8 +99,6 @@ float *WMAnatStats(char *subject, char *volname, int nErodes, float Pct);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] =
-  "$Id: mri_segstats.c,v 1.122 2017/01/23 18:23:14 greve Exp $";
 const char *Progname = NULL;
 char *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
@@ -1032,7 +1030,7 @@ int main(int argc, char **argv)
     fprintf(fp,"# Title Segmentation Statistics \n");
     fprintf(fp,"# \n");
     fprintf(fp,"# generating_program %s\n",Progname);
-    fprintf(fp,"# cvs_version %s\n",vcid);
+    fprintf(fp,"# cvs_version %s\n",getVersion().c_str());
     fprintf(fp,"# cmdline %s\n",cmdline);
     fprintf(fp,"# sysname  %s\n",uts.sysname);
     fprintf(fp,"# hostname %s\n",uts.nodename);
@@ -2043,7 +2041,7 @@ static void print_help(void)
 /* --------------------------------------------- */
 static void print_version(void)
 {
-  printf("%s\n", vcid) ;
+  std::cout << getVersion() << std::endl;
   exit(1) ;
 }
 /* --------------------------------------------- */
@@ -2134,7 +2132,7 @@ static void check_options(void)
 static void dump_options(FILE *fp)
 {
   fprintf(fp,"\n");
-  fprintf(fp,"%s\n",vcid);
+  fprintf(fp,"%s\n", getVersion().c_str());
   fprintf(fp,"cwd %s\n",cwd);
   fprintf(fp,"cmdline %s\n",cmdline);
   fprintf(fp,"sysname  %s\n",uts.sysname);

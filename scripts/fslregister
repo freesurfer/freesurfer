@@ -20,7 +20,7 @@
 #
 
 #
-set VERSION = '$Id: fslregister,v 1.40 2016/02/12 21:43:15 zkaufman Exp $';
+set VERSION = 'fslregister @FS_VERSION@';
 set inputargs = ($argv);
 
 set subjid = ();

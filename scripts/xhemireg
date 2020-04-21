@@ -16,7 +16,7 @@
 #  Dont convert volumes in mri/orig
 #
 
-set VERSION = '$Id: xhemireg,v 1.27 2016/08/02 21:16:24 greve Exp $';
+set VERSION = 'xhemireg @FS_VERSION@';
 
 set subject = ();
 set srchemilist = ();

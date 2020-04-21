@@ -9,7 +9,6 @@
 # The purpose of this program is to run the FSFAST patch of feat.tcl
 # (feat.fsfast-patch.tcl) #
 #
-# $Id: feat.fsfast-patch,v 1.1 2007/06/27 06:12:37 greve Exp $
 
 # the next line restarts using wish \
 exec $FSLTCLSH "$0" "$@"

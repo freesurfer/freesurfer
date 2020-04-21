@@ -35,8 +35,6 @@
 #include "cma.h"
 #include "version.h"
 
-static char vcid[] =
-  "$Id: mri_relabel_hypointensities.c,v 1.13 2015/05/15 18:44:10 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -193,7 +191,7 @@ print_help(void)
 static void
 print_version(void)
 {
-  fprintf(stderr, "%s\n", vcid) ;
+  fprintf(stderr, "%s\n", getVersion().c_str()) ;
   exit(1) ;
 }
 

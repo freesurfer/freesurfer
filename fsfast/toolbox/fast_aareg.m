@@ -1,7 +1,6 @@
 function [u, cpvs, pvs, y] = fast_aareg(nf,TR,fmax,fdelta)
 % [u, cpvs, pvs, y] = fast_aareg(nf,TR,fmax,<fdelta>)
 % anti-aliasing reg
-% $Id: fast_aareg.m,v 1.1 2008/01/19 22:02:47 greve Exp $  
 
 u = [];
 pvs = [];

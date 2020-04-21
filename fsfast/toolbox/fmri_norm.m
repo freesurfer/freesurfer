@@ -3,7 +3,6 @@ function u = fmri_norm(v,order)
 % 
 % normalizes the columns of v. order=2 by default.
 %
-% '$Id: fmri_norm.m,v 1.4 2011/03/02 00:04:06 nicks Exp $'
 
 
 %

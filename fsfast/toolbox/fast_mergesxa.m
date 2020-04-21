@@ -1,6 +1,5 @@
 function r = fast_mergesxa(varargin)
 % r = fast_mergesxa(varargin)
-% '$Id: fast_mergesxa.m,v 1.3 2011/03/02 00:04:04 nicks Exp $';
 
 
 %
@@ -19,7 +18,7 @@ function r = fast_mergesxa(varargin)
 % Reporting: freesurfer@nmr.mgh.harvard.edu
 %
 
-version = '$Id: fast_mergesxa.m,v 1.3 2011/03/02 00:04:04 nicks Exp $';
+version = 'fast_mergesxa.m @FS_VERSION@';
 fprintf(1,'%s\n',version);
 r = 1;
 

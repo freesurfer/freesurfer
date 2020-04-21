@@ -20,7 +20,7 @@
 #
 
 
-set VERSION = '$Id: mksurfatlas,v 1.11 2016/02/16 17:17:20 zkaufman Exp $';
+set VERSION = 'mksurfatlas @FS_VERSION@';
 
 set atlas = ();
 set target = ();

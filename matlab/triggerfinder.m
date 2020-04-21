@@ -5,7 +5,6 @@ function indtrigger = triggerfinder(trigger)
 % be a (mostly) binary waveform. The threshold is set to half way
 % between the min and max.
 %
-% $Id: triggerfinder.m,v 1.2 2010/02/06 22:15:28 greve Exp $
 
 indtrig = [];
 if(nargin ~= 1)

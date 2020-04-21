@@ -48,8 +48,6 @@
 
 #define PARAM_IMAGES (IMAGES_PER_SURFACE * SURFACES)
 
-static char vcid[] =
-  "$Id: mris_register.c,v 1.64 2017/02/07 19:04:44 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -212,8 +210,8 @@ main(int argc, char *argv[])
     usage_exit() ;
   }
 
-  printf("%s\n", vcid) ;
-  printf("  %s\n",MRISurfSrcVersion());
+  std::cout << getVersion() << std::endl;
+  printf("  %s\n",getVersion().c_str());
   fflush(stdout);
 
   surf_fname = argv[1] ;
@@ -1278,7 +1276,7 @@ print_help(void)
 static void
 print_version(void)
 {
-  fprintf(stderr, "%s\n", vcid) ;
+  fprintf(stderr, "%s\n", getVersion().c_str()) ;
   exit(1) ;
 }
 

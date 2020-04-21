@@ -65,7 +65,6 @@ int debug = 0, checkoptsonly = 0;
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "";
 const char *Progname = "dmri_trk2trk";
 
 int doInvNonlin = 0, doFill = 0, doMean = 0, doNth = 0, strNum = -1,
@@ -955,7 +954,7 @@ static void usage_exit(void) {
 
 /* --------------------------------------------- */
 static void print_version(void) {
-  cout << vcid << endl;
+  cout << getVersion() << endl;
   exit(1) ;
 }
 
@@ -1009,7 +1008,7 @@ static void check_options(void) {
 /* --------------------------------------------- */
 static void dump_options(FILE *fp) {
   cout << endl
-       << vcid << endl
+       << getVersion() << endl
        << "cwd " << cwd << endl
        << "cmdline " << cmdline << endl
        << "sysname  " << uts.sysname << endl

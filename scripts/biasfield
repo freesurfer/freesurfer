@@ -21,7 +21,7 @@
 #
 #
 
-set VERSION = '$Id: biasfield,v 1.7 2016/02/12 21:43:14 zkaufman Exp $';
+set VERSION = 'biasfield @FS_VERSION@';
 
 set PrintHelp = 0;
 set subject = ();

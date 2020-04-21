@@ -5,7 +5,6 @@ function ulist = stringunique(strvlist)
 % concatenated string list strvlist. Matches are determined
 % AFTER deblanking.
 %
-% $Id: stringunique.m,v 1.2 2011/03/02 00:04:13 nicks Exp $
 
 %
 % stringunique

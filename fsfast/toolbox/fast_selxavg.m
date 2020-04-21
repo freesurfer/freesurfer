@@ -1,6 +1,5 @@
 function r = fast_selxavg(varargin)
 % r = fast_selxavg(varargin)
-% '$Id: fast_selxavg.m,v 1.45 2011/03/02 00:04:05 nicks Exp $'
 
 
 %
@@ -19,7 +18,7 @@ function r = fast_selxavg(varargin)
 % Reporting: freesurfer@nmr.mgh.harvard.edu
 %
 
-version = '$Id: fast_selxavg.m,v 1.45 2011/03/02 00:04:05 nicks Exp $';
+version = 'fast_selxavg.m @FS_VERSION@';
 fprintf(1,'%s\n',version);
 r = 1;
 

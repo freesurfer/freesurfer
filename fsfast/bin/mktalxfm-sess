@@ -19,7 +19,7 @@
 #
 
 
-set VERSION = '$Id: mktalxfm-sess,v 1.4 2015/12/10 22:51:30 zkaufman Exp $'
+set VERSION = 'mktalxfm-sess @FS_VERSION@';
 
 #------ Defaults --------#
 set protocol  = icbm;

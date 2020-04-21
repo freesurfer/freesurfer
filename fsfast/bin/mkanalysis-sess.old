@@ -19,7 +19,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mkanalysis-sess.old,v 1.4 2015/12/10 22:51:30 zkaufman Exp $';
+set VERSION = 'mkanalysis-sess.old @FS_VERSION@';
 
 # These two should agree with values in mkanalysis_gui.m
 set DefaultTER     = .050; # 50 ms

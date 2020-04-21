@@ -5,7 +5,6 @@ function T2sAct = fast_psc2t2s(PctSigChange,TE,T2sBaseline)
 % change of the activation (relatitve to baseline), the echo time,
 % and the T2-star at baseline.
 %
-% $Id: fast_psc2t2s.m,v 1.1 2007/02/23 19:09:12 greve Exp $
 
 T2sAct = [];
 if(nargin ~= 3)

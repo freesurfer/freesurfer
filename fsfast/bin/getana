@@ -18,7 +18,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: getana,v 1.18 2015/12/10 22:51:29 zkaufman Exp $';
+set VERSION = 'getana @FS_VERSION@';
 
 set analysis = ();
 set tag = ();

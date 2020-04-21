@@ -24,7 +24,7 @@ source $FREESURFER_HOME/sources.csh
 
 if($#argv != 1) then
   echo "fast_getext stem"
-  echo '$Id: fast_getext,v 1.4 2015/12/10 22:51:29 zkaufman Exp $'
+  echo 'fast_getext @FS_VERSION@'
   exit 1;
 endif
 

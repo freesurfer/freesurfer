@@ -20,7 +20,7 @@
 #
 #
 
-set VERSION = '$Id: talsegprob,v 1.4 2016/02/16 17:17:20 zkaufman Exp $';
+set VERSION = 'talsegprob @FS_VERSION@';
 
 set outfile = ();
 set outcatfile = ();

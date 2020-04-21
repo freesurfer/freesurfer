@@ -41,7 +41,6 @@
 #define SAMPLE_BSPLINE 5
 #define DBL_EPSILON_THIS_FILE 1e-10
 
-static char vcid[] = "$Id: mri_transform_to_COR.c,v 1.4 2014/04/04 19:58:54 greve Exp $";
 
 LTA *ltaReadFileEx(const char *fname);
 int MYvg_isEqual(const VOL_GEOM *vg1, const VOL_GEOM *vg2);
@@ -752,7 +751,7 @@ usage_exit(int exit_val) {
 
 static void
 print_version(void) {
-  fprintf(stderr, "%s\n", vcid) ;
+  fprintf(stderr, "%s\n", getVersion().c_str()) ;
   exit(1) ;
 }
 

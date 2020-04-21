@@ -4,7 +4,7 @@ if(-e $FREESURFER_HOME/sources.csh) then
   source $FREESURFER_HOME/sources.csh
 endif
 
-set VERSION = '$Id: gcatrainskull,v 1.2 2016/03/25 15:42:16 zkaufman Exp $';
+set VERSION = 'gcatrainskull @FS_VERSION@';
 
 set gcadir = ();
 set RunIt = 1;

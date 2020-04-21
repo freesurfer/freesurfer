@@ -31,8 +31,7 @@
 
 #define MAXL		256
 
-static char rcsid[] = "$Id: Inithdr.c,v 1.2 2007/05/05 00:00:06 nicks Exp $";
-void Inithdr_rcs (void) {printf ("%s\n", rcsid);}
+void Inithdr_rcs (void) {printf ("%s\n", "freesurfer Inithdr.c");}
 int Inithdr (struct dsr *phdr, int *imgdim, float *voxdim, char *proto_imgfile) {
 	FILE		*fp;
 	char		*str, string[MAXL], proto_hdr[MAXL];

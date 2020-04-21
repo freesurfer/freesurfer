@@ -1,7 +1,6 @@
 #!/bin/tcsh -f
 # samseg
 
-set VERSION = '$Id: samseg,v 1.1 2017/01/26 00:23:37 greve Exp $';
 
 if(-e $FREESURFER_HOME/sources.csh) then
   source $FREESURFER_HOME/sources.csh
@@ -74,7 +73,7 @@ if($n != 0) then
 endif
 set n = `echo $argv | grep -e -version | wc -l` 
 if($n != 0) then
-  echo $VERSION
+  echo "samseg matlab"
   exit 0;
 endif
 goto parse_args;
@@ -115,7 +114,6 @@ echo "cd `pwd`"  | tee -a $LF
 echo $0 $inputargs | tee -a $LF
 echo "" | tee -a $LF
 cat $FREESURFER_HOME/build-stamp.txt | tee -a $LF
-echo $VERSION | tee -a $LF
 echo SAMSEG_MCRROOT $SAMSEG_MCRROOT | tee -a $LF
 echo SAMSEG_DATA_DIR $SAMSEG_DATA_DIR | tee -a $LF
 uname -a  | tee -a $LF
@@ -652,7 +650,6 @@ usage_exit:
   echo " --ssdd SAMSEG_DATA_DIR : where the atlas is located"
 
   if(! $PrintHelp) exit 1;
-  echo $VERSION
   cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
 exit 1;
 

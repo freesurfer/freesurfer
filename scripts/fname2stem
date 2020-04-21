@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: fname2stem,v 1.4 2011/03/02 20:16:39 nicks Exp $';
+set VERSION = 'fname2stem @FS_VERSION@';
 
 if($#argv != 1) then
   echo "fname2stem filename"

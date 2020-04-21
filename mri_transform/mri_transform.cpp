@@ -38,7 +38,6 @@
 #include "fsinit.h"
 
 double MRIcomputeLinearTransformLabelDist(MRI *mri_src, MATRIX *mA, int label) ;
-static char vcid[] = "$Id: mri_transform.c,v 1.18 2013/04/21 17:10:41 fischl Exp $";
 
 //E/ For transformations: for case LINEAR_RAS_TO_RAS, we convert to
 //vox2vox with MRIrasXformToVoxelXform() in mri.c; for case
@@ -599,7 +598,7 @@ print_help(void) {
 
 static void
 print_version(void) {
-  fprintf(stderr, "%s\n", vcid) ;
+  fprintf(stderr, "%s\n", getVersion().c_str()) ;
   exit(1) ;
 }
 

@@ -11,7 +11,6 @@ function [F hc] = fast_lpfmtx(cutoffHz,TR,ntp,nc)
 % rejection in the stop-band, but the worse the edge effects will
 % be. 
 %
-% $Id: fast_lpfmtx.m,v 1.1 2010/12/02 19:22:29 greve Exp $
 
 % Ref:
 % http://www.exstrom.com/journal/sigproc

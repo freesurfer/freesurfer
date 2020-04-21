@@ -18,7 +18,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: rawfunc2tal-sess,v 1.28 2015/12/10 22:51:30 zkaufman Exp $'
+set VERSION = 'rawfunc2tal-sess @FS_VERSION@';
 
 set inputargs = ($argv);
 

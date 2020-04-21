@@ -1,6 +1,5 @@
 #!/bin/csh -f
 # Gets subject name out of register.dat
-# $Id: reg2subj,v 1.2 2015/12/10 22:51:30 zkaufman Exp $
 
 #
 # reg2subj

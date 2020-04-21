@@ -2,7 +2,6 @@ function err = mkcontrast2m(configfile)
 % err = mkcontrast2(configfile)
 % Config file is as created by the mkcontrast2 script
 % This matlab script was written to be compiled
-% $Id: mkcontrast2m.m,v 1.1 2015/05/08 19:02:12 greve Exp $
 
 fprintf('starting mkcontrast2m\n');
 

@@ -47,9 +47,6 @@
 #include "matrix.h"
 
 
-//static char vcid[] = "$Id: mris_spharm.c,v 1.7 2011/03/02 00:04:34 nicks Exp $";
-
-
 int             main(int argc, char *argv[]) ;
 static int      get_option(int argc, char *argv[]) ;
 const char            *Progname ;

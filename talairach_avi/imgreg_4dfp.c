@@ -62,7 +62,6 @@ void read_file_float (char *filename, float *stack, int dimension, char *program
       ||  fclose (fp)) errr (program, filename);
 }
 
-static char rcsid[] = "$Id: imgreg_4dfp.c,v 1.4 2010/02/27 01:41:53 nicks Exp $";
 int main (int argc, char **argv) {
 /************/
 /* imag I/O */
@@ -92,7 +91,7 @@ int main (int argc, char **argv) {
 #ifndef HAVE_GFORTRAN
 	f_init ();			/* initialize FORTRAN I/O */
 #endif
-	fprintf (stdout, "%s\n", rcsid);
+	fprintf (stdout, "%s\n", "freesurfer imgreg_4dfp.c");
   fflush (stdout);
 	setprog (program, argv);
 
@@ -200,7 +199,7 @@ int main (int argc, char **argv) {
  	tparam2warp_ (&mode, param, t4);
 	fp = fopen (t4file, "w");
 	for (k = 0; k < argc; k++) fprintf (fp, "%s ", argv[k]);
-	fprintf (fp, "\n%s\nt4\n", rcsid);
+	fprintf (fp, "\n%s\nt4\n", "freesurfer imgreg_4dfp.c");
 	for (k = 0; k < 4; k++) fprintf (fp, "%10.6f%10.6f%10.6f%10.4f\n",t4[0+k],t4[4+k],t4[8+k],t4[12+k]);
 	if (mode & 256) fprintf (fp, "scale:    %10.6f\n", param[12]);
 	fclose (fp);

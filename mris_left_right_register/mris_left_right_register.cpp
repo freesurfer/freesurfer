@@ -38,8 +38,6 @@
 #include "version.h"
 #include "gcsa.h"
 
-static char vcid[] =
-  "$Id: mris_left_right_register.c,v 1.2 2011/12/16 20:49:37 greve Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -181,8 +179,8 @@ main(int argc, char *argv[])
     usage_exit() ;
   }
 
-  printf("%s\n", vcid) ;
-  printf("  %s\n",MRISurfSrcVersion());
+  std::cout << getVersion() << std::endl;
+  printf("  %s\n",getVersion().c_str());
   fflush(stdout);
 
   lh_surf_fname = argv[1] ;
@@ -853,7 +851,7 @@ print_help(void)
 static void
 print_version(void)
 {
-  fprintf(stderr, "%s\n", vcid) ;
+  fprintf(stderr, "%s\n", getVersion().c_str()) ;
   exit(1) ;
 }
 

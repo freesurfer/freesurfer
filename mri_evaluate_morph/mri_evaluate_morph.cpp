@@ -29,7 +29,6 @@
 #include "transform.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mri_evaluate_morph.c,v 1.5 2011/03/02 00:04:15 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -195,7 +194,7 @@ print_help(void) {
 
 static void
 print_version(void) {
-  fprintf(stderr, "%s\n", vcid) ;
+  fprintf(stderr, "%s\n", getVersion().c_str()) ;
   exit(1) ;
 }
 

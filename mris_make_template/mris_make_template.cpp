@@ -32,8 +32,6 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] =
-  "$Id: mris_make_template.c,v 1.27 2011/03/02 00:04:33 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -843,7 +841,7 @@ print_help(void)
 static void
 print_version(void)
 {
-  printf( "%s\n", vcid) ;
+  printf( "%s\n", getVersion().c_str()) ;
   exit(1) ;
 }
 

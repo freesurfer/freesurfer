@@ -22,7 +22,7 @@
 set labellist = ();
 set outlabel = ();
 
-set VERSION = '$Id: merge-labels,v 1.7 2016/02/16 17:17:20 zkaufman Exp $';
+set VERSION = 'merge-labels @FS_VERSION@';
 set inputargs = ($argv);
 set PrintHelp = 0;
 

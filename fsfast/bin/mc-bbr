@@ -22,7 +22,7 @@
 # Sample to anat
 # Sample to tal
 
-set VERSION = '$Id: mc-bbr,v 1.6 2015/12/10 22:51:30 zkaufman Exp $';
+set VERSION = 'mc-bbr @FS_VERSION@';
 
 set invol = ();
 set outvol = ();

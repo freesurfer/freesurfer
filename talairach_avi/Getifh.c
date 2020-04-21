@@ -24,8 +24,7 @@
 
 #define MAXL	256
 
-static char	rcsid[] = "$Id: Getifh.c,v 1.3 2007/08/04 02:23:35 nicks Exp $";
-void Getifh_rcs (void) {printf ("%s\n", rcsid);}
+void Getifh_rcs (void) {printf ("%s\n", "freesurfer Getifh.c");}
 
 int Getifh (char *imgfile, IFH *ifhdr) {
 	FILE	*fp;

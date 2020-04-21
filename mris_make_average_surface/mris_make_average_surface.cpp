@@ -109,8 +109,6 @@ ENDHELP
 #include "gca.h"
 #include "gcamorph.h"
 
-static char vcid[] = 
-"$Id: mris_make_average_surface.c,v 1.30 2013/04/11 20:41:58 greve Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -596,7 +594,7 @@ print_help(void) {
 
 static void
 print_version(void) {
-  printf( "%s\n", vcid) ;
+  printf( "%s\n", getVersion().c_str()) ;
   exit(1) ;
 }
 

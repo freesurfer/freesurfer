@@ -1,6 +1,5 @@
 #!/usr/bin/env tclsh
 
-# $Id: fsfget,v 1.5 2011/03/02 20:16:39 nicks Exp $
 # fsfget - extract params from fsl/feat design.fsf file
 # 
 # Elements of the fmri() struct

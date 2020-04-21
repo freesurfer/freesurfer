@@ -1,6 +1,5 @@
 function err = MRIsegReg(subject)
 % err = MRIsegReg(subject)
-% $Id: MRIsegReg.m,v 1.3 2007/09/28 00:41:52 greve Exp $
 
 err = 1;
 if(nargin ~= 1)

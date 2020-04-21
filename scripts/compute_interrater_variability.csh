@@ -15,7 +15,7 @@ set LOI = -1
 set outputprefix = ()
 
 set inputargs = ($argv);
-set VERSION = '$Id: compute_interrater_variability.csh,v 1.3 2016/02/12 21:43:14 zkaufman Exp $';
+set VERSION = 'compute_interrater_variability.csh @FS_VERSION@';
 
 if($#argv == 0) goto usage_exit;
 set n = `echo $argv | egrep -e --version | wc -l`

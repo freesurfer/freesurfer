@@ -78,8 +78,6 @@
 #include "graphcut.cpp"
 
 const char *Progname;
-static char vcid[] =
-  "$Id: mri_gcut.cpp,v 1.14 2011/03/02 00:04:16 nicks Exp $";
 static char in_filename[STRLEN];
 static char out_filename[STRLEN];
 static char mask_filename[STRLEN];
@@ -132,7 +130,7 @@ static void print_help(void)
 /* --------------------------------------------- */
 static void print_version(void)
 {
-  printf("%s\n", vcid) ;
+  std::cout << getVersion() << std::endl;
   exit(1) ;
 }
 

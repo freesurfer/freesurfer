@@ -20,7 +20,7 @@
 #
 
 
-set VERSION = '$Id: func2roi-sess-mrun,v 1.5 2015/12/10 22:51:29 zkaufman Exp $';
+set VERSION = 'func2roi-sess-mrun @FS_VERSION@';
 
 set inputargs = ($argv);
 set func2roiargs = ();

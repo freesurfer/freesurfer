@@ -18,7 +18,7 @@
 #
 
 
-set STRUCTVITS_VER = '$Id: mri-structvits,v 1.6 2016/02/16 17:17:20 zkaufman Exp $';
+set STRUCTVITS_VER = 'mri-structvits @FS_VERSION@';
 
 set subject  = ();
 set icosize  = 10242;

@@ -27,7 +27,6 @@ function [csort isort ksort rhosort spair zrhoabs] = fast_corsort(rho,Nps)
 %   yn = fast_fnorm(y,2,1); % Normalize across space
 %   rho = yn*yn'; % Cor Coeff across component
 %
-% $Id: fast_corsort.m,v 1.5 2011/03/02 00:04:03 nicks Exp $
 
 %
 % fast_corsort.m

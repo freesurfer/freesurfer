@@ -5,7 +5,6 @@ function [wvar, ivar] = fast_flip2wvar(mn1,mn2,var1,var2)
 % with different proportions. The instability variance is that
 % from the first scan.
 %
-% $Id: fast_flip2wvar.m,v 1.4 2011/03/02 00:04:04 nicks Exp $
 
 %
 % fast_flip2var

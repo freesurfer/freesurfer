@@ -23,7 +23,7 @@
 # This creates fmcpr.sm5, then
 # mkanalysis-sess -native -funcstem fmcpr.sm5 ...
 
-set VERSION = '$Id: preproc-sess,v 1.65 2016/08/02 21:18:50 greve Exp $';
+set VERSION = 'preproc-sess @FS_VERSION@';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"

@@ -2,7 +2,6 @@ function gstd = fast_fwhm2std(fwhm)
 % gstd = fast_fwhm2std(fwhm)
 % gstd = fwhm/sqrt(log(256.0))
 %
-% $Id: fast_fwhm2std.m,v 1.1 2007/04/04 01:59:36 greve Exp $
 
 gstd = [];
 

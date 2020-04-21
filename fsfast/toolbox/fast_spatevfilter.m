@@ -1,6 +1,5 @@
 function r = fast_spatevfilter(varargin)
 % r = fast_spatev(varargin)
-% '$Id: fast_spatevfilter.m,v 1.3 2011/03/02 00:04:05 nicks Exp $'
 
 
 %
@@ -19,7 +18,7 @@ function r = fast_spatevfilter(varargin)
 % Reporting: freesurfer@nmr.mgh.harvard.edu
 %
 
-version = '$Id: fast_spatevfilter.m,v 1.3 2011/03/02 00:04:05 nicks Exp $';
+version = 'fast_spatevfilter.m @FS_VERSION@';
 fprintf(1,'%s\n',version);
 r = 1;
 

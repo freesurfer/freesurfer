@@ -19,7 +19,7 @@
 #
 
 
-set VERSION = '$Id: selfreqavg-sess,v 1.6 2015/12/10 22:51:30 zkaufman Exp $';
+set VERSION = 'selfreqavg-sess @FS_VERSION@';
 set cmdargv = ($argv);
 
 set analysis = ();

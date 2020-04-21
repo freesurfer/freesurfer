@@ -14,7 +14,6 @@ function [angles ambflag]= rotmat2angles(R)
 % See also: angles2rotmat
 % Ref: Craig, Intro to Robotics
 %
-% $Id: rotmat2angles.m,v 1.3 2011/03/02 00:04:13 nicks Exp $
 
 %
 % rotmat2angles.m

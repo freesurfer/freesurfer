@@ -19,7 +19,7 @@
 
 # mri_nu_correct.mni
 #
-set VERSION = '$Id: mri_nu_correct.mni,v 1.27 2016/02/26 16:19:49 mreuter Exp $';
+set VERSION = 'mri_nu_correct.mni @FS_VERSION@';
 
 set InVol = ();
 set OutVol = ();

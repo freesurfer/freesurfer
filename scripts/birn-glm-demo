@@ -19,7 +19,7 @@
 
 # birn-glm-demo
 
-set VERSION = '$Id: birn-glm-demo,v 1.9 2016/02/16 17:17:20 zkaufman Exp $';
+set VERSION = 'birn-glm-demo @FS_VERSION@';
 
 set inputargs = ($argv);
 

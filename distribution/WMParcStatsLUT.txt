@@ -1,4 +1,3 @@
-#$Id: WMParcStatsLUT.txt,v 1.1 2010/03/12 23:12:48 greve Exp $
 #
 # This lists all the wm parcellation ROIs. It is used in the recon-all
 # call to mri_segstats so that only the wmparc ROIs are reported. This

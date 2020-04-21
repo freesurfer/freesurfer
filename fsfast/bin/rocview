@@ -19,7 +19,7 @@
 #
 
 
-set VERSION = '$Id: rocview,v 1.14 2015/12/10 22:51:30 zkaufman Exp $';
+set VERSION = 'rocview @FS_VERSION@';
 set inputargs = ($argv);
 
 set fprvolid = ();

@@ -34,7 +34,7 @@ c Revision 1.1  1997/01/15  09:26:57  avi
 c Initial revision
 
       subroutine t4_sub_rcsid
-      write (*,"('$Id: t4_sub.f,v 1.2 2009/08/21 19:14:07 nicks Exp $')")
+      write (*,"('t4_sub.f')")
       return
       end
 

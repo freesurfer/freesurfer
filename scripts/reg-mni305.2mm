@@ -17,7 +17,7 @@
 #
 #
 
-set VERSION = '$Id: reg-mni305.2mm,v 1.4 2016/02/16 17:17:20 zkaufman Exp $';
+set VERSION = 'reg-mni305.2mm @FS_VERSION@';
 
 set subject = ();
 set regfile = ();

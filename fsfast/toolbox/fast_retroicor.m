@@ -5,7 +5,6 @@ function [X M] = fast_retroicor(t,indpeak,M,peakamp,troughamp)
 % Correction of Physiological Motion Effects in fMRI: RETROICOR. MRM,
 % 2000, 44:162-167.
 %
-% $Id: fast_retroicor.m,v 1.4 2010/02/06 23:14:53 greve Exp $
 
 X = [];
 

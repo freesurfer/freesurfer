@@ -6,7 +6,6 @@ function [rvt trvt] = fast_rvt(t,resp)
 % this is different than the "respiratory volume" measure from
 % Change, et al, NI 44 (2009) 857-869.
 %
-% $Id: fast_rvt.m,v 1.1 2010/03/31 16:32:25 greve Exp $
 
 rvt = [];
 if(nargin ~= 2)

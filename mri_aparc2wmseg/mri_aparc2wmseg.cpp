@@ -49,7 +49,6 @@ static int  singledash(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_aparc2wmseg.c,v 1.6 2011/03/02 00:04:13 nicks Exp $";
 const char *Progname = NULL;
 char *SUBJECTS_DIR = NULL;
 char *subject = NULL;
@@ -97,7 +96,7 @@ int main(int argc, char **argv) {
   dump_options(stdout);
 
   printf("\n");
-  printf("%s\n",vcid);
+  printf("%s\n",getVersion().c_str());
   printf("cwd %s\n",cwd);
   printf("cmdline %s\n",cmdline);
   printf("sysname  %s\n",uts.sysname);
@@ -323,7 +322,7 @@ static void print_usage(void) {
   printf("   --help      print out information on how to use this program\n");
   printf("   --version   print out version and exit\n");
   printf("\n");
-  printf("%s\n", vcid) ;
+  std::cout << getVersion() << std::endl;
   printf("\n");
 }
 /* --------------------------------------------- */
@@ -334,7 +333,7 @@ static void print_help(void) {
 }
 /* --------------------------------------------- */
 static void print_version(void) {
-  printf("%s\n", vcid) ;
+  std::cout << getVersion() << std::endl;
   exit(1) ;
 }
 /* --------------------------------------------- */

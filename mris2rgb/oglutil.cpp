@@ -41,7 +41,6 @@
 #include "oglutil.h"
 
 #if 0
-static char vcid[] = "$Id: oglutil.c,v 1.30 2011/03/02 00:04:41 nicks Exp $";
 #endif
 
 /*-------------------------------- CONSTANTS -----------------------------*/

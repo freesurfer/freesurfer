@@ -66,7 +66,6 @@ int debug = 0, checkoptsonly = 0;
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "";
 const char *Progname = "dmri_pathstats";
 
 float probThresh = .2, faThresh = 0;
@@ -660,7 +659,7 @@ static void usage_exit(void) {
 
 /* --------------------------------------------- */
 static void print_version(void) {
-  printf("%s\n", vcid) ;
+  std::cout << getVersion() << std::endl;
   exit(1) ;
 }
 
@@ -712,7 +711,7 @@ static void WriteHeader(char *OutFile) {
   fout << "# Title Pathway Statistics" << endl
        << "#"                          << endl
        << "# generating_program "      << Progname << endl
-       << "# cvs_version "             << vcid << endl
+       << "# cvs_version "             << getVersion() << endl
        << "# cmdline "                 << cmdline << endl
        << "# sysname "                 << uts.sysname << endl
        << "# hostname "                << uts.nodename << endl
@@ -729,7 +728,7 @@ static void WriteHeader(char *OutFile) {
 
 static void dump_options(FILE *fp) {
   fprintf(fp,"\n");
-  fprintf(fp,"%s\n",vcid);
+  fprintf(fp,"%s\n", getVersion().c_str());
   fprintf(fp,"cwd %s\n",cwd);
   fprintf(fp,"cmdline %s\n",cmdline);
   fprintf(fp,"sysname  %s\n",uts.sysname);

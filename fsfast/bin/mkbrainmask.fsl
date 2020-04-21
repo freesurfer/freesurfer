@@ -21,7 +21,7 @@
 #
 
 
-set VERSION = '$Id: mkbrainmask.fsl,v 1.2 2015/12/10 22:51:30 zkaufman Exp $';
+set VERSION = 'mkbrainmask.fsl @FS_VERSION@';
 
 set inputargs = ($argv);
 

@@ -20,7 +20,7 @@
 
 
 set inputargs = ($argv);
-set VERSION = '$Id'
+set VERSION = 'fwhmest-sess @FS_VERSION@';
 set PrintHelp = 0;
 
 set nolog     = 0;

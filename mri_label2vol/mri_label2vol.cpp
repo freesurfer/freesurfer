@@ -75,7 +75,6 @@ static int *NthLabelMap(MRI *aseg, int *nlabels);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2vol.c,v 1.46 2014/12/08 21:11:54 greve Exp $";
 const char *Progname = NULL;
 
 char *LabelList[100];
@@ -174,7 +173,7 @@ int main(int argc, char **argv) {
   parse_commandline(argc, argv);
   check_options();
   dump_options(stdout);
-  printf("%s\n",vcid);
+  printf("%s\n",getVersion().c_str());
 
   if(TempVolId){
     // Load the template volume
@@ -825,7 +824,7 @@ static void print_usage(void) {
   printf("   --version : print version and exit\n");
   printf("   --help \n");
   printf("\n");
-  printf("%s\n",vcid);
+  printf("%s\n",getVersion().c_str());
   printf("\n");
 }
 /* --------------------------------------------- */
@@ -1087,7 +1086,7 @@ static void print_help(void) {
 }
 /* --------------------------------------------- */
 static void print_version(void) {
-  printf("%s\n", vcid) ;
+  std::cout << getVersion() << std::endl;
   exit(1) ;
 }
 /* --------------------------------------------- */

@@ -12,7 +12,6 @@ function [R Rx Ry Rz] = angles2rotmat(angles)
 % See also: rotmat2angles
 % Ref: Craig, Intro to Robotics
 %
-% $Id: angles2rotmat.m,v 1.4 2011/03/02 00:04:12 nicks Exp $
 
 %
 % angles2rotmat.m

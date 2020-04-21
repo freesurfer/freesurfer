@@ -6,7 +6,6 @@ function [roibaselist, hemi, croilist] = striphemi(roilist,ncut)
 % If ncut is nonempty and greater than 0 then removes ncut letters
 %   from the end of each roiname. This can be helpful when removing
 %   things like '_thickness'.
-% $Id: striphemi.m,v 1.5 2014/10/07 22:13:01 greve Exp $
 
 if(~exist('ncut','var')) ncut = []; end
 if(isempty(ncut)) ncut = 0; end

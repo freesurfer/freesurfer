@@ -13,7 +13,6 @@
  */
 /*----------------------------------------------------------
   Name: mri_cor2label.c
-  $Id: mri_cor2label.c,v 1.12 2011/03/02 00:04:14 nicks Exp $
   Author: Douglas Greve
   Purpose: Converts values in any volume file (not just cor) 
   to a label.
@@ -114,7 +113,6 @@ static void print_help(void) ;
 static void print_version(void) ;
 static void argnerr(char *option, int n);
 
-static char vcid[] = "$Id: mri_cor2label.c,v 1.12 2011/03/02 00:04:14 nicks Exp $";
 const char *Progname ;
 int main(int argc, char *argv[]) ;
 
@@ -174,7 +172,7 @@ int main(int argc, char **argv) {
   parse_commandline(argc, argv);
   check_options();
 
-  printf("%s\n",vcid);
+  printf("%s\n",getVersion().c_str());
 
   fprintf(stderr,"Loading mri %s\n",infile);
   mri = MRIread(infile);
@@ -456,7 +454,7 @@ printf("\n");
 /* --------------------------------------------- */
 static void print_help(void) {
   print_usage() ;
-  printf("\n%s\n\n",vcid);
+  printf("\n%s\n\n",getVersion().c_str());
 printf("\n");
 printf("Converts values in a volume or surface overlay to a label. The program\n");
 printf("searches the input for values equal to labelid. The xyz values for\n");
@@ -513,7 +511,7 @@ printf("\n");
 }
 /* --------------------------------------------- */
 static void print_version(void) {
-  fprintf(stderr, "%s\n", vcid) ;
+  fprintf(stderr, "%s\n", getVersion().c_str()) ;
   exit(1) ;
 }
 /* --------------------------------------------- */

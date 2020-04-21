@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # vol2segavg
 
-set VERSION = '$Id: vol2segavg,v 1.7 2016/02/16 17:17:20 zkaufman Exp $';
+set VERSION = 'vol2segavg @FS_VERSION@';
 
 set outfile = ();
 set subject = ();

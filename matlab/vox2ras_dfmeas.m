@@ -8,10 +8,6 @@ function [M_V] = vox2ras_dfmeas(str_filename, varargin)
 %%
 %%	Rudolph Pienaar
 %%
-%% VERSION
-%%
-%%	$Id: vox2ras_dfmeas.m,v 1.10 2011/03/02 00:04:13 nicks Exp $
-%%
 %% SYNOPSIS
 %%
 %%      [M_V] = vox2ras_dfmeas(str_filename, ch_override, ...

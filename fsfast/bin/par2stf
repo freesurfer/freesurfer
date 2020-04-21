@@ -19,7 +19,7 @@
 #
 
 
-set VERSION = '$Id';
+set VERSION = 'par2stf @FS_VERSION@';
 set cmdargs = ($argv);
 
 set parfile = ();

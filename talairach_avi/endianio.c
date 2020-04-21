@@ -25,8 +25,7 @@
 
 #define MAXL		256
 
-static char rcsid[] = "$Id: endianio.c,v 1.4 2012/01/04 03:16:15 nicks Exp $";
-void endianio_rcs (void) {printf ("%s\n", rcsid);}
+void endianio_rcs (void) {printf ("%s\n", "freesurfer endianio.c");}
 
 void swab2 (char *a) {
 	char	t;

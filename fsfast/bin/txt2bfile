@@ -19,7 +19,7 @@
 #
 
 
-set VERSION = '$Id: txt2bfile,v 1.4 2015/12/10 22:51:31 zkaufman Exp $';
+set VERSION = 'txt2bfile @FS_VERSION@';
 set cmdargs = ($argv);
 
 set txtfile   = ();

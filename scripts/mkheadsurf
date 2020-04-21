@@ -20,7 +20,7 @@
 
 # mkheadsurf
 
-set VERSION = '$Id: mkheadsurf,v 1.11 2016/02/16 17:17:20 zkaufman Exp $';
+set VERSION = 'mkheadsurf @FS_VERSION@';
 
 set inputargs = ($argv);
 

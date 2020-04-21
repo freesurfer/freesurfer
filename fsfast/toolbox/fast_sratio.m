@@ -4,7 +4,6 @@ function sratio = fast_sratio(num,den)
 %  if num > den then sratio = +num/den
 %  if num < den then sratio = -den/num
 %
-% $Id: fast_sratio.m,v 1.3 2011/03/02 00:04:05 nicks Exp $
 
 %
 % fast_fast_sratio.m

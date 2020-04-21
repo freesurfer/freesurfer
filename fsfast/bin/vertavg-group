@@ -19,7 +19,7 @@
 #
 
 
-set VERSION = '$Id: vertavg-group,v 1.4 2015/12/10 22:51:31 zkaufman Exp $'
+set VERSION = 'vertavg-group @FS_VERSION@';
 
 #------ Defaults --------#
 set group   = ();

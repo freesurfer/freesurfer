@@ -13,7 +13,6 @@ function bug = fast_gui_bug(cspec)
 %  1 - bug but contrast is balanced
 %  2 - bug and contrast is unbalanced
 %
-% $Id: fast_gui_bug.m,v 1.1 2009/04/05 23:22:10 greve Exp $
 
 bug = [];
 if(nargin ~= 1)

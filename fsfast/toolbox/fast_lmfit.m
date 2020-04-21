@@ -1,6 +1,5 @@
 function [beta, exitflag, cost, beta2] = fast_lmfit(y,X,L)
 % [beta exitflag cost beta2] = fast_lmfit(y,X,L)
-% $Id: fast_lmfit.m,v 1.3 2009/04/09 21:20:29 greve Exp $
 
 if(nargin ~= 3)
   fprintf('[beta exitflag cost beta2] = fast_lmfit(y,X,L)');

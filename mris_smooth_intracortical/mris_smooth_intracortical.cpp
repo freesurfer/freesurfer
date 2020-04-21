@@ -29,7 +29,6 @@
  \author Anna I. Blazejewska
  */
 
-// $Id: mri_surf_smooth.c,v 0.90 2019/02/21 00:04:01 anna Exp $
 /*
  BEGINHELP
  TODO
@@ -86,7 +85,6 @@ static void print_version(void);
 
 
 
-static char vcid[] = "$Id: mris_smooth_intracortical.c,v 1.30 2019/02/21 18:48:21 Anna Exp $";
 const char *Progname = NULL;
 
 char surf_path[STRLEN], over_path[STRLEN], out_path[STRLEN], surf_name[STRLEN], over_name[STRLEN], surf_dir[STRLEN], over_dir[STRLEN], out_dir[STRLEN], out_name[STRLEN];
@@ -402,7 +400,7 @@ static void print_usage(void) {
 \brief Prints version and exits
 */
 static void print_version(void) {
-  printf("%s\n", vcid) ;
+  std::cout << getVersion() << std::endl;
   exit(1) ;
 }
 

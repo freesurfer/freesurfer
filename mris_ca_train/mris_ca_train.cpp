@@ -54,8 +54,6 @@
 #include "version.h"
 #include "label.h"
 
-static char vcid[] =
-  "$Id: mris_ca_train.c,v 1.17 2011/03/02 00:04:27 nicks Exp $";
 
 #define MAX_LABELS  1000
 #if 0
@@ -561,7 +559,7 @@ print_help(void)
 static void
 print_version(void)
 {
-  fprintf(stderr, "%s\n", vcid) ;
+  fprintf(stderr, "%s\n", getVersion().c_str()) ;
   exit(1) ;
 }
 

@@ -18,7 +18,7 @@
 #
 
 
-set FUNC2SPH_VER = '$Id: mri-func2sph,v 1.7 2016/02/16 17:17:20 zkaufman Exp $';
+set FUNC2SPH_VER = 'mri-func2sph @FS_VERSION@';
 
 set icosize  = 10242;
 set hemi     = ()

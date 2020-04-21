@@ -19,7 +19,7 @@
 #
 
 
-set VERSION = '$Id: svdfunctcvm-sess,v 1.4 2015/12/10 22:51:31 zkaufman Exp $';
+set VERSION = 'svdfunctcvm-sess @FS_VERSION@';
 
 set inputargs = ($argv);
 set analysis = ();

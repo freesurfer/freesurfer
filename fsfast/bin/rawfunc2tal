@@ -19,7 +19,7 @@
 #
 
 
-set VERSION = '$Id: rawfunc2tal,v 1.5 2015/12/10 22:51:30 zkaufman Exp $'
+set VERSION = 'rawfunc2tal @FS_VERSION@';
 set FASTVER = `cat $FMRI_ANALYSIS_DIR/docs/version`;
 
 #------ Defaults --------#

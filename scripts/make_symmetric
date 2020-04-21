@@ -20,7 +20,7 @@
 #
 #
 
-set VERSION = '$Id: make_symmetric,v 1.4 2012/12/12 16:33:39 mreuter Exp $';
+set VERSION = 'make_symmetric @FS_VERSION@';
 
 
 if ( $#argv < 4 ) then

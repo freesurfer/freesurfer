@@ -3,7 +3,6 @@ function [s] = syslog_prefix(varargin)
 % NAME
 %
 %  function [s] = syslog_prefix()
-%  $Id: syslog_prefix.m,v 1.2 2010/02/01 20:52:10 rudolph Exp $
 %
 % ARGUMENTS
 % INPUT

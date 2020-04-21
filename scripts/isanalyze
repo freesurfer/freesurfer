@@ -22,7 +22,7 @@
 #
 
 
-set VERSION = '$Id: isanalyze,v 1.7 2011/03/02 20:16:39 nicks Exp $';
+set VERSION = 'isanalyze @FS_VERSION@';
 
 if($#argv != 1) then
   echo "isanalyze filename"

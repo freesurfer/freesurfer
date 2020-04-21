@@ -1,6 +1,5 @@
 function r = afni2bvol(varargin)
 % r = afni2bvol(varargin)
-% '$Id'
 
 
 %

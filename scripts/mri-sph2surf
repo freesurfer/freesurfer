@@ -20,7 +20,7 @@
 #
 #
 
-set SPH2SURF_VER = '$Id: mri-sph2surf,v 1.5 2016/02/16 17:17:20 zkaufman Exp $';
+set SPH2SURF_VER = 'mri-sph2surf @FS_VERSION@';
 
 set subject = ();
 set hemi    = ();

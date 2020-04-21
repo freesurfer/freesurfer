@@ -35,7 +35,6 @@
 #include "histo.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_ms_refine.c,v 1.20 2015/02/05 23:34:41 zkaufman Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -1089,7 +1088,7 @@ print_help(void) {
 
 static void
 print_version(void) {
-  printf("%s\n", vcid) ;
+  std::cout << getVersion() << std::endl;
   exit(1) ;
 }
 

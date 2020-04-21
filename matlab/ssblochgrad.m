@@ -17,7 +17,6 @@ function [dSdT2s, dSdT1, dSdPD, dSdTE, dSdFA, dSdTR] = ssblochgrad(tr,te,fa,t1,t
 % 
 % See also ssbloch
 %  
-% $Id: ssblochgrad.m,v 1.2 2011/03/02 00:04:13 nicks Exp $  
 
 %
 % ssblochgrad.m

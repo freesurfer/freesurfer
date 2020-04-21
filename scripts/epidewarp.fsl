@@ -22,7 +22,7 @@
 # epidewarp.fsl
 #
 
-set VERSION = '$Id: epidewarp.fsl,v 1.46 2016/02/12 21:43:14 zkaufman Exp $'
+set VERSION = 'epidewarp.fsl @FS_VERSION@';
 set inputargs = ($argv);
 
 set KeepMean = 0;

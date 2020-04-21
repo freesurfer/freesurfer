@@ -19,6 +19,7 @@
 #include <math.h>
 #include <ctype.h>
 
+#include "version.h"
 #include "macros.h"
 
 #include "mri.h"
@@ -30,7 +31,6 @@
 #include "proto.h"
 #include "timer.h"
 
-static char vcid[] = "$Id: hiam_register.c,v 1.6 2011/12/12 03:28:32 greve Exp $";
 
 
 static float sigmas[] = {
@@ -425,7 +425,7 @@ print_help(void) {
 
 static void
 print_version(void) {
-  fprintf(stderr, "%s\n", vcid) ;
+  fprintf(stderr, "%s\n", getVersion().c_str()) ;
   exit(1) ;
 }
 

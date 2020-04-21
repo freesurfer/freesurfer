@@ -333,7 +333,7 @@ def options_parse():
     Command Line Options Parser for long_mris_slopes
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_mris_slopes,v 1.42 2015/12/08 19:06:38 zkaufman Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(usage=HELPTEXT)
     
     # help text
 #    h_fsgd = '(REQUIRED) fsdg file specifying the subjects and time points'

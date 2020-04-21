@@ -64,7 +64,6 @@ void usage (char* program) {
 	exit (1);
 }
 
-static char rcsid[] = "$Id: gauss_4dfp.c,v 1.3 2009/05/15 21:43:46 nicks Exp $";
 int main (int argc, char **argv) {
 	CONC_BLOCK	conc_block;			/* conc i/o control block */
 	FILE 		*imgfp=NULL, *outfp=NULL;
@@ -96,7 +95,7 @@ int main (int argc, char **argv) {
 	int		wrap_flag = 0;
 	int		diff_flag = 0;
 
-	fprintf (stdout, "%s\n", rcsid);
+	fprintf (stdout, "%s\n", "freesurfer gauss_4dfp.c");
 	setprog (program, argv);
 /************************/
 /* process command line */
@@ -202,7 +201,7 @@ int main (int argc, char **argv) {
 /* ifh hdr rec */
 /***************/
 	if (conc_flag) {
-		status |= conc_ifh_hdr_rec (&conc_block, argc, argv, rcsid);
+		status |= conc_ifh_hdr_rec (&conc_block, argc, argv, "freesurfer gauss_4dfp.c");
 		conc_free (&conc_block);
 	} else {
 		if (fclose (imgfp)) errr (program, imgfile);
@@ -211,7 +210,7 @@ int main (int argc, char **argv) {
 		sprintf (command, "ifh2hdr %s", outroot);
 		status |= system (command);
 	}
-	startrece (outfile, argc, argv, rcsid, control);
+	startrece (outfile, argc, argv, "freesurfer gauss_4dfp.c", control);
 	catrec (imgfile);
 	endrec ();
 

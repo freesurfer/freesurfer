@@ -4,7 +4,7 @@ if(-e $FREESURFER_HOME/sources.csh) then
   source $FREESURFER_HOME/sources.csh
 endif
 
-set VERSION = '$Id: fsdcmdecompress,v 1.1 2016/03/03 19:37:13 greve Exp $';
+set VERSION = 'fsdcmdecompress @FS_VERSION@';
 
 
 set infile = ();

@@ -58,7 +58,7 @@ c Revision 1.2  1997/01/01  02:17:56  avi
 c add rscale to hessian algorithm
 c
       subroutine fimgreg_rcs
-      write(*,"('$Id: fimgreg.f,v 1.1 2007/05/04 22:33:59 nicks Exp $')")
+      write(*,"('fimgreg.f')")
       return
       end
 

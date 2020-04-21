@@ -24,7 +24,6 @@ function [X C] = fast_anova_rm_oneway(Ns,Nr,SubjFastest)
 %    [beta, rvar, vdof, r] = fast_glmfit(y,X);
 %    [F, Fsig, con] = fast_fratio(beta,X,rvar,C);
 %
-% $Id: fast_anova_rm_oneway.m,v 1.5 2009/05/27 16:04:13 greve Exp $
 
 X = [];
 C = [];

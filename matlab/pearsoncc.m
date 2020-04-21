@@ -3,7 +3,6 @@ function rho = pearsoncc(x,y)
 % x and y should be column vectors
 % If x and y have multiple columns, then
 %   rho is computed for each one
-% $Id: pearsoncc.m,v 1.1 2014/07/15 21:39:28 greve Exp $
 
 rho = [];
 if(size(x,1) ~= size(y,1))

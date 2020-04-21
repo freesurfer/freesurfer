@@ -4,7 +4,6 @@ function crf = fast_crf(t)
 % Cardiac Response Function from Chang, et al, NI 44 (2009),
 % 857-869, Equation 5 and Figure 6.
 %
-% $Id: fast_crf.m,v 1.1 2010/03/31 16:31:57 greve Exp $
 
 if(nargin ~= 1)
   fprintf('crf = fast_crf(t)\n');

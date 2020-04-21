@@ -63,11 +63,6 @@ int (*gMRISexternalRipVertices)(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) = N
 int (*gMRISexternalClearSSEStatus)(MRI_SURFACE *mris) = NULL;
 int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris, double pct) = NULL;
 
-/*---------------------------------------------------------------
-  MRISurfSrcVersion() - returns CVS version of this file.
-  ---------------------------------------------------------------*/
-const char *MRISurfSrcVersion(void) { return ("$Id$"); }
-
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/

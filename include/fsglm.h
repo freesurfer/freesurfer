@@ -14,14 +14,12 @@
 
 
 // fsglm.h - include file for fsglm.c
-// $Id: fsglm.h,v 1.17 2015/03/31 22:12:23 greve Exp $
 
 #ifndef FSGLM_H
 #define FSGLM_H
 
 #include "matrix.h"
 
-const char * GLMSrcVersion(void);
 #undef X
 
 #define GLMMAT_NCONTRASTS_MAX 100

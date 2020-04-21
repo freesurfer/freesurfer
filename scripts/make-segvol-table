@@ -18,7 +18,7 @@
 #
 
 
-set VERSION = '$Id: make-segvol-table,v 1.6 2016/02/16 17:17:20 zkaufman Exp $';
+set VERSION = 'make-segvol-table @FS_VERSION@';
 set inputargs = ($argv);
 set subjects = ();
 set outfile = ();

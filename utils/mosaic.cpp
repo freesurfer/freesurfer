@@ -16,7 +16,6 @@
   Name: mosaic.c
   Author: Douglas Greve
   Date: 09/12/01
-  $Id: mosaic.c,v 1.4 2011/03/02 00:04:45 nicks Exp $
   Description: routines to convert between mosaics and volumes
 
   ncvol - number of columns in the volume

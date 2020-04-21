@@ -34,7 +34,6 @@ void setprog (char *program, char **argv) {
 	strcpy (program, ptr);
 }
 
-static char rcsid[]= "$Id: zero_lt_4dfp.c,v 1.2 2007/05/05 00:00:07 nicks Exp $";
 int main (int argc, char **argv) {
 /*************/
 /* image I/O */
@@ -64,7 +63,7 @@ int main (int argc, char **argv) {
 /*********/
         int             status = 0;
 
-	printf ("%s\n", rcsid);
+	printf ("%s\n", "freesurfer zero_lt_4dfp.c");
 	setprog (program, argv);
 
 /************************/
@@ -137,7 +136,7 @@ int main (int argc, char **argv) {
 /*******************/
 /* create rec file */
 /*******************/
-	startrece (outfile, argc, argv, rcsid, control);
+	startrece (outfile, argc, argv, "freesurfer zero_lt_4dfp.c", control);
 	catrec    (imgfile);
         endrec    ();
 

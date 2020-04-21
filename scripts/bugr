@@ -20,7 +20,7 @@
 #
 #
 
-set VERSION = '$Id: bugr,v 1.4 2011/03/02 20:16:38 nicks Exp $';
+set VERSION = 'bugr @FS_VERSION@';
 
 echo ""
 echo "Cut-and-paste the following info into your FreeSurfer problem report:"

@@ -37,8 +37,6 @@
 #include "MARS_DT_Boundary.h"
 #include "mri_identify.h"
 
-static char vcid[] = 
-"$Id: mris_hausdorff_dist.c,v 1.3 2011/03/02 00:04:32 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 static int  get_option(int argc, char *argv[]) ;
@@ -283,7 +281,7 @@ print_help(void)
 static void
 print_version(void)
 {
-  fprintf(stderr, "%s\n", vcid) ;
+  fprintf(stderr, "%s\n", getVersion().c_str()) ;
   exit(1) ;
 }
 

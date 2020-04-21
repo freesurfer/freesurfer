@@ -19,7 +19,7 @@
 #
 
 
-set VERSION = '$Id: isxavg-re-sess,v 1.9 2015/12/10 22:51:30 zkaufman Exp $'
+set VERSION = 'isxavg-re-sess @FS_VERSION@';
 set cmdargs = ($argv);
 
 set analysis    = ();

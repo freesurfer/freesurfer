@@ -111,8 +111,6 @@ static int  singledash(char *flag);
 static void padWhite(char* str, int maxLen);
 
 const char *Progname;
-static char vcid[] =
-  "$Id: mris_compute_parc_overlap.c,v 1.19 2016/03/28 17:20:11 fischl Exp $";
 static char *FREESURFER_HOME = NULL;
 static char *SUBJECTS_DIR = NULL;
 static char *subject = NULL;
@@ -1300,7 +1298,7 @@ static void usage(int exit_val)
 /* --------------------------------------------- */
 static void print_version(void)
 {
-  printf("%s\n", vcid) ;
+  std::cout << getVersion() << std::endl;
   exit(1) ;
 }
 

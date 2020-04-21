@@ -288,8 +288,8 @@ def options_parse():
     Command Line Options Parser for long_mris_slopes
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_submit_jobs,v 1.29 2016/09/26 18:11:42 zkaufman Exp $', usage=HELPTEXT)
-    
+    parser = optparse.OptionParser(usage=HELPTEXT)
+
     # help text
     h_qdec      = '(REQUIRED) qdec table file specifying the subjects and time points'
 

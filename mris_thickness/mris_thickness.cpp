@@ -40,7 +40,6 @@
 #include "icosahedron.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mris_thickness.c,v 1.28 2012/11/27 17:41:26 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -610,7 +609,7 @@ print_help(void) {
 
 static void
 print_version(void) {
-  fprintf(stderr, "%s\n", vcid) ;
+  fprintf(stderr, "%s\n", getVersion().c_str()) ;
   exit(1) ;
 }
 

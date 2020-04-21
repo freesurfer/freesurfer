@@ -19,7 +19,7 @@
 # Reporting: freesurfer@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: xhemi-tal,v 1.4 2016/02/16 17:17:20 zkaufman Exp $';
+set VERSION = 'xhemi-tal @FS_VERSION@';
 
 set subject = ();
 set tmpdir = ();

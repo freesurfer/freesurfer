@@ -25,7 +25,7 @@
 #
 setenv FIX_VERTEX_AREA
 
-set VERSION = '$Id: mris_preproc,v 1.77 2016/08/12 17:08:16 greve Exp $';
+set VERSION = 'mris_preproc @FS_VERSION@';
 
 set PrintHelp = 0;
 set subjlist = ();

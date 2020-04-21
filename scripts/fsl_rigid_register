@@ -22,7 +22,7 @@
 #
 #
 
-set VERSION = '$Id: fsl_rigid_register,v 1.33 2016/02/16 17:17:20 zkaufman Exp $';
+set VERSION = 'fsl_rigid_register @FS_VERSION@';
 
 setenv FSLOUTPUTTYPE NIFTI
 

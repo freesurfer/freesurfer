@@ -4,7 +4,6 @@ function r = fast_isxavg_fe(varargin)
 %          for output of selxavg
 % Author: Douglas Greve
 % Questions or Comments: analysis-bugs@nmr.mgh.harvard.edu
-% Version: $Id: fast_igxavg.m,v 1.3 2011/03/02 00:04:04 nicks Exp $
 % r = fast_isxavg_fe(varargin)
 
 

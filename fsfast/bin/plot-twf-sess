@@ -19,7 +19,7 @@
 #
 
 
-set VERSION = '$Id: plot-twf-sess,v 1.16 2015/12/10 22:51:30 zkaufman Exp $';
+set VERSION = 'plot-twf-sess @FS_VERSION@';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"

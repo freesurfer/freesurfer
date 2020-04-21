@@ -20,7 +20,7 @@
 #
 
 
-set VERSION = '$Id: reg-feat2anat,v 1.39 2016/02/16 17:17:20 zkaufman Exp $'
+set VERSION = 'reg-feat2anat @FS_VERSION@';
 set FeatDir = ();
 set subject = ();
 set anatvol = brainmask;

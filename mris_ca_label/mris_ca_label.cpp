@@ -46,8 +46,6 @@
 #include "version.h"
 #include "cma.h"
 
-static char vcid[] =
-  "$Id: mris_ca_label.c,v 1.37 2014/02/04 17:46:42 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -140,8 +138,8 @@ main(int argc, char *argv[])
   canon_surf_name = argv[3] ;
   out_fname = argv[5] ;
 
-  printf("%s\n",vcid);
-  printf("  %s\n",MRISurfSrcVersion());
+  printf("%s\n",getVersion().c_str());
+  printf("  %s\n",getVersion().c_str());
   fflush(stdout);
 
   printf("reading atlas from %s...\n", argv[4]) ;
@@ -579,7 +577,7 @@ print_help(void)
 static void
 print_version(void)
 {
-  fprintf(stderr, "%s\n", vcid) ;
+  fprintf(stderr, "%s\n", getVersion().c_str()) ;
   exit(1) ;
 }
 

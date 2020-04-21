@@ -38,7 +38,6 @@ extern void flipx (float *imgf, int *pnx, int* pny, int *pnz);	/* cflip.c */
 extern void flipy (float *imgf, int *pnx, int* pny, int *pnz);	/* cflip.c */
 extern void flipz (float *imgf, int *pnx, int* pny, int *pnz);	/* cflip.c */
 
-static char rcsid[] = "$Id: analyzeto4dfp.c,v 1.2 2007/05/05 00:00:06 nicks Exp $";
 int main (int argc, char *argv[]) {
 	FILE		*fpimg, *fpout;
 	struct dsr	hdr;					/* ANALYZE hdr */
@@ -74,7 +73,7 @@ int main (int argc, char *argv[]) {
 	int		O_flag = 0;
 	int		xflag = 0, yflag = 0, zflag = 0;
 
-	fprintf (stdout, "%s\n", rcsid);
+	fprintf (stdout, "%s\n", "freesurfer analyzeto4dfp.c");
 	setprog (program, argv);
 /************************/
 /* process command line */
@@ -244,7 +243,7 @@ int main (int argc, char *argv[]) {
 /*******************/
 /* create rec file */
 /*******************/
-	startrece (outfile, argc, argv, rcsid, control);
+	startrece (outfile, argc, argv, "freesurfer analyzeto4dfp.c", control);
 	if (swab_flag) {
 		sprintf (command, "Byte order swapped\n");
 		printrec (command);

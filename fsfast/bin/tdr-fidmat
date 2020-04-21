@@ -19,7 +19,7 @@
 #
 
 
-set VERSION = '$Id: tdr-fidmat,v 1.11 2015/12/10 22:51:31 zkaufman Exp $';
+set VERSION = 'tdr-fidmat @FS_VERSION@';
 
 set inputargs = ($argv);
 

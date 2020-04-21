@@ -1,6 +1,6 @@
 #!/bin/csh -f
 
-set VERSION = '$Id: fsl2par,v 1.2 2015/12/10 22:51:29 zkaufman Exp $';
+set VERSION = 'fsl2par @FS_VERSION@';
 
 set inputargs = ($argv);
 

@@ -18,7 +18,7 @@ set outputfile = ()
 set fscolor = $FREESURFER_HOME/FreeSurferColorLUT.txt
 
 set inputargs = ($argv);
-set VERSION = '$Id: compute_label_volumes.csh,v 1.3 2016/02/12 21:43:14 zkaufman Exp $';
+set VERSION = 'compute_label_volumes.csh @FS_VERSION@';
 
 if($#argv == 0) goto usage_exit;
 set n = `echo $argv | egrep -e --version | wc -l`

@@ -17,7 +17,7 @@
 #
 #
 
-G_ID="$Id: fs_lib_check,v 1.6 2011/03/02 20:16:39 nicks Exp $"
+G_ID='fs_lib_check @FS_VERSION@'
 G_SYNOPSIS="
 
  NAME

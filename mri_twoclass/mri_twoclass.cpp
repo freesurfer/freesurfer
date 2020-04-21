@@ -36,7 +36,6 @@
 #include "mri_conform.h"
 #include "vlabels.h"
 
-static char vcid[] = "$Id: mri_twoclass.c,v 1.16 2015/02/05 23:34:40 zkaufman Exp $";
 
 
 /*-------------------------------- STRUCTURES ----------------------------*/
@@ -541,7 +540,7 @@ print_help(void) {
 
 static void
 print_version(void) {
-  printf( "%s\n", vcid) ;
+  printf( "%s\n", getVersion().c_str()) ;
   exit(1) ;
 }
 

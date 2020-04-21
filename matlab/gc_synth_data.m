@@ -12,7 +12,6 @@ function [data datacid] = gc_synth_data(means,covar,nData)
 %
 % See also gc_synth_params
 % 
-% $Id: gc_synth_data.m,v 1.2 2012/04/20 16:03:47 greve Exp $
 
 data = [];
 if(nargin ~= 3)

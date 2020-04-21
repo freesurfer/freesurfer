@@ -38,8 +38,6 @@
 #include "version.h"
 #include "gcsa.h"
 
-static char vcid[] = 
-"$Id: mris_congeal.c,v 1.4 2011/03/02 00:04:30 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -212,8 +210,8 @@ main(int argc, char *argv[])
   parms.which_norm = which_norm ;
   if (argc < 4) usage_exit() ;
 
-  printf("%s\n", vcid) ;
-  printf("  %s\n",MRISurfSrcVersion());
+  std::cout << getVersion() << std::endl;
+  printf("  %s\n",getVersion().c_str());
   fflush(stdout);
 
   hemi = argv[1] ;
@@ -848,7 +846,7 @@ print_help(void)
 static void
 print_version(void)
 {
-  fprintf(stderr, "%s\n", vcid) ;
+  fprintf(stderr, "%s\n", getVersion().c_str()) ;
   exit(1) ;
 }
 

@@ -44,8 +44,6 @@
 
 
 #define MAX_PARCEL_VERTICES 10000
-static char vcid[] =
-  "$Id: mris_make_face_parcellation.c,v 1.22 2016/05/06 17:26:14 fischl Exp $";
 
 typedef struct
 {
@@ -621,7 +619,7 @@ print_help(void) {
 
 static void
 print_version(void) {
-  fprintf(stderr, "%s\n", vcid) ;
+  fprintf(stderr, "%s\n", getVersion().c_str()) ;
   exit(1) ;
 }
 static int

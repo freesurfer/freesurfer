@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # bmedits2surf
 
-set VERSION = '$Id: bmedits2surf,v 1.4 2016/02/12 21:43:14 zkaufman Exp $';
+set VERSION = 'bmedits2surf @FS_VERSION@';
 
 set subject = ();
 set hemilist = (lh rh);

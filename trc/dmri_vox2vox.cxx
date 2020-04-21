@@ -61,7 +61,6 @@ int debug = 0, checkoptsonly = 0;
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "";
 const char *Progname = "dmri_vox2vox";
 
 int doInvNonlin = 0, nin = 0, nout = 0;
@@ -344,7 +343,7 @@ static void usage_exit(void) {
 
 /* --------------------------------------------- */
 static void print_version(void) {
-  printf("%s\n", vcid) ;
+  std::cout << getVersion() << std::endl;
   exit(1) ;
 }
 
@@ -376,7 +375,7 @@ static void check_options(void) {
 /* --------------------------------------------- */
 static void dump_options(FILE *fp) {
   fprintf(fp,"\n");
-  fprintf(fp,"%s\n",vcid);
+  fprintf(fp,"%s\n", getVersion().c_str());
   fprintf(fp,"cwd %s\n",cwd);
   fprintf(fp,"cmdline %s\n",cmdline);
   fprintf(fp,"sysname  %s\n",uts.sysname);

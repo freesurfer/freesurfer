@@ -30,7 +30,6 @@
 #include "gcamorph.h"
 
 
-static char vcid[] = "$Id: mri_map_atrophy.c,v 1.4 2011/03/02 00:04:22 nicks Exp $";
 
 
 static MRI *make_atrophy_map(MRI *mri_time1, MRI *mri_time2, MRI *mri_dst, TRANSFORM *transform1, TRANSFORM *transform2,
@@ -193,7 +192,7 @@ print_help(void) {
 
 static void
 print_version(void) {
-  fprintf(stderr, "%s\n", vcid) ;
+  fprintf(stderr, "%s\n", getVersion().c_str()) ;
   exit(1) ;
 }
 

@@ -8,10 +8,6 @@ function [M_R] = vox2ras_rsolveAA(Vc_C, inPlaneRotation, varargin)
 %%
 %%	Rudolph Pienaar
 %%
-%% VERSION
-%%
-%% 	$Id: vox2ras_rsolveAA.m,v 1.5 2011/03/02 00:04:13 nicks Exp $
-%%
 %% SYNOPSIS
 %%
 %%     [M_R] = vox2ras_rsolveAA(Vc_C, inPlaneRotation, ch_orientation)

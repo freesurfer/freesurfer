@@ -40,7 +40,7 @@ class ArgumentParser(argparse.ArgumentParser):
 
 
 #-------- main -------------------------
-version = '$Id';
+version = 'fspalm';
 
 # ---- parse args ----
 description = """\

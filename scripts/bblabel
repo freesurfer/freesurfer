@@ -19,7 +19,7 @@
 #
 
 
-set VERSION = '$Id: bblabel,v 1.9 2016/02/12 21:43:14 zkaufman Exp $';
+set VERSION = 'bblabel @FS_VERSION@';
 
 set cmdargs = ($argv);
 set PrintHelp = 0;

@@ -21,7 +21,7 @@
 
 set inputargs = ($argv);
 set fmrianalver = `cat $FMRI_ANALYSIS_DIR/docs/version`;
-set VERSION = '$Id: editmask,v 1.3 2015/12/10 22:51:29 zkaufman Exp $';
+set VERSION = 'editmask @FS_VERSION@';
 set PrintHelp = 0;
 
 ## If there are no arguments, just print useage and exit ##

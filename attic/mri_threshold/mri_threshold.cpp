@@ -29,8 +29,6 @@
 #include "proto.h"
 #include "macros.h"
 
-static char vcid[] =
-  "$Id: mri_threshold.c,v 1.10 2015/09/02 18:33:01 lzollei Exp $";
 
 int main(int argc, char *argv[]) ;
 static int  get_option(int argc, char *argv[]) ;
@@ -193,6 +191,6 @@ print_help(void) {
 
 static void
 print_version(void) {
-  fprintf(stderr, "%s\n", vcid) ;
+  fprintf(stderr, "%s\n", getVersion().c_str()) ;
   exit(1) ;
 }

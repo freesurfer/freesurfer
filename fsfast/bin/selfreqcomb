@@ -21,7 +21,7 @@
 #
 
 
-set VERSION = '$Id: selfreqcomb,v 1.9 2015/12/10 22:51:30 zkaufman Exp $';
+set VERSION = 'selfreqcomb @FS_VERSION@';
 set cmdargv = ($argv);
 
 set instems = ();

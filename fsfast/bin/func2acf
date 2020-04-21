@@ -20,7 +20,7 @@
 
 
 set inputargs = ($argv);
-set VERSION = '$Id: func2acf,v 1.4 2015/12/10 22:51:29 zkaufman Exp $';
+set VERSION = 'func2acf @FS_VERSION@';
 
 set PrintHelp = 0;
 set instem = ();

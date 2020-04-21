@@ -43,8 +43,6 @@
 #define  STRBUF         65536
 
 
-static char vcid[] =
-  "$Id: mris_curvature_vectors.c,v 1.1 2011/11/20 01:17:34 jonp Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -383,7 +381,7 @@ print_help(void) {
 static void
 print_version(void)
 {
-  fprintf(stderr, "%s\n", vcid) ;
+  fprintf(stderr, "%s\n", getVersion().c_str()) ;
   exit(0) ;
 }
 

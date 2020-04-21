@@ -37,8 +37,6 @@
 #include "annotation.h"
 #include "MARS_DT_Boundary.h"
 
-static char vcid[] = 
-"$Id: mris_distance_transform.c,v 1.5 2013/04/12 20:59:17 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 static int  get_option(int argc, char *argv[]) ;
@@ -357,7 +355,7 @@ print_help(void)
 static void
 print_version(void)
 {
-  fprintf(stderr, "%s\n", vcid) ;
+  fprintf(stderr, "%s\n", getVersion().c_str()) ;
   exit(1) ;
 }
 

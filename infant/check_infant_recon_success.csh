@@ -5,9 +5,6 @@
 ##
 
 set inputargs = ($argv);
-set VERSION = '$Id: infant_recon_all,v 1.00 2017/01/10 12:27:40 lzollei Exp $';
-
-
 set fsdirset = 0;
 
 ## read input

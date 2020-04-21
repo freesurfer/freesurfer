@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # groupstatsdiff
 
-set VERSION = '$Id: groupstatsdiff,v 1.11 2016/02/16 17:17:20 zkaufman Exp $';
+set VERSION = 'groupstatsdiff @FS_VERSION@';
 
 set g1dir = ();
 set g2dir = ();

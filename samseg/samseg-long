@@ -4,7 +4,7 @@ if(-e $FREESURFER_HOME/sources.csh) then
   source $FREESURFER_HOME/sources.csh
 endif
 
-set VERSION = '$Id$';
+set VERSION = 'samseg-long @FS_VERSION@';
 set scriptname = `basename $0`
 
 set outdir = ();

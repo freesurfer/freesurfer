@@ -3,7 +3,6 @@ function irepistruct = irepitiming(irepistruct)
 % 
 % See irepistructure.m for more info on the struct parameters
 %
-% $Id: irepitiming.m,v 1.2 2016/04/11 03:19:08 greve Exp $
 
 InvFlip = 180;
 

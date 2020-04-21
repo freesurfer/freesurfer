@@ -15,13 +15,11 @@
 
 // cmdargs.h - include file for cmdargs.c (used for
 //   handling command-line arguments)
-// $Id: cmdargs.h,v 1.5 2011/03/02 00:04:09 nicks Exp $
 
 
 #ifndef CMDARGS_H
 #define CMDARGS_H
 
-const char * CMDSrcVersion(void);
 void CMDargNErr(char *option, int n);
 int CMDsingleDash(char *flag);
 int CMDisFlag(char *flag);

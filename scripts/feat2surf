@@ -20,7 +20,7 @@
 #
 
 
-set VERSION = '$Id: feat2surf,v 1.18 2016/02/12 21:43:15 zkaufman Exp $'
+set VERSION = 'feat2surf @FS_VERSION@';
 set FeatDirList = ();
 set ProjFrac = ();
 set HemiList = (lh rh);

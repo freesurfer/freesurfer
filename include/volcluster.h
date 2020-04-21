@@ -47,7 +47,6 @@ int VolClustFixMNI = 0;
 extern int VolClustFixMNI;
 #endif
 
-const char *vclustSrcVersion(void);
 VOLCLUSTER *clustAllocCluster(int nmembers);
 int clustFreeCluster(VOLCLUSTER **ppvc);
 VOLCLUSTER *clustCopyCluster(VOLCLUSTER *vc);

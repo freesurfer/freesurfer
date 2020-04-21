@@ -23,6 +23,5 @@ Usage: stgrinder2 [-options] -i <instem> -o <outstem>
     -whitenoise         : assume white noise
     -pscale <float>     : multiply pvalues by scale
 
-    $Id: stgrinder2.info,v 1.1 2005/05/04 17:00:49 greve Exp $
     MAXT = 30, MAXDOF = 200
 

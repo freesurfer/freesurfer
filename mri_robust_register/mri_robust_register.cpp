@@ -140,8 +140,6 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[], Parameters & P);
 static void initRegistration(Registration & R, Parameters & P);
 
-static char vcid[] =
-    "$Id: mri_robust_register.cpp,v 1.77 2016/01/20 23:36:17 greve Exp $";
 const char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -590,7 +588,7 @@ int main(int argc, char *argv[])
 {
   {
     // for valgrind, so that everything is freed
-    cout << vcid << endl << endl;
+    cout << getVersion() << endl << endl;
 //  setenv("SURFER_FRONTDOOR","",1) ;
     // set the environment variable
     // to store mri as chunk in memory:

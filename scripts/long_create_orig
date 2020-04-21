@@ -20,7 +20,7 @@
 #
 
 
-set VERSION = '$Id: long_create_orig,v 1.1 2015/10/19 21:17:56 mreuter Exp $';
+set VERSION = 'long_create_orig @FS_VERSION@';
 
 if ($#argv < 1) then
   echo

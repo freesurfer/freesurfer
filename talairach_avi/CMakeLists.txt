@@ -9,8 +9,7 @@ else()
   set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -ffixed-line-length-132 -fno-second-underscore")
 endif()
 
-install(
-  PROGRAMS
+install_configured(
   talairach_avi
   mpr2mni305
   brec

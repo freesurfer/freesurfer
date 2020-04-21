@@ -12,7 +12,6 @@ function pthresh = SStat_mass_FDR(p,fdr)
 % assumption of "independence or positive dependence",
 % which should be "reasonable for imaging data".
 %
-% $Id: SStat_mass_FDR.m,v 1.1 2015/01/06 17:03:59 mreuter Exp $
 %
 
 if(nargin ~= 2)

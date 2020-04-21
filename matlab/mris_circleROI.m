@@ -17,7 +17,6 @@ function [aCv_indicesROI, aCv_indicesNROI, aCv_tracker, aS_ct] =        ...
 %                                          [, astr_labelStem,           ...
 %                                          [, ab_progress]]])
 %
-% $Id: mris_circleROI.m,v 1.1 2011/07/05 20:52:45 rudolph Exp $
 %
 %
 % ARGUMENTS

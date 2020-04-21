@@ -17,7 +17,8 @@
 #
 #
 
-set version = '$Id: run-qdec-glm,v 1.10 2011/03/02 20:16:40 nicks Exp $';
+set version = 'run-qdec-glm @FS_VERSION@';
+
 
 if($#argv != 1) then
   echo "run-qdec-glm qdecdir"

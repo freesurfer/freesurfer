@@ -38,7 +38,6 @@
 
 #define MAX_DATA_NUMBERS 200
 
-static char vcid[] = "$Id: mris_diff_on_surface.c,v 1.3 2011/03/02 00:04:55 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -286,7 +285,7 @@ static void print_usage(void)
   fprintf(stdout, "   -trg_type  %%s output format\n");
   fprintf(stdout, "   -neg  take negative of data2, thus compute sum!\n");
   fprintf(stdout, "\n");
-  printf("%s\n", vcid) ;
+  std::cout << getVersion() << std::endl;
   printf("\n");
 
 }
@@ -321,7 +320,7 @@ static void print_help(void)
 /* --------------------------------------------- */
 static void print_version(void)
 {
-  fprintf(stdout, "%s\n", vcid) ;
+  fprintf(stdout, "%s\n", getVersion().c_str()) ;
   exit(1) ;
 }
 

@@ -18,7 +18,7 @@
 #
 
 
-set FUNCVITS_VER = '$Id: mri-funcvits,v 1.9 2016/02/16 17:17:20 zkaufman Exp $';
+set FUNCVITS_VER = 'mri-funcvits @FS_VERSION@';
 
 set stem     = ();
 set outdir   = ();

@@ -41,11 +41,6 @@
 
 static int sclustCompare(const void *a, const void *b);
 
-/*---------------------------------------------------------------
-  sculstSrcVersion(void) - returns CVS version of this file.
-  ---------------------------------------------------------------*/
-const char *sculstSrcVersion(void) { return ("$Id: surfcluster.c,v 1.36 2016/11/01 19:40:11 greve Exp $"); }
-
 /* ------------------------------------------------------------
    sclustMapSurfClusters() - grows a clusters on the surface.  The
    cluster is a list of contiguous vertices that that meet the

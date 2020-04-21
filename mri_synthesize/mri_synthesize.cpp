@@ -31,7 +31,6 @@
 #include "tags.h"
 #include "flash.h"
 
-static char vcid[] = "$Id: mri_synthesize.c,v 1.19 2015/02/05 23:34:40 zkaufman Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -397,7 +396,7 @@ print_help(void) {
 
 static void
 print_version(void) {
-  fprintf(stderr, "%s\n", vcid) ;
+  fprintf(stderr, "%s\n", getVersion().c_str()) ;
   exit(1) ;
 }
 

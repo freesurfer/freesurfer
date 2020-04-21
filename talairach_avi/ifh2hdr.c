@@ -40,7 +40,6 @@ void getrange (char *string, float *minval, float *maxval) {
 
 extern int	Inithdr (struct dsr *phdr, int *imgdim, float *voxdim, char *proto_imgfile);
 
-static char rcsid[] = "$Id: ifh2hdr.c,v 1.3 2007/05/05 10:45:03 nicks Exp $";
 int main (int argc, char *argv[]) {
 	FILE		*fp;
 	struct dsr	hdr;
@@ -64,7 +63,7 @@ int main (int argc, char *argv[]) {
 
 	int		isbig, swab_flag, range_flag = 0;
 
-	printf ("%s\n", rcsid);
+	printf ("%s\n", "freesurfer ifh2hdr.c");
 	if (!(str = strrchr (argv[0], '/'))) str = argv[0]; else str++;
 	strcpy (program, str);
 

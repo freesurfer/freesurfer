@@ -59,8 +59,6 @@ static struct Parameters P =
 static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[], Parameters & P);
 
-static char vcid[] =
-    "$Id: lta_convert.cpp,v 1.10 2016/08/09 02:11:11 zkaufman Exp $";
 const char *Progname = NULL;
 
 LTA * shallowCopyLTA(const LTA * lta)
@@ -622,7 +620,7 @@ void writeITK(const string& fname, const LTA * lta)
 
 int main(int argc, char *argv[])
 {
-  cout << vcid << endl << endl;
+  cout << getVersion() << endl << endl;
 
   // Default initialization
   int nargs = handleVersionOption(argc, argv, "lta_convert");

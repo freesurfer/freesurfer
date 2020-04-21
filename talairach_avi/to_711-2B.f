@@ -1,5 +1,3 @@
-c$Id: to_711-2B.f,v 1.1 2007/05/04 22:34:03 nicks Exp $
-c$Log: to_711-2B.f,v $
 cRevision 1.1  2007/05/04 22:34:03  nicks
 cnew talairach alignment utility, using Avi Snyders registration tools
 c

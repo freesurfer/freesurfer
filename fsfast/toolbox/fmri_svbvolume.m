@@ -4,7 +4,6 @@ function fmri_ldbvolume(vol,stem,voldim,ext)
 % Saves a volume in bfile format where vol is a 4D structure
 % of dimension Nslices X Nrows X Ncols X Ndepth.
 %
-% '$Id: fmri_svbvolume.m,v 1.3 2011/03/02 00:04:06 nicks Exp $'
 
 
 %

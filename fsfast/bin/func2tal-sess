@@ -19,7 +19,7 @@
 #
 
 
-set VERSION = '$Id: func2tal-sess,v 1.6 2015/12/10 22:51:29 zkaufman Exp $';
+set VERSION = 'func2tal-sess @FS_VERSION@';
 
 set res = ();
 set analysis    = ();

@@ -5,7 +5,6 @@ function [v nocc] = MRIvote(vol)
 % frames. nocc is the number of times it occurs.
 % See also mri2.c::MRIvote()
 % 
-% $Id: MRIvote.m,v 1.2 2011/03/02 00:04:12 nicks Exp $
 
 %
 % MRIvote.m

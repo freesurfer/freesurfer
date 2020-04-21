@@ -3,7 +3,6 @@ function hfig = mkcontrast_gui(varargin)
 % mkcontrast_gui(cbstring);
 % Creates a cspec field in the hparent UserData struct
 %  If Cancel is hit, this field is there but empty
-% $Id: mkcontrast_gui.m,v 1.11 2009/04/10 01:55:34 greve Exp $
 
 msg = [];
 ud = [];
@@ -443,7 +442,7 @@ cspec.nircorr = 0;
 cspec.rdelta = [0 0];
 cspec.rtau   = [0 0];
 cspec.ContrastMtx_0 = fast_contrastmtx(cspec);
-cspec.creator = '$Id: mkcontrast_gui.m,v 1.11 2009/04/10 01:55:34 greve Exp $';
+cspec.creator = 'mkcontrast_gui.m @FS_VERSION@';
 
 return;
 

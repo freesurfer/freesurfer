@@ -19,7 +19,7 @@
 #
 
 
-set VERSION = '$Id: stc.fsl,v 1.11 2015/12/10 22:51:31 zkaufman Exp $'
+set VERSION = 'stc.fsl @FS_VERSION@';
 set debug = 0;
 set cmdargs = ($argv);
 set PrintHelp = 0;

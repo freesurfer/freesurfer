@@ -19,7 +19,7 @@
 #
 
 
-set VERSION = '$Id: qsurfer,v 1.9 2015/12/10 22:51:30 zkaufman Exp $'
+set VERSION = 'qsurfer @FS_VERSION@';
 set cmdargs = ($argv);
 
 set usenew = ".new";

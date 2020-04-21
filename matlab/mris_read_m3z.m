@@ -11,7 +11,6 @@ function [vol_orig, vol_dest, vol_ind0, spacing, exp_k] = mris_read_m3z(filename
 
 % jonathan polimeni <jonp@nmr.mgh.harvard.edu>, 2012/feb/05
 % oliver hinds <ohinds@nmr.mgh.harvard.edu>, 2015/dec/29
-% $Id: mris_read_m3z.m,v 1.1 2017/01/31 20:29:29 mreuter Exp $
 %**************************************************************************%
 
   if ( nargin == 0 ), help(mfilename); return; end;

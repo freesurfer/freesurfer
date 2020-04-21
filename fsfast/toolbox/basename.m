@@ -5,7 +5,6 @@ function name = basename(path,ext)
 % command in matlab. If ext is present, it will check to
 % see if ext exists as an extension and strip it if it does.
 %
-% $Id: basename.m,v 1.4 2011/03/02 00:04:03 nicks Exp $
 
 %
 % basename.m

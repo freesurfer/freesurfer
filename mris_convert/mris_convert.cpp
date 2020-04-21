@@ -44,8 +44,6 @@
 #include "compilerdefs.h"
 
 //------------------------------------------------------------------------
-static char vcid[] =
-  "$Id$";
 
 /*-------------------------------- CONSTANTS -----------------------------*/
 // this mini colortable is used when .label file gets converted to gifti
@@ -970,7 +968,7 @@ print_help(void)
 static void
 print_version(void)
 {
-  printf( "%s\n", vcid) ;
+  printf( "%s\n", getVersion().c_str()) ;
   exit(1) ;
 }
 

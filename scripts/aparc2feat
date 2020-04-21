@@ -21,7 +21,7 @@
 # aparc2feat
 #
 
-set VERSION = '$Id: aparc2feat,v 1.11 2016/02/12 21:43:14 zkaufman Exp $';
+set VERSION = 'aparc2feat @FS_VERSION@';
 set FeatDirList = ();
 set HemiList = (rh lh)
 set debug = 0;

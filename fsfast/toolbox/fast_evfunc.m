@@ -17,7 +17,6 @@ function r = fast_evfunc(varargin)
 % temporal mean is greater than T times the global mean will be 
 % used. The resulting mask can also be saved.
 %
-% '$Id: fast_evfunc.m,v 1.3 2011/03/02 00:04:04 nicks Exp $'
 %
 
 
@@ -37,7 +36,7 @@ function r = fast_evfunc(varargin)
 % Reporting: freesurfer@nmr.mgh.harvard.edu
 %
 
-version = '$Id: fast_evfunc.m,v 1.3 2011/03/02 00:04:04 nicks Exp $';
+version = 'fast_evfunc.m @FS_VERSION@';
 fprintf(1,'%s\n',version);
 r = 1;
 

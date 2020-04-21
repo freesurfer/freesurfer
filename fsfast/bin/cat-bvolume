@@ -26,7 +26,7 @@
 
 
 set inputargs = ($argv);
-set VERSION = '$Id: cat-bvolume,v 1.4 2015/12/10 22:51:29 zkaufman Exp $';
+set VERSION = 'cat-bvolume @FS_VERSION@';
 
 ## Set up defaults ##
 set instemlist  = ();

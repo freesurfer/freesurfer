@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # samseg
 
-set VERSION = '$Id: samseg Exp $';
+set VERSION = 'samseg @FS_VERSION@';
 
 set outdir = ();
 set subject = ();

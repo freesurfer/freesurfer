@@ -274,10 +274,6 @@ AUTHOR
 
 Douglas N. Greve, Ph.D., MGH-NMR Center"
 
-puts ""
-puts {$Id: unpackimadir2,v 1.6 2007/09/19 16:53:06 greve Exp $}
-puts ""
-
 exit 1;
 }
 #------------------------------------------------------------------#
@@ -830,8 +826,6 @@ CheckArgs;
 
 # Dump some info to the screen
 puts "";
-puts {$Id: unpackimadir2,v 1.6 2007/09/19 16:53:06 greve Exp $};
-puts "";
 puts [pwd];
 puts "$argv"
 puts "";
@@ -922,7 +916,6 @@ if [catch {open $LogFile w} LF] {
 }
 puts "INFO: Logfile is $LogFile"
 puts $LF "Log file created by unpackimadir2"
-puts $LF {$Id: unpackimadir2,v 1.6 2007/09/19 16:53:06 greve Exp $}
 puts $LF "$LogFile"
 puts $LF [pwd];
 puts $LF [exec date];

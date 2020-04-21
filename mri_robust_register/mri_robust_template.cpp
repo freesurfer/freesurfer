@@ -130,8 +130,6 @@ static struct Parameters P =
 static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[], Parameters & P);
 
-static char vcid[] =
-    "$Id: mri_robust_template.cpp,v 1.54 2016/05/05 21:17:08 mreuter Exp $";
 const char *Progname = NULL;
 
 int getRandomNumber(int start, int end, unsigned int & seed)
@@ -156,7 +154,7 @@ int getRandomNumber(int start, int end, unsigned int & seed)
 int main(int argc, char *argv[])
 {
   {
-    cout << vcid << endl << endl;
+    cout << getVersion() << endl << endl;
     // set the environment variable
 //  setenv("SURFER_FRONTDOOR","",1) ;
     // to store mri as chunk in memory:

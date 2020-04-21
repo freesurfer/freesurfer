@@ -1,6 +1,6 @@
 #!/bin/csh
 
-set rcsid = '$Id: t4img_4dfp,v 1.1 2007/05/04 22:34:03 nicks Exp $'
+set rcsid = 't4img_4dfp @FS_VERSION@'
 
 @ debug = 0
 

@@ -19,7 +19,7 @@
 #
 
 
-set SEQEFF_VER = '$Id: seqefficiency,v 1.6 2015/12/10 22:51:30 zkaufman Exp $';
+set SEQEFF_VER = 'seqefficiency @FS_VERSION@';
 
 if ( $#argv < 4 ) then
   echo ""

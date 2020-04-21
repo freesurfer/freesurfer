@@ -42,7 +42,6 @@
 ///
 
 
-// $Id: mris_decimate.cpp,v 1.6 2011/03/02 00:04:30 nicks Exp $
 
 #include <stdio.h>
 #include <stdlib.h>

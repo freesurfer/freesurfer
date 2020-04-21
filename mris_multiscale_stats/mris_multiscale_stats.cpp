@@ -31,7 +31,6 @@
 #include "sig.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_multiscale_stats.c,v 1.6 2015/02/05 23:34:41 zkaufman Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -716,7 +715,7 @@ print_help(void) {
 
 static void
 print_version(void) {
-  fprintf(stderr, "%s\n", vcid) ;
+  fprintf(stderr, "%s\n", getVersion().c_str()) ;
   exit(1) ;
 }
 
