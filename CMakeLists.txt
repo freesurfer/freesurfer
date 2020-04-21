@@ -456,6 +456,7 @@ if(NOT MINIMAL)
     mri_compile_edits
     mri_compute_change_map
     mri_compute_volume_fractions
+    mri_concatenate_gcam
     mri_copy_values
     mri_cor2label
     mri_correct_segmentations
