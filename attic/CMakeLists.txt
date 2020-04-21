@@ -21,7 +21,6 @@ if(NOT BUILD_ATTIC)
     mri_cht2p
     mri_classify
     mri_compute_structure_transforms
-    mri_concatenate_gcam
     mri_convert_mdh
     mri_divide_segmentation
     mri_elastic_energy
@@ -109,7 +108,6 @@ else()
     mri_cht2p
     mri_classify
     mri_compute_structure_transforms
-    mri_concatenate_gcam
     mri_convert_mdh
     mri_divide_segmentation
     mri_elastic_energy

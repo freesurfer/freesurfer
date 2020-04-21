@@ -9,4 +9,3 @@ target_link_libraries(mri_concatenate_gcam utils)
 add_test_script(NAME mri_concatenate_gcam_test SCRIPT test.sh DEPENDS mri_concatenate_gcam)
 
 install(TARGETS mri_concatenate_gcam DESTINATION bin)
-
