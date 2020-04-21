@@ -38,6 +38,8 @@
   // this is only called from the matrix class
   int OpenSvdcmp( MATRIX *a, VECTOR *w, MATRIX *v );
 
+  int OpenQRdecomposition(const MATRIX *iMatrix, MATRIX *oQ, MATRIX *oR);
+
   float OpenMatrixDeterminant( MATRIX *matrix );
 
   int OpenLUMatrixInverse( MATRIX *matrix, MATRIX *inverse );

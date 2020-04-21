@@ -85,6 +85,7 @@ int     MatrixIsZero(MATRIX *m) ;
 int     MatrixIsIdentity(MATRIX *m) ;
 MATRIX  *MatrixReshape(MATRIX *m_src, MATRIX *m_dst, int rows, int cols) ;
 int     MatrixCheck(MATRIX *m) ;
+int     MatrixQRdecomposition(const MATRIX *iMatrix, MATRIX *oQ, MATRIX *oR);
 MATRIX  *MatrixInverse( const MATRIX *mIn, MATRIX *mOut) ;
 MATRIX  *MatrixPseudoInverse(MATRIX *m, MATRIX *m_pseudo_inv) ;
 MATRIX  *MatrixSVDPseudoInverse(MATRIX *m, MATRIX *m_pseudo_inv) ;

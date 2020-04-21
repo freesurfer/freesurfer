@@ -1145,6 +1145,51 @@ int OpenLUMatrixInverse(MATRIX *iMatrix, MATRIX *oInverse)
   return errorCode;
 }
 
+/*!
+  \fn int OpenQRdecomposition(const MATRIX *iMatrix, MATRIX *oQ, MATRIX *oR)
+  \brief Performs QR decomposition on the input matrix. The output
+  matricies must be allocated already (Q is nrowsxnows where nrows is
+  the number of rows in the input matrix, and R is same size as the
+  input matrix). 
+ */
+int OpenQRdecomposition(const MATRIX *iMatrix, MATRIX *oQ, MATRIX *oR)
+{
+  if(iMatrix==NULL){
+    printf("QRdecomposition(): input matrix is NULL\n");
+    return(1);
+  }
+  if(oQ==NULL){
+    printf("QRdecomposition(): output Q matrix is NULL\n");
+    return(1);
+  }
+  if(oR==NULL){
+    printf("QRdecomposition(): output R matrix is NULL\n");
+    return(1);
+  }
+  if(oQ->rows != iMatrix->rows){
+    printf("QRdecomposition(): Q rows != input Matrix rows\n");
+    return(1);
+  }
+  if(oQ->cols != oQ->rows){
+    printf("QRdecomposition(): Q cols != Q rows\n");
+    return(1);
+  }
+  if(oR->rows != iMatrix->rows){
+    printf("QRdecomposition(): R rows != input Matrix rows\n");
+    return(1);
+  }
+  if(oR->cols != iMatrix->cols){
+    printf("QRdecomposition(): R cols != input Matrix cols\n");
+    return(1);
+  }
+
+  vnl_matrix< float >  vnlMatrix(iMatrix->data, iMatrix->rows, iMatrix->cols);
+  vnl_qr<float> qr( vnlMatrix );
+  qr.Q().copy_out(oQ->data);
+  qr.R().copy_out(oR->data);
+  return(0);
+}
+
 /**
  * Returns the determinant of matrix.
  * @param iMatrix
