@@ -16,6 +16,8 @@ MCR_VER="$1"
 # check FS directory
 if [[ -z "$FREESURFER_HOME" ]]; then
     echo "ERROR: must set FREESURFER_HOME before installing"
+    echo "INFO: if you're using sudo, make sure to pass the FS home variable with"
+    echo "INFO: sudo FREESURFER_HOME=\$FREESURFER_HOME fs_install_mcr $@"
     exit 1
 fi
 
@@ -47,5 +49,19 @@ TMP_DEST_DIR=$TMP_DIR/install-target
 # move mcr install to freesurfer directory
 MCR_DIR="$(ls -d $TMP_DEST_DIR/v*)"
 MCR_NAME="$(basename $MCR_DIR)"
-mv $MCR_DIR $FREESURFER_HOME/MCR$MCR_NAME
-echo "$MCR_VER installed successfully in $FREESURFER_HOME/MCR$MCR_NAME"
+MCR_TARGET_DIR=$FREESURFER_HOME/MCR$MCR_NAME
+
+if [ -d "$MCR_TARGET_DIR" ]; then
+    # MCR already installed
+    echo "MCR $MCR_NAME ($MCR_VER) already exists in $FREESURFER_HOME"
+    read -p "do you want to reinstall? [y/n] " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        echo "exiting without install"
+        exit 0
+    fi
+    rm -rf $MCR_TARGET_DIR
+fi
+
+mv $MCR_DIR $MCR_TARGET_DIR
+echo "$MCR_VER installed successfully in $MCR_TARGET_DIR"
