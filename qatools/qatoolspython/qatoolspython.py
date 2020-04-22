@@ -310,7 +310,7 @@ def _check_arguments(subjects_dir, output_dir, subjects, shape, screenshots, for
     import errno
 
     import tempfile
-    import importlib
+    import importlib.util
 
     # --------------------------------------------------------------------------
     # check arguments
@@ -580,7 +580,7 @@ def _check_packages():
 
     import os
     import sys
-    import importlib
+    import importlib.util
 
     if os.environ.get('FREESURFER_HOME') is None:
         print('\nERROR: need to set the FREESURFER_HOME environment variable\n')
