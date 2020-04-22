@@ -11,12 +11,18 @@ import scipy.spatial
 import glob
 import subprocess
 import pandas as pd
-from nipy.modalities.fmri.glm import GeneralLinearModel
 import matplotlib as mpl
 mpl.use('Agg')
 import matplotlib.pyplot as plt
 import freesurfer as fs
 import argparse
+import graph_tools as gt
+import math
+import pandas as pd
+import holoviews as hv
+from holoviews import opts, dim
+import plotly.express as px#
+import statsmodels.api as sm
 
 def getCorrespondingClusters(correspondance,order=True):
 		corr=dict()
@@ -47,7 +53,8 @@ def thicknessPerStructure(classificationFile, classification_cols, target_subjec
 	print(lut[28].name)
 
 	indeces=[]
-	groups_cat = {row[classification_cols[0]] :row[classification_cols[1]] for _, row in pd.read_csv(classificationFile, delimiter=delimiter).iterrows()}
+	print(classification_cols, classificationFile, delimiter)
+	groups_cat = {row[classification_cols[0]] :row[classification_cols[1]] for _, row in pd.read_csv(classificationFile).iterrows()}
 	print(groups_cat)
 	significant_childs=set()
 	thicknesses=[[],[],[],[]]
@@ -63,6 +70,7 @@ def thicknessPerStructure(classificationFile, classification_cols, target_subjec
 			cat = 0
 		else:
 			cat =  cat2
+		cat=cat2
 		print(s,cat)
 		gres = glob.glob(f'{subjects_dir}/{s}*')
 		if len(gres)>0 and cat< len(thicknesses):
@@ -74,58 +82,189 @@ def thicknessPerStructure(classificationFile, classification_cols, target_subjec
 					values=pd.read_csv(f"{subjects_dir}/{subject}/{ac_folder}/measures/surf/"+corr[indeces[i]]+".csv")
 					#print(values.shape[0])
 					for j in range(values.shape[0]):
-						if values['label.start'][j] in thicknesses[cat][i]:
-							thicknesses[cat][i][values['label.start'][j]].append(values['thickness.start'][j])
-						else:
-							thicknesses[cat][i][values['label.start'][j]]= [values['thickness.start'][j]]
+						val = 1+  abs(float(values['curv.start'][j])) 
+						#val=1
+						if val >0.01:
+							sign= '+'
+							#if abs(float(values['curv.start'][j] )) >0.1:
+							#	sign = '+'
+							#else:
+							#	sign = '-'
 
-						if values['label.end'][j] in thicknesses[cat][i]:
-							thicknesses[cat][i][values['label.end'][j]].append(values['thickness.end'][j])
-						else:
-							thicknesses[cat][i][values['label.end'][j]]= [values['thickness.end'][j]]
+							if sign + str(values['label.start'][j] )in thicknesses[cat][i]:
+								thicknesses[cat][i][sign+str(values['label.start'][j])].append(float(values['thickness.start'][j])/val)
+							else:
+								thicknesses[cat][i][sign+str(values['label.start'][j])]= [float(values['thickness.start'][j])/val]
+
+						val =  1+ abs(float(values['curv.end'][j])) 
+						#val=1
+						if val >0.01:
+							sign= '+'
+							#if abs(float(values['curv.end'][j]))  >0.1:
+							#	sign = '+'
+							#else:
+							#	sign = '-'
+	
+							if sign+str(values['label.end'][j] )in thicknesses[cat][i]:
+								thicknesses[cat][i][sign+str(values['label.end'][j])].append(float(values['thickness.end'][j])/val)
+							else:
+								thicknesses[cat][i][sign+str(values['label.end'][j])]= [float(values['thickness.end'][j])/val]
 
 			except Exception as e:
 				print("ERROR",e)
 		ww+=1
 
-	try:
+	#try:
 
-		for i in range(200):
-			total =0
-			plt.figure()
-			print("hola")
-			for k,v in thicknesses[1][i].items():
-				total += len(v)
-			toplot=[]
-			labels=[]
-			colors=[]
-			for k,v in thicknesses[1][i].items():
+	for i in range(200):
+		total =0
+		plt.figure()
+		print("hola")
+		totals=[1,1,1]
+		for t in range(len(totals)):
+			for k,v in thicknesses[t][i].items():
+				totals[t] += len(v)
+		toplot=[]
+		labels=[]
+		colors=[]
+		labelsPolar=[]
+		thicknessPolar=[]
+		catsPolar=[]
+		for ks,v in thicknesses[0][i].items():
+			ku = ks[1:]
+			if   ks in thicknesses[1][i]  and  ks in thicknesses[2][i]  and str(ku).isnumeric() :
+				print(	 len(v)*100 /totals[0],  len(thicknesses[1][i][ks])*100/totals[1] , len(thicknesses[2][i][ks])*100/totals[2] ) 
+			if int(ku) > 0 and  len(v)*100 /totals[0] > 2 and ks in thicknesses[1][i]  and len(thicknesses[1][i][ks])*100/totals[1] > 2 and ks in thicknesses[2][i]  and len(thicknesses[2][i][ks])*100/totals[2] > 2  and str(ku).isnumeric() :
+				toplot.append(v)				
+				toplot.append(thicknesses[1][i][ks])				
+				toplot.append(thicknesses[2][i][ks])				
+				labels.append(lut[int(ku)].name+str(ks[0]))
+				labels.append("")
+				labels.append("")
+				print(lut[int(ku)].name , int(ku), ks)
+				colors.append('r')
+				colors.append('b')
+				colors.append('g')
+				labelsPolar.append(lut[int(ku)].name+str(ks[0]))
+				labelsPolar.append(lut[int(ku)].name+str(ks[0]))
+				labelsPolar.append(lut[int(ku)].name+str(ks[0]))
+				thicknessPolar.append(np.mean(v))				
+				thicknessPolar.append(np.mean(thicknesses[1][i][ks]))				
+				thicknessPolar.append(np.mean(thicknesses[2][i][ks]))			
+				catsPolar.append("H")
+				catsPolar.append("MD")
+				catsPolar.append("D")
+		
 				
-				if  len(v)*100 /total > 5 and k in thicknesses[1][i] and k in thicknesses[2][i]  and np.mean(v) >1 and str(k).isnumeric() :
-					print("plot", len(v)*100/total)
-					toplot.append(v)				
-					toplot.append(thicknesses[1][i][k])				
-					toplot.append(thicknesses[2][i][k])				
-					labels.append(lut[int(k)].name)
-					labels.append("")
-					labels.append("")
-					print(lut[int(k)].name , int(k), k)
-					colors.append('r')
-					colors.append('b')
-					colors.append('g')
+		if len(toplot) >0:
+			parts =	plt.violinplot(toplot, showextrema=False)
+			for v , pc in enumerate(parts['bodies']):
+				pc.set_facecolor(colors[v])
+				pc.set_edgecolor(colors[v])
+				pc.set_alpha(1)
+			plt.gcf().set_size_inches(len(labels),5)	
+			plt.xticks(range(1,len(labels)+1), labels)
+			plt.savefig(f"{subjects_dir}/average/{i}.png")
+		
+			thick = pd.DataFrame({'Structure':labelsPolar, 'Thickness':thicknessPolar, 'Cat':catsPolar})
+			fig = px.line_polar(thick, r="Thickness", theta="Structure", color="Cat", line_close=True)
+			fig.write_html(f"{subjects_dir}/average/{i}.html")
 
-			if len(toplot) >0:
-				parts =	plt.violinplot(toplot)
-				for v , pc in enumerate(parts['bodies']):
-					pc.set_facecolor(colors[v])
-					pc.set_edgecolor(colors[v])
-					pc.set_alpha(1)
-				plt.gcf().set_size_inches(len(labels),5)	
-				plt.xticks(range(1,len(labels)+1), labels)
-				plt.savefig(f"{subjects_dir}/average/{i}.png")
-	except Exception as e :
-		print(e)
+	#except Exception as e :
+	#	print(e)
 	#bash /space/erebus/2/users/vsiless/code/freesurfer/anatomicuts/dmri_ac.sh GA BAKP64e_nrecon-trio3_vb17 40 5 /space/snoke/1/public/vivros/hd_tracula/labels_hd.csv  0:2 999999999 2 [0,1,2] True)
+def connectivityGraph(classificationFile, classification_cols, target_subject, subjects_dir, groupA, groupB, lenght=45, std=5,clustersToAnalyze=[200], model="DTI", delimiter="," , groups=[0,1], thickness=False):
+
+
+
+	ac_folder=f"dmri.ac/{lenght}/{std}"
+	clusterNum=200
+	lut = fs.LookupTable.read("/usr/local/freesurfer/dev/FreeSurferColorLUT.txt")
+	print(lut[28].name)
+
+	indeces=[]
+	groups_cat = {row[classification_cols[0]] :row[classification_cols[1]] for _, row in pd.read_csv(classificationFile, delimiter=delimiter).iterrows()}
+	print(groups_cat)
+	significant_childs=set()
+	thicknesses=[[],[],[],[]]
+
+	for j in range(len(thicknesses)):
+		thicknesses[j]= dict()
+
+	ww=0
+	for s , cat2 in groups_cat.items():
+	
+		if cat2 > 10:
+			cat =3 
+		else:
+			cat =  cat2
+		#cat=cat2
+		print(s,cat)
+		gres = glob.glob(f'{subjects_dir}/{s}*')
+		if len(gres)>0 and cat< len(thicknesses):
+			subject=gres[0].split("/")[-1]
+			try:
+				correspondences= f"{subjects_dir}/{subject}/{ac_folder}/match/{target_subject}_{subject}_c{clusterNum}_hungarian.csv"
+				for i in range(clusterNum):
+					corr, distances, indeces =  getCorrespondingClusters(correspondences, False)
+					values=pd.read_csv(f"{subjects_dir}/{subject}/{ac_folder}/measures/surf/"+corr[indeces[i]]+".csv")
+					#print(values.shape[0])
+					for j in range(values.shape[0]):
+
+	
+						start = values['label.start'][j]
+						end = values['label.end'][j]
+						if start>0 and end>0:
+							ts = values['thickness.start'][j]
+							te = values['thickness.end'][j]
+							if int(start) < int(end):
+								end = start
+								start= values['label.end'][j]
+
+							if not start in thicknesses[cat]:
+								thicknesses[cat][start] = dict()
+							if not end in thicknesses[cat][start]:
+								thicknesses[cat][start][end]=[]
+							if len(thicknesses[cat][start][end])==0:
+								thicknesses[cat][start][end]=[]
+							thicknesses[cat][start][end].append((ts+te)/2)
+			except Exception as e:
+				print("ERROR",e)
+		ww+=1
+	for cat in range(len(thicknesses)):
+		hv.extension('bokeh')
+		hv.output(size=400)
+		edgesSource = []
+		edgesDestin= []
+		edgesValue = []
+		nodesId = []
+		nodesNames = []
+		nodesSet =set()
+		if len(thicknesses[cat]) >5:
+
+			for start, items in thicknesses[cat].items():	
+				for end, values in items.items():
+					if int(start) in lut and int(end) in lut:
+						edgesSource.append(int(start))
+						edgesDestin.append(int(end))
+						edgesValue.append(np.mean(values))
+						if not int(start) in nodesSet:
+							nodesSet.add(int(start))
+							nodesId.append(int(start))
+							nodesNames.append(lut[int(start)].name)
+						if not int(end) in nodesSet:
+							nodesSet.add(int(end))
+							nodesId.append(int(end))
+							nodesNames.append(lut[int(end)].name)
+		
+			
+			links = pd.DataFrame({'SourceID':edgesSource,'DestinID':edgesDestin, 'values':edgesValue})
+			thenodes = pd.DataFrame({'NodeID':nodesId,'NodeName':nodesNames})
+			nodes = hv.Dataset(thenodes,'NodeID','NodeName')
+			chord = hv.Chord((links,nodes),['SourceID','DestinID'], ['values'])
+			chord.opts(opts.Chord(cmap='fire', edge_line_width=dim('values'), edge_color=dim('values'),height=200, labels='NodeName', width=200))
+			hv.save(chord,f"{subjects_dir}/average/cat_{cat}.html")
+		
 
 def averageCorrespondingClusters(correspondences, imagesFolder, outputFolder,  clusterIndeces):
 		averages=dict()
@@ -238,10 +377,10 @@ def groupAnalysis( headers, cols , groups_classification, classification_columns
 					if len(data[headers[0]])>= clusterNum:
 						#print(int(groups_cat[s]	), groupA, groupB)
 						if int(groups_cat[s]) in groupA:
-							X=np.append(X,[1, 0])
+							X.append([1, 0])
 			
 						elif int(groups_cat[s]) in groupB:
-							X=np.append(X,[0, 1])
+							X.append([0, 1])
 				
 						if int(groups_cat[s]) in np.concatenate( (groupA,groupB), axis=None):
 							#print("hola")
@@ -252,20 +391,15 @@ def groupAnalysis( headers, cols , groups_classification, classification_columns
 		#print(X, ys)
 		X= np.array(X).reshape(len(ys[0][0]),2)
 		for i, m  in enumerate(headers):
-			Y=ys[i][0]
-			for j in range(1,len(ys[i])):
-				#print(np.shape(ys[i][j]))
-				Y = np.vstack((Y,[ys[i][j]]))
-			
-			Y=np.array(Y).transpose()
-			#print(np.shape(Y))
-			cval = np.hstack((-1, 1))
-			model = GeneralLinearModel(X)
-			model.fit(Y)
-			p_vals = model.contrast(cval).p_value() # z-transformed statistics
+
+
 			#print( p_vals)
-			for index, p in enumerate(p_vals):
-				if p*len(ys[0]) <0.05:
+			for index in range(clusterNum):
+				est = sm.OLS( ys[i][index],X)	
+				est2 = est.fit()
+				t_test= est2.t_test([1,-1])	
+				p= t_test.pvalue
+				if p*clusterNum <0.05:
 					if len(childs[str(order_nodes["Cluster"][index])]) ==0:
 						significant_childs.add(str(order_nodes["Cluster"][index]))
 					else:
@@ -277,23 +411,6 @@ def groupAnalysis( headers, cols , groups_classification, classification_columns
 					indeces.append(index)
 					
 				 
-			cval = np.hstack((1, -1))
-			model = GeneralLinearModel(X)
-			model.fit(Y)
-			p_vals = model.contrast(cval).p_value() # z-transformed statistics
-			#print( p_vals)
-			for index, p in enumerate(p_vals):
-				if p*len(ys[0]) <0.05:
-					#print(index,p, p*len(ys[0])*4,str(order_nodes["Cluster"][index])) 
-					if len(childs[str(order_nodes["Cluster"][index])]) ==0:
-						significant_childs.add(str(order_nodes["Cluster"][index]))
-					else:
-						for c in childs[str(order_nodes["Cluster"][index])]:
-							significant_childs.add(c)
-		    #plt.show()
-				if clusterNum == clustersToAnalyze[-1] and p<0.05 and str(order_nodes["Cluster"][index]) in significant_childs:
-					print(m, index,p, p,str(order_nodes["Cluster"][index]))
-					indeces.append(index)
 	return indeces
 					
 
@@ -418,7 +535,7 @@ def GA(classificationFile, classification_cols, target_subject, subjects_dir, gr
 		indeces += groupAnalysis(headers=[" mean"+m+" "],cols=[2+i*4], groups_classification=classificationFile, classification_columns=classification_cols,clustersToAnalyze=clustersToAnalyze,target_subject=target_subject,subjects_dir=subjects_dir, delimiter=delimiter, groupA=groupA, groupB=groupB, lenght=lenght, std=std)
 		#plotAverageMeasures(headers=["mean"+m],cols=[2+i*4], groups_classification=classificationFile, classification_columns=classification_cols,clustersToAnalyze=indeces,target_subject=target_subject,subjects_dir=subjects_dir, delimiter=delimiter, lenght=lenght, std=std) #groups=[groupA,groupB], 
 
-	
+	"""
 	for i, m in enumerate(measures):
 		headers += ["   meanCentroid"+m+" "]
 		columns+=[4+i*4]
@@ -435,10 +552,11 @@ def GA(classificationFile, classification_cols, target_subject, subjects_dir, gr
 
 			#plotAverageMeasures(headers=measures,cols=[0,1,2,3], groups_classification=classificationFile, classification_columns=classification_cols,clustersToAnalyze=indeces,target_subject=target_subject,subjects_dir=subjects_dir, delimiter=delimiter, lenght=lenght, std=std, groups=groups, thickness=True) #groups=[groupA,groupB], 
 			plotScatter(headers=measures,cols=[0,1,2,3], groups_classification=classificationFile, classification_columns=classification_cols,clustersToAnalyze=indeces,target_subject=target_subject,subjects_dir=subjects_dir, delimiter=delimiter, lenght=lenght, std=std, groups=groups, thickness=True) #groups=[groupA,groupB], 
+	"""
 	print(columns, headers,indeces)
 	#plotAverageMeasures(headers=headers,cols=columns, groups_classification=classificationFile, classification_columns=classification_cols,clustersToAnalyze=indeces,target_subject=target_subject,subjects_dir=subjects_dir, delimiter=delimiter, lenght=lenght, std=std, groups=groups, thickness=False) #groups=[groupA,groupB], 
 	plotScatter(headers=headers,cols=columns, groups_classification=classificationFile, classification_columns=classification_cols,clustersToAnalyze=indeces,target_subject=target_subject,subjects_dir=subjects_dir, delimiter=delimiter, lenght=lenght, std=std, groups=groups, thickness=False) #groups=[groupA,groupB], 
-
+	
 
 
 
@@ -479,7 +597,7 @@ if args.function == "GA":
 	print(groups)
 
 	eval(args.function)(args.classification_file, columns, args.target_subject, args.subjects_folder,group_a, group_b,args.lenght, args.std, clusters_to_analyze, args.model, args.delimiter,groups, args.thickness )
-elif args.function == "thicknessPerStructure":
+elif args.function == "thicknessPerStructure" or args.function == "connectivityGraph":
 	columns=  np.asarray(args.classification_columns.split(":"), dtype=np.int)
 	print(columns, columns[0])
 	group_a = np.asarray(args.group_a.split(":"), dtype=np.int)
