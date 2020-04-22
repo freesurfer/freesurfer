@@ -14,10 +14,14 @@ MacHelper::MacHelper(QObject* parent) : QObject(parent)
 bool MacHelper::IsDarkMode()
 {
     @autoreleasepool {
-        if (QSysInfo::productVersion() < "10.14")
-            return false;
-        NSAppearance *appearance = NSAppearance.currentAppearance;
+        if (@available(macOS 10.14, *)) {
+            if (QSysInfo::productVersion() < "10.14")
+                return false;
+            NSAppearance *appearance = NSAppearance.currentAppearance;
             return appearance.name == NSAppearanceNameDarkAqua;
+        } else {
+            return false;
+        }
     }
 }
 
