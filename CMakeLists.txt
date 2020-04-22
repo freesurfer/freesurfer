@@ -8,9 +8,11 @@ option(MINIMAL "Only build core components" OFF)
 option(BUILD_GUIS "Build GUI tools" ON)
 option(BUILD_ATTIC "Build deprecated tools from the attic" OFF)
 option(INFANT_MODULE "Include infant recon-all" OFF)
+option(QATOOLS_MODULE "Install QA tools" ON)
 option(BUILD_DNG "Build Doug's testing tools" OFF)
 option(SUPPRESS_WARNINGS "Suppress some selected warnings" ON)
 option(PROFILING "Complile binaries for profiling with gprof" OFF)
+option(INSTALL_PYTHON_DEPENDENCIES "Install python package dependencies" ON)
 
 if(NOT APPLE)
   # linux-only build options
@@ -622,6 +624,10 @@ endif()
 
 if(TKTOOLS_MODULE)
   add_subdirectory(tktools)
+endif()
+
+if(QATOOLS_MODULE)
+  add_subdirectory(qatools)
 endif()
 
 if(BUILD_DNG)
