@@ -25,7 +25,7 @@ function filter {
 }
 
 # compare output
-for f in emot-001.par emot-002.par emot-003.par emot-004.par emot.sum; do
+for f in emot-001.par emot-002.par emot-003.par emot-004.par; do
     filter ${f}
     compare_file ${f} expected/${f}
 done

@@ -195,8 +195,8 @@ int main(int narg, char* arg[])
 
 		// Finds closest point and sets value equal to ENDPOINT_VALUE
 		double distL, distR;
-		vtkIdType Left_ID  = surfTreeL->FindClosestPointWithinRadius(1000, point_array, distL);
-                vtkIdType Right_ID = surfTreeR->FindClosestPointWithinRadius(1000, point_array, distR);
+		vtkIdType Left_ID  = surfTreeL->FindClosestPointWithinRadius(100000, point_array, distL);
+                vtkIdType Right_ID = surfTreeR->FindClosestPointWithinRadius(100000, point_array, distR);
                 vtkIdType ID = which_ID(distL, distR, Left_ID, Right_ID);
 	
 		if (ID == Left_ID)
@@ -212,8 +212,8 @@ int main(int narg, char* arg[])
 
 		MRIvoxelToSurfaceRAS(image, index[0], index[1], index[2], &point_array[0], &point_array[1], &point_array[2]);
 
-		Left_ID  = surfTreeL->FindClosestPointWithinRadius(1000, point_array, distL);
-                Right_ID = surfTreeR->FindClosestPointWithinRadius(1000, point_array, distR);
+		Left_ID  = surfTreeL->FindClosestPointWithinRadius(100000, point_array, distL);
+                Right_ID = surfTreeR->FindClosestPointWithinRadius(100000, point_array, distR);
                 ID = which_ID(distL, distR, Left_ID, Right_ID);
 	
 		if (ID == Left_ID)

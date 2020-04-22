@@ -12,6 +12,7 @@ class MRIS_MultimodalRefinement {
 	public:
 		void refine(MRIS* surface, float lambda, int iterations);
 		void  getTarget(MRIS* surface);
+		void  getTargetO(MRIS* surface);
 		void addImage(MRI* image)
 		{
 			images.push_back(image);
@@ -23,6 +24,7 @@ class MRIS_MultimodalRefinement {
 		void SetSegmentation(MRI* s) { this->segmentation=s;}
 		void SetWhiteMR(MRI* s) { this->whiteMR=s;}
 		void SetVesselMR(MRI* s) { this->vesselMR=s;}
+		void SetPosteriors(MRI* s) { this->posteriorMR= s;}
 		void FindMaximumGradient(bool b){this->maximumGradient=b;}
 		void SetWhite(MRIS* white){ this->white=white;}
 		void SetSphere(MRIS* sphere){ this->sphere=sphere;}
@@ -49,12 +51,272 @@ class MRIS_MultimodalRefinement {
 		MRI* segmentation;
 		MRI* whiteMR;
 		MRI* vesselMR;
+		MRI* posteriorMR= nullptr;
 		double center[3];	
 		double normal[3];
 		float GetVentricleIntensity();	
 		
 };
 void MRIS_MultimodalRefinement::getTarget(MRIS* surf )
+{
+	std::cout << " getTarget "<< std::endl;
+	std::cout << " number of steps "<< this->numberOfSteps <<std::endl;
+	std::cout << " step "<< step << std::endl;
+	std::cout <<" gradient sigma " << this->gradientSigma << std::endl;
+	//std::map<std::tuple<int,int,int>, int> priors =getPs(surf);
+			
+  	MRIS_HASH_TABLE *mht ;
+	mht = MHTcreateVertexTable_Resolution(surf, CURRENT_VERTICES, 10);
+
+	//orientationFilter->SetBabyMode(false);
+	//this->GeneratePlanes();
+	std::vector<float> intensities(this->numberOfSteps*5+1,0);
+	std::vector<float> magnitudes(this->numberOfSteps*5+1,0);
+	std::vector<float> ps(this->numberOfSteps*5+1,0);
+	std::vector<float> masks(this->numberOfSteps*5+1,0);
+	std::vector<float> masksW(this->numberOfSteps*5+1,0);
+	std::vector<float> segs(this->numberOfSteps*5+1,0);
+
+	std::cout << " ps size " << ps.size() << " images size " << images.size() << std::endl;	
+
+	std::vector<std::vector<std::pair<float, float>>> stats_vertex_images;
+	
+	std::cout << " holi " << std::endl;
+	
+	if( this->posteriorMR == nullptr)
+	{
+		for(int i=0;i<images.size();i++)
+		{
+			stats_vertex_images.push_back(  GetMeanAndVariance(surf, images[i]));
+			std::cout << " ah " <<  stats_vertex_images[i][vertexDebug].first <<  " " << stats_vertex_images[i][vertexDebug].second << std::endl;
+		}
+	}
+	for (unsigned int j=0;j<surf->nvertices;j++)
+	{
+		surf->vertices[j].targx = surf->vertices[j].x;
+		surf->vertices[j].targy = surf->vertices[j].y;
+		surf->vertices[j].targz = surf->vertices[j].z;
+		surf->vertices[j].ripflag =1 ;
+	
+		for(int i=0;i<ps.size(); i++)
+		{
+			ps[i] =intensities[i] = magnitudes[i] =0;
+		}
+		double xv, yv, zv; //xvp, yvp, zvp, xvn, yvn, zvn;//, nxv, nyv,nzv;
+		float x,y,z;
+		double nx=0,ny=0,nz=0;
+		getNormal(surf, images[0],j, &nx, &ny, &nz);
+		//std::cout << nx << " "<<ny<< " " << nz << std::endl;
+		
+
+		if(j==vertexDebug)
+			std::cout << nx << " " << ny << " " << nz << std::endl;
+
+		float dx=pow( surf->vertices[j].x - surf->vertices[j].whitex,2);
+		float dy= pow(surf->vertices[j].y - surf->vertices[j].whitey,2);
+		float dz= pow(surf->vertices[j].z - surf->vertices[j].whitez,2);
+
+		MRISsurfaceRASToVoxel(surf, images[0], surf->vertices[j].x,surf->vertices[j].y,surf->vertices[j].z, &xv,&yv,&zv);
+	 	double dmin=0;
+		int numberOfHops = 2;
+		SURFHOPLIST* hops = SetSurfHopList(j, surf, numberOfHops);
+		for(int t=1; t<5 ; t++)
+		{
+			int vno1, nthface, faceno2,vno2,k; 
+			float dminv;
+			double d,dL=0.2;
+			double pv1[3], pf1[3], pf2[3], pf3[3], pmin[3], pmin0[3];
+			VERTEX v1, *v2;
+
+
+			StuffVertexCoords(surf, j, pv1);
+			v1 = surf->vertices[j];    
+			
+			double nnx = surf->vertices[j].nx;
+			double nny = surf->vertices[j].ny;
+			double nnz = surf->vertices[j].nz;
+			double sum = sqrt(pow( nnx,2) +pow( nny,2) +  pow(nnz,2));
+
+			v1.x = surf->vertices[j].x + (t*.5)*surf->vertices[j].nx/sum;
+			v1.y = surf->vertices[j].y + (t*.5) *surf->vertices[j].ny/sum;
+			v1.z = surf->vertices[j].z + (t*.5) *surf->vertices[j].nz/sum;
+
+
+			// Get the closest vertex in surf2
+    			vno2 = mht->findClosestVertexNoXYZ(v1.x,v1.y,v1.z, &dminv);
+			//vno2 = MHTfindClosestVertexNo2(mht, surf, surf, &v1, &dminv);
+	//		vno2 = MHTfindClosestVertexNo2(mht, surf, surf, &v1, &dminv);
+			if( j == vertexDebug)
+				std::cout << "v1  " <<  v1.x <<" " << surf->vertices[j].x <<  " "  << surf->vertices[j].nx << " " << sum<< " " << dminv <<  std::endl;
+			if( vno2 > 0 && vno2 <surf->nvertices )
+			{	
+
+				int norm=0;
+				bool good= true;
+				for(int h=0; h<numberOfHops; h++)
+				{
+					for(int n=0; n< hops->nperhop[h];n++)
+					{
+						int vtxno = hops->vtxlist[h][n];
+						if( vtxno == vno2 )
+						{
+							good=false;			
+							break;
+						}
+					}
+				}
+				if(good ) 
+					dmin+=1;
+			}
+		
+		}
+		SurfHopListFree(&hops);
+		if( j == vertexDebug)
+			std::cout << "distance " <<  dmin <<  " distance to white "<< dx + dy + dz <<  std::endl;
+		surf->vertices[j].curv = dmin;
+
+		double mag, val;
+		bool count =false;
+		int counting = 0;
+		for(int t=-this->numberOfSteps; (t<=this->numberOfSteps || (ps[t+numberOfSteps-1] >1.0e-20  && t +numberOfSteps< ps.size()));t++)
+		{
+			//ps[t+numberOfSteps] =1;
+
+			x=xv +nx*(t)*step;
+			y=yv +ny*(t)*step;
+			z=zv +nz*(t)*step;
+
+			double whiteIntensity, vesselIntensity;
+			MRIsampleVolume(this->whiteMR, x, y, z, &whiteIntensity);
+			MRIsampleVolume(this->vesselMR, x, y, z, &vesselIntensity);
+			masks[t+numberOfSteps]= vesselIntensity;
+			masksW[t+numberOfSteps]= whiteIntensity;
+			double label=0;	
+			MRIsampleVolumeFrameType(this->segmentation, x, y, z, 0, SAMPLE_NEAREST, &label);
+			segs[t+numberOfSteps]= label;
+			for(int k=0;k<images.size();k++)
+			{
+				MRIsampleVolume(images[k], x, y, z, &val);
+
+				MRIsampleVolumeDerivativeScale(images[k], x, y, z, nx, ny, nz, &mag, this->gradientSigma); //, step, vertexDebug==j);				
+				//probability of grey
+				//float p = (1.0/sqrt(2*varGrey)) *exp( - pow(val-meanGrey,2) /(2*varGrey));
+				float p = exp( - pow(val-stats_vertex_images[k][j].first,2) /(2*stats_vertex_images[k][j].second));
+
+				magnitudes[t+numberOfSteps]+= fabs(mag) /images.size();
+				intensities[t+numberOfSteps]+=val/images.size();
+				ps[t+numberOfSteps]+=(1-whiteIntensity) * p/images.size();
+			}
+			if(vertexDebug==j)
+			{
+				std::cout << "distance from ori " << t*step <<  " " << magnitudes[t+numberOfSteps] <<   " " << val << " " << ps[t+numberOfSteps] << "  white intensity "<< whiteIntensity << " vesselIntensity " << vesselIntensity  << std::endl;
+			}
+			if(ps[t+numberOfSteps]>.5)
+				count = true;
+			if(count && ps[t+numberOfSteps] ==0)
+				counting++;
+			else
+				counting =0;
+
+			if(counting ==2)	
+				break;
+		}
+		if( vertexDebug == j)
+			std::cout << "dist to white" <<  (dx + dy + dz   ) << " dist to next sulcus " <<   dmin  <<  std::endl;
+		if(((dx + dy + dz >1  ) &&  (dmin <=3))) 
+		{
+			
+
+			surf->vertices[j].ripflag =false;
+			float opt_mag=0,opt_val;
+			int opt_t;
+			/*float leftW= this->DistanceToMidline(surf->vertices[j].whitex, surf->vertices[j].whitey, surf->vertices[j].whitez);
+			leftW /= fabs(leftW);*/
+			int  label=0, prevLabel=0, lastCortexLabel=0;
+			float touchedStructure =0;
+			float changeHemis=0;
+			float changeHemisAseg=0;
+			bool good=true; 
+			int zeroLabel=0;
+			for(int i=1;(i< numberOfSteps+1 || ( ps[i-1] > 1e-15 && i < ps.size() -1));i++)
+			{
+				if (vertexDebug ==j)
+					std::cout <<" opt mag " << opt_mag << " mag " << magnitudes[i] << " " << ps[i] << " " << ps[i-1] << " " << ps[i-2] << std::endl;
+				x=xv  +nx*(i -numberOfSteps)*step;
+				y= yv +ny*(i-numberOfSteps)*step;
+				z=zv +nz*(i-numberOfSteps)*step;
+
+				double point[3] = {x,y,z};
+
+				//avoid white matter, brainstem, cerebellum and hyppocamps
+				double xt,yt,zt;
+				MRIvoxelToSurfaceRAS(images[0], x,y,z, &xt,&yt,&zt);
+
+				/*float leftP = this->DistanceToMidline(xt,yt,zt);				
+				leftP /= fabs(leftP);*/
+				label=segs[i];
+				if(  label ==53 || label == 17 || label == 16 || label == 47 || label == 8 || ((label != 2 && label !=  41 )&& masksW[i] <.1 && masks[i+1] > .1 && masksW[i+1]<.01) ) 
+				{
+					touchedStructure ++;
+				}
+				else if (( segs[i+1]>1000 && lastCortexLabel > 1000  && fabs(segs[i+1] -lastCortexLabel) > 900 ) || ( segs[i+1] ==42  && lastCortexLabel ==3) || (segs[i+1] ==3 && lastCortexLabel ==42)  )
+				{
+					changeHemisAseg ++;
+					changeHemis ++;
+				}
+				if (label== 0)
+				{ 	/*if(fabs(leftW + leftP)  ==0)  
+					{
+						changeHemis ++;
+					}*/
+					zeroLabel++;		
+				}
+				
+				if (vertexDebug ==j)
+					std::cout << lastCortexLabel << " " << segs[i+1] << " " << touchedStructure <<   std::endl;
+			//label = (label>.5)?1:0;
+				if((fabs(magnitudes[i])>opt_mag && ps[i] > 1e-15)  || touchedStructure>0 || (changeHemis > 0  && fabs(magnitudes[i]) *1.5 > opt_mag) ||( changeHemisAseg >0&& zeroLabel <3 &&opt_mag < 5))
+				{
+
+					int w=i;
+					good = true;
+					for( ; w>0 && good && (ps[w-1] <1e-05  || fabs(i-w) <1);w--)
+					{
+						good = ps[w-1] >= ps [w] && masks[w] <.1 ;
+						if(vertexDebug==j)
+							std::cout << ps[w-1 ] << " " << ps[w] <<  " " << w << " " << masks[w]<< std::endl;
+					}
+					if((((ps[w-1] > 1e-05 )|| good ) || (touchedStructure >0  && ps[i-1] > 1e-1 )) && label != 41 && label !=2 )  
+					{
+						opt_mag = fabs( magnitudes[i]);
+						opt_val= intensities[i];
+						opt_t =  i;
+						surf->vertices[j].targx = xt ;
+						surf->vertices[j].targy = yt;
+						surf->vertices[j].targz = zt;
+
+						if(vertexDebug==j)
+						{
+							std::cout << "TAKING: distance from ori " << (i-numberOfSteps)*step <<  " " << opt_mag <<   " " << opt_val << std::endl;
+
+						}
+					}
+				}		
+				if (  touchedStructure>0  ||changeHemis >1  || changeHemisAseg >0) //|| (!IS_BRAIN(label) && masks[i] >.5 ))
+					break;
+	
+				if (label!= 0)
+				{
+					lastCortexLabel=label;
+					zeroLabel=0;
+				}
+				prevLabel= label;
+			}
+		}
+	}
+	MHTfree(&mht);
+}
+void MRIS_MultimodalRefinement::getTargetO(MRIS* surf )
 {
 	std::cout << " getTarget "<< std::endl;
 	std::cout << " number of steps "<< this->numberOfSteps <<std::endl;
@@ -222,8 +484,9 @@ void MRIS_MultimodalRefinement::getTarget(MRIS* surf )
 			std::cout << "dist to white" <<  (dx + dy + dz   ) << " dist to next sulcus " <<   dmin  << " vessel ?  " << vertexMask  << std::endl;
 		if(((dx + dy + dz >1  ) &&  (dmin <=3))) // || vertexMask >.5)
 		{
+			
 
-
+			surf->vertices[j].ripflag =false;
 			float opt_mag=0,opt_val;
 			int opt_t;
 			float leftW= this->DistanceToMidline(surf->vertices[j].whitex, surf->vertices[j].whitey, surf->vertices[j].whitez);
@@ -276,13 +539,13 @@ void MRIS_MultimodalRefinement::getTarget(MRIS* surf )
 
 					int w=i;
 					good = true;
-					for( ; w>0 && good && (ps[w-1] <1e-02  || fabs(i-w) <1);w--)
+					for( ; w>0 && good && (ps[w-1] <1e-05  || fabs(i-w) <1);w--)
 					{
 						good = ps[w-1] >= ps [w] && masks[w] <.1 ;
 						if(vertexDebug==j)
 							std::cout << ps[w-1 ] << " " << ps[w] <<  " " << w << " " << masks[w]<< std::endl;
 					}
-					if((((ps[w-1] > 1e-02 )|| good ) || (touchedStructure >0  && ps[i-1] > 1e-1 )) && label != 41 && label !=2 )  
+					if((((ps[w-1] > 1e-05 )|| good ) || (touchedStructure >0  && ps[i-1] > 1e-1 )) && label != 41 && label !=2 )  
 					{
 						opt_mag = fabs( magnitudes[i]);
 						opt_val= intensities[i];
@@ -290,7 +553,6 @@ void MRIS_MultimodalRefinement::getTarget(MRIS* surf )
 						surf->vertices[j].targx = xt ;
 						surf->vertices[j].targy = yt;
 						surf->vertices[j].targz = zt;
-						surf->vertices[j].ripflag =false;
 
 						if(vertexDebug==j)
 						{
@@ -397,7 +659,7 @@ void  MRIS_MultimodalRefinement::SegmentWM(MRI* t1, MRI* t2, MRI* output)
 				float T1val = MRIgetVoxVal(t1, x, y, z, 0) ;
 				float T2val = MRIgetVoxVal(t2, x, y, z, 0) ;
 				int val = 0;
-				if(1.3*T1val > T2val &&  T1val +  T2val >= 180 )
+				if(1.3*T1val > T2val &&  (T1val +  T2val) >= 180 && T1val > 80 && T2val > 80)
 				{
 					val =1;
 				}
@@ -421,7 +683,7 @@ void  MRIS_MultimodalRefinement::SegmentVessel(MRI* t1, MRI* t2, MRI* output)
 				float T1val = MRIgetVoxVal(t1, x, y, z, 0) ;
 				float T2val = MRIgetVoxVal(t2, x, y, z, 0) ;
 				int val = 0;
-				if (  1.4*T1val > T2val && (T1val +T2val <180))
+				if (  (1.4*T1val > T2val && (T1val +T2val <180)) || (T1val <80 && T2val <80) || (T1val > 110 && T2val>110))
 				{
 					val=1;
 				}

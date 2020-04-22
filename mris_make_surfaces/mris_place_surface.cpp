@@ -559,6 +559,7 @@ int main(int argc, char **argv)
     parms.sigma = current_sigma ;
     parms.n_averages = n_averages ;
 
+    INTEGRATION_PARMS_copy(&old_parms, &parms) ;
     if(mmvol == NULL){
       // Compute the target intensity value (l_intensity)
       printf("Computing target border values \n");
@@ -619,7 +620,7 @@ int main(int argc, char **argv)
 	refine->SegmentWM(invol,mmvol, whiteMR);
 	refine->SegmentVessel(invol,mmvol, vesselMR);
 	refine->SetStep(.4);
-	refine->SetNumberOfSteps(8);
+	refine->SetNumberOfSteps(12);
 	refine->SetGradientSigma(.3);
 	refine->SetSegmentation(seg);
 	refine->FindMaximumGradient(mm_contrast_type == CONTRAST_T2);
@@ -631,10 +632,18 @@ int main(int argc, char **argv)
 	MRIfree(&whiteMR);
 	MRIfree(&vesselMR);
 	delete refine;
-      }
+        MRIS* surftarget = MRISclone(surf);
+	for(int v =0; v<surf->nvertices;v++)
+	{
+		surftarget->vertices[v].x =surf->vertices[v].targx;	
+		surftarget->vertices[v].y =surf->vertices[v].targy;	
+		surftarget->vertices[v].z =surf->vertices[v].targz;	
+	}
+  	 MRISwrite(surftarget,std::string(std::string(outsurfpath)+std::string(".target") ).c_str());
+	MRISfree(&surftarget);
+	 }		
     }
 
-    INTEGRATION_PARMS_copy(&old_parms, &parms) ;
 
     // This appears to adjust the cost weights based on the iteration but in
     // practice, they never change because spring scale is 1
