@@ -49,6 +49,11 @@ Output annotation file. By default, it will be stored in the subject's
 label directory. If you do not want it there, then supply some path
 in front of it (eg, './'). This is a file like lh.aparc.annot.
 
+--seg2annot seg surf ctab output
+
+This gives the same result but does not rely on recon-all directory structure
+
+
 EXAMPLE:
 
   mris_seg2annot --seg lh.FL_002.sig.th8.mgh \\
@@ -291,7 +296,26 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       annotfile = pargv[0];
       nargsused = 1;
-    } else {
+    } 
+    else if (!strcasecmp(option, "--seg2annot")) {
+      // --seg2annot seg surf ctab output
+      if(nargc < 4) CMDargNErr(option,3);
+      MRI *seg = MRIread(pargv[0]);
+      if(seg == NULL) exit(1);
+      MRIS *surf = MRISread(pargv[1]);
+      if(surf == NULL) exit(1);
+      COLOR_TABLE *ctab = CTABreadASCII(pargv[2]);
+      if (ctab == NULL) {
+	printf("ERROR: reading %s\n",pargv[2]);
+	exit(1);
+      }
+      int err = MRISseg2annot(surf, seg, ctab);
+      if(err) exit(1);
+      printf("Writing annot to %s\n",pargv[3]);
+      err = MRISwriteAnnotation(surf, pargv[3]);
+      exit(err);
+    } 
+    else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if (CMDsingleDash(option))
         fprintf(stderr,"       Did you really mean -%s ?\n",option);
@@ -323,6 +347,9 @@ static void print_usage(void) {
   printf("   --checkopts don't run anything, just check options and exit\n");
   printf("   --help      print out information on how to use this program\n");
   printf("   --version   print out version and exit\n");
+  printf("\n");
+  printf("   --seg2annot seg surf ctab output\n");
+  printf("     This gives the same result but does not rely on recon-all directory structure\n");
   printf("\n");
   std::cout << getVersion() << std::endl;
   printf("\n");
