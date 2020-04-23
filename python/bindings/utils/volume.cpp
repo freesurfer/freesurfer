@@ -81,9 +81,12 @@ void Bridge::transferParameters(py::object& pyobj)
   // grab number of basedims
   const int ndims = pyobj.attr("basedims").cast<int>();
 
+  // extract resolution
+  if (ndims == 2) pyobj.attr("pixsize") = py::make_tuple(p_mri->xsize, p_mri->ysize);
+  if (ndims == 3) pyobj.attr("voxsize") = py::make_tuple(p_mri->xsize, p_mri->ysize, p_mri->zsize);
+  
   // extract the affine transform if it's an image or volume
   if ((ndims == 2) || (ndims == 3)) {
-    pyobj.attr("voxsize") = py::make_tuple(p_mri->xsize, p_mri->ysize, p_mri->zsize);
     if (p_mri->ras_good_flag == 1) {
       MATRIX *matrix = extract_i_to_r(p_mri.get());
       py::array affine = copyArray({4, 4}, MemoryOrder::C, matrix->data);
@@ -187,14 +190,21 @@ MRI* Bridge::mri()
   mri->initSlices();
   mri->initIndices();
 
-  if ((ndims == 2) || (ndims == 3)) {
-    // voxel size
+  // voxel size
+  if (ndims == 2) {
+    std::vector<float> pixsize = source.attr("pixsize").cast<std::vector<float>>();
+    mri->xsize = pixsize[0];
+    mri->ysize = pixsize[1];
+    mri->zsize = 1.0;
+  } else if (ndims == 3) {
     std::vector<float> voxsize = source.attr("voxsize").cast<std::vector<float>>();
     mri->xsize = voxsize[0];
     mri->ysize = voxsize[1];
     mri->zsize = voxsize[2];
+  }
 
-    // set the affine transform (must come after setting voxel size)
+  // set the affine transform (must come after setting voxel size)
+  if ((ndims == 2) || (ndims == 3)) {
     py::object pyaffine = source.attr("affine");
     if (pyaffine.is(py::none())) {
       mri->ras_good_flag = 0;

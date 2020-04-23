@@ -124,16 +124,52 @@ class Image(ArrayContainerTemplate, Transformable):
     '''2D image with specific geometry.'''
     basedims = 2
 
-    def __init__(self, data, affine=None):
+    def __init__(self, data, affine=None, pixsize=None):
         '''Contructs an image from a 2D or 3D data array. The 3rd dimension is
         always assumed to be the number of frames.'''
         ArrayContainerTemplate.__init__(self, data)
         self.affine = affine
-        self.voxsize = (1.0, 1.0, 1.0)
+        self.pixsize = pixsize if pixsize is not None else (1.0, 1.0)
 
     def geometry(self):
         '''Returns volume geometry as a `Geometry` instance.'''
-        return Geometry(self.shape, self.voxsize, self.affine)
+        return Geometry(self.shape, self.pixsize, self.affine)
+
+    def copy_geometry(self, image):
+        '''Copies pixsize and affine information from another image.'''
+        self.affine = image.affine
+        self.pixsize = image.pixsize
+
+    def reslice(self, pixsize, interp_method='linear', smooth_sigma=0):
+        '''
+        Returns the resampled image with a given resolution determined by pixel size in mm.
+
+        Parameters:
+            pixsize: Voxel size of target volume. Can be single value or list.
+            interp_method: Interpolation method. Must be 'linear' or 'nearest'. Default is 'linear'.
+            smooth_sigma: Apply gaussian smoothing before resampling (kernel size is
+                in voxel space). Default is 0.
+        '''
+
+        # convert single value to list
+        if not isinstance(pixsize, Iterable):
+            pixsize = [pixsize] * 2
+
+        # reshape image into '3D' array
+        src_shape_3d = (*self.shape[:2], 1)
+        if self.data.ndim != 2:
+            src_shape_3d = (*src_shape_3d, self.nframes)
+
+        # reslice the image as a 'volume'
+        src_vol = Volume(np.reshape(self.data, src_shape_3d), affine=self.affine, voxsize=(*self.pixsize[:2], 1.0))
+        trg_vol = src_vol.reslice((*pixsize[:2], 1.0), interp_method=interp_method, smooth_sigma=smooth_sigma)
+
+        # transfer back into image
+        trg_shape = trg_vol.shape[:2]
+        if self.data.ndim != 2:
+            trg_shape = (*trg_shape, self.nframes)
+        resliced_image = Image(np.reshape(trg_vol.data, trg_shape), affine=trg_vol.affine, pixsize=trg_vol.voxsize[:2])
+        return resliced_image
 
 
 class Volume(ArrayContainerTemplate, Transformable):
