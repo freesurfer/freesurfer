@@ -1191,9 +1191,11 @@ MRI *MRIfixAsegWithRibbon(MRI *aseg, MRI *ribbon, MRI *asegfixed)
     lhCerebralWM,                 // 9
     rhCerebralWM,                 // 10
     lhCerebralWM + rhCerebralWM,  // 11
-    MaskVol,          // 12
-    -1,               // 13   voxel-based supratentorial not vent volume
-    -1,               // 14   surface-based brain  not vent volume
+    MaskVol,                      // 12
+    SupraTentVolNotVent/VoxelVol, // 13   voxel-based supratentorial not vent volume
+    //#14 supposed to be surface-based brain  not vent volume. Just used the volume-based.
+    // If set to -1, then it breaks things later on
+    BrainSegVolNotVent,           // 14   
     VentChorVol       // 15   volume of ventricles + choroid
   };
 
