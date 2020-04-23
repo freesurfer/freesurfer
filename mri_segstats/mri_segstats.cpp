@@ -1062,9 +1062,11 @@ int main(int argc, char **argv)
       fprintf(fp,"# Measure BrainSegNotVent, BrainSegVolNotVent, "
               "Brain Segmentation Volume Without Ventricles, %f, mm^3\n",
               BrainVolStats[1]);
-      fprintf(fp,"# Measure BrainSegNotVentSurf, BrainSegVolNotVentSurf, "
-              "Brain Segmentation Volume Without Ventricles from Surf, %f, mm^3\n",
-              BrainVolStats[14]);
+      // Not computed in ComputeBrainVolumeStats2() anymore because it is very close
+      // to the voxel-based version and adds needless complexity
+      //fprintf(fp,"# Measure BrainSegNotVentSurf, BrainSegVolNotVentSurf, "
+      //      "Brain Segmentation Volume Without Ventricles from Surf, %f, mm^3\n",
+      //      BrainVolStats[14]);
     }
     if (!BrainVolStats.empty()) {
       fprintf(fp,"# Measure VentricleChoroidVol, VentricleChoroidVol, "
@@ -1107,8 +1109,8 @@ int main(int argc, char **argv)
               "Supratentorial volume, %f, mm^3\n",BrainVolStats[2]);
       fprintf(fp,"# Measure SupraTentorialNotVent, SupraTentorialVolNotVent, "
               "Supratentorial volume, %f, mm^3\n",BrainVolStats[3]);
-      fprintf(fp,"# Measure SupraTentorialNotVentVox, SupraTentorialVolNotVentVox, "
-              "Supratentorial volume voxel count, %f, mm^3\n",BrainVolStats[13]);
+      //fprintf(fp,"# Measure SupraTentorialNotVentVox, SupraTentorialVolNotVentVox, "
+      //      "Supratentorial volume voxel count, %f, mm^3\n",BrainVolStats[13]);
     }
     if (BrainMaskFile && (!BrainVolStats.empty())) {
       //fprintf(fp,"# BrainMaskFile  %s \n",BrainMaskFile);
