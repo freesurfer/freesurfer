@@ -4198,52 +4198,6 @@ if($DoCortRibbonVolMask) then
   echo $cmd > $touchdir/cortical_ribbon.touch
 endif
 
-#----------                          -----------#
-#---------- Surface Anatomical Stats -----------#
-##---------       -parcstats         -----------#
-#----------                          -----------#
-if($DoParcStats) then
-
-  # cache volume stats
-  if($RunIt) $fs_time mri_brainvol_stats $subjid |& tee -a $LF
-
-  set CMDFS = () # see earlier notes on -parallel implementation
-  foreach hemi ($hemilist)
-    echo "#-----------------------------------------" \
-      |& tee -a $LF |& tee -a $CF
-    echo "#@# Parcellation Stats $hemi `date`" \
-      |& tee -a $SF |& tee -a $LF |& tee -a $CF
-    cd $subjdir/scripts > /dev/null
-    $PWD |& tee -a $LF
-    set annot = ../label/$hemi.aparc.annot
-    set ctab  = ../label/aparc.annot.ctab
-    set xopts = `fsr-getxopts mris_anatomical_stats $XOptsFile $GlobXOptsFile`;
-    foreach surfname (white pial)
-      if($surfname == white) set stats = ../stats/$hemi.aparc.stats
-      if($surfname == pial)  set stats = ../stats/$hemi.aparc.pial.stats
-      set cmd = (mris_anatomical_stats $TH3Opt -mgz)
-      if ($RHonly || $LHonly || ! $DoTalairach) set cmd = ($cmd -noglobal)
-      if($UseAseg) set cmd = ($cmd -cortex ../label/$hemi.cortex.label)
-      set cmd = ($cmd -f $stats -b -a $annot -c $ctab $xopts \
-        $subjid $hemi $surfname);
-      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-      if($DoParallel) then
-        set CMDF = mris_anatomical_stats_${hemi}_${surfname}.cmd
-        echo "$cmd" > $CMDF
-        set CMDFS = ( $CMDFS $CMDF )
-      else
-        if($RunIt) $fs_time $cmd |& tee -a $LF
-        if($status) goto error_exit;
-      endif
-    end
-    echo $cmd > $touchdir/$hemi.aparcstats.touch
-  end # Loop over hemilist
-  if($RunIt && $DoParallel) then
-    reconbatchjobs $LF $CMDFS |& tee -a $LF
-    if($status) goto error_exit;
-  endif
-endif
-
 #----------------                         -----------------#
 #---------------- Cortical Parcellation 2 -----------------#
 ##---------------       -cortparc2        -----------------#
@@ -4288,44 +4242,6 @@ if($DoCortParc2) then
   endif
 endif
 
-#----------                            ------------#
-#---------- Surface Anatomical Stats 2 ------------#
-##---------         -parcstats2         -----------#
-#----------                            ------------#
-if($DoParcStats2) then
-  set CMDFS = () # see earlier notes on -parallel implementation
-  foreach hemi ($hemilist)
-    echo "#-----------------------------------------" \
-      |& tee -a $LF |& tee -a $CF
-    echo "#@# Parcellation Stats 2 $hemi `date`" \
-      |& tee -a $SF |& tee -a $LF |& tee -a $CF
-    cd $subjdir/scripts > /dev/null
-    $PWD |& tee -a $LF
-    set annot = ../label/$hemi.aparc.${DESTRIEUX_NAME}.annot
-    set stats = ../stats/$hemi.aparc.${DESTRIEUX_NAME}.stats
-    set ctab  = ../label/aparc.annot.${DESTRIEUX_NAME}.ctab
-    set xopts = `fsr-getxopts mris_anatomical_stats $XOptsFile $GlobXOptsFile`;
-    set cmd = (mris_anatomical_stats  $TH3Opt -mgz)
-    if ($RHonly || $LHonly) set cmd = ($cmd -noglobal)
-    if($UseAseg) set cmd = ($cmd -cortex ../label/$hemi.cortex.label)
-    set cmd = ($cmd -f $stats -b -a $annot -c $ctab $xopts $subjid $hemi white);
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    if($DoParallel) then
-      set CMDF = mris_anatomical_stats_${hemi}.cmd
-      echo "$cmd" > $CMDF
-      set CMDFS = ( $CMDFS $CMDF )
-    else
-      if($RunIt) $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
-    endif
-    echo $cmd > $touchdir/$hemi.aparcstats2.touch
-  end # Loop over hemilist
-  if($RunIt && $DoParallel) then
-    reconbatchjobs $LF $CMDFS |& tee -a $LF
-    if($status) goto error_exit;
-  endif
-endif
-
 #----------------                         -----------------#
 #---------------- Cortical Parcellation 3 -----------------#
 ##---------------       -cortparc3        -----------------#
@@ -4363,44 +4279,6 @@ if($DoCortParc3) then
       if($status) goto error_exit;
     endif
     echo $cmd > $touchdir/$hemi.aparc2.touch
-  end # Loop over hemilist
-  if($RunIt && $DoParallel) then
-    reconbatchjobs $LF $CMDFS |& tee -a $LF
-    if($status) goto error_exit;
-  endif
-endif
-
-#----------                            -----------#
-#---------- Surface Anatomical Stats 3 -----------#
-##---------         -parcstats3        -----------#
-#----------                            -----------#
-if($DoParcStats3) then
-  set CMDFS = () # see earlier notes on -parallel implementation
-  foreach hemi ($hemilist)
-    echo "#-----------------------------------------" \
-      |& tee -a $LF |& tee -a $CF
-    echo "#@# Parcellation Stats 3 $hemi `date`" \
-      |& tee -a $SF |& tee -a $LF |& tee -a $CF
-    cd $subjdir/scripts > /dev/null
-    $PWD |& tee -a $LF
-    set annot = ../label/$hemi.aparc.${DKTATLAS_NAME}.annot
-    set stats = ../stats/$hemi.aparc.${DKTATLAS_NAME}.stats
-    set ctab  = ../label/aparc.annot.${DKTATLAS_NAME}.ctab
-    set xopts = `fsr-getxopts mris_anatomical_stats $XOptsFile $GlobXOptsFile`;
-    set cmd = (mris_anatomical_stats  $TH3Opt -mgz)
-    if ($RHonly || $LHonly) set cmd = ($cmd -noglobal)
-    if($UseAseg) set cmd = ($cmd -cortex ../label/$hemi.cortex.label)
-    set cmd = ($cmd -f $stats -b -a $annot -c $ctab $xopts $subjid $hemi white);
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    if($DoParallel) then
-      set CMDF = mris_anatomical_stats_${hemi}.cmd
-      echo "$cmd" > $CMDF
-      set CMDFS = ( $CMDFS $CMDF )
-    else
-      if($RunIt) $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
-    endif
-    echo $cmd > $touchdir/$hemi.aparcstats3.touch
   end # Loop over hemilist
   if($RunIt && $DoParallel) then
     reconbatchjobs $LF $CMDFS |& tee -a $LF
@@ -4472,7 +4350,7 @@ endif
 #-----------------             ------------------ #
 #-----------------  Final Aseg ------------------ #
 ##----------------  -apas2aseg ------------------ #
-#-----------------             ------------------ #
+#--- Not really apas2aseg, but keeping the flag - #
 if($DoAPas2ASeg) then
   echo "#-----------------------------------------"  |& tee -a $LF |& tee -a $CF
   echo "#@# APas-to-ASeg `date`"  |& tee -a $SF |& tee -a $LF |& tee -a $CF
@@ -4500,6 +4378,14 @@ if($DoAPas2ASeg) then
   else
     echo "Updated not needed forf aseg.mgz" | tee -a $LF
   endif
+endif
+
+# Cache global brain volume stats (needs aseg.mgz above). WMParc because it computes stats
+if($DoSegStats || $DoParcStats || $DoParcStats2 || $DoParcStats3 || $DoWMParc) then
+  set cmd = (mri_brainvol_stats $subjid)
+  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+  if($RunIt) $fs_time $cmd |& tee -a $LF
+  if($status) goto error_exit;
 endif
 
 #-----------------               -----------------#
@@ -4577,7 +4463,7 @@ if($DoWMParc) then
     if($status) goto error_exit;
     echo $cmd > $touchdir/apas2aseg.touch
   else
-    echo "Updated not needed forf wmparc.mgz" | tee -a $LF
+    echo "Updated not needed for wmparc.mgz" | tee -a $LF
   endif
 
   cd $subjdir
@@ -4600,6 +4486,125 @@ if($DoWMParc) then
   if($RunIt) $fs_time $cmd |& tee -a $LF
   if($status) goto error_exit;
   echo $cmd > $touchdir/wmaparc.stats.touch
+endif
+
+#----------                          -----------#
+#---------- Surface Anatomical Stats -----------#
+##---------       -parcstats         -----------#
+#----------                          -----------#
+if($DoParcStats) then
+
+  set CMDFS = () # see earlier notes on -parallel implementation
+  foreach hemi ($hemilist)
+    echo "#-----------------------------------------" \
+      |& tee -a $LF |& tee -a $CF
+    echo "#@# Parcellation Stats $hemi `date`" \
+      |& tee -a $SF |& tee -a $LF |& tee -a $CF
+    cd $subjdir/scripts > /dev/null
+    $PWD |& tee -a $LF
+    set annot = ../label/$hemi.aparc.annot
+    set ctab  = ../label/aparc.annot.ctab
+    set xopts = `fsr-getxopts mris_anatomical_stats $XOptsFile $GlobXOptsFile`;
+    foreach surfname (white pial)
+      if($surfname == white) set stats = ../stats/$hemi.aparc.stats
+      if($surfname == pial)  set stats = ../stats/$hemi.aparc.pial.stats
+      set cmd = (mris_anatomical_stats $TH3Opt -mgz)
+      if ($RHonly || $LHonly || ! $DoTalairach) set cmd = ($cmd -noglobal)
+      if($UseAseg) set cmd = ($cmd -cortex ../label/$hemi.cortex.label)
+      set cmd = ($cmd -f $stats -b -a $annot -c $ctab $xopts \
+        $subjid $hemi $surfname);
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      if($DoParallel) then
+        set CMDF = mris_anatomical_stats_${hemi}_${surfname}.cmd
+        echo "$cmd" > $CMDF
+        set CMDFS = ( $CMDFS $CMDF )
+      else
+        if($RunIt) $fs_time $cmd |& tee -a $LF
+        if($status) goto error_exit;
+      endif
+    end
+    echo $cmd > $touchdir/$hemi.aparcstats.touch
+  end # Loop over hemilist
+  if($RunIt && $DoParallel) then
+    reconbatchjobs $LF $CMDFS |& tee -a $LF
+    if($status) goto error_exit;
+  endif
+endif
+
+#----------                            ------------#
+#---------- Surface Anatomical Stats 2 ------------#
+##---------         -parcstats2         -----------#
+#----------                            ------------#
+if($DoParcStats2) then
+  set CMDFS = () # see earlier notes on -parallel implementation
+  foreach hemi ($hemilist)
+    echo "#-----------------------------------------" \
+      |& tee -a $LF |& tee -a $CF
+    echo "#@# Parcellation Stats 2 $hemi `date`" \
+      |& tee -a $SF |& tee -a $LF |& tee -a $CF
+    cd $subjdir/scripts > /dev/null
+    $PWD |& tee -a $LF
+    set annot = ../label/$hemi.aparc.${DESTRIEUX_NAME}.annot
+    set stats = ../stats/$hemi.aparc.${DESTRIEUX_NAME}.stats
+    set ctab  = ../label/aparc.annot.${DESTRIEUX_NAME}.ctab
+    set xopts = `fsr-getxopts mris_anatomical_stats $XOptsFile $GlobXOptsFile`;
+    set cmd = (mris_anatomical_stats  $TH3Opt -mgz)
+    if ($RHonly || $LHonly) set cmd = ($cmd -noglobal)
+    if($UseAseg) set cmd = ($cmd -cortex ../label/$hemi.cortex.label)
+    set cmd = ($cmd -f $stats -b -a $annot -c $ctab $xopts $subjid $hemi white);
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($DoParallel) then
+      set CMDF = mris_anatomical_stats_${hemi}.cmd
+      echo "$cmd" > $CMDF
+      set CMDFS = ( $CMDFS $CMDF )
+    else
+      if($RunIt) $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    endif
+    echo $cmd > $touchdir/$hemi.aparcstats2.touch
+  end # Loop over hemilist
+  if($RunIt && $DoParallel) then
+    reconbatchjobs $LF $CMDFS |& tee -a $LF
+    if($status) goto error_exit;
+  endif
+endif
+
+#----------                            -----------#
+#---------- Surface Anatomical Stats 3 -----------#
+##---------         -parcstats3        -----------#
+#----------                            -----------#
+if($DoParcStats3) then
+  set CMDFS = () # see earlier notes on -parallel implementation
+  foreach hemi ($hemilist)
+    echo "#-----------------------------------------" \
+      |& tee -a $LF |& tee -a $CF
+    echo "#@# Parcellation Stats 3 $hemi `date`" \
+      |& tee -a $SF |& tee -a $LF |& tee -a $CF
+    cd $subjdir/scripts > /dev/null
+    $PWD |& tee -a $LF
+    set annot = ../label/$hemi.aparc.${DKTATLAS_NAME}.annot
+    set stats = ../stats/$hemi.aparc.${DKTATLAS_NAME}.stats
+    set ctab  = ../label/aparc.annot.${DKTATLAS_NAME}.ctab
+    set xopts = `fsr-getxopts mris_anatomical_stats $XOptsFile $GlobXOptsFile`;
+    set cmd = (mris_anatomical_stats  $TH3Opt -mgz)
+    if ($RHonly || $LHonly) set cmd = ($cmd -noglobal)
+    if($UseAseg) set cmd = ($cmd -cortex ../label/$hemi.cortex.label)
+    set cmd = ($cmd -f $stats -b -a $annot -c $ctab $xopts $subjid $hemi white);
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($DoParallel) then
+      set CMDF = mris_anatomical_stats_${hemi}.cmd
+      echo "$cmd" > $CMDF
+      set CMDFS = ( $CMDFS $CMDF )
+    else
+      if($RunIt) $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    endif
+    echo $cmd > $touchdir/$hemi.aparcstats3.touch
+  end # Loop over hemilist
+  if($RunIt && $DoParallel) then
+    reconbatchjobs $LF $CMDFS |& tee -a $LF
+    if($status) goto error_exit;
+  endif
 endif
 
 #--------------            --------------#
