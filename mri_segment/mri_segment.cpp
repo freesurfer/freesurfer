@@ -72,7 +72,7 @@ static int auto_detect_stats =  1 ;
 static int no1d_remove = 0 ;
 static int log_stats = 1 ;
 static void  usage_exit(int code) ;
-char *segmentdatfile = "segment.dat";
+const char *segmentdatfile = "segment.dat";
 
 #define BLUR_SIGMA 0.25f
 static float blur_sigma = BLUR_SIGMA ;

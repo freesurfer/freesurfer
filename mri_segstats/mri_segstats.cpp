@@ -95,7 +95,7 @@ int MRIsegCount(MRI *seg, int id, int frame);
 STATSUMENTRY *LoadStatSumFile(char *fname, int *nsegid);
 int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int CountEdits(char *subject, char *outfile);
-float *WMAnatStats(char *subject, char *volname, int nErodes, float Pct);
+float *WMAnatStats(const char *subject, const char *volname, int nErodes, float Pct);
 
 int main(int argc, char *argv[]) ;
 
@@ -106,8 +106,8 @@ char *InVolFile = NULL;
 char *InVolRegFile = NULL;
 MATRIX *InVolReg = NULL;
 int InVolRegHeader = 0;
-char *InIntensityName = "";
-char *InIntensityUnits = "unknown";
+const char *InIntensityName = "";
+const char *InIntensityUnits = "unknown";
 char *MaskVolFile = NULL;
 char *PVVolFile = NULL;
 char *BrainMaskFile = NULL;
@@ -143,7 +143,7 @@ GCA *gca;
 
 float maskthresh = 0.5;
 int   maskinvert = 0, maskframe = 0;
-char *masksign=NULL;
+const char *masksign=NULL;
 int   maskerode = 0;
 int   nmaskhits;
 int DoSubCortGrayVol = 0;
@@ -165,7 +165,7 @@ MRIS *mris;
 char *subject = NULL;
 char *hemi    = NULL;
 char *annot   = NULL;
-char *whitesurfname = "white";
+const char *whitesurfname = "white";
 
 int Vox[3], DoVox = 0;
 int  segbase = -1000;
@@ -2395,7 +2395,7 @@ int CountEdits(char *subject, char *outfile)
   return(0);
 }
 
-float *WMAnatStats(char *subject, char *volname, int nErodes, float Pct)
+float *WMAnatStats(const char *subject, const char *volname, int nErodes, float Pct)
 {
   char sd[4000],tmpstr[4000];
   float *stats,val;

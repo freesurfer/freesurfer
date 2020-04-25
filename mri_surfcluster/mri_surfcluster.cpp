@@ -58,7 +58,7 @@ static void dump_options(FILE *fp);
 static int  isflag(char *flag);
 static int  nth_is_arg(int nargc, char **argv, int nth);
 static int  singledash(char *flag);
-static int  stringmatch(char *str1, char *str2);
+static int  stringmatch(const char *str1, const char *str2);
 
 int main(int argc, char *argv[]) ;
 
@@ -70,7 +70,7 @@ char *hemi = NULL;
 char *srcid = NULL;
 char *srcfmt  = "";
 int   srcfmtid = MRI_VOLUME_TYPE_UNKNOWN;
-char *srcsurfid = "white";
+const char *srcsurfid = "white";
 char *srcsubjid = NULL;
 int   srcframe = 0;
 double thmin = -1, thmax = -1;
@@ -83,14 +83,14 @@ char *maskid   = NULL;
 char *maskfmt  = NULL;
 int   maskfmtid = MRI_VOLUME_TYPE_UNKNOWN;
 char *masksubjid  = NULL;
-char *masksignstr  = NULL;
+const char *masksignstr  = NULL;
 int  masksign  = 0;
 float maskthresh = 0.5; // assume binary
 
 int  nth = -1;
 
 char *omaskid = NULL;
-char *omaskfmt = "paint";
+const char *omaskfmt = "paint";
 char *omasksubjid = NULL;
 
 // Constraining label
@@ -1534,7 +1534,7 @@ static int nth_is_arg(int nargc, char **argv, int nth) {
   return(1);
 }
 /*------------------------------------------------------------*/
-static int stringmatch(char *str1, char *str2) {
+static int stringmatch(const char *str1, const char *str2) {
   if (! strcmp(str1,str2)) return(1);
   return(0);
 }

@@ -86,7 +86,7 @@ int MRISfdr2vwth(MRIS *surf, double fdr, int signid,
 
 int    MRISfwhm2niters(double fwhm, MRIS *surf);
 double MRISniters2fwhm(int niters, MRIS *surf);
-int MRISfwhm2nitersSubj(double fwhm,char *subject,char *hemi,char *surfname);
+int MRISfwhm2nitersSubj(double fwhm, const char *subject, const char *hemi, const char *surfname);
 double MRISfwhmFromAR1(MRIS *surf, double ar1);
 int MRISseg2annot(MRIS *mris, MRI *surfseg, COLOR_TABLE *ctab);
 MRI *MRISannotIndex2Seg(MRIS *mris);
