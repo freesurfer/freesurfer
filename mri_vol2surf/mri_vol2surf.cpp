@@ -93,19 +93,19 @@ static int   srcoldreg  = 0;
 static char *srcsubject = NULL;
 static char *srcsubjectuse = NULL;
 
-static char *ref_vol_name = "orig.mgz" ;
+static const char *ref_vol_name = "orig.mgz" ;
 
 static char *srchitvolid   = NULL;
 static char *srchittypestring = NULL;
 static int   srchittype = MRI_VOLUME_TYPE_UNKNOWN;
 
 static char *hemi    = NULL;
-static char *surfname = "white";
+static char const *surfname = "white";
 static char *trgsubject = NULL;
 static int  IcoOrder = -1;
 static float IcoRadius = 100;
-static char *surfreg = "sphere.reg";
-static char *thicknessname = "thickness";
+static char const *surfreg = "sphere.reg";
+static char const *thicknessname = "thickness";
 static float ProjFrac = 0;
 static int   ProjOpt = 0 ;
 static char  *volume_fraction_fname = NULL ;
@@ -135,9 +135,9 @@ static int  outtype = MRI_VOLUME_TYPE_UNKNOWN;
 static char *srchitfile = NULL;
 static char *trghitfile = NULL;
 
-static char  *interpmethod_string = "nearest";
+static const char  *interpmethod_string = "nearest";
 static int  interpmethod = -1;
-static char *mapmethod = "nnfr";
+static const char *mapmethod = "nnfr";
 
 static int debug = 0;
 static int reshape = 0;
@@ -161,7 +161,7 @@ static char *nvoxfile = NULL;
 static char tmpstr[2000];
 
 static int  float2int_src;
-static char *float2int_string = "round";
+static const char *float2int_string = "round";
 static int  float2int = -1;
 static int  fixtkreg = 0;
 static int ReverseMapFlag = 0;
