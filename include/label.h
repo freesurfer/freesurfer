@@ -141,7 +141,7 @@ LABEL   *LabelFromMarkValue(MRI_SURFACE *mris, int mark);
 int     LabelNormalizeStats(LABEL *area, float norm) ;
 LABEL   *MaskSurfLabel(LABEL *lbl,
                        MRI *SurfMask,
-                       float thresh, char *masksign, int frame);
+                       float thresh, const char *masksign, int frame);
 
 int     LabelErode(LABEL *area, MRI_SURFACE *mris, int num_times);
 int     LabelDilate(LABEL *area, MRI_SURFACE *mris, int num_times, int coords);

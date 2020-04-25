@@ -624,7 +624,7 @@ static void do_file(char *fname)
       return;
     }
 
-    char *type = "UNKNOWN";
+    const char *type = "UNKNOWN";
     if (gcam->type == GCAM_RAS) {
         type = "GCAM_RAS";
     }

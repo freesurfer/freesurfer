@@ -57,7 +57,7 @@ static int relabel_hypointensities(MRI *mri, MRI *mri_inputs, MRI_SURFACE *mris,
 static int relabel_gray_matter(MRI *mri, MRI_SURFACE *mris, int which_edits) ;
 //static int load_val_vector(VECTOR *v_means, MRI *mri_inputs, int x, int y, int z) ; 
 
-static char *annot_name = "aparc.annot" ;
+static const char *annot_name = "aparc.annot" ;
 
 #define HYPO_EDITS       0x0001
 #define CEREBELLUM_EDITS 0x0002
@@ -71,7 +71,7 @@ const char *Progname ;
 static char *label_name = NULL ;
 static char *annotation_name = NULL ;
 
-static char *surf_name = "white" ;
+static const char *surf_name = "white" ;
 
 static MRI *mri_vals = NULL ;
 static GCA *gca = NULL ;
@@ -83,8 +83,9 @@ int Halo = 0;
 int
 main(int argc, char *argv[])
 {
-  char          **av, *hemi, fname[STRLEN], *in_fname,
+  char          **av, fname[STRLEN], *in_fname,
                 *in_aseg_name, *out_aseg_name, *surf_dir ;
+  const char* hemi;
   int           ac, nargs, h, i, ninputs, input, n;
   MRI_SURFACE   *mris ;
   MRI           *mri_aseg, *mri_tmp = NULL, *mri_inputs = NULL ;

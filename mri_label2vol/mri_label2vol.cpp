@@ -97,7 +97,7 @@ char *subject = NULL;
 char *hemi    = NULL;
 char *AnnotFile = NULL;
 char *ASegFSpec = NULL;
-char *SurfId  = "white";
+const char *SurfId  = "white";
 char *LabelVolFile = NULL;
 
 MRI_SURFACE *Surf=NULL;
@@ -116,7 +116,7 @@ int   ProjTypeId;
 int   DoProj = 0;
 int   SurfNeeded = 0;
 char  *SUBJECTS_DIR = NULL;
-char  *thicknessname = "thickness";
+const char  *thicknessname = "thickness";
 char  fname[1000];
 double TempVoxVol;
 double LabelVoxVol = 1;

@@ -101,15 +101,15 @@ char  *srcsubject   = NULL;
 char  *trglabelfile = NULL;
 LABEL *trglabel     = NULL;
 char  *trgsubject   = NULL;
-char  *trgsurface   = "white";
+const char  *trgsurface   = "white";
 
-char *regmethod  = NULL;
+const char *regmethod  = NULL;
 char *hemi       = NULL;
 char *srchemi    = NULL;
 char *trghemi    = NULL;
-char *surfreg = "sphere.reg";
-char *srcsurfreg = NULL;
-char *trgsurfreg = NULL;
+const char *surfreg = "sphere.reg";
+const char *srcsurfreg = NULL;
+const char *trgsurfreg = NULL;
 char *srcsurfregfile = NULL; // just spec the file name with hemi
 char *trgsurfregfile = NULL;
 
@@ -138,7 +138,8 @@ FILE *fp;
 
 char tmpstr[2000];
 
-char *srcmaskfile, *srcmaskfmt, *srcmasksign = "abs";
+char *srcmaskfile, *srcmaskfmt;
+const char* srcmasksign = "abs";
 int srcmaskframe = 0;
 float srcmaskthresh = 0.0;
 MRI *SrcMask;

@@ -51,13 +51,14 @@ const char *Progname ;
 static int do_rh = 1 ;
 static int do_lh = 1 ;
 
-static char *surf_name = "white" ;
+static const char *surf_name = "white" ;
 
 int
 main(int argc, char *argv[])
 {
-  char          **av, *hemi, fname[STRLEN],
+  char          **av, fname[STRLEN],
                 *in_aseg_name, *out_aseg_name, *surf_dir ;
+  const char* hemi;
   int           ac, nargs, h ;
   MRI_SURFACE   *mris ;
   MRI           *mri_aseg ;

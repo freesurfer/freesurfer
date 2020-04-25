@@ -79,8 +79,8 @@ MRIS *MRISmatchSurfaceToLabel(MRIS *mris,
                               MRI_REGION *mri_region,
                               INTEGRATION_PARMS *integration_parms,
                               int connectivity);
-MRIS *MRISloadSurfSubject(char *subj, char *hemi, char *surfid,
-                          char *SUBJECTS_DIR);
+MRIS *MRISloadSurfSubject(const char *subj, const char *hemi, const char *surfid,
+                          const char *SUBJECTS_DIR);
 int MRISfdr2vwth(MRIS *surf, double fdr, int signid,
                  int log10flag, int maskflag, double *vwth);
 

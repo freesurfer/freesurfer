@@ -952,7 +952,7 @@ void MRISsmoothSurface2(MRI_SURFACE *mris, int niter, float step, int avrg)
 }
 
 /*--------------------------------------------------------------------*/
-MRIS *MRISloadSurfSubject(char *subj, char *hemi, char *surfid, char *SUBJECTS_DIR)
+MRIS *MRISloadSurfSubject(const char *subj, const char *hemi, const char *surfid, const char *SUBJECTS_DIR)
 {
   MRIS *Surf;
   char fname[2000];
