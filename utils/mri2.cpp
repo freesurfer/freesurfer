@@ -5708,7 +5708,7 @@ int QuadEulerCharChangeTest(int ForceFail)
   If they dont agree, then it prints an error message and returns
   non-zero.
  */
-int QuadEulerCharChangeCheckReorder(MRI *mri, char *testname, int decExpected)
+int QuadEulerCharChangeCheckReorder(MRI *mri, const char *testname, int decExpected)
 {
   int dec,reorder,err;
   MRI *mri2;

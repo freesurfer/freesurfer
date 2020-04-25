@@ -105,8 +105,8 @@ static int RipUnknown = 0;
 
 static char tmpstr[2000];
 static char annotfile[1000];
-static char *annotname = "aparc";
-static char *asegname = "aseg";
+static const char *annotname = "aparc";
+static const char *asegname = "aseg";
 static int baseoffset = 0;
 static float hashres = 16;
 

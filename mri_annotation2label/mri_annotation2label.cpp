@@ -54,9 +54,9 @@ int main(int argc, char *argv[]) ;
 const char *Progname = NULL;
 
 char  *subject   = NULL;
-char  *annotation = "aparc";
+const char  *annotation = "aparc";
 char  *hemi       = NULL;
-char  *surfacename = "white";
+const char  *surfacename = "white";
 
 char  *outdir = NULL;
 char  *labelbase = NULL;
