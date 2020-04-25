@@ -289,7 +289,7 @@ int main(int argc, char *argv[])
 {
   if (argv[1] == NULL) {
     // assuming input is being piped (ie 'cat somefile.help.xml | fsPrintHelp')
-    argv[1] = "/dev/stdin";
+    return outputHelp("/dev/stdin");
   }
   return outputHelp(argv[1]);
   exit(0);

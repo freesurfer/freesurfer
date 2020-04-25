@@ -2480,10 +2480,10 @@ class AutoDetGWStats
 public:
   MRIS *mrisAD, *mrisADlh, *mrisADrh; // surface used to autodetect stats
   MRI *mri_T1, *mri_wm;
-  char *wm_name = "wm" ;
-  char *orig_name = "orig";
+  const char *wm_name = "wm" ;
+  const char *orig_name = "orig";
   //In mris_make_surfaces, "brain" is the default, but brain.finalsurfs is always used in recon-all
-  char *T1_name = "brain.finalsurfs"; 
+  const char *T1_name = "brain.finalsurfs"; 
   int hemicode = 0; //1=left, 2=right
   int use_mode = 1;
   float variablesigma = 3.0;
