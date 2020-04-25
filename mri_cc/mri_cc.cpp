@@ -62,7 +62,7 @@ static MRI *find_voxels_close_to_both_hemis(MRI *mri_aseg, int lh_label, int rh_
 int             main(int argc, char *argv[]) ;
 static int      get_option(int argc, char *argv[]) ;
 static void     print_usage();
-static char     *wmvolume = "mri/wm" ;
+static const char     *wmvolume = "mri/wm" ;
 const char            *Progname ;
 static int      dxi=2;  // thickness on either side of midline
 static int      x_edge=0, y_edge=0;
