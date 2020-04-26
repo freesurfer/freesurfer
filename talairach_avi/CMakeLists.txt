@@ -54,8 +54,18 @@ set(RMS_SOURCES
 )
 
 add_definitions(-DHAVE_GFORTRAN)
+
 # this prevents linking to gfortran dynmically
-if(NOT APPLE)
+if(APPLE)
+  get_filename_component(FORTRAN_REALPATH "${CMAKE_Fortran_COMPILER}" REALPATH)
+  get_filename_component(FORTRAN_BASE_DIR "${FORTRAN_REALPATH}/../.." REALPATH)
+  file(GLOB_RECURSE STATIC_QUADMATH FOLLOW_SYMLINKS "${FORTRAN_BASE_DIR}/lib/*/libquadmath.a")
+  if(STATIC_QUADMATH)
+    set(CMAKE_Fortran_FLAGS "-w -static-libgfortran -lgfortran -lgcc -lgcc_eh -lSystem -nodefaultlibs ${STATIC_QUADMATH} ${CMAKE_Fortran_FLAGS}")
+  else()
+    message(WARNING "Not linking FORTRAN executables statically")
+  endif()
+else()
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libgfortran")
 endif()
 
