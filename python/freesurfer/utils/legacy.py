@@ -594,7 +594,7 @@ Derived from StatsParser
 class AparcStatsParser(StatsParser):
 
     # this is a map of measure requested and its corresponding column# in ?h.aparc*.stats
-    measure_column_map = {'area':2, 'volume':3, 'thickness':4, 'thicknessstd':5, 'meancurv':6, 'gauscurv':7, 'foldind':8, 'curvind':9 }
+    measure_column_map = {'area':2, 'volume':3, 'thickness':4, 'thickness.T1':4, 'thicknessstd':5, 'meancurv':6, 'gauscurv':7, 'foldind':8, 'curvind':9 }
     parc_measure_map = StableDict()
 
     # we take in the measure we need..
