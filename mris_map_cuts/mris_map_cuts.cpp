@@ -35,8 +35,8 @@ static int get_option(int argc, char *argv[]) ;
 
 const char *Progname ;
 static void usage_exit(int code) ;
-static char *orig_surf_name = "sphere.reg" ;
-static char *inf_surf_name = "inflated" ;
+static const char *orig_surf_name = "sphere.reg" ;
+static const char *inf_surf_name = "inflated" ;
 int MRISmapCuts(MRI_SURFACE *mris_in, MRI_SURFACE *mris_out) ;
 
 static int dilate = 0 ;

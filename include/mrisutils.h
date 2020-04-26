@@ -51,11 +51,11 @@ typedef struct {
   int nsubjects;
   MRIS *targsurfreg; // an actual surface to use as the target registration
   int  icoorder; // only use if targsurfreg not spec
-  char *targsubject; // only use if targsurfreg and icoorder not spec
-  char *hemi; // lh or rh
-  char *surfname; // eg, white
-  char *surfregname; // eg, sphere.reg
-  char *xform_name; // eg, talairach.xfm
+  const char *targsubject; // only use if targsurfreg and icoorder not spec
+  const char *hemi; // lh or rh
+  const char *surfname; // eg, white
+  const char *surfregname; // eg, sphere.reg
+  const char *xform_name; // eg, talairach.xfm
   int ReverseMapFlag; // map unmapped vertices in the source, generally 1
   int UseHash; // use hash table for speed, generally 1
 } AVERAGE_SURFACE_PARAMS;

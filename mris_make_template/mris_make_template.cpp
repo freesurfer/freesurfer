@@ -43,16 +43,16 @@ static void print_version(void) ;
 
 const char *Progname ;
 
-static char *surf_dir = "surf" ;
+static const char *surf_dir = "surf" ;
 static char *annot_name = NULL ;
-static char *surface_names[] =
+static const char *surface_names[] =
   {
     "inflated",
     "smoothwm",
     "smoothwm"
   } ;
 
-static char *curvature_names[] =
+static const char *curvature_names[] =
   {
     "inflated.H",
     "sulc",
@@ -78,7 +78,7 @@ static int atlas_size = 3;
 #define MAX_OVERLAYS 1000
 static int noverlays = 0 ;
 static char *overlays[MAX_OVERLAYS] ;
-static char *overlay_dir = "label";
+static const char *overlay_dir = "label";
 
 static int which_norm = NORM_MEAN;
 
@@ -609,14 +609,14 @@ get_option(int argc, char *argv[],INTEGRATION_PARMS *parms)
     printf("using %s instead of inflated\n", argv[2]) ;
     sprintf(fname, "%s.H", argv[2]) ;
     curvature_names[0] = (char *)calloc(strlen(fname)+1, sizeof(char)) ;
-    strcpy(curvature_names[0], fname) ;
+    strcpy(const_cast<char*>(curvature_names[0]), fname) ; // const_cast and strcpy
   }
   else if (!stricmp(option, "sulc"))
   {
     nargs = 1 ;
     printf("using %s instead of sulc\n", argv[2]) ;
     curvature_names[1] = (char *)calloc(strlen(argv[2])+1, sizeof(char)) ;
-    strcpy(curvature_names[1], argv[2]) ;
+    strcpy(const_cast<char*>(curvature_names[1]), argv[2]) ; // const_cast and strcpy
   }
   else if (!stricmp(option, "norot"))
   {

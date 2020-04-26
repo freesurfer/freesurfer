@@ -152,8 +152,9 @@ int debug=0;
 int checkoptsonly=0;
 struct utsname uts;
 
-char *subject=NULL, *hemi=NULL, *SUBJECTS_DIR=NULL;
-char *surfname="white";
+char *subject=NULL, *SUBJECTS_DIR=NULL;
+const char *hemi=NULL;
+const char *surfname="white";
 char *surfpath=NULL;
 char *inpath=NULL;
 char *outpath=NULL;
