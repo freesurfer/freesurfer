@@ -19,6 +19,7 @@
 #include "RenderView2D.h"
 #include "LayerCollection.h"
 #include "MainWindow.h"
+#include "ui_MainWindow.h"
 #include "LayerLineProfile.h"
 #include "LayerSurface.h"
 #include "LayerMRI.h"
@@ -631,7 +632,8 @@ void RenderView2D::TriggerContextMenu( QMouseEvent* event )
 {
   QMenu menu;
   bool bShowBar = this->GetShowScalarBar();
-  QList<Layer*> layers = MainWindow::GetMainWindow()->GetLayers("MRI");
+  MainWindow* mainwnd = MainWindow::GetMainWindow();
+  QList<Layer*> layers = mainwnd->GetLayers("MRI");
   Region2D* reg = GetRegion(event->x(), event->y());
   if (reg)
   {
@@ -686,15 +688,24 @@ void RenderView2D::TriggerContextMenu( QMouseEvent* event )
     }
   }
 
-  LayerSurface* surf = (LayerSurface*)MainWindow::GetMainWindow()->GetActiveLayer("Surface");
+  LayerSurface* surf = (LayerSurface*)mainwnd->GetActiveLayer("Surface");
   if ( surf && surf->IsContralateralPossible())
   {
     if (!menu.actions().isEmpty())
       menu.addSeparator();
     QAction* act = new QAction("Go To Contralateral Point", this);
     menu.addAction(act);
-    connect(act, SIGNAL(triggered()), MainWindow::GetMainWindow(), SLOT(GoToContralateralPoint()));
+    connect(act, SIGNAL(triggered()), mainwnd, SLOT(GoToContralateralPoint()));
   }
+
+  if (!mainwnd->IsEmpty() && mainwnd->GetMainView() == this)
+  {
+      QAction* action = new QAction("Copy", this);
+      connect(action, SIGNAL(triggered(bool)), mainwnd, SLOT(OnCopyView()));
+      menu.addAction(action);
+      menu.addAction(mainwnd->ui->actionSaveScreenshot);
+  }
+
   if (!menu.actions().isEmpty())
     menu.exec(event->globalPos());
 }

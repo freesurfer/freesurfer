@@ -108,6 +108,7 @@
 #include "Annotation2D.h"
 #include "PanelLayer.h"
 #include "WindowLayerInfo.h"
+#include <QClipboard>
 #include <QDebug>
 #ifdef Q_OS_MAC
 #include "MacHelper.h"
@@ -7020,6 +7021,15 @@ void MainWindow::OnSaveScreenshot()
   }
   m_dlgSaveScreenshot->show();
   m_dlgSaveScreenshot->raise();
+}
+
+void MainWindow::OnCopyView()
+{
+    QString fn = QDir::tempPath() + "/freeview-temp-" + QString::number(QDateTime::currentMSecsSinceEpoch()) + ".png";
+    GetMainView()->SaveScreenShot(fn, m_settingsScreenshot.AntiAliasing, 1.0, m_settingsScreenshot.AutoTrim);
+    QClipboard *clipboard = QGuiApplication::clipboard();
+    if (clipboard)
+        clipboard->setImage(QImage(fn));
 }
 
 void MainWindow::OnVolumeFilterMean()

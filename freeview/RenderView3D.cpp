@@ -1468,6 +1468,15 @@ void RenderView3D::TriggerContextMenu( QMouseEvent* event )
     menu->addAction(act);
     connect(act, SIGNAL(triggered()), mainwnd, SLOT(GoToContralateralPoint()));
   }
+
+  if (!mainwnd->IsEmpty() && mainwnd->GetMainView() == this)
+  {
+      menu->addSeparator();
+      QAction* action = new QAction("Copy", this);
+      connect(action, SIGNAL(triggered(bool)), mainwnd, SLOT(OnCopyView()));
+      menu->addAction(action);
+      menu->addAction(mainwnd->ui->actionSaveScreenshot);
+  }
   menu->exec(event->globalPos());
 }
 
