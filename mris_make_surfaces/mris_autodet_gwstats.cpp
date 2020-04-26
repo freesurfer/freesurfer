@@ -67,7 +67,7 @@ char *wmvolpath=NULL;
 char *insurfpath=NULL;
 char *lhsurfpath=NULL;
 char *rhsurfpath=NULL;
-char *subject=NULL,*insurfname = "orig",*involname="brain.finalsurfs.mgz", *wmvolname="wm.mgz";
+const char *subject=NULL,*insurfname = "orig",*involname="brain.finalsurfs.mgz", *wmvolname="wm.mgz";
 char tmpstr[2000];
 char *SUBJECTS_DIR=NULL;
 int hemicode = -1;

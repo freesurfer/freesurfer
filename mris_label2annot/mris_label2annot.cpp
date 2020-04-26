@@ -194,11 +194,11 @@ char *NHitsFile=NULL;
 MRI *maxstat;
 int maxstatwinner=0;
 int MapUnhitToUnknown=1;
-char *labeldir=NULL;
+const char *labeldir=NULL;
 int labeldirdefault=0;
 int DoLabelThresh = 0;
 double LabelThresh = 0;
-char *surfname = "orig";
+const char *surfname = "orig";
 int IndexOffset=0;
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {

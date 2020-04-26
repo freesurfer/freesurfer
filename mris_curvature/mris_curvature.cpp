@@ -46,7 +46,7 @@ static void print_version(void) ;
 const char *Progname ;
 
 static char output_type[STRLEN] = "" ;
-static char *suffix = "" ;
+static const char *suffix = "" ;
 static int write_flag = 0 ;
 static int nbrs = 2 ;
 static double cthresh = -1.0;

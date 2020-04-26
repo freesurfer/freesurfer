@@ -85,6 +85,7 @@ double round(double x);
 #include <sys/types.h>
 #include <sys/utsname.h>
 #include <unistd.h>
+#include <string>
 
 #include "macros.h"
 #include "utils.h"
@@ -397,7 +398,7 @@ int main(int argc, char *argv[]) {
   if (SUBJECTS_DIR1 == NULL) SUBJECTS_DIR1 = SUBJECTS_DIR;
   if (SUBJECTS_DIR2 == NULL) SUBJECTS_DIR2 = SUBJECTS_DIR;
 
-  if (surf1path == NULL && surfname == NULL) surfname = "orig";
+  if (surf1path == NULL && surfname == NULL) surfname = const_cast<char*>("orig"); // This is.... nasty
 
   if (surf1path == NULL) {
     sprintf(tmpstr,"%s/%s/surf/%s.%s",SUBJECTS_DIR1,subject1,hemi,surfname);

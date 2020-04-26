@@ -62,16 +62,16 @@ static char *read_fname = NULL ;
 static char *prob_fname = NULL ;
 static int nbrs = 2 ;
 static int filter = 10 ;
-static char *orig_name = "smoothwm" ;
+static const char *orig_name = "smoothwm" ;
 static MRI  *mri_aseg ;
-static char *surf_dir = "surf" ;
+static const char *surf_dir = "surf" ;
 
 #if 0
 static int normalize_flag = 0 ;
 static int navgs = 5 ;
 static char *curv_name = "curv" ;
-static char *thickness_name = "thickness" ;
-static char *sulc_name = "sulc" ;
+static const char *thickness_name = "thickness" ;
+static const char *sulc_name = "sulc" ;
 #endif
 
 static char subjects_dir[STRLEN] ;

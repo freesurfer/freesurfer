@@ -1627,7 +1627,7 @@ int slprints(char *apch_txt)
   return strlen(pch_output);
 }
 
-void cprints(char *apch_left, char *apch_right)
+void cprints(const char *apch_left, const char *apch_right)
 {
   //
   // PRECONDITIONS
@@ -1676,7 +1676,7 @@ void cprintd(const char *apch_left, int a_right)
   fflush(stderr);
 }
 
-void cprintf(char *apch_left, float af_right)
+void cprintf(const char *apch_left, float af_right)
 {
   //
   // PRECONDITIONS

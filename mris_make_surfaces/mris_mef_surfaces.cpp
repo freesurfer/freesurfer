@@ -144,9 +144,9 @@ static int nowhite = 0 ;
 static int nbrs = 2 ;
 static int write_vals = 0 ;
 
-static char *orig_name = ORIG_NAME ;
-static char *suffix = "" ;
-static char *output_suffix = "" ;
+static const char *orig_name = ORIG_NAME ;
+static const char *suffix = "" ;
+static const char *output_suffix = "" ;
 static char *xform_fname = NULL ;
 
 static char pial_name[STRLEN] = "pial" ;

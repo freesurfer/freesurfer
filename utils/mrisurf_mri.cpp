@@ -7886,7 +7886,7 @@ int AutoDetGWStats::AutoDetectStats(void)
   \brief Computes stats used in MRIScomputeBorderValues()  given the
   subject and the hemisphere.
  */
-int AutoDetGWStats::AutoDetectStats(char *subject, char *hemistr)
+int AutoDetGWStats::AutoDetectStats(const char *subject, const char *hemistr)
 {
   char *SUBJECTS_DIR = getenv("SUBJECTS_DIR");
   char fname[1000];
