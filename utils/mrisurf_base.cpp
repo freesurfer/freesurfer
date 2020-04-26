@@ -152,7 +152,7 @@ int MRISsetSulcFileName(const char *sulc_name)
   return (NO_ERROR);
 }
 
-int MRISsetOriginalFileName(char *orig_name)
+int MRISsetOriginalFileName(const char *orig_name)
 {
   mrisurf_surface_names[1] = mrisurf_surface_names[2] = orig_name;
   return (NO_ERROR);

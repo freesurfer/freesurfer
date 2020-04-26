@@ -1349,7 +1349,7 @@ int MRISunrip(MRI_SURFACE *mris) ;
 int MRISdivideLongEdges(MRI_SURFACE *mris, double thresh) ;
 int MRISdivideEdges(MRI_SURFACE *mris, int npoints) ;
 int MRISremoveTriangleLinks(MRI_SURFACE *mris) ;
-int MRISsetOriginalFileName(char *orig_name) ;
+int MRISsetOriginalFileName(const char *orig_name) ;
 int MRISsetSulcFileName(const char *sulc_name) ;
 int MRISsetCurvatureName(int nth, const char *name);
 int MRISprintCurvatureNames(FILE *fp);

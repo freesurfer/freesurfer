@@ -48,7 +48,7 @@ typedef struct
 } FEATURE ;
 
 
-static int dump_window(MRI *mri, char *fname, int x0, int y0, int z0, int wsize)  ;
+static int dump_window(MRI *mri, const char *fname, int x0, int y0, int z0, int wsize)  ;
 static int prune_indices(MRI *mri_mask, MRI *histo, short *xind, short *yind, short *zind, int nind, int use_val, float hthresh) ;
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -744,7 +744,7 @@ prune_indices(MRI *mri_mask, MRI *histo, short *xind, short *yind, short *zind, 
   return(nind) ;
 }
 static int
-dump_window(MRI *mri, char *fname, int x0, int y0, int z0, int wsize) 
+dump_window(MRI *mri, const char *fname, int x0, int y0, int z0, int wsize) 
 {
   int   xk, yk, xi, yi, whalf ;
   float val ;

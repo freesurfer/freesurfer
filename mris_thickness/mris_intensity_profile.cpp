@@ -60,7 +60,7 @@ static void print_version(void) ;
 static int pial_normal_avgs = 5 ;
 static char *read_laplace_name = NULL ;
 static char *write_surf_name = NULL ;
-static char *sphere_name = "sphere" ;
+static const char *sphere_name = "sphere" ;
 static int fmin_thick = 0 ;
 static float laplace_res = 0.5 ;
 static int laplace_thick = 0 ;

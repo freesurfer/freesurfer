@@ -60,9 +60,9 @@ static char *mask_fname = NULL; /* filename for subcortical mask */
 static char *zscore_fname = NULL; /* filename for output stat */
 static int first_group_size = 0;  /* number of subjects for first group */
 
-char *srctypestring = "";
+const char *srctypestring = "";
 int srctype = MRI_VOLUME_TYPE_UNKNOWN;
-char *trgtypestring = "";
+const char *trgtypestring = "";
 int trgtype = MRI_VOLUME_TYPE_UNKNOWN;
 
 static void usage_exit(int code) ;
