@@ -53,7 +53,7 @@ static void print_version(void) ;
 
 const char *Progname ;
 
-static char *surf_dir = "surf" ;
+static const char *surf_dir = "surf" ;
 static int erode = 0 ;
 static int dilate = 0 ;
 static float threshold = 0 ;
@@ -65,7 +65,7 @@ static char *output_subject_name = NULL ;
 static int navgs = 0 ;
 static char *ohemi = NULL ;
 static char *osurf = NULL ;
-static char *orig_name = "white" ;
+static const char *orig_name = "white" ;
 static int segment = 0 ;  // not implemented yet
 static char *mask_name = NULL ;
 

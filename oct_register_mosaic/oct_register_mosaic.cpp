@@ -1141,7 +1141,7 @@ static double Gx0 , Gy0 ;  // offset of first image that won't be modified by Po
 extern void (*powell_iteration_func)(float *p, int nparms) ;
 
 static void
-dump_parms(float *p, int nimages, char *name) 
+dump_parms(float *p, int nimages, const char *name) 
 {
   int i ;
 

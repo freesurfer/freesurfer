@@ -33,7 +33,7 @@ void writeAnnotationFromSeg(const MRI *annot, const std::string& filename);
 std::vector<int> readAnnotationIntoVector(const std::string& filename);
 
 int read_annotation_table(void) ;
-int read_named_annotation_table(char *fname) ;
+int read_named_annotation_table(const char *fname) ;
 
 const char* index_to_name(int index);
 const char* annotation_to_name(int annotation, int *pindex) ;

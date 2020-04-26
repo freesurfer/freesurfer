@@ -125,7 +125,7 @@ int AutoCTab = 0;
 char *outctabfile = NULL;
 MRI_SURFACE *mris;
 MRI *surfseg, *mritmp;
-char *surfname = "white";
+const char *surfname = "white";
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {

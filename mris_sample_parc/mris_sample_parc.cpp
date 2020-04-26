@@ -51,7 +51,7 @@ static void print_usage(void) ;
 static void print_help(void) ;
 static void print_version(void) ;
 static int  translate_indices_to_annotations(MRI_SURFACE *mris,
-    char *translation_fname) ;
+    const char *translation_fname) ;
 static int  fix_label_topology(MRI_SURFACE *mris, int nvertices) ;
 static int  resegment_label(MRI_SURFACE *mris, LABEL *segment) ;
 int MRIsampleParcellationToSurface(MRI_SURFACE *mris, MRI *mri_parc) ;
@@ -62,10 +62,10 @@ static int nclose = 0 ;
 static char *color_table_fname = NULL ;
 static LABEL *cortex_label = NULL ; // limit surface area calc to cortex.label
 static int   mode_filter = 0 ;
-static char *surf_name = WHITE_MATTER_NAME ;
-static char *thickness_name = "thickness" ;
+static const char *surf_name = WHITE_MATTER_NAME ;
+static const char *thickness_name = "thickness" ;
 static char  sdir[STRLEN] ;
-static char *translation_fname = "cma_parcellation_colors.txt" ;
+static const char *translation_fname = "cma_parcellation_colors.txt" ;
 static int   wsize = 7 ;
 static int   unknown_label = -1 ;
 static int   fix_topology = -1 ;  // < 0 means do all
@@ -581,7 +581,7 @@ print_version(void) {
 
 #if 0
 static int
-translate_indices_to_annotations(MRI_SURFACE *mris, char *translation_fname) {
+translate_indices_to_annotations(MRI_SURFACE *mris, const char *translation_fname) {
   char   fname[STRLEN], *cp, line[STRLEN], name[STRLEN], **names ;
   FILE   *fp ;
   int    nlines, i, vno, *r, *g, *b, *indices ;
@@ -634,7 +634,7 @@ translate_indices_to_annotations(MRI_SURFACE *mris, char *translation_fname) {
 }
 #else
 static int
-translate_indices_to_annotations(MRI_SURFACE *mris, char *translation_fname) {
+translate_indices_to_annotations(MRI_SURFACE *mris, const char *translation_fname) {
   int    vno ;
   VERTEX *v ;
 

@@ -105,7 +105,7 @@ std::vector<int> readAnnotationIntoVector(const std::string& filename)
 }
 
 
-int read_named_annotation_table(char *name)
+int read_named_annotation_table(const char *name)
 {
   FILE *fp;
   char fname[STRLEN], line[STRLEN];

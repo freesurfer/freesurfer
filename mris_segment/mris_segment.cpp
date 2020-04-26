@@ -56,12 +56,12 @@ static int prior_number_of_vertices = 30 ;
 static int nsmooth = 1 ;
 static int nclose = 1 ;
 static int classifier = CLASSIFY_GAUSSIAN ;
-static char *hemi_name = "lh" ;
+static const char *hemi_name = "lh" ;
 
 static int prior_only = 0 ;
 static double cor_thresh = 0.6 ;
 static double logodds_thresh = .001 ;
-static char *data_dir = "fmri" ;
+static const char *data_dir = "fmri" ;
 
 #define MAX_SUBJECTS 1500
 

@@ -74,8 +74,8 @@ static INTEGRATION_PARMS  parms ;
 static float base_dt_scale = BASE_DT_SCALE ;
 
 
-static char *suffix = "" ;
-static char *output_suffix = "" ;
+static const char *suffix = "" ;
+static const char *output_suffix = "" ;
 static double l_tsmooth = 0.0 ;
 static double l_surf_repulse = 5.0 ;
 

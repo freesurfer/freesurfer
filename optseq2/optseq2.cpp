@@ -84,7 +84,7 @@ static void dump_options(FILE *fp);
 static int  isflag(char *flag);
 static int  nth_is_arg(int nargc, char **argv, int nth);
 static int  singledash(char *flag);
-static int  stringmatch(char *str1, char *str2);
+static int  stringmatch(const char *str1, const char *str2);
 static int PrintUpdate(FILE *fp, int n);
 static int CheckIntMult(float val, float res, float tol);
 static MATRIX * ContrastMatrix(float *EVContrast,
@@ -1588,7 +1588,7 @@ static int nth_is_arg(int nargc, char **argv, int nth) {
   return(1);
 }
 /*------------------------------------------------------------*/
-static int stringmatch(char *str1, char *str2) {
+static int stringmatch(const char *str1, const char *str2) {
   if (! strcmp(str1,str2)) return(1);
   return(0);
 }
