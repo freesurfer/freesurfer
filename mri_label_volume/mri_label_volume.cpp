@@ -39,7 +39,7 @@ int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 
 const char *Progname ;
-static char *log_fname = NULL ;
+static const char *log_fname = NULL ;
 static void usage_exit(int code) ;
 
 static int quiet = 0 ;

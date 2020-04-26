@@ -761,7 +761,7 @@ int main(int argc, char **argv) {
   MATRIX *Ct, *CCt;
   FILE *fp;
   double Ccond, dtmp, threshadj, eff;
-  char *tmpstr2=NULL;
+  const char *tmpstr2=NULL;
 
   eresfwhm = -1;
   csd = CSDalloc();

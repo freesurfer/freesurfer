@@ -69,7 +69,7 @@ static MRI *estimate_densities(GCA_MORPH *gcam,
                                MRI *mri_intensity) ;
 static int write_snapshot(MRI *mri_lowres, MRI *mri_hires,
                           MATRIX *m_vox_xform, INTEGRATION_PARMS *parms,
-                          int fno, int conform, char *fname) ;
+                          int fno, int conform, const char *fname) ;
 
 static double MAX_TRANS = 30 ;
 static int regrid = 0 ;
@@ -1561,7 +1561,7 @@ compute_powell_sse(float *p) {
 
 static int
 write_snapshot(MRI *mri_lowres, MRI *mri_hires, MATRIX *m_vox_xform,
-               INTEGRATION_PARMS *parms, int fno, int conform, char *in_fname) {
+               INTEGRATION_PARMS *parms, int fno, int conform, const char *in_fname) {
   MRI *mri_aligned ;
   char fname[STRLEN] ;
   LTA  *lta ;

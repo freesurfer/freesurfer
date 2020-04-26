@@ -48,7 +48,7 @@ static int PADVOX = 1 ;
 
 static int check_angio_labels(MRI *mri_source, MRI *mri_target) ;
 static int find_gcam_node(GCA_MORPH *gcam, int label, 
-													float x_ras, float y_ras, float z_ras) ;
+			  float x_ras, float y_ras, float z_ras) ;
 
 static int surf_flag = 0 ;
 static float smooth_intensities = -1.0 ;
@@ -69,8 +69,8 @@ int MRImapRegionToTargetMRI(MRI *mri_src, MRI *mri_dst, MRI_REGION *box) ;
 static MRI *estimate_densities(GCA_MORPH *gcam, MRI *mri_target, MRI *mri_intensity, MRI *mri_src) ;
 #endif
 static int write_snapshot(MRI *mri_target, MRI *mri_source, 
-													MATRIX *m_vox_xform, GCA_MORPH_PARMS *parms, 
-													int fno, int conform, char *fname) ;
+			  MATRIX *m_vox_xform, GCA_MORPH_PARMS *parms, 
+			  int fno, int conform, const char *fname) ;
 
 static int regrid = 0 ;
 
@@ -940,7 +940,7 @@ usage_exit(int ecode)
 
 static int
 write_snapshot(MRI *mri_target, MRI *mri_source, MATRIX *m_vox_xform, 
-							 GCA_MORPH_PARMS *parms, int fno, int conform, char *in_fname)
+	       GCA_MORPH_PARMS *parms, int fno, int conform, const char *in_fname)
 {
 	MRI *mri_aligned ;
 	char fname[STRLEN] ;
