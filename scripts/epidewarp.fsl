@@ -411,7 +411,7 @@ if($#epimat) cp $epimat `dirname $magfw`/`basename $magfw .$ext`.mat
 # Register magfw to example func. There are some parameters here
 # that may need to be tweeked. Should probably strip the mag.
 if($DoMagExfReg) then
-  set cmd = (flirt.fsl -in $magfw -ref $exf \
+  set cmd = (flirt -in $magfw -ref $exf \
     -out $tmpdir/magfw-in-exf.$ext \
     -omat $tmpdir/magfw-in-exf.fsl.mat \
     -bins 256 -cost corratio \
@@ -434,7 +434,7 @@ endif
 
 # Now resample VSM into epi space. This will take care of any
 # differences in in-plane voxel size.
-set cmd = (flirt.fsl -in $vsmmag -ref $exf -out $vsm \
+set cmd = (flirt -in $vsmmag -ref $exf -out $vsm \
   -init $tmpdir/magfw-in-exf.fsl.mat -applyxfm)
 echo $cmd |& tee -a $LF
 $cmd |& tee -a $LF
@@ -455,7 +455,7 @@ endif
 # Now resample brain mask into epi space. This will take care of any
 # differences in in-plane voxel size.
 set maskexf = $tmpdir/maskexf.$ext
-set cmd = (flirt.fsl -in $mask -ref $exf -out $maskexf \
+set cmd = (flirt -in $mask -ref $exf -out $maskexf \
   -init $tmpdir/magfw-in-exf.fsl.mat -applyxfm)
 echo $cmd |& tee -a $LF
 $cmd |& tee -a $LF
