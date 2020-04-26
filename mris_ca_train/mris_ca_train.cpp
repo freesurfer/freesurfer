@@ -81,7 +81,7 @@ static void print_usage(void) ;
 static void print_help(void) ;
 static void print_version(void) ;
 
-static char *orig_name = "smoothwm" ;
+static const char *orig_name = "smoothwm" ;
 static char *label_name = NULL ;
 static int label_index ;
 
@@ -92,8 +92,8 @@ static int icno_classifiers = 4 ;
 #if 0
 static char *curv_name = "curv" ;
 #endif
-static char *thickness_name = "thickness" ;
-static char *sulc_name = "sulc" ;
+static const char *thickness_name = "thickness" ;
+static const char *sulc_name = "sulc" ;
 static int sulconly = 0 ;
 
 static char subjects_dir[STRLEN] ;

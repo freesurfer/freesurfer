@@ -69,7 +69,7 @@ static int force_inputs = 1 ;
 static int max_steps = 10 ;
 
 static RFA_PARMS parms ;
-static char *seg_dir = "seg_edited.mgz" ; // default name of manual edit file
+static const char *seg_dir = "seg_edited.mgz" ; // default name of manual edit file
 static char T1_name[STRLEN] = "orig" ;
 static char *xform_name = NULL;
 static float smooth = -1 ;
@@ -98,7 +98,7 @@ static float max_wm_wmsa_ratio = 5.0 ;
 static int make_uchar = 1 ;
 static char *gca_name = NULL ;
 static float wm_thresh = .8 ;  // only consider voxels with a prior at least this high
-static char *single_classifier_names[] = 
+static const char *single_classifier_names[] = 
 { "NOT WMSA", "WMSA", "FUTURE WMSA" } ;
 
 #define MAX_SUBJECTS 1000
@@ -1379,7 +1379,7 @@ train_rforest(MRI **mri_inputs, MRI **mri_segs, TRANSFORM **transforms, int nsub
 
   nwmsa = nnot = nfuture = 0 ;
   nfeatures = (parms->wsize*parms->wsize*parms->wsize)*parms->nvols + 4 ; // 3 priors  + # of unknown
-  rf = RFalloc(parms->ntrees, nfeatures, 2, parms->max_depth, single_classifier_names, max_steps) ;
+  rf = RFalloc(parms->ntrees, nfeatures, 2, parms->max_depth, const_cast<char**>(single_classifier_names), max_steps) ;
   if (rf == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not allocate random forest", Progname) ;
   rf->min_step_size = 1 ; 
@@ -1666,7 +1666,7 @@ train_rforest_with_wmsa_nbrs(MRI **mri_inputs, MRI **mri_segs, TRANSFORM **trans
 
   nwmsa = nnot = nfuture = 0 ;
   nfeatures = (parms->wsize*parms->wsize*parms->wsize)*parms->nvols +3 ;
-  rf = RFalloc(parms->ntrees, nfeatures, 2, parms->max_depth, single_classifier_names, max_steps) ;
+  rf = RFalloc(parms->ntrees, nfeatures, 2, parms->max_depth, const_cast<char**>(single_classifier_names), max_steps) ;
   if (rf == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not allocate random forest", Progname) ;
   rf->min_step_size = 1 ; 

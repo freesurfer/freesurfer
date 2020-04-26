@@ -86,7 +86,7 @@ static int   cvector_track_best_snr(float *vsnr, float *vbest_snr,
                                     float *vbest_avgs, int avgs, int num) ;
 
 
-static int   write_acorr(char *fname, double *acorr, double *counts, int n,
+static int   write_acorr(const char *fname, double *acorr, double *counts, int n,
                          float bin_size) ;
 
 static int   fill_acorr_holes(double *acorr, double *counts, int nbins) ;
@@ -97,8 +97,8 @@ const char *Progname ;
 
 static char *output_subject = NULL ;
 static int navgs = 0 ;
-static char *noise_name = "noise_acorr.dat" ;
-static char *signal_name = "signal_acorr.dat" ;
+static const char *noise_name = "noise_acorr.dat" ;
+static const char *signal_name = "signal_acorr.dat" ;
 static char *label_name ;
 static double pthresh = 0.0 ;
 
@@ -793,7 +793,7 @@ cvector_compute_t_test(float *c1_mean, float *c1_var,
 }
 
 static int
-write_acorr(char *fname,double *acorr,double *counts,int nbins, float bin_size) {
+write_acorr(const char *fname,double *acorr,double *counts,int nbins, float bin_size) {
   int  i ;
   FILE *fp ;
 

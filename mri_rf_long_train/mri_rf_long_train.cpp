@@ -1292,7 +1292,7 @@ train_rforest(MRI *mri_inputs[MAX_SUBJECTS][MAX_TIMEPOINTS], MRI *mri_segs[MAX_S
 */
   nfeatures = parms->wsize*parms->wsize*parms->wsize*parms->nvols + 5 ; 
 
-  rf = RFalloc(parms->ntrees, nfeatures, NCLASSES, parms->max_depth, single_classifier_names, max_steps) ;
+  rf = RFalloc(parms->ntrees, nfeatures, NCLASSES, parms->max_depth, const_cast<char**>(single_classifier_names), max_steps) ;
   if (rf == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not allocate random forest", Progname) ;
   rf->min_step_size = 1 ; 

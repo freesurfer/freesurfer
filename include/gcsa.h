@@ -118,7 +118,7 @@ int   GCSAlabel(GCSA *gcsa, MRI_SURFACE *mris) ;
 int   GCSAdump(GCSA *gcsa, int vno, MRI_SURFACE *mris, FILE *fp) ;
 int   GCSAreclassifyUsingGibbsPriors(GCSA *gcsa, MRI_SURFACE *mris) ;
 int   GCSAreclassifyLabel(GCSA *gcsa, MRI_SURFACE *mris, LABEL *area) ;
-int   GCSAputInputType(GCSA *gcsa, int type, char *fname, int navgs, int ino,
+int   GCSAputInputType(GCSA *gcsa, int type, const char *fname, int navgs, int ino,
                        int flags) ;
 int   GCSAsetCovariancesToIdentity(GCSA *gcsa) ;
 VERTEX *GCSAsourceToPriorVertex     (GCSA *gcsa, VERTEX const *v);

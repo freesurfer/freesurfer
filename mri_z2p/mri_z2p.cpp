@@ -78,7 +78,7 @@ int TwoSided = 1;
 
 MRI *z,*p,*sig,*mask=NULL;
 char *featdir = NULL;
-char *fmt;
+const char *fmt;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {

@@ -48,13 +48,13 @@ static void print_help(void) ;
 static void print_version(void) ;
 static double gcsaSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) ;
 
-static char *surface_names[] =
+static const char *surface_names[] =
   {
     "inflated",
     "smoothwm",
     "smoothwm"
   } ;
-static char *curvature_names[] =
+static const char *curvature_names[] =
   {
     "inflated.H",
     "sulc",
@@ -98,8 +98,8 @@ static int noverlays = 0 ;
 static char *overlays[MAX_OVERLAYS]  ;
 const char *Progname ;
 static char curvature_fname[STRLEN] = "" ;
-static char *orig_name = "smoothwm" ;
-static char *canon_name = "sphere" ;
+static const char *orig_name = "smoothwm" ;
+static const char *canon_name = "sphere" ;
 static char *jacobian_fname = NULL ;
 static char *inflated_name = NULL ;
 
@@ -486,7 +486,7 @@ get_option(int argc, char *argv[])
            "and using it for initial alignment\n", inflated_name) ;
     sprintf(fname, "%s.H", argv[2]) ;
     curvature_names[0] = (char *)calloc(strlen(fname)+1, sizeof(char)) ;
-    strcpy(curvature_names[0], fname) ;
+    strcpy(const_cast<char*>(curvature_names[0]), fname) ; // const_cast AND strcpy
     parms.flags |= IP_USE_INFLATED ;
   }
   else if (!stricmp(option, "nosulc"))

@@ -95,9 +95,9 @@ static const COLOR_TABLE miniColorTable =
 #pragma clang diagnostic pop
 #endif
 
-static void addToExcludedLabelsList(COLOR_TABLE *ct, char *labelToExclude);
+static void addToExcludedLabelsList(COLOR_TABLE *ct, const char *labelToExclude);
 static int isExcludedLabel(int colortabIndex);
-static void addToIncludedLabelsList(COLOR_TABLE *ct, char *labelToInclude);
+static void addToIncludedLabelsList(COLOR_TABLE *ct, const char *labelToInclude);
 static int isIncludedLabel(int colortabIndex);
 static void calcMeanMinLabelDistances(void);
 static void usage(int exit_val);
@@ -743,7 +743,7 @@ int main(int argc, char *argv[])
 
 static int *excludedLabelsList=NULL;
 static int numExcludedLabels;
-static void addToExcludedLabelsList(COLOR_TABLE *ct, char *labelToExclude)
+static void addToExcludedLabelsList(COLOR_TABLE *ct, const char *labelToExclude)
 {
   // first-time setup
   if (excludedLabelsList == NULL)
@@ -791,7 +791,7 @@ static int isExcludedLabel(int colortabIndex)
 
 static int *includedLabelsList=NULL;
 static int numIncludedLabels;
-static void addToIncludedLabelsList(COLOR_TABLE *ct, char *labelToInclude)
+static void addToIncludedLabelsList(COLOR_TABLE *ct, const char *labelToInclude)
 {
   // first-time setup
   if (includedLabelsList == NULL)

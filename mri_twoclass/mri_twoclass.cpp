@@ -93,7 +93,7 @@ static int voxel_to_node_float(MRI *mri, float resolution, int xv, int yv, int z
                                float *pxn, float *pyn, float *pzn, TRANSFORM *transform) ;
 static int node_to_voxel(MRI *mri, float resolution, int xn, int yn, int zn,
                          int *pxv, int *pyv, int *pzv, TRANSFORM *transform) ;
-static char *xform_fname = "talairach.lta" ;
+static const char *xform_fname = "talairach.lta" ;
 static MRI *compute_white_matter_statistics(MRI *mri_mean1, MRI *mri_mean2,
     MRI *mri_var1, MRI *mri_var2,
     MRI *mri_stats,
@@ -113,7 +113,7 @@ static char *read_dir = NULL ;
 
 static char *test_subject = NULL ;
 static char *label_name = NULL ;
-static char *prefix = "" ;
+static const char *prefix = "" ;
 static char *vl1_name = NULL, *vl2_name = NULL ;
 static int output_bfloats = 1 ;
 static int bonferroni = 0 ;

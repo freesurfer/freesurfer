@@ -77,12 +77,12 @@ static int resegment_erased_voxels(MRI *mri_T1, MRI *mri_in, MRI *mri_out, int l
 static int build_label_histograms(MRI *mri_labels, MRI *mri_intensities, HISTOGRAM **histos) ;
 static MRI_TOPOLOGY_PARMS parms;
 
-static void Error(char *string);
+static void Error(const char *string);
 static int get_option(int argc, char *argv[]);
 
 //--------------------------------------------
 /*Error routine*/
-static void Error(char *string) {
+static void Error(const char *string) {
   fprintf(stderr, "\nError %s\n",string) ;
   exit(0) ;
 }
