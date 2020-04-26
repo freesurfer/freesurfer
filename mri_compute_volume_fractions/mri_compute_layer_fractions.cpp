@@ -48,12 +48,12 @@
 #define NLABELS        (nlayers+3)  // wm + cortical layers + csf + subcortical gray
 
 static int nlayers = NLAYERS ;
-static char *LAMINAR_NAME = "gwdist";
-static char *aseg_name = "aseg.mgz" ;
+static const char *LAMINAR_NAME = "gwdist";
+static const char *aseg_name = "aseg.mgz" ;
 
 static int noaseg = 0 ;
 static char *subject_name = NULL ;
-static char *hemi = "lh" ;
+static const char *hemi = "lh" ;
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 
@@ -122,7 +122,7 @@ main(int argc, char *argv[])
     m_regdat = NULL ;
     inplaneres = betplaneres = intensity = 1 ;
     float2int = 0 ;
-    subject = "unknown" ;
+    subject = const_cast<char*>("unknown"); // Not nice....
   }
   else
   {

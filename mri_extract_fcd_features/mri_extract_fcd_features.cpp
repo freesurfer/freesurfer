@@ -46,16 +46,16 @@ static void usage_exit(int code) ;
 
 
 static char sdir[STRLEN] = "" ;
-static char *white_name = "white" ;
-static char *pial_name = "pial" ;
-static char *vol_name = "norm.mgz" ;
-static char *ribbon_name = "ribbon.mgz" ;
-static char *aparc_name = "aparc+aseg.mgz" ;
+static const char *white_name = "white" ;
+static const char *pial_name = "pial" ;
+static const char *vol_name = "norm.mgz" ;
+static const char *ribbon_name = "ribbon.mgz" ;
+static const char *aparc_name = "aparc+aseg.mgz" ;
 //static char *annot_name = "aparc" ;
-static char *aseg_name = "aseg.mgz" ;
-static char *sphere_name = "sphere.d1.left_right";
-static char *cortex_label = "cortex" ;
-static char *flair_name = "FLAIR.masked.mgz" ;
+static const char *aseg_name = "aseg.mgz" ;
+static const char *sphere_name = "sphere.d1.left_right";
+static const char *cortex_label = "cortex" ;
+static const char *flair_name = "FLAIR.masked.mgz" ;
 
 
 
@@ -71,7 +71,8 @@ main(int argc, char *argv[])
 {
   char   fname[STRLEN], *cp ;
   int    nargs ;
-  char   *subject, *out_fname, *hemi, *ohemi ;
+  char   *subject, *out_fname, *hemi;
+  const char *ohemi ;
   int    msec, minutes, seconds ;
   Timer start ;
   MRI          *mri, *mri_features, *mri_ribbon, *mri_aseg, *mri_aparc, *mri_flair ;

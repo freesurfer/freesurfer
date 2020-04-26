@@ -41,9 +41,9 @@ static void usage_exit(int code) ;
 static char *histo_parms = NULL ;
 static int write_flag = 0 ;
 static char *log_fname = NULL ;
-static char *parc_dir = "parc" ;
-static char *T1_name = "flash/T1.mgh" ;
-static char *PD_name = "flash/PD.mgh" ;
+static const char *parc_dir = "parc" ;
+static const char *T1_name = "flash/T1.mgh" ;
+static const char *PD_name = "flash/PD.mgh" ;
 
 static char *xform_name = NULL ;
 

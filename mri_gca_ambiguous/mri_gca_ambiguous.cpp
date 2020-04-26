@@ -61,7 +61,7 @@ static double MIN_FA3 = 1  ;
 static  double MAX_FA3 = 40 ;
 static  double FA_STEP = 1 ;
 static int append = 0 ;
-static char *fname = "amb.log" ;
+static const char *fname = "amb.log" ;
 static int left = 0 ;
 static int classnum = -1 ;
 

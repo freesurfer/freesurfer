@@ -76,7 +76,7 @@ static float scale = 0 ;
 static int force_inputs = 1 ;
 
 static GCA_PARMS parms ;
-static char *seg_dir = "seg_edited.mgz" ; // default name of manual edit file
+static const char *seg_dir = "seg_edited.mgz" ; // default name of manual edit file
 static char T1_name[STRLEN] = "orig" ;
 static char *xform_name = NULL;
 static int prune = 0 ;

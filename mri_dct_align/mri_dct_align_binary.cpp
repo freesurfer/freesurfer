@@ -87,7 +87,7 @@ static double (*pf_overlap)(VOXEL_LIST *vl_target,
                             VOXEL_LIST *vl_source,
                             DCT *dct) = compute_overlap ;
 
-static int write_snapshot(DCT *dct, MRI *mri_source, MRI *mri_target, char *fname) ;
+static int write_snapshot(DCT *dct, MRI *mri_source, MRI *mri_target, const char *fname) ;
 static DCT *find_optimal_dct(DCT *dct, MRI *mri_source, MRI *mri_target, 
                              VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, 
                              int ncoef,int skip) ;
@@ -841,7 +841,7 @@ find_optimal_dct(DCT *dct, MRI *mri_source, MRI *mri_target, VOXEL_LIST *vl_sour
 }
 
 static int
-write_snapshot(DCT *dct, MRI *mri_source, MRI *mri_target, char *fname)
+write_snapshot(DCT *dct, MRI *mri_source, MRI *mri_target, const char *fname)
 {
   MRI *mri_aligned ;
 

@@ -99,7 +99,7 @@ char *PolarRealFile=NULL, *PolarImagFile=NULL;
 char *EccenOut=NULL, *PolarOut=NULL;
 
 char *subject, *hemi, *SUBJECTS_DIR;
-char *PatchFile = NULL;
+const char *PatchFile = NULL;
 double fwhm = -1;
 int nsmooth = -1;
 char tmpstr[2000];
