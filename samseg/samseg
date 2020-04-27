@@ -147,7 +147,7 @@ endif
 set cmd0 = (run_samseg -o $outdir --threads $threads)
 if($SaveMesh) set cmd0 = ($cmd0 --save-mesh)
 if($#regmat)  set cmd0 = ($cmd0 --reg $regmat)
-if($#initlta) set cmd0 = ($cmd0 --init-lta $initlta)
+if($#initlta) set cmd0 = ($cmd0 --init-reg $initlta)
 if($regonly) set cmd0 = ($cmd0 --reg-only);
 if($#max_iters) set cmd0 = ($cmd0 --max-iters $max_iters);
 if($SavePosteriors) set cmd0 = ($cmd0 --save-posteriors)
@@ -572,6 +572,15 @@ while( $#argv != 0 )
       endif
       breaksw
 
+    case "--atlas":
+      if($#argv < 1) goto arg1err;
+      setenv SAMSEG_DATA_DIR $argv[1]; shift;
+      if(! -e $SAMSEG_DATA_DIR) then
+        echo "ERROR: cannot find $SAMSEG_DATA_DIR"
+        exit 1
+      endif
+      breaksw
+
     case "--tmp":
     case "--tmpdir":
       if($#argv < 1) goto arg1err;
@@ -726,6 +735,7 @@ usage_exit:
   echo "  --no-save-warp : do not save m3z-style warp"
   echo "  --mrf/--no-mrf : do or do not do MRF (default is $DoMRF)"
   echo "  --threads nthreads : set the number of CPUs to use"
+  echo "  --atlas SAMSEG_DATA_DIR"
   echo ""
   echo "  --recon : run recon-all "
   echo "  --fill : use samseg to create filled.mgz instead of recon-all"
@@ -775,6 +785,13 @@ fsr-input options. One of the modes must be t1w. The --refmode should
 probably be t1w. If the input includes a t2-weighted and/or a FLAIR image, 
 the user can supply a --use-t2w or --use-flair to indicate that the recon
 should be done with T2/FLAIR pial refinement. 
+
+You can change the atlas dir with either
+  setenv SAMSEG_DATA_DIR /path/to/atlas
+or
+  --atlas /path/to/atlas
+
+
 
 Example,
 samseg --t1w run1.T1.slice0.dicom  --t1w run2.T1.slice0.dicom \
