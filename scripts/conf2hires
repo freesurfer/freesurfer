@@ -237,10 +237,11 @@ foreach hemi ($hemilist)
   foreach surf ($surflist) 
     echo "\n#===============================" | tee -a $LF
     echo "Creating $hemi.$surf.rawavg"| tee -a $LF
-    set cmd = (mri_surf2surf --s $subject --hemi $hemi --sval-xyz $surf --surfreg $surf \
-     --reg $regR2C rawavg.cmdc.mgz --tval-xyz rawavg.cmdc.mgz --tval $surf.rawavg)
+    #set cmd = (mri_surf2surf --s $subject --hemi $hemi --sval-xyz $surf --surfreg $surf \
+    # --reg $regR2C rawavg.cmdc.mgz --tval-xyz rawavg.cmdc.mgz --tval $surf.rawavg)
+    set cmd = (mris_apply_reg --lta $sdir/$hemi.$surf $regC2Rlta $sdir/$hemi.$surf.rawavg)
     echo $cmd | tee -a $LF
-    set ud = `UpdateNeeded ../surf/$hemi.$surf.rawavg ../surf/$hemi.$surf $regR2C `
+    set ud = `UpdateNeeded $sdir/$hemi.$surf.rawavg $sdir/$hemi.$surf $regC2Rlta`
     if($ud || $ForceUpdate) then
       if($RunIt) then
         $fs_time $cmd |& tee -a $LF
@@ -361,7 +362,7 @@ foreach hemi ($hemilist)
   echo "#--------------------------------------------"|& tee -a $LF |& tee -a $CF
   echo "#@# c2hWhiteSurfs $hemi `date`" |& tee -a $LF |& tee -a $CF
   set ads  = ../surf/autodet.gw.stats.$hemi.dat
-  set inputsurf = ../surf/$hemi.$srcsurf
+  set inputsurf = ../surf/$hemi.$srcsurf.rawavg
   set aparc  = ../label/$hemi.aparc.annot  
   set cortex = ../label/$hemi.cortex.label
   set white = ../surf/$hemi.white.rawavg
@@ -428,11 +429,12 @@ foreach hemi ($hemilist)
   set surflist = (white.rawavg)
   set surflist = ($surflist pial.T1.rawavg)
   foreach surf ($surflist)
-    set cmd = (mri_surf2surf --s $subject --hemi $hemi --sval-xyz $surf --surfreg $surf \
-      --reg $regR2C rawavg.cmdc.mgz --tval-xyz orig.mgz --tval $surf.conf)
+    #set cmd = (mri_surf2surf --s $subject --hemi $hemi --sval-xyz $surf --surfreg $surf \
+    #  --reg $regR2C rawavg.cmdc.mgz --tval-xyz orig.mgz --tval $surf.conf)
+    set cmd = (mris_apply_reg --lta $sdir/$hemi.$surf $regR2Clta $sdir/$hemi.$surf.conf)
     echo "\n# Creating $hemi.$surf.conf ====================" | tee -a $LF
     echo $cmd | tee -a $LF
-    set ud = `UpdateNeeded ../surf/$hemi.$surf.conf ../surf/$hemi.$surf $regR2C orig.mgz`
+    set ud = `UpdateNeeded $sdir/$hemi.$surf.conf $sdir/$hemi.$surf $regR2Clta`
     if($ud || $ForceUpdate) then
       if($RunIt) then
         $fs_time $cmd |& tee -a $LF
@@ -606,17 +608,20 @@ if($#MMode) then
     endif
     # Map the surf coords back into the conformed space, need to use regC2R here
     set surf = pial.$MMode.rawavg
-    set cmd = (mri_surf2surf --s $subject --hemi $hemi --sval-xyz $surf --surfreg $surf \
-      --reg $regR2C rawavg.cmdc.mgz --tval-xyz orig.mgz --tval $surf.conf)
-    echo "\n#===============================" | tee -a $LF
-    echo $cmd | tee -a $LF
-    set ud = (`UpdateNeeded ../surf/$hemi.$surf.conf ../surf/$hemi.$surf $regR2C`)
+    #set cmd = (mri_surf2surf --s $subject --hemi $hemi --sval-xyz $surf --surfreg $surf \
+    #  --reg $regR2C rawavg.cmdc.mgz --tval-xyz orig.mgz --tval $surf.conf)
+    set cmd = (mris_apply_reg --lta $sdir/$hemi.$surf $regR2Clta $sdir/$hemi.$surf.conf)
+    set ud = (`UpdateNeeded  $sdir/$hemi.$surf.conf $sdir/$hemi.$surf $regR2Clta`)
     if($ud || $ForceUpdate) then
-      $cmd | tee -a $LF
-      if($status) goto error_exit;
+      if($RunIt) then
+        $fs_time $cmd |& tee -a $LF
+        if($status) goto error_exit;
+	cd ../surf; ln -sf $hemi.pial.$MMode.rawavg $hemi.pial; cd ../mri
+      endif
     else
-      echo "  Update not needed" | tee -a $LF
+      echo "   Update not needed" |& tee -a $LF |& tee -a $CF
     endif
+    echo "\n#===============================" | tee -a $LF
     pushd $sdir
     ln -sf $hemi.$surf.conf  $hemi.pial |& tee -a $LF
     popd

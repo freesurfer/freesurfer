@@ -131,7 +131,7 @@ def options_parse():
     parser.add_option('-p', '--parc', dest='parc',
                       default='aparc', help=h_parc)
     parser.add_option('-m', '--measure', dest='meas',
-                      choices=('area','volume','thickness','thicknessstd','meancurv','gauscurv','foldind','curvind'),
+                      choices=('area','volume','thickness','thicknessstd','thickness.T1','meancurv','gauscurv','foldind','curvind'),
                       default='area', help=h_meas)
     parser.add_option('-d', '--delimiter', dest='delimiter',
                       choices=('comma','tab','space','semicolon'),

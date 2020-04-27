@@ -18,21 +18,26 @@ else
   
   MCRJRE=${MCRROOT}/sys/java/jre/glnxa64/jre/lib/amd64 ;
 
+  export XAPPLRESDIR=${MCRROOT}/X11/app-defaults ;
+  unset JAVA_TOOL_OPTIONS
+
+  ORIG_LD_LIBRARY_PATH=$LD_LIBRARY_PATH
+  MCR_LD_LIBRARY_PATH=${MCRROOT}/runtime/glnxa64:${MCRROOT}/bin/glnxa64:${MCRROOT}/sys/os/glnxa64:${MCRJRE}/native_threads:${MCRJRE}/server:${MCRJRE}/client:${MCRJRE}
+
   # since we're going to call fs binaries from matlab, we want them to link to the system libstdc++ and not the matlab version
   libstdpath="$(/sbin/ldconfig -p | grep libstdc++.so | sed -n 1p | awk '{ print $NF }')"
   if [ -z "$libstdpath" ]; then echo "error: can't find libstdc++.so" && exit 1; fi
   libstddir="$(dirname $libstdpath)"
 
-  LD_LIBRARY_PATH=.:${libstddir}:${MCRROOT}/runtime/glnxa64:${MCRROOT}/bin/glnxa64:${MCRROOT}/sys/os/glnxa64:${MCRJRE}/native_threads:${MCRJRE}/server:${MCRJRE}/client:${MCRJRE}:$LD_LIBRARY_PATH ;
+  export LD_LIBRARY_PATH=.:${libstddir}:${MCR_LD_LIBRARY_PATH}:${ORIG_LD_LIBRARY_PATH}
 
-  XAPPLRESDIR=${MCRROOT}/X11/app-defaults ;
-
-  export LD_LIBRARY_PATH;
-  export XAPPLRESDIR;
-  
-  unset JAVA_TOOL_OPTIONS
+  if [ -x "$(command -v ldd)" ] && [ -n "$(ldd ${exe_dir}/SegmentThalamicNuclei 2>&1 | grep 'not found')" ]; then
+    echo "INFO: error loading libraries in default configuration, trying with MCR libraries only"
+    export LD_LIBRARY_PATH=.:${MCR_LD_LIBRARY_PATH}:${ORIG_LD_LIBRARY_PATH}
+  fi
 
   echo LD_LIBRARY_PATH is ${LD_LIBRARY_PATH};
+
   shift 1
   args=
   while [ $# -gt 0 ]; do

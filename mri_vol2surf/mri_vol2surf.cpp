@@ -1137,9 +1137,6 @@ static int parse_commandline(int argc, char **argv) {
       if(mri==NULL) exit(1);
       MRIS *surf  = MRISread(pargv[1]);
       if(surf==NULL) exit(1);
-      MRI *TargVol=NULL;
-      if(surf->vg.valid) 
-	TargVol = MRIallocFromVolGeom(&(surf->vg), MRI_UCHAR, 1,1);
       int projtype;
       sscanf(pargv[2],"%d",&projtype);
       double projdist;
@@ -1150,30 +1147,21 @@ static int parse_commandline(int argc, char **argv) {
       }
       LTA *lta=NULL;
       MATRIX *RegMat=NULL;
-      if(strcmp(pargv[5],"regheader") != 0){
+      if(strcmp(pargv[5],"regheader") != 0){ // not regheader
 	lta = LTAread(pargv[5]);
 	if(lta==NULL) exit(1);
 	LTAchangeType(lta,REGISTER_DAT);
-	if(surf->vg.valid){
-	  // Determine that source and target VGs match that in the LTA and 
-	  // whether LTA needs to be inverted
-	  int invneeded = LTAinversionNeeded(mri, TargVol, lta);
-	  if(invneeded != 0 && invneeded != 1) exit(1);
-	  if(invneeded){
-	    printf("Inverting LTA\n");
-	    LTA *lta2 = LTAinvert(lta, NULL);
-	    lta = lta2;
-	  }
-	}
-	else {
-	  // Dont have target geom, make sure that src matches
-	  VOL_GEOM srcvg;
-	  getVolGeom(mri, &srcvg);
-	  vg_isEqual_Threshold = 10e-3;
-	  if(!vg_isEqual(&srcvg, &(lta->xforms[0].src))){
-	    printf("ERROR: input volume VG does not match LTA source VG\n");
+	VOL_GEOM srcvg;
+	getVolGeom(mri, &srcvg);
+	vg_isEqual_Threshold = 10e-3;
+	if(!vg_isEqual(&srcvg, &(lta->xforms[0].src))){
+	  if(!vg_isEqual(&srcvg, &(lta->xforms[0].dst))){
+	    printf("ERRRO: input volume VG does not match LTA source or target VG\n");
 	    exit(1);
 	  }
+	  printf("INFO: input volume VG matches LTA target VG, inverting \n");
+	  LTA *lta2 = LTAinvert(lta, NULL);
+	  lta = lta2;
 	}
 	RegMat = lta->xforms[0].m_L;
       }
@@ -1182,9 +1170,11 @@ static int parse_commandline(int argc, char **argv) {
 	  printf("ERROR: volume geometry of input surface is not valid, cannot use regheader\n");
 	  exit(1);
 	}
+	MRI *TargVol=NULL;
+	TargVol = MRIallocFromVolGeom(&(surf->vg), MRI_UCHAR, 1,1);
 	RegMat = MRItkRegMtx(TargVol,mri,NULL);
+	MRIfree(&TargVol);
       }
-      MRIfree(&TargVol);
       MRI *vsm = NULL;
       if(strcmp(pargv[6],"novsm") != 0){
 	vsm = MRIread(pargv[6]);
@@ -1194,7 +1184,9 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[7],"%d",&interpmethod);
       MRI *sval = MRIvol2surfVSM(mri, RegMat, surf, vsm, interpmethod, NULL, projdist, projtype, 1,NULL);
       err = MRIwrite(sval,pargv[8]);
+      printf("mri_vol2surf --volsurf done\n");
       exit(err);
+      // done with --vol2surf
     }
     else if (!strcmp(option, "--norm-pointset")) {
       if(nargc < 5){
