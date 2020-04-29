@@ -186,9 +186,20 @@ if($FS_SXA3_USE_BIN == 0) then
 else
   echo "FS_MCRROOT $FS_MCRROOT " |& tee -a $LF
   if($?LD_LIBRARY_PATH == 0) setenv LD_LIBRARY_PATH
-  setenv LD_LIBRARY_PATH "$LD_LIBRARY_PATH":"$FS_MCRROOT/runtime/glnxa64"
-  setenv LD_LIBRARY_PATH "$LD_LIBRARY_PATH":"$FS_MCRROOT/bin/glnxa64"
-  setenv LD_LIBRARY_PATH "$LD_LIBRARY_PATH":"$FS_MCRROOT/sys/os/glnxa64"
+  set ORIG_LD_LIBRARY_PATH = $LD_LIBRARY_PATH
+  set MCR_LD_LIBRARY_PATH = "$FS_MCRROOT/runtime/glnxa64":"$FS_MCRROOT/bin/glnxa64":"$FS_MCRROOT/sys/os/glnxa64"
+  set LIBSTD_PATH = `/sbin/ldconfig -p | grep libstdc++.so | sed -n 1p | awk '{ print $NF }'`
+  if ( "$LIBSTD_PATH" == "" ) then
+    echo "error: can't find libstdc++.so"
+    exit 1
+  endif
+  set LIBSTD_DIR = `dirname $LIBSTD_PATH`
+  setenv LD_LIBRARY_PATH "$ORIG_LD_LIBRARY_PATH":"$LIBSTD_DIR":"$MCR_LD_LIBRARY_PATH"
+  set selxbin = `which fast_selxavg3b.glnxa64`
+  if ( `ldd $selxbin |& grep -c 'not found'` ) then
+    echo "INFO: error loading libraries in default configuration, trying with MCR libraries only"
+    setenv LD_LIBRARY_PATH "$ORIG_LD_LIBRARY_PATH":"$MCR_LD_LIBRARY_PATH"
+  endif
   echo "LD_LIBRARY_PATH $LD_LIBRARY_PATH" |& tee -a $LF
 endif
 
