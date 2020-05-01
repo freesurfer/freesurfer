@@ -6,7 +6,7 @@ from collections.abc import Iterable
 
 from . import bindings, warning
 from .geom import resample, apply_warp
-from .transform import Transformable, LinearTransform, Geometry
+from .transform import Transformable, LinearTransform, Geometry, LIA
 
 
 class ArrayContainerTemplate:
@@ -256,13 +256,13 @@ class Volume(ArrayContainerTemplate, Transformable):
         target_shape = tuple(np.ceil(np.array(self.voxsize).astype(float) * src_shape / voxsize).astype(int))
         
         # get source-to-RAS matrix
-        src2ras = self.affine if self.affine is not None else fs.transform.LIA(src_shape, self.voxsize)
+        src2ras = self.affine if self.affine is not None else LIA(src_shape, self.voxsize)
 
         # compute target-to-RAS matrix
         pcrs = np.append(np.array(src_shape) / 2, 1)
         cras = np.matmul(src2ras, pcrs)[:3]
         trg2ras = np.eye(4)
-        trg2ras[:3, :3] = self.affine[:3, :3] * voxsize / self.voxsize
+        trg2ras[:3, :3] = src2ras[:3, :3] * voxsize / self.voxsize
         pcrs = np.append(np.array(target_shape) / 2, 1)
         trg2ras[:3, 3] = cras - np.matmul(trg2ras, pcrs)[:3]
 
