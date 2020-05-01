@@ -1369,7 +1369,8 @@ static int parse_commandline(int argc, char **argv)
       UseSurfTarg = 1;
       DoProj = 1;
       nargsused = 2;
-    } else if (!strcmp(option, "--projfrac")) {
+    } 
+    else if (!strcmp(option, "--projfrac")) {
       if(nargc < 2) {
         argnerr(option,2);
       }
@@ -1380,7 +1381,24 @@ static int parse_commandline(int argc, char **argv)
       UseSurfTarg = 1;
       DoProj = 1;
       nargsused = 2;
-    } else if (!strcmp(option, "--reshape-factor")) {
+    } 
+    else if (!strcmp(option, "--proj-norm")) {
+      // --proj-norm sourcesurf projdistmm outsurf
+      if(nargc < 3) argnerr(option,2);
+      MRIS *surf = MRISread(pargv[0]);
+      if(surf == NULL) exit(1);
+      double dist;
+      sscanf(pargv[1],"%lf",&dist);
+      int n;
+      for(n=0; n < surf->nvertices; n++) {
+	float x,y,z;
+	ProjNormDist(&x, &y, &z,surf, n, dist);
+	MRISsetXYZ(surf,n, x,y,z);
+      }
+      int err = MRISwrite(surf,pargv[2]);
+      exit(err);
+    } 
+    else if (!strcmp(option, "--reshape-factor")) {
       if(nargc < 1) {
         argnerr(option,1);
       }
@@ -1865,6 +1883,7 @@ static void print_usage(void)
   printf("   --prune - remove any voxel that is zero in any time point (for smoothing)\n");
   printf("   --no-prune - do not prune (default)\n");
   printf("   --proj-surf surf projmagfile scale outsurf : project vertices by mag*scale at each vertex\n");
+  printf("   --proj-norm sourcesurf distmm outsurf : project vertices by distmm at each vertex\n");
   printf("\n");
   printf("   --reg-diff reg2 : subtract reg2 from --reg (primarily for testing)\n");
   printf("   --rms rms.dat   : save rms of reg1-reg2 (primarily for testing)\n");
