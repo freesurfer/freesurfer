@@ -4181,15 +4181,15 @@ if($DoCortRibbonVolMask) then
   echo "#@# Cortical ribbon mask `date`" \
       |& tee -a $SF|& tee -a $LF|& tee -a $CF
   cd $subjdir/mri > /dev/null
-  set xopts = `fsr-getxopts mris_volmask $XOptsFile $GlobXOptsFile`;
-  set cmd = (mris_volmask $xopts)
-  if ($LHonly) set cmd = ($cmd --lh-only )
-  if ($RHonly) set cmd = ($cmd --rh-only )
-  set cmd = ($cmd \
-    --aseg_name aseg.presurf \
+  set cmd = (mris_volmask --aseg_name aseg.presurf \
     --label_left_white   2 --label_left_ribbon   3 \
     --label_right_white 41 --label_right_ribbon 42 \
     --save_ribbon)
+  if($LHonly) set cmd = ($cmd --lh-only )
+  if($RHonly) set cmd = ($cmd --rh-only )
+  if($OMP_NUM_THREADS > 1) set cmd = ($cmd --parallel) # just hemis
+  set xopts = `fsr-getxopts mris_volmask $XOptsFile $GlobXOptsFile`;
+  set cmd = ($cmd $xopts)
   set cmd = ($cmd $subjid)
   $PWD |& tee -a $LF
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
