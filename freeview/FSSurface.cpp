@@ -825,6 +825,7 @@ void FSSurface::UpdatePolyData( MRIS* mris,
   // Go through the surface and copy the vertex and normal for each
   // vertex. We need to transform them from surface RAS into standard
   // RAS.
+  bool bInvertNormal = (vtkMatrix4x4::Determinant(m_SurfaceToRASMatrix) < 0);
   float point[3], normal[3], surfaceRAS[3];
   for ( int vno = 0; vno < cVertices; vno++ )
   {
@@ -858,7 +859,7 @@ void FSSurface::UpdatePolyData( MRIS* mris,
     m_targetToRasTransform->GetInverse()->TransformPoint(normal, normal);
 
     for (int i = 0; i < 3; i++)
-      normal[i] = normal[i] - orig[i];
+      normal[i] = bInvertNormal?(orig[i] - normal[i]):(normal[i] - orig[i]);
     vtkMath::Normalize(normal);
     newNormals->InsertNextTuple( normal );
 
