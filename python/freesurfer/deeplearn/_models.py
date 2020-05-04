@@ -584,7 +584,7 @@ def unet_encoder_dense(feature_shape, output_shape, unet_num_filters, depth, dep
 
 
 def classnet(feature_shape, unet_num_filters, depth, depth_per_level, n_labels, initial_learning_rate,
-                 loss='binary_crossentropy', batch_norm=True, dropout_frac=None,pooling='max',num_outputs=1,final_activation='softmax'):
+                 loss='binary_crossentropy', batch_norm=True, dropout_frac=None,pooling='max',num_outputs=1,final_activation='softmax', conv_size=3, dense_size=512, feature_scale_with_depth=2):
     dim = len(feature_shape)
     num_channels = feature_shape[-1]
     if dim == 3:
@@ -593,7 +593,7 @@ def classnet(feature_shape, unet_num_filters, depth, depth_per_level, n_labels, 
         AvgPoolingL = AveragePooling2D
         pool_shape = (2, 2)
         UpSamplingL = UpSampling2D
-        filter_shape = (5, 5)
+        filter_shape = (conv_size, conv_size)
         out_filter_shape = (1, 1)
     elif dim == 4:
         ConvL = Conv3D
@@ -601,7 +601,7 @@ def classnet(feature_shape, unet_num_filters, depth, depth_per_level, n_labels, 
         AvgPoolingL = AveragePooling3D
         pool_shape = (2, 2, 2)
         UpSamplingL = UpSampling3D
-        filter_shape = (3, 3, 3)
+        filter_shape = (conv_size,conv_size,conv_size)
         onexone_filter_shape = (1, 1, 1)
         out_filter_shape = (1, 1, 1)
     elif dim == 2:
@@ -612,7 +612,7 @@ def classnet(feature_shape, unet_num_filters, depth, depth_per_level, n_labels, 
         AvgPoolingL = AveragePooling1D
         pool_shape = (2)
         UpSamplingL = UpSampling1D
-        filter_shape = (5)
+        filter_shape = (conv_size)
         out_filter_shape = (1)
 
     if pooling == 'max':
@@ -638,16 +638,17 @@ def classnet(feature_shape, unet_num_filters, depth, depth_per_level, n_labels, 
         model.add(BatchNormalization())
         model.add(Activation('relu'))
 
+    unet_num_filters_at_depth = unet_num_filters
     for iter_layer in range(depth):
         if iter_layer == 0:
 
-            model.add(ConvL(unet_num_filters * (2 ** iter_layer), filter_shape, padding='same', activation='relu',
+            model.add(ConvL(unet_num_filters_at_depth, filter_shape, padding='same', activation='relu',
                             input_shape=input_shape_append, kernel_initializer="he_normal", use_bias=use_bias))
             if batch_norm == True:
                 model.add(BatchNormalization())
 
             for iter_depth_per_layer in range(depth_per_level - 1):
-                model.add(ConvL(unet_num_filters * (2 ** iter_layer), filter_shape, padding='same', activation='relu',
+                model.add(ConvL(unet_num_filters_at_depth, filter_shape, padding='same', activation='relu',
                                 kernel_initializer="he_normal", use_bias=use_bias))
                 if batch_norm == True:
                     model.add(BatchNormalization())
@@ -657,7 +658,7 @@ def classnet(feature_shape, unet_num_filters, depth, depth_per_level, n_labels, 
                 model.add(Dropout(dropout_frac))
         else:
             for iter_depth_per_layer in range(depth_per_level):
-                model.add(ConvL(unet_num_filters * (2 ** iter_layer), filter_shape, padding='same', activation='relu',
+                model.add(ConvL(unet_num_filters_at_depth, filter_shape, padding='same', activation='relu',
                                 kernel_initializer="he_normal", use_bias=use_bias))
                 if batch_norm == True:
                     model.add(BatchNormalization())
@@ -665,9 +666,10 @@ def classnet(feature_shape, unet_num_filters, depth, depth_per_level, n_labels, 
             model.add(PoolingL(pool_size=pool_shape))
             if (dropout_frac != None):
                 model.add(Dropout(dropout_frac))
+        unet_num_filters_at_depth = int(unet_num_filters_at_depth*feature_scale_with_depth)
 
     model.add(Flatten())
-    model.add(Dense(512, activation='relu', kernel_initializer="he_normal", use_bias=use_bias))
+    model.add(Dense(dense_size, activation='relu', kernel_initializer="he_normal", use_bias=use_bias))
     model.add(Dropout(0.2))
     if n_labels > 0:
         model.add(Dense(n_labels, activation=final_activation, use_bias=use_bias, kernel_initializer="he_normal"))
