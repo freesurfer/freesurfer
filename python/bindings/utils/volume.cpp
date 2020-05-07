@@ -157,9 +157,10 @@ MRI* Bridge::mri()
   mri_buffer = np.attr("asfortranarray")(source.attr("data"));
 
   // convert unsupported data types
-  if (py::isinstance<py::array_t<bool>>(mri_buffer)) mri_buffer = py::array_t<uchar>(mri_buffer);
-  if (py::isinstance<py::array_t<long>>(mri_buffer)) mri_buffer = py::array_t<int>(mri_buffer);
   if (py::isinstance<py::array_t<double>>(mri_buffer)) mri_buffer = py::array_t<float>(mri_buffer);
+  if (py::isinstance<py::array_t<bool>>(mri_buffer)) mri_buffer = py::array_t<uchar>(mri_buffer);
+  if (py::isinstance<py::array_t<char>>(mri_buffer)) mri_buffer = py::array_t<int>(mri_buffer);
+  if (py::isinstance<py::array_t<long>>(mri_buffer)) mri_buffer = py::array_t<int>(mri_buffer);
 
   // determine valid MRI type from numpy datatype
   int dtype;
