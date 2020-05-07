@@ -593,7 +593,7 @@ uname -a | tee -a $LF
 limit >> $LF
 if (-e /usr/bin/free) then
   echo "" >> $LF
-  /usr/bin/free >> $LF
+  /usr/bin/free --human >> $LF
   echo "" >> $LF
 endif
 if ("`uname -s`" == "Darwin") then
