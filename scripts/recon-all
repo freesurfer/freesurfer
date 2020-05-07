@@ -7986,8 +7986,6 @@ usage_exit:
   echo "                  and assumes a darker gm."
   echo "  -schwartzya3t-atlas : for tal reg, use special young adult 3T atlas"
   echo ""
-  echo "  -use-gpu : use GPU versions of mri_em_register, mri_ca_register,"
-  echo "             mris_inflate and mris_sphere"
   echo "  -threads num  : set number of threads to use"
   echo ""
   echo " Notification Files (Optional)"
@@ -8468,11 +8466,6 @@ BA45, V1, V2, and V5/MT (and perirhinal) by mapping labels from the
 Based on:
 "Cortical Folding Patterns and Predicting Cytoarchitecture", Fischl et al.,
 Cerebral Cortex 2007.
-
--use-gpu
-
-Use the GPU versions of the binaries mri_em_register, mri_ca_register,
-mris_inflate, and mris_sphere.
 
 -threads num
 -openmp num
