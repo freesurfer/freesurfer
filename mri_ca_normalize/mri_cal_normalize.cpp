@@ -67,7 +67,7 @@ static int copy_ctrl_points_to_volume(GCA_SAMPLE *gcas, int nsamples,
                                       MRI *mri_ctrl, int frame) ;
 static int discard_control_points_with_different_labels(GCA_SAMPLE *gcas, int nsamples, MRI *mri_aseg) ;
 
-static char *aseg_fname = "aseg.mgz" ;
+static const char *aseg_fname = "aseg.mgz" ;
 static char *renormalization_fname = NULL ;
 static double TR = 0.0, TE = 0.0, alpha = 0.0 ;
 static char *tissue_parms_fname = NULL ;
@@ -87,7 +87,7 @@ static int  gcas_bounding_box(GCA_SAMPLE *gcas, int nsamples, int *pxmin, int *p
 static int  uniform_region(GCA *gca, MRI *mri, TRANSFORM *transform,
                            int x, int y, int z, int wsize, GCA_SAMPLE *gcas, float nsigma) ;
 static int  discard_unlikely_control_points(GCA *gca, GCA_SAMPLE *gcas_struct, int struct_samples,
-                                            MRI *mri_in, TRANSFORM *transform, char *name) ;
+                                            MRI *mri_in, TRANSFORM *transform, const char *name) ;
 
 /*
   command line consists of these inputs:
@@ -1035,7 +1035,7 @@ uniform_region(GCA *gca, MRI *mri, TRANSFORM *transform,
 
 static int
 discard_unlikely_control_points(GCA *gca, GCA_SAMPLE *gcas, int nsamples,
-                                MRI *mri_in, TRANSFORM *transform, char *name)
+                                MRI *mri_in, TRANSFORM *transform, const char *name)
 {
   int    i, xv, yv, zv, n, peak, start, end, num ;
   HISTO *h, *hsmooth ;

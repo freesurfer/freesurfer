@@ -119,12 +119,12 @@ int checkoptsonly=0;
 struct utsname uts;
 
 char *OutTop = NULL;
-char *csdbase = NULL;
-char *subject = NULL;
-char *surfname = "white";
-char *hemi = NULL;
+const char *csdbase = NULL;
+const char *subject = NULL;
+const char *surfname = "white";
+const char *hemi = NULL;
 char *MaskFile = NULL;
-char *LabelFile = "cortex";
+const char *LabelFile = "cortex";
 int nRepetitions = -1;
 int SynthSeed = -1;
 
@@ -144,7 +144,8 @@ int SaveEachIter = 0;
 CSD *csdList[100][100][3], *csd;
 MRI *mask=NULL;
 MRIS *surf;
-char tmpstr[2000],*signstr=NULL;
+char tmpstr[2000];
+const char *signstr=NULL;
 int msecTime, nmask, nmaskout, nthRep;
 int *nSmoothsList;
 double fwhmmax=30;
@@ -154,7 +155,8 @@ int FixFSALH = 1;
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
   int nargs, n, err,k, *maskoutvtxno;
-  char tmpstr[2000], *signstr=NULL,*SUBJECTS_DIR, fname[2000];
+  char tmpstr[2000], *SUBJECTS_DIR, fname[2000];
+  const char *signstr = NULL; // Is this intended to mask the global?
   //char *OutDir = NULL;
   RFS *rfs;
   int nSmoothsPrev, nSmoothsDelta;

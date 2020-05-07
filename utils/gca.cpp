@@ -11096,7 +11096,7 @@ int GCAnormalizeTissueStatistics(GCA *gca)
   return (NO_ERROR);
 }
 
-char *cma_label_to_name(int label)
+const char *cma_label_to_name(int label)
 {
   static char name[STRLEN];
 

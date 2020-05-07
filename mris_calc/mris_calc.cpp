@@ -74,7 +74,7 @@ typedef enum _FILETYPE
   e_Unknown, e_VolumeFile, e_CurvatureFile, e_SurfaceFile, e_FloatArg
 } e_FILETYPE;
 
-char*   Gppch_filetype[] =
+const char*   Gppch_filetype[] =
 {
   "Unknown",
   "Volume",
@@ -83,7 +83,7 @@ char*   Gppch_filetype[] =
   "FloatArg"
 };
 
-char* Gppch_fileExt[] =
+const char* Gppch_fileExt[] =
 {
   "null",
   "mgz",
@@ -92,7 +92,7 @@ char* Gppch_fileExt[] =
   "dummy"
 };
 
-char* Gppch_fileDotExt[] =
+const char* Gppch_fileDotExt[] =
 {
   ".null",
   ".mgz",
@@ -749,8 +749,8 @@ init(void)
 
 void
 error_exit(
-  char*   apch_action,
-  char*   apch_error,
+  const char*   apch_action,
+  const char*   apch_error,
   int   exitCode)
 {
 
@@ -1547,7 +1547,7 @@ options_parse(int argc, char *argv[])
 {
   int    nargs    = 0;
   char*  option;
-  char*  pch_text;
+  const char*  pch_text;
 
   option = argv[1] + 1 ;            /* past '-' */
   if (!stricmp(option, "-output") || (toupper(*option) == 'O'))

@@ -68,7 +68,7 @@ static double Gaussian01PDF(void);
 static MRI *MRIsynthGaussian(int ncols, int nrows, int nslices,
                              int nframes, MRI *tvol);
 static MRI *MRIbinarize01(MRI *vol, float thmin, float thmax,
-                          char *thsign, int invert,
+                          const char *thsign, int invert,
                           int lowval, int highval, int *nhits, MRI *binvol);
 
 
@@ -102,7 +102,7 @@ char *maskid   = NULL;
 int   masktype = MRI_VOLUME_TYPE_UNKNOWN;
 char  *masktypestring;
 float maskthresh = 0.5;
-char  *masksignstring = "abs";
+const char  *masksignstring = "abs";
 int   maskinvert = 0;
 int   maskframe  = 0;
 
@@ -127,7 +127,7 @@ char *labelbase;
 
 float threshmin  = -1.0;
 float threshmax  = -1.0;
-char  *signstring = "abs";
+const char  *signstring = "abs";
 int   threshsign =    0;
 float sizethresh    = 0.0;
 int   sizethreshvox = 0;
@@ -1736,7 +1736,7 @@ static double Gaussian01PDF(void) {
   must have the same dimensions as vol.
   ---------------------------------------------------------------*/
 static MRI *MRIbinarize01(MRI *vol, float thmin, float thmax,
-                          char *thsign, int invert,
+                          const char *thsign, int invert,
                           int lowval, int highval, int *nhits, MRI *binvol) {
   int ncols, nrows, nslices, nframes;
   int col, row, slice, frame;

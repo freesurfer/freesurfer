@@ -64,12 +64,12 @@ static int debug = 0;
 static char *hemi    = NULL;
 static char *srcsubject = NULL;
 
-static char *surf_filename = "white";
-static char *deformvol_filename = "deform_vol_abs.nii.gz";
-static char *deformsurf_filename = "deform_surf_abs.mgz";
-static char *m3z_filename = "deform_vol_rel.m3z";
-static char *reg_filename = "register.dat";
-static char *warpsurf_filename = "white.warp";
+static const char *surf_filename = "white";
+static const char *deformvol_filename = "deform_vol_abs.nii.gz";
+static const char *deformsurf_filename = "deform_surf_abs.mgz";
+static const char *m3z_filename = "deform_vol_rel.m3z";
+static const char *reg_filename = "register.dat";
+static const char *warpsurf_filename = "white.warp";
 
 int FLAG__abs = 0;
 

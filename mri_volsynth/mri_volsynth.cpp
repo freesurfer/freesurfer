@@ -81,7 +81,7 @@ float cras[4];
 float p0[4];
 int usep0 = 0;
 float cdircos[3], rdircos[3], sdircos[3];
-char *pdfname = "gaussian";
+const char *pdfname = "gaussian";
 char *precision=NULL; /* not used yet */
 MRI *mri, *mrism, *mritemp, *mri2;
 long seed = -1; /* < 0 for auto */

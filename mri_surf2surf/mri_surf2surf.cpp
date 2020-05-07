@@ -367,9 +367,9 @@ static void print_version(void) ;
 static void argnerr(char *option, int n);
 static void dump_options(FILE *fp);
 static int  singledash(char *flag);
-int GetNVtxsFromWFile(char *wfile);
-int GetICOOrderFromValFile(char *filename, char *fmt);
-int GetNVtxsFromValFile(char *filename, char *fmt);
+int GetNVtxsFromWFile(const char *wfile);
+int GetICOOrderFromValFile(const char *filename, const char *fmt);
+int GetNVtxsFromValFile(const char *filename, const char *fmt);
 int dump_surf(char *fname, MRIS *surf, MRI *mri);
 MATRIX *MRIleftRightRevMatrix(MRI *mri);
 
@@ -377,14 +377,14 @@ int main(int argc, char *argv[]) ;
 
 const char *Progname = NULL;
 
-char *srcsurfregfile = NULL;
+const char *srcsurfregfile = NULL;
 char *srchemi    = NULL;
-char *trgsurfregfile = NULL;
+const char *trgsurfregfile = NULL;
 char *trghemi    = NULL;
 
 char *srcsubject = NULL;
 char *srcvalfile = NULL;
-char *srctypestring = "";
+const char *srctypestring = "";
 int   srctype = MRI_VOLUME_TYPE_UNKNOWN;
 MRI  *SrcVals, *SrcHits, *SrcDist;
 MRI_SURFACE *SrcSurfReg;
@@ -394,7 +394,7 @@ int nSrcVtxs = 0;
 int SrcIcoOrder = -1;
 
 int UseSurfSrc=0; // Get source values from surface, eg, xyz
-char *SurfSrcName=NULL;
+const char *SurfSrcName=NULL;
 MRI_SURFACE *SurfSrc, *SurfTrg;
 MATRIX *XFM=NULL, *XFMSubtract=NULL;
 #define SURF_SRC_XYZ     1
@@ -409,7 +409,7 @@ char *AnnotFile = NULL;
 
 char *trgsubject = NULL;
 char *trgvalfile = NULL;
-char *trgtypestring = "";
+const char *trgtypestring = "";
 int   trgtype = MRI_VOLUME_TYPE_UNKNOWN;
 MRI  *TrgVals, *TrgValsSmth, *TrgHits, *TrgDist;
 MRI_SURFACE *TrgSurfReg;
@@ -422,7 +422,7 @@ int  reshape = 0;
 int  reshapefactor;
 int  reshape3d=0;
 
-char *mapmethod = "nnfr";
+const char *mapmethod = "nnfr";
 
 int UseHash = 1;
 int framesave = 0;
@@ -2338,7 +2338,7 @@ static int singledash(char *flag)
 }
 
 /*---------------------------------------------------------------*/
-int GetNVtxsFromWFile(char *wfile)
+int GetNVtxsFromWFile(const char *wfile)
 {
   FILE *fp;
   int i,ilat, num, nvertices;
@@ -2373,7 +2373,7 @@ int GetNVtxsFromWFile(char *wfile)
 }
 //MRI *MRIreadHeader(char *fname, int type);
 /*---------------------------------------------------------------*/
-int GetNVtxsFromValFile(char *filename, char *typestring)
+int GetNVtxsFromValFile(const char *filename, const char *typestring)
 {
   //int err,nrows, ncols, nslcs, nfrms, endian;
   int nVtxs=0;
@@ -2405,7 +2405,7 @@ int GetNVtxsFromValFile(char *filename, char *typestring)
   return(nVtxs);
 }
 /*---------------------------------------------------------------*/
-int GetICOOrderFromValFile(char *filename, char *fmt)
+int GetICOOrderFromValFile(const char *filename, const char *fmt)
 {
   int nIcoVtxs,IcoOrder;
 

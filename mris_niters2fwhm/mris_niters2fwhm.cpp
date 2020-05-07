@@ -68,7 +68,7 @@ int checkoptsonly=0;
 struct utsname uts;
 
 char *subject=NULL, *hemi=NULL, *SUBJECTS_DIR=NULL;
-char *surfname="white";
+const char *surfname="white";
 char *surfpath=NULL;
 char tmpstr[2000];
 

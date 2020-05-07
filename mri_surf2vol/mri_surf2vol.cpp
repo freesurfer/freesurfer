@@ -54,7 +54,7 @@ static void dump_options(FILE *fp);
 static int  singledash(char *flag);
 static int isflag(char *flag);
 static int nth_is_arg(int nargc, char **argv, int nth);
-static int istringnmatch(char *str1, char *str2, int n);
+static int istringnmatch(const char *str1, const char *str2, int n);
 
 int main(int argc, char *argv[]) ;
 
@@ -67,7 +67,7 @@ char *surfvalpath = NULL;
 char *surfvalfmt = NULL;
 int   surfvalfmtid = 0;
 char *hemi = NULL;
-char *surfname = "white";
+const char *surfname = "white";
 char *srcsubject = NULL;
 char *subject = NULL; // for overriding
 char *targsubject = NULL;
@@ -1090,7 +1090,7 @@ static int nth_is_arg(int nargc, char **argv, int nth) {
   return a 1 if they match (ignoring case), a zero otherwise. If
   n=0, then do a full comparison.
   ------------------------------------------------------------*/
-static int istringnmatch(char *str1, char *str2, int n) {
+static int istringnmatch(const char *str1, const char *str2, int n) {
   if (n > 0  && ! strncasecmp(str1,str2,n)) return(1);
   if (n <= 0 && ! strcasecmp(str1,str2)) return(1);
   return(0);

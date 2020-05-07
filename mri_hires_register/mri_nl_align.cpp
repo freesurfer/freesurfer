@@ -58,7 +58,7 @@ static float scale_values = 1.0 ;
 
 static int write_snapshot(MRI *mri_target, MRI *mri_source,
                           MATRIX *m_vox_xform, GCA_MORPH_PARMS *parms,
-                          int fno, int conform, char *fname) ;
+                          int fno, int conform, const char *fname) ;
 
 static int regrid = 0 ;
 static int nowmsa = 1 ; // remove all wmsa labels from the atlas
@@ -66,8 +66,8 @@ static int nowmsa = 1 ; // remove all wmsa labels from the atlas
 static void  usage_exit(int ecode) ;
 static int get_option(int argc, char *argv[]) ;
 
-static char *source_surf = "";
-static char *target_surf = ".toM02100023.resample";
+static const char *source_surf = "";
+static const char *target_surf = ".toM02100023.resample";
 static char *mask_fname = NULL ;
 
 const char *Progname ;
@@ -406,7 +406,9 @@ main(int argc, char *argv[])
 	replace_wmsa(mri_source, mri_source) ;
       if (ribbon_name)
       {
-        char fname[STRLEN], path[STRLEN], *str, *hemi ;
+        char fname[STRLEN], path[STRLEN];
+	const char *str;
+	const char *hemi ;
         int  h, s, label ;
         MRI_SURFACE *mris_white, *mris_pial ;
         MRI         *mri ;
@@ -1174,7 +1176,7 @@ usage_exit(int ecode)
 
 static int
 write_snapshot(MRI *mri_target, MRI *mri_source, MATRIX *m_vox_xform,
-               GCA_MORPH_PARMS *parms, int fno, int conform, char *in_fname)
+               GCA_MORPH_PARMS *parms, int fno, int conform, const char *in_fname)
 {
   MRI *mri_aligned ;
   char fname[STRLEN] ;

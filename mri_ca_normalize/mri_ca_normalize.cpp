@@ -117,7 +117,7 @@ static int  uniform_region
  int x, int y, int z, int wsize, GCA_SAMPLE *gcas, float nsigma) ;
 static int  discard_unlikely_control_points
 (GCA *gca, GCA_SAMPLE *gcas_struct, int struct_samples,
- MRI *mri_in, TRANSFORM *transform, char *name) ;
+ MRI *mri_in, TRANSFORM *transform, const char *name) ;
 
 /*
   command line consists of three inputs:
@@ -1567,7 +1567,7 @@ uniform_region(GCA *gca, MRI *mri, TRANSFORM *transform,
 
 static int
 discard_unlikely_control_points(GCA *gca, GCA_SAMPLE *gcas, int nsamples,
-                                MRI *mri_in, TRANSFORM *transform, char *name)
+                                MRI *mri_in, TRANSFORM *transform, const char *name)
 {
   int    i, xv, yv, zv, n, peak, start, end, num ;
   HISTO *h, *hsmooth ;

@@ -94,7 +94,7 @@ static float l_spring_norm = 1.0 ;
 static float l_sphere = 0.025 ;
 #endif
 
-static char *orig_name = "smoothwm" ;
+static const char *orig_name = "smoothwm" ;
 static int smooth_avgs = 0 ;
 
 static char *xform_fname = NULL ;

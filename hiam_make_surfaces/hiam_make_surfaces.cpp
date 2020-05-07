@@ -88,10 +88,10 @@ static int    FindSpikes(MRI_SURFACE *mris, int iter);
 static int    SmoothSpikes(MRI_SURFACE *mris, int niter);
 
 static int      all_flag = 0 ;
-static char     *suffix = "hippocampus" ;
-static char     *labelvolume = "mri/aseg" ;
+static const char     *suffix = "hippocampus" ;
+static const char     *labelvolume = "mri/aseg" ;
 //static char     *labelvolume = "mri/aseg_new.mgh" ;
-static char     *orig_name =  "hippocampus.orig" ;
+static const char     *orig_name =  "hippocampus.orig" ;
 static float    weight_Gspring = 0.0 ;
 static double   gaussian_norm = 2.0;
 static int      write_iterations = 0 ;

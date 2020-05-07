@@ -131,7 +131,7 @@ public:
   int RipVertices(void);
   MRIS *surf;
   MRI *seg, *invol;
-  char *hemi;
+  const char *hemi;
   int RipFreeze = 1;
   int RipLesion = 0;
   int RipWMSA = 0;
@@ -196,8 +196,9 @@ char *repulsesurfpath = NULL;
 char *whitesurfpath = NULL;
 
 // These are for when using subject 
-char *subject = NULL,*hemi = NULL, *insurfname = NULL, *outsurfname = NULL;
-char *involname="brain.finalsurfs.mgz", *segvolname="aseg.presurf.mgz",*wmvolname="wm.mgz",*aparcname="aparc";
+char *subject = NULL, *insurfname = NULL, *outsurfname = NULL;
+const char* hemi = NULL;
+const char *involname="brain.finalsurfs.mgz", *segvolname="aseg.presurf.mgz",*wmvolname="wm.mgz",*aparcname="aparc";
 
 char tmpstr[2000];
 int err=0;
@@ -701,7 +702,7 @@ int main(int argc, char **argv)
 
   if(ripflagout){
     printf("Writing ripflagout to %s\n",ripflagout);
-    char *field = "ripflag";    
+    const char *field = "ripflag";    
     MRISwriteField(surf, &field, 1, ripflagout);
   }
 

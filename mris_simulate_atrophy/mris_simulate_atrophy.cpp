@@ -71,10 +71,10 @@ static MRI *compute_unpartial_volumed_intensities(MRI *mri_src, MRI *mri_vfrac_w
 static float noise_sigma = 4 ;
 static char *sdir = NULL ;
 
-static char *T1_name = "brain.finalsurfs.mgz" ;
-static char *white_name = "white" ;
-static char *pial_name = "pial" ;
-static char *aseg_name = "aseg.mgz" ;
+static const char *T1_name = "brain.finalsurfs.mgz" ;
+static const char *white_name = "white" ;
+static const char *pial_name = "pial" ;
+static const char *aseg_name = "aseg.mgz" ;
 static float resolution = .5 ;
 
 static float noise_min = -1 ;

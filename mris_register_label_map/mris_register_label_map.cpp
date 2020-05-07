@@ -99,7 +99,7 @@ static void check_options(void);
 static void print_usage(void) ;
 static void usage_exit(void);
 static void print_help(void) ;
-static int write_snapshot(VECTOR *v_weights, MATRIX **m_I, MRI *mri_mask, char *prefix, int iter, int nsubjects) ;
+static int write_snapshot(VECTOR *v_weights, MATRIX **m_I, MRI *mri_mask, const char *prefix, int iter, int nsubjects) ;
 static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
@@ -137,7 +137,7 @@ static char *SUBJECTS_DIR = NULL;
 static char **subjects = NULL ;
 static int nsubjects = 0 ;
 static char *hemi = NULL ;
-static char *ohemi = NULL ;
+static const char *ohemi = NULL ;
 static int offset = 0 ;
 static char *output_name = NULL ;
 static int write_diags = 1 ;
@@ -1942,7 +1942,7 @@ compute_subcortical_map_weights(MRI_SURFACE *mris, MRI *mri_fvol[MAX_SUBJECTS][M
 }
 
 static int
-write_snapshot(VECTOR *v_weights, MATRIX **m_I, MRI *mri_mask, char *prefix, int iter, int nsubjects)
+write_snapshot(VECTOR *v_weights, MATRIX **m_I, MRI *mri_mask, const char *prefix, int iter, int nsubjects)
 {
   MRI         *mri_wts, *mri_surf ;
   VECTOR      *v_weights_T, *I_map ;

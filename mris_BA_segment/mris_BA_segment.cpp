@@ -59,7 +59,7 @@ static double MT_radius_std = 1.13 ; // mm from Zilles data set
 static LABEL *segment_MT(MRI_SURFACE *mris, MRI *mri, LABEL *lprior, 
                          double MT_radius_mean, double MT_radius_std) ;
 
-static char *white_name = "white" ;
+static const char *white_name = "white" ;
 int
 main(int argc, char *argv[]) 
 {

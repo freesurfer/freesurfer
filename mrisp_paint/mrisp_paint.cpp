@@ -49,7 +49,7 @@ static int variance =  0 ;
 static int navgs = 0 ;
 static int sqrt_flag = 0 ;
 
-static char *surface_names[] =
+const static char *surface_names[] =
 {
   "inflated",
   "smoothwm",

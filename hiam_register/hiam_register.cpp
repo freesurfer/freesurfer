@@ -37,11 +37,11 @@ static float sigmas[] = {
                           4.0f, 2.0f, 1.0f, 0.5f
                         } ;
 
-char *surface_names[] = {
+const char *surface_names[] = {
                           "hippocampus"
                         } ;
 
-static char *curvature_names[] = {
+static const char *curvature_names[] = {
                                    "hippocampus.curv",
                                  } ;
 
@@ -74,8 +74,8 @@ static float dgamma = 0.0f ;
 
 
 const char *Progname ;
-static char curvature_fname[STRLEN] = "" ;
-static char *orig_name = "hippocampus" ;
+static const char curvature_fname[STRLEN] = "" ;
+static const char *orig_name = "hippocampus" ;
 static char *jacobian_fname = NULL ;
 
 static int use_defaults = 1 ;
@@ -349,7 +349,7 @@ get_option(int argc, char *argv[]) {
       fprintf(stderr, "momentum = %2.2f\n", (float)parms.momentum) ;
       break ;
     case 'C':
-      strcpy(curvature_fname, argv[2]) ;
+      strncpy(const_cast<char*>(curvature_fname), argv[2], STRLEN) ; // Well... at least it's strncpy
       nargs = 1 ;
       break ;
     case 'A':
@@ -668,7 +668,8 @@ mrisRegister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
 static int
 mrisIntegrationEpoch(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,int base_averages) {
   int   total_steps, done, steps, n_averages, old_averages ;
-  char  *snum, *sdenom ;
+  const char* snum;
+  const char* sdenom ;
   float ratio, *pdenom, *pnum ;
 
   if (!FZERO(parms->l_corr)) {

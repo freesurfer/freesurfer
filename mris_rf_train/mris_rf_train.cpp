@@ -40,7 +40,7 @@
 #include "romp_support.h"
 #endif
 
-static char *class_names[] = 
+static const char *class_names[] = 
 {
   "Normal Cortex",
   "Dysplasia"
@@ -50,8 +50,8 @@ static int get_option(int argc, char *argv[]) ;
 
 const char *Progname ;
 static void usage_exit(int code) ;
-static char *hemi = "lh" ;
-static char *surf_name = "white" ;
+static const char *hemi = "lh" ;
+static const char *surf_name = "white" ;
 
 static char sdir[STRLEN] ;
 
@@ -66,8 +66,8 @@ static MRI_SURFACE *mris[MAX_SUBJECTS] ;
 static int noverlays = 0 ;
 static char *overlay_names[MAX_OVERLAYS] ;
 
-static char *cortex_label_name = "cortex" ;
-static char *label_name = "FCD" ;
+static const char *cortex_label_name = "cortex" ;
+static const char *label_name = "FCD" ;
 
 static int ntrees = 40 ;
 static int max_depth = 12 ;
@@ -189,7 +189,7 @@ main(int argc, char *argv[]) {
   }
 
   nfeatures = noverlays*(nbhd_size+1) ;
-  rf = RFalloc(ntrees, nfeatures, 2, max_depth, class_names, 100) ;
+  rf = RFalloc(ntrees, nfeatures, 2, max_depth, const_cast<char**>(class_names), 100) ;
   rf->feature_names = (char **)calloc(nfeatures, sizeof(char *)) ;
   for (i = 0 ; i < noverlays ; i++)
   {

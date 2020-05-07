@@ -547,7 +547,7 @@ int CMAaddWeightedTotals(CMAoutlineClaim *claim,
                          float weight, float *claim_totals);
 
 int CMAzeroOutlines(CMAoutlineField *field);
-char *cma_label_to_name(int label) ;
+const char *cma_label_to_name(int label) ;
 int IsSubCorticalGray(int SegId);
 #include "mri.h"
 double SupraTentorialVolCorrection(MRI *aseg, MRI *ribbon);

@@ -58,7 +58,7 @@ static void dump_options(FILE *fp);
 static int  isflag(char *flag);
 static int  nth_is_arg(int nargc, char **argv, int nth);
 static int  singledash(char *flag);
-static int  stringmatch(char *str1, char *str2);
+static int  stringmatch(const char *str1, const char *str2);
 
 int main(int argc, char *argv[]) ;
 
@@ -68,13 +68,13 @@ char *subjectdir = NULL;
 char *hemi = NULL;
 
 char *srcid = NULL;
-char *srcfmt  = "";
+const char *srcfmt  = "";
 int   srcfmtid = MRI_VOLUME_TYPE_UNKNOWN;
-char *srcsurfid = "white";
+const char *srcsurfid = "white";
 char *srcsubjid = NULL;
 int   srcframe = 0;
 double thmin = -1, thmax = -1;
-char *thsign = NULL;
+const char *thsign = NULL;
 int   thsignid = 0;
 float minarea = 0;
 char *annotname = NULL;
@@ -83,14 +83,14 @@ char *maskid   = NULL;
 char *maskfmt  = NULL;
 int   maskfmtid = MRI_VOLUME_TYPE_UNKNOWN;
 char *masksubjid  = NULL;
-char *masksignstr  = NULL;
+const char *masksignstr  = NULL;
 int  masksign  = 0;
 float maskthresh = 0.5; // assume binary
 
 int  nth = -1;
 
 char *omaskid = NULL;
-char *omaskfmt = "paint";
+const char *omaskfmt = "paint";
 char *omasksubjid = NULL;
 
 // Constraining label
@@ -101,13 +101,13 @@ int   clabelinv = 0;
 int   UseCortexLabel = 0;
 
 char *outid = NULL;
-char *outfmt = "paint";
+const char *outfmt = "paint";
 int   outfmtid = MRI_VOLUME_TYPE_UNKNOWN;
 char *ocnid = NULL;
-char *ocnfmt = "paint";
+const char *ocnfmt = "paint";
 int   ocnfmtid = MRI_VOLUME_TYPE_UNKNOWN;
 char *ocpvalid = NULL;
-char *ocpvalfmt = "paint";
+const char *ocpvalfmt = "paint";
 int   ocpvalfmtid = MRI_VOLUME_TYPE_UNKNOWN;
 char *sumfile  = NULL;
 char *pointsetfile  = NULL;
@@ -129,7 +129,7 @@ MRI_SURFACE *srcsurf;
 int  reshape = 1;
 int  reshapefactor;
 
-char *xfmfile = "talairach.xfm";
+const char *xfmfile = "talairach.xfm";
 char xfmpath[2000];
 MATRIX *XFM;
 int FixMNI = 1;
@@ -1534,7 +1534,7 @@ static int nth_is_arg(int nargc, char **argv, int nth) {
   return(1);
 }
 /*------------------------------------------------------------*/
-static int stringmatch(char *str1, char *str2) {
+static int stringmatch(const char *str1, const char *str2) {
   if (! strcmp(str1,str2)) return(1);
   return(0);
 }

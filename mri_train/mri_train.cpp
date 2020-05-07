@@ -71,19 +71,19 @@ static char *long_names[MAX_LONG] ;
 static double long_times[MAX_LONG] ;
 
 static int nvols = 0 ;
-static char *vol_names[MAX_VOLS] = 
+static const char *vol_names[MAX_VOLS] = 
 {
   "norm.mgz"
 } ;
 
-static char *seg_name = "wmsa/wmsa.mgz" ;
+static const char *seg_name = "wmsa/wmsa.mgz" ;
 
 static char *classify_name = NULL ;
-static char *aseg_name = "aseg.mgz" ;
+static const char *aseg_name = "aseg.mgz" ;
 
 static char sdir[STRLEN] = "" ;
 static RF_PARMS rf_parms ;
-static char *wmsa_class_names[] =
+static const char *wmsa_class_names[] =
 {
   "NOT WM",
   "WMSA 0",
@@ -99,11 +99,11 @@ static char *wmsa_class_names[] =
 static int nwmsa_classes = sizeof(wmsa_class_names) / sizeof(wmsa_class_names[0]);
 #endif
 
-static RANDOM_FOREST *train_rforest(char *training_file_name, RF_PARMS *parms, int wsize, int nlong, char **long_names, int nvols, char **vol_names, char *sdir, char *seg_name, double *paccuracy) ;
+static RANDOM_FOREST *train_rforest(const char *training_file_name, RF_PARMS *parms, int wsize, int nlong, char **long_names, int nvols, const char **vol_names, const char *sdir, const char *seg_name, double *paccuracy) ;
 
-static int classify_subjects(RANDOM_FOREST *rf, char *training_file_name, int wsize, int nlong, 
-				char **long_names, int nvols, char **vol_names, char *sdir, 
-				char *seg_name, char *classify_name);
+static int classify_subjects(RANDOM_FOREST *rf, const char *training_file_name, int wsize, int nlong, 
+				char **long_names, int nvols, const char **vol_names, const char *sdir, 
+				const char *seg_name, const char *classify_name);
 
 
 int
@@ -456,7 +456,7 @@ remove_wmsa_voxels(MRI *mri_mask_src, MRI *mri_mask_dst, MRI **mri_long, int nlo
 #endif
 
 static MRI *
-make_mask_from_segmentation(char *sdir, char *subject, char **long_names, int nlong, 
+make_mask_from_segmentation(const char *sdir, const char *subject, char **long_names, int nlong, 
 					int min_dist, int max_dist) 
 {
   MRI *mri_mask, *mri_min_dist, *mri_max_dist, *mri_long_seg[MAX_LONG] ;
@@ -495,9 +495,9 @@ make_mask_from_segmentation(char *sdir, char *subject, char **long_names, int nl
 #define MAX_WMSA_DIST   2
 
 static RANDOM_FOREST *
-train_rforest(char *training_file_name, RF_PARMS *parms, int wsize, int nlong, 
-	      char **long_names, int nvols, char **vol_names, char *sdir, 
-	      char *seg_name, double  *paccuracy)
+train_rforest(const char *training_file_name, RF_PARMS *parms, int wsize, int nlong, 
+	      char **long_names, int nvols, const char **vol_names, const char *sdir, 
+	      const char *seg_name, double  *paccuracy)
 {
   RANDOM_FOREST *rf ;
   FILE          *fp ;
@@ -524,7 +524,7 @@ train_rforest(char *training_file_name, RF_PARMS *parms, int wsize, int nlong,
     parms->nfeatures = wsize*wsize*wsize*(nlong)*(nvols) ;
   else
     parms->nfeatures = wsize*wsize*wsize*(nlong-1)*(nvols) ;
-  rf = RFalloc(parms->ntrees, parms->nfeatures, nlong+1, parms->max_depth, wmsa_class_names, parms->nsteps) ;
+  rf = RFalloc(parms->ntrees, parms->nfeatures, nlong+1, parms->max_depth, const_cast<char**>(wmsa_class_names), parms->nsteps) ;
 
   fp = fopen(training_file_name, "r") ;
   if (fp == NULL)
@@ -658,9 +658,9 @@ train_rforest(char *training_file_name, RF_PARMS *parms, int wsize, int nlong,
   return(rf) ;
 }
 static int
-classify_subjects(RANDOM_FOREST *rf, char *subject_list_file, int wsize, int nlong, 
-		  char **long_names, int nvols, char **vol_names, char *sdir, 
-		  char *seg_name, char *classify_name)
+classify_subjects(RANDOM_FOREST *rf, const char *subject_list_file, int wsize, int nlong, 
+		  char **long_names, int nvols, const char **vol_names, const char *sdir, 
+		  const char *seg_name, const char *classify_name)
 {
   FILE          *fp ;
   int           x, y, z, x0, y0, z0, xk, yk, zk, label ;

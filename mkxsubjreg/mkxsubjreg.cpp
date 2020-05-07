@@ -54,8 +54,8 @@ const char *Progname = NULL;
 
 char *srcregpath  = NULL;
 char *targregpath = NULL;
-char *targsubj    = NULL;
-char *xfmrname    = "talairach.xfm";
+const char *targsubj    = NULL;
+const char *xfmrname    = "talairach.xfm";
 char *subjects_dir = NULL;
 char *fvolid = NULL;
 

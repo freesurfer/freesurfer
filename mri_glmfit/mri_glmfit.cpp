@@ -613,7 +613,7 @@ int voxdumpflag = 0;
 
 char *fsgdfile = NULL;
 FSGD *fsgd=NULL;
-char  *gd2mtx_method = "none";
+const char  *gd2mtx_method = "none";
 int fsgdReScale = 0; 
 int ReScaleX = 1; 
 
@@ -685,8 +685,8 @@ double asl1val = 1, asl2val = 0;
 
 int useqa = 0;
 
-char *format = "mgh";
-char *surfname = "white";
+const char *format = "mgh";
+const char *surfname = "white";
 
 int SubSample = 0;
 int SubSampStart = 0;
@@ -761,7 +761,7 @@ int main(int argc, char **argv) {
   MATRIX *Ct, *CCt;
   FILE *fp;
   double Ccond, dtmp, threshadj, eff;
-  char *tmpstr2=NULL;
+  const char *tmpstr2=NULL;
 
   eresfwhm = -1;
   csd = CSDalloc();

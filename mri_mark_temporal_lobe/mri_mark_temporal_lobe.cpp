@@ -37,7 +37,7 @@ MRI *MRImarkTemporalWM(MRI *mri_seg, MRI *mri_dst) ;
 const char *Progname ;
 static void usage_exit(int code) ;
 
-static char *seg_dir = "seg" ;
+static const char *seg_dir = "seg" ;
 
 static char subjects_dir[STRLEN] ;
 

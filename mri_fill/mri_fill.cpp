@@ -1974,11 +1974,11 @@ static int   mriFindBoundingBox(MRI *mri_im) ;
 MRI *MRIcombineHemispheres(MRI *mri_lh_fill, MRI *mri_rh_fill, MRI *mri_dst,
                            int wm_lh_x, int wm_lh_y, int wm_lh_z,
                            int wm_rh_x, int wm_rh_y, int wm_rh_z) ;
-static MRI *mriReadBinaryProbabilities(char *atlas_name, char *suffix,
-                                       M3D *m3d, char *subject_name,
+static MRI *mriReadBinaryProbabilities(const char *atlas_name, const char *suffix,
+                                       M3D *m3d, const char *subject_name,
                                        MRI *mri_dst) ;
-static MRI *mriReadConditionalProbabilities(MRI *mri_T1, char *atlas_name,
-    char *suffix, int offset,
+static MRI *mriReadConditionalProbabilities(MRI *mri_T1, const char *atlas_name,
+    const char *suffix, int offset,
     M3D *m3d, MRI *mri_dst) ;
 static MRI *MRIfillVentricle(MRI *mri_src, MRI *mri_prob, MRI *mri_T1,
                              MRI *mri_dst, float thresh, int out_label,
@@ -3830,7 +3830,8 @@ find_cutting_plane
              min_area0, min_slice,xo,yo,found,
              xv, yv, zv, x0, y0, z0, xi, yi, zi, MIN_AREA, MAX_AREA, done, where ;
   FILE       *fp = NULL ;   /* for logging pons and cc statistics */
-  char       fname[STRLEN], *name ;
+  char       fname[STRLEN];
+  const char *name ;
   MRI_REGION region ;
   double    voxsize;
   int min_area, max_area, max_slices;
@@ -5453,7 +5454,7 @@ MRIcombineHemispheres(MRI *mri_lh, MRI *mri_rh, MRI *mri_dst,
 }
 
 static MRI *
-mriReadConditionalProbabilities(MRI *mri_T1, char *atlas_name, char *suffix,
+mriReadConditionalProbabilities(MRI *mri_T1, const char *atlas_name, const char *suffix,
                                 int offset, M3D *m3d, MRI *mri_dst)
 {
   MRI  *mri_mean, *mri_std, *mri_tmp ;
@@ -5507,8 +5508,8 @@ mriReadConditionalProbabilities(MRI *mri_T1, char *atlas_name, char *suffix,
 }
 
 static MRI *
-mriReadBinaryProbabilities(char *atlas_name, char *suffix, M3D *m3d,
-                           char *subject_name, MRI *mri_dst)
+mriReadBinaryProbabilities(const char *atlas_name, const char *suffix, M3D *m3d,
+                           const char *subject_name, MRI *mri_dst)
 {
   MRI  *mri_priors, *mri_T1, *mri_on_conditional,
        *mri_off_conditional, *mri_tmp ;

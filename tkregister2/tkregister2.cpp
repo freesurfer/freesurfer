@@ -190,9 +190,9 @@ static void print_help(void) ;
 static void print_version(void) ;
 static void argnerr(char *option, int n);
 static void dump_options(FILE *fp);
-static int isflag(char *flag);
+static int isflag(const char *flag);
 static int singledash(char *flag);
-static int stringmatch(char *str1, char *str2);
+static int stringmatch(const char *str1, const char *str2);
 static int nth_is_arg(int nargc, char **argv, int nth);
 static int checkfmt(char *fmt);
 #ifdef HAVE_TCL_TK_GL
@@ -354,7 +354,7 @@ char subjectid[1000];
 int subjectidOverride = 0;
 char *mov_vol_id = NULL;
 int   mov_vol_fmt = MRI_VOLUME_TYPE_UNKNOWN;
-char *targ_vol_id;
+const char *targ_vol_id;
 int   targ_vol_fmt = MRI_VOLUME_TYPE_UNKNOWN;
 char targ_vol_path[1000];
 int  fstarg = 0;
@@ -396,11 +396,12 @@ MATRIX *Dtargcor, *invDtargcor, *Dtarg, *invDtarg;
 MATRIX *vox2ras_targ=NULL,*ras2vox_targ=NULL;
 
 int LoadSurf = 0, UseSurf=0;
-char *surfname = "white", surf_path[2000];
+const char *surfname = "white";
+char surf_path[2000];
 int lhsurf_only = 0,rhsurf_only = 0;
 int fstal=0, fixxfm=1;
 char talxfmfile[2000],talxfmdir[2000];
-char *talxfmname = "talairach.xfm";
+const char *talxfmname = "talairach.xfm";
 char tmpstr[2000];
 
 char *mov_ostr = NULL; // orientation string for mov
@@ -432,7 +433,7 @@ int DoFMovTarg = 0;
 
 char *DetFile = NULL;
 int AllocBuffs(void);
-static int istringnmatch(char *str1, char *str2, int n);
+static int istringnmatch(const char *str1, const char *str2, int n);
 
 char *seg_vol_id = NULL;
 MRI *seg_vol = NULL;
@@ -442,7 +443,7 @@ int DoASeg=0, DoAParcASeg=0, DoWMParc=0;
 int ShowSeg=0;
 char *FREESURFER_HOME=NULL;
 char *tkregister_tcl = NULL;
-char *fstaltarg = "mni305.cor.mgz";
+const char *fstaltarg = "mni305.cor.mgz";
 int SurfRGB[3] = {0,255,0};
 int invLTAOut=0;
 double angles[3] = {0,0,0};
@@ -2273,7 +2274,7 @@ static int singledash(char *flag) {
 
 
 /*---------------------------------------------------------------*/
-static int isflag(char *flag) {
+static int isflag(const char *flag) {
   int len;
   len = strlen(flag);
   if (len < 2) return(0);
@@ -2284,7 +2285,7 @@ static int isflag(char *flag) {
 
 
 /*------------------------------------------------------------*/
-static int stringmatch(char *str1, char *str2) {
+static int stringmatch(const char *str1, const char *str2) {
   if (! strcmp(str1,str2)) return(1);
   return(0);
 }
@@ -5366,7 +5367,7 @@ int AllocBuffs(void)
   }
   return(0);
 }
-static int istringnmatch(char *str1, char *str2, int n) {
+static int istringnmatch(const char *str1, const char *str2, int n) {
   if (n > 0  && ! strncasecmp(str1,str2,n)) return(1);
   if (n <= 0 && ! strcasecmp(str1,str2)) return(1);
   return(0);

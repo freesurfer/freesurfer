@@ -357,7 +357,7 @@ void mris_print_diff(FILE* file, MRIS const * lhs, MRIS const * rhs) {
   v->val2=1 for Lesions when fitting GRAY_CSF
   #FIX
 */
-int MRISripMidline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi, int which, int fix_mtl)
+int MRISripMidline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, const char *hemi, int which, int fix_mtl)
 {
   int vno, label, contra_wm_label, nvox=0, total_vox=0, adjacent=0;
   int wm_label, gm_label, nlabels, n, index, annotation, entorhinal_index ;

@@ -48,7 +48,7 @@ static void print_help(void) ;
 static void print_version(void) ;
 static void argnerr(char *option, int n);
 static int  singledash(char *flag);
-static int  stringmatch(char *s1, char *s2);
+static int  stringmatch(const char *s1, const char *s2);
 
 char* imafile = NULL;
 char* typestring = NULL;
@@ -63,7 +63,8 @@ int debug, verbose;
 FILE *fp;
 char *attrname;
 int  getattr = 0;
-char *bstem = "img";
+
+const char *bstem = "img";
 short *pixeldata;
 int npixels;
 
@@ -549,7 +550,7 @@ static void check_options(void) {
   return;
 }
 /*-------------------------------------------------------------*/
-static int stringmatch(char *s1, char *s2) {
+static int stringmatch(const char *s1, const char *s2) {
   if (strcmp(s1,s2) == 0) return(1);
   return(0);
 }

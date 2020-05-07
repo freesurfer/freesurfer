@@ -50,7 +50,7 @@ char *lcalloc(size_t nmemb, size_t size)
   return p;
 }
 
-void file_name(char *fpref, char *fname, int num, char *form)
+void file_name(const char *fpref, char *fname, int num, const char *form)
 {
   char ext[10];
 

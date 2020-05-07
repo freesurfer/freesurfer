@@ -122,7 +122,7 @@ char *volfile;
 int  labelid;
 int DoStat;
 char *hemi, *SUBJECTS_DIR;
-char *surfname = "white";
+const char *surfname = "white";
 MRI *mri;
 LABEL *lb;
 

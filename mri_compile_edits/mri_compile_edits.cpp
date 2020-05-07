@@ -60,7 +60,8 @@ main(int argc, char *argv[])
 {
   char         **av, fname[STRLEN] ;
   int          ac, nargs, i ;
-  char         *subject, *cp, mdir[STRLEN], *out_fname, *name ;
+  char         *subject, *cp, mdir[STRLEN], *out_fname;
+  const char *name ;
   int          r, g, b, nedits = 0 ;
   MRI          *mri=NULL,*mri_edits=NULL,*mri_aseg_auto=NULL,*mri_bm_auto=NULL;
   FILE         *ctfp;

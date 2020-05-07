@@ -6060,7 +6060,7 @@ int MRISreadNewCurvatureIntoArray(const char *sname, int in_array_size, float **
 }
 
 
-int MRISwriteCropped(MRI_SURFACE *mris, char *fname)
+int MRISwriteCropped(MRI_SURFACE *mris, const char *fname)
 {
   float *vals;
 
@@ -6278,7 +6278,7 @@ int MatlabPlotVertexNbhd(FILE *fp, MRIS *surf, int cvno, int nhops, char color, 
   using MRIcopyMRIS() and writes to the given volume-style (eg, mgz) output file. 
   Field names must be known to MRIcopyMRIS(). 
 */
-int MRISwriteField(MRIS *surf, char **fields, int nfields, char *outname)
+int MRISwriteField(MRIS *surf, const char **fields, int nfields, const char *outname)
 {
   int n;
   MRI *mri=NULL;

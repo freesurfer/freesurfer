@@ -3746,7 +3746,7 @@ float ImageRMSDifference(IMAGE *I1_in, IMAGE *I2_in)
   return (rms);
 }
 
-int init_header(IMAGE *I,char *onm,char *snm,int nfr,char *odt,int rw,int cl,int pfmt,int nc,const char *desc) {
+int init_header(IMAGE *I, const char *onm,const char *snm,int nfr,const char *odt,int rw,int cl,int pfmt,int nc,const char *desc) {
   int bytes ;
 
   I->num_frame = nfr ;

@@ -71,8 +71,8 @@ static int dilate = 0 ;
 static int dilate_label = 0 ; // how many times to dilate label after reading
 
 static int one_surf_flag = 0 ;
-static char *original_surf_name = SMOOTH_NAME ;
-static char *original_unfold_surf_name = ORIG_NAME ;
+static const char *original_surf_name = SMOOTH_NAME ;
+static const char *original_unfold_surf_name = ORIG_NAME ;
 static float rescale = 1.0f ;
 
 static MRI *mri_overlay ;  // if "flattening" an overlay with an existing flatmap

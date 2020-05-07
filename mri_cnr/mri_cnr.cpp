@@ -57,7 +57,8 @@ static int only_total = 0 ;
 
 int
 main(int argc, char *argv[]) {
-  char        **av, *mri_name,  fname[STRLEN], *hemi, *path ;
+  char        **av, *mri_name,  fname[STRLEN],*path ;
+  const char* hemi;
   int         ac, nargs, i, j ;
   MRI         *mri, *mri_template = NULL, *mri_tmp ;
   MRI_SURFACE *mris ;

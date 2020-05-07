@@ -203,7 +203,7 @@ static void argnerr(char *option, int n);
 static void dump_options(FILE *fp);
 static int  singledash(char *flag);
 #include "tags.h"
-static int istringnmatch(char *str1, char *str2, int n);
+static int istringnmatch(const char *str1, const char *str2, int n);
 double VertexCost(double vctx, double vwm, double slope, 
 		  double center, double sign, double *pct);
 
@@ -220,7 +220,7 @@ char *outregfile=NULL;
 char *sumfile=NULL;
 char *curregfile=NULL;
 
-char *interpmethod = "trilinear";
+const char *interpmethod = "trilinear";
 int   interpcode = SAMPLE_TRILINEAR;
 int   sinchw;
 
@@ -332,7 +332,7 @@ int nCostEvaluations=0;
 MRI *vsm=NULL;
 char *vsmfile = NULL;
 double angles[3],xyztrans[3],scale[3],shear[3];
-char *surfname = "white";
+const char *surfname = "white";
 int dof = 6; 
 char *RelCostFile = NULL;
 char *ParamFile = NULL;
@@ -1804,7 +1804,7 @@ static int singledash(char *flag) {
   return a 1 if they match (ignoring case), a zero otherwise. If
   n=0, then do a full comparison.
   ------------------------------------------------------------*/
-static int istringnmatch(char *str1, char *str2, int n) {
+static int istringnmatch(const char *str1, const char *str2, int n) {
   if (n > 0  && ! strncasecmp(str1,str2,n)) return(1);
   if (n <= 0 && ! strcasecmp(str1,str2)) return(1);
   return(0);

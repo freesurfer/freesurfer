@@ -78,8 +78,8 @@ struct utsname uts;
 
 typedef struct {
   char *mov;
-  char *ref;
-  char *refmask;
+  const char *ref;
+  const char *refmask;
   char *movmask;
   char *outreg;
   char *regdat;
@@ -105,7 +105,7 @@ typedef struct {
   int SmoothRef;
   double SatPct;
   int MovOOBFlag;
-  char *rusagefile;
+  const char *rusagefile;
   int optschema;
 } CMDARGS;
 
@@ -122,8 +122,8 @@ double *conv1d(double *v1, int n1, double *v2, int n2, double *vc);
 
 double **AllocDoubleMatrix(int rows, int cols);
 int FreeDoubleMatrix(double **M, int rows, int cols);
-int WriteDoubleMatrix(char *fname, char *fmt, double **M, int rows, int cols);
-int PrintDoubleMatrix(FILE *fp, char *fmt, double **M, int rows, int cols);
+int WriteDoubleMatrix(const char *fname, const char *fmt, double **M, int rows, int cols);
+int PrintDoubleMatrix(FILE *fp, const char *fmt, double **M, int rows, int cols);
 double *SumVectorDoubleMatrix(double **M, int rows, int cols, int dim, double *sumvect, int *nv);
 
 typedef struct {
@@ -1195,7 +1195,7 @@ int FreeDoubleMatrix(double **M, int rows, int cols)
   free(M);
   return(0);
 }
-int WriteDoubleMatrix(char *fname, char *fmt, double **M, int rows, int cols)
+int WriteDoubleMatrix(const char *fname, const char *fmt, double **M, int rows, int cols)
 {
   FILE *fp;
   fp = fopen(fname,"w");
@@ -1203,7 +1203,7 @@ int WriteDoubleMatrix(char *fname, char *fmt, double **M, int rows, int cols)
   fclose(fp);
   return(0);
 }
-int PrintDoubleMatrix(FILE *fp, char *fmt, double **M, int rows, int cols)
+int PrintDoubleMatrix(FILE *fp, const char *fmt, double **M, int rows, int cols)
 {
   int r,c;
   if(fmt==NULL) fmt = "%20.10lf";

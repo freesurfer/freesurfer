@@ -616,10 +616,10 @@ label_with_random_forest(RANDOM_FOREST *rf, TRANSFORM *transform, GCA *gca,
 	    rf->feature_names[i] = (char *)calloc(strlen(buf)+1, sizeof(char)) ;
 	    strcpy(rf->feature_names[i], buf) ;
 	  }
-    rf->feature_names[i++] = "nonzero count" ;
-    rf->feature_names[i++] = "gm prior" ;
-    rf->feature_names[i++] = "wm prior" ;
-    rf->feature_names[i++] = "csf prior" ;
+    rf->feature_names[i++] = const_cast<char*>("nonzero count");
+    rf->feature_names[i++] = const_cast<char*>("gm prior");
+    rf->feature_names[i++] = const_cast<char*>("wm prior");
+    rf->feature_names[i++] = const_cast<char*>("csf prior");
   }
 
   for (x = 0 ; x < mri_in->width ; x++)
@@ -734,9 +734,9 @@ relabel_wmsa_nbrs_with_random_forest(RANDOM_FOREST *rf, TRANSFORM *transform, GC
 	    rf->feature_names[i] = (char *)calloc(strlen(buf)+1, sizeof(char)) ;
 	    strcpy(rf->feature_names[i], buf) ;
 	  }
-    rf->feature_names[i++] = "gm prior" ;
-    rf->feature_names[i++] = "wm prior" ;
-    rf->feature_names[i++] = "csf prior" ;
+    rf->feature_names[i++] = const_cast<char*>("gm prior");
+    rf->feature_names[i++] = const_cast<char*>("wm prior");
+    rf->feature_names[i++] = const_cast<char*>("csf prior");
   }
 
   for (non = noff = x = 0 ; x < mri_in->width ; x++)

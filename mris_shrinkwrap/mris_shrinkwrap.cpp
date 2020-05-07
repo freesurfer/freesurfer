@@ -79,8 +79,8 @@ static INTEGRATION_PARMS  parms ;
 #define BASE_DT_SCALE    1.0
 static float base_dt_scale = BASE_DT_SCALE ;
 static int target_label = -1 ;
-static char *suffix = "" ;
-static char *output_suffix = "" ;
+static const char *suffix = "" ;
+static const char *output_suffix = "" ;
 static double l_tsmooth = 0.0 ;
 static double l_surf_repulse = 5.0 ;
 static int smooth = 5 ;

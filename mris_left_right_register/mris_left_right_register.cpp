@@ -47,13 +47,13 @@ static void print_usage(void) ;
 static void print_help(void) ;
 static void print_version(void) ;
 
-static char *surface_names[] =
+static const char *surface_names[] =
 {
   "inflated",
   "smoothwm",
   "smoothwm"
 } ;
-static char *curvature_names[] =
+static const char *curvature_names[] =
 {
   "inflated.H",
   "sulc",
@@ -92,8 +92,8 @@ static int navgs = 0 ;
 
 const char *Progname ;
 static char curvature_fname[STRLEN] = "" ;
-static char *orig_name = "smoothwm" ;
-static char *canon_name = "sphere" ;
+static const char *orig_name = "smoothwm" ;
+static const char *canon_name = "sphere" ;
 static char *jacobian_fname = NULL ;
 static char *inflated_name = NULL ;
 
@@ -251,7 +251,8 @@ main(int argc, char *argv[])
 
   for (h = LEFT_HEMISPHERE ; h <= RIGHT_HEMISPHERE ; h++)   // register left to right and right to left
   {
-    char surf_dir[STRLEN], *template_fname, *template_hemi ;
+    char surf_dir[STRLEN], *template_fname;
+    const char *template_hemi ;
 
     mrisp_template = MRISPalloc(scale, PARAM_IMAGES);
     if (h == LEFT_HEMISPHERE)   // we are moving the lh
@@ -515,7 +516,7 @@ get_option(int argc, char *argv[])
            "and using it for initial alignment\n", inflated_name) ;
     sprintf(fname, "%s.H", argv[2]) ;
     curvature_names[0] = (char *)calloc(strlen(fname)+1, sizeof(char)) ;
-    strcpy(curvature_names[0], fname) ;
+    strcpy(const_cast<char*>(curvature_names[0]), fname) ; // strcpy???? And the const_cast is.... ugly
     parms.flags |= IP_USE_INFLATED ;
   }
   else if (!stricmp(option, "nosulc"))
@@ -769,7 +770,7 @@ get_option(int argc, char *argv[])
       printf("setting l_external = %2.1f\n", parms.l_external) ;
       break ;
     case 'C':
-      strcpy(curvature_fname, argv[2]) ;
+      strncpy(curvature_fname, argv[2], STRLEN) ; // Convert to strncpy at least
       nargs = 1 ;
       break ;
     case 'A':

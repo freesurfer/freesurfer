@@ -59,7 +59,7 @@ int    PathWriteMany (char *fname, int num_paths, PATH **paths);
 
 /* Allocate and free paths. PathAlloc returns the new path or NULL if
    there was an error. PathFree returns an error code.*/
-PATH*  PathAlloc (int n_points, char* name);
+PATH*  PathAlloc (int n_points, const char* name);
 int    PathFree (PATH** path);
 
 /* Returns whether or not a file is a path file. If an error occurs,

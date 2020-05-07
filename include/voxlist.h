@@ -73,7 +73,7 @@ int         VLSTadd(VOXEL_LIST *vl, int x, int y, int z, float xd, float yd, flo
 int         VLSTaddWithValue(VOXEL_LIST *vl, int x, int y, int z, float xd, float yd, float zd, float vsrc, float vdst) ;
 
 int         VLmostCommonLabel(VOXEL_LIST *vl) ;
-int         VLSTwriteLabel(VOXEL_LIST *vl, char *fname, MRI_SURFACE *mris, MRI *mri) ;
+int         VLSTwriteLabel(VOXEL_LIST *vl, const char *fname, MRI_SURFACE *mris, MRI *mri) ;
 LABEL       *VLSTtoLabel(VOXEL_LIST *vl, MRI_SURFACE *mris, MRI *mri) ;
 MRI         *VLSTwriteOrderToMRI(VOXEL_LIST *vl, MRI *mri) ;
 

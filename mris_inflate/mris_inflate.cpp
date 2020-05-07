@@ -67,7 +67,7 @@ static float base_dt_scale = BASE_DT_SCALE ;
 static int SaveSulc = 1;
 static int compute_sulc_mm = 0 ;
 static int scale_brain = 1 ;
-static char *sulc_name = "sulc" ;
+static const char *sulc_name = "sulc" ;
 char *rusage_file=NULL;
 
 int

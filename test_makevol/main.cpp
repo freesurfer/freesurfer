@@ -29,7 +29,7 @@ char sSetMethods[][256] = {
 
 const char* Progname="makevol";
 
-void PrintUsage ( char* isError ) {
+void PrintUsage ( const char* isError ) {
 
   if ( isError ) {
     printf( "\nERROR: %s\n\n", isError );

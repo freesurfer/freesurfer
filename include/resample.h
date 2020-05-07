@@ -39,8 +39,8 @@ char *ResampleVtxMapFile;
 extern char *ResampleVtxMapFile;
 #endif
 
-int interpolation_code(char *interpolation_string);
-int float2int_code(char *float2int_string);
+int interpolation_code(const char *interpolation_string);
+int float2int_code(const char *float2int_string);
 
 int ProjNormFracThick( float *x, float *y, float *z,
                        const MRI_SURFACE *surf, int vtx, float frac );

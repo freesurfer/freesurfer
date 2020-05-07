@@ -42,7 +42,7 @@ typedef struct {
 
   int ncontrasts;    // Number of contrasts
   MATRIX *C[GLMMAT_NCONTRASTS_MAX];    // Contrast matrices
-  char *Cname[GLMMAT_NCONTRASTS_MAX];    // Contrast names
+  const char *Cname[GLMMAT_NCONTRASTS_MAX];    // Contrast names
   double Ccond[GLMMAT_NCONTRASTS_MAX];    // C condition number
   int UseGamma0[GLMMAT_NCONTRASTS_MAX];  // Flag
   MATRIX *gamma0[GLMMAT_NCONTRASTS_MAX];  // Expected value of gamma
@@ -105,7 +105,7 @@ int GLManalyze(GLMMAT *glm);
 int GLMprofile(int nrows, int ncols, int ncon, int niters);
 
 GLMMAT *GLMsynth(void);
-int GLMdump(char *dumpdir, GLMMAT *glm);
+int GLMdump(const char *dumpdir, GLMMAT *glm);
 int GLMresynthTest(int niters, double *prvar);
 MATRIX *GLMpmfMatrix(MATRIX *C, double *cond, MATRIX *P);
 int GLMdof(GLMMAT *glm);

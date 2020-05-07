@@ -607,7 +607,7 @@ int          MRIScopyStatsFromValues(MRI_SURFACE *mris) ;
 int MRISsetCroppedToZero(MRI_SURFACE *mris) ;
 int MRIScopyFromCropped(MRI_SURFACE *mris, int which) ;
 int MRIScopyToCropped(MRI_SURFACE *mris, int which) ;
-int MRISwriteCropped(MRI_SURFACE *mris, char *fname) ;
+int MRISwriteCropped(MRI_SURFACE *mris, const char *fname) ;
 
 int          MRIScopyValToVal2(MRI_SURFACE *mris) ;
 int          MRIScopyValToVal2Bak(MRI_SURFACE *mris) ;
@@ -1349,7 +1349,7 @@ int MRISunrip(MRI_SURFACE *mris) ;
 int MRISdivideLongEdges(MRI_SURFACE *mris, double thresh) ;
 int MRISdivideEdges(MRI_SURFACE *mris, int npoints) ;
 int MRISremoveTriangleLinks(MRI_SURFACE *mris) ;
-int MRISsetOriginalFileName(char *orig_name) ;
+int MRISsetOriginalFileName(const char *orig_name) ;
 int MRISsetSulcFileName(const char *sulc_name) ;
 int MRISsetCurvatureName(int nth, const char *name);
 int MRISprintCurvatureNames(FILE *fp);
@@ -1792,13 +1792,13 @@ int		slprints(
 );
 
 void	cprintf(
-	char*		apch_left,
+	const char*		apch_left,
 	float		af_right
 );
 
 void	cprints(
-	char*		apch_left,
-	char*		apch_right
+	const char*		apch_left,
+	const char*		apch_right
 );
 
 void	cprintd(
@@ -2462,11 +2462,11 @@ static bool mrisVerticesAreNeighbors(MRIS const * const mris, int const vno1, in
   return 0 <= mrisVertexNeighborIndex(mris, vno1, vno2);
 }
 
-int MRISripMidline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi, int which, int fix_mtl);
+int MRISripMidline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, const char *hemi, int which, int fix_mtl);
 int MRIcomputeLabelNormal(MRI *mri_aseg, int x0, int y0, int z0,int label, int whalf, double *pnx, double *pny,
 			  double *pnz, int use_abs);
 int MRISfindExpansionRegions(MRI_SURFACE *mris);
-int MRISwriteField(MRIS *surf, char **fields, int nfields, char *outname);
+int MRISwriteField(MRIS *surf, const char **fields, int nfields, const char *outname);
 
 /**
   class AutoDetGWStats. This class houses functions used to compute
@@ -2480,10 +2480,10 @@ class AutoDetGWStats
 public:
   MRIS *mrisAD, *mrisADlh, *mrisADrh; // surface used to autodetect stats
   MRI *mri_T1, *mri_wm;
-  char *wm_name = "wm" ;
-  char *orig_name = "orig";
+  const char *wm_name = "wm" ;
+  const char *orig_name = "orig";
   //In mris_make_surfaces, "brain" is the default, but brain.finalsurfs is always used in recon-all
-  char *T1_name = "brain.finalsurfs"; 
+  const char *T1_name = "brain.finalsurfs"; 
   int hemicode = 0; //1=left, 2=right
   int use_mode = 1;
   float variablesigma = 3.0;
@@ -2526,7 +2526,7 @@ public:
   int  max_border_white_set = 0, min_border_white_set = 0, min_gray_at_white_border_set = 0,
     max_gray_set = 0,max_gray_at_csf_border_set = 0, min_gray_at_csf_border_set = 0,
     min_csf_set = 0, max_csf_set = 0 ;
-  int AutoDetectStats(char *subject, char *hemistr);
+  int AutoDetectStats(const char *subject, const char *hemistr);
   int AutoDetectStats(void);
   int Write(char *fname);
   int Print(FILE *fp);

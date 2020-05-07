@@ -76,7 +76,7 @@ typedef enum _surfaceIntegrals {
 } e_surfaceIntegral;
 
 // Set of possible output curvature files
-char* Gppch[] = {
+const char* Gppch[] = {
   "Raw",
   "K",
   "H",
@@ -1373,8 +1373,8 @@ MRIS_curvatureStats_analyze(
   char  pch_minMaxReport[65536];
   char  pch_surfaceIntegralReport[65536];
 //  char* pch_function  = "MRIS_curvatureStats_analyze";
-  char* pch_unitsmm = "mm^-1";
-  char* pch_unitsmm2  = "mm^-2";
+  const char* pch_unitsmm = "mm^-1";
+  const char* pch_unitsmm2  = "mm^-2";
   char  pch_units[256];
 
 //  DebugEnterFunction (( pch_function ));

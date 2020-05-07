@@ -69,7 +69,7 @@ static float scale = 0 ;
 static int force_inputs = 1 ;
 
 static RFA_PARMS parms ;
-static char *seg_dir = "seg_edited.mgz" ; // default name of manual edit file
+static const char *seg_dir = "seg_edited.mgz" ; // default name of manual edit file
 static char T1_name[STRLEN] = "orig" ;
 static char *xform_name = NULL;
 static float smooth = -1 ;
@@ -98,7 +98,7 @@ static int make_uchar = 1 ;
 static char *gca_name = NULL ;
 static float wm_thresh = .8 ;  // only consider voxels with a prior at least this high
 static int max_steps = 10 ;
-static char *single_classifier_names[] = 
+static const char *single_classifier_names[] = 
 { "NOT WMSA", "WMSA", "FUTURE WMSA" } ;
 
 #define NCLASSES     3
@@ -1292,7 +1292,7 @@ train_rforest(MRI *mri_inputs[MAX_SUBJECTS][MAX_TIMEPOINTS], MRI *mri_segs[MAX_S
 */
   nfeatures = parms->wsize*parms->wsize*parms->wsize*parms->nvols + 5 ; 
 
-  rf = RFalloc(parms->ntrees, nfeatures, NCLASSES, parms->max_depth, single_classifier_names, max_steps) ;
+  rf = RFalloc(parms->ntrees, nfeatures, NCLASSES, parms->max_depth, const_cast<char**>(single_classifier_names), max_steps) ;
   if (rf == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not allocate random forest", Progname) ;
   rf->min_step_size = 1 ; 

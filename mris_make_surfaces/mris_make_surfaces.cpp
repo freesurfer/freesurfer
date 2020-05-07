@@ -167,8 +167,8 @@ static int create = 1 ;
 static int smoothwm = 0 ;
 static int overlay = 0 ;
 static int inverted_contrast = 0 ;
-static char *filled_name = "filled" ;
-static char *wm_name = "wm" ;
+static const char *filled_name = "filled" ;
+static const char *wm_name = "wm" ;
 static int auto_detect_stats = 1 ;
 static char *dura_echo_name = NULL ;
 static char *T2_name = NULL ;
@@ -188,8 +188,8 @@ static float white_target_offset = 0 ;
 
 static COLOR_TABLE *ctab  = NULL;
 static MRI *mri_cover_seg = NULL ;
-static char *aseg_name = "aseg" ;
-static char *aparc_name = "aparc" ;  // for midline and cortex label
+static const char *aseg_name = "aseg" ;
+static const char *aparc_name = "aparc" ;  // for midline and cortex label
 static MRI *mri_aseg = NULL;
 static int add = 0 ;
 
@@ -206,7 +206,7 @@ static int ngray = 100  /* 30*/ /*45*/ ;
 // smoothed. If orig_white is specified, the smoothed vertex locations
 // will be overwritten by the orig_white surface (which will not be
 // smoothed).
-static char *orig_name = ORIG_NAME ; // "orig"
+static const char *orig_name = ORIG_NAME ; // "orig"
 
 static char *AutoDetSurfName=NULL; // surf to use when autodet stats
 
@@ -235,8 +235,8 @@ static int flairwhite = 0 ;
 static int nbrs = 2 ;
 static int write_vals = 0 ;
 
-static char *suffix = "" ;
-static char *output_suffix = "" ;
+static const char *suffix = "" ;
+static const char *output_suffix = "" ;
 static char *xform_fname = NULL ;
 char *ripfilename=NULL, *whitesigmafilename=NULL, *pialsigmafilename=NULL;
 

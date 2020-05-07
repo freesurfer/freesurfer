@@ -126,7 +126,7 @@ FSGD   *gdfRead(char *gdfname, int LoadData);
 int     gdfWrite(char *gdfname, FSGD *gd);
 MRI    *gdfReadDataInfo(char *gdfname);
 int     gdfPrintHeader(FILE *fp, FSGD *gd);
-int     gdfCheckMatrixMethod(char *gd2mtx_method);
+int     gdfCheckMatrixMethod(const char *gd2mtx_method);
 int     gdfCheckNPerClass(FSGD *gd);
 int     gdfPrint(FILE *fp, FSGD *gd);
 int     gdfPrintStdout(FSGD *gd);
@@ -134,7 +134,7 @@ MATRIX *gdfMatrixDOSS(FSGD *gd, MATRIX *X);
 MATRIX *gdfMatrixDODS(FSGD *gd, MATRIX *X);
 MATRIX *gdfContrastDODS(FSGD *fsgd, float *wClass, float *wCovar);
 MATRIX *gdfContrastDOSS(FSGD *fsgd, float *wClass, float *wCovar);
-MATRIX *gdfMatrix(FSGD *gd, char *gd2mtx_method, MATRIX *X);
+MATRIX *gdfMatrix(FSGD *gd, const char *gd2mtx_method, MATRIX *X);
 int     gdfOffsetSlope(FSGD *gd, int classno, int varno,
                        int c, int r, int s, float *offset, float *slope);
 int gdfCountItemsOnLine(FILE *fp);

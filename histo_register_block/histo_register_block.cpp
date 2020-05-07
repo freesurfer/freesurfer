@@ -705,7 +705,8 @@ compute_ml_alignment_error(MRI *mri_src, MRI *mri_dst, MRI *mri_seg, DENSITY *pd
 static int
 mriWriteImageView(MRI *mri, char *base_name, int target_size, int view,
                   int slice, MRI *mri_template) {
-  char  fname[STRLEN], *prefix ;
+  char  fname[STRLEN];
+  const char *prefix ;
   IMAGE *I ;
   float scale ;
 

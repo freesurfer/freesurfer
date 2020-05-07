@@ -293,7 +293,7 @@ int PathWriteMany(char *fname, int num_paths, PATH **paths)
   return (ERROR_NONE);
 }
 
-PATH *PathAlloc(int n_points, char *name)
+PATH *PathAlloc(int n_points, const char *name)
 {
   PATH *path;
 

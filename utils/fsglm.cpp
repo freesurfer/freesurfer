@@ -761,7 +761,7 @@ int GLMresynthTest(int niters, double *prvar)
   GLMdump() - saves a lot of the stuff from the GLMMAT
   struct into ascii files in the given directory.
   ---------------------------------------------------------*/
-int GLMdump(char *dumpdir, GLMMAT *glm)
+int GLMdump(const char *dumpdir, GLMMAT *glm)
 {
   char fname[1000], condir[1000];
   FILE *fp;
