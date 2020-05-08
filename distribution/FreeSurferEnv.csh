@@ -457,6 +457,8 @@ set path = ( $FREESURFER_HOME/bin \
              $path \
             )
 
+# set FREESURFER to match FREESURFER_HOME
+setenv FREESURFER $FREESURFER_HOME
 
 # This turns on "fixing" of group surface area. A group subject made
 # with make_average_subject will have a surface area smaller than
