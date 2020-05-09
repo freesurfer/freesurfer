@@ -111,16 +111,16 @@ getTCVI(TexFont * txf, int c)
   /* NOTREACHED */
 }
 
-static char *lastError;
+static const char *lastError;
 
-char *
+const char *
 txfErrorString(void)
 {
   return lastError;
 }
 
 TexFont *
-txfLoadFont(char *filename)
+txfLoadFont(const char *filename)
 {
   TexFont *txf;
   FILE *file;
