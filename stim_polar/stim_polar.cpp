@@ -78,7 +78,7 @@ void display_expanding_rings(void) {
   double innerRadiusOfAnnulus;
   double outerRadiusOfAnnulus;
 
-  putenv("__GL_SYNC_TO_VBLANK=23") ;  /* will force syncing with vertical retrace */
+  putenv(const_cast<char*>("__GL_SYNC_TO_VBLANK=23")) ;  /* will force syncing with vertical retrace */
   glClear(GL_COLOR_BUFFER_BIT);
   current_list = !current_list ;
   glNewList(current_list, GL_COMPILE) ;
