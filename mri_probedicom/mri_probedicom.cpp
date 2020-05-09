@@ -72,7 +72,7 @@ static void print_help(void) ;
 static void print_version(void) ;
 static void argnerr(char *option, int n);
 static int  singledash(char *flag);
-int GetDirective(char *directivestring);
+int GetDirective(const char *directivestring);
 int GetDimLength(char *dicomfile, int dimtype);
 
 #define QRY_FILETYPE        0
@@ -86,7 +86,7 @@ int GetDimLength(char *dicomfile, int dimtype);
 #define QRY_DWI             8
 
 char* dicomfile = NULL;
-char* directivestring = NULL;
+const char* directivestring = NULL;
 int   directive;
 long grouptag = -1, elementtag = -1;
 int debug, verbose;
@@ -103,13 +103,13 @@ int DoTConvertSec = 0;
 //int FreeElement(DCM_ELEMENT *e);
 //DCM_OBJECT *GetObjectFromFile(char *fname, unsigned long options);
 int DumpElement(FILE *fp, DCM_ELEMENT *e);
-char *RepString(int RepCode);
-int PartialDump(char *dicomfile, FILE *fp);
-int DumpSiemensASCII(char *dicomfile, FILE *fpout);
-int DumpSiemensASCIIAlt(char *dicomfile, FILE *fpout);
+const char *RepString(int RepCode);
+int PartialDump(const char *dicomfile, FILE *fp);
+int DumpSiemensASCII(const char *dicomfile, FILE *fpout);
+int DumpSiemensASCIIAlt(const char *dicomfile, FILE *fpout);
 
 /*size_t RepSize(int RepCode);*/
-char *ElementValueFormat(DCM_ELEMENT *e);
+const char *ElementValueFormat(DCM_ELEMENT *e);
 int DCMCompare(char *dcmfile1, char *dcmfile2, double thresh);
 double DCMCompareThresh = .00001;
 
@@ -694,7 +694,7 @@ static void check_options(void) {
   return;
 }
 /* ------------------------------------------------------------ */
-int GetDirective(char *directivestring) {
+int GetDirective(const char *directivestring) {
   if (! strcasecmp(directivestring,"filetype")) return(QRY_FILETYPE);
   if (! strcasecmp(directivestring,"tag")) return(QRY_TAG);
   if (! strcasecmp(directivestring,"representation")) return(QRY_REPRESENTATION);
@@ -729,8 +729,8 @@ int DumpElement(FILE *fp, DCM_ELEMENT *e) {
   return(0);
 }
 /*---------------------------------------------------------------*/
-char *RepString(int RepCode) {
-  char* repstring=NULL;
+const char *RepString(int RepCode) {
+  const char* repstring=NULL;
 
   switch (RepCode) {
 
@@ -848,7 +848,7 @@ int GetDimLength(char *dicomfile, int dimtype) {
   return(dimlength);
 }
 /*---------------------------------------------------------------*/
-int PartialDump(char *dicomfile, FILE *fp) 
+int PartialDump(const char *dicomfile, FILE *fp) 
 {
   DCM_ELEMENT *e;
 
@@ -1171,14 +1171,14 @@ int PartialDump(char *dicomfile, FILE *fp)
   return(0);
 }
 /*---------------------------------------------------------------*/
-int DumpSiemensASCII(char *dicomfile, FILE *fpout) {
+int DumpSiemensASCII(const char *dicomfile, FILE *fpout) {
 
   DCM_ELEMENT *e;
   FILE *fp;
   // declared at top of file: char tmpstr[TMPSTRLEN];
   int dumpline, nthchar;
   char *rt;
-  char *BeginStr;
+  const char *BeginStr;
   int LenBeginStr;
   char *TestStr;
   int nTest;
@@ -1263,14 +1263,14 @@ int DumpSiemensASCII(char *dicomfile, FILE *fpout) {
   header that begins with "### ASCCONV BEGIN #" and ends with
   "### ASCCONV BEGIN ###".
   ---------------------------------------------------------------*/
-int DumpSiemensASCIIAlt(char *dicomfile, FILE *fpout) {
+int DumpSiemensASCIIAlt(const char *dicomfile, FILE *fpout) {
 
   DCM_ELEMENT *e;
   FILE *fp;
   // declared at top of file: char tmpstr[TMPSTRLEN];
   int dumpline, nthchar;
   char *rt;
-  char *BeginStr;
+  const char *BeginStr;
   int LenBeginStr;
   char *TestStr;
   int nTest;
@@ -1357,8 +1357,8 @@ int DumpSiemensASCIIAlt(char *dicomfile, FILE *fpout) {
 
 
 /*---------------------------------------------------------------*/
-char *ElementValueFormat(DCM_ELEMENT *e) {
-  char * formatstring;
+const char *ElementValueFormat(DCM_ELEMENT *e) {
+  const char * formatstring;
 
   switch (e->representation) {
 
@@ -1538,7 +1538,7 @@ int DCMCompare(char *dcmfile1, char *dcmfile2, double thresh)
 {
   DCM_ELEMENT *e1, *e2;
   int tag1[100], tag2[100], type[100];
-  char *tagname[100];
+  const char *tagname[100];
   int n, nth, isdiff;
 
   n = 0;
