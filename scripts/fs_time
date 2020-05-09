@@ -60,10 +60,15 @@ set fmt = "$key $dt $argv[1] N $nargs e %e S %S U %U P %P M %M F %F R %R W %W c 
 set cmd = /usr/bin/time
 if($#outfile == 0)  set outfile = /dev/stdout; # time default is stderr, which is annoying
 set cmd = ($cmd -o $outfile)
-#echo $cmd
-#echo $fmt
-#echo $argv
-$cmd  -f "$fmt" $argv
+
+# test to make sure that time runs as expected (gnu)
+$cmd -f "$fmt" echo testing >& /dev/null
+if ( $status ) then
+  $argv
+  exit $status
+endif
+
+$cmd -f "$fmt" $argv
 set st = $status
 if($outfile != /dev/stdout) cat $outfile
 
