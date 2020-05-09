@@ -57,7 +57,15 @@ endif
 set dt = `date '+%Y:%m:%d:%H:%M:%S'`
 set fmt = "$key $dt $argv[1] N $nargs e %e S %S U %U P %P M %M F %F R %R W %W c %c w %w I %I O %O $upt"
 
+# set time command
 set cmd = /usr/bin/time
+
+# make sure time command exists
+if(! -e $cmd) then
+  $argv
+  exit $status
+endif
+
 if($#outfile == 0)  set outfile = /dev/stdout; # time default is stderr, which is annoying
 set cmd = ($cmd -o $outfile)
 
@@ -131,11 +139,6 @@ goto parse_args_return;
 
 ############--------------##################
 check_params:
-
-if(! -e /usr/bin/time) then
-  echo "ERROR: cannot find /usr/bin/time"
-  exit 1;
-endif
 
 if($#argv == 0) then
   goto usage_exit;
