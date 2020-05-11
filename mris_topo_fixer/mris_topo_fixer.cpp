@@ -56,11 +56,11 @@ const char *Progname ;
 
 static const char *brain_name    = "brain" ;
 static const char *wm_name       = "wm" ;
-static const char *orig_name     = "orig" ;
 static const char *input_name   = "input" ;
-//static const char *defect_name  = "defects" ;
 static const char *sphere_name = "qsphere" ;
-static const char *out_name = "orig_corrected" ;
+//static const char *defect_name  = "defects" ;
+const char *orig_name = "orig" ;
+const char *out_name = "orig_corrected" ;
 
 static char sdir[STRLEN] = "";
 static TOPOFIX_PARMS parms;
@@ -556,10 +556,13 @@ get_option(int argc, char *argv[]) {
     nargs = 1 ;
   } else if (!stricmp(option, (char*)"seed")) {
     setRandomSeed(atol(argv[2])) ;
-    fprintf
-    (stderr,
-     "setting seed for random number genererator to %d\n",
-     atoi(argv[2])) ;
+    fprintf(stderr, "setting seed for random number genererator to %d\n", atoi(argv[2])) ;
+    nargs = 1 ;
+  } else if (!stricmp(option, (char*)"out_name")) {
+    out_name = argv[2];
+    nargs = 1 ;
+  } else if (!stricmp(option, (char*)"orig_name")) {
+    orig_name = argv[2];
     nargs = 1 ;
   } else switch (toupper(*option)) {
     case '?':

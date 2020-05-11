@@ -3207,7 +3207,7 @@ if($DoFix && ( ! $longitudinal )) then
       if($RunIt) $cmd |& tee -a $LF
       if($status) goto error_exit;
       set xopts = `fsr-getxopts mris_topo_fixer $XOptsFile $GlobXOptsFile`;
-      set cmd = (mris_topo_fixer -mgz -warnings)
+      set cmd = (mris_topo_fixer -orig_name orig.nofix -out_name $origsurf -mgz -warnings)
       if($NoRandomness) set cmd = ($cmd -seed $RngSeed)
       # Need to update for remesh
       set cmd = ($cmd $xopts $subjid $hemi)
@@ -3257,17 +3257,6 @@ if($DoFix && ( ! $longitudinal )) then
     set cmd = (rm ../surf/$hemi.inflated)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $cmd |& tee -a $LF
-    if($UseNewTopoFix && -e ../surf/$hemi.orig_corrected ) then
-      # Copy *h.orig_corrected to *h.orig.  orig_corrected is created
-      # by mris_topo_fixer, which runs only when mris_fix_topology fails,
-      # which could happen for one hemi and not the other, so check
-      # if it exists prior to the copy in addition to checking the
-      # UseNewTopoFix flag.
-      set cmd = (cp ../surf/$hemi.orig_corrected ../surf/$hemi.orig )
-      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-      if($RunIt) $cmd
-      if($status) goto error_exit;
-    endif
     echo $cmd > $touchdir/$hemi.topofix.touch
   end # Loop over hemilist
 endif
