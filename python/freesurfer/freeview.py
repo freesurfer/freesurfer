@@ -331,8 +331,8 @@ class Freeview:
 def fv(*args, **kwargs):
     '''
     Freeview wrapper to quickly load an arbitray number of volumes and surfaces. Inputs
-    can be existing filenames, surfaces, volumes or numpy arrays. Use the `Freeview` class directly
-    to configure a more detailed session.
+    can be existing filenames, surfaces, volumes or numpy arrays. Lists are also supported.
+    Use the `Freeview` class directly to configure a more detailed session.
 
     Args:
         opts: Additional string of flags to add to the command.
@@ -341,8 +341,16 @@ def fv(*args, **kwargs):
     background = kwargs.pop('background', True)
     opts = kwargs.pop('opts', '')
 
-    fv = Freeview()
+    # expand any lists within args
+    expanded_args = []
     for arg in args:
+        if isinstance(arg, (list, tuple)):
+            expanded_args += arg
+        else:
+            expanded_args.append(arg)
+
+    fv = Freeview()
+    for arg in expanded_args:
         if isinstance(arg, str):
             # try to guess filetype if string
             if arg.endswith(('.mgz', '.mgh', '.nii.gz', '.nii')):
