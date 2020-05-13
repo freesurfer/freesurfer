@@ -5,6 +5,8 @@ install_symlinks(
   # gcs
   lh.DKaparc.atlas.acfb40.noaparc.i12.2016-08-02.gcs
   rh.DKaparc.atlas.acfb40.noaparc.i12.2016-08-02.gcs
+  lh.DKTaparc.atlas.acfb40.noaparc.i12.2020-05-13.gcs
+  rh.DKTaparc.atlas.acfb40.noaparc.i12.2020-05-13.gcs
   lh.DKTaparc.atlas.acfb40.noaparc.i12.2016-08-02.gcs
   rh.DKTaparc.atlas.acfb40.noaparc.i12.2016-08-02.gcs
   lh.CDaparc.atlas.acfb40.noaparc.i12.2016-08-02.gcs
