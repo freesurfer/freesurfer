@@ -290,8 +290,6 @@ set DESTRIEUX_GCS = CDaparc.atlas.acfb40.noaparc.i12.2016-08-02.gcs
 set DESTRIEUX_NAME = a2009s
 
 # Mindboggle cortical parcellation atlas (-cortparc3):
-set DKTATLAS40_GCS = DKTatlas40.gcs
-set DKTATLAS40_NAME = DKTatlas40
 set DKTATLAS_GCS = DKTaparc.atlas.acfb40.noaparc.i12.2016-08-02.gcs
 set DKTATLAS_NAME = DKTatlas
 
@@ -6000,6 +5998,10 @@ while( $#argv != 0 )
     case "-gcs-dir":
       if ( $#argv < 1) goto arg1err;
       set GCSDIR = $argv[1]; shift;
+      breaksw
+
+    case "-dkt2020":
+      set DKTATLAS_GCS = DKTaparc.atlas.acfb40.noaparc.i12.2020-05-13.gcs
       breaksw
 
     case "-segmentation":
