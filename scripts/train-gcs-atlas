@@ -322,7 +322,7 @@ foreach subject ($subjects)
     exit 1;
   endif
   if(! -e $SUBJECTS_DIR/$subject/label/$hemi.$manparc.annot) then
-    echo "ERROR: cannot find $SUBJECTS_DIR/$subject/surf/$hemi.$manparc.annot"
+    echo "ERROR: cannot find $SUBJECTS_DIR/$subject/label/$hemi.$manparc.annot"
     exit 1;
   endif
   if($#xsubject && $xsubject == $subject) set xok = 1
