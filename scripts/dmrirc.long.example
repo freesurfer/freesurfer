@@ -1,9 +1,10 @@
 #
 # dmrirc.long.example
 #
-# This example is applicable to longitudinal studies, where DWI data from
-# multiple time points are available for each subject. For a simple example
-# with a single DWI data set per subject, see dmrirc.example instead.
+# This example sets up a TRACULA analysis for a longitudinal study where
+# there is a single diffusion scan for each subject. 
+# - If you have multiple diffusion scans per session, see *.multiscan.*example
+# - If you have only one cross-sectional scan per subject, see dmrirc.example
 #
 # This file contains commands that will be run by trac-all before an analysis.
 # It is used to set all parameters needed for the analysis.
@@ -40,12 +41,12 @@ set dtroot = /path/to/tracts/of/ducks
 
 # Subject IDs (one per time point per subject)
 #
-set subjlist = ( huey-scan1 \
-                 huey-scan2 \
-                 dewey-scan1 \
-                 dewey-scan2 \
-                 louie-scan1 \
-                 louie-scan2 )
+set subjlist = ( huey-visit1 \
+                 huey-visit2 \
+                 dewey-visit1 \
+                 dewey-visit2 \
+                 louie-visit1 \
+                 louie-visit2 )
 
 # Longitudinal base template subject IDs (one for each time point above)
 #
@@ -73,54 +74,42 @@ set dcmlist = ( huey/year1/dwi/XXX-1.dcm \
                 louie/year1/dwi/XXX-1.dcm \
                 louie/year2/dwi/XXX-1.dcm )
 
-# Diffusion gradient tables (if there is a different one for each scan)
-# Must be specified if they cannot be read from the DICOM headers
+# Diffusion gradient tables (file names can be relative to dcmroot)
+# Must be specified only if they cannot be read from the DICOM headers
 # The tables must have either three columns, where each row is a gradient vector
 # or three rows, where each column is a gradient vector
 # There must be as many gradient vectors as volumes in the diffusion data set
 # Default: Read from DICOM header
 #
-set bveclist = (/path/to/huey/year1/bvecs.txt \
-                /path/to/huey/year2/bvecs.txt \
-                /path/to/dewey/year1/bvecs.txt \
-                /path/to/dewey/year2/bvecs.txt \
-                /path/to/louie/year1/bvecs.txt \
-                /path/to/louie/year2/bvecs.txt)
+set bveclist = ( /path/to/huey/year1/bvecs.txt \
+                 /path/to/huey/year2/bvecs.txt \
+                 /path/to/dewey/year1/bvecs.txt \
+                 /path/to/dewey/year2/bvecs.txt \
+                 /path/to/louie/year1/bvecs.txt \
+                 /path/to/louie/year2/bvecs.txt )
 
-# Diffusion gradient table (if using the same one for all scans)
-# Must be specified if it cannot be read from the DICOM headers
-# The table must have either three columns, where each row is a gradient vector
-# or three rows, where each column is a gradient vector
-# There must be as many gradient vectors as volumes in the diffusion data set
-# Default: Read from DICOM header
-#
-set bvecfile = /path/to/bvecs.txt
-
-# Diffusion b-value tables (if there is a different one for each scan)
-# Must be specified if they cannot be read from the DICOM headers
+# Diffusion b-value tables (file names can be relative to dcmroot)
+# Must be specified only if they cannot be read from the DICOM headers
 # There must be as many b-values as volumes in the diffusion data set
 # Default: Read from DICOM header
 #
-set bvallist = (/path/to/huey/year1/bvals.txt \
-                /path/to/huey/year2/bvals.txt \
-                /path/to/dewey/year1/bvals.txt \
-                /path/to/dewey/year2/bvals.txt \
-                /path/to/louie/year1/bvals.txt \
-                /path/to/louie/year2/bvals.txt)
+set bvallist = ( /path/to/huey/year1/bvals.txt \
+                 /path/to/huey/year2/bvals.txt \
+                 /path/to/dewey/year1/bvals.txt \
+                 /path/to/dewey/year2/bvals.txt \
+                 /path/to/louie/year1/bvals.txt \
+                 /path/to/louie/year2/bvals.txt )
 
-# Diffusion b-value table
-# Must be specified if it cannot be read from the DICOM headers
-# There must be as many b-values as volumes in the diffusion data set
-# Default: Read from DICOM header
-#
-set bvalfile = /path/to/bvals.txt
-
-# Perform registration-based B0-inhomogeneity compensation?
-# Default: 0 (no)
+# Perform correction for B0 inhomogeneity distortions?
+# 0: No correction (default)
+# 1: Perform correction based on a field map
+#    Requires additional inputs (see below): b0mlist, b0plist, echospacing
+# 2: Perform correction based on reverse-polarity images
+#    Requires additional inputs: echospacing, pedir, epifactor
 #
 set dob0 = 1
 
-# Input B0 field map magnitude DICOMs (file names relative to dcmroot)
+# Input B0 field map magnitude DICOMs (file names can be relative to dcmroot)
 # Only used if dob0 = 1
 # Default: None
 #
@@ -131,7 +120,7 @@ set b0mlist = ( huey/year1/fmag/XXX-1.dcm \
                 louie/year1/fmag/XXX-1.dcm \
                 louie/year2/fmag/XXX-1.dcm )
 
-# Input B0 field map phase DICOMs (file names relative to dcmroot)
+# Input B0 field map phase DICOMs (file names can be relative to dcmroot)
 # Only used if dob0 = 1
 # Default: None
 #
@@ -142,19 +131,21 @@ set b0plist = ( huey/year1/fphas/XXX-1.dcm \
                 louie/year1/fphas/XXX-1.dcm \
                 louie/year2/fphas/XXX-1.dcm )
 
-# Echo spacing for field mapping sequence (from sequence printout)
-# Only used if dob0 = 1
+# Echo spacing (this is found in the scanner protocol printout)
+# Only used if dob0 = 1 or 2
 # Default: None
 #
 set echospacing = 0.7
 
-# Perform registration-based eddy-current compensation?
-# Default: 1 (yes)
+# Perform correction for eddy-current distortions?
+# 0: No correction
+# 1: Perform registration-based correction with eddy_correct
+# 2: Perform model-based correction with eddy (default)
 #
-set doeddy = 1
+set doeddy = 2
 
 # Rotate diffusion gradient vectors to match eddy-current compensation?
-# Only used if doeddy = 1
+# Only used if doeddy = 1 or 2
 # Default: 1 (yes)
 #
 set dorotbvecs = 1
