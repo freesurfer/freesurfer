@@ -20,6 +20,7 @@ set m3zSpec = ()
 set brainmask = brainmask.mgz
 set EMRegAseg = 1;
 set ctab = $FREESURFER_HOME/ASegStatsLUT.txt
+set ForceUpdate = 0
 
 set Overwrite = 0;
 set tmpdir = ();
@@ -57,14 +58,10 @@ check_params_return:
 set StartTime = `date`;
 set tSecStart = `date '+%s'`;
 
-if($#outdir) then
-  mkdir -p $outdir/stats
-  set outdir = `getfullpath $outdir`
-  if($#LF == 0) set LF = $outdir/gca-apply.$gcabase.log
-endif
+set outdir = `getfullpath $outdir`
+mkdir -p $outdir/stats $outdir/mri/transforms $outdir/scripts
 
-# Set up log file
-if($#LF == 0) set LF = $SUBJECTS_DIR/$subject/scripts/gca-apply.$gcabase.log
+if($#LF == 0) set LF = $outdir/scripts/gca-apply.$gcabase.log
 if($LF != /dev/null && -e $LF) mv $LF $LF.bak
 echo "Log file for gca-apply" >> $LF
 date  | tee -a $LF
@@ -78,136 +75,122 @@ echo $VERSION | tee -a $LF
 uname -a  | tee -a $LF
 
 #========================================================
-cd $mdir
+# Have to cd because mri_em_register writes a bunch of stuff to 
+# current dir
+cd $outdir/mri 
 
 date | tee -a $LF
+echo "cd `pwd`"| tee -a $LF
 
 # mri_em_register
-if($#outdir == 0) then
-  set LTA = transforms/$gcabase.lta
-else
-  set LTA = $outdir/$gcabase.lta
-endif
+set LTA = $outdir/mri/transforms/$gcabase.lta
 if($#SrcLTA == 0) then
-  # LTA NOT passed on command line, create 
-  if($UseCoreg == 0) then
-    if($EMRegAseg) then
-      # Create LTA using mri_em_register
-      set opts = (-mask $brainmask)
-      set opts = ($opts -uns 3) # used by recon-all, but not with skull
-      # but docs imply it is only with skull that it should be used
-      set cmd = (mri_em_register $opts $input $gca $LTA)
-    else # Use tal.xfm.lta
-      set xfm = transforms/talairach.xfm 
-      set LTA = transforms/talairach.xfm.lta
-      set ud = `UpdateNeeded $LTA $xfm`
-      set cmd = ()
-      if($ud) then
-        set mni305 = $FREESURFER_HOME/average/mni305.cor.mgz
-        set cmd = (lta_convert --src orig.mgz --trg $mni305 --inxfm $xfm \
-            --outlta $LTA --subject fsaverage --ltavox2vox)
-        #echo $cmd |& tee -a $LF |& tee -a $CF
-        #$cmd |& tee -a $LF
-        #if($status) exit 1
-      endif # update needed
-    endif # EMRegAseg
-  else # UseCoreg
-    # Create LTA using mri_coreg. Use 9dof because that's what em_register does
-    set cmd = (mri_coreg --dof 9 --threads $OMP_NUM_THREADS \
-      --mov $brainmask --targ $gca --conf-ref --reg $LTA)
-  endif # UseCoreg
+  # LTA NOT passed on command line, create using mri_em_register
+  set opts = (-mask $mdir/$brainmask)
+  set opts = ($opts -uns 3) # used by recon-all, but not with skull
+  # but docs imply it is only with skull that it should be used
+  set cmd = (mri_em_register $opts $mdir/$input $gca $LTA)
+  set ud = `UpdateNeeded $LTA $mdir/$brainmask $mdir/$input $gca`
 else
   # LTA passed on command line
   set cmd = (cp $SrcLTA $LTA)
+  set ud = `UpdateNeeded $LTA $SrcLTA`
 endif
-if($#cmd) then
+if($ud || $ForceUpdate) then
+  echo "cd `pwd`" |& tee -a $LF
   echo $cmd |& tee -a $LF
   fs_time $cmd |& tee -a $LF
   if($status) exit 1;
+else
+  echo "$LTA update not needed" |& tee -a $LF
 endif
 
 date | tee -a $LF
 
 # mri_ca_normlize
-if($#outdir == 0) then
-  set norm = norm.$gcabase.mgz
-else
-  set norm = $outdir/norm.$gcabase.mgz
-endif
+set norm = $outdir/mri/norm.$gcabase.mgz
 if($#SrcNorm == 0) then
-  set cmd = (mri_ca_normalize -mask $brainmask $input $gca $LTA $norm)
+  set cmd = (mri_ca_normalize -mask $mdir/$brainmask $mdir/$input $gca $LTA $norm)
+  set ud = `UpdateNeeded $norm $mdir/$brainmask $mdir/$input $gca $LTA `
 else
   set cmd = (cp $SrcNorm $norm)
+  set ud = `UpdateNeeded $norm $SrcNorm`
 endif
-echo $cmd | tee -a $LF
-fs_time $cmd |& tee -a $LF
-if($status) exit 1;
+if($ud || $ForceUpdate) then
+  echo "cd `pwd`" |& tee -a $LF
+  echo $cmd |& tee -a $LF
+  fs_time $cmd |& tee -a $LF
+  if($status) exit 1;
+else
+  echo "$norm update not needed" |& tee -a $LF
+endif
 
 date | tee -a $LF
 
 # mri_ca_register
 if($#m3zSpec == 0) then
-  if($#outdir == 0) then
-    set m3z = transforms/$gcabase.m3z
+  set m3z = $outdir/mri/transforms/$gcabase.m3z
+  set ud = `UpdateNeeded $m3z $mdir/$brainmask $LTA $norm $gca`
+  if($ud || $ForceUpdate) then
+    set opts = (-align-after -mask $mdir/$brainmask -T $LTA)
+    set opts = ($opts -nobigventricles) # Used by recon-all
+    # These are not used by recon-all but used in rebuild_gca_atlas.csh
+    #set opts = ($opts -smooth 1.0 -levels 2) 
+    set cmd = (mri_ca_register $opts $norm $gca $m3z)
+    if($#GCARegIterations) set cmd = ($cmd -gcareg-iters $GCARegIterations)
+    echo $cmd |& tee -a $LF
+    fs_time $cmd |& tee -a $LF
+    if($status) exit 1;
   else
-    set m3z = $outdir/$gcabase.m3z
+    echo "$m3z update not needed" |& tee -a $LF
   endif
-  set opts = (-align-after -mask $brainmask -T $LTA)
-  set opts = ($opts -nobigventricles) # Used by recon-all
-  # These are not used by recon-all but used in rebuild_gca_atlas.csh
-  #set opts = ($opts -smooth 1.0 -levels 2) 
-  set cmd = (mri_ca_register $opts $norm $gca $m3z)
-  if($#GCARegIterations) set cmd = ($cmd -gcareg-iters $GCARegIterations)
-  echo $cmd |& tee -a $LF
-  fs_time $cmd |& tee -a $LF
-  if($status) exit 1;
 endif
 
 date | tee -a $LF
 
 # mri_ca_label
-if($#outdir == 0) then
-  set aseg = $gcabase.aseg.mgz
+set aseg = $outdir/mri/$gcabase.aseg.mgz
+set ud = `UpdateNeeded $aseg $m3z $norm $gca`
+if($ud || $ForceUpdate) then
+  set opts = (-align)
+  if($UseV6LabOpts) then
+    set opts = ($opts -relabel_unlikely 9 .3)
+    set opts = ($opts -prior 0.5)
+  endif
+  #set opts = ($opts -nobigventricles) # not used in recon-all, used in rebuild_gca_atlas.csh
+  set cmd = (mri_ca_label $opts $norm $m3z $gca $aseg)
+  echo $cmd |& tee -a $LF
+  fs_time $cmd |& tee -a $LF
+  if($status) exit 1;
 else
-  set aseg = $outdir/$gcabase.aseg.mgz
+  echo "$aseg update not needed" |& tee -a $LF
 endif
-set opts = (-align)
-if($UseV6LabOpts) then
-  set opts = ($opts -relabel_unlikely 9 .3)
-  set opts = ($opts -prior 0.5)
-endif
-#set opts = ($opts -nobigventricles) # not used in recon-all, used in rebuild_gca_atlas.csh
-set cmd = (mri_ca_label $opts $norm $m3z $gca $aseg)
-echo $cmd |& tee -a $LF
-fs_time $cmd |& tee -a $LF
-if($status) exit 1;
 
 date | tee -a $LF
 
 # Compute segstats
-if($#outdir == 0) then
-  # putting here can make it easier to run asegstats2table
-  set statsfile = ../stats/$gcabase.stats
+set statsfile = $outdir/stats/$gcabase.stats
+set ud = `UpdateNeeded $statsfile $aseg $norm`
+if($ud || $ForceUpdate) then
+  set cmd = (mri_segstats --seg $aseg --sum $statsfile \
+    --in $norm --pv $norm --empty --excludeid 0 \
+    --ctab $ctab --subject $subject \
+    --brainmask $mdir/brainmask.mgz --brain-vol-from-seg \
+    --in-intensity-name norm.$gcabase --in-intensity-units MR )
+  set talxfm = $sdir/mri/transforms/talairach.xfm
+  if(-e $talxfm ) set cmd = ($cmd --etiv --talxfm $talxfm);
+  echo $cmd |& tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) exit 1;
 else
-  set statsfile = $outdir/stats/$gcabase.stats
+  echo "$statsfile update not needed" |& tee -a $LF
 endif
-set cmd = (mri_segstats --seg $aseg --sum $statsfile \
-  --in $norm --pv $norm --empty --excludeid 0 \
-  --ctab $ctab --subject $subject \
-  --brainmask brainmask.mgz --brain-vol-from-seg \
-  --in-intensity-name norm.$gcabase --in-intensity-units MR )
-set talxfm = $SUBJECTS_DIR/$subject/mri/transforms/talairach.xfm
-if(-e $talxfm ) set cmd = ($cmd --etiv --talxfm $talxfm);
-
-echo $cmd |& tee -a $LF
-$cmd |& tee -a $LF
-if($status) exit 1;
 
 date | tee -a $LF
 
 if($#DiceSeg) then
-  set cmd = (mri_compute_seg_overlap -cortex 0 -L $DiceFile \
-    -table $DiceFile.table $gcabase.aseg.mgz $DiceSeg)
+  set cmd = (mri_compute_seg_overlap -cortex 0 -L $outdir/mri/$DiceFile \
+    -table $DiceFile.table $aseg $mdir/$DiceSeg)
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) exit 1;
@@ -300,7 +283,8 @@ while( $#argv != 0 )
       set gcabase = gca.limbic5
       breaksw
 
-    case "--overwrite":
+    case "--force-update":
+      set ForceUpdate = 1;
       set Overwrite = 1;
       breaksw
 
@@ -364,20 +348,6 @@ while( $#argv != 0 )
     case "--m3z":
       if($#argv < 1) goto arg1err;
       set m3zSpec = $argv[1]; shift;
-      breaksw
-
-    case "--coreg":
-      set UseCoreg = 1;
-      breaksw
-    case "--no-coreg":
-      set UseCoreg = 0;
-      breaksw
-
-    case "--emreg":
-      set EMRegAseg = 1;
-      breaksw
-    case "--no-emreg":
-      set EMRegAseg = 0;
       breaksw
 
     case "--no-v6labopts":
@@ -450,54 +420,53 @@ foreach f ($mdir/$brainmask $mdir/$input)
     exit 1;
   endif
 end
-
-#if($EMRegAseg == 0) then
-#  set SrcLTA = $mdir/transforms/talairach.lta
-#endif
-
-# Check whether the outputs already exist
-if($#gcabase == 0) set gcabase = `basename $gca .gca`
-set lta   = $mdir/transforms/$gcabase.lta
-set norm  = $mdir/norm.$gcabase.mgz
-set aseg  = $mdir/$gcabase.aseg.mgz
-set stats = $sdir/stats/$gcabase.stats
-
-if(-e $lta && ! $Overwrite) then
-  echo "ERROR: $lta already exists"
-  exit 1;
-endif
-if(-e $norm && ! $Overwrite) then
-  echo "ERROR: $norm already exists"
-  exit 1;
-endif
-if(-e $aseg && ! $Overwrite) then
-  echo "ERROR: $aseg already exists"
-  exit 1;
-endif
-if(-e $stats && ! $Overwrite) then
-  echo "ERROR: $stats already exists"
-  exit 1;
-endif
+if($#outdir == 0) set outdir = $sdir
 
 if($#DiceSeg && ! -e $mdir/$DiceSeg) then
   echo "ERROR: cannot find $mdir/$DiceSeg"
   exit 1;
 endif
 
+if($#gcabase == 0) set gcabase = `basename $gca .gca`
+set lta   = $outdir/mri/transforms/$gcabase.lta
+set norm  = $outdir/mri/norm.$gcabase.mgz
+set aseg  = $outdir/mri/$gcabase.aseg.mgz
+set stats = $outdir/stats/$gcabase.stats
 if($#m3zSpec == 0) then
-  set m3z   = $mdir/transforms/$gcabase.m3z
-  if(-e $m3z && ! $Overwrite) then
-    echo "ERROR: $m3z already exists"
-    exit 1;
-  endif
+  set m3z = $outdir/mri/transforms/$gcabase.m3z
 else
-  set m3z = $mdir/transforms/$m3zSpec
+  set m3z = $outdir/transforms/$m3zSpec
   if(! -e $m3z) then
     echo "ERROR: cannot find $m3z"
     exit 1
   endif
 endif
 
+# Check whether the outputs already exist
+if($ForceUpdate) then
+  if(-e $lta && ! $Overwrite) then
+    echo "ERROR: $lta already exists"
+    exit 1;
+  endif
+  if(-e $norm && ! $Overwrite) then
+    echo "ERROR: $norm already exists"
+    exit 1;
+  endif
+  if(-e $aseg && ! $Overwrite) then
+    echo "ERROR: $aseg already exists"
+    exit 1;
+  endif
+  if(-e $stats && ! $Overwrite) then
+    echo "ERROR: $stats already exists"
+    exit 1;
+  endif
+  if($#m3zSpec == 0) then
+    if(-e $m3z && ! $Overwrite) then
+      echo "ERROR: $m3z already exists"
+      exit 1;
+    endif
+  endif
+endif
 
 set gca = `getfullpath $gca`
 
@@ -522,7 +491,6 @@ usage_exit:
   echo "  --s subject"
   echo ""
   echo " Other options"
-  echo "  --overwrite : overwrite lta, norm, m3z, and aseg if they exist"
   echo "  --nthreads nthreads : control number of OMP threads"
   echo "  --base gcabase : use gcabase when naming output files (default is basename gcafile)"
   echo "  --no-segstats : do not compute segstats "
@@ -532,11 +500,11 @@ usage_exit:
   echo "  --norm SrcNorm : use SrcNorm instead of running mri_ca_normalize "
   echo "  --input input.mgz : defalt is nu.mgz "
   echo "  --brainmask newbrainmask.mgz : defalt is brainmask.mgz "
-  echo "  --o outdir : use this for output instead of SUBJECTS_DIR "
-  echo "  --coreg : use mri_coreg instead of mri_em_register (--no-coreg)"
+  echo "  --o outdir : use this for output instead of SUBJECTS_DIR/subject "
   echo "  --no-v6labopts : do not include -relabel_unlikely 9 .3 -prior 0.5 with mri_ca_label":
   echo "  --m3z m3zfile":
   echo "  --gca-rb-2016 : use RB_all_2016-05-10.vc700.gca"
+  echo "  --force-update : force recreation of a file even if it is younger then its parents"
   echo ""
   echo "  --gcareg-iters : set to 1, only for testing"
   echo ""
@@ -554,6 +522,8 @@ mri_ca_normalize, mri_ca_register, and mri_ca_label (and possibly
 mri_segstats). This script is designed to replicate the stages in
 recon-all but does not overwrite any of those files. Single threaded,
 this script may take 8 hours or so because mri_ca_register is done.
+By default, an existing file will not be recreated if its inputs
+are older than it (use --force-update to create regardless).
 
 Creates files with the names:
 
@@ -584,4 +554,14 @@ and the output will be put in $SUBJECTS_DIR/$subject/$DiceFile
 do not include "-relabel_unlikely 9 .3 -prior 0.5" as part of the
 mri_ca_label command options.  This are v6 options that are not part
 of the 5.3 command line.
+
+--o outputdir
+
+If this is specified, then the output will be created in this folder.
+This can be useful when you do not have permissions to the source
+data or do not want to create additional files in the source tree.
+outputdir will look like the subjects recon-all folder, so make sure
+that the subject name is in the outputdir.
+
+
 
