@@ -2412,8 +2412,8 @@ if($DoCAReg) then
   set st = $status
   if($st) then
     echo "ERROR: mri_ca_register with non-zero status $st" |& tee -a $LF
-    echo "but continuing despite the error" |& tee -a $LF
-    #goto error_exit;
+    #echo "but continuing despite the error" |& tee -a $LF
+    goto error_exit;
   endif
 
   echo $cmd > $touchdir/ca_register.touch
