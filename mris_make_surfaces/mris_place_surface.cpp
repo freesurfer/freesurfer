@@ -708,7 +708,7 @@ int main(int argc, char **argv)
 
   msec = timer.milliseconds() ;
   printf("#ET# mris_place_surface %5.2f minutes\n", (float)msec/(60*1000.0f));
-  printf("#VMPC# mris_make_surfaces VmPeak  %d\n",GetVmPeak());
+  printf("#VMPC# mris_place_surfaces VmPeak  %d\n",GetVmPeak());
   printf("mris_place_surface done\n");
 
   return(0);
