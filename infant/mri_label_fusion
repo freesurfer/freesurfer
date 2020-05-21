@@ -134,7 +134,8 @@ def computeDistanceTransform(labelmask):
 
 def saveVolume(vol, fname):
     im = nib.Nifti1Image(vol, fixed_image.affine)
-    im.header['xyzt_units'] = fixed_image.header['xyzt_units']
+    if fixed_image.header.get('xyzt_units'):
+        im.header['xyzt_units'] = fixed_image.header['xyzt_units']
     nib.save(im, fname)
 
 
