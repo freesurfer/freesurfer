@@ -55,10 +55,10 @@ class AffineReg {
     void PrintScale();
     void PrintShear();
     void PrintRotate();
-    std::vector<float> GetTranslate();
-    std::vector<float> GetRotate();
-    std::vector<float> GetShear();
-    std::vector<float> GetScale();
+    std::vector<float>::const_iterator GetTranslate();
+    std::vector<float>::const_iterator GetRotate();
+    std::vector<float>::const_iterator GetShear();
+    std::vector<float>::const_iterator GetScale();
 
   private:
     std::vector<float> mInToOut,				// [4 x 4]

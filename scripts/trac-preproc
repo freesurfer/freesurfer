@@ -177,160 +177,500 @@ if ($docorr && ! $dobase) then
 
   mkdir -p $labdir/diff
 
-  # Convert from DICOM or other format
-  set infile = $dcmfile
-  if ($#dcmroot > 0) set infile = $dcmroot/$infile
+  # Convert DWIs from DICOM or other format
+  set nrun = $#dcmfile			# Number of input DWI runs
 
-  set cmd = (rm -f $dwidir/dwi_orig.bvals $dwidir/dwi_orig.voxel_space.bvecs)
-  if ($RunIt) then
-    $cmd |& tee -a $LF
-    if ($status) goto error_exit
-  endif
+  rm -f $dwidir/dcminfo.dat
+ 
+  @ irun = 1
+  while ($irun <= $nrun)		# For each input DWI run
+    set dwibase = $dwidir/dwi_orig.$irun
 
-  set cmd = (mri_convert --bvec-voxel $infile $dwidir/dwi_orig.nii.gz)
-  echo $cmd |& tee -a $LF |& tee -a $CF
-  if ($RunIt) then
-    $cmd |& tee -a $LF
-    if ($status) goto error_exit
-  endif
+    set infile = $dcmfile[$irun]
+    if ($#dcmroot > 0) set infile = $dcmroot/$infile
 
-  if (-e $dwidir/dwi_orig.voxel_space.bvecs) then
-    set cmd = (mv -f $dwidir/dwi_orig.voxel_space.bvecs $dwidir/dwi_orig.bvecs)
+    set cmd = (rm -f $dwibase.bvals $dwibase.bvecs)
+    if ($RunIt) then
+      $cmd |& tee -a $LF
+      if ($status) goto error_exit
+    endif
+
+    set cmd = (mri_convert --bvec-voxel $infile $dwibase.nii.gz)
     echo $cmd |& tee -a $LF |& tee -a $CF
     if ($RunIt) then
       $cmd |& tee -a $LF
       if ($status) goto error_exit
     endif
+
+    if (-e $dwibase.voxel_space.bvecs) then
+      set cmd = (mv -f $dwibase.voxel_space.bvecs $dwibase.bvecs)
+      echo $cmd |& tee -a $LF |& tee -a $CF
+      if ($RunIt) then
+        $cmd |& tee -a $LF
+        if ($status) goto error_exit
+      endif
+    endif
+
+    if (`mri_info --format $infile` =~ *dicom*) then
+      set cmd = (mri_probedicom --i $infile)
+      echo "$cmd >> $dwidir/dcminfo.dat" |& tee -a $LF |& tee -a $CF
+      if ($RunIt) then
+        ($cmd >> $dwidir/dcminfo.dat) >>& $LF
+        if ($status) goto error_exit
+      endif
+    endif
+
+    @ irun = $irun + 1
+  end					# For each input DWI run
+
+  # Get gradient and b-value tables (if provided by user)
+  @ irun = 1
+  while ($irun <= $nrun)		# For each input DWI run
+    set dwibase = $dwidir/dwi_orig.$irun
+
+    if ($#bvecfile) then
+      if ($#bvecfile == 1) then
+        set infile = $bvecfile
+      else
+        set infile = $bvecfile[$irun]
+      endif
+      if ($#dcmroot > 0) set infile = $dcmroot/$infile
+
+      if ($infile != $dwibase.bvecs) then
+        if ($RunIt) then
+          tr -d '\r' < $infile > $dwibase.bvecs
+          if ($status) goto error_exit
+        endif
+      endif
+    endif
+
+    if ($#bvalfile) then
+      if ($#bvalfile == 1) then
+        set infile = $bvalfile
+      else
+        set infile = $bvalfile[$irun]
+      endif
+      if ($#dcmroot > 0) set infile = $dcmroot/$infile
+
+      if ($infile != $dwibase.bvals) then
+        if ($RunIt) then
+          tr -d '\r' < $infile > $dwibase.bvals
+          if ($status) goto error_exit
+        endif
+      endif
+    endif
+
+    @ irun = $irun + 1
+  end					# For each input DWI run
+
+  # Assume that DWI DICOMs without gradient and b-value tables are b=0 only
+  set novecs = 1
+
+  @ irun = 1
+  while ($irun <= $nrun)		# For each input DWI run
+    set dwibase = $dwidir/dwi_orig.$irun
+
+    if (-e $dwibase.bvecs && -e $dwibase.bvals) then
+      set novecs = 0
+    else
+      if (! -e $dwibase.bvecs) \
+        echo "WARN: No gradient table found for $dwibase.nii.gz"
+
+      if (! -e $dwibase.bvals) \
+        echo "WARN: No b-value table found for $dwibase.nii.gz"
+
+      echo "WARN: Assuming that this is a b=0 scan only"
+
+      rm -f $dwibase.bvecs $dwibase.bvals
+
+      set nvol = `mri_info --nframes $dwibase.nii.gz`
+
+      @ ivol = 1
+      while ($ivol <= $nvol)
+        echo 0 0 0 >> $dwibase.bvecs
+        echo 0     >> $dwibase.bvals
+
+        @ ivol = $ivol + 1
+      end
+    endif
+
+    @ irun = $irun + 1
+  end					# For each input DWI run
+
+  if ($novecs) then
+    echo "ERROR: No gradient tables or b-value tables found"
+    goto error_exit
   endif
 
-  if (`mri_info --format $infile` =~ *dicom*) then
-    set cmd = (mri_probedicom --i $infile)
-    echo "$cmd > $dwidir/dcminfo.dat" |& tee -a $LF |& tee -a $CF
+  @ irun = 1
+  while ($irun <= $nrun)		# For each input DWI run
+    set dwibase    = $dwidir/dwi_orig.$irun
+    set dwibaseLAS = $dwidir/dwi_orig_las.$irun
+
+    # Check if there is the same number of b-values and gradient vectors
+    set nvec = `wc -w $dwibase.bvecs | awk '{print $1}'`
+    set nvec = `echo "$nvec/3" | bc -l`
+    set nvec = `printf '%g' $nvec`
+
+    set nval = `wc -w $dwibase.bvals | awk '{print $1}'`
+
+    if ($nval != $nvec) then
+      echo "ERROR: Found $nval b-values but $nvec gradient vectors for $dwibase"
+      goto error_exit
+    endif
+
+    # Check if gradient vectors are arranged in 3 rows or 3 columns
+    if (`awk 'NR==1' $dwibase.bvecs | wc -w` == 3) then
+      set vectype = cols
+    else if (`awk '{print $1}' $dwibase.bvecs | wc -w` == 3) then
+      set vectype = rows
+    else
+      echo "ERROR: Gradient vectors must be 3 rows or 3 columns of coordinates"
+      goto error_exit
+    endif
+
+    # Convert gradient vectors to 3-column format
+    if ($vectype == rows) then
+      set xx = `awk 'NR==1' $dwibase.bvecs`
+      set yy = `awk 'NR==2' $dwibase.bvecs`
+      set zz = `awk 'NR==3' $dwibase.bvecs`
+    else
+      set xx = `awk '{print $1}' $dwibase.bvecs`
+      set yy = `awk '{print $2}' $dwibase.bvecs`
+      set zz = `awk '{print $3}' $dwibase.bvecs`
+    endif
+
+    set blist = `cat $dwibase.bvals`
+
+    set cmd = (rm -f $dwibase.bvals.tmp $dwibase.bvecs.tmp)
     if ($RunIt) then
-      ($cmd > $dwidir/dcminfo.dat) >>& $LF
+      $cmd |& tee -a $LF
       if ($status) goto error_exit
     endif
-  endif
 
-  if ($#bvecfile && $bvecfile != $dwidir/dwi_orig.bvecs) then
-    if ($RunIt) then
-      tr -d '\r' < $bvecfile > $dwidir/dwi_orig.bvecs
-      if ($status) goto error_exit
-    endif
-  endif
+    @ k = 1
+    while ($k <= $#blist)
+      echo $blist[$k] >> $dwibase.bvals.tmp
+      echo $xx[$k] $yy[$k] $zz[$k] >> $dwibase.bvecs.tmp
+      @ k = $k + 1
+    end
 
-  if (! -e $dwidir/dwi_orig.bvecs) then
-    echo "ERROR: Must specify input table of gradient vectors"
-    goto error_exit
-  endif
-
-  set nvec = `wc -w $dwidir/dwi_orig.bvecs | awk '{print $1}'`
-  set nvec = `echo "$nvec/3" | bc -l`
-  set nvec = `printf '%g' $nvec`
-
-  if ($#bvalfile && $bvalfile != $dwidir/dwi_orig.bvals) then
-    if ($RunIt) then
-      tr -d '\r' < $bvalfile > $dwidir/dwi_orig.bvals
-      if ($status) goto error_exit
-    endif
-  endif
-
-  if (! -e $dwidir/dwi_orig.bvals) then
-    echo "ERROR: Must specify input table of b-values"
-    goto error_exit
-  endif
-
-  set nval = `wc -w $dwidir/dwi_orig.bvals | awk '{print $1}'`
-
-  # Check if there is the same number of b-values and gradient vectors
-  if ($nval != $nvec) then
-    echo "ERROR: Found $nval b-values but $nvec gradient vectors"
-    goto error_exit
-  endif
-
-  # Check if gradient vectors are arranged in 3 rows or 3 columns
-  if (`awk '{print $1}' $dwidir/dwi_orig.bvecs | wc -w` == 3) then
-    set vectype = rows
-  else if (`awk 'NR==1' $dwidir/dwi_orig.bvecs | wc -w` == 3) then
-    set vectype = cols
-  else
-    echo "ERROR: Gradient vectors must be 3 rows or 3 columns of coordinates"
-    goto error_exit
-  endif
-
-  # Convert gradient vectors to 3-column format
-  if ($vectype == rows) then
-    set xx = `awk 'NR==1' $dwidir/dwi_orig.bvecs`
-    set yy = `awk 'NR==2' $dwidir/dwi_orig.bvecs`
-    set zz = `awk 'NR==3' $dwidir/dwi_orig.bvecs`
-  else
-    set xx = `awk '{print $1}' $dwidir/dwi_orig.bvecs`
-    set yy = `awk '{print $2}' $dwidir/dwi_orig.bvecs`
-    set zz = `awk '{print $3}' $dwidir/dwi_orig.bvecs`
-  endif
-
-  set blist = `cat $dwidir/dwi_orig.bvals`
-
-  set cmd = (rm -f $dwidir/bvals.tmp $dwidir/bvecs.tmp)
-  if ($RunIt) then
-    $cmd |& tee -a $LF
-    if ($status) goto error_exit
-  endif
-
-  @ k = 1
-  while ($k <= $#blist)
-    echo $blist[$k] >> $dwidir/bvals.tmp
-    echo $xx[$k] $yy[$k] $zz[$k] >> $dwidir/bvecs.tmp
-    @ k = $k + 1
-  end
-
-  set cmd = (mv -f $dwidir/bvecs.tmp $dwidir/dwi_orig.bvecs)
-  echo $cmd |& tee -a $LF |& tee -a $CF
-  if ($RunIt) then
-    $cmd |& tee -a $LF
-    if ($status) goto error_exit
-  endif
-
-  set cmd = (mv -f $dwidir/bvals.tmp $dwidir/dwi_orig.bvals)
-  echo $cmd |& tee -a $LF |& tee -a $CF
-  if ($RunIt) then
-    $cmd |& tee -a $LF
-    if ($status) goto error_exit
-  endif
-
-  # Change orientation to make FSL happy
-  set cmd = (orientLAS $dwidir/dwi_orig.nii.gz $dwidir/dwi_orig_las.nii.gz)
-  echo $cmd |& tee -a $LF |& tee -a $CF
-  if ($RunIt) then
-    $cmd |& tee -a $LF
-    if ($status) goto error_exit
-  endif
-
-  set cmd = (mv -f $dwidir/dwi_orig_las.bvecs $dwidir/bvecs)
-  echo $cmd |& tee -a $LF |& tee -a $CF
-  if ($RunIt) then
-    $cmd |& tee -a $LF
-    if ($status) goto error_exit
-  endif
-
-  set cmd = (mv -f $dwidir/dwi_orig_las.bvals $dwidir/bvals)
-  echo $cmd |& tee -a $LF |& tee -a $CF
-  if ($RunIt) then
-    $cmd |& tee -a $LF
-    if ($status) goto error_exit
-  endif
-
-  if (! $doeddy && ! $dob0) then	# No corrections to be done
-    set cmd = (mv -f $dwidir/dwi_orig_las.nii.gz $dwidir/dwi.nii.gz)
+    set cmd = (mv -f $dwibase.bvecs.tmp $dwibase.bvecs)
     echo $cmd |& tee -a $LF |& tee -a $CF
     if ($RunIt) then
       $cmd |& tee -a $LF
       if ($status) goto error_exit
     endif
+
+    set cmd = (mv -f $dwibase.bvals.tmp $dwibase.bvals)
+    echo $cmd |& tee -a $LF |& tee -a $CF
+    if ($RunIt) then
+      $cmd |& tee -a $LF
+      if ($status) goto error_exit
+    endif
+
+    # Change orientation to LAS
+    set cmd = (orientLAS $dwibase.nii.gz $dwibaseLAS.nii.gz)
+    echo $cmd |& tee -a $LF |& tee -a $CF
+    if ($RunIt) then
+      $cmd |& tee -a $LF
+      if ($status) goto error_exit
+    endif
+
+    @ irun = $irun + 1
+  end					# For each input DWI run
+
+  if ($doeddy > 1 || $dob0 > 1) then    # Set up acquisition parameter file
+    rm -f $dwidir/acqp.txt
+
+    @ irun = 1
+    while ($irun <= $nrun)		# For each input DWI run
+      if ($#pedir == 1) then
+        set pe = $pedir
+      else
+        set pe = $pedir[$irun]
+      endif
+
+      if ($#echospacing == 1) then
+        set esp = $echospacing
+      else
+        set esp = $echospacing[$irun]
+      endif
+      
+      if ($#epifactor == 1) then
+        set epif = $epifactor
+      else
+        set epif = $epifactor[$irun]
+      endif
+      
+      # Direction of increasing phase-encode lines (assuming LAS orientation)
+      if ($pe == RL) then
+        set pexyz = (1 0 0)
+      else if ($pe == LR) then
+        set pexyz = (-1 0 0)
+      else if ($pe == PA) then
+        set pexyz = (0 1 0)
+      else if ($pe == AP) then
+        set pexyz = (0 -1 0)
+      else if ($pe == IS) then
+        set pexyz = (0 0 1)
+      else if ($pe == SI) then
+        set pexyz = (0 0 -1)
+      endif
+
+      # Dwell time
+      set dwell = `echo "$esp * .001 * ($epif - 1)" | bc -l`
+
+      echo $pexyz $dwell >> $dwidir/acqp.txt
+
+      @ irun = $irun + 1
+    end					# For each input DWI run
   endif
 
-  if ($doeddy) then			# Eddy-current "correction"
+  if ($dob0 > 1) then			# B0 inhomogeneities: with topup
+    if ( `printf '%s\n' $pedir       | sort --unique | wc -w` < 2 && \
+         `printf '%s\n' $echospacing | sort --unique | wc -w` < 2 ) then
+      echo "ERROR: All input scans have the same PE direction and echo-spacing"
+      echo "ERROR: Cannot correct B0 distortions with topup"
+      goto error_exit
+    endif
+
+    # Extract first b=0 volume from each run
+    set flist = ()
+
+    @ irun = 1
+    while ($irun <= $nrun)		# For each input DWI run
+      set dwibase = $dwidir/dwi_orig_las.$irun
+      set lowbase = $dwidir/lowb_orig_las.$irun
+
+      set bmin = `grep -v ^$ $dwibase.bvals | sort --numeric-sort | head -n 1`
+      set lowblist = `cat $dwibase.bvals \
+                      | awk -v bmin=$bmin '{if ($1 == bmin) print NR-1}'`
+
+      set cmd = mri_convert
+      set cmd = ($cmd --frame $lowblist[1])
+      set cmd = ($cmd $dwibase.nii.gz)
+      set cmd = ($cmd $lowbase.nii.gz)
+      echo $cmd |& tee -a $LF |& tee -a $CF
+      if ($RunIt) then
+        $fs_time $cmd |& tee -a $LF
+        if ($status) goto error_exit
+      endif
+
+      set flist = ($flist $lowbase.nii.gz)
+
+      @ irun = $irun + 1
+    end					# For each input DWI run
+
+    # Concatenate first b=0 volume from all runs
+    set cmd = mri_concat
+    set cmd = ($cmd --i $flist)
+    set cmd = ($cmd --o $dwidir/lowb_orig_las.nii.gz)
+    echo $cmd |& tee -a $LF |& tee -a $CF
+    if ($RunIt) then
+      $fs_time $cmd |& tee -a $LF
+      if ($status) goto error_exit
+    endif
+
+    # Estimate off-resonance field
+    set cmd = topup
+    set cmd = ($cmd --imain=$dwidir/lowb_orig_las.nii.gz)
+    set cmd = ($cmd --datain=$dwidir/acqp.txt)
+    set cmd = ($cmd --config=b02b0.cnf)
+    set cmd = ($cmd --out=$dwidir/topup)
+    set cmd = ($cmd --iout=$dwidir/lowb_topup.nii.gz)
+    echo $cmd |& tee -a $LF |& tee -a $CF
+    if ($RunIt) then
+      $fs_time $cmd |& tee -a $LF
+      if ($status) goto error_exit
+    endif
+
+    if (! $doeddy) then			# Apply correction now
+      @ irun = 1
+      while ($irun <= $nrun)		# For each input DWI run
+        set dwibase = $dwidir/dwi_orig_las.$irun
+        set dwibasetop = $dwidir/dwi.$irun
+
+        set cmd = applytopup
+        set cmd = ($cmd --imain=$dwibase.nii.gz)
+        set cmd = ($cmd --inindex=$irun)
+        set cmd = ($cmd --datain=$dwidir/acqp.txt)
+        set cmd = ($cmd --topup=$dwidir/topup)
+        set cmd = ($cmd --method=jac)
+        set cmd = ($cmd --out=$dwibasetop.nii.gz)
+        echo $cmd |& tee -a $LF |& tee -a $CF
+        if ($RunIt) then
+          $cmd |& tee -a $LF
+          if ($status) goto error_exit
+        endif
+
+        # Copy gradient table
+        set cmd = (cp -p $dwibase.bvecs $dwibasetop.bvecs)
+        echo $cmd |& tee -a $LF |& tee -a $CF
+        if ($RunIt) then
+          $cmd |& tee -a $LF
+          if ($status) goto error_exit
+        endif
+
+        # Copy b-value table
+        set cmd = (cp -p $dwibase.bvals $dwibasetop.bvals)
+        echo $cmd |& tee -a $LF |& tee -a $CF
+        if ($RunIt) then
+          $cmd |& tee -a $LF
+          if ($status) goto error_exit
+        endif
+
+        @ irun = $irun + 1
+      end				# For each input DWI run
+
+      set dwibase = $dwidir/dwi
+    else				# Will apply correction later
+      set dwibase = $dwidir/dwi_orig_las
+    endif
+  else					# No topup, only combine runs
+    set dwibase = $dwidir/dwi_orig_las
+  endif
+
+  # Combine all DWI runs
+  if ($nrun == 1) then			# Have one run only
+    set cmd = (mv -f $dwibase.1.nii.gz $dwibase.nii.gz)
+    echo $cmd |& tee -a $LF |& tee -a $CF
+    if ($RunIt) then
+      $fs_time $cmd |& tee -a $LF
+      if ($status) goto error_exit
+    endif
+
+    set cmd = (mv -f $dwibase.1.bvecs $dwibase.bvecs)
+    echo $cmd |& tee -a $LF |& tee -a $CF
+    if ($RunIt) then
+      $fs_time $cmd |& tee -a $LF
+      if ($status) goto error_exit
+    endif
+
+    set cmd = (mv -f $dwibase.1.bvals $dwibase.bvals)
+    echo $cmd |& tee -a $LF |& tee -a $CF
+    if ($RunIt) then
+      $fs_time $cmd |& tee -a $LF
+      if ($status) goto error_exit
+    endif
+  else					# Have multiple runs
+    set flist_dwi = ()
+    set flist_vec = ()
+    set flist_val = ()
+
+    @ irun = 1
+    while ($irun <= $nrun)		# For each input DWI run
+      set flist_dwi = ($flist_dwi $dwibase.$irun.nii.gz)
+      set flist_vec = ($flist_vec $dwibase.$irun.bvecs)
+      set flist_val = ($flist_val $dwibase.$irun.bvals)
+
+      @ irun = $irun + 1
+    end					# For each input DWI run
+
+    set cmd = mri_concat
+    set cmd = ($cmd --i $flist_dwi)
+    set cmd = ($cmd --o $dwibase.nii.gz)
+    echo $cmd |& tee -a $LF |& tee -a $CF
+    if ($RunIt) then
+      $fs_time $cmd |& tee -a $LF
+      if ($status) goto error_exit
+    endif
+
+    set cmd = (cat $flist_vec)
+    echo "$cmd > $dwibase.bvecs" |& tee -a $LF |& tee -a $CF
+    if ($RunIt) then
+      ($cmd > $dwibase.bvecs) >>& $LF
+      if ($status) goto error_exit
+    endif
+
+    set cmd = (cat $flist_val)
+    echo "$cmd > $dwibase.bvals" |& tee -a $LF |& tee -a $CF
+    if ($RunIt) then
+      ($cmd > $dwibase.bvals) >>& $LF
+      if ($status) goto error_exit
+    endif
+  endif
+
+  if ($doeddy > 1) then			# Eddy currents: with eddy
+    set dwibase = $dwidir/dwi_orig_las
+
+    # Create a temporary brain mask
+    if ($dob0 > 1) then			# Have b=0 images unwarped by topup
+      set lowbase = $dwidir/lowb_topup
+
+      set cmd = mri_concat
+      set cmd = ($cmd --i $lowbase.nii.gz)
+      set cmd = ($cmd --mean)
+      set cmd = ($cmd --o $lowbase.nii.gz)
+      echo $cmd |& tee -a $LF |& tee -a $CF
+      if ($RunIt) then
+        $cmd |& tee -a $LF
+        if ($status) goto error_exit
+      endif
+    else				# Use first b=0 image
+      set lowbase = $dwidir/lowb_orig_las
+
+      set bmin = `grep -v ^$ $dwibase.bvals | sort --numeric-sort | head -n 1`
+      set lowblist = `cat $dwibase.bvals \
+                      | awk -v bmin=$bmin '{if ($1 == bmin) print NR-1}'`
+
+      set cmd = mri_convert
+      set cmd = ($cmd --frame $lowblist[1])
+      set cmd = ($cmd $dwibase.nii.gz)
+      set cmd = ($cmd $lowbase.nii.gz)
+      echo $cmd |& tee -a $LF |& tee -a $CF
+      if ($RunIt) then
+        $fs_time $cmd |& tee -a $LF
+        if ($status) goto error_exit
+      endif
+    endif
+
+    set cmd = bet
+    set cmd = ($cmd $lowbase.nii.gz)
+    set cmd = ($cmd ${lowbase}_brain.nii.gz)
+    set cmd = ($cmd -m -f $thrbet)
+    echo $cmd |& tee -a $LF |& tee -a $CF
+    if ($RunIt) then
+      $cmd |& tee -a $LF
+      if ($status) goto error_exit
+    endif
+
+    # Create volume index file
+    set indlist = ()
+
+    @ irun = 1
+    while ($irun <= $nrun)		# For each input DWI run
+      set indlist = ($indlist \
+        `awk -v irun=$irun '{printf irun" "}' $dwibase.$irun.bvals`)
+
+      @ irun = $irun + 1
+    end					# For each input DWI run
+
+    echo $indlist > $dwidir/index.txt
+
+    # Correction
+    set cmd = eddy_openmp
+    set cmd = ($cmd --imain=$dwidir/dwi_orig_las.nii.gz)
+    set cmd = ($cmd --mask=${lowbase}_brain_mask.nii.gz)
+    set cmd = ($cmd --bvecs=$dwidir/dwi_orig_las.bvecs)
+    set cmd = ($cmd --bvals=$dwidir/dwi_orig_las.bvals)
+    set cmd = ($cmd --acqp=$dwidir/acqp.txt)
+    set cmd = ($cmd --index=$dwidir/index.txt)
+    if ($dob0 > 1) then			# Use previously run topup output
+      set cmd = ($cmd --topup=$dwidir/topup)
+    endif
+    if ($doeddy > 2) then		# Perform outlier replacement
+      set cmd = ($cmd --repol)
+    endif
+    set cmd = ($cmd --out=$dwidir/dwi)
+    echo $cmd |& tee -a $LF |& tee -a $CF
+    if ($RunIt) then
+      $cmd |& tee -a $LF
+      if ($status) goto error_exit
+    endif
+  else if ($doeddy == 1) then		# Eddy currents: with eddy_correct
     rm -f $dwidir/dwi.ecclog
+
     set cmd = eddy_correct
     set cmd = ($cmd $dwidir/dwi_orig_las.nii.gz $dwidir/dwi.nii.gz 0)
     echo $cmd |& tee -a $LF |& tee -a $CF
@@ -339,28 +679,119 @@ if ($docorr && ! $dobase) then
       if ($status) goto error_exit
     endif
 
-    # Apply rotation from correction to bvecs
-    if ($dorotbvecs) then
-      set cmd = (mv -f $dwidir/bvecs $dwidir/bvecs.norot)
+    if ($dob0 > 1) then			# Apply unwarping from topup
+      set cmd = (mv -f $dwidir/dwi.nii.gz $dwidir/dwi_eddy.nii.gz)
       echo $cmd |& tee -a $LF |& tee -a $CF
       if ($RunIt) then
         $cmd |& tee -a $LF
         if ($status) goto error_exit
       endif
 
+      set fstart = 0
+      set flist = ()
+
+      @ irun = 1
+      while ($irun <= $nrun)		# For each input DWI run
+        set nframe = `wc -w $dwidir/dwi_orig.$irun.bvals | awk '{print $1}'`
+        set fend = `echo "$fstart + $nframe" | bc`
+
+        set cmd = mri_convert
+        set cmd = ($cmd --fsubsample $fstart 1 $fend)
+        set cmd = ($cmd $dwidir/dwi_eddy.nii.gz)
+        set cmd = ($cmd $dwidir/dwi.$irun.nii.gz)
+        echo $cmd |& tee -a $LF |& tee -a $CF
+        if ($RunIt) then
+          $cmd |& tee -a $LF
+          if ($status) goto error_exit
+        endif
+
+        set cmd = applytopup
+        set cmd = ($cmd --imain=$dwidir/dwi.$irun.nii.gz)
+        set cmd = ($cmd --inindex=$irun)
+        set cmd = ($cmd --datain=$dwidir/acqp.txt)
+        set cmd = ($cmd --topup=$dwidir/topup)
+        set cmd = ($cmd --method=jac)
+        set cmd = ($cmd --out=$dwidir/dwi.$irun.nii.gz)
+        echo $cmd |& tee -a $LF |& tee -a $CF
+        if ($RunIt) then
+          $cmd |& tee -a $LF
+          if ($status) goto error_exit
+        endif
+
+        set fstart = $fend
+        set flist = ($flist $dwidir/dwi.$irun.nii.gz)
+
+        @ irun = $irun + 1
+      end				# For each input DWI run
+
+      # Concatenate them back together
+      set cmd = mri_concat
+      set cmd = ($cmd --i $flist)
+      set cmd = ($cmd --o $dwidir/dwi.nii.gz)
+      echo $cmd |& tee -a $LF |& tee -a $CF
+      if ($RunIt) then
+        $fs_time $cmd |& tee -a $LF
+        if ($status) goto error_exit
+      endif
+    endif
+  else if (! $doeddy && $dob0 < 2) then		# No eddy-current corrections
+    set cmd = (mv -f $dwidir/dwi_orig_las.nii.gz $dwidir/dwi.nii.gz)
+    echo $cmd |& tee -a $LF |& tee -a $CF
+    if ($RunIt) then
+      $cmd |& tee -a $LF
+      if ($status) goto error_exit
+    endif
+
+    set cmd = (mv -f $dwidir/dwi_orig_las.bvecs $dwidir/dwi.bvecs)
+    echo $cmd |& tee -a $LF |& tee -a $CF
+    if ($RunIt) then
+      $cmd |& tee -a $LF
+      if ($status) goto error_exit
+    endif
+
+    set cmd = (mv -f $dwidir/dwi_orig_las.bvals $dwidir/dwi.bvals)
+    echo $cmd |& tee -a $LF |& tee -a $CF
+    if ($RunIt) then
+      $cmd |& tee -a $LF
+      if ($status) goto error_exit
+    endif
+  endif
+
+  if ($doeddy) then
+    # Apply rotation from eddy-current correction to gradient vectors
+    if ($dorotbvecs) then
       set cmd = xfmrot
-      set cmd = ($cmd $dwidir/dwi.ecclog)
-      set cmd = ($cmd $dwidir/bvecs.norot)
-      set cmd = ($cmd $dwidir/bvecs)
+      if ($doeddy > 1) then		# From eddy
+        set cmd = ($cmd $dwidir/dwi.eddy_parameters)
+      else if ($doeddy == 1) then	# From eddy_correct
+        set cmd = ($cmd $dwidir/dwi.ecclog)
+      endif
+      set cmd = ($cmd $dwidir/dwi_orig_las.bvecs)
+      set cmd = ($cmd $dwidir/dwi.bvecs)
+      echo $cmd |& tee -a $LF |& tee -a $CF
+      if ($RunIt) then
+        $cmd |& tee -a $LF
+        if ($status) goto error_exit
+      endif
+    else
+      set cmd = (cp -p $dwidir/dwi_orig_las.bvecs $dwidir/dwi.bvecs)
       echo $cmd |& tee -a $LF |& tee -a $CF
       if ($RunIt) then
         $cmd |& tee -a $LF
         if ($status) goto error_exit
       endif
     endif
+
+    # Copy b-value table
+    set cmd = (cp -p $dwidir/dwi_orig_las.bvals $dwidir/dwi.bvals)
+    echo $cmd |& tee -a $LF |& tee -a $CF
+    if ($RunIt) then
+      $cmd |& tee -a $LF
+      if ($status) goto error_exit
+    endif
   endif
 
-  if ($dob0) then			# B0-inhomogeneity "correction"
+  if ($dob0 == 1) then			# B0 inhomogeneities: with field map
     if ($doeddy) then
       set cmd = (mv -f $dwidir/dwi.nii.gz $dwidir/dwi_eddy.nii.gz)
       echo $cmd |& tee -a $LF |& tee -a $CF
@@ -369,89 +800,204 @@ if ($docorr && ! $dobase) then
         if ($status) goto error_exit
       endif
 
-      set dwi_eddy = $dwidir/dwi_eddy.nii.gz
+      set indwi = dwi_eddy
     else
-      set dwi_eddy = $dwidir/dwi_orig_las.nii.gz
+      set indwi = dwi_orig_las
     endif
 
-    set dcmfile = $dcmroot/$b0mfile
-    set cmd = (mri_convert $dcmfile $dwidir/b0mag.nii.gz)
+    set cmd = (mri_convert --frame 0 $dwidir/$indwi.nii.gz $dwidir/lowb.nii.gz)
     echo $cmd |& tee -a $LF |& tee -a $CF
     if ($RunIt) then
       $cmd |& tee -a $LF
       if ($status) goto error_exit
     endif
 
-    set cmd = (orientLAS $dwidir/b0mag.nii.gz $dwidir/b0mag.nii.gz)
-    echo $cmd |& tee -a $LF |& tee -a $CF
-    if ($RunIt) then
-      $cmd |& tee -a $LF
-      if ($status) goto error_exit
+    # Do I have one field map for all DWI runs or a different one for each run?
+    if (`printf '%s\n' $b0mfile | sort --unique | wc -l` == 1) then
+      set b0mfile = $b0mfile[1]
+      set b0pfile = $b0pfile[1]
     endif
 
-    set dcmfile = $dcmroot/$b0pfile
-    set cmd = (mri_convert $dcmfile $dwidir/b0pha.nii.gz)
-    echo $cmd |& tee -a $LF |& tee -a $CF
-    if ($RunIt) then
-      $cmd |& tee -a $LF
-      if ($status) goto error_exit
-    endif
+    set nmap = $#b0mfile
 
-    set cmd = (orientLAS $dwidir/b0pha.nii.gz $dwidir/b0pha.nii.gz)
-    echo $cmd |& tee -a $LF |& tee -a $CF
-    if ($RunIt) then
-      $cmd |& tee -a $LF
-      if ($status) goto error_exit
-    endif
+    set fstart = 0
+    set fend = 0
+    set flist = ()
 
-    if (`mri_info --format $dcmfile` =~ *dicom*) then
-      set cmd = (mri_probedicom --i $dcmfile)
-      echo "$cmd > $dwidir/b0info.dat" |& tee -a $LF |& tee -a $CF
+    @ imap = 1
+    while ($imap <= $nmap)		# For each input field map
+      if ($nmap == 1) then
+        set magbase = $dwidir/b0mag
+        set phabase = $dwidir/b0pha
+        set infbase = $dwidir/b0info
+        set dwibase = $dwidir/$indwi
+        set outbase = $dwidir/dwi
+      else
+        set magbase = $dwidir/b0mag.$imap
+        set phabase = $dwidir/b0pha.$imap
+        set infbase = $dwidir/b0info.$imap
+        set dwibase = $dwidir/dwi.$imap
+        set outbase = $dwidir/dwi.$imap
+
+        set flist = ($flist $outbase.nii.gz)
+
+        set nframe = `wc -w $dwidir/dwi_orig.$imap.bvals | awk '{print $1}'`
+        set fstart = $fend
+        set fend = `echo "$fstart + $nframe" | bc`
+
+        set cmd = mri_convert
+        set cmd = ($cmd --fsubsample $fstart 1 $fend)
+        set cmd = ($cmd $dwidir/$indwi.nii.gz)
+        set cmd = ($cmd $dwibase.nii.gz)
+        echo $cmd |& tee -a $LF |& tee -a $CF
+        if ($RunIt) then
+          $cmd |& tee -a $LF
+          if ($status) goto error_exit
+        endif
+      endif
+
+      # Magnitude maps
+      set infile = $b0mfile[$imap]
+      if ($#dcmroot > 0) set infile = $dcmroot/$infile
+
+      set cmd = (mri_convert $infile $magbase.nii.gz)
+      echo $cmd |& tee -a $LF |& tee -a $CF
       if ($RunIt) then
-        ($cmd > $dwidir/b0info.dat) >>& $LF
+        $cmd |& tee -a $LF
+        if ($status) goto error_exit
+      endif
+
+      set cmd = (orientLAS $magbase.nii.gz $magbase.nii.gz)
+      echo $cmd |& tee -a $LF |& tee -a $CF
+      if ($RunIt) then
+        $cmd |& tee -a $LF
+        if ($status) goto error_exit
+      endif
+
+      # Phase maps
+      set infile = $b0pfile[$imap]
+      if ($#dcmroot > 0) set infile = $dcmroot/$infile
+
+      set cmd = (mri_convert $infile $phabase.nii.gz)
+      echo $cmd |& tee -a $LF |& tee -a $CF
+      if ($RunIt) then
+        $cmd |& tee -a $LF
+        if ($status) goto error_exit
+      endif
+
+      set cmd = (orientLAS $phabase.nii.gz $phabase.nii.gz)
+      echo $cmd |& tee -a $LF |& tee -a $CF
+      if ($RunIt) then
+        $cmd |& tee -a $LF
+        if ($status) goto error_exit
+      endif
+
+      # Will use info from DICOM header to find dTE
+      if (`mri_info --format $infile` =~ *dicom*) then
+        set cmd = (mri_probedicom --i $infile)
+        echo "$cmd > $infbase.dat" |& tee -a $LF |& tee -a $CF
+        if ($RunIt) then
+          ($cmd > $infbase.dat) >>& $LF
+          if ($status) goto error_exit
+        endif
+
+        set TE = `grep alTE $infbase.dat | awk '{print $3}'`
+        set dTE = `echo "($TE[2] - $TE[1])/1000" | bc -l`
+      endif
+
+      if ($#dTE) then
+        echo "ERROR: Need dTE for field map $infile"
+        goto error_exit
+      endif
+
+      if ($#echospacing == 1) then
+        set esp = $echospacing
+      else
+        set esp = $echospacing[$imap]
+      endif
+      
+      set cmd = epidewarp.fsl
+      set cmd = ($cmd --mag $magbase.nii.gz)
+      if (`mri_info --nframes $phabase.nii.gz` == 2) then
+        set cmd = ($cmd --ph $phabase.nii.gz)	# Two phase maps
+      else if (`mri_info --nframes $phabase.nii.gz` == 1) then
+        set cmd = ($cmd --dph $phabase.nii.gz)	# Phase difference map
+      else
+        echo "ERROR: Unrecognized format of phase map $phabase.nii.gz"
+        goto error_exit
+      endif
+      set cmd = ($cmd --exf $dwidir/lowb.nii.gz)
+      set cmd = ($cmd --epi $dwibase.nii.gz)
+      set cmd = ($cmd --tediff $dTE --esp $esp)
+      set cmd = ($cmd --vsm $dwidir/vsm.nii.gz)
+      set cmd = ($cmd --epidw $outbase.nii.gz)
+      echo $cmd |& tee -a $LF |& tee -a $CF
+      if ($RunIt) then
+        $fs_time $cmd |& tee -a $LF
+        if ($status) goto error_exit
+      endif
+
+      @ imap = $imap + 1
+    end
+
+    if ($nmap > 1) then
+      cmd = mri_concat
+      cmd = ($cmd --i $flist)
+      cmd = ($cmd --o $dwidir/dwi.nii.gz)
+      echo $cmd |& tee -a $LF |& tee -a $CF
+      if ($RunIt) then
+        $fs_time $cmd |& tee -a $LF
         if ($status) goto error_exit
       endif
     endif
-
-    set TE = `grep alTE $dwidir/b0info.dat | awk '{print $3}'`
-    set dTE = `echo "($TE[2] - $TE[1])/1000" | bc -l`
-
-    set cmd = (fslroi $dwi_eddy $dwidir/lowb.nii.gz 0 1)
-    echo $cmd |& tee -a $LF |& tee -a $CF
-    if ($RunIt) then
-      $cmd |& tee -a $LF
-      if ($status) goto error_exit
-    endif
-
-    set cmd = epidewarp.fsl
-    set cmd = ($cmd --mag $dwidir/b0mag.nii.gz)
-    if (`mri_info --nframes $dwidir/b0pha.nii.gz` == 2) then
-      set cmd = ($cmd --ph $dwidir/b0pha.nii.gz)	# Two phase maps
-    else if (`mri_info --nframes $dwidir/b0pha.nii.gz` == 1) then
-      set cmd = ($cmd --dph $dwidir/b0pha.nii.gz)	# Phase difference map
-    else
-      echo "ERROR: Unrecognized format of phase map $dwidir/b0pha.nii.gz"
-      goto error_exit
-    endif
-    set cmd = ($cmd --exf $dwidir/lowb.nii.gz)
-    set cmd = ($cmd --epi $dwi_eddy)
-    set cmd = ($cmd --tediff $dTE --esp $echospacing)
-    set cmd = ($cmd --vsm $dwidir/vsm.nii.gz)
-    set cmd = ($cmd --epidw $dwidir/dwi.nii.gz)
-    echo $cmd |& tee -a $LF |& tee -a $CF
-    if ($RunIt) then
-      $fs_time $cmd |& tee -a $LF
-      if ($status) goto error_exit
-    endif
   endif
 
-  # Create symbolic link to DWIs with the name that bedpostx expects
+### TODO: TOPUP OUTPUT ONLY, NOT EDDY #
+  # In case FSL tools have wiped out the xform from the NIfTI header
+  set cmd = mri_convert
+  if (-e $dwidir/dwi_orig_las.nii.gz) then
+    set cmd = ($cmd --in_like $dwidir/dwi_orig_las.nii.gz)
+  else
+    set cmd = ($cmd --in_like $dwidir/dwi_orig_las.1.nii.gz)
+  endif
+  set cmd = ($cmd $dwidir/dwi.nii.gz $dwidir/dwi.nii.gz)
+  if ($RunIt) then
+    $fs_time $cmd |& tee -a $LF
+    if ($status) goto error_exit
+  endif
+#######################################
+
+  # In case I have discarded frames before, clean up
+  set cmd = (rm -f $dwidir/dwi.full.nii.gz)
+  set cmd = ($cmd  $dwidir/dwi.bvecs.full $dwidir/dwi.bvals.full)
+  if ($RunIt) then
+    $cmd |& tee -a $LF
+    if ($status) goto error_exit
+  endif
+
+  # Create symbolic links to files with the names that bedpostx expects
   set cmd = (ln -sf $dwidir/dwi.nii.gz $dwidir/data.nii.gz)
   echo $cmd |& tee -a $LF |& tee -a $CF
   if ($RunIt) then
     $cmd |& tee -a $LF
     if ($status) goto error_exit
   endif
+
+### TODO: RENAMED THESE ###############
+  set cmd = (ln -sf $dwidir/dwi.bvecs $dwidir/bvecs)
+  echo $cmd |& tee -a $LF |& tee -a $CF
+  if ($RunIt) then
+    $cmd |& tee -a $LF
+    if ($status) goto error_exit
+  endif
+
+  set cmd = (ln -sf $dwidir/dwi.bvals $dwidir/bvals)
+  echo $cmd |& tee -a $LF |& tee -a $CF
+  if ($RunIt) then
+    $cmd |& tee -a $LF
+    if ($status) goto error_exit
+  endif
+######################################
 
   # Make diffusion brain mask
   if ($#nb0 > 0) then
@@ -462,9 +1008,9 @@ if ($docorr && ! $dobase) then
       @ k = $k + 1
     end
   else
-    set bmin = `grep -v ^$ $dwidir/dwi_orig.bvals \
-                | sort --numeric-sort | head -1`
-    set lowblist = `cat $dwidir/dwi_orig.bvals \
+    set bmin = `grep -v ^$ $dwidir/dwi.bvals \
+                | sort --numeric-sort | head -n 1`
+    set lowblist = `cat $dwidir/dwi.bvals \
                     | awk -v bmin=$bmin '{if ($1 == bmin) print NR-1}'`
   endif
 
@@ -509,6 +1055,31 @@ if ($docorr && ! $dobase) then
     $cmd |& tee -a $LF
     if ($status) goto error_exit
   endif
+
+  # If using a subset of b-values
+  if ($#bmax) then
+    set cmd = dmri_bset
+    set cmd = ($cmd --in   $dwidir/dwi.nii.gz)
+    set cmd = ($cmd --bmax $bmax)
+    set cmd = ($cmd --out  $dwidir/dwi.bmax$bmax.nii.gz)
+    echo $cmd |& tee -a $LF |& tee -a $CF
+    if ($RunIt) then
+      $cmd |& tee -a $LF
+      if ($status) goto error_exit
+    endif
+  endif
+
+  if ($#bshell) then
+    set cmd = dmri_bset
+    set cmd = ($cmd --in  $dwidir/dwi.nii.gz)
+    set cmd = ($cmd `printf '--b %s ' $bshell`)
+    set cmd = ($cmd --out $dwidir/dwi.`printf 'b%s.' $bshell`nii.gz)
+    echo $cmd |& tee -a $LF |& tee -a $CF
+    if ($RunIt) then
+      $cmd |& tee -a $LF
+      if ($status) goto error_exit
+    endif
+  endif
 endif
 
 if ($docorr && $dobase) then
@@ -526,14 +1097,34 @@ if ($doqa && ! $dobase) then
   set imthr = `fslstats $dwidir/lowb.nii.gz \
                      -k $labdir/diff/lowb_brain_mask.nii.gz -p 20`
 
-  set cmd = $trcdir/dmri_motion
-  set cmd = ($cmd --dwi   $dwidir/dwi_orig.nii.gz)
-  if (-e $dwidir/dwi.ecclog) then
-    set cmd = ($cmd --mat $dwidir/dwi.ecclog)
+  set parfile = ()
+  if ($doeddy > 1) then
+    set parfile = $dwidir/dwi.eddy_parameters
+    if (! -e $parfile) then
+      echo "ERROR: Missing eddy output; need to run trac-all -corr"
+      goto error_exit
+    endif
+  else if ($doeddy == 1) then
+    set parfile = $dwidir/dwi.ecclog
+    if (! -e $parfile) then
+      echo "ERROR: Missing eddy_correct output; need to run trac-all -corr"
+      goto error_exit
+    endif
   endif
-  set cmd = ($cmd --bval  $dwidir/bvals)
+
+  set runs = `printf '%s\n' $dcmfile | awk '{print NR}'`
+  set dwiruns = `printf "$dwidir/dwi_orig.%d.nii.gz " $runs`
+  set bvalruns = `printf "$dwidir/dwi_orig.%d.bvals " $runs`
+
+  set cmd = $trcdir/dmri_motion
+  if ($#parfile) then
+    set cmd = ($cmd --mat $parfile)
+  endif
+  set cmd = ($cmd --dwi   $dwiruns)
+  set cmd = ($cmd --bval  $bvalruns)
   set cmd = ($cmd --T     $imthr)
   set cmd = ($cmd --out   $dwidir/dwi_motion.txt)
+  set cmd = ($cmd --outf  $dwidir/dwi_motion_byvol.txt)
   echo $cmd |& tee -a $LF |& tee -a $CF
   if ($RunIt) then
     $cmd |& tee -a $LF
@@ -541,20 +1132,24 @@ if ($doqa && ! $dobase) then
   endif
 
   if (-e $dwidir/keepframes.txt) then		# Remove bad frames
-    set keepframes = `cat $dwidir/keepframes.txt | sort --numeric`
+    set keepframes = `cat $dwidir/keepframes.txt \
+                      | sort --numeric-sort --unique`
 
     # Remove frames from DWI series
-    set cmd = (mv -f $dwidir/dwi.nii.gz $dwidir/dwi.full.nii.gz)
-    echo $cmd |& tee -a $LF |& tee -a $CF
-    if ($RunIt) then
-      $cmd |& tee -a $LF
-      if ($status) goto error_exit
+    # If I have done this before, be careful not to overwrite the full set
+    if (! -e $dwidir/dwi.full.nii.gz) then
+      set cmd = (mv -f $dwidir/dwi.nii.gz $dwidir/dwi.full.nii.gz)
+      echo $cmd |& tee -a $LF |& tee -a $CF
+      if ($RunIt) then
+        $cmd |& tee -a $LF
+        if ($status) goto error_exit
+      endif
     endif
 
     set cmd = mri_convert
-    set cmd = ($cmd $dwidir/dwi.full.nii.gz)
-    set cmd = ($cmd $dwidi/dwi.nii.gz)
     set cmd = ($cmd --frame $keepframes)
+    set cmd = ($cmd $dwidir/dwi.full.nii.gz)
+    set cmd = ($cmd $dwidir/dwi.nii.gz)
     echo $cmd |& tee -a $LF |& tee -a $CF
     if ($RunIt) then
       $cmd |& tee -a $LF
@@ -562,29 +1157,26 @@ if ($doqa && ! $dobase) then
     endif
 
     # Remove the respective gradient vectors and b-values
-    foreach fname (bvecs bvals)
-      set cmd = (mv -f $dwidir/$fname $dwidir/$fname.full)
-      echo $cmd |& tee -a $LF |& tee -a $CF
-      if ($RunIt) then
-        $cmd |& tee -a $LF
-        if ($status) goto error_exit
+    # If I have done this before, be careful not to overwrite the full set
+    set keepframes1 = `printf '%s\n' $keepframes | awk '{print $1+1}'`
+
+    foreach fname (dwi.bvecs dwi.bvals)
+      if (! -e $dwidir/$fname.full) then
+        set cmd = (mv -f $dwidir/$fname $dwidir/$fname.full)
+        echo $cmd |& tee -a $LF |& tee -a $CF
+        if ($RunIt) then
+          $cmd |& tee -a $LF
+          if ($status) goto error_exit
+        endif
       endif
 
-      set nline = `wc -l $dwidir/$fname.full | awk '{print $1}'`
-
-      @ k = 1
-      while ($k <= $nline)
-        set linefull = `sed -n ${k}p $dwidir/$fname.full`
-
-        set line = ()
-        foreach iframe ($keepframes)
-          set iframe1 = `echo "$iframe+1" | bc`
-          set line = ($line $linefull[$iframe1])
-        end
-
-        echo $line >> $dwidir/$fname
-
-        @ k = $k + 1
+      foreach iframe ($keepframes1)
+        set cmd = (sed -n ${iframe}p $dwidir/$fname.full)
+        echo "$cmd >> $dwidir/$fname" |& tee -a $LF |& tee -a $CF
+        if ($RunIt) then
+          ($cmd >> $dwidir/$fname) >>& $LF
+          if ($status) goto error_exit
+        endif
       end
     end
   endif
