@@ -1,0 +1,306 @@
+#! /bin/tcsh -f
+
+#
+# dmri_bset
+#
+# Extract a set of b-values from diffusion MRI data
+#
+# Original Author: Anastasia Yendiki
+#
+# Copyright © 2020 The General Hospital Corporation (Boston, MA) "MGH"
+#
+# Terms and conditions for use, reproduction, distribution and contribution
+# are found in the 'FreeSurfer Software License Agreement' contained
+# in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+#
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+#
+# Reporting: freesurfer@nmr.mgh.harvard.edu
+#
+#
+
+set VERSION = 'dmri_bset @FS_VERSION@';
+set inputargs = ($argv);
+
+set PWDCMD = `getpwdcmd`;
+
+set indwi = ();
+set inbvecs = ();
+set inbvals = ();
+set outdwi  = ();
+set outbvecs = ();
+set outbvals = ();
+set bshell = ();
+set btol = 0.05;
+set bsort = 0;
+set bmax = ();
+
+set n = `echo $argv | grep version | wc -l`
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+if($#argv == 0) then
+  goto usage_exit;
+  exit 1;
+endif
+
+source $FREESURFER_HOME/sources.csh
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+set outdir = `dirname $outdwi`;
+mkdir -p $outdir
+
+set bvals = `cat $inbvals`
+
+if ($#bmax) then
+  set keepframes = `printf '%s\n' $bvals \
+                    | awk -v bmax=$bmax '{if ($1 <= bmax) print NR-1}'`
+else
+  # Always include the minimum b-value of the input data in the output data
+  set bmin = `grep -v ^$ $inbvals | sort --numeric-sort | head -n 1`
+
+  set bshell = `printf '%s\n' $bmin $bshell | sort --numeric-sort --unique`
+
+  set keepframes = ()
+  foreach b ($bshell)
+    set frames = `printf '%s\n' $bvals \
+                  | awk -v b=$b -v btol=$btol \
+                    '{if ($1 >= b*(1-btol) && $1 <= b*(1+btol)) print NR-1}'`
+
+    if (! $#frames) then
+      echo "ERROR: could not find b~$b in $inbvals"
+      exit 1;
+    endif
+
+    set keepframes = ($frames)
+  end
+
+  if (! $bsort) then	# Maintain original order (do not order by shell)
+    set keepframes = `printf '%s\n' $keepframes | sort --numeric-sort --unique`
+  endif
+endif
+
+# Extract DWI volumes
+set cmd = (mri_convert --frame $keepframes $indwi $outdwi)
+echo $cmd
+$cmd
+    
+# Extract gradient vectors and b-values
+set keepframes1 = `printf '%s\n' $keepframes | awk '{print $1+1}'`
+
+set cmd = (rm -f $outbvecs $outbvals)
+echo $cmd
+$cmd
+
+foreach iframe ($keepframes1)
+  set cmd = (sed -n ${iframe}p $inbvecs)
+  echo "$cmd >> $outbvecs"
+  $cmd >> $outbvecs
+
+  set cmd = (sed -n ${iframe}p $inbvals)
+  echo "$cmd >> $outbvals"
+  $cmd >> $outbvals
+end
+
+echo "Done"
+
+exit 0;
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+
+  switch($flag)
+
+    case "--in"
+      if ($#argv == 0) goto arg1err;
+      set indwi = $argv[1]; shift;
+      if(! -e $indwi) then
+        echo "ERROR: $indwi does not exist"
+        exit 1;
+      endif
+      breaksw
+
+    case "--out"
+      if ($#argv == 0) goto arg1err;
+      set outdwi = $argv[1]; shift;
+      breaksw
+
+    case "--inb"
+      if ($#argv == 0) goto arg1err;
+      set inbvals = $argv[1]; shift;
+      if(! -e $inbvals) then
+        echo "ERROR: $inbvals does not exist"
+        exit 1;
+      endif
+      breaksw
+
+    case "--outb"
+      if ($#argv == 0) goto arg1err;
+      set outbvals = $argv[1]; shift;
+      breaksw
+
+    case "--ing"
+      if ($#argv == 0) goto arg1err;
+      set inbvecs = $argv[1]; shift;
+      if(! -e $inbvecs) then
+        echo "ERROR: $inbvecs does not exist"
+        exit 1;
+      endif
+      breaksw
+
+    case "--outg"
+      if ($#argv == 0) goto arg1err;
+      set outbvecs = $argv[1]; shift;
+      breaksw
+
+    case "--b"
+      if ($#argv == 0) goto arg1err;
+      set bshell = ($bshell $argv[1]); shift;
+      breaksw
+
+    case "--btol"
+      if ($#argv == 0) goto arg1err;
+      set btol = $argv[1]; shift;
+      breaksw
+
+    case "--bmax"
+      if ($#argv == 0) goto arg1err;
+      set bmax = $argv[1]; shift;
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo "ERROR: $flag not regocnized"
+      exit 1;
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if(! $#indwi) then
+    echo "ERROR: must specify input DWI"
+    exit 1;
+  endif
+
+  if(! $#outdwi == 0) then
+    echo "ERROR: must specify input DWI"
+    exit 1;
+  endif
+
+  if(! $#inbvals) then
+    set ext = `fname2ext $indwi`
+    set inbvals = `echo $fname | sed "s/\(.*\)$ext/\1bvals/"`
+    if (! -e $inbvals) then
+        echo "ERROR: $inbvals does not exist"
+    endif
+    exit 1;
+  endif
+
+  if(! $#inbvecs) then
+    set ext = `fname2ext $indwi`
+    set inbvecs = `echo $fname | sed "s/\(.*\)$ext/\1bvecs/"`
+    if (! -e $inbvecs) then
+        echo "ERROR: $inbvecs does not exist"
+    endif
+    exit 1;
+  endif
+
+  if(! $#outbvals) then
+    set ext = `fname2ext $outdwi`
+    set outbvals = `echo $fname | sed "s/\(.*\)$ext/\1bvals/"`
+    exit 1;
+  endif
+
+  if(! $#outbvecs) then
+    set ext = `fname2ext $outdwi`
+    set outbvecs = `echo $fname | sed "s/\(.*\)$ext/\1bvecs/"`
+    exit 1;
+  endif
+
+  if(! $#bshell && ! $#bmax) then
+    echo "ERROR: must specify at least one b-value"
+    exit 1;
+  endif
+
+  if($#bshell && $#bmax) then
+    echo "ERROR: specify either single b-values or maximum b-value but not both"
+    exit 1;
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: dmri_bset"
+  echo ""
+  echo "Required inputs"
+  echo "   --in  <file>:"
+  echo "     Input DWI series"
+  echo "   --out <file>:"
+  echo "     Output DWI series"
+  echo ""
+  echo "Optional inputs"
+  echo "   --b <num> [--b <num> ...]:"
+  echo "     Extract one or more b-values"
+  echo "   --btol <num>:"
+  echo "     Tolerance around each single b-value (default: 0.05)"
+  echo "     This means that --b 1000 will give 950<=b<=1050 by default"
+  echo "   --bsort:"
+  echo "     Reorder output data by b-shell (default: maintain original order)"
+  echo ""
+  echo "   --bmax <num>:"
+  echo "     Extract all b-values less than or equal to a maximum"
+  echo ""
+  echo "   --inb <file>:"
+  echo "     Input b-value table (default: input DWI base, .bvals extension)"
+  echo "   --ing <file>:"
+  echo "     Input gradient table (default: input DWI base, .bvecs extension)"
+  echo "   --outb <file>:"
+  echo "     Output b-value table (default: output DWI base, .bvals extension)"
+  echo "   --outg <file>:"
+  echo "     Output gradient table (default: output DWI base, .bvecs extension)"
+  echo ""
+  echo "This is a simple script that extracts a subset of volumes, b-values,"
+  echo "and gradient directions from a diffusion MRI data set. Available"
+  echo "options are extracting data acquired with specific b-values or with"
+  echo "all b-values below a maximum. The minimum b-value found in the input"
+  echo "data (usually b=0) is always included in the output data."
+  echo ""
+exit 1;

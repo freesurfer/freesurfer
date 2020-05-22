@@ -1,6 +1,11 @@
 #
 # dmrirc.example
 #
+# This example sets up a TRACULA analysis for a cross-sectional study where
+# there is a single diffusion scan for each subject.
+# - If you have multiple diffusion scans per session, see *.multiscan.*example
+# - If you have longitudinal data, see *.long.*example
+#
 # This file contains commands that will be run by trac-all before an analysis.
 # It is used to set all parameters needed for the analysis.
 #
@@ -50,8 +55,8 @@ set runlist = (1 3)
 set dcmroot = /path/to/dicoms/of/ducks
 set dcmlist = (huey/day1/XXX-1.dcm dewey/day1/XXX-1.dcm louie/day2/XXX-1.dcm)
 
-# Diffusion gradient tables (if there is a different one for each scan)
-# Must be specified if they cannot be read from the DICOM headers
+# Diffusion gradient tables (file names can be relative to dcmroot)
+# Must be specified only if they cannot be read from the DICOM headers
 # The tables must have either three columns, where each row is a gradient vector
 # or three rows, where each column is a gradient vector
 # There must be as many gradient vectors as volumes in the diffusion data set
@@ -61,17 +66,8 @@ set bveclist = (/path/to/huey/bvecs.txt \
                 /path/to/dewey/bvecs.txt \
                 /path/to/louie/bvecs.txt)
 
-# Diffusion gradient table (if using the same one for all scans)
-# Must be specified if it cannot be read from the DICOM headers
-# The table must have either three columns, where each row is a gradient vector
-# or three rows, where each column is a gradient vector
-# There must be as many gradient vectors as volumes in the diffusion data set
-# Default: Read from DICOM header
-#
-set bvecfile = /path/to/bvecs.txt
-
-# Diffusion b-value tables (if there is a different one for each scan)
-# Must be specified if they cannot be read from the DICOM headers
+# Diffusion b-value tables (file names can be relative to dcmroot)
+# Must be specified only if they cannot be read from the DICOM headers
 # There must be as many b-values as volumes in the diffusion data set
 # Default: Read from DICOM header
 #
@@ -79,43 +75,42 @@ set bvallist = (/path/to/huey/bvals.txt \
                 /path/to/dewey/bvals.txt \
                 /path/to/louie/bvals.txt)
 
-# Diffusion b-value table (if using the same one for all scans)
-# Must be specified if it cannot be read from the DICOM headers
-# There must be as many b-values as volumes in the diffusion data set
-# Default: Read from DICOM header
-#
-set bvalfile = /path/to/bvals.txt
-
-# Perform registration-based B0-inhomogeneity compensation?
-# Default: 0 (no)
+# Perform correction for B0 inhomogeneity distortions?
+# 0: No correction (default)
+# 1: Perform correction based on a field map
+#    Requires additional inputs (see below): b0mlist, b0plist, echospacing
+# 2: Perform correction based on reverse-polarity images
+#    Requires additional inputs: echospacing, pedir, epifactor
 #
 set dob0 = 1
 
-# Input B0 field map magnitude DICOMs (file names relative to dcmroot)
+# Input B0 field map magnitude DICOMs (file names can be relative to dcmroot)
 # Only used if dob0 = 1
 # Default: None
 #
 set b0mlist = (huey/fmag/XXX-1.dcm dewey/fmag/XXX-1.dcm louie/fmag/XXX-1.dcm)
 
-# Input B0 field map phase DICOMs (file names relative to dcmroot)
+# Input B0 field map phase DICOMs (file names can be relative to dcmroot)
 # Only used if dob0 = 1
 # Default: None
 #
 set b0plist = (huey/fphas/XXX-1.dcm dewey/fphas/XXX-1.dcm louie/fphas/XXX-1.dcm)
 
-# Echo spacing for field mapping sequence (from sequence printout)
-# Only used if dob0 = 1
+# Echo spacing (this is found in the scanner protocol printout)
+# Only used if dob0 = 1 or 2
 # Default: None
 #
 set echospacing = 0.7
 
-# Perform registration-based eddy-current compensation?
-# Default: 1 (yes)
+# Perform correction for eddy-current distortions?
+# 0: No correction
+# 1: Perform registration-based correction with eddy_correct
+# 2: Perform model-based correction with eddy (default)
 #
-set doeddy = 1
+set doeddy = 2
 
 # Rotate diffusion gradient vectors to match eddy-current compensation?
-# Only used if doeddy = 1
+# Only used if doeddy = 1 or 2
 # Default: 1 (yes)
 #
 set dorotbvecs = 1
