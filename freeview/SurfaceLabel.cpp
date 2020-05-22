@@ -176,7 +176,6 @@ bool SurfaceLabel::LoadLabel( const QString& filename )
   double max_spacing;
   int max_vno;
   MRIScomputeVertexSpacingStats(mris, NULL, NULL, &max_spacing, NULL, &max_vno, CURRENT_VERTICES);
-  return true;
   MHT* hash = MHTcreateVertexTable_Resolution(mris,
                                               CURRENT_VERTICES, max_spacing/4);
 
