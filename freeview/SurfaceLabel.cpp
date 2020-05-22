@@ -171,10 +171,12 @@ bool SurfaceLabel::LoadLabel( const QString& filename )
     m_bTkReg = false;
   }
 
+
   // update vno if it is -1
   double max_spacing;
   int max_vno;
   MRIScomputeVertexSpacingStats(mris, NULL, NULL, &max_spacing, NULL, &max_vno, CURRENT_VERTICES);
+  return true;
   MHT* hash = MHTcreateVertexTable_Resolution(mris,
                                               CURRENT_VERTICES, max_spacing/4);
 
@@ -198,6 +200,8 @@ bool SurfaceLabel::LoadLabel( const QString& filename )
     else if (m_label->lv[i].stat > m_dHeatscaleMax)
       m_dHeatscaleMax = m_label->lv[i].stat;
   }
+
+  MHTfree(&hash);
 
   // create outline
   m_nOutlineIndices = new int[mris->nvertices];
