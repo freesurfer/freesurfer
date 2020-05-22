@@ -2343,21 +2343,28 @@ int CountEdits(char *subject, char *outfile)
   MRIfree(&mri);
   MRIfree(&mri2);
 
+  // Note: ?h.orig.nofix files might not exist in longitudinal;
+  // number of holes will be 0 for long anyway
   int nvertices, nfaces, nedges;
   int lheno, rheno, lhholes, rhholes, totholes;
   MRIS *mris;
   sprintf(tmpstr,"%s/%s/surf/lh.orig.nofix",SUBJECTS_DIR,subject);
-  mris = MRISread(tmpstr);
-  if(mris==NULL) exit(1);
-  lheno = MRIScomputeEulerNumber(mris, &nvertices, &nfaces, &nedges) ;
-  MRISfree(&mris);
+  if(fio_FileExistsReadable(tmpstr)){
+    mris = MRISread(tmpstr);
+    if(mris==NULL) exit(1);
+    lheno = MRIScomputeEulerNumber(mris, &nvertices, &nfaces, &nedges) ;
+    MRISfree(&mris);
+    lhholes = 1-lheno/2;
+  } else lhholes = 0;
   sprintf(tmpstr,"%s/%s/surf/rh.orig.nofix",SUBJECTS_DIR,subject);
-  mris = MRISread(tmpstr);
-  if(mris==NULL) exit(1);
-  rheno = MRIScomputeEulerNumber(mris, &nvertices, &nfaces, &nedges) ;
-  MRISfree(&mris);
-  lhholes = 1-lheno/2;
-  rhholes = 1-rheno/2;
+  if(fio_FileExistsReadable(tmpstr)){
+    mris = MRISread(tmpstr);
+    if(mris==NULL) exit(1);
+    rheno = MRIScomputeEulerNumber(mris, &nvertices, &nfaces, &nedges) ;
+    MRISfree(&mris);
+    rhholes = 1-rheno/2;
+  }
+  else rhholes = 0;
   totholes = lhholes+rhholes;
 
   double determinant = 0;
