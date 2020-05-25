@@ -236,6 +236,7 @@ set UseConcatLtaTal = 0; # if 1, use mri_concatenate_lta during tal creation
 set UseLongbaseCtrlVol = 0;   # if 1, use ctrl volume of longbase in norm step
 set UseLongbaseWMedits = 0;   # if 1, xfer wm edits from base (default is cross)
 set UseAsegFusion = 1; # if 0, dont create 'fused' asegs from timepoints
+set UseAsegBase = 0; # -asegbase if 1, init TP with base aseg instead of fusion
 set DoCreateBaseSubj = 0; # if 1, create the 'base' subject used in longitud
 set BaseSubjInvol = (orig.mgz); # -base-invol allows using some other file
 set BaseSubjsList = (); # subject set grabbed from -base-tp args
@@ -2576,10 +2577,17 @@ if($DoCALabel) then
   if ($RHonly) set cmd = ($cmd -rh )
   if($NoWMSA) set cmd = ($cmd -nowmsa)
   set asegbasename=(aseg.auto_noCCseg)
-  if($longitudinal && $UseAsegFusion) then
-      # longitudinal processing: use 'fused' aseg just created
+  if($longitudinal) then
+    # Initizlize long TP using ...
+    if($UseAsegFusion) then
+      # fused' aseg just created above
       set cmd=($cmd -r $subjdir/mri/aseg.fused.mgz)
-      set cmd=($cmd -ri $longbasedir/mri/${asegbasename}.label_intensities.txt)
+    endif
+    if($UseAsegBase) then
+      # aseg from base
+      set cmd=($cmd -r $longbasedir/mri/${asegbasename}.mgz)
+    endif
+    set cmd=($cmd -ri $longbasedir/mri/${asegbasename}.label_intensities.txt)
   endif
   set cmd = ($cmd $xopts norm.mgz)
   set cmd = ($cmd transforms/talairach.m3z)
@@ -5538,8 +5546,20 @@ while( $#argv != 0 )
       set subjid = $argv[1]; shift;
       breaksw
 
+    case "-asegfusion":
+      set UseAsegFusion = 1;
+      set UseAsegBase = 0
+      breaksw
     case "-noasegfusion":
       set UseAsegFusion = 0;
+      breaksw
+
+    case "-asegbase":
+      set UseAsegBase = 1
+      set UseAsegFusion = 0;
+      breaksw
+    case "-noasegbase":
+      set UseAsegBase = 0
       breaksw
 
     case "-addtp":
