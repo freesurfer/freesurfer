@@ -57,6 +57,8 @@ public slots:
   void OnHideAll();
   void OnLockAll();
   void OnUnlockAll();
+  void OnLockOthers();
+  void OnUnlockOthers();
   void OnShowAllInfo();
   void OnHideAllInfo();
   void OnSetColorMap();
