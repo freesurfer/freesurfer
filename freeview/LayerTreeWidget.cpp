@@ -41,7 +41,6 @@ QRect MyItemDelegate::GetCheckBoxRect(const QModelIndex &index, const QStyleOpti
   return CheckBox;
 }
 
-
 LayerTreeWidget::LayerTreeWidget(QWidget *parent) :
   QTreeWidget(parent)
 {
@@ -54,6 +53,7 @@ LayerTreeWidget::LayerTreeWidget(QWidget *parent) :
   //  connect(act, SIGNAL(triggered()), SLOT(selectAll()));
   //  this->addAction(act);
 
+  setMouseTracking(true);
   setDragEnabled(true);
   viewport()->setAcceptDrops(true);
   setDropIndicatorShown(true);
@@ -73,6 +73,10 @@ void LayerTreeWidget::drawRow( QPainter * painter, const QStyleOptionViewItem & 
     int nsize = qMin(16, rc.height());
     painter->drawImage( rc.topLeft(),
                         img.scaled( nsize, nsize, Qt::KeepAspectRatio, Qt::SmoothTransformation) );
+
+    QTreeWidgetItem* item = itemAt(rc.center());
+    if (item)
+        item->setData(0, Qt::UserRole+10, rc);
   }
 }
 
@@ -102,6 +106,14 @@ void LayerTreeWidget::mousePressEvent(QMouseEvent *event)
       m_bCheckBoxClicked = true;
       return;
     }
+
+    Layer* layer = NULL;
+    if (item)
+      layer = reinterpret_cast<Layer*>( item->data(0, Qt::UserRole ).value<quintptr>() );
+
+    if ( layer && layer->IsLocked() && item->data(0, Qt::UserRole+10).toRect().contains(event->pos()))
+      return;
+
     QTreeWidget::mousePressEvent(event);
   }
 }
@@ -118,6 +130,17 @@ void LayerTreeWidget::mouseReleaseEvent(QMouseEvent *event)
       m_bCheckBoxClicked = false;
       return;
     }
+
+    Layer* layer = NULL;
+    if (item)
+      layer = reinterpret_cast<Layer*>( item->data(0, Qt::UserRole ).value<quintptr>() );
+
+    if ( layer && layer->IsLocked() && item->data(0, Qt::UserRole+10).toRect().contains(event->pos()))
+    {
+      layer->Lock(false);
+      return;
+    }
+
     QTreeWidget::mouseReleaseEvent(event);
   }
   m_bCheckBoxClicked = false;
@@ -127,6 +150,20 @@ void LayerTreeWidget::mouseMoveEvent(QMouseEvent *event)
 {
   if (m_bCheckBoxClicked)
     return;
+
+  QTreeWidgetItem* item = itemAt(event->pos());
+  Layer* layer = NULL;
+  if (item)
+    layer = reinterpret_cast<Layer*>( item->data(0, Qt::UserRole ).value<quintptr>() );
+
+  if ( layer && layer->IsLocked() && item->data(0, Qt::UserRole+10).toRect().contains(event->pos()) )
+  {
+    setCursor(Qt::PointingHandCursor);
+    return;
+  }
+  else
+    unsetCursor();
+
   QTreeWidget::mouseMoveEvent(event);
 }
 
@@ -237,6 +274,14 @@ void LayerTreeWidget::contextMenuEvent(QContextMenuEvent *e)
     act = new QAction(layers.size() > 1 ? "Unlock All" : "Unlock", this );
     connect(act, SIGNAL(triggered()), this, SLOT(OnUnlockAll()));
     menu->addAction(act);
+
+    act = new QAction("Lock Others", this );
+    connect(act, SIGNAL(triggered()), this, SLOT(OnLockOthers()));
+    menu->addAction(act);
+    act = new QAction("Unlock Others", this );
+    connect(act, SIGNAL(triggered()), this, SLOT(OnUnlockOthers()));
+    menu->addAction(act);
+
     if (layers[0]->IsTypeOf("MRI") || layers[0]->IsTypeOf("Surface"))
     {
       menu->addSeparator();
@@ -374,6 +419,52 @@ void LayerTreeWidget::OnUnlockAll()
   {
     Layer* layer = reinterpret_cast<Layer*>( item->data(0, Qt::UserRole ).value<quintptr>() );
     if (layer)
+      layer->Lock(false);
+  }
+}
+
+void LayerTreeWidget::OnLockOthers()
+{
+  QList<QTreeWidgetItem*> items = this->selectedItems();
+  QList<Layer*> selected_layers;
+  QString type;
+  foreach (QTreeWidgetItem* item, items)
+  {
+    Layer* layer = reinterpret_cast<Layer*>( item->data(0, Qt::UserRole ).value<quintptr>() );
+    if (layer)
+    {
+      layer->Lock(false);
+      selected_layers << layer;
+      type = layer->GetPrimaryType();
+    }
+  }
+  QList<Layer*> layers = MainWindow::GetMainWindow()->GetLayers(type);
+  foreach (Layer* layer, layers)
+  {
+    if (!selected_layers.contains(layer))
+      layer->Lock(true);
+  }
+}
+
+void LayerTreeWidget::OnUnlockOthers()
+{
+  QList<QTreeWidgetItem*> items = this->selectedItems();
+  QList<Layer*> selected_layers;
+  QString type;
+  foreach (QTreeWidgetItem* item, items)
+  {
+    Layer* layer = reinterpret_cast<Layer*>( item->data(0, Qt::UserRole ).value<quintptr>() );
+    if (layer)
+    {
+      layer->Lock(true);
+      selected_layers << layer;
+      type = layer->GetPrimaryType();
+    }
+  }
+  QList<Layer*> layers = MainWindow::GetMainWindow()->GetLayers(type);
+  foreach (Layer* layer, layers)
+  {
+    if (!selected_layers.contains(layer))
       layer->Lock(false);
   }
 }

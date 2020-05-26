@@ -4953,7 +4953,11 @@ Layer* MainWindow::GetTopVisibleLayer(const QString &strType)
 
 QList<Layer*> MainWindow::GetLayers(const QString &strType)
 {
-  return GetLayerCollection( strType )->GetLayers();
+  LayerCollection* lc = GetLayerCollection(strType);
+  if (lc)
+    return lc->GetLayers();
+  else
+    return QList<Layer*>();
 }
 
 void MainWindow::OnSetViewLayout( QAction* action )
