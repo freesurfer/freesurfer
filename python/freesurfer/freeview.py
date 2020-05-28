@@ -341,16 +341,17 @@ def fv(*args, **kwargs):
     background = kwargs.pop('background', True)
     opts = kwargs.pop('opts', '')
 
-    # expand any lists within args
-    expanded_args = []
-    for arg in args:
-        if isinstance(arg, (list, tuple)):
-            expanded_args += arg
-        else:
-            expanded_args.append(arg)
+    # expand any nested lists/tuples within args
+    def flatten(deep):
+        for el in deep:
+            if isinstance(el, (list, tuple)):
+                yield from flatten(el)
+            else:
+                yield el
 
     fv = Freeview()
-    for arg in expanded_args:
+
+    for arg in flatten(args):
         if isinstance(arg, str):
             # try to guess filetype if string
             if arg.endswith(('.mgz', '.mgh', '.nii.gz', '.nii')):
