@@ -830,6 +830,11 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
   m_bShowTransformWindow = parser->Found( "transform-volume" );
 
   bool bReverseOrder = parser->Found("rorder");
+  if (parser->Found("title", &sa))
+  {
+    m_sTitle = sa[0];
+    setWindowTitle("FreeView: " + m_sTitle);
+  }
   if ( parser->Found("cmd", &sa))
   {
     this->AddScript( QStringList("loadcommand") << sa[0]);
@@ -7525,9 +7530,12 @@ void MainWindow::OnAbout()
 
 void MainWindow::OnActiveLayerChanged(Layer* layer)
 {
+  QString title = "FreeView";
+  if (!m_sTitle.isEmpty())
+      title += ": " + m_sTitle;
   if (!layer)
   {
-    this->setWindowTitle("FreeView");
+    this->setWindowTitle(title);
     m_wndTimeCourse->hide();
   }
   else
@@ -7535,7 +7543,7 @@ void MainWindow::OnActiveLayerChanged(Layer* layer)
     QString fn = layer->GetFileName();
     if (layer->IsTypeOf("Tract") && ((LayerTrack*)layer)->IsCluster())
       fn = QFileInfo(fn).absolutePath() + "/*.trk";
-    this->setWindowTitle(QString("FreeView (%1)")
+    this->setWindowTitle(QString("%1 (%2)").arg(title)
                          .arg(fn));
     if (layer->IsTypeOf("MRI") && !layer->IsTypeOf("DTI") && !layer->IsTypeOf("PLabel"))
     {
