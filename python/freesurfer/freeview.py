@@ -203,7 +203,7 @@ class Freeview:
         if isinstance(volume, np.ndarray):
             volume = self._convert_ndarray(volume) if force is None else force(volume.squeeze())
             if volume is None:
-                error('cannot convert array of shape %s' % str(array.shape))
+                error('cannot convert array of shape %s' % str(volume.shape))
                 return None
 
         # configure filename
