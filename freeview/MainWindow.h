@@ -676,6 +676,7 @@ private:
   bool                  m_bContinue;
 
   bool                  m_bHadError;
+  QString               m_sTitle;
 };
 
 #endif // MAINWINDOW_H

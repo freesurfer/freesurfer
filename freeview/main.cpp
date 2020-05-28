@@ -276,6 +276,7 @@ int main(int argc, char *argv[])
     CmdLineEntry( CMD_LINE_SWITCH, "hide-x-slice", "hide-x-slice", "", "Hide x slice in 3D view." ),
     CmdLineEntry( CMD_LINE_SWITCH, "hide-y-slice", "hide-y-slice", "", "Hide y slice in 3D view." ),
     CmdLineEntry( CMD_LINE_SWITCH, "hide-z-slice", "hide-z-slice", "", "Hide z slice in 3D view." ),
+    CmdLineEntry( CMD_LINE_OPTION, "title", "title", "<TITLE>", "Add title to freeview window caption.", 1, 1 ),
     CmdLineEntry( CMD_LINE_SWITCH, "auto-load-surf", "auto-load-surf", "", "Do not automatically load sphere or other supplemental surface data." ),
     CmdLineEntry( CMD_LINE_SWITCH, "quit", "quit", "", "Quit freeview. Useful for scripting or loading comands by -cmd option." ),
     CmdLineEntry( CMD_LINE_SWITCH, "noquit", "noquit", "", "Do not quit freeview after screenshot command." ),
