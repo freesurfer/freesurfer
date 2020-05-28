@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+
+# A wrapper for running system commands from a compiled matlab script. It ensures that
+# the MCR additions to LD_LIBRARY_PATH are removed.
+
+# reset library path
+if [ -z "$LD_LIBRARY_PATH_MCR_SNAPSHOT" ] ; then
+    unset LD_LIBRARY_PATH
+else
+    export LD_LIBRARY_PATH="$LD_LIBRARY_PATH_MCR_SNAPSHOT"
+fi
+
+# run commands
+exec "$@"
