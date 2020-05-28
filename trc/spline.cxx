@@ -317,9 +317,9 @@ bool Spline::FitControlPoints(const vector<int> &InputPoints) {
             mingap = (int) ceil(seglen / 2);
   float s = 0;
   vector<bool> isfinal(mNumControl, false);
-  vector<int> peeksegs;
-  vector<float> peekcurvs, arcparam(npts);
-  vector< vector<int>::const_iterator > peekpts, dompts(mNumControl);
+  vector<int> peaksegs;
+  vector<float> peakcurvs, arcparam(npts);
+  vector< vector<int>::const_iterator > peakpts, dompts(mNumControl);
   vector<float>::iterator iarc = arcparam.begin();
 
   cout << "INFO: Minimum allowable distance between dominant points is "
@@ -354,8 +354,8 @@ bool Spline::FitControlPoints(const vector<int> &InputPoints) {
 
   *(dompts.end() - 1) = mAllPoints.end() - 3;		// Last point
 
-  // Find points where local peeks in curvature occur
-  cout << "INFO: Points where local peeks in curvature occur are" << endl;
+  // Find points where local peaks in curvature occur
+  cout << "INFO: Points where local peaks in curvature occur are" << endl;
 
   for (vector<float>::const_iterator icurv = mCurvature.begin() + mingap;
                                      icurv < mCurvature.end() - mingap;
@@ -366,9 +366,9 @@ bool Spline::FitControlPoints(const vector<int> &InputPoints) {
       vector<int>::const_iterator ipt = mAllPoints.begin() + 3*kpt;
 
       // Save info for this candidate point
-      peeksegs.push_back(idx);
-      peekcurvs.push_back(*icurv);
-      peekpts.push_back(ipt);
+      peaksegs.push_back(idx);
+      peakcurvs.push_back(*icurv);
+      peakpts.push_back(ipt);
 
       cout << " " << *ipt << " " << *(ipt+1) << " " << *(ipt+2)
            << " (curv = " << *icurv << ")" << endl;
@@ -379,15 +379,15 @@ bool Spline::FitControlPoints(const vector<int> &InputPoints) {
   *(isfinal.end() - 1) = true;
 
   // Go down the list of candidate points to pick out dominant points
-  while (!peekcurvs.empty()) {
+  while (!peakcurvs.empty()) {
     // Find candidate point with maximum curvature
-    const int ipeek = max_element(peekcurvs.begin(), peekcurvs.end()) - 
-                      peekcurvs.begin(),
-              iseg = peeksegs.at(ipeek);
+    const int ipeak = max_element(peakcurvs.begin(), peakcurvs.end()) - 
+                      peakcurvs.begin(),
+              iseg = peaksegs.at(ipeak);
     const bool isLfinal = isfinal.at(iseg),
                isRfinal = isfinal.at(iseg+1);
     vector<int>::iterator imatch;
-    vector<int>::const_iterator ipt  = peekpts.at(ipeek),
+    vector<int>::const_iterator ipt  = peakpts.at(ipeak),
                                 iptL = dompts.at(iseg),
                                 iptR = dompts.at(iseg+1);
     const int distL = (ipt - iptL) / 3,
@@ -406,21 +406,21 @@ bool Spline::FitControlPoints(const vector<int> &InputPoints) {
     }
 
     // Remove point from list of candidate points
-    peeksegs.erase(peeksegs.begin() + ipeek);
-    peekcurvs.erase(peekcurvs.begin() + ipeek);
-    peekpts.erase(peekpts.begin() + ipeek);
+    peaksegs.erase(peaksegs.begin() + ipeak);
+    peakcurvs.erase(peakcurvs.begin() + ipeak);
+    peakpts.erase(peakpts.begin() + ipeak);
 
     // Also remove any other candidate points that are in the same segment
-    imatch = find(peeksegs.begin(), peeksegs.end(), iseg);
+    imatch = find(peaksegs.begin(), peaksegs.end(), iseg);
 
-    while (imatch != peeksegs.end()) {
-      int irem = imatch - peeksegs.begin(); 
+    while (imatch != peaksegs.end()) {
+      int irem = imatch - peaksegs.begin(); 
 
-      peeksegs.erase(peeksegs.begin() + irem);
-      peekcurvs.erase(peekcurvs.begin() + irem);
-      peekpts.erase(peekpts.begin() + irem);
+      peaksegs.erase(peaksegs.begin() + irem);
+      peakcurvs.erase(peakcurvs.begin() + irem);
+      peakpts.erase(peakpts.begin() + irem);
 
-      imatch = find(peeksegs.begin(), peeksegs.end(), iseg);
+      imatch = find(peaksegs.begin(), peaksegs.end(), iseg);
     }
   }
 

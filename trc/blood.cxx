@@ -72,7 +72,28 @@ Blood::Blood(const char *TrainListFile, const char *TrainTrkFile,
   mNumNear = 14;
   mDirNear.insert(mDirNear.begin(), dirs+3, dirs+45);
   
-  // Read brain mask
+  // Read training subjects' anatomy
+  ReadAnatomy(TrainListFile, TrainAsegFile, TrainMaskFile);
+
+  // If no test subject mask is provided, use union of training segmentations
+  if (TestMaskList.empty()) {
+    testvol = MRIclone(mAseg[0], NULL);
+
+    for (vector<MRI *>::const_iterator iseg = mAseg.begin();
+                                       iseg != mAseg.end(); iseg++)
+      for (int iz = (*iseg)->depth - 1; iz >= 0; iz--)
+        for (int iy = (*iseg)->height - 1; iy >= 0; iy--)
+          for (int ix = (*iseg)->width - 1; ix >= 0; ix--)
+            if (MRIgetVoxVal(*iseg, ix, iy, iz, 0) > 0)
+              MRIsetVoxVal(testvol, ix, iy, iz, 0,
+                           MRIgetVoxVal(testvol, ix, iy, iz, 0) + 1);
+
+    MRIdilate(testvol, testvol);
+
+    mTestMask.push_back(testvol);
+  }
+
+  // Read test subject's brain mask
   for (vector<char *>::const_iterator ifile = TestMaskList.begin();
                                       ifile < TestMaskList.end(); ifile++) {
     cout << "Loading brain mask of output subject from " << *ifile << endl;
@@ -160,9 +181,6 @@ Blood::Blood(const char *TrainListFile, const char *TrainTrkFile,
   ReadStreamlines(TrainListFile, TrainTrkFile, TrainRoi1File, TrainRoi2File,
                   TrainMaskLabel, ExcludeFile);
 
-  // Read training subjects' anatomy
-  ReadAnatomy(TrainListFile, TrainAsegFile, TrainMaskFile);
-
   // Allocate space for histograms
   mHistoStr  = MRIclone(mTestMask[0], NULL);
   mHistoSubj = MRIclone(mTestMask[0], NULL);
@@ -239,8 +257,10 @@ void Blood::ReadStreamlines(const char *TrainListFile,
                             const char *TrainRoi2File,
                             float TrainMaskLabel,
                             const char *ExcludeFile) {
-  int nrejmask = 0, nrejrev = 0;
+  int index = 0, nrejmask = 0, nrejrev = 0;
   vector<string> dirlist;
+  vector< pair<int,int> > strorder;
+  vector<int>::iterator irank;
   vector<MRI *>::iterator ivol;
 
   if (TrainListFile) {		// Read multiple inputs from a list
@@ -261,6 +281,7 @@ void Blood::ReadStreamlines(const char *TrainListFile,
   mMaskLabel = TrainMaskLabel;
 
   // Clear all variables that depend on pathway
+  mHavePresorted = true;
   mStreamlines.clear();
   mLengths.clear();
   mTruncatedLengths.clear();
@@ -274,6 +295,10 @@ void Blood::ReadStreamlines(const char *TrainListFile,
   mVarEnd1.clear();
   mVarEnd2.clear();
   mVarMid.clear();
+  mIsOutHist.clear();
+  mIsOutDev.clear();
+  mIsOutFa.clear();
+  mDistanceRank.clear();
   mExcludedStreamlines.clear();
   mCenterStreamline.clear();
   mControlPoints.clear();
@@ -380,6 +405,19 @@ void Blood::ReadStreamlines(const char *TrainListFile,
 
     cout << "Loading streamlines from " << fname << endl;
 
+    if (strcmp(trkheader.reserved, "TRACULAprep") == 0) {
+      cout << "Pre-sorted training .trk file detected" << endl;
+
+      if (trkheader.n_properties != 3) {
+        cout << "ERROR: Unexpected number of properties (" 
+             << trkheader.n_properties << ") found in pre-sorted .trk file "
+             << fname << endl;
+        exit(1);
+      }
+    }
+    else
+      mHavePresorted = false;
+
     while (trkreader.GetNextPointCount(&npts)) {
       bool isinmask = true;
       int nptsmask = npts,
@@ -388,10 +426,11 @@ void Blood::ReadStreamlines(const char *TrainListFile,
             forwback2 = 0, forw2 = 0;
       vector<int> pts;
       vector<float> dir1(3), dir2(3);
-      float *rawpts = new float[npts*3], *rawptsmask = rawpts, *iraw;
+      float *rawpts = new float[npts*3], *rawptsmask = rawpts, *iraw,
+            *properties = new float [trkheader.n_properties];
 
       // Read a streamline from input file
-      trkreader.GetNextTrackData(npts, rawpts);
+      trkreader.GetNextTrackData(npts, rawpts, NULL, properties);
 
       // Divide by voxel size, make 0-based, and round to get voxel coords
       iraw = rawpts; 
@@ -420,7 +459,7 @@ void Blood::ReadStreamlines(const char *TrainListFile,
       }
 
       iraw = rawptsmask; 
-      for (int ipt = nptsmask; ipt > 1; ipt--)	// Remove duplicate points
+      for (int ipt = nptsmask; ipt > 1; ipt--)// Remove duplicate points
         if ( (iraw[0] != iraw[3]) || (iraw[1] != iraw[4]) ||
                                      (iraw[2] != iraw[5]) ) {
           for (int k = 0; k < 3; k++) {
@@ -438,10 +477,10 @@ void Blood::ReadStreamlines(const char *TrainListFile,
           // Check directions in which streamline traverses start ROI
           if (!mRoi1.empty()) {
             if (IsInRoi(pts.end()-3, *(mRoi1.end()-1))) {
-              if (xroi1 == 0) {		// Entering ROI for the first time
+              if (xroi1 == 0) {	// Entering ROI for the first time
                 xroi1 = 1;
 
-                if (xroi2 > 0)		// Have already been to the other ROI
+                if (xroi2 > 0)	// Have already been to the other ROI
                   xroi21 = 1;
 
                 iraw -= 3;
@@ -449,7 +488,7 @@ void Blood::ReadStreamlines(const char *TrainListFile,
                 if (iraw == rawptsmask)
                   iraw += 3;
                 else
-                  for (int k = 0; k < 3; k++) {		// Direction of entering
+                  for (int k = 0; k < 3; k++) {	// Direction of entering
                     const float diff = *iraw - *(iraw-3);
 
                     dir1[k] = diff;
@@ -458,7 +497,7 @@ void Blood::ReadStreamlines(const char *TrainListFile,
                   } 
               }
 
-              if (xroi1 == 2) {		// Re-entering ROI
+              if (xroi1 == 2) {	// Re-entering ROI
                 if (xroi12 > 0) {	// Went back and forth between ROIs
                   xroi1 = 3;
                   nrejrev++;
@@ -484,8 +523,8 @@ void Blood::ReadStreamlines(const char *TrainListFile,
                 }
               }
             }
-            else
-              if (xroi1 == 1) {		// Exiting ROI
+          else
+              if (xroi1 == 1) {	// Exiting ROI
                 xroi1 = 2;
 
                 if (forw1 == 0) {	// Never entered, started inside ROI
@@ -502,7 +541,7 @@ void Blood::ReadStreamlines(const char *TrainListFile,
                 else {
                   iraw -= 3;
                   forwback1 = 0;
-                  for (int k = 0; k < 3; k++) {		// Direction of exiting
+                  for (int k = 0; k < 3; k++) {	// Direction of exiting
                     const float diff = *iraw - *(iraw-3);
 
                     forwback1 += dir1[k]*diff;
@@ -510,7 +549,7 @@ void Blood::ReadStreamlines(const char *TrainListFile,
                   } 
 
                   // Check if exiting back the way I entered
-                  if (forwback1 < 0) {		// |angle| > 90
+                  if (forwback1 < 0) {	// |angle| > 90
                     xroi1 = 3;
                     nrejrev++;
                     break;
@@ -522,10 +561,10 @@ void Blood::ReadStreamlines(const char *TrainListFile,
           // Check directions in which streamline traverses end ROI
           if (!mRoi2.empty()) {
             if (IsInRoi(pts.end()-3, *(mRoi2.end()-1))) {
-              if (xroi2 == 0) {		// Entering ROI for the first time
+              if (xroi2 == 0) {	// Entering ROI for the first time
                 xroi2 = 1;
 
-                if (xroi1 > 0)		// Have already been to the other ROI
+                if (xroi1 > 0)	// Have already been to the other ROI
                   xroi12 = 1;
 
                 iraw -= 3;
@@ -533,7 +572,7 @@ void Blood::ReadStreamlines(const char *TrainListFile,
                 if (iraw == rawptsmask)
                   iraw += 3;
                 else
-                  for (int k = 0; k < 3; k++) {		// Direction of entering
+                  for (int k = 0; k < 3; k++) {	// Direction of entering
                     const float diff = *iraw - *(iraw-3);
 
                     dir2[k] = diff;
@@ -542,7 +581,7 @@ void Blood::ReadStreamlines(const char *TrainListFile,
                   } 
               }
 
-              if (xroi2 == 2) {		// Re-entering ROI
+              if (xroi2 == 2) {	// Re-entering ROI
                 if (xroi21 > 0) {	// Went back and forth between ROIs
                   xroi2 = 3;
                   nrejrev++;
@@ -586,7 +625,7 @@ void Blood::ReadStreamlines(const char *TrainListFile,
                 else {
                   iraw -= 3;
                   forwback2 = 0;
-                  for (int k = 0; k < 3; k++) {		// Direction of exiting
+                  for (int k = 0; k < 3; k++) {	// Direction of exiting
                     const float diff = *iraw - *(iraw-3);
 
                     forwback2 += dir2[k]*diff;
@@ -629,6 +668,25 @@ void Blood::ReadStreamlines(const char *TrainListFile,
       mLengths.push_back(pts.size() / 3);
       nlines++;
 
+      if (mHavePresorted) {
+        if ((int) properties[0] == 1 || (int) properties[0] == 3)
+          mIsInEnd1.push_back(true);
+        else
+          mIsInEnd1.push_back(false);
+        
+        if ((int) properties[0] == 2 || (int) properties[0] == 3)
+          mIsInEnd2.push_back(true);
+        else
+          mIsInEnd2.push_back(false);
+
+        mTruncatedLengths.push_back((int) properties[1]);
+
+        if (*(mIsInEnd1.end()-1) && *(mIsInEnd2.end()-1))
+          strorder.push_back(make_pair(properties[2], index));
+
+        index++;
+      }
+
       delete[] rawpts;
     }
 
@@ -650,7 +708,20 @@ void Blood::ReadStreamlines(const char *TrainListFile,
   cout << "INFO: Rejected " << nrejrev
        << " streamlines for reversing direction" << endl;
 
-  RemoveLengthOutliers();
+  if (mHavePresorted) {
+    sort(strorder.begin(), strorder.end());
+  
+    mDistanceRank.resize(strorder.size());
+    irank = mDistanceRank.begin();
+
+    for (vector< pair<int,int> >::const_iterator
+         iorder = strorder.begin(); iorder < strorder.end(); iorder++) {
+      *irank = iorder->second;
+      irank++;
+    }
+  }
+  else
+    RemoveLengthOutliers();
 
   ComputeStats();
 
@@ -1139,13 +1210,22 @@ void Blood::RemoveLengthOutliers() {
 void Blood::ComputePriors() {
   int maxtries;
 
-  cout << "Matching streamline ends" << endl;
-  MatchStreamlineEnds();
+  if (mHavePresorted) {
+    ComputeStatsEnds();
+
+    cout << "Computing path histograms" << endl;
+    ComputeHistogram();
+
+    cout << "Finding outlier streamlines" << endl;
+    FindOutlierStreamlines(false, false, !mTestFa.empty());
+
+    cout << "Updating streamline distance ranking" << endl;
+    UpdateDistanceRank();
+  }
+  else
+    PrepStreamlines();
 
   SetArcSegments();
-
-  cout << "Computing path histograms" << endl;
-  ComputeHistogram();
 
   cout << "Computing prior on underlying anatomy "
        << "(non-truncated streamlines only)" << endl;
@@ -1176,8 +1256,9 @@ void Blood::ComputePriors() {
     mControlStd.clear();
     mControlStdTest.clear();
 
-    cout << "Finding center streamline" << endl;
-    FindCenterStreamline();
+    //cout << "Finding center streamline" << endl;
+    //FindCenterStreamline();
+    mCenterStreamline = mStreamlines[mDistanceRank[itry-1]];
 
     for (vector<int>::const_iterator incpt = mNumControls.begin();
                                      incpt < mNumControls.end(); incpt++) {
@@ -1199,6 +1280,25 @@ void Blood::ComputePriors() {
     else
       break;
   }
+}
+
+//
+// Prepare training streamlines for prior computation
+//
+void Blood::PrepStreamlines() {
+  cout << "Matching streamline ends" << endl;
+  MatchStreamlineEnds();
+
+  cout << "Computing path histograms" << endl;
+  ComputeHistogram();
+
+  cout << "Finding outlier streamlines" << endl;
+  FindOutlierStreamlines(true, true, !mTestFa.empty());
+
+  cout << "Ranking streamlines by distance" << endl;
+  RankStreamlineDistance();
+
+  cout << "..." << endl;
 }
 
 //
@@ -1663,6 +1763,370 @@ bool Blood::IsEnd2InMask(vector< vector<int> >::iterator Streamline,
   }
 
   return false;
+}
+
+//
+// Find outlier streamlines
+//
+void Blood::FindOutlierStreamlines(bool CheckOverlap, bool CheckDeviation, 
+                                                      bool CheckFa) {
+  vector<bool>::const_iterator ivalid1 = mIsInEnd1.begin(),
+                               ivalid2 = mIsInEnd2.begin();
+  vector<bool>::iterator iouthist, ioutdev, ioutfa;
+  vector<int>::const_iterator imidpts = mMidPoints.begin();
+
+  if (CheckOverlap || mIsOutHist.size() != mNumStrEnds) {
+    mIsOutHist.resize(mNumStrEnds);
+    fill(mIsOutHist.begin(), mIsOutHist.end(), false);
+  }
+
+  if (CheckDeviation || mIsOutDev.size() != mNumStrEnds) {
+    mIsOutDev.resize(mNumStrEnds);
+    fill(mIsOutDev.begin(), mIsOutDev.end(), false);
+  }
+
+  if (CheckFa || mIsOutFa.size() != mNumStrEnds) {
+    mIsOutFa.resize(mNumStrEnds);
+    fill(mIsOutFa.begin(), mIsOutFa.end(), false);
+  }
+
+  if (mTestFa.empty())
+    CheckFa = false;
+
+  iouthist = mIsOutHist.begin();
+  ioutdev = mIsOutDev.begin();
+  ioutfa = mIsOutFa.begin();
+
+  for (vector< vector<int> >::const_iterator istr = mStreamlines.begin();
+                                             istr < mStreamlines.end();
+                                             istr++) {
+    if (*ivalid1 && *ivalid2) {
+      if (CheckOverlap) {		// Check overlap with histogram
+        int nzeros = 0;
+
+        for (vector<int>::const_iterator ipt = istr->begin();
+                                         ipt < istr->end(); ipt += 3) {
+          const float h = MRIgetVoxVal(mHistoStr, ipt[0], ipt[1], ipt[2], 0);
+
+          if (h < 4.0)		// Little overlap with other streamlines
+            nzeros++;
+        }
+
+        if (nzeros >= (int) (.1 * istr->size()/3))
+          *iouthist = true;
+      }
+
+      if (CheckFa) {		// Check overlap with test subject's FA
+        vector<int> nfzeros(mTestFa.size(), 0), basept(3), dwipt(3);
+
+        for (vector<int>::const_iterator ipt = istr->begin();
+                                         ipt < istr->end(); ipt += 3) {
+          vector<int>::iterator infzeros;
+          vector<int>::const_iterator iptbase, iptdwi;
+
+          // Map point to base space if needed
+          if (!mTestAffineReg.IsEmpty() || !mTestNonlinReg.IsEmpty()) {
+            if (!MapPointToBase(basept.begin(), ipt)) {
+              for (infzeros = nfzeros.begin(); infzeros < nfzeros.end();
+                                               infzeros++) {
+                (*infzeros)++;
+
+                if (*infzeros > 3) {
+                  *ioutfa = true;
+                  break;
+                }
+              }
+
+              if (*ioutfa)
+                break;
+
+              continue;
+            }
+
+            iptbase = basept.begin();
+          }
+          else
+            iptbase = ipt;
+
+          infzeros = nfzeros.begin();
+
+          for (vector<MRI *>::const_iterator ifa = mTestFa.begin();
+                                             ifa < mTestFa.end(); ifa++) {
+            // Map point to native space if needed
+            if (!mTestBaseReg.empty()) {
+              if (!MapPointToNative(dwipt.begin(), iptbase,
+                                    ifa - mTestFa.begin())) {
+                (*infzeros)++;
+
+                if (*infzeros > 3) {
+                  *ioutfa = true;
+                  break;
+                }
+
+                infzeros++;
+                continue;
+              }
+
+              iptdwi = dwipt.begin();
+            }
+            else
+              iptdwi = iptbase;
+
+            // Check anisotropy at this point
+            if (MRIgetVoxVal(*ifa, iptdwi[0], iptdwi[1], iptdwi[2], 0) < 0.1) {
+              (*infzeros)++;
+
+              if (*infzeros > 3) {
+                *ioutfa = true;
+                break;
+              }
+            }
+            else
+              *infzeros = 0;
+
+            infzeros++;
+          }
+
+          if (*ioutfa)
+            break;
+        }
+      }
+
+      if (CheckDeviation) {	// Check endpoint deviation from center of mass
+        bool okend1 = true, okend2 = true, okmid = true;
+        vector<int>::const_iterator itop    = istr->begin(),
+                                    ibottom = istr->end() - 3,
+                                    imiddle = itop + *imidpts;
+
+        for (int k = 0; k < 3; k++) {
+          const float dist = itop[k] - mMeanEnd1[k];
+          okend1 = okend1 && (dist*dist < mVarEnd1[k]);
+        }
+
+        for (int k = 0; k < 3; k++) {
+          const float dist = ibottom[k] - mMeanEnd2[k];
+          okend2 = okend2 && (dist*dist < mVarEnd2[k]);
+        }
+
+        for (int k = 0; k < 3; k++) {
+          const float dist = imiddle[k] - mMeanMid[k];
+          okmid = okmid && (dist*dist < mVarMid[k]);
+        }
+
+        if (!okend1 || !okend2 || !okmid)
+          *ioutdev = true;
+      }
+
+      iouthist++;
+      ioutdev++;
+      ioutfa++;
+      imidpts++;
+    }
+
+    ivalid1++;
+    ivalid2++;
+  }
+}
+
+//
+// Rank streamlines by distance from other streamlines
+//
+void Blood::RankStreamlineDistance() {
+  int index = 0;
+  const int lag = max(1, (int) round(mHausStepRatio * mLengthAvgEnds)) * 3;
+  vector< pair<double,int> > distance(mNumStrEnds, make_pair(0,0));
+  vector<bool>::const_iterator ivalid1 = mIsInEnd1.begin(),
+                               ivalid2 = mIsInEnd2.begin(),
+                               iouthist = mIsOutHist.begin(),
+                               ioutdev = mIsOutDev.begin(),
+                               ioutfa = mIsOutFa.begin();
+  vector<int>::iterator irank;
+  vector< pair<double,int> >::iterator idout = distance.begin(), id0;
+
+  cout << "INFO: Step is " << lag/3 << " voxels" << endl;
+
+  for (vector< vector<int> >::const_iterator istr = mStreamlines.begin();
+                                             istr < mStreamlines.end();
+                                             istr++) {
+    if (*ivalid1 && *ivalid2) {
+      double hdtot = 0;
+      vector<bool>::const_iterator jvalid1 = mIsInEnd1.begin(),
+                                   jvalid2 = mIsInEnd2.begin();
+      vector<int>::const_iterator jlen = mLengths.begin();
+
+      for (vector< vector<int> >::const_iterator
+           jstr = mStreamlines.begin(); jstr < mStreamlines.end(); jstr++) {
+        double hd = 0;
+
+        if (*jvalid1 && *jvalid2 && (jstr != istr)) {
+          for (vector<int>::const_iterator jpt = jstr->begin();
+                                           jpt < jstr->end(); jpt += lag) {
+            int dmin = 1000000;
+
+            for (vector<int>::const_iterator ipt = istr->begin();
+                                             ipt < istr->end(); ipt += lag) {
+              const int dx = ipt[0] - jpt[0],
+                        dy = ipt[1] - jpt[1],
+                        dz = ipt[2] - jpt[2],
+                        dist = dx*dx + dy*dy + dz*dz;
+
+              if (dist < dmin)
+                dmin = dist;
+            }
+
+            hd += sqrt(dmin);
+          }
+
+          hd /= (*jlen);
+        }
+
+        hdtot += hd;
+
+        jvalid1++;
+        jvalid2++;
+        jlen++;
+      }
+
+      *idout = make_pair(hdtot, index);
+      idout++;
+    }
+
+    ivalid1++;
+    ivalid2++;
+    index++;
+  }
+
+  sort(distance.begin(), distance.end());
+
+  mDistanceRank.resize(mNumStrEnds);
+  irank = mDistanceRank.begin();
+
+  for (vector< pair<double,int> >::const_iterator
+       idin = distance.begin(); idin < distance.end(); idin++) {
+    *irank = idin->second;
+    irank++;
+  }
+
+  UpdateDistanceRank();
+}
+
+//
+// Update distance ranking of streamlines based on outlier status
+//
+void Blood::UpdateDistanceRank() {
+  vector<bool> strset(mStreamlines.size(), false);
+  vector<int> rank(mDistanceRank.size(), 0);
+  vector<bool>::const_iterator ivalid1 = mIsInEnd1.begin(),
+                               ivalid2 = mIsInEnd2.begin(),
+                               iouthist = mIsOutHist.begin(),
+                               ioutfa = mIsOutFa.begin(),
+                               ioutdev = mIsOutDev.begin();
+  vector<bool>::iterator iset = strset.begin();
+  vector<int>::iterator irout = rank.begin();
+
+  for (vector< vector<int> >::const_iterator
+       istr = mStreamlines.begin(); istr < mStreamlines.end(); istr++) {
+    if (*ivalid1 && *ivalid2) {
+      if (!*iouthist && !*ioutfa && !*ioutdev)
+        *iset = true;
+
+      iouthist++; ioutfa++; ioutdev++;
+    }
+
+    ivalid1++; ivalid2++; iset++;
+  }
+
+  for (vector<int>::const_iterator irin = mDistanceRank.begin();
+                                   irin < mDistanceRank.end(); irin++)
+    if (strset[*irin]) {
+      *irout = *irin;
+      irout++;
+    }
+
+  ivalid1 = mIsInEnd1.begin();
+  ivalid2 = mIsInEnd2.begin();
+  iouthist = mIsOutHist.begin();
+  ioutfa = mIsOutFa.begin();
+  ioutdev = mIsOutDev.begin();
+  iset = strset.begin();
+  fill(strset.begin(), strset.end(), false);
+
+  for (vector< vector<int> >::const_iterator
+       istr = mStreamlines.begin(); istr < mStreamlines.end(); istr++) {
+    if (*ivalid1 && *ivalid2) {
+      if (!*iouthist && !*ioutfa && *ioutdev)
+        *iset = true;
+
+      iouthist++; ioutfa++; ioutdev++;
+    }
+
+    ivalid1++; ivalid2++; iset++;
+  }
+
+  for (vector<int>::const_iterator irin = mDistanceRank.begin();
+                                   irin < mDistanceRank.end(); irin++)
+    if (strset[*irin]) {
+      *irout = *irin;
+      irout++;
+    }
+
+  ivalid1 = mIsInEnd1.begin();
+  ivalid2 = mIsInEnd2.begin();
+  iouthist = mIsOutHist.begin();
+  ioutfa = mIsOutFa.begin();
+  ioutdev = mIsOutDev.begin();
+  iset = strset.begin();
+  fill(strset.begin(), strset.end(), false);
+
+  for (vector< vector<int> >::const_iterator
+       istr = mStreamlines.begin(); istr < mStreamlines.end(); istr++) {
+    if (*ivalid1 && *ivalid2) {
+      if (!*iouthist && *ioutfa && *ioutdev)
+        *iset = true;
+
+      iouthist++; ioutfa++; ioutdev++;
+    }
+
+    ivalid1++; ivalid2++; iset++;
+  }
+
+  for (vector<int>::const_iterator irin = mDistanceRank.begin();
+                                   irin < mDistanceRank.end(); irin++)
+    if (strset[*irin]) {
+      *irout = *irin;
+      irout++;
+    }
+
+  ivalid1 = mIsInEnd1.begin();
+  ivalid2 = mIsInEnd2.begin();
+  iouthist = mIsOutHist.begin();
+  ioutfa = mIsOutFa.begin();
+  ioutdev = mIsOutDev.begin();
+  iset = strset.begin();
+  fill(strset.begin(), strset.end(), false);
+
+  for (vector< vector<int> >::const_iterator
+       istr = mStreamlines.begin(); istr < mStreamlines.end(); istr++) {
+    if (*ivalid1 && *ivalid2) {
+      if ( !(!*iouthist && !*ioutfa && !*ioutdev) &&
+           !(!*iouthist && !*ioutfa && *ioutdev) &&
+           !(!*iouthist && *ioutfa && *ioutdev) )
+        *iset = true;
+
+      iouthist++; ioutfa++; ioutdev++;
+    }
+
+    ivalid1++; ivalid2++; iset++;
+  }
+
+  for (vector<int>::const_iterator irin = mDistanceRank.begin();
+                                   irin < mDistanceRank.end(); irin++)
+    if (strset[*irin]) {
+      *irout = *irin;
+      irout++;
+    }
+
+  copy(rank.begin(), rank.end(), mDistanceRank.begin());
 }
 
 //
@@ -2207,8 +2671,8 @@ void Blood::FindCenterStreamline(bool CheckOverlap, bool CheckDeviation,
   const int lag = max(1, (int) round(mHausStepRatio * mLengthAvgEnds)) * 3;
   double hdmin = numeric_limits<double>::infinity();
   vector<bool>::const_iterator ivalid1 = mIsInEnd1.begin(),
-                               ivalid2 = mIsInEnd2.begin();
-  vector<int>::const_iterator imidpts = mMidPoints.begin();
+                               ivalid2 = mIsInEnd2.begin(),
+                               iouthist, ioutdev, ioutfa;
   vector< vector<int> >::const_iterator icenter;
 
   if (mStreamlines.empty() || mNumStrEnds == 0)
@@ -2233,6 +2697,21 @@ void Blood::FindCenterStreamline(bool CheckOverlap, bool CheckDeviation,
 
   cout << "INFO: Step is " << lag/3 << " voxels" << endl;
 
+  if (mNumTrain > 1)
+    FindOutlierStreamlines(CheckOverlap, CheckDeviation, CheckFa);
+  else {
+    mIsOutHist.resize(mNumStrEnds);
+    fill(mIsOutHist.begin(), mIsOutHist.end(), false);
+    mIsOutDev.resize(mNumStrEnds);
+    fill(mIsOutDev.begin(), mIsOutDev.end(), false);
+    mIsOutFa.resize(mNumStrEnds);
+    fill(mIsOutFa.begin(), mIsOutFa.end(), false);
+  }
+
+  iouthist = mIsOutHist.begin();
+  ioutdev = mIsOutDev.begin();
+  ioutfa = mIsOutFa.begin();
+
   for (vector< vector<int> >::const_iterator istr = mStreamlines.begin();
                                              istr < mStreamlines.end();
                                              istr++) {
@@ -2252,119 +2731,12 @@ void Blood::FindCenterStreamline(bool CheckOverlap, bool CheckDeviation,
         if (equal(istr->begin(), istr->end(), ixstr->begin()))
           isexcluded = true;
 
-      if (!isexcluded && mNumTrain > 1) {	// No checks for single subject
-        if (CheckOverlap) {		// Check overlap with histogram
-          int nzeros = 0;
-
-          for (vector<int>::const_iterator ipt = istr->begin();
-                                           ipt < istr->end(); ipt += 3) {
-            const float h = MRIgetVoxVal(mHistoStr, ipt[0], ipt[1], ipt[2], 0);
-
-            if (h < 4.0)		// Little overlap with other streamlines
-              nzeros++;
-          }
-
-          if (nzeros >= (int) (.1 * istr->size()/3))
-            okhist = false;
-        }
-
-        if (CheckFa) {		// Check overlap with test subject's FA
-          vector<int> nfzeros(mTestFa.size(), 0), basept(3), dwipt(3);
-
-          for (vector<int>::const_iterator ipt = istr->begin();
-                                           ipt < istr->end(); ipt += 3) {
-            vector<int>::iterator infzeros;
-            vector<int>::const_iterator iptbase, iptdwi;
-
-            // Map point to base space if needed
-            if (!mTestAffineReg.IsEmpty() || !mTestNonlinReg.IsEmpty()) {
-              if (!MapPointToBase(basept.begin(), ipt)) {
-                for (infzeros = nfzeros.begin(); infzeros < nfzeros.end();
-                                                 infzeros++) {
-                  (*infzeros)++;
-
-                  if (*infzeros > 3) {
-                    okfa = false;
-                    break;
-                  }
-                }
-
-                if (!okfa)
-                  break;
-
-                continue;
-              }
-
-              iptbase = basept.begin();
-            }
-            else
-              iptbase = ipt;
-
-            infzeros = nfzeros.begin();
-
-            for (vector<MRI *>::const_iterator ifa = mTestFa.begin();
-                                               ifa < mTestFa.end(); ifa++) {
-              // Map point to native space if needed
-              if (!mTestBaseReg.empty()) {
-                if (!MapPointToNative(dwipt.begin(), iptbase,
-                                      ifa - mTestFa.begin())) {
-                  (*infzeros)++;
-
-                  if (*infzeros > 3) {
-                    okfa = false;
-                    break;
-                  }
-
-                  infzeros++;
-                  continue;
-                }
-
-                iptdwi = dwipt.begin();
-              }
-              else
-                iptdwi = iptbase;
-
-              // Check anisotropy at this point
-              if (MRIgetVoxVal(*ifa, iptdwi[0], iptdwi[1], iptdwi[2], 0)
-                                                                      < 0.1) {
-                (*infzeros)++;
-
-                if (*infzeros > 3) {
-                  okfa = false;
-                  break;
-                }
-              }
-              else
-                *infzeros = 0;
-
-              infzeros++;
-            }
-
-            if (!okfa)
-              break;
-          }
-        }
-
-        if (CheckDeviation) {	// Check endpoint deviation from center of mass
-          vector<int>::const_iterator itop    = istr->begin(),
-                                      ibottom = istr->end() - 3,
-                                      imiddle = itop + *imidpts;
-
-          for (int k = 0; k < 3; k++) {
-            const float dist = itop[k] - mMeanEnd1[k];
-            okend1 = okend1 && (dist*dist < mVarEnd1[k]);
-          }
-
-          for (int k = 0; k < 3; k++) {
-            const float dist = ibottom[k] - mMeanEnd2[k];
-            okend2 = okend2 && (dist*dist < mVarEnd2[k]);
-          }
-
-          for (int k = 0; k < 3; k++) {
-            const float dist = imiddle[k] - mMeanMid[k];
-            okmid = okmid && (dist*dist < mVarMid[k]);
-          }
-        }
+      if (mNumTrain > 1) {	// No checks for single subject
+        okhist = !*iouthist;
+        okfa = !*ioutfa;
+        okend1 = !*ioutdev;
+        okend2 = !*ioutdev;
+        okmid = !*ioutdev;
       }
 
       if (!isexcluded && okhist && okfa && okend1 && okend2 && okmid) {
@@ -2407,7 +2779,9 @@ void Blood::FindCenterStreamline(bool CheckOverlap, bool CheckDeviation,
         }
       }
 
-      imidpts++;
+      iouthist++;
+      ioutdev++;
+      ioutfa++;
     }
 
     ivalid1++;
@@ -3998,6 +4372,173 @@ void Blood::WriteEndPoints(const char *OutBase, MRI *RefVol) {
     sprintf(fname, "%s_end2_dil.nii.gz", OutBase);
     MRIwrite(out2, fname);
   }
+}
+
+//
+// Write streamlines of training subjects to .trk files
+//
+void Blood::WriteStreamlines(const char *TrainListFile,
+                             const char *TrainTrkFile) {
+  int index = 0;
+  char outorient[4];
+  MATRIX *outv2r;
+  MRI *outref = mTestMask[0];
+  CTrackWriter trkwriter;
+  TRACK_HEADER trkheader;
+  vector<string> dirlist;
+  vector< pair<int,int> > strorder(mNumStrEnds, make_pair(0,0));
+  vector<bool>::const_iterator ivalid1 = mIsInEnd1.begin(),
+                               ivalid2 = mIsInEnd2.begin();
+  vector<int>::const_iterator inum = mNumLines.begin(),
+                              ilen = mLengths.begin(),
+                              itrlen = mTruncatedLengths.begin();
+  vector< vector<int> >::const_iterator istr = mStreamlines.begin();
+  vector< pair<int,int> >::iterator iorder = strorder.begin();
+
+  for (vector<int>::const_iterator irank = mDistanceRank.begin();
+                                   irank < mDistanceRank.end(); irank++) {
+    *iorder = make_pair(*irank, index);
+    iorder++;
+    index++;
+  }
+
+  sort(strorder.begin(), strorder.end());
+
+  if (TrainListFile) {		// Read multiple inputs from a list
+    string dirname;
+    ifstream listfile(TrainListFile, ios::in);
+
+    if (!listfile) {
+      cout << "ERROR: Could not open " << TrainListFile << endl;
+      exit(1);
+    }
+
+    while (listfile >> dirname)
+      dirlist.push_back(dirname + "/");
+
+    if (dirlist.size() != mNumTrain) {
+      cout << "ERROR: Number of output directories (" << dirlist.size()
+           << ") in " << TrainListFile
+           << " does not match number of training subjects (" << mNumTrain
+           << ")" << endl;
+      exit(1);
+    }
+  }
+  else				// Read a single input
+    dirlist.push_back("");
+
+  // Output space orientation information
+  outv2r = MRIgetVoxelToRasXform(outref);
+  MRIdircosToOrientationString(outref, outorient);
+
+  trkheader.Initialize();
+
+  trkheader.origin[0] = 0;
+  trkheader.origin[1] = 0;
+  trkheader.origin[2] = 0;
+
+  trkheader.voxel_size[0] = outref->xsize;
+  trkheader.voxel_size[1] = outref->ysize;
+  trkheader.voxel_size[2] = outref->zsize;
+
+  trkheader.dim[0] = outref->width;
+  trkheader.dim[1] = outref->height;
+  trkheader.dim[2] = outref->depth;
+
+  strcpy(trkheader.reserved, "TRACULAprep");
+  trkheader.n_properties = 3;
+  strcpy(trkheader.property_name[0], "ValidEndpts");
+  strcpy(trkheader.property_name[1], "TruncatedLength");
+  strcpy(trkheader.property_name[2], "DistanceRank");
+
+  for (int i = 0; i < 4; i++)
+    for (int j = 0; j < 4; j++)
+      trkheader.vox_to_ras[i][j] = outv2r->rptr[i+1][j+1];
+
+  strcpy(trkheader.voxel_order, outorient);
+
+  // Find patient-to-scanner coordinate transform:
+  // Take x and y vectors from vox2RAS matrix, convert to LPS,
+  // divide by voxel size
+  trkheader.image_orientation_patient[0] =
+    - trkheader.vox_to_ras[0][0] / trkheader.voxel_size[0];
+  trkheader.image_orientation_patient[1] =
+    - trkheader.vox_to_ras[1][0] / trkheader.voxel_size[0];
+  trkheader.image_orientation_patient[2] =
+      trkheader.vox_to_ras[2][0] / trkheader.voxel_size[0];
+  trkheader.image_orientation_patient[3] =
+    - trkheader.vox_to_ras[0][1] / trkheader.voxel_size[1];
+  trkheader.image_orientation_patient[4] =
+    - trkheader.vox_to_ras[1][1] / trkheader.voxel_size[1];
+  trkheader.image_orientation_patient[5] =
+      trkheader.vox_to_ras[2][1] / trkheader.voxel_size[1];
+
+  iorder = strorder.begin();
+
+  for (vector<string>::const_iterator idir = dirlist.begin();
+                                      idir != dirlist.end(); idir++) {
+    string fname;
+
+    if (*inum == 0) {
+      inum++;
+      continue;
+    }
+
+    trkheader.n_count = *inum;
+
+    fname = *idir + TrainTrkFile;
+    if (!trkwriter.Initialize(fname.c_str(), trkheader)) {
+      cout << "ERROR: Could not open " << fname << " for reading" << endl;
+      cout << "ERROR: Error was: " << trkwriter.GetLastErrorMessage() << endl;
+      exit(1);
+    }
+
+    cout << "Writing streamlines to " << fname << endl;
+
+    for (int j = *inum; j > 0; j--) {
+      float *iout, *outpts = new float[istr->size()],
+                   *properties = new float[trkheader.n_properties];
+
+      if (*ivalid1 && *ivalid2)
+        properties[0] = 3;
+      else if (*ivalid2)
+        properties[0] = 2;
+      else if (*ivalid1)
+        properties[0] = 1;
+      else
+        properties[0] = 0;
+      properties[1] = (float) *itrlen;
+      if (*ivalid1 && *ivalid2) {
+        properties[2] = (float) iorder->second;
+        iorder++;
+      }
+      else
+        properties[2] = mNumStrEnds;
+
+      iout = outpts;
+      // Make .5-based and multiply back by output voxel size
+      for (vector<int>::const_iterator ipt = istr->begin(); ipt < istr->end();
+                                                            ipt += 3)
+        for (int k = 0; k < 3; k++) {
+          *iout = (ipt[k] + .5) * trkheader.voxel_size[k];
+          iout++;
+        }
+
+      trkwriter.WriteNextTrack(*ilen, outpts, NULL, properties);
+
+      istr++;
+      ilen++;
+      itrlen++;
+      ivalid1++;
+      ivalid2++;
+    }
+
+    trkwriter.Close();
+
+    inum++;
+  }
+
+  MatrixFree(&outv2r);
 }
 
 //

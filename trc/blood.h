@@ -64,6 +64,7 @@ class Blood {
     void ReadAnatomy(const char *TrainListFile, const char *TrainAsegFile,
                                                 const char *TrainMaskFile);
     void RemoveLengthOutliers();
+    void PrepStreamlines();
     void MatchStreamlineEnds();
     void ComputeHistogram();
     void ComputePriors();
@@ -73,6 +74,7 @@ class Blood {
     void WriteCenterStreamline(const char *CenterTrkFile,
                                const char *RefTrkFile);
     void WriteEndPoints(const char *OutBase, MRI *RefVol);
+    void WriteStreamlines(const char *TrainListFile, const char *TrainTrkFile);
     void PrintStreamline(int SubjIndex, int LineIndex);
     std::vector<float> ComputeAvgPath(std::vector<MRI *> &ValueVolumes);
     std::vector<float> ComputeWeightAvgPath(std::vector<MRI *> &ValueVolumes);
@@ -98,13 +100,15 @@ class Blood {
                        mTangentBinSize, mCurvatureBinSize;
 
     const bool mDebug, mUseTruncated;
+    bool mHavePresorted;
     int mNx, mNy, mNz, mNumTrain, mVolume,
         mNumStr, mLengthMin, mLengthMax,
         mNumStrEnds, mLengthMinEnds, mLengthMaxEnds,
         mNumArc, mNumLocal, mNumNear;
     float mMaskLabel, mDx, mLengthAvg, mLengthAvgEnds;
-    std::vector<bool> mIsInEnd1, mIsInEnd2;
+    std::vector<bool> mIsInEnd1, mIsInEnd2, mIsOutHist, mIsOutDev, mIsOutFa;
     std::vector<int> mNumLines, mLengths, mMidPoints, mTruncatedLengths,
+                     mDistanceRank,
                      mCenterStreamline, mDirLocal, mDirNear, mNumControls;
     std::vector<float> mMeanEnd1, mMeanEnd2, mMeanMid,
                        mVarEnd1, mVarEnd2, mVarMid;
@@ -145,6 +149,10 @@ class Blood {
     bool IsInRoi(std::vector<int>::const_iterator Point, MRI *Roi);
     bool IsInCortex(std::vector<int>::const_iterator Point,
                     MRI *Mask, MRI *Aseg);
+    void FindOutlierStreamlines(bool CheckOverlap, bool CheckDeviation,
+                                                   bool CheckFa);
+    void RankStreamlineDistance();
+    void UpdateDistanceRank();
     void SetArcSegments();
     void ComputeAnatomyPrior(bool UseTruncated);
     void ComputeShapePrior(bool UseTruncated);

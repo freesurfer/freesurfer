@@ -169,6 +169,72 @@ endif
 echo "#-------------------------------------" |& tee -a $LF
 echo "$0 $argv" |& tee -a $LF |& tee -a $CF
 
+#------------ Select DWI set to use for path reconstruction ---------------#
+
+echo "#-------------------------------------" |& tee -a $LF
+echo "#@# DWI set selection `date`" |& tee -a $LF
+
+if ($dolong) then
+  set dirlist = `printf "$dtroot/%s/dmri " $tplist`
+else
+  set dirlist = $dwidir
+endif
+
+foreach dwidir ($dirlist)
+  if ($#bmax) then			# Use all DWIs up to a maximum b-value
+    set dwiset = dwi.bmax$bmax
+
+    if (! -e $dwidir/$dwiset.nii.gz) then
+      set cmd = dmri_bset
+      set cmd = ($cmd --in   $dwidir/dwi.nii.gz)
+      set cmd = ($cmd --bmax $bmax)
+      set cmd = ($cmd --out  $dwidir/$dwiset.nii.gz)
+      echo $cmd |& tee -a $LF |& tee -a $CF
+      if ($RunIt) then
+        $cmd |& tee -a $LF
+        if ($status) goto error_exit
+      endif
+    endif
+  else if ($#bshell) then		# Use DWIs from one or more shells
+    set dwiset = dwi`printf '.b%s' $bshell`
+
+    if (! -e $dwidir/$dwiset.nii.gz) then
+      set cmd = dmri_bset
+      set cmd = ($cmd --in  $dwidir/dwi.nii.gz)
+      set cmd = ($cmd `printf '--b %s ' $bshell`)
+      set cmd = ($cmd --out $dwidir/$dwiset.nii.gz)
+      echo $cmd |& tee -a $LF |& tee -a $CF
+      if ($RunIt) then
+        $cmd |& tee -a $LF
+        if ($status) goto error_exit
+      endif
+    endif
+  else					# Use all DWIs
+    set dwiset = dwi
+  endif
+
+  set cmd = (ln -sf $dwiset.nii.gz $dwidir/data.nii.gz)
+  echo $cmd |& tee -a $LF |& tee -a $CF
+  if ($RunIt) then
+    $cmd |& tee -a $LF
+    if ($status) goto error_exit
+  endif
+
+  set cmd = (ln -sf $dwiset.bvecs $dwidir/bvecs)
+  echo $cmd |& tee -a $LF |& tee -a $CF
+  if ($RunIt) then
+    $cmd |& tee -a $LF
+    if ($status) goto error_exit
+  endif
+
+  set cmd = (ln -sf $dwiset.bvals $dwidir/bvals)
+  echo $cmd |& tee -a $LF |& tee -a $CF
+  if ($RunIt) then
+    $cmd |& tee -a $LF
+    if ($status) goto error_exit
+  endif
+end
+
 if (! $dolong) then
   echo "#-------------------------------------" |& tee -a $LF
   echo "#@# Path reconstruction `date`" |& tee -a $LF
@@ -347,7 +413,7 @@ if (! $dolong) then
 
           set cmd = $trcdir/dmri_paths
           set cmd = ($cmd --outdir $outlist)
-          set cmd = ($cmd --dwi  $dwidir/dwi.nii.gz)
+          set cmd = ($cmd --dwi  $dwidir/data.nii.gz)
           set cmd = ($cmd --grad $dwidir/bvecs)
           set cmd = ($cmd --bval $dwidir/bvals)
           set cmd = ($cmd --mask $brainmask)
@@ -656,7 +722,7 @@ else
           set cmd = $trcdir/dmri_paths
           set cmd = ($cmd --indir     $inlist)
           set cmd = ($cmd --outdir    $outlist)
-          set cmd = ($cmd --dwi       dmri/dwi.nii.gz)
+          set cmd = ($cmd --dwi       dmri/data.nii.gz)
           set cmd = ($cmd --grad      dmri/bvecs)
           set cmd = ($cmd --bval      dmri/bvals)
           set cmd = ($cmd --mask      dlabel/diff/$brainmask.nii.gz)

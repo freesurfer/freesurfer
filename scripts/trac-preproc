@@ -190,6 +190,7 @@ if ($docorr && ! $dobase) then
     if ($#dcmroot > 0) set infile = $dcmroot/$infile
 
     set cmd = (rm -f $dwibase.bvals $dwibase.bvecs)
+    echo $cmd |& tee -a $LF |& tee -a $CF
     if ($RunIt) then
       $cmd |& tee -a $LF
       if ($status) goto error_exit
@@ -975,30 +976,6 @@ if ($docorr && ! $dobase) then
     if ($status) goto error_exit
   endif
 
-  # Create symbolic links to files with the names that bedpostx expects
-  set cmd = (ln -sf $dwidir/dwi.nii.gz $dwidir/data.nii.gz)
-  echo $cmd |& tee -a $LF |& tee -a $CF
-  if ($RunIt) then
-    $cmd |& tee -a $LF
-    if ($status) goto error_exit
-  endif
-
-### TODO: RENAMED THESE ###############
-  set cmd = (ln -sf $dwidir/dwi.bvecs $dwidir/bvecs)
-  echo $cmd |& tee -a $LF |& tee -a $CF
-  if ($RunIt) then
-    $cmd |& tee -a $LF
-    if ($status) goto error_exit
-  endif
-
-  set cmd = (ln -sf $dwidir/dwi.bvals $dwidir/bvals)
-  echo $cmd |& tee -a $LF |& tee -a $CF
-  if ($RunIt) then
-    $cmd |& tee -a $LF
-    if ($status) goto error_exit
-  endif
-######################################
-
   # Make diffusion brain mask
   if ($#nb0 > 0) then
     set lowblist = ()
@@ -1055,36 +1032,72 @@ if ($docorr && ! $dobase) then
     $cmd |& tee -a $LF
     if ($status) goto error_exit
   endif
-
-  # If using a subset of b-values
-  if ($#bmax) then
-    set cmd = dmri_bset
-    set cmd = ($cmd --in   $dwidir/dwi.nii.gz)
-    set cmd = ($cmd --bmax $bmax)
-    set cmd = ($cmd --out  $dwidir/dwi.bmax$bmax.nii.gz)
-    echo $cmd |& tee -a $LF |& tee -a $CF
-    if ($RunIt) then
-      $cmd |& tee -a $LF
-      if ($status) goto error_exit
-    endif
-  endif
-
-  if ($#bshell) then
-    set cmd = dmri_bset
-    set cmd = ($cmd --in  $dwidir/dwi.nii.gz)
-    set cmd = ($cmd `printf '--b %s ' $bshell`)
-    set cmd = ($cmd --out $dwidir/dwi.`printf 'b%s.' $bshell`nii.gz)
-    echo $cmd |& tee -a $LF |& tee -a $CF
-    if ($RunIt) then
-      $cmd |& tee -a $LF
-      if ($status) goto error_exit
-    endif
-  endif
 endif
 
 if ($docorr && $dobase) then
   echo "ERROR: Image correction step not available for base template"
   goto error_exit
+endif
+
+#------------ Select DWI set to use any subsequent steps ------------------#
+
+if (($docorr || $dotensor) && ! $dobase) then
+  echo "#-------------------------------------" |& tee -a $LF
+  echo "#@# DWI set selection `date`" |& tee -a $LF
+
+  # If using a subset of b-values
+  if ($#bmax) then			# Use all DWIs up to a maximum b-value
+    set dwiset = dwi.bmax$bmax
+
+    if ($docorr || ! -e $dwidir/$dwiset.nii.gz) then
+      set cmd = dmri_bset
+      set cmd = ($cmd --in   $dwidir/dwi.nii.gz)
+      set cmd = ($cmd --bmax $bmax)
+      set cmd = ($cmd --out  $dwidir/$dwiset.nii.gz)
+      echo $cmd |& tee -a $LF |& tee -a $CF
+      if ($RunIt) then
+        $cmd |& tee -a $LF
+        if ($status) goto error_exit
+      endif
+    endif
+  else if ($#bshell) then		# Use DWIs from one or more shells
+    set dwiset = dwi`printf '.b%s' $bshell`
+
+    if ($docorr || ! -e $dwidir/$dwiset.nii.gz) then
+      set cmd = dmri_bset
+      set cmd = ($cmd --in  $dwidir/dwi.nii.gz)
+      set cmd = ($cmd `printf '--b %s ' $bshell`)
+      set cmd = ($cmd --out $dwidir/$dwiset.nii.gz)
+      echo $cmd |& tee -a $LF |& tee -a $CF
+      if ($RunIt) then
+        $cmd |& tee -a $LF
+        if ($status) goto error_exit
+      endif
+    endif
+  else					# Use all DWIs
+    set dwiset = dwi
+  endif
+
+  set cmd = (ln -sf $dwiset.nii.gz $dwidir/data.nii.gz)
+  echo $cmd |& tee -a $LF |& tee -a $CF
+  if ($RunIt) then
+    $cmd |& tee -a $LF
+    if ($status) goto error_exit
+  endif
+
+  set cmd = (ln -sf $dwiset.bvecs $dwidir/bvecs)
+  echo $cmd |& tee -a $LF |& tee -a $CF
+  if ($RunIt) then
+    $cmd |& tee -a $LF
+    if ($status) goto error_exit
+  endif
+
+  set cmd = (ln -sf $dwiset.bvals $dwidir/bvals)
+  echo $cmd |& tee -a $LF |& tee -a $CF
+  if ($RunIt) then
+    $cmd |& tee -a $LF
+    if ($status) goto error_exit
+  endif
 endif
 
 #------------ Image quality assessment ------------------------------------#
@@ -1187,7 +1200,6 @@ if ($doqa && $dobase) then
   goto error_exit
 endif
 
-
 #------------ Intra-subject registration ----------------------------------#
 
 if ($dointra && ! $dobase && -e $fsdir/mri/brain.mgz) then
@@ -1285,7 +1297,7 @@ if ($dointra && ! $dobase && -e $fsdir/mri/brain.mgz) then
     set cmd = bbregister
     set cmd = ($cmd --s $subj)
     set cmd = ($cmd --init-fsl --dti)
-    set cmd = ($cmd --mov    $dwidir/dwi.nii.gz)
+    set cmd = ($cmd --mov    $dwidir/lowb.nii.gz)
     set cmd = ($cmd --reg    $xfmdir/anatorig2diff.bbr.dat)
     set cmd = ($cmd --fslmat $xfmdir/diff2anatorig.bbr.mat)
     if ($RunIt) then
@@ -1935,7 +1947,7 @@ if ($dotensor && ! $dobase) then
 
   # LS tensor estimation
   set cmd = dtifit
-  set cmd = ($cmd -k $dwidir/dwi.nii.gz)
+  set cmd = ($cmd -k $dwidir/data.nii.gz)
   set cmd = ($cmd -m $brainmask)
   set cmd = ($cmd -r $dwidir/bvecs)
   set cmd = ($cmd -b $dwidir/bvals)
@@ -2058,15 +2070,10 @@ if ($dopriors && ! $dobase) then
         set outdir = $labdir/$xspace
         set outlist = `printf "%s_$avgmode " $pathlist`
 
-        set trklist = `printf "dlabel/$xspace/%s.$reg.trk " $pathlist`
+        set trklist = `printf "$xspace/%s.$reg.prep.trk " $pathlist`
 
-        set roilist = ()
         set lablist = ()
         foreach pathname ($pathlist)
-          set roilist = ($roilist \
-                         dlabel/$xspace/${pathname}_roi1.$reg.nii.gz \
-                         dlabel/$xspace/${pathname}_roi2.$reg.nii.gz)
-
           if ($pathname =~ *cst*) then
             set lablist = ($lablist 16)		# Add brainstem
           else if ($pathname =~ lh.atr*) then
@@ -2102,10 +2109,9 @@ if ($dopriors && ! $dobase) then
         set cmd = ($cmd --out    $outlist)
         set cmd = ($cmd --slist  $slistfile)
         set cmd = ($cmd --trk    $trklist)
-        set cmd = ($cmd --seg    dlabel/$xspace/aparc+aseg.nii.gz)
-        set cmd = ($cmd --cmask  dlabel/$xspace/cortex+2mm.nii.gz)
+        set cmd = ($cmd --seg    $xspace/aparc+aseg.nii.gz)
+        set cmd = ($cmd --cmask  $xspace/cortex+2mm.nii.gz)
         set cmd = ($cmd --lmask  $lablist)
-        set cmd = ($cmd --rois   $roilist)
         set cmd = ($cmd --bmask  $brainmask)
         set cmd = ($cmd --fa     $dwidir/dtifit_FA.nii.gz)
         set cmd = ($cmd --cptdir $labdir/diff)
@@ -2164,15 +2170,10 @@ if ($dopriors && $dobase) then
         set outdir = $labdir/$xspace
         set outlist = `printf "%s_$avgmode " $pathlist`
 
-        set trklist = `printf "dlabel/$xspace/%s.$reg.trk " $pathlist`
+        set trklist = `printf "$xspace/%s.$reg.prep.trk " $pathlist`
 
-        set roilist = ()
         set lablist = ()
         foreach pathname ($pathlist)
-          set roilist = ($roilist \
-                         dlabel/$xspace/${pathname}_roi1.$reg.nii.gz \
-                         dlabel/$xspace/${pathname}_roi2.$reg.nii.gz)
-
           if ($pathname =~ *cst*) then
             set lablist = ($lablist 16)		# Add brainstem
           else if ($pathname =~ lh.atr*) then
@@ -2217,10 +2218,9 @@ if ($dopriors && $dobase) then
         set cmd = ($cmd --out     $outlist)
         set cmd = ($cmd --slist   $slistfile)
         set cmd = ($cmd --trk     $trklist)
-        set cmd = ($cmd --seg     dlabel/$xspace/aparc+aseg.nii.gz)
-        set cmd = ($cmd --cmask   dlabel/$xspace/cortex+2mm.nii.gz)
+        set cmd = ($cmd --seg     $xspace/aparc+aseg.nii.gz)
+        set cmd = ($cmd --cmask   $xspace/cortex+2mm.nii.gz)
         set cmd = ($cmd --lmask   $lablist)
-        set cmd = ($cmd --rois    $roilist)
         set cmd = ($cmd --bmask   $bmasklist)
         set cmd = ($cmd --fa      $falist)
         set cmd = ($cmd --cptdir  $labdir/anatorig)
