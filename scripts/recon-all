@@ -4756,6 +4756,13 @@ if ($DoBaLabels) then
     foreach labelset ($EV_IDXS 4)
       set CMDFS = () # see earlier notes on -parallel implementation
       foreach balabel ( $ALL_EV_LABELS[$labelset] )
+        if ( ! -e $SUBJECTS_DIR/fsaverage/label/${hemi}.${balabel}.label ) then
+          echo "-------------------------------------------------------------------------" |& tee -a $LF |& tee -a $CF
+          echo "ERROR: Label ${balabel} does not exist in SUBJECTS_DIR fsaverage!"         |& tee -a $LF |& tee -a $CF
+          echo "       The fsaverage link probably points to an older freesurfer version"  |& tee -a $LF |& tee -a $CF
+          echo "-------------------------------------------------------------------------" |& tee -a $LF |& tee -a $CF
+          goto error_exit;
+        endif
         set cmd=(mri_label2label \
           --srcsubject fsaverage \
           --srclabel $SUBJECTS_DIR/fsaverage/label/${hemi}.${balabel}.label \
