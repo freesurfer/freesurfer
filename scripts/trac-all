@@ -909,20 +909,26 @@ else				#--->>> Multiple time points for each subject
       else
         echo "set b0pfile = ()"						>> $RCF
       endif
-      if ($#echospacing > 1) then
-        echo "set echospacing = ($my_echospacing)"			>> $RCF
+      if ($subj != $bsubj) then
+        if ($#echospacing > 1) then
+          echo "set echospacing = ($my_echospacing)"			>> $RCF
+        else
+          echo "set echospacing = ($echospacing)"			>> $RCF
+        endif
+        if ($#epifactor > 1) then
+          echo "set epifactor = ($my_epifactor)"			>> $RCF
+        else
+          echo "set epifactor = ($epifactor)"				>> $RCF
+        endif
+        if ($#pedir > 1) then
+          echo "set pedir = ($my_pedir)"				>> $RCF
+        else
+          echo "set pedir = ($pedir)"					>> $RCF
+        endif
       else
-        echo "set echospacing = ($echospacing)"				>> $RCF
-      endif
-      if ($#epifactor > 1) then
-        echo "set epifactor = ($my_epifactor)"				>> $RCF
-      else
-        echo "set epifactor = ($epifactor)"				>> $RCF
-      endif
-      if ($#pedir > 1) then
-        echo "set pedir = ($my_pedir)"					>> $RCF
-      else
-        echo "set pedir = ($pedir)"					>> $RCF
+        echo "set echospacing = ()"					>> $RCF
+        echo "set epifactor = ()"					>> $RCF
+        echo "set pedir = ()"						>> $RCF
       endif
       echo "set dTE = ($dTE)"						>> $RCF
       echo "set doeddy = ($doeddy)"					>> $RCF
@@ -1592,6 +1598,11 @@ check_params:
         exit 1
       endif
     end
+
+    if ($#bmax && $#bshell) then
+      echo "ERROR: cannot specify both bshell and bmax"
+      exit 1
+    endif
 
     if ($#runlist > $#subjlist) then
       echo "ERROR: run list is longer than subject ID list"
