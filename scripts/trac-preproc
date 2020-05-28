@@ -657,6 +657,7 @@ if ($docorr && ! $dobase) then
     set cmd = ($cmd --bvals=$dwidir/dwi_orig_las.bvals)
     set cmd = ($cmd --acqp=$dwidir/acqp.txt)
     set cmd = ($cmd --index=$dwidir/index.txt)
+    set cmd = ($cmd --data_is_shelled)	# Assuming that it is!
     if ($dob0 > 1) then			# Use previously run topup output
       set cmd = ($cmd --topup=$dwidir/topup)
     endif
