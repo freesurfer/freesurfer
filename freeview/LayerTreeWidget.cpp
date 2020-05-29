@@ -65,18 +65,18 @@ void LayerTreeWidget::drawRow( QPainter * painter, const QStyleOptionViewItem & 
   QTreeWidget::drawRow( painter, option, index );
 
   Layer* layer = reinterpret_cast<Layer*>( index.data( Qt::UserRole ).value<quintptr>() );
-  if ( layer && layer->IsLocked() )
+  QRect rc = option.rect;
+  rc.setLeft( rc.right() - 20 );
+  QTreeWidgetItem* item = itemAt(rc.center());
+  if (item)
+      item->setData(0, Qt::UserRole+10, rc);
+
+  if ( layer && layer->IsLocked())
   {
-    QImage img( ":resource/icons/volume_lock.png");
-    QRect rc = option.rect;
-    rc.setLeft( rc.right() - 20 );
+    QImage img(":resource/icons/volume_lock.png");
     int nsize = qMin(16, rc.height());
     painter->drawImage( rc.topLeft(),
                         img.scaled( nsize, nsize, Qt::KeepAspectRatio, Qt::SmoothTransformation) );
-
-    QTreeWidgetItem* item = itemAt(rc.center());
-    if (item)
-        item->setData(0, Qt::UserRole+10, rc);
   }
 }
 
@@ -107,11 +107,12 @@ void LayerTreeWidget::mousePressEvent(QMouseEvent *event)
       return;
     }
 
+    bool bClickToLock = MainWindow::GetMainWindow()->GetSetting("ClickToLock").toBool();
     Layer* layer = NULL;
     if (item)
       layer = reinterpret_cast<Layer*>( item->data(0, Qt::UserRole ).value<quintptr>() );
 
-    if ( layer && layer->IsLocked() && item->data(0, Qt::UserRole+10).toRect().contains(event->pos()))
+    if ( layer && (layer->IsLocked() || bClickToLock) && item->data(0, Qt::UserRole+10).toRect().contains(event->pos()))
       return;
 
     QTreeWidget::mousePressEvent(event);
@@ -131,13 +132,14 @@ void LayerTreeWidget::mouseReleaseEvent(QMouseEvent *event)
       return;
     }
 
+    bool bClickToLock = MainWindow::GetMainWindow()->GetSetting("ClickToLock").toBool();
     Layer* layer = NULL;
     if (item)
       layer = reinterpret_cast<Layer*>( item->data(0, Qt::UserRole ).value<quintptr>() );
 
-    if ( layer && layer->IsLocked() && item->data(0, Qt::UserRole+10).toRect().contains(event->pos()))
+    if ( layer && (layer->IsLocked() || bClickToLock) && item->data(0, Qt::UserRole+10).toRect().contains(event->pos()))
     {
-      layer->Lock(false);
+      layer->Lock(!layer->IsLocked());
       return;
     }
 
@@ -156,7 +158,8 @@ void LayerTreeWidget::mouseMoveEvent(QMouseEvent *event)
   if (item)
     layer = reinterpret_cast<Layer*>( item->data(0, Qt::UserRole ).value<quintptr>() );
 
-  if ( layer && layer->IsLocked() && item->data(0, Qt::UserRole+10).toRect().contains(event->pos()) )
+  bool bClickToLock = MainWindow::GetMainWindow()->GetSetting("ClickToLock").toBool();
+  if ( layer && (layer->IsLocked() || bClickToLock) && item->data(0, Qt::UserRole+10).toRect().contains(event->pos()) )
   {
     setCursor(Qt::PointingHandCursor);
     return;

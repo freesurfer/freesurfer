@@ -8254,10 +8254,7 @@ void MainWindow::OnCloseFCD()
 
 QVariant MainWindow::GetSetting(const QString &key)
 {
-  if (m_settings.contains(key))
-    return m_settings[key];
-  else
-    return QVariant();
+  return m_settings.value(key);
 }
 
 void MainWindow::SetSetting(const QString &key, const QVariant &value)
