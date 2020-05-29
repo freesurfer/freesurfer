@@ -58,8 +58,9 @@ check_params_return:
 set StartTime = `date`;
 set tSecStart = `date '+%s'`;
 
-set outdir = `getfullpath $outdir`
 mkdir -p $outdir/stats $outdir/mri/transforms $outdir/scripts
+# outdir must exist before getfullpath
+set outdir = `getfullpath $outdir`
 
 if($#LF == 0) set LF = $outdir/scripts/gca-apply.$gcabase.log
 if($LF != /dev/null && -e $LF) mv $LF $LF.bak
@@ -278,9 +279,16 @@ while( $#argv != 0 )
 
     case "--hypothalamus":
       # For convenience, for now
-      set gca = /autofs/cluster/fsm/users/greve/subjects/gca.limbic5.fsm010/gca/gca.i02.gca
-      set ctab = /autofs/cluster/fsm/users/greve/subjects/gca.limbic5.fsm010/fsm.jca.2017c.lut
-      set gcabase = gca.limbic5
+      set gca = /autofs/cluster/fsm/users/greve/subjects/gca.limbic6.fsm010/gca/gca.i02.gca
+      set ctab = /autofs/cluster/fsm/users/greve/subjects/gca.limbic6.fsm010/fsm.jca.2017c+aseg.lut
+      set gcabase = gca.limbic6
+      breaksw
+
+    case "--hypothalamus-sym":
+      # For convenience, for now
+      set gca = /autofs/cluster/fsm/users/greve/subjects/gca.limbic6.fsm010.sym/gca/gca.i02.gca
+      set ctab = /autofs/cluster/fsm/users/greve/subjects/gca.limbic6.fsm010.sym/fsm.jca.2017c+aseg.lut
+      set gcabase = gca.limbic6.sym
       breaksw
 
     case "--force-update":
