@@ -101,6 +101,7 @@ DialogPreferences::DialogPreferences(QWidget *parent) :
   connect(ui->checkBoxAutoMidToMin, SIGNAL(toggled(bool)), mainwnd, SLOT(UpdateSettings()));
   connect(ui->spinBoxPrecision, SIGNAL(valueChanged(int)), mainwnd, SLOT(UpdateSettings()));
   connect(ui->checkBoxComma, SIGNAL(toggled(bool)), mainwnd, SLOT(UpdateSettings()));
+  connect(ui->checkBoxClickToLock, SIGNAL(toggled(bool)), mainwnd, SLOT(UpdateSettings()));
 
   connect(ui->spinBoxPrecision, SIGNAL(valueChanged(int)), mainwnd, SLOT(UpdateInfoPanel()), Qt::QueuedConnection);
   connect(ui->checkBoxComma, SIGNAL(toggled(bool)), mainwnd, SLOT(UpdateInfoPanel()), Qt::QueuedConnection);
@@ -152,6 +153,7 @@ void DialogPreferences::SetSettings(const QVariantMap &map)
   ui->spinBoxFontSize->setValue(map["TextSize"].toInt());
   ui->spinBoxPrecision->setValue(map["Precision"].toInt());
   ui->checkBoxComma->setChecked(map["UseComma"].toBool());
+  ui->checkBoxClickToLock->setChecked(map["ClickToLock"].toBool());
 
   MainWindow* mainwnd = MainWindow::GetMainWindow();
   QString val = map.value("ShortcutCycleLayer").toString();
@@ -204,6 +206,7 @@ QVariantMap DialogPreferences::GetSettings()
   map["AutoScaleText"] = ui->checkBoxAutoScaleFont->isChecked();
   map["Precision"] = ui->spinBoxPrecision->value();
   map["UseComma"] = ui->checkBoxComma->isChecked();
+  map["ClickToLock"] = ui->checkBoxClickToLock->isChecked();
   return map;
 }
 
