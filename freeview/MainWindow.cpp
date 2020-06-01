@@ -1788,6 +1788,10 @@ void MainWindow::RunScript()
   {
     CommandSetLUT( sa );
   }
+  else if ( cmd == "setselectedlabels")
+  {
+    CommandSetSelectedLabels( sa );
+  }
   else if ( cmd == "setopacity" )
   {
     CommandSetOpacity( sa );
@@ -2183,6 +2187,7 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
   bool bConform = m_bDefaultConform;
   QString gotoLabelName;
   QVariantMap sup_data;
+  QString selected_labels;
   for ( int i = 1; i < sa_vol.size(); i++ )
   {
     QString strg = sa_vol[i];
@@ -2401,6 +2406,10 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
         else
           cerr << "Unrecognized color input for :binary_color.\n";
       }
+      else if (subOption == "select_label")
+      {
+        selected_labels = subArgu;
+      }
       else if (!subOption.isEmpty())
       {
         cerr << "Unrecognized sub-option flag '" << strg.toLatin1().constData() << "'.\n";
@@ -2425,6 +2434,11 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
     script << colormap << colormap_scale
            << scales;
     m_scripts.insert( 0, script );
+
+    if (colormap == "lut" && !selected_labels.isEmpty())
+    {
+        m_scripts.insert(1, QStringList("setselectedlabels") << selected_labels);
+    }
   }
 
   if ( !lut_name.isEmpty() )
@@ -2466,6 +2480,8 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
   {
     orientation = 0;
   }
+
+
   LoadVolumeFile( fn, reg_fn, bResample, nSampleMethod, bConform, orientation, gotoLabelName, sup_data );
 }
 
@@ -2549,6 +2565,21 @@ void MainWindow::CommandSetColorMap( const QStringList& sa )
   }
 
   SetVolumeColorMap( nColorMap, nColorMapScale, pars );
+}
+
+void MainWindow::CommandSetSelectedLabels(const QStringList &cmd)
+{
+  if ( GetLayerCollection( "MRI" )->GetActiveLayer() )
+  {
+     LayerPropertyMRI* p = ( (LayerMRI*)GetLayerCollection( "MRI" )->GetActiveLayer() )->GetProperty();
+     QStringList list = cmd[1].split(",");
+     p->SetUnselectAllLabels();
+     foreach (QString str, list)
+     {
+         p->SetSelectLabel(str.toInt(), true);
+     }
+     emit RefreshLookUpTableRequested();
+  }
 }
 
 void MainWindow::CommandSetHeadScaleOptions( const QStringList& sa )
