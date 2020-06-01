@@ -160,6 +160,7 @@ int main(int argc, char *argv[])
     "':structure=name_or_value' Move the slice in the main viewport to where it has the most of the given structure.\n\n"
     "':ignore_header=flag' Ignore header information. Use the existing volume's header info. Flag can be '1' or '0' or 'true' or 'false'.\n\n"
     "':frame=number' Set active frame (0 based).\n\n"
+    "':select_label=label_index' When colormap is set as look up table, select and show only the given labels. Multiple labels can be given separated by comma, such as, '5,10,20'.\n\n"
     "Example:\nfreeview -v T1.mgz:colormap=heatscale:heatscale=10,100,200\n", 1, 1000 ),
     CmdLineEntry( CMD_LINE_SWITCH, "r", "resample", "", "Resample oblique data to standard RAS." ),
     CmdLineEntry( CMD_LINE_SWITCH, "conform", "conform", "", "Conform the volume to the first loaded volume." ),
