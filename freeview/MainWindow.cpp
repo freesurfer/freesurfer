@@ -830,11 +830,6 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
   m_bShowTransformWindow = parser->Found( "transform-volume" );
 
   bool bReverseOrder = parser->Found("rorder");
-  if (parser->Found("title", &sa))
-  {
-    m_sTitle = sa[0];
-    setWindowTitle("FreeView: " + m_sTitle);
-  }
   if ( parser->Found("cmd", &sa))
   {
     this->AddScript( QStringList("loadcommand") << sa[0]);
@@ -1288,6 +1283,12 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
 
   if (parser->Found("stdin"))
     m_term->EnableListeningStdin();
+
+  if (parser->Found("subtitle", &sa))
+  {
+    m_sTitle = sa[0];
+    setWindowTitle("FreeView: " + m_sTitle);
+  }
 
   return true;
 }
