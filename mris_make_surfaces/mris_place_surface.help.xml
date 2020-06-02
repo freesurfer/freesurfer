@@ -116,6 +116,9 @@
       <argument>--cover-seg SegVol </argument>
       <explanation>Force surface to cover the segmentation (or --cover_seg)</explanation>
 
+      <argument>--border-vals-hires </argument>
+      <explanation>Use high resolution options in ComputeBorderValues</explanation>
+
     </optional>
     <cost-function>
       <argument>--intensity weight</argument>
