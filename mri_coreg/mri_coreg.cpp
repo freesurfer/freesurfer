@@ -632,6 +632,27 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = 1;
       exit(0);
     } 
+    else if (!strcasecmp(option, "--par2mat")) {
+      if(nargc < 12) CMDargNErr(option,15);
+      double par[12];
+      int k;
+      for(k=0; k<12; k++) sscanf(pargv[k],"%lf",&par[k]);
+      //for(k=0; k<12; k++) printf("%lf\n",par[k]);
+      MRI *mrisrc, *mritarg;
+      mrisrc = MRIread(pargv[12]);
+      if(mrisrc==NULL) exit(1);
+      mritarg = MRIread(pargv[13]);
+      if(mritarg==NULL) exit(1);
+      MATRIX *T = TranformAffineParams2Matrix(par, NULL);
+      MatrixInverse(T,T);
+      LTA *lta = LTAcreate(mrisrc, mritarg, T, LINEAR_RAS_TO_RAS);
+      int err = LTAwrite(lta,pargv[14]);
+      MRIfree(&mrisrc);
+      MRIfree(&mritarg);
+      MatrixFree(&T);
+      LTAfree(&lta);
+      exit(err);
+    } 
     else if (!strcasecmp(option, "--rms")) {
       if(nargc < 2) CMDargNErr(option,4);
       double rms,RMSDiffRad;
@@ -808,6 +829,7 @@ static void print_usage(void) {
   printf("   --mov-oob : count mov voxels that are out-of-bounds as 0\n");
   printf("   --no-mov-oob : do not count mov voxels that are out-of-bounds as 0 (default)\n");
   printf("   --mat2par reg.lta : extract parameters out of registration\n");
+  printf("   --par2mat par1-par12 srcvol trgvol reg.lta : convert parameters to a  registration\n");
   printf("   --rms radius filename reg1 reg2 : compute RMS diff between two registrations using MJ's method (rad ~= 50mm)\n");
   printf("      The rms will be written to filename; if filename == nofile, then no file is created\n");
   printf("\n");
