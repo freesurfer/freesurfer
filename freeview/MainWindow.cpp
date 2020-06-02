@@ -1234,20 +1234,6 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
     AddScript(QStringList("center"));
   }
 
-  if ( parser->Found( "ss", &sa ) )
-  {
-    QString mag_factor = "1", auto_trim = "0";
-    if (sa.size() > 1)
-      mag_factor = sa[1];
-    if (sa.size() > 2)
-      auto_trim = sa[2];
-    this->AddScript( QStringList("screencapture") << sa[0] << mag_factor << auto_trim);
-    if (bAutoQuit && !parser->Found("noquit"))
-    {
-      this->AddScript( QStringList("quit") );
-    }
-  }
-
   if (parser->Found("fly", &sa))
   {
 
@@ -1275,9 +1261,6 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
     this->AddScript(QStringList("exportlineprofile") << sa[0]);
   }
 
-  if ( parser->Found("quit"))
-    AddScript(QStringList("quit") );
-
   m_bVerbose = parser->Found("verbose");
   m_bContinue = parser->Found("continue");
 
@@ -1289,6 +1272,25 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
     m_sTitle = sa[0];
     setWindowTitle("FreeView: " + m_sTitle);
   }
+
+  if ( parser->Found( "ss", &sa ) )
+  {
+    QString mag_factor = "1", auto_trim = "0";
+    if (sa.size() > 1)
+      mag_factor = sa[1];
+    if (sa.size() > 2)
+      auto_trim = sa[2];
+
+    this->AddScript( QStringList("screenshot") << sa[0] << mag_factor << auto_trim);
+
+    if (bAutoQuit && !parser->Found("noquit"))
+    {
+      this->AddScript( QStringList("quit") );
+    }
+  }
+
+  if ( parser->Found("quit"))
+    AddScript(QStringList("quit") );
 
   return true;
 }
@@ -1732,7 +1734,7 @@ void MainWindow::RunScript()
   {
     CommandSetTrackRender( sa );
   }
-  else if ( cmd == "screencapture" )
+  else if ( cmd == "screenshot" )
   {
     CommandScreenCapture( sa );
   }
@@ -2571,14 +2573,14 @@ void MainWindow::CommandSetSelectedLabels(const QStringList &cmd)
 {
   if ( GetLayerCollection( "MRI" )->GetActiveLayer() )
   {
-     LayerPropertyMRI* p = ( (LayerMRI*)GetLayerCollection( "MRI" )->GetActiveLayer() )->GetProperty();
-     QStringList list = cmd[1].split(",");
-     p->SetUnselectAllLabels();
-     foreach (QString str, list)
-     {
-         p->SetSelectLabel(str.toInt(), true);
-     }
-     emit RefreshLookUpTableRequested();
+    LayerPropertyMRI* p = ( (LayerMRI*)GetLayerCollection( "MRI" )->GetActiveLayer() )->GetProperty();
+    QStringList list = cmd[1].split(",");
+    p->SetUnselectAllLabels();
+    foreach (QString str, list)
+    {
+      p->SetSelectLabel(str.toInt(), true);
+    }
+    emit RefreshLookUpTableRequested();
   }
 }
 
@@ -4589,7 +4591,34 @@ void MainWindow::CommandScreenCapture( const QStringList& cmd )
   if (cmd.size() > 3 && (cmd[3] == "autotrim" || cmd[3] == "true" || cmd[3] == "1"))
     auto_trim = true;
 
-  if (!m_views[m_nMainView]->SaveScreenShot( cmd[1],
+  if (cmd[1].contains("%name"))
+  {
+    QString type = GetCurrentLayerType();
+    if (type == "MRI" || type == "Surface")
+    {
+      QStringList files;
+      QList<Layer*> layers = GetLayers(type);
+      for (int n = 0; n < layers.size(); n++)
+      {
+        for (int i = 0; i < layers.size(); i++)
+          layers[i]->SetVisible(i == n);
+
+        GetMainView()->RequestRedraw(true);
+        QString fn = cmd[1];
+        fn.replace("%name", layers[n]->GetName());
+        if (!GetMainView()->SaveScreenShot( fn, m_settingsScreenshot.AntiAliasing,
+                                                     (int)mag_factor))
+        {
+          cerr << "Failed to save screen shot to " << fn.toLatin1().constData() << ".\n";
+        }
+        else
+          files << fn;
+      }
+      if (auto_trim)
+        GetMainView()->TrimImageFiles(files);
+    }
+  }
+  else if (!GetMainView()->SaveScreenShot( cmd[1],
                                              m_settingsScreenshot.AntiAliasing,
                                              (int)mag_factor, auto_trim))
   {
