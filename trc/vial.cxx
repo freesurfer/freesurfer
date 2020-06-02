@@ -46,6 +46,9 @@ bool AffineReg::IsEmpty() { return mInToOut.empty(); }
 //
 void AffineReg::ReadXfm(const char *XfmFile, const MRI *InRefVol,
                                              const MRI *OutRefVol) {
+  bool islta = false;
+  string matline;
+
   // Read registration matrix from file
   mInToOut.clear();
 
@@ -59,11 +62,65 @@ void AffineReg::ReadXfm(const char *XfmFile, const MRI *InRefVol,
     }
 
     cout << "Loading affine registration from " << XfmFile << endl;
-    while (infile >> val)
-      mInToOut.push_back(val);
+    while (getline(infile, matline))
+      if (strcmp(matline.c_str(), "src volume info") == 0) {
+        islta = true;
+        infile.close();
+        break;
+      }
 
-    if (mInToOut.size() != 16) {
-      cout << "ERROR: File " << XfmFile << " must contain a 4x4 matrix" << endl;
+    if (islta) {						// LTA format
+      MATRIX *mat;
+      LTA *lta;
+
+      cout << "LTA registration format detected" << endl;
+
+      lta = LTAread(XfmFile);
+      if (lta == NULL) {
+        cout << "ERROR: cannot read " << XfmFile << endl;
+        exit(1);
+      }
+
+      if (lta->type != LINEAR_RAS_TO_RAS) {
+        LTAchangeType(lta, LINEAR_RAS_TO_RAS);
+
+        if (lta->type != LINEAR_RAS_TO_RAS) {
+          cout << "ERROR: cannot change LTA type to RAS_TO_RAS" << endl;
+          exit(1);
+        }
+      }
+
+      getVolGeom(InRefVol,  &lta->xforms[0].src);
+      getVolGeom(OutRefVol, &lta->xforms[0].dst);
+
+      // Extract vox-to-vox transform matrix from LTA
+      LTAchangeType(lta, FSLREG_TYPE);
+
+      mat = lta->xforms[0].m_L;
+      for (int i = 1; i < 5; i++)
+        for (int j = 1; j < 5; j++)
+          mInToOut.push_back(mat->rptr[i][j]);
+
+      LTAfree(&lta);
+    }
+    else if (isdigit(matline.c_str()[0])) {			// FSL format
+      infile.clear();
+      infile.seekg(0, ios::beg);
+
+      cout << "FSL registration format detected" << endl;
+
+      while (infile >> val)
+        mInToOut.push_back(val);
+
+      if (mInToOut.size() != 16) {
+        cout << "ERROR: File " << XfmFile << " must contain a 4x4 matrix"
+             << endl;
+        exit(1);
+      }
+    }
+    else {
+      cout << "ERROR: Unrecognized transform format in " << XfmFile
+           << " - LTA or FSL format expected" << endl;
       exit(1);
     }
   }
