@@ -256,6 +256,7 @@ int nsmoothsurf=0;
 int noverbose = 0;
 int DoBB = 0, nPadBB=0;
 int DoCount = 1;
+int ReverseFaceOrder = 0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
@@ -577,6 +578,12 @@ int main(int argc, char *argv[]) {
     MRIS *surf;
     surf = MRIStessellate(OutVol,BinVal,0);
     if(nsmoothsurf > 0) MRISaverageVertexPositions(surf, nsmoothsurf) ;
+    if(ReverseFaceOrder){
+      printf("Reversing face order\n");
+      MRISreverseFaceOrder(surf);
+      MRIScomputeMetricProperties(surf);
+    }
+
     MRISwrite(surf,SurfFile);
     MRISfree(&surf);
   }
@@ -630,6 +637,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--bincol")) DoBinCol = 1;
     else if (!strcasecmp(option, "--uchar")) mriTypeUchar = 1;
     else if (!strcasecmp(option, "--no-count")) DoCount = 0;
+    else if (!strcasecmp(option, "--reverse")) ReverseFaceOrder = 1;
     else if (!strcasecmp(option, "--zero-edges")){
       ZeroColEdges = 1;
       ZeroRowEdges = 1;
