@@ -75,8 +75,8 @@ char *inDir = NULL,
      *inRefFile = NULL, *outRefFile = NULL,
      *affineXfmFile = NULL, *nonlinXfmFile = NULL;
 vector<char *> inTrkList, inAscList, outTrkList, outAscList, outVolList,
-               incMaskList, excMaskList;
-vector<MRI *>  incMask, excMask;
+               incMaskList, excMaskList, incTermMaskList, excTermMaskList;
+vector<MRI *>  incMask, excMask, incTermMask, excTermMask;
 
 struct utsname uts;
 char *cmdline, cwd[2000];
@@ -148,6 +148,16 @@ int main(int argc, char **argv) {
   for (vector<char *>::const_iterator imask = excMaskList.begin();
                                       imask < excMaskList.end(); imask++)
     excMask.push_back(MRIread(*imask));
+
+  // Read terminal inclusion masks
+  for (vector<char *>::const_iterator imask = incTermMaskList.begin();
+                                      imask < incTermMaskList.end(); imask++)
+    incTermMask.push_back(MRIread(*imask));
+
+  // Read terminal exclusion masks
+  for (vector<char *>::const_iterator imask = excTermMaskList.begin();
+                                      imask < excTermMaskList.end(); imask++)
+    excTermMask.push_back(MRIread(*imask));
 
   for (unsigned int itract = 0; itract < nTract; itract++) {
     int npts, nstr = 0;
@@ -311,11 +321,56 @@ int main(int argc, char **argv) {
       copy(newpts.begin(), newpts.end(), streamlines[kstr].begin());
     }
 
-    // Apply inclusion masks
+    // Apply inclusion/exclusion masks
     nstr = streamlines.size();
 
     for (int kstr = nstr-1; kstr >= 0; kstr--) {
       bool dokeep = true;
+
+      // There must be an endpoint that intersects each terminal inclusion mask
+      for (vector<MRI *>::const_iterator imask = incTermMask.begin();
+                                         imask < incTermMask.end(); imask++) {
+        vector<float>::const_iterator ipt = streamlines[kstr].begin();
+        int ix = (int) round(ipt[0]),
+            iy = (int) round(ipt[1]),
+            iz = (int) round(ipt[2]);
+
+        if (ix < 0)                   ix = 0;
+        if (ix >= (*imask)->width)    ix = (*imask)->width-1;
+        if (iy < 0)                   iy = 0;
+        if (iy >= (*imask)->height)   iy = (*imask)->height-1;
+        if (iz < 0)                   iz = 0;
+        if (iz >= (*imask)->depth)    iz = (*imask)->depth-1;
+
+        dokeep = false;
+
+        if (MRIgetVoxVal(*imask, ix, iy, iz, 0) > 0)
+           dokeep = true;
+        else {
+          ipt = streamlines[kstr].end() - 3;
+          ix = (int) round(ipt[0]);
+          iy = (int) round(ipt[1]);
+          iz = (int) round(ipt[2]);
+
+          if (ix < 0)                   ix = 0;
+          if (ix >= (*imask)->width)    ix = (*imask)->width-1;
+          if (iy < 0)                   iy = 0;
+          if (iy >= (*imask)->height)   iy = (*imask)->height-1;
+          if (iz < 0)                   iz = 0;
+          if (iz >= (*imask)->depth)    iz = (*imask)->depth-1;
+
+          if (MRIgetVoxVal(*imask, ix, iy, iz, 0) > 0)
+           dokeep = true;
+        }
+
+        if (!dokeep)
+          break;
+      }
+
+      if (!dokeep) {
+        streamlines.erase(streamlines.begin() + kstr);
+        continue;
+      }
 
       // There must be at least one point that intersects each inclusion mask
       for (vector<MRI *>::const_iterator imask = incMask.begin();
@@ -340,6 +395,49 @@ int main(int argc, char **argv) {
              dokeep = true;
              break;
           }
+        }
+
+        if (!dokeep)
+          break;
+      }
+
+      if (!dokeep) {
+        streamlines.erase(streamlines.begin() + kstr);
+        continue;
+      }
+
+      // There must be no endpoint that intersects any terminal exclusion mask
+      for (vector<MRI *>::const_iterator imask = excTermMask.begin();
+                                         imask < excTermMask.end(); imask++) {
+        vector<float>::const_iterator ipt = streamlines[kstr].begin();
+        int ix = (int) round(ipt[0]),
+            iy = (int) round(ipt[1]),
+            iz = (int) round(ipt[2]);
+
+        if (ix < 0)                   ix = 0;
+        if (ix >= (*imask)->width)    ix = (*imask)->width-1;
+        if (iy < 0)                   iy = 0;
+        if (iy >= (*imask)->height)   iy = (*imask)->height-1;
+        if (iz < 0)                   iz = 0;
+        if (iz >= (*imask)->depth)    iz = (*imask)->depth-1;
+
+        if (MRIgetVoxVal(*imask, ix, iy, iz, 0) > 0) 
+          dokeep = false;
+        else {
+          ipt = streamlines[kstr].end() - 3;
+          ix = (int) round(ipt[0]),
+          iy = (int) round(ipt[1]),
+          iz = (int) round(ipt[2]);
+
+          if (ix < 0)                   ix = 0;
+          if (ix >= (*imask)->width)    ix = (*imask)->width-1;
+          if (iy < 0)                   iy = 0;
+          if (iy >= (*imask)->height)   iy = (*imask)->height-1;
+          if (iz < 0)                   iz = 0;
+          if (iz >= (*imask)->depth)    iz = (*imask)->depth-1;
+
+          if (MRIgetVoxVal(*imask, ix, iy, iz, 0) > 0) 
+            dokeep = false;
         }
 
         if (!dokeep)
@@ -721,6 +819,12 @@ int main(int argc, char **argv) {
   for (vector<MRI *>::iterator imask = excMask.begin();
                                imask < excMask.end(); imask++)
     MRIfree(&(*imask));
+  for (vector<MRI *>::iterator imask = incTermMask.begin();
+                               imask < incTermMask.end(); imask++)
+    MRIfree(&(*imask));
+  for (vector<MRI *>::iterator imask = excTermMask.begin();
+                               imask < excTermMask.end(); imask++)
+    MRIfree(&(*imask));
 
   cout << "dmri_trk2trk done" << endl;
   return(0);
@@ -839,6 +943,22 @@ static int parse_commandline(int argc, char **argv) {
         nargsused++;
       }
     }
+    else if (!strcmp(option, "--itmask")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      nargsused = 0;
+      while (nargsused < nargc && strncmp(pargv[nargsused], "--", 2)) {
+        incTermMaskList.push_back(pargv[nargsused]);
+        nargsused++;
+      }
+    }
+    else if (!strcmp(option, "--etmask")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      nargsused = 0;
+      while (nargsused < nargc && strncmp(pargv[nargsused], "--", 2)) {
+        excTermMaskList.push_back(pargv[nargsused]);
+        nargsused++;
+      }
+    }
     else if (!strcasecmp(option, "--lmin")) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0], "%d", &lengthMin);
@@ -909,6 +1029,10 @@ static void print_usage(void)
   << "     Inclusion mask(s), applied to all input .trk files" << endl
   << "   --emask <file> [...]:" << endl
   << "     Exclusion mask(s), applied to all input .trk files" << endl
+  << "   --itmask <file> [...]:" << endl
+  << "     Terminal inclusion mask(s), applied to all input .trk files" << endl
+  << "   --etmask <file> [...]:" << endl
+  << "     Terminal exclusion mask(s), applied to all input .trk files" << endl
   << "   --lmin <num>:" << endl
   << "     Only save streamlines with length greater than this number" << endl
   << "   --lmax <num>:" << endl
@@ -1066,6 +1190,20 @@ static void dump_options(FILE *fp) {
     cout << "Exclusion mask volumes:";
     for (vector<char *>::const_iterator istr = excMaskList.begin();
                                         istr < excMaskList.end(); istr++)
+      cout << " " << *istr;
+    cout << endl;
+  }
+  if (!incTermMaskList.empty()) {
+    cout << "Terminal inclusion mask volumes:";
+    for (vector<char *>::const_iterator istr = incTermMaskList.begin();
+                                        istr < incTermMaskList.end(); istr++)
+      cout << " " << *istr;
+    cout << endl;
+  }
+  if (!excTermMaskList.empty()) {
+    cout << "Terminal exclusion mask volumes:";
+    for (vector<char *>::const_iterator istr = excTermMaskList.begin();
+                                        istr < excTermMaskList.end(); istr++)
       cout << " " << *istr;
     cout << endl;
   }
