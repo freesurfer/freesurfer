@@ -9057,7 +9057,7 @@ MRIScomputeBorderValuesV6(MRI_SURFACE *mris,MRI *mri_brain,
         }
       }
       outward_dist = dist-step_size/2 ;
-      if (!finite(outward_dist))
+      if (!isfinite(outward_dist))
       {
         DiagBreak() ;
       }
