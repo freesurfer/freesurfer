@@ -384,7 +384,9 @@ main(int argc, char *argv[])
   fprintf(stderr, "projecting onto sphere...\n");
   fflush(stdout); fflush(stderr);
 
+  printf("pre  MRISprojectOntoSphere VmPeak  %d\n",GetVmPeak());
   MRISprojectOntoSphere(mris, mris, target_radius) ;
+  printf("post MRISprojectOntoSphere VmPeak  %d\n",GetVmPeak());
 
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
   {
@@ -422,6 +424,7 @@ main(int argc, char *argv[])
   else
   {
     MRISunfold(mris, &parms, max_passes) ;
+    printf("post MRISunfold VmPeak  %d\n",GetVmPeak());
   }
   if (remove_negative)
   {
@@ -437,9 +440,6 @@ main(int argc, char *argv[])
   }
 
   fflush(stdout); fflush(stderr);
-  // Print usage stats to the terminal (and a file is specified)
-  PrintRUsage(RUSAGE_SELF, "mris_sphere ", stdout);
-  if(rusage_file) WriteRUsage(RUSAGE_SELF, "", rusage_file);
 
   msec = then.milliseconds() ;
   fflush(stdout); fflush(stderr);
@@ -454,6 +454,8 @@ main(int argc, char *argv[])
 #else
   printf("FSRUNTIME@ mris_sphere %7.4f hours %d threads\n",msec/(1000.0*60.0*60.0),1);
 #endif
+  printf("#VMPC# mris_sphere VmPeak  %d\n",GetVmPeak());
+  printf("mris_sphere done\n");
 
   exit(0) ;
   return(0) ;  /* for ansi */
@@ -508,6 +510,19 @@ get_option(int argc, char *argv[])
     nargs = 3 ;
     fprintf(stderr, "rotating brain by (%2.1f, %2.1f, %2.1f)\n",
             ralpha, rbeta, rgamma) ;
+  }
+  else if (!stricmp(option, "openmp") || !stricmp(option, "threads")) 
+  {
+    char str[STRLEN] ;
+    sprintf(str, "OMP_NUM_THREADS=%d", atoi(argv[2]));
+    putenv(str) ;
+#ifdef HAVE_OPENMP
+    omp_set_num_threads(atoi(argv[2]));
+#else
+    fprintf(stderr, "Warning - built without openmp support\n");
+#endif
+    nargs = 1 ;
+    fprintf(stderr, "Setting %s\n", str) ;
   }
   else if (!stricmp(option, "rusage"))
   {
