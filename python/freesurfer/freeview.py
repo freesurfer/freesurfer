@@ -132,11 +132,12 @@ class Freeview:
         flag = '-f ' + filename + self._kwargs_to_tags(kwargs)
         self.add_flag(flag)
 
-    def show(self, background=True, opts='', verbose=False, noclean=False, threads=None):
+    def show(self, background=True, title=None, opts='', verbose=False, noclean=False, threads=None):
         '''Opens the configured freeview session.
 
         Args:
             background: Run freeview as a background process. Defaults to True.
+            title: Title for the freeview window. Defaults to None.
             opts: Additional arguments to append to the command.
             verbose: Print the freeview command before running. Defaults to False.
             noclean: Do not remove temporary directory for debugging purposes.
@@ -145,6 +146,9 @@ class Freeview:
 
         # compile the command
         command = '%s freeview %s %s' % (self._vgl_wrapper(), opts, ' '.join(self.flags))
+
+        if title is not None:
+            command += ' -title "%s"' % title.replace('"', '\\"')
 
         # be sure to remove the temporary directory (if it exists) after freeview closes
         if self.tempdir and not noclean:
@@ -203,7 +207,7 @@ class Freeview:
         if isinstance(volume, np.ndarray):
             volume = self._convert_ndarray(volume) if force is None else force(volume.squeeze())
             if volume is None:
-                error('cannot convert array of shape %s' % str(array.shape))
+                error('cannot convert array of shape %s' % str(volume.shape))
                 return None
 
         # configure filename
@@ -337,20 +341,22 @@ def fv(*args, **kwargs):
     Args:
         opts: Additional string of flags to add to the command.
         background: Run freeview as a background process. Defaults to True.
+        kwargs: kwargs are forwarded to the Freeview.show() call.
     '''
     background = kwargs.pop('background', True)
     opts = kwargs.pop('opts', '')
 
-    # expand any lists within args
-    expanded_args = []
-    for arg in args:
-        if isinstance(arg, (list, tuple)):
-            expanded_args += arg
-        else:
-            expanded_args.append(arg)
+    # expand any nested lists/tuples within args
+    def flatten(deep):
+        for el in deep:
+            if isinstance(el, (list, tuple)):
+                yield from flatten(el)
+            else:
+                yield el
 
     fv = Freeview()
-    for arg in expanded_args:
+
+    for arg in flatten(args):
         if isinstance(arg, str):
             # try to guess filetype if string
             if arg.endswith(('.mgz', '.mgh', '.nii.gz', '.nii')):
@@ -366,10 +372,10 @@ def fv(*args, **kwargs):
             # assume anything else is a volume
             fv.vol(arg)
 
-    fv.show(background=background, opts=opts)
+    fv.show(background=background, opts=opts, **kwargs)
 
 
-def fvoverlay(surface, overlay, background=True, opts='', verbose=False):
+def fvoverlay(surface, overlay, background=True, opts='', verbose=False, **kwargs):
     '''Freeview wrapper to quickly load an overlay onto a surface.
 
     Args:
@@ -377,7 +383,8 @@ def fvoverlay(surface, overlay, background=True, opts='', verbose=False):
         overlay: An existing volume filename, a numpy array, or a nibabel image to apply as an overlay.
         background: Run freeview as a background process. Defaults to True.
         verbose: Print the freeview command before running. Defaults to False.
+        kwargs: kwargs are forwarded to the Freeview.show() call.
     '''
     fv = Freeview()
     fv.surf(surface, overlay=overlay)
-    fv.show(background=background, opts=opts, verbose=verbose)
+    fv.show(background=background, opts=opts, verbose=verbose, **kwargs)

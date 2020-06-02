@@ -373,6 +373,7 @@ protected:
   void CommandSetHeadScaleOptions( const QStringList& sa );
   void CommandSetOpacity        ( const QStringList& cmd );
   void CommandSetLabelOutline   ( const QStringList& cmd );
+  void CommandSetSelectedLabels (const QStringList& cmd);
   void CommandSetSurfaceOverlayMethod     ( const QStringList& cmd );
   void CommandSetSurfaceOverlayColormap   ( const QStringList& cmd );
   void CommandSetSurfaceOverlayOpacity    ( const QStringList& cmd );
@@ -676,6 +677,7 @@ private:
   bool                  m_bContinue;
 
   bool                  m_bHadError;
+  QString               m_sTitle;
 };
 
 #endif // MAINWINDOW_H
