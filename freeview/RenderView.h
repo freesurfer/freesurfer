@@ -77,6 +77,8 @@ public:
 
   bool SaveScreenShot(const QString& filename, bool bAntiAliasing, int nMag = 1, bool bAutoTrim = false);
 
+  void TrimImageFiles(const QStringList& files);
+
   virtual void TriggerContextMenu( QMouseEvent* event ) { Q_UNUSED(event); }
 
 signals:
