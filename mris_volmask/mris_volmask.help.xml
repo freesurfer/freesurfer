@@ -66,6 +66,8 @@
       <explanation>only process left hemi</explanation>
       <argument>--rh-only</argument>
       <explanation>only process right hemi</explanation>
+      <argument>--parallel</argument>
+      <explanation>Run hemispheres in parallel (ie, on two CPUs) and combine the result</explanation>
       <argument>--edit_aseg</argument>
       <explanation>option to edit the aseg using the ribbons and save to aseg.ribbon.mgz in the mri directory</explanation>
       <argument>--save_ribbon</argument>
