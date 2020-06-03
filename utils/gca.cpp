@@ -11635,21 +11635,6 @@ const char *cma_label_to_name(int label)
     return ("Tumor");
   }
 
-  if (label == cc_body) {
-    return ("Corpus Callosum - Body");
-  }
-  if (label == cc_genu) {
-    return ("Corpus Callosum - Genu");
-  }
-  if (label == cc_splenium) {
-    return ("Corpus Callosum - Splenium");
-  }
-  if (label == lh_af) {
-    return ("Left Arcuate Fasciculus");
-  }
-  if (label == rh_af) {
-    return ("Right Arcuate Fasciculus");
-  }
   if (label == lh_cst) {
     return ("Left Corticospinal Tract");
   }
@@ -11680,12 +11665,6 @@ const char *cma_label_to_name(int label)
   if (label == rh_atr) {
     return ("Right Anterior Thalamic Radiation");
   }
-  if (label == lh_cb) {
-    return ("Left Cingulum Bundle");
-  }
-  if (label == rh_cb) {
-    return ("Right Cingulum Bundle");
-  }
   if (label == lh_ccg) {
     return ("Left Cingulum - Cingulate Gyrus");
   }
@@ -11697,12 +11676,6 @@ const char *cma_label_to_name(int label)
   }
   if (label == rh_cab) {
     return ("Right Cingulum - Angular Bundle");
-  }
-  if (label == lh_slf) {
-    return ("Left Superior Longitudinal Fasciculus");
-  }
-  if (label == rh_slf) {
-    return ("Right Superior Longitudinal Fasciculus");
   }
   if (label == lh_slfp) {
     return ("Left Superior Longitudinal Fasciculus - Parietal");
