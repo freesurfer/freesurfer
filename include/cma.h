@@ -317,39 +317,39 @@
 // Interhemispheric tracts
 #define fmajor 5100 //                                  204 102 102 0
 #define fminor 5101 //                                  204 102 102 0
-#define cc.body 5102 //                                 204 102 102 0
-#define cc.genu 5103 //                                 204 102 102 0
-#define cc.splenium 5104 //                             204 102 102 0
+#define cc_body 5102 //                                 204 102 102 0
+#define cc_genu 5103 //                                 204 102 102 0
+#define cc_splenium 5104 //                             204 102 102 0
 
 // Left hemi tracts
-#define lh.atr 5200 //                                  255 255 102 0
-#define lh.cab 5201 //                                  153 204 0   0
-#define lh.ccg 5202 //                                  0   153 153 0
-#define lh.cst 5203 //                                  204 153 255 0
-#define lh.ilf 5204 //                                  255 153 51  0
-#define lh.slfp 5205 //                                 204 204 204 0
-#define lh.slft 5206 //                                 153 255 255 0
-#define lh.unc 5207 //                                  102 153 255 0
-#define lh.cb 5208 //                                   0   153 153 0
-#define lh.slf 5209 //                                  204 204 204 0
-#define lh.af 5210 //                                   153 255 255 0
-#define lh.ifof 5211 //                                 153 204 51  0
-#define lh.fx 5212 //                                   204 102 153 0
+#define lh_atr 5200 //                                  255 255 102 0
+#define lh_cab 5201 //                                  153 204 0   0
+#define lh_ccg 5202 //                                  0   153 153 0
+#define lh_cst 5203 //                                  204 153 255 0
+#define lh_ilf 5204 //                                  255 153 51  0
+#define lh_slfp 5205 //                                 204 204 204 0
+#define lh_slft 5206 //                                 153 255 255 0
+#define lh_unc 5207 //                                  102 153 255 0
+#define lh_cb 5208 //                                   0   153 153 0
+#define lh_slf 5209 //                                  204 204 204 0
+#define lh_af 5210 //                                   153 255 255 0
+#define lh_ifof 5211 //                                 153 204 51  0
+#define lh_fx 5212 //                                   204 102 153 0
 
 // Right hemi tracts
-#define rh.atr 5300 //                                  255 255 102 0
-#define rh.cab 5301 //                                  153 204 0   0
-#define rh.ccg 5302 //                                  0   153 153 0
-#define rh.cst 5303 //                                  204 153 255 0
-#define rh.ilf 5304 //                                  255 153 51  0
-#define rh.slfp 5305 //                                 204 204 204 0
-#define rh.slft 5306 //                                 153 255 255 0
-#define rh.unc 5307 //                                  102 153 255 0
-#define rh.cb 5308 //                                   0   153 153 0
-#define rh.slf 5309 //                                  204 204 204 0
-#define rh.af 5310 //                                   153 255 255 0
-#define rh.ifof 5311 //                                 153 204 51  0
-#define rh.fx 5213 //                                   204 102 153 0
+#define rh_atr 5300 //                                  255 255 102 0
+#define rh_cab 5301 //                                  153 204 0   0
+#define rh_ccg 5302 //                                  0   153 153 0
+#define rh_cst 5303 //                                  204 153 255 0
+#define rh_ilf 5304 //                                  255 153 51  0
+#define rh_slfp 5305 //                                 204 204 204 0
+#define rh_slft 5306 //                                 153 255 255 0
+#define rh_unc 5307 //                                  102 153 255 0
+#define rh_cb 5308 //                                   0   153 153 0
+#define rh_slf 5309 //                                  204 204 204 0
+#define rh_af 5310 //                                   153 255 255 0
+#define rh_ifof 5311 //                                 153 204 51  0
+#define rh_fx 5213 //                                   204 102 153 0
 
 
 /*
