@@ -305,9 +305,10 @@ static MRISBaseConst MRISBaseToConst (      MRISBase src                       )
 //  until surface placement.
 extern int UnitizeNormalFace;
 
-//  This variable can be used to turn on the hires options
+//  These variables can be used to turn on peak-finding options
 //  in MRIScomputeBorderValues_new()
-extern int BorderValsHiRes;
+extern int CBVfindFirstPeakD1;
+extern int CBVfindFirstPeakD2;
 
 //  This is used to record the actual value and difference
 //  into v->valbak and v->val2bak when running mrisRmsValError()

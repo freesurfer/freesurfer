@@ -116,8 +116,10 @@
       <argument>--cover-seg SegVol </argument>
       <explanation>Force surface to cover the segmentation (or --cover_seg)</explanation>
 
-      <argument>--border-vals-hires </argument>
-      <explanation>Use high resolution options in ComputeBorderValues</explanation>
+      <argument>--first-peak-d1 </argument>
+      <explanation>Use find-first-peak option with 1st derivative in ComputeBorderValues</explanation>
+      <argument>--first-peak-d2 </argument>
+      <explanation>Use find-first-peak option with 2nd derivative in ComputeBorderValues</explanation>
 
     </optional>
     <cost-function>

@@ -756,9 +756,10 @@ static int parse_commandline(int argc, char **argv) {
     else if(!strcmp(option, "--rip-midline"))     ripmngr.RipMidline = 1;
     else if(!strcmp(option, "--no-rip-midline"))  ripmngr.RipMidline = 0;
     else if(!strcmp(option, "--no-intensity-proc"))  DoIntensityProc = 0;
-    else if(!strcmp(option, "--border-vals-hires"))    BorderValsHiRes = 1;
-    else if(!strcmp(option, "--no-border-vals-hires")) BorderValsHiRes = 0;
-    else if(!strcmp(option, "--first-wm-peak"))    parms.flags |= IPFLAG_FIND_FIRST_WM_PEAK ;
+    else if(!strcmp(option, "--first-peak-d1"))    CBVfindFirstPeakD1 = 1;
+    else if(!strcmp(option, "--no-first-peak-d1")) CBVfindFirstPeakD1 = 0;
+    else if(!strcmp(option, "--first-peak-d2"))    CBVfindFirstPeakD2 = 1;
+    else if(!strcmp(option, "--no-first-peak-d2")) CBVfindFirstPeakD2 = 0;
     else if(!strcmp(option, "--lh"))  hemi = "lh";
     else if(!strcmp(option, "--rh"))   hemi = "rh";
     else if(!strcmp(option, "--rip-projection")){

@@ -2225,10 +2225,16 @@ get_option(int argc, char *argv[])
     printf("Turning off face normal unitization\n");
     nargs = 0 ;
   }
-  else if (!stricmp(option, "border-vals-hires"))
+  else if (!stricmp(option, "first-peak-d1"))
   {
-    BorderValsHiRes = 1;
-    printf("Turning on hires option for MRIScomputeBorderValues_new()\n");
+    CBVfindFirstPeakD1 = 1;
+    printf("Turning on FindFirstPeakD1 option for MRIScomputeBorderValues_new()\n");
+    nargs = 0 ;
+  }
+  else if (!stricmp(option, "first-peak-d2"))
+  {
+    CBVfindFirstPeakD2 = 1;
+    printf("Turning on FindFirstPeakD2 option for MRIScomputeBorderValues_new()\n");
     nargs = 0 ;
   }
   else if (!stricmp(option, "max_gray_scale"))
@@ -3012,11 +3018,6 @@ get_option(int argc, char *argv[])
   {
     add = 1 ;
     fprintf(stderr, "adding vertices to tessellation during deformation.\n");
-  }
-  else if (!stricmp(option, "first_wm_peak"))
-  {
-    parms.flags |= IPFLAG_FIND_FIRST_WM_PEAK ;
-    printf("settling WM surface at first peak in intensity profile\n") ;
   }
   else if (!stricmp(option, "max") || !stricmp(option, "max_thickness"))
   {

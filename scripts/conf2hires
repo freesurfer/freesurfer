@@ -24,7 +24,8 @@ set DoFLAIR = 0
 set DoFLAIRpial = 0
 set MMnormSigma = 8; 
 set MMBBRcon = t2;
-set BorderValsHiRes = 0;
+set CBVfindFirstPeakD1 = 0;
+set CBVfindFirstPeakD2 = 0;
 set DoSurfVolume = 0;
 set mps_n_averages = ()
 set XOptsFile = ()
@@ -371,7 +372,8 @@ foreach hemi ($hemilist)
     --wm $wm --invol $bfs --$hemi  --i $inputsurf --o $white \
     --white --nsmooth 0 --rip-label $cortex --rip-bg --rip-wmsa \
     --rip-surf $inputsurf --aparc $aparc)
-  if($BorderValsHiRes) set cmd = ($cmd --border-vals-hires)
+  if($CBVfindFirstPeakD1) set cmd = ($cmd --first-peak-d1)
+  if($CBVfindFirstPeakD2) set cmd = ($cmd --first-peak-d2)
   if($longitudinal) set cmd = ($cmd --max-cbv-dist 3.5) 
   if($#mps_n_averages) set cmd = ($cmd --n_averages $mps_n_averages)
   set xopts = `fsr-getxopts PlaceWhiteSurf $XOptsFile $GlobXOptsFile`;
@@ -402,7 +404,8 @@ foreach hemi ($hemilist)
       --wm $wm --invol $bfs --$hemi  --i $inputsurf --o $pial \
       --pial --nsmooth 0 --rip-label $cortexha --pin-medial-wall $cortex \
       --aparc $aparc --repulse-surf $white  --white-surf $white)
-  if($BorderValsHiRes) set cmd = ($cmd --border-vals-hires)
+  if($CBVfindFirstPeakD1) set cmd = ($cmd --first-peak-d1)
+  if($CBVfindFirstPeakD2) set cmd = ($cmd --first-peak-d2)
   if($longitudinal) then
     set cmd = ($cmd --max-cbv-dist 3.5) # --long not used anymore
     set cmd = ($cmd --blend-surf .25 $white)
@@ -746,11 +749,18 @@ while( $#argv != 0 )
       set MMnormSigma = $argv[1];shift
       breaksw;
 
-    case "--border-vals-hires"
-      set BorderValsHiRes = 1
+    case "--first-peak-d1"
+      set CBVfindFirstPeakD1 = 1
       breaksw;
-    case "--no-border-vals-hires"
-      set BorderValsHiRes = 0
+    case "--no-first-peak-d1"
+      set CBVfindFirstPeakD1 = 0
+      breaksw;
+
+    case "--first-peak-d2"
+      set CBVfindFirstPeakD2 = 1
+      breaksw;
+    case "--no-first-peak-d2"
+      set CBVfindFirstPeakD2 = 0
       breaksw;
 
     case "--openmp":
@@ -946,7 +956,8 @@ usage_exit:
   echo "  --bbr-con contype : set BBR contrast type (default $MMBBRcon)"
   echo "  --bbr-t1 : set BBR contrast type to t1"
   echo "  --bbr-t2 : set BBR contrast type to t2"
-  echo "  --border-vals-hires : refine surface targets in MRIScomputeBorderValues()"
+  echo "  --first-peak-d1 : refine surface targets in MRIScomputeBorderValues()"
+  echo "  --first-peak-d2 : refine surface targets in MRIScomputeBorderValues()"
   echo "  --expert xopts (or -expert)"
   echo "  --force-update"
   echo ""
