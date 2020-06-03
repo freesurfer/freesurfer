@@ -185,7 +185,6 @@ positive areas */
 #define IPFLAG_NOSCALE_TOL            0x8000   // don't scale tol with navgs
 #define IPFLAG_FORCE_GRADIENT_OUT    0x10000
 #define IPFLAG_FORCE_GRADIENT_IN     0x20000
-#define IPFLAG_FIND_FIRST_WM_PEAK    0x40000  // for Matt Glasser/David Van Essen
 
 #define INTEGRATE_LINE_MINIMIZE    0  /* use quadratic fit */
 #define INTEGRATE_MOMENTUM         1

@@ -28,6 +28,8 @@
 
 #include "mrisurf_base.h"
 
+int CBVfindFirstPeakD1 = 0;
+int CBVfindFirstPeakD2 = 0;
 
 static void showDtSSeRmsWkr(FILE* file, int n, double dt, double sse, double rms, double last_rms, int line)
 {
@@ -1598,8 +1600,10 @@ int MRIScomputeBorderValues(
     respect to orig{xyz}
   \param which = GRAY_WHITE or GRAY_CSF, gray/white surface or pial 
   \param thresh eg, 0. Mask value must be > thresh to be in the mask
-  \param flags IPFLAG_FIND_FIRST_WM_PEAK (with hires, generally not set)
   \param mri_aseg - use to check whether a voxel is in the contralat hemi
+
+  Global variables: CBVfindFirstPeakD1 and CBVfindFirstPeakD2
+
   Note: STEP_SIZE (all caps) is #defined. It controls the step size when searching
    through the normal after having found the distance range.
   Hidden Parameter: 1mm 
@@ -1671,7 +1675,8 @@ static int MRIScomputeBorderValues_new(
   printf("  which = %d\n",which);
   printf("  thresh = %g\n",thresh);
   printf("  flags = %d\n",flags);
-  printf("  BorderValsHiRes=%d\n",BorderValsHiRes);
+  printf("  CBVfindFirstPeakD1=%d\n",CBVfindFirstPeakD1);
+  printf("  CBVfindFirstPeakD2=%d\n",CBVfindFirstPeakD2);
   printf("  nvertices=%d\n",mris->nvertices);
   printf("  Gdiag_no=%d\n",Gdiag_no);
   if(vno_start < 0) vno_start = 0;
@@ -1724,7 +1729,7 @@ static int MRIScomputeBorderValues_new(
   for (vno = vno_start; vno < vno_stop; vno++) {
     ROMP_PFLB_begin
     
-    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    //VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
     VERTEX                * const v  = &mris->vertices         [vno];
     double next_val = 0;    
     
@@ -1858,7 +1863,7 @@ static int MRIScomputeBorderValues_new(
       // in v6. Also, next_val needs to be defined globally withing
       // the scope of the vertex loop. There are several places below
       // (now commented out) where it is redefined.
-      if(0 && BorderValsHiRes==1  && mag >= 0.0){
+      if(0 && CBVfindFirstPeakD1==1  && mag >= 0.0){
 	// This code is supposed to refine inward_dist for hires
 	// volumes. This is similar to the code above except using a
 	// step that is half the size. But it just looks at the value
@@ -1890,7 +1895,7 @@ static int MRIScomputeBorderValues_new(
             break; // break from distance loop
         } // end loop over distance
         inward_dist = dist;
-      } // end if(BorderValsHiRes)
+      } // end if(CBVfindFirstPeakD1)
 
       // search outwards
       if(vno == Gdiag_no) printf("vno=%d Starting outward loop (maxdist=%g,step=%g)\n",vno,max_thickness,step_size);
@@ -2007,7 +2012,7 @@ static int MRIScomputeBorderValues_new(
         MRIsampleVolume(mri_brain, xw, yw, zw, &val);
       }
 
-      // These are only used with hires or IPFLAG_FIND_FIRST_WM_PEAK
+      // These are only used with CBVfindFirstPeakD{1,2}
       sample_dists[numberOfSamples] = dist;
       sample_mri[numberOfSamples]   = val;
       numberOfSamples++;
@@ -2071,19 +2076,13 @@ static int MRIScomputeBorderValues_new(
         MRIS_useRAS2VoxelMap(sras2v_map, mri_brain,x, y, z, &xw, &yw, &zw);
         MRIsampleVolumeDerivativeScale(mri_tmp, xw, yw, zw, nx, ny, nz, &mag, sigma);
         
-        // Only for "hires" volumes or if IP flag is set - if
-	// intensities are increasing don't keep going.  This could be
-	// done earlier, before the gradient is computed, to save some
-	// time.
-	if (vno == Gdiag_no)
-	  printf("vno=%d  val = %g   prev = %g   next =%g\n",vno,val,previous_val,next_val);
+	if (vno == Gdiag_no) printf("vno=%d  val = %g   prev = %g   next =%g\n",vno,val,previous_val,next_val);
         if ((which == GRAY_WHITE) &&  
-	    (BorderValsHiRes==1 || flags & IPFLAG_FIND_FIRST_WM_PEAK) &&  
+	    (CBVfindFirstPeakD1 || CBVfindFirstPeakD2) &&  
 	    (val > previous_val ) && (next_val > val) ) { 
 	  // This if() did not have "&& (next_val > val)" which was in the "orignial"
 	  // ie, v6 and before
-          if (vno == Gdiag_no)
-            printf("vno=%d breaking because val > prev && nex > val\n",vno);
+          if (vno == Gdiag_no) printf("vno=%d breaking because val > prev && nex > val\n",vno);
           break; // out of distance loop
         }
  
@@ -2225,23 +2224,20 @@ static int MRIScomputeBorderValues_new(
       fp = NULL;
     }
 
-    // Doesn't apply to standard stream - only highres or if user
-    // specifies IPFLAG_FIND_FIRST_WM_PEAK. Not clear what effect this will have
-    if (BorderValsHiRes || flags & IPFLAG_FIND_FIRST_WM_PEAK) {
+    /* The code below was developed at the request of the HCP for
+       hires. It is essentially a way to recompute the target distance
+       by finding the first (neg) peak of the derivative. This helps
+       recover from when the white target is mistakenly placed at the
+       pial surface (probably because the orig surface extended too
+       far. This can happen in high myelin areas where mri_segment
+       overlabels WM).  The CBVfindFirstPeakD2 somehow refines this
+       using the 2nd derivatative. Shouldn't this be conditioned on
+       placing the white surface? */
+    // In V6: if (mri_brain->xsize < .95 || flags & IPFLAG_FIND_FIRST_WM_PEAK) 
+    if(CBVfindFirstPeakD1 || CBVfindFirstPeakD2) {
       // whalf Hidden parameter. Units of STEP_SIZE (I think)
-      int const whalf = 7; // This was a #define
+      int const whalf = 7; 
 
-      if(vno == Gdiag_no) 
-	DiagBreak();
-
-      {
-        int n;
-        for (n = 0; n < vt->vnum; n++)
-          if (vt->v[n] == Gdiag_no) {
-            DiagBreak();
-          }
-      }
-      
       // Find max in the samples range, and also compute 1st
       // derivative and put it in dm array Generally expect this
       // derivative to be negative
@@ -2251,7 +2247,7 @@ static int MRIScomputeBorderValues_new(
         int i;
         for (i = 0; i < numberOfSamples; i++) {
           if (sample_mri[i] > max_mri) max_mri = sample_mri[i];
-          if (i < numberOfSamples - 1 && i > 0) {
+          if (i < numberOfSamples - 1 && i > 0) {// not first or last
             dm[i] = sample_mri[i + 1] - sample_mri[i - 1];
           } else {
             dm[i] = 0;
@@ -2259,9 +2255,9 @@ static int MRIScomputeBorderValues_new(
         }
       }
       
-      // compute second derivative if IPFLAG_FIND_FIRST_WM_PEAK
+      // compute second derivative if CBVfindFirstPeakD2
       float dm2[MAX_SAMPLES];
-      if (flags & IPFLAG_FIND_FIRST_WM_PEAK) {
+      if (CBVfindFirstPeakD2) {
         int i;
         for (i = 0; i < numberOfSamples; i++) {
           if (i < numberOfSamples - 1 && i > 0)
@@ -2280,7 +2276,9 @@ static int MRIScomputeBorderValues_new(
         }
       }
 
-      // If max_mri > 1.15*max_mag_val. How often does this happen? 
+      // max_mag_val is MRI value at the max derivative as found previously
+      // If max_mri > 1.15*max_mag_val. This can happen if the target was placed
+      // at the pial surface.
       if (max_mag_val > 0 && max_mri / 1.15 > max_mag_val) {
 	// Hidden parameter 1.15
 	// Not sure what's going on here.
@@ -2294,11 +2292,11 @@ static int MRIScomputeBorderValues_new(
 	  // Skip samples that have a positive 1st deriv 
           if (dm[i] > 0) continue;
 
-          peak    = dm[i];
+          peak    = dm[i]; // peak derivative
           outside = 0.0;
           int num = 0;
           
-	  // Compute an average 1st deriv within a range of this point
+	  // Compute an average 1st deriv within +/-whalf range of this point
           int const lo = MAX(0, i - whalf);          
           int const hi = MIN(i + whalf + 1, numberOfSamples);
           int i1;
@@ -2327,17 +2325,12 @@ static int MRIScomputeBorderValues_new(
         {
           if (vno == Gdiag_no)
             printf("v %d: resetting target to local max at %2.2f: I=%d, peak=%2.2f, outside=%2.2f, ratio=%2.2f\n",
-                   vno,
-                   sample_dists[i],
-                   (int)sample_mri[i],
-                   peak,
-                   outside,
-                   peak / outside);
+                   vno, sample_dists[i],(int)sample_mri[i], peak, outside,peak / outside);
           max_mag_val  = sample_mri[i];
           max_mag      = fabs(dm[i]);
           max_mag_dist = sample_dists[i];
         }
-        else if (flags & IPFLAG_FIND_FIRST_WM_PEAK)  // not a local max in 1st derivative - try second */
+        else if(CBVfindFirstPeakD2)  // not a local max in 1st derivative - try second */
         {
           for (i = 0; i < numberOfSamples; i++) {
             if (i == Gdiag_no2) DiagBreak();
@@ -2372,18 +2365,10 @@ static int MRIScomputeBorderValues_new(
           if (i < numberOfSamples - whalf && peak / outside > 1.5)  // it was a local max - set the target to here
           {
             if (vno == Gdiag_no)
-              printf(
-                  "!!!!!!!!! v %d: resetting target to local max at in second derivative %2.2f: I=%d, peak=%2.2f, "
-                  "outside=%2.2f, ratio=%2.2f\n",
-                  vno,
-                  sample_dists[i],
-                  (int)sample_mri[i],
-                  peak,
-                  outside,
-                  peak / outside);
-
+              printf("! v %d: resetting target to local max at in second derivative %2.2f: I=%d, peak=%2.2f, "
+		     "outside=%2.2f, ratio=%2.2f\n",
+		     vno,sample_dists[i],(int)sample_mri[i],peak,outside,peak / outside);
             max_mag = dm[i];
-            
             int i1;
             for (i1 = i + 1; i1 < numberOfSamples; i1++)  // search forward for largest (negative) derivative
               if (max_mag > dm[i1])           // previous one was largest negative one
@@ -2395,12 +2380,12 @@ static int MRIScomputeBorderValues_new(
             max_mag      = fabs(dm[i]);
             max_mag_dist = sample_dists[i];
           }
-        }
+        } // IPFLAG
         
         if (vno == Gdiag_no) DiagBreak();
       } // end if (max_mag_val > 0 && max_mri / 1.15 > max_mag_val) 
 
-    } // end if (BorderValsHiRes || flags & IPFLAG_FIND_FIRST_WM_PEAK)
+    } // end if (CBVfindFirstPeakD1 || CBVfindFirstPeakD2)
 
     if (which == GRAY_CSF && local_max_found == 0 && max_mag_dist > 0) {
       /* When placing the pial surface and the local max is not found,
@@ -2888,8 +2873,8 @@ static int MRIScomputeBorderValues_old(
         
         // only for hires volumes - if intensities are increasing don't keep going - in gm
         if ((which == GRAY_WHITE)
-        &&  (mri_brain->xsize < .95 || flags & IPFLAG_FIND_FIRST_WM_PEAK) 
-        &&  (val > previous_val )
+	    &&  (mri_brain->xsize < .95 || CBVfindFirstPeakD2)
+	    &&  (val > previous_val )
         /* && (next_val > val) */   // NOTE - the old code has this uncommented, but fails to init next_val on many of the paths leading to it!
             ) { 
           break;
@@ -3014,7 +2999,7 @@ static int MRIScomputeBorderValues_old(
     if (vno == Gdiag_no) fclose(fp);
 
     // doesn't apply to standard stream - only highres or if user specifies
-    if (mri_brain->xsize < .95 || flags & IPFLAG_FIND_FIRST_WM_PEAK) {
+    if (mri_brain->xsize < .95 || CBVfindFirstPeakD2) {
       int const whalf = 7;
 
       if (vno == Gdiag_no) 
@@ -3045,7 +3030,7 @@ static int MRIScomputeBorderValues_old(
       
       // compute second derivative
       float dm2[MAX_SAMPLES];
-      if (flags & IPFLAG_FIND_FIRST_WM_PEAK) {
+      if (CBVfindFirstPeakD2) {
         int i;
         for (i = 0; i < numberOfSamples; i++) {
           if (i < numberOfSamples - 1 && i > 0)
@@ -3111,7 +3096,7 @@ static int MRIScomputeBorderValues_old(
           max_mag_dist = dists[i];          // so this code can not be parallelized as is...
         }
         
-        else if (flags & IPFLAG_FIND_FIRST_WM_PEAK)  // not a local max in 1st derivative - try second */
+        else if (CBVfindFirstPeakD2)  // not a local max in 1st derivative - try second */
         {
           for (i = 0; i < numberOfSamples; i++) {
             if (i == Gdiag_no2) DiagBreak();
@@ -8875,7 +8860,7 @@ MRIScomputeBorderValuesV6(MRI_SURFACE *mris,MRI *mri_brain,
   printf("  which = %d\n",which);
   printf("  thresh = %g\n",thresh);
   printf("  flags = %d\n",flags);
-  printf("  BorderValsHiRes=%d\n",BorderValsHiRes);
+  printf("  CBVfindFirstPeakD1=%d\n",CBVfindFirstPeakD1);
   printf("  nvertices=%d\n",mris->nvertices);
   printf("  mri_aseg %d\n",(mri_aseg!=NULL));
   printf("  Gdiag_no=%d\n",Gdiag_no);
@@ -8988,7 +8973,7 @@ MRIScomputeBorderValuesV6(MRI_SURFACE *mris,MRI *mri_brain,
       inward_dist = dist+step_size/2 ;
 
       // if (DIAG_VERBOSE_ON && mri_brain->xsize < .95 && mag >= 0.0) // this in V6
-      if(0 && BorderValsHiRes==1 && mri_brain->xsize < .95 && mag >= 0.0)  // refine inward_dist for hires volumes
+      if(0 && CBVfindFirstPeakD1==1 && mri_brain->xsize < .95 && mag >= 0.0)  // refine inward_dist for hires volumes
       {
         for (dist = inward_dist ; dist > -max_thickness ; dist -= step_size/2)
         {
@@ -9162,8 +9147,8 @@ MRIScomputeBorderValuesV6(MRI_SURFACE *mris,MRI *mri_brain,
         // only for hires volumes - if intensities are increasing don't keep going - in gm
 	if (vno == Gdiag_no)
 	  printf("vno=%d  val = %g   prev = %g   next =%g\n",vno,val,previous_val,next_val);
-        if(BorderValsHiRes && which == GRAY_WHITE && 
-	    (mri_brain->xsize < .95 || flags & IPFLAG_FIND_FIRST_WM_PEAK) &&
+        if(CBVfindFirstPeakD1 && which == GRAY_WHITE && 
+	    (mri_brain->xsize < .95 || CBVfindFirstPeakD2) &&
             val > previous_val && next_val > val)
         {
           if (vno == Gdiag_no)
@@ -9296,7 +9281,7 @@ MRIScomputeBorderValuesV6(MRI_SURFACE *mris,MRI *mri_brain,
       fclose(fp) ;
 
     // doesn't appy to standard stream - only highres or if user specifies
-    if(BorderValsHiRes && (mri_brain->xsize < .95 || flags & IPFLAG_FIND_FIRST_WM_PEAK) )
+    if(CBVfindFirstPeakD1 && (mri_brain->xsize < .95 || CBVfindFirstPeakD2) )
     {
       int WSIZE = 7;
       int  len = i, i1, whalf = WSIZE, num ;
@@ -9322,7 +9307,7 @@ MRIScomputeBorderValuesV6(MRI_SURFACE *mris,MRI *mri_brain,
         }
       }
       // compute second derivative and look for local max in it
-      if(flags & IPFLAG_FIND_FIRST_WM_PEAK)
+      if(CBVfindFirstPeakD2)
       {
 	for (i = 0 ; i < len ; i++)
 	{
@@ -9373,7 +9358,7 @@ MRIScomputeBorderValuesV6(MRI_SURFACE *mris,MRI *mri_brain,
           max_mag = fabs(dm[i]) ;
           max_mag_dist = dists[i] ;
         }
-	else  if (flags & IPFLAG_FIND_FIRST_WM_PEAK) // not a local max in 1st derivative - try second */
+	else  if (CBVfindFirstPeakD2) // not a local max in 1st derivative - try second */
 	{
 	  for (i = 0 ; i < len ; i++)
 	  {

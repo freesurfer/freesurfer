@@ -19,9 +19,7 @@
 #include "mrisurf_base.h"
 
 int UnitizeNormalFace = 1;
-int BorderValsHiRes   = 0;
 int RmsValErrorRecord = 0;
-
 
 
 #if (!SPHERE_INTERSECTION)
