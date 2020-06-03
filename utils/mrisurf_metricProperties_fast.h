@@ -44,6 +44,8 @@ void MRISMP_dtr(MRIS_MP* mp) {
 #undef ELTX
 #undef SEP
 
+  if (mp->v_dist_buffer) freeAndNULL(mp->v_dist_buffer);
+
   // MRIS
   //
   {
