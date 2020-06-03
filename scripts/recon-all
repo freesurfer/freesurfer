@@ -3315,6 +3315,7 @@ if($DoWhitePreAparc) then
     set cmd = (mris_place_surface --adgws-in $ads --wm $wm \
      --invol $bfs --$hemi  --i $orig --o $whitepreaparc --white)
     if($UseAseg) set cmd = ($cmd --seg $aseg) # probably should always use
+    if($BorderValsHiRes) set cmd = ($cmd --border-vals-hires)
     if($longitudinal == 0) set cmd = ($cmd --nsmooth 5) # good idea?
     if($longitudinal == 1) set cmd = ($cmd --max-cbv-dist 3.5) 
     if($#mps_n_averages) set cmd = ($cmd --n_averages $mps_n_averages)
@@ -3558,7 +3559,6 @@ if($DoSphere) then
       # default stream:
       set xopts = `fsr-getxopts mris_sphere $XOptsFile $GlobXOptsFile`;
       set cmd = (mris_sphere)
-      set cmd = ($cmd -rusage $touchdir/rusage.mris_sphere.$hemi.dat) 
       if($NoRandomness) set cmd = ($cmd -seed $RngSeed)
       if($UseNoNeg) set cmd = ($cmd -remove_negative 1)
       set cmd = ($cmd $xopts)
@@ -3790,6 +3790,7 @@ if($DoConf2Hires && ! $LongSamseg) then
   set cmd = (conf2hires --threads $OMP_NUM_THREADS)
   if($DoT2pial == 1)    set cmd = ($cmd --T2)
   if($DoFLAIRpial == 1) set cmd = ($cmd --FLAIR)
+  if($BorderValsHiRes)  set cmd = ($cmd --border-vals-hires)
   if($longitudinal) then
     set cmd = ($cmd --longitudinal $tpNid $longbaseid)
   else
@@ -3826,6 +3827,7 @@ if($DoWhiteSurfs && ! $DoConf2Hires) then
       --rip-surf $inputsurf --aparc $aparc)
     if($RipWMSA)   set cmd = ($cmd --rip-wmsa)
     if($RipLesion) set cmd = ($cmd --rip-lesion)
+    if($BorderValsHiRes) set cmd = ($cmd --border-vals-hires)
     if($longitudinal) set cmd = ($cmd --max-cbv-dist 3.5) 
     if($#mps_n_averages) set cmd = ($cmd --n_averages $mps_n_averages)
     set xopts = `fsr-getxopts PlaceWhiteSurf $XOptsFile $GlobXOptsFile`;
@@ -3866,6 +3868,7 @@ if($DoPialSurfs && ! $DoConf2Hires) then
       --wm $wm --invol $bfs --$hemi  --i $inputsurf --o $pial \
       --pial --nsmooth 0 --rip-label $cortexha --pin-medial-wall $cortex \
       --aparc $aparc --repulse-surf $white  --white-surf $white)
+    if($BorderValsHiRes) set cmd = ($cmd --border-vals-hires)
     if($longitudinal) then
       set cmd = ($cmd --max-cbv-dist 3.5) # --long not used anymore
       set cmd = ($cmd --blend-surf .25 $white)

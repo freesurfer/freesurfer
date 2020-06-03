@@ -75,3 +75,9 @@ RipLesion:
     action: enable
     descr: Allow ripping/freezing of Lesion-labeled (25, 57) voxels when placing white surface
 
+BorderValsHiRes:
+    value: False
+    flags: -border-vals-hires
+    action: enable
+    descr: Refinement of target surf location in MRIScomputeBorderValues
+
