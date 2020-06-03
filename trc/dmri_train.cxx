@@ -64,6 +64,7 @@ int main(int argc, char *argv[]);
 const char *Progname = "dmri_train";
 
 bool useTrunc = false, excludeStr = false;
+int numStrMax = INT_MAX;
 vector<float> trainMaskLabel;
 vector< vector<int> > nControl;
 vector<char *> outTrkList, outPriorBase,
@@ -125,7 +126,7 @@ int main(int argc, char **argv) {
                 testMaskList, testFaList,
                 testAffineXfmFile, testNonlinXfmFile, testNonlinRefFile,
                 testBaseXfmList, testBaseMaskFile,
-                useTrunc, nControl[0],
+                useTrunc, nControl[0], numStrMax,
                 debug);
 
   for (unsigned int itrk = 0; itrk < trainTrkList.size(); itrk++) {
@@ -324,6 +325,11 @@ static int parse_commandline(int argc, char **argv) {
         nargsused++;
       }
     }
+    else if (!strcmp(option, "--max")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0], "%d", &numStrMax);
+      nargsused = 1;
+    }
     else if (!strcmp(option, "--trunc"))
       useTrunc = true;
     else if (!strcmp(option, "--xstr"))
@@ -387,6 +393,8 @@ static void print_usage(void) {
   << "   --ncpts <num> [...]:" << endl
   << "     Number of control points for initial spline, one per path" << endl
   << "     or one for all paths" << endl
+  << "   --max <num>:" << endl
+  << "     Maximum number of training streamlines to keep per path" << endl
   << "   --xstr:" << endl
   << "     Exclude previously chosen center streamline(s) (Default: No)" << endl
   << "   --trunc:" << endl
@@ -625,6 +633,10 @@ static void dump_options() {
                                      inum < inlist->end(); inum++)
       cout << " " << *inum;
   cout << endl;
+
+  if (numStrMax < INT_MAX)
+    cout << "Maximum number of training streamlines per path: "
+         << numStrMax << endl;
 
   cout << "Exclude previously chosen center streamlines: " << excludeStr << endl
        << "Use truncated streamlines: " << useTrunc << endl;

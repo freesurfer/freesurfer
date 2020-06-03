@@ -44,9 +44,10 @@ Blood::Blood(const char *TrainListFile, const char *TrainTrkFile,
              const vector<char *> &TestBaseXfmList,
              const char *TestBaseMaskFile,
              bool UseTruncated, vector<int> &NumControls,
-             bool Debug) :
+             int NumStrMax, bool Debug) :
              mDebug(Debug),
              mUseTruncated(UseTruncated),
+             mNumStrMax(NumStrMax),
              mMaskLabel(TrainMaskLabel) {
   int dirs[45] = { 0,  0,  0,
                    1,  0,  0,
@@ -191,6 +192,7 @@ Blood::Blood(const char *TrainTrkFile,
              bool Debug) : 
              mDebug(Debug),
              mUseTruncated(false),
+             mNumStrMax(INT_MAX),
              mNx(0), mNy(0), mNz(0) {
   // Read single input streamline file
   ReadStreamlines(0, TrainTrkFile, TrainRoi1File, TrainRoi2File, 0, 0);
@@ -1289,6 +1291,12 @@ void Blood::PrepStreamlines() {
   cout << "Matching streamline ends" << endl;
   MatchStreamlineEnds();
 
+  cout << "Subsampling streamlines" << endl;
+  SubsampleStreamlines();
+
+  cout << "Matching truncated to full streamlines" << endl;
+  MatchTruncatedStreamlines();
+
   cout << "Computing path histograms" << endl;
   ComputeHistogram();
 
@@ -1297,8 +1305,121 @@ void Blood::PrepStreamlines() {
 
   cout << "Ranking streamlines by distance" << endl;
   RankStreamlineDistance();
+}
 
-  cout << "..." << endl;
+//
+// Select a subset of training streamlines to speed up computation
+//
+void Blood::SubsampleStreamlines() {
+  unsigned int kfull = 0, ktrunc = 0;
+  vector<unsigned int> idxfull, idxtrunc, idxall;
+  vector<bool>::const_iterator ivalid1 = mIsInEnd1.begin(),
+                               ivalid2 = mIsInEnd2.begin();
+  vector< vector<int> >::const_iterator istr = mStreamlines.begin();
+  vector<unsigned int>::iterator iall;
+  vector<unsigned int>::const_iterator ifull, itrunc;
+
+  if (mNumStr <= mNumStrMax)
+    return;
+
+  // Select the streamlines to be removed
+  idxtrunc.resize(mNumStr-mNumStrEnds);
+  iota(idxtrunc.begin(), idxtrunc.end(), 0);
+
+  if (mNumStrMax <= mNumStrEnds) {
+    idxfull.resize(mNumStrEnds);
+    iota(idxfull.begin(), idxfull.end(), 0);
+    random_shuffle(idxfull.begin(), idxfull.end());
+    idxfull.resize(mNumStrEnds - mNumStrMax);
+    sort(idxfull.begin(), idxfull.end());
+  }
+  else {
+    random_shuffle(idxtrunc.begin(), idxtrunc.end());
+    idxtrunc.resize(mNumStr - mNumStrMax);
+    sort(idxtrunc.begin(), idxtrunc.end());
+  }
+
+  // Iterate backwards on indices of non-truncated streamlines to be removed
+  for (ifull = idxfull.end(); ifull > idxfull.begin(); ifull--) {
+    unsigned int index = *(ifull-1);
+
+    if (!mIsOutHist.empty())
+      mIsOutHist.erase(mIsOutHist.begin() + index);
+    if (!mIsOutFa.empty())
+      mIsOutFa.erase(mIsOutFa.begin() + index);
+    if (!mIsOutDev.empty())
+      mIsOutDev.erase(mIsOutDev.begin() + index);
+    if (!mMidPoints.empty())
+      mMidPoints.erase(mMidPoints.begin() + index);
+  }
+
+  // Find indices of complete set of streamlines to be removed,
+  // update number of streamlines per training subject
+  idxall.resize(idxfull.size() + idxtrunc.size());
+  iall = idxall.begin();
+  ifull = idxfull.begin();
+  itrunc = idxtrunc.begin();
+
+  for (vector<int>::iterator inum = mNumLines.begin();
+                             inum != mNumLines.end(); inum++)
+    for (int k = *inum; k > 0; k--) {
+      if (*ivalid1 && *ivalid2) {	// A non-truncated streamline
+        if (ifull != idxfull.end()) {
+          if (kfull == *ifull) {
+            *iall = istr - mStreamlines.begin();
+            (*inum)--;
+            ifull++;
+            iall++;
+          }
+          kfull++;
+        }
+      }
+      else {				// A truncated streamline
+        if (itrunc != idxtrunc.end()) {
+          if (ktrunc == *itrunc) {
+            *iall = istr - mStreamlines.begin();
+            (*inum)--;
+            itrunc++;
+            iall++;
+          }
+          ktrunc++;
+        }
+      }
+
+      istr++;
+      ivalid1++;
+      ivalid2++;
+    }
+
+  // Iterate backwards on indices of all streamlines to be removed
+  for (iall = idxall.end(); iall > idxall.begin(); iall--) {
+    unsigned int index = *(iall-1);
+
+    mStreamlines.erase(mStreamlines.begin() + index);
+    mLengths.erase(mLengths.begin() + index);
+
+    if (!mIsInEnd1.empty())
+      mIsInEnd1.erase(mIsInEnd1.begin() + index);
+    if (!mIsInEnd2.empty())
+      mIsInEnd2.erase(mIsInEnd2.begin() + index);
+    if (!mTruncatedLengths.empty())
+      mTruncatedLengths.erase(mTruncatedLengths.begin() + index);
+
+    if (!mDistanceRank.empty()) {
+      vector<int>::iterator irank = find(mDistanceRank.begin(),
+                                         mDistanceRank.end(), index);
+      if (irank != mDistanceRank.end())
+        mDistanceRank.erase(irank);
+
+      for (irank = mDistanceRank.begin(); irank < mDistanceRank.end(); irank++)
+        if (*irank > index)
+          (*irank)--;
+    }
+  }
+
+  // Update stats based on remaining streamlines
+  ComputeStats();
+  ComputeStatsEnds();
 }
 
 //
@@ -1553,110 +1674,115 @@ void Blood::MatchStreamlineEnds() {
   }
 
   ComputeStatsEnds();
+}
 
-  ComputeEndPointCoM();
+//
+// Map each truncated streamline to its nearest streamline that has
+// both start and end point in mask
+//
+void Blood::MatchTruncatedStreamlines() {
+  const int lag = max(1, (int) round(mHausStepRatio * mLengthAvgEnds)) * 3;
+  vector<bool>::iterator ivalid1 = mIsInEnd1.begin(),
+                         ivalid2 = mIsInEnd2.begin();
+  vector<int>::iterator itrlen;
 
-  // Map each truncated streamline to its nearest streamline that has
-  // both start and end point in mask
   mTruncatedLengths.resize(mLengths.size());
   fill(mTruncatedLengths.begin(), mTruncatedLengths.end(), 0);
 
-  if (mUseTruncated) {
-    const int lag = max(1, (int) round(mHausStepRatio * mLengthAvgEnds)) * 3;
+  if (!mUseTruncated)
+    return;
+ 
+  itrlen  = mTruncatedLengths.begin();
 
-    ivalid1 = mIsInEnd1.begin();
-    ivalid2 = mIsInEnd2.begin();
-    itrlen  = mTruncatedLengths.begin();
+  for (vector< vector<int> >::iterator istr = mStreamlines.begin();
+                                       istr < mStreamlines.end(); istr++) {
+    if ((*ivalid1 && !*ivalid2) || (!*ivalid1 && *ivalid2)) {
+      double hdmin = numeric_limits<double>::infinity();
+      vector<bool>::iterator jvalid1 = mIsInEnd1.begin(),
+                             jvalid2 = mIsInEnd2.begin();
+      vector< vector<int> >::const_iterator jstr, jstrnear;
 
-    for (istr = mStreamlines.begin(); istr < mStreamlines.end(); istr++) {
-      if ((*ivalid1 && !*ivalid2) || (!*ivalid1 && *ivalid2)) {
-        double hdmin = numeric_limits<double>::infinity();
-        vector<bool>::iterator jvalid1 = mIsInEnd1.begin(),
-                               jvalid2 = mIsInEnd2.begin();
-        vector< vector<int> >::const_iterator jstr, jstrnear;
+      // Find nearest streamline that has both start and end point in mask
+      for (jstr = mStreamlines.begin(); jstr < mStreamlines.end(); jstr++) {
+        if (*jvalid1 && *jvalid2) {
+          double hd = 0;
 
-        // Find nearest streamline that has both start and end point in mask
-        for (jstr = mStreamlines.begin(); jstr < mStreamlines.end(); jstr++) {
-          if (*jvalid1 && *jvalid2) {
-            double hd = 0;
+          for (vector<int>::const_iterator ipt = istr->begin();
+                                           ipt < istr->end(); ipt += 3) {
+            int dmin = 1000000;
 
-            for (vector<int>::const_iterator ipt = istr->begin();
-                                             ipt < istr->end(); ipt += 3) {
-              int dmin = 1000000;
+            for (vector<int>::const_iterator jpt = jstr->begin();
+                                             jpt < jstr->end(); jpt += lag) {
+              const int dx = ipt[0] - jpt[0],
+                        dy = ipt[1] - jpt[1],
+                        dz = ipt[2] - jpt[2],
+                        dist = dx*dx + dy*dy + dz*dz;
 
-              for (vector<int>::const_iterator jpt = jstr->begin();
-                                               jpt < jstr->end(); jpt += lag) {
-                const int dx = ipt[0] - jpt[0],
-                          dy = ipt[1] - jpt[1],
-                          dz = ipt[2] - jpt[2],
-                          dist = dx*dx + dy*dy + dz*dz;
-
-                if (dist < dmin)
-                  dmin = dist;
-              }
-
-              hd += sqrt(dmin);
+              if (dist < dmin)
+                dmin = dist;
             }
 
-            if (hd < hdmin) {
-              hdmin = hd;
-              jstrnear = jstr;
-            }
+            hd += sqrt(dmin);
           }
 
-          jvalid1++;
-          jvalid2++;
-        }
-
-        if (*ivalid1) {
-          int dmin = 1000000;
-          vector<int>::const_iterator jptnear, iend2 = istr->end() - 3;
-
-          // Find point on whole streamline nearest to truncated end point
-          for (vector<int>::const_iterator jpt = jstrnear->begin();
-                                           jpt < jstrnear->end(); jpt += 3) {
-            const int dx = iend2[0] - jpt[0],
-                      dy = iend2[1] - jpt[1],
-                      dz = iend2[2] - jpt[2],
-                      dist = dx*dx + dy*dy + dz*dz;
-
-            if (dist < dmin) {
-              dmin = dist;
-              jptnear = jpt;
-            }
+          if (hd < hdmin) {
+            hdmin = hd;
+            jstrnear = jstr;
           }
-
-          // Make educated guess about how much of streamline has been truncated
-          *itrlen = (jstrnear->end() - 3 - jptnear) / 3;
         }
 
-        if (*ivalid2) {
-          int dmin = 1000000;
-          vector<int>::const_iterator jptnear, iend1 = istr->begin();
-
-          // Find point on whole streamline nearest to truncated start point
-          for (vector<int>::const_iterator jpt = jstrnear->begin();
-                                           jpt < jstrnear->end(); jpt += 3) {
-            const int dx = iend1[0] - jpt[0],
-                      dy = iend1[1] - jpt[1],
-                      dz = iend1[2] - jpt[2],
-                      dist = dx*dx + dy*dy + dz*dz;
-
-            if (dist < dmin) {
-              dmin = dist;
-              jptnear = jpt;
-            }
-          }
-
-          // Make educated guess about how much of streamline has been truncated
-          *itrlen = (jptnear - jstrnear->begin()) / 3;
-        }
+        jvalid1++;
+        jvalid2++;
       }
 
-      ivalid1++;
-      ivalid2++;
-      itrlen++;
+      if (*ivalid1) {
+        int dmin = 1000000;
+        vector<int>::const_iterator jptnear, iend2 = istr->end() - 3;
+
+        // Find point on whole streamline nearest to truncated end point
+        for (vector<int>::const_iterator jpt = jstrnear->begin();
+                                         jpt < jstrnear->end(); jpt += 3) {
+          const int dx = iend2[0] - jpt[0],
+                    dy = iend2[1] - jpt[1],
+                    dz = iend2[2] - jpt[2],
+                    dist = dx*dx + dy*dy + dz*dz;
+
+          if (dist < dmin) {
+            dmin = dist;
+            jptnear = jpt;
+          }
+        }
+
+        // Make educated guess about how much of streamline has been truncated
+        *itrlen = (jstrnear->end() - 3 - jptnear) / 3;
+      }
+
+      if (*ivalid2) {
+        int dmin = 1000000;
+        vector<int>::const_iterator jptnear, iend1 = istr->begin();
+
+        // Find point on whole streamline nearest to truncated start point
+        for (vector<int>::const_iterator jpt = jstrnear->begin();
+                                         jpt < jstrnear->end(); jpt += 3) {
+          const int dx = iend1[0] - jpt[0],
+                    dy = iend1[1] - jpt[1],
+                    dz = iend1[2] - jpt[2],
+                    dist = dx*dx + dy*dy + dz*dz;
+
+          if (dist < dmin) {
+            dmin = dist;
+            jptnear = jpt;
+          }
+        }
+
+        // Make educated guess about how much of streamline has been truncated
+        *itrlen = (jptnear - jstrnear->begin()) / 3;
+      }
     }
+
+    ivalid1++;
+    ivalid2++;
+    itrlen++;
   }
 }
 
@@ -1773,7 +1899,7 @@ void Blood::FindOutlierStreamlines(bool CheckOverlap, bool CheckDeviation,
   vector<bool>::const_iterator ivalid1 = mIsInEnd1.begin(),
                                ivalid2 = mIsInEnd2.begin();
   vector<bool>::iterator iouthist, ioutdev, ioutfa;
-  vector<int>::const_iterator imidpts = mMidPoints.begin();
+  vector<int>::const_iterator imidpts;
 
   if (CheckOverlap || mIsOutHist.size() != mNumStrEnds) {
     mIsOutHist.resize(mNumStrEnds);
@@ -1793,9 +1919,12 @@ void Blood::FindOutlierStreamlines(bool CheckOverlap, bool CheckDeviation,
   if (mTestFa.empty())
     CheckFa = false;
 
+  ComputeEndPointCoM();
+
   iouthist = mIsOutHist.begin();
   ioutdev = mIsOutDev.begin();
   ioutfa = mIsOutFa.begin();
+  imidpts = mMidPoints.begin();
 
   for (vector< vector<int> >::const_iterator istr = mStreamlines.begin();
                                              istr < mStreamlines.end();

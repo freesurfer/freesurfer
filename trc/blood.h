@@ -52,7 +52,7 @@ class Blood {
           const std::vector<char *> &TestBaseXfmList,
           const char *TestBaseMaskFile,
           bool UseTruncated, std::vector<int> &NumControls,
-          bool Debug=false);
+          int NumStrMax=INT_MAX, bool Debug=false);
     Blood(const char *TrainTrkFile,
           const char *TrainRoi1File, const char *TrainRoi2File,
           bool Debug=false);
@@ -66,6 +66,8 @@ class Blood {
     void RemoveLengthOutliers();
     void PrepStreamlines();
     void MatchStreamlineEnds();
+    void SubsampleStreamlines();
+    void MatchTruncatedStreamlines();
     void ComputeHistogram();
     void ComputePriors();
     void FindCenterStreamline(bool CheckOverlap=true, bool CheckDeviation=true,
@@ -100,6 +102,7 @@ class Blood {
                        mTangentBinSize, mCurvatureBinSize;
 
     const bool mDebug, mUseTruncated;
+    const int mNumStrMax;
     bool mHavePresorted;
     int mNx, mNy, mNz, mNumTrain, mVolume,
         mNumStr, mLengthMin, mLengthMax,
