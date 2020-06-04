@@ -37,7 +37,7 @@ else
   RANDOMNUMBER=$(od -vAn -N4 -tu4 < /dev/urandom) ;
   MCR_CACHE_ROOT=$( echo "/tmp/MCR_${RANDOMNUMBER}/" | tr -d ' ' ) ;
   export MCR_CACHE_ROOT;
-  "${exe_dir}"/SegmentSubfieldsT1Longitudinal $args
+  eval "${exe_dir}/SegmentSubfieldsT1Longitudinal $args"
   returnVal=$?
   rm -rf $MCR_CACHE_ROOT
 
