@@ -43,10 +43,13 @@ Blood::Blood(const char *TrainListFile, const char *TrainTrkFile,
              const char *TestNonlinRefFile,
              const vector<char *> &TestBaseXfmList,
              const char *TestBaseMaskFile,
-             bool UseTruncated, vector<int> &NumControls,
+             bool UseTruncated, bool UseAnatomy, bool UseShape,
+             vector<int> &NumControls,
              int NumStrMax, bool Debug) :
              mDebug(Debug),
              mUseTruncated(UseTruncated),
+             mUseAnatomy(UseAnatomy),
+             mUseShape(UseShape),
              mNumStrMax(NumStrMax),
              mMaskLabel(TrainMaskLabel) {
   int dirs[45] = { 0,  0,  0,
@@ -192,6 +195,8 @@ Blood::Blood(const char *TrainTrkFile,
              bool Debug) : 
              mDebug(Debug),
              mUseTruncated(false),
+             mUseAnatomy(false),
+             mUseShape(false),
              mNumStrMax(INT_MAX),
              mNx(0), mNy(0), mNz(0) {
   // Read single input streamline file
@@ -879,6 +884,11 @@ void Blood::ComputeEndPointCoM() {
   vector<int> sum1(3, 0), sum2(3, 0), summ(3, 0),
               sumsq1(3, 0), sumsq2(3, 0), sumsqm(3, 0);
 
+  if (mRoi1.empty() || mRoi2.empty()) {
+    cout << "ERROR: Need end ROIs to compute streamline midpoints" << endl;
+    exit(1);
+  }
+
   mMidPoints.resize(mNumStrEnds);
   imidpts = mMidPoints.begin();
 
@@ -1229,22 +1239,18 @@ void Blood::ComputePriors() {
 
   SetArcSegments();
 
-  cout << "Computing prior on underlying anatomy "
-       << "(non-truncated streamlines only)" << endl;
-  ComputeAnatomyPrior(false);
+  if (mUseAnatomy) {
+    cout << "Computing prior on underlying anatomy ("
+         << (mUseTruncated ? "all" : "non-truncated")
+         << " streamlines)" << endl;
+    ComputeAnatomyPrior();
+  }
 
-  cout << "Computing prior on curvature "
-       << "(non-truncated streamlines only)" << endl;
-  ComputeShapePrior(false);
-
-  if (mUseTruncated) {
-    cout << "Computing prior on underlying anatomy "
-         << "(all streamlines)" << endl;
-    ComputeAnatomyPrior(true);
-
-    cout << "Computing prior on curvature "
-         << "(all streamlines)" << endl;
-    ComputeShapePrior(true);
+  if (mUseShape) {
+    cout << "Computing prior on curvature ("
+         << (mUseTruncated ? "all" : "non-truncated")
+         << " streamlines)" << endl;
+    ComputeShapePrior();
   }
 
   maxtries = mNumStrEnds - mExcludedStreamlines.size();
@@ -1919,7 +1925,8 @@ void Blood::FindOutlierStreamlines(bool CheckOverlap, bool CheckDeviation,
   if (mTestFa.empty())
     CheckFa = false;
 
-  ComputeEndPointCoM();
+  if (CheckDeviation)
+    ComputeEndPointCoM();
 
   iouthist = mIsOutHist.begin();
   ioutdev = mIsOutDev.begin();
@@ -2350,7 +2357,7 @@ void Blood::ComputeHistogram() {
 //
 // Compute prior on underlying anatomy by streamline arc length
 //
-void Blood::ComputeAnatomyPrior(bool UseTruncated) {
+void Blood::ComputeAnatomyPrior() {
   vector<bool>::const_iterator ivalid1 = mIsInEnd1.begin(),
                                ivalid2 = mIsInEnd2.begin();
   vector<int>::const_iterator ilen = mLengths.begin(),
@@ -2368,7 +2375,7 @@ void Blood::ComputeAnatomyPrior(bool UseTruncated) {
   for (vector<int>::const_iterator inum = mNumLines.begin();
                                    inum != mNumLines.end(); inum++) {
     for (int k = *inum; k > 0; k--) {
-      if ( (UseTruncated && (*ivalid1 || *ivalid2)) ||
+      if ( (mUseTruncated && (*ivalid1 || *ivalid2)) ||
            (*ivalid1 && *ivalid2) ) {
         unsigned int ilocal, inear;
         const double darc = mNumArc / (double) (*ilen + *itrlen);
@@ -2454,7 +2461,7 @@ void Blood::ComputeAnatomyPrior(bool UseTruncated) {
     iaseg++;
   }
 
-  if (UseTruncated) {
+  if (mUseTruncated) {
     mIdsLocalAll.clear();
     mHistoLocalAll.clear();
     mPriorLocalAll.clear();
@@ -2498,7 +2505,7 @@ void Blood::ComputeAnatomyPrior(bool UseTruncated) {
 
     *iprior = -log(1 / denom);
 
-    if (UseTruncated) {
+    if (mUseTruncated) {
       mIdsLocalAll.push_back(idlist);
       mHistoLocalAll.push_back(histo);
       mPriorLocalAll.push_back(prior);
@@ -2558,7 +2565,7 @@ void Blood::ComputeAnatomyPrior(bool UseTruncated) {
 
     *iprior = -log(1 / denom);
 
-    if (UseTruncated) {
+    if (mUseTruncated) {
       mIdsNearAll.push_back(idlist);
       mHistoNearAll.push_back(histo);
       mPriorNearAll.push_back(prior);
@@ -2580,7 +2587,7 @@ void Blood::ComputeAnatomyPrior(bool UseTruncated) {
 //
 // Compute prior on tangent vector and curvature by streamline arc length
 //
-void Blood::ComputeShapePrior(bool UseTruncated) {
+void Blood::ComputeShapePrior() {
   const int nbin = (int) ceil(2 / mTangentBinSize);
   float tangx, tangy, curv;
   vector<bool>::const_iterator ivalid1 = mIsInEnd1.begin(),
@@ -2601,7 +2608,7 @@ void Blood::ComputeShapePrior(bool UseTruncated) {
   // Compute tangent vector and curvature at each point on each streamline
   for (vector< vector<int> >::const_iterator istr = mStreamlines.begin();
                                             istr < mStreamlines.end(); istr++) {
-    if ( ( (UseTruncated && (*ivalid1 || *ivalid2)) ||
+    if ( ( (mUseTruncated && (*ivalid1 || *ivalid2)) ||
            (*ivalid1 && *ivalid2) ) && *ilen >= (int) mDiffStep ) {
       unsigned int iarc;
       const double darc = mNumArc / (double) (*ilen + *itrlen);
@@ -2681,7 +2688,7 @@ void Blood::ComputeShapePrior(bool UseTruncated) {
     itrlen++;
   }
 
-  if (UseTruncated) {
+  if (mUseTruncated) {
     mHistoTangentAll.clear();
     mPriorTangentAll.clear();
     mHistoCurvatureAll.clear();
@@ -2753,7 +2760,7 @@ void Blood::ComputeShapePrior(bool UseTruncated) {
       ihisto++;
     }
 
-    if (UseTruncated) {
+    if (mUseTruncated) {
       mHistoTangentAll.push_back(tanghisto);
       mPriorTangentAll.push_back(tangprior);
       mHistoCurvatureAll.push_back(curvhisto);
@@ -2773,7 +2780,7 @@ void Blood::ComputeShapePrior(bool UseTruncated) {
   // In debug mode, save all samples of the tangent vector and curvature
   // by arc length
   if (mDebug) {
-    if (UseTruncated) {
+    if (mUseTruncated) {
       mTangentXByArcAll.resize(mNumArc);
       copy(tangxbyarc.begin(), tangxbyarc.end(), mTangentXByArcAll.begin());
       mTangentYByArcAll.resize(mNumArc);
@@ -3916,12 +3923,13 @@ void Blood::WriteOutputs(const char *OutTrainBase, const char *OutTestBase) {
   sprintf(fname, "%s_logprior_0.nii.gz", OutTrainBase);
   MRIwrite(out2, fname);
 
-  // Save anatomical priors using only non-truncated streamlines
-  WritePriors(OutTrainBase, false);
+  // Save anatomical priors
+  if (mUseAnatomy)
+    WriteAnatomyPriors(OutTrainBase);
 
-  // Save anatomical priors using all streamlines, truncated or not
-  if (mUseTruncated)
-    WritePriors(OutTrainBase, true);
+  // Save shape priors
+  if (mUseShape)
+    WriteShapePriors(OutTrainBase);
 
   // Write streamline end points to volumes
   WriteEndPoints(OutTrainBase, mTestMask[0]);
@@ -4048,16 +4056,15 @@ void Blood::WriteOutputs(const char *OutTrainBase, const char *OutTestBase) {
 //
 // Save prior information on anatomy and curvature to text files
 //
-void Blood::WritePriors(const char *OutBase, bool UseTruncated) {
+void Blood::WriteAnatomyPriors(const char *OutBase) {
   char fname[PATH_MAX], pfix[5];
-  vector<float>::const_iterator ithisto, itprior, ichisto, icprior;
   vector< vector<int> >::const_iterator ihisto;
   vector< vector<float> >::const_iterator iprior, idmean, idstd;
   vector< set<unsigned int> >::const_iterator iids;
   ofstream outfile;
 
   // Save anatomical label IDs found in training set, histograms and priors
-  if (UseTruncated) {
+  if (mUseTruncated) {
     strcpy(pfix, "_all");
     iids = mIdsLocalAll.begin();
     ihisto = mHistoLocalAll.begin();
@@ -4124,7 +4131,7 @@ void Blood::WritePriors(const char *OutBase, bool UseTruncated) {
     iprior++;
   }
 
-  if (UseTruncated) {
+  if (mUseTruncated) {
     iids = mIdsNearAll.begin();
     ihisto = mHistoNearAll.begin();
     iprior = mPriorNearAll.begin();
@@ -4224,13 +4231,25 @@ void Blood::WritePriors(const char *OutBase, bool UseTruncated) {
     idmean++;
     idstd++;
   }
+}
+
+//
+// Save prior information on shape to text files
+//
+void Blood::WriteShapePriors(const char *OutBase) {
+  char fname[PATH_MAX], pfix[5];
+  vector< vector<int> >::const_iterator ihisto;
+  vector< vector<float> >::const_iterator iprior;
+  ofstream outfile;
 
   // Save histograms and priors on tangent vector and curvature
-  if (UseTruncated) {
+  if (mUseTruncated) {
+    strcpy(pfix, "_all");
     ihisto = mHistoTangentAll.begin();
     iprior = mPriorTangentAll.begin();
   }
   else {
+    strcpy(pfix, "");
     ihisto = mHistoTangent.begin();
     iprior = mPriorTangent.begin();
   }
@@ -4263,7 +4282,7 @@ void Blood::WritePriors(const char *OutBase, bool UseTruncated) {
 
   outfile.close();
 
-  if (UseTruncated) {
+  if (mUseTruncated) {
     ihisto = mHistoCurvatureAll.begin();
     iprior = mPriorCurvatureAll.begin();
   }
@@ -4306,7 +4325,7 @@ void Blood::WritePriors(const char *OutBase, bool UseTruncated) {
     vector<float>::const_iterator isamp;
     vector< vector<float> >::const_iterator itangx, itangy, icurv;
 
-    if (UseTruncated) {
+    if (mUseTruncated) {
       itangx = mTangentXByArcAll.begin();
       itangy = mTangentYByArcAll.begin();
       icurv = mCurvatureByArcAll.begin();

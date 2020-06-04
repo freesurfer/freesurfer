@@ -63,7 +63,7 @@ int main(int argc, char *argv[]);
 
 const char *Progname = "dmri_train";
 
-bool useTrunc = false, excludeStr = false;
+bool useTrunc = false, useAnatomy = false, useShape = false, excludeStr = false;
 int numStrMax = INT_MAX;
 vector<float> trainMaskLabel;
 vector< vector<int> > nControl;
@@ -126,7 +126,7 @@ int main(int argc, char **argv) {
                 testMaskList, testFaList,
                 testAffineXfmFile, testNonlinXfmFile, testNonlinRefFile,
                 testBaseXfmList, testBaseMaskFile,
-                useTrunc, nControl[0], numStrMax,
+                useTrunc, useAnatomy, useShape, nControl[0], numStrMax,
                 debug);
 
   for (unsigned int itrk = 0; itrk < trainTrkList.size(); itrk++) {
@@ -332,6 +332,10 @@ static int parse_commandline(int argc, char **argv) {
     }
     else if (!strcmp(option, "--trunc"))
       useTrunc = true;
+    else if (!strcmp(option, "--aprior"))
+      useAnatomy = true;
+    else if (!strcmp(option, "--sprior"))
+      useShape = true;
     else if (!strcmp(option, "--xstr"))
       excludeStr = true;
     else {
@@ -397,8 +401,12 @@ static void print_usage(void) {
   << "     Maximum number of training streamlines to keep per path" << endl
   << "   --xstr:" << endl
   << "     Exclude previously chosen center streamline(s) (Default: No)" << endl
+  << "   --aprior:" << endl
+  << "     Compute priors on underlying anatomy (Default: No)" << endl
+  << "   --sprior:" << endl
+  << "     Compute priors on shape (Default: No)" << endl
   << "   --trunc:" << endl
-  << "     Also save results using all streamlines, truncated or not" << endl
+  << "     Use all training streamlines, truncated or not" << endl
   << "     (Default: Only save results using non-truncated streamlines)" << endl
   << "   --out <base> [...]:" << endl
   << "     Base name(s) of output(s) for test subject, one per path" << endl
@@ -639,7 +647,9 @@ static void dump_options() {
          << numStrMax << endl;
 
   cout << "Exclude previously chosen center streamlines: " << excludeStr << endl
-       << "Use truncated streamlines: " << useTrunc << endl;
+       << "Use truncated streamlines: " << useTrunc << endl
+       << "Compute priors on underlying anatomy: " << useAnatomy << endl
+       << "Compute priors on shape: " << useShape << endl;
 
   return;
 }

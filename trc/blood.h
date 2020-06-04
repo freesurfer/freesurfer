@@ -51,7 +51,8 @@ class Blood {
           const char *TestNonlinRefFile,
           const std::vector<char *> &TestBaseXfmList,
           const char *TestBaseMaskFile,
-          bool UseTruncated, std::vector<int> &NumControls,
+          bool UseTruncated, bool UseAnatomy, bool UseShape,
+          std::vector<int> &NumControls,
           int NumStrMax=INT_MAX, bool Debug=false);
     Blood(const char *TrainTrkFile,
           const char *TrainRoi1File, const char *TrainRoi2File,
@@ -101,7 +102,7 @@ class Blood {
                        mHausStepRatio, mControlStepRatio,
                        mTangentBinSize, mCurvatureBinSize;
 
-    const bool mDebug, mUseTruncated;
+    const bool mDebug, mUseTruncated, mUseAnatomy, mUseShape;
     const int mNumStrMax;
     bool mHavePresorted;
     int mNx, mNy, mNz, mNumTrain, mVolume,
@@ -157,8 +158,8 @@ class Blood {
     void RankStreamlineDistance();
     void UpdateDistanceRank();
     void SetArcSegments();
-    void ComputeAnatomyPrior(bool UseTruncated);
-    void ComputeShapePrior(bool UseTruncated);
+    void ComputeAnatomyPrior();
+    void ComputeShapePrior();
     void FindPointsOnStreamline(std::vector<int> &Streamline, int NumPoints);
     bool FindPointsOnStreamlineLS(std::vector<int> &Streamline, int NumPoints);
     bool FindPointsOnStreamlineComb(std::vector<int> &Streamline,
@@ -182,7 +183,8 @@ class Blood {
     bool MapPointToNative(std::vector<int>::iterator OutPoint,
                           std::vector<int>::const_iterator InPoint,
                           unsigned int FrameIndex);
-    void WritePriors(const char *OutBase, bool UseTruncated);
+    void WriteAnatomyPriors(const char *OutBase);
+    void WriteShapePriors(const char *OutBase);
 };
 
 #endif
