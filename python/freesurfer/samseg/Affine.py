@@ -5,186 +5,381 @@ import numpy as np
 
 import freesurfer as fs
 from . import gems, convertLPSTransformToRAS
+from .ProbabilisticAtlas import ProbabilisticAtlas
 
 from .utilities import requireNumpyArray
 from .figures import initVisualizer
+import scipy.ndimage
 
 
 class Affine:
-    def __init__(self,
-                 scaling=0.9,
-                 theta=np.pi / 180 * -10.0,
-                 K=1e-7,
-                 targetDownsampledVoxelSpacing=3.0,
-                 maximalDeformationStopCriterion=0.005):
-        self.scaling = scaling
-        self.theta = theta
+    def __init__( self, 
+                  imageFileName, meshCollectionFileName, templateFileName, 
+                  targetDownsampledVoxelSpacing=3.0
+                 ):
+        self.imageFileName = imageFileName
+        self.meshCollectionFileName = meshCollectionFileName
+        self.templateFileName = templateFileName
         self.targetDownsampledVoxelSpacing = targetDownsampledVoxelSpacing
-        self.maximalDeformationStopCriterion = maximalDeformationStopCriterion
 
-    def registerAtlas(self,
-            imageFileName,
-            meshCollectionFileName,
-            templateFileName,
+    def registerAtlas( self,
             savePath,
-            visualizer=None,
             worldToWorldTransformMatrix=None,
             initTransform=None,
-            K=1e-7,
-        ):
+            maximalDeformationStopCriterion=0.005,
+            Ks=[ 1.0, 0.1 ],
+            initializationTryCenterOfGravity=True,
+            initializationTryShifts = [ 0, -45, -30, -15, 15, 30, 45 ],
+            initializationTryAngles = [ 0 ],
+            initializationTryScales = [ 1.0 ],
+            initializationTryShiftsSeparately = False,
+            visualizer=None ):
 
-        # ------ Setup ------
+        # ------ Set up ------ 
+        self.setUp( initTransform, visualizer )
 
-        # Read in image and template, as well as their coordinates in world (mm) space
-        image = gems.KvlImage(imageFileName)
-        imageToWorldTransformMatrix = image.transform_matrix.as_numpy_array
-        template = gems.KvlImage(templateFileName)
-        templateImageToWorldTransformMatrix = template.transform_matrix.as_numpy_array
-        basepath, templateFileNameExtension = os.path.splitext(templateFileName)
-        templateFileNameBase = os.path.basename(basepath)
+        # ------ Register mesh to image ------
+        imageToImageTransformMatrix, worldToWorldTransformMatrix, optimizationSummary = \
+            self.registerMeshToImage( worldToWorldTransformMatrix, Ks, maximalDeformationStopCriterion,
+                                      initializationTryCenterOfGravity, initializationTryShifts, 
+                                      initializationTryAngles, initializationTryScales,
+                                      initializationTryShiftsSeparately
+                                    )
 
+        # ------ Save results ------
+        self.saveResults( savePath, worldToWorldTransformMatrix, imageToImageTransformMatrix )
+
+        return imageToImageTransformMatrix, optimizationSummary
+     
+     
+    #          
+    def optimizeTransformation( self, 
+                                initialImageToImageTransformMatrix,
+                                K, maximalDeformationStopCriterion ):
+        
+        
+          
+        # Get the mesh
+        initialImageToImageTransform = gems.KvlTransform( requireNumpyArray( initialImageToImageTransformMatrix ) )
+        mesh = ProbabilisticAtlas().getMesh( self.meshCollectionFileName, 
+                                              transform=initialImageToImageTransform,
+                                              K=K )
+        originalNodePositions = mesh.points
+
+        
+        # Get a registration cost  and stick it in an optimizer
+        calculator = gems.KvlCostAndGradientCalculator( 'MutualInformation', [self.image], 'Affine' )
+        optimization_parameters = {
+            'Verbose': 0,
+            'MaximalDeformationStopCriterion': maximalDeformationStopCriterion,
+            'LineSearchMaximalDeformationIntervalStopCriterion': maximalDeformationStopCriterion,
+            'BFGS-MaximumMemoryLength': 12.0  # Affine registration only has 12 DOF
+        }
+        optimizer = gems.KvlOptimizer( 'L-BFGS', mesh, calculator, optimization_parameters)
+
+
+        # Peform the optimization
+        numberOfIterations = 0
+        minLogLikelihoodTimesPriors = []
+        maximalDeformations = []
+        visualizerTitle = f"Affine optimization (K: {K})"
+        self.visualizer.start_movie( window_id=visualizerTitle, title=visualizerTitle )
+        self.visualizer.show( mesh=mesh, images=self.image.getImageBuffer(), 
+                              window_id=visualizerTitle, title=visualizerTitle )
+        while True:
+            minLogLikelihoodTimesPrior, maximalDeformation = optimizer.step_optimizer_atlas()
+            print( "maximalDeformation=%.4f minLogLikelihood=%.4f" % \
+                   (maximalDeformation, minLogLikelihoodTimesPrior) )
+            minLogLikelihoodTimesPriors.append(minLogLikelihoodTimesPrior)
+            maximalDeformations.append(maximalDeformation)
+
+            if maximalDeformation == 0:
+                break
+            numberOfIterations += 1
+            self.visualizer.show( mesh=mesh, images=self.image.getImageBuffer(), 
+                                  window_id=visualizerTitle, title=visualizerTitle )
+
+        self.visualizer.show_movie( window_id=visualizerTitle )
+        nodePositions = mesh.points
+        pointNumbers = [0, 110, 201, 302]
+        originalY = np.vstack( ( originalNodePositions[pointNumbers].T, [1, 1, 1, 1] ) )
+
+        Y = np.vstack( ( nodePositions[pointNumbers].T, [1, 1, 1, 1] ) )
+        extraImageToImageTransformMatrix = Y @ np.linalg.inv(originalY)
+        appliedScaling = np.linalg.det( extraImageToImageTransformMatrix )**(1/3)
+        print( f"appliedScaling: {appliedScaling:0.4f}" )
+        imageToImageTransformMatrix = extraImageToImageTransformMatrix @ initialImageToImageTransformMatrix 
+
+
+        optimizationSummary = {'numberOfIterations': len(minLogLikelihoodTimesPriors),
+                                'cost': minLogLikelihoodTimesPriors[-1]}
+        return imageToImageTransformMatrix, optimizationSummary
+
+
+
+    def computeTalairach(self, imageToImageTransformMatrix ):
+        # Load fsaverage orig.mgz -- this is the ultimate target/destination
+        fnamedst = os.path.join(fs.fshome(), 'subjects', 'fsaverage', 'mri', 'orig.mgz')
+        fsaorig = fs.Volume.read(fnamedst)
+
+        # Compute the vox2vox from the template to fsaverage assuming they share world RAS space
+        RAS2LPS = np.diag([-1, -1, 1, 1])
+        M = np.linalg.inv(RAS2LPS @ fsaorig.affine) @ self.templateImageToWorldTransformMatrix
+        # Compute the input to fsaverage vox2vox by combining the input-template vox2vox and the template-fsaverage vox2vox
+        vox2vox = M @ np.linalg.inv(imageToImageTransformMatrix)
+
+        # Now write out the LTA. This can be used as the talairach.lta in recon-all
+        xform = fs.LinearTransform(vox2vox)
+        xform.type = fs.LinearTransform.Type.vox
+        xform.source = fs.Volume.read( self.imageFileName ).geometry()
+        xform.target = fsaorig.geometry()
+        return xform
+
+    #
+    def getTransformMatrix( self, angle, scale, shift ):
+        #
+        # 4x4 matrix mapping [ x' 1 ] to [ y' 1 ] by performing 
+        # 
+        #    y = S * R * x + t
+        # 
+        # where R is a 3x3 rotation matrix (rotating around the X-axis -- left-right),
+        #       S is a 3x3 isotropic scaling matrix,
+        #   and t is a 3x1 translation vector (implementing a shift along the Z-axis -- top-bottom).
+        #
+        transformMatrix = np.identity( 4, dtype=np.double )
+        transformMatrix[ 0, 0 ] = scale
+        transformMatrix[ 1, 1 ] = scale * np.cos( angle )
+        transformMatrix[ 2, 1 ] = scale * np.sin( angle )
+        transformMatrix[ 1, 2 ] = -scale * np.sin( angle )
+        transformMatrix[ 2, 2 ] = scale * np.cos( angle )
+        transformMatrix[ 2, 3 ] = shift
+        
+        return transformMatrix
+    
+    
+    #
+    def  gridSearch( self, mesh,
+                    positionsInTemplateSpace,
+                    angles=[ 0.0 ], scales=[ 1.0 ], shifts= [ 0.0 ],
+                    baseWorldToWorldTransformMatrices=[ np.eye( 4 ) ],
+                    visualizerTitle='Grid search' ):
+        #
+        # 
+        #
+        
+        # Get a registration cost to evaluate 
+        calculator = gems.KvlCostAndGradientCalculator( 'MutualInformation', [ self.image ], 'Affine' )
+
+
+        #
+        bestCost = np.inf
+        self.visualizer.start_movie( window_id=visualizerTitle, title=visualizerTitle )
+        for angle in angles:
+            for scale in scales:
+                for baseWorldToWorldTransformMatrix in baseWorldToWorldTransformMatrices:
+                    for shift in shifts:
+                        # Compute image-to-image transform
+                        worldToWorldTransformMatrix = self.getTransformMatrix( angle, scale, shift )
+                        imageToImageTransformMatrix = np.linalg.solve( self.imageToWorldTransformMatrix, 
+                                                                      worldToWorldTransformMatrix @ \
+                                                                      baseWorldToWorldTransformMatrix @ \
+                                                                      self.templateImageToWorldTransformMatrix )
+      
+                        # Apply transform to mesh nodes
+                        mesh.points = ProbabilisticAtlas().mapPositionsFromTemplateToSubjectSpace( 
+                                        positionsInTemplateSpace, 
+                                        gems.KvlTransform( requireNumpyArray( imageToImageTransformMatrix ) ) )
+                        self.visualizer.show( images=self.image.getImageBuffer(), mesh=mesh, window_id=visualizerTitle )
+                        
+                        # Evaluate cost
+                        cost, _ = calculator.evaluate_mesh_position( mesh )
+
+                        # If best so far, remember
+                        if cost < bestCost:
+                            bestCost = cost
+                            bestAngle, bestScale, bestShift, bestBaseWorldToWorldTransformMatrix = \
+                                angle, scale, shift, baseWorldToWorldTransformMatrix
+                            bestImageToImageTransformMatrix = imageToImageTransformMatrix
+
+
+        # Show the winner
+        mesh.points = ProbabilisticAtlas().mapPositionsFromTemplateToSubjectSpace( 
+                                    positionsInTemplateSpace, 
+                                    gems.KvlTransform( requireNumpyArray( bestImageToImageTransformMatrix ) ) )
+        self.visualizer.show( images=self.image.getImageBuffer(), mesh=mesh, window_id=visualizerTitle )
+        self.visualizer.show_movie( window_id=visualizerTitle )
+        
+        #
+        return bestAngle, bestScale, bestShift, bestBaseWorldToWorldTransformMatrix, bestImageToImageTransformMatrix
+    
+    
+    #
+    def getInitialization( self, tryCenterOfGravity, tryShifts, tryAngles, tryScales, tryShiftsSeparately ):   
+        # Get the mesh
+        mesh = ProbabilisticAtlas().getMesh( self.meshCollectionFileName, K=0.0 )  # Don't want to use prior on deformation
+        positionsInTemplateSpace = mesh.points
+        
+        baseWorldToWorldTransformMatrices = [ np.eye(4) ]
+        if tryCenterOfGravity:
+            # Get the centers of gravity of atlas and image, and use that to propose a translation
+            templateSize = np.round( np.max( positionsInTemplateSpace, axis=0 ) + 1 ).astype( 'int' )
+            priors = mesh.rasterize( templateSize, -1 )
+            head = np.sum( priors[:,:,:,1:], axis=3 )
+            centerOfGravityTemplate = np.array( scipy.ndimage.measurements.center_of_mass( head ) ) # in image space
+            centerOfGravityImage = np.array( 
+                scipy.ndimage.measurements.center_of_mass( self.image.getImageBuffer() ) ) # in image space
+            centerOfGravityTemplate = self.templateImageToWorldTransformMatrix[ 0:3, 0:3 ] @ centerOfGravityTemplate + \
+                                      self.templateImageToWorldTransformMatrix[ 0:3, 3 ] # in world space
+            centerOfGravityImage = self.imageToWorldTransformMatrix[ 0:3, 0:3 ] @ centerOfGravityImage + \
+                                    self.imageToWorldTransformMatrix[ 0:3, 3 ] # in world space
+            centeringWorldToWorldTransformMatrix = np.eye( 4 ); 
+            centeringWorldToWorldTransformMatrix[ 0:3, 3 ] = centerOfGravityImage - centerOfGravityTemplate
+            baseWorldToWorldTransformMatrices.append( centeringWorldToWorldTransformMatrix )
+          
+            
+        if tryShiftsSeparately:
+            # Perform grid search for intialization (done separately for translation and scaling/rotation to limit the
+            # number of combinations to be tested)
+            _, _, bestShift, bestBaseWorldToWorldTransformMatrix, \
+                               _ = self.gridSearch( mesh,
+                                                    positionsInTemplateSpace,
+                                                    shifts=tryShifts,
+                                                    baseWorldToWorldTransformMatrices=baseWorldToWorldTransformMatrices,
+                                                    visualizerTitle='Affine grid search shifts' )
+              
+            _, _, _, _, bestImageToImageTransformMatrix = \
+                  self.gridSearch( mesh,
+                                   positionsInTemplateSpace,
+                                   angles=tryAngles, scales=tryScales, 
+                                   shifts = [ bestShift ], 
+                                   baseWorldToWorldTransformMatrices=[ bestBaseWorldToWorldTransformMatrix ],
+                                   visualizerTitle='Affine grid search anges/scales' )
+        else:
+            # Basic grid search
+            _, _, _, _, bestImageToImageTransformMatrix = \
+                  self.gridSearch( mesh,
+                                   positionsInTemplateSpace,
+                                   angles=tryAngles, scales=tryScales, 
+                                   shifts = tryShifts, 
+                                   baseWorldToWorldTransformMatrices = baseWorldToWorldTransformMatrices,
+                                   visualizerTitle='Affine grid search' )         
+
+        #
+        return bestImageToImageTransformMatrix
+    
+
+    #
+    def setUp( self, initTransform, visualizer ):
+        # 
+        # Read images etc
+        #
+      
         # Setup null visualization if necessary
         if visualizer is None:
-            visualizer = initVisualizer(False, False)
+            visualizer = initVisualizer( False, False )
 
-        # ------ Register Image ------
+        # Read in image and template, as well as their coordinates in world (mm) space
+        image = gems.KvlImage( self.imageFileName )
+        imageToWorldTransformMatrix = image.transform_matrix.as_numpy_array
+        template = gems.KvlImage( self.templateFileName )
+        templateImageToWorldTransformMatrix = template.transform_matrix.as_numpy_array
 
+        # Initialization
+        if initTransform is None:
+            initialWorldToWorldTransformMatrix = np.identity(4)
+        else:
+            # Assume the initialization matrix is LPS2LPS
+            print('initializing with predifined transform')
+            initialWorldToWorldTransformMatrix = initTransform
+        originalTemplateImageToWorldTransformMatrix = templateImageToWorldTransformMatrix
+        templateImageToWorldTransformMatrix = initialWorldToWorldTransformMatrix @ \
+                                                      templateImageToWorldTransformMatrix
+        
+            
+        # Figure out how much to downsample (depends on voxel size)
+        voxelSpacing = np.sum(imageToWorldTransformMatrix[0:3, 0:3] ** 2, axis=0) ** (1 / 2)
+        downSamplingFactors = np.round( self.targetDownsampledVoxelSpacing / voxelSpacing )
+        downSamplingFactors[downSamplingFactors < 1] = 1
+        upSamplingTranformMatrix = np.diag( np.pad( downSamplingFactors, (0, 1), 
+                                                      'constant', constant_values=(0, 1) ) )
+        
+        # Dowsample image
+        imageBuffer = image.getImageBuffer()
+        imageBuffer = imageBuffer[ ::int( downSamplingFactors[0] ),
+                                  ::int( downSamplingFactors[1] ),
+                                  ::int( downSamplingFactors[2] ) ]
+        image = gems.KvlImage( requireNumpyArray( imageBuffer ) )
+        originalImageToWorldTransformMatrix = imageToWorldTransformMatrix
+        imageToWorldTransformMatrix = imageToWorldTransformMatrix @ upSamplingTranformMatrix
+
+
+        # Save as member variables
+        self.visualizer = visualizer
+        self.image = image
+        self.imageToWorldTransformMatrix = imageToWorldTransformMatrix
+        self.templateImageToWorldTransformMatrix = templateImageToWorldTransformMatrix
+        self.originalImageToWorldTransformMatrix = originalImageToWorldTransformMatrix
+        self.originalTemplateImageToWorldTransformMatrix = originalTemplateImageToWorldTransformMatrix
+        self.upSamplingTranformMatrix = upSamplingTranformMatrix
+      
+
+    def registerMeshToImage( self, worldToWorldTransformMatrix, Ks, maximalDeformationStopCriterion,
+                             tryCenterOfGravity, tryShifts, tryAngles, tryScales, tryShiftsSeparately ):
+    
         if worldToWorldTransformMatrix is not None:
             # The world-to-world transfrom is externally given, so let's just compute the corresponding image-to-image
             # transform (needed for subsequent computations) and be done
             print('world-to-world transform supplied - skipping registration')
-            imageToImageTransformMatrix = np.linalg.inv(imageToWorldTransformMatrix) @ worldToWorldTransformMatrix @ templateImageToWorldTransformMatrix
+            imageToImageTransformMatrix = np.linalg.inv( self.originalImageToWorldTransformMatrix) @ \
+                                          worldToWorldTransformMatrix @ \
+                                          self.originalTemplateImageToWorldTransformMatrix
             optimizationSummary = None
         else:
-            # The solution is not externally (secretly) given, so we need to compute it.
+            # The solution is not externally given, so we need to compute it.
             print('performing affine atlas registration')
-            print('image: %s' % imageFileName)
-            print('template: %s' % templateFileName)
+            print('image: %s' % self.imageFileName)
+            print('template: %s' % self.templateFileName)
 
-            lineSearchMaximalDeformationIntervalStopCriterion = self.maximalDeformationStopCriterion  # Doesn't seem to matter very much
+            # Get an initialization of the image-to-image transform (template -> subject)
+            import time; tic = time.perf_counter()
+            imageToImageTransformMatrix = self.getInitialization( tryCenterOfGravity, tryShifts, 
+                                                                  tryAngles, tryScales, tryShiftsSeparately )
+            toc = time.perf_counter()
+            print( f"Initialization took {toc - tic:0.4f} s" )
+            
 
-            # Initialization
-            if initTransform is None:
-                initialWorldToWorldTransformMatrix = np.identity(4)
-            else:
-                # Assume the initialization matrix is LPS2LPS
-                print('initializing with predifined transform')
-                initialWorldToWorldTransformMatrix = initTransform
+            # Optimze image-to-image transform (template->subject)
+            tic = time.perf_counter()
+            for K in Ks:
+                imageToImageTransformMatrix, optimizationSummary = \
+                    self.optimizeTransformation( imageToImageTransformMatrix,
+                                                 K, maximalDeformationStopCriterion )
+            toc = time.perf_counter()
+            print( f"Optimization took {toc - tic:0.4f} s" )
 
-            # Provide an initial (non-identity) affine transform guestestimate
-            rotationMatrix, scalingMatrix = self.computeRotationAndScalingMatrixGuessEstimates()
-
-            initialWorldToWorldTransformMatrix = rotationMatrix @ initialWorldToWorldTransformMatrix
-            initialWorldToWorldTransformMatrix = scalingMatrix @ initialWorldToWorldTransformMatrix
-
-            K = K / (self.scaling * self.scaling * self.scaling)
-            multiplied = (initialWorldToWorldTransformMatrix @ templateImageToWorldTransformMatrix)
-            initialImageToImageTransformMatrix = np.linalg.solve(imageToWorldTransformMatrix, multiplied)
-
-            # Figure out how much to downsample (depends on voxel size)
-            voxelSpacing = np.sum(imageToWorldTransformMatrix[0:3, 0:3] ** 2, axis=0) ** (1 / 2)
-            downSamplingFactors = np.round(self.targetDownsampledVoxelSpacing / voxelSpacing)
-            downSamplingFactors[downSamplingFactors < 1] = 1
-
-            # Use initial transform to define the reference (rest) position of the mesh (i.e. the one
-            # where the log-prior term is zero)
-            mesh_collection = gems.KvlMeshCollection()
-            mesh_collection.read(meshCollectionFileName)
-            mesh_collection.k = K * np.prod(downSamplingFactors)
-            mesh_collection.transform(gems.KvlTransform(requireNumpyArray(initialImageToImageTransformMatrix)))
-            mesh = mesh_collection.reference_mesh
-
-            # Get image data
-            imageBuffer = image.getImageBuffer()
-            visualizer.show(images=imageBuffer, window_id='atlas initial', title='Initial Atlas Registration')
-
-            # Downsample
-            imageBuffer = imageBuffer[
-                          ::int(downSamplingFactors[0]),
-                          ::int(downSamplingFactors[1]),
-                          ::int(downSamplingFactors[2])]
-            image = gems.KvlImage(requireNumpyArray(imageBuffer))
-            mesh.scale(1 / downSamplingFactors)
-            alphas = mesh.alphas
-            gmClassNumber = 3  # Needed for displaying purposes
-            numberOfClasses = alphas.shape[1]
-            visualizer.show(mesh=mesh, shape=imageBuffer.shape, window_id='atlas mesh', title="Atlas Mesh")
-
-            # Get a registration cost and use it to evaluate some promising starting point proposals
-            calculator = gems.KvlCostAndGradientCalculator('MutualInformation', [image], 'Affine')
-            cost, gradient = calculator.evaluate_mesh_position_a(mesh)
-            centerOfGravityImage = np.array(scipy.ndimage.measurements.center_of_mass(imageBuffer))
-            nodePositions = mesh.points
-
-            # Get the mean node position of the mesh in order to attempt a rough center-of-gravity initialization
-            meanNodePosition = np.mean(nodePositions, axis=0)
-            baseTranslation = centerOfGravityImage - meanNodePosition
-
-            # Attempt a few different initial alignments. If the initial center-of-gravity placement fails
-            # try shifting the translation up and down along the Y axis by 10 voxels
-            for verticalDisplacement in (0, -10, 10):
-                translation = baseTranslation + np.array((0, verticalDisplacement, 0))
-                mesh.points = nodePositions + translation
-                trialCost, trialGradient = calculator.evaluate_mesh_position_b(mesh)
-                if trialCost >= cost:
-                    # Trial alignment was not a success - revert to what we had before
-                    mesh.points = nodePositions
-                else:
-                    # This is better starting position - remember that we applied it
-                    initialImageToImageTransformMatrix[0:3, 3] = initialImageToImageTransformMatrix[0:3, 3] + (np.diag(downSamplingFactors) @ translation)
-                    break
-
-            originalNodePositions = mesh.points
-
-            # Get an optimizer, and stick the cost function into it
-            optimization_parameters = {
-                'Verbose': 1.0,
-                'MaximalDeformationStopCriterion': self.maximalDeformationStopCriterion,
-                'LineSearchMaximalDeformationIntervalStopCriterion': lineSearchMaximalDeformationIntervalStopCriterion,
-                'BFGS-MaximumMemoryLength': 12.0  # Affine registration only has 12 DOF
-            }
-            optimizer = gems.KvlOptimizer( 'L-BFGS', mesh, calculator, optimization_parameters)
-
-            numberOfIterations = 0
-            minLogLikelihoodTimesPriors = []
-            maximalDeformations = []
-            visualizer.start_movie(window_id='atlas iteration', title='Atlas Registration - the movie')
-            while True:
-                minLogLikelihoodTimesPrior, maximalDeformation = optimizer.step_optimizer_atlas()
-                minLogLikelihoodTimesPriors.append(minLogLikelihoodTimesPrior)
-                maximalDeformations.append(maximalDeformation)
-
-                if maximalDeformation == 0:
-                    break
-                numberOfIterations += 1
-                visualizer.show(mesh=mesh, images=imageBuffer, window_id='atlas iteration', title='Atlas Registration')
-
-            visualizer.show_movie(window_id='atlas iteration')
-            nodePositions = mesh.points
-            pointNumbers = [0, 110, 201, 302]
-            originalY = np.vstack((np.diag(downSamplingFactors) @ originalNodePositions[pointNumbers].T, [1, 1, 1, 1]))
-
-            Y = np.vstack((np.diag(downSamplingFactors) @ nodePositions[pointNumbers].T, [1, 1, 1, 1]))
-            extraImageToImageTransformMatrix = Y @ np.linalg.inv(originalY)
-
+            
             # Final result: the image-to-image (from template to image) as well as the world-to-world transform that
             # we computed (the latter would be the identity matrix if we didn't move the image at all)
-            imageToImageTransformMatrix = extraImageToImageTransformMatrix @ initialImageToImageTransformMatrix
-            worldToWorldTransformMatrix = imageToWorldTransformMatrix @ imageToImageTransformMatrix @ np.linalg.inv(templateImageToWorldTransformMatrix)
-
-            optimizationSummary = {'numberOfIterations': len(minLogLikelihoodTimesPriors),
-                                   'cost': minLogLikelihoodTimesPriors[-1]}
-
-        # ------ Save Registration Results ------
-
+            imageToImageTransformMatrix = self.upSamplingTranformMatrix @ \
+                                          imageToImageTransformMatrix # template-to-original-image
+            worldToWorldTransformMatrix = self.originalImageToWorldTransformMatrix @ imageToImageTransformMatrix @ \
+                                          np.linalg.inv( self.originalTemplateImageToWorldTransformMatrix )
+            
+        # return result
+        return imageToImageTransformMatrix, worldToWorldTransformMatrix, optimizationSummary
+      
+      
+    def  saveResults( self, 
+                      savePath, worldToWorldTransformMatrix, imageToImageTransformMatrix ):
+                
         # Save the image-to-image and the world-to-world affine registration matrices
         scipy.io.savemat(os.path.join(savePath, 'template_transforms.mat'),
-                         {'imageToImageTransformMatrix': imageToImageTransformMatrix,
+                          {'imageToImageTransformMatrix': imageToImageTransformMatrix,
                           'worldToWorldTransformMatrix': worldToWorldTransformMatrix } )
 
         # Save the template transform
-        inputImage = fs.Volume.read(imageFileName)
-        templateImage = fs.Volume.read(templateFileName)
+        inputImage = fs.Volume.read(self.imageFileName)
+        templateImage = fs.Volume.read(self.templateFileName)
         xform = fs.LinearTransform(convertLPSTransformToRAS(worldToWorldTransformMatrix))
         xform.type = fs.LinearTransform.Type.ras
         xform.source = templateImage.geometry()
@@ -194,7 +389,7 @@ class Affine:
         xform.write(ltaFileName)
 
         # Compute and save the talairach.xfm
-        xform = self.computeTalairach(imageFileName, imageToImageTransformMatrix, templateImageToWorldTransformMatrix)
+        xform = self.computeTalairach( imageToImageTransformMatrix )
         ltaFileName = os.path.join(savePath, 'samseg.talairach.lta')
         print('writing talairach transform to %s' % ltaFileName)
         xform.write(ltaFileName)
@@ -203,48 +398,5 @@ class Affine:
         coregistered = fs.Volume(fs.geom.resample(templateImage.data, inputImage.shape[:3], np.linalg.inv(imageToImageTransformMatrix)))
         coregistered.copy_geometry(inputImage)
         coregistered.write(os.path.join(savePath, 'template_coregistered.mgz'))
-
-        # Historically, the template was resaved with a transformed header and the image-to-image transform
-        # was later extracted by comparing the input image and coregistered template transforms, but shear
-        # cannot be saved through an ITK image, so a better method is to pass the image-to-image transform matrix
-        # directly to samseg. If the SAMSEG_LEGACY_REGISTRATION env var is set, this old method is enabled
-        if os.environ.get('SAMSEG_LEGACY_REGISTRATION') is not None:
-            print('INFO: using legacy (broken) registration option')
-            desiredTemplateImageToWorldTransformMatrix = np.asfortranarray(imageToWorldTransformMatrix @ imageToImageTransformMatrix)
-            transformedTemplateFileName = os.path.join(savePath, 'template_coregistered_legacy.nii')
-            template.write(transformedTemplateFileName, gems.KvlTransform(desiredTemplateImageToWorldTransformMatrix))
-
-        return imageToImageTransformMatrix, optimizationSummary
-
-    def computeRotationAndScalingMatrixGuessEstimates(self):
-        # Rotation around X-axis (direction from left to right ear)
-        rotationMatrix = np.identity(4, dtype=np.double)
-        cos_theta = np.cos(self.theta)
-        sin_theta = np.sin(self.theta)
-        rotationMatrix[1, 1] = cos_theta
-        rotationMatrix[1, 2] = -sin_theta
-        rotationMatrix[2, 1] = sin_theta
-        rotationMatrix[2, 2] = cos_theta
-
-        # Isotropic scaling
-        scalingMatrix = np.diag([self.scaling, self.scaling, self.scaling, 1.0])
-
-        return rotationMatrix, scalingMatrix
-
-    def computeTalairach(self, imageFileName, imageToImageTransformMatrix, templateImageToWorldTransformMatrix):
-        # Load fsaverage orig.mgz -- this is the ultimate target/destination
-        fnamedst = os.path.join(fs.fshome(), 'subjects', 'fsaverage', 'mri', 'orig.mgz')
-        fsaorig = fs.Volume.read(fnamedst)
-
-        # Compute the vox2vox from the template to fsaverage assuming they share world RAS space
-        RAS2LPS = np.diag([-1, -1, 1, 1])
-        M = np.linalg.inv(RAS2LPS @ fsaorig.affine) @ templateImageToWorldTransformMatrix
-        # Compute the input to fsaverage vox2vox by combining the input-template vox2vox and the template-fsaverage vox2vox
-        vox2vox = M @ np.linalg.inv(imageToImageTransformMatrix)
-
-        # Now write out the LTA. This can be used as the talairach.lta in recon-all
-        xform = fs.LinearTransform(vox2vox)
-        xform.type = fs.LinearTransform.Type.vox
-        xform.source = fs.Volume.read(imageFileName).geometry()
-        xform.target = fsaorig.geometry()
-        return xform
+      
+      

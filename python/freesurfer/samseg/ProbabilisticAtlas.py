@@ -18,7 +18,7 @@ class ProbabilisticAtlas:
         # Get the mesh
         mesh_collection = gems.KvlMeshCollection()
         mesh_collection.read(meshCollectionFileName)
-        if K:
+        if K is not None:
             mesh_collection.k = K
         if transform:
             mesh_collection.transform(transform)
