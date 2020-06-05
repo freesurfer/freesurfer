@@ -3318,7 +3318,7 @@ if($DoWhitePreAparc) then
     set cmd = (mris_place_surface --adgws-in $ads --wm $wm \
      --invol $bfs --$hemi  --i $orig --o $whitepreaparc --white)
     if($UseAseg) set cmd = ($cmd --seg $aseg) # probably should always use
-    if($CBVfindFirstPeakD1) set cmd = ($cmd --first-peak-d1)
+    #if($CBVfindFirstPeakD1) set cmd = ($cmd --first-peak-d1) # errors near Put/Insula
     if($longitudinal == 0) set cmd = ($cmd --nsmooth 5) # good idea?
     if($longitudinal == 1) set cmd = ($cmd --max-cbv-dist 3.5) 
     if($#mps_n_averages) set cmd = ($cmd --n_averages $mps_n_averages)
