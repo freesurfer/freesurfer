@@ -1268,6 +1268,18 @@ void Blood::ComputePriors() {
     //FindCenterStreamline();
     mCenterStreamline = mStreamlines[mDistanceRank[itry-1]];
 
+    for (vector< vector<int> >::const_iterator
+                                ixstr = mExcludedStreamlines.begin();
+                                ixstr < mExcludedStreamlines.end(); ixstr++)
+      if (equal(mCenterStreamline.begin(), mCenterStreamline.end(),
+                ixstr->begin())) {
+        retry = true;
+        break;
+      }
+
+    if (retry)
+     continue;
+
     for (vector<int>::const_iterator incpt = mNumControls.begin();
                                      incpt < mNumControls.end(); incpt++) {
       cout << "Selecting " << *incpt << " points on center streamline" << endl;
