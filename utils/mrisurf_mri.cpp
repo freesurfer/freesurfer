@@ -1710,6 +1710,7 @@ static int MRIScomputeBorderValues_new(
   int ngrad_max = 0, ngrad = 0, nmin = 0;
   int nmissing  = 0, nout  = 0, nin  = 0, nfound = 0, nalways_missing = 0, num_changed = 0;
   int n_sigma_increases = 0;
+  int nFirstPeakD1 = 0;
 
   // Prepare to map all the surface points to voxels
   //
@@ -1724,7 +1725,7 @@ static int MRIScomputeBorderValues_new(
   #pragma omp parallel for if_ROMP(assume_reproducible) \
     reduction(+:mean_dist,mean_in,mean_out,mean_border) \
     reduction(+:total_vertices,ngrad_max,ngrad,nmin,nmissing,nout,nin,nfound,nalways_missing,num_changed) \
-    reduction(+:n_sigma_increases,nripped)
+    reduction(+:n_sigma_increases,nripped,nFirstPeakD1)
 #endif
   for (vno = vno_start; vno < vno_stop; vno++) {
     ROMP_PFLB_begin
@@ -2329,6 +2330,7 @@ static int MRIScomputeBorderValues_new(
           max_mag_val  = sample_mri[i];
           max_mag      = fabs(dm[i]);
           max_mag_dist = sample_dists[i];
+	  nFirstPeakD1++;
         }
         else if(CBVfindFirstPeakD2)  // not a local max in 1st derivative - try second */
         {
@@ -2533,10 +2535,7 @@ static int MRIScomputeBorderValues_new(
       100.0f * (float)nmin      / (float)mris->nvertices, num_changed);
     fflush(fp);
   }
-
-#if 0
-  MRISsoapBubbleVals(mris, 100) ;
-#endif
+  printf("nFirstPeakD1 %d\n",nFirstPeakD1);
 
   MRIS_freeRAS2VoxelMap(&sras2v_map);
   if(Gdiag_no > 0){
