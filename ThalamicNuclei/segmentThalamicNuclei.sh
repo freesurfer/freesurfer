@@ -232,7 +232,7 @@ echo "#@# Thalamic Nuclei processing `date`" \
   |& tee -a $THNUCLOG
 
 # command
-set cmd="run_SegmentThalamicNuclei.sh $RUNTIME $SUBJECTNAME $SUBJECTS_DIR $RESOLUTION $ATLASMESH $ATLASDUMP $LUT $K $OPTIMIZER $SUFFIX ${FREESURFER_HOME}/bin/ $USETWOCOMPS  $MRFCONSTANT"
+set cmd="run_SegmentThalamicNuclei.sh $RUNTIME $SUBJECTNAME $SUBJECTS_DIR $RESOLUTION $ATLASMESH $ATLASDUMP $LUT $K $OPTIMIZER $SUFFIX '${FREESURFER_HOME}/bin/fs_run_from_mcr ${FREESURFER_HOME}/bin/' $USETWOCOMPS  $MRFCONSTANT"
 if ($#argv > 2) then
   set cmd="$cmd $ADDVOL $ANALYSISID $DOBIASFIELDCORR $BBREGMODE";
 endif
