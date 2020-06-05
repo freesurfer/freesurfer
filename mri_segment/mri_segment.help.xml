@@ -60,6 +60,8 @@
       <explanation>set the gray matter high limit (default=100.000)</explanation>
       <argument>-wlo,-wm_low &lt;l&gt;</argument>
       <explanation>set the white matter low limit (default=90.000)</explanation>
+      <argument>-wm_low_factor &lt;l&gt;</argument>
+      <explanation>wm_low = gray_mean + wm_low_factor*gray_sigma. By default factor=1. Increase to reduce overlabeling of WM (but could cause underlabeling)</explanation>
       <argument>-whi,-wm_hi &lt;h&gt;</argument>
       <explanation>set the white matter high limit (default=125.000)</explanation>
       <argument>-nseg &lt;n&gt;</argument>
@@ -92,8 +94,8 @@
       <explanation>set len for plane of least variance (default=3)</explanation>
       <argument>-dat datfile</argument>
       <explanation>set datfile (default is segment.dat)</explanation>
-      <argument>-seg segmenationvolume Qwm Qctx NdilWM NdilCtx</argument>
-      <explanation>Uses segmentation (eg, aseg.presurf.mgz) to initialize WM seg</explanation>
+      <argument>-seg segmenationvolume SegErodeMM WMBiasFactor</argument>
+      <explanation>Uses segmentation (eg, aseg.presurf.mgz) to set thresholds</explanation>
       <argument>-diagno diagno</argument>
       <explanation>Set diagnostic number</explanation>
       <argument>-diag-write</argument>
