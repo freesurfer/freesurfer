@@ -11674,6 +11674,9 @@ const char *cma_label_to_name(int label)
   if (label == fminor) {
     return ("Corpus Callosum Forceps Minor");
   }
+  if (label == ac) {
+    return ("Anterior Commissure");
+  }
   if (label == lh_atr) {
     return ("Left Anterior Thalamic Radiation");
   }
@@ -11704,6 +11707,24 @@ const char *cma_label_to_name(int label)
   if (label == rh_slf) {
     return ("Right Superior Longitudinal Fasciculus");
   }
+  if (label == lh_slf1) {
+    return ("Left Superior Longitudinal Fasciculus - I");
+  }
+  if (label == rh_slf1) {
+    return ("Right Superior Longitudinal Fasciculus - I");
+  }
+  if (label == lh_slf2) {
+    return ("Left Superior Longitudinal Fasciculus - II");
+  }
+  if (label == rh_slf2) {
+    return ("Right Superior Longitudinal Fasciculus - II");
+  }
+  if (label == lh_slf3) {
+    return ("Left Superior Longitudinal Fasciculus - III");
+  }
+  if (label == rh_slf3) {
+    return ("Right Superior Longitudinal Fasciculus - III");
+  }
   if (label == lh_slfp) {
     return ("Left Superior Longitudinal Fasciculus - Parietal");
   }
@@ -11727,6 +11748,24 @@ const char *cma_label_to_name(int label)
   }
   if (label == rh_fx) {
     return ("Right Fornix");
+  }
+  if (label == lh_fat) {
+    return ("Left Frontal Aslant Tract");
+  }
+  if (label == rh_fat) {
+    return ("Right Frontal Aslant Tract");
+  }
+  if (label == lh_or) {
+    return ("Left Optic Radiation");
+  }
+  if (label == rh_or) {
+    return ("Right Optic Radiation");
+  }
+  if (label == lh_mlf) {
+    return ("Left Middle Longitudinal Fasciculus");
+  }
+  if (label == rh_mlf) {
+    return ("Right Middle Longitudinal Fasciculus");
   }
   if (label == Cbm_Left_I_IV) {
     return ("Cbm_Left_I_IV");

@@ -320,6 +320,7 @@
 #define cc_body 5102 //                                 204 102 102 0
 #define cc_genu 5103 //                                 204 102 102 0
 #define cc_splenium 5104 //                             204 102 102 0
+#define ac 5105 //                                      204 204 102 0
 
 // Left hemi tracts
 #define lh_atr 5200 //                                  255 255 102 0
@@ -335,6 +336,12 @@
 #define lh_af 5210 //                                   153 255 255 0
 #define lh_ifof 5211 //                                 153 204 51  0
 #define lh_fx 5212 //                                   204 102 153 0
+#define lh_fat 5213 //                                  153 102 204 0
+#define lh_or 5214 //                                   255 153 102 0
+#define lh_mlf 5215 //                                  51  153 204 0
+#define lh_slf1 5216 //                                 51  255 204 0
+#define lh_slf2 5217 //                                 153 255 204 0
+#define lh_slf3 5218 //                                 204 204 204 0
 
 // Right hemi tracts
 #define rh_atr 5300 //                                  255 255 102 0
@@ -349,7 +356,13 @@
 #define rh_slf 5309 //                                  204 204 204 0
 #define rh_af 5310 //                                   153 255 255 0
 #define rh_ifof 5311 //                                 153 204 51  0
-#define rh_fx 5213 //                                   204 102 153 0
+#define rh_fx 5312 //                                   204 102 153 0
+#define rh_fat 5313 //                                  153 102 204 0
+#define rh_or 5314 //                                   255 153 102 0
+#define rh_mlf 5315 //                                  51  153 204 0
+#define rh_slf1 5316 //                                 51  255 204 0
+#define rh_slf2 5317 //                                 153 255 204 0
+#define rh_slf3 5318 //                                 204 204 204 0
 
 
 /*
