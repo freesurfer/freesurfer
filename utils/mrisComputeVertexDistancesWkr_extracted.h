@@ -29,10 +29,13 @@ static bool FUNCTION_NAME(
       fprintf(stdout, "  but using the same formula_%d so not important\n", oldStatusFormula);
   }
 
+  // if v_dist_buffer isn't allocated here, OUTPUT_MAKER produces memory leaks when multithreaded
+#ifdef COMPILING_MRIS_MP
+  if (!mris->v_dist_buffer) mris->v_dist_buffer = (float**)calloc(mris->nvertices, sizeof(float*));
+#endif
+
   int nonZeroInputXCount = 0;
-  
   int errors = 0;
-  
   int vno;
 
   switch (MRIS_Status_distanceFormula(mris->INPUT_STATUS)) {

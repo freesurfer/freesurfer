@@ -2415,20 +2415,14 @@ int MRISremoveOverlapWithSmoothing(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     old_neg = negative;
 
     if (parms->fp && parms->t % 100 == 0)
-      fprintf(parms->fp, "%03d: dt=%2.4f, %d negative triangles  VmPeak %d\n", parms->t, parms->dt, negative,GetVmPeak());
+      fprintf(parms->fp, "%03d: dt=%2.4f, %d negative triangles\n", parms->t, parms->dt, negative);
 
-    printf("%03d: dt=%2.4f, %3d negative triangles  LoopVmPeak a %d ", parms->t, parms->dt, negative,GetVmPeak());
+    printf("%03d: dt=%2.4f, %3d negative triangles\n", parms->t, parms->dt, negative);
     mrisSmoothingTimeStep(mris, parms);
-    printf(" b %d ",GetVmPeak());
     parms->t++;  // advance time-step counter
     mrisProjectSurface(mris);
-    printf(" c %d ",GetVmPeak());
     MRIScomputeMetricProperties(mris);
-    printf(" d %d ",GetVmPeak());
     negative = MRIScountNegativeTriangles(mris);
-    printf(" e %d ",GetVmPeak());
-    printf("\n");
-    fflush(stdout);
     if (negative < min_neg) {
       min_neg = negative;
       min_neg_iter = parms->t;

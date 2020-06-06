@@ -113,12 +113,8 @@ main(int argc, char *argv[])
   float        max_dim ;
 
   std::string cmdline = getAllInfo(argc, argv, "mris_sphere");
-
   nargs = handleVersionOption(argc, argv, "mris_sphere");
-  if (nargs && argc - nargs == 1)
-  {
-    exit (0);
-  }
+  if (nargs && argc - nargs == 1) exit (0);
   argc -= nargs;
 
   then.reset() ;
@@ -174,16 +170,10 @@ main(int argc, char *argv[])
   in_surf_fname = argv[1] ;
   out_fname = argv[2] ;
 
-  printf("%s\n",getVersion().c_str());
-  printf("  %s\n",getVersion().c_str());
+  std::cout << "version: " << getVersion() << std::endl;
 
 #ifdef HAVE_OPENMP
-  {
-    int n_omp_threads = 1;
-    n_omp_threads = omp_get_max_threads(); 
-    printf("\n== Number of threads available to %s for OpenMP = %d == \n",
-      Progname, n_omp_threads);
-  }
+  std::cout << "available threads: " << omp_get_max_threads() << std::endl;
 #endif
 
   fflush(stdout); fflush(stderr);
@@ -380,23 +370,12 @@ main(int argc, char *argv[])
     mrisComputeOriginalVertexDistances(mris);
   }
   
-  fflush(stdout); fflush(stderr);
   fprintf(stderr, "projecting onto sphere...\n");
-  fflush(stdout); fflush(stderr);
-
-  printf("pre  MRISprojectOntoSphere VmPeak  %d\n",GetVmPeak());
   MRISprojectOntoSphere(mris, mris, target_radius) ;
-  printf("post MRISprojectOntoSphere VmPeak  %d\n",GetVmPeak());
 
-  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-  {
-    MRISwrite(mris, "after") ;
-  }
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) MRISwrite(mris, "after");
   
-  fflush(stdout); fflush(stderr);
   fprintf(stderr,"surface projected - minimizing metric distortion...\n");
-  fflush(stdout); fflush(stderr);
-  
   MRISsetNeighborhoodSize(mris, nbrs) ;
   
   int const countNegativeFaces   = MRIScountNegativeFaces(mris);
@@ -424,7 +403,6 @@ main(int argc, char *argv[])
   else
   {
     MRISunfold(mris, &parms, max_passes) ;
-    printf("post MRISunfold VmPeak  %d\n",GetVmPeak());
   }
   if (remove_negative)
   {

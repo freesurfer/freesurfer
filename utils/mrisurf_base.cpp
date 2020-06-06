@@ -682,13 +682,16 @@ void MRISdtr(MRIS *mris) {
   
   if (mris->ct) CTABfree(&mris->ct);
 
-  
   int vno;
   for (vno = 0; vno < mris->nvertices; vno++) {
     VERTEX_TOPOLOGYdtr(&mris->vertices_topology[vno]);
     VERTEXdtr         (&mris->vertices         [vno]);
   }
   freeAndNULL(mris->vertices);
+
+#ifdef SEPARATE_VERTEX_TOPOLOGY
+  freeAndNULL(mris->vertices_topology);
+#endif
 
   freeAndNULL(mris->faceNormDeferredEntries);
   freeAndNULL(mris->faceNormCacheEntries);
