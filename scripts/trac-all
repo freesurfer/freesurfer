@@ -1628,7 +1628,8 @@ if ($doinfant) then
 else
   if (! $#trainfile) set trainfile = $FREESURFER_HOME/trctrain/trainlist.txt
   if (! $#gmgrow)    set gmgrow = 2
-  if (! $#pmin)      set pmin = .2
+  if (! $#pmin && ! $#baselist) set pmin = .2
+  if (! $#pmin &&   $#baselist) set pmin = .02
 endif
 
 if (! $#pathfile) set pathfile = `dirname $trainfile`/pathlist.txt
