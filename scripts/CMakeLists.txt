@@ -34,8 +34,11 @@ install_configured(
   defect2seg
   defect-seg
   dicom-rename
+  dmri_bset
   dmrirc.example
   dmrirc.long.example
+  dmrirc.long.multiscan.example
+  dmrirc.multiscan.example
   dsh
   dt_recon
   epidewarp.fsl
