@@ -11674,7 +11674,7 @@ const char *cma_label_to_name(int label)
   if (label == fminor) {
     return ("Corpus Callosum Forceps Minor");
   }
-  if (label == ac) {
+  if (label == acomm) {
     return ("Anterior Commissure");
   }
   if (label == lh_atr) {

@@ -320,7 +320,7 @@
 #define cc_body 5102 //                                 204 102 102 0
 #define cc_genu 5103 //                                 204 102 102 0
 #define cc_splenium 5104 //                             204 102 102 0
-#define ac 5105 //                                      204 204 102 0
+#define acomm 5105 //                                   204 204 102 0
 
 // Left hemi tracts
 #define lh_atr 5200 //                                  255 255 102 0
