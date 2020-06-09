@@ -2521,6 +2521,7 @@ public:
   double white_inside_hi;
   double white_border_hi;
   double white_border_low;
+  double white_border_low_factor=1;
   double white_outside_low;
   double white_outside_hi;
   double pial_inside_hi;
