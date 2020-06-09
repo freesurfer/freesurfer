@@ -1615,7 +1615,7 @@ int MRIScomputeBorderValues(
   border_hi eg,  115 (max_border_white, MeanWM+1WMSTD)
   border_low eg,  77 (min_border_white, MeanGM)
   outside_low eg, 68 (min_gray_at_white_border, MeanGM-1GMSTD)
-  outside_hi eg, 115 (outside_hi (often same as border_hi), used?)
+  outside_hi eg, 115 (outside_hi (often same as border_hi))
 
   When placing the pial surface  (second variables are from mris_make_surfaces):
   inside_hi = max_gray (eg, 99.05)
@@ -1626,6 +1626,9 @@ int MRIScomputeBorderValues(
 
   border_hi  - determines when a sample is too bright on the inward  loop
   border_low - determines when a sample is too dark   on the outward loop
+
+  outside_low, outside_hi: bracket the allowable intensity when computing
+   the next_val. 
 
   The outputs are set in each vertex structure:
       v->val2 = current_sigma; // smoothing level along gradient used to find the target
@@ -1849,54 +1852,6 @@ static int MRIScomputeBorderValues_new(
       // This will be +step_size/2 if it did not make it even one step. Otherwise it will
       // be some negative value
       inward_dist = dist + step_size / 2;
-
-      // The if() below creates a lot of problems. In the original
-      // code, it was conditioned on DIAG_VERBOSE_ON being set, which
-      // almost never is, so it was never actually run. In v7, I
-      // removed this condition so that it could be reached; this
-      // caused placement inaccuracies. So now I put a 0 && to
-      // effectively remove it. There are still potential problems
-      // with next_val as described below.
-      // ------------------------------
-      // This if() used to have a "DIAG_VERBOSE_ON &&". This made the
-      // behavior non-deterministic for hires volumes because
-      // "next_val" was used downstream but not set here. This existed
-      // in v6. Also, next_val needs to be defined globally withing
-      // the scope of the vertex loop. There are several places below
-      // (now commented out) where it is redefined.
-      if(0 && CBVfindFirstPeakD1==1  && mag >= 0.0){
-	// This code is supposed to refine inward_dist for hires
-	// volumes. This is similar to the code above except using a
-	// step that is half the size. But it just looks at the value
-	// and not the gradient, so it is not clear how this is
-	// supposed to work. And why only the inward loop?
-        for (dist = inward_dist; dist > -max_thickness; dist -= step_size / 2) {
-          double x,y,z;
-          double xw, yw, zw;
-          double val;
-          //double next_val; // define above with looop scope
-
-	  // Sample brain at this distance
-          x = v->x + v->nx * dist;
-          y = v->y + v->ny * dist;
-          z = v->z + v->nz * dist;
-          MRIS_useRAS2VoxelMap(sras2v_map, mri_brain,x, y, z, &xw, &yw, &zw);
-          MRIsampleVolume(mri_brain, xw, yw, zw, &val);
-
-	  // Sample brain at this distance + stepsize/2
-          x = v->x + v->nx * (dist + step_size / 2);
-          y = v->y + v->ny * (dist + step_size / 2);
-          z = v->z + v->nz * (dist + step_size / 2);
-          MRIS_useRAS2VoxelMap(sras2v_map, mri_brain,x, y, z, &xw, &yw, &zw);
-          MRIsampleVolume(mri_brain, xw, yw, zw, &next_val);
-          
-          if (next_val < val)  
-	    // There is a decrease in the value, so must be at max inward max
-	    // Again, this does not make sense if not sampling the gradient. 
-            break; // break from distance loop
-        } // end loop over distance
-        inward_dist = dist;
-      } // end if(CBVfindFirstPeakD1)
 
       // search outwards
       if(vno == Gdiag_no) printf("vno=%d Starting outward loop (maxdist=%g,step=%g)\n",vno,max_thickness,step_size);
