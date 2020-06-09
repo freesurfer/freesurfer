@@ -60,8 +60,8 @@
       <explanation>set the gray matter high limit (default=100.000)</explanation>
       <argument>-wlo,-wm_low &lt;l&gt;</argument>
       <explanation>set the white matter low limit (default=90.000)</explanation>
-      <argument>-wm_low_factor &lt;l&gt;</argument>
-      <explanation>wm_low = gray_mean + wm_low_factor*gray_sigma. By default factor=1. Increase to reduce overlabeling of WM (but could cause underlabeling)</explanation>
+      <argument>-wm_low_factor &lt;f&gt;</argument>
+      <explanation>wm_low = f*gray_mean + (1-f)*white_mean;</explanation>
       <argument>-whi,-wm_hi &lt;h&gt;</argument>
       <explanation>set the white matter high limit (default=125.000)</explanation>
       <argument>-nseg &lt;n&gt;</argument>

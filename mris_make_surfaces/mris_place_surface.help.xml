@@ -121,6 +121,9 @@
       <argument>--first-peak-d2 </argument>
       <explanation>Use find-first-peak option with 2nd derivative in ComputeBorderValues</explanation>
 
+      <argument>--white_border_low_factor f</argument>
+      <explanation>white_border_low = f*adgws.gray_mean + (1-f)*adgws.white_mean;</explanation>
+
     </optional>
     <cost-function>
       <argument>--intensity weight</argument>

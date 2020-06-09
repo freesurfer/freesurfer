@@ -513,7 +513,8 @@ int main(int argc, char **argv)
     n_min_averages = min_white_averages; 
     inside_hi = adgws.white_inside_hi;
     border_hi = adgws.white_border_hi;
-    border_low = adgws.white_border_low;
+    double f = adgws.white_border_low_factor;
+    border_low = f*adgws.gray_mean + (1-f)*adgws.white_mean;
     outside_low = adgws.white_outside_low;
     outside_hi = adgws.white_outside_hi;
   }
@@ -888,6 +889,11 @@ static int parse_commandline(int argc, char **argv) {
     else if(!strcmp(option, "--white_border_low")) {
       if(nargc < 1) CMDargNErr(option,1);
       adgws.white_border_low = atof(pargv[0]);
+      nargsused = 1;
+    }
+    else if(!strcmp(option, "--white_border_low_factor")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      adgws.white_border_low_factor = atof(pargv[0]);
       nargsused = 1;
     }
     else if(!strcmp(option, "--white_outside_low")) {
