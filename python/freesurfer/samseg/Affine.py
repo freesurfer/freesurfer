@@ -9,42 +9,64 @@ from .ProbabilisticAtlas import ProbabilisticAtlas
 
 from .utilities import requireNumpyArray
 from .figures import initVisualizer
-import scipy.ndimage
+import scipy.ndimage # For center-of-mass calculation
+
+
+class initializationOptions:
+    def __init__( self,
+                  pitchAngles=np.array( [ -15, 0, 15 ] ) / 180.0 * np.pi, # in radians
+                  scales = [ 1.0 ],
+                  horizontalTableShifts=[ -35, -17.5, 0.0, 17.5, 35, 52.5 ], # in mm, in template space
+                  verticalTableShifts=[ -25.0, 0, 25.0 ], # in mm, in template space
+                  tryCenterOfGravity=True,
+                  searchForTableShiftsSeparately=False,
+                  pitchCenter=[ 0.0, 0.0, 0.0 ], # in mm, in template space - anterior commissure
+                  scalingCenter=[ 0.0, 120.0, 0.0 ], # in mm, in template space - back of the head
+                  initialPitchAngle=-15.0/180.0*np.pi,
+                  initialScale=0.95,
+                  initialTableShift=[ 0.0, 0.0, 0.0 ]
+                ):
+        self.pitchAngles = pitchAngles
+        self.scales = scales
+        self.horizontalTableShifts = horizontalTableShifts
+        self.verticalTableShifts = verticalTableShifts
+        self.tryCenterOfGravity = tryCenterOfGravity
+        self.searchForTableShiftsSeparately = searchForTableShiftsSeparately
+        self.pitchCenter = pitchCenter
+        self.scalingCenter = scalingCenter
+        self.initialPitchAngle = initialPitchAngle
+        self.initialScale = initialScale
+        self.initialTableShift = initialTableShift
+
+
 
 
 class Affine:
     def __init__( self, 
-                  imageFileName, meshCollectionFileName, templateFileName, 
-                  targetDownsampledVoxelSpacing=3.0
-                 ):
+                  imageFileName, meshCollectionFileName, templateFileName ):
         self.imageFileName = imageFileName
         self.meshCollectionFileName = meshCollectionFileName
         self.templateFileName = templateFileName
-        self.targetDownsampledVoxelSpacing = targetDownsampledVoxelSpacing
 
     def registerAtlas( self,
             savePath,
             worldToWorldTransformMatrix=None,
             initTransform=None,
+            Ks=[ 1.0, 0.5 ],
+            initializationOptions = initializationOptions(),
+            targetDownsampledVoxelSpacing=3.0,
             maximalDeformationStopCriterion=0.005,
-            Ks=[ 1.0, 0.1 ],
-            initializationTryCenterOfGravity=True,
-            initializationTryShifts = [ 0, -45, -30, -15, 15, 30, 45 ],
-            initializationTryAngles = [ 0 ],
-            initializationTryScales = [ 1.0 ],
-            initializationTryShiftsSeparately = False,
             visualizer=None ):
 
         # ------ Set up ------ 
-        self.setUp( initTransform, visualizer )
+        self.setUp( initTransform, targetDownsampledVoxelSpacing, visualizer )
 
         # ------ Register mesh to image ------
         imageToImageTransformMatrix, worldToWorldTransformMatrix, optimizationSummary = \
-            self.registerMeshToImage( worldToWorldTransformMatrix, Ks, maximalDeformationStopCriterion,
-                                      initializationTryCenterOfGravity, initializationTryShifts, 
-                                      initializationTryAngles, initializationTryScales,
-                                      initializationTryShiftsSeparately
-                                    )
+            self.registerMeshToImage( worldToWorldTransformMatrix=worldToWorldTransformMatrix, 
+                                      Ks=Ks, 
+                                      maximalDeformationStopCriterion=maximalDeformationStopCriterion,
+                                      initializationOptions=initializationOptions )
 
         # ------ Save results ------
         self.saveResults( savePath, worldToWorldTransformMatrix, imageToImageTransformMatrix )
@@ -136,32 +158,63 @@ class Affine:
         return xform
 
     #
-    def getTransformMatrix( self, angle, scale, shift ):
+    def getTransformMatrix( self, 
+                            pitchAngle=0.0, scale=1.0, horizontalTableShift=0.0, verticalTableShift=0.0,
+                            initialTableShift=None ):
         #
-        # 4x4 matrix mapping [ x' 1 ] to [ y' 1 ] by performing 
-        # 
-        #    y = S * R * x + t
-        # 
-        # where R is a 3x3 rotation matrix (rotating around the X-axis -- left-right),
-        #       S is a 3x3 isotropic scaling matrix,
-        #   and t is a 3x1 translation vector (implementing a shift along the Z-axis -- top-bottom).
-        #
-        transformMatrix = np.identity( 4, dtype=np.double )
-        transformMatrix[ 0, 0 ] = scale
-        transformMatrix[ 1, 1 ] = scale * np.cos( angle )
-        transformMatrix[ 2, 1 ] = scale * np.sin( angle )
-        transformMatrix[ 1, 2 ] = -scale * np.sin( angle )
-        transformMatrix[ 2, 2 ] = scale * np.cos( angle )
-        transformMatrix[ 2, 3 ] = shift
+        # 4x4 matrix simulating translation (horizontal and vertical table shift of the MRI scanner), 
+        # followed by isotropic scaling (around scalingCenter), and finally rotation (pitch around pitchCenter)
+        # of the atlas template. Everything is measured in the template world coordinates (i.e., measured in mm).
+        #       
+        if initialTableShift is None:
+            initialTableShift = self.initialTableShift
+        
+        
+        # Translation
+        translationMatrix = np.identity( 4, dtype=np.double )
+        translationMatrix[ 0:3, 3 ] = initialTableShift
+        translationMatrix[ 1, 3 ] += verticalTableShift
+        translationMatrix[ 2, 3 ] += horizontalTableShift
+        
+        # Scaling
+        scalingMatrix = np.identity( 4, dtype=np.double )
+        scalingMatrix[ 0, 0 ] = scale * self.initialScale
+        scalingMatrix[ 1, 1 ] = scale * self.initialScale
+        scalingMatrix[ 2, 2 ] = scale * self.initialScale
+        scalingCenter = np.array( [ self.scalingCenter[0], self.scalingCenter[1], self.scalingCenter[2], 
+                                    1 ] ).reshape( -1, 1 )
+        scalingCenter = translationMatrix @ scalingCenter
+        centeringMatrix = np.eye( 4 )
+        centeringMatrix[ 0:3, 3 ] = -scalingCenter[ 0:3, 0 ]
+        scalingMatrix = np.linalg.solve( centeringMatrix, scalingMatrix @ centeringMatrix )
+            
+        # Rotation
+        rotationMatrix = np.identity( 4, dtype=np.double )
+        rotationMatrix[ 1, 1 ] = np.cos( pitchAngle + self.initialPitchAngle )
+        rotationMatrix[ 2, 1 ] = np.sin( pitchAngle + self.initialPitchAngle )
+        rotationMatrix[ 1, 2 ] = -np.sin( pitchAngle + self.initialPitchAngle )
+        rotationMatrix[ 2, 2 ] = np.cos( pitchAngle + self.initialPitchAngle )
+        rotationCenter = np.array( [ self.pitchCenter[0], self.pitchCenter[1], self.pitchCenter[2], 
+                                     1 ] ).reshape( -1, 1 )
+        rotationCenter = scalingMatrix @ translationMatrix @ rotationCenter
+        centeringMatrix = np.eye( 4 )
+        centeringMatrix[ 0:3, 3 ] = -rotationCenter[ 0:3, 0 ]
+        rotationMatrix = np.linalg.solve( centeringMatrix, rotationMatrix @ centeringMatrix )
+        
+
+        transformMatrix = rotationMatrix @ scalingMatrix @ translationMatrix
         
         return transformMatrix
     
     
     #
-    def  gridSearch( self, mesh,
+    def gridSearch( self, mesh,
                     positionsInTemplateSpace,
-                    angles=[ 0.0 ], scales=[ 1.0 ], shifts= [ 0.0 ],
-                    baseWorldToWorldTransformMatrices=[ np.eye( 4 ) ],
+                    pitchAngles=[ 0.0 ],
+                    scales= [ 1.0 ],
+                    horizontalTableShifts = [ 0.0 ],
+                    verticalTableShifts = [ 0.0 ],
+                    initialTableShifts=[ 0.0, 0.0, 0.0 ],
                     visualizerTitle='Grid search' ):
         #
         # 
@@ -174,32 +227,39 @@ class Affine:
         #
         bestCost = np.inf
         self.visualizer.start_movie( window_id=visualizerTitle, title=visualizerTitle )
-        for angle in angles:
+        for initialTableShift in initialTableShifts:
             for scale in scales:
-                for baseWorldToWorldTransformMatrix in baseWorldToWorldTransformMatrices:
-                    for shift in shifts:
-                        # Compute image-to-image transform
-                        worldToWorldTransformMatrix = self.getTransformMatrix( angle, scale, shift )
-                        imageToImageTransformMatrix = np.linalg.solve( self.imageToWorldTransformMatrix, 
-                                                                      worldToWorldTransformMatrix @ \
-                                                                      baseWorldToWorldTransformMatrix @ \
-                                                                      self.templateImageToWorldTransformMatrix )
-      
-                        # Apply transform to mesh nodes
-                        mesh.points = ProbabilisticAtlas().mapPositionsFromTemplateToSubjectSpace( 
-                                        positionsInTemplateSpace, 
-                                        gems.KvlTransform( requireNumpyArray( imageToImageTransformMatrix ) ) )
-                        self.visualizer.show( images=self.image.getImageBuffer(), mesh=mesh, window_id=visualizerTitle )
-                        
-                        # Evaluate cost
-                        cost, _ = calculator.evaluate_mesh_position( mesh )
+                for horizontalTableShift in horizontalTableShifts:
+                    for verticalTableShift in verticalTableShifts:
+                        for pitchAngle in pitchAngles:
+                            # Compute image-to-image transform
+                            worldToWorldTransformMatrix = \
+                                self.getTransformMatrix( pitchAngle=pitchAngle, 
+                                                         scale=scale, 
+                                                         horizontalTableShift=horizontalTableShift,
+                                                         verticalTableShift=verticalTableShift,
+                                                         initialTableShift=initialTableShift )
+                            imageToImageTransformMatrix = np.linalg.solve( self.imageToWorldTransformMatrix,
+                                                                           worldToWorldTransformMatrix @ \
+                                                                           self.templateImageToWorldTransformMatrix )
+          
+                            # Apply transform to mesh nodes
+                            mesh.points = ProbabilisticAtlas().mapPositionsFromTemplateToSubjectSpace( 
+                                            positionsInTemplateSpace, 
+                                            gems.KvlTransform( requireNumpyArray( imageToImageTransformMatrix ) ) )
+                            self.visualizer.show( images=self.image.getImageBuffer(), mesh=mesh, window_id=visualizerTitle )
+                            
+                            # Evaluate cost
+                            cost, _ = calculator.evaluate_mesh_position( mesh )
 
-                        # If best so far, remember
-                        if cost < bestCost:
-                            bestCost = cost
-                            bestAngle, bestScale, bestShift, bestBaseWorldToWorldTransformMatrix = \
-                                angle, scale, shift, baseWorldToWorldTransformMatrix
-                            bestImageToImageTransformMatrix = imageToImageTransformMatrix
+                            # If best so far, remember
+                            if cost < bestCost:
+                                bestCost = cost
+                                bestPitchAngle, bestScale, bestHorizontalTableShift, \
+                                  bestVerticalTableShift, bestInitialTableShift = \
+                                    pitchAngle, scale, horizontalTableShift, \
+                                      verticalTableShift, initialTableShift
+                                bestImageToImageTransformMatrix = imageToImageTransformMatrix
 
 
         # Show the winner
@@ -210,58 +270,93 @@ class Affine:
         self.visualizer.show_movie( window_id=visualizerTitle )
         
         #
-        return bestAngle, bestScale, bestShift, bestBaseWorldToWorldTransformMatrix, bestImageToImageTransformMatrix
+        return bestPitchAngle, bestScale, bestHorizontalTableShift, bestVerticalTableShift, \
+                 bestInitialTableShift, bestImageToImageTransformMatrix
     
     
     #
-    def getInitialization( self, tryCenterOfGravity, tryShifts, tryAngles, tryScales, tryShiftsSeparately ):   
-        # Get the mesh
-        mesh = ProbabilisticAtlas().getMesh( self.meshCollectionFileName, K=0.0 )  # Don't want to use prior on deformation
-        positionsInTemplateSpace = mesh.points
+    def getInitialization( self, initializationOptions ):
+        # Remember some things that are fixed
+        self.pitchCenter = initializationOptions.pitchCenter
+        self.scalingCenter = initializationOptions.scalingCenter
+        self.initialTableShift = initializationOptions.initialTableShift
+        self.initialPitchAngle = initializationOptions.initialPitchAngle
+        self.initialScale = initializationOptions.initialScale
+      
+      
+        # Get the mesh. Although we're not penalizing prior deformation here (K=0), we still need to first put 
+        # the reference mesh in subject space to make sure no tetrahedra get negative volume (which would trigger
+        # a sentinel "infinity" cost even when K=0)
+        imageToImageTransformMatrix = np.linalg.inv( self.imageToWorldTransformMatrix) @ \
+                                      self.templateImageToWorldTransformMatrix
+        imageToImageTransform = gems.KvlTransform( requireNumpyArray( imageToImageTransformMatrix ) )
+        mesh = ProbabilisticAtlas().getMesh( self.meshCollectionFileName, 
+                                             transform=imageToImageTransform,
+                                             K=0.0 )
+        positionsInTemplateSpace = ProbabilisticAtlas().mapPositionsFromSubjectToTemplateSpace( mesh.points, 
+                                                                          imageToImageTransform )
+
         
-        baseWorldToWorldTransformMatrices = [ np.eye(4) ]
-        if tryCenterOfGravity:
+        #
+        bestInitialTableShift = initializationOptions.initialTableShift
+        if initializationOptions.tryCenterOfGravity:
             # Get the centers of gravity of atlas and image, and use that to propose a translation
-            templateSize = np.round( np.max( positionsInTemplateSpace, axis=0 ) + 1 ).astype( 'int' )
+            mesh.points = positionsInTemplateSpace
+            templateSize = np.round( np.max( mesh.points, axis=0 ) + 1 ).astype( 'int' )
             priors = mesh.rasterize( templateSize, -1 )
             head = np.sum( priors[:,:,:,1:], axis=3 )
             centerOfGravityTemplate = np.array( scipy.ndimage.measurements.center_of_mass( head ) ) # in image space
             centerOfGravityImage = np.array( 
                 scipy.ndimage.measurements.center_of_mass( self.image.getImageBuffer() ) ) # in image space
-            centerOfGravityTemplate = self.templateImageToWorldTransformMatrix[ 0:3, 0:3 ] @ centerOfGravityTemplate + \
-                                      self.templateImageToWorldTransformMatrix[ 0:3, 3 ] # in world space
+            tmp = self.getTransformMatrix()
+            tmp = tmp @ self.templateImageToWorldTransformMatrix
+            centerOfGravityTemplate = tmp[ 0:3, 0:3 ] @ centerOfGravityTemplate + \
+                                      tmp[ 0:3, 3 ] # in world space
             centerOfGravityImage = self.imageToWorldTransformMatrix[ 0:3, 0:3 ] @ centerOfGravityImage + \
-                                    self.imageToWorldTransformMatrix[ 0:3, 3 ] # in world space
-            centeringWorldToWorldTransformMatrix = np.eye( 4 ); 
-            centeringWorldToWorldTransformMatrix[ 0:3, 3 ] = centerOfGravityImage - centerOfGravityTemplate
-            baseWorldToWorldTransformMatrices.append( centeringWorldToWorldTransformMatrix )
-          
+                                   self.imageToWorldTransformMatrix[ 0:3, 3 ] # in world space
+            centeringTableShift = centerOfGravityImage - centerOfGravityTemplate
+                
             
-        if tryShiftsSeparately:
+            # Try which one is best
+            initialTableShifts = [ initializationOptions.initialTableShift, centeringTableShift ]
+            _, _, _, _, bestInitialTableShift, _ = \
+                                    self.gridSearch( mesh,
+                                                     positionsInTemplateSpace,
+                                                     initialTableShifts=initialTableShifts,
+                                                     visualizerTitle='Affine grid search center of gravity' )
+              
+            
+            
+        if initializationOptions.searchForTableShiftsSeparately:
             # Perform grid search for intialization (done separately for translation and scaling/rotation to limit the
             # number of combinations to be tested)
-            _, _, bestShift, bestBaseWorldToWorldTransformMatrix, \
-                               _ = self.gridSearch( mesh,
-                                                    positionsInTemplateSpace,
-                                                    shifts=tryShifts,
-                                                    baseWorldToWorldTransformMatrices=baseWorldToWorldTransformMatrices,
-                                                    visualizerTitle='Affine grid search shifts' )
-              
-            _, _, _, _, bestImageToImageTransformMatrix = \
+            _, _, bestHorizontalTableShift, bestVerticalTableShift, _, _ = \
                   self.gridSearch( mesh,
                                    positionsInTemplateSpace,
-                                   angles=tryAngles, scales=tryScales, 
-                                   shifts = [ bestShift ], 
-                                   baseWorldToWorldTransformMatrices=[ bestBaseWorldToWorldTransformMatrix ],
+                                   horizontalTableShifts=initializationOptions.horizontalTableShifts,
+                                   verticalTableShifts=initializationOptions.verticalTableShifts,
+                                   initialTableShifts=[ bestInitialTableShift ],
+                                   visualizerTitle='Affine grid search shifts' )
+
+            _, _, _, _, _, bestImageToImageTransformMatrix = \
+                  self.gridSearch( mesh,
+                                   positionsInTemplateSpace,
+                                   pitchAngles=initializationOptions.pitchAngles,
+                                   scales=initializationOptions.scales,
+                                   horizontalTableShifts = [ bestHorizontalTableShift ],
+                                   verticalTableShifts = [ bestVerticalTableShift ],
+                                   initialTableShifts=[ bestInitialTableShift ],
                                    visualizerTitle='Affine grid search anges/scales' )
         else:
             # Basic grid search
-            _, _, _, _, bestImageToImageTransformMatrix = \
+            _, _, _, _, _, bestImageToImageTransformMatrix = \
                   self.gridSearch( mesh,
                                    positionsInTemplateSpace,
-                                   angles=tryAngles, scales=tryScales, 
-                                   shifts = tryShifts, 
-                                   baseWorldToWorldTransformMatrices = baseWorldToWorldTransformMatrices,
+                                   pitchAngles=initializationOptions.pitchAngles,
+                                   scales=initializationOptions.scales,
+                                   horizontalTableShifts=initializationOptions.horizontalTableShifts,
+                                   verticalTableShifts=initializationOptions.verticalTableShifts,
+                                   initialTableShifts=[ bestInitialTableShift ],
                                    visualizerTitle='Affine grid search' )         
 
         #
@@ -269,7 +364,7 @@ class Affine:
     
 
     #
-    def setUp( self, initTransform, visualizer ):
+    def setUp( self, initTransform, targetDownsampledVoxelSpacing, visualizer ):
         # 
         # Read images etc
         #
@@ -284,21 +379,22 @@ class Affine:
         template = gems.KvlImage( self.templateFileName )
         templateImageToWorldTransformMatrix = template.transform_matrix.as_numpy_array
 
-        # Initialization
+        # Initialization -- since we're attaching physical meaning to initializations in template space,
+        # let's not touch the template but rather move the subject image according to the initialization
         if initTransform is None:
             initialWorldToWorldTransformMatrix = np.identity(4)
         else:
             # Assume the initialization matrix is LPS2LPS
             print('initializing with predifined transform')
             initialWorldToWorldTransformMatrix = initTransform
-        originalTemplateImageToWorldTransformMatrix = templateImageToWorldTransformMatrix
-        templateImageToWorldTransformMatrix = initialWorldToWorldTransformMatrix @ \
-                                                      templateImageToWorldTransformMatrix
+        originalImageToWorldTransformMatrix = imageToWorldTransformMatrix
+        imageToWorldTransformMatrix = np.linalg.solve( initialWorldToWorldTransformMatrix, 
+                                                       imageToWorldTransformMatrix )                                           
         
             
         # Figure out how much to downsample (depends on voxel size)
         voxelSpacing = np.sum(imageToWorldTransformMatrix[0:3, 0:3] ** 2, axis=0) ** (1 / 2)
-        downSamplingFactors = np.round( self.targetDownsampledVoxelSpacing / voxelSpacing )
+        downSamplingFactors = np.round( targetDownsampledVoxelSpacing / voxelSpacing )
         downSamplingFactors[downSamplingFactors < 1] = 1
         upSamplingTranformMatrix = np.diag( np.pad( downSamplingFactors, (0, 1), 
                                                       'constant', constant_values=(0, 1) ) )
@@ -309,7 +405,6 @@ class Affine:
                                   ::int( downSamplingFactors[1] ),
                                   ::int( downSamplingFactors[2] ) ]
         image = gems.KvlImage( requireNumpyArray( imageBuffer ) )
-        originalImageToWorldTransformMatrix = imageToWorldTransformMatrix
         imageToWorldTransformMatrix = imageToWorldTransformMatrix @ upSamplingTranformMatrix
 
 
@@ -319,12 +414,11 @@ class Affine:
         self.imageToWorldTransformMatrix = imageToWorldTransformMatrix
         self.templateImageToWorldTransformMatrix = templateImageToWorldTransformMatrix
         self.originalImageToWorldTransformMatrix = originalImageToWorldTransformMatrix
-        self.originalTemplateImageToWorldTransformMatrix = originalTemplateImageToWorldTransformMatrix
         self.upSamplingTranformMatrix = upSamplingTranformMatrix
       
 
     def registerMeshToImage( self, worldToWorldTransformMatrix, Ks, maximalDeformationStopCriterion,
-                             tryCenterOfGravity, tryShifts, tryAngles, tryScales, tryShiftsSeparately ):
+                             initializationOptions ):
     
         if worldToWorldTransformMatrix is not None:
             # The world-to-world transfrom is externally given, so let's just compute the corresponding image-to-image
@@ -332,7 +426,7 @@ class Affine:
             print('world-to-world transform supplied - skipping registration')
             imageToImageTransformMatrix = np.linalg.inv( self.originalImageToWorldTransformMatrix) @ \
                                           worldToWorldTransformMatrix @ \
-                                          self.originalTemplateImageToWorldTransformMatrix
+                                          self.templateImageToWorldTransformMatrix
             optimizationSummary = None
         else:
             # The solution is not externally given, so we need to compute it.
@@ -341,21 +435,14 @@ class Affine:
             print('template: %s' % self.templateFileName)
 
             # Get an initialization of the image-to-image transform (template -> subject)
-            import time; tic = time.perf_counter()
-            imageToImageTransformMatrix = self.getInitialization( tryCenterOfGravity, tryShifts, 
-                                                                  tryAngles, tryScales, tryShiftsSeparately )
-            toc = time.perf_counter()
-            print( f"Initialization took {toc - tic:0.4f} s" )
-            
+            imageToImageTransformMatrix = self.getInitialization( initializationOptions )
+
 
             # Optimze image-to-image transform (template->subject)
-            tic = time.perf_counter()
             for K in Ks:
                 imageToImageTransformMatrix, optimizationSummary = \
                     self.optimizeTransformation( imageToImageTransformMatrix,
                                                  K, maximalDeformationStopCriterion )
-            toc = time.perf_counter()
-            print( f"Optimization took {toc - tic:0.4f} s" )
 
             
             # Final result: the image-to-image (from template to image) as well as the world-to-world transform that
@@ -363,7 +450,7 @@ class Affine:
             imageToImageTransformMatrix = self.upSamplingTranformMatrix @ \
                                           imageToImageTransformMatrix # template-to-original-image
             worldToWorldTransformMatrix = self.originalImageToWorldTransformMatrix @ imageToImageTransformMatrix @ \
-                                          np.linalg.inv( self.originalTemplateImageToWorldTransformMatrix )
+                                          np.linalg.inv( self.templateImageToWorldTransformMatrix )
             
         # return result
         return imageToImageTransformMatrix, worldToWorldTransformMatrix, optimizationSummary
