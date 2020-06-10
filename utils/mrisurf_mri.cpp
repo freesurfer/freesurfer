@@ -30,6 +30,7 @@
 
 int CBVfindFirstPeakD1 = 0;
 int CBVfindFirstPeakD2 = 0;
+CBV_OPTIONS CBVO;
 
 static void showDtSSeRmsWkr(FILE* file, int n, double dt, double sse, double rms, double last_rms, int line)
 {
@@ -1580,6 +1581,23 @@ int MRIScomputeBorderValues(
   return result;
 }
 
+
+int CBV_OPTIONS::ReadAltBorderLowLabel(void)
+{
+  printf("CBVO Reading label %s\n",AltBorderLowLabelFile); fflush(stdout);
+  AltBorderLowLabel = LabelRead(NULL,AltBorderLowLabelFile);
+  if(AltBorderLowLabel==NULL) return(1);
+
+  printf("CBVO Creating mask %d\n",cbvsurf->nvertices);
+  AltBorderLowMask = MRIalloc(cbvsurf->nvertices,1,1,MRI_INT);
+  int n;
+  for(n=0; n < AltBorderLowLabel->n_points; n++){
+    int vno = AltBorderLowLabel->lv[n].vno;
+    MRIsetVoxVal(AltBorderLowMask, vno,0,0,0, 1);
+  }
+  return(0);
+}
+
 /*!
   \fn int MRIScomputeBorderValues_new()
   \brief Computes the distance along the normal to the point of the maximum
@@ -1646,7 +1664,7 @@ static int MRIScomputeBorderValues_new(
     MRI         * const mri_smooth,
     double        const inside_hi,
     double        const border_hi,
-    double        const border_low,
+    double        const border_low_global,
     double        const outside_low,
     double        const outside_hi,
     double        const sigma,
@@ -1663,12 +1681,16 @@ static int MRIScomputeBorderValues_new(
   Timer mytimer ;
   int msec;
   VERTEX *vgdiag;
+  extern CBV_OPTIONS CBVO;
+  extern int CBVfindFirstPeakD1;
+  extern int CBVfindFirstPeakD2;
+
   mytimer.reset();
 
   printf("Entering MRIScomputeBorderValues_new(): \n");
   printf("  inside_hi   = %11.7lf;\n",inside_hi);
   printf("  border_hi   = %11.7lf;\n",border_hi);
-  printf("  border_low  = %11.7lf;\n",border_low);
+  printf("  border_low  = %11.7lf;\n",border_low_global);
   printf("  outside_low = %11.7lf;\n",outside_low);
   printf("  outside_hi  = %11.7lf;\n",outside_hi);
   printf("  sigma = %g;\n",sigma);
@@ -1732,6 +1754,7 @@ static int MRIScomputeBorderValues_new(
 #endif
   for (vno = vno_start; vno < vno_stop; vno++) {
     ROMP_PFLB_begin
+    double  border_low = border_low_global;
     
     //VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
     VERTEX                * const v  = &mris->vertices         [vno];
@@ -1749,6 +1772,14 @@ static int MRIScomputeBorderValues_new(
 
     if (vno == Gdiag_no)
       DiagBreak();
+
+    if(CBVO.AltBorderLowMask){
+      int m = MRIgetVoxVal(CBVO.AltBorderLowMask,vno,0,0,0);
+      if(m>0.5){
+         border_low = CBVO.AltBorderLow;
+	if(vno == Gdiag_no) printf("vno=%d setting border_low to %g \n",vno,border_low);
+      }
+    }
 
     // Note: xyz are in mm, xw,yw,zw are in voxels
 
