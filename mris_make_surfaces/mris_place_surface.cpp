@@ -126,6 +126,10 @@ double round(double x);
 #include "romp_support.h"
 #include "mris_multimodal_refinement.h"
 
+extern int CBVfindFirstPeakD1;
+extern int CBVfindFirstPeakD2;
+extern CBV_OPTIONS CBVO;
+
 class RIP_MNGR{
 public:
   int RipVertices(void);
@@ -527,6 +531,19 @@ int main(int argc, char **argv)
     border_low = adgws.pial_border_low;
     outside_low = adgws.pial_outside_low;
     outside_hi = adgws.pial_outside_hi;
+  }
+
+  if(CBVO.AltBorderLowLabelFile){
+    // This allows some regions to use a differnt border_low threshold. This
+    // is used to improve the placement of the white surface in high-myelin
+    // areas where the cortex can be much brighter than normal; the surface
+    // often extended too far in these areas.
+    printf("CBVO High Myelin\n");
+    CBVO.cbvsurf = surf;
+    double f = CBVO.AltBorderLowFactor;
+    CBVO.AltBorderLow = f*adgws.gray_mean + (1-f)*adgws.white_mean;
+    if(CBVO.ReadAltBorderLowLabel()) exit(1);
+    printf("AltBorderLowFactor = %g, AltBorderLow = %g\n",CBVO.AltBorderLowFactor,CBVO.AltBorderLow);
   }
 
   timer.reset() ;
@@ -1166,6 +1183,12 @@ static int parse_commandline(int argc, char **argv) {
       if(nthreads < 0) nthreads = 1;
       omp_set_num_threads(nthreads);
       #endif
+    } 
+    else if(!strcasecmp(option, "--alt-border-low")){
+      if(nargc < 2) CMDargNErr(option,2);
+      CBVO.AltBorderLowLabelFile = pargv[0];
+      sscanf(pargv[1],"%lf",&CBVO.AltBorderLowFactor);
+      nargsused = 2;
     } 
     else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
