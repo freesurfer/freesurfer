@@ -3315,7 +3315,7 @@ if($DoWhitePreAparc) then
     set ads  = ../surf/autodet.gw.stats.$hemi.dat
     set orig = ../surf/$hemi.orig
     set whitepreaparc = ../surf/$hemi.white.preaparc
-    set cmd = (mris_place_surface --adgws-in $ads --wm $wm \
+    set cmd = (mris_place_surface --adgws-in $ads --wm $wm --threads $OMP_NUM_THREADS\
      --invol $bfs --$hemi  --i $orig --o $whitepreaparc --white)
     if($UseAseg) set cmd = ($cmd --seg $aseg) # probably should always use
     #if($CBVfindFirstPeakD1) set cmd = ($cmd --first-peak-d1) # errors near Put/Insula
@@ -3821,7 +3821,7 @@ if($DoWhiteSurfs && ! $DoConf2Hires) then
     set aparc  = ../label/$hemi.aparc.annot  
     set cortex = ../label/$hemi.cortex.label
     set white = ../surf/$hemi.white
-    set cmd = (mris_place_surface --adgws-in $ads --seg $aseg \
+    set cmd = (mris_place_surface --adgws-in $ads --seg $aseg --threads $OMP_NUM_THREADS\
       --wm $wm --invol $bfs --$hemi  --i $inputsurf --o $white \
       --white --nsmooth 0 --rip-label $cortex --rip-bg \
       --rip-surf $inputsurf --aparc $aparc)
@@ -3864,7 +3864,7 @@ if($DoPialSurfs && ! $DoConf2Hires) then
     set cortexha = ../label/$hemi.cortex+hipamyg.label 
     set white = ../surf/$hemi.white
     set pial = ../surf/$hemi.pial.T1
-    set cmd = (mris_place_surface --adgws-in $ads --seg $aseg \
+    set cmd = (mris_place_surface --adgws-in $ads --seg $aseg --threads $OMP_NUM_THREADS\
       --wm $wm --invol $bfs --$hemi  --i $inputsurf --o $pial \
       --pial --nsmooth 0 --rip-label $cortexha --pin-medial-wall $cortex \
       --aparc $aparc --repulse-surf $white  --white-surf $white)
@@ -4047,7 +4047,7 @@ if(($DoT2pial || $DoFLAIRpial) && ! $DoConf2Hires) then
     if($DoFLAIRpial) set MultiModal = FLAIR
     set pialmm = ../surf/$hemi.pial.$MultiModal
     set mmvol = $MultiModal.mgz
-    set cmd = (mris_place_surface --adgws-in $ads --seg $aseg  --wm $wm \
+    set cmd = (mris_place_surface --adgws-in $ads --seg $aseg  --wm $wm --threads $OMP_NUM_THREADS\
       --invol $bfs --$hemi  --i $pialt1 --o $pialmm --pial --nsmooth 0 \
       --rip-label $cortexha --pin-medial-wall $cortex --white-surf $white \
       --aparc $aparc --repulse-surf $white --mmvol $mmvol $MultiModal)
