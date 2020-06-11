@@ -1582,6 +1582,13 @@ int MRIScomputeBorderValues(
 }
 
 
+int CBV_OPTIONS::Alloc(void)
+{
+  printf("CBVO Creating mask %d\n",cbvsurf->nvertices);
+  AltBorderLowMask = MRIalloc(cbvsurf->nvertices,1,1,MRI_INT);
+  LocalMaxFound   = MRIalloc(cbvsurf->nvertices,1,1,MRI_INT);
+  return(0);
+}
 int CBV_OPTIONS::ReadAltBorderLowLabel(void)
 {
   printf("CBVO Reading label %s\n",AltBorderLowLabelFile); fflush(stdout);
@@ -1589,7 +1596,6 @@ int CBV_OPTIONS::ReadAltBorderLowLabel(void)
   if(AltBorderLowLabel==NULL) return(1);
 
   printf("CBVO Creating mask %d\n",cbvsurf->nvertices);
-  AltBorderLowMask = MRIalloc(cbvsurf->nvertices,1,1,MRI_INT);
   int n;
   for(n=0; n < AltBorderLowLabel->n_points; n++){
     int vno = AltBorderLowLabel->lv[n].vno;
@@ -2069,7 +2075,7 @@ static int MRIScomputeBorderValues_new(
 	    (val > previous_val ) && (next_val > val) ) { 
 	  // This if() did not have "&& (next_val > val)" which was in the "orignial"
 	  // ie, v6 and before
-          if (vno == Gdiag_no) printf("vno=%d breaking because val > prev && nex > val\n",vno);
+          if (vno == Gdiag_no) printf("vno=%d breaking because val > prev && next > val\n",vno);
           break; // out of distance loop
         }
  
@@ -2316,6 +2322,7 @@ static int MRIScomputeBorderValues_new(
           max_mag_val  = sample_mri[i];
           max_mag      = fabs(dm[i]);
           max_mag_dist = sample_dists[i];
+	  local_max_found = 1; //??
 	  nFirstPeakD1++;
         }
         else if(CBVfindFirstPeakD2)  // not a local max in 1st derivative - try second */
@@ -2367,6 +2374,7 @@ static int MRIScomputeBorderValues_new(
             max_mag_val  = sample_mri[i];
             max_mag      = fabs(dm[i]);
             max_mag_dist = sample_dists[i];
+	    local_max_found = 1; //??
           }
         } // IPFLAG
         
@@ -2486,6 +2494,8 @@ static int MRIScomputeBorderValues_new(
       printf("vno=%d finished: target value = %2.1f, mag = %2.1f, dist = %2.2f, %s\n",
              vno, v->val, v->mean, v->d,  
 	     local_max_found ? "local max" : max_mag_val > 0 ? "grad" : "min");
+
+    if(CBVO.LocalMaxFound) MRIsetVoxVal(CBVO.LocalMaxFound,vno,0,0,0, local_max_found);
 
     ROMP_PFLB_end
   } // end loop over vertices
@@ -4899,6 +4909,9 @@ int MRIScopyMRI(MRIS *Surf, MRI *Src, int Frame, const char *Field)
         else if (usecurv) {
           Surf->vertices[vtx].curv = val;
         }
+        else if (!strcmp(Field, "border")) {
+          Surf->vertices[vtx].border = val;
+        }
         else if (!strcmp(Field, "stat")) {
           Surf->vertices[vtx].stat = val;
         }
@@ -5071,6 +5084,9 @@ MRI *MRIcopyMRIS(MRI *mri, MRIS *surf, int Frame, const char *Field)
         }
         else if (usecurv) {
           val = surf->vertices[vtx].curv;
+        }
+        else if (!strcmp(Field, "border")) {
+          val = surf->vertices[vtx].border;
         }
         else if (!strcmp(Field, "marked")) {
           val = surf->vertices[vtx].marked;
