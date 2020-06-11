@@ -237,6 +237,8 @@ int UseMMRefine = 0;
 AutoDetGWStats adgws;
 char *coversegpath = NULL;
 MRI *mri_cover_seg = NULL;
+char *LocalMaxFoundFile = NULL;
+char *TargetSurfaceFile = NULL;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) 
@@ -533,13 +535,14 @@ int main(int argc, char **argv)
     outside_hi = adgws.pial_outside_hi;
   }
 
+  CBVO.cbvsurf = surf;
+  CBVO.Alloc();
   if(CBVO.AltBorderLowLabelFile){
     // This allows some regions to use a differnt border_low threshold. This
     // is used to improve the placement of the white surface in high-myelin
     // areas where the cortex can be much brighter than normal; the surface
     // often extended too far in these areas.
     printf("CBVO High Myelin\n");
-    CBVO.cbvsurf = surf;
     double f = CBVO.AltBorderLowFactor;
     CBVO.AltBorderLow = f*adgws.gray_mean + (1-f)*adgws.white_mean;
     if(CBVO.ReadAltBorderLowLabel()) exit(1);
@@ -722,6 +725,17 @@ int main(int argc, char **argv)
     printf("Writing ripflagout to %s\n",ripflagout);
     const char *field = "ripflag";    
     MRISwriteField(surf, &field, 1, ripflagout);
+  }
+  if(LocalMaxFoundFile){
+    printf("Writing LocalMaxFoundFlag to %s\n",LocalMaxFoundFile);
+    MRIwrite(CBVO.LocalMaxFound,LocalMaxFoundFile);
+  }
+  if(TargetSurfaceFile){
+    MRISsaveVertexPositions(surf, TMP_VERTICES) ;
+    MRISrestoreVertexPositions(surf, TARGET_VERTICES) ;
+    printf("writing surface targets to %s\n", TargetSurfaceFile);
+    MRISwrite(surf, TargetSurfaceFile);
+    MRISrestoreVertexPositions(surf, TMP_VERTICES) ;
   }
 
   msec = timer.milliseconds() ;
@@ -1189,6 +1203,16 @@ static int parse_commandline(int argc, char **argv) {
       CBVO.AltBorderLowLabelFile = pargv[0];
       sscanf(pargv[1],"%lf",&CBVO.AltBorderLowFactor);
       nargsused = 2;
+    } 
+    else if(!strcasecmp(option, "--local-max")){
+      if(nargc < 1) CMDargNErr(option,1);
+      LocalMaxFoundFile = pargv[0];
+      nargsused = 1;
+    } 
+    else if(!strcasecmp(option, "--target")){
+      if(nargc < 1) CMDargNErr(option,1);
+      TargetSurfaceFile = pargv[0];
+      nargsused = 1;
     } 
     else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
