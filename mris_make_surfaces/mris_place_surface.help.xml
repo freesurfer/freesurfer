@@ -110,6 +110,12 @@
       <argument>--ripflag-out ripfile </argument>
       <explanation>Save ripflag as overlay. Spec full path including hemi, suffix, etc</explanation>
 
+      <argument>--local-max LocalMaxFoundFlagFile </argument>
+      <explanation>Save LocalMaxFoundFlag as overlay. Spec full path including hemi, suffix, etc</explanation>
+
+      <argument>--target TargetSurf </argument>
+      <explanation>Save CBV target surface</explanation>
+
       <argument>--mm_{min,max}_{inside,outside} </argument>
       <explanation>Intensity limits for placing pial on multimodal input (ie, T2/FLAIR)</explanation>
 
