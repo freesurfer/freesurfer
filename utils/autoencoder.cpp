@@ -513,7 +513,12 @@ double SAEtrainFromMRI(SAE *sae, MRI **mri_pyramid, SAE_INTEGRATION_PARMS *parms
 
         if (sae->first->v_input->rows != 1 || !(ind % MAX((nvox / 500), 2))) {
           FileNameRemoveExtension(out_fname, path);
-          sprintf(fname, "%s.%3.3d.%2.2d.ae", path, ind, iter);
+          int cx = snprintf(fname, STRLEN, "%s.%3.3d.%2.2d.ae", path, ind, iter);
+	  if( (cx<0) || (cx>STRLEN) ) {
+	    std::cerr << __FUNCTION__
+		      << ": snprintf returned error on line "
+		      << __LINE__ << std::endl;
+	  }
           printf("writing SAE after %dth iteration to %s\n", iter, fname);
           SAEwrite(sae, fname);
         }
@@ -531,7 +536,12 @@ double SAEtrainFromMRI(SAE *sae, MRI **mri_pyramid, SAE_INTEGRATION_PARMS *parms
     if (out_fname) {
       char fname[STRLEN], path[STRLEN];
       FileNameRemoveExtension(out_fname, path);
-      sprintf(fname, "%s.%2.2d.ae", path, iter);
+      int cx = snprintf(fname, STRLEN, "%s.%2.2d.ae", path, iter);
+      if( (cx<0) || (cx>STRLEN) ) {
+	std::cerr << __FUNCTION__
+		  << ": snprintf returned error on line "
+		  << __LINE__ << std::endl;
+      }
       printf("writing SAE after %dth iteration to %s\n", iter, fname);
       SAEwrite(sae, fname);
     }
@@ -679,7 +689,12 @@ double SAEtrainFromVoxlist(SAE *sae, VOXEL_LIST *vl, MRI **mri_pyramid, SAE_INTE
 
         if (sae->first->v_input->rows != 1 || !(ind % MAX((vl->nvox / 500), 2))) {
           FileNameRemoveExtension(out_fname, path);
-          sprintf(fname, "%s.%2.2d.%4.4d.ae", path, iter, ind);
+          int cx = snprintf(fname, STRLEN, "%s.%2.2d.%4.4d.ae", path, iter, ind);
+	  if( (cx<0) || (cx>STRLEN) ) {
+	    std::cerr << __FUNCTION__
+		      << ": snprintf returned error on line "
+		      << __LINE__ << std::endl;
+	  }
           printf("writing SAE after %dth iteration to %s\n", iter, fname);
           SAEwrite(sae, fname);
         }
@@ -697,7 +712,12 @@ double SAEtrainFromVoxlist(SAE *sae, VOXEL_LIST *vl, MRI **mri_pyramid, SAE_INTE
     if (out_fname) {
       char fname[STRLEN], path[STRLEN];
       FileNameRemoveExtension(out_fname, path);
-      sprintf(fname, "%s.%2.2d.ae", path, iter);
+      int cx = snprintf(fname, STRLEN, "%s.%2.2d.ae", path, iter);
+      if( (cx<0) || (cx>STRLEN) ) {
+	std::cerr << __FUNCTION__
+		  << ": snprintf returned error on line "
+		  << __LINE__ << std::endl;
+      }
       printf("writing SAE after %dth iteration to %s\n", iter, fname);
       SAEwrite(sae, fname);
     }
@@ -1897,7 +1917,12 @@ double CSAEtrainLayerFromVoxlist(CSAE *csae, int layer, VOXEL_LIST *vl, MRI **mr
 
         if (csae->sae->first->v_input->rows != 1 || !(ind % MAX((vl->nvox / 10), 2))) {
           FileNameRemoveExtension(out_fname, path);
-          sprintf(fname, "%s.layer%d.%2.2d.%4.4d.ae", path, layer, iter, ind);
+          int cx = snprintf(fname, STRLEN, "%s.layer%d.%2.2d.%4.4d.ae", path, layer, iter, ind);
+	  if( (cx<0) || (cx>STRLEN) ) {
+	    std::cerr << __FUNCTION__
+		      << ": snprintf returned error on line "
+		      << __LINE__ << std::endl;
+	  }
           printf("writing CSAE after %dth iteration to %s\n", iter, fname);
           CSAEwrite(csae, fname);
         }
@@ -1918,7 +1943,12 @@ double CSAEtrainLayerFromVoxlist(CSAE *csae, int layer, VOXEL_LIST *vl, MRI **mr
     if (out_fname) {
       char fname[STRLEN], path[STRLEN];
       FileNameRemoveExtension(out_fname, path);
-      sprintf(fname, "%s.layer%d.%2.2d.ae", path, layer, iter);
+      int cx = snprintf(fname, STRLEN, "%s.layer%d.%2.2d.ae", path, layer, iter);
+      if( (cx<0) || (cx>STRLEN) ) {
+	std::cerr << __FUNCTION__
+		  << ": snprintf returned error on line "
+		  << __LINE__ << std::endl;
+      }
       printf("writing CSAE after %dth iteration to %s\n", iter, fname);
       CSAEwrite(csae, fname);
     }
