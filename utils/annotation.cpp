@@ -448,7 +448,10 @@ int MRISdivideAnnotation(MRI_SURFACE *mris, int *nunits)
       int offset, new_index, ri, gi, bi, found;
 
       *(ct->entries[index]) = *(mris->ct->entries[i]);
-      sprintf(ct->entries[index]->name, "%s_div%d", ct->entries[i]->name, j + 1);
+      auto cx = snprintf(ct->entries[index]->name, STRLEN, "%s_div%d", ct->entries[i]->name, j + 1);
+      if( (cx<0) || (cx>STRLEN) ) {
+	std::cerr << __FUNCTION__ << ": snprintf returned error value" << std::endl;
+      }
       offset = j;
       found = 0;
       do {
