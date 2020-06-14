@@ -11,9 +11,16 @@ _logger = logging.getLogger(__name__)
 
 
 def build_argument_parser():
-    desc = "Process ReadMe file for PyPI"
+    desc = """Process C/C++ files for '#if 0' and '#if 1' blocks"""
 
-    parser = argparse.ArgumentParser(description=desc)
+    epilog = """This tool is for removing dead code from C/C++ files.
+    It searches for '#if 0' and '#if 1' preprocessor directives (along
+    with their '#else' clauses), and removes them along with any code
+    which they disable. All other '#if', '#ifdef' and '#ifundef'
+    directives are left untouched.
+    """
+
+    parser = argparse.ArgumentParser(description=desc, epilog=epilog)
     parser.add_argument("--input-file-name", help="Path to the input file",
                         required=True)
     parser.add_argument("--output-file-name", help="Path to the output file",
