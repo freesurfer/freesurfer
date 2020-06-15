@@ -2381,20 +2381,56 @@ int CountEdits(char *subject, char *outfile)
   // Erode=3, trim the top and bottom 2% when computing WM mean, std, etc
   wmstats = WMAnatStats(subject, "norm.mgz", 3, 2);
 
+  // Compute gray/white contrast, its spatial stddev, cnr = mean/std
+  double gwconmeansum=0, gwconvarsum=0;
+  int hemi;
+  for(hemi = 0; hemi < 2; hemi++){
+    LABEL *clabel;
+    MRI *wgcon;
+    char hemistr[3];
+    if(hemi==0) memcpy(hemistr,"lh",2);
+    if(hemi==1) memcpy(hemistr,"rh",2);
+    sprintf(tmpstr,"%s/%s/surf/%s.white",SUBJECTS_DIR,subject,hemistr);
+    mris = MRISread(tmpstr);
+    if(mris==NULL) exit(1);
+    sprintf(tmpstr,"%s/%s/label/%s.cortex.label",SUBJECTS_DIR,subject,hemistr);
+    clabel = LabelRead(NULL,tmpstr);
+    if(clabel == NULL) exit(1);
+    sprintf(tmpstr,"%s/%s/surf/%s.w-g.pct.mgh",SUBJECTS_DIR,subject,hemistr);
+    wgcon = MRIread(tmpstr);
+    seg = MRIalloc(mris->nvertices,1,1,MRI_INT);
+    int n;
+    for (n = 0; n < clabel->n_points; n++){
+      MRIsetVoxVal(seg,clabel->lv[n].vno,0,0,0, 1);
+    }
+    float min, max, range, mean, std;
+    MRIsegStats(seg, 1, wgcon, 0, &min, &max, &range, &mean, &std);
+    gwconmeansum += mean; gwconvarsum += (std*std);
+    MRISfree(&mris);
+    LabelFree(&clabel);
+    MRIfree(&wgcon);
+    MRIfree(&seg);
+    printf(" %s cnrstats: %6.3f %6.3f %6.3f\n",hemistr,mean,std,mean/std);
+  }
+  double gwconmean = gwconmeansum/2.0;
+  double gwconstd  = sqrt(gwconvarsum/2.0);
+
   printf("%s nc %3d, nWMErase %3d, nWMFill %3d, nBMErase %3d, nBMClone %3d, nASegChanges %3d, "
 	 "lhholes %4d, rhholes %4d, MaskVolToETIV %7.5f\n",
 	 subject,count,nWMErase,nWMFill,nBMErase,nBMClone,nASegChanges,
 	 lhholes,rhholes,MaskVolToETIV);
   printf("wmstats: %6.2f %6.2f %6.2f %6.2f %6.2f\n",wmstats[0],wmstats[1],
 	 wmstats[2],wmstats[3],wmstats[4]);
+  printf("cnrstats: %6.3f %6.3f %6.3f\n",gwconmean,gwconstd,gwconmean/gwconstd);
 
 
   if(outfile){
     fp = fopen(outfile,"w");
-    fprintf(fp,"%s %3d    %4d %4d    %4d %4d   %4d  %4d %4d %4d   %7.5f %6.2f %6.2f %6.2f %6.2f %6.2f %6.2f\n",
+    fprintf(fp,"%s %3d    %4d %4d    %4d %4d   %4d  %4d %4d %4d   %7.5f %6.2f %6.2f %6.2f %6.2f %6.2f %6.2f %6.3f %6.3f %6.3f\n",
 	    subject,count,nWMErase,nWMFill,nBMErase,nBMClone,nASegChanges,
 	    lhholes,rhholes,totholes,MaskVolToETIV,wmstats[0],wmstats[1],
-	    wmstats[2],wmstats[3],wmstats[4],wmstats[0]/wmstats[1]);
+	    wmstats[2],wmstats[3],wmstats[4],wmstats[0]/wmstats[1],
+	    gwconmean,gwconstd,gwconmean/gwconstd);
     fclose(fp);
   }
 
