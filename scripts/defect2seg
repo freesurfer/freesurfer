@@ -127,7 +127,7 @@ echo "Defect2seg-Run-Time-Sec $tSecRun" |& tee -a $LF
 echo "Defect2seg-Run-Time-Min $tRunMin" |& tee -a $LF
 echo "Defect2seg-Run-Time-Hours $tRunHours" |& tee -a $LF
 echo " " |& tee -a $LF
-echo "tkmeditfv $subject orig.mgz -defect -c $SUBJECTS_DIR/$subject/surf/?h.defects.pointset"
+echo "tkmeditfv $subject brain.finalsurfs.mgz -defect"
 echo "defect2seg Done" |& tee -a $LF
 exit 0
 
@@ -339,7 +339,7 @@ pointsets to make it easier to examine and evaluate.
 The most simple way to run it is with --s. You can then
 view it in freeview with something like
 
-tkmeditfv subject orig.mgz -defect -c subject/surf/?h.defects.pointset
+tkmeditfv $subject brain.finalsurfs.mgz -defect
 
 This script is similar to defect-seg but does not create annotations
 or sample onto fsaverage.
