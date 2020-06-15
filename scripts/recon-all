@@ -178,6 +178,8 @@ set fwhmlist = ( 0 5 10 15 20 25 ) # see DoQdecCache
 set target = fsaverage # see DoQdecCache
 set SmoothCortexOnly = 1; # For -qcache. smooths only within ?h.cortex.label
 set mps_n_averages = () # n_averages for mris_place_surfaces
+set UseHighMyelin = 0; # Allows using diff thresholds when placing white in high-myelin cortex
+set HighMyelinFactor = (); # Value between 0 (closer to white) and 1 (closer to cortical gm)
 
 set DoMakefile = 0; # if 1, run make -f recon-all.makefile $(MakefileTarget)
 set MakefileTarget = () # argument to recon-all -make
@@ -3785,12 +3787,33 @@ if($DoCortParc) then
   endif
 endif
 
+if($UseHighMyelin) then
+  foreach hemi ($hemilist)
+    echo "#@# HighMyelinLabel $hemi `date`" |& tee -a $LF |& tee -a $CF
+    set hml = $ldir/$hemi.high-myelin.label
+    set sphreg = $sdir/$hemi.sphere.reg
+    set fsahml = $FREESURFER_HOME/subjects/fsaverage/label/$hemi.high-myelin.label
+    set fsareg = $FREESURFER_HOME/subjects/fsaverage/surf/$hemi.sphere.reg
+    set ud = (`UpdateNeeded $hml $fsareg $fsahml $sphreg`)
+    if($ud || $ForceUpdate) then
+      set cmd = (mris_apply_reg --src-label $fsahml --streg $fsareg $sphreg --trg $hml)
+      if($RunIt) then
+        $fs_time $cmd |& tee -a $LF
+        if($status) goto error_exit;
+      endif
+    else
+      echo "   $hemi.high-myelin.label update not needed" |& tee -a $LF |& tee -a $CF
+    endif
+  end
+endif
+
 if($DoConf2Hires && ! $LongSamseg) then
   # This places the surfaces on the highres T1 (and T2)
   set cmd = (conf2hires --threads $OMP_NUM_THREADS)
   if($DoT2pial == 1)    set cmd = ($cmd --T2)
   if($DoFLAIRpial == 1) set cmd = ($cmd --FLAIR)
-  if($CBVfindFirstPeakD1)  set cmd = ($cmd --first-peak-d1)
+  if($CBVfindFirstPeakD1) set cmd = ($cmd --first-peak-d1)
+  if($UseHighMyelin)      set cmd = ($cmd --high-myelin $HighMyelinFactor)
   if($longitudinal) then
     set cmd = ($cmd --longitudinal $tpNid $longbaseid)
   else
@@ -3830,11 +3853,17 @@ if($DoWhiteSurfs && ! $DoConf2Hires) then
     if($CBVfindFirstPeakD1) set cmd = ($cmd --first-peak-d1)
     if($longitudinal) set cmd = ($cmd --max-cbv-dist 3.5) 
     if($#mps_n_averages) set cmd = ($cmd --n_averages $mps_n_averages)
+    if($UseHighMyelin) then
+      set hml = $ldir/$hemi.high-myelin.label
+      set cmd = ($cmd --alt-border-low $hml $HighMyelinFactor)
+    else
+      set hml = ()
+    endif
     set xopts = `fsr-getxopts PlaceWhiteSurf $XOptsFile $GlobXOptsFile`;
     set cmd = ($cmd $xopts)
     echo "cd `$PWD`" |& tee -a $LF |& tee -a $CF
     echo $cmd        |& tee -a $LF |& tee -a $CF
-    set ud = `UpdateNeeded $white $inputsurf $ads $bfs $wm $inputsurf $cortex`
+    set ud = `UpdateNeeded $white $inputsurf $ads $bfs $wm $inputsurf $cortex $hml`
     if($ud || $ForceUpdate) then
       if($RunIt) then
         $fs_time $cmd |& tee -a $LF
@@ -6204,6 +6233,12 @@ while( $#argv != 0 )
       set DoWhiteSurfs = 0;
       breaksw
 
+    case "-high-myelin":
+      if($#argv < 1) goto arg1err;
+      set HighMyelinFactor = $argv[1]; shift
+      set UseHighMyelin = 1
+      breaksw
+
     case "-smooth2":
       set DoSmooth2 = 1;
       breaksw
@@ -7859,7 +7894,7 @@ check_params:
      ! $DoSubfields  && \
      ! $DoPctSurfCon && ! $DoT2pial && ! $DoFLAIRpial && \
      ! $DoConvertT2Input && ! $DoConvertFlairInput && ! $DoSuperClean &&\
-     ! $DoCortParc3 && ! $DoParcStats3 && ! $DoAPas2ASeg ) then
+     ! $DoCortParc3 && ! $DoParcStats3 && ! $DoAPas2ASeg && ! $UseHighMyelin) then
      echo "ERROR: nothing to do. You must specify an operation to perform by adding"
      echo "flags. Eg, -all, -autorecon1, -autorecon2, -autorecon3, etc."
      exit 1;
