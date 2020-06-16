@@ -7,6 +7,7 @@
 #include "RenderView.h"
 #include <QTreeWidgetItem>
 #include <QSettings>
+#include <QFileDialog>
 #ifdef Q_OS_MAC
 #include "MacHelper.h"
 #endif
@@ -49,6 +50,8 @@ WindowEditAnnotation::WindowEditAnnotation(QWidget *parent) :
   connect(ui->toolButtonFromCTab, SIGNAL(clicked(bool)), SLOT(OnButtonFromCTab()));
   connect(ui->pushButtonDelete, SIGNAL(clicked(bool)), SLOT(OnButtonDelete()));
   connect(ui->pushButtonCleanUp, SIGNAL(clicked(bool)), SLOT(OnButtonCleanUp()));
+  connect(ui->pushButtonLoadSegmentation, SIGNAL(clicked(bool)), SLOT(OnButtonLoadSegmentation()));
+  connect(ui->pushButtonLoadLUT, SIGNAL(clicked(bool)), SLOT(OnButtonLoadColorTable()));
 
   QSettings settings;
   QVariant v = settings.value("WindowEditAnnotation/Geometry");
@@ -510,4 +513,41 @@ void WindowEditAnnotation::OnButtonCleanUp()
     UpdateActions();
     PopulateAvailableColorTable(true);
   }
+}
+
+void WindowEditAnnotation::OnButtonLoadSegmentation()
+{
+    if (!m_layerSurface || !m_layerSurface->GetActiveAnnotation())
+        return;
+
+    if (ui->treeWidgetAvailableLabels->topLevelItemCount() == 0)
+    {
+        QMessageBox::information(this, "Load Annotation", "Please load color table first");
+        return;
+    }
+    QString fn = QFileDialog::getOpenFileName(this, "Load Segmentation", MainWindow::GetMainWindow()->AutoSelectLastDir("mri" ),
+                                 "Segmentation files (*.mgz *.mgh *.nii *.nii.gz)");
+    if (!fn.isEmpty())
+    {
+        if (!m_layerSurface->GetActiveAnnotation()->LoadFromSegmentation(fn))
+            QMessageBox::warning(this, "Annotation", "Failed to load annotation from segmentation file");
+        else
+            UpdateUI();
+    }
+}
+
+void WindowEditAnnotation::OnButtonLoadColorTable()
+{
+    if (!m_layerSurface || !m_layerSurface->GetActiveAnnotation())
+        return;
+
+    QString fn = QFileDialog::getOpenFileName(this, "Load Color Table", MainWindow::GetMainWindow()->AutoSelectLastDir("label" ),
+                                 "Look Up Table files (*)");
+    if (!fn.isEmpty())
+    {
+        if (!m_layerSurface->GetActiveAnnotation()->LoadColorTable(fn))
+            QMessageBox::warning(this, "Color Table", "Failed to load color table");
+        else
+            PopulateAvailableColorTable();
+    }
 }
