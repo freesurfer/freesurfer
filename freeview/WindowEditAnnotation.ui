@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>475</width>
-    <height>592</height>
+    <height>593</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -91,54 +91,25 @@
      </item>
     </layout>
    </item>
-   <item row="1" column="1">
-    <layout class="QVBoxLayout" name="verticalLayout_4" stretch="1,0,2">
-     <property name="spacing">
-      <number>7</number>
+   <item row="0" column="0" colspan="3">
+    <widget class="QToolBar" name="widgetToolBar">
+     <property name="iconSize">
+      <size>
+       <width>24</width>
+       <height>24</height>
+      </size>
      </property>
-     <property name="leftMargin">
-      <number>0</number>
-     </property>
-     <item>
-      <spacer name="verticalSpacer">
-       <property name="orientation">
-        <enum>Qt::Vertical</enum>
-       </property>
-       <property name="sizeHint" stdset="0">
-        <size>
-         <width>20</width>
-         <height>40</height>
-        </size>
-       </property>
-      </spacer>
-     </item>
-     <item>
-      <widget class="QToolButton" name="toolButtonFromCTab">
-       <property name="toolTip">
-        <string>Copy To</string>
-       </property>
-       <property name="text">
-        <string>&lt;-</string>
-       </property>
-       <property name="toolButtonStyle">
-        <enum>Qt::ToolButtonTextOnly</enum>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <spacer name="verticalSpacer_2">
-       <property name="orientation">
-        <enum>Qt::Vertical</enum>
-       </property>
-       <property name="sizeHint" stdset="0">
-        <size>
-         <width>20</width>
-         <height>40</height>
-        </size>
-       </property>
-      </spacer>
-     </item>
-    </layout>
+     <addaction name="actionSave"/>
+     <addaction name="separator"/>
+     <addaction name="actionUndo"/>
+     <addaction name="actionRedo"/>
+     <addaction name="separator"/>
+     <addaction name="actionPathFill"/>
+     <addaction name="actionMakePath"/>
+     <addaction name="actionMakeClosedPath"/>
+     <addaction name="actionDeletePath"/>
+     <addaction name="actionClearMarks"/>
+    </widget>
    </item>
    <item row="1" column="0">
     <layout class="QVBoxLayout" name="verticalLayout_2">
@@ -293,25 +264,85 @@
      </item>
     </layout>
    </item>
-   <item row="0" column="0" colspan="3">
-    <widget class="QToolBar" name="widgetToolBar">
-     <property name="iconSize">
-      <size>
-       <width>24</width>
-       <height>24</height>
-      </size>
+   <item row="1" column="1">
+    <layout class="QVBoxLayout" name="verticalLayout_4" stretch="1,0,2">
+     <property name="spacing">
+      <number>7</number>
      </property>
-     <addaction name="actionSave"/>
-     <addaction name="separator"/>
-     <addaction name="actionUndo"/>
-     <addaction name="actionRedo"/>
-     <addaction name="separator"/>
-     <addaction name="actionPathFill"/>
-     <addaction name="actionMakePath"/>
-     <addaction name="actionMakeClosedPath"/>
-     <addaction name="actionDeletePath"/>
-     <addaction name="actionClearMarks"/>
-    </widget>
+     <property name="leftMargin">
+      <number>0</number>
+     </property>
+     <item>
+      <spacer name="verticalSpacer">
+       <property name="orientation">
+        <enum>Qt::Vertical</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>20</width>
+         <height>40</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item>
+      <widget class="QToolButton" name="toolButtonFromCTab">
+       <property name="toolTip">
+        <string>Copy To</string>
+       </property>
+       <property name="text">
+        <string>&lt;-</string>
+       </property>
+       <property name="toolButtonStyle">
+        <enum>Qt::ToolButtonTextOnly</enum>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="verticalSpacer_2">
+       <property name="orientation">
+        <enum>Qt::Vertical</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>20</width>
+         <height>40</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+    </layout>
+   </item>
+   <item row="2" column="0" colspan="3">
+    <layout class="QHBoxLayout" name="horizontalLayout_2">
+     <item>
+      <widget class="QPushButton" name="pushButtonLoadSegmentation">
+       <property name="text">
+        <string>Load From Segmentation</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="horizontalSpacer_2">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item>
+      <widget class="QPushButton" name="pushButtonLoadLUT">
+       <property name="text">
+        <string>Load Color Table</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
    </item>
   </layout>
   <action name="actionMakePath">
