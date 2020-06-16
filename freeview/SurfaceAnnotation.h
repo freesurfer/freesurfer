@@ -84,7 +84,11 @@ public:
 
   void SetName( const QString& name );
 
-  bool LoadAnnotation( const QString& fn );
+  bool LoadAnnotation( const QString& fn);
+
+  bool LoadFromSegmentation( const QString& fn);
+
+  bool LoadColorTable( const QString& fn );
 
   bool InitializeNewAnnotation(const QString& ctab_fn);
 
