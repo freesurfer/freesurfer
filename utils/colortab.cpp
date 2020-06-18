@@ -2433,10 +2433,14 @@ int CTABaddUniqueEntry(COLOR_TABLE *ct, char *name, int min_dist)
   if (i >= ct->nentries)  // allocate and copy over new table
   {
     pcte = ct->entries;
+#if GCC_VERSION > 80000
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Walloc-size-larger-than="
+#endif
     ct->entries = (COLOR_TABLE_ENTRY **)calloc(ct->nentries, sizeof(COLOR_TABLE_ENTRY *));
+#if GCC_VERSION > 80000
 #pragma GCC diagnostic pop
+#endif
     for (i = 0; i < ct->nentries; i++) {
       ct->entries[i] = (COLOR_TABLE_ENTRY *)calloc(1, sizeof(COLOR_TABLE_ENTRY));
       memmove(ct->entries[i], pcte[i], sizeof(COLOR_TABLE_ENTRY));
