@@ -30,6 +30,10 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <iostream>
+#include <string>
+#include <fstream>
+#include <sstream>
 
 #include "diag.h"
 
@@ -83,20 +87,21 @@ static const char *isdir_msg =
 
 void chklc(void)
 {
-  char dirname[STRLEN], *cp, *alt;
-  FILE *lfile = NULL;
-  char *email;
-  char *magic;
-  char *key;
-  char *key2;
-  char *gkey;
-  char *lfilename;
-  char str[STRLEN];
+  char *cp, *alt;
+  std::string lfilename;
+  std::stringstream str;
+  std::string dirname;
   char *crypt_gkey;
   static int first_time = 1;
 
-  sprintf(str, "S%sER%sRONT%sOR", "URF", "_F", "DO");
-  if (getenv(str) != NULL) return;
+  str << 'S'
+      << "URF"
+      << "ER"
+      << "_F"
+      << "RONT"
+      << "DO"
+      << "OR";
+  if (getenv(str.str().c_str()) != NULL) return;
 
   cp = getenv("FREESURFER_HOME");
   if (cp == NULL) {
@@ -110,75 +115,93 @@ void chklc(void)
 #endif
   }
   else {
-    strncpy(dirname, cp, STRLEN);
+    dirname = std::string(cp);
   }
 
-  lfilename = (char *)calloc(1, 512);
-  email = (char *)calloc(1, 512);
-  magic = (char *)calloc(1, 512);
-  key = (char *)calloc(1, 512);
-  key2 = (char *)calloc(1, 512);
-  gkey = (char *)calloc(1, 1024);
+  std::ifstream lfile;
 
   // check if alternative license path is provided:
   alt = getenv("FS_LICENSE");
   if (alt != NULL) {
-    strncpy(lfilename, alt, 511);	// leave a nul on the end
-    if (Gdiag_no > 0 && first_time) printf("Trying license file %s\n", lfilename);
-    lfile = fopen(lfilename, "r");
-    if (lfile == NULL) {
+    lfilename = std::string(alt);
+    if (Gdiag_no > 0 && first_time) {
+      std::cout << "Trying license file " << lfilename << std::endl;
+    }
+    std::ifstream tmp(lfilename);
+    if (tmp.fail()) {
       if (errno == EACCES) {
-        printf(permission_msg, lfilename, lfilename);
+        printf(permission_msg, lfilename.c_str(), lfilename.c_str());
         exit(-1);
       }
-      fprintf(stderr, licmsg, lfilename);
+      fprintf(stderr, licmsg, lfilename.c_str());
       exit(-1);
     }
+    lfile.swap(tmp);
     // make sure that the path is not a directory
     struct stat path_stat;
     stat(alt, &path_stat);
-    if S_ISDIR(path_stat.st_mode) {;
+    if S_ISDIR(path_stat.st_mode) {
       puts(isdir_msg);
       exit(-1);
     }
   }
 
   // check for license in FREESURFER_HOME:
-  if (lfile == NULL) {
-    sprintf(lfilename, "%s/lic%s", dirname, "ense.txt");
-    if (Gdiag_no > 0 && first_time) printf("Trying license file %s\n", lfilename);
-    lfile = fopen(lfilename, "r");
+  if (!lfile.is_open()) {
+    lfilename = dirname + "/lic" + "ense.txt";
+    if (Gdiag_no > 0 && first_time) {
+      std::cout << "Trying license file " << lfilename << std::endl;
+    }
+    std::ifstream tmp(lfilename);
+    if( tmp.good() ) {
+      lfile.swap(tmp);
+    }
   }
-  if (lfile == NULL) {
+  if (!lfile.is_open()) {
     if (errno == EACCES) {
-      printf(permission_msg, lfilename, lfilename);
+      printf(permission_msg, lfilename.c_str(), lfilename.c_str());
       exit(-1);
     }
-    sprintf(lfilename, "%s/.lic%s", dirname, "ense");
-    if (Gdiag_no > 0 && first_time) printf("Now trying license file %s\n", lfilename);
-    lfile = fopen(lfilename, "r");
+    lfilename = dirname + "/lic" + "ense";
+    if (Gdiag_no > 0 && first_time) {
+      std::cout << "Now trying license file " << lfilename << std::endl;
+    }
+    std::ifstream tmp(lfilename);
+    if( tmp.good() ) {
+      lfile.swap(tmp);
+    }
   }
-  if (lfile == NULL) {
+  if (!lfile.is_open()) {
     if (errno == EACCES) {
-      printf(permission_msg, lfilename, lfilename);
+      printf(permission_msg, lfilename.c_str(), lfilename.c_str());
       exit(-1);
     }
-    fprintf(stderr, licmsg, lfilename);
+    fprintf(stderr, licmsg, lfilename.c_str());
     exit(-1);
   }
 
-  if (fscanf(lfile, "%s\n%s\n%s\n%s\n", email, magic, key, key2) != 4) {
-    fprintf(stderr, "error parsing license file, expected 4 values\n");
+  std::string email;
+  std::string magic;
+  std::string key;
+  std::string key2;
+
+  std::getline(lfile, email);
+  std::getline(lfile, magic);
+  std::getline(lfile, key);
+  std::getline(lfile, key2);
+  
+  if( lfile.bad() ) {
+    std::cerr << "error parsing license file, expected 4 values" << std::endl;
   }
 
-  sprintf(gkey, "%s.%s", email, magic);
+  std::string gkey = email + "." + magic;
 
   if (Gdiag_no > 0 && first_time) {
-    printf("email %s\n", email);
-    printf("magic %s\n", magic);
-    printf("key   %s\n", key);
-    printf("key2  %s\n", key2);
-    printf("gkey  %s\n", gkey);
+    std::cout << "email " << email << std::endl;
+    std::cout << "magic " << magic << std::endl;
+    std::cout << "key   " << key << std::endl;
+    std::cout << "key2  " << key2 << std::endl;
+    std::cout << "gkey  " << gkey << std::endl;
   }
 
   // This code is meant to provide backwards compatibility
@@ -188,11 +211,11 @@ void chklc(void)
   // alpha-numeric. New license files have a 4th line with
   // a key generated using a proper salt.
 
-  if (strcmp(key2, "") != 0) {
+  if ( key2.size() > 0) {
     // We have a 4 line license file.
     if (Gdiag_no > 0 && first_time) printf("4 line license file\n");
-    strcpy(key, key2);
-    crypt_gkey = crypt(gkey, "FS");
+    key2 = key;
+    crypt_gkey = crypt(gkey.c_str(), "FS");
     if (crypt_gkey == NULL) {
       printf("ERROR: crypt() returned null with 4-line file\n");
       exit(1);
@@ -208,31 +231,23 @@ void chklc(void)
     crypt_gkey = key;
 #else
     cmp_glib_version();
-    crypt_gkey = crypt(gkey, "*C");
+    crypt_gkey = crypt(gkey.c_str(), "*C");
 #endif
   }
 
   if (Gdiag_no > 0 && first_time) printf("crypt_gkey %s\n", crypt_gkey);
 
-  if (strcmp(key, crypt_gkey) != 0) {
-    fprintf(stderr, licmsg2, lfilename);
+  if (strcmp(key.c_str(), crypt_gkey) != 0) {
+    fprintf(stderr, licmsg2, lfilename.c_str());
     exit(-1);
   }
-
-  free(email);
-  free(magic);
-  free(key);
-  free(key2);
-  free(gkey);
-  free(lfilename);
-  fclose(lfile);
 
   if (Gdiag_no > 0 && first_time) printf("chklc() done\n");
   first_time = 0;
   return;
 }
 
-//  Unfortunately we need separate, but nearly identicle, license checking code
+//  Unfortunately we need separate, but nearly identical, license checking code
 //  for freeview. This is because the license checking above will exit(-1)
 //  if the license check fails. But freeview is a clickable application on mac
 //  which might not have a terminal window open, so we want a message to appear
@@ -251,19 +266,21 @@ void chklc(void)
 //  if failed, error msg will be returned in msg. make sure msg is pre-allocated with enough space
 int chklc2(char *msg)
 {
-  char dirname[STRLEN], *cp, *alt;
-  FILE *lfile = NULL;
-  char *email;
-  char *magic;
-  char *key;
-  char *key2;
-  char *gkey;
-  char *lfilename;
-  char str[STRLEN];
+  char *cp, *alt;
+  std::string lfilename;
+  std::stringstream str;
+  std::string dirname;
   char *crypt_gkey;
 
-  sprintf(str, "S%sER%sRONT%sOR", "URF", "_F", "DO");
-  if (getenv(str) != NULL) return 1;
+  
+  str << 'S'
+      << "URF"
+      << "ER"
+      << "_F"
+      << "RONT"
+      << "DO"
+      << "OR";
+  if (getenv(str.str().c_str()) != NULL) return 1;
 
   cp = getenv("FREESURFER_HOME");
   if (cp == NULL) {
@@ -277,64 +294,75 @@ int chklc2(char *msg)
 #endif
   }
   else {
-    strncpy(dirname, cp, STRLEN);
+    dirname = std::string(cp);
   }
 
-  lfilename = (char *)calloc(1, 512);
-  email = (char *)calloc(1, 512);
-  magic = (char *)calloc(1, 512);
-  key = (char *)calloc(1, 512);
-  key2 = (char *)calloc(1, 512);
-  gkey = (char *)calloc(1, 1024);
+  std::ifstream lfile;
 
   // check if alternative license path is provided:
   alt = getenv("FS_LICENSE");
   if (alt != NULL) {
-    strncpy(lfilename, alt, 511);	// leave a nul on the end
-    lfile = fopen(lfilename, "r");
-    if (lfile == NULL) {
+    lfilename = std::string(alt);
+    std::ifstream tmp(lfilename);
+    if (tmp.fail()) {
       if (errno == EACCES) {
-        fprintf(stderr, permission_msg, lfilename, lfilename);
-        if (msg) sprintf(msg, permission_msg, lfilename, lfilename);
+        fprintf(stderr, permission_msg, lfilename.c_str(), lfilename.c_str());
+        if (msg) sprintf(msg, permission_msg, lfilename.c_str(), lfilename.c_str());
         return 0;
       }
-      fprintf(stderr, licmsg, lfilename);
-      if (msg) sprintf(msg, licmsg, lfilename);
+      fprintf(stderr, licmsg, lfilename.c_str());
+      if (msg) sprintf(msg, licmsg, lfilename.c_str());
       return 0;
     }
+    lfile.swap(tmp);
   }
 
   // check for license in FREESURFER_HOME:
-  if (lfile == NULL) {
-    sprintf(lfilename, "%s/.lic%s", dirname, "ense");
-    lfile = fopen(lfilename, "r");
+  if (!lfile.is_open()) { 
+    lfilename = dirname + "/lic" + "ense";
+    std::ifstream tmp(lfilename);
+    if( tmp.good() ) {
+      lfile.swap(tmp);
+    }
   }
-  if (lfile == NULL) {
+  if (!lfile.is_open()) {
     if (errno == EACCES) {
-      fprintf(stderr, permission_msg, lfilename, lfilename);
-      if (msg) sprintf(msg, permission_msg, lfilename, lfilename);
+      fprintf(stderr, permission_msg, lfilename.c_str(), lfilename.c_str());
+      if (msg) sprintf(msg, permission_msg, lfilename.c_str(), lfilename.c_str());
       return 0;
     }
-    sprintf(lfilename, "%s/lic%s", dirname, "ense.txt");
-    lfile = fopen(lfilename, "r");
+    lfilename = dirname + "/lic" + "ense.txt";
+    std::ifstream tmp(lfilename);
+    if( tmp.good() ) {
+      lfile.swap(tmp);
+    }
   }
-  if (lfile == NULL) {
+  if (!lfile.is_open()) {
     if (errno == EACCES) {
-      fprintf(stderr, permission_msg, lfilename, lfilename);
-      if (msg) sprintf(msg, permission_msg, lfilename, lfilename);
+      fprintf(stderr, permission_msg, lfilename.c_str(), lfilename.c_str());
+      if (msg) sprintf(msg, permission_msg, lfilename.c_str(), lfilename.c_str());
       return 0;
     }
-    fprintf(stderr, licmsg, lfilename);
-    if (msg) sprintf(msg, licmsg, lfilename);
+    fprintf(stderr, licmsg, lfilename.c_str());
+    if (msg) sprintf(msg, licmsg, lfilename.c_str());
     return 0;
   }
 
-  if (fscanf(lfile, "%s\n%s\n%s\n%s\n", email, magic, key, key2) != 4) {
-    fprintf(stderr, "error parsing license file, expected 4 values\n");
-    return 0;
+  std::string email;
+  std::string magic;
+  std::string key;
+  std::string key2;
+
+  std::getline(lfile, email);
+  std::getline(lfile, magic);
+  std::getline(lfile, key);
+  std::getline(lfile, key2);
+  
+  if( lfile.bad() ) {
+    std::cerr << "error parsing license file, expected 4 values" << std::endl;
   }
 
-  sprintf(gkey, "%s.%s", email, magic);
+  std::string gkey = email + "." + magic;
 
   // This code is meant to provide backwards compatibility
   // of freesurfer license checking. Unfortunately previous
@@ -343,10 +371,10 @@ int chklc2(char *msg)
   // alpha-numeric. New license files have a 4th line with
   // a key generated using a proper salt.
 
-  if (strcmp(key2, "") != 0) {
+  if (key2.size() > 0) {
     // We have a 4 line license file.
-    strcpy(key, key2);
-    crypt_gkey = crypt(gkey, "FS");
+    key2 = key;
+    crypt_gkey = crypt(gkey.c_str(), "FS");
   }
   else {
 // We have a 3 line license file.
@@ -357,24 +385,15 @@ int chklc2(char *msg)
     crypt_gkey = key;
 #else
     cmp_glib_version();
-    crypt_gkey = crypt(gkey, "*C");
+    crypt_gkey = crypt(gkey.c_str(), "*C");
 #endif
   }
 
-  if (strcmp(key, crypt_gkey) != 0) {
-    fprintf(stderr, licmsg2, lfilename);
-    if (msg) sprintf(msg, licmsg2, lfilename);
+  if (strcmp(key.c_str(), crypt_gkey) != 0) {
+    fprintf(stderr, licmsg2, lfilename.c_str());
+    if (msg) sprintf(msg, licmsg2, lfilename.c_str());
     return 0;
   }
-
-  free(email);
-  free(magic);
-  free(key);
-  free(key2);
-  free(gkey);
-  free(lfilename);
-  fclose(lfile);
-
   return 1;
 }
 
