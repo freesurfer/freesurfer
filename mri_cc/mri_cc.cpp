@@ -700,6 +700,9 @@ main(int argc, char *argv[])
   {
     fclose(fp);
   }
+  printf("#VMPC# mri_cc VmPeak  %d\n",GetVmPeak());
+  printf("mri_cc done\n");
+
   exit(0) ;
   return(0) ;
 }
