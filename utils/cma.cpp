@@ -1858,7 +1858,7 @@ SEGSTAT *Seg2NbrNonBrain(MRI *seg, COLOR_TABLE *ctab, double threshmm)
     segno = segnolist[nthseg];
     // printf("%3d %4d %d %-25s
     // %5d\n",nthseg,segno,ctab->entries[segno]->TissueType,ctab->entries[segno]->name,count[nthseg]);
-    auto cx = snprintf(segstat->entry[nthseg].name, STRLEN, "%s", ctab->entries[segno]->name);
+    auto cx = snprintf(segstat->entry[nthseg].name, 999, "%s", ctab->entries[segno]->name);
     if( (cx<0) || (cx>STRLEN) ) {
       std::cerr << __FUNCTION__
 		<< ": snprintf returned error on line "
