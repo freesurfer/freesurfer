@@ -98,7 +98,7 @@ COLOR_TABLE *CTABreadASCII2(const char *fname, int checkDuplicateNames)
     ErrorReturn(NULL, (ERROR_NO_MEMORY, "CTABreadASCII(%s): could not allocate %d entries", fname, ct->nentries));
 
   /* Copy in the file name. */
-  strncpy(ct->fname, fname, sizeof(ct->fname));
+  strncpy(ct->fname, fname, sizeof(ct->fname)-1);
 
   /* We'll write this version if we write to binary. */
   ct->version = CTAB_VERSION_TO_WRITE;
@@ -235,7 +235,7 @@ COLOR_TABLE *CTABreadASCIIttHeader(const char *fname)
     free(str);
     sscanf(line, "%*s %d %s  %d %d %d  %d", &structure, name, &r, &g, &b, &t);
     ct->entries[structure] = (COLOR_TABLE_ENTRY *)calloc(1, sizeof(COLOR_TABLE_ENTRY));
-    strncpy(ct->entries[structure]->name, name, strlen(name) + 1);
+    strncpy(ct->entries[structure]->name, name, STRLEN);
     ct->entries[structure]->ri = r;
     ct->entries[structure]->gi = g;
     ct->entries[structure]->bi = b;
@@ -591,7 +591,7 @@ COLOR_TABLE *CTABreadFromBinaryV1(FILE *fp, int nentries)
   if (fread(name, sizeof(char), len, fp) != (unsigned)len) {
     ErrorPrintf(ERROR_BADFILE, "CTABreadFromBinaryV1: could not read parameter(s)");
   }
-  strncpy(ct->fname, name, sizeof(ct->fname));
+  strncpy(ct->fname, name, STRLEN-1);
   free(name);
 
   /* For each entry, read in the info. We assume these have sequential
@@ -622,7 +622,7 @@ COLOR_TABLE *CTABreadFromBinaryV1(FILE *fp, int nentries)
     if (fread(name, sizeof(char), len, fp) != (unsigned)len) {
       ErrorPrintf(ERROR_BADFILE, "CTABreadFromBinaryV1: could not read parameter(s)");
     }
-    strncpy(ct->entries[structure]->name, name, sizeof(ct->entries[structure]->name));
+    strncpy(ct->entries[structure]->name, name, STRLEN-1);
     ct->entries[structure]->name[len] = 0;
 
     ct->entries[structure]->ri = freadInt(fp);
@@ -726,7 +726,7 @@ COLOR_TABLE *CTABreadFromBinaryV2(FILE *fp)
   if (fread(name, sizeof(char), len, fp) != (unsigned)len) {
     ErrorPrintf(ERROR_BADFILE, "CTABreadFromBinaryV1: could not read parameter(s)");
   }
-  strncpy(ct->fname, name, sizeof(ct->fname));
+  strncpy(ct->fname, name, STRLEN-1);
   free(name);
 
   /* Read the number of entries to read. */
@@ -776,7 +776,7 @@ COLOR_TABLE *CTABreadFromBinaryV2(FILE *fp)
     if (fread(name, sizeof(char), len, fp) != (unsigned)len) {
       ErrorPrintf(ERROR_BADFILE, "CTABreadFromBinaryV1: could not read parameter(s)");
     }
-    strncpy(ct->entries[structure]->name, name, sizeof(ct->entries[structure]->name));
+    strncpy(ct->entries[structure]->name, name, STRLEN-1);
 
     /* Read in the color. */
     ct->entries[structure]->ri = freadInt(fp);
@@ -952,7 +952,7 @@ COLOR_TABLE *znzCTABreadFromBinaryV1(znzFile fp, int nentries)
   }
   name = (char *)malloc(len + 1);
   znzread(name, sizeof(char), len, fp);
-  strncpy(ct->fname, name, sizeof(ct->fname));
+  strncpy(ct->fname, name, sizeof(ct->fname)-1);
   free(name);
 
   /* For each entry, read in the info. We assume these have sequential
@@ -981,7 +981,7 @@ COLOR_TABLE *znzCTABreadFromBinaryV1(znzFile fp, int nentries)
     }
     name = (char *)malloc(len + 1);
     znzread(name, sizeof(char), len, fp);
-    strncpy(ct->entries[structure]->name, name, sizeof(ct->entries[structure]->name));
+    strncpy(ct->entries[structure]->name, name, sizeof(ct->entries[structure]->name)-1);
     ct->entries[structure]->name[len] = 0;
 
     ct->entries[structure]->ri = znzreadInt(fp);
@@ -1083,7 +1083,7 @@ COLOR_TABLE *znzCTABreadFromBinaryV2(znzFile fp)
                  len));
   name = (char *)malloc(len + 1);
   znzread(name, sizeof(char), len, fp);
-  strncpy(ct->fname, name, sizeof(ct->fname));
+  strncpy(ct->fname, name, STRLEN-1);
   free(name);
 
   /* Read the number of entries to read. */
@@ -1131,7 +1131,7 @@ COLOR_TABLE *znzCTABreadFromBinaryV2(znzFile fp)
     }
     name = (char *)malloc(len + 1);
     znzread(name, sizeof(char), len, fp);
-    strncpy(ct->entries[structure]->name, name, sizeof(ct->entries[structure]->name));
+    strncpy(ct->entries[structure]->name, name, STRLEN-1);
 
     /* Read in the color. */
     ct->entries[structure]->ri = znzreadInt(fp);
@@ -2433,7 +2433,14 @@ int CTABaddUniqueEntry(COLOR_TABLE *ct, char *name, int min_dist)
   if (i >= ct->nentries)  // allocate and copy over new table
   {
     pcte = ct->entries;
+#if GCC_VERSION > 80000
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Walloc-size-larger-than="
+#endif
     ct->entries = (COLOR_TABLE_ENTRY **)calloc(ct->nentries, sizeof(COLOR_TABLE_ENTRY *));
+#if GCC_VERSION > 80000
+#pragma GCC diagnostic pop
+#endif
     for (i = 0; i < ct->nentries; i++) {
       ct->entries[i] = (COLOR_TABLE_ENTRY *)calloc(1, sizeof(COLOR_TABLE_ENTRY));
       memmove(ct->entries[i], pcte[i], sizeof(COLOR_TABLE_ENTRY));
