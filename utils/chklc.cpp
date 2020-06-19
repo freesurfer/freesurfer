@@ -30,6 +30,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <iostream>
 
 #include "diag.h"
 
@@ -110,7 +111,7 @@ void chklc(void)
 #endif
   }
   else {
-    strncpy(dirname, cp, STRLEN);
+    strncpy(dirname, cp, STRLEN-1);
   }
 
   lfilename = (char *)calloc(1, 512);
@@ -145,7 +146,12 @@ void chklc(void)
 
   // check for license in FREESURFER_HOME:
   if (lfile == NULL) {
-    sprintf(lfilename, "%s/lic%s", dirname, "ense.txt");
+    auto cx = snprintf(lfilename, 511, "%s/lic%s", dirname, "ense.txt");
+    if( (cx<0) || (cx>511) ) {
+      std::cerr << __FUNCTION__
+		<< ": snprintf returned error on line "
+		<< __LINE__ << std::endl;
+    }
     if (Gdiag_no > 0 && first_time) printf("Trying license file %s\n", lfilename);
     lfile = fopen(lfilename, "r");
   }
@@ -154,7 +160,12 @@ void chklc(void)
       printf(permission_msg, lfilename, lfilename);
       exit(-1);
     }
-    sprintf(lfilename, "%s/.lic%s", dirname, "ense");
+    auto cx = snprintf(lfilename, 511, "%s/.lic%s", dirname, "ense");
+    if( (cx<0) || (cx>511) ) {
+      std::cerr << __FUNCTION__
+		<< ": snprintf returned error on line "
+		<< __LINE__ << std::endl;
+    }
     if (Gdiag_no > 0 && first_time) printf("Now trying license file %s\n", lfilename);
     lfile = fopen(lfilename, "r");
   }
@@ -277,7 +288,7 @@ int chklc2(char *msg)
 #endif
   }
   else {
-    strncpy(dirname, cp, STRLEN);
+    strncpy(dirname, cp, STRLEN-1);
   }
 
   lfilename = (char *)calloc(1, 512);
@@ -306,7 +317,12 @@ int chklc2(char *msg)
 
   // check for license in FREESURFER_HOME:
   if (lfile == NULL) {
-    sprintf(lfilename, "%s/.lic%s", dirname, "ense");
+    auto cx = snprintf(lfilename, 511, "%s/.lic%s", dirname, "ense");
+    if( (cx<0) || (cx>511) ) {
+      std::cerr << __FUNCTION__
+		<< ": snprintf returned error on line "
+		<< __LINE__ << std::endl;
+    }
     lfile = fopen(lfilename, "r");
   }
   if (lfile == NULL) {
@@ -315,7 +331,12 @@ int chklc2(char *msg)
       if (msg) sprintf(msg, permission_msg, lfilename, lfilename);
       return 0;
     }
-    sprintf(lfilename, "%s/lic%s", dirname, "ense.txt");
+    auto cx = snprintf(lfilename, 511, "%s/lic%s", dirname, "ense.txt");
+    if( (cx<0) || (cx>511) ) {
+      std::cerr << __FUNCTION__
+		<< ": snprintf returned error on line "
+		<< __LINE__ << std::endl;
+    }
     lfile = fopen(lfilename, "r");
   }
   if (lfile == NULL) {
