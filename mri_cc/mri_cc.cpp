@@ -2241,8 +2241,10 @@ remove_fornix_new(MRI *mri_slice, MRI *mri_slice_edited)
     mri_slice_edited = MRIclone(mri_slice, NULL) ;
   }
 
+  // This was just xmin = mri_slice->width, but can cause an error
+  xmin = mri_slice->width - 1; 
+
   // find posterior/anterior extent of the cc
-  xmin = mri_slice->width ;
   ymax = xmax =  0 ;
   for (x = 0 ; x < mri_slice->width; x++)
   {
