@@ -422,12 +422,6 @@ int MRISdivideAnnotation(MRI_SURFACE *mris, int *nunits)
     if (index == Gdiag_no) {
       DiagBreak();
     }
-#if 0
-    if (stricmp("postcentral", mris->ct->entries[index]->name))
-    {
-      continue ;
-    }
-#endif
     num = MRISdivideAnnotationUnit(mris, v->annotation, nunits[index]);
     nadded += (num + 1);
     done[index] = 1 + num;
