@@ -2410,7 +2410,7 @@ remove_fornix_new(MRI *mri_slice, MRI *mri_slice_edited)
   */
   {
     double mean_thickness = 0.0, std_thickness = 0.0 ;
-    int    num = 0, thickness = 256, first_on, last_on, min_x_fornix = 256,
+    int    num = 0, thickness = 256, first_on, last_on, min_x_fornix = mri_slice->width-1,
            max_thickness, first_off, ystart ;
 
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
@@ -2436,6 +2436,7 @@ remove_fornix_new(MRI *mri_slice, MRI *mri_slice_edited)
       }
 
 
+    int min_x_fornix_set = 0;
     for (x = xmin ; x <= xmax ; x++)
     {
       int val2, y1 ;
@@ -2452,6 +2453,7 @@ remove_fornix_new(MRI *mri_slice, MRI *mri_slice_edited)
         {
           thickness = 0 ;
           min_x_fornix = MIN(min_x_fornix, x) ;
+	  min_x_fornix_set = 1;
           first_on = last_on = -1 ;
           for (y1 = y ; y1 >= 0 ; y1--)
           {
@@ -2476,6 +2478,10 @@ remove_fornix_new(MRI *mri_slice, MRI *mri_slice_edited)
         }
       }
     }
+
+    if(!min_x_fornix_set) printf("WARNING: min_x_fornix not set\n");
+    else printf("min_x_fornix = %d\n",min_x_fornix);
+
     mean_thickness /= num ;
     std_thickness = sqrt(std_thickness/num - mean_thickness*mean_thickness);
     max_thickness = (int)ceil(mean_thickness+3*std_thickness); ;
