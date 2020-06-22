@@ -78,6 +78,8 @@ public:
 
   static MainWindow* GetMainWindow();
 
+  static void WriteLog(const QString& str, const QString& filename = "freeview_log.txt", bool bOverwrite = false);
+
   bool HadError()
   {
     return m_bHadError;
