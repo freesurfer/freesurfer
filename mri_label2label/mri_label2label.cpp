@@ -1093,6 +1093,12 @@ static int parse_commandline(int argc, char **argv) {
       DoOutMaskStat = 1;
       nargsused = 1;
     } 
+    else if(!strcmp(option, "--Gdiag_no")){
+      if (nargc < 1) argnerr(option,1);
+      Gdiag_no = atoi(pargv[0]) ;
+      printf("Gdiag_no set to %d\n",Gdiag_no);
+      nargsused = 1;
+    }
     else if (!strcmp(option, "--label-cortex")) {
       // surf aseg outlabel
       if(nargc < 4){
