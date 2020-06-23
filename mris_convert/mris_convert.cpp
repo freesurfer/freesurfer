@@ -118,6 +118,7 @@ static MATRIX *XFM=NULL;
 static int write_vertex_neighbors = 0;
 static int combinesurfs_flag = 0;
 static int userealras_flag = 0;
+static int usesurfras_flag = 0;
 static MRI *VolGeomMRI=NULL;
 static int cras_add = 0;
 static int cras_subtract = 0;
@@ -302,8 +303,13 @@ main(int argc, char *argv[])
 
   if(userealras_flag)
   {
-    printf("Setting useRealRAS to 1!\n");
+    printf("Setting useRealRAS to 1\n");
     mris->useRealRAS = 1;
+  }
+  if(usesurfras_flag)
+  {
+    printf("Setting useRealRAS to 0\n");
+    mris->useRealRAS = 0;
   }
 
   if(cras_add){
@@ -757,6 +763,12 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "-userealras"))
   {
     userealras_flag = 1;
+    usesurfras_flag = 0;
+  }
+  else if (!stricmp(option, "-usesurfras"))
+  {
+    userealras_flag = 0;
+    usesurfras_flag = 1;
   }
   else if (!stricmp(option, "-cras_correction") || !stricmp(option, "-cras_add")) {
     cras_add = 1;
@@ -904,6 +916,7 @@ print_help(void)
   printf( "  --delete-cmds : delete command lines in surface\n") ;
   printf( "  --center : put center of surface at (0,0,0)\n") ;
   printf( "  --userealras : set the useRealRAS flag in the surface file to 1 \n") ;
+  printf( "  --usesurfras : set the useRealRAS flag in the surface file to 0 \n") ;
   printf( "  --vol-geom MRIVol : use MRIVol to set the volume geometry\n") ;
   printf( "  --to-scanner : convert coordinates from native FS (tkr) coords to scanner coords\n") ;
   printf( "  --to-tkr : convert coordinates from scanner coords to native FS (tkr) coords \n") ;
