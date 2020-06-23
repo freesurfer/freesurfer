@@ -56,7 +56,7 @@ void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QS
           msg.contains("posix collation implementation"))
     return;
 
-  MainWindow::WriteLog(msg);
+//  MainWindow::WriteLog(msg);
 
   switch ((int)type)
   {
@@ -121,9 +121,7 @@ int main(int argc, char *argv[])
   qInstallMsgHandler(myMessageOutput);
 #endif
 
-  MainWindow::WriteLog("Before lineprof initialize");
   LineProf::InitializePetsc(true);
-  MainWindow::WriteLog("After lineprof initialize");
   FSinit();
   setRandomSeed(-1L);
 
