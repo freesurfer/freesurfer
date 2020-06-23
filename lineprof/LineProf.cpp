@@ -301,7 +301,7 @@ double LineProf::pointDistance(const std::vector < double >& pt1,
 
 int LineProf::InitializePetsc(bool DoNotExitOnError)
 {
-  PetscInitialize(0, 0,(char*)0,NULL);
+  PetscInitializeNoArguments();
   PetscMPIInt mpiSize;
   MPI_Comm_size(PETSC_COMM_WORLD, &mpiSize);
   Tracer::DoNotExitOnError = DoNotExitOnError;
