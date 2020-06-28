@@ -1030,11 +1030,11 @@ static void print_usage(void)
   << "     Input directory (optional)" << endl
   << "     If specified, names of input .trk files are relative to this" << endl
   << "   --out <file> [...]:" << endl
-  << "     Output .trk file(s), as many as inputs" << endl
+  << "     Output .trk file(s), as many as inputs (or 1 to merge inputs)" << endl
   << "   --outasc <file> [...]:" << endl
-  << "     Output ASCII plain text file(s), as many as inputs" << endl
+  << "     Output ASCII plain text file(s), as many as inputs (or 1 to merge inputs)" << endl
   << "   --outvol <file> [...]:" << endl
-  << "     Output volume(s), as many as inputs" << endl
+  << "     Output volume(s), as many as inputs (or 1 to merge inputs)" << endl
   << "   --outdir <dir>:" << endl
   << "     Output directory (optional)" << endl
   << "     If specified, names of output .trk files and volumes are relative to this)" << endl
