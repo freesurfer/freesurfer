@@ -67,6 +67,7 @@ int main(int argc, char *argv[]) ;
 
 const char *Progname = "dmri_trk2trk";
 
+bool doMerge = false;
 int doInvNonlin = 0, doFill = 0, doMean = 0, doNth = 0, strNum = -1,
     lengthMin = -1, lengthMax = -1;
 unsigned int nTract = 0;
@@ -88,6 +89,7 @@ int main(int argc, char **argv) {
   int nargs, cputime;
   char fname[PATH_MAX], outorient[4];
   vector<float> point(3), step(3, 0);
+  vector< vector<float> > streamlines;
   MATRIX *outv2r;
   MRI *inref = 0, *outref = 0, *outvol = 0;
   AffineReg affinereg;
@@ -163,11 +165,13 @@ int main(int argc, char **argv) {
     int npts, nstr = 0;
     CTrackReader trkreader;
     TRACK_HEADER trkheadin;
-    vector< vector<float> > streamlines;
 
     cout << "Processing input file " << itract+1 << " of " << nTract
          << "..." << endl;
     cputimer.reset();
+
+    if (!doMerge)
+      streamlines.clear();
 
     if (!inTrkList.empty()) {		// Read streamlines from .trk file
       if (inDir)
@@ -258,8 +262,12 @@ int main(int argc, char **argv) {
       infile.close();
     }
 
+    if (doMerge && itract < nTract-1)
+      continue;
+
     nstr = streamlines.size();
 
+    // Apply transformations
     for (int kstr = nstr-1; kstr >= 0; kstr--) {
       vector<float> newpts;
 
@@ -671,9 +679,15 @@ int main(int argc, char **argv) {
     // Write transformed streamlines to volume
     if (!outVolList.empty()) {
       if (outDir)
-        sprintf(fname, "%s/%s", outDir, outVolList[itract]);
+        if (doMerge)
+          sprintf(fname, "%s/%s", outDir, outVolList[0]);
+        else
+          sprintf(fname, "%s/%s", outDir, outVolList[itract]);
       else
-        strcpy(fname, outVolList[itract]);
+        if (doMerge)
+          strcpy(fname, outVolList[0]);
+        else
+          strcpy(fname, outVolList[itract]);
 
       MRIclear(outvol);
 
@@ -705,9 +719,15 @@ int main(int argc, char **argv) {
       ofstream outfile;
 
       if (outDir)
-        sprintf(fname, "%s/%s", outDir, outAscList[itract]);
+        if (doMerge)
+          sprintf(fname, "%s/%s", outDir, outAscList[0]);
+        else
+          sprintf(fname, "%s/%s", outDir, outAscList[itract]);
       else
-        strcpy(fname, outAscList[itract]);
+        if (doMerge)
+          strcpy(fname, outAscList[0]);
+        else
+          strcpy(fname, outAscList[itract]);
 
       outfile.open(fname, ios::out);
       if (!outfile) {
@@ -780,9 +800,15 @@ int main(int argc, char **argv) {
 
       // Open output .trk file
       if (outDir)
-        sprintf(fname, "%s/%s", outDir, outTrkList[itract]);
+        if (doMerge)
+          sprintf(fname, "%s/%s", outDir, outTrkList[0]);
+        else
+          sprintf(fname, "%s/%s", outDir, outTrkList[itract]);
       else
-        strcpy(fname, outTrkList[itract]);
+        if (doMerge)
+          strcpy(fname, outTrkList[0]);
+        else
+          strcpy(fname, outTrkList[itract]);
 
       if (!trkwriter.Initialize(fname, trkheadout)) {
         cout << "ERROR: Cannot open output file " << fname << endl;
@@ -1095,23 +1121,27 @@ static void check_options(void) {
 
   nTract = inTrkList.size() + inAscList.size();
 
+  if (nTract > 1 && (outTrkList.size() == 1 || outAscList.size() == 1 
+                                            || outVolList.size() == 1))
+    doMerge = true;
+
   if (outTrkList.empty() && outAscList.empty() && outVolList.empty()) {
     cout << "ERROR: must specify output .trk or text or volume file(s)" << endl;
     exit(1);
   }
-  if (!outTrkList.empty() && outTrkList.size() != nTract) {
-    cout << "ERROR: must specify as many output .trk files as input files"
-         << endl;
+  if (outTrkList.size() > 1 && outTrkList.size() != nTract) {
+    cout << "ERROR: number of output .trk files (" << outTrkList.size()
+         << ") does not match number of input files (" << nTract << ")" << endl;
     exit(1);
   }
-  if (!outAscList.empty() && outAscList.size() != nTract) {
-    cout << "ERROR: must specify as many output text files as input .trk files"
-         << endl;
+  if (outAscList.size() > 1 && outAscList.size() != nTract) {
+    cout << "ERROR: number of output text files (" << outAscList.size()
+         << ") does not match number of input files (" << nTract << ")" << endl;
     exit(1);
   }
-  if (!outVolList.empty() && outVolList.size() != nTract) {
-    cout << "ERROR: must specify as many output volumes as input .trk files"
-         << endl;
+  if (outVolList.size() > 1 && outVolList.size() != nTract) {
+    cout << "ERROR: number of output volumes (" << outVolList.size()
+         << ") does not match number of input files (" << nTract << ")" << endl;
     exit(1);
   }
   if (!inRefFile) {
@@ -1226,6 +1256,8 @@ static void dump_options(FILE *fp) {
     cout << "Saving single streamline: " << strNum << endl;
   else
     cout << "Saving all streamlines" << endl;
+  if (doMerge)
+    cout << "Merging multiple inputs into a single output" << endl;
 
   return;
 }
