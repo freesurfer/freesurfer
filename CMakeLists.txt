@@ -120,12 +120,6 @@ find_package(ITK HINTS ${ITK_DIR} REQUIRED)
 # ANN is only used by mris_resample
 find_package(ANN)
 
-# -------- gts --------
-# only used by mris_decimate (not available on mac)
-if(NOT APPLE)
-  find_package(GTS)
-endif()
-
 # -------- openMP --------
 if(APPLE)
   # this is an ugly hack to ensure that cmake looks for the
@@ -397,7 +391,6 @@ add_subdirectories(
   mris_convert
   mris_curvature
   mris_curvature_stats
-  mris_decimate
   mris_defects_pointset
   mris_diff
   mris_divide_parcellation
