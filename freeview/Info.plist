@@ -16,6 +16,8 @@
     <string>????</string>
     <key>CFBundleExecutable</key>
     <string>freeview</string>
+    <key>BundleIsRelocatable</key>
+    <false/>
     <key>CFBundleIdentifier</key>
     <string>com.freesurfer.freeview</string>
 </dict>
