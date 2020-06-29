@@ -5,6 +5,7 @@ set VERSION = 'tkregisterfv @FS_VERSION@';
 
 set subject = ();
 set movvol = ();
+set reg = ()
 set targ = ();
 set fstarg = orig.mgz
 set lta = ();
@@ -27,6 +28,7 @@ set movvol2 = ();
 set reg2 = ()
 set movvol3 = ();
 set reg3 = ()
+set DoTal = 0;
 
 set tmpdir = ();
 set cleanup = 1;
@@ -58,6 +60,43 @@ set StartTime = `date`;
 set tSecStart = `date '+%s'`;
 
 #========================================================
+if($DoTal) then
+  set tmpdir = /tmp/tkregisterfv-$$
+  mkdir -p $tmpdir
+  set mni305 = $FREESURFER_HOME/average/mni305.cor.mgz
+  set mdir = $SUBJECTS_DIR/$subject/mri
+  set xfm = $mdir/transforms/talairach.xfm
+  set lta = $tmpdir/talairach.lta
+  # Convert xfm to lta
+  set cmd = (lta_convert --src $mdir/orig.mgz --trg $mni305 \
+     --inxfm $xfm --outlta $lta --subject fsaverage)
+  echo $cmd 
+  $cmd
+  if($status) exit 1;
+  # Save a copy
+  set ltacopy = $tmpdir/talairach.copy.lta
+  cp -p $lta $ltacopy
+  # Run freeview (vglrun not needed here)
+  set cmd = (tkregisterfv --mov $mdir/orig.mgz --reg $lta)
+  echo $cmd
+  $cmd
+  # Check whether the user changed the reg
+  set n = `diff $lta $ltacopy | wc -l`
+  if($n == 0) then
+    echo "No change to registration"
+    echo "tkregisterfv done"
+    rm -rf $tmpdir
+    exit 0
+  endif
+  # Convert it back to xfm
+  set cmd = (lta_convert --inlta $lta --outmni $xfm)
+  echo $cmd 
+  $cmd
+  if($status) exit 1;
+  rm -rf $tmpdir
+  echo "tkregisterfv done"
+  exit 0
+endif
 
 if(! $UseTkRegister) then
   ### FreeView ####----------------------------------------------
@@ -112,6 +151,7 @@ else
   ### tkregister ####----------------------------------------------
   set cmd = tkregister
   if($DoSurfs) set cmd = ($cmd -surfs)
+  endif
 endif
 echo "cd `pwd`"
 echo $cmd
@@ -323,6 +363,10 @@ while( $#argv != 0 )
       if($Plane == ax)  set Plane = axial
       breaksw
 
+    case "--fstal"
+      set DoTal = 1;
+      breaksw
+
     case "-vgl":
     case "--vgl":
       setenv FS_ALLOW_VGLRUN 1
@@ -384,6 +428,18 @@ goto parse_args_return;
 
 ############--------------##################
 check_params:
+
+if($DoTal) then
+  if($#subject == 0) then
+    echo "ERROR: must have subject with --fstal"
+    exit 0
+  endif
+  if($#reg != 0) then
+    echo "ERROR: cannot have --reg with --fstal"
+    exit 0
+  endif
+  set movvol = $SUBJECTS_DIR/$subject/mri/orig.mgz
+endif
 
 if($#movvol == 0) then
   echo "ERROR: must spec a moveable volume"
@@ -489,6 +545,8 @@ usage_exit:
   echo "  --no-config : do not automatically raise transform config window"
   echo "  --mov2 mov2 <--reg2 reg2> : provide a second mov (and possibly reg)"
   echo "  --mov3 mov3 <--reg3 reg3> : provide a third mov (and possibly reg)"
+  echo ""
+  echo "  --fstal --s subject : only these two args to modify the talairach.xfm"
   echo ""
   if(! $PrintHelp) exit 1;
   echo $VERSION
