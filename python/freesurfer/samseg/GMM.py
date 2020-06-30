@@ -144,6 +144,7 @@ class GMM:
 
         return gaussianPosteriors, minLogLikelihood
 
+
     def getLikelihoods(self, data, fractionsTable):
         #
         numberOfVoxels = data.shape[0]
@@ -183,6 +184,62 @@ class GMM:
         posteriors = posteriors / np.expand_dims(normalizer, 1)
 
         return posteriors
+
+    def fitGMMParametersWithConstraints(self, data, gaussianPosteriors,A,b):
+        from scipy.optimize import minimize
+        from scipy.optimize import LinearConstraint
+
+        # Means and variances
+        for gaussianNumber in range(self.numberOfGaussians):
+            posterior = gaussianPosteriors[:, gaussianNumber].reshape(-1, 1)
+            hyperMean = np.expand_dims(self.hyperMeans[gaussianNumber, :], 1)
+            hyperMeanNumberOfMeasurements = self.hyperMeansNumberOfMeasurements[gaussianNumber]
+            hyperVariance = self.hyperVariances[gaussianNumber, :, :]
+            hyperVarianceNumberOfMeasurements = self.hyperVariancesNumberOfMeasurements[gaussianNumber]
+
+            mean = (data.T @ posterior + hyperMean * hyperMeanNumberOfMeasurements) \
+                   / (np.sum(posterior) + hyperMeanNumberOfMeasurements)
+            tmp = data - mean.T
+            variance = (tmp.T @ (tmp * posterior) + \
+                        hyperMeanNumberOfMeasurements * ((mean - hyperMean) @ (mean - hyperMean).T) + \
+                        hyperVariance * hyperVarianceNumberOfMeasurements) \
+                       / (np.sum(posterior) + hyperVarianceNumberOfMeasurements)
+            if self.useDiagonalCovarianceMatrices:
+                # Force diagonal covariance matrices
+                variance = np.diag(np.diag(variance))
+            self.variances[gaussianNumber, :, :] = variance
+            self.means[gaussianNumber, :] = mean.T
+
+        H = np.zeros((self.numberOfContrasts * self.numberOfGaussians, self.numberOfContrasts * self.numberOfGaussians))
+        for j in range(self.numberOfGaussians):
+            H[self.numberOfContrasts * j:(self.numberOfContrasts * (j + 1)), self.numberOfContrasts * j:(self.numberOfContrasts * (j + 1))] = np.sum(
+                gaussianPosteriors[:, j]) * np.linalg.inv(self.variances[j])
+        f = -H @ self.means.ravel()
+        constraint = LinearConstraint(A, -np.ones(len(A)) * np.inf, b)
+        meanf = lambda x: 0.5 * x.T @ H @ x + f.T @ x
+        x_0 = np.expand_dims(self.means.ravel(), 1)
+        minopt = {"maxiter" : 500}
+        constrainedOpt = minimize(meanf, x_0, constraints=(constraint),options=minopt)
+        if not constrainedOpt.success:
+            print("optimization failed after %d iterations: "%constrainedOpt.nit,constrainedOpt.message)
+        else:
+            print("optimization success after %d iterations: "%constrainedOpt.nit)
+            self.means = constrainedOpt.x.reshape(self.means.shape)
+
+        # Mixture weights
+        self.mixtureWeights = np.sum(gaussianPosteriors + eps, axis=0)
+        for classNumber in range(self.numberOfClasses):
+            # mixture weights are normalized (those belonging to one mixture sum to one)
+            numberOfComponents = self.numberOfGaussiansPerClass[classNumber]
+            gaussianNumbers = np.array(np.sum(self.numberOfGaussiansPerClass[:classNumber]) + \
+                                       np.array(range(numberOfComponents)), dtype=np.uint32)
+
+            self.mixtureWeights[gaussianNumbers] += self.hyperMixtureWeights[gaussianNumbers] * \
+                                               self.hyperMixtureWeightsNumberOfMeasurements[classNumber]
+            self.mixtureWeights[gaussianNumbers] /= np.sum(self.mixtureWeights[gaussianNumbers])
+
+        if self.tied:
+            self.tiedGaussiansFit(data, gaussianPosteriors)
 
     def fitGMMParameters(self, data, gaussianPosteriors):
 
@@ -343,7 +400,7 @@ class GMM:
         self.hyperMeans[self.gaussNumber2Tied] = self.means[self.gaussNumber1Tied]
         self.hyperVariances[self.gaussNumber2Tied] = self.rho * self.variances[self.gaussNumber1Tied]
 
-    def sampleMeansAndVariancesConditioned(self, data, posterior, gaussianNumber):
+    def sampleMeansAndVariancesConditioned(self, data, posterior, gaussianNumber,constraints=None):
         tmpGmm = GMM([1], self.numberOfContrasts, self.useDiagonalCovarianceMatrices,
                   initialHyperMeans=np.array([self.hyperMeans[gaussianNumber]]),
                   initialHyperMeansNumberOfMeasurements=np.array([self.hyperMeansNumberOfMeasurements[gaussianNumber]]),
@@ -355,7 +412,7 @@ class GMM:
 
         # Murphy, page 134 with v0 = hyperVarianceNumberOfMeasurements - numberOfContrasts - 2
         variance = invwishart.rvs(N + tmpGmm.hyperVariancesNumberOfMeasurements[0] - self.numberOfContrasts - 2,
-                                  tmpGmm.variances[0] * (tmpGmm.hyperVariancesNumberOfMeasurements[0] + N))
+                              tmpGmm.variances[0] * (tmpGmm.hyperVariancesNumberOfMeasurements[0] + N))
 
         # If numberOfContrast is 1 force variance to be a (1,1) array
         if self.numberOfContrasts == 1:
@@ -366,4 +423,20 @@ class GMM:
 
         mean = np.random.multivariate_normal(tmpGmm.means[0],
                                              variance / (tmpGmm.hyperMeansNumberOfMeasurements[0] + N)).reshape(-1, 1)
+        if constraints is not None:
+            def truncsample(mean, var, lower, upper):
+                from scipy.stats import truncnorm
+              
+                # print("Sampling from truncnorm: mean=%.4f, var=%.4f, bounds = (%.4f,%.4f)"%(mean,var,lower,upper))
+                a, b = (lower - mean) / np.sqrt(var), (upper - mean) / np.sqrt(var)
+                try:
+                    ts = truncnorm.rvs(a, b, loc=mean, scale=np.sqrt(var))
+                except:
+                    return lower #TODO: Find out how to deal with samples being out of bounds
+                # print("Sampled = %.4f"%ts)
+                return ts
+
+            for constraint in constraints:
+                mean_idx, bounds = constraint
+                mean[mean_idx] = truncsample(tmpGmm.means[0][mean_idx],variance[mean_idx,mean_idx] / (tmpGmm.hyperMeansNumberOfMeasurements[0] + N), bounds[0],bounds[1])
         return mean, variance
