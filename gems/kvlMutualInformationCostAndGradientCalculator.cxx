@@ -178,7 +178,7 @@ MutualInformationCostAndGradientCalculator
   //std::cout << "priorCost: " << m_MinLogLikelihoodTimesPrior << std::endl;
   //std::cout << "dataCost: " << m_NumberOfVoxels * negativeMutualInformation << std::endl;
 
-  m_MinLogLikelihoodTimesPrior += m_NumberOfVoxels * negativeMutualInformation;
+  m_MinLogLikelihoodTimesPrior += negativeMutualInformation;
     
 }    
   
@@ -280,9 +280,9 @@ MutualInformationCostAndGradientCalculator
 #endif    
     
     //
-    //xGradientBasis /= m_NumberOfVoxels;
-    //yGradientBasis /= m_NumberOfVoxels;
-    //zGradientBasis /= m_NumberOfVoxels;
+    xGradientBasis /= m_NumberOfVoxels;
+    yGradientBasis /= m_NumberOfVoxels;
+    zGradientBasis /= m_NumberOfVoxels;
 
     // Add contribution to gradient in vertex 0
     gradientInVertex0[ 0 ] += xGradientBasis * it.GetPi0();

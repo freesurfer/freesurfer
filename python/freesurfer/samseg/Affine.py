@@ -14,16 +14,16 @@ import scipy.ndimage # For center-of-mass calculation
 
 class initializationOptions:
     def __init__( self,
-                  pitchAngles=np.array( [ -15, 0, 15 ] ) / 180.0 * np.pi, # in radians
-                  scales = [ 1.0 ],
-                  horizontalTableShifts=[ -35, -17.5, 0.0, 17.5, 35, 52.5 ], # in mm, in template space
-                  verticalTableShifts=[ -25.0, 0, 25.0 ], # in mm, in template space
+                  pitchAngles=np.array( [ 0 ] ) / 180.0 * np.pi,
+                  scales=[ 1.0 ],  
+                  horizontalTableShifts=[ 0.0 ],
+                  verticalTableShifts=[ 0.0 ],
                   tryCenterOfGravity=True,
                   searchForTableShiftsSeparately=False,
                   pitchCenter=[ 0.0, 0.0, 0.0 ], # in mm, in template space - anterior commissure
                   scalingCenter=[ 0.0, 120.0, 0.0 ], # in mm, in template space - back of the head
-                  initialPitchAngle=-15.0/180.0*np.pi,
-                  initialScale=0.95,
+                  initialPitchAngle=-10.0/180.0*np.pi,
+                  initialScale=0.9, 
                   initialTableShift=[ 0.0, 0.0, 0.0 ]
                 ):
         self.pitchAngles = pitchAngles
@@ -52,7 +52,7 @@ class Affine:
             savePath,
             worldToWorldTransformMatrix=None,
             initTransform=None,
-            Ks=[ 1.0, 0.5 ],
+            Ks=[ 30.0, 15.0 ],
             initializationOptions = initializationOptions(),
             targetDownsampledVoxelSpacing=3.0,
             maximalDeformationStopCriterion=0.005,
@@ -79,13 +79,17 @@ class Affine:
                                 initialImageToImageTransformMatrix,
                                 K, maximalDeformationStopCriterion ):
         
-        
+        # In our models the mesh stiffness (scaling the log-prior) is relative to the log-likelihood,
+        # which scales with the number of voxels being modeled. But for MI the log-likelihood
+        # is normalized, so we need to divide the mesh stiffness by the (expected) number of voxels
+        # covered in order to compensate.
+        Keffective = K / self.expectedNumberOfVoxelsCovered
           
         # Get the mesh
         initialImageToImageTransform = gems.KvlTransform( requireNumpyArray( initialImageToImageTransformMatrix ) )
         mesh = ProbabilisticAtlas().getMesh( self.meshCollectionFileName, 
                                               transform=initialImageToImageTransform,
-                                              K=K )
+                                              K=Keffective )
         originalNodePositions = mesh.points
 
         
@@ -324,7 +328,6 @@ class Affine:
                                                      positionsInTemplateSpace,
                                                      initialTableShifts=initialTableShifts,
                                                      visualizerTitle='Affine grid search center of gravity' )
-              
             
             
         if initializationOptions.searchForTableShiftsSeparately:
@@ -415,7 +418,9 @@ class Affine:
         self.templateImageToWorldTransformMatrix = templateImageToWorldTransformMatrix
         self.originalImageToWorldTransformMatrix = originalImageToWorldTransformMatrix
         self.upSamplingTranformMatrix = upSamplingTranformMatrix
-      
+        self.expectedNumberOfVoxelsCovered = np.prod( template.getImageBuffer().shape )
+         
+         
 
     def registerMeshToImage( self, worldToWorldTransformMatrix, Ks, maximalDeformationStopCriterion,
                              initializationOptions ):
