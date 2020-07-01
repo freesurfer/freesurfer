@@ -40,6 +40,7 @@ set WMProjAbs = 1;
 set Interp = trilinear
 set OutBase = w-g.pct;
 set ConSign = 100;
+set surf = ()
 
 set debug = 0;
 set tmpdir = ();
@@ -96,7 +97,7 @@ if($DoRH) set hemilist = ($hemilist rh);
 
 foreach hemi ($hemilist)
 
-  # Sample surf in white matter
+  # Sample surf in white matter (inside the surface)
   set wm = $tmpdir/$hemi.wm.$ext
   set cmd = (mri_vol2surf --mov $mov \
     --hemi $hemi $Reshape --interp $Interp \
@@ -104,11 +105,12 @@ foreach hemi ($hemilist)
   if($#reg == 0) set cmd = ($cmd --regheader $subject);
   if($#reg != 0) set cmd = ($cmd --reg $reg);
   if($UseMask) set cmd = ($cmd --cortex);
+  if($#surf) set cmd = ($cmd --surf $surf)
   echo $cmd
   $cmd
   if($status) exit 1;
 
-  # Sample surf in gray matter
+  # Sample surf in gray matter (outside the surface)
   set gm = $tmpdir/$hemi.gm.$ext
   set cmd = (mri_vol2surf --mov $mov \
     --hemi $hemi $Reshape --interp $Interp --o $gm)
@@ -117,6 +119,7 @@ foreach hemi ($hemilist)
   if($#reg == 0) set cmd = ($cmd --regheader $subject);
   if($#reg != 0) set cmd = ($cmd --reg $reg);
   if($UseMask) set cmd = ($cmd --cortex);
+  if($#surf) set cmd = ($cmd --surf $surf)
   echo $cmd
   $cmd
   if($status) exit 1;
@@ -239,6 +242,10 @@ while( $#argv != 0 )
       set ConSign = 100;
       breaksw
 
+    case "--pial":
+      set surf = pial
+      breaksw
+
     case "--tmp":
     case "--tmpdir":
       if ( $#argv < 1) goto arg1err;
@@ -331,6 +338,7 @@ usage_exit:
   echo "  --wm-proj-abs  dist : WM projection distance (default is $WMProjAbs mm)"
   echo "  --neg : compute G-W instead of W-G"
   echo "  --no-mask : do not mask out non-cortical regions"
+  echo "  --pial : use pial surface as base (instead of white) to compute gray/CSF contrast"
   echo ""
   echo "Even more arguments"
   echo ""
