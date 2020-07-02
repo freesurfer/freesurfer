@@ -14,17 +14,17 @@ import scipy.ndimage # For center-of-mass calculation
 
 class initializationOptions:
     def __init__( self,
-                  pitchAngles=np.array( [ 0 ] ) / 180.0 * np.pi,
+                  pitchAngles=np.array( [ 0 ] ) / 180.0 * np.pi, # in radians
                   scales=[ 1.0 ],  
-                  horizontalTableShifts=[ 40.0, 20.0, 0.0, -20.0, -40.0 ],
-                  verticalTableShifts=[ 0.0 ],
+                  horizontalTableShifts=[ 40.0, 20.0, 0.0, -20.0, -40.0 ], # in mm, in template space
+                  verticalTableShifts=[ 0.0 ], # in mm, in template space
                   tryCenterOfGravity=True,
                   searchForTableShiftsSeparately=False,
                   pitchCenter=[ 0.0, 0.0, 0.0 ], # in mm, in template space - anterior commissure
                   scalingCenter=[ 0.0, 120.0, 0.0 ], # in mm, in template space - back of the head
-                  initialPitchAngle=-10.0/180.0*np.pi,
+                  initialPitchAngle=-10.0/180.0*np.pi, # in radians
                   initialScale=0.9, 
-                  initialTableShift=[ 0.0, 0.0, 0.0 ]
+                  initialTableShift=[ 0.0, 0.0, 0.0 ] # in mm, in template space
                 ):
         self.pitchAngles = pitchAngles
         self.scales = scales
