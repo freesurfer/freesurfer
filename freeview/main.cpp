@@ -121,8 +121,8 @@ int main(int argc, char *argv[])
   qInstallMsgHandler(myMessageOutput);
 #endif
 
-  LineProf::InitializePetsc(true);
   FSinit();
+  LineProf::InitializePetsc(true);
   setRandomSeed(-1L);
 
   CmdLineEntry cmdLineDesc[] =

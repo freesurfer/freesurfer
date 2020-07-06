@@ -9062,5 +9062,6 @@ void MainWindow::WriteLog(const QString &str_in, const QString &filename, bool b
   file.open(bOverwrite?QFile::WriteOnly:QFile::Append);
   QString str = QString("[%1] %2\r\n").arg(QDateTime::currentDateTime().toString()).arg(str_in);
   file.write(str.toUtf8());
+  file.flush();
   file.close();
 }

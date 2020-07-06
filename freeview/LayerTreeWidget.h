@@ -17,8 +17,10 @@
 
 #include <QTreeWidget>
 #include <QItemDelegate>
+#include <QList>
 
 class Layer;
+class LayerMRI;
 class QDropEvent;
 
 class MyItemDelegate : public QItemDelegate
@@ -47,6 +49,11 @@ public:
   void mouseMoveEvent(QMouseEvent *event);
   void mouseReleaseEvent(QMouseEvent *event);
 
+  QList<LayerMRI*> GetLinkedVolumes()
+  {
+      return m_linkedVolumes;
+  }
+
 signals:
   void ToReorderLayers(const QList<Layer*>& newlist);
 
@@ -71,6 +78,8 @@ public slots:
   }
   void DeselectAll();
   void SetSelectedLayers(const QList<int>& layer_ids);
+  void OnLinkVolumes();
+  void OnUnlinkVolumes();
 
 protected:
   bool event(QEvent* e);
@@ -80,6 +89,7 @@ protected:
   MyItemDelegate* m_itemDelegate;
   QRect         rectCheckbox;
   bool          m_bCheckBoxClicked;
+  QList<LayerMRI*>  m_linkedVolumes;
 };
 
 
