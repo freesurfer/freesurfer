@@ -36,6 +36,7 @@
 #include <QMimeData>
 #include <QToolTip>
 #include <QColorDialog>
+#include "LayerTreeWidget.h"
 
 #define FS_VOLUME_SETTING_ID    "freesurfer/volume-setting"
 
@@ -1575,6 +1576,19 @@ void PanelVolume::OnActiveFrameChanged(int nFrame)
         return;
       }
     }
+  }
+  else
+  {
+      LayerMRI* mri = qobject_cast<LayerMRI*>(sender());
+      QList<LayerMRI*> linked_mri = qobject_cast<LayerTreeWidget*>(treeWidgetLayers)->GetLinkedVolumes();
+      if (mri && linked_mri.contains(mri))
+      {
+          foreach (LayerMRI* lm, linked_mri)
+          {
+              if (lm != mri)
+                  lm->SetActiveFrame(qMin(lm->GetNumberOfFrames()-1, nFrame));
+          }
+      }
   }
 }
 
