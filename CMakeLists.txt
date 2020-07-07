@@ -10,7 +10,7 @@ option(BUILD_ATTIC "Build deprecated tools from the attic" OFF)
 option(INFANT_MODULE "Include infant recon-all" OFF)
 option(QATOOLS_MODULE "Install QA tools" ON)
 option(BUILD_DNG "Build Doug's testing tools" OFF)
-option(SUPPRESS_WARNINGS "Suppress some selected warnings" ON)
+option(FREEVIEW_LINEPROF "Build FreeView with lineprof enabled" OFF)
 option(PROFILING "Complile binaries for profiling with gprof" OFF)
 option(INSTALL_PYTHON_DEPENDENCIES "Install python package dependencies" ON)
 
