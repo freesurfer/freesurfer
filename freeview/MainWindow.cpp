@@ -183,6 +183,10 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
 
   addAction(ui->actionNextLabelPoint);
 
+#ifdef DISABLE_LINEPROF
+  ui->actionLineProfile->setVisible(false);
+#endif
+
   m_statusBar = new FloatingStatusBar(this);
   m_statusBar->hide();
 

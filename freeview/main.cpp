@@ -122,7 +122,9 @@ int main(int argc, char *argv[])
 #endif
 
   FSinit();
+#ifndef DISABLE_LINEPROF
   LineProf::InitializePetsc(true);
+#endif
   setRandomSeed(-1L);
 
   CmdLineEntry cmdLineDesc[] =
@@ -354,7 +356,9 @@ int main(int argc, char *argv[])
 
   int ret = app.exec();
 
+#ifndef DISABLE_LINEPROF
   LineProf::FinalizePetsc();
+#endif
   if (w.HadError())
     ret = 1;
 
