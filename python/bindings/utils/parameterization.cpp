@@ -4,13 +4,13 @@ namespace surf {
 
 
 /*
-  Parameterizes an nvertices-length overlay to a 256 x 512 image. Default method is barycentric.
+  Parameterizes an nvertices-length overlay to an image. Default method is barycentric.
 */
-py::array parameterize(Bridge surf, const arrayf<float>& overlay)
+py::array parameterize(Bridge surf, const arrayf<float>& overlay, int scale)
 {
   // get frames and allocate mrisp
   int nframes = (overlay.ndim() == 2) ? overlay.shape(1) : 1;
-  MRI_SP *mrisp = MRISPalloc(1, nframes);
+  MRI_SP *mrisp = MRISPalloc(scale, nframes);
 
   // parameterize
   MRIS *mris = surf.mris();
@@ -38,7 +38,7 @@ py::array parameterize(Bridge surf, const arrayf<float>& overlay)
 
 
 /*
-  Samples a 256 x 512 parameterization into an nvertices-length overlay. Sampling method is barycentric.
+  Samples a parameterization into an nvertices-length overlay. Sampling method is barycentric.
 */
 py::array sampleParameterization(Bridge surf, const arrayf<float>& image)
 {

@@ -136,12 +136,12 @@ class Surface(Transformable):
 
     # ---- parameterization ----
 
-    def parameterize(self, overlay):
+    def parameterize(self, overlay, scale=1):
         '''Parameterizes an nvertices-length array to a 256 x 512 image. Parameterization method is barycentric.'''
         data = Overlay.ensure(overlay).data
         if len(data) != self.nvertices:
             raise ValueError('overlay length (%d) differs from vertex count (%d)' % (len(data), self.nvertices))
-        return bindings.surf.parameterize(self, data).squeeze()
+        return bindings.surf.parameterize(self, data, scale).squeeze()
 
     def sample_parameterization(self, image):
         '''Samples a parameterized image into an nvertices-length array. Sampling method is barycentric.'''
