@@ -137,7 +137,7 @@ class Surface(Transformable):
     # ---- parameterization ----
 
     def parameterize(self, overlay, scale=1):
-        '''Parameterizes an nvertices-length array to a 256 x 512 image. Parameterization method is barycentric.'''
+        '''Parameterizes an nvertices-length overlay to an image. Parameterization method is barycentric.'''
         data = Overlay.ensure(overlay).data
         if len(data) != self.nvertices:
             raise ValueError('overlay length (%d) differs from vertex count (%d)' % (len(data), self.nvertices))
