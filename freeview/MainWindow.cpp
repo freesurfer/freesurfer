@@ -536,7 +536,7 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
 #ifdef Q_OS_MAC
   if (MacHelper::IsDarkMode())
   {
-      ui->actionShowCoordinateAnnotation->setIcon(MacHelper::InvertIcon(ui->actionShowCoordinateAnnotation->icon(), QSize(), true));
+    ui->actionShowCoordinateAnnotation->setIcon(MacHelper::InvertIcon(ui->actionShowCoordinateAnnotation->icon(), QSize(), true));
   }
 #endif
 }
@@ -640,8 +640,8 @@ void MainWindow::LoadSettings()
   if (!m_settings.contains("UseComma"))
     m_settings["UseComma"] = true;
 
-//  OnPreferences();
-//  m_dlgPreferences->hide();
+  //  OnPreferences();
+  //  m_dlgPreferences->hide();
 
   for (int i = 0; i < 4; i++)
   {
@@ -920,7 +920,7 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
       {
         QStringList sublist = floatingArgs[i].split(":");
         QFileInfoList fi_list = QDir().entryInfoList(QStringList(sublist[0]));
-      //  qDebug() << fi_list;
+        //  qDebug() << fi_list;
       }
       else
       {
@@ -2444,7 +2444,7 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
 
     if (colormap == "lut" && !selected_labels.isEmpty())
     {
-        m_scripts.insert(1, QStringList("setselectedlabels") << selected_labels);
+      m_scripts.insert(1, QStringList("setselectedlabels") << selected_labels);
     }
   }
 
@@ -3130,16 +3130,16 @@ void MainWindow::CommandSetVolumeTrackFrame(const QStringList &cmd)
   Layer* layer = GetActiveLayer("MRI");
   if (layer && layer->IsTypeOf("VolumeTrack"))
   {
-     LayerVolumeTrack* vt = (LayerVolumeTrack*)layer;
-     QStringList frames = cmd[1].split(",");
-     vt->ShowAllLabels(false);
-     for (int i = 0; i < frames.size(); i++)
-     {
-       int nFrame = frames[i].toInt();
-       if (nFrame >= 0)
+    LayerVolumeTrack* vt = (LayerVolumeTrack*)layer;
+    QStringList frames = cmd[1].split(",");
+    vt->ShowAllLabels(false);
+    for (int i = 0; i < frames.size(); i++)
+    {
+      int nFrame = frames[i].toInt();
+      if (nFrame >= 0)
         vt->SetFrameVisible(nFrame, true);
-     }
-     emit RefreshLookUpTableRequested();
+    }
+    emit RefreshLookUpTableRequested();
   }
 }
 
@@ -3936,50 +3936,56 @@ void MainWindow::CommandSetSurfaceOverlayCustom( const QStringList& cmd_in )
         cerr << "Insufficient overlay_custom argments\n";
         return;
       }
-
-      QGradientStops stops;
-      QColor c;
-      bool bOK;
-      for (int i = 1; i < cmd.size(); i++)
+      else if (cmd.size() == 2)
       {
-        double dval = cmd[i].toDouble(&bOK);
-        if (!bOK)
-          break;
+        overlay->GetProperty()->LoadCustomColorScale(cmd[1]);
+      }
+      else
+      {
+        QGradientStops stops;
+        QColor c;
+        bool bOK;
+        for (int i = 1; i < cmd.size(); i++)
+        {
+          double dval = cmd[i].toDouble(&bOK);
+          if (!bOK)
+            break;
 
-        c = QColor(cmd[i+1]);
-        if (c.isValid())
-        {
-          i++;
-        }
-        else
-        {
-          int r,g,b;
-          r = cmd[i+1].toInt(&bOK);
-          if (!bOK)
-            break;
-          g = cmd[i+2].toInt(&bOK);
-          if (!bOK)
-            break;
-          b = cmd[i+3].toInt(&bOK);
-          if (!bOK)
-            break;
-          c = QColor(r,g,b);
-          if (!c.isValid())
-            break;
+          c = QColor(cmd[i+1]);
+          if (c.isValid())
+          {
+            i++;
+          }
           else
-            i+=3;
+          {
+            int r,g,b;
+            r = cmd[i+1].toInt(&bOK);
+            if (!bOK)
+              break;
+            g = cmd[i+2].toInt(&bOK);
+            if (!bOK)
+              break;
+            b = cmd[i+3].toInt(&bOK);
+            if (!bOK)
+              break;
+            c = QColor(r,g,b);
+            if (!c.isValid())
+              break;
+            else
+              i+=3;
+          }
+          stops << QGradientStop(dval, c);
         }
-        stops << QGradientStop(dval, c);
+
+        if (!bOK || !c.isValid())
+        {
+          cerr << "Invalid input for customized overlay color.\n";
+          return;
+        }
+        overlay->GetProperty()->SetColorScale(SurfaceOverlayProperty::CS_Custom);
+        overlay->GetProperty()->SetCustomColorScale(stops);
       }
 
-      if (!bOK || !c.isValid())
-      {
-        cerr << "Invalid input for customized overlay color.\n";
-        return;
-      }
-
-      overlay->GetProperty()->SetColorScale(SurfaceOverlayProperty::CS_Custom);
-      overlay->GetProperty()->SetCustomColorScale(stops);
       surf->UpdateOverlay(true);
       overlay->EmitDataUpdated();
     }
@@ -4616,7 +4622,7 @@ void MainWindow::CommandScreenCapture( const QStringList& cmd )
         QString fn = cmd[1];
         fn.replace("%name", layers[n]->GetName());
         if (!GetMainView()->SaveScreenShot( fn, m_settingsScreenshot.AntiAliasing,
-                                                     (int)mag_factor))
+                                            (int)mag_factor))
         {
           cerr << "Failed to save screen shot to " << fn.toLatin1().constData() << ".\n";
         }
@@ -4628,8 +4634,8 @@ void MainWindow::CommandScreenCapture( const QStringList& cmd )
     }
   }
   else if (!GetMainView()->SaveScreenShot( cmd[1],
-                                             m_settingsScreenshot.AntiAliasing,
-                                             (int)mag_factor, auto_trim))
+                                           m_settingsScreenshot.AntiAliasing,
+                                           (int)mag_factor, auto_trim))
   {
     cerr << "Failed to save screen shot to " << cmd[1].toLatin1().constData() << ".\n";
   }
@@ -6109,10 +6115,10 @@ void MainWindow::LoadSurfaceFile( const QString& filename, const QString& fn_pat
     layer->SetSphereFileName("");
     if (fi.fileName().contains("inflated"))
     {
-        QString fn = fi.absoluteFilePath();
-        fn.replace(".inflated", ".white");
-        if (QFile::exists(fn) && !sup_files.contains("white"))
-            sup_files << "white";
+      QString fn = fi.absoluteFilePath();
+      fn.replace(".inflated", ".white");
+      if (QFile::exists(fn) && !sup_files.contains("white"))
+        sup_files << "white";
     }
   }
   else
@@ -7104,11 +7110,11 @@ void MainWindow::OnSaveScreenshot()
 
 void MainWindow::OnCopyView()
 {
-    QString fn = QDir::tempPath() + "/freeview-temp-" + QString::number(QDateTime::currentMSecsSinceEpoch()) + ".png";
-    GetMainView()->SaveScreenShot(fn, m_settingsScreenshot.AntiAliasing, 1.0, m_settingsScreenshot.AutoTrim);
-    QClipboard *clipboard = QGuiApplication::clipboard();
-    if (clipboard)
-        clipboard->setImage(QImage(fn));
+  QString fn = QDir::tempPath() + "/freeview-temp-" + QString::number(QDateTime::currentMSecsSinceEpoch()) + ".png";
+  GetMainView()->SaveScreenShot(fn, m_settingsScreenshot.AntiAliasing, 1.0, m_settingsScreenshot.AutoTrim);
+  QClipboard *clipboard = QGuiApplication::clipboard();
+  if (clipboard)
+    clipboard->setImage(QImage(fn));
 }
 
 void MainWindow::OnVolumeFilterMean()
@@ -7602,7 +7608,7 @@ void MainWindow::OnActiveLayerChanged(Layer* layer)
 {
   QString title = "FreeView";
   if (!m_sTitle.isEmpty())
-      title += ": " + m_sTitle;
+    title += ": " + m_sTitle;
   if (!layer)
   {
     this->setWindowTitle(title);

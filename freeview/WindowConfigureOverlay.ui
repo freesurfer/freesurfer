@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>600</width>
+    <width>670</width>
     <height>942</height>
    </rect>
   </property>
@@ -333,53 +333,6 @@ color: gray;</string>
         <string>Color Scale</string>
        </property>
        <layout class="QGridLayout" name="gridLayout">
-        <item row="1" column="2">
-         <widget class="QCheckBox" name="checkBoxClearLower">
-          <property name="text">
-           <string>Clear Lower</string>
-          </property>
-         </widget>
-        </item>
-        <item row="1" column="3" colspan="2">
-         <widget class="QCheckBox" name="checkBoxClearHigher">
-          <property name="text">
-           <string>Clear Higher</string>
-          </property>
-         </widget>
-        </item>
-        <item row="0" column="2">
-         <widget class="QRadioButton" name="radioButtonCustom">
-          <property name="text">
-           <string>Custom</string>
-          </property>
-         </widget>
-        </item>
-        <item row="0" column="3">
-         <spacer name="horizontalSpacer_10">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>0</width>
-            <height>0</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-        <item row="0" column="4">
-         <widget class="QPushButton" name="pushButtonFlip">
-          <property name="maximumSize">
-           <size>
-            <width>65</width>
-            <height>16777215</height>
-           </size>
-          </property>
-          <property name="text">
-           <string>Flip</string>
-          </property>
-         </widget>
-        </item>
         <item row="0" column="0">
          <widget class="QRadioButton" name="radioButtonHeat">
           <property name="text">
@@ -390,10 +343,69 @@ color: gray;</string>
           </property>
          </widget>
         </item>
+        <item row="0" column="2">
+         <widget class="QRadioButton" name="radioButtonCustom">
+          <property name="text">
+           <string>Custom</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="5">
+         <widget class="QPushButton" name="pushButtonLoadCustom">
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>0</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>60</width>
+            <height>16777215</height>
+           </size>
+          </property>
+          <property name="text">
+           <string>Load</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="2">
+         <widget class="QCheckBox" name="checkBoxClearLower">
+          <property name="text">
+           <string>Clear Lower</string>
+          </property>
+         </widget>
+        </item>
         <item row="0" column="1">
          <widget class="QRadioButton" name="radioButtonColorWheel">
           <property name="text">
            <string>Color Wheel</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="1">
+         <widget class="QCheckBox" name="checkBoxInverse">
+          <property name="text">
+           <string>Inverse</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="4">
+         <widget class="QPushButton" name="pushButtonSaveCustom">
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>0</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>60</width>
+            <height>16777215</height>
+           </size>
+          </property>
+          <property name="text">
+           <string>Save</string>
           </property>
          </widget>
         </item>
@@ -404,10 +416,23 @@ color: gray;</string>
           </property>
          </widget>
         </item>
-        <item row="1" column="1">
-         <widget class="QCheckBox" name="checkBoxInverse">
+        <item row="0" column="3">
+         <widget class="QPushButton" name="pushButtonFlip">
+          <property name="maximumSize">
+           <size>
+            <width>60</width>
+            <height>16777215</height>
+           </size>
+          </property>
           <property name="text">
-           <string>Inverse</string>
+           <string>Flip</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="3" colspan="3">
+         <widget class="QCheckBox" name="checkBoxClearHigher">
+          <property name="text">
+           <string>Clear Higher</string>
           </property>
          </widget>
         </item>
@@ -424,7 +449,7 @@ color: gray;</string>
          <widget class="QComboBox" name="comboBoxMask">
           <property name="minimumSize">
            <size>
-            <width>120</width>
+            <width>110</width>
             <height>0</height>
            </size>
           </property>
@@ -1166,8 +1191,8 @@ color: gray;</string>
      <y>324</y>
     </hint>
     <hint type="destinationlabel">
-     <x>213</x>
-     <y>800</y>
+     <x>215</x>
+     <y>798</y>
     </hint>
    </hints>
   </connection>
@@ -1178,8 +1203,8 @@ color: gray;</string>
    <slot>UpdateGraphAndApply()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>94</x>
-     <y>800</y>
+     <x>95</x>
+     <y>798</y>
     </hint>
     <hint type="destinationlabel">
      <x>1</x>
@@ -1194,8 +1219,8 @@ color: gray;</string>
    <slot>UpdateGraphAndApply()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>213</x>
-     <y>800</y>
+     <x>215</x>
+     <y>798</y>
     </hint>
     <hint type="destinationlabel">
      <x>0</x>
@@ -1210,8 +1235,8 @@ color: gray;</string>
    <slot>UpdateGraphAndApply()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>301</x>
-     <y>800</y>
+     <x>307</x>
+     <y>798</y>
     </hint>
     <hint type="destinationlabel">
      <x>472</x>
@@ -1262,8 +1287,8 @@ color: gray;</string>
      <y>324</y>
     </hint>
     <hint type="destinationlabel">
-     <x>213</x>
-     <y>800</y>
+     <x>215</x>
+     <y>798</y>
     </hint>
    </hints>
   </connection>
@@ -1278,8 +1303,8 @@ color: gray;</string>
      <y>324</y>
     </hint>
     <hint type="destinationlabel">
-     <x>548</x>
-     <y>714</y>
+     <x>569</x>
+     <y>709</y>
     </hint>
    </hints>
   </connection>
@@ -1306,8 +1331,8 @@ color: gray;</string>
    <slot>OnButtonAdd()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>424</x>
-     <y>714</y>
+     <x>455</x>
+     <y>709</y>
     </hint>
     <hint type="destinationlabel">
      <x>484</x>
@@ -1406,8 +1431,8 @@ color: gray;</string>
      <y>324</y>
     </hint>
     <hint type="destinationlabel">
-     <x>423</x>
-     <y>315</y>
+     <x>488</x>
+     <y>330</y>
     </hint>
    </hints>
   </connection>
@@ -1418,8 +1443,8 @@ color: gray;</string>
    <slot>FlipMarkers()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>423</x>
-     <y>315</y>
+     <x>488</x>
+     <y>330</y>
     </hint>
     <hint type="destinationlabel">
      <x>376</x>
@@ -1498,8 +1523,8 @@ color: gray;</string>
    <slot>OnTextThresholdChanged(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>215</x>
-     <y>647</y>
+     <x>244</x>
+     <y>640</y>
     </hint>
     <hint type="destinationlabel">
      <x>484</x>
@@ -1514,8 +1539,8 @@ color: gray;</string>
    <slot>OnTextThresholdChanged(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>358</x>
-     <y>647</y>
+     <x>390</x>
+     <y>640</y>
     </hint>
     <hint type="destinationlabel">
      <x>484</x>
@@ -1530,8 +1555,8 @@ color: gray;</string>
    <slot>OnTextThresholdChanged(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>490</x>
-     <y>647</y>
+     <x>524</x>
+     <y>640</y>
     </hint>
     <hint type="destinationlabel">
      <x>484</x>
@@ -1546,12 +1571,12 @@ color: gray;</string>
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>301</x>
-     <y>800</y>
+     <x>307</x>
+     <y>798</y>
     </hint>
     <hint type="destinationlabel">
-     <x>358</x>
-     <y>647</y>
+     <x>390</x>
+     <y>640</y>
     </hint>
    </hints>
   </connection>
@@ -1578,8 +1603,8 @@ color: gray;</string>
    <slot>OnFrameChanged(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>326</x>
-     <y>92</y>
+     <x>397</x>
+     <y>98</y>
     </hint>
     <hint type="destinationlabel">
      <x>195</x>
@@ -1658,8 +1683,8 @@ color: gray;</string>
    <slot>OnCheckUsePercentile(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>280</x>
-     <y>742</y>
+     <x>263</x>
+     <y>738</y>
     </hint>
     <hint type="destinationlabel">
      <x>484</x>
@@ -1674,8 +1699,8 @@ color: gray;</string>
    <slot>OnTextThresholdChanged(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>358</x>
-     <y>676</y>
+     <x>390</x>
+     <y>670</y>
     </hint>
     <hint type="destinationlabel">
      <x>549</x>
@@ -1738,8 +1763,8 @@ color: gray;</string>
    <slot>OnCheckUseNonZeroVertices(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>430</x>
-     <y>742</y>
+     <x>415</x>
+     <y>738</y>
     </hint>
     <hint type="destinationlabel">
      <x>595</x>
@@ -1760,6 +1785,38 @@ color: gray;</string>
     <hint type="destinationlabel">
      <x>595</x>
      <y>131</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>radioButtonCustom</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>pushButtonSaveCustom</receiver>
+   <slot>setVisible(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>234</x>
+     <y>312</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>344</x>
+     <y>312</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>radioButtonCustom</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>pushButtonLoadCustom</receiver>
+   <slot>setVisible(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>276</x>
+     <y>325</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>392</x>
+     <y>311</y>
     </hint>
    </hints>
   </connection>

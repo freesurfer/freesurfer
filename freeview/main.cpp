@@ -183,7 +183,7 @@ int main(int argc, char *argv[])
     "':overlay_reg=overlay_registration_filename' Apply registration when loading overlay data.\n\n"
     "':overlay_method=method_name' Set overlay method. Valid names are 'linear', 'linearopaque' and 'piecewise'.\n\n"
     "':overlay_color=colorscale,settings' Set overlay color setttings. Valid names are 'colorwheel', 'truncate', 'inverse', 'clearlower' and 'clearhigher'. Use comma to apply more than one. 'clearlower/higher' only works when overlay_custom option is on.\n\n"
-    "':overlay_custom=val,r,g,b,val2,r2,g2,b2...' Set customized overlay color.\n\n"
+    "':overlay_custom=[filename]val,r,g,b,val2,r2,g2,b2...' Set customized overlay color. If only given one argument as filename, customized color scale will be loaded from the given file.\n\n"
     "':overlay_opacity=opacity' Set opacity of overlay.\n\n"
     "':overlay_threshold=low,(mid,)high(,percentile)' Set overlay threshold values, separated by comma. When overlay method is linear or linearopaque, only 2 numbers (low and high) are needed. When method is piecewise, 3 numbers are needed. If last element is 'percentile', use the give numbers as percentile.\n\n"
     "':overlay_mask=filename(,invert)' Use given label file as mask for overlay. If invert is specified, use the inverted mask.\n\n"

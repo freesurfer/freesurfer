@@ -43,6 +43,8 @@ WindowConfigureOverlay::WindowConfigureOverlay(QWidget *parent) :
   ui->checkBoxClearLower->hide();
   ui->checkBoxClearHigher->hide();
   ui->pushButtonFlip->hide();
+  ui->pushButtonLoadCustom->hide();
+  ui->pushButtonSaveCustom->hide();
   ui->widgetColorPicker->setCurrentColor(Qt::green);
   m_rangeOverall[0] = 0;
   m_rangeOverall[1] = 1;
@@ -55,12 +57,15 @@ WindowConfigureOverlay::WindowConfigureOverlay(QWidget *parent) :
   connect(ui->pushButtonScreenshot, SIGNAL(clicked(bool)), SLOT(OnButtonClicked()));
   connect(ui->pushButtonHelp, SIGNAL(clicked(bool)), SLOT(OnButtonClicked()));
   connect(ui->checkBoxFixedAxes, SIGNAL(toggled(bool)), SLOT(OnCheckFixedAxes(bool)));
+  connect(ui->pushButtonLoadCustom, SIGNAL(clicked(bool)), SLOT(OnButtonLoadCustom()));
+  connect(ui->pushButtonSaveCustom, SIGNAL(clicked(bool)), SLOT(OnButtonSaveCustom()));
+
   m_layerSurface = NULL;
   QSettings settings;
   QVariant v = settings.value("WindowConfigureOverlay/Geometry");
   if (v.isValid())
   {
-   this->restoreGeometry(v.toByteArray());
+    this->restoreGeometry(v.toByteArray());
   }
   v = settings.value("WindowConfigureOverlay/AutoApply");
   if (!v.isValid())
@@ -191,6 +196,12 @@ void WindowConfigureOverlay::UpdateUI()
     ui->radioButtonHeat       ->setChecked( p->GetColorScale() == SurfaceOverlayProperty::CS_Heat );
     ui->radioButtonColorWheel ->setChecked( p->GetColorScale() == SurfaceOverlayProperty::CS_ColorWheel );
     ui->radioButtonCustom  ->setChecked( p->GetColorScale() == SurfaceOverlayProperty::CS_Custom );
+
+    ui->pushButtonLoadCustom->setVisible(ui->radioButtonCustom->isChecked());
+    ui->pushButtonSaveCustom->setVisible(ui->radioButtonCustom->isChecked());
+    ui->pushButtonFlip->setVisible(ui->radioButtonCustom->isChecked());
+    ui->checkBoxClearHigher->setVisible(ui->radioButtonCustom->isChecked());
+    ui->checkBoxClearLower->setVisible(ui->radioButtonCustom->isChecked());
 
     ui->checkBoxUsePercentile->setChecked(p->GetUsePercentile());
     ui->widgetHistogram->SetUsePercentile(p->GetUsePercentile());
@@ -335,7 +346,7 @@ void WindowConfigureOverlay::OnApply()
         if (so != m_layerSurface->GetActiveOverlay())
         {
           smooth_changed = (so->GetProperty()->GetSmooth() != ui->checkBoxEnableSmooth->isChecked() ||
-                so->GetProperty()->GetSmoothSteps() != ui->spinBoxSmoothSteps->value() );
+              so->GetProperty()->GetSmoothSteps() != ui->spinBoxSmoothSteps->value() );
           so->GetProperty()->Copy(p);
           if (smooth_changed)
             so->UpdateSmooth();
@@ -678,8 +689,8 @@ void WindowConfigureOverlay::OnButtonAdd()
         overlay->SetDisplayRange(range);
       OnCheckFixedAxes(ui->checkBoxFixedAxes->isChecked(), false);
     }
-//    QMessageBox::warning(this, "Error", "New point out of range.");
-//    return;
+    //    QMessageBox::warning(this, "Error", "New point out of range.");
+    //    return;
   }
   ui->widgetHistogram->AddMarker(pos, ui->widgetColorPicker->currentColor());
 }
@@ -903,8 +914,8 @@ void WindowConfigureOverlay::OnComboMask(int n)
 
 void WindowConfigureOverlay::LoadLabelMask(const QString& fn)
 {
-    setProperty("wait_for_label", true);
-    emit MaskLoadRequested(fn);
+  setProperty("wait_for_label", true);
+  emit MaskLoadRequested(fn);
 }
 
 void WindowConfigureOverlay::OnCheckInverseMask(bool bChecked)
@@ -954,19 +965,50 @@ void WindowConfigureOverlay::OnCheckFixedAxes(bool bChecked, bool bUpdateGraph)
 {
   if (bChecked && m_layerSurface)
   {
-      m_rangeOverall[0] = 1e10;
-      m_rangeOverall[1] = -1e10;
-      for (int i = 0; i < m_layerSurface->GetNumberOfOverlays(); i++)
-      {
-        SurfaceOverlay* ol = m_layerSurface->GetOverlay(i);
-        double range[2];
-        ol->GetDisplayRange(range);
-        if (range[0] < m_rangeOverall[0])
-          m_rangeOverall[0] = range[0];
-        if (range[1] > m_rangeOverall[1])
-          m_rangeOverall[1] = range[1];
-      }
+    m_rangeOverall[0] = 1e10;
+    m_rangeOverall[1] = -1e10;
+    for (int i = 0; i < m_layerSurface->GetNumberOfOverlays(); i++)
+    {
+      SurfaceOverlay* ol = m_layerSurface->GetOverlay(i);
+      double range[2];
+      ol->GetDisplayRange(range);
+      if (range[0] < m_rangeOverall[0])
+        m_rangeOverall[0] = range[0];
+      if (range[1] > m_rangeOverall[1])
+        m_rangeOverall[1] = range[1];
+    }
   }
   if (bUpdateGraph)
     UpdateGraph();
+}
+
+void WindowConfigureOverlay::OnButtonSaveCustom()
+{
+  QString filename = QFileDialog::getSaveFileName( this, "Save Color Scale",
+                                                   MainWindow::GetMainWindow()->AutoSelectLastDir( "surf" ),
+                                                   "All files (*)");
+  if ( !filename.isEmpty() && m_layerSurface && m_layerSurface->GetActiveOverlay() )
+  {
+    SurfaceOverlay* overlay = m_layerSurface->GetActiveOverlay();
+    if (!overlay->GetProperty()->SaveCustomColorScale(filename))
+      QMessageBox::warning(this, "Error", "Failed to save color scale to " + filename);
+  }
+}
+
+void WindowConfigureOverlay::OnButtonLoadCustom()
+{
+  QString filename = QFileDialog::getOpenFileName( this, "Load Color Scale",
+                                                   MainWindow::GetMainWindow()->AutoSelectLastDir( "surf" ),
+                                                   "All files (*)");
+  if ( !filename.isEmpty() && m_layerSurface && m_layerSurface->GetActiveOverlay() )
+  {
+    SurfaceOverlay* overlay = m_layerSurface->GetActiveOverlay();
+    if (!overlay->GetProperty()->LoadCustomColorScale(filename))
+      QMessageBox::warning(this, "Error", "Failed to load color scale from " + filename);
+    else
+    {
+      m_layerSurface->UpdateOverlay(true);
+      overlay->EmitDataUpdated();
+    }
+  }
 }

@@ -34,10 +34,7 @@
 #include "LayerMRI.h"
 #include "MyUtils.h"
 #include <QDateTime>
-
-
 #include "utils.h"
-
 
 SurfaceOverlay::SurfaceOverlay ( LayerSurface* surf ) :
   QObject(),
