@@ -8,25 +8,45 @@ from tensorflow.python.eager.context import context, EAGER_MODE, GRAPH_MODE
 from tensorflow.keras.callbacks import Callback
 from shutil import copyfile
 
+
 def switch_to_eager():
     switch_execution_mode(EAGER_MODE)
 
+
 def switch_to_graph():
     switch_execution_mode(GRAPH_MODE)
+
 
 def switch_execution_mode(mode):
     ctx = context()._eager_context
     ctx.mode = mode
     ctx.is_eager = mode ==  EAGER_MODE
 
+
 def configure(gpu=0):
-    os.environ["CUDA_DEVICE_ORDER"] = 'PCI_BUS_ID'
-    os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu)
-    config = tf.ConfigProto()
-    if gpu >= 0:
-        config.allow_soft_placement = True
-        config.gpu_options.allow_growth = True
-    tf.keras.backend.set_session(tf.Session(config=config))
+    """
+    Configures the appropriate TF device from a cuda device integer.
+    """
+    gpuid = str(gpu)
+    if gpuid is not None and (gpuid != '-1'):
+        device = '/gpu:' + gpuid
+        os.environ['CUDA_VISIBLE_DEVICES'] = gpuid
+        # GPU memory configuration differs between TF 1 and 2
+        if hasattr(tf, 'ConfigProto'):
+            config = tf.ConfigProto()
+            config.gpu_options.allow_growth = True
+            config.allow_soft_placement = True
+            tf.keras.backend.set_session(tf.Session(config=config))
+        else:
+            tf.config.set_soft_device_placement(True)
+            for pd in tf.config.list_physical_devices('GPU'):
+                tf.config.experimental.set_memory_growth(pd, True)
+    else:
+        device = '/cpu:0'
+        os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+    
+    return device
+
 
 
 class LoopingIterator:
