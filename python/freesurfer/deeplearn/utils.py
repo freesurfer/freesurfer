@@ -217,6 +217,27 @@ class WeightsSaver(Callback):
                 copyfile(name, cpname)
         self.batch += 1
 
+class ModelSaver(Callback):
+    def __init__(self, model, N, name, cp_iters = 0):
+        self.model = model
+        self.N = N
+        self.batch = 0
+        self.name = name
+        self.cp_iters = cp_iters
+        self.iters = 0
+
+    def on_batch_end(self, batch, logs={}):
+        if self.batch % self.N == 0:
+#            name = '%s.%08d.h5' % (self.name,self.batch)
+            name = self.name
+            self.model.save(name)
+            self.iters += 1
+            if (self.cp_iters > 0 and self.iters >= self.cp_iters):
+                fname,ext = os.path.splitext(name)
+                cpname = fname + ".cp" + ext
+                copyfile(name, cpname)
+        self.batch += 1
+
 def MRIStoVoxel(mris, mri):
     vox2ras = mri.get_header().get_vox2ras_tkr()
     ras2vox = np.linalg.inv(vox2ras)
@@ -660,3 +681,30 @@ def histo_norm_intensities(vol,nbins=100, target_range=[0.0, 1.0], anchors=[0.1,
             
     return vol * m + b
 
+
+  
+def pprint(A):
+    if A.ndim==1:
+        print(A)
+    else:
+        w = max([len(str(s)) for s in A]) 
+        print(u'\u250c'+u'\u2500'*w+u'\u2510') 
+        for AA in A:
+            print(' ', end='')
+            print('[', end='')
+            for i,AAA in enumerate(AA[:-1]):
+                w1=max([len(str(s)) for s in A[:,i]])
+                print(str(AAA)+' '*(w1-len(str(AAA))+1),end='')
+            w1=max([len(str(s)) for s in A[:,-1]])
+            print(str(AA[-1])+' '*(w1-len(str(AA[-1]))),end='')
+            print(']')
+        print(u'\u2514'+u'\u2500'*w+u'\u2518')  
+
+
+def set_trainable(model, trainable):
+    model.trainable=trainable
+    for l in model.layers:
+        if hasattr(l, 'layers'):
+            set_trainable(l, trainable)
+        l.trainable = trainable
+    
