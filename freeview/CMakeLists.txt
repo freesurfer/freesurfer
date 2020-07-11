@@ -227,6 +227,10 @@ if(BUILD_GUIS AND VTK_FOUND AND PETSC_FOUND AND TARGET vtkutils)
   add_compile_options(-Wno-deprecated -Wno-reorder -Wno-uninitialized -Wno-unused-variable -Wno-sign-compare
                       -Wno-overloaded-virtual -Wno-inconsistent-missing-override -Wno-deprecated-declarations)
 
+  if(NOT FREEVIEW_LINEPROF)
+    add_definitions(-DDISABLE_LINEPROF)
+  endif()
+
   set(QT_LIBRARIES Qt5::Core Qt5::Widgets)
 
   if(APPLE)

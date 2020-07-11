@@ -87,6 +87,8 @@ protected slots:
   void UpdateGeometry();
   void OnCheckFixedAxes(bool bChecked, bool bUpdateGraph = true);
   void OnActiveOverlayChanged();
+  void OnButtonLoadCustom();
+  void OnButtonSaveCustom();
 
 private:
   Ui::WindowConfigureOverlay *ui;
