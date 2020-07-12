@@ -414,6 +414,7 @@ int MRISdivideAnnotation(MRI_SURFACE *mris, int *nunits)
     if (vno == Gdiag_no) {
       DiagBreak();
     }
+    
     CTABfindAnnotation(mris->ct, v->annotation, &index);
     if (index <= 0 || done[index])  // don't do unknown (index = 0)
     {
@@ -422,6 +423,8 @@ int MRISdivideAnnotation(MRI_SURFACE *mris, int *nunits)
     if (index == Gdiag_no) {
       DiagBreak();
     }
+    if (Gdiag_no >= 0 && v->annotation == mris->vertices[Gdiag_no].annotation)
+      DiagBreak();
     num = MRISdivideAnnotationUnit(mris, v->annotation, nunits[index]);
     nadded += (num + 1);
     done[index] = 1 + num;
@@ -439,7 +442,7 @@ int MRISdivideAnnotation(MRI_SURFACE *mris, int *nunits)
     }
     *(ct->entries[i]) = *(mris->ct->entries[i]);
     for (j = 0; done[i] > 1 && j < done[i]; j++) {
-      int offset, new_index, ri, gi, bi, found;
+      int offset, new_index, ri, gi, bi, found, old_index;
 
       *(ct->entries[index]) = *(mris->ct->entries[i]);
       auto cx = snprintf(ct->entries[index]->name, STRLEN, "%s_div%d", ct->entries[i]->name, j + 1);
@@ -462,17 +465,26 @@ int MRISdivideAnnotation(MRI_SURFACE *mris, int *nunits)
           ct->entries[index]->rf = (float)ri / 255.0f;
           ct->entries[index]->gf = (float)gi / 255.0f;
           ct->entries[index]->bf = (float)bi / 255.0f;
-          found = 1;
 
           CTABannotationAtIndex(ct, i, &annot);
           CTABannotationAtIndex(ct, index, &new_annot);
+	  CTABfindAnnotation(mris->ct, new_annot, &old_index);
+	  if (old_index >= 0)
+	    continue ;  // not unique
+          found = 1;
+
           // translate old annotations to new ones
           for (vno = 0; vno < mris->nvertices; vno++) {
+	    if (vno == Gdiag_no)
+	      DiagBreak() ;
             v = &mris->vertices[vno];
             if (v->ripflag || v->marked != j || v->annotation != annot) {
               continue;
             }
+	    if (vno == Gdiag_no)
+	      DiagBreak() ;
             v->annotation = new_annot;
+	    v->marked = -1 ;   // don't process it again
           }
         }
         else {
