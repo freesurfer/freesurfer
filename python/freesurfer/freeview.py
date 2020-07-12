@@ -148,7 +148,7 @@ class Freeview:
         command = '%s freeview %s %s' % (self._vgl_wrapper(), opts, ' '.join(self.flags))
 
         if title is not None:
-            command += ' -title "%s"' % title.replace('"', '\\"')
+            command += ' -subtitle "%s"' % title.replace('"', '\\"')
 
         # be sure to remove the temporary directory (if it exists) after freeview closes
         if self.tempdir and not noclean:
