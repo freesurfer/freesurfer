@@ -49,6 +49,7 @@ set ForceUpdate = 0
 set PallidumSeparate = 0;
 set OptionsFile = ()
 set SaveHistory = 0
+set LesionMaskPattern = ()
 
 set inputargs = ($argv);
 set PrintHelp = 0;
@@ -157,6 +158,7 @@ if($PallidumSeparate) set cmd0 = ($cmd0 --pallidum-separate)
 if($#OptionsFile)  set cmd0 = ($cmd0 --options $OptionsFile)
 if($SaveHistory)  set cmd0 = ($cmd0 --history)
 if($DoLesion) set cmd0 = ($cmd0 --lesion)  # TODO: if T2/flair is provided, --lesion-mask-pattern must be set
+if($#LesionMaskPattern) set cmd0 = ($cmd0 --lesion-mask-pattern $LesionMaskPattern)
 
 # specify input list
 foreach input ($inputlist)
@@ -328,6 +330,11 @@ while( $#argv != 0 )
 
     case "--lesion":
       set DoLesion = 1
+      breaksw
+
+    case "--lesion-mask-pattern":
+      if($#argv < 2) goto arg1err;
+      set LesionMaskPattern = ($argv[1] $argv[2]); shift;shift;
       breaksw
 
     case "--mrf":
@@ -747,6 +754,8 @@ usage_exit:
   echo ""
   echo " --pallidum-separate : Move pallidum outside of global white matter class. Use this flag when"
   echo "   analyzing T2 or FLAIR"
+  echo " --lesion : Turn on lesion segmentation"
+  echo " --lesion-mask-pattern A B : Needed when using T2 (eg, 0 1)"
   echo " --regmat reg.mat : registration file (as output by samseg)"
   echo "    allows using the reg from one run with another run"
   echo " --initlta init.lta : initial registration"
