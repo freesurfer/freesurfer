@@ -53,6 +53,8 @@ static int fromFile = 0;
 
 const char *Progname ;
 
+static int use_vox = 0 ;
+
 #define MAX_VOLUMES 100
 
 static int binarize = 0 ;
@@ -131,6 +133,21 @@ int main(int argc, char *argv[])
 	      mri_tmp = MRIread(in_fname) ;
 	      if (mri_tmp == NULL)
 		ErrorExit(ERROR_BADPARM, "%s: could not read %dth input volume from %s", Progname,n,in_fname);
+	      if (mri_tmp->depth == 1)
+	      {
+		MRI_REGION reg ;
+		MRI *mri_tmp2 ;
+		reg.x = reg.y = reg.z = 0 ;
+		reg.dx = mri_tmp->width ;
+		reg.dy = mri_tmp->height ;
+		reg.dz = mri_tmp->depth ;
+		mri_tmp2 = MRIextractRegionAndPad(mri_tmp, NULL, &reg, 1);
+		MRIfree(&mri_tmp) ;
+		mri_tmp = mri_tmp2 ;
+	      }
+	      if (use_vox)
+		mri_tmp->xsize = mri_tmp->ysize = mri_tmp->zsize = 1 ;
+		  
 	      if (mri_tmp->type != MRI_FLOAT)
 		{
 		  MRI *m ;
@@ -188,6 +205,21 @@ int main(int argc, char *argv[])
 	  mri_tmp = MRIread(name) ;
 	  if (mri_tmp == NULL)
 	    ErrorExit(ERROR_BADPARM, "%s: could not read %dth input volume from %s", Progname,n,name);
+	  if (mri_tmp->depth == 1)
+	  {
+	    MRI_REGION reg ;
+	    MRI *mri_tmp2 ;
+	    reg.x = reg.y = reg.z = 0 ;
+	    reg.dx = mri_tmp->width ;
+	    reg.dy = mri_tmp->height ;
+	    reg.dz = mri_tmp->depth ;
+	    mri_tmp2 = MRIextractRegionAndPad(mri_tmp, NULL, &reg, 1);
+	    MRIfree(&mri_tmp) ;
+	    mri_tmp = mri_tmp2 ;
+	  }
+		  
+	  if (use_vox)
+	    mri_tmp->xsize = mri_tmp->ysize = mri_tmp->zsize = 1 ;
 	  if (mri_tmp->type != MRI_FLOAT)
 	    {
 	      MRI *m ;
@@ -476,6 +508,10 @@ get_option(int argc, char *argv[]) {
     print_usage() ;
     exit(1) ;
     break ;
+  case 'V':
+    use_vox = 1 ;
+    printf("ignoring voxel sizes to compute distances in voxel coords") ;
+    break;
   default:
     fprintf(stderr, "unknown option %s\n", argv[1]) ;
     exit(1) ;
