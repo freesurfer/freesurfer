@@ -32,6 +32,8 @@ set XOptsFile = ()
 set GlobXOptsFile = ()
 set ForceUpdate = 0
 set RunIt = 1
+set UseHighMyelin = 0; # Allows using diff thresholds when placing white in high-myelin cortex
+set HighMyelinFactor = (); # Value between 0 (closer to white) and 1 (closer to cortical gm)
 
 # Options for mri_normalize, can strongly affect the pial placement
 set normOptsRCA = (-seed 1234 -mprage -aseg rawavg.aseg.presurf.mgz)
@@ -116,6 +118,7 @@ if($longitudinal) set srcsurf = orig_white
 
 set sdir = $SUBJECTS_DIR/$subject/surf
 set mdir = $SUBJECTS_DIR/$subject/mri
+set ldir = $SUBJECTS_DIR/$subject/label
 cd $mdir
 
 # This creates a highres template where all the dims are the same
@@ -376,11 +379,17 @@ foreach hemi ($hemilist)
   if($CBVfindFirstPeakD2) set cmd = ($cmd --first-peak-d2)
   if($longitudinal) set cmd = ($cmd --max-cbv-dist 3.5) 
   if($#mps_n_averages) set cmd = ($cmd --n_averages $mps_n_averages)
+  if($UseHighMyelin) then
+    set hml = $ldir/$hemi.high-myelin.label
+    set cmd = ($cmd --alt-border-low $hml $HighMyelinFactor)
+  else
+    set hml = ()
+  endif
   set xopts = `fsr-getxopts PlaceWhiteSurf $XOptsFile $GlobXOptsFile`;
   set cmd = ($cmd $xopts)
   echo "cd `$PWD`" |& tee -a $LF |& tee -a $CF
   echo $cmd    |& tee -a $LF |& tee -a $CF
-  set ud = `UpdateNeeded $white $inputsurf $ads $bfs $wm $inputsurf $cortex`
+  set ud = `UpdateNeeded $white $inputsurf $ads $bfs $wm $inputsurf $cortex $hml`
   if($ud || $ForceUpdate) then
     if($RunIt) then
     $fs_time $cmd |& tee -a $LF
@@ -772,6 +781,12 @@ while( $#argv != 0 )
       setenv FS_OMP_NUM_THREADS $OMP_NUM_THREADS # re-entrant recon-all
       set OMP_NUM_SET = 1
       breaksw;
+
+    case "--high-myelin":
+      if($#argv < 1) goto arg1err;
+      set HighMyelinFactor = $argv[1]; shift
+      set UseHighMyelin = 1
+      breaksw
 
     case "--longitudinal":
     case "--long":
