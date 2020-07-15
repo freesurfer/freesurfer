@@ -300,6 +300,10 @@ public slots:
 
   bool ExportLineProfileThickness(const QString& filename, const QVariantMap& options);
 
+  void OnShowControlPanel(bool bShow);
+
+  void OnFloatPanels(bool bFloat);
+
 protected:
   void closeEvent   ( QCloseEvent * event );
   void resizeEvent  (QResizeEvent * event);
@@ -663,6 +667,8 @@ private:
   WindowQuickReference* m_wndQuickRef;
   WindowTimeCourse*     m_wndTimeCourse;
   WindowLayerInfo*      m_wndLayerInfo;
+  QWidget*              m_widgetFloatControlPanel;
+  QWidget*              m_widgetFloatInfoPanel;
 
   VolumeFilterWorkerThread* m_threadVolumeFilter;
 

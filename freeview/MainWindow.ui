@@ -50,8 +50,8 @@
       <property name="childrenCollapsible">
        <bool>false</bool>
       </property>
-      <widget class="QWidget" name="widgetControlPanel" native="true">
-       <layout class="QVBoxLayout" name="verticalLayout_2">
+      <widget class="QWidget" name="widgetControlPanelHolder" native="true">
+       <layout class="QVBoxLayout" name="layoutControlPanelHolder">
         <property name="spacing">
          <number>0</number>
         </property>
@@ -68,13 +68,43 @@
          <number>0</number>
         </property>
         <item>
-         <widget class="PanelAllLayers" name="widgetAllLayers" native="true">
-          <property name="minimumSize">
-           <size>
-            <width>100</width>
-            <height>0</height>
-           </size>
-          </property>
+         <widget class="QWidget" name="widgetControlPanel" native="true">
+          <layout class="QVBoxLayout" name="layoutControlPanel">
+           <property name="spacing">
+            <number>0</number>
+           </property>
+           <property name="sizeConstraint">
+            <enum>QLayout::SetDefaultConstraint</enum>
+           </property>
+           <property name="leftMargin">
+            <number>0</number>
+           </property>
+           <property name="topMargin">
+            <number>0</number>
+           </property>
+           <property name="rightMargin">
+            <number>0</number>
+           </property>
+           <property name="bottomMargin">
+            <number>0</number>
+           </property>
+           <item>
+            <widget class="PanelAllLayers" name="widgetAllLayers" native="true">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="MinimumExpanding" vsizetype="MinimumExpanding">
+               <horstretch>1</horstretch>
+               <verstretch>1</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="minimumSize">
+              <size>
+               <width>100</width>
+               <height>0</height>
+              </size>
+             </property>
+            </widget>
+           </item>
+          </layout>
          </widget>
         </item>
        </layout>
@@ -175,10 +205,10 @@
             </item>
            </layout>
           </widget>
-          <widget class="QWidget" name="widget_3" native="true">
-           <layout class="QHBoxLayout" name="horizontalLayout_3">
+          <widget class="QWidget" name="widgetInfoPanelHolder" native="true">
+           <layout class="QVBoxLayout" name="layoutInfoPanelHolder">
             <property name="spacing">
-             <number>2</number>
+             <number>0</number>
             </property>
             <property name="leftMargin">
              <number>0</number>
@@ -193,49 +223,70 @@
              <number>0</number>
             </property>
             <item>
-             <widget class="InfoTreeWidget" name="treeWidgetCursorInfo">
-              <property name="rootIsDecorated">
-               <bool>false</bool>
-              </property>
-              <property name="uniformRowHeights">
-               <bool>true</bool>
-              </property>
-              <property name="columnCount">
-               <number>2</number>
-              </property>
-              <attribute name="headerCascadingSectionResizes">
-               <bool>false</bool>
-              </attribute>
-              <column>
-               <property name="text">
-                <string notr="true">Cursor</string>
+             <widget class="QWidget" name="widgetInfoPanel" native="true">
+              <layout class="QHBoxLayout" name="horizontalLayout_3">
+               <property name="spacing">
+                <number>2</number>
                </property>
-              </column>
-              <column>
-               <property name="text">
-                <string/>
+               <property name="leftMargin">
+                <number>0</number>
                </property>
-              </column>
-             </widget>
-            </item>
-            <item>
-             <widget class="InfoTreeWidget" name="treeWidgetMouseInfo">
-              <property name="rootIsDecorated">
-               <bool>false</bool>
-              </property>
-              <property name="uniformRowHeights">
-               <bool>true</bool>
-              </property>
-              <column>
-               <property name="text">
-                <string>Mouse</string>
+               <property name="topMargin">
+                <number>0</number>
                </property>
-              </column>
-              <column>
-               <property name="text">
-                <string/>
+               <property name="rightMargin">
+                <number>0</number>
                </property>
-              </column>
+               <property name="bottomMargin">
+                <number>0</number>
+               </property>
+               <item>
+                <widget class="InfoTreeWidget" name="treeWidgetCursorInfo">
+                 <property name="rootIsDecorated">
+                  <bool>false</bool>
+                 </property>
+                 <property name="uniformRowHeights">
+                  <bool>true</bool>
+                 </property>
+                 <property name="columnCount">
+                  <number>2</number>
+                 </property>
+                 <attribute name="headerCascadingSectionResizes">
+                  <bool>false</bool>
+                 </attribute>
+                 <column>
+                  <property name="text">
+                   <string notr="true">Cursor</string>
+                  </property>
+                 </column>
+                 <column>
+                  <property name="text">
+                   <string/>
+                  </property>
+                 </column>
+                </widget>
+               </item>
+               <item>
+                <widget class="InfoTreeWidget" name="treeWidgetMouseInfo">
+                 <property name="rootIsDecorated">
+                  <bool>false</bool>
+                 </property>
+                 <property name="uniformRowHeights">
+                  <bool>true</bool>
+                 </property>
+                 <column>
+                  <property name="text">
+                   <string>Mouse</string>
+                  </property>
+                 </column>
+                 <column>
+                  <property name="text">
+                   <string/>
+                  </property>
+                 </column>
+                </widget>
+               </item>
+              </layout>
              </widget>
             </item>
            </layout>
@@ -348,6 +399,7 @@
     </widget>
     <addaction name="actionShowToolbar"/>
     <addaction name="actionShowControlPanel"/>
+    <addaction name="actionFloatPanels"/>
     <addaction name="menuViewport_Layout"/>
     <addaction name="separator"/>
     <addaction name="actionResetView"/>
@@ -1724,6 +1776,17 @@
     <string>Show Toolbar</string>
    </property>
   </action>
+  <action name="actionFloatPanels">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Floating Panels</string>
+   </property>
+   <property name="toolTip">
+    <string>Floating Panels</string>
+   </property>
+  </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>
@@ -3006,16 +3069,16 @@
   <connection>
    <sender>actionShowControlPanel</sender>
    <signal>toggled(bool)</signal>
-   <receiver>widgetControlPanel</receiver>
-   <slot>setVisible(bool)</slot>
+   <receiver>MainWindow</receiver>
+   <slot>OnShowControlPanel(bool)</slot>
    <hints>
     <hint type="sourcelabel">
      <x>-1</x>
      <y>-1</y>
     </hint>
     <hint type="destinationlabel">
-     <x>49</x>
-     <y>466</y>
+     <x>606</x>
+     <y>435</y>
     </hint>
    </hints>
   </connection>
@@ -3256,38 +3319,6 @@
     <hint type="destinationlabel">
      <x>606</x>
      <y>435</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>actionSelectAllLayers</sender>
-   <signal>triggered()</signal>
-   <receiver>widgetAllLayers</receiver>
-   <slot>SelectAllLayers()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>-1</x>
-     <y>-1</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>49</x>
-     <y>466</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>actionDeselectAllLayers</sender>
-   <signal>triggered()</signal>
-   <receiver>widgetAllLayers</receiver>
-   <slot>DeselectAllLayers()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>-1</x>
-     <y>-1</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>49</x>
-     <y>466</y>
     </hint>
    </hints>
   </connection>
@@ -3595,6 +3626,22 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>actionFloatPanels</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnFloatPanels(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <signal>CycleOverlayRequested()</signal>
@@ -3701,5 +3748,7 @@
   <slot>OnLoadSurfaceParameterization()</slot>
   <slot>OnStereoRender(bool)</slot>
   <slot>OnVolumeFilterBoundary()</slot>
+  <slot>OnShowControlPanel(bool)</slot>
+  <slot>OnFloatPanels(bool)</slot>
  </slots>
 </ui>

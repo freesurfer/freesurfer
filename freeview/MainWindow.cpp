@@ -533,6 +533,17 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   addAction(ui->actionViewLayerInfo);
   connect(ui->actionViewLayerInfo, SIGNAL(triggered(bool)), SLOT(OnViewLayerInfo()));
 
+  m_widgetFloatControlPanel = new QWidget(this, Qt::Tool | Qt::WindowTitleHint | Qt::CustomizeWindowHint );
+  QVBoxLayout* layout = new QVBoxLayout;
+  layout->setMargin(0);
+  m_widgetFloatControlPanel->setLayout(layout);
+  m_widgetFloatControlPanel->hide();
+  m_widgetFloatInfoPanel = new QWidget(this, Qt::Tool | Qt::WindowTitleHint | Qt::CustomizeWindowHint );
+  layout = new QVBoxLayout;
+  layout->setMargin(0);
+  m_widgetFloatInfoPanel->setLayout(layout);
+  m_widgetFloatInfoPanel->hide();
+
 #ifdef Q_OS_MAC
   if (MacHelper::IsDarkMode())
   {
@@ -698,14 +709,6 @@ void MainWindow::SaveSettings()
   {
     settings.setValue("Settings/General", m_dlgPreferences->GetSettings());
   }
-  /*
-  QStringList tabs;
-  for (int i = 0; i < ui->tabWidgetControlPanel->count(); i++)
-  {
-    tabs << ui->tabWidgetControlPanel->widget(i)->objectName();
-  }
-  settings.setValue("ControlPanel/TabOrder", tabs);
-  */
 }
 
 void MainWindow::closeEvent( QCloseEvent * event )
@@ -5742,7 +5745,6 @@ void MainWindow::LoadROIFile( const QString& fn, const QString& ref_vol, const Q
     col_roi->AddLayer( roi );
 
     m_strLastDir = QFileInfo( fn ).canonicalPath();
-    //  ui->tabWidgetControlPanel->setCurrentWidget( ui->tabROI );
   }
   else
   {
@@ -6328,7 +6330,6 @@ void MainWindow::OnIOFinished( Layer* layer, int jobtype )
 
     m_strLastDir = QFileInfo( layer->GetFileName() ).canonicalPath();
     SetCurrentFile( layer->GetFileName(), 0 );
-    //    ui->tabWidgetControlPanel->setCurrentWidget( ui->tabVolume );
     if (m_layerSettings.contains(layer->GetID()))
     {
       QVariantMap settings = m_layerSettings[layer->GetID()];
@@ -6415,7 +6416,6 @@ void MainWindow::OnIOFinished( Layer* layer, int jobtype )
 
     m_strLastDir = QFileInfo( layer->GetFileName() ).canonicalPath();
     SetCurrentFile( layer->GetFileName(), 1 );
-    //    ui->tabWidgetControlPanel->setCurrentWidget( ui->tabSurface );
     if (m_layerSettings.contains(layer->GetID()))
     {
       QVariantMap settings = m_layerSettings[layer->GetID()];
@@ -6441,7 +6441,6 @@ void MainWindow::OnIOFinished( Layer* layer, int jobtype )
     LayerTrack* track = qobject_cast<LayerTrack*>( layer );
     lc_track->AddLayer( track );
     m_strLastDir = QFileInfo( layer->GetFileName() ).canonicalPath();
-    //    ui->tabWidgetControlPanel->setCurrentWidget( ui->tabTrack );
     if (lc_surface->IsEmpty() && lc_mri->IsEmpty())
     {
       double worigin[3], wsize[3];
@@ -9074,4 +9073,50 @@ void MainWindow::WriteLog(const QString &str_in, const QString &filename, bool b
   file.write(str.toUtf8());
   file.flush();
   file.close();
+}
+
+void MainWindow::OnShowControlPanel(bool bShow)
+{
+  if (ui->widgetControlPanel->parentWidget() == ui->widgetControlPanelHolder)
+    ui->widgetControlPanelHolder->setVisible(bShow);
+  else
+    m_widgetFloatControlPanel->setVisible(bShow);
+}
+
+void MainWindow::OnFloatPanels(bool bFloat)
+{
+  static QByteArray geometryControlPanel = ui->widgetControlPanelHolder->saveGeometry();
+  static QByteArray geometryInfoPanel = ui->widgetInfoPanelHolder->saveGeometry();
+  if (bFloat)
+  {
+    ui->widgetControlPanelHolder->hide();
+    ui->layoutControlPanelHolder->removeWidget(ui->widgetControlPanel);
+    m_widgetFloatControlPanel->show();
+    m_widgetFloatControlPanel->layout()->addWidget(ui->widgetControlPanel);
+    ui->widgetControlPanel->show();
+    m_widgetFloatControlPanel->restoreGeometry(geometryControlPanel);
+
+    ui->widgetInfoPanelHolder->hide();
+    ui->layoutInfoPanelHolder->removeWidget(ui->widgetInfoPanel);
+    m_widgetFloatInfoPanel->show();
+    m_widgetFloatInfoPanel->layout()->addWidget(ui->widgetInfoPanel);
+    ui->widgetInfoPanel->show();
+    m_widgetFloatInfoPanel->restoreGeometry(geometryInfoPanel);
+  }
+  else
+  {
+    geometryControlPanel = m_widgetFloatControlPanel->saveGeometry();
+    ui->widgetControlPanelHolder->show();
+    m_widgetFloatControlPanel->layout()->removeWidget(ui->widgetControlPanel);
+    ui->widgetControlPanel->show();
+    ui->layoutControlPanelHolder->addWidget(ui->widgetControlPanel);
+    m_widgetFloatControlPanel->hide();
+
+    geometryInfoPanel = m_widgetFloatInfoPanel->saveGeometry();
+    ui->widgetInfoPanelHolder->show();
+    m_widgetFloatInfoPanel->layout()->removeWidget(ui->widgetInfoPanel);
+    ui->widgetInfoPanel->show();
+    ui->layoutInfoPanelHolder->addWidget(ui->widgetInfoPanel);
+    m_widgetFloatInfoPanel->hide();
+  }
 }
