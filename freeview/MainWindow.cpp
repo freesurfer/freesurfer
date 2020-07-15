@@ -538,11 +538,14 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   layout->setMargin(0);
   m_widgetFloatControlPanel->setLayout(layout);
   m_widgetFloatControlPanel->hide();
+  m_widgetFloatControlPanel->setWindowTitle("Layers");
+
   m_widgetFloatInfoPanel = new QWidget(this, Qt::Tool | Qt::WindowTitleHint | Qt::CustomizeWindowHint );
   layout = new QVBoxLayout;
   layout->setMargin(0);
   m_widgetFloatInfoPanel->setLayout(layout);
   m_widgetFloatInfoPanel->hide();
+  m_widgetFloatInfoPanel->setWindowTitle("Info");
 
 #ifdef Q_OS_MAC
   if (MacHelper::IsDarkMode())
