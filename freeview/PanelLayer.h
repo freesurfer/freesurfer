@@ -109,6 +109,10 @@ template<typename T> QList<T> PanelLayer::GetSelectedLayers()
     if (t)
       list << t;
   }
+  T tc = qobject_cast<T>(m_currentLayer);
+  if (list.isEmpty() && tc)
+    list << tc;
+
   return list;
 }
 

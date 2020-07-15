@@ -66,7 +66,6 @@ void PanelLayer::OnUpdate()
 void PanelLayer::SetCurrentLayer(Layer *layer)
 {
   m_currentLayer = layer;
-
   UpdateWidgets();
 }
 
