@@ -83,21 +83,6 @@ if not atlasDir:
 # Setup the visualization tool
 visualizer = samseg.initVisualizer(args.showfigs, args.movie)
 
-# Initialization transform for affine registration
-initTransform = None
-if args.init_reg:
-    matrix = fs.LinearTransform.read(args.init_reg).as_ras().matrix
-    initTransform = samseg.convertRASTransformToLPS(matrix)
-
-# Affine transform used to skip registration skip
-worldToWorldTransformMatrix = None
-if args.reg:
-    if args.reg.endswith('.mat'):
-        worldToWorldTransformMatrix = scipy.io.loadmat(args.reg).get('worldToWorldTransformMatrix')
-    else:
-        matrix = fs.LinearTransform.read(args.reg).as_ras().matrix
-        worldToWorldTransformMatrix = samseg.convertRASTransformToLPS(matrix)
-
 # ------ Prepare Samseg Parameters ------
 
 # Load user options from a JSON file
@@ -161,8 +146,8 @@ else:
 _, _, _, optimizationSummary = samseg.segment(
     costfile=costfile,
     timer=timer,
-    worldToWorldTransformMatrix=worldToWorldTransformMatrix,
-    initTransform=initTransform,
+    transformFile=args.reg,
+    initTransformFile=args.init_reg,
     reg_only=args.reg_only
 )
 
