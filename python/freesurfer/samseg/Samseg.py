@@ -115,12 +115,58 @@ class Samseg:
         self.deformation = None
         self.deformationAtlasFileName = None
 
-    def segment(self, costfile=None, timer=None, reg_only=False, worldToWorldTransformMatrix=None, initTransform=None):
+    def validateTransform(self, trf):
+        # =======================================================================================
+        #
+        # Internal utility to ensure that a provided affine transform file matches the template and
+        # input volume geometries. If the transform is determined to be [image->template], it
+        # will be inverted for convenience sake.
+        #
+        # =======================================================================================
+
+        # Load src (template) and trg (input) geometries (TODO these should really be cached)
+        src = fs.Volume.read(self.affine.templateFileName).geometry()
+        trg = fs.Volume.read(self.imageFileNames[0]).geometry()
+
+        # Just assume things are okay if no geometries are provided
+        if trf.source is None and trf.target is None:
+            return trf
+
+        equal = lambda a, b: fs.Geometry.is_equal(a, b, thresh=1e-2, require_affine=False)
+
+        # Make sure at least the source or target geometries match
+        if (trf.source is None or equal(trf.source, src)) and (trf.target is None or equal(trf.target, trg)):
+            return trf
+
+        # The only remaining possibility is that the transform is inverted (input->template)
+        if (trf.source is None or equal(trf.source, trg)) and (trf.target is None or equal(trf.target, src)):
+            return trf.inverse()
+
+        fs.fatal('provided transform does not match input or template geometries')
+
+    def segment(self, costfile=None, timer=None, reg_only=False, transformFile=None, initTransformFile=None):
         # =======================================================================================
         #
         # Main function that runs the whole segmentation pipeline
         #
         # =======================================================================================
+
+        # Initialization transform for registration
+        initTransform = None
+        if initTransformFile:
+            trg = self.validateTransform(fs.LinearTransform.read(initTransformFile))
+            initTransform = convertRASTransformToLPS(trg.as_ras().matrix)
+
+        # Affine transform used to skip registration
+        worldToWorldTransformMatrix = None
+        if transformFile:
+            if transformFile.endswith('.mat'):
+                worldToWorldTransformMatrix = scipy.io.loadmat(transformFile).get('worldToWorldTransformMatrix')
+            else:
+                trf = self.validateTransform(fs.LinearTransform.read(transformFile))
+                worldToWorldTransformMatrix = convertRASTransformToLPS(trf.as_ras().matrix)
+
+        # Register to template
         if self.imageToImageTransformMatrix is None:
             self.register(
                 costfile=costfile,
@@ -129,6 +175,7 @@ class Samseg:
                 worldToWorldTransformMatrix=worldToWorldTransformMatrix,
                 initTransform=initTransform
             )
+
         self.preProcess()
         self.fitModel()
         return self.postProcess()
