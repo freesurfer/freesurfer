@@ -35,7 +35,8 @@ class Samseg:
         targetSearchStrings=None,
         modeNames=None,
         pallidumAsWM=True,
-        saveModelProbabilities=False
+        saveModelProbabilities=False,
+        gmmFileName=None,
         ):
 
         # Store input parameters as class variables
@@ -61,8 +62,13 @@ class Samseg:
         self.probabilisticAtlas = ProbabilisticAtlas()
 
         # Get full model specifications and optimization options (using default unless overridden by user)
-        self.modelSpecifications = getModelSpecifications(atlasDir, userModelSpecifications, pallidumAsWM=pallidumAsWM)
         self.optimizationOptions = getOptimizationOptions(atlasDir, userOptimizationOptions)
+        self.modelSpecifications = getModelSpecifications(
+            atlasDir,
+            userModelSpecifications,
+            pallidumAsWM=pallidumAsWM,
+            gmmFileName=gmmFileName
+        )
         
         # Set image-to-image matrix if provided
         self.imageToImageTransformMatrix = imageToImageTransformMatrix

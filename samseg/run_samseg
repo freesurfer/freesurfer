@@ -24,6 +24,7 @@ parser.add_argument('--reg-only', action='store_true', default=False, help='Only
 parser.add_argument('-r', '--reg', metavar='FILE', help='Skip initial affine registration and read transform from file.')
 parser.add_argument('--init-reg', metavar='FILE', help='Initial affine registration.')
 parser.add_argument('-a', '--atlas', metavar='DIR', help='Point to an alternative atlas directory.')
+parser.add_argument('--gmm', metavar='FILE', help='Point to an alternative GMM file.')
 parser.add_argument('--options', metavar='FILE', help='Override advanced options via a json file.')
 parser.add_argument('--pallidum-separate', action='store_true', default=False, help='Move pallidum outside of global white matter class. Use this flag when T2/flair is used.')
 # optional lesion options
@@ -119,7 +120,8 @@ samseg_kwargs = dict(
     saveWarp=args.save_warp,
     modeNames=args.mode,
     pallidumAsWM=(not args.pallidum_separate),
-    saveModelProbabilities=args.save_probabilities
+    saveModelProbabilities=args.save_probabilities,
+    gmmFileName=args.gmm,
 )
 
 if args.lesion:
