@@ -147,10 +147,10 @@ else
     $cmd |& tee -a $LF
     if($status) goto error_exit;
     # Keep in a (somewhat redundant) list
-    set LongLtas = ($LongLtas $mdir/orig/$stembase.lta)
-    set LongIscales = ($LongLtas $mdir/orig/$stembase-iscale.txt)
+    #set LongLtas    = ($LongLtas    $LongLtas $SUBJECTS_DIR/$tpNid/mri/orig/$stembase.lta) # Not needed
+    set LongIscales = ($LongIscales $SUBJECTS_DIR/$tpNid/mri/orig/$stembase-iscale.txt)
     # create a new lta to the base template
-    set concatlta = $stem-long.lta
+    set concatlta = $stem-to-base.lta
     set cmd = (mri_concatenate_lta $lta $tpNtobase_regfile $concatlta)
     echo "\n $cmd \n" |& tee -a $LF 
     $cmd |& tee -a $LF
@@ -160,7 +160,7 @@ else
 
   # Use mri_robust_template to create the rawavg (as with cross stream)
   # Do this even for conf2hires because it has to be resampled anyway
-  set cmd = (mri_robust_template --mov $CrossList --ixforms $LongLtas --average 1 \
+  set cmd = (mri_robust_template --mov $CrossList --ixforms $ConcatLtas --average 1 \
     --noit --template $rawvol --iscalein $LongIscales)
   echo "\n $cmd \n" |& tee -a $LF 
   $cmd |& tee -a $LF
