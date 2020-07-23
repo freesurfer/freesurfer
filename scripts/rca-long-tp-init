@@ -141,6 +141,7 @@ if($DoMotionCor) then
     if($DoConf2Hires) set cmd = ($cmd -conf2hires)
     set xopts = `fsr-getxopts longmc $XOptsFile`;
     set cmd = ($cmd $xopts)
+    echo $cmd  |& tee -a $LF
     if($RunIt) then
       $fs_time $cmd |& tee -a $LF
       if($status) goto error_exit;
