@@ -12,8 +12,9 @@ if [ "$(uname)" == "Darwin" ]; then
 fi
 
 cmake . $EXTRA_OPTIONS \
-  -DCMAKE_BUILD_TYPE=Release \
-  -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
+  -DCMAKE_BUILD_TYPE:STRING=Release \
+  -DVTK_RENDERING_BACKEND:STRING=OpenGL \
+  -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_DIR}
 
-make -j8
-make install
+cmake --build . --target all -j8
+cmake --build . --target install
