@@ -1,7 +1,10 @@
 # project info
 cmake_minimum_required(VERSION 3.9)
-project(freesurfer)
-enable_language(C CXX Fortran)
+project(freesurfer 
+  VERSION 7.1.1
+  DESCRIPTION "An open source software suite for processing and analyzing (human) brain MRI images."
+  LANGUAGES C CXX Fortran
+  )
 
 # a few build options
 option(MINIMAL "Only build core components" OFF)
@@ -47,7 +50,7 @@ if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 endif()
 
 # version stamp
-set(FS_VERSION "$ENV{USER}-local" CACHE STRING "Distribution version")
+set(FS_VERSION "$ENV{USER}-local-${PROJECT_VERSION}" CACHE STRING "Distribution version")
 
 # build stamp
 string(TIMESTAMP TODAY "%Y%m%d")
