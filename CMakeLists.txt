@@ -1,5 +1,23 @@
 # project info
 cmake_minimum_required(VERSION 3.9)
+
+# ==== Define language standard configurations requiring at least c++11 standard
+if(CMAKE_CXX_STANDARD EQUAL "98" )
+   message(FATAL_ERROR "CMAKE_CXX_STANDARD:STRING=98 is not supported in.")
+endif()
+
+#####
+##  Set the default language dialect settings (This must be done BEFORE the project call)
+if(NOT CMAKE_CXX_STANDARD)
+  set(CMAKE_CXX_STANDARD 11) # Supported values are ``11``, ``14``, and ``17``.
+endif()
+if(NOT CMAKE_CXX_STANDARD_REQUIRED)
+  set(CMAKE_CXX_STANDARD_REQUIRED ON)
+endif()
+if(NOT CMAKE_CXX_EXTENSIONS)
+  set(CMAKE_CXX_EXTENSIONS OFF)
+endif()
+
 project(freesurfer 
   VERSION 7.1.1
   DESCRIPTION "An open source software suite for processing and analyzing (human) brain MRI images."
@@ -217,9 +235,6 @@ if(IS_BIG_ENDIAN)
 else()
   set(BYTEORDER 1234)
 endif()
-
-# enable std c++11
-set(CMAKE_CXX_STANDARD 11)
 
 # --------------------------------------------------
 #                  third-party code
