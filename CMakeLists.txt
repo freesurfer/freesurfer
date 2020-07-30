@@ -13,6 +13,12 @@ option(BUILD_DNG "Build Doug's testing tools" OFF)
 option(FREEVIEW_LINEPROF "Build FreeView with lineprof enabled" OFF)
 option(PROFILING "Complile binaries for profiling with gprof" OFF)
 option(INSTALL_PYTHON_DEPENDENCIES "Install python package dependencies" ON)
+#  Modern compilers on new platforms often provide many more warnings than older compilers
+#  for example the gcc 7.5.0 compiler warnings about falling through switch statements
+#  without explicit breaks on every case.  This desired fallthrough behavior causes false
+#  compiler errors with "-Werror" turned on.  The WARNING_AS_ERROR option allows temporarily
+#  disabling warnings as errors to allow a more gradual move to supporting new compilers.
+option(WARNING_AS_ERROR "Convert build warnings to errors" ON)
 
 if(NOT APPLE)
   # linux-only build options
@@ -260,7 +266,10 @@ endif()
 # --------------------------------------------------
 
 # warnings
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -Wno-sign-compare -Wno-unused-result -Wno-unused-parameter")
+if(WARNING_AS_ERROR)
+  set(WARN_AS_ERROR_FLAG "-Werror")
+endif()
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra ${WARN_AS_ERROR_FLAG} -Wno-sign-compare -Wno-unused-result -Wno-unused-parameter")
 
 # clang complains about -Wno-unused-but-set-variable and says to use -Wno-unused-const-variable
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
