@@ -5,6 +5,9 @@ set -e
 [ "$#" != "1" ] && echo "error: usage: build.sh <prefix>" && exit 1
 INSTALL_DIR="$1"
 
+export CC=${CC:-$(which gcc)}
+export CXX=${CXX:-$(which g++)}
+
 cd VTK-7.1.1
 
 if [ "$(uname)" == "Darwin" ]; then

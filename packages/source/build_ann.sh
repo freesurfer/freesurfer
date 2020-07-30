@@ -11,8 +11,8 @@ set -e
 [ "$#" != "1" ] && echo "error: usage: build.sh <prefix>" && exit 1
 INSTALL_DIR="$1"
 
-export CC=$(which gcc)
-export CXX=$(which g++)
+export CC=${CC:-$(which gcc)}
+export CXX=${CXX:-$(which g++)}
 
 cd ann_1.1.2
 
