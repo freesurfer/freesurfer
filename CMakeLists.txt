@@ -315,6 +315,55 @@ if(PROFILING)
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pg")
 endif()
 
+
+# Check the set extra flags to ensure that they are supported by this compiler.
+include(CheckCXXCompilerFlag)
+include(CheckCCompilerFlag)
+
+function(check_c_compiler_flags c_flag_var)
+  set(local_c_flags "")
+  set(flag_list "${ARGN}")
+  separate_arguments(flag_list)
+  foreach(flag IN LISTS flag_list)
+    if(flag)
+      string(REPLACE "=" "_" flag_var "${flag}" )
+      check_c_compiler_flag(${flag} C_HAS_WARNING${flag_var})
+      if(${C_HAS_WARNING${flag_var}})
+        set(local_c_flags "${local_c_flags} ${flag}")
+      endif()
+    endif()
+  endforeach()
+  set(${c_flag_var} "${local_c_flags}" PARENT_SCOPE)
+endfunction()
+
+
+function(check_cxx_compiler_flags cxx_flag_var)
+  set(local_cxx_flags "")
+  set(flag_list "${ARGN}")
+  separate_arguments(flag_list)
+  message(STATUS "${flag_list}")
+  foreach(flag IN LISTS flag_list)
+    if(flag)
+      string(REPLACE "=" "_" flag_var "${flag}" )
+      check_cxx_compiler_flag(${flag} CXX_HAS_WARNING${flag_var})
+      if(${CXX_HAS_WARNING${flag_var}})
+        set(local_cxx_flags "${local_cxx_flags} ${flag}")
+      endif()
+    endif()
+  endforeach()
+  set(${cxx_flag_var} "${local_cxx_flags}" PARENT_SCOPE)
+endfunction()
+
+check_c_compiler_flags(VALID_C_FLAGS ${CMAKE_C_FLAGS})
+set(CMAKE_C_FLAGS "${VALID_C_FLAGS}")
+message(STATUS "USING CMAKE_C_FLAGS:${CMAKE_C_FLAGS}")
+unset(VALID_C_FLAGS)
+
+check_cxx_compiler_flags(VALID_CXX_FLAGS ${CMAKE_CXX_FLAGS})
+set(CMAKE_CXX_FLAGS "${VALID_CXX_FLAGS}")
+message(STATUS "USING CMAKE_CXX_FLAGS:${CMAKE_CXX_FLAGS}")
+unset(VALID_CXX_FLAGS)
+
 # --------------------------------------------------
 #                 build freesurfer
 # --------------------------------------------------
