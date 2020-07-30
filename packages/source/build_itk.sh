@@ -23,13 +23,13 @@ cmake ../ITK \
   -DCMAKE_BUILD_TYPE:STRING=Release \
   -DCMAKE_CXX_FLAGS:STRING="${CXXFLAGS}" \
   -DCMAKE_C_FLAGS:STRING="${CFLAGS}" \
-  -DITK_BUILD_DEFAULT_MODULES=OFF \
-  -DITKGroup_Core=ON \
-  -DITKGroup_Filtering=ON \
-  -DITKGroup_Segmentation=ON \
-  -DITKGroup_IO=ON \
-  -DModule_AnisotropicDiffusionLBR=ON \
-  -DBUILD_TESTING=OFF
+  -DITK_BUILD_DEFAULT_MODULES:BOOL=OFF \
+  -DITKGroup_Core:BOOL=ON \
+  -DITKGroup_Filtering:BOOL=ON \
+  -DITKGroup_Segmentation:BOOL=ON \
+  -DITKGroup_IO:BOOL=ON \
+  -DModule_AnisotropicDiffusionLBR:BOOL=ON \
+  -DBUILD_TESTING:BOOL=OFF
 
 cmake --build . --target all -j8
 cmake --build . --target install
