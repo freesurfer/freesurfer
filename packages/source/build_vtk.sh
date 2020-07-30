@@ -11,13 +11,14 @@ export CXX=${CXX:-$(which g++)}
 export CFLAGS=${CFLAGS:-"-msse2 -mfpmath=sse"}
 export CXXFLAGS=${CXXFLAGS:-"-msse2 -mfpmath=sse"}
 
-cd VTK-7.1.1
+mkdir build
+cd build
 
 if [ "$(uname)" == "Darwin" ]; then
   EXTRA_OPTIONS="-DBUILD_SHARED_LIBS=OFF"
 fi
 
-cmake . $EXTRA_OPTIONS \
+cmake ../VTK-7.1.1 $EXTRA_OPTIONS \
   -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_DIR} \
   -DCMAKE_BUILD_TYPE:STRING=Release \
   -DCMAKE_CXX_FLAGS:STRING="${CXXFLAGS}" \
