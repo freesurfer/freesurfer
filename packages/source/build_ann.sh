@@ -14,6 +14,9 @@ INSTALL_DIR="$1"
 export CC=${CC:-$(which gcc)}
 export CXX=${CXX:-$(which g++)}
 
+export CFLAGS=${CFLAGS:-"-msse2 -mfpmath=sse"}
+export CXXFLAGS=${CXXFLAGS:-"-msse2 -mfpmath=sse"}
+
 cd ann_1.1.2
 
 make linux-g++

@@ -8,14 +8,21 @@ INSTALL_DIR="$1"
 export CC=${CC:-$(which gcc)}
 export CXX=${CXX:-$(which g++)}
 
+export CFLAGS=${CFLAGS:-"-msse2 -mfpmath=sse"}
+export CXXFLAGS=${CXXFLAGS:-"-msse2 -mfpmath=sse"}
+
 mkdir build
 cd build
 
+
+
+
+
 cmake ../ITK \
-  -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} \
-  -DCMAKE_BUILD_TYPE=Release \
-  -DCMAKE_CXX_FLAGS="-msse2 -mfpmath=sse" \
-  -DCMAKE_C_FLAGS="-msse2 -mfpmath=sse" \
+  -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_DIR} \
+  -DCMAKE_BUILD_TYPE:STRING=Release \
+  -DCMAKE_CXX_FLAGS:STRING="${CXXFLAGS}" \
+  -DCMAKE_C_FLAGS:STRING="${CFLAGS}" \
   -DITK_BUILD_DEFAULT_MODULES=OFF \
   -DITKGroup_Core=ON \
   -DITKGroup_Filtering=ON \

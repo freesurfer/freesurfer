@@ -10,6 +10,9 @@ INSTALL_DIR="$1"
 export CC=${CC:-$(which gcc)}
 export CXX=${CXX:-$(which g++)}
 
+export CFLAGS=${CFLAGS:-"-msse2 -mfpmath=sse"}
+export CXXFLAGS=${CXXFLAGS:-"-msse2 -mfpmath=sse"}
+
 cd gts-0.7.6
 
 # Mac requires netpbm from homebrew
