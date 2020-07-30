@@ -31,7 +31,7 @@
 #ifndef BYTE_ORDER
 
 /////////////Linux////////////////////////////
-#ifdef linux
+#ifdef __linux__
 #include <endian.h>
 
 #ifndef BYTE_ORDER
