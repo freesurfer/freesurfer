@@ -174,7 +174,7 @@ public:
   int get_neighboring_elts(unsigned int i, int radius,
                            ElementIndexContainer& eltIndex) const;
 
-  template<class In> void remove_elts(In begin, In end) throw(gmpErr);
+  template<class In> void remove_elts(In begin, In end) /*throw(gmpErr)*/;
   bool check_elt_id() const;
   //---------------------------
 
@@ -182,7 +182,7 @@ public:
   // if signalTopology is true and the element has a topological defect,
   //    an invalid point will be returned
   tCoords        dir_img(const tCoords&,
-                         bool signalTopology = false) const throw(gmpErr);
+                         bool signalTopology = false) const /*throw(gmpErr) */;
   void           get_dst_box(tCoords& cmin,
                              tCoords& cmax) const;
   //----------------------------
@@ -1086,7 +1086,7 @@ struct FunctorUpdateNodesFromElements
 template<class Cstr, int n>
 template<class In>
 void
-TMesh<Cstr,n>::remove_elts(In begin, In end) throw(gmpErr)
+TMesh<Cstr,n>::remove_elts(In begin, In end) /*throw(gmpErr)*/
 {
   bool bdbg = false;
   if (bdbg) std::cout << " TMesh::remove_elts\n";
@@ -1239,7 +1239,7 @@ positive( const TCoords<int,n>& pt)
 template<class Cstr, int n>
 TCoords<double,n>
 TMesh<Cstr,n>::dir_img(const tCoords& c_src,
-                       bool signalTopology) const throw(gmpErr)
+                       bool signalTopology) const /*throw(gmpErr) */
 {
   tCoords img;
   const tElement* pelt = this->element_at_point( c_src );
