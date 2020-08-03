@@ -86,6 +86,7 @@ typedef struct {
   char *subject;
   int DoCoordDither;
   int DoIntensityDither;
+  char *moviditherfile=NULL;
   int dof;
   double params[12];
   int nsep, seplist[10];
@@ -107,12 +108,14 @@ typedef struct {
   int MovOOBFlag;
   const char *rusagefile;
   int optschema;
+  int seed=53;
+  char *movoutfile=NULL;
 } CMDARGS;
 
 CMDARGS *cmdargs;
 
 MRI *MRIrescaleToUChar(MRI *mri, MRI *ucmri, double sat);
-unsigned char *MRItoUCharVect(MRI *mri, RFS *rfs);
+unsigned char *MRItoUCharVect(MRI *mri, RFS *rfs, MRI *dither);
 MATRIX *MRIgetVoxelToVoxelXformBase(MRI *mri_src, MRI *mri_dst, MATRIX *SrcRAS2DstRAS, MATRIX *SrcVox2DstVox, int base);
 
 double **conv1dmat(double **M, int rows, int cols, double *v, int nv, int dim, 
@@ -153,11 +156,13 @@ typedef struct {
   MRI *cdither;
   int DoIntensityDither;
   RFS *refirfs,*movirfs;
+  MRI *movidither=NULL;
   int DoSmoothing;
   FILE *fplogcost;
   int MovOOBFlag;
   int optschema;
   int debug;
+  int seed;
 } COREG;
 
 double COREGcost(COREG *coreg);
@@ -214,6 +219,7 @@ int main(int argc, char *argv[]) {
   cmdargs->SatPct = 99.99;
   cmdargs->MovOOBFlag = 0;
   cmdargs->optschema = 1;
+  cmdargs->seed = 53;
   cmdargs->rusagefile = "";
 
   nargs = handleVersionOption(argc, argv, "mri_coreg");
@@ -236,6 +242,8 @@ int main(int argc, char *argv[]) {
   dump_options(stdout);
 
   coreg = (COREG *) calloc(sizeof(COREG),1);
+  coreg->seed = cmdargs->seed;
+  printf("Seed %d\n",coreg->seed);
 
   printf("Reading in mov %s\n",cmdargs->mov);
   coreg->mov = MRIread(cmdargs->mov);
@@ -252,6 +260,12 @@ int main(int argc, char *argv[]) {
     coreg->ref = mritmp; 
   }
   coreg->nvoxref = coreg->ref->width * coreg->ref->height * coreg->ref->depth;
+
+  if(cmdargs->moviditherfile){
+    printf("Reading mov intensity dither file %s\n",cmdargs->moviditherfile);
+    coreg->movidither = MRIread(cmdargs->moviditherfile);
+    if(!coreg->movidither) exit(1);
+  }
 
   if(cmdargs->refmask){
     printf("Reading in and applying refmask %s\n",cmdargs->refmask);
@@ -367,22 +381,31 @@ int main(int argc, char *argv[]) {
   if(coreg->DoCoordDither){
     // Creating a dither volume is needed for thread safety
     printf("Creating random numbers for coordinate dithering\n");
-    coreg->crfs = RFspecInit(53,NULL);
+    coreg->crfs = RFspecInit(coreg->seed,NULL);
     coreg->crfs->name = strcpyalloc("uniform");
     coreg->crfs->params[0] = 0;
     coreg->crfs->params[1] = 1;
     coreg->cdither = MRIallocSequence(coreg->ref->width, coreg->ref->height, coreg->ref->depth, MRI_FLOAT,3);
     RFsynth(coreg->cdither, coreg->crfs, NULL);
-  } else printf("NOT Creating random numbers for coordinate dithering\n");
+  } 
+  else printf("NOT Creating random numbers for coordinate dithering\n");
   if(coreg->DoIntensityDither){
     printf("Performing intensity dithering\n");
-    coreg->refirfs = RFspecInit(53,NULL);
+    coreg->refirfs = RFspecInit(coreg->seed,NULL);
     coreg->refirfs->name = strcpyalloc("uniform");
     coreg->refirfs->params[0] = 0;
     coreg->refirfs->params[1] = 1;
-    coreg->movirfs = RFspecInit(53,NULL);
-    coreg->movirfs->name = strcpyalloc("uniform");
-  } else printf("NOT Performing intensity dithering\n");
+    if(coreg->movidither){
+      printf("Performing intensity dithering on mov with input dither volume\n");
+      coreg->movirfs = NULL;
+    }
+    else {
+      printf("Performing intensity dithering on mov with computed dither\n");
+      coreg->movirfs = RFspecInit(coreg->seed,NULL);
+      coreg->movirfs->name = strcpyalloc("uniform");
+    }
+  } 
+  else printf("NOT Performing intensity dithering\n");
   fflush(stdout);
 
   // Initial parameters
@@ -401,6 +424,10 @@ int main(int argc, char *argv[]) {
   COREGprint(stdout, coreg);
 
   COREGpreproc(coreg);
+  if(cmdargs->movoutfile){
+    printf("Saving mov to %s\n",cmdargs->movoutfile);
+    MRIwrite(coreg->mov,cmdargs->movoutfile);
+  }
 
   if(cmdargs->logcost){
     coreg->fplogcost = fopen(cmdargs->logcost,"w");
@@ -523,9 +550,24 @@ static int parse_commandline(int argc, char **argv) {
       cmdargs->rusagefile = pargv[0];
       nargsused = 1;
     } 
+    else if (!strcasecmp(option, "--seed")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%d",&cmdargs->seed);
+      nargsused = 1;
+    } 
     else if (!strcasecmp(option, "--mov")) {
       if(nargc < 1) CMDargNErr(option,1);
       cmdargs->mov = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--movout")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      cmdargs->movoutfile = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--mov-idither")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      cmdargs->moviditherfile = pargv[0];
       nargsused = 1;
     } 
     else if (!strcasecmp(option, "--ref") || !strcasecmp(option, "--targ")) {
@@ -819,6 +861,7 @@ static void print_usage(void) {
   printf("   --nitersmax n : default is %d\n",cmdargs->nitersmax);
   printf("   --ftol ftol : default is %5.3le\n",cmdargs->ftol);
   printf("   --linmintol linmintol : default is %5.3le\n",cmdargs->linmintol);
+  printf("   --seed seed : set random seed for dithering\n");
   printf("   --sat SatPct : saturation threshold, default %5.3le\n",cmdargs->SatPct);
   printf("   --conf-ref : conform the refernece without rescaling (good for gca)\n");
   printf("   --no-bf : do not do brute force search\n");
@@ -832,6 +875,8 @@ static void print_usage(void) {
   printf("   --par2mat par1-par12 srcvol trgvol reg.lta : convert parameters to a  registration\n");
   printf("   --rms radius filename reg1 reg2 : compute RMS diff between two registrations using MJ's method (rad ~= 50mm)\n");
   printf("      The rms will be written to filename; if filename == nofile, then no file is created\n");
+  printf("   --movout movout volume : save the mov after all preprocessing\n");
+  printf("   --mov-idither intensity dither volume : save the mov intensity dither volume\n");
   printf("\n");
   printf("   --debug     turn on debugging\n");
   printf("   --checkopts don't run anything, just check options and exit\n");
@@ -1150,11 +1195,11 @@ MRI *MRIrescaleToUChar(MRI *mri, MRI *ucmri, double sat)
 }
 
 /*!
-  \fn unsigned char *MRItoUCharVect(MRI *mri)
+  \fn unsigned char *MRItoUCharVect(MRI *mri, RFS *rfs, MRI *dither)
   Converts mri values to a uchar vector.
   Important! Must be consistent withh COREGvolIndex()
 */
-unsigned char *MRItoUCharVect(MRI *mri, RFS *rfs)
+unsigned char *MRItoUCharVect(MRI *mri, RFS *rfs, MRI *dither)
 {
   int c,r,s,nvox;
   unsigned char *a, *pa;
@@ -1166,7 +1211,8 @@ unsigned char *MRItoUCharVect(MRI *mri, RFS *rfs)
   for(s=0; s < mri->depth; s++){
     for(r=0; r < mri->height; r++){
       for(c=0; c < mri->width; c++){
-	if(rfs) dval = RFdrawVal(rfs);
+	if(rfs)    dval = RFdrawVal(rfs);
+	if(dither) dval = MRIgetVoxVal(dither,c,r,s,0);
 	val = MRIgetVoxVal(mri,c,r,s,0)+dval;
 	if(val < 0)   val = 0;
 	if(val > 255) val = 255;
@@ -1648,7 +1694,7 @@ int COREGpreproc(COREG *coreg)
     MRIgaussianSmoothNI(mritmp, coreg->movgstd[0], coreg->movgstd[1], coreg->movgstd[2], mritmp);
   } else printf("NOT Smoothing mov\n");
   if(coreg->f) free(coreg->f);
-  coreg->f = MRItoUCharVect(mritmp,coreg->movirfs);
+  coreg->f = MRItoUCharVect(mritmp,coreg->movirfs,coreg->movidither);
   MRIfree(&mritmp);
   fflush(stdout);
 
@@ -1669,7 +1715,7 @@ int COREGpreproc(COREG *coreg)
     //MRIwrite(mritmp,"ref.smoothed.mgh");
   } else printf("NOT Smoothing ref\n");
   if(coreg->g) free(coreg->g);
-  coreg->g = MRItoUCharVect(mritmp,coreg->refirfs);
+  coreg->g = MRItoUCharVect(mritmp,coreg->refirfs,NULL);
   MRIfree(&mritmp);
   fflush(stdout);
 
