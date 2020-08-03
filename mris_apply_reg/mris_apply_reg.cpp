@@ -96,6 +96,7 @@ int OutputCurvFormat=0;
 LABEL *MRISmask2Label(MRIS *surf, MRI *mask, int frame, double thresh);
 int ApplyScaleSurf(MRIS *surf, const double scale);
 double SourceSurfRegScale = 0;
+double TargetSurfRegScale = 0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
@@ -141,6 +142,10 @@ int main(int argc, char *argv[]) {
   if(SourceSurfRegScale > 0){
     printf("Scaling first surface by %g\n",SourceSurfRegScale);
     ApplyScaleSurf(SurfReg[0], SourceSurfRegScale);
+  }
+  if(TargetSurfRegScale > 0){
+    printf("Scaling second surface by %g\n",TargetSurfRegScale);
+    ApplyScaleSurf(SurfReg[1], TargetSurfRegScale);
   }
 
   // Load in source data
@@ -326,6 +331,14 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%lf",&SourceSurfRegScale);
       nargsused = 1;
     } 
+    else if (!strcasecmp(option, "--trg-reg-scale")){
+      if(nargc < 1) CMDargNErr(option,1);
+      // Scale the coords of the first surface by TargetSurfRegScale. This
+      // was implemented to make it easier to use CAT reg surfaces which
+      // have a radius of 1.
+      sscanf(pargv[0],"%lf",&TargetSurfRegScale);
+      nargsused = 1;
+    } 
     else if (!strcasecmp(option, "--sval-label") || !strcasecmp(option, "--src-label")){
       if (nargc < 1) CMDargNErr(option,1);
       LabelFile = pargv[0];
@@ -442,6 +455,7 @@ static void print_usage(void) {
   printf("     other options do not apply to --m3z\n");
   printf("\n");
   printf("   --src-reg-scale Scale : Scale the coords of the first surface\n");
+  printf("   --trg-reg-scale Scale : Scale the coords of the last surface\n");
   printf("   --debug     turn on debugging\n");
   printf("   --checkopts don't run anything, just check options and exit\n");
   printf("   --help      print out information on how to use this program\n");
