@@ -50,6 +50,7 @@ set PallidumSeparate = 0;
 set OptionsFile = ()
 set SaveHistory = 0
 set LesionMaskPattern = ()
+set GMM = ()
 
 set inputargs = ($argv);
 set PrintHelp = 0;
@@ -159,6 +160,7 @@ if($#OptionsFile)  set cmd0 = ($cmd0 --options $OptionsFile)
 if($SaveHistory)  set cmd0 = ($cmd0 --history)
 if($DoLesion) set cmd0 = ($cmd0 --lesion)  # TODO: if T2/flair is provided, --lesion-mask-pattern must be set
 if($#LesionMaskPattern) set cmd0 = ($cmd0 --lesion-mask-pattern $LesionMaskPattern)
+if($#GMM) set cmd0 = ($cmd0 --gmm $GMM)
 
 # specify input list
 foreach input ($inputlist)
@@ -335,6 +337,11 @@ while( $#argv != 0 )
     case "--lesion-mask-pattern":
       if($#argv < 2) goto arg1err;
       set LesionMaskPattern = ($argv[1] $argv[2]); shift;shift;
+      breaksw
+
+    case "--gmm":
+      if($#argv < 1) goto arg1err;
+      set GMM = $argv[1]; shift
       breaksw
 
     case "--mrf":
@@ -743,6 +750,7 @@ usage_exit:
   echo "  --mrf/--no-mrf : do or do not do MRF (default is $DoMRF)"
   echo "  --threads nthreads : set the number of CPUs to use"
   echo "  --atlas SAMSEG_DATA_DIR"
+  echo "  --gmm gmmfile"
   echo ""
   echo "  --recon : run recon-all "
   echo "  --fill : use samseg to create filled.mgz instead of recon-all"
