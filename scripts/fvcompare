@@ -62,7 +62,6 @@ goto check_params;
 check_params_return:
 
 #========================================================
-
 set cmd = (freeview )
 if($#pointset) set cmd = ($cmd -c $pointset)
 foreach vol ($vollist)
@@ -94,7 +93,7 @@ foreach vol ($vollist)
     set sname = `basename $subject`
     set volbase = `basename $vol .mgz`
     set cue = $name-$volbase
-    set v = $sd/$subject/mri/$vol
+    set v = $subject/mri/$vol
     set cmd = ($cmd -v "$v":"name=$cue$grayscale")
   end
 end
@@ -126,7 +125,7 @@ foreach seg ($seglist)
     endif
     set segbase = `basename $seg .mgz`
     set cue = $name-$segbase
-    set v = $sd/$subject/mri/$seg
+    set v = $subject/mri/$seg
     set cmd = ($cmd -v "$v":"lut=$segcolor":"opacity=$segopacity":"colormap=lut":"name=$cue")
   end
 end
@@ -160,9 +159,9 @@ foreach hemi ($hemilist)
         set sd = $SD4
       endif
       set cue = "$name-$hemi.$surf-$surfcolor[$nth]"
-      set surfarg = "$sd/$subject/surf/$hemi.$surf":"edgecolor=$surfcolor[$nth]":"name=$cue"
+      set surfarg = "$subject/surf/$hemi.$surf":"edgecolor=$surfcolor[$nth]":"name=$cue"
       if($#annot) then
-        set annotfile = $sd/$subject/label/$hemi.$annot
+        set annotfile = $subject/label/$hemi.$annot
         if(! -e $annotfile) then
           echo "ERROR: cannot find $annotfile"
           exit 1;
@@ -485,25 +484,22 @@ if($#subject1 == 0) then
   echo "ERROR: must spec subject1"
   exit 1;
 endif
-if(! -e $subject1) then
-  set subject1tmp = $SD1/$subject1
-  if(! -e $subject1tmp) then
-    echo "ERROR: cannot find $subject1"
-  endif
-  set subject1 = $subject1tmp;
+set subject1tmp = $SD1/$subject1
+if(! -e $subject1tmp) then
+  echo "ERROR: cannot find $subject1tmp"
+  exit 1;
 endif
+set subject1 = $subject1tmp;
 
 if($#subject2 == 0) then
   echo "ERROR: must spec subject2"
   exit 1;
 endif
-if(! -e $subject2) then
-  set subject2tmp = $SD2/$subject2
-  if(! -e $subject2tmp) then
-    echo "ERROR: cannot find $subject2"
-  endif
-  set subject2 = $subject2tmp;
+set subject2tmp = $SD2/$subject2
+if(! -e $subject2tmp) then
+  echo "ERROR: cannot find $subject2tmp"
 endif
+set subject2 = $subject2tmp;
 
 if($#subject3) set snolist = ($snolist 3)
 if($#subject4) set snolist = ($snolist 4)
