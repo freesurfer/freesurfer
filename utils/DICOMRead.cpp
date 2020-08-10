@@ -4538,7 +4538,7 @@ CONDITION GetDICOMInfo(const char *fname, DICOMInfo *dcminfo, BOOL ReadImage, in
   // It can be converted to non-jpeg with
   // setenv DCMDICTPATH /usr/pubsw/packages/dcmtk/current/share/dcmtk/dicom.dic
   // dcmdjpeg +te jpgdicom newdicom
-  strncpy(uid_buf, dcminfo->TransferSyntaxUID, sizeof(uid_buf));
+  strncpy(uid_buf, dcminfo->TransferSyntaxUID, sizeof(uid_buf)-1);
   uid_buf[strlen(jpegCompressed_UID)] = 0;
   if (strcmp(uid_buf, jpegCompressed_UID) == 0) {
     // Don't do anything about this until pixel data are loaded
@@ -4549,7 +4549,7 @@ CONDITION GetDICOMInfo(const char *fname, DICOMInfo *dcminfo, BOOL ReadImage, in
     // exit(1);
   }
   // RLL encoded data is *not* supported by freesurfer
-  strncpy(uid_buf, dcminfo->TransferSyntaxUID, sizeof(uid_buf));
+  strncpy(uid_buf, dcminfo->TransferSyntaxUID, sizeof(uid_buf)-1);
   uid_buf[strlen(rllEncoded_UID)] = 0;
   if (strcmp(uid_buf, rllEncoded_UID) == 0) {
     printf("ERROR: RLL-encoded image data not supported!\n");
@@ -5543,7 +5543,7 @@ MRI *DICOMRead2(const char *dcmfile, int LoadVolume)
   double r0, a0, s0, val;
   MRI *mri;
   FSENV *env;
-  char tmpfile[2000], tmpfilestdout[2000], *FileNameUse, cmd[4000];
+  std::string tmpfile, tmpfilestdout, FileNameUse, cmd;
   int IsCompressed;
 
   printf("Starting DICOMRead2()\n");
@@ -5843,8 +5843,8 @@ MRI *DICOMRead2(const char *dcmfile, int LoadVolume)
             strncmp(dcminfo[nthfile]->TransferSyntaxUID, rllEncoded_UID, 19) == 0) {
           // setenv DCMDICTPATH /usr/pubsw/packages/dcmtk/current/share/dcmtk/dicom.dic???
           IsCompressed = 1;
-          sprintf(tmpfile, "%s/%s.tmp.decompressed.dcm.XXXXXX", env->tmpdir, env->user);
-          fid = mkstemp(tmpfile);
+	  tmpfile = std::string(env->tmpdir) + "/" + std::string(env->user) + ".tmp.decompressed.dcm.XXXXXX";
+          fid = mkstemp(const_cast<char*>(tmpfile.data())); // Gulp. mkstemp updates its argument
           if (fid == -1) {
             printf("ERROR: could not create temp file for decompression %d\n", fid);
             exit(1);
@@ -5852,21 +5852,21 @@ MRI *DICOMRead2(const char *dcmfile, int LoadVolume)
           close(fid);
           if (strncmp(dcminfo[nthfile]->TransferSyntaxUID, jpegCompressed_UID, 19) == 0) {
             printf("JPEG compressed, decompressing\n");
-            sprintf(tmpfilestdout, "%s.dcmdjpeg.out", tmpfile);
-            sprintf(
-                cmd, "fsdcmdecompress --i %s --o %s --jpeg >& %s", dcminfo[nthfile]->FileName, tmpfile, tmpfilestdout);
+	    tmpfilestdout = tmpfile + ".dcmdjpeg.out";
+	    cmd = std::string("fsdcmdecompress --i ")
+	      + std::string(dcminfo[nthfile]->FileName) + " --o " + tmpfile + " --jpeg >& " + tmpfilestdout;
           }
           if (strncmp(dcminfo[nthfile]->TransferSyntaxUID, rllEncoded_UID, 19) == 0) {
             printf("RLE compressed, decompressing\n");
-            sprintf(tmpfilestdout, "%s.dcmdlrf.out", tmpfile);
-            sprintf(
-                cmd, "fsdcmdecompress --i %s --o %s --rle >& %s", dcminfo[nthfile]->FileName, tmpfile, tmpfilestdout);
+	    tmpfilestdout = tmpfile + ".dcmdlrf.out";
+	    cmd = std::string("fsdcmdecompress --i ")
+	      + std::string(dcminfo[nthfile]->FileName) + " --o " + tmpfile + " --rle >& " + tmpfilestdout;
           }
           printf("cd %s\n", env->cwd);
-          printf("%s\n", cmd);
-          err = system(cmd);
+          printf("%s\n", cmd.c_str());
+          err = system(cmd.c_str());
           if (err != 0) {
-            printf("ERROR: %d, see %s for more details\n", err, tmpfilestdout);
+            printf("ERROR: %d, see %s for more details\n", err, tmpfilestdout.c_str());
             // Should stream tmpfilestdout to terminal
             exit(1);
           }
@@ -5874,18 +5874,18 @@ MRI *DICOMRead2(const char *dcmfile, int LoadVolume)
         }
         else {
           IsCompressed = 0;
-          FileNameUse = dcminfo[nthfile]->FileName;
+          FileNameUse = std::string(dcminfo[nthfile]->FileName);
         }
 
-        element = GetElementFromFile(FileNameUse, 0x7FE0, 0x10);
+        element = GetElementFromFile(FileNameUse.c_str(), 0x7FE0, 0x10);
         if (element == NULL) {
           printf("ERROR: reading pixel data from %s\n", dcminfo[nthfile]->FileName);
           MRIfree(&mri);
           exit(1);
         }
         if (IsCompressed) {
-          unlink(tmpfile);
-          unlink(tmpfilestdout);
+          unlink(tmpfile.c_str());
+          unlink(tmpfilestdout.c_str());
         }
 
 	/* Dicoms in MRI and PET are usually unsigned. But in CT, they can be signed.
