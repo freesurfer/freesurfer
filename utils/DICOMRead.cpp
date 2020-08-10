@@ -105,7 +105,7 @@ MRI *sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
   int nnlist;
   int vol_datatype;
   FSENV *env;
-  char tmpfile[2000], tmpfilestdout[2000], *FileNameUse, cmd[4000];
+  std::string tmpfilestdout, cmd, tmpfile, FileNameUse;
   int IsCompressed, IsDWI;
   extern int sliceDirCosPresent;  // set when no ascii header
 
@@ -404,8 +404,8 @@ MRI *sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
         strncmp(sdfi->TransferSyntaxUID, rllEncoded_UID, 19) == 0) {
       // setenv DCMDICTPATH /usr/pubsw/packages/dcmtk/current/share/dcmtk/dicom.dic???
       IsCompressed = 1;
-      sprintf(tmpfile, "%s/%s.tmp.decompressed.dcm.XXXXXX", env->tmpdir, env->user);
-      fid = mkstemp(tmpfile);
+      tmpfile = std::string(env->tmpdir) + "/" + std::string(env->user) + ".tmp.decompressed.dcm.XXXXXX";
+      fid = mkstemp(const_cast<char*>(tmpfile.data())); // Since mkstemp updates the "XXXXXX" at the end
       if (fid == -1) {
         printf("ERROR: could not create temp file for decompression %d\n", fid);
         exit(1);
@@ -413,38 +413,40 @@ MRI *sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
       close(fid);
       if (strncmp(sdfi->TransferSyntaxUID, jpegCompressed_UID, 19) == 0) {
         printf("JPEG compressed, decompressing\n");
-        sprintf(tmpfilestdout, "%s.dcmdjpeg.out", tmpfile);
-        sprintf(cmd, "fsdcmdecompress --i %s --o %s --jpeg >& %s", sdfi->FileName, tmpfile, tmpfilestdout);
+	tmpfilestdout = tmpfile+".dcmdjpeg.out";
+	cmd = std::string("fsdcmdecompress --i ")
+	  + std::string(sdfi->FileName) + " --o " + tmpfile + " --jpeg >& " + tmpfilestdout;
       }
       if (strncmp(sdfi->TransferSyntaxUID, rllEncoded_UID, 19) == 0) {
         printf("RLE compressed, decompressing\n");
-        sprintf(tmpfilestdout, "%s.dcmdlrf.out", tmpfile);
-        sprintf(cmd, "fsdcmdecompress --i %s --o %s --rle >& %s", sdfi->FileName, tmpfile, tmpfilestdout);
+	tmpfilestdout = tmpfile + ".dcmdlrf.out";
+	cmd = std::string("fsdcmdecompress --i ")
+	  + std::string(sdfi->FileName) + " --o " + tmpfile + " --rle >& " + tmpfilestdout;
       }
       printf("cd %s\n", env->cwd);
-      printf("%s\n", cmd);
-      err = system(cmd);
+      printf("%s\n", cmd.c_str());
+      err = system(cmd.c_str()); // Gulp
       if (err == -1) {
-        printf("ERROR: %d, see %s for more details\n", err, tmpfilestdout);
+        printf("ERROR: %d, see %s for more details\n", err, tmpfilestdout.c_str());
         exit(1);
       }
-      FileNameUse = tmpfile;
+      FileNameUse = tmpfile; // Hmmmm
     }
     else {
       IsCompressed = 0;
-      FileNameUse = sdfi->FileName;
+      FileNameUse = std::string(sdfi->FileName);
     }
 
     /* Get the pixel data */
-    element = GetElementFromFile(FileNameUse, 0x7FE0, 0x10);
+    element = GetElementFromFile(FileNameUse.c_str(), 0x7FE0, 0x10);
     if (element == NULL) {
-      printf("ERROR: reading pixel data from %s\n", FileNameUse);
+      printf("ERROR: reading pixel data from %s\n", FileNameUse.c_str());
       MRIfree(&vol);
       exit(1);
     }
     if (IsCompressed) {
-      unlink(tmpfile);
-      unlink(tmpfilestdout);
+      unlink(tmpfile.c_str());
+      unlink(tmpfilestdout.c_str());
     }
 
     pixeldata = (unsigned short *)(element->d.string);
