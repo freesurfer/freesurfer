@@ -28,6 +28,9 @@ set AutoRunSeqFmt = ""
 set ExitOnError = 1;
 @ ErrorsFound = 0;
 set RunNoSkip = ()
+set iid = ()
+set ijd = ()
+set ikd = ()
 
 set RunNos = ();
 set SubDirs = ();
@@ -68,12 +71,12 @@ goto check_params;
 check_params_return:
 
 # Create target dir, if necessary
-if($#TargetDir) mkdir -p $TargetDir
+if($#TargetDir) mkdir -p $TargetDir/log
 
 # Create the log file
 if($#LF == 0) then
   if($#TargetDir) then
-    set LF = $TargetDir/dcmunpack.log
+    set LF = $TargetDir/log/dcmunpack.log
     rm -f $LF
   else
     set LF = /dev/null
@@ -146,7 +149,7 @@ endif
 # -one-per-dir functionality with -ext, -pat, and/or -pre.
 if($#infofile == 0) then
   if($#TargetDir) then
-    set infofile = $TargetDir/imagelist.dat
+    set infofile = $TargetDir/log/imagelist.dat
   else
     set infofile = /tmp/dcmdir-all.$$
   endif
@@ -239,7 +242,7 @@ set AutoNDrops = ()
 
 if($#SeriesInfo == 0) then
   if($#TargetDir) then
-    set SeriesInfo = $TargetDir/series-info.dat
+    set SeriesInfo = $TargetDir/log/series-info.dat
   else
     set SeriesInfo = /tmp/series-info-$$.dat
   endif
@@ -259,7 +262,7 @@ foreach series ($SeriesNos)
   if($status) then 
     set descr = "unknown"
   else
-    set descr = `mri_probedicom --i $f --t 8 103e | sed 's/ //g' | sed 's/\///g' | sed 's/(//g' | sed 's/)//g'`
+    set descr = `mri_probedicom --i $f --t 8 103e | sed 's/ //g' | sed 's/\///g' | sed 's/(//g' | sed 's/)//g'| sed 's/\]//g'|sed 's/\[//g'`
   endif
   set fname = $r[11];
   if($DoBase) set fname = `basename $f`
@@ -359,7 +362,12 @@ foreach run ($RunNos)
     set outfname = $outdir/$FName.$Format
     echo "" |& tee -a $LF
     echo "#@# Run $run `date` ==================================" |& tee -a $LF
-    mri_convert $f $outfname --nskip $NSkip --ndrop $NDrop $itdicom |& tee -a $LF
+    set cmd = (mri_convert $f $outfname --nskip $NSkip --ndrop $NDrop $itdicom)
+    if($#iid) set cmd = ($cmd -iid $iid);
+    if($#ijd) set cmd = ($cmd -ijd $ijd);
+    if($#ikd) set cmd = ($cmd -ikd $ikd);
+    echo $cmd |& tee -a $LF
+    $cmd |& tee -a $LF
     if($status) then
       if($ExitOnError) then
         echo "ERROR: a conversion error was detected in Run $run" |& tee -a $LF
@@ -381,7 +389,7 @@ foreach run ($RunNos)
 
   if($DoInfoDump) then
     set f = `cat $infofile | awk -v r=$run '{if($2 == r) print $11}' | head -n 1`
-    set dumpfile = $outdir/$FName-infodump.dat
+    set dumpfile = $outdir/log/$FName-infodump.dat
     mri_probedicom --i $f > $dumpfile |& tee -a $LF
     if($status) cat $dumpfile | tee -a $LF
   endif
@@ -478,6 +486,24 @@ while( $#argv != 0 )
     case "-key":
       if($#argv < 1) goto arg1err;
       set Key = "$argv[1]"; shift;
+      breaksw
+
+    case "-iid":
+      if($#argv < 3) goto arg3err;
+      set iid = ($argv[1] $argv[2] $argv[3]); 
+      shift; shift; shift;
+      breaksw
+
+    case "-ijd":
+      if($#argv < 3) goto arg3err;
+      set ijd = ($argv[1] $argv[2] $argv[3]); 
+      shift; shift; shift;
+      breaksw
+
+    case "-ikd":
+      if($#argv < 3) goto arg3err;
+      set ikd = ($argv[1] $argv[2] $argv[3]); 
+      shift; shift; shift;
       breaksw
 
     case "-base":
@@ -785,6 +811,12 @@ arg1err:
 ############--------------##################
 
 ############--------------##################
+arg3err:
+  echo "ERROR: flag $flag requires three arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
 arg4err:
   echo "ERROR: flag $flag requires four arguments"
   exit 1
@@ -823,6 +855,9 @@ usage_exit:
   echo "   -no-rescale-dicom : turn off DICOM rescaling based on tags (0028,1052) (0028,1053)"
   echo "   -rescale-dicom : turn it on (default)"
   echo "   -no-dwi : turn off trying to read DWI parameters"
+  echo "   -iid dcx dcy dcz : set -iid to mri_convert"
+  echo "   -ijd dcx dcy dcz : set -ijd to mri_convert"
+  echo "   -ikd dcx dcy dcz : set -ikd to mri_convert"
   echo ""
   echo "   -fips project site birnid visit"
   echo "   -fips-run run paradigm <<nskip> ndrop>"
