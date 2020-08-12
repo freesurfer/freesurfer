@@ -31,5 +31,5 @@ setup(
     # installed, so they must be valid existing projects.
     # For an analysis of "install_requires" vs pip's requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
-    install_requires=['numpy','scipy','pandas','matplotlib','transforms3d','scikit-image==0.16.1']
+    install_requires=['numpy','scipy','pandas','matplotlib','transforms3d','scikit-image==0.16.2']
 )
