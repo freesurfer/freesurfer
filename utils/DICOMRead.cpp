@@ -405,7 +405,11 @@ MRI *sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
       // setenv DCMDICTPATH /usr/pubsw/packages/dcmtk/current/share/dcmtk/dicom.dic???
       IsCompressed = 1;
       tmpfile = std::string(env->tmpdir) + "/" + std::string(env->user) + ".tmp.decompressed.dcm.XXXXXX";
-      fid = mkstemp(const_cast<char*>(tmpfile.data())); // Since mkstemp updates the "XXXXXX" at the end
+      std::vector<char> tmpfilechars(tmpfile.begin(), tmpfile.end());
+      tmpfilechars.push_back(0); // Null terminate
+      fid = mkstemp(tmpfilechars.data()); // mkstemp updates the "XXXXXX" at the end
+      tmpfilechars.pop_back(); // Don't need the null terminator
+      tmpfile = std::string(tmpfilechars.begin(), tmpfilechars.end()); // Copy back the modified string
       if (fid == -1) {
         printf("ERROR: could not create temp file for decompression %d\n", fid);
         exit(1);
@@ -5844,7 +5848,11 @@ MRI *DICOMRead2(const char *dcmfile, int LoadVolume)
           // setenv DCMDICTPATH /usr/pubsw/packages/dcmtk/current/share/dcmtk/dicom.dic???
           IsCompressed = 1;
 	  tmpfile = std::string(env->tmpdir) + "/" + std::string(env->user) + ".tmp.decompressed.dcm.XXXXXX";
-          fid = mkstemp(const_cast<char*>(tmpfile.data())); // Gulp. mkstemp updates its argument
+	  std::vector<char> tmpfilechars(tmpfile.begin(), tmpfile.end());
+	  tmpfilechars.push_back(0); // Null terminate
+	  fid = mkstemp(tmpfilechars.data()); // mkstemp updates the "XXXXXX" at the end
+	  tmpfilechars.pop_back(); // Don't need the null terminator
+	  tmpfile = std::string(tmpfilechars.begin(), tmpfilechars.end()); // Copy back the modified string
           if (fid == -1) {
             printf("ERROR: could not create temp file for decompression %d\n", fid);
             exit(1);
