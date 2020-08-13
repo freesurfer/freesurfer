@@ -21,6 +21,7 @@ set Submit = 1
 set gcainitdone = ();
 set NoEMReg = 0;
 set DoSym = 0;
+set ctab = ()
 
 #set GCARegIterations = 1;
 #set nthreads = 4;
@@ -115,6 +116,10 @@ if(! -e $gcadir/scripts/subjectlist.txt) then
   echo "$src_subjects_dir" > $gcadir/scripts/src_subjects_dir.txt
   echo "$NoEMReg" > $gcadir/scripts/noemreg.txt
   echo "$DoSym" > $gcadir/scripts/dosym.txt
+  if($#ctab) then
+    cp $ctab $gcadir/scripts/ctab.lut
+    set ctab = $gcadir/scripts/ctab.lut
+  endif
 endif
 
 # Make sure that initsubject is in the list of subjects
@@ -300,6 +305,7 @@ while($iter < $niters)
   if($DoSym) set cmd = ($cmd -sym)
   set cmd = ($cmd  -prior_spacing 2 -node_spacing 4 -mask $maskvol \
     -parc_dir $manseg -xform $m3z -T1 $normname $subjectlist $trggca)
+  if($#ctab) set cmd = ($cmd -ctab $ctab)
   echo $cmd | tee -a $LF
   rm -f $trggca; # use this as the done file, need better
   echo "" | tee -a $LF
@@ -398,6 +404,15 @@ while( $#argv != 0 )
       if($#argv < 2) goto arg2err;
       set initsubject = $argv[1]; shift;
       set mantal = $argv[1]; shift;
+      breaksw
+
+    case "--ctab":
+      if($#argv < 1) goto arg1err;
+      set ctab = $argv[1]; shift;
+      if(! -e $ctab) then
+        echo "ERROR: cannot find $ctab"
+        exit 1;
+      endif
       breaksw
 
     case "--f":
@@ -553,6 +568,10 @@ if(-e $gcadir) then
     echo "ERROR: cannot spec initsubject if gcadir already exists"
     exit 1;
   endif
+  if($#ctab != 0) then
+    echo "ERROR: cannot spec ctab if gcadir already exists"
+    exit 1;
+  endif
   if($#manseg != 0) then
     echo "ERROR: cannot spec manseg if gcadir already exists"
     exit 1;
@@ -564,6 +583,8 @@ if(-e $gcadir) then
   setenv SUBJECTS_DIR `cat $gcadir/scripts/src_subjects_dir.txt`
   set subjectlist = `cat $gcadir/scripts/subjectlist.txt`
   set initsubject = `cat $gcadir/scripts/initsubject.txt`
+  set ctab = $gcadir/scripts/ctab.lut
+  if(! -e $ctab) set ctab = ()
   set NoEMreg = `cat $gcadir/scripts/noemreg.txt`
   if( -e $gcadir/scripts/dosym.txt) then
     set DoSym = `cat $gcadir/scripts/dosym.txt`
@@ -663,6 +684,7 @@ usage_exit:
   echo "   --init initsubject talairach_man.xfm"
   echo "   --sd SUBJECTS_DIR : for source data"
   echo "   --sym (only specify to make a symmetric atlas)"
+  echo "   --ctab colortable (not needed)"
   echo ""
   echo " --x xfile : exclude the subjects in xfile, good for jack-knifing"
   echo " --xs subject : exclude subject, good for jack-knifing"
