@@ -77,18 +77,7 @@ echo $VERSION | tee -a $LF
 uname -a | tee -a $LF
 date | tee -a $LF
 
-# check for existence of /dev/shm
-set templocation = $OutDir
-if (-d /dev/shm) then
-  # make sure shm has enough memory available (4G) since containers usually only have 64M allocated
-  set shmsize = `df -m /dev/shm | tail -1| awk '{print $2}'`
-  if ( "$shmsize" > = 4000 ) then
-    echo "Found /dev/shm , will use for temp dir" | tee -a $LF
-    set templocation = "/dev/shm"
-  endif
-endif
-
-if(! $#tmpdir) set tmpdir = $templocation/tmp.mri_nu_correct.mni.$$
+if(! $#tmpdir) set tmpdir = $OutDir/tmp.mri_nu_correct.mni.$$
 mkdir -p $tmpdir
 echo "tmpdir is $tmpdir" | tee -a $LF
 
