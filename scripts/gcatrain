@@ -303,9 +303,9 @@ while($iter < $niters)
   set normname = norm.i$iterstr.mgz
   set cmd = (fs_time mri_ca_train)
   if($DoSym) set cmd = ($cmd -sym)
+  if($#ctab) set cmd = ($cmd -ctab $ctab)
   set cmd = ($cmd  -prior_spacing 2 -node_spacing 4 -mask $maskvol \
     -parc_dir $manseg -xform $m3z -T1 $normname $subjectlist $trggca)
-  if($#ctab) set cmd = ($cmd -ctab $ctab)
   echo $cmd | tee -a $LF
   rm -f $trggca; # use this as the done file, need better
   echo "" | tee -a $LF
