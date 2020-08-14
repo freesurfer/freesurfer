@@ -1117,7 +1117,8 @@ void writeAnnotationFromSeg(const MRI *overlay, const std::string& filename)
 
   // convert seg values back into annotation values (if lookup table exists)
   for (int vno = 0; vno < nvertices; vno++) {
-    int annot = MRIgetVoxVal(overlay, vno, 0, 0, 0);
+    // round in case it's a floating point overlay
+    int annot = std::round(MRIgetVoxVal(overlay, vno, 0, 0, 0));
     if (overlay->ct) {
       if (annot < 0) {
          // set all negative seg values to 0 and don't search for annotation
