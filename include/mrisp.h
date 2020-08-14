@@ -23,3 +23,30 @@
  */
 
 #include "mrisurf.h"
+#include "mrisurf_sphere_interp.h"
+
+
+/*
+  Helper class to (more) easily project overlays into an parameterization image.
+  This is an initial attempt to cleanup the parameterization code a bit.
+*/
+class BarycentricSphericalProjector
+{
+public:
+  BarycentricSphericalProjector(MRIS *mris, MRI_SP *param);
+  ~BarycentricSphericalProjector();
+  void projectOverlay(const float* overlay, int frameno = 0);
+
+private:
+  std::vector<int> vertex_u;
+  std::vector<int> vertex_v;
+  int **filled;
+  float **distances;
+  int u_max_index, v_max_index;
+
+  MRIS *original = nullptr;
+  MRIS *mris = nullptr;
+  MRI_SP *mrisp = nullptr;
+
+  SphericalInterpolator *interpolator = nullptr;
+};

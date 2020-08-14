@@ -64,6 +64,7 @@ public:
   ~SphericalInterpolator() { MHTfree(&mht); }
 
   float interp(double phi, double theta);
+  void setOverlay(const float *array);
 
 private:
   MRIS *mris;
