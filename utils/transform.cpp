@@ -4991,6 +4991,31 @@ LTA *LTAcreate(MRI *src, MRI *dst, MATRIX *T, int type)
 }
 
 /*!
+  \fn LTA *LTAmat2RotMat(LTA *lta)
+  \brief Convert LTA into a pure rotation matrix
+ */
+int LTAmat2RotMat(LTA *lta)
+{
+  int ltatype = lta->type;
+  if(lta->type != LINEAR_RAS_TO_RAS)
+    LTAchangeType(lta,LINEAR_RAS_TO_RAS);
+  LTAinvert(lta,lta);
+  double par[12];
+  TranformExtractAffineParams(lta->xforms[0].m_L,par);
+  // Only keep the rotational components
+  int k;
+  for(k=0; k <  3; k++) par[k] = 0; // trans
+  for(k=6; k <  9; k++) par[k] = 1; // scale must stay 1
+  for(k=9; k < 12; k++) par[k] = 0; // shear
+  MATRIX *T = TranformAffineParams2Matrix(par, NULL);
+  MatrixCopy(T, lta->xforms[0].m_L);
+  MatrixFree(&T);
+  LTAinvert(lta,lta);
+  if(ltatype != LINEAR_RAS_TO_RAS) LTAchangeType(lta,ltatype);
+  return(0);
+}
+
+/*!
   \fn double RMSregDiffMJ(MATRIX *T1, MATRIX *T2, double radius)
   \brief Computes the average RMS differences between the two registration
   matrices within a sphere of the given radius. Suggest radius=70.
