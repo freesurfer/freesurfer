@@ -679,10 +679,7 @@ static int parse_commandline(int argc, char **argv) {
       LTA *lta;
       lta = LTAread(pargv[0]);
       if(lta==NULL) exit(1);
-      //LTAprint(stdout,lta);
-      printf("type %d\n",lta->type);
       LTAmat2RotMat(lta);
-      MatrixPrint(stdout,lta->xforms[0].m_L);
       int err = LTAwrite(lta,pargv[1]);
       nargsused = 2;
       exit(err);
@@ -702,7 +699,6 @@ static int parse_commandline(int argc, char **argv) {
       MatrixInverse(T,T);
       LTA *lta = LTAcreate(mrisrc, mritarg, T, LINEAR_RAS_TO_RAS);
       int err = LTAwrite(lta,pargv[14]);
-      MatrixPrint(stdout,lta->xforms[0].m_L);
       MRIfree(&mrisrc);
       MRIfree(&mritarg);
       MatrixFree(&T);
