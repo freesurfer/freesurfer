@@ -125,6 +125,8 @@
       <explanation>Mirror image reverse brain before morphing</explanation>
       <argument>-rotate &lt;dalpha, dbeta, dgamma (floats)&gt;</argument>
       <explanation>Rotates brain by dalpha, dbeta, dgamma</explanation>
+      <argument>-reg regfile.lta</argument>
+      <explanation>Extract rotational components from registration and rotates brain</explanation>
       <argument>-S &lt;scale (float)&gt;</argument>
       <explanation>Scales distances by {scale}</explanation>
       <argument>-search</argument>

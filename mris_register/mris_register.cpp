@@ -129,6 +129,7 @@ static int use_defaults = 1 ;
 static INTEGRATION_PARMS  parms ;
 static int remove_negative = 1 ;
 char *rusage_file=NULL;
+char *regfile = NULL;
 
 int
 main(int argc, char *argv[])
@@ -237,6 +238,19 @@ main(int argc, char *argv[])
   if (!mris)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
               Progname, surf_fname) ;
+
+  if(regfile){
+    printf("Reading in reg file %s\n",regfile);
+    LTA *lta = LTAread(regfile);
+    if(lta==NULL) exit(1);
+    printf("Extracting rotational components\n");
+    LTAmat2RotMat(lta);
+    printf("Applying rotation matrix to surface\n");
+    //MatrixPrint(stdout,lta->xforms[0].m_L);
+    int err = MRISltaMultiply(mris, lta);
+    if(err) exit(1);
+    LTAfree(&lta);
+  }
 
   if (parms.var_smoothness)
   {
@@ -782,6 +796,11 @@ get_option(int argc, char *argv[])
     fprintf(stderr, "rotating brain by (%2.2f, %2.2f, %2.2f)\n",
             dalpha, dbeta, dgamma) ;
     nargs = 3 ;
+  }
+  else if (!stricmp(option, "reg"))
+  {
+    regfile = argv[2];
+    nargs = 1 ;
   }
   else if (!stricmp(option, "reverse"))
   {
