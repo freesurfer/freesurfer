@@ -1,4 +1,5 @@
 #include "surface.h"
+#include "mrisp.h"
 
 namespace surf {
 
@@ -14,10 +15,10 @@ py::array parameterize(Bridge surf, const arrayf<float>& overlay, int scale)
 
   // parameterize
   MRIS *mris = surf.mris();
+  BarycentricSphericalProjector projector = BarycentricSphericalProjector(mris, mrisp);
   for (int frame = 0; frame < nframes ; frame++) {
-    const float* array = overlay.data() + frame * overlay.shape(0);
-    for (int vno = 0 ; vno < mris->nvertices ; vno++) mris->vertices[vno].curv = array[vno];
-    MRIStoParameterizationBarycentric(surf, mrisp, 1, frame);
+    const float * array = overlay.data() + frame * overlay.shape(0);
+    projector.projectOverlay(array, frame);
   }
 
   // convert to numpy array

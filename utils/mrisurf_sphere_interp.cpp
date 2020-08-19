@@ -26,6 +26,15 @@ SphericalInterpolator::SphericalInterpolator(MRIS *surf) : mris(surf)
 
 
 /*
+Set the interpolator overlay values.
+*/
+void SphericalInterpolator::setOverlay(const float *array)
+{
+  for (int vno = 0 ; vno < mris->nvertices ; vno++) overlay[vno] = array[vno];
+}
+
+
+/*
   Searches for the face containing the spherical point defined by (phi, theta) and
   returns the (barycentric) interpolated value at that point.
 */

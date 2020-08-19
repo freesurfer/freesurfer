@@ -73,6 +73,15 @@ class LookupTable(dict):
                 raise ValueError('Color must be a 4-element RGBA uchar array')
             self.color = np.array(color, dtype='uint8')
 
+    def __str__(self):
+        col1 = len(str(max(self.keys()))) + 1
+        col2 = max([len(elt.name) for elt in self.values()]) + 2
+        lines = []
+        for idx, elt in self.items():
+            colorstr = '(' + ' '.join([str(c).ljust(3) for c in elt.color]) + ')'
+            lines.append(str(idx).ljust(col1) + elt.name.ljust(col2) + colorstr)
+        return '\n'.join(lines)
+
     def add(self, index, name, color):
         self[index] = LookupTable.Element(name, color)
 
