@@ -17,6 +17,9 @@
  *
  */
 
+#include <sstream>
+#include <iomanip>
+
 #include "fcd.h"
 #include "cma.h"
 #include "const.h"
@@ -575,12 +578,14 @@ int FCDcomputeThicknessLabels(FCD_DATA *fcd, double thickness_thresh, double sig
 int FCDwriteLabels(FCD_DATA *fcd, char *dir)
 {
   int s;
-  char label_name[STRLEN];
+  std::stringstream label_name;
 
   for (s = 0; s < fcd->nlabels; s++) {
     if (fcd->labels[s]) {
-      sprintf(label_name, "%s/fcd_%02d_%s", dir, s, fcd->labels[s]->name);
-      LabelWrite(fcd->labels[s], label_name);
+      label_name << dir << "/fcd"
+		 << std::setw(2) << std::setfill('0') << s
+		 << "_" << fcd->labels[s]->name;
+      LabelWrite(fcd->labels[s], label_name.str().c_str());
     }
   }
 
