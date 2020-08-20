@@ -87,6 +87,7 @@ set CCSeedCRS = ();   # SeedCRS center of corpus callosum for mri_fill #
 set RHSeedCRS = ();   # SeedCRS point in the right hemi wm for mri_fill #
 set LHSeedCRS = ();   # SeedCRS point in the left  hemi wm for mri_fill #
 
+set CustomMaskInput = (); # custom brain mask to replace mri_watershed
 set UseMincMritotal = 0; # if 1, then use the BIC-MNI mritotal tal reg tools
 set DoTalairachUseNu = 0; # if 1, use nu.mgz as input to talairach stage
 set UseYa3tTalAtlas = 0; # if 1, use 3T18yoSchwartz young-adult 3T atlas
@@ -1244,6 +1245,26 @@ if ($DoConvertT2Input || $DoConvertFlairInput) then
 
 endif
 
+#-----------                         -----------#
+#----------- Input custom brain mask -----------#
+#-----------      -xmask <file>       -----------#
+#-----------                         -----------#
+
+if ($#CustomMaskInput) then
+
+  echo "#--------------------------------------------" |& tee -a $LF |& tee -a $CF
+  echo "#@# Brain Mask Input `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
+
+  set cmd = (mri_convert --no_scale 1 $CustomMaskInput $subjdir/mri/orig/rawmask.mgz)
+  $PWD |& tee -a $LF
+  echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+  if($RunIt) then
+    $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+  endif
+
+endif
+
 #-------------                                                 ------------#
 #------------- Longitudinal 'base' subject input file creation ------------#
 ##------------                   -base                         ------------#
@@ -1948,6 +1969,8 @@ skullstrip:
   cd $subjdir/mri > /dev/null
   $PWD |& tee -a $LF
 
+  set BM  = brainmask.mgz
+
   if ($longitudinal) then
     # longitudinal processing stream (copy from base):
     # Code that copied brainmask now in rca-long-tp-init
@@ -1993,6 +2016,11 @@ skullstrip:
     if($status) goto error_exit;
     goto skipped_skullstrip; 
   endif 
+
+  # If custom mask was provided, skip automated skull stripping
+  if ( -e $subjdir/mri/orig/rawmask.mgz ) then
+    goto skipped_skullstrip;
+  endif
 
   # default stream...
   set xopts = `fsr-getxopts mri_watershed $XOptsFile $GlobXOptsFile`;
@@ -2246,7 +2274,7 @@ skullstrip:
   if( -e $BM && ! $DoCleanBM) then
     echo "\nINFO: brainmask.mgz already exists!" \
         |& tee -a $LF |& tee -a $CF
-    echo "The new brainmask.auto.mgz will not be copied to brainmask.mgz." \
+    echo "It will not be overwritten." \
         |& tee -a $LF |& tee -a $CF
     echo "This is done to retain any edits made to brainmask.mgz." \
         |& tee -a $LF |& tee -a $CF
@@ -2255,7 +2283,24 @@ skullstrip:
   endif
 
   if(! -e $BM || $DoCleanBM) then
-    set cmd = (cp $BMA $BM)
+    if( -e orig/rawmask.mgz ) then
+      # Use custom mask if provided
+      echo "Masking T1 with external brain mask" |& tee -a $LF |& tee -a $CF
+    
+      # First resample mask to match orig.mgz
+      set cmd = (mri_vol2vol --mov orig/rawmask.mgz --targ orig.mgz --regheader --o mask.mgz --nearest)
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      if($RunIt) then
+        $cmd |& tee -a $LF
+        if($status) goto error_exit;
+      endif
+    
+      # Now mask
+      set cmd = (mri_mask T1.mgz mask.mgz $BM)
+    else
+      # Otherwise just copy auto brainmask
+      set cmd = (cp $BMA $BM)
+    endif
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) then
       sleep 1; # Sleep here to assure that they have diff time stamps
@@ -5646,6 +5691,21 @@ while( $#argv != 0 )
       set BaseSubjInvol = $argv[1]; shift;
       breaksw
 
+    case "-xmask":
+      if ( $#argv < 1) goto arg1err;
+      set CustomMaskInput = $argv[1]; shift;
+      if(! -e "$CustomMaskInput") then
+        echo "ERROR: cannot find $CustomMaskInput"
+        goto error_exit;
+      endif
+      set CustomMaskInputDir  = `dirname  "$CustomMaskInput"`;
+      set CustomMaskInputBase = `basename "$CustomMaskInput"`;
+      pushd $CustomMaskInputDir > /dev/null
+      set CustomMaskInputDir = `pwd`;
+      popd > /dev/null
+      set CustomMaskInput = "$CustomMaskInputDir/$CustomMaskInputBase";
+      breaksw
+
     case "-motioncor":
     case "-mc": 
      set DoMotionCor = 1;
@@ -8000,6 +8060,7 @@ usage_exit:
   echo "  -rh-crs C R S : col, row, slice of seed point for right hemisphere, used in fill"
   echo "  -nofill        : do not use the automatic subcort seg to fill"
   echo "  -watershed cmd : control skull stripping/watershed program"
+  echo "  -xmask file : custom external brain mask to replace automated skullstripping"
   echo "  -wsless : decrease watershed threshold (leaves less skull, but can strip more brain)"
   echo "  -wsmore : increase watershed threshold (leaves more skull, but can strip less brain)"
   echo "  -wsatlas : use atlas when skull stripping"
