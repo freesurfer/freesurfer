@@ -2285,7 +2285,7 @@ skullstrip:
   if(! -e $BM || $DoCleanBM) then
     if( -e orig/rawmask.mgz ) then
       # Use custom mask if provided
-      echo "Masking T1 with external brain mask" |& tee -a $LF |& tee -a $CF
+      echo "Masking T1 with external brain mask" |& tee -a $LF
     
       # First resample mask to match orig.mgz
       set cmd = (mri_vol2vol --mov orig/rawmask.mgz --targ orig.mgz --regheader --o mask.mgz --nearest)
