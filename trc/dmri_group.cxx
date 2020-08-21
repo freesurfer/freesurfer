@@ -68,7 +68,7 @@ const char *Progname = "dmri_group";
 
 int nSection = 0;
 
-char *inListFile = NULL, *outRefFile = NULL, *outBase = NULL;
+std::string inListFile, outRefFile, outBase;
 
 struct utsname uts;
 char *cmdline, cwd[2000];
@@ -123,9 +123,9 @@ int main(int argc, char **argv) {
   cputimer.reset();
 
   // Read output reference volume
-  if (outRefFile) {
+  if (!outRefFile.empty()) {
     cout << "Loading output reference volume from " << outRefFile << endl;
-    outref = MRIread(outRefFile);
+    outref = MRIread(outRefFile.c_str());
     if (!outref) {
       cout << "ERROR: Could not read " << outRefFile << endl;
       exit(1);
@@ -864,11 +864,11 @@ static void print_version(void) {
 
 /* --------------------------------------------- */
 static void check_options(void) {
-  if (!outBase) {
+  if (outBase.empty()) {
     cout << "ERROR: must specify base name for output files" << endl;
     exit(1);
   }
-  if (!inListFile) {
+  if (inListFile.empty()) {
     cout << "ERROR: must specify input list file" << endl;
     exit(1);
   }
