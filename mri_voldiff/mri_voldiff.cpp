@@ -60,7 +60,7 @@ static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 const char *Progname = NULL;
 
-char *vol1File = NULL, *vol2File=NULL;
+std::string vol1File, vol2File;
 MRI *vol1=NULL, *vol2=NULL;
 MATRIX *vox2ras1,*vox2ras2;
 
@@ -109,9 +109,9 @@ int main(int argc, char **argv) {
 
   dump_options(stdout);
 
-  vol1 = MRIread(vol1File);
+  vol1 = MRIread(vol1File.c_str());
   if (vol1 == NULL) exit(1);
-  vol2 = MRIread(vol2File);
+  vol2 = MRIread(vol2File.c_str());
   if (vol2 == NULL) exit(1);
 
   vox2ras1 = MRIxfmCRS2XYZ(vol1,0);
@@ -284,11 +284,11 @@ static void print_version(void) {
 }
 /* --------------------------------------------- */
 static void check_options(void) {
-  if (vol1File == NULL) {
+  if (vol1File.size() == 0) {
     printf("ERROR: must specify a vol1 file\n");
     exit(1);
   }
-  if (vol2File == NULL) {
+  if (vol2File.size() == 0) {
     printf("ERROR: must specify a vol2 file\n");
     exit(1);
   }
@@ -297,8 +297,8 @@ static void check_options(void) {
 
 /* --------------------------------------------- */
 static void dump_options(FILE *fp) {
-  fprintf(fp,"vol1    %s\n",vol1File);
-  fprintf(fp,"vol2    %s\n",vol2File);
+  fprintf(fp,"vol1    %s\n",vol1File.c_str());
+  fprintf(fp,"vol2    %s\n",vol2File.c_str());
   fprintf(fp,"pix thresh  %g\n",pixdiff_thresh);
   fprintf(fp,"vox2ras thresh %g\n",vox2ras_thresh);
   return;
