@@ -876,11 +876,11 @@ int fio_popd(void)
   by pushing into the file dir, getting the cwd, appending the file
   basename to the cwd to get the full path, then popping the stack.
   -------------------------------------------------------------------*/
-char *fio_fullpath(const char *fname)
+std::string fio_fullpath(const char *fname)
 {
   static char cwd[1000];
   char *dirname, *basename;
-  char *fullpath;
+  std::string fullpath;
   int err;
 
   basename = fio_basename(fname, NULL);
@@ -897,13 +897,12 @@ char *fio_fullpath(const char *fname)
   }
   fio_popd();
 
-  sprintf(cwd, "%s/%s", cwd, basename);
-  fullpath = strcpyalloc(cwd);
+  fullpath = std::string(cwd) + std::string(basename);
 
   free(dirname);
   free(basename);
 
-  return (fullpath);
+  return fullpath;
 }
 
 // Replicates mkdir -p

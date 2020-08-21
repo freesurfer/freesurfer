@@ -12,6 +12,7 @@
  *
  */
 
+#include <string>
 
 #ifndef FIO_H
 #define FIO_H
@@ -85,7 +86,7 @@ int fio_NLines(const char *fname);
 
 int fio_pushd(const char *dir);
 int fio_popd(void);
-char *fio_fullpath(const char *fname);
+std::string fio_fullpath(const char *fname);
 int fio_mkdirp(const char *path, mode_t mode);
 int fio_FileHasCarriageReturn(char *fname);
 
