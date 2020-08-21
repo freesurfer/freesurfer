@@ -165,7 +165,7 @@ char tmpstr[2000];
 MRI *InVals=NULL;
 
 char *maskpath=NULL;
-char *labelpath=NULL;
+std::string labelpath;
 MRI *mask=NULL;
 LABEL *label=NULL;
 int maskinv = 0;
@@ -301,10 +301,10 @@ int main(int argc, char *argv[]) {
     MRIsquare(InVals,NULL,InVals);
   }
 
-  if(labelpath) {
-    label = LabelRead(subject, labelpath);
+  if(labelpath.size() != 0 ) {
+    label = LabelRead(subject, labelpath.c_str());
     if (label == NULL) {
-      printf("ERROR reading %s\n",labelpath);
+      printf("ERROR reading %s\n",labelpath.c_str());
       exit(1);
     }
     mask = MRISlabel2Mask(surf, label, NULL);
@@ -560,9 +560,11 @@ static int parse_commandline(int argc, char **argv) {
     } 
     else if (!strcasecmp(option, "--label")) {
       if (nargc < 1) CMDargNErr(option,1);
-      if(fio_FileExistsReadable(pargv[0]))
+      if(fio_FileExistsReadable(pargv[0])) {
 	labelpath = fio_fullpath(pargv[0]); // defeat LabelRead()
-      else labelpath = pargv[0];
+      } else {
+	labelpath = pargv[0];
+      }
       nargsused = 1;
     } 
     else if (!strcasecmp(option, "--cortex")) {
@@ -849,7 +851,7 @@ static void check_options(void) {
     printf("ERROR: need to specify --in or --synth\n");
     exit(1);
   }
-  if (maskpath && labelpath) {
+  if (maskpath && (labelpath.size() != 0 )) {
     printf("ERROR: cannot specify both --label and --mask\n");
     exit(1);
   }
@@ -872,12 +874,11 @@ static void check_options(void) {
     exit(1);
   }
   if(UseCortexLabel){
-    if(labelpath != NULL){
+    if(labelpath.size() != 0){
       printf("ERROR: cannot spec --label and --cortex\n");
       exit(1);
     }
-    sprintf(tmpstr,"%s/%s/label/%s.cortex.label",SUBJECTS_DIR,subject,hemi);
-    labelpath = strcpyalloc(tmpstr);
+    labelpath = std::string(SUBJECTS_DIR) + '/' + std::string(subject) + '/' + std::string(hemi) + ".cortex.label";
   }
   return;
 }
