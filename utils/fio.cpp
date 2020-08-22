@@ -897,7 +897,7 @@ std::string fio_fullpath(const char *fname)
   }
   fio_popd();
 
-  fullpath = std::string(cwd) + std::string(basename);
+  fullpath = std::string(cwd) + '/' + std::string(basename);
 
   free(dirname);
   free(basename);

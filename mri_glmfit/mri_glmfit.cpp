@@ -2267,13 +2267,17 @@ int main(int argc, char **argv) {
     }
 
     const size_t FSGD_datafile_size = 1000;
-    if(yOutFile.size() != 0) {
+    if(!yOutFile.empty()) {
       std::string truncName(yOutFile);
-      truncName.erase(FSGD_datafile_size);
+      if( yOutFile.size() > (FSGD_datafile_size-1) ) {
+	truncName.erase(FSGD_datafile_size);
+      }
       snprintf(fsgd->datafile,FSGD_datafile_size,"%s",truncName.c_str());
     }  else {
-       std::string truncName(yFile);
-      truncName.erase(FSGD_datafile_size);
+      std::string truncName(yFile);
+      if( yFile.size() > (FSGD_datafile_size-1) ) {
+	truncName.erase(FSGD_datafile_size);
+      }
       snprintf(fsgd->datafile,FSGD_datafile_size,"%s",truncName.c_str());
     }
 
