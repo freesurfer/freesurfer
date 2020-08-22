@@ -60,7 +60,7 @@ static void usage_exit(void);
 static void print_help(void) ;
 static void print_version(void) ;
 static void dump_options(FILE *fp);
-static void WriteHeader(char *OutFile);
+static void WriteHeader(const std::string OutFile);
 
 int debug = 0, checkoptsonly = 0;
 
@@ -70,11 +70,8 @@ const char *Progname = "dmri_pathstats";
 
 float probThresh = .2, faThresh = 0;
 char PathMAP[] = "path.map.txt";
-char *inTrkFile = NULL, *inRoi1File = NULL, *inRoi2File = NULL,
-     *inTrcDir = NULL, *inVoxFile = PathMAP, *dtBase = NULL,
-     *outFile = NULL, *outVoxFile = NULL,
-     *outMedianFile = NULL, *outEndBase = NULL, *refVolFile = NULL,
-     fname[PATH_MAX];
+std::string inTrkFile, inRoi1File, inRoi2File, inTrcDir, inVoxFile = std::string(PathMAP),
+  dtBase, outFile, outVoxFile, outMedianFile, outEndBase, refVolFile, fname;
 
 MRI *l1, *l2, *l3, *v1;
 
@@ -112,32 +109,32 @@ int main(int argc, char **argv) {
 
   dump_options(stdout);
 
-  printf("Computing statistics on %s...\n", inTrcDir?inTrcDir:inTrkFile);
+  printf("Computing statistics on %s...\n", !inTrcDir.empty()?inTrcDir.c_str():inTrkFile.c_str());
   cputimer.reset();
 
-  if (dtBase) {
-    sprintf(fname, "%s_L1.nii.gz", dtBase);
-    l1 = MRIread(fname);
-    sprintf(fname, "%s_L2.nii.gz", dtBase);
-    l2 = MRIread(fname);
-    sprintf(fname, "%s_L3.nii.gz", dtBase);
-    l3 = MRIread(fname);
-    sprintf(fname, "%s_V1.nii.gz", dtBase);
-    v1 = MRIread(fname);
+  if (!dtBase.empty()) {
+    fname = dtBase + "_L1.nii.gz";
+    l1 = MRIread(fname.c_str());
+    fname =  dtBase + "_L2.nii.gz";
+    l2 = MRIread(fname.c_str());
+    fname =  dtBase + "_L3.nii.gz";
+    l3 = MRIread(fname.c_str());
+    fname =  dtBase + "_v1.nii.gz";
+    v1 = MRIread(fname.c_str());
 
-    sprintf(fname, "%s_L1.nii.gz", dtBase);
-    meas.push_back(MRIread(fname));		// Axial diffusivity
-    sprintf(fname, "%s_L2.nii.gz", dtBase);
-    meas.push_back(MRIread(fname));
+    fname = dtBase + "_L1.nii.gz";
+    meas.push_back(MRIread(fname.c_str()));		// Axial diffusivity
+    fname = dtBase + "_L2.nii.gz";
+    meas.push_back(MRIread(fname.c_str()));
     MRIadd(l3, meas[1], meas[1]);
     MRIscalarMul(meas[1], meas[1], .5);		// Radial diffusivity
-    sprintf(fname, "%s_MD.nii.gz", dtBase);
-    meas.push_back(MRIread(fname));		// Mean diffusivity
-    sprintf(fname, "%s_FA.nii.gz", dtBase);
-    meas.push_back(MRIread(fname));		// Fractional anisotropy
+    fname = dtBase + "_MD.nii.gz";
+    meas.push_back(MRIread(fname.c_str()));		// Mean diffusivity
+    fname = dtBase + "_FA.nii.gz";
+    meas.push_back(MRIread(fname.c_str()));		// Fractional anisotropy
   }
 
-  if (outVoxFile) {
+  if (!outVoxFile.c_str()) {
     WriteHeader(outVoxFile);
 
     ofstream fvox(outVoxFile, ios::app);
@@ -146,7 +143,7 @@ int main(int argc, char **argv) {
     fvox.close();
   }
 
-  if (inTrcDir != nullptr) {		     // Probabilistic paths
+  if (!inTrcDir.empty()) {		     // Probabilistic paths
     int len, nx, ny, nz, nvox = 0;
     float wtot = 0, pthresh = 0;
     vector<int> lengths, pathmap, basepathmap;
@@ -156,7 +153,7 @@ int main(int argc, char **argv) {
     string pathline;
 
     // Read lengths of path samples
-    sprintf(fname, "%s/length.samples.txt", inTrcDir);
+    fname = inTrcDir + "/length.samples.txt";
     lenfile.open(fname, ios::in);
     if (!lenfile) {
       cout << "ERROR: Could not open " << fname << " for reading" << endl;
@@ -173,8 +170,8 @@ int main(int argc, char **argv) {
     lenfile.close();
 
     // Read path posterior distribution
-    sprintf(fname, "%s/path.pd.nii.gz", inTrcDir);
-    post = MRIread(fname);
+    fname = inTrcDir + "/path.pd.nii.gz";
+    post = MRIread(fname.c_str());
     nx = post->width;
     ny = post->height;
     nz = post->depth;
@@ -218,16 +215,20 @@ int main(int argc, char **argv) {
           }
         }
 
-    if (nvox > 0)
-      for (iavg = avg.begin(); iavg < avg.end(); iavg++)
+    if (nvox > 0) {
+      for (iavg = avg.begin(); iavg < avg.end(); iavg++) {
         *iavg /= nvox;
+      }
+    }
 
-    if (wtot > 0)
-      for (iwavg = wavg.begin(); iwavg < wavg.end(); iwavg++)
+    if (wtot > 0) {
+      for (iwavg = wavg.begin(); iwavg < wavg.end(); iwavg++) {
         *iwavg /= wtot;
+      }
+    }
 
     // Read maximum a posteriori path coordinates
-    sprintf(fname, "%s/%s", inTrcDir, inVoxFile);
+    fname = inTrcDir + '/' + inVoxFile;
     infile.open(fname, ios::in);
     if (!infile) {
       cout << "ERROR: Could not open " << fname << " for reading" << endl;
@@ -260,7 +261,7 @@ int main(int argc, char **argv) {
     lenavg  = ( (lenavg > 0) ? (lenavg / (float) lengths.size()) : 0 );
     lencent = pathmap.size() / 3;
 
-    if (dtBase) {
+    if (!dtBase.empty()) {
       vector<float>::iterator iavg;
 
       cavg.resize(meas.size());
@@ -282,7 +283,7 @@ int main(int argc, char **argv) {
     }
 
     // Measures by voxel on MAP streamline
-    if (outVoxFile) {
+    if (!outVoxFile.empty()) {
       int npts;
       CTrackReader trkreader;
       TRACK_HEADER trkheadin;
@@ -299,9 +300,9 @@ int main(int argc, char **argv) {
       }
 
       // Read sample paths from .trk file
-      sprintf(fname, "%s/path.pd.trk", inTrcDir);
+      fname = inTrcDir + "/path.pd.trk";
 
-      if (!trkreader.Open(fname, &trkheadin)) {
+      if (!trkreader.Open(fname.c_str(), &trkheadin)) {
         cout << "ERROR: Cannot open input file " << fname << endl;
         cout << "ERROR: " << trkreader.GetLastErrorMessage() << endl;
         exit(1);
@@ -425,34 +426,37 @@ int main(int argc, char **argv) {
     lenavg  = myblood.GetLengthAvg();
     lencent = myblood.GetLengthCenter();
 
-    if (dtBase) {
+    if (!dtBase.empty()) {
       avg  = myblood.ComputeAvgPath(meas);
       wavg = myblood.ComputeWeightAvgPath(meas);
       cavg = myblood.ComputeAvgCenter(meas);
     }
 
     // Measures by voxel on median streamline
-    if (outVoxFile)
+    if (!outVoxFile.empty()) {
       myblood.WriteValuesPointwise(meas, outVoxFile);
+    }
 
     // Save median streamline
-    if (outMedianFile)
+    if (!outMedianFile.empty()) {
       myblood.WriteCenterStreamline(outMedianFile, inTrkFile);
+    }
 
     // Save streamline end points
-    if (outEndBase) {
+    if (!outEndBase.empty()) {
       MRI *refvol;
 
-      if (refVolFile)
-        refvol = MRIread(refVolFile);
-      else
+      if (!refVolFile.empty()) {
+        refvol = MRIread(refVolFile.c_str());
+      } else {
         refvol = l1;
+      }
 
       myblood.WriteEndPoints(outEndBase, refvol);
     }
   }
 
-  if (outFile) {
+  if (!outFile.empty()) {
     WriteHeader(outFile);
 
     fout.open(outFile, ios::app);
@@ -464,7 +468,7 @@ int main(int argc, char **argv) {
          << "Len_Avg "    << lenavg  << endl
          << "Len_Center " << lencent << endl;
 
-    if (dtBase)
+    if (!dtBase.empty())
       fout << "AD_Avg "        << avg[0]  << endl
            << "AD_Avg_Weight " << wavg[0] << endl
            << "AD_Avg_Center " << cavg[0] << endl
@@ -481,7 +485,7 @@ int main(int argc, char **argv) {
     fout.close();
   }
 
-  if (outVoxFile) {
+  if (!outVoxFile.empty()) {
     ofstream fvox(outVoxFile, ios::app);
     fvox << "# pathway end" << endl;
     fvox.close();
@@ -665,31 +669,31 @@ static void print_version(void) {
 
 /* --------------------------------------------- */
 static void check_options(void) {
-  if(inTrcDir && inTrkFile) {
+  if((!inTrcDir.empty()) && (!inTrkFile.empty())) {
     printf("ERROR: cannot specify both .trk file and tracula directory\n");
     exit(1);
   }
-  if(!inTrcDir && !inTrkFile) {
+  if(inTrcDir.empty() && inTrkFile.empty()) {
     printf("ERROR: must specify input .trk file or tracula directory\n");
     exit(1);
   }
-  if(!outFile && !outVoxFile && !outMedianFile && !outEndBase) {
+  if(outFile.empty() && outVoxFile.empty() && outMedianFile.empty() && outEndBase.empty()) {
     printf("ERROR: must specify at least one type of output\n");
     exit(1);
   }
-  if(outVoxFile && !dtBase) {
+  if((!outVoxFile.empty()) && dtBase.empty()) {
     printf("ERROR: must specify dtifit base name for voxel-by-voxel output\n");
     exit(1);
   }
-  if(outMedianFile && !inTrkFile) {
+  if((!outMedianFile.empty()) && inTrkFile.empty()) {
     printf("ERROR: must specify input .trk file to use --median\n");
     exit(1);
   }
-  if(outEndBase && !inTrkFile) {
+  if((!outEndBase.empty()) && inTrkFile.empty()) {
     printf("ERROR: must specify input .trk file to use --ends\n");
     exit(1);
   }
-  if(outEndBase && !refVolFile && !dtBase) {
+  if((!outEndBase.empty()) && refVolFile.empty() && dtBase.empty()) {
     printf("ERROR: must specify reference volume to use --ends\n");
     exit(1);
   }
@@ -705,7 +709,7 @@ static void check_options(void) {
 }
 
 /* --------------------------------------------- */
-static void WriteHeader(char *OutFile) {
+static void WriteHeader(const std::string OutFile) {
   ofstream fout(OutFile, ios::out);
 
   fout << "# Title Pathway Statistics" << endl
@@ -736,33 +740,42 @@ static void dump_options(FILE *fp) {
   fprintf(fp,"machine  %s\n",uts.machine);
   fprintf(fp,"user     %s\n",VERuser());
 
-  if (inTrkFile)
-    fprintf(fp, "Input .trk file: %s\n", inTrkFile);
-  if (inRoi1File) {
-    fprintf(fp, "Input end ROI 1: %s\n", inRoi1File);
-    fprintf(fp, "Input end ROI 2: %s\n", inRoi2File);
+  if (!inTrkFile.empty()) {
+    fprintf(fp, "Input .trk file: %s\n", inTrkFile.c_str());
   }
-  if (inTrcDir)
-    fprintf(fp, "Input tracula directory: %s\n", inTrcDir);
-  if (dtBase)
-    fprintf(fp, "Input DTI fit base: %s\n", dtBase);
+  if (!inRoi1File.empty()) {
+    fprintf(fp, "Input end ROI 1: %s\n", inRoi1File.c_str());
+    fprintf(fp, "Input end ROI 2: %s\n", inRoi2File.c_str());
+  }
+  if (!inTrcDir.empty()) {
+    fprintf(fp, "Input tracula directory: %s\n", inTrcDir.c_str());
+  }
+  if (!dtBase.empty()) {
+    fprintf(fp, "Input DTI fit base: %s\n", dtBase.c_str());
+  }
 //  if (pathName)
-    fprintf(fp, "Pathway name: %s\n", pathName);
+  fprintf(fp, "Pathway name: %s\n", pathName);
 //  if (subjName)
-    fprintf(fp, "Subject name: %s\n", subjName);
-  if (outFile)
-    fprintf(fp, "Output file for overall measures: %s\n", outFile);
-  if (outVoxFile)
-    fprintf(fp, "Output file for voxel-by-voxel measures: %s\n", outVoxFile);
-  if (outMedianFile)
-    fprintf(fp, "Output median streamline file: %s\n", outMedianFile);
-  if (outEndBase)
-    fprintf(fp, "Base name of output end point volumes: %s\n", outEndBase);
-  if (refVolFile)
-    fprintf(fp, "Reference for output end point volumes: %s\n", refVolFile);
+  fprintf(fp, "Subject name: %s\n", subjName);
+  if (!outFile.empty()) {
+    fprintf(fp, "Output file for overall measures: %s\n", outFile.c_str());
+  }
+  if (!outVoxFile.empty()) {
+    fprintf(fp, "Output file for voxel-by-voxel measures: %s\n", outVoxFile.c_str());
+  }
+  if (!outMedianFile.c_str()) {
+    fprintf(fp, "Output median streamline file: %s\n", outMedianFile.c_str());
+  }
+  if (!outEndBase.c_str()) {
+    fprintf(fp, "Base name of output end point volumes: %s\n", outEndBase.c_str());
+  }
+  if (!refVolFile.c_str()) {
+    fprintf(fp, "Reference for output end point volumes: %s\n", refVolFile.c_str());
+  }
   fprintf(fp, "Lower threshold for probability: %f\n", probThresh);
-  if (faThresh > 0)
+  if (faThresh > 0) {
     fprintf(fp, "Lower threshold for FA: %f\n", faThresh);
+  }
 
   return;
 }
