@@ -566,12 +566,11 @@ const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
 
-char *yFile = NULL, *XFile=NULL, *betaFile=NULL, *rvarFile=NULL;
+char *XFile=NULL, *betaFile=NULL, *rvarFile=NULL;
 char *yhatFile=NULL, *eresFile=NULL, *maskFile=NULL;
 char *wgFile=NULL,*wFile=NULL;
 char *eresSCMFile=NULL;
 char *condFile=NULL;
-char *yffxvarFile = NULL;
 char *GLMDir=NULL;
 char *pvrFiles[50];
 int yhatSave=0;
@@ -579,6 +578,7 @@ int eresSave=0;
 int SaveFWHMMap=0;
 int eresSCMSave=0;
 int condSave=0;
+std::string yFile, yOutFile, yffxvarFile;
 
 char *labelFile=NULL;
 LABEL *clabel=NULL;
@@ -715,7 +715,6 @@ int DoSkew = 0;
 char *Gamma0File[GLMMAT_NCONTRASTS_MAX];
 MATRIX *Xtmp=NULL, *Xnorm=NULL;
 char *XOnlyFile = NULL;
-char *yOutFile = NULL;
 
 char *frameMaskFile = NULL;
 
@@ -851,12 +850,14 @@ int main(int argc, char **argv) {
   mriglm->condsave = condSave;
 
   // Load input--------------------------------------
-  printf("Loading y from %s\n",yFile);fflush(stdout);
+  printf("Loading y from %s\n",yFile.c_str());
+  fflush(stdout);
   if(! UseStatTable){
-    mriglm->y = MRIread(yFile);
-    printf("   ... done reading.\n"); fflush(stdout);
+    mriglm->y = MRIread(yFile.c_str());
+    printf("   ... done reading.\n");
+    fflush(stdout);
     if (mriglm->y == NULL) {
-      printf("ERROR: loading y %s\n",yFile);
+      printf("ERROR: loading y %s\n",yFile.c_str());
       exit(1);
     }
     nvoxels = mriglm->y->width * mriglm->y->height * mriglm->y->depth;
@@ -879,9 +880,9 @@ int main(int argc, char **argv) {
     }
   }
   else {
-    StatTable = LoadStatTable(yFile);
+    StatTable = LoadStatTable(yFile.c_str());
     if(StatTable == NULL) {
-      printf("ERROR: loading y %s as a stat table\n",yFile);
+      printf("ERROR: loading y %s as a stat table\n",yFile.c_str());
       exit(1);
     }
     mriglm->y = StatTable->mri;
@@ -899,10 +900,10 @@ int main(int argc, char **argv) {
 
   if(DoFFx){
     // Load yffx var--------------------------------------
-    printf("Loading yffxvar from %s\n",yffxvarFile);
-    mriglm->yffxvar = MRIread(yffxvarFile);
+    printf("Loading yffxvar from %s\n",yffxvarFile.c_str());
+    mriglm->yffxvar = MRIread(yffxvarFile.c_str());
     if(mriglm->yffxvar == NULL) {
-      printf("ERROR: loading yffxvar %s\n",yffxvarFile);
+      printf("ERROR: loading yffxvar %s\n",yffxvarFile.c_str());
       exit(1);
     }
   }
@@ -1977,9 +1978,11 @@ int main(int argc, char **argv) {
     MRIwrite(mritmp,eresSCMFile);
     MRIfree(&mritmp);
   }
-  if(yOutFile){
-    err = MRIwrite(mriglm->y,yOutFile);
-    if(err) exit(1);
+  if(yOutFile.size() != 0){
+    err = MRIwrite(mriglm->y,yOutFile.c_str());
+    if(err) {
+      exit(1);
+    }
   }
 
   sprintf(tmpstr,"%s/Xg.dat",GLMDir);
@@ -2262,10 +2265,27 @@ int main(int argc, char **argv) {
     if (strlen(fsgd->measname) == 0) {
       strcpy(fsgd->measname,"external");
     }
-    if(yOutFile != NULL) sprintf(fsgd->datafile,"%s",yOutFile);
-    else                 sprintf(fsgd->datafile,"%s",yFile);
-    if (surf) strcpy(fsgd->tessellation,"surface");
-    else      strcpy(fsgd->tessellation,"volume");
+
+    const size_t FSGD_datafile_size = 1000;
+    if(!yOutFile.empty()) {
+      std::string truncName(yOutFile);
+      if( yOutFile.size() > (FSGD_datafile_size-1) ) {
+	truncName.erase(FSGD_datafile_size);
+      }
+      snprintf(fsgd->datafile,FSGD_datafile_size,"%s",truncName.c_str());
+    }  else {
+      std::string truncName(yFile);
+      if( yFile.size() > (FSGD_datafile_size-1) ) {
+	truncName.erase(FSGD_datafile_size);
+      }
+      snprintf(fsgd->datafile,FSGD_datafile_size,"%s",truncName.c_str());
+    }
+
+    if (surf) {
+      strcpy(fsgd->tessellation,"surface");
+    } else {
+      strcpy(fsgd->tessellation,"volume");
+    }
 
     sprintf(fsgd->DesignMatFile,"X.mat");
     sprintf(tmpstr,"%s/y.fsgd",GLMDir);
@@ -3420,7 +3440,7 @@ static void check_options(void) {
     exit(0);
   }
 
-  if(yFile == NULL) {
+  if(yFile.size() == 0) {
     printf("ERROR: must specify input y file\n");
     exit(1);
   }
@@ -3498,7 +3518,7 @@ static void check_options(void) {
       printf("ERROR: you need to specify the dof with FFx\n");
       exit(1);
     }
-    if(yffxvarFile == NULL){
+    if(yffxvarFile.size() == 0){
       printf("ERROR: you need to specify the yffxvar file with FFx\n");
       exit(1);
     }
@@ -3575,7 +3595,7 @@ static void dump_options(FILE *fp) {
   if (synth) fprintf(fp,"SynthSeed = %d\n",SynthSeed);
   fprintf(fp,"OneSampleGroupMean %d\n",OneSampleGroupMean);
 
-  fprintf(fp,"y    %s\n",yFile);
+  fprintf(fp,"y    %s\n",yFile.c_str());
   fprintf(fp,"logyflag %d\n",logflag);
   if (XFile)     fprintf(fp,"X    %s\n",XFile);
   fprintf(fp,"usedti  %d\n",usedti);
@@ -3600,7 +3620,7 @@ static void dump_options(FILE *fp) {
   fprintf(fp,"DoFFx %d\n",DoFFx);
   if(DoFFx){
     fprintf(fp,"FFxDOF %d\n",mriglm->ffxdof);
-    fprintf(fp,"yFFxVar %s\n",yffxvarFile);
+    fprintf(fp,"yFFxVar %s\n",yffxvarFile.c_str());
   }
   if(wgFile) fprintf(fp,"wgFile %s\n",wgFile);
   if(wFile){

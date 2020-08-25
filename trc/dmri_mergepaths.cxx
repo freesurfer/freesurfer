@@ -65,7 +65,8 @@ const char *Progname = "dmri_mergepaths";
 
 int nframe = 0;
 float dispThresh = 0;
-char *inDir = NULL, *inFile[100], *outFile = NULL, *ctabFile = NULL;
+std::string inDir, outFile, ctabFile;
+std::vector<std::string> inFile;
 
 struct utsname uts;
 char *cmdline, cwd[2000];
@@ -75,7 +76,7 @@ Timer cputimer;
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
   int nargs, cputime;
-  char fname[PATH_MAX];
+  std::string fname;
   MRI *invol = 0, *outvol = 0;
 
   nargs = handleVersionOption(argc, argv, "dmri_mergepaths");
@@ -107,12 +108,13 @@ int main(int argc, char **argv) {
     cout << "Merging volume " << iframe+1 << " of " << nframe << "... " << endl;
 
     // Read input volume
-    if (inDir)
-      sprintf(fname, "%s/%s", inDir, inFile[iframe]);
-    else
-      strcpy(fname, inFile[iframe]);
+    if (!inDir.empty()) {
+      fname = inDir + "/" + inFile.at(iframe);
+    } else {
+      fname = inFile.at(iframe);
+    }
 
-    invol = MRIread(fname);
+    invol = MRIread(fname.c_str());
 
     if (invol) {
       if (!outvol) {
@@ -120,13 +122,14 @@ int main(int argc, char **argv) {
         outvol = MRIcloneBySpace(invol, invol->type, nframe);
 
         // Read color table
-        outvol->ct = CTABreadASCII(ctabFile);
+        outvol->ct = CTABreadASCII(ctabFile.c_str());
       }
 
       MRIcopyFrame(invol, outvol, 0, iframe);
 
-      if (dispThresh > 0)
+      if (dispThresh > 0) {
         inmax = (float) MRIfindPercentile(invol, .99, 0);	// Robust max
+      }
     }
 
     outvol->frames[iframe].thresh = dispThresh * inmax;
@@ -136,7 +139,7 @@ int main(int argc, char **argv) {
     for (int ict = outvol->ct->nentries; ict > 0; ict--) {
       CTE *cte = outvol->ct->entries[ict];
 
-      if (cte != NULL && strstr(inFile[iframe], cte->name)) {
+      if (cte != NULL && strstr(inFile.at(iframe).c_str(), cte->name)) {
         outvol->frames[iframe].label = ict;
         strcpy(outvol->frames[iframe].name, cma_label_to_name(ict));
 
@@ -149,9 +152,9 @@ int main(int argc, char **argv) {
   }
 
   // Write output file
-  if (outvol)
-    MRIwrite(outvol, outFile);
-  else {
+  if (outvol) {
+    MRIwrite(outvol, outFile.c_str());
+  } else {
     cout << "ERROR: could not open any of the input files" << endl;
     exit(1);
   }
@@ -195,7 +198,7 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       nargsused = 0;
       while (nargsused < nargc && strncmp(pargv[nargsused], "--", 2)) {
-        inFile[nframe] = pargv[nargsused];
+        inFile.push_back( std::string(pargv[nargsused]) );
         nargsused++;
         nframe++;
       }
@@ -281,11 +284,11 @@ static void check_options(void) {
     printf("ERROR: must specify input volume(s)\n");
     exit(1);
   }
-  if(!outFile) {
+  if(outFile.empty()) {
     printf("ERROR: must specify output volume\n");
     exit(1);
   }
-  if(!ctabFile) {
+  if(ctabFile.empty()) {
     printf("ERROR: must specify color table file\n");
     exit(1);
   }
@@ -307,14 +310,16 @@ static void dump_options(FILE *fp) {
   fprintf(fp,"machine  %s\n",uts.machine);
   fprintf(fp,"user     %s\n",VERuser());
 
-  if (inDir)
-    fprintf(fp, "Input directory: %s\n", inDir);
+  if (!inDir.empty()) {
+    fprintf(fp, "Input directory: %s\n", inDir.c_str());
+  }
   fprintf(fp, "Input files:");
-  for (int k = 0; k < nframe; k++)
-    fprintf(fp, " %s", inFile[k]);
+  for (int k = 0; k < nframe; k++) {
+    fprintf(fp, " %s", inFile[k].c_str());
+  }
   fprintf(fp, "\n");
-  fprintf(fp, "Output file: %s\n", outFile);
-  fprintf(fp, "Color table file: %s\n", ctabFile);
+  fprintf(fp, "Output file: %s\n", outFile.c_str());
+  fprintf(fp, "Color table file: %s\n", ctabFile.c_str());
   fprintf(fp, "Lower threshold for display: %f\n", dispThresh);
 
   return;
