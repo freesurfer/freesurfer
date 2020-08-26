@@ -384,6 +384,8 @@ if($#fwhmOverride) then
   set fwhm = $fwhmOverride
 endif
 
+mkdir -p $glmdir/csd
+
 if($UseCache) then
   #set fwhm = `cat $glmdir/fwhm.dat`;
   set fwhmStr = `perl -e "printf('"'%02d'"',int ( $fwhm+0.5+$fwhmAdd ) ) "`
@@ -422,7 +424,6 @@ if($DoSim) then
 
   # ----------------- Run glmfit simulation ----------------------
   # This may take a while
-  mkdir -p $glmdir/csd
   @ nthJob = 1
   while($nthJob <= $nJobs)
     set jpad = `printf j%03d $nthJob`
