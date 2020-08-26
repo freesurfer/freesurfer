@@ -89,6 +89,7 @@ set LHSeedCRS = ();   # SeedCRS point in the left  hemi wm for mri_fill #
 
 set CustomMaskInput = (); # custom brain mask to replace mri_watershed
 set UseMincMritotal = 0; # if 1, then use the BIC-MNI mritotal tal reg tools
+set DoSamsegReg = 0; # if 1, then uses samseg for talairach registration
 set DoTalairachUseNu = 0; # if 1, use nu.mgz as input to talairach stage
 set UseYa3tTalAtlas = 0; # if 1, use 3T18yoSchwartz young-adult 3T atlas
                          # for tal_avi (recommended as 3T default by Avi S.)
@@ -1532,6 +1533,18 @@ talairach:
     # copy from the base (as we are now in same space)
     # if edits were made to base, they will be also in long
     set cmd = (cp $longbasedir/mri/$tal_xfm $subjdir/mri/$xfma)
+
+  else if ($DoSamsegReg) then
+
+    # Use samseg talairach registration
+    set cmd = (run_samseg -i orig.mgz -o samseg --reg-only)
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+
+    # Convert lta to talairach.xfm
+    set cmd = (lta_convert --inlta samseg/samseg.talairach.lta --outmni $xfma)
+
   else
     # default processing:
     # first run bias correction...
@@ -1589,7 +1602,7 @@ talairach:
     endif
   endif
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-  if ( ! $UseMincMritotal) then
+  if ( ! $UseMincMritotal && ! $DoSamsegReg ) then
     echo "talairach_avi log file is transforms/talairach_avi.log..." \
         |& tee -a $LF |& tee -a $CF
   endif
@@ -5758,6 +5771,9 @@ while( $#argv != 0 )
     case "-custom-tal-atlas":
       if ( $#argv < 1) goto arg1err;
       set CustomTalAtlas = $argv[1]; shift;
+      breaksw
+    case "-samseg-reg":
+      set DoSamsegReg = 1;
       breaksw
 
     case "-tal-check":
