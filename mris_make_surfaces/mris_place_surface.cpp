@@ -308,7 +308,8 @@ int main(int argc, char **argv)
   if(surftype == GRAY_CSF){
     // Pial
     parms.l_repulse = 0.0;
-    parms.l_surf_repulse = 5.0;
+    if(parms.l_surf_repulse == 0) // has not been change on cmd line
+      parms.l_surf_repulse = 5.0;
   }
 
   // print out version of this program and mrisurf.c
@@ -325,6 +326,7 @@ int main(int argc, char **argv)
     // Note: in long stream orig = orig_white
     err = adgws.AutoDetectStats(subject, hemi);
     if(err) exit(1);
+    adgws.white_border_low_factor = -10.0;
   }
   if(adgwsoutfile){
     err = adgws.Write(adgwsoutfile);
@@ -519,8 +521,10 @@ int main(int argc, char **argv)
     n_min_averages = min_white_averages; 
     inside_hi = adgws.white_inside_hi;
     border_hi = adgws.white_border_hi;
-    double f = adgws.white_border_low_factor;
-    border_low = f*adgws.gray_mean + (1-f)*adgws.white_mean;
+    if(adgws.white_border_low_factor > -9){
+      double f = adgws.white_border_low_factor;
+      border_low = f*adgws.gray_mean + (1-f)*adgws.white_mean;
+    }
     outside_low = adgws.white_outside_low;
     outside_hi = adgws.white_outside_hi;
   }
@@ -1038,6 +1042,11 @@ static int parse_commandline(int argc, char **argv) {
     else if (!stricmp(option, "--repulse")){
       sscanf(pargv[0],"%f",&parms.l_repulse);
       printf("l_repulse = %2.3f\n", parms.l_repulse) ;
+      nargsused = 1;
+    }
+    else if (!stricmp(option, "--location")){
+      sscanf(pargv[0],"%f",&parms.l_location);
+      printf("l_location = %2.3f\n", parms.l_location) ;
       nargsused = 1;
     }
     // ======== End Cost function weights ================
