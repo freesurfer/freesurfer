@@ -134,7 +134,7 @@ class Surface(Transformable):
         else:
             return super().vox2surf()
 
-    # ---- parameterization ----
+    # ---- overlay utils ----
 
     def parameterize(self, overlay, scale=1):
         '''Parameterizes an nvertices-length overlay to an image. Parameterization method is barycentric.'''
@@ -147,6 +147,11 @@ class Surface(Transformable):
         '''Samples a parameterized image into an nvertices-length array. Sampling method is barycentric.'''
         data = Image.ensure(image).data
         return bindings.surf.sample_parameterization(self, data)
+
+    def smooth_overlay(self, overlay, steps):
+        '''Smooths an overlay along the mesh vertices.'''
+        overlay = Overlay.ensure(overlay)
+        return bindings.surf.smooth_overlay(self, overlay, steps)
 
     # ---- deprecations ----
 

@@ -169,6 +169,14 @@ int computeEulerNumber(Bridge surf)
 }
 
 
+/*
+  Smoothes an overlay along mesh vertices.
+*/
+py::object smoothOverlay(Bridge surf, vol::Bridge overlay, int steps)
+{
+  return vol::Bridge(MRISsmoothMRIFast(surf, overlay, steps, nullptr, nullptr));
+}
+
 
 /*
 
