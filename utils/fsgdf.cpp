@@ -262,7 +262,7 @@ FSGD *gdfRead(const char *gdfname, int LoadData) {
   int nv;
   MRI *mritmp;
   char *dirname, *basename;
-  char datafilename[1000];
+  std::string datafilename;
   MATRIX *Xt,*XtX,*iXtX;
 
   printf("gdfRead(): reading %s\n",gdfname);
@@ -319,24 +319,24 @@ FSGD *gdfRead(const char *gdfname, int LoadData) {
   if (strlen(gd->DesignMatFile) != 0) {
     /* Look for DesignMatFile first. If doesn't exist, prepend the
        directory from the gdf file. */
-    strcpy(datafilename,gd->DesignMatFile);
-    if (!fio_FileExistsReadable(datafilename)) {
-      sprintf(datafilename,"%s/%s",dirname,gd->DesignMatFile);
-      if (!fio_FileExistsReadable(datafilename)) {
+    datafilename = gd->DesignMatFile;
+    if (!fio_FileExistsReadable(datafilename.c_str())) {
+      datafilename = std::string(dirname) + "/" + std::string(gd->DesignMatFile);
+      if (!fio_FileExistsReadable(datafilename.c_str())) {
 
         /* If that doesn't work, try the path from the GDF file and the
            base of the file name. */
         basename = fio_basename(gd->DesignMatFile,NULL);
-        sprintf(datafilename,"%s/%s",dirname,basename);
+	datafilename = std::string(dirname) + "/" + std::string(basename);
         free(basename);
       }
 
-      if (!fio_FileExistsReadable(datafilename)) {
+      if (!fio_FileExistsReadable(datafilename.c_str())) {
         printf("ERROR: gdfRead: could not find file %s\n",gd->DesignMatFile);
         return(NULL);
       }
     }
-    gd->X = ReadMatlabFileVariable(datafilename,"X");
+    gd->X = ReadMatlabFileVariable(datafilename.c_str(),"X");
     if (gd->X == NULL) {
       printf("ERROR: gdfRead: could not read variable X from %s\n",
              gd->DesignMatFile);
@@ -361,24 +361,26 @@ FSGD *gdfRead(const char *gdfname, int LoadData) {
   /* load the MRI containing our raw data. */
   if (LoadData && strlen(gd->datafile) > 0) {
 
-    if (fio_FileExistsReadable(gd->datafile))
-      strcpy(datafilename,gd->datafile);
+    if (fio_FileExistsReadable(gd->datafile)) {
+      datafilename = gd->datafile;
+    }
     else {
       /* Construct the path of the data file by concat the
          path from the GDF file and the data file name */
-      if (NULL != dirname)
-        sprintf(datafilename,"%s/%s",dirname,gd->datafile);
+      if (NULL != dirname) {
+	datafilename = std::string(dirname) + "/" + std::string(gd->datafile);
+      }
 
       /* If that doesn't work, try the path from the GDF file and the
          base of the file name. */
-      if (!fio_FileExistsReadable(datafilename)) {
+      if (!fio_FileExistsReadable(datafilename.c_str())) {
         basename = fio_basename(gd->datafile,NULL);
-        sprintf(datafilename,"%s/%s",dirname,basename);
+	datafilename = std::string(dirname) + "/" + std::string(basename);
         free(basename);
       }
     }
 
-    gd->data = MRIread(datafilename);
+    gd->data = MRIread(datafilename.c_str());
     if (NULL == gd->data) {
       printf("ERROR: gdfRead: Couldn't read raw data at %s \n",gd->datafile);
       gdfFree(&gd);
