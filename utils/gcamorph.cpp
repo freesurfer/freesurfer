@@ -14669,7 +14669,7 @@ int GCAMdemonsRegister(GCA_MORPH *gcam,
   MRI *mri_s_new, *mri_s_old, *mri_kernel, *mri_morphed, *mri_current_dtrans = NULL, *mri_warp, *mri_current_labels,
                                                          *mri_dtrans, *mri_atlas_dtrans;
   int done, step;
-  char fname[STRLEN];
+  std::string fname;
 
   mri_s_old =
       MRIallocSequence(mri_atlas_labels->width, mri_atlas_labels->height, mri_atlas_labels->depth, MRI_FLOAT, 3);
@@ -14680,13 +14680,13 @@ int GCAMdemonsRegister(GCA_MORPH *gcam,
   parms->mri = mri_source_labels;
 
   if (Gdiag & DIAG_WRITE) {
-    sprintf(fname, "%s.log", parms->base_name);
+    fname = std::string(parms->base_name) + ".log";
     if (parms->log_fp == NULL) {
       if (parms->start_t == 0) {
-        parms->log_fp = fopen(fname, "w");
+        parms->log_fp = fopen(fname.c_str(), "w");
       }
       else {
-        parms->log_fp = fopen(fname, "a");
+        parms->log_fp = fopen(fname.c_str(), "a");
       }
     }
   }
@@ -14731,11 +14731,11 @@ int GCAMdemonsRegister(GCA_MORPH *gcam,
 
   mri_kernel = MRIgaussian1d(parms->sigma, 100);
   if (Gdiag & DIAG_WRITE) {
-    char fname[STRLEN];
-    sprintf(fname, "%s_target", parms->base_name);
-    MRIwriteImageViews(mri_atlas_labels, fname, IMAGE_SIZE);
-    sprintf(fname, "%s_target.mgh", parms->base_name);
-    MRIwrite(mri_atlas_labels, fname);
+    std::string fname;
+    fname = std::string(parms->base_name) + "_target";
+    MRIwriteImageViews(mri_atlas_labels, fname.c_str(), IMAGE_SIZE);
+    fname += ".mgh";
+    MRIwrite(mri_atlas_labels, fname.c_str());
   }
 
 /* user specifies atlas distance transform so it
@@ -14752,26 +14752,38 @@ int GCAMdemonsRegister(GCA_MORPH *gcam,
   */
 
   if (Gdiag & DIAG_WRITE && step == parms->start_t) {
-    char fname[STRLEN];
+    std::stringstream fname;
     MRI *mri_morphed;
 
-    sprintf(fname, "%s_source%3.3d.mgh", parms->base_name, parms->start_t);
-    MRIwrite(mri_current_labels, fname);
-    sprintf(fname, "%s_source%3.3d", parms->base_name, parms->start_t);
-    MRIwriteImageViews(mri_current_labels, fname, IMAGE_SIZE);
+    fname << parms->base_name << "_source"
+	  << std::setw(3) << std::setfill('0') << parms->start_t
+	  << ".mgh";
+    MRIwrite(mri_current_labels, fname.str().c_str());
+    fname.str("");
+    fname << parms->base_name << "_source"
+	  << std::setw(3) << std::setfill('0') << parms->start_t;
+    MRIwriteImageViews(mri_current_labels, fname.str().c_str(), IMAGE_SIZE);
 
     if (parms->mri_diag) {
       MRI *mri;
       mri = MRIapplyMorph(parms->mri_diag, mri_warp, NULL, SAMPLE_TRILINEAR);
-      sprintf(fname, "%s_intensity%3.3d.mgh", parms->base_name, step);
-      MRIwrite(mri, fname);
-      sprintf(fname, "%s_intensity%3.3d", parms->base_name, step);
-      MRIwriteImageViews(mri, fname, IMAGE_SIZE);
+      fname.str("");
+      fname << parms->base_name << "_intensity"
+	    << std::setw(3) << std::setfill('0') << step
+	    << ".mgh";
+      MRIwrite(mri, fname.str().c_str());
+      fname.str("");
+      fname << parms->base_name << "_intensity"
+	    << std::setw(3) << std::setfill('0') << step;
+      MRIwriteImageViews(mri, fname.str().c_str(), IMAGE_SIZE);
       MRIfree(&mri);
     }
     mri_morphed = GCAMmorphFromAtlas(mri_atlas_labels, gcam, NULL, SAMPLE_NEAREST);
-    sprintf(fname, "%s_atlas%3.3d.mgh", parms->base_name, parms->start_t);
-    MRIwrite(mri_morphed, fname);
+    fname.str("");
+    fname << parms->base_name << "_atlas"
+	  << std::setw(3) << std::setfill('0') << parms->start_t
+	  << ".mgh";
+    MRIwrite(mri_morphed, fname.str().c_str());
     MRIfree(&mri_morphed);
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
       MRI *mri_morphed, *mri_warp2;
@@ -14781,8 +14793,9 @@ int GCAMdemonsRegister(GCA_MORPH *gcam,
       GCAMwriteWarpToMRI(gcam, mri_warp2);
 
       mri_morphed = GCAMmorphToAtlas(mri_source_labels, gcam, NULL, 0, SAMPLE_NEAREST);
-      sprintf(fname, "%s_source_gcam.mgh", parms->base_name);
-      MRIwrite(mri_morphed, fname);
+      std::string fname(parms->base_name);
+      fname += "_source_gcam.mgh";
+      MRIwrite(mri_morphed, fname.c_str());
       MRIfree(&mri_morphed);
       MRIfree(&mri_warp2);
     }
@@ -14799,9 +14812,12 @@ int GCAMdemonsRegister(GCA_MORPH *gcam,
   {
     MRIcomputeDistanceTransformStep(mri_current_dtrans, mri_atlas_dtrans, mri_s_old, mri_atlas_labels, parms);
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
-      sprintf(fname, "%s_dtstep%3.3d.mgz", parms->base_name, step);
-      printf("writing step direction to %s\n", fname);
-      MRIwrite(mri_s_old, fname);
+      std::stringstream tmp;
+      tmp << parms->base_name << "_dtstep"
+	  << std::setw(3) << std::setfill('0') << step
+	  << ".mgz";
+      printf("writing step direction to %s\n", tmp.str().c_str());
+      MRIwrite(mri_s_old, tmp.str().c_str());
     }
 
     vmax = MRImaxNorm(mri_s_old);
