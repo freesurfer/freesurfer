@@ -55,6 +55,8 @@
  *
  */
 
+#include <string>
+#include <locale>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -853,7 +855,7 @@ int gdfClassNo(FSGD *gd, char *class_number) {
   in the given string, where an item is defined as
   one or more contiguous non-blank characters.
   --------------------------------------------------*/
-int gdfCountItemsInString(char *str) {
+int gdfCountItemsInString(const char *str) {
   int len, n, nhits;
 
   len = strlen(str);
@@ -880,13 +882,9 @@ int gdfCountItemsInString(char *str) {
   is -1, then it returns the last item. item is a string that
   must be freed by the caller.
   ------------------------------------------------------------------*/
-char *gdfGetNthItemFromString(char *str, int nth) {
+char *gdfGetNthItemFromString(const char *str, int nth) {
   char *item;
-  int nitems,n;
-  static char fmt[2000], tmpstr[2000];
-
-  memset(fmt,'\0',2000);
-  memset(tmpstr,'\0',2000);
+  int nitems;
 
   nitems = gdfCountItemsInString(str);
   if (nth < 0) nth = nitems-1;
@@ -896,12 +894,31 @@ char *gdfGetNthItemFromString(char *str, int nth) {
     return(NULL);
   }
 
-  for (n=0; n < nth; n++) sprintf(fmt,"%s %%*s",fmt);
-  sprintf(fmt,"%s %%s",fmt);
-  //printf("fmt %s\n",fmt);
-  sscanf(str,fmt,tmpstr);
+  const std::string src(str);
+  std::string tmpstr;
+  size_t currentItem = 0;
+  bool inItem = !std::isspace(src.at(0));
+  for(auto it=src.begin(); it!=src.end(); ++it ) {
+    if( std::isspace(*it) ) {
+      if( inItem ) {
+	// We have just completed the next item
+	if( currentItem == nth ) {
+	  // We have the item we want
+	  break;
+	} else {
+	  tmpstr.clear();
+	  currentItem++;
+	}
+      } else {
+	// Nothing to do; we're just consuming blanks
+      }
+    } else {
+      // We're inside an item, so accumulate
+      tmpstr.push_back(*it);
+    }
+  }
 
-  item = strcpyalloc(tmpstr);
+  item = strcpyalloc(tmpstr.c_str());
   return(item);
 }
 

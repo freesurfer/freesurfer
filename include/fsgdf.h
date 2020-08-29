@@ -138,8 +138,8 @@ MATRIX *gdfMatrix(FSGD *gd, const char *gd2mtx_method, MATRIX *X);
 int     gdfOffsetSlope(FSGD *gd, int classno, int varno,
                        int c, int r, int s, float *offset, float *slope);
 int gdfCountItemsOnLine(FILE *fp);
-int gdfCountItemsInString(char *str);
-char *gdfGetNthItemFromString(char *str, int nth);
+int gdfCountItemsInString(const char *str);
+char *gdfGetNthItemFromString(const char *str, int nth);
 int gdfClassNo(FSGD *gd, char *class_number);
 int gdfGetVarLabelNo(FSGD *gd, char *LabelName);
 int gdfStringIndex(char *str, char **list, int nlist);
