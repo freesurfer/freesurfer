@@ -5683,29 +5683,41 @@ int gcamComputeGradient(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, GCA_MORPH_PA
     DiagBreak();
   }
   if (parms->write_iterations > 0 && (Gdiag & DIAG_WRITE) && getenv("GCAM_YGRAD") != NULL && (parms->l_label > 0)) {
-    char fname[STRLEN];
+    std::stringstream fname;
     MRI *mri_grad;
 
     mri_grad = GCAMmorphFieldFromAtlas(gcam, parms->mri, GCAM_Y_GRAD, 0, 0);
-    sprintf(fname, "%s_ygrad_before_%4.4d.mgz", parms->base_name, i);
-    printf("writing y gradient to %s...\n", fname);
-    MRIwrite(mri_grad, fname);
+    fname << parms->base_name << "_ygrad_before_"
+	  << std::setw(4) << std::setfill('0') << i
+	  << ".mgz";
+    printf("writing y gradient to %s...\n", fname.str().c_str());
+    MRIwrite(mri_grad, fname.str().c_str());
     MRIfree(&mri_grad);
   }
 
   if ((Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) || (gcam_write_grad && i < 10) || (gcam_write_grad > 1)) {
-    char fname[STRLEN];
+    std::stringstream fname;
     MRI *mri;
     printf("writing gradients to ...%s_d[xyz]b_%4.4d.mgz\n", parms->base_name, i);
     mri = GCAMwriteMRI(gcam, NULL, GCAM_X_GRAD);
-    sprintf(fname, "%s_dxb_%4.4d.mgz", parms->base_name, i);
-    MRIwrite(mri, fname);
-    sprintf(fname, "%s_dyb_%4.4d.mgz", parms->base_name, i);
+    fname << parms->base_name << "_dxb_"
+	  << std::setw(4) << std::setfill('0') << i
+	  << ".mgz";
+    MRIwrite(mri, fname.str().c_str());
+
+    fname.str("");
+    fname << parms->base_name << "_dyb_"
+	  << std::setw(4) << std::setfill('0') << i
+	  << ".mgz";
     GCAMwriteMRI(gcam, mri, GCAM_Y_GRAD);
-    MRIwrite(mri, fname);
-    sprintf(fname, "%s_dzb_%4.4d.mgz", parms->base_name, i);
+    MRIwrite(mri, fname.str().c_str());
+    
+    fname.str("");
+    fname << parms->base_name << "_dzb_"
+	  << std::setw(4) << std::setfill('0') << i
+	  << ".mgz";
     GCAMwriteMRI(gcam, mri, GCAM_Z_GRAD);
-    MRIwrite(mri, fname);
+    MRIwrite(mri, fname.str().c_str());
     MRIfree(&mri);
     if (i == 0) {
       MRIwrite(mri_smooth, "s.mgz");
@@ -14831,19 +14843,29 @@ int GCAMdemonsRegister(GCA_MORPH *gcam,
 
     done = pct_change < parms->tol;  // (new_sse > old_sse) ;
     if (Gdiag & DIAG_WRITE) {
-      char fname[STRLEN];
+      std::stringstream fname;
 
-      sprintf(fname, "%s_source%3.3d.mgh", parms->base_name, step);
-      MRIwrite(mri_current_labels, fname);
-      sprintf(fname, "%s_source%3.3d", parms->base_name, step);
-      MRIwriteImageViews(mri_current_labels, fname, IMAGE_SIZE);
+      fname << parms->base_name << "_source"
+	    << std::setw(3) << std::setfill('0') << step
+	    << ".mgh";
+      MRIwrite(mri_current_labels, fname.str().c_str());
+
+      fname.str("");
+      fname << parms->base_name << "_source"
+	    << std::setw(3) << std::setfill('0') << step;
+      MRIwriteImageViews(mri_current_labels, fname.str().c_str(), IMAGE_SIZE);
       if (parms->mri_diag) {
         MRI *mri;
         mri = MRIapplyMorph(parms->mri_diag, mri_warp, NULL, SAMPLE_TRILINEAR);
-        sprintf(fname, "%s_intensity%3.3d.mgh", parms->base_name, step);
-        MRIwrite(mri, fname);
-        sprintf(fname, "%s_intensity%3.3d", parms->base_name, step);
-        MRIwriteImageViews(mri, fname, IMAGE_SIZE);
+	fname.str("");
+	fname << parms->base_name << "_intensity"
+	      << std::setw(3) << std::setfill('0') << step
+	      << ".mgh";
+        MRIwrite(mri, fname.str().c_str());
+	fname.str("");
+	fname << parms->base_name << "_intensity"
+	      << std::setw(3) << std::setfill('0') << step;
+        MRIwriteImageViews(mri, fname.str().c_str(), IMAGE_SIZE);
         MRIfree(&mri);
       }
       if (parms->write_fname) {
@@ -14854,11 +14876,15 @@ int GCAMdemonsRegister(GCA_MORPH *gcam,
         GCAMwrite(gcam, parms->write_fname);
         mri = GCAMmorphToAtlas(mri_source_labels, gcam, NULL, -1, SAMPLE_NEAREST);
 
-        sprintf(fname, "%s_gcam%3.3d.mgh", parms->base_name, step);
-        MRIwrite(mri, fname);
+	fname.str("");
+	fname << parms->base_name << "_gcam"
+	      << std::setw(3) << std::setfill('0') << step
+	      << ".mgh";
+        MRIwrite(mri, fname.str().c_str());
         MRIfree(&mri);
       }
       if (DIAG_VERBOSE_ON) {
+	std::stringstream fname;
         if (gcam->mri_xind) {
           MRIfree(&gcam->mri_xind);
           MRIfree(&gcam->mri_yind);
@@ -14867,8 +14893,10 @@ int GCAMdemonsRegister(GCA_MORPH *gcam,
         GCAMreadWarpFromMRI(gcam, mri_warp);
         GCAMinvert(gcam, mri_source_labels);
         mri_morphed = GCAMmorphFromAtlas(mri_atlas_labels, gcam, NULL, SAMPLE_NEAREST);
-        sprintf(fname, "%s_atlas%3.3d.mgh", parms->base_name, step);
-        MRIwrite(mri_morphed, fname);
+	fname << parms->base_name << "_atlas"
+	      << std::setw(3) << std::setfill('0') << step
+	      << ".mgh";
+        MRIwrite(mri_morphed, fname.str().c_str());
         MRIfree(&mri_morphed);
       }
     }
@@ -14878,13 +14906,17 @@ int GCAMdemonsRegister(GCA_MORPH *gcam,
   MRIfree(&mri_current_dtrans);
   MRIfree(&mri_dtrans);
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
-    char fname[STRLEN];
+    std::stringstream fname;
     step++;
     mri_morphed = MRIapplyMorph(mri_source_labels, mri_warp, NULL, SAMPLE_NEAREST);
-    sprintf(fname, "%s_source%3.3d.mgz", parms->base_name, step);
-    MRIwrite(mri_morphed, fname);
-    sprintf(fname, "%s_source%3.3d", parms->base_name, step);
-    MRIwriteImageViews(mri_morphed, fname, IMAGE_SIZE);
+    fname << parms->base_name << "_source"
+	  << std::setw(3) << std::setfill('0') << step
+	  << ".mgz";
+    MRIwrite(mri_morphed, fname.str().c_str());
+    fname.str("");
+    fname << parms->base_name << "_source"
+	  << std::setw(3) << std::setfill('0') << step;
+    MRIwriteImageViews(mri_morphed, fname.str().c_str(), IMAGE_SIZE);
     MRIfree(&mri_morphed);
   }
   parms->start_t = (step);
@@ -14892,20 +14924,21 @@ int GCAMdemonsRegister(GCA_MORPH *gcam,
   //  GCAMreadWarpFromMRI(gcam, mri_warp) ;
   GCAMremoveSingularitiesAndReadWarpFromMRI(gcam, mri_warp);
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
+    std::string fname;
     MRI *mri_m1, *mri_m2, *mri_warp2;
 
     mri_warp2 = MRIclone(mri_warp, NULL);
     GCAMwriteWarpToMRI(gcam, mri_warp2);
 
     mri_morphed = GCAMmorphToAtlas(mri_source_labels, gcam, NULL, 0, SAMPLE_NEAREST);
-    sprintf(fname, "%s_source_gcam.mgz", parms->base_name);
+    fname = std::string(parms->base_name) + "_source_gcam.mgz";
 
     mri_m1 = MRIapplyMorph(mri_source_labels, mri_warp, NULL, SAMPLE_NEAREST);
     mri_m2 = MRIapplyMorph(mri_source_labels, mri_warp2, NULL, SAMPLE_NEAREST);
     MRIwrite(mri_m1, "m1.mgz");
     MRIwrite(mri_m2, "m2.mgz");
 
-    MRIwrite(mri_morphed, fname);
+    MRIwrite(mri_morphed, fname.c_str());
     MRIfree(&mri_morphed);
     MRIfree(&mri_warp2);
     MRIfree(&mri_m1);
