@@ -83,7 +83,7 @@ int isblank (int c);
 #endif
 #endif
 
-static FSGD *gdfReadV1(char *gdfname);
+static FSGD *gdfReadV1(const char *gdfname);
 static int gdfPrintV1(FILE *fp, FSGD *gd);
 static int gdfCheckVarRep(FSGD *gd);
 static int gdfCheckClassRep(FSGD *gd);
@@ -126,7 +126,7 @@ int gdfFree(FSGD **ppgd) {
 
 
 /*--------------------------------------------------*/
-int gdfWrite(char *gdfname, FSGD *gd) {
+int gdfWrite(const char *gdfname, FSGD *gd) {
   FILE *fp;
 
   fp = fopen(gdfname,"w");
@@ -252,7 +252,7 @@ static int gdfPrintV1(FILE *fp, FSGD *gd) {
 
 
 /*--------------------------------------------------*/
-FSGD *gdfRead(char *gdfname, int LoadData) {
+FSGD *gdfRead(const char *gdfname, int LoadData) {
   FSGD *gd;
   FILE *fp;
   char tmpstr[1000];
@@ -403,7 +403,7 @@ FSGD *gdfRead(char *gdfname, int LoadData) {
 
 
 /*--------------------------------------------------*/
-static FSGD *gdfReadV1(char *gdfname) {
+static FSGD *gdfReadV1(const char *gdfname) {
   FSGD *gd;
   FSENV *env;
   FILE *fp;
@@ -808,7 +808,7 @@ static FSGD *gdfReadV1(char *gdfname) {
   information for the data in the given FSGD header
   file. This is only the header info, not the data.
   --------------------------------------------------*/
-MRI *gdfReadDataInfo(char *gdfname) {
+MRI *gdfReadDataInfo(const char *gdfname) {
   FSGD *gd=NULL;
   MRI *info=NULL;
 
