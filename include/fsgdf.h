@@ -122,9 +122,9 @@ GROUPDESCRIPTOR, FSGD;
 
 FSGD   *gdfAlloc(int version);
 int     gdfFree(FSGD **ppgd);
-FSGD   *gdfRead(char *gdfname, int LoadData);
-int     gdfWrite(char *gdfname, FSGD *gd);
-MRI    *gdfReadDataInfo(char *gdfname);
+FSGD   *gdfRead(const char *gdfname, int LoadData);
+int     gdfWrite(const char *gdfname, FSGD *gd);
+MRI    *gdfReadDataInfo(const char *gdfname);
 int     gdfPrintHeader(FILE *fp, FSGD *gd);
 int     gdfCheckMatrixMethod(const char *gd2mtx_method);
 int     gdfCheckNPerClass(FSGD *gd);
