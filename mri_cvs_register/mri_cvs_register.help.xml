@@ -58,6 +58,9 @@ example* , bugs* , reporting* , references* , see-also*)*>
       <argument>--asegfname fname</argument>
       <explanation>Name of the segmentation volume that should be used in order to guide the volumetric registration step. The default value is aseg. Note that both the template and the moving subject needs to have this file if you want to use this option. Also, do not use the file extension of the volume that you are including with this flag!</explanation>
 
+      <argument>--voltype voltype</argument>
+      <explanation>Changes the input from norm.mgz to voltype.mgz</explanation>
+
       <intro>Partial run of the registration</intro>
       <argument>--step1</argument>
       <explanation>Only do step 1 (spherical registration).</explanation>
