@@ -1420,7 +1420,7 @@ int main(int argc, char **argv) {
                n,c,r,s);
         exit(1);
       }
-      MRIglmLoadVox(mriglm,c,r,s,0);
+      MRIglmLoadVox(mriglm,c,r,s,0,NULL);
       GLMxMatrices(mriglm->glm);
       GLMfit(mriglm->glm);
       GLMdump("selfreg",mriglm->glm);
@@ -1575,7 +1575,7 @@ int main(int argc, char **argv) {
             voxdump[0],voxdump[1],voxdump[2]);
     printf("Dumping voxel %d %d %d to %s\n",
            voxdump[0],voxdump[1],voxdump[2],voxdumpdir);
-    MRIglmLoadVox(mriglm,voxdump[0],voxdump[1],voxdump[2],0);
+    MRIglmLoadVox(mriglm,voxdump[0],voxdump[1],voxdump[2],0,NULL);
     GLMxMatrices(mriglm->glm);
     GLMfit(mriglm->glm);
     GLMtest(mriglm->glm);
