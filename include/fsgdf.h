@@ -139,7 +139,7 @@ int     gdfOffsetSlope(FSGD *gd, int classno, int varno,
                        int c, int r, int s, float *offset, float *slope);
 int gdfCountItemsOnLine(FILE *fp);
 int gdfCountItemsInString(const char *str);
-char *gdfGetNthItemFromString(const char *str, int nth);
+char *gdfGetNthItemFromString(const char *str, const int nth);
 int gdfClassNo(FSGD *gd, char *class_number);
 int gdfGetVarLabelNo(FSGD *gd, char *LabelName);
 int gdfStringIndex(char *str, char **list, int nlist);

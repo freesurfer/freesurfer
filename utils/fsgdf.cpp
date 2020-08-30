@@ -884,12 +884,11 @@ int gdfCountItemsInString(const char *str) {
   is -1, then it returns the last item. item is a string that
   must be freed by the caller.
   ------------------------------------------------------------------*/
-char *gdfGetNthItemFromString(const char *str, int nth) {
+char *gdfGetNthItemFromString(const char *str, const int nth) {
   char *item;
   int nitems;
 
   nitems = gdfCountItemsInString(str);
-  if (nth < 0) nth = nitems-1;
   if (nth >= nitems) {
     printf("ERROR: asking for item %d, only %d items in string\n",nth,nitems);
     printf("%s\n",str);
@@ -897,30 +896,44 @@ char *gdfGetNthItemFromString(const char *str, int nth) {
   }
 
   const std::string src(str);
+  std::vector<std::string> items;
   std::string tmpstr;
-  size_t currentItem = 0;
   bool inItem = !std::isspace(src.at(0));
   for(auto it=src.begin(); it!=src.end(); ++it ) {
     if( std::isspace(*it) ) {
       if( inItem ) {
-	// We have just completed the next item
-	if( currentItem == nth ) {
-	  // We have the item we want
-	  break;
-	} else {
-	  tmpstr.clear();
-	  currentItem++;
-	}
+	// We've just completed the next item
+	items.push_back(tmpstr);
+	tmpstr.clear();
       } else {
 	// Nothing to do; we're just consuming blanks
       }
+      inItem = false;
     } else {
+      inItem = true;
       // We're inside an item, so accumulate
       tmpstr.push_back(*it);
     }
   }
 
-  item = strcpyalloc(tmpstr.c_str());
+  if( items.size() != static_cast<size_t>(nitems) ) {
+    std::cerr << __FUNCTION__
+	      << ": Length of items vector did not match nitems"
+	      << std::endl;
+    std::cerr << "str: '" << str << std::endl;
+    std::cerr << "items: ";
+    for( auto it=items.begin(); it!=items.end(); ++it ) {
+      std::cerr << (*it) << " -|- ";
+    }
+    std::cerr << std::endl;
+    throw std::logic_error("Incorrect item count");
+  }
+  
+  if( nth < 0 ) {
+    item = strcpyalloc(items.back().c_str());
+  } else {
+    item = strcpyalloc(items.at(nth).c_str());
+  }
   return(item);
 }
 
