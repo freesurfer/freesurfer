@@ -950,7 +950,7 @@ int fio_mkdirp(const char *path, mode_t mode)
   The CRs can be replaced with a new line with
     cat file | sed 's/\r/\n/g' > newfile
  */
-int fio_FileHasCarriageReturn(char *fname)
+int fio_FileHasCarriageReturn(const char *fname)
 {
   FILE *fp;
   char c;

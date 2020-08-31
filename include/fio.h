@@ -88,7 +88,7 @@ int fio_pushd(const char *dir);
 int fio_popd(void);
 std::string fio_fullpath(const char *fname);
 int fio_mkdirp(const char *path, mode_t mode);
-int fio_FileHasCarriageReturn(char *fname);
+int fio_FileHasCarriageReturn(const char *fname);
 
 //#define fwriteLong(l, fp)   fwrite4((int)l, fp)
 
