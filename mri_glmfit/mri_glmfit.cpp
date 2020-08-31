@@ -728,7 +728,8 @@ CSD *csdList[5][3][20];
 MATRIX *RTM_Cr, *RTM_intCr, *RTM_TimeSec, *RTM_TimeMin;
 int DoMRTM1=0;
 int DoMRTM2=0;
-double MRTM2_k2p=0;
+int DoLogan=0;
+double MRTM2_k2p=0, Logan_Tstar=0;
 MATRIX *MRTM2_x1;
 
 int nRandExclude=0,  *ExcludeFrames=NULL, nExclude=0;
@@ -751,6 +752,7 @@ int GLMdiagnoseDesignMatrix(MATRIX *X);
 MRI *fMRIskew(MRI *y, MRI *mask);
 MRI *MRIpskew(MRI *kvals, int dof, MRI *mask, int nsamples);
 MRI *MRIremoveSpatialMean(MRI *vol, MRI *mask, MRI *out);
+int MRIloganize(MATRIX **X, MRI **Ct, MRI **intCt, const MATRIX *t, const double tstar);
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -1160,6 +1162,33 @@ int main(int argc, char **argv) {
     sprintf(tmpstr,"%s/time.min.dat",GLMDir);
     MatrixWriteTxt(tmpstr, RTM_TimeMin);
   }
+  // Logan ------------------------------------
+  if(DoLogan) {
+    // This is not the most beautiful code:). 
+    // Model integralYi = [integralRef Yi]*beta
+    //  BPnd = beta[1]-1
+    //  The equation is solved only for time points > tstar
+    printf("Performing Logan\n"); fflush(stdout);
+    mriglm->Xg = RTM_intCr;
+    mriglm->npvr = 1;
+    printf("Computing integral of input ..."); fflush(stdout);
+    mriglm->pvr[0] = mriglm->y;
+    mriglm->y = fMRIcumTrapZ(mriglm->y,RTM_TimeMin,NULL,NULL);
+    printf("done.\n"); fflush(stdout);
+    printf("Loganizing\n"); fflush(stdout);
+    MRIloganize(&(mriglm->Xg), &(mriglm->y), &(mriglm->pvr[0]),RTM_TimeMin,Logan_Tstar/60);
+    MRIwrite(mriglm->y,"tmp.y.mgh");
+    MRIwrite(mriglm->pvr[0],"tmp.pvr.mgh");
+    nContrasts = 1;
+    mriglm->glm->ncontrasts = nContrasts;
+    //------------------------------------------
+    mriglm->glm->Cname[0] = "dvr";
+    mriglm->glm->C[0] = MatrixConstVal(0.0, 1, 2, NULL);
+    mriglm->glm->C[0]->rptr[1][1] = 1;
+    //------------------------------------------
+    sprintf(tmpstr,"%s/time.min.dat",GLMDir);
+    MatrixWriteTxt(tmpstr, RTM_TimeMin);
+  }
 
   if(! DontSave) {
     if(GLMDir != NULL) {
@@ -1214,7 +1243,7 @@ int main(int argc, char **argv) {
   fflush(stdout);
 
   // Load Per-Voxel Regressors -----------------------------------
-  if(mriglm->npvr > 0 && !DoMRTM1 && !DoMRTM2) {
+  if(mriglm->npvr > 0 && !DoMRTM1 && !DoMRTM2 && !DoLogan) {
     for (n=0; n < mriglm->npvr; n++) {
       mriglm->pvr[n] = MRIread(pvrFiles[n]);
       if (mriglm->pvr[n] == NULL) exit(1);
@@ -1368,7 +1397,7 @@ int main(int argc, char **argv) {
       exit(1);
     }
   }
-  else if(!DoMRTM1 && !DoMRTM2) {
+  else if(!DoMRTM1 && !DoMRTM2 && !DoLogan) {
     mriglm->w = NULL;
     mriglm->wg = NULL;
   }
@@ -1459,7 +1488,7 @@ int main(int argc, char **argv) {
   mriglm->glm->ncontrasts = nContrasts;
   if(nContrasts > 0) {
     for(n=0; n < nContrasts; n++) {
-      if (! useasl && ! useqa  && !(fsgd != NULL && fsgd->nContrasts != 0) && !DoMRTM1 && !DoMRTM2) {
+      if (! useasl && ! useqa  && !(fsgd != NULL && fsgd->nContrasts != 0) && !DoMRTM1 && !DoMRTM2 && !DoLogan) {
         // Get its name
         mriglm->glm->Cname[n] =
           fio_basename(CFile[n],".mat"); //strip .mat
@@ -2248,6 +2277,23 @@ int main(int argc, char **argv) {
     if(err) exit(1);
     MRIfree(&mritmp);
   }
+  if(DoLogan){
+    printf("Computing binding potentials\n");
+    mritmp = MRIcloneBySpace(mriglm->y,MRI_FLOAT,1);
+    for(c=0; c < mriglm->y->width; c++) {
+      for(r=0; r < mriglm->y->height; r++) {
+	for(s=0; s < mriglm->y->depth; s++) {
+	  if(mriglm->mask && MRIgetVoxVal(mriglm->mask,c,r,s,0)<0.5) continue;
+          double v = MRIgetVoxVal(mriglm->beta,c,r,s,0);
+	  MRIsetVoxVal(mritmp,c,r,s,0,v-1);
+	}//s
+      }//r
+    }//s
+    sprintf(tmpstr,"%s/bp.%s",GLMDir,format);
+    err = MRIwrite(mritmp,tmpstr);
+    if(err) exit(1);
+    MRIfree(&mritmp);
+  }
 
   sprintf(tmpstr,"%s/X.mat",GLMDir);
   MatlabWrite(mriglm->Xg,tmpstr,"X");
@@ -2824,6 +2870,26 @@ static int parse_commandline(int argc, char **argv) {
       DoPCC = 0;
       nargsused = 3;
     } 
+    else if (!strcmp(option, "--logan")) {
+      // --logan cr.dat time.sec.dat tstar
+      // Logan non-invasive
+      if(nargc < 3) CMDargNErr(option,1);
+      DoLogan=1;
+      RTM_Cr = MatrixReadTxt(pargv[0], NULL);
+      if(RTM_Cr == NULL) exit(1);
+      RTM_TimeSec = MatrixReadTxt(pargv[1], NULL);
+      if(RTM_TimeSec == NULL) exit(1);
+      RTM_TimeMin = MatrixAlloc(RTM_TimeSec->rows,1,MATRIX_REAL);
+      for(k=0; k < RTM_TimeSec->rows; k++)
+	RTM_TimeMin->rptr[k+1][1] = RTM_TimeSec->rptr[k+1][1]/60;
+      sscanf(pargv[2],"%lf",&Logan_Tstar);
+      printf("Logan tstar %g\n",Logan_Tstar);
+      RTM_intCr = MatrixCumTrapZ(RTM_Cr, RTM_TimeMin, NULL);
+      prunemask = 0;
+      NoContrastsOK = 1;
+      DoPCC = 0;
+      nargsused = 3;
+    } 
     else if (!strcmp(option, "--pvr")) {
       if (nargc < 1) CMDargNErr(option,1);
       pvrFiles[npvr] = pargv[0];
@@ -2998,6 +3064,7 @@ printf("   --profile     niters : test speed\n");
 printf("\n");
 printf("   --mrtm1 RefTac TimeSec : perform MRTM1 kinetic modeling\n");
 printf("   --mrtm2 RefTac TimeSec k2prime : perform MRTM2 kinetic modeling\n");
+printf("   --logan RefTac TimeSec tstar   : perform Logan kinetic modeling\n");
 printf("\n");
 printf("   --perm-force : force perumtation test, even when design matrix is not orthog\n");
 printf("   --diag Gdiag_no : set diagnositc level\n");
@@ -3413,7 +3480,7 @@ static void print_version(void) {
 /* --------------------------------------------- */
 static void check_options(void) {
   if(XFile == NULL && bvalfile == NULL && fsgdfile == NULL &&
-     ! OneSampleGroupMean && ! useasl && !useqa && !DoMRTM1 && !DoMRTM2) {
+     ! OneSampleGroupMean && ! useasl && !useqa && !DoMRTM1 && !DoMRTM2 && !DoLogan) {
     printf("ERROR: must specify an input X file or fsgd file or --osgm\n");
     exit(1);
   }
@@ -3998,5 +4065,61 @@ MRI *MRIremoveSpatialMean(MRI *vol, MRI *mask, MRI *out)
   }// f
   return(out);
 }
+
+/*!
+ \fn int MRIloganize(MATRIX **X, MRI **Ct, MRI **intCt, const MATRIX *t, const double tstar)
+ \brief Removes time points less than tstar. X, Ct, and intCt are changed
+*/
+int MRIloganize(MATRIX **X, MRI **Ct, MRI **intCt, const MATRIX *t, const double tstar)
+{
+  int n,n0,nkeep=0;
+  for(n = (*Ct)->nframes-1; n >= 0; n--){
+    if(t->rptr[n+1][1] < tstar) break;
+    nkeep++;
+  }
+  n0 = n + 1;
+  printf("Loganize tstar = %g, n0 = %d, nkeep=%d\n",tstar,n0,nkeep);
+
+  MATRIX *XX = MatrixAlloc(nkeep,1,MATRIX_REAL);
+  int k=0;
+  for(n=n0; n < (*Ct)->nframes; n++){
+    XX->rptr[k+1][1] = (*X)->rptr[n+1][1];
+    k++;
+  }
+
+  MRI *Ct2 = MRIallocSequence((*Ct)->width,(*Ct)->height,(*Ct)->depth,MRI_FLOAT,nkeep);
+  MRIcopyHeader((*Ct),Ct2);
+  MRIcopyPulseParameters((*Ct),Ct2);
+  MRI *intCt2 = MRIallocSequence((*Ct)->width,(*Ct)->height,(*Ct)->depth,MRI_FLOAT,nkeep);
+  MRIcopyHeader((*Ct),intCt2);
+  MRIcopyPulseParameters((*Ct),intCt2);
+  int c,r,s;
+  double v;
+  for(c=0; c < (*Ct)->width; c++){
+    for(r=0; r < (*Ct)->height; r++){
+      for(s=0; s < (*Ct)->depth; s++){
+	k=0;
+	for(n=n0; n < (*Ct)->nframes; n++){
+	  v = MRIgetVoxVal((*Ct),c,r,s,n);
+	  MRIsetVoxVal(Ct2,c,r,s,k,v);
+	  v = MRIgetVoxVal((*intCt),c,r,s,n);
+	  MRIsetVoxVal(intCt2,c,r,s,k,v);
+	  k++;
+	}
+      }
+    }
+  }
+  MRIfree(Ct);
+  MRIfree(intCt);
+  MatrixFree(X);
+  *Ct = Ct2;
+  *intCt = intCt2;
+  *X = XX;
+  printf("nframes = %d\n",(*Ct)->nframes);
+
+  return(0);
+}
+
+
 
 
