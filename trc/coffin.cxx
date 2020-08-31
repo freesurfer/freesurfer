@@ -1637,16 +1637,18 @@ void Coffin::SetPathway(const std::string InitFile,
         vector<float> prior;
         istringstream prstr(prline), idstr(idline);
 
-        while (prstr >> pr)
+        while (prstr >> pr) {
           prior.push_back(pr);
+	}
 
-        while (idstr >> id)
+        while (idstr >> id) {
           idlist.push_back(id);
+	}
 
         if (prior.size() != idlist.size() + 1) {
           cout << "ERROR: Line length mismatch between "
-               << prname << " (" << prline << ") and "
-               << idname << " (" << idline << ")" << endl;
+               << prname.str() << " (" << prline << ") and "
+               << idname.str() << " (" << idline << ")" << endl;
           exit(1);
         } 
 
