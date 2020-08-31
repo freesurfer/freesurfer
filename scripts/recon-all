@@ -4272,7 +4272,7 @@ if($DoCortRibbonVolMask) then
     --save_ribbon)
   if($LHonly) set cmd = ($cmd --lh-only )
   if($RHonly) set cmd = ($cmd --rh-only )
-  if($OMP_NUM_THREADS > 1) set cmd = ($cmd --parallel) # just hemis
+  if($OMP_NUM_THREADS > 1 && ! $LHonly && ! $RHonly) set cmd = ($cmd --parallel) # just hemis
   set xopts = `fsr-getxopts mris_volmask $XOptsFile $GlobXOptsFile`;
   set cmd = ($cmd $xopts)
   set cmd = ($cmd $subjid)
@@ -4452,6 +4452,8 @@ if($DoAPas2ASeg) then
     set udlist = ($udlist $ldir/rh.cortex.label $sdir/rh.white $sdir/rh.pial)
     set cmd = ($cmd  --rh-cortex-mask $ldir/rh.cortex.label --rh-white $sdir/rh.white --rh-pial $sdir/rh.pial)
   endif
+  if($LHonly) set cmd = ($cmd --lh)
+  if($RHonly) set cmd = ($cmd --rh)
   set xopts = `fsr-getxopts mri_surf2volseg-aseg $XOptsFile $GlobXOptsFile`;
   set cmd = ($cmd $xopts)
   set ud = `UpdateNeeded aseg.mgz $udlist`
@@ -4466,7 +4468,8 @@ if($DoAPas2ASeg) then
 endif
 
 # Cache global brain volume stats (needs aseg.mgz above). WMParc because it computes stats
-if($DoSegStats || $DoParcStats || $DoParcStats2 || $DoParcStats3 || $DoWMParc) then
+if(($DoSegStats || $DoParcStats || $DoParcStats2 || $DoParcStats3 || $DoWMParc) && \
+  ! $LHonly && ! $RHonly) then
   set cmd = (mri_brainvol_stats $subjid)
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $fs_time $cmd |& tee -a $LF
@@ -4502,6 +4505,8 @@ if($DoAParc2ASeg) then
       set cmd = ($cmd --rh-annot $ldir/rh.$parc.annot $rhbase --rh-cortex-mask $ldir/rh.cortex.label \
        --rh-white $sdir/rh.white --rh-pial $sdir/rh.pial)
     endif
+    if($LHonly) set cmd = ($cmd --lh)
+    if($RHonly) set cmd = ($cmd --rh)
     set xopts = `fsr-getxopts mri_surf2volseg-$parc+aseg $XOptsFile $GlobXOptsFile`;
     set cmd = ($cmd $xopts)
     set ud = `UpdateNeeded $parc+aseg.mgz $udlist`
@@ -4539,6 +4544,8 @@ if($DoWMParc) then
     set cmd = ($cmd --rh-annot $ldir/rh.$parc.annot $rhbase --rh-cortex-mask $ldir/rh.cortex.label \
      --rh-white $sdir/rh.white --rh-pial $sdir/rh.pial)
   endif
+  if($LHonly) set cmd = ($cmd --lh)
+  if($RHonly) set cmd = ($cmd --rh)
   set xopts = `fsr-getxopts mri_surf2volseg-wmparc $XOptsFile $GlobXOptsFile`;
   set cmd = ($cmd $xopts)
   set ud = `UpdateNeeded wmparc.mgz $udlist`
@@ -5456,12 +5463,12 @@ while( $#argv != 0 )
     case "-NOCEREBELLUM":
 	set nocerebellum=( -nocerebellum)
 	breaksw ;
-    case "-lh":
+    case "-lh": # see also -hemi
     case "-lh-only":
       set LHonly = 1 ;
       set hemilist = lh
       breaksw
-    case "-rh":
+    case "-rh": # see also -hemi
     case "-rh-only":
       set hemilist = rh
       set RHonly = 1 ;
@@ -6906,6 +6913,8 @@ while( $#argv != 0 )
         echo "ERROR: hemi = $hemilist, must be either lh or rh"
         goto error_exit;
       endif
+      if($hemilist == lh) LHonly = 1 
+      if($hemilist == rh) RHonly = 1 
       breaksw
 
     # This is a temporary flag to test how changing the way the vertex
