@@ -878,7 +878,7 @@ static void check_options(void) {
       printf("ERROR: cannot spec --label and --cortex\n");
       exit(1);
     }
-    labelpath = std::string(SUBJECTS_DIR) + '/' + std::string(subject) + '/' + std::string(hemi) + ".cortex.label";
+    labelpath = std::string(SUBJECTS_DIR) + '/' + std::string(subject) + '/label/' + std::string(hemi) + ".cortex.label";
   }
   return;
 }
