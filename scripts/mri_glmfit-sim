@@ -721,6 +721,8 @@ while( $#argv != 0 )
       set simsign = $argv[1]; shift;
       set UseCache = 1;
       set DoSim = 0;
+      # Handles the case where LC_NUMERIC is not set to en_US.UTF-8
+      set thresh = `echo $thresh | sed 's/,/./g'`
       set thresh = `printf %2.1f $thresh`
       if($thresh != 1.3 && $thresh != 2.0 && $thresh != 2.3 && \
          $thresh != 3.0 && $thresh != 3.3 && $thresh != 4.0) then
