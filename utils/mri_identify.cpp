@@ -1036,7 +1036,7 @@ int is_ximg(const char *fname) { return (FALSE); } /* end is_ximg() */
 int is_nifti1(const char *fname)
 {
   char fname_stem[STRLEN];
-  char hdr_fname[STRLEN];
+  std::string hdr_fname;
   char *dot;
   FILE *fp;
   char magic[4];
@@ -1045,11 +1045,12 @@ int is_nifti1(const char *fname)
 
   strcpy(fname_stem, fname);
   dot = strrchr(fname_stem, '.');
-  if (dot != NULL)
+  if (dot != NULL) {
     if (strcmp(dot, ".img") == 0 || strcmp(dot, ".hdr") == 0) *dot = '\0';
-  sprintf(hdr_fname, "%s.hdr", fname_stem);
+  }
+  hdr_fname = std::string(fname_stem) + ".hdr";
 
-  fp = fopen(hdr_fname, "r");
+  fp = fopen(hdr_fname.c_str(), "r");
   if (fp == NULL) {
     errno = 0;
     return (FALSE);
