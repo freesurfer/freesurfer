@@ -1082,12 +1082,13 @@ int LabelFillAll(LABEL *area, int *vertex_list, int nvertices, int max_vertices,
 ------------------------------------------------------*/
 static Transform *labelLoadTransform(const char *subject_name, const char *sdir, General_transform *transform)
 {
-  char xform_fname[STRLEN];
+  std::string xform_fname;
 
-  sprintf(xform_fname, "%s/%s/mri/transforms/talairach.xfm", sdir, subject_name);
-  if (FileExists(xform_fname) == 0) return (NULL);
-  if (input_transform_file(xform_fname, transform) != OK)
-    ErrorReturn(NULL, (ERROR_NOFILE, "%s: could not load transform file '%s'", Progname, xform_fname));
+  xform_fname = std::string(sdir) + '/' + std::string(subject_name) + "/mri/transforms/talairach.xfm";
+  if (FileExists(xform_fname.c_str()) == 0) return (NULL);
+  if (input_transform_file(xform_fname.c_str(), transform) != OK) {
+    ErrorReturn(NULL, (ERROR_NOFILE, "%s: could not load transform file '%s'", Progname, xform_fname.c_str()));
+  }
 
   return (get_linear_transform_ptr(transform));
 }
