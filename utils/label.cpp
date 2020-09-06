@@ -579,9 +579,10 @@ int LabelWriteInto(LABEL *area, FILE *fp)
 ------------------------------------------------------*/
 int LabelWrite(LABEL *area, const char *label_name)
 {
-  char fname[STRLEN], *cp, subjects_dir[STRLEN], lname[STRLEN];
+  char *cp, subjects_dir[STRLEN], lname[STRLEN];
   FILE *fp;
   int ret;
+  std::string fname;
 
   strcpy(lname, label_name);
   cp = strrchr(lname, '.');
@@ -598,20 +599,21 @@ int LabelWrite(LABEL *area, const char *label_name)
                 "(SUBJECTS_DIR)",
                 Progname);
     strcpy(subjects_dir, cp);
-    sprintf(fname, "%s/%s/label/%s.label", subjects_dir, area->subject_name, label_name);
+    fname = std::string(subjects_dir) + '/' + std::string(area->subject_name) +
+      "/label/" + std::string(label_name) + ".label";
   }
   else {
     cp = strrchr(lname, '.');
     if (cp && stricmp(cp, ".label") == 0) {
-      strcpy(fname, label_name);
+      fname = label_name;
     }
     else {
-      sprintf(fname, "%s.label", label_name);
+      fname = std::string(label_name) + ".label";
     }
   }
 
-  fp = fopen(fname, "w");
-  if (!fp) ErrorReturn(ERROR_NOFILE, (ERROR_NO_FILE, "%s: could not open label file %s", Progname, fname));
+  fp = fopen(fname.c_str(), "w");
+  if (!fp) ErrorReturn(ERROR_NOFILE, (ERROR_NO_FILE, "%s: could not open label file %s", Progname, fname.c_str()));
 
   ret = LabelWriteInto(area, fp);
   fclose(fp);
