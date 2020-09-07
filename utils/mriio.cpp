@@ -2832,7 +2832,10 @@ static int bvolumeWrite(MRI *vol, const char *fname_passed, int type)
       if (dealloc) MRIfree(&mri);
     }
     else {
-      sprintf(subject_dir, "%s/%s", subjects_dir, sn);
+      int req = snprintf(subject_dir, STRLEN, "%s/%s", subjects_dir, sn);
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       if (stat(subject_dir, &stat_buf) < 0) {
         fprintf(stderr, "can't stat %s; writing to bhdr instead\n", subject_dir);
       }
