@@ -442,33 +442,6 @@ int mriio_command_line(int argc, char *argv[])
 
 } /* end mriio_command_line() */
 
-int mriio_set_subject_name(const char *name)
-{
-  if (subject_name == NULL) subject_name = (char *)malloc(STRLEN);
-
-  if (subject_name == NULL) {
-    errno = 0;
-    ErrorReturn(ERROR_NO_MEMORY,
-                (ERROR_NO_MEMORY,
-                 "mriio_set_subject_name(): "
-                 "could't allocate %d bytes...!",
-                 STRLEN));
-  }
-
-  if (name != NULL) {
-    int req = snprintf(subject_name, STRLEN, "%s", name);
-    if( req >= STRLEN ) {
-      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
-    }
-  } else {
-    free(subject_name);
-    subject_name = NULL;
-  }
-
-  return (NO_ERROR);
-
-} /* end mriio_set_subject_name() */
-
 void mriio_set_gdf_crop_flag(int new_gdf_crop_flag)
 {
   gdf_crop_flag = new_gdf_crop_flag;
