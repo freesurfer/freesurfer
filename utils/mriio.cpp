@@ -6170,7 +6170,7 @@ static int gdfWrite(MRI *mri, const char *fname)
 {
   FILE *fp;
   int i, j;
-  char im_fname[STRLEN];
+  std::string im_fname;
   unsigned char *buf;
   int buf_size = 0;
 
@@ -6214,8 +6214,8 @@ static int gdfWrite(MRI *mri, const char *fname)
   }
 
   for (i = 0; i < mri->depth; i++) {
-    sprintf(im_fname, "%s_%d.img", mri->gdf_image_stem, i + 1);
-    fp = fopen(im_fname, "w");
+    im_fname = std::string(mri->gdf_image_stem) + '_' + std::to_string(i+1) + ".img";
+    fp = fopen(im_fname.c_str(), "w");
     if (fp == NULL) {
       free(buf);
       errno = 0;
