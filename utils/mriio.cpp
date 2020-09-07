@@ -1572,10 +1572,14 @@ static MRI *corRead(const char *fname, int read_volume)
 
   if (strlen(xform) > 0) {
     char xform_use[STRLEN];
-    if (xform[0] == '/')
+    if (xform[0] == '/') {
       strcpy(mri->transform_fname, xform);
-    else
-      sprintf(mri->transform_fname, "%s/%s", fname, xform);
+    } else {
+      int req = snprintf(mri->transform_fname, STRLEN, "%s/%s", fname, xform);
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
+    }
 
     strcpy(xform_use, mri->transform_fname);
 
@@ -3945,8 +3949,14 @@ static MRI *genesisRead(const char *fname, int read_volume)
       *c = '\0';
       // this is too quick to assume of this type
       // another type %s%%03d.MR" must be examined
-      sprintf(fname_format, "%s%%d.MR", fname_base);
-      sprintf(fname_format2, "%s%%03d.MR", fname_base);
+      int req = snprintf(fname_format, STRLEN, "%s%%d.MR", fname_base);
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
+      req = snprintf(fname_format2, STRLEN, "%s%%03d.MR", fname_base);
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
     }
     else {
       errno = 0;
@@ -3960,12 +3970,18 @@ static MRI *genesisRead(const char *fname, int read_volume)
 
   if (strlen(fname_format) != 0) {
     strcpy(temp_string, fname_format);
-    sprintf(fname_format, "%s%s", fname_dir, temp_string);
+    int req = snprintf(fname_format, STRLEN, "%s%s", fname_dir, temp_string);
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     printf("fname_format  : %s\n", fname_format);
   }
   if (strlen(fname_format2) != 0) {
     strcpy(temp_string, fname_format2);
-    sprintf(fname_format2, "%s%s", fname_dir, temp_string);
+    int req = snprintf(fname_format2, STRLEN, "%s%s", fname_dir, temp_string);
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     printf("fname_format2 : %s\n", fname_format2);
   }
   /* ----- find the low and high files ----- */
@@ -7140,7 +7156,10 @@ static MRI *ximgRead(const char *fname, int read_volume)
       c++;
       im_init = atoi(c);
       *c = '\0';
-      sprintf(fname_format, "%s%%d.MR", fname_base);
+      int req = snprintf(fname_format, STRLEN, "%s%%d.MR", fname_base);
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
     }
     else {
       errno = 0;
@@ -7152,8 +7171,14 @@ static MRI *ximgRead(const char *fname, int read_volume)
     ErrorReturn(NULL, (ERROR_BADPARM, "genesisRead(): can't determine file name format for %s", fname));
   }
 
-  strcpy(temp_string, fname_format);
-  sprintf(fname_format, "%s%s", fname_dir, temp_string);
+  int req = snprintf(temp_string, STRLEN, "%s", fname_format);
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
+  req = snprintf(fname_format, STRLEN, "%s%s", fname_dir, temp_string);
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
 
   /* ----- find the low and high files ----- */
   im_low = im_init;
