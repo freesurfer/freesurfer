@@ -3494,7 +3494,7 @@ static MRI *bvolumeRead(const char *fname_passed, int read_volume, int type)
                       (ERROR_BADFILE,
                        "bvolumeRead(): "
                        "error reading from file %s",
-                       fname));
+                       fname.c_str()));
         }
 
         if (swap_bytes_flag) {
@@ -6247,7 +6247,7 @@ static int gdfWrite(MRI *mri, const char *fname)
     if (fp == NULL) {
       free(buf);
       errno = 0;
-      ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "gdfWrite(): error opening file %s", im_fname));
+      ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "gdfWrite(): error opening file %s", im_fname.c_str()));
     }
 
     for (j = 0; j < mri->height; j++) {
@@ -9545,7 +9545,7 @@ MRI *MRIreadGeRoi(const char *fname, int n_slices)
           fclose(fp);
           MRIfree(&mri);
           errno = 0;
-          ErrorReturn(NULL, (ERROR_BADFILE, "MRIreadGeRoi(): error reading from file file %s", fname_use));
+          ErrorReturn(NULL, (ERROR_BADFILE, "MRIreadGeRoi(): error reading from file file %s", fname_use.c_str()));
         }
 #if (BYTE_ORDER == LITTLE_ENDIAN)
         swab(mri->slices[i][y], mri->slices[i][y], (size_t)(2 * mri->width));
