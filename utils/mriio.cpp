@@ -4339,15 +4339,24 @@ static MRI *gelxRead(const char *fname, int read_volume)
     c = strrchr(fname_base, 'i');
     im_init = atoi(c + 1);
     *c = '\0';
-    sprintf(fname_format, "%si%%d", fname_base);
+    int req = snprintf(fname_format, STRLEN, "%si%%d", fname_base);
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
   }
   else {
     errno = 0;
     ErrorReturn(NULL, (ERROR_BADPARM, "genesisRead(): can't determine file name format for %s", fname));
   }
 
-  strcpy(temp_string, fname_format);
-  sprintf(fname_format, "%s%s", fname_dir, temp_string);
+  int req = snprintf(temp_string, STRLEN, "%s", fname_format);
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
+  req = snprintf(fname_format, STRLEN, "%s%s", fname_dir, temp_string);
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
 
   /* ----- find the low and high files ----- */
   im_low = im_init;
