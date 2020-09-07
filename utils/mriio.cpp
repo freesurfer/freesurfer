@@ -3409,7 +3409,7 @@ static MRI *bvolumeRead(const char *fname_passed, int read_volume, int type)
 {
   MRI *mri;
   FILE *fp;
-  char fname[STRLEN];
+  std::string fname;
   char directory[STRLEN];
   char stem[STRLEN];
   int swap_bytes_flag;
@@ -3445,9 +3445,13 @@ static MRI *bvolumeRead(const char *fname_passed, int read_volume, int type)
   if (!read_volume) return (mri);
 
   /* Read in the header of the first slice to get the endianness */
-  sprintf(fname, "%s/%s_%03d.hdr", directory, stem, 0);
-  if ((fp = fopen(fname, "r")) == NULL) {
-    fprintf(stderr, "ERROR: can't open file %s; assuming big-endian bvolume\n", fname);
+  std::stringstream tmp;
+  tmp << directory << '/' << stem << '_'
+      << std::setw(3) << std::setfill('0') << 0
+      << ".hdr";
+  fname = tmp.str();
+  if ((fp = fopen(fname.c_str(), "r")) == NULL) {
+    fprintf(stderr, "ERROR: can't open file %s; assuming big-endian bvolume\n", fname.c_str());
     swap_bytes_flag = 0;
   }
   else {
@@ -3462,12 +3466,16 @@ static MRI *bvolumeRead(const char *fname_passed, int read_volume, int type)
 
   /* Go through each slice */
   for (slice = 0; slice < mri->depth; slice++) {
-    /* Open the file for this slice */
-    sprintf(fname, "%s/%s_%03d.%s", directory, stem, slice, ext);
-    if ((fp = fopen(fname, "r")) == NULL) {
+    /* Open the file for this slice */ 
+    std::stringstream tmp;
+    tmp << directory << '/' << stem << '_'
+	<< std::setw(3) << std::setfill('0') << slice
+	<< '.' << ext;
+    fname = tmp.str();
+    if ((fp = fopen(fname.c_str(), "r")) == NULL) {
       MRIfree(&mri);
       errno = 0;
-      ErrorReturn(NULL, (ERROR_BADFILE, "bvolumeRead(): error opening file %s", fname));
+      ErrorReturn(NULL, (ERROR_BADFILE, "bvolumeRead(): error opening file %s", fname.c_str()));
     }
     // fprintf(stderr, "Reading %s ... \n", fname);
     /* Loop through the frames */
@@ -9460,7 +9468,7 @@ MRI *MRIreadGeRoi(const char *fname, int n_slices)
   int n_digits;
   FILE *fp;
   int width, height;
-  char fname_use[STRLEN];
+  std::string fname_use;
   int read_one_flag;
   int pixel_data_offset;
   int y;
@@ -9521,8 +9529,10 @@ MRI *MRIreadGeRoi(const char *fname, int n_slices)
   read_one_flag = FALSE;
 
   for (i = 0; i < n_slices; i++) {
-    sprintf(fname_use, "%s%03d%s", prefix, i, postfix);
-    if ((fp = fopen(fname_use, "r")) != NULL) {
+    std::stringstream tmp;
+    tmp << prefix << std::setw(3) << std::setfill('0') << i << postfix;
+    fname_use = tmp.str();
+    if ((fp = fopen(fname_use.c_str(), "r")) != NULL) {
       fseek(fp, 4, SEEK_SET);
       if (fread(&pixel_data_offset, 4, 1, fp) != 1) {
          ErrorPrintf(ERROR_BADFILE, "MRIreadGeRoi(): could not read file");
