@@ -3293,10 +3293,16 @@ static MRI *get_b_info(const char *fname_passed, int read_volume, char *director
   mri = MRIallocHeader(1, 1, 1, type, 1);
 
   /* ----- try to read the stem.bhdr ----- */
-  sprintf(bhdr_name, "%s/%s.bhdr", directory, stem);
+  int required = snprintf(bhdr_name, STRLEN, "%s/%s.bhdr", directory, stem);
+  if( required >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": bhdr_name truncated" << std::endl;
+  }
   if ((fp = fopen(bhdr_name, "r")) != NULL) {
     read_bhdr(mri, fp);
-    sprintf(fname, "%s/%s_000.hdr", directory, stem);
+    int required = snprintf(fname, STRLEN, "%s/%s_000.hdr", directory, stem);
+    if( required >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": fname truncated" << std::endl;
+    }
     if ((fp = fopen(fname, "r")) == NULL) {
       MRIfree(&mri);
       errno = 0;
@@ -3327,7 +3333,10 @@ static MRI *get_b_info(const char *fname_passed, int read_volume, char *director
               "If not suitable, please provide the information in %s file\n"
               "-----------------------------------------------------------------\n",
               bhdr_name);
-    sprintf(fname, "%s/%s_000.hdr", directory, stem);
+    int required = snprintf(fname, STRLEN, "%s/%s_000.hdr", directory, stem);
+    if( required >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     if ((fp = fopen(fname, "r")) == NULL) {
       MRIfree(&mri);
       errno = 0;
@@ -3343,7 +3352,10 @@ static MRI *get_b_info(const char *fname_passed, int read_volume, char *director
     fclose(fp);
 
     /* --- get the number of slices --- */
-    sprintf(fname, "%s/%s_000.%s", directory, stem, extension);
+    int req = snprintf(fname, STRLEN, "%s/%s_000.%s", directory, stem, extension);
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     if (!FileExists(fname)) {
       MRIfree(&mri);
       errno = 0;
@@ -3353,8 +3365,12 @@ static MRI *get_b_info(const char *fname_passed, int read_volume, char *director
                    "bailing out on read",
                    fname));
     }
-    for (nslices = 0; FileExists(fname); nslices++)
-      sprintf(fname, "%s/%s_%03d.%s", directory, stem, nslices, extension);
+    for (nslices = 0; FileExists(fname); nslices++) {
+      int req = snprintf(fname, STRLEN, "%s/%s_%03d.%s", directory, stem, nslices, extension);
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
+    }
     nslices--;
 
     mri->width = nx;
@@ -5970,7 +5986,10 @@ static MRI *gdfRead(const char *fname, int read_volume)
   n_files = 0;
   do {
     n_files++;
-    sprintf(fname_use, "%s%d%s", file_path_1, n_files, file_path_2);
+    int req = snprintf(fname_use, STRLEN, "%s%d%s", file_path_1, n_files, file_path_2);
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
   } while (FileExists(fname_use));
 
   /* ----- try padding the zeros if no files are found ----- */
@@ -5980,7 +5999,10 @@ static MRI *gdfRead(const char *fname, int read_volume)
     n_files = 0;
     do {
       n_files++;
-      sprintf(fname_use, "%s%03d%s", file_path_1, n_files, file_path_2);
+      int req = snprintf(fname_use, STRLEN, "%s%03d%s", file_path_1, n_files, file_path_2);
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
     } while (FileExists(fname_use));
 
     /* ----- still a problem? ----- */
@@ -6087,10 +6109,17 @@ static MRI *gdfRead(const char *fname, int read_volume)
   }
 
   for (i = 1; i <= n_files; i++) {
-    if (pad_zeros_flag)
-      sprintf(fname_use, "%s%03d%s", file_path_1, i, file_path_2);
-    else
-      sprintf(fname_use, "%s%d%s", file_path_1, i, file_path_2);
+    if (pad_zeros_flag) {
+      int req = snprintf(fname_use, STRLEN, "%s%03d%s", file_path_1, i, file_path_2);
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
+    } else {
+      int req = snprintf(fname_use, STRLEN, "%s%d%s", file_path_1, i, file_path_2);
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
+    }
 
     fp = fopen(fname_use, "r");
     if (fp == NULL) {
