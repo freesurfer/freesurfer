@@ -455,9 +455,12 @@ int mriio_set_subject_name(const char *name)
                  STRLEN));
   }
 
-  if (name == NULL)
-    strcpy(subject_name, name);
-  else {
+  if (name != NULL) {
+    int req = snprintf(subject_name, STRLEN, "%s", name);
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
+  } else {
     free(subject_name);
     subject_name = NULL;
   }
