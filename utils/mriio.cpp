@@ -24,6 +24,9 @@
   -------------------------------------------------------*/
 #define _MRIIO_SRC
 
+#include <sstream>
+#include <iomanip>
+
 #include <ctype.h>
 #include <dirent.h>
 #include <errno.h>
@@ -2630,7 +2633,7 @@ static int mincWrite(MRI *mri, const char *fname)
 static int bvolumeWrite(MRI *vol, const char *fname_passed, int type)
 {
   int i, j, t;
-  char fname[STRLEN];
+  std::string fname;;
   short *bufshort;
   float *buffloat;
   FILE *fp;
@@ -2740,8 +2743,14 @@ static int bvolumeWrite(MRI *vol, const char *fname_passed, int type)
     output_dir[od_length + 1] = '\0';
   }
 
-  sprintf(analyse_fname, "%s%s", output_dir, "analyse.dat");
-  sprintf(register_fname, "%s%s", output_dir, "register.dat");
+  int needed = snprintf(analyse_fname, STRLEN, "%s%s", output_dir, "analyse.dat");
+  if( needed >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": analyse_fname truncated" << std::endl;
+  }
+  needed = snprintf(register_fname, STRLEN, "%s%s", output_dir, "register.dat");
+  if( needed >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": register_fname truncated" << std::endl;
+  }
 
   bufsize = mri->width * size;
   bufshort = (short *)malloc(bufsize);
@@ -2778,25 +2787,29 @@ static int bvolumeWrite(MRI *vol, const char *fname_passed, int type)
 
   for (i = 0; i < mri->depth; i++) {
     /* ----- write the header file ----- */
-    sprintf(fname, "%s_%03d.hdr", stem, i);
-    if ((fp = fopen(fname, "w")) == NULL) {
+    std::stringstream tmp;
+    tmp << stem << '_' << std::setw(3) << std::setfill('0') << i << ".hdr";
+    fname = tmp.str();
+    if ((fp = fopen(fname.c_str(), "w")) == NULL) {
       if (dealloc) MRIfree(&mri);
       free(bufshort);
       free(buffloat);
       errno = 0;
-      ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "bvolumeWrite(): can't open file %s", fname));
+      ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "bvolumeWrite(): can't open file %s", fname.c_str()));
     }
     fprintf(fp, "%d %d %d %d\n", mri->height, mri->width, mri->nframes, endian);
     fclose(fp);
 
     /* ----- write the data file ----- */
-    sprintf(fname, "%s_%03d.%s", stem, i, ext);
-    if ((fp = fopen(fname, "w")) == NULL) {
+    tmp.str("");
+    tmp << stem << '_' << std::setw(3) << std::setfill('0') << i << '.' << ext;
+    fname = tmp.str();
+    if ((fp = fopen(fname.c_str(), "w")) == NULL) {
       if (dealloc) MRIfree(&mri);
       free(bufshort);
       free(buffloat);
       errno = 0;
-      ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "bvolumeWrite(): can't open file %s", fname));
+      ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "bvolumeWrite(): can't open file %s", fname.c_str()));
     }
 
     for (t = 0; t < mri->nframes; t++) {
@@ -2839,15 +2852,22 @@ static int bvolumeWrite(MRI *vol, const char *fname_passed, int type)
           fprintf(stderr, "%s is not a directory; writing to bhdr instead\n", subject_dir);
         }
         else {
-          sprintf(subject_volume_dir, "%s/mri/T1", subject_dir);
+          int needed = snprintf(subject_volume_dir, STRLEN, "%s/mri/T1", subject_dir);
+	  if( needed >= STRLEN ) {
+	    std::cerr << __FUNCTION__ << ": subject_volume_dir truncated" << std::endl;
+	  }
           subject_info = MRIreadInfo(subject_volume_dir);
           if (subject_info == NULL) {
-            sprintf(subject_volume_dir, "%s/mri/orig", subject_dir);
+            int needed = snprintf(subject_volume_dir, STRLEN, "%s/mri/orig", subject_dir);
+	    if( needed >= STRLEN ) {
+	      std::cerr << __FUNCTION__ << ": subject_volume_dir truncated" << std::endl;
+	    }
             subject_info = MRIreadInfo(subject_volume_dir);
-            if (subject_info == NULL)
+            if (subject_info == NULL) {
               fprintf(stderr,
                       "can't read the subject's orig or T1 volumes; "
                       "writing to bhdr instead\n");
+	    }
           }
         }
       }
@@ -3221,11 +3241,11 @@ static int bvolumeWrite(MRI *vol, const char *fname_passed, int type)
   }
 
   if (subject_info == NULL) {
-    sprintf(fname, "%s.bhdr", stem);
-    if ((fp = fopen(fname, "w")) == NULL) {
+    fname = std::string(stem) + ".hdr";
+    if ((fp = fopen(fname.c_str(), "w")) == NULL) {
       if (dealloc) MRIfree(&mri);
       errno = 0;
-      ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "bvolumeWrite(): can't open file %s", fname));
+      ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "bvolumeWrite(): can't open file %s", fname.c_str()));
     }
 
     result = write_bhdr(mri, fp);
