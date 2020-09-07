@@ -26,6 +26,7 @@
 
 #include <sstream>
 #include <iomanip>
+#include <vector>
 
 #include <ctype.h>
 #include <dirent.h>
@@ -2213,7 +2214,11 @@ static MRI *siemensRead(const char *fname, int read_volume_flag)
              (char *)&MRISvox(mri_raw, 0, i, file_n - n_low),
              sizeof(short) * cols);
 #else
-        swab(&MRISvox(mri_raw, 0, i, file_n - n_low), &MRISvox(mri_raw, 0, i, file_n - n_low), sizeof(short) * cols);
+	{
+	  std::vector<short> temp(cols);
+	  swab(&MRISvox(mri_raw, 0, i, file_n - n_low), temp.data(), sizeof(short)*cols );
+	  memcpy(&MRISvox(mri_raw, 0, i, file_n - n_low), temp.data(), sizeof(short)*cols );
+	}
 #endif
 #endif
       }
@@ -3518,10 +3523,13 @@ static MRI *bvolumeRead(const char *fname_passed, int read_volume, int type)
         }
 
         if (swap_bytes_flag) {
-          if (type == MRI_SHORT)
-            swab(mri->slices[k][row], mri->slices[k][row], (size_t)(mri->width * size));
-          else
+          if (type == MRI_SHORT) {
+	    std::vector<short> temp(mri->width);
+	    swab(mri->slices[k][row], temp.data(), (size_t)(mri->width * size));
+	    memcpy(mri->slices[k][row], temp.data(), (size_t)(mri->width * size));
+          } else {
             byteswapbuffloat((void *)mri->slices[k][row], size * mri->width);
+	  }
         }
       } /* row loop */
     }   /* frame loop */
@@ -4279,7 +4287,11 @@ static MRI *genesisRead(const char *fname, int read_volume)
              (char *)&MRISseq_vox(mri, 0, y, slice, frame),
              sizeof(short) * mri->width);
 #else
-        swab(&MRISseq_vox(mri, 0, y, slice, frame), &MRISseq_vox(mri, 0, y, slice, frame), sizeof(short) * mri->width);
+        {
+	  std::vector<short> temp(mri->width);
+	  swab(&MRISseq_vox(mri, 0, y, slice, frame), temp.data(), sizeof(short) * mri->width);
+	  memcpy(&MRISseq_vox(mri, 0, y, slice, frame), temp.data(), sizeof(short) * mri->width);
+	}
 #endif
 #endif
       }
@@ -4569,7 +4581,11 @@ static MRI *gelxRead(const char *fname, int read_volume)
           ErrorReturn(NULL, (ERROR_BADFILE, "genesisRead(): error reading from file file %s", fname_use));
         }
 #if (BYTE_ORDER == LITTLE_ENDIAN)
-        swab(mri->slices[i - im_low][y], mri->slices[i - im_low][y], (size_t)(2 * mri->width));
+	{
+	  std::vector<short> temp(2*mri->width);
+	  swab(mri->slices[i - im_low][y], temp.data(), (size_t)(2 * mri->width));
+	  memcpy(mri->slices[i - im_low][y], temp.data(), (size_t)(2 * mri->width));
+	}
 #endif
       }
 
@@ -6636,7 +6652,11 @@ static int read_otl_file(
 #if defined(SunOS)
       swab((const char *)points, (char *)points, 2 * n_rows * sizeof(short));
 #else
-      swab(points, points, 2 * n_rows * sizeof(short));
+      {
+	std::vector<short> tmp(2*n_rows);
+	swab(points, tmp.data(), 2 * n_rows * sizeof(short));
+	memcpy(points, tmp.data(), 2 * n_rows * sizeof(short));
+      }
 #endif
 #endif
     }
@@ -6937,7 +6957,11 @@ int list_labels_in_otl_file(FILE *fp)
 #if defined(SunOS)
       swab((const char *)points, (char *)points, 2 * n_rows * sizeof(short));
 #else
-      swab(points, points, 2 * n_rows * sizeof(short));
+      {
+	std::vector<short> tmp(2*n_rows);
+	swab(points, tmp.data(), 2 * n_rows * sizeof(short));
+	memcpy(points, tmp.data(), 2 * n_rows * sizeof(short));
+      }
 #endif
 #endif
     }
@@ -7422,7 +7446,15 @@ static MRI *ximgRead(const char *fname, int read_volume)
           ErrorReturn(NULL, (ERROR_BADFILE, "genesisRead(): error reading from file file %s", fname_use));
         }
 #if (BYTE_ORDER == LITTLE_ENDIAN)
-        swab(mri->slices[i - im_low][y], mri->slices[i - im_low][y], (size_t)(2 * mri->width));
+	{
+	  std::vector<short> tmp(2*mri->width);
+	  // Note:
+	  // void swab(const void *from, void *to, ssize_t n);
+	  // void *memcpy(void *dest, const void *src, size_t n);
+	  // Because consistency is the hobgoblin of small minds...
+	  swab(mri->slices[i - im_low][y], tmp.data(), (size_t)(2 * mri->width));
+	  memcpy(mri->slices[i - im_low][y], tmp.data(), (size_t)(2 * mri->width));
+	}
 #endif
       }
 
@@ -9617,7 +9649,15 @@ MRI *MRIreadGeRoi(const char *fname, int n_slices)
           ErrorReturn(NULL, (ERROR_BADFILE, "MRIreadGeRoi(): error reading from file file %s", fname_use.c_str()));
         }
 #if (BYTE_ORDER == LITTLE_ENDIAN)
-        swab(mri->slices[i][y], mri->slices[i][y], (size_t)(2 * mri->width));
+	{
+	  std::vector<short> tmp(2*mri->width);
+	  // Note:
+	  // void swab(const void *from, void *to, ssize_t n);
+	  // void *memcpy(void *dest, const void *src, size_t n);
+	  // Because consistency is the hobgoblin of small minds...
+	  swab(mri->slices[i][y], tmp.data(), (size_t)(2 * mri->width));
+	  memcpy(mri->slices[i][y], tmp.data(), (size_t)(2 * mri->width));
+	}
 #endif
       }
 
