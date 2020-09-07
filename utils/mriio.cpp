@@ -8014,8 +8014,14 @@ static int nifti1Write(MRI *mri0, const char *fname)
   if (dot != NULL)
     if (strcmp(dot, ".img") == 0 || strcmp(dot, ".hdr") == 0) *dot = '\0';
 
-  sprintf(hdr_fname, "%s.hdr", fname_stem);
-  sprintf(img_fname, "%s.img", fname_stem);
+  int needed = snprintf(hdr_fname, STRLEN, "%s.hdr", fname_stem);
+  if( needed >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation of hdr_fname" << std::endl;
+  }
+  needed = snprintf(img_fname, STRLEN, "%s.img", fname_stem);
+  if( needed >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation of img_fname" << std::endl;
+  }
 
   fp = fopen(hdr_fname, "w");
   if (fp == NULL) {
