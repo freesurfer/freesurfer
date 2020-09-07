@@ -2216,6 +2216,10 @@ static MRI *siemensRead(const char *fname, int read_volume_flag)
 #else
 	{
 	  std::vector<short> temp(cols);
+	  // Note:
+	  // void swab(const void *from, void *to, ssize_t n);
+	  // void *memcpy(void *dest, const void *src, size_t n);
+	  // Because consistency is the hobgoblin of small minds...
 	  swab(&MRISvox(mri_raw, 0, i, file_n - n_low), temp.data(), sizeof(short)*cols );
 	  memcpy(&MRISvox(mri_raw, 0, i, file_n - n_low), temp.data(), sizeof(short)*cols );
 	}
@@ -3525,6 +3529,10 @@ static MRI *bvolumeRead(const char *fname_passed, int read_volume, int type)
         if (swap_bytes_flag) {
           if (type == MRI_SHORT) {
 	    std::vector<short> temp(mri->width);
+	    // Note:
+	    // void swab(const void *from, void *to, ssize_t n);
+	    // void *memcpy(void *dest, const void *src, size_t n);
+	    // Because consistency is the hobgoblin of small minds...
 	    swab(mri->slices[k][row], temp.data(), (size_t)(mri->width * size));
 	    memcpy(mri->slices[k][row], temp.data(), (size_t)(mri->width * size));
           } else {
@@ -4289,6 +4297,10 @@ static MRI *genesisRead(const char *fname, int read_volume)
 #else
         {
 	  std::vector<short> temp(mri->width);
+	  // Note:
+	  // void swab(const void *from, void *to, ssize_t n);
+	  // void *memcpy(void *dest, const void *src, size_t n);
+	  // Because consistency is the hobgoblin of small minds...
 	  swab(&MRISseq_vox(mri, 0, y, slice, frame), temp.data(), sizeof(short) * mri->width);
 	  memcpy(&MRISseq_vox(mri, 0, y, slice, frame), temp.data(), sizeof(short) * mri->width);
 	}
@@ -4583,6 +4595,10 @@ static MRI *gelxRead(const char *fname, int read_volume)
 #if (BYTE_ORDER == LITTLE_ENDIAN)
 	{
 	  std::vector<short> temp(2*mri->width);
+	  // Note:
+	  // void swab(const void *from, void *to, ssize_t n);
+	  // void *memcpy(void *dest, const void *src, size_t n);
+	  // Because consistency is the hobgoblin of small minds...
 	  swab(mri->slices[i - im_low][y], temp.data(), (size_t)(2 * mri->width));
 	  memcpy(mri->slices[i - im_low][y], temp.data(), (size_t)(2 * mri->width));
 	}
@@ -6654,6 +6670,10 @@ static int read_otl_file(
 #else
       {
 	std::vector<short> tmp(2*n_rows);
+	// Note:
+	// void swab(const void *from, void *to, ssize_t n);
+	// void *memcpy(void *dest, const void *src, size_t n);
+	// Because consistency is the hobgoblin of small minds...
 	swab(points, tmp.data(), 2 * n_rows * sizeof(short));
 	memcpy(points, tmp.data(), 2 * n_rows * sizeof(short));
       }
@@ -6959,6 +6979,10 @@ int list_labels_in_otl_file(FILE *fp)
 #else
       {
 	std::vector<short> tmp(2*n_rows);
+	// Note:
+	// void swab(const void *from, void *to, ssize_t n);
+	// void *memcpy(void *dest, const void *src, size_t n);
+	// Because consistency is the hobgoblin of small minds...
 	swab(points, tmp.data(), 2 * n_rows * sizeof(short));
 	memcpy(points, tmp.data(), 2 * n_rows * sizeof(short));
       }
