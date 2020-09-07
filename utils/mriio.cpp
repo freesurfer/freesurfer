@@ -7473,8 +7473,14 @@ static MRI *nifti1Read(const char *fname, int read_volume)
   if (dot != NULL)
     if (strcmp(dot, ".img") == 0 || strcmp(dot, ".hdr") == 0) *dot = '\0';
 
-  sprintf(hdr_fname, "%s.hdr", fname_stem);
-  sprintf(img_fname, "%s.img", fname_stem);
+  int req = snprintf(hdr_fname, STRLEN, "%s.hdr", fname_stem);
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
+  req = snprintf(img_fname, STRLEN, "%s.img", fname_stem);
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
 
   fp = fopen(hdr_fname, "r");
   if (fp == NULL) {
