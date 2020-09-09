@@ -314,7 +314,7 @@ class Freeview:
         name = name_ext[0]
         ext = '.' + name_ext[1] if len(name_ext) == 2 else ''
         for n in range(2, 10000):
-            fullpath = os.path.join(directory, '%s-%d%s' % (name, n, ext))
+            fullpath = os.path.join(directory, '%s-%02d%s' % (name, n, ext))
             if not os.path.exists(fullpath):
                 return fullpath
         raise RuntimeError('could not generate a unique filename for "%s" after trying many times' % (filename))
