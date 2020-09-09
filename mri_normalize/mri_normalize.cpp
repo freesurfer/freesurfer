@@ -150,6 +150,7 @@ static float grad_thresh = -1 ;
 static MRI *mri_not_control = NULL;
 
 static LABEL *control_point_label = NULL ;
+char *output_control_points_vol;
 
 static int nonmax_suppress = 1 ;
 static int erode = 0 ;
@@ -774,6 +775,10 @@ main(int argc, char *argv[])
       fflush(stdout);
       fflush(stderr);
     }
+    if(output_control_points_vol){
+      printf("Writing output control points volume to %s\n", output_control_points_vol);
+      MRIwrite(mri_ctrl,output_control_points_vol);
+    }
     MRIfree(&mri_ctrl) ;
     MRIfree(&mri_aseg) ;
     printf("Applying bias correction\n");
@@ -1034,6 +1039,12 @@ get_option(int argc, char *argv[])
     nargs = 3 ;
     if (!gca || !xform)
       ErrorExit(ERROR_NOFILE, "%s: could not read gca (%s) or transform (%s)\n", Progname, argv[2], argv[3]) ;
+  }
+  else if (!stricmp(option, "C"))
+  {
+    output_control_points_vol = argv[2] ;
+    nargs = 1 ;
+    printf("Writing output control points volume to %s\n", output_control_points_vol);
   }
   else if (!stricmp(option, "MASK"))
   {

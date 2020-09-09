@@ -89,6 +89,8 @@
       <explanation>load volume and remove all control points that aren't in [min max] in volume</explanation>
       <argument>-r controlpoints biasfield</argument>
       <explanation>for reading</explanation>
+      <argument>-c output controlpoints volume</argument>
+      <explanation>Output final control points as a volume (only with -aseg)</explanation>
       <argument>-surface &lt;surface&gt; &lt;xform&gt;</argument>
       <explanation>normalize based on the skelton of the interior of the transformed surface</explanation>
       <argument>-seed N</argument>
