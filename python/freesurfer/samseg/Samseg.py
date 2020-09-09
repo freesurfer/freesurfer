@@ -303,8 +303,12 @@ class Samseg:
             print('Saving the final mesh in template space')
             deformedAtlasFileName = os.path.join(self.savePath, 'mesh.txt')
             self.probabilisticAtlas.saveDeformedAtlas(self.modelSpecifications.atlasFileName, deformedAtlasFileName, nodePositions)
-
-        # Save the history of the parameter estimation process
+            
+        # Save the Gaussian priors, (normalized) likelihoods and posteriors
+        if self.saveModelProbabilities:
+            self.saveGaussianProbabilities( os.path.join(self.savePath, 'probabilities') )
+ 
+       # Save the history of the parameter estimation process
         if self.saveHistory:
             history = {'input': {
                 'imageFileNames': self.imageFileNames,
@@ -318,6 +322,7 @@ class Samseg:
                 "volumesInCubicMm": volumesInCubicMm, "optimizationSummary": self.optimizationSummary}
             with open(os.path.join(self.savePath, 'history.p'), 'wb') as file:
                 pickle.dump(history, file, protocol=pickle.HIGHEST_PROTOCOL)
+                                
 
         return self.modelSpecifications.FreeSurferLabels, self.modelSpecifications.names, volumesInCubicMm, self.optimizationSummary
 
@@ -457,6 +462,62 @@ class Samseg:
 
         # write the warp file
         fs.Warp(coordmap, source=imageGeom, target=templateGeom, affine=matrix).write(filename)
+        
+        
+    def saveGaussianProbabilities( self, probabilitiesPath ):
+        # Make output directory
+        os.makedirs(probabilitiesPath, exist_ok=True)
+          
+        # Get the class priors as dictated by the current mesh position
+        mesh = self.probabilisticAtlas.getMesh(self.modelSpecifications.atlasFileName, self.transform,
+                                              initialDeformation=self.deformation,
+                                              initialDeformationMeshCollectionFileName=self.deformationAtlasFileName)
+        mergedAlphas = kvlMergeAlphas( mesh.alphas, self.classFractions )
+        mesh.alphas = mergedAlphas
+        classPriors = mesh.rasterize(self.imageBuffers.shape[0:3], -1)
+        classPriors = classPriors[self.mask, :] / ( 2**16 - 1 )
+
+        # Get bias field corrected data
+        self.biasField.downSampleBasisFunctions([1, 1, 1])
+        biasFields = self.biasField.getBiasFields()
+        data = self.imageBuffers[self.mask, :] - biasFields[self.mask, :]
+
+        # Compute gaussian priors, (normalized) likelihoods and posteriors
+        gaussianPosteriors, _ = self.gmm.getGaussianPosteriors( data, classPriors )
+        gaussianLikelihoods, _ = self.gmm.getGaussianPosteriors( data, classPriors, priorWeight=0 )
+        gaussianPriors, _ = self.gmm.getGaussianPosteriors( data, classPriors, dataWeight=0 )
+
+        # Open gaussians file
+        file = open(os.path.join(probabilitiesPath, 'gaussians.txt'), 'w')
+
+        # Cycle through gaussians and write volumes and means/variances
+        classNames = [param.mergedName for param in self.modelSpecifications.sharedGMMParameters]
+        numberOfGaussiansPerClass = [param.numberOfComponents for param in self.modelSpecifications.sharedGMMParameters]
+        maxNameSize = len(max(classNames, key=len)) + 2
+        for classNumber, className in enumerate(classNames):
+            numComponents = numberOfGaussiansPerClass[classNumber]
+            for componentNumber in range(numComponents):
+                # 
+                gaussianNumber = int(np.sum(numberOfGaussiansPerClass[:classNumber])) + componentNumber
+                
+                # Write volume
+                probabilities = np.zeros( ( *( self.imageBuffers.shape[:3] ), 3 ), dtype=np.float32 )
+                probabilities[ self.mask, 0 ] = gaussianPosteriors[ :, gaussianNumber ]
+                probabilities[ self.mask, 1 ] = gaussianPriors[ :, gaussianNumber ]
+                probabilities[ self.mask, 2 ] = gaussianLikelihoods[ :, gaussianNumber ]
+                basename = className
+                if numComponents > 1:
+                    basename += '-%d' % (componentNumber + 1)
+                self.writeImage(probabilities, os.path.join(probabilitiesPath, basename + '.mgz'))
+
+                # write gaussian information
+                mean = self.gmm.means[gaussianNumber]
+                var = self.gmm.variances[gaussianNumber]
+                weight = self.gmm.mixtureWeights[gaussianNumber]
+                file.write('%s %.4f %.4f %.4f\n' % (basename.ljust(maxNameSize), mean, var, weight))
+
+        file.close()
+        
 
     def getDownSampledModel(self, atlasFileName, downSamplingFactors):
 
@@ -761,53 +822,6 @@ class Samseg:
 
         # End resolution level loop
 
-        # Save the final model probabilities (posteriors, priors, likelihood) for each class gaussian
-        if self.saveModelProbabilities:
-
-            # Make output directory
-            probabilitiesPath = os.path.join(self.savePath, 'probabilities')
-            os.makedirs(probabilitiesPath, exist_ok=True)
-
-            classNames = [param.mergedName for param in self.modelSpecifications.sharedGMMParameters]
-            numberOfGaussiansPerClass = [param.numberOfComponents for param in self.modelSpecifications.sharedGMMParameters]
-            probabilities = np.zeros((np.sum(numberOfGaussiansPerClass), *downSampledMask.shape, 3))
-
-            # Precompute all likelihoods so we can normalize
-            for classNumber, className in enumerate(classNames):
-                for componentNumber in range(numberOfGaussiansPerClass[classNumber]):
-                    gaussianNumber = int(np.sum(numberOfGaussiansPerClass[:classNumber])) + componentNumber
-                    probabilities[gaussianNumber, downSampledMask, 0] = downSampledGaussianPosteriors[:, gaussianNumber]
-                    probabilities[gaussianNumber, downSampledMask, 1] = downSampledClassPriors[:, classNumber] * self.gmm.mixtureWeights[gaussianNumber]
-                    with np.errstate(divide='ignore', invalid='ignore'):
-                        probabilities[..., 2] = probabilities[..., 0] / probabilities[..., 1]
-                        probabilities[np.isnan(probabilities)] = 0
-
-            # Normalize likelihood across all gaussians
-            with np.errstate(divide='ignore', invalid='ignore'):
-                probabilities[..., 2] /= np.sum(probabilities[..., 2], axis=0)
-                probabilities[np.isnan(probabilities)] = 0
-
-            # Open gaussians file
-            file = open(os.path.join(probabilitiesPath, 'gaussians.txt'), 'w')
-
-            # Cycle through gaussians and write volumes and means/variances
-            maxNameSize = len(max(classNames, key=len)) + 2
-            for classNumber, className in enumerate(classNames):
-                numComponents = numberOfGaussiansPerClass[classNumber]
-                for componentNumber in range(numComponents):
-                    gaussianNumber = int(np.sum(numberOfGaussiansPerClass[:classNumber])) + componentNumber
-                    basename = className
-                    if numComponents > 1:
-                        basename += '-%d' % (componentNumber + 1)
-                    self.writeImage(probabilities[gaussianNumber, ...], os.path.join(probabilitiesPath, basename + '.mgz'))
-
-                    # write gaussian information
-                    mean = self.gmm.means[gaussianNumber]
-                    var = self.gmm.variances[gaussianNumber]
-                    weight = self.gmm.mixtureWeights[gaussianNumber]
-                    file.write('%s %.4f %.4f %.4f\n' % (basename.ljust(maxNameSize), mean, var, weight))
-
-            file.close()
 
     def computeFinalSegmentation(self):
         # Get the final mesh
