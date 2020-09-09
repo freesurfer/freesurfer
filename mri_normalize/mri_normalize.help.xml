@@ -68,6 +68,8 @@
       <explanation>use max intensity/mm gradient g (default=1.000)</explanation>
       <argument>-prune &lt;boolean&gt;</argument>
       <explanation>turn pruning of control points on/off (default=off). pruning useful if white is expanding into gm</explanation>
+      <argument>-no-gentle-cp</argument>
+      <explanation>Do not use gentle normalization with control points file </explanation>
       <argument>-MASK maskfile</argument>
       <argument>-atlas &lt;path to gca&gt;&lt;path to gca transform&gt; &lt;min distance of control points from non-brain&gt;</argument>
       <explanation>use atlas to exlude control-points from being in non-brain regions</explanation>
