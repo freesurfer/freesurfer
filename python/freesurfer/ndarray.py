@@ -21,7 +21,7 @@ class ArrayContainerTemplate:
 
     basedims = None
 
-    def __init__(self, data):
+    def __init__(self, data, lut=None):
         '''
         Contructs the container object from an array. The input data is not copied, and
         the array should have ndims equal to the subclass' basedims (or basedims + 1).
@@ -44,7 +44,7 @@ class ArrayContainerTemplate:
             raise ValueError('%s (%dD) cannot be initialized by an array with %d dims' % (classname, self.basedims, self.data.ndim))
 
         # any array type might have a valid lookup table
-        self.lut = None
+        self.lut = lut
 
     @property
     def nframes(self):
@@ -114,20 +114,20 @@ class Overlay(ArrayContainerTemplate):
     '''1D array that represents values corresponding to surface vertices.'''
     basedims = 1
 
-    def __init__(self, data):
+    def __init__(self, data, lut=None):
         '''Contructs an overlay from a 1D or 2D data array. The 2nd dimension is
         always assumed to be the number of frames.'''
-        super().__init__(data)
+        super().__init__(data, lut=lut)
 
 
 class Image(ArrayContainerTemplate, Transformable):
     '''2D image with specific geometry.'''
     basedims = 2
 
-    def __init__(self, data, affine=None, pixsize=None):
+    def __init__(self, data, affine=None, pixsize=None, lut=None):
         '''Contructs an image from a 2D or 3D data array. The 3rd dimension is
         always assumed to be the number of frames.'''
-        ArrayContainerTemplate.__init__(self, data)
+        ArrayContainerTemplate.__init__(self, data, lut=lut)
         self.affine = affine
         self.pixsize = pixsize if pixsize is not None else (1.0, 1.0)
 
@@ -191,7 +191,7 @@ class Volume(ArrayContainerTemplate, Transformable):
     '''
     basedims = 3
 
-    def __init__(self, data, affine=None, voxsize=None):
+    def __init__(self, data, affine=None, voxsize=None, lut=None):
         '''
         Contructs a volume from a 3D or 4D data array. The 4th dimension is
         always assumed to be the number of frames.
@@ -211,7 +211,7 @@ class Volume(ArrayContainerTemplate, Transformable):
             newaxes = [1] * (3 - data.ndim)
             data = data.reshape(*data.shape, *newaxes)
 
-        ArrayContainerTemplate.__init__(self, data)
+        ArrayContainerTemplate.__init__(self, data, lut=lut)
         self.affine = affine
         self.voxsize = voxsize if voxsize is not None else (1.0, 1.0, 1.0)
 
