@@ -863,9 +863,10 @@ static IMAGE *TiffReadImage(const char *fname, int frame0)
       }
       break;
     case 4:
+      // The lack of break is deliberate and the 'fall through' comment is recognised by GCC
       // extra_samples = 1;
       nsamples = 3;
-    // no break
+      // fall through
     case 3:
       switch (bits_per_sample) {
         default:
