@@ -120,9 +120,10 @@ LABEL *LabelReadFrom(const char *subject_name, FILE *fp)
 LABEL *LabelRead(const char *subject_name, const char *label_name)
 {
   LABEL *area;
-  char fname[STRLEN], *cp, subjects_dir[STRLEN], lname[STRLEN];
+  char *cp, subjects_dir[STRLEN], lname[STRLEN];
   char label_name0[STRLEN];
   FILE *fp;
+  std::string fname;
 
   sprintf(label_name0, "%s", label_name);  // keep a copy
 
@@ -141,43 +142,50 @@ LABEL *LabelRead(const char *subject_name, const char *label_name)
     if (cp) *cp = 0;
 
     cp = strrchr(lname, '/');
-    if (cp)
+    if (cp) {
       label_name = cp + 1;
-    else
+    } else {
       label_name = lname;
+    }
 
-    sprintf(fname, "%s/%s/label/%s.label", subjects_dir, subject_name, label_name);
+    fname = std::string(subjects_dir) + "/" + std::string(subject_name)
+      + "/label/" + std::string(label_name) + ".label";
   }
   else {
-    strcpy(fname, label_name);
+    fname = label_name;
     cp = getenv("SUBJECTS_DIR");
-    if (!cp)
+    if (!cp) {
       strcpy(subjects_dir, ".");
-    else
+    } else {
       strcpy(subjects_dir, cp);
+    }
     strcpy(lname, label_name);
     cp = strstr(lname, ".label");
-    if (cp == NULL)
-      sprintf(fname, "%s.label", lname);
-    else
-      strcpy(fname, label_name);
+    if (cp == NULL) {
+      fname = std::string(lname) + ".label";
+    } else {
+      fname = label_name;
+    }
   }
 
   // As a last resort, treat label_name0 as a full path name
-  if (!fio_FileExistsReadable(fname) && fio_FileExistsReadable(label_name0)) sprintf(fname, "%s", label_name0);
+  if (!fio_FileExistsReadable(fname.c_str()) && fio_FileExistsReadable(label_name0)) {
+    fname = label_name0;
+  }
 
   //  printf("%s %s\n",label_name0,fname);
 
   /* read in the file */
   errno = 0;
-  fp = fopen(fname, "r");
+  fp = fopen(fname.c_str(), "r");
   if (errno) perror(NULL);
 
-  if (!fp) ErrorReturn(NULL, (ERROR_NOFILE, "%s: could not open label file %s", Progname, fname));
+  if (!fp) ErrorReturn(NULL, (ERROR_NOFILE, "%s: could not open label file %s", Progname, fname.c_str()));
 
   area = LabelReadFrom(subject_name, fp);
-  if (area)
-    strcpy(area->name, fname);
+  if (area) {
+    strncpy(area->name, fname.c_str(), STRLEN-1);
+  }
   fclose(fp);
   return (area);
 }
@@ -571,9 +579,10 @@ int LabelWriteInto(LABEL *area, FILE *fp)
 ------------------------------------------------------*/
 int LabelWrite(LABEL *area, const char *label_name)
 {
-  char fname[STRLEN], *cp, subjects_dir[STRLEN], lname[STRLEN];
+  char *cp, subjects_dir[STRLEN], lname[STRLEN];
   FILE *fp;
   int ret;
+  std::string fname;
 
   strcpy(lname, label_name);
   cp = strrchr(lname, '.');
@@ -590,20 +599,21 @@ int LabelWrite(LABEL *area, const char *label_name)
                 "(SUBJECTS_DIR)",
                 Progname);
     strcpy(subjects_dir, cp);
-    sprintf(fname, "%s/%s/label/%s.label", subjects_dir, area->subject_name, label_name);
+    fname = std::string(subjects_dir) + '/' + std::string(area->subject_name) +
+      "/label/" + std::string(label_name) + ".label";
   }
   else {
     cp = strrchr(lname, '.');
     if (cp && stricmp(cp, ".label") == 0) {
-      strcpy(fname, label_name);
+      fname = label_name;
     }
     else {
-      sprintf(fname, "%s.label", label_name);
+      fname = std::string(label_name) + ".label";
     }
   }
 
-  fp = fopen(fname, "w");
-  if (!fp) ErrorReturn(ERROR_NOFILE, (ERROR_NO_FILE, "%s: could not open label file %s", Progname, fname));
+  fp = fopen(fname.c_str(), "w");
+  if (!fp) ErrorReturn(ERROR_NOFILE, (ERROR_NO_FILE, "%s: could not open label file %s", Progname, fname.c_str()));
 
   ret = LabelWriteInto(area, fp);
   fclose(fp);
@@ -1082,12 +1092,13 @@ int LabelFillAll(LABEL *area, int *vertex_list, int nvertices, int max_vertices,
 ------------------------------------------------------*/
 static Transform *labelLoadTransform(const char *subject_name, const char *sdir, General_transform *transform)
 {
-  char xform_fname[STRLEN];
+  std::string xform_fname;
 
-  sprintf(xform_fname, "%s/%s/mri/transforms/talairach.xfm", sdir, subject_name);
-  if (FileExists(xform_fname) == 0) return (NULL);
-  if (input_transform_file(xform_fname, transform) != OK)
-    ErrorReturn(NULL, (ERROR_NOFILE, "%s: could not load transform file '%s'", Progname, xform_fname));
+  xform_fname = std::string(sdir) + '/' + std::string(subject_name) + "/mri/transforms/talairach.xfm";
+  if (FileExists(xform_fname.c_str()) == 0) return (NULL);
+  if (input_transform_file(xform_fname.c_str(), transform) != OK) {
+    ErrorReturn(NULL, (ERROR_NOFILE, "%s: could not load transform file '%s'", Progname, xform_fname.c_str()));
+  }
 
   return (get_linear_transform_ptr(transform));
 }

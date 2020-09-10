@@ -511,6 +511,7 @@ if(NOT MINIMAL)
     mri_sbbr
     mri_segcentroids
     mri_seghead
+    mri_segment_hypothalamic_subunits
     mri_strip_nonwhite
     mri_strip_subject_info
     mri_surfacemask
