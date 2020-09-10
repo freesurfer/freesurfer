@@ -133,9 +133,10 @@
     </optional>
     <cost-function>
       <argument>--intensity weight</argument>
-      <argument>--spring weight</argument>
-      <argument>--tspring weight</argument>
-      <argument>--nspring weight</argument>
+      <argument>--location  weight</argument>
+      <argument>--spring    weight</argument>
+      <argument>--tspring   weight</argument>
+      <argument>--nspring   weight</argument>
       <argument>--curv weight</argument>
       <argument>--hinge weight</argument>
       <argument>--spring_nzr weight</argument>
