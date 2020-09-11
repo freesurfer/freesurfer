@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import os
+import sys
 import csv
 import glob
 import logging
@@ -28,13 +29,20 @@ logging.getLogger('tensorflow').disabled = True
 
 def main():
 
-    # parse commandline
+    # configure commandline
     parser = fs.utils.ArgumentParser()
     parser.add_argument('inpath', help='Image(s) to segment. Can be a path to a single image or to a folder.')
     parser.add_argument('outpath', help='Segmentation output. Must be the same type as input path (single file or folder).')
     parser.add_argument('--out_posteriors', help='Output path or directory to save posteriors.')
     parser.add_argument('--out_volumes', help='Volume csv output path.')
     parser.add_argument('--model', help='Alternate model weights to load.')
+
+    # check for no arguments
+    if len(sys.argv) < 2:
+        parser.print_help()
+        sys.exit(1)
+
+    # parse commandline
     args = parser.parse_args()
 
     # locate model weights
