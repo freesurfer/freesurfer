@@ -6604,7 +6604,6 @@ while( $#argv != 0 )
       set DoSmooth2        = 1;
       set DoInflate2       = 1;
       set DoCurvHK         = 1;
-      set DoCurvStats      = 1;
       set DoSphere         = 1;
       set DoSurfReg        = 1;
       set DoAvgCurv        = 1;
@@ -6612,6 +6611,7 @@ while( $#argv != 0 )
       set DoCortParc       = 1;
       set DoWhiteSurfs     = 1;
       set DoPialSurfs      = 1;
+      set DoCurvStats      = 1;
       set DoCortRibbonVolMask = 1;
       set DoParcStats      = 1;
       set DoCortParc2      = 1;
@@ -6689,7 +6689,6 @@ while( $#argv != 0 )
       set DoWhitePreAparc  = 1;
       set DoCortexLabel    = 1;
       set DoCurvHK         = 1;
-      set DoCurvStats      = 1;
       breaksw
 
     case "-autorecon2-samseg":
@@ -6709,7 +6708,6 @@ while( $#argv != 0 )
       set DoWhitePreAparc  = 1;
       set DoCortexLabel    = 1;
       set DoCurvHK         = 1;
-      set DoCurvStats      = 1;
       set DoSegStats       = 0;
       breaksw
 
@@ -6742,7 +6740,6 @@ while( $#argv != 0 )
       set DoInflate2       = 1;
       set DoSegStats       = 0;
       set DoCurvHK         = 1;
-      set DoCurvStats      = 1;
       breaksw
 
     case "-autorecon2-inflate1":
@@ -6782,7 +6779,6 @@ while( $#argv != 0 )
       set DoInflate2       = 1;
       set DoSegStats       = 0;
       set DoCurvHK         = 1;
-      set DoCurvStats      = 1;
       breaksw
 
     case "-autorecon-pial":
@@ -6794,7 +6790,6 @@ while( $#argv != 0 )
       set DoInflate2       = 1;
       set DoSegStats       = 1;
       set DoCurvHK         = 1;
-      set DoCurvStats      = 1;
       set DoSphere         = 1;
       set DoSurfReg        = 1;
       set DoAvgCurv        = 1;
@@ -6803,6 +6798,7 @@ while( $#argv != 0 )
       set DoWhiteSurfs     = 1;
       set DoPialSurfs      = 1;
       set DoPctSurfCon     = 1;
+      set DoCurvStats      = 1;
       set DoCortRibbonVolMask = 1;
       set DoParcStats      = 1;
       set DoCortParc2      = 1;
@@ -6824,6 +6820,7 @@ while( $#argv != 0 )
       set DoCortParc       = 1;
       set DoWhiteSurfs     = 1;
       set DoPialSurfs      = 1;
+      set DoCurvStats      = 1;
       set DoCortRibbonVolMask = 1;
       set DoParcStats      = 1;
       set DoCortParc2      = 1;
@@ -6843,6 +6840,7 @@ while( $#argv != 0 )
     case "-autorecon3-T2pial":
     case "-T2pial-only":
       set DoT2pial         = 1;
+      set DoCurvStats      = 1;
       set DoCortRibbonVolMask = 1;
       set DoParcStats      = 1;
       set DoCortParc2      = 1;
