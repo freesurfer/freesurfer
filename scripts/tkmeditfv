@@ -360,6 +360,18 @@ while( $#argv != 0 )
       set surfcolor = ($surfcolor yellow yellow red red);
       breaksw
 
+    case "-lh-surfs":
+      set DoSurfs = 1;
+      set surflist0 = ($surflist0 lh.white lh.pial)
+      set surfcolor = ($surfcolor yellow red);
+      breaksw
+
+    case "-rh-surfs":
+      set DoSurfs = 1;
+      set surflist0 = ($surflist0 rh.white rh.pial)
+      set surfcolor = ($surfcolor yellow red);
+      breaksw
+
     case "-pial":
       set DoSurfs = 1;
       set surflist0 = ($surflist0 lh.pial rh.pial)
@@ -617,7 +629,7 @@ usage_exit:
   echo ""
   echo "-tkmedit : use tkmedit instead of freeview"
   echo "-aparc+aseg"
-  echo "-surfs  : load lh and rh white and pial"
+  echo "-surfs  : load lh and rh white and pial (-lh-surfs, -rh-surfs)"
   echo "-surf /path/to/surface <color> : load surface with optional color (eg, blue)"
   echo "-vol volume1 <-vol volume2> : load extra volumes "
   echo "-crs col row slice : place cursor at given location and center FoV"

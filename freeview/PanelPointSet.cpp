@@ -98,11 +98,11 @@ void PanelPointSet::ConnectLayer( Layer* layer_in )
   }
 
   LayerPropertyPointSet* p = layer->GetProperty();
-  connect( p, SIGNAL(PropertyChanged()), this, SLOT(UpdateWidgets()), Qt::UniqueConnection );
-  connect( layer, SIGNAL(PointAdded(int)), this, SLOT(UpdateWidgets()), Qt::UniqueConnection);
-  connect( layer, SIGNAL(PointRemoved(int)), this, SLOT(UpdateWidgets()), Qt::UniqueConnection);
-  connect( layer, SIGNAL(PointAdded(int)), this, SLOT(SetCurrentPoint(int)), Qt::UniqueConnection);
-  connect( layer, SIGNAL(PointRemoved(int)), this, SLOT(SetCurrentPoint(int)), Qt::UniqueConnection);
+  connect( p, SIGNAL(PropertyChanged()), this, SLOT(UpdateWidgets()), Qt::QueuedConnection );
+  connect( layer, SIGNAL(PointAdded(int)), this, SLOT(UpdateWidgets()), Qt::QueuedConnection);
+  connect( layer, SIGNAL(PointRemoved(int)), this, SLOT(UpdateWidgets()), Qt::QueuedConnection);
+  connect( layer, SIGNAL(PointAdded(int)), this, SLOT(SetCurrentPoint(int)), Qt::QueuedConnection);
+  connect( layer, SIGNAL(PointRemoved(int)), this, SLOT(SetCurrentPoint(int)), Qt::QueuedConnection);
   connect( ui->doubleSpinBoxOpacity, SIGNAL(valueChanged(double)), p, SLOT(SetOpacity(double)) );
   connect( ui->checkBoxShowSpline, SIGNAL(toggled(bool)), p, SLOT(SetShowSpline(bool)) );
   connect( ui->checkBoxSnapToCenter, SIGNAL(toggled(bool)), p, SLOT(SetSnapToVoxelCenter(bool)));
@@ -400,7 +400,12 @@ void PanelPointSet::SetCurrentPoint(int nIndex)
   {
     if (nIndex >= layer->GetNumberOfPoints())
       nIndex = layer->GetNumberOfPoints()-1;
+    if (nIndex+1 > ui->spinBoxGoToPoint->maximum())
+      ui->spinBoxGoToPoint->setMaximum(nIndex+1);
+    ui->spinBoxGoToPoint->blockSignals(true);
     ui->spinBoxGoToPoint->setValue(nIndex+1);
+    ui->spinBoxGoToPoint->blockSignals(false);
+    DoUpdateWidgets();
   }
 }
 

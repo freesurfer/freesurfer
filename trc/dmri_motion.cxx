@@ -68,8 +68,8 @@ const char *Progname = "dmri_motion";
 
 float T = 100, D = .001;
 
-vector<char *> inDwiList, inBvalList;
-char *inMatFile = NULL, *outFile = NULL, *outFrameFile = NULL;
+vector<std::string> inDwiList, inBvalList;
+std::string inMatFile, outFile, outFrameFile;
 
 MRI *dwi;
 
@@ -125,7 +125,7 @@ int main(int argc, char **argv) {
  
       // Read DWI volume series
       cout << "Loading DWI volume series from " << inDwiList[irun] << endl;
-      dwi = MRIread(inDwiList[irun]);
+      dwi = MRIread(inDwiList[irun].c_str());
       if (!dwi) {
         cout << "ERROR: Could not read " << inDwiList[irun] << endl;
         exit(1);
@@ -245,7 +245,7 @@ int main(int argc, char **argv) {
       score = 1;
   }
 
-  if (inMatFile) {		// Estimate between-volume motion
+  if (!inMatFile.empty()) {		// Estimate between-volume motion
     bool isMat;
     int nframe = 0;
     vector<float> xform, tr(3,0), ro(3,0), tr0(3,0), ro0(3,0),
@@ -377,7 +377,7 @@ int main(int argc, char **argv) {
   outfile.close();
 
   // Write frame-by-frame measures to file
-  if (outFrameFile) {
+  if (!outFrameFile.empty()) {
     vector<float>::const_iterator itr, iro, iscore;
 
     if (trframe.empty()) 
@@ -584,7 +584,7 @@ static void print_version(void) {
 
 /* --------------------------------------------- */
 static void check_options(void) {
-  if (!outFile) {
+  if (outFile.empty()) {
     cout << "ERROR: must specify output file" << endl;
     exit(1);
   }
@@ -592,7 +592,7 @@ static void check_options(void) {
     cout << "ERROR: must specify equal numbers of DWI and b-value files" << endl;
     exit(1);
   }
-  if (inBvalList.empty() && !inMatFile) {
+  if (inBvalList.empty() && inMatFile.empty()) {
     cout << "ERROR: must specify inputs for between-volume and/or "
          << "within-volume motion measures" << endl;
     exit(1);
@@ -616,24 +616,26 @@ static void dump_options() {
 
   cout << "Output motion measure file: " << outFile << endl;
 
-  if (outFrameFile)
+  if (!outFrameFile.empty()) {
     cout << "Output frame-by-frame motion measure file: " << outFrameFile
          << endl;
+  }
 
-  if (inMatFile)
+  if (!inMatFile.empty()) {
     cout << "Input transform file: " << inMatFile << endl;
+  }
 
   if (!inDwiList.empty()) {
     cout << "Input DWI file(s):";
-    for (vector<char *>::const_iterator ifile = inDwiList.begin();
-                                        ifile < inDwiList.end(); ifile++)
+    for (auto ifile = inDwiList.begin(); ifile < inDwiList.end(); ifile++) {
       cout << " " << *ifile;
+    }
     cout << endl;
 
     cout << "Input b-value table(s):";
-    for (vector<char *>::const_iterator ifile = inBvalList.begin();
-                                        ifile < inBvalList.end(); ifile++)
+    for (auto ifile = inBvalList.begin(); ifile < inBvalList.end(); ifile++) {
       cout << " " << *ifile;
+    }
     cout << endl;
 
     cout << "Low-b image intensity threshold: " << T << endl;

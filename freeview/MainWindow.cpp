@@ -6990,13 +6990,10 @@ void MainWindow::SetVolumeColorMap( int nColorMap, int nColorMapScale, const QLi
 
 void MainWindow::OnTransformVolume()
 {
-  if ( !m_dlgTransformVolume->isVisible() )
-  {
-    cout << "Warning: Transformation can only apply to volumes for now. If your data includes ROI/Surface/Way Points, please do not use this feature yet.\n";
-    m_dlgTransformVolume->show();
-    m_dlgTransformVolume->raise();
-    m_dlgTransformVolume->UpdateUI();
-  }
+  cout << "Warning: Transformation can only apply to volumes for now. If your data includes ROI/Surface/Way Points, please do not use this feature yet.\n";
+  m_dlgTransformVolume->show();
+  m_dlgTransformVolume->raise();
+  m_dlgTransformVolume->UpdateUI();
 }
 
 void MainWindow::OnCropVolume()

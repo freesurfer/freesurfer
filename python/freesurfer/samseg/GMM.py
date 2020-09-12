@@ -120,7 +120,7 @@ class GMM:
         gaussianLikelihoods = np.exp(squaredMahalanobisDistances * -0.5) * scaling
         return gaussianLikelihoods.T
 
-    def getGaussianPosteriors(self, data, classPriors):
+    def getGaussianPosteriors(self, data, classPriors, dataWeight=1, priorWeight=1 ):
 
         #
         numberOfVoxels = data.shape[0]
@@ -135,8 +135,8 @@ class GMM:
                 variance = self.variances[gaussianNumber, :, :]
 
                 gaussianLikelihoods = self.getGaussianLikelihoods(data, mean, variance)
-                gaussianPosteriors[:, gaussianNumber] = gaussianLikelihoods * (
-                            self.mixtureWeights[gaussianNumber] * classPrior)
+                gaussianPosteriors[:, gaussianNumber] = gaussianLikelihoods**dataWeight \
+                                        * ( self.mixtureWeights[gaussianNumber] * classPrior )**priorWeight
         normalizer = np.sum(gaussianPosteriors, axis=1) + eps
         gaussianPosteriors = gaussianPosteriors / np.expand_dims(normalizer, 1)
 

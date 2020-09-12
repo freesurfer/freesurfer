@@ -1,74 +1,42 @@
-FROM ubuntu:xenial
+# docker build for distributing a base fs 7.1.1 container
 
-RUN apt-get update && \
-    apt-get install -y build-essential \
-                       tcsh \
-                       libtool-bin \
-                       libtool \
-                       automake \
-                       gfortran \
-                       libglu1-mesa-dev \
-                       libfreetype6-dev \
-                       uuid-dev \
-                       libxmu-dev \
-                       libxmu-headers \
-                       libxi-dev \
-                       libx11-dev \
-                       libxml2-utils \
-                       libxt-dev \
-                       libjpeg62-dev \
-                       libxaw7-dev \
-                       liblapack-dev \
-                       git \
-                       gcc-4.8 \
-                       g++-4.8 \
-                       libgfortran-4.8-dev \
-                       curl \
-                       python-pip \
-                       python3-pip
-RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.8 50 && \
-    update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-4.8 50
-RUN pip3 install --upgrade pip
+FROM centos:7
 
-ARG working_dir=/home/freesurfer
-WORKDIR $working_dir
+# shell settings
+WORKDIR /root
 
-# Get GEMS python code and requirements
-COPY GEMS2 $working_dir/GEMS2
-COPY as_python $working_dir/as_python
+# install utils
+RUN yum -y update
+RUN yum -y install bc libgomp perl tar tcsh wget vim-common
+RUN yum -y install mesa-libGL libXext libSM libXrender libXmu
+RUN yum clean all
 
-RUN cd $working_dir/GEMS2 && git clone https://github.com/pybind/pybind11.git
-RUN pip3 install -r $working_dir/as_python/requirements.txt
+# install fs
+RUN wget https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/7.1.1/freesurfer-linux-centos7_x86_64-7.1.1.tar.gz -O fs.tar.gz && \
+    tar --no-same-owner -xzvf fs.tar.gz && \
+    mv freesurfer /usr/local && \
+    rm fs.tar.gz
 
-#Install cmake
-RUN curl -O https://cmake.org/files/v3.10/cmake-3.10.2-Linux-x86_64.sh && sh ./cmake-3.10.2-Linux-x86_64.sh --skip-license && cp -r bin /usr/ && cp -r doc /usr/share/ && cp -r man /usr/share/ && cp -r share /usr/
+# setup fs env
+ENV OS Linux
+ENV PATH /usr/local/freesurfer/bin:/usr/local/freesurfer/fsfast/bin:/usr/local/freesurfer/tktools:/usr/local/freesurfer/mni/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ENV FREESURFER_HOME /usr/local/freesurfer
+ENV FREESURFER /usr/local/freesurfer
+ENV SUBJECTS_DIR /usr/local/freesurfer/subjects
+ENV LOCAL_DIR /usr/local/freesurfer/local
+ENV FSFAST_HOME /usr/local/freesurfer/fsfast
+ENV FMRI_ANALYSIS_DIR /usr/local/freesurfer/fsfast
+ENV FUNCTIONALS_DIR /usr/local/freesurfer/sessions
 
-# Install ITK
-RUN git clone https://itk.org/ITK.git
-RUN cd $working_dir && mkdir ITK-build && cd ITK-build && \
-    cmake ../ITK \
-          -DITK_BUILD_DEFAULT_MODULES=OFF \
-          -DITKGroup_Core=ON \
-          -DITKGroup_Filtering=ON \
-          -DCMAKE_BUILD_TYPE=Release \
-          -DCMAKE_CXX_FLAGS="-msse2 -mfpmath=sse" \
-          -DCMAKE_C_FLAGS="-msse2 -mfpmath=sse" \
-    && make -j8
-ENV ITK_DIR $working_dir/ITK-build
+# set default fs options
+ENV FS_OVERRIDE 0
+ENV FIX_VERTEX_AREA ""
+ENV FSF_OUTPUT_FORMAT nii.gz
 
-# Build GEMS
-RUN cd $working_dir/GEMS2 && \
-    cmake -D CMAKE_CXX_FLAGS="-msse2 -mfpmath=sse -fPIC -fpermissive" \
-          -D CMAKE_C_FLAGS="-msse2 -mfpmath=sse -fPIC -fpermissive" \
-          -D BUILD_EXECUTABLES=OFF \
-          -D BUILD_GUI=OFF \
-          -D BUILD_MATLAB=OFF \
-          -D BUILD_SHARED_LIBS=OFF \
-          -D BUILD_TESTING=OFF \
-          -D PYTHON_EXECUTABLE=/usr/bin/python3.5 \
-          -D PYTHON_LIBRARY=/usr/lib/x86_64-linux-gnu/libpython3.5m.so \
-          . && \
-    make -j8
-
-ENV PYTHONPATH .:./GEMS2/bin
-ENV SAMSEG_DATA_DIR /data/samseg_data
+# mni env requirements
+ENV MINC_BIN_DIR /usr/local/freesurfer/mni/bin
+ENV MINC_LIB_DIR /usr/local/freesurfer/mni/lib
+ENV MNI_DIR /usr/local/freesurfer/mni
+ENV MNI_DATAPATH /usr/local/freesurfer/mni/data
+ENV MNI_PERL5LIB /usr/local/freesurfer/mni/share/perl5
+ENV PERL5LIB /usr/local/freesurfer/mni/share/perl5

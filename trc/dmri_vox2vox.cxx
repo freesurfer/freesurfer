@@ -64,10 +64,8 @@ int main(int argc, char *argv[]) ;
 const char *Progname = "dmri_vox2vox";
 
 int doInvNonlin = 0, nin = 0, nout = 0;
-char *inDir = NULL, *inFile[100],
-     *outDir = NULL, *outFile[100],
-     *inRefFile = NULL, *outRefFile = NULL,
-     *affineXfmFile = NULL, *nonlinXfmFile = NULL;
+std::string inDir, outDir, inRefFile, outRefFile, affineXfmFile, nonlinXfmFile;
+std::vector<std::string> inFile, outFile;
 
 struct utsname uts;
 char *cmdline, cwd[2000];
@@ -77,7 +75,7 @@ Timer cputimer;
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
   int nargs, cputime;
-  char fname[PATH_MAX];
+  std::string fname;
   vector<float> point(3);
   MRI *inref = 0, *outref = 0;
   AffineReg affinereg;
@@ -107,20 +105,24 @@ int main(int argc, char **argv) {
   dump_options(stdout);
 
   // Read reference volumes
-  inref = MRIread(inRefFile);
-  outref = MRIread(outRefFile);
+  inref = MRIread(inRefFile.c_str());
+  outref = MRIread(outRefFile.c_str());
 
   // Read transform files
 #ifndef NO_CVS_UP_IN_HERE
-  if (nonlinXfmFile) {
-    if (affineXfmFile)
-      affinereg.ReadXfm(affineXfmFile, inref, 0);
-    nonlinreg.ReadXfm(nonlinXfmFile, outref);
-  }
-  else
+  if (!nonlinXfmFile.empty()) {
+    if (!affineXfmFile.empty()) {
+      affinereg.ReadXfm(affineXfmFile.c_str(), inref, 0);
+    }
+    nonlinreg.ReadXfm(nonlinXfmFile.c_str(), outref);
+  } else {
 #endif
-  if (affineXfmFile)
-    affinereg.ReadXfm(affineXfmFile, inref, outref);
+    if (!affineXfmFile.empty()) {
+      affinereg.ReadXfm(affineXfmFile.c_str(), inref, outref);
+    }
+#ifndef NO_CVS_UP_IN_HERE
+  }
+#endif
 
   for (int k = 0; k < nout; k++) {
     float coord;
@@ -132,10 +134,11 @@ int main(int argc, char **argv) {
     cputimer.reset();
 
     // Read input text file
-    if (inDir)
-      sprintf(fname, "%s/%s", inDir, inFile[k]);
-    else
-      strcpy(fname, inFile[k]);
+    if (!inDir.empty()) {
+      fname = inDir + '/' + inFile.at(k);
+    } else {
+      fname = inFile.at(k);
+    }
 
     infile.open(fname, ios::in);
     if (!infile) {
@@ -177,10 +180,11 @@ int main(int argc, char **argv) {
     }
 
     // Write output text file
-    if (outDir)
-      sprintf(fname, "%s/%s", outDir, outFile[k]);
-    else
-      strcpy(fname, outFile[k]);
+    if (!outDir.empty()) {
+      fname = outDir + '/' + outFile.at(k);
+    } else {
+      fname = outFile.at(k);
+    }
 
     outfile.open(fname, ios::out);
     if (!outfile) {
@@ -237,7 +241,7 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       nargsused = 0;
       while (nargsused < nargc && strncmp(pargv[nargsused], "--", 2)) {
-        inFile[nin] = pargv[nargsused];
+        inFile.push_back(pargv[nargsused]);
         nargsused++;
         nin++;
       }
@@ -251,7 +255,7 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       nargsused = 0;
       while (nargsused < nargc && strncmp(pargv[nargsused], "--", 2)) {
-        outFile[nout] = pargv[nargsused];
+        outFile.push_back(pargv[nargsused]);
         nargsused++;
         nout++;
       }
@@ -361,11 +365,11 @@ static void check_options(void) {
     printf("ERROR: must specify as many output text files as input files\n");
     exit(1);
   }
-  if(!inRefFile) {
+  if(inRefFile.empty()) {
     printf("ERROR: must specify input reference volume\n");
     exit(1);
   }
-  if(!outRefFile) {
+  if(outRefFile.empty()) {
     printf("ERROR: must specify output reference volume\n");
     exit(1);
   }
@@ -383,26 +387,31 @@ static void dump_options(FILE *fp) {
   fprintf(fp,"machine  %s\n",uts.machine);
   fprintf(fp,"user     %s\n",VERuser());
 
-  if (inDir)
-    fprintf(fp, "Input directory: %s\n", inDir);
+  if (!inDir.empty()) {
+    fprintf(fp, "Input directory: %s\n", inDir.c_str());
+  }
   fprintf(fp, "Input files:");
-  for (int k = 0; k < nin; k++)
-    fprintf(fp, " %s", inFile[k]);
+  for (int k = 0; k < nin; k++) {
+    fprintf(fp, " %s", inFile.at(k).c_str());
+  }
   fprintf(fp, "\n");
-  if (outDir)
-    fprintf(fp, "Output directory: %s\n", outDir);
+  if (!outDir.empty()) {
+    fprintf(fp, "Output directory: %s\n", outDir.c_str());
+  }
   if (nout > 0) {
     fprintf(fp, "Output files:");
-    for (int k = 0; k < nout; k++)
-      fprintf(fp, " %s", outFile[k]);
+    for (int k = 0; k < nout; k++) {
+      fprintf(fp, " %s", outFile.at(k).c_str());
+    }
     fprintf(fp, "\n");
   }
-  fprintf(fp, "Input reference: %s\n", inRefFile);
-  fprintf(fp, "Output reference: %s\n", outRefFile);
-  if (affineXfmFile)
-    fprintf(fp, "Affine registration: %s\n", affineXfmFile);
-  if (nonlinXfmFile) {
-    fprintf(fp, "Nonlinear registration: %s\n", nonlinXfmFile);
+  fprintf(fp, "Input reference: %s\n", inRefFile.c_str());
+  fprintf(fp, "Output reference: %s\n", outRefFile.c_str());
+  if (!affineXfmFile.empty()) {
+    fprintf(fp, "Affine registration: %s\n", affineXfmFile.c_str());
+  }
+  if (!nonlinXfmFile.empty()) {
+    fprintf(fp, "Nonlinear registration: %s\n", nonlinXfmFile.c_str());
     fprintf(fp, "Invert nonlinear morph: %d\n", doInvNonlin);
   }
 

@@ -153,7 +153,7 @@ parser.add_argument('-b','--beta', type=float, default=0.3, help='beta. Defaults
 parser.add_argument('--bias', metavar='file', help='Save biasfield volume to filename.')
 parser.add_argument('--bf-order', type=int, default=4, help='Bias field order. Defaults to 4.')
 parser.add_argument('--max-lab', type=int, default=3, help='Maximum number of lab . Defaults to 3.')
-parser.add_argument('-e','--exclude', default=[], type=int, nargs='+', help='Exclude a set of labels.')
+parser.add_argument('-e','--exclude', default=[], type=int, nargs=4, action='append', help='Exclude a set of labels.')
 parser.add_argument('--unary-weight', type=int, default=5, help='Unary term weight. Defaults to 5.')
 parser.add_argument('-v', '--verbose', action='store_true', help='Verbose output.')
 args = parser.parse_args()

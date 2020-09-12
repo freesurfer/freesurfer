@@ -187,6 +187,8 @@ double round(double x);
 #include "randomfields.h"
 #include "cma.h"
 #include "region.h"
+#include "romp_support.h"
+
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -260,9 +262,9 @@ int ReverseFaceOrder = 0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
-  int nargs, c, r, s, nhits, InMask, n, mriType,nvox;
+  int nargs, c, nhits, n, mriType,nvox;
   int fstart, fend, nframes;
-  double val,maskval,mergeval,gmean,gstd,gmax,voxvol;
+  double gmean,gstd,gmax,voxvol;
   FILE *fp;
   MRI *mritmp;
 
@@ -428,11 +430,15 @@ int main(int argc, char *argv[]) {
   nhits = 0;
   if(nReplace == 0){
     // Binarize
-
-    mergeval = BinValNot;
-    InMask = 1;
     for(frame = fstart; frame <= fend; frame++){
+      // Do openmp for columns because often nframes = 1
+      #ifdef HAVE_OPENMP
+      printf("Starting parallel %d\n",omp_get_num_threads());
+      #pragma omp parallel for if_ROMP(assume_reproducible) reduction(+ : nhits)
+      #endif
       for (c=0; c < InVol->width; c++) {
+        int r,s;
+        double mergeval = BinValNot, maskval, val;
 	for (r=0; r < InVol->height; r++) {
 	  for (s=0; s < InVol->depth; s++) {
 	    if(MergeVol) mergeval = MRIgetVoxVal(MergeVol,c,r,s,frame);
@@ -459,7 +465,7 @@ int main(int argc, char *argv[]) {
 	    
 	    if(DoMatch){
 	      // Check for a match
-	      Matched = 0;
+              int Matched = 0;
 	      for(n=0; n < nMatch; n++){
 		if(fabs(val - MatchValues[n]) < 2*FLT_MIN){
 		  MRIsetVoxVal(OutVol,c,r,s,frame-fstart,BinVal);
@@ -538,7 +544,12 @@ int main(int argc, char *argv[]) {
   nhits = -1;
   if(DoCount){
     if(noverbose == 0) printf("Counting number of voxels in first frame\n");
+    #ifdef HAVE_OPENMP
+    #pragma omp parallel for if_ROMP(assume_reproducible) reduction(+ : nhits)
+    #endif
     for (c=0; c < OutVol->width; c++) {
+      double val;
+      int r,s;
       for (r=0; r < OutVol->height; r++) {
 	for (s=0; s < OutVol->depth; s++) {
 	  // Get the value at this voxel
@@ -572,9 +583,14 @@ int main(int argc, char *argv[]) {
   if ((nReplace != 0) && (InVol->ct)) OutVol->ct = CTABdeepCopy(InVol->ct);
 
   // Save output
-  if(OutVolFile) MRIwrite(OutVol,OutVolFile);
+  if(OutVolFile) {
+    printf("Writing output to %s\n",OutVolFile);
+    int err = MRIwrite(OutVol,OutVolFile);
+    if(err) exit(1);
+  }
 
   if(SurfFile){
+    printf("Creating surface %s\n",SurfFile);
     MRIS *surf;
     surf = MRIStessellate(OutVol,BinVal,0);
     if(nsmoothsurf > 0) MRISaverageVertexPositions(surf, nsmoothsurf) ;
@@ -583,7 +599,6 @@ int main(int argc, char *argv[]) {
       MRISreverseFaceOrder(surf);
       MRIScomputeMetricProperties(surf);
     }
-
     MRISwrite(surf,SurfFile);
     MRISfree(&surf);
   }
@@ -800,6 +815,15 @@ static int parse_commandline(int argc, char **argv) {
       DoFDR = 1;
       nargsused = 1;
     } 
+    else if(!strcasecmp(option, "--threads") || !strcasecmp(option, "--nthreads") ){
+      if(nargc < 1) CMDargNErr(option,1);
+      int nthreads=1;
+      sscanf(pargv[0],"%d",&nthreads);
+      #ifdef _OPENMP
+      omp_set_num_threads(nthreads);
+      #endif
+      nargsused = 1;
+    } 
     else if (!strcasecmp(option, "--fdr-pos")) FDRSign = +1;
     else if (!strcasecmp(option, "--fdr-neg")) FDRSign = -1;
     else if (!strcasecmp(option, "--fdr-abs")) FDRSign =  0; //default
@@ -988,6 +1012,7 @@ static void print_usage(void) {
   printf("   --bb npad : reduce dim of output to the minimum volume of non-zero voxels with npad boundary\n");
   printf("   --surf surfname : create a surface mesh from the binarization\n");
   printf("   --surf-smooth niterations : iteratively smooth the surface mesh\n");
+  printf("   --threads nthreads (won't apply to replace)\n");
   printf("   --noverbose (default *verbose*) \n");
   printf("\n");
   printf("   --debug     turn on debugging\n");

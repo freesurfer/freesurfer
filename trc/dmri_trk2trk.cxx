@@ -70,11 +70,8 @@ const char *Progname = "dmri_trk2trk";
 int doInvNonlin = 0, doFill = 0, doMean = 0, doNth = 0, strNum = -1,
     lengthMin = -1, lengthMax = -1;
 unsigned int nTract = 0;
-char *inDir = NULL,
-     *outDir = NULL,
-     *inRefFile = NULL, *outRefFile = NULL,
-     *affineXfmFile = NULL, *nonlinXfmFile = NULL;
-vector<char *> inTrkList, inAscList, outTrkList, outAscList, outVolList,
+std::string inDir, outDir, inRefFile, outRefFile, affineXfmFile, nonlinXfmFile;
+vector<std::string> inTrkList, inAscList, outTrkList, outAscList, outVolList,
                incMaskList, excMaskList;
 vector<MRI *>  incMask, excMask;
 
@@ -86,7 +83,8 @@ Timer cputimer;
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
   int nargs, cputime;
-  char fname[PATH_MAX], outorient[4];
+  char outorient[4];
+  std::string fname;
   vector<float> point(3), step(3, 0);
   MATRIX *outv2r;
   MRI *inref = 0, *outref = 0, *outvol = 0;
@@ -117,11 +115,12 @@ int main(int argc, char **argv) {
   dump_options(stdout);
 
   // Read reference volumes
-  inref = MRIread(inRefFile);
-  outref = MRIread(outRefFile);
+  inref = MRIread(inRefFile.c_str());
+  outref = MRIread(outRefFile.c_str());
 
-  if (!outVolList.empty())
+  if (!outVolList.empty()) {
     outvol = MRIclone(outref, NULL);
+  }
 
   // Output space orientation information
   outv2r = MRIgetVoxelToRasXform(outref);
@@ -129,25 +128,31 @@ int main(int argc, char **argv) {
 
   // Read transform files
 #ifndef NO_CVS_UP_IN_HERE
-  if (nonlinXfmFile) {
-    if (affineXfmFile)
-      affinereg.ReadXfm(affineXfmFile, inref, 0);
-    nonlinreg.ReadXfm(nonlinXfmFile, outref);
-  }
-  else
+  if (!nonlinXfmFile.empty()) {
+    if (!affineXfmFile.empty()) {
+      affinereg.ReadXfm(affineXfmFile.c_str(), inref, 0);
+    }
+    nonlinreg.ReadXfm(nonlinXfmFile.c_str(), outref);
+  } else {
 #endif
-  if (affineXfmFile)
-    affinereg.ReadXfm(affineXfmFile, inref, outref);
+    if (!affineXfmFile.empty()) {
+      affinereg.ReadXfm(affineXfmFile.c_str(), inref, outref);
+    }
+#ifndef NO_CVS_UP_IN_HERE
+  }
+#endif
 
   // Read inclusion masks
-  for (vector<char *>::const_iterator imask = incMaskList.begin();
-                                      imask < incMaskList.end(); imask++)
-    incMask.push_back(MRIread(*imask));
+  for (auto imask = incMaskList.begin();
+       imask < incMaskList.end(); imask++) {
+    incMask.push_back(MRIread((*imask).c_str()));
+  }
 
   // Read exclusion masks
-  for (vector<char *>::const_iterator imask = excMaskList.begin();
-                                      imask < excMaskList.end(); imask++)
-    excMask.push_back(MRIread(*imask));
+  for (auto imask = excMaskList.begin();
+       imask < excMaskList.end(); imask++) {
+    excMask.push_back(MRIread((*imask).c_str()));
+  }
 
   for (unsigned int itract = 0; itract < nTract; itract++) {
     int npts, nstr = 0;
@@ -160,12 +165,13 @@ int main(int argc, char **argv) {
     cputimer.reset();
 
     if (!inTrkList.empty()) {		// Read streamlines from .trk file
-      if (inDir)
-        sprintf(fname, "%s/%s", inDir, inTrkList[itract]);
-      else
-        strcpy(fname, inTrkList[itract]);
+      if (!inDir.empty()) {
+	fname = inDir + "/" + inTrkList.at(itract);
+      } else {
+	fname = inTrkList.at(itract);
+      }
 
-      if (!trkreader.Open(fname, &trkheadin)) {
+      if (!trkreader.Open(fname.c_str(), &trkheadin)) {
         cout << "ERROR: Cannot open input file " << fname << endl;
         cout << "ERROR: " << trkreader.GetLastErrorMessage() << endl;
         exit(1);
@@ -208,10 +214,11 @@ int main(int argc, char **argv) {
       ifstream infile;
       vector<float> newpts;
 
-      if (inDir)
-        sprintf(fname, "%s/%s", inDir, inAscList[itract]);
-      else
-        strcpy(fname, inAscList[itract]);
+      if (!inDir.empty()) {
+	fname = inDir + '/' + inAscList.at(itract);
+      } else {
+	fname = inAscList.at(itract);
+      }
 
       infile.open(fname, ios::in);
       if (!infile) {
@@ -572,10 +579,11 @@ int main(int argc, char **argv) {
 
     // Write transformed streamlines to volume
     if (!outVolList.empty()) {
-      if (outDir)
-        sprintf(fname, "%s/%s", outDir, outVolList[itract]);
-      else
-        strcpy(fname, outVolList[itract]);
+      if (!outDir.empty()) {
+	fname = outDir + "/" + outVolList.at(itract);
+      } else {
+	fname = outVolList.at(itract);
+      }
 
       MRIclear(outvol);
 
@@ -599,17 +607,18 @@ int main(int argc, char **argv) {
                        MRIgetVoxVal(outvol, ix, iy, iz, 0) + 1);
         }
 
-      MRIwrite(outvol, fname);
+      MRIwrite(outvol, fname.c_str());
     }
 
     // Write transformed streamlines to text file
     if (!outAscList.empty()) {
       ofstream outfile;
 
-      if (outDir)
-        sprintf(fname, "%s/%s", outDir, outAscList[itract]);
-      else
-        strcpy(fname, outAscList[itract]);
+      if (!outDir.empty()) {
+	fname = outDir + "/" + outAscList.at(itract);
+      } else {
+	fname = outAscList.at(itract);
+      }
 
       outfile.open(fname, ios::out);
       if (!outfile) {
@@ -617,10 +626,10 @@ int main(int argc, char **argv) {
         exit(1);
       }
 
-      for (vector< vector<float> >::const_iterator istr = streamlines.begin();
-                                                   istr < streamlines.end();
-                                                   istr++) {
-        for (vector<float>::const_iterator ipt = istr->begin();
+      for (auto istr = streamlines.begin();
+	   istr < streamlines.end();
+	   istr++) {
+        for (auto ipt = istr->begin();
                                            ipt < istr->end(); ipt += 3)
           outfile << (int) round(ipt[0]) << " "
                   << (int) round(ipt[1]) << " "
@@ -644,9 +653,9 @@ int main(int argc, char **argv) {
         trkheadout.origin[0] = 0;
         trkheadout.origin[1] = 0;
         trkheadout.origin[2] = 0;
-      }
-      else
+      } else {
         trkheadout = trkheadin;
+      }
 
       trkheadout.voxel_size[0] = outref->xsize;
       trkheadout.voxel_size[1] = outref->ysize;
@@ -656,9 +665,11 @@ int main(int argc, char **argv) {
       trkheadout.dim[1] = outref->height;
       trkheadout.dim[2] = outref->depth;
 
-      for (int i = 0; i < 4; i++)
-        for (int j = 0; j < 4; j++)
+      for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
           trkheadout.vox_to_ras[i][j] = outv2r->rptr[i+1][j+1];
+	}
+      }
 
       strcpy(trkheadout.voxel_order, outorient);
 
@@ -681,12 +692,13 @@ int main(int argc, char **argv) {
       trkheadout.n_count = (int) streamlines.size();
 
       // Open output .trk file
-      if (outDir)
-        sprintf(fname, "%s/%s", outDir, outTrkList[itract]);
-      else
-        strcpy(fname, outTrkList[itract]);
+      if (!outDir.empty()) {
+	fname = outDir + "/" + outTrkList.at(itract);
+      } else {
+	fname = outTrkList.at(itract);
+      }
 
-      if (!trkwriter.Initialize(fname, trkheadout)) {
+      if (!trkwriter.Initialize(fname.c_str(), trkheadout)) {
         cout << "ERROR: Cannot open output file " << fname << endl;
         cout << "ERROR: " << trkwriter.GetLastErrorMessage() << endl;
         exit(1);
@@ -990,11 +1002,11 @@ static void check_options(void) {
          << endl;
     exit(1);
   }
-  if (!inRefFile) {
+  if (inRefFile.empty()) {
     cout << "ERROR: must specify input reference volume" << endl;
     exit(1);
   }
-  if (!outRefFile) {
+  if (outRefFile.empty()) {
     cout << "ERROR: must specify output reference volume" << endl;
     exit(1);
   }
@@ -1016,57 +1028,59 @@ static void dump_options(FILE *fp) {
        << "machine  " << uts.machine << endl
        << "user     " << VERuser() << endl;
 
-  if (inDir)
+  if (!inDir.empty()) {
     cout << "Input directory: " << inDir << endl;
+  }
   if (!inTrkList.empty()) {
     cout << "Input .trk files:";
-    for (vector<char *>::const_iterator istr = inTrkList.begin();
-                                        istr < inTrkList.end(); istr++)
+    for (auto istr = inTrkList.begin(); istr < inTrkList.end(); istr++) {
       cout << " " << *istr;
+    }
     cout << endl;
   }
   if (!inAscList.empty()) {
     cout << "Input text files:";
-    for (vector<char *>::const_iterator istr = inAscList.begin();
-                                        istr < inAscList.end(); istr++)
+    for (auto istr = inAscList.begin(); istr < inAscList.end(); istr++) {
       cout << " " << *istr;
+    }
     cout << endl;
   }
-  if (outDir)
+  if (!outDir.empty()) {
     cout << "Output directory: " << outDir << endl;
+  }
   if (!outTrkList.empty()) {
     cout << "Output .trk files:";
-    for (vector<char *>::const_iterator istr = outTrkList.begin();
-                                        istr < outTrkList.end(); istr++)
+    for (auto istr = outTrkList.begin(); istr < outTrkList.end(); istr++) {
       cout << " " << *istr;
+    }
     cout << endl;
   }
   if (!outAscList.empty()) {
     cout << "Output text files:";
-    for (vector<char *>::const_iterator istr = outAscList.begin();
-                                        istr < outAscList.end(); istr++)
+    for (auto istr = outAscList.begin(); istr < outAscList.end(); istr++) {
       cout << " " << *istr;
+    }
     cout << endl;
   }
   if (!outVolList.empty()) {
     cout << "Output volumes:";
-    for (vector<char *>::const_iterator istr = outVolList.begin();
-                                        istr < outVolList.end(); istr++)
+    for (auto istr = outVolList.begin(); istr < outVolList.end(); istr++) {
       cout << " " << *istr;
+    }
     cout << endl;
   }
   if (!incMaskList.empty()) {
     cout << "Inclusion mask volumes:";
-    for (vector<char *>::const_iterator istr = incMaskList.begin();
-                                        istr < incMaskList.end(); istr++)
+    for (auto istr = incMaskList.begin(); istr < incMaskList.end(); istr++) {
       cout << " " << *istr;
+    }
     cout << endl;
   }
   if (!excMaskList.empty()) {
     cout << "Exclusion mask volumes:";
-    for (vector<char *>::const_iterator istr = excMaskList.begin();
-                                        istr < excMaskList.end(); istr++)
+    for (auto istr = excMaskList.begin(); istr < excMaskList.end(); istr++) {
       cout << " " << *istr;
+    }
     cout << endl;
   }
   if (lengthMin > -1)
@@ -1075,19 +1089,21 @@ static void dump_options(FILE *fp) {
     cout << "Upper length threshold: " << lengthMax << endl;
   cout << "Input reference: " << inRefFile << endl;
   cout << "Output reference: " << outRefFile << endl;
-  if (affineXfmFile)
+  if (!affineXfmFile.empty()) {
     cout << "Affine registration: " << affineXfmFile << endl;
-  if (nonlinXfmFile) {
+  }
+  if (!nonlinXfmFile.empty()) {
     cout << "Nonlinear registration: " << nonlinXfmFile << endl;
     cout << "Invert nonlinear morph: " << doInvNonlin << endl;
   }
   cout << "Fill gaps between points: " << doFill << endl;
-  if (doMean)
+  if (doMean) {
     cout << "Saving mean streamline" << endl;
-  else if (doNth)
+  } else if (doNth) {
     cout << "Saving single streamline: " << strNum << endl;
-  else
+  } else {
     cout << "Saving all streamlines" << endl;
+  }
 
   return;
 }

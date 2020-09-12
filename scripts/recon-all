@@ -89,6 +89,7 @@ set LHSeedCRS = ();   # SeedCRS point in the left  hemi wm for mri_fill #
 
 set CustomMaskInput = (); # custom brain mask to replace mri_watershed
 set UseMincMritotal = 0; # if 1, then use the BIC-MNI mritotal tal reg tools
+set DoSamsegReg = 0; # if 1, then uses samseg for talairach registration
 set DoTalairachUseNu = 0; # if 1, use nu.mgz as input to talairach stage
 set UseYa3tTalAtlas = 0; # if 1, use 3T18yoSchwartz young-adult 3T atlas
                          # for tal_avi (recommended as 3T default by Avi S.)
@@ -1532,6 +1533,18 @@ talairach:
     # copy from the base (as we are now in same space)
     # if edits were made to base, they will be also in long
     set cmd = (cp $longbasedir/mri/$tal_xfm $subjdir/mri/$xfma)
+
+  else if ($DoSamsegReg) then
+
+    # Use samseg talairach registration
+    set cmd = (run_samseg -i orig.mgz -o samseg --reg-only)
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+
+    # Convert lta to talairach.xfm
+    set cmd = (lta_convert --inlta samseg/samseg.talairach.lta --outmni $xfma)
+
   else
     # default processing:
     # first run bias correction...
@@ -1589,7 +1602,7 @@ talairach:
     endif
   endif
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-  if ( ! $UseMincMritotal) then
+  if ( ! $UseMincMritotal && ! $DoSamsegReg ) then
     echo "talairach_avi log file is transforms/talairach_avi.log..." \
         |& tee -a $LF |& tee -a $CF
   endif
@@ -4259,7 +4272,7 @@ if($DoCortRibbonVolMask) then
     --save_ribbon)
   if($LHonly) set cmd = ($cmd --lh-only )
   if($RHonly) set cmd = ($cmd --rh-only )
-  if($OMP_NUM_THREADS > 1) set cmd = ($cmd --parallel) # just hemis
+  if($OMP_NUM_THREADS > 1 && ! $LHonly && ! $RHonly) set cmd = ($cmd --parallel) # just hemis
   set xopts = `fsr-getxopts mris_volmask $XOptsFile $GlobXOptsFile`;
   set cmd = ($cmd $xopts)
   set cmd = ($cmd $subjid)
@@ -4439,6 +4452,8 @@ if($DoAPas2ASeg) then
     set udlist = ($udlist $ldir/rh.cortex.label $sdir/rh.white $sdir/rh.pial)
     set cmd = ($cmd  --rh-cortex-mask $ldir/rh.cortex.label --rh-white $sdir/rh.white --rh-pial $sdir/rh.pial)
   endif
+  if($LHonly) set cmd = ($cmd --lh)
+  if($RHonly) set cmd = ($cmd --rh)
   set xopts = `fsr-getxopts mri_surf2volseg-aseg $XOptsFile $GlobXOptsFile`;
   set cmd = ($cmd $xopts)
   set ud = `UpdateNeeded aseg.mgz $udlist`
@@ -4453,7 +4468,8 @@ if($DoAPas2ASeg) then
 endif
 
 # Cache global brain volume stats (needs aseg.mgz above). WMParc because it computes stats
-if($DoSegStats || $DoParcStats || $DoParcStats2 || $DoParcStats3 || $DoWMParc) then
+if(($DoSegStats || $DoParcStats || $DoParcStats2 || $DoParcStats3 || $DoWMParc) && \
+  ! $LHonly && ! $RHonly) then
   set cmd = (mri_brainvol_stats $subjid)
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $fs_time $cmd |& tee -a $LF
@@ -4489,6 +4505,8 @@ if($DoAParc2ASeg) then
       set cmd = ($cmd --rh-annot $ldir/rh.$parc.annot $rhbase --rh-cortex-mask $ldir/rh.cortex.label \
        --rh-white $sdir/rh.white --rh-pial $sdir/rh.pial)
     endif
+    if($LHonly) set cmd = ($cmd --lh)
+    if($RHonly) set cmd = ($cmd --rh)
     set xopts = `fsr-getxopts mri_surf2volseg-$parc+aseg $XOptsFile $GlobXOptsFile`;
     set cmd = ($cmd $xopts)
     set ud = `UpdateNeeded $parc+aseg.mgz $udlist`
@@ -4526,6 +4544,8 @@ if($DoWMParc) then
     set cmd = ($cmd --rh-annot $ldir/rh.$parc.annot $rhbase --rh-cortex-mask $ldir/rh.cortex.label \
      --rh-white $sdir/rh.white --rh-pial $sdir/rh.pial)
   endif
+  if($LHonly) set cmd = ($cmd --lh)
+  if($RHonly) set cmd = ($cmd --rh)
   set xopts = `fsr-getxopts mri_surf2volseg-wmparc $XOptsFile $GlobXOptsFile`;
   set cmd = ($cmd $xopts)
   set ud = `UpdateNeeded wmparc.mgz $udlist`
@@ -5443,12 +5463,12 @@ while( $#argv != 0 )
     case "-NOCEREBELLUM":
 	set nocerebellum=( -nocerebellum)
 	breaksw ;
-    case "-lh":
+    case "-lh": # see also -hemi
     case "-lh-only":
       set LHonly = 1 ;
       set hemilist = lh
       breaksw
-    case "-rh":
+    case "-rh": # see also -hemi
     case "-rh-only":
       set hemilist = rh
       set RHonly = 1 ;
@@ -5758,6 +5778,9 @@ while( $#argv != 0 )
     case "-custom-tal-atlas":
       if ( $#argv < 1) goto arg1err;
       set CustomTalAtlas = $argv[1]; shift;
+      breaksw
+    case "-samseg-reg":
+      set DoSamsegReg = 1;
       breaksw
 
     case "-tal-check":
@@ -6581,7 +6604,6 @@ while( $#argv != 0 )
       set DoSmooth2        = 1;
       set DoInflate2       = 1;
       set DoCurvHK         = 1;
-      set DoCurvStats      = 1;
       set DoSphere         = 1;
       set DoSurfReg        = 1;
       set DoAvgCurv        = 1;
@@ -6589,6 +6611,7 @@ while( $#argv != 0 )
       set DoCortParc       = 1;
       set DoWhiteSurfs     = 1;
       set DoPialSurfs      = 1;
+      set DoCurvStats      = 1;
       set DoCortRibbonVolMask = 1;
       set DoParcStats      = 1;
       set DoCortParc2      = 1;
@@ -6666,7 +6689,6 @@ while( $#argv != 0 )
       set DoWhitePreAparc  = 1;
       set DoCortexLabel    = 1;
       set DoCurvHK         = 1;
-      set DoCurvStats      = 1;
       breaksw
 
     case "-autorecon2-samseg":
@@ -6686,7 +6708,6 @@ while( $#argv != 0 )
       set DoWhitePreAparc  = 1;
       set DoCortexLabel    = 1;
       set DoCurvHK         = 1;
-      set DoCurvStats      = 1;
       set DoSegStats       = 0;
       breaksw
 
@@ -6719,7 +6740,6 @@ while( $#argv != 0 )
       set DoInflate2       = 1;
       set DoSegStats       = 0;
       set DoCurvHK         = 1;
-      set DoCurvStats      = 1;
       breaksw
 
     case "-autorecon2-inflate1":
@@ -6759,7 +6779,6 @@ while( $#argv != 0 )
       set DoInflate2       = 1;
       set DoSegStats       = 0;
       set DoCurvHK         = 1;
-      set DoCurvStats      = 1;
       breaksw
 
     case "-autorecon-pial":
@@ -6771,7 +6790,6 @@ while( $#argv != 0 )
       set DoInflate2       = 1;
       set DoSegStats       = 1;
       set DoCurvHK         = 1;
-      set DoCurvStats      = 1;
       set DoSphere         = 1;
       set DoSurfReg        = 1;
       set DoAvgCurv        = 1;
@@ -6780,6 +6798,7 @@ while( $#argv != 0 )
       set DoWhiteSurfs     = 1;
       set DoPialSurfs      = 1;
       set DoPctSurfCon     = 1;
+      set DoCurvStats      = 1;
       set DoCortRibbonVolMask = 1;
       set DoParcStats      = 1;
       set DoCortParc2      = 1;
@@ -6801,6 +6820,7 @@ while( $#argv != 0 )
       set DoCortParc       = 1;
       set DoWhiteSurfs     = 1;
       set DoPialSurfs      = 1;
+      set DoCurvStats      = 1;
       set DoCortRibbonVolMask = 1;
       set DoParcStats      = 1;
       set DoCortParc2      = 1;
@@ -6820,6 +6840,7 @@ while( $#argv != 0 )
     case "-autorecon3-T2pial":
     case "-T2pial-only":
       set DoT2pial         = 1;
+      set DoCurvStats      = 1;
       set DoCortRibbonVolMask = 1;
       set DoParcStats      = 1;
       set DoCortParc2      = 1;
@@ -6890,6 +6911,8 @@ while( $#argv != 0 )
         echo "ERROR: hemi = $hemilist, must be either lh or rh"
         goto error_exit;
       endif
+      if($hemilist == lh) LHonly = 1 
+      if($hemilist == rh) RHonly = 1 
       breaksw
 
     # This is a temporary flag to test how changing the way the vertex

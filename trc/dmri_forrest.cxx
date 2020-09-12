@@ -63,8 +63,7 @@ int main(int argc, char *argv[]);
 
 const char *Progname = "dmri_forrest";
 
-char *testDir = NULL, *trainListFile = NULL,
-     *maskFile = NULL, *asegFile = NULL, *orientFile = NULL;
+std::string testDir, trainListFile, maskFile, asegFile, orientFile;
 vector<char *> tractFileList;
 
 struct utsname uts;
@@ -102,7 +101,7 @@ int main(int argc, char **argv) {
   cputimer.reset();
 
   cout << "Reading test subject data..." << endl;
-  myforrest.ReadTestSubject(testDir, maskFile, asegFile, orientFile);
+  myforrest.ReadTestSubject(testDir.c_str(), maskFile.c_str(), asegFile.c_str(), orientFile.c_str());
 
   // Get volume dimensions from test subject
   nx = myforrest.GetNx();
@@ -110,7 +109,7 @@ int main(int argc, char **argv) {
   nz = myforrest.GetNz();
 
   cout << "Reading training subject data..." << endl;
-  myforrest.ReadTrainingSubjects(trainListFile, maskFile, asegFile, orientFile,
+  myforrest.ReadTrainingSubjects(trainListFile.c_str(), maskFile.c_str(), asegFile.c_str(), orientFile.c_str(),
                                  tractFileList);
 
   // Get total number of training samples
@@ -310,15 +309,15 @@ static void print_version(void) {
 
 /* --------------------------------------------- */
 static void check_options(void) {
-  if (!testDir) {
+  if (testDir.empty()) {
     cout << "ERROR: Must specify test subject directory" << endl;
     exit(1);
   }
-  if (!trainListFile) {
+  if (trainListFile.empty()) {
     cout << "ERROR: Must specify training subject list file" << endl;
     exit(1);
   }
-  if (!maskFile) {
+  if (maskFile.empty()) {
     cout << "ERROR: Must specify brain mask volume" << endl;
     exit(1);
   }
@@ -354,13 +353,15 @@ static void dump_options() {
     cout << " " << *istr;
   cout << endl;
 
-  if (asegFile)
+  if (!asegFile.empty()) {
     cout << "Location of aparc+aseg's relative to subject directory: "
          << asegFile << endl;
+  }
 
-  if (orientFile)
+  if (!orientFile.empty()) {
     cout << "Location of diffusion orientations relative to subject directory: "
          << orientFile << endl;
+  }
 
   return;
 }

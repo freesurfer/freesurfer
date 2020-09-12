@@ -1,0 +1,4 @@
+project(mri_segment_hypothalamic_subunits)
+
+install_pyscript(mri_segment_hypothalamic_subunits)
+install(FILES hypothalamic_subunits_model.h5 DESTINATION average)

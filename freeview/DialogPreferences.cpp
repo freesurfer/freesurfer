@@ -116,8 +116,9 @@ DialogPreferences::DialogPreferences(QWidget *parent) :
     if (act)
     {
       combo->addItem(act->shortcut().toString());
-      for (int i = 1; i <= 10; i++)
+      for (int i = 1; i <= 12; i++)
         combo->addItem(tr("F%1").arg(i));
+      combo->addItem(tr("Pause"));
       combo->setCurrentIndex(0);
     }
     connect(combo, SIGNAL(currentIndexChanged(QString)), this, SLOT(OnComboShortcutChanged(QString)));
@@ -272,6 +273,7 @@ void DialogPreferences::SetActionShortcut(QAction *act, const QString &text)
   QList<QKeySequence> list = act->shortcuts();
   for (int i = 1; i <= 12; i++)
     list.removeAll(QKeySequence(tr("F%1").arg(i)));
+  list.removeAll(QKeySequence(tr("Pause")));
 
   if (!list.contains(QKeySequence(text)))
     list << QKeySequence(text);

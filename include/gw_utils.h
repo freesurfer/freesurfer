@@ -63,7 +63,7 @@ extern int gw_log_init(char * AProgname,
                        char * AProgversion, 
                        char * ALogfilepath, 
                        int newfile);
-extern void gw_log_message(char * msg);
+extern void gw_log_message(const char * msg);
 extern void gw_log_timestamp(const char * label);
 extern void gw_log_begin(void);
 extern void gw_log_end(void);

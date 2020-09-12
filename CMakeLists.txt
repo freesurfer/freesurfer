@@ -100,7 +100,7 @@ add_definitions(-DHAVE_ZLIB)
 # -------- gfortran/blas/lapack --------
 if(NOT APPLE)
   find_library(GFORTRAN_LIBRARIES
-    HINTS /usr/lib/gcc/*/*/
+    HINTS /usr/lib64 /usr/lib /usr/lib/gcc/*/*/
     NAMES libgfortran.a gfortran)
   find_library(BLAS_LIBRARIES NAMES libblas.a libopenblas.a)
   find_library(LAPACK_LIBRARIES NAMES liblapack.a)
@@ -511,6 +511,7 @@ if(NOT MINIMAL)
     mri_sbbr
     mri_segcentroids
     mri_seghead
+    mri_segment_hypothalamic_subunits
     mri_strip_nonwhite
     mri_strip_subject_info
     mri_surfacemask
