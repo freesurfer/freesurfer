@@ -76,8 +76,8 @@ def main():
         path_model=model,
         path_posteriors=args.out_posteriors,
         path_volumes=args.out_volumes,
-        path_subject_dir=args.s,
-        path_all_subject_dir=args.sd,
+        name_subjects=args.s,
+        path_subjects_dir=args.sd,
         threads=args.threads
     )
 
