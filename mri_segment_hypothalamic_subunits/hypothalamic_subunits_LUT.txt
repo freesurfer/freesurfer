@@ -1,0 +1,10 @@
+801 left hypothalamus anterior-inferior     250 255 50  0
+802 left hypothalamus anterior-superior     80  200 255 0
+803 left hypothalamus posterior             255 160 0   0
+804 left hypothalamus tubular inferior      255 160 200 0
+805 left hypothalamus tubular superior      20  180 130 0
+806 right hypothalamus anterior-inferior    250 255 50  0
+807 right hypothalamus anterior-superior    80  200 255 0
+808 right hypothalamus posterior            255 160 0   0
+809 right hypothalamus tubular inferior     255 160 200 0
+810 right hypothalamus tubular superior     20  180 130 0
