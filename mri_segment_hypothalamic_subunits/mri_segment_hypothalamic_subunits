@@ -46,10 +46,7 @@ def main():
                              "If no argument is given, mri_segment_hypothalamic_subunits will run on all the subjects "
                              "in $SUBJECTS_DIR.")
     parser.add_argument("--sd", help="override current $SUBJECTS_DIR")
-    ########################################################################################################
-    # We would like to keep this flag secret if you don't mind. I'm not sure how to call argparse.SUPPRESS #
-    ########################################################################################################
-    parser.add_argument("--model", help=fs.utils.SUPPRESS)
+    parser.add_argument("--model", help=fs.utils.parser.argparse.SUPPRESS)
     parser.add_argument("--threads", help="Number of cores to be used. Default uses all cores.")
 
     # check for no arguments

@@ -1,10 +1,10 @@
-801 L_hypothalamus_anterior-inferior        250 255 50  0
-802 L_hypothalamus_anterior-superior        80  200 255 0
+801 L_hypothalamus_anterior_inferior        250 255 50  0
+802 L_hypothalamus_anterior_superior        80  200 255 0
 803 L_hypothalamus_posterior                255 160 0   0
 804 L_hypothalamus_tubular_inferior         255 160 200 0
 805 L_hypothalamus_tubular_superior         20  180 130 0
-806 R_hypothalamus_anterior-inferior        250 255 50  0
-807 R_hypothalamus_anterior-superior        80  200 255 0
+806 R_hypothalamus_anterior_inferior        250 255 50  0
+807 R_hypothalamus_anterior_superior        80  200 255 0
 808 R_hypothalamus_posterior                255 160 0   0
 809 R_hypothalamus_tubular_inferior         255 160 200 0
 810 R_hypothalamus_tubular_superior         20  180 130 0
