@@ -366,9 +366,6 @@ def prepare_output_files(path_images, out_seg, out_posteriors, out_volumes, name
         assert len(images_to_segment) > 0, "Could not find any image to segment"
 
     else:
-        ##########################################
-        # not sure whether I should use fs.fatal #
-        ##########################################
         fs.fatal('please provide an input image/directory (--i), or a specific FreeSurfer subject directory (--s), '
                  'or the FreeSurfer $SUBJECT_DIR (--sd)')
         images_to_segment = None
