@@ -80,7 +80,7 @@ LayerPointSet::LayerPointSet( LayerMRI* ref, int nType, QObject* parent ) : Laye
 
   m_mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
 
-  if ( nType == LayerPropertyPointSet::ControlPoint )
+  if ( nType == LayerPropertyPointSet::ControlPoint || nType == LayerPropertyPointSet::Enhanced)
   {
     GetProperty()->SetShowSpline( false );
     GetProperty()->SetRadius ( 0.5 );
