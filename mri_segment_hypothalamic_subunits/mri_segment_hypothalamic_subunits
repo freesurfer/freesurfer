@@ -46,10 +46,7 @@ def main():
                              "If no argument is given, mri_segment_hypothalamic_subunits will run on all the subjects "
                              "in $SUBJECTS_DIR.")
     parser.add_argument("--sd", help="override current $SUBJECTS_DIR")
-    ########################################################################################################
-    # We would like to keep this flag secret if you don't mind. I'm not sure how to call argparse.SUPPRESS #
-    ########################################################################################################
-    parser.add_argument("--model", help=fs.utils.SUPPRESS)
+    parser.add_argument("--model", help=fs.utils.parser.argparse.SUPPRESS)
     parser.add_argument("--threads", help="Number of cores to be used. Default uses all cores.")
 
     # check for no arguments
@@ -369,9 +366,6 @@ def prepare_output_files(path_images, out_seg, out_posteriors, out_volumes, name
         assert len(images_to_segment) > 0, "Could not find any image to segment"
 
     else:
-        ##########################################
-        # not sure whether I should use fs.fatal #
-        ##########################################
         fs.fatal('please provide an input image/directory (--i), or a specific FreeSurfer subject directory (--s), '
                  'or the FreeSurfer $SUBJECT_DIR (--sd)')
         images_to_segment = None
