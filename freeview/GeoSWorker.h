@@ -24,7 +24,7 @@ signals:
   void Progress(double val);
 
 public slots:
-  void Compute(LayerMRI* mri, LayerMRI* seg, LayerMRI* seeds, int max_distance = -1, double smoothing = 0, LayerMRI* mask = NULL, double fill_val = -1);
+  void Compute(LayerMRI* mri, LayerMRI* seg, LayerMRI* seeds, int max_distance = -1, double smoothing = 0, LayerMRI* mask = NULL, double fill_val = -1, int max_foreground_dist = 0);
   void Apply(LayerMRI* seg, LayerMRI* filled);
   void Abort();
 
@@ -39,6 +39,7 @@ private:
   LayerMRI* m_filled;
   LayerMRI* m_mask;
   int     m_nMaxDistance;
+  int     m_nMaxForegroundDistance;
   double    m_dSmoothing;
   double    m_dFillValue;
   GeodesicMatting*  m_geos;

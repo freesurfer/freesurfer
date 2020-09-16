@@ -13,6 +13,7 @@
 #include <QFile>
 #include "vtkImageGaussianSmooth.h"
 #include "vtkImageExtractComponents.h"
+#include "vtkImageThreshold.h"
 #include <QElapsedTimer>
 #include "LayerPropertyMRI.h"
 
@@ -34,13 +35,14 @@ GeoSWorker::~GeoSWorker()
   m_geos->deleteLater();
 }
 
-void GeoSWorker::Compute(LayerMRI *mri, LayerMRI* seg, LayerMRI* seeds, int max_distance, double smoothing, LayerMRI* mask, double fill_val)
+void GeoSWorker::Compute(LayerMRI *mri, LayerMRI* seg, LayerMRI* seeds, int max_distance, double smoothing, LayerMRI* mask, double fill_val, int max_foreground_dist)
 {
   m_mri = mri;
   m_seg = seg;
   m_seeds = seeds;
   m_dSmoothing = smoothing;
   m_mask = mask;
+  m_nMaxForegroundDistance = max_foreground_dist;
   if (max_distance > 0)
     m_nMaxDistance = max_distance;
   m_dFillValue = fill_val;
@@ -265,6 +267,32 @@ void GeoSWorker::DoCompute()
       }
     }
   }
+
+  unsigned char* fg_mask_ptr = NULL;
+  vtkSmartPointer<vtkImageData> fg_mask_image;
+  if (m_nMaxForegroundDistance > 0)
+  {
+    vtkSmartPointer<vtkImageThreshold> threshold = vtkSmartPointer<vtkImageThreshold>::New();
+    threshold->ThresholdBetween(1, 1);
+    threshold->SetInValue(1);
+    threshold->SetOutValue(0);
+    threshold->ReplaceInOn();
+    threshold->ReplaceOutOn();
+#if VTK_MAJOR_VERSION > 5
+    threshold->SetInputData(seeds);
+#else
+    threshold->SetInput(seeds);
+#endif
+    vtkSmartPointer<vtkImageDilateErode3D> dilate = vtkSmartPointer<vtkImageDilateErode3D>::New();
+    dilate->SetInputConnection(threshold->GetOutputPort());
+    dilate->SetKernelSize(m_nMaxForegroundDistance*2, m_nMaxForegroundDistance*2, m_nMaxForegroundDistance*2);
+    dilate->SetDilateValue(1);
+    dilate->SetErodeValue(0);
+    dilate->Update();
+    fg_mask_image = dilate->GetOutput();
+    fg_mask_ptr = (unsigned char*)fg_mask_image->GetScalarPointer();
+  }
+
   double scale[3] = {1,1,1};
   bool bSuccess = m_geos->ComputeWithBinning(dim_new, scale, (double*)mri->GetScalarPointer(), mri_range, seed_ptr, label_list, seeds_out);
   if (bSuccess)
@@ -278,7 +306,7 @@ void GeoSWorker::DoCompute()
       {
         size_t i = (n%dim_new[0]), j = ((n/dim_new[0])%dim_new[1]), k = n/(dim_new[0]*dim_new[1]);
         i = (i+bound[0]) + (j+bound[2])*dim[0] + (k+bound[4])*dim[0]*dim[1];
-        if (!mask_ptr || mask_ptr[i] == 0)
+        if ((!mask_ptr || mask_ptr[i] == 0) && (!fg_mask_ptr || fg_mask_ptr[n] > 0))
         {
           switch (nDataType)
           {
