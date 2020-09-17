@@ -342,6 +342,10 @@ class GMM:
 
     def tiedGaussiansFit(self, data, gaussianPosteriors):
 
+        if self.previousVariances is None:
+            self.previousVariances = self.variances.copy()
+            return
+
         posterior_1 = gaussianPosteriors[:, self.gaussNumber1Tied].reshape(-1, 1)
         hyperMean_1 = np.expand_dims(self.hyperMeans[self.gaussNumber1Tied, :], 1)
         hyperMeanNumberOfMeasurements_1 = self.hyperMeansNumberOfMeasurements[self.gaussNumber1Tied]
