@@ -144,6 +144,8 @@ ToolWindowEdit::ToolWindowEdit(QWidget *parent) :
 
   m_widgetsGeoSeg  << ui->labelGeoLambda
                    << ui->labelGeoMaxDistance
+                   << ui->checkBoxMaxForegroundDistance
+                   << ui->lineEditGeoMaxForegroundDistance
                    << ui->labelGeoWsize
                    << ui->lineEditGeoLambda
                    << ui->spinBoxGeoWsize
@@ -624,6 +626,9 @@ void ToolWindowEdit::OnButtonGeoSegGo()
     {
       double lambda = ui->lineEditGeoLambda->text().trimmed().toDouble();
       double max_dist = ui->lineEditGeoMaxDistance->text().trimmed().toDouble();
+      double max_foreground_dist = ui->lineEditGeoMaxForegroundDistance->text().trimmed().toDouble();
+      if (!ui->checkBoxMaxForegroundDistance->isChecked())
+        max_foreground_dist = 0;
       int wsize = ui->spinBoxGeoWsize->value();
       mri_fill->ClearVoxels();
       bool ok = false;
@@ -631,7 +636,8 @@ void ToolWindowEdit::OnButtonGeoSegGo()
       if (ui->checkBoxApplySmoothing->isChecked())
         std = ui->lineEditSmoothingStd->text().toDouble(&ok);
       mri_fill->GeodesicSegmentation(mri_draw, lambda, wsize, max_dist, ok?std:0,
-                                     ui->checkBoxGeoSegOverwrite->isChecked() ? NULL : ((LayerMRI*)MainWindow::GetMainWindow()->GetActiveLayer("MRI")));
+                                     ui->checkBoxGeoSegOverwrite->isChecked() ? NULL : ((LayerMRI*)MainWindow::GetMainWindow()->GetActiveLayer("MRI")),
+                                     max_foreground_dist);
       connect(mri_fill, SIGNAL(GeodesicSegmentationFinished(double)), this, SLOT(OnGeoSegFinished(double)), Qt::UniqueConnection);
       connect(mri_fill, SIGNAL(GeodesicSegmentationProgress(double)), this, SLOT(OnGeoSegProgress(double)), Qt::UniqueConnection);
       ui->pushButtonGeoGo->setEnabled(false);
