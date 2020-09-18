@@ -27,7 +27,7 @@ if(INSTALL_PYTHON_DEPENDENCIES)
     if(NOT \${retcode} STREQUAL 0)
       message(FATAL_ERROR \"Could not install QA tools dependencies\")
     endif()
-    execute_process(COMMAND bash -c \"find ${CMAKE_INSTALL_PREFIX}/python/bin -name 'python3*' -type f -exec rm -f {} +\" RESULT_VARIABLE retcode)
+    execute_process(COMMAND bash -c \"find ${CMAKE_INSTALL_PREFIX}/python/bin ! -name 'python3*' -type f -exec rm -f {} +\" RESULT_VARIABLE retcode)
     if(NOT \${retcode} STREQUAL 0)
       message(FATAL_ERROR \"Could not remove pip-installed scripts\")
     endif()"
