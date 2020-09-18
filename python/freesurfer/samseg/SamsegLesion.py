@@ -20,7 +20,7 @@ class SamsegLesion(Samseg):
                  saveModelProbabilities=False,
                  numberOfSamplingSteps=50, numberOfBurnInSteps=50,
                  numberOfPseudoSamplesMean=500, numberOfPseudoSamplesVariance=500, rho=50,
-                 intensityMaskingPattern=None, intensityMaskingSearchString='Cortex', gmmFileName=None
+                 intensityMaskingPattern=None, intensityMaskingSearchString='Cortex', gmmFileName=None, sampler=True
                  ):
         Samseg.__init__(self, imageFileNames, atlasDir, savePath, userModelSpecifications, userOptimizationOptions,
                  imageToImageTransformMatrix, visualizer, saveHistory, savePosteriors,
@@ -33,6 +33,7 @@ class SamsegLesion(Samseg):
         self.numberOfPseudoSamplesVariance = numberOfPseudoSamplesVariance
         self.rho = rho
         self.intensityMaskingClassNumber = self.getClassNumber(intensityMaskingSearchString)
+        self.sampler = sampler
 
         if intensityMaskingPattern is None:
             raise ValueError('Intensity mask pattern must be set')
@@ -103,7 +104,11 @@ class SamsegLesion(Samseg):
 
     def computeFinalSegmentation(self):
 
-        _, biasFields, nodePositions, data, priors = Samseg.computeFinalSegmentation(self)
+        posteriors, biasFields, nodePositions, data, priors = Samseg.computeFinalSegmentation(self)
+
+        # If no sampler return the segmentation computed by Samseg, so that the VAE is not used.
+        if not self.sampler:
+            return posteriors, biasFields, nodePositions, data, priors
 
         #
         numberOfVoxels = data.shape[0]
