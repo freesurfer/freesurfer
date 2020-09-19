@@ -4,14 +4,16 @@
   <description>Runs N4 (nonparameteric, nonuniform normalization) retrospective bias correction on an image. This programs wraps the AntsN4BiasFieldCorrection utility available in the ANTs package (see http://stnava.github.io/ANTs).</description>
   <arguments>
     <required-flagged>
-      <argument>-i, --input invol</argument>
-      <explanation>input volume file</explanation>
-      <argument>-o, --output outvol</argument>
-      <explanation>corrected volume file</explanation>
+      <argument>-i, --input FILE</argument>
+      <explanation>Input volume file.</explanation>
+      <argument>-o, --output FILE</argument>
+      <explanation>Corrected volume file.</explanation>
     </required-flagged>
     <optional-flagged>
-      <argument>--shrink</argument>
-      <explanation>resample factor to decrease computation time (default is 4)</explanation>
+      <argument>-s, --shrink INT</argument>
+      <explanation>Resample factor to decrease computation time. Default is 4.</explanation>
+      <argument>-t, --iters INT [INT...]</argument>
+      <explanation>Number of resolutions and max iterations per resolution. Default is `50 50 50 50`, which indicates 4 fitting levels with 50 iterations each.</explanation>
     </optional-flagged>
   </arguments>
 </help>

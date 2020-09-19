@@ -33,6 +33,7 @@ int main(int argc, char **argv)
   parser.addArgument("-i", "--input",  1, String, true);
   parser.addArgument("-o", "--output", 1, String, true);
   parser.addArgument("-s", "--shrink", 1, Int, false);
+  parser.addArgument("-t", "--iters", '+', Int, false);
   parser.parse(argc, argv);
 
   std::string inputname = parser.retrieve<std::string>("input");
@@ -60,10 +61,13 @@ int main(int argc, char **argv)
   CorrecterType::Pointer correcter = CorrecterType::New();
 
   // convergence options
-  CorrecterType::VariableSizeArrayType maximumNumberOfIterations(4);
-  maximumNumberOfIterations.Fill(50);
+  // set number of iterations (default is 50x50x50x50)
+  std::vector<int> numIters = {50, 50, 50, 50};
+  if (parser.exists("iters")) numIters = parser.retrieve<std::vector<int>>("iters");
+  CorrecterType::VariableSizeArrayType maximumNumberOfIterations(numIters.size());
+  for (unsigned int d = 0; d < numIters.size(); d++) maximumNumberOfIterations[d] = numIters[d];
   correcter->SetMaximumNumberOfIterations(maximumNumberOfIterations);
-  correcter->SetNumberOfFittingLevels(4);
+  correcter->SetNumberOfFittingLevels(numIters.size());
   correcter->SetConvergenceThreshold(0.0);
 
   // shrink the image to save time
