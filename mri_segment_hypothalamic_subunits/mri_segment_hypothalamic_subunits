@@ -55,7 +55,6 @@ def main():
                                                  "Must be the same type as input path (single file or folder).")
     parser.add_argument("--out_volumes", help="(T1 mode, optional) Path of a csv file where the volumes of the "
                                               "hypothalamic subunits will be saved.")
-
     # in both cases
     parser.add_argument("--model", help=fs.utils.parser.argparse.SUPPRESS)
     parser.add_argument("--threads", type=int, default=1, help="(both modes, optional) Number of cores to be used. "
@@ -442,6 +441,63 @@ def prepare_output_files(name_subjects, subjects_dir, write_posteriors_FS, path_
         out_volumes = None
 
     return images_to_segment, out_seg, out_posteriors, out_volumes, main_volumes
+
+
+def write_csv_file(volumes, filename, subject):
+    '''
+    Writes volumetric stats to csv file.
+    '''
+    header = [
+        'subject',
+        'left anterior-inferior',
+        'left anterior-superior',
+        'left posterior',
+        'left tubular inferior',
+        'left tubular superior',
+        'right anterior-inferior',
+        'right anterior-superior',
+        'right posterior',
+        'right tubular inferior',
+        'right tubular superior',
+        'whole left',
+        'whole right'
+    ]
+    datarow = [subject] + ['%.3f' % vol for vol in volumes]
+    with open(filename, 'w') as f:
+        writer = csv.writer(f)
+        writer.writerow(header)
+        writer.writerow(datarow)
+
+
+def write_fs_stats_file(volumes, filename):
+    '''
+    Write volumetric stats to FS stats file.
+    '''
+    segnames = [
+        'Left-Anterior-Inferior',
+        'Left-Anterior-Superior',
+        'Left-Posterior',
+        'Left-Tubular-Inferior',
+        'Left-Tubular-Superior',
+        'Right-Anterior-Inferior',
+        'Right-Anterior-Ssuperior',
+        'Right-Posterior',
+        'Right-Tubular-Inferior',
+        'Right-Tubular-Superior',
+        'Whole-Left',
+        'Whole-Right'
+    ]
+    volumes = ['%.3f' % vol for vol in volumes]
+    volwidth = len(max(volumes, key=len))
+    with open(filename, 'w') as f:
+        f.write('# Hypothalamic Subunit Volumetric Stats\n')
+        for i, vol in enumerate(volumes):
+            f.write('%s  %s  0  %s  %s\n' % (
+                str(i + 1).rjust(2),
+                str(i + 1).rjust(2),
+                vol.rjust(volwidth),
+                segnames[i],
+            ))
 
 
 def preprocess_image(im_path):
