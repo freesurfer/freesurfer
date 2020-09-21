@@ -14,6 +14,13 @@ default_threads = int(os.environ.get('OMP_NUM_THREADS', 1))
 # required
 parser.add_argument('-t', '--timepoint', nargs='+', action='append', required=True, help='Configure a timepoint with multiple inputs.')
 parser.add_argument('-o', '--output', required=True, help='Output directory.')
+# optional lesion options
+parser.add_argument('--lesion', action='store_true', default=False, help='Enable lesion segmentation (requires tensorflow).')
+parser.add_argument('--threshold', type=float, default=0.3, help='Lesion threshold for final segmentation. Lesion segmentation must be enabled.')
+parser.add_argument('--samples', type=int, default=50, help='Number of samples for lesion segmentation. Lesion segmentation must be enabled.')
+parser.add_argument('--burnin', type=int, default=50, help='Number of burn-in samples for lesion segmentation. Lesion segmentation must be enabled.')
+parser.add_argument('--lesion-mask-structure', default='Cortex', help='Intensity mask brain structure. Lesion segmentation must be enabled.')
+parser.add_argument('--lesion-mask-pattern', type=int, nargs='+', help='Lesion mask list (set value for each input volume): -1 below lesion mask structure mean, +1 above, 0 no mask. Lesion segmentation must be enabled.')
 # optional processing options
 parser.add_argument('-m', '--mode', nargs='+', help='Output basenames for the input image mode.')
 parser.add_argument('-a', '--atlas', metavar='DIR', help='Point to an alternative atlas directory.')
@@ -21,6 +28,9 @@ parser.add_argument('--save-warp', action='store_true', help='Save the image->te
 parser.add_argument('--save-posteriors', nargs='*', help='Save posterior volumes to the "posteriors" subdirectory.')
 parser.add_argument('--pallidum-separate', action='store_true', default=False, help='Move pallidum outside of global white matter class. Use this flag when T2/flair is used.')
 parser.add_argument('--threads', type=int, default=default_threads, help='Number of threads to use. Defaults to current OMP_NUM_THREADS or 1.')
+# optional debugging options
+parser.add_argument('--showfigs', action='store_true', default=False, help='Show figures during run.')
+parser.add_argument('--movie', action='store_true', default=False, help='Show history as arrow key controlled time sequence.')
 
 args = parser.parse_args()
 
@@ -45,8 +55,15 @@ atlasDir = os.environ.get('SAMSEG_DATA_DIR')
 if args.atlas:
     atlasDir = args.atlas
 if not atlasDir:
-    defaultAtlas = '20Subjects_smoothing2_down2_smoothingForAffine2'
+    # Atlas defaults
+    if args.lesion:
+        defaultAtlas = '20Subjects_smoothing2_down2_smoothingForAffine2_lesion'
+    else:
+        defaultAtlas = '20Subjects_smoothing2_down2_smoothingForAffine2'
     atlasDir = os.path.join(fs.fshome(), 'average', 'samseg', defaultAtlas)
+
+# Setup the visualization tool
+visualizer = samseg.initVisualizer(args.showfigs, args.movie)
 
 # Start the process timer
 timer = fs.utils.Timer()
@@ -59,16 +76,38 @@ else:
 
 # ------ Run Samsegment ------
 
-samsegLongitudinal = samseg.SamsegLongitudinal(
-    args.timepoint,
-    atlasDir,
-    args.output,
+samseg_kwargs = dict(
+    imageFileNamesList=args.timepoint,
+    atlasDir=atlasDir,
+    savePath=args.output,
     targetIntensity=110,
     targetSearchStrings=['Cerebral-White-Matter'],
     modeNames=args.mode,
     pallidumAsWM=(not args.pallidum_separate),
-    savePosteriors=savePosteriors
+    savePosteriors=savePosteriors,
+    visualizer=visualizer
 )
+
+if args.lesion:
+
+    # If lesion mask pattern is not specified, assume inputs are T1-contrast
+    lesion_mask_pattern = args.lesion_mask_pattern
+    if lesion_mask_pattern is None:
+        lesion_mask_pattern = [0] * len(args.timepoint[0])
+        print('Defaulting lesion mask pattern to %s' % str(lesion_mask_pattern))
+
+    # Delay import until here so that tensorflow doesn't get loaded unless needed
+    from freesurfer.samseg.SamsegLongitudinalLesion import SamsegLongitudinalLesion
+    samsegLongitudinal = SamsegLongitudinalLesion(**samseg_kwargs,
+        intensityMaskingSearchString=args.lesion_mask_structure,
+        intensityMaskingPattern=lesion_mask_pattern,
+        numberOfBurnInSteps=args.burnin,
+        numberOfSamplingSteps=args.samples,
+        threshold=args.threshold
+    )
+
+else:
+    samsegLongitudinal = samseg.SamsegLongitudinal(**samseg_kwargs)
 
 samsegLongitudinal.segment(saveWarp=args.save_warp)
 
