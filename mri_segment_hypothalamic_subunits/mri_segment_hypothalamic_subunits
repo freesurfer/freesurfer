@@ -55,6 +55,7 @@ def main():
                                                  "Must be the same type as input path (single file or folder).")
     parser.add_argument("--out_volumes", help="(T1 mode, optional) Path of a csv file where the volumes of the "
                                               "hypothalamic subunits will be saved.")
+
     # in both cases
     parser.add_argument("--model", help=fs.utils.parser.argparse.SUPPRESS)
     parser.add_argument("--threads", type=int, default=1, help="(both modes, optional) Number of cores to be used. "
@@ -113,7 +114,7 @@ def predict(name_subjects=None,
     print('')
 
     # prepare output filepaths
-    images_to_segment, path_segmentations, path_posteriors, path_volumes, path_main_volumes = \
+    images_to_segment, path_segmentations, path_posteriors, path_volumes, path_main_volumes, path_stats = \
         prepare_output_files(
             name_subjects,
             path_subjects_dir,
@@ -127,24 +128,8 @@ def predict(name_subjects=None,
     label_list = np.concatenate([np.zeros(1, dtype='int32'), np.arange(801, 811)])
 
     # prepare volume files if needed
-    csv_header = [['subject',
-                   'left anterior-inferior',
-                   'left anterior-superior',
-                   'left posterior',
-                   'left tubular inferior',
-                   'left tubular superior',
-                   'right anterior-inferior',
-                   'right anterior-superior',
-                   'right posterior',
-                   'right tubular inferior',
-                   'right tubular superior',
-                   'whole left',
-                   'whole right']]
     if path_main_volumes is not None:
-        with open(path_main_volumes, 'w') as csvFile:
-            writer = csv.writer(csvFile)
-            writer.writerows(csv_header)
-        csvFile.close()
+        write_csv_file(volumes=None, filename=path_main_volumes, subject=None, write_header=True, open_type='w')
 
     if threads == 1:
         print('Using 1 thread\n')
@@ -156,10 +141,8 @@ def predict(name_subjects=None,
         # perform segmentation
         net = None
         previous_model_input_shape = None
-        for idx, (path_image, path_segmentation, path_posterior, path_volume) in enumerate(zip(images_to_segment,
-                                                                                               path_segmentations,
-                                                                                               path_posteriors,
-                                                                                               path_volumes)):
+        for idx, (path_image, path_segmentation, path_posterior, path_volume, path_stat) in \
+                enumerate(zip(images_to_segment, path_segmentations, path_posteriors, path_volumes, path_stats)):
             print_loop_info(idx, len(images_to_segment), 10)
 
             # preprocess image and get information
@@ -201,29 +184,22 @@ def predict(name_subjects=None,
 
             # compute volumes
             try:
-                # compute volumes only of necessary
-                if (path_main_volumes is not None) | (path_volume is not None):
+                if (path_main_volumes is not None) | (path_volume is not None):  # compute volumes only if necessary
                     volumes = np.sum(posteriors[..., 1:], axis=tuple(range(0, len(posteriors.shape) - 1)))
-                    volumes = np.around(volumes * np.prod(im_res), 3)
-                    row = [str(vol) for vol in volumes] + [np.sum(volumes[:int(len(volumes) / 2)]),
-                                                           np.sum(volumes[int(len(volumes) / 2):])]
-                    if name_subjects is None:
-                        row = [os.path.basename(path_image).replace('.nii.gz', '')] + row
-                    else:
-                        row = [os.path.basename(os.path.dirname(os.path.dirname(path_image)))] + row
-                    # append new volumes to existing volume file
-                    if path_main_volumes is not None:
-                        with open(path_main_volumes, 'a') as csvFile:
-                            writer = csv.writer(csvFile)
-                            writer.writerow(row)
-                        csvFile.close()
-                    # create new volume file if each subject has its own subdirectory
-                    if path_volume is not None:
-                        with open(path_volume, 'w') as csvFile:
-                            writer = csv.writer(csvFile)
-                            writer.writerows(csv_header)
-                            writer.writerow(row)
-                        csvFile.close()
+                    volumes = volumes * np.prod(im_res)
+                    volumes_whole = np.array([np.sum(volumes[:int(len(volumes) / 2)]),
+                                              np.sum(volumes[int(len(volumes) / 2):])])
+                    volumes = np.concatenate([volumes, volumes_whole])
+                    if name_subjects is None:  # any T1 mode
+                        subject_name = os.path.basename(path_image).replace('.nii.gz', '')
+                    else:  # FS mode
+                        subject_name = os.path.basename(os.path.dirname(os.path.dirname(path_image)))
+                    if path_main_volumes is not None: # append volumes to main file (regrouping volumes of all subjects)
+                        write_csv_file(volumes, path_main_volumes, subject_name, write_header=False, open_type='a')
+                    if path_volume is not None:  # create individual volume file in each subject subdirectory (FS mode)
+                        write_csv_file(volumes, path_volume, subject_name, write_header=True, open_type='w')
+                    if path_stat is not None:  # create individual stats file in each subject subdirectory (FS mode)
+                        write_fs_stats_file(volumes, path_stat)
             except Exception as e:
                 print('\nthe following problem occured when computing the volumes of '
                       'segmentation %s :' % path_segmentation)
@@ -368,6 +344,7 @@ def prepare_output_files(name_subjects, subjects_dir, write_posteriors_FS, path_
             if not os.path.exists(os.path.dirname(main_volumes)):
                 os.mkdir(os.path.dirname(main_volumes))
         out_volumes = [None] * len(images_to_segment)
+        out_stats = [None] * len(images_to_segment)
 
     # FS mode, run on either a subset of subjects, or on all subjects, with an option to override $SUBJECTS_DIR
     elif name_subjects is not None:
@@ -406,6 +383,7 @@ def prepare_output_files(name_subjects, subjects_dir, write_posteriors_FS, path_
         out_seg = list()
         out_posteriors = list()
         out_volumes = list()
+        out_stats = list()
         for name in name_subjects:
 
             # check that provided subject dir
@@ -418,6 +396,7 @@ def prepare_output_files(name_subjects, subjects_dir, write_posteriors_FS, path_
                 images_to_segment.append(image_to_segment)
                 out_seg.append(os.path.join(subject_dir, 'mri', 'hypothalamic_subunits_seg.v1.mgz'))
                 out_volumes.append(os.path.join(subject_dir, 'mri', 'hypothalamic_subunits_volumes.v1.csv'))
+                out_stats.append(os.path.join(subject_dir, 'stats', 'hypothalamic_subunits_volumes.v1.stats'))
                 if write_posteriors_FS:
                     out_posteriors.append(os.path.join(subject_dir, 'mri', 'hypothalamic_subunits_posteriors.v1.mgz'))
                 else:
@@ -440,12 +419,17 @@ def prepare_output_files(name_subjects, subjects_dir, write_posteriors_FS, path_
         images_to_segment = None
         out_volumes = None
 
-    return images_to_segment, out_seg, out_posteriors, out_volumes, main_volumes
+    return images_to_segment, out_seg, out_posteriors, out_volumes, main_volumes, out_stats
 
 
-def write_csv_file(volumes, filename, subject):
+def write_csv_file(volumes, filename, subject, write_header, open_type):
     '''
     Writes volumetric stats to csv file.
+    :param volumes: numpy array with volumes for all structures specified in below header
+    :param filename: path of csv file where volumes will be saved
+    :param subject: subject name
+    :param write_header: whether to write the header or not
+    :param open_type: can be 'w' (write new file), or 'a' (add volume to an already existing file)
     '''
     header = [
         'subject',
@@ -462,11 +446,14 @@ def write_csv_file(volumes, filename, subject):
         'whole left',
         'whole right'
     ]
-    datarow = [subject] + ['%.3f' % vol for vol in volumes]
-    with open(filename, 'w') as f:
-        writer = csv.writer(f)
-        writer.writerow(header)
-        writer.writerow(datarow)
+    with open(filename, open_type) as csv_file:
+        writer = csv.writer(csv_file)
+        if write_header:
+            writer.writerow(header)
+        if volumes is not None:
+            datarow = [subject] + ['%.3f' % vol for vol in volumes]
+            writer.writerow(datarow)
+    csv_file.close()
 
 
 def write_fs_stats_file(volumes, filename):
