@@ -226,7 +226,7 @@ def predict(name_subjects=None,
 
     # print output info
     if len(path_segmentations) == 1:  # either one image or one subject
-        print('\nsegmentation saved in: ' + path_segmentations[0])
+        print('\n\nsegmentation saved in: ' + path_segmentations[0])
         if path_posteriors[0] is not None:
             print('posteriors saved in:   ' + path_posteriors[0])
         if path_volumes[0] is not None:  # for FS subject
@@ -235,16 +235,16 @@ def predict(name_subjects=None,
             print('volumes saved in:      ' + path_main_volumes)
     else:
         if name_subjects is None:  # images in folder
-            print('\nsegmentations saved in: ' + os.path.dirname(path_segmentations[0]))
+            print('\n\nsegmentations saved in: ' + os.path.dirname(path_segmentations[0]))
             if path_posteriors[0] is not None:
                 print('posteriors saved in:    ' + os.path.dirname(path_posteriors[0]))
             if path_main_volumes is not None:
                 print('volumes saved in:       ' + path_main_volumes)
         else:  # several subjects
             if path_posteriors[0] is not None:
-                print('\nsegmentations, posteriors, and individual subject volumes saved in each subject directory')
+                print('\n\nsegmentations, posteriors, and individual subject volumes saved in each subject directory')
             else:
-                print('\nsegmentations and individual subject volumes saved in each subject directory')
+                print('\n\nsegmentations and individual subject volumes saved in each subject directory')
             print('additional file regrouping the volumes of all subjects saved in: ' + path_main_volumes)
 
     print('\n\nIf you use this tool in a publication, please cite:')
@@ -259,6 +259,9 @@ def prepare_output_files(name_subjects, subjects_dir, write_posteriors_FS, path_
     Prepare output files.
     '''
 
+    # variable that tracks if warnings are printed when initialising the output paths
+    printed_warning = False
+
     # goes through all the possibilities of specifying inputs
     if path_images is not None:
 
@@ -267,10 +270,12 @@ def prepare_output_files(name_subjects, subjects_dir, write_posteriors_FS, path_
         assert name_subjects is None, 'please choose between flags --i and --s, they cannot be used at the same time'
         if subjects_dir is not None:
             print('WARNING: $SUBJECT_DIR not used when flags --i and --o are specified, ignoring value of flag --sd')
+            printed_warning = True
         if write_posteriors_FS:
             print('WARNING: flag --write_posteriors not used whith flag --i, ignoring flag --write_posteriors.')
             print('WARNING: If you wish to write the posteriors in the T1 mode, '
                   'please use --out_posteriors <path_posteriors>.')
+            printed_warning = True
 
         # convert path to absolute paths
         path_images = os.path.abspath(path_images)
@@ -340,6 +345,7 @@ def prepare_output_files(name_subjects, subjects_dir, write_posteriors_FS, path_
         if main_volumes is not None:
             if main_volumes[-4:] != '.csv':
                 print('out_volumes provided without csv extension. Adding csv extension to output_volumes.')
+                printed_warning = True
                 main_volumes += '.csv'
             if not os.path.exists(os.path.dirname(main_volumes)):
                 os.mkdir(os.path.dirname(main_volumes))
@@ -353,19 +359,24 @@ def prepare_output_files(name_subjects, subjects_dir, write_posteriors_FS, path_
         if out_seg is not None:
             print('WARNING: in FS mode segmentations are automatically saved in each subject directory, '
                   'ignoring value provided in --o')
+            printed_warning = True
         if main_volumes is not None:
             print('WARNING: in FS mode volumes are automatically saved in each subject directory, '
                   'ignoring value provided in --out_volumes')
+            printed_warning = True
         if write_posteriors_FS:
             if out_posteriors is not None:
                 print('WARNING: posteriors will automatically be saved in specified subject directory, '
                       'ignoring value provided in --out_posteriors')
+                printed_warning = True
             else:
                 print("Posteriors will be saved in each subject's directory.")
+                printed_warning = True
         elif out_posteriors is not None:  # write_posteriors is False and out_posteriros was specified
             print('WARNING: flag --out_posteriors not used in FS mode, ignoring flag --out_posteriors.')
             print('WARNING: If you wish to write the posteriors in the FS mode, '
                   'please append --write_posteriors to your command line.')
+            printed_warning = True
 
         # override SUBJECTS_DIR if necessary
         if subjects_dir is not None:
@@ -402,7 +413,8 @@ def prepare_output_files(name_subjects, subjects_dir, write_posteriors_FS, path_
                 else:
                     out_posteriors.append(None)
             else:
-                print('WARNING: no such file: ' + image_to_segment + ' ,continuing program execution without this file')
+                print('WARNING: no such file: ' + image_to_segment + ', continuing program execution without this file')
+                printed_warning = True
 
         # check that we have a least one valid image
         assert len(images_to_segment) > 0, "Could not find any image to segment"
@@ -418,6 +430,10 @@ def prepare_output_files(name_subjects, subjects_dir, write_posteriors_FS, path_
                  'or the FreeSurfer $SUBJECT_DIR (--sd)')
         images_to_segment = None
         out_volumes = None
+        out_stats = None
+
+    if printed_warning:
+        print('')
 
     return images_to_segment, out_seg, out_posteriors, out_volumes, main_volumes, out_stats
 
