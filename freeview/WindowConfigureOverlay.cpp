@@ -48,6 +48,7 @@ WindowConfigureOverlay::WindowConfigureOverlay(QWidget *parent) :
   ui->widgetColorPicker->setCurrentColor(Qt::green);
   m_rangeOverall[0] = 0;
   m_rangeOverall[1] = 1;
+  m_nMaxHistCount = 1;
   connect(ui->widgetHistogram, SIGNAL(MarkerChanged()), this, SLOT(OnHistogramMarkerChanged()));
   connect(ui->checkBoxAutoApply, SIGNAL(toggled(bool)), this, SLOT(CheckApply(bool)));
   connect(ui->checkBoxApplyToAll, SIGNAL(toggled(bool)), this, SLOT(CheckApply(bool)));
@@ -56,7 +57,8 @@ WindowConfigureOverlay::WindowConfigureOverlay(QWidget *parent) :
   connect(ui->pushButtonCancel, SIGNAL(clicked(bool)), SLOT(OnButtonClicked()));
   connect(ui->pushButtonScreenshot, SIGNAL(clicked(bool)), SLOT(OnButtonClicked()));
   connect(ui->pushButtonHelp, SIGNAL(clicked(bool)), SLOT(OnButtonClicked()));
-  connect(ui->checkBoxFixedAxes, SIGNAL(toggled(bool)), SLOT(OnCheckFixedAxes(bool)));
+  connect(ui->checkBoxFixedXAxis, SIGNAL(toggled(bool)), SLOT(OnCheckFixedAxes()));
+  connect(ui->checkBoxFixedYAxis, SIGNAL(toggled(bool)), SLOT(OnCheckFixedAxes()));
   connect(ui->pushButtonLoadCustom, SIGNAL(clicked(bool)), SLOT(OnButtonLoadCustom()));
   connect(ui->pushButtonSaveCustom, SIGNAL(clicked(bool)), SLOT(OnButtonSaveCustom()));
 
@@ -72,7 +74,8 @@ WindowConfigureOverlay::WindowConfigureOverlay(QWidget *parent) :
     v = true;
   ui->checkBoxAutoApply->setChecked(v.toBool());
   ui->checkBoxAutoFrame->setChecked(settings.value("WindowConfigureOverlay/AutoFrame").toBool());
-  ui->checkBoxFixedAxes->setChecked(settings.value("WindowConfigureOverlay/FixedAxes", true).toBool());
+  ui->checkBoxFixedXAxis->setChecked(settings.value("WindowConfigureOverlay/FixedXAxis", true).toBool());
+  ui->checkBoxFixedYAxis->setChecked(settings.value("WindowConfigureOverlay/FixedYAxis", false).toBool());
 
   LayerCollection* lc = MainWindow::GetMainWindow()->GetLayerCollection("MRI");
   connect(lc, SIGNAL(LayerAdded(Layer*)), this, SLOT(UpdateUI()));
@@ -93,7 +96,8 @@ WindowConfigureOverlay::~WindowConfigureOverlay()
   settings.setValue("WindowConfigureOverlay/Geometry", this->saveGeometry());
   settings.setValue("WindowConfigureOverlay/AutoApply", ui->checkBoxAutoApply->isChecked());
   settings.setValue("WindowConfigureOverlay/AutoFrame", ui->checkBoxAutoFrame->isChecked());
-  settings.setValue("WindowConfigureOverlay/FixedAxes", ui->checkBoxFixedAxes->isChecked());
+  settings.setValue("WindowConfigureOverlay/FixedXAxis", ui->checkBoxFixedXAxis->isChecked());
+  settings.setValue("WindowConfigureOverlay/FixedYAxis", ui->checkBoxFixedYAxis->isChecked());
 
   delete ui;
 }
@@ -155,7 +159,7 @@ void WindowConfigureOverlay::OnActiveOverlayChanged()
   m_fDataCache = 0;
 
   UpdateUI();
-  OnCheckFixedAxes(ui->checkBoxFixedAxes->isChecked(), false);
+  OnCheckFixedAxes(false);
   UpdateGraph();
 }
 
@@ -478,7 +482,7 @@ void WindowConfigureOverlay::UpdateGraph(bool bApply)
     if ( overlay )
     {
       double range[2];
-      if (ui->checkBoxFixedAxes->isChecked())
+      if (ui->checkBoxFixedXAxis->isChecked())
       {
         range[0] = m_rangeOverall[0];
         range[1] = m_rangeOverall[1];
@@ -489,6 +493,8 @@ void WindowConfigureOverlay::UpdateGraph(bool bApply)
       {
         return;
       }
+
+      ui->widgetHistogram->SetFixedMaxCount(ui->checkBoxFixedYAxis->isChecked()?m_nMaxHistCount:0);
 
       SurfaceOverlayProperty* p = new SurfaceOverlayProperty( overlay );
       UpdateOverlayProperty( p );
@@ -687,7 +693,7 @@ void WindowConfigureOverlay::OnButtonAdd()
       SurfaceOverlay* overlay = m_layerSurface->GetActiveOverlay();
       if (overlay)
         overlay->SetDisplayRange(range);
-      OnCheckFixedAxes(ui->checkBoxFixedAxes->isChecked(), false);
+      OnCheckFixedAxes(false);
     }
     //    QMessageBox::warning(this, "Error", "New point out of range.");
     //    return;
@@ -961,9 +967,11 @@ void WindowConfigureOverlay::OnCycleOverlay()
   }
 }
 
-void WindowConfigureOverlay::OnCheckFixedAxes(bool bChecked, bool bUpdateGraph)
+void WindowConfigureOverlay::OnCheckFixedAxes(bool bUpdateGraph)
 {
-  if (bChecked && m_layerSurface)
+  bool bFixedX = ui->checkBoxFixedXAxis->isChecked();
+  bool bFixedY = ui->checkBoxFixedYAxis->isChecked();
+  if (bFixedX && m_layerSurface)
   {
     m_rangeOverall[0] = 1e10;
     m_rangeOverall[1] = -1e10;
@@ -978,6 +986,27 @@ void WindowConfigureOverlay::OnCheckFixedAxes(bool bChecked, bool bUpdateGraph)
         m_rangeOverall[1] = range[1];
     }
   }
+
+  if (bFixedY && m_layerSurface)
+  {
+    double range[2] = {m_rangeOverall[0], m_rangeOverall[1]};
+    m_nMaxHistCount = 1;
+    for (int i = 0; i < m_layerSurface->GetNumberOfOverlays(); i++)
+    {
+      SurfaceOverlay* ol = m_layerSurface->GetOverlay(i);
+      if (!bFixedX)
+        ol->GetDisplayRange(range);
+
+      if (ol->property("HistBins").toInt() != ui->widgetHistogram->GetNumberOfBins() || qAbs(ol->property("HistRange").toDouble()-range[0]) > 1e-6)
+      {
+        ol->UpdateMaxHistCount(range, ui->widgetHistogram->GetNumberOfBins());
+      }
+      int nMaxCnt = ol->property("HistMaxCount").toInt();
+      if (nMaxCnt > m_nMaxHistCount)
+        m_nMaxHistCount = nMaxCnt;
+    }
+  }
+
   if (bUpdateGraph)
     UpdateGraph();
 }
