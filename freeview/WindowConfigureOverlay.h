@@ -85,7 +85,7 @@ protected slots:
   void OnComboOverlayChanged(int n);
   void OnCycleOverlay();
   void UpdateGeometry();
-  void OnCheckFixedAxes(bool bChecked, bool bUpdateGraph = true);
+  void OnCheckFixedAxes(bool bUpdateGraph = true);
   void OnActiveOverlayChanged();
   void OnButtonLoadCustom();
   void OnButtonSaveCustom();
@@ -98,6 +98,7 @@ private:
   float*        m_fDataCache;
   double        m_dSavedOffset;
   double        m_rangeOverall[2];
+  int           m_nMaxHistCount;
   DialogScreenshotOverlay*  m_dlgScreenshot;
 };
 

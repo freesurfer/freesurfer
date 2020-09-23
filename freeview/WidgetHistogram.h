@@ -78,6 +78,8 @@ public:
 
   void AddMarker(double pos, const QColor& color);
 
+  void SetFixedMaxCount(int cnt);
+
   LineMarkers GetMarkers()
   {
     return m_markers;
@@ -133,6 +135,7 @@ protected:
 
   double      m_dBinWidth;
   int         m_nMaxCount;
+  int         m_nFixedMaxCount;
 
   QColor    m_colorBackground;
   QColor    m_colorForeground;
