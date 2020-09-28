@@ -693,11 +693,6 @@ int main(int argc, char **argv) {
 
   /* Write clusters numbers to a volume, include color LUT */
   if (outcnid != 0) {
-    outvol = clustClusterList2Vol(ClusterList, nclusters, vol,frame, 0);
-    printf("INFO: writing OCN to %s\n",outcnid);
-    MRIwrite(outvol,outcnid);
-    //MRIwriteType(outvol,outcnid,outcntype);
-    MRIfree(&outvol);
     ct = CTABalloc(nclusters+1);
     strcpy(ct->entries[0]->name,"Unknown");
     for (n = 0; n < nclusters; n++)
@@ -705,6 +700,13 @@ int main(int argc, char **argv) {
     stem = IDstemFromName(outcnid);
     sprintf(tmpstr,"%s.lut",stem);
     CTABwriteFileASCII(ct, tmpstr);
+    outvol = clustClusterList2Vol(ClusterList, nclusters, vol,frame, 0);
+    if(outvol->ct) CTABfree(&outvol->ct);
+    outvol->ct = ct;
+    printf("INFO: writing OCN to %s\n",outcnid);
+    MRIwrite(outvol,outcnid);
+    //MRIwriteType(outvol,outcnid,outcntype);
+    MRIfree(&outvol);
     CTABfree(&ct);
     free(stem);
   }
