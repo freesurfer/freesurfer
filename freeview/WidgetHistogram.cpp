@@ -32,6 +32,7 @@ WidgetHistogram::WidgetHistogram(QWidget *parent) :
   m_colorBackground = Qt::white;
   m_colorForeground = Qt::gray;
   m_nMaxCount = 0;
+  m_nFixedMaxCount = 0;
   m_nColorTable = NULL;
   m_bMarkerEditable = false;
   m_bUsePercentile = false;
@@ -202,6 +203,7 @@ void WidgetHistogram::paintEvent(QPaintEvent* event)
   QRect rc = rect();
   if ( m_nOutputData )
   {
+    int nMaxCnt = (m_nFixedMaxCount > 0 ? m_nFixedMaxCount : m_nMaxCount);
     int x, y;
     int nOrigin[2] = { m_rectGraph.x(), m_rectGraph.y() };
     int nCavWidth = rc.width() - m_rectGraph.x() - 20;
@@ -216,7 +218,7 @@ void WidgetHistogram::paintEvent(QPaintEvent* event)
     // draw y metrics
     int nMetricInterval = 25;
     QPalette pal = palette();
-    double dMetricStep = ((double)m_nMaxCount) / ( nCavHeight / nMetricInterval );
+    double dMetricStep = ((double)nMaxCnt) / ( nCavHeight / nMetricInterval );
     dMetricStep = MyUtils::RoundToGrid( dMetricStep );
     double dMetricStart = 0;
     y = m_rectGraph.bottom();
@@ -240,7 +242,7 @@ void WidgetHistogram::paintEvent(QPaintEvent* event)
       painter.drawText( tmp_rc, value_strg );
 
       dMetricStart += dMetricStep;
-      y =  (int)(m_rectGraph.bottom() - dMetricStart / m_nMaxCount *nCavHeight );
+      y =  (int)(m_rectGraph.bottom() - dMetricStart / nMaxCnt *nCavHeight );
     }
 
     // draw bars
@@ -251,8 +253,8 @@ void WidgetHistogram::paintEvent(QPaintEvent* event)
     {
       painter.setPen( QPen( QColor( m_nColorTable[i*4],  m_nColorTable[i*4+1], m_nColorTable[i*4+2] ) ) );
       painter.setBrush( QBrush( QColor( m_nColorTable[i*4],  m_nColorTable[i*4+1], m_nColorTable[i*4+2] ) ) );
-      y = (int)( nOrigin[1] + nCavHeight * ( 1.0 - (double)m_nOutputData[i] / m_nMaxCount ) );
-      int h = (int)( (double)m_nOutputData[i] / m_nMaxCount * nCavHeight );
+      y = (int)( nOrigin[1] + nCavHeight * ( 1.0 - (double)m_nOutputData[i] / nMaxCnt ) );
+      int h = (int)( (double)m_nOutputData[i] / nMaxCnt * nCavHeight );
       if ( y < nOrigin[1] )
       {
         y = nOrigin[1];
@@ -683,4 +685,10 @@ void WidgetHistogram::SetMarkerEditable(bool bFlag)
 {
   m_bMarkerEditable = bFlag;
   setToolTip(bFlag?"Double-click on the sliding markers to edit.\r\nShift+Click to delete":"");
+}
+
+void WidgetHistogram::SetFixedMaxCount(int cnt)
+{
+  m_nFixedMaxCount = cnt;
+  this->repaint();
 }

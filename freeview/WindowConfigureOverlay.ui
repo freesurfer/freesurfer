@@ -784,12 +784,22 @@ color: gray;</string>
          </widget>
         </item>
         <item>
-         <widget class="QCheckBox" name="checkBoxFixedAxes">
+         <widget class="QCheckBox" name="checkBoxFixedXAxis">
           <property name="text">
-           <string>Fixed axes</string>
+           <string>Fixed X axis</string>
           </property>
           <property name="checked">
            <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QCheckBox" name="checkBoxFixedYAxis">
+          <property name="text">
+           <string>Fixed Y axis</string>
+          </property>
+          <property name="checked">
+           <bool>false</bool>
           </property>
          </widget>
         </item>
@@ -1431,7 +1441,7 @@ color: gray;</string>
      <y>324</y>
     </hint>
     <hint type="destinationlabel">
-     <x>488</x>
+     <x>375</x>
      <y>330</y>
     </hint>
    </hints>
@@ -1443,7 +1453,7 @@ color: gray;</string>
    <slot>FlipMarkers()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>488</x>
+     <x>375</x>
      <y>330</y>
     </hint>
     <hint type="destinationlabel">
@@ -1479,8 +1489,8 @@ color: gray;</string>
      <y>250</y>
     </hint>
     <hint type="destinationlabel">
-     <x>483</x>
-     <y>252</y>
+     <x>519</x>
+     <y>255</y>
     </hint>
    </hints>
   </connection>
@@ -1683,7 +1693,7 @@ color: gray;</string>
    <slot>OnCheckUsePercentile(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>263</x>
+     <x>209</x>
      <y>738</y>
     </hint>
     <hint type="destinationlabel">
@@ -1763,7 +1773,7 @@ color: gray;</string>
    <slot>OnCheckUseNonZeroVertices(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>415</x>
+     <x>361</x>
      <y>738</y>
     </hint>
     <hint type="destinationlabel">
@@ -1799,8 +1809,8 @@ color: gray;</string>
      <y>312</y>
     </hint>
     <hint type="destinationlabel">
-     <x>344</x>
-     <y>312</y>
+     <x>441</x>
+     <y>330</y>
     </hint>
    </hints>
   </connection>
@@ -1815,8 +1825,8 @@ color: gray;</string>
      <y>325</y>
     </hint>
     <hint type="destinationlabel">
-     <x>392</x>
-     <y>311</y>
+     <x>507</x>
+     <y>330</y>
     </hint>
    </hints>
   </connection>

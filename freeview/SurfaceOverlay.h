@@ -179,6 +179,8 @@ public:
     return m_nID;
   }
 
+  void UpdateMaxHistCount(double* range, int nBins);
+
 signals:
   void DataUpdated();
 
