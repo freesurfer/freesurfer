@@ -5,21 +5,32 @@ namespace surf {
 
 
 /*
-  Parameterizes an nvertices-length overlay to an image. Default method is barycentric.
+  Parameterizes an nvertices-length overlay to an image. Interp methods can be 'nearest' or
+  'barycentric'.
 */
-py::array parameterize(Bridge surf, const arrayf<float>& overlay, int scale)
+py::array parameterize(Bridge surf, const arrayf<float>& overlay, int scale, std::string interp)
 {
   // get frames and allocate mrisp
   int nframes = (overlay.ndim() == 2) ? overlay.shape(1) : 1;
   MRI_SP *mrisp = MRISPalloc(scale, nframes);
 
-  // parameterize
+  // configure projector
   MRIS *mris = surf.mris();
-  BarycentricSphericalProjector projector = BarycentricSphericalProjector(mris, mrisp);
+  SphericalProjector * projector = nullptr;
+  if (interp == "nearest") {
+    projector = new NearestNeighborSphericalProjector(mris, mrisp);
+  } else if (interp == "barycentric") {
+    projector = new BarycentricSphericalProjector(mris, mrisp);
+  } else {
+    throw py::value_error("unknown parameterization interpolation method");
+  }
+
+  // parameterize
   for (int frame = 0; frame < nframes ; frame++) {
     const float * array = overlay.data() + frame * overlay.shape(0);
-    projector.projectOverlay(array, frame);
+    projector->projectOverlay(array, frame);
   }
+  delete projector;
 
   // convert to numpy array
   int udim = U_DIM(mrisp);
@@ -41,7 +52,7 @@ py::array parameterize(Bridge surf, const arrayf<float>& overlay, int scale)
 /*
   Samples a parameterization into an nvertices-length overlay. Sampling method is barycentric.
 */
-py::array sampleParameterization(Bridge surf, const arrayf<float>& image)
+py::array sampleParameterization(Bridge surf, const arrayf<float>& image, std::string interp)
 {
   // get number of frames
   int nframes = (image.ndim() == 3) ? image.shape(2) : 1;
@@ -67,10 +78,26 @@ py::array sampleParameterization(Bridge surf, const arrayf<float>& image)
   MRIS *mris = surf.mris();
   float *const buffer = new float[mris->nvertices * nframes];
   float *vptr = buffer;
-  for (int frame = 0; frame < nframes ; frame++) {
-    MRISfromParameterizationBarycentric(mrisp, mris, frame);
-    for (int v = 0 ; v < mris->nvertices ; v++) *vptr++ = mris->vertices[v].curv;
+
+  if (interp == "nearest") {
+
+    NearestNeighborSphericalProjector projector(mris, mrisp);
+    for (int frame = 0; frame < nframes ; frame++) {
+      projector.sample(vptr, frame);
+      vptr += mris->nvertices;
+    }
+
+  } else if (interp == "barycentric") {
+
+    for (int frame = 0; frame < nframes ; frame++) {
+      MRISfromParameterizationBarycentric(mrisp, mris, frame);
+      for (int v = 0 ; v < mris->nvertices ; v++) *vptr++ = mris->vertices[v].curv;
+    }
+
+  } else {
+    throw py::value_error("unknown parameterization interpolation method");
   }
+
   return makeArray({mris->nvertices, nframes}, MemoryOrder::Fortran, buffer);
 }
 

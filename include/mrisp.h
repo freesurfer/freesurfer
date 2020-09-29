@@ -30,7 +30,20 @@
   Helper class to (more) easily project overlays into an parameterization image.
   This is an initial attempt to cleanup the parameterization code a bit.
 */
-class BarycentricSphericalProjector
+class SphericalProjector
+{
+public:
+  virtual ~SphericalProjector() {};
+  virtual void projectOverlay(const float* overlay, int frameno) = 0;
+};
+
+
+
+/*
+  Helper class to (more) easily project overlays into an parameterization image.
+  This is an initial attempt to cleanup the parameterization code a bit.
+*/
+class BarycentricSphericalProjector: public SphericalProjector
 {
 public:
   BarycentricSphericalProjector(MRIS *mris, MRI_SP *param);
@@ -49,4 +62,29 @@ private:
   MRI_SP *mrisp = nullptr;
 
   SphericalInterpolator *interpolator = nullptr;
+};
+
+
+/*
+  Helper class to (more) easily project overlays into an parameterization image.
+  This is an initial attempt to cleanup the parameterization code a bit.
+*/
+class NearestNeighborSphericalProjector: public SphericalProjector
+{
+public:
+  NearestNeighborSphericalProjector(MRIS *mris, MRI_SP *param);
+  ~NearestNeighborSphericalProjector();
+  void projectOverlay(const float* overlay, int frameno = 0);
+  void sample(float *overlay, int frameno = 0);
+
+private:
+  std::vector<int> vertex_u;
+  std::vector<int> vertex_v;
+  int **filled;
+  float **distances;
+  int u_max_index, v_max_index;
+
+  MRIS *original = nullptr;
+  MRIS *mris = nullptr;
+  MRI_SP *mrisp = nullptr;
 };
