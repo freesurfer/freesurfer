@@ -1,7 +1,26 @@
 # project info
 cmake_minimum_required(VERSION 3.9)
-project(freesurfer)
-enable_language(C CXX Fortran)
+
+# requiring at least c++11 standard
+if(CMAKE_CXX_STANDARD EQUAL "98" )
+   message(FATAL_ERROR "CMAKE_CXX_STANDARD:STRING=98 is not supported in.")
+endif()
+
+# set the default language dialect settings (This must be done BEFORE the project call)
+if(NOT CMAKE_CXX_STANDARD)
+  set(CMAKE_CXX_STANDARD 11)
+endif()
+if(NOT CMAKE_CXX_STANDARD_REQUIRED)
+  set(CMAKE_CXX_STANDARD_REQUIRED ON)
+endif()
+if(NOT CMAKE_CXX_EXTENSIONS)
+  set(CMAKE_CXX_EXTENSIONS OFF)
+endif()
+
+project(freesurfer 
+  DESCRIPTION "An open source software suite for processing and analyzing (human) brain MRI images."
+  LANGUAGES C CXX Fortran
+)
 
 # a few build options
 option(MINIMAL "Only build core components" OFF)
@@ -13,6 +32,12 @@ option(BUILD_DNG "Build Doug's testing tools" OFF)
 option(FREEVIEW_LINEPROF "Build FreeView with lineprof enabled" OFF)
 option(PROFILING "Complile binaries for profiling with gprof" OFF)
 option(INSTALL_PYTHON_DEPENDENCIES "Install python package dependencies" ON)
+#  Modern compilers on new platforms often provide many more warnings than older compilers
+#  for example the gcc 7.5.0 compiler warnings about falling through switch statements
+#  without explicit breaks on every case.  This desired fallthrough behavior causes false
+#  compiler errors with "-Werror" turned on.  The WARNING_AS_ERROR option allows temporarily
+#  disabling warnings as errors to allow a more gradual move to supporting new compilers.
+option(WARNING_AS_ERROR "Convert build warnings to errors" ON)
 
 if(NOT APPLE)
   # linux-only build options
@@ -209,9 +234,6 @@ else()
   set(BYTEORDER 1234)
 endif()
 
-# enable std c++11
-set(CMAKE_CXX_STANDARD 11)
-
 # --------------------------------------------------
 #                  third-party code
 # --------------------------------------------------
@@ -261,7 +283,10 @@ endif()
 
 # warnings
 if(NOT NO_CXX_WARN)
-   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -Wno-sign-compare -Wno-unused-result -Wno-unused-parameter")
+  if(WARNING_AS_ERROR)
+    set(WARN_AS_ERROR_FLAG "-Werror")
+  endif()
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra ${WARN_AS_ERROR_FLAG} -Wno-sign-compare -Wno-unused-result -Wno-unused-parameter")
 else ()
    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error -Wno-deprecated-declarations -fpermissive") 
 endif()
