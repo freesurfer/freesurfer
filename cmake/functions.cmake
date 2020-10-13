@@ -170,9 +170,9 @@ endfunction()
 # should be specified with DEPENDS to guarantee it gets built beforehand
 function(add_test_script)
   cmake_parse_arguments(TEST "" "NAME;SCRIPT" "DEPENDS" ${ARGN})
-  # foreach(TARGET ${TEST_DEPENDS})
-  #  set(TEST_CMD "${TEST_CMD} ${CMAKE_COMMAND} --build ${CMAKE_CURRENT_BINARY_DIR} --target ${TARGET} &&")
-  # endforeach()
+  foreach(TARGET ${TEST_DEPENDS})
+    set(TEST_CMD "${TEST_CMD} ${CMAKE_COMMAND} --build ${CMAKE_CURRENT_BINARY_DIR} --target ${TARGET} &&")
+  endforeach()
   add_test(${TEST_NAME} bash -c "${TEST_CMD} ${CMAKE_CURRENT_SOURCE_DIR}/${TEST_SCRIPT}")
 endfunction()
 
@@ -184,8 +184,8 @@ function(add_test_executable)
   set(TARGET ${ARGV0})
   LIST(REMOVE_AT ARGV 0)
   add_executable(${TARGET} EXCLUDE_FROM_ALL ${ARGV})
-  # set(TEST_CMD "${CMAKE_COMMAND} --build ${CMAKE_CURRENT_BINARY_DIR} --target ${TARGET} &&")
-  # add_test(${TARGET} bash -c "${TEST_CMD} ${CMAKE_CURRENT_BINARY_DIR}/${TARGET}")
+  set(TEST_CMD "${CMAKE_COMMAND} --build ${CMAKE_CURRENT_BINARY_DIR} --target ${TARGET} &&")
+  add_test(${TARGET} bash -c "${TEST_CMD} ${CMAKE_CURRENT_BINARY_DIR}/${TARGET}")
 endfunction()
 
 
