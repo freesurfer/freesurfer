@@ -185,7 +185,7 @@ function(add_test_executable)
   LIST(REMOVE_AT ARGV 0)
   add_executable(${TARGET} EXCLUDE_FROM_ALL ${ARGV})
   # set(TEST_CMD "${CMAKE_COMMAND} --build ${CMAKE_CURRENT_BINARY_DIR} --target ${TARGET} &&")
-  add_test(${TARGET} bash -c "${TEST_CMD} ${CMAKE_CURRENT_BINARY_DIR}/${TARGET}")
+  # add_test(${TARGET} bash -c "${TEST_CMD} ${CMAKE_CURRENT_BINARY_DIR}/${TARGET}")
 endfunction()
 
 
