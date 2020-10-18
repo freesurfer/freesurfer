@@ -261,8 +261,8 @@ MRI_SURFACE_PARAMETERIZATION, MRI_SP ;
 /* VECTORIAL_REGISTRATION */
 #include "field_code.h"
 
-typedef struct INTEGRATION_PARMS
-{
+class INTEGRATION_PARMS {
+ public:
   double  tol ;               /* tolerance for terminating a step */
   float   l_angle ;           /* coefficient of angle term */
   float   l_pangle ;          /* coefficient of "positive" angle term - only penalize narrower angles */
@@ -454,8 +454,7 @@ typedef struct INTEGRATION_PARMS
   INTEGRATION_PARMS() : fp(NULL) {}
   INTEGRATION_PARMS(FILE* file) : fp(file) {}
   
-}
-INTEGRATION_PARMS ;
+};
 
 void INTEGRATION_PARMS_copy   (INTEGRATION_PARMS* dst, INTEGRATION_PARMS const * src);
 
