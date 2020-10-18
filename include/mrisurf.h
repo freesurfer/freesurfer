@@ -451,8 +451,56 @@ class INTEGRATION_PARMS {
   double       stressthresh ;
   int          explode_flag ;
   
-  INTEGRATION_PARMS() : fp(NULL) {}
-  INTEGRATION_PARMS(FILE* file) : fp(file) {}
+  /*
+    Introduce all initializers in an effort to avoid some memset() calls
+    which gcc8 finds unsettling.
+
+    I do find myself contemplating whether this class may benefit from
+    some splitting up - whether by composition, inheritance, or both.
+   */
+  INTEGRATION_PARMS(FILE* file = nullptr)
+    : tol(0), l_angle(0), l_pangle(0), l_area(0), l_parea(0),
+      l_nlarea(0), l_nldist(0), l_thick_normal(0), l_thick_spring(0),
+      l_ashburner_triangle(0), l_ashburner_lambda(0), l_corr(0),
+      l_ocorr(0), l_pcorr(0), l_curv(0), l_norm(0), l_scurv(0), l_lap(0),
+      l_link(0), l_spring(0), l_nlspring(0), l_max_spring(0),
+      l_spring_norm(0), l_tspring(0), l_nltspring(0), l_nspring(0),
+      l_spring_nzr(0), l_spring_nzr_len(0), l_hinge(0), l_repulse(0),
+      l_repulse_ratio(0), l_boundary(0), l_dist(0), l_location(0),
+      l_neg(0), l_intensity(0), l_sphere(0), l_expand(0), l_grad(0),
+      l_convex(0), l_tsmooth(0), l_surf_repulse(0), l_osurf_repulse(0),
+      l_external(0), l_thick_parallel(0), l_thick_min(0), l_shrinkwrap(0),
+      l_expandwrap(0), l_unfold(0), l_dura(0), l_histo(0), l_map(0),
+      l_map2d(0), dura_thresh(0), mri_dura(nullptr), n_averages(0),
+      min_averages(0), first_pass_averages(0), nbhd_size(0), max_nbrs(0),
+      write_iterations(0),
+      base_name(), /* Should default initialize array to zero */
+      projection(0), niterations(0), a(0), b(0), c(0), start_t(0), t(0),
+      fp(file), // Highlighted as the sole configurable value
+      Hdesired(0), integration_type(0), momentum(0), dt(0), base_dt(0),
+      flags(0), dt_increase(0), dt_decrease(0), error_ratio(0), epsilon(0),
+      desired_rms_height(0), starting_sse(0), ending_sse(0), scale(0),
+      mrisp(nullptr), frame_no(0), mrisp_template(nullptr),
+      mrisp_blurred_template(nullptr), area_coef_scale(0), sigma(0),
+      nfields(0),
+      fields(), /* Array should initialize to zero */
+      mri_brain(nullptr), mri_smooth(nullptr), user_parms(nullptr),
+      mri_dist(nullptr), target_radius(0), ignore_energy(0), check_tol(0),
+      overlay_dir(nullptr), nsurfaces(0), mri_ll(nullptr), rmin(0), rmax(0),
+      var_smoothness(0), vsmoothness(nullptr), dist_error(nullptr),
+      area_error(nullptr), geometry_error(nullptr), which_norm(0),
+      abs_norm(0), grad_dir(0), fill_interior(0), rms(0), complete_dist_mat(0),
+      nsubjects(0), nlabels(0), mht_array(nullptr), mris_array(nullptr),
+      mris_ico(nullptr), mht(nullptr), smooth_averages(0), ico_order(0),
+      remove_neg(0), mri_hires(nullptr), mri_hires_smooth(nullptr),
+      mri_vno(nullptr), mri_template(nullptr), which_surface(0),
+      trinarize_thresh(0), nonmax(0), smooth_intersections(0), uncompress(0),
+      min_dist(0), h_wm(nullptr), h_gm(nullptr), h_nonbrain(nullptr),
+      mri_labels(nullptr), mri_white(nullptr), mri_aseg(nullptr), hwm(nullptr),
+      hgm(nullptr), hout(nullptr), h2d_wm(nullptr), h2d_gm(nullptr), 
+      h2d_out(nullptr), h2d(nullptr), mri_volume_fractions(nullptr), 
+      mri_dtrans(nullptr), resolution(0), target_intensity(0), stressthresh(0),
+      explode_flag(0) {}
   
 };
 
