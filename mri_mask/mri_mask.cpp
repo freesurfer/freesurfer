@@ -74,7 +74,7 @@ static int do_transfer=0;
 static float transfer_val;
 static int keep_mask_deletion_edits = 0; // if 1, keep mask voxels with value=1
 int DoAbs = 0;
-int DoBB = 0, nPadBB=0;
+int DoBB = 0, nPadBB[3];
 
 int main(int argc, char *argv[])
 {
@@ -281,8 +281,8 @@ int main(int argc, char *argv[])
     }
   }
   if(DoBB){
-    printf("Computing bounding box, npad = %d\n",nPadBB);
-    region = REGIONgetBoundingBox(mri_mask,nPadBB);
+    printf("Computing bounding box, npad = %d, %d, %d\n",nPadBB[0],nPadBB[1],nPadBB[2]);
+    region = REGIONgetBoundingBoxM(mri_mask,nPadBB);
     REGIONprint(stdout, region);
     mri_tmp = MRIextractRegion(mri_mask, NULL, region);
     if(mri_tmp == NULL) exit(1);
@@ -411,10 +411,21 @@ get_option(int argc, char *argv[])
   }
   else if (!stricmp(option, "BB")|| !stricmp(option, "boundingbox"))
   {
-    nPadBB = (int)atoi(argv[2]);
+    nPadBB[0] = (int)atoi(argv[2]);
+    nPadBB[1] = (int)atoi(argv[2]);
+    nPadBB[2] = (int)atoi(argv[2]);
     DoBB = 1;
     nargs = 1;
-    printf("bounding box npad = %d\n",nPadBB);
+    printf("bounding box npad = %d\n",nPadBB[0]);
+  }
+  else if (!stricmp(option, "BBM")|| !stricmp(option, "boundingboxm"))
+  {
+    nPadBB[0] = (int)atoi(argv[2]);
+    nPadBB[1] = (int)atoi(argv[3]);
+    nPadBB[2] = (int)atoi(argv[4]);
+    DoBB = 1;
+    nargs = 3;
+    printf("bounding box M npad = %d, %d, %d\n",nPadBB[0],nPadBB[1],nPadBB[2]);
   }
   else if (!stricmp(option, "transfer"))
   {
