@@ -74,7 +74,7 @@ static int do_transfer=0;
 static float transfer_val;
 static int keep_mask_deletion_edits = 0; // if 1, keep mask voxels with value=1
 int DoAbs = 0;
-int DoBB = 0, nPadBB[3];
+int DoBB = 0, nPadBB[6];
 
 int main(int argc, char *argv[])
 {
@@ -281,7 +281,8 @@ int main(int argc, char *argv[])
     }
   }
   if(DoBB){
-    printf("Computing bounding box, npad = %d, %d, %d\n",nPadBB[0],nPadBB[1],nPadBB[2]);
+    printf("Computing bounding box, npad = %d, %d, %d, %d, %d, %d\n",
+	   nPadBB[0],nPadBB[1],nPadBB[2],nPadBB[3],nPadBB[4],nPadBB[5]);
     region = REGIONgetBoundingBoxM(mri_mask,nPadBB);
     REGIONprint(stdout, region);
     mri_tmp = MRIextractRegion(mri_mask, NULL, region);
@@ -414,6 +415,9 @@ get_option(int argc, char *argv[])
     nPadBB[0] = (int)atoi(argv[2]);
     nPadBB[1] = (int)atoi(argv[2]);
     nPadBB[2] = (int)atoi(argv[2]);
+    nPadBB[3] = (int)atoi(argv[2]);
+    nPadBB[4] = (int)atoi(argv[2]);
+    nPadBB[5] = (int)atoi(argv[2]);
     DoBB = 1;
     nargs = 1;
     printf("bounding box npad = %d\n",nPadBB[0]);
@@ -421,11 +425,27 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "BBM")|| !stricmp(option, "boundingboxm"))
   {
     nPadBB[0] = (int)atoi(argv[2]);
-    nPadBB[1] = (int)atoi(argv[3]);
-    nPadBB[2] = (int)atoi(argv[4]);
+    nPadBB[1] = (int)atoi(argv[2]);
+    nPadBB[2] = (int)atoi(argv[3]);
+    nPadBB[3] = (int)atoi(argv[3]);
+    nPadBB[4] = (int)atoi(argv[4]);
+    nPadBB[5] = (int)atoi(argv[4]);
     DoBB = 1;
     nargs = 3;
-    printf("bounding box M npad = %d, %d, %d\n",nPadBB[0],nPadBB[1],nPadBB[2]);
+    printf("bounding box M npad = %d, %d, %d\n",nPadBB[0],nPadBB[2],nPadBB[4]);
+  }
+  else if (!stricmp(option, "BBMM")|| !stricmp(option, "boundingboxmm"))
+  {
+    nPadBB[0] = (int)atoi(argv[2]);
+    nPadBB[1] = (int)atoi(argv[3]);
+    nPadBB[2] = (int)atoi(argv[4]);
+    nPadBB[3] = (int)atoi(argv[5]);
+    nPadBB[4] = (int)atoi(argv[6]);
+    nPadBB[5] = (int)atoi(argv[7]);
+    DoBB = 1;
+    nargs = 6;
+    printf("bounding box MM npad = %d, %d, %d, %d, %d, %d\n",
+	   nPadBB[0],nPadBB[1],nPadBB[2],nPadBB[3],nPadBB[4],nPadBB[5]);
   }
   else if (!stricmp(option, "transfer"))
   {

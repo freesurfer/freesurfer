@@ -286,15 +286,17 @@ static int regionCornerCoords(MRI_REGION *r, int which_corner, int *px, int *py,
   return (NO_ERROR);
 }
 /*!
-  \fn MRI_REGION *REGIONgetBoundingBoxM(MRI *mask, int npad[3])
+  \fn MRI_REGION *REGIONgetBoundingBoxM(MRI *mask, int npad[6])
   \brief Determines bounding box as corners of the smallest box needed
-  to fit all the non-zero voxels. If npad[X] is non-zero then then the box
-  is expanded by npad in each direction (making it 2*npad [X]bigger in each
-  dimension). region->{x,y,z} is the CRS 0-based starting point of the box.
-  region->{dx,dy,dz} is the size of the box such that a loop would run
-  for(c=region->x; c < region->x+region->dx; c++)
+  to fit all the non-zero voxels. npad[X] allows the BB to be expanded
+  in each direction. It will expand the first dimension by npad[0]
+  toward 0.  It will expand the first dimension by npad[1] toward inf.
+  Etc, for the remaining dims. region->{x,y,z} is the CRS 0-based
+  starting point of the box.  region->{dx,dy,dz} is the size of the
+  box such that a loop would run for(c=region->x; c <
+  region->x+region->dx; c++)
 */
-MRI_REGION *REGIONgetBoundingBoxM(const MRI *mask, const int npad[3])
+MRI_REGION *REGIONgetBoundingBoxM(const MRI *mask, const int npad[6])
 {
   int c, r, s;
   int cmin, cmax, rmin, rmax, smin, smax;
@@ -320,11 +322,11 @@ MRI_REGION *REGIONgetBoundingBoxM(const MRI *mask, const int npad[3])
   }
   region = REGIONalloc();
   region->x = MAX(cmin - npad[0], 0);
-  region->y = MAX(rmin - npad[1], 0);
-  region->z = MAX(smin - npad[2], 0);
-  region->dx = MIN(cmax - cmin + 2 * npad[0], mask->width - region->x);
-  region->dy = MIN(rmax - rmin + 2 * npad[1], mask->height - region->y);
-  region->dz = MIN(smax - smin + 2 * npad[2], mask->depth - region->z);
+  region->y = MAX(rmin - npad[2], 0);
+  region->z = MAX(smin - npad[4], 0);
+  region->dx = MIN(cmax - cmin + npad[0] + npad[1], mask->width  - region->x);
+  region->dy = MIN(rmax - rmin + npad[2] + npad[3], mask->height - region->y);
+  region->dz = MIN(smax - smin + npad[4] + npad[5], mask->depth  - region->z);
 
   return (region);
 }
