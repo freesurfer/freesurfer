@@ -928,7 +928,11 @@ MRI *MRIcentralPlaneOfLeastVarianceNormal(MRI *mri_src, MRI *mri_dst, int wsize)
     MRI *mri_tmp;
 
     /* try and read previously computed CPOLV file from disk */
-    sprintf(fname, "%s/cpolv.mnc", mri_src->fname);
+    int req = snprintf(fname, 100, "%s/cpolv.mnc", mri_src->fname);
+    if( req >= 100 ) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
+
     mri_tmp = MRIread(fname);
     if (mri_tmp) {
       if (Gdiag & DIAG_SHOW) fprintf(stderr, "reading previously calculated cpolv %s\n", fname);
