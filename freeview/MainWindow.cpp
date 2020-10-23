@@ -683,7 +683,7 @@ void MainWindow::LoadSettings()
   m_term->SetDarkTheme(m_settings["DarkConsole"].toBool());
 
 #ifdef Q_OS_MAC
-  this->SetUnifiedTitleAndToolBar(m_settings["MacUnifiedTitleBar"].toBool());
+//  this->SetUnifiedTitleAndToolBar(m_settings["MacUnifiedTitleBar"].toBool());
   this->SetUseCommandControl(m_settings["MacUseCommand"].toBool());
 #endif
 }
