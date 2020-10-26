@@ -17,7 +17,7 @@ if [ $# == 0 ]; then
   exit 1
 fi
 
-if [[ ! -v FS_ALLOW_VGLRUN ]]; then
+if [ -z "$FS_ALLOW_VGLRUN" ]; then
   FS_ALLOW_VGLRUN=0
 fi
 
