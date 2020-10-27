@@ -42,7 +42,7 @@ int main(int argc, char **argv)
 
   // read target data type (default is float)
   int dtype = MRI_FLOAT;
-  if (parser.exists("iters")) {
+  if (parser.exists("dtype")) {
     std::string dtype_str = parser.retrieve<std::string>("dtype");
     std::transform(dtype_str.begin(), dtype_str.end(), dtype_str.begin(), ::tolower);
     if (dtype_str == "float") {
