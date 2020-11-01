@@ -1,6 +1,35 @@
 # This file defines a few custom cmake utility functions to
 # simplify the freesurfer build process
 
+# Use the common linux file /etc/os-release to save the OS
+# name in a common variable e.g., test HOST_OS in a lower
+# level CMakeLists.txt to selectively exclude running 
+# tests on some platforms
+function(host_os)
+   set(HOST_OS undefined)
+   if(EXISTS "/etc/os-release")
+      execute_process(COMMAND grep PRETTY_NAME \/etc\/os\-release OUTPUT_VARIABLE OS_IDENT)
+      string(STRIP ${OS_IDENT} OS_IDENT)
+      if(OS_IDENT MATCHES "CentOS Linux 8")
+         set(HOST_OS CentOS8)
+      elseif(OS_IDENT MATCHES "CentOS Linux 7")
+         set(HOST_OS CentOS7)
+      elseif(OS_IDENT MATCHES "Ubuntu 18")
+         set(HOST_OS Ubuntu18)
+      elseif(OS_IDENT MATCHES "Ubuntu 20")
+         set(HOST_OS Ubuntu20)
+      endif()
+   # CentOS6 too old to use os-release
+   elseif(EXISTS "/etc/redhat-release")
+      execute_process(COMMAND cat \/etc\/redhat\-release OUTPUT_VARIABLE REDHAT_VERSION)
+      string(STRIP ${REDHAT_VERSION} REDHAT_VERSION)
+      if(REDHAT_VERSION MATCHES "release 6")
+         set(HOST_OS CentOS6)
+      endif()
+   endif()
+   # message(STATUS "FROM functions.cmake building on host running ${HOST_OS}")
+   set(HOST_OS ${HOST_OS} PARENT_SCOPE)
+endfunction()
 
 # add_subdirectories(<subdirs>)
 # Simple utility to add multiple subdirectories at once

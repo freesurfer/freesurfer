@@ -682,6 +682,22 @@ void MainWindow::LoadSettings()
   SyncZoom(m_settings["SyncZoom"].toBool());
   m_term->SetDarkTheme(m_settings["DarkConsole"].toBool());
 
+  QString val = m_settings.value("ShortcutCycleLayer").toString();
+  if (!val.isEmpty() && val != "Default")
+  {
+    DialogPreferences::SetActionShortcut(ui->actionCycleLayer, val);
+  }
+  val = m_settings.value("ShortcutToggleVolume").toString();
+  if (!val.isEmpty() && val != "Default")
+  {
+    DialogPreferences::SetActionShortcut(ui->actionToggleVolumeVisibility, val);
+  }
+  val = m_settings.value("ShortcutToggleSurface").toString();
+  if (!val.isEmpty() && val != "Default")
+  {
+    DialogPreferences::SetActionShortcut(ui->actionToggleSurfaceVisibility, val);
+  }
+
 #ifdef Q_OS_MAC
 //  this->SetUnifiedTitleAndToolBar(m_settings["MacUnifiedTitleBar"].toBool());
   this->SetUseCommandControl(m_settings["MacUseCommand"].toBool());
