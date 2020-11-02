@@ -4241,7 +4241,6 @@ int MRISrepositionSurface(
 
   printf("flags = %x, size = %ld\n", flags, (long)sizeof(flags));
 
-  memset(&parms, 0, sizeof(parms));
   parms.fill_interior = 0;
   parms.projection = NO_PROJECTION;
   parms.tol = 1e-4;
@@ -4313,9 +4312,8 @@ int MRISrepositionSurfaceToCoordinate(
 
 #define SCALE .01
 
-  printf(
-      "MRISrepositionSurfaceToCoordinate(%d, %f, %f, %f, %d, %f, %x)\n", target_vno, tx, ty, tz, nsize, sigma, flags);
-  memset(&parms, 0, sizeof(parms));
+  printf("MRISrepositionSurfaceToCoordinate(%d, %f, %f, %f, %d, %f, %x)\n",
+	 target_vno, tx, ty, tz, nsize, sigma, flags);
   parms.fill_interior = 0;
   parms.projection = NO_PROJECTION;
   parms.tol = 1e-4;
@@ -4671,7 +4669,6 @@ int MRISrigidBodyAlignLocal(MRI_SURFACE *mris, INTEGRATION_PARMS *old_parms)
   /* dx,dy,dz interpreted as rotations in applyGradient when status is rigid */
   auto const old_status = mris->status; /* okay, okay, this is a hack too... */
   mris->status = MRIS_RIGID_BODY;
-  memset(&parms, 0, sizeof(parms));
   parms.integration_type = INTEGRATE_LM_SEARCH;
   parms.integration_type = INTEGRATE_LINE_MINIMIZE;
 
@@ -4713,7 +4710,6 @@ int MRISrigidBodyAlignVectorLocal(MRI_SURFACE *mris, INTEGRATION_PARMS *old_parm
   /* dx,dy,dz interpreted as rotations in applyGradient when status is rigid */
   auto const old_status = mris->status; /* okay, okay, this is a hack too... */
   mris->status = MRIS_RIGID_BODY;
-  memset(&parms, 0, sizeof(parms));
   parms.integration_type = INTEGRATE_LM_SEARCH;
   parms.integration_type = INTEGRATE_LINE_MINIMIZE;
 
