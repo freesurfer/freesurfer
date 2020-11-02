@@ -1828,11 +1828,16 @@ int mrisComputePosteriorTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     char fname[STRLEN], path[STRLEN];
 
     FileNamePath(mris->fname, path);
-    sprintf(fname,
-            "%s/%s.%d.dist.mgz",
-            path,
-            mris->hemisphere == LEFT_HEMISPHERE ? "lh" : mris->hemisphere == BOTH_HEMISPHERES ? "both" : "rh",
-            parms->t);
+    int req = snprintf(fname,
+		       STRLEN,
+		       "%s/%s.%d.dist.mgz",
+		       path,
+		       mris->hemisphere == LEFT_HEMISPHERE ? "lh" : mris->hemisphere == BOTH_HEMISPHERES ? "both" : "rh",
+		       parms->t);
+    if( req >= STRLEN ) {   
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
+
     MRISwriteD(mris, fname);
     DiagBreak();
   }
@@ -2004,7 +2009,11 @@ int mrisRemoveNegativeArea(
   if (Gdiag & DIAG_WRITE && parms->fp == NULL) {
     char fname[STRLEN];
 
-    sprintf(fname, "%s.%s.out", mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh", parms->base_name);
+    int req = snprintf(fname, STRLEN, "%s.%s.out", 
+		       mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh", parms->base_name); 
+    if( req >= STRLEN ) {   
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     if (!parms->start_t) {
       INTEGRATION_PARMS_openFp(parms, fname, "w");
     }
