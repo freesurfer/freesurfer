@@ -247,8 +247,10 @@ class Samseg:
             self.transform,
             self.modelSpecifications.brainMaskingSmoothingSigma,
             self.modelSpecifications.brainMaskingThreshold,
-            self.probabilisticAtlas
+            self.probabilisticAtlas,
+            self.voxelSpacing
         )
+
 
         # Let's prepare for the bias field correction that is part of the imaging model. It assumes
         # an additive effect, whereas the MR physics indicate it's a multiplicative one - so we log
