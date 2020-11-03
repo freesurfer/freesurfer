@@ -245,8 +245,7 @@ class Samseg:
             self.imageBuffers,
             self.modelSpecifications.atlasFileName,
             self.transform,
-            self.modelSpecifications.brainMaskingSmoothingSigma,
-            self.modelSpecifications.brainMaskingThreshold,
+            self.modelSpecifications.brainMaskingDistance,
             self.probabilisticAtlas,
             self.voxelSpacing
         )

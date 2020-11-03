@@ -49,8 +49,7 @@ def getModelSpecifications(atlasDir, userModelSpecifications={}, pallidumAsWM=Tr
         'colors': colors,
         'sharedGMMParameters': sharedGMMParameters,
         'useDiagonalCovarianceMatrices': True,
-        'brainMaskingSmoothingSigma': 3.0,  # sqrt of the variance of a Gaussian blurring kernel
-        'brainMaskingThreshold': 0.01,
+        'brainMaskingDistance': 10.0, # distance in mm of how far into background the brain mask goes out
         'K': 0.1,  # stiffness of the mesh
         'biasFieldSmoothingKernelSize': 50,  # distance in mm of sinc function center to first zero crossing
     }
@@ -195,7 +194,7 @@ def showImage(data):
     plt.axis('off')
 
 
-def maskOutBackground(imageBuffers, atlasFileName, transform, brainMaskingSmoothingSigma, brainMaskingThreshold,
+def maskOutBackground(imageBuffers, atlasFileName, transform, brainMaskingDistance,
                       probabilisticAtlas, voxelSpacing, visualizer=None, maskOutZeroIntensities=True):
     # Setup a null visualizer if necessary
     if visualizer is None:
@@ -211,27 +210,13 @@ def maskOutBackground(imageBuffers, atlasFileName, transform, brainMaskingSmooth
     labelNumber = 0
     backgroundPrior = mesh.rasterize_1a(imageSize, labelNumber)
 
-    if True:
-        #
-        visualizer = initVisualizer(True, True)
-        from scipy import ndimage
-      
-        #
-        backgroundMask = np.ma.greater( backgroundPrior, (2**16-1) * 0.5 )
-        visualizer.show( images=backgroundMask.astype(float), title='thresholded' )
-
-        # 
-        distance = ndimage.distance_transform_edt( backgroundMask, sampling=voxelSpacing )
-        print( voxelSpacing )
+    if os.environ.get('SAMSEG_LEGACY_BACKGROUND_MASKING') is not None:
+        print('INFO: using legacy background masking option')
         
         #
-        brainMask = np.ma.less( distance, 10.0 )
-        visualizer.show( images=brainMask.astype(float), title='short distance' )
+        brainMaskingSmoothingSigma = 3.0
+        brainMaskingThreshold = 0.01
         
-        brainMask = ndimage.binary_fill_holes( brainMask ) 
-        visualizer.show( images=brainMask.astype(float), title='holes filled' )
-        
-    else:
         # Threshold background prior at 0.5 - this helps for atlases built from imperfect (i.e., automatic)
         # segmentations, whereas background areas don't have zero probability for non-background structures
         backGroundThreshold = 2 ** 8
@@ -264,6 +249,26 @@ def maskOutBackground(imageBuffers, atlasFileName, transform, brainMaskingSmooth
         # at Mahalanobis distance zero) is already < 0.01
         brainMaskThreshold = 65535.0 * (1.0 - brainMaskingThreshold)
         brainMask = np.ma.less(smoothedBackgroundPrior, brainMaskThreshold)
+        
+    else:
+        #
+        #visualizer = initVisualizer(True, True)
+        from scipy import ndimage
+      
+        # Threshold prior of background at 0.5
+        backgroundMask = np.ma.greater( backgroundPrior, (2**16-1) * 0.5 )
+        visualizer.show( images=backgroundMask.astype(float), title='thresholded' )
+
+        # Extend by distance of brainMaskingDistance (in mm)
+        distance = ndimage.distance_transform_edt( backgroundMask, sampling=voxelSpacing )
+        print( voxelSpacing )
+        brainMask = np.ma.less( distance, brainMaskingDistance )
+        visualizer.show( images=brainMask.astype(float), title='short distance' )
+
+        # Fill holes inside the brain, if any        
+        brainMask = ndimage.binary_fill_holes( brainMask ) 
+        visualizer.show( images=brainMask.astype(float), title='holes filled' )
+        
 
     # Crop to area covered by the mesh
     alphas = mesh.alphas
