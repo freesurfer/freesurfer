@@ -264,7 +264,10 @@ fMRI_REG *StatReadRegistration(const char *fname)
   err = regio_read_register(
       fname, &subject, &reg->in_plane_res, &reg->slice_thickness, &reg->brightness_scale, &reg->mri2fmri, &float2int);
   if (err) return (NULL);
-  sprintf(reg->name, "%s", subject);
+  int req = snprintf(reg->name, STRLEN, "%s", subject);
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   free(subject);
   reg->fmri2mri = MatrixInverse(reg->mri2fmri, NULL);
   return (reg);
@@ -304,16 +307,26 @@ SV *StatReadVolume(const char *prefix)
   if (!sv) ErrorExit(ERROR_NOMEMORY, "StatReadVolume(%s): could not allocate sv", prefix);
 
   /* read in register.dat */
-  if (regfile != NULL)
-    sprintf(fname, "%s", regfile);
-  else
-    sprintf(fname, "%s/register.dat", path);
+  if (regfile != NULL) {
+    int req = snprintf(fname, STRLEN, "%s", regfile);
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
+  } else {
+    int req = snprintf(fname, STRLEN, "%s/register.dat", path);
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
+  }
 
   sv->reg = StatReadRegistration(fname);
   if (!sv->reg) return (NULL);
 
   /* read the selavg/selxavg dat file, if it exists */
-  sprintf(fname, "%s.dat", prefix);
+  int req = snprintf(fname, STRLEN, "%s.dat", prefix);
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   fp = fopen(fname, "r");
   which_alloc = ALLOC_MEANS;
   if (fp) /* means there are time points and means and sigmas */
@@ -559,10 +572,17 @@ SV *StatReadVolume2(const char *prefix)
   if (!sv) ErrorExit(ERROR_NOMEMORY, "StatReadVolume(%s): could not allocate sv", prefix);
 
   /* read in register.dat */
-  if (regfile != NULL)
-    sprintf(fname, "%s", regfile);
-  else
-    sprintf(fname, "%s/register.dat", path);
+  if (regfile != NULL) {
+    int req = snprintf(fname, STRLEN, "%s", regfile);
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
+  } else {
+    int req = snprintf(fname, STRLEN, "%s/register.dat", path);
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
+  }
 
   sv->reg = StatReadRegistration(fname);
   if (!sv->reg) return (NULL);
@@ -1168,13 +1188,20 @@ int StatWriteVolume(SV *sv, const char *prefix)
   height = sv->slice_height;
   nslices = sv->nslices;
   FileNamePath(prefix, path);
-  sprintf(fname, "%s/register.dat", path);
+  int req = snprintf(fname, STRLEN, "%s/register.dat", path);
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
+
   StatWriteRegistration(sv->reg, fname);
 
   if (sv->voltype != 0) /* not a raw stats file (sel averaged) */
   {
     /* write the global header file */
-    sprintf(fname, "%s.dat", prefix);
+    int req = snprintf(fname, STRLEN, "%s.dat", prefix);
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     fp = fopen(fname, "w");
     if (!fp) ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE, "StatWriteVolume: could not open dat file %s", fname));
     fprintf(fp, "tr %f\n", sv->tr);
@@ -1368,7 +1395,10 @@ int StatReadTransform(STAT_VOLUME *sv, const char *name)
     exit(1);
   }
   strcpy(subjects, sd);
-  sprintf(fname, "%s/%s/mri/transforms/talairach.xfm", subjects, name);
+  int req = snprintf(fname, STRLEN, "%s/%s/mri/transforms/talairach.xfm", subjects, name);
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
 
   if (input_transform_file(fname, &sv->transform) != OK)
     ErrorPrintf(ERROR_NO_FILE, "%s: could not read xform file '%s'\n", Progname, fname);
@@ -1388,7 +1418,10 @@ int StatVolumeExists(const char *prefix)
   char fname[STRLEN];
   FILE *fp;
 
-  sprintf(fname, "%s_%3.3d.bfloat", prefix, 0);
+  int req = snprintf(fname, STRLEN, "%s_%3.3d.bfloat", prefix, 0);
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   fp = fopen(fname, "r");
   if (!fp) return (0);
   fclose(fp);
@@ -1408,11 +1441,15 @@ MATRIX *StatLoadTalairachXFM(const char *subjid, const char *xfmfile)
   FILE *fp;
 
   cp = getenv("SUBJECTS_DIR");
-  if (cp)
+  if (cp) {
     strcpy(subjects, cp);
-  else
+  } else {
     strcpy(subjects, "~inverse/subjects");
-  sprintf(fname, "%s/%s/mri/transforms/%s", subjects, subjid, xfmfile);
+  }
+  int req = snprintf(fname, STRLEN, "%s/%s/mri/transforms/%s", subjects, subjid, xfmfile);
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
 
   fp = fopen(fname, "r");
   if (fp == NULL) {
