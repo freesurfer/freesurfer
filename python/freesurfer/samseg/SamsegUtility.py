@@ -49,7 +49,8 @@ def getModelSpecifications(atlasDir, userModelSpecifications={}, pallidumAsWM=Tr
         'colors': colors,
         'sharedGMMParameters': sharedGMMParameters,
         'useDiagonalCovarianceMatrices': True,
-        'brainMaskingDistance': 10.0, # distance in mm of how far into background the brain mask goes out
+        'maskingProbabilityThreshold': 0.5, # threshold on probability of background
+        'maskingDistance': 10.0, # distance in mm of how far into background the mask goes out
         'K': 0.1,  # stiffness of the mesh
         'biasFieldSmoothingKernelSize': 50,  # distance in mm of sinc function center to first zero crossing
     }
@@ -194,7 +195,8 @@ def showImage(data):
     plt.axis('off')
 
 
-def maskOutBackground(imageBuffers, atlasFileName, transform, brainMaskingDistance,
+def maskOutBackground(imageBuffers, atlasFileName, transform, 
+                      maskingProbabilityThreshold, maskingDistance,
                       probabilisticAtlas, voxelSpacing, visualizer=None, maskOutZeroIntensities=True):
     # Setup a null visualizer if necessary
     if visualizer is None:
@@ -248,26 +250,26 @@ def maskOutBackground(imageBuffers, atlasFileName, transform, brainMaskingDistan
         # actually a single "on" voxel will then not make any voxel survive, as the normalizing constant (achieved
         # at Mahalanobis distance zero) is already < 0.01
         brainMaskThreshold = 65535.0 * (1.0 - brainMaskingThreshold)
-        brainMask = np.ma.less(smoothedBackgroundPrior, brainMaskThreshold)
+        mask = np.ma.less(smoothedBackgroundPrior, brainMaskThreshold)
         
     else:
         #
         #visualizer = initVisualizer(True, True)
         from scipy import ndimage
       
-        # Threshold prior of background at 0.5
-        backgroundMask = np.ma.greater( backgroundPrior, (2**16-1) * 0.5 )
+        # Threshold prior of background
+        backgroundMask = np.ma.greater( backgroundPrior, (2**16-1) * maskingProbabilityThreshold )
         visualizer.show( images=backgroundMask.astype(float), title='thresholded' )
 
-        # Extend by distance of brainMaskingDistance (in mm)
+        # Extend by distance of maskingDistance (in mm)
         distance = ndimage.distance_transform_edt( backgroundMask, sampling=voxelSpacing )
         print( voxelSpacing )
-        brainMask = np.ma.less( distance, brainMaskingDistance )
-        visualizer.show( images=brainMask.astype(float), title='short distance' )
+        mask = np.ma.less( distance, maskingDistance )
+        visualizer.show( images=mask.astype(float), title='short distance' )
 
-        # Fill holes inside the brain, if any        
-        brainMask = ndimage.binary_fill_holes( brainMask ) 
-        visualizer.show( images=brainMask.astype(float), title='holes filled' )
+        # Fill holes inside the mask, if any        
+        mask = ndimage.binary_fill_holes( mask ) 
+        visualizer.show( images=mask.astype(float), title='holes filled' )
         
 
     # Crop to area covered by the mesh
@@ -276,20 +278,20 @@ def maskOutBackground(imageBuffers, atlasFileName, transform, brainMaskingDistan
     mesh.alphas = areaCoveredAlphas  # temporary replacement of alphas
     areaCoveredByMesh = mesh.rasterize_1b(imageSize, 1)
     mesh.alphas = alphas  # restore alphas
-    brainMask = np.logical_and(brainMask, areaCoveredByMesh)
+    mask = np.logical_and(mask, areaCoveredByMesh)
 
     # If a pixel has a zero intensity in any of the contrasts, that is also masked out across all contrasts
     if maskOutZeroIntensities:
         numberOfContrasts = imageBuffers.shape[-1]
         for contrastNumber in range(numberOfContrasts):
-            brainMask *= imageBuffers[:, :, :, contrastNumber] > 0
+            mask *= imageBuffers[:, :, :, contrastNumber] > 0
 
     # Mask the images
     maskedImageBuffers = imageBuffers.copy()
-    maskedImageBuffers[np.logical_not(brainMask), :] = 0
+    maskedImageBuffers[np.logical_not(mask), :] = 0
 
     #
-    return maskedImageBuffers, brainMask
+    return maskedImageBuffers, mask
 
 
 def undoLogTransformAndBiasField(imageBuffers, biasFields, mask):
