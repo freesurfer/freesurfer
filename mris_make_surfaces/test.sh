@@ -6,9 +6,20 @@ if [ "$FSTEST_REGENERATE" != true ]; then
     export OMP_NUM_THREADS=8
 fi
 
-test_command mris_make_surfaces -aseg aseg.presurf -white white.preaparc -noaparc -whiteonly -mgz -T1 brain.finalsurfs subject lh
-compare_surf subject/surf/lh.white.preaparc subject/surf/lh.white.preaparc.REF
+# make surfaces
 
-test_command mris_make_surfaces -orig_white white.preaparc -orig_pial white.preaparc -aseg aseg.presurf -mgz -T1 brain.finalsurfs subject lh
-compare_surf subject/surf/lh.white subject/surf/lh.white.REF
-compare_surf subject/surf/lh.pial subject/surf/lh.pial.REF
+# test_command mris_make_surfaces -aseg aseg.presurf -white white.preaparc -noaparc -whiteonly -mgz -T1 brain.finalsurfs subject lh
+# compare_surf subject/surf/lh.white.preaparc subject/surf/lh.white.preaparc.REF
+# 
+# test_command mris_make_surfaces -orig_white white.preaparc -orig_pial white.preaparc -aseg aseg.presurf -mgz -T1 brain.finalsurfs subject lh
+# compare_surf subject/surf/lh.white subject/surf/lh.white.REF
+# compare_surf subject/surf/lh.pial subject/surf/lh.pial.REF
+
+# place surfaces
+
+export SUBJECTS_DIR=$SUBJECTS_DIR/subject
+cd $SUBJECTS_DIR/mri
+mris_place_surface --adgws-in ../surf/autodet.gw.stats.lh.dat --wm wm.mgz --threads 1 --invol brain.finalsurfs.mgz --lh --i ../surf/lh.orig --o ../surf/lh.white.preaparc --white --seg aseg.presurf.mgz --nsmooth 5
+
+# compare_surf subject/surf/lh.white subject/surf/lh.white.REF_MAKE_SURFACES
+
