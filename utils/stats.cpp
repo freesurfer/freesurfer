@@ -264,7 +264,7 @@ fMRI_REG *StatReadRegistration(const char *fname)
   err = regio_read_register(
       fname, &subject, &reg->in_plane_res, &reg->slice_thickness, &reg->brightness_scale, &reg->mri2fmri, &float2int);
   if (err) return (NULL);
-  int req = snprintf(reg->name, STRLEN, "%s", subject);
+  int req = snprintf(reg->name, 100, "%s", subject);
   if( req >= STRLEN ) {
     std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
   }
