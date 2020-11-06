@@ -1,3 +1,8 @@
+#if GCC_VERSION > 80000
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
+#endif
+
 static bool FUNCTION_NAME(
 #ifdef COMPILING_MRIS_MP
     MRIS_MP* mris, 
@@ -237,3 +242,7 @@ static bool FUNCTION_NAME(
 #undef INPUT_Z
 #undef OUTPUT_DIST
 #undef OUTPUT_MAKER
+
+#if GCC_VERSION > 80000
+#pragma GCC diagnostic pop
+#endif

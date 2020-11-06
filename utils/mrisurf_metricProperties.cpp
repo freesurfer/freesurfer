@@ -9019,7 +9019,14 @@ static int get_face_axes(
 // Deformity support
 //
 void INTEGRATION_PARMS_copy   (INTEGRATION_PARMS* dst, INTEGRATION_PARMS const * src) {
+#if GCC_VERSION > 80000
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wclass-memaccess"
+#endif
     memcpy(dst, src, sizeof(*src)); // note: copies the const fp et. al.!
+#if GCC_VERSION > 80000
+#pragma GCC diagnostic pop
+#endif
 }
 
 void INTEGRATION_PARMS_setFp  (INTEGRATION_PARMS* parms, FILE* file) {

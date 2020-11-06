@@ -1046,6 +1046,10 @@ void MRIS_VertexNeighbourInfo_check(
 void MRIS_VertexNeighbourInfo_load_from_VERTEX (MRIS_VertexNeighbourInfo* info, MRIS* mris, int vno) {
   VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
   info->hops = vt->nsizeMax;
+#if GCC_VERSION > 80000
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
+#endif
   switch (info->hops) {
   default: cheapAssert(false);
   case 3: info->vnum[3] = vt->v3num;
@@ -1053,6 +1057,9 @@ void MRIS_VertexNeighbourInfo_load_from_VERTEX (MRIS_VertexNeighbourInfo* info, 
   case 1: info->vnum[1] = vt->vnum;
   case 0: info->vnum[0] = 1;
   }
+#if GCC_VERSION > 80000
+#pragma GCC diagnostic pop
+#endif
   int i;
   for (i = 0; i < info->vnum[info->hops]; i++) info->v[i] = vt->v[i];
 }
