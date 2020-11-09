@@ -1,13 +1,19 @@
 # This file defines a few custom cmake utility functions to
 # simplify the freesurfer build process
 
-# Use the common linux file /etc/os-release to save the OS
-# name in a common variable e.g., test HOST_OS in a lower
-# level CMakeLists.txt to selectively exclude running 
-# tests on some platforms
+# Create an OS name and resvision for systems we build and test on,
+# e.g., CentOS6, CentOS7, CentOS8, Ubuntu18, MacOS-10.14.6
+# Call host_os() in CMakeLists.txt to test value of HOST_OS
+#
+# For Mac use the sw_vers command
+# For linux, use the mostly common /etc/os-release file
 function(host_os)
    set(HOST_OS undefined)
-   if(EXISTS "/etc/os-release")
+   if(EXISTS "/usr/bin/sw_vers")
+      execute_process(COMMAND sw_vers \-productVersion OUTPUT_VARIABLE OS_IDENT)
+      string(STRIP ${OS_IDENT} OS_IDENT)
+      set(HOST_OS "MacOS-${OS_IDENT}")
+   elseif(EXISTS "/etc/os-release")
       execute_process(COMMAND grep PRETTY_NAME \/etc\/os\-release OUTPUT_VARIABLE OS_IDENT)
       string(STRIP ${OS_IDENT} OS_IDENT)
       if(OS_IDENT MATCHES "CentOS Linux 8")
