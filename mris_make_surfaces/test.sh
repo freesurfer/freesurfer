@@ -22,5 +22,5 @@ test_command "cd $SUBJECTS_DIR/mri && mris_place_surface --adgws-in ../surf/auto
 
 export SUBJECTS_DIR=$SUBJECTS_DIR
 # compare_surf surf/lh.white.preaparc surf/lh.white.preaparc.REF_PLACE_SURFACES
-(cd $SUBJECTS_DIR && mris_diff surf/lh.white.preaparc surf/lh.white.preaparc.REF_PLACE_SURFACES)
+(cd $SUBJECTS_DIR && ../../../mris_diff/mris_diff surf/lh.white.preaparc surf/lh.white.preaparc.REF_PLACE_SURFACES)
 
