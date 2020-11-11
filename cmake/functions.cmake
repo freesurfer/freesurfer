@@ -1,6 +1,41 @@
 # This file defines a few custom cmake utility functions to
 # simplify the freesurfer build process
 
+# Create an OS name and resvision for systems we build and test on,
+# e.g., CentOS6, CentOS7, CentOS8, Ubuntu18, MacOS-10.14.6
+# Call host_os() in CMakeLists.txt to test value of HOST_OS
+#
+# For Mac use the sw_vers command
+# For linux, use the mostly common /etc/os-release file
+function(host_os)
+   set(HOST_OS undefined)
+   if(EXISTS "/usr/bin/sw_vers")
+      execute_process(COMMAND sw_vers \-productVersion OUTPUT_VARIABLE OS_IDENT)
+      string(STRIP ${OS_IDENT} OS_IDENT)
+      set(HOST_OS "MacOS-${OS_IDENT}")
+   elseif(EXISTS "/etc/os-release")
+      execute_process(COMMAND grep PRETTY_NAME \/etc\/os\-release OUTPUT_VARIABLE OS_IDENT)
+      string(STRIP ${OS_IDENT} OS_IDENT)
+      if(OS_IDENT MATCHES "CentOS Linux 8")
+         set(HOST_OS CentOS8)
+      elseif(OS_IDENT MATCHES "CentOS Linux 7")
+         set(HOST_OS CentOS7)
+      elseif(OS_IDENT MATCHES "Ubuntu 18")
+         set(HOST_OS Ubuntu18)
+      elseif(OS_IDENT MATCHES "Ubuntu 20")
+         set(HOST_OS Ubuntu20)
+      endif()
+   # CentOS6 too old to use os-release
+   elseif(EXISTS "/etc/redhat-release")
+      execute_process(COMMAND cat \/etc\/redhat\-release OUTPUT_VARIABLE REDHAT_VERSION)
+      string(STRIP ${REDHAT_VERSION} REDHAT_VERSION)
+      if(REDHAT_VERSION MATCHES "release 6")
+         set(HOST_OS CentOS6)
+      endif()
+   endif()
+   # message(STATUS "FROM functions.cmake building on host running ${HOST_OS}")
+   set(HOST_OS ${HOST_OS} PARENT_SCOPE)
+endfunction()
 
 # add_subdirectories(<subdirs>)
 # Simple utility to add multiple subdirectories at once

@@ -5,6 +5,12 @@ set -e
 [ "$#" != "1" ] && echo "error: usage: build.sh <prefix>" && exit 1
 INSTALL_DIR="$1"
 
+export CC=${CC:-$(which gcc)}
+export CXX=${CXX:-$(which g++)}
+
+export CFLAGS=${CFLAGS:-"-msse2 -mfpmath=sse"}
+export CXXFLAGS=${CXXFLAGS:-"-msse2 -mfpmath=sse"}
+
 cd petsc
 
 export PETSC_DIR=$(pwd)

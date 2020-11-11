@@ -611,6 +611,9 @@ if($?PBS_JOBID) then
   # If the job has been submitted to launchpad, get jobid
   echo "pbsjob $PBS_JOBID"  >> $LF
 endif
+if($?SLURM_JOB_ID) then
+  echo SLURM_JOB_ID $SLURM_JOB_ID >> $LF
+endif
 
 # check for existence of bc (binary calculator)                                                                                               
 # some minimal installs of centos do not have it

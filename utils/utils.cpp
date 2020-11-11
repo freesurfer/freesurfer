@@ -1310,8 +1310,23 @@ char *GetNthItemFromString(const char *str, int nth)
     return (NULL);
   }
 
-  for (n = 0; n < nth; n++) sprintf(fmt, "%s %%*s", fmt);
-  sprintf(fmt, "%s %%s", fmt);
+#if GCC_VERSION > 80000
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wrestrict"
+#endif
+  for (n = 0; n < nth; n++) {
+    int req = snprintf(fmt, 2000, "%s %%*s", fmt);
+    if( req >= 2000 ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
+  }
+  int req = snprintf(fmt, 2000, "%s %%s", fmt);
+  if( req >= 2000 ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
+#if GCC_VERSION > 80000
+#pragma GCC diagnostic pop
+#endif
   // printf("fmt %s\n",fmt);
   sscanf(str, fmt, tmpstr);
 

@@ -141,10 +141,16 @@ class Surface(Transformable):
         Parameterizes an nvertices-length overlay to an image. Interpolation method can be
         'barycentric' (default) or 'nearest'.
         '''
+        interp = interp.lower()
+        if interp not in ('barycentric', 'nearest'):
+            raise ValueError('%s is not a valid interpolation method' % interp)
+        
         data = Overlay.ensure(overlay).data
         if len(data) != self.nvertices:
             raise ValueError('overlay length (%d) differs from vertex count (%d)' % (len(data), self.nvertices))
-        param = bindings.surf.parameterize(self, data, scale, interp.lower()).squeeze()
+        
+        param = bindings.surf.parameterize(self, data, scale, interp).squeeze()
+        
         if interp == 'nearest':
             param = param.astype(data.dtype)
         return param
@@ -154,8 +160,13 @@ class Surface(Transformable):
         Samples a parameterized image into an nvertices-length array. Sampling method can be
         'barycentric' (default) or 'nearest'.
         '''
+        interp = interp.lower()
+        if interp not in ('barycentric', 'nearest'):
+            raise ValueError('%s is not a valid interpolation method' % interp)
+
         data = Image.ensure(image).data
         overlay = bindings.surf.sample_parameterization(self, data, interp.lower())
+
         if interp == 'nearest':
             overlay = overlay.astype(data.dtype)
         return overlay

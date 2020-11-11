@@ -2182,7 +2182,6 @@ MRI_SP *MRISmakeTemplate(int nsubjects, char **subjlist, int nhemis, char **hemi
   MRIS *mris;
 
   /* default template fields*/
-  memset(&parms, 0, sizeof(parms));
   parms.nfields = 3;
   SetFieldLabel(&parms.fields[0], INFLATED_CURV_CORR_FRAME, 0, 0.0, 0.0, 0, which_norm);
   /* only use sulc for rigid registration */

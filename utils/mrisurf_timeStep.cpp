@@ -2094,7 +2094,10 @@ int MRISexpandSurface(MRI_SURFACE *mris, float distance, INTEGRATION_PARMS *parm
       MRISsaveVertexPositions(mris, ORIGINAL_VERTICES);
       MRISsaveVertexPositions(mris, WHITE_VERTICES);
     }
-    sprintf(fname, "%s.%s%3.3d", hemi, parms->base_name, 0);
+    int req = snprintf(fname, STRLEN, "%s.%s%3.3d", hemi, parms->base_name, 0);
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     printf("writing expanded surface to %s...\n", fname);
     MRISwrite(mris, fname);
   }
@@ -2124,7 +2127,6 @@ int MRISexpandSurface(MRI_SURFACE *mris, float distance, INTEGRATION_PARMS *parm
   else {
     MRISsaveVertexPositions(mris, ORIGINAL_VERTICES);
     if (use_thick) {
-      memset(&thick_parms, 0, sizeof(thick_parms));
       thick_parms.dt = 0.2;
       thick_parms.momentum = .5;
       thick_parms.l_nlarea = 1;
@@ -2136,7 +2138,10 @@ int MRISexpandSurface(MRI_SURFACE *mris, float distance, INTEGRATION_PARMS *parm
       if (cp == NULL) {
         ErrorExit(ERROR_BADPARM, "%s: FREESURFER_HOME not defined in environment", cp);
       }
-      sprintf(fname, "%s/lib/bem/ic7.tri", cp);
+      int req = snprintf(fname, STRLEN, "%s/lib/bem/ic7.tri", cp);
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       mris_ico = MRISread(fname);
       if (!mris_ico) {
         ErrorExit(ERROR_NOFILE, "%s: could not open surface file %s", Progname, fname);
@@ -2279,10 +2284,16 @@ int MRISexpandSurface(MRI_SURFACE *mris, float distance, INTEGRATION_PARMS *parm
           }
         }
 
-        sprintf(fname, "%s.target_dist.%d.mgz", parms->base_name, surf_no);
+        int req = snprintf(fname, STRLEN, "%s.target_dist.%d.mgz", parms->base_name, surf_no);
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
         printf("writing target surface distances to %s\n", fname);
         MRISwriteD(mris, fname);
-        sprintf(fname, "%s.targets.%d", parms->base_name, surf_no);
+        req = snprintf(fname, STRLEN, "%s.targets.%d", parms->base_name, surf_no);
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
         printf("writing target surface to %s\n", fname);
         MRISsaveVertexPositions(mris, TMP_VERTICES);
         MRISrestoreVertexPositions(mris, TARGET_VERTICES);
@@ -2370,7 +2381,10 @@ int MRISexpandSurface(MRI_SURFACE *mris, float distance, INTEGRATION_PARMS *parm
       else {
         printf("\n");
       }
-      sprintf(fname, "%s.%s%3.3d", hemi, parms->base_name, surf_no + 1);
+      int req = snprintf(fname, STRLEN, "%s.%s%3.3d", hemi, parms->base_name, surf_no + 1);
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       if (nsurfaces > 1) {
         printf("writing expanded surface to %s...\n", fname);
         MRISwrite(mris, fname);
@@ -2404,7 +2418,11 @@ int MRISremoveOverlapWithSmoothing(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   if (Gdiag & DIAG_WRITE) {
     char fname[STRLEN];
     if (!parms->fp) {
-      sprintf(fname, "%s.%s.out", mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh", parms->base_name);
+      int req = snprintf(fname, STRLEN, "%s.%s.out",
+			 mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh", parms->base_name);
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       INTEGRATION_PARMS_openFp(parms, fname, "a");
       if (!parms->fp) ErrorExit(ERROR_NOFILE, "%s: could not open log file %s", Progname, fname);
     }
@@ -2629,9 +2647,6 @@ int MRISremoveCompressedRegions(MRI_SURFACE *mris, double min_dist)
       setFaceOrigArea(mris,fno,0.5f);
     }
   }
-
-  memset(&parms, 0, sizeof(parms));
-
   parms.l_parea = .002;
   l_spring = .01;
   l_convex = 0;

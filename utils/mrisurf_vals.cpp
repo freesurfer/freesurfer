@@ -3251,6 +3251,10 @@ HISTOGRAM *MRISgetHistogram(MRI_SURFACE *mris, int nbins, int field)
     if (v->ripflag) {
       continue;
     }
+#if GCC_VERSION > 80000
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
+#endif
     switch (field) {
       default:
         ErrorExit(ERROR_BADPARM, "MRISgetHistogram: unknown field %d", field);
@@ -3282,6 +3286,9 @@ HISTOGRAM *MRISgetHistogram(MRI_SURFACE *mris, int nbins, int field)
         val = v->std_error;
         break;
     }
+#if GCC_VERSION > 80000
+#pragma GCC diagnostic pop
+#endif
     if (val < fmin) {
       fmin = val;
     }
@@ -3310,6 +3317,10 @@ HISTOGRAM *MRISgetHistogram(MRI_SURFACE *mris, int nbins, int field)
     if (v->ripflag) {
       continue;
     }
+#if GCC_VERSION > 80000
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
+#endif
     switch (field) {
       default:
         ErrorExit(ERROR_BADPARM, "MRISgetHistogram: unknown field %d", field);
@@ -3341,6 +3352,9 @@ HISTOGRAM *MRISgetHistogram(MRI_SURFACE *mris, int nbins, int field)
         val = v->std_error;
         break;
     }
+#if GCC_VERSION > 80000
+#pragma GCC diagnostic pop
+#endif
     bin = HISTOvalToBinDirect(h, val);
     h->counts[bin]++;
   }

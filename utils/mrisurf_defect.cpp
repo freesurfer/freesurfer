@@ -8640,7 +8640,12 @@ MRI_SURFACE *MRIScorrectTopology(
       FILE *fp;
       char fname[STRLEN];
 
-      sprintf(fname, "%s.%s.defect%d.log", mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", mris->subject_name.data(), i);
+      int req = snprintf(fname, STRLEN, "%s.%s.defect%d.log",
+			 mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", mris->subject_name.data(), i);
+      if( req >= STRLEN ) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
+
       fp = fopen(fname, "wb");
       fprintf(fp, "%d %2.3f\n", dl->defects[i].nvertices, dl->defects[i].area);
       for (n = 0; n < dl->defects[i].nvertices; n++) {
@@ -8667,7 +8672,12 @@ MRI_SURFACE *MRIScorrectTopology(
       }
       fclose(fp);
 
-      sprintf(fname, "%s.%s.defects.log", mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", mris->subject_name.data());
+      req = snprintf(fname, STRLEN, "%s.%s.defects.log",
+		     mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", mris->subject_name.data());
+      if( req >= STRLEN ) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
+
       fp = fopen(fname, "wb");
       for (total_defective_area = 0.0f, total_defective_vertices = i = 0; i < dl->ndefects; i++) {
         total_defective_vertices += dl->defects[i].nvertices;
@@ -8921,7 +8931,12 @@ MRI_SURFACE *MRIScorrectTopology(
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
     FILE *fp;
     char fname[STRLEN];
-    sprintf(fname, "%s.%s.vtrans.log", mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", mris->subject_name.data());
+    int req = snprintf(fname, STRLEN, "%s.%s.vtrans.log",
+		       mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", mris->subject_name.data()); 
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
+
     fp = fopen(fname, "wb");
     if (!fp) {
       DiagBreak();
@@ -8931,7 +8946,11 @@ MRI_SURFACE *MRIScorrectTopology(
       fprintf(fp, "%6d --> %6d\n", vno, vertex_trans[vno]);
     }
     fclose(fp);
-    sprintf(fname, "%s.%s.ftrans.log", mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", mris->subject_name.data());
+    req = snprintf(fname, STRLEN, "%s.%s.ftrans.log",
+		   mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", mris->subject_name.data());
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     fp = fopen(fname, "wb");
 
     for (vno = 0; vno < mris->nfaces; vno++) {
@@ -9389,7 +9408,12 @@ MRI_SURFACE *MRIScorrectTopology(
       }
     }
     FileNamePath(mris->fname, path);
-    sprintf(fname, "%s/%s.fixed.defect_labels.mgz", path, mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh");
+    int req = snprintf(fname, STRLEN, "%s/%s.fixed.defect_labels.mgz",
+		       path, mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh");
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
+
     printf("writing corrected defect labels to %s\n", fname);
     MRISwriteCurvature(mris_corrected, fname);
   }
@@ -9660,7 +9684,11 @@ FACE_DEFECT_LIST *MRISmarkAmbiguousVertices(MRI_SURFACE *mris, int mark)
   if (!fdl->faces) ErrorExit(ERROR_NO_MEMORY, "MRISmarkAmbiguousFaces: could allocate face defect list");
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
     char fname[STRLEN];
-    sprintf(fname, "%s.%s.topology.log", mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", mris->subject_name.data());
+    int req = snprintf(fname, STRLEN, "%s.%s.topology.log",
+		       mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", mris->subject_name.data());
+    if( req >= STRLEN ) {
+       std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     fp = fopen(fname, "w");
   }
 
@@ -9823,7 +9851,11 @@ DEFECT_LIST *MRISsegmentDefects(MRI_SURFACE *mris, int mark_ambiguous, int mark_
 
   if (Gdiag & DIAG_WRITE) {
     char fname[STRLEN];
-    sprintf(fname, "%s.%s.topology.log", mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", mris->subject_name.data());
+    int req = snprintf(fname, STRLEN, "%s.%s.topology.log",
+		       mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", mris->subject_name.data());
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     fp = fopen(fname, "a");
   }
 
@@ -14035,7 +14067,10 @@ static NOINLINE int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
       if (i == 0 && Gdiag & 0x1000000) {
         int i;
         char fname[STRLEN];
-        sprintf(fname, "%s_defect%d_%03d", mris->fname.data(), dno - 1, sno++);
+        int req = snprintf(fname, STRLEN, "%s_defect%d_%03d", mris->fname.data(), dno - 1, sno++); 
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
         dp = &dps[best_i];
         mrisRetessellateDefect(
             mris, mris_corrected, dp->defect, vertex_trans, dp->etable->edges, dp->nedges, dp->ordering, dp->etable);

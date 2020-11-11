@@ -41,6 +41,7 @@ set DoUchar = 0;
 set talxfm = ();
 set DoAntsN3 = 0;
 set DoAntsN4 = 0;
+set DoAntsN4CharConvert = 1;
 
 set debug = 0;
 set PrintHelp = 0;
@@ -117,6 +118,7 @@ if($DoAntsN3 || $DoAntsN4) then
   if($DoAntsN4) then
     set cmd = (AntsN4BiasFieldCorrectionFs -i $InVol -o $numnc)
     if($#MaskVol) set cmd = ($cmd -x $MaskVol)
+    if($DoAntsN4CharConvert) set cmd = ($cmd --dtype uchar)
   endif
   echo "cd `pwd`" | tee -a $LF
   echo $cmd | tee -a $LF
@@ -281,6 +283,10 @@ while( $#argv != 0 )
       breaksw
     case "--no-ants-n4":
       set DoAntsN4 = 0;
+      breaksw
+
+    case "--ants-no-char":
+      set DoAntsN4CharConvert = 0;
       breaksw
 
     case "--n":

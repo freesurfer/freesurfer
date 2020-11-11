@@ -14,6 +14,8 @@
       <explanation>Resample factor to decrease computation time. Default is 4.</explanation>
       <argument>-t, --iters INT [INT...]</argument>
       <explanation>Number of resolutions and max iterations per resolution. Default is `50 50 50 50`, which indicates 4 fitting levels with 50 iterations each.</explanation>
+      <argument>-d, --dtype DTYPE</argument>
+      <explanation>Corrected output datatype. Can be float, uchar, or int. Default is float.</explanation>
     </optional-flagged>
   </arguments>
 </help>

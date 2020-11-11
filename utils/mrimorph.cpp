@@ -1309,7 +1309,10 @@ static int mriLinearAlignPyramidLevel(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *pa
   for (k = 0; k < parms->lta->num_xforms; k++) MatrixClear(parms->lta->xforms[k].m_last_dL);
 
   strcpy(base_name, parms->base_name);
-  sprintf(parms->base_name, "level%d_%s", ncalls, base_name);
+  int req = snprintf(parms->base_name, 100, "level%d_%s", ncalls, base_name);
+  if( req >= 100 ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
 
   ncalls++; /* for diagnostics */
 #if 0
@@ -1353,7 +1356,10 @@ static int mriLinearAlignPyramidLevel(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *pa
       MRIwrite(parms->mri_ref, fname) ;
 #endif
 #if USE_INVERSE == 0
-      sprintf(fname, "%sref", base_name);
+      int req = snprintf(fname, STRLEN, "%sref", base_name);  
+      if( req >= STRLEN ) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       fprintf(stdout, "writing reference views to %s...\n", fname);
       MRIwriteImageViews(parms->mri_ref, fname, IMAGE_SIZE);
 #endif
@@ -2581,8 +2587,11 @@ MORPH_3D *MRI3Dmorph(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms)
     parms->dt = dt / (mri_in_pyramid[i]->thick);
 #endif
     /*    parms->l_intensity = l_intensity * (sigma*sigma+1.0f) ;*/
-    sprintf(parms->base_name, "%s_level%d_", base_name, i);
-    sprintf(parms->base_name, "%s_", base_name);
+
+    int req = snprintf(parms->base_name, 100, "%s_", base_name);
+    if( req >= 100 ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     parms->tol = mri_in_pyramid[MIN_LEVEL]->thick * base_tol / mri_in_pyramid[i]->thick;
     for (sigma = base_sigma; sigma >= 0; sigma /= 4) {
       if (sigma < 1) sigma = 0;
@@ -5410,7 +5419,6 @@ MRI_SURFACE *MRISshrinkWrapSkull(MRI *mri, MORPH_PARMS *parms)
   mri_kernel = MRIgaussian1d(0.5, 13);
   mri_smooth = MRIconvolveGaussian(mri, NULL, mri_kernel);
   diag = Gdiag;
-  memset(&lparms, 0, sizeof(lparms));
   lparms.momentum = .75;
   lparms.dt = .75;
   lparms.l_spring_norm = 1.0f;

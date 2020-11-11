@@ -310,10 +310,11 @@ PATH *PathAlloc(int n_points, const char *name)
   path->n_points = n_points;
 
   /* Copy in a name. */
-  if (NULL != name)
-    strncpy(path->name, name, 100);
-  else
+  if (NULL != name) {
+    strncpy(path->name, name, 100-1);
+  } else {
     strcpy(path->name, "");
+  }
 
   /* Allocate the point storage. */
   path->points = (PATH_POINT *)calloc(n_points, sizeof(PATH_POINT));

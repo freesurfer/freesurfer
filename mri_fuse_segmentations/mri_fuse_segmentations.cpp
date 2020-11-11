@@ -132,6 +132,9 @@ int main(int argc, char *argv[])
     MRIfree(&mri_nocc_asegs[i]);
     MRIfree(&mri_norms[i]);
   }
+
+  printf("#VMPC# mri_fuse_segmentations VmPeak  %d\n",GetVmPeak());
+  printf("mri_fuse_segmentations done\n");
   return (NO_ERROR);
 }
 

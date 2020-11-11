@@ -5048,11 +5048,15 @@ int mrisComputePosterior2DTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     char fname[STRLEN], path[STRLEN];
 
     FileNamePath(mris->fname, path);
-    sprintf(fname,
-            "%s/%s.%d.dist.mgz",
-            path,
-            mris->hemisphere == LEFT_HEMISPHERE ? "lh" : mris->hemisphere == BOTH_HEMISPHERES ? "both" : "rh",
-            parms->t);
+    int req = snprintf(fname,
+		       STRLEN,
+		       "%s/%s.%d.dist.mgz",
+		       path,
+		       mris->hemisphere == LEFT_HEMISPHERE ? "lh" : mris->hemisphere == BOTH_HEMISPHERES ? "both" : "rh",
+		       parms->t);
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     MRISwriteD(mris, fname);
     DiagBreak();
   }
