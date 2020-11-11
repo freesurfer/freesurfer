@@ -2913,7 +2913,7 @@ estimate_T2star(MRI **mri_flash, int nvolumes, MRI *mri_PD,
   if (correct_PD)
   {
     VECTOR *v1, *v2 ;
-    MATRIX *m_vox2vox ;
+    MATRIX *m_vox2vox = NULL ;
     double T1, faf_scale, xf, yf, zf, S, K ;
     MRI    *mri ;
     int    i ;
@@ -3008,7 +3008,8 @@ estimate_T2star(MRI **mri_flash, int nvolumes, MRI *mri_PD,
     MRIremoveNaNs(mri_PD, mri_PD) ;
     VectorFree(&v1) ;
     VectorFree(&v2) ;
-    MatrixFree(&m_vox2vox) ;
+    if (m_vox2vox)
+      MatrixFree(&m_vox2vox) ;
   }
 
   return(mri_T2star) ;
