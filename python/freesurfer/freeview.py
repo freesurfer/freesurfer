@@ -224,6 +224,10 @@ class Freeview:
                 return None
             return volume
 
+        # check if input is a numpy-convertible tensor
+        if hasattr(volume, 'numpy'):
+            volume = volume.numpy()
+
         # if input is a numpy array, convert to the appropriate fs array type
         # and let the filename creation get handled below
         if isinstance(volume, np.ndarray):
