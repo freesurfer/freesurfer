@@ -136,17 +136,40 @@ class Surface(Transformable):
 
     # ---- overlay utils ----
 
-    def parameterize(self, overlay, scale=1):
-        '''Parameterizes an nvertices-length overlay to an image. Parameterization method is barycentric.'''
+    def parameterize(self, overlay, scale=1, interp='barycentric'):
+        '''
+        Parameterizes an nvertices-length overlay to an image. Interpolation method can be
+        'barycentric' (default) or 'nearest'.
+        '''
+        interp = interp.lower()
+        if interp not in ('barycentric', 'nearest'):
+            raise ValueError('%s is not a valid interpolation method' % interp)
+        
         data = Overlay.ensure(overlay).data
         if len(data) != self.nvertices:
             raise ValueError('overlay length (%d) differs from vertex count (%d)' % (len(data), self.nvertices))
-        return bindings.surf.parameterize(self, data, scale).squeeze()
+        
+        param = bindings.surf.parameterize(self, data, scale, interp).squeeze()
+        
+        if interp == 'nearest':
+            param = param.astype(data.dtype)
+        return param
 
-    def sample_parameterization(self, image):
-        '''Samples a parameterized image into an nvertices-length array. Sampling method is barycentric.'''
+    def sample_parameterization(self, image, interp='barycentric'):
+        '''
+        Samples a parameterized image into an nvertices-length array. Sampling method can be
+        'barycentric' (default) or 'nearest'.
+        '''
+        interp = interp.lower()
+        if interp not in ('barycentric', 'nearest'):
+            raise ValueError('%s is not a valid interpolation method' % interp)
+
         data = Image.ensure(image).data
-        return bindings.surf.sample_parameterization(self, data)
+        overlay = bindings.surf.sample_parameterization(self, data, interp.lower())
+
+        if interp == 'nearest':
+            overlay = overlay.astype(data.dtype)
+        return overlay
 
     def smooth_overlay(self, overlay, steps):
         '''Smooths an overlay along the mesh vertices.'''

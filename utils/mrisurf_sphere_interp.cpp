@@ -179,9 +179,15 @@ bool SphericalInterpolator::testRayIntersection(int fno, float x, float y, float
   float l = 1.0f - v - u;
 
   // if the ray intersects, do interpolation here as we've already computed barycentric coordinates
-  *value = overlay[face->v[0]] * l +
-           overlay[face->v[1]] * u +
-           overlay[face->v[2]] * v;
+  if (nearestneighbor == true) {
+    std::vector<float> weights = {l, u, v};
+    int vtx = std::distance(std::begin(weights), std::max_element(std::begin(weights), std::end(weights)));
+    *value = overlay[face->v[vtx]];
+  } else {
+    *value = overlay[face->v[0]] * l +
+             overlay[face->v[1]] * u +
+             overlay[face->v[2]] * v;
+  }
 
   return true;
 }

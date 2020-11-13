@@ -34,6 +34,8 @@
       <explanation>output text file</explanation>
     </required-flagged>
     <optional-flagged>
+      <argument>--p pointset</argument>
+      <explanation>Save centroids as a Freeview pointset</explanation>
       <argument>--reg lta</argument>
       <explanation>apply a linear registration (lta)</explanation>
       <argument>--weights vol</argument>

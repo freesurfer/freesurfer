@@ -394,6 +394,8 @@ if($UseCache) then
   set csdCache = $CacheDir/$subject/$hemi/$CacheLabel/fwhm$fwhmStr/$simsign/th$threshStr/mc-z.csd
   if(! -e $csdCache) then
     echo "ERROR: cannot find $csdCache" | tee -a $LF
+    echo " This often happens when the measured FWHM is very high and their is not a table entry." | tee -a $LF
+    echo " Consider using lower smoothing levels." | tee -a $LF
     exit 1;
   endif
   echo CSD $csdCache | tee -a $LF

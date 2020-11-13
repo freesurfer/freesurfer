@@ -1,52 +1,70 @@
 #pragma once
-/**
- * @brief utilities for spherical parameterization of an MRI_SURFACE
- *
- * mrisp = MRI_SURFACE parameterization contains utilities for writing various
- * fields over the surface (e.g. curvature, coordinate functions) into a
- * spherical (longitude/colatitude) parameterization in the form of a 2D
- * image. Also for Gaussian blurring and other utilities.
- */
-/*
- * Original Author: Bruce Fischl
- *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
- *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
- *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
- *
- */
 
 #include "mrisurf.h"
 #include "mrisurf_sphere_interp.h"
 
 
 /*
-  Helper class to (more) easily project overlays into an parameterization image.
-  This is an initial attempt to cleanup the parameterization code a bit.
+  Very simple 2D array utility. We really need to settle on a
+  universal matrix library...
 */
-class BarycentricSphericalProjector
+template <typename T>
+class ImageArray
 {
 public:
-  BarycentricSphericalProjector(MRIS *mris, MRI_SP *param);
-  ~BarycentricSphericalProjector();
-  void projectOverlay(const float* overlay, int frameno = 0);
+
+  ImageArray() {};
+
+  ImageArray(int w, int h, T fill = 0) {
+    xl = w;
+    yl = h;
+    arr = std::vector<T>(w * h, fill);
+  };
+
+  T& item(int x, int y) { return arr[x * yl + y]; };
+
+  int xlen() { return xl; };
+  int ylen() { return yl; };
 
 private:
+  int xl;
+  int yl;
+  std::vector<T> arr;
+};
+
+
+/*
+  Projector class to (more) easily map spherical overlays and
+  parameterization images. This is an initial attempt to cleanup the
+  parameterization code a bit.
+*/
+class SphericalProjector
+{
+public:
+
+  enum InterpMethod { Barycentric, Nearest }; 
+
+  SphericalProjector(MRIS *surf, MRI_SP *param);
+  ~SphericalProjector();
+
+  void parameterizeOverlay(const float* overlay, int frameno, InterpMethod interp);
+  void sampleParameterization(float* overlay, int frameno, InterpMethod interp);
+
+private:
+  MRIS *original;
+  MRIS *mris;
+  SphericalInterpolator *interpolator;
+
+  MRI_SP *mrisp;
+  int udim;
+  int vdim;
+
   std::vector<int> vertex_u;
   std::vector<int> vertex_v;
-  int **filled;
-  float **distances;
-  int u_max_index, v_max_index;
+  std::vector<float> vertex_uf;
+  std::vector<float> vertex_vf;
 
-  MRIS *original = nullptr;
-  MRIS *mris = nullptr;
-  MRI_SP *mrisp = nullptr;
-
-  SphericalInterpolator *interpolator = nullptr;
+  ImageArray<int> hits;
+  ImageArray<int> nearest;
+  ImageArray<float> distance;
 };

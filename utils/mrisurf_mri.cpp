@@ -120,7 +120,11 @@ int MRISpositionSurfaces(MRI_SURFACE *mris, MRI **mri_flash, int nvolumes, INTEG
     char fname[STRLEN];
 
     if (!parms->fp) {
-      sprintf(fname, "%s.%s.out", mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh", parms->base_name);
+      int req = snprintf(fname, STRLEN, "%s.%s.out",
+			 mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh", parms->base_name); 
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       if (!parms->start_t) {
         INTEGRATION_PARMS_openFp(parms, fname, "w");
       }
@@ -478,10 +482,14 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
     char fname[STRLEN];
 
     if (!parms->fp) {
-      sprintf(fname,
-              "%s.%s.out",
-              mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : mris->hemisphere == BOTH_HEMISPHERES ? "both" : "lh",
-              parms->base_name);
+      int req = snprintf(fname,
+			 STRLEN,
+			 "%s.%s.out",
+			 mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : mris->hemisphere == BOTH_HEMISPHERES ? "both" : "lh",
+			 parms->base_name); 
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       if (!parms->start_t) {
         INTEGRATION_PARMS_openFp(parms, fname, "w");
       }
@@ -895,7 +903,11 @@ int MRISpositionSurface_mef(
     char fname[STRLEN];
 
     if (!parms->fp) {
-      sprintf(fname, "%s.%s.out", mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh", parms->base_name);
+      int req = snprintf(fname, STRLEN, "%s.%s.out",
+			 mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh", parms->base_name); 
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       if (!parms->start_t) {
         INTEGRATION_PARMS_openFp(parms, fname, "w");
       }
@@ -1075,7 +1087,11 @@ int MRISmoveSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTEGRAT
     char fname[STRLEN];
 
     if (!parms->fp) {
-      sprintf(fname, "%s.%s.out", mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh", parms->base_name);
+      int req = snprintf(fname, STRLEN, "%s.%s.out",
+			 mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh", parms->base_name); 
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       if (!parms->start_t) {
         INTEGRATION_PARMS_openFp(parms, fname, "w");
       }

@@ -9,7 +9,7 @@
 #define OPEN_GL_CODE  1
 
 void isetname(RGB_IMAGE *image, const char *name) {
-  strncpy(image->name,name,80);
+  strncpy(image->name,name,80-1);
 }
 
 void isetcolormap(RGB_IMAGE *image, int colormap) {
@@ -436,10 +436,14 @@ int putrow_uc(RGB_IMAGE *image, unsigned char *buffer, unsigned int y, unsigned 
       if (img_write(image,(char *)(image->tmpbuf),cnt) != cnt) {
         i_errhdlr("putrow: error on write of row\n",0,0,0,0);
         return -1;
-      } else
+      } else {
         return cnt;
+      }
     case 2:
       printf("ERROR: this rgb save function BPP=2 is not implemented\n");
+#if __GNUC__  >= 8
+      [[gnu::fallthrough]];
+#endif
     default:
       i_errhdlr("putrow: weird bpp\n",0,0,0,0);
     }

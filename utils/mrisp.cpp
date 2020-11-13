@@ -3353,40 +3353,38 @@ float MRISPsample(MRI_SP *mrisp, float x, float y, float z, int fno)
 
 
 /*
-  Constructs a barycentric projector that associates a surface and a parameterization.
+  Constructs a projector that associates a surface and a parameterization.
   The vertex->uv mapping is computed and cached here.
 */
-BarycentricSphericalProjector::BarycentricSphericalProjector(MRIS *surf, MRI_SP *param) :
+SphericalProjector::SphericalProjector(MRIS *surf, MRI_SP *param) :
   mris(surf),
   mrisp(param)
 {
   // cache input surface
   original = mris;
   mris = makeCenteredSphere(mris);
-
-  // build interpolator for backwards-sampling
   interpolator = new SphericalInterpolator(mris);
 
-  u_max_index = U_MAX_INDEX(mrisp);
-  v_max_index = V_MAX_INDEX(mrisp);
+  // image dimensions
+  udim = U_DIM(mrisp);
+  vdim = V_DIM(mrisp);
 
-  // allocate fill-marker and distance arrays
-  filled = (int **)calloc(U_DIM(mrisp), sizeof(int *));
-  distances = (float **)calloc(U_DIM(mrisp), sizeof(float *));
-  for (int u = 0; u <= u_max_index; u++) {
-    filled[u] = (int *)calloc(V_DIM(mrisp), sizeof(int));
-    distances[u] = (float *)calloc(V_DIM(mrisp), sizeof(float));
-    // mark all as unfilled
-    for (int v = 0; v <= v_max_index; v++) filled[u][v] = UNFILLED_ELT;
-  }
+  // image maps
+  nearest = ImageArray<int>(udim, vdim, -1);
+  hits = ImageArray<int>(udim, vdim, 0);
+  distance = ImageArray<float>(udim, vdim, 5);
 
-  float radius = MRISaverageRadius(mris);
-
+  // vertex maps
   vertex_u = std::vector<int>(mris->nvertices);
   vertex_v = std::vector<int>(mris->nvertices);
+  vertex_uf = std::vector<float>(mris->nvertices);
+  vertex_vf = std::vector<float>(mris->nvertices);
 
-  // first calculate total distances to a point in parameter space
+  // first calculate total hits to a point in parameter space
+  float radius = MRISaverageRadius(mris);
+
   for (int vno = 0; vno < mris->nvertices; vno++) {
+
     VERTEX *vertex = &mris->vertices[vno];
     float x = vertex->x;
     float y = vertex->y;
@@ -3399,77 +3397,133 @@ BarycentricSphericalProjector::BarycentricSphericalProjector(MRIS *surf, MRI_SP 
     if (d < 0.0) d = 0;
     float phi = atan2(sqrt(d), z);
 
-    // cache in vertex for next loop
-    vertex->phi = phi;
-    vertex->theta = theta;
-
     // translate to image coordinates
-    float uf = PHI_DIM(mrisp) * phi / PHI_MAX;
-    float vf = THETA_DIM(mrisp) * theta / THETA_MAX;
+    float uf = udim * phi / PHI_MAX;
+    float vf = vdim * theta / THETA_MAX;
     int u = nint(uf);
     int v = nint(vf);
 
+    // get distance to coordinate
+    float du = uf - u;
+    float dv = vf - v;
+    float dist = std::sqrt(du * du + dv * dv);
+
     // enforce spherical topology
     if (u < 0) u = -u;
-    if (u >= U_DIM(mrisp)) u = U_DIM(mrisp) - (u - U_DIM(mrisp) + 1);
-    if (v < 0) v += V_DIM(mrisp);
-    if (v >= V_DIM(mrisp)) v -= V_DIM(mrisp);
-
-    // keep track of total # of nodes
-    filled[u][v] = vno;
-    distances[u][v] += 1;
+    if (u >= udim) u = udim - (u - udim + 1);
+    if (v < 0) v += vdim;
+    if (v >= vdim) v -= vdim;
 
     // cache vertex uv values
+    vertex_uf[vno] = uf;
+    vertex_vf[vno] = vf;
     vertex_u[vno] = u;
     vertex_v[vno] = v;
+
+    // keep track of total # of vertices
+    hits.item(u, v) += 1;
+
+    // check if it's the closest point so far
+    if (dist < distance.item(u, v)) {
+      nearest.item(u, v) = vno;
+      distance.item(u, v) = dist;
+    }
   }
 }
 
 
-BarycentricSphericalProjector::~BarycentricSphericalProjector()
+SphericalProjector::~SphericalProjector()
 {
-  // free the fill-marker and distance arrays
-  for (int u = 0; u <= u_max_index; u++) {
-    free(filled[u]);
-    free(distances[u]);
-  }
-  free(filled);
-  free(distances);
-
-  delete interpolator;
-
-  // this is really only necessary for projecting parameterizations back into
-  // the surface curv values
   resetCenteredSphere(original, mris);
+  delete interpolator;
 }
 
 
 /*
-  Projects an overlay array (of size nvertices) into the parameterization at the
-  given frame index.
+  Projects an overlay array (of size nvertices) into the parameterization at the given frame index.
 */
-void BarycentricSphericalProjector::projectOverlay(const float *overlay, int frameno)
+void SphericalProjector::parameterizeOverlay(const float *overlay, int frameno, InterpMethod interp)
 {
-  // clear frame
+  // sample overlay values
   ImageClearArea(mrisp->Ip, -1, -1, -1, -1, 0, frameno);
 
-  // sample overlay values
-  for (int vno = 0; vno < mris->nvertices; vno++) {
-    int u = vertex_u[vno];
-    int v = vertex_v[vno];
-    float total_dist = distances[u][v];
-    if (total_dist > 0.0) *IMAGEFseq_pix(mrisp->Ip, u, v, frameno) += overlay[vno] / total_dist;
+  // barycentric sampling
+  if (interp == Barycentric) {
+    for (int vno = 0; vno < mris->nvertices; vno++) {
+      int u = vertex_u[vno];
+      int v = vertex_v[vno];
+      *IMAGEFseq_pix(mrisp->Ip, u, v, frameno) += overlay[vno] / hits.item(u, v);
+    }
+  }
+  // nearest neighbor sampling
+  else if (interp == Nearest) {
+    for (int u = 0; u < udim; u++)  {
+      for (int v = 0; v < vdim; v++) {
+        *IMAGEFseq_pix(mrisp->Ip, u, v, frameno) = overlay[nearest.item(u, v)];
+      }
+    }
   }
 
   // do backwards sampling to fill in missing pixels
   interpolator->setOverlay(overlay);
-  for (int u = 0; u <= U_MAX_INDEX(mrisp); u++)  {
-    for (int v = 0; v <= V_MAX_INDEX(mrisp); v++) {
-      if (filled[u][v] == UNFILLED_ELT) {
-        double phi = u * PHI_MAX / PHI_DIM(mrisp);
-        double theta = v * THETA_MAX / THETA_DIM(mrisp);
+  interpolator->nearestneighbor = (interp == Nearest);
+
+  for (int u = 0; u < udim; u++)  {
+    for (int v = 0; v < vdim; v++) {
+      if (hits.item(u, v) == 0) {
+        double phi = u * PHI_MAX / udim;
+        double theta = v * THETA_MAX / vdim;
         *IMAGEFseq_pix(mrisp->Ip, u, v, frameno) = interpolator->interp(phi, theta);
       }
     }
+  }
+}
+
+
+/*
+  Samples a parameterization (at the given frame index) into an overlay (of size nvertices).
+*/
+void SphericalProjector::sampleParameterization(float *overlay, int frameno, InterpMethod interp)
+{
+  // barycentric sampling
+  if (interp == Barycentric) {
+
+    for (int vno = 0; vno < mris->nvertices; vno++) {
+      float uf = vertex_uf[vno];
+      float vf = vertex_vf[vno];
+      int u0 = floor(uf);
+      int u1 = ceil(uf);
+      int v0 = floor(vf);
+      int v1 = ceil(vf);
+      float du = uf - float(u0);
+      float dv = vf - float(v0);
+
+      // enforce spherical topology
+      if (u0 < 0) u0 = -u0;
+      if (u0 >= udim) u0 = udim - (u0 - udim + 1);
+      if (u1 < 0) u1 = -u1;
+      if (u1 >= udim) u1 = udim - (u1 - udim + 1);
+      if (v0 < 0) v0 += vdim;
+      if (v0 >= vdim) v0 -= vdim;
+      if (v1 < 0) v1 += vdim;
+      if (v1 >= vdim) v1 -= vdim;
+
+      // interpolate
+      overlay[vno] =  du  *         dv  * *IMAGEFseq_pix(mrisp->Ip, u1, v1, frameno) +
+              (1.0f - du) *         dv  * *IMAGEFseq_pix(mrisp->Ip, u0, v1, frameno) +
+              (1.0f - du) * (1.0f - dv) * *IMAGEFseq_pix(mrisp->Ip, u0, v0, frameno) +
+                      du  * (1.0f - dv) * *IMAGEFseq_pix(mrisp->Ip, u1, v0, frameno);
+    }
+
+  }
+  // nearest neighbor sampling
+  else if (interp == Nearest) {
+
+    for (int vno = 0; vno < mris->nvertices; vno++) {
+      int u = vertex_u[vno];
+      int v = vertex_v[vno];
+      overlay[vno] = *IMAGEFseq_pix(mrisp->Ip, u, v, frameno);
+    }
+
   }
 }

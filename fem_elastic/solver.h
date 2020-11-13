@@ -124,7 +124,8 @@ public:
   {
     m_displayLevel = level;
   }
-  void get_displayLevel() const
+
+  int get_displayLevel() const
   {
     return m_displayLevel;
   }

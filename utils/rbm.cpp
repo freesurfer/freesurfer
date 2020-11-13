@@ -164,20 +164,6 @@ static int dump_gradients(
   return (NO_ERROR);
 }
 
-#if 0
-static MRI *
-visible_to_mri(RBM *rbm)  
-{
-  MRI *mri ;
-  int k1, k2, i ;
-  
-  mri = MRIalloc(rbm->ksize, rbm->ksize, 1, MRI_FLOAT) ;
-  for (i = k1 = 0 ; k1 < rbm->ksize ; k1++)
-    for (k2 = 0 ; k2 < rbm->ksize ; k2++, i++)
-      MRIsetVoxVal(mri, k1, k2, 0, 0, rbm->visible[i]) ;
-  return(mri) ;
-}
-#endif
 double RBMfreeEnergy(RBM *rbm, double *visible)
 {
   double free_energy[MAX_RBM_LABELS], total;
@@ -235,31 +221,35 @@ int RBMwriteNetwork(RBM *rbm, int n, RBM_PARMS *parms, int layer)
 
   mri = weights_to_mri(rbm);
   if (layer < 0) {
-    if (n < 0)
-      sprintf(fname, "%s.wts.mgz", parms->base_name);
-    else
-      sprintf(fname, "%s.%3.3d.wts.mgz", parms->base_name, n);
+    if (n < 0) {
+      int req = snprintf(fname, STRLEN, "%s.wts.mgz", parms->base_name);
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
+    } else {
+      int req = snprintf(fname, STRLEN, "%s.%3.3d.wts.mgz", parms->base_name, n);
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
+    }
   }
   else {
-    if (n < 0)
-      sprintf(fname, "%s.layer%d.wts.mgz", parms->base_name, layer);
-    else
-      sprintf(fname, "%s.%3.3d.layer%d.wts.mgz", parms->base_name, n, layer);
+    if (n < 0) {
+      int req = snprintf(fname, STRLEN, "%s.layer%d.wts.mgz", parms->base_name, layer);
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
+    } else {
+      int req = snprintf(fname, STRLEN, "%s.%3.3d.layer%d.wts.mgz", parms->base_name, n, layer);
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
+    }
   }
 
   printf("saving weights to %s\n", fname);
   MRIwrite(mri, fname);
   MRIfree(&mri);
-
-#if 0
-  if (n < 0)
-    sprintf(fname, "%s.V.mgz", parms->base_name) ;
-  else
-    sprintf(fname, "%s.%3.3d.V.mgz", parms->base_name, n) ;
-  mri = visible_to_mri(rbm) ;
-  printf("saving visible to %s\n", fname) ;
-  MRIwrite(mri, fname) ; MRIfree(&mri) ;
-#endif
 
   return (NO_ERROR);
 }
@@ -757,9 +747,15 @@ double RBMvoxlistHistoRMS(RBM *rbm, VOXLIST *vl, RBM_PARMS *parms, int *indices,
     HISTOsmooth(histo_data[v], histo_data[v], sigma);
     HISTOsmooth(histo_recon[v], histo_recon[v], sigma);
     if (!((callno + 1) % parms->write_iterations)) {
-      sprintf(fname, "hist.data.%3.3d.%2.2d.log", callno, v);
+      int req = snprintf(fname, STRLEN, "hist.data.%3.3d.%2.2d.log", callno, v);
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       HISTOplot(histo_data[v], fname);
-      sprintf(fname, "hist.recon.%3.3d.%2.2d.log", callno, v);
+      req = snprintf(fname, STRLEN, "hist.recon.%3.3d.%2.2d.log", callno, v);
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       HISTOplot(histo_recon[v], fname);
     }
     rms += HISTOksDistance(histo_data[v], histo_recon[v]);
@@ -936,7 +932,10 @@ int RBMtrainFromImage(RBM *rbm, MRI *mri_inputs, MRI *mri_labels, RBM_PARMS *par
   rbm->mri_inputs = mri_inputs;
   if (parms->write_iterations > 0) {
     char fname[STRLEN];
-    sprintf(fname, "%s.V%3.3d.mgz", parms->base_name, 0);
+    int req = snprintf(fname, STRLEN, "%s.V%3.3d.mgz", parms->base_name, 0);
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     printf("writing snapshot to %s\n", fname);
     MRIwrite(mri_inputs, fname);
   }
@@ -1202,10 +1201,16 @@ MRI *RBMreconstruct(RBM *rbm, MRI *mri_inputs, MRI *mri_reconstructed, MRI **pmr
             for (h = 0; h < rbm->nhidden; h++) hidden_counts[h] += rbm->hidden_state[h];
           }
       }
-    sprintf(fname, "%s.hidden.plt", parms->base_name);
+    int req = snprintf(fname, STRLEN, "%s.hidden.plt", parms->base_name);
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     printf("saving %s\n", fname);
     HISTOplot(histo, fname);
-    sprintf(fname, "%s.hidden_labels.plt", parms->base_name);
+    req = snprintf(fname, STRLEN, "%s.hidden_labels.plt", parms->base_name);
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     printf("saving %s\n", fname);
     HISTO2Dplot(histo_labels, fname);
   }
@@ -1333,7 +1338,10 @@ int DBNtrainFromImage(DBN *dbn, MRI *mri_inputs, MRI *mri_labels, RBM_PARMS *par
 
   if (parms->write_iterations > 0) {
     char fname[STRLEN];
-    sprintf(fname, "%s.V%3.3d.mgz", parms->base_name, 0);
+    int req = snprintf(fname, STRLEN, "%s.V%3.3d.mgz", parms->base_name, 0);
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     printf("writing snapshot to %s\n", fname);
     MRIwrite(mri_inputs, fname);
   }
@@ -1518,10 +1526,17 @@ int DBNwriteNetwork(DBN *dbn, int n, RBM_PARMS *parms)
   RBMwriteNetwork(dbn->rbms[0], n, parms, 0);
   for (layer = 1; layer < dbn->nlayers; layer++) {
     mri = layer_weights_to_mri(dbn, layer);
-    if (n < 0)
-      sprintf(fname, "%s.layer%d.wts.mgz", parms->base_name, layer);
-    else
-      sprintf(fname, "%s.%3.3d.layer%d.wts.mgz", parms->base_name, n, layer);
+    if (n < 0) {
+      int req = snprintf(fname, STRLEN, "%s.layer%d.wts.mgz", parms->base_name, layer);
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
+    } else {
+      int req = snprintf(fname, STRLEN, "%s.%3.3d.layer%d.wts.mgz", parms->base_name, n, layer);
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
+    }
     printf("saving weights to %s\n", fname);
     MRIwrite(mri, fname);
     MRIfree(&mri);
@@ -1674,13 +1689,7 @@ int DBNcomputeGradients(DBN *dbn,
     //    dhidden_bias[h] += parms->l_sparsity*(parms->sparsity - db_sparsity[h]) ;
     rbm->active_pvals[h] = parms->sparsity_decay * rbm->active_pvals[h] + (1 - parms->sparsity_decay) * active[h];
     delta = parms->l_sparsity[layer] * (parms->sparsity[layer] - rbm->active_pvals[h]);
-#if 0
-#define MAX_DELTA .01
-    if (delta > MAX_DELTA)
-      delta = MAX_DELTA ;
-    else if (delta < -MAX_DELTA)
-      delta = -MAX_DELTA ;
-#endif
+
     dhidden_bias[h] += delta;
     delta /= rbm->nvisible;
     for (v = 0; v < rbm->nvisible; v++) dw[v][h] += delta;
@@ -1764,55 +1773,28 @@ MRI *DBNreconstruct(DBN *dbn, MRI *mri_inputs, MRI *mri_reconstructed, MRI **pmr
           }
       }
     for (n = 0; n < dbn->nlayers; n++) {
-      sprintf(fname, "%s.hidden.layer%d.plt", parms->base_name, n);
+      int req = snprintf(fname, STRLEN, "%s.hidden.layer%d.plt", parms->base_name, n);
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       printf("saving %s\n", fname);
       HISTOplot(histo[n], fname);
     }
-    sprintf(fname, "%s.hidden_labels.plt", parms->base_name);
+    int req = snprintf(fname, STRLEN, "%s.hidden_labels.plt", parms->base_name);
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     printf("saving %s\n", fname);
     HISTO2Dplot(histo_labels, fname);
   }
-#if 0
-  else
-  {
-    int v ;
-
-    for (rms = 0.0, f = 0 ; f < mri_inputs->nframes ; f++)
-      for (x = 0 ; x < mri_inputs->width ; x++)
-      {
-	if (!((x+1) % 100))
-	{
-	  printf("x = %d of %d\n", x, mri_inputs->width) ;
-	  MRIwrite(mri_reconstructed, "r.mgz") ;
-	}
-	for (y = 0 ; y < mri_inputs->height ; y++)
-	  for (z = 0 ; z < mri_inputs->depth ; z++)
-	  {
-	    RBMfillVisible(rbm, mri_inputs, rbm->visible, x, y, z, f, parms->ksize);
-	    RBMactivateForward(rbm, rbm->visible) ;
-	    RBMactivateBackward(rbm) ;
-	    for (n = 0 ; n < Ncd ; n++)
-	    {
-	      RBMactivateForward(rbm, NULL) ;
-	      RBMactivateBackward(rbm) ;
-	    }
-	    for (v = 0 ; v < rbm->nvisible ; v++)
-	    {
-	      V0 = MRIgetVoxVal(mri_inputs, x, y, z, v) ;
-	      Vn = rbm->visible[v] ;
-	      rms += SQR(Vn-V0) ;
-	      MRIsetVoxVal(mri_reconstructed, x, y, z, v, Vn) ;
-	    }
-	  }
-      }
-  }
-#endif
 
   nvox = mri_inputs->width * mri_inputs->height * mri_inputs->depth * mri_inputs->nframes;
   printf("final RMS = %2.3f\n", sqrt(rms / nvox));
   if (pmri_labeled) *pmri_labeled = mri_labeled;
   return (mri_reconstructed);
 }
+
+
 double DBNvoxlistRMS(DBN *dbn, int layer, VOXLIST *vl, RBM_PARMS *parms, int *indices, int index, int num)
 {
   int i, x, y, z, f, n, ind, v, nvox;
@@ -1874,7 +1856,10 @@ int CDBNtrainFromImage(CDBN *cdbn, MRI *mri_inputs, MRI *mri_labels, RBM_PARMS *
 
   if (parms->write_iterations > 0) {
     char fname[STRLEN];
-    sprintf(fname, "%s.V%3.3d.mgz", parms->base_name, 0);
+    int req = snprintf(fname, STRLEN, "%s.V%3.3d.mgz", parms->base_name, 0);
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     printf("writing snapshot to %s\n", fname);
     MRIwrite(mri_inputs, fname);
   }
@@ -1925,9 +1910,6 @@ CDBN *CDBNalloc(int type, int nlayers, int *ksizes, int *ngroups, int nlabels, M
 static int reset_hidden_nodes(CDBN *cdbn, int layer, double min_active, double max_active)
 {
   int h, num_off, num_on;
-#if 0
-  int    v ;
-#endif
   RBM *rbm;
 
   rbm = cdbn->rbms[layer];
@@ -1935,23 +1917,11 @@ static int reset_hidden_nodes(CDBN *cdbn, int layer, double min_active, double m
   for (num_off = num_on = h = 0; h < rbm->nhidden; h++) {
     if (rbm->active[h] < min_active || rbm->active[h] > max_active)  // always on or off
     {
-      if (rbm->active[h] < min_active)
+      if (rbm->active[h] < min_active) {
         num_off++;
-      else
+      } else {
         num_on++;
-#if 0
- // double wt_lim = 1.0 / rbm->nhidden;
-      rbm->hidden_bias[h] = 0 ;
-      for (v = 0 ; v < rbm->nvisible ; v++)
-	rbm->weights[v][h] *= .9 ;
-//	rbm->weights[v][h] = randomNumber(-wt_lim, wt_lim) ;
-      if (rbm->nlabels > 0)
-      {
-	for (v = 0 ; v < rbm->nlabels ; v++)
-	  rbm->label_weights[v][h] *= .9 ;
-//	  rbm->label_weights[v][h] = randomNumber(-wt_lim, wt_lim) ;
       }
-#endif
     }
   }
   if (num_off + num_on > 0)
@@ -2655,13 +2625,6 @@ int CDBNcomputeDiscriminativeGradients(CDBN *cdbn,
 
     dhidden_bias[h] *= scale;
 //    rbm->active_pvals[h] = parms->sparsity_decay*rbm->active_pvals[h] + (1-parms->sparsity_decay)*active[h];
-#if 0
-    delta = parms->l_sparsity[layer] * (parms->sparsity[layer] - rbm->active_pvals[h]) ;
-    dhidden_bias[h] += delta ;
-    delta /= rbm->nvisible ;
-    for (v = 0 ; v < rbm->nvisible ; v++)
-      dw[v][h] += delta ;
-#endif
   }
 
   free(visible);
@@ -2785,14 +2748,6 @@ int CDBNcomputeLabelGradients(CDBN *cdbn,
     //    double delta ;
 
     dhidden_bias[h] *= scale;
-//    rbm->active_pvals[h] = parms->sparsity_decay*rbm->active_pvals[h] + (1-parms->sparsity_decay)*active[h];
-#if 0
-    delta = parms->l_sparsity[layer] * (parms->sparsity[layer] - rbm->active_pvals[h]) ;
-    dhidden_bias[h] += delta ;
-    delta /= rbm->nvisible ;
-    for (v = 0 ; v < rbm->nvisible ; v++)
-      dw[v][h] += delta ;
-#endif
   }
 
   free(visible);
@@ -2909,7 +2864,11 @@ MRI *CDBNcreateOutputs(
       FILE *fp;
       int nvox, always, never;
 
-      sprintf(fname, "%s.%3.3d.layer%d.hidden_counts.txt", parms->base_name, callno, layer);
+      int req = snprintf(fname, STRLEN, "%s.%3.3d.layer%d.hidden_counts.txt",
+			 parms->base_name, callno, layer);
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       fp = fopen(fname, "w");
       always = never = 0;
       nvox = mri_inputs->height * mri_inputs->width * mri_inputs->depth;
@@ -3004,10 +2963,17 @@ int CDBNwriteNetwork(CDBN *cdbn, int n, RBM_PARMS *parms, int layer)
   char fname[STRLEN];
 
   mri = cdbn_layer_weights(cdbn, layer);
-  if (n < 0)
-    sprintf(fname, "%s.layer%d.wts.mgz", parms->base_name, layer);
-  else
-    sprintf(fname, "%s.%3.3d.layer%d.wts.mgz", parms->base_name, n, layer);
+  if (n < 0) {
+    int req = snprintf(fname, STRLEN, "%s.layer%d.wts.mgz", parms->base_name, layer);
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
+  } else {
+    int req = snprintf(fname, STRLEN, "%s.%3.3d.layer%d.wts.mgz", parms->base_name, n, layer);
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
+  }
   printf("saving weights to %s\n", fname);
   MRIwrite(mri, fname);
   MRIfree(&mri);
