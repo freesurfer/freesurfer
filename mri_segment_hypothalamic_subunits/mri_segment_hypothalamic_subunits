@@ -9,7 +9,7 @@ import numpy as np
 import nibabel as nib
 import freesurfer as fs
 from copy import deepcopy
-from scipy.ndimage import label
+from scipy.ndimage import label, binary_dilation, distance_transform_edt
 
 # make sure tensorflow is installed in fspython
 fs.utils.check_tensorflow()
@@ -147,7 +147,7 @@ def predict(name_subjects=None,
 
             # preprocess image and get information
             try:
-                image, aff, h, im_res, n_channels, n_dims, shape, cropping, crop_idx = preprocess_image(path_image)
+                image, aff, h, im_res, n_channels, shape, cropping, crop_idx = preprocess_image(path_image)
                 model_input_shape = list(image.shape[1:])
             except Exception as e:
                 print('\nthe following problem occured when preprocessing image %s :' % path_image)
@@ -175,7 +175,7 @@ def predict(name_subjects=None,
 
             # get posteriors and segmentation
             try:
-                seg, posteriors = postprocess(prediction_patch, cropping, shape, crop_idx, n_dims, label_list, aff)
+                seg, posteriors = postprocess(prediction_patch, cropping, shape, crop_idx, label_list, aff)
             except Exception as e:
                 print('\nthe following problem occured when postprocessing segmentation %s :' % path_segmentation)
                 print(e)
@@ -503,7 +503,7 @@ def write_fs_stats_file(volumes, filename):
             ))
 
 
-def preprocess_image(im_path):
+def preprocess_image(im_path, crop=184):
     '''
     Input image pre-processing.
     '''
@@ -511,15 +511,17 @@ def preprocess_image(im_path):
     # read image and corresponding info
     n_levels = 3
     im, shape, aff, n_dims, n_channels, header, im_res = get_volume_info(im_path,
-                                                                               aff_ref=np.eye(4),
-                                                                               return_volume=True)
+                                                                         aff_ref=np.eye(4),
+                                                                         return_volume=True)
+    if n_dims != 3:
+        fs.fatal('input images should be 3D, found %s dimensions' % n_dims)
 
     # check that patch_shape or im_shape are divisible by 2**n_levels
     if not all([size % (2**n_levels) == 0 for size in shape]):
-        crop_shape = [min(find_closest_number_divisible_by_m(size, 2 ** n_levels), 232) for size in shape]
+        crop_shape = [min(find_closest_number_divisible_by_m(size, 2 ** n_levels), crop) for size in shape]
     else:
-        if not all([size <= 232 for size in shape]):
-            crop_shape = [min(size, 232) for size in shape]
+        if not all([size <= crop for size in shape]):
+            crop_shape = [min(size, crop) for size in shape]
         else:
             crop_shape = None
 
@@ -545,7 +547,7 @@ def preprocess_image(im_path):
     else:
         im = add_axis(im, -2)
 
-    return im, aff, header, im_res, n_channels, n_dims, shape, crop_shape, crop_idx
+    return im, aff, header, im_res, n_channels, shape, crop_shape, crop_idx
 
 
 def build_model(model_file, input_shape, n_lab):
@@ -556,30 +558,30 @@ def build_model(model_file, input_shape, n_lab):
     # build UNet
     batch_norm_dim = -1
     net = unet(nb_features=24,
-                          input_shape=input_shape,
-                          nb_levels=3,
-                          conv_size=3,
-                          nb_labels=n_lab,
-                          name='unet',
-                          prefix=None,
-                          feat_mult=2,
-                          pool_size=2,
-                          padding='same',
-                          dilation_rate_mult=1,
-                          activation='elu',
-                          use_residuals=False,
-                          final_pred_activation='softmax',
-                          nb_conv_per_level=2,
-                          layer_nb_feats=None,
-                          conv_dropout=0,
-                          batch_norm=batch_norm_dim,
-                          input_model=None)
+               input_shape=input_shape,
+               nb_levels=3,
+               conv_size=3,
+               nb_labels=n_lab,
+               name='unet',
+               prefix=None,
+               feat_mult=2,
+               pool_size=2,
+               padding='same',
+               dilation_rate_mult=1,
+               activation='elu',
+               use_residuals=False,
+               final_pred_activation='softmax',
+               nb_conv_per_level=2,
+               layer_nb_feats=None,
+               conv_dropout=0,
+               batch_norm=batch_norm_dim,
+               input_model=None)
     net.load_weights(model_file, by_name=True)
 
     return net
 
 
-def postprocess(prediction, crop_shape, im_shape, crop, n_dims, labels, aff):
+def postprocess(prediction, crop_shape, im_shape, crop, labels, aff):
     '''
     Prediction post-processing.
     '''
@@ -588,10 +590,14 @@ def postprocess(prediction, crop_shape, im_shape, crop, n_dims, labels, aff):
     post_patch = np.squeeze(prediction)
     seg_patch = post_patch.argmax(-1)
 
-    # keep biggest connected component (use it with smoothing!)
-    seg_left = deepcopy(seg_patch)
+    # further crop the seg_patch around predicted values
+    seg_patch_cropped, patch_crop = crop_volume_around_region(seg_patch, threshold=0, margin=2)
+    post_patch_cropped = crop_volume_with_idx(post_patch, patch_crop)
+
+    # keep left biggest connected component
+    seg_left = deepcopy(seg_patch_cropped)
     seg_left[seg_left > 5] = 0
-    components, n_components = label(seg_left, np.ones([n_dims]*n_dims))
+    components, n_components = label(seg_left, np.ones([3] * 3))
     if n_components > 1:
         unique_components = np.unique(components)
         size = 0
@@ -604,9 +610,10 @@ def postprocess(prediction, crop_shape, im_shape, crop, n_dims, labels, aff):
                 mask = tmp_mask
         seg_left[np.logical_not(mask)] = 0
 
-    seg_right = deepcopy(seg_patch)
+    # keep right biggest connected component
+    seg_right = deepcopy(seg_patch_cropped)
     seg_right[seg_right < 6] = 0
-    components, n_components = label(seg_right, np.ones([n_dims]*n_dims))
+    components, n_components = label(seg_right, np.ones([3] * 3))
     if n_components > 1:
         unique_components = np.unique(components)
         size = 0
@@ -619,19 +626,33 @@ def postprocess(prediction, crop_shape, im_shape, crop, n_dims, labels, aff):
                 mask = tmp_mask
         seg_right[np.logical_not(mask)] = 0
 
-    seg_patch = seg_left | seg_right
+    # combine left and right sides
+    seg_patch_cropped = seg_left | seg_right
+
+    # mask posteriors of each label
+    dilate_struct = build_binary_structure(1, 3)
+    for i in range(1, len(labels)):
+        tmp_post_patch_cropped = post_patch_cropped[..., i]
+        tmp_mask = binary_dilation(seg_patch_cropped == labels[i], dilate_struct)
+        tmp_post_patch_cropped[np.logical_not(tmp_mask)] = 0
+        post_patch_cropped[..., i] = tmp_post_patch_cropped
+    post_patch_cropped[..., 0] = 1 - np.sum(post_patch_cropped[..., 1:], axis=-1)  # makes sure the posteriors sum to 1
+
+    # paste cropped patches back to patches
+    seg_patch = np.zeros(shape=seg_patch.shape, dtype='int32')
+    post_patch = np.zeros(shape=post_patch.shape)
+    post_patch[..., 0] = np.ones(seg_patch.shape)  # set background posteriors to 1
+    seg_patch[patch_crop[0]:patch_crop[3], patch_crop[1]:patch_crop[4], patch_crop[2]:patch_crop[5]] = seg_patch_cropped
+    post_patch[patch_crop[0]:patch_crop[3], patch_crop[1]:patch_crop[4], patch_crop[2]:patch_crop[5], :] = \
+               post_patch_cropped
 
     # paste patches back to matrix of original image size
     if crop_shape is not None:
         seg = np.zeros(shape=im_shape, dtype='int32')
         posteriors = np.zeros(shape=[*im_shape, labels.shape[0]])
-        posteriors[..., 0] = np.ones(im_shape)  # place background around patch
-        if n_dims == 2:
-            seg[crop[0]:crop[2], crop[1]:crop[3]] = seg_patch
-            posteriors[crop[0]:crop[2], crop[1]:crop[3], :] = post_patch
-        elif n_dims == 3:
-            seg[crop[0]:crop[3], crop[1]:crop[4], crop[2]:crop[5]] = seg_patch
-            posteriors[crop[0]:crop[3], crop[1]:crop[4], crop[2]:crop[5], :] = post_patch
+        posteriors[..., 0] = np.ones(im_shape)  # set background posteriors to 1
+        seg[crop[0]:crop[3], crop[1]:crop[4], crop[2]:crop[5]] = seg_patch
+        posteriors[crop[0]:crop[3], crop[1]:crop[4], crop[2]:crop[5], :] = post_patch
     else:
         seg = seg_patch
         posteriors = post_patch
@@ -639,14 +660,14 @@ def postprocess(prediction, crop_shape, im_shape, crop, n_dims, labels, aff):
 
     # align prediction back to first orientation
     seg = align_volume_to_ref(seg, np.eye(4), aff_ref=aff)
-    posteriors = align_volume_to_ref(posteriors, np.eye(4), aff_ref=aff, n_dims=n_dims)
+    posteriors = align_volume_to_ref(posteriors, np.eye(4), aff_ref=aff, n_dims=3)
 
     return seg, posteriors
 
 
 # ================================================================================================
 #                       Neurite Utilities - See github.com/adalca/neurite
-# 
+#
 # TODO: We should import neurite as an external library, but since it's not on pypi yet, let's
 # just copy in the needed functions below for now.
 # ================================================================================================
@@ -996,7 +1017,7 @@ def conv_dec(nb_features,
 
 # ================================================================================================
 #                                        Lab2Im Utilities
-# 
+#
 # TODO: These should be either replaced or reasonably integrated with FS library utilities
 # ================================================================================================
 
@@ -1298,7 +1319,62 @@ def find_closest_number_divisible_by_m(n, m, smaller_ans=True):
         return n2
 
 
+def build_binary_structure(connectivity, n_dims):
+    """Return a dilation/erosion element with provided connectivity"""
+    shape = [connectivity * 2 + 1] * n_dims
+    dist = np.ones(shape)
+    center = tuple([tuple([int(s / 2)]) for s in shape])
+    dist[center] = 0
+    dist = distance_transform_edt(dist)
+    struct = (dist <= connectivity) * 1
+    return struct
+
+
 # ---------------------------------------------------- edit volume -----------------------------------------------------
+
+
+def crop_volume_around_region(volume, mask=None, threshold=0.1, masking_labels=None, margin=0, aff=None):
+    """Crop a volume around a specific region. This region is defined by a mask obtained by either
+    1) directly specifying it as input
+    2) thresholding the input volume
+    3) keeping a set of label values if the volume is a label map.
+    :param volume: a 2d or 3d numpy array
+    :param mask: (optional) mask of region to crop around. Must be same size as volume. Can either be boolean or 0/1.
+    it defaults to masking around all values above threshold.
+    :param threshold: (optional) if mask is None, lower bound to determine values to crop around
+    :param masking_labels: (optional) if mask is None, and if the volume is a label map, it can be cropped around a
+    set of labels specified in masking_labels, which can either be a single int, a sequence or a 1d numpy array.
+    :param margin: (optional) add margin around mask
+    :param aff: (optional) if specified, this function returns an updated affine matrix of the volume after cropping.
+    :return: the cropped volume, the cropping indices (in the order [lower_bound_dim_1, ..., upper_bound_dim_1, ...]),
+    and the updated affine matrix if aff is not None.
+    """
+
+    n_dims, _ = get_dims(volume.shape)
+
+    # mask ROIs for cropping
+    if mask is None:
+        mask = volume > threshold
+
+    # find cropping indices
+    indices = np.nonzero(mask)
+    min_idx = np.maximum(np.array([np.min(idx) for idx in indices]) - margin, 0)
+    max_idx = np.minimum(np.array([np.max(idx) for idx in indices]) + 1 + margin, np.array(volume.shape))
+    cropping = np.concatenate([min_idx, max_idx])
+
+    # crop volume
+    if n_dims == 3:
+        volume = volume[min_idx[0]:max_idx[0], min_idx[1]:max_idx[1], min_idx[2]:max_idx[2], ...]
+    elif n_dims == 2:
+        volume = volume[min_idx[0]:max_idx[0], min_idx[1]:max_idx[1], ...]
+    else:
+        raise ValueError('cannot crop volumes with more than 3 dimensions')
+
+    if aff is not None:
+        aff[0:3, -1] = aff[0:3, -1] + aff[:3, :3] @ min_idx
+        return volume, cropping, aff
+    else:
+        return volume, cropping
 
 
 def crop_volume_with_idx(volume, crop_idx, aff=None):
