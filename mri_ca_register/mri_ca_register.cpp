@@ -287,12 +287,6 @@ main(int argc, char *argv[])
     TRs[input] = mri_tmp->tr ;
     fas[input] = mri_tmp->flip_angle ;
     TEs[input] = mri_tmp->te ;
-#if 0
-    if (mri_tmp->type == MRI_FLOAT)
-    {
-      MRIchangeType(mri_tmp, MRI_SHORT, 0, 10000,  1) ;
-    }
-#endif
 
     // -mask option
     if (mask_fname)
@@ -1058,31 +1052,6 @@ main(int argc, char *argv[])
     LTA _lta, *lta = &_lta ;
 
     lta->num_xforms = 0 ;
-#if 0
-    sprintf(fname, "%s.gca", parms.base_name) ;
-    gca = GCAread(fname) ;
-    sprintf(fname, "%s.lta", parms.base_name) ;
-    lta = LTAread(fname) ;
-
-    if (Gdiag & DIAG_WRITE)
-    {
-      char fname[STRLEN] ;
-      sprintf(fname, "%s.log", parms.base_name) ;
-      parms.log_fp = fopen(fname, "w") ;
-    }
-    {
-      MRI *mri_seg, *mri_aligned ;
-      int l ;
-      mri_seg = MRIclone(mri_inputs, NULL) ;
-      l = lta->xforms[0].label ;
-      GCAbuildMostLikelyVolumeForStructure(gca, mri_seg, l, 0, transform,NULL);
-      mri_aligned = MRIlinearTransform(mri_seg, NULL, lta->xforms[0].m_L) ;
-      MRIwrite(mri_seg, "s.mgz")  ;
-      MRIwrite(mri_aligned, "a.mgz") ;
-      MRIfree(&mri_seg) ;
-      MRIfree(&mri_aligned) ;
-    }
-#else
     if (Gdiag & DIAG_WRITE)
     {
       char fname[STRLEN] ;
@@ -1118,20 +1087,7 @@ main(int argc, char *argv[])
           Gdiag &= ~DIAG_WRITE ;
         }
 
-#if 0
-        {
-          parms.tol *= 10 ;
-          parms.l_smoothness *= 10 ;
-          printf("---------------- doing initial registration ----------------------\n") ;
-          GCAMregister(gcam, mri_inputs, &parms) ;
-          parms.tol /= 10 ;
-          parms.l_smoothness /= 10 ;
-          mri_morphed = GCAMmorphToAtlas(mri_inputs, gcam, NULL, -1) ;
-          printf("---------------- initial registration complete ----------------------\n") ;
-        }
-#else
         mri_morphed = mri_inputs ;
-#endif
 
 
         // GCA Renormalization with Alignment:
@@ -1264,7 +1220,6 @@ main(int argc, char *argv[])
       MRIfree(&mri_seg) ;
       MRIfree(&mri_aligned) ;
     }
-#endif
     if (reinit && (xform_name == NULL) && (lta != NULL))
     {
       GCAMreinitWithLTA(gcam, lta, mri_inputs, &parms) ;
@@ -1620,24 +1575,7 @@ main(int argc, char *argv[])
     GCAMregister(gcam, mri_inputs, &parms) ;
   }
 
-#if 0
-  for (iter = 0 ; iter < 3 ; iter++)
-  {
-    parms.relabel_avgs = 1 ;
-    GCAMcopyNodePositions(gcam, CURRENT_POSITIONS, ORIGINAL_POSITIONS) ;
-    GCAMstoreMetricProperties(gcam) ;
-    parms.levels = 2 ;
-    parms.navgs = 1 ;
-    GCAMregister(gcam, mri_inputs, &parms) ;
-  }
-#endif
 
-#if 0
-  parms.l_distance = 0 ;
-  parms.relabel = 1 ;
-  GCAMcomputeLabels(mri_inputs, gcam) ;
-  GCAMregister(gcam, mri_inputs, &parms) ;
-#endif
 
   //record GCA filename to gcam
   strcpy(gcam->atlas.fname, gca_fname);
@@ -1652,12 +1590,6 @@ main(int argc, char *argv[])
     ErrorExit(Gerror, "%s: GCAMwrite(%s) failed", Progname, out_fname) ;
   }
 
-#if 0
-  if (gca)
-  {
-    GCAfree(&gca) ;
-  }
-#endif
   GCAMfree(&gcam) ;
   if (mri_inputs)
   {
