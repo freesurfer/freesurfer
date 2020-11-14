@@ -222,7 +222,7 @@ public:
     // try to cast the arguments
     try {
       retrieved = variables[N].castTo<T>();
-    } catch (std::bad_cast) {
+    } catch (std::bad_cast&) {
       // if casting fails, print out a VERY detailed debug message
       String fulltype, sentence_starter;
       if (arguments[N].fixed && (arguments[N].fixed_nargs <= 1)) {
