@@ -757,12 +757,18 @@ main(int argc, char *argv[])
     {
       char fname[STRLEN] ;
       MRI  *mri ;
-      sprintf(fname, "%s.invalid.mgz", parms.base_name) ;
+      int req = snprintf(fname, STRLEN, "%s.invalid.mgz", parms.base_name) ;
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      } 
       mri = GCAMwriteMRI(gcam, NULL, GCAM_INVALID) ;
       printf("writing %s\n", fname) ;
       MRIwrite(mri, fname) ;
       MRIfree(&mri) ;
-      sprintf(fname, "%s.status.mgz", parms.base_name) ;
+      req = snprintf(fname, STRLEN, "%s.status.mgz", parms.base_name) ;
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      } 
       mri = GCAMwriteMRI(gcam, NULL, GCAM_STATUS) ;
       printf("writing %s\n", fname) ;
       MRIwrite(mri, fname) ;
@@ -838,9 +844,15 @@ main(int argc, char *argv[])
         MRIfree(&mri_gca) ;
         mri_gca = mri_tmp ;
       }
-      sprintf(fname, "%s_target", parms.base_name) ;
+      int req = snprintf(fname, STRLEN, "%s_target", parms.base_name) ;
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      } 
       MRIwriteImageViews(mri_gca, fname, IMAGE_SIZE) ;
-      sprintf(fname, "%s_target.mgz", parms.base_name) ;
+      req = snprintf(fname, STRLEN, "%s_target.mgz", parms.base_name) ;
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      } 
       printf("writing target volume to %s...\n", fname) ;
       MRIwrite(mri_gca, fname) ;
       MRIfree(&mri_gca) ;
@@ -944,9 +956,15 @@ main(int argc, char *argv[])
       MRI  *mri_gca, *mri_tmp ;
       if (parms.diag_morph_from_atlas )
       {
-        sprintf(fname, "%s_target", parms.base_name) ;
+        int req = snprintf(fname, STRLEN, "%s_target", parms.base_name) ;
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	} 
         MRIwriteImageViews(mri_inputs, fname, IMAGE_SIZE) ;
-        sprintf(fname, "%s_target.mgz", parms.base_name) ;
+        req = snprintf(fname, STRLEN, "%s_target.mgz", parms.base_name) ;
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	} 
         printf("writing target volume to %s...\n", fname) ;
         MRIwrite(mri_inputs, fname) ;
       }
@@ -961,9 +979,15 @@ main(int argc, char *argv[])
           MRIfree(&mri_gca) ;
           mri_gca = mri_tmp ;
         }
-        sprintf(fname, "%s_target_after_histo", parms.base_name) ;
+        int req = snprintf(fname, STRLEN, "%s_target_after_histo", parms.base_name) ;
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	} 
         MRIwriteImageViews(mri_gca, fname, IMAGE_SIZE) ;
-        sprintf(fname, "%s_target_after_histo.mgz", parms.base_name) ;
+        req = snprintf(fname, STRLEN, "%s_target_after_histo.mgz", parms.base_name) ;
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	} 
         printf("writing target volume to %s...\n", fname) ;
         MRIwrite(mri_gca, fname) ;
         MRIfree(&mri_gca) ;
@@ -1062,12 +1086,18 @@ main(int argc, char *argv[])
     if (Gdiag & DIAG_WRITE)
     {
       char fname[STRLEN] ;
-      sprintf(fname, "%s.log", parms.base_name) ;
+      int req = snprintf(fname, STRLEN, "%s.log", parms.base_name) ;
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       parms.log_fp = fopen(fname, "w") ;
     }
     if (read_lta)
     {
-      sprintf(fname, "%s_array.lta", parms.base_name) ;
+      int req = snprintf(fname, STRLEN, "%s_array.lta", parms.base_name) ;
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       lta = LTAread(fname) ;
     }
     else
@@ -1200,13 +1230,19 @@ main(int argc, char *argv[])
     }
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     {
-      sprintf(fname, "%s.gca", parms.base_name) ;
+      int req = snprintf(fname, STRLEN, "%s.gca", parms.base_name) ; 
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       printf("writing gca to %s...\n", fname) ;
       GCAwrite(gca, fname) ;
     }
     if (lta && !read_lta)
     {
-      sprintf(fname, "%s_array.lta", parms.base_name) ;
+      int req = snprintf(fname, STRLEN, "%s_array.lta", parms.base_name) ;
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      } 
 
       // should put volume geometry into file,
       // and probably change to RAS->RAS xform
@@ -1261,9 +1297,15 @@ main(int argc, char *argv[])
 
     if (parms.diag_morph_from_atlas )
     {
-      sprintf(fname, "%s_target", parms.base_name) ;
+      int req = snprintf(fname, STRLEN, "%s_target", parms.base_name) ;
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      } 
       MRIwriteImageViews(mri_inputs, fname, IMAGE_SIZE) ;
-      sprintf(fname, "%s_target.mgz", parms.base_name) ;
+      req = snprintf(fname, STRLEN, "%s_target.mgz", parms.base_name) ;
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      } 
       printf("writing target volume to %s...\n", fname) ;
       MRIwrite(mri_inputs, fname) ;
     }
@@ -1274,19 +1316,15 @@ main(int argc, char *argv[])
       mri_gca = MRIalloc(gcam->atlas.width, gcam->atlas.height, gcam->atlas.depth, MRI_FLOAT) ;
       MRIcopyHeader(mri_inputs, mri_gca) ;
       GCAMbuildMostLikelyVolume(gcam, mri_gca) ;
-#if 0
-      if (mri_gca->nframes > 1)
-      {
-	 MRI *mri_tmp ;
-        printf("careg: extracting %dth frame\n", mri_gca->nframes-1) ;
-        mri_tmp = MRIcopyFrame(mri_gca, NULL, mri_gca->nframes-1, 0) ;
-        MRIfree(&mri_gca) ;
-        mri_gca = mri_tmp ;
-      }
-#endif
-      sprintf(fname, "%s_target", parms.base_name) ;
+      int req = snprintf(fname, STRLEN, "%s_target", parms.base_name) ;
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      } 
       MRIwriteImageViews(mri_gca, fname, IMAGE_SIZE) ;
-      sprintf(fname, "%s_target.mgz", parms.base_name) ;
+      req = snprintf(fname, STRLEN, "%s_target.mgz", parms.base_name) ;
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      } 
       printf("writing target volume to %s...\n", fname) ;
       MRIwrite(mri_gca, fname) ;
       MRIfree(&mri_gca) ;
@@ -1439,7 +1477,10 @@ main(int argc, char *argv[])
     if (Gdiag & DIAG_WRITE)
     {
       char fname[STRLEN] ;
-      sprintf(fname, "%s.log", parms.base_name) ;
+      int req = snprintf(fname, STRLEN, "%s.log", parms.base_name) ;
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      } 
       parms.log_fp = fopen(fname, "a") ;
     }
 
@@ -1459,9 +1500,15 @@ main(int argc, char *argv[])
         MRI  *mri_gca, *mri_tmp ;
         if (parms.diag_morph_from_atlas )
         {
-          sprintf(fname, "%s_target", parms.base_name) ;
+          int req = snprintf(fname, STRLEN, "%s_target", parms.base_name) ;
+	  if( req >= STRLEN ) {
+	    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	  } 
           MRIwriteImageViews(mri_inputs, fname, IMAGE_SIZE) ;
-          sprintf(fname, "%s_target.mgz", parms.base_name) ;
+          req = snprintf(fname, STRLEN, "%s_target.mgz", parms.base_name) ;
+	  if( req >= STRLEN ) {
+	    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	  } 
           printf("writing target volume to %s...\n", fname) ;
           MRIwrite(mri_inputs, fname) ;
         }
@@ -1477,9 +1524,15 @@ main(int argc, char *argv[])
             MRIfree(&mri_gca) ;
             mri_gca = mri_tmp ;
           }
-          sprintf(fname, "%s_target", parms.base_name) ;
+          int req = snprintf(fname, STRLEN, "%s_target", parms.base_name) ;
+	  if( req >= STRLEN ) {
+	    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	  } 
           MRIwriteImageViews(mri_gca, fname, IMAGE_SIZE) ;
-          sprintf(fname, "%s_target1.mgz", parms.base_name) ;
+          req = snprintf(fname, STRLEN, "%s_target1.mgz", parms.base_name) ;
+	  if( req >= STRLEN ) {
+	    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	  } 
           printf("writing target volume to %s...\n", fname) ;
           MRIwrite(mri_gca, fname) ;
           MRIfree(&mri_gca) ;
