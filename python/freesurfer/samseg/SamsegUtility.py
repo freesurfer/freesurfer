@@ -49,8 +49,8 @@ def getModelSpecifications(atlasDir, userModelSpecifications={}, pallidumAsWM=Tr
         'colors': colors,
         'sharedGMMParameters': sharedGMMParameters,
         'useDiagonalCovarianceMatrices': True,
-        'brainMaskingSmoothingSigma': 3.0,  # sqrt of the variance of a Gaussian blurring kernel
-        'brainMaskingThreshold': 0.01,
+        'maskingProbabilityThreshold': 0.5, # threshold on probability of background
+        'maskingDistance': 10.0, # distance in mm of how far into background the mask goes out
         'K': 0.1,  # stiffness of the mesh
         'biasFieldSmoothingKernelSize': 50,  # distance in mm of sinc function center to first zero crossing
     }
@@ -195,8 +195,9 @@ def showImage(data):
     plt.axis('off')
 
 
-def maskOutBackground(imageBuffers, atlasFileName, transform, brainMaskingSmoothingSigma, brainMaskingThreshold,
-                      probabilisticAtlas, visualizer=None, maskOutZeroIntensities=True):
+def maskOutBackground(imageBuffers, atlasFileName, transform, 
+                      maskingProbabilityThreshold, maskingDistance,
+                      probabilisticAtlas, voxelSpacing, visualizer=None, maskOutZeroIntensities=True):
     # Setup a null visualizer if necessary
     if visualizer is None:
         visualizer = initVisualizer(False, False)
@@ -211,38 +212,65 @@ def maskOutBackground(imageBuffers, atlasFileName, transform, brainMaskingSmooth
     labelNumber = 0
     backgroundPrior = mesh.rasterize_1a(imageSize, labelNumber)
 
-    # Threshold background prior at 0.5 - this helps for atlases built from imperfect (i.e., automatic)
-    # segmentations, whereas background areas don't have zero probability for non-background structures
-    backGroundThreshold = 2 ** 8
-    backGroundPeak = 2 ** 16 - 1
-    backgroundPrior = np.ma.filled(np.ma.masked_greater(backgroundPrior, backGroundThreshold),
-                                   backGroundPeak).astype(np.float32)
+    if os.environ.get('SAMSEG_LEGACY_BACKGROUND_MASKING') is not None:
+        print('INFO: using legacy background masking option')
+        
+        #
+        brainMaskingSmoothingSigma = 3.0
+        brainMaskingThreshold = 0.01
+        
+        # Threshold background prior at 0.5 - this helps for atlases built from imperfect (i.e., automatic)
+        # segmentations, whereas background areas don't have zero probability for non-background structures
+        backGroundThreshold = 2 ** 8
+        backGroundPeak = 2 ** 16 - 1
+        backgroundPrior = np.ma.filled(np.ma.masked_greater(backgroundPrior, backGroundThreshold),
+                                      backGroundPeak).astype(np.float32)
 
-    visualizer.show(probabilities=backgroundPrior, images=imageBuffers, window_id='samsegment background',
-                    title='Background Priors')
+        visualizer.show(probabilities=backgroundPrior, images=imageBuffers, window_id='samsegment background',
+                        title='Background Priors')
 
-    smoothingSigmas = [1.0 * brainMaskingSmoothingSigma] * 3
-    smoothedBackgroundPrior = gems.KvlImage.smooth_image_buffer(backgroundPrior, smoothingSigmas)
-    visualizer.show(probabilities=smoothedBackgroundPrior, window_id='samsegment smoothed',
-                    title='Smoothed Background Priors')
+        smoothingSigmas = [1.0 * brainMaskingSmoothingSigma] * 3
+        smoothedBackgroundPrior = gems.KvlImage.smooth_image_buffer(backgroundPrior, smoothingSigmas)
+        visualizer.show(probabilities=smoothedBackgroundPrior, window_id='samsegment smoothed',
+                        title='Smoothed Background Priors')
 
-    # 65535 = 2^16 - 1. priors are stored as 16bit ints
-    # To put the threshold in perspective: for Gaussian smoothing with a 3D isotropic kernel with variance
-    # diag( sigma^2, sigma^2, sigma^2 ) a single binary "on" voxel at distance sigma results in a value of
-    # 1/( sqrt(2*pi)*sigma )^3 * exp( -1/2 ).
-    # More generally, a single binary "on" voxel at some Eucledian distance d results in a value of
-    # 1/( sqrt(2*pi)*sigma )^3 * exp( -1/2*d^2/sigma^2 ). Turning this around, if we threshold this at some
-    # value "t", a single binary "on" voxel will cause every voxel within Eucledian distance
-    #
-    #   d = sqrt( -2*log( t * ( sqrt(2*pi)*sigma )^3 ) * sigma^2 )
-    #
-    # of it to be included in the mask.
-    #
-    # As an example, for 1mm isotropic data, the choice of sigma=3 and t=0.01 yields ... complex value ->
-    # actually a single "on" voxel will then not make any voxel survive, as the normalizing constant (achieved
-    # at Mahalanobis distance zero) is already < 0.01
-    brainMaskThreshold = 65535.0 * (1.0 - brainMaskingThreshold)
-    brainMask = np.ma.less(smoothedBackgroundPrior, brainMaskThreshold)
+        # 65535 = 2^16 - 1. priors are stored as 16bit ints
+        # To put the threshold in perspective: for Gaussian smoothing with a 3D isotropic kernel with variance
+        # diag( sigma^2, sigma^2, sigma^2 ) a single binary "on" voxel at distance sigma results in a value of
+        # 1/( sqrt(2*pi)*sigma )^3 * exp( -1/2 ).
+        # More generally, a single binary "on" voxel at some Eucledian distance d results in a value of
+        # 1/( sqrt(2*pi)*sigma )^3 * exp( -1/2*d^2/sigma^2 ). Turning this around, if we threshold this at some
+        # value "t", a single binary "on" voxel will cause every voxel within Eucledian distance
+        #
+        #   d = sqrt( -2*log( t * ( sqrt(2*pi)*sigma )^3 ) * sigma^2 )
+        #
+        # of it to be included in the mask.
+        #
+        # As an example, for 1mm isotropic data, the choice of sigma=3 and t=0.01 yields ... complex value ->
+        # actually a single "on" voxel will then not make any voxel survive, as the normalizing constant (achieved
+        # at Mahalanobis distance zero) is already < 0.01
+        brainMaskThreshold = 65535.0 * (1.0 - brainMaskingThreshold)
+        mask = np.ma.less(smoothedBackgroundPrior, brainMaskThreshold)
+        
+    else:
+        #
+        #visualizer = initVisualizer(True, True)
+        from scipy import ndimage
+      
+        # Threshold prior of background
+        backgroundMask = np.ma.greater( backgroundPrior, (2**16-1) * maskingProbabilityThreshold )
+        visualizer.show( images=backgroundMask.astype(float), title='thresholded' )
+
+        # Extend by distance of maskingDistance (in mm)
+        distance = ndimage.distance_transform_edt( backgroundMask, sampling=voxelSpacing )
+        print( voxelSpacing )
+        mask = np.ma.less( distance, maskingDistance )
+        visualizer.show( images=mask.astype(float), title='short distance' )
+
+        # Fill holes inside the mask, if any        
+        mask = ndimage.binary_fill_holes( mask ) 
+        visualizer.show( images=mask.astype(float), title='holes filled' )
+        
 
     # Crop to area covered by the mesh
     alphas = mesh.alphas
@@ -250,20 +278,20 @@ def maskOutBackground(imageBuffers, atlasFileName, transform, brainMaskingSmooth
     mesh.alphas = areaCoveredAlphas  # temporary replacement of alphas
     areaCoveredByMesh = mesh.rasterize_1b(imageSize, 1)
     mesh.alphas = alphas  # restore alphas
-    brainMask = np.logical_and(brainMask, areaCoveredByMesh)
+    mask = np.logical_and(mask, areaCoveredByMesh)
 
     # If a pixel has a zero intensity in any of the contrasts, that is also masked out across all contrasts
     if maskOutZeroIntensities:
         numberOfContrasts = imageBuffers.shape[-1]
         for contrastNumber in range(numberOfContrasts):
-            brainMask *= imageBuffers[:, :, :, contrastNumber] > 0
+            mask *= imageBuffers[:, :, :, contrastNumber] > 0
 
     # Mask the images
     maskedImageBuffers = imageBuffers.copy()
-    maskedImageBuffers[np.logical_not(brainMask), :] = 0
+    maskedImageBuffers[np.logical_not(mask), :] = 0
 
     #
-    return maskedImageBuffers, brainMask
+    return maskedImageBuffers, mask
 
 
 def undoLogTransformAndBiasField(imageBuffers, biasFields, mask):
@@ -283,7 +311,8 @@ def undoLogTransformAndBiasField(imageBuffers, biasFields, mask):
 
     #
     expImageBuffers = np.exp(imageBuffers) / expBiasFields
-
+    expImageBuffers[ np.logical_not( mask ), : ] = 0
+    
     #
     return expImageBuffers, expBiasFields
 
