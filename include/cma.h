@@ -319,8 +319,9 @@
 #define fminor 5101 //                                  204 102 102 0
 #define cc_body 5102 //                                 204 102 102 0
 #define cc_genu 5103 //                                 204 102 102 0
-#define cc_splenium 5104 //                             204 102 102 0
-#define acomm 5105 //                                   204 204 102 0
+#define cc_rostrum 5104 //                              204 102 102 0
+#define cc_splenium 5105 //                             204 102 102 0
+#define acomm 5106 //                                   204 204 102 0
 
 // Left hemi tracts
 #define lh_atr 5200 //                                  255 255 102 0
@@ -342,6 +343,13 @@
 #define lh_slf1 5216 //                                 51  255 204 0
 #define lh_slf2 5217 //                                 153 255 204 0
 #define lh_slf3 5218 //                                 204 204 204 0
+#define lh_afd 5219 //                                  153 255 255 0
+#define lh_afv 5220 //                                  153 255 255 0
+#define lh_ar 5221 //                                   204 102 51  0
+#define lh_cbd 5222 //                                  0   153 153 0
+#define lh_cbv 5223 //                                  0   153 153 0
+#define lh_emc 5224 //                                  153 204 51  0
+#define lh_uf 5225 //                                   102 153 255 0
 
 // Right hemi tracts
 #define rh_atr 5300 //                                  255 255 102 0
@@ -363,6 +371,13 @@
 #define rh_slf1 5316 //                                 51  255 204 0
 #define rh_slf2 5317 //                                 153 255 204 0
 #define rh_slf3 5318 //                                 204 204 204 0
+#define rh_afd 5319 //                                  153 255 255 0
+#define rh_afv 5320 //                                  153 255 255 0
+#define rh_ar 5321 //                                   204 102 51  0
+#define rh_cbd 5322 //                                  0   153 153 0
+#define rh_cbv 5323 //                                  0   153 153 0
+#define rh_emc 5324 //                                  153 204 51  0
+#define rh_uf 5325 //                                   102 153 255 0
 
 
 /*

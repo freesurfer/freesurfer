@@ -11641,6 +11641,9 @@ const char *cma_label_to_name(int label)
   if (label == cc_genu) {
     return ("Corpus Callosum - Genu");
   }
+  if (label == cc_rostrum) {
+    return ("Corpus Callosum - Rostrum");
+  }
   if (label == cc_splenium) {
     return ("Corpus Callosum - Splenium");
   }
@@ -11766,6 +11769,48 @@ const char *cma_label_to_name(int label)
   }
   if (label == rh_mlf) {
     return ("Right Middle Longitudinal Fasciculus");
+  }
+  if (label == lh_afd) {
+    return ("Left Arcuate Fasciculus - Dorsal");
+  }
+  if (label == rh_afd) {
+    return ("Right Arcuate Fasciculus - Dorsal");
+  }
+  if (label == lh_afv) {
+    return ("Left Arcuate Fasciculus - Ventral");
+  }
+  if (label == rh_afv) {
+    return ("Right Arcuate Fasciculus - Ventral");
+  }
+  if (label == lh_ar) {
+    return ("Left Acoustic Radiation");
+  }
+  if (label == rh_ar) {
+    return ("Right Acoustic Radiation");
+  }
+  if (label == lh_cbd) {
+    return ("Left Cingulum Bundle - Dorsal");
+  }
+  if (label == rh_cbd) {
+    return ("Right Cingulum Bundle - Dorsal");
+  }
+  if (label == lh_cbv) {
+    return ("Left Cingulum Bundle - Ventral");
+  }
+  if (label == rh_cbv) {
+    return ("Right Cingulum Bundle - Ventral");
+  }
+  if (label == lh_emc) {
+    return ("Left Extreme Capsule");
+  }
+  if (label == rh_emc) {
+    return ("Right Extreme Capsule");
+  }
+  if (label == lh_uf) {
+    return ("Left Uncinate Fasciculus");
+  }
+  if (label == rh_uf) {
+    return ("Right Uncinate Fasciculus");
   }
   if (label == Cbm_Left_I_IV) {
     return ("Cbm_Left_I_IV");
