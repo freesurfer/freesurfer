@@ -57,6 +57,9 @@ class Blood {
     Blood(const char *TrainTrkFile,
           const char *TrainRoi1File, const char *TrainRoi2File,
           bool Debug=false);
+    Blood(const char *TrainTrkFile,
+          const char *RefVolFile,
+          bool Debug=false);
     ~Blood();
     void SetNumControls(std::vector<int> &NumControls);
     void ReadStreamlines(const char *TrainListFile, const char *TrainTrkFile,
@@ -144,6 +147,7 @@ class Blood {
     std::vector<AffineReg> mTestBaseReg;
     MRI *mHistoStr, *mHistoSubj, *mTestBaseMask;
 
+    void AllocateHistogram(MRI *RefVol);
     void ReadExcludedStreamlines(const char *ExcludeFile);
     void ComputeStats();
     void ComputeStatsEnds();

@@ -186,8 +186,7 @@ Blood::Blood(const char *TrainListFile, const char *TrainTrkFile,
                   TrainMaskLabel, ExcludeFile);
 
   // Allocate space for histograms
-  mHistoStr  = MRIclone(mTestMask[0], NULL);
-  mHistoSubj = MRIclone(mTestMask[0], NULL);
+  AllocateHistogram(mTestMask[0]);
 }
 
 Blood::Blood(const char *TrainTrkFile,
@@ -199,17 +198,31 @@ Blood::Blood(const char *TrainTrkFile,
              mUseShape(false),
              mNumStrMax(INT_MAX),
              mNx(0), mNy(0), mNz(0) {
-  // Read single input streamline file
-  ReadStreamlines(0, TrainTrkFile, TrainRoi1File, TrainRoi2File, 0, 0);
+  // Allocate space for histograms
+  if (TrainRoi1File && !TrainRoi2File) {
+    MRI *refvol;
+    
+    // Not a pair of ROIs, just a reference volume
+    refvol = MRIread(TrainRoi1File);
+    mNx = refvol->width;
+    mNy = refvol->height;
+    mNz = refvol->depth;
+    AllocateHistogram(refvol);
 
-  if (TrainRoi1File) {
-    // Allocate space for histograms
-    mHistoStr  = MRIclone(mRoi1[0], NULL);
-    mHistoSubj = MRIclone(mRoi1[0], NULL);
+    // Read single input streamline file
+    ReadStreamlines(0, TrainTrkFile, 0, 0, 0, 0);
   }
   else {
-    mHistoStr  = 0;
-    mHistoSubj = 0;
+    // Read single input streamline file
+    ReadStreamlines(0, TrainTrkFile, TrainRoi1File, TrainRoi2File, 0, 0);
+
+    // Allocate space for histograms
+    if (TrainRoi1File)
+      AllocateHistogram(mRoi1[0]);
+    else {
+      mHistoStr  = 0;
+      mHistoSubj = 0;
+    }
   }
 }
 
@@ -252,6 +265,14 @@ void Blood::SetNumControls(vector<int> &NumControls) {
   mControlPointsTest.clear();
   mControlStd.clear();
   mControlStdTest.clear();
+}
+
+//
+// Allocate space for histogram volumes
+//
+void Blood::AllocateHistogram(MRI *RefVol) {
+  mHistoStr  = MRIclone(RefVol, NULL);
+  mHistoSubj = MRIclone(RefVol, NULL);
 }
 
 //
@@ -988,7 +1009,7 @@ void Blood::ComputeEndPointCoM() {
 // Check that a point is inside the test subject's brain mask
 //
 bool Blood::IsInMask(vector<int>::const_iterator Point) {
-  if (mTestMask.empty() && mRoi1.empty() && mRoi2.empty())
+  if (mNx == 0 && mNy == 0 && mNz == 0)
     return true;
   else {
     bool isinmask = (Point[0] > -1) && (Point[0] < mNx) &&
@@ -1319,7 +1340,8 @@ void Blood::PrepStreamlines() {
   ComputeHistogram();
 
   cout << "Finding outlier streamlines" << endl;
-  FindOutlierStreamlines(true, true, !mTestFa.empty());
+  FindOutlierStreamlines(true, !mRoi1.empty() && !mRoi2.empty(),
+                               !mTestFa.empty());
 
   cout << "Ranking streamlines by distance" << endl;
   RankStreamlineDistance();

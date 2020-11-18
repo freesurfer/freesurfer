@@ -411,11 +411,12 @@ int main(int argc, char **argv) {
   }
   else {				// Deterministic paths
     // Read .trk file
-    Blood myblood(inTrkFile, inRoi1File, inRoi2File);
+    Blood myblood(inTrkFile, inRoi1File ? inRoi1File : refVolFile, inRoi2File);
 
-    myblood.ComputeHistogram();
-    myblood.MatchStreamlineEnds();
-    myblood.FindCenterStreamline();
+    myblood.PrepStreamlines();
+//    myblood.ComputeHistogram();
+//    myblood.MatchStreamlineEnds();
+//    myblood.FindCenterStreamline();
 
     // Overall measures
     count   = myblood.GetNumStr();
@@ -449,6 +450,9 @@ int main(int argc, char **argv) {
         refvol = l1;
 
       myblood.WriteEndPoints(outEndBase, refvol);
+
+      if (refVolFile)
+        MRIfree(&refvol);
     }
   }
 
