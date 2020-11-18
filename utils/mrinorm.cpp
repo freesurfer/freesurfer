@@ -61,21 +61,10 @@ static int remove_gray_matter_control_points(MRI *mri_ctrl,
                                              int scan_type,
                                              MRI *mri_not_control);
 static float csf_in_window(MRI *mri, int x0, int y0, int z0, float max_dist, float csf);
-#if 0
-static double mriNormComputeWMStandardDeviation(MRI *mri_orig, MRI *mri_ctrl) ;
-static int remove_extreme_control_points(MRI *mri_orig, MRI *mri_ctrl,
-    float low_thresh,
-    float high_thresh,
-    float target,
-    double wm_std) ;
-#endif
 static MRI *mriSplineNormalizeShort(
     MRI *mri_src, MRI *mri_dst, MRI **pmri_field, float *inputs, float *outputs, int npoints);
 static MRI *mriMarkUnmarkedNeighbors(MRI *mri_src, MRI *mri_marked, MRI *mri_dst, int mark, int nbr_mark);
 static int mriRemoveOutliers(MRI *mri, int min_nbrs);
-#if 0
-static MRI *mriDownsampleCtrl2(MRI *mri_src, MRI *mri_dst) ;
-#endif
 static MRI *mriSoapBubbleFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst, int niter, float min_change);
 static MRI *mriSoapBubbleShort(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst, int niter);
 static MRI *mriSoapBubbleExpandFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst, int niter);
@@ -275,7 +264,6 @@ MRI *MRIadaptiveHistoNormalize(MRI *mri_src, MRI *mri_norm, MRI *mri_template, i
         MRIclipRegion(mri_src, &h_src_reg, &h_clip_reg);
         MRItransformRegion(mri_src, mri_template, &h_clip_reg, &h_tmp_reg);
         if (Gdiag & DIAG_SHOW)
-#if 1
           fprintf(stderr,
                   "\rnormalizing (%d, %d, %d) --> (%d, %d, %d)       ",
                   wreg.x,
@@ -284,24 +272,7 @@ MRI *MRIadaptiveHistoNormalize(MRI *mri_src, MRI *mri_norm, MRI *mri_template, i
                   wreg.x + wreg.dx - 1,
                   wreg.y + wreg.dy - 1,
                   wreg.z + wreg.dz - 1);
-#else
-          fprintf(stderr,
-                  "\rnormalizing (%d, %d, %d) --> (%d, %d, %d)       ",
-                  h_tmp_reg.x,
-                  h_tmp_reg.y,
-                  h_tmp_reg.z,
-                  h_tmp_reg.x + h_tmp_reg.dx - 1,
-                  h_tmp_reg.y + h_tmp_reg.dy - 1,
-                  h_tmp_reg.z + h_tmp_reg.dz - 1);
-#endif
-#if 0
-        mri_norm = MRIhistoNormalizeRegion(mri_src,
-                                           mri_norm, mri_template,
-                                           low, &wreg,
-                                           &h_src_reg, &h_tmp_reg);
-#else
         mri_norm = MRIhistoNormalizeRegion(mri_src, mri_norm, mri_template, low, &wreg, &h_clip_reg, &h_clip_reg);
-#endif
       }
     }
   }
@@ -487,11 +458,7 @@ int MRInormInit(
     MRI_REGION bbox;
 
     printf("no Talairach xform detected - using skull bounding box to determine origin\n");
-#if 0
-    MRIboundingBoxNbhd(mri, 50, 5, &bbox) ;
-#else
     MRIfindApproximateSkullBoundingBox(mri, 50, &bbox);
-#endif
     /* place x and z at center of bounding box */
     x0_tal = bbox.x + bbox.dx / 2.0;
     z0_tal = bbox.z + bbox.dz / 2.0;
@@ -601,11 +568,7 @@ int MRInormFindPeaks(MNI *mni, float *inputs, float *outputs)
     }
     else {
       inputs[i - deleted] = (float)reg->y + (float)reg->dy / 2.0f;
-#if 0
-      outputs[i-deleted] = mni->desired_wm_value / (float)peak ;
-#else
       outputs[i - deleted] = (float)mni->histograms[i].bins[peak];
-#endif
     }
   }
 
@@ -710,11 +673,7 @@ int MRInormCheckPeaks(MNI *mni, float *inputs, float *outputs, int npeaks)
   old_slice = starting_slice;
   for (slice = starting_slice + 1; slice < npeaks; slice++) {
     dI = outputs[slice] - outputs[old_slice];
-#if 0
-    dy = inputs[slice] - inputs[old_slice] ;
-#else
     dy = inputs[slice] - inputs[slice - 1];
-#endif
     grad = fabs(dI / dy);
     deleted[slice] = ((grad > max_gradient) || ((slice - old_slice) > MAX_SKIPPED));
     if (!deleted[slice]) {
@@ -728,11 +687,7 @@ int MRInormCheckPeaks(MNI *mni, float *inputs, float *outputs, int npeaks)
   old_slice = starting_slice;
   for (slice = starting_slice - 1; slice >= 0; slice--) {
     dI = outputs[old_slice] - outputs[slice];
-#if 0
-    dy = inputs[slice] - inputs[old_slice] ;
-#else
     dy = inputs[slice + 1] - inputs[slice];
-#endif
     grad = fabs(dI / dy);
     deleted[slice] = ((grad > max_gradient) || ((old_slice - slice) > MAX_SKIPPED));
     if (!deleted[slice]) {
@@ -831,10 +786,6 @@ MRI *MRInormFindControlPoints(MRI *mri_src,
   float wm_val, gm_val, csf_val, mean_val, min_val, max_val, val, val0, low_thresh, hi_thresh;
   float int_below_adaptive;
   MRI *mri_tmp;
-#if 0
-  int     nremoved ;
-  BUFTYPE csf_thresh ;
-#endif
 
   if (!wm_target) {
     wm_target = DEFAULT_DESIRED_WHITE_MATTER_VALUE;
@@ -855,7 +806,6 @@ MRI *MRInormFindControlPoints(MRI *mri_src,
   find points which are close to wm_target, and in 7x7x7 relatively
   homogenous regions.
 */
-#if 1
   nctrl += MRInormAddFileControlPoints(mri_ctrl, 255, mri_src);
 
   pass = 0;
@@ -918,104 +868,9 @@ MRI *MRInormFindControlPoints(MRI *mri_src,
   nctrl += n;
 
   low_thresh = wm_target - intensity_below;
-#if 1
   int_below_adaptive = (wm_val - gm_val) / 4;
   low_thresh = (wm_target - int_below_adaptive);
-#endif
   hi_thresh = wm_target + intensity_above;
-#else
-  low_thresh = wm_target - 1.5 * intensity_below;
-  hi_thresh = wm_target + 1.5 * intensity_above;
-  for (nctrl = z = 0; z < depth; z++) {
-    for (y = 0; y < height; y++) {
-      for (x = 0; x < width; x++) {
-        val0 = MRIgetVoxVal(mri_src, x, y, z, 0);
-        if (mri_not_control && MRIgetVoxVal(mri_not_control, x, y, z, 0) > 0) {
-          continue;  // not allowed to be a control point
-        }
-        if (val0 >= low_thresh && val0 <= hi_thresh) {
-#ifdef WSIZE
-#undef WSIZE
-#endif
-#ifdef WHALF
-#undef WHALF
-#endif
-#define WSIZE 7
-#define WHALF ((WSIZE - 1) / 2)
-          whalf = ceil(WHALF / mri_src->xsize);
-          ctrl = 128;
-          for (zk = -whalf; ctrl && zk <= whalf; zk++) {
-            zi = pzi[z + zk];
-            for (yk = -whalf; ctrl && yk <= whalf; yk++) {
-              yi = pyi[y + yk];
-              for (xk = -whalf; ctrl && xk <= whalf; xk++) {
-                xi = pxi[x + xk];
-                val = MRIgetVoxVal(mri_src, xi, yi, zi, 0);
-                if (val > hi_thresh || val < low_thresh) ctrl = 0; /* not homogeneous enough */
-              }
-            }
-          }
-        }
-        else
-          ctrl = 0;
-
-        if (ctrl) nctrl++;
-
-        MRIvox(mri_ctrl, x, y, z) = ctrl;
-      }
-    }
-  }
-  if (Gdiag & DIAG_SHOW) fprintf(stderr, "%d 7x7x7 control points found\n", nctrl);
-
-  /*
-  find points which are close to wm_target, and in 5x5x5 relatively
-  homogenous regions.
-  */
-  low_thresh = wm_target - intensity_below;
-  hi_thresh = wm_target + intensity_above;
-  for (z = 0; z < depth; z++) {
-    for (y = 0; y < height; y++) {
-      for (x = 0; x < width; x++) {
-        if (MRIvox(mri_ctrl, x, y, z)) /* already a control point */
-          continue;
-
-        if (mri_not_control && MRIgetVoxVal(mri_not_control, x, y, z, 0) > 0)
-          continue;  // not allowed to be a control point
-
-        val0 = MRIgetVoxVal(mri_src, x, y, z, 0);
-        if (val0 >= low_thresh && val0 <= hi_thresh) {
-#ifdef WSIZE
-#undef WSIZE
-#endif
-#ifdef WHALF
-#undef WHALF
-#endif
-#define WSIZE 5
-#define WHALF ((WSIZE - 1) / 2)
-          whalf = ceil(WHALF / mri_src->xsize);
-          ctrl = 128;
-          for (zk = -whalf; ctrl && zk <= whalf; zk++) {
-            zi = pzi[z + zk];
-            for (yk = -whalf; ctrl && yk <= whalf; yk++) {
-              yi = pyi[y + yk];
-              for (xk = -whalf; ctrl && xk <= whalf; xk++) {
-                xi = pxi[x + xk];
-                val = MRIgetVoxVal(mri_src, xi, yi, zi, 0);
-                if (val > hi_thresh || val < low_thresh) ctrl = 0; /* not homogeneous enough */
-              }
-            }
-          }
-        }
-        else
-          ctrl = 0;
-        if (ctrl) nctrl++;
-
-        MRIvox(mri_ctrl, x, y, z) = ctrl;
-      }
-    }
-  }
-  if (Gdiag & DIAG_SHOW) fprintf(stderr, "%d 5x5x5 control points found\n", nctrl);
-#endif
 
   /*  add all voxels that neighbor a control point and are in a 3x3x3
       neighborhood that has unambiguous intensities
@@ -1031,13 +886,6 @@ MRI *MRInormFindControlPoints(MRI *mri_src,
 #define WSIZE 3
 #define WHALF ((WSIZE - 1) / 2)
   whalf = ceil(WHALF / mri_src->xsize);
-#if 0
-  if (mri_src->xsize < 0.9) // be more conservative for hires volumes
-  {
-    low_thresh = wm_target-intensity_below/2;
-    hi_thresh =  wm_target+intensity_above/2;
-  }
-#endif
 
   mri_tmp = MRIcopy(mri_ctrl, NULL);
   do {
@@ -1128,10 +976,6 @@ MRI *MRInormFindControlPoints(MRI *mri_src,
     have and that lie in a 6-connected neighborhood of high
     intensities. (should push things out even close to the border).
 */
-#if 0
-  low_thresh = wm_target-intensity_below/2;
-  hi_thresh =  wm_target+intensity_above/2;
-#endif
   total_filled = 0;
   low_thresh = MAX(low_thresh, wm_target - intensity_below);
 
@@ -1224,221 +1068,14 @@ MRI *MRInormFindControlPoints(MRI *mri_src,
              MRIvox(mri_ctrl, Gx, Gy, Gz) ? "" : "NOT ");
   }
 
-#if 0
-  low_thresh = wm_target-(2*intensity_below);
-  hi_thresh =  wm_target+intensity_above;
-  total_filled = 0 ;
-  for (z = 0 ; z < depth ; z++)
-  {
-    for (y = 0 ; y < height ; y++)
-    {
-      for (x = 0 ; x < width ; x++)
-      {
-        val0 = MRIgetVoxVal(mri_src, x, y, z, 0) ;
-        if (val0 >= low_thresh && val0 <= hi_thresh)
-        {
-#undef WHALF
-#undef WSIZE
-#define WSIZE 9
-#define WHALF ((WSIZE - 1) / 2)
-          whalf = ceil(WHALF / mri_src->xsize) ;
-          ctrl = 128 ;
-          for (zk = -whalf ; ctrl && zk <= whalf ; zk++)
-          {
-            zi = pzi[z+zk] ;
-            for (yk = -whalf ; ctrl && yk <= whalf ; yk++)
-            {
-              yi = pyi[y+yk] ;
-              for (xk = -whalf ; ctrl && xk <= whalf ; xk++)
-              {
-                xi = pxi[x+xk] ;
-                val = MRIgetVoxVal(mri_src, xi, yi, zi, 0) ;
-                if (val > hi_thresh || val < low_thresh)
-                {
-                  ctrl = 0 ;  /* not homogeneous enough */
-                }
-              }
-            }
-          }
-        }
-        else
-        {
-          ctrl = 0 ;
-        }
-        if (ctrl)
-        {
-          total_filled++ ;
-        }
-        MRIvox(mri_ctrl, x, y, z) = ctrl ;
-      }
-    }
-  }
-  if (Gdiag & DIAG_SHOW)
-    fprintf(stderr, "%d %d mm homogenous control points found\n",
-            total_filled,WSIZE);
-  nctrl += total_filled ;
-#endif
 
-#if 0
-  total_filled = 0 ;
-  do
-  {
-    int   low_gradients ;
-    float dist ;
-
-    nfilled = 0 ;
-    for (z = 0 ; z < depth ; z++)
-    {
-      for (y = 0 ; y < height ; y++)
-      {
-        for (x = 0 ; x < width ; x++)
-        {
-          val0 = MRIgetVoxVal(mri_src, x, y, z, 0) ;
-          ctrl = MRIvox(mri_ctrl, x, y, z) ;
-          low_gradients = 0 ;
-          if (val0 >= low_thresh && val0 <= hi_thresh && !ctrl)
-          {
-            if (x == Gx && y == Gy && z == Gz)
-            {
-              DiagBreak() ;
-            }
-            for (zk = -1 ; zk <= 1 ; zk++)
-            {
-              zi = pzi[z+zk] ;
-              for (yk = -1 ; yk <= 1 ; yk++)
-              {
-                yi = pyi[y+yk] ;
-                for (xk = -1 ; xk <= 1 ; xk++)
-                {
-                  if (!xk && !yk && !zk)
-                  {
-                    continue ;
-                  }
-
-                  /*
-                    check for any 27-connected
-                    neighbor that is not
-                    in the right intensity range.
-                  */
-                  xi = pxi[x+xk] ;
-                  if (MRIvox(mri_ctrl, xi, yi, zi))
-                    /* neighboring ctrl pt */
-                  {
-                    val =
-                      MRIgetVoxVal(mri_src, xi, yi, zi, 0) ;
-                    dist = sqrt(xk*xk+yk*yk+zk*zk) ;
-                    if (FZERO(dist))
-                    {
-                      dist = 1.0 ;
-                    }
-#define MIN_GRAD 1.0
-                    if (fabs(val-val0)/dist < MIN_GRAD)
-                    {
-                      low_gradients++ ;
-                    }
-                  }
-                  if ((abs(xk) + abs(yk) + abs(zk)) > 1)
-                  {
-                    continue ;  /* only allow 4 (6 in 3-d) connectivity */
-                  }
-                }
-              }
-            }
-            if (low_gradients >= 9)
-            {
-              MRIvox(mri_ctrl, x, y, z) = 128 ;
-              nfilled++ ;
-            }
-          }
-        }
-      }
-    }
-    total_filled += nfilled ;
-  }
-  while (nfilled > 0) ;
-  nctrl += total_filled ;
-  if (Gdiag & DIAG_SHOW)
-    fprintf(stderr,"%d contiguous low gradient control points added\n",
-            total_filled);
-#endif
 
 #undef WSIZE
 #undef WHALF
   mriRemoveOutliers(mri_ctrl, 2);
 
-#if 0
-  /* now remove control points that are within 2mm of csf */
-  csf_thresh = (BUFTYPE)nint(find_csf(mri_src, mri_ctrl, 0)) ;
-  printf("setting max csf intensity to %d\n", csf_thresh) ;
-  for (nremoved = z = 0 ; z < depth ; z++)
-  {
-    for (y = 0 ; y < height ; y++)
-    {
-      for (x = 0 ; x < width ; x++)
-      {
-        if (x == Gx && y == Gy && z == Gz)
-        {
-          DiagBreak() ;
-        }
 
-        ctrl = MRIvox(mri_ctrl, x, y, z) ;
-        if (ctrl == 0)
-        {
-          continue ;
-        }
-        val0 = MRIgetVoxVal(mri_src, x, y, z, 0) ;
-#ifdef WSIZE
-#undef WSIZE
-#endif
-#ifdef WHALF
-#undef WHALF
-#endif
-#define WSIZE 5
-#define WHALF ((WSIZE - 1) / 2)
-        whalf = ceil(WHALF / mri_src->xsize) ;
-        ctrl = 128 ;
-        for (zk = -whalf ; ctrl && zk <= whalf ; zk++)
-        {
-          zi = pzi[z+zk] ;
-          for (yk = -whalf ; ctrl && yk <= whalf ; yk++)
-          {
-            yi = pyi[y+yk] ;
-            for (xk = -whalf ; ctrl && xk <= whalf ; xk++)
-            {
-              xi = pxi[x+xk] ;
-              val = MRIgetVoxVal(mri_src, xi, yi, zi, 0) ;
-              if (val <= csf_thresh)
-              {
-                ctrl = 0 ;  /* a csf voxel too close */
-              }
-            }
-          }
-        }
-        if (ctrl == 0)
-        {
-          nremoved++ ;
-        }
-        MRIvox(mri_ctrl, x, y, z) = ctrl ;
-      }
-    }
-  }
-
-  printf("%d control points removed due to csf proximity...\n", nremoved) ;
-  nctrl -= nremoved ;
-#endif
-
-#if 1
   nctrl += MRInormAddFileControlPoints(mri_ctrl, 255, mri_src);
-#else
-  /* read in control points from a file (if specified) */
-  for (i = 0; i < num_control_points; i++) {
-    /*    if (!MRIvox(mri_ctrl, xctrl[i], yctrl[i], zctrl[i]))*/
-    {
-      MRIvox(mri_ctrl, xctrl[i], yctrl[i], zctrl[i]) = 255;
-      nctrl++;
-    }
-  }
-#endif
 
   if (Gdiag & DIAG_SHOW) {
     fprintf(stderr, "%d control points found.\n", nctrl);
@@ -1805,17 +1442,6 @@ MRI *MRI3dNormalize(MRI *mri_orig,
       remove_gray_matter_control_points(
           mri_ctrl, mri_orig, wm_target, intensity_above, intensity_below, scan_type, mri_not_control);
 
-#if 0
-    if (n == 0)
-    {
-      wm_std = mriNormComputeWMStandardDeviation(mri_orig, mri_ctrl) ;
-    }
-    if (n >= 1)
-      remove_extreme_control_points(mri_orig, mri_ctrl,
-                                    wm_target-intensity_below,
-                                    wm_target+intensity_above,
-                                    wm_target, wm_std) ;
-#endif
 
     mri_bias = MRIbuildBiasImage(mri_src, mri_ctrl, mri_bias, bias_sigma);
     if (bias_volume_fname) {
@@ -2070,14 +1696,6 @@ static MRI *mriBuildVoronoiDiagramShort(MRI *mri_src, MRI *mri_ctrl, MRI *mri_ds
   with CONTROL_TMP, and they are the only ones which need to be
   examined.
 */
-#if 0
-    MRIreplaceValues(mri_ctrl, mri_ctrl, CONTROL_HAS_VAL, CONTROL_TMP) ;
-    mriMarkUnmarkedNeighbors(mri_marked, mri_ctrl, mri_marked,
-                             CONTROL_MARKED,
-                             CONTROL_TMP);
-    MRIreplaceValues(mri_marked, mri_marked, CONTROL_MARKED, CONTROL_NONE) ;
-    MRIreplaceValues(mri_marked, mri_marked, CONTROL_TMP, CONTROL_MARKED) ;
-#else
     /* voxels that were CONTROL_TMP were filled on
     previous iteration, now they
     should be labeled as marked
@@ -2086,7 +1704,6 @@ static MRI *mriBuildVoronoiDiagramShort(MRI *mri_src, MRI *mri_ctrl, MRI *mri_ds
     mriMarkUnmarkedNeighbors(mri_marked, mri_marked, mri_marked, CONTROL_NBR, CONTROL_TMP);
     MRIreplaceValues(mri_marked, mri_marked, CONTROL_NBR, CONTROL_MARKED);
     MRIreplaceValues(mri_marked, mri_marked, CONTROL_TMP, CONTROL_NBR);
-#endif
 
     /*
       everything in mri_marked=CONTROL_TMP is now a nbr of a point
@@ -2394,14 +2011,6 @@ static MRI *mriBuildVoronoiDiagramUchar(MRI *mri_src, MRI *mri_ctrl, MRI *mri_ds
   with CONTROL_TMP, and they are the only ones which need to be
   examined.
 */
-#if 0
-    MRIreplaceValues(mri_ctrl, mri_ctrl, CONTROL_HAS_VAL, CONTROL_TMP) ;
-    mriMarkUnmarkedNeighbors(mri_marked, mri_ctrl, mri_marked,
-                             CONTROL_MARKED,
-                             CONTROL_TMP);
-    MRIreplaceValues(mri_marked, mri_marked, CONTROL_MARKED, CONTROL_NONE) ;
-    MRIreplaceValues(mri_marked, mri_marked, CONTROL_TMP, CONTROL_MARKED) ;
-#else
     /* voxels that were CONTROL_TMP were filled
     on previous iteration, now they
     should be labeled as marked
@@ -2410,7 +2019,6 @@ static MRI *mriBuildVoronoiDiagramUchar(MRI *mri_src, MRI *mri_ctrl, MRI *mri_ds
     mriMarkUnmarkedNeighbors(mri_marked, mri_marked, mri_marked, CONTROL_NBR, CONTROL_TMP);
     MRIreplaceValues(mri_marked, mri_marked, CONTROL_NBR, CONTROL_MARKED);
     MRIreplaceValues(mri_marked, mri_marked, CONTROL_TMP, CONTROL_NBR);
-#endif
 
     /*
       everything in mri_marked=CONTROL_TMP is now a nbr of a point
@@ -2756,88 +2364,6 @@ MRI *MRIsoapBubbleExpand(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst, int niter)
 
   Description
   ------------------------------------------------------*/
-#if 0
-static MRI *
-mriSoapBubbleFloat(MRI *mri_src,
-                   MRI *mri_ctrl,
-                   MRI *mri_dst,
-                   int niter,
-                   float min_change)
-{
-  int     width, height, depth, x, y, z, xk, yk, zk, xi, yi, zi, i;
-  int     *pxi, *pyi, *pzi ;
-  BUFTYPE ctrl ;
-  float   *ptmp, mean ;
-  MRI     *mri_tmp ;
-
-  width = mri_src->width ;
-  height = mri_src->height ;
-  depth = mri_src->depth ;
-  if (!mri_dst)
-  {
-    mri_dst = MRIcopy(mri_src, NULL) ;
-  }
-
-  pxi = mri_src->xi ;
-  pyi = mri_src->yi ;
-  pzi = mri_src->zi ;
-
-  mri_tmp = MRIcopy(mri_dst, NULL) ;
-
-  /* now propagate values outwards */
-  for (i = 0 ; i < niter ; i++)
-  {
-    if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
-    {
-      fprintf(stderr, "soap bubble iteration %d of %d\n", i+1, niter) ;
-    }
-    for ( z = 0 ; z < depth ; z++)
-    {
-      for (y = 0 ; y < height ; y++)
-      {
-        ptmp = &MRIFvox(mri_tmp, 0, y, z) ;
-        for (x = 0 ; x < width ; x++)
-        {
-          if (x == Gx && y == Gy && z == Gz)
-          {
-            DiagBreak() ;
-          }
-          ctrl = MRIgetVoxVal(mri_ctrl, x, y, z, 0) ;
-          if (ctrl == CONTROL_MARKED)   /* marked point - don't change it */
-          {
-            ptmp++ ;
-            continue ;
-          }
-          /* now set this voxel to the average of
-             the marked neighbors */
-          /* where is the check for marked or non-marked? -xh */
-          mean = 0.0f ;
-          for (zk = -1 ; zk <= 1 ; zk++)
-          {
-            zi = pzi[z+zk] ;
-            for (yk = -1 ; yk <= 1 ; yk++)
-            {
-              yi = pyi[y+yk] ;
-              for (xk = -1 ; xk <= 1 ; xk++)
-              {
-                xi = pxi[x+xk] ;
-                mean += MRIFvox(mri_dst, xi, yi, zi) ;
-              }
-            }
-          }
-          *ptmp++ = (float)mean / (3.0f*3.0f*3.0f) ;
-        }
-      }
-    }
-    MRIcopy(mri_tmp, mri_dst) ;
-  }
-
-  MRIfree(&mri_tmp) ;
-
-  /*MRIwrite(mri_dst, "soap.mnc") ;*/
-  return(mri_dst) ;
-}
-#else
 static MRI *mriSoapBubbleFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst, int niter, float min_change)
 {
   int width, height, depth, frames, x, y, z, f, xk, yk, zk, xi, yi, zi, i, *pxi, *pyi, *pzi, num, x1, y1, z1, x2, y2,
@@ -2984,7 +2510,6 @@ static MRI *mriSoapBubbleFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst, int ni
   }
   return (mri_dst);
 }
-#endif
 
 /*-----------------------------------------------------
   Parameters:
@@ -3309,68 +2834,6 @@ static int mriRemoveOutliers(MRI *mri, int min_nbrs)
   return (NO_ERROR);
 }
 
-#if 0
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  If any voxels are on in a 2x2x2 neighborhood, set the
-  output value to it.
-  ------------------------------------------------------*/
-static MRI *
-mriDownsampleCtrl2(MRI *mri_src, MRI *mri_dst)
-{
-  int     width, depth, height, x, y, z, x1, y1, z1 ;
-  BUFTYPE *psrc, val ;
-
-  if (mri_src->type != MRI_UCHAR)
-    ErrorReturn(NULL,
-                (ERROR_UNSUPPORTED, "MRIdownsample2: source must be UCHAR"));
-
-  width = mri_src->width/2 ;
-  height = mri_src->height/2 ;
-  depth = mri_src->depth/2 ;
-
-  if (!mri_dst)
-  {
-    mri_dst = MRIalloc(width, height, depth, mri_src->type) ;
-    MRIcopyHeader(mri_src, mri_dst) ;
-  }
-
-  MRIclear(mri_dst) ;
-  for (z = 0 ; z < depth ; z++)
-  {
-    for (y = 0 ; y < height ; y++)
-    {
-      for (x = 0 ; x < width ; x++)
-      {
-        for (val = 0, z1 = 2*z ; !val && z1 <= 2*z+1 ; z1++)
-        {
-          for (y1 = 2*y ; !val && y1 <= 2*y+1 ; y1++)
-          {
-            psrc = &MRIvox(mri_src, 2*x, y1, z1) ;
-
-            for (x1 = 2*x ; !val && x1 <= 2*x+1 ; x1++)
-            {
-              val = *psrc++ ;
-            }
-          }
-        }
-        MRIvox(mri_dst, x, y, z) = val ;
-      }
-    }
-  }
-
-  mri_dst->imnr0 = mri_src->imnr0 ;
-  mri_dst->imnr1 = mri_src->imnr0 + mri_dst->depth - 1 ;
-  mri_dst->xsize = mri_src->xsize*2 ;
-  mri_dst->ysize = mri_src->ysize*2 ;
-  mri_dst->zsize = mri_src->zsize*2 ;
-  return(mri_dst) ;
-}
-#endif
 
 int MRI3dUseFileControlPoints(MRI *mri, const char *fname)
 {
@@ -3565,324 +3028,6 @@ int MRInormAddFileControlPoints(MRI *mri_ctrl, int value, MRI *mri)
   return (nctrl);
 }
 
-#if 0
-static int
-remove_extreme_control_points(MRI *mri_orig,
-                              MRI *mri_ctrl,
-                              float low_thresh,
-                              float hi_thresh,
-                              float target_val,
-                              double wm_std)
-{
-  int       x, y, z, peak, nremoved, bin, xi, yi, zi, xk, yk, zk;
-  int       remove, ncontrol, whalf, wsize ;
-  float     val, min_val, max_val, dist, max_nbr_val, intensity_below;
-  float     val0, intensity_above, max_delta_above, max_delta_below;
-  float     val_above, val_below, max_ctrl_val, min_ctrl_val ;
-  HISTOGRAM *h, *hsmooth ;
-  MRI_REGION reg ;
-
-#define WSIZE 7
-#define WHALF ((WSIZE - 1) / 2)
-  wsize = ceil(WSIZE / mri_orig->xsize) ;
-  whalf = (wsize-1)/2 ;
-
-  intensity_below = target_val - low_thresh ;
-  intensity_above = hi_thresh - target_val ;
-  low_thresh = MIN(low_thresh, target_val - 4*wm_std) ;
-  printf("checking for control points more than %2.1f below nbrs, low=%2.1f\n",
-         MAX(2*wm_std, intensity_below/2), low_thresh) ;
-  reg.dx = reg.dy = reg.dz = wsize ;
-  nremoved = 0 ;
-  max_delta_above = MAX(2*wm_std, intensity_above/2) ;
-  max_delta_below = MAX(2*wm_std, intensity_below/2) ;
-  for (x = 0 ; x < mri_orig->width ; x++)
-  {
-    for (y = 0 ; y < mri_orig->height ; y++)
-    {
-      for (z = 0 ; z < mri_orig->depth ; z++)
-      {
-        if (MRIvox(mri_ctrl, x, y, z) > 0)
-        {
-          if (x == Gx && y == Gy && z == Gz)
-          {
-            MRIwrite(mri_orig, "on.mgz") ;
-            DiagBreak() ;
-          }
-          val = MRIgetVoxVal(mri_orig, x, y, z, 0) ;
-
-          reg.x = x-whalf ;
-          reg.y = y-whalf ;
-          reg.z = z-whalf ;
-          h = MRIhistogramLabelRegion(mri_orig, mri_ctrl,
-                                      &reg, CONTROL_MARKED, 0) ;
-          hsmooth = HISTOsmooth(h, NULL, 2) ;
-          peak = HISTOfindHighestPeakInRegion
-                 (hsmooth, 0, hsmooth->nbins) ;
-          bin = HISTOfindBin(hsmooth, val) ;
-
-          remove = 0 ;
-          if ((hsmooth->counts[peak] > 3*hsmooth->counts[bin]) && 0)
-          {
-            nremoved++ ;
-            MRIvox(mri_ctrl, x, y, z) = CONTROL_NONE ;
-          }
-          else   /* check 5x5x5 */
-          {
-            val0 = max_ctrl_val =
-                     min_ctrl_val =
-                       min_val = max_val =
-                                   max_nbr_val = val ;  /* value at center */
-            val_above = val0+max_delta_above ;/* assume asymmetric distbtion */
-            val_below = val0-max_delta_below ;
-            ncontrol = 0 ; /* # of control points in nbhd */
-            for (xk = -2 ; xk <= 2 ; xk++)
-            {
-              xi = mri_ctrl->xi[x+xk] ;
-              for (yk = -2 ; yk <= 2 ; yk++)
-              {
-                yi = mri_ctrl->yi[y+yk] ;
-                for (zk = -2 ; zk <= 2 ; zk++)
-                {
-                  zi = mri_ctrl->zi[z+zk] ;
-                  if (xi == Gvx && yi == Gvy && zi == Gvz)
-                  {
-                    DiagBreak() ;
-                  }
-                  val = MRIgetVoxVal(mri_orig, xi, yi, zi, 0) ;
-                  dist = sqrt(SQR(x-xi)+SQR(y-yi)+SQR(z-zi));
-                  if (MRIvox(mri_ctrl, xi, yi, zi))
-                  {
-                    if (val > max_ctrl_val)
-                    {
-                      max_ctrl_val = val ;
-                    }
-                    if (val < min_ctrl_val)
-                    {
-                      min_ctrl_val = val ;
-                    }
-                    ncontrol++ ;
-                  }
-                  if (dist < 2)   /* 26-connected neighbor */
-                  {
-#if 1
-                    if (val < min_val)
-                    {
-                      min_val = val ;
-                    }
-#endif
-                    if (val > max_nbr_val)
-                    {
-                      max_nbr_val = val ;
-                    }
-                    if (val < val_below || val > val_above)
-                    {
-                      remove = 1 ;
-                      break ;
-                    }
-                  }
-                  if (val > max_val && val < hi_thresh)
-                  {
-                    max_val = val ;
-                  }
-                  if (remove)
-                  {
-                    break ;
-                  }
-                }
-                if (remove)
-                {
-                  break ;
-                }
-              }
-              if (remove)
-              {
-                break ;
-              }
-            }
-
-            /*
-              check to make sure that the bias
-              field at this control point isn't too different
-              from ones around it */
-
-#define WSIZE 7
-#define WHALF ((WSIZE - 1) / 2)
-            whalf = ceil(WHALF / mri_orig->xsize) ;
-            if (remove == 0)
-            {
-              for (xk = -whalf ; xk <= whalf ; xk++)
-              {
-                xi = mri_ctrl->xi[x+xk] ;
-                for (yk = -whalf ; yk <= whalf ; yk++)
-                {
-                  yi = mri_ctrl->yi[y+yk] ;
-                  for (zk = -whalf ; zk <= whalf ; zk++)
-                  {
-                    zi = mri_ctrl->zi[z+zk] ;
-                    if (xi == Gx && yi == Gy && zi == Gz)
-                    {
-                      DiagBreak() ;
-                    }
-                    if (MRIvox(mri_ctrl, xi, yi, zi) > 0)
-                      /* nbr is a control point */
-                    {
-                      val =
-                        MRIgetVoxVal(mri_orig,
-                                     xi, yi, zi, 0) ;
-                      if (val > max_ctrl_val)
-                      {
-                        max_ctrl_val = val ;
-                      }
-                      if (val < min_ctrl_val)
-                      {
-                        min_ctrl_val = val ;
-                      }
-                      if (val < val_below
-                          || val > val_above)
-                      {
-                        if (xi == Gx
-                            && yi == Gy
-                            && zi == Gz)
-                        {
-                          DiagBreak() ;
-                        }
-                        if (x == Gx
-                            && y == Gy
-                            && z == Gz)
-                        {
-                          DiagBreak() ;
-                        }
-                        remove = 1 ;
-                        break ;
-                      }
-                    }
-                  }
-                  if (remove)
-                  {
-                    break ;
-                  }
-                }
-                if (remove)
-                {
-                  break ;
-                }
-              }
-            }
-            /*
-              if image gradient in 3x3x3 nbhd in orig
-              volume is too big (bigger than max - min)
-              then don't let it be a control point. Or, if an
-              immediate nbr is below low_thresh
-              in the orig volume and their is a control point
-              in a 5x5x5 window then don't let it
-              be a control point (otherwise it can creep
-              outwards along gently decreasing gray matter
-              intensities.
-              or, remove it if the intensity derivative is too big
-            */
-            if ((max_val < hi_thresh && max_val >= target_val &&
-                 min_val < low_thresh) ||
-                (fabs(max_nbr_val - min_val) >=
-                 (target_val-low_thresh)) ||
-                (((val0-min_ctrl_val) >= max_delta_above) ||
-                 (((max_ctrl_val-val0) >= max_delta_below))) ||
-                remove)
-            {
-              if (x == Gx && y == Gy && z == Gz)
-              {
-                DiagBreak() ;
-              }
-              nremoved++ ;
-              MRIvox(mri_ctrl, x, y, z) = CONTROL_NONE ;
-            }
-            else if (x == Gx && y == Gy && z == Gz)
-            {
-              DiagBreak() ;
-            }
-          }
-
-          HISTOfree(&h) ;
-          HISTOfree(&hsmooth) ;
-          if (x == Gx && y == Gy && z == Gz)
-            printf("(%d, %d, %d) initially a control point, %s\n",
-                   Gx, Gy, Gz, MRIvox(mri_ctrl, x, y, z) ? "retained" :
-                   "removed");
-        }
-        else if (x == Gx && y == Gy && z == Gz)
-        {
-          printf("(%d, %d, %d) not a control point\n", Gx, Gy, Gz);
-        }
-
-
-      }
-    }
-  }
-
-  printf("%d outlying control points removed due to "
-         "unlikely bias estimates...\n", nremoved) ;
-  return(NO_ERROR) ;
-}
-
-
-static double
-mriNormComputeWMStandardDeviation(MRI *mri_orig, MRI *mri_ctrl)
-{
-  int       x, y, z, xi, yi, zi, xk, yk, zk, num, whalf ;
-  double    wm_std, val0, val ;
-
-#define WSIZE 7
-#define WHALF ((WSIZE - 1) / 2)
-  whalf = ceil(WHALF / mri_orig->xsize) ;
-  for (num = x = 0, wm_std = 0.0 ; x < mri_orig->width ; x++)
-  {
-    for (y = 0 ; y < mri_orig->height ; y++)
-    {
-      for (z = 0 ; z < mri_orig->depth ; z++)
-      {
-        if (MRIvox(mri_ctrl, x, y, z) > 0)
-        {
-          if (x == Gx && y == Gy && z == Gz)
-          {
-            MRIwrite(mri_orig, "on.mgz") ;
-            DiagBreak() ;
-          }
-          val0 = MRIgetVoxVal(mri_orig, x, y, z, 0) ;
-          for (xk = -whalf ; xk <= whalf ; xk++)
-          {
-            xi = mri_ctrl->xi[x+xk] ;
-            for (yk = -whalf ; yk <= whalf ; yk++)
-            {
-              yi = mri_ctrl->yi[y+yk] ;
-              for (zk = -whalf ; zk <= whalf ; zk++)
-              {
-                zi = mri_ctrl->zi[z+zk] ;
-                if (xi == Gx && yi == Gy && zi == Gz)
-                {
-                  DiagBreak() ;
-                }
-                if (MRIvox(mri_ctrl, xi, yi, zi) > 0)
-                {
-                  val = MRIgetVoxVal(mri_orig, xi, yi, zi, 0) ;
-                  wm_std += SQR(val-val0);
-                  num++ ;
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-  if (num > 0)
-  {
-    wm_std = sqrt(wm_std / num) ;
-  }
-
-  printf("wm standard deviation = %2.2f with %d DOFs\n", wm_std, num) ;
-  return(wm_std) ;
-}
-#endif
 
 #define MAX_DISTANCE_TO_CSF 7
 #define MIN_DISTANCE_TO_CSF 4.5
@@ -4206,9 +3351,6 @@ static float find_tissue_intensities(MRI *mri_src, MRI *mri_ctrl, float *pwm, fl
   int gm_peak, gm_valley;
   HISTOGRAM *h, *hsmooth, *hwm;
   float csf_thresh, wm_val;
-#if 0
-  MRI_REGION    bbox ;
-#endif
 
   mri_ctrl = MRIbinarize(mri_ctrl, NULL, 1, CONTROL_NONE, CONTROL_MARKED);
 
@@ -4218,24 +3360,7 @@ static float find_tissue_intensities(MRI *mri_src, MRI *mri_ctrl, float *pwm, fl
   printf("white matter peak found at %2.0f\n", wm_val);
   HISTOfree(&hwm);
 
-#if 0
-  /* don't use outside of brain as it contains a bunch of dark stuff
-     that isn't really csf and will mess up the histogram */
-  MRIfindApproximateSkullBoundingBox(mri_src, wm_val*.5, &bbox) ;
-  printf("bounding box (%d, %d, %d) --> (%d, %d, %d)\n",
-         bbox.x, bbox.y, bbox.z,
-         bbox.x+bbox.dx-1, bbox.y+bbox.dy-1, bbox.z+bbox.dz-1) ;
-  bbox.x += bbox.dx/4 ;
-  bbox.dx /= 2 ;
-  bbox.y += bbox.dy/4 ;
-  bbox.dy /= 2 ;
-  bbox.z += bbox.dz/4 ;
-  bbox.dz /= 2 ;
-
-  h = MRIhistogramRegion(mri_src, 0, NULL, &bbox) ;
-#else
   h = MRIhistogram(mri_src, 0);
-#endif
 
   HISTOclearZeroBin(h);
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
@@ -4246,14 +3371,7 @@ static float find_tissue_intensities(MRI *mri_src, MRI *mri_ctrl, float *pwm, fl
     hsmooth = HISTOsmooth(h, NULL, 2);
   }
   else {
-#if 0
-    hsmooth = HISTOsmooth(h, NULL, 2) ;
-    // no idea how this worked
-    HISTOclearBG(hsmooth, hsmooth, &bg_end) ;
-    HISTOclearBins(h, h, 0, bg_end) ;
-#else
     HISTOclearBins(h, h, 0, 20);
-#endif
     HISTOsmooth(h, hsmooth, 2);
   }
 
@@ -4305,13 +3423,6 @@ static float find_tissue_intensities(MRI *mri_src, MRI *mri_ctrl, float *pwm, fl
   *pgm = hsmooth->bins[gm_peak];
   *pcsf = hsmooth->bins[csf_peak];
 
-#if 0
-  if (csf_thresh > 60)
-  {
-    csf_thresh = 60 ;
-  }  /* HACK!!! Don't have time to fix it
-                                  now for PD-suppressed synthetic images */
-#endif
   HISTOfree(&hsmooth);
   HISTOfree(&h);
   MRIfree(&mri_ctrl); /* copy of mri_ctrl, NOT the passed in one */
@@ -4393,17 +3504,6 @@ MRI *MRInormFindHighSignalLowStdControlPoints(MRI *mri_src, MRI *mri_ctrl)
       mriseg->segments[s2].cy,
       mriseg->segments[s2].cz);
   MRIbinarize(mri_ctrl, mri_ctrl, 1, CONTROL_NONE, CONTROL_MARKED);
-#if 0
-  while (MRIvoxelsInLabel(mri_ctrl, CONTROL_MARKED) > 10000)
-  {
-    mri_tmp = MRIerode(mri_ctrl, mri_tmp) ;
-    if (MRIvoxelsInLabel(mri_tmp, CONTROL_MARKED) < 100)
-    {
-      break ;
-    }
-    MRIcopy(mri_tmp, mri_ctrl) ;
-  }
-#endif
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
     MRIwrite(mri_ctrl, "csnr.mgz");
   }

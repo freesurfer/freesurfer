@@ -158,12 +158,6 @@ static AE *AEalloc(AE *prev, int ninputs, int nhidden, int noutputs)
       norm += (w * w);
       *MATRIX_RELT(ae->m_input_to_hidden, j, i) = w;
     }
-#if 0
-  norm = sqrt(norm) ;
-  for (i = 1 ; i <= ninputs ; i++)
-    for (j = 1 ; j <= nhidden ; j++)
-      *MATRIX_RELT(ae->m_input_to_hidden, j, i) /= norm ;
-#endif
 
   for (norm = 0.0, j = 1; j <= nhidden; j++)
     for (k = 1; k <= noutputs; k++) {
@@ -172,12 +166,6 @@ static AE *AEalloc(AE *prev, int ninputs, int nhidden, int noutputs)
       norm += (w * w);
       *MATRIX_RELT(ae->m_hidden_to_output, k, j) = w;
     }
-#if 0
-  norm = sqrt(norm) ;
-  for (j = 1 ; j <= nhidden ; j++)
-    for (k = 1 ; k <= noutputs ; k++)
-      *MATRIX_RELT(ae->m_hidden_to_output, k, j) /= norm ;
-#endif
 
   for (norm = 0.0, j = 1; j <= nhidden; j++) {
     w = randomNumber(-1, 1);
@@ -524,12 +512,8 @@ double SAEtrainFromMRI(SAE *sae, MRI **mri_pyramid, SAE_INTEGRATION_PARMS *parms
         }
       }
     }
-#if 0
-    total_rms = SAEcomputeTotalRMS(sae, mri_pyramid) ;
-#else
     total_rms /= visited;
     last_total_rms = running_last_rms / visited;
-#endif
     pct_decrease = 100 * (last_total_rms - total_rms) / (last_total_rms + total_rms);
     last_total_rms = total_rms;
     printf("%3.3d: rms = %2.4f (%2.3f%%)\n", ++iter, total_rms, pct_decrease);
@@ -700,12 +684,8 @@ double SAEtrainFromVoxlist(SAE *sae, VOXEL_LIST *vl, MRI **mri_pyramid, SAE_INTE
         }
       }
     }
-#if 0
-    total_rms = SAEcomputeTotalRMS(sae, mri_pyramid) ;
-#else
     total_rms /= visited;
     last_total_rms = running_last_rms / visited;
-#endif
     pct_decrease = 100 * (last_total_rms - total_rms) / (last_total_rms + total_rms);
     last_total_rms = total_rms;
     printf("%3.3d: rms = %2.4f (%2.3f%%)\n", ++iter, total_rms, pct_decrease);
@@ -1004,10 +984,6 @@ static double AEaccumulateGradient(AE *ae, SAE_INTEGRATION_PARMS *parms)
   for (j = 0; j < nhidden;
        j++)  // keep track of average hidden node activation for use in sparsity gradient calculated later
     ae->average_act[j] += VECTOR_ELT(ae->v_hidden, j + 1);
-#if 0
-  for (j = 0 ; j < nhidden ; j++)   // keep track of average hidden node activation for use in sparsity gradient calculated later
-    ae->average_act[j] = .999 * ae->average_act[j] + (1-.999)*VECTOR_ELT(ae->v_hidden, j+1) ;
-#endif
 
   return (rms);
 }
@@ -1107,11 +1083,6 @@ static double aeApplyAccumulatedGradient(AE *ae, SAE_INTEGRATION_PARMS *parms)
     }
     aeApplyGradient(ae, parms, best_dt);
     parms->dt = best_dt;
-#if 0
-    parms->v_prev_grad_change_hidden_bias = VectorSubtract(ae->v_grad_hidden_bias, parms->v_prev_grad_hidden_bias, parms->v_prev_grad_change_hidden_bias);
-    VectorCopy(ae->v_grad_hidden_bias, parms->v_prev_grad_hidden_bias) ;
-    parms->norm_hidden_bias = VectorLen(parms->v_prev_grad_hidden_bias) ; parms->norm_hidden_bias *= parms->norm_hidden_bias ;
-#endif
   }
   else if (parms->integration_type == INTEGRATE_BOLTZMANN_MACHINE) {
     static MATRIX *m_hidden_to_output_delta = NULL, *m_input_to_hidden_delta = NULL, *v_hidden_bias_delta = NULL,
@@ -1445,11 +1416,6 @@ static double AEtrain(AE *ae, SAE_INTEGRATION_PARMS *parms)
     }
     aeApplyGradient(ae, parms, best_dt);
     parms->dt = best_dt;
-#if 0
-    parms->v_prev_grad_change_hidden_bias = VectorSubtract(ae->v_grad_hidden_bias, parms->v_prev_grad_hidden_bias, parms->v_prev_grad_change_hidden_bias);
-    VectorCopy(ae->v_grad_hidden_bias, parms->v_prev_grad_hidden_bias) ;
-    parms->norm_hidden_bias = VectorLen(parms->v_prev_grad_hidden_bias) ; parms->norm_hidden_bias *= parms->norm_hidden_bias ;
-#endif
   }
   else if (parms->integration_type == INTEGRATE_BOLTZMANN_MACHINE) {
     static MATRIX *m_hidden_to_output_delta = NULL, *m_input_to_hidden_delta = NULL, *v_hidden_bias_delta = NULL,
@@ -1928,11 +1894,7 @@ double CSAEtrainLayerFromVoxlist(CSAE *csae, int layer, VOXEL_LIST *vl, MRI **mr
         }
       }
     }
-#if 0
-    total_rms = CSAEcomputeTotalRMS(ae, mri_pyramid) ;
-#else
 //    total_rms /= visited ; last_total_rms = running_last_rms / visited ;
-#endif
     //    total_rms = CSAEcomputeVoxlistRMS(csae, parms, layer, mri_pyramid, vl, indices, end_index+1, vl->nvox,
     //    &always, &never) ;
     total_rms = CSAEcomputeVoxlistRMS(csae, parms, layer, mri_pyramid, vl, indices, 0, end_index, &always, &never);
@@ -1973,38 +1935,6 @@ double CSAEtrainLayerFromVoxlist(CSAE *csae, int layer, VOXEL_LIST *vl, MRI **mr
     }
   } while ((nbad < parms->max_no_progress) && iter < parms->max_iter);
 
-#if 0
-  if (Gx >= 0)
-  {
-    int wsize, ind, i, j ;
-    float in, out, total_rms, init_total_rms ;
-    wsize = sae->whalf*2+1 ; ind = (wsize*wsize*wsize)/2 + 1 ;
-    
-    init_total_rms = CSAEcomputeTotalRMS(csae, mri_pyramid) ;
-    for (j = 0 ; j < 10 ; j++)
-    {
-      total_rms = CSAEcomputeTotalRMS(csae, mri_pyramid) ;
-      SAEfillInputVector(mri_pyramid, sae->nlevels, Gx, Gy, Gz, sae->whalf, sae->first->v_input) ;
-      SAEactivateNetwork(sae) ;
-      last_rms = SAEcomputeRMS(sae) ;
-
-      for (i = 0 ; i < 100 ; i++)
-      {
-	AEtrain(sae->first, parms) ;
-	SAEactivateNetwork(sae) ;
-	rms = SAEcomputeRMS(sae) ;
-      }
-    }
-
-    G_rms = SAEcomputeRMS(csae->sae) ;
-    if (G_rms > G_last_rms)
-      DiagBreak() ;
-    G_last_rms = G_rms ;
-    in = sae->first->v_input->rptr[ind][1] ;
-    out = sae->first->v_output->rptr[ind][1] ;
-    DiagBreak() ;
-  }
-#endif
 
   parms->acceptance_sigma = acceptance_sigma;
   parms->proposal_sigma = proposal_sigma;
@@ -2232,11 +2162,6 @@ double CSAEcomputeVoxlistRMS(CSAE *csae,
     z = vl->zi[ind];
     parms->class_label = vl->vsrc[ind];
 
-#if 0
-    // doesn't make sense anymore since we would need to look across all frames
-    if (FZERO(MRIgetVoxVal(mri[0], x, y, z, 0)))
-      continue ;
-#endif
     CSAEfillInputs(csae, mri[0], ae->v_input, x, y, z, ae->ksize);
     AEactivateLayer(ae, ae->v_input);
     for (h = 0; h < nhidden; h++)

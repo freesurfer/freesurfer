@@ -50,10 +50,6 @@
 #define DEFAULT_UDIM 256
 
 #define DEBUG_VNO -1
-#if 0
-#define DEBUG_U 255
-#define DEBUG_V 410
-#endif
  int DEBUG_U = -1;
  int DEBUG_V = -1;
 
@@ -94,329 +90,6 @@ static void resetCenteredSphere(MRIS *orig, MRIS *centered)
 
         Description
 ------------------------------------------------------*/
-#if 0
-MRI_SP *
-MRIStoParameterization(MRIS *mris, MRI_SP *mrisp, float scale,int fno)
-{
-  float     a, b, c, phi, theta, x, y, z, total, uf, vf, d, du, dv, total_d,
-  **distances, sigma, two_sigma_sq ;
-  int       vno, u, v, uk, vk, n, unfilled, u0, v0, u1, v1, **filled, voff ;
-  VERTEX    *vertex ;
-  float *dp ;
-
-  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
-    fprintf(stderr, "computing parameterization...") ;
-
-  if (!mrisp)
-    mrisp = MRISPalloc(scale, 1) ;
-
-  if (FZERO(mris->radius))
-    a = b = c = MRISaverageRadius(mris) ;
-  else
-    a = b = c = mris->radius ;
-
-  filled = (int **)calloc(U_DIM(mrisp), sizeof(int *)) ;
-  distances = (float **)calloc(U_DIM(mrisp), sizeof(float *)) ;
-  for (u = 0 ; u <= U_MAX_INDEX(mrisp) ; u++)
-  {
-    filled[u] = (int *)calloc(V_DIM(mrisp), sizeof(int)) ;
-    distances[u] = (float *)calloc(V_DIM(mrisp), sizeof(float)) ;
-
-    for (v = 0 ; v <= V_MAX_INDEX(mrisp) ; v++)
-      filled[u][v] = UNFILLED_ELT ;
-  }
-
-  sigma = scale / 4.0f ;
-  two_sigma_sq = 2*sigma*sigma ;
-
-  /* first calculate total distances to a point in parameter space */
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
-  {
-    vertex = &mris->vertices[vno] ;
-    x = vertex->x ;
-    y = vertex->y ;
-    z = vertex->z ;
-    theta = atan2(y/b, x/a) ;
-    if (theta < 0.0f)
-      theta = 2 * M_PI + theta ;  /* make it 0 --> 2*PI */
-    d = c*c - z*z ;
-    if (d < 0.0)
-      d = 0 ;
-    phi = atan2(sqrt(d), z) ;
-    if (phi < RADIANS(1))
-      DiagBreak() ;
-    if (vno == DEBUG_VNO)
-      DiagBreak() ;
-    vertex->phi = phi ;
-    vertex->theta = theta ;
-    uf = PHI_DIM(mrisp) * phi / PHI_MAX ;
-    vf = THETA_DIM(mrisp) * theta / THETA_MAX ;
-    u0 = floor(uf) ;
-    u1 = ceil(uf+0.00001f) ;
-    v0 = floor(vf) ;
-    v1 = ceil(vf+0.00001f) ;
-    du = uf - (float)u0 ;
-    dv = vf - (float)v0 ;
-    voff = 0 ;
-    if (u0 < 0)  /* enforce spherical topology  */
-    {
-      voff = V_DIM(mrisp)/2 ;
-      u0 = -u0 ;
-    }
-    if (u0 >= U_DIM(mrisp))
-    {
-      voff = V_DIM(mrisp)/2 ;
-      u0 = U_DIM(mrisp)-(u0-U_DIM(mrisp)+1) ;
-    }
-    if (u1 < 0)  /* enforce spherical topology  */
-      u1 = -u1 ;
-    if (u1 >= U_DIM(mrisp))
-      u1 = U_DIM(mrisp)-(u1-U_DIM(mrisp)+1) ;
-    if (v0 < 0)  /* enforce spherical topology  */
-      v0 += V_DIM(mrisp) ;
-    if (v0 >= V_DIM(mrisp))
-      v0 -= V_DIM(mrisp) ;
-    if (v1 < 0)  /* enforce spherical topology  */
-      v1 += V_DIM(mrisp) ;
-    if (v1 >= V_DIM(mrisp))
-      v1 -= V_DIM(mrisp) ;
-
-    if ((u0 == DEBUG_U || u1 == DEBUG_U) && (v0 == DEBUG_V || v1 == DEBUG_V))
-      DiagBreak() ;
-
-    d = du*du+dv*dv ;  /* 1-distance to vertex 0,0 */
-    d = exp(-d/two_sigma_sq) ;
-    if (u0 >= U_DIM(mrisp) || v0 >= V_DIM(mrisp))
-      DiagBreak() ;
-    filled[u0][v0] = vno ;
-    distances[u0][v0] += d ;
-    if ((u0 == DEBUG_U) && (v0 == DEBUG_V))
-      fprintf(stderr, "v = %6.6d (%2.1f, %2.1f, %2.1f), d = %2.3f, "
-              "curv = %2.3f\n", vno, x, y, z, d, vertex->curv) ;
-
-    d = 1.0 - dv ;         /* distance to v1 */
-    d = du*du+d*d ;  /* distance to vertex 0,1 */
-    d = exp(-d/two_sigma_sq) ;
-    distances[u0][v1] += d ;         /* keep track of total distance */
-    filled[u0][v1] = vno ;
-    if ((u0 == DEBUG_U) && (v1 == DEBUG_V))
-      fprintf(stderr, "v = %6.6d (%2.1f, %2.1f, %2.1f), d = %2.3f, "
-              "curv = %2.3f\n", vno, x, y, z, d, vertex->curv) ;
-
-    d = 1.0 - du ;         /* distance to u1 */
-    d = d*d+dv*dv ;  /* distance to vertex 1,0 */
-    d = exp(-d/two_sigma_sq) ;
-
-    distances[u1][v0] += d ;         /* keep track of total distance */
-    filled[u1][v0] = vno ;
-    if ((u1 == DEBUG_U) && (v0 == DEBUG_V))
-      fprintf(stderr, "v = %6.6d (%2.1f, %2.1f, %2.1f), d = %2.3f, "
-              "curv = %2.3f\n", vno, x, y, z, d, vertex->curv) ;
-
-    du = 1.0 - du ;
-    dv = 1.0 - dv ;
-    d = du*du+dv*dv ;  /* 1-distance to vertex 1,1 */
-    d = exp(-d/two_sigma_sq) ;
-    distances[u1][v1] += d ;         /* keep track of total distance */
-    filled[u1][v1] = vno ;
-    if ((u1 == DEBUG_U) && (v1 == DEBUG_V))
-      fprintf(stderr, "v = %6.6d (%2.1f, %2.1f, %2.1f), d = %2.3f, "
-              "curv = %2.3f\n", vno, x, y, z, d, vertex->curv) ;
-  }
-
-  if (DEBUG_U >= 0)
-    fprintf(stderr,"\ndistance[%d][%d] = %2.3f\n\n",
-            DEBUG_U, DEBUG_V, distances[DEBUG_U][DEBUG_V]);
-
-  dp = distances[37] ;
-
-  /* now add in curvatures proportional to their distance from the point */
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
-  {
-    if (dp != distances[37])
-      DiagBreak() ;
-    vertex = &mris->vertices[vno] ;
-    x = vertex->x ;
-    y = vertex->y ;
-    z = vertex->z ;
-    theta = atan2(y/b, x/a) ;
-    if (theta < 0.0f)
-      theta = 2 * M_PI + theta ;  /* make it 0 --> 2*PI */
-    d = c*c-z*z ;
-    if (d < 0.0) d = 0.0 ;
-    phi = atan2(sqrt(d), z) ;
-    uf = PHI_DIM(mrisp) * phi / PHI_MAX ;
-    vf = THETA_DIM(mrisp) * theta / THETA_MAX ;
-    u0 = floor(uf) ;
-    u1 = ceil(uf+0.00001f) ;
-    v0 = floor(vf) ;
-    v1 = ceil(vf+0.00001f) ;
-    du = uf - (float)u0 ;
-    dv = vf - (float)v0 ;
-    if (dp != distances[37])
-      DiagBreak() ;
-    if ((u0 == DEBUG_U || u1 == DEBUG_U) && (v0 == DEBUG_V || v1 == DEBUG_V))
-      DiagBreak() ;
-    if (u0 < 0)  /* enforce spherical topology  */
-      u0 = -u0 ;
-    if (u0 >= U_DIM(mrisp))
-      u0 = U_DIM(mrisp)-(u0-U_DIM(mrisp)+1) ;
-    if (u1 < 0)  /* enforce spherical topology  */
-      u1 = -u1 ;
-    if (u1 >= U_DIM(mrisp))
-      u1 = U_DIM(mrisp)-(u1-U_DIM(mrisp)+1) ;
-    if (v0 < 0)  /* enforce spherical topology  */
-      v0 += V_DIM(mrisp) ;
-    if (v0 >= V_DIM(mrisp))
-      v0 -= V_DIM(mrisp) ;
-    if (v1 < 0)  /* enforce spherical topology  */
-      v1 += V_DIM(mrisp) ;
-    if (v1 >= V_DIM(mrisp))
-      v1 -= V_DIM(mrisp) ;
-
-    if (dp != distances[37])
-      DiagBreak() ;
-    /* 0,0 */
-    d = du*du+dv*dv ;   /* distance to 0,0 */
-    d = exp(-d/two_sigma_sq) ;
-    total_d = distances[u0][v0] ;
-    d /= total_d ;   /* weight by distance */
-    if (dp != distances[37])
-      DiagBreak() ;
-    *IMAGEFseq_pix(mrisp->Ip, u0,v0,fno) += d*vertex->curv ;
-    if (dp != distances[37])
-      DiagBreak() ;
-    if ((u0 == DEBUG_U) && (v0 == DEBUG_V))
-      fprintf(stderr, "v = %6.6d (%2.1f, %2.1f, %2.1f), curv = %2.3f, "
-              "proportion = %2.3f\n", vno, x, y, z, vertex->curv, d) ;
-
-    if (dp != distances[37])
-      DiagBreak() ;
-    /* 1,0 */
-    d = 1.0 - du ;          /* distance to u1 */
-    d = d*d+dv*dv ;   /* distance to u1,v0 */
-    d = exp(-d/two_sigma_sq) ;
-    total_d = distances[u1][v0] ;
-    d = d / total_d ;  /* weight by distance */
-    *IMAGEFseq_pix(mrisp->Ip, u1, v0, fno) += d*vertex->curv ;
-    if ((u1 == DEBUG_U) && (v0 == DEBUG_V))
-      fprintf(stderr, "v = %6.6d (%2.1f, %2.1f, %2.1f), curv = %2.3f, "
-              "proportion = %2.3f\n", vno, x, y, z, vertex->curv, d) ;
-    if (dp != distances[37])
-      DiagBreak() ;
-
-    /* 0,1 */
-    d = 1.0 - dv ;
-    d = du*du+d*d ;   /* distance to u0,v1 */
-    d = exp(-d/two_sigma_sq) ;
-    total_d = distances[u0][v1] ;
-    d = d / total_d ;    /* weight by distance */
-    *IMAGEFseq_pix(mrisp->Ip, u0, v1, fno) += d*vertex->curv ;
-    if ((u0 == DEBUG_U) && (v1 == DEBUG_V))
-      fprintf(stderr, "v = %6.6d (%2.1f, %2.1f, %2.1f), curv = %2.3f, "
-              "proportion = %2.3f\n", vno, x, y, z, vertex->curv, d) ;
-    if (dp != distances[37])
-      DiagBreak() ;
-
-    /* 1, 1 */
-    du = 1.0 - du ;
-    dv = 1.0 - dv ;
-    d = (du*du+dv*dv) ;   /* distance to 1,1 */
-    d = exp(-d/two_sigma_sq) ;
-    total_d = distances[u1][v1] ;
-    d = d / total_d ;   /* weight by distance */
-    *IMAGEFseq_pix(mrisp->Ip, u1, v1, fno) += d*vertex->curv ;
-    if ((u1 == DEBUG_U) && (v1 == DEBUG_V))
-      fprintf(stderr, "v = %6.6d (%2.1f, %2.1f, %2.1f), curv = %2.3f, "
-              "proportion = %2.3f\n", vno, x, y, z, vertex->curv, d) ;
-    if (dp != distances[37])
-      DiagBreak() ;
-
-  }
-
-  if (DEBUG_U >= 0)
-    fprintf(stderr,"curv[%d][%d] = %2.3f\n\n", DEBUG_U, DEBUG_V,
-            *IMAGEFseq_pix(mrisp->Ip, DEBUG_U, DEBUG_V, fno));
-
-#if 0
-  /* normalize by total distances */
-  for (u = 0 ; u <= U_MAX_INDEX(mrisp) ; u++)
-  {
-    for (v = 0 ; v <= V_MAX_INDEX ; v++)
-    {
-      if (u == DEBUG_U && v == DEBUG_V)
-        DiagBreak() ;
-      if (filled[u][v] >= 0)
-      {
-        *IMAGEFpix(mrisp->Ip, u,v) /= distances[u][v] ;
-      }
-    }
-  }
-#endif
-
-  /* fill in values which were unmapped */
-  do
-  {
-    unfilled = 0 ;
-    for (u = 0 ; u <= U_MAX_INDEX(mrisp) ; u++)
-    {
-      for (v = 0 ; v <= V_MAX_INDEX(mrisp) ; v++)
-      {
-        if (filled[u][v] == UNFILLED_ELT)
-        {
-          for (total = 0.0f, n = 0, uk = -1 ; uk <= 1 ; uk++)
-          {
-            u1 = u + uk ;
-            if (u1 < 0)  /* enforce spherical topology  */
-              u1 = -u1 ;
-            else if (u1 >= U_DIM(mrisp))
-              u1 = U_DIM(mrisp)-(u1-U_DIM(mrisp)+1) ;
-            for (vk = -1 ; vk <= 1 ; vk++)
-            {
-              v1 = v + vk ;
-              if (v1 < 0)  /* enforce spherical topology  */
-                v1 += V_DIM(mrisp) ;
-              else if (v1 >= V_DIM(mrisp))
-                v1 -= V_DIM(mrisp) ;
-              if (filled[u1][v1] != UNFILLED_ELT)
-              {
-                total += *IMAGEFseq_pix(mrisp->Ip, u1, v1, fno) ;
-                n++ ;
-              }
-            }
-          }
-          if (n)
-          {
-            filled[u][v] = FILLED_ELT ;
-            *IMAGEFseq_pix(mrisp->Ip, u, v, fno) = total / (float)n ;
-          }
-          else
-            unfilled++ ;
-        }
-      }
-    }
-  }
-  while (unfilled > 0) ;
-
-  for (u = 0 ; u <= U_MAX_INDEX(mrisp) ; u++)
-  {
-    free(filled[u]) ;
-    free(distances[u]) ;
-  }
-  free(filled) ;
-  free(distances) ;
-
-  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
-    fprintf(stderr, "done.\n") ;
-
-  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-    ImageWrite(mrisp->Ip, "sphere.hipl") ;
-
-  /* keep track of the number of degrees of freedom in the last frame */
-  *IMAGEFseq_pix(mrisp->Ip, 0, 0, mrisp->Ip->num_frame-1) += 1.0f ;
-  return(mrisp) ;
-}
-#else
 MRI_SP *MRIStoParameterization(MRIS *mris, MRI_SP *mrisp, float scale, int fno)
 {
   MRIS *original = mris;
@@ -433,14 +106,7 @@ MRI_SP *MRIStoParameterization(MRIS *mris, MRI_SP *mrisp, float scale, int fno)
   else
     ImageClearArea(mrisp->Ip, -1, -1, -1, -1, 0, fno);
 
-#if 0
-  if (FZERO(mris->radius))
-    a = b = c = MRISaverageRadius(mris) ;
-  else
-    a = b = c = mris->radius ;
-#else
   a = b = c = MRISaverageRadius(mris);
-#endif
 
   filled = (int **)calloc(U_DIM(mrisp), sizeof(int *));
   distances = (float **)calloc(U_DIM(mrisp), sizeof(float *));
@@ -548,49 +214,6 @@ MRI_SP *MRIStoParameterization(MRIS *mris, MRI_SP *mrisp, float scale, int fno)
   if (DEBUG_U >= 0)
     fprintf(stderr, "curv[%d][%d] = %2.3f\n\n", DEBUG_U, DEBUG_V, *IMAGEFseq_pix(mrisp->Ip, DEBUG_U, DEBUG_V, fno));
 
-#if 0
-  /* fill in values which were unmapped by sampling back onto surface */
-  for (unfilled = u = 0 ; u <= U_MAX_INDEX(mrisp) ; u++)
-  {
-    double min_d, radius = mris->radius, xd, yd, zd ;
-    int    min_v = -1 ;
-
-    for (v = 0 ; v <= V_MAX_INDEX(mrisp) ; v++)
-    {
-      if (filled[u][v] == UNFILLED_ELT)
-      {
-        if (u == 0 && v == 56)
-          DiagBreak() ;
-        unfilled++ ;
-        phi   = (double)u*PHI_MAX / PHI_DIM(mrisp) ;
-        theta = (double)v*THETA_MAX / THETA_DIM(mrisp) ;
-        x = radius * sin(phi) * cos(theta) ;
-        y = radius * sin(phi) * sin(theta) ;
-        z = radius * cos(phi) ;
-        for (min_d = 1000.0f, vno = 0 ; vno < mris->nvertices ; vno++)
-        {
-          vertex = &mris->vertices[vno] ;
-          if (vertex->ripflag)
-            continue ;
-          xd = vertex->x - x ;
-          yd = vertex->y - y ;
-          zd = vertex->z - z ;
-          d = sqrt(xd*xd+yd*yd+zd*zd) ;
-          if (d < min_d)
-          {
-            min_d = d ;
-            min_v = vno ;
-          }
-        }
-        *IMAGEFseq_pix(mrisp->Ip, u, v, fno) = mris->vertices[min_v].curv ;
-	if (devFinite(*IMAGEFseq_pix(mrisp->Ip, u, v, fno)) == 0)
-	  DiagBreak() ;
-      }
-    }
-  }
-  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
-    fprintf(stderr, "%d holes in parameterization filled\n", unfilled) ;
-#else
   /* fill in values which were unmapped using soap bubble */
   nfilled = npasses = 0;
   do {
@@ -659,7 +282,6 @@ MRI_SP *MRIStoParameterization(MRIS *mris, MRI_SP *mrisp, float scale, int fno)
                 "parameterization");
   } while (unfilled > 0);
   if ((Gdiag & DIAG_SHOW) && DIAG_VERBOSE_ON) fprintf(stderr, "filling %d elements took %d passes\n", nfilled, npasses);
-#endif
 
   for (u = 0; u <= U_MAX_INDEX(mrisp); u++) {
     free(filled[u]);
@@ -676,7 +298,6 @@ MRI_SP *MRIStoParameterization(MRIS *mris, MRI_SP *mrisp, float scale, int fno)
 
   return (mrisp);
 }
-#endif
 
 
 MRI_SP *MRIStoParameterizationBarycentric(MRIS *mris, MRI_SP *mrisp, float scale, int frameno)
@@ -1142,14 +763,7 @@ MRIS *MRISfromParameterization(MRI_SP *mrisp, MRIS *mris, int fno)
   MRIS *original = mris;
   mris = makeCenteredSphere(mris);
 
-#if 0
-  if (FZERO(mris->radius))
-    a = b = c = MRISaverageRadius(mris) ;
-  else
-    a = b = c = mris->radius ;
-#else
   a = b = c = MRISaverageRadius(mris);
-#endif
 
   for (vno = 0; vno < mris->nvertices; vno++) {
     vertex = &mris->vertices[vno];
@@ -1174,14 +788,6 @@ MRIS *MRISfromParameterization(MRI_SP *mrisp, MRIS *mris, int fno)
     du = uf - (float)u0;
     dv = vf - (float)v0;
 
-#if 0
-    if (vno == 48092)
-    {
-      DiagBreak() ;
-      fprintf(stderr, "vno %d (%2.1f, %2.1f, %2.1f), u,v = (%2.1f, %2.1f)\n",
-              vno, x, y, z, uf, vf) ;
-    }
-#endif
 
     /* enforce spherical topology  */
     if (u0 < 0) /* enforce spherical topology  */
@@ -1253,14 +859,6 @@ MRIS *MRIScoordsFromParameterization(MRI_SP *mrisp, MRIS *mrisInit, int which_ve
     du = uf - (float)u0;
     dv = vf - (float)v0;
 
-#if 0
-    if (vno == 48092)
-    {
-      DiagBreak() ;
-      fprintf(stderr, "vno %d (%2.1f, %2.1f, %2.1f), u,v = (%2.1f, %2.1f)\n",
-              vno, x, y, z, uf, vf) ;
-    }
-#endif
 
     /* enforce spherical topology  */
     if (u0 < 0) /* enforce spherical topology  */
@@ -1349,14 +947,7 @@ MRIS *MRISnormalizeFromParameterization(MRI_SP *mrisp, MRIS *mris, int fno)
   MRIS *original = mris;
   mris = makeCenteredSphere(mris);
 
-#if 0
-  if (FZERO(mris->radius))
-    a = b = c = MRISaverageRadius(mris) ;
-  else
-    a = b = c = mris->radius ;
-#else
   a = b = c = MRISaverageRadius(mris);
-#endif
 
   for (vno = 0; vno < mris->nvertices; vno++) {
     vertex = &mris->vertices[vno];
@@ -1434,14 +1025,7 @@ MRI_SP *MRISgradientToParameterization(MRIS *mris, MRI_SP *mrisp, float scale)
   else
     ImageClearArea(mrisp->Ip, -1, -1, -1, -1, 0, -1);
 
-#if 0
-  if (FZERO(mris->radius))
-    a = b = c = MRISaverageRadius(mris) ;
-  else
-    a = b = c = mris->radius ;
-#else
   a = b = c = MRISaverageRadius(mris);
-#endif
 
   filled = (int **)calloc(U_DIM(mrisp), sizeof(int *));
   distances = (float **)calloc(U_DIM(mrisp), sizeof(float *));
@@ -1603,14 +1187,7 @@ MRIS *MRISgradientFromParameterization(MRI_SP *mrisp, MRIS *mris)
   MRIS *original = mris;
   mris = makeCenteredSphere(mris);
 
-#if 0
-  if (FZERO(mris->radius))
-    a = b = c = MRISaverageRadius(mris) ;
-  else
-    a = b = c = mris->radius ;
-#else
   a = b = c = MRISaverageRadius(mris);
-#endif
 
   for (vno = 0; vno < mris->nvertices; vno++) {
     vertex = &mris->vertices[vno];
@@ -1634,14 +1211,6 @@ MRIS *MRISgradientFromParameterization(MRI_SP *mrisp, MRIS *mris)
     du = uf - (float)u0;
     dv = vf - (float)v0;
 
-#if 0
-    if (vno == 48092)
-    {
-      DiagBreak() ;
-      fprintf(stderr, "vno %d (%2.1f, %2.1f, %2.1f), u,v = (%2.1f, %2.1f)\n",
-              vno, x, y, z, uf, vf) ;
-    }
-#endif
 
     /* enforce spherical topology  */
     if (u0 < 0) /* enforce spherical topology  */
@@ -1897,19 +1466,6 @@ MRI_SP *MRISPconvolveGaussian(MRI_SP *mrisp_src, MRI_SP *mrisp_dst, float sigma,
       phi = (double)u * PHI_MAX / PHI_DIM(mrisp_src);
       sin_phi = sin(phi);
       cos_phi = cos(phi);
-#if 0
-      sin_sq_u = sin_phi ;
-      sin_sq_u *= sin_sq_u ;
-      if (!FZERO(sin_sq_u))
-      {
-        k = cart_klen * cart_klen ;
-        klen = sqrt(k + k/sin_sq_u) ;
-        if (klen > MAX_LEN*cart_klen)
-          klen = MAX_LEN*cart_klen ;
-      }
-      else
-        klen = MAX_LEN*cart_klen ;  /* arbitrary max length */
-#endif
 
       for (v = 0; v < V_DIM(mrisp_src); v++) {
         theta = (double)v * THETA_MAX / THETA_DIM(mrisp_src);
@@ -2360,13 +1916,6 @@ static MRI_SP *MRISPblur_old(MRI_SP *mrisp_src, MRI_SP *mrisp_dst, float sigma, 
           else
             voff = 0;
 
-#if 0
-          phi = (double)u1*PHI_MAX / PHI_DIM(mrisp_src) ;
-          sin_sq_u = sin(phi) ;
-          sin_sq_u *= sin_sq_u ;
-          if (no_sphere)
-            sin_sq_u = 1.0f ;
-#endif
 
           int vk;
           for (vk = -khalf; vk <= khalf; vk++) {
@@ -2446,35 +1995,7 @@ int MRISPfree(MRI_SP **pmrisp)
 ------------------------------------------------------*/
 MRI_SP *MRISPalign(MRI_SP *mrisp_orig, MRI_SP *mrisp_src, MRI_SP *mrisp_tmp, MRI_SP *mrisp_dst)
 {
-#if 0
-  IMAGE  *Icorr = NULL ;
-  int    u_peak, v_peak ;
-  float  peak_val, delta_theta, delta_phi ;
-
-  Icorr = ImageCorrelate(mrisp_src->Ip, mrisp_tmp->Ip, 0, NULL) ;
-  ImageFindPeak(Icorr, &v_peak, &u_peak, &peak_val) ;
-  u_peak -= U_DIM(mrisp_src)/2 ;
-  v_peak -= V_DIM(mrisp_src)/2 ;
-  delta_phi = u_peak * PHI_MAX / PHI_DIM(mrisp_src) ;
-  delta_theta = v_peak * THETA_MAX / THETA_DIM(mrisp_src) ;
-  fprintf(stderr, "peak found at (%d, %d) (%2.2f, %2.2f)\n",
-          u_peak, v_peak, DEGREES(delta_phi), DEGREES(delta_theta)) ;
-
-  mrisp_dst = MRISPtranslate(mrisp_orig, NULL, u_peak, v_peak) ;
-  MRISrotate(mrisp_orig->mris, mrisp_orig->mris, delta_phi, delta_theta) ;
-
-#if 0
-  ImageWrite(mrisp_src->Ip, "Isrc.hipl") ;
-  ImageWrite(mrisp_tmp->Ip, "Itemplate.hipl") ;
-  ImageWrite(mrisp_dst->Ip, "Iorig.hipl") ;
-#endif
-  ImageWrite(Icorr, "Icorr.hipl") ;
-  ImageWrite(mrisp_dst->Ip, "Ialign.hipl") ;
-
-  return(mrisp_dst) ;
-#else
   ErrorReturn(NULL, (ERROR_UNSUPPORTED, "MRISPalign: not implemented."));
-#endif
 }
 /*-----------------------------------------------------
         Parameters:
@@ -2950,14 +2471,7 @@ MRIS *MRISfromParameterizations(MRI_SP *mrisp, MRIS *mris, int *frames, int *ind
   MRIS *original = mris;
   mris = makeCenteredSphere(mris);
 
-#if 0
-  if (FZERO(mris->radius))
-    a = b = c = MRISaverageRadius(mris) ;
-  else
-    a = b = c = mris->radius ;
-#else
   a = b = c = MRISaverageRadius(mris);
-#endif
 
   for (vno = 0; vno < mris->nvertices; vno++) {
     vertex = &mris->vertices[vno];

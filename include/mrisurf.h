@@ -228,12 +228,6 @@ typedef struct
 {
   MRI_SURFACE  *mris ;        /* surface it came from (if any) */
   IMAGE        *Ip ;
-#if 0
-  /* 2-d array of curvature, or sulc in parms */
-  float        data[X_DIM][Y_DIM] ;
-  float        distances[X_DIM][Y_DIM] ;
-  int          vertices[X_DIM][Y_DIM] ;   /* vertex numbers */
-#endif
   float        sigma ;                    /* blurring scale */
   float        radius ;
   float        scale ;
@@ -734,11 +728,6 @@ int          MRISvertexCoordToVoxel(MRI_SURFACE *, VERTEX *v, MRI *mri,
                                     int coord,
                                     double *pxv, double *pyv,
                                     double *pzv) ;
-#if 0
-int          MRISworldToTalairachVoxel(MRI_SURFACE *mris, MRI *mri,
-                                       double xw, double yw, double zw,
-                                       double *pxv, double *pyv, double *pzv) ;
-#endif
 
 int          MRISsurfaceRASToVoxel(MRI_SURFACE *mris, MRI *mri, double r, 
                                    double a, double s, 
@@ -1038,26 +1027,15 @@ int MRISsaveNormals   (MRIS *mris, int which) ;
 #define NO_HEMISPHERE           2
 #define BOTH_HEMISPHERES        3
 
-#if 0
-#define DEFAULT_A  44.0f
-#define DEFAULT_B  122.0f
-#define DEFAULT_C  70.0f
-#else
 #define DEFAULT_A  122.0f
 #define DEFAULT_B  122.0f
 #define DEFAULT_C  122.0f
-#endif
 #define DEFAULT_RADIUS  100.0f
 
 #define MAX_DIM    DEFAULT_B
 
-#if 1
 #define DT_INCREASE  1.1 /* 1.03*/
 #define DT_DECREASE  0.5
-#else
-#define DT_INCREASE  1.0 /* 1.03*/
-#define DT_DECREASE  1.0
-#endif
 #define DT_MIN       0.01
 #ifdef ERROR_RATIO
 #undef ERROR_RATIO
@@ -1104,13 +1082,8 @@ int   MRISsoapBubbleOrigVertexPositions(MRI_SURFACE *mris, int navgs) ;
 int   MRISsoapBubbleTargetVertexPositions(MRI_SURFACE *mris, int navgs) ;
 MRI   *MRISwriteSurfaceIntoVolume(MRI_SURFACE *mris, MRI *mri_template,
                                   MRI *mri) ;
-#if 0
-int   MRISmeasureCorticalThickness(MRI_SURFACE *mris, MRI *mri_brain,
-                                   MRI *mri_wm, float nsigma) ;
-#else
 int   MRISmeasureCorticalThickness(MRI_SURFACE *mris, int nbhd_size,
                                    float max_thickness) ;
-#endif
 
 int  MRISmeasureThicknessFromCorrespondence(MRI_SURFACE *mris, MHT *mht, float max_thick) ;
 int MRISfindClosestOrigVertices(MRI_SURFACE *mris, int nbhd_size) ;
@@ -1456,7 +1429,6 @@ typedef struct
                                          surface in mris_total vertices */
 }
 MRI_SURFACE_ARRAY, MSA ;
-#if 1
 float  MRISdistanceToSurface(MRI_SURFACE *mris, MHT *mht,
                              float x0, float y0, float z0,
                              float nx, float ny, float nz) ;
@@ -1465,7 +1437,6 @@ int    MRISexpandSurface(MRI_SURFACE *mris,
                          INTEGRATION_PARMS *parms, int use_thickness, int nsurfaces) ;
 int MRISripZeroThicknessRegions(MRI_SURFACE *mris) ;
 
-#endif
 
 /* cortical ribbon */
 MRI   *MRISribbon(MRI_SURFACE *inner_mris,
@@ -1743,21 +1714,6 @@ MRIS*  MRISfromVerticesAndFaces(const float *vertices, int nvertices, const int 
 
 #define MRISgetCoords(v,c,vx,vy,vz) \
  MRISvertexCoord2XYZ_float(v,c,vx,vy,vz)
-#if 0 
- switch(c) { \
-   case ORIGINAL_VERTICES:  (*vx) = (v)->origx;  (*vy) = (v)->origy;  (*vz) = (v)->origz; break; \
-   case TMP_VERTICES:       (*vx) = (v)->tx;     (*vy) = (v)->ty;     (*vz) = (v)->tz; break; \
-   case CANONICAL_VERTICES: (*vx) = (v)->cx;     (*vy) = (v)->cy;     (*vz) = (v)->cz; break; \
-   case CURRENT_VERTICES:   (*vx) = (v)->x;      (*vy) = (v)->y;      (*vz) = (v)->z; break; \
-   case TARGET_VERTICES:    (*vx) = (v)->targx;  (*vy) = (v)->targy;  (*vz) = (v)->targz; break; \
-   case INFLATED_VERTICES:  (*vx) = (v)->infx;   (*vy) = (v)->infy;   (*vz) = (v)->infz; break; \
-   case FLATTENED_VERTICES: (*vx) = (v)->fx;     (*vy) = (v)->fy;     (*vz) = (v)->fz; break; \
-   case PIAL_VERTICES:      (*vx) = (v)->pialx;  (*vy) = (v)->pialy;  (*vz) = (v)->pialz; break; \
-   case TMP2_VERTICES:      (*vx) = (v)->t2x;    (*vy) = (v)->t2y;    (*vz) = (v)->t2z; break; \
-   case WHITE_VERTICES:     (*vx) = (v)->whitex; (*vy) = (v)->whitey; (*vz) = (v)->whitez; break; \
-   default: break; \
- }
-#endif
 
 int MRISlogOdds(MRI_SURFACE *mris, LABEL *area, double slope)  ;
 MRI_SP  *MRISPorLabel(MRI_SP *mrisp, MRI_SURFACE *mris, LABEL *area) ;
@@ -2472,16 +2428,6 @@ struct face_topology_type_ {    // not used much yet
 
 // Static function implementations
 //
-#if 0
-static CONST_EXCEPT_MRISURF_TOPOLOGY short* pVERTEXvnum(VERTEX_TOPOLOGY CONST_EXCEPT_MRISURF_TOPOLOGY * v, int i) {
-  switch (i) {
-  case 1: return &v->vnum;
-  case 2: return &v->v2num;
-  case 3: return &v->v3num;
-  default: cheapAssert(false); return NULL;
-  }    
-}
-#endif
 
 short        modVnum  (MRIS const *mris, int vno, short add, bool clearFirst = false);
 static short setVnum  (MRIS const *mris, int vno, short to)     { return modVnum(mris,vno, to,true );     }

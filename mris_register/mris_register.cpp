@@ -158,7 +158,6 @@ main(int argc, char *argv[])
   printf("\ncwd %s\n",cwd);
   printf("cmdline %s\n\n",cmdline2);
 
-  memset(&parms, 0, sizeof(parms)) ;
   parms.projection = PROJECT_SPHERE ;
   parms.flags |= IP_USE_CURVATURE ;
   parms.trinarize_thresh = 0.0 ;  // disabled by default
@@ -346,7 +345,10 @@ main(int argc, char *argv[])
       mrisp_template = MRISPalloc(scale, IMAGES_PER_SURFACE*noverlays);
       for (sno = 0; sno < noverlays ; sno++)
       {
-        sprintf(fname, "%s/../label/%s.%s", surf_dir, hemi, overlays[sno]) ;
+        int req = snprintf(fname, STRLEN, "%s/../label/%s.%s", surf_dir, hemi, overlays[sno]) ; 
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
         if (MRISreadValues(mris_template, fname)  != NO_ERROR)
           ErrorExit(ERROR_NOFILE,
                     "%s: could not read overlay from %s",
@@ -368,7 +370,10 @@ main(int argc, char *argv[])
       {
         if (curvature_names[sno])  /* read in precomputed curvature file */
         {
-          sprintf(fname, "%s/%s.%s", surf_dir, hemi, curvature_names[sno]) ;
+          int req = snprintf(fname, STRLEN, "%s/%s.%s", surf_dir, hemi, curvature_names[sno]) ; 
+	  if( req >= STRLEN ) {
+	    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	  }
           if (MRISreadCurvatureFile(mris_template, fname) != NO_ERROR)
             ErrorExit(Gerror,
                       "%s: could not read curvature file '%s'\n",
@@ -380,7 +385,10 @@ main(int argc, char *argv[])
         }
         else                         /* compute curvature of surface */
         {
-          sprintf(fname, "%s/%s.%s", surf_dir, hemi, surface_names[sno]) ;
+          int req = snprintf(fname, STRLEN, "%s/%s.%s", surf_dir, hemi, surface_names[sno]) ; 
+	  if( req >= STRLEN ) {
+	    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	  }
           if (MRISreadVertexPositions(mris_template, fname) != NO_ERROR)
             ErrorExit(ERROR_NOFILE,
                       "%s: could not read surface file %s",
