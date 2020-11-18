@@ -103,25 +103,20 @@ void AffineReg::ReadXfm(const char *XfmFile, const MRI *InRefVol,
 
       LTAfree(&lta);
     }
-    else if (isdigit(matline.c_str()[0])) {			// FSL format
+    else {			// FSL format
       infile.clear();
       infile.seekg(0, ios::beg);
-
-      cout << "FSL registration format detected" << endl;
 
       while (infile >> val)
         mInToOut.push_back(val);
 
       if (mInToOut.size() != 16) {
-        cout << "ERROR: File " << XfmFile << " must contain a 4x4 matrix"
-             << endl;
+        cout << "ERROR: Unrecognized transform format in " << XfmFile
+             << " - LTA or FSL format expected" << endl;
         exit(1);
       }
-    }
-    else {
-      cout << "ERROR: Unrecognized transform format in " << XfmFile
-           << " - LTA or FSL format expected" << endl;
-      exit(1);
+
+      cout << "FSL registration format detected" << endl;
     }
   }
   else {	// Identity by default
