@@ -127,7 +127,7 @@ if(NOT APPLE)
   find_library(GFORTRAN_LIBRARIES
     HINTS /usr/lib64 /usr/lib /usr/lib/gcc/*/*/
     NAMES libgfortran.a gfortran)
-  find_library(BLAS_LIBRARIES NAMES libblas.a libopenblas.a)
+  find_library(BLAS_LIBRARIES NAMES libopenblas.a libblas.a)
   find_library(LAPACK_LIBRARIES NAMES liblapack.a)
 endif()
 
