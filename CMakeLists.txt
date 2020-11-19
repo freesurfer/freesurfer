@@ -598,6 +598,7 @@ if(NOT MINIMAL)
     mris_register_to_volume
     mris_remove_variance
     mris_remesh
+    mris_reposition_surface
     mris_resample
     mris_rescale
     mris_reverse

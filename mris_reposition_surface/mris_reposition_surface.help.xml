@@ -1,0 +1,33 @@
+<help>
+
+  <name>mris_reposition_surface</name>
+  <synopsis>mris_reposition_surface [options] -s &lt;surface&gt; -v &lt;volume&gt; -p &lt;points&gt; -o &lt;surface&gt;</synopsis>
+  <description>Reposition a surface based on the given control points (in json format)</description>
+
+  <arguments>
+
+    <required-flagged>
+      <argument>-s, --surf FILE</argument>
+      <explanation>Input surface</explanation>      
+      <argument>-v, --volume FILE</argument>
+      <explanation>Input volume</explanation>
+      <argument>-p, --points FILE</argument>
+      <explanation>Input points</explanation>
+      <argument>-o, --output FILE</argument>
+      <explanation>Output surface filename</explanation>
+    </required-flagged>
+
+    <optional-flagged>
+      <argument>-z, --size</argument>
+      <explanation>Size parameter for repositioning. default is 1.</explanation>
+      <argument>-g, --sigma</argument>
+      <explanation>Sigma. default is 2.0.</explanation>
+      <argument>-i, --iterations</argument>
+      <explanation>Number of iterations. default is 1.</explanation>
+    </optional-flagged>
+
+  </arguments>
+
+  <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>
+
+</help>
