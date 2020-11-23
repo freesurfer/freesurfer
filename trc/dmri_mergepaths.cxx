@@ -75,7 +75,7 @@ Timer cputimer;
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
   int nargs, cputime;
-  char fname[PATH_MAX];
+  char fname[PATH_MAX], pname[PATH_MAX];
   MRI *invol = 0, *outvol = 0;
 
   nargs = handleVersionOption(argc, argv, "dmri_mergepaths");
@@ -114,6 +114,7 @@ int main(int argc, char **argv) {
 
     invol = MRIread(fname);
 
+    // Copy input volume to output volume series
     if (invol) {
       if (!outvol) {
         // Allocate output 4D volume
@@ -129,14 +130,23 @@ int main(int argc, char **argv) {
         inmax = (float) MRIfindPercentile(invol, .99, 0);	// Robust max
     }
 
+    // Set display threshold for current volume
     outvol->frames[iframe].thresh = dispThresh * inmax;
+
+    // Look up pathway name for current volume
+    strcpy(pname, inFile[iframe]);
+    *strrchr(pname, '/') = '\0';
+    if (strrchr(pname, '/') != NULL)
+      strcpy(pname, strrchr(pname, '/') + 1);
+    *strchr(pname, '_') = '\0';
 
     outvol->frames[iframe].label = 0;
 
     for (int ict = outvol->ct->nentries; ict > 0; ict--) {
       CTE *cte = outvol->ct->entries[ict];
 
-      if (cte != NULL && strstr(inFile[iframe], cte->name)) {
+      if (cte != NULL && strstr(pname, cte->name)
+                      && strlen(pname) == strlen(cte->name)) {
         outvol->frames[iframe].label = ict;
         strcpy(outvol->frames[iframe].name, cma_label_to_name(ict));
 
