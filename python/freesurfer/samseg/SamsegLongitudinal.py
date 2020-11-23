@@ -218,9 +218,10 @@ class SamsegLongitudinal:
 
         self.combinedImageBuffers, self.sstModel.mask = maskOutBackground(self.combinedImageBuffers, self.sstModel.modelSpecifications.atlasFileName,
                                                         self.sstModel.transform,
-                                                        self.sstModel.modelSpecifications.brainMaskingSmoothingSigma,
-                                                        self.sstModel.modelSpecifications.brainMaskingThreshold,
-                                                        self.probabilisticAtlas)
+                                                        self.sstModel.modelSpecifications.maskingProbabilityThreshold,
+                                                        self.sstModel.modelSpecifications.maskingDistance,
+                                                        self.probabilisticAtlas,
+                                                        self.sstModel.voxelSpacing)
         combinedImageBuffers = logTransform(self.combinedImageBuffers, self.sstModel.mask)
 
         # Retrieve the masked sst and time points
