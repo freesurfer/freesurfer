@@ -1822,6 +1822,32 @@ if ($domasks && ! $dobase) then
       if ($status) goto error_exit
     endif
 
+    # Make mask of grown cortex plus cerebellum
+    set ids = ()
+    foreach label ($wmlist[3-4])
+      set ids = ($ids `grep -i " ${label}[ \t]" $fslut | awk '{print $1}'`)
+    end
+
+    set cmd = mri_binarize
+    set cmd = ($cmd --i $fsdir/mri/aparc+aseg.mgz)
+    set cmd = ($cmd --match $ids)
+    set cmd = ($cmd --o $labdir/anatorig/Cerebellum-White-Matter.nii.gz)
+    echo $cmd |& tee -a $LF |& tee -a $CF
+    if ($RunIt) then
+      $cmd |& tee -a $LF
+      if ($status) goto error_exit
+    endif
+
+    set cmd = fscalc
+    set cmd = ($cmd     $labdir/anatorig/cortex+${gmgrow}mm.nii.gz)
+    set cmd = ($cmd add $labdir/anatorig/Cerebellum-White-Matter.nii.gz)
+    set cmd = ($cmd --o $labdir/anatorig/cortex+${gmgrow}mm+crblm.nii.gz)
+    echo $cmd |& tee -a $LF |& tee -a $CF
+    if ($RunIt) then
+      $cmd |& tee -a $LF
+      if ($status) goto error_exit
+    endif
+
     # Make mask of grown cortex plus brainstem
     set ids = ()
     foreach label ($wmlist[10-13])
@@ -1870,7 +1896,8 @@ if ($domasks && ! $dobase) then
     endif
 
     foreach label ( White-Matter White-Matter++ \
-                    cortex cortex+${gmgrow}mm cortex+${gmgrow}mm+bs \
+                    cortex cortex+${gmgrow}mm \
+                    cortex+${gmgrow}mm+bs cortex+${gmgrow}mm+crblm \
                     aparc+aseg aparc+aseg+${gmgrow}mm aparc+aseg_mask )
 
       # Map anatomical label to diffusion space
@@ -2188,7 +2215,7 @@ if ($dopriors && ! $dobase) then
     set cmd = ($cmd --slist  $slistfile)
     set cmd = ($cmd --trk    $trklist)
     set cmd = ($cmd --seg    $xspace/aparc+aseg.nii.gz)
-    set cmd = ($cmd --cmask  $xspace/cortex+${gmgrow}mm.nii.gz)
+    set cmd = ($cmd --cmask  $xspace/cortex+${gmgrow}mm+crblm.nii.gz)
     set cmd = ($cmd --lmask  $gmids)
     set cmd = ($cmd --bmask  $brainmask)
     set cmd = ($cmd --fa     $dwidir/dtifit_FA.nii.gz)
@@ -2271,7 +2298,7 @@ if ($dopriors && $dobase) then
     set cmd = ($cmd --slist   $slistfile)
     set cmd = ($cmd --trk     $trklist)
     set cmd = ($cmd --seg     $xspace/aparc+aseg.nii.gz)
-    set cmd = ($cmd --cmask   $xspace/cortex+${gmgrow}mm.nii.gz)
+    set cmd = ($cmd --cmask   $xspace/cortex+${gmgrow}mm+crblm.nii.gz)
     set cmd = ($cmd --lmask   $gmids)
     set cmd = ($cmd --bmask   $bmasklist)
     set cmd = ($cmd --fa      $falist)
