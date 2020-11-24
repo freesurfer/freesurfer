@@ -47,10 +47,13 @@ class AffineReg {
     AffineReg(std::vector<float> &InToOut);
     ~AffineReg();
     bool IsEmpty();
+    bool IsInvEmpty();
     void ReadXfm(const char *XfmFile, const MRI *InRefVol, 
                                       const MRI *OutRefVol);
     void ApplyXfm(std::vector<float> &OutPoint,
                   std::vector<float>::const_iterator InPoint);
+    void ApplyXfmInv(std::vector<float> &OutPoint,
+                     std::vector<float>::const_iterator InPoint);
     void DecomposeXfm();
     void PrintScale();
     void PrintShear();
@@ -61,7 +64,7 @@ class AffineReg {
     std::vector<float>::const_iterator GetScale();
 
   private:
-    std::vector<float> mInToOut,				// [4 x 4]
+    std::vector<float> mInToOut, mOutToIn,			// [4 x 4]
                        mInVoxelSize, mOutVoxelSize,		// [3]
                        mTranslate, mRotate, mScale, mShear;	// [3]
 };
@@ -72,7 +75,7 @@ class NonlinReg {
     NonlinReg();
     ~NonlinReg();
     bool IsEmpty();
-    void ReadXfm(const char *XfmFile, MRI *OutRefVol);
+    void ReadXfm(const char *XfmFile, MRI *RefVol);
     void ApplyXfm(std::vector<float> &OutPoint,
                   std::vector<float>::const_iterator InPoint);
     void ApplyXfmInv(std::vector<float> &OutPoint,

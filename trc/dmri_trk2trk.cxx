@@ -68,7 +68,7 @@ int main(int argc, char *argv[]) ;
 const char *Progname = "dmri_trk2trk";
 
 bool doMerge = false;
-int doInvNonlin = 0, doFill = 0, doMean = 0, doNth = 0, strNum = -1,
+int doInvXfm = 0, doFill = 0, doMean = 0, doNth = 0, strNum = -1,
     lengthMin = -1, lengthMax = -1;
 unsigned int nTract = 0;
 char *inDir = NULL,
@@ -130,16 +130,27 @@ int main(int argc, char **argv) {
   MRIdircosToOrientationString(outref, outorient);
 
   // Read transform files
+  if (affineXfmFile) {
+    if (doInvXfm) {
+      affinereg.ReadXfm(affineXfmFile, outref, inref);
+
+      if (affinereg.IsInvEmpty()) {
+        cout << "ERROR: For --inv, use LTA format" << endl;
+        exit(1);
+      }
+    }
+    else
+      affinereg.ReadXfm(affineXfmFile, inref, outref);
+  }
+
 #ifndef NO_CVS_UP_IN_HERE
   if (nonlinXfmFile) {
-    if (affineXfmFile)
-      affinereg.ReadXfm(affineXfmFile, inref, outref);
-    nonlinreg.ReadXfm(nonlinXfmFile, outref);
+    if (doInvXfm)
+      nonlinreg.ReadXfm(nonlinXfmFile, inref);
+    else
+      nonlinreg.ReadXfm(nonlinXfmFile, outref);
   }
-  else
 #endif
-  if (affineXfmFile)
-    affinereg.ReadXfm(affineXfmFile, inref, outref);
 
   // Read inclusion masks
   for (vector<char *>::const_iterator imask = incMaskList.begin();
@@ -275,19 +286,28 @@ int main(int argc, char **argv) {
                                    ipt < streamlines[kstr].end(); ipt += 3) {
         copy(ipt, ipt+3, point.begin());
 
-        // Apply affine transform
-        if (!affinereg.IsEmpty())
-          affinereg.ApplyXfm(point, point.begin());
+        if (doInvXfm) {
+#ifndef NO_CVS_UP_IN_HERE
+          // Apply inverse of nonlinear transform
+          if (!nonlinreg.IsEmpty())
+            nonlinreg.ApplyXfmInv(point, point.begin());
+#endif
+
+          // Apply inverse of affine transform
+          if (!affinereg.IsEmpty())
+            affinereg.ApplyXfmInv(point, point.begin());
+        }
+        else {
+          // Apply affine transform
+          if (!affinereg.IsEmpty())
+            affinereg.ApplyXfm(point, point.begin());
 
 #ifndef NO_CVS_UP_IN_HERE
-        // Apply nonlinear transform
-        if (!nonlinreg.IsEmpty()) {
-          if (doInvNonlin)
-            nonlinreg.ApplyXfmInv(point, point.begin());
-          else
+          // Apply nonlinear transform
+          if (!nonlinreg.IsEmpty())
             nonlinreg.ApplyXfm(point, point.begin());
-        }
 #endif
+        }
 
         copy(point.begin(), point.end(), ipt);
       }
@@ -949,8 +969,8 @@ static int parse_commandline(int argc, char **argv) {
       nonlinXfmFile = fio_fullpath(pargv[0]);
       nargsused = 1;
     }
-    else if (!strcasecmp(option, "--invnl"))
-      doInvNonlin = 1;
+    else if (!strcasecmp(option, "--inv"))
+      doInvXfm = 1;
     else if (!strcasecmp(option, "--fill"))
       doFill = 1;
     else if (!strcmp(option, "--imask")) {
@@ -1043,11 +1063,11 @@ static void print_usage(void)
   << "   --outref <file>:" << endl
   << "     Output reference volume" << endl
   << "   --reg <file>:" << endl
-  << "     Affine registration (.mat), applied first" << endl
+  << "     Affine registration file (.lta or .mat), applied first" << endl
   << "   --regnl <file>:" << endl
-  << "     Nonlinear registration (.m3z), applied second" << endl
-  << "   --invnl:" << endl
-  << "     Apply inverse of nonlinear warp (with --regnl, default: no)" << endl
+  << "     Nonlinear registration file (.m3z), applied second" << endl
+  << "   --inv:" << endl
+  << "     Apply inverse of registration (default: no)" << endl
   << "   --fill:" << endl
   << "     Fill gaps b/w mapped points by linear interpolation" << endl
   << "     (Default: don't fill)" << endl
@@ -1245,10 +1265,10 @@ static void dump_options(FILE *fp) {
   cout << "Output reference: " << outRefFile << endl;
   if (affineXfmFile)
     cout << "Affine registration: " << affineXfmFile << endl;
-  if (nonlinXfmFile) {
+  if (nonlinXfmFile)
     cout << "Nonlinear registration: " << nonlinXfmFile << endl;
-    cout << "Invert nonlinear morph: " << doInvNonlin << endl;
-  }
+  if (affineXfmFile || nonlinXfmFile)
+    cout << "Invert registration: " << doInvXfm << endl;
   cout << "Fill gaps between points: " << doFill << endl;
   if (doMean)
     cout << "Saving mean streamline" << endl;
