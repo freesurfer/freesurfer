@@ -11680,6 +11680,9 @@ const char *cma_label_to_name(int label)
   if (label == acomm) {
     return ("Anterior Commissure");
   }
+  if (label == mcp) {
+    return ("Middle Cerebellar Peduncle");
+  }
   if (label == lh_atr) {
     return ("Left Anterior Thalamic Radiation");
   }
