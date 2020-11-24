@@ -1144,13 +1144,6 @@ if ($dostats) then
               else					# Longitudinal
                 set inputs = ($inputs $xfmdir/anatorig2$xspace.lta)
               endif
-            else if ($xspace == fnt) then
-              if (! $#baselist) then			# Cross-sectional
-                set inputs = ($inputs $xfmdir/diff2fsl_warp.m3z)
-              else					# Longitudinal
-                set inputs = ($inputs $xfmdir/anatorig2diff.$reg.lta)
-                set inputs = ($inputs $xfmdir/diff2fsl_warp.m3z)
-              endif
             else if ($xspace == cvs) then
               if (! $#baselist) then			# Cross-sectional
                 set inputs = ($inputs $xfmdir/diff2anatorig.$reg.lta)
@@ -1161,6 +1154,13 @@ if ($dostats) then
                 if (-e $xfmdir/cvs/$cvswarp.m3z) then
                   set inputs = ($inputs $xfmdir/cvs/$cvswarp.m3z)
                 endif
+              endif
+            else if ($xspace == syn || $xspace == fnt) then
+              if (! $#baselist) then			# Cross-sectional
+                set inputs = ($inputs $xfmdir/diff2${xspace}_warp.m3z)
+              else					# Longitudinal
+                set inputs = ($inputs $xfmdir/anatorig2diff.$reg.lta)
+                set inputs = ($inputs $xfmdir/diff2${xspace}_warp.m3z)
               endif
             endif
 
@@ -1513,7 +1513,7 @@ if ($?doregbbr) then
   if ($doregbbr) set intrareg = 3
 endif
 if ($?doregcvs) then
-  if ($doregcvs) set interreg = 5
+  if ($doregcvs) set interreg = 4
 endif
 if ($?doregmni) then
   if ($doregmni) set interreg = 2
@@ -1521,7 +1521,7 @@ endif
 if ($?mnitemp && ($interreg == 1 || $interreg == 2)) then
   set intertrg = $mnitemp
 endif
-if ($?cvstemp && $interreg == 5) then
+if ($?cvstemp && $interreg == 4) then
   set intertrg = $cvstempdir/$cvstemp/mri/norm.mgz
 endif
 
@@ -1579,11 +1579,15 @@ switch ($interreg)
   case 3:	# Affine T1-to-T1 with a robust cost
     set xspace = rob
     breaksw
-  case 4:	# Nonlinear FA-to-FA with FNIRT
-    set xspace = fnt
-    breaksw
-  case 5:	# Nonlinear T1-to-T1 with CVS
+  case 4:	# Nonlinear T1-to-T1 with CVS
     set xspace = cvs
+    breaksw
+  case 5:	# Nonlinear FA-to-FA with SyN
+    set xspace = syn
+    setenv MY_MORPHS_DO_NOT_CONFORM_DEAL_WITH_IT
+    breaksw
+  case 6:	# Nonlinear FA-to-FA with FNIRT
+    set xspace = fnt
     breaksw
   default:
     echo "ERROR: $interreg not a valid option for inter-subject registration"
@@ -1598,19 +1602,26 @@ if (! $#intertrg) then			# Target for inter-subject registration
     else
       set intertrg = $FSLDIR/data/standard/MNI152_T1_1mm_brain.nii.gz
     endif
-  else if ($xspace == fnt) then
+  else if ($xspace == cvs) then
     if ($doinfant) then
-      echo "ERROR: nonlinear registration not available for infants"
+      echo "ERROR: CVS registration not available for infants"
+      exit 1
+    else
+      set intertrg = $FREESURFER_HOME/subjects/cvs_avg35/mri/norm.mgz
+    endif
+  else if ($xspace == syn) then
+    if ($doinfant) then
+      echo "ERROR: SyN registration not available for infants"
       exit 1
     else
       set intertrg = $FSLDIR/data/standard/FMRIB58_FA_1mm.nii.gz
     endif
-  else if ($xspace == cvs) then
+  else if ($xspace == fnt) then
     if ($doinfant) then
-      echo "ERROR: nonlinear registration not available for infants"
+      echo "ERROR: FNIRT registration not available for infants"
       exit 1
     else
-      set intertrg = $FREESURFER_HOME/subjects/cvs_avg35/mri/norm.mgz
+      set intertrg = $FSLDIR/data/standard/FMRIB58_FA_1mm.nii.gz
     endif
   endif
 endif

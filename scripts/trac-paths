@@ -80,14 +80,16 @@ if ($interreg == 1 || $interreg == 2) then
 else if ($interreg == 3) then
   set xspace = rob
 else if ($interreg == 4) then
-  set xspace = fnt
-else if ($interreg == 5) then
   set xspace = cvs
   set cvstempdir = `dirname $intertrg`          # Assuming ../mri/norm.mgz
   set cvstempdir = `dirname $cvstempdir`
   set cvstemp    = `basename $cvstempdir`
   set cvstempdir = `dirname $cvstempdir`
   set cvswarp = final_CVSmorph_to$cvstemp
+else if ($interreg == 5) then
+  set xspace = syn
+else if ($interreg == 6) then
+  set xspace = fnt
 endif
 
 if ($DoTime) then
@@ -422,13 +424,16 @@ if (! $dolong) then
       set cmd = ($cmd --roi2 $roi2list)
       if ($xspace == mni || $xspace == rob) then
         set cmd = ($cmd --reg $xfmdir/diff2$xspace.$reg.lta)
-      else if ($xspace == fnt) then
-        set cmd = ($cmd --regnl $xfmdir/diff2fsl_warp.m3z)
       else if ($xspace == cvs) then
         set cmd = ($cmd --reg $xfmdir/diff2anatorig.$reg.lta)
         if ($subj != $cvstemp) then
           set cmd = ($cmd --regnl $xfmdir/cvs/$cvswarp.m3z)
         endif
+      else if ($xspace == syn) then
+        set cmd = ($cmd --reg   $xfmdir/diff2syn.lta)
+        set cmd = ($cmd --regnl $xfmdir/syn_warp.m3z)
+      else if ($xspace == fnt) then
+        set cmd = ($cmd --regnl $xfmdir/diff2fsl_warp.m3z)
       endif
       set cmd = ($cmd --init $initlist)
       if ($dosegprior) then
@@ -716,17 +721,22 @@ else
       set cmd = ($cmd --roi2      $roi2list)
       if ($xspace == mni || $xspace == rob) then
         set cmd = ($cmd --reg     $xfmdir/anatorig2$xspace.lta)
-      else if ($xspace == fnt) then
-        # Hack: Using one time point for now!
-        set xfmdir_t = $dtroot/$tplist[1]/dmri/xfms
-        set cmd = ($cmd --reg   $xfmdir_t/anatorig2diff.$reg.lta)
-        set cmd = ($cmd --regnl $xfmdir_t/diff2fsl_warp.m3z)
       else if ($xspace == cvs) then
         # Hack: Using one time point for now!
         if ($tplist[1] != $cvstemp) then
           set xfmdir_t = $dtroot/$tplist[1]/dmri/xfms
           set cmd = ($cmd --regnl $xfmdir_t/cvs/$cvswarp.m3z)
         endif
+      else if ($xspace == syn) then
+        # Hack: Using one time point for now!
+        set xfmdir_t = $dtroot/$tplist[1]/dmri/xfms
+        set cmd = ($cmd --reg   $xfmdir_t/anatorig2syn.lta)
+        set cmd = ($cmd --regnl $xfmdir_t/syn_warp.m3z)
+      else if ($xspace == fnt) then
+        # Hack: Using one time point for now!
+        set xfmdir_t = $dtroot/$tplist[1]/dmri/xfms
+        set cmd = ($cmd --reg   $xfmdir_t/anatorig2diff.$reg.lta)
+        set cmd = ($cmd --regnl $xfmdir_t/diff2fsl_warp.m3z)
       endif
       set cmd = ($cmd --init      $initlist)
       if ($dosegprior) then

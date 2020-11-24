@@ -1201,7 +1201,7 @@ Coffin::Coffin(const char *OutDir, vector<char *> InDirList,
   // Read DWI-to-atlas registration
 #ifndef NO_CVS_UP_IN_HERE
   if (NonlinXfmFile) {
-    mAffineReg.ReadXfm(AffineXfmFile, mMask, 0);
+    mAffineReg.ReadXfm(AffineXfmFile, mMask, atlasref);
     mNonlinReg.ReadXfm(NonlinXfmFile, atlasref);
   }
   else

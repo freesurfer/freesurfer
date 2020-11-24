@@ -201,8 +201,8 @@ set intrarot = 90
 # 1: Affine T1-to-T1 with a correlation ratio cost
 # 2: Affine T1-to-T1 with a mutual information cost (default)
 # 3: Affine T1-to-T1 with a robust cost (default for infants)
-# 4: Nonlinear FA-to-FA with FNIRT
-# 5: Nonlinear T1-to-T1 with CVS
+# 4: Nonlinear T1-to-T1 with CVS
+# 5: Nonlinear FA-to-FA with SyN
 #
 set interreg = 2
 

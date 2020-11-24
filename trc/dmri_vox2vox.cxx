@@ -114,7 +114,7 @@ int main(int argc, char **argv) {
 #ifndef NO_CVS_UP_IN_HERE
   if (nonlinXfmFile) {
     if (affineXfmFile)
-      affinereg.ReadXfm(affineXfmFile, inref, 0);
+      affinereg.ReadXfm(affineXfmFile, inref, outref);
     nonlinreg.ReadXfm(nonlinXfmFile, outref);
   }
   else

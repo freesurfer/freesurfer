@@ -187,7 +187,7 @@ int main(int argc, char **argv) {
     // Fourth input on each line is a nonlinear transform
 #ifndef NO_CVS_UP_IN_HERE
     if (inputs.size() > 3) {
-      affinereg.ReadXfm(inputs[2].c_str(), inref, 0);
+      affinereg.ReadXfm(inputs[2].c_str(), inref, outref);
       nonlinreg.ReadXfm(inputs[3].c_str(), outref);
     }
     else
