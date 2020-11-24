@@ -1025,7 +1025,10 @@ int main(int argc, char **argv)
 	  {
 	    char fname[STRLEN], fonly[STRLEN] ;
 	    FileNameRemoveExtension(OutASegFile, fonly) ;
-	    sprintf(fname, "%s.%3.3d.mgz", fonly, i) ;
+	    int req = snprintf(fname, STRLEN, "%s.%3.3d.mgz", fonly, i) ;  
+	    if( req >= STRLEN ) {
+	      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	    }
 	    printf("writing iter %d to %s\n", i, fname) ;
 	    MRIwrite(ASeg, fname) ;
 	  }
@@ -1119,7 +1122,10 @@ int main(int argc, char **argv)
 	  {
 	    char fname[STRLEN], fonly[STRLEN] ;
 	    FileNameRemoveExtension(OutASegFile, fonly) ;
-	    sprintf(fname, "%s.%3.3d.mgz", fonly, i) ;
+	    int req = snprintf(fname, STRLEN, "%s.%3.3d.mgz", fonly, i) ; 
+	    if( req >= STRLEN ) {
+	      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	    }
 	    printf("writing iter %d to %s\n", i, fname) ;
 	    MRIwrite(ASeg, fname) ;
 	  }
