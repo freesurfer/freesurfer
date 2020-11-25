@@ -89,7 +89,7 @@ int main(int argc, char **argv) {
   int nargs, cputime;
   char fname[PATH_MAX], outorient[4];
   vector<float> point(3), step(3, 0);
-  vector< vector<float> > streamlines;
+  vector< vector<float> > streamlines, properties;
   MATRIX *outv2r;
   MRI *inref = 0, *outref = 0, *outvol = 0;
   AffineReg affinereg;
@@ -181,8 +181,10 @@ int main(int argc, char **argv) {
          << "..." << endl;
     cputimer.reset();
 
-    if (!doMerge)
+    if (!doMerge) {
       streamlines.clear();
+      properties.clear();
+    }
 
     if (!inTrkList.empty()) {		// Read streamlines from .trk file
       if (inDir)
@@ -198,16 +200,18 @@ int main(int argc, char **argv) {
 
       while (trkreader.GetNextPointCount(&npts)) {
         const int veclen = npts*3;
-        float *iraw, *rawpts = new float[veclen];
-        vector<float> newpts(veclen);
+        float *iraw, *rawpts = new float[veclen],
+                     *props = new float [trkheadin.n_properties];
+        vector<float> newpts(veclen), newprops(trkheadin.n_properties);
 
         // Read a streamline from input file
-        trkreader.GetNextTrackData(npts, rawpts);
+        trkreader.GetNextTrackData(npts, rawpts, NULL, props);
 
         if ( (doNth && nstr != strNum) ||
              (lengthMin > -1 && npts <= lengthMin) ||
              (lengthMax > -1 && npts >= lengthMax) ) {
           delete[] rawpts;
+          delete[] props;
           nstr++;
           continue;
         }
@@ -224,6 +228,16 @@ int main(int argc, char **argv) {
 
         delete[] rawpts;
         streamlines.push_back(newpts);
+
+        // Store properties of input streamlines
+        if (trkheadin.n_properties > 0) {
+          vector<float> newprops(trkheadin.n_properties);
+
+          copy(props, props+trkheadin.n_properties, newprops.begin());
+
+          delete[] props;
+          properties.push_back(newprops);
+        }
 
         nstr++;
       }
@@ -397,6 +411,8 @@ int main(int argc, char **argv) {
 
       if (!dokeep) {
         streamlines.erase(streamlines.begin() + kstr);
+        if (!properties.empty())
+          properties.erase(properties.begin() + kstr);
         continue;
       }
 
@@ -431,6 +447,8 @@ int main(int argc, char **argv) {
 
       if (!dokeep) {
         streamlines.erase(streamlines.begin() + kstr);
+        if (!properties.empty())
+          properties.erase(properties.begin() + kstr);
         continue;
       }
 
@@ -474,6 +492,8 @@ int main(int argc, char **argv) {
 
       if (!dokeep) {
         streamlines.erase(streamlines.begin() + kstr);
+        if (!properties.empty())
+          properties.erase(properties.begin() + kstr);
         continue;
       }
 
@@ -504,8 +524,11 @@ int main(int argc, char **argv) {
           break;
       }
 
-      if (!dokeep)
+      if (!dokeep) {
         streamlines.erase(streamlines.begin() + kstr);
+        if (!properties.empty())
+          properties.erase(properties.begin() + kstr);
+      }
     }
 
     if (doMean && !streamlines.empty()) {
@@ -694,6 +717,10 @@ int main(int argc, char **argv) {
       // Keep only the chosen streamline for writing to disk
       streamlines.erase(streamlines.begin(), streamlines.begin() + kstrmean);
       streamlines.erase(streamlines.begin() + 1, streamlines.end());
+
+      if (!properties.empty())
+        properties.erase(properties.begin(), properties.begin() + kstrmean);
+        properties.erase(properties.begin() + 1, properties.end());
     }
 
     // Write transformed streamlines to volume
@@ -774,6 +801,7 @@ int main(int argc, char **argv) {
     if (!outTrkList.empty()) {
       CTrackWriter trkwriter;
       TRACK_HEADER trkheadout;
+      vector< vector<float> >::iterator iprop = properties.begin();
 
       // Set output .trk header
       if (inTrkList.empty()) {
@@ -844,7 +872,14 @@ int main(int argc, char **argv) {
           for (int k = 0; k < 3; k++)
             ipt[k] = (ipt[k] + .5) * trkheadout.voxel_size[k];
 
-        trkwriter.WriteNextTrack(istr->size()/3, &(istr->at(0)));
+        if (properties.empty())
+          trkwriter.WriteNextTrack(istr->size()/3, &(istr->at(0)));
+        else {
+          // Transfer properties from input to output streamlines
+          trkwriter.WriteNextTrack(istr->size()/3, &(istr->at(0)),
+                                   NULL, &(iprop->at(0)));
+          iprop++;
+        }
       }
 
       trkwriter.Close();
