@@ -210,8 +210,12 @@ main(int argc, char *argv[]) {
   } while (argv[n][0] != ':') ;
 
   /* find  # of vertices in output subject surface */
-  sprintf(fname, "%s/%s/surf/%s.%s",
-          subjects_dir,output_subject,hemi,surf_name);
+  int req = snprintf(fname, STRLEN, "%s/%s/surf/%s.%s",
+		     subjects_dir,output_subject,hemi,surf_name);
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
+
   mris = MRISread(fname) ;
   if (!mris)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
@@ -277,25 +281,36 @@ main(int argc, char *argv[]) {
     subject_name = n < num_class1 ? c1_subjects[n] : c2_subjects[n-num_class1];
     fprintf(stderr, "reading subject %d of %d: %s\n",
             n+1, num_class1+num_class2, subject_name) ;
-    sprintf(fname, "%s/%s/surf/%s.%s",
-            subjects_dir,subject_name,hemi,surf_name);
+    int req = snprintf(fname, STRLEN, "%s/%s/surf/%s.%s",
+		       subjects_dir,subject_name,hemi,surf_name);
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     mris = MRISread(fname) ;
     if (!mris)
       ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
                 Progname, fname) ;
     MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
-    if (strchr(curv_name, '/') != NULL)
+    if (strchr(curv_name, '/') != NULL) {
       strcpy(fname, curv_name) ;  /* full path specified */
-    else
-      sprintf(fname,"%s/%s/surf/%s.%s",
-              subjects_dir,subject_name,hemi,curv_name);
+    } else {
+      int req = snprintf(fname,STRLEN,"%s/%s/surf/%s.%s",
+			 subjects_dir,subject_name,hemi,curv_name);
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
+    }
     if (MRISreadCurvatureFile(mris, fname) != NO_ERROR)
       ErrorExit(Gerror, "%s: could no read curvature file %s",Progname,fname) ;
     mrisp = MRIStoParameterization(mris, NULL, 1, 0) ;
     MRISfree(&mris) ;
 
-    sprintf(fname, "%s/%s/surf/%s.%s",
-            subjects_dir,output_subject,hemi,surf_name);
+    req = snprintf(fname, STRLEN, "%s/%s/surf/%s.%s",
+		   subjects_dir,output_subject,hemi,surf_name);
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
+
     mris = MRISread(fname) ;
     if (!mris)
       ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
@@ -319,8 +334,12 @@ main(int argc, char *argv[]) {
   cvector_compute_variance(c1_var, c1_mean, num_class1, nvertices) ;
   cvector_compute_variance(c2_var, c2_mean, num_class2, nvertices) ;
 
-  sprintf(fname, "%s/%s/surf/%s.%s",
-          subjects_dir,output_subject,hemi,surf_name);
+  req = snprintf(fname, STRLEN, "%s/%s/surf/%s.%s",
+		 subjects_dir,output_subject,hemi,surf_name);
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
+
   fprintf(stderr, "reading output surface %s...\n", fname) ;
   mris = MRISread(fname) ;
   if (!mris)

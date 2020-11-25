@@ -120,8 +120,11 @@ main(int argc, char *argv[]) {
       break ;
     case SPHERICAL_COORDS:
     case ELLIPSOID_COORDS:
-      sprintf(fname, "%s/%s/surf/%s.orig",
-              subjects_dir, sv->reg->name, hemi) ;
+      int req = snprintf(fname, STRLEN, "%s/%s/surf/%s.orig",
+			 subjects_dir, sv->reg->name, hemi) ;   
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       fprintf(stderr, "reading surface %s\n", fname) ;
       mris = MRISread(fname) ;
       if (!mris)
@@ -138,13 +141,6 @@ main(int argc, char *argv[]) {
       MRISfree(&mris) ;
       break ;
     }
-
-#if 0
-    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
-      sprintf(out_fname, "avg%d.mnc", ino-1) ;
-      MRIwrite(sv->mri_avgs[0], out_fname) ;
-    }
-#endif
 
     StatFree(&sv) ;
   }

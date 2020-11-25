@@ -88,7 +88,10 @@ main(int argc, char *argv[])
       ErrorExit(ERROR_BADPARM, "FRESURFER_HOME must be defined in the environment") ;
     strcpy(fsdir, cp) ;
   }
-  sprintf(fname, "%s/FreeSurferColorLUT.txt", fsdir) ;
+  int req = snprintf(fname, STRLEN, "%s/FreeSurferColorLUT.txt", fsdir) ;
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   ct = CTABreadASCII(fname) ;
   if (ct == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not read color table from %s", Progname, fname) ;
@@ -102,7 +105,10 @@ main(int argc, char *argv[])
   if (cp == NULL)
     ErrorExit(ERROR_UNSUPPORTED, "%s: could not scan hemisphere from fname %s", Progname, fname) ;
   strncpy(hemi, cp-1, 2) ; hemi[2] = 0 ;
-  sprintf(surf_name, "%s/../surf/%s.orig", path, hemi) ;
+  req = snprintf(surf_name, STRLEN, "%s/../surf/%s.orig", path, hemi) ;
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   mris1 = MRISread(surf_name) ;
   if (mris1 == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface %s", Progname, surf_name) ;

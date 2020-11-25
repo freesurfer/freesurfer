@@ -347,8 +347,12 @@ main(int argc, char *argv[]) {
   }
   printf("parcellating hemisphere into %d units\n", mris->ct->nentries);
   strcpy (mris->ct->fname, ico_fname);
-  for (vno = 0 ; vno < mris_ico->nvertices ; vno++)
-    sprintf (mris->ct->entries[vno]->name, "%s_vertex_%d", ico_name, vno);
+  for (vno = 0 ; vno < mris_ico->nvertices ; vno++) {
+    int req = snprintf (mris->ct->entries[vno]->name, STRLEN, "%s_vertex_%d", ico_name, vno);
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
+  }
   // Note: there was logic here that attempted to assure that nearby patches did not 
   // have similar color, but it caused some patches to have the same color, and so
   // resolve to the same ROI. Now just uses random ctab
@@ -1030,7 +1034,11 @@ write_snapshot(MRI_SURFACE *mris, PARMS *parms, int n, MRI *mri_cmatrix)
   int         vno, parcel, frame, nframes, min_vno ;
   double      val ;
 
-  sprintf(fname, "%s.%3.3d.annot", parms->base_name, n) ;
+  int req = snprintf(fname, STRLEN, "%s.%3.3d.annot", parms->base_name, n) ;
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
+
   printf("writing snapshot to %s\n", fname) ;
   MRISwriteAnnotation(mris, fname) ;
 
@@ -1049,7 +1057,10 @@ write_snapshot(MRI_SURFACE *mris, PARMS *parms, int n, MRI *mri_cmatrix)
         MRIsetVoxVal(mri_timecourses, frame, 0, 0, vno, val) ;
       }
     }
-    sprintf(fname, "%s.%3.3d.mgz", parms->base_name, n) ;
+    int req = snprintf(fname, STRLEN, "%s.%3.3d.mgz", parms->base_name, n) ;
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     MRIwrite(mri_timecourses, fname) ;
   }
   return(NO_ERROR) ;
