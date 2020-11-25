@@ -259,7 +259,10 @@ main(int argc, char *argv[])
       strcpy(hemi, "lh") ;
     }
 
-    sprintf(fname, "%s/%s.orig", path, hemi) ;
+    int req = snprintf(fname, STRLEN, "%s/%s.orig", path, hemi) ;    
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     mris = MRISread(fname) ;
     if (!mris)
       ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
