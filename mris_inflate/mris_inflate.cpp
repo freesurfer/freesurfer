@@ -235,7 +235,11 @@ main(int argc, char *argv[])
   {
     // disable this for now
     // if (compute_sulc_mm) mrisComputeSulcInMM(mris);
-    sprintf(fname, "%s/%s.%s", path, mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", sulc_name) ;
+    int req = snprintf(fname, STRLEN, "%s/%s.%s",
+		       path, mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", sulc_name) ;   
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     fprintf(stderr, "writing sulcal depths to %s\n", fname) ;
     MRISwriteCurvature(mris, fname) ;
   }

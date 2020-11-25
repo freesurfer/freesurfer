@@ -292,8 +292,13 @@ int main(int argc, char **argv)
     if (labelbase != NULL) {
       sprintf(labelfile,"%s-%03d.label",labelbase,ani);
     }
-    if (outdir != NULL)     sprintf(labelfile,"%s/%s.%s.label",outdir,hemi,
-                                      Surf->ct->entries[ani]->name);
+    if (outdir != NULL)  {
+      int req = snprintf(labelfile,1000,"%s/%s.%s.label",outdir,hemi,
+			 Surf->ct->entries[ani]->name);
+      if( req >= 1000 ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
+    }
 
     printf("%3d  %5d %s\n",ani,nperannot[ani],labelfile);
     label = annotation2label(ani, Surf);

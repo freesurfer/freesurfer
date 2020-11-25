@@ -630,7 +630,10 @@ main(int argc, char *argv[])
   printf("processing %d subjects and writing output to %s\n",
          nsubjects,out_fname) ;
 
-  sprintf(fname, "%s/fsaverage%d/surf/%s.inflated", sdir, ico_no, hemi_name) ;
+  int req = snprintf(fname, STRLEN, "%s/fsaverage%d/surf/%s.inflated", sdir, ico_no, hemi_name) ;
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   mris = MRISread(fname) ;
   if (mris == NULL)
   {
@@ -641,7 +644,10 @@ main(int argc, char *argv[])
   {
     subject = argv[sno+1] ;
     printf("processing subject %s, %d of %d\n", subject, sno+1, nsubjects) ;
-    sprintf(fname, "%s/%s/%s/%s", sdir, subject, data_dir, data_name) ;
+    int req = snprintf(fname, STRLEN, "%s/%s/%s/%s", sdir, subject, data_dir, data_name) ;
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     if (prior_only <= 0)
     {
       mri_frame = MRIread(fname) ;
@@ -681,14 +687,21 @@ main(int argc, char *argv[])
     MRIcopyFrame(mri_frame, mri, 0, sno) ;
     MRIfree(&mri_frame) ;
 
-    sprintf(fname, "%s/%s/label/%s.%s", sdir, subject, hemi_name,label_name) ;
+    req = snprintf(fname, STRLEN, "%s/%s/label/%s.%s", sdir, subject, hemi_name,label_name) ;
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     labels[sno] = LabelRead(NULL, fname) ;
     if (labels[sno] == NULL)
       ErrorExit(ERROR_NOFILE, "%s: could not load label from %s",
                 Progname,fname) ;
   }
-  sprintf(fname, "%s/fsaverage%d/label/%s.%s",
-          sdir, ico_no, hemi_name, prior_name) ;
+  req = snprintf(fname, STRLEN, "%s/fsaverage%d/label/%s.%s",
+		 sdir, ico_no, hemi_name, prior_name) ;
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
+
   mri_prior = MRIread(fname) ;
   if (mri_prior == NULL)
   {
