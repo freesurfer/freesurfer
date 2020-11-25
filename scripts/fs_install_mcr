@@ -40,9 +40,9 @@ fi
 
 # download the os-specific installer
 if [[ "$MCR_VER" =~ R2012a|R2012b|R2013a ]]; then
-    curl https://ssd.mathworks.com/supportfiles/MCR_Runtime/$MCR_VER/MCR_${MCR_VER}_${OS_TAG}_installer.zip -o installer.zip
+    curl --location https://ssd.mathworks.com/supportfiles/MCR_Runtime/$MCR_VER/MCR_${MCR_VER}_${OS_TAG}_installer.zip -o installer.zip
 else
-    curl https://ssd.mathworks.com/supportfiles/downloads/$MCR_VER/deployment_files/$MCR_VER/installers/$OS_TAG/MCR_${MCR_VER}_${OS_TAG}_installer.zip -o installer.zip
+    curl --location https://ssd.mathworks.com/supportfiles/downloads/$MCR_VER/deployment_files/$MCR_VER/installers/$OS_TAG/MCR_${MCR_VER}_${OS_TAG}_installer.zip -o installer.zip
 fi
 unzip installer.zip
 
