@@ -261,30 +261,30 @@ int main(int argc, char **argv)
     if (talxfmfile)
     {
       // path to talairach.xfm file spec'd on the command line
-      int req = snprintf(tmpstr,STRLEN,"%s",talxfmfile); 
-      if( req >= STRLEN ) {
+      int req = snprintf(tmpstr,1000,"%s",talxfmfile); 
+      if( req >= 1000 ) {
 	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
       }
 
     }
     else
     {
-      int req = snprintf(tmpstr,STRLEN,
+      int req = snprintf(tmpstr,1000,
 			 "%s/%s/mri/transforms/talairach.xfm",
 			 SUBJECTS_DIR,
 			 subject);
-      if( req >= STRLEN ) {
+      if( req >= 1000 ) {
 	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
       }
     }
     if (DoOldETIVonly)
     {
       // back-door way to get the old way of calculating etiv, for debug
-      int req = snprintf(tmpstr,STRLEN,
+      int req = snprintf(tmpstr,1000,
 			 "%s/%s/mri/transforms/talairach_with_skull.lta",
 			 SUBJECTS_DIR,
 			 subject);
-      if( req >= STRLEN ) {
+      if( req >= 1000 ) {
 	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
       }
       etiv_scale_factor = 2150;
@@ -324,16 +324,16 @@ int main(int argc, char **argv)
   }
 
   if(DoEuler){
-    int req = snprintf(tmpstr,STRLEN,"%s/%s/surf/lh.orig.nofix",SUBJECTS_DIR,subject); 
-    if( req >= STRLEN ) {
+    int req = snprintf(tmpstr,1000,"%s/%s/surf/lh.orig.nofix",SUBJECTS_DIR,subject); 
+    if( req >= 1000 ) {
       std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
     }
     if(!fio_FileExistsReadable(tmpstr)){
       printf("Warning: cannot find %s, not computing euler number\n",tmpstr);
       DoEuler = 0;
     }
-    req = snprintf(tmpstr,STRLEN,"%s/%s/surf/rh.orig.nofix",SUBJECTS_DIR,subject); 
-    if( req >= STRLEN ) {
+    req = snprintf(tmpstr,1000,"%s/%s/surf/rh.orig.nofix",SUBJECTS_DIR,subject); 
+    if( req >= 1000 ) {
       std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
     }
     if(!fio_FileExistsReadable(tmpstr)){
@@ -343,8 +343,8 @@ int main(int argc, char **argv)
   }
   if(DoEuler){
     int nvertices, nfaces, nedges;
-    int req = snprintf(tmpstr,STRLEN,"%s/%s/surf/lh.orig.nofix",SUBJECTS_DIR,subject);  
-    if( req >= STRLEN ) {
+    int req = snprintf(tmpstr,1000,"%s/%s/surf/lh.orig.nofix",SUBJECTS_DIR,subject);  
+    if( req >= 1000 ) {
       std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
     }
     printf("Computing euler number\n");
