@@ -648,8 +648,8 @@ static void check_options(void) {
     for (n=0; n<ctab->nentries; n++) {
       if(ctab->entries[n] == NULL) continue;
       if (strlen(ctab->entries[n]->name) == 0) continue;
-      int req = snprintf(tmpstr,STRLEN,"%s/%s.%s.label",labeldir,hemi,ctab->entries[n]->name); 
-      if( req >= STRLEN ) {
+      int req = snprintf(tmpstr,1000,"%s/%s.%s.label",labeldir,hemi,ctab->entries[n]->name); 
+      if( req >= 1000 ) {
 	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
       }
       if(!fio_FileExistsReadable(tmpstr)) continue;
