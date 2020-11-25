@@ -94,11 +94,6 @@ main(int argc, char *argv[]) {
 
   out_prefix = argv[argc-1] ;
 
-#if 0
-  if (StatVolumeExists(out_prefix))
-    sv_avg = StatReadVolume(out_prefix) ;
-#endif
-
   for (ino = 1 ; ino < argc-1 ; ino++) {
     /* for each path/prefix specified, go through all slices */
     in_prefix = argv[ino] ;
@@ -120,9 +115,9 @@ main(int argc, char *argv[]) {
       break ;
     case SPHERICAL_COORDS:
     case ELLIPSOID_COORDS:
-      int req = snprintf(fname, STRLEN, "%s/%s/surf/%s.orig",
+      int req = snprintf(fname, 100, "%s/%s/surf/%s.orig",
 			 subjects_dir, sv->reg->name, hemi) ;   
-      if( req >= STRLEN ) {
+      if( req >= 100 ) {
 	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
       }
       fprintf(stderr, "reading surface %s\n", fname) ;
