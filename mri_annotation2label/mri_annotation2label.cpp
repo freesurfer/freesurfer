@@ -293,9 +293,9 @@ int main(int argc, char **argv)
       sprintf(labelfile,"%s-%03d.label",labelbase,ani);
     }
     if (outdir != NULL)  {
-      int req = snprintf(labelfile,STRLEN,"%s/%s.%s.label",outdir,hemi,
+      int req = snprintf(labelfile,1000,"%s/%s.%s.label",outdir,hemi,
 			 Surf->ct->entries[ani]->name);
-      if( req >= STRLEN ) {
+      if( req >= 1000 ) {
 	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
       }
     }
