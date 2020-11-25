@@ -89,8 +89,8 @@ main(int argc, char *argv[]) {
   if (!cp)
     ErrorExit(ERROR_BADPARM, "no subjects directory in environment.\n") ;
   strcpy (subjects_dir, cp) ;
-  int req = snprintf(surf_name,STRLEN,"%s/%s/surf/%s.%s",subjects_dir,subject_name,hemi,surface);
-  if( req >= STRLEN ) {
+  int req = snprintf(surf_name,NAME_LEN,"%s/%s/surf/%s.%s",subjects_dir,subject_name,hemi,surface);
+  if( req >= NAME_LEN ) {
     std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
   }
   fprintf (stderr, "reading %s...\n", surf_name) ;
@@ -121,8 +121,8 @@ main(int argc, char *argv[]) {
   /* Read in the T1 for this subject and change its name to the one
      they passed in. Set all values to 0. We'll use this as the
      segmentation volume. */
-  req = snprintf (mri_name,STRLEN, "%s/%s/mri/T1",subjects_dir,subject_name);
-  if( req >= STRLEN ) {
+  req = snprintf (mri_name,NAME_LEN, "%s/%s/mri/T1",subjects_dir,subject_name);
+  if( req >= NAME_LEN ) {
     std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
   }
 
