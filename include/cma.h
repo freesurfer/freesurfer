@@ -317,12 +317,17 @@
 // Interhemispheric tracts
 #define fmajor 5100 //                                  204 102 102 0
 #define fminor 5101 //                                  204 102 102 0
-#define cc_body 5102 //                                 204 102 102 0
-#define cc_genu 5103 //                                 255 153 153 0
-#define cc_rostrum 5104 //                              204 102 102 0
-#define cc_splenium 5105 //                             204 102 102 0
-#define acomm 5106 //                                   153 51  51  0
-#define mcp 5107 //                                     102 51  153 0
+#define cc_body 5102 //                                 255 153 153 0
+#define cc_bodyc 5103 //                                255 102 102 0
+#define cc_bodypf 5104 //                               255 102 102 0
+#define cc_bodypm 5105 //                               255 153 153 0
+#define cc_bodyp 5106 //                                255 102 102 0
+#define cc_bodyt 5107 //                                255 153 153 0
+#define cc_genu 5108 //                                 255 102 102 0
+#define cc_rostrum 5109 //                              204 51  51  0
+#define cc_splenium 5110 //                             204 51  51  0
+#define acomm 5111 //                                   204 102 102 0
+#define mcp 5112 //                                     102 51  153 0
 
 // Left hemi tracts
 #define lh_atr 5200 //                                  255 255 102 0
@@ -337,9 +342,9 @@
 #define lh_slf 5209 //                                  204 204 204 0
 #define lh_af 5210 //                                   153 255 255 0
 #define lh_ifof 5211 //                                 153 204 51  0
-#define lh_fx 5212 //                                   255 204 204 0
-#define lh_fat 5213 //                                  204 102 153 0
-#define lh_or 5214 //                                   255 153 102 0
+#define lh_fx 5212 //                                   255 153 204 0
+#define lh_fat 5213 //                                  204 51  102 0
+#define lh_or 5214 //                                   153 102 255 0
 #define lh_mlf 5215 //                                  255 255 204 0
 #define lh_slf1 5216 //                                 51  204 255 0
 #define lh_slf2 5217 //                                 51  255 204 0
@@ -365,9 +370,9 @@
 #define rh_slf 5309 //                                  204 204 204 0
 #define rh_af 5310 //                                   153 255 255 0
 #define rh_ifof 5311 //                                 153 204 51  0
-#define rh_fx 5312 //                                   255 204 204 0
-#define rh_fat 5313 //                                  204 102 153 0
-#define rh_or 5314 //                                   255 153 102 0
+#define rh_fx 5312 //                                   255 153 204 0
+#define rh_fat 5313 //                                  204 51  102 0
+#define rh_or 5314 //                                   153 102 255 0
 #define rh_mlf 5315 //                                  255 255 204 0
 #define rh_slf1 5316 //                                 51  204 255 0
 #define rh_slf2 5317 //                                 51  255 204 0

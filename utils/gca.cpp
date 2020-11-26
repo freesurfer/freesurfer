@@ -11638,6 +11638,21 @@ const char *cma_label_to_name(int label)
   if (label == cc_body) {
     return ("Corpus Callosum - Body");
   }
+  if (label == cc_bodypf) {
+    return ("Corpus Callosum - Body - Prefrontal");
+  }
+  if (label == cc_bodypm) {
+    return ("Corpus Callosum - Body - Premotor");
+  }
+  if (label == cc_bodyc) {
+    return ("Corpus Callosum - Body - Central");
+  }
+  if (label == cc_bodyp) {
+    return ("Corpus Callosum - Body - Parietal");
+  }
+  if (label == cc_bodyt) {
+    return ("Corpus Callosum - Body - Temporal");
+  }
   if (label == cc_genu) {
     return ("Corpus Callosum - Genu");
   }
