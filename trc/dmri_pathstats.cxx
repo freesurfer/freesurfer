@@ -413,10 +413,16 @@ int main(int argc, char **argv) {
     // Read .trk file
     Blood myblood(inTrkFile, inRoi1File ? inRoi1File : refVolFile, inRoi2File);
 
-    myblood.PrepStreamlines();
-//    myblood.ComputeHistogram();
-//    myblood.MatchStreamlineEnds();
-//    myblood.FindCenterStreamline();
+    cout << "Computing path histograms" << endl;
+    myblood.ComputeHistogram();
+
+    cout << "Matching streamline ends" << endl;
+    myblood.MatchStreamlineEnds();
+
+    if (outVoxFile || outMedianFile) {
+      cout << "Finding median streamline" << endl;
+      myblood.FindCenterStreamline();
+    }
 
     // Overall measures
     count   = myblood.GetNumStr();
