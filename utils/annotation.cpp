@@ -430,7 +430,8 @@ int MRISdivideAnnotation(MRI_SURFACE *mris, int *nunits)
     done[index] = 1 + num;
   }
 
-  printf("allocating new colortable with %d additional units...\n", nadded);
+  if (DIAG_VERBOSE_ON)
+    printf("allocating new colortable with %d additional units...\n", nadded);
   ct = CTABalloc(mris->ct->nentries + nadded);
   index = mris->ct->nentries;
   for (i = 0; i < mris->ct->nentries; i++) {
