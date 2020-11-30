@@ -6452,11 +6452,11 @@ void MainWindow::OnIOFinished( Layer* layer, int jobtype )
       lc_surface->AddLayer( layer );
     }
 
-    if ( !sf->HasValidVolumeGeometry() )
+    if ( !sf->HasValidVolumeGeometry() && !sf->property("IgnoreVG").toBool())
     {
       //  ShowNonModalMessage("Warning",
       //                      "Either this surface does not contain valid volume geometry information, or freeview failed to read the information. This surface may not align with volumes and other surfaces.");
-      cerr << "Did not find any volume info" << endl;
+      cout << "Did not find any volume info" << endl;
     }
 
     m_strLastDir = QFileInfo( layer->GetFileName() ).canonicalPath();

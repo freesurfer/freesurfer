@@ -218,6 +218,7 @@ bool LayerSurface::LoadSurfaceFromFile(bool bIgnoreVG)
 
   m_surfaceSource = new FSSurface( m_volumeRef ? m_volumeRef->GetSourceVolume() : NULL );
   m_surfaceSource->SetIgnoreVolumeGeometry(bIgnoreVG);
+  setProperty("IgnoreVG", bIgnoreVG);
   if ( !m_surfaceSource->MRISRead( m_sFilename,
                                    m_sVectorFilename,
                                    m_sPatchFilename,
