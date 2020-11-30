@@ -530,6 +530,9 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   addAction(ui->actionCycleOverlay);
   connect(ui->actionCycleOverlay, SIGNAL(triggered()), SIGNAL(CycleOverlayRequested()));
 
+  addAction(ui->actionCycleAnnotation);
+  connect(ui->actionCycleAnnotation, SIGNAL(triggered()), SIGNAL(CycleAnnotationRequested()));
+
   addAction(ui->actionViewLayerInfo);
   connect(ui->actionViewLayerInfo, SIGNAL(triggered(bool)), SLOT(OnViewLayerInfo()));
 

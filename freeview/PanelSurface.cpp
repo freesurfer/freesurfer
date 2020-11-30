@@ -175,6 +175,7 @@ PanelSurface::PanelSurface(QWidget *parent) :
   connect(m_wndConfigureOverlay, SIGNAL(MaskLoadRequested(QString)), mainwnd, SLOT(OnLoadSurfaceLabelRequested(QString)));
   connect(m_wndConfigureOverlay, SIGNAL(OverlayChanged()), SLOT(UpdateWidgets()));
   connect(mainwnd, SIGNAL(OverlayMaskRequested(QString)), m_wndConfigureOverlay, SLOT(LoadLabelMask(QString)));
+  connect(mainwnd, SIGNAL(CycleAnnotationRequested()), this, SLOT(OnCycleAnnotation()));
 
   m_wndEditAnnotation = new WindowEditAnnotation(this);
   m_wndEditAnnotation->hide();
@@ -848,6 +849,18 @@ void PanelSurface::OnComboAnnotation( int nSel_in )
       }
     }
     UpdateWidgets();
+  }
+}
+
+void PanelSurface::OnCycleAnnotation()
+{
+  LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
+  if ( surf && surf->GetNumberOfAnnotations() > 1)
+  {
+    int n = ui->comboBoxAnnotation->currentIndex()+1;
+    if (n > surf->GetNumberOfAnnotations())
+      n = 1;
+    ui->comboBoxAnnotation->setCurrentIndex(n);
   }
 }
 

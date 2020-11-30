@@ -239,6 +239,7 @@ Q_SIGNALS:
   void SurfaceRepositionIntensityChanged();
   void NewVolumeCreated();
   void CycleOverlayRequested();
+  void CycleAnnotationRequested();
   void SupplementLayerChanged();
   void OverlayMaskRequested(const QString& fn);
   void RefreshLookUpTableRequested();
