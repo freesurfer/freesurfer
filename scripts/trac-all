@@ -1778,7 +1778,7 @@ check_params:
     endif
 
     if ($#gmids != $#pathlist) then
-      echo "ERROR: length of pathway list ($pathlist) and endpoint label ID list
+      echo "ERROR: length of pathway list ($pathlist) and endpoint label ID list"
       echo "ERROR: ($gmids) do not match"
       exit 1
     endif
