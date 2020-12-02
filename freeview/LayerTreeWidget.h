@@ -80,6 +80,7 @@ public slots:
   void SetSelectedLayers(const QList<int>& layer_ids);
   void OnLinkVolumes();
   void OnUnlinkVolumes();
+  void LinkVolume(LayerMRI* vol);
 
 protected:
   bool event(QEvent* e);

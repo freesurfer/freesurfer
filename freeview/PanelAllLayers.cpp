@@ -34,6 +34,7 @@ PanelAllLayers::PanelAllLayers(QWidget *parent) :
   ui->treeWidgetLayers->setEditTriggers( QTreeWidget::SelectedClicked );
   ui->stackedWidget->hide();
   connect(ui->treeWidgetLayers, SIGNAL(ToReorderLayers(QList<Layer*>)), this, SIGNAL(ToReorderLayers(QList<Layer*>)));
+  connect(wnd, SIGNAL(LinkVolumeRequested(LayerMRI*)), ui->treeWidgetLayers, SLOT(LinkVolume(LayerMRI*)));
 
   for (int i = 0; i < ui->stackedWidget->count(); i++)
   {

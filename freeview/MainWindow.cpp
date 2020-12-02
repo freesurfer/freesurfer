@@ -1992,6 +1992,10 @@ void MainWindow::RunScript()
   {
     CommandShowLayer( sa );
   }
+  else if (cmd == "linkmri")
+  {
+    CommandLinkVolume( sa );
+  }
   else if ( cmd == "gotolabel" || cmd == "gotostructure")
   {
     CommandGoToLabel( sa );
@@ -2388,6 +2392,10 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
       else if ( subOption == "lock" || subOption == "locked" )
       {
         m_scripts.insert( 0, QStringList("locklayer") << "MRI" << subArgu );
+      }
+      else if ( subOption == "link" || subOption == "linked")
+      {
+        m_scripts.insert(0, QStringList("linkmri") << subArgu );
       }
       else if ( subOption == "visible" )
       {
@@ -9163,5 +9171,18 @@ void MainWindow::OnFloatPanels(bool bFloat)
     ui->widgetInfoPanel->show();
     ui->layoutInfoPanelHolder->addWidget(ui->widgetInfoPanel);
     m_widgetFloatInfoPanel->hide();
+  }
+}
+
+void MainWindow::CommandLinkVolume(const QStringList &cmd)
+{
+  if ( cmd.size() > 1 )
+  {
+    LayerMRI* mri = qobject_cast<LayerMRI*>(GetActiveLayer("MRI"));
+    if ( mri )
+    {
+      if ( cmd[1] == "1" || cmd[1].toLower() == "true" )
+        emit LinkVolumeRequested(mri);
+    }
   }
 }

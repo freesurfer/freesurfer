@@ -158,6 +158,7 @@ int main(int argc, char *argv[])
     "':surface_region=file' Load isosurface region(s) from the given file. isosurface display will automatically be turned on.\n\n"
     "':name=display_name' Set the display name of the volume.\n\n"
     "':lock=lock_status' Lock the volume layer so it will not be moved in the layer stack. Status can be '1' or 'true'.\n\n"
+    "':linked=flag' Link the volume layer with other linked volumes. Flag can be '1' or 'true'.\n\n"
     "':visible=visibility' Set the initial visibility of the volume. Visibility can be '1' or '0' or 'true' or 'false'.\n\n"
     "':smoothed=flag' Set smoothed display for the volume. Flag can be '1' or '0' or 'true' or 'false'.\n\n"
     "':rgb=flag' Display 3-frame volume in RGB color. Voxel values must be in the range of 0~255. Flag can be '1' or '0' or 'true' or 'false'.\n\n"

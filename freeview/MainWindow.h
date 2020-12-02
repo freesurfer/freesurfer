@@ -243,6 +243,7 @@ Q_SIGNALS:
   void SupplementLayerChanged();
   void OverlayMaskRequested(const QString& fn);
   void RefreshLookUpTableRequested();
+  void LinkVolumeRequested(LayerMRI* mri);
 
 public slots:
   void SetMode( int nMode );
@@ -430,6 +431,7 @@ protected:
   void CommandSetActiveLayer    ( const QStringList& cmd );
   void CommandExportLineProfileThickness  (const QStringList& cmd);
   void CommandSetVolumeTrackFrame   ( const QStringList& cmd );
+  void CommandLinkVolume        ( const QStringList& cmd );
 
 public:
   void CommandSetCamera         ( const QStringList& cmd );
