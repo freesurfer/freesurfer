@@ -434,6 +434,8 @@
     <addaction name="actionTogglePointSetVisibility"/>
     <addaction name="separator"/>
     <addaction name="actionToggleAllSurfaces"/>
+    <addaction name="actionCycleOverlay"/>
+    <addaction name="actionCycleAnnotation"/>
     <addaction name="separator"/>
     <addaction name="actionSelectAllLayers"/>
     <addaction name="actionDeselectAllLayers"/>
@@ -1749,7 +1751,7 @@
   </action>
   <action name="actionCycleOverlay">
    <property name="text">
-    <string>Cycle Overlay</string>
+    <string>Cycle Throught Overlays</string>
    </property>
    <property name="shortcut">
     <string>Alt+R</string>
@@ -1785,6 +1787,14 @@
    </property>
    <property name="toolTip">
     <string>Floating Panels</string>
+   </property>
+  </action>
+  <action name="actionCycleAnnotation">
+   <property name="text">
+    <string>Cycle Through Annotations</string>
+   </property>
+   <property name="shortcut">
+    <string>Meta+Alt+A</string>
    </property>
   </action>
  </widget>

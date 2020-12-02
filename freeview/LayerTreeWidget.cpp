@@ -714,6 +714,12 @@ void LayerTreeWidget::OnLinkVolumes()
   }
 }
 
+void LayerTreeWidget::LinkVolume(LayerMRI *vol)
+{
+  if (!m_linkedVolumes.contains(vol))
+    m_linkedVolumes << vol;
+}
+
 void LayerTreeWidget::OnUnlinkVolumes()
 {
     m_linkedVolumes.clear();

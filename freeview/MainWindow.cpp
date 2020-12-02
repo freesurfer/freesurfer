@@ -530,6 +530,9 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   addAction(ui->actionCycleOverlay);
   connect(ui->actionCycleOverlay, SIGNAL(triggered()), SIGNAL(CycleOverlayRequested()));
 
+  addAction(ui->actionCycleAnnotation);
+  connect(ui->actionCycleAnnotation, SIGNAL(triggered()), SIGNAL(CycleAnnotationRequested()));
+
   addAction(ui->actionViewLayerInfo);
   connect(ui->actionViewLayerInfo, SIGNAL(triggered(bool)), SLOT(OnViewLayerInfo()));
 
@@ -1989,6 +1992,10 @@ void MainWindow::RunScript()
   {
     CommandShowLayer( sa );
   }
+  else if (cmd == "linkmri")
+  {
+    CommandLinkVolume( sa );
+  }
   else if ( cmd == "gotolabel" || cmd == "gotostructure")
   {
     CommandGoToLabel( sa );
@@ -2385,6 +2392,10 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
       else if ( subOption == "lock" || subOption == "locked" )
       {
         m_scripts.insert( 0, QStringList("locklayer") << "MRI" << subArgu );
+      }
+      else if ( subOption == "link" || subOption == "linked")
+      {
+        m_scripts.insert(0, QStringList("linkmri") << subArgu );
       }
       else if ( subOption == "visible" )
       {
@@ -6452,11 +6463,11 @@ void MainWindow::OnIOFinished( Layer* layer, int jobtype )
       lc_surface->AddLayer( layer );
     }
 
-    if ( !sf->HasValidVolumeGeometry() )
+    if ( !sf->HasValidVolumeGeometry() && !sf->property("IgnoreVG").toBool())
     {
       //  ShowNonModalMessage("Warning",
       //                      "Either this surface does not contain valid volume geometry information, or freeview failed to read the information. This surface may not align with volumes and other surfaces.");
-      cerr << "Did not find any volume info" << endl;
+      cout << "Did not find any volume info" << endl;
     }
 
     m_strLastDir = QFileInfo( layer->GetFileName() ).canonicalPath();
@@ -9160,5 +9171,18 @@ void MainWindow::OnFloatPanels(bool bFloat)
     ui->widgetInfoPanel->show();
     ui->layoutInfoPanelHolder->addWidget(ui->widgetInfoPanel);
     m_widgetFloatInfoPanel->hide();
+  }
+}
+
+void MainWindow::CommandLinkVolume(const QStringList &cmd)
+{
+  if ( cmd.size() > 1 )
+  {
+    LayerMRI* mri = qobject_cast<LayerMRI*>(GetActiveLayer("MRI"));
+    if ( mri )
+    {
+      if ( cmd[1] == "1" || cmd[1].toLower() == "true" )
+        emit LinkVolumeRequested(mri);
+    }
   }
 }
