@@ -762,6 +762,9 @@ bool LayerPointSet::RemovePoint( int nIndex )
 
 void LayerPointSet::UpdatePoint( int nIndex, double* ras, bool rebuildActor )
 {
+  if (m_points.size() <= nIndex)
+    return;
+
   if ( GetProperty()->GetSnapToVoxelCenter() )
   {
     m_layerRef->SnapToVoxelCenter( ras, m_points[nIndex].pt );

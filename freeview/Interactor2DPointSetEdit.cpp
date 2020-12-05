@@ -73,11 +73,13 @@ bool Interactor2DPointSetEdit::ProcessMouseDownEvent( QMouseEvent* event, Render
         if ( m_nCurrentIndex < 0 )
         {
           m_nCurrentIndex = wp->AddPoint( ras );
+          m_bEditing = false;
         }
       }
-      else
+      else if (wp->RemovePoint( ras ))
       {
-        wp->RemovePoint( ras );
+        m_nCurrentIndex = wp->GetNumberOfPoints()-1;
+        m_bEditing = false;
       }
     }
 
