@@ -1407,6 +1407,37 @@ if ($dointra && $dobase) then
   end
 endif
 
+#------------ Tensor fit --------------------------------------------------#
+
+if ($dotensor && ! $dobase) then
+  echo "#-------------------------------------" |& tee -a $LF
+  echo "#@# Tensor fit `date`" |& tee -a $LF
+
+  if ($usemaskanat) then
+    set brainmask = $labdir/diff/aparc+aseg_mask.$reg.nii.gz
+  else
+    set brainmask = $labdir/diff/lowb_brain_mask.nii.gz
+  endif
+
+  # LS tensor estimation
+  set cmd = dtifit
+  set cmd = ($cmd -k $dwidir/data.nii.gz)
+  set cmd = ($cmd -m $brainmask)
+  set cmd = ($cmd -r $dwidir/bvecs)
+  set cmd = ($cmd -b $dwidir/bvals)
+  set cmd = ($cmd -o $dwidir/dtifit)
+  echo $cmd |& tee -a $LF |& tee -a $CF
+  if ($RunIt) then
+    $fs_time $cmd |& tee -a $LF
+    if ($status) goto error_exit
+  endif
+endif
+
+if ($dotensor && $dobase) then
+  echo "ERROR: Tensor-fit step not available for base template"
+  goto error_exit
+endif
+
 #------------ Inter-subject registration ----------------------------------#
 
 if ($dointer && ! $dobase) then
@@ -1957,37 +1988,6 @@ if ($dointer && $dobase) then
       if ($status) goto error_exit
     endif
   endif
-endif
-
-#------------ Tensor fit --------------------------------------------------#
-
-if ($dotensor && ! $dobase) then
-  echo "#-------------------------------------" |& tee -a $LF
-  echo "#@# Tensor fit `date`" |& tee -a $LF
-
-  if ($usemaskanat) then
-    set brainmask = $labdir/diff/aparc+aseg_mask.$reg.nii.gz
-  else
-    set brainmask = $labdir/diff/lowb_brain_mask.nii.gz
-  endif
-
-  # LS tensor estimation
-  set cmd = dtifit
-  set cmd = ($cmd -k $dwidir/data.nii.gz)
-  set cmd = ($cmd -m $brainmask)
-  set cmd = ($cmd -r $dwidir/bvecs)
-  set cmd = ($cmd -b $dwidir/bvals)
-  set cmd = ($cmd -o $dwidir/dtifit)
-  echo $cmd |& tee -a $LF |& tee -a $CF
-  if ($RunIt) then
-    $fs_time $cmd |& tee -a $LF
-    if ($status) goto error_exit
-  endif
-endif
-
-if ($dotensor && $dobase) then
-  echo "ERROR: Tensor-fit step not available for base template"
-  goto error_exit
 endif
 
 #------------ Combine training data ---------------------------------------#
