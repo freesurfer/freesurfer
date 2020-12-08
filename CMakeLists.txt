@@ -541,6 +541,7 @@ if(NOT MINIMAL)
     mri_strip_subject_info
     mri_surfacemask
     mri_synthesize
+    mri_threshold
     mri_topologycorrection
     mri_train
     mri_transform
