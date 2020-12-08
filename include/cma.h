@@ -341,7 +341,7 @@
 #define lh_cb 5208 //                                   0   153 153 0
 #define lh_slf 5209 //                                  204 204 204 0
 #define lh_af 5210 //                                   153 255 255 0
-#define lh_ifof 5211 //                                 153 204 51  0
+#define lh_ifof 5211 //                                 51  153 51  0
 #define lh_fx 5212 //                                   255 153 204 0
 #define lh_fat 5213 //                                  204 51  102 0
 #define lh_or 5214 //                                   153 102 255 0
@@ -354,7 +354,7 @@
 #define lh_ar 5221 //                                   153 0   204 0
 #define lh_cbd 5222 //                                  0   153 153 0
 #define lh_cbv 5223 //                                  153 204 0   0
-#define lh_emc 5224 //                                  153 204 51  0
+#define lh_emc 5224 //                                  51  153 51  0
 #define lh_uf 5225 //                                   102 153 255 0
 
 // Right hemi tracts
@@ -369,7 +369,7 @@
 #define rh_cb 5308 //                                   0   153 153 0
 #define rh_slf 5309 //                                  204 204 204 0
 #define rh_af 5310 //                                   153 255 255 0
-#define rh_ifof 5311 //                                 153 204 51  0
+#define rh_ifof 5311 //                                 51  153 51  0
 #define rh_fx 5312 //                                   255 153 204 0
 #define rh_fat 5313 //                                  204 51  102 0
 #define rh_or 5314 //                                   153 102 255 0
@@ -382,7 +382,7 @@
 #define rh_ar 5321 //                                   153 0   204 0
 #define rh_cbd 5322 //                                  0   153 153 0
 #define rh_cbv 5323 //                                  153 204 0   0
-#define rh_emc 5324 //                                  153 204 51  0
+#define rh_emc 5324 //                                  51  153 51  0
 #define rh_uf 5325 //                                   102 153 255 0
 
 
