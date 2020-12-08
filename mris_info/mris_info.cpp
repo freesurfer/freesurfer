@@ -82,6 +82,7 @@ int vmatlab = -1;
 char *vmatlabfile=NULL;
 int  edgenox = -1;
 int CountIntersections = 0;
+char *patchname=NULL;
 
 int MRISsaveMarkedAsPointSet(char *fname, MRIS *surf);
 int MRISedgeVertices2Pointset(MRIS *surf, const MRI *mask, const int metricid, const double thresh, const char *fname);
@@ -163,12 +164,18 @@ int main(int argc, char *argv[]) {
     cerr << "could not open " << surffile << endl;
     return -1;
   }
+  if(patchname){
+    int err = MRISreadPatch(mris, patchname);
+    if(err) exit(1);
+  }
   MRIScomputeMetricProperties(mris) ;
-  MRISedges(mris);
-  MRIScorners(mris);
-  MRISfaceMetric(mris,0);
-  MRISedgeMetric(mris,0);
-  MRIScornerMetric(mris,0);
+  if(DoEdgeStats){
+    MRISedges(mris);
+    MRIScorners(mris);
+    MRISfaceMetric(mris,0);
+    MRISedgeMetric(mris,0);
+    MRIScornerMetric(mris,0);
+  }
 
   if(label){
     // Create a mask from the label
@@ -472,6 +479,11 @@ static int parse_commandline(int argc, char **argv) {
       edgenox = atoi(pargv[0]);
       nargsused = 1;
     } 
+    else if ( !strcmp(option, "--patch") ) {
+      if (nargc < 1) argnerr(option,1);
+      patchname = pargv[0];
+      nargsused = 1;
+    } 
     else if ( !strcmp(option, "--quality") ) {
       DoQuality = 1;
     } 
@@ -557,8 +569,8 @@ static void print_usage(void) {
   printf("  --o outfile : save some data to outfile\n");
   printf("  --s subject hemi surfname : instead of surfacefile\n");
   printf("  --t : apply talairach xfm before reporting info\n");
-  printf("  --r : rescale group surface so metrics same as "
-         "avg of individuals\n");
+  printf("  --r : rescale group surface so metrics same as avg of individuals\n");
+  printf("  --patch patchfile : load patch before reporting\n");
   printf("  --v vnum : print out vertex information for vertex vnum\n") ;
   printf("  --vx vnum : print out extended vertex information for vertex vnum\n") ;
   printf("     NbrInfo: nbrno, nbrvno, nbrdist, nbrarea, faceno, facearea\n");
