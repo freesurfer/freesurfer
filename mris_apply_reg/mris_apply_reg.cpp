@@ -402,16 +402,16 @@ static int parse_commandline(int argc, char **argv) {
       printf("Reading in %s\n",pargv[0]);
       MRIS *ltasurf = MRISread(pargv[0]);
       if(ltasurf==NULL) exit(1);
-      ltasurf->vg.valid = 0;
+      ltasurf->vg.valid = 0; // needed for ltaMult
       printf("Reading in %s\n",pargv[1]);
       MRISreadPatch(ltasurf,pargv[1]);
       printf("Reading in %s\n",pargv[2]);
       LTA *lta = LTAread(pargv[2]);
       if(lta==NULL) exit(1);
+      lta->type = REGISTER_DAT; // hack, needed for ltaMult
       int err = MRISltaMultiply(ltasurf, lta);
       if(err) exit(1);
-      if (center_surface)
-	MRIScenter(ltasurf, ltasurf);
+      if (center_surface) MRIScenter(ltasurf, ltasurf);
       printf("Writing patch to %s\n",pargv[3]);
       err = MRISwritePatch(ltasurf,pargv[3]);
       if(err) exit(1);
