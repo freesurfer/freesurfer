@@ -32,6 +32,8 @@ parser.add_argument('--lesion', action='store_true', default=False, help='Enable
 parser.add_argument('--threshold', type=float, default=0.3, help='Lesion threshold for final segmentation. Lesion segmentation must be enabled.')
 parser.add_argument('--samples', type=int, default=50, help='Number of samples for lesion segmentation. Lesion segmentation must be enabled.')
 parser.add_argument('--burnin', type=int, default=50, help='Number of burn-in samples for lesion segmentation. Lesion segmentation must be enabled.')
+parser.add_argument('--lesion-pseudo-samples', nargs=2, type=float, default=[500, 500], help='Lesion pseudo samples mean and variance.')
+parser.add_argument('--lesion-rho', type=float, default=50, help='Lesion ratio.')
 parser.add_argument('--lesion-mask-structure', default='Cortex', help='Intensity mask brain structure. Lesion segmentation must be enabled.')
 parser.add_argument('--lesion-mask-pattern', type=int, nargs='+', help='Lesion mask list (set value for each input volume): -1 below lesion mask structure mean, +1 above, 0 no mask. Lesion segmentation must be enabled.')
 # optional debugging options
@@ -135,6 +137,9 @@ if args.lesion:
     # Delay import until here so that tensorflow doesn't get loaded unless needed
     from freesurfer.samseg.SamsegLesion import SamsegLesion
     samseg = SamsegLesion(**samseg_kwargs,
+        numberOfPseudoSamplesMean=args.lesion_pseudo_samples[0],
+        numberOfPseudoSamplesVariance=args.lesion_pseudo_samples[1],
+        rho=args.lesion_rho,
         intensityMaskingSearchString=args.lesion_mask_structure,
         intensityMaskingPattern=lesion_mask_pattern,
         numberOfBurnInSteps=args.burnin,
