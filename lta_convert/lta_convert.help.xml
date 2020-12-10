@@ -62,6 +62,8 @@
       <explanation>inverts transform</explanation>
       <argument>--ltavox2vox</argument>
       <explanation>(with --ltaout) output type VOX2VOX (default RAS2RAS)</explanation>
+      <argument>--ltatkreg</argument>
+      <explanation>(with --ltaout) output type REGISTER_DAT (default RAS2RAS)</explanation>
       <intro>While LTA contains src and trg information, other file formats 
 are missing this information and you need to explicitly pass it
 via --src and/or --trg. You can also use this if you want to 
