@@ -71,10 +71,12 @@ const char *Progname = "dmri_pathstats";
 float probThresh = .2, faThresh = 0;
 char PathMAP[] = "path.map.txt";
 char *inTrkFile = NULL, *inRoi1File = NULL, *inRoi2File = NULL,
-     *inTrcDir = NULL, *inVoxFile = PathMAP, *dtBase = NULL,
+     *inTrcDir = NULL, *inVoxFile = PathMAP, 
+     *inXfmFile = NULL, *dtBase = NULL,
      *outFile = NULL, *outVoxFile = NULL,
      *outMedianFile = NULL, *outEndBase = NULL, *refVolFile = NULL,
      fname[PATH_MAX];
+vector<char *> measFileList, measNameList;
 
 MRI *l1, *l2, *l3, *v1;
 
@@ -88,6 +90,7 @@ int main(int argc, char **argv) {
   int nargs, cputime, count, volume, lenmin, lenmax, lencent;
   float lenavg;
   vector<float> avg, wavg, cavg;
+  vector<string> measname;
   vector<MRI *> meas;
   ofstream fout;
 
@@ -115,6 +118,25 @@ int main(int argc, char **argv) {
   printf("Computing statistics on %s...\n", inTrcDir?inTrcDir:inTrkFile);
   cputimer.reset();
 
+  // Read microstructural measure volumes
+  for (vector<char *>::const_iterator istr = measFileList.begin();
+                                      istr < measFileList.end(); istr++)
+    meas.push_back(MRIread(*istr));
+
+  for (vector<char *>::const_iterator istr = measNameList.begin();
+                                      istr < measNameList.end(); istr++)
+    measname.push_back(string(*istr));
+
+  if (meas.size() > 0 && measname.size() == 0) {
+    int k = 1;
+
+    for (vector<MRI *>::const_iterator imeas = meas.begin();
+                                       imeas < meas.end(); imeas++) {
+      measname.push_back("Meas" + to_string(k));
+      k++;
+    }
+  }
+
   if (dtBase) {
     sprintf(fname, "%s_L1.nii.gz", dtBase);
     l1 = MRIread(fname);
@@ -125,24 +147,37 @@ int main(int argc, char **argv) {
     sprintf(fname, "%s_V1.nii.gz", dtBase);
     v1 = MRIread(fname);
 
-    sprintf(fname, "%s_L1.nii.gz", dtBase);
-    meas.push_back(MRIread(fname));		// Axial diffusivity
-    sprintf(fname, "%s_L2.nii.gz", dtBase);
+    sprintf(fname, "%s_L1.nii.gz", dtBase);	// Axial diffusivity
+    meas.push_back(MRIread(fname));
+    measname.push_back("AD");
+    sprintf(fname, "%s_L2.nii.gz", dtBase);	// Radial diffusivity
     meas.push_back(MRIread(fname));
     MRIadd(l3, meas[1], meas[1]);
-    MRIscalarMul(meas[1], meas[1], .5);		// Radial diffusivity
-    sprintf(fname, "%s_MD.nii.gz", dtBase);
-    meas.push_back(MRIread(fname));		// Mean diffusivity
-    sprintf(fname, "%s_FA.nii.gz", dtBase);
-    meas.push_back(MRIread(fname));		// Fractional anisotropy
+    MRIscalarMul(meas[1], meas[1], .5);
+    measname.push_back("RD");
+    sprintf(fname, "%s_MD.nii.gz", dtBase);	// Mean diffusivity
+    meas.push_back(MRIread(fname));
+    measname.push_back("MD");
+    sprintf(fname, "%s_FA.nii.gz", dtBase);	// Fractional anisotropy
+    meas.push_back(MRIread(fname));
+    measname.push_back("FA");
   }
 
   if (outVoxFile) {
     WriteHeader(outVoxFile);
 
     ofstream fvox(outVoxFile, ios::app);
+
     fvox << "# pathway start" << endl
-         << "x y z AD RD MD FA AD_Avg RD_Avg MD_Avg FA_Avg" << endl;
+         << "x y z";
+    for (vector<string>::const_iterator iname = measname.begin();
+                                        iname < measname.end(); iname++)
+      fvox << " " << *iname;
+    for (vector<string>::const_iterator iname = measname.begin();
+                                        iname < measname.end(); iname++)
+      fvox << " " << *iname << "_Avg";
+    fvox << endl;
+
     fvox.close();
   }
 
@@ -260,7 +295,7 @@ int main(int argc, char **argv) {
     lenavg  = ( (lenavg > 0) ? (lenavg / (float) lengths.size()) : 0 );
     lencent = pathmap.size() / 3;
 
-    if (dtBase) {
+    if (!meas.empty()) {
       vector<float>::iterator iavg;
 
       cavg.resize(meas.size());
@@ -432,7 +467,7 @@ int main(int argc, char **argv) {
     lenavg  = myblood.GetLengthAvg();
     lencent = myblood.GetLengthCenter();
 
-    if (dtBase) {
+    if (!meas.empty()) {
       avg  = myblood.ComputeAvgPath(meas);
       wavg = myblood.ComputeWeightAvgPath(meas);
       cavg = myblood.ComputeAvgCenter(meas);
@@ -453,7 +488,7 @@ int main(int argc, char **argv) {
       if (refVolFile)
         refvol = MRIread(refVolFile);
       else
-        refvol = l1;
+        refvol = meas[0];
 
       myblood.WriteEndPoints(outEndBase, refvol);
 
@@ -463,6 +498,10 @@ int main(int argc, char **argv) {
   }
 
   if (outFile) {
+    vector<float>::const_iterator iavg = avg.begin(), iwavg = wavg.begin(), 
+                                  icavg = cavg.begin();
+    vector<string>::const_iterator iname = measname.begin();
+
     WriteHeader(outFile);
 
     fout.open(outFile, ios::app);
@@ -474,19 +513,15 @@ int main(int argc, char **argv) {
          << "Len_Avg "    << lenavg  << endl
          << "Len_Center " << lencent << endl;
 
-    if (dtBase)
-      fout << "AD_Avg "        << avg[0]  << endl
-           << "AD_Avg_Weight " << wavg[0] << endl
-           << "AD_Avg_Center " << cavg[0] << endl
-           << "RD_Avg "        << avg[1]  << endl
-           << "RD_Avg_Weight " << wavg[1] << endl
-           << "RD_Avg_Center " << cavg[1] << endl
-           << "MD_Avg "        << avg[2]  << endl
-           << "MD_Avg_Weight " << wavg[2] << endl
-           << "MD_Avg_Center " << cavg[2] << endl
-           << "FA_Avg "        << avg[3]  << endl
-           << "FA_Avg_Weight " << wavg[3] << endl
-           << "FA_Avg_Center " << cavg[3] << endl;
+    for (vector<MRI *>::const_iterator imeas = meas.begin();
+                                       imeas < meas.end(); imeas++) {
+      fout << *iname << "_Avg "        << *iavg  << endl
+           << *iname << "_Avg_Weight " << *iwavg << endl
+           << *iname << "_Avg_Center " << *icavg << endl;
+
+      iname++;
+      iavg++; iwavg++; icavg++;
+    }
 
     fout.close();
   }
@@ -547,6 +582,27 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       inVoxFile = pargv[0];
       nargsused = 1;
+    }
+    else if (!strcmp(option, "--inlta")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      inXfmFile = fio_fullpath(pargv[0]);
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--meas")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      nargsused = 0;
+      while (nargsused < nargc && strncmp(pargv[nargsused], "--", 2)) {
+        measFileList.push_back(fio_fullpath(pargv[nargsused]));
+        nargsused++;
+      }
+    }
+    else if (!strcmp(option, "--measname")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      nargsused = 0;
+      while (nargsused < nargc && strncmp(pargv[nargsused], "--", 2)) {
+        measNameList.push_back(pargv[nargsused]);
+        nargsused++;
+      }
     }
     else if (!strcmp(option, "--dtbase")) {
       if (nargc < 1) CMDargNErr(option,1);
@@ -617,13 +673,17 @@ static void print_usage(void)
   printf("USAGE: ./dmri_pathstats\n");
   printf("\n");
   printf("   --intrk <file>:\n");
-  printf("     Input trackvis .trk file\n");
+  printf("     Input .trk file\n");
   printf("   --rois <file1> <file2>:\n");
   printf("     Input labeling ROIs for .trk file (optional)\n");
   printf("   --intrc <file>:\n");
   printf("     Input tracula directory\n");
+  printf("   --meas <file> [...]:\n");
+  printf("     Input microstructural measure volume(s) (optional)\n");
+  printf("   --measname <name> [...]:\n");
+  printf("     Name(s) of microstructural measure(s) (as many as volumes)\n");
   printf("   --dtbase <file>:\n");
-  printf("     Base name of input dtifit files (optional)\n");
+  printf("     Base name of input dtifit volumes (optional)\n");
   printf("   --path <name>:\n");
   printf("     Name of pathway (optional, written to output files)\n");
   printf("   --subj <name>:\n");
@@ -687,9 +747,14 @@ static void check_options(void) {
     printf("ERROR: must specify at least one type of output\n");
     exit(1);
   }
-  if(outVoxFile && !dtBase) {
-    printf("ERROR: must specify dtifit base name for voxel-by-voxel output\n");
+  if(outVoxFile && measFileList.empty() && !dtBase) {
+    printf("ERROR: must specify microstructure volumes for voxel-by-voxel output\n");
     exit(1);
+  }
+  if (!measFileList.empty() && !measNameList.empty() && 
+      measFileList.size() != measNameList.size()) {
+        printf("ERROR: must specify equal number of microstructural measure volumes and names\n");
+        exit(1);
   }
   if(outMedianFile && !inTrkFile) {
     printf("ERROR: must specify input .trk file to use --median\n");
@@ -699,7 +764,7 @@ static void check_options(void) {
     printf("ERROR: must specify input .trk file to use --ends\n");
     exit(1);
   }
-  if(outEndBase && !refVolFile && !dtBase) {
+  if(outEndBase && !refVolFile && !dtBase && measFileList.empty()) {
     printf("ERROR: must specify reference volume to use --ends\n");
     exit(1);
   }
@@ -754,6 +819,20 @@ static void dump_options(FILE *fp) {
   }
   if (inTrcDir)
     fprintf(fp, "Input tracula directory: %s\n", inTrcDir);
+  if (!measFileList.empty()) {
+    cout << "Microstructural measure files:";
+    for (vector<char *>::const_iterator istr = measFileList.begin();
+                                        istr < measFileList.end(); istr++)
+      cout << " " << *istr;
+    cout << endl;
+  }
+  if (!measNameList.empty()) {
+    cout << "Microstructural measure names:";
+    for (vector<char *>::const_iterator istr = measNameList.begin();
+                                        istr < measNameList.end(); istr++)
+      cout << " " << *istr;
+    cout << endl;
+  }
   if (dtBase)
     fprintf(fp, "Input DTI fit base: %s\n", dtBase);
 //  if (pathName)
