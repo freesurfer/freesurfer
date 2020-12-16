@@ -82,10 +82,12 @@ struct utsname uts;
 char *SrcValFile=NULL;
 char *TrgValFile=NULL;
 char *SurfRegFile[100];
+char *SurfPatchFile[100];
 int ReverseMapFlag = 1;
 int DoJac = 0;
 int UseHash = 1;
 int nsurfs = 0;
+int npatches = 0;
 int DoSynthRand = 0;
 int DoSynthOnes = 0;
 int SynthSeed = -1;
@@ -137,6 +139,10 @@ int main(int argc, char *argv[]) {
       SurfReg[n] = MRISread(SurfRegFile[n]);
     free(base);
     if(SurfReg[n]==NULL) exit(1);
+    if(npatches>0){
+      printf("Loading patch %s\n",SurfPatchFile[n]);
+      MRISreadPatch(SurfReg[n], SurfPatchFile[n]);
+    }
   }
 
   if(SourceSurfRegScale > 0){
@@ -364,6 +370,14 @@ static int parse_commandline(int argc, char **argv) {
       nsurfs++;
       nargsused = 2;
     } 
+    else if (!strcasecmp(option, "--patch")) {
+      if (nargc < 2) CMDargNErr(option,2);
+      SurfPatchFile[npatches] = pargv[0];
+      npatches++;
+      SurfPatchFile[npatches] = pargv[1];
+      npatches++;
+      nargsused = 2;
+    } 
     else if (!strcasecmp(option, "--lta")) {
       if(nargc < 3) CMDargNErr(option,3);
       printf("Reading in %s\n",pargv[0]);
@@ -383,6 +397,42 @@ static int parse_commandline(int argc, char **argv) {
       printf("mris_apply_reg done\n");
       exit(0);
     } 
+    else if (!strcasecmp(option, "--lta-patch")) {
+      if(nargc < 4) CMDargNErr(option,4);
+      printf("Reading in %s\n",pargv[0]);
+      MRIS *ltasurf = MRISread(pargv[0]);
+      if(ltasurf==NULL) exit(1);
+      ltasurf->vg.valid = 0; // needed for ltaMult
+      printf("Reading in %s\n",pargv[1]);
+      MRISreadPatch(ltasurf,pargv[1]);
+      printf("Reading in %s\n",pargv[2]);
+      LTA *lta = LTAread(pargv[2]);
+      if(lta==NULL) exit(1);
+      lta->type = REGISTER_DAT; // hack, needed for ltaMult
+      int err = MRISltaMultiply(ltasurf, lta);
+      if(err) exit(1);
+      if (center_surface) MRIScenter(ltasurf, ltasurf);
+      printf("Writing patch to %s\n",pargv[3]);
+      err = MRISwritePatch(ltasurf,pargv[3]);
+      if(err) exit(1);
+      nargsused = 4;
+      printf("mris_apply_reg done\n");
+      exit(0);
+    } 
+    else if (!strcasecmp(option, "--reverse")) {
+      if(nargc < 3) CMDargNErr(option,3);
+      MRIS *revsurf = MRISread(pargv[0]);
+      if(revsurf==NULL) exit(1);
+      if(strcmp(pargv[1],"nopatch")!=0)	MRISreadPatch(revsurf,pargv[1]);
+      MRISreverse(revsurf, REVERSE_X, 1);
+      int err;
+      if(strcmp(pargv[1],"nopatch")!=0)	err = MRISwritePatch(revsurf,pargv[2]);
+      else                              err = MRISwrite(revsurf,pargv[2]);
+      if(err) exit(1);
+      nargsused = 3;
+      printf("mris_apply_reg done\n");
+      exit(0);
+    }
     else if (!strcasecmp(option, "--m3z")) {
       if(nargc < 3) CMDargNErr(option,3);
       printf("Reading in %s\n",pargv[0]);
@@ -450,6 +500,9 @@ static void print_usage(void) {
   printf("\n");
   printf("   --lta source-surf ltafile output-surf : apply LTA transform\n");
   printf("     other options do not apply to --lta\n");
+  printf("   --lta-patch source-surf surfpatch ltafile output-patch : apply LTA transform to patch\n");
+  printf("   --reverse surf patchopt output : LR reverse suface. patchopt=patchfile or nopatch\n");
+  printf("   --patch srcregNpatch trgregNpatch : patches, one for each --streg\n");
   printf("\n");
   printf("   --m3z source-surf m3zfile output-surf : apply m3z transform\n");
   printf("     other options do not apply to --m3z\n");
@@ -515,6 +568,10 @@ static void check_options(void) {
       printf("ERROR: %s does not exist or is not readable by you\n",SurfRegFile[n]);
       exit(1);
     }
+  }
+  if(npatches>0 && npatches != nsurfs){
+    printf("ERROR: number of patches must match number of surfaces\n");
+    exit(1);
   }
   return;
 }

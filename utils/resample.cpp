@@ -881,7 +881,8 @@ MRI *MRISapplyReg(MRI *SrcSurfVals, MRI_SURFACE **SurfReg, int nsurfs, int Rever
   MRI *SrcHits, *TrgHits;
 
   npairs = nsurfs / 2;
-  printf("MRISapplyReg: nsurfs = %d, revmap=%d, jac=%d,  hash=%d\n", nsurfs, ReverseMapFlag, DoJac, UseHash);
+  printf("MRISapplyReg(): nsurfs = %d, revmap=%d, jac=%d,  hash=%d\n", nsurfs, ReverseMapFlag, DoJac, UseHash);
+  printf("  Skipping ripped vertices\n");
 
   SrcSurfReg = SurfReg[0];
   TrgSurfReg = SurfReg[nsurfs - 1];
@@ -954,6 +955,7 @@ MRI *MRISapplyReg(MRI *SrcSurfVals, MRI_SURFACE **SurfReg, int nsurfs, int Rever
   printf("MRISapplyReg: Forward Loop (%d)\n", TrgSurfReg->nvertices);
   // nunmapped = 0;
   for (tvtx = 0; tvtx < TrgSurfReg->nvertices; tvtx++) {
+    if(TrgSurfReg->vertices[tvtx].ripflag) continue;
     if (!UseHash) {
       if (tvtx % 100 == 0) {
         printf("%5d ", tvtx);
@@ -967,19 +969,29 @@ MRI *MRISapplyReg(MRI *SrcSurfVals, MRI_SURFACE **SurfReg, int nsurfs, int Rever
 
     // Compute the source vertex that corresponds to this target vertex
     tvtxN = tvtx;
+    int skip = 0;
     for (n = npairs - 1; n >= 0; n--) {
       kS = 2 * n;
       kT = kS + 1;
       // printf("%5d %5d %d %d %d\n",tvtx,tvtxN,n,kS,kT);
       v = &(SurfReg[kT]->vertices[tvtxN]);
+      if(v->ripflag){
+	skip = 1;
+	break;
+      }
       /* find closest source vertex */
       if (UseHash) svtx = MHTfindClosestVertexNo2(Hash[kS], SurfReg[kS], SurfReg[kT], v, &dmin);
       if (!UseHash || svtx < 0) {
         if (svtx < 0) printf("Target vertex %d of pair %d unmapped in hash, using brute force\n", tvtxN, n);
         svtx = MRISfindClosestVertex(SurfReg[kS], v->x, v->y, v->z, &dmin, CURRENT_VERTICES);
       }
+      if(SurfReg[kS]->vertices[svtx].ripflag){
+	skip = 1;
+	break;
+      }
       tvtxN = svtx;
     }
+    if(skip) continue;
 
     if (!DoJac) {
       /* update the number of hits */

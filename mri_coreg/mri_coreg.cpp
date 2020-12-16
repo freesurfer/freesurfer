@@ -1504,7 +1504,7 @@ double *COREGoptSchema2MatrixPar(COREG *coreg, double *par)
     par[6] = par[7] = par[8] = 1; // scaling
     par[0] = coreg->params[0]; // x trans
     par[1] = coreg->params[1]; // y trans
-    par[5] = coreg->params[2]; // rotation about z
+    par[5] = coreg->params[5]; // rotation about z
     break;
   }
   return(par);
@@ -1651,6 +1651,8 @@ int COREGMinPowell()
   printf("Init Powel Params dof = %d\n",dof);
   pPowel = vector(1, dof) ;
   for(n=0; n < dof; n++) pPowel[n+1] = coreg->params[n];
+  for(n=0; n < dof; n++) printf("%f ",coreg->params[n]);
+  printf("\n");
 
   xi = matrix(1, dof, 1, dof) ;
   for (r = 1 ; r <= dof ; r++) {

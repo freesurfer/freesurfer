@@ -868,6 +868,11 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     P.ltaouttype = LINEAR_VOX_TO_VOX;
     cout << "--ltavox2vox: output LTA as VOX_TO_VOX transform." << endl;
   }
+  else if (!strcmp(option, "LTATKREG") )
+  {
+    P.ltaouttype = REGISTER_DAT;
+    cout << "--ltatkreg: output LTA as REGISTER_DAT transform." << endl;
+  }
   else if (!strcmp(option, "INVERT") )
   {
     P.invert = true;
