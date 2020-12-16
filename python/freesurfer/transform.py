@@ -70,7 +70,7 @@ class LinearTransform:
             return self
         # include source/target RAS information
         matrix = self.target.affine @ self.matrix @ np.linalg.inv(self.source.affine)
-        return LinearTransform(matrix, source=self.source, target=self.target, type=LinearTransform.Type.vox)
+        return LinearTransform(matrix, source=self.source, target=self.target, type=LinearTransform.Type.ras)
 
     def as_vox(self):
         '''Converts affine matrix to a VOX to VOX transform.'''
@@ -80,8 +80,8 @@ class LinearTransform:
         if self.type == LinearTransform.Type.vox:
             return self
         # exclude source/target RAS information
-        matrix = self.target.affine @ self.matrix @ np.linalg.inv(self.source.affine)
-        return LinearTransform(matrix, source=self.source, target=self.target, type=LinearTransform.Type.ras)
+        matrix = np.linalg.inv(self.source.affine) @ self.matrix @ self.target.affine
+        return LinearTransform(matrix, source=self.source, target=self.target, type=LinearTransform.Type.vox)
 
     def write(self, filename):
         '''Writes the transform to an LTA file.'''
