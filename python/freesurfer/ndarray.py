@@ -328,6 +328,48 @@ class Volume(ArrayContainerTemplate, Transformable):
         cropped_vol.copy_metadata(self)
         return cropped_vol
 
+    def conform_to_shape(self, shape):
+        '''
+        Returns a volume conformed to a given shape. Image will be
+        centered in the conformed volume.
+
+        TODO: Enable multi-frame support.
+        '''
+
+        if self.nframes > 1:
+            raise NotImplementedError('multiframe volumes not support yet for conforming')
+
+        delta = (np.array(shape) - np.array(self.shape[:3])) / 2
+        low = np.floor(delta).astype(int)
+        high = np.ceil(delta).astype(int)
+
+        c_low = np.clip(low, 0, None)
+        c_high = np.clip(high, 0, None)
+        conformed_data = np.pad(self.data.squeeze(), list(zip(c_low, c_high)))
+
+        c_low = np.clip(-low, 0, None)
+        c_high = conformed_data.shape[:3] - np.clip(-high, 0, None)
+        cropping = tuple([slice(a, b) for a, b in zip(c_low, c_high)])
+        conformed_data = conformed_data[cropping]
+
+        # compute new affine if one exists
+        if self.affine is not None:
+            matrix = np.eye(4)
+            matrix[:3, :3] = self.affine[:3, :3]
+            p0 = self.vox2ras().transform(-low)
+            matrix[:3, 3] = p0
+            pcrs = np.append(np.array(conformed_data.shape[:3]) / 2, 1)
+            cras = np.matmul(matrix, pcrs)[:3]
+            matrix[:3, 3] = 0
+            matrix[:3, 3] = cras - np.matmul(matrix, pcrs)[:3]
+        else:
+            matrix = None
+
+        # construct cropped volume
+        conformed_vol = Volume(conformed_data, affine=matrix, voxsize=self.voxsize)
+        conformed_vol.copy_metadata(self)
+        return conformed_vol
+
     def transform(self, trf, interp_method='linear', indexing='ij'):
         '''
         Returns a volume transformed by either a dense deformation field or affine
