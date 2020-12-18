@@ -391,7 +391,7 @@ IMAGE *ImageFReadHeader(FILE *fp, const char *fname)
       break;
   }
 
-  free(buf)
+  free(buf);
   return (I);
 }
 /*-----------------------------------------------------
