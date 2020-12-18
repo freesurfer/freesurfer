@@ -119,10 +119,10 @@ int ImageFWrite(IMAGE *I, FILE *fp, const char *fname)
 {
   byte *image;
   int ecode, type, frame;
-  char buf[100];
+  char *buf;
 
   if (!fname) fname = "ImageFWrite";
-
+  buf = (char*)malloc(strlen(fname) + 1);
   strcpy(buf, fname); /* don't destroy callers string */
 
   ImageUnpackFileName(buf, &frame, &type, buf);
@@ -163,6 +163,8 @@ int ImageFWrite(IMAGE *I, FILE *fp, const char *fname)
       I->image = image;
       break;
   }
+
+  free(buf);
   return (0);
 }
 
@@ -315,8 +317,9 @@ IMAGE *ImageReadHeader(const char *fname)
   IMAGE *I = NULL;
   FILE *fp;
   int type, frame;
-  char buf[100];
+  char *buf;
 
+  buf = (char*)malloc(strlen(fname) + 1);
   strcpy(buf, fname); /* don't destroy callers string */
 
   ImageUnpackFileName(buf, &frame, &type, buf);
@@ -327,6 +330,7 @@ IMAGE *ImageReadHeader(const char *fname)
   I = ImageFReadHeader(fp, buf);
   fclose(fp);
 
+  free(buf);
   return (I);
 }
 /*-----------------------------------------------------
@@ -341,8 +345,9 @@ IMAGE *ImageFReadHeader(FILE *fp, const char *fname)
   IMAGE *I = NULL;
   int ecode;
   int type, frame;
-  char buf[100];
+  char* buf;
 
+  buf = (char*)malloc(strlen(fname) + 1);
   strcpy(buf, fname); /* don't destroy callers string */
 
   ImageUnpackFileName(buf, &frame, &type, buf);
@@ -386,6 +391,7 @@ IMAGE *ImageFReadHeader(FILE *fp, const char *fname)
       break;
   }
 
+  free(buf)
   return (I);
 }
 /*-----------------------------------------------------
@@ -426,8 +432,9 @@ IMAGE *ImageRead(const char *fname)
   MATRIX *mat;
   FILE *fp;
   int type, frame;
-  char buf[STRLEN];
+  char* buf;
 
+  buf = (char*)malloc(strlen(fname) + 1);
   strcpy(buf, fname); /* don't destroy callers string */
 
   ImageUnpackFileName(buf, &frame, &type, buf);
@@ -469,6 +476,8 @@ IMAGE *ImageRead(const char *fname)
     default:
       break;
   }
+
+  free(buf);
   return (I);
 }
 /*-----------------------------------------------------
@@ -480,8 +489,9 @@ IMAGE *ImageRead(const char *fname)
 ------------------------------------------------------*/
 int ImageType(const char *fname)
 {
-  char *dot, buf[200];
+  char *dot, *buf;
 
+  buf = (char*)malloc(strlen(fname) + 1);
   strcpy(buf, fname);
   dot = strrchr(buf, '.');
 
@@ -490,6 +500,7 @@ int ImageType(const char *fname)
     if (!strcmp(dot, "MAT")) return (MATLAB_IMAGE);
   }
 
+  free(buf);
   return (HIPS_IMAGE);
 }
 /*-----------------------------------------------------
@@ -501,9 +512,10 @@ int ImageType(const char *fname)
 ------------------------------------------------------*/
 int ImageFrame(const char *fname)
 {
-  char *number, buf[200];
+  char *number, *buf;
   int frame;
 
+  buf = (char*)malloc(strlen(fname) + 1);
   strcpy(buf, fname);
   number = strrchr(buf, '#');
 
@@ -514,6 +526,7 @@ int ImageFrame(const char *fname)
   else
     frame = 0;
 
+  free(buf);
   return (frame);
 }
 /*----------------------------------------------------------------------
@@ -568,8 +581,9 @@ int ImageWriteFrames(IMAGE *image, const char *fname, int start, int nframes)
 ----------------------------------------------------------------------*/
 int ImageUnpackFileName(const char *inFname, int *pframe, int *ptype, char *outFname)
 {
-  char *number, *dot, buf[STRLEN];
+  char *number, *dot, *buf;
 
+  buf = (char*)malloc(strlen(inFname) + strlen(outFname) + 1);
   if (inFname != outFname) strcpy(outFname, inFname);
   number = strrchr(outFname, '#');
   dot = strrchr(outFname, '.');
@@ -604,6 +618,7 @@ int ImageUnpackFileName(const char *inFname, int *pframe, int *ptype, char *outF
   else
     *ptype = HIPS_IMAGE;
 
+  free(buf);
   return (NO_ERROR);
 }
 /*----------------------------------------------------------------------
@@ -617,7 +632,9 @@ int ImageNumFrames(const char *fname)
   IMAGE I;
   FILE *fp;
   int frame, type, ecode, nframes;
-  char buf[100];
+  char *buf;
+
+  buf = (char*)malloc(strlen(fname) + 1);
 
   ImageUnpackFileName(fname, &frame, &type, buf);
   fname = buf;
@@ -632,6 +649,7 @@ int ImageNumFrames(const char *fname)
   nframes = I.num_frame;
   fclose(fp);
   free_hdrcon(&I);
+  free(buf);
   return (nframes);
 }
 /*----------------------------------------------------------------------
@@ -646,7 +664,9 @@ int ImageAppend(IMAGE *I, const char *fname)
   FILE *fp;
   int ecode, frame = 0, nframes;
   IMAGE Iheader, *Iframe;
-  char tmpname[200];
+  // PW 2020/12/18 not ideal, but won't cause an overflow as long string size
+  // here matches with `char *FileTmpName(const char *basename)` @ utils.cpp:629
+  char tmpname[STR_LEN];
 
   fp = fopen(fname, "r+b");
 #if 0
