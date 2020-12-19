@@ -18,7 +18,7 @@ set aparclist = (aparc BA aparc.a2009s)
 set ASegLUT = $FREESURFER_HOME/ASegStatsLUT.txt
 set WMParcLUT = $FREESURFER_HOME/WMParcStatsLUT.txt
 set OverWrite = 0;
-set mapmeaslist = (thickness area volume curv sulc) 
+set mapmeaslist = (thickness area volume curv sulc w-g.pct) 
 set DoAparcStats = 1
 set DoAsegStats = 1
 set DoWMParcStats = 1
@@ -125,14 +125,28 @@ foreach aparc ($aparclist)
     foreach hemi ($hemilist)
       foreach meas ($mapmeaslist)
         if($meas == curv || $meas == sulc) continue # curv breaks aparcstats2table
-        set parc = $aparc
-	if($aparc == BA) set parc = BA$BAex
-        if($surf == pial) set parc = pial.$aparc; # only aparc
+        if($meas == w-g.pct && ($aparc != aparc || $surf != white)) continue 
         set outfile = $outdir/rois/$aparc.$hemi.$surf.$meas.dat
-        if(! -e $outfile || $OverWrite) then
-          set cmd = (aparcstats2table --subjects $slist --hemi $hemi \
-             -m $meas -t $outfile -p $parc)
-          echo "#C# $cmd" | tee -a $LF
+        if($meas != w-g.pct) then
+          set parc = $aparc
+          if($aparc == BA) set parc = BA$BAex
+          if($surf == pial) set parc = pial.$aparc; # only aparc
+          if(! -e $outfile || $OverWrite) then
+            set cmd = (aparcstats2table --subjects $slist --hemi $hemi \
+               -m $meas -t $outfile -p $parc)
+            echo "#C# $cmd" | tee -a $LF
+            $cmd | tee -a $LF
+            if($status) exit 1;
+            set glmdir = $outdir/rois/glm.$aparc.$hemi.$surf.$meas
+            set cmd = (mri_glmfit --table $outfile --fsgd $fsgd --glmdir $glmdir)
+            echo "#C# $cmd"  | tee -a $LF
+            $cmd | tee -a $LF
+            if($status) exit 1;
+          endif
+        else
+          set cmd = (asegstats2table --subjects $slist -m mean -t $outfile \
+            --no-segno 0 1000 2000 --statsfile=$hemi.w-g.pct.stats)
+          echo "#C# $cmd"  | tee -a $LF
           $cmd | tee -a $LF
           if($status) exit 1;
           set glmdir = $outdir/rois/glm.$aparc.$hemi.$surf.$meas
@@ -145,7 +159,8 @@ foreach aparc ($aparclist)
     end # hemi
   end # surf
 end # aparc
-endif
+
+endif #DoAparcStats
 
 # ASEG Stats ----------------------------------------------------
 if($DoAsegStats) then
@@ -207,11 +222,13 @@ endif
 # Maps and GLM ---------------------------------------
 if($DoMaps) then
   foreach meas ($mapmeaslist)
+    set fmt = ()
+    if($meas == w-g.pct) set fmt = .mgh
     foreach hemi ($hemilist)
       # concat data ---------------------
       set outfile =  $outdir/maps/$meas.$hemi.sm00.mgh
       if(! -e $outfile || $OverWrite) then
-        set cmd = (mris_preproc --meas $meas --fsgd $fsgd --hemi $hemi --o $outfile --srcsurfreg $SrcSurfReg)
+        set cmd = (mris_preproc --meas $meas$fmt --fsgd $fsgd --hemi $hemi --o $outfile --srcsurfreg $SrcSurfReg)
         echo "#C# $cmd"  | tee -a $LF
         $cmd | tee -a $LF
         if($status) exit 1;
@@ -340,7 +357,7 @@ while( $#argv != 0 )
       breaksw
 
     case "--no-wmparcstats":
-      set DoAsegStats = 0
+      set DoWMParcStats = 0
       breaksw
 
     case "--no-stats":
