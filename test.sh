@@ -23,10 +23,11 @@
 #
 # Test output can be compared against reference data with the following functions:
 #
-#     compare_file - wraps the standard unix diff command
-#     compare_vol  - wraps mri_diff
-#     compare_surf - wraps mris_diff
-#     compare_lta  - wraps lta_diff
+#     compare_file  - wraps the standard unix diff command
+#     compare_vol   - wraps mri_diff
+#     compare_surf  - wraps mris_diff
+#     compare_lta   - wraps lta_diff
+#     compare_annot - wraps mris_annot_diff
 #
 # It is important that the argument order for all of these commands is as follows:
 #
@@ -231,5 +232,11 @@ function compare_surf {
 # runs lta_diff on an output and reference transform - all extra opts are passed to lta_diff
 function compare_lta {
     diffcmd=$(find_path $FSTEST_CWD mri_robust_register/lta_diff)
+    run_comparison $diffcmd $@
+}
+
+# runs mris_annot_diff on an output and reference annotation - all extra opts are passed to mris_annot_diff
+function compare_annot {
+    diffcmd=$(find_path $FSTEST_CWD mris_annot_diff/mris_annot_diff)
     run_comparison $diffcmd $@
 }
