@@ -79,6 +79,8 @@ if(~isfield(mri,'vox2ras0'))  mri.vox2ras0 = eye(4);end
 if(~isfield(mri,'volres'))
     mri.volres = sqrt(sum(mri.vox2ras0(1:3,1:3).^2));
 end
+if(~isfield(mri,'scl_slope')) mri.scl_slope = 0; end
+if(~isfield(mri,'scl_inter')) mri.scl_inter = 0; end
   
 [fspec fstem fmt] = MRIfspec(fstring,0); % 0 = turn off checkdisk
 if(isempty(fspec))
@@ -137,6 +139,7 @@ switch(fmt)
    case 'int',    hdr.datatype = 8;   hdr.bitpix = 8*4;
    case 'float',  hdr.datatype = 16;  hdr.bitpix = 8*4;
    case 'double', hdr.datatype = 64;  hdr.bitpix = 8*8;
+   case 'char',   hdr.datatype = 256; hdr.bitpix = 8*1;
    case 'ushort', hdr.datatype = 512; hdr.bitpix = 8*2;
    case 'uint',   hdr.datatype = 768; hdr.bitpix = 8*4;
    otherwise,
@@ -149,8 +152,8 @@ switch(fmt)
   hdr.pixdim          = [0 mri.volres([2 1 3]) mri.tr]; % physical units
   %hdr.pixdim          = [0 mri.volres mri.tr]; % physical units
   hdr.vox_offset      = 348; % will be set again
-  hdr.scl_slope       = 0;
-  hdr.scl_inter       = 0;
+  hdr.scl_slope       = mri.scl_slope;
+  hdr.scl_inter       = mri.scl_inter;
   
   hdr.slice_end       = 0;
   
