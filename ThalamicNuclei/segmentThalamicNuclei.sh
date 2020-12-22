@@ -104,7 +104,7 @@ endif
 
 # If SUBJECTS_DIR is provided, just set it
 if ($#argv == 2) then
-  set SUBJECTS_DIR = $2
+  set SUBJECTS_DIR = `getfullpath  $2`
 endif
 
 # Set name of subject
@@ -133,7 +133,7 @@ endif
 # Set additional parameters, if necessary
 set ANALYSISID="mainFreeSurferT1";
 if ($#argv > 2) then
-  set ADDVOL="$3";
+  set ADDVOL="`getfullpath  $3`";
   set ANALYSISID="$4";
   set BBREGMODE="$5";
   set DOBIASFIELDCORR="1";

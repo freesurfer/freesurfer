@@ -97,7 +97,7 @@ endif
 
 # If SUBJECTS_DIR is provided, just set it
 if ($#argv == 2) then
-  set SUBJECTS_DIR = $2
+  set SUBJECTS_DIR = `getfullpath  $2`
 endif
 
 # Set name of subject
