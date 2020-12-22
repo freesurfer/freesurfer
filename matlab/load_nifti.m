@@ -132,6 +132,7 @@ switch(hdr.datatype)
  case   8, dtype = 'int' ;
  case  16, dtype = 'float' ;
  case  64, dtype = 'double' ;
+ case 256, dtype = 'int8' ;
  case 512, dtype = 'ushort' ;
  case 768, dtype = 'uint' ;
  otherwise
