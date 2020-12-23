@@ -417,6 +417,8 @@
     <addaction name="actionShowSliceFrames"/>
     <addaction name="separator"/>
     <addaction name="actionStereoRender"/>
+    <addaction name="separator"/>
+    <addaction name="actionSyncInstances"/>
    </widget>
    <widget class="QMenu" name="menuLayer">
     <property name="title">
@@ -484,6 +486,7 @@
     <addaction name="separator"/>
     <addaction name="actionSavePoint"/>
     <addaction name="actionGoToPoint"/>
+    <addaction name="actionSyncInstances"/>
     <addaction name="separator"/>
     <addaction name="actionSaveCamera"/>
     <addaction name="actionLoadCamera"/>
@@ -1795,6 +1798,14 @@
    </property>
    <property name="shortcut">
     <string>Meta+Alt+A</string>
+   </property>
+  </action>
+  <action name="actionSyncInstances">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Sync With Other Instances</string>
    </property>
   </action>
  </widget>
@@ -3652,6 +3663,22 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>actionSyncInstances</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnSyncInstances(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <signal>CycleOverlayRequested()</signal>
@@ -3760,5 +3787,6 @@
   <slot>OnVolumeFilterBoundary()</slot>
   <slot>OnShowControlPanel(bool)</slot>
   <slot>OnFloatPanels(bool)</slot>
+  <slot>OnSyncInstances(bool)</slot>
  </slots>
 </ui>

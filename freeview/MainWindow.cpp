@@ -108,6 +108,7 @@
 #include "Annotation2D.h"
 #include "PanelLayer.h"
 #include "WindowLayerInfo.h"
+#include <QFileSystemWatcher>
 #include <QClipboard>
 #include <QDebug>
 #ifdef Q_OS_MAC
@@ -119,6 +120,7 @@
 #endif
 
 #define LAYER_ID_OFFSET 10000
+#define COORD_SYNC_FILE "/tmp/freeview_coord_sync.json"
 
 MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   QMainWindow( parent ),
@@ -136,6 +138,7 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
 {
   m_dlgSaveScreenshot = NULL;
   m_dlgPreferences = NULL;
+  m_syncFileWatcher = new QFileSystemWatcher(this);
 
   m_defaultSettings["no_autoload"] = true;  // default no autoload
 
@@ -9184,5 +9187,69 @@ void MainWindow::CommandLinkVolume(const QStringList &cmd)
       if ( cmd[1] == "1" || cmd[1].toLower() == "true" )
         emit LinkVolumeRequested(mri);
     }
+  }
+}
+
+void MainWindow::OnSyncInstances(bool bChecked)
+{
+  if (bChecked)
+  {
+    m_syncFileWatcher->addPath(COORD_SYNC_FILE);
+    connect(m_syncFileWatcher, SIGNAL(fileChanged(QString)), SLOT(OnSyncFileChanged(QString)), Qt::UniqueConnection);
+    connect(this, SIGNAL(SlicePositionChanged()), SLOT(UpdateSyncFile()), Qt::ConnectionType(Qt::QueuedConnection | Qt::UniqueConnection));
+//    OnSyncFileChanged(COORD_SYNC_FILE);
+  }
+  else
+  {
+    m_syncFileWatcher->removePath(COORD_SYNC_FILE);
+    disconnect(m_syncFileWatcher, SIGNAL(fileChanged(QString)), this, SLOT(OnSyncFileChanged(QString)));
+    disconnect(this, SIGNAL(SlicePositionChanged()), this, SLOT(UpdateSyncFile()));
+  }
+}
+
+void MainWindow::UpdateSyncFile()
+{
+  QVariantMap map, ras;
+  double pos[3];
+  GetLayerCollection("MRI")->GetSlicePosition(pos);
+  ras["x"] = pos[0];
+  ras["y"] = pos[1];
+  ras["z"] = pos[2];
+  map["ras"] = ras;
+  map["instance_id"] = qApp->applicationPid();
+
+  QFile file(COORD_SYNC_FILE);
+  if (file.open(QIODevice::WriteOnly))
+  {
+    file.write(QJsonDocument::fromVariant(map).toJson());
+    file.close();
+  }
+  else
+  {
+    qWarning() << "Can not write to sync file " << COORD_SYNC_FILE;
+  }
+}
+
+void MainWindow::OnSyncFileChanged(const QString &fn)
+{
+  QFile file(fn);
+  if (file.open(QIODevice::ReadOnly))
+  {
+    QVariantMap map = QJsonDocument::fromJson(file.readAll()).toVariant().toMap();
+    file.close();
+    if (map["instance_id"].toLongLong() != qApp->applicationPid())
+    {
+      double pos[3];
+      pos[0] = map["ras"].toMap().value("x").toDouble();
+      pos[1] = map["ras"].toMap().value("y").toDouble();
+      pos[2] = map["ras"].toMap().value("z").toDouble();
+      disconnect(this, SIGNAL(SlicePositionChanged()), this, SLOT(UpdateSyncFile()));
+      SetSlicePosition(pos);
+      connect(this, SIGNAL(SlicePositionChanged()), SLOT(UpdateSyncFile()), Qt::ConnectionType(Qt::QueuedConnection | Qt::UniqueConnection));
+    }
+  }
+  else
+  {
+    qWarning() << "Can not open sync file " << fn;
   }
 }
