@@ -698,6 +698,7 @@ private:
   QString               m_sTitle;
 
   QFileSystemWatcher*   m_syncFileWatcher;
+  QString               m_sSyncFilePath;
 };
 
 #endif // MAINWINDOW_H

@@ -120,7 +120,6 @@
 #endif
 
 #define LAYER_ID_OFFSET 10000
-#define COORD_SYNC_FILE "/tmp/freeview_coord_sync.json"
 
 MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   QMainWindow( parent ),
@@ -139,6 +138,7 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   m_dlgSaveScreenshot = NULL;
   m_dlgPreferences = NULL;
   m_syncFileWatcher = new QFileSystemWatcher(this);
+  m_sSyncFilePath = "/tmp/freeview_coord_sync.json";
 
   m_defaultSettings["no_autoload"] = true;  // default no autoload
 
@@ -1326,8 +1326,12 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
     AddScript(QStringList("quit") );
 
 
-  if (parser->Found("sync"))
+  if (parser->Found("sync", &sa))
+  {
+    if (sa.size() > 0)
+      m_sSyncFilePath = sa[0];
     ui->actionSyncInstances->setChecked(true);
+  }
 
   return true;
 }
@@ -9198,14 +9202,13 @@ void MainWindow::OnSyncInstances(bool bChecked)
 {
   if (bChecked)
   {
-    m_syncFileWatcher->addPath(COORD_SYNC_FILE);
+    m_syncFileWatcher->addPath(m_sSyncFilePath);
     connect(m_syncFileWatcher, SIGNAL(fileChanged(QString)), SLOT(OnSyncFileChanged(QString)), Qt::UniqueConnection);
     connect(this, SIGNAL(SlicePositionChanged()), SLOT(UpdateSyncFile()), Qt::ConnectionType(Qt::QueuedConnection | Qt::UniqueConnection));
-//    OnSyncFileChanged(COORD_SYNC_FILE);
   }
   else
   {
-    m_syncFileWatcher->removePath(COORD_SYNC_FILE);
+    m_syncFileWatcher->removePath(m_sSyncFilePath);
     disconnect(m_syncFileWatcher, SIGNAL(fileChanged(QString)), this, SLOT(OnSyncFileChanged(QString)));
     disconnect(this, SIGNAL(SlicePositionChanged()), this, SLOT(UpdateSyncFile()));
   }
@@ -9222,15 +9225,16 @@ void MainWindow::UpdateSyncFile()
   map["ras"] = ras;
   map["instance_id"] = qApp->applicationPid();
 
-  QFile file(COORD_SYNC_FILE);
+  QFile file(m_sSyncFilePath);
   if (file.open(QIODevice::WriteOnly))
   {
     file.write(QJsonDocument::fromVariant(map).toJson());
+    file.flush();
     file.close();
   }
   else
   {
-    qWarning() << "Can not write to sync file " << COORD_SYNC_FILE;
+    qWarning() << "Can not write to sync file " << m_sSyncFilePath;
   }
 }
 
