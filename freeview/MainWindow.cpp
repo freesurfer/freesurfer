@@ -1325,6 +1325,10 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
   if ( parser->Found("quit"))
     AddScript(QStringList("quit") );
 
+
+  if (parser->Found("sync"))
+    ui->actionSyncInstances->setChecked(true);
+
   return true;
 }
 
