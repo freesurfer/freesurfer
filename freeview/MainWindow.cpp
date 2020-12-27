@@ -7173,6 +7173,7 @@ void MainWindow::OnSaveScreenshot()
 
 void MainWindow::OnCopyView()
 {
+  SetScreenShotSettings(m_dlgSaveScreenshot->GetSettings());
   QString fn = QDir::tempPath() + "/freeview-temp-" + QString::number(QDateTime::currentMSecsSinceEpoch()) + ".png";
   GetMainView()->SaveScreenShot(fn, m_settingsScreenshot.AntiAliasing, 1.0, m_settingsScreenshot.AutoTrim);
   QClipboard *clipboard = QGuiApplication::clipboard();
