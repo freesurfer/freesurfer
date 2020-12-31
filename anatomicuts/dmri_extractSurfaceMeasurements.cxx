@@ -226,7 +226,7 @@ int main(int narg, char* arg[])
 	
 	ClusterToolsType::Pointer clusterTools = ClusterToolsType::New();
 	clusterTools->GetPolyDatas(TRKFiles, &polydatas, ref_Image.at(0));
-	meshes = clusterTools->PolydataToMesh(polydatas);
+	meshes = clusterTools->FixSampleClusters(polydatas,10);
 	
 	//Loading the surface for each hemisphere and metric
 	//Left Curvature
@@ -322,8 +322,8 @@ int main(int narg, char* arg[])
 		getline ( file, value, ',' ); 
 		long long v2 = atoll(value.c_str());
 		correspondences.push_back(v2);		
-		std::cout << " v2 " <<  v2 << std::endl;
 	} 	
+	std::cout << " Files " <<  meshes->size() << std::endl;
 	// Cycling through the TRK files
 	for(int i = 0; i < meshes->size(); i++)
 	{ 
@@ -343,9 +343,12 @@ int main(int narg, char* arg[])
 		if (FA_FOUND)
 		{
 			for (int a = 0; a < image_fileNames.size(); a++)
-				oFile << ", mean" << image_fileNames.at(a) << ", stde" << image_fileNames.at(a);
+				oFile << ",mean" << image_fileNames.at(a) << ",stde" << image_fileNames.at(a);
+			for (int a = 0; a < image_fileNames.size(); a++)
+				for (int b =0; b<10; b++)
+					oFile << ","<< b << "_"<< image_fileNames.at(a);
 		} 
-		oFile << endl;
+		oFile << ","<<endl;
 
 		// Initialization of a new stream for every TRK files
 		
@@ -357,22 +360,25 @@ int main(int narg, char* arg[])
 		for (; inputCellIt != input->GetCells()->End(); ++inputCellIt, ++counter)
 		{
 			vector<float> meanFA;
+			vector<vector<float>> allFA;
 			vector<float> stdeFA;
 		
 			// If there are image files, then find the mean and stde of FA	
 			if (FA_FOUND)
-			{
+			{	
+				
 				for (int p = 0; p < volumes.size(); p++)
 				{
+					allFA.push_back(vector<float>());
 					// Creating streamline variable and finding first point
 					CellType::PointIdIterator it = inputCellIt.Value()->PointIdsBegin();
 					input->GetPoint(*it, &firstPt);
-
+					input->GetPoint(*inputCellIt.Value()->PointIdsEnd(), &lastPt);
+					float val = (firstPt[0] -lastPt[0])*(firstPt[1]-lastPt[1])*(firstPt[2]-lastPt[2]);
+					
 					// Getting the FA value at all points
 					vector<float> FA_values;
 					ImageType::IndexType index;
-					if (volumes.at(p)->TransformPhysicalPointToIndex(firstPt, index))
-						FA_values.push_back(volumes.at(p)->GetPixel(index));
 				
 					// Cycling through the points in the stream
 					for (; it != inputCellIt.Value()->PointIdsEnd(); it++)
@@ -381,7 +387,13 @@ int main(int narg, char* arg[])
 
 						// If FA options is used, then add the FA values to the vector	
 						if (volumes.at(p)->TransformPhysicalPointToIndex(lastPt, index))
+						{
 							FA_values.push_back(volumes.at(p)->GetPixel(index));	
+							if( val>0)
+								allFA[p].push_back(volumes.at(p)->GetPixel(index));	
+							else
+								allFA[p].insert(allFA[p].begin(),volumes.at(p)->GetPixel(index));	
+						}	
 					}
 			
 					// Calculating the MeanFA and stdeFA
@@ -437,81 +449,123 @@ int main(int narg, char* arg[])
 
 
 			// Outputting values to the file
+			std::cout << ID1 << " " <<ID2<< std::endl;
 			oFile << "StreamLine" << counter << ", ";
 			int structure;
-			if (ID1 == Left_ID1)
+			if (ID1 >=0)
 			{
-		 		CTABfindAnnotation(surfCL->ct , surfCL->vertices[ID1].annotation, &structure);
-				std::cout << ID1 << " " <<   surfCL->vertices[ID1].annotation << " " <<structure<< std::endl;
+				if (ID1 == Left_ID1)
+				{
+					CTABfindAnnotation(surfCL->ct , surfCL->vertices[ID1].annotation, &structure);
+					std::cout <<"L" << ID1 << " " <<   surfCL->vertices[ID1].annotation << " " <<structure<< std::endl;
+				}
+				else
+				{
+					CTABfindAnnotation(surfCR->ct , surfCR->vertices[ID1].annotation, &structure);
+					std::cout << "R" << ID1 << " " <<   surfCR->vertices[ID1].annotation << " " <<structure<< std::endl;
+				}
+				oFile << structure << ",";
 			}
 			else
 			{
-		 		CTABfindAnnotation(surfCR->ct , surfCR->vertices[ID1].annotation, &structure);
-				std::cout << ID1 << " " <<   surfCR->vertices[ID1].annotation << " " <<structure<< std::endl;
+				oFile << ",";
 			}
-			oFile << structure << ",";
-			if (ID2 == Left_ID2)
+			if(ID2>=0)
 			{
-		 		CTABfindAnnotation(surfCL->ct , surfCL->vertices[ID2].annotation, &structure);
-				std::cout << ID2 << " " <<   surfCL->vertices[ID2].annotation << " " <<structure<< std::endl;
-			}
-			else
-			{
-		 		CTABfindAnnotation(surfCR->ct , surfCR->vertices[ID2].annotation, &structure);
-				std::cout << ID2 << " " <<   surfCR->vertices[ID2].annotation << " " <<structure<< std::endl;
-			}
+				if (ID2 == Left_ID2)
+				{
+					CTABfindAnnotation(surfCL->ct , surfCL->vertices[ID2].annotation, &structure);
+					std::cout << "L"<< ID2 << " " <<   surfCL->vertices[ID2].annotation << " " <<structure<< std::endl;
+				}
+				else
+				{
+					CTABfindAnnotation(surfCR->ct , surfCR->vertices[ID2].annotation, &structure);
+					std::cout <<"R"<< ID2 << " " <<   surfCR->vertices[ID2].annotation << " " <<structure<< std::endl;
+				}
 
-			oFile << structure << ",";
-
-			if (ID1 == Left_ID1)
-			{
-				oFile << surfCL->vertices[ID1].curv << ",";
-				values[0]+= surfCL->vertices[ID1].curv ;
+				oFile << structure << ",";
 			}
 			else
 			{
-				oFile << surfCR->vertices[ID1].curv << ",";
-				values[0]+= surfCR->vertices[ID1].curv ;
+				oFile << ",";
 			}
-	
-			if (ID2 == Left_ID2)
+			if (ID1 >=0)
 			{
-				oFile << surfCL->vertices[ID2].curv << ",";
-				values[1]+= surfCL->vertices[ID2].curv ;
-	
-			}
-			else
-			{
-				oFile << surfCR->vertices[ID2].curv << ",";
-				values[1]+= surfCR->vertices[ID2].curv ;
-			}
-			      
-			if (ID1 == Left_ID1)
-			{
-				oFile << surfTL->vertices[ID1].curv << ","; 
-				values[2]+= surfTL->vertices[ID1].curv ;
+				if (ID1 == Left_ID1)
+				{
+					oFile << surfCL->vertices[ID1].curv << ",";
+					values[0]+= surfCL->vertices[ID1].curv ;
+				}
+				else
+				{
+					oFile << surfCR->vertices[ID1].curv << ",";
+					values[0]+= surfCR->vertices[ID1].curv ;
+				}
 			}
 			else
 			{
-				oFile << surfTR->vertices[ID1].curv << ",";
-				values[2]+= surfTR->vertices[ID1].curv ;
+				oFile << ",";
 			}
-
-
-			if (ID2 == Left_ID2)
+			if (ID2 >=0)
 			{
-				oFile << surfTL->vertices[ID2].curv;
-				values[3]+= surfTL->vertices[ID2].curv ;
+				if (ID2 == Left_ID2)
+				{
+					oFile << surfCL->vertices[ID2].curv << ",";
+					values[1]+= surfCL->vertices[ID2].curv ;
+
+				}
+				else
+				{
+					oFile << surfCR->vertices[ID2].curv << ",";
+					values[1]+= surfCR->vertices[ID2].curv ;
+				}
+			}
+			else
+			{
+				oFile << ",";
+			}	
+
+			if (ID1 >=0)
+			{
+				if (ID1 == Left_ID1)
+				{
+					oFile << surfTL->vertices[ID1].curv << ","; 
+					values[2]+= surfTL->vertices[ID1].curv ;
+				}
+				else
+				{
+					oFile << surfTR->vertices[ID1].curv << ",";
+					values[2]+= surfTR->vertices[ID1].curv ;
+				}
+			}
+			else
+			{
+				oFile << ",";
+			}
+			if (ID2 >=0)
+			{
+				if (ID2 == Left_ID2)
+				{
+					oFile << surfTL->vertices[ID2].curv <<",";
+					values[3]+= surfTL->vertices[ID2].curv ;
+				}		
+				else
+				{
+					oFile << surfTR->vertices[ID2].curv <<",";
+					values[3]+= surfTR->vertices[ID2].curv ;
+				}
 			}		
 			else
 			{
-				oFile << surfTR->vertices[ID2].curv;
-				values[3]+= surfTR->vertices[ID2].curv ;
-			}		
+				oFile << ",";
+			}
 			if (FA_FOUND)
 			{
-				for (int m = 0; m < stdeFA.size(); m++)
-					oFile << "," << meanFA.at(m) << "," << stdeFA.at(m);
+				for (int m = 0; m < volumes.size(); m++)
+					oFile << meanFA.at(m) << "," << stdeFA.at(m)<<",";
+				for (int m = 0; m < volumes.size(); m++)
+					for (int b = 0; b < allFA[m].size(); b++)
+						oFile <<  allFA[m][b]<<",";
 			}
 
 			oFile << endl;
