@@ -42,9 +42,10 @@ class Freeview:
             self.data = data
             self.name = name
 
-    def __init__(self):
+    def __init__(self, transpose=None):
         self.tempdir = None
         self.flags = []
+        self.transpose = transpose
 
     def copy(self):
         '''
@@ -251,6 +252,9 @@ class Freeview:
         if ext == 'annot' and volume.lut is None:
             error('cannot save annotation without embedded lookup table')
             return None
+
+        if self.transpose is not None:
+            volume = np.transpose(volume, self.transpose)
 
         # check if fs array container
         if isinstance(volume, (Overlay, Image, Volume)):
