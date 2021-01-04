@@ -14,6 +14,7 @@ SOURCES += \
     CursorFactory.cpp \
     BrushProperty.cpp  \
     DialogAbout.cpp \
+    DialogControlPointComment.cpp \
     DialogCropVolume.cpp \
     DialogGradientFilter.cpp \
     DialogLoadDTI.cpp \
@@ -194,6 +195,7 @@ HEADERS  += \
     Cursor3D.h \
     CursorFactory.h \
     DialogAbout.h \
+    DialogControlPointComment.h \
     DialogCropVolume.h \
     DialogGradientFilter.h \
     DialogLoadDTI.h \
@@ -358,6 +360,7 @@ HEADERS  += \
     DialogScreenshotOverlay.h
 
 FORMS    += MainWindow.ui \
+    DialogControlPointComment.ui \
     DialogNewAnnotation.ui \
     PanelVolume.ui \
     PanelSurface.ui \

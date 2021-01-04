@@ -21,7 +21,7 @@ class ArrayContainerTemplate:
 
     basedims = None
 
-    def __init__(self, data, lut=None):
+    def __init__(self, data, lut=None, swap_batch_dim=False):
         '''
         Contructs the container object from an array. The input data is not copied, and
         the array should have ndims equal to the subclass' basedims (or basedims + 1).
@@ -37,6 +37,10 @@ class ArrayContainerTemplate:
         # make sure a string isn't being provided
         if isinstance(data, str):
             raise ValueError('if loading from file, use the %s.read() class method' % classname)
+
+        # swap frame dimension from first axis to last
+        if swap_batch_dim and data.ndim > self.basedims:
+            data = np.moveaxis(data, 0, -1)
 
         self.data = np.array(data, copy=False)
         # extra dim is assumed to represent data frames
@@ -114,20 +118,20 @@ class Overlay(ArrayContainerTemplate):
     '''1D array that represents values corresponding to surface vertices.'''
     basedims = 1
 
-    def __init__(self, data, lut=None):
+    def __init__(self, data, lut=None, **kwargs):
         '''Contructs an overlay from a 1D or 2D data array. The 2nd dimension is
         always assumed to be the number of frames.'''
-        super().__init__(data, lut=lut)
+        super().__init__(data, lut=lut, **kwargs)
 
 
 class Image(ArrayContainerTemplate, Transformable):
     '''2D image with specific geometry.'''
     basedims = 2
 
-    def __init__(self, data, affine=None, pixsize=None, lut=None):
+    def __init__(self, data, affine=None, pixsize=None, lut=None, **kwargs):
         '''Contructs an image from a 2D or 3D data array. The 3rd dimension is
         always assumed to be the number of frames.'''
-        ArrayContainerTemplate.__init__(self, data, lut=lut)
+        ArrayContainerTemplate.__init__(self, data, lut=lut, **kwargs)
         self.affine = affine
         self.pixsize = pixsize if pixsize is not None else (1.0, 1.0)
 
@@ -191,7 +195,7 @@ class Volume(ArrayContainerTemplate, Transformable):
     '''
     basedims = 3
 
-    def __init__(self, data, affine=None, voxsize=None, lut=None):
+    def __init__(self, data, affine=None, voxsize=None, lut=None, **kwargs):
         '''
         Contructs a volume from a 3D or 4D data array. The 4th dimension is
         always assumed to be the number of frames.
@@ -211,7 +215,7 @@ class Volume(ArrayContainerTemplate, Transformable):
             newaxes = [1] * (3 - data.ndim)
             data = data.reshape(*data.shape, *newaxes)
 
-        ArrayContainerTemplate.__init__(self, data, lut=lut)
+        ArrayContainerTemplate.__init__(self, data, lut=lut, **kwargs)
         self.affine = affine
         self.voxsize = voxsize if voxsize is not None else (1.0, 1.0, 1.0)
 
