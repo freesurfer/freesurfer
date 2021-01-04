@@ -56,7 +56,7 @@ class Freeview:
         copied.tempdir = self.tempdir
         return copied
 
-    def vol(self, volume, **kwargs):
+    def vol(self, volume, swap_batch_dim=False, **kwargs):
         '''
         Loads a volume in the sessions. If the volume provided is not a filepath,
         then the input will be saved as a volume in a temporary directory. Any
@@ -64,11 +64,12 @@ class Freeview:
 
         Args:
             volume: An existing volume filename, numpy array, or fs array container.
+            swap_batch_dim: Move the first axis to the last if input is a numpy array. Default is False.
             opts: Additional options to append to the volume argument.
         '''
 
         # convert the input to a proper file (if it's not one already)
-        filename = self._vol_to_file(volume)
+        filename = self._vol_to_file(volume, swap_batch_dim=swap_batch_dim)
         if filename is None:
             return
 
@@ -211,7 +212,7 @@ class Freeview:
 
         return tags + extra_tags
 
-    def _vol_to_file(self, volume, name=None, force=None, ext='mgz'):
+    def _vol_to_file(self, volume, name=None, force=None, ext='mgz', swap_batch_dim=False):
         '''
         Converts an unknown volume type (whether it's a filename, array, or
         other object) into a valid file.
@@ -231,6 +232,11 @@ class Freeview:
         # if input is a numpy array, convert to the appropriate fs array type
         # and let the filename creation get handled below
         if isinstance(volume, np.ndarray):
+
+            # swap batch axis if specified
+            if swap_batch_dim:
+                volume = np.moveaxis(volume, 0, -1)
+
             volume = self._convert_ndarray(volume) if force is None else force(volume.squeeze())
             if volume is None:
                 error('cannot convert array of shape %s' % str(volume.shape))
@@ -372,10 +378,12 @@ def fv(*args, **kwargs):
     Args:
         opts: Additional string of flags to add to the command.
         background: Run freeview as a background process. Defaults to True.
+        swap_batch_dim: Move the first axis to the last if input is a numpy image array. Default is False.
         kwargs: kwargs are forwarded to the Freeview.show() call.
     '''
     background = kwargs.pop('background', True)
     opts = kwargs.pop('opts', '')
+    swap_batch_dim = kwargs.pop('swap_batch_dim', False)
 
     # expand any nested lists/tuples within args
     def flatten(deep):
@@ -401,7 +409,7 @@ def fv(*args, **kwargs):
             fv.surf(arg)
         else:
             # assume anything else is a volume
-            fv.vol(arg)
+            fv.vol(arg, swap_batch_dim=swap_batch_dim)
 
     fv.show(background=background, opts=opts, **kwargs)
 
