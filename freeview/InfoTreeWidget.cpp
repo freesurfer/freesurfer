@@ -182,9 +182,9 @@ void InfoTreeWidget::UpdateAll()
         QStringList strgs;
         for (int n = 0; n < values.size(); n++)
         {
-//          if (n == layer->GetActiveFrame())
-//            strgs << QString("<b>%1</b>").arg(MyUtils::RealToNumber(values[n], nPrecision));
-//          else
+          if (n == layer->GetActiveFrame())
+            strgs << QString("*%1*").arg(MyUtils::RealToNumber(values[n], nPrecision));
+          else
             strgs << MyUtils::RealToNumber(values[n], nPrecision);
         }
         valueStrg = strgs.join(bComma?", ":" ");
