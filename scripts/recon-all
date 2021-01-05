@@ -4604,7 +4604,7 @@ if($DoParcStats) then
       if($surfname == white) set stats = ../stats/$hemi.aparc.stats
       if($surfname == pial)  set stats = ../stats/$hemi.aparc.pial.stats
       set cmd = (mris_anatomical_stats $TH3Opt -mgz)
-      if ($RHonly || $LHonly || ! $DoTalairach) set cmd = ($cmd -noglobal)
+      if ($RHonly || $LHonly) set cmd = ($cmd -noglobal)
       if($UseAseg) set cmd = ($cmd -cortex ../label/$hemi.cortex.label)
       set cmd = ($cmd -f $stats -b -a $annot -c $ctab $xopts \
         $subjid $hemi $surfname);
