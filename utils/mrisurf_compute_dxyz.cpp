@@ -19,6 +19,11 @@
 
 #include "mrisurf_base.h"
 
+double LOCATION_MOVE_LEN = 0.25;
+void mrisDxyzSetLocationMoveLen(double newval){
+  LOCATION_MOVE_LEN = newval;
+}
+
 #define MAX_VOXELS          mrisurf_sse_MAX_VOXELS
 #define MAX_DISPLACEMENT    mrisurf_sse_MAX_DISPLACEMENT 
 #define DISPLACEMENT_DELTA  mrisurf_sse_DISPLACEMENT_DELTA

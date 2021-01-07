@@ -125,6 +125,7 @@ double round(double x);
 #include "cma.h"
 #include "romp_support.h"
 #include "mris_multimodal_refinement.h"
+#include "mrisurf_compute_dxyz.h"
 
 extern int CBVfindFirstPeakD1;
 extern int CBVfindFirstPeakD2;
@@ -1050,6 +1051,14 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = 1;
     }
     // ======== End Cost function weights ================
+    else if (!stricmp(option, "--location-mov-len")){
+      double locationmovlen;
+      sscanf(pargv[0],"%lf",&locationmovlen);
+      mrisDxyzSetLocationMoveLen(locationmovlen);
+      printf("Setting LOCATION_MOVE_LEN to %g\n",locationmovlen);
+      // Used in mrisComputeTargetLocationTerm()
+      nargsused = 1;
+    }
     else if (!stricmp(option, "--n_averages")){
       sscanf(pargv[0],"%d",&n_averages);
       nargsused = 1;

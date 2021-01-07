@@ -54,6 +54,7 @@
 #include "mris_multimodal_refinement.h"
 #include "surfgrad.h"
 #include "utils.h"
+#include "mrisurf_compute_dxyz.h"
 
 #define  MAX_HISTO_BINS 1000
 
@@ -3026,6 +3027,14 @@ get_option(int argc, char *argv[])
     // This is the full file name, so you need to add lh/rh, suffix, etc
     ripfilename = argv[2] ;
     printf("saving ripflag to %s\n",ripfilename);
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "location-mov-len")){
+    double locationmovlen;
+    sscanf(argv[2],"%lf",&locationmovlen);
+    mrisDxyzSetLocationMoveLen(locationmovlen);
+    printf("Setting LOCATION_MOVE_LEN to %g\n",locationmovlen);
+    // Used in mrisComputeTargetLocationTerm()
     nargs = 1 ;
   }
   else if (!stricmp(option, "sigma-white"))

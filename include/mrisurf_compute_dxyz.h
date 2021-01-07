@@ -22,6 +22,7 @@
 //
 #include "mrisurf_metricProperties.h"
 
+void mrisDxyzSetLocationMoveLen(double newval);
 int mrisComputeAngleAreaTerms(MRIS *mris, INTEGRATION_PARMS *parms);
 int mrisComputeAshburnerTriangleTerm(MRIS *mris, double l_ashburner_triangle, INTEGRATION_PARMS *parms);
 int mrisComputeBorderTerm(MRIS *mris, double l_border);
