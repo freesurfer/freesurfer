@@ -809,7 +809,12 @@ void LayerSurface::InitializeActors()
 
     vtkSmartPointer<vtkPolyDataMapper> mapper3 = vtkSmartPointer<vtkPolyDataMapper>::New();
     m_vertexPoly2D[i] = vtkSmartPointer<vtkPolyData>::New();
+#if VTK_MAJOR_VERSION > 5
     mapper3->SetInputData(m_vertexPoly2D[i]);
+#else
+mapper3->SetInput(m_vertexPoly2D[i]);
+#endif 
+
     mapper3->ScalarVisibilityOff();
     m_vertexActor2D[i]->SetMapper(mapper3);
     m_vertexActor2D[i]->SetProperty( m_vertexActor2D[i]->MakeProperty() );
