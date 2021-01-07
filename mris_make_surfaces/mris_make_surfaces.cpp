@@ -1651,8 +1651,8 @@ int main(int argc, char *argv[])
 		MRIS_MultimodalRefinement* refine = new MRIS_MultimodalRefinement();
 		MRI* whiteMR= MRIcopy(mri_T1_pial,NULL);
 		MRI* vesselMR= MRIcopy(mri_T1_pial,NULL);
-		refine->SegmentWM(mri_T1_pial,mri_flair, whiteMR);
-		refine->SegmentVessel(mri_T1_pial,mri_flair, vesselMR);
+		refine->SegmentWM(mri_T1_pial,mri_flair, whiteMR, contrast_type);
+		refine->SegmentVessel(mri_T1_pial,mri_flair, vesselMR, contrast_type);
 
 		refine->SetStep(.4);
 		refine->SetNumberOfSteps(8);

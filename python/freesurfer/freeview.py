@@ -42,10 +42,14 @@ class Freeview:
             self.data = data
             self.name = name
 
-    def __init__(self, transpose=None):
+    def __init__(self, swap_batch_dim=False):
+        '''
+        Args:
+            swap_batch_dim: Move the first axis to the last if image input is a numpy array. Default is False.
+        '''
         self.tempdir = None
         self.flags = []
-        self.transpose = transpose
+        self.swap_batch_dim = swap_batch_dim
 
     def copy(self):
         '''
@@ -234,13 +238,16 @@ class Freeview:
         # and let the filename creation get handled below
         if isinstance(volume, np.ndarray):
 
-            # swap batch axis if specified
-            if swap_batch_dim:
+            # swap batch axis to frame axis if specified
+            if swap_batch_dim or self.swap_batch_dim:
+                if volume.shape[-1] == 1:
+                    volume = volume[..., 0]
                 volume = np.moveaxis(volume, 0, -1)
 
+            orig_shape = volume.shape
             volume = self._convert_ndarray(volume) if force is None else force(volume.squeeze())
             if volume is None:
-                error('cannot convert array of shape %s' % str(volume.shape))
+                error('cannot convert array of shape %s' % str(orig_shape))
                 return None
 
         # configure filename
@@ -258,9 +265,6 @@ class Freeview:
         if ext == 'annot' and volume.lut is None:
             error('cannot save annotation without embedded lookup table')
             return None
-
-        if self.transpose is not None:
-            volume = np.transpose(volume, self.transpose)
 
         # check if fs array container
         if isinstance(volume, (Overlay, Image, Volume)):

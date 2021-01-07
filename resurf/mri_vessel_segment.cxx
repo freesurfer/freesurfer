@@ -57,7 +57,7 @@ int main(int narg, char * arg[])
 		MRI *vesselMR =  MRIcopy(imageT1, NULL) ;
 		//MRI *whiteMR=  MRIcopy(imageT1, NULL) ;
 		MRIS_MultimodalRefinement refinement;
-		refinement.SegmentVessel(imageT1, imageT2, vesselMR);
+		refinement.SegmentVessel(imageT1, imageT2, vesselMR, 0);
 
 		MRIwrite(vesselMR,outputName) ;
 		MRIfree(&imageT1);	
