@@ -911,7 +911,8 @@ endif
 #####
 
 if (1) then # 06/14/2017
-  set cmd = (/autofs/space/turan_001/users/lzollei/dev/infant/create_wm_surfaces_mprage_subject.csh --s $subj) 
+  #set cmd = (/autofs/space/turan_001/users/lzollei/dev/infant/create_wm_surfaces_mprage_subject.csh --s $subj) 
+  set cmd = (create_wm_surfaces_mprage_subject.csh --s $subj) 
   echo $cmd >> $LF
   echo $cmd >> $sLF
   $cmd |& tee -a $LF
