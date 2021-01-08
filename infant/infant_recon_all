@@ -911,7 +911,7 @@ endif
 #####
 
 if (1) then # 06/14/2017
-  set cmd = (create_wm_surfaces_mprage_subject.csh --s $subj) 
+  set cmd = (/autofs/space/turan_001/users/lzollei/dev/infant/create_wm_surfaces_mprage_subject.csh --s $subj) 
   echo $cmd >> $LF
   echo $cmd >> $sLF
   $cmd |& tee -a $LF
@@ -970,7 +970,8 @@ if ($dostats) then
     $cmd |& tee -a $LF
     if($status) exit 1;
   else # new eTIV computations
-    set template = $INFANTSCRIPTDIR/all_c_robtemplate_affine_mean.05.01.2018.nii.gz
+    #set template = $INFANTSCRIPTDIR/all_c_robtemplate_affine_mean.05.01.2018.nii.gz
+    set template = $FREESURFER_HOME/average/all_c_robtemplate_affine_mean.05.01.2018.nii.gz
     set out  = mri/transforms/${subj}.2.common.nii.gz
     set t_affine = ${out:r:r}.txt
     if !(-e $t_affine) then
