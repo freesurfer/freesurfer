@@ -911,7 +911,6 @@ endif
 #####
 
 if (1) then # 06/14/2017
-  #set cmd = (/autofs/space/turan_001/users/lzollei/dev/infant/create_wm_surfaces_mprage_subject.csh --s $subj) 
   set cmd = (create_wm_surfaces_mprage_subject.csh --s $subj) 
   echo $cmd >> $LF
   echo $cmd >> $sLF
@@ -1025,6 +1024,15 @@ if($status) exit 1;
 ##
 endif
 
+##
+echo "Successfully finished infant_recon_all" >> $LF
+echo "Successfully finished infant_recon_all" >> $sLF
+set EndTime = `date +%s`;
+@ DiffTime = $EndTime - $StartTime
+set TimeMsg = "infant_recon_all: The whole process took $DiffTime seconds"
+echo $TimeMsg |& tee -a $sLF
+echo $TimeMsg >> $LF
+
 ## copy files to their final location
 set cmd = (cp -r $WORK_DIR/$subj/mri $FS_DIR/) 
 echo $cmd >> $LF
@@ -1077,14 +1085,7 @@ if ($cleanup) then
 
 endif
 
-##
-echo "Successfully finished infant_recon_all" >> $LF
-echo "Successfully finished infant_recon_all" >> $sLF
-set EndTime = `date +%s`;
-@ DiffTime = $EndTime - $StartTime
-set TimeMsg = "infant_recon_all: The whole process took $DiffTime seconds"
-echo $TimeMsg |& tee -a $sLF
-echo $TimeMsg >> $LF
+
 exit 0;
 
 ############--------------##################
