@@ -18,7 +18,7 @@ install(PROGRAMS
 
 install_append_help(infant_recon_all infant_recon_all.help.xml bin)
 
-install_symlinks(all_c_robtemplate_affine_mean.05.01.2018.nii.gz DESTINATION average)
+install_symlinks(all_c_robtemplate_affine_mean.05.01.2018.nii.gz TYPE files DESTINATION average)
 
 install_pyscript(mri_label_fusion)
 add_subdirectory(labelfusion)
