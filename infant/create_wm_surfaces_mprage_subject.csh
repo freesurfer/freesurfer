@@ -117,8 +117,8 @@ if ($getwmhemis) then
   set cmd = (mri_binarize --i  $workdir/${vol:t:r:r}.WM.$rightprefix.mgz --o $workdir/${vol:t:r:r}.WM.$rightprefix.$rightlabel.mgz --min 1 --max 1 --binval $rightlabel)
   echo $cmd; eval $cmd
 
-  # Brainstem
-  foreach label (173 174 175) 
+  # Brainstem # TODO allow 16 here
+  foreach label (173 174 175 16) 
     set cmd = (mri_binarize --i $vol --o $workdir/${vol:t:r:r}.$label.mgz --min $label --max $label --binval 1)
     foreach temp ($alllabels) 
       if ($temp == $label) then
@@ -264,9 +264,14 @@ if ($surfaceprep) then
   ###
   ### wm.mgz
   ###
-  set cmd = (mri_or $workdir/${segfile:t:r:r}.$rightprefix.41.mgz $workdir/${segfile:t:r:r}.$leftprefix.2.mgz \
-                    $workdir/${segfile:t:r:r}.173.mgz $workdir/${segfile:t:r:r}.174.mgz \
-                    $workdir/${segfile:t:r:r}.175.mgz $workdir/wm.nonscaled.mgz )
+  if (-e $workdir/${segfile:t:r:r}.173.mgz) then 
+    set cmd = (mri_or $workdir/${segfile:t:r:r}.$rightprefix.41.mgz $workdir/${segfile:t:r:r}.$leftprefix.2.mgz \
+                      $workdir/${segfile:t:r:r}.173.mgz $workdir/${segfile:t:r:r}.174.mgz \
+                      $workdir/${segfile:t:r:r}.175.mgz $workdir/wm.nonscaled.mgz )
+  else
+    set cmd = (mri_or $workdir/${segfile:t:r:r}.$rightprefix.41.mgz $workdir/${segfile:t:r:r}.$leftprefix.2.mgz \
+                      $workdir/${segfile:t:r:r}.16.mgz $workdir/wm.nonscaled.mgz )
+  endif
   echo $cmd; eval $cmd
   set cmd = (mri_binarize --i $workdir/wm.nonscaled.mgz  --o $workdir/wm.mgz --min 1 --max 1 --binval 110)
   echo $cmd; eval $cmd
@@ -337,7 +342,8 @@ if ($getwhitesurfaces) then
   if (-e $mridir/filled.mgz) then 
     rm -f $mridir/filled.mgz
   endif
-  ln -s $workdir/FilledWM.mgz $mridir/filled.mgz
+  #ln -s $workdir/FilledWM.mgz $mridir/filled.mgz
+  cp $workdir/FilledWM.mgz $mridir/filled.mgz
 
   foreach hemi (lh rh)
     set cmd = (mris_make_surfaces -output .dist -soap -orig_white orig -aseg aseg \
