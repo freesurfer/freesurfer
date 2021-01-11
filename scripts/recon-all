@@ -2946,15 +2946,17 @@ if($DoSegmentation) then
       if($RunIt) $fs_time $cmd |& tee -a $LF
       if($status) goto error_exit;
     else #default in -long:
-      # transfer wm matter edits (voxels=255) from cross wm.mgz to long tpN wm.mgz
-      # and -keep_mask_deletion_edits transfers voxel-deletion (voxels=1) edits
-      set cmd = (mri_mask -transfer 255)
-      set cmd = ($cmd -keep_mask_deletion_edits)
-      set cmd = ($cmd -xform $tpNtobase_regfile)
-      set cmd = ($cmd wm.mgz ${SUBJECTS_DIR}/${tpNid}/mri/wm.mgz wm.mgz)
-      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-      if($RunIt) $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
+      if(-e  ${SUBJECTS_DIR}/${tpNid}/mri/wm.mgz) then
+        # transfer wm matter edits (voxels=255) from cross wm.mgz to long tpN wm.mgz
+        # and -keep_mask_deletion_edits transfers voxel-deletion (voxels=1) edits
+        set cmd = (mri_mask -transfer 255)
+        set cmd = ($cmd -keep_mask_deletion_edits)
+        set cmd = ($cmd -xform $tpNtobase_regfile)
+        set cmd = ($cmd wm.mgz ${SUBJECTS_DIR}/${tpNid}/mri/wm.mgz wm.mgz)
+        echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+        if($RunIt) $fs_time $cmd |& tee -a $LF
+        if($status) goto error_exit;
+      endif
     endif
   endif
 
