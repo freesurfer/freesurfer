@@ -51,6 +51,8 @@ set OptionsFile = ()
 set SaveHistory = 0
 set LesionMaskPattern = ()
 set GMM = ()
+set ShowFigs = 0
+set ShowMovie = 0;
 
 set inputargs = ($argv);
 set PrintHelp = 0;
@@ -161,6 +163,8 @@ if($SaveHistory)  set cmd0 = ($cmd0 --history)
 if($DoLesion) set cmd0 = ($cmd0 --lesion)  # TODO: if T2/flair is provided, --lesion-mask-pattern must be set
 if($#LesionMaskPattern) set cmd0 = ($cmd0 --lesion-mask-pattern $LesionMaskPattern)
 if($#GMM) set cmd0 = ($cmd0 --gmm $GMM)
+if($ShowFigs) set cmd0 = ($cmd0 --showfigs)
+if($ShowMovie) set cmd0 = ($cmd0 --movie)
 
 # specify input list
 foreach input ($inputlist)
@@ -571,6 +575,14 @@ while( $#argv != 0 )
       set LF = $argv[1]; shift;
       breaksw
 
+    case "--showfigs":
+      set ShowFigs = 1;
+      breaksw   
+
+    case "--movie":
+      set ShowMovie = 1;
+      breaksw   
+
     case "--nolog":
     case "--no-log":
       set LF = /dev/null
@@ -608,6 +620,7 @@ while( $#argv != 0 )
 
     case "--exvivo":
       set exvivo = 1;
+      set GMM = $FREESURFER/average/samseg/20Subjects_smoothing2_down2_smoothingForAffine2/exvivo.sharedGMMParameters.txt
       breaksw
 
     case "--cleanup":
