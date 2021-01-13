@@ -380,6 +380,7 @@ set DoAParcASegStats = 0;
 set DoVnoMatchCheck  = 0;
 
 set ForceUpdate = 0
+set DoSBatch = 0;
 set DoIsRunning  = 1;
 set IsRunningFile  = ();
 set DoneFile = ();
@@ -428,6 +429,16 @@ goto parse_args;
 parse_args_return:
 goto check_params;
 check_params_return:
+
+if($DoSBatch) then
+  set cmd = ($0 $inputargs -no-sbatch)
+  set sbatch = (sbatch --partition=$SBpartition --nodes=1 --time=2-0 \
+    --ntasks-per-node=1 --cpus-per-task=$OMP_NUM_THREADS)
+  set cmd = ($sbatch --job-name=$SBjobName --output=$SBlogFile $cmd)
+  echo $cmd
+  $cmd
+  exit 0
+endif
 
 set StartTime = `date`;
 set tSecStart = `date '+%s'`;
@@ -7198,6 +7209,18 @@ while( $#argv != 0 )
       breaksw
     case "-no-chunk":
       unsetenv FS_USE_MRI_CHUNK
+      breaksw
+
+    case "-sbatch":
+      if ( $#argv < 3) goto arg3err;
+      set SBpartition = $argv[1]; shift;
+      set SBjobName   = $argv[1]; shift;
+      set SBlogFile   = $argv[1]; shift;
+      set DoSBatch = 1;
+      breaksw
+
+    case "-no-sbatch":
+      set DoSBatch = 0;
       breaksw
 
     case "-force-update":
