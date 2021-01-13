@@ -21,6 +21,7 @@ option(GEMS_BUILD_TESTING "Build tests" OFF)
 option(GEMS_BUILD_GUI "Build GUI components (requires FLTK and VTK)" OFF)
 option(GEMS_BUILD_MATLAB "Build Matlab wrappers" OFF)
 option(GEMS_BUILD_CUDA "Build CUDA stuff" OFF)
+option(GEMS_CROSS_THREAD_REPRODUCIBLE "Enable complete reproducibility" OFF)
 
 set(GEMS_RUNTIME_PATH ${CMAKE_CURRENT_BINARY_DIR}/bin)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${GEMS_RUNTIME_PATH})
@@ -48,6 +49,10 @@ if(GEMS_BUILD_CUDA)
   set(CMAKE_CXX_FLAGS "-DCUDA_FOUND ${CMAKE_CXX_FLAGS}")
   include_directories(cuda)
   add_subdirectory(cuda)
+endif()
+
+if(GEMS_CROSS_THREAD_REPRODUCIBLE)
+  set(CMAKE_CXX_FLAGS "-DCROSS_THREAD_REPRODUCIBLE ${CMAKE_CXX_FLAGS}")
 endif()
 
 # source
