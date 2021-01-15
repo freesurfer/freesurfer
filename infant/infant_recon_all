@@ -527,7 +527,7 @@ foreach tsubj ($TEMPLATE_SUBJECTS)
         if ($status) exit 1;
       else 
         set cmd = (reg_aladin -ref $ref -flo $in -aff ${def:r:r:r}.affine.txt \
-                                           -res ${out:r:r}.affine.nii.gz -voff)
+                                           -res ${out:r:r}.affine.nii.gz)
         echo $cmd >> $LF
         echo $cmd >> $sLF
         $cmd |& tee -a $LF
@@ -752,7 +752,7 @@ if !(-e $datadir/$subj/mri/transforms/talairach.auto.xfm) then
 
   set talaffine = $datadir/$subj/mri/transforms/niftyreg_affine.txt
   set cmd = (reg_aladin -ref ./${targ:t:r}.nii.gz -flo $maskedfile -aff $talaffine \
-                                     -res ${talaffine:r}.nii.gz  -voff)
+                                     -res ${talaffine:r}.nii.gz)
   echo $cmd >> $LF
   echo $cmd >> $sLF
   $cmd |& tee -a $LF
