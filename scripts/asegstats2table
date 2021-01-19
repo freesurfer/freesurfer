@@ -139,6 +139,7 @@ def options_parse():
     h_skip = 'if a subject does not have stats file, skip it'
     h_v = 'increase verbosity'
     h_vol_extras = 'Do not include global volume measures like BrainSegVol'
+    h_scale = 'scale factor for all values written to outputfile, default value=1'
 
     # Add options
     parser.add_option('--subjects', dest='subjects', action='callback',
@@ -188,6 +189,7 @@ def options_parse():
                       default=False, help=h_skip)
     parser.add_option('-v', '--debug', action='store_true', dest='verboseflag',
                       default=False, help=h_v)
+    parser.add_option('','--scale', action='store', dest='scale', type='float', help=h_scale)
 
     (options, args) = parser.parse_args()
 
@@ -598,12 +600,18 @@ if __name__ == "__main__":
                     if col == 'BrainSegVol-to-eTIV': continue
                     if col == 'MaskVol-to-eTIV': continue
                     v = table[row][col]
-                    table[row][col] = 100*v/etiv
+                    table[row][col] = (100*v/etiv) 
 
         except:
             print("ERROR: --etiv, cannot find EstimatedTotalIntraCranialVol in list")
             sys.exit(1)
     # end etiv scaling
+
+    # Scale table values
+    if options.scale:
+        for row in rows:
+            for col in columns:
+                table[row][col] = table[row][col]*options.scale
 
     # Write this table ( in memory ) to disk.. function uses TableWriter class
     print('Writing the table to %s' %options.outputfile)

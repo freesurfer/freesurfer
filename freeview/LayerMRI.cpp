@@ -772,7 +772,7 @@ void LayerMRI::DoTransform(int sample_method)
 
 bool LayerMRI::DoRotate( std::vector<RotationElement>& rotations )
 {
-  if ( GetProperty()->GetColorMap() == LayerPropertyMRI::LUT || rotations[0].SampleMethod == SAMPLE_NEAREST )
+  if ( GetProperty()->GetColorMap() == LayerPropertyMRI::LUT || rotations[0].SampleMethod == SAMPLE_NEAREST)
     GetProperty()->SetResliceInterpolation(SAMPLE_NEAREST);
   else
     GetProperty()->SetResliceInterpolation(rotations[0].SampleMethod);
@@ -1304,7 +1304,17 @@ void LayerMRI::UpdateDisplayMode()
     if (GetProperty()->GetDisplayRGB())
     {
       vtkSmartPointer<vtkImageCast> cast = vtkSmartPointer<vtkImageCast>::New();
-      cast->SetInputConnection(mReslice[i]->GetOutputPort());
+      vtkSmartPointer<vtkImageThreshold> upper = vtkSmartPointer<vtkImageThreshold>::New();
+      upper->ThresholdByUpper(0);
+      upper->SetOutValue(0);
+      upper->SetReplaceOut(1);
+      upper->SetInputConnection(mReslice[i]->GetOutputPort());
+      vtkSmartPointer<vtkImageThreshold> lower = vtkSmartPointer<vtkImageThreshold>::New();
+      lower->ThresholdByLower(255);
+      lower->SetOutValue(255);
+      lower->SetReplaceOut(1);
+      lower->SetInputConnection(upper->GetOutputPort());
+      cast->SetInputConnection(lower->GetOutputPort());
       cast->SetOutputScalarTypeToUnsignedChar();
       m_sliceActor2D[i]->GetMapper()->SetInputConnection( cast->GetOutputPort() );
       m_sliceActor3D[i]->GetMapper()->SetInputConnection( cast->GetOutputPort() );
@@ -4168,21 +4178,21 @@ QString LayerMRI::GetGeoSegErrorMessage()
 
 bool LayerMRI::ExportLabelStats(const QString &fn)
 {
-    QFile file(fn);
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
-      return false;
+  QFile file(fn);
+  if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
+    return false;
 
-    QTextStream out(&file);
-    out << "Label,Count,Volume (mm3)\n";
-    double* vs = m_imageData->GetSpacing();
-    QList<int> labels = m_nAvailableLabels;
-    qSort(labels);
-    for (int i = 0; i < labels.size(); i++)
-    {
-        QVector<double> list = GetVoxelList(labels[i]);
-        if (!list.isEmpty())
-            out << QString("%1,%2,%3\n").arg(labels[i])
-                   .arg(list.size()/3).arg(list.size()/3*vs[0]*vs[1]*vs[2]);
-    }
-    return true;
+  QTextStream out(&file);
+  out << "Label,Count,Volume (mm3)\n";
+  double* vs = m_imageData->GetSpacing();
+  QList<int> labels = m_nAvailableLabels;
+  qSort(labels);
+  for (int i = 0; i < labels.size(); i++)
+  {
+    QVector<double> list = GetVoxelList(labels[i]);
+    if (!list.isEmpty())
+      out << QString("%1,%2,%3\n").arg(labels[i])
+             .arg(list.size()/3).arg(list.size()/3*vs[0]*vs[1]*vs[2]);
+  }
+  return true;
 }

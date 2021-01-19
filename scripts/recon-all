@@ -380,6 +380,7 @@ set DoAParcASegStats = 0;
 set DoVnoMatchCheck  = 0;
 
 set ForceUpdate = 0
+set DoSBatch = 0;
 set DoIsRunning  = 1;
 set IsRunningFile  = ();
 set DoneFile = ();
@@ -428,6 +429,16 @@ goto parse_args;
 parse_args_return:
 goto check_params;
 check_params_return:
+
+if($DoSBatch) then
+  set cmd = ($0 $inputargs -no-sbatch)
+  set sbatch = (sbatch --partition=$SBpartition --nodes=1 --time=2-0 \
+    --ntasks-per-node=1 --cpus-per-task=$OMP_NUM_THREADS)
+  set cmd = ($sbatch --job-name=$SBjobName --output=$SBlogFile $cmd)
+  echo $cmd
+  $cmd
+  exit 0
+endif
 
 set StartTime = `date`;
 set tSecStart = `date '+%s'`;
@@ -2946,15 +2957,17 @@ if($DoSegmentation) then
       if($RunIt) $fs_time $cmd |& tee -a $LF
       if($status) goto error_exit;
     else #default in -long:
-      # transfer wm matter edits (voxels=255) from cross wm.mgz to long tpN wm.mgz
-      # and -keep_mask_deletion_edits transfers voxel-deletion (voxels=1) edits
-      set cmd = (mri_mask -transfer 255)
-      set cmd = ($cmd -keep_mask_deletion_edits)
-      set cmd = ($cmd -xform $tpNtobase_regfile)
-      set cmd = ($cmd wm.mgz ${SUBJECTS_DIR}/${tpNid}/mri/wm.mgz wm.mgz)
-      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-      if($RunIt) $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
+      if(-e  ${SUBJECTS_DIR}/${tpNid}/mri/wm.mgz) then
+        # transfer wm matter edits (voxels=255) from cross wm.mgz to long tpN wm.mgz
+        # and -keep_mask_deletion_edits transfers voxel-deletion (voxels=1) edits
+        set cmd = (mri_mask -transfer 255)
+        set cmd = ($cmd -keep_mask_deletion_edits)
+        set cmd = ($cmd -xform $tpNtobase_regfile)
+        set cmd = ($cmd wm.mgz ${SUBJECTS_DIR}/${tpNid}/mri/wm.mgz wm.mgz)
+        echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+        if($RunIt) $fs_time $cmd |& tee -a $LF
+        if($status) goto error_exit;
+      endif
     endif
   endif
 
@@ -7196,6 +7209,18 @@ while( $#argv != 0 )
       breaksw
     case "-no-chunk":
       unsetenv FS_USE_MRI_CHUNK
+      breaksw
+
+    case "-sbatch":
+      if ( $#argv < 3) goto arg3err;
+      set SBpartition = $argv[1]; shift;
+      set SBjobName   = $argv[1]; shift;
+      set SBlogFile   = $argv[1]; shift;
+      set DoSBatch = 1;
+      breaksw
+
+    case "-no-sbatch":
+      set DoSBatch = 0;
       breaksw
 
     case "-force-update":

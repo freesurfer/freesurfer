@@ -178,7 +178,7 @@ foreach hemi ($hemilist other)
   endif
   if($hemi == other) then 
     grep -v Left $ASegLUT | grep -v Right | \
-      grep -v ypo | grep -v \# | \
+      grep -v non | grep -v \# | \
       awk '{if($1 != 0 && length($1) !=0) print $1}' > $segidlist
   endif
   foreach meas (volume mean)
@@ -254,7 +254,7 @@ if($DoMaps) then
           set cmd = (mri_glmfit-sim --glmdir $glmdir --cwp .05 --cache 1.3 abs --2spaces)
           echo "#C# $cmd"  | tee -a $LF
           $cmd | tee -a $LF
-          if($status) exit 1;
+          #if($status) exit 1;
         endif
       end # fwhm
     end # hemi
@@ -410,10 +410,10 @@ goto parse_args_return;
 
 ############--------------##################
 check_params:
-if($#fsgd && $#slist) then
-  echo "ERROR: cannot spec both --fsgd and --f"
-  exit 1;
- endif
+#if($#fsgd && $#slist) then
+#  echo "ERROR: cannot spec both --fsgd and --f"
+#  exit 1;
+# endif
 if($#fsgd == 0 && $#slist == 0) then
   echo "ERROR: must spec --fsgd or --f"
   exit 1;
@@ -456,6 +456,7 @@ usage_exit:
   echo "groupstats --help"
   echo "  --o outdir : output folder"
   echo "  --fsgd group.fsgd   OR   --f subjectfile"
+  echo "     if both are specified, gets subjects from subjectsfile"
   echo "  --fwhm fwhm <--fwhm fwhm2> : specify smoothing level(s)"
   echo "  --no-maps : only analyze ROI data"
   echo "  --lh : only analyze lh"
