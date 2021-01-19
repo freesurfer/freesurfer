@@ -2909,6 +2909,9 @@ bool LayerMRI::FloodFillByContour2D( double* ras, Contour2D* c2d )
 {
   int nPlane = c2d->GetPlane();
   vtkImageData* image = c2d->GetThresholdedImage();
+  if (!image)
+    return false;
+
   vtkImageData* original_image = GetSliceImageData( nPlane );
   int* nDim = image->GetDimensions();      // 2D image
   int n[3];
