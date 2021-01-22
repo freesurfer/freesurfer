@@ -332,16 +332,16 @@ class Volume(ArrayContainerTemplate, Transformable):
         cropped_vol.copy_metadata(self)
         return cropped_vol
 
-    def conform_to_shape(self, shape):
+    def fit_to_shape(self, shape):
         '''
-        Returns a volume conformed to a given shape. Image will be
+        Returns a volume fit to a given shape. Image will be
         centered in the conformed volume.
 
         TODO: Enable multi-frame support.
         '''
 
         if self.nframes > 1:
-            raise NotImplementedError('multiframe volumes not support yet for conforming')
+            raise NotImplementedError('multiframe volumes not support yet for shape refit')
 
         delta = (np.array(shape) - np.array(self.shape[:3])) / 2
         low = np.floor(delta).astype(int)
