@@ -351,8 +351,9 @@ class Volume(ArrayContainerTemplate, Transformable):
         c_high = np.clip(high, 0, None)
         conformed_data = np.pad(self.data.squeeze(), list(zip(c_low, c_high)))
 
-        c_low = np.clip(-low, 0, None)
-        c_high = conformed_data.shape[:3] - np.clip(-high, 0, None)
+        # note: low and high are intentionally swapped here
+        c_low = np.clip(-high, 0, None)
+        c_high = conformed_data.shape[:3] - np.clip(-low, 0, None)
         cropping = tuple([slice(a, b) for a, b in zip(c_low, c_high)])
         conformed_data = conformed_data[cropping]
 
@@ -360,7 +361,8 @@ class Volume(ArrayContainerTemplate, Transformable):
         if self.affine is not None:
             matrix = np.eye(4)
             matrix[:3, :3] = self.affine[:3, :3]
-            p0 = self.vox2ras().transform(-low)
+            p0crs = np.clip(-high, 0, None) - np.clip(low, 0, None)
+            p0 = self.vox2ras().transform(p0crs)
             matrix[:3, 3] = p0
             pcrs = np.append(np.array(conformed_data.shape[:3]) / 2, 1)
             cras = np.matmul(matrix, pcrs)[:3]
