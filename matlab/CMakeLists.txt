@@ -2,6 +2,7 @@ project(matlab)
 
 install(FILES
   angles2rotmat.m
+  annotval2surfoverlay.m
   barsegstats.m
   bmmcost.m
   bmm_mcvect.m
