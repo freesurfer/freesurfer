@@ -3,6 +3,7 @@ import sys
 import pickle
 import numpy as np
 import datetime as dt
+import traceback
 
 from .logging import error
 
@@ -36,12 +37,18 @@ def check_tensorflow():
     '''Ensures that tensorflow is installed in fspython.'''
     try:
         import tensorflow
-    except ImportError:
-        error('This tool requires tensorflow, but fspython does not ship with tensorflow')
+    except ModuleNotFoundError:
+        error('This tool requires TensorFlow, but fspython does not ship with tensorflow')
         print('by default. You (or a sys admin) can install the CPU version via:\n')
         print('  fspython -m pip install tensorflow==1.13.1\n')
-        print('Or the GPU version via:\n')
+        print('or the GPU version via:\n')
         print('  fspython -m pip install tensorflow-gpu==1.13.1\n')
+        sys.exit(1)
+    except ImportError as err:
+        print(traceback.format_exc())
+        error('Found fspython TensorFlow, but could not import (see error above).')
+        print('If you\'ve install the GPU version, please ensure that the appropriate')
+        print('CUDA libraries are installed on your system and available in your environment.')
         sys.exit(1)
 
 

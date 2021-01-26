@@ -171,7 +171,7 @@ ToolWindowEdit::ToolWindowEdit(QWidget *parent) :
 
 #ifdef Q_OS_MAC
   ui->labelTips->setText(ui->labelTips->text().replace("Ctrl +", "Cmd +"));
-  ui->labelTipsContour->setText(ui->labelTips->text().replace("Ctrl +", "Cmd +"));
+//  ui->labelTipsContour->setText(ui->labelTipsContour->text().replace("Ctrl +", "Cmd +"));
   if (MacHelper::IsDarkMode())
   {
       ui->actionFreeHand->setIcon(MacHelper::InvertIcon(ui->actionFreeHand->icon(), QSize(), true));

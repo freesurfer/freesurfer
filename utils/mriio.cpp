@@ -7591,7 +7591,12 @@ static MRI *nifti1Read(const char *fname, int read_volume)
   else if (space_units == NIFTI_UNITS_MICRON)
     space_units_factor = 0.001;
   else if (space_units == NIFTI_UNITS_UNKNOWN) {
-    printf("nifti1Read(): NIFTI_UNITS_UNKNOWN, assuming mm\n");
+    static int printed = 0;
+    if (!printed && (getenv("FS_SUPPRESS_NIFTI_WARNINGS")==NULL))
+    {
+      printed = 1;
+      printf("nifti1Read(): NIFTI_UNITS_UNKNOWN, assuming mm\n");
+    }
     space_units_factor = 1.0;
   }
   else {
