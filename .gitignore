@@ -6,6 +6,7 @@ CTestTestfile.cmake
 Makefile
 *.[oa]
 ld_map.txt
+install_manifest.txt
 
 # generated help files
 *.help.xml.h
@@ -49,6 +50,8 @@ anatomicuts/AnatomiCuts.bin
 anatomicuts/AnatomiCuts_correspondences.bin
 anatomicuts/streamlineFilter.bin
 anatomicuts/trk_tools.bin
+AntsDenoiseImageFs/AntsDenoiseImageFs
+AntsN4BiasFieldCorrectionFs/AntsN4BiasFieldCorrectionFs
 check_siemens_dir/check_siemens_dir
 connectgraph/connectgraph
 diffusion_tool/diffusion_tool
@@ -82,6 +85,7 @@ mri_and/mri_or
 mri_annotation2label/mri_annotation2label
 mri_aparc2aseg/mri_aparc2aseg
 mri_aparc2wmseg/mri_aparc2wmseg
+mri_aparc2aseg/mri_surf2volseg
 mri_apply_inu_correction/mri_apply_inu_correction
 mri_aseg_edit_reclassify/mri_aseg_edit_reclassify
 mri_aseg_edit_train/mri_aseg_edit_train
@@ -91,6 +95,7 @@ mri_bc_sc_bias_correct/mri_bc_sc_bias_correct
 mri_bias/mri_apply_bias
 mri_bias/mri_compute_bias
 mri_binarize/mri_binarize
+mri_brainvol_stats/mri_brainvol_stats
 mri_build_priors/mri_build_priors
 mri_ca_label/mri_ca_label
 mri_ca_normalize/mri_ca_normalize
@@ -217,6 +222,7 @@ mri_polv/mri_polv
 mri_probe_ima/mri_probe_ima
 mri_probedicom/mri_probedicom
 mri_reduce/mri_reduce
+mri_refine_seg/mri_refine_seg
 mri_register/mri_register
 mri_relabel_hypointensities/mri_relabel_hypointensities
 mri_relabel_nonwm_hypos/mri_relabel_nonwm_hypos
@@ -234,6 +240,7 @@ mri_robust_register/mri_robust_register
 mri_robust_register/mri_robust_template
 mri_sbbr/mri_sbbr
 mri_seg_diff/mri_seg_diff
+mri_seg_overlap/mri_seg_overlap
 mri_segcentroids/mri_segcentroids
 mri_seghead/mri_seghead
 mri_segment/mri_segment
@@ -281,6 +288,7 @@ mris2rgb/mris2rgb
 mris_BA_segment/mris_BA_segment
 mris_add_template/mris_add_template
 mris_anatomical_stats/mris_anatomical_stats
+mris_annot_diff/mris_annot_diff
 mris_annot_to_segmentation/mris_annot_to_segmentation
 mris_apply_reg/mris_apply_reg
 mris_aseg_distance/mris_aseg_distance
@@ -340,9 +348,11 @@ mris_longitudinal_surfaces/mris_longitudinal_surfaces
 mris_make_average_surface/mris_make_average_surface
 mris_make_face_parcellation/mris_make_face_parcellation
 mris_make_map_surfaces/mris_make_map_surfaces
+mris_make_surfaces/mris_autodet_gwstats
 mris_make_surfaces/mris_exvivo_surfaces
 mris_make_surfaces/mris_make_surfaces
 mris_make_surfaces/mris_mef_surfaces
+mris_make_surfaces/mris_place_surface
 mris_make_surfaces/mris_refine_surfaces
 mris_make_template/mris_make_template
 mris_map_cuts/mris_map_cuts
@@ -452,3 +462,7 @@ utils/fsPrintHelp
 utils/gifti_test
 utils/gifti_tool
 utils/xmlToHtml
+
+# testdata
+*/testdata
+Testing
