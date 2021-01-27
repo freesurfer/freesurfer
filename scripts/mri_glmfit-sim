@@ -41,6 +41,7 @@ set y = ()
 set framemask = ()
 set PermNonStatCor = 0;
 set fwhmmap = ()
+set DoSpatialSum = 0
 
 set nJobs = 1;
 set DoBackground = 0;
@@ -620,7 +621,9 @@ foreach conname ($conlist)
       # Create an average "waveform" for each cluster
       set avgwf = $glmdir/$conname/$csdbase.y.ocn.dat
       set cmd = (mri_segstats --seg $ocn --exclude 0  \
-       --i $y  --avgwf $avgwf --sum /tmp/mri_glmfit-sim.junk.$$)
+       --i $y   --sum /tmp/mri_glmfit-sim.junk.$$)
+      if($DoSpatialSum == 0) set cmd = ($cmd --avgwf $avgwf)
+      if($DoSpatialSum == 1) set cmd = ($cmd --sumwf $avgwf)
       echo $cmd | tee -a $LF
       $cmd | tee -a $LF
       if($status) exit 1;
@@ -652,7 +655,9 @@ foreach conname ($conlist)
       # Create an average "waveform" for each cluster
       set avgwf = $glmdir/$conname/$csdbase.y.ocn.dat
       set cmd = (mri_segstats --seg $ocn --exclude 0 \
-       --i $y --avgwf $avgwf --sum /tmp/mri_glmfit-sim.junk.$$)
+       --i $y --sum /tmp/mri_glmfit-sim.junk.$$)
+      if($DoSpatialSum == 0) set cmd = ($cmd --avgwf $avgwf)
+      if($DoSpatialSum == 1) set cmd = ($cmd --sumwf $avgwf)
       echo $cmd | tee -a $LF
       $cmd | tee -a $LF
       if($status) exit 1;
@@ -917,6 +922,10 @@ while( $#argv != 0 )
       set DoSim = 0;
       breaksw
 
+    case "--spatial-sum":
+      set DoSpatialSum = 1;
+      breaksw
+
     case "--diag-cluster":
       set DiagCluster = 1;
       breaksw
@@ -1071,6 +1080,8 @@ usage_exit:
   echo " --no-cluster-mean : do not compute means of each subject in each cluster (was --no-y)"
   echo " --y yFile : use yFile instead of determining yFile from glmdir"
   echo " --centroid : report the coordinates/annotation of the centroid instead of max"
+  echo " --spatial-sum : compute the sum over voxels in the cluster rather than"
+  echo "   the average when creating the y.ocn file. This is good for when the input is area or volume"
   echo " --help"
   echo ""
 
