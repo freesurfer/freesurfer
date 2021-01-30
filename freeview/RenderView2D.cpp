@@ -408,7 +408,7 @@ void RenderView2D::StopSelection()
       m_selection2D->GetWorldPoint( 0, m_dPt0 );
       m_selection2D->GetWorldPoint( 2, m_dPt2 );
       int nColorMap = layer->GetProperty()->GetColorMap();
-      if (layer->IsVisible() && nColorMap != LayerPropertyMRI::LUT &&
+      if (nColorMap != LayerPropertyMRI::LUT &&
           nColorMap != LayerPropertyMRI::DirectionCoded && layer->GetVoxelValueRange( m_dPt0, m_dPt2, m_nViewPlane, range ) )
       {
         switch ( nColorMap )

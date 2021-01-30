@@ -381,6 +381,7 @@ set DoVnoMatchCheck  = 0;
 
 set ForceUpdate = 0
 set DoSBatch = 0;
+set SBjobname = ()
 set DoIsRunning  = 1;
 set IsRunningFile  = ();
 set DoneFile = ();
@@ -427,18 +428,23 @@ set argv = ( "`cat $tmp_unknown_args`" )
 
 goto parse_args;
 parse_args_return:
-goto check_params;
-check_params_return:
 
 if($DoSBatch) then
+  if($#SBjobname == 0) set SBjobname = $subjid
+  mkdir -p $SUBJECTS_DIR/sbatch
+  set dt = `date +%Y.%m.%H.%M`
+  set SBlogFile  = $SUBJECTS_DIR/sbatch/sbatch.$SBjobname.$dt
   set cmd = ($0 $inputargs -no-sbatch)
   set sbatch = (sbatch --partition=$SBpartition --nodes=1 --time=2-0 \
     --ntasks-per-node=1 --cpus-per-task=$OMP_NUM_THREADS)
-  set cmd = ($sbatch --job-name=$SBjobName --output=$SBlogFile $cmd)
+  set cmd = ($sbatch --job-name=$SBjobname --output=$SBlogFile $cmd)
   echo $cmd
   $cmd
-  exit 0
+  exit $status
 endif
+
+goto check_params;
+check_params_return:
 
 set StartTime = `date`;
 set tSecStart = `date '+%s'`;
@@ -7212,11 +7218,14 @@ while( $#argv != 0 )
       breaksw
 
     case "-sbatch":
-      if ( $#argv < 3) goto arg3err;
+      if ( $#argv < 1) goto arg1err;
       set SBpartition = $argv[1]; shift;
-      set SBjobName   = $argv[1]; shift;
-      set SBlogFile   = $argv[1]; shift;
       set DoSBatch = 1;
+      breaksw
+
+    case "-sbatch-jobname":
+      if ( $#argv < 1) goto arg1err;
+      set SBjobname = $argv[1]; shift;
       breaksw
 
     case "-no-sbatch":
