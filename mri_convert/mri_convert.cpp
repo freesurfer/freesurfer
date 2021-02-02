@@ -42,7 +42,6 @@
 #include "fio.h"
 #include "mri_conform.h"
 
-
 /* ----- determines tolerance of non-orthogonal basis vectors ----- */
 #define CLOSE_ENOUGH  (5e-3)
 
@@ -167,6 +166,8 @@ int main(int argc, char *argv[])
   int erode_seg_flag=FALSE, n_erode_seg;
   int dil_seg_flag=FALSE, n_dil_seg;
   char dil_seg_mask[STRLEN];
+  char FirstDicomFile[STRLEN];
+  int FirstDicom=0;
   int read_otl_flags;
   int color_file_flag;
   char color_file_name[STRLEN];
@@ -1226,6 +1227,15 @@ int main(int argc, char *argv[])
     {
       get_string(argc, argv, &i, in_like_name);
       in_like_flag = TRUE;
+    }
+    else if(strcmp(argv[i], "--first-dicom") == 0)
+    {
+      // Write the path to the first dicom file into a file. The purpose of this
+      // is to make it easy to copy a dicom file that has very little, if any, actual
+      // tissue so as to have a dicom file but avoid issues with defacing. FHS.
+      get_string(argc, argv, &i, FirstDicomFile);
+      FirstDicom = TRUE;
+      memset(DICOMReadFirstDicomFile,'\0',sizeof(DICOMReadFirstDicomFile));
     }
     else if(strcmp(argv[i], "-roi") == 0 || strcmp(argv[i], "--roi") == 0)
     {
@@ -3563,6 +3573,21 @@ int main(int argc, char *argv[])
   // free memory
   //MRIfree(&mri); // This causes a seg fault with change of type
   MRIfree(&mri_template);
+
+  if(FirstDicom == TRUE){
+    if(strlen(DICOMReadFirstDicomFile)==0){
+      printf("ERROR: there is no first dicom file\n");
+      exit(1);
+    }
+    printf("Writing FirstDicomFile %s to %s\n",DICOMReadFirstDicomFile,FirstDicomFile);
+    FILE *fp = fopen(FirstDicomFile,"w");
+    if(fp == NULL){
+      printf("ERROR: opening %s\n",FirstDicomFile);
+      exit(1);
+    }
+    fprintf(fp,"%s\n",DICOMReadFirstDicomFile);
+    fclose(fp);
+  }
 
   exit(0);
 

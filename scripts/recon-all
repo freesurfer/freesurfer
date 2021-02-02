@@ -381,6 +381,7 @@ set DoVnoMatchCheck  = 0;
 
 set ForceUpdate = 0
 set DoSBatch = 0;
+set SBjobname = ()
 set DoIsRunning  = 1;
 set IsRunningFile  = ();
 set DoneFile = ();
@@ -427,18 +428,23 @@ set argv = ( "`cat $tmp_unknown_args`" )
 
 goto parse_args;
 parse_args_return:
-goto check_params;
-check_params_return:
 
 if($DoSBatch) then
+  if($#SBjobname == 0) set SBjobname = $subjid
+  mkdir -p $SUBJECTS_DIR/sbatch
+  set dt = `date +%Y.%m.%H.%M`
+  set SBlogFile  = $SUBJECTS_DIR/sbatch/sbatch.$SBjobname.$dt
   set cmd = ($0 $inputargs -no-sbatch)
   set sbatch = (sbatch --partition=$SBpartition --nodes=1 --time=2-0 \
     --ntasks-per-node=1 --cpus-per-task=$OMP_NUM_THREADS)
-  set cmd = ($sbatch --job-name=$SBjobName --output=$SBlogFile $cmd)
+  set cmd = ($sbatch --job-name=$SBjobname --output=$SBlogFile $cmd)
   echo $cmd
   $cmd
-  exit 0
+  exit $status
 endif
+
+goto check_params;
+check_params_return:
 
 set StartTime = `date`;
 set tSecStart = `date '+%s'`;
@@ -3937,12 +3943,28 @@ if($DoWhiteSurfs && ! $DoConf2Hires) then
     set cmd = ($cmd $xopts)
     echo "cd `$PWD`" |& tee -a $LF |& tee -a $CF
     echo $cmd        |& tee -a $LF |& tee -a $CF
-    set ud = `UpdateNeeded $white $inputsurf $ads $bfs $wm $inputsurf $cortex $hml`
+    set repos = $sdir/repos.$hemi.white.json
+    if(! -e $repos) set repos = ()
+    set ud = `UpdateNeeded $white $inputsurf $ads $bfs $wm $inputsurf $cortex $hml $repos`
     if($ud || $ForceUpdate) then
       if($RunIt) then
         $fs_time $cmd |& tee -a $LF
         if($status) goto error_exit;
         echo $cmd > $touchdir/$hemi.white.touch
+    	if(-e $repos) then
+          # Use json point set to reposition surface. This is a little bit of a hack
+	  # in that the placement above is rerun even if it is not needed in order
+          # to run the repositioning. This is not done for preaparc because this
+	  # is only fine tuning
+          set cmd = (mris_reposition_surface -s $white -v $bfs -p $repos -o $white)
+          set xopts = `fsr-getxopts ReposWhiteSurf $XOptsFile $GlobXOptsFile`;
+          set cmd = ($cmd $xopts)
+          echo "cd `$PWD`" |& tee -a $LF |& tee -a $CF
+          echo $cmd        |& tee -a $LF |& tee -a $CF
+          $fs_time $cmd |& tee -a $LF
+          if($status) goto error_exit;
+          echo $cmd > $touchdir/repos.$hemi.white.touch
+        endif
       endif
     else
       echo "   Update not needed" |& tee -a $LF |& tee -a $CF
@@ -3982,14 +4004,29 @@ if($DoPialSurfs && ! $DoConf2Hires) then
     set cmd = ($cmd $xopts)
     echo "cd `$PWD`" |& tee -a $LF |& tee -a $CF
     echo $cmd        |& tee -a $LF |& tee -a $CF
-    set ud = `UpdateNeeded $pial $inputsurf $ads $bfs $wm $cortex $cortexha`
+    set repos = $sdir/repos.$hemi.pial.json
+    if(! -e $repos || $DoT2pial || $DoFLAIRpial) set repos = ()
+    set ud = `UpdateNeeded $pial $inputsurf $ads $bfs $wm $cortex $cortexha $repos`
     if($ud || $ForceUpdate) then
       if($RunIt) then
         $fs_time $cmd |& tee -a $LF
         if($status) goto error_exit;
-        echo $cmd > $touchdir/$hemi.white.touch
+        echo $cmd > $touchdir/$hemi.pial.touch
         if($DoT2pial == 0 &&  $DoFLAIRpial == 0)  then
   	  cd ../surf; ln -sf $hemi.pial.T1 $hemi.pial; cd ../mri
+      	  if(-e $repos) then
+            # Use json point set to reposition surface. See notes above for white.
+            # This is run in the T2/FLAIR stage, but it will either be done here
+            # or it will be done there, but not both.
+            set cmd = (mris_reposition_surface -s $pial -v $bfs -p $repos -o $pial)
+            set xopts = `fsr-getxopts ReposPialSurf $XOptsFile $GlobXOptsFile`;
+            set cmd = ($cmd $xopts)
+            echo "cd `$PWD`" |& tee -a $LF |& tee -a $CF
+            echo $cmd        |& tee -a $LF |& tee -a $CF
+            $fs_time $cmd |& tee -a $LF
+            if($status) goto error_exit;
+            echo $cmd > $touchdir/repos.$hemi.pial.touch
+          endif
         endif
       endif
     else
@@ -4160,12 +4197,25 @@ if(($DoT2pial || $DoFLAIRpial) && ! $DoConf2Hires) then
     set cmd = ($cmd $xopts)
     echo "cd `$PWD`" |& tee -a $LF |& tee -a $CF
     echo $cmd        |& tee -a $LF |& tee -a $CF
-    set ud = `UpdateNeeded $pialmm $pialt1 $bfs $cortex $cortexha $white $ads $wm `
+    set repos = $sdir/repos.$hemi.pial.json
+    if(! -e $repos) set repos = ()
+    set ud = `UpdateNeeded $pialmm $pialt1 $bfs $cortex $cortexha $white $ads $wm $repos`
     if($ud || $ForceUpdate) then
       if($RunIt) then
         $fs_time $cmd |& tee -a $LF
         if($status) goto error_exit;
 	cd ../surf; ln -sf $hemi.pial.$MultiModal $hemi.pial; cd ../mri
+	if(-e $repos) then
+          # Use json point set to reposition surface. See notes above for white and pial.
+          set cmd = (mris_reposition_surface -s $pialmm -v $bfs -p $repos -o $pialmm)
+          set xopts = `fsr-getxopts ReposPialSurf $XOptsFile $GlobXOptsFile`;
+          set cmd = ($cmd $xopts)
+          echo "cd `$PWD`" |& tee -a $LF |& tee -a $CF
+          echo $cmd        |& tee -a $LF |& tee -a $CF
+          $fs_time $cmd |& tee -a $LF
+          if($status) goto error_exit;
+          echo $cmd > $touchdir/repos.$hemi.pial.touch
+        endif
       endif
     else
       echo "   Update not needed" |& tee -a $LF |& tee -a $CF
@@ -7212,11 +7262,14 @@ while( $#argv != 0 )
       breaksw
 
     case "-sbatch":
-      if ( $#argv < 3) goto arg3err;
+      if ( $#argv < 1) goto arg1err;
       set SBpartition = $argv[1]; shift;
-      set SBjobName   = $argv[1]; shift;
-      set SBlogFile   = $argv[1]; shift;
       set DoSBatch = 1;
+      breaksw
+
+    case "-sbatch-jobname":
+      if ( $#argv < 1) goto arg1err;
+      set SBjobname = $argv[1]; shift;
       breaksw
 
     case "-no-sbatch":

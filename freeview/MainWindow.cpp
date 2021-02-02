@@ -111,6 +111,7 @@
 #include <QFileSystemWatcher>
 #include <QClipboard>
 #include <QDebug>
+#include <QDesktopWidget>
 #ifdef Q_OS_MAC
 #include "MacHelper.h"
 #endif
@@ -563,6 +564,8 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
 
 MainWindow::~MainWindow()
 {
+  UpdateSyncIds(false);
+
   delete m_propertyBrush;
   delete m_luts;
 }
@@ -1333,6 +1336,21 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
     ui->actionSyncInstances->setChecked(true);
   }
 
+  if (QFile::exists(m_sSyncFilePath) && QFileInfo(m_sSyncFilePath).lastModified().addDays(1) < QDateTime::currentDateTime())
+  {
+    QFile file(m_sSyncFilePath);
+    file.remove();
+  }
+  if (!QFile::exists(m_sSyncFilePath))
+  {
+    QFile file(m_sSyncFilePath);
+    if (file.open(QIODevice::WriteOnly))
+    {
+      file.write(QJsonDocument::fromVariant(QVariantMap()).toJson());
+      file.flush();
+      file.close();
+    }
+  }
   return true;
 }
 
@@ -2116,6 +2134,9 @@ void MainWindow::CommandLoadCommand(const QStringList &sa)
   QStringList lines = QString(file.readAll()).trimmed().split("\n", QString::SkipEmptyParts);
   foreach (QString line, lines)
   {
+    if (line.trimmed().indexOf("#") == 0)
+      continue;
+
     QStringList args = line.trimmed().split(QRegExp("\\s+"), QString::SkipEmptyParts);
     if (args.size() > 0 &&
         ( args[0].toLower() == "freeview" || args[0].toLower() == "fv"))
@@ -9200,19 +9221,29 @@ void MainWindow::OnSyncInstances(bool bChecked)
   {
     m_syncFileWatcher->addPath(m_sSyncFilePath);
     connect(m_syncFileWatcher, SIGNAL(fileChanged(QString)), SLOT(OnSyncFileChanged(QString)), Qt::UniqueConnection);
-    connect(this, SIGNAL(SlicePositionChanged()), SLOT(UpdateSyncFile()), Qt::ConnectionType(Qt::QueuedConnection | Qt::UniqueConnection));
+    connect(this, SIGNAL(SlicePositionChanged()), SLOT(UpdateSyncCoord()), Qt::ConnectionType(Qt::QueuedConnection | Qt::UniqueConnection));
+    UpdateSyncIds(true);
   }
   else
   {
     m_syncFileWatcher->removePath(m_sSyncFilePath);
     disconnect(m_syncFileWatcher, SIGNAL(fileChanged(QString)), this, SLOT(OnSyncFileChanged(QString)));
-    disconnect(this, SIGNAL(SlicePositionChanged()), this, SLOT(UpdateSyncFile()));
+    disconnect(this, SIGNAL(SlicePositionChanged()), this, SLOT(UpdateSyncCoord()));
+    UpdateSyncIds(false);
   }
 }
 
-void MainWindow::UpdateSyncFile()
+void MainWindow::UpdateSyncCoord()
 {
-  QVariantMap map, ras;
+  QFile file(m_sSyncFilePath);
+  QVariantMap map;
+  if (file.open(QIODevice::ReadOnly))
+  {
+     map = QJsonDocument::fromJson(file.readAll()).toVariant().toMap();
+     file.close();
+  }
+
+  QVariantMap ras;
   double pos[3];
   GetLayerCollection("MRI")->GetSlicePosition(pos);
   ras["x"] = pos[0];
@@ -9220,8 +9251,6 @@ void MainWindow::UpdateSyncFile()
   ras["z"] = pos[2];
   map["ras"] = ras;
   map["instance_id"] = qApp->applicationPid();
-
-  QFile file(m_sSyncFilePath);
   if (file.open(QIODevice::WriteOnly))
   {
     file.write(QJsonDocument::fromVariant(map).toJson());
@@ -9234,6 +9263,66 @@ void MainWindow::UpdateSyncFile()
   }
 }
 
+void MainWindow::UpdateSyncIds(bool bAdd)
+{
+  QFile file(m_sSyncFilePath);
+  QVariantMap map;
+  if (file.open(QIODevice::ReadOnly))
+  {
+     map = QJsonDocument::fromJson(file.readAll()).toVariant().toMap();
+     file.close();
+  }
+
+  QStringList list = map.value("instance_list").toStringList();
+  if (list.size() > 4)
+    list = list.mid(0, 4);
+  QString strg = QString::number(qApp->applicationPid());
+  if (bAdd && !list.contains(strg))
+    list.insert(list.begin(), strg);
+  else if (!bAdd && list.contains(strg))
+    list.removeAll(strg);
+  map["instance_list"] = list;
+  if (file.open(QIODevice::WriteOnly))
+  {
+    file.write(QJsonDocument::fromVariant(map).toJson());
+    file.flush();
+    file.close();
+  }
+}
+
+void MainWindow::OnTileSyncedWindows()
+{
+  QFile file(m_sSyncFilePath);
+  QVariantMap map;
+  if (file.open(QIODevice::ReadOnly))
+  {
+     map = QJsonDocument::fromJson(file.readAll()).toVariant().toMap();
+     file.close();
+  }
+
+  QStringList list = map.value("instance_list").toStringList();
+  QString id_str = QString::number(qApp->applicationPid());
+  TileWindow(list.indexOf(id_str));
+  list.removeAll(id_str);
+  map["to_be_tiled"] = list;
+  if (file.open(QIODevice::WriteOnly))
+  {
+    file.write(QJsonDocument::fromVariant(map).toJson());
+    file.flush();
+    file.close();
+  }
+}
+
+void MainWindow::TileWindow(int n)
+{
+  QRect rc = QApplication::desktop()->geometry();
+  if (n == 0)
+    rc.setWidth(rc.width()/2);
+  else
+    rc.setLeft(rc.left()+rc.width()/2);
+  setGeometry(rc);
+}
+
 void MainWindow::OnSyncFileChanged(const QString &fn)
 {
   QFile file(fn);
@@ -9241,15 +9330,30 @@ void MainWindow::OnSyncFileChanged(const QString &fn)
   {
     QVariantMap map = QJsonDocument::fromJson(file.readAll()).toVariant().toMap();
     file.close();
-    if (map["instance_id"].toLongLong() != qApp->applicationPid())
+    if (map["instance_id"].toLongLong() != qApp->applicationPid() && map.contains("ras"))
     {
       double pos[3];
       pos[0] = map["ras"].toMap().value("x").toDouble();
       pos[1] = map["ras"].toMap().value("y").toDouble();
       pos[2] = map["ras"].toMap().value("z").toDouble();
-      disconnect(this, SIGNAL(SlicePositionChanged()), this, SLOT(UpdateSyncFile()));
+      disconnect(this, SIGNAL(SlicePositionChanged()), this, SLOT(UpdateSyncCoord()));
       SetSlicePosition(pos);
-      connect(this, SIGNAL(SlicePositionChanged()), SLOT(UpdateSyncFile()), Qt::ConnectionType(Qt::QueuedConnection | Qt::UniqueConnection));
+      connect(this, SIGNAL(SlicePositionChanged()), SLOT(UpdateSyncCoord()), Qt::ConnectionType(Qt::QueuedConnection | Qt::UniqueConnection));
+    }
+    QString id_str = QString::number(qApp->applicationPid());
+    QStringList list = map.value("to_be_tiled").toStringList();
+    if (list.contains(id_str))
+    {
+      list.removeAll(id_str);
+      map["to_be_tiled"] = list;
+      list = map.value("instance_list").toStringList();
+      TileWindow(list.indexOf(id_str));
+      if (file.open(QIODevice::WriteOnly))
+      {
+        file.write(QJsonDocument::fromVariant(map).toJson());
+        file.flush();
+        file.close();
+      }
     }
   }
   else

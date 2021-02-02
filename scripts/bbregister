@@ -462,9 +462,9 @@ set hemi = ""
 if($LHOnly) set hemi = "--lh-only"
 if($RHOnly) set hemi = "--rh-only"
 if($#templateout) then
-  echo "tkregisterfv --mov $templateout --reg $tkrreg --surfs $hemi" |& tee -a $LF
+  echo "tkregisterfv --mov $templateout --reg $tkrreg --surfs $hemi --sd $SUBJECTS_DIR" |& tee -a $LF
 else
-  echo "tkregisterfv --mov $movvol --reg $tkrreg --surfs $hemi" |& tee -a $LF
+  echo "tkregisterfv --mov $movvol --reg $tkrreg --surfs $hemi --sd $SUBJECTS_DIR" |& tee -a $LF
 endif
 echo " "
 

@@ -154,8 +154,8 @@ def options_parse():
                       callback=fsutils.callback_var, help=h_inp)
     parser.add_option('-i', dest='inputs', action='append',
                       help=h_i)
-    parser.add_option('-t', '--tablefile', dest='outputfile',
-                      help=h_t)
+    parser.add_option('-t', '--tablefile', dest='outputfile',help=h_t)
+    parser.add_option('--sd', dest='SUBJECTS_DIR');
     parser.add_option('-m', '--meas', dest='meas',
                       choices=('volume','Area_mm2','nvoxels','nvertices','mean','std','snr','max'),  default='volume', help=h_meas)
     parser.add_option('--maxsegno', dest='maxsegno',
@@ -192,6 +192,9 @@ def options_parse():
     parser.add_option('','--scale', action='store', dest='scale', type='float', help=h_scale)
 
     (options, args) = parser.parse_args()
+
+    if options.SUBJECTS_DIR is not None:
+        os.environ['SUBJECTS_DIR'] = options.SUBJECTS_DIR;
 
     # extensive error checks
     if options.subjects is not None:

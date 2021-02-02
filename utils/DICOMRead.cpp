@@ -159,6 +159,9 @@ MRI *sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
   else
     sdfi = sdfi_list[nthonly];
 
+  // Copy the file name of the 1st dicom file
+  strcpy(DICOMReadFirstDicomFile,sdfi->FileName);
+
   /* There are some Siemens files don't have the slice dircos
      because they dont have ascii header (anonymization?).
      If this happens on a mosiac, then you cannot unpack it.
@@ -5644,6 +5647,9 @@ MRI *DICOMRead2(const char *dcmfile, int LoadVolume)
              dcminfo[nthfile]->FileName);
     }
   }
+
+  strcpy(DICOMReadFirstDicomFile,dcminfo[0]->FileName);
+
   IsDWI = 0;
   for (nthfile = 0; nthfile < ndcmfiles; nthfile++)
     if (dcminfo[nthfile]->bval > 0) IsDWI = 1;

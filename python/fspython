@@ -3,8 +3,9 @@
 # check for freesurfer home
 [ ! -e "$FREESURFER_HOME" ] && echo "error: freesurfer has not been properly sourced" && exit 1
 
-# point to freesurfer-installed packages
-export PYTHONPATH="${FREESURFER_HOME}/python/packages:$PYTHONPATH"
+# point to freesurfer-installed packages and make sure that PYTHONPATH is entirely
+# overwritten, since we don't want any user packages to interfere with things
+export PYTHONPATH="${FREESURFER_HOME}/python/packages"
 
 # run python
 if [ -e "${FREESURFER_HOME}/python/bin/python3" ]; then
