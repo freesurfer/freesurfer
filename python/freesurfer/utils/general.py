@@ -38,11 +38,13 @@ def check_tensorflow():
     try:
         import tensorflow
     except ModuleNotFoundError:
+        # NOTE: The reason we specify h5py below is to deal with a bug in
+        # this version of TF. It shouldn't be needed with newer TF versions
         error('This tool requires TensorFlow, but fspython does not ship with tensorflow')
         print('by default. You (or a sys admin) can install the CPU version via:\n')
-        print('  fspython -m pip install tensorflow==1.13.1\n')
+        print('  fspython -m pip install h5py==2.10.0 tensorflow==1.13.1\n')
         print('or the GPU version via:\n')
-        print('  fspython -m pip install tensorflow-gpu==1.13.1\n')
+        print('  fspython -m pip install h5py==2.10.0 tensorflow-gpu==1.13.1\n')
         sys.exit(1)
     except ImportError as err:
         print(traceback.format_exc())
