@@ -487,6 +487,7 @@
     <addaction name="actionSavePoint"/>
     <addaction name="actionGoToPoint"/>
     <addaction name="actionSyncInstances"/>
+    <addaction name="actionTileSyncedWindows"/>
     <addaction name="separator"/>
     <addaction name="actionSaveCamera"/>
     <addaction name="actionLoadCamera"/>
@@ -1806,6 +1807,11 @@
    </property>
    <property name="text">
     <string>Sync With Other Instances</string>
+   </property>
+  </action>
+  <action name="actionTileSyncedWindows">
+   <property name="text">
+    <string>Tile Synced Windows</string>
    </property>
   </action>
  </widget>
@@ -3679,6 +3685,22 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>actionTileSyncedWindows</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnTileSyncedWindows()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <signal>CycleOverlayRequested()</signal>
@@ -3788,5 +3810,6 @@
   <slot>OnShowControlPanel(bool)</slot>
   <slot>OnFloatPanels(bool)</slot>
   <slot>OnSyncInstances(bool)</slot>
+  <slot>OnTileSyncedWindows()</slot>
  </slots>
 </ui>
