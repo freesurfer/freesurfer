@@ -4338,7 +4338,10 @@ if($DoCortRibbonVolMask) then
     --save_ribbon)
   if($LHonly) set cmd = ($cmd --lh-only )
   if($RHonly) set cmd = ($cmd --rh-only )
-  if($OMP_NUM_THREADS > 1 && ! $LHonly && ! $RHonly) set cmd = ($cmd --parallel) # just hemis
+  # ATH: Disabling --parallel here as it sometimes causes a race-condition bug
+  # resulting in the error: `MatrixMultiply: m1 is null`. I'm leaving the flag in mris_volmask
+  # since the bug rarely occurs, but it's enough to cause problems in large recon batches.
+  # if($OMP_NUM_THREADS > 1 && ! $LHonly && ! $RHonly) set cmd = ($cmd --parallel) # just hemis
   set xopts = `fsr-getxopts mris_volmask $XOptsFile $GlobXOptsFile`;
   set cmd = ($cmd $xopts)
   set cmd = ($cmd $subjid)
