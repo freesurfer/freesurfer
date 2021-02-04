@@ -277,6 +277,7 @@ mri_volsynth/mri_volsynth
 mri_warp_concat/mri_warp_concat
 mri_warp_convert/mri_warp_convert
 mri_watershed/brain_volume/mri_brain_volume
+mri_watershed/brain_volume/mri_brain_volume_test
 mri_watershed/mri_validate_skull_stripped
 mri_watershed/mri_watershed
 mri_wbc/mri_wbc
