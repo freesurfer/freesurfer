@@ -120,7 +120,10 @@ main(int argc, char *argv[])
 
   if (patch_flag)  /* read the orig surface, then the patch file */
   {
-    sprintf(fname, "%s/%s.orig", path, hemi) ;
+    int req = snprintf(fname, STRLEN, "%s/%s.orig", path, hemi) ;
+    if( req >= STRLEN ) {
+	    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     mris = MRISfastRead(fname) ;
     if (!mris)
       ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
@@ -189,7 +192,10 @@ main(int argc, char *argv[])
     {
       MRISnormalizeCurvature(mris,which_norm) ;
     }
-    sprintf(fname, "%s/%s%s.param", path,name,suffix) ;
+    int req = snprintf(fname, STRLEN, "%s/%s%s.param", path,name,suffix) ;
+    if( req >= STRLEN ) {
+	    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     fprintf(stderr, "writing parameterized curvature to %s...", fname) ;
     MRISwriteCurvature(mris, fname) ;
     fprintf(stderr, "done.\n") ;
@@ -219,7 +225,10 @@ main(int argc, char *argv[])
     {
       MRISuseCurvatureDifference(mris) ;
       MRISaverageCurvatures(mris, navgs) ;
-      sprintf(fname, "%s/%s%s.diff", path,name,suffix) ;
+      int req = snprintf(fname, STRLEN, "%s/%s%s.diff", path,name,suffix) ;
+      if( req >= STRLEN ) {
+	    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
       fprintf(stderr, "writing curvature difference to %s...", fname) ;
       MRISwriteCurvature(mris, fname) ;
       fprintf(stderr, "done.\n") ;
@@ -232,7 +241,10 @@ main(int argc, char *argv[])
       {
         MRISnormalizeCurvature(mris,which_norm) ;
       }
-      sprintf(fname, "%s/%s%s.ratio", path,name,suffix) ;
+      int req = snprintf(fname, STRLEN, "%s/%s%s.ratio", path,name,suffix) ;
+      if( req >= STRLEN ) {
+	    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
       fprintf(stderr, "writing curvature ratio to %s...", fname) ;
       MRISwriteCurvature(mris, fname) ;
       fprintf(stderr, "done.\n") ;
@@ -245,7 +257,10 @@ main(int argc, char *argv[])
       {
         MRISnormalizeCurvature(mris,which_norm) ;
       }
-      sprintf(fname, "%s/%s%s.contrast", path,name,suffix) ;
+      int req = snprintf(fname, STRLEN, "%s/%s%s.contrast", path,name,suffix) ;
+      if( req >= STRLEN ) {
+	    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
       fprintf(stderr, "writing curvature contrast to %s...", fname) ;
       MRISwriteCurvature(mris, fname) ;
       fprintf(stderr, "done.\n") ;
@@ -261,7 +276,10 @@ main(int argc, char *argv[])
       neg = MRIScountNegativeTriangles(mris) ;
       MRISuseNegCurvature(mris) ;
       MRISaverageCurvatures(mris, navgs) ;
-      sprintf(fname, "%s/%s%s.neg", path,name,suffix) ;
+      int req = snprintf(fname, STRLEN, "%s/%s%s.neg", path,name,suffix) ;
+      if( req >= STRLEN ) {
+	    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
       fprintf(stderr, "writing negative vertex curvature to %s...", fname) ;
       MRISwriteCurvature(mris, fname) ;
       fprintf(stderr, "%d negative triangles\n", neg) ;
@@ -302,7 +320,10 @@ main(int argc, char *argv[])
       {
         MRISnormalizeCurvature(mris,which_norm) ;
       }
-      sprintf(fname, "%s/%s%s.max", path,name,suffix) ;
+      int req = snprintf(fname, STRLEN, "%s/%s%s.max", path,name,suffix) ;
+      if( req >= STRLEN ) {
+	    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
       fprintf(stderr, "writing curvature maxima to %s...", fname) ;
       MRISwriteCurvature(mris, fname) ;
       fprintf(stderr, "done.\n") ;
@@ -316,7 +337,10 @@ main(int argc, char *argv[])
       {
         MRISnormalizeCurvature(mris,which_norm) ;
       }
-      sprintf(fname, "%s/%s%s.min", path,name,suffix) ;
+      int req = snprintf(fname, STRLEN, "%s/%s%s.min", path,name,suffix) ;
+      if( req >= STRLEN ) {
+	    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
       fprintf(stderr, "writing curvature minima to %s...", fname) ;
       MRISwriteCurvature(mris, fname) ;
       fprintf(stderr, "done.\n") ;
@@ -331,7 +355,10 @@ main(int argc, char *argv[])
       {
         MRISnormalizeCurvature(mris,which_norm) ;
       }
-      sprintf(fname, "%s/%s%s.stretch", path,name,suffix) ;
+      int req = snprintf(fname, STRLEN, "%s/%s%s.stretch", path,name,suffix) ;
+      if( req >= STRLEN ) {
+	    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
       fprintf(stderr, "writing curvature stretch to %s...", fname) ;
       MRISwriteCurvature(mris, fname) ;
       fprintf(stderr, "done.\n") ;
@@ -345,7 +372,10 @@ main(int argc, char *argv[])
         MRIShistoThresholdCurvature(mris, cthresh) ;
       }
       MRISaverageCurvatures(mris, navgs) ;
-      sprintf(fname, "%s/%s%s.K%s", path,name, suffix, output_type) ;
+      int req = snprintf(fname, STRLEN, "%s/%s%s.K%s", path,name, suffix, output_type) ;
+      if( req >= STRLEN ) {
+	    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
       fprintf(stderr, "writing Gaussian curvature to %s...", fname) ;
       if (normalize)
       {
@@ -362,7 +392,10 @@ main(int argc, char *argv[])
       {
         MRISnormalizeCurvature(mris,which_norm) ;
       }
-      sprintf(fname, "%s/%s%s.H%s", path,name, suffix,output_type) ;
+      req = snprintf(fname, STRLEN, "%s/%s%s.H%s", path,name, suffix,output_type) ;
+      if( req >= STRLEN ) {
+	    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
       fprintf(stderr, "done.\nwriting mean curvature to %s...", fname) ;
       MRISwriteCurvature(mris, fname) ;
       fprintf(stderr, "done.\n") ;

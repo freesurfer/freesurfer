@@ -1963,7 +1963,14 @@ void FindMainWmComponent(MRI_variables *MRI_var)
 
   // assign to T1table
   mri_seg=&mri_segmentation->segments[max];
+#if GCC_VERSION > 80000
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Walloc-size-larger-than="
+#endif
   MRI_var->T1Table=(Coord*)calloc(maxarea,sizeof(Coord));
+#if GCC_VERSION > 80000
+#pragma GCC diagnostic pop
+#endif
   MRI_var->T1nbr=maxarea;
 
   if (!MRI_var->T1Table)
@@ -2417,7 +2424,7 @@ int Pre_CharSorting(STRIP_PARMS *parms,MRI_variables *MRI_var)
     for (j=0; j<r; j++)
       for (i=0; i<r; i++)
       {
-        if (!(i*j*k*(i-r+1)*(j-r+1)*(k-r+1)))
+        if ((i*j*k*(i-r+1)*(j-r+1)*(k-r+1)) == 0)
         {
           mean=1000;
         }
@@ -4387,6 +4394,9 @@ int PostAnalyze(STRIP_PARMS *parms,MRI_variables *MRI_var)
                   ((BasinCell*)MRI_var->Basin[k][j][i].next)->ambiguous,
                   ((BasinCell*)MRI_var->Basin[k][j][i].next)->size);
           free((BasinCell*)MRI_var->Basin[k][j][i].next);
+#if __GNUC__ >= 8
+  [[gnu::fallthrough]];
+#endif
         case 9:
           MRI_var->Basin[k][j][i].type=3;
           break;

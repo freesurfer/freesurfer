@@ -649,6 +649,9 @@ relabel_hypointensities(MRI *mri, MRI *mri_inputs,
 	    	 */  
 	   break ;
 	}
+#if __GNUC__ >= 8
+        [[gnu::fallthrough]];
+#endif
         case Left_WM_hypointensities:
         case Right_WM_hypointensities: // check to see if it's outside ribbon and change it to gm
           if (gca)  // if we have a gca, check to make sure gm is possible here

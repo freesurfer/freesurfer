@@ -68,7 +68,6 @@ main(int argc, char *argv[])
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
 
-  memset(&parms, 0, sizeof(parms)) ;
   parms.dt = 1 ;
   parms.tol = .5 /*1e-1*/ ;
   parms.min_averages = 0 ;

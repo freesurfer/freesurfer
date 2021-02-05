@@ -269,7 +269,6 @@ int main(int argc, char **argv)
   DiagInit(NULL, NULL, NULL) ;
   Gdiag |= DIAG_SHOW ;
 
-  memset(&parms, 0, sizeof(parms)) ;
   // don't let gradient use exterior information (slows things down)
   parms.fill_interior = 0 ;
   parms.projection = NO_PROJECTION ;

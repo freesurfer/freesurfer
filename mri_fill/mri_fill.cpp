@@ -3186,8 +3186,10 @@ main(int argc, char *argv[])
        "%s: could not read SUBJECTS_DIR from environment",Progname) ;
     strcpy(subjects_dir, cp) ;
 
-    sprintf(fname, "%s/%s/mri/transforms/%s.m3d", subjects_dir,sname,
-            atlas_name) ;
+    int req = snprintf(fname, STRLEN, "%s/%s/mri/transforms/%s.m3d", subjects_dir,sname, atlas_name);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     m3d = MRI3DreadSmall(fname) ;
     if (!m3d)
       ErrorExit(ERROR_NOFILE,
@@ -3202,7 +3204,10 @@ main(int argc, char *argv[])
       MRIwrite(mri_p_ventricle, "p_left_ventricle.mgz") ;
     }
 
-    sprintf(fname, "%s/%s/mri/T1", subjects_dir,sname) ;
+    req = snprintf(fname, STRLEN, "%s/%s/mri/T1", subjects_dir, sname);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     mri_T1 = MRIread(fname) ;
     if (!mri_T1)
       ErrorExit(ERROR_NOFILE, "%s: could not read T1 volume %s\n",
