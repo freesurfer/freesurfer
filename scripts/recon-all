@@ -3951,11 +3951,11 @@ if($DoWhiteSurfs && ! $DoConf2Hires) then
         $fs_time $cmd |& tee -a $LF
         if($status) goto error_exit;
         echo $cmd > $touchdir/$hemi.white.touch
-    	if(-e $repos) then
+        if(-e "$repos") then
           # Use json point set to reposition surface. This is a little bit of a hack
-	  # in that the placement above is rerun even if it is not needed in order
+          # in that the placement above is rerun even if it is not needed in order
           # to run the repositioning. This is not done for preaparc because this
-	  # is only fine tuning
+          # is only fine tuning
           set cmd = (mris_reposition_surface -s $white -v $bfs -p $repos -o $white)
           set xopts = `fsr-getxopts ReposWhiteSurf $XOptsFile $GlobXOptsFile`;
           set cmd = ($cmd $xopts)
@@ -4013,8 +4013,8 @@ if($DoPialSurfs && ! $DoConf2Hires) then
         if($status) goto error_exit;
         echo $cmd > $touchdir/$hemi.pial.touch
         if($DoT2pial == 0 &&  $DoFLAIRpial == 0)  then
-  	  cd ../surf; ln -sf $hemi.pial.T1 $hemi.pial; cd ../mri
-      	  if(-e $repos) then
+          cd ../surf; ln -sf $hemi.pial.T1 $hemi.pial; cd ../mri
+          if(-e "$repos") then
             # Use json point set to reposition surface. See notes above for white.
             # This is run in the T2/FLAIR stage, but it will either be done here
             # or it will be done there, but not both.
@@ -4204,8 +4204,8 @@ if(($DoT2pial || $DoFLAIRpial) && ! $DoConf2Hires) then
       if($RunIt) then
         $fs_time $cmd |& tee -a $LF
         if($status) goto error_exit;
-	cd ../surf; ln -sf $hemi.pial.$MultiModal $hemi.pial; cd ../mri
-	if(-e $repos) then
+        cd ../surf; ln -sf $hemi.pial.$MultiModal $hemi.pial; cd ../mri
+        if(-e "$repos") then
           # Use json point set to reposition surface. See notes above for white and pial.
           set cmd = (mris_reposition_surface -s $pialmm -v $bfs -p $repos -o $pialmm)
           set xopts = `fsr-getxopts ReposPialSurf $XOptsFile $GlobXOptsFile`;
