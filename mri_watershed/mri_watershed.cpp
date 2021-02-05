@@ -2424,14 +2424,7 @@ int Pre_CharSorting(STRIP_PARMS *parms,MRI_variables *MRI_var)
     for (j=0; j<r; j++)
       for (i=0; i<r; i++)
       {
-#if GCC_VERSION > 80000
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wint-in-bool-context"
-#endif
-        if (!(i * j * k * (i - r + 1) * (j - r + 1) * (k - r + 1)))
-#if GCC_VERSION > 80000
-#pragma GCC diagnostic pop
-#endif
+        if ((i*j*k*(i-r+1)*(j-r+1)*(k-r+1)) == 0)
         {
           mean=1000;
         }
