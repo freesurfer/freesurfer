@@ -131,7 +131,7 @@ if(NOT APPLE)
   find_library(LAPACK_LIBRARIES NAMES liblapack.a)
   find_library(QUADMATH_LIBRARIES
     HINTS /usr/lib64 /usr/lib /usr/lib/gcc/*/*/
-    NAMES libquadmath.a)
+    NAMES libquadmath.a libquadmath.so libquadmath.so.0)
 endif()
 
 # -------- armadillo --------
