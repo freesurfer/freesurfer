@@ -1341,10 +1341,16 @@ find_control_points
 
   if (mri_ctrl)
   {
-    sprintf(fname, "%s_init_label%d.labels.mgz", fname_only, label) ;
+    int req = snprintf(fname, STRLEN, "%s_init_label%d.labels.mgz", fname_only, label) ;
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     printf("writing initial sample points for %s to %s\n", cma_label_to_name(label), fname); 
     MRIwriteFrame(mri_ctrl, fname, 0) ;
-    sprintf(fname, "%s_init_label%d.priors.mgz", fname_only, label) ;
+    req = snprintf(fname, STRLEN, "%s_init_label%d.priors.mgz", fname_only, label) ;
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     printf("writing initial label priors for %s to %s\n", cma_label_to_name(label), fname); 
     MRIwriteFrame(mri_ctrl, fname, 1) ;
     MRIfree(&mri_ctrl) ;

@@ -38,5 +38,5 @@ cmake ../VTK-7.1.1 $EXTRA_OPTIONS \
   -DCMAKE_C_STANDARD:STRING=11 \
   -DVTK_RENDERING_BACKEND:STRING=OpenGL
 
-cmake --build . --target all -j8
+cmake --build . --target all -j 8
 cmake --build . --target install
