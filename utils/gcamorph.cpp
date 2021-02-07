@@ -405,7 +405,7 @@ int GCAMwrite(const GCA_MORPH *gcam, const char *fname)
   if (gcam->m_affine) {
     znzwriteInt(TAG_MGH_XFORM, file);
     // MatrixAsciiWriteInto(file, gcam->m_affine) ;
-    znzWriteMatrix(file, gcam->m_affine);
+    znzWriteMatrix(file, gcam->m_affine, 0);
   }
 
   znzclose(file);
