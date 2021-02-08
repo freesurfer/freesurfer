@@ -251,7 +251,7 @@ public:
   double flip_angle = 0;        // flip angle in radians
   float FieldStrength = 0;      // field strength
   char *pedir = nullptr;        // phase enc direction: ROW, COL, etc
-  MATRIX *origRas2Vox ;         // to get to original voxel grid from ras
+  MATRIX *origRas2Vox = nullptr ;         // to get to original voxel grid from ras
   float location = 0;           // NOT USED
 
   // ---- DTI ----
