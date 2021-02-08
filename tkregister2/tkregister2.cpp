@@ -562,8 +562,14 @@ int Register(ClientData clientData,
       exit(1);
     }
     // Load the talairach.xfm
-    sprintf(talxfmdir,"%s/%s/mri/transforms",subjectsdir,subjectid);
-    sprintf(talxfmfile,"%s/%s",talxfmdir,talxfmname);
+    int req = snprintf(talxfmdir, 2000, "%s/%s/mri/transforms",subjectsdir,subjectid);
+    if (req >= 2000) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
+    req = snprintf(talxfmfile, 2000, "%s/%s",talxfmdir,talxfmname);
+    if (req >= 2000) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     if (!mkheaderreg) {
       if (!fio_DirIsWritable(talxfmdir,0)) {
         printf("\n");
@@ -600,11 +606,17 @@ int Register(ClientData clientData,
       exit(1);
     }
     // First try .mgz
-    sprintf(targ_vol_path,"%s/%s/mri/%s.mgz",
-            subjectsdir,subjectid,targ_vol_id);
+    int req = snprintf(targ_vol_path,1000,"%s/%s/mri/%s.mgz",
+                   subjectsdir,subjectid,targ_vol_id);
+    if (req >= 1000) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     if (! fio_FileExistsReadable(targ_vol_path)) {
       // Now try COR
-      sprintf(targ_vol_path,"%s/%s/mri/%s",subjectsdir,subjectid,targ_vol_id);
+      req = snprintf(targ_vol_path, 1000, "%s/%s/mri/%s",subjectsdir,subjectid,targ_vol_id);
+      if (req >= 1000) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       if (! fio_FileExistsReadable(targ_vol_path)) {
         printf("ERROR: could not find %s as either mgz or COR\n",targ_vol_id);
         printf("%s\n",targ_vol_path);

@@ -1326,7 +1326,7 @@ char *ElementValueString(DCM_ELEMENT *e, int DoBackslash)
   char *evstring=NULL;
   unsigned int n, len;
   std::string tmpstr;
-  std::string tmpstr2;
+  tmpstr.resize(2048);
 
   memset(&tmpstr[0], 0, 2000);
 

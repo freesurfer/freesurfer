@@ -131,7 +131,6 @@ main(int argc, char *argv[])
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
 
-  memset(&parms, 0, sizeof(parms)) ;
   parms.projection = PROJECT_SPHERE ;
   parms.flags |= IP_USE_CURVATURE ;
   parms.tol = 0.5 ;    // was 1e-0*2.5
@@ -268,7 +267,10 @@ main(int argc, char *argv[])
       FileNamePath(template_fname, surf_dir) ;
       if (curvature_names[sno])  /* read in precomputed curvature file */
       {
-	sprintf(fname, "%s/%s.%s", surf_dir, template_hemi, curvature_names[sno]) ;
+	int req = snprintf(fname, STRLEN, "%s/%s.%s", surf_dir, template_hemi, curvature_names[sno]) ;
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
 	if (MRISreadCurvatureFile(mris_template, fname) != NO_ERROR)
 	  ErrorExit(Gerror,
 		    "%s: could not read curvature file '%s'\n",
@@ -280,7 +282,10 @@ main(int argc, char *argv[])
       }
       else                         /* compute curvature of surface */
       {
-	sprintf(fname, "%s/%s.%s", surf_dir, template_hemi, surface_names[sno]) ;
+	int req = snprintf(fname, STRLEN, "%s/%s.%s", surf_dir, template_hemi, surface_names[sno]) ;
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
 	if (MRISreadVertexPositions(mris_template, fname) != NO_ERROR)
 	  ErrorExit(ERROR_NOFILE,
 		    "%s: could not read surface file %s",

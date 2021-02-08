@@ -1826,7 +1826,10 @@ MRI *MRIconformNoScale(MRI *mri, MRI *mric)
   // Map input to geometry template
   mric = MRIresample(mri, mritmp, SAMPLE_NEAREST);
 
-  sprintf(mric->fname,"%s/Conformed",mri->fname);
+  int req = snprintf(mric->fname,STRLEN,"%s/Conformed",mri->fname);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   MRIfree(&mritmp);
 
   return(mric);

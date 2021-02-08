@@ -601,7 +601,9 @@ protected slots:
 
   void OnSyncFileChanged(const QString& fn);
 
-  void UpdateSyncFile();
+  void UpdateSyncCoord();
+
+  void OnTileSyncedWindows();
 
 private:
   bool DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit);
@@ -621,6 +623,10 @@ private:
   QColor ParseColorInput(const QString& cmd);
 
   void LoadSphereLeftRightIfNeeded(LayerSurface* layer);
+
+  void UpdateSyncIds(bool bAdd = true);
+
+  void TileWindow(int n);
 
   int m_nViewLayout;
   int m_nMainView;

@@ -10021,10 +10021,10 @@ int znzTAGwriteMRIframes(znzFile fp, MRI *mri)
     znzwrite(frame->name, sizeof(char), STRLEN, fp);
     znzwriteInt(frame->dof, fp);
     if (frame->m_ras2vox && frame->m_ras2vox->rows > 0)
-      znzWriteMatrix(fp, frame->m_ras2vox);
+      znzWriteMatrix(fp, frame->m_ras2vox, 0);
     else {
       MATRIX *m = MatrixAlloc(4, 4, MATRIX_REAL);
-      znzWriteMatrix(fp, m);
+      znzWriteMatrix(fp, m, 0);
       MatrixFree(&m);
     }
     znzwriteFloat(frame->thresh, fp);
@@ -10457,6 +10457,10 @@ static MRI *mghRead(const char *fname, int read_volume, int frame)
           mri->AutoAlign = znzReadAutoAlignMatrix(fp);
           break;
 
+        case TAG_ORIG_RAS2VOX:
+          mri->origRas2Vox = znzReadMatrix(fp);
+          break;
+
         case TAG_PEDIR:
           mri->pedir = (char *)calloc(len + 1, sizeof(char));
           znzread(mri->pedir, sizeof(char), len, fp);
@@ -10645,11 +10649,17 @@ static int mghWrite(MRI *mri, const char *fname, int frame)
     znzwrite(mri->tag_data, mri->tag_data_size, 1, fp);
   }
 
-  if (mri->AutoAlign) znzWriteMatrix(fp, mri->AutoAlign);
+  if (mri->AutoAlign) znzWriteMatrix(fp, mri->AutoAlign, TAG_AUTO_ALIGN);
   if (mri->pedir)
     znzTAGwrite(fp, TAG_PEDIR, mri->pedir, strlen(mri->pedir) + 1);
   else
     znzTAGwrite(fp, TAG_PEDIR, (void *)"UNKNOWN", strlen("UNKNOWN"));
+  if (mri->origRas2Vox)
+  {
+    printf("saving original ras2vox\n") ;
+    znzWriteMatrix(fp, mri->origRas2Vox, TAG_ORIG_RAS2VOX);
+  }
+
   znzTAGwrite(fp, TAG_FIELDSTRENGTH, (void *)(&mri->FieldStrength), sizeof(mri->FieldStrength));
 
   znzTAGwriteMRIframes(fp, mri);

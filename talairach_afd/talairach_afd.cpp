@@ -146,9 +146,18 @@ int main(int argc, char *argv[])
     strcpy(fsafd, afd_dir);
   }
 
-  sprintf(tmf, "%s/TalairachingMean.adf", fsafd);
-  sprintf(cvf, "%s/TalairachingCovariance.adf", fsafd);
-  sprintf(probasf, "%s/TalairachingProbas.adf", fsafd);
+  int req = snprintf(tmf, 1000, "%s/TalairachingMean.adf", fsafd);
+  if (req >= 1000) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
+  req = snprintf(cvf, 1000, "%s/TalairachingCovariance.adf", fsafd);
+  if (req >= 1000) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
+  req = snprintf(probasf, 1000, "%s/TalairachingProbas.adf", fsafd);
+  if (req >= 1000) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
 
   /*----- load 1x9 mean vector computed from training set -----*/
   mu = ReadMeanVect(tmf);
