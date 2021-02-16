@@ -4,7 +4,7 @@ import platform
 import subprocess as sp
 
 
-def run(command, silent=False, background=False, executable='/bin/bash'):
+def run(command, silent=False, background=False, executable='/bin/bash', logfile=None):
     '''Runs a shell command and returns the exit code.
 
     Note:
@@ -32,7 +32,11 @@ def run(command, silent=False, background=False, executable='/bin/bash'):
         # write the standard output stream
         if process.stdout:
             for line in process.stdout:
-                sys.stdout.write(line.decode('utf-8'))
+                decoded = line.decode('utf-8')
+                if logfile is not None:
+                    with open(logfile, 'a') as file:
+                        file.write(decoded)
+                sys.stdout.write(decoded)
         # wait for process to finish
         process.wait()
 
