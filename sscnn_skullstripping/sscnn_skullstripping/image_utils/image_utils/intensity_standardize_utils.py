@@ -61,7 +61,6 @@ def wm_peak_normalize(in_img_data):
     # max of means is the wm centroid for t1w images
     wm_peak_intensity  = clf.means_.max()
     wm_scaling = 200.0 / wm_peak_intensity
-    print(wm_peak_intensity)
 
     out_img_data = in_img_data * wm_scaling
     return out_img_data
@@ -96,7 +95,6 @@ def wm_peak_normalize_t2w(in_img_data):
 # max of means is the wm centroid for t1w images
 #     wm_peak_intensity  = mode_h
     wm_scaling = 0.3 / wm_peak_intensity
-    print(wm_peak_intensity)
 
     out_img_data = in_img_data * wm_scaling
     return out_img_data
@@ -113,7 +111,6 @@ def robust_normalize(in_img_data):
     # set p99 to 255
     scaling = 255.0 / (p999 - p01)
     in_img_data[(in_img_data < p01) & (in_img_data > 0)] = p01
-    print(scaling)
     out_img_data = (in_img_data) * scaling
     return out_img_data
 
@@ -128,7 +125,6 @@ def max_normalize(in_img_data):
     # set p99 to 255
     scaling = 255.0 / (p999 - p01)
     in_img_data[in_img_data < p01] = p01
-    print(scaling)
     out_img_data = (in_img_data) * scaling
     return out_img_data
 
