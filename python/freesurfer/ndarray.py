@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import copy
+import scipy
 
 from collections.abc import Iterable
 
@@ -332,13 +333,30 @@ class Volume(ArrayContainerTemplate, Transformable):
         cropped_vol.copy_metadata(self)
         return cropped_vol
 
-    def fit_to_shape(self, shape):
+    def crop_to_bbox(self, thresh=0, margin=0):
+        '''
+        TODOC
+        '''
+        cropping = scipy.ndimage.find_objects(self.data > thresh)[0]
+        if margin > 0:
+            start = [max(0, c.start - n) for c in cropping]
+            stop = [min(self.shape[i], c.stop + n) for i, c in enumerate(cropping)]
+            step = [c.step for c in cropping]
+            cropping = tuple([slice(*s) for s in zip(start, stop, step)])
+        return self[cropping]
+
+    def fit_to_shape(self, shape, center='image'):
         '''
         Returns a volume fit to a given shape. Image will be
         centered in the conformed volume.
 
         TODO: Enable multi-frame support.
         '''
+
+        # This is a quick hack
+        if center == 'bbox':
+            v = self.crop_to_bbox()
+            return v.fit_to_shape(shape, center='image')
 
         if self.nframes > 1:
             raise NotImplementedError('multiframe volumes not support yet for shape refit')
