@@ -1883,8 +1883,6 @@ class FeatureGenerator(object):
 
                 in_img_data = in_img_data / 255
 
-
-            print("Image max is :" + str(in_img_data.max()))
         else:
             in_img_data = in_img.get_data()
 

@@ -476,7 +476,7 @@ def unet_model_2d(input_shape, num_filters, unet_depth, downsize_filters_factor=
 
     inputs.append(input_img)
 #    centered_inputs.append(center_input)
-    print(convs)
+    # print(convs)
     endpoints.append(convs[-1])
 
 
@@ -689,7 +689,7 @@ def unet_model_2d_noBN(input_shape, num_filters, unet_depth, downsize_filters_fa
 
     inputs.append(input_img)
 #    centered_inputs.append(center_input)
-    print(convs)
+    # print(convs)
     endpoints.append(convs[-1])
 
 
@@ -1264,8 +1264,8 @@ def build_oriented_unet_2d(input_layer, input_shape, num_filters, unet_depth, de
             pools.append(MaxPoolingL(pool_size, name=('pool_D_%d' % (i)+ layer_prefix), data_format='channels_last')(conv))
 
             # convs.append(conv)
-    print(convs)
-    print(len(convs))
+    # print(convs)
+    # print(len(convs))
     for i in range(unet_depth - 1):
         # print(i)
         index = i*depth_per_level + unet_depth*depth_per_level - 1

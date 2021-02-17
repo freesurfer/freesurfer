@@ -40,6 +40,9 @@ set NSmooth = 10;
 set PrintHelp = 0;
 set DoInflate = 1;
 set ndilate = 0;
+set InputVol = ()
+set OutputVol = ()
+set OutputSurf = ()
 
 if($#argv == 0) goto usage_exit;
 
@@ -66,9 +69,14 @@ parse_args_return:
 goto check_params;
 check_params_return:
 
-set subjdir = $SUBJECTS_DIR/$subjid
-mkdir -p $subjdir/scripts
-set LF = $subjdir/scripts/mkheadsurf.log
+mkdir -p $outvoldir $outsurfdir
+if($#subjid) then
+  set subjdir = $SUBJECTS_DIR/$subjid
+  mkdir -p $subjdir/scripts
+  set LF = $subjdir/scripts/mkheadsurf.log
+else
+  set LF = $outvoldir/mkheadsurf.log
+endif
 if(-e $LF) mv $LF $LF.old
 echo "INFO: log file is $LF"
 
@@ -77,15 +85,14 @@ date >> $LF
 pwd >> $LF
 echo $0 >> $LF
 echo $inputargs >> $LF
-df $subjdir >> $LF
 
 set StartTime = `date`;
 
 if(! $noseghead ) then
   #----- Segment the head ---------#
   set cmd = (mri_seghead );
-  set cmd = ($cmd --invol    $subjdir/mri/$srcvol)
-  set cmd = ($cmd --outvol   $subjdir/mri/$headvol)
+  set cmd = ($cmd --invol    $InputVol)
+  set cmd = ($cmd --outvol   $OutputVol)
   set cmd = ($cmd --fill     $fillval);
   set cmd = ($cmd --thresh1  $thresh1);
   set cmd = ($cmd --thresh2  $thresh2);
@@ -101,14 +108,14 @@ if(! $noseghead ) then
     exit 1;
   endif
   if($ndilate != 0) then
-    set cmd = (mri_binarize --i $subjdir/mri/$headvol --min 0.5 \
-      --dilate $ndilate --o $subjdir/mri/$headvol --binval $fillval)
+    set cmd = (mri_binarize --i $OutputVol --min 0.5 \
+      --dilate $ndilate --o $OutputVol --binval $fillval)
     echo $cmd |& tee -a $LF
     $cmd |& tee -a $LF
     if($status) exit 1;
   endif
 else
-  if(! -e $subjdir/mri/$headvol) then
+  if(! -e $OutputVol) then
     echo "ERROR: $subjdir/mri/$headvol does not exist, and you "
     echo "have not chosen to create it"
     exit 1;
@@ -117,8 +124,7 @@ endif
 
 #----- Tessellate Head ---------#
 set cmd = (mri_tessellate);
-set cmd = ($cmd $subjdir/mri/$headvol $fillval)
-set cmd = ($cmd $subjdir/surf/$hemi.$headsurf)
+set cmd = ($cmd $OutputVol $fillval $OutputSurf)
 echo "--------------------------------" |& tee -a $LF
 date |& tee -a $LF
 pwd |& tee -a $LF
@@ -131,12 +137,8 @@ if($status) then
 endif
 
 #----- Smooth the tessellation ---------#
-set cmd = (mris_smooth \
-   -n $NSmooth \
-   -b area.$headsurf \
-   -c curv.$headsurf \
-   $subjdir/surf/$hemi.$headsurf \
-   $subjdir/surf/$hemi.$headsurf)
+set cmd = (mris_smooth -n $NSmooth -b $outsurfdir/area.$headsurf \
+   -c $outsurfdir/curv.$headsurf  $OutputSurf $OutputSurf)
 echo "--------------------------------" |& tee -a $LF
 date |& tee -a $LF
 pwd |& tee -a $LF
@@ -150,10 +152,8 @@ endif
 
 #----- Inflate ---------#
 if($DoInflate) then
-  set cmd = (mris_inflate -n 10 \
-     -sulc sulc.$headsurf \
-     $subjdir/surf/$hemi.$headsurf \
-     $subjdir/surf/$hemi.$headsurf.inflated)
+  set cmd = (mris_inflate -n 10 -sulc $outsurfdir/sulc.$headsurf \
+     $OutputSurf $OutputSurf.inflated)
   echo "--------------------------------" |& tee -a $LF
   date |& tee -a $LF
   pwd |& tee -a $LF
@@ -186,6 +186,21 @@ while( $#argv != 0 )
     case "-subjid":
       if ( $#argv == 0) goto arg1err;
       set subjid = $argv[1]; shift;
+      breaksw
+
+    case "-i":
+      if ( $#argv == 0) goto arg1err;
+      set InputVol = $argv[1]; shift;
+      breaksw
+
+    case "-o":
+      if ( $#argv == 0) goto arg1err;
+      set OutputVol = $argv[1]; shift;
+      breaksw
+
+    case "-surf":
+      if ( $#argv == 0) goto arg1err;
+      set OutputSurf = $argv[1]; shift;
       breaksw
 
     case "-ndilate":
@@ -257,6 +272,10 @@ while( $#argv != 0 )
       set noseghead = 1;
       breaksw
 
+    case "-inflate":
+      set DoInflate = 1;
+      breaksw
+
     case "-noinflate":
       set DoInflate = 0;
       breaksw
@@ -306,37 +325,36 @@ goto parse_args_return;
 
 ############--------------##################
 check_params:
-  if($#subjid == 0) then
-    echo "ERROR: no subjid specified"
+  if($#subjid != 0) then
+    if(! -e $SUBJECTS_DIR/$subjid ) then
+      echo "ERROR: cannot find subject $subjid in $SUBJECTS_DIR"
+      exit 1;
+    endif
+    set InputVol = $SUBJECTS_DIR/$subjid/mri/$srcvol
+    set OutputVol = $SUBJECTS_DIR/$subjid/mri/$headvol
+    set OutputSurf = $subjdir/surf/$hemi.$headsurf
+  endif
+
+  if($#InputVol == 0) then
+    echo "ERROR: must spec input volume"
+    exit 1;
+  endif
+  if($#OutputVol == 0) then
+    echo "ERROR: must spec output volume"
+    exit 1;
+  endif
+  if($#OutputSurf == 0) then
+    echo "ERROR: must spec output surf"
+    exit 1;
+  endif
+  if(! -e $InputVol ) then
+    echo "ERROR: cannot find input volume $InputVol"
     exit 1;
   endif
 
-  if(! -e $SUBJECTS_DIR ) then
-    echo "ERROR: $SUBJECTS_DIR does not exist"
-    exit 1;
-  endif
+  set outvoldir = `dirname $OutputVol`
+  set outsurfdir = `dirname $OutputSurf`
 
-  if(! -e $SUBJECTS_DIR/$subjid ) then
-    echo "ERROR: cannot find subject $subjid in $SUBJECTS_DIR"
-    exit 1;
-  endif
-
-  if(! -e $SUBJECTS_DIR/$subjid/mri/$srcvol ) then
-    echo "ERROR: cannot find volume $srcvol for $subjid"
-    exit 1;
-  endif
-
-  if(! -w $SUBJECTS_DIR/$subjid/mri ) then
-    echo "ERROR: cannot write to $SUBJECTS_DIR/$subjid/mri"
-    exit 1;
-  endif
-
-  if(! -w $SUBJECTS_DIR/$subjid ) then
-    echo "ERROR: cannot write to $SUBJECTS_DIR/$subjid"
-    exit 1;
-  endif
-
-  mkdir -p $SUBJECTS_DIR/$subjid/surf
 
 goto check_params_return;
 ############--------------##################
@@ -353,12 +371,19 @@ usage_exit:
   echo "mkheadsurf"
   echo ""
   echo "Required Arguments:";
+  echo "  -i inputvol"
+  echo "  -o outputvol"
+  echo "  -surf ouputsurf"
+  echo ""
   echo "  -s subjectid"
+  echo "    Sets inputvol to be subject/mri/T1.mgz"
+  echo "    Sets outputvol to be subject/mri/seghead.mgz"
+  echo "    Sets outputsurf to be subject/surf/lh.smseghead"
   echo ""
   echo "Other Arguments (Optional)"
   echo "   -nsmooth N : number of smoothing iterations (def $NSmooth)"
   echo "   -noseghead : do not seg the head, just tess and smooth existing"
-  echo "   -noinflate : do not inflate or compute sulc"
+  echo "   -inflate : inflate and compute sulc"
   echo "   -thresh1 threshold : default is $thresh1"
   echo "   -thresh2 threshold : default is $thresh2"
   echo "   -nhitsmin N        : default is $nhitsmin"

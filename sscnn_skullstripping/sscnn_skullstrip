@@ -5,6 +5,8 @@ import argparse
 import nibabel as nib
 import numpy as np
 import collections
+import psutil
+import traceback
 import skimage.measure
 import freesurfer as fs
 
@@ -31,6 +33,10 @@ if not os.path.isfile(input_file):
 conformed_file = os.path.join(args.output_dir, 'conformed.nii.gz')
 if fs.run('mri_convert --conform %s %s' % (input_file, conformed_file)) != 0:
     fs.fatal('could not conform input image')
+
+# check for total available memory at the beginning, in case things
+# fail later (this script is extremely memory-intensive)
+avail_mem = int(psutil.virtual_memory().available * 1e-9)
 
 # device handling
 os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
@@ -71,9 +77,21 @@ def predict(direction):
     return nib.load(out_membership_file).get_data()
 
 # predict segs for each direction
-cor_img_data = predict('cor')
-ax_img_data  = predict('ax')
-sag_img_data = predict('sag')
+try:
+    cor_img_data = predict('cor')
+    ax_img_data  = predict('ax')
+    sag_img_data = predict('sag')
+except:
+    print(traceback.format_exc())
+    if avail_mem < 20:
+        msg = 'Slice prediction failed. Infant skull-stripping requires roughly 20 GB' \
+             f' of virtual memory, but only ~{avail_mem} GB of available memory was originally' \
+              ' detected. If this estimate is correct, you should run this tool on a' \
+              ' machine with more memory.'
+        fs.fatal(msg)
+    else:
+        fs.fatal('Could not run slice prediction.')
+
 
 # convert prob segs to combined hard seg
 cor_img_data     = cor_img_data[..., 1]
