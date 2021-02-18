@@ -676,8 +676,12 @@ endif()
 if(INFANT_MODULE)
   add_subdirectory(infant)
   add_subdirectory(sscnn_skullstripping)
+endif()
+
+if(INFANT_MODULE AND MINIMAL)
   add_subdirectory(mri_distance_transform)
   add_subdirectory(mri_correct_segmentations)
+  add_subdirectory(mri_morphology)
 endif()
 
 if(TKTOOLS_MODULE)
