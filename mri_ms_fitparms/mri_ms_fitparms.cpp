@@ -279,8 +279,8 @@ main(int argc, char *argv[])
     mri_all_flash[i] = NULL;
     M_reg[i] = NULL;
     M_reg_orig[i] = NULL;
-    mri_flash_bsplines = NULL;
-    mri_all_bsplines = NULL;
+    mri_flash_bsplines[i] = NULL;
+    mri_all_bsplines[i] = NULL;
   }
 
 /////////////////////////////////////////////////////////////////////
