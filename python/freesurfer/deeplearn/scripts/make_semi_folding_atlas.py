@@ -4,15 +4,45 @@
 import os, socket
 import copy
 import scipy
+from tensorflow import keras
+import tensorflow as tf
+from tensorflow.keras import backend as K
+from glob import glob
+from tqdm import tqdm
+
+import voxelmorph as vxm
+import neurite_sandbox as nes
+import voxelmorph_sandbox as vxms
 
 import freesurfer as fs
 from freesurfer import deeplearn as fsd
-import neurite_sandbox as nes
-from freesurfer import deeplearn as fsd
+from freesurfer.deeplearn import surf_utils, prep
+#from cnn_sphere_register import losspad, prep
 
-import neurite as ne
+# small ones
+enc_nf = [32, 32, 32, 32]
+dec_nf = [32, 32, 32, 32, 32, 16, 16]
+# big ones
+enc_nfeats = [64, 96, 128, 128, 128]
+dec_nfeats = [128, 128, 96, 64, 64, 32,32]
+unet_nfeats = [enc_nfeats, dec_nfeats]
+warp_downsize=1
 
-from atlasnet import *
+
+dropout = .0
+nfeats = 128
+feat_mul = 2
+nconv_layers = 30
+nfeats = 64
+nconv_layers = 15
+dilation_rate = 1
+
+
+nlocal = 1
+nfilters = 1
+ksize = 1
+lc_pad = int((ksize-1)//2)
+pad = 16
 
 batch_size = 16
 
@@ -74,18 +104,7 @@ else:
 
 
 
-from tensorflow import keras
-import tensorflow as tf
-from tensorflow.keras import backend as K
-from surf_utils import *
-import socket, os, sys
-from glob import glob
-from cnn_sphere_register import losspad, prep
-import voxelmorph as vxm
-import time
-import copy
 
-import scipy.io as sio 
 
 strategy = tf.distribute.MirroredStrategy()
 ngpus = strategy.num_replicas_in_sync
@@ -118,7 +137,7 @@ if 'fs_atlas' not in locals() and 'fs_atlas' not in globals():
         for fno, curv_name in enumerate(feats):
             surf_fname = os.path.join(atlas_dir, subject, 'surf', hemi+'.'+sphere_name)
             curv_fname =os.path.join(atlas_dir, subject, 'surf', hemi+'.'+curv_name)
-            mrisp_tmp = prep.spherePad(surf_fname, curv_fname, padSize=pad)
+            mrisp_tmp = surf_utils.loadSphere(surf_fname, curv_fname, padSize=pad)
             if fno == 0:
                 mrisp = mrisp_tmp[...,np.newaxis]
             else:
@@ -147,8 +166,8 @@ lr=1e-4
 
 mrisp_shape = atlas_mean.shape[0:2]
 mrisp_shape_nopad = (mrisp_shape[0]-2*pad, mrisp_shape[1]-2*pad)
-warp_sphere_loss = losspad.spherical_loss(tuple(np.array(mrisp_shape_nopad[0:2])//warp_downsize), pad=pad)
-sphere_loss = losspad.spherical_loss(mrisp_shape_nopad[0:2], pad=pad, threshold=0, win=[41,41])
+warp_sphere_loss = fsd.losses.spherical_loss(tuple(np.array(mrisp_shape_nopad[0:2])//warp_downsize), pad=pad)
+sphere_loss = fsd.losses.spherical_loss(mrisp_shape_nopad[0:2], pad=pad, threshold=0, win=[41,41])
 dice_loss = sphere_loss.dice_loss(1)
 
 if 0:
@@ -163,7 +182,7 @@ if 0:
     t_atlas_sigma = tf.convert_to_tensor(atlas_sigma[np.newaxis])
     l = sphere_loss.l2_loss(1, t_atlas_sigma)(t_atlas_mean, t_atlas_sigma)
 
-gen = fsgen(mrisps_geom, atlas_mean, batch_size=batch_size, mean_stream=False)
+gen = surf_utils.fsgen(mrisps_geom, atlas_mean, batch_size=batch_size, mean_stream=False)
 
 
 
@@ -194,7 +213,7 @@ if read_hemi is not hemi or ('dkt_mrisps_onehot' not in locals() and 'dkt_mrisps
     parcs_all = [fs.Overlay.read(parc_fname) for parc_fname in tqdm(parc_fnames_all)]
     all_labels = nes.py.utils.flatten_lists([list(np.where(parc.data<0, 0, parc.data)) for parc in parcs_all])
     al = [l if l >= 0 else 0 for l in all_labels]
-    lab_to_ind, ind_to_lab = rebase_labels(al) 
+    lab_to_ind, ind_to_lab = fsd.utils.rebase_labels(al) 
 
     parcs_training = [lab_to_ind[np.where(parc.data<0, 0, parc.data)] for parc in parcs]
 
@@ -205,7 +224,7 @@ if read_hemi is not hemi or ('dkt_mrisps_onehot' not in locals() and 'dkt_mrisps
         for fno, curv_name in enumerate(feats): # geometry has 3 scalar fields
             surf_fname = os.path.join(dkt_dir, subject, 'surf', hemi+'.'+sphere_name)
             curv_fname =os.path.join(dkt_dir, subject, 'surf', hemi+'.'+curv_name)
-            mrisp_tmp = prep.spherePad(surf_fname, curv_fname, padSize=pad)
+            mrisp_tmp = surf_utils.loadSphere(surf_fname, curv_fname, padSize=pad)
             if fno == 0:
                 mrisp = mrisp_tmp[...,np.newaxis]
             else:
@@ -219,7 +238,7 @@ if read_hemi is not hemi or ('dkt_mrisps_onehot' not in locals() and 'dkt_mrisps
         dkt_mrisps_annot.append(mrisp_annot)
 
     nclasses = int(np.array(dkt_mrisps_annot).max())+1
-    dkt_mrisps_onehot = [np_one_hot(annot,nclasses) for annot in dkt_mrisps_annot]
+    dkt_mrisps_onehot = [fsd.utils.np_one_hot(annot,nclasses) for annot in dkt_mrisps_annot]
     print('using %d classes' % nclasses)
     dkt_mrisps_annot_val = dkt_mrisps_annot[ntraining:ntraining+nval]
     dkt_mrisps_onehot_val = dkt_mrisps_onehot[ntraining:ntraining+nval]
@@ -231,12 +250,12 @@ if read_hemi is not hemi or ('dkt_mrisps_onehot' not in locals() and 'dkt_mrisps
 
 
 linear_target = 10
-lgen = fsgen_segreg(dkt_mrisps_geom, atlas_mean, dkt_mrisps_onehot, batch_size=batch_size, mean_stream=False, use_logprob=True)
+lgen = fsd.surf_utils.fsgen_segreg(dkt_mrisps_geom, atlas_mean, dkt_mrisps_onehot, batch_size=batch_size, mean_stream=False, use_logprob=True)
 inbl,outbl = next(lgen)
-gen = fsgen_segreg(dkt_mrisps_geom, atlas_mean, dkt_mrisps_onehot, batch_size=batch_size, mean_stream=False, use_logprob=False)
+gen = fsd.surf_utils.fsgen_segreg(dkt_mrisps_geom, atlas_mean, dkt_mrisps_onehot, batch_size=batch_size, mean_stream=False, use_logprob=False)
 vbatch = int((1+(nval // ngpus)) * ngpus)
-vgen = fsgen_segreg(dkt_mrisps_geom_val, atlas_mean, dkt_mrisps_onehot_val, batch_size=vbatch, mean_stream=False, use_logprob=False)
-lvgen = fsgen_segreg(dkt_mrisps_geom_val, atlas_mean, dkt_mrisps_onehot_val, batch_size=vbatch, mean_stream=False, use_logprob=True)
+vgen = fsd.surf_utils.fsgen_segreg(dkt_mrisps_geom_val, atlas_mean, dkt_mrisps_onehot_val, batch_size=vbatch, mean_stream=False, use_logprob=False)
+lvgen = fsd.surf_utils.fsgen_segreg(dkt_mrisps_geom_val, atlas_mean, dkt_mrisps_onehot_val, batch_size=vbatch, mean_stream=False, use_logprob=True)
 
 print('training segreg atlas with dropout=%2.2f, nfeats=%d and nconvs=%d, dilations=%d' % (dropout, nfeats, nconv_layers, dilation_rate))
 
