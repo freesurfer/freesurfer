@@ -198,7 +198,7 @@ else:
     norm = 'work/mprage.nu.nii.gz'
     conf = 'work/mprage.nu.conf.nii.gz'
 
-    commands = []
+    commands = ['mkdir -p work']
 
     if args.intnormFSL:
         # normalize with fsl utilities
@@ -280,7 +280,10 @@ else:
         mi_scores = 'log/template_mi_scores.yaml'
         tmpimg = 'work/tmp.mi.nii.gz'
         tmplta = 'work/tmp.mi.lta'
-        commands = [f'rm -f {mi_scores}']
+        commands = [
+            'mkdir -p work',
+            f'rm -f {mi_scores}'
+        ]
         for ts in template_subjs_lookup.keys():
             moving = os.path.join(template_subjs_dir, ts, 'norm.nii.gz')
             commands.append(f'mri_robust_register --lta {tmplta} --mov {moving} --dst {masked} --mapmov {tmpimg} --affine --satit')
@@ -315,7 +318,7 @@ else:
     pl.print('Using template subjects:')
     pl.print('\n  '.join(template_subjs))
 
-    commands = []
+    commands = ['mkdir -p work']
 
     for ts in template_subjs:
 
@@ -489,7 +492,8 @@ if not args.no_stats:
     ]
     outputs = 'stats/aseg.stats'
 
-    if subj_age < 12:
+    # TODO: Needs further testing (12/06/2020)
+    if subj_age is None or subj_age < 12:
         etiv = 'stats/eTIV.txt'
         template = '$FREESURFER_HOME/average/all_c_robtemplate_affine_mean.05.01.2018.nii.gz'
         base = 'mri/transforms/subj_2_common'
