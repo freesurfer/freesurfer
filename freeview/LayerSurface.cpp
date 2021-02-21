@@ -2973,12 +2973,9 @@ bool LayerSurface::FillUncutArea(int vno)
 
 bool LayerSurface::LoadPatch(const QString &filename)
 {
-  MRIS* mris = m_surfaceSource->GetMRIS();
-  if (::MRISreadPatchNoRemove(mris, filename.toLatin1().data() ) == 0 )
+  if (m_surfaceSource->LoadPatch(filename))
   {
-    m_surfaceSource->RipFaces();
-    m_surfaceSource->UpdateHashTable();
-    m_surfaceSource->UpdatePolyData();
+    m_sPatchFilename = filename;
     emit ActorUpdated();
     return true;
   }
