@@ -114,6 +114,9 @@ class SamsegLesion(Samseg):
         numberOfVoxels = data.shape[0]
         imageSize = self.mask.shape
 
+        # Since we sample in subject space, the number of pseudo samples in the gmm needs to be updated accordingly
+        self.gmm.downsampledHyperparameters(self.voxelSpacing)
+
         # Create intensity-based lesion mask
         if self.intensityMaskingClassNumber is not None:
             # We have -1 mask below mean, +1 above, 0 nothing
