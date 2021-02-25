@@ -47,7 +47,7 @@ set surfdir = $SUBJECTS_DIR/$subj/surf
 set mridir = $SUBJECTS_DIR/$subj/mri
 set labeldir = $SUBJECTS_DIR/$subj/label 
 set vol     = $SUBJECTS_DIR/$subj/mri/aseg.nii.gz
-set segfile = $vol 
+set segfile = $vol
 
 ###
 ### Get list of all existing labels
@@ -215,7 +215,7 @@ if ($surfaceprep) then
   mkdir -p $workdir/surf/
 
   set hemi = rh
-  set cmd = (mri_pretess $workdir/FilledWM.mgz $rightlabel $mridir/norm.nii.gz $workdir/FilledWM-pretess$rightlabel.mgz)
+  set cmd = (mri_pretess $workdir/FilledWM.mgz $rightlabel $mridir/norm.mgz $workdir/FilledWM-pretess$rightlabel.mgz)
   echo $cmd; eval $cmd
   set cmd = (mri_tessellate $workdir/FilledWM-pretess$rightlabel.mgz $rightlabel $workdir/surf/$hemi.orig.nofix)
   echo $cmd; eval $cmd
@@ -234,7 +234,7 @@ if ($surfaceprep) then
 
   # left
   set hemi = lh
-  set cmd = (mri_pretess $workdir/FilledWM.mgz $leftlabel $mridir/norm.nii.gz $workdir/FilledWM-pretess$leftlabel.mgz)
+  set cmd = (mri_pretess $workdir/FilledWM.mgz $leftlabel $mridir/norm.mgz $workdir/FilledWM-pretess$leftlabel.mgz)
   echo $cmd; eval $cmd
   set cmd = (mri_tessellate $workdir/FilledWM-pretess$leftlabel.mgz $leftlabel $workdir/surf/$hemi.orig.nofix)
   echo $cmd; eval $cmd
@@ -284,9 +284,9 @@ if ($surfaceprep) then
 
   set cmd = (mri_convert --no_scale 1 --out_data_type uchar $workdir/wm.mgz $workdir/wm.uchar.mgz)
   echo $cmd; eval $cmd
-  set cmd = (mri_edit_wm_with_aseg $workdir/wm.uchar.mgz brain.nii.gz $vol $workdir/wm.asegedit.mgz)
+  set cmd = (mri_edit_wm_with_aseg $workdir/wm.uchar.mgz brain.mgz $vol $workdir/wm.asegedit.mgz)
   echo $cmd; eval $cmd
-  set cmd = (mri_pretess $workdir/wm.asegedit.mgz wm norm.nii.gz wm.mgz)
+  set cmd = (mri_pretess $workdir/wm.asegedit.mgz wm norm.mgz wm.mgz)
   echo $cmd; eval $cmd
   popd 
   #

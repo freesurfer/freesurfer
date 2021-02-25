@@ -194,6 +194,23 @@ bool FSSurface::CreateFromMRIS(MRIS *mris)
   return InitializeData();
 }
 
+bool FSSurface::LoadPatch(const QString &filename)
+{
+  if (::MRISreadPatchNoRemove(m_MRIS, filename.toLatin1().data() ) == 0 )
+  {
+    RipFaces();
+    UpdateHashTable();
+    UpdatePolyData();
+    SaveVertices( m_MRIS, SurfaceMain );
+    SaveNormals ( m_MRIS, SurfaceMain );
+    RestoreVertices( m_MRIS, SurfaceMain );
+    RestoreNormals( m_MRIS, SurfaceMain );
+    return true;
+  }
+  else
+    return false;
+}
+
 bool FSSurface::InitializeData(const QString &vector_filename,
                                const QString &patch_filename,
                                const QString &target_filename,

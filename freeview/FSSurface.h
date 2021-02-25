@@ -107,6 +107,7 @@ public:
   bool LoadCurvature  ( const QString& filename = NULL );
   bool LoadOverlay    ( const QString& filename, const QString& fn_reg,
                         float** data_out, int* nvertices_out, int* nframes_out, bool bUseSecondHalfData = false );
+  bool LoadPatch      ( const QString& filename );
 
   bool IsSurfaceLoaded( int nSet )
   {
