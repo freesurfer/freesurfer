@@ -438,7 +438,12 @@ void NonlinReg::ApplyXfm(vector<float> &OutPoint,
 //
 NonlinReg::NonlinReg() : mMorph(0) {}
 
-NonlinReg::~NonlinReg() {}
+NonlinReg::~NonlinReg() {
+  if (mMorph != NULL) {
+    GCAfree(&(mMorph->gca));
+    GCAMfree(&mMorph);
+  }
+}
 
 bool NonlinReg::IsEmpty() { return (mMorph == 0); }
 
