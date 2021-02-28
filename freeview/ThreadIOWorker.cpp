@@ -21,6 +21,7 @@
 #include "LayerVolumeTrack.h"
 #include "LayerConnectomeMatrix.h"
 #include "LayerFCD.h"
+#include "LayerODF.h"
 #include <QApplication>
 #include <QDebug>
 
@@ -100,6 +101,14 @@ void ThreadIOWorker::LoadFCD(Layer* layer, const QVariantMap& args)
 {
   m_layer = layer;
   m_nJobType = JT_LoadFCD;
+  m_args = args;
+  start();
+}
+
+void ThreadIOWorker::LoadODF(Layer *layer, const QVariantMap &args)
+{
+  m_layer = layer;
+  m_nJobType = JT_LoadODF;
   m_args = args;
   start();
 }
@@ -309,6 +318,20 @@ void ThreadIOWorker::run()
     else
     {
       emit FCDLoadFinished(layer);
+    }
+  }
+  else if (m_nJobType == JT_LoadODF)
+  {
+    LayerODF* layer = qobject_cast<LayerODF*>(m_layer);
+    if (!layer)
+      return;
+    if (!layer->Load(m_args["Filename"].toString()))
+    {
+      emit Error(m_layer, m_nJobType);
+    }
+    else
+    {
+      emit Finished(m_layer, m_nJobType);
     }
   }
   disconnect(qApp, SIGNAL(GlobalProgress(int)), this, SIGNAL(Progress(int)));
