@@ -9277,7 +9277,14 @@ void MainWindow::CommandLinkVolume(const QStringList &cmd)
     if ( mri )
     {
       if ( cmd[1] == "1" || cmd[1].toLower() == "true" )
+      {
         emit LinkVolumeRequested(mri);
+        QList<LayerMRI*> linked_vols = ui->widgetAllLayers->GetLinkedVolumes();
+        if (!linked_vols.isEmpty() && linked_vols[0] != mri)
+        {
+          mri->GetProperty()->CopySettings(linked_vols[0]->GetProperty());
+        }
+      }
     }
   }
 }

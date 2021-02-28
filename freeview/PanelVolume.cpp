@@ -2049,3 +2049,9 @@ void PanelVolume::OnLineEditClearBackgroundValue(const QString &text)
     }
   }
 }
+
+QList<LayerMRI*> PanelVolume::GetLinkedVolumes()
+{
+  QList<LayerMRI*> linked_mri = qobject_cast<LayerTreeWidget*>(treeWidgetLayers)->GetLinkedVolumes();
+  return linked_mri;
+}

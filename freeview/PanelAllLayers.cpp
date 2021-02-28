@@ -478,3 +478,8 @@ PanelLayer* PanelAllLayers::GetPanel(const QString &layer_type)
   }
   return NULL;
 }
+
+QList<LayerMRI*> PanelAllLayers::GetLinkedVolumes()
+{
+  return ui->pageVolume->GetLinkedVolumes();
+}
