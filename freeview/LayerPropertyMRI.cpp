@@ -173,6 +173,33 @@ void LayerPropertyMRI::CopySettings( const LayerPropertyMRI* p )
   this->OnColorMapChanged();
 }
 
+void LayerPropertyMRI::CopyWindowLevelSettings( const LayerPropertyMRI* p )
+{
+  blockSignals( true );
+  mMinVisibleValue        =   p->mMinVisibleValue;
+  mMaxVisibleValue        =   p->mMaxVisibleValue;
+  mMinGrayscaleWindow     =   p->mMinGrayscaleWindow;
+  mMaxGrayscaleWindow     =   p->mMaxGrayscaleWindow;
+  mHeatScaleMinThreshold  =   p->mHeatScaleMinThreshold;
+  mHeatScaleMidThreshold  =   p->mHeatScaleMidThreshold;
+  mHeatScaleMaxThreshold  =   p->mHeatScaleMaxThreshold;
+  mHeatScaleOffset        =   p->mHeatScaleOffset;
+  mbReverseHeatScale      =   p->mbReverseHeatScale;
+  mbShowPositiveHeatScaleValues =  p->mbShowPositiveHeatScaleValues;
+  mbShowNegativeHeatScaleValues =  p->mbShowNegativeHeatScaleValues;
+  mbClearBackground             =   p->mbClearBackground;
+  mClearBackgroundValue   =   p->mClearBackgroundValue;
+  mMinGenericThreshold    =   p->mMinGenericThreshold;
+  mMaxGenericThreshold    =   p->mMaxGenericThreshold;
+  m_bHeatScaleClearHigh   =   p->m_bHeatScaleClearHigh;
+  m_bHeatScaleTruncate    =   p->m_bHeatScaleTruncate;
+  m_bHeatScaleInvert      =   p->m_bHeatScaleInvert;
+
+  blockSignals( false );
+
+  this->OnColorMapChanged();
+}
+
 void LayerPropertyMRI::RestoreSettings( const QString& filename )
 {
   QSettings settings;
