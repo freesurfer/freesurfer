@@ -24,6 +24,7 @@
 #include "LayerTrack.h"
 #include "LayerDTI.h"
 #include "LayerVolumeTrack.h"
+#include "LayerODF.h"
 #include "LayerCollection.h"
 #include "BrushProperty.h"
 #include <QMessageBox>
@@ -151,6 +152,7 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   m_layerCollections["Tract"] = new LayerCollection( "Tract", this );
   m_layerCollections["CMAT"] = new LayerCollection("CMAT", this);
   m_layerCollections["FCD"] = new LayerCollection("FCD", this);
+  m_layerCollections["ODF"] = new LayerCollection("ODF", this);
 
   // supplemental layers will not show on control panel
   m_layerCollections["Supplement"] = new LayerCollection( "Supplement", this);
@@ -553,6 +555,8 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   m_widgetFloatInfoPanel->setLayout(layout);
   m_widgetFloatInfoPanel->hide();
   m_widgetFloatInfoPanel->setWindowTitle("Info");
+
+  ui->actionLoadODF->setVisible(false);
 
 #ifdef Q_OS_MAC
   if (MacHelper::IsDarkMode())
@@ -1178,6 +1182,18 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
     this->AddScript( script );
   }
 
+  nRepeats = parser->GetNumberOfRepeats( "odf" );
+  for ( int n = 0; n < nRepeats; n++ )
+  {
+    parser->Found( "odf", &sa, n );
+    for ( int i = 0; i < sa.size(); i++ )
+    {
+      QStringList script("loadodf");
+      script << sa[i];
+      this->AddScript( script );
+    }
+  }
+
   if ( parser->Found( "cmat", &sa ) )
   {
     this->AddScript( QStringList("loadconnectome") << sa[0] << sa[1] );
@@ -1590,6 +1606,9 @@ void MainWindow::OnIdle()
   ui->actionLoadFCD->setEnabled( !bBusy );
   ui->actionCloseFCD->setEnabled( !bBusy && GetActiveLayer( "FCD"));
 
+  ui->actionLoadODF->setEnabled( !bBusy );
+  ui->actionCloseODF->setEnabled( !bBusy && GetActiveLayer( "ODF"));
+
   ui->actionShowCoordinateAnnotation->setChecked(ui->viewAxial->GetShowCoordinateAnnotation());
   ui->actionShowColorScale->setChecked(view->GetShowScalarBar());
 
@@ -1756,6 +1775,10 @@ void MainWindow::RunScript()
   else if (cmd == "loadtractcluster")
   {
     CommandLoadTractCluster(sa);
+  }
+  else if ( cmd == "loadodf")
+  {
+    CommandLoadODF( sa );
   }
   else if ( cmd == "loadfcd")
   {
@@ -2318,10 +2341,28 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
       {
         if ( subArgu.isEmpty() )
         {
-          cerr << "Missing vector skip argument.\n";
+          cerr << "Missing vector_skip argument.\n";
         }
         else
           sup_data["VectorSkip"] = subArgu;
+      }
+      else if ( subOption == "vector_normalize" )
+      {
+        if ( subArgu.isEmpty() )
+        {
+          cerr << "Missing vector_normalize argument.\n";
+        }
+        else
+          sup_data["VectorNormalize"] = (subArgu.toLower() == "true" || subArgu.toLower() == "yes" || subArgu == "1");
+      }
+      else if ( subOption == "vector_scale" )
+      {
+        if ( subArgu.isEmpty() )
+        {
+          cerr << "Missing vector_scale argument.\n";
+        }
+        else
+          sup_data["VectorLengthScale"] = subArgu;
       }
       else if ( subOption == "tensor" )
       {
@@ -2769,6 +2810,10 @@ void MainWindow::CommandSetDisplayVector( const QStringList& cmd )
         if ( cmd[2].toLower() == "line" )
         {
           mri->GetProperty()->SetVectorRepresentation( LayerPropertyMRI::VR_Line );
+        }
+        else if ( cmd[2].toLower() == "direction" || cmd[2].toLower() == "directional" )
+        {
+          mri->GetProperty()->SetVectorRepresentation( LayerPropertyMRI::VR_Direction_Line );
         }
         else if ( cmd[2].toLower() == "bar" )
         {
@@ -4976,6 +5021,7 @@ void MainWindow::SetCurrentFile( const QString &fileName, int type )
   }
 
   settings.setValue( key, files);
+  settings.sync();
 
   foreach (QWidget *widget, QApplication::topLevelWidgets())
   {
@@ -5455,14 +5501,25 @@ void MainWindow::LoadVolumeFile( const QString& filename,
   layer->GetProperty()->blockSignals(true);
   if (sup_data.contains("Basis"))
     layer->SetLayerIndex(sup_data["Basis"].toInt());
+
   if (sup_data.contains("Percentile"))
     layer->GetProperty()->SetUsePercentile(sup_data["Percentile"].toBool());
+
   if (sup_data.contains("ID"))
     layer->SetID(sup_data["ID"].toInt());
+
   if (sup_data.contains("VectorSkip"))
     layer->GetProperty()->SetVectorSkip(qMax(0, sup_data["VectorSkip"].toInt()));
+
+  if (sup_data.contains("VectorNormalize"))
+    layer->GetProperty()->SetNormalizeVector(sup_data["VectorNormalize"].toBool());
+
+  if (sup_data.contains("VectorLengthScale"))
+    layer->GetProperty()->SetVectorDisplayScale(sup_data["VectorLengthScale"].toDouble());
+
   if (sup_data.contains("BinaryColor"))
     layer->GetProperty()->SetBinaryColor(sup_data["BinaryColor"].value<QColor>());
+
   layer->GetProperty()->blockSignals(false);
 
   if (sup_data.value("IgnoreHeader").toBool())
@@ -6344,6 +6401,7 @@ void MainWindow::OnIOFinished( Layer* layer, int jobtype )
   LayerCollection* lc_mri = GetLayerCollection( "MRI" );
   LayerCollection* lc_surface = GetLayerCollection( "Surface" );
   LayerCollection* lc_track = GetLayerCollection( "Tract" );
+  LayerCollection* lc_odf = GetLayerCollection( "ODF" );
   LayerCollection* lc_sup = GetLayerCollection( "Supplement");
   if ( jobtype == ThreadIOWorker::JT_LoadVolume && layer->IsTypeOf( "MRI" ) )
   {
@@ -6535,6 +6593,47 @@ void MainWindow::OnIOFinished( Layer* layer, int jobtype )
       m_views[3]->ResetCameraClippingRange();
     }
   }
+  else if ( jobtype == ThreadIOWorker::JT_LoadODF && layer->IsTypeOf("ODF"))
+  {
+    LayerODF* odf = qobject_cast<LayerODF*>( layer );
+    m_strLastDir = QFileInfo( layer->GetFileName() ).canonicalPath();
+    double worigin[3], wsize[3];
+    odf->GetWorldOrigin( worigin );
+    odf->GetWorldSize( wsize );
+    qDebug() << wsize[0] << wsize[1] << wsize[2];
+    if (lc_surface->IsEmpty() && lc_mri->IsEmpty())
+    {
+      for ( int i = 0; i < 4; i++ )
+      {
+        m_views[i]->SetWorldCoordinateInfo( worigin, wsize, true );
+      }
+      m_views[3]->ResetCameraClippingRange();
+    }
+    else
+    {
+      double mri_origin[3], mri_size[3], vs[3];
+      lc_mri->GetWorldOrigin(mri_origin);
+      lc_mri->GetWorldSize(mri_size);
+      lc_mri->GetWorldVoxelSize(vs);
+      for (int i = 0; i < 3; i++)
+      {
+        double upper = worigin[i] + wsize[i];
+        if (worigin[i] >= mri_origin[i])
+          worigin[i] = mri_origin[i];
+        else
+          worigin[i] = mri_origin[i] - ((int)((mri_origin[i]-worigin[i])/vs[i]+1))*vs[i];
+        if (upper <= mri_origin[i]+mri_size[i])
+          wsize[i] = mri_origin[i]+mri_size[i] - worigin[i];
+        else
+          wsize[i] = mri_origin[i]+mri_size[i] + ((int)((upper-mri_origin[i]-mri_size[i])/vs[i]+1))*vs[i];
+      }
+      lc_odf->SetWorldOrigin( worigin );
+      lc_odf->SetWorldSize( wsize );
+      lc_odf->SetWorldVoxelSize( vs );
+      lc_odf->AddLayer( odf );
+      lc_odf->SetSlicePosition( lc_mri->GetSlicePosition() );
+    }
+  }
   else if (jobtype == ThreadIOWorker::JT_LoadConnectome && layer->IsTypeOf("CMAT"))
   {
     LayerConnectomeMatrix* cmat = qobject_cast<LayerConnectomeMatrix*>( layer );
@@ -6565,6 +6664,7 @@ void MainWindow::OnIOFinished( Layer* layer, int jobtype )
     }
     lc->AddLayer( fcd );
   }
+
   m_bProcessing = false;
 
   if ( jobtype == ThreadIOWorker::JT_SaveVolume)
@@ -9210,7 +9310,14 @@ void MainWindow::CommandLinkVolume(const QStringList &cmd)
     if ( mri )
     {
       if ( cmd[1] == "1" || cmd[1].toLower() == "true" )
+      {
         emit LinkVolumeRequested(mri);
+        QList<LayerMRI*> linked_vols = ui->widgetAllLayers->GetLinkedVolumes();
+        if (!linked_vols.isEmpty() && linked_vols[0] != mri)
+        {
+          mri->GetProperty()->CopySettings(linked_vols[0]->GetProperty());
+        }
+      }
     }
   }
 }
@@ -9360,4 +9467,38 @@ void MainWindow::OnSyncFileChanged(const QString &fn)
   {
     qWarning() << "Can not open sync file " << fn;
   }
+}
+
+void MainWindow::OnLoadODF()
+{
+  QString fn = QFileDialog::getOpenFileName(this, "Load ODF", m_strLastDir);
+  if (!fn.isEmpty())
+  {
+    AddScript(QStringList("loadodf") << fn);
+  }
+}
+
+void MainWindow::OnCloseODF()
+{
+  LayerODF* layer = (LayerODF*)GetActiveLayer( "ODF" );
+  if ( !layer )
+    return;
+
+  GetLayerCollection( "ODF" )->RemoveLayer( layer );
+}
+
+void MainWindow::CommandLoadODF(const QStringList& cmd )
+{
+  if (cmd.size() < 2)
+    return;
+
+  LoadODF(cmd[1]);
+}
+
+void MainWindow::LoadODF(const QString &fn)
+{
+  LayerODF* layer = new LayerODF(m_layerVolumeRef);
+  QVariantMap map;
+  map["Filename"] = fn;
+  m_threadIOWorker->LoadODF( layer, map );
 }

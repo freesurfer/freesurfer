@@ -44,7 +44,6 @@ LayerDTI::LayerDTI( LayerMRI* ref, QObject* parent ) : LayerMRI( ref, parent ),
   mProperty = new LayerPropertyDTI( this );
   LayerMRI::ConnectProperty();
 
-
   SetEditable( false );
 }
 

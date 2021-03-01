@@ -354,6 +354,9 @@
     <addaction name="actionLoadTractCluster"/>
     <addaction name="actionCloseTrack"/>
     <addaction name="separator"/>
+    <addaction name="actionLoadODF"/>
+    <addaction name="actionCloseODF"/>
+    <addaction name="separator"/>
     <addaction name="actionLoadFCD"/>
     <addaction name="actionCloseFCD"/>
     <addaction name="separator"/>
@@ -1812,6 +1815,16 @@
   <action name="actionTileSyncedWindows">
    <property name="text">
     <string>Tile Synced Windows</string>
+   </property>
+  </action>
+  <action name="actionLoadODF">
+   <property name="text">
+    <string>Load ODF ...</string>
+   </property>
+  </action>
+  <action name="actionCloseODF">
+   <property name="text">
+    <string>Close ODF</string>
    </property>
   </action>
  </widget>
@@ -3701,6 +3714,38 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>actionLoadODF</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnLoadODF()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionCloseODF</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnCloseODF()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <signal>CycleOverlayRequested()</signal>
@@ -3811,5 +3856,7 @@
   <slot>OnFloatPanels(bool)</slot>
   <slot>OnSyncInstances(bool)</slot>
   <slot>OnTileSyncedWindows()</slot>
+  <slot>OnLoadODF()</slot>
+  <slot>OnCloseODF()</slot>
  </slots>
 </ui>

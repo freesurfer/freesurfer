@@ -19,7 +19,7 @@ PanelAllLayers::PanelAllLayers(QWidget *parent) :
   ui->setupUi(this);
   MainWindow* wnd = MainWindow::GetMainWindow();
   QStringList layer_types;
-  layer_types << "MRI" << "Surface" << "ROI" << "PointSet" << "CMAT" << "Tract" << "FCD";
+  layer_types << "MRI" << "Surface" << "ROI" << "PointSet" << "CMAT" << "Tract" << "ODF" << "FCD";
   foreach (QString type, layer_types)
   {
     connect(wnd->GetLayerCollection(type), SIGNAL(LayerAdded(Layer*)), this, SLOT(OnLayerAdded(Layer*)));
@@ -136,6 +136,7 @@ void PanelAllLayers::RefreshLayerList(const QList<Layer *>& selectedLayers_in, L
   AddLayers(wnd->GetLayers("PointSet"), "Point Sets", wnd->GetActiveLayer("PointSet"), selectedLayers, layer);
   AddLayers(wnd->GetLayers("CMAT"), "CMAT", wnd->GetActiveLayer("CMAT"), selectedLayers, layer);
   AddLayers(wnd->GetLayers("Tract"), "Tract", wnd->GetActiveLayer("Tract"), selectedLayers, layer);
+  AddLayers(wnd->GetLayers("ODF"), "ODFs", wnd->GetActiveLayer("ODF"), selectedLayers, layer);
   AddLayers(wnd->GetLayers("FCD"), "FCD", wnd->GetActiveLayer("FCD"), selectedLayers, layer);
 }
 
@@ -414,7 +415,7 @@ QString PanelAllLayers::GetCurrentLayerType()
     if (layer)
     {
       QStringList layer_types;
-      layer_types << "MRI" << "Surface" << "ROI" << "PointSet" << "CMAT" << "Tract" << "FCD";
+      layer_types << "MRI" << "Surface" << "ROI" << "PointSet" << "CMAT" << "Tract" << "ODF" << "FCD";
       foreach (QString type, layer_types)
       {
         if (layer->IsTypeOf(type))
@@ -476,4 +477,9 @@ PanelLayer* PanelAllLayers::GetPanel(const QString &layer_type)
     }
   }
   return NULL;
+}
+
+QList<LayerMRI*> PanelAllLayers::GetLinkedVolumes()
+{
+  return ui->pageVolume->GetLinkedVolumes();
 }

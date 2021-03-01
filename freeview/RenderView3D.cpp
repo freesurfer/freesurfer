@@ -368,6 +368,7 @@ void RenderView3D::RefreshAllActors(bool bForScreenShot)
   mainwnd->GetLayerCollection( "MRI" )->Append3DProps( m_renderer, b );
   mainwnd->GetLayerCollection( "ROI" )->Append3DProps( m_renderer, b );
   mainwnd->GetLayerCollection( "Surface" )->Append3DProps( m_renderer, b );
+  mainwnd->GetLayerCollection( "ODF" )->Append3DProps( m_renderer, b );
   mainwnd->GetLayerCollection( "PointSet" )->Append3DProps( m_renderer, b );
   mainwnd->GetLayerCollection( "Tract" )->Append3DProps( m_renderer, b );
   mainwnd->GetLayerCollection( "CMAT")->Append3DProps( m_renderer, b );

@@ -338,6 +338,7 @@ protected:
   void LoadWayPointsFile        ( const QString& fn, const QVariantMap& args = QVariantMap() );
   void LoadControlPointsFile    ( const QString& fn, const QVariantMap& args = QVariantMap() );
   void LoadTrackFile            ( const QString& fn );
+  void LoadODF        ( const QString& fn);
   void LoadFCD        ( const QString& subdir, const QString& subject, const QString& suffix = "");
   void LoadSurfaceParameterization(const QString& filename);
   void LoadSurfaceCoordsFromParameterization(const QString& filename);
@@ -365,6 +366,7 @@ protected:
   void CommandLoadSurfaceSpline ( const QStringList& cmd );
   void CommandLoadSurfaceCoordsFromParameterization ( const QStringList& cmd );
   void CommandLoadConnectomeMatrix  ( const QStringList& cmd );
+  void CommandLoadODF           ( const QStringList& cmd );
   void CommandLoadFCD           ( const QStringList& cmd );
   void CommandLoadWayPoints     ( const QStringList& cmd );
   void CommandLoadControlPoints ( const QStringList& cmd );
@@ -604,6 +606,10 @@ protected slots:
   void UpdateSyncCoord();
 
   void OnTileSyncedWindows();
+
+  void OnLoadODF();
+
+  void OnCloseODF();
 
 private:
   bool DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit);

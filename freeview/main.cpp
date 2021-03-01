@@ -143,7 +143,9 @@ int main(int argc, char *argv[])
     "':vector_width=width' Set line width of the vectors.\n\n"
     "':vector_norm_threshold=value' Set norm threshold for the vector display.\n\n"
     "':vector_skip=n' Skip n voxels in vector display. Default is 0 (no skipping).\n\n"
-    "':render=flag' When displaying as vectors or tensors, render the glyph in the given form. For vector, flag can be 'line' as simple line or 'bar' as 3D bar (might be slow). For tensor, flag can be 'boxoid' or 'ellipsoid' (slow!).\n\n"
+    "':vector_normalize=flag' Normalize vector length. flag can be 'yes', 'true' or '1'.\n\n"
+    "':vector_scale=scale' Set the length scale of the vectors.\n\n"
+    "':render=flag' When displaying as vectors or tensors, render the glyph in the given form. For vector, flag can be 'line' as simple line, 'directional' as directional line and 'bar' as 3D bar (might be slow). For tensor, flag can be 'boxoid' or 'ellipsoid' (slow!).\n\n"
     "':inversion=flag' When displaying as vectors or tensors, invert the given component of the vectors. Valid flags are 'x', 'y' and 'z'.\n\n"
     "':outline=flag' Display labels as outline only. flag can be '1', 'yes' or 'true'.\n\n"
     "':reg=filename' or ':transform=filename' Set registration/transform file for the volume. filename can contain relative path to the volume file.\n\n"
@@ -245,6 +247,7 @@ int main(int argc, char *argv[])
     CmdLineEntry( CMD_LINE_OPTION, "fcd", "fcd", "<SUBJECT_DIR> <SUBJECT> [SUFFIX]", "Load FCD data. Requires subject directory and subject. Suffix is optional.\n", 2, 3 ),
     CmdLineEntry( CMD_LINE_OPTION, "t", "tract", "<FILE>...", "Load one or more tract files.\n\n", 1, 1000 ),
     CmdLineEntry( CMD_LINE_OPTION, "tc", "tract-cluster", "<DIRECTORY>", "Load tract cluster data from given directory.\n", 1, 1 ),
+    CmdLineEntry( CMD_LINE_OPTION, "odf", "odf", "<FILE>...", "Load ODF data. \n", 1, 100 ),
     CmdLineEntry( CMD_LINE_OPTION, "recon", "recon", "<SUBJECT_NAME>...", "Load a series of pre-defined volumes and surfaces of given subject(s).\n", 1, 1000 ),
     CmdLineEntry( CMD_LINE_OPTION, "lineprofile", "lineprofile", "<OUTPUT_FILE>", "Compute the thickness of layers along line profiles and export them to given csv file. Initial lines (waypoints) must be loaded in order with waypoint options. Available sub-options are:\n\n"
     "':spacing=value' Set spacing of the line profiles. Default value is 1.0.\n\n"

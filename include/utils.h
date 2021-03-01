@@ -85,6 +85,8 @@ char *AppendString(char *src, char *app);
 
 bool stringEndsWith(const std::string& value, const std::string& ending);
 
+std::string getEnvironVar(std::string const &key);
+
 int devIsinf(float value);
 int devIsnan(float value);
 int devFinite(float value);

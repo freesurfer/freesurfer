@@ -68,8 +68,6 @@ LayerFCD::LayerFCD(LayerMRI* layerMRI,
     m_sliceActor3D[i]->InterpolateOff();
   }
 
-  mProperty = new LayerPropertyFCD( this );
-
   m_layerSource = layerMRI;
   if (m_layerSource)
   {
@@ -248,7 +246,6 @@ bool LayerFCD::LoadFromFile()
   {
     return false;
   }
-
 
   if (m_fcd)
   {
