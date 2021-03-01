@@ -2341,10 +2341,28 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
       {
         if ( subArgu.isEmpty() )
         {
-          cerr << "Missing vector skip argument.\n";
+          cerr << "Missing vector_skip argument.\n";
         }
         else
           sup_data["VectorSkip"] = subArgu;
+      }
+      else if ( subOption == "vector_normalize" )
+      {
+        if ( subArgu.isEmpty() )
+        {
+          cerr << "Missing vector_normalize argument.\n";
+        }
+        else
+          sup_data["VectorNormalize"] = (subArgu.toLower() == "true" || subArgu.toLower() == "yes" || subArgu == "1");
+      }
+      else if ( subOption == "vector_scale" )
+      {
+        if ( subArgu.isEmpty() )
+        {
+          cerr << "Missing vector_scale argument.\n";
+        }
+        else
+          sup_data["VectorLengthScale"] = subArgu;
       }
       else if ( subOption == "tensor" )
       {
@@ -2792,6 +2810,10 @@ void MainWindow::CommandSetDisplayVector( const QStringList& cmd )
         if ( cmd[2].toLower() == "line" )
         {
           mri->GetProperty()->SetVectorRepresentation( LayerPropertyMRI::VR_Line );
+        }
+        else if ( cmd[2].toLower() == "direction" || cmd[2].toLower() == "directional" )
+        {
+          mri->GetProperty()->SetVectorRepresentation( LayerPropertyMRI::VR_Direction_Line );
         }
         else if ( cmd[2].toLower() == "bar" )
         {
@@ -5485,6 +5507,10 @@ void MainWindow::LoadVolumeFile( const QString& filename,
     layer->SetID(sup_data["ID"].toInt());
   if (sup_data.contains("VectorSkip"))
     layer->GetProperty()->SetVectorSkip(qMax(0, sup_data["VectorSkip"].toInt()));
+  if (sup_data.contains("VectorNormalize"))
+    layer->GetProperty()->SetNormalizeVector(sup_data["VectorSkip"].toBool());
+  if (sup_data.contains("VectorLengthScale"))
+    layer->GetProperty()->SetVectorDisplayScale(sup_data["VectorLengthScale"].toDouble());
   if (sup_data.contains("BinaryColor"))
     layer->GetProperty()->SetBinaryColor(sup_data["BinaryColor"].value<QColor>());
   layer->GetProperty()->blockSignals(false);
