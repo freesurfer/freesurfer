@@ -5501,18 +5501,25 @@ void MainWindow::LoadVolumeFile( const QString& filename,
   layer->GetProperty()->blockSignals(true);
   if (sup_data.contains("Basis"))
     layer->SetLayerIndex(sup_data["Basis"].toInt());
+
   if (sup_data.contains("Percentile"))
     layer->GetProperty()->SetUsePercentile(sup_data["Percentile"].toBool());
+
   if (sup_data.contains("ID"))
     layer->SetID(sup_data["ID"].toInt());
+
   if (sup_data.contains("VectorSkip"))
     layer->GetProperty()->SetVectorSkip(qMax(0, sup_data["VectorSkip"].toInt()));
+
   if (sup_data.contains("VectorNormalize"))
-    layer->GetProperty()->SetNormalizeVector(sup_data["VectorSkip"].toBool());
+    layer->GetProperty()->SetNormalizeVector(sup_data["VectorNormalize"].toBool());
+
   if (sup_data.contains("VectorLengthScale"))
     layer->GetProperty()->SetVectorDisplayScale(sup_data["VectorLengthScale"].toDouble());
+
   if (sup_data.contains("BinaryColor"))
     layer->GetProperty()->SetBinaryColor(sup_data["BinaryColor"].value<QColor>());
+
   layer->GetProperty()->blockSignals(false);
 
   if (sup_data.value("IgnoreHeader").toBool())
