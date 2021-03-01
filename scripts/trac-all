@@ -1180,12 +1180,20 @@ if ($dostats) then
                   set inputs = ($inputs $xfmdir/cvs/$cvswarp.m3z)
                 endif
               endif
-            else if ($xspace == syn || $xspace == fnt) then
+            else if ($xspace == syn) then
               if (! $#baselist) then			# Cross-sectional
-                set inputs = ($inputs $xfmdir/diff2${xspace}_warp.m3z)
+                set inputs = ($inputs $xfmdir/diff2syn.lta)
+                set inputs = ($inputs $xfmdir/syn_warp.m3z)
+              else					# Longitudinal
+                set inputs = ($inputs $xfmdir/anatorig2syn.$reg.lta)
+                set inputs = ($inputs $xfmdir/syn_warp.m3z)
+              endif
+            else if ($xspace == fnt) then
+              if (! $#baselist) then			# Cross-sectional
+                set inputs = ($inputs $xfmdir/diff2fsl_warp.m3z)
               else					# Longitudinal
                 set inputs = ($inputs $xfmdir/anatorig2diff.$reg.lta)
-                set inputs = ($inputs $xfmdir/diff2${xspace}_warp.m3z)
+                set inputs = ($inputs $xfmdir/diff2fsl_warp.m3z)
               endif
             endif
 

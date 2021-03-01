@@ -728,15 +728,11 @@ else
           set cmd = ($cmd --regnl $xfmdir_t/cvs/$cvswarp.m3z)
         endif
       else if ($xspace == syn) then
-        # Hack: Using one time point for now!
-        set xfmdir_t = $dtroot/$tplist[1]/dmri/xfms
-        set cmd = ($cmd --reg   $xfmdir_t/anatorig2syn.lta)
-        set cmd = ($cmd --regnl $xfmdir_t/syn_warp.m3z)
+        set cmd = ($cmd --reg   $xfmdir/anatorig2syn.$reg.lta)
+        set cmd = ($cmd --regnl $xfmdir/syn_warp.m3z)
       else if ($xspace == fnt) then
-        # Hack: Using one time point for now!
-        set xfmdir_t = $dtroot/$tplist[1]/dmri/xfms
-        set cmd = ($cmd --reg   $xfmdir_t/anatorig2diff.$reg.lta)
-        set cmd = ($cmd --regnl $xfmdir_t/diff2fsl_warp.m3z)
+        set cmd = ($cmd --reg   $xfmdir/anatorig2diff.$reg.lta)
+        set cmd = ($cmd --regnl $xfmdir/diff2fsl_warp.m3z)
       endif
       set cmd = ($cmd --init      $initlist)
       if ($dosegprior) then

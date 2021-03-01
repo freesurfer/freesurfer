@@ -1973,15 +1973,50 @@ if ($dointer && $dobase) then
   echo "#-------------------------------------" |& tee -a $LF
   echo "#@# Inter-subject registration (base template) `date`" |& tee -a $LF
 
+  # Hack: Using one time point for now!
+  # Replace with within-subject template to between-subject template
+  set dwidir_t = $dtroot/$tplist[1]/dmri
+  set xfmdir_t = $dwidir_t/xfms
+
   if ($xspace == mni || $xspace == rob) then
     # Affine registration from MNI template to base template
-    # Hack: Using one time point for now!
-    set xfmdir_t = $dtroot/$tplist[1]/dmri/xfms
-
     set cmd = cp
     set cmd = ($cmd $xfmdir_t/${xspace}2anatorig.lta)
     set cmd = ($cmd $xfmdir_t/anatorig2$xspace.lta)
     set cmd = ($cmd $xfmdir)
+    echo $cmd |& tee -a $LF |& tee -a $CF
+    if ($RunIt) then
+      $cmd |& tee -a $LF
+      if ($status) goto error_exit
+    endif
+  else if ($xspace == syn) then
+    # Non-linear registration from SyN FA template to base template
+    set cmd = cp
+    set cmd = ($cmd $xfmdir_t/syn2anatorig.$reg.lta)
+    set cmd = ($cmd $xfmdir_t/anatorig2syn.$reg.lta)
+    set cmd = ($cmd $xfmdir_t/syn_warp.m3z)
+    set cmd = ($cmd $xfmdir)
+    echo $cmd |& tee -a $LF |& tee -a $CF
+    if ($RunIt) then
+      $cmd |& tee -a $LF
+      if ($status) goto error_exit
+    endif
+  else if ($xspace == fnt) then
+    # Non-linear registration from fnirt FA template to base template
+    set cmd = cp
+    set cmd = ($cmd $xfmdir_t/diff2anatorig.$reg.lta)
+    set cmd = ($cmd $xfmdir_t/anatorig2diff.$reg.lta)
+    set cmd = ($cmd $xfmdir_t/diff2fsl_warp.m3z)
+    set cmd = ($cmd $xfmdir)
+    echo $cmd |& tee -a $LF |& tee -a $CF
+    if ($RunIt) then
+      $cmd |& tee -a $LF
+      if ($status) goto error_exit
+    endif
+
+    set cmd = cp
+    set cmd = ($cmd $dwidir_t/dtifit_FA.nii.gz)
+    set cmd = ($cmd $dwidir)
     echo $cmd |& tee -a $LF |& tee -a $CF
     if ($RunIt) then
       $cmd |& tee -a $LF
@@ -2130,18 +2165,13 @@ if ($dopriors && $dobase) then
       set cmd = ($cmd --regnl $xfmdir_t/cvs/$cvswarp.m3z)
       set cmd = ($cmd --refnl $dwidir_t/brain_anat_orig.nii.gz)
     else if ($xspace == syn) then
-      # Hack: Using one time point for now!
-      set xfmdir_t = $dwidir_t/xfms
-      set cmd = ($cmd --regnl $xfmdir_t/syn_warp.m3z)
+      set cmd = ($cmd --regnl $xfmdir/syn_warp.m3z)
       set cmd = ($cmd --refnl $intertrg)
-      set cmd = ($cmd --reg   $xfmdir_t/syn2anatorig.$reg.lta)
+      set cmd = ($cmd --reg   $xfmdir/syn2anatorig.$reg.lta)
     else if ($xspace == fnt) then
-      # Hack: Using one time point for now!
-      set dwidir_t = $dtroot/$tplist[1]/dmri
-      set xfmdir_t = $dwidir_t/xfms
-      set cmd = ($cmd --regnl $xfmdir_t/diff2fsl_warp.m3z)
-      set cmd = ($cmd --refnl $dwidir_t/dtifit_FA.nii.gz)
-      set cmd = ($cmd --reg   $xfmdir_t/diff2anatorig.$reg.lta)
+      set cmd = ($cmd --regnl $xfmdir/diff2fsl_warp.m3z)
+      set cmd = ($cmd --refnl $dwidir/dtifit_FA.nii.gz)
+      set cmd = ($cmd --reg   $xfmdir/diff2anatorig.$reg.lta)
     endif
     set cmd = ($cmd --basereg $basereglist)
     set cmd = ($cmd --baseref $labdir/anatorig/aparc+aseg_mask.nii.gz)
