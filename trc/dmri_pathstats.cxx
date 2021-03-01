@@ -152,8 +152,8 @@ int main(int argc, char **argv) {
     measname.push_back("AD");
     sprintf(fname, "%s_L2.nii.gz", dtBase);	// Radial diffusivity
     meas.push_back(MRIread(fname));
-    MRIadd(l3, meas[1], meas[1]);
-    MRIscalarMul(meas[1], meas[1], .5);
+    MRIadd(l3, *(meas.end()-1), *(meas.end()-1));
+    MRIscalarMul(*(meas.end()-1), *(meas.end()-1), .5);
     measname.push_back("RD");
     sprintf(fname, "%s_MD.nii.gz", dtBase);	// Mean diffusivity
     meas.push_back(MRIread(fname));
