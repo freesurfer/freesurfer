@@ -42,6 +42,7 @@ set framemask = ()
 set PermNonStatCor = 0;
 set fwhmmap = ()
 set DoSpatialSum = 0
+set Do1D = 0;
 
 set nJobs = 1;
 set DoBackground = 0;
@@ -634,16 +635,19 @@ foreach conname ($conlist)
   if($anattype == volume) then
     mri_info --o  /tmp/mri_glmfit-sim.junk.$$.cres --cres $sig
     set voxsize = `cat /tmp/mri_glmfit-sim.junk.$$.cres`
-    if($voxsize != 2) then
+    if($voxsize != 2 && $UseGRF) then
       echo "ERROR: voxel size of input is $voxsize, expecting 2"
       exit 1
     endif
-    set reg = $FREESURFER_HOME/subjects/$volsubject/mri.2mm/reg.2mm.dat 
-    set aseg = aparc+aseg.mgz
-    if(! -e $FREESURFER_HOME/subjects/$volsubject/mri/$aseg) set aseg = aseg.mgz
-    set cmd = (mri_volcluster --in $sig --mask $mask --reg $reg --no-fixmni\
+    set cmd = (mri_volcluster --in $sig --mask $mask --no-fixmni\
       --cwsig $cwsig --sum $sum --ocn $ocn --cwpvalthresh $cwpvalthresh \
-      --seg $volsubject $aseg --out $msig --allowdiag)
+      --out $msig --allowdiag)
+    if(! $Do1D) then 
+      set reg = $FREESURFER_HOME/subjects/$volsubject/mri.2mm/reg.2mm.dat 
+      set aseg = aparc+aseg.mgz
+      if(! -e $FREESURFER_HOME/subjects/$volsubject/mri/$aseg) set aseg = aseg.mgz
+      set cmd = ($cmd --seg $volsubject $aseg --reg $reg )
+    endif
     if($Bonferroni) set cmd = ($cmd --bonferroni $Bonferroni)
     if(! $UseGRF) set cmd = ($cmd --csdpdf $csdpdf $csdlist --vwsig $vwsig  --vwsigmax $vwsigmax)
     if($UseGRF)   set cmd = ($cmd --fwhmdat $glmdir/fwhm.dat --sign $simsign --thmin $thresh  --sign $simsign)
@@ -806,6 +810,10 @@ while( $#argv != 0 )
 
     case "--centroid":
       set ReportCentroid = 1;
+      breaksw
+
+    case "--1d":
+      set Do1D = 1;
       breaksw
 
     case "--log":
