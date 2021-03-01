@@ -148,7 +148,7 @@ set interreg = 2
 # Default for nonlinear T1-to-T1:
 #   $FREESURFER_HOME/subjects/cvs_avg35/
 # Default for nonlinear FA-to-FA:
-#   $FSLDIR/data/standard/FMRIB58_FA_1mm.nii.gz
+#   $FREESURFER_HOME/trctrain/hcp/MGH35_HCP_FA_template.nii.gz
 #
 set intertrg = /path/to/a/duck/template.nii.gz
 

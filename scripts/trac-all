@@ -1634,7 +1634,7 @@ if (! $#intertrg) then			# Target for inter-subject registration
       echo "ERROR: SyN registration not available for infants"
       exit 1
     else
-      set intertrg = $FSLDIR/data/standard/FMRIB58_FA_1mm.nii.gz
+      set intertrg = $FREESURFER_HOME/trctrain/hcp/MGH35_HCP_FA_template.nii.gz
     endif
   else if ($xspace == fnt) then
     if ($doinfant) then
