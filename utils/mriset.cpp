@@ -2352,7 +2352,7 @@ MRI *MRImask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, int mask, float out_val)
   int AllowDiffGeom = 1;
   char *pstr= getenv("FS_MRIMASK_ALLOW_DIFF_GEOM");
   if(pstr!=NULL) sscanf(pstr,"%d",&AllowDiffGeom);
-  printf("MRImask(): AllowDiffGeom = %d\n",AllowDiffGeom);
+  if(Gdiag > 0)  printf("MRImask(): AllowDiffGeom = %d\n",AllowDiffGeom);
 
   getVolGeom(mri_src, &vg_src);
   getVolGeom(mri_mask, &vg_mask);
