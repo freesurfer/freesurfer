@@ -85,6 +85,7 @@ public:
   QVariantMap GetActiveSettings();
   QVariantMap GetFullSettings();
   void CopySettings  ( const LayerPropertyMRI* p );
+  void CopyWindowLevelSettings(const LayerPropertyMRI* p);
   void RestoreSettings( const QVariantMap& map);
   void RestoreSettings( const QString& filename );
   void SaveSettings   ( const QString& filename );
