@@ -329,7 +329,7 @@ public:
     m_bIgnoreHeader = b;
   }
 
-  QVector<double> GetVoxelList(int nVal);
+  QVector<double> GetVoxelList(int nVal, bool bForce = false);
 
   QVariantMap GetTimeSeriesInfo();
 

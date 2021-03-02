@@ -4130,9 +4130,9 @@ void LayerMRI::GetVolumeInfo(int *dim, double *voxel_size)
   image->GetSpacing(voxel_size);
 }
 
-QVector<double> LayerMRI::GetVoxelList(int nVal)
+QVector<double> LayerMRI::GetVoxelList(int nVal, bool bForce)
 {
-  if (m_voxelLists.contains(nVal))
+  if (!bForce && m_voxelLists.contains(nVal))
     return m_voxelLists[nVal];
 
   QVector<double> vlist;
