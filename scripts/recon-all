@@ -430,13 +430,19 @@ goto parse_args;
 parse_args_return:
 
 if($DoSBatch) then
+  if($?FS_SBATCH_ACCOUNT == 0) then
+    echo "ERROR: no sbatch account name. set environment variable FS_SBATCH_ACCOUNT to accountname"
+    echo "       or specify with -sbatch-account accountname"
+    exit 1;
+  endif
   if($#SBjobname == 0) set SBjobname = $subjid
   mkdir -p $SUBJECTS_DIR/sbatch
   set dt = `date +%Y.%m.%H.%M`
   set SBlogFile  = $SUBJECTS_DIR/sbatch/sbatch.$SBjobname.$dt
   set cmd = ($0 $inputargs -no-sbatch)
   set sbatch = (sbatch --partition=$SBpartition --nodes=1 --time=2-0 \
-    --ntasks-per-node=1 --cpus-per-task=$OMP_NUM_THREADS)
+    --ntasks-per-node=1 --cpus-per-task=$OMP_NUM_THREADS \
+    --account=$FS_SBATCH_ACCOUNT )
   set cmd = ($sbatch --job-name=$SBjobname --output=$SBlogFile $cmd)
   echo $cmd
   $cmd
@@ -7273,6 +7279,11 @@ while( $#argv != 0 )
     case "-sbatch-jobname":
       if ( $#argv < 1) goto arg1err;
       set SBjobname = $argv[1]; shift;
+      breaksw
+
+    case "-sbatch-account":
+      if ( $#argv < 1) goto arg1err;
+      setenv FS_SBATCH_ACCOUNT $argv[1]; shift;
       breaksw
 
     case "-no-sbatch":
