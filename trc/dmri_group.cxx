@@ -97,7 +97,7 @@ int main(int argc, char **argv) {
   ifstream listfile;
   ofstream pathfile, pathrasfile;
   MATRIX *outv2r;
-  MRI *outref = 0;
+  MRI *outref = 0, *outvol = 0;
 
   nargs = handleVersionOption(argc, argv, "dmri_group");
   if (nargs && argc - nargs == 1) exit (0);
@@ -619,14 +619,21 @@ if (0) {
     npt++;
   }
 
+  npt--;
+
   pathfile.close();
   pathrasfile.close();
 
   // Write output files
+  outvol = MRIallocSequence(npt, 1, 1, MRI_FLOAT, subjlist.size());
+  if (outref)
+    MRIcopyHeader(outref, outvol);
+
   ntot = allmeasint[0].size();
 
   for (vector<string>::const_iterator imeas = measlist.begin();
                                       imeas < measlist.end(); imeas++) {
+    int jpt = 0;
     string outname = string(outBase) + "." + *imeas + ".txt";
     ofstream outfile;
 
@@ -640,8 +647,12 @@ if (0) {
 
     outfile << endl;
 
+    MRIclear(outvol);
+
     // Write interpolated values of this measure
     for (unsigned ipt = imeas - measlist.begin(); ipt < ntot; ipt += nmeas) {
+      int jsubj = 0;
+
       for (iallm = allmeasint.begin(); iallm < allmeasint.end(); iallm++) {
         vector<float>::const_iterator ival = iallm->begin() + ipt;
 
@@ -649,12 +660,20 @@ if (0) {
           outfile << "NaN ";
         else
           outfile << *ival << " ";
+
+        MRIsetVoxVal(outvol, jpt, 0, 0, jsubj, *ival);
+        jsubj++;
       }
 
       outfile << endl;
+      jpt++;
     }
 
     outfile.close();
+
+    outname = string(outBase) + "." + *imeas + ".nii.gz";
+    cout << "Writing group table to " << outname << endl;
+    MRIwrite(outvol, outname.c_str());
   }
 
   // Average measures over sections along the path
@@ -746,6 +765,7 @@ if (0) {
     }
   }
 
+  MRIfree(&outvol);
   if (outref) {
     MRIfree(&outref);
     MatrixFree(&outv2r);
@@ -824,7 +844,7 @@ static void print_usage(void)
   << "   --ref <file>:" << endl
   << "     Reference volume for output path" << endl
   << "   --out <base>:" << endl
-  << "     Base name of output text files" << endl
+  << "     Base name of output stats files" << endl
   << endl
   << "Optional arguments" << endl
   << "   --sec <num>:" << endl
@@ -887,6 +907,10 @@ static void dump_options(FILE *fp) {
 
   cout << "Base name of output files: " << outBase << endl;
   cout << "Text file with list of individual inputs: " << inListFile << endl;
+  if (outRefFile)
+    cout << "Reference volume for output path: " << outRefFile << endl;
+  if (nSection > 0)
+    cout << "Number of path sections: " << nSection << endl;
 
   return;
 }
