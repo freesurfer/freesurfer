@@ -1181,14 +1181,23 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
   }
 
   nRepeats = parser->GetNumberOfRepeats( "odf" );
-  for ( int n = 0; n < nRepeats; n++ )
+  if (nRepeats > 0 && !bHasVolume)
   {
-    parser->Found( "odf", &sa, n );
-    for ( int i = 0; i < sa.size(); i++ )
+    QString msg = "Cannot load ODF without loading a matching volume first";
+    ShowNonModalMessage("Warning", msg);
+    std::cerr << qPrintable(msg) << std::endl;
+  }
+  else
+  {
+    for ( int n = 0; n < nRepeats; n++ )
     {
-      QStringList script("loadodf");
-      script << sa[i];
-      this->AddScript( script );
+      parser->Found( "odf", &sa, n );
+      for ( int i = 0; i < sa.size(); i++ )
+      {
+        QStringList script("loadodf");
+        script << sa[i];
+        this->AddScript( script );
+      }
     }
   }
 
@@ -1604,7 +1613,7 @@ void MainWindow::OnIdle()
   ui->actionLoadFCD->setEnabled( !bBusy );
   ui->actionCloseFCD->setEnabled( !bBusy && GetActiveLayer( "FCD"));
 
-  ui->actionLoadODF->setEnabled( !bBusy );
+  ui->actionLoadODF->setEnabled( !bBusy && layerVolume );
   ui->actionCloseODF->setEnabled( !bBusy && GetActiveLayer( "ODF"));
 
   ui->actionShowCoordinateAnnotation->setChecked(ui->viewAxial->GetShowCoordinateAnnotation());
