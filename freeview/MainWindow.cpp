@@ -556,8 +556,6 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   m_widgetFloatInfoPanel->hide();
   m_widgetFloatInfoPanel->setWindowTitle("Info");
 
-  ui->actionLoadODF->setVisible(false);
-
 #ifdef Q_OS_MAC
   if (MacHelper::IsDarkMode())
   {
@@ -6600,7 +6598,6 @@ void MainWindow::OnIOFinished( Layer* layer, int jobtype )
     double worigin[3], wsize[3];
     odf->GetWorldOrigin( worigin );
     odf->GetWorldSize( wsize );
-    qDebug() << wsize[0] << wsize[1] << wsize[2];
     if (lc_surface->IsEmpty() && lc_mri->IsEmpty())
     {
       for ( int i = 0; i < 4; i++ )
@@ -9501,6 +9498,6 @@ void MainWindow::LoadODF(const QString &fn)
 {
   LayerODF* layer = new LayerODF(m_layerVolumeRef);
   QVariantMap map;
-  map["Filename"] = fn;
+  map["Filename"] = QFileInfo(fn).absoluteFilePath();
   m_threadIOWorker->LoadODF( layer, map );
 }

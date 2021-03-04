@@ -364,7 +364,7 @@ Q_SIGNALS:
   void GeodesicSegmentationProgress(double percentage);
 
 protected slots:
-  void UpdateDisplayMode();
+  virtual void UpdateDisplayMode();
   virtual void UpdateOpacity();
   void UpdateTextureSmoothing();
   void UpdateContour( int nSegIndex = -1 );
