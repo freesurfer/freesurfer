@@ -710,7 +710,7 @@ void MainWindow::LoadSettings()
   }
 
 #ifdef Q_OS_MAC
-//  this->SetUnifiedTitleAndToolBar(m_settings["MacUnifiedTitleBar"].toBool());
+  //  this->SetUnifiedTitleAndToolBar(m_settings["MacUnifiedTitleBar"].toBool());
   this->SetUseCommandControl(m_settings["MacUseCommand"].toBool());
 #endif
 }
@@ -1348,9 +1348,17 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
     }
   }
 
+  nRepeats = parser->GetNumberOfRepeats( "prefix" );
+  for ( int n = 0; n < nRepeats; n++ )
+  {
+    parser->Found( "prefix", &sa, n );
+    QStringList script("setnameprefix");
+    script << sa;
+    this->AddScript( script );
+  }
+
   if ( parser->Found("quit"))
     AddScript(QStringList("quit") );
-
 
   if (parser->Found("sync", &sa))
   {
@@ -2133,6 +2141,27 @@ void MainWindow::RunScript()
   else if (cmd == "exportlineprofile")
   {
     CommandExportLineProfileThickness(sa);
+  }
+  else if (cmd == "setnameprefix")
+  {
+    if (sa.size() > 2)
+    {
+      QList<Layer*> layers = GetLayers("MRI");
+      QString prefix = sa[1];
+      for (int j = 2; j < sa.size(); j++)
+      {
+        foreach (Layer* layer, layers)
+        {
+          if (layer->GetFileName() == QFileInfo(sa[j]).absoluteFilePath())
+          {
+            layer->SetName(prefix + "/" + layer->GetName());
+            layers.removeOne(layer);
+            sa.removeAt(j);
+            j--;
+          }
+        }
+      }
+    }
   }
   else
   {
@@ -9354,8 +9383,8 @@ void MainWindow::UpdateSyncCoord()
   QVariantMap map;
   if (file.open(QIODevice::ReadOnly))
   {
-     map = QJsonDocument::fromJson(file.readAll()).toVariant().toMap();
-     file.close();
+    map = QJsonDocument::fromJson(file.readAll()).toVariant().toMap();
+    file.close();
   }
 
   QVariantMap ras;
@@ -9384,8 +9413,8 @@ void MainWindow::UpdateSyncIds(bool bAdd)
   QVariantMap map;
   if (file.open(QIODevice::ReadOnly))
   {
-     map = QJsonDocument::fromJson(file.readAll()).toVariant().toMap();
-     file.close();
+    map = QJsonDocument::fromJson(file.readAll()).toVariant().toMap();
+    file.close();
   }
 
   QStringList list = map.value("instance_list").toStringList();
@@ -9411,8 +9440,8 @@ void MainWindow::OnTileSyncedWindows()
   QVariantMap map;
   if (file.open(QIODevice::ReadOnly))
   {
-     map = QJsonDocument::fromJson(file.readAll()).toVariant().toMap();
-     file.close();
+    map = QJsonDocument::fromJson(file.readAll()).toVariant().toMap();
+    file.close();
   }
 
   QStringList list = map.value("instance_list").toStringList();
