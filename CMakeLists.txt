@@ -1159,12 +1159,21 @@ if(CMAKE_BUILD_TYPE STREQUAL "coverage")
   if(FS_COVERAGE_STYLE STREQUAL "gcov" OR FS_COVERAGE_STYLE STREQUAL "all")
     add_custom_target(generate-gcov-coverage-report
                       COMMAND bash -c \" lcov --capture --directory ${CMAKE_BINARY_DIR} --output-file
-                              ${CMAKE_BINARY_DIR}/coverage.info && genhtml ${CMAKE_BINARY_DIR}/coverage.info
-                              --output-directory ${CMAKE_BINARY_DIR}/gcov-report \"
+                              ${CMAKE_BINARY_DIR}/coverage.info && lcov --remove ${CMAKE_BINARY_DIR}/coverage.info -o
+                              ${CMAKE_BINARY_DIR}/coverage.info '${CMAKE_SOURCE_DIR}/packages/*' '/usr/local/*'
+                              '/Applications/Xcode.app/*' '/Library/Developer/CommandLineTools/*' && genhtml
+                              ${CMAKE_BINARY_DIR}/coverage.info --output-directory ${CMAKE_BINARY_DIR}/gcov-report \"
                       WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
                       )
 
+    add_custom_target(upload-gcov-coverage-report
+                      COMMAND bash -c \" ${CMAKE_SOURCE_DIR}/repo_tools/codecov.sh -f ${CMAKE_BINARY_DIR}/coverage.info
+                              -t ${FS_CODECOV_TOKEN} \"
+                      WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+                      )
+
     add_dependencies(generate-gcov-coverage-report check-all)
+    add_dependencies(upload-gcov-coverage-report generate-gcov-coverage-report)
     add_dependencies(generate-coverage-reports generate-gcov-coverage-report)
 
     set_property(DIRECTORY ${CMAKE_BINARY_DIR} PROPERTY ADDITIONAL_CLEAN_FILES "coverage.info;gcov-report")
@@ -1182,7 +1191,11 @@ if(CMAKE_BUILD_TYPE STREQUAL "coverage")
                                 && ${CMAKE_CXX_COMPILER_PATH}/llvm-cov show ${CMAKE_BINARY_DIR}/utils/libutils.dylib
                                 -format html -instr-profile ${CMAKE_BINARY_DIR}/merged.profdata -o
                                 ${CMAKE_BINARY_DIR}/llvm-cov-report -show-line-counts-or-regions -Xdemangler c++filt
-                                --ignore-filename-regex="${CMAKE_SOURCE_DIR}/packages/*" \"
+                                -Xdemangler -n -show-instantiation-summary -show-instantiations
+                                --ignore-filename-regex="${CMAKE_SOURCE_DIR}/packages/*"
+                                --ignore-filename-regex="/usr/local/*"
+                                --ignore-filename-regex="/Applications/Xcode.app/*"
+                                --ignore-filename-regex="/Library/Developer/CommandLineTools/*" \"
                         WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
                         )
 
