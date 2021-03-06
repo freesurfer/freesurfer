@@ -33,7 +33,7 @@ foreach(filename ${files})
                         )
 
   add_test(${name} ${name})
-  set_property(TEST ${name} PROPERTY LABELS EXPERIMENTAL)
+  set_property(TEST ${name} PROPERTY LABELS UNIT)
 
   if(CMAKE_BUILD_TYPE STREQUAL "coverage")
     set_property(TARGET ${name}
