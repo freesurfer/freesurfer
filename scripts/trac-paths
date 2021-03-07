@@ -385,7 +385,7 @@ if (! $dolong) then
     endif
 
     if ($usemaskanat) then
-      set brainmask = $labdir/diff/aparc+aseg_mask.$reg.nii.gz
+      set brainmask = $labdir/diff/${segname}_mask.$reg.nii.gz
     else
       set brainmask = $labdir/diff/lowb_brain_mask.nii.gz
     endif
@@ -439,7 +439,7 @@ if (! $dolong) then
       if ($dosegprior) then
         set cmd = ($cmd --nprior $npriorlist)
         set cmd = ($cmd --lprior $lpriorlist)
-        set cmd = ($cmd --seg    $labdir/$xspace/aparc+aseg.nii.gz)
+        set cmd = ($cmd --seg    $labdir/$xspace/$segname.nii.gz)
       endif
       if ($dotangprior) then
         set cmd = ($cmd --tprior $tpriorlist)
@@ -673,8 +673,8 @@ else
     end
 
     if ($usemaskanat) then
-      set brainmask = aparc+aseg_mask.$reg
-      set basemask  = aparc+aseg_mask
+      set brainmask = ${segname}_mask.$reg
+      set basemask  = ${segname}_mask
     else
       set brainmask = lowb_brain_mask
       set basemask  = lowb_brain_mask.$reg
@@ -682,7 +682,7 @@ else
 
     set inlist = `printf "$dtroot/%s " $tplist`
     set seglist = `printf \
-      "$dtroot/%s/dlabel/$xspace/aparc+aseg.nii.gz " $tplist`
+      "$dtroot/%s/dlabel/$xspace/$segname.nii.gz " $tplist`
 
     @ irep = 0
 

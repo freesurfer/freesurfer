@@ -124,6 +124,7 @@ set intrarot = ()
 set interreg = ()
 set intercost = ()
 set intertrg = ()
+set segname = aparc+aseg
 set gmgrow = ()
 set usemaskanat = 1
 set thrbet = 0.3
@@ -508,8 +509,9 @@ if ($#baselist == 0) then	#--->>> A single time point for each subject
     echo "set intercost = ($intercost)"					>> $RCF
     echo "set intertrg = ($intertrg)"					>> $RCF
     echo "#"							 	>> $RCF
-    echo "# Options for anatomical masks"			 	>> $RCF
+    echo "# Options for anatomical segmentation"		 	>> $RCF
     echo "#"							 	>> $RCF
+    echo "set segname = ($segname)"					>> $RCF
     echo "set gmgrow = ($gmgrow)"					>> $RCF
     echo "set usemaskanat = ($usemaskanat)"				>> $RCF
     echo "#"							 	>> $RCF
@@ -560,7 +562,7 @@ if ($#baselist == 0) then	#--->>> A single time point for each subject
     else if ($dobedpost) then	# Bedpost ####################
       # Create symbolic link to brain mask with the name that bedpostx expects
       if ($usemaskanat) then
-        set bedmask = ../dlabel/diff/aparc+aseg_mask.$reg.nii.gz
+        set bedmask = ../dlabel/diff/${segname}_mask.$reg.nii.gz
       else
         set bedmask = ../dlabel/diff/lowb_brain_mask.nii.gz
       endif
@@ -957,8 +959,9 @@ else				#--->>> Multiple time points for each subject
       echo "set intercost = ($intercost)"				>> $RCF
       echo "set intertrg = ($intertrg)"					>> $RCF
       echo "#"							 	>> $RCF
-      echo "# Options for anatomical masks"			 	>> $RCF
+      echo "# Options for anatomical segmentation"		 	>> $RCF
       echo "#"							 	>> $RCF
+      echo "set segname = ($segname)"					>> $RCF
       echo "set gmgrow = ($gmgrow)"					>> $RCF
       echo "set usemaskanat = ($usemaskanat)"				>> $RCF
       echo "#"							 	>> $RCF
@@ -1023,7 +1026,7 @@ else				#--->>> Multiple time points for each subject
       while ($iproc <= $#proclist)
         # Create symbolic link to brain mask with the name that bedpostx expects
         if ($usemaskanat) then
-          set bedmask = ../dlabel/diff/aparc+aseg_mask.$reg.nii.gz
+          set bedmask = ../dlabel/diff/${segname}_mask.$reg.nii.gz
         else
           set bedmask = ../dlabel/diff/lowb_brain_mask.nii.gz
         endif
@@ -1154,11 +1157,11 @@ if ($dostats) then
             if (! $#baselist) then			# Cross-sectional
               set xfmdir = $subjdirs[$k]/dmri/xfms
               set labdir = $subjdirs[$k]/dlabel
-              set refvol = $labdir/diff/aparc+aseg_mask.$reg.nii.gz
+              set refvol = $labdir/diff/${segname}_mask.$reg.nii.gz
             else					# Longitudinal
               set xfmdir = $basedirs[$k]/dmri/xfms
               set labdir = $basedirs[$k]/dlabel
-              set refvol = $labdir/anatorig/aparc+aseg_mask.nii.gz
+              set refvol = $labdir/anatorig/${segname}_mask.nii.gz
             endif
 
             set inputs = ($pathdir $refvol)
