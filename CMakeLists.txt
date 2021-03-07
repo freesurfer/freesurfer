@@ -14,10 +14,17 @@ if(FS_BUILD_MATRIX)
     set(FS_LLVM_PREFIX "/Users/aboualiaa/Desktop/.temp/install")
     set(FS_MATRIX_CACHE "${CMAKE_SOURCE_DIR}/cmake/caches/clion_cache.cmake")
     set(CMAKE_YARD_PREFIX "/Users/aboualiaa/Desktop/.temp/scratch/cmake-build-yard")
+    execute_process(COMMAND "sw_vers" "-productVersion" OUTPUT_VARIABLE CURRENT_SYSTEM_VERSION)
+    set(CURRENT_SYSTEM_NAME "macOS")
+    string(STRIP ${CURRENT_SYSTEM_VERSION} CURRENT_SYSTEM_VERSION)
   else()
     set(FS_LLVM_PREFIX "/media/psf/Home/Desktop/.temp/install/ubuntu")
     set(FS_MATRIX_CACHE "${CMAKE_SOURCE_DIR}/cmake/caches/focal_cache.cmake")
     set(CMAKE_YARD_PREFIX "/media/psf/Home/Desktop/.temp/scratch/cmake-build-yard")
+    execute_process(COMMAND "lsb_release" "-is" OUTPUT_VARIABLE CURRENT_SYSTEM_NAME)
+    execute_process(COMMAND "lsb_release" "-rs" OUTPUT_VARIABLE CURRENT_SYSTEM_VERSION)
+    string(STRIP ${CURRENT_SYSTEM_NAME} CURRENT_SYSTEM_NAME)
+    string(STRIP ${CURRENT_SYSTEM_VERSION} CURRENT_SYSTEM_VERSION)
   endif()
 
   foreach(Z_COMPILER IN LISTS COMPILER_MATRIX)
@@ -110,7 +117,7 @@ if(FS_BUILD_MATRIX)
 
       add_custom_target(mkdir-${Z_COMPILER}-${TYPE}
                         COMMAND bash -c \" mkdir -p
-                                ${CMAKE_YARD_PREFIX}/freesurfer-${CMAKE_SYSTEM_NAME}-${CMAKE_SYSTEM_VERSION}-${FOLDER_NAME}-${Z_COMPILER}
+                                ${CMAKE_YARD_PREFIX}/freesurfer-${CURRENT_SYSTEM_NAME}-${CURRENT_SYSTEM_VERSION}-${FOLDER_NAME}-${Z_COMPILER}
                                 \"
                         )
 
@@ -118,13 +125,13 @@ if(FS_BUILD_MATRIX)
                         COMMAND bash -c \" ${CMAKE_COMMAND} -Wno-dev ${COMPILER_PROXY_OPTION}
                                 ${COMPILER_C_PROXY_OPTION} -DCMAKE_BUILD_TYPE=${TYPE} -C ${FS_MATRIX_CACHE} -G Ninja -S
                                 ${CMAKE_SOURCE_DIR} -B
-                                ${CMAKE_YARD_PREFIX}/freesurfer-${CMAKE_SYSTEM_NAME}-${CMAKE_SYSTEM_VERSION}-${FOLDER_NAME}-${Z_COMPILER}
+                                ${CMAKE_YARD_PREFIX}/freesurfer-${CURRENT_SYSTEM_NAME}-${CURRENT_SYSTEM_VERSION}-${FOLDER_NAME}-${Z_COMPILER}
                                 \"
                         )
 
       add_custom_target(ninja-${Z_COMPILER}-${TYPE}
                         COMMAND bash -c \" ninja -k 0 -l 10 -C
-                                ${CMAKE_YARD_PREFIX}/freesurfer-${CMAKE_SYSTEM_NAME}-${CMAKE_SYSTEM_VERSION}-${FOLDER_NAME}-${Z_COMPILER}/
+                                ${CMAKE_YARD_PREFIX}/freesurfer-${CURRENT_SYSTEM_NAME}-${CURRENT_SYSTEM_VERSION}-${FOLDER_NAME}-${Z_COMPILER}/
                                 \"
                         )
 
@@ -155,12 +162,12 @@ if(FS_BUILD_MATRIX)
 
       add_custom_target(ctest-${Z_COMPILER}-${TYPE}
                         COMMAND bash -c \" ${CMAKE_CTEST_COMMAND} -T Test -L Unit --progress --test-load 10 \"
-                        WORKING_DIRECTORY "${CMAKE_YARD_PREFIX}/freesurfer-${CMAKE_SYSTEM_NAME}-${CMAKE_SYSTEM_VERSION}-${FOLDER_NAME}-${Z_COMPILER}"
+                        WORKING_DIRECTORY "${CMAKE_YARD_PREFIX}/freesurfer-${CURRENT_SYSTEM_NAME}-${CURRENT_SYSTEM_VERSION}-${FOLDER_NAME}-${Z_COMPILER}"
                         )
 
       add_test(ctest-${Z_COMPILER}-${TYPE}
                COMMAND ${CMAKE_CTEST_COMMAND} -T Test -L Unit --progress --test-load 10
-               WORKING_DIRECTORY "${CMAKE_YARD_PREFIX}/freesurfer-${CMAKE_SYSTEM_NAME}-${CMAKE_SYSTEM_VERSION}-${FOLDER_NAME}-${Z_COMPILER}"
+               WORKING_DIRECTORY "${CMAKE_YARD_PREFIX}/freesurfer-${CURRENT_SYSTEM_NAME}-${CURRENT_SYSTEM_VERSION}-${FOLDER_NAME}-${Z_COMPILER}"
                )
 
       if(NOT TARGET check-${Z_COMPILER})
@@ -196,7 +203,7 @@ if(FS_BUILD_MATRIX)
 
       add_custom_target(freshstart-${Z_COMPILER}-${TYPE}
                         COMMAND bash -c \" rm -rf
-                                ${CMAKE_YARD_PREFIX}/freesurfer-${CMAKE_SYSTEM_NAME}-${CMAKE_SYSTEM_VERSION}-${TYPE}-${Z_COMPILER}
+                                ${CMAKE_YARD_PREFIX}/freesurfer-${CURRENT_SYSTEM_NAME}-${CURRENT_SYSTEM_VERSION}-${TYPE}-${Z_COMPILER}
                                 \"
                         )
 
@@ -218,7 +225,7 @@ if(FS_BUILD_MATRIX)
 
       add_custom_target(clean-${Z_COMPILER}-${TYPE}
                         COMMAND bash -c \" ninja -C
-                                ${CMAKE_YARD_PREFIX}/freesurfer-${CMAKE_SYSTEM_NAME}-${CMAKE_SYSTEM_VERSION}-${FOLDER_NAME}-${Z_COMPILER}
+                                ${CMAKE_YARD_PREFIX}/freesurfer-${CURRENT_SYSTEM_NAME}-${CURRENT_SYSTEM_VERSION}-${FOLDER_NAME}-${Z_COMPILER}
                                 clean || true \"
                         )
 

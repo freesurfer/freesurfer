@@ -70,6 +70,13 @@ set(FS_PACKAGES_DIR
     CACHE STRING ""
     )
 
+
+# TODO: implement
+set(FS_OSX_BUILD_UNIVERSAL_BINARIES
+    OFF
+    CACHE BOOL "sets CMAKE_OSX_ARCHITECTURES=arm64;x86_64"
+    )
+
 # Unfortunately, the python version used to run pybind c-libraries must be equivalent to
 # the version used to build the libraries. The easiest and least intrusive way of making freesurfer
 # python scripts run out-of-the-box (and to help guarantee reproducibility) requires
