@@ -61,8 +61,13 @@ void DialogLoadVolume::UpdateLUT()
 
 void DialogLoadVolume::OnOpen()
 {
+  QString fn = ui->comboBoxFilenames->currentText().trimmed();
+  if (fn == "current folder")
+    fn = QDir::currentPath();
+  else
+    fn =  QFileInfo(fn).absolutePath();
   QStringList filenames = QFileDialog::getOpenFileNames( this, "Select volume files",
-                                                         MainWindow::AutoSelectLastDir( m_strLastDir, "mri" ),
+                                                         fn, // MainWindow::AutoSelectLastDir( m_strLastDir, "mri" ),
                                                          "Volume files (*.mgz *.mgh *.nii *.nii.gz *.img *.mnc);;All files (*)");
   if ( !filenames.isEmpty() )
   {
@@ -96,6 +101,7 @@ void DialogLoadVolume::SetRecentFiles( const QStringList& filenames )
   {
     fns[i] = MyUtils::Win32PathProof(fns[i]);
   }
+  fns.insert(0, "current folder");
   ui->comboBoxFilenames->clear();
   ui->comboBoxFilenames->addItems( fns );
   if ( !filenames.isEmpty() )
@@ -184,7 +190,7 @@ QString DialogLoadVolume::GetLUT()
 
 void DialogLoadVolume::OnOK()
 {
-  if ( GetVolumeFileNames().isEmpty() )
+  if ( GetVolumeFileNames().isEmpty() || ui->comboBoxFilenames->currentText().trimmed() == "current folder")
   {
     QMessageBox::warning( this, "Error", "Please specify volume file to load.");
     return;
