@@ -54,7 +54,7 @@ mkdir -p $outdir
 
 set line1 = `head -n 1 $labellist[1]`;
 
-set tmpfile = /tmp/$$.label
+set tmpfile = `fs_temp_file --suffix .label`
 rm -f $tmpfile
 foreach labelfile ($labellist)
   cat $labelfile | tail -n +3  >> $tmpfile

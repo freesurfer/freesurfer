@@ -1024,7 +1024,8 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       FILE *fp;
       srand48(PDFtodSeed());
-      sprintf(tmpstr,"/tmp/tmp.mri_volcluster.%d.reg.dat",(int)round(drand48()*10000));
+      std::string tmpname = getTempFile(".dat");
+      sprintf(tmpstr, "%s", tmpname.c_str());
       regfile = strcpyalloc(tmpstr);
       fp = fopen(regfile,"w");
       fprintf(fp,"%s\n",pargv[0]);

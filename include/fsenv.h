@@ -33,7 +33,6 @@ typedef struct
   char *hostname;  // eg, icebox (same as nodename)
   char *sysname;   // eg, Linux
   char *machine;   // eg, i686
-  char *tmpdir;    // folder for temporary files
   COLOR_TABLE *ctab; // FREESURFER_HOME/FreeSurferColorLUT.txt
   int desired_bvec_space; // for DWI
 }

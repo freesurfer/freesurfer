@@ -246,11 +246,13 @@ if($#applyxfm == 0) then
   if($#ltamatfile) then
     rm -f $ltamatfile
     #mri_fslmat_to_lta $invol $refvol $fslmatfile $ltamatfile
+    set tmpfile = `fs_temp_file`
     set cmd = (tkregister2_cmdl --noedit --targ $refvol --mov $invol \
-        --reg /tmp/reg.$$ --fsl $fslmatfile --ltaout $ltamatfile);
+        --reg $tmpfile --fsl $fslmatfile --ltaout $ltamatfile);
     echo $cmd
     $cmd
     if($status) exit 1
+    rm -f $tmpfile
   endif
 
 endif

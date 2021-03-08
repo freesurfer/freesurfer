@@ -78,12 +78,6 @@ FSENV *FSENVgetenv(void)
   // Get time and date at the time this function was called
   fsenv->date = VERcurTimeStamp();
 
-  pc = getenv("FREESURFER_TMP_DIR");
-  if (pc != NULL)
-    fsenv->tmpdir = strcpyalloc(pc);
-  else
-    fsenv->tmpdir = strcpyalloc("/tmp");
-
   // for DWI when dicoms are read
   pc = getenv("FS_DESIRED_BVEC_SPACE");
   if (pc != NULL) {
@@ -112,7 +106,6 @@ int FSENVfree(FSENV **ppenv)
   free(env->hostname);
   free(env->sysname);
   free(env->machine);
-  free(env->tmpdir);
   CTABfree(&env->ctab);
   free(*ppenv);
   *ppenv = NULL;

@@ -61,7 +61,7 @@ set tSecStart = `date '+%s'`;
 
 #========================================================
 if($DoTal) then
-  set tmpdir = /tmp/tkregisterfv-$$
+  set tmpdir = `fs_temp_dir`
   mkdir -p $tmpdir
   set mni305 = $FREESURFER_HOME/average/mni305.cor.mgz
   set mdir = $SUBJECTS_DIR/$subject/mri
@@ -102,8 +102,9 @@ if(! $UseTkRegister) then
   ### FreeView ####----------------------------------------------
   if(! -e $reg) then
     # Create registration if needed
+    set tmpfile = `fs_temp_file --suffix .dat`
     set cmd = (tkregister2_cmdl --mov $movvol --targ $targ --regheader \
-      --reg /tmp/tmp.reg.$$.dat --ltaout $reg --regheader)
+      --reg $tmpfile --ltaout $reg --regheader)
     if($#subject) set cmd = ($cmd --s $subject)
     echo $cmd 
     $cmd 
@@ -112,7 +113,7 @@ if(! $UseTkRegister) then
       echo "ERROR: $cmd"
       exit 1;
     endif
-    rm /tmp/tmp.reg.$$.dat
+    rm $tmpfile
   endif
   set cmd = (freeview)
   if($ShowConfig)  set cmd = ($cmd -transform-volume)

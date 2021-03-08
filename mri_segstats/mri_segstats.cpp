@@ -455,8 +455,8 @@ int main(int argc, char **argv)
     mris->ct->idbase = segbase;
     if (mris->ct)
     {
-      sprintf(tmpstr,"/tmp/mri_segstats.tmp.%s.%s.%d.ctab",subject,hemi,
-              nint(randomNumber(0, 255)));
+      std::string tmpfile = getTempFile(".ctab");
+      sprintf(tmpstr, "%s", tmpfile.c_str());
       ctabfile = strcpyalloc(tmpstr);
       CTABwriteFileASCII(mris->ct,ctabfile);
     }

@@ -85,6 +85,10 @@ char *AppendString(char *src, char *app);
 
 bool stringEndsWith(const std::string& value, const std::string& ending);
 
+bool directoryExists(std::string const &directory);
+bool directoryIsWritable(std::string const &directory);
+std::string randomString(int length);
+std::string getTempFile(std::string const &suffix = "");
 std::string getEnvironVar(std::string const &key);
 
 int devIsinf(float value);

@@ -34,9 +34,7 @@ usage()
 clean_up()
 {
 
-  dir=
-
-  if [ $tmpdir_use ] ; then dir=$tmpdir_use ; else dir=$tmpdir/$tmpext ; fi
+  dir=$tmpdir_use
 
   if [ $no_clean ]
   then
@@ -177,13 +175,13 @@ check_size()
 
   if [ $avail -lt $files_sizes ]
   then
-    echo "$progname: not enough space in $tmpdir to run" >&2
+    echo "$progname: not enough space in $tmpdir_use to run" >&2
     exit_gracefully 1
   fi
 
   if [ $pct -gt 90 ]
   then
-    echo "WARNING: $files_sizes Kb needed, $avail Kb available in $tmpdir (you're cutting it close!)"
+    echo "WARNING: $files_sizes Kb needed, $avail Kb available in $tmpdir_use (you're cutting it close!)"
   fi
 
 } # end check_size()
@@ -230,9 +228,7 @@ no_clean=
 
 infile=
 outfile=
-
-tmpdir=/tmp
-tmpext=$progname.$$
+tmpdir=
 
 # ---------------------------------------------------------------------
 # begin execution
@@ -282,21 +278,13 @@ trap 'exit_gracefully 15' SIGTERM
 
 # ----- check the temporary diectory -----
 
-if [ ! -d $tmpdir ]
-then
-  echo "$progname: can't find directory $tmpdir" >&2
-  exit 1
+if [ ! -z "$tmpdir" ] ; then
+  tmpdir_use=`fs_temp_dir --base $tmpdir`
+else
+  tmpdir_use=`fs_temp_dir`
 fi
 
-mkdir $tmpdir/$tmpext
-if [ ! -d $tmpdir ]
-then
-  echo "$progname: error creating temporary directory in $tmpdir" >&2
-  exit 1
-fi
-
-tmpdir_use=$tmpdir/$tmpext
-transcript_file=$tmpdir/mmc-transcript.$$
+transcript_file=`fs_temp_file`
 
 # ----- check for mri_convert -----
 

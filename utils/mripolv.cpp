@@ -2994,11 +2994,6 @@ MRI *MRIcpolvSmooth(MRI *mri_orig, MRI *mri_src, MRI *mri_dst, int wsize, int lo
               100.0f * (float)nblack_to_white / (float)total_vox);
       fprintf(stderr, "              %8d skipped (%%%2.2f)\n", nskipped, 100.0f * (float)nskipped / (float)total_vox);
     }
-    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
-      char fname[100];
-      sprintf(fname, "/tmp/smooth%d.mnc", i + 1);
-      MRIwrite(mri_dst, fname);
-    }
     if (i < niter - 1) MRIcopy(mri_dst, mri_src);
   }
 

@@ -44,9 +44,8 @@ set targ = $argv[1]; shift
 set Vox2Vox = $argv[1]; shift
 set XFMOut = $argv[1]; shift
 
-set tmpdir = /tmp/calcxfm.$$
+set tmpdir = `fs_temp_dir`
 
-mkdir -p $tmpdir
 set St = $tmpdir/St.fsl
 mri_info --vox2ras --o $St $targ
 set Si = $tmpdir/Si.fsl

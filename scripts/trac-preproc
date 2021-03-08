@@ -2048,7 +2048,7 @@ if ($dopriors && ! $dobase) then
 
   foreach ntrain ($ntrainlist)
     # Use a subset of the training subjects
-    set slistfile = /tmp/subj$ntrain.$subj.$$.txt
+    set slistfile = `fs_temp_file --suffix .$ntrain.$subj.txt`
     echo "$trainsubjlist[1-$ntrain]" > $slistfile
 
     foreach xspace ($xspacelist)
@@ -2152,7 +2152,7 @@ if ($dopriors && $dobase) then
 
   foreach ntrain ($ntrainlist)
     # Use a subset of the training subjects
-    set slistfile = /tmp/subj$ntrain.$subj.$$.txt
+    set slistfile = `fs_temp_file --suffix .$ntrain.$subj.txt`
     echo "$trainsubjlist[1-$ntrain]" > $slistfile
 
     foreach xspace ($xspacelist)

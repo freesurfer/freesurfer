@@ -71,8 +71,7 @@ set outdir = `pwd`;
 popd > /dev/null
 
 if($#tmpdir == 0) then
-  if(-dw /scratch)   set tmpdir = /scratch/tmpdir.sratio.$$
-  if(! -dw /scratch) set tmpdir = $outdir/tmpdir.sratio.$$
+  set tmpdir = `fs_temp_dir --scratch`
 endif
 mkdir -p $tmpdir
 

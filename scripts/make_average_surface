@@ -137,7 +137,7 @@ $cmd  | tee -a $LF
 if($status) exit 1;
 
 # Create a file with the list of subjects (will not include xhemi)
-set subjlistfile = /tmp/subjlistfile.$$
+set subjlistfile = `fs_temp_file`
 rm -f $subjlistfile
 foreach s ($SUBJECTS)
   echo $s >> $subjlistfile

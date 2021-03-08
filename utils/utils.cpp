@@ -34,9 +34,12 @@
 #include <stdlib.h>
 #include <sys/param.h>
 #include <sys/resource.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <time.h> /* msvc (dng) */
 #include <unistd.h>
+#include <vector>
+#include <random>
 
 /* This should be in ctype.h, but the compiler complains */
 #ifndef Darwin
@@ -1898,4 +1901,78 @@ std::string getEnvironVar(std::string const &key)
 {
   char * val = getenv(key.c_str());
   return val == NULL ? std::string("") : std::string(val);
+}
+
+
+/*!
+  /brief Checks whether the directory exists.
+*/
+bool directoryExists(std::string const &directory) {
+  struct stat info;
+  if (stat(directory.c_str(), &info) != 0) {
+    return false;
+  } else if (S_ISDIR(info.st_mode)) {
+    return true;
+  }
+  return false;
+}
+
+
+/*!
+  /brief Checks whether the directory is writable.
+*/
+bool directoryIsWritable(std::string const &directory) {
+  if (!directoryExists(directory)) return false;
+  std::string tmpfile = directory + "/" + randomString(24);
+  FILE *fp = fopen(tmpfile.c_str(), "w");
+  if (fp == nullptr) return false;
+  fclose(fp);
+  unlink(tmpfile.c_str());
+  return true;
+}
+
+
+/*!
+  /brief Generates a random alpha-numeric string of a specific length.
+*/
+std::string randomString(int length)
+{
+  static auto& chrs = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  thread_local static std::mt19937 rg{std::random_device{}()};
+  thread_local static std::uniform_int_distribution<std::string::size_type> pick(0, sizeof(chrs) - 2);
+  std::string s;
+  s.reserve(length);
+  while(length--) s += chrs[pick(rg)];
+  return s;
+}
+
+
+/*!
+  /brief Generates a unique, temporary file path. Suffix is optional.
+*/
+std::string getTempFile(std::string const &suffix)
+{
+  // check if base temporary directory has been set in the env
+  std::string basedir = "";
+  std::vector<std::string> varnames = { "FS_TMPDIR", "TMPDIR", "TMP", "TEMP", "TEMPDIR" };
+  for (const std::string& varname : varnames) {
+    basedir = getEnvironVar(varname);
+    if ((!basedir.empty()) && (directoryIsWritable(basedir))) break;
+  }
+
+  // default to /tmp
+  if (basedir.empty()) basedir = "/tmp";
+  if (!directoryIsWritable(basedir)) fs::fatal() << "Can not write to temporary directory " << basedir;
+
+  // generate valid filename
+  std::string filename;
+  int num_attempts = 0;
+  while (true) {
+    filename = basedir + "/tmp." + randomString(12) + suffix;
+    if (!FileExists(filename.c_str())) break;
+    num_attempts++;
+    if (num_attempts > 500) fs::fatal() << "Can not generate temporary filepath in " << basedir;
+  }
+
+  return filename;
 }

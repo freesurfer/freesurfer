@@ -165,7 +165,7 @@ endif #DoAparcStats
 # ASEG Stats ----------------------------------------------------
 if($DoAsegStats) then
 foreach hemi ($hemilist other)
-  set segidlist = /tmp/segidlist.$$.dat
+  set segidlist = `fs_temp_file --suffix .dat`
   if($hemi == lh) then
     grep Left  $ASegLUT | grep -v ypo | grep -v \# | \
     grep -v Cerebral-White-Matter | grep -v Cerebral-Cortex |\

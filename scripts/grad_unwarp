@@ -88,7 +88,7 @@ date            >> $LF
 
 set StartTime = `date`;
 
-if($#MLF == 0) set MLF = /tmp/grad_unwarp_$$.m
+if($#MLF == 0) set MLF = `fs_temp_file --suffix grad_unwarp.m`
 rm -f $MLF
 echo "INFO: matlab file is $MLF"
 

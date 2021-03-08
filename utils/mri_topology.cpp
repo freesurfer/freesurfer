@@ -2273,7 +2273,7 @@ static void guessSegmentation(TC_PARMS *parms)
   if (!parms->gca) GCAfree(&gca);
   if (!parms->transform) free(transform);
 
-  MRIwrite(mri_seg, "/tmp/tmp");
+  // MRIwrite(mri_seg, "/tmp/tmp");
 }
 
 static void initImages(TC_PARMS *parms)

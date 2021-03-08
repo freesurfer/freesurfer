@@ -198,12 +198,6 @@ void ArgumentParser::parse(size_t ac, char** av)
   // name the app
   if (!argv.empty()) app_name = argv[0];
 
-  // make sure arguments were provided
-  if ((argv.size() <= 1) && (helptextsize > 0)) {
-    outputHelpXml(helptext, helptextsize);
-    exit(1);
-  }
-
   // first do a quick and dirty sweep of the options, making sure the minimum
   // amount of arguments have been provided
   for (StringVector::const_iterator in = argv.begin() + 1; in < argv.end(); ++in) {

@@ -144,8 +144,7 @@ if (-e $inbvecs) then
 endif
 
 if $docheck then
-  set tmpdir = /tmp/checkswap.$$
-  mkdir -p $tmpdir
+  set tmpdir = `fs_temp_dir`
 
   #
   # General check for images

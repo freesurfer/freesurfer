@@ -56,10 +56,9 @@ pushd $outdir > /dev/null
 set outdir = `pwd`;
 popd > /dev/null
 
-if($#tmpdir == 0) then
-  if(-dw /scratch)   set tmpdir = /scratch/tmpdir.defect2seg.$$
-  if(! -dw /scratch) set tmpdir = $outdir/tmpdir.defect2seg.$$
-endif
+# if($#tmpdir == 0) then
+#   set tmpdir = `fs_temp_dir --scratch --base $outdir`
+# endif
 #mkdir -p $tmpdir
 
 # Set up log file

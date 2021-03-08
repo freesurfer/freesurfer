@@ -54,9 +54,9 @@ set mni2mmreg = $FREESURFER_HOME/average/mni305.cor.subfov2.reg
 # Compute registration from the mni305 subject (fsaverage) to the 
 # target subject. This is just another way to express the 
 # talairach.xfm file.
-set mni305reg = /tmp/tmp.$$.mni305toAnat.dat
+set mni305reg = `fs_temp_file --suffix mni305toAnat.dat`
 set cmd = (tkregister2_cmdl --fstal --reg $mni305reg --s $subject \
-  --xfmout /tmp/tmp.$$.mni305toAnat.xfm --noedit)
+  --xfmout `fs_temp_file --suffix mni305toAnat.xfm` --noedit)
 echo $cmd
 $cmd
 if($status) exit 1;
