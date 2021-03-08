@@ -556,8 +556,6 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   m_widgetFloatInfoPanel->hide();
   m_widgetFloatInfoPanel->setWindowTitle("Info");
 
-  ui->actionLoadODF->setVisible(false);
-
 #ifdef Q_OS_MAC
   if (MacHelper::IsDarkMode())
   {
@@ -712,7 +710,7 @@ void MainWindow::LoadSettings()
   }
 
 #ifdef Q_OS_MAC
-//  this->SetUnifiedTitleAndToolBar(m_settings["MacUnifiedTitleBar"].toBool());
+  //  this->SetUnifiedTitleAndToolBar(m_settings["MacUnifiedTitleBar"].toBool());
   this->SetUseCommandControl(m_settings["MacUseCommand"].toBool());
 #endif
 }
@@ -1183,14 +1181,23 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
   }
 
   nRepeats = parser->GetNumberOfRepeats( "odf" );
-  for ( int n = 0; n < nRepeats; n++ )
+  if (nRepeats > 0 && !bHasVolume)
   {
-    parser->Found( "odf", &sa, n );
-    for ( int i = 0; i < sa.size(); i++ )
+    QString msg = "Cannot load ODF without loading a matching volume first";
+    ShowNonModalMessage("Warning", msg);
+    std::cerr << qPrintable(msg) << std::endl;
+  }
+  else
+  {
+    for ( int n = 0; n < nRepeats; n++ )
     {
-      QStringList script("loadodf");
-      script << sa[i];
-      this->AddScript( script );
+      parser->Found( "odf", &sa, n );
+      for ( int i = 0; i < sa.size(); i++ )
+      {
+        QStringList script("loadodf");
+        script << sa[i];
+        this->AddScript( script );
+      }
     }
   }
 
@@ -1341,9 +1348,17 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
     }
   }
 
+  nRepeats = parser->GetNumberOfRepeats( "prefix" );
+  for ( int n = 0; n < nRepeats; n++ )
+  {
+    parser->Found( "prefix", &sa, n );
+    QStringList script("setnameprefix");
+    script << sa;
+    this->AddScript( script );
+  }
+
   if ( parser->Found("quit"))
     AddScript(QStringList("quit") );
-
 
   if (parser->Found("sync", &sa))
   {
@@ -1606,7 +1621,7 @@ void MainWindow::OnIdle()
   ui->actionLoadFCD->setEnabled( !bBusy );
   ui->actionCloseFCD->setEnabled( !bBusy && GetActiveLayer( "FCD"));
 
-  ui->actionLoadODF->setEnabled( !bBusy );
+  ui->actionLoadODF->setEnabled( !bBusy && layerVolume );
   ui->actionCloseODF->setEnabled( !bBusy && GetActiveLayer( "ODF"));
 
   ui->actionShowCoordinateAnnotation->setChecked(ui->viewAxial->GetShowCoordinateAnnotation());
@@ -2126,6 +2141,27 @@ void MainWindow::RunScript()
   else if (cmd == "exportlineprofile")
   {
     CommandExportLineProfileThickness(sa);
+  }
+  else if (cmd == "setnameprefix")
+  {
+    if (sa.size() > 2)
+    {
+      QList<Layer*> layers = GetLayers("MRI");
+      QString prefix = sa[1];
+      for (int j = 2; j < sa.size(); j++)
+      {
+        foreach (Layer* layer, layers)
+        {
+          if (layer->GetFileName() == QFileInfo(sa[j]).absoluteFilePath())
+          {
+            layer->SetName(prefix + "/" + layer->GetName());
+            layers.removeOne(layer);
+            sa.removeAt(j);
+            j--;
+          }
+        }
+      }
+    }
   }
   else
   {
@@ -6600,7 +6636,6 @@ void MainWindow::OnIOFinished( Layer* layer, int jobtype )
     double worigin[3], wsize[3];
     odf->GetWorldOrigin( worigin );
     odf->GetWorldSize( wsize );
-    qDebug() << wsize[0] << wsize[1] << wsize[2];
     if (lc_surface->IsEmpty() && lc_mri->IsEmpty())
     {
       for ( int i = 0; i < 4; i++ )
@@ -9348,8 +9383,8 @@ void MainWindow::UpdateSyncCoord()
   QVariantMap map;
   if (file.open(QIODevice::ReadOnly))
   {
-     map = QJsonDocument::fromJson(file.readAll()).toVariant().toMap();
-     file.close();
+    map = QJsonDocument::fromJson(file.readAll()).toVariant().toMap();
+    file.close();
   }
 
   QVariantMap ras;
@@ -9378,8 +9413,8 @@ void MainWindow::UpdateSyncIds(bool bAdd)
   QVariantMap map;
   if (file.open(QIODevice::ReadOnly))
   {
-     map = QJsonDocument::fromJson(file.readAll()).toVariant().toMap();
-     file.close();
+    map = QJsonDocument::fromJson(file.readAll()).toVariant().toMap();
+    file.close();
   }
 
   QStringList list = map.value("instance_list").toStringList();
@@ -9405,8 +9440,8 @@ void MainWindow::OnTileSyncedWindows()
   QVariantMap map;
   if (file.open(QIODevice::ReadOnly))
   {
-     map = QJsonDocument::fromJson(file.readAll()).toVariant().toMap();
-     file.close();
+    map = QJsonDocument::fromJson(file.readAll()).toVariant().toMap();
+    file.close();
   }
 
   QStringList list = map.value("instance_list").toStringList();
@@ -9501,6 +9536,6 @@ void MainWindow::LoadODF(const QString &fn)
 {
   LayerODF* layer = new LayerODF(m_layerVolumeRef);
   QVariantMap map;
-  map["Filename"] = fn;
+  map["Filename"] = QFileInfo(fn).absoluteFilePath();
   m_threadIOWorker->LoadODF( layer, map );
 }

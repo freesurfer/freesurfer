@@ -4166,8 +4166,7 @@ if(($DoT2pial || $DoFLAIRpial) && ! $DoConf2Hires) then
   # then mask the T2/FLAIR 
   # note: post-normalized file remains for debug, with .norm in name
   # this creates ${t2flair}.mgz
-  set maskcmd = (mri_mask \
-      -transfer 255 -keep_mask_deletion_edits \
+  set maskcmd = (mri_mask -T 1 \
       $mdir/${t2flair}.norm.mgz \
       $mdir/brain.finalsurfs.mgz \
       $mdir/${t2flair}.mgz)

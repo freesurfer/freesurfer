@@ -6,6 +6,7 @@
 
 class LayerPropertyODF;
 class vtkActor;
+class vtkPolyData;
 
 class LayerODF : public LayerMRI
 {
@@ -28,20 +29,34 @@ public:
   void SetVisible( bool bVisible = true );
   bool IsVisible();
 
-  void SetMask(LayerMRI* mri);
+  LayerMRI* GetOdfMask()
+  {
+    return m_mask;
+  }
+
+  void SetOdfMask(LayerMRI* mri, bool bRefresh = true);
+  void GetOdfMaskThreshold(double* th);
+  void SetOdfMaskThreshold(double* th);
+
+signals:
+  void UpdateActorRequested(int n = -1);
+
+protected slots:
+  void UpdateActors(int n = -1);
+  void OnColorCodeChanged();
 
 protected:
-  void BuildSlice(int nPlane);
-  void UpdateActors();
+  void BuildSlice(int nPlane = -1);
 
   vtkSmartPointer<vtkActor> m_actor3D;
+  vtkSmartPointer<vtkPolyData> m_polydata[3];
   double m_dScalarRange[2];
 
   float   m_odfVector[181][3];
   int     m_odfMesh[720][3];
-  bool    m_bInvert[3];
 
   LayerMRI*  m_mask;
+  double  m_odfMaskThreshold[2];
 };
 
 #endif // LAYERODF_H

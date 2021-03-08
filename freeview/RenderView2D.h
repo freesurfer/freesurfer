@@ -142,6 +142,7 @@ protected slots:
   void OnDuplicateRegion();
   void OnInteractorError(const QString& msg);
   void OnCopyVoxelValue();
+  void OnCopyLabelVolume();
 
 protected:
   virtual void resizeEvent(QResizeEvent *event);

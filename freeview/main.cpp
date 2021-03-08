@@ -293,6 +293,7 @@ int main(int argc, char *argv[])
     CmdLineEntry( CMD_LINE_SWITCH, "noquit", "noquit", "", "Do not quit freeview after screenshot command." ),
     CmdLineEntry( CMD_LINE_SWITCH, "stdin", "stdin", "", "Listening stdin for freeview command sent by other programs." ),
     CmdLineEntry( CMD_LINE_SWITCH, "verbose", "verbose", "", "Print out a lot more information, such as vertex coordinate of each click, etc." ),
+    CmdLineEntry( CMD_LINE_OPTION, "prefix", "prefix", "<prefix> <filename>", "Add prefix to the volume names of the given filenames", 2, 1000 ),
     CmdLineEntry( CMD_LINE_SWITCH, "continue", "continue", "", "Continue as far as possible if an error occured" ),
     CmdLineEntry( CMD_LINE_NONE )
   };
