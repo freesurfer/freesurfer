@@ -915,6 +915,45 @@ int MRIasegContraLatLabel(int id)
   case 266: // Right-Eyeball
     id2 = 265; 
     break;
+
+    // These are limbic labels for Jean's FSM labeling
+  case 853: // Mid Ant Commissure, unlateralized
+    id2 = 853; 
+    break;
+  case 883: // Pituitary, unlateralized
+    id2 = 883; 
+    break;
+  case 865: // Left Basal forebrain 
+    id2 = 866; 
+    break;
+  case 866:  // Right Basal forebrain 
+    id2 = 865; 
+    break;
+  case 819: // Left-Hypothal
+    id2 = 820;
+    break;
+  case 820: // Right-Hypothal
+    id2 = 819;
+    break;
+  case 821: // Left-Fornix
+    id2 = 822;
+    break;
+  case 822: // Right-Fornix
+    id2 = 821;
+    break;
+  case 843: // Left-MammilliaryBody
+    id2 = 844;
+    break;
+  case 844: // Right-MammilliaryBody
+    id2 = 843;
+    break;
+  case 869: // Left-Septal
+    id2 = 870;
+    break;
+  case 870: // Right-Septal
+    id2 = 869;
+    break;
+
   // These are unlateralized
   case 72: // 5th vent
   case Optic_Chiasm:
