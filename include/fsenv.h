@@ -5,7 +5,7 @@
 /*
  * Original Author: Doug Greve
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -33,7 +33,6 @@ typedef struct
   char *hostname;  // eg, icebox (same as nodename)
   char *sysname;   // eg, Linux
   char *machine;   // eg, i686
-  char *tmpdir;    // folder for temporary files
   COLOR_TABLE *ctab; // FREESURFER_HOME/FreeSurferColorLUT.txt
   int desired_bvec_space; // for DWI
 }

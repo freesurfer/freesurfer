@@ -7,7 +7,7 @@
 #
 # Original Author: Anastasia Yendiki
 #
-# Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+# Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
 #
 # Terms and conditions for use, reproduction, distribution and contribution
 # are found in the 'FreeSurfer Software License Agreement' contained
@@ -187,8 +187,7 @@ popd > /dev/null
 echo "Actual FREESURFER_HOME $freesurfer_home_true"
 
 if ($onpbs) then
-  set pbslogdir = /tmp/trac-all.$$
-  mkdir -p $pbslogdir
+  set pbslogdir = `fs_temp_dir`
   if (! $#submitfile) set submitfile = $pbslogdir/submit.txt
 endif
 

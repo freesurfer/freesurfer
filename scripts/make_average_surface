@@ -9,7 +9,7 @@
 #
 # Original Author: Doug Greve
 #
-# Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+# Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
 #
 # Terms and conditions for use, reproduction, distribution and contribution
 # are found in the 'FreeSurfer Software License Agreement' contained
@@ -137,7 +137,7 @@ $cmd  | tee -a $LF
 if($status) exit 1;
 
 # Create a file with the list of subjects (will not include xhemi)
-set subjlistfile = /tmp/subjlistfile.$$
+set subjlistfile = `fs_temp_file`
 rm -f $subjlistfile
 foreach s ($SUBJECTS)
   echo $s >> $subjlistfile

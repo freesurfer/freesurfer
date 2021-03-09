@@ -8,7 +8,7 @@
  *    1. will process the options, as well as the input and output files the user enters
  *    2. will help automate the print_help command, which otherwise would not be centralized
  *
- * Copyright (C) 2002-2007,
+ * Copyright © 2021
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *

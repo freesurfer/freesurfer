@@ -7,7 +7,7 @@
 #
 # Original Author: Doug Greve
 #
-# Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+# Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
 #
 # Terms and conditions for use, reproduction, distribution and contribution
 # are found in the 'FreeSurfer Software License Agreement' contained
@@ -208,9 +208,11 @@ if($fslext == img) then
     set exf_ras_good = 0;
   endif
 else
-  mri_info --o /tmp/reg-feat2anat.rasgood.$$ \
+  set tmpfile = `fs_temp_file`
+  mri_info --o $tmpfile \
     --ras_good $FeatDir/example_func.$fslext >& /dev/null
-  set exf_ras_good = `cat /tmp/reg-feat2anat.rasgood.$$`;
+  set exf_ras_good = `cat $tmpfile`;
+  rm -f $tmpfile
 endif
 echo "example_func ras_good_flag $exf_ras_good"| tee -a $LF
 if($exf_ras_good) then

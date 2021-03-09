@@ -6,7 +6,7 @@
 # Script to run the entire reconstruction pipline.
 # Original Author: Doug Greve
 #
-# Copyright © 2011-2020 The General Hospital Corporation (Boston, MA) "MGH"
+# Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
 #
 
 umask 002;

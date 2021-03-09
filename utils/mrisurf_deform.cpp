@@ -6,7 +6,7 @@
 /*
  * surfaces Author: Bruce Fischl, extracted from mrisurf.c by Bevin Brett
  *
- * $ © copyright-2014,2018 The General Hospital Corporation (Boston, MA) "MGH"
+ * $ Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -4651,20 +4651,12 @@ MRIS *MRISsortVertices(MRIS *mris0)
   // the vertex/face array and properly calculate everything else in the
   // structure.  I felt this was the safest way to make sure everything
   // in the surface got recalculated properly.
-  char *tmpName = strdup("/tmp/mris_decimateXXXXXX");
-  int fd = mkstemp(tmpName);
-  if(fd == -1) {
-    printf("Error creating temporary file: %s\n",tmpName);
-    return(NULL);
-  }
-  char tmp_fpath[STRLEN];
-  FileNameAbsolute(tmpName, tmp_fpath);
-  MRISwrite(mris, tmp_fpath);
+  std::string tmpfile = getTempFile();
+  MRISwrite(mris, tmpfile.c_str());
   MRISfree(&mris);
-  mris = MRISread(tmp_fpath);
-  remove(tmp_fpath);
+  mris = MRISread(tmpfile.c_str());
+  remove(tmpfile.c_str());
 
-  
   return(mris);
 }
 
