@@ -87,9 +87,10 @@ bool stringEndsWith(const std::string& value, const std::string& ending);
 
 bool directoryExists(std::string const &directory);
 bool directoryIsWritable(std::string const &directory);
-std::string randomString(int length);
-std::string getTempFile(std::string const &suffix = "");
 std::string getEnvironVar(std::string const &key);
+std::string getBaseTempDir();
+std::string makeTempFile(std::string const &suffix = "");
+std::string makeTempDir();
 
 int devIsinf(float value);
 int devIsnan(float value);

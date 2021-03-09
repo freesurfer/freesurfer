@@ -2,6 +2,7 @@
 #include <string>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 #include "utils.h"
 #include "argparse.h"
@@ -23,10 +24,6 @@ int main(int argc, char **argv) {
     setenv("FS_TMPDIR", basedir.c_str(), 1);
   }
 
-  std::string tempdir = getTempFile();
-
-  umask(077);
-  mkdir(tempdir.c_str(), S_IRWXU);
-
+  std::string tempdir = makeTempDir();
   std::cout << tempdir << "\n";
 }

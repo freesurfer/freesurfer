@@ -1212,7 +1212,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--check-reg") ||
 	     !strcasecmp(option, "--check") ||
 	     !strcasecmp(option, "--junk")){
-      std::string tmpname = getTempFile(".dat");
+      std::string tmpname = makeTempFile(".dat");
       sprintf(tmpstr, "%s", tmpname.c_str());
       regfname = strcpyalloc(tmpstr);
       checkreg = 1;
@@ -1456,7 +1456,7 @@ static int parse_commandline(int argc, char **argv) {
       fslregfname = strcpyalloc(tmpstr);
       read_fslreg(fslregfname);
       fslregoutfname = fslregfname;
-      std::string tmpname = getTempFile();
+      std::string tmpname = makeTempFile();
       sprintf(tmpstr, "%s", tmpname.c_str());
       regfname = strcpyalloc(tmpstr);
       tagmov = 1;
@@ -1498,7 +1498,7 @@ static int parse_commandline(int argc, char **argv) {
 	mov_vol_id = strcpyalloc(tmpstr);
       }
       if(regfname == NULL){
-        std::string tmpname = getTempFile();
+        std::string tmpname = makeTempFile();
         sprintf(tmpstr, "%s", tmpname.c_str());
         regfname = strcpyalloc(tmpstr);
       }
@@ -4648,9 +4648,9 @@ void blur(float factor)  /* test hack */
   y0 = (int)yorig;
   y1 = (int)(yorig+ysize-1);
 
-  std::string tmp1_rgb = getTempFile(".rgb");
-  std::string tmp2_rgb = getTempFile(".rgb");
-  std::string tmp2_bin = getTempFile(".bin");
+  std::string tmp1_rgb = makeTempFile(".rgb");
+  std::string tmp2_rgb = makeTempFile(".rgb");
+  std::string tmp2_bin = makeTempFile(".bin");
 
   sprintf(command,"scrsave %s %d %d %d %d\n",tmp1_rgb,x0,x1,y0,y1);
   system(command);

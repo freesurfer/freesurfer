@@ -455,7 +455,7 @@ int main(int argc, char **argv)
     mris->ct->idbase = segbase;
     if (mris->ct)
     {
-      std::string tmpfile = getTempFile(".ctab");
+      std::string tmpfile = makeTempFile(".ctab");
       sprintf(tmpstr, "%s", tmpfile.c_str());
       ctabfile = strcpyalloc(tmpstr);
       CTABwriteFileASCII(mris->ct,ctabfile);
