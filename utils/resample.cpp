@@ -989,6 +989,12 @@ MRI *MRISapplyReg(MRI *SrcSurfVals, MRI_SURFACE **SurfReg, int nsurfs, int Rever
 	skip = 1;
 	break;
       }
+      // DNG added these lines on Dec 9, 2020 (without checking it in), 
+      // but now can't remember why, so commented them out
+      //if(dmin > 2.0){
+      //skip = 1;
+      //break;
+      //}
       tvtxN = svtx;
     }
     if(skip) continue;
