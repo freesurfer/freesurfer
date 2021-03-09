@@ -238,12 +238,15 @@ int main(int argc, char *argv[]) {
   }
   else if(SurfXYZFile){
     printf("Writing surface to %s\n",TrgValFile);
-    MRIScopyMRI(SurfReg[nsurfs-1],TrgVal,0,"x");
-    MRIScopyMRI(SurfReg[nsurfs-1],TrgVal,1,"y");
-    MRIScopyMRI(SurfReg[nsurfs-1],TrgVal,2,"z");
-    if (center_surface)
-      MRIScenter(SurfReg[nsurfs-1], SurfReg[nsurfs-1]);
-    MRISwrite(SurfReg[nsurfs-1], TrgValFile);
+    // If this is a patch, reload the target surf without the patch
+    MRIS *tmpsurf = SurfReg[nsurfs-1];
+    if(npatches > 0) tmpsurf = MRISread(SurfRegFile[nsurfs-1]);
+    MRIScopyMRI(tmpsurf,TrgVal,0,"x");
+    MRIScopyMRI(tmpsurf,TrgVal,1,"y");
+    MRIScopyMRI(tmpsurf,TrgVal,2,"z");
+    if(center_surface)  MRIScenter(tmpsurf, tmpsurf);
+    MRISwrite(tmpsurf, TrgValFile);
+    if(npatches > 0) MRISfree(&tmpsurf);
   }
   else{
     printf("Writing %s\n",TrgValFile);
