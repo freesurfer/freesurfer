@@ -15,7 +15,7 @@ public:
   LayerODF(LayerMRI* layerMRI, QObject* parent = NULL );
   virtual ~LayerODF();
 
-  bool Load(const QString& fn);
+  bool Load(const QString& fn, const QString& vertex_fn = "", const QString& face_fn = "");
 
   inline LayerPropertyODF* GetProperty()
   {
@@ -52,11 +52,15 @@ protected:
   vtkSmartPointer<vtkPolyData> m_polydata[3];
   double m_dScalarRange[2];
 
-  float   m_odfVector[181][3];
-  int     m_odfMesh[720][3];
+  float   m_odfVector[4096][3];
+  int     m_odfMesh[7200][3];
 
   LayerMRI*  m_mask;
   double  m_odfMaskThreshold[2];
+
+  bool    m_bDtkFormat;
+  int     m_nVectors;
+  int     m_nMesh;
 };
 
 #endif // LAYERODF_H

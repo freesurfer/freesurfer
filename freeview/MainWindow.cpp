@@ -1192,12 +1192,9 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
     for ( int n = 0; n < nRepeats; n++ )
     {
       parser->Found( "odf", &sa, n );
-      for ( int i = 0; i < sa.size(); i++ )
-      {
-        QStringList script("loadodf");
-        script << sa[i];
-        this->AddScript( script );
-      }
+      QStringList script("loadodf");
+      script << sa;
+      this->AddScript( script );
     }
   }
 
@@ -9529,13 +9526,12 @@ void MainWindow::CommandLoadODF(const QStringList& cmd )
   if (cmd.size() < 2)
     return;
 
-  LoadODF(cmd[1]);
-}
-
-void MainWindow::LoadODF(const QString &fn)
-{
   LayerODF* layer = new LayerODF(m_layerVolumeRef);
   QVariantMap map;
-  map["Filename"] = QFileInfo(fn).absoluteFilePath();
+  map["Filename"] = QFileInfo(cmd[1]).absoluteFilePath();
+  if (cmd.size() > 2)
+    map["vertex_filename"] = QFileInfo(cmd[2]).absoluteFilePath();
+  if (cmd.size() > 3)
+    map["face_filename"] = QFileInfo(cmd[3]).absoluteFilePath();
   m_threadIOWorker->LoadODF( layer, map );
 }
