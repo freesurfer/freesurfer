@@ -494,18 +494,21 @@ if($#segvol0) then
   endif
 endif
 
-foreach surf ($surflist0)
-  if(-e $surf) then
-    set surflist = ($surflist $surf)
-  else
-    set surfpath = $SUBJECTS_DIR/$subject/surf/$surf
-    if(! -e $surfpath) then
-      echo "ERROR: cannot find $surfpath"
-      exit 1;
+echo $DoSurfs
+if($DoSurfs) then
+  foreach surf ($surflist0)
+    if(-e $surf) then
+      set surflist = ($surflist $surf)
+    else
+      set surfpath = $SUBJECTS_DIR/$subject/surf/$surf
+      if(! -e $surfpath) then
+        echo "ERROR: cannot find $surfpath"
+        exit 1;
+      endif
+      set surflist = ($surflist $surfpath)
     endif
-    set surflist = ($surflist $surfpath)
-  endif
-end
+  end
+endif
 
 goto check_params_return;
 ############--------------##################
