@@ -36,7 +36,7 @@ extern int fsgdf_AllowSubjRep;
 
 #define FSGDF_NCLASSES_MAX  128
 #define FSGDF_NVARS_MAX     128
-#define FSGDF_NINPUTS_MAX  20000
+#define FSGDF_NINPUTS_MAX  40000
 
 #define FSGD_FACTOR_DISCRETE 1
 #define FSGD_FACTOR_CONTINUOUS 2
