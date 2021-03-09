@@ -72,7 +72,7 @@ if($?DEV == 0) set DEV = "";
 
 set TKR = tkregister2_cmdl
 if($usedev) set TKR = $DEV/$TKR/$TKR
-if(! $manual) set TKR = $TKR"_cmdl"
+if(! $manual) set TKR = $TKR
 
 set MM = mri_matrix_multiply
 if($usedev) set MM = $DEV/$MM/$MM
