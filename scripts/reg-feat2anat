@@ -7,7 +7,7 @@
 #
 # Original Author: Doug Greve
 #
-# Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+# Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
 #
 # Terms and conditions for use, reproduction, distribution and contribution
 # are found in the 'FreeSurfer Software License Agreement' contained
@@ -72,7 +72,7 @@ if($?DEV == 0) set DEV = "";
 
 set TKR = tkregister2_cmdl
 if($usedev) set TKR = $DEV/$TKR/$TKR
-if(! $manual) set TKR = $TKR"_cmdl"
+if(! $manual) set TKR = $TKR
 
 set MM = mri_matrix_multiply
 if($usedev) set MM = $DEV/$MM/$MM

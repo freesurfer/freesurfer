@@ -5,7 +5,7 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright (C) 2002-2007,
+ * Copyright © 2021
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *

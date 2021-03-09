@@ -53,6 +53,7 @@ set LesionMaskPattern = ()
 set GMM = ()
 set ShowFigs = 0
 set ShowMovie = 0;
+set IgnoreUnkown = 0;
 
 set inputargs = ($argv);
 set PrintHelp = 0;
@@ -121,6 +122,8 @@ if($?PBS_JOBID) then
   echo "pbsjob $PBS_JOBID"  >> $LF
 endif
 
+if($#GMM) cp $GMM $outdir/log/gmm.txt
+
 if($DoImport) then
   # Import the data
   set cmd = (fsr-import $inputargs --o $importdir)
@@ -164,6 +167,7 @@ if($#LesionMaskPattern) set cmd0 = ($cmd0 --lesion-mask-pattern $LesionMaskPatte
 if($#GMM) set cmd0 = ($cmd0 --gmm $GMM)
 if($ShowFigs) set cmd0 = ($cmd0 --showfigs)
 if($ShowMovie) set cmd0 = ($cmd0 --movie)
+if($IgnoreUnkown) set cmd0 = ($cmd0 --ignore-unknown)
 
 # specify input list
 foreach input ($inputlist)
@@ -574,6 +578,10 @@ while( $#argv != 0 )
       set LF = $argv[1]; shift;
       breaksw
 
+    case "--ignore-unknown":
+      set IgnoreUnkown = 1
+      breaksw   
+
     case "--showfigs":
       set ShowFigs = 1;
       breaksw   
@@ -785,6 +793,7 @@ usage_exit:
   echo " --options optionsfile : to pass to run_samseg"
   echo " --max-iters iters"
   echo " --dice seg.mgz"
+  echo " --ignore-unknown"
   echo ""
 
   if(! $PrintHelp) exit 1;

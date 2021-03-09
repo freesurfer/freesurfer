@@ -15,7 +15,7 @@ function [imvol_out, M_out] = unwarp_resample(imvol,M,imvol_out_size,M_out,Mdc,u
 %
 % Original Author: Elizabeth Haley
 %
-% Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+% Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
 %
 % Terms and conditions for use, reproduction, distribution and contribution
 % are found in the 'FreeSurfer Software License Agreement' contained
