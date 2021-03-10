@@ -1024,7 +1024,7 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       FILE *fp;
       srand48(PDFtodSeed());
-      std::string tmpname = getTempFile(".dat");
+      std::string tmpname = makeTempFile(".dat");
       sprintf(tmpstr, "%s", tmpname.c_str());
       regfile = strcpyalloc(tmpstr);
       fp = fopen(regfile,"w");

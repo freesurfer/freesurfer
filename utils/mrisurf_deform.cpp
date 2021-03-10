@@ -4651,7 +4651,7 @@ MRIS *MRISsortVertices(MRIS *mris0)
   // the vertex/face array and properly calculate everything else in the
   // structure.  I felt this was the safest way to make sure everything
   // in the surface got recalculated properly.
-  std::string tmpfile = getTempFile();
+  std::string tmpfile = makeTempFile();
   MRISwrite(mris, tmpfile.c_str());
   MRISfree(&mris);
   mris = MRISread(tmpfile.c_str());

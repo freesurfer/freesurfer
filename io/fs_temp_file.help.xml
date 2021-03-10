@@ -9,6 +9,9 @@
   <arguments>
   <optional>
 
+    <argument>-b, --base [dir]</argument>
+    <explanation>Manually specify base temporary directory.</explanation>
+
     <argument>-s, --suffix [str]</argument>
     <explanation>Optional file suffix.</explanation>
 

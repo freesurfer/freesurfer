@@ -407,7 +407,7 @@ MRI *sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
         strncmp(sdfi->TransferSyntaxUID, rllEncoded_UID, 19) == 0) {
       // setenv DCMDICTPATH /usr/pubsw/packages/dcmtk/current/share/dcmtk/dicom.dic???
       IsCompressed = 1;
-      tmpfile = getTempFile();
+      tmpfile = makeTempFile();
       if (strncmp(sdfi->TransferSyntaxUID, jpegCompressed_UID, 19) == 0) {
         printf("JPEG compressed, decompressing\n");
 	tmpfilestdout = tmpfile+".dcmdjpeg.out";
@@ -5843,7 +5843,7 @@ MRI *DICOMRead2(const char *dcmfile, int LoadVolume)
             strncmp(dcminfo[nthfile]->TransferSyntaxUID, rllEncoded_UID, 19) == 0) {
           // setenv DCMDICTPATH /usr/pubsw/packages/dcmtk/current/share/dcmtk/dicom.dic???
           IsCompressed = 1;
-          tmpfile = getTempFile();
+          tmpfile = makeTempFile();
           if (strncmp(dcminfo[nthfile]->TransferSyntaxUID, jpegCompressed_UID, 19) == 0) {
             printf("JPEG compressed, decompressing\n");
 	    tmpfilestdout = tmpfile + ".dcmdjpeg.out";

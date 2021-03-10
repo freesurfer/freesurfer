@@ -1923,34 +1923,21 @@ bool directoryExists(std::string const &directory) {
 */
 bool directoryIsWritable(std::string const &directory) {
   if (!directoryExists(directory)) return false;
-  std::string tmpfile = directory + "/" + randomString(24);
-  FILE *fp = fopen(tmpfile.c_str(), "w");
-  if (fp == nullptr) return false;
-  fclose(fp);
-  unlink(tmpfile.c_str());
+  std::string filename = directory + "/tmp.XXXXXX";
+  int fid = mkstemp(&filename[0]);
+  if (fid < 0) return false;
+  close(fid);
+  unlink(filename.c_str());
   return true;
 }
 
 
 /*!
-  /brief Generates a random alpha-numeric string of a specific length.
+  /brief Returns the base directory path for temporary files. Checks for environment
+  variables `FS_TMPDIR`, `TMPDIR`, `TMP`, `TEMP`, and `TEMPDIR`. If none of those are set,
+  the default is `/tmp`.
 */
-std::string randomString(int length)
-{
-  static auto& chrs = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-  thread_local static std::mt19937 rg{std::random_device{}()};
-  thread_local static std::uniform_int_distribution<std::string::size_type> pick(0, sizeof(chrs) - 2);
-  std::string s;
-  s.reserve(length);
-  while(length--) s += chrs[pick(rg)];
-  return s;
-}
-
-
-/*!
-  /brief Generates a unique, temporary file path. Suffix is optional.
-*/
-std::string getTempFile(std::string const &suffix)
+std::string getBaseTempDir()
 {
   // check if base temporary directory has been set in the env
   std::string basedir = "";
@@ -1964,15 +1951,32 @@ std::string getTempFile(std::string const &suffix)
   if (basedir.empty()) basedir = "/tmp";
   if (!directoryIsWritable(basedir)) fs::fatal() << "Can not write to temporary directory " << basedir;
 
-  // generate valid filename
-  std::string filename;
-  int num_attempts = 0;
-  while (true) {
-    filename = basedir + "/tmp." + randomString(12) + suffix;
-    if (!FileExists(filename.c_str())) break;
-    num_attempts++;
-    if (num_attempts > 500) fs::fatal() << "Can not generate temporary filepath in " << basedir;
-  }
+  return basedir;
+}
 
+
+/*!
+  /brief Generates a unique, temporary file. Suffix is optional.
+*/
+std::string makeTempFile(std::string const &suffix)
+{
+  std::string basedir = getBaseTempDir();
+  std::string filename = basedir + "/tmp.XXXXXX" + suffix;
+  int fid = mkstemps(&filename[0], suffix.length());
+  if (fid < 0) fs::fatal() << "Could not create temporary file in " << basedir;
+  close(fid);
   return filename;
+}
+
+
+/*!
+  /brief Generates a unique, temporary directory.
+*/
+std::string makeTempDir()
+{
+  std::string basedir = getBaseTempDir();
+  std::string dirname = basedir + "/tmp.XXXXXX";
+  char * res = mkdtemp(&dirname[0]);
+  if (res == nullptr) fs::fatal() << "Could not create temporary directory in " << basedir;
+  return dirname;
 }
