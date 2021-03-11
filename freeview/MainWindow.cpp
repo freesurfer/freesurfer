@@ -4649,6 +4649,7 @@ void MainWindow::CommandLoadControlPoints( const QStringList& cmd )
   else if (bCreateNew)
   {
     OnNewPointSet(true);
+    SetMode(RenderView::IM_Navigate);
     LayerPointSet* ps = (LayerPointSet*)GetActiveLayer("PointSet");
     ps->SetFileName(fn);
     if (args.contains("id"))
