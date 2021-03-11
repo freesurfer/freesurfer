@@ -160,6 +160,8 @@ LayerMRI::LayerMRI( LayerMRI* ref, QObject* parent ) : LayerVolumeBase( parent )
   mapper->SetInput( vtkSmartPointer<vtkPolyData>::New() );
 #endif
   m_actorContour->SetMapper( mapper );
+
+  m_actorCurrentContour = NULL;
   
   m_propVolume = vtkSmartPointer<vtkVolume>::New();
   
@@ -1174,10 +1176,11 @@ void LayerMRI::Append3DProps( vtkRenderer* renderer, bool* bSliceVisibility )
     else
     {
       renderer->AddViewProp( m_actorContour );
-      for ( int i = 0; i < m_surfaceRegions.size(); i++ )
-      {
-        m_surfaceRegions[i]->AppendProps( renderer );
-      }
+    }
+
+    for ( int i = 0; i < m_surfaceRegions.size(); i++ )
+    {
+      m_surfaceRegions[i]->AppendProps( renderer );
     }
   }
 }
@@ -1583,17 +1586,24 @@ bool LayerMRI::HasProp( vtkProp* prop )
     {
       return true;
     }
-    else
+    else if (GetProperty()->GetShowAsLabelContour())
     {
-      for ( int i = 0; i < m_surfaceRegions.size(); i++ )
+      QList<int> ids = m_labelActors.keys();
+      foreach (int id, ids)
       {
-        if ( m_surfaceRegions[i]->GetMeshActor() == prop )
-        {
+        if (m_labelActors[id] == prop)
           return true;
-        }
       }
-      return false;
     }
+
+    for ( int i = 0; i < m_surfaceRegions.size(); i++ )
+    {
+      if ( m_surfaceRegions[i]->GetMeshActor() == prop )
+      {
+        return true;
+      }
+    }
+    return false;
   }
   else
   {
@@ -3032,11 +3042,15 @@ bool LayerMRI::FloodFillByContour2D( double* ras, Contour2D* c2d )
   return true;
 }
 
-SurfaceRegion* LayerMRI::CreateNewSurfaceRegion( double* pt )
+SurfaceRegion* LayerMRI::CreateNewSurfaceRegion( double* pt, vtkProp* prop )
 {
+  m_actorCurrentContour = vtkActor::SafeDownCast(prop);
+  if (!m_actorCurrentContour)
+    return NULL;
+
   SurfaceRegion* r = new SurfaceRegion( this );
   connect( r, SIGNAL(ColorChanged(QColor)), this, SIGNAL(ActorUpdated()), Qt::UniqueConnection);
-  r->SetInput( vtkPolyData::SafeDownCast( m_actorContour->GetMapper()->GetInput() ) );
+  r->SetInput( vtkPolyData::SafeDownCast( m_actorCurrentContour->GetMapper()->GetInput() ) );
   r->AddPoint( pt );
   r->SetId( m_surfaceRegions.size() + 1 );
   m_surfaceRegions.push_back( r );
@@ -3067,6 +3081,7 @@ void LayerMRI::CloseSurfaceRegion()
   {
     if ( !m_currentSurfaceRegion->Close() )
     {
+      qDebug() << "failed to close region";
       DeleteCurrentSurfaceRegion();
     }
     emit ActorUpdated();
@@ -3182,13 +3197,16 @@ bool LayerMRI::LoadSurfaceRegions( const QString& fn )
   }
   
   bool bSuccess = true;
+  vtkActor* actor = m_actorCurrentContour;
+  if (!actor)
+    actor = m_actorContour;
   for ( int i = 0; i < nNum; i++ )
   {
     SurfaceRegion* r = new SurfaceRegion( this );
     connect( r, SIGNAL(ColorChanged(QColor)), this, SIGNAL(ActorUpdated()), Qt::UniqueConnection);
     if ( r->Load( fp ) )
     {
-      r->SetInput( vtkPolyData::SafeDownCast( m_actorContour->GetMapper()->GetInput() ) );
+      r->SetInput( vtkPolyData::SafeDownCast( actor->GetMapper()->GetInput() ) );
       m_surfaceRegions.push_back( r );
       r->Highlight( false );
     }

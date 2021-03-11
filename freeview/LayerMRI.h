@@ -197,7 +197,7 @@ public:
 
   bool SaveContourToFile(const QString& fn);
 
-  SurfaceRegion* CreateNewSurfaceRegion( double* pt );
+  SurfaceRegion* CreateNewSurfaceRegion( double* pt, vtkProp* prop );
 
   void AddSurfaceRegionLoopPoint( double* pt );
 
@@ -453,6 +453,7 @@ protected:
   vtkSmartPointer<vtkActor>   m_actorContour;
   vtkSmartPointer<vtkVolume>  m_propVolume;
   QMap<int, vtkActor*>            m_labelActors;
+  vtkActor*                   m_actorCurrentContour;
 
   int         m_nThreadID;
   vtkSmartPointer<vtkActor>       m_actorContourTemp;

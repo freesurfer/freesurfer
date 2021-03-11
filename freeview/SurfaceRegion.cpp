@@ -44,6 +44,7 @@
 #include "vtkCleanPolyData.h"
 #include "vtkAppendPolyData.h"
 #include <QFile>
+#include <QDebug>
 
 SurfaceRegion::SurfaceRegion( LayerMRI* owner ) :
   QObject( owner )

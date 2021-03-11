@@ -1046,8 +1046,7 @@ bool RenderView3D::InitializeSelectRegion( int posX, int posY )
   }
 
   lc_mri->SetActiveLayer( mri );
-  SurfaceRegion* reg = mri->CreateNewSurfaceRegion( pos );
-//  qDebug() << reg;
+  SurfaceRegion* reg = mri->CreateNewSurfaceRegion( pos, prop );
   if ( reg )
   {
     emit SurfaceRegionSelected(reg);
