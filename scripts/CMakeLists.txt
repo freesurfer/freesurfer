@@ -165,7 +165,6 @@ install_configured(
   mri_nu_correct.mni
   mri_reorient_LR.csh
   mris_preproc
-  mris_roiCircle
   mris_volsmooth
   ms_refine_subject
   orientLAS
