@@ -77,8 +77,8 @@ stages:
           - script: |
               set -e
               export PATH="/usr/local/opt/llvm/bin:/usr/local/opt/python/libexec/bin:$PATH"
-              ./scripts/travis.configure.${HOSTING_OS}.${HOSTING_COMPILER}.Build.sh $INSTRUMENTATION
-              ./scripts/travis.script.${HOSTING_OS}.Build.sh
+              ./ContinuousIntegration/scripts/travis.configure.${HOSTING_OS}.${HOSTING_COMPILER}.Build.sh $INSTRUMENTATION
+              ./ContinuousIntegration/scripts/travis.script.${HOSTING_OS}.Build.sh
               rm -rf ../GitAnnex
             displayName: 'Building'
             continueOnError: false
@@ -86,7 +86,7 @@ stages:
               set -e
               echo $AZURE_SOURCE_DIR
               export AZURE_SOURCE_DIR
-              ./scripts/travis.script.${HOSTING_OS}.Unit.sh $HOSTING_COMPILER
+              ./ContinuousIntegration/scripts/travis.script.${HOSTING_OS}.Unit.sh $HOSTING_COMPILER
             displayName: 'Unit Testing'
             continueOnError: true
           - task: PublishTestResults@2

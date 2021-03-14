@@ -147,7 +147,7 @@ stages:
             submodules: true
           - script: |
               set -e
-              ./scripts/install_deps.sh $HOSTING_OS $HOSTING_COMPILER
+              ./ContinuousIntegration/scripts/install_deps.sh $HOSTING_OS $HOSTING_COMPILER
               export TESTING_TYPE
               git remote add cache ../GitAnnex
               git annex copy --from cache
@@ -155,8 +155,8 @@ stages:
             continueOnError: false
           - script: |
               set -e
-              ./scripts/travis.configure.${HOSTING_OS}.${HOSTING_COMPILER}.Build.sh $INSTRUMENTATION
-              ./scripts/travis.script.${HOSTING_OS}.Build.sh
+              ./ContinuousIntegration/scripts/travis.configure.${HOSTING_OS}.${HOSTING_COMPILER}.Build.sh $INSTRUMENTATION
+              ./ContinuousIntegration/scripts/travis.script.${HOSTING_OS}.Build.sh
               rm -rf ../GitAnnex
             displayName: 'Building'
             continueOnError: false
@@ -164,7 +164,7 @@ stages:
               set -e
               echo $AZURE_SOURCE_DIR
               export AZURE_SOURCE_DIR
-              ./scripts/travis.script.${HOSTING_OS}.Unit.sh $HOSTING_COMPILER
+              ./ContinuousIntegration/scripts/travis.script.${HOSTING_OS}.Unit.sh $HOSTING_COMPILER
             displayName: 'Unit Testing'
             continueOnError: true
           - task: PublishTestResults@2
@@ -262,7 +262,7 @@ stages:
             submodules: true
           - script: |
               set -e
-              ./scripts/install_deps.sh $HOSTING_OS $HOSTING_COMPILER
+              ./ContinuousIntegration/scripts/install_deps.sh $HOSTING_OS $HOSTING_COMPILER
               export TESTING_TYPE
               git remote add cache ../GitAnnex
               git annex copy --from cache
@@ -270,8 +270,8 @@ stages:
             continueOnError: false
           - script: |
               set -e
-              ./scripts/travis.configure.${HOSTING_OS}.${HOSTING_COMPILER}.Build.sh $INSTRUMENTATION
-              ./scripts/travis.script.${HOSTING_OS}.Build.sh
+              ./ContinuousIntegration/scripts/travis.configure.${HOSTING_OS}.${HOSTING_COMPILER}.Build.sh $INSTRUMENTATION
+              ./ContinuousIntegration/scripts/travis.script.${HOSTING_OS}.Build.sh
               rm -rf ../GitAnnex
             displayName: 'Building'
             continueOnError: false
@@ -279,7 +279,7 @@ stages:
               set -e
               echo $AZURE_SOURCE_DIR
               export AZURE_SOURCE_DIR
-              ./scripts/travis.script.${HOSTING_OS}.Unit.sh $HOSTING_COMPILER
+              ./ContinuousIntegration/scripts/travis.script.${HOSTING_OS}.Unit.sh $HOSTING_COMPILER
             displayName: 'Unit Testing'
             continueOnError: true
           - task: PublishTestResults@2

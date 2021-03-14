@@ -12,7 +12,7 @@ stages:
         pool:
           vmImage: 'ubuntu-latest'
         steps:
-          - bash: ./scripts/cache.git.annex.sh
+          - bash: ./ContinuousIntegration/scripts/cache.git.annex.sh
             env:
               CURRENT_WORK_DIR: $(Agent.BuildDirectory)
           - publish: $(Agent.BuildDirectory)/annex-cache
