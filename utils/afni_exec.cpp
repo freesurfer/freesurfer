@@ -89,7 +89,6 @@ void AFclean(AF *pAF) {
 
 void printAFNIHeader(AF &pAF) {
   std::vector<std::string> types = {"byte", "short", "float", "complex"};
-  //char types[][8] = {"byte", "short", "float", "complex"};
 
   int i = 0;
   fmt::print(
@@ -306,8 +305,8 @@ static auto get_afni_string(FILE *fp, int count, char *name) -> char * {
 auto readAFNIHeader(FILE *fp, AF *pAF) -> int {
   char   line[STRLEN];
   char   line2[STRLEN];
-  int    i;
-  int    j;
+  int    i = 0;
+  int    j = 0;
   char   type[STRLEN];
   char   name[STRLEN];
   int    count  = 0;
@@ -320,8 +319,8 @@ auto readAFNIHeader(FILE *fp, AF *pAF) -> int {
 
   fseek(fp, 0, SEEK_SET);
 
-  // AFNI header attribute spec http://afni.nimh.nih.gov/afni/docREADME/README.attributes
-  while (1) // !feof(fp))
+  // AFNI header attribute spec https://github.com/afni/afni/blob/master/doc/README/README.attributes
+  while (true) // !feof(fp))
   {
     if ((fgets(line, STRLEN, fp) == nullptr) && (ferror(fp) != 0)) {
       ErrorPrintf(ERROR_BADFILE, "failed reading file");
@@ -643,17 +642,17 @@ auto findMinMaxFloat(float *pF, size_t count, float *fMin, float *fMax) -> int {
 auto afniRead(const char *fname, int read_volume) -> MRI * {
   FILE *         fp = nullptr;
   char           header_fname[STRLEN];
-  char *         c = nullptr;
-  MRI *          mri;
-  MRI *          header;
+  char *         c                = nullptr;
+  MRI *          mri              = nullptr;
+  MRI *          header           = nullptr;
   int            big_endian_flag  = 0;
   long           brik_file_length = 0;
   long           nvoxels          = 0;
   int            bytes_per_voxel  = 0;
-  int            i;
-  int            j;
-  int            k;
-  int            swap_flag = 0;
+  int            i                = 0;
+  int            j                = 0;
+  int            k                = 0;
+  int            swap_flag        = 0;
   AF             af;
   float          scaling = 1.;
   void *         pmem    = nullptr;
@@ -661,10 +660,10 @@ auto afniRead(const char *fname, int read_volume) -> MRI * {
   short *        ps      = nullptr;
   unsigned char *pc      = nullptr;
 
-  float det = NAN;
-  float xfov;
-  float yfov;
-  float zfov;
+  float det         = NAN;
+  float xfov        = NAN;
+  float yfov        = NAN;
+  float zfov        = NAN;
   float fMin        = 0.;
   float fMax        = 0.;
   float flMin       = 0.;
@@ -916,7 +915,7 @@ auto afniRead(const char *fname, int read_volume) -> MRI * {
       initialized = 0;
       for (k = 0; k < mri->depth; k++) {
         for (j = 0; j < mri->height; j++) {
-          if (af.brick_float_facs[frame] != 0.0f) {
+          if (af.brick_float_facs[frame] != 0.0F) {
             scaling = af.brick_float_facs[frame];
           } else {
             scaling = 1.;
@@ -1044,17 +1043,17 @@ auto afniRead(const char *fname, int read_volume) -> MRI * {
 auto afniWrite(MRI *mri, const char *fname) -> int {
   char  header_fname[STRLEN];
   FILE *fp = nullptr;
-  int   i;
-  int   j;
-  int   k;
+  int   i  = 0;
+  int   j  = 0;
+  int   k  = 0;
   int   orient_specific[3];
   int   bytes_per_voxel = 0;
-  float max;
-  float min;
-  int   dest_type = 0;
-  short s         = 0;
-  float f         = NAN;
-  char *c         = nullptr;
+  float max             = NAN;
+  float min             = NAN;
+  int   dest_type       = 0;
+  short s               = 0;
+  float f               = NAN;
+  char *c               = nullptr;
 
   errno = 0;
   // TODO(aboualiaa): implement then remove this error
