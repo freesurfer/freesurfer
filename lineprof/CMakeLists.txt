@@ -4,7 +4,7 @@ if(ITK_FOUND
    AND VTK_FOUND
    AND PETSC_FOUND
    )
-  find_package(MPI)
+  find_package(MPI REQUIRED)
   include_directories(SYSTEM ${ITK_INCLUDE_DIRS} ${VTK_INCLUDE_DIRS} ${PETSC_INCLUDE_DIR})
 
   # temporary macro to deal with BoundingBoxType
@@ -14,6 +14,7 @@ if(ITK_FOUND
   set(SOURCES Tracer.cpp Preprocessor.cpp PetscSolver.cpp LineProf.cpp)
 
   add_library(lineprof STATIC ${SOURCES})
+  target_link_libraries(lineprof ${MPI_LIBRARIES})
 
   if(APPLE)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -framework Accelerate")

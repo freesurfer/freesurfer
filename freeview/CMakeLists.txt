@@ -1,6 +1,6 @@
 project(freeview)
 
-if(BUILD_GUIS
+if(FS_BUILD_GUIS
    AND VTK_FOUND
    AND PETSC_FOUND
    AND TARGET vtkutils

@@ -122,7 +122,7 @@ function(mac_deploy_qt)
   # run the qt deployment script
   install(CODE "
     message(STATUS \"Deploying ${APP_BUNDLE}\")
-    execute_process(COMMAND bash -c \"${CMAKE_SOURCE_DIR}/qt/mac_deploy ${Qt5_INSTALL_DIR} ${CMAKE_INSTALL_PREFIX}/${APP_BUNDLE}\" RESULT_VARIABLE retcode)
+    execute_process(COMMAND bash -c \"${CMAKE_SOURCE_DIR}/qt/mac_deploy ${Qt5_INSTALL_DIR} ${CMAKE_INSTALL_PREFIX}/${APP_BUNDLE} ${CMAKE_INSTALL_PREFIX} \" RESULT_VARIABLE retcode)
     if(NOT \${retcode} STREQUAL 0)
       message(FATAL_ERROR \"Could not deploy ${APP_TARGET}\")
     endif()"
@@ -154,9 +154,9 @@ function(install_append_help SCRIPT HELPTEXT DESTINATION)
     message(STATUS \"Appending helptext: ${CMAKE_INSTALL_PREFIX}/${DESTINATION}/${SCRIPT}\")
     execute_process(
       COMMAND bash -c \"
-        ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR}/utils --target fsPrintHelp &&
+        ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target fsPrintHelp &&
         ${CMAKE_BINARY_DIR}/utils/fsPrintHelp ${CMAKE_CURRENT_SOURCE_DIR}/${HELPTEXT} >> ${CMAKE_INSTALL_PREFIX}/${DESTINATION}/${SCRIPT}\"
-      OUTPUT_QUIET
+      #OUTPUT_QUIET
       RESULT_VARIABLE retcode
     )
     if(NOT \${retcode} STREQUAL 0)

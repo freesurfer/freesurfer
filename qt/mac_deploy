@@ -5,7 +5,7 @@ set -e
 # input checks
 if [ "$#" -ne "3" ]; then
   echo "error: mac_deploy requires 3 arguments"
-  echo "usage: mac_deploy <qt-directory> <bundle-directory>"
+  echo "usage: mac_deploy <qt-directory> <bundle-directory> <library-directory>"
   exit 1
 fi
 
@@ -39,7 +39,7 @@ fi
 binarypath="${bundle}/Contents/MacOS/${binary}"
 
 # run macdeployqt
-${qtdir}/bin/macdeployqt ${bundle} -always-overwrite -libpath=${install_prefix}/lib
+${qtdir}/bin/macdeployqt ${bundle} -always-overwrite -libpath="${install_prefix}/lib"
 
 # if the final binary references the Qt frameworks via rpath, we need to actually
 # add a relative rpath, since macdeployqt completely ignores this
