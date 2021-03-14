@@ -54,12 +54,6 @@ set min    = `date +%M`
 
 mkdir -p $outdir/log
 
-#if($#tmpdir == 0) then
-#  if(-dw /scratch)   set tmpdir = /scratch/tmpdir.fsr-coreg.$$
-#  if(! -dw /scratch) set tmpdir = $outdir/tmpdir.fsr-coreg.$$
-#endif
-#mkdir -p $tmpdir
-
 # Set up log file
 if($#LF == 0) set LF = $outdir/log/fsr-coreg.Y$year.M$month.D$day.H$hour.M$min.log
 if($LF != /dev/null) rm -f $LF

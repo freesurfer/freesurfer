@@ -5,7 +5,7 @@
 /*
  * Original Author: Ruopeng Wang
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -376,7 +376,9 @@ int main(int argc, char *argv[]) {
           "':radius=value' Set radius of the control points.\n\n"
           "':name=display_name' Set the display name of the control points.\n\n"
           "':visible=visibility' Set the initial visibility of the control "
-          "points. Visibility can be '1' or '0' or 'true' or 'false'.\n",
+          "points. Visibility can be '1' or '0' or 'true' or 'false'.\n\n"
+          "':new' if cannot find the file, create a new one with the given "
+          "filename. \n",
           1, 1000),
       CmdLineEntry(CMD_LINE_OPTION, "p-labels", "p-labels", "<FILES>...",
                    "Load multiple p-label volume files.\n", 1, 1000),
@@ -407,8 +409,9 @@ int main(int argc, char *argv[]) {
                    "Load one or more tract files.\n\n", 1, 1000),
       CmdLineEntry(CMD_LINE_OPTION, "tc", "tract-cluster", "<DIRECTORY>",
                    "Load tract cluster data from given directory.\n", 1, 1),
-      CmdLineEntry(CMD_LINE_OPTION, "odf", "odf", "<FILE>...",
-                   "Load ODF data. \n", 1, 100),
+      CmdLineEntry(CMD_LINE_OPTION, "odf", "odf",
+                   "<FILE> [Vertex_file] [Face_file]", "Load ODF data. \n", 1,
+                   3),
       CmdLineEntry(CMD_LINE_OPTION, "recon", "recon", "<SUBJECT_NAME>...",
                    "Load a series of pre-defined volumes and surfaces of given "
                    "subject(s).\n",
@@ -549,6 +552,9 @@ int main(int argc, char *argv[]) {
       CmdLineEntry(CMD_LINE_SWITCH, "verbose", "verbose", "",
                    "Print out a lot more information, such as vertex "
                    "coordinate of each click, etc."),
+      CmdLineEntry(CMD_LINE_OPTION, "prefix", "prefix", "<prefix> <filename>",
+                   "Add prefix to the volume names of the given filenames", 2,
+                   1000),
       CmdLineEntry(CMD_LINE_SWITCH, "continue", "continue", "",
                    "Continue as far as possible if an error occured"),
       CmdLineEntry(CMD_LINE_NONE)};

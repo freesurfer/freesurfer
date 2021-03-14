@@ -8,7 +8,7 @@
 #
 # Original Author: Doug Greve
 #
-# Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+# Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
 #
 # Terms and conditions for use, reproduction, distribution and contribution
 # are found in the 'FreeSurfer Software License Agreement' contained
@@ -54,8 +54,7 @@ set sd = $SUBJECTS_DIR/$subject
 set outdir = $sd/xhemi/mri/transforms
 mkdir -p $outdir
 if($#tmpdir == 0) then
-  if(-dw /scratch)   set tmpdir = /scratch/tmpdir.xhemi-tal.$$
-  if(! -dw /scratch) set tmpdir = $outdir/tmpdir.xhemi-tal.$$
+  set tmpdir = `fs_temp_dir --scratch --base $outdir`
 endif
 mkdir -p $tmpdir
 

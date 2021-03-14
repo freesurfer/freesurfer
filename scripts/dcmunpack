@@ -154,7 +154,7 @@ if($#infofile == 0) then
   if($#TargetDir) then
     set infofile = $TargetDir/log/imagelist.dat
   else
-    set infofile = /tmp/dcmdir-all.$$
+    set infofile = `fs_temp_file`
   endif
 endif
 if($#SrcInfo) then
@@ -168,7 +168,7 @@ else
   rm -f $infofile
 endif
 
-set dumpfile = /tmp/dcmunpack.dump.$$
+set dumpfile = `fs_temp_file`
 rm -f $dumpfile 
 @ nth = 0;
 foreach f ($flist)
@@ -208,9 +208,10 @@ foreach f ($flist)
   # Special case for PixSpace. Found a file where pixel spacing had some funny
   # binary character in it, and it messed everything up
   set PixSpace  = (`cat $dumpfile | awk '{if($1 == "PixelSpacing") print $2}' | strings`)
-  echo $PixSpace > /tmp/ps.$$.dat
-  set PixSpace = (`cat /tmp/ps.$$.dat`)
-  rm /tmp/ps.$$.dat
+  set tmpdat = `fs_temp_file -suffix .dat`
+  echo $PixSpace > $tmpdat
+  set PixSpace = (`cat $tmpdat`)
+  rm $tmpdat
   if($#PixSpace == 0) set PixSpace = 'unknown';
   #------------------------------------------------------------------------#
   set PhaseEncDir  = (`cat $dumpfile | awk '{if($1 == "PhaseEncDir") print $2}'`)
@@ -266,7 +267,7 @@ if($#SeriesInfo == 0) then
   if($#TargetDir) then
     set SeriesInfo = $TargetDir/log/series-info.dat
   else
-    set SeriesInfo = /tmp/series-info-$$.dat
+    set SeriesInfo = `fs_temp_file --suffix .dat`
   endif
 endif
 rm -f $SeriesInfo
@@ -809,7 +810,7 @@ if($DoUnpack) then
     endif
     # Sort the list of run numbers in ascending order and get
     # the run-within-paraidgm number
-    set tmp = /tmp/dcmdir.$$.tmp
+    set tmp = `fs_temp_file`
     #set tmp = dcmdir.tmp
     rm -f $tmp
     @ nth = 0;

@@ -6,7 +6,7 @@
 #
 # Original Author: Douglas N. Greve
 #
-# Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+# Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
 #
 # Terms and conditions for use, reproduction, distribution and contribution
 # are found in the 'FreeSurfer Software License Agreement' contained
@@ -44,9 +44,8 @@ set targ = $argv[1]; shift
 set Vox2Vox = $argv[1]; shift
 set XFMOut = $argv[1]; shift
 
-set tmpdir = /tmp/calcxfm.$$
+set tmpdir = `fs_temp_dir`
 
-mkdir -p $tmpdir
 set St = $tmpdir/St.fsl
 mri_info --vox2ras --o $St $targ
 set Si = $tmpdir/Si.fsl

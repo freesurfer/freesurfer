@@ -26,7 +26,7 @@ function [x, a, b, c, ya, yb, yc] = gr1dmin_update(a, b, c, ya, yb, yc, x, yx)
 %
 % Original Author: Doug Greve
 %
-% Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+% Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
 %
 % Terms and conditions for use, reproduction, distribution and contribution
 % are found in the 'FreeSurfer Software License Agreement' contained

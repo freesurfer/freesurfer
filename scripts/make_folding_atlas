@@ -49,12 +49,6 @@ set day   = `date +%d`
 set hour   = `date +%H`
 set min    = `date +%M`
 
-#if($#tmpdir == 0) then
-#  if(-e /scratch)   set tmpdir = /scratch/tmpdir.make_folding_atlas.$$
-#  if(! -e /scratch) set tmpdir = $SUBJECTS_DIR/tmpdir.make_folding_atlas.$$
-#endif
-#mkdir -p $tmpdir
-
 # Set up log file
 if($#LF == 0) if($#LF == 0) set LF = `pwd`/make_folding_atlas.Y$year.M$month.D$day.H$hour.M$min.log
 if($LF != /dev/null) rm -f $LF

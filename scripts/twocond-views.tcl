@@ -5,7 +5,7 @@
 ## surfer script: twocond-views [disp two-condition data on 3D folded/unfolded]
 ##
 ##
-## Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+## Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
 ##
 ## Terms and conditions for use, reproduction, distribution and contribution
 ## are found in the 'FreeSurfer Software License Agreement' contained

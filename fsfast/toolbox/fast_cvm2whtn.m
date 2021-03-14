@@ -34,7 +34,7 @@ function [W, r, s, nunder ] = fast_cvm2whtn(cvm,nmax,pctrmagmin)
 %
 % Original Author: Doug Greve
 %
-% Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+% Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
 %
 % Terms and conditions for use, reproduction, distribution and contribution
 % are found in the 'FreeSurfer Software License Agreement' contained

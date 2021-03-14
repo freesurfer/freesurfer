@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-source "$(dirname $0)/test_main.sh"
+source "$(dirname $0)/../test.sh"
 
 # this is a bit of a needy test, since it requires specific data to be in FREESURFER_HOME
 # and it uses binaries and scripts scattered across the source (and build) tree
@@ -7,7 +7,7 @@ source "$(dirname $0)/test_main.sh"
 FSTEST_NO_DATA_RESET=1 && init_testdata
 
 # talairach avi calls a few different binaries
-for dir in mri_convert mri_info mri_matrix_multiply mri_robust_register lta_convert; do
+for dir in io mri_convert mri_info mri_matrix_multiply mri_robust_register lta_convert; do
   export PATH="$(find_path $FSTEST_CWD $dir):$PATH"
 done
 

@@ -18,7 +18,7 @@ install_configured(annot2std
                    cblumwmgyri
                    check_recons.sh
                    check_subject
-                   checkMCR.tcsh
+                   checkMCR.sh
                    clear_fs_env.csh
                    compute_interrater_variability.csh
                    compute_label_vals.csh
@@ -35,7 +35,6 @@ install_configured(annot2std
                    dicom-rename
                    dmrirc.example
                    dmrirc.long.example
-                   dsh
                    dt_recon
                    epidewarp.fsl
                    extract_talairach_avi_QA.awk
@@ -131,7 +130,6 @@ install_configured(annot2std
                    map_all_labels-lh
                    map_central_sulcus
                    map_to_base
-                   mcparams2reg
                    meanval
                    mergeseg
                    minc2seqinfo
@@ -166,7 +164,6 @@ install_configured(annot2std
                    mri_nu_correct.mni
                    mri_reorient_LR.csh
                    mris_preproc
-                   mris_roiCircle
                    mris_volsmooth
                    ms_refine_subject
                    orientLAS
@@ -295,7 +292,7 @@ install_append_help(bbregister bbregister.help.xml bin)
 
 install_symlinks(fs_spmreg.glnxa64 irepifitvol.glnx64 TYPE programs DESTINATION bin)
 
-if(NOT FS_MINIMAL_BUILD)
+if(NOT MINIMAL)
 
   # these tcl scripts should be excluded from a minimal distribution
   install(PROGRAMS allisons_surfaces.tcl
@@ -328,7 +325,7 @@ if(NOT FS_MINIMAL_BUILD)
           DESTINATION lib/tcl
           )
 
-  install(PROGRAMS process_exvivo_diff_data_bay3.tcsh
+  install(PROGRAMS process_exvivo_diff_data_bay3.sh
           DESTINATION bin
           COMPONENT nmr
           EXCLUDE_FROM_ALL

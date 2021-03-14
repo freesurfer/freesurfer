@@ -5,7 +5,7 @@
 /*
  * Original Author: Ruopeng Wang
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -149,6 +149,8 @@ LayerMRI::LayerMRI(LayerMRI *ref, QObject *parent)
   mapper->SetInput(vtkSmartPointer<vtkPolyData>::New());
 #endif
   m_actorContour->SetMapper(mapper);
+
+  m_actorCurrentContour = NULL;
 
   m_propVolume = vtkSmartPointer<vtkVolume>::New();
 
@@ -1084,9 +1086,10 @@ void LayerMRI::Append3DProps(vtkRenderer *renderer, bool *bSliceVisibility) {
         renderer->AddViewProp(m_labelActors[i]);
     } else {
       renderer->AddViewProp(m_actorContour);
-      for (int i = 0; i < m_surfaceRegions.size(); i++) {
-        m_surfaceRegions[i]->AppendProps(renderer);
-      }
+    }
+
+    for (int i = 0; i < m_surfaceRegions.size(); i++) {
+      m_surfaceRegions[i]->AppendProps(renderer);
     }
   }
 }
@@ -1443,14 +1446,20 @@ bool LayerMRI::HasProp(vtkProp *prop) {
   if (GetProperty()->GetShowAsContour()) {
     if (m_actorContour.GetPointer() == prop) {
       return true;
-    } else {
-      for (int i = 0; i < m_surfaceRegions.size(); i++) {
-        if (m_surfaceRegions[i]->GetMeshActor() == prop) {
+    } else if (GetProperty()->GetShowAsLabelContour()) {
+      QList<int> ids = m_labelActors.keys();
+      foreach (int id, ids) {
+        if (m_labelActors[id] == prop)
           return true;
-        }
       }
-      return false;
     }
+
+    for (int i = 0; i < m_surfaceRegions.size(); i++) {
+      if (m_surfaceRegions[i]->GetMeshActor() == prop) {
+        return true;
+      }
+    }
+    return false;
   } else {
     for (int i = 0; i < 3; i++) {
       if (m_sliceActor3D[i] == prop) {
@@ -2791,12 +2800,16 @@ bool LayerMRI::FloodFillByContour2D(double *ras, Contour2D *c2d) {
   return true;
 }
 
-SurfaceRegion *LayerMRI::CreateNewSurfaceRegion(double *pt) {
+SurfaceRegion *LayerMRI::CreateNewSurfaceRegion(double *pt, vtkProp *prop) {
+  m_actorCurrentContour = vtkActor::SafeDownCast(prop);
+  if (!m_actorCurrentContour)
+    return NULL;
+
   SurfaceRegion *r = new SurfaceRegion(this);
   connect(r, SIGNAL(ColorChanged(QColor)), this, SIGNAL(ActorUpdated()),
           Qt::UniqueConnection);
-  r->SetInput(
-      vtkPolyData::SafeDownCast(m_actorContour->GetMapper()->GetInput()));
+  r->SetInput(vtkPolyData::SafeDownCast(
+      m_actorCurrentContour->GetMapper()->GetInput()));
   r->AddPoint(pt);
   r->SetId(m_surfaceRegions.size() + 1);
   m_surfaceRegions.push_back(r);
@@ -2821,6 +2834,7 @@ void LayerMRI::AddSurfaceRegionLoopPoint(double *pt) {
 void LayerMRI::CloseSurfaceRegion() {
   if (m_currentSurfaceRegion) {
     if (!m_currentSurfaceRegion->Close()) {
+      qDebug() << "failed to close region";
       DeleteCurrentSurfaceRegion();
     }
     emit ActorUpdated();
@@ -2914,14 +2928,16 @@ bool LayerMRI::LoadSurfaceRegions(const QString &fn) {
     return false;
   }
 
-  bool bSuccess = true;
+  bool      bSuccess = true;
+  vtkActor *actor    = m_actorCurrentContour;
+  if (!actor)
+    actor = m_actorContour;
   for (int i = 0; i < nNum; i++) {
     SurfaceRegion *r = new SurfaceRegion(this);
     connect(r, SIGNAL(ColorChanged(QColor)), this, SIGNAL(ActorUpdated()),
             Qt::UniqueConnection);
     if (r->Load(fp)) {
-      r->SetInput(
-          vtkPolyData::SafeDownCast(m_actorContour->GetMapper()->GetInput()));
+      r->SetInput(vtkPolyData::SafeDownCast(actor->GetMapper()->GetInput()));
       m_surfaceRegions.push_back(r);
       r->Highlight(false);
     } else {
@@ -3752,8 +3768,8 @@ void LayerMRI::GetVolumeInfo(int *dim, double *voxel_size) {
   image->GetSpacing(voxel_size);
 }
 
-QVector<double> LayerMRI::GetVoxelList(int nVal) {
-  if (m_voxelLists.contains(nVal))
+QVector<double> LayerMRI::GetVoxelList(int nVal, bool bForce) {
+  if (!bForce && m_voxelLists.contains(nVal))
     return m_voxelLists[nVal];
 
   QVector<double> vlist;

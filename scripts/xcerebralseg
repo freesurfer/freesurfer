@@ -62,8 +62,7 @@ set min    = `date +%M`
 set sd = $SUBJECTS_DIR/$subject
 
 if($#tmpdir == 0) then
-  if(-dw /scratch)   set tmpdir = /scratch/tmpdir.xcerebralseg.$$
-  if(! -dw /scratch) set tmpdir = $sd/tmp/tmpdir.xcerebralseg.$$
+  set tmpdir = `fs_temp_dir --scratch`
 endif
 mkdir -p $tmpdir
 

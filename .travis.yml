@@ -1,0 +1,33 @@
+sudo: required
+
+dist: trusty
+language: cpp
+
+cache:
+  - apt
+  - ccache
+
+branches:
+  except:
+  - /^dev_nightly_.*/
+
+matrix:
+  include:
+    - os: linux
+      addons:
+        apt:
+          packages:
+            - gfortran
+            - libxi-dev
+            - liblapack-dev
+            - python3.5-dev
+            - tcsh
+            - curl
+            - git
+
+install:
+  - curl --connect-timeout 8 --retry 5 -O http://surfer.nmr.mgh.harvard.edu/pub/data/fspackages/prebuilt/centos7-packages.tar.gz
+  - tar -xzf centos7-packages.tar.gz
+
+script:
+  - cmake . -DFS_PACKAGES_DIR=packages -DBUILD_GUIS=OFF && make -j4

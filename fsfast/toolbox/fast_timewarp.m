@@ -17,7 +17,7 @@ function twarp = fast_timewarp(t,indpeak)
 % Original Author: Douglas Greve
 % Jan 29, 2019
 %
-% Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+% Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
 %
 % Terms and conditions for use, reproduction, distribution and contribution
 % are found in the 'FreeSurfer Software License Agreement' contained

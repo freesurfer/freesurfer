@@ -5,7 +5,7 @@
 /*
  * Original Author: Ruopeng Wang
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -577,7 +577,11 @@ void RenderView2D::TriggerContextMenu(QMouseEvent *event) {
   bool           bShowBar = this->GetShowScalarBar();
   MainWindow *   mainwnd  = MainWindow::GetMainWindow();
   QList<Layer *> layers   = mainwnd->GetLayers("MRI");
-  Region2D *     reg      = GetRegion(event->x(), event->y());
+  foreach (Layer *layer, layers) {
+    if (!layer->IsVisible())
+      layers.removeOne(layer);
+  }
+  Region2D *reg = GetRegion(event->x(), event->y());
   if (reg) {
     QAction *act = new QAction("Duplicate", this);
     act->setData(QVariant::fromValue((QObject *)reg));
@@ -612,6 +616,13 @@ void RenderView2D::TriggerContextMenu(QMouseEvent *event) {
       act->setProperty("voxel_value", val);
       connect(act, SIGNAL(triggered()), SLOT(OnCopyVoxelValue()));
       menu.addAction(act);
+      if (((LayerMRI *)layers[0])->GetProperty()->GetColorMap() ==
+          LayerPropertyMRI::LUT) {
+        act = new QAction("Copy Label Volume", this);
+        act->setData(QVariant::fromValue((QObject *)mri));
+        connect(act, SIGNAL(triggered()), SLOT(OnCopyLabelVolume()));
+        menu.addAction(act);
+      }
     } else {
       QMenu *menu2 = menu.addMenu("Copy Voxel Value");
       foreach (Layer *layer, layers) {
@@ -695,4 +706,19 @@ void RenderView2D::OnCopyVoxelValue() {
   if (sender())
     QApplication::clipboard()->setText(
         sender()->property("voxel_value").toString());
+}
+
+void RenderView2D::OnCopyLabelVolume() {
+  QAction *act = qobject_cast<QAction *>(sender());
+  if (act) {
+    LayerMRI *mri = qobject_cast<LayerMRI *>(act->data().value<QObject *>());
+    if (mri) {
+      double          val   = mri->GetVoxelValue(mri->GetSlicePosition());
+      QVector<double> vlist = mri->GetVoxelList(val, true);
+      double          vs[3];
+      mri->GetWorldVoxelSize(vs);
+      QApplication::clipboard()->setText(
+          QString::number(vlist.size() / 3 * vs[0] * vs[1] * vs[2]));
+    }
+  }
 }

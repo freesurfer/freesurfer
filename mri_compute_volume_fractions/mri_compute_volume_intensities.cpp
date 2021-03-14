@@ -5,8 +5,8 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA).
+ * Copyright © 2021
+ * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -19,11 +19,25 @@
  *
  */
 
+#include <ctype.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+#include "cma.h"
+#include "const.h"
 #include "diag.h"
 #include "error.h"
+#include "macros.h"
 #include "mri.h"
+#include "mri_conform.h"
+#include "mrimorph.h"
 #include "mrinorm.h"
+#include "mrisurf.h"
+#include "proto.h"
+#include "registerio.h"
 #include "timer.h"
+#include "utils.h"
 #include "version.h"
 
 int        main(int argc, char *argv[]);
@@ -84,34 +98,34 @@ int main(int argc, char *argv[]) {
     usage_exit(1);
   Progname = argv[0];
   ErrorInit(NULL, NULL, NULL);
-  DiagInit(nullptr, nullptr, nullptr);
+  DiagInit(NULL, NULL, NULL);
 
   start.reset();
 
   mri_src = MRIread(argv[1]);
-  if (mri_src == nullptr)
+  if (mri_src == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not load intensity volume from %s",
               Progname, argv[1]);
 
   stem = argv[2];
   sprintf(fname, "%s.cortex.mgz", stem);
   mri_vfrac_cortex = MRIread(fname);
-  if (mri_vfrac_cortex == nullptr)
+  if (mri_vfrac_cortex == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not read vfrac volume from %s", Progname,
               fname);
   sprintf(fname, "%s.subcort_gm.mgz", stem);
   mri_vfrac_subcort = MRIread(fname);
-  if (mri_vfrac_subcort == nullptr)
+  if (mri_vfrac_subcort == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not read vfrac volume from %s", Progname,
               fname);
   sprintf(fname, "%s.csf.mgz", stem);
   mri_vfrac_csf = MRIread(fname);
-  if (mri_vfrac_csf == nullptr)
+  if (mri_vfrac_csf == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not read vfrac volume from %s", Progname,
               fname);
   sprintf(fname, "%s.wm.mgz", stem);
   mri_vfrac_wm = MRIread(fname);
-  if (mri_vfrac_wm == nullptr)
+  if (mri_vfrac_wm == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not read vfrac volume from %s", Progname,
               fname);
   patch_csf_vol(mri_vfrac_wm, mri_vfrac_cortex, mri_vfrac_subcort,
@@ -119,7 +133,7 @@ int main(int argc, char *argv[]) {
 
   mri_unpv_intensities = compute_unpartial_volumed_intensities(
       mri_src, mri_vfrac_wm, mri_vfrac_cortex, mri_vfrac_subcort, mri_vfrac_csf,
-      whalf, sigma, nullptr, separate_frames);
+      whalf, sigma, NULL, separate_frames);
   printf("writing unpartial-volumed intensities to %s\n", argv[3]);
   MRIwrite(mri_unpv_intensities, argv[3]);
 
@@ -215,7 +229,7 @@ static MRI *compute_unpartial_volumed_intensities(
   v_s1   = VectorAlloc(1, MATRIX_REAL);
   v_I    = VectorAlloc(nvox, MATRIX_REAL);
 
-  if (mri_dst == nullptr) {
+  if (mri_dst == NULL) {
     if (separate_frames) {
       mri_dst = MRIallocSequence(mri_src->width, mri_src->height,
                                  mri_src->depth, MRI_FLOAT, 3);
@@ -332,8 +346,8 @@ static MRI *compute_unpartial_volumed_intensities(
           m_A = m_A1;
         }
 
-        m_A_pinv = MatrixPseudoInverse(m_A, nullptr);
-        if (m_A_pinv == nullptr)
+        m_A_pinv = MatrixPseudoInverse(m_A, NULL);
+        if (m_A_pinv == NULL)
           continue;
 
         MatrixMultiply(m_A_pinv, v_I, v_s);

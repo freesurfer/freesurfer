@@ -8,7 +8,7 @@
 /*
  * Original Author: Bruce Fischl, 4/9/97
  *
- * Copyright © 2011-2017 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained

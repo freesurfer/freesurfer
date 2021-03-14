@@ -5,7 +5,7 @@
 #
 #
 #
-# Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+# Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
 #
 # Terms and conditions for use, reproduction, distribution and contribution
 # are found in the 'FreeSurfer Software License Agreement' contained
@@ -71,7 +71,7 @@ foreach subj ($subjlist)
   endif
 end
 
-if($#MLF == 0) set MLF = /tmp/avg-surf-label-$$.m
+if($#MLF == 0) set MLF = `fs_temp_file --suffix surflabel.m`
 rm -f $MLF
 echo matlab file is $MLF
 

@@ -13,7 +13,7 @@ function r = mri_glmfit_pcc(glmdir)
 %
 % Original Author: Douglas Greve
 %
-% Copyright (C) 2002-2007,
+% Copyright © 2021
 % The General Hospital Corporation (Boston, MA). 
 % All rights reserved.
 %

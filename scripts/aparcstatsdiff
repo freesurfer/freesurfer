@@ -60,7 +60,7 @@ else
     set outfile=aparcstats-${stat}.txt
 endif
 
-set tmpout=(/tmp/aparcstats2table-$$.txt)
+set tmpout=`fs_temp_file --suffix .txt`
 set cmd=(aparcstats2table \
         --subjects ${subject1} ${subject2} \
         --hemi $hemi \
@@ -97,7 +97,7 @@ set total=$#subj1
 set idx=2
 set newrow=( "pctdiff" )
 set diffcount=0
-set stdoutfile=(/tmp/aparcstatsdiff-$$.txt)
+set stdoutfile=`fs_temp_file --suffix .txt`
 set totaldiff=0
 rm -f $stdoutfile >& /dev/null
 while ( "$idx" != "$total" )

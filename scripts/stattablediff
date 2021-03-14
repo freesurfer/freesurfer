@@ -81,7 +81,7 @@ if len(subs1) != len(subs2):
     fs.fatal('tables have differing number of subjects, must have same number of subjects in both tables') 
 
 # will be subject names in output table
-subjects = [str(x[0]) + ', ' + str(x[1]) for x in zip(subs1,subs2)]
+subjects = [str(x[0]) + ',' + str(x[1]) for x in zip(subs1,subs2)]
 
 # build matrices from common data
 mat1 = np.zeros((len(subjects), len(structures)))

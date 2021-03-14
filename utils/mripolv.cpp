@@ -5,7 +5,7 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -21,17 +21,23 @@
                     INCLUDE FILES
 -------------------------------------------------------*/
 
-#include <cstdio>
-#include <cstdlib>
 #include <math.h>
 #include <memory.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
+#include "box.h"
 #include "diag.h"
 #include "error.h"
+#include "filter.h"
 #include "macros.h"
+#include "minc.h"
 #include "mri.h"
+#include "mrimorph.h"
 #include "mrisegment.h"
 #include "proto.h"
+#include "region.h"
 
 /*-----------------------------------------------------
                     MACROS AND CONSTANTS
@@ -73,7 +79,7 @@ static float e2_z_v[NVERTICES];
 
 static int  compare_sort_array(const void *pc1, const void *pc2);
 static int  compare_sort_farray(const void *pc1, const void *pc2);
-static void init_basis_vectors();
+static void init_basis_vectors(void);
 
 /*-----------------------------------------------------
                     GLOBAL FUNCTIONS
@@ -98,7 +104,7 @@ MRI *MRIpolvMean(MRI *mri_src, MRI *mri_dst, MRI *mri_polv, int wsize) {
   whalf  = (wsize - 1) / 2;
 
   if (!mri_dst)
-    mri_dst = MRIclone(mri_src, nullptr);
+    mri_dst = MRIclone(mri_src, NULL);
 
   pxi = mri_src->xi;
   pyi = mri_src->yi;
@@ -309,7 +315,7 @@ MRI *MRIpolvMedian(MRI *mri_src, MRI *mri_dst, MRI *mri_polv, int wsize) {
 
   init_basis_vectors();
   if (!mri_dst)
-    mri_dst = MRIclone(mri_src, nullptr);
+    mri_dst = MRIclone(mri_src, NULL);
 
   pxi = mri_src->xi;
   pyi = mri_src->yi;
@@ -380,7 +386,7 @@ MRI *MRIpolvOrder(MRI *mri_src, MRI *mri_dst, MRI *mri_polv, int wsize,
 
   init_basis_vectors();
   if (!mri_dst)
-    mri_dst = MRIclone(mri_src, nullptr);
+    mri_dst = MRIclone(mri_src, NULL);
 
   pxi = mri_src->xi;
   pyi = mri_src->yi;
@@ -858,7 +864,7 @@ MRI *MRIplaneOfLeastVarianceNormal(MRI *mri_src, MRI *mri_dst, int wsize) {
   whalf  = (wsize - 1) / 2;
 
   if (!mri_dst)
-    mri_dst = MRIclone(mri_src, nullptr);
+    mri_dst = MRIclone(mri_src, NULL);
 
   depth -= whalf; /* don't do outer ring of pixels, so we don't have */
   width -= whalf; /* to deal with boundary conditions */
@@ -970,7 +976,7 @@ MRI *MRIcentralPlaneOfLeastVarianceNormal(MRI *mri_src, MRI *mri_dst,
       if (mri_tmp->width == mri_src->width &&
           mri_tmp->height == mri_src->height &&
           mri_tmp->depth == mri_src->depth) {
-        mri_dst = MRIcopy(mri_tmp, nullptr);
+        mri_dst = MRIcopy(mri_tmp, NULL);
         MRIfree(&mri_tmp);
         return (mri_dst);
       }
@@ -992,7 +998,7 @@ MRI *MRIcentralPlaneOfLeastVarianceNormal(MRI *mri_src, MRI *mri_dst,
   whalf  = (wsize - 1) / 2;
 
   if (!mri_dst)
-    mri_dst = MRIclone(mri_src, nullptr);
+    mri_dst = MRIclone(mri_src, NULL);
 
 #if 0
   depth -= whalf ;   /* don't do outer ring of pixels, so we don't have */
@@ -1129,7 +1135,7 @@ MRI *MRIcentralPlaneOfLeastVarianceNormalMarked(MRI *mri_src, MRI *mri_mask,
   whalf  = (wsize - 1) / 2;
 
   if (!mri_dst)
-    mri_dst = MRIclone(mri_src, nullptr);
+    mri_dst = MRIclone(mri_src, NULL);
 
   if (mri_src->roi.dx > 0) {
     x0 = MAX(0, mri_src->roi.x);
@@ -1273,7 +1279,7 @@ static int compare_sort_array(const void *pc1, const void *pc2) {
              product of that vector with the normal (ez) to obtain
              the 2nd in-plane basis vector.
 ------------------------------------------------------*/
-static void init_basis_vectors() {
+static void init_basis_vectors(void) {
   float vx, vy, vz, *px, *py, *pz, *pe1_x, *pe1_y, *pe1_z, *pe2_x, *pe2_y,
       *pe2_z, e3_x, e3_y, e3_z, e1_x, e1_y, e1_z, e2_x, e2_y, e2_z, len;
   int vertex;
@@ -1389,7 +1395,7 @@ MRI *MRIfindThinWMStrands(MRI *mri_src, MRI *mri_dst, int wsize) {
 
   init_basis_vectors();
   if (!mri_dst)
-    mri_dst = MRIclone(mri_src, nullptr);
+    mri_dst = MRIclone(mri_src, NULL);
 
   pxi = mri_src->xi;
   pyi = mri_src->yi;
@@ -1465,7 +1471,7 @@ MRI *MRIresegmentThinWMStrands(MRI *mri_src, MRI *mri_dst, int thickness) {
 
   init_basis_vectors();
   if (!mri_dst)
-    mri_dst = MRIclone(mri_src, nullptr);
+    mri_dst = MRIclone(mri_src, NULL);
 
   for (vertex = 0; vertex < NVERTICES; vertex++) {
     nx = ic_x_vertices[vertex]; /* normal vector */
@@ -1529,7 +1535,7 @@ MRI *MRIresegmentThinWMStrands(MRI *mri_src, MRI *mri_dst, int thickness) {
       float max_area = 0.0;
       int   max_i    = -1;
 
-      mri_label = nullptr;
+      mri_label = NULL;
       for (i = 0; i < mriseg->max_segments; i++) {
         if (mriseg->segments[i].area > max_area) {
           max_area = mriseg->segments[i].area;
@@ -1543,7 +1549,7 @@ MRI *MRIresegmentThinWMStrands(MRI *mri_src, MRI *mri_dst, int thickness) {
       }
       if (max_i >= 0) {
         if (!mri_label)
-          mri_label = MRIsegmentToImage(mri_src, nullptr, mriseg, i);
+          mri_label = MRIsegmentToImage(mri_src, NULL, mriseg, i);
         MRIwrite(mri_label, "max_label.mgh");
         MRIfree(&mri_label);
       }
@@ -1715,9 +1721,9 @@ MRI *MRIthickenThinWMStrands(MRI *mri_T1, MRI *mri_src, MRI *mri_dst,
 
   init_basis_vectors();
   if (!mri_dst)
-    mri_dst = MRIclone(mri_src, nullptr);
-  mri_thin = MRIclone(mri_src, nullptr);
-  mri_tmp  = MRIremoveIslands(mri_src, nullptr, 3, 27 - 3);
+    mri_dst = MRIclone(mri_src, NULL);
+  mri_thin = MRIclone(mri_src, NULL);
+  mri_tmp  = MRIremoveIslands(mri_src, NULL, 3, 27 - 3);
   MRIclose(mri_tmp, mri_tmp);
 
   MRIcopy(mri_src, mri_dst);
@@ -1775,15 +1781,14 @@ MRI *MRIthickenThinWMStrands(MRI *mri_T1, MRI *mri_src, MRI *mri_dst,
     }
   }
 
-  /* now thicken the strand, being careful not to connect with other  strands.
-   */
+  /* now thicken the strand, being careful not to connect with other  strands.  */
   total_filled = 0;
   mriseg       = MRIsegment(mri_thin, 1, 255);
 
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
     char         fname[200];
     MRI_SEGMENT *mseg;
-    MRI *        mri_tmp = nullptr;
+    MRI *        mri_tmp = NULL;
 
     for (nseg = 0; nseg < nsegments; nseg++) {
       i = MRIsegmentMax(mriseg); /* find largest remaining segment */
@@ -1803,7 +1808,7 @@ MRI *MRIthickenThinWMStrands(MRI *mri_T1, MRI *mri_src, MRI *mri_dst,
 
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
     char         fname[200];
-    MRI *        mri_tmp = nullptr;
+    MRI *        mri_tmp = NULL;
     MRI_SEGMENT *mseg;
 
     for (nseg = 0; nseg < nsegments; nseg++) {
@@ -2030,7 +2035,7 @@ MRI *MRIorderThreshold(MRI *mri_src, MRI *mri_dst, MRI *mri_order, int num) {
   height = mri_src->height;
   depth  = mri_src->depth;
   if (!mri_dst)
-    mri_dst = MRIclone(mri_src, nullptr);
+    mri_dst = MRIclone(mri_src, NULL);
 
   if (mri_src->type != MRI_UCHAR || mri_dst->type != MRI_UCHAR ||
       mri_order->type != MRI_UCHAR)
@@ -2076,7 +2081,7 @@ MRI *MRIpolvCount(MRI *mri_src, MRI *mri_dst, MRI *mri_polv, int wsize,
 
   init_basis_vectors();
   if (!mri_dst)
-    mri_dst = MRIclone(mri_src, nullptr);
+    mri_dst = MRIclone(mri_src, NULL);
 
   pxi = mri_src->xi;
   pyi = mri_src->yi;
@@ -2178,7 +2183,7 @@ MRI *MRIwmfilter(MRI *mri_src, MRI *mri_polv, MRI *mri_dst, float nslope,
 
   init_basis_vectors();
   if (!mri_dst)
-    mri_dst = MRIclone(mri_src, nullptr);
+    mri_dst = MRIclone(mri_src, NULL);
 
   pxi = mri_src->xi;
   pyi = mri_src->yi;
@@ -2477,7 +2482,7 @@ MRI *MRIwmfilterMarked(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, int wsize,
 
   init_basis_vectors();
   if (!mri_dst)
-    mri_dst = MRIclone(mri_src, nullptr);
+    mri_dst = MRIclone(mri_src, NULL);
 
   /*
     now go through again, and for any voxel which was labeled ambiguous,
@@ -2787,7 +2792,7 @@ MRI *MRIcpolvThreshold(MRI *mri_src, MRI *mri_labeled, MRI *mri_dst, int wm_low,
   whalf  = (wsize - 1) / 2;
 
   if (!mri_dst)
-    mri_dst = MRIclone(mri_labeled, nullptr);
+    mri_dst = MRIclone(mri_labeled, NULL);
 
   nlabeled = 0;
   for (z = 0; z < depth; z++) {
@@ -2865,7 +2870,7 @@ MRI *MRIcpolvVote(MRI *mri_src, MRI *mri_labeled, MRI *mri_dst, int wsize,
       num_non_white;
   BUFTYPE *pdst;
   float    xbase, ybase, zbase, e1_x, e1_y, e1_z, e2_x, e2_y, e2_z;
-  MRI *    mri_tmp = nullptr;
+  MRI *    mri_tmp = NULL;
 
   init_basis_vectors();
 
@@ -2879,9 +2884,9 @@ MRI *MRIcpolvVote(MRI *mri_src, MRI *mri_labeled, MRI *mri_dst, int wsize,
   whalf  = (wsize - 1) / 2;
 
   if (!mri_dst)
-    mri_dst = MRIclone(mri_labeled, nullptr);
+    mri_dst = MRIclone(mri_labeled, NULL);
   if (niter > 1) {
-    mri_tmp     = MRIcopy(mri_labeled, nullptr);
+    mri_tmp     = MRIcopy(mri_labeled, NULL);
     mri_labeled = mri_tmp;
   }
 
@@ -3000,9 +3005,9 @@ MRI *MRIcpolvSmooth(MRI *mri_orig, MRI *mri_src, MRI *mri_dst, int wsize,
   hi_thresh = (float)(wsize * wsize) - thresh;
 
   if (!mri_dst)
-    mri_dst = MRIclone(mri_src, nullptr);
+    mri_dst = MRIclone(mri_src, NULL);
   if (niter > 1)
-    mri_tmp = MRIcopy(mri_src, nullptr);
+    mri_tmp = MRIcopy(mri_src, NULL);
   else
     mri_tmp = mri_src;
   mri_src = mri_tmp; /* don't overwrite input */
@@ -3059,12 +3064,12 @@ MRI *MRIcpolvSmooth(MRI *mri_orig, MRI *mri_src, MRI *mri_dst, int wsize,
           }
           if (dst_label == MRI_WHITE) {
             white_vertex =
-                MRIneighborhoodCpolv(mri_src, x, y, z, 3, wsize, nullptr);
+                MRIneighborhoodCpolv(mri_src, x, y, z, 3, wsize, NULL);
             num_white = MRIwhiteInPlane(mri_src, x, y, z, white_vertex, wsize);
             if (num_white < (wsize * wsize) / 2) {
-              black_vertex = MRIneighborhoodBlackCpolv(mri_src, x, y, z, 3,
-                                                       wsize, nullptr);
-              num_black    = wsize * wsize - MRIwhiteInPlane(mri_src, x, y, z,
+              black_vertex =
+                  MRIneighborhoodBlackCpolv(mri_src, x, y, z, 3, wsize, NULL);
+              num_black = wsize * wsize - MRIwhiteInPlane(mri_src, x, y, z,
                                                           black_vertex, wsize);
               if ((num_white < num_black) &&
                   (((float)num_white < thresh) || (num_black >= hi_thresh))) {
@@ -3074,12 +3079,12 @@ MRI *MRIcpolvSmooth(MRI *mri_orig, MRI *mri_src, MRI *mri_dst, int wsize,
             }
           } else {
             black_vertex =
-                MRIneighborhoodBlackCpolv(mri_src, x, y, z, 3, wsize, nullptr);
+                MRIneighborhoodBlackCpolv(mri_src, x, y, z, 3, wsize, NULL);
             num_black = wsize * wsize -
                         MRIwhiteInPlane(mri_src, x, y, z, black_vertex, wsize);
             if (num_black < wsize * wsize / 2) {
               white_vertex =
-                  MRIneighborhoodCpolv(mri_src, x, y, z, 3, wsize, nullptr);
+                  MRIneighborhoodCpolv(mri_src, x, y, z, 3, wsize, NULL);
               num_white =
                   MRIwhiteInPlane(mri_src, x, y, z, white_vertex, wsize);
               if ((num_white > num_black) &&
@@ -3104,11 +3109,6 @@ MRI *MRIcpolvSmooth(MRI *mri_orig, MRI *mri_src, MRI *mri_dst, int wsize,
               100.0f * (float)nblack_to_white / (float)total_vox);
       fprintf(stderr, "              %8d skipped (%%%2.2f)\n", nskipped,
               100.0f * (float)nskipped / (float)total_vox);
-    }
-    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
-      char fname[100];
-      sprintf(fname, "/tmp/smooth%d.mnc", i + 1);
-      MRIwrite(mri_dst, fname);
     }
     if (i < niter - 1)
       MRIcopy(mri_dst, mri_src);
@@ -3612,7 +3612,7 @@ MRI *MRIremoveHoles(MRI *mri_src, MRI *mri_dst, int wsize, float pct,
   height = mri_src->height;
   depth  = mri_src->depth;
   if (!mri_dst)
-    mri_dst = MRIcopy(mri_src, nullptr);
+    mri_dst = MRIcopy(mri_src, NULL);
 
   wcubed = (float)(wsize * wsize * wsize);
   thresh = nint((float)wcubed * pct);
@@ -3689,7 +3689,7 @@ MRI *MRImeanLabel(MRI *mri_src, MRI *mri_label, MRI *mri_dst, int wsize) {
   height = mri_src->height;
   depth  = mri_src->depth;
   if (!mri_dst)
-    mri_dst = MRIclone(mri_src, nullptr);
+    mri_dst = MRIclone(mri_src, NULL);
 
   wcubed = (float)(wsize * wsize * wsize);
   whalf  = wsize / 2;
@@ -3747,7 +3747,7 @@ MRI *MRIintensitySegmentation(MRI *mri_src, MRI *mri_labeled, float wm_low,
   height = mri_src->height;
   depth  = mri_src->depth;
   if (!mri_labeled)
-    mri_labeled = MRIclone(mri_src, nullptr);
+    mri_labeled = MRIclone(mri_src, NULL);
 
   nwhite = nblack = nambiguous = 0;
   for (z = 0; z < depth; z++) {
@@ -3797,7 +3797,7 @@ MRI *MRIthresholdLabel(MRI *mri_src, MRI *mri_labeled, MRI *mri_dst,
   height = mri_src->height;
   depth  = mri_src->depth;
   if (!mri_dst)
-    mri_dst = MRIclone(mri_src, nullptr);
+    mri_dst = MRIclone(mri_src, NULL);
 
   for (z = 0; z < depth; z++) {
     for (y = 0; y < height; y++) {
@@ -3834,14 +3834,14 @@ MRI *MRIorderSegment(MRI *mri_src, MRI *mri_labeled, float thresh, int wsize) {
       thresh_index, label, nvox;
   BUFTYPE         val, *pdst, *sptr;
   float           wcubed;
-  static BUFTYPE *sort_array = nullptr;
+  static BUFTYPE *sort_array = NULL;
   static int      sort_size  = 0;
 
   width  = mri_src->width;
   height = mri_src->height;
   depth  = mri_src->depth;
   if (!mri_labeled)
-    mri_labeled = MRIclone(mri_src, nullptr);
+    mri_labeled = MRIclone(mri_src, NULL);
 
   wcubed       = (float)(wsize * wsize * wsize);
   whalf        = wsize / 2;
@@ -3849,7 +3849,7 @@ MRI *MRIorderSegment(MRI *mri_src, MRI *mri_labeled, float thresh, int wsize) {
 
   if (sort_array && (wcubed != sort_size)) {
     free(sort_array);
-    sort_array = nullptr;
+    sort_array = NULL;
   }
   if (!sort_array) {
     sort_array = (BUFTYPE *)calloc(wcubed, sizeof(BUFTYPE));
@@ -3909,7 +3909,7 @@ MRI *MRImaskLabels(MRI *mri_src, MRI *mri_mask, MRI *mri_dst) {
   height = mri_src->height;
   depth  = mri_src->depth;
   if (!mri_dst)
-    mri_dst = MRIclone(mri_src, nullptr);
+    mri_dst = MRIclone(mri_src, NULL);
 
   for (z = 0; z < depth; z++) {
     for (y = 0; y < height; y++) {
@@ -4038,7 +4038,7 @@ MRI *MRIcpolvMedianCurveSegment(MRI *mri, MRI *mri_labeled, MRI *mri_dst,
          wsize, len, gray_hi, wm_low);
 
   if (!mri_dst)
-    mri_dst = MRIcopy(mri_labeled, nullptr);
+    mri_dst = MRIcopy(mri_labeled, NULL);
 
   width  = mri->width;
   height = mri->height;
@@ -4084,7 +4084,7 @@ int MRIcpolvMedianCurveVoxel(MRI *mri, MRI *mri_labeled, int x0, int y0, int z0,
                              int wsize, float len, float gray_hi,
                              float wm_low) {
   int   vertex, what, i, maxi;
-  FILE *fp = nullptr;
+  FILE *fp = NULL;
   float dist, x, y, z, median, nx, ny, nz, white_dist, gray_dist, gray_val,
       white_val, val, white_grad, gray_grad, max_val, min_val, max_val_dist,
       min_val_dist;
@@ -4322,7 +4322,7 @@ MRI *MRIremoveIslands(MRI *mri_src, MRI *mri_dst, int wsize, int thresh) {
   height = mri_src->height;
   depth  = mri_src->depth;
   if (!mri_dst)
-    mri_dst = MRIclone(mri_src, nullptr);
+    mri_dst = MRIclone(mri_src, NULL);
 
   wcubed = (float)(wsize * wsize * wsize);
   whalf  = wsize / 2;
@@ -4370,12 +4370,12 @@ MRI *MRIfillPlanarHoles(MRI *mri_src, MRI *mri_segment, MRI *mri_dst,
   mri_dst = MRIcopy(mri_src, mri_dst);
 
   /* make it 0-1 */
-  mri_binary_strand = MRIbinarize(mri_segment, nullptr, WM_MIN_VAL, 0, 1);
+  mri_binary_strand = MRIbinarize(mri_segment, NULL, WM_MIN_VAL, 0, 1);
 
   /* mri_strand_border will be all voxels not in the segment, but within 2
      voxels of a segment voxel.
   */
-  mri_strand_border = MRIdilate(mri_binary_strand, nullptr);
+  mri_strand_border = MRIdilate(mri_binary_strand, NULL);
   MRIdilate(mri_strand_border, mri_strand_border);
   MRIxor(mri_binary_strand, mri_strand_border, mri_strand_border, 1, 255);
 

@@ -6,7 +6,7 @@
 /*
  * Original Author: Oliver Hinds
  *
- * Copyright © 2016 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained

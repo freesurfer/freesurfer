@@ -52,8 +52,7 @@ set outdir = `pwd`;
 popd > /dev/null
 
 if($#tmpdir == 0) then
-  if(-dw /scratch)   set tmpdir = /scratch/tmpdir.bbmask.$$
-  if(! -dw /scratch) set tmpdir = $outdir/tmpdir.bbmask.$$
+  set tmpdir = `fs_temp_dir --scratch`
 endif
 mkdir -p $tmpdir
 

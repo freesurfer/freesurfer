@@ -5,7 +5,7 @@
 /*
  * Original Author: Doug Greve
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -21,12 +21,17 @@
 #include "mri.h"
 #include "utils.h"
 #include "version.h"
-#include <cstdio>
-#include <cstdlib>
+#include <pwd.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <sys/utsname.h>
+#include <time.h>
 #include <unistd.h>
 
-FSENV *FSENVgetenv() {
+FSENV *FSENVgetenv(void) {
   FSENV *        fsenv;
   char *         pc, tmpstr[2000];
   struct utsname uts;
@@ -34,16 +39,16 @@ FSENV *FSENVgetenv() {
   fsenv = (FSENV *)calloc(sizeof(FSENV), 1);
 
   pc = getenv("FREESURFER_HOME");
-  if (pc == nullptr) {
+  if (pc == NULL) {
     printf("FREESURFER_HOME not defined\n");
-    return (nullptr);
+    return (NULL);
   }
   fsenv->FREESURFER_HOME = strcpyalloc(pc);
 
   pc = getenv("SUBJECTS_DIR");
-  if (pc == nullptr) {
+  if (pc == NULL) {
     printf("SUBJECTS_DIR not defined\n");
-    return (nullptr);
+    return (NULL);
   }
   fsenv->SUBJECTS_DIR = strcpyalloc(pc);
   fsenv->user         = strcpyalloc(VERuser());
@@ -63,29 +68,23 @@ FSENV *FSENVgetenv() {
   // Load the default color table
   sprintf(tmpstr, "%s/FreeSurferColorLUT.txt", fsenv->FREESURFER_HOME);
   fsenv->ctab = CTABreadASCII(tmpstr);
-  if (fsenv->ctab == nullptr) {
+  if (fsenv->ctab == NULL) {
     printf("ERROR: reading %s\n", tmpstr);
-    return (nullptr);
+    return (NULL);
   }
 
   // Get time and date at the time this function was called
   fsenv->date = VERcurTimeStamp();
 
-  pc = getenv("FREESURFER_TMP_DIR");
-  if (pc != nullptr)
-    fsenv->tmpdir = strcpyalloc(pc);
-  else
-    fsenv->tmpdir = strcpyalloc("/tmp");
-
   // for DWI when dicoms are read
   pc = getenv("FS_DESIRED_BVEC_SPACE");
-  if (pc != nullptr) {
+  if (pc != NULL) {
     int b;
     sscanf(pc, "%d", &b);
     if (b != BVEC_SPACE_SCANNER && b != BVEC_SPACE_VOXEL) {
       printf("ERROR: FS_DESIRED_BVEC_SPACE = %s, must be %d or %d\n", pc,
              BVEC_SPACE_SCANNER, BVEC_SPACE_VOXEL);
-      return (nullptr);
+      return (NULL);
     }
     fsenv->desired_bvec_space = b;
   } else
@@ -104,10 +103,9 @@ int FSENVfree(FSENV **ppenv) {
   free(env->hostname);
   free(env->sysname);
   free(env->machine);
-  free(env->tmpdir);
   CTABfree(&env->ctab);
   free(*ppenv);
-  *ppenv = nullptr;
+  *ppenv = NULL;
   return (0);
 }
 
@@ -125,11 +123,11 @@ int FSENVprintenv(FILE *fp, FSENV *env) {
 }
 
 /*-----------------------------------------------*/
-char *FSENVgetSUBJECTS_DIR() {
+char *FSENVgetSUBJECTS_DIR(void) {
   char *pc = getenv("SUBJECTS_DIR");
-  if (pc == nullptr) {
+  if (pc == NULL) {
     printf("FSENVgetSUBJECTS_DIR: SUBJECTS_DIR not defined\n");
-    return (nullptr);
+    return (NULL);
   }
   return strcpyalloc(pc);
 }

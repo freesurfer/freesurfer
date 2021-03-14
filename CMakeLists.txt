@@ -849,6 +849,7 @@ add_subdirectory(gems)
 add_subdirectories(AntsDenoiseImageFs
                    AntsN4BiasFieldCorrectionFs
                    lta_convert
+                   io
                    mri_and
                    mri_add_xform_to_header
                    mri_annotation2label
@@ -881,7 +882,6 @@ add_subdirectories(AntsDenoiseImageFs
                    mri_label2label
                    mri_label2vol
                    mri_log_likelihood
-                   mri_make_bem_surfaces
                    mri_mask
                    mri_matrix_multiply
                    mri_mc

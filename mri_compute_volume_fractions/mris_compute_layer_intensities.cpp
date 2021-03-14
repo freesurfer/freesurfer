@@ -5,8 +5,8 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA).
+ * Copyright © 2021
+ * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -19,10 +19,25 @@
  *
  */
 
+#include <ctype.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+#include "cma.h"
+#include "const.h"
 #include "diag.h"
+#include "error.h"
+#include "macros.h"
+#include "mri.h"
+#include "mri_conform.h"
+#include "mrimorph.h"
 #include "mrinorm.h"
 #include "mrisurf.h"
+#include "proto.h"
+#include "registerio.h"
 #include "timer.h"
+#include "utils.h"
 #include "version.h"
 
 #define NLAYERS    6
@@ -32,8 +47,8 @@ static int nlayers = NLAYERS;
 
 static double vfrac_thresh = -1;
 
-static char *subject_name = nullptr;
-static char *hemi         = nullptr;
+static char *subject_name = NULL;
+static char *hemi         = NULL;
 int          main(int argc, char *argv[]);
 static int   get_option(int argc, char *argv[]);
 
@@ -80,19 +95,19 @@ int        main(int argc, char *argv[]) {
     usage_exit(1);
   Progname = argv[0];
   ErrorInit(NULL, NULL, NULL);
-  DiagInit(nullptr, nullptr, nullptr);
+  DiagInit(NULL, NULL, NULL);
 
   start.reset();
 
-  if (hemi == nullptr)
+  if (hemi == NULL)
     ErrorExit(ERROR_BADPARM, "%s: must specify -rh or -lh", Progname);
 
   mri_intensities = MRIread(argv[1]);
-  if (mri_intensities == nullptr)
+  if (mri_intensities == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not load intensity volume from %s",
               Progname, argv[1]);
   mri_volume_fractions = MRIread(argv[2]);
-  if (mri_volume_fractions == nullptr)
+  if (mri_volume_fractions == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not load volume fractions from %s",
               Progname, argv[2]);
   if (mri_volume_fractions->nframes < nlayers + 1)
@@ -100,7 +115,7 @@ int        main(int argc, char *argv[]) {
         ERROR_BADFILE,
         "%s: volume fraction input has fewer frames (%d) than needed (%d)\n",
         mri_volume_fractions->nframes, nlayers + 1);
-  if (FS_names && subject_name == nullptr)
+  if (FS_names && subject_name == NULL)
     ErrorExit(ERROR_UNSUPPORTED,
               "%s: if specifying FS_names must use -s <subject>", Progname);
   for (i = 0; i <= nlayers; i++) {
@@ -117,19 +132,19 @@ int        main(int argc, char *argv[]) {
     }
     printf("reading laminar surface %s\n", fname);
     mris[i] = MRISread(fname);
-    if (mris[i] == nullptr)
+    if (mris[i] == NULL)
       ErrorExit(ERROR_NOFILE, "%s: could not load surface from %s", Progname,
                 fname);
   }
 
   if (vfrac_thresh > 0)
     mri_layer_intensities = compute_thresholded_layer_intensities(
-        mri_intensities, mri_volume_fractions, mris, nlayers, Gwhalf, nullptr,
+        mri_intensities, mri_volume_fractions, mris, nlayers, Gwhalf, NULL,
         curv_bins, vfrac_thresh);
   else
     mri_layer_intensities =
         compute_layer_intensities(mri_intensities, mri_volume_fractions, mris,
-                                  nlayers, Gwhalf, nullptr, curv_bins);
+                                  nlayers, Gwhalf, NULL, curv_bins);
   {
     sprintf(fname, "wsize.mgz");
     printf("writing half window sizes to %s\n", fname);
@@ -245,21 +260,21 @@ static MRI *compute_layer_intensities(MRI *         mri_intensities,
 
   printf("computing partial volume corrected layer intensities\n");
   /*
-    try to find voxels with a lot of each layer, but the more layers there are
-    the less likely we are to be able to do so. The higher res the data the
-    higher the threshold should be (as the more likely we are to be able to find
-    voxels with a lot of one layer. xsize = 1,  nlayers = 2 --> vfrac = .75
-    xsize = .5,  nlayers = 2 --> vfrac = 1
-    xsize = .5, nlayers = 6 --> vfrac = .667
-    xsize = .5, nlayers = 12 --> vfrac = .583
-  */
+  try to find voxels with a lot of each layer, but the more layers there are the less likely we are to be able
+  to do so. The higher res the data the higher the threshold should be (as the more likely we are to be able
+  to find voxels with a lot of one layer.
+  xsize = 1,  nlayers = 2 --> vfrac = .75
+  xsize = .5,  nlayers = 2 --> vfrac = 1
+  xsize = .5, nlayers = 6 --> vfrac = .667
+  xsize = .5, nlayers = 12 --> vfrac = .583
+*/
 
   vfrac_thresh = .4 + .5 * 1 / (mri_intensities->xsize * nlayers);
   if (vfrac_thresh > .995)
     vfrac_thresh = .995;
 
   step = mri_intensities->xsize / 4;
-  if (mri_layer_intensities == nullptr)
+  if (mri_layer_intensities == NULL)
     mri_layer_intensities =
         MRIallocSequence(mris[0]->nvertices, 1, 1, MRI_FLOAT, nlayers + 2);
 
@@ -277,7 +292,7 @@ static MRI *compute_layer_intensities(MRI *         mri_intensities,
     MRI *mri_ctrl;
     int  x, y, z;
 
-    mri_ctrl = MRIclone(mri_curv_bins, nullptr);
+    mri_ctrl = MRIclone(mri_curv_bins, NULL);
     printf("constructing %d curvature bins\n", curv_bins);
     Hmin     = mris[0]->Hmin;
     bin_size = (mris[0]->Hmax - mris[0]->Hmin) / (float)(curv_bins - 1);
@@ -304,8 +319,8 @@ static MRI *compute_layer_intensities(MRI *         mri_intensities,
     }
     MRIbuildVoronoiDiagram(mri_curv_bins, mri_ctrl, mri_curv_bins);
     /*
-      set bin to unused value for each spot that has no non-zero fractions so
-      that that voxel it isn't used below
+      set bin to unused value for each spot that has no non-zero fractions so that that voxel
+      it isn't used below
     */
     for (x = 0; x < mri_curv_bins->width; x++)
       for (y = 0; y < mri_curv_bins->height; y++)
@@ -406,16 +421,15 @@ static MRI *compute_layer_intensities(MRI *         mri_intensities,
               *MATRIX_RELT(mF, nvals + 1, 1) =
                   MRIgetVoxVal(mri_volume_fractions, xvi, yvi, zvi, 0); // wm
               *MATRIX_RELT(mF, nvals + 1, nlayers + 2) = MRIgetVoxVal(
-                  mri_volume_fractions, xvi, yvi, zvi, nlayers + 1); // csf
+                  mri_volume_fractions, xvi, yvi, zvi, nlayers + 1); //csf
               nvals++;
             }
           }
         }
       }
       /*
-        now go whalf into the wm and whalf outside the last surface to get good
-        estimates of WM and CSF
-      */
+  now go whalf into the wm and whalf outside the last surface to get good estimates of WM and CSF
+*/
       for (n = 0; nvals < MAX_VALS && n <= nlayers; n += nlayers) {
         v = &mris[n]->vertices[vno];
         if (n == 0) // look inwards from inside surface
@@ -477,8 +491,8 @@ static MRI *compute_layer_intensities(MRI *         mri_intensities,
       if (vno == Gdiag_no)
         DiagBreak();
       mF->rows = nvals;
-      mI->rows = nvals; // temporary - will be reset below (avoids allocating
-                        // frequently)
+      mI->rows =
+          nvals; // temporary - will be reset below (avoids allocating frequently)
       MRIclear(mri_visited);
       for (estimable = 1, n1 = 0; n1 <= nlayers + 1; n1++)
         if (found_layer[n1] == 0) {
@@ -489,12 +503,11 @@ static MRI *compute_layer_intensities(MRI *         mri_intensities,
         if (MatrixNSConditionNumber(mF) >
             100000) // can't reliably estimate parameters
           estimable = 0;
-        else // matrix is well-conditioned and we have found voxels with
-             // majority of each layer
+        else // matrix is well-conditioned and we have found voxels with majority of each layer
         {
-          mFinv = MatrixPseudoInverse(mF, nullptr);
+          mFinv = MatrixPseudoInverse(mF, NULL);
           if (mFinv ==
-              nullptr) // shouldn't happen since we check condition # above
+              NULL) // shouldn't happen since we check condition # above
             estimable = 0;
           else // inversion ok - compute parameter estimates
           {
@@ -512,8 +525,7 @@ static MRI *compute_layer_intensities(MRI *         mri_intensities,
           }
         }
       }
-      whalf++; // if couldn't estimate inverse use a bigger neighborhood and
-               // more data
+      whalf++; // if couldn't estimate inverse use a bigger neighborhood and more data
       mF->rows = MAX_VALS;
       mI->rows = MAX_VALS;
       if (whalf > 10 * (whalf0 + 1) / step ||
@@ -554,7 +566,7 @@ static MRI *compute_thresholded_layer_intensities(
 
   printf("computing thresholded layer intensities\n");
   step = mri_intensities->xsize / 4;
-  if (mri_layer_intensities == nullptr)
+  if (mri_layer_intensities == NULL)
     mri_layer_intensities =
         MRIallocSequence(mris[0]->nvertices, 1, 1, MRI_FLOAT, nlayers + 2);
 
@@ -571,7 +583,7 @@ static MRI *compute_thresholded_layer_intensities(
   if (curv_bins > 1) {
     MRI *mri_ctrl;
 
-    mri_ctrl = MRIclone(mri_curv_bins, nullptr);
+    mri_ctrl = MRIclone(mri_curv_bins, NULL);
     printf("constructing %d curvature bins\n", curv_bins);
     Hmin     = mris[0]->Hmin;
     bin_size = (mris[0]->Hmax - mris[0]->Hmin) / (float)(curv_bins - 1);
@@ -616,8 +628,7 @@ static MRI *compute_thresholded_layer_intensities(
         FEQUAL(mris[0]->vertices[vno].y, mris[nlayers]->vertices[vno].y) &&
         FEQUAL(mris[0]->vertices[vno].z, mris[nlayers]->vertices[vno].z)) {
       DiagBreak();
-      continue; // pial and white in same place - vertex is not cortical and
-                // can't be estimated
+      continue; // pial and white in same place - vertex is not cortical and can't be estimated
     }
     if (bin_size == 0)
       bin0 = 0;
@@ -686,9 +697,8 @@ static MRI *compute_thresholded_layer_intensities(
         }
     }
     /*
-      now go whalf into the wm and whalf outside the last surface to get good
-      estimates of WM and CSF
-    */
+  now go whalf into the wm and whalf outside the last surface to get good estimates of WM and CSF
+*/
     if (num_found[0] == 0)
       DiagBreak();
     for (n = 0; n <= nlayers; n += nlayers) {

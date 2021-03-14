@@ -7,7 +7,7 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -19,17 +19,27 @@
  *
  */
 
+#include <ctype.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "diag.h"
+#include "error.h"
+#include "macros.h"
+#include "mri.h"
 #include "mrisurf.h"
+#include "proto.h"
 #include "version.h"
 
 int main(int argc, char *argv[]);
 
 static int  get_option(int argc, char *argv[]);
-static void usage_exit();
-static void print_usage();
-static void print_help();
-static void print_version();
+static void usage_exit(void);
+static void print_usage(void);
+static void print_help(void);
+static void print_version(void);
 
 const char *Progname;
 
@@ -44,7 +54,7 @@ int main(int argc, char *argv[]) {
   char **      av, *out_fname, *in_fname;
   int          ac, nargs;
   MRI_SURFACE *mris;
-  MRI *        mri_interior, *mri_template = nullptr, *mri_buffer = nullptr;
+  MRI *        mri_interior, *mri_template = NULL, *mri_buffer = NULL;
 
   std::string cmdline = getAllInfo(argc, argv, "mris_fill");
 
@@ -55,7 +65,7 @@ int main(int argc, char *argv[]) {
 
   Progname = argv[0];
   ErrorInit(NULL, NULL, NULL);
-  DiagInit(nullptr, nullptr, nullptr);
+  DiagInit(NULL, NULL, NULL);
 
   ac = argc;
   av = argv;
@@ -78,7 +88,7 @@ int main(int argc, char *argv[]) {
     fprintf(stderr, "reading volume from %s...\n", vol_fname);
     mri_template = MRIread(vol_fname);
     MRIcopy(mri_template, mri_buffer);
-    // mri_template = MRIupsample2(mri_template, mri_buffer);
+    //mri_template = MRIupsample2(mri_template, mri_buffer);
     if (sample_factor > 1) {
       fprintf(stderr, "upsampling template by factor %d...", sample_factor);
       mri_template = MRIupsampleN(mri_template, mri_buffer, sample_factor);
@@ -89,6 +99,16 @@ int main(int argc, char *argv[]) {
   if (!mris)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s", Progname,
               in_fname);
+
+  if (!mris->vg.valid) {
+    fs::warning()
+        << "Surface has no geometry information - adding a default geometry. "
+        << "Surface will not align to rasterized volume in this case.";
+    MRI *mri_tmp = MRIallocHeader(256, 256, 256, MRI_UCHAR, 1);
+    MRIScopyVolGeomFromMRI(mris, mri_tmp);
+    MRIfree(&mri_tmp);
+  }
+
   mri_interior = MRISfillInterior(mris, resolution, mri_template);
 
   if (conform) {
@@ -114,6 +134,7 @@ int main(int argc, char *argv[]) {
     MRIfree(&mri_tmp);
     mri_interior = mri_tmp2;
   }
+
   MRIaddCommandLine(mri_interior, cmdline);
   fprintf(stderr, "writing filled volume to %s...\n", out_fname);
   MRIwrite(mri_interior, out_fname);
@@ -174,16 +195,16 @@ static int get_option(int argc, char *argv[]) {
   return (nargs);
 }
 
-static void usage_exit() {
+static void usage_exit(void) {
   print_help();
   exit(1);
 }
 
-static void print_usage() {
+static void print_usage(void) {
   printf("usage: %s [options] <input surface> <output volume>\n", Progname);
 }
 
-static void print_help() {
+static void print_help(void) {
   print_usage();
   printf("\nThis program floodfills the interior of a surface and writes\n"
          "the results into a volume of the specified resolution.\n");

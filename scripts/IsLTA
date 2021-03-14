@@ -32,7 +32,7 @@ goto check_params;
 check_params_return:
 
 #========================================================
-set tmp = /tmp/tmp.IsLTA.$$.lta
+set tmp = `fs_temp_file --suffix .lta`
 set cmd = (lta_convert --inlta $regfile --outlta $tmp)
 $cmd >& /dev/null
 set st = $status

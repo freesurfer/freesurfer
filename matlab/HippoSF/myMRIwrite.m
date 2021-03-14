@@ -35,7 +35,7 @@ function err = myMRIwrite(mri,fstring,datatype,tempdir)
 %
 % Original Author: Doug Greve
 %
-% Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+% Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
 %
 % Terms and conditions for use, reproduction, distribution and contribution
 % are found in the 'FreeSurfer Software License Agreement' contained
@@ -223,7 +223,7 @@ function r = save_mgh(vol, fname, M, mr_parms,tempdir);
 %
 % Original Author: Bruce Fischl
 %
-% Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+% Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
 %
 % Terms and conditions for use, reproduction, distribution and contribution
 % are found in the 'FreeSurfer Software License Agreement' contained
@@ -369,7 +369,7 @@ function err = save_nifti(hdr,niftifile)
 %
 % Original Author: Doug Greve
 %
-% Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+% Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
 %
 % Terms and conditions for use, reproduction, distribution and contribution
 % are found in the 'FreeSurfer Software License Agreement' contained

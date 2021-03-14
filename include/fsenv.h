@@ -5,7 +5,7 @@
 /*
  * Original Author: Doug Greve
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -17,14 +17,13 @@
  *
  */
 
-#ifndef FSENV_H
-#define FSENV_H
-
-#include <sys/utsname.h>
+#ifndef FSENV_INC
+#define FSENV_INC
 
 #include "colortab.h"
+#include <sys/utsname.h>
 
-struct FSENV {
+typedef struct {
   char *       FREESURFER_HOME;
   char *       SUBJECTS_DIR;
   char *       user;               // current user
@@ -33,10 +32,9 @@ struct FSENV {
   char *       hostname;           // eg, icebox (same as nodename)
   char *       sysname;            // eg, Linux
   char *       machine;            // eg, i686
-  char *       tmpdir;             // folder for temporary files
   COLOR_TABLE *ctab;               // FREESURFER_HOME/FreeSurferColorLUT.txt
   int          desired_bvec_space; // for DWI
-};
+} FSENV;
 
 FSENV *FSENVgetenv(void);
 int    FSENVprintenv(FILE *fp, FSENV *env);
@@ -44,4 +42,4 @@ int    FSENVsetSUBJECTS_DIR(char *SUBJECTS_DIR);
 char * FSENVgetSUBJECTS_DIR(void);
 int    FSENVfree(FSENV **ppenv);
 
-#endif // FSENV_H
+#endif //#ifndef FSENV_INC

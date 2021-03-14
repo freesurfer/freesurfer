@@ -36,8 +36,7 @@ check_params_return:
 set outdir = `dirname $outvol`;
 mkdir -p $outdir
 if($#tmpdir == 0) then
-  if(! -dw /scratch) set tmpdir = $outdir/tmpdir.fscalc.$$
-  if(-dw /scratch)   set tmpdir = /scratch/tmpdir.fscalc.$$
+  set tmpdir = `fs_temp_dir --scratch --base $outdir`
 endif
 mkdir -p $tmpdir
 

@@ -55,7 +55,7 @@ if($DoRH) set HemiList = ($HemiList rh);
 foreach hemi ($HemiList)
 
   # Create a text summary of the defects
-  set tmpsum = /tmp/defect-seg.$$.$hemi.sum
+  set tmpsum = `fs_temp_file --suffix $hemi.sum`
   set cmd = (mri_surfcluster \
     --in surf/$hemi.defect_labels --thmin .5 --hemi $hemi \
     --surf orig.nofix --subject $subject --sum $tmpsum)

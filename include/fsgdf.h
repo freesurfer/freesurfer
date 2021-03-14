@@ -1,6 +1,6 @@
 /*
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -24,8 +24,8 @@
 #undef X
 #endif
 
-// This is for allowing repeats of subjects in the gdf for testing
-// This will affect gdfCheckSubjRep() in fsgdf.c only.
+//This is for allowing repeats of subjects in the gdf for testing
+//This will affect gdfCheckSubjRep() in fsgdf.c only.
 #ifdef FSGDF_SRC
 int fsgdf_AllowSubjRep = 0;
 #else
@@ -34,7 +34,7 @@ extern int fsgdf_AllowSubjRep;
 
 #define FSGDF_NCLASSES_MAX 128
 #define FSGDF_NVARS_MAX    128
-#define FSGDF_NINPUTS_MAX  20000
+#define FSGDF_NINPUTS_MAX  40000
 
 #define FSGD_FACTOR_DISCRETE   1
 #define FSGD_FACTOR_CONTINUOUS 2
@@ -90,7 +90,7 @@ typedef struct {
   double  ClassVarMeans[FSGDF_NCLASSES_MAX][FSGDF_NVARS_MAX];
   char    DesignMatFile[1000];  /* actual matlab4 mat file */
   char    DesignMatMethod[100]; /* creation method */
-  char    gd2mtx_method[5];     // dods or doss
+  char    gd2mtx_method[5];     //dods or doss
   MATRIX *X, *T;                /* design matrix, T = inv(X'*X)*X' */
   MRI *   data;
   double  ResFWHM;

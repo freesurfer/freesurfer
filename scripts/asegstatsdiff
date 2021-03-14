@@ -38,7 +38,7 @@ else
 endif
 
 set cmd=(asegstats2table --common-segs -s ${subject1} -s ${subject2} -t ${outfile})
-set tmpfile=(/tmp/asegstats2table-$$.txt)
+set tmpfile=( `fs_temp_file --suffix .txt` )
 $cmd >& $tmpfile
 if ($status) then
     echo "FAILED: $cmd"
@@ -69,7 +69,7 @@ set total=$#subj1
 set idx=2
 set newrow=( "pctdiff" )
 set diffcount=0
-set stdoutfile=(/tmp/asegstatsdiff-$$.txt)
+set stdoutfile=( `fs_temp_file --suffix .txt` )
 rm -f $stdoutfile >& /dev/null
 while ( "$idx" != "$total" )
 

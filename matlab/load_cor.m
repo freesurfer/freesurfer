@@ -18,7 +18,7 @@ function [cor,M] = fmri_ldcor(subject,arg2,arg3)
 %
 % Original Author: Bruce Fischl
 %
-% Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+% Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
 %
 % Terms and conditions for use, reproduction, distribution and contribution
 % are found in the 'FreeSurfer Software License Agreement' contained

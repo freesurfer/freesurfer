@@ -70,7 +70,10 @@ set(FS_PACKAGES_DIR
     CACHE STRING ""
     )
 
-set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib" CACHE STRING "for shared Libraries")
+set(CMAKE_INSTALL_RPATH
+    "${CMAKE_INSTALL_PREFIX}/lib"
+    CACHE STRING "for shared Libraries"
+    )
 
 # TODO: implement
 set(FS_OSX_BUILD_UNIVERSAL_BINARIES

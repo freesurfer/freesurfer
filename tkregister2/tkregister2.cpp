@@ -36,12 +36,15 @@
 #include <tcl.h>
 #include <tk.h>
 #endif // HAVE_TCL_TK_GL
-#include <cmath>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
+#include <fcntl.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/stat.h>
 #include <sys/time.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #ifdef HAVE_TCL_TK_GL
 
@@ -104,6 +107,7 @@
 #include "error.h"
 #include "fio.h"
 #include "fmriutils.h"
+#include "machine.h"
 #include "mri.h"
 #include "mri2.h"
 #include "mri_conform.h"
@@ -176,15 +180,15 @@ int   FuncXYZ2FuncInd(float x, float y, float z, float *col, float *row,
 int   draw_cross_hair(int rScreen, int cScreen);
 int   erase_cross_hair(int rScreen, int cScreen);
 
-void    UpdateMatrices();
+void    UpdateMatrices(void);
 MATRIX *ScreenCR2XYZMtx(MATRIX *T);
 
 static int  parse_commandline(int argc, char **argv);
-static void check_options();
-static void print_usage();
-static void usage_exit();
-static void print_help();
-static void print_version();
+static void check_options(void);
+static void print_usage(void);
+static void usage_exit(void);
+static void print_help(void);
+static void print_version(void);
 static void argnerr(char *option, int n);
 static void dump_options(FILE *fp);
 static int  isflag(const char *flag);
@@ -198,8 +202,8 @@ static int MRItagVol(MRI *mri, float val);
 static int MRIisConformant(MRI *vol);
 
 MATRIX *Load4x4(char *fname);
-char *  Vox2VoxFName = nullptr;
-MATRIX *Vox2Vox      = nullptr;
+char *  Vox2VoxFName = NULL;
+MATRIX *Vox2Vox      = NULL;
 
 #ifndef TRUE
 #define TRUE 1
@@ -293,7 +297,7 @@ int            npts                 = 0;
 int            prad                 = 0;
 float          TM[4][4];
 float          tm[4][4];
-MATRIX *       RegMat = nullptr, *XFM = nullptr;
+MATRIX *       RegMat = NULL, *XFM = NULL;
 double         ps_2, st_2, fscale_2 = 0.0; /* was float */
 int            float2int     = 0;
 int            float2int_use = FLT2INT_ROUND;
@@ -316,24 +320,24 @@ int         impt = -1, ipt = -1, jpt = -1;
 int         cScreenCur = 0, rScreenCur = 0;
 int         PixelSelected = 1;
 
-char *freesurferhome;     // FREESURFER_HOME
-char *subjectsdir;        /* SUBJECTS_DIR */
-char *srname;             /* sessiondir (funct: image) */
-char *psrname;            /* parent sessiondir (funct: 970703MS) */
-char *pname;              /* subject */
-char *regfname;           /* register.dat */
-char *xfmfname = nullptr; /* something.xfm (minc reg mat) */
-char *afname;             /* analyse.dat */
-char *targpref;           /* abs single image structural stem name */
-char *movformat;          /* abs single image epi structural stem name */
-char *tfname;             /* (dir!) SUBJECTS_DIR/name/tmp/ */
-char *sgfname;            /* (dir!) set: get from cwd: $session/rgb/ */
-char *tkrtitle = nullptr; /* window title */
+char *freesurferhome;  // FREESURFER_HOME
+char *subjectsdir;     /* SUBJECTS_DIR */
+char *srname;          /* sessiondir (funct: image) */
+char *psrname;         /* parent sessiondir (funct: 970703MS) */
+char *pname;           /* subject */
+char *regfname;        /* register.dat */
+char *xfmfname = NULL; /* something.xfm (minc reg mat) */
+char *afname;          /* analyse.dat */
+char *targpref;        /* abs single image structural stem name */
+char *movformat;       /* abs single image epi structural stem name */
+char *tfname;          /* (dir!) SUBJECTS_DIR/name/tmp/ */
+char *sgfname;         /* (dir!) set: get from cwd: $session/rgb/ */
+char *tkrtitle = NULL; /* window title */
 
-char *  int_regfname = nullptr; /* intermediate registration file */
-char *  int_vol_id   = nullptr; /* intermediate volume */
-MRI *   int_vol      = nullptr; // MRI for intermediate volume
-MATRIX *IntRegMat = nullptr, *Int2MovRegMat = nullptr;
+char *  int_regfname = NULL; /* intermediate registration file */
+char *  int_vol_id   = NULL; /* intermediate volume */
+MRI *   int_vol      = NULL; // MRI for intermediate volume
+MATRIX *IntRegMat = NULL, *Int2MovRegMat = NULL;
 
 int blinktop        = 0; /* says whats on top while blinking */
 int invalid_buffers = 1;
@@ -372,9 +376,9 @@ int tagmov      = 0;
 MRI *        mov_vol, *targ_vol, *targ_vol0, *mritmp, *mrisurf;
 MRI_SURFACE *surf;
 
-// float movimg[WINDOW_ROWS][WINDOW_COLS];
-// float targimg[WINDOW_ROWS][WINDOW_COLS];
-// int surfimg[WINDOW_ROWS][WINDOW_COLS];
+//float movimg[WINDOW_ROWS][WINDOW_COLS];
+//float targimg[WINDOW_ROWS][WINDOW_COLS];
+//int surfimg[WINDOW_ROWS][WINDOW_COLS];
 float **movimg, **targimg;
 int **  surfimg;
 
@@ -386,11 +390,11 @@ MATRIX *Tscreen, *Qtarg, *Qmov;
 char *  fslregfname;
 char *  fslregoutfname;
 char *  freeviewfname;
-char *  xfmoutfname = nullptr;
+char *  xfmoutfname = NULL;
 MATRIX *invDmov, *FSLRegMat, *invFSLRegMat;
 MATRIX *Mtc, *invMtc, *Vt2s, *Ttargcor, *invTtargcor;
 MATRIX *Dtargcor, *invDtargcor, *Dtarg, *invDtarg;
-MATRIX *vox2ras_targ = nullptr, *ras2vox_targ = nullptr;
+MATRIX *vox2ras_targ = NULL, *ras2vox_targ = NULL;
 
 int         LoadSurf = 0, UseSurf = 0;
 const char *surfname = "white";
@@ -401,20 +405,20 @@ char        talxfmfile[2000], talxfmdir[2000];
 const char *talxfmname = "talairach.xfm";
 char        tmpstr[2000];
 
-char *mov_ostr  = nullptr; // orientation string for mov
-char *targ_ostr = nullptr; // orientation string for targ
+char *mov_ostr  = NULL; // orientation string for mov
+char *targ_ostr = NULL; // orientation string for targ
 int   mov_frame = 0;
 char *pc;
 
 float int_ipr, int_bpr, int_fscale;
 int   int_float2int, err;
-char *xfmfileinfo = nullptr;
+char *xfmfileinfo = NULL;
 
-char *     ltafname    = nullptr;
-TRANSFORM *FSXform     = nullptr;
-LTA *      lta         = nullptr;
-LT *       linxfm      = nullptr;
-char *     ltaoutfname = nullptr;
+char *     ltafname    = NULL;
+TRANSFORM *FSXform     = NULL;
+LTA *      lta         = NULL;
+LT *       linxfm      = NULL;
+char *     ltaoutfname = NULL;
 
 int checkreg = 0;
 
@@ -463,7 +467,7 @@ int Register(ClientData clientData, Tcl_Interp *interp, int argc,
   argc--;
   argv++;
   ErrorInit(NULL, NULL, NULL);
-  DiagInit(nullptr, nullptr, nullptr);
+  DiagInit(NULL, NULL, NULL);
 
   if (argc == 0)
     usage_exit();
@@ -471,12 +475,12 @@ int Register(ClientData clientData, Tcl_Interp *interp, int argc,
   memmove(subjectid, "subject-unknown", strlen("subject-unknown"));
 
   subjectsdir = getenv("SUBJECTS_DIR");
-  if (subjectsdir == nullptr) {
+  if (subjectsdir == NULL) {
     printf("ERROR: SUBJECTS_DIR undefined. Use setenv or -sd\n");
     exit(1);
   }
   freesurferhome = getenv("FREESURFER_HOME");
-  if (freesurferhome == nullptr) {
+  if (freesurferhome == NULL) {
     printf("ERROR: FREESURFER_HOME undefined. \n");
     exit(1);
   }
@@ -490,12 +494,12 @@ int Register(ClientData clientData, Tcl_Interp *interp, int argc,
   AllocBuffs();
 
   /* read the registration here to get subjectid */
-  if (!mkheaderreg && fslregfname == nullptr && !fstal &&
-      int_vol_id == nullptr && !identityreg && ltafname == nullptr)
+  if (!mkheaderreg && fslregfname == NULL && !fstal && int_vol_id == NULL &&
+      !identityreg && ltafname == NULL)
     read_reg(regfname);
   // Just use identity
   if (identityreg)
-    RegMat = MatrixIdentity(4, nullptr);
+    RegMat = MatrixIdentity(4, NULL);
 
   if (Mrot) {
     printf("Applying rotation matrix (R=M*R)\n");
@@ -533,13 +537,13 @@ int Register(ClientData clientData, Tcl_Interp *interp, int argc,
   }
   if (seg_vol_id) {
     FREESURFER_HOME = getenv("FREESURFER_HOME");
-    if (ctabfile == nullptr) {
+    if (ctabfile == NULL) {
       ctabfile = (char *)calloc(sizeof(char), 1000);
       sprintf(ctabfile, "%s/FreeSurferColorLUT.txt", FREESURFER_HOME);
       ctab = CTABreadASCII(ctabfile);
     }
     seg_vol = MRIread(seg_vol_id);
-    if (seg_vol == nullptr)
+    if (seg_vol == NULL)
       exit(1);
     printf(" \n");
     printf(" \n");
@@ -556,9 +560,9 @@ int Register(ClientData clientData, Tcl_Interp *interp, int argc,
   }
 
   if (fstal) {
-    if (subjectsdir == nullptr)
+    if (subjectsdir == NULL)
       subjectsdir = getenv("SUBJECTS_DIR");
-    if (subjectsdir == nullptr) {
+    if (subjectsdir == NULL) {
       printf("ERROR: SUBJECTS_DIR undefined. Use setenv or --sd\n");
       exit(1);
     }
@@ -605,9 +609,9 @@ int Register(ClientData clientData, Tcl_Interp *interp, int argc,
   // Get full path to target
   if (fstarg) {
     // Relative path is specified, compute full
-    if (subjectsdir == nullptr)
+    if (subjectsdir == NULL)
       subjectsdir = getenv("SUBJECTS_DIR");
-    if (subjectsdir == nullptr) {
+    if (subjectsdir == NULL) {
       printf("ERROR: SUBJECTS_DIR undefined. Use setenv or -sd\n");
       exit(1);
     }
@@ -659,13 +663,13 @@ int Register(ClientData clientData, Tcl_Interp *interp, int argc,
 
   /* Check that both volumes are accessible */
   mritmp = MRIreadHeader(targ_vol_path, targ_vol_fmt);
-  if (mritmp == nullptr) {
+  if (mritmp == NULL) {
     printf("ERROR: could not read %s as %d\n", targ_vol_path, targ_vol_fmt);
     exit(1);
   }
   MRIfree(&mritmp);
   mritmp = MRIreadHeader(mov_vol_id, mov_vol_fmt);
-  if (mritmp == nullptr) {
+  if (mritmp == NULL) {
     printf("ERROR: could not read %s as %d\n", mov_vol_id, mov_vol_fmt);
     exit(1);
   }
@@ -675,11 +679,11 @@ int Register(ClientData clientData, Tcl_Interp *interp, int argc,
   printf("INFO: loading target %s\n", targ_vol_path);
   if (LoadVol) {
     targ_vol = MRIreadType(targ_vol_path, targ_vol_fmt);
-    if (targ_vol == nullptr)
+    if (targ_vol == NULL)
       exit(1);
     if (targ_vol->nframes > 1) {
       // extract the first frame if necessary
-      mritmp = fMRIframe(targ_vol, 0, nullptr);
+      mritmp = fMRIframe(targ_vol, 0, NULL);
       MRIfree(&targ_vol);
       targ_vol = mritmp;
     }
@@ -693,7 +697,7 @@ int Register(ClientData clientData, Tcl_Interp *interp, int argc,
     }
   } else {
     targ_vol = MRIreadHeader(targ_vol_path, targ_vol_fmt);
-    if (targ_vol == nullptr)
+    if (targ_vol == NULL)
       exit(1);
   }
   if (fstal && ZeroCRAS) {
@@ -703,9 +707,9 @@ int Register(ClientData clientData, Tcl_Interp *interp, int argc,
     targ_vol->c_a = 0;
     targ_vol->c_s = 0;
     Ctarg         = MRIxfmCRS2XYZ(targ_vol, 0);
-    invCtarg      = MatrixInverse(Ctarg, nullptr);
+    invCtarg      = MatrixInverse(Ctarg, NULL);
     Mcras0        = MatrixMultiply(Starg, invCtarg, NULL);
-    invMcras0     = MatrixInverse(Mcras0, nullptr);
+    invMcras0     = MatrixInverse(Mcras0, NULL);
     // At this point, RegMat holds tal.xfm
     RegMat = MatrixMultiply(RegMat, Mcras0, RegMat);
     printf("new xfm -----------------\n");
@@ -722,7 +726,7 @@ int Register(ClientData clientData, Tcl_Interp *interp, int argc,
   if (targ_vol->type != MRI_FLOAT && LoadVol) {
     printf("INFO: changing target type to float\n");
     mritmp = MRIchangeType(targ_vol, MRI_FLOAT, 0, 0, 0);
-    if (mritmp == nullptr) {
+    if (mritmp == NULL) {
       printf("ERROR: could change type\n");
       exit(1);
     }
@@ -752,15 +756,15 @@ int Register(ClientData clientData, Tcl_Interp *interp, int argc,
     mritmp->c_s   = targ_vol->c_s;
 
     Ttarg    = MRIxfmCRS2XYZtkreg(targ_vol);
-    invTtarg = MatrixInverse(Ttarg, nullptr);
+    invTtarg = MatrixInverse(Ttarg, NULL);
     Ttargcor = MRIxfmCRS2XYZtkreg(mritmp);
     Dtargcor = MRIxfmCRS2XYZ(mritmp, 0);
     Dtarg    = MRIxfmCRS2XYZ(targ_vol, 0);
-    invDtarg = MatrixInverse(Dtarg, nullptr);
+    invDtarg = MatrixInverse(Dtarg, 0);
     Vt2s     = MatrixMultiply(invDtarg, Dtargcor, NULL);
 
-    invTtargcor = MatrixInverse(Ttargcor, nullptr);
-    invDtargcor = MatrixInverse(Dtargcor, nullptr);
+    invTtargcor = MatrixInverse(Ttargcor, NULL);
+    invDtargcor = MatrixInverse(Dtargcor, NULL);
     Mtc         = MatrixMultiply(Ttargcor, invDtargcor, NULL);
     MatrixMultiply(Mtc, Dtarg, Mtc);
     MatrixMultiply(Mtc, invTtarg, Mtc);
@@ -784,18 +788,18 @@ int Register(ClientData clientData, Tcl_Interp *interp, int argc,
     MatrixFree(&Ttarg);
     MatrixFree(&invTtarg);
     MatrixFree(&Vt2s);
-    // MRIwrite(targ_vol,"cor.mgh");
+    //MRIwrite(targ_vol,"cor.mgh");
   } else {
-    Mtc       = MatrixIdentity(4, nullptr);
+    Mtc       = MatrixIdentity(4, NULL);
     targ_vol0 = targ_vol;
   }
-  invMtc = MatrixInverse(Mtc, nullptr);
+  invMtc = MatrixInverse(Mtc, NULL);
 
   if (!fstal || !fixxfm)
     Ttarg = MRIxfmCRS2XYZtkreg(targ_vol);
   else
     Ttarg = MRIxfmCRS2XYZ(targ_vol, 0);
-  invTtarg = MatrixInverse(Ttarg, nullptr);
+  invTtarg = MatrixInverse(Ttarg, NULL);
   printf("Ttarg: --------------------\n");
   MatrixPrint(stdout, Ttarg);
 
@@ -805,7 +809,7 @@ int Register(ClientData clientData, Tcl_Interp *interp, int argc,
     mov_vol = MRIreadType(mov_vol_id, mov_vol_fmt);
   else
     mov_vol = MRIreadHeader(mov_vol_id, mov_vol_fmt);
-  if (mov_vol == nullptr) {
+  if (mov_vol == NULL) {
     printf("ERROR: could not read %s\n", mov_vol_id);
     exit(1);
   }
@@ -816,7 +820,7 @@ int Register(ClientData clientData, Tcl_Interp *interp, int argc,
   if (mov_vol->type != MRI_FLOAT && LoadVol) {
     printf("INFO: changing move type to float\n");
     mritmp = MRISeqchangeType(mov_vol, MRI_FLOAT, 0, 0, 0);
-    if (mritmp == nullptr) {
+    if (mritmp == NULL) {
       printf("ERROR: could change type\n");
       exit(1);
     }
@@ -827,9 +831,9 @@ int Register(ClientData clientData, Tcl_Interp *interp, int argc,
     Tmov = MRIxfmCRS2XYZtkreg(mov_vol);
   else
     Tmov = MRIxfmCRS2XYZ(mov_vol, 0);
-  invTmov = MatrixInverse(Tmov, nullptr);
+  invTmov = MatrixInverse(Tmov, NULL);
   printf("Tmov: --------------------\n");
-  // Tmov = MRIxfmCRS2XYZtkreg(mov_vol); // should this be here?
+  //Tmov = MRIxfmCRS2XYZtkreg(mov_vol); // should this be here?
   MatrixPrint(stdout, Tmov);
 
   /*------------------------------------------------------*/
@@ -846,14 +850,14 @@ int Register(ClientData clientData, Tcl_Interp *interp, int argc,
       }
     } else
       RegMat = MRItkRegMtxFromVox2Vox(targ_vol, mov_vol, Vox2Vox);
-  } else if (fslregfname != nullptr) {
+  } else if (fslregfname != NULL) {
     /* Compute Reg from FSLReg */
     RegMat = MRIfsl2TkReg(targ_vol0, mov_vol, FSLRegMat);
     MatrixMultiply(RegMat, invMtc, RegMat);
-  } else if (int_vol_id != nullptr) {
+  } else if (int_vol_id != NULL) {
     printf("Creating reg from intermediate\n");
     int_vol = MRIreadHeader(int_vol_id, MRI_VOLUME_TYPE_UNKNOWN);
-    if (int_vol == nullptr) {
+    if (int_vol == NULL) {
       printf("ERROR: reading intermediate volume %s\n", int_vol_id);
       exit(1);
     }
@@ -863,7 +867,7 @@ int Register(ClientData clientData, Tcl_Interp *interp, int argc,
       printf("ERROR: reading intermediate registration %s\n", int_regfname);
       exit(1);
     }
-    Int2MovRegMat = MRItkRegMtx(int_vol, mov_vol, nullptr);
+    Int2MovRegMat = MRItkRegMtx(int_vol, mov_vol, NULL);
     RegMat        = MatrixMultiply(Int2MovRegMat, IntRegMat, NULL);
     if (fscale_2 == 0.0)
       fscale_2 = int_fscale;
@@ -1233,7 +1237,7 @@ static int parse_commandline(int argc, char **argv) {
         sprintf(tmpstr, "%s/data/standard/avg152T1", getenv("FSLDIR"));
         printf("Trying %s\n", tmpstr);
         targ_vol_id = IDnameFromStem(tmpstr); // For FSL 4.0
-        if (targ_vol_id == nullptr)
+        if (targ_vol_id == NULL)
           exit(1);
       }
     } else if (stringmatch(option, "--fsl-targ-lr")) {
@@ -1245,7 +1249,7 @@ static int parse_commandline(int argc, char **argv) {
                 getenv("FSLDIR"));
         printf("Trying %s\n", tmpstr);
         targ_vol_id = IDnameFromStem(tmpstr); // For FSL 4.0
-        if (targ_vol_id == nullptr)
+        if (targ_vol_id == NULL)
           exit(1);
       }
     } else if (!strcasecmp(option, "--lh-only")) {
@@ -1259,7 +1263,8 @@ static int parse_commandline(int argc, char **argv) {
     } else if (!strcasecmp(option, "--check-reg") ||
                !strcasecmp(option, "--check") ||
                !strcasecmp(option, "--junk")) {
-      sprintf(tmpstr, "/tmp/reg.tmp.%ld.dat", PDFtodSeed());
+      std::string tmpname = makeTempFile(".dat");
+      sprintf(tmpstr, "%s", tmpname.c_str());
       regfname = strcpyalloc(tmpstr);
       checkreg = 1;
     } else if (!strcasecmp(option, "--2")) {
@@ -1413,7 +1418,7 @@ static int parse_commandline(int argc, char **argv) {
         argnerr(option, 1);
       xfmfname = pargv[0];
       printf("INFO: reading xfm file %s, trying as MINC xfm \n", xfmfname);
-      err = regio_read_mincxfm(xfmfname, &XFM, nullptr);
+      err = regio_read_mincxfm(xfmfname, &XFM, NULL);
       if (err)
         exit(1);
       mkheaderreg = 1;
@@ -1424,11 +1429,11 @@ static int parse_commandline(int argc, char **argv) {
         argnerr(option, 1);
       xfmfname = pargv[0];
       printf("INFO: reading xfm file %s, trying as MINC xfm \n", xfmfname);
-      err = regio_read_mincxfm(xfmfname, &m_tmp, nullptr);
+      err = regio_read_mincxfm(xfmfname, &m_tmp, NULL);
       if (err)
         exit(1);
       printf("inverting registration\n");
-      XFM = MatrixInverse(m_tmp, nullptr);
+      XFM = MatrixInverse(m_tmp, NULL);
       MatrixFree(&m_tmp);
       mkheaderreg = 1;
       nargsused   = 1;
@@ -1443,7 +1448,7 @@ static int parse_commandline(int argc, char **argv) {
         argnerr(option, 1);
       ltafname = pargv[0];
       FSXform  = TransformRead(ltafname);
-      if (FSXform == nullptr)
+      if (FSXform == NULL)
         exit(1);
       lta = (LTA *)FSXform->xform;
       if (lta->type != LINEAR_RAS_TO_RAS) {
@@ -1488,7 +1493,7 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0], "%lf", &xyztrans[0]);
       sscanf(pargv[1], "%lf", &xyztrans[1]);
       sscanf(pargv[2], "%lf", &xyztrans[2]);
-      Mtrans             = MatrixIdentity(4, nullptr);
+      Mtrans             = MatrixIdentity(4, NULL);
       Mtrans->rptr[1][4] = xyztrans[0];
       Mtrans->rptr[2][4] = xyztrans[1];
       Mtrans->rptr[3][4] = xyztrans[2];
@@ -1501,7 +1506,7 @@ static int parse_commandline(int argc, char **argv) {
     } else if (stringmatch(option, "--fsfeat")) {
       if (nargc < 1)
         argnerr(option, 1);
-      // pargv[0] is featdir
+      //pargv[0] is featdir
       sprintf(tmpstr, "%s/reg/freesurfer/register.dat", pargv[0]);
       if (!fio_FileExistsReadable(tmpstr)) {
         printf("ERROR: cannot find %s\n", tmpstr);
@@ -1514,7 +1519,7 @@ static int parse_commandline(int argc, char **argv) {
     } else if (stringmatch(option, "--feat")) {
       if (nargc < 1)
         argnerr(option, 1);
-      // pargv[0] is featdir
+      //pargv[0] is featdir
       sprintf(tmpstr, "%s/etc/standard/avg152T1", getenv("FSLDIR"));
       if (!fio_FileExistsReadable(tmpstr))
         sprintf(tmpstr, "%s/data/standard/avg152T1", getenv("FSLDIR"));
@@ -1524,8 +1529,9 @@ static int parse_commandline(int argc, char **argv) {
       sprintf(tmpstr, "%s/reg/example_func2standard.mat", pargv[0]);
       fslregfname = strcpyalloc(tmpstr);
       read_fslreg(fslregfname);
-      fslregoutfname = fslregfname;
-      sprintf(tmpstr, "/tmp/feat.exf2std.reg.%d", (int)PDFtodSeed());
+      fslregoutfname      = fslregfname;
+      std::string tmpname = makeTempFile();
+      sprintf(tmpstr, "%s", tmpname.c_str());
       regfname  = strcpyalloc(tmpstr);
       tagmov    = 1;
       nargsused = 1;
@@ -1542,7 +1548,7 @@ static int parse_commandline(int argc, char **argv) {
       sprintf(tmpstr, "%s/%s/mri/transforms/talairach_with_skull.lta",
               subjectsdir, subjectid);
       FSXform = TransformRead(tmpstr);
-      if (FSXform == nullptr)
+      if (FSXform == NULL)
         exit(1);
       ltaoutfname = strcpyalloc(tmpstr);
       lta         = (LTA *)FSXform->xform;
@@ -1557,7 +1563,7 @@ static int parse_commandline(int argc, char **argv) {
       linxfm = &(lta->xforms[0]);
       // Assume RAS2RAS and uses vox2ras from input volumes:
       // Note: This ignores the volume geometry in the LTA file.
-      XFM = MatrixInverse(lta->xforms[0].m_L, nullptr);
+      XFM = MatrixInverse(lta->xforms[0].m_L, NULL);
       sprintf(tmpstr, "%s/%s/mri/nu.mgz", subjectsdir, subjectid);
       targ_vol_id = strcpyalloc(tmpstr);
       mov_vol_id  = strcpyalloc(lta->xforms->dst.fname);
@@ -1567,8 +1573,9 @@ static int parse_commandline(int argc, char **argv) {
         free(mov_vol_id);
         mov_vol_id = strcpyalloc(tmpstr);
       }
-      if (regfname == nullptr) {
-        sprintf(tmpstr, "/tmp/tkregister2.%s.junk", subjectid);
+      if (regfname == NULL) {
+        std::string tmpname = makeTempFile();
+        sprintf(tmpstr, "%s", tmpname.c_str());
         regfname = strcpyalloc(tmpstr);
       }
       mkheaderreg = 1;
@@ -1580,7 +1587,7 @@ static int parse_commandline(int argc, char **argv) {
       sprintf(tmpstr, "%s/%s/mri/transforms/talairach.lta", subjectsdir,
               subjectid);
       FSXform = TransformRead(tmpstr);
-      if (FSXform == nullptr)
+      if (FSXform == NULL)
         exit(1);
       lta = (LTA *)FSXform->xform;
       if (lta->type != LINEAR_RAS_TO_RAS) {
@@ -1594,7 +1601,7 @@ static int parse_commandline(int argc, char **argv) {
       linxfm = &(lta->xforms[0]);
       // Assume RAS2RAS and uses vox2ras from input volumes:
       // Note: This ignores the volume geometry in the LTA file.
-      XFM = MatrixInverse(lta->xforms[0].m_L, nullptr);
+      XFM = MatrixInverse(lta->xforms[0].m_L, NULL);
       sprintf(tmpstr, "%s/%s/mri/T1.mgz", subjectsdir, subjectid);
       targ_vol_id = strcpyalloc(tmpstr);
       mov_vol_id  = strcpyalloc(lta->xforms->dst.fname);
@@ -1698,13 +1705,13 @@ static int parse_commandline(int argc, char **argv) {
 }
 
 /* ------------------------------------------------------ */
-static void usage_exit() {
+static void usage_exit(void) {
   print_usage();
   exit(1);
 }
 
 /* --------------------------------------------- */
-static void print_usage() {
+static void print_usage(void) {
   printf("\n");
   printf("USAGE: %s \n", Progname);
   printf("\n");
@@ -1783,11 +1790,11 @@ static void print_usage() {
   printf("   --conf-targ : conform target (assumes reg computed to conf "
          "target, eg, GCA)\n");
   printf("\n");
-  // printf("   --svol svol.img (structural volume)\n");
+  //printf("   --svol svol.img (structural volume)\n");
 }
 
 /* --------------------------------------------- */
-static void print_help() {
+static void print_help(void) {
   print_usage();
 
   printf("\n");
@@ -2308,18 +2315,18 @@ static void argnerr(char *option, int n) {
 }
 
 /* --------------------------------------------- */
-static void check_options() {
-  if (targ_vol_id == nullptr) {
+static void check_options(void) {
+  if (targ_vol_id == NULL) {
     printf("INFO: no target volume specified, assuming "
            "FreeSurfer orig volume.\n");
     targ_vol_id = "orig";
     fstarg      = 1;
   }
-  if (mov_vol_id == nullptr && !fstal) {
+  if (mov_vol_id == NULL && !fstal) {
     printf("ERROR: no movable volume specified\n");
     exit(1);
   }
-  if (regfname == nullptr && !fstal) {
+  if (regfname == NULL && !fstal) {
     printf("ERROR: no registration file specified\n");
     exit(1);
   }
@@ -2331,16 +2338,16 @@ static void check_options() {
     printf("ERROR: cannot spec both --regheader and --fstal\n");
     exit(1);
   }
-  if (xfmfname != nullptr && fslregfname != nullptr) {
+  if (xfmfname != NULL && fslregfname != NULL) {
     printf("ERROR: cannot make reg from xfm AND fslreg \n");
     exit(1);
   }
-  if (mkheaderreg && fslregfname != nullptr) {
+  if (mkheaderreg && fslregfname != NULL) {
     printf("ERROR: cannot make reg from header and fslreg \n");
     exit(1);
   }
 
-  if (mkheaderreg && int_vol_id != nullptr) {
+  if (mkheaderreg && int_vol_id != NULL) {
     printf("ERROR: cannot make reg from header and use an "
            "intermediate volume\n");
     exit(1);
@@ -2437,9 +2444,9 @@ void draw_image2(int imc, int ic, int jc) {
   extern int      overlay_mode;
   extern double   ps_2, st_2, fscale_2;
   extern int      xdim_2, ydim_2, imnr1_2; /* func Nc, Ns, Nr */
-  // extern float movimg[WINDOW_ROWS][WINDOW_COLS];
-  // extern float targimg[WINDOW_ROWS][WINDOW_COLS];
-  // extern int surfimg[WINDOW_ROWS][WINDOW_COLS];
+  //extern float movimg[WINDOW_ROWS][WINDOW_COLS];
+  //extern float targimg[WINDOW_ROWS][WINDOW_COLS];
+  //extern int surfimg[WINDOW_ROWS][WINDOW_COLS];
   extern MATRIX *Qmov, *Qtarg;
   static int     firstpass = 1;
   static int     PrevPlane, PrevImc, PrevIc, PrevJc, PrevOverlayMode;
@@ -2474,7 +2481,7 @@ void draw_image2(int imc, int ic, int jc) {
     update_needed = 0;
     if (PrevPlane != plane)
       update_needed = 1;
-    // if(PrevImc     != imc)          update_needed = 2;
+    //if(PrevImc     != imc)          update_needed = 2;
     if (PrevInorm != use_inorm)
       update_needed = 3;
     if (PrevInterp != interpmethod)
@@ -2583,9 +2590,9 @@ void draw_image2(int imc, int ic, int jc) {
         icTarg = (int)fcTarg;
         irTarg = (int)frTarg;
         isTarg = (int)fsTarg;
-        // icTarg = nint(fcTarg);
-        // irTarg = nint(frTarg);
-        // isTarg = nint(fsTarg);
+        //icTarg = nint(fcTarg);
+        //irTarg = nint(frTarg);
+        //isTarg = nint(fsTarg);
 
         if (icTarg < 0 || icTarg >= targ_vol->width || irTarg < 0 ||
             irTarg >= targ_vol->height || isTarg < 0 ||
@@ -2594,11 +2601,11 @@ void draw_image2(int imc, int ic, int jc) {
 
         if (!ShowSeg) {
           /* Could interp here, but why bother? */
-          // targimg[r][c] = MRIFseq_vox(targ_vol,icTarg,irTarg,isTarg,0);
+          //targimg[r][c] = MRIFseq_vox(targ_vol,icTarg,irTarg,isTarg,0);
           /* This implements the trilinear interp - makes it so that
-             when the same volume is loaded as targ and mov, the
-             registration is perfect */
-          // MRIsampleVolume(targ_vol,fcTarg,frTarg,fsTarg,&rVoxVal);
+	     when the same volume is loaded as targ and mov, the
+	     registration is perfect */
+          //MRIsampleVolume(targ_vol,fcTarg,frTarg,fsTarg,&rVoxVal);
           MRIsampleVolumeFrame(targ_vol, fcTarg, frTarg, fsTarg, 0, &dVoxVal);
           rVoxVal       = dVoxVal;
           targimg[r][c] = rVoxVal;
@@ -2659,8 +2666,8 @@ void draw_image2(int imc, int ic, int jc) {
               f = (float)MRIFseq_vox(mov_vol, icMov, irMov, isMov, mov_frame);
             break;
           }
-          // printf("Func crs: %d, %d, %d \n",cFunc,rFunc,sFunc);
-          // f = (float) fscale_2*fim_2[sFunc][rFunc][cFunc];
+          //printf("Func crs: %d, %d, %d \n",cFunc,rFunc,sFunc);
+          //f = (float) fscale_2*fim_2[sFunc][rFunc][cFunc];
           break;
         case SAMPLE_TRILINEAR:
           MRIsampleVolumeFrame(mov_vol, fcMov, frMov, fsMov, mov_frame,
@@ -2826,7 +2833,7 @@ MATRIX *ScreenCR2XYZMtx(MATRIX *T) {
     xyzCur             = MatrixAlloc(4, 1, MATRIX_REAL);
   }
 
-  if (T == nullptr)
+  if (T == NULL)
     T = MatrixAlloc(4, 4, MATRIX_REAL);
 
   NcScreen = xdim;
@@ -2856,10 +2863,10 @@ MATRIX *ScreenCR2XYZMtx(MATRIX *T) {
     dcRow->rptr[1][1] = 0.0;
     dcRow->rptr[2][1] = 0.0;
     dcRow->rptr[3][1] = +1.0;
-    // Pxyz->rptr[1][1] = +128.0; /*x*/
+    //Pxyz->rptr[1][1] = +128.0; /*x*/
     Pxyz->rptr[1][1] = +FOV / 2;           /*x*/
     Pxyz->rptr[2][1] = xyzCur->rptr[2][1]; /*y*/
-    // Pxyz->rptr[3][1] = -127.0; /*z*/
+    //Pxyz->rptr[3][1] = -127.0; /*z*/
     Pxyz->rptr[3][1] = -(FOV - 2) / 2; /*z*/
     break;
   case SAGITTAL:
@@ -2870,9 +2877,9 @@ MATRIX *ScreenCR2XYZMtx(MATRIX *T) {
     dcRow->rptr[2][1] = 0.0;
     dcRow->rptr[3][1] = +1.0;
     Pxyz->rptr[1][1]  = xyzCur->rptr[1][1]; /*x*/
-    // Pxyz->rptr[2][1] = -128.0; /*y*/
+    //Pxyz->rptr[2][1] = -128.0; /*y*/
     Pxyz->rptr[2][1] = -FOV / 2; /*y*/
-    // Pxyz->rptr[3][1] = -127.0; /*z*/
+    //Pxyz->rptr[3][1] = -127.0; /*z*/
     Pxyz->rptr[3][1] = -(FOV - 2) / 2; /*z*/
     break;
   case HORIZONTAL:
@@ -2882,9 +2889,9 @@ MATRIX *ScreenCR2XYZMtx(MATRIX *T) {
     dcRow->rptr[1][1] = 0.0;
     dcRow->rptr[2][1] = +1.0;
     dcRow->rptr[3][1] = 0.0;
-    // Pxyz->rptr[1][1] = +128.0;
+    //Pxyz->rptr[1][1] = +128.0;
     Pxyz->rptr[1][1] = +FOV / 2;
-    // Pxyz->rptr[2][1] = -127.0;
+    //Pxyz->rptr[2][1] = -127.0;
     Pxyz->rptr[2][1] = -(FOV - 2) / 2;
     Pxyz->rptr[3][1] = xyzCur->rptr[3][1]; /*z*/
     break;
@@ -2908,13 +2915,13 @@ MATRIX *ScreenCR2XYZMtx(MATRIX *T) {
   (ie, changes to Tscreen) or changes in the registration
   (ie, RegMat or tm).
   ----------------------------------------------------------*/
-void UpdateMatrices() {
+void UpdateMatrices(void) {
   extern MATRIX *Tscreen, *RegMat, *invTtarg, *invTmov;
   extern MATRIX *Qtarg, *Qmov;
   extern float   tm[4][4];
   int            r, c;
 
-  if (RegMat == nullptr)
+  if (RegMat == NULL)
     RegMat = MatrixAlloc(4, 4, MATRIX_REAL);
   for (r = 0; r < 4; r++) {
     for (c = 0; c < 4; c++) {
@@ -2996,7 +3003,7 @@ int AnatInd2AnatXYZ(int cor, int hor, int sag, float *x, float *y, float *z) {
   extern MATRIX *Ttarg;
   static MATRIX *crs, *xyz;
 
-  if (crs == nullptr) {
+  if (crs == NULL) {
     crs             = MatrixAlloc(4, 1, MATRIX_REAL);
     crs->rptr[4][1] = 1;
   }
@@ -3005,7 +3012,7 @@ int AnatInd2AnatXYZ(int cor, int hor, int sag, float *x, float *y, float *z) {
   crs->rptr[2][1] = hor;
   crs->rptr[3][1] = cor;
 
-  // UpdateMatrices(); /* no need to update here */
+  //UpdateMatrices(); /* no need to update here */
   xyz = MatrixMultiply(Ttarg, crs, xyz);
   *x  = xyz->rptr[1][1];
   *y  = xyz->rptr[2][1];
@@ -3022,12 +3029,12 @@ int FuncXYZ2FuncInd(float x, float y, float z, float *col, float *row,
   int            Nc, Nr, Ns;
   static MATRIX *xyz, *crs;
 
-  if (xyz == nullptr) {
+  if (xyz == NULL) {
     xyz             = MatrixAlloc(4, 1, MATRIX_REAL);
     xyz->rptr[4][1] = 1.0;
   }
 
-  // UpdateMatrices(); /* no need to update here */
+  //UpdateMatrices(); /* no need to update here */
 
   xyz->rptr[1][1] = x;
   xyz->rptr[2][1] = y;
@@ -3064,7 +3071,7 @@ int draw_cross_hair(int rScreen, int cScreen) {
   int            r, c, k;
   unsigned char *lvidbuf;
 
-  // printf("Drawing crosshair at row = %d, col = %d\n",rScreen,cScreen);
+  //printf("Drawing crosshair at row = %d, col = %d\n",rScreen,cScreen);
 
   if (overlay_mode == TARGET)
     lvidbuf = blinkbuft;
@@ -3081,7 +3088,7 @@ int draw_cross_hair(int rScreen, int cScreen) {
     lvidbuf[3 * k]     = 255;
     lvidbuf[3 * k + 1] = 0;
     lvidbuf[3 * k + 2] = 0;
-    // printf("r = %d, c = %d, k = %d\n",r,cScreen,k);
+    //printf("r = %d, c = %d, k = %d\n",r,cScreen,k);
   }
   for (c = cScreen - 4; c < cScreen + 4; c++) {
     if (c < 0 || c >= WINDOW_COLS)
@@ -3090,7 +3097,7 @@ int draw_cross_hair(int rScreen, int cScreen) {
     lvidbuf[3 * k]     = 255;
     lvidbuf[3 * k + 1] = 0;
     lvidbuf[3 * k + 2] = 0;
-    // printf("r = %d, c = %d, k = %d\n",rScreen,c,k);
+    //printf("r = %d, c = %d, k = %d\n",rScreen,c,k);
   }
 
   return (0);
@@ -3153,7 +3160,7 @@ int erase_cross_hair(int rScreen, int cScreen) {
     lvidbuf[k + 2] = colormap[voxval];
   }
 
-  // printf("Erase: done\n");
+  //printf("Erase: done\n");
 
   return (0);
 }
@@ -3174,15 +3181,14 @@ void select_pixel(short sx, short sy) {
 
   getorigin(&ox, &oy);
   getsize(&lx, &ly);
-  // printf("select_pix: sx = %d, sy = %d, ox = %d, oy = %d, lx=%d, ly = %d\n",
+  //printf("select_pix: sx = %d, sy = %d, ox = %d, oy = %d, lx=%d, ly = %d\n",
   // sx,sy,ox,oy,lx,ly);
 
   if (overlay_mode == TARGET)
     lvidbuf = blinkbuft;
   else
     lvidbuf = blinkbufm;
-  // printf("sx=%d, sy=%d, ox=%ld, oy=%ld, lx=%ld, ly=%ld, dx = %ld, dy =
-  // %ld\n",
+  //printf("sx=%d, sy=%d, ox=%ld, oy=%ld, lx=%ld, ly=%ld, dx = %ld, dy = %ld\n",
   // sx,sy,ox,oy,lx,ly,sx-ox,sy-oy);
 
   /* hack: x-y of click on tk win caught by qread when clicks buffered! */
@@ -3203,11 +3209,11 @@ void select_pixel(short sx, short sy) {
   }
   xc = xx1 - ps * jc / fsf;
   yc = yy0 + st * imc / fsf;
-  // zc = zz1-ps*(255.0-ic/fsf);
+  //zc = zz1-ps*(255.0-ic/fsf);
   zc = zz1 - ps * (((WINDOW_ROWS / 2.0) - 1) - ic / fsf);
-  // printf("select_pixel: xc=%g, yc=%g,  zc=%g\n",xc,yc,zc);
-  // printf("select_pixel: jc=%d, imc=%d, ic=%d\n",jc,imc,ic);
-  // printf("xx1 = %g, ps = %g, fsf = %g, st=%g, yy0 = %g, zz1 = %g\n",
+  //printf("select_pixel: xc=%g, yc=%g,  zc=%g\n",xc,yc,zc);
+  //printf("select_pixel: jc=%d, imc=%d, ic=%d\n",jc,imc,ic);
+  //printf("xx1 = %g, ps = %g, fsf = %g, st=%g, yy0 = %g, zz1 = %g\n",
   //     xx1,ps,fsf,st,yy0,zz1);
 
   erase_cross_hair(rScreenCur, cScreenCur);
@@ -3352,7 +3358,7 @@ int do_one_gl_event(Tcl_Interp *interp) /* tcl */
 
     case KeyPress:
       XLookupString(&current.xkey, buf, sizeof(buf), &ks, 0);
-      // printf("button press %c\n",buf[0]);
+      //printf("button press %c\n",buf[0]);
       switch (ks) {
 
         /* numbers */
@@ -3489,7 +3495,7 @@ int do_one_gl_event(Tcl_Interp *interp) /* tcl */
         /* rotation about horizontal image axis */
       case 'q': /* top comes out, bottom goes in */
       case 'w': /* top goes in, comes out */
-        // printf("ks = %c\n",ks);
+        //printf("ks = %c\n",ks);
         r = +10.0;
         if (plane == SAGITTAL)
           c = 'y';
@@ -3509,7 +3515,7 @@ int do_one_gl_event(Tcl_Interp *interp) /* tcl */
         /* rotation about vertical image axis */
       case 'r': /* left goes in, right comes out*/
       case 'f':
-        // printf("ks = %c\n",ks);
+        //printf("ks = %c\n",ks);
         r = +10.0;
         if (plane == SAGITTAL)
           c = 'z';
@@ -3530,7 +3536,7 @@ int do_one_gl_event(Tcl_Interp *interp) /* tcl */
         mov_frame++;
         if (mov_frame >= mov_vol->nframes)
           mov_frame = 0;
-        // printf("mov_frame = %d\n",mov_frame);
+        //printf("mov_frame = %d\n",mov_frame);
         updateflag = TRUE;
         break;
 
@@ -3538,7 +3544,7 @@ int do_one_gl_event(Tcl_Interp *interp) /* tcl */
         mov_frame--;
         if (mov_frame < 0)
           mov_frame = mov_vol->nframes - 1;
-        // printf("mov_frame = %d\n",mov_frame);
+        //printf("mov_frame = %d\n",mov_frame);
         updateflag = TRUE;
         break;
 
@@ -3607,13 +3613,13 @@ int do_one_gl_event(Tcl_Interp *interp) /* tcl */
       case XK_Up:
         upslice();
         updateflag = TRUE;
-        // Tcl_Eval(interp,
+        //Tcl_Eval(interp,
         //         "set fscale_2 [expr $fscale_2 * 1.5]; set updateflag TRUE");
         break;
       case XK_Down:
         downslice();
         updateflag = TRUE;
-        // Tcl_Eval(interp,
+        //Tcl_Eval(interp,
         //       "set fscale_2 [expr $fscale_2 / 1.5]; set updateflag TRUE");
         break;
       case XK_Right:
@@ -3692,7 +3698,7 @@ void open_window(char *name) {
 
   printf("Opening %s, xnum = %d, xdim = %d\n", name, xnum, xdim);
 
-  // hin.max_width = hin.max_height = 3*xnum + xnum/2;  /* maxsize */
+  //hin.max_width = hin.max_height = 3*xnum + xnum/2;  /* maxsize */
   hin.max_width = hin.max_height = xdim;
   hin.min_aspect.x = hin.max_aspect.x = xdim; /* keepaspect */
   hin.min_aspect.y = hin.max_aspect.y = ydim;
@@ -3867,12 +3873,12 @@ void read_fslreg(char *fname) {
   int            i, j, n;
 
   fp = fopen(fname, "r");
-  if (fp == nullptr) {
+  if (fp == NULL) {
     printf("ERROR: cannot open %s\n", fname);
     exit(1);
   }
 
-  if (FSLRegMat == nullptr)
+  if (FSLRegMat == NULL)
     FSLRegMat = MatrixAlloc(4, 4, MATRIX_REAL);
 
   for (i = 0; i < 4; i++) {
@@ -3899,7 +3905,7 @@ void write_reg(char *fname) {
   extern int     fstal;
   extern char    talxfmfile[2000];
   extern MATRIX *RegMat, *Mtc;
-  static MATRIX *RegMatTmp = nullptr;
+  static MATRIX *RegMatTmp = NULL;
   //  int i,j;
   FILE *fp;
   char  touchfile[1000];
@@ -3911,33 +3917,33 @@ void write_reg(char *fname) {
   printf("RegMat ---------------------------\n");
   MatrixPrint(stdout, RegMatTmp);
 
-  if (fname != nullptr) {
+  if (fname != NULL) {
     if (fscale_2 == 0.0)
       fscale_2 = .1;
     make_backup(fname);
     {
-      LTA *lta = LTAalloc(1, nullptr);
+      LTA *lta = LTAalloc(1, NULL);
       strcpy(lta->subject, pname);
       lta->fscale        = fscale_2;
-      lta->xforms[0].m_L = MatrixCopy(RegMatTmp, nullptr);
+      lta->xforms[0].m_L = MatrixCopy(RegMatTmp, NULL);
       getVolGeom(mov_vol, &lta->xforms[0].src);
       getVolGeom(targ_vol0, &lta->xforms[0].dst);
       lta->type = REGISTER_DAT;
-      // lta = LTAchangeType(lta, LINEAR_VOX_TO_VOX);
+      //lta = LTAchangeType(lta, LINEAR_VOX_TO_VOX);
       if (LTAwrite(lta, fname) != NO_ERROR)
         printf("register: ### can't create file %s\n", fname);
       LTAfree(&lta);
     }
   }
 
-  if (fslregoutfname != nullptr)
+  if (fslregoutfname != NULL)
     write_fslreg(fslregoutfname);
-  if (freeviewfname != nullptr)
+  if (freeviewfname != NULL)
     write_freeviewreg(freeviewfname);
-  if (ltaoutfname != nullptr)
+  if (ltaoutfname != NULL)
     write_lta(ltaoutfname);
 
-  if (xfmoutfname != nullptr)
+  if (xfmoutfname != NULL)
     write_xfmreg(xfmoutfname);
   else if (fstal) {
     if (ZeroCRAS) {
@@ -3964,7 +3970,7 @@ void write_reg(char *fname) {
 void write_fslreg(char *fname) {
   extern MRI *   mov_vol, *targ_vol0;
   extern MATRIX *RegMat, *Mtc;
-  static MATRIX *RegMatTmp = nullptr;
+  static MATRIX *RegMatTmp = NULL;
   int            i, j;
   FILE *         fp;
   MATRIX *       Mfsl;
@@ -3974,7 +3980,7 @@ void write_fslreg(char *fname) {
   Mfsl = MRItkreg2FSL(targ_vol0, mov_vol, RegMatTmp);
 
   fp = fopen(fname, "w");
-  if (fp == nullptr) {
+  if (fp == NULL) {
     printf("ERROR: cannot open %s for writing\n", fslregoutfname);
     return;
   }
@@ -3992,10 +3998,10 @@ void write_fslreg(char *fname) {
 void write_freeviewreg(char *fname) {
   extern MRI *   mov_vol, *targ_vol0;
   extern MATRIX *RegMat, *Mtc;
-  static MATRIX *RegMatTmp = nullptr;
+  static MATRIX *RegMatTmp = NULL;
   int            i, j;
   FILE *         fp;
-  MATRIX *Mfv = nullptr, *Ttarg, *Tmov, *Starg, *Smov, *InvTmov, *InvStarg;
+  MATRIX *       Mfv = NULL, *Ttarg, *Tmov, *Starg, *Smov, *InvTmov, *InvStarg;
 
   RegMatTmp = MatrixMultiply(RegMat, Mtc, RegMatTmp);
 
@@ -4004,8 +4010,8 @@ void write_freeviewreg(char *fname) {
   Smov  = MRIxfmCRS2XYZ(mov_vol, 0);
   Starg = MRIxfmCRS2XYZ(targ_vol0, 0);
 
-  InvStarg = MatrixInverse(Starg, nullptr);
-  InvTmov  = MatrixInverse(Tmov, nullptr);
+  InvStarg = MatrixInverse(Starg, NULL);
+  InvTmov  = MatrixInverse(Tmov, NULL);
 
   Mfv = MatrixMultiply(Ttarg, InvStarg, NULL);
   Mfv = MatrixMultiply(Mfv, Smov, Mfv);
@@ -4016,7 +4022,7 @@ void write_freeviewreg(char *fname) {
   MatrixPrint(stdout, Mfv);
 
   fp = fopen(fname, "w");
-  if (fp == nullptr) {
+  if (fp == NULL) {
     printf("register: ### can't create file %s\n", fname);
     return;
   }
@@ -4028,7 +4034,7 @@ void write_freeviewreg(char *fname) {
   fprintf(fp, "%f\n", fscale_2);
   for (i = 0; i < 4; i++) {
     for (j = 0; j < 4; j++)
-      // fprintf(fp,"%e ",tm[i][j]);
+      //fprintf(fp,"%e ",tm[i][j]);
       fprintf(fp, "%e ", Mfv->rptr[i + 1][j + 1]);
     fprintf(fp, "\n");
   }
@@ -4054,13 +4060,13 @@ void write_xfmreg(char *fname) {
   extern MATRIX *RegMat;
   int            i, j;
   FILE *         fp;
-  MATRIX *       Mxfm = nullptr, *RegMatTmp = nullptr;
+  MATRIX *       Mxfm = NULL, *RegMatTmp = NULL;
 
   RegMatTmp = MatrixMultiply(RegMat, Mtc, NULL);
   Mxfm      = MRItkReg2Native(targ_vol0, mov_vol, RegMatTmp);
 
   fp = fopen(fname, "w");
-  if (fp == nullptr) {
+  if (fp == NULL) {
     printf("ERROR: cannot open %s for writing\n", fname);
     return;
   }
@@ -4092,10 +4098,10 @@ void write_lta(char *fname) {
   extern char *  pname;
   extern int     invLTAOut;
   LTA *          lta;
-  MATRIX *       RegMatTmp = nullptr;
+  MATRIX *       RegMatTmp = NULL;
 
   RegMatTmp = MatrixMultiply(RegMat, Mtc, NULL);
-  lta       = LTAalloc(1, nullptr);
+  lta       = LTAalloc(1, NULL);
   strcpy(lta->subject, pname);
   lta->fscale = fscale_2;
   if (!invLTAOut) {
@@ -4104,12 +4110,12 @@ void write_lta(char *fname) {
        definition because the registration matrix actually does from
        ref to mov. But this was an error introduced a long time ago
        and the rest of the code base has built up around it. */
-    lta->xforms[0].m_L = MatrixCopy(RegMatTmp, nullptr);
+    lta->xforms[0].m_L = MatrixCopy(RegMatTmp, NULL);
     getVolGeom(mov_vol, &lta->xforms[0].src);
     getVolGeom(targ_vol0, &lta->xforms[0].dst);
   } else {
     // Note: cannot just run LTAfillInverse()
-    lta->xforms[0].m_L = MatrixInverse(RegMatTmp, nullptr);
+    lta->xforms[0].m_L = MatrixInverse(RegMatTmp, NULL);
     getVolGeom(mov_vol, &lta->xforms[0].dst);
     getVolGeom(targ_vol0, &lta->xforms[0].src);
   }
@@ -4128,7 +4134,7 @@ void make_backup(char *fname) {
   FILE *fp;
 
   fp = fopen(fname, "r");
-  if (fp != nullptr) {
+  if (fp != NULL) {
     sprintf(command, "cp %s %s~", fname, fname);
     system(command);
     fclose(fp);
@@ -4203,7 +4209,7 @@ void goto_point(char *dir) {
 
   sprintf(fname, "%s/edit.dat", dir);
   fp = fopen(fname, "r");
-  if (fp == nullptr) {
+  if (fp == NULL) {
     printf("register: ### File %s not found\n", fname);
     return;
   }
@@ -4220,7 +4226,7 @@ void write_point(char *dir) {
 
   sprintf(fname, "%s/edit.dat", dir);
   fp = fopen(fname, "w");
-  if (fp == nullptr) {
+  if (fp == NULL) {
     printf("register: ### can't create file %s\n", fname);
     return;
   }
@@ -4596,7 +4602,7 @@ void read_images(char *fpref) {
 
   sprintf(fname, "%s.info", fpref);
   fptr = fopen(fname, "r");
-  if (fptr == nullptr) {
+  if (fptr == NULL) {
     printf("register: ### File %s not found\n", fname);
     exit(1);
   }
@@ -4653,7 +4659,7 @@ void read_images(char *fpref) {
     changed[k] = FALSE;
     file_name(fpref, fname, k + imnr0, "%03d");
     fptr = fopen(fname, "rb");
-    if (fptr == nullptr) {
+    if (fptr == NULL) {
       printf("register: ### File %s not found\n", fname);
       exit(1);
     }
@@ -4696,7 +4702,7 @@ void read_second_images(char *fpref) {
 
   sprintf(fname, "%s.info", fpref);
   fptr = fopen(fname, "r");
-  if (fptr == nullptr) {
+  if (fptr == NULL) {
     printf("register: ### File %s not found\n", fname);
     exit(1);
   }
@@ -4754,7 +4760,7 @@ void read_second_images(char *fpref) {
   for (k = 0; k < numimg_2; k++) {
     file_name(fpref, fname, k + imnr0_2, "%03d");
     fptr = fopen(fname, "rb");
-    if (fptr == nullptr) {
+    if (fptr == NULL) {
       printf("register: ### File %s not found\n", fname);
       exit(1);
     }
@@ -4794,15 +4800,19 @@ void blur(float factor) /* test hack */
   y0 = (int)yorig;
   y1 = (int)(yorig + ysize - 1);
 
-  sprintf(command, "scrsave /tmp/tmp1.rgb %d %d %d %d\n", x0, x1, y0, y1);
+  std::string tmp1_rgb = makeTempFile(".rgb");
+  std::string tmp2_rgb = makeTempFile(".rgb");
+  std::string tmp2_bin = makeTempFile(".bin");
+
+  sprintf(command, "scrsave %s %d %d %d %d\n", tmp1_rgb, x0, x1, y0, y1);
   system(command);
-  sprintf(command, "blur /tmp/tmp1.rgb /tmp/tmp2.rgb %d\n",
+  sprintf(command, "blur %s %s %d\n", tmp1_rgb, tmp2_rgb,
           (int)((float)xsize / factor));
   system(command);
-  sprintf(command, "tobin /tmp/tmp2.rgb /tmp/tmp2.bin\n");
+  sprintf(command, "tobin %s %s\n", tmp2_rgb, tmp2_bin);
   system(command);
 
-  fp = fopen("/tmp/tmp2.bin", "r");
+  fp = fopen(tmp2_bin, "r");
   fread(binbuff, 3, xdim * ydim, fp);
   k = 0;
   for (i = 0; i < ydim; i++)
@@ -4827,7 +4837,7 @@ void blur(float factor) /* test hack */
   rectwrite(0, 0, xdim - 1, ydim - 1, vidbuf);
   backbuffer(TRUE);
   frontbuffer(FALSE);
-  sprintf(command, "rm -f /tmp/tmp1.rgb /tmp/tmp2.rgb /tmp/tmp2.bin\n");
+  sprintf(command, "rm -f %s %s %s\n", tmp1_rgb, tmp2_rgb, tmp2_bin);
   system(command);
 }
 #endif // HAVE_TCL_TK_GL
@@ -4859,7 +4869,7 @@ void read_float_images(float ***fim, char *format, int nslices, int nperslice,
   char  fname[NAME_LENGTH], *ext;
   float max, min, sum, sum2; /* ,avg,stdev, */
   float f;
-  FILE *fp = nullptr;
+  FILE *fp = NULL;
   long  offset;
 
   ext = &format[strlen(format) - 1];
@@ -4892,13 +4902,13 @@ void read_float_images(float ***fim, char *format, int nslices, int nperslice,
     }
   }
   bufsize = xdim * ydim;
-  if ((*buf) == nullptr)
+  if ((*buf) == NULL)
     *buf = (short *)calloc(bufsize, sizeof(float));
 
   if (imtype == AFNI) { /* one file per scan (x,y,z,t)  */
     sprintf(fname, "%s", format);
     fp = fopen(fname, "r");
-    if (fp == nullptr) {
+    if (fp == NULL) {
       printf("register: ### File %s not found\n", fname);
       return;
     }
@@ -4909,7 +4919,7 @@ void read_float_images(float ***fim, char *format, int nslices, int nperslice,
       imnr = k * nperslice + t;
       sprintf(fname, format, imnr);
       fp = fopen(fname, "r");
-      if (fp == nullptr) {
+      if (fp == NULL) {
         printf("register: ### File %s not found\n", fname);
         return;
       }
@@ -4919,7 +4929,7 @@ void read_float_images(float ***fim, char *format, int nslices, int nperslice,
       imnr = k;
       sprintf(fname, format, imnr);
       fp = fopen(fname, "r");
-      if (fp == nullptr) {
+      if (fp == NULL) {
         printf("register: ### File %s not found\n", fname);
         return;
       }
@@ -4927,7 +4937,7 @@ void read_float_images(float ***fim, char *format, int nslices, int nperslice,
     if (imtype == SKIP) {           /* x,y file */
       sprintf(fname, format, k, t); /* assumes zero-based */
       fp = fopen(fname, "r");
-      if (fp == nullptr) {
+      if (fp == NULL) {
         printf("register: ### File %s not found\n", fname);
         return;
       }
@@ -5106,9 +5116,8 @@ int main(int argc, char **argv) /* new main */
 #endif // HAVE_TCL_TK_GL
 
   /* start program, now as function; gl window not opened yet */
-  // printf("tkregister: starting register\n");
-  Register((ClientData) nullptr, &interp, argc,
-           argv); /* event loop commented out*/
+  //printf("tkregister: starting register\n");
+  Register((ClientData)NULL, &interp, argc, argv); /* event loop commented out*/
 
 #ifdef HAVE_TCL_TK_GL
 
@@ -5276,7 +5285,7 @@ void usecnap(int usec) {
 
   delay.tv_sec  = 0;
   delay.tv_usec = (long)usec;
-  select(0, nullptr, nullptr, nullptr, &delay);
+  select(0, NULL, NULL, NULL, &delay);
 }
 
 #ifdef HAVE_TCL_TK_GL
@@ -5449,18 +5458,18 @@ MATRIX *Load4x4(char *fname) {
   fp = fopen(fname, "r");
   if (!fp) {
     printf("ERROR: cannot open %s for reading\n", fname);
-    return (nullptr);
+    return (NULL);
   }
 
   mat = MatrixAlloc(4, 4, MATRIX_REAL);
   r   = 1;
   c   = 1;
-  while (true) {
+  while (1) {
     m = fgetc(fp);
     if (m == EOF) {
       printf("ERROR: reading %s: EOF at r=%d c=%d \n", fname, r, c);
       fclose(fp);
-      return (nullptr);
+      return (NULL);
     }
     if (m == '#') {
       // # is a comment, skip entire line
@@ -5476,7 +5485,7 @@ MATRIX *Load4x4(char *fname) {
     if (m != 1) {
       printf("ERROR: reading %s: item r=%d c=%d \n", fname, r, c);
       fclose(fp);
-      return (nullptr);
+      return (NULL);
     }
     c++;
     if (c == 5) {
@@ -5491,7 +5500,7 @@ MATRIX *Load4x4(char *fname) {
 }
 
 /*-----------------------------------------------------------*/
-int AllocBuffs() {
+int AllocBuffs(void) {
   extern float **movimg, **targimg;
   extern int **  surfimg;
   int            n;

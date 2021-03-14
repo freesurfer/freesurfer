@@ -51,8 +51,7 @@ goto check_params;
 check_params_return:
 
 if($#tmpdir == 0) then
-  if(-dw /scratch)   set tmpdir = /scratch/tmpdir.spmseg.$$
-  if(! -dw /scratch) set tmpdir = $SUBJECTS_DIR/$subject/tmp/tmpdir.spmseg.$$
+  set tmpdir = `fs_temp_dir --scratch`
 endif
 mkdir -p $tmpdir
 

@@ -27,7 +27,7 @@ function [beta, rrho1, nrho1, nrho1hat] = fast_rfm2nrho1(R,nrho1)
 %
 % Original Author: Doug Greve
 %
-% Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+% Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
 %
 % Terms and conditions for use, reproduction, distribution and contribution
 % are found in the 'FreeSurfer Software License Agreement' contained

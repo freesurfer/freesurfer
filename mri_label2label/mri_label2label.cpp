@@ -15,7 +15,7 @@
  *
  *    This will map from fred to sally using sphere.reg. The registration
  *   surface can be changed with --surfreg.
- *
+ * 
  *  Example 2: You could also do the same mapping using talairach
  *   space as an intermediate:
  *
@@ -27,7 +27,7 @@
  *
  *  Example 3: You can specify the --usepathfiles flag to read and write
  *   from a tksurfer path file.
- *
+ * 
  *    mri_label2label --usepathfiles ...
  *
  *   When mapping from lh to rh:
@@ -38,7 +38,7 @@
 /*
  * Original Author: Douglas Greve
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -258,6 +258,18 @@ int main(int argc, char **argv) {
     if (srclabel == NULL) {
       fprintf(stderr, "ERROR reading %s\n", srclabelfile);
       exit(1);
+    }
+    if (ToScannerCoords) {
+      if (srclabel->coords != LABEL_COORDS_SCANNER_RAS) {
+        printf("Converting label to scanner RAS\n");
+        LabelToScannerRAS(srclabel, ToScannerTemplate, srclabel);
+      }
+    }
+    if (ToTkrCoords) {
+      if (srclabel->coords != LABEL_COORDS_TKREG_RAS) {
+        printf("Converting label to TkReg RAS\n");
+        LabelToSurfaceRAS(srclabel, ToTkrTemplate, srclabel);
+      }
     }
   }
   printf("Found %d points in source label.\n", srclabel->n_points);
@@ -921,6 +933,22 @@ static int parse_commandline(int argc, char **argv) {
       TrgInv = 1;
     else if (!strcmp(option, "--scanner"))
       UseScannerCoords = 1;
+    else if (!strcmp(option, "--to-scanner")) {
+      if (nargc < 1)
+        argnerr(option, 1);
+      ToScannerTemplate = MRIreadHeader(pargv[0], MRI_VOLUME_TYPE_UNKNOWN);
+      if (ToScannerTemplate == NULL)
+        exit(1);
+      nargsused = 1;
+    } else if (!strcmp(option, "--to-tkr")) {
+      if (nargc < 1)
+        argnerr(option, 1);
+      ToTkrCoords   = 1;
+      ToTkrTemplate = MRIreadHeader(pargv[0], MRI_VOLUME_TYPE_UNKNOWN);
+      if (ToTkrTemplate == NULL)
+        exit(1);
+      nargsused = 1;
+    }
 
     else if (!strcmp(option, "--s")) {
       if (nargc < 1)
@@ -1134,6 +1162,21 @@ static int parse_commandline(int argc, char **argv) {
         argnerr(option, 1);
       OutMaskFile = pargv[0];
       nargsused   = 1;
+    } else if (!strcmp(option, "--surf-label2mask")) {
+      if (nargc != 3) {
+        printf("--surf-label2mask label surf mask\n");
+        exit(1);
+      }
+      srclabel = LabelRead(NULL, pargv[0]);
+      if (!srclabel)
+        exit(1);
+      SrcSurfReg = MRISread(pargv[1]);
+      if (!SrcSurfReg)
+        exit(1);
+      outmask = MRISlabel2Mask(SrcSurfReg, srclabel, NULL);
+      int err = MRIwrite(outmask, pargv[2]);
+      exit(err);
+      nargsused = 3;
     } else if (!strcmp(option, "--outstat")) {
       if (nargc < 1)
         argnerr(option, 1);
@@ -1208,6 +1251,7 @@ static void print_usage(void) {
   printf("USAGE: %s \n", Progname);
   printf("\n");
   printf("   --srclabel     input label file \n");
+  printf("   --trglabel     output label file \n");
   printf("\n");
   printf("   --erode  N     erode the label N times before writing\n");
   printf("   --open   N     open the label N times before writing\n");
@@ -1219,7 +1263,6 @@ static void print_usage(void) {
   printf("   --trgsubject   target subject\n");
   printf("   --s subject : use for both target and source\n");
   printf("\n");
-  printf("   --trglabel     output label file \n");
   printf("   --outmask      maskfile : save output label as a "
          "binary mask (surf only)\n");
   printf("   --outstat      statfile : save output label stat as a "
@@ -1252,6 +1295,8 @@ static void print_usage(void) {
   printf("   --baryfill surf surflabel delta outlabel\n");
   printf("   --label-cortex surface aseg KeepHipAmyg01 outlabel : create a "
          "label like ?h.cortex.label\n");
+  printf("   --surf-label2mask label surf mask : stand-alone way to convert a "
+         "label to a binary mask\n");
   printf("\n");
   printf("   --srcmask     surfvalfile thresh <format>\n");
   printf("   --srcmasksign sign (<abs>,pos,neg)\n");
@@ -1268,9 +1313,17 @@ static void print_usage(void) {
   printf("   --sd subjectsdir : default is to use env SUBJECTS_DIR\n");
   printf("   --nohash : don't use hash table when regmethod is surface\n");
   printf("   --norevmap : don't use reverse mapping regmethod is surface\n");
+  printf("   --to-scanner template : convert coords to scanner RAS (if needed) "
+         "prior \n");
+  printf("       to other operations. template is the MRI volume that the "
+         "label was created on\n");
+  printf("   --to-tkr template : convert coords to tkregister RAS (if needed) "
+         "prior \n");
+  printf("       to other operations. template is the MRI volume that the "
+         "label was created on\n");
   printf("   --scanner : set output coordinate type to scanner\n");
-  printf("     NOTE: this does nothing more than change a string in the label "
-         "file\n");
+  printf("       NOTE: --scanner does nothing more than change a string in the "
+         "label file\n");
   printf("\n");
 }
 /* --------------------------------------------- */

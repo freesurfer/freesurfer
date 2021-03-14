@@ -44,8 +44,7 @@ set outdir = $SUBJECTS_DIR/$subject/mri/$outsub
 mkdir -p $outdir
 
 if($#tmpdir == 0) then
-  if(-dw /scratch)   set tmpdir = /scratch/tmpdir.wmsaseg.$$
-  if(! -dw /scratch) set tmpdir = $SUBJECTS_DIR/$subject/tmp/tmpdir.wmsaseg.$$
+  set tmpdir = `fs_temp_dir --scratch --base $SUBJECTS_DIR/$subject/tmp`
 endif
 mkdir -p $tmpdir
 

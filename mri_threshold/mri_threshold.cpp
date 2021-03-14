@@ -3,7 +3,7 @@
  *
  * This is a function that allows for intensity thresholding the input volume. By default the threshold is a lower threshold, but with the -u flag this can be changed to be an upper one.
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained

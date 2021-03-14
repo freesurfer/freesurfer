@@ -1,6 +1,6 @@
 /*
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -30,16 +30,25 @@
 
 */
 
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/utsname.h>
+#include <unistd.h>
 
 #include "cmdargs.h"
 #include "diag.h"
+#include "error.h"
 #include "fio.h"
+#include "matrix.h"
+#include "mri.h"
 #include "mri_identify.h"
 #include "pdf.h"
 #include "randomfields.h"
 #include "registerio.h"
 #include "resample.h"
+#include "utils.h"
 #include "version.h"
 #include "volcluster.h"
 
@@ -60,11 +69,11 @@ static MRI *  MRIbinarize01(MRI *vol, float thmin, float thmax,
                             int highval, int *nhits, MRI *binvol);
 
 static int  parse_commandline(int argc, char **argv);
-static void check_options();
-static void print_usage();
-static void usage_exit();
-static void print_help();
-static void print_version();
+static void check_options(void);
+static void print_usage(void);
+static void usage_exit(void);
+static void print_help(void);
+static void print_version(void);
 static void argnerr(char *option, int n);
 static int  singledash(char *flag);
 static void dump_options(FILE *fp);
@@ -79,13 +88,13 @@ static char tmpstr[2000];
 int debug   = 0;
 int verbose = 0;
 
-char *volid   = nullptr;
-char *regfile = nullptr;
+char *volid   = NULL;
+char *regfile = NULL;
 int   frame   = 0;
 int   intype  = MRI_VOLUME_TYPE_UNKNOWN;
 char *intypestring;
 
-char *      maskid   = nullptr;
+char *      maskid   = NULL;
 int         masktype = MRI_VOLUME_TYPE_UNKNOWN;
 char *      masktypestring;
 float       maskthresh     = 0.5;
@@ -93,15 +102,15 @@ const char *masksignstring = "abs";
 int         maskinvert     = 0;
 int         maskframe      = 0;
 
-char *outmaskid   = nullptr;
+char *outmaskid   = NULL;
 int   outmasktype = MRI_VOLUME_TYPE_UNKNOWN;
 char *outmasktypestring;
 
-char *outcnid   = nullptr;
+char *outcnid   = NULL;
 int   outcntype = MRI_VOLUME_TYPE_UNKNOWN;
 char *outcntypestring;
 
-char *outid = nullptr;
+char *outid = NULL;
 char *synthfunction;
 int   outtype = MRI_VOLUME_TYPE_UNKNOWN;
 char *outtypestring;
@@ -137,25 +146,25 @@ int    AdjustThreshWhenOneTail = 1;
 
 double cwpvalthresh = -1; // pvalue, NOT log10(p)!
 
-CSD *  csd = nullptr;
+CSD *  csd = NULL;
 char * csdfile;
 double pvalLow, pvalHi, ciPct = 90, pval, ClusterSize;
-char * csdpdffile = nullptr;
+char * csdpdffile = NULL;
 int    csdpdfonly = 0;
 
-char *voxwisesigfile    = nullptr;
-char *maxvoxwisesigfile = nullptr;
+char *voxwisesigfile    = NULL;
+char *maxvoxwisesigfile = NULL;
 MRI * voxwisesig, *clustwisesig;
-char *clustwisesigfile = nullptr;
+char *clustwisesigfile = NULL;
 
-char *       SUBJECTS_DIR = nullptr;
-char *       subject      = nullptr;
-char *       segvolfile   = nullptr;
-char *       segvolpath   = nullptr;
-MRI *        segvol0      = nullptr;
-MRI *        segvol       = nullptr;
+char *       SUBJECTS_DIR = NULL;
+char *       subject      = NULL;
+char *       segvolfile   = NULL;
+char *       segvolpath   = NULL;
+MRI *        segvol0      = NULL;
+MRI *        segvol       = NULL;
 char *       ctabfile;
-COLOR_TABLE *ctab = nullptr;
+COLOR_TABLE *ctab = NULL;
 int          ctabindex;
 
 double         fwhm = -1;
@@ -200,7 +209,7 @@ int main(int argc, char **argv) {
   argc--;
   argv++;
   ErrorInit(NULL, NULL, NULL);
-  DiagInit(nullptr, nullptr, nullptr);
+  DiagInit(NULL, NULL, NULL);
 
   if (argc == 0)
     usage_exit();
@@ -216,7 +225,7 @@ int main(int argc, char **argv) {
 
   /* Load the input volume */
   vol = MRIread(volid);
-  if (vol == nullptr) {
+  if (vol == NULL) {
     fprintf(stderr, "ERROR: reading %s\n", volid);
     exit(1);
   }
@@ -240,10 +249,10 @@ int main(int argc, char **argv) {
   }
 
   /* Load the mask volume */
-  if (maskid != nullptr) {
+  if (maskid != NULL) {
     printf("INFO: loading mask volume: %s\n", maskid);
     maskvol = MRIread(maskid);
-    if (maskvol == nullptr) {
+    if (maskvol == NULL) {
       fprintf(stderr, "ERROR: reading %s\n", maskid);
       exit(1);
     }
@@ -260,29 +269,29 @@ int main(int argc, char **argv) {
     }
 
     binmask = MRIbinarize01(maskvol, maskthresh, -1, masksignstring, maskinvert,
-                            0, 1, &nmask, nullptr);
-    if (binmask == nullptr)
+                            0, 1, &nmask, NULL);
+    if (binmask == NULL)
       exit(1);
 
-    // if (outmaskid != NULL) MRIwriteType(binmask,outmaskid,outmasktype);
-    if (outmaskid != nullptr)
+    //if (outmaskid != NULL) MRIwriteType(binmask,outmaskid,outmasktype);
+    if (outmaskid != NULL)
       MRIwrite(binmask, outmaskid);
     MRIfree(&maskvol);
     printf("Found %d voxels in mask\n", nmask);
   } else {
-    binmask = nullptr;
+    binmask = NULL;
     nmask   = vol->width * vol->height * vol->depth;
   }
 
   /* Load the resolution and geometry information from the register.dat */
-  if (regfile != nullptr)
+  if (regfile != NULL)
     CRS2MNI =
         LoadMNITransform(regfile, vol->width, vol->height, vol->depth, &CRS2FSA,
                          &FSA2Func, &colres, &rowres, &sliceres);
   else {
-    CRS2MNI  = MatrixIdentity(4, nullptr);
-    CRS2FSA  = MatrixIdentity(4, nullptr);
-    FSA2Func = MatrixIdentity(4, nullptr);
+    CRS2MNI  = MatrixIdentity(4, NULL);
+    CRS2FSA  = MatrixIdentity(4, NULL);
+    FSA2Func = MatrixIdentity(4, NULL);
   }
 
   colres   = vol->xsize;
@@ -301,24 +310,24 @@ int main(int argc, char **argv) {
   searchspace = nmask * voxsize;
   printf("Search Space = %g mm3\n", searchspace);
 
-  if (segvolpath != nullptr) {
+  if (segvolpath != NULL) {
     segvol0 = MRIread(segvolpath);
-    if (segvol0 == nullptr)
+    if (segvol0 == NULL)
       exit(1);
     segvol  = MRIcloneBySpace(vol, -1, 1);
     vox2vox = MRIvoxToVoxFromTkRegMtx(vol, segvol0, FSA2Func);
-    vox2vox = MatrixInverse(vox2vox, nullptr);
+    vox2vox = MatrixInverse(vox2vox, NULL);
     MRIvol2Vol(segvol0, segvol, vox2vox, SAMPLE_NEAREST, 0);
     MatrixFree(&vox2vox);
     MRIfree(&segvol0);
-    if (segctabfile == nullptr) {
+    if (segctabfile == NULL) {
       segctabfile = (char *)calloc(sizeof(char), 1000);
       sprintf(segctabfile, "%s/FreeSurferColorLUT.txt",
               getenv("FREESURFER_HOME"));
     }
     printf("Using ctab %s\n", segctabfile);
     segctab = CTABreadASCII(segctabfile);
-    if (segctab == nullptr) {
+    if (segctab == NULL) {
       printf("ERROR: reading %s\n", segctabfile);
       exit(1);
     }
@@ -328,7 +337,7 @@ int main(int argc, char **argv) {
     sizethresh = sizethreshvox * voxsize;
 
   /* Replace data with synthetic if desired */
-  if (synthfunction != nullptr) {
+  if (synthfunction != NULL) {
     printf("INFO: synthsizing with %s\n", synthfunction);
     if (!strcmp(synthfunction, "uniform"))
       MRIsynthUniform(0, 0, 0, 0, vol);
@@ -342,7 +351,7 @@ int main(int argc, char **argv) {
     double maxmaxsig;
     printf("Computing voxel-wise significance\n");
     voxwisesig =
-        CSDpvalMaxSigMap(vol, csd, binmask, nullptr, &maxmaxsig, Bonferroni);
+        CSDpvalMaxSigMap(vol, csd, binmask, NULL, &maxmaxsig, Bonferroni);
     MRIwrite(voxwisesig, voxwisesigfile);
     if (maxvoxwisesigfile) {
       fp = fopen(maxvoxwisesigfile, "w");
@@ -357,7 +366,7 @@ int main(int argc, char **argv) {
   HitMap =
       clustInitHitMap(vol, frame, threshminadj, threshmaxadj, threshsign,
                       &nhits, &hitcol, &hitrow, &hitslc, binmask, maskframe);
-  if (HitMap == nullptr) {
+  if (HitMap == NULL) {
     printf("ERROR: initializing hit map\n");
     if (nhits == 0) {
       printf("  No voxels were found that met the threshold criteria");
@@ -367,14 +376,14 @@ int main(int argc, char **argv) {
     }
     exit(1);
   }
-  // MRIwriteType(HitMap,"hitmap",BSHORT_FILE);
+  //MRIwriteType(HitMap,"hitmap",BSHORT_FILE);
 
   printf("INFO: Found %d voxels in threhold range\n", nhits);
 
   /* Allocate an array of clusters equal to the number of hits -- this
      is the maximum number of clusters possible */
   ClusterList = clustAllocClusterList(nhits);
-  if (ClusterList == nullptr) {
+  if (ClusterList == NULL) {
     fprintf(stderr, "ERROR: could not alloc %d clusters\n", nhits);
     exit(1);
   }
@@ -397,7 +406,7 @@ int main(int argc, char **argv) {
     /* Determine the member with the maximum value */
     clustMaxMember(ClusterList[nclusters], vol, frame, threshsign);
 
-    // clustComputeXYZ(ClusterList[nclusters],CRS2FSA); /* for FSA coords */
+    //clustComputeXYZ(ClusterList[nclusters],CRS2FSA); /* for FSA coords */
     clustComputeTal(ClusterList[nclusters], CRS2MNI); /*"true" Tal coords */
 
     /* increment the number of clusters */
@@ -412,7 +421,7 @@ int main(int argc, char **argv) {
   /* Remove clusters that do not meet the minimum size requirement */
   ClusterList2 = clustPruneBySize(ClusterList, nclusters, voxsize, sizethresh,
                                   &nprunedclusters);
-  // clustFreeClusterList(&ClusterList,nclusters);/* Free - does not work */
+  //clustFreeClusterList(&ClusterList,nclusters);/* Free - does not work */
   nclusters   = nprunedclusters;
   ClusterList = ClusterList2;
 
@@ -426,21 +435,21 @@ int main(int argc, char **argv) {
     printf("INFO: pruning by distance %g\n", distthresh);
     ClusterList2 = clustPruneByDistance(ClusterList, nclusters, distthresh,
                                         &nprunedclusters);
-    // clustFreeClusterList(&ClusterList,nclusters);/* Free - does not work */
+    //clustFreeClusterList(&ClusterList,nclusters);/* Free - does not work */
     nclusters   = nprunedclusters;
     ClusterList = ClusterList2;
   }
 
   /* Sort Clusters */
-  ClusterList2 = clustSortClusterList(ClusterList2, nclusters, nullptr);
-  // clustFreeClusterList(&ClusterList,nclusters);/* Free - does not work */
+  ClusterList2 = clustSortClusterList(ClusterList2, nclusters, NULL);
+  //clustFreeClusterList(&ClusterList,nclusters);/* Free - does not work */
   ClusterList = ClusterList2;
 
   printf("INFO: Found %d final clusters\n", nclusters);
   if (debug)
     clustDumpClusterList(stdout, ClusterList, nclusters, vol, frame);
 
-  if (csd != nullptr) {
+  if (csd != NULL) {
     for (n = 0; n < nclusters; n++) {
       ClusterSize = ClusterList[n]->nmembers * voxsize;
       pval = CSDpvalClustSize(csd, ClusterSize, ciPct, &pvalLow, &pvalHi);
@@ -498,12 +507,12 @@ int main(int argc, char **argv) {
     }
   }
   /* Sort Clusters */
-  ClusterList2 = clustSortClusterList(ClusterList2, nclusters, nullptr);
-  // clustFreeClusterList(&ClusterList,nclusters);/* Free - does not work */
+  ClusterList2 = clustSortClusterList(ClusterList2, nclusters, NULL);
+  //clustFreeClusterList(&ClusterList,nclusters);/* Free - does not work */
   ClusterList = ClusterList2;
 
   /* Remove clusters that do not meet the minimum clusterwise pvalue */
-  if (cwpvalthresh > 0 && (fwhm > 0 || csd != nullptr)) {
+  if (cwpvalthresh > 0 && (fwhm > 0 || csd != NULL)) {
     printf("Pruning by CW P-Value %g\n", cwpvalthresh);
     ClusterList2 = clustPruneByCWPval(ClusterList, nclusters, cwpvalthresh,
                                       &nprunedclusters);
@@ -512,9 +521,9 @@ int main(int argc, char **argv) {
   }
 
   /* Open the Summary File (or set its pointer to stdout) */
-  if (sumfile != nullptr) {
+  if (sumfile != NULL) {
     fpsum = fopen(sumfile, "w");
-    if (fpsum == nullptr) {
+    if (fpsum == NULL) {
       printf("ERROR: could not open %s for writing\n", sumfile);
       exit(1);
     }
@@ -561,9 +570,9 @@ int main(int argc, char **argv) {
     fprintf(fpsum, "# Registration:      %s\n", regfile);
   else
     fprintf(fpsum, "# Registration:      None : Tal Coords invalid\n");
-  if (synthfunction != nullptr)
+  if (synthfunction != NULL)
     fprintf(fpsum, "# Synthesize:        %s\n", synthfunction);
-  if (maskid != nullptr) {
+  if (maskid != NULL) {
     fprintf(fpsum, "# Mask Vol:          %s\n", maskid);
     fprintf(fpsum, "# Mask Thresh:       %f\n", maskthresh);
     fprintf(fpsum, "# Mask Sign:         %s\n", masksignstring);
@@ -571,7 +580,7 @@ int main(int argc, char **argv) {
   }
   fprintf(fpsum, "# AllowDiag:         %d\n", allowdiag);
   fprintf(fpsum, "# NClusters          %d\n", nclusters);
-  if (csd != nullptr) {
+  if (csd != NULL) {
     fprintf(fpsum, "# CSD thresh  %lf\n", csd->thresh);
     fprintf(fpsum, "# CSD nreps    %d\n", csd->nreps);
     fprintf(fpsum, "# CSD simtype  %s\n", csd->simtype);
@@ -602,7 +611,7 @@ int main(int argc, char **argv) {
                    "VoxX    VoxY    VoxZ             Max");
   }
 
-  if (csd != nullptr)
+  if (csd != NULL)
     fprintf(fpsum, "    CWP    CWPLow    CWPHi\n");
   else if (fwhm > 0)
     fprintf(fpsum, "     GRFCWP\n");
@@ -617,8 +626,8 @@ int main(int argc, char **argv) {
         maxval *= BonferroniMax;
     }
     clustComputeTal(ClusterList[n], CRS2MNI); /* for "true" Tal coords */
-    // clustComputeXYZ(ClusterList[n],CRS2FSA); /* for FSA coords */
-    // clustComputeXYZ(ClusterList[n],CRS2MNI); /* for MNI coords */
+    //clustComputeXYZ(ClusterList[n],CRS2FSA); /* for FSA coords */
+    //clustComputeXYZ(ClusterList[n],CRS2MNI); /* for MNI coords */
     col = ClusterList[n]->col[ClusterList[n]->maxmember];
     row = ClusterList[n]->row[ClusterList[n]->maxmember];
     slc = ClusterList[n]->slc[ClusterList[n]->maxmember];
@@ -636,7 +645,7 @@ int main(int argc, char **argv) {
             x, y, z, maxval);
     if (debug)
       fprintf(fpsum, "  %3d %3d %3d \n", col, row, slc);
-    if (csd != nullptr)
+    if (csd != NULL)
       fprintf(fpsum, "  %7.5lf  %7.5lf  %7.5lf",
               ClusterList[n]->pval_clusterwise,
               ClusterList[n]->pval_clusterwise_low,
@@ -649,7 +658,7 @@ int main(int argc, char **argv) {
     }
     fprintf(fpsum, "\n");
   }
-  if (sumfile != nullptr)
+  if (sumfile != NULL)
     fclose(fpsum);
 
   if (pointset != NULL) {
@@ -673,17 +682,17 @@ int main(int argc, char **argv) {
   }
 
   /* Write clusters values to a volume */
-  if (outid != nullptr) {
+  if (outid != 0) {
     outvol = clustClusterList2Vol(ClusterList, nclusters, vol, frame, 1);
-    // MRIwriteType(outvol,outid,outtype);
+    //MRIwriteType(outvol,outid,outtype);
     MRIwrite(outvol, outid);
     MRIfree(&outvol);
   }
 
   /* --- Save the cluster pval --- */
-  if (clustwisesigfile != nullptr) {
+  if (clustwisesigfile != NULL) {
     printf("Saving cluster pval %s\n", clustwisesigfile);
-    clustwisesig = MRIclone(vol, nullptr);
+    clustwisesig = MRIclone(vol, NULL);
     for (n = 0; n < nclusters; n++) {
       pval = ClusterList[n]->pval_clusterwise;
       if (pval < 10e-30)
@@ -724,7 +733,7 @@ int main(int argc, char **argv) {
 
   /* Write the given cluster to a label file */
   /* Warning: the cluster xyz will change */
-  if (labelfile != nullptr) {
+  if (labelfile != NULL) {
     if (nlabelcluster > nclusters) {
       fprintf(stderr,
               "ERROR: selected cluster number %d, "
@@ -738,7 +747,7 @@ int main(int argc, char **argv) {
     LabelWrite(label, labelfile);
   }
 
-  if (labelbase != nullptr) {
+  if (labelbase != NULL) {
     for (nlabelcluster = 0; nlabelcluster < nclusters; nlabelcluster++) {
 
       printf("Computing label for cluster %d\n", nlabelcluster);
@@ -829,7 +838,7 @@ static int parse_commandline(int argc, char **argv) {
       subject      = pargv[0];
       segvolfile   = pargv[1];
       SUBJECTS_DIR = getenv("SUBJECTS_DIR");
-      if (SUBJECTS_DIR == nullptr) {
+      if (SUBJECTS_DIR == NULL) {
         printf("ERROR: SUBJECTS_DIR not defined in environment\n");
         exit(1);
       }
@@ -1013,7 +1022,7 @@ static int parse_commandline(int argc, char **argv) {
         argnerr(option, 1);
       csdfile = pargv[0];
       csd     = CSDreadMerge(csdfile, csd);
-      if (csd == nullptr)
+      if (csd == NULL)
         exit(1);
       if (strcmp(csd->anattype, "volume")) {
         printf("ERROR: csd must have anattype of volume\n");
@@ -1084,8 +1093,8 @@ static int parse_commandline(int argc, char **argv) {
         argnerr(option, 1);
       FILE *fp;
       srand48(PDFtodSeed());
-      sprintf(tmpstr, "/tmp/tmp.mri_volcluster.%d.reg.dat",
-              (int)round(drand48() * 10000));
+      std::string tmpname = makeTempFile(".dat");
+      sprintf(tmpstr, "%s", tmpname.c_str());
       regfile = strcpyalloc(tmpstr);
       fp      = fopen(regfile, "w");
       fprintf(fp, "%s\n", pargv[0]);
@@ -1138,12 +1147,12 @@ static int parse_commandline(int argc, char **argv) {
   return (0);
 }
 /* ------------------------------------------------------ */
-static void usage_exit() {
+static void usage_exit(void) {
   print_usage();
   exit(1);
 }
 /* --------------------------------------------- */
-static void print_usage() {
+static void print_usage(void) {
   printf("USAGE: %s \n", Progname);
   printf("\n");
   printf("   --in infile : source of volume values\n");
@@ -1211,7 +1220,7 @@ static void print_usage() {
 }
 
 /* --------------------------------------------- */
-static void print_help() {
+static void print_help(void) {
   printf("\n");
   print_usage();
   printf("\n");
@@ -1485,13 +1494,13 @@ static int singledash(char *flag) {
   return (0);
 }
 /* --------------------------------------------- */
-static void check_options() {
+static void check_options(void) {
   int err;
 
   err = 0;
 
   if (csdpdffile) {
-    if (csd == nullptr) {
+    if (csd == NULL) {
       printf("ERROR: need --csd with --csdpdf");
       exit(1);
     }
@@ -1500,22 +1509,22 @@ static void check_options() {
     if (csdpdfonly)
       exit(0);
   }
-  if (voxwisesigfile != nullptr && csd == nullptr) {
+  if (voxwisesigfile != NULL && csd == NULL) {
     printf("ERROR: need csd with --vwsig\n");
     exit(1);
   }
-  if (clustwisesigfile != nullptr && csd == nullptr && fwhm < 0) {
+  if (clustwisesigfile != NULL && csd == NULL && fwhm < 0) {
     printf("ERROR: need csd with --cwsig\n");
     exit(1);
   }
 
-  if (volid == nullptr) {
+  if (volid == NULL) {
     fprintf(stderr, "ERROR: no input volume supplied\n");
     err = 1;
   }
 
   // Check cluster data file
-  if (csd != nullptr) {
+  if (csd != NULL) {
     if (threshmin < 0)
       threshmin = csd->thresh;
     else {
@@ -1581,7 +1590,7 @@ static void check_options() {
   }
   printf("threshmin %g, threshminadj %g\n", threshmin, threshminadj);
 
-  if (synthfunction != nullptr) {
+  if (synthfunction != NULL) {
     if (strcmp(synthfunction, "uniform") &&
         strcmp(synthfunction, "loguniform") &&
         strcmp(synthfunction, "gaussian")) {
@@ -1599,7 +1608,7 @@ static void check_options() {
     exit(1);
   }
 
-  if (outid != nullptr) {
+  if (outid != 0) {
     if (outtype == MRI_VOLUME_TYPE_UNKNOWN)
       outtype = mri_identify(outid);
     if (outtype == MRI_VOLUME_TYPE_UNKNOWN) {
@@ -1608,7 +1617,7 @@ static void check_options() {
     }
   }
 
-  if (maskid != nullptr) {
+  if (maskid != 0) {
     if (masktype == MRI_VOLUME_TYPE_UNKNOWN)
       masktype = mri_identify(maskid);
     if (masktype == MRI_VOLUME_TYPE_UNKNOWN) {
@@ -1617,7 +1626,7 @@ static void check_options() {
     }
   }
 
-  if (outmaskid != nullptr) {
+  if (outmaskid != 0) {
     if (outmasktype == MRI_VOLUME_TYPE_UNKNOWN)
       outmasktype = mri_identify(outmaskid);
     if (outmasktype == MRI_VOLUME_TYPE_UNKNOWN) {
@@ -1626,7 +1635,7 @@ static void check_options() {
     }
   }
 
-  if (outcnid != nullptr) {
+  if (outcnid != 0) {
     if (outcntype == MRI_VOLUME_TYPE_UNKNOWN)
       outcntype = mri_identify(outcnid);
     if (outcntype == MRI_VOLUME_TYPE_UNKNOWN) {
@@ -1635,31 +1644,31 @@ static void check_options() {
     }
   }
 
-  if (labelfile != nullptr && nlabelcluster < 1) {
+  if (labelfile != NULL && nlabelcluster < 1) {
     printf("ERROR: --nlabelcluster must be specified with --label\n");
     err = 1;
   }
 
-  if (segvolfile != nullptr) {
-    if (ctabfile == nullptr) {
+  if (segvolfile != NULL) {
+    if (ctabfile == NULL) {
       ctabfile = (char *)calloc(sizeof(char), 1000);
       sprintf(ctabfile, "%s/FreeSurferColorLUT.txt", getenv("FREESURFER_HOME"));
       printf("Using defalt ctab %s\n", ctabfile);
     }
     ctab = CTABreadASCII(ctabfile);
-    if (ctab == nullptr)
+    if (ctab == NULL)
       exit(1);
   }
 
-  if (UseFSAverage && regfile != nullptr) {
+  if (UseFSAverage && regfile != NULL) {
     printf("ERROR: cannot --reg and --fsaverage\n");
     exit(1);
   }
 
   // This no longer applies
-  // if(fwhm > 0 && !strcmp(signstring,"abs")){
-  // printf("ERROR: you must specify a pos or neg sign with --fwhm\n");
-  // exit(1);
+  //if(fwhm > 0 && !strcmp(signstring,"abs")){
+  //printf("ERROR: you must specify a pos or neg sign with --fwhm\n");
+  //exit(1);
   //}
 
   if (err)
@@ -1699,13 +1708,13 @@ static MATRIX *LoadMNITransform(char *regfile, int ncols, int nrows,
   float       ipr, bpr, intensity;
   MATRIX *    Rtmp, *R, *iR, *T, *iQ;
   MATRIX *    CRS2MNI;
-  // char talxfmfile[1000];
+  //char talxfmfile[1000];
 
   err = regio_read_register(regfile, &subject, &ipr, &bpr, &intensity, &R,
                             &float2int);
   if (err)
     exit(1);
-  iR = MatrixInverse(R, nullptr);
+  iR = MatrixInverse(R, NULL);
 
   if ((fabs(vol->xsize - ipr) > .001) || fabs(vol->zsize - bpr) > .001) {
     printf("ERROR: Input volume voxel dimensions do not match those \n"
@@ -1728,7 +1737,7 @@ static MATRIX *LoadMNITransform(char *regfile, int ncols, int nrows,
 
   /* get the SUBJECTS_DIR environment variable */
   SUBJECTS_DIR = getenv("SUBJECTS_DIR");
-  if (SUBJECTS_DIR == nullptr) {
+  if (SUBJECTS_DIR == NULL) {
     printf("ERROR: environment variable SUBJECTS_DIR undefined "
            "(use setenv)\n");
     exit(1);
@@ -1736,13 +1745,13 @@ static MATRIX *LoadMNITransform(char *regfile, int ncols, int nrows,
   printf("INFO: subject = %s\n", subject);
 
   /* Load the talairach.xfm */
-  T = DevolveXFM(subject, nullptr, nullptr);
-  if (T == nullptr)
+  T = DevolveXFM(subject, NULL, NULL);
+  if (T == NULL)
     exit(1);
-  // sprintf(talxfmfile,"%s/%s/mri/transforms/talairach.xfm",
-  // SUBJECTS_DIR,subject);
-  // err = regio_read_mincxfm(talxfmfile, &T);
-  // if(err) exit(1);
+  //sprintf(talxfmfile,"%s/%s/mri/transforms/talairach.xfm",
+  //SUBJECTS_DIR,subject);
+  //err = regio_read_mincxfm(talxfmfile, &T);
+  //if(err) exit(1);
 
   iQ = MRIxfmCRS2XYZtkreg(vol);
   printf("Input volume FOV xfm Matrix: ----------------\n");
@@ -1755,7 +1764,7 @@ static MATRIX *LoadMNITransform(char *regfile, int ncols, int nrows,
   MatrixFree(&iQ);
   MatrixFree(&T);
 
-  // MatrixFree(&R);
+  //MatrixFree(&R);
   *ppFSA2Func = R;
   *colres     = ipr;
   *rowres     = ipr;
@@ -1770,11 +1779,11 @@ static MRI *MRIsynthUniform(int ncols, int nrows, int nslices, int nframes,
   MRI *vol;
   int  col, row, slc, frm;
 
-  if (tvol == nullptr) {
+  if (tvol == NULL) {
     vol = MRIallocSequence(ncols, nrows, nslices, MRI_FLOAT, nframes);
-    if (vol == nullptr) {
+    if (vol == NULL) {
       fprintf(stderr, "ERROR: MRIsynthUniform: could not alloc mri\n");
-      return (nullptr);
+      return (NULL);
     }
   } else
     vol = tvol;
@@ -1798,11 +1807,11 @@ static MRI *MRIsynthLogUniform(int ncols, int nrows, int nslices, int nframes,
   MRI *vol;
   int  col, row, slc, frm;
 
-  if (tvol == nullptr) {
+  if (tvol == NULL) {
     vol = MRIallocSequence(ncols, nrows, nslices, MRI_FLOAT, nframes);
-    if (vol == nullptr) {
+    if (vol == NULL) {
       fprintf(stderr, "ERROR: MRIsynthLogUniform: could not alloc mri\n");
-      return (nullptr);
+      return (NULL);
     }
   } else
     vol = tvol;
@@ -1826,11 +1835,11 @@ static MRI *MRIsynthGaussian(int ncols, int nrows, int nslices, int nframes,
   MRI *vol;
   int  col, row, slc, frm;
 
-  if (tvol == nullptr) {
+  if (tvol == NULL) {
     vol = MRIallocSequence(ncols, nrows, nslices, MRI_FLOAT, nframes);
-    if (vol == nullptr) {
+    if (vol == NULL) {
       fprintf(stderr, "ERROR: MRIsynthGaussian: could not alloc mri\n");
-      return (nullptr);
+      return (NULL);
     }
   } else
     vol = tvol;
@@ -1854,7 +1863,7 @@ static MRI *MRIsynthGaussian(int ncols, int nrows, int nslices, int nframes,
  *          distribution with zero mean and std dev of 1:
  *              pdf(x) = e^(x^2/2)/sqrt(2pi)
  ************************************************************/
-static double Gaussian01PDF() {
+static double Gaussian01PDF(void) {
   double v1, v2, r2;
 
   do {
@@ -1897,7 +1906,7 @@ static MRI *MRIbinarize01(MRI *vol, float thmin, float thmax,
     ithsign = +1;
   else {
     printf("ERROR:  MRIbinarize01(): sign string = %s\n", thsign);
-    return (nullptr);
+    return (NULL);
   }
 
   ncols   = vol->width;
@@ -1905,24 +1914,24 @@ static MRI *MRIbinarize01(MRI *vol, float thmin, float thmax,
   nslices = vol->depth;
   nframes = vol->nframes;
 
-  if (binvol == nullptr) {
+  if (binvol == NULL) {
     binvol = MRIallocSequence(ncols, nrows, nslices, MRI_INT, nframes);
-    if (binvol == nullptr) {
+    if (binvol == NULL) {
       printf("ERROR: MRIbinarize01(): could not alloc\n");
-      return (nullptr);
+      return (NULL);
     }
     MRIcopyHeader(vol, binvol);
   } else {
     if ((binvol->width != ncols) || (binvol->height != nrows) ||
         (binvol->depth != nslices) || (binvol->nframes != nframes)) {
       printf("ERROR: MRIbinarize01(): dimension missmatch\n");
-      return (nullptr);
+      return (NULL);
     }
     if (binvol->type != MRI_INT) {
       printf("ERROR: MRIbinarize01(): passed binvol "
              "type = %d, must be int (%d)\n",
              binvol->type, MRI_INT);
-      return (nullptr);
+      return (NULL);
     }
   }
 

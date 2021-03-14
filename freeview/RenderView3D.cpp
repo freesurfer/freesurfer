@@ -5,7 +5,7 @@
 /*
  * Original Author: Ruopeng Wang
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -41,6 +41,7 @@
 #include "vtkInteractorStyleMyTrackballCamera.h"
 #include "vtkRGBAColorTransferFunction.h"
 #include <QDebug>
+#include <QElapsedTimer>
 #include <QFileInfo>
 #include <QMenu>
 #include <QtGlobal>
@@ -58,6 +59,7 @@
 #include <vtkProp.h>
 #include <vtkProperty.h>
 #include <vtkRenderWindow.h>
+#include <vtkRenderWindowInteractor.h>
 #include <vtkRenderer.h>
 #include <vtkScalarBarActor.h>
 #include <vtkTextProperty.h>
@@ -154,10 +156,8 @@ void RenderView3D::SetInteractionMode(int nMode) {
 void RenderView3D::OnSlicePositionChanged(bool bCenter) {
   Q_UNUSED(bCenter);
   LayerCollection *lc = MainWindow::GetMainWindow()->GetLayerCollection("MRI");
-  //  LayerSurface* surf =
-  //  (LayerSurface*)MainWindow::GetMainWindow()->GetActiveLayer("Surface");
-  //  m_cursorInflatedSurf->Show(m_cursor3D->IsShown() && surf &&
-  //  surf->IsInflated());
+  //  LayerSurface* surf = (LayerSurface*)MainWindow::GetMainWindow()->GetActiveLayer("Surface");
+  //  m_cursorInflatedSurf->Show(m_cursor3D->IsShown() && surf && surf->IsInflated());
   m_cursor3D->SetPosition(lc->GetSlicePosition());
   UpdateSliceFrames();
   UpdateSurfaceCorrelationData();
@@ -702,9 +702,8 @@ int RenderView3D::PickCurrentSurfaceVertex(int posX, int posY,
 
 void RenderView3D::DoUpdateConnectivityDisplay() {
   /*
-  ConnectivityData* conn =
-  MainWindow::GetMainWindowPointer()->GetConnectivityData(); if (
-  conn->IsValid() && conn->GetDisplayMode() != ConnectivityData::DM_All )
+  ConnectivityData* conn = MainWindow::GetMainWindowPointer()->GetConnectivityData();
+  if ( conn->IsValid() && conn->GetDisplayMode() != ConnectivityData::DM_All )
   {
   conn->BuildConnectivityActors();
   }
@@ -933,7 +932,7 @@ bool RenderView3D::InitializeSelectRegion(int posX, int posY) {
   }
 
   lc_mri->SetActiveLayer(mri);
-  SurfaceRegion *reg = mri->CreateNewSurfaceRegion(pos);
+  SurfaceRegion *reg = mri->CreateNewSurfaceRegion(pos, prop);
   if (reg) {
     emit SurfaceRegionSelected(reg);
   }
@@ -1181,12 +1180,10 @@ void RenderView3D::Rotate90() { Azimuth(90); }
 void RenderView3D::Rotate180() { Azimuth(180); }
 
 void RenderView3D::UpdateScalarBar() {
-  //    LayerSurface* surf = (LayerSurface*)
-  //    MainWindow::GetMainWindow()->GetActiveLayer( "Surface" ); if ( surf &&
-  //    surf->GetActiveOverlay() )
+  //    LayerSurface* surf = (LayerSurface*) MainWindow::GetMainWindow()->GetActiveLayer( "Surface" );
+  //    if ( surf && surf->GetActiveOverlay() )
   //    {
-  //        m_actorScalarBar->SetLookupTable(
-  //        surf->GetActiveOverlay()->GetProperty()->GetLookupTable() );
+  //        m_actorScalarBar->SetLookupTable( surf->GetActiveOverlay()->GetProperty()->GetLookupTable() );
   //    }
   //    else
   { RenderView::UpdateScalarBar(); }

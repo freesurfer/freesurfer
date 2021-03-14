@@ -42,6 +42,7 @@ class SamsegLesion(Samseg):
         intensityMaskingSearchString="Cortex",
         gmmFileName=None,
         sampler=True,
+        ignoreUnknownPriors=False,
     ):
         Samseg.__init__(
             self,
@@ -64,6 +65,7 @@ class SamsegLesion(Samseg):
             pallidumAsWM=pallidumAsWM,
             saveModelProbabilities=saveModelProbabilities,
             gmmFileName=gmmFileName,
+            ignoreUnknownPriors=ignoreUnknownPriors,
         )
         self.numberOfSamplingSteps = numberOfSamplingSteps
         self.numberOfBurnInSteps = numberOfBurnInSteps
