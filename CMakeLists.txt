@@ -463,7 +463,7 @@ set(ABSL_RUN_TESTS OFF)
 if(BUILD_TESTING)
   set(BUILD_TESTING OFF)
 endif()
-add_subdirectory(packages/abseil-cpp)
+add_subdirectory(third_party/abseil-cpp)
 set(BUILD_TESTING ${_BUILD_TESTING})
 
 # xxd is used to generate the helptext headers
@@ -689,6 +689,7 @@ find_package(spdlog REQUIRED HINTS "/usr/local/opt/spdlog")
 #find_package(gtest REQUIRED)
 #find_package(benchmark REQUIRED)
 add_subdirectory(packages)
+add_subdirectory(third_party)
 
 #if(APPLE)
 #  # this is an ugly hack to ensure that cmake looks for the
@@ -810,12 +811,12 @@ set(FS_INCLUDE_DIRS
     ${CMAKE_SOURCE_DIR}/packages/netcdf
     ${CMAKE_SOURCE_DIR}/packages/nifti
     ${CMAKE_SOURCE_DIR}/include/mri_tools
-    ${CMAKE_SOURCE_DIR}/packages/abseil-cpp/
     ${CMAKE_SOURCE_DIR}/packages/benchmark/include/
     ${CMAKE_SOURCE_DIR}/packages/fmt/include/
     ${CMAKE_SOURCE_DIR}/packages/GSL/include
     ${CMAKE_SOURCE_DIR}/packages/spdlog/include
     ${CMAKE_SOURCE_DIR}/packages/tiff/
+    ${CMAKE_SOURCE_DIR}/third_party/abseil-cpp/
     )
 
 if(NOT APPLE)
@@ -1162,14 +1163,18 @@ if(CMAKE_BUILD_TYPE STREQUAL "coverage")
                     )
 
   add_custom_target(generate-coverage-reports)
+  get_directory_property(CURR_ADDIDITIONAL_CLEAN_FILES DIRECTORY ${CMAKE_BINARY_DIR} ADDITIONAL_CLEAN_FILES)
+  set(GCOV_ARTIFACTS "coverage.info;gcov-report")
+  set(LLVM_COV_ARTIFACTS "profiles.manifest;profiles;merged.profdata;llvm-cov-report")
 
   if(FS_COVERAGE_STYLE STREQUAL "gcov" OR FS_COVERAGE_STYLE STREQUAL "all")
     add_custom_target(generate-gcov-coverage-report
                       COMMAND bash -c \" lcov --capture --directory ${CMAKE_BINARY_DIR} --output-file
                               ${CMAKE_BINARY_DIR}/coverage.info && lcov --remove ${CMAKE_BINARY_DIR}/coverage.info -o
                               ${CMAKE_BINARY_DIR}/coverage.info '${CMAKE_SOURCE_DIR}/packages/*' '/usr/local/*'
-                              '/Applications/Xcode.app/*' '/Library/Developer/CommandLineTools/*' && genhtml
-                              ${CMAKE_BINARY_DIR}/coverage.info --output-directory ${CMAKE_BINARY_DIR}/gcov-report \"
+                              '${CMAKE_SOURCE_DIR}/third_party/*' '/Applications/Xcode.app/*'
+                              '/Library/Developer/CommandLineTools/*' && genhtml ${CMAKE_BINARY_DIR}/coverage.info
+                              --output-directory ${CMAKE_BINARY_DIR}/gcov-report \"
                       WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
                       )
 
@@ -1182,10 +1187,9 @@ if(CMAKE_BUILD_TYPE STREQUAL "coverage")
     add_dependencies(generate-gcov-coverage-report check-all)
     add_dependencies(upload-gcov-coverage-report generate-gcov-coverage-report)
     add_dependencies(generate-coverage-reports generate-gcov-coverage-report)
+    list(APPEND CURR_ADDIDITIONAL_CLEAN_FILES "GCOV_ARTIFACTS")
 
-    set_property(DIRECTORY ${CMAKE_BINARY_DIR} PROPERTY ADDITIONAL_CLEAN_FILES "coverage.info;gcov-report")
-
-  endif()
+  endif(coverage_style_gcov)
 
   if(FS_COVERAGE_STYLE STREQUAL "llvm" OR FS_COVERAGE_STYLE STREQUAL "all")
     get_filename_component(CMAKE_CXX_COMPILER_PATH ${CMAKE_CXX_COMPILER} DIRECTORY)
@@ -1200,6 +1204,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "coverage")
                                 ${CMAKE_BINARY_DIR}/llvm-cov-report -show-line-counts-or-regions -Xdemangler c++filt
                                 -Xdemangler -n -show-instantiation-summary -show-instantiations
                                 --ignore-filename-regex="${CMAKE_SOURCE_DIR}/packages/*"
+                                --ignore-filename-regex="${CMAKE_SOURCE_DIR}/third_party/*"
                                 --ignore-filename-regex="/usr/local/*"
                                 --ignore-filename-regex="/Applications/Xcode.app/*"
                                 --ignore-filename-regex="/Library/Developer/CommandLineTools/*" \"
@@ -1209,13 +1214,13 @@ if(CMAKE_BUILD_TYPE STREQUAL "coverage")
       add_dependencies(generate-llvm-coverage-report check-all)
       add_dependencies(generate-coverage-reports generate-llvm-coverage-report)
 
-      set_property(DIRECTORY ${CMAKE_BINARY_DIR} PROPERTY ADDITIONAL_CLEAN_FILES
-                                                          "profiles.manifest;profiles;merged.profdata;llvm-cov-report"
-                   )
+      list(APPEND CURR_ADDIDITIONAL_CLEAN_FILES ${LLVM_COV_ARTIFACTS})
+
     else()
       message(WARNING "compiler ${CMAKE_CXX_COMPILER} doesn't support clang style source based coverage")
-    endif()
-  endif()
+    endif(llvm_cov_exists)
+  endif(coverage_style_llvm)
+  set_property(DIRECTORY ${CMAKE_BINARY_DIR} PROPERTY ADDITIONAL_CLEAN_FILES ${CURR_ADDIDITIONAL_CLEAN_FILES})
 endif()
 
 set(PROJECT_ROOT ${CMAKE_SOURCE_DIR})

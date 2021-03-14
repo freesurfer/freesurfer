@@ -4,9 +4,6 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 add_subdirectories(
         tiff
-        GSL
-        googletest
-        benchmark
         jpeg
         cephes
         dicom
