@@ -102,6 +102,7 @@ typedef struct {
   double BFLim;
   int BFNSamp;
   char *outparamfile;
+  char *outcostfile;
   double fwhmc, fwhmr, fwhms;
   int SmoothRef;
   double SatPct;
@@ -490,6 +491,13 @@ int main(int argc, char *argv[]) {
     fprintf(fp,"\n");
     fclose(fp);
   }
+  if(cmdargs->outcostfile){
+    FILE *fp;
+    fp = fopen(cmdargs->outcostfile,"w");
+    fprintf(fp,"%20.13lf ",coreg->cost);
+    fprintf(fp,"\n");
+    fclose(fp);
+  }
   printf("nhits = %d out of %d, Percent Overlap: %5.1f\n",coreg->nhits,coreg->nvoxref,coreg->pcthits);
   printf("mri_coreg RunTimeSec %4.1f sec\n",timer.seconds());
 
@@ -599,6 +607,11 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--params")){
       if(nargc < 1) CMDargNErr(option,1);
       cmdargs->outparamfile = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--final-cost")){
+      if(nargc < 1) CMDargNErr(option,1);
+      cmdargs->outcostfile = pargv[0];
       nargsused = 1;
     } 
     else if (!strcasecmp(option, "--log-cost")) {
@@ -865,6 +878,7 @@ static void print_usage(void) {
   printf("   --shear Hxy Hxz Hyz : initial shear\n");
   printf("   --init-reg reg0.lta : initialize with given registration file\n");
   printf("   --params outparamfile : save parameters in this file\n");
+  printf("   --final-cost outcostfile : save final cost value in this file\n");
   printf("   --no-cras0 : do not set translation parameters to align centers of mov and ref\n");
   printf("   --centroid : intialize by aligning centeroids of mov and ref\n");
   printf("   --regheader : same as no-cras0\n");
