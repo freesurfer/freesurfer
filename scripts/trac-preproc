@@ -1237,6 +1237,8 @@ if ($dointra && ! $dobase && -e $fsdir/mri/brain.mgz) then
 
   mkdir -p $labdir/anatorig $labdir/diff
 
+  set fslut = $FREESURFER_HOME/FreeSurferColorLUT.txt
+
   if ($reg == flt) then
     # Register low-b to anatomical using flirt
     set cmd = fslregister
@@ -1298,6 +1300,32 @@ if ($dointra && ! $dobase && -e $fsdir/mri/brain.mgz) then
     if ($status) goto error_exit
   endif
 
+  if ($usethalnuc) then
+    set thalseg = ThalamicNuclei.v12.T1.FSvoxelSpace
+
+    # Replace thalamus in main segmentation with nearest neighbor labels
+    set ids = ()
+    foreach label (Left-Thalamus Right-Thalamus)
+      set ids = ($ids `grep -i " ${label}[ \t]" $fslut | awk '{print $1}'`)
+    end
+
+    set cmd = mri_binarize
+    set cmd = ($cmd --i $fsdir/mri/$segname.mgz)
+    set cmd = ($cmd `printf "--replaceonly-nn %s 11 " $ids`)
+    set cmd = ($cmd --o $labdir/anatorig/${segname}+thalnuc.nii.gz)
+    echo $cmd
+    $cmd
+
+    # Merge main segmentation with thalamic nuclei segmentation
+    set cmd = mri_concat
+    set cmd = ($cmd --i $labdir/anatorig/${segname}+thalnuc.nii.gz)
+    set cmd = ($cmd --i $fsdir/mri/$thalseg.mgz)
+    set cmd = ($cmd --max)
+    set cmd = ($cmd --o $labdir/anatorig/${segname}+thalnuc.nii.gz)
+    echo $cmd
+    $cmd
+  endif
+
   # Extract white-matter labels from segmentation
   set wmlist = ( Left-Cerebral-White-Matter \
                  Right-Cerebral-White-Matter \
@@ -1312,8 +1340,6 @@ if ($dointra && ! $dobase && -e $fsdir/mri/brain.mgz) then
                  Midbrain \
                  Pons \
                  Medulla )
-
-  set fslut = $FREESURFER_HOME/FreeSurferColorLUT.txt
 
   # Make mask including cerebral WM, cerebellar WM, and WM hypointensities
   set ids = ()
@@ -1348,7 +1374,10 @@ if ($dointra && ! $dobase && -e $fsdir/mri/brain.mgz) then
   endif
 
   # Map anatomical segmentation and mask to diffusion space
-  foreach label ( $segname ${segname}_mask White-Matter White-Matter++ )
+  set labelist = ( $segname ${segname}_mask White-Matter White-Matter++ )
+  if ($usethalnuc)	set labelist = ( $labelist ${segname}+thalnuc )
+
+  foreach label ($labelist)
     set cmd = mri_convert
     set cmd = ($cmd -at $xfmdir/anatorig2diff.$reg.lta)
     set cmd = ($cmd -rt nearest)				# Binary masks!
@@ -1858,7 +1887,10 @@ if ($dointer && ! $dobase) then
   endif
 
   # Map anatomical segmentation and mask to template space
-  foreach label ( $segname ${segname}_mask White-Matter White-Matter++ )
+  set labelist = ( $segname ${segname}_mask White-Matter White-Matter++ )
+  if ($usethalnuc)	set labelist = ( $labelist ${segname}+thalnuc )
+
+  foreach label ($labelist)
     if (! -e $labdir/anatorig/$label.nii.gz) then
       echo "WARN: Could not find $labdir/anatorig/$label.nii.gz"
       continue
@@ -2067,7 +2099,11 @@ if ($dopriors && ! $dobase) then
     set cmd = ($cmd --out    $outlist)
     set cmd = ($cmd --slist  $slistfile)
     set cmd = ($cmd --trk    $trklist)
-    set cmd = ($cmd --seg    $xspace/$segname.nii.gz)
+    if ($usethalnuc) then
+      set cmd = ($cmd --seg  $xspace/${segname}+thalnuc.nii.gz)
+    else
+      set cmd = ($cmd --seg  $xspace/$segname.nii.gz)
+    endif
     set cmd = ($cmd --cmask  $xspace/cortex+${gmgrow}mm+crblm.nii.gz)
     set cmd = ($cmd --lmask  $gmids)
     set cmd = ($cmd --bmask  $brainmask)
@@ -2150,7 +2186,11 @@ if ($dopriors && $dobase) then
     set cmd = ($cmd --out     $outlist)
     set cmd = ($cmd --slist   $slistfile)
     set cmd = ($cmd --trk     $trklist)
-    set cmd = ($cmd --seg     $xspace/$segname.nii.gz)
+    if ($usethalnuc) then
+      set cmd = ($cmd --seg   $xspace/${segname}+thalnuc.nii.gz)
+    else
+      set cmd = ($cmd --seg   $xspace/$segname.nii.gz)
+    endif
     set cmd = ($cmd --cmask   $xspace/cortex+${gmgrow}mm+crblm.nii.gz)
     set cmd = ($cmd --lmask   $gmids)
     set cmd = ($cmd --bmask   $bmasklist)

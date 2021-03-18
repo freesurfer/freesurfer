@@ -1061,7 +1061,11 @@ bool Blood::IsInCortex(vector<int>::const_iterator Point,
          (Point[2] > -1) && (Point[2] < mNz) &&
          (MRIgetVoxVal(Mask, Point[0], Point[1], Point[2], 0) > 0 ||
           (mMaskLabel > 0 &&
-           MRIgetVoxVal(Aseg, Point[0], Point[1], Point[2], 0) == mMaskLabel));
+           MRIgetVoxVal(Aseg, Point[0], Point[1], Point[2], 0) == mMaskLabel) ||
+          (mMaskLabel == 10 &&			// Left thalamic nuclei
+           (int)MRIgetVoxVal(Aseg, Point[0], Point[1], Point[2], 0)/100 == 81) ||
+          (mMaskLabel == 49 &&			// Right thalamic nuclei
+           (int)MRIgetVoxVal(Aseg, Point[0], Point[1], Point[2], 0)/100 == 82));
 }
 
 //
@@ -1855,7 +1859,11 @@ bool Blood::IsEnd1InMask(vector< vector<int> >::iterator Streamline,
 
   if (MRIgetVoxVal(Mask, itop[0], itop[1], itop[2], 0) > 0 ||
       (mMaskLabel > 0 &&
-      MRIgetVoxVal(Aseg, itop[0], itop[1], itop[2], 0) == mMaskLabel))
+      MRIgetVoxVal(Aseg, itop[0], itop[1], itop[2], 0) == mMaskLabel) ||
+      (mMaskLabel == 10 &&			// Left thalamic nuclei
+      (int)MRIgetVoxVal(Aseg, itop[0], itop[1], itop[2], 0)/100 == 81) ||
+      (mMaskLabel == 49 &&			// Right thalamic nuclei
+      (int)MRIgetVoxVal(Aseg, itop[0], itop[1], itop[2], 0)/100 == 82))
     return true;
 
   if (itop < Streamline->end() - 3) {	// If more than one voxel in streamline
@@ -1877,7 +1885,11 @@ bool Blood::IsEnd1InMask(vector< vector<int> >::iterator Streamline,
 
       if (MRIgetVoxVal(Mask, newpt[0], newpt[1], newpt[2], 0) > 0 ||
           (mMaskLabel > 0 &&
-          MRIgetVoxVal(Aseg, newpt[0], newpt[1], newpt[2], 0) == mMaskLabel)) {
+          MRIgetVoxVal(Aseg, newpt[0], newpt[1], newpt[2], 0) == mMaskLabel) ||
+          (mMaskLabel == 10 &&			// Left thalamic nuclei
+          (int)MRIgetVoxVal(Aseg, newpt[0], newpt[1], newpt[2], 0)/100 == 81) ||
+          (mMaskLabel == 49 &&			// Right thalamic nuclei
+          (int)MRIgetVoxVal(Aseg, newpt[0], newpt[1], newpt[2], 0)/100 == 82)) {
         Streamline->insert(Streamline->begin(), extend.begin(), extend.end());
         mLengths[Streamline - mStreamlines.begin()] = Streamline->size() / 3;
         return true; 
@@ -1898,7 +1910,11 @@ bool Blood::IsEnd2InMask(vector< vector<int> >::iterator Streamline,
 
   if (MRIgetVoxVal(Mask, ibottom[0], ibottom[1], ibottom[2], 0) > 0 ||
       (mMaskLabel > 0 &&
-      MRIgetVoxVal(Aseg, ibottom[0], ibottom[1], ibottom[2], 0) == mMaskLabel))
+      MRIgetVoxVal(Aseg, ibottom[0], ibottom[1], ibottom[2], 0) == mMaskLabel) ||
+      (mMaskLabel == 10 &&			// Left thalamic nuclei
+      (int)MRIgetVoxVal(Aseg, ibottom[0], ibottom[1], ibottom[2], 0)/100 == 81) ||
+      (mMaskLabel == 49 &&			// Right thalamic nuclei
+      (int)MRIgetVoxVal(Aseg, ibottom[0], ibottom[1], ibottom[2], 0)/100 == 82))
     return true;
 
   if (ibottom > Streamline->begin()) {	// If more than one voxel in streamline
@@ -1920,7 +1936,11 @@ bool Blood::IsEnd2InMask(vector< vector<int> >::iterator Streamline,
 
       if (MRIgetVoxVal(Mask, newpt[0], newpt[1], newpt[2], 0) > 0 ||
           (mMaskLabel > 0 &&
-          MRIgetVoxVal(Aseg, newpt[0], newpt[1], newpt[2], 0) == mMaskLabel)) {
+          MRIgetVoxVal(Aseg, newpt[0], newpt[1], newpt[2], 0) == mMaskLabel) ||
+          (mMaskLabel == 10 &&			// Left thalamic nuclei
+          (int)MRIgetVoxVal(Aseg, newpt[0], newpt[1], newpt[2], 0)/100 == 81) ||
+          (mMaskLabel == 49 &&			// Right thalamic nuclei
+          (int)MRIgetVoxVal(Aseg, newpt[0], newpt[1], newpt[2], 0)/100 == 82)) {
         Streamline->insert(Streamline->end(), extend.begin(), extend.end());
         mLengths[Streamline - mStreamlines.begin()] = Streamline->size() / 3;
         return true;

@@ -439,7 +439,11 @@ if (! $dolong) then
       if ($dosegprior) then
         set cmd = ($cmd --nprior $npriorlist)
         set cmd = ($cmd --lprior $lpriorlist)
-        set cmd = ($cmd --seg    $labdir/$xspace/$segname.nii.gz)
+        if ($usethalnuc) then
+          set cmd = ($cmd --seg  $labdir/$xspace/${segname}+thalnuc.nii.gz)
+        else
+          set cmd = ($cmd --seg  $labdir/$xspace/$segname.nii.gz)
+        endif
       endif
       if ($dotangprior) then
         set cmd = ($cmd --tprior $tpriorlist)
@@ -681,8 +685,14 @@ else
     endif
 
     set inlist = `printf "$dtroot/%s " $tplist`
-    set seglist = `printf \
-      "$dtroot/%s/dlabel/$xspace/$segname.nii.gz " $tplist`
+
+    if ($usethalnuc) then
+      set seglist = `printf \
+        "$dtroot/%s/dlabel/$xspace/${segname}+thalnuc.nii.gz " $tplist`
+    else
+      set seglist = `printf \
+        "$dtroot/%s/dlabel/$xspace/$segname.nii.gz " $tplist`
+    endif
 
     @ irep = 0
 

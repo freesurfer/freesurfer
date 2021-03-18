@@ -126,6 +126,7 @@ set intercost = ()
 set intertrg = ()
 set segname = aparc+aseg
 set gmgrow = ()
+set usethalnuc = 0
 set usemaskanat = 1
 set thrbet = 0.3
 set baselist = ()
@@ -513,6 +514,7 @@ if ($#baselist == 0) then	#--->>> A single time point for each subject
     echo "#"							 	>> $RCF
     echo "set segname = ($segname)"					>> $RCF
     echo "set gmgrow = ($gmgrow)"					>> $RCF
+    echo "set usethalnuc = ($usethalnuc)"				>> $RCF
     echo "set usemaskanat = ($usemaskanat)"				>> $RCF
     echo "#"							 	>> $RCF
     echo "# Options for ball-and-stick model fit"		 	>> $RCF
@@ -963,6 +965,7 @@ else				#--->>> Multiple time points for each subject
       echo "#"							 	>> $RCF
       echo "set segname = ($segname)"					>> $RCF
       echo "set gmgrow = ($gmgrow)"					>> $RCF
+      echo "set usethalnuc = ($usethalnuc)"				>> $RCF
       echo "set usemaskanat = ($usemaskanat)"				>> $RCF
       echo "#"							 	>> $RCF
       echo "# Options for ball-and-stick model fit"		 	>> $RCF
