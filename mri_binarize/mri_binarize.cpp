@@ -93,8 +93,22 @@ Replace every occurrence of (int) value V1 with value V2. Multiple
 --replaceonly V1 V2
 
 Replace every occurrence of (int) value V1 with value V2. Multiple 
---replace args are possible. Other locations in the source volume will be propagated 
-to the output (unlike --replace which masks those locations)
+--replaceonly args are possible. Other locations in the source volume
+will be propagated to the output (unlike --replace which masks those
+locations).
+
+--replace-nn V1 W
+
+Replace every occurrence of (int) value V1 with that of its nearest
+neighbor voxel within a window of W voxels. Multiple --replace-nn args
+are possible.
+
+--replaceonly-nn V1 W
+
+Replace every occurrence of (int) value V1 with that of its nearest
+neighbor voxel within a window of W voxels. Multiple --replaceonly-nn
+args are possible. Other locations in the source volume will be propagated 
+to the output (unlike --replace-nn which masks those locations).
 
 --frame frameno
 
@@ -249,7 +263,8 @@ int FDRSign = 0;
 int nErodeNN=0, NNType=0;
 
 static int replace_only = 0 ;
-int nReplace = 0, SrcReplace[1000], TrgReplace[1000];
+int nReplace = 0, SrcReplace[1000], TrgReplace[1000], 
+    nReplaceNN = 0, SrcReplaceNN[1000], ReplaceWindowNN[1000];
 char *SurfFile=NULL;
 int nsmoothsurf=0;
 
@@ -425,7 +440,7 @@ int main(int argc, char *argv[]) {
   MRIcopyHeader(InVol, OutVol);
 
   nhits = 0;
-  if(nReplace == 0){
+  if(!replace_only){
     // Binarize
 
     mergeval = BinValNot;
@@ -487,10 +502,9 @@ int main(int argc, char *argv[]) {
 	} // row
       } // col
     } // frame
-  } // if(nReplace == 0)
+  } // if(!replace_only)
 
   if(nReplace != 0) {
-
     if (replace_only)
     {
       printf("Replacing %d and propagating source list\n",nReplace);
@@ -509,7 +523,77 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  if (noverbose == 0) 
+  if(nReplaceNN != 0) {
+    if (replace_only)
+    {
+      printf("Replacing %d with nearest neighbors and propagating source list\n", nReplaceNN);
+      OutVol = MRIcopy(InVol, NULL) ;
+    }
+    else
+      printf("Replacing %d with nearest neighbors\n", nReplaceNN);
+
+    for(frame = fstart; frame <= fend; frame++){
+      for (c=0; c < InVol->width; c++) {
+        for (r=0; r < InVol->height; r++) {
+          for (s=0; s < InVol->depth; s++) {
+            if (!MaskVol || MRIgetVoxVal(MaskVol, c, r, s, 0) > MaskThresh) {
+              int segid = MRIgetVoxVal(InVol, c, r, s, frame);
+
+              for (n = 0; n < nReplaceNN; n++) {
+                if (segid == SrcReplaceNN[n]) {
+                  int whalf = (ReplaceWindowNN[n] - 1) / 2,
+                      nn_val = segid;
+                  float min_dist = 100000;
+
+                  for (int ds = -whalf; ds <= whalf; ds++) {
+                    int s1 = s + ds;
+
+                    if (s1 < 0 || s1 >= InVol->depth)	continue;
+
+                    for (int dr = -whalf; dr <= whalf; dr++) {
+                      int r1 = r + dr;
+
+                      if (r1 < 0 || r1 >= InVol->height)	continue;
+
+                      for (int dc = -whalf; dc <= whalf; dc++) {
+                        int c1 = c + dc,
+                            newsegid, isrep = 0;
+                        float dist;
+
+                        if (c1 < 0 || c1 >= InVol->width)	continue;
+
+                        newsegid = MRIgetVoxVal(InVol, c1, r1, s1, frame);
+
+                        for (int n1 = 0; n1 < nReplaceNN; n1++)
+                          if (newsegid == SrcReplaceNN[n1]) {
+                            isrep = 1;
+                            break;
+                          }
+
+                        if (isrep)	continue;
+
+                        dist = sqrt((float) dc * dc + dr * dr + ds * ds);
+
+                        if (dist < min_dist) {
+                          min_dist = dist;
+                          nn_val = newsegid;
+                        }
+                      }		// ck
+                    }		// rk
+                  }		// sk
+
+                  MRIsetVoxVal(OutVol, c, r, s, frame-fstart, nn_val);
+                  break;
+                }
+              }	// n
+            }	// mask
+          }	// s
+        }	// r
+      }		// c
+    }		// frame
+  }
+
+  if (noverbose == 0 && replace_only == 0) 
     printf("Found %d values in range\n",nhits);
 
   if(nDilate3d > 0){
@@ -535,7 +619,7 @@ int main(int argc, char *argv[]) {
   }
 
   nhits = -1;
-  if(DoCount){
+  if(DoCount && !replace_only){
     if(noverbose == 0) printf("Counting number of voxels in first frame\n");
     for (c=0; c < OutVol->width; c++) {
       for (r=0; r < OutVol->height; r++) {
@@ -568,7 +652,7 @@ int main(int argc, char *argv[]) {
   }
 
   // if we didn't binarize, copy any embedded color table from the input
-  if ((nReplace != 0) && (InVol->ct)) OutVol->ct = CTABdeepCopy(InVol->ct);
+  if (replace_only && (InVol->ct)) OutVol->ct = CTABdeepCopy(InVol->ct);
 
   // Save output
   if(OutVolFile) MRIwrite(OutVol,OutVolFile);
@@ -583,7 +667,7 @@ int main(int argc, char *argv[]) {
 
   nvox = OutVol->width * OutVol->height * OutVol->depth;
   voxvol = OutVol->xsize * OutVol->ysize * OutVol->zsize;
-  if (noverbose == 0)
+  if (noverbose == 0 && replace_only == 0)
     printf("Count: %d %lf %d %lf\n",nhits,nhits*voxvol,nvox,(double)100*nhits/nvox);
 
   if(CountFile){
@@ -817,6 +901,21 @@ static int parse_commandline(int argc, char **argv) {
       nReplace++;
       nargsused = 2;
     }    
+    else if (!strcasecmp(option, "--replace-nn")) {
+      if(nargc < 2) CMDargNErr(option,2);
+      sscanf(pargv[0],"%d",&SrcReplaceNN[nReplaceNN]);
+      sscanf(pargv[1],"%d",&ReplaceWindowNN[nReplaceNN]);
+      nReplaceNN++;
+      nargsused = 2;
+    }    
+    else if (!strcasecmp(option, "--replaceonly-nn")) {
+      if(nargc < 2) CMDargNErr(option,2);
+      sscanf(pargv[0],"%d",&SrcReplaceNN[nReplaceNN]);
+      sscanf(pargv[1],"%d",&ReplaceWindowNN[nReplaceNN]);
+      replace_only = 1 ;
+      nReplaceNN++;
+      nargsused = 2;
+    }    
     else if (!strcasecmp(option, "--binval")) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&BinVal);
@@ -945,8 +1044,10 @@ static void print_usage(void) {
   printf("   --fdr fdrthresh : compute min based on FDR (assuming -log10(p) input)\n");
   printf("     --fdr-pos, --fdr-neg, --fdr-abs (use only pos, neg, or abs; abs is default)\n");
   printf("   --match matchval <matchval2 ...>  : match instead of threshold\n");
-  printf("   --replaceonly V1 V2 : replace voxels=V1 with V2 and propagate other src voxels instead of binarizing\n");
   printf("   --replace V1 V2 : replace voxels=V1 with V2\n");
+  printf("   --replaceonly V1 V2 : replace voxels=V1 with V2 and propagate other src voxels instead of binarizing\n");
+  printf("   --replace-nn V1 W : replace voxels=V1 with their nearest neighbor within a window of W voxels\n");
+  printf("   --replaceonly-nn V1 W : replace voxels=V1 with their nearest neighbor within a window of W voxels and propagate other src voxels instead of binarizing\n");
   printf("   --ctx-wm : set match vals to 2, 41, 77, 251-255 (aseg for cerebral WM)\n");
   printf("   --all-wm : set match vals to 2, 41, 77, 251-255, 7, and 46, (aseg for all WM)\n");
   printf("   --ventricles : set match vals those for aseg ventricles+choroid (not 4th)\n");
@@ -1061,6 +1162,26 @@ printf("\n");
 printf("Replace every occurrence of (int) value V1 with value V2. Multiple \n");
 printf("--replace args are possible.\n");
 printf("\n");
+printf("--replaceonly V1 V2\n");
+printf("\n");
+printf("Replace every occurrence of (int) value V1 with value V2. Multiple\n");
+printf("--replaceonly args are possible. Other locations in the source volume\n");
+printf("will be propagated to the output (unlike --replace which masks those\n");
+printf("locations).\n");
+printf("\n");
+printf("--replace-nn V1 W\n");
+printf("\n");
+printf("Replace every occurrence of (int) value V1 with that of its nearest\n");
+printf("neighbor voxel within a window of W voxels. Multiple --replace-nn args\n");
+printf("are possible.\n");
+printf("\n");
+printf("--replaceonly-nn V1 W\n");
+printf("\n");
+printf("Replace every occurrence of (int) value V1 with that of its nearest\n");
+printf("neighbor voxel within a window of W voxels. Multiple --replaceonly-nn\n");
+printf("args are possible. Other locations in the source volume will be propagated\n");
+printf("to the output (unlike --replace-nn which masks those locations).\n");
+printf("\n");
 printf("--frame frameno\n");
 printf("\n");
 printf("Use give frame of the input. 0-based. Default is 0.\n");
@@ -1122,9 +1243,13 @@ static void check_options(void) {
   }
   if(MinThreshSet == 0  && MaxThreshSet == 0 &&
      RMinThreshSet == 0 && RMaxThreshSet == 0 &&
-     !DoMatch && !DoFDR && nReplace == 0) {
-    printf("ERROR: must specify minimum and/or maximum threshold or match values\n");
-    exit(1);
+     !DoMatch && !DoFDR) {
+    if(nReplace > 0 || nReplaceNN > 0)
+      replace_only = 1;
+    else {
+      printf("ERROR: must specify minimum and/or maximum threshold or match values\n");
+      exit(1);
+    }
   }
   if((MinThreshSet || MaxThreshSet || RMinThreshSet || RMaxThreshSet) && DoMatch ) {
     printf("ERROR: cannot specify threshold and match values\n");
