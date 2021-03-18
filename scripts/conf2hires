@@ -500,6 +500,7 @@ if($#MMode) then
   endif
   set cmd = (bbregister --s $subject --mov $MM --lta $MMregAuto --init-coreg \
     --$MMBBRcon --surf $srcsurf --gm-proj-abs 1.5 --wm-proj-abs 1 --threads $threads)
+  set cmd = ($cmd --no-coreg-ref-mask) # otherwise can become non-determin if aparc+aseg is there
   set xopts = `fsr-getxopts bbregister $XOptsFile $GlobXOptsFile`;
   set cmd = ($cmd $xopts)
   set ud = `UpdateNeeded $MMregAuto $MM ../surf/lh.$srcsurf ../surf/rh.$srcsurf`
@@ -611,7 +612,7 @@ if($#MMode) then
     set cmd = ($cmd $xopts)
     echo "cd `$PWD`" |& tee -a $LF |& tee -a $CF
     echo $cmd        |& tee -a $LF |& tee -a $CF
-    set ud = `UpdateNeeded $pialmm $pialt1 $bfs $cortex $cortexha $white $ads $wm `
+    set ud = `UpdateNeeded $pialmm $pialt1 $bfs $cortex $cortexha $white $ads $wm $mmvol`
     if($ud || $ForceUpdate) then
       if($RunIt) then
         $fs_time $cmd |& tee -a $LF
