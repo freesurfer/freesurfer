@@ -96,7 +96,7 @@ void chklc(void)
   char *crypt_gkey;
   static int first_time = 1;
 
-  sprintf(str, "S%sER%sRONT%sOR", "URF", "_F", "DO");
+  sprintf(str, "S%sER%sIDE%sOR", "URF", "_S", "DO");
   if (getenv(str) != NULL) return;
 
   cp = getenv("FREESURFER_HOME");

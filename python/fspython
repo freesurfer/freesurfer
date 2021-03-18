@@ -10,6 +10,7 @@ export PYTHONPATH="${FREESURFER_HOME}/python/packages"
 # futhermore, prevent local user packages from being accessed in fspython
 # since we want a very isolated environment
 export PYTHONNOUSERSITE=1
+unset PYTHONUSERBASE
 
 # run python
 if [ -e "${FREESURFER_HOME}/python/bin/python3" ]; then
