@@ -307,13 +307,13 @@ class spherical_loss(object):
                 y_true = y_true[:,self.pad:-self.pad,self.pad:-self.pad,:]
                 y_pred = y_pred[:,self.pad:-self.pad,self.pad:-self.pad,:]
 
-            ae = self.area_elts_nopad[tf.newaxis,...,tf.newaxis]
+            de = self.dist_elts_nopad[tf.newaxis,...,tf.newaxis]
 
             ndims = len(y_pred.get_shape().as_list()) - 2
             vol_axes = list(range(1, ndims+1))
             
-            top = 2 * tf.reduce_sum(ae * y_true * y_pred, vol_axes)
-            bottom = tf.reduce_sum(ae * (y_true + y_pred), vol_axes)
+            top = 2 * tf.reduce_sum(de * y_true * y_pred, vol_axes)
+            bottom = tf.reduce_sum(de * (y_true + y_pred), vol_axes)
             dice = tf.reduce_mean(tf.math.divide_no_nan(top, bottom))
             return -weight * dice
         return loss
@@ -331,22 +331,20 @@ class spherical_loss(object):
     def gradientLoss(self, penalty='l2'):
         def loss(y_true, y_pred):
             if self.pad > 0:
-                y_true = y_true[:,self.pad:-self.pad,self.pad:-self.pad,:]
+                #y_true = y_true[:,self.pad:-self.pad,self.pad:-self.pad,:]
                 y_pred = y_pred[:,self.pad:-self.pad,self.pad:-self.pad,:]
 
-#            dy = tf.abs(y_pred[:, 1:, :, :] - y_pred[:, :-1, :, :])
-#            dx = tf.abs(y_pred[:, :, 1:, :] - y_pred[:, :, :-1, :])
             d = 0
-            ae = self.area_elts_nopad[tf.newaxis,...,tf.newaxis] # for broadcasting
-            #ae = tf.stack((self.area_elts_nopad, self.area_elts_nopad), axis=3)[...,-1]
+            de = self.dist_elts_nopad[tf.newaxis,...,tf.newaxis] # for broadcasting
+
             for ax in range(1, len(y_pred.shape)-1):
                 dx = (tf.roll(y_pred, 1, axis=ax) - tf.roll(y_pred, -1, axis=ax))
-                dx = tf.math.divide_no_nan(dx, self.dist_elts_nopad[tf.newaxis,...,tf.newaxis])
+                dx = tf.math.divide_no_nan(dx, de)
                 if (penalty == 'l2'):
                     dx *= dx
                 else:
                     dx = tf.abs(dx)
-                d += tf.reduce_mean(ae*dx)
+                d += tf.reduce_mean(de*dx)
 
             ndim = len(y_pred.shape)-2   # exclude batch and channels/nwarp
             return d/ndim
@@ -356,7 +354,7 @@ class spherical_loss(object):
     def laplacianLossEuclidean(self, penalty='l2'):
         def loss(y_true, y_pred):
             if self.pad > 0:
-                y_true = y_true[:,self.pad:-self.pad,self.pad:-self.pad,:]
+                # y_true = y_true[:,self.pad:-self.pad,self.pad:-self.pad,:]
                 y_pred = y_pred[:,self.pad:-self.pad,self.pad:-self.pad,:]
 
             nb_dims = y_pred.get_shape().as_list()[-1]
@@ -375,7 +373,7 @@ class spherical_loss(object):
             # reproject onto sphere
             norm = tf.norm(avg_surround,ord=2,axis=-1,keepdims=True)
             avg_surround = tf.math.divide_no_nan(avg_surround * self.radius, norm)
-            diff = tf.math.divide_no_nan((avg_surround - mapped), self.area_elts_nopad[tf.newaxis,...,tf.newaxis])
+            diff = tf.math.divide_no_nan((avg_surround - mapped), self.dist_elts_nopad[tf.newaxis,...,tf.newaxis])
 
             # take the L1 or L2 norm of the result
             if (penalty == 'l2'):
@@ -386,7 +384,7 @@ class spherical_loss(object):
             # the discrete Laplacian should be divided by d^2 of metric tensor, but then
             # the integration across space is multiplied by d^2 so they cancel
             #d = tf.reduce_mean(tf.squeeze(self.area_elts_nopad)*mag)
-            d = tf.reduce_mean(mag*self.area_elts_nopad[tf.newaxis])
+            d = tf.reduce_mean(mag*self.dist_elts_nopad[tf.newaxis])
             if (penalty == 'l2'):
                 d = tf.sqrt(d)  # make it an rms
 
@@ -461,14 +459,14 @@ class spherical_loss(object):
         cc = cross*cross / (I_var*J_var + self.eps)
 
         # return negative cc.
-        retval = tf.reduce_mean(cc*self.area_elts_nopad)
+        retval = tf.reduce_mean(cc*self.dist_elts_nopad[np.newaxis,...,np.newaxis])
         return retval
 
     def NCC_loss(self, weight):
         def loss(I,J):
             if self.pad > 0:
-                I = I[:,self.pad:-self.pad,:,:]
-                J = J[:,self.pad:-self.pad,:,:]
+                I = I[:,self.pad:-self.pad,self.pad:-self.pad,:]
+                J = J[:,self.pad:-self.pad,self.pad:-self.pad,:]
             return - weight * self.ncc(I, J)
             
         return loss
@@ -497,7 +495,7 @@ class spherical_loss(object):
                 y_true = y_true[:,self.pad:-self.pad,self.pad:-self.pad,:]
                 y_pred = y_pred[:,self.pad:-self.pad,self.pad:-self.pad,:]
 
-            ae = self.area_elts_nopad
+            de = self.dist_elts_nopad
             y_true = tf.debugging.assert_all_finite(y_true, 'y_true')
             y_pred = tf.debugging.assert_all_finite(y_pred, 'y_pred')
 
@@ -510,7 +508,7 @@ class spherical_loss(object):
             try:
                 y = tf.reduce_mean(tf.square(y_pred-y_true), axis=-1)
                 y = tf.debugging.assert_all_finite(y, 'y')
-                y_tf = tf.multiply(tf.cast(y, tf.float32), ae)
+                y_tf = tf.multiply(tf.cast(y, tf.float32), de)
                 y_tf = tf.debugging.assert_all_finite(y_tf, 'y_tf')
 
                 if image_sigma is not None:
@@ -547,7 +545,7 @@ class spherical_loss(object):
             dx = x-self.x0
             dy = y-self.y0
             dz = z-self.z0
-            sqrt_norm = tf.multiply(tf.squeeze(self.area_elts), tf.squeeze(dx*dx + dy*dy + dz*dz))
+            sqrt_norm = tf.multiply(tf.squeeze(self.dist_elts), tf.squeeze(dx*dx + dy*dy + dz*dz))
 #            sqrt_norm = tf.gather_nd(sqrt_norm, tf.where(tf.greater(sqrt_norm, 0)))
             return weight * tf.reduce_mean(sqrt_norm)
         return loss
@@ -571,8 +569,8 @@ class spherical_loss(object):
                 dy = tf.nn.conv2d(y[tf.newaxis,...,tf.newaxis], self.dist_filters[ind], [1,1,1,1], padding='SAME')
                 dist = tf.sqrt(tf.maximum(tf.square(dx) + tf.square(dy),0))
                 dist = tf.sqrt(tf.square(dx) + tf.square(dy) + .0001)
-                area_elts = tf.maximum(self.area_elts, 0)
-                dloss = tf.multiply(tf.sqrt(tf.squared_difference(dist, self.orig_dists[ind])+.0001),area_elts)
+                dist_elts = tf.maximum(self.dist_elts, 0)
+                dloss = tf.multiply(tf.sqrt(tf.squared_difference(dist, self.orig_dists[ind])+.0001),dist_elts)
                 dist_loss += tf.reduce_mean(dloss)
                 
                 return weight * dist_loss
@@ -580,11 +578,11 @@ class spherical_loss(object):
         
     def atlas_loss(self, weight):
         def loss(y_true, y_pred):
-            area_elts = tf.squeeze(self.area_elts)
-            atlas_target = tf.reshape(tf.squeeze(y_true[:,self.pad:-self.pad,:,0]), area_elts.shape)
-            atlas = tf.reshape(tf.squeeze(y_pred[:,self.pad:-self.pad,:,1]), area_elts.shape)
+            dist_elts = tf.squeeze(self.dist_elts)
+            atlas_target = tf.reshape(tf.squeeze(y_true[:,self.pad:-self.pad,:,0]), dist_elts.shape)
+            atlas = tf.reshape(tf.squeeze(y_pred[:,self.pad:-self.pad,:,1]), dist_elts.shape)
             warped_overlay = tf.squeeze(y_pred[:,self.pad:-self.pad,:,0])
-            diff_sq = tf.multiply(area_elts, tf.math.squared_difference(atlas, warped_overlay))
+            diff_sq = tf.multiply(dist_elts, tf.math.squared_difference(atlas, warped_overlay))
             mean_error = tf.reduce_mean(diff_sq)
 #        abs_atlas = tf.abs(atlas)
 #        over_thresh = tf.gather_nd(abs_atlas, tf.where(tf.greater(abs_atlas, self.threshold)))
@@ -603,7 +601,7 @@ class spherical_loss(object):
             y_true = y_true[:,self.pad:-self.pad,:,:]
             y_pred = y_pred[:,self.pad:-self.pad,:,:]
             y_avg_sq = tf.square(tf.add(y_true, y_pred) / 2)
-            return weight * (5 - tf.reduce_sum(self.area_elts * y_avg_sq) / tf.reduce_sum(self.area_elts))
+            return weight * (5 - tf.reduce_sum(self.dist_elts * y_avg_sq) / tf.reduce_sum(self.dist_elts))
         return loss
 
     def thresholded_overlap_loss(self, weight):
@@ -631,10 +629,10 @@ class spherical_loss(object):
             neg_overlap = tf.cast(neg_overlap, tf.float32)
             
             # correct for metric tensor
-            pos_overlap = tf.multiply(pos_overlap, self.area_elts)
-            neg_overlap = tf.multiply(neg_overlap, self.area_elts)
-            pos_union = tf.multiply(pos_union, self.area_elts)
-            neg_union = tf.multiply(neg_union, self.area_elts)
+            pos_overlap = tf.multiply(pos_overlap, self.dist_elts)
+            neg_overlap = tf.multiply(neg_overlap, self.dist_elts)
+            pos_union = tf.multiply(pos_union, self.dist_elts)
+            neg_union = tf.multiply(neg_union, self.dist_elts)
             
             nvoxels = tf.cast(tf.multiply(y_pred.shape[1], y_pred.shape[2]), tf.float32)
 
