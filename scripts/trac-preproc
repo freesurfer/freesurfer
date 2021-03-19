@@ -497,11 +497,36 @@ if ($docorr && ! $dobase) then
       if ($status) goto error_exit
     endif
 
+    # If image has an odd dimension, must turn off topup subsampling :/
+    set dims = `mri_info --dim $dwidir/lowb_orig_las.nii.gz`
+    foreach k (1 2 3)
+      set isodd = `echo $dims[$k] | awk '{print $1 % 2 == 1}'`
+      if ($isodd) break
+    end
+
+    set cnf = $FSLDIR/src/topup/flirtsch/b02b0.cnf
+
+    if ($isodd) then
+      echo "sed '/--subsamp/ s/2/1/g' $cnf > $dwidir/b02b0.cnf" \
+           |& tee -a $LF |& tee -a $CF
+      if ($RunIt) then
+        (sed '/--subsamp/ s/2/1/g' $cnf > $dwidir/b02b0.cnf) >>& $LF
+        if ($status) goto error_exit
+      endif
+    else
+      set cmd = (cp -p $FSLDIR/src/topup/flirtsch/b02b0.cnf $dwidir)
+      echo $cmd |& tee -a $LF |& tee -a $CF
+      if ($RunIt) then
+        $fs_time $cmd |& tee -a $LF
+        if ($status) goto error_exit
+      endif
+    endif
+
     # Estimate off-resonance field
     set cmd = topup
     set cmd = ($cmd --imain=$dwidir/lowb_orig_las.nii.gz)
     set cmd = ($cmd --datain=$dwidir/acqp.txt)
-    set cmd = ($cmd --config=b02b0.cnf)
+    set cmd = ($cmd --config=$dwidir/b02b0.cnf)
     set cmd = ($cmd --out=$dwidir/topup)
     set cmd = ($cmd --iout=$dwidir/lowb_topup.nii.gz)
     echo $cmd |& tee -a $LF |& tee -a $CF
