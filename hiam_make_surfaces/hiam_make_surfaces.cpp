@@ -115,7 +115,7 @@ int main(int argc, char *argv[]) ;
 
 int
 main(int argc, char *argv[]) {
-  char          data_dir[400], *cp, ifname[200], ofname[200], labelfilename[200], surftype[10];
+  char          data_dir[400], *cp, ifname[STRLEN], ofname[STRLEN], labelfilename[STRLEN], surftype[10];
   int           nargs, s, counter=0, i, spikes=1;
   float         ratio = 1, energy_new = 0, energy_old = 0 ;
   // float         weight_quadcur = 0.2, weight_label = 0.5, weight_repulse = 0.0,
