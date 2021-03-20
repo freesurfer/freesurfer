@@ -171,45 +171,54 @@ main(int argc, char *argv[])
   if (FS_names && nlayers != 1)
     ErrorExit(ERROR_UNSUPPORTED, "%s: if specifying FS_names must use -nlayers 1", Progname) ;
   printf("reading laminar surfaces from %s.?\n", LAMINAR_NAME) ;
-  for (i = 0 ; i <= nlayers ; i++)
-  {
-    if (FS_names && nlayers == 1)
-    {
-      if (i == 0)
-	sprintf(fname, "%s/%s/surf/%s.white", sdir, subject,hemi) ;
-      else
-	sprintf(fname, "%s/%s/surf/%s.pial", sdir, subject,hemi) ;
-    }
-    else
-    {
-      sprintf(fname, "%s/%s/surf/%s.%s.%d", sdir, subject,hemi,LAMINAR_NAME,i) ;
-      if (FileExists(fname) == 0)
-	sprintf(fname, "%s/%s/surf/%s.%s%3.3d", sdir, subject,hemi,LAMINAR_NAME,i) ;
+  for (i = 0 ; i <= nlayers ; i++) {
+    if (FS_names && nlayers == 1) {
+      if (i == 0) {
+	int req = snprintf(fname, STRLEN,
+			   "%s/%s/surf/%s.white", sdir, subject,hemi) ;
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
+      } else {
+	int req = snprintf(fname, STRLEN, "%s/%s/surf/%s.pial", sdir, subject,hemi) ;
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
+      }
+    } else {
+      int req = snprintf(fname, STRLEN,
+			 "%s/%s/surf/%s.%s.%d", sdir, subject,hemi,LAMINAR_NAME,i) ;
+      if( req >= STRLEN ) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
+      if (FileExists(fname) == 0) {
+	int req = snprintf(fname, STRLEN,
+			   "%s/%s/surf/%s.%s%3.3d", sdir, subject,hemi,LAMINAR_NAME,i) ;
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
+      }
     }
     printf("reading surface %s\n", fname) ;
     mris = MRISread(fname) ;
     if (mris == NULL)
       ErrorExit(ERROR_NOFILE, "%s: could not load %s surface %d from %s", 
                 Progname,hemi, i, fname) ;
-
+    
     mri_interior_top = MRIclone(mri_layers, NULL) ;
     MRISfillInterior(mris, resolution, mri_interior_top) ;
-
-    if (Gdiag & DIAG_WRITE)
-    {
+    
+    if (Gdiag & DIAG_WRITE) {
       sprintf(fname, "top%d.mgz", i) ;
       printf("writing layer %d interior to %s\n", i, fname) ;
       MRIwrite(mri_interior_top, fname) ;
     }
-    if (i == 0)  // fill white matter
-    {
+    if (i == 0)  { // fill white matter
       mri_tmp = MRIclone(mri_interior_top, NULL) ;
       MRIreplaceValuesOnly(mri_interior_top, mri_tmp, 1, WM_VAL) ;
       MRIcopyLabel(mri_tmp, mri_layers, WM_VAL) ;
       MRIfree(&mri_tmp) ;
-    }
-    else  // fill cortical layer
-    {
+    } else  { // fill cortical layer
       mri_tmp = MRInot(mri_interior_bottom, NULL) ;
       MRIfree(&mri_interior_bottom) ;
       MRIand(mri_interior_top, mri_tmp, mri_tmp, 1) ;
