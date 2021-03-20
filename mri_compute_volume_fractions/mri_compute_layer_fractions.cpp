@@ -137,7 +137,12 @@ main(int argc, char *argv[])
 
   if (subject_name)
     subject = subject_name ;   // specified on command line
-  sprintf(fname, "%s/%s/mri/%s", sdir, subject, aseg_name) ;
+  int req = snprintf(fname, STRLEN,
+		     "%s/%s/mri/%s", sdir, subject, aseg_name) ;
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
+
   printf("reading volume %s\n", fname) ;
   mri_aseg = MRIread(fname) ;
   if (mri_aseg == NULL)
