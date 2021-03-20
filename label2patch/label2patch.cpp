@@ -95,7 +95,13 @@ main(int argc, char *argv[]) {
     strcpy(subjects_dir, cp) ;
   }
 
-  sprintf(surf_name,"%s/%s/surf/%s.%s",subjects_dir,subject_name,hemi,surface);
+  int req = snprintf(surf_name,STRLEN,
+		     "%s/%s/surf/%s.%s",
+		     subjects_dir,subject_name,hemi,surface);
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
+
   fprintf(stderr, "reading %s...\n", surf_name) ;
   mris = MRISread(surf_name) ;
   if (!mris)
