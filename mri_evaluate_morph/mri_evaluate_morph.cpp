@@ -91,7 +91,11 @@ main(int argc, char *argv[]) {
 
   for (i = FIRST_SUBJECT ; i < argc-1 ; i++) {
     fprintf(stderr, "processing subject %s...\n", argv[i]) ;
-    sprintf(fname, "%s/%s/mri/%s", sdir, argv[i], seg_name) ;
+    int req =snprintf(fname, STRLEN, "%s/%s/mri/%s", sdir, argv[i], seg_name) ;
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
+    
     mri_seg[i-FIRST_SUBJECT] = MRIread(fname) ;
     if (!mri_seg[i-FIRST_SUBJECT])
       ErrorExit(ERROR_NOFILE, "%s: could not read segmentation %s",
@@ -108,12 +112,21 @@ main(int argc, char *argv[]) {
       s1 = argv[i+FIRST_SUBJECT] ;
       s2 = argv[j+FIRST_SUBJECT] ;
       printf("reading transforms for subjects %s and %s...\n", s1, s2) ;
-      sprintf(fname, "%s/%s/mri/transforms/%s", sdir, s1, xform_name) ;
+      int req = snprintf(fname, STRLEN,
+			 "%s/%s/mri/transforms/%s", sdir, s1, xform_name) ;
+      if( req >= STRLEN ) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
+
       transform1 = TransformRead(fname) ;
       if (transform1 == NULL)
         ErrorExit(ERROR_NOFILE, "%s: could not read transform %s",
                   Progname, fname) ;
-      sprintf(fname, "%s/%s/mri/transforms/%s", sdir, s1, xform_name) ;
+      req = snprintf(fname, STRLEN,
+		     "%s/%s/mri/transforms/%s", sdir, s1, xform_name) ;
+      if( req >= STRLEN ) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       transform2 = TransformRead(fname) ;
       if (transform2 == NULL)
         ErrorExit(ERROR_NOFILE, "%s: could not read transform %s",
