@@ -85,8 +85,8 @@ int
 main(int argc, char *argv[]) {
   char         **av ;
   int          ac, nargs ;
-  char         *cp, label_fname[100], *subject_name, *label_name,
-  *out_fname, *patch_name, surf_fname[100], hemi[10] ;
+  char         *cp, label_fname[STRLEN], *subject_name, *label_name,
+  *out_fname, *patch_name, surf_fname[STRLEN], hemi[10] ;
   LABEL        *area ;
   MRI_SURFACE  *mris ;
 
