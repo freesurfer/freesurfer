@@ -151,7 +151,10 @@ main(int argc, char *argv[]) {
   strcpy(surftype, argv[2]);
 
   //***** Extract volume for each label  *****//
-  sprintf(labelfilename,"%s/%s/%s",data_dir,argv[1],labelvolume);
+  int req = snprintf(labelfilename,STRLEN,"%s/%s/%s",data_dir,argv[1],labelvolume);
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   fprintf(stderr, "reading segmentation volume from %s...\n", labelfilename) ;
   mri_orig = MRIread(labelfilename) ;
   extractlabelvolume(mri_label, mri_orig);
@@ -169,7 +172,10 @@ main(int argc, char *argv[]) {
   MRIfree(&mri_e);
   /******************************/
   //******** read original tesselation ********//
-  sprintf(ifname,"%s/%s/surf/%s.%s",data_dir,argv[1],argv[2],orig_name);
+  req = snprintf(ifname,STRLEN,"%s/%s/surf/%s.%s",data_dir,argv[1],argv[2],orig_name);
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   fprintf(stderr, "reading original surface position from %s...\n", ifname) ;
   mris = MRISread(ifname) ;
 
@@ -299,7 +305,12 @@ main(int argc, char *argv[]) {
 
       if (write_iterations > 0) {
         if (((++counter) % write_iterations) == 0) {
-          sprintf(ofname, "%s/%s/surf/movie/%s.firstrefined%3.3d", data_dir, argv[1], argv[2],counter/write_iterations);
+          int req = snprintf(ofname, STRLEN,
+			     "%s/%s/surf/movie/%s.firstrefined%3.3d",
+			     data_dir, argv[1], argv[2],counter/write_iterations);
+	  if( req >= STRLEN ) {
+	    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	  }
           MRISwrite(mris, ofname) ;
         }
       }
@@ -330,7 +341,12 @@ main(int argc, char *argv[]) {
       spikes = FindSpikes(mris,i);
       if (write_iterations > 0) {
         if (((++counter) % write_iterations) == 0) {
-          sprintf(ofname, "%s/%s/surf/movie/%s.refined%3.3d", data_dir, argv[1], argv[2],counter/write_iterations);
+          int req = snprintf(ofname, STRLEN,
+			     "%s/%s/surf/movie/%s.refined%3.3d",
+			     data_dir, argv[1], argv[2],counter/write_iterations);
+	  if( req >= STRLEN ) {
+	    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	  }
           fprintf(stderr, "writing out reconstructed surface after %d iteration to %3.3d \n", i, counter/write_iterations );
           MRISwrite(mris, ofname) ;
           //measure the volume this new surface encloses and compare with the original//
@@ -357,7 +373,12 @@ main(int argc, char *argv[]) {
       mrisClearGradient(mris);
       if (write_iterations > 0) {
         if (((++counter) % write_iterations) == 0) {
-          sprintf(ofname, "%s/%s/surf/movie/%s.refined%3.3d", data_dir, argv[1], argv[2],counter/write_iterations);
+          int req = snprintf(ofname, STRLEN, 
+			     "%s/%s/surf/movie/%s.refined%3.3d",
+			     data_dir, argv[1], argv[2],counter/write_iterations);
+	  if( req >= STRLEN ) {
+	    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	  }
           MRISwrite(mris, ofname) ;
         }
       }
@@ -369,15 +390,26 @@ main(int argc, char *argv[]) {
   //write out final smoothing  result//
   if (write_iterations > 0) {
     counter = floor(counter/write_iterations)+1 ;
-    sprintf(ofname, "%s/%s/surf/movie/%s.refined%3.3d", data_dir, argv[1], argv[2],counter);
+    int req = snprintf(ofname, STRLEN,
+		       "%s/%s/surf/movie/%s.refined%3.3d", data_dir, argv[1], argv[2],counter);
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     MRISwrite(mris, ofname) ;
   }
 
-  sprintf(ofname, "%s/%s/surf/%s.%s", data_dir, argv[1], argv[2],suffix) ;
+  req = snprintf(ofname, STRLEN,
+		 "%s/%s/surf/%s.%s", data_dir, argv[1], argv[2],suffix) ;
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   fprintf (stderr,"writing refined surface to %s\n", ofname);
   MRISwrite(mris, ofname) ;
   MRISuseMeanCurvature(mris);
-  sprintf(ofname, "%s/%s/surf/%s.%s.curv", data_dir, argv[1], argv[2],suffix) ;
+  req = snprintf(ofname, STRLEN, "%s/%s/surf/%s.%s.curv", data_dir, argv[1], argv[2],suffix) ;
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   MRISwriteCurvature(mris, ofname) ;
   MRISfree(&mris);
   MRIfree(&mri_label[0]);
@@ -390,113 +422,7 @@ main(int argc, char *argv[]) {
   return(0) ;
 }
 
-#if 0
-static int
-extractlabelvolume(MRI *mri_label[5], MRI *mri_orig) {
-  int  xi, yi, zi;
 
-  mri_label[0] = MRIalloc(256, 256, 256, MRI_FLOAT) ;
-  mri_label[1] = MRIalloc(256, 256, 256, MRI_FLOAT) ;
-  mri_label[2] = MRIalloc(256, 256, 256, MRI_FLOAT) ;
-  mri_label[3] = MRIalloc(256, 256, 256, MRI_FLOAT) ;
-  mri_label[4] = MRIalloc(256, 256, 256, MRI_FLOAT) ;
-
-  for (xi=0; xi<mri_orig->depth; xi++)
-    for (yi=0; yi<mri_orig->height; yi++)
-      for (zi=0; zi<mri_orig->width; zi++) {
-        if ( MRIvox(mri_orig,zi,yi,xi) >=1 && MRIvox(mri_orig,zi,yi,xi) <=4 ) {
-          MRIFvox(mri_label[0],zi,yi,xi) = 1.0;
-          MRIFvox(mri_label[1],zi,yi,xi) = 0.0;
-          MRIFvox(mri_label[2],zi,yi,xi) = 0.0;
-          MRIFvox(mri_label[3],zi,yi,xi) = 0.0;
-          MRIFvox(mri_label[4],zi,yi,xi) = 0.0;
-        } else if ( MRIvox(mri_orig,zi,yi,xi) >=5 && MRIvox(mri_orig,zi,yi,xi) <=8 ) {
-          MRIFvox(mri_label[0],zi,yi,xi) = 0.0;
-          MRIFvox(mri_label[1],zi,yi,xi) = 1.0;
-          MRIFvox(mri_label[2],zi,yi,xi) = 0.0;
-          MRIFvox(mri_label[3],zi,yi,xi) = 0.0;
-          MRIFvox(mri_label[4],zi,yi,xi) = 0.0;
-        } else if ( MRIvox(mri_orig,zi,yi,xi) == 13 ) {
-          MRIFvox(mri_label[0],zi,yi,xi) = 0.0;
-          MRIFvox(mri_label[1],zi,yi,xi) = 0.0;
-          MRIFvox(mri_label[2],zi,yi,xi) = 1.0;
-          MRIFvox(mri_label[3],zi,yi,xi) = 0.0;
-          MRIFvox(mri_label[4],zi,yi,xi) = 0.0;
-        } else if ( MRIvox(mri_orig,zi,yi,xi) == 14 ) {
-          MRIFvox(mri_label[0],zi,yi,xi) = 0.0;
-          MRIFvox(mri_label[1],zi,yi,xi) = 0.0;
-          MRIFvox(mri_label[2],zi,yi,xi) = 0.0;
-          MRIFvox(mri_label[3],zi,yi,xi) = 1.0;
-          MRIFvox(mri_label[4],zi,yi,xi) = 0.0;
-        } else {
-          MRIFvox(mri_label[0],zi,yi,xi) = 0.0;
-          MRIFvox(mri_label[1],zi,yi,xi) = 0.0;
-          MRIFvox(mri_label[2],zi,yi,xi) = 0.0;
-          MRIFvox(mri_label[3],zi,yi,xi) = 0.0;
-          MRIFvox(mri_label[4],zi,yi,xi) = 1.0;
-        }
-      }
-  return(NO_ERROR);
-
-}
-
-static int
-mrisFindneighborlabel(MRI_SURFACE *mris, char surftype[10], MRI *mri_label[5], MRI *mri_orig) {
-  int           vno, type=0, tt;
-  VERTEX        *v;
-  float         x, y, z, step;
-  double        xw, yw, zw, val=0;
-
-  for (tt=0; tt<4; tt++) {
-    if ( !strcmp(surftype,surf[tt]) ) type = tt;
-  }
-
-  for ( vno=0; vno < mris->nvertices; vno++ ) {
-    v = &mris->vertices[vno] ;
-    x = v->x ;
-    y = v->y ;
-    z = v->z ;
-    step = 0.5;
-    table[0][vno] = type;
-
-    while ( table[0][vno] == type && step <= 2 ) {
-      MRIsurfaceRASToVoxel(mri_orig, v->x+step*v->nx, v->y+step*v->ny, v->z+step*v->nz, &xw, &yw, &zw) ;
-      MRIsampleVolumeType(mri_orig, xw, yw, zw, &val, SAMPLE_NEAREST);
-      if ( val >=1 && val <=4 )
-        table[0][vno] = 0;
-      else if ( val >=5 && val <=8 )
-        table[0][vno] = 1;
-      else if ( val == 13 )
-        table[0][vno] = 2;
-      else if ( val == 14 )
-        table[0][vno] = 3;
-      else
-        table[0][vno] = 4;
-      step +=0.25;
-    }
-
-#if 0
-    MRIsurfaceRASToVoxel(mri_orig, v->x-0.5*v->nx, v->y-0.5*v->ny, v->z-0.5*v->nz, &xw, &yw, &zw) ;
-    MRIsampleVolumeType(mri_orig, xw, yw, zw, &val, SAMPLE_NEAREST);
-    if ( val >=1 && val <=4 )
-      table[1][vno] = 0;
-    else if ( val >=5 && val <=8 )
-      table[1][vno] = 1;
-    else if ( val == 13 )
-      table[1][vno] = 2;
-    else if ( val == 14 )
-      table[1][vno] = 3;
-    else
-      table[1][vno] = 4;
-#else
-    table[1][vno] = type;
-#endif
-  }
-  return(NO_ERROR);
-}
-
-
-#else
 
 static int
 extractlabelvolume(MRI *mri_label[5], MRI *mri_orig) {
@@ -602,8 +528,6 @@ table[1][vno] = type;
   }
   return(NO_ERROR);
 }
-
-#endif
 
 
 
