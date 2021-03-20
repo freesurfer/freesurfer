@@ -144,18 +144,6 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not load aseg volume from %s", Progname,fname) ;
 
   nvox = (int)ceil(256/resolution);  
-#if 0
-  mri_layers = MRIalloc(nvox, nvox, nvox, MRI_UCHAR) ;
-  MRIsetResolution(mri_layers, resolution, resolution, resolution) ;
-  mri_layers->xstart = -resolution*mri_layers->width/2.0 ;
-  mri_layers->xend = resolution*mri_layers->width/2.0 ;
-  mri_layers->ystart = -resolution*mri_layers->height/2.0 ;
-  mri_layers->yend = resolution*mri_layers->height/2.0 ;
-  mri_layers->zstart = -resolution*mri_layers->depth/2.0 ;
-  mri_layers->zend = resolution*mri_layers->depth/2 ;
-  mri_layers->c_r = mri_aseg->c_r ; mri_layers->c_a = mri_aseg->c_a ; 
-  mri_layers->c_s = mri_aseg->c_s ;
-#else
   mri_in = MRIreadHeader(in_fname, MRI_VOLUME_TYPE_UNKNOWN) ;
   if (mri_in == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not load input volume from %s", Progname,in_fname) ;
@@ -172,7 +160,6 @@ main(int argc, char *argv[])
   mri_layers->z_r = mri_in->z_r ; mri_layers->z_a = mri_in->z_a ; mri_layers->z_s = mri_in->z_s ;
   mri_layers->c_r = mri_in->c_r ; mri_layers->c_a = mri_in->c_a ; mri_layers->c_s = mri_in->c_s ;
   MRIfree(&mri_in) ;
-#endif
 
   MRIreInitCache(mri_layers) ; 
 
