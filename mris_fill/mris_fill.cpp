@@ -96,6 +96,7 @@ main(int argc, char *argv[]) {
     fprintf(stderr, "reading volume from %s...\n", vol_fname) ;
     mri_template = MRIread(vol_fname) ;
     MRIcopy(mri_template, mri_buffer);
+    MRIScopyVolGeomFromMRI(mris, mri_template);
     //mri_template = MRIupsample2(mri_template, mri_buffer);
     if (sample_factor > 1)
     {
