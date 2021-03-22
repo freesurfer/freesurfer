@@ -43,6 +43,7 @@ static int get_option(int argc, char *argv[]) ;
 
 const char *Progname ;
 
+static float thresh = -1 ;
 
 /***-------------------------------------------------------****/
 int main(int argc, char *argv[])
@@ -79,6 +80,13 @@ int main(int argc, char *argv[])
     printf("processing input volume %d of %d: %s\n",
            index+1, nvolumes, fname) ;
     mri = MRIread(fname) ;
+    if (thresh >= 0)
+    { 
+      MRI *mri_tmp ;
+      mri_tmp = MRIthreshold(mri, NULL, thresh) ;
+      MRIfree(&mri) ;
+      mri = mri_tmp ;
+    }
     if (index == 0)
       mri_and = MRIcopy(mri, NULL) ;
     else
@@ -117,6 +125,11 @@ get_option(int argc, char *argv[])
       nargs = 0 ;
       print_usage() ;
       exit(1) ;
+      break ;
+    case 'T':
+      thresh = atof(argv[2]) ;
+      printf("applying threshold %2.3f to input data prior to anding\n", thresh);
+      nargs = 1 ;
       break ;
     case 'V':
       print_version() ;
