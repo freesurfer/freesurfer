@@ -821,6 +821,8 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
   }
   else if (!strcmp(option, "SQRT"))
   {
+    printf(" !!!!!!! WARNING !!!!!!!!!!\n")
+    printf(" !!!! MATRIX SQRT not supported yet !!!!!!!!!!\n")
     do_sqrt = 1 ;
     cout << "--sqrt: True " << endl;
   }
