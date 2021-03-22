@@ -775,7 +775,7 @@ get_option(int argc, char *argv[])
       printf("setting l_external = %2.1f\n", parms.l_external) ;
       break ;
     case 'C':
-      strncpy(curvature_fname, argv[2], STRLEN) ; // Convert to strncpy at least
+      strncpy(curvature_fname, argv[2], STRLEN-1) ; // Convert to strncpy at least
       nargs = 1 ;
       break ;
     case 'A':
