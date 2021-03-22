@@ -1,6 +1,6 @@
 /*
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -216,29 +216,32 @@ main(int argc, char *argv[])
   
   mri_bias = MRIalloc(256+2*pad, 256+2*pad, 256+2*pad, MRI_FLOAT) ;
   mri_counts = MRIalloc(256+2*pad, 256+2*pad, 256+2*pad, MRI_FLOAT) ;
-#if 0
-	mri_bias->c_r = (double)mri_bias->width/2.0 ;
-	mri_bias->c_a = (double)mri_bias->height/2.0 ;
-	mri_bias->c_s = (double)mri_bias->depth/2.0 ;
-	mri_counts->c_r = (double)mri_counts->width/2.0 ;
-	mri_counts->c_a = (double)mri_counts->height/2.0 ;
-	mri_counts->c_s = (double)mri_counts->depth/2.0 ;
-#endif
 
   for (i = 1 ; i < argc-1 ; i++)
 	{
 		subject = argv[i] ;
 		fprintf(stderr, "subject %s, %d of %d...\n", subject, i, argc-2) ;
 
-		sprintf(fname, "%s/%s/mri/orig.mgz", sdir, subject) ;
+		int req = snprintf(fname, STRLEN,
+				   "%s/%s/mri/orig.mgz", sdir, subject) ;
+		if( req >= STRLEN ) {
+		  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+		}
+
 		mri_orig = MRIread(fname) ;
 		if (!mri_orig)
 			ErrorExit(Gerror, "%s: could not read orig volume %s", Progname, fname) ;
-		sprintf(fname, "%s/%s/mri/T1.mgz", sdir, subject) ;
+		req = snprintf(fname, STRLEN, "%s/%s/mri/T1.mgz", sdir, subject) ;
+		if( req >= STRLEN ) {
+		  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+		}
 		mri_T1 = MRIread(fname) ;
 		if (!mri_T1)
 			ErrorExit(Gerror, "%s: could not read T1 volume %s", Progname, fname) ;
-		sprintf(fname, "%s/%s/mri/brainmask.mgz", sdir, subject) ;
+		req = snprintf(fname, STRLEN, "%s/%s/mri/brainmask.mgz", sdir, subject) ;
+		if( req >= STRLEN ) {
+		  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+		}
 		mri_brain = MRIread(fname) ;
 		if (!mri_T1)
 			ErrorExit(Gerror, "%s: could not read T1 volume %s", Progname, fname) ;
@@ -270,7 +273,11 @@ main(int argc, char *argv[])
     {
       TRANSFORM    *transform ;
       MRI          *mri ;
-      sprintf(fname, "%s/%s/mri/transforms/%s", sdir, subject, xform_name) ;
+      int req = snprintf(fname, STRLEN,
+			 "%s/%s/mri/transforms/%s", sdir, subject, xform_name) ;
+      if( req >= STRLEN ) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       transform = TransformRead(fname) ;
       if (transform == NULL)
         ErrorExit(ERROR_NOFILE, "%s: could not load transform from %s", Progname, fname) ;

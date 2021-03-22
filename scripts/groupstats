@@ -100,7 +100,8 @@ end
 echo $mapmeaslist > $outdir/mapmeas.list.txt
 echo $hemilist    > $outdir/hemi.list.txt
 echo $aparclist   > $outdir/aparc.list.txt
-echo $fwhmlist   > $outdir/fwhm.list.txt
+echo $fwhmlist    > $outdir/fwhm.list.txt
+echo $slist       > $outdir/subjectslist.txt
 
 #========================================================
 
@@ -165,7 +166,7 @@ endif #DoAparcStats
 # ASEG Stats ----------------------------------------------------
 if($DoAsegStats) then
 foreach hemi ($hemilist other)
-  set segidlist = /tmp/segidlist.$$.dat
+  set segidlist = `fs_temp_file --suffix .dat`
   if($hemi == lh) then
     grep Left  $ASegLUT | grep -v ypo | grep -v \# | \
     grep -v Cerebral-White-Matter | grep -v Cerebral-Cortex |\
@@ -228,7 +229,8 @@ if($DoMaps) then
       # concat data ---------------------
       set outfile =  $outdir/maps/$meas.$hemi.sm00.mgh
       if(! -e $outfile || $OverWrite) then
-        set cmd = (mris_preproc --meas $meas$fmt --fsgd $fsgd --hemi $hemi --o $outfile --srcsurfreg $SrcSurfReg)
+        set cmd = (mris_preproc --meas $meas$fmt --hemi $hemi --o $outfile \
+           --f $outdir/subjectslist.txt --srcsurfreg $SrcSurfReg)
         echo "#C# $cmd"  | tee -a $LF
         $cmd | tee -a $LF
         if($status) exit 1;

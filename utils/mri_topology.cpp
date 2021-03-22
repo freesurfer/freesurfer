@@ -8,7 +8,7 @@
 /*
  * Original Author: F. Segonne
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -2273,7 +2273,7 @@ static void guessSegmentation(TC_PARMS *parms)
   if (!parms->gca) GCAfree(&gca);
   if (!parms->transform) free(transform);
 
-  MRIwrite(mri_seg, "/tmp/tmp");
+  // MRIwrite(mri_seg, "/tmp/tmp");
 }
 
 static void initImages(TC_PARMS *parms)

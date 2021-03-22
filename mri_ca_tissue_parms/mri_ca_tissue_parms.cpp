@@ -1,6 +1,6 @@
 /*
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -105,7 +105,11 @@ main(int argc, char *argv[]) {
     subject_name = argv[i+2] ;
     printf("processing subject %s, %d of %d...\n", subject_name,i+1,
            nsubjects);
-    sprintf(fname, "%s/%s/mri/%s", subjects_dir, subject_name, parc_dir) ;
+    int req = snprintf(fname, STRLEN,
+		       "%s/%s/mri/%s", subjects_dir, subject_name, parc_dir) ;
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     if (DIAG_VERBOSE_ON)
       printf("reading parcellation from %s...\n", fname) ;
     mri_parc = MRIread(fname) ;
@@ -113,7 +117,11 @@ main(int argc, char *argv[]) {
       ErrorExit(ERROR_NOFILE, "%s: could not read parcellation file %s",
                 Progname, fname) ;
 
-    sprintf(fname, "%s/%s/mri/%s", subjects_dir, subject_name, T1_name) ;
+    req = snprintf(fname, STRLEN,
+		   "%s/%s/mri/%s", subjects_dir, subject_name, T1_name) ;
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     if (DIAG_VERBOSE_ON)
       printf("reading co-registered T1 from %s...\n", fname) ;
     mri_T1 = MRIread(fname) ;
@@ -121,52 +129,42 @@ main(int argc, char *argv[]) {
       ErrorExit(ERROR_NOFILE, "%s: could not read T1 data from file %s",
                 Progname, fname) ;
 
-    sprintf(fname, "%s/%s/mri/%s", subjects_dir, subject_name, PD_name) ;
+    req = snprintf(fname, STRLEN,
+		   "%s/%s/mri/%s", subjects_dir, subject_name, PD_name) ;
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     if (DIAG_VERBOSE_ON)
       printf("reading co-registered T1 from %s...\n", fname) ;
     mri_PD = MRIread(fname) ;
-    if (!mri_PD)
+    if (!mri_PD) {
       ErrorExit(ERROR_NOFILE, "%s: could not read PD data from file %s",
                 Progname, fname) ;
-
+    }
 
     if (xform_name) {
       /*      VECTOR *v_tmp, *v_tmp2 ;*/
 
-      sprintf(fname, "%s/%s/mri/%s", subjects_dir, subject_name, xform_name) ;
+      int req = snprintf(fname, STRLEN,
+			 "%s/%s/mri/%s", 
+			 subjects_dir, subject_name, xform_name) ;
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       printf("reading xform from %s...\n", fname) ;
       transform = TransformRead(fname) ;
       if (!transform)
         ErrorExit(ERROR_NOFILE, "%s: could not read xform from %s",
                   Progname, fname) ;
-#if 0
-      v_tmp = VectorAlloc(4,MATRIX_REAL) ;
-      *MATRIX_RELT(v_tmp,4,1)=1.0 ;
-      v_tmp2 = MatrixMultiply(lta->xforms[0].m_L, v_tmp, NULL) ;
-      printf("RAS (0,0,0) -->\n") ;
-      MatrixPrint(stdout, v_tmp2) ;
-#endif
 
       if (transform->type == LINEAR_RAS_TO_RAS) {
         MATRIX *m_L ;
         m_L = ((LTA *)transform->xform)->xforms[0].m_L ;
         MRIrasXformToVoxelXform(mri_parc, mri_T1, m_L,m_L) ;
-      }
-#if 0
-      v_tmp2 = MatrixMultiply(lta->xforms[0].m_L, v_tmp, v_tmp2) ;
-      printf("voxel (0,0,0) -->\n") ;
-      MatrixPrint(stdout, v_tmp2) ;
-      VectorFree(&v_tmp) ;
-      VectorFree(&v_tmp2) ;
-      test(mri_parc, mri_T1, mri_PD, lta->xforms[0].m_L) ;
-#endif
-    }
-    if (histo_parms)
+      }    }
+    if (histo_parms) {
       GCAhistogramTissueStatistics(gca,mri_T1,mri_PD,mri_parc,transform,histo_parms);
-#if 0
-    else
-      GCAaccumulateTissueStatistics(gca, mri_T1, mri_PD, mri_parc, transform) ;
-#endif
+    }
 
     MRIfree(&mri_parc) ;
     MRIfree(&mri_T1) ;
@@ -277,60 +275,3 @@ usage_exit(int code) {
   printf("\t-gradient - use intensity gradient as input to classifier.\n") ;
   exit(code) ;
 }
-#if 0
-static int
-test(MRI *mri1, MRI *mri2, MRI *mri3, MATRIX *m_vol1_to_vol2_ras) {
-  VECTOR *v_test, *v_vox ;
-  float  x_ras1, y_ras1, z_ras1, x_ras2, y_ras2, z_ras2, x_vox1, y_vox1,
-  z_vox1, x_vox2, y_vox2, z_vox2 ;
-  MATRIX  *m_vol2_vox2ras, *m_vol2_ras2vox, *m_vol1_ras2vox, *m_vol1_vox2ras,
-  *m_vol3_ras2vox, *m_vol3_vox2ras ;
-  int     val ;
-
-
-  v_test = VectorAlloc(4, MATRIX_REAL) ;
-  m_vol1_vox2ras = MRIgetVoxelToRasXform(mri1) ;
-  m_vol2_vox2ras = MRIgetVoxelToRasXform(mri2) ;
-  m_vol1_ras2vox = MRIgetRasToVoxelXform(mri1) ;
-  m_vol2_ras2vox = MRIgetRasToVoxelXform(mri2) ;
-  m_vol3_vox2ras = MRIgetVoxelToRasXform(mri3) ;
-  m_vol3_ras2vox = MRIgetRasToVoxelXform(mri3) ;
-
-  x_ras1 = 126.50 ;
-  y_ras1 = -125.500 ;
-  z_ras1 = 127.50 ;
-  V3_X(v_test) = x_ras1 ;
-  V3_Y(v_test) = y_ras1 ;
-  V3_Z(v_test) = z_ras1 ;
-  *MATRIX_RELT(v_test, 4, 1) = 1.0 ;
-  v_vox = MatrixMultiply(m_vol1_ras2vox, v_test, NULL) ;
-  x_vox1 = V3_X(v_vox) ;
-  y_vox1 = V3_Y(v_vox) ;
-  z_vox1 = V3_Z(v_vox) ;
-  val = MRISvox(mri1, nint(x_vox1), nint(y_vox1), nint(z_vox1)) ;
-  printf("VOL1: ras (%1.1f, %1.1f, %1.1f) --> VOX (%1.1f, %1.1f, %1.1f) = %d\n",
-         x_ras1, y_ras1, z_ras1, x_vox1, y_vox1, z_vox1, val) ;
-
-
-  x_ras2 = 76.5421 ;
-  y_ras2 = 138.5352 ;
-  z_ras2 = 96.0910 ;
-  V3_X(v_test) = x_ras2 ;
-  V3_Y(v_test) = y_ras2 ;
-  V3_Z(v_test) = z_ras2 ;
-  *MATRIX_RELT(v_test, 4, 1) = 1.0 ;
-  v_vox = MatrixMultiply(m_vol2_ras2vox, v_test, NULL) ;
-  x_vox2 = V3_X(v_vox) ;
-  y_vox2 = V3_Y(v_vox) ;
-  z_vox2 = V3_Z(v_vox) ;
-  val = MRISvox(mri2, nint(x_vox2), nint(y_vox2), nint(z_vox2)) ;
-  printf("VOL2: ras (%2.1f, %2.1f, %2.1f) --> VOX (%2.1f, %2.1f, %2.1f) = %d\n",
-         x_ras2, y_ras2, z_ras2, x_vox2, y_vox2, z_vox2, val) ;
-
-
-
-  MatrixFree(&v_test) ;
-  return(NO_ERROR) ;
-}
-
-#endif

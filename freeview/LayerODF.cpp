@@ -22,8 +22,6 @@
 #include <QSettings>
 #include "FSVolume.h"
 
-#define ODF_NUM     181
-
 LayerODF::LayerODF( LayerMRI* ref, QObject* parent ) : LayerMRI( ref, parent ),
   m_mask(NULL)
 {
@@ -38,22 +36,19 @@ LayerODF::LayerODF( LayerMRI* ref, QObject* parent ) : LayerMRI( ref, parent ),
   // initialize mesh data
   QFile file(":/resource/DSI_vectors_181.dat");
   file.open(QIODevice::ReadOnly);
-  for (int i = 0; i < ODF_NUM; i++)
+  m_nVectors = 181;
+  m_nMesh = 720;
+  for (int i = 0; i < m_nVectors; i++)
   {
     file.read((char*)m_odfVector[i], sizeof(float)*3);
-    //        if (m_bInvert[0])
-    //            m_odfVector[i][0] = -m_odfVector[i][0];
-    //        else if (m_bInvert[1])
-    //            m_odfVector[i][1] = -m_odfVector[i][1];
-    //        else if (m_bInvert[2])
-    //            m_odfVector[i][2] = -m_odfVector[i][2];
   }
   file.close();
   file.setFileName(":/resource/DSI_mesh_181.dat");
   file.open(QIODevice::ReadOnly);
-  for (int i = 0; i < 720; i++)
+  for (int i = 0; i < m_nMesh; i++)
   {
     file.read((char*)m_odfMesh[i], sizeof(int)*3);
+    qDebug() << m_odfMesh[i][0] << m_odfMesh[i][1] << m_odfMesh[i][2];
   }
   file.close();
 
@@ -114,46 +109,103 @@ void LayerODF::SetOdfMaskThreshold(double *th)
   emit UpdateActorRequested();
 }
 
-bool LayerODF::Load(const QString &fn)
+bool LayerODF::Load(const QString &fn, const QString& vertex_fn, const QString& face_fn)
 {
+  m_bDtkFormat = vertex_fn.isEmpty();
+  if (!m_bDtkFormat)
+  {
+    QFile file(vertex_fn);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+    {
+      cerr << "Could not load vertex file" << endl;
+      return false;
+    }
+
+    int n = 0;
+    while (!file.atEnd())
+    {
+      QString line = file.readLine().trimmed();
+      if (!line.isEmpty())
+      {
+        QStringList list = line.split(QRegExp("\\s+"), QString::SkipEmptyParts);
+        if (list.size() == 3)
+        {
+          m_odfVector[n][0] = list[0].toDouble();
+          m_odfVector[n][1] = list[1].toDouble();
+          m_odfVector[n][2] = list[2].toDouble();
+          n++;
+        }
+      }
+    }
+    m_nVectors = n;
+    file.close();
+
+    file.setFileName(face_fn);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+    {
+      cerr << "Could not load face file" << endl;
+      return false;
+    }
+
+    n = 0;
+    while (!file.atEnd())
+    {
+      QString line = file.readLine().trimmed();
+      if (!line.isEmpty())
+      {
+        QStringList list = line.split(QRegExp("\\s+"), QString::SkipEmptyParts);
+        if (list.size() == 3)
+        {
+          m_odfMesh[n][0] = (int)list[0].toDouble();
+          m_odfMesh[n][1] = (int)list[1].toDouble();
+          m_odfMesh[n][2] = (int)list[2].toDouble();
+          n++;
+        }
+      }
+    }
+    m_nMesh = n;
+  }
+
   MRI* mri = ::MRIread(qPrintable(fn));
   SetName(QFileInfo(fn).completeBaseName());
   SetFileName(fn);
 
-  // un-permute mri
-  MRI* mri2 = ::MRIallocSequence(mri->height, mri->depth, mri->nframes, mri->type, mri->width);
-  MRI* mri_ref = m_volumeRef->GetMRI();
-  ::MRIcopyHeader(mri_ref, mri2);
-  for (int i = 0; i < mri->width; i++)
-    for (int j = 0; j < mri->height; j++)
-      for (int k = 0; k < mri->depth; k++)
-        for (int n = 0; n < mri->nframes; n++)
-        {
-          switch ( mri->type )
+  // un-permute mri if dtk format
+  if (m_bDtkFormat)
+  {
+    MRI* mri2 = ::MRIallocSequence(mri->height, mri->depth, mri->nframes, mri->type, mri->width);
+    MRI* mri_ref = m_volumeRef->GetMRI();
+    ::MRIcopyHeader(mri_ref, mri2);
+    for (int i = 0; i < mri->width; i++)
+      for (int j = 0; j < mri->height; j++)
+        for (int k = 0; k < mri->depth; k++)
+          for (int n = 0; n < mri->nframes; n++)
           {
-          case MRI_UCHAR:
-            MRIseq_vox( mri2, j, k, n, i) = MRIseq_vox( mri, i, j, k, n);
-            break;
-          case MRI_INT:
-            MRIIseq_vox( mri2, j, k, n, i ) = MRIIseq_vox( mri, i, j, k, n );
-            break;
-          case MRI_LONG:
-            MRILseq_vox( mri2, j, k, n, i ) = MRILseq_vox( mri, i, j, k, n  );
-            break;
-          case MRI_FLOAT:
-            MRIFseq_vox( mri2, j, k, n, i ) = MRIFseq_vox( mri, i, j, k, n  );
-            break;
-          case MRI_SHORT:
-            MRISseq_vox( mri2, j, k, n, i ) = MRISseq_vox( mri, i, j, k, n );
-            break;
-          default:
-            break;
+            switch ( mri->type )
+            {
+            case MRI_UCHAR:
+              MRIseq_vox( mri2, j, k, n, i) = MRIseq_vox( mri, i, j, k, n);
+              break;
+            case MRI_INT:
+              MRIIseq_vox( mri2, j, k, n, i ) = MRIIseq_vox( mri, i, j, k, n );
+              break;
+            case MRI_LONG:
+              MRILseq_vox( mri2, j, k, n, i ) = MRILseq_vox( mri, i, j, k, n  );
+              break;
+            case MRI_FLOAT:
+              MRIFseq_vox( mri2, j, k, n, i ) = MRIFseq_vox( mri, i, j, k, n  );
+              break;
+            case MRI_SHORT:
+              MRISseq_vox( mri2, j, k, n, i ) = MRISseq_vox( mri, i, j, k, n );
+              break;
+            default:
+              break;
+            }
           }
-        }
-
-  MRI* temp = mri;
-  mri = mri2;
-  ::MRIfree(&temp);
+    MRI* temp = mri;
+    mri = mri2;
+    ::MRIfree(&temp);
+  }
 
   if ( CreateFromMRIData((void*)mri) )
   {
@@ -262,8 +314,8 @@ void LayerODF::BuildSlice(int nPlane)
     mask_ptr = (char*)maskdata->GetScalarPointer();
     mask_scalar_type = maskdata->GetScalarType();
   }
-  int nFrames = 181;
-  double raws[181];
+  int nFrames = GetNumberOfFrames();
+  double raws[4096];
   bool bInvert[3] = {false, false, false};
   if (GetProperty()->GetOdfInversion() > 0)
     bInvert[GetProperty()->GetOdfInversion()-1] = true;
@@ -337,6 +389,7 @@ void LayerODF::BuildSlice(int nPlane)
 #endif
           scalars_2->InsertNextValue(raws[k]);
         }
+
         for (int k = 0; k < nFrames; k++)
         {
           float scale = (raws[k]+new_offset)*over_all;
@@ -369,18 +422,43 @@ void LayerODF::BuildSlice(int nPlane)
 #endif
           scalars_2->InsertNextValue(raws[k]);
         }
-        for (int k = 0; k < 720; k++)
+
+        if (m_bDtkFormat)
         {
-          polys->InsertNextCell(3);
-          for (int kk = 0; kk < 3; kk++)
+          for (int k = 0; k < m_nMesh; k++)
           {
-            if (m_odfMesh[k][kk] > 0)
-              polys->InsertCellPoint(cnt+m_odfMesh[k][kk]-1);
-            else
-              polys->InsertCellPoint(cnt+nFrames-m_odfMesh[k][kk]-1);
+            polys->InsertNextCell(3);
+            for (int kk = 0; kk < 3; kk++)
+            {
+              if (m_odfMesh[k][kk] > 0)
+                polys->InsertCellPoint(cnt+m_odfMesh[k][kk]-1);
+              else
+                polys->InsertCellPoint(cnt+nFrames-m_odfMesh[k][kk]-1);
+            }
           }
+          cnt += nFrames*2;
         }
-        cnt += nFrames*2;
+        else
+        {
+          for (int k = 0; k < m_nMesh; k++)
+          {
+            polys->InsertNextCell(3);
+            for (int kk = 0; kk < 3; kk++)
+            {
+              polys->InsertCellPoint(cnt+m_odfMesh[k][kk]);
+            }
+          }
+          cnt += nFrames;
+          for (int k = 0; k < m_nMesh; k++)
+          {
+            polys->InsertNextCell(3);
+            for (int kk = 0; kk < 3; kk++)
+            {
+              polys->InsertCellPoint(cnt+m_odfMesh[k][kk]);
+            }
+          }
+          cnt += nFrames;
+        }
       }
     }
   }

@@ -621,20 +621,23 @@ foreach conname ($conlist)
     if($DoClusterMean) then
       # Create an average "waveform" for each cluster
       set avgwf = $glmdir/$conname/$csdbase.y.ocn.dat
+      set tmpfile = `fs_temp_file`
       set cmd = (mri_segstats --seg $ocn --exclude 0  \
-       --i $y   --sum /tmp/mri_glmfit-sim.junk.$$)
+       --i $y   --sum $tmpfile)
       if($DoSpatialSum == 0) set cmd = ($cmd --avgwf $avgwf)
       if($DoSpatialSum == 1) set cmd = ($cmd --sumwf $avgwf)
       echo $cmd | tee -a $LF
       $cmd | tee -a $LF
       if($status) exit 1;
-      rm -f /tmp/mri_glmfit-sim.junk.$$
+      rm -f $tmpfile
     endif
   endif
 
   if($anattype == volume) then
-    mri_info --o  /tmp/mri_glmfit-sim.junk.$$.cres --cres $sig
-    set voxsize = `cat /tmp/mri_glmfit-sim.junk.$$.cres`
+    set tmpfile = `fs_temp_file --suffix .cres`
+    mri_info --o $tmpfile --cres $sig
+    set voxsize = `cat $tmpfile`
+    rm -f $tmpfile
     if($voxsize != 2 && $UseGRF) then
       echo "ERROR: voxel size of input is $voxsize, expecting 2"
       exit 1
@@ -658,14 +661,15 @@ foreach conname ($conlist)
     if($DoClusterMean) then
       # Create an average "waveform" for each cluster
       set avgwf = $glmdir/$conname/$csdbase.y.ocn.dat
+      set tmpfile = `fs_temp_file`
       set cmd = (mri_segstats --seg $ocn --exclude 0 \
-       --i $y --sum /tmp/mri_glmfit-sim.junk.$$)
+       --i $y --sum $tmpfile)
       if($DoSpatialSum == 0) set cmd = ($cmd --avgwf $avgwf)
       if($DoSpatialSum == 1) set cmd = ($cmd --sumwf $avgwf)
       echo $cmd | tee -a $LF
       $cmd | tee -a $LF
       if($status) exit 1;
-      rm -f /tmp/mri_glmfit-sim.junk.$$
+      rm -f $tmpfile
     endif
 
     if($UseGRF && $DoGRFOCNAnat) then

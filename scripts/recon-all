@@ -6,7 +6,7 @@
 # Script to run the entire reconstruction pipline.
 # Original Author: Doug Greve
 #
-# Copyright © 2011-2020 The General Hospital Corporation (Boston, MA) "MGH"
+# Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
 #
 
 umask 002;
@@ -454,6 +454,11 @@ check_params_return:
 
 set StartTime = `date`;
 set tSecStart = `date '+%s'`;
+
+# This is to revert the T2 masking to that done in 7.1X to make it
+# consistent. The 71X reversion means that the T2 is not actually
+# masked (which is a bug). 
+if($?FS_RCA_T2_MASK_71 == 0) setenv FS_RCA_T2_MASK_71 1
 
 # This allows the user to require that the build stamp be
 # consistent from one recon-all invocation to the next.
@@ -4089,6 +4094,7 @@ if(($DoT2pial || $DoFLAIRpial) && ! $DoConf2Hires) then
 	if ($RHonly) set xopts = ($xopts --rh-only )
         set bbcmd = (bbregister --s $subjid  --mov $t2flairraw --lta $mdir/transforms/${t2flair}raw.lta \
             --init-$BBRInit --T2 --gm-proj-abs 2 --wm-proj-abs 1 $xopts)
+        set bbcmd = ($bbcmd --no-coreg-ref-mask) # otherwise can become non-determin if aparc+aseg is there
         echo "\n $bbcmd \n"|& tee -a $LF |& tee -a $CF
         if($RunIt) $fs_time $bbcmd |& tee -a $LF
         if($status) goto error_exit;
@@ -4107,12 +4113,9 @@ if(($DoT2pial || $DoFLAIRpial) && ! $DoConf2Hires) then
       set xopts = `fsr-getxopts bbregister $XOptsFile $GlobXOptsFile`;
       if ($LHonly) set xopts = ($xopts --lh-only )
       if ($RHonly) set xopts = ($xopts --rh-only )
-      set bbcmd = (bbregister \
-          --s $subjid \
-          --mov $t2flairraw \
-          --lta $LTAAuto \
-          --init-$BBRInit \
-          --T2  --gm-proj-abs 2 --wm-proj-abs 1 $xopts)
+      set bbcmd = (bbregister --s $subjid  --mov $t2flairraw   --lta $LTAAuto \
+          --init-$BBRInit  --T2 --gm-proj-abs 2 --wm-proj-abs 1 $xopts)
+      set bbcmd = ($bbcmd --no-coreg-ref-mask) # otherwise can become non-determin if aparc+aseg is there
       echo "\n $bbcmd \n"|& tee -a $LF |& tee -a $CF
       if($RunIt) $fs_time $bbcmd |& tee -a $LF
       if($status) goto error_exit;
@@ -4166,11 +4169,13 @@ if(($DoT2pial || $DoFLAIRpial) && ! $DoConf2Hires) then
   # then mask the T2/FLAIR 
   # note: post-normalized file remains for debug, with .norm in name
   # this creates ${t2flair}.mgz
-  set maskcmd = (mri_mask \
-      -transfer 255 -keep_mask_deletion_edits \
-      $mdir/${t2flair}.norm.mgz \
-      $mdir/brain.finalsurfs.mgz \
-      $mdir/${t2flair}.mgz)
+  if($FS_RCA_T2_MASK_71) then
+    set fs_rca_t2_mask_args = (-transfer 255 -keep_mask_deletion_edits)
+  else
+    set fs_rca_t2_mask_args = (-T 1)
+  endif
+  set maskcmd = (mri_mask $fs_rca_t2_mask_args  \
+      $mdir/${t2flair}.norm.mgz  $mdir/brain.finalsurfs.mgz  $mdir/${t2flair}.mgz)
   echo "\n $maskcmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $fs_time $maskcmd |& tee -a $LF
   if($status) goto error_exit;
@@ -4205,7 +4210,7 @@ if(($DoT2pial || $DoFLAIRpial) && ! $DoConf2Hires) then
     echo $cmd        |& tee -a $LF |& tee -a $CF
     set repos = $sdir/repos.$hemi.pial.json
     if(! -e $repos) set repos = ()
-    set ud = `UpdateNeeded $pialmm $pialt1 $bfs $cortex $cortexha $white $ads $wm $repos`
+    set ud = `UpdateNeeded $pialmm $pialt1 $bfs $cortex $cortexha $white $ads $wm $repos $mmvol`
     if($ud || $ForceUpdate) then
       if($RunIt) then
         $fs_time $cmd |& tee -a $LF

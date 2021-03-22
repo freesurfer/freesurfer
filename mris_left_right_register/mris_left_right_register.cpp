@@ -7,7 +7,7 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -775,7 +775,7 @@ get_option(int argc, char *argv[])
       printf("setting l_external = %2.1f\n", parms.l_external) ;
       break ;
     case 'C':
-      strncpy(curvature_fname, argv[2], STRLEN) ; // Convert to strncpy at least
+      strncpy(curvature_fname, argv[2], STRLEN-1) ; // Convert to strncpy at least
       nargs = 1 ;
       break ;
     case 'A':

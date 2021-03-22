@@ -1,7 +1,7 @@
 /**
  * @brief DICOM 3.0 reading functions
  *
- * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -95,7 +95,7 @@ MRI *sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
   int nmoscols, nmosrows;
   int mosrow, moscol, mosindex;
   int err, OutOfBounds, IsMosaic;
-  int row, col, slice, frame, fid;
+  int row, col, slice, frame;
   unsigned short *pixeldata;
   MRI *vol, *voltmp;
   char **SeriesList;
@@ -407,17 +407,7 @@ MRI *sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
         strncmp(sdfi->TransferSyntaxUID, rllEncoded_UID, 19) == 0) {
       // setenv DCMDICTPATH /usr/pubsw/packages/dcmtk/current/share/dcmtk/dicom.dic???
       IsCompressed = 1;
-      tmpfile = std::string(env->tmpdir) + "/" + std::string(env->user) + ".tmp.decompressed.dcm.XXXXXX";
-      std::vector<char> tmpfilechars(tmpfile.begin(), tmpfile.end());
-      tmpfilechars.push_back(0); // Null terminate
-      fid = mkstemp(tmpfilechars.data()); // mkstemp updates the "XXXXXX" at the end
-      tmpfilechars.pop_back(); // Don't need the null terminator
-      tmpfile = std::string(tmpfilechars.begin(), tmpfilechars.end()); // Copy back the modified string
-      if (fid == -1) {
-        printf("ERROR: could not create temp file for decompression %d\n", fid);
-        exit(1);
-      }
-      close(fid);
+      tmpfile = makeTempFile();
       if (strncmp(sdfi->TransferSyntaxUID, jpegCompressed_UID, 19) == 0) {
         printf("JPEG compressed, decompressing\n");
 	tmpfilestdout = tmpfile+".dcmdjpeg.out";
@@ -5542,7 +5532,7 @@ MRI *DICOMRead2(const char *dcmfile, int LoadVolume)
 {
   char **FileNames, *dcmdir;
   DICOMInfo RefDCMInfo, TmpDCMInfo, **dcminfo;
-  int nfiles, nframes, nslices, r, c, s, f, err, fid;
+  int nfiles, nframes, nslices, r, c, s, f, err;
   int ndcmfiles, nthfile, mritype = 0, IsDWI, IsPhilipsDWI;
   unsigned short *v16 = NULL;
   unsigned char *v08 = NULL;
@@ -5853,17 +5843,7 @@ MRI *DICOMRead2(const char *dcmfile, int LoadVolume)
             strncmp(dcminfo[nthfile]->TransferSyntaxUID, rllEncoded_UID, 19) == 0) {
           // setenv DCMDICTPATH /usr/pubsw/packages/dcmtk/current/share/dcmtk/dicom.dic???
           IsCompressed = 1;
-	  tmpfile = std::string(env->tmpdir) + "/" + std::string(env->user) + ".tmp.decompressed.dcm.XXXXXX";
-	  std::vector<char> tmpfilechars(tmpfile.begin(), tmpfile.end());
-	  tmpfilechars.push_back(0); // Null terminate
-	  fid = mkstemp(tmpfilechars.data()); // mkstemp updates the "XXXXXX" at the end
-	  tmpfilechars.pop_back(); // Don't need the null terminator
-	  tmpfile = std::string(tmpfilechars.begin(), tmpfilechars.end()); // Copy back the modified string
-          if (fid == -1) {
-            printf("ERROR: could not create temp file for decompression %d\n", fid);
-            exit(1);
-          }
-          close(fid);
+          tmpfile = makeTempFile();
           if (strncmp(dcminfo[nthfile]->TransferSyntaxUID, jpegCompressed_UID, 19) == 0) {
             printf("JPEG compressed, decompressing\n");
 	    tmpfilestdout = tmpfile + ".dcmdjpeg.out";

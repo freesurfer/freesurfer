@@ -1,7 +1,7 @@
 /*
  * Original Author: Ruopeng Wang
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -338,7 +338,6 @@ protected:
   void LoadWayPointsFile        ( const QString& fn, const QVariantMap& args = QVariantMap() );
   void LoadControlPointsFile    ( const QString& fn, const QVariantMap& args = QVariantMap() );
   void LoadTrackFile            ( const QString& fn );
-  void LoadODF        ( const QString& fn);
   void LoadFCD        ( const QString& subdir, const QString& subject, const QString& suffix = "");
   void LoadSurfaceParameterization(const QString& filename);
   void LoadSurfaceCoordsFromParameterization(const QString& filename);

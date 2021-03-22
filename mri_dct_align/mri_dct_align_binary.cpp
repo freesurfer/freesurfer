@@ -7,7 +7,7 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -325,13 +325,6 @@ main(int argc, char *argv[])
 	}
 	else if (which == HIPPO)
 	{
-#if 0
-		for (i = 0 ; i < NUM_NON_HIPPO_LABELS ; i++)
-		{
-			label = non_hippo_labels[i] ;
-			MRIreplaceValues(mri_source, mri_source, label, 0) ;
-		}
-#endif
 	}
 
 	if (which == WM)  // debugging
@@ -339,12 +332,18 @@ main(int argc, char *argv[])
 		mri_orig_target = mri_target ; mri_orig_source = mri_source ;
 		mp.target_label = target_label ;
 	}
-  if (Gdiag & DIAG_WRITE && mp.write_iterations > 0)
-  {
-		sprintf(fname, "%s_target", mp.base_name) ;
-    MRIwriteImageViews(mri_orig_target, fname, IMAGE_SIZE) ;	
-		sprintf(fname, "%s_target.mgz", mp.base_name) ;
-		MRIwrite(mri_orig_target, fname) ;
+	if (Gdiag & DIAG_WRITE && mp.write_iterations > 0)
+	  {
+	    int req = snprintf(fname, STRLEN, "%s_target", mp.base_name) ;
+	    if( req >= STRLEN ) {
+	      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	    }
+	    MRIwriteImageViews(mri_orig_target, fname, IMAGE_SIZE) ;	
+	    req = snprintf(fname, STRLEN, "%s_target.mgz", mp.base_name) ;
+	    if( req >= STRLEN ) {
+	      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	    }
+	    MRIwrite(mri_orig_target, fname) ;
 	}
 	
 	if (transform == NULL)
@@ -373,17 +372,22 @@ main(int argc, char *argv[])
 	{
 		char fname[STRLEN] ;
 
-		sprintf(fname, "%s_target.mgz", mp.base_name) ;
-    printf("writing target volume to %s...\n", fname) ;
-		if (mp.diag_morph_from_atlas)
-			MRIwrite(mri_orig_target, fname) ;
-		else
-		{
-      MRI    *mri_tmp ;
-      mri_tmp = MRITransformedCenteredMatrix(mri_source, mri_target, m_L) ;
-			MRIwrite(mri_tmp, fname) ;
-      MRIfree(&mri_tmp) ;
+		int req = snprintf(fname, STRLEN,
+				   "%s_target.mgz", mp.base_name) ;
+		if( req >= STRLEN ) {
+		  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
 		}
+		
+		printf("writing target volume to %s...\n", fname) ;
+		if (mp.diag_morph_from_atlas)
+		  MRIwrite(mri_orig_target, fname) ;
+		else
+		  {
+		    MRI    *mri_tmp ;
+		    mri_tmp = MRITransformedCenteredMatrix(mri_source, mri_target, m_L) ;
+		    MRIwrite(mri_tmp, fname) ;
+		    MRIfree(&mri_tmp) ;
+		  }
 	}
 
   for (i = 0 ; i < mp.npasses ; i++) 

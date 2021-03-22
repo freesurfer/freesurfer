@@ -10,7 +10,7 @@
 /*
  * Original Author: Dougas N Greve
  *
- * Copyright Â© 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -455,8 +455,8 @@ int main(int argc, char **argv)
     mris->ct->idbase = segbase;
     if (mris->ct)
     {
-      sprintf(tmpstr,"/tmp/mri_segstats.tmp.%s.%s.%d.ctab",subject,hemi,
-              nint(randomNumber(0, 255)));
+      std::string tmpfile = makeTempFile(".ctab");
+      sprintf(tmpstr, "%s", tmpfile.c_str());
       ctabfile = strcpyalloc(tmpstr);
       CTABwriteFileASCII(mris->ct,ctabfile);
     }

@@ -7,7 +7,7 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -106,8 +106,16 @@ main(int argc, char *argv[]) {
     }
   }
 
-  if (!mris)
-    ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",Progname, in_fname) ;
+  if (!mris) ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",Progname, in_fname) ;
+
+  if (!mris->vg.valid) {
+    fs::warning() << "Surface has no geometry information - adding a default geometry. "
+                  << "Surface will not align to rasterized volume in this case.";
+    MRI *mri_tmp = MRIallocHeader(256, 256, 256, MRI_UCHAR, 1);
+    MRIScopyVolGeomFromMRI(mris, mri_tmp);
+    MRIfree(&mri_tmp);
+  }
+
   mri_interior = MRISfillInterior(mris, resolution, mri_template) ;
 
   if (conform)
@@ -127,6 +135,7 @@ main(int argc, char *argv[]) {
     MRIfree(&mri_interior) ; MRIfree(&mri_tmp) ;
     mri_interior = mri_tmp2 ;
   }
+
   MRIaddCommandLine(mri_interior, cmdline) ;
   fprintf(stderr, "writing filled volume to %s...\n", out_fname) ;
   MRIwrite(mri_interior, out_fname) ;

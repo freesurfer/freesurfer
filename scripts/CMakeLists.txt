@@ -36,7 +36,6 @@ install_configured(
   dicom-rename
   dmrirc.example
   dmrirc.long.example
-  dsh
   dt_recon
   epidewarp.fsl
   extract_talairach_avi_QA.awk
@@ -132,7 +131,6 @@ install_configured(
   map_all_labels-lh
   map_central_sulcus
   map_to_base
-  mcparams2reg
   meanval
   mergeseg
   minc2seqinfo
@@ -167,7 +165,6 @@ install_configured(
   mri_nu_correct.mni
   mri_reorient_LR.csh
   mris_preproc
-  mris_roiCircle
   mris_volsmooth
   ms_refine_subject
   orientLAS

@@ -5,7 +5,7 @@
 #
 # Original Author: Silvester Czanner
 #
-# Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+# Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
 #
 # Terms and conditions for use, reproduction, distribution and contribution
 # are found in the 'FreeSurfer Software License Agreement' contained
@@ -88,7 +88,7 @@ date            >> $LF
 
 set StartTime = `date`;
 
-if($#MLF == 0) set MLF = /tmp/grad_unwarp_$$.m
+if($#MLF == 0) set MLF = `fs_temp_file --suffix grad_unwarp.m`
 rm -f $MLF
 echo "INFO: matlab file is $MLF"
 

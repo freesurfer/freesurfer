@@ -1212,7 +1212,8 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--check-reg") ||
 	     !strcasecmp(option, "--check") ||
 	     !strcasecmp(option, "--junk")){
-      sprintf(tmpstr,"/tmp/reg.tmp.%ld.dat",PDFtodSeed());
+      std::string tmpname = makeTempFile(".dat");
+      sprintf(tmpstr, "%s", tmpname.c_str());
       regfname = strcpyalloc(tmpstr);
       checkreg = 1;
     }
@@ -1455,7 +1456,8 @@ static int parse_commandline(int argc, char **argv) {
       fslregfname = strcpyalloc(tmpstr);
       read_fslreg(fslregfname);
       fslregoutfname = fslregfname;
-      sprintf(tmpstr,"/tmp/feat.exf2std.reg.%d",(int)PDFtodSeed());
+      std::string tmpname = makeTempFile();
+      sprintf(tmpstr, "%s", tmpname.c_str());
       regfname = strcpyalloc(tmpstr);
       tagmov = 1;
       nargsused = 1;
@@ -1496,8 +1498,9 @@ static int parse_commandline(int argc, char **argv) {
 	mov_vol_id = strcpyalloc(tmpstr);
       }
       if(regfname == NULL){
-	sprintf(tmpstr,"/tmp/tkregister2.%s.junk",subjectid);
-	regfname = strcpyalloc(tmpstr);
+        std::string tmpname = makeTempFile();
+        sprintf(tmpstr, "%s", tmpname.c_str());
+        regfname = strcpyalloc(tmpstr);
       }
       mkheaderreg = 1;
       nargsused = 1;
@@ -4645,15 +4648,18 @@ void blur(float factor)  /* test hack */
   y0 = (int)yorig;
   y1 = (int)(yorig+ysize-1);
 
-  sprintf(command,"scrsave /tmp/tmp1.rgb %d %d %d %d\n",x0,x1,y0,y1);
+  std::string tmp1_rgb = makeTempFile(".rgb");
+  std::string tmp2_rgb = makeTempFile(".rgb");
+  std::string tmp2_bin = makeTempFile(".bin");
+
+  sprintf(command,"scrsave %s %d %d %d %d\n",tmp1_rgb,x0,x1,y0,y1);
   system(command);
-  sprintf(command,"blur /tmp/tmp1.rgb /tmp/tmp2.rgb %d\n",
-          (int)((float)xsize/factor));
+  sprintf(command,"blur %s %s %d\n", tmp1_rgb, tmp2_rgb, (int)((float)xsize/factor));
   system(command);
-  sprintf(command,"tobin /tmp/tmp2.rgb /tmp/tmp2.bin\n");
+  sprintf(command,"tobin %s %s\n", tmp2_rgb, tmp2_bin);
   system(command);
 
-  fp = fopen("/tmp/tmp2.bin","r");
+  fp = fopen(tmp2_bin, "r");
   fread(binbuff,3,xdim*ydim,fp);
   k = 0;
   for (i=0;i<ydim;i++)
@@ -4677,7 +4683,7 @@ void blur(float factor)  /* test hack */
   rectwrite(0,0,xdim-1,ydim-1,vidbuf);
   backbuffer(TRUE);
   frontbuffer(FALSE);
-  sprintf(command,"rm -f /tmp/tmp1.rgb /tmp/tmp2.rgb /tmp/tmp2.bin\n");
+  sprintf(command,"rm -f %s %s %s\n", tmp1_rgb, tmp2_rgb, tmp2_bin);
   system(command);
 }
 #endif // HAVE_TCL_TK_GL

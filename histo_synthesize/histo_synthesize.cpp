@@ -6,7 +6,7 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -513,7 +513,10 @@ HISTOsynthesize(MRI *mri, MRI *histo, int test_slice, int train_slice, MRI *hsyn
     if (x % 50 == 0)
     {
       char fname[STRLEN] ;
-      sprintf(fname, "%s.%03d.mgz", base_name, x) ;
+      int req = snprintf(fname, STRLEN, "%s.%03d.mgz", base_name, x) ;
+      if( req >= STRLEN ) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       printf("writing snapshot to %s\n", fname) ;
       MRIwrite(hsynth, fname) ;
     }

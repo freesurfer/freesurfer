@@ -364,6 +364,7 @@ add_subdirectories(
   AntsDenoiseImageFs
   AntsN4BiasFieldCorrectionFs
   lta_convert
+  io
   mri_and
   mri_add_xform_to_header
   mri_annotation2label

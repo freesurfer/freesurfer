@@ -6,7 +6,7 @@
 /*
  * Original Author: Douglas N Greve (but basically a rewrite of mris_make_surfaces by BF)
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -842,6 +842,9 @@ static int parse_commandline(int argc, char **argv) {
       if(nargc < 1) CMDargNErr(option,1);
       segvolpath = pargv[0];
       nargsused = 1;
+    } 
+    else if(!strcasecmp(option, "--no-seg")){
+      segvolpath = NULL; // allow undoing of --seg
     } 
     else if(!strcasecmp(option, "--wm")){
       if(nargc < 1) CMDargNErr(option,1);

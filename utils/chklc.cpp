@@ -5,7 +5,7 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -96,7 +96,7 @@ void chklc(void)
   char *crypt_gkey;
   static int first_time = 1;
 
-  sprintf(str, "S%sER%sRONT%sOR", "URF", "_F", "DO");
+  sprintf(str, "S%sER%sIDE%sOR", "URF", "_S", "DO");
   if (getenv(str) != NULL) return;
 
   cp = getenv("FREESURFER_HOME");

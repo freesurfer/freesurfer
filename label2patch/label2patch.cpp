@@ -6,7 +6,7 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -56,7 +56,7 @@ static int writesurf = 0;
 int
 main(int argc, char *argv[]) {
   int          ac, nargs ;
-  char         **av, *cp, surf_name[100], *hemi, *subject_name, *label_name,
+  char         **av, *cp, surf_name[STRLEN], *hemi, *subject_name, *label_name,
                *out_fname ;
   MRI_SURFACE  *mris ;
   LABEL        *label ;
@@ -95,7 +95,13 @@ main(int argc, char *argv[]) {
     strcpy(subjects_dir, cp) ;
   }
 
-  sprintf(surf_name,"%s/%s/surf/%s.%s",subjects_dir,subject_name,hemi,surface);
+  int req = snprintf(surf_name,STRLEN,
+		     "%s/%s/surf/%s.%s",
+		     subjects_dir,subject_name,hemi,surface);
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
+
   fprintf(stderr, "reading %s...\n", surf_name) ;
   mris = MRISread(surf_name) ;
   if (!mris)

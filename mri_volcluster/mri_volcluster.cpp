@@ -1,6 +1,6 @@
 /*
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -1024,7 +1024,8 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       FILE *fp;
       srand48(PDFtodSeed());
-      sprintf(tmpstr,"/tmp/tmp.mri_volcluster.%d.reg.dat",(int)round(drand48()*10000));
+      std::string tmpname = makeTempFile(".dat");
+      sprintf(tmpstr, "%s", tmpname.c_str());
       regfile = strcpyalloc(tmpstr);
       fp = fopen(regfile,"w");
       fprintf(fp,"%s\n",pargv[0]);

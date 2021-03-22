@@ -1,7 +1,7 @@
 /*
  * Original Author: Ruopeng Wang
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -325,7 +325,10 @@ void ThreadIOWorker::run()
     LayerODF* layer = qobject_cast<LayerODF*>(m_layer);
     if (!layer)
       return;
-    if (!layer->Load(m_args["Filename"].toString()))
+    QString fn = m_args["Filename"].toString();
+    QString fn2 = m_args["vertex_filename"].toString();
+    QString fn3 = m_args["face_filename"].toString();
+    if (!layer->Load(fn, fn2, fn3))
     {
       emit Error(m_layer, m_nJobType);
     }

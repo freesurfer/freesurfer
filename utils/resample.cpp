@@ -39,7 +39,7 @@
 /*
  * Original Author: Douglas N. Greve
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -989,6 +989,12 @@ MRI *MRISapplyReg(MRI *SrcSurfVals, MRI_SURFACE **SurfReg, int nsurfs, int Rever
 	skip = 1;
 	break;
       }
+      // DNG added these lines on Dec 9, 2020 (without checking it in), 
+      // but now can't remember why, so commented them out
+      //if(dmin > 2.0){
+      //skip = 1;
+      //break;
+      //}
       tvtxN = svtx;
     }
     if(skip) continue;

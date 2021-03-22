@@ -5,7 +5,7 @@
 /*
  * Original Author: Douglas N. Greve
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -5812,10 +5812,15 @@ MRI *MRIfindBrightNonWM(MRI *mri_T1, MRI *mri_wm)
   }
   // At this point mri_labeled is a binary volume with 0 or BRIGHT_LABEL
 
-  /* Within a bounding box of the above label, dilate voxels that are
-  > 115 in the brain.finalsurfs (mri_T1). This operation expands the
-  binaization above. Hidden parameters: 115 and 10=number of  dilations */
-  MRIdilateThreshLabel(mri_labeled, mri_T1, NULL, BRIGHT_LABEL, 10,115);
+  // Within a bounding box of the above label, dilate voxels that are > 115
+  // in the brain.finalsurfs (mri_T1). This operation expands the binaization
+  // above. Hidden parameters: 115 and 10=number of  dilations
+
+  // ATH: Commenting line this out since it's actually doing nothing and causing a
+  // memory leak, since the destination volume is not supplied and the return value
+  // is not stored. Fixing it appropriately will affect recon-all output.
+  // MRIdilateThreshLabel(mri_labeled, mri_T1, NULL, BRIGHT_LABEL, 10,115);
+  
   // One dilation followed by one erosion
   MRIclose(mri_labeled, mri_labeled) ;
 

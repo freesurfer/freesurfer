@@ -5,7 +5,7 @@
 /*
  * Original Author: Bruce Fischl and Doug Greve
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -196,14 +196,6 @@ main(int argc, char *argv[])
   {
     fprintf(stderr, "smoothing brain volume with sigma = %2.3f\n", sigma) ;
     MRIconvolveGaussian(mri_wm, mri_wm, mri_kernel) ;
-#if 0
-    fprintf(stderr, "smoothing wm volume with sigma = %2.3f\n", sigma) ;
-    MRIconvolveGaussian(mri_wm, mri_wm, mri_kernel) ;
-    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-    {
-      MRIwrite(mri_wm, "/tmp/wm_smooth.mnc") ;
-    }
-#endif
     MRIfree(&mri_kernel);
   }
 
