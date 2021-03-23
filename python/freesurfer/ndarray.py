@@ -425,6 +425,21 @@ class Volume(ArrayContainerTemplate, Transformable):
         resampled.copy_metadata(self)
         return resampled
 
+    def resample_like(self, target, interp_method='linear'):
+        '''
+        Returns a resampled image in the target space.
+        '''
+        if target.affine is None or self.affine is None:
+            raise ValueError("Can't resample volume without geometry information.")
+
+        vox2vox = LinearTransform.matmul(self.ras2vox(), target.vox2ras())
+        resampled_data = resample(self.data, target.shape, vox2vox, interp_method=interp_method)
+
+        resampled = Volume(resampled_data)
+        resampled.copy_geometry(target)
+        resampled.copy_metadata(self)
+        return resampled
+
     @property
     def image(self):
         '''Internal data array. This will be deprecated - just used the Volume.data member.'''
