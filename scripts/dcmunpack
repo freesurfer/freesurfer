@@ -114,7 +114,7 @@ echo "---------------------------------------" | tee -a $LF
 
 if($OnePerDir) then
   # This creates a list of all the subdirs in the tree 
-  set SrcDirList2 = (`find $d -type d`);
+  set SrcDirList2 = (`find -L $d -type d`);
 else
   set SrcDirList2 = ($SrcDirList)
 endif
@@ -125,9 +125,9 @@ set flist = ();
 foreach d ($SrcDirList2)
   #echo "Searching $d" >> $LF
   if($#SrcPre || $#SrcPat || $#SrcExt) then
-    set flist0 = (`find $d -name "$SrcPre*$SrcPat*$SrcExt"`)
+    set flist0 = (`find -L $d -name "$SrcPre*$SrcPat*$SrcExt"`)
   else
-    set flist0 = (`find $d`)
+    set flist0 = (`find -L $d`)
   endif
   if($OnePerDir && $#flist0 > 0) then
     set flist0 = ($flist0[1]);
@@ -171,10 +171,12 @@ endif
 set dumpfile = `fs_temp_file`
 rm -f $dumpfile 
 @ nth = 0;
+@ mth = 0;
 foreach f ($flist)
   @ nth = $nth + 1;
   set filetype = `mri_probedicom --i $f --d filetype`
   if($filetype == notdicom) continue;
+  @ mth = $mth + 1;
   #echo "#@# $nth/$#flist `date`" >>& $LF
 
   mri_probedicom --i $f >& $dumpfile
@@ -208,7 +210,7 @@ foreach f ($flist)
   # Special case for PixSpace. Found a file where pixel spacing had some funny
   # binary character in it, and it messed everything up
   set PixSpace  = (`cat $dumpfile | awk '{if($1 == "PixelSpacing") print $2}' | strings`)
-  set tmpdat = `fs_temp_file -suffix .dat`
+  set tmpdat = `fs_temp_file --suffix .dat`
   echo $PixSpace > $tmpdat
   set PixSpace = (`cat $tmpdat`)
   rm $tmpdat
@@ -223,6 +225,12 @@ foreach f ($flist)
   echo "$Patient $SeriesNo $Date $Time $EchoTime $TR $FlipAngle $PixSpace $PhaseEncDir $PixFreq $f" >> $infofile
 
 end
+
+if($mth == 0) then
+  echo "ERROR: could not find any dicom files in"
+  echo "  $SrcDirList2"
+  exit 1;
+endif
 
 set extra = ()
 if($DoExtraInfo) then
@@ -243,7 +251,6 @@ if($DoExtraInfo) then
 endif
 
 rm -f $dumpfile
-
 
 set SeriesNos = (`cat $infofile | awk '{print $2}' | sort -n | uniq`)
 echo "Found $#SeriesNos unique series: $SeriesNos" | tee -a $LF
@@ -573,6 +580,7 @@ while( $#argv != 0 )
         echo "ERROR: $d exists but is not readable"
         exit 1;
       endif
+      set d = `getfullpath $d`
       set SrcDirList = ($SrcDirList $d);
       breaksw
 
