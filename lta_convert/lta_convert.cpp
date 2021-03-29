@@ -61,6 +61,8 @@ static bool parseCommandLine(int argc, char *argv[], Parameters & P);
 
 const char *Progname = NULL;
 
+static int do_sqrt = 0 ;
+
 LTA * shallowCopyLTA(const LTA * lta)
 {
   LTA * ltatmp = LTAalloc(1,NULL);
@@ -711,7 +713,22 @@ int main(int argc, char *argv[])
     LTAprint(fo, lta);
     fclose(fo);
   }
-  
+
+  if (do_sqrt)
+  {
+    MATRIX *m_L = lta->xforms[0].m_L, *m_V, *m_U ;
+    VECTOR *v_z ;
+    
+    v_z = VectorAlloc(m_L->cols, MATRIX_REAL);
+    m_V = MatrixAlloc(m_L->rows, m_L->rows, MATRIX_REAL);
+    m_U = MatrixSVD(m_L, v_z, m_V);
+    MatrixPrint(stdout, m_L) ;
+    MatrixPrint(stdout, v_z) ;
+    MatrixPrint(stdout, m_V) ;
+    MatrixPrint(stdout, m_U) ;
+      
+  }
+
   if (P.fslout!="")
   {
     writeFSL(P.fslout,lta);
@@ -801,6 +818,13 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     P.subject = string(argv[1]);
     nargs = 1;
     cout << "--s: " << P.subject << " subject name" << endl;
+  }
+  else if (!strcmp(option, "SQRT"))
+  {
+    printf(" !!!!!!! WARNING !!!!!!!!!!\n");
+    printf(" !!!! MATRIX SQRT not supported yet !!!!!!!!!!\n");
+    do_sqrt = 1 ;
+    cout << "--sqrt: True " << endl;
   }
   else if (!strcmp(option, "INNIFTYREG"))
   {

@@ -230,7 +230,8 @@ def load_func_and_spheres(spaths, base_dir, func_dir, sdir1, sphere_name, hemi, 
 #        funcs.append(func)
         if ((sphere.get_vertex_positions().shape[0] != geoms[0].shape[0]) or
             (geoms[0].shape[0] != func.shape[0])):
-            print('%s sphere (%d) does not match geom (%d) or func (%d)' % (sphere.get_vertex_positions().shape[0], gomes[0].shape[0], func.image.shape[0]))
+            print('%s sphere (%d) does not match geom (%d) or func (%d)' % \
+                  (sphere.get_vertex_positions().shape[0], geoms[0].shape[0], func.image.shape[0]))
             continue
 
         if smooth_steps is not None:
@@ -241,8 +242,10 @@ def load_func_and_spheres(spaths, base_dir, func_dir, sdir1, sphere_name, hemi, 
         mrisp_func = sphere.parameterize(func)
 
         if pad > 0:
-            mrisp_geom = np.pad(mrisp_geom, ((pad,pad),(0,0)),'wrap')
-            mrisp_func = np.pad(mrisp_func, ((pad,pad),(0,0)),'wrap')
+            #mrisp_geom = padSphere(mrisp_geom, pad)
+            #mrisp_func = padSphere(mrisp_func, pad)
+            mrisp_geom = pad_2d_image_spherically(mrisp_geom, pad_size=pad)
+            mrisp_func = pad_2d_image_spherically(mrisp_func, pad_size=pad)
 
         if len(mrisp_func.shape) == 2:
             mrisp_func = mrisp_func[...,np.newaxis] # add a channels dimension
@@ -735,3 +738,552 @@ def loadSphere(surfName, curvFileName, padSize=8, which_norm='Median'):
         paddata = np.pad(data, ((padSize,padSize), (0,0)), 'wrap')
         paddata = np.pad(paddata, ((0,0), (padSize,padSize)), 'reflect')
         return paddata
+
+def padSphere(mrisp, pad):
+    paddata = np.pad(mrisp, ((pad,pad), (0,0)), 'wrap')
+    paddata = np.pad(paddata, ((0,0), (pad,pad)), 'reflect')
+    return paddata
+
+def mrisp_semi_gen(mrisps_geom, mrisps_func, batch_size=4, use_rand=True, func_thresh=0, warp_downsize=1):
+    ndata = len(mrisps_geom)
+    mrisp_shape = mrisps_geom[0].shape[0:2]
+    ngeom = mrisps_geom[0].shape[-1]
+    nfunc = mrisps_func[0].shape[-1]
+    batch_moving = np.zeros((batch_size, *mrisp_shape, ngeom))
+    batch_fixed = np.zeros((batch_size, *mrisp_shape, ngeom))
+    batch_moving_func = np.zeros((batch_size, *mrisp_shape, nfunc))
+    batch_fixed_func = np.zeros((batch_size, *mrisp_shape, nfunc))
+    zero_warp = np.zeros((batch_size, *tuple(np.array(mrisp_shape)//warp_downsize), 2))
+    if use_rand == False:
+        ind_moving = 0
+        ind_fixed = ndata-1
+
+    while True:
+        for bno in range(batch_size):
+            if use_rand:
+                ind_moving = np.random.randint(0, ndata)
+                ind_fixed = np.random.randint(0, ndata)
+            else:
+                ind_moving = np.mod(ind_moving+1, ndata)
+                ind_fixed = np.mod(ind_fixed-1, ndata)
+
+            batch_fixed[bno, ...] = mrisps_geom[ind_fixed]
+            batch_moving[bno, ...] = mrisps_geom[ind_moving]
+            batch_fixed_func[bno, ...] = mrisps_func[ind_fixed]
+            batch_moving_func[bno, ...] = mrisps_func[ind_moving]
+        
+        inputs = [batch_moving, batch_fixed, batch_moving_func]
+        outputs = [batch_fixed, zero_warp, batch_fixed_func]
+        yield inputs, outputs
+
+def mrisp_stacked_gen(mrisps_geom, mrisps_func, batch_size=4, use_rand=True, func_thresh=0, warp_downsize=1, bidir=False):
+    ndata = len(mrisps_geom)
+    mrisp_shape = mrisps_geom[0].shape[0:2]
+    ngeom = mrisps_geom[0].shape[-1]
+    nfunc = mrisps_geom[0].shape[-1]
+    nfunc = mrisps_func[0].shape[-1]
+    batch_moving = np.zeros((batch_size, *mrisp_shape, ngeom+nfunc))
+    batch_fixed = np.zeros((batch_size, *mrisp_shape, ngeom+nfunc))
+    zero_warp = np.zeros((batch_size, *tuple(np.array(mrisp_shape)//warp_downsize), 2))
+    if use_rand == False:
+        ind_moving = 0
+        ind_fixed = ndata-1
+
+    while True:
+        for bno in range(batch_size):
+            if use_rand:
+                ind_moving = np.random.randint(0, ndata)
+                ind_fixed = np.random.randint(0, ndata)
+            else:
+                ind_moving = np.mod(ind_moving+1, ndata)
+                ind_fixed = np.mod(ind_fixed-1, ndata)
+
+            batch_fixed[bno, ..., 0:ngeom] = mrisps_geom[ind_fixed]
+            batch_fixed[bno, ..., ngeom:] = mrisps_func[ind_fixed]
+            batch_moving[bno, ..., 0:ngeom] = mrisps_geom[ind_moving]
+            batch_moving[bno, ..., ngeom:] = mrisps_func[ind_moving]
+        
+        inputs = [batch_moving, batch_fixed]
+        outputs = [batch_fixed, zero_warp]
+        if bidir:
+            outputs += [batch_moving]
+        yield inputs, outputs
+
+def mrisp_stacked_atlas_gen(mrisps_geom, mrisps_func, mrisp_geom_mean, mrisp_func_mean, batch_size=4, use_rand=True, func_thresh=0, warp_downsize=1, bidir=False):
+    ndata = len(mrisps_geom)
+    mrisp_shape = mrisps_geom[0].shape[0:2]
+    ngeom = mrisps_geom[0].shape[-1]
+    nfunc = mrisps_func[0].shape[-1]
+    batch_moving = np.zeros((batch_size, *mrisp_shape, ngeom+nfunc))
+    zero_warp = np.zeros((batch_size, *tuple(np.array(mrisp_shape)//warp_downsize), 2))
+    batch_atlas_geom = np.repeat(mrisp_geom_mean[np.newaxis], batch_size, axis=0)
+    batch_atlas_func = np.repeat(mrisp_func_mean[np.newaxis], batch_size, axis=0)
+    batch_atlas = np.zeros((batch_size, *mrisp_shape, ngeom+nfunc))
+    batch_atlas[...,0:ngeom] = batch_atlas_geom
+    batch_atlas[...,ngeom:] = batch_atlas_func
+
+    if use_rand == False:
+        ind_moving = 0
+        ind_fixed = ndata-1
+
+    while True:
+        for bno in range(batch_size):
+            if use_rand:
+                ind_moving = np.random.randint(0, ndata)
+            else:
+                ind_moving = np.mod(ind_moving+1, ndata)
+
+            batch_moving[bno, ..., 0:ngeom] = mrisps_geom[ind_moving]
+            batch_moving[bno, ..., ngeom:] = mrisps_func[ind_moving]
+        
+        inputs = [batch_moving, batch_atlas]
+        outputs = [batch_atlas, zero_warp]
+        if bidir:
+            outputs += [batch_moving]
+        yield inputs, outputs
+
+def mrisp_semi_atlas_gen(mrisps_geom, mrisps_func, mrisp_geom_mean, mrisp_func_mean, batch_size=4, use_rand=True, func_thresh=0, warp_downsize=1):
+    ndata = len(mrisps_geom)
+    mrisp_shape = mrisps_geom[0].shape[0:2]
+    ngeom = mrisps_geom[0].shape[-1]
+    nfunc = mrisps_func[0].shape[-1]
+
+    batch_moving = np.zeros((batch_size, *mrisp_shape, ngeom))
+    batch_moving_func = np.zeros((batch_size, *mrisp_shape, nfunc))
+
+    batch_atlas_geom = np.repeat(mrisp_geom_mean[np.newaxis], batch_size, axis=0)
+    batch_atlas_func = np.repeat(mrisp_func_mean[np.newaxis], batch_size, axis=0)
+
+    zero_warp = np.zeros((batch_size, *tuple(np.array(mrisp_shape)//warp_downsize), 2))
+    
+    if use_rand == False:
+        ind_moving = 0
+        ind_fixed = ndata-1
+
+    while True:
+        for bno in range(batch_size):
+            if use_rand:
+                ind = np.random.randint(0, ndata)
+            else:
+                ind = np.mod(ind_moving+1, ndata)
+
+            batch_moving[bno, ...] = mrisps_geom[ind]
+            batch_moving_func[bno, ...] = mrisps_func[ind]
+        
+        inputs = [batch_moving, batch_atlas_geom, batch_moving_func]
+        outputs = [batch_atlas_geom, zero_warp, batch_atlas_func]
+        yield inputs, outputs
+
+
+    
+
+def parc_gen(mrisps_geom, mrisps_annot, batch_size=8, use_rand=True):
+    mrisp_shape = mrisps_geom[0].shape[0:2]
+
+    if len(mrisps_geom[0].shape) == 2:  # add feature axis
+        ngeom = 1
+        batch_inputs = np.zeros((batch_size, *mrisp_shape, ngeom))
+    else:
+        ngeom = mrisps_geom[0].shape[-1]
+        batch_inputs = np.zeros((batch_size, *mrisp_shape, ngeom))
+
+    nlabels = mrisps_annot[0].shape[-1]
+    batch_outputs = np.zeros((batch_size, *mrisp_shape, nlabels))
+
+    ind = 0
+    while True:
+        for bno in range(batch_size):
+            if use_rand:
+                ind = np.random.randint(0, len(mrisps_geom))
+            else:
+                ind = np.mod(ind+1, len(mrisps_geom))
+
+            if len(mrisps_geom[0].shape) == 2:  # add feature axis
+                batch_inputs[bno, ...] = mrisps_geom[ind][...,np.newaxis]
+            else:
+                batch_inputs[bno, ...] = mrisps_geom[ind]
+
+            batch_outputs[bno,...] = mrisps_annot[ind]
+
+        yield batch_inputs, batch_outputs
+
+
+def fsgen(mrisps_geom, mrisp_atlas, batch_size=8, use_rand=True, warp_downsize=1, mean_stream=True):
+    mrisp_shape = mrisps_geom[0].shape[0:2]
+
+    if len(mrisps_geom[0].shape) == 2:  # add feature axis
+        ngeom = 1
+        batch_atlas = np.repeat(mrisp_atlas[np.newaxis,...,np.newaxis], batch_size, axis=0)
+        batch_moving = np.zeros((batch_size, *mrisp_shape, ngeom))
+    else:
+        ngeom = mrisps_geom[0].shape[-1]
+        batch_atlas = np.repeat(mrisp_atlas[np.newaxis], batch_size, axis=0)
+        batch_moving = np.zeros((batch_size, *mrisp_shape, ngeom))
+
+    zero_warp = np.zeros((batch_size, *tuple(np.array(mrisp_shape)//warp_downsize), 2))
+
+    while True:
+        for bno in range(batch_size):
+            ind = np.random.randint(0, len(mrisps_geom))
+
+            if len(mrisps_geom[0].shape) == 2:  # add feature axis
+                batch_moving[bno, ...] = mrisps_geom[ind][...,np.newaxis]
+            else:
+                batch_moving[bno, ...] = mrisps_geom[ind]
+                
+
+        inputs = [batch_moving]
+        outputs = [batch_moving, batch_atlas, zero_warp]
+        if mean_stream:
+            outputs += [zero_warp]
+
+        yield inputs, outputs
+
+
+def fsgen_segreg(mrisps_geom, mrisp_atlas, mrisps_annot, batch_size=8, use_rand=True, warp_downsize=1, mean_stream=True, use_logprob=False):
+    mrisp_shape = mrisps_geom[0].shape[0:2]
+    nclasses = mrisps_annot[0].shape[-1]
+
+    if len(mrisps_geom[0].shape) == 2:  # add feature axis
+        ngeom = 1
+    else:
+        ngeom = mrisps_geom[0].shape[-1]
+
+    batch_moving = np.zeros((batch_size, *mrisp_shape, ngeom))
+    batch_annot = np.zeros((batch_size, *mrisp_shape, nclasses))
+    batch_atlas = np.repeat(mrisp_atlas[np.newaxis], batch_size, axis=0)
+
+    zero_warp = np.zeros((batch_size, *tuple(np.array(mrisp_shape)//warp_downsize), 2))
+
+    if use_logprob:  # expand annots to be [-100:100] instead of [0,1]
+        mrisps_annot = copy.deepcopy(mrisps_annot)
+        for mrisp in mrisps_annot:
+            ind0 = np.nonzero(mrisp == 0)
+            ind1 = np.nonzero(mrisp == 1)
+            mrisp[ind0] = -100
+            mrisp[ind1] = 0
+
+    while True:
+        for bno in range(batch_size):
+            ind = np.random.randint(0, len(mrisps_geom))
+
+            if len(mrisps_geom[0].shape) == 2:  # add feature axis
+                batch_moving[bno, ...] = mrisps_geom[ind][...,np.newaxis]
+            else:
+                batch_moving[bno, ...] = mrisps_geom[ind]
+
+            batch_annot[bno, ...] = mrisps_annot[ind]
+                
+
+        inputs = [batch_moving]
+
+        if mean_stream:
+            outputs = [batch_moving, batch_atlas, zero_warp, zero_warp, batch_annot]
+        else:
+            outputs = [batch_moving, batch_atlas, zero_warp, batch_annot]
+        yield inputs, outputs
+
+
+
+def fix_annot(annot):
+    new_annot = copy.deepcopy(annot)
+    nbr_annot_counts = np.zeros((int(np.ceil(annot.max()+1)),))
+    for x in range(annot.shape[0]):
+        for y in range(annot.shape[1]):
+            nbr_annot_counts.fill(0)
+            for xk in range(-1,2):
+                xi = x+xk
+                for yk in range(-1,2):
+                    yi = y+yk
+                    if xi >= annot.shape[0] or yi >= annot.shape[1]:
+                        continue
+                    lut_index = int(annot[xi,yi])
+                    if annot[xi][yi] == lut_index:
+                        nbr_annot_counts[lut_index] += 1
+            old_index = int(annot[x,y])
+            if not annot[x,y] == old_index or nbr_annot_counts[old_index] == 0:
+                new_annot[x,y] = nbr_annot_counts.argmax()
+
+    return new_annot.astype(np.int)
+                
+
+                                                                           
+
+import neurite_sandbox as nes
+                                                                                
+def AddPatchLayers(input_model, psize=96, stride=64, nconvs=3, ksize=3):
+    pos_flow =  input_model.get_layer('vxm_dense_diffflow')
+    nclasses = input_model.outputs[3].get_shape().as_list()[-1]
+    warped_seg = vxm.layers.SpatialTransformer(fill_value=0, interp_method='linear',name='warped_seg')([input_model.outputs[3], input_model.references.pos_flow])
+    warped_image = input_model.outputs[0]
+    warped_stack = KL.Concatenate(axis=-1,name='warped_stack')([warped_image, warped_seg])
+    ksize = 3
+    stride = 64
+    psize = 96
+    src_feats = warped_stack.get_shape().as_list()[-1]
+    source_patches = nes.layers.Patches2D(psize=psize, stride=stride, padding='VALID', name='source_patches')(warped_stack)
+    clist = []
+    nfeats = warped_stack.shape[-1]
+    patch_tensor = source_patches
+    nconvs = 3
+    for pno in range(source_patches.shape[-1]):
+        prev_tensor = KL.Lambda(lambda x: x[...,pno], name='lambda_patch%d' % pno)(patch_tensor)
+        for cno in range(nconvs):
+            conv_output = KL.Conv2D(nfeats, (3,3), 1, padding='same', name='patch%d_conv%d' % (pno,cno), activation='relu')(prev_tensor)
+            prev_tensor = conv_output
+
+        output_shape = conv_output.get_shape().as_list()[1:]+[1]
+        conv_output = KL.Reshape(output_shape)(conv_output)
+        clist.append(conv_output)
+
+    image_size = warped_stack.get_shape().as_list()[1:]
+    concat = KL.Concatenate(axis=-1, name='patch_concat')(clist)
+    recon_tensor = nes.layers.ImageFromPatches2D(image_size, stride=stride)(concat)
+    seg_atlas = KL.Conv2D(nclasses, (3,3), 1, padding='same', name='seg_atlas', activation='linear')(recon_tensor)
+    seg_image = vxm.layers.SpatialTransformer(fill_value=0, interp_method='linear', name='seg_subject')([seg_atlas, input_model.references.neg_flow])
+    seg_output = KL.Activation('softmax', name='segreg_patch_out')(seg_image)
+    
+    print('creating final model')
+    model_with_patches = tf.keras.Model(input_model.inputs, input_model.outputs[0:3]+[seg_output])
+    model_linear = tf.keras.Model(model_with_patches.inputs, model_with_patches.outputs[0:3]+[seg_image])
+    if hasattr(input_model, 'references'):
+        model_with_patches.references = input_model.references
+        model_linear.references = input_model.references
+    return model_with_patches, model_linear
+
+from tensorflow.keras import backend as K
+from tensorflow.keras.layers import Layer, InputLayer, Input
+import pdb as gdb
+
+class LearnedPatches(Layer):
+    """ 
+    Keras Layer:  apply a set of weights that are location specific to an input
+                  image. Input and output can both be multi-channel
+       __init__(self, nb_channels) 
+    nb_channels - # of output channels 
+    only works for 2D (3D would run out of ram at the moment for reasonable sizes)
+    the optional priors initialization  will init the weights based on a prior label map
+    """
+
+    def __init__(self, patch_size, nb_patches, **kwargs):
+        self.nb_patches = nb_patches
+        self.patch_size = patch_size
+
+        super(LearnedPatches, self).__init__(**kwargs)
+
+    def build(self, input_shape):
+        nimage_vox = np.array(input_shape[1:]).prod()
+        npatch_vox = np.array(self.patch_size).prod()
+        self.kernel = self.add_weight(
+            shape=(nimage_vox, npatch_vox, self.nb_patches),
+            initializer='RandomNormal',
+            name='LearnedPatchesKernel'
+        )
+#        self.bias = self.add_weight(
+#            shape=(self.nb_patches,),
+#            initializer='RandomNormal',
+#            name='LearnedPatchesBias'
+#        )
+        super(LearnedPatches, self).build(input_shape)
+
+    def get_config(self):
+        config = super().get_config().copy()
+        config.update({
+            'nb_patches': self.nb_patches,
+            'patch_size': self.patch_size,
+        })
+        return config
+
+    def call(self, x):
+        xlist = []
+        for ch in range(self.nb_patches):
+            map_fn = lambda z: tf.squeeze(tf.reshape(tf.matmul(tf.reshape(z, (1,tf.size(x))), self.kernel[...,ch]), (*self.patch_size,1)))
+            xch = tf.stack(tf.map_fn(map_fn, x, dtype=tf.float32), 0)
+            xlist.append(xch)
+
+        xout = tf.stack(xlist, axis=-1)
+        return xout
+
+    def compute_output_shape(self, input_shape):
+        output_shape = self.patch_size + (self.nb_patches)
+        return output_shape
+
+class LearnedUnPatches(Layer):
+    """ 
+    Keras Layer:  apply a set of weights that are location specific to an input
+                  image. Input and output can both be multi-channel
+       __init__(self, nb_channels) 
+    nb_channels - # of output channels 
+    only works for 2D (3D would run out of ram at the moment for reasonable sizes)
+    the optional priors initialization  will init the weights based on a prior label map
+    """
+
+    def __init__(self, image_shape, **kwargs):
+        self.image_shape = image_shape
+        self.nimage_vox = np.array(image_shape).prod()
+
+        super(LearnedUnPatches, self).__init__(**kwargs)
+
+    def build(self, input_shape):
+        npatch_vox = np.array(input_shape[1:-1]).prod()
+        nb_patches = input_shape[-1]
+        self.kernel = self.add_weight(
+            shape=(npatch_vox, self.nimage_vox, nb_patches),
+            initializer='RandomNormal',
+            name='LearnedUnPatchesKernel'
+        )
+#        self.bias = self.add_weight(
+#            shape=(self.nb_patches,),
+#            initializer='RandomNormal',
+#            name='LearnedPatchesBias'
+#        )
+        super(LearnedUnPatches, self).build(input_shape)
+
+    def get_config(self):
+        config = super().get_config().copy()
+        config.update({
+            'image_shape': self.image_shape,
+        })
+        return config
+
+    def call(self, x):
+        xlist = []
+        for ch in range(x.shape[-1]):
+            map_fn = lambda z: tf.reshape(tf.matmul(tf.reshape(z[...,ch], (1,tf.size(z[...,ch]))), self.kernel[...,ch]), self.image_shape)
+            xch = tf.stack(tf.map_fn(map_fn, x, dtype=tf.float32), 0)
+            xlist.append(xch)
+
+        xout = tf.math.accumulate_n(xlist)
+        return xout
+
+    def compute_output_shape(self, input_shape):
+        output_shape = self.image_shape
+        return output_shape
+
+
+
+from neurite.tf.modelio import LoadableModel, store_config_args
+class PatchModel2D(LoadableModel):
+
+    @store_config_args
+    def __init__(self, inshape, nb_input_channels, nb_output_channels, nconvs=10, nfeats=15, patch_size=(16,16), nb_patches=32):
+        """ 
+        """
+        inp = KL.Input((*inshape, nb_input_channels), name='patch_input')
+        patches = LearnedPatches(patch_size, nb_patches, name='learned_patches')(inp)
+        prev_tensor = patches
+        for cno in range(nconvs):
+            prev_tensor = KL.Conv2D(nfeats, (3,3), 1, padding='same', name='patch_conv%d' % (cno), activation='relu')(prev_tensor)
+
+        image_recon = LearnedUnPatches((*inshape, nb_input_channels), name='unpatched')(prev_tensor)
+        prev_tensor = image_recon
+        for cno in range(nconvs):
+            prev_tensor = KL.Conv2D(nfeats, (3,3), 1, padding='same', name='im_conv%d' % (cno), activation='relu')(prev_tensor)
+
+        image_linear = KL.Conv2D(nb_output_channels, (3,3), 1, padding='same', name='image_linear', activation='relu')(prev_tensor)
+        softmax_out = KL.Activation('softmax', name='patchout_softmax')(image_linear)
+
+        super().__init__(inputs=[inp], outputs=[softmax_out])
+        self.references = LoadableModel.ReferenceContainer()
+        self.references.linear_output = image_linear
+
+
+def normCurvature(curvFileName, which_norm='Median', norm_percentile=97, std_thresh=3):
+
+    if isinstance(curvFileName, str):
+        curv = fs.Overlay.read(curvFileName).data
+    else:  # if not a string assume it is the curvature vector itself
+        curv = curvFileName
+        
+    if which_norm == 'Percentile':
+        normed = np.clip(curv / np.percentile(curv, norm_percentile), 0, 1)
+    elif which_norm == 'Median':
+        min_clip = np.percentile(curv, 100-norm_percentile)
+        max_clip = np.percentile(curv, norm_percentile)
+        st = np.std(np.clip(curv, min_clip, max_clip))
+        normed = np.clip(((curv - np.median(curv))/st), -std_thresh, std_thresh)
+    else:
+        normed = (curv - curv.mean())/np.std(curv)
+
+    return normed
+
+
+def loadSphere(surfName, curvFileName, padSize=8, which_norm='Median'):
+
+        surf = fs.Surface.read(surfName)
+        curv = normCurvature(curvFileName, which_norm)
+
+        mrisp = surf.parameterize(curv)
+        cols = mrisp.shape[0]
+        rows = mrisp.shape[1]
+
+        data = mrisp.squeeze().transpose()
+
+        #paddata = np.concatenate((data[rows-padSize:rows, :], data, data[0:padSize, :]), axis=0)
+
+        paddata = np.pad(data, ((padSize,padSize), (0,0)), 'wrap')
+        paddata = np.pad(paddata, ((0,0), (padSize,padSize)), 'reflect')
+        return paddata
+
+def pad_2d_image_spherically(img, pad_size=16, mode=None, keep_batch_dim=False):
+    """
+    pad parameterized 2d image based on the spherical positions of its vertices
+    :param img: image to pad, with a shape [batch_size, H, W, ...] or [H, W] for a single image
+    :param pad_size: size of the pad
+    :param mode: lat or long or None, indicating if latitude dim proceeds longitude dim or the other way around
+                 if mode is None, lat or long will be inferred automatically from the shape of the img,
+                 with the assumption that lat dim < long dim
+    :param keep_batch_dim: binary flag indicating whether to keep the batch dimension or not for single image
+    """
+    if mode not in ['lat', 'long', None]:
+        raise ValueError('mode should be either lat or long or None')
+
+    # check if input is a single 2-D image or not, and pad to N-D if yes
+    is_2d = False
+    if img.ndim == 2:
+        img = img[np.newaxis, ...]
+        is_2d = True
+
+    # set mode according to the input shape if it's None
+    h, w = img.shape[1:3]
+    if mode is None:
+        if h < w:
+            mode = 'lat'
+        else:
+            mode = 'long'
+
+    # make sure lat dim is the 2nd dim and long dim is the 3rd dim
+    dim_rest = list(np.arange(3, img.ndim))
+    if mode == 'long':
+        img = img.transpose([0, 2, 1, *dim_rest])
+
+    if pad_size > 0:
+        # pad the north pole on top
+        top = img[:, 1:pad_size + 1, ...]  # get top pad without the first row (reflect)
+        top = np.flip(top, axis=1)  # flip upside down
+        top = np.roll(top, top.shape[2] // 2, axis=2)  # circularly shift by pi
+
+        # similarly for the south pole on bottom
+        bot = img[:, -pad_size - 1:-1, ...]
+        bot = np.flip(bot, axis=1)
+        bot = np.roll(bot, bot.shape[2] // 2, axis=2)
+
+        # concatenate top and bottom before padding left and right
+        img2 = np.concatenate((top, img, bot), axis=1)
+
+        # pad left and right using the "wrap" function
+        zero_pad_rest = ((0, 0),) * (img.ndim - 3)
+        img3 = np.pad(img2, ((0, 0), (0, 0), (pad_size, pad_size), *zero_pad_rest), 'wrap')
+    else:
+        img3 = img
+
+    # swap the dim back if it was swapped before
+    if mode == 'long':
+        img3 = img3.transpose([0, 2, 1, *dim_rest])
+
+    # squeeze the tensor to 2-D if input is 2-D and the user does not want keep the extended dim
+    if is_2d:
+        if not keep_batch_dim:
+            img3 = np.squeeze(img3)
+
+    return img3

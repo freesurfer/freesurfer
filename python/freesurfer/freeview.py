@@ -2,7 +2,7 @@ import os
 import tempfile
 import numpy as np
 
-from . import error, run, Image, Overlay, Volume, Surface, collect_output
+from . import error, run, Image, Overlay, Volume, Surface, Geometry, collect_output
 
 
 class Freeview:
@@ -42,14 +42,23 @@ class Freeview:
             self.data = data
             self.name = name
 
-    def __init__(self, swap_batch_dim=False):
+    def __init__(self, swap_batch_dim=False, geom=None):
         '''
         Args:
             swap_batch_dim: Move the first axis to the last if image input is a numpy array. Default is False.
+            geom: Geometry to apply to any ndarray images. Can be a geometry or volume instance. Default is None.
         '''
         self.tempdir = None
         self.flags = []
         self.swap_batch_dim = swap_batch_dim
+        
+        if isinstance(geom, (Image, Volume, Surface)):
+            geom = geom.geometry()
+        elif isinstance(geom, Geometry):
+            geom = geom
+        elif geom is not None:
+            raise ValueError('Unsupported geometry type "%s"' % geom.__class__.__name__)
+        self.geom = geom
 
     def copy(self):
         '''
@@ -250,6 +259,9 @@ class Freeview:
                 error('cannot convert array of shape %s' % str(orig_shape))
                 return None
 
+            if self.geom is not None and volume.basedims > 1:
+                volume.copy_geometry(self.geom)
+
         # configure filename
         if not name:
             if isinstance(volume, Overlay):
@@ -392,6 +404,7 @@ def fv(*args, **kwargs):
     background = kwargs.pop('background', True)
     opts = kwargs.pop('opts', '')
     swap_batch_dim = kwargs.pop('swap_batch_dim', False)
+    geom = kwargs.pop('geom', None)
 
     # expand any nested lists/tuples within args
     def flatten(deep):
@@ -401,7 +414,7 @@ def fv(*args, **kwargs):
             else:
                 yield el
 
-    fv = Freeview()
+    fv = Freeview(geom=geom)
 
     for arg in flatten(args):
         if isinstance(arg, str):

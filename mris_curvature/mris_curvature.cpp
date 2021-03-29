@@ -588,7 +588,8 @@ print_version(void)
 int
 MRIScomputeNeighbors(MRI_SURFACE *mris, float max_mm)
 {
-  int    vno, n, vlist[MAX_NBHD_SIZE], nbrs, done, found, m, nbhd, first =1 ;
+  int    vno, n, vlist[MAX_NBHD_SIZE], done, found, m, nbhd, first =1 ;
+  size_t nbrs=0;
   float  dist, dx, dy, dz ;
 
 
@@ -643,7 +644,7 @@ MRIScomputeNeighbors(MRI_SURFACE *mris, float max_mm)
             {
               if (first)
               {
-                printf("max nbrs %d exceeded at vertex %d\n", nbrs, vno) ;
+                printf("max nbrs %zu exceeded at vertex %d\n", nbrs, vno) ;
               }
               first = 0 ;
               break ;
@@ -658,7 +659,7 @@ MRIScomputeNeighbors(MRI_SURFACE *mris, float max_mm)
     vt->v = (int *)calloc(nbrs, sizeof(int)) ;
     if (vt->v == NULL)
       ErrorExit(ERROR_NOMEMORY,
-                "%s: vno %d could not allocate %d vertex array",
+                "%s: vno %d could not allocate %zu vertex array",
                 Progname, vno, nbrs) ;
     memmove(vt->v, vlist, sizeof(vlist[0])*nbrs) ;
     vt->vtotal = nbrs ;
