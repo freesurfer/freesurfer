@@ -104,12 +104,18 @@ main(int argc, char *argv[])
   out_dir = argv[2] ;
 
   printf("processing subject %s hemi %s, label %s and writing results to %s\n", subject, hemi_name, label_name, out_dir) ;
-  sprintf(fname, "%s/%s/surf/%s.%s", sdir, subject, hemi_name, surf_name) ;
+  int req = snprintf(fname, STRLEN, "%s/%s/surf/%s.%s", sdir, subject, hemi_name, surf_name) ;
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   mris = MRISread(fname) ;
   if (!mris)
     ErrorExit(ERROR_NOFILE, "%s: MRISread(%s) failed", Progname, fname);
 
-  sprintf(fname, "%s/%s/surf/%s.%s", sdir, subject, ohemi_name, surf_name) ;
+  req = snprintf(fname, STRLEN, "%s/%s/surf/%s.%s", sdir, subject, ohemi_name, surf_name) ;
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   mris_ohemi = MRISread(fname) ;
   if (!mris_ohemi)
     ErrorExit(ERROR_NOFILE, "%s: MRISread(%s) failed", Progname, fname);
@@ -128,17 +134,27 @@ main(int argc, char *argv[])
   MRIScomputeSecondFundamentalForm(mris);
   MRIScomputeSecondFundamentalForm(mris_ohemi);
 
-  sprintf(fname, "%s/%s/mri/%s", sdir, subject, vol_name) ;
+  req = snprintf(fname, STRLEN, "%s/%s/mri/%s", sdir, subject, vol_name) ;
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   mri_norm = MRIread(fname) ;
   if (mri_norm == NULL)
     ErrorExit(ERROR_NOFILE, "%s: MRIread(%s) failed", Progname, fname);
 
-  sprintf(fname, "%s/%s/mri/%s", sdir, subject, ovol_name) ;
+  req = snprintf(fname, STRLEN, "%s/%s/mri/%s", sdir, subject, ovol_name) ;
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   mri_onorm = MRIread(fname) ;
   if (mri_onorm == NULL)
     ErrorExit(ERROR_NOFILE, "%s: MRIread(%s) failed", Progname, fname);
 
-  sprintf(fname, "%s/%s/label/%s.%s.label", sdir, subject, hemi_name, label_name);
+  req = snprintf(fname, STRLEN, "%s/%s/label/%s.%s.label",
+		 sdir, subject, hemi_name, label_name);
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   area_tmp = LabelRead(subject, fname) ;
   if (area_tmp == NULL)
     ErrorExit(ERROR_NOFILE, "%s: LabelRead(%s) failed", Progname, fname) ;
@@ -227,10 +243,16 @@ main(int argc, char *argv[])
   }
 
   FileNameRemoveExtension(FileNameOnly(vol_name, fname_only), fname_only) ;
-  sprintf(fname, "%s/%s.patches.%s.mgz", out_dir, hemi_name, fname_only) ;
+  req = snprintf(fname, STRLEN, "%s/%s.patches.%s.mgz", out_dir, hemi_name, fname_only) ;
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   printf("writing output file %s\n", fname) ;
   MRIwrite(mri_patches, fname) ;
-  sprintf(fname, "%s/%s.labels.%s.mgz", out_dir, hemi_name, fname_only) ;
+  req = snprintf(fname, STRLEN, "%s/%s.labels.%s.mgz", out_dir, hemi_name, fname_only) ;
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   printf("writing output file %s\n", fname) ;
   MRIwrite(mri_labels, fname) ;
 
@@ -321,10 +343,16 @@ main(int argc, char *argv[])
   }
   
   FileNameRemoveExtension(FileNameOnly(ovol_name, fname_only), fname_only) ;
-  sprintf(fname, "%s/%s.patches.%s.mgz", out_dir, ohemi_name, fname_only) ;
+  req = snprintf(fname, STRLEN, "%s/%s.patches.%s.mgz", out_dir, ohemi_name, fname_only) ;
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   printf("writing output file with %d patches to %s\n", mri_patches->nframes,fname) ;
   MRIwrite(mri_patches, fname) ;
-  sprintf(fname, "%s/%s.labels.%s.mgz", out_dir, ohemi_name, fname_only) ;
+  req = snprintf(fname, STRLEN, "%s/%s.labels.%s.mgz", out_dir, ohemi_name, fname_only) ;
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   printf("writing output file %s\n", fname) ;
   MRIwrite(mri_labels, fname) ;
 

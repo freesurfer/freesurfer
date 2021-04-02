@@ -220,12 +220,18 @@ main(int argc, char *argv[])
 	       i, area_division->n_points) ;
 	if (output_label)
 	{
-	  sprintf(fname, "%s%d.label", base_name, i) ;
+	  int req = snprintf(fname, STRLEN, "%s%d.label", base_name, i) ;
+	  if( req >= STRLEN ) {
+	    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	  }
 	  printf("writing %dth subdivision to %s\n", i, fname) ;
 	  LabelWrite(area_division, fname);
 	}
 	MRISdistanceTransform(mris, area_division, mode) ;
-	sprintf(fname, "%s%d.%s", base_name, i, ext) ;
+	int req = snprintf(fname, STRLEN, "%s%d.%s", base_name, i, ext) ;
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
 	if (normalize > 0)
 	  MRISmulVal(mris, 1.0/normalize) ;
 	MRISwriteValues(mris, fname) ;
