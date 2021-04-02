@@ -404,8 +404,13 @@ MRI *MRISgaussianSmooth2(MRIS *Surf, MRI *Src, double GStd, MRI *Targ,
   }
 
   /* These are needed by MRISextendedNeighbors()*/
-  XNbrVtxNo   = (int *) calloc(Surf->nvertices,sizeof(int));
-  XNbrDotProd = (double *) calloc(Surf->nvertices,sizeof(double));
+  if( Surf->nvertices >= 0 ) {
+    XNbrVtxNo   = (int *) calloc(Surf->nvertices,sizeof(int));
+    XNbrDotProd = (double *) calloc(Surf->nvertices,sizeof(double));
+  } else {
+    printf("ERROR: MRISgaussianSmooth: Surf->nvertices<0 \n");
+    return(NULL);
+  }
 
   if (0) {
     // This will mess up future searches because it sets
