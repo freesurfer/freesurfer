@@ -162,7 +162,14 @@ goto parse_args;
 parse_args_return:
 
 # Source run command file
-if ($#rcfile) source $rcfile
+if ($#rcfile) then
+  source $rcfile
+
+  if ($status) then
+    echo "ERROR: Syntax error in configuration file $rcfile"
+    exit 1
+  endif
+endif
 
 # Set defaults for registration (depending on adult or infant stream)
 goto set_reg_defaults;
@@ -573,7 +580,7 @@ if ($#baselist == 0) then	#--->>> A single time point for each subject
       echo $cmd |& tee -a $LF |& tee -a $CF
       if ($RunIt) then
         $cmd |& tee -a $LF
-        if ($status) goto error_exit
+        if ($status) exit 1
       endif
 
       if (! $onpbs) then
@@ -1039,7 +1046,7 @@ else				#--->>> Multiple time points for each subject
         echo $cmd |& tee -a $LF |& tee -a $CF
         if ($RunIt) then
           $cmd |& tee -a $LF
-          if ($status) goto error_exit
+          if ($status) exit 1
         endif
 
         if (! $onpbs) then
