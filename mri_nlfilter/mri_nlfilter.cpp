@@ -208,6 +208,7 @@ main(int argc, char *argv[]) {
     {
     default:
       ErrorExit(ERROR_UNSUPPORTED, "%s: unsupported no crop no offset filter %d\n", Progname, filter_type) ;
+      break;
     case FILTER_GAUSSIAN:
       mri_tmp = MRIconvolveGaussian(mri_full, NULL, mri_gaussian) ;
       if (!mri_tmp)
