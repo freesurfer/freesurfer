@@ -52,7 +52,7 @@ static int max_nbrs = 12 ;
 
 int
 main(int argc, char *argv[]) {
-  char         *cp, **av, *in_fname, fname[100], path[100],
+  char         *cp, **av, *in_fname, fname[STRLEN], path[100],
   name[100], hemi[100] ;
   int          ac, nargs ;
 
