@@ -84,7 +84,10 @@ main(int argc, char *argv[]) {
     strcpy(subjects_dir, cp) ;
   }
 
-  sprintf(env_string, "SUBJECTS_DIR=%s", subjects_dir) ;
+  int req = snprintf(env_string, STRLEN, "SUBJECTS_DIR=%s", subjects_dir) ;
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   putenv(env_string) ;
   cp = getenv("SUBJECTS_DIR") ;
   subject_name = argv[1] ;
@@ -92,7 +95,10 @@ main(int argc, char *argv[]) {
   thickness_name = argv[3] ;
   wfile_name = argv[4] ;
 
-  sprintf(fname, "%s/%s/surf/%s.%s", subjects_dir, subject_name, hemi, ORIG_NAME) ;
+  req = snprintf(fname, STRLEN, "%s/%s/surf/%s.%s", subjects_dir, subject_name, hemi, ORIG_NAME) ;
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   mris = MRISread(fname) ;
   if (!mris)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",

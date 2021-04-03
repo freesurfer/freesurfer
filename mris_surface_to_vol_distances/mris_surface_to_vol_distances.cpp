@@ -87,7 +87,10 @@ main(int argc, char *argv[]) {
   hemi = argv[2] ;
   nsubjects = argc-4 ;
   output_prefix = argv[argc-1] ;
-  sprintf(fname, "%s/%s/surf/%s.sphere", subjects_dir, avg_subject, hemi) ;
+  int req = snprintf(fname, STRLEN, "%s/%s/surf/%s.sphere", subjects_dir, avg_subject, hemi) ;
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   mris_avg = MRISread(fname) ;
   if (mris_avg == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not read spherical surface from %s", Progname, fname) ;
@@ -112,14 +115,23 @@ main(int argc, char *argv[]) {
   for (i = 0 ; i < nsubjects ; i++) {
     subject = argv[i+3] ;
     printf("processing subject %s: %d of %d...\n", subject, i+1, nsubjects) ;
-    sprintf(fname, "%s/%s/surf/%s.sphere.reg", subjects_dir, subject, hemi) ;
+    int req = snprintf(fname, STRLEN, "%s/%s/surf/%s.sphere.reg", subjects_dir, subject, hemi) ;
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     mris = MRISread(fname) ;
     if (mris == NULL)
       ErrorExit(ERROR_NOFILE, "%s: could not read spherical surface from %s", Progname, fname) ;
-    sprintf(fname, "%s/%s/surf/%s.sphere", subjects_dir, subject, hemi) ;
+    req = snprintf(fname, STRLEN, "%s/%s/surf/%s.sphere", subjects_dir, subject, hemi) ;
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     if (MRISreadCanonicalCoordinates(mris, fname) != NO_ERROR)
       ErrorExit(ERROR_NOFILE, "%s: could not read spherical surface from %s", Progname, fname) ;
-    sprintf(fname, "%s/%s/surf/%s.white", subjects_dir, subject, hemi) ;
+    req = snprintf(fname, STRLEN, "%s/%s/surf/%s.white", subjects_dir, subject, hemi) ;
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     if (MRISreadOriginalProperties(mris, fname) != NO_ERROR)
       ErrorExit(ERROR_NOFILE, "%s: could not read white surface from %s", Progname, fname) ;
     if (MRISreadCurvatureFile(mris, "thickness") != NO_ERROR)
@@ -132,7 +144,10 @@ main(int argc, char *argv[]) {
   printf("writing log files with prefix %s...\n", output_prefix) ;
   for (vno = 0 ; vno < mris_avg->nvertices ; vno++) {
 
-    sprintf(fname, "%s%7.7d.histo", output_prefix, vno) ;
+    int req = snprintf(fname, STRLEN, "%s%7.7d.histo", output_prefix, vno) ;
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     fp = fopen(fname, "w") ;
     for (i = 0 ; i < nbins ; i++) {
       for (j = 0 ; j < nbins*MAX_SURFACE_SCALE ; j++) {

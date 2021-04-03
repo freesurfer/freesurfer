@@ -265,13 +265,22 @@ main(int argc, char *argv[])
     mri_norm_atrophy =  MRISsimulateAtrophy(mri_norm, mri_unpv_intensities, mri_wm, mri_subcort_gm, mri_cortex, mri_csf,
 					    area, atrophy_frac, NULL, &mri_cortex_atrophy, &mri_csf_atrophy) ;
     
-    sprintf(fname, "%s.gm.atrophy%2.1f.%s", out_fname, atrophy_frac, extension) ;
+    int req = snprintf(fname, STRLEN, "%s.gm.atrophy%2.1f.%s", out_fname, atrophy_frac, extension) ;
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     printf("writing atrophic gm vfracs to %s\n", fname) ;
     MRIwrite(mri_cortex_atrophy, fname) ;
-    sprintf(fname, "%s.csf.atrophy%2.1f.%s", out_fname, atrophy_frac, extension) ;
+    req = snprintf(fname, STRLEN, "%s.csf.atrophy%2.1f.%s", out_fname, atrophy_frac, extension) ;
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     printf("writing atrophic csf vfracs to %s\n", fname) ;
     MRIwrite(mri_csf_atrophy, fname) ;
-    sprintf(fname, "%s.atrophy.0.0.noise.0.0.%s", out_fname, extension) ;
+    req = snprintf(fname, STRLEN, "%s.atrophy.0.0.noise.0.0.%s", out_fname, extension) ;
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     printf("writing simulated atrophy with noise sigma = 0 image to %s\n", fname) ;
     MRIwrite(mri_norm_atrophy, fname) ;
 
@@ -282,8 +291,13 @@ main(int argc, char *argv[])
       mri_noisy_atrophy = MRIadd(mri_noise, mri_norm_atrophy, mri_noisy_atrophy) ;
       MRIfree(&mri_noise) ;
       
-      sprintf(fname, "%s.atrophy.%2.2f.noise.%2.1f.%s", out_fname, atrophy_frac, noise_sigma, extension) ;
-      printf("writing simulated atrophy (%2.2f) with noise sigma = %2.1f image to %s\n", atrophy_frac, noise_sigma, fname) ;
+      req = snprintf(fname, STRLEN, "%s.atrophy.%2.2f.noise.%2.1f.%s",
+		     out_fname, atrophy_frac, noise_sigma, extension) ;
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
+      printf("writing simulated atrophy (%2.2f) with noise sigma = %2.1f image to %s\n",
+	     atrophy_frac, noise_sigma, fname) ;
       MRIwrite(mri_noisy_atrophy, fname) ;
     }
 #if 0
@@ -739,8 +753,9 @@ compute_unpartial_volumed_intensities(MRI *mri_src, MRI *mri_vfrac_wm, MRI *mri_
 	  }
 	  else   // only wm in this voxel
 	  {
-	    for (row = 1 ; row <= m_A3->rows ; row++)
+	    for (row = 1 ; row <= m_A3->rows ; row++) {
 	      *MATRIX_RELT(m_A1, row, 1) = *MATRIX_RELT(m_A3, row, 1) ;
+	    }
 
 	    v_s = v_s1 ;
 	    m_A = m_A1 ;
@@ -748,11 +763,12 @@ compute_unpartial_volumed_intensities(MRI *mri_src, MRI *mri_vfrac_wm, MRI *mri_
 	}
 	else  // only csf in this region
 	{
-	  for (row = 1 ; row <= m_A3->rows ; row++)
+	  for (row = 1 ; row <= m_A3->rows ; row++) {
 	    *MATRIX_RELT(m_A1, row, 1) = *MATRIX_RELT(m_A3, row, 3) ;
+	  }
 
-	    v_s = v_s1 ;
-	    m_A = m_A1 ;
+	  v_s = v_s1 ;
+	  m_A = m_A1 ;
 	}
 
 	m_A_pinv = MatrixPseudoInverse(m_A, NULL) ;
