@@ -336,8 +336,13 @@ MRISfindMostSimilarBasin(MRI_SURFACE *mris, MRI *mri, int min_basin)
   int    best_basin, vno, n, basin, *nbr_vertices, nbr_basin, max_basin ;
   double *avg_grad, min_grad ;
 
-  nbr_vertices = (int *)calloc(mris->nvertices, sizeof(*nbr_vertices)) ;
-  avg_grad = (double *)calloc(mris->nvertices, sizeof(*avg_grad)) ;
+  if( mris->nvertices >= 0 ) {
+    nbr_vertices = (int *)calloc(mris->nvertices, sizeof(*nbr_vertices)) ;
+    avg_grad = (double *)calloc(mris->nvertices, sizeof(*avg_grad)) ;
+  } else {
+    ErrorExit(ERROR_BADPARM, "%s: mris->nvertices<0\n", Progname) ;
+    abort();
+  }
 
   max_basin = 0 ;
   for (vno = 0 ;  vno < mris->nvertices ; vno++)

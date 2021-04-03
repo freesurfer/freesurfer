@@ -1077,7 +1077,10 @@ int QdecGlmDesign::GenerateContrasts ( )
             strcat(nfstr,nuisanceFactorName.c_str());
             if (strlen(nfstr) > 2000) break;
           }
-          sprintf(tmpstr, "%s%s", question.c_str(), nfstr);
+          int req = snprintf(tmpstr, STRLEN, "%s%s", question.c_str(), nfstr);
+	  if( req >= STRLEN ) {
+	    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	  }
           question = strdup(tmpstr);
         }
       }
@@ -1110,7 +1113,10 @@ int QdecGlmDesign::GenerateContrasts ( )
             strcat(nfstr,nuisanceFactorName.c_str());
             if (strlen(nfstr) > 2000) break;
           }
-          sprintf(tmpstr, "%s%s", question.c_str(), nfstr);
+          int req = snprintf(tmpstr, STRLEN, "%s%s", question.c_str(), nfstr);
+	  if( req >= STRLEN ) {
+	    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	  }
           question = strdup(tmpstr);
         }
       }
@@ -1149,7 +1155,10 @@ int QdecGlmDesign::GenerateContrasts ( )
             strcat(nfstr,nuisanceFactorName.c_str());
             if (strlen(nfstr) > 2000) break;
           }
-          sprintf(tmpstr, "%s%s", question.c_str(), nfstr);
+          int req = snprintf(tmpstr, STRLEN, "%s%s", question.c_str(), nfstr);
+	  if( req >= STRLEN ) {
+	    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	  }
           question = strdup(tmpstr);
         }
       }
@@ -1213,7 +1222,10 @@ int QdecGlmDesign::GenerateContrasts ( )
             strcat(nfstr,nuisanceFactorName.c_str());
             if (strlen(nfstr) > 2000) break;
           }
-          sprintf(tmpstr, "%s%s", question.c_str(), nfstr);
+          int req = snprintf(tmpstr, STRLEN, "%s%s", question.c_str(), nfstr);
+	  if( req >= STRLEN ) {
+	    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	  }
           question = strdup(tmpstr);
         }
       }
@@ -1248,7 +1260,10 @@ int QdecGlmDesign::GenerateContrasts ( )
             strcat(nfstr,nuisanceFactorName.c_str());
             if (strlen(nfstr) > 2000) break;
           }
-          sprintf(tmpstr, "%s%s", question.c_str(), nfstr);
+          int req = snprintf(tmpstr, STRLEN, "%s%s", question.c_str(), nfstr);
+	  if( req >= STRLEN ) {
+	    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	  }
           question = strdup(tmpstr);
         }
       }
@@ -1288,7 +1303,10 @@ int QdecGlmDesign::GenerateContrasts ( )
             strcat(nfstr,nuisanceFactorName.c_str());
             if (strlen(nfstr) > 2000) break;
           }
-          sprintf(tmpstr, "%s%s", question.c_str(), nfstr);
+          int req = snprintf(tmpstr, STRLEN, "%s%s", question.c_str(), nfstr);
+	  if( req >= STRLEN ) {
+	    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	  }
           question = strdup(tmpstr);
         }
       }
@@ -1331,7 +1349,10 @@ int QdecGlmDesign::GenerateContrasts ( )
             strcat(nfstr,nuisanceFactorName.c_str());
             if (strlen(nfstr) > 2000) break;
           }
-          sprintf(tmpstr, "%s%s", question.c_str(), nfstr);
+          int req = snprintf(tmpstr, STRLEN, "%s%s", question.c_str(), nfstr);
+	  if( req >= STRLEN ) {
+	    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	  }
           question = strdup(tmpstr);
         }
       }
@@ -1364,7 +1385,10 @@ int QdecGlmDesign::GenerateContrasts ( )
             strcat(nfstr,nuisanceFactorName.c_str());
             if (strlen(nfstr) > 2000) break;
           }
-          sprintf(tmpstr, "%s%s", question.c_str(), nfstr);
+          int req = snprintf(tmpstr, STRLEN, "%s%s", question.c_str(), nfstr);
+	  if( req >= STRLEN ) {
+	    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	  }
           question = strdup(tmpstr);
         }
       }
@@ -1403,7 +1427,10 @@ int QdecGlmDesign::GenerateContrasts ( )
             strcat(nfstr,nuisanceFactorName.c_str());
             if (strlen(nfstr) > 2000) break;
           }
-          sprintf(tmpstr, "%s%s", question.c_str(), nfstr);
+          int req = snprintf(tmpstr, STRLEN, "%s%s", question.c_str(), nfstr);
+	  if( req >= STRLEN ) {
+	    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	  }
           question = strdup(tmpstr);
         }
       }
@@ -1479,7 +1506,10 @@ int QdecGlmDesign::GenerateContrasts ( )
             strcat(nfstr,nuisanceFactorName.c_str());
             if (strlen(nfstr) > 2000) break;
           }
-          sprintf(tmpstr, "%s%s", question.c_str(), nfstr);
+          int req = snprintf(tmpstr, STRLEN, "%s%s", question.c_str(), nfstr);
+	  if( req >= STRLEN ) {
+	    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	  }
           question = strdup(tmpstr);
         }
       }
@@ -1514,7 +1544,10 @@ int QdecGlmDesign::GenerateContrasts ( )
             strcat(nfstr,nuisanceFactorName.c_str());
             if (strlen(nfstr) > 2000) break;
           }
-          sprintf(tmpstr, "%s%s", question.c_str(), nfstr);
+          int req = snprintf(tmpstr, STRLEN, "%s%s", question.c_str(), nfstr);
+	  if( req >= STRLEN ) {
+	    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	  }
           question = strdup(tmpstr);
         }
       }
@@ -1554,7 +1587,10 @@ int QdecGlmDesign::GenerateContrasts ( )
             strcat(nfstr,nuisanceFactorName.c_str());
             if (strlen(nfstr) > 2000) break;
           }
-          sprintf(tmpstr, "%s%s", question.c_str(), nfstr);
+          int req = snprintf(tmpstr, STRLEN, "%s%s", question.c_str(), nfstr);
+	  if( req >= STRLEN ) {
+	    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	  }
           question = strdup(tmpstr);
         }
       }
@@ -1590,7 +1626,10 @@ int QdecGlmDesign::GenerateContrasts ( )
         question = strdup(tmpstr);
         if (nnf)
         {
-          sprintf(tmpstr, "%s\nNuisance factors:", question.c_str());
+          int req = snprintf(tmpstr, STRLEN, "%s\nNuisance factors:", question.c_str());
+	  if( req >= STRLEN ) {
+	    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	  }
           question = strdup(tmpstr);
           char nfstr[2048];
           nfstr[0]=0;
@@ -1602,7 +1641,10 @@ int QdecGlmDesign::GenerateContrasts ( )
             strcat(nfstr,nuisanceFactorName.c_str());
             if (strlen(nfstr) > 2000) break;
           }
-          sprintf(tmpstr, "%s%s", question.c_str(), nfstr);
+          req = snprintf(tmpstr, 2048, "%s%s", question.c_str(), nfstr);
+	  if( req >= 2048 ) {
+	    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	  }
           question = strdup(tmpstr);
         }
       }
@@ -1610,23 +1652,33 @@ int QdecGlmDesign::GenerateContrasts ( )
       {
         QdecFactor* contFactor = this->mContinuousFactors[nthcf-1];
         string contFactorName = contFactor->GetFactorName();
-        sprintf(tmpstr,"%s-Diff-%s-%s-Cor-%s-%s",
-                this->msHemi.c_str(),
-                df1l1name,df1l2name,
-                this->msMeasure.c_str(),
-                contFactorName.c_str());
+        int req = snprintf(tmpstr,STRLEN,"%s-Diff-%s-%s-Cor-%s-%s",
+			   this->msHemi.c_str(),
+			   df1l1name,df1l2name,
+			   this->msMeasure.c_str(),
+			   contFactorName.c_str());
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
         name = strdup(tmpstr);
-        sprintf(tmpstr,
-                "Does the %s--%s correlation, accounting for %s, "
-                "differ between %s and %s?",
-                this->msMeasure.c_str(),
-                contFactorName.c_str(),
-                df2Name.c_str(),
-                df1l1name,df1l2name);
+        req = snprintf(tmpstr,
+		       STRLEN, 
+		       "Does the %s--%s correlation, accounting for %s, "
+		       "differ between %s and %s?",
+		       this->msMeasure.c_str(),
+		       contFactorName.c_str(),
+		       df2Name.c_str(),
+		       df1l1name,df1l2name);
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
         question = strdup(tmpstr);
         if (nnf)
         {
-          sprintf(tmpstr, "%s\nNuisance factors:", question.c_str());
+          int req = snprintf(tmpstr, STRLEN, "%s\nNuisance factors:", question.c_str());
+	  if( req >= STRLEN ) {
+	    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	  }
           question = strdup(tmpstr);
           char nfstr[2048];
           nfstr[0]=0;
@@ -1638,7 +1690,10 @@ int QdecGlmDesign::GenerateContrasts ( )
             strcat(nfstr,nuisanceFactorName.c_str());
             if (strlen(nfstr) > 2000) break;
           }
-          sprintf(tmpstr, "%s%s", question.c_str(), nfstr);
+          req = snprintf(tmpstr, 2048, "%s%s", question.c_str(), nfstr);
+	  if( req >= 2048 ) {
+	    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	  }
           question = strdup(tmpstr);
         }
       }
@@ -1650,24 +1705,34 @@ int QdecGlmDesign::GenerateContrasts ( )
         if (nthcf == 1) otherFactor = this->mContinuousFactors[nthcf];
         else otherFactor = this->mContinuousFactors[nthcf-2];
         string otherContFactorName = otherFactor->GetFactorName();
-        sprintf(tmpstr,"%s-Diff-%s-%s-Cor-%s-%s",
+        int req = snprintf(tmpstr,STRLEN,"%s-Diff-%s-%s-Cor-%s-%s",
                 this->msHemi.c_str(),
                 df1l1name,df1l2name,
                 this->msMeasure.c_str(),
                 contFactorName.c_str());
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
         name = strdup(tmpstr);
-        sprintf(tmpstr,
-                "Does the %s--%s correlation, accounting for %s and %s, "
-                "differ between %s and %s?",
-                this->msMeasure.c_str(),
-                contFactorName.c_str(),
-                df2Name.c_str(),
-                otherContFactorName.c_str(),
-                df1l1name,df1l2name);
+        req = snprintf(tmpstr,
+		       STRLEN,
+		       "Does the %s--%s correlation, accounting for %s and %s, "
+		       "differ between %s and %s?",
+		       this->msMeasure.c_str(),
+		       contFactorName.c_str(),
+		       df2Name.c_str(),
+		       otherContFactorName.c_str(),
+		       df1l1name,df1l2name);
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
         question = strdup(tmpstr);
         if (nnf)
         {
-          sprintf(tmpstr, "%s\nNuisance factors:", question.c_str());
+          int req = snprintf(tmpstr, STRLEN, "%s\nNuisance factors:", question.c_str());
+	  if( req >= STRLEN ) {
+	    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	  }
           question = strdup(tmpstr);
           char nfstr[2048];
           nfstr[0]=0;
@@ -1679,7 +1744,10 @@ int QdecGlmDesign::GenerateContrasts ( )
             strcat(nfstr,nuisanceFactorName.c_str());
             if (strlen(nfstr) > 2000) break;
           }
-          sprintf(tmpstr, "%s%s", question.c_str(), nfstr);
+          req = snprintf(tmpstr, 2048, "%s%s", question.c_str(), nfstr);
+	  if( req >= 2048 ) {
+	    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	  }
           question = strdup(tmpstr);
         }
       }
@@ -1727,7 +1795,10 @@ int QdecGlmDesign::GenerateContrasts ( )
             strcat(nfstr,nuisanceFactorName.c_str());
             if (strlen(nfstr) > 2000) break;
           }
-          sprintf(tmpstr, "%s%s", question.c_str(), nfstr);
+          int req = snprintf(tmpstr, STRLEN, "%s%s", question.c_str(), nfstr);
+	  if( req >= STRLEN ) {
+	    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	  }
           question = strdup(tmpstr);
         }
       }
@@ -1763,7 +1834,10 @@ int QdecGlmDesign::GenerateContrasts ( )
             strcat(nfstr,nuisanceFactorName.c_str());
             if (strlen(nfstr) > 2000) break;
           }
-          sprintf(tmpstr, "%s%s", question.c_str(), nfstr);
+          int req = snprintf(tmpstr, STRLEN, "%s%s", question.c_str(), nfstr);
+	  if( req >= STRLEN ) {
+	    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	  }
           question = strdup(tmpstr);
         }
       }
@@ -1804,7 +1878,10 @@ int QdecGlmDesign::GenerateContrasts ( )
             strcat(nfstr,nuisanceFactorName.c_str());
             if (strlen(nfstr) > 2000) break;
           }
-          sprintf(tmpstr, "%s%s", question.c_str(), nfstr);
+          int req = snprintf(tmpstr, STRLEN, "%s%s", question.c_str(), nfstr);
+	  if( req >= STRLEN ) {
+	    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	  }
           question = strdup(tmpstr);
         }
       }
@@ -1849,7 +1926,10 @@ int QdecGlmDesign::GenerateContrasts ( )
             strcat(nfstr,nuisanceFactorName.c_str());
             if (strlen(nfstr) > 2000) break;
           }
-          sprintf(tmpstr, "%s%s", question.c_str(), nfstr);
+          int req = snprintf(tmpstr, STRLEN, "%s%s", question.c_str(), nfstr);
+	  if( req >= STRLEN ) {
+	    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	  }
           question = strdup(tmpstr);
         }
       }
@@ -1884,7 +1964,10 @@ int QdecGlmDesign::GenerateContrasts ( )
             strcat(nfstr,nuisanceFactorName.c_str());
             if (strlen(nfstr) > 2000) break;
           }
-          sprintf(tmpstr, "%s%s", question.c_str(), nfstr);
+          int req = snprintf(tmpstr, 2048, "%s%s", question.c_str(), nfstr);
+	  if( req >= 2048 ) {
+	    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	  }
           question = strdup(tmpstr);
         }
       }
@@ -1925,7 +2008,10 @@ int QdecGlmDesign::GenerateContrasts ( )
             strcat(nfstr,nuisanceFactorName.c_str());
             if (strlen(nfstr) > 2000) break;
           }
-          sprintf(tmpstr, "%s%s", question.c_str(), nfstr);
+          int req = snprintf(tmpstr, STRLEN, "%s%s", question.c_str(), nfstr);
+	  if( req >= STRLEN ) {
+	    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	  }
           question = strdup(tmpstr);
         }
       }
