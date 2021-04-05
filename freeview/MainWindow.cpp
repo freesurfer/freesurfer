@@ -9529,7 +9529,17 @@ void MainWindow::CommandLoadODF(const QStringList& cmd )
 
   LayerODF* layer = new LayerODF(m_layerVolumeRef);
   QVariantMap map;
-  map["Filename"] = QFileInfo(cmd[1]).absoluteFilePath();
+  QStringList list = cmd[1].split(":");
+  QString fn = list.first();
+  if (list.size() > 1)
+  {
+    list = list[1].split("=");
+    if (list.size() > 1 && (list.first() == "permute" || list.first() == "permuted"))
+    {
+      map["permuted"] = (list[1] == "1" || list[1] == "true");
+    }
+  }
+  map["Filename"] = QFileInfo(fn).absoluteFilePath();
   if (cmd.size() > 2)
     map["vertex_filename"] = QFileInfo(cmd[2]).absoluteFilePath();
   if (cmd.size() > 3)

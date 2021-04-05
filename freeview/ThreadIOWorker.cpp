@@ -328,7 +328,7 @@ void ThreadIOWorker::run()
     QString fn = m_args["Filename"].toString();
     QString fn2 = m_args["vertex_filename"].toString();
     QString fn3 = m_args["face_filename"].toString();
-    if (!layer->Load(fn, fn2, fn3))
+    if (!layer->Load(fn, fn2, fn3, m_args["permuted"].toBool()))
     {
       emit Error(m_layer, m_nJobType);
     }

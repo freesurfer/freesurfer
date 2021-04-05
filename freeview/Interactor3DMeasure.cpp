@@ -117,7 +117,8 @@ bool Interactor3DMeasure::ProcessKeyDownEvent( QKeyEvent* event, RenderView* ren
 {
   RenderView3D* view = ( RenderView3D* )renderview;
 
-  if ( event->key() == Qt::Key_Delete )
+  qDebug() << event->key();
+  if ( event->key() == Qt::Key_Delete || event->key() == Qt::Key_Backspace )
   {
     view->DeleteCurrentSelectRegion();
     return false;

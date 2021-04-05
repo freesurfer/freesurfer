@@ -15,7 +15,7 @@ public:
   LayerODF(LayerMRI* layerMRI, QObject* parent = NULL );
   virtual ~LayerODF();
 
-  bool Load(const QString& fn, const QString& vertex_fn = "", const QString& face_fn = "");
+  bool Load(const QString& fn, const QString& vertex_fn = "", const QString& face_fn = "", bool bPermute = false);
 
   inline LayerPropertyODF* GetProperty()
   {
