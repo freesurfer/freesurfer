@@ -710,12 +710,9 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&numdof);
       nargsused = 1;
-    } else if (!strcmp(option, "--val-a")) {
+    } 
+    else if (!strcmp(option, "--val-a")) {
       if (nargc < 1) argnerr(option,1);
-      if(*pargv[0] != '-' && !isdigit(*pargv[0])){
-	printf("ERROR: --val-a must be a number\n");
-	exit(1);
-      }
       sscanf(pargv[0],"%lf",&ValueA);
       nargsused = 1;
     } else if (!strcmp(option, "--val-b")) {
