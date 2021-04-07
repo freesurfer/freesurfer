@@ -1368,6 +1368,15 @@ void RenderView3D::TriggerContextMenu( QMouseEvent* event )
   layers << mainwnd->GetLayers("MRI");
   layers << mainwnd->GetLayers("PointSet");
 
+  LayerMRI* mri = qobject_cast<LayerMRI*>(mainwnd->GetActiveLayer("MRI"));
+  if (mri && mri->GetProperty()->GetShowAsContour() && mri->GetCurrentSurfaceRegion())
+  {
+    QAction* act = new QAction("Delete Iso-surface Region", this);
+    connect(act, SIGNAL(triggered()), this, SLOT(DeleteCurrentSelectRegion()));
+    menu->addAction(act);
+    menu->addSeparator();
+  }
+
   QMenu* submenu = menu->addMenu("Reset View");
   //  QAction* act = new QAction("Right", this);
   //  connect(act, SIGNAL(triggered()), this, SLOT(ResetViewRight()));
@@ -1452,7 +1461,7 @@ void RenderView3D::TriggerContextMenu( QMouseEvent* event )
     connect(act, SIGNAL(toggled(bool)), SLOT(SetShowAxes(bool)));
     menu->addAction(act);
   }
-  LayerMRI* mri = qobject_cast<LayerMRI*>(mainwnd->GetActiveLayer("MRI"));
+
   if (mri && mri->GetProperty()->GetShowAsContour())
   {
     menu->addSeparator();

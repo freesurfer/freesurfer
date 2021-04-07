@@ -81,8 +81,6 @@ public:
 
   void CloseSelectRegion();
 
-  void DeleteCurrentSelectRegion();
-
   bool PickSelectRegion( int nId );
 
   bool PickCroppingBound( int nX, int nY );
@@ -166,7 +164,8 @@ public slots:
   void UpdateScalarBar();
   void SetFocalPointAtCursor(bool b);
   void UpdateAxesActor();
-  void SetShowAxes(bool b);
+  void SetShowAxes(bool b);  
+  void DeleteCurrentSelectRegion();
 
 protected:
   void DoUpdateRASPosition( int posX, int posY, bool bCursor = false, bool bSlicePickOnly = false );
