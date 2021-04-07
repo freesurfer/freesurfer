@@ -136,10 +136,16 @@ main(int argc, char *argv[]) {
     printf("processing subject %s: %d of %d\n", subject, sno+1, nsubjects) ;
 
 
-    sprintf(fname, "%s/%s/label/lh.%s.label", sdir, subject, label_name) ;
+    int req =snprintf(fname, STRLEN, "%s/%s/label/lh.%s.label", sdir, subject, label_name) ;
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     if (FileExists(fname) == 0)
     {
-      sprintf(fname, "%s/%s/label/rh.%s.label", sdir, subject, label_name) ;
+      int req = snprintf(fname, STRLEN, "%s/%s/label/rh.%s.label", sdir, subject, label_name) ;
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       if (FileExists(fname) == 0)
 	ErrorExit(ERROR_NOFILE, "%s: subject %s has no training label (%s) for either hemisphere", Progname, subject,fname) ;
       hemi = "rh" ;
@@ -151,7 +157,10 @@ main(int argc, char *argv[]) {
     if (training_label == NULL)
       ErrorExit(ERROR_NOFILE, "%s: could not read training label %s\n", Progname, fname) ;
 
-    sprintf(fname, "%s/%s/surf/%s.%s", sdir, subject, hemi, surf_name) ;
+    req = snprintf(fname, STRLEN, "%s/%s/surf/%s.%s", sdir, subject, hemi, surf_name) ;
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     mris[sno] = MRISread(fname) ;
     if (!mris[sno])
       ErrorExit(ERROR_NOFILE, "%s: could not read surface from %s",Progname, fname) ;
@@ -159,7 +168,10 @@ main(int argc, char *argv[]) {
     MRIScomputeMetricProperties(mris[sno]) ;
     if (nbhd_size > mris[sno]->nsize)
       MRISsetNeighborhoodSizeAndDist(mris[sno], nbhd_size) ;
-    sprintf(fname, "%s/%s/label/%s.%s", sdir, subject, hemi, cortex_label_name) ;
+    req = snprintf(fname, STRLEN, "%s/%s/label/%s.%s", sdir, subject, hemi, cortex_label_name) ;
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     cortex_label = LabelRead(NULL, fname) ;
     if (cortex_label == NULL)
       ErrorExit(ERROR_NOFILE, "%s: could not read cortex label %s\n", Progname, fname) ;
@@ -180,7 +192,10 @@ main(int argc, char *argv[]) {
 
     for (i = 0 ; i < noverlays ; i++)
     {
-      sprintf(fname, "%s/%s/surf/%s.%s", sdir, subject, hemi, overlay_names[i]) ;
+      int req = snprintf(fname, STRLEN, "%s/%s/surf/%s.%s", sdir, subject, hemi, overlay_names[i]) ;
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       mri_overlays[sno][i] = MRIread(fname) ;
       if (mri_overlays[sno][i] == NULL)
 	ErrorExit(ERROR_NOFILE, "%s: could not read overlay %s (%d)\n", Progname, fname, i) ;

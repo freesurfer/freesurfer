@@ -269,7 +269,7 @@ main(int argc, char *argv[])
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
   Gdiag |= (DIAG_SHOW | DIAG_WRITE) ;
-  memset(&parms, 0, sizeof(parms)) ;
+  // memset(&parms, 0, sizeof(parms)) ;
   parms.dt = .1 ;
   parms.projection = PROJECT_PLANE ;
   parms.tol = 0.2 ;
@@ -314,10 +314,17 @@ main(int argc, char *argv[])
   }
   else
     strcpy(hemi, "lh") ;
-  if (one_surf_flag)
-    sprintf(in_surf_fname, "%s", in_patch_fname) ;
-  else
-    sprintf(in_surf_fname, "%s/%s.%s", path, hemi, original_surf_name) ;
+  if (one_surf_flag) {
+    int req = snprintf(in_surf_fname, STRLEN, "%s", in_patch_fname) ;
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
+  } else {
+    int req = snprintf(in_surf_fname, STRLEN, "%s/%s.%s", path, hemi, original_surf_name) ;
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
+  }
 
   if (parms.base_name[0] == 0)
   {
@@ -446,7 +453,10 @@ main(int argc, char *argv[])
     if (!FZERO(parms.l_unfold) || !FZERO(parms.l_expand))
     {
       static INTEGRATION_PARMS p2 ;
-      sprintf(in_surf_fname, "%s/%s.%s", path, hemi, original_surf_name) ;
+      int req = snprintf(in_surf_fname, STRLEN, "%s/%s.%s", path, hemi, original_surf_name) ;
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       if (stricmp(original_unfold_surf_name,"none") == 0)
       {
         printf("using current position of patch as initial position\n") ;
@@ -491,7 +501,10 @@ main(int argc, char *argv[])
       MRIfree(&parms.mri_dist) ;
     }
 
-    sprintf(in_surf_fname, "%s/%s.%s", path, hemi, original_surf_name) ;
+    int req = snprintf(in_surf_fname, STRLEN, "%s/%s.%s", path, hemi, original_surf_name) ;
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     if (!sphere_flag && !one_surf_flag)
       MRISreadOriginalProperties(mris, original_surf_name) ;
     if (randomly_flatten)
@@ -593,12 +606,18 @@ main(int argc, char *argv[])
       MRIsetValues(mri_overlay, 0) ;
       FileNameOnly(synth_name, fname_no_path) ;
       FileNamePath(synth_name, path) ;
-      sprintf(fname, "%s/lh.%s", path, fname_no_path) ;
+      int req = snprintf(fname, STRLEN, "%s/lh.%s", path, fname_no_path) ;
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       area_lh = LabelRead(NULL, fname) ;
       if (area_lh == NULL)
         ErrorExit(ERROR_NOFILE, "%s: could not read label from %s",
                   Progname,fname) ;
-      sprintf(fname, "%s/rh.%s", path, fname_no_path) ;
+      req = snprintf(fname, STRLEN, "%s/rh.%s", path, fname_no_path) ;
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       area_rh = LabelRead(NULL, fname) ;
       if (area_rh == NULL)
         ErrorExit(ERROR_NOFILE, "%s: could not read label from %s",

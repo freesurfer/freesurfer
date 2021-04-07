@@ -52,7 +52,7 @@ static int max_nbrs = 12 ;
 
 int
 main(int argc, char *argv[]) {
-  char         *cp, **av, *in_fname, fname[100], path[100],
+  char         *cp, **av, *in_fname, fname[STRLEN], path[100],
   name[100], hemi[100] ;
   int          ac, nargs ;
 
@@ -92,7 +92,10 @@ main(int argc, char *argv[]) {
       hemi[2] = 0 ;
     } else
       strcpy(hemi, "lh") ;
-    sprintf(fname, "%s/%s.smoothwm", path, hemi) ;
+    int req = snprintf(fname, STRLEN, "%s/%s.smoothwm", path, hemi) ;
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     mris = MRISread(fname) ;
     if (!mris)
       ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",

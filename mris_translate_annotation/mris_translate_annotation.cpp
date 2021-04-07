@@ -83,7 +83,10 @@ main(int argc, char *argv[]) {
       ErrorExit(ERROR_BADPARM, "%s: SUBJECTS_DIR not defined in environment or cmd line", Progname) ;
     strcpy(subjects_dir, cp) ;
   }
-  sprintf(fname, "%s/%s/surf/%s.orig", subjects_dir, subject, hemi) ;
+  int req = snprintf(fname, STRLEN, "%s/%s/surf/%s.orig", subjects_dir, subject, hemi) ;
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   fprintf(stderr, "reading surface from %s...\n", fname) ;
   mris = MRISread(fname) ;
   if (!mris)

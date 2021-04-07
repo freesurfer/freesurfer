@@ -207,7 +207,11 @@ main(int argc, char *argv[]) {
               MRIsurfaceRASToVoxel(mri, xw, yw, zw, &xv, &yv, &zv);
             MRIsampleVolume(mri, xv, yv, zv, &val) ;
             annot_means[index] += val ;
-            sprintf(fname, "%s-%s-%s.dat", annot_prefix, hemi, mris->ct->entries[index]->name) ;
+            int req = snprintf(fname, STRLEN, "%s-%s-%s.dat",
+			       annot_prefix, hemi, mris->ct->entries[index]->name) ;
+	    if( req >= STRLEN ) {
+	      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	    }
             fp = fopen(fname, "a") ;
             fprintf(fp, "%f\n", val) ;
             fclose(fp) ;

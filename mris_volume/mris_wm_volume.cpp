@@ -96,7 +96,10 @@ main(int argc, char *argv[])
   //  printf("command line parsing finished\n");
 
   /*** Read in the input surfaces ***/
-  sprintf(fname, "%s/%s/surf/%s.%s", sdir, subject, hemi, white_name) ;
+  int req = snprintf(fname, STRLEN, "%s/%s/surf/%s.%s", sdir, subject, hemi, white_name) ;
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   mris = MRISread(fname) ;
   if (mris == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface %s", Progname, fname) ;
@@ -106,7 +109,10 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_BADPARM, "%s: surface %s has an incorrect topology (eno=%d)",
               Progname, fname, eno) ;
   /*** Read in the aseg volume ***/
-  sprintf(fname, "%s/%s/mri/%s", sdir, subject, aseg_name) ;
+  req = snprintf(fname, STRLEN, "%s/%s/mri/%s", sdir, subject, aseg_name) ;
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   mri_aseg = MRIread(fname) ;
   if (mri_aseg == NULL)
     ErrorExit(ERROR_NOFILE, 

@@ -513,6 +513,7 @@ get_option(int argc, char *argv[]) {
       nargs = 1 ;
       fprintf(stderr, "computing average distance traversed by label %d\n", labels[nlabels]) ;
       nlabels++ ;
+      break;
     case 'V':
       Gdiag_no = atoi(argv[2]) ;
       nargs = 1 ;

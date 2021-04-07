@@ -118,7 +118,10 @@ main(int argc, char *argv[])
     strcpy(sdir, cp) ;
   }
 
-  sprintf(fname, "%s/%s/surf/%s.%s", sdir, subject, hemi, white_name) ;
+  int req = snprintf(fname, STRLEN, "%s/%s/surf/%s.%s", sdir, subject, hemi, white_name) ;
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   printf("reading %s\n", fname) ;
   mris  = MRISread(fname) ;
   if (mris == NULL)
@@ -126,63 +129,97 @@ main(int argc, char *argv[])
   MRISsaveVertexPositions(mris, WHITE_VERTICES) ;
   
 
-  sprintf(fname, "%s/%s/surf/%s.%s", sdir, subject, ohemi, white_name) ;
+  req = snprintf(fname, STRLEN, "%s/%s/surf/%s.%s", sdir, subject, ohemi, white_name) ;
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   printf("reading %s\n", fname) ;
   mris_contra  = MRISread(fname) ;
   if (mris_contra == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface from %s\n", Progname, fname) ;
   MRISsaveVertexPositions(mris_contra, WHITE_VERTICES) ;
 
-  sprintf(fname, "%s/%s/mri/%s", sdir, subject, ribbon_name) ;
+  req = snprintf(fname, STRLEN, "%s/%s/mri/%s", sdir, subject, ribbon_name) ;
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
+
   printf("reading %s\n", fname) ;
   mri_ribbon  = MRIread(fname) ;
   if (mri_ribbon == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not read ribbon from %s\n", Progname, fname) ;
 
-  sprintf(fname, "%s/%s/mri/%s", sdir, subject, aparc_name) ;
+  req = snprintf(fname, STRLEN, "%s/%s/mri/%s", sdir, subject, aparc_name) ;
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   printf("reading %s\n", fname) ;
   mri_aparc  = MRIread(fname) ;
   if (mri_aparc == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not read ribbon from %s\n", Progname, fname) ;
 
-  sprintf(fname, "%s/%s/mri/%s", sdir, subject, aseg_name) ;
+  req = snprintf(fname, STRLEN, "%s/%s/mri/%s", sdir, subject, aseg_name) ;
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   printf("reading %s\n", fname) ;
   mri_aseg  = MRIread(fname) ;
   if (mri_aseg == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not read aseg from %s\n", Progname, fname) ;
 
-  sprintf(fname, "%s/%s/surf/%s.%s", sdir, subject, hemi, pial_name) ;
+  req = snprintf(fname, STRLEN, "%s/%s/surf/%s.%s", sdir, subject, hemi, pial_name) ;
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   if (MRISreadPialCoordinates(mris, fname) != NO_ERROR)
     ErrorExit(ERROR_NOFILE, "%s: could not read pial coordinates from %s\n", Progname, fname) ;
 
-  sprintf(fname, "%s/%s/surf/%s.%s", sdir, subject, hemi, sphere_name) ;
+  req = snprintf(fname, STRLEN, "%s/%s/surf/%s.%s", sdir, subject, hemi, sphere_name) ;
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   if (MRISreadCanonicalCoordinates(mris, fname) != NO_ERROR)
     ErrorExit(ERROR_NOFILE, "%s: could not read left/right spherical coordinates from %s\n", Progname, fname) ;
   
 
-  sprintf(fname, "%s/%s/surf/%s.%s", sdir, subject, ohemi, pial_name) ;
+  req = snprintf(fname, STRLEN, "%s/%s/surf/%s.%s", sdir, subject, ohemi, pial_name) ;
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   if (MRISreadPialCoordinates(mris_contra, fname) != NO_ERROR)
     ErrorExit(ERROR_NOFILE, "%s: could not read pial coordinates from %s\n", Progname, fname) ;
 
-  sprintf(fname, "%s/%s/label/%s.%s", sdir, subject, hemi, cortex_label) ;
+  req = snprintf(fname, STRLEN, "%s/%s/label/%s.%s", sdir, subject, hemi, cortex_label) ;
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   cortex = LabelRead(NULL, fname) ;
   if (cortex == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not read cortical label from %s\n", Progname, fname) ;
   LabelRipRestOfSurface(cortex, mris) ;
   LabelFree(&cortex) ;
 
-  sprintf(fname, "%s/%s/surf/%s.%s", sdir, subject, ohemi, sphere_name) ;
+  req = snprintf(fname, STRLEN, "%s/%s/surf/%s.%s", sdir, subject, ohemi, sphere_name) ;
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   if (MRISreadCanonicalCoordinates(mris_contra, fname) != NO_ERROR)
     ErrorExit(ERROR_NOFILE, "%s: could not read left/right spherical coordinates from %s\n", Progname, fname) ;
   
 
-  sprintf(fname, "%s/%s/mri/%s", sdir, subject, vol_name) ; 
+  req = snprintf(fname, STRLEN, "%s/%s/mri/%s", sdir, subject, vol_name) ; 
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   printf("reading %s\n", fname) ;
   mri  = MRIread(fname) ;
   if (mri == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not read volume from %s\n", Progname, fname) ;
 
-  sprintf(fname, "%s/%s/mri/%s", sdir, subject, flair_name) ; 
+  req = snprintf(fname, STRLEN, "%s/%s/mri/%s", sdir, subject, flair_name) ; 
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   printf("reading %s\n", fname) ;
   mri_flair  = MRIread(fname) ;
   if (mri_flair == NULL)
@@ -208,7 +245,10 @@ main(int argc, char *argv[])
     strcpy(fname, out_fname) ;
     FileNameExtension(fname, ext) ;
     FileNameRemoveExtension(fname, fname_no_ext) ;
-    sprintf(fname, "%s.flair.%s", fname_no_ext, ext) ;
+    int req = snprintf(fname, STRLEN, "%s.flair.%s", fname_no_ext, ext) ;
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     if (Gdiag_no >= 0)
       printf("feature(%d) = %f\n", Gdiag_no, MRIgetVoxVal(mri_flair_features, Gdiag_no, 0, 0, 0)) ;
     printf("DISABLED: writing output to %s\n", fname) ;

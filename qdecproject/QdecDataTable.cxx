@@ -344,7 +344,7 @@ int QdecDataTable::Load (const char* isFileName,
     }
 
     char factor[2048];
-    strncpy( factor, token, sizeof(factor) );
+    strncpy( factor, token, sizeof(factor)-1 );
     //cout << "factor: " << factor << endl;
 
     // determine if this factor should be ignored (by comparing against

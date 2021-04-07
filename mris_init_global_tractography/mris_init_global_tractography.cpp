@@ -164,7 +164,10 @@ main(int argc, char *argv[]) {
   }
   subject = argv[1] ;
   
-  sprintf(fname, "%s/%s/mri/%s.mgz", sdir, subject, argv[2]) ;
+  int req = snprintf(fname, STRLEN, "%s/%s/mri/%s.mgz", sdir, subject, argv[2]) ;
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   mri_aseg = MRIread(fname) ;
   if (mri_aseg == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not load aparc+aseg from %s", Progname, fname) ;

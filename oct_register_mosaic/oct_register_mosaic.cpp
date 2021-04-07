@@ -266,10 +266,13 @@ main(int argc, char *argv[]) {
     {
       FileNameExtension(out_fname, ext) ;
       FileNameRemoveExtension(out_fname, fname) ;
-    }
-    else
+    } else {
       sprintf(fname, "mosaic") ;
-      sprintf(orig_fname, "%s.orig.%s", fname, ext) ;
+      int req = snprintf(orig_fname, STRLEN, "%s.orig.%s", fname, ext) ;
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
+    }
     for (i = 0 ; i < nimages ; i++)
     {
       x0d[i] = x0[i] ;
@@ -1161,7 +1164,10 @@ powell_step_func(float *p, int nparms)
   double x0d[MAX_IMAGES], y0d[MAX_IMAGES] ;
 
   nimages = (nparms+2)/2 ;
-  sprintf(fname, "%s powell iter %d", Gout_name, step) ;
+  int req = snprintf(fname, STRLEN, "%s powell iter %d", Gout_name, step) ;
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   dump_parms(p, nimages, fname) ;
   x0d[0] = Gx0 ; y0d[0] = Gy0 ;
   for (i = 1 ; i < Gnimages ; i++)
@@ -1170,7 +1176,10 @@ powell_step_func(float *p, int nparms)
     y0d[i] = p[Gnimages-1+i] ;
   }
   mri_mosaic = undistort_and_mosaic_images(Gmri, x0d, y0d, nimages, 0, 0, 0, 0, 0, 1, NULL) ;
-  sprintf(fname, "%s.powell.%2.2d.mgz", Gout_name, step) ;
+  req = snprintf(fname, STRLEN, "%s.powell.%2.2d.mgz", Gout_name, step) ;
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   printf("writing image after powell step %d to %s\n", step, fname) ;
   MRIwrite(mri_mosaic,fname) ;
 

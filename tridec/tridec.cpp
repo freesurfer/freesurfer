@@ -12,7 +12,7 @@
  *
  */
 
-
+#include <iostream>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -54,21 +54,33 @@ main(int argc,char *argv[]) {
   }
 
   sprintf(pname,"%s",argv[1]);
-  sprintf(fpref,"%s/%s",data_dir,pname);
+  int req = snprintf(fpref,STRLEN,"%s/%s",data_dir,pname);
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
 
-  sprintf(fname,"%s/bem/%s",fpref,argv[2]);
+  req = snprintf(fname,STRLEN,"%s/bem/%s",fpref,argv[2]);
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   fp1 = fopen(fname,"r");
   if (fp1==NULL) {
     printf("File %s not found.\n",fname);
     exit(0);
   }
-  sprintf (fname,"%s/lib/bem/%s",mri_dir,argv[3]);
+  req = snprintf (fname,STRLEN,"%s/lib/bem/%s",mri_dir,argv[3]);
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   fp2 = fopen(fname,"r");
   if (fp2==NULL) {
     printf("File %s not found.\n",fname);
     exit(0);
   }
-  sprintf(fname,"%s/bem/%s",fpref,argv[4]);
+  req = snprintf(fname,STRLEN,"%s/bem/%s",fpref,argv[4]);
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   fp3 = fopen(fname,"w");
   if (fp3==NULL) {
     printf("can't write to file %s\n",fname);

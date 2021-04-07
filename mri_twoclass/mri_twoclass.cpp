@@ -235,7 +235,10 @@ main(int argc, char *argv[]) {
       subject_name = n < num_class1 ? c1_subjects[n]:c2_subjects[n-num_class1];
       fprintf(stderr, "reading subject %d of %d: %s\n",
               n+1, num_class1+num_class2, subject_name) ;
-      sprintf(fname, "%s/%s/mri/%s", subjects_dir,subject_name,aseg_name);
+      int req = snprintf(fname, STRLEN, "%s/%s/mri/%s", subjects_dir,subject_name,aseg_name);
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       mri = MRIread(fname) ;
       if (!mri)
         ErrorExit(ERROR_NOFILE, "%s: could not read segmentation %s",
@@ -250,7 +253,10 @@ main(int argc, char *argv[]) {
       if (mask_fname) {
         MRI *mri_mask ;
 
-        sprintf(fname, "%s/%s/mri/%s", subjects_dir,subject_name,mask_fname);
+        int req = snprintf(fname, STRLEN, "%s/%s/mri/%s", subjects_dir,subject_name,mask_fname);
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
         mri_mask = MRIread(fname) ;
         if (!mri_mask)
           ErrorExit(ERROR_NOFILE, "%s: could not open mask volume %s.\n",
@@ -259,8 +265,11 @@ main(int argc, char *argv[]) {
         MRImask(mri, mri_mask, mri, 0, 0) ;
         MRIfree(&mri_mask) ;
       }
-      sprintf(fname, "%s/%s/mri/transforms/%s", subjects_dir,subject_name,
-              xform_fname);
+      req = snprintf(fname, STRLEN, "%s/%s/mri/transforms/%s", 
+		     subjects_dir,subject_name, xform_fname);
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       if (wm_flag) {
         MRIthresholdRangeInto(mri, mri, WM_MIN_VAL, WM_MAX_VAL) ;
         MRIbinarize(mri, mri, WM_MIN_VAL, 0, 64) ;
@@ -356,7 +365,10 @@ main(int argc, char *argv[]) {
       compute_voxel_statistics(voxel_labels_class1, voxel_labels_class2,
                                awidth, aheight, adepth, resolution,
                                num_class1, num_class2, NULL) ;
-  sprintf(fname, "%s/%s/mri/%s", subjects_dir,output_subject,out_fname);
+  int req = snprintf(fname, STRLEN, "%s/%s/mri/%s", subjects_dir,output_subject,out_fname);
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   printf("writing stats to %s...\n", fname) ;
 
   if (!output_bfloats)

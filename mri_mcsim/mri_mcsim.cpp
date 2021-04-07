@@ -214,10 +214,16 @@ int main(int argc, char *argv[]) {
 	if(SignList[nthSign] ==  0) signstr = "abs"; 
 	if(SignList[nthSign] == +1) signstr = "pos"; 
 	if(SignList[nthSign] == -1) signstr = "neg"; 
-	sprintf(tmpstr,"%s/fwhm%02d/%s/th%02d",
-		OutTop,(int)round(FWHMList[nthFWHM]),
-		signstr,(int)round(10*ThreshList[nthThresh]));
-	sprintf(fname,"%s/%s.csd",tmpstr,csdbase);
+	int req = snprintf(tmpstr,STRLEN,"%s/fwhm%02d/%s/th%02d",
+			   OutTop,(int)round(FWHMList[nthFWHM]),
+			   signstr,(int)round(10*ThreshList[nthThresh]));
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
+	req = snprintf(fname,STRLEN,"%s/%s.csd",tmpstr,csdbase);
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
 	if(fio_FileExistsReadable(fname)){
 	  printf("ERROR: output file %s exists\n",fname);
 	  if(fpLog) fprintf(fpLog,"ERROR: output file %s exists\n",fname);

@@ -120,7 +120,7 @@ main(int argc, char *argv[]) {
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
 
-  memset(&parms, 0, sizeof(parms)) ;
+  // memset(&parms, 0, sizeof(parms)) ; Have proper constructor now
 
   parms.projection = NO_PROJECTION ;
   parms.tol = 0.05 ;
