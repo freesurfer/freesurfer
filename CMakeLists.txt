@@ -287,12 +287,20 @@ endif()
 #             freesurfer build settings
 # --------------------------------------------------
 
+host_os()
 # warnings
 if(NOT NO_CXX_WARN)
   if(WARNING_AS_ERROR)
     set(WARN_AS_ERROR_FLAG "-Werror")
+    if(HOST_OS MATCHES "CentOS8")
+       # -Wno-cpp needed with gcc8 for /usr/pubse/packages/vtk 7.1 compiled with older compilers
+       # -Wno-restrict needed with gcc8 for ./freesurfer/mris_compute_acorr/mris_compute_acorr.cpp
+       # -Wno-format-overflow needed with gcc8 for ./fresurfer/mris2rgb/mris2rgb.cpp
+       set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra ${WARN_AS_ERROR_FLAG} -Wno-cpp -Wno-restrict -Wno-format-overflow -Wno-sign-compare -Wno-unused-result -Wno-unused-parameter")
+    else ()
+       set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra ${WARN_AS_ERROR_FLAG} -Wno-sign-compare -Wno-unused-result -Wno-unused-parameter")
+    endif()
   endif()
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra ${WARN_AS_ERROR_FLAG} -Wno-sign-compare -Wno-unused-result -Wno-unused-parameter")
 else ()
    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error -Wno-deprecated-declarations -fpermissive") 
 endif()
@@ -666,7 +674,7 @@ endif()
 #    endif()
 # endif()
 
-host_os()
+# host_os()
 # message(STATUS "FROM top level CMakeLists.txt HOST_OS=${HOST_OS}")
 message(STATUS "Building on host OS ${HOST_OS}")
 
