@@ -25,6 +25,8 @@ parser.add_argument('-v', '--verbose', action='store_true', help='Verbose output
 parser.add_argument('-g', '--gpu', help='GPU ID. CPU is used by default.')
 args = parser.parse_args()
 
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '0' if args.verbose else '3'
+
 # defer slow tensorflow imports for faster argument parsing
 import neurite as ne
 import tensorflow as tf
@@ -32,7 +34,6 @@ import tensorflow as tf
 # set verbosity
 if not args.verbose:
     warnings.filterwarnings('ignore')
-    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
     tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
 # load input volume
