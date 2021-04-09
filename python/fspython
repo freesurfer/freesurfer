@@ -12,6 +12,9 @@ export PYTHONPATH="${FREESURFER_HOME}/python/packages"
 export PYTHONNOUSERSITE=1
 unset PYTHONUSERBASE
 
+# don't check for pip upgrades, since it confuses people
+export PIP_DISABLE_PIP_VERSION_CHECK=1
+
 # run python
 if [ -e "${FREESURFER_HOME}/python/bin/python3" ]; then
     exec ${FREESURFER_HOME}/python/bin/python3 "$@"
