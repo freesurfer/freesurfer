@@ -3,7 +3,6 @@ from .general import readlines
 from .general import write_pickle
 from .general import read_pickle
 from .general import Timer
-from .general import check_tensorflow
 
 from .system import run
 from .system import collect_output
