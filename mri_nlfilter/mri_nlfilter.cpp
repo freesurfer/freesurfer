@@ -202,7 +202,7 @@ main(int argc, char *argv[]) {
 
   if (crop == 0 && no_offset)
   {
-    MRI *mri_tmp ;
+    MRI *mri_tmp = nullptr;
     printf("disabling regional filtering\n") ;
     switch (filter_type)
     {
