@@ -367,7 +367,7 @@ class Volume(ArrayContainerTemplate, Transformable):
 
         c_low = np.clip(low, 0, None)
         c_high = np.clip(high, 0, None)
-        conformed_data = np.pad(self.data.squeeze(), list(zip(c_low, c_high)))
+        conformed_data = np.pad(self.data.squeeze(), list(zip(c_low, c_high)), mode='constant')
 
         # note: low and high are intentionally swapped here
         c_low = np.clip(-high, 0, None)
