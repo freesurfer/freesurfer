@@ -20,10 +20,25 @@
  *
  */
 
+#include <ctype.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+#include "const.h"
 #include "diag.h"
+#include "error.h"
+#include "filter.h"
 #include "icosahedron.h"
+#include "label.h"
+#include "macros.h"
+#include "mri.h"
+#include "mrisurf.h"
+#include "proto.h"
 #include "timer.h"
+#include "transform.h"
 #include "tritri.h"
+#include "utils.h"
 #include "version.h"
 
 #define MAX_PROFILE_LEN          1000
@@ -224,9 +239,9 @@ static void  usage_exit(int code);
 static int    label_only = 0;
 static double v1_thresh  = 0.01;
 static int    invert = 0, deform_debug = 0;
-static char * aseg_fname  = nullptr;
+static char * aseg_fname  = NULL;
 static int    read_flag   = 0;
-static char * label_fname = nullptr;
+static char * label_fname = NULL;
 
 // these are only used for dp.use_max_grad != 0 (not the default)
 static double min_wm_val      = 70;
@@ -236,7 +251,7 @@ static double min_outside_val = 120;
 
 static int    vavgs        = 0;
 static int    min_averages = 2;
-static LABEL *label        = nullptr;
+static LABEL *label        = NULL;
 static double max_dist     = 2;
 static DP     dp;
 
@@ -306,7 +321,7 @@ int main(int argc, char *argv[]) {
   Gx = Gy = Gz = -1;
   Progname     = argv[0];
   ErrorInit(NULL, NULL, NULL);
-  DiagInit(nullptr, nullptr, nullptr);
+  DiagInit(NULL, NULL, NULL);
 
   start.reset();
 
@@ -322,7 +337,7 @@ int main(int argc, char *argv[]) {
     usage_exit(1);
 
   mris = MRISread(argv[1]);
-  if (mris == nullptr)
+  if (mris == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface from %s", Progname,
               argv[1]);
   MRIScomputeMetricProperties(mris);
@@ -351,7 +366,7 @@ int main(int argc, char *argv[]) {
   }
 #endif
   vp = (VERTEX_PARMS *)calloc(mris->nvertices, sizeof(VERTEX_PARMS));
-  if (vp == nullptr)
+  if (vp == NULL)
     ErrorExit(ERROR_NOMEMORY, "%s: could not allocate VERTEX_PARMS", Progname);
   parms.user_parms = (void *)vp;
   mris->user_parms = (void *)vp;
@@ -359,7 +374,7 @@ int main(int argc, char *argv[]) {
     mris->vertices[i].vp = (void *)(&(vp[i]));
 
   mri = MRIread(argv[2]);
-  if (mri == nullptr)
+  if (mri == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not read volume from %s", Progname,
               argv[2]);
 
@@ -368,14 +383,14 @@ int main(int argc, char *argv[]) {
     fill_aseg(mri, aseg_fname, &dp);
 
   transform = TransformRead(argv[3]);
-  if (transform == nullptr)
+  if (transform == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not read transform from %s", Progname,
               argv[3]);
 
   cp = strstr(argv[4], "lh.");
-  if (cp == nullptr)
+  if (cp == NULL)
     cp = strstr(argv[4], "rh.");
-  if (cp == nullptr)
+  if (cp == NULL)
     FileNameExtension(argv[4], parms.base_name); // remove hemi (e.g. lh.)
   else
     strcpy(parms.base_name, cp + 3);
@@ -389,36 +404,48 @@ int main(int argc, char *argv[]) {
     char   base_read_name[STRLEN];
 
     cp = strstr(read_name, "lh.");
-    if (cp == nullptr)
+    if (cp == NULL)
       cp = strstr(read_name, "rh.");
-    if (cp == nullptr)
+    if (cp == NULL)
       FileNameExtension(read_name, base_read_name); // remove hemi (e.g. lh.)
     else
       strcpy(base_read_name, cp + 3);
     printf("using %s as base read name\n", base_read_name);
     if (label_fname) {
-      v1_prior = LabelRead(nullptr, label_fname);
-      if (v1_prior == nullptr)
+      v1_prior = LabelRead(NULL, label_fname);
+      if (v1_prior == NULL)
         ErrorExit(ERROR_NOFILE, "%s: could not load V1 prior label %s\n",
                   Progname, label_fname);
       LabelCopyStatsToSurface(v1_prior, mris, VERTEX_STATS);
       dp.use_prior = 1;
     } else
-      v1_prior = nullptr;
+      v1_prior = NULL;
 
-    sprintf(fname, "%s.white", read_name);
+    int req = snprintf(fname, STRLEN, "%s.white", read_name);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
     if (MRISreadWhiteCoordinates(mris, fname) != NO_ERROR)
       ErrorExit(ERROR_NOFILE, "%s: could not read white coords from %s",
                 Progname, fname);
     vp_copy_from_surface(mris, WHITE_VERTICES, WHITE_VERTICES);
 
-    sprintf(fname, "%s.layerIV", read_name);
+    req = snprintf(fname, STRLEN, "%s.layerIV", read_name);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
     if (MRISreadWhiteCoordinates(mris, fname) != NO_ERROR)
       ErrorExit(ERROR_NOFILE, "%s: could not read layer IV coords from %s",
                 Progname, fname);
     vp_copy_from_surface(mris, WHITE_VERTICES, LAYERIV_VERTICES);
 
-    sprintf(fname, "%s.pial", read_name);
+    req = snprintf(fname, STRLEN, "%s.pial", read_name);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
     if (MRISreadWhiteCoordinates(mris, fname) != NO_ERROR)
       ErrorExit(ERROR_NOFILE, "%s: could not read pial coords from %s",
                 Progname, fname);
@@ -429,7 +456,12 @@ int main(int argc, char *argv[]) {
 
     if (label_only) {
       v1 = label_v1(mris, mri, &dp);
-      sprintf(fname, "%s.%s.V1.label", hemi, parms.base_name);
+      int req =
+          snprintf(fname, STRLEN, "%s.%s.V1.label", hemi, parms.base_name);
+      if (req >= STRLEN) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                  << std::endl;
+      }
       printf("writing v1 estimated position to %s\n", fname);
       if (v1) {
         LabelWrite(v1, fname);
@@ -438,7 +470,12 @@ int main(int argc, char *argv[]) {
       vp_copy_to_surface_vals(mris, DEEP_RATIO, &dp);
       //      MRISsoapBubbleVals(mris, 100) ;
       MRISaverageVals(mris, vavgs);
-      sprintf(fname, "%s.%s.deep_ratio.mgz", hemi, parms.base_name);
+      req = snprintf(fname, STRLEN, "%s.%s.deep_ratio.mgz", hemi,
+                     parms.base_name);
+      if (req >= STRLEN) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                  << std::endl;
+      }
       printf("writing ratio of deep IG to layer IV to %s\n", fname);
       MRISwriteValues(mris, fname);
 
@@ -457,35 +494,58 @@ int main(int argc, char *argv[]) {
         label_v1(mris, mri, &dp);
         vp_copy_to_surface_vals(mris, DEEP_RATIO, &dp);
         MRISaverageVals(mris, vavgs);
-        sprintf(fname, "%s.%s.mid.deep_ratio.mgz", hemi, parms.base_name);
+        int req = snprintf(fname, STRLEN, "%s.%s.mid.deep_ratio.mgz", hemi,
+                           parms.base_name);
+        if (req >= STRLEN) {
+          std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                    << std::endl;
+        }
         printf("writing ratio of deep middle surface to superficial to %s\n",
                fname);
         MRISwriteValues(mris, fname);
       }
       exit(0);
     }
-    sprintf(fname, "%s.%s.marked", hemi, base_read_name);
+    req = snprintf(fname, STRLEN, "%s.%s.marked", hemi, base_read_name);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
     if (MRISreadMarked(mris, fname) != NO_ERROR)
       ErrorPrintf(Gerror, "could not read marked from %s", fname);
     MRISaverageVals(mris, vavgs);
     vp_copy_found_from_marked(mris);
 
-    if (dp.use_intensity) // use precomputed intensity info instead of
-                          // optimizing it
+    if (dp.use_intensity) // use precomputed intensity info instead of optimizing it
     {
-      sprintf(fname, "%s.%s.ig_intensity.mgz", hemi, base_read_name);
+      int req = snprintf(fname, STRLEN, "%s.%s.ig_intensity.mgz", hemi,
+                         base_read_name);
+      if (req >= STRLEN) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                  << std::endl;
+      }
       if (MRISreadValues(mris, fname) != NO_ERROR)
         ErrorExit(Gerror, "");
       MRISaverageVals(mris, vavgs);
       vp_copy_from_surface_vals(mris, IG_INTENSITY, &dp);
 
-      sprintf(fname, "%s.%s.wm_intensity.mgz", hemi, base_read_name);
+      req = snprintf(fname, STRLEN, "%s.%s.wm_intensity.mgz", hemi,
+                     base_read_name);
+      if (req >= STRLEN) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                  << std::endl;
+      }
       if (MRISreadValues(mris, fname) != NO_ERROR)
         ErrorExit(Gerror, "");
       MRISaverageVals(mris, vavgs);
       vp_copy_from_surface_vals(mris, WM_INTENSITY, &dp);
 
-      sprintf(fname, "%s.%s.sg_intensity.mgz", hemi, base_read_name);
+      req = snprintf(fname, STRLEN, "%s.%s.sg_intensity.mgz", hemi,
+                     base_read_name);
+      if (req >= STRLEN) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                  << std::endl;
+      }
       if (MRISreadValues(mris, fname) != NO_ERROR)
         ErrorExit(Gerror, "");
       MRISaverageVals(mris, vavgs);
@@ -495,7 +555,7 @@ int main(int argc, char *argv[]) {
   {
     INTEGRATION_PARMS eparms;
 
-    memset(&eparms, 0, sizeof(eparms));
+    // memset(&eparms, 0, sizeof(eparms)) ; Have proper constructor now
     eparms.l_spring   = .1;
     eparms.l_location = 1;
     // eparms.l_curv = 1.0 ;
@@ -512,9 +572,13 @@ int main(int argc, char *argv[]) {
     MRISexpandSurface(mris, MIN(1, 4 * mri->xsize), &eparms, 0, 1);
     if (Gdiag & DIAG_WRITE) {
       char fname[STRLEN];
-      sprintf(fname, "%s.%s.expanded",
-              mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh",
-              parms.base_name);
+      int  req = snprintf(fname, STRLEN, "%s.%s.expanded",
+                         mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh",
+                         parms.base_name);
+      if (req >= STRLEN) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                  << std::endl;
+      }
       printf("writing expanded 'pial' surface to %s\n", fname);
       MRISwrite(mris, fname);
     }
@@ -529,7 +593,7 @@ int main(int argc, char *argv[]) {
   }
   MRISresetNeighborhoodSize(mris, 3); // to allow calculation of nbhd stats
 
-  TransformInvert(transform, nullptr);
+  TransformInvert(transform, NULL);
   if (transform->type == MNI_TRANSFORM_TYPE ||
       transform->type == TRANSFORM_ARRAY_TYPE ||
       transform->type == REGISTER_DAT) {
@@ -539,7 +603,7 @@ int main(int argc, char *argv[]) {
       VOL_GEOM vgtmp;
       LT *     lt;
       MATRIX * m_tmp     = lta->xforms[0].m_L;
-      lta->xforms[0].m_L = MatrixInverse(lta->xforms[0].m_L, nullptr);
+      lta->xforms[0].m_L = MatrixInverse(lta->xforms[0].m_L, NULL);
       MatrixFree(&m_tmp);
       lt = &lta->xforms[0];
       if (lt->dst.valid == 0 || lt->src.valid == 0) {
@@ -557,7 +621,7 @@ int main(int argc, char *argv[]) {
   }
 
   if (stricmp(argv[3], "identity.nofile") != 0)
-    MRIStransform(mris, nullptr, transform, nullptr);
+    MRIStransform(mris, NULL, transform, NULL);
   {
     double xv, yv, zv;
     MRISvertexToVoxel(mris, &mris->vertices[0], mri, &xv, &yv, &zv);
@@ -566,7 +630,7 @@ int main(int argc, char *argv[]) {
   MRISsaveVertexPositions(mris, ORIGINAL_VERTICES);
   MRISsaveVertexPositions(mris, TARGET_VERTICES);
   MRIScomputeMetricProperties(mris);
-  if (label == nullptr)
+  if (label == NULL)
     label = LabelInFOV(mris, mri, pad_voxels * mri->xsize);
   LabelRipRestOfSurface(label, mris);
   if (threshold > 0)
@@ -579,8 +643,13 @@ int main(int argc, char *argv[]) {
     char fname[STRLEN];
     MRISstoreRipFlags(mris);
     MRISunrip(mris);
-    sprintf(fname, "%s.%s.wnormals.mgz",
-            mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", parms.base_name);
+    int req = snprintf(fname, STRLEN, "%s.%s.wnormals.mgz",
+                       mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh",
+                       parms.base_name);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
     printf("writing surface normals to %s\n", fname);
     MRISwriteNormals(mris, fname);
     MRISrestoreRipFlags(mris);
@@ -605,7 +674,7 @@ int main(int argc, char *argv[]) {
       if (dp.use_intensity != 0) {
         vp_copy_to_surface(mris, WHITE_VERTICES, CURRENT_VERTICES);
         vp_set(mris, WM_INTENSITY_OFFSET, 0);
-        if (false) {
+        if (0) {
           printf("computing distance transform\n");
           MRIScomputeDistanceToSurface(mris, mri_dist, mri_dist->xsize);
           MRIscalarMul(mri_dist, mri_dist, -1); // make inside negative
@@ -638,7 +707,12 @@ int main(int argc, char *argv[]) {
           v1 = vp_make_v1_label(mris, v1_thresh);
 
           if (v1) {
-            sprintf(fname, "%s.%s.V1.%d.label", hemi, base_name, ino);
+            int req = snprintf(fname, STRLEN, "%s.%s.V1.%d.label", hemi,
+                               base_name, ino);
+            if (req >= STRLEN) {
+              std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                        << std::endl;
+            }
             printf("writing v1 estimated position to %s\n", fname);
             LabelWrite(v1, fname);
             LabelFree(&v1);
@@ -646,39 +720,76 @@ int main(int argc, char *argv[]) {
         }
 
         vp_copy_dist_to_surface_vals(mris, LAYERIV_VERTICES);
-        sprintf(fname, "%s.%s.layerIV.height.%d.mgz", hemi, base_name, ino);
+        int req = snprintf(fname, STRLEN, "%s.%s.layerIV.height.%d.mgz", hemi,
+                           base_name, ino);
+        if (req >= STRLEN) {
+          std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                    << std::endl;
+        }
         MRISwriteValues(mris, fname);
 
         vp_copy_to_surface_vals(mris, WM_INTENSITY, &dp);
-        sprintf(fname, "%s.%s.wtargets.%d.mgz", hemi, base_name, ino);
+        req = snprintf(fname, STRLEN, "%s.%s.wtargets.%d.mgz", hemi, base_name,
+                       ino);
+        if (req >= STRLEN) {
+          std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                    << std::endl;
+        }
         MRISwriteValues(mris, fname);
 
         vp_copy_to_surface_vals(mris, RMS, &dp);
-        sprintf(fname, "%s.%s.rms.%d.mgz", hemi, base_name, ino);
+        req = snprintf(fname, STRLEN, "%s.%s.rms.%d.mgz", hemi, base_name, ino);
+        if (req >= STRLEN) {
+          std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                    << std::endl;
+        }
         MRISwriteValues(mris, fname);
 
         vp_copy_to_surface_vals(mris, SG_INTENSITY, &dp);
-        sprintf(fname, "%s.%s.ptargets.%d.mgz", hemi, base_name, ino);
+        req = snprintf(fname, STRLEN, "%s.%s.ptargets.%d.mgz", hemi, base_name,
+                       ino);
+        if (req >= STRLEN) {
+          std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                    << std::endl;
+        }
         MRISwriteValues(mris, fname);
         vp_copy_to_surface_vals(mris, IG_INTENSITY, &dp);
-        sprintf(fname, "%s.%s.l4targets.%d.mgz", hemi, base_name, ino);
+        req = snprintf(fname, STRLEN, "%s.%s.l4targets.%d.mgz", hemi, base_name,
+                       ino);
+        if (req >= STRLEN) {
+          std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                    << std::endl;
+        }
         MRISwriteValues(mris, fname);
 
         MRISstoreRipFlags(mris);
         MRISunrip(mris);
 
         vp_copy_to_surface(mris, WHITE_TARGETS, CURRENT_VERTICES);
-        sprintf(fname, "%s.%s.wtarget.%d", hemi, base_name, ino);
+        req = snprintf(fname, STRLEN, "%s.%s.wtarget.%d", hemi, base_name, ino);
+        if (req >= STRLEN) {
+          std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                    << std::endl;
+        }
         printf("writing white target locations to %s\n", fname);
         MRISwrite(mris, fname);
 
         vp_copy_to_surface(mris, PIAL_TARGETS, CURRENT_VERTICES);
-        sprintf(fname, "%s.%s.ptarget.%d", hemi, base_name, ino);
+        req = snprintf(fname, STRLEN, "%s.%s.ptarget.%d", hemi, base_name, ino);
+        if (req >= STRLEN) {
+          std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                    << std::endl;
+        }
         printf("writing pial target locations to %s\n", fname);
         MRISwrite(mris, fname);
 
         vp_copy_to_surface(mris, LAYERIV_TARGETS, CURRENT_VERTICES);
-        sprintf(fname, "%s.%s.l4target.%d", hemi, base_name, ino);
+        req =
+            snprintf(fname, STRLEN, "%s.%s.l4target.%d", hemi, base_name, ino);
+        if (req >= STRLEN) {
+          std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                    << std::endl;
+        }
         printf("writing layer IV target locations to %s\n", fname);
         MRISwrite(mris, fname);
 
@@ -686,7 +797,7 @@ int main(int argc, char *argv[]) {
         ino++;
       }
 
-      recompute_target_locations(mris, nullptr, nullptr, nullptr, &dp);
+      recompute_target_locations(mris, NULL, NULL, NULL, &dp);
       if (Gdiag_no > 0) {
         VERTEX *v;
         double  xv, yv, zv;
@@ -702,8 +813,16 @@ int main(int argc, char *argv[]) {
       }
 
       // do white matter surface
-      sprintf(parms.base_name, "%s.white", base_name);
-      sprintf(dp.base_name, "%s.white", base_name);
+      int req = snprintf(parms.base_name, STRLEN, "%s.white", base_name);
+      if (req >= STRLEN) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                  << std::endl;
+      }
+      req = snprintf(dp.base_name, STRLEN, "%s.white", base_name);
+      if (req >= STRLEN) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                  << std::endl;
+      }
       vp_copy_to_surface(mris, WHITE_VERTICES, CURRENT_VERTICES);
       vp_copy_to_surface(mris, WHITE_TARGETS, TARGET_VERTICES);
       parms.l_surf_repulse = 0;
@@ -728,8 +847,16 @@ int main(int argc, char *argv[]) {
 
       if (white_only == 0) {
         // do pial surface
-        sprintf(parms.base_name, "%s.pial", base_name);
-        sprintf(dp.base_name, "%s.pial", base_name);
+        int req = snprintf(parms.base_name, STRLEN, "%s.pial", base_name);
+        if (req >= STRLEN) {
+          std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                    << std::endl;
+        }
+        req = snprintf(dp.base_name, STRLEN, "%s.pial", base_name);
+        if (req >= STRLEN) {
+          std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                    << std::endl;
+        }
         vp_copy_to_surface(mris, PIAL_VERTICES, CURRENT_VERTICES);
         vp_copy_to_surface(mris, PIAL_TARGETS, TARGET_VERTICES);
         vp_copy_to_surface(mris, LAYERIV_VERTICES,
@@ -746,8 +873,16 @@ int main(int argc, char *argv[]) {
         MRISsaveVertexPositions(mris, PIAL_VERTICES);
 
         // do layer IV surface
-        sprintf(parms.base_name, "%s.layerIV", base_name);
-        sprintf(dp.base_name, "%s.layerIV", base_name);
+        req = snprintf(parms.base_name, STRLEN, "%s.layerIV", base_name);
+        if (req >= STRLEN) {
+          std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                    << std::endl;
+        }
+        req = snprintf(dp.base_name, STRLEN, "%s.layerIV", base_name);
+        if (req >= STRLEN) {
+          std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                    << std::endl;
+        }
         vp_copy_to_surface(mris, LAYERIV_VERTICES, CURRENT_VERTICES);
         vp_copy_to_surface(mris, LAYERIV_TARGETS, TARGET_VERTICES);
         vp_copy_to_surface(mris, WHITE_VERTICES,
@@ -786,59 +921,99 @@ int main(int argc, char *argv[]) {
   minutes = seconds / 60;
   seconds = seconds % 60;
   MRISunrip(mris);
-  sprintf(fname, "%s.white", argv[4]);
+  int req = snprintf(fname, STRLEN, "%s.white", argv[4]);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
   vp_copy_to_surface(mris, WHITE_VERTICES, CURRENT_VERTICES);
   printf("writing white final surface position to %s\n", fname);
   MRISwrite(mris, fname);
 
   vp_copy_dist_to_surface_vals(mris, LAYERIV_VERTICES);
   //  MRISsoapBubbleVals(mris, 100) ;
-  sprintf(fname, "%s.%s.layerIV.height.mgz", hemi, base_name);
+  req = snprintf(fname, STRLEN, "%s.%s.layerIV.height.mgz", hemi, base_name);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
   printf("writing layer IV height to %s\n", fname);
   MRISwriteValues(mris, fname);
 
   vp_copy_to_surface_vals(mris, SG_INTENSITY, &dp);
   //  MRISsoapBubbleVals(mris, 100) ;
-  sprintf(fname, "%s.%s.sg_intensity.mgz", hemi, base_name);
+  req = snprintf(fname, STRLEN, "%s.%s.sg_intensity.mgz", hemi, base_name);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
   printf("writing SG intensity to %s\n", fname);
   MRISwriteValues(mris, fname);
 
   vp_copy_to_surface_vals(mris, WM_INTENSITY, &dp);
   //  MRISsoapBubbleVals(mris, 100) ;
-  sprintf(fname, "%s.%s.wm_intensity.mgz", hemi, base_name);
+  req = snprintf(fname, STRLEN, "%s.%s.wm_intensity.mgz", hemi, base_name);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
   printf("writing WM intensity to %s\n", fname);
   MRISwriteValues(mris, fname);
 
   vp_copy_to_surface_vals(mris, IG_INTENSITY, &dp);
   //  MRISsoapBubbleVals(mris, 100) ;
-  sprintf(fname, "%s.%s.ig_intensity.mgz", hemi, base_name);
+  req = snprintf(fname, STRLEN, "%s.%s.ig_intensity.mgz", hemi, base_name);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
   printf("writing infragranular intensity to %s\n", fname);
   MRISwriteValues(mris, fname);
 
   vp_copy_to_surface_vals(mris, IG_WM_RATIO, &dp);
   //  MRISsoapBubbleVals(mris, 100) ;
-  sprintf(fname, "%s.%s.ig_wm_ratio.mgz", hemi, base_name);
+  req = snprintf(fname, STRLEN, "%s.%s.ig_wm_ratio.mgz", hemi, base_name);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
   printf("writing infragranular/wm ratio to %s\n", fname);
   MRISwriteValues(mris, fname);
 
   vp_copy_to_surface_vals(mris, SG_WM_RATIO, &dp);
   //  MRISsoapBubbleVals(mris, 100) ;
-  sprintf(fname, "%s.%s.sg_wm_ratio.mgz", hemi, base_name);
+  req = snprintf(fname, STRLEN, "%s.%s.sg_wm_ratio.mgz", hemi, base_name);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
   printf("writing supragranular/wm intensity ratio to %s\n", fname);
   MRISwriteValues(mris, fname);
 
   vp_copy_to_surface_vals(mris, SG_IG_RATIO, &dp);
   //  MRISsoapBubbleVals(mris, 100) ;
-  sprintf(fname, "%s.%s.sg_ig_ratio.mgz", hemi, base_name);
+  req = snprintf(fname, STRLEN, "%s.%s.sg_ig_ratio.mgz", hemi, base_name);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
   printf("writing supragranular/infrgranular intensity ratio to %s\n", fname);
   MRISwriteValues(mris, fname);
 
-  sprintf(fname, "%s.pial", argv[4]);
+  req = snprintf(fname, STRLEN, "%s.pial", argv[4]);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
   vp_copy_to_surface(mris, PIAL_VERTICES, CURRENT_VERTICES);
   printf("writing pial final surface position to %s\n", fname);
   MRISwrite(mris, fname);
 
-  sprintf(fname, "%s.layerIV", argv[4]);
+  req = snprintf(fname, STRLEN, "%s.layerIV", argv[4]);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
   vp_copy_to_surface(mris, LAYERIV_VERTICES, CURRENT_VERTICES);
   printf("writing pial final surface position to %s\n", fname);
   MRISwrite(mris, fname);
@@ -846,11 +1021,19 @@ int main(int argc, char *argv[]) {
   vp_copy_to_surface_vals(mris, DEEP_RATIO, &dp);
   //      MRISsoapBubbleVals(mris, 100) ;
   MRISaverageVals(mris, vavgs);
-  sprintf(fname, "%s.%s.deep_ratio.mgz", hemi, parms.base_name);
+  req = snprintf(fname, STRLEN, "%s.%s.deep_ratio.mgz", hemi, parms.base_name);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
   printf("writing ratio of deep IG to layer IV to %s\n", fname);
   MRISwriteValues(mris, fname);
 
-  sprintf(fname, "%s.marked", argv[4]);
+  req = snprintf(fname, STRLEN, "%s.marked", argv[4]);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
   printf("writing vertex marks to %s\n", fname);
   MRISwriteMarked(mris, fname);
 
@@ -1046,8 +1229,8 @@ static int get_option(int argc, char *argv[]) {
       nargs = 1;
       break;
     case 'L':
-      label = LabelRead(nullptr, argv[2]);
-      if (label == nullptr)
+      label = LabelRead(NULL, argv[2]);
+      if (label == NULL)
         ErrorExit(ERROR_NOFILE, "%s: could not read label file %s", Progname,
                   argv[2]);
       nargs = 1;
@@ -1069,6 +1252,7 @@ static int get_option(int argc, char *argv[]) {
     case 'I':
       invert = 1;
       printf("inverting xform before applying\n");
+      break;
     case '?':
     case 'U':
       usage_exit(0);
@@ -1100,7 +1284,7 @@ static void usage_exit(int code) {
 static int compute_intensity_offsets(MRI_SURFACE *mris, MRI *mri, MRI *mri_dist,
                                      DP *dp) {
   VERTEX *      v;
-  VERTEX_PARMS *vp = nullptr;
+  VERTEX_PARMS *vp = NULL;
   int           vno, nfound, nmissed, peak, wsize;
   HISTOGRAM *   h, *hs;
   double        xv, yv, zv, mean_white_border, inward_dist, outward_dist;
@@ -1128,10 +1312,10 @@ static int compute_intensity_offsets(MRI_SURFACE *mris, MRI *mri, MRI *mri_dist,
       v->ripflag = 1;
       continue;
     }
-    vp = (VERTEX_PARMS *)(v->vp);
-    h  = MRIhistogramVoxel(mri, 0, nullptr, nint(xv), nint(yv), nint(zv), wsize,
+    vp   = (VERTEX_PARMS *)(v->vp);
+    h    = MRIhistogramVoxel(mri, 0, NULL, nint(xv), nint(yv), nint(zv), wsize,
                           mri_dist, 0);
-    hs = HISTOsmooth(h, nullptr, 2);
+    hs   = HISTOsmooth(h, NULL, 2);
     peak = HISTOfindHighestPeakInRegion(hs, 0, hs->nbins);
     if (peak < 0)
       DiagBreak();
@@ -1168,11 +1352,11 @@ static int compute_intensity_offsets(MRI_SURFACE *mris, MRI *mri, MRI *mri_dist,
 static double compute_targets(MRI_SURFACE *mris, MRI *mri, double sigma, DP *dp,
                               int skip) {
   static int    i  = 0;
-  VERTEX_PARMS *vp = nullptr;
+  VERTEX_PARMS *vp = NULL;
   int           vno, nfound, nmissed;
-  MRI *         mri_white = MRIclone(mri, nullptr);
-  MRI *         mri_pial  = MRIclone(mri, nullptr);
-  MRI *         mri_l4    = MRIclone(mri, nullptr);
+  MRI *         mri_white = MRIclone(mri, NULL);
+  MRI *         mri_pial  = MRIclone(mri, NULL);
+  MRI *         mri_l4    = MRIclone(mri, NULL);
   double xv, yv, zv, d, target_val, xr, yr, zr, grad, max_grad, target_dist,
       mean_white_border, mean_pial_border, mean_l4_border, mean_dist,
       inward_dist, outward_dist, mean_abs_dist;
@@ -1190,9 +1374,13 @@ static double compute_targets(MRI_SURFACE *mris, MRI *mri, double sigma, DP *dp,
     char fname[STRLEN];
     MRISstoreRipFlags(mris);
     MRISunrip(mris);
-    sprintf(fname, "%s.%s.normals.%d.init.mgz",
-            mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", parms.base_name,
-            i);
+    int req = snprintf(fname, STRLEN, "%s.%s.normals.%d.init.mgz",
+                       mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh",
+                       parms.base_name, i);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
     printf("writing surface normals to %s\n", fname);
     MRIScomputeNormals(mris);
     MRISwriteNormals(mris, fname);
@@ -1203,9 +1391,13 @@ static double compute_targets(MRI_SURFACE *mris, MRI *mri, double sigma, DP *dp,
     char fname[STRLEN];
     MRISstoreRipFlags(mris);
     MRISunrip(mris);
-    sprintf(fname, "%s.%s.normals.%d.final.mgz",
-            mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", parms.base_name,
-            i);
+    int req = snprintf(fname, STRLEN, "%s.%s.normals.%d.final.mgz",
+                       mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh",
+                       parms.base_name, i);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
     printf("writing surface normals to %s\n", fname);
     vp_copy_to_surface(mris, SURFACE_NORMALS, SURFACE_NORMALS);
     MRISwriteNormals(mris, fname);
@@ -1215,9 +1407,13 @@ static double compute_targets(MRI_SURFACE *mris, MRI *mri, double sigma, DP *dp,
     static int i = 0;
     char       fname[STRLEN];
     if (i == 0) {
-      sprintf(fname, "%s.%s.normals.mgz",
-              mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh",
-              parms.base_name);
+      int req = snprintf(fname, STRLEN, "%s.%s.normals.mgz",
+                         mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh",
+                         parms.base_name);
+      if (req >= STRLEN) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                  << std::endl;
+      }
       printf("reading surface normals from %s\n", fname);
       MRISreadNormals(mris, fname);
       vp_copy_from_surface(mris, SURFACE_NORMALS, SURFACE_NORMALS);
@@ -1361,7 +1557,7 @@ static double compute_targets(MRI_SURFACE *mris, MRI *mri, double sigma, DP *dp,
         int    i, wm_found, ig_found, sg_found;
         extract_image_intensities(mris, mri, 0, max_dist, vp->wx, vp->wy,
                                   vp->wz, vp->nx, vp->ny, vp->nz, dp->step, 1,
-                                  intensity_profile, nullptr);
+                                  intensity_profile, NULL);
         wm_found = ig_found = sg_found = 0;
         for (i = 1; i < nint(max_dist / dp->step); i++) {
           if (wm_found == 0 &&
@@ -1517,9 +1713,8 @@ static double compute_targets(MRI_SURFACE *mris, MRI *mri, double sigma, DP *dp,
 
     // now do consistency check on white distances
     vp_copy_to_surface(mris, WHITE_TARGETS, TARGET_VERTICES);
-    mean_vdist =
-        MRIScomputeVertexSpacingStats(mris, &sigma_vdist, nullptr, nullptr,
-                                      nullptr, nullptr, CURRENT_VERTICES);
+    mean_vdist = MRIScomputeVertexSpacingStats(mris, &sigma_vdist, NULL, NULL,
+                                               NULL, NULL, CURRENT_VERTICES);
     vp_copy_to_surface_dist(mris, WHITE_VERTICES);
     for (outliers = vno = 0; vno < mris->nvertices; vno++) {
       VERTEX_TOPOLOGY const *const vt = &mris->vertices_topology[vno];
@@ -1563,7 +1758,7 @@ static double compute_targets(MRI_SURFACE *mris, MRI *mri, double sigma, DP *dp,
       {
         double        dx, dy, dz, d;
         VERTEX_PARMS *vnp;
-        FILE *        fp = nullptr;
+        FILE *        fp = NULL;
 
         vp = (VERTEX_PARMS *)(v->vp);
         if (vno == Gdiag_no)
@@ -1606,9 +1801,8 @@ static double compute_targets(MRI_SURFACE *mris, MRI *mri, double sigma, DP *dp,
 
     vp_copy_to_surface_dist(mris, LAYERIV_VERTICES);
     vp_copy_to_surface(mris, LAYERIV_TARGETS, TARGET_VERTICES);
-    mean_vdist =
-        MRIScomputeVertexSpacingStats(mris, &sigma_vdist, nullptr, nullptr,
-                                      nullptr, nullptr, CURRENT_VERTICES);
+    mean_vdist = MRIScomputeVertexSpacingStats(mris, &sigma_vdist, NULL, NULL,
+                                               NULL, NULL, CURRENT_VERTICES);
 
     // now do consistency check on pial distances
     for (outliers = vno = 0; vno < mris->nvertices; vno++) {
@@ -1631,7 +1825,7 @@ static double compute_targets(MRI_SURFACE *mris, MRI *mri, double sigma, DP *dp,
       std = sqrt((std - mn * mn / num) / (num - 1));
       mn /= num;
       if (vno == Gdiag_no) {
-        FILE *fp = nullptr;
+        FILE *fp = NULL;
         fp       = fopen("pout.dat", "w");
         for (n = 0; n < vt->vtotal; n++) {
           VERTEX const *const vn = &mris->vertices[vt->v[n]];
@@ -1653,7 +1847,7 @@ static double compute_targets(MRI_SURFACE *mris, MRI *mri, double sigma, DP *dp,
       {
         double        dx, dy, dz, d;
         VERTEX_PARMS *vnp;
-        FILE *        fp = nullptr;
+        FILE *        fp = NULL;
 
         vp = (VERTEX_PARMS *)(v->vp);
         if (vno == Gdiag_no)
@@ -1699,9 +1893,8 @@ static double compute_targets(MRI_SURFACE *mris, MRI *mri, double sigma, DP *dp,
     // now do consistency check on pial distances
     vp_copy_to_surface_dist(mris, PIAL_VERTICES);
     vp_copy_to_surface(mris, PIAL_TARGETS, TARGET_VERTICES);
-    mean_vdist =
-        MRIScomputeVertexSpacingStats(mris, &sigma_vdist, nullptr, nullptr,
-                                      nullptr, nullptr, CURRENT_VERTICES);
+    mean_vdist = MRIScomputeVertexSpacingStats(mris, &sigma_vdist, NULL, NULL,
+                                               NULL, NULL, CURRENT_VERTICES);
     for (outliers = vno = 0; vno < mris->nvertices; vno++) {
       VERTEX_TOPOLOGY const *const vt = &mris->vertices_topology[vno];
       VERTEX *const                v  = &mris->vertices[vno];
@@ -1744,7 +1937,7 @@ static double compute_targets(MRI_SURFACE *mris, MRI *mri, double sigma, DP *dp,
       {
         double        dx, dy, dz, d;
         VERTEX_PARMS *vnp;
-        FILE *        fp = nullptr;
+        FILE *        fp = NULL;
 
         vp = (VERTEX_PARMS *)(v->vp);
         if (vno == Gdiag_no)
@@ -1812,16 +2005,24 @@ static double compute_targets(MRI_SURFACE *mris, MRI *mri, double sigma, DP *dp,
   }
   if (Gdiag & DIAG_WRITE) {
     char       fname[STRLEN];
-    static int i = 0;
-    sprintf(fname, "%s.%s.wtvals.%3.3d.mgz",
-            mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", dp->base_name,
-            i);
+    static int i   = 0;
+    int        req = snprintf(fname, STRLEN, "%s.%s.wtvals.%3.3d.mgz",
+                       mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh",
+                       dp->base_name, i);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
     printf("writing white target vals to %s\n", fname);
     MRIwrite(mri_white, fname);
 
-    sprintf(fname, "%s.%s.ptvals.%3.3d.mgz",
-            mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", dp->base_name,
-            i);
+    req = snprintf(fname, STRLEN, "%s.%s.ptvals.%3.3d.mgz",
+                   mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh",
+                   dp->base_name, i);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
     printf("writing pial target vals to %s\n", fname);
     MRIwrite(mri_pial, fname);
 
@@ -2030,8 +2231,7 @@ static double find_max_distance(MRI_SURFACE *mris, MRI *mri, double x, double y,
     if (val < low_thresh ||
         val > hi_thresh) // outside of allowable interior intensity range
     {
-      if (inside) // don't go back outside if were previously in the interior of
-                  // the region
+      if (inside) // don't go back outside if were previously in the interior of the region
       {
         dist -= step;
         x1 = x + dist * nx;
@@ -2053,8 +2253,7 @@ static double find_max_distance(MRI_SURFACE *mris, MRI *mri, double x, double y,
     }
   }
 
-  // now compute exact location on by looking for the dist where the intensities
-  // decrease
+  // now compute exact location on by looking for the dist where the intensities decrease
   dist -= step / 2;
   MRISsurfaceRASToVoxelCached(mris, mri, x + dist * nx, y + dist * ny,
                               z + dist * nz, &xv, &yv, &zv);
@@ -2146,7 +2345,7 @@ static int smooth_profile(double *src_intensity_profile,
     h->bins[i]   = i;
     h->counts[i] = src_intensity_profile[i];
   }
-  hs = HISTOsmooth(h, nullptr, sigma);
+  hs = HISTOsmooth(h, NULL, sigma);
   for (i = 0; i < len; i++)
     dst_intensity_profile[i] = hs->counts[i];
 
@@ -2221,8 +2420,7 @@ static int mark_sg_index_okay_dark_csf(double *orig_intensity_profile,
                 0; // if the next peak is a lot higher than this one
         }
       }
-    } else // on an upwards slope - mark everthing on the slope no good except
-           // peak
+    } else // on an upwards slope - mark everthing on the slope no good except peak
     {
       peak_index =
           find_next_peak(intensity_profile, index, &peak_val, len, whalf);
@@ -2231,9 +2429,8 @@ static int mark_sg_index_okay_dark_csf(double *orig_intensity_profile,
     }
     if (use_partial_volume_model && sg_index_okay[index]) {
       int j;
-      /* smoothing and partial volume models mean that the edge location can
-         move around some from the location of the peak, so test some additional
-         locations
+      /* smoothing and partial volume models mean that the edge location can move around
+         some from the location of the peak, so test some additional locations
       */
       for (j = 1; index + j < len && j <= pv_len; j++)
         sg_index_okay[index + j] = 1;
@@ -2294,7 +2491,7 @@ static int mark_sg_index_okay_bright_csf(
   //  double valley_val, peak_val, previous_peak_val ;
   double intensity_profile[MAX_PROFILE_LEN];
   //  int    valley_index, peak_index, previous_peak ;
-  FILE *fp = nullptr;
+  FILE *fp = NULL;
 
   pv_len = SMOOTH_LEN - 1 + PV_LEN;
   smooth_profile(orig_intensity_profile, intensity_profile, len, SMOOTH_LEN);
@@ -2329,7 +2526,7 @@ static int mark_sg_index_okay_bright_csf(
     }
 
 #if 0
-    if (sg_index_okay[index])
+    if (sg_index_okay[index])  
     {
       valley_index = find_next_valley(intensity_profile, index, &valley_val, len, whalf) ;
       if (valley_index < 0)
@@ -2364,7 +2561,7 @@ static int mark_sg_index_okay_bright_csf(
       */
       for (j = 1 ; index+j < len && j<=pv_len ; j++)
         sg_index_okay[index+j] = 1 ;
-      index += pv_len;
+      index += pv_len; 
     }
 #endif
   }
@@ -2374,7 +2571,7 @@ static int mark_sg_index_okay_bright_csf(
     int    peak ;
     double peak_val ;
     h = HISTOalloc(len) ;
-
+    
     for (index = 0 ; index < len ; index++)
     {
       h->bins[index] = index ;
@@ -2567,16 +2764,8 @@ static double find_optimal_locations(MRI_SURFACE *mris, MRI *mri, int vno,
     fname2 = "intensity.dat";
     fname3 = "sg_okay.dat";
     fname4 = "wm_okay.dat";
-  }
-
-  intensity_profile = base_intensity_profile;
-  if (vno == Gdiag_no || deform_debug) {
-    fname1 = "profile.dat";
-    fname2 = "intensity.dat";
-    fname3 = "sg_okay.dat";
-    fname4 = "wm_okay.dat";
   } else
-    fname1 = fname2 = fname3 = fname4 = nullptr;
+    fname1 = fname2 = fname3 = fname4 = NULL;
 
   vp->min_rms = min_rms = 1e10;
   dp->step = step = mri->xsize / 2;
@@ -2631,7 +2820,7 @@ static double find_optimal_locations(MRI_SURFACE *mris, MRI *mri, int vno,
 
   best_wm_len = best_ig_len = best_sg_len = best_start_index = best_csf_len = 0;
 
-  ico_vno = MRISfindClosestVertex(mris_ico, vp->nx, vp->ny, vp->nz, nullptr,
+  ico_vno = MRISfindClosestVertex(mris_ico, vp->nx, vp->ny, vp->nz, NULL,
                                   CURRENT_VERTICES);
   VERTEX_TOPOLOGY const *const vico = &mris_ico->vertices_topology[ico_vno];
   best_nx                           = vp->nx;
@@ -2723,16 +2912,16 @@ static double find_optimal_locations(MRI_SURFACE *mris, MRI *mri, int vno,
 
       max_in_offset = nint(max_inwards / step) ;
       max_out_offset = nint(max_outwards / step) ;
-      extract_image_intensities(mris, mri, max_inwards, max_outwards+pdist, vp->wx, vp->wy, vp->wz,
+      extract_image_intensities(mris, mri, max_inwards, max_outwards+pdist, vp->wx, vp->wy, vp->wz, 
                                 nx,ny,nz, step, tsteps, base_intensity_profile, fname2);
       memset(wm_index_okay, 0, max_profile_len*sizeof(int)) ;
       memset(sg_index_okay, 0, max_profile_len*sizeof(int)) ;
-      for (min_wm_index = index = MAX(0,current_index-max_in_offset) ;
+      for (min_wm_index = index = MAX(0,current_index-max_in_offset) ; 
            index <= MIN(max_profile_len-1,current_index+max_out_offset) ;
            index++)
         wm_index_okay[index] = 1 ;
       sg_index = current_index + nint(vp->pial_dist/step) ;
-      for (nsg = 0, index = MAX(0,sg_index-max_in_offset) ;
+      for (nsg = 0, index = MAX(0,sg_index-max_in_offset) ; 
            index <= MIN(max_profile_len-1,sg_index+max_out_offset) ;
            index++)
       {
@@ -2872,7 +3061,7 @@ static double find_optimal_locations(MRI_SURFACE *mris, MRI *mri, int vno,
               prior = exp(-SQR(wm_dist) / (2 * SQR(dp->sigma)));
               rms =
                   (*profile_error_func)(kernel, intensity_profile, profile_len,
-                                        nullptr, step, offset, errors);
+                                        NULL, step, offset, errors);
               if (DZERO(prior))
                 rms += 20;
               else
@@ -2998,7 +3187,7 @@ static double find_optimal_locations(MRI_SURFACE *mris, MRI *mri, int vno,
 
                 prior = exp(-SQR(wm_dist) / (2 * SQR(dp->sigma)));
                 rms   = (*profile_error_func)(kernel, intensity_profile,
-                                            profile_len, nullptr, step, offset,
+                                            profile_len, NULL, step, offset,
                                             errors);
                 if (DZERO(prior))
                   rms += 20;
@@ -3126,7 +3315,7 @@ static double find_optimal_locations(MRI_SURFACE *mris, MRI *mri, int vno,
 
             prior = exp(-SQR(wm_dist) / (2 * SQR(dp->sigma)));
             rms = (*profile_error_func)(kernel, intensity_profile, profile_len,
-                                        nullptr, step, offset, errors);
+                                        NULL, step, offset, errors);
             if (DZERO(prior))
               rms += 20;
             else
@@ -3167,8 +3356,7 @@ static double find_optimal_locations(MRI_SURFACE *mris, MRI *mri, int vno,
     }
   }
   if (dp->fix_intensities && best_wm_dist > -1000 &&
-      false) { // do linear fit to intensities in range of wm boundary to get
-               // subvoxel
+      0) { // do linear fit to intensities in range of wm boundary to get subvoxel
     VECTOR *vY;
     MATRIX *mX, *mP, *mXinv;
     int     i, wm_index;
@@ -3186,7 +3374,7 @@ static double find_optimal_locations(MRI_SURFACE *mris, MRI *mri, int vno,
         *MATRIX_RELT(vY, i + NPOINTS + 1, 1) =
             base_intensity_profile[i + wm_index];
       }
-      mXinv            = MatrixPseudoInverse(mX, nullptr);
+      mXinv            = MatrixPseudoInverse(mX, NULL);
       mP               = MatrixMultiply(mXinv, vY, NULL);
       border_intensity = (dp->wm_val + best_wm_intensity_offset +
                           dp->infra_granular_val + best_ig_intensity_offset) /
@@ -3679,7 +3867,7 @@ static int fill_aseg(MRI *mri, char *aseg_fname, DP *dp) {
   int  x, y, z, label;
 
   mri_aseg = MRIread(aseg_fname);
-  if (mri_aseg == nullptr)
+  if (mri_aseg == NULL)
     ErrorExit(ERROR_NOFILE, "%s: couldn't read aseg volume from %s", Progname,
               aseg_fname);
 
@@ -4026,6 +4214,7 @@ static int vp_copy_to_surface_vals(MRI_SURFACE *mris, int which, DP *dp) {
     case SG_WM_RATIO:
       val = (vp->sg_intensity_offset + dp->supra_granular_val) /
             (vp->wm_intensity_offset + dp->wm_val);
+      break;
     case SG_IG_RATIO:
       val = (vp->sg_intensity_offset + dp->supra_granular_val) /
             (vp->ig_intensity_offset + dp->infra_granular_val);
@@ -4042,7 +4231,7 @@ static int vp_copy_to_surface_vals(MRI_SURFACE *mris, int which, DP *dp) {
 static int vp_copy_from_surface_vals(MRI_SURFACE *mris, int which, DP *dp) {
   int           vno;
   VERTEX *      v;
-  VERTEX_PARMS *vp = nullptr;
+  VERTEX_PARMS *vp = NULL;
 
   for (vno = 0; vno < mris->nvertices; vno++) {
     v  = &mris->vertices[vno];
@@ -4084,6 +4273,7 @@ static int vp_copy_from_surface_vals(MRI_SURFACE *mris, int which, DP *dp) {
       break;
     case DEEP_RATIO:
       vp->deep_ratio = v->val;
+      break;
     default:
     case IG_WM_RATIO:
     case SG_WM_RATIO:
@@ -4494,7 +4684,7 @@ static double find_min_rms(
         ;
 #if 1
         rms = (*profile_error_func)(kernel, intensity_profile, profile_len,
-                                    fname, dp->step, in_dist, nullptr);
+                                    fname, dp->step, in_dist, NULL);
         rms /= profile_len;
 #else
         for (rms = 0.0, i = wm_len + ig_len - stria_len; i < wm_len + ig_len;
@@ -4521,7 +4711,7 @@ static double find_min_rms(
   rms /= (stria_len + 2);
   if (fname) {
     rms = (*profile_error_func)(kernel, intensity_profile, profile_len, fname,
-                                dp->step, in_dist, nullptr);
+                                dp->step, in_dist, NULL);
     DiagBreak();
   }
   return (min_rms);
@@ -4536,11 +4726,11 @@ compute_normal(MRI_SURFACE *mris, int vno, VERTEX_PARMS *vp)
 
   v = &mris->vertices[vno] ;
   nx = vp->px - vp->wx ; ny = vp->py - vp->wy ; nz = vp->pz - vp->wz ;
-  norm = sqrt(nx*nx + ny*ny + nz*nz) ;
+  norm = sqrt(nx*nx + ny*ny + nz*nz) ; 
   if (1 || FZERO(norm)) // they start in the same place
   {
     nx = (v->wnx + v->pnx)/2 ; ny = (v->wny + v->pny)/2 ; nz = (v->wnz + v->pnz)/2 ;
-    norm = sqrt(nx*nx + ny*ny + nz*nz) ;
+    norm = sqrt(nx*nx + ny*ny + nz*nz) ; 
     if (FZERO(norm))
       nx = 1.0 ;
   }
@@ -4583,7 +4773,7 @@ static int filter_distances(MRI_SURFACE *mris, int filter_type) {
 }
 #if 0
 static int
-filter_coords(MRI_SURFACE *mris, int filter_type)
+filter_coords(MRI_SURFACE *mris, int filter_type) 
 {
   switch (filter_type)
   {
@@ -4644,6 +4834,17 @@ static int compute_laminar_ratios(MRI_SURFACE *mris, MRI *mri, DP *dp) {
     if (vno == Gdiag_no) {
       fname = "intensity.dat";
       DiagBreak();
+    } else
+      fname = NULL;
+    vp    = (VERTEX_PARMS *)(v->vp);
+    pdist = sqrt(SQR(vp->px - vp->wx) + SQR(vp->py - vp->wy) +
+                 SQR(vp->pz - vp->wz));
+    if (extract_image_intensities(
+            mris, mri, WM_DIST, pdist, vp->wx, vp->wy, vp->wz, vp->nx, vp->ny,
+            vp->nz, dp->step, tsteps, intensity_profile, fname) != NO_ERROR) {
+      vp->found      = 0;
+      vp->deep_ratio = 0;
+      continue;
     }
     wm_index    = nint(WM_DIST / dp->step);
     ig_index    = nint((WM_DIST + vp->l4_dist) / dp->step);
@@ -4744,7 +4945,7 @@ vp_copy_found_to_marked(MRI_SURFACE *mris)
 #endif
 static int compute_normals(MRI_SURFACE *mris, VERTEX_PARMS *vp) {
   INTEGRATION_PARMS   thick_parms;
-  static MRI_SURFACE *mris_ico = nullptr;
+  static MRI_SURFACE *mris_ico = NULL;
   char                fname[STRLEN], *cp;
   int                 vno;
   VERTEX *            v;
@@ -4755,7 +4956,7 @@ static int compute_normals(MRI_SURFACE *mris, VERTEX_PARMS *vp) {
   //  return(NO_ERROR) ;
 
   MRISsaveVertexPositions(mris, ORIGINAL_VERTICES);
-  memset(&thick_parms, 0, sizeof(thick_parms));
+  // memset(&thick_parms, 0, sizeof(thick_parms)) ; Have proper constructor now
   if (cno++ > 0)
     thick_parms.dt = 0.01;
   else
@@ -4768,9 +4969,9 @@ static int compute_normals(MRI_SURFACE *mris, VERTEX_PARMS *vp) {
   thick_parms.l_thick_parallel = 1.0;
   thick_parms.niterations      = 1000;
   thick_parms.l_thick_min      = .1;
-  if (mris_ico == nullptr) {
+  if (mris_ico == NULL) {
     cp = getenv("FREESURFER_HOME");
-    if (cp == nullptr)
+    if (cp == NULL)
       ErrorExit(ERROR_BADPARM, "%s: FREESURFER_HOME not defined in environment",
                 cp);
     sprintf(fname, "%s/lib/bem/ic7.tri", cp);

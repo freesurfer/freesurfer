@@ -18,10 +18,25 @@
  *
  */
 
-#include "diag.h"
+#include <ctype.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "macros.h"
+
 #include "icosahedron.h"
+#include "mri.h"
+#include "mrishash.h"
+#include "mrisurf.h"
 #include "mrisurf_project.h"
 #include "mrisurf_vals.h"
+
+#include "diag.h"
+#include "error.h"
+#include "label.h"
+#include "proto.h"
 #include "tags.h"
 #include "version.h"
 
@@ -206,14 +221,24 @@ int main(int argc, char *argv[]) {
     switch (which) {
     case VERTEX_VALS: {
       char fname[STRLEN];
-      sprintf(fname, "%s/%s/%s/%s.%s", sdir, argv[i], dir, hemi, data_fname);
+      int  req = snprintf(fname, STRLEN, "%s/%s/%s/%s.%s", sdir, argv[i], dir,
+                         hemi, data_fname);
+      if (req >= STRLEN) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                  << std::endl;
+      }
       if (MRISreadValues(mris, fname) != NO_ERROR) {
         ErrorExit(ERROR_BADFILE, "%s: could not read val file %s.\n", Progname,
                   fname);
       }
       if (mask_name) {
         LABEL *area;
-        sprintf(fname, "%s/%s/label/%s.%s", sdir, argv[i], hemi, mask_name);
+        int    req = snprintf(fname, STRLEN, "%s/%s/label/%s.%s", sdir, argv[i],
+                           hemi, mask_name);
+        if (req >= STRLEN) {
+          std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                    << std::endl;
+        }
         area = LabelRead(NULL, fname);
         if (!area)
           ErrorPrintf(ERROR_BADFILE,
@@ -244,7 +269,12 @@ int main(int argc, char *argv[]) {
       if (strchr(data_fname, '/') != NULL) {
         strcpy(fname, data_fname);
       } else {
-        sprintf(fname, "%s/%s/%s/%s", sdir, argv[i], dir, data_fname);
+        int req = snprintf(fname, STRLEN, "%s/%s/%s/%s", sdir, argv[i], dir,
+                           data_fname);
+        if (req >= STRLEN) {
+          std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                    << std::endl;
+        }
       }
       area = LabelRead(NULL, fname);
       if (!area)
@@ -280,7 +310,12 @@ int main(int argc, char *argv[]) {
       if (strchr(data_fname, '/') != NULL) {
         strcpy(fname, data_fname);
       } else {
-        sprintf(fname, "%s/%s/%s/%s", sdir, argv[i], dir, data_fname);
+        int req = snprintf(fname, STRLEN, "%s/%s/%s/%s", sdir, argv[i], dir,
+                           data_fname);
+        if (req >= STRLEN) {
+          std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                    << std::endl;
+        }
       }
       area = LabelRead(NULL, fname);
       if (!area)

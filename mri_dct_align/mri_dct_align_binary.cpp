@@ -22,10 +22,25 @@
 #include "cma.h"
 #include "dct.h"
 #include "diag.h"
+#include "error.h"
+#include "fastmarching.h"
+#include "gca.h"
 #include "gcamorph.h"
+#include "macros.h"
+#include "matrix.h"
+#include "mri.h"
 #include "mrimorph.h"
 #include "numerics.h"
+#include "proto.h"
 #include "timer.h"
+#include "transform.h"
+#include "utils.h"
+#include "version.h"
+#include "voxlist.h"
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #define NONMAX 0
 #define PAD    10
@@ -139,7 +154,7 @@ static int non_hippo_labels[] =
 
 static int target_aseg_label = Right_Hippocampus;
 
-static TRANSFORM *     transform = nullptr;
+static TRANSFORM *     transform = NULL;
 static GCA_MORPH_PARMS mp;
 
 #define NONE  0
@@ -154,20 +169,20 @@ int main(int argc, char *argv[]) {
   char **av, *source_fname, *target_fname, *out_fname, fname[STRLEN];
   int    ac, nargs, i, new_transform = 0, pad;
   MRI *  mri_target, *mri_source, *mri_tmp, *mri_orig_source, *mri_orig_target;
-  MRI *  mri_dist_target = nullptr, *mri_dist_source = nullptr;
+  MRI *  mri_dist_target = NULL, *mri_dist_source = NULL;
   MRI_REGION  box;
   Timer       start;
   int         msec, hours, minutes, seconds, label, j;
   MATRIX *    m_L /*, *m_I*/;
   LTA *       lta;
-  DCT *       dct = nullptr;
+  DCT *       dct = NULL;
   VOXEL_LIST *vl_target, *vl_source;
 
   mp.npasses = 2;
 
   start.reset();
   setRandomSeed(-1L);
-  DiagInit(nullptr, nullptr, nullptr);
+  DiagInit(NULL, NULL, NULL);
   ErrorInit(NULL, NULL, NULL);
 
   Progname = argv[0];
@@ -199,12 +214,12 @@ int main(int argc, char *argv[]) {
   if (!mri_target)
     ErrorExit(ERROR_NOFILE, "%s: could not read target label volume %s",
               Progname, target_fname);
-  mri_orig_target = MRIcopy(mri_target, nullptr);
+  mri_orig_target = MRIcopy(mri_target, NULL);
 
   // crop input volumes
   if (which == WM) {
     MRI *mri_tmp;
-    mri_tmp = MRIclone(mri_source, nullptr);
+    mri_tmp = MRIclone(mri_source, NULL);
     MRIcopyLabel(mri_source, mri_tmp, Left_Cerebral_White_Matter);
     MRIcopyLabel(mri_source, mri_tmp, Right_Cerebral_White_Matter);
     MRIcopyLabel(mri_source, mri_tmp, Left_Cerebellum_White_Matter);
@@ -215,7 +230,7 @@ int main(int argc, char *argv[]) {
     MRIeraseBorders(mri_source, 1);
   } else if (which == LABEL) {
     MRI *mri_tmp;
-    mri_tmp = MRIclone(mri_source, nullptr);
+    mri_tmp = MRIclone(mri_source, NULL);
     MRIcopyLabel(mri_source, mri_tmp, target_aseg_label);
     MRIfree(&mri_source);
     mri_source = mri_tmp;
@@ -223,16 +238,16 @@ int main(int argc, char *argv[]) {
   MRIboundingBox(mri_source, 0, &box);
   pad = PADVOX;
   printf("padding source with %d voxels...\n", pad);
-  mri_tmp = MRIextractRegionAndPad(mri_source, nullptr, &box, pad);
+  mri_tmp = MRIextractRegionAndPad(mri_source, NULL, &box, pad);
   MRIfree(&mri_source);
   mri_source = mri_tmp;
   //	if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
   MRIwrite(mri_source, "s.mgz");
-  mri_orig_source = MRIcopy(mri_source, nullptr);
+  mri_orig_source = MRIcopy(mri_source, NULL);
 
   if (which == HIPPO || which == LABEL) // just copy label out of the target
   {
-    mri_tmp = MRIclone(mri_target, nullptr);
+    mri_tmp = MRIclone(mri_target, NULL);
     MRIcopyLabel(mri_target, mri_tmp, target_aseg_label);
     MRIfree(&mri_target);
     mri_target      = mri_tmp;
@@ -243,7 +258,7 @@ int main(int argc, char *argv[]) {
     mp.target_label = target_label;
   } else if (which == WM) {
     MRI *mri_tmp;
-    mri_tmp = MRIclone(mri_target, nullptr);
+    mri_tmp = MRIclone(mri_target, NULL);
     MRIcopyLabel(mri_target, mri_tmp, Left_Cerebral_White_Matter);
     MRIcopyLabel(mri_target, mri_tmp, Right_Cerebral_White_Matter);
     MRIcopyLabel(mri_target, mri_tmp, Left_Cerebellum_White_Matter);
@@ -272,10 +287,10 @@ int main(int argc, char *argv[]) {
   MRIbinarize(mri_target, mri_target, 1, 0, binary_label);
   MRIbinarize(mri_source, mri_source, 1, 0, binary_label);
 
-  mri_tmp = MRIextractRegionAndPad(mri_target, nullptr, &box, pad);
+  mri_tmp = MRIextractRegionAndPad(mri_target, NULL, &box, pad);
   MRIfree(&mri_target);
   mri_target = mri_tmp;
-  mri_tmp    = MRIextractRegionAndPad(mri_orig_target, nullptr, &box, pad);
+  mri_tmp    = MRIextractRegionAndPad(mri_orig_target, NULL, &box, pad);
   MRIfree(&mri_orig_target);
   mri_orig_target = mri_tmp;
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
@@ -284,10 +299,10 @@ int main(int argc, char *argv[]) {
   if (pf_overlap == compute_distance_transform_sse) {
     printf("creating distance transforms...\n");
 
-    mri_dist_source = MRIdistanceTransform(mri_source, nullptr, binary_label,
-                                           -1, DTRANS_MODE_SIGNED, nullptr);
-    mri_dist_target = MRIdistanceTransform(mri_target, nullptr, binary_label,
-                                           -1, DTRANS_MODE_SIGNED, nullptr);
+    mri_dist_source = MRIdistanceTransform(mri_source, NULL, binary_label, -1,
+                                           DTRANS_MODE_SIGNED, NULL);
+    mri_dist_target = MRIdistanceTransform(mri_target, NULL, binary_label, -1,
+                                           DTRANS_MODE_SIGNED, NULL);
     MRIscalarMul(mri_dist_source, mri_dist_source, -1);
     MRIscalarMul(mri_dist_target, mri_dist_target, -1);
   }
@@ -300,13 +315,6 @@ int main(int argc, char *argv[]) {
     }
     check_angio_labels(mri_source, mri_target);
   } else if (which == HIPPO) {
-#if 0
-		for (i = 0 ; i < NUM_NON_HIPPO_LABELS ; i++)
-		{
-			label = non_hippo_labels[i] ;
-			MRIreplaceValues(mri_source, mri_source, label, 0) ;
-		}
-#endif
   }
 
   if (which == WM) // debugging
@@ -316,14 +324,22 @@ int main(int argc, char *argv[]) {
     mp.target_label = target_label;
   }
   if (Gdiag & DIAG_WRITE && mp.write_iterations > 0) {
-    sprintf(fname, "%s_target", mp.base_name);
+    int req = snprintf(fname, STRLEN, "%s_target", mp.base_name);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
     MRIwriteImageViews(mri_orig_target, fname, IMAGE_SIZE);
-    sprintf(fname, "%s_target.mgz", mp.base_name);
+    req = snprintf(fname, STRLEN, "%s_target.mgz", mp.base_name);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
     MRIwrite(mri_orig_target, fname);
   }
 
-  if (transform == nullptr)
-    transform = TransformAlloc(LINEAR_RAS_TO_RAS, nullptr);
+  if (transform == NULL)
+    transform = TransformAlloc(LINEAR_RAS_TO_RAS, NULL);
 
   if (transform->type ==
       MORPH_3D_TYPE) // initializing m3d from a linear transform
@@ -335,8 +351,8 @@ int main(int argc, char *argv[]) {
 
   new_transform = 1;
   lta           = ((LTA *)(transform->xform));
-  m_L = MRIrasXformToVoxelXform(mri_source, mri_target, lta->xforms[0].m_L,
-                                nullptr);
+  m_L =
+      MRIrasXformToVoxelXform(mri_source, mri_target, lta->xforms[0].m_L, NULL);
   MatrixFree(&lta->xforms[0].m_L);
 
   lta->xforms[0].m_L = m_L;
@@ -350,7 +366,12 @@ int main(int argc, char *argv[]) {
   if (mp.write_iterations != 0) {
     char fname[STRLEN];
 
-    sprintf(fname, "%s_target.mgz", mp.base_name);
+    int req = snprintf(fname, STRLEN, "%s_target.mgz", mp.base_name);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
+
     printf("writing target volume to %s...\n", fname);
     if (mp.diag_morph_from_atlas)
       MRIwrite(mri_orig_target, fname);
@@ -367,11 +388,11 @@ int main(int argc, char *argv[]) {
            "---------------\n",
            i + 1, mp.npasses, skip, skip);
 
-    vl_target = VLSTcreate(mri_target, 1, MAX_LABEL + 1, nullptr, skip, 0);
+    vl_target = VLSTcreate(mri_target, 1, MAX_LABEL + 1, NULL, skip, 0);
     printf("%d voxels in target list\n", vl_target->nvox);
     vl_target->mri2 = mri_dist_target;
 
-    vl_source = VLSTcreate(mri_source, 1, MAX_LABEL + 1, nullptr, skip, 0);
+    vl_source = VLSTcreate(mri_source, 1, MAX_LABEL + 1, NULL, skip, 0);
     printf("%d voxels in source list\n", vl_source->nvox);
     vl_source->mri2 = mri_dist_source;
 
@@ -379,7 +400,7 @@ int main(int argc, char *argv[]) {
                            Gncoef, skip);
 
     VLSTfree(&vl_source);
-    vl_source       = VLSTcreate(mri_source, 1, 255, nullptr, skip / 4, 0);
+    vl_source       = VLSTcreate(mri_source, 1, 255, NULL, skip / 4, 0);
     vl_source->mri2 = mri_dist_source;
 
     for (j = dct->ncoef; j <= dct->ncoef; j++) // don't loop for now
@@ -401,12 +422,11 @@ int main(int argc, char *argv[]) {
 
       FileNameRemoveExtension(out_fname, fname);
       strcat(fname, ".mgz");
-      overlap = (*pf_overlap)(vl_target, vl_source, dct);
-      mri_aligned =
-          DCTapply(dct, mri_orig_source, nullptr, nullptr, SAMPLE_NEAREST);
+      overlap     = (*pf_overlap)(vl_target, vl_source, dct);
+      mri_aligned = DCTapply(dct, mri_orig_source, NULL, NULL, SAMPLE_NEAREST);
       if (mode_filters > 0) {
         MRI *mri_filtered;
-        mri_filtered = MRImodeFilter(mri_aligned, nullptr, mode_filters);
+        mri_filtered = MRImodeFilter(mri_aligned, NULL, mode_filters);
         MRIfree(&mri_aligned);
         mri_aligned = mri_filtered;
       }
@@ -430,11 +450,10 @@ int main(int argc, char *argv[]) {
 
     FileNameRemoveExtension(out_fname, fname);
     strcat(fname, ".mgz");
-    mri_aligned =
-        DCTapply(dct, mri_orig_source, nullptr, nullptr, SAMPLE_NEAREST);
+    mri_aligned = DCTapply(dct, mri_orig_source, NULL, NULL, SAMPLE_NEAREST);
     if (mode_filters > 0) {
       MRI *mri_filtered;
-      mri_filtered = MRImodeFilter(mri_aligned, nullptr, mode_filters);
+      mri_filtered = MRImodeFilter(mri_aligned, NULL, mode_filters);
       MRIfree(&mri_aligned);
       mri_aligned = mri_filtered;
     }
@@ -590,7 +609,7 @@ static int get_option(int argc, char *argv[]) {
     case 'T':
       printf("reading transform from %s...\n", argv[2]);
       transform = TransformRead(argv[2]);
-      if (transform == nullptr)
+      if (transform == NULL)
         ErrorExit(ERROR_NOFILE, "%s: could not read transform from %s\n",
                   Progname, argv[2]);
       nargs = 1;
@@ -680,7 +699,7 @@ static int check_angio_labels(MRI *mri_source, MRI *mri_target) {
 
 #define NCORNERS 8
 int MRImapRegionToTargetMRI(MRI *mri_src, MRI *mri_dst, MRI_REGION *box) {
-  VECTOR *v1, *v2 = nullptr;
+  VECTOR *v1, *v2 = NULL;
   MATRIX *m_vox2vox;
   int     xs[NCORNERS], ys[NCORNERS], zs[NCORNERS];
   int xd[NCORNERS], yd[NCORNERS], zd[NCORNERS], xmin, xmax, ymin, ymax, zmin,
@@ -763,7 +782,7 @@ static DCT *find_optimal_dct(DCT *dct, MRI *mri_source, MRI *mri_target,
   int    i, global_coefs = 0;
   double sse;
 
-  if (dct == nullptr) {
+  if (dct == NULL) {
     dct = DCTalloc(ncoef, Gmri_source = mri_source);
     MatrixWrite(dct->m_x_basis, "xdct.mat", "xdct");
     MatrixWrite(dct->m_x_basis, "ydct.mat", "ydct");
@@ -790,7 +809,7 @@ static int write_snapshot(DCT *dct, MRI *mri_source, MRI *mri_target,
                           const char *fname) {
   MRI *mri_aligned;
 
-  mri_aligned = DCTapply(dct, mri_source, nullptr, nullptr, SAMPLE_NEAREST);
+  mri_aligned = DCTapply(dct, mri_source, NULL, NULL, SAMPLE_NEAREST);
   printf("writing snapshot to %s\n", fname);
   MRIwrite(mri_aligned, fname);
   MRIfree(&mri_aligned);
@@ -811,8 +830,8 @@ static double compute_distance_transform_sse(VOXEL_LIST *vl_target,
   mri_source = vl_source->mri2;
   DCTtransformVoxlist(dct, vl_source);
   m_L     = MRIgetVoxelToVoxelXform(mri_source, mri_target);
-  m_L_inv = MatrixInverse(m_L, nullptr);
-  if (m_L_inv == nullptr)
+  m_L_inv = MatrixInverse(m_L, NULL);
+  if (m_L_inv == NULL)
     ErrorExit(ERROR_BADPARM,
               "compute_distance_transform_sse: singular matrix.");
 
@@ -865,7 +884,7 @@ static double compute_distance_transform_sse(VOXEL_LIST *vl_target,
 
 #if 0
   /* now count target voxels that weren't mapped to in union */
-  for (i = 0 ; i < vl_target->nvox ; i++)
+  for (i = 0 ; i < vl_target->nvox ; i++) 
   {
     x = vl_target->xi[i] ;
     y = vl_target->yi[i] ;
@@ -909,7 +928,7 @@ static double compute_overlap(VOXEL_LIST *vl_target, VOXEL_LIST *vl_source,
   MRI *          mri_target, *mri_source;
   double         val, source_vox, target_vox, xr, yr, zr, overlap;
   float          xf, yf, zf;
-  static VECTOR *v1 = nullptr, *v2;
+  static VECTOR *v1 = NULL, *v2;
   MATRIX *       m_L;
 
   DCTupdate(dct);
@@ -917,7 +936,7 @@ static double compute_overlap(VOXEL_LIST *vl_target, VOXEL_LIST *vl_source,
   mri_source = vl_source->mri;
   m_L        = MRIgetVoxelToVoxelXform(mri_source, mri_target);
 
-  if (v1 == nullptr) {
+  if (v1 == NULL) {
     v1                     = VectorAlloc(4, MATRIX_REAL);
     v2                     = VectorAlloc(4, MATRIX_REAL);
     *MATRIX_RELT(v1, 4, 1) = 1.0;
@@ -996,7 +1015,7 @@ static double compute_recursive_optimum(DCT *dct, double scale,
   case 0: // x
     pk = &VECTOR_ELT(dct->v_xk, k + 1);
     break;
-  case 1: // y
+  case 1: //y
     pk = &VECTOR_ELT(dct->v_yk, k + 1);
     break;
   case 2: // z
@@ -1029,8 +1048,7 @@ static double compute_recursive_optimum(DCT *dct, double scale,
   }
   *pk = best_coef;
 
-  //  printf("scale %2.2f, changing %s: %d\n", scale, which_coord == 0 ? "x" :
-  //  which_coord == 1 ? "y" : "z", k);
+  //  printf("scale %2.2f, changing %s: %d\n", scale, which_coord == 0 ? "x" : which_coord == 1 ? "y" : "z", k);
   return (best_overlap);
 }
 
@@ -1092,13 +1110,13 @@ static int powell_minimize(VOXEL_LIST *vl_target, VOXEL_LIST *vl_source,
 }
 
 static float compute_powell_sse(float *p) {
-  static DCT *dct = nullptr;
+  static DCT *dct = NULL;
   double      error;
   int         i, k;
 
   if (dct && dct->ncoef != Gncoef)
     DCTfree(&dct);
-  if (dct == nullptr)
+  if (dct == NULL)
     dct = DCTalloc(Gncoef, Gmri_source);
   for (i = k = 1; k <= dct->ncoef; k++)
     VECTOR_ELT(dct->v_xk, k) = p[i++];

@@ -19,12 +19,26 @@
  *
  */
 
+#include <ctype.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+
 #include "cma.h"
 #include "diag.h"
+#include "error.h"
+#include "gca.h"
 #include "gcaboundary.h"
 #include "gcamorph.h"
+#include "histo.h"
+#include "macros.h"
+#include "mri.h"
+#include "mrisurf.h"
+#include "proto.h"
 #include "timer.h"
+#include "transform.h"
 #include "tritri.h" // for CROSS3 definition
+#include "utils.h"
 #include "version.h"
 
 static int  compute_gradient_target_positions(MRI_SURFACE *mris,
@@ -106,7 +120,7 @@ int main(int argc, char *argv[]) {
   TRANSFORM *  transform;
   GCA *        gca;
 
-  memset(&parms, 0, sizeof(parms));
+  // memset(&parms, 0, sizeof(parms)) ; Now have proper constructor
   parms.integration_type = INTEGRATE_MOMENTUM;
 
   // parms.l_nspring = .5; parms.l_tspring = 1; parms.l_curv = 1.0 ;
@@ -136,7 +150,7 @@ int main(int argc, char *argv[]) {
 
   Progname = argv[0];
   ErrorInit(NULL, NULL, NULL);
-  DiagInit(nullptr, nullptr, nullptr);
+  DiagInit(NULL, NULL, NULL);
 
   start.reset();
 
@@ -154,32 +168,32 @@ int main(int argc, char *argv[]) {
   out_fname = argv[argc - 1];
   printf("reading input surface from %s\n", argv[1]);
   mris = MRISread(argv[1]);
-  if (mris == nullptr)
+  if (mris == NULL)
     ErrorExit(ERROR_BADPARM, "%s: could not read input surface %s\n", Progname,
               argv[1]);
   if (IS_QUADRANGULAR(mris))
     MRISremoveTriangleLinks(mris);
 
   cp = strstr(out_fname, "lh.");
-  if (cp == nullptr)
+  if (cp == NULL)
     cp = strstr(out_fname, "rh.");
-  if (cp == nullptr)
+  if (cp == NULL)
     FileNameExtension(out_fname, parms.base_name); // remove hemi (e.g. lh.)
   else
     strcpy(parms.base_name, cp + 3);
 
   mri_labels = MRIread(argv[2]);
-  if (mri_labels == nullptr)
+  if (mri_labels == NULL)
     ErrorExit(ERROR_BADPARM, "%s: could not read label volume from %s\n",
               Progname, argv[2]);
 
   transform = TransformRead(argv[3]);
-  if (transform == nullptr)
+  if (transform == NULL)
     ErrorExit(ERROR_BADPARM, "%s: could not read transform from %s\n", Progname,
               argv[3]);
 
   mri_intensities = MRIread(argv[4]);
-  if (mri_intensities == nullptr)
+  if (mri_intensities == NULL)
     ErrorExit(ERROR_BADPARM, "%s: could not read intensity volume from %s\n",
               Progname, argv[4]);
 
@@ -195,18 +209,18 @@ int main(int argc, char *argv[]) {
 
     printf("reading atlas from %s\n", cp);
     gca = GCAread(cp);
-    if (gca == nullptr)
+    if (gca == NULL)
       ErrorExit(ERROR_BADPARM, "%s: could not read atlas from %s\n", Progname,
                 cp);
     if (renormalize_gca == 2) {
       MRI *mri_seg = MRIread(renorm_seg_fname);
-      if (mri_seg == nullptr)
+      if (mri_seg == NULL)
         exit(Gerror);
       GCArenormalizeToExample(gca, mri_seg, mri_intensities);
       MRIfree(&mri_seg);
     } else {
-      GCAmapRenormalizeWithAlignment(gca, mri_intensities, transform, nullptr,
-                                     "", nullptr, 0);
+      GCAmapRenormalizeWithAlignment(gca, mri_intensities, transform, NULL, "",
+                                     NULL, 0);
       if (gca_write_fname)
         GCAwrite(gca, gca_write_fname);
     }
@@ -214,7 +228,7 @@ int main(int argc, char *argv[]) {
   GCAregularizeConditionalDensities(gca, 0.5);
   GCAregularizeCovariance(gca, 0.8);
   {
-    MRI *mri_tmp = GCAbuildMostLikelyVolume(gca, nullptr);
+    MRI *mri_tmp = GCAbuildMostLikelyVolume(gca, NULL);
     TransformRas2Vox(transform, mri_intensities, mri_tmp);
     MRIfree(&mri_tmp);
   }
@@ -226,7 +240,7 @@ int main(int argc, char *argv[]) {
   build_label_histograms(mri_labels, mri_intensities, histos);
 
   vi = (VERTEX_INFO *)calloc(mris->nvertices, sizeof(VERTEX_INFO));
-  if (vi == nullptr)
+  if (vi == NULL)
     ErrorExit(ERROR_NOMEMORY, "%s: could not allocate %d vertex info table",
               Progname, mris->nvertices);
   parms.user_parms = (void *)vi;
@@ -262,7 +276,7 @@ int main(int argc, char *argv[]) {
     {
       if (read_ll)
         mri_ll = MRIread("ll.mgz");
-      else if (gcab != nullptr)
+      else if (gcab != NULL)
         mri_ll = compute_target_intensities_with_gcab(
             mris, mri_labels, mri_intensities, histos, vi, current_sigma,
             transform, gca, target_label, resolution, gcab);
@@ -374,8 +388,8 @@ static int get_option(int argc, char *argv[]) {
     nargs      = 1;
     fprintf(stderr, "setting rmax to %2.2f\n", parms.rmax);
   } else if (!stricmp(option, "gcab")) {
-    gcab = GCABread(argv[2], nullptr);
-    if (gcab == nullptr)
+    gcab = GCABread(argv[2], NULL);
+    if (gcab == NULL)
       ErrorExit(ERROR_BADFILE, "%s: could not read boundary atlas from %s",
                 argv[2]);
     nargs = 1;
@@ -507,7 +521,7 @@ static int build_label_histograms(MRI *mri_labels, MRI *mri_intensities,
           HISTO *h;
 
           h         = MRIhistogramLabel(mri_intensities, mri_labels, l, 50);
-          histos[l] = HISTOsmooth(h, nullptr, 2);
+          histos[l] = HISTOsmooth(h, NULL, 2);
           HISTOmakePDF(histos[l], histos[l]);
           if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
             char fname[STRLEN];
@@ -543,32 +557,31 @@ static MRI *compute_target_intensities(MRI_SURFACE *mris, MRI *mri_labels,
 
 #define WSIZE 3
 
-  mri_tmp = MRISfillInterior(mris, mri_labels->xsize / resolution, nullptr);
+  mri_tmp = MRISfillInterior(mris, mri_labels->xsize / resolution, NULL);
   mri_tmp->c_r += mri_labels->c_r;
   mri_tmp->c_a += mri_labels->c_a;
   mri_tmp->c_s += mri_labels->c_s;
   pad      = ceil(3 / mri_tmp->xsize);
-  mri_mask = MRIextractRegionAndPad(mri_tmp, nullptr, nullptr, pad);
-  mri_dist =
-      MRIdistanceTransform(mri_mask, nullptr, 1, nint(10 / mri_mask->xsize),
-                           DTRANS_MODE_SIGNED, nullptr);
+  mri_mask = MRIextractRegionAndPad(mri_tmp, NULL, NULL, pad);
+  mri_dist = MRIdistanceTransform(mri_mask, NULL, 1, nint(10 / mri_mask->xsize),
+                                  DTRANS_MODE_SIGNED, NULL);
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     MRIwrite(mri_dist, "d.mgz");
 
-  mri_grad = MRIsobel(mri_dist, nullptr, nullptr);
-  mri_dx   = MRIxDerivative(mri_dist, nullptr);
-  mri_dy   = MRIyDerivative(mri_dist, nullptr);
-  mri_dz   = MRIzDerivative(mri_dist, nullptr);
+  mri_grad = MRIsobel(mri_dist, NULL, NULL);
+  mri_dx   = MRIxDerivative(mri_dist, NULL);
+  mri_dy   = MRIyDerivative(mri_dist, NULL);
+  mri_dz   = MRIzDerivative(mri_dist, NULL);
   MRIfree(&mri_grad);
   MRIfree(&mri_tmp);
-  mri_ll   = MRIclone(mri_dist, nullptr);
-  mri_pin  = MRIclone(mri_ll, nullptr);
-  mri_pout = MRIclone(mri_ll, nullptr);
+  mri_ll   = MRIclone(mri_dist, NULL);
+  mri_pin  = MRIclone(mri_ll, NULL);
+  mri_pout = MRIclone(mri_ll, NULL);
 
   mri_ll->outside_val = -100;
   pad *= mri_dist->xsize;
   mri_pmap = compute_pmap(gca, transform, mri_intensities, target_label,
-                          mri_dist, pad, nullptr);
+                          mri_dist, pad, NULL);
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
     MRIwrite(mri_pmap, "p.mgz");
     MRIwrite(mri_dist, "d.mgz");
@@ -579,7 +592,7 @@ static MRI *compute_target_intensities(MRI_SURFACE *mris, MRI *mri_labels,
   }
 
   m_vox2vox        = MRIgetVoxelToVoxelXform(mri_mask, mri_intensities);
-  m_vox2vox_vector = MatrixCopy(m_vox2vox, nullptr);
+  m_vox2vox_vector = MatrixCopy(m_vox2vox, NULL);
   *MATRIX_RELT(m_vox2vox_vector, 1, 4) = 0.0;
   *MATRIX_RELT(m_vox2vox_vector, 2, 4) = 0.0;
   *MATRIX_RELT(m_vox2vox_vector, 3, 4) = 0.0;
@@ -657,7 +670,7 @@ static MRI *compute_target_intensities(MRI_SURFACE *mris, MRI *mri_labels,
           xw = xi + d * nx;
           yw = yi + d * ny;
           zw = zi + d * nz;
-#if 0
+#if 0          
           MRIsampleVolume(mri_intensities, xw, yw, zw, &val);  // for debugging
           p = GCAcomputeLabelLikelihood(gca, transform, mri_intensities, xw, yw, zw, target_label);
 #else
@@ -670,8 +683,7 @@ static MRI *compute_target_intensities(MRI_SURFACE *mris, MRI *mri_labels,
           pin += log(p);
         }
 
-        d = 0.5; // distance to sample outwards - d1 and d2 will be in tangent
-                 // directions
+        d = 0.5; // distance to sample outwards - d1 and d2 will be in tangent directions
         for (nout = 0, pout = 0.0, d1 = -1 / vsize; d1 <= 1.0 / vsize;
              d1 += vsize)
           for (d2 = -1.0 / vsize; d2 <= 1.0 / vsize; d2 += vsize) {
@@ -686,8 +698,8 @@ static MRI *compute_target_intensities(MRI_SURFACE *mris, MRI *mri_labels,
 #endif
 
 #define PSAT 0.1
-            if (p < PSAT) // don't care how unlikely it is if its past a certain
-                          // point
+            if (p <
+                PSAT) // don't care how unlikely it is if its past a certain point
               p = PSAT;
             pout += log(p);
             nout++;
@@ -738,32 +750,31 @@ static MRI *compute_target_intensities_with_gcab(
 
 #define WSIZE 3
 
-  mri_tmp = MRISfillInterior(mris, mri_labels->xsize / resolution, nullptr);
+  mri_tmp = MRISfillInterior(mris, mri_labels->xsize / resolution, NULL);
   mri_tmp->c_r += mri_labels->c_r;
   mri_tmp->c_a += mri_labels->c_a;
   mri_tmp->c_s += mri_labels->c_s;
   pad      = ceil(3 / mri_tmp->xsize);
-  mri_mask = MRIextractRegionAndPad(mri_tmp, nullptr, nullptr, pad + 1);
-  mri_dist =
-      MRIdistanceTransform(mri_mask, nullptr, 1, nint(10 / mri_mask->xsize),
-                           DTRANS_MODE_SIGNED, nullptr);
+  mri_mask = MRIextractRegionAndPad(mri_tmp, NULL, NULL, pad + 1);
+  mri_dist = MRIdistanceTransform(mri_mask, NULL, 1, nint(10 / mri_mask->xsize),
+                                  DTRANS_MODE_SIGNED, NULL);
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     MRIwrite(mri_dist, "d.mgz");
 
-  mri_grad = MRIsobel(mri_dist, nullptr, nullptr);
-  mri_dx   = MRIxDerivative(mri_dist, nullptr);
-  mri_dy   = MRIyDerivative(mri_dist, nullptr);
-  mri_dz   = MRIzDerivative(mri_dist, nullptr);
+  mri_grad = MRIsobel(mri_dist, NULL, NULL);
+  mri_dx   = MRIxDerivative(mri_dist, NULL);
+  mri_dy   = MRIyDerivative(mri_dist, NULL);
+  mri_dz   = MRIzDerivative(mri_dist, NULL);
   MRIfree(&mri_grad);
   MRIfree(&mri_tmp);
-  mri_ll   = MRIclone(mri_dist, nullptr);
-  mri_pin  = MRIclone(mri_ll, nullptr);
-  mri_pout = MRIclone(mri_ll, nullptr);
+  mri_ll   = MRIclone(mri_dist, NULL);
+  mri_pin  = MRIclone(mri_ll, NULL);
+  mri_pout = MRIclone(mri_ll, NULL);
 
   mri_ll->outside_val = -100;
   pad *= mri_dist->xsize;
   mri_pmap = compute_pmap_with_gcab(gca, transform, mri_intensities, mri_labels,
-                                    target_label, mri_dist, pad, gcab, nullptr);
+                                    target_label, mri_dist, pad, gcab, NULL);
   MRIwrite(mri_pmap, "p.mgz");
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
     MRIwrite(mri_pmap, "p.mgz");
@@ -777,7 +788,7 @@ static MRI *compute_target_intensities_with_gcab(
   return (mri_ll);
 
   m_vox2vox        = MRIgetVoxelToVoxelXform(mri_mask, mri_intensities);
-  m_vox2vox_vector = MatrixCopy(m_vox2vox, nullptr);
+  m_vox2vox_vector = MatrixCopy(m_vox2vox, NULL);
   *MATRIX_RELT(m_vox2vox_vector, 1, 4) = 0.0;
   *MATRIX_RELT(m_vox2vox_vector, 2, 4) = 0.0;
   *MATRIX_RELT(m_vox2vox_vector, 3, 4) = 0.0;
@@ -855,7 +866,7 @@ static MRI *compute_target_intensities_with_gcab(
           xw = xi + d * nx;
           yw = yi + d * ny;
           zw = zi + d * nz;
-#if 0
+#if 0          
           MRIsampleVolume(mri_intensities, xw, yw, zw, &val);  // for debugging
           p = GCAcomputeLabelLikelihood(gca, transform, mri_intensities, xw, yw, zw, target_label);
 #else
@@ -868,8 +879,7 @@ static MRI *compute_target_intensities_with_gcab(
           pin += log(p);
         }
 
-        d = 0.5; // distance to sample outwards - d1 and d2 will be in tangent
-                 // directions
+        d = 0.5; // distance to sample outwards - d1 and d2 will be in tangent directions
         for (nout = 0, pout = 0.0, d1 = -1 / vsize; d1 <= 1.0 / vsize;
              d1 += vsize)
           for (d2 = -1.0 / vsize; d2 <= 1.0 / vsize; d2 += vsize) {
@@ -884,8 +894,8 @@ static MRI *compute_target_intensities_with_gcab(
 #endif
 
 #define PSAT 0.1
-            if (p < PSAT) // don't care how unlikely it is if its past a certain
-                          // point
+            if (p <
+                PSAT) // don't care how unlikely it is if its past a certain point
               p = PSAT;
             pout += log(p);
             nout++;
@@ -937,9 +947,8 @@ static int compute_target_labels(MRI_SURFACE *mris, MRI *mri_labels,
     v->val  = val;
     v->val2 = 2;
 
-    /* search locally for a voxel that has large intensity gradients, pointing
-      in the right general direction with intensities that could be in the right
-      class
+    /* search locally for a voxel that has large intensity gradients, pointing in the right
+      general direction with intensities that could be in the right class
     */
     MRISvertexNormalInVoxelCoords(mris, mri_labels, vno, &nx, &ny, &nz);
     MRIsampleVolumeType(mri_labels, xv + 1 * nx, yv + 1 * ny, zv + 1 * nz, &val,
@@ -981,7 +990,7 @@ static double externalLLSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) {
   MRISsmoothSurfaceNormals(mris, 10);
   //  MRISsaveVertexPositions(mris, TMP_VERTICES) ;
   //  MRISaverageVertexPositions(mris, 10) ;
-  mri_dist = MRIScomputeDistanceToSurface(mris, nullptr, mri_ll->xsize);
+  mri_dist = MRIScomputeDistanceToSurface(mris, NULL, mri_ll->xsize);
 #if 0
   mri_kernel = MRIgaussian1d(2, 100) ;
   mri_smooth = MRIclone(mri_dist, NULL) ;
@@ -1088,7 +1097,7 @@ static double externalLLGradient(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) {
   MRISsmoothSurfaceNormals(mris, 10);
   //  MRISsaveVertexPositions(mris, TMP_VERTICES) ;
   //  MRISaverageVertexPositions(mris, 10) ;
-  mri_dist = MRIScomputeDistanceToSurface(mris, nullptr, mri_ll->xsize);
+  mri_dist = MRIScomputeDistanceToSurface(mris, NULL, mri_ll->xsize);
   //  MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
   //  MRIScomputeMetricProperties(mris) ;
 #if 0
@@ -1216,26 +1225,26 @@ static GCA *make_gca(char *label_vol_name, char *intensity_vol_name,
   MRI_REGION box;
 
   mri_labels = MRIread(label_vol_name);
-  if (mri_labels == nullptr)
+  if (mri_labels == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not read label vol from %s", Progname,
               label_vol_name);
 
   mri_intensity = MRIread(label_vol_name);
-  if (mri_intensity == nullptr)
+  if (mri_intensity == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not read intensity vol from %s",
               Progname, intensity_vol_name);
 
   MRIboundingBox(mri_labels, 0, &box);
-  mri_tmp = MRIextractRegionAndPad(mri_labels, nullptr, &box, 10);
+  mri_tmp = MRIextractRegionAndPad(mri_labels, NULL, &box, 10);
   MRIfree(&mri_labels);
   mri_labels = mri_tmp;
-  mri_tmp    = MRIextractRegionAndPad(mri_intensity, nullptr, &box, 10);
+  mri_tmp    = MRIextractRegionAndPad(mri_intensity, NULL, &box, 10);
   MRIfree(&mri_intensity);
   mri_intensity = mri_tmp;
 
   gca = GCAalloc(1, 8, 8, mri_labels->width, mri_labels->height,
                  mri_labels->depth, 0);
-  GCAtrain(gca, mri_intensity, mri_labels, transform, nullptr, 0);
+  GCAtrain(gca, mri_intensity, mri_labels, transform, NULL, 0);
   GCAcompleteMeanTraining(gca);
   GCAtrainCovariances(gca, mri_intensity, mri_labels, transform);
   GCAcompleteCovarianceTraining(gca);
@@ -1252,10 +1261,10 @@ static MRI *compute_pmap(GCA *gca, TRANSFORM *transform, MRI *mri_intensities,
   VECTOR *v1, *v2;
   MATRIX *m_vox2vox;
 
-  if (mri_pmap == nullptr) {
+  if (mri_pmap == NULL) {
     mri_pmap =
         MRIalloc(mri_dist->width, mri_dist->height, mri_dist->depth, MRI_FLOAT);
-    if (mri_pmap == nullptr)
+    if (mri_pmap == NULL)
       ErrorExit(ERROR_NOMEMORY, "%s: could not allocate (%d, %d, %d) pmap",
                 Progname, mri_dist->width, mri_dist->height, mri_dist->depth);
     MRIcopyHeader(mri_dist, mri_pmap);
@@ -1305,10 +1314,10 @@ static MRI *compute_pmap_with_gcab(GCA *gca, TRANSFORM *transform,
   MATRIX *m_vox2vox;
   MRI *   mri_dist1mm, *mri_pout, *mri_pin, *mri_pgrad, *mri_tmp;
 
-  if (mri_pmap == nullptr) {
+  if (mri_pmap == NULL) {
     mri_pmap =
         MRIalloc(mri_dist->width, mri_dist->height, mri_dist->depth, MRI_FLOAT);
-    if (mri_pmap == nullptr)
+    if (mri_pmap == NULL)
       ErrorExit(ERROR_NOMEMORY, "%s: could not allocate (%d, %d, %d) pmap",
                 Progname, mri_dist->width, mri_dist->height, mri_dist->depth);
     MRIcopyHeader(mri_dist, mri_pmap);
@@ -1318,15 +1327,15 @@ static MRI *compute_pmap_with_gcab(GCA *gca, TRANSFORM *transform,
   v2                = VectorAlloc(4, MATRIX_REAL);
   VECTOR_ELT(v1, 4) = VECTOR_ELT(v2, 4) = 1.0;
 
-  mri_tmp = MRIclone(mri_labels, nullptr);
+  mri_tmp = MRIclone(mri_labels, NULL);
   MRIcopyLabel(mri_labels, mri_tmp, target_label);
-  mri_dist1mm = MRIdistanceTransform(mri_tmp, nullptr, target_label, 10,
-                                     DTRANS_MODE_SIGNED, nullptr);
+  mri_dist1mm = MRIdistanceTransform(mri_tmp, NULL, target_label, 10,
+                                     DTRANS_MODE_SIGNED, NULL);
   MRIfree(&mri_tmp);
 
-  mri_pgrad = MRIclone(mri_pmap, nullptr);
-  mri_pin   = MRIclone(mri_pmap, nullptr);
-  mri_pout  = MRIclone(mri_pmap, nullptr);
+  mri_pgrad = MRIclone(mri_pmap, NULL);
+  mri_pin   = MRIclone(mri_pmap, NULL);
+  mri_pout  = MRIclone(mri_pmap, NULL);
   for (x = 0; x < mri_pmap->width; x++) {
     if (((x + 1) % 10) == 0)
       printf("x=%d\n", x);

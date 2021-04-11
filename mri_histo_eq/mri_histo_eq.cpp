@@ -12,10 +12,22 @@
  *
  */
 
+#include <ctype.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+
 #include "diag.h"
 #include "error.h"
+#include "macros.h"
+#include "mri.h"
+#include "mri_conform.h"
+#include "mrimorph.h"
 #include "mrinorm.h"
+#include "proto.h"
 #include "timer.h"
+#include "transform.h"
+#include "utils.h"
 #include "version.h"
 
 int        main(int argc, char *argv[]);
@@ -25,7 +37,7 @@ const char *Progname;
 static void usage_exit(int code);
 static int  adaptive_normalize = 0;
 
-static char *xform_fname = nullptr;
+static char *xform_fname = NULL;
 
 int main(int argc, char *argv[]) {
   char **av, *out_fname;
@@ -41,7 +53,7 @@ int main(int argc, char *argv[]) {
 
   Progname = argv[0];
   ErrorInit(NULL, NULL, NULL);
-  DiagInit(nullptr, nullptr, nullptr);
+  DiagInit(NULL, NULL, NULL);
 
   start.reset();
 
@@ -75,20 +87,28 @@ int main(int argc, char *argv[]) {
     FileNameOnly(xform_fname, xform_fname);
 
     FileNamePath(argv[1], path);
-    sprintf(fname, "%s/%s", path, xform_fname);
+    int req = snprintf(fname, STRLEN, "%s/%s", path, xform_fname);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
     lta_src = LTAread(fname);
     if (!lta_src)
       ErrorExit(ERROR_BADPARM, "%s: could not read xform from %s", Progname,
                 fname);
 
     /* now put template in source space */
-    m_inv = MatrixInverse(lta_src->xforms[0].m_L, nullptr);
+    m_inv = MatrixInverse(lta_src->xforms[0].m_L, NULL);
     if (!m_inv)
       ErrorExit(ERROR_BADPARM, "%s: non-invertible transform in %s!", Progname,
                 fname);
 
     FileNamePath(argv[2], path);
-    sprintf(fname, "%s/%s", path, xform_fname);
+    req = snprintf(fname, STRLEN, "%s/%s", path, xform_fname);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
     lta_template = LTAread(fname);
     if (!lta_template)
       ErrorExit(ERROR_BADPARM, "%s: could not read xform from %s", Progname,
@@ -98,18 +118,17 @@ int main(int argc, char *argv[]) {
     LTAfree(&lta_src);
     LTAfree(&lta_template);
     MatrixFree(&m_inv);
-    mri_tmp = MRIlinearTransform(mri_template, nullptr, m_L);
+    mri_tmp = MRIlinearTransform(mri_template, NULL, m_L);
     MRIfree(&mri_template);
     mri_template = mri_tmp;
     MatrixFree(&m_L);
   }
 
-  MRI *mri_eq = nullptr;
+  MRI *mri_eq = NULL;
   if (adaptive_normalize)
-    mri_eq =
-        MRIadaptiveHistoNormalize(mri_src, nullptr, mri_template, 8, 32, 30);
+    mri_eq = MRIadaptiveHistoNormalize(mri_src, NULL, mri_template, 8, 32, 30);
   else
-    mri_eq = MRIhistoNormalize(mri_src, nullptr, mri_template, 30, 170);
+    mri_eq = MRIhistoNormalize(mri_src, NULL, mri_template, 30, 170);
   MRIwrite(mri_eq, out_fname);
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
     HISTOGRAM *histo, *hsmooth;
@@ -120,7 +139,7 @@ int main(int argc, char *argv[]) {
     HISTOplot(histo, "template.plt");
     histo = MRIhistogram(mri_eq, 0);
     HISTOplot(histo, "eq.plt");
-    hsmooth = HISTOsmooth(histo, nullptr, 2);
+    hsmooth = HISTOsmooth(histo, NULL, 2);
     HISTOplot(hsmooth, "eqs.plt");
   }
 
@@ -152,6 +171,7 @@ static int get_option(int argc, char *argv[]) {
   case 'T':
     xform_fname = argv[2];
     nargs       = 1;
+    break;
   case '?':
   case 'U':
     usage_exit(0);

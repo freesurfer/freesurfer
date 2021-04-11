@@ -12,9 +12,22 @@
  *
  */
 
+#include <ctype.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "cma.h"
+#include "const.h"
 #include "diag.h"
+#include "error.h"
+#include "fio.h"
+#include "label.h"
+#include "macros.h"
+#include "mri.h"
 #include "mri_conform.h"
+#include "proto.h"
 #include "sig.h"
 #include "timer.h"
 #include "version.h"
@@ -32,9 +45,9 @@
 
 static int stat_type = STAT_T;
 
-static char *mask_fname  = nullptr;
-static char *read_fname1 = nullptr;
-static char *read_fname2 = nullptr;
+static char *mask_fname  = NULL;
+static char *read_fname1 = NULL;
+static char *read_fname2 = NULL;
 static int   Gxv         = -1;
 static int   Gyv         = -1;
 static int   Gzv         = -1;
@@ -56,10 +69,10 @@ int main(int argc, char *argv[]);
 static void write_bfloats(MRI *mri, char *out_name, char *output_subject);
 static int find_label_index(VL ***voxel_labels, int x, int y, int z, int label);
 static int get_option(int argc, char *argv[]);
-static void usage_exit();
-static void print_usage();
-static void print_help();
-static void print_version();
+static void usage_exit(void);
+static void print_usage(void);
+static void print_help(void);
+static void print_version(void);
 static int  normalize_white_matter_density(MRI *mri_mean, MRI *mri_var, int n);
 static int  compute_white_matter_density(MRI *mri, MRI *mri_atlas_wm,
                                          float resolution, TRANSFORM *transform);
@@ -89,7 +102,7 @@ static MRI *compute_voxel_statistics(VL ***voxel_labels_class1,
 
 const char *Progname;
 
-static char *read_dir = nullptr;
+static char *read_dir = NULL;
 
 static char *      test_subject = NULL;
 static char *      label_name   = NULL;
@@ -102,19 +115,19 @@ static char        subjects_dir[STRLEN];
 /*-------------------------------- FUNCTIONS ----------------------------*/
 
 int main(int argc, char *argv[]) {
-  MRI *mri, *mri_stats, *mri_mean1 = nullptr, *mri_mean2 = nullptr,
-                        *mri_template = nullptr, *mri_var1 = nullptr,
-                        *mri_var2 = nullptr, *mri_atlas_wm = nullptr, *mri_tmp;
+  MRI *mri, *mri_stats, *mri_mean1 = NULL, *mri_mean2 = NULL,
+                        *mri_template = NULL, *mri_var1 = NULL,
+                        *mri_var2 = NULL, *mri_atlas_wm = NULL, *mri_tmp;
   char **av, fname[STRLEN], *aseg_name, *cp, *subject_name, *out_fname,
       **c1_subjects, **c2_subjects, *output_subject;
   int ac, nargs, n, num_class1, num_class2, i, width, height, depth, awidth,
       aheight, adepth;
-  LABEL *area;
-  Timer  start;
-  int    msec, minutes, seconds;
-  VL ***voxel_labels_class1 = nullptr, ***voxel_labels_class2 = nullptr, ***vls;
+  LABEL *    area;
+  Timer      start;
+  int        msec, minutes, seconds;
+  VL ***     voxel_labels_class1 = NULL, ***voxel_labels_class2 = NULL, ***vls;
   TRANSFORM *transform;
-  VLI *      vli1 = nullptr, *vli2 = nullptr;
+  VLI *      vli1 = NULL, *vli2 = NULL;
 
   nargs = handleVersionOption(argc, argv, "mri_twoclass");
   if (nargs && argc - nargs == 1)
@@ -123,7 +136,7 @@ int main(int argc, char *argv[]) {
 
   Progname = argv[0];
   ErrorInit(NULL, NULL, NULL);
-  DiagInit(nullptr, nullptr, nullptr);
+  DiagInit(NULL, NULL, NULL);
 
   ac = argc;
   av = argv;
@@ -162,7 +175,7 @@ int main(int argc, char *argv[]) {
   do {
     num_class1++;
     n++;
-    if (argv[n] == nullptr || n >= argc)
+    if (argv[n] == NULL || n >= argc)
       ErrorExit(ERROR_BADPARM, "%s: must spectify ':' between class lists",
                 Progname);
   } while (argv[n][0] != ':');
@@ -176,7 +189,7 @@ int main(int argc, char *argv[]) {
     n++;
     if (n >= argc)
       break;
-  } while (argv[n] != nullptr);
+  } while (argv[n] != NULL);
 
   c1_subjects = (char **)calloc(num_class1, sizeof(char *));
   c2_subjects = (char **)calloc(num_class2, sizeof(char *));
@@ -199,7 +212,7 @@ int main(int argc, char *argv[]) {
       ErrorExit(ERROR_NOFILE, "%s: could not read label %s", Progname,
                 label_name);
   } else
-    area = nullptr;
+    area = NULL;
 
   if (read_dir) /* read in precomputed data */
   {
@@ -211,22 +224,32 @@ int main(int argc, char *argv[]) {
           n < num_class1 ? c1_subjects[n] : c2_subjects[n - num_class1];
       fprintf(stderr, "reading subject %d of %d: %s\n", n + 1,
               num_class1 + num_class2, subject_name);
-      sprintf(fname, "%s/%s/mri/%s", subjects_dir, subject_name, aseg_name);
+      int req = snprintf(fname, STRLEN, "%s/%s/mri/%s", subjects_dir,
+                         subject_name, aseg_name);
+      if (req >= STRLEN) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                  << std::endl;
+      }
       mri = MRIread(fname);
       if (!mri)
         ErrorExit(ERROR_NOFILE, "%s: could not read segmentation %s", Progname,
                   fname);
       if (!mri_template) {
-        mri_tmp      = MRIcopy(mri, nullptr);
+        mri_tmp      = MRIcopy(mri, NULL);
         mri_template = MRIconform(mri_tmp);
       }
-      mri_tmp = MRIcopy(mri, nullptr);
+      mri_tmp = MRIcopy(mri, NULL);
       mri     = MRIresample(mri_tmp, mri_template, SAMPLE_NEAREST);
       MRIfree(&mri_tmp);
       if (mask_fname) {
         MRI *mri_mask;
 
-        sprintf(fname, "%s/%s/mri/%s", subjects_dir, subject_name, mask_fname);
+        int req = snprintf(fname, STRLEN, "%s/%s/mri/%s", subjects_dir,
+                           subject_name, mask_fname);
+        if (req >= STRLEN) {
+          std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                    << std::endl;
+        }
         mri_mask = MRIread(fname);
         if (!mri_mask)
           ErrorExit(ERROR_NOFILE, "%s: could not open mask volume %s.\n",
@@ -235,8 +258,12 @@ int main(int argc, char *argv[]) {
         MRImask(mri, mri_mask, mri, 0, 0);
         MRIfree(&mri_mask);
       }
-      sprintf(fname, "%s/%s/mri/transforms/%s", subjects_dir, subject_name,
-              xform_fname);
+      req = snprintf(fname, STRLEN, "%s/%s/mri/transforms/%s", subjects_dir,
+                     subject_name, xform_fname);
+      if (req >= STRLEN) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                  << std::endl;
+      }
       if (wm_flag) {
         MRIthresholdRangeInto(mri, mri, WM_MIN_VAL, WM_MAX_VAL);
         MRIbinarize(mri, mri, WM_MIN_VAL, 0, 64);
@@ -245,7 +272,7 @@ int main(int argc, char *argv[]) {
         MRI *mri_kernel, *mri_tmp;
 
         mri_kernel = MRIgaussian1d(sigma, 0);
-        mri_tmp    = MRIconvolveGaussian(mri, nullptr, mri_kernel);
+        mri_tmp    = MRIconvolveGaussian(mri, NULL, mri_kernel);
         MRIfree(&mri_kernel);
         MRIfree(&mri);
         mri = mri_tmp;
@@ -328,13 +355,18 @@ int main(int argc, char *argv[]) {
     normalize_white_matter_density(mri_mean1, mri_var1, num_class1);
     normalize_white_matter_density(mri_mean2, mri_var2, num_class2);
     mri_stats = compute_white_matter_statistics(mri_mean1, mri_mean2, mri_var1,
-                                                mri_var2, nullptr, num_class1,
+                                                mri_var2, NULL, num_class1,
                                                 num_class2, stat_type);
   } else
     mri_stats = compute_voxel_statistics(
         voxel_labels_class1, voxel_labels_class2, awidth, aheight, adepth,
-        resolution, num_class1, num_class2, nullptr);
-  sprintf(fname, "%s/%s/mri/%s", subjects_dir, output_subject, out_fname);
+        resolution, num_class1, num_class2, NULL);
+  int req = snprintf(fname, STRLEN, "%s/%s/mri/%s", subjects_dir,
+                     output_subject, out_fname);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
   printf("writing stats to %s...\n", fname);
 
   if (!output_bfloats)
@@ -484,12 +516,12 @@ static int get_option(int argc, char *argv[]) {
   return (nargs);
 }
 
-static void usage_exit() {
+static void usage_exit(void) {
   print_usage();
   exit(1);
 }
 
-static void print_usage() {
+static void print_usage(void) {
   printf("usage: %s [options] \n"
          "\t<segmentation volume> <output subject> <output volume> "
          "\n\t<c1_subject1> "
@@ -507,7 +539,7 @@ static void print_usage() {
          "\t-b                 -  perform bonferroni correction\n");
 }
 
-static void print_help() {
+static void print_help(void) {
   print_usage();
   printf("\nThis program will compute the cross-subject statistics of two "
          "sets of labels.\n");
@@ -831,11 +863,13 @@ static MRI *compute_voxel_statistics(VL ***voxel_labels_class1,
   return (mri_stats);
 }
 
+#include "matrix.h"
+#include "stats.h"
 static void write_bfloats(MRI *mri, char *out_name, char *output_subject) {
   STAT_VOLUME *sv;
   fMRI_REG *   reg;
 
-  sv = StatAllocVolume(nullptr, 1, mri->width, mri->height, mri->depth, 1, 0);
+  sv = StatAllocVolume(NULL, 1, mri->width, mri->height, mri->depth, 1, 0);
   strcpy(sv->reg->name, output_subject);
   MRIfree(&sv->mri_avgs[0]);
   sv->mri_avgs[0]    = mri;
@@ -1030,7 +1064,7 @@ static MRI *compute_white_matter_statistics(MRI *mri_mean1, MRI *mri_mean2,
   float numer, denom, t, p, mean1, mean2, var1, var2;
 
   if (!mri_stats) {
-    mri_stats        = MRIclone(mri_mean1, nullptr);
+    mri_stats        = MRIclone(mri_mean1, NULL);
     mri_stats->xsize = mri_stats->ysize = mri_stats->zsize = resolution;
   }
 

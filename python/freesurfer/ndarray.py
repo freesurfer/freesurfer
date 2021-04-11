@@ -422,7 +422,9 @@ class Volume(ArrayContainerTemplate, Transformable):
 
         c_low = np.clip(low, 0, None)
         c_high = np.clip(high, 0, None)
-        conformed_data = np.pad(self.data.squeeze(), list(zip(c_low, c_high)))
+        conformed_data = np.pad(
+            self.data.squeeze(), list(zip(c_low, c_high)), mode="constant"
+        )
 
         # note: low and high are intentionally swapped here
         c_low = np.clip(-high, 0, None)
@@ -483,6 +485,25 @@ class Volume(ArrayContainerTemplate, Transformable):
         # construct new volume
         resampled = Volume(resampled_data)
         resampled.copy_geometry(self)
+        resampled.copy_metadata(self)
+        return resampled
+
+    def resample_like(self, target, interp_method="linear"):
+        """
+        Returns a resampled image in the target space.
+        """
+        if target.affine is None or self.affine is None:
+            raise ValueError(
+                "Can't resample volume without geometry information."
+            )
+
+        vox2vox = LinearTransform.matmul(self.ras2vox(), target.vox2ras())
+        resampled_data = resample(
+            self.data, target.shape, vox2vox, interp_method=interp_method
+        )
+
+        resampled = Volume(resampled_data)
+        resampled.copy_geometry(target)
         resampled.copy_metadata(self)
         return resampled
 

@@ -17,20 +17,32 @@
  *
  */
 
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "cma.h"
 #include "diag.h"
 #include "error.h"
 #include "gca.h"
+#include "macros.h"
+#include "matrix.h"
+#include "mri.h"
+#include "mrimorph.h"
 #include "mrinorm.h"
+#include "proto.h"
 #include "tags.h"
 #include "timer.h"
+#include "utils.h"
 #include "version.h"
 
 const char *Progname;
 
-static char *mask_fname = nullptr;
+static char *mask_fname = NULL;
 
 static double bias_sigma = 4.0;
-static FILE * diag_fp    = nullptr;
+static FILE * diag_fp    = NULL;
 
 static int  normalize_timepoints_with_parzen_window(MRI *  mri,
                                                     double cross_time_sigma);
@@ -71,7 +83,7 @@ int          main(int argc, char *argv[]) {
   setRandomSeed(-1L);
   Progname = argv[0];
 
-  DiagInit(nullptr, nullptr, nullptr);
+  DiagInit(NULL, NULL, NULL);
   ErrorInit(NULL, NULL, NULL);
 
   ac = argc;
@@ -92,7 +104,7 @@ int          main(int argc, char *argv[]) {
   out_fname   = argv[4];
 
   transform = TransformRead(xform_fname);
-  if (transform == nullptr)
+  if (transform == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not read transform from %s", Progname,
               xform_fname);
   start.reset();
@@ -105,24 +117,33 @@ int          main(int argc, char *argv[]) {
   }
   ninputs = 0;
   fp      = fopen(argv[1], "r");
-  if (fp == nullptr)
+  if (fp == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not read time point file %s", Progname,
               argv[1]);
 
   do {
     cp = fgetl(line, STRLEN - 1, fp);
-    if (cp != nullptr && strlen(cp) > 0) {
+    if (cp != NULL && strlen(cp) > 0) {
       subjects[ninputs] = (char *)calloc(strlen(cp) + 1, sizeof(char));
       strcpy(subjects[ninputs], cp);
       ninputs++;
     }
-  } while (cp != nullptr && strlen(cp) > 0);
+  } while (cp != NULL && strlen(cp) > 0);
   fclose(fp);
   printf("processing %d timepoints in SUBJECTS_DIR %s...\n", ninputs, sdir);
   for (input = 0; input < ninputs; input++) {
-    sprintf(subject, "%s.long.%s", subjects[input], base_name);
+    int req =
+        snprintf(subject, STRLEN, "%s.long.%s", subjects[input], base_name);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
     printf("reading subject %s - %d of %d\n", subject, input + 1, ninputs);
-    sprintf(fname, "%s/%s/mri/%s", sdir, subject, in_fname);
+    req = snprintf(fname, STRLEN, "%s/%s/mri/%s", sdir, subject, in_fname);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
     mri_tmp = MRIread(fname);
     if (!mri_tmp)
       ErrorExit(ERROR_NOFILE, "%s: could not read input MR volume from %s",
@@ -157,25 +178,24 @@ int          main(int argc, char *argv[]) {
   }
   MRIaddCommandLine(mri_in, cmdline);
 
-  // try to bring the images closer to each other at each voxel where they seem
-  // to come from the same distribution
+  // try to bring the images closer to each other at each voxel where they seem to come from the same distribution
   {
     MRI *  mri_frame1, *mri_frame2;
     double rms_after;
 
-    mri_frame1 = MRIcopyFrame(mri_in, nullptr, 0, 0);
-    mri_frame2 = MRIcopyFrame(mri_in, nullptr, 1, 0);
+    mri_frame1 = MRIcopyFrame(mri_in, NULL, 0, 0);
+    mri_frame2 = MRIcopyFrame(mri_in, NULL, 1, 0);
     rms_after  = MRIrmsDiff(mri_frame1, mri_frame2);
     printf("RMS before intensity cohering  = %2.2f\n", rms_after);
     MRIfree(&mri_frame1);
     MRIfree(&mri_frame2);
-    if (false)
+    if (0)
       normalize_timepoints(mri_in, 2.0, cross_time_sigma);
     else
       normalize_timepoints_with_parzen_window(mri_in, cross_time_sigma);
 
-    mri_frame1 = MRIcopyFrame(mri_in, nullptr, 0, 0);
-    mri_frame2 = MRIcopyFrame(mri_in, nullptr, 1, 0);
+    mri_frame1 = MRIcopyFrame(mri_in, NULL, 0, 0);
+    mri_frame2 = MRIcopyFrame(mri_in, NULL, 1, 0);
     rms_after  = MRIrmsDiff(mri_frame1, mri_frame2);
     MRIfree(&mri_frame1);
     MRIfree(&mri_frame2);
@@ -184,8 +204,12 @@ int          main(int argc, char *argv[]) {
   }
 
   for (input = 0; input < ninputs; input++) {
-    sprintf(fname, "%s/%s.long.%s/mri/%s", sdir, subjects[input], base_name,
-            out_fname);
+    int req = snprintf(fname, STRLEN, "%s/%s.long.%s/mri/%s", sdir,
+                       subjects[input], base_name, out_fname);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
     printf("writing normalized volume to %s...\n", fname);
     if (MRIwriteFrame(mri_in, fname, input) != NO_ERROR)
       ErrorExit(ERROR_BADFILE, "%s: could not write normalized volume to %s",
@@ -352,7 +376,7 @@ static int normalize_timepoints(MRI *mri, double thresh,
     MRIbuildVoronoiDiagram(mri_bias, mri_ctrl, mri_bias);
     MRIconvolveGaussian(mri_bias, mri_bias, mri_kernel);
     //    MRIsoapBubble(mri_bias, mri_ctrl, mri_bias, nsoap) ;
-    mri_frame = MRIcopyFrame(mri, nullptr, frame, 0);
+    mri_frame = MRIcopyFrame(mri, NULL, frame, 0);
     MRImultiply(mri_frame, mri_bias, mri_frame);
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
       char fname[STRLEN];

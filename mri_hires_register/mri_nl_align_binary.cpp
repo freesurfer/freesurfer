@@ -3,11 +3,11 @@
  *
  * Basically a binary implementation of the algorithm in:
  *
- * Fischl B, Salat DH, van der Kouwe AJW, Makris N, Sï¿½gonne F, Dale
+ * Fischl B, Salat DH, van der Kouwe AJW, Makris N, Ségonne F, Dale
  * AM. Sequence-Independent  Segmentation of Magnetic Resonance Images.
  * NeuroImage, 2004; 23 Suppl 1, S69-84.
  *
- * Copyright ï¿½ 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -378,9 +378,18 @@ int main(int argc, char *argv[]) {
     mp.target_label = target_label;
   }
   if (Gdiag & DIAG_WRITE && mp.write_iterations > 0) {
-    sprintf(fname, "%s_target", mp.base_name);
+    int req = snprintf(fname, STRLEN, "%s_target", mp.base_name);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
     MRIwriteImageViews(mri_orig_target, fname, IMAGE_SIZE);
-    sprintf(fname, "%s_target.mgz", mp.base_name);
+    req = snprintf(fname, STRLEN, "%s_target.mgz", mp.base_name);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
+
     MRIwrite(mri_orig_target, fname);
   }
 
@@ -466,7 +475,12 @@ int main(int argc, char *argv[]) {
     char fname[STRLEN];
     MRI *mri_gca;
 
-    sprintf(fname, "%s_target.mgz", mp.base_name);
+    int req = snprintf(fname, STRLEN, "%s_target.mgz", mp.base_name);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
+
     if (mp.diag_morph_from_atlas == 0) {
       printf("writing target volume to %s...\n", fname);
       MRIwrite(mri_orig_target, fname);
@@ -489,7 +503,11 @@ int main(int argc, char *argv[]) {
 
     mri_morphed = GCAMmorphFieldFromAtlas(gcam, mp.mri_diag, mp.diag_volume, 0,
                                           mp.diag_mode_filter);
-    sprintf(fname, "%s_orig.mgz", mp.base_name);
+    int req     = snprintf(fname, STRLEN, "%s_orig.mgz", mp.base_name);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
     MRIwrite(mri_morphed, fname);
   }
 
@@ -868,15 +886,33 @@ static int write_snapshot(MRI *mri_target, MRI *mri_source, MATRIX *m_vox_xform,
     mri_aligned =
         MRITransformedCenteredMatrix(mri_source, mri_target, m_vox_xform);
   }
-  if (in_fname)
-    sprintf(fname, "%s_%s", parms->base_name, in_fname);
-  else
-    sprintf(fname, "%s_%03d", parms->base_name, fno);
+  if (in_fname) {
+    int req = snprintf(fname, STRLEN, "%s_%s", parms->base_name, in_fname);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
+  } else {
+    int req = snprintf(fname, STRLEN, "%s_%03d", parms->base_name, fno);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
+  }
   MRIwriteImageViews(mri_aligned, fname, IMAGE_SIZE);
-  if (in_fname)
-    sprintf(fname, "%s_%s.mgz", parms->base_name, in_fname);
-  else
-    sprintf(fname, "%s_%03d.mgz", parms->base_name, fno);
+  if (in_fname) {
+    int req = snprintf(fname, STRLEN, "%s_%s.mgz", parms->base_name, in_fname);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
+  } else {
+    int req = snprintf(fname, STRLEN, "%s_%03d.mgz", parms->base_name, fno);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
+  }
   printf("writing snapshot to %s...\n", fname);
   MRIwrite(mri_aligned, fname);
   MRIfree(&mri_aligned);
@@ -889,10 +925,21 @@ static int write_snapshot(MRI *mri_target, MRI *mri_source, MATRIX *m_vox_xform,
     mri_aligned =
         MRITransformedCenteredMatrix(mri_source, mri_target, m_vox_xform);
 #endif
-    if (in_fname)
-      sprintf(fname, "orig_%s_%s.mgz", parms->base_name, in_fname);
-    else
-      sprintf(fname, "orig_%s_%03d.mgz", parms->base_name, fno);
+    if (in_fname) {
+      int req =
+          snprintf(fname, STRLEN, "orig_%s_%s.mgz", parms->base_name, in_fname);
+      if (req >= STRLEN) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                  << std::endl;
+      }
+    } else {
+      int req =
+          snprintf(fname, STRLEN, "orig_%s_%03d.mgz", parms->base_name, fno);
+      if (req >= STRLEN) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                  << std::endl;
+      }
+    }
     printf("writing snapshot to %s...\n", fname);
     MRIwrite(mri_aligned, fname);
     MRIfree(&mri_aligned);
@@ -906,15 +953,17 @@ static int write_snapshot(MRI *mri_target, MRI *mri_source, MATRIX *m_vox_xform,
 #else
 		mri_aligned = MRITransformedCenteredMatrix(mri_source_intensity, mri_target, m_vox_xform) ;
 #endif
-		if (in_fname)
-			sprintf(fname, "intensity_%s_%s", parms->base_name, in_fname) ;
-		else
-			sprintf(fname, "intensity_%s_%03d", parms->base_name, fno) ;
+		if (in_fname) {
+		  sprintf(fname, "intensity_%s_%s", parms->base_name, in_fname) ;
+		} else {
+		  sprintf(fname, "intensity_%s_%03d", parms->base_name, fno) ;
+		}
 		MRIwriteImageViews(mri_aligned, fname, IMAGE_SIZE) ;
-		if (in_fname)
-			sprintf(fname, "intensity_%s_%s.mgz", parms->base_name, in_fname) ;
-		else
-			sprintf(fname, "intensity_%s_%03d.mgz", parms->base_name, fno) ;
+		if (in_fname) {
+		  sprintf(fname, "intensity_%s_%s.mgz", parms->base_name, in_fname) ;
+		} else {
+		  sprintf(fname, "intensity_%s_%03d.mgz", parms->base_name, fno) ;
+		}
 		printf("writing snapshot to %s...\n", fname) ;
 		MRIwrite(mri_aligned, fname) ;
 		MRIfree(&mri_aligned) ;

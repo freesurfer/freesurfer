@@ -17,11 +17,26 @@
  *
  */
 
+#include <ctype.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "macros.h"
+
+#include "icosahedron.h"
+#include "mri.h"
+#include "mrimorph.h"
+#include "mrinorm.h"
 #include "mrisegment.h"
+#include "mrisurf.h"
 #include "mrisurf_project.h"
 
 #include "cma.h"
 #include "diag.h"
+#include "error.h"
+#include "proto.h"
 #include "timer.h"
 #include "version.h"
 
@@ -85,9 +100,9 @@ int main(int argc, char *argv[]) {
   Gdiag |= DIAG_SHOW;
   Progname = argv[0];
   ErrorInit(NULL, NULL, NULL);
-  DiagInit(nullptr, nullptr, nullptr);
+  DiagInit(NULL, NULL, NULL);
 
-  memset(&parms, 0, sizeof(parms));
+  // memset(&parms, 0, sizeof(parms)) ; Have proper constructor now
   parms.projection = NO_PROJECTION;
   parms.tol        = 0.05;
   parms.dt         = 0.5f;
@@ -139,7 +154,7 @@ int main(int argc, char *argv[]) {
   if (embed) {
     MRI *mri_tmp;
 
-    mri_tmp = MRIextractRegionAndPad(mri_labeled, nullptr, nullptr, pad);
+    mri_tmp = MRIextractRegionAndPad(mri_labeled, NULL, NULL, pad);
     MRIfree(&mri_labeled);
     mri_labeled = mri_tmp;
   }
@@ -156,23 +171,23 @@ int main(int argc, char *argv[]) {
     ErrorExit(ERROR_NOFILE, "%s: could not read icosahedron %s", Progname,
               fname);
 
-  /*
-   * first create brain volume
+  /* 
+   * first create brain volume 
    */
   fprintf(stderr, "creating brain volume...\n");
-  mri_masked = create_brain_volume(mri_labeled, nullptr, target_label);
+  mri_masked = create_brain_volume(mri_labeled, NULL, target_label);
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     MRIwrite(mri_masked, "brain.mgz");
   parms.sigma = 8;
 
   initialize_surface_position(mris, mri_masked, 1);
-  mri_tmp = pad_volume(mris, mri_masked, nullptr);
+  mri_tmp = pad_volume(mris, mri_masked, NULL);
   MRIfree(&mri_masked);
   mri_masked = mri_tmp;
   MRIScopyVolGeomFromMRI(mris, mri_masked);
   if (target_label < 0) {
-    mri_dist = create_distance_map(mri_masked, nullptr, BORDER_VAL,
-                                   OUTSIDE_BORDER_STEP);
+    mri_dist =
+        create_distance_map(mri_masked, NULL, BORDER_VAL, OUTSIDE_BORDER_STEP);
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
       MRIwrite(mri_dist, "d.mgz");
     MRISsetVals(mris, parms.sigma);
@@ -180,17 +195,16 @@ int main(int argc, char *argv[]) {
     MRISsetVals(mris, TARGET_VAL);
 
     mri_kernel        = MRIgaussian1d(parms.sigma, 0);
-    mri_masked_smooth = MRIconvolveGaussian(mri_dist, nullptr, mri_kernel);
+    mri_masked_smooth = MRIconvolveGaussian(mri_dist, NULL, mri_kernel);
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
       MRIwrite(mri_masked_smooth, "brain_smooth.mgh");
     sprintf(parms.base_name, "%s_inner_skull%s%s", vol_name, output_suffix,
             suffix);
     parms.l_intensity = 0; // use shrinkwrap term
-  } else // shrink wrapping to a labeled or threshold volume - build distance
-         // transform
+  } else // shrink wrapping to a labeled or threshold volume - build distance transform
   {
-    mri_dist = MRIdistanceTransform(mri_masked, nullptr, BORDER_VAL, 10000,
-                                    DTRANS_MODE_SIGNED, nullptr);
+    mri_dist = MRIdistanceTransform(mri_masked, NULL, BORDER_VAL, 10000,
+                                    DTRANS_MODE_SIGNED, NULL);
     parms.l_shrinkwrap  = 0; // use intensity term
     parms.l_spring_norm = parms.l_spring;
     parms.l_spring      = 0;
@@ -201,7 +215,7 @@ int main(int argc, char *argv[]) {
     MRISsetVals(mris, 0); // 0 distance is the target
 
     mri_kernel        = MRIgaussian1d(parms.sigma, 0);
-    mri_masked_smooth = MRIconvolveGaussian(mri_dist, nullptr, mri_kernel);
+    mri_masked_smooth = MRIconvolveGaussian(mri_dist, NULL, mri_kernel);
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
       MRIwrite(mri_masked_smooth, "brain_smooth.mgh");
   }
@@ -223,16 +237,16 @@ int main(int argc, char *argv[]) {
   if (inner_skull_only)
     goto done;
 
-  /*
-   * now create outer skull surface
+  /* 
+   * now create outer skull surface 
    */
   fprintf(stderr, "creating outer skull surface ...\n");
   MRISsaveVertexPositions(mris, ORIGINAL_VERTICES);
   create_skull_volume(mri_labeled, mri_masked);
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     MRIwrite(mri_masked, "brain.mgh");
-  parms.l_surf_repulse = 5; /* don't let outer_skull come close
-                               to inner skull */
+  parms.l_surf_repulse = 5; /* don't let outer_skull come close 
+                                 to inner skull */
   parms.sigma          = 8;
   parms.start_t        = 0;
 
@@ -242,7 +256,7 @@ int main(int argc, char *argv[]) {
   MRISsetVals(mris, TARGET_VAL);
 
   mri_kernel        = MRIgaussian1d(parms.sigma, 0);
-  mri_masked_smooth = MRIconvolveGaussian(mri_dist, nullptr, mri_kernel);
+  mri_masked_smooth = MRIconvolveGaussian(mri_dist, NULL, mri_kernel);
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     MRIwrite(mri_masked_smooth, "brain_smooth.mgh");
 
@@ -260,16 +274,16 @@ int main(int argc, char *argv[]) {
 
   MRISwrite(mris, "outer_skull.tri");
 
-  /*
-   * now build outer skin surface
+  /* 
+   * now build outer skin surface 
    */
   fprintf(stderr, "building outer skin surface...\n");
   MRISsaveVertexPositions(mris, ORIGINAL_VERTICES);
   create_skin_volume(mri_labeled, mri_masked);
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     MRIwrite(mri_masked, "brain.mgh");
-  parms.l_surf_repulse = 5; /* don't let outer_skin come close
-                               to outer skull */
+  parms.l_surf_repulse = 5; /* don't let outer_skin come close 
+                                 to outer skull */
   parms.sigma          = 8;
   parms.start_t        = 0;
 
@@ -279,7 +293,7 @@ int main(int argc, char *argv[]) {
   MRISsetVals(mris, TARGET_VAL);
 
   mri_kernel        = MRIgaussian1d(parms.sigma, 0);
-  mri_masked_smooth = MRIconvolveGaussian(mri_dist, nullptr, mri_kernel);
+  mri_masked_smooth = MRIconvolveGaussian(mri_dist, NULL, mri_kernel);
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     MRIwrite(mri_masked_smooth, "brain_smooth.mgh");
 
@@ -466,16 +480,16 @@ static int get_option(int argc, char *argv[]) {
   return (nargs);
 }
 
-static void usage_exit() {
+static void usage_exit(void) {
   print_usage();
   exit(1);
 }
 
-static void print_usage() {
+static void print_usage(void) {
   fprintf(stderr, "usage: %s [options] <volume> <output name>\n", Progname);
 }
 
-static void print_help() {
+static void print_help(void) {
   print_usage();
   fprintf(stderr, "\nThis program produces three surface files which are\n"
                   "shrink-wrapped tesselations of the input volume:\n"
@@ -500,7 +514,7 @@ static MRI *create_brain_volume(MRI *mri_labeled, MRI *mri_brain,
   int x, y, z, label;
 
   if (!mri_brain) {
-    mri_brain = MRIclone(mri_labeled, nullptr);
+    mri_brain = MRIclone(mri_labeled, NULL);
     MRIcopyHeader(mri_labeled, mri_brain);
   } else
     MRIclear(mri_brain);
@@ -553,7 +567,7 @@ static int initialize_surface_position(MRI_SURFACE *mris, MRI *mri_masked,
   double xs, ys, zs;
 
   if (outside) {
-    mri_dilated = MRIdilate(mri_masked, nullptr);
+    mri_dilated = MRIdilate(mri_masked, NULL);
 
     MRIsubtract(mri_dilated, mri_masked, mri_dilated);
 
@@ -611,22 +625,22 @@ static MRI *create_distance_map(MRI *mri_masked, MRI *mri_distance,
                                 int border_val, int outside_border_step) {
   int  target_val;
   int  i;
-  MRI *mri_dilated = nullptr, *mri_tmp = nullptr, *mri_tmp2 = nullptr;
+  MRI *mri_dilated = NULL, *mri_tmp = NULL, *mri_tmp2 = NULL;
 
   mri_distance = MRIcopy(mri_masked, mri_distance);
   MRIreplaceValues(mri_distance, mri_distance, border_val, 255);
 
   /* build outward distances */
-  mri_dilated = MRIcopy(mri_masked, nullptr);
+  mri_dilated = MRIcopy(mri_masked, NULL);
   target_val  = border_val - outside_border_step; /* outside border */
   for (i = 0; i < MAX_DIST; i++, target_val -= 4) {
     if (target_val <= 0)
       break;
     mri_tmp  = MRIdilate(mri_dilated, mri_tmp);
     mri_tmp2 = MRIcopy(mri_tmp, mri_tmp2);
-    mri_tmp  = MRIsubtract(mri_tmp, mri_dilated, mri_tmp); /* mri_tmp should
-                                                             be the next
-                                                             ring */
+    mri_tmp  = MRIsubtract(mri_tmp, mri_dilated, mri_tmp); /* mri_tmp should 
+                                                               be the next 
+                                                               ring */
     MRIreplaceValues(mri_tmp, mri_tmp, border_val, target_val);
     MRIcopyLabel(mri_tmp, mri_distance, target_val);
     MRIcopy(mri_tmp2, mri_dilated);
@@ -640,9 +654,9 @@ static MRI *create_distance_map(MRI *mri_masked, MRI *mri_distance,
       break;
     mri_tmp  = MRIerode(mri_dilated, mri_tmp);
     mri_tmp2 = MRIcopy(mri_tmp, mri_tmp2);
-    mri_tmp  = MRIsubtract(mri_tmp, mri_dilated, mri_tmp); /* mri_tmp should
-                                                             be the next
-                                                             ring */
+    mri_tmp  = MRIsubtract(mri_tmp, mri_dilated, mri_tmp); /* mri_tmp should 
+                                                               be the next 
+                                                               ring */
 
     if (i == 0) {
       MRIreplaceValues(mri_tmp, mri_tmp, border_val, border_val);
@@ -662,7 +676,7 @@ static MRI *create_distance_map(MRI *mri_masked, MRI *mri_distance,
 
 static MRI *create_skull_volume(MRI *mri_labeled, MRI *mri_brain) {
   int  x, y, z, label, i;
-  MRI *mri_tmp = nullptr;
+  MRI *mri_tmp = NULL;
 
   /* don't let outer skull be within 4 mm of brain */
   for (i = 0; i < INNER_SKULL_OUTER_SKULL_SEPARATION; i++) {
@@ -699,7 +713,7 @@ static MRI *create_skull_volume(MRI *mri_labeled, MRI *mri_brain) {
 
 static MRI *create_skin_volume(MRI *mri_labeled, MRI *mri_brain) {
   int  x, y, z, label, i;
-  MRI *mri_tmp = nullptr;
+  MRI *mri_tmp = NULL;
 
   /* don't let outer skull be within 4 mm of brain */
   for (i = 0; i < INNER_SKULL_OUTER_SKULL_SEPARATION; i++) {
@@ -740,7 +754,7 @@ static MRI *remove_small_segments(MRI *mri_src, MRI *mri_dst) {
 
   same = mri_dst == mri_src;
   if (same || !mri_dst)
-    mri_dst = MRIclone(mri_src, nullptr);
+    mri_dst = MRIclone(mri_src, NULL);
 
   mriseg = MRIsegment(mri_src, 1, 255);
 
@@ -782,7 +796,7 @@ static MRI *pad_volume(MRI_SURFACE *mris, MRI *mri_src, MRI *mri_dst) {
 
   pad = ceil(pad);
   printf("padding volume by %d\n", (int)pad);
-  mri_dst = MRIextractRegionAndPad(mri_src, nullptr, nullptr, (int)pad);
+  mri_dst = MRIextractRegionAndPad(mri_src, NULL, NULL, (int)pad);
   {
     double xs, ys, zs, xd, yd, zd;
     MRISvertexToVoxel(mris, &mris->vertices[0], mri_dst, &xd, &yd, &zd);

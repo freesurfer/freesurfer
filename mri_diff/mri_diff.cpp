@@ -123,23 +123,45 @@
   ENDHELP
 */
 
-// double round(double x);
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+double round(double x);
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <sys/utsname.h>
+#include <unistd.h>
 
+#include "annotation.h"
 #include "cma.h"
 #include "cmdargs.h"
 #include "diag.h"
+#include "error.h"
 #include "fio.h"
+#include "fmriutils.h"
+#include "fsgdf.h"
+#include "fsglm.h"
+#include "label.h"
+#include "macros.h"
+#include "matfile.h"
+#include "matrix.h"
+#include "mri.h"
 #include "mri2.h"
+#include "mrisurf.h"
 #include "mrisutils.h"
+#include "pdf.h"
+#include "surfcluster.h"
+#include "timer.h"
+#include "utils.h"
 #include "version.h"
+#include "volcluster.h"
 
 static int  parse_commandline(int argc, char **argv);
-static void check_options();
-static void print_usage();
-static void usage_exit();
-static void print_help();
-static void print_version();
+static void check_options(void);
+static void print_usage(void);
+static void usage_exit(void);
+static void print_help(void);
+static void print_version(void);
 static void dump_options(FILE *fp);
 int         main(int argc, char *argv[]);
 
@@ -150,18 +172,18 @@ int            verbose       = 0;
 int            checkoptsonly = 0;
 struct utsname uts;
 
-char * InVol1File = nullptr;
-char * InVol2File = nullptr;
+char * InVol1File = NULL;
+char * InVol2File = NULL;
 char * subject, *hemi, *SUBJECTS_DIR;
 double pixthresh = 0, resthresh = 0, geothresh = 0;
-char * DiffFile = nullptr;
+int    diffcountthresh = 0;
+char * DiffFile        = NULL;
 int    DiffAbs = 0, AbsDiff = 1, DiffPct = 0;
-char * AvgDiffFile = nullptr;
+char * AvgDiffFile = NULL;
 
-MRI *InVol1 = nullptr, *InVol2 = nullptr, *DiffVol = nullptr,
-    *DiffLabelVol      = nullptr;
-char *DiffVolFile      = nullptr;
-char *DiffLabelVolFile = nullptr;
+MRI * InVol1 = NULL, *InVol2 = NULL, *DiffVol = NULL, *DiffLabelVol = NULL;
+char *DiffVolFile      = NULL;
+char *DiffLabelVolFile = NULL;
 
 int     CheckResolution  = 1;
 int     CheckAcqParams   = 1;
@@ -170,7 +192,7 @@ int     CheckGeo         = 1;
 int     CheckOrientation = 1;
 int     CheckPrecision   = 1;
 int     SegDiff          = -2;
-char *  SegDiffFile      = nullptr;
+char *  SegDiffFile      = NULL;
 MATRIX *vox2ras1, *vox2ras2;
 char    Orient1[4], Orient2[4];
 
@@ -187,7 +209,7 @@ int main(int argc, char *argv[]) {
   double diff, maxdiff;
   double val1, val2, SumSqErr;
   double AvgDiff = 0.0, SumDiff = 0.0, SumSqDiff = 0.0;
-  FILE * fp = nullptr;
+  FILE * fp = NULL;
 
   nargs = handleVersionOption(argc, argv, "mri_diff");
   if (nargs && argc - nargs == 1)
@@ -201,7 +223,7 @@ int main(int argc, char *argv[]) {
   argc--;
   argv++;
   ErrorInit(NULL, NULL, NULL);
-  DiagInit(nullptr, nullptr, nullptr);
+  DiagInit(NULL, NULL, NULL);
   if (argc == 0)
     usage_exit();
   parse_commandline(argc, argv);
@@ -229,11 +251,11 @@ int main(int argc, char *argv[]) {
   }
 
   InVol1 = MRIread(InVol1File);
-  if (InVol1 == nullptr)
+  if (InVol1 == NULL)
     exit(1);
 
   InVol2 = MRIread(InVol2File);
-  if (InVol2 == nullptr)
+  if (InVol2 == NULL)
     exit(1);
 
   /*- Check dimension ---------------------------------*/
@@ -246,7 +268,7 @@ int main(int argc, char *argv[]) {
            InVol2->nframes);
     if (DiffFile) {
       fp = fopen(DiffFile, "w");
-      if (fp == nullptr) {
+      if (fp == NULL) {
         printf("ERROR: could not open %s\n", DiffFile);
         exit(1);
       }
@@ -274,7 +296,7 @@ int main(int argc, char *argv[]) {
              InVol1->ysize - InVol2->ysize, InVol1->zsize - InVol2->zsize);
       if (DiffFile) {
         fp = fopen(DiffFile, "w");
-        if (fp == nullptr) {
+        if (fp == NULL) {
           printf("ERROR: could not open %s\n", DiffFile);
           exit(1);
         }
@@ -303,7 +325,7 @@ int main(int argc, char *argv[]) {
              InVol2->te, InVol2->ti);
       if (DiffFile) {
         fp = fopen(DiffFile, "w");
-        if (fp == nullptr) {
+        if (fp == NULL) {
           printf("ERROR: could not open %s\n", DiffFile);
           exit(1);
         }
@@ -335,7 +357,7 @@ int main(int argc, char *argv[]) {
                  c, diff, diff);
           if (DiffFile) {
             fp = fopen(DiffFile, "w");
-            if (fp == nullptr) {
+            if (fp == NULL) {
               printf("ERROR: could not open %s\n", DiffFile);
               exit(1);
             }
@@ -363,7 +385,7 @@ int main(int argc, char *argv[]) {
       printf("Volumes differ in precision %d %d\n", InVol1->type, InVol2->type);
       if (DiffFile) {
         fp = fopen(DiffFile, "w");
-        if (fp == nullptr) {
+        if (fp == NULL) {
           printf("ERROR: could not open %s\n", DiffFile);
           exit(1);
         }
@@ -409,7 +431,7 @@ int main(int argc, char *argv[]) {
     for (c = 0; c < InVol1->width; c++) {
       for (r = 0; r < InVol1->height; r++) {
         for (s = 0; s < InVol1->depth; s++) {
-          SumSqErr = 0.0; // over all frames
+          SumSqErr = 0.0; //over all frames
           for (f = 0; f < InVol1->nframes; f++) {
             val1 = MRIgetVoxVal(InVol1, c, r, s, f);
             val2 = MRIgetVoxVal(InVol2, c, r, s, f);
@@ -488,7 +510,7 @@ int main(int argc, char *argv[]) {
              fmax);
       if (DiffFile) {
         fp = fopen(DiffFile, "w");
-        if (fp == nullptr) {
+        if (fp == NULL) {
           printf("ERROR: could not open %s\n", DiffFile);
           exit(1);
         }
@@ -500,9 +522,14 @@ int main(int argc, char *argv[]) {
           fprintf(fp, "diffcount %d\n", ndiff);
         fclose(fp);
       }
-      ExitStatus = 106;
-      if (ExitOnDiff)
-        exit(106);
+      if (ndiff > diffcountthresh) {
+        ExitStatus = 106;
+        if (ExitOnDiff)
+          exit(106);
+      } else {
+        printf("But diff count does not exceed diff count thresh %d\n",
+               diffcountthresh);
+      }
     }
   }
 
@@ -539,7 +566,7 @@ int main(int argc, char *argv[]) {
               MRIsetVoxVal(SegDiffVol, c, r, s, f, 2);
               n2++;
               l2++;
-            } else { // cannot happen
+            } else { //cannot happen
               printf("ERROR: this error is not possible\n");
               exit(1);
             }
@@ -598,7 +625,7 @@ int main(int argc, char *argv[]) {
       printf("Volumes differ in orientation %s %s\n", Orient1, Orient2);
       if (DiffFile) {
         fp = fopen(DiffFile, "w");
-        if (fp == nullptr) {
+        if (fp == NULL) {
           printf("ERROR: could not open %s\n", DiffFile);
           exit(1);
         }
@@ -667,7 +694,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--no-absdiff"))
       AbsDiff = 0;
     else if (!strcasecmp(option, "--absdiff"))
-      AbsDiff = 1; // default
+      AbsDiff = 1; //default
     else if (!strcasecmp(option, "--diffabs"))
       DiffAbs = 1;
     else if (!strcasecmp(option, "--diffpct"))
@@ -707,6 +734,11 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1)
         CMDargNErr(option, 1);
       sscanf(pargv[0], "%lf", &pixthresh);
+      nargsused = 1;
+    } else if (!strcasecmp(option, "--count-thresh")) {
+      if (nargc < 1)
+        CMDargNErr(option, 1);
+      sscanf(pargv[0], "%d", &diffcountthresh);
       nargsused = 1;
     } else if (!strcasecmp(option, "--res-thresh")) {
       if (nargc < 1)
@@ -755,9 +787,9 @@ static int parse_commandline(int argc, char **argv) {
       CheckOrientation = 1;
       nargsused        = 2;
     } else {
-      if (InVol1File == nullptr)
+      if (InVol1File == NULL)
         InVol1File = option;
-      else if (InVol2File == nullptr)
+      else if (InVol2File == NULL)
         InVol2File = option;
       else {
         fprintf(stderr, "ERROR: Option %s unknown\n", option);
@@ -777,19 +809,19 @@ static void print_version(void) {
   exit(1);
 }
 /* --------------------------------------------- */
-static void check_options() {
-  if (InVol1File == nullptr) {
+static void check_options(void) {
+  if (InVol1File == NULL) {
     printf("ERROR: need to spec volume 1\n");
     exit(1);
   }
-  if (InVol2File == nullptr) {
+  if (InVol2File == NULL) {
     printf("ERROR: need to spec volume 2\n");
     exit(1);
   }
   return;
 }
 /* ------------------------------------------------------ */
-static void usage_exit() {
+static void usage_exit(void) {
   print_usage();
   exit(1);
 }
@@ -825,11 +857,11 @@ static void dump_options(FILE *fp) {
   return;
 }
 /* --------------------------------------------- */
-static void print_usage() {
+static void print_usage(void) {
   printf("USAGE: %s <options> vol1file vol2file <options> \n", Progname);
   printf("\n");
-  // printf("   --v1 volfile1 : first  input volume \n");
-  // printf("   --v2 volfile2 : second input volume \n");
+  //printf("   --v1 volfile1 : first  input volume \n");
+  //printf("   --v2 volfile2 : second input volume \n");
   printf("\n");
   printf("   --notallow-res  : do not check for resolution diffs\n");
   printf("   --notallow-acq  : do not check for acq param diffs\n");
@@ -854,6 +886,8 @@ static void print_usage() {
   printf("   --count      : print number of differing voxels\n");
   printf("\n");
   printf("   --thresh thresh : pix diffs must be greater than this \n");
+  printf("   --count-thresh nvox : there must be at least this many voxels "
+         "that are diff\n");
   printf("   --log DiffFile : store diff info in this file. \n");
   printf("   --diff DiffVol : save difference image. \n");
   printf("   --diff_label_suspicious DiffVol : differing voxels replaced\n");
@@ -879,7 +913,7 @@ static void print_usage() {
   printf("\n");
 }
 /* --------------------------------------------- */
-static void print_help() {
+static void print_help(void) {
   print_usage();
 
   printf("\n");

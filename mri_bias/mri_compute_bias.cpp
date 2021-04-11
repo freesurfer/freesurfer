@@ -12,12 +12,23 @@
  *
  */
 
+#include <ctype.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+
 #include "ctrpoints.h"
 #include "diag.h"
 #include "error.h"
+#include "label.h"
+#include "macros.h"
+#include "mri.h"
 #include "mri_conform.h"
 #include "mrinorm.h"
+#include "proto.h"
 #include "timer.h"
+#include "transform.h"
+#include "utils.h"
 #include "version.h"
 
 int        main(int argc, char *argv[]);
@@ -30,8 +41,8 @@ const char *Progname;
 
 static void usage_exit(int code);
 
-static LABEL *label         = nullptr;
-static char * control_fname = nullptr;
+static LABEL *label         = NULL;
+static char * control_fname = NULL;
 static char   sdir[STRLEN]  = "";
 static float  pad           = 20;
 static double sigma         = 4.0;
@@ -56,7 +67,7 @@ int main(int argc, char *argv[]) {
 
   Progname = argv[0];
   ErrorInit(NULL, NULL, NULL);
-  DiagInit(nullptr, nullptr, nullptr);
+  DiagInit(NULL, NULL, NULL);
 
   start.reset();
 
@@ -78,7 +89,7 @@ int main(int argc, char *argv[]) {
     printf("reading label %s and volume %s to compute bias field\n",
            label->name, argv[1]);
     mri = MRIread(argv[1]);
-    if (mri == nullptr)
+    if (mri == NULL)
       ErrorExit(ERROR_NOFILE, "%s: could not read label from %s", Progname,
                 argv[1]);
     mean = LabelMeanIntensity(label, mri);
@@ -99,9 +110,9 @@ int main(int argc, char *argv[]) {
       printf("writing output control points to %s\n", control_fname);
       MatrixPrint(stdout, m_vox2vox);
 
-      ltmp = LabelToVoxel(label, mri, nullptr);
+      ltmp = LabelToVoxel(label, mri, NULL);
 
-      lconf = LabelApplyMatrix(ltmp, m_vox2vox, nullptr);
+      lconf = LabelApplyMatrix(ltmp, m_vox2vox, NULL);
       LabelVoxelToSurfaceRAS(lconf, mri_conf, lconf);
 
       pointArray = (MPoint *)malloc(lconf->n_points * sizeof(MPoint));
@@ -139,7 +150,7 @@ int main(int argc, char *argv[]) {
         if (total > lconf->n_points) // if they are are not duplicate
         {
           newArray = (MPoint *)calloc(total, sizeof(MPoint));
-          if (newArray == nullptr)
+          if (newArray == NULL)
             ErrorExit(ERROR_NOMEMORY,
                       "%s: could not allocate %d-len Point array", Progname,
                       total);
@@ -182,7 +193,7 @@ int main(int argc, char *argv[]) {
     }
     MRIbuildVoronoiDiagram(mri_bias, mri_control, mri_bias);
     mri_kernel = MRIgaussian1d(sigma, 0);
-    mri_smooth = MRIconvolveGaussian(mri_bias, nullptr, mri_kernel);
+    mri_smooth = MRIconvolveGaussian(mri_bias, NULL, mri_kernel);
     MRIfree(&mri_kernel);
 
     printf("writing bias field to %s\n", out_fname);
@@ -206,28 +217,33 @@ int main(int argc, char *argv[]) {
 
   mri_bias   = MRIalloc(256 + 2 * pad, 256 + 2 * pad, 256 + 2 * pad, MRI_FLOAT);
   mri_counts = MRIalloc(256 + 2 * pad, 256 + 2 * pad, 256 + 2 * pad, MRI_FLOAT);
-#if 0
-	mri_bias->c_r = (double)mri_bias->width/2.0 ;
-	mri_bias->c_a = (double)mri_bias->height/2.0 ;
-	mri_bias->c_s = (double)mri_bias->depth/2.0 ;
-	mri_counts->c_r = (double)mri_counts->width/2.0 ;
-	mri_counts->c_a = (double)mri_counts->height/2.0 ;
-	mri_counts->c_s = (double)mri_counts->depth/2.0 ;
-#endif
 
   for (i = 1; i < argc - 1; i++) {
     subject = argv[i];
     fprintf(stderr, "subject %s, %d of %d...\n", subject, i, argc - 2);
 
-    sprintf(fname, "%s/%s/mri/orig.mgz", sdir, subject);
+    int req = snprintf(fname, STRLEN, "%s/%s/mri/orig.mgz", sdir, subject);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
+
     mri_orig = MRIread(fname);
     if (!mri_orig)
       ErrorExit(Gerror, "%s: could not read orig volume %s", Progname, fname);
-    sprintf(fname, "%s/%s/mri/T1.mgz", sdir, subject);
+    req = snprintf(fname, STRLEN, "%s/%s/mri/T1.mgz", sdir, subject);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
     mri_T1 = MRIread(fname);
     if (!mri_T1)
       ErrorExit(Gerror, "%s: could not read T1 volume %s", Progname, fname);
-    sprintf(fname, "%s/%s/mri/brainmask.mgz", sdir, subject);
+    req = snprintf(fname, STRLEN, "%s/%s/mri/brainmask.mgz", sdir, subject);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
     mri_brain = MRIread(fname);
     if (!mri_T1)
       ErrorExit(Gerror, "%s: could not read T1 volume %s", Progname, fname);
@@ -258,25 +274,30 @@ int main(int argc, char *argv[]) {
     if (xform_name) {
       TRANSFORM *transform;
       MRI *      mri;
-      sprintf(fname, "%s/%s/mri/transforms/%s", sdir, subject, xform_name);
+      int        req = snprintf(fname, STRLEN, "%s/%s/mri/transforms/%s", sdir,
+                         subject, xform_name);
+      if (req >= STRLEN) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                  << std::endl;
+      }
       transform = TransformRead(fname);
-      if (transform == nullptr)
+      if (transform == NULL)
         ErrorExit(ERROR_NOFILE, "%s: could not load transform from %s",
                   Progname, fname);
       m_vox2vox = MRIgetVoxelToVoxelXform(mri_bias, mri_orig);
       //      TransformCompose(transform, m_vox2vox, NULL, transform) ;
-      mri = MRIclone(mri_bias, nullptr);
+      mri = MRIclone(mri_bias, NULL);
       //      mri->c_r = mri->c_a = mri->c_s = 0 ;
       TransformApplyType(transform, mri_orig, mri, SAMPLE_TRILINEAR);
       MRIfree(&mri_orig);
       mri_orig = mri;
-      mri      = MRIclone(mri_bias, nullptr);
+      mri      = MRIclone(mri_bias, NULL);
       //      mri->c_r = mri->c_a = mri->c_s = 0 ;
       TransformApplyType(transform, mri_T1, mri, SAMPLE_TRILINEAR);
       MRIfree(&mri_T1);
       mri_T1 = mri;
 
-      mri = MRIclone(mri_bias, nullptr);
+      mri = MRIclone(mri_bias, NULL);
       //      mri->c_r = mri->c_a = mri->c_s = 0 ;
       TransformApplyType(transform, mri_brain, mri, SAMPLE_TRILINEAR);
       MRIfree(&mri_brain);
@@ -288,7 +309,7 @@ int main(int argc, char *argv[]) {
 
   normalize_bias(mri_bias, mri_counts, normalize);
   mri_kernel = MRIgaussian1d(sigma, 0);
-  mri_smooth = MRIconvolveGaussian(mri_bias, nullptr, mri_kernel);
+  mri_smooth = MRIconvolveGaussian(mri_bias, NULL, mri_kernel);
   MRIfree(&mri_kernel);
 
   fprintf(stderr, "writing to %s...\n", out_fname);
@@ -325,7 +346,7 @@ static int get_option(int argc, char *argv[]) {
     nargs = 3;
     printf("debugging voxel (%d, %d, %d)\n", Gx, Gy, Gz);
   } else if (!stricmp(option, "label")) {
-    label = LabelRead(nullptr, argv[2]);
+    label = LabelRead(NULL, argv[2]);
     nargs = 1;
     printf("reading label %s and using it to compute bias field\n", argv[2]);
   } else

@@ -20,7 +20,6 @@
 
 #include "Interactor2DMeasure.h"
 #include "Cursor2D.h"
-#include "CursorFactory.h"
 #include "LayerCollection.h"
 #include "LayerMRI.h"
 #include "LayerVolumeBase.h"
@@ -29,6 +28,9 @@
 #include "Region2DPolyline.h"
 #include "Region2DRectangle.h"
 #include "RenderView2D.h"
+//#include "ToolWindowMeasure.h"
+#include "CursorFactory.h"
+#include <QDebug>
 #include <vtkRenderer.h>
 
 Interactor2DMeasure::Interactor2DMeasure(QObject *parent)
@@ -167,10 +169,8 @@ bool Interactor2DMeasure::ProcessMouseMoveEvent(QMouseEvent *event,
     int posX = event->x();
     int posY = event->y();
 
-    //    LayerCollection* lc =
-    //    MainWindow::GetMainWindowPointer()->GetLayerCollection(
-    //    m_strLayerTypeName.c_str() ); LayerVolumeBase* mri = (
-    //    LayerVolumeBase* )lc->GetActiveLayer();
+    //    LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollection( m_strLayerTypeName.c_str() );
+    //    LayerVolumeBase* mri = ( LayerVolumeBase* )lc->GetActiveLayer();
 
     if (m_region) {
       if (m_nAction == MM_Line) {
@@ -209,8 +209,8 @@ bool Interactor2DMeasure::ProcessKeyDownEvent(QKeyEvent * event,
                                               RenderView *renderview) {
   RenderView2D *view = (RenderView2D *)renderview;
   UpdateCursor(event, renderview);
-
-  if (m_region && event->key() == Qt::Key_Delete) {
+  if (m_region &&
+      (event->key() == Qt::Key_Delete || event->key() == Qt::Key_Backspace)) {
     view->DeleteRegion(m_region);
     m_region = NULL;
     return false;

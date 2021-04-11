@@ -406,12 +406,17 @@ int main(int argc, char *argv[]) {
                    "Suffix is optional.\n",
                    2, 3),
       CmdLineEntry(CMD_LINE_OPTION, "t", "tract", "<FILE>...",
-                   "Load one or more tract files.\n\n", 1, 1000),
+                   "Load one or more tract files.\n", 1, 1000),
       CmdLineEntry(CMD_LINE_OPTION, "tc", "tract-cluster", "<DIRECTORY>",
                    "Load tract cluster data from given directory.\n", 1, 1),
       CmdLineEntry(CMD_LINE_OPTION, "odf", "odf",
-                   "<FILE> [Vertex_file] [Face_file]", "Load ODF data. \n", 1,
-                   3),
+                   "<FILE> [Vertex_file] [Face_file]",
+                   "Load ODF data. If no vertex and face files given, will use "
+                   "the default vertices and faces by Diffusion Toolkit. "
+                   "Available sub-options are:\n\n"
+                   "':permuted=1' Indicates that the odf data is permuted. Odf "
+                   "data from DTK is permuted.\n",
+                   1, 3),
       CmdLineEntry(CMD_LINE_OPTION, "recon", "recon", "<SUBJECT_NAME>...",
                    "Load a series of pre-defined volumes and surfaces of given "
                    "subject(s).\n",

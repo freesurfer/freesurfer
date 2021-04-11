@@ -1,7 +1,7 @@
 /**
  * @brief hippocampus and amygdala version of mris_make_templace
  *
- * This code is a modified version of mris_make_template.c for being
+ * This code is a modified version of mris_make_template.c for being 
  * applied on hippocampus and amygdala.
  */
 /*
@@ -28,16 +28,18 @@
 #include "diag.h"
 #include "error.h"
 #include "macros.h"
+#include "mri.h"
 #include "mrisurf.h"
+#include "proto.h"
 #include "version.h"
 
 int main(int argc, char *argv[]);
 
 static int  get_option(int argc, char *argv[]);
-static void usage_exit();
-static void print_usage();
-static void print_help();
-static void print_version();
+static void usage_exit(void);
+static void print_usage(void);
+static void print_help(void);
+static void print_version(void);
 
 const char *Progname;
 
@@ -64,10 +66,10 @@ int main(int argc, char *argv[]) {
   MRI_SP *          mrisp, *mrisp_aligned, *mrisp_template;
   INTEGRATION_PARMS parms;
 
-  memset(&parms, 0, sizeof(parms));
+  // memset(&parms, 0, sizeof(parms)) ;
   Progname = argv[0];
   ErrorInit(NULL, NULL, NULL);
-  DiagInit(nullptr, nullptr, nullptr);
+  DiagInit(NULL, NULL, NULL);
 
   ac = argc;
   av = argv;
@@ -91,18 +93,18 @@ int main(int argc, char *argv[]) {
   hemi           = argv[1];
   sphere_name    = argv[2];
   template_fname = argv[argc - 1];
-  if (true || !FileExists(template_fname)) /* first time - create it */
+  if (1 || !FileExists(template_fname)) /* first time - create it */
   {
     fprintf(stderr, "creating new parameterization...\n");
     mrisp_template = MRISPalloc(scale, PARAM_IMAGES);
     if (no_rot) /* don't do rigid alignment */
-      mrisp_aligned = nullptr;
+      mrisp_aligned = NULL;
     else
       mrisp_aligned = MRISPalloc(scale, PARAM_IMAGES);
   } else {
     fprintf(stderr, "reading template parameterization from %s...\n",
             template_fname);
-    mrisp_aligned  = nullptr;
+    mrisp_aligned  = NULL;
     mrisp_template = MRISPread(template_fname);
     if (!mrisp_template)
       ErrorExit(ERROR_NOFILE, "%s: could not open template file %s", Progname,
@@ -114,8 +116,12 @@ int main(int argc, char *argv[]) {
   for (ino = 0; ino < argc - 1; ino++) {
     subject = argv[ino];
     fprintf(stderr, "processing subject %s\n", subject);
-    sprintf(surf_fname, "%s/%s/surf/%s.%s", subjects_dir, subject, hemi,
-            sphere_name);
+    int req = snprintf(surf_fname, STRLEN, "%s/%s/surf/%s.%s", subjects_dir,
+                       subject, hemi, sphere_name);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
     fprintf(stderr, "reading spherical surface %s...\n", surf_fname);
     mris = MRISread(surf_fname);
     if (!mris)
@@ -128,8 +134,12 @@ int main(int argc, char *argv[]) {
     for (sno = 0; sno < SURFACES; sno++) {
       if (curvature_names[sno]) /* read in precomputed curvature file */
       {
-        sprintf(surf_fname, "%s/%s/surf/%s.%s", subjects_dir, subject, hemi,
-                curvature_names[sno]);
+        int req = snprintf(surf_fname, STRLEN, "%s/%s/surf/%s.%s", subjects_dir,
+                           subject, hemi, curvature_names[sno]);
+        if (req >= STRLEN) {
+          std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                    << std::endl;
+        }
         if (MRISreadCurvatureFile(mris, surf_fname) != NO_ERROR)
           ErrorExit(Gerror, "%s: could not read curvature file '%s'\n",
                     Progname, surf_fname);
@@ -152,7 +162,7 @@ int main(int argc, char *argv[]) {
       }
       fprintf(stderr, "computing parameterization for surface %s...\n",
               surf_fname);
-      mrisp = MRIStoParameterization(mris, nullptr, scale, 0);
+      mrisp = MRIStoParameterization(mris, NULL, scale, 0);
       MRISPcombine(mrisp, mrisp_template, sno * 3);
       MRISPfree(&mrisp);
     }
@@ -170,13 +180,19 @@ int main(int argc, char *argv[]) {
       cp = strchr(fname, '.');
       if (cp) {
         cp1 = strrchr(fname, '.');
-        if (cp1 && cp1 != cp)
+        if (cp1 && cp1 != cp) {
           strncpy(parms.base_name, cp + 1, cp1 - cp - 1);
-        else
+        } else {
           strcpy(parms.base_name, cp + 1);
-      } else
+        }
+      } else {
         strcpy(parms.base_name, "template");
-      sprintf(fname, "%s.%s.out", hemi, parms.base_name);
+      }
+      int req = snprintf(fname, STRLEN, "%s.%s.out", hemi, parms.base_name);
+      if (req >= STRLEN) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                  << std::endl;
+      }
       INTEGRATION_PARMS_openFp(&parms, fname, "w");
       printf("writing output to '%s'\n", fname);
     }
@@ -185,8 +201,12 @@ int main(int argc, char *argv[]) {
       if (Gdiag & DIAG_WRITE)
         fprintf(parms.fp, "processing subject %s\n", subject);
       fprintf(stderr, "processing subject %s\n", subject);
-      sprintf(surf_fname, "%s/%s/surf/%s.%s", subjects_dir, subject, hemi,
-              sphere_name);
+      int req = snprintf(surf_fname, STRLEN, "%s/%s/surf/%s.%s", subjects_dir,
+                         subject, hemi, sphere_name);
+      if (req >= STRLEN) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                  << std::endl;
+      }
       fprintf(stderr, "reading spherical surface %s...\n", surf_fname);
       mris = MRISread(surf_fname);
       if (!mris)
@@ -195,13 +215,17 @@ int main(int argc, char *argv[]) {
       MRIScomputeMetricProperties(mris);
       MRISstoreMetricProperties(mris);
       MRISsaveVertexPositions(mris, ORIGINAL_VERTICES);
-      sprintf(surf_fname, "%s/%s/surf/%s.%s", subjects_dir, subject, hemi,
-              "hippocampus.curv");
+      req = snprintf(surf_fname, STRLEN, "%s/%s/surf/%s.%s", subjects_dir,
+                     subject, hemi, "hippocampus.curv");
+      if (req >= STRLEN) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                  << std::endl;
+      }
       if (MRISreadCurvatureFile(mris, surf_fname) != NO_ERROR)
         ErrorExit(Gerror, "%s: could not read curvature file '%s'\n", Progname,
                   surf_fname);
       parms.frame_no       = 3;
-      parms.mrisp          = MRIStoParameterization(mris, nullptr, scale, 0);
+      parms.mrisp          = MRIStoParameterization(mris, NULL, scale, 0);
       parms.mrisp_template = mrisp_template;
       parms.l_corr         = 1.0f;
 
@@ -220,8 +244,12 @@ int main(int argc, char *argv[]) {
       for (sno = 0; sno < SURFACES; sno++) {
         if (curvature_names[sno]) /* read in precomputed curvature file */
         {
-          sprintf(surf_fname, "%s/%s/surf/%s.%s", subjects_dir, subject, hemi,
-                  curvature_names[sno]);
+          int req = snprintf(surf_fname, STRLEN, "%s/%s/surf/%s.%s",
+                             subjects_dir, subject, hemi, curvature_names[sno]);
+          if (req >= STRLEN) {
+            std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                      << std::endl;
+          }
           if (MRISreadCurvatureFile(mris, surf_fname) != NO_ERROR)
             ErrorExit(Gerror, "%s: could not read curvature file '%s'\n",
                       Progname, surf_fname);
@@ -244,7 +272,7 @@ int main(int argc, char *argv[]) {
         }
         fprintf(stderr, "computing parameterization for surface %s...\n",
                 surf_fname);
-        mrisp = MRIStoParameterization(mris, nullptr, scale, 0);
+        mrisp = MRIStoParameterization(mris, NULL, scale, 0);
         MRISPcombine(mrisp, mrisp_aligned, sno * 3);
         MRISPfree(&mrisp);
       }
@@ -322,19 +350,19 @@ static int get_option(int argc, char *argv[]) {
   return (nargs);
 }
 
-static void usage_exit() {
+static void usage_exit(void) {
   print_usage();
   exit(1);
 }
 
-static void print_usage() {
+static void print_usage(void) {
   fprintf(stderr,
           "usage: %s [options] <hemi> <surface name> <subject> <subject> ... "
           "<output name>\n",
           Progname);
 }
 
-static void print_help() {
+static void print_help(void) {
   print_usage();
   fprintf(stderr,
           "\nThis program will add a template into an average surface.\n");

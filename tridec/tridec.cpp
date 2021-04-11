@@ -14,6 +14,10 @@
 
 #include "const.h"
 #include "version.h"
+#include <iostream>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 const char *Progname = "tridec";
 
@@ -38,34 +42,50 @@ int main(int argc, char *argv[]) {
   }
 
   data_dir = getenv("SUBJECTS_DIR");
-  if (data_dir == nullptr) {
+  if (data_dir == NULL) {
     printf("environment variable SUBJECTS_DIR undefined (use setenv)\n");
     exit(0);
   }
   mri_dir = getenv("FREESURFER_HOME");
-  if (mri_dir == nullptr) {
+  if (mri_dir == NULL) {
     printf("environment variable FREESURFER_HOME undefined (use setenv)\n");
     exit(0);
   }
 
   sprintf(pname, "%s", argv[1]);
-  sprintf(fpref, "%s/%s", data_dir, pname);
+  int req = snprintf(fpref, STRLEN, "%s/%s", data_dir, pname);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
 
-  sprintf(fname, "%s/bem/%s", fpref, argv[2]);
+  req = snprintf(fname, STRLEN, "%s/bem/%s", fpref, argv[2]);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
   fp1 = fopen(fname, "r");
-  if (fp1 == nullptr) {
+  if (fp1 == NULL) {
     printf("File %s not found.\n", fname);
     exit(0);
   }
-  sprintf(fname, "%s/lib/bem/%s", mri_dir, argv[3]);
+  req = snprintf(fname, STRLEN, "%s/lib/bem/%s", mri_dir, argv[3]);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
   fp2 = fopen(fname, "r");
-  if (fp2 == nullptr) {
+  if (fp2 == NULL) {
     printf("File %s not found.\n", fname);
     exit(0);
   }
-  sprintf(fname, "%s/bem/%s", fpref, argv[4]);
+  req = snprintf(fname, STRLEN, "%s/bem/%s", fpref, argv[4]);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
   fp3 = fopen(fname, "w");
-  if (fp3 == nullptr) {
+  if (fp3 == NULL) {
     printf("can't write to file %s\n", fname);
     exit(0);
   }

@@ -24,11 +24,25 @@
 
 #include "cma.h"
 #include "diag.h"
+#include "error.h"
+#include "fastmarching.h"
+#include "gca.h"
 #include "gcamorph.h"
+#include "macros.h"
+#include "matrix.h"
+#include "mri.h"
 #include "mrimorph.h"
 #include "numerics.h"
+#include "proto.h"
 #include "timer.h"
+#include "transform.h"
+#include "utils.h"
+#include "version.h"
 #include "voxlist.h"
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #define DEFAULT_MAX_ANGLE RADIANS(25)
 static double MAX_ANGLE = DEFAULT_MAX_ANGLE;
@@ -94,8 +108,8 @@ static int  target_label = Right_Hippocampus;
 static int    skip     = 2;
 static double distance = 1.0;
 
-static MRI * mri_hires_intensity   = nullptr;
-static char *hires_intensity_fname = nullptr;
+static MRI * mri_hires_intensity   = NULL;
+static char *hires_intensity_fname = NULL;
 
 static int non_hippo_labels[] = {lateral_ventricle, entorhinal_cortex,
                                  Amygdala,          Cerebral_White_Matter,
@@ -119,7 +133,7 @@ static int non_artery_labels[] = {Left_Common_IliacV,
   (sizeof(non_artery_labels) / sizeof(non_artery_labels[0]))
 
 static INTEGRATION_PARMS parms;
-static TRANSFORM *       transform = nullptr;
+static TRANSFORM *       transform = NULL;
 static GCA_MORPH_PARMS   mp;
 
 int main(int argc, char *argv[]) {
@@ -127,7 +141,7 @@ int main(int argc, char *argv[]) {
       fname[STRLEN];
   int  ac, nargs, i, new_transform = 0;
   MRI *mri_intensity, *mri_lowres, *mri_hires, *mri_tmp, *mri_target,
-      *mri_dist_src = nullptr, *mri_dist_dst = nullptr;
+      *mri_dist_src = NULL, *mri_dist_dst = NULL;
   VOXEL_LIST *vl_lowres, *vl_hires;
   MRI_REGION  box;
   Timer       start;
@@ -159,7 +173,7 @@ int main(int argc, char *argv[]) {
 
   start.reset();
   setRandomSeed(-1L);
-  DiagInit(nullptr, nullptr, nullptr);
+  DiagInit(NULL, NULL, NULL);
   ErrorInit(NULL, NULL, NULL);
 
   Progname = argv[0];
@@ -196,8 +210,8 @@ int main(int argc, char *argv[]) {
         MRIreplaceValues(mri_hires, mri_hires, label, 0);
       }
     }
-  } else if (transform == nullptr) /* remove non-hippo labels
-                                                   if only doing linear morph */
+  } else if (transform == NULL) /* remove non-hippo labels
+                                                 if only doing linear morph */
   {
     for (i = 0; i < NUM_NON_HIPPO_LABELS; i++) {
       label = non_hippo_labels[i];
@@ -219,7 +233,7 @@ int main(int argc, char *argv[]) {
   box.dy += 2 * HIRES_PAD;
   box.dz += 2 * HIRES_PAD;
   MRIcropBoundingBox(mri_hires, &box);
-  mri_tmp = MRIextractRegion(mri_hires, nullptr, &box);
+  mri_tmp = MRIextractRegion(mri_hires, NULL, &box);
   MRIfree(&mri_hires);
   mri_hires = mri_tmp;
 
@@ -259,11 +273,11 @@ int main(int argc, char *argv[]) {
                                   mri_lowres->depth),1);
     MRIwrite(mri_dist, "dist.mgz") ;
 #else
-    if (transform == nullptr) {
-      mri_dist_src = MRIdistanceTransform(mri_hires, nullptr, 128, -1,
-                                          DTRANS_MODE_SIGNED, nullptr);
-      mri_dist_dst = MRIdistanceTransform(mri_lowres, nullptr, 128, -1,
-                                          DTRANS_MODE_SIGNED, nullptr);
+    if (transform == NULL) {
+      mri_dist_src = MRIdistanceTransform(mri_hires, NULL, 128, -1,
+                                          DTRANS_MODE_SIGNED, NULL);
+      mri_dist_dst = MRIdistanceTransform(mri_lowres, NULL, 128, -1,
+                                          DTRANS_MODE_SIGNED, NULL);
       MRIwrite(mri_dist_src, "dist_src.mgz");
       MRIwrite(mri_dist_dst, "dist_dst.mgz");
     }
@@ -271,9 +285,17 @@ int main(int argc, char *argv[]) {
   }
 
   if (Gdiag & DIAG_WRITE && parms.write_iterations > 0) {
-    sprintf(fname, "%s_target", parms.base_name);
+    int req = snprintf(fname, STRLEN, "%s_target", parms.base_name);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
     MRIwriteImageViews(mri_lowres, fname, IMAGE_SIZE);
-    sprintf(fname, "intensity_%s_target", parms.base_name);
+    req = snprintf(fname, STRLEN, "intensity_%s_target", parms.base_name);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
     MRIwriteImageViews(mri_intensity, fname, IMAGE_SIZE);
     MRIwrite(mri_intensity, "intensity_target.mgz");
     MRIwrite(mri_lowres, "aseg_target.mgz");
@@ -291,20 +313,20 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  if (transform == nullptr) /* compute optimal linear transform */
+  if (transform == NULL) /* compute optimal linear transform */
   {
     vl_lowres =
-        VLSTcreate(mri_lowres, target_label, target_label, nullptr, skip, 0);
+        VLSTcreate(mri_lowres, target_label, target_label, NULL, skip, 0);
     vl_lowres->mri2 = mri_dist_dst;
     for (i = 0; i < 3; i++) {
       printf("------------- outer loop iteration %d ---------------\n", i);
-      vl_hires       = VLSTcreate(mri_hires, 1, 255, nullptr, skip, 0);
+      vl_hires       = VLSTcreate(mri_hires, 1, 255, NULL, skip, 0);
       vl_hires->mri2 = mri_dist_src;
 
       transform =
           compute_optimal_transform(vl_lowres, vl_hires, &parms, transform);
       VLSTfree(&vl_hires);
-      vl_hires       = VLSTcreate(mri_hires, 1, 255, nullptr, skip / 4, 0);
+      vl_hires       = VLSTcreate(mri_hires, 1, 255, NULL, skip / 4, 0);
       vl_hires->mri2 = mri_dist_src;
       powell_minimize(vl_lowres, vl_hires,
                       ((LTA *)(transform->xform))->xforms[0].m_L);
@@ -317,7 +339,7 @@ int main(int argc, char *argv[]) {
         FileNameRemoveExtension(out_fname, fname);
         strcat(fname, ".mgz");
         m_vox_xform = ((LTA *)(transform->xform))->xforms[0].m_L;
-        mri_aligned = MRIclone(mri_lowres, nullptr);
+        mri_aligned = MRIclone(mri_lowres, NULL);
         MRIlinearTransformInterp(mri_hires, mri_aligned, m_vox_xform,
                                  SAMPLE_NEAREST);
         printf("writing transformed output volume to %s...\n", fname);
@@ -347,12 +369,21 @@ int main(int argc, char *argv[]) {
       mri_aligned = MRITransformedCenteredMatrix(
           mri_hires, mri_lowres, ((LTA *)(transform->xform))->xforms[0].m_L);
 #endif
-      sprintf(fname, "%sfinal.mgz", parms.base_name);
+      int req = snprintf(fname, STRLEN, "%sfinal.mgz", parms.base_name);
+      if (req >= STRLEN) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                  << std::endl;
+      }
       MRIwrite(mri_aligned, fname);
 
       for (i = 1; i <= 10; i++) {
-        sprintf(fname, "%sfiltered%d.mgz", parms.base_name, i);
-        mri_filtered = MRImodeFilter(mri_aligned, nullptr, i);
+        int req =
+            snprintf(fname, STRLEN, "%sfiltered%d.mgz", parms.base_name, i);
+        if (req >= STRLEN) {
+          std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                    << std::endl;
+        }
+        mri_filtered = MRImodeFilter(mri_aligned, NULL, i);
         printf("writing filtered image to %s\n", fname);
         MRIwrite(mri_filtered, fname);
         MRIfree(&mri_filtered);
@@ -368,7 +399,7 @@ int main(int argc, char *argv[]) {
       FileNameRemoveExtension(out_fname, fname);
       strcat(fname, ".mgz");
       m_vox_xform = ((LTA *)(transform->xform))->xforms[0].m_L;
-      mri_aligned = MRIclone(mri_lowres, nullptr);
+      mri_aligned = MRIclone(mri_lowres, NULL);
       MRIlinearTransformInterp(mri_hires, mri_aligned, m_vox_xform,
                                SAMPLE_NEAREST);
       printf("writing transformed output volume to %s...\n", fname);
@@ -392,7 +423,7 @@ int main(int argc, char *argv[]) {
       new_transform = 1;
       lta           = ((LTA *)(transform->xform));
       m_L = MRIrasXformToVoxelXform(mri_hires, mri_lowres, lta->xforms[0].m_L,
-                                    nullptr);
+                                    NULL);
       MatrixFree(&lta->xforms[0].m_L);
       if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
         write_snapshot(mri_lowres, mri_hires, m_L, &parms, 0, 1, "linear_init");
@@ -401,11 +432,11 @@ int main(int argc, char *argv[]) {
       MRIfree(&mri_hires);
       if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
         MRIwrite(mri_tmp, "b.mgz");
-      mri_hires = MRImodeFilter(mri_tmp, nullptr, 3);
+      mri_hires = MRImodeFilter(mri_tmp, NULL, 3);
       MRIfree(&mri_tmp);
       if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
         MRIwrite(mri_hires, "a.mgz");
-      m_I = MatrixIdentity(4, nullptr);
+      m_I = MatrixIdentity(4, NULL);
       MRIrasXformToVoxelXform(mri_hires, mri_lowres, m_I, m_L);
       MatrixFree(&m_I);
 
@@ -430,7 +461,7 @@ int main(int argc, char *argv[]) {
       MatrixPrint(stdout, m_L);
       gcam = GCAMalloc(mri_hires->width, mri_hires->height, mri_hires->depth);
 
-      GCAMinit(gcam, mri_lowres, nullptr, transform, 0);
+      GCAMinit(gcam, mri_lowres, NULL, transform, 0);
       GCAMinitVolGeom(gcam, mri_lowres, mri_hires);
     } else /* use a previously create morph and integrate it some more */
     {
@@ -452,7 +483,7 @@ int main(int argc, char *argv[]) {
     mp.diag_morph_from_atlas = 1;
     mp.diag_volume           = GCAM_LABEL;
     mp.diag_mode_filter      = 1;
-    if (false && regrid) {
+    if (0 && regrid) {
       double pct_change;
       int    niter = 0, nlevels = mp.levels, level, npasses, navgs = mp.navgs,
           level_steps, num_this_scale;
@@ -511,12 +542,12 @@ int main(int argc, char *argv[]) {
         mri_lowres = mp.mri_binary;
         mri_target = mri_intensity;
       } else {
-        mp.mri_binary = MRIcopy(mri_lowres, nullptr);
+        mp.mri_binary = MRIcopy(mri_lowres, NULL);
         mri_target    = mri_lowres;
       }
 
       /* remove other labels from segmentation image */
-      mri_tmp = MRIclone(mp.mri_binary, nullptr);
+      mri_tmp = MRIclone(mp.mri_binary, NULL);
       MRIcopyLabel(mp.mri_binary, mri_tmp, target_label);
       MRIfree(&mp.mri_binary);
       mp.mri_binary = mri_tmp;
@@ -697,7 +728,7 @@ static int get_option(int argc, char *argv[]) {
     case 'T':
       printf("reading transform from %s...\n", argv[2]);
       transform = TransformRead(argv[2]);
-      if (transform == nullptr)
+      if (transform == NULL)
         ErrorExit(ERROR_NOFILE, "%s: could not read transform from %s\n",
                   Progname, argv[2]);
       nargs = 1;
@@ -770,16 +801,16 @@ static TRANSFORM *compute_optimal_transform(VOXEL_LIST *       vl_lowres,
 
 #define MIN_SEARCH_SCALE 0.01
   min_search_scale = MIN_SEARCH_SCALE;
-  m_origin         = MatrixIdentity(4, nullptr);
+  m_origin         = MatrixIdentity(4, NULL);
   MRIcenterOfMass(mri_hires, hires_cent, 0);
   MRIcenterOfMass(mri_lowres, lowres_cent, 0);
   *MATRIX_RELT(m_origin, 1, 4) = lowres_cent[0];
   *MATRIX_RELT(m_origin, 2, 4) = lowres_cent[1];
   *MATRIX_RELT(m_origin, 3, 4) = lowres_cent[2];
   *MATRIX_RELT(m_origin, 4, 4) = 1;
-  m_inv_origin                 = MatrixInverse(m_origin, nullptr);
-  if (transform == nullptr) {
-    transform   = TransformAlloc(LINEAR_VOX_TO_VOX, nullptr);
+  m_inv_origin                 = MatrixInverse(m_origin, NULL);
+  if (transform == NULL) {
+    transform   = TransformAlloc(LINEAR_VOX_TO_VOX, NULL);
     m_vox_xform = ((LTA *)(transform->xform))->xforms[0].m_L;
 
     m_lowres_ras2vox = MRIgetRasToVoxelXform(mri_lowres);
@@ -805,12 +836,12 @@ static TRANSFORM *compute_optimal_transform(VOXEL_LIST *       vl_lowres,
     dx                          = V3_X(v_cl) - lowres_cent[0];
     dy                          = V3_Y(v_cl) - lowres_cent[1];
     dz                          = V3_Z(v_cl) - lowres_cent[2];
-    m_trans                     = MatrixIdentity(4, nullptr);
+    m_trans                     = MatrixIdentity(4, NULL);
     *MATRIX_RELT(m_trans, 1, 4) = -dx;
     *MATRIX_RELT(m_trans, 2, 4) = -dy;
     *MATRIX_RELT(m_trans, 3, 4) = -dz;
 
-    m_tmp = MatrixCopy(m_vox_xform, nullptr);
+    m_tmp = MatrixCopy(m_vox_xform, NULL);
     MatrixMultiply(m_trans, m_tmp, m_vox_xform);
     printf("after aligning centroids:\n");
     MatrixPrint(stdout, m_vox_xform);
@@ -823,7 +854,7 @@ static TRANSFORM *compute_optimal_transform(VOXEL_LIST *       vl_lowres,
     VectorFree(&v_ch);
     if (Gdiag & DIAG_WRITE && parms->write_iterations > 0) {
       write_snapshot(mri_lowres, mri_hires, m_vox_xform, parms, parms->start_t,
-                     1, nullptr);
+                     1, NULL);
     }
     parms->start_t++;
   } else
@@ -837,7 +868,7 @@ static TRANSFORM *compute_optimal_transform(VOXEL_LIST *       vl_lowres,
 
   if (Gdiag & DIAG_WRITE && parms->write_iterations > 0) {
     write_snapshot(mri_lowres, mri_hires, m_vox_xform, parms, parms->start_t, 1,
-                   nullptr);
+                   NULL);
   }
   parms->start_t++;
 #define MIN_SCALES 3
@@ -861,7 +892,7 @@ static TRANSFORM *compute_optimal_transform(VOXEL_LIST *       vl_lowres,
     if (parms->write_iterations != 0) {
       write_snapshot(mri_lowres, mri_hires,
                      ((LTA *)(transform->xform))->xforms[0].m_L, parms,
-                     parms->start_t + niter, 1, nullptr);
+                     parms->start_t + niter, 1, NULL);
     }
     printf("Result so far: scale %2.3f: "
            "max overlap = %2.4f, old max overlap=%2.4f\n",
@@ -897,7 +928,7 @@ static double compute_overlap(VOXEL_LIST *vl_lowres, VOXEL_LIST *vl_hires,
       hwidth, hheight, hdepth, i;
   VECTOR *    v1, *v2;
   MRI *       mri_lowres, *mri_hires;
-  static MRI *mri_intersection = nullptr;
+  static MRI *mri_intersection = NULL;
 
   mri_lowres = vl_lowres->mri;
   mri_hires  = vl_hires->mri;
@@ -947,8 +978,7 @@ static double compute_overlap(VOXEL_LIST *vl_lowres, VOXEL_LIST *vl_hires,
         MRIsetVoxVal(mri_intersection, xd, yd, zd, 0, IN_UNION);
         break;
       case IN_UNION: /* already processed
-                                                              one way or the
-                        other */
+                                                                          one way or the other */
       case IN_INTERSECTION:
         break;
       default: /* hires mapping into lowres label */
@@ -1013,8 +1043,8 @@ static double compute_distance_transform_sse(VOXEL_LIST *vl_lowres,
   double  d1, d2, xd, yd, zd;
   MATRIX *m_L_inv;
 
-  m_L_inv = MatrixInverse(m_L, nullptr);
-  if (m_L_inv == nullptr)
+  m_L_inv = MatrixInverse(m_L, NULL);
+  if (m_L_inv == NULL)
     ErrorExit(ERROR_BADPARM,
               "compute_distance_transform_sse: singular matrix.");
 
@@ -1117,8 +1147,8 @@ static double find_optimal_translation(VOXEL_LIST *vl_lowres,
   mri_lowres = vl_lowres->mri;
   mri_hires  = vl_hires->mri;
   delta      = (max_trans - min_trans) / trans_steps;
-  m_L_tmp    = nullptr;
-  m_trans    = MatrixIdentity(4, nullptr);
+  m_L_tmp    = NULL;
+  m_trans    = MatrixIdentity(4, NULL);
   x_max = y_max = z_max = 0.0;
   max_overlap           = (*pf_overlap)(vl_lowres, vl_hires, m_L);
 
@@ -1191,7 +1221,7 @@ static double find_optimal_linear_xform(
     float min_trans, float max_trans, float angle_steps, float scale_steps,
     float trans_steps, int nreductions) {
   MATRIX *m_rot, *m_x_rot, *m_y_rot, *m_z_rot, *m_tmp, *m_L_tmp, *m_origin_inv,
-      *m_tmp2, *m_scale, *m_trans, *m_tmp3 = nullptr;
+      *m_tmp2, *m_scale, *m_trans, *m_tmp3 = NULL;
   double x_angle, y_angle, z_angle, x_max_rot, y_max_rot, z_max_rot, delta_rot,
       x_max_scale, y_max_scale, z_max_scale, delta_scale, x_trans, delta_trans,
       y_trans, z_trans, mean_angle, x_scale, y_scale, z_scale, mean_scale,
@@ -1201,16 +1231,16 @@ static double find_optimal_linear_xform(
 
   mri_lowres   = vl_lowres->mri;
   mri_hires    = vl_hires->mri;
-  m_trans      = MatrixIdentity(4, nullptr);
-  m_origin_inv = MatrixCopy(m_origin, nullptr);
+  m_trans      = MatrixIdentity(4, NULL);
+  m_origin_inv = MatrixCopy(m_origin, NULL);
   *MATRIX_RELT(m_origin_inv, 1, 4) *= -1;
   *MATRIX_RELT(m_origin_inv, 2, 4) *= -1;
   *MATRIX_RELT(m_origin_inv, 3, 4) *= -1;
-  m_L_tmp = m_x_rot = m_y_rot = m_z_rot = m_rot = m_tmp = m_tmp2 = nullptr;
+  m_L_tmp = m_x_rot = m_y_rot = m_z_rot = m_rot = m_tmp = m_tmp2 = NULL;
   x_max_trans = y_max_trans = z_max_trans = x_max_rot = y_max_rot = z_max_rot =
       0.0;
   x_max_scale = y_max_scale = z_max_scale = 1.0f;
-  m_scale                                 = MatrixIdentity(4, nullptr);
+  m_scale                                 = MatrixIdentity(4, NULL);
   max_overlap = (*pf_overlap)(vl_lowres, vl_hires, m_L);
   for (i = 0; i < nreductions; i++) {
     delta_trans = (max_trans - min_trans) / (trans_steps - 1);
@@ -1343,8 +1373,8 @@ static double find_optimal_linear_xform(
     MatrixCopy(m_L_tmp, m_L);
 
     x_max_trans = y_max_trans = z_max_trans = 0.0; /* we've translated
-                                  transform
-                by old maxs */
+                                                                          transform by
+                                                                          old maxs */
     mean_trans                              = (max_trans + min_trans) / 2;
     delta_trans                             = (max_trans - min_trans) / 4;
     min_trans                               = mean_trans - delta_trans;
@@ -1420,7 +1450,7 @@ static int powell_minimize(VOXEL_LIST *vl_lowres, VOXEL_LIST *vl_hires,
     printf("%3.3d: best alignment at after powell: %2.3f (%d steps)\n",
            parms.start_t, fret, iter);
     write_snapshot(vl_lowres->mri, vl_hires->mri, mat, &parms, parms.start_t++,
-                   1, nullptr);
+                   1, NULL);
   } while (fret < fstart);
 
   free_matrix(xi, 1, NPARMS, 1, NPARMS);
@@ -1429,11 +1459,11 @@ static int powell_minimize(VOXEL_LIST *vl_lowres, VOXEL_LIST *vl_hires,
 }
 
 static float compute_powell_sse(float *p) {
-  static MATRIX *mat = nullptr;
+  static MATRIX *mat = NULL;
   float          error;
   int            i, r, c;
 
-  if (mat == nullptr)
+  if (mat == NULL)
     mat = MatrixAlloc(4, 4, MATRIX_REAL);
   for (i = r = 1; r <= 4; r++) {
     for (c = 1; c <= 4; c++) {
@@ -1460,7 +1490,7 @@ static int write_snapshot(MRI *mri_lowres, MRI *mri_hires, MATRIX *m_vox_xform,
     MatrixPrint(stdout, m_vox_xform);
   }
   if (conform) {
-    mri_aligned = MRIclone(mri_lowres, nullptr);
+    mri_aligned = MRIclone(mri_lowres, NULL);
     MRIlinearTransformInterp(mri_hires, mri_aligned, m_vox_xform,
                              SAMPLE_NEAREST);
   } else {
@@ -1468,21 +1498,39 @@ static int write_snapshot(MRI *mri_lowres, MRI *mri_hires, MATRIX *m_vox_xform,
     mri_aligned = MRIsrcTransformedCentered
                   (mri_hires_intensity, mri_lowres, m_vox_xform, SAMPLE_TRILINEAR) ;
 #else
-    lta = LTAalloc(1, nullptr);
+    lta = LTAalloc(1, NULL);
     MatrixCopy(m_vox_xform, lta->xforms[0].m_L);
     mri_aligned = MRITransformedCenteredMatrix(mri_hires_intensity, mri_lowres,
                                                m_vox_xform);
 #endif
   }
-  if (in_fname)
-    sprintf(fname, "%s_%s", parms->base_name, in_fname);
-  else
-    sprintf(fname, "%s_%03d", parms->base_name, fno);
+  if (in_fname) {
+    int req = snprintf(fname, STRLEN, "%s_%s", parms->base_name, in_fname);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
+  } else {
+    int req = snprintf(fname, STRLEN, "%s_%03d", parms->base_name, fno);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
+  }
   MRIwriteImageViews(mri_aligned, fname, IMAGE_SIZE);
-  if (in_fname)
-    sprintf(fname, "%s_%s.mgz", parms->base_name, in_fname);
-  else
-    sprintf(fname, "%s_%03d.mgz", parms->base_name, fno);
+  if (in_fname) {
+    int req = snprintf(fname, STRLEN, "%s_%s.mgz", parms->base_name, in_fname);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
+  } else {
+    int req = snprintf(fname, STRLEN, "%s_%03d.mgz", parms->base_name, fno);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
+  }
   printf("writing snapshot to %s...\n", fname);
   MRIwrite(mri_aligned, fname);
   MRIfree(&mri_aligned);
@@ -1495,10 +1543,21 @@ static int write_snapshot(MRI *mri_lowres, MRI *mri_hires, MATRIX *m_vox_xform,
     mri_aligned =
         MRITransformedCenteredMatrix(mri_hires, mri_lowres, m_vox_xform);
 #endif
-    if (in_fname)
-      sprintf(fname, "orig_%s_%s.mgz", parms->base_name, in_fname);
-    else
-      sprintf(fname, "orig_%s_%03d.mgz", parms->base_name, fno);
+    if (in_fname) {
+      int req =
+          snprintf(fname, STRLEN, "orig_%s_%s.mgz", parms->base_name, in_fname);
+      if (req >= STRLEN) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                  << std::endl;
+      }
+    } else {
+      int req =
+          snprintf(fname, STRLEN, "orig_%s_%03d.mgz", parms->base_name, fno);
+      if (req >= STRLEN) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                  << std::endl;
+      }
+    }
     printf("writing snapshot to %s...\n", fname);
     MRIwrite(mri_aligned, fname);
     MRIfree(&mri_aligned);
@@ -1512,15 +1571,37 @@ static int write_snapshot(MRI *mri_lowres, MRI *mri_hires, MATRIX *m_vox_xform,
     mri_aligned = MRITransformedCenteredMatrix(mri_hires_intensity, mri_lowres,
                                                m_vox_xform);
 #endif
-    if (in_fname)
-      sprintf(fname, "intensity_%s_%s", parms->base_name, in_fname);
-    else
-      sprintf(fname, "intensity_%s_%03d", parms->base_name, fno);
+    if (in_fname) {
+      int req = snprintf(fname, STRLEN, "intensity_%s_%s", parms->base_name,
+                         in_fname);
+      if (req >= STRLEN) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                  << std::endl;
+      }
+    } else {
+      int req =
+          snprintf(fname, STRLEN, "intensity_%s_%03d", parms->base_name, fno);
+      if (req >= STRLEN) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                  << std::endl;
+      }
+    }
     MRIwriteImageViews(mri_aligned, fname, IMAGE_SIZE);
-    if (in_fname)
-      sprintf(fname, "intensity_%s_%s.mgz", parms->base_name, in_fname);
-    else
-      sprintf(fname, "intensity_%s_%03d.mgz", parms->base_name, fno);
+    if (in_fname) {
+      int req = snprintf(fname, STRLEN, "intensity_%s_%s.mgz", parms->base_name,
+                         in_fname);
+      if (req >= STRLEN) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                  << std::endl;
+      }
+    } else {
+      int req = snprintf(fname, STRLEN, "intensity_%s_%03d.mgz",
+                         parms->base_name, fno);
+      if (req >= STRLEN) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                  << std::endl;
+      }
+    }
     printf("writing snapshot to %s...\n", fname);
     MRIwrite(mri_aligned, fname);
     MRIfree(&mri_aligned);

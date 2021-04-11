@@ -1,9 +1,8 @@
 /**
  * @brief main program for labeling a surface based on a previously trained random forest on the surface
  *
- * program for labeling a surfaced based on a set of features across subjects on
- * the surface and that had been used to train a Random Forest classifier (see
- * mris_rf_train)
+ * program for labeling a surfaced based on a set of features across subjects on the surface and that had
+ * been used to train a Random Forest classifier (see mris_rf_train)
  */
 /*
  * Original Author: Bruce Fischl
@@ -20,10 +19,21 @@
  *
  */
 
+#include <ctype.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+#include "annotation.h"
 #include "diag.h"
+#include "error.h"
+#include "macros.h"
 #include "mrisurf.h"
+#include "proto.h"
 #include "rforest.h"
+#include "rfutils.h"
 #include "timer.h"
+#include "utils.h"
 #include "version.h"
 
 int        main(int argc, char *argv[]);
@@ -67,7 +77,7 @@ int main(int argc, char *argv[]) {
   Progname = argv[0];
   ErrorInit(NULL, NULL, NULL);
   setRandomSeed(0L);
-  DiagInit(nullptr, nullptr, nullptr);
+  DiagInit(NULL, NULL, NULL);
 
   start.reset();
 
@@ -94,24 +104,39 @@ int main(int argc, char *argv[]) {
   rf        = RFread(argv[2]);
   noverlays = rf->nfeatures;
 
-  sprintf(fname, "%s/%s/surf/%s.%s", sdir, subject, hemi, surf_name);
+  int req = snprintf(fname, STRLEN, "%s/%s/surf/%s.%s", sdir, subject, hemi,
+                     surf_name);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
   mris = MRISread(fname);
   if (!mris)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface from %s", Progname,
               fname);
 
   MRIScomputeMetricProperties(mris);
-  sprintf(fname, "%s/%s/label/%s.%s", sdir, subject, hemi, cortex_label_name);
-  cortex_label = LabelRead(nullptr, fname);
-  if (cortex_label == nullptr)
+  req = snprintf(fname, STRLEN, "%s/%s/label/%s.%s", sdir, subject, hemi,
+                 cortex_label_name);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
+  cortex_label = LabelRead(NULL, fname);
+  if (cortex_label == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not read cortex label %s\n", Progname,
               fname);
   LabelRipRestOfSurface(cortex_label, mris);
 
-  sprintf(fname, "%s/%s/label/%s.%s", sdir, subject, hemi, label_name);
+  req = snprintf(fname, STRLEN, "%s/%s/label/%s.%s", sdir, subject, hemi,
+                 label_name);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
   if (FileExists(fname)) {
-    training_label = LabelRead(nullptr, fname);
-    if (training_label == nullptr)
+    training_label = LabelRead(NULL, fname);
+    if (training_label == NULL)
       ErrorExit(ERROR_NOFILE, "%s: could not read training label %s\n",
                 Progname, fname);
 
@@ -120,13 +145,17 @@ int main(int argc, char *argv[]) {
     LabelDilate(training_label, mris, ndilates, CURRENT_VERTICES);
     LabelMark(training_label, mris);
   } else
-    training_label = nullptr;
+    training_label = NULL;
 
   for (i = 0; i < noverlays; i++) {
-    sprintf(fname, "%s/%s/surf/%s.%s", sdir, subject, hemi,
-            rf->feature_names[i]);
+    int req = snprintf(fname, STRLEN, "%s/%s/surf/%s.%s", sdir, subject, hemi,
+                       rf->feature_names[i]);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
     mri_overlays[i] = MRIread(fname);
-    if (mri_overlays[i] == nullptr)
+    if (mri_overlays[i] == NULL)
       ErrorExit(ERROR_NOFILE, "%s: could not read overlay %s (%d)\n", Progname,
                 fname, i);
   }

@@ -12,19 +12,32 @@
  *
  */
 
+#include <ctype.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "macros.h"
+
+#include "icosahedron.h"
+#include "mri.h"
+#include "mrimorph.h"
+#include "mrinorm.h"
 #include "mrisegment.h"
+#include "mrisurf.h"
 #include "mrisurf_project.h"
 
+#include "cma.h"
 #include "diag.h"
+#include "error.h"
+#include "proto.h"
 #include "timer.h"
 #include "version.h"
 
+static double compute_surface_dist_sse(MRI_SURFACE *mris, MRI *mri_dist);
 static int    MRISrepositionToInnerSkull(MRI_SURFACE *mris, MRI *mri_smooth,
                                          INTEGRATION_PARMS *parms);
-static double compute_surface_dist_sse(MRI_SURFACE *mris, MRI *mri);
-
-static char vcid[] =
-    "$Id: mris_AA_shrinkwrap.c,v 1.6 2015/02/05 23:34:41 zkaufman Exp $";
 
 int main(int argc, char *argv[]);
 
@@ -103,9 +116,9 @@ int main(int argc, char *argv[]) {
   Gdiag |= DIAG_SHOW;
   Progname = argv[0];
   ErrorInit(NULL, NULL, NULL);
-  DiagInit(nullptr, nullptr, nullptr);
+  DiagInit(NULL, NULL, NULL);
 
-  memset(&parms, 0, sizeof(parms));
+  // memset(&parms, 0, sizeof(parms)) ; Have proper constructor now
 
   parms.projection    = NO_PROJECTION;
   parms.tol           = 0.05;
@@ -172,15 +185,15 @@ int main(int argc, char *argv[]) {
     ErrorExit(ERROR_NOFILE, "%s: could not read icosahedron %s", Progname,
               fname);
 
-  mri_mean = MRImean(mri_flash1, nullptr, 5);
+  mri_mean = MRImean(mri_flash1, NULL, 5);
   MRIwrite(mri_mean, "mean.mgz");
 
-  mri_dif = MRIabsdiff(mri_flash1, mri_flash2, nullptr);
+  mri_dif = MRIabsdiff(mri_flash1, mri_flash2, NULL);
   MRIwrite(mri_dif, "dif.mgz");
 
   mriseg     = MRIsegment(mri_mean, 30, 100000);
   s          = MRIsegmentMax(mriseg);
-  mri_masked = MRIsegmentToImage(mri_flash1, nullptr, mriseg, s);
+  mri_masked = MRIsegmentToImage(mri_flash1, NULL, mriseg, s);
   MRIwrite(mri_masked, "mask.mgz");
   MRIsegmentFree(&mriseg);
 
@@ -188,7 +201,7 @@ int main(int argc, char *argv[]) {
   // MRIwrite(mri_dif, "dif_masked.mgz") ;
 
   mri_kernel = MRIgaussian1d(2, 0);
-  mri_smooth = MRIconvolveGaussian(mri_dif, nullptr, mri_kernel);
+  mri_smooth = MRIconvolveGaussian(mri_dif, NULL, mri_kernel);
   MRIwrite(mri_smooth, "smooth.mgz");
   MRIScopyVolGeomFromMRI(mris, mri_smooth);
   mris->useRealRAS = 1;
@@ -198,9 +211,9 @@ int main(int argc, char *argv[]) {
   MRISrepositionToInnerSkull(mris, mri_smooth, &parms);
 
   exit(0);
-  mri_grad = MRIsobel(mri_smooth, nullptr, nullptr);
+  mri_grad = MRIsobel(mri_smooth, NULL, NULL);
   MRIwrite(mri_grad, "grad.mgz");
-  mri_inner = MRIfindInnerBoundary(mri_dif, mri_grad, nullptr, 5.0);
+  mri_inner = MRIfindInnerBoundary(mri_dif, mri_grad, NULL, 5.0);
   MRIwrite(mri_inner, "inner.mgz");
   MRIbinarize(mri_inner, mri_inner, 10, 0, 128);
 
@@ -208,8 +221,7 @@ int main(int argc, char *argv[]) {
   MRISwrite(mris, "optimal");
   exit(0);
   parms.sigma = 4 / mri_flash1->xsize;
-  // mri_dist = create_distance_map(mri_masked, NULL, BORDER_VAL,
-  // OUTSIDE_BORDER_STEP) ;
+  // mri_dist = create_distance_map(mri_masked, NULL, BORDER_VAL, OUTSIDE_BORDER_STEP) ;
   MRISsetVals(mris, parms.sigma);
   MRIScopyValToVal2(mris);
   MRISsetVals(mris, 0);
@@ -220,10 +232,10 @@ int main(int argc, char *argv[]) {
 
   mri_binary = MRIbinarize(mri_dif, mri_binary, 40, 0, 128);
   MRIwrite(mri_binary, "bin.mgz");
-  mri_distance = MRIdistanceTransform(mri_binary, nullptr, 128, 100,
-                                      DTRANS_MODE_SIGNED, nullptr);
+  mri_distance = MRIdistanceTransform(mri_binary, NULL, 128, 100,
+                                      DTRANS_MODE_SIGNED, NULL);
   MRIwrite(mri_distance, "dist.mgz");
-  mri_masked_smooth = MRIconvolveGaussian(mri_distance, nullptr, mri_kernel);
+  mri_masked_smooth = MRIconvolveGaussian(mri_distance, NULL, mri_kernel);
   MRIfree(&mri_kernel);
   MRIwrite(mri_masked_smooth, "dif_smooth.mgz");
 
@@ -380,17 +392,17 @@ static int get_option(int argc, char *argv[]) {
   return (nargs);
 }
 
-static void usage_exit() {
+static void usage_exit(void) {
   print_usage();
   exit(1);
 }
 
-static void print_usage() {
+static void print_usage(void) {
   fprintf(stderr, "usage: %s [options] <T1 vol> <PD vol> <output dir>\n",
           Progname);
 }
 
-static void print_help() {
+static void print_help(void) {
   print_usage();
   fprintf(stderr,
           "\nThis program positions the tessellation of the cortical surface\n"
@@ -421,7 +433,7 @@ static int initialize_surface_position(MRI_SURFACE *mris, MRI *mri_masked,
   if (outside) {
 
     MRI *mri_dilated;
-    mri_dilated = MRIdilate(mri_masked, nullptr);
+    mri_dilated = MRIdilate(mri_masked, NULL);
 
     MRIsubtract(mri_dilated, mri_masked, mri_dilated);
     MRIwrite(mri_dilated, "outside.mgz");
@@ -486,8 +498,8 @@ static MRI *MRIfindInnerBoundary(MRI *mri_src, MRI *mri_grad, MRI *mri_dst,
   double x1, y1, z1, dx, dy, dz, dot, d, inside, outside, norm, val, xc, yc, zc,
       wt;
 
-  if (mri_dst == nullptr)
-    mri_dst = MRIclone(mri_src, nullptr);
+  if (mri_dst == NULL)
+    mri_dst = MRIclone(mri_src, NULL);
 
   xc = yc = zc = 0.0;
   for (wt = 0.0, x = 0; x < mri_src->width; x++) {
@@ -644,7 +656,7 @@ int MRISpositionOptimalSphere(MRI_SURFACE *mris, MRI *mri_inner,
 /*
  compute sse that wants bright stuff inside and dark stuff outside
 */
-#define DELTA 1 // mm
+#define DELTA 1 //mm
 static double compute_surface_sse(MRI_SURFACE *mris, MRI *mri,
                                   float sample_dist) {
   int     vno, nsamples;
@@ -704,16 +716,15 @@ static int MRISrepositionToInnerSkull(MRI_SURFACE *mris, MRI *mri_smooth,
   if (parms->momentum < 0.0)
     parms->momentum = 0.0 /*0.75*/;
 
-  mri_bin = MRIbinarize(mri_smooth, nullptr, 15, 0, TARGET_VAL);
-  mri_dist =
-      MRIdistanceTransform(mri_bin, nullptr, TARGET_VAL, 10 * mri_bin->width,
-                           DTRANS_MODE_SIGNED, nullptr);
+  mri_bin  = MRIbinarize(mri_smooth, NULL, 15, 0, TARGET_VAL);
+  mri_dist = MRIdistanceTransform(
+      mri_bin, NULL, TARGET_VAL, 10 * mri_bin->width, DTRANS_MODE_SIGNED, NULL);
   MRIwrite(mri_bin, "bin.mgz");
   MRIwrite(mri_dist, "dist.mgz");
   MRISscaleBrain(mris, mris, 0.5); // start inside
 
   mri_kernel     = MRIgaussian1d(2, 0);
-  mri_bin_smooth = MRIconvolveGaussian(mri_bin, nullptr, mri_kernel);
+  mri_bin_smooth = MRIconvolveGaussian(mri_bin, NULL, mri_kernel);
   MRIwrite(mri_bin_smooth, "bin_smooth.mgz");
   MRISfindOptimalRigidPosition(mris, mri_bin_smooth, parms);
   MRIfree(&mri_kernel);
@@ -751,7 +762,7 @@ static int MRISrepositionToInnerSkull(MRI_SURFACE *mris, MRI *mri_smooth,
       parms->mri_brain = mri_dist;
 
       mri_kernel      = MRIgaussian1d(sigma, 0);
-      mri_dist_smooth = MRIconvolveGaussian(mri_dist, nullptr, mri_kernel);
+      mri_dist_smooth = MRIconvolveGaussian(mri_dist, NULL, mri_kernel);
       MRIfree(&mri_kernel);
       if (i == 0) {
         MRIwrite(mri_dist_smooth, "dist_smooth.mgz");

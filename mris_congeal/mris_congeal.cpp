@@ -19,20 +19,24 @@
  *
  */
 
+#include <ctype.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "diag.h"
+#include "error.h"
 #include "gcsa.h"
+#include "macros.h"
+#include "mri.h"
+#include "mrisurf.h"
+#include "proto.h"
 #include "tags.h"
 #include "timer.h"
 #include "version.h"
 
 int main(int argc, char *argv[]);
-
-static int    get_option(int argc, char *argv[]);
-static void   usage_exit();
-static void   print_usage();
-static void   print_help();
-static void   print_version();
-static double gcsaSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms);
 
 static int    get_option(int argc, char *argv[]);
 static void   usage_exit(void);
@@ -56,12 +60,12 @@ static double max_angle = 16.0;
 #define SURFACES          sizeof(curvature_names) / sizeof(curvature_names[0])
 #define PARAM_IMAGES      (IMAGES_PER_SURFACE * SURFACES)
 
-static char * starting_reg_fname = nullptr;
+static char * starting_reg_fname = NULL;
 static int    multi_scale        = 0;
 static int    which_norm         = NORM_MEAN;
 static int    single_surf        = 0;
 static double l_ocorr            = 1.0;
-static char * annot_name         = nullptr;
+static char * annot_name         = NULL;
 static int    atlas_size         = 3;
 static int    max_passes         = 4;
 static float  min_degrees        = 0.5;
@@ -98,7 +102,7 @@ static int    label_annots[MAX_LABELS];
 static int multiframes              = 0;
 static int use_initial_registration = 0;
 
-static void initParms();
+static void initParms(void);
 
 static int use_defaults = 1;
 
@@ -128,9 +132,9 @@ int     main(int argc, char *argv[]) {
   Gdiag    = DIAG_SHOW;
   Progname = argv[0];
   ErrorInit(NULL, NULL, NULL);
-  DiagInit(nullptr, nullptr, nullptr);
+  DiagInit(NULL, NULL, NULL);
 
-  memset(&parms, 0, sizeof(parms));
+  // memset(&parms, 0, sizeof(parms)) ; Have proper constructor now
   parms.projection = PROJECT_SPHERE;
   parms.flags |= IP_USE_CURVATURE;
   parms.tol                = 0.5; // was 1e-0*2.5
@@ -208,7 +212,12 @@ int     main(int argc, char *argv[]) {
   }
 
   for (i = 0; i < nsubjects; i++) {
-    sprintf(fname, "%s/%s/surf/%s.%s", sdir, argv[i + 3], hemi, surf_name);
+    int req = snprintf(fname, STRLEN, "%s/%s/surf/%s.%s", sdir, argv[i + 3],
+                       hemi, surf_name);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
     fprintf(stderr, "reading surface from %s...\n", fname);
     mris_array[i] = MRISread(fname);
     if (!mris_array[i])
@@ -218,13 +227,12 @@ int     main(int argc, char *argv[]) {
   }
 
   sprintf(fname, "%s/lib/bem/ic%d.tri", fs_home, ico_order);
-  mris_ico = nullptr;
+  mris_ico = NULL;
   mris_ico = MRISread(fname);
-  if (mris_ico == nullptr) {
+  if (mris_ico == NULL) {
     ErrorExit(ERROR_NOFILE, "%s: could not read icosahedron from %s", fname);
   }
-  mrisp_template =
-      MRIScongeal(mris_ico, mris_array, nsubjects, nullptr, &parms);
+  mrisp_template = MRIScongeal(mris_ico, mris_array, nsubjects, NULL, &parms);
 
   msec = start.milliseconds();
   if (Gdiag & DIAG_SHOW)
@@ -567,12 +575,12 @@ static int get_option(int argc, char *argv[]) {
         ErrorExit(ERROR_NO_MEMORY, "%s: too many labels specified (%d max)",
                   Progname, MAX_LABELS);
       nargs           = 3;
-      labels[nlabels] = LabelRead(nullptr, argv[2]);
-      if (labels[nlabels] == nullptr)
+      labels[nlabels] = LabelRead(NULL, argv[2]);
+      if (labels[nlabels] == NULL)
         ErrorExit(ERROR_NOFILE, "%s: could not read label file %s", Progname,
                   argv[2]);
       label_gcsa[nlabels] = GCSAread(argv[3]);
-      if (label_gcsa[nlabels] == nullptr)
+      if (label_gcsa[nlabels] == NULL)
         ErrorExit(ERROR_NOFILE, "%s: could not read GCSA file %s", Progname,
                   argv[3]);
       label_names[nlabels] = argv[4];
@@ -649,12 +657,12 @@ static int get_option(int argc, char *argv[]) {
   return (nargs);
 }
 
-static void usage_exit() {
+static void usage_exit(void) {
   print_help();
   exit(1);
 }
 
-static void print_usage() {
+static void print_usage(void) {
   printf("\nUSAGE:\n"
          "%s [options] <input surface name> <hemi> <subject 1>  <subject 2> "
          "... <output surface name>\n",
@@ -677,7 +685,7 @@ static void print_usage() {
          "                       not a template file\n");
 }
 
-static void print_help() {
+static void print_help(void) {
   print_usage();
   printf("\nThis program registers a set of input surfaces together, and "
          "generates an atlas.\n\n");
@@ -725,7 +733,7 @@ static double gcsaSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) {
   return (sse);
 }
 
-void initParms() {
+void initParms(void) {
   int n;
   parms.flags |= IP_USE_MULTIFRAMES;
   parms.nfields = 0;
@@ -763,7 +771,7 @@ double MRIScongealComputeSSE(MRI_SURFACE *mris_ico, MRI_SURFACE **mris_array,
     for (mean = var = 0.0, i = 0; i < nsubjects; i++) {
       vsurf = MHTfindClosestVertexInTable(mht_array[i], mris_array[i], v->x,
                                           v->y, v->z, 1);
-      if (vsurf == nullptr)
+      if (vsurf == NULL)
         continue; // should never happen
       mean += vsurf->curv;
       var += (vsurf->curv * vsurf->curv);
@@ -798,7 +806,7 @@ double MRIScongealEstimateTemplate(MRI_SURFACE * mris_ico,
         continue;
       vsurf = MHTfindClosestVertexInTable(mht_array[i], mris_array[i], v->x,
                                           v->y, v->z, 1);
-      if (vsurf == nullptr)
+      if (vsurf == NULL)
         continue; // should never happen
       mean += vsurf->curv;
       var += (vsurf->curv * vsurf->curv);
@@ -865,7 +873,11 @@ MRI_SP *MRIScongeal(MRI_SURFACE *mris_ico, MRI_SURFACE **mris_array,
 
   if (Gdiag & DIAG_WRITE) {
     char fname[STRLEN];
-    sprintf(fname, "%s.log", parms->base_name);
+    int  req = snprintf(fname, STRLEN, "%s.log", parms->base_name);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
     INTEGRATION_PARMS_openFp(parms, fname, "a");
   }
 
@@ -873,7 +885,7 @@ MRI_SP *MRIScongeal(MRI_SURFACE *mris_ico, MRI_SURFACE **mris_array,
   mris_ico->hemisphere = mris_array[0]->hemisphere;
 
   mht_ico = MHTcreateVertexTable(mris_ico, CURRENT_VERTICES);
-  if (mrisp == nullptr) {
+  if (mrisp == NULL) {
     mrisp = MRISPalloc(scale, nsurfaces * IMAGES_PER_SURFACE);
   }
 
@@ -911,7 +923,12 @@ MRI_SP *MRIScongeal(MRI_SURFACE *mris_ico, MRI_SURFACE **mris_array,
     for (angle = max_angle; angle >= 0.5; angle /= 2) {
       if (Gdiag & DIAG_WRITE && parms->write_iterations > 0) {
         char fname[STRLEN];
-        sprintf(fname, "%s.template.sno%d.iter%d", parms->base_name, sno, iter);
+        int  req = snprintf(fname, STRLEN, "%s.template.sno%d.iter%d",
+                           parms->base_name, sno, iter);
+        if (req >= STRLEN) {
+          std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                    << std::endl;
+        }
         MRISwriteCurvature(mris_ico, fname);
       }
       MRIScongealUpdateRigidRegistration(mris_ico, mris_array, mht_array,
@@ -927,7 +944,12 @@ MRI_SP *MRIScongeal(MRI_SURFACE *mris_ico, MRI_SURFACE **mris_array,
     }
     if (Gdiag & DIAG_WRITE && parms->write_iterations > 0) {
       char fname[STRLEN];
-      sprintf(fname, "%s.template.sno%d.iter%d", parms->base_name, sno, iter);
+      int  req = snprintf(fname, STRLEN, "%s.template.sno%d.iter%d",
+                         parms->base_name, sno, iter);
+      if (req >= STRLEN) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                  << std::endl;
+      }
       MRISwriteCurvature(mris_ico, fname);
     }
     do {
@@ -970,7 +992,7 @@ double MRIScongealComputeSurfaceError(MRI_SURFACE *mris_ico, MRI_SURFACE *mris,
     if (v->ripflag)
       continue;
     vsurf = MHTfindClosestVertexInTable(mht_ico, mris_ico, v->x, v->y, v->z, 1);
-    if (vsurf == nullptr)
+    if (vsurf == NULL)
       continue; // should never happen
     if (vsurf - mris_ico->vertices == Gdiag_no)
       DiagBreak();
@@ -1197,15 +1219,28 @@ static int mrisWriteSnapshot(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
   char fname[STRLEN], path[STRLEN], base_name[STRLEN], *cp;
 
   FileNamePath(mris->fname, path);
-  sprintf(base_name, "%s/%s.%s.sno%d.iter%d", path,
-          mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", parms->base_name,
-          Gsno, Giter);
-  if ((cp = strstr(base_name, ".geo")) != nullptr) {
-    *cp = 0;
-    sprintf(fname, "%s%4.4d.geo", base_name, t);
+  int req = snprintf(base_name, STRLEN, "%s/%s.%s.sno%d.iter%d", path,
+                     mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh",
+                     parms->base_name, Gsno, Giter);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
+  if ((cp = strstr(base_name, ".geo")) != NULL) {
+    *cp     = 0;
+    int req = snprintf(fname, STRLEN, "%s%4.4d.geo", base_name, t);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
     *cp = '.';
-  } else
-    sprintf(fname, "%s.%4.4d", base_name, t);
+  } else {
+    int req = snprintf(fname, STRLEN, "%s.%4.4d", base_name, t);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
+  }
 #if 1
   if (Gdiag & DIAG_SHOW)
     fprintf(stdout, "writing %s...", fname);
@@ -1223,7 +1258,11 @@ static int mrisWriteSnapshot(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
   if (mris->status == MRIS_PARAMETERIZED_SPHERE && DIAG_VERBOSE_ON) {
     MRI_SP *mrisp = (MRI_SP *)mris->vp;
 
-    sprintf(fname, "%s%4.4d.hipl", parms->base_name, t);
+    int req = snprintf(fname, STRLEN, "%s%4.4d.hipl", parms->base_name, t);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
     if (Gdiag & DIAG_SHOW)
       fprintf(stdout, "writing %s\n", fname);
     MRIStoParameterization(mris, mrisp, 1, 0);
@@ -1236,7 +1275,7 @@ static int mrisWriteSnapshot(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
 int MRISblurCurvature(MRI_SURFACE *mris, double sigma) {
   MRI_SP *mrisp;
 
-  mrisp = MRIStoParameterization(mris, nullptr, 1, 0);
+  mrisp = MRIStoParameterization(mris, NULL, 1, 0);
   MRISPblur(mrisp, mrisp, sigma, 0);
   MRISfromParameterization(mrisp, mris, 0);
   MRISPfree(&mrisp);

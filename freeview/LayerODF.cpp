@@ -47,7 +47,6 @@ LayerODF::LayerODF(LayerMRI *ref, QObject *parent)
   file.open(QIODevice::ReadOnly);
   for (int i = 0; i < m_nMesh; i++) {
     file.read((char *)m_odfMesh[i], sizeof(int) * 3);
-    qDebug() << m_odfMesh[i][0] << m_odfMesh[i][1] << m_odfMesh[i][2];
   }
   file.close();
 
@@ -103,7 +102,7 @@ void LayerODF::SetOdfMaskThreshold(double *th) {
 }
 
 bool LayerODF::Load(const QString &fn, const QString &vertex_fn,
-                    const QString &face_fn) {
+                    const QString &face_fn, bool bPermute) {
   m_bDtkFormat = vertex_fn.isEmpty();
   if (!m_bDtkFormat) {
     QFile file(vertex_fn);
@@ -155,7 +154,7 @@ bool LayerODF::Load(const QString &fn, const QString &vertex_fn,
   SetFileName(fn);
 
   // un-permute mri if dtk format
-  if (m_bDtkFormat) {
+  if (m_bDtkFormat && bPermute) {
     MRI *mri2    = ::MRIallocSequence(mri->height, mri->depth, mri->nframes,
                                    mri->type, mri->width);
     MRI *mri_ref = m_volumeRef->GetMRI();

@@ -20,8 +20,18 @@
  *
  */
 
+#include <ctype.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "diag.h"
+#include "error.h"
+#include "macros.h"
+#include "mri.h"
 #include "mrisurf.h"
+#include "proto.h"
 #include "version.h"
 
 int main(int argc, char *argv[]);
@@ -76,7 +86,7 @@ int main(int argc, char *argv[]) {
 
   Progname = argv[0];
   ErrorInit(NULL, NULL, NULL);
-  DiagInit(nullptr, nullptr, nullptr);
+  DiagInit(NULL, NULL, NULL);
 
   ac = argc;
   av = argv;
@@ -161,10 +171,6 @@ int main(int argc, char *argv[]) {
       MRISnormalizeFromParameterization(mrisp, mris, param_no);
     } else {
       MRISfromParameterization(mrisp, mris, param_no);
-    }
-    MRISPfree(&mrisp);
-    if (normalize) {
-      MRISnormalizeCurvature(mris, which_norm);
     }
     MRISPfree(&mrisp);
     if (normalize) {
@@ -316,7 +322,7 @@ int main(int argc, char *argv[]) {
     }
 
     if (stretch_flag) {
-      MRISreadOriginalProperties(mris, nullptr);
+      MRISreadOriginalProperties(mris, NULL);
       MRISuseCurvatureStretch(mris);
       MRISaverageCurvatures(mris, navgs);
       if (normalize) {
@@ -485,13 +491,13 @@ static int get_option(int argc, char *argv[]) {
   return (nargs);
 }
 
-static void usage_exit() {
+static void usage_exit(void) {
   print_help();
   exit(1);
 }
 
 #include "mris_curvature.help.xml.h"
-static void print_help() {
+static void print_help(void) {
   outputHelpXml(mris_curvature_help_xml, mris_curvature_help_xml_len);
   exit(1);
 }
@@ -502,8 +508,9 @@ static void print_version(void) {
 }
 
 int MRIScomputeNeighbors(MRI_SURFACE *mris, float max_mm) {
-  int   vno, n, vlist[MAX_NBHD_SIZE], nbrs, done, found, m, nbhd, first = 1;
-  float dist, dx, dy, dz;
+  int    vno, n, vlist[MAX_NBHD_SIZE], done, found, m, nbhd, first = 1;
+  size_t nbrs = 0;
+  float  dist, dx, dy, dz;
 
   MRISresetNeighborhoodSize(mris, -1); /* back to max */
   for (vno = 0; vno < mris->nvertices; vno++) {
@@ -546,7 +553,7 @@ int MRIScomputeNeighbors(MRI_SURFACE *mris, float max_mm) {
             vn2->marked = 1;
             if (nbrs >= MAX_NBHD_SIZE) {
               if (first) {
-                printf("max nbrs %d exceeded at vertex %d\n", nbrs, vno);
+                printf("max nbrs %zu exceeded at vertex %d\n", nbrs, vno);
               }
               first = 0;
               break;
@@ -558,9 +565,10 @@ int MRIScomputeNeighbors(MRI_SURFACE *mris, float max_mm) {
     } while (!done);
     free(vt->v);
     vt->v = (int *)calloc(nbrs, sizeof(int));
-    if (vt->v == nullptr)
-      ErrorExit(ERROR_NOMEMORY, "%s: vno %d could not allocate %d vertex array",
-                Progname, vno, nbrs);
+    if (vt->v == NULL)
+      ErrorExit(ERROR_NOMEMORY,
+                "%s: vno %d could not allocate %zu vertex array", Progname, vno,
+                nbrs);
     memmove(vt->v, vlist, sizeof(vlist[0]) * nbrs);
     vt->vtotal = nbrs;
     for (n = 0; n < nbrs; n++) {

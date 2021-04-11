@@ -1,10 +1,10 @@
 /**
  * @brief program for computing/optimizing registration of a surface to a volume
+ *        
  *
- *
- * Program to compute a rigid alignment between a surface and a label by
- * maximizing the gradient magnitude across the gray/white boundary, divided by
- * its variance Now supports multiple similarity functions.
+ * Program to compute a rigid alignment between a surface and a label by maximizing the gradient
+ * magnitude across the gray/white boundary, divided by its variance
+ * Now supports multiple similarity functions.
  */
 /*
  * Original Author: Greg Grev
@@ -30,8 +30,7 @@ BEGINUSAGE --------------------------------------------------------------
   --surf surface   : surface to read in
   --res resolution : specify the resolution used for the distance transform
   --pial pial surface name   : pial surface to read in
-  --pial_only pial surface name   : pial surface to read in (don't use white in
-similarity)
+  --pial_only pial surface name   : pial surface to read in (don't use white in similarity)
   --targ vol
   --angle_init ax0 ay0 az0 : search around these rotation angles instead of 0
   --trans_init tx0 ty0 tz0 : search around these translations instead of 0
@@ -81,13 +80,33 @@ ENDHELP --------------------------------------------------------------
 
 */
 
-#include "diag.h"
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
+#include "diag.h"
+#include "error.h"
+#include "macros.h"
+#include "proto.h"
+
+#include "MRIio_old.h"
 #include "cmdargs.h"
+#include "fio.h"
+#include "gca.h"
+#include "gcamorph.h"
+#include "matrix.h"
+#include "mri.h"
 #include "mri2.h"
+#include "mri_circulars.h"
+#include "mri_identify.h"
+#include "numerics.h"
+#include "pdf.h"
 #include "registerio.h"
 #include "resample.h"
 #include "romp_support.h"
+#include "timer.h"
 #include "version.h"
 
 #ifdef X
@@ -95,13 +114,13 @@ ENDHELP --------------------------------------------------------------
 #endif
 
 static float resolution = 0.5;
-static void  check_options();
+static void  check_options(void);
 static int   write_lta(MATRIX *m, char *fname_from_caller, MRI *mri_src,
                        MRI *mri_dst);
-static void  print_usage();
-static void  usage_exit();
-static void  print_help();
-static void  print_version();
+static void  print_usage(void);
+static void  usage_exit(void);
+static void  print_help(void);
+static void  print_version(void);
 static void  argnerr(char *option, int n);
 static void  dump_options(FILE *fp);
 static int   singledash(char *flag);
@@ -120,7 +139,7 @@ static double find_optimal_linear_xform(
 static double tx0 = 0; //-10 ;
 static double ty0 = 0;
 static double tz0 = 0;
-static double ax0 = 0; // RADIANS(10) ;
+static double ax0 = 0; //RADIANS(10) ;
 static double ay0 = 0;
 static double az0 = 0;
 
@@ -223,7 +242,11 @@ int            main(int argc, char **argv) {
   mri_dist = MRIScomputeDistanceToSurface(mris, NULL, resolution);
   MRIabs(mri_dist, mri_dist);
   if (write_diags) {
-    sprintf(fname, "%s.dist.mgz", base_name);
+    int req = snprintf(fname, STRLEN, "%s.dist.mgz", base_name);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
     printf("writing distance transform to %s\n", fname);
     MRIwrite(mri_dist, fname);
   }
@@ -422,12 +445,12 @@ static int parse_commandline(int argc, char **argv) {
   return (0);
 }
 /* ------------------------------------------------------ */
-static void usage_exit() {
+static void usage_exit(void) {
   print_usage();
   exit(1);
 }
 /* --------------------------------------------- */
-static void print_usage() {
+static void print_usage(void) {
   printf("\n");
   printf("mris_register_to_label\n");
   printf("  --surf surface\n");
@@ -457,7 +480,7 @@ static void print_help(void) {
   exit(1);
 }
 /* --------------------------------------------- */
-static void check_options() {
+static void check_options(void) {
   if (SUBJECTS_DIR == NULL)
     SUBJECTS_DIR = getenv("SUBJECTS_DIR");
   if (SUBJECTS_DIR == NULL) {
@@ -784,19 +807,40 @@ static double find_optimal_linear_xform(
       mri_tmp                  = MRIcopy(mri_src, NULL);
       MRIsetVoxelToRasXform(mri_tmp, OCT_voxel_to_xformed_RAS);
 
-      if (debug)
-        sprintf(fname, "%s.opt.%4.4d.label", "debug", nfound);
-      else
-        sprintf(fname, "%s.opt.%4.4d.label", base_name, nfound);
+      if (debug) {
+        int req =
+            snprintf(fname, STRLEN, "%s.opt.%4.4d.label", "debug", nfound);
+        if (req >= STRLEN) {
+          std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                    << std::endl;
+        }
+      } else {
+        int req =
+            snprintf(fname, STRLEN, "%s.opt.%4.4d.label", base_name, nfound);
+        if (req >= STRLEN) {
+          std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                    << std::endl;
+        }
+      }
       printf("writing new optimal label to %s, v(0): RAS=%2.1f %2.1f %2.1f, "
              "VOX=(%d %d %d)\n",
              fname, l->lv[0].x, l->lv[0].y, l->lv[0].z, nint(lvol->lv[0].x),
              nint(lvol->lv[0].y), nint(lvol->lv[0].z));
       LabelWrite(l, fname);
-      if (debug)
-        sprintf(fname, "%s.opt.%4.4d.mgz", "debug", nfound);
-      else
-        sprintf(fname, "%s.opt.%4.4d.mgz", base_name, nfound);
+      if (debug) {
+        int req = snprintf(fname, STRLEN, "%s.opt.%4.4d.mgz", "debug", nfound);
+        if (req >= STRLEN) {
+          std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                    << std::endl;
+        }
+      } else {
+        int req =
+            snprintf(fname, STRLEN, "%s.opt.%4.4d.mgz", base_name, nfound);
+        if (req >= STRLEN) {
+          std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                    << std::endl;
+        }
+      }
       printf("saving %s\n", fname);
       MRIwrite(mri_tmp, fname);
       MRIfree(&mri_tmp);
@@ -813,7 +857,12 @@ static double find_optimal_linear_xform(
         MRI_voxel_to_xformed_RAS = MatrixMultiply(R0, MRI_voxel_to_RAS, NULL);
         mri_tmp                  = MRIcopy(mri_targ_vol, NULL);
         MRIsetVoxelToRasXform(mri_tmp, MRI_voxel_to_xformed_RAS);
-        sprintf(fname, "%s.targ.%4.4d.mgz", base_name, nfound);
+        int req =
+            snprintf(fname, STRLEN, "%s.targ.%4.4d.mgz", base_name, nfound);
+        if (req >= STRLEN) {
+          std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                    << std::endl;
+        }
         printf("writing reoriented target volume to %s\n", fname);
         MRIwrite(mri_tmp, fname);
 
@@ -823,7 +872,11 @@ static double find_optimal_linear_xform(
 
         FileNameExtension(outregfile, ext);
         FileNameRemoveExtension(outregfile, fname_only);
-        sprintf(fname, "%s.%4.4d.%s", fname_only, nfound, ext);
+        req = snprintf(fname, STRLEN, "%s.%4.4d.%s", fname_only, nfound, ext);
+        if (req >= STRLEN) {
+          std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                    << std::endl;
+        }
         printf("writing intermediate registration to %s\n", fname);
 
         if (TransformFileNameType(outregfile) == REGISTER_DAT)
@@ -938,23 +991,37 @@ static double find_optimal_linear_xform(
                           MRIsetVoxelToRasXform(mri_tmp,
                                                 OCT_voxel_to_xformed_RAS);
 
-                          if (debug)
+                          if (debug) {
                             sprintf(fname, "%s.opt.%4.4d.label", "debug",
                                     ++nfound);
-                          else
-                            sprintf(fname, "%s.opt.%4.4d.label", base_name,
-                                    ++nfound);
+                          } else {
+                            int req =
+                                snprintf(fname, STRLEN, "%s.opt.%4.4d.label",
+                                         base_name, ++nfound);
+                            if (req >= STRLEN) {
+                              std::cerr << __FUNCTION__
+                                        << ": Truncation on line " << __LINE__
+                                        << std::endl;
+                            }
+                          }
                           printf("writing new optimal label to %s, v(0): "
                                  "RAS=%2.1f %2.1f %2.1f, VOX=(%d %d %d)\n",
                                  fname, l->lv[0].x, l->lv[0].y, l->lv[0].z,
                                  nint(lvol->lv[0].x), nint(lvol->lv[0].y),
                                  nint(lvol->lv[0].z));
                           LabelWrite(l, fname);
-                          if (debug)
+                          if (debug) {
                             sprintf(fname, "%s.opt.%4.4d.mgz", "debug", nfound);
-                          else
-                            sprintf(fname, "%s.opt.%4.4d.mgz", base_name,
-                                    nfound);
+                          } else {
+                            int req =
+                                snprintf(fname, STRLEN, "%s.opt.%4.4d.mgz",
+                                         base_name, nfound);
+                            if (req >= STRLEN) {
+                              std::cerr << __FUNCTION__
+                                        << ": Truncation on line " << __LINE__
+                                        << std::endl;
+                            }
+                          }
                           printf("saving %s\n", fname);
                           MRIwrite(mri_tmp, fname);
                           if (debug || nfound == Gdiag_no)
@@ -976,8 +1043,14 @@ static double find_optimal_linear_xform(
                             mri_tmp = MRIcopy(mri_targ_vol, NULL);
                             MRIsetVoxelToRasXform(mri_tmp,
                                                   MRI_voxel_to_xformed_RAS);
-                            sprintf(fname, "%s.targ.%4.4d.mgz", base_name,
-                                    nfound);
+                            int req =
+                                snprintf(fname, STRLEN, "%s.targ.%4.4d.mgz",
+                                         base_name, nfound);
+                            if (req >= STRLEN) {
+                              std::cerr << __FUNCTION__
+                                        << ": Truncation on line " << __LINE__
+                                        << std::endl;
+                            }
                             printf("writing reoriented target volume to %s\n",
                                    fname);
                             MRIwrite(mri_tmp, fname);
@@ -988,8 +1061,13 @@ static double find_optimal_linear_xform(
 
                             FileNameExtension(outregfile, ext);
                             FileNameRemoveExtension(outregfile, fname_only);
-                            sprintf(fname, "%s.%4.4d.%s", fname_only, nfound,
-                                    ext);
+                            req = snprintf(fname, STRLEN, "%s.%4.4d.%s",
+                                           fname_only, nfound, ext);
+                            if (req >= STRLEN) {
+                              std::cerr << __FUNCTION__
+                                        << ": Truncation on line " << __LINE__
+                                        << std::endl;
+                            }
                             printf("writing intermediate registration to %s\n",
                                    fname);
 

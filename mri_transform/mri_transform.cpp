@@ -13,6 +13,11 @@
  *
  */
 
+#include <ctype.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #ifdef HAVE_OPENMP // mrisurf.c has numerous parallelized functions
 #include "romp_support.h"
 #endif
@@ -20,20 +25,26 @@
 #include "cma.h"
 #include "cmat.h"
 #include "diag.h"
+#include "error.h"
+#include "fsinit.h"
 #include "gcamorph.h"
+#include "macros.h"
+#include "mri.h"
 #include "mrinorm.h"
+#include "proto.h"
+#include "transform.h"
 #include "version.h"
 
 double MRIcomputeLinearTransformLabelDist(MRI *mri_src, MATRIX *mA, int label);
 
-// E/ For transformations: for case LINEAR_RAS_TO_RAS, we convert to
-// vox2vox with MRIrasXformToVoxelXform() in mri.c; for case
-// LINEAR_CORONAL_RAS_TO_CORONAL_RAS, this converts to vox2vox with
-// MT_CoronalRasXformToVoxelXform(), below.  For LINEAR_VOX_TO_VOX, we
-// don't know the output vox2ras tx, and just do the best we can
+//E/ For transformations: for case LINEAR_RAS_TO_RAS, we convert to
+//vox2vox with MRIrasXformToVoxelXform() in mri.c; for case
+//LINEAR_CORONAL_RAS_TO_CORONAL_RAS, this converts to vox2vox with
+//MT_CoronalRasXformToVoxelXform(), below.  For LINEAR_VOX_TO_VOX, we
+//don't know the output vox2ras tx, and just do the best we can
 //(i.e. guess isotropic cor).
 
-// E/ Eventually, maybe, this should be in more public use and live in mri.c:
+//E/ Eventually, maybe, this should be in more public use and live in mri.c:
 static MATRIX *MT_CoronalRasXformToVoxelXform(MRI *mri_in, MRI *mri_out,
                                               MATRIX *m_ras2ras,
                                               MATRIX *m_vox2vox);
@@ -41,16 +52,16 @@ static MATRIX *MT_CoronalRasXformToVoxelXform(MRI *mri_in, MRI *mri_out,
 int main(int argc, char *argv[]);
 
 static int  get_option(int argc, char *argv[]);
-static void usage_exit();
-static void print_usage();
-static void print_help();
-static void print_version();
+static void usage_exit(void);
+static void print_usage(void);
+static void print_help(void);
+static void print_version(void);
 
 const char * Progname;
 static int   quiet_mode = 0;
 static char *subject_name;
-static char *out_like_fname = nullptr;
-static char *in_like_fname  = nullptr; // for cmat stuff
+static char *out_like_fname = NULL;
+static char *in_like_fname  = NULL; // for cmat stuff
 static int   invert_flag    = 0;
 static int   resample_type  = SAMPLE_TRILINEAR;
 static int   nlabels        = 0;
@@ -58,8 +69,8 @@ static int   labels[1000];
 
 static int cmat_output_coords = LABEL_COORDS_VOXEL;
 
-static char *in_surf_name  = nullptr;
-static char *out_surf_name = nullptr;
+static char *in_surf_name  = NULL;
+static char *out_surf_name = NULL;
 MRI *        MRIScreateVolumeWarpFromSurface(MRI *mri_in, MRI *mri_out,
                                              MRI_SURFACE *mris, int which_in,
                                              int which_out, double res_scale);
@@ -73,7 +84,7 @@ int main(int argc, char *argv[]) {
   MRI *      mri_in, *mri_out, *mri_tmp;
   LTA *      lta;
   MATRIX *   m, *m_total;
-  TRANSFORM *transform = nullptr;
+  TRANSFORM *transform = NULL;
 
   VECTOR *mine;
   VECTOR *c;
@@ -90,7 +101,7 @@ int main(int argc, char *argv[]) {
 
   Progname = argv[0];
   ErrorInit(NULL, NULL, NULL);
-  DiagInit(nullptr, nullptr, nullptr);
+  DiagInit(NULL, NULL, NULL);
   FSinit();
 
   ac = argc;
@@ -102,7 +113,7 @@ int main(int argc, char *argv[]) {
   }
 
   if (in_surf_name) {
-    if ((argc < 3) && (in_surf_name != nullptr))
+    if ((argc < 3) && (in_surf_name != NULL))
       usage_exit();
   } else {
     if (((argc < 4) && (nlabels == 0)) || ((argc < 3) && (nlabels > 0)))
@@ -119,7 +130,7 @@ int main(int argc, char *argv[]) {
     MRI * mri_in, *mri_out;
     LTA * lta;
 
-    if (in_like_fname == nullptr)
+    if (in_like_fname == NULL)
       ErrorExit(ERROR_NOFILE,
                 "%s: must specifiy --in_like MRI volume for cmat transform "
                 "(use original conformed one)\n",
@@ -130,7 +141,7 @@ int main(int argc, char *argv[]) {
       ErrorExit(ERROR_NOFILE, "%s: could not read template volume from %s",
                 Progname, in_like_fname);
 
-    if (out_like_fname == nullptr)
+    if (out_like_fname == NULL)
       ErrorExit(ERROR_NOFILE,
                 "%s: must specifiy --out_like MRI volume for cmat transform "
                 "(use target volume)\n",
@@ -189,7 +200,7 @@ int main(int argc, char *argv[]) {
       MatrixPrint(stdout, lta->xforms[0].m_L);
       transform->type = lta->type;
     }
-    cmat_out = CMATtransform(cmat_in, transform, mri_in, mri_out, nullptr);
+    cmat_out = CMATtransform(cmat_in, transform, mri_in, mri_out, NULL);
 
     if (DIAG_VERBOSE_ON) {
       printf("writing before and after labels from %s (%d) to %s (%d)\n",
@@ -226,7 +237,7 @@ int main(int argc, char *argv[]) {
   if (!mri_in)
     ErrorExit(ERROR_NOFILE, "%s: could not read MRI volume %s", Progname,
               in_vol);
-  if (out_like_fname) // E/ maybe need an out_kinda_like_fname
+  if (out_like_fname) //E/ maybe need an out_kinda_like_fname
   {
     mri_tmp = MRIread(out_like_fname);
     if (!mri_tmp)
@@ -234,16 +245,16 @@ int main(int argc, char *argv[]) {
                 Progname, out_like_fname);
     mri_out = MRIalloc(mri_tmp->width, mri_tmp->height, mri_tmp->depth,
                        mri_tmp->type);
-    // E/ maybe better mri_in->type?
-    MRIcopyHeader(mri_tmp, mri_out); // E/ reinstate this
-    // E/ MRIfree(&mri_tmp) ; // keep this around for recopy later.
+    //E/ maybe better mri_in->type?
+    MRIcopyHeader(mri_tmp, mri_out); //E/ reinstate this
+    //E/ MRIfree(&mri_tmp) ; // keep this around for recopy later.
 
-    // E/ Hey, MRIlinearTransformInterp() just sets
-    // dst->ras_good_flag to zero!  and the x/y/zsize and stuff seems
-    // to go away during e.g. mghWrite.  recopy later?
+    //E/ Hey, MRIlinearTransformInterp() just sets
+    //dst->ras_good_flag to zero!  and the x/y/zsize and stuff seems
+    //to go away during e.g. mghWrite.  recopy later?
   } else /* assume output should be like input */
   {
-    mri_out = MRIclone(mri_in, nullptr);
+    mri_out = MRIclone(mri_in, NULL);
 #if 0
     mri_out = MRIalloc(256, 256, 256, mri_in->type) ;
     //E/ set xyzc_ras to coronal ones.. - these'll get zorched
@@ -275,7 +286,7 @@ int main(int argc, char *argv[]) {
     char         fname[STRLEN];
 
     mris = MRISread(in_surf_name);
-    if (mris == nullptr)
+    if (mris == NULL)
       ErrorExit(ERROR_NOFILE, "%s: could not read input surface from %s",
                 Progname, in_surf_name);
     if (MRISreadCanonicalCoordinates(mris, out_surf_name) != NO_ERROR)
@@ -295,7 +306,7 @@ int main(int argc, char *argv[]) {
     exit(0);
   }
 
-  m_total     = MatrixIdentity(4, nullptr);
+  m_total     = MatrixIdentity(4, NULL);
   nxform_args = nlabels > 0 ? argc : argc - 1;
   for (i = 2; i < nxform_args; i++) {
     xform_fname = argv[i];
@@ -308,13 +319,13 @@ int main(int argc, char *argv[]) {
     if (!transform)
       ErrorExit(ERROR_NOFILE, "%s: could not read transform from %s", Progname,
                 xform_fname);
-    if (out_like_fname == nullptr)
+    if (out_like_fname == NULL)
       TransformSetMRIVolGeomToDst(transform, mri_out);
 
     if (transform->type != MORPH_3D_TYPE) {
       lta = (LTA *)(transform->xform);
-      m   = MatrixCopy(lta->xforms[0].m_L, nullptr);
-      // E/ mri_rigid_register writes out m as src2trg
+      m   = MatrixCopy(lta->xforms[0].m_L, NULL);
+      //E/ mri_rigid_register writes out m as src2trg
 
       if (lta->type == LINEAR_RAS_TO_RAS ||
           lta->type == LINEAR_CORONAL_RAS_TO_CORONAL_RAS)
@@ -328,7 +339,7 @@ int main(int argc, char *argv[]) {
       if (invert_flag) {
         MATRIX *m_tmp;
         fprintf(stderr, "inverting transform...\n");
-        m_tmp = MatrixInverse(m, nullptr);
+        m_tmp = MatrixInverse(m, NULL);
         if (!m_tmp)
           ErrorExit(ERROR_BADPARM, "%s: transform is singular!");
         MatrixFree(&m);
@@ -341,12 +352,12 @@ int main(int argc, char *argv[]) {
         MATRIX *m_tmp;
         fprintf(stderr, "converting RAS xform to voxel xform...\n");
         if (lta->type == LINEAR_RAS_TO_RAS)
-          m_tmp = MRIrasXformToVoxelXform(mri_in, mri_out, m_total, nullptr);
+          m_tmp = MRIrasXformToVoxelXform(mri_in, mri_out, m_total, NULL);
         else if (lta->type == LINEAR_CORONAL_RAS_TO_CORONAL_RAS)
           m_tmp =
-              MT_CoronalRasXformToVoxelXform(mri_in, mri_out, m_total, nullptr);
+              MT_CoronalRasXformToVoxelXform(mri_in, mri_out, m_total, NULL);
         else
-          // E/ how else could ras_flag be set? prev tx a R2R/CR2CR tx?
+          //E/ how else could ras_flag be set? prev tx a R2R/CR2CR tx?
           exit(1);
 
         //////////////////////////////////////////////////////////////
@@ -404,20 +415,20 @@ int main(int argc, char *argv[]) {
     }
     if (invert_flag)
       mri_out =
-          TransformApplyInverseType(transform, mri_in, nullptr, resample_type);
+          TransformApplyInverseType(transform, mri_in, NULL, resample_type);
     else
-      mri_out = TransformApplyType(transform, mri_in, nullptr, resample_type);
+      mri_out = TransformApplyType(transform, mri_in, NULL, resample_type);
   }
 
   fprintf(stderr, "writing output to %s.\n", out_vol);
 
-  // E/ reinstate what MRIlinearTransform zorched
+  //E/ reinstate what MRIlinearTransform zorched
   if (out_like_fname) {
-    // E/ MRIcopyHeader doesn't stick because later
-    // MRIlinearTransformInterp sets dst->ras_good_flag to zero!  and
-    // the x/y/zsize and stuff seems to go away during e.g. mghWrite.
-    // So we recopy it now.  'cause ras xform IS good.  Well, if
-    // mri_tmp's is.
+    //E/ MRIcopyHeader doesn't stick because later
+    //MRIlinearTransformInterp sets dst->ras_good_flag to zero!  and
+    //the x/y/zsize and stuff seems to go away during e.g. mghWrite.
+    //So we recopy it now.  'cause ras xform IS good.  Well, if
+    //mri_tmp's is.
 
     MRIcopyHeader(mri_tmp, mri_out);
     MRIfree(&mri_tmp);
@@ -442,7 +453,7 @@ int main(int argc, char *argv[]) {
     mri_out->ras_good_flag=1;
 #endif
   }
-  // E/
+  //E/
 
   MRIwrite(mri_out, out_vol);
 
@@ -513,6 +524,7 @@ static int get_option(int argc, char *argv[]) {
       fprintf(stderr, "computing average distance traversed by label %d\n",
               labels[nlabels]);
       nlabels++;
+      break;
     case 'V':
       Gdiag_no = atoi(argv[2]);
       nargs    = 1;
@@ -554,24 +566,24 @@ static int get_option(int argc, char *argv[]) {
   return (nargs);
 }
 
-static void usage_exit() {
+static void usage_exit(void) {
   //  print_usage() ; // print_help _calls print_usage
   print_help();
   exit(1);
 }
 
-static void print_usage() {
-  fprintf(stderr,
-          //          "usage: %s [options] <input volume> <input surface>
-          //          <registration file> <output .float file>\n",
-          // E/ where did that come from??
+static void print_usage(void) {
+  fprintf(
+      stderr,
+      //          "usage: %s [options] <input volume> <input surface> <registration file> <output .float file>\n",
+      //E/ where did that come from??
 
-          "usage: %s [options] <input volume> <lta file> <output file>\n",
+      "usage: %s [options] <input volume> <lta file> <output file>\n",
 
-          Progname);
+      Progname);
 }
 
-static void print_help() {
+static void print_help(void) {
   print_usage();
 #if 0
   fprintf(stderr,
@@ -604,17 +616,17 @@ MATRIX *MT_CoronalRasXformToVoxelXform(MRI *mri_in, MRI *mri_out,
                                        MATRIX *m_vox_s2vox_t) {
   MATRIX *D_src, *D_trg, *D_trg_inv, *m_tmp;
 
-  // E/ D's are the vox2coronalras matrices generated by
-  // MRIxfmCRS2XYZtkreg().  Thanks, Doug.
+  //E/ D's are the vox2coronalras matrices generated by
+  //MRIxfmCRS2XYZtkreg().  Thanks, Doug.
 
   D_src     = MRIxfmCRS2XYZtkreg(mri_in);
   D_trg     = MRIxfmCRS2XYZtkreg(mri_out);
-  D_trg_inv = MatrixInverse(D_trg, nullptr);
+  D_trg_inv = MatrixInverse(D_trg, NULL);
 
-  // E/ m_vox_s2vox_t = D_trg_inv * m_corras_s2corras_t * D_src
+  //E/ m_vox_s2vox_t = D_trg_inv * m_corras_s2corras_t * D_src
 
   m_tmp = MatrixMultiply(m_corras_s2corras_t, D_src, NULL);
-  if (m_vox_s2vox_t == nullptr)
+  if (m_vox_s2vox_t == NULL)
     m_vox_s2vox_t = MatrixMultiply(D_trg_inv, m_tmp, NULL);
   else
     MatrixMultiply(D_trg_inv, m_tmp, m_vox_s2vox_t);
@@ -747,11 +759,11 @@ MRI *MRIScreateVolumeWarpFromSurface(MRI *mri_in, MRI *mri_out,
   MRIbuildVoronoiDiagram(mri_warp_y, mri_ctrl, mri_warp_y);
   MRIbuildVoronoiDiagram(mri_warp_z, mri_ctrl, mri_warp_z);
   mri_warp_x_smooth =
-      MRIsoapBubble(mri_warp_x, mri_ctrl, nullptr, niter, min_change);
+      MRIsoapBubble(mri_warp_x, mri_ctrl, NULL, niter, min_change);
   mri_warp_y_smooth =
-      MRIsoapBubble(mri_warp_y, mri_ctrl, nullptr, niter, min_change);
+      MRIsoapBubble(mri_warp_y, mri_ctrl, NULL, niter, min_change);
   mri_warp_z_smooth =
-      MRIsoapBubble(mri_warp_z, mri_ctrl, nullptr, niter, min_change);
+      MRIsoapBubble(mri_warp_z, mri_ctrl, NULL, niter, min_change);
   MRIcopyFrame(mri_warp_x_smooth, mri_warp, 0, 0);
   MRIcopyFrame(mri_warp_y_smooth, mri_warp, 0, 1);
   MRIcopyFrame(mri_warp_z_smooth, mri_warp, 0, 2);
@@ -774,8 +786,8 @@ static MRI *MRIScreateVolumeWarpFromSphere(MRI *mri_in, MRI *mri_out,
                                            int which_out, double res_scale) {
   MRI *mri_warp, *mri_ctrl, *mri_warp_x, *mri_warp_y, *mri_warp_z,
       *mri_warp_x_smooth, *mri_warp_y_smooth, *mri_warp_z_smooth;
-  MRI *mri_interior, *mri_x = nullptr, *mri_y = nullptr, *mri_z = nullptr,
-                     *mri_c = nullptr, *mri_dilated = nullptr;
+  MRI *mri_interior, *mri_x = NULL, *mri_y = NULL, *mri_z = NULL, *mri_c = NULL,
+                     *mri_dilated = NULL;
   int     vno;
   VERTEX *v;
   double xi, yi, zi, xo, yo, zo, xiv, yiv, ziv, xov, yov, zov, r, cnx, cny, cnz,
@@ -784,7 +796,7 @@ static MRI *MRIScreateVolumeWarpFromSphere(MRI *mri_in, MRI *mri_out,
   int    xv, yv, zv, inside, xvi, yvi, zvi, was_inside, was_outside, nchanged,
       iter, nbrs;
 
-  mri_interior = MRIclone(mri_in, nullptr);
+  mri_interior = MRIclone(mri_in, NULL);
   MRISfillInterior(mris, mri_in->xsize, mri_interior);
   mri_ctrl   = MRIallocSequence(mri_in->width, mri_in->height, mri_in->depth,
                               MRI_UCHAR, 1);
@@ -806,8 +818,7 @@ static MRI *MRIScreateVolumeWarpFromSphere(MRI *mri_in, MRI *mri_out,
   radius = sqrt(SQR(v->cx - mris->x0) + SQR(v->cy - mris->y0) +
                 SQR(v->cz - mris->z0));
 
-  // traverse each neighbor vector and search outwards along the interpolated
-  // normal
+  // traverse each neighbor vector and search outwards along the interpolated normal
   for (vno = 0; vno < mris->nvertices; vno++) {
     int    n;
     double dist, clen, len, cnx0, cny0, cnz0, cnx1, cny1, cnz1, dx, dy, dz, dcx,
@@ -1058,13 +1069,13 @@ static MRI *MRIScreateVolumeWarpFromSphere(MRI *mri_in, MRI *mri_out,
 
             nchanged++;
             mean = MRImeanInLabelInRegion(mri_warp_x, mri_ctrl, CONTROL_MARKED,
-                                          xv, yv, zv, 1, nullptr);
+                                          xv, yv, zv, 1, NULL);
             MRIsetVoxVal(mri_x, xv, yv, zv, 0, mean);
             mean = MRImeanInLabelInRegion(mri_warp_y, mri_ctrl, CONTROL_MARKED,
-                                          xv, yv, zv, 1, nullptr);
+                                          xv, yv, zv, 1, NULL);
             MRIsetVoxVal(mri_y, xv, yv, zv, 0, mean);
             mean = MRImeanInLabelInRegion(mri_warp_z, mri_ctrl, CONTROL_MARKED,
-                                          xv, yv, zv, 1, nullptr);
+                                          xv, yv, zv, 1, NULL);
             MRIsetVoxVal(mri_z, xv, yv, zv, 0, mean);
             MRIsetVoxVal(mri_c, xv, yv, zv, 0, CONTROL_MARKED);
           }
@@ -1090,15 +1101,15 @@ static MRI *MRIScreateVolumeWarpFromSphere(MRI *mri_in, MRI *mri_out,
 #endif
   if (niter > 0) {
     mri_warp_x_smooth =
-        MRIsoapBubble(mri_warp_x, mri_ctrl, nullptr, niter, min_change);
+        MRIsoapBubble(mri_warp_x, mri_ctrl, NULL, niter, min_change);
     mri_warp_y_smooth =
-        MRIsoapBubble(mri_warp_y, mri_ctrl, nullptr, niter, min_change);
+        MRIsoapBubble(mri_warp_y, mri_ctrl, NULL, niter, min_change);
     mri_warp_z_smooth =
-        MRIsoapBubble(mri_warp_z, mri_ctrl, nullptr, niter, min_change);
+        MRIsoapBubble(mri_warp_z, mri_ctrl, NULL, niter, min_change);
   } else {
-    mri_warp_x_smooth = MRIcopy(mri_warp_x, nullptr);
-    mri_warp_y_smooth = MRIcopy(mri_warp_y, nullptr);
-    mri_warp_z_smooth = MRIcopy(mri_warp_z, nullptr);
+    mri_warp_x_smooth = MRIcopy(mri_warp_x, NULL);
+    mri_warp_y_smooth = MRIcopy(mri_warp_y, NULL);
+    mri_warp_z_smooth = MRIcopy(mri_warp_z, NULL);
   }
 
   MRIcopyFrame(mri_warp_x_smooth, mri_warp, 0, 0);

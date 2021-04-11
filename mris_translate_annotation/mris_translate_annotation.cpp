@@ -12,17 +12,27 @@
  *
  */
 
+#include <ctype.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "diag.h"
+#include "error.h"
+#include "macros.h"
+#include "mri.h"
 #include "mrisurf.h"
+#include "proto.h"
 #include "version.h"
 
 int main(int argc, char *argv[]);
 
 static int  get_option(int argc, char *argv[]);
-static void usage_exit();
-static void print_usage();
-static void print_help();
-static void print_version();
+static void usage_exit(void);
+static void print_usage(void);
+static void print_help(void);
+static void print_version(void);
 static void translate_annotation(MRI_SURFACE *mris, char *trans_name);
 
 const char *Progname;
@@ -43,7 +53,7 @@ int main(int argc, char *argv[]) {
   Gdiag    = DIAG_SHOW;
   Progname = argv[0];
   ErrorInit(NULL, NULL, NULL);
-  DiagInit(nullptr, nullptr, nullptr);
+  DiagInit(NULL, NULL, NULL);
 
   ac = argc;
   av = argv;
@@ -70,7 +80,12 @@ int main(int argc, char *argv[]) {
                 Progname);
     strcpy(subjects_dir, cp);
   }
-  sprintf(fname, "%s/%s/surf/%s.orig", subjects_dir, subject, hemi);
+  int req = snprintf(fname, STRLEN, "%s/%s/surf/%s.orig", subjects_dir, subject,
+                     hemi);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
   fprintf(stderr, "reading surface from %s...\n", fname);
   mris = MRISread(fname);
   if (!mris)
@@ -123,19 +138,19 @@ static int get_option(int argc, char *argv[]) {
   return (nargs);
 }
 
-static void usage_exit() {
+static void usage_exit(void) {
   print_usage();
   exit(1);
 }
 
-static void print_usage() {
+static void print_usage(void) {
   fprintf(stderr,
           "usage: %s [options] <subject> <hemi> <in annot> <translation file> "
           "<out annot>\n",
           Progname);
 }
 
-static void print_help() {
+static void print_help(void) {
   print_usage();
 
   fprintf(stderr,
@@ -159,7 +174,7 @@ static void translate_annotation(MRI_SURFACE *mris, char *trans_name) {
     ErrorExit(ERROR_NOFILE, "%s: could not read translation file %s...\n",
               trans_name);
 
-  while ((cp = fgetl(line, STRLEN - 1, fp)) != nullptr) {
+  while ((cp = fgetl(line, STRLEN - 1, fp)) != NULL) {
     sscanf(cp, "%d %d %d %d %d %d", &rin, &gin, &bin, &rout, &gout, &bout);
     in_annot  = rin + (gin << 8) + (bin << 16);
     out_annot = rout + (gout << 8) + (bout << 16);

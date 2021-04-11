@@ -17,11 +17,24 @@
  *
  */
 
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "cma.h"
 #include "diag.h"
 #include "error.h"
 #include "gca.h"
+#include "macros.h"
+#include "matrix.h"
+#include "mri.h"
+#include "mrimorph.h"
+#include "mrinorm.h"
+#include "proto.h"
 #include "tags.h"
 #include "timer.h"
+#include "utils.h"
 #include "version.h"
 
 const char *Progname;
@@ -127,13 +140,21 @@ int          main(int argc, char *argv[]) {
   for (input = 0; input < ninputs; input++) {
     printf("reading subject %d of %d: %s \n", input + 1, ninputs,
            subjects[input]);
-    if (longinput)
-      sprintf(fname, "%s/%s.long.%s/mri/%s", sdir, subjects[input], base_name,
-              in_fname);
-    else
-      sprintf(fname, "%s/%s/longtp/%s/%s", sdir, base_name, subjects[input],
-              in_fname);
-
+    if (longinput) {
+      int req = snprintf(fname, STRLEN, "%s/%s.long.%s/mri/%s", sdir,
+                         subjects[input], base_name, in_fname);
+      if (req >= STRLEN) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                  << std::endl;
+      }
+    } else {
+      int req = snprintf(fname, STRLEN, "%s/%s/longtp/%s/%s", sdir, base_name,
+                         subjects[input], in_fname);
+      if (req >= STRLEN) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                  << std::endl;
+      }
+    }
     mri_tmp = MRIread(fname);
     if (!mri_tmp)
       ErrorExit(ERROR_NOFILE, "%s: could not read input MR volume from %s",

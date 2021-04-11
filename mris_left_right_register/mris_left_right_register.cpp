@@ -19,8 +19,19 @@
  *
  */
 
+#include <ctype.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "diag.h"
+#include "error.h"
 #include "gcsa.h"
+#include "macros.h"
+#include "mri.h"
+#include "mrisurf.h"
+#include "proto.h"
 #include "tags.h"
 #include "timer.h"
 #include "version.h"
@@ -277,12 +288,12 @@ int main(int argc, char *argv[]) {
                              sno * IMAGES_PER_SURFACE);
       MRISPsetFrameVal(mrisp_template, sno * IMAGES_PER_SURFACE + 1, 1.0);
     }
-    // niter = parms.niterations ; parms.niterations = 0 ;  // only rigid
+    //niter = parms.niterations ; parms.niterations = 0 ;  // only rigid
     MRISregister(mris_mov, mrisp_template, &parms, max_passes, min_degrees,
                  max_degrees, nangles);
     MRISextractVertexCoords(mris_mov, coords, CURRENT_VERTICES);
     MRISrestoreVertexPositions(mris_mov, CANONICAL_VERTICES);
-    // parms.niterations = niter ;
+    //parms.niterations = niter ;
     parms.start_t = 0;
   }
 
@@ -607,12 +618,12 @@ static int get_option(int argc, char *argv[]) {
         ErrorExit(ERROR_NO_MEMORY, "%s: too many labels specified (%d max)",
                   Progname, MAX_LABELS);
       nargs           = 3;
-      labels[nlabels] = LabelRead(nullptr, argv[2]);
-      if (labels[nlabels] == nullptr)
+      labels[nlabels] = LabelRead(NULL, argv[2]);
+      if (labels[nlabels] == NULL)
         ErrorExit(ERROR_NOFILE, "%s: could not read label file %s", Progname,
                   argv[2]);
       label_gcsa[nlabels] = GCSAread(argv[3]);
-      if (label_gcsa[nlabels] == nullptr)
+      if (label_gcsa[nlabels] == NULL)
         ErrorExit(ERROR_NOFILE, "%s: could not read GCSA file %s", Progname,
                   argv[3]);
       label_names[nlabels] = argv[4];
@@ -632,7 +643,8 @@ static int get_option(int argc, char *argv[]) {
       printf("setting l_external = %2.1f\n", parms.l_external);
       break;
     case 'C':
-      strncpy(curvature_fname, argv[2], STRLEN); // Convert to strncpy at least
+      strncpy(curvature_fname, argv[2],
+              STRLEN - 1); // Convert to strncpy at least
       nargs = 1;
       break;
     case 'A':
@@ -689,17 +701,17 @@ static int get_option(int argc, char *argv[]) {
   return (nargs);
 }
 
-static void usage_exit() {
+static void usage_exit(void) {
   print_help();
   exit(1);
 }
 
-static void print_usage() {
+static void print_usage(void) {
   printf("usage: mris_left_right_register lh.sphere rh.sphere "
          "lh.sphere.left_right rh.sphere.left_right\n");
 }
 
-static void print_help() {
+static void print_help(void) {
   print_usage();
   exit(1);
 }

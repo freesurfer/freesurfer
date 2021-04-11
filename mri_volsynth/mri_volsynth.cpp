@@ -17,28 +17,38 @@
  *
  */
 
+#include <ctype.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/time.h>
+#include <unistd.h>
 
+#include "MRIio_old.h"
 #include "ctrpoints.h"
 #include "diag.h"
 #include "error.h"
 #include "fmriutils.h"
+#include "matrix.h"
+#include "mri.h"
 #include "mri2.h"
 #include "mri_circulars.h"
 #include "mri_identify.h"
+#include "proto.h"
 #include "randomfields.h"
+#include "utils.h"
 #include "version.h"
-
 double round(double);
 
 MRI *fMRIsqrt(MRI *mri, MRI *mrisqrt);
 
 static int  parse_commandline(int argc, char **argv);
-static void check_options();
-static void print_usage();
-static void usage_exit();
-static void print_help();
-static void print_version();
+static void check_options(void);
+static void print_usage(void);
+static void usage_exit(void);
+static void print_help(void);
+static void print_version(void);
 static void argnerr(char *option, int n);
 static void dump_options(FILE *fp);
 static int  singledash(char *flag);
@@ -46,23 +56,23 @@ static int  nth_is_arg(int nargc, char **argv, int nth);
 static int  checkfmt(char *fmt);
 static int  getfmtid(char *fname);
 static int  isflag(char *flag);
-// static int  stringmatch(char *str1, char *str2);
+//static int  stringmatch(char *str1, char *str2);
 
 int main(int argc, char *argv[]);
 
-const char *Progname = nullptr;
+const char *Progname = NULL;
 
 int debug = 0;
 
-char *volid = nullptr;
+char *volid = NULL;
 char *vol_type;
 int   volfmtid;
-char *volfmt = nullptr;
+char *volfmt = NULL;
 
-char *tempid = nullptr; // Template
+char *tempid = NULL; // Template
 char *temp_type;
 int   tempfmtid;
-char *tempfmt = nullptr;
+char *tempfmt = NULL;
 
 int         dim[4];
 float       res[4];
@@ -100,7 +110,7 @@ double      voxradius = -1;
 int     UseFFT  = 0;
 int     SpikeTP = -1;
 int     DoCurv  = 0;
-char *  subject = nullptr, *hemi = nullptr;
+char *  subject = NULL, *hemi = NULL;
 MRIS *  surf;
 int     resSpeced = 0, dimSpeced = 0;
 int     NewVoxSizeSpeced = 0;
@@ -109,7 +119,7 @@ double  HSCMin = 0, HSCMax = 0;
 int     DoTNorm = 0;
 int     DoAbs   = 0;
 MRI *   fMRIhsynth(MRI *res, MRI *mask, int DoTNorm);
-MPoint *ctrpoints = nullptr, *crsctrpoints = nullptr;
+MPoint *ctrpoints = NULL, *crsctrpoints = NULL;
 int     nctrpoints = 0, CPUseRealRAS;
 int     cgridspace = 8, rgridspace = 8, sgridspace = 2;
 int     spherecenter[3], spherecenterset = 0;
@@ -125,7 +135,7 @@ int main(int argc, char **argv) {
   argc--;
   argv++;
   ErrorInit(NULL, NULL, NULL);
-  DiagInit(nullptr, nullptr, nullptr);
+  DiagInit(NULL, NULL, NULL);
 
   /* assign default geometry */
   cdircos[0] = 1.0;
@@ -152,13 +162,13 @@ int main(int argc, char **argv) {
   check_options();
   dump_options(stdout);
 
-  if (tempid != nullptr) {
+  if (tempid != NULL) {
     printf("INFO: reading template header\n");
     if (!DoCurv)
       mritemp = MRIreadHeader(tempid, tempfmtid);
     else
       mritemp = MRIread(tempid);
-    if (mritemp == nullptr) {
+    if (mritemp == NULL) {
       printf("ERROR: reading %s header\n", tempid);
       exit(1);
     }
@@ -210,11 +220,11 @@ int main(int argc, char **argv) {
   printf("Synthesizing\n");
   srand48(seed);
   if (strcmp(pdfname, "gaussian") == 0)
-    mri = MRIrandn(dim[0], dim[1], dim[2], dim[3], gausmean, gausstd, nullptr);
+    mri = MRIrandn(dim[0], dim[1], dim[2], dim[3], gausmean, gausstd, NULL);
   else if (strcmp(pdfname, "uniform") == 0)
-    mri = MRIdrand48(dim[0], dim[1], dim[2], dim[3], 0, 1, nullptr);
+    mri = MRIdrand48(dim[0], dim[1], dim[2], dim[3], 0, 1, NULL);
   else if (strcmp(pdfname, "const") == 0)
-    mri = MRIconst(dim[0], dim[1], dim[2], dim[3], ValueA, nullptr);
+    mri = MRIconst(dim[0], dim[1], dim[2], dim[3], ValueA, NULL);
   else if (strcmp(pdfname, "sphere") == 0) {
     if (voxradius < 0)
       voxradius = sqrt(pow(dim[0] / 2.0, 2) + pow(dim[1] / 2.0, 2) +
@@ -228,9 +238,9 @@ int main(int argc, char **argv) {
     }
     mri = MRIsphereMask(dim[0], dim[1], dim[2], dim[3], spherecenter[0],
                         spherecenter[1], spherecenter[2], voxradius, ValueA,
-                        nullptr);
+                        NULL);
   } else if (strcmp(pdfname, "delta") == 0) {
-    mri = MRIconst(dim[0], dim[1], dim[2], dim[3], delta_off_value, nullptr);
+    mri = MRIconst(dim[0], dim[1], dim[2], dim[3], delta_off_value, NULL);
     if (delta_crsf_speced == 0) {
       delta_crsf[0] = dim[0] / 2;
       delta_crsf[1] = dim[1] / 2;
@@ -242,73 +252,73 @@ int main(int argc, char **argv) {
     MRIFseq_vox(mri, delta_crsf[0], delta_crsf[1], delta_crsf[2],
                 delta_crsf[3]) = delta_value;
   } else if (strcmp(pdfname, "chi2") == 0) {
-    rfs            = RFspecInit(seed, nullptr);
+    rfs            = RFspecInit(seed, NULL);
     rfs->name      = strcpyalloc("chi2");
     rfs->params[0] = dendof;
-    mri            = MRIconst(dim[0], dim[1], dim[2], dim[3], 0, nullptr);
+    mri            = MRIconst(dim[0], dim[1], dim[2], dim[3], 0, NULL);
     printf("Synthesizing chi2 with dof=%d\n", dendof);
-    RFsynth(mri, rfs, nullptr);
+    RFsynth(mri, rfs, NULL);
   } else if (strcmp(pdfname, "z") == 0) {
     printf("Synthesizing z \n");
-    rfs            = RFspecInit(seed, nullptr);
+    rfs            = RFspecInit(seed, NULL);
     rfs->name      = strcpyalloc("gaussian");
     rfs->params[0] = 0; // mean
     rfs->params[1] = 1; // std
-    mri            = MRIconst(dim[0], dim[1], dim[2], dim[3], 0, nullptr);
-    RFsynth(mri, rfs, nullptr);
+    mri            = MRIconst(dim[0], dim[1], dim[2], dim[3], 0, NULL);
+    RFsynth(mri, rfs, NULL);
   } else if (strcmp(pdfname, "t") == 0) {
     printf("Synthesizing t with dof=%d\n", dendof);
-    rfs            = RFspecInit(seed, nullptr);
+    rfs            = RFspecInit(seed, NULL);
     rfs->name      = strcpyalloc("t");
     rfs->params[0] = dendof;
-    mri            = MRIconst(dim[0], dim[1], dim[2], dim[3], 0, nullptr);
-    RFsynth(mri, rfs, nullptr);
+    mri            = MRIconst(dim[0], dim[1], dim[2], dim[3], 0, NULL);
+    RFsynth(mri, rfs, NULL);
   } else if (strcmp(pdfname, "tr") == 0) {
     printf("Synthesizing t with dof=%d as ratio of z/sqrt(chi2)\n", dendof);
-    rfs = RFspecInit(seed, nullptr);
+    rfs = RFspecInit(seed, NULL);
     // numerator
     rfs->name      = strcpyalloc("gaussian");
     rfs->params[0] = 0; // mean
     rfs->params[1] = 1; // std
-    mri            = MRIconst(dim[0], dim[1], dim[2], dim[3], 0, nullptr);
-    RFsynth(mri, rfs, nullptr);
+    mri            = MRIconst(dim[0], dim[1], dim[2], dim[3], 0, NULL);
+    RFsynth(mri, rfs, NULL);
     // denominator
     rfs->name      = strcpyalloc("chi2");
     rfs->params[0] = dendof;
-    mri2           = MRIconst(dim[0], dim[1], dim[2], dim[3], 0, nullptr);
-    RFsynth(mri2, rfs, nullptr);
+    mri2           = MRIconst(dim[0], dim[1], dim[2], dim[3], 0, NULL);
+    RFsynth(mri2, rfs, NULL);
     fMRIsqrt(mri2, mri2); // sqrt of chi2
     mri = MRIdivide(mri, mri2, mri);
     MRIscalarMul(mri, mri, sqrt(dendof));
     MRIfree(&mri2);
   } else if (strcmp(pdfname, "F") == 0) {
     printf("Synthesizing F with num=%d den=%d\n", numdof, dendof);
-    rfs            = RFspecInit(seed, nullptr);
+    rfs            = RFspecInit(seed, NULL);
     rfs->name      = strcpyalloc("F");
     rfs->params[0] = numdof;
     rfs->params[1] = dendof;
-    mri            = MRIconst(dim[0], dim[1], dim[2], dim[3], 0, nullptr);
-    RFsynth(mri, rfs, nullptr);
+    mri            = MRIconst(dim[0], dim[1], dim[2], dim[3], 0, NULL);
+    RFsynth(mri, rfs, NULL);
   } else if (strcmp(pdfname, "Fr") == 0) {
     printf("Synthesizing F with num=%d den=%d as ratio of two chi2\n", numdof,
            dendof);
-    rfs       = RFspecInit(seed, nullptr);
+    rfs       = RFspecInit(seed, NULL);
     rfs->name = strcpyalloc("chi2");
     // numerator
     rfs->params[0] = numdof;
-    mri            = MRIconst(dim[0], dim[1], dim[2], dim[3], 0, nullptr);
-    RFsynth(mri, rfs, nullptr);
+    mri            = MRIconst(dim[0], dim[1], dim[2], dim[3], 0, NULL);
+    RFsynth(mri, rfs, NULL);
     // denominator
     rfs->params[0] = dendof;
-    mri2           = MRIconst(dim[0], dim[1], dim[2], dim[3], 0, nullptr);
-    RFsynth(mri2, rfs, nullptr);
+    mri2           = MRIconst(dim[0], dim[1], dim[2], dim[3], 0, NULL);
+    RFsynth(mri2, rfs, NULL);
     mri = MRIdivide(mri, mri2, mri);
     MRIscalarMul(mri, mri, (double)dendof / numdof);
     MRIfree(&mri2);
   } else if (strcmp(pdfname, "voxcrs") == 0) {
     // three frames. 1st=col, 2nd=row, 3rd=slice
     printf("Filling with vox CRS\n");
-    mri = MRIconst(dim[0], dim[1], dim[2], 3, 0, nullptr);
+    mri = MRIconst(dim[0], dim[1], dim[2], 3, 0, NULL);
     for (c = 0; c < mri->width; c++) {
       for (r = 0; r < mri->height; r++) {
         for (s = 0; s < mri->depth; s++) {
@@ -320,58 +330,58 @@ int main(int argc, char **argv) {
     }
   } else if (strcmp(pdfname, "boundingbox") == 0) {
     printf("Setting bounding box \n");
-    if (mritemp == nullptr)
-      mritemp = MRIconst(dim[0], dim[1], dim[2], dim[3], 0, nullptr);
+    if (mritemp == NULL)
+      mritemp = MRIconst(dim[0], dim[1], dim[2], dim[3], 0, NULL);
     mri = MRIsetBoundingBox(mritemp, &boundingbox, ValueA, ValueB);
     if (!mri)
       exit(1);
   } else if (strcmp(pdfname, "checker") == 0) {
     printf("Checker \n");
-    mri = MRIchecker(mritemp, nullptr);
+    mri = MRIchecker(mritemp, NULL);
     if (!mri)
       exit(1);
   } else if (strcmp(pdfname, "grid") == 0) {
     printf("Grid %d %d %d\n", cgridspace, rgridspace, sgridspace);
-    if (mritemp == nullptr) {
-      mritemp        = MRIconst(dim[0], dim[1], dim[2], dim[3], 0, nullptr);
+    if (mritemp == NULL) {
+      mritemp        = MRIconst(dim[0], dim[1], dim[2], dim[3], 0, NULL);
       mritemp->xsize = res[0];
       mritemp->ysize = res[1];
       mritemp->zsize = res[2];
       mritemp->tr    = res[3];
     }
-    mri = MRIgrid(mritemp, cgridspace, rgridspace, sgridspace, 1, nullptr);
+    mri = MRIgrid(mritemp, cgridspace, rgridspace, sgridspace, 1, NULL);
     if (!mri)
       exit(1);
   } else if (strcmp(pdfname, "sliceno") == 0) {
     printf("SliceNo \n");
-    if (mritemp == nullptr) {
+    if (mritemp == NULL) {
       printf("ERROR: need --temp with sliceno\n");
       exit(1);
     }
-    mri = MRIsliceNo(mritemp, nullptr);
+    mri = MRIsliceNo(mritemp, NULL);
     if (!mri)
       exit(1);
   } else if (strcmp(pdfname, "indexno") == 0) {
     printf("IndexNo \n");
-    if (mritemp == nullptr) {
+    if (mritemp == NULL) {
       printf("ERROR: need --temp with indexno\n");
       exit(1);
     }
-    mri = MRIindexNo(mritemp, nullptr);
+    mri = MRIindexNo(mritemp, NULL);
     if (!mri)
       exit(1);
   } else if (strcmp(pdfname, "crs") == 0) {
     printf("CRS \n");
-    if (mritemp == nullptr) {
+    if (mritemp == NULL) {
       printf("ERROR: need --temp with crs\n");
       exit(1);
     }
-    mri = MRIcrs(mritemp, nullptr);
+    mri = MRIcrs(mritemp, NULL);
     if (!mri)
       exit(1);
   } else if (strcmp(pdfname, "cp") == 0) {
     printf("Synthesizing control points volume \n");
-    mri = MRIconst(dim[0], dim[1], dim[2], dim[3], 0, nullptr);
+    mri = MRIconst(dim[0], dim[1], dim[2], dim[3], 0, NULL);
     for (n = 0; n < nctrpoints; n++) {
       c = round(crsctrpoints[n].x);
       r = round(crsctrpoints[n].y);
@@ -384,7 +394,7 @@ int main(int argc, char **argv) {
            pdfname);
     exit(1);
   }
-  if (tempid != nullptr) {
+  if (tempid != NULL) {
     MRIcopyHeader(mritemp, mri);
     mri->type = MRI_FLOAT;
     // Override
@@ -393,7 +403,7 @@ int main(int argc, char **argv) {
     if (TR > 0)
       mri->tr = TR;
   } else {
-    if (mri == nullptr) {
+    if (mri == NULL) {
       usage_exit();
     }
     mri->xsize = res[0];
@@ -423,24 +433,24 @@ int main(int argc, char **argv) {
       MRIgaussianSmooth(mri, gstd, gmnnorm, mri); /* gmnnorm = 1 = normalize */
     } else {
       printf("Smoothing with FFT \n");
-      mri2 = MRIcopy(mri, nullptr);
+      mri2 = MRIcopy(mri, NULL);
       mri  = MRI_fft_gaussian(mri2, mri, gstd,
                              gmnnorm); /* gmnnorm = 1 = normalize */
     }
     if (rescale) {
       printf("Rescaling\n");
       if (strcmp(pdfname, "z") == 0)
-        RFrescale(mri, rfs, nullptr, mri);
+        RFrescale(mri, rfs, NULL, mri);
       if (strcmp(pdfname, "chi2") == 0)
-        RFrescale(mri, rfs, nullptr, mri);
+        RFrescale(mri, rfs, NULL, mri);
       if (strcmp(pdfname, "t") == 0)
-        RFrescale(mri, rfs, nullptr, mri);
+        RFrescale(mri, rfs, NULL, mri);
       if (strcmp(pdfname, "tr") == 0)
-        RFrescale(mri, rfs, nullptr, mri);
+        RFrescale(mri, rfs, NULL, mri);
       if (strcmp(pdfname, "F") == 0)
-        RFrescale(mri, rfs, nullptr, mri);
+        RFrescale(mri, rfs, NULL, mri);
       if (strcmp(pdfname, "Fr") == 0)
-        RFrescale(mri, rfs, nullptr, mri);
+        RFrescale(mri, rfs, NULL, mri);
     }
   }
 
@@ -466,17 +476,17 @@ int main(int argc, char **argv) {
   if (AddOffset) {
     printf("Adding offset\n");
     offset = MRIread(tempid);
-    if (offset == nullptr)
+    if (offset == NULL)
       exit(1);
     if (OffsetFrame == -1)
       OffsetFrame = nint(offset->nframes / 2);
     printf("Offset frame %d\n", OffsetFrame);
-    mritmp = fMRIframe(offset, OffsetFrame, nullptr);
-    if (mritmp == nullptr)
+    mritmp = fMRIframe(offset, OffsetFrame, NULL);
+    if (mritmp == NULL)
       exit(1);
     MRIfree(&offset);
     offset = mritmp;
-    fMRIaddOffset(mri, offset, nullptr, mri);
+    fMRIaddOffset(mri, offset, NULL, mri);
   }
 
   if (SpikeTP > 0) {
@@ -498,7 +508,7 @@ int main(int argc, char **argv) {
   if (!NoOutput) {
     printf("Saving\n");
     if (!DoCurv)
-      MRIwriteAnyFormat(mri, volid, volfmt, -1, nullptr);
+      MRIwriteAnyFormat(mri, volid, volfmt, -1, NULL);
     else {
       printf("Saving in curv format\n");
       MRIScopyMRI(surf, mri, 0, "curv");
@@ -509,7 +519,7 @@ int main(int argc, char **argv) {
   if (sum2file) {
     val = MRIsum2All(mri);
     fp  = fopen(sum2file, "w");
-    if (fp == nullptr) {
+    if (fp == NULL) {
       printf("ERROR: opening %s\n", sum2file);
       exit(1);
     }
@@ -576,7 +586,7 @@ static int parse_commandline(int argc, char **argv) {
         argnerr(option, 1);
       sum2file = pargv[0];
       pdfname  = "delta";
-      // NoOutput = 1;
+      //NoOutput = 1;
       nframes   = 1;
       nargsused = 1;
     } else if (!strcmp(option, "--hsynth")) {
@@ -616,7 +626,7 @@ static int parse_commandline(int argc, char **argv) {
       } else
         tempfmtid = getfmtid(tempid);
     } else if (!strcmp(option, "--curv")) {
-      if (tempid != nullptr) {
+      if (tempid != NULL) {
         printf("ERROR: cannot use --temp and --curv\n");
         exit(1);
       }
@@ -753,10 +763,6 @@ static int parse_commandline(int argc, char **argv) {
     } else if (!strcmp(option, "--val-a")) {
       if (nargc < 1)
         argnerr(option, 1);
-      if (*pargv[0] != '-' && !isdigit(*pargv[0])) {
-        printf("ERROR: --val-a must be a number\n");
-        exit(1);
-      }
       sscanf(pargv[0], "%lf", &ValueA);
       nargsused = 1;
     } else if (!strcmp(option, "--val-b")) {
@@ -848,12 +854,12 @@ static int parse_commandline(int argc, char **argv) {
   return (0);
 }
 /* ------------------------------------------------------ */
-static void usage_exit() {
+static void usage_exit(void) {
   print_usage();
   exit(1);
 }
 /* --------------------------------------------- */
-static void print_usage() {
+static void print_usage(void) {
   printf("USAGE: %s \n", Progname);
   printf("\n");
   printf("   --o volid <fmt> : output volume path id and format\n");
@@ -917,7 +923,7 @@ static void print_usage() {
   printf("\n");
 }
 /* --------------------------------------------- */
-static void print_help() {
+static void print_help(void) {
   print_usage();
   printf("Synthesizes a volume with the given geometry and pdf. "
          "Default pdf \n");
@@ -951,22 +957,22 @@ static void argnerr(char *option, int n) {
   exit(-1);
 }
 /* --------------------------------------------- */
-static void check_options() {
+static void check_options(void) {
   struct timeval tv;
   FILE *         fp;
   char           tmpstr[1000];
 
-  if (volid == nullptr && !NoOutput) {
+  if (volid == NULL && !NoOutput) {
     printf("A volume path must be supplied unless --no-output\n");
     exit(1);
   }
   if (seed < 0) {
-    gettimeofday(&tv, nullptr);
+    gettimeofday(&tv, NULL);
     seed = tv.tv_sec + tv.tv_usec;
   }
-  if (seedfile != nullptr) {
+  if (seedfile != NULL) {
     fp = fopen(seedfile, "w");
-    if (fp == nullptr) {
+    if (fp == NULL) {
       printf("ERROR: cannot open seed file %s\n", seedfile);
       exit(1);
     }
@@ -994,7 +1000,7 @@ static void check_options() {
 static void dump_options(FILE *fp) {
   fprintf(fp, "volid    %s\n", volid);
   fprintf(fp, "volfmt   %s\n", volfmt);
-  if (tempid == nullptr) {
+  if (tempid == 0) {
     fprintf(fp, "dim    %3d %3d %3d %3d\n", dim[0], dim[1], dim[2], dim[3]);
     fprintf(fp, "res      %6.4f %6.4f %6.4f %6.4f\n", res[0], res[1], res[2],
             res[3]);
@@ -1011,7 +1017,7 @@ static void dump_options(FILE *fp) {
       fprintf(fp, "nframes = %d\n", nframes);
   }
   fprintf(fp, "fwhm = %g, gstd  = %g\n", fwhm, gstd);
-  // fprintf(fp,"precision %s\n",precision);
+  //fprintf(fp,"precision %s\n",precision);
   fprintf(fp, "seed %ld\n", seed);
   fprintf(fp, "pdf   %s\n", pdfname);
   fprintf(fp, "SpikeTP %d\n", SpikeTP);
@@ -1058,7 +1064,7 @@ static int getfmtid(char *fname) {
 static int checkfmt(char *fmt) {
   int fmtid;
 
-  if (fmt == nullptr)
+  if (fmt == NULL)
     return (MRI_VOLUME_TYPE_UNKNOWN);
   fmtid = string_to_type(fmt);
   if (fmtid == MRI_VOLUME_TYPE_UNKNOWN) {
@@ -1084,10 +1090,10 @@ MRI *fMRIsqrt(MRI *mri, MRI *mrisqrt) {
   int    c, r, s, f;
   double val;
 
-  if (mrisqrt == nullptr)
-    mrisqrt = MRIcopy(mri, nullptr);
-  if (mrisqrt == nullptr)
-    return (nullptr);
+  if (mrisqrt == NULL)
+    mrisqrt = MRIcopy(mri, NULL);
+  if (mrisqrt == NULL)
+    return (NULL);
 
   for (c = 0; c < mri->width; c++) {
     for (r = 0; r < mri->height; r++) {
@@ -1110,12 +1116,12 @@ MRI *fMRIsqrt(MRI *mri, MRI *mrisqrt) {
 MRI *fMRIhsynth(MRI *res, MRI *mask, int DoTNorm) {
   int     c, r, s, f, nvox;
   double  val;
-  MRI *   hsynth, *tvar = nullptr;
+  MRI *   hsynth, *tvar = NULL;
   double *svar, svarsum, tstdvox;
 
   // Compute temporal variance at each voxel
   if (DoTNorm)
-    tvar = fMRIcovariance(res, 0, -1, mask, nullptr);
+    tvar = fMRIcovariance(res, 0, -1, mask, NULL);
 
   // Compute spatial variance at each frame
   svar    = (double *)calloc(res->nframes, sizeof(double));
@@ -1147,8 +1153,8 @@ MRI *fMRIhsynth(MRI *res, MRI *mask, int DoTNorm) {
     printf("%2d %g\n", f, svar[f]);
 
   // Synth noise that is both spatially and temporally white and gaussian
-  hsynth = MRIrandn(res->width, res->height, res->depth, res->nframes, 0, 1,
-                    nullptr);
+  hsynth =
+      MRIrandn(res->width, res->height, res->depth, res->nframes, 0, 1, NULL);
   MRIcopyHeader(res, hsynth);
 
   // Scale by frame. Noise is still independent across

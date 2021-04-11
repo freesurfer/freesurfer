@@ -12,9 +12,20 @@
  *
  */
 
+#include <ctype.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+
 #include "cma.h"
 #include "diag.h"
+#include "error.h"
+#include "macros.h"
+#include "mri.h"
+#include "proto.h"
 #include "timer.h"
+#include "transform.h"
+#include "utils.h"
 #include "version.h"
 
 int        main(int argc, char *argv[]);
@@ -42,7 +53,7 @@ int main(int argc, char *argv[]) {
 
   Progname = argv[0];
   ErrorInit(NULL, NULL, NULL);
-  DiagInit(nullptr, nullptr, nullptr);
+  DiagInit(NULL, NULL, NULL);
 
   start.reset();
 
@@ -68,14 +79,24 @@ int main(int argc, char *argv[]) {
   out_fname = argv[argc - 1];
 
   subject_name = argv[1];
-  sprintf(fname, "%s/%s/mri/%s", subjects_dir, subject_name, seg_dir);
+  int req = snprintf(fname, STRLEN, "%s/%s/mri/%s", subjects_dir, subject_name,
+                     seg_dir);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
   mri_seg = MRIread(fname);
   if (!mri_seg)
     ErrorExit(ERROR_NOFILE, "%s: could not read segmentation file %s", Progname,
               fname);
-  mri_dst = MRImarkTemporalWM(mri_seg, nullptr);
+  mri_dst = MRImarkTemporalWM(mri_seg, NULL);
 
-  sprintf(fname, "%s/%s/mri/%s", subjects_dir, subject_name, out_fname);
+  req = snprintf(fname, STRLEN, "%s/%s/mri/%s", subjects_dir, subject_name,
+                 out_fname);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
   printf("writing labeled temporal lobe to %s...\n", fname);
   MRIwrite(mri_dst, fname);
   MRIfree(&mri_dst);
@@ -150,9 +171,9 @@ MRI *MRImarkTemporalWM(MRI *mri_seg, MRI *mri_dst) {
   depth  = mri_seg->depth;
 
   if (!mri_dst)
-    mri_dst = MRIclone(mri_seg, nullptr);
+    mri_dst = MRIclone(mri_seg, NULL);
 
-  mri_tmp = MRIcopy(mri_dst, nullptr);
+  mri_tmp = MRIcopy(mri_dst, NULL);
 
   for (z = 0; z < depth; z++) {
     for (y = 0; y < height; y++) {

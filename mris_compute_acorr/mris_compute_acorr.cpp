@@ -12,9 +12,20 @@
  *
  */
 
-#include "diag.h"
+#include <ctype.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "mrishash_internals.h"
 #include "mrisurf.h"
+
+#include "diag.h"
+#include "error.h"
+#include "fio.h"
+#include "macros.h"
+#include "proto.h"
 #include "sig.h"
 #include "version.h"
 
@@ -28,10 +39,10 @@
 int main(int argc, char *argv[]);
 
 static int  get_option(int argc, char *argv[]);
-static void usage_exit();
-static void print_usage();
-static void print_help();
-static void print_version();
+static void usage_exit(void);
+static void print_usage(void);
+static void print_help(void);
+static void print_version(void);
 #if 1
 static double *MRIScomputeCurvatureAutocorrelation(MRI_SURFACE *mris,
                                                    float *curv, double *acorr,
@@ -108,7 +119,7 @@ int main(int argc, char *argv[]) {
 
   Progname = argv[0];
   ErrorInit(NULL, NULL, NULL);
-  DiagInit(nullptr, nullptr, nullptr);
+  DiagInit(NULL, NULL, NULL);
 
   ac = argc;
   av = argv;
@@ -121,7 +132,7 @@ int main(int argc, char *argv[]) {
   /* subject_name hemi surface curvature */
   if (argc < 7)
     usage_exit();
-  if (output_subject == nullptr)
+  if (output_subject == NULL)
     ErrorExit(ERROR_BADPARM,
               "output subject must be specified with -o <subject name>");
 
@@ -144,14 +155,18 @@ int main(int argc, char *argv[]) {
   do {
     num_class1++;
     n++;
-    if (argv[n] == nullptr || n >= argc)
+    if (argv[n] == NULL || n >= argc)
       ErrorExit(ERROR_BADPARM, "%s: must spectify ':' between class lists",
                 Progname);
   } while (argv[n][0] != ':');
 
   /* find  # of vertices in output subject surface */
-  sprintf(fname, "%s/%s/surf/%s.%s", subjects_dir, output_subject, hemi,
-          surf_name);
+  int req = snprintf(fname, STRLEN, "%s/%s/surf/%s.%s", subjects_dir,
+                     output_subject, hemi, surf_name);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
   mris = MRISread(fname);
   if (!mris)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s", Progname,
@@ -199,7 +214,7 @@ int main(int argc, char *argv[]) {
     n++;
     if (n >= argc)
       break;
-  } while (argv[n] != nullptr);
+  } while (argv[n] != NULL);
 
   fprintf(stderr, "%d subjects in class1, %d subjects in class2\n", num_class1,
           num_class2);
@@ -237,7 +252,7 @@ int main(int argc, char *argv[]) {
       ErrorExit(ERROR_NOFILE, "%s: could not read label %s", Progname,
                 label_name);
   } else
-    area = nullptr;
+    area = NULL;
 
   /* real all the curvatures in for group1 */
   for (n = 0; n < num_class1 + num_class2; n++) {
@@ -246,26 +261,39 @@ int main(int argc, char *argv[]) {
         n < num_class1 ? c1_subjects[n] : c2_subjects[n - num_class1];
     fprintf(stderr, "reading subject %d of %d: %s\n", n + 1,
             num_class1 + num_class2, subject_name);
-    sprintf(fname, "%s/%s/surf/%s.%s", subjects_dir, subject_name, hemi,
-            surf_name);
+    int req = snprintf(fname, STRLEN, "%s/%s/surf/%s.%s", subjects_dir,
+                       subject_name, hemi, surf_name);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
     mris = MRISread(fname);
     if (!mris)
       ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s", Progname,
                 fname);
     MRISsaveVertexPositions(mris, CANONICAL_VERTICES);
-    if (strchr(curv_name, '/') != nullptr)
+    if (strchr(curv_name, '/') != NULL) {
       strcpy(fname, curv_name); /* full path specified */
-    else
-      sprintf(fname, "%s/%s/surf/%s.%s", subjects_dir, subject_name, hemi,
-              curv_name);
+    } else {
+      int req = snprintf(fname, STRLEN, "%s/%s/surf/%s.%s", subjects_dir,
+                         subject_name, hemi, curv_name);
+      if (req >= STRLEN) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                  << std::endl;
+      }
+    }
     if (MRISreadCurvatureFile(mris, fname) != NO_ERROR)
       ErrorExit(Gerror, "%s: could no read curvature file %s", Progname, fname);
     MRISaverageCurvatures(mris, navgs);
-    mrisp = MRIStoParameterization(mris, nullptr, 1, 0);
+    mrisp = MRIStoParameterization(mris, NULL, 1, 0);
     MRISfree(&mris);
 
-    sprintf(fname, "%s/%s/surf/%s.%s", subjects_dir, output_subject, hemi,
-            surf_name);
+    req = snprintf(fname, STRLEN, "%s/%s/surf/%s.%s", subjects_dir,
+                   output_subject, hemi, surf_name);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
     mris = MRISread(fname);
     if (!mris)
       ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s", Progname,
@@ -293,8 +321,12 @@ int main(int argc, char *argv[]) {
   cvector_compute_t_test(c1_mean, c1_var, c2_mean, c2_var, num_class1,
                          num_class2, pvals, nvertices);
 
-  sprintf(fname, "%s/%s/surf/%s.%s", subjects_dir, output_subject, hemi,
-          surf_name);
+  req = snprintf(fname, STRLEN, "%s/%s/surf/%s.%s", subjects_dir,
+                 output_subject, hemi, surf_name);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
   fprintf(stderr, "reading output surface %s...\n", fname);
   mris = MRISread(fname);
   if (!mris)
@@ -533,12 +565,12 @@ static int get_option(int argc, char *argv[]) {
   return (nargs);
 }
 
-static void usage_exit() {
+static void usage_exit(void) {
   print_usage();
   exit(1);
 }
 
-static void print_usage() {
+static void print_usage(void) {
   fprintf(stderr,
           "usage: %s -o <output subject> [options] \n"
           "\t<hemi> <surf> <curv> \n\t<c1_subject1> <c1_subject2>... : \n"
@@ -551,7 +583,7 @@ static void print_usage() {
                   "class.\n");
 }
 
-static void print_help() {
+static void print_help(void) {
   print_usage();
   fprintf(stderr, "\nThis program will compute the autocorrelation function of"
                   " a curvature file\n");
@@ -569,7 +601,7 @@ static double *MRIScomputeCurvatureAutocorrelation(MRI_SURFACE *mris,
                                                    float *curv, double *acorr,
                                                    double *counts, int nbins,
                                                    float bin_size) {
-  static MHT *mht = nullptr;
+  static MHT *mht = NULL;
   static int  nv  = 0;
   int         vno, n, i, index;
   VERTEX *    v, *vn;
@@ -578,7 +610,7 @@ static double *MRIScomputeCurvatureAutocorrelation(MRI_SURFACE *mris,
   VECTOR *    v1, *v2;
 
   max_dist = nbins * bin_size;
-  if (nv != mris->nvertices && mht != nullptr)
+  if (nv != mris->nvertices && mht != NULL)
     MHTfree(&mht);
 
   nv = mris->nvertices;

@@ -19,9 +19,21 @@
  *
  */
 
+#include <ctype.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+#include "const.h"
 #include "diag.h"
+#include "error.h"
+#include "fsinit.h"
+#include "macros.h"
+#include "mri.h"
 #include "mrisurf.h"
+#include "proto.h"
 #include "timer.h"
+#include "utils.h"
 #include "version.h"
 
 int        main(int argc, char *argv[]);
@@ -36,7 +48,7 @@ static const char *      thickness_name = "thickness";
 static const char *      pial_name      = "pial";
 static int               nbrs           = 2;
 
-static char *orig_name = nullptr;
+static char *orig_name = NULL;
 
 int main(int argc, char *argv[]) {
   int          nargs;
@@ -64,7 +76,7 @@ int main(int argc, char *argv[]) {
   Progname = argv[0];
   FSinit();
   ErrorInit(NULL, NULL, NULL);
-  DiagInit(nullptr, nullptr, nullptr);
+  DiagInit(NULL, NULL, NULL);
 
   start.reset();
 
@@ -90,7 +102,11 @@ int main(int argc, char *argv[]) {
 
   if (Gdiag & DIAG_WRITE) {
     char log_fname[STRLEN];
-    sprintf(log_fname, "%s.log", fname);
+    int  req = snprintf(log_fname, STRLEN, "%s.log", fname);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
     INTEGRATION_PARMS_openFp(&parms, log_fname, "w");
     if (parms.fp)
       printf("writing log results to %s\n", log_fname);
@@ -199,7 +215,7 @@ static int get_option(int argc, char *argv[]) {
   } else if (!stricmp(option, "intensity")) {
     parms.target_intensity = atof(argv[2]);
     parms.mri_brain        = MRIread(argv[3]);
-    if (parms.mri_brain == nullptr)
+    if (parms.mri_brain == NULL)
       ErrorExit(ERROR_NOFILE, "%s: could not load target intensity volume %s\n",
                 argv[3]);
     printf("cropping target locations to at intensity %2.0f in %s\n",

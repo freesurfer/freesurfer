@@ -17,12 +17,25 @@
  *
  */
 
+#include <ctype.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "classify.h"
 #include "cma.h"
+#include "const.h"
 #include "diag.h"
+#include "error.h"
+#include "macros.h"
 #include "mriclass.h"
+#include "proto.h"
 #include "rforest.h"
+#include "utils.h"
 #include "version.h"
 #include <fcntl.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 static int features = FEATURE_INTENSITY | FEATURE_MEAN3 | FEATURE_DIRECTION |
                       FEATURE_CPOLV_MEDIAN5;
@@ -95,7 +108,7 @@ int main(int argc, char *argv[]) {
   argc -= nargs;
 
   Progname = argv[0];
-  DiagInit(nullptr, nullptr, nullptr);
+  DiagInit(NULL, NULL, NULL);
   ErrorInit(NULL, NULL, NULL);
 
   rf_parms.ntrees            = 500;
@@ -116,7 +129,7 @@ int main(int argc, char *argv[]) {
 
   if (strlen(sdir) == 0) {
     cp = getenv("SUBJECTS_DIR");
-    if (cp == nullptr)
+    if (cp == NULL)
       ErrorExit(ERROR_UNSUPPORTED,
                 "SUBJECTS_DIR must be in env or on cmdline with -sdir");
     exit(1);
@@ -181,7 +194,7 @@ int main(int argc, char *argv[]) {
     if ((strlen(priors_fname) > 1) && stricmp(priors_fname, "none"))
       error = MRICtrain(mric, training_file_name, priors_fname);
     else
-      error = MRICtrain(mric, training_file_name, nullptr);
+      error = MRICtrain(mric, training_file_name, NULL);
 
     if (error != NO_ERROR)
       ErrorExit(error, "training failed.\n");
@@ -314,17 +327,17 @@ static int get_option(int argc, char *argv[]) {
 #if 0
 #define WM      2
 #define CAUDATE 3
-static int aseg_labels[] =
+static int aseg_labels[] = 
 {
-  Left_WM_hypointensities,
-  Right_WM_hypointensities,
+  Left_WM_hypointensities,  
+  Right_WM_hypointensities,  
   Left_Cerebral_White_Matter,
   Right_Cerebral_White_Matter,
   Left_Caudate,
   Right_Caudate
 } ;
 
-static int training_labels[] =
+static int training_labels[] = 
 {
   WMSA,
   WMSA,
@@ -437,8 +450,12 @@ static MRI *make_mask_from_segmentation(const char *sdir, const char *subject,
   char fname[STRLEN];
 
   for (l = 0; l < nlong; l++) {
-    sprintf(fname, "%s/%s%s.%s_base/mri/%s", sdir, subject, long_names[l],
-            subject, seg_name);
+    int req = snprintf(fname, STRLEN, "%s/%s%s.%s_base/mri/%s", sdir, subject,
+                       long_names[l], subject, seg_name);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
     mri_long_seg[l] = MRIread(fname);
     if (mri_long_seg[l] == NULL)
       ErrorExit(ERROR_NOFILE, "%s: could not load segmentation from %s",
@@ -446,14 +463,14 @@ static MRI *make_mask_from_segmentation(const char *sdir, const char *subject,
   }
   mri_min_dist =
       label_voxels_with_wmsa(mri_long_seg, nlong, NOT_WMSA, FUTURE_WMSA, WMSA);
-  mri_mask = MRIbinarize(mri_min_dist, nullptr, 1, 0,
-                         WMSA); // wmsa now or in the future
+  mri_mask =
+      MRIbinarize(mri_min_dist, NULL, 1, 0, WMSA); // wmsa now or in the future
   MRIbinarize(mri_min_dist, mri_min_dist, 1, 0,
               NOT_WMSA); // will dilate into ring of NOT_WMSA
 
   for (i = 0; i < min_dist; i++)
     MRIdilate(mri_min_dist, mri_min_dist);
-  mri_max_dist = MRIcopy(mri_min_dist, nullptr);
+  mri_max_dist = MRIcopy(mri_min_dist, NULL);
   for (i = min_dist; i < max_dist; i++)
     MRIdilate(mri_max_dist, mri_max_dist);
 
@@ -497,8 +514,7 @@ static RANDOM_FOREST *train_rforest(const char *training_file_name,
   // use n-1 long intensity volumes to predict wmsa of the nth
   whalf = (wsize - 1) / 2;
 
-  // one feature for each long vol, plus one for the slope, minus the last time
-  // point
+  // one feature for each long vol, plus one for the slope, minus the last time point
   if (nlong > 2)
     parms->nfeatures = wsize * wsize * wsize * (nlong) * (nvols);
   else
@@ -507,13 +523,13 @@ static RANDOM_FOREST *train_rforest(const char *training_file_name,
                const_cast<char **>(wmsa_class_names), parms->nsteps);
 
   fp = fopen(training_file_name, "r");
-  if (fp == nullptr)
+  if (fp == NULL)
     ErrorReturn(NULL, (ERROR_NOFILE, "train_rforest(%s): could not open file",
                        training_file_name));
 
   nsubjects = 0;
   cp        = fgetl(line, MAX_LINE_LEN, fp);
-  while (cp != nullptr) {
+  while (cp != NULL) {
     cp = fgetl(line, MAX_LINE_LEN, fp);
     nsubjects++;
   }
@@ -547,7 +563,7 @@ static RANDOM_FOREST *train_rforest(const char *training_file_name,
         sprintf(fname, "%s/%s%s.%s_base/mri/%s", sdir, subject, long_names[l],
                 subject, vol_names[v]);
         mri_intensity[l][v] = MRIread(fname);
-        if (mri_intensity[l][v] == nullptr)
+        if (mri_intensity[l][v] == NULL)
           ErrorExit(ERROR_NOFILE, "%s: could not intensity volume from %s",
                     Progname, fname);
       }
@@ -565,12 +581,11 @@ static RANDOM_FOREST *train_rforest(const char *training_file_name,
             break;
           training_data[tno] =
               (double *)calloc(parms->nfeatures, sizeof(double));
-          if (training_data[tno] == nullptr)
+          if (training_data[tno] == NULL)
             ErrorExit(ERROR_NOMEMORY,
                       "%s: could not allocate %dth %d-long training vector", n,
                       parms->nfeatures * sizeof(double));
-          label--; // classes to RF must be 0-based, but we want nonzero for
-                   // visualization
+          label--; // classes to RF must be 0-based, but we want nonzero for visualization
           training_classes[tno] = label;
           if (x0 == Gx && y0 == Gy && z0 == Gz)
             printf("training voxel (%d, %d, %d): maps to tno %d\n", x0, y0, z0,
@@ -592,8 +607,8 @@ static RANDOM_FOREST *train_rforest(const char *training_file_name,
                       *MATRIX_RELT(mX, l + 1, 2) = 1;
                       training_data[tno][t++]    = val;
                     }
-                    if (nlong > 2) // otherwise not enough to estimate slope
-                                   // from nlong-1 tps
+                    if (nlong >
+                        2) // otherwise not enough to estimate slope from nlong-1 tps
                     {
                       mXpinv                  = MatrixPseudoInverse(mX, mXpinv);
                       vP                      = MatrixMultiply(mXpinv, vY, vP);
@@ -667,17 +682,17 @@ static int classify_subjects(RANDOM_FOREST *rf, const char *subject_list_file,
   whalf = (wsize - 1) / 2;
 
   fp = fopen(subject_list_file, "r");
-  if (fp == nullptr)
+  if (fp == NULL)
     ErrorReturn(ERROR_NOFILE,
                 (ERROR_NOFILE, "train_rforest(%s): could not open file",
                  subject_list_file));
 
-  mri_labeled = nullptr;
+  mri_labeled = NULL;
   nsubjects   = 0;
   feature_vec = (double *)calloc(rf->nfeatures, sizeof(double));
   do {
     subject = fgetl(line, MAX_LINE_LEN, fp);
-    if (subject == nullptr)
+    if (subject == NULL)
       break;
     printf("processing subject %s: %d\n", subject, nsubjects++);
 
@@ -686,16 +701,16 @@ static int classify_subjects(RANDOM_FOREST *rf, const char *subject_list_file,
       sprintf(fname, "%s/%s%s.%s_base/mri/%s", sdir, subject, long_names[l],
               subject, aseg_name);
       mri_aseg[l] = MRIread(fname);
-      if (mri_aseg[l] == nullptr)
+      if (mri_aseg[l] == NULL)
         ErrorExit(ERROR_NOFILE, "%s: could not aseg volume from %s", Progname,
                   fname);
-      if (mri_labeled == nullptr)
-        mri_labeled = MRIclone(mri_aseg[l], nullptr);
+      if (mri_labeled == NULL)
+        mri_labeled = MRIclone(mri_aseg[l], NULL);
       for (v = 0; v < nvols; v++) {
         sprintf(fname, "%s/%s%s.%s_base/mri/%s", sdir, subject, long_names[l],
                 subject, vol_names[v]);
         mri_intensity[l][v] = MRIread(fname);
-        if (mri_intensity[l][v] == nullptr)
+        if (mri_intensity[l][v] == NULL)
           ErrorExit(ERROR_NOFILE, "%s: could not intensity volume from %s",
                     Progname, fname);
       }
@@ -767,7 +782,7 @@ static int classify_subjects(RANDOM_FOREST *rf, const char *subject_list_file,
     printf("writing classification to %s...\n", fname);
     MRIwrite(mri_labeled, fname);
     MRIfree(&mri_labeled);
-  } while (subject != nullptr);
+  } while (subject != NULL);
   free(feature_vec);
   fclose(fp);
   if (mXpinv)

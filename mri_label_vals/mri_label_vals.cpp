@@ -12,25 +12,36 @@
  *
  */
 
+#include <ctype.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+
 #include "cma.h"
 #include "diag.h"
+#include "error.h"
+#include "label.h"
+#include "macros.h"
+#include "mri.h"
+#include "proto.h"
 #include "timer.h"
+#include "utils.h"
 #include "version.h"
 
 int        main(int argc, char *argv[]);
 static int get_option(int argc, char *argv[]);
 
 const char * Progname;
-static char *log_fname = nullptr;
+static char *log_fname = NULL;
 static void  usage_exit(int code);
 
 static int   segmentation_flag = -1;
-static char *annot_prefix      = nullptr;
+static char *annot_prefix      = NULL;
 static int   quiet             = 0;
 static int   scaleup_flag      = 0;
 static int   cras              = 0; // 0 is false.  1 is true
 static int   cras_not_set      = 1;
-static char *surface_dir       = nullptr;
+static char *surface_dir       = NULL;
 static char *hemi;
 static int   erode  = 0;
 static int   coords = 0;
@@ -51,7 +62,7 @@ int main(int argc, char *argv[]) {
 
   Progname = argv[0];
   ErrorInit(NULL, NULL, NULL);
-  DiagInit(nullptr, nullptr, nullptr);
+  DiagInit(NULL, NULL, NULL);
 
   start.reset();
 
@@ -113,7 +124,7 @@ int main(int argc, char *argv[]) {
     if (erode) {
       MRI *mri_tmp;
 
-      mri_tmp = MRIclone(mri_seg, nullptr);
+      mri_tmp = MRIclone(mri_seg, NULL);
       MRIcopyLabel(mri_seg, mri_tmp, segmentation_flag);
       while (erode-- > 0)
         MRIerode(mri_tmp, mri_tmp);
@@ -160,7 +171,7 @@ int main(int argc, char *argv[]) {
       char         fname[STRLEN];
       sprintf(fname, "%s/%s.white", surface_dir, hemi);
       mris = MRISread(fname);
-      if (mris == nullptr)
+      if (mris == NULL)
         ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s...\n",
                   Progname, fname);
       sprintf(fname, "%s/%s.thickness", surface_dir, hemi);
@@ -182,7 +193,7 @@ int main(int argc, char *argv[]) {
         if (MRISreadAnnotation(mris, label_name) != NO_ERROR)
           ErrorExit(ERROR_BADPARM, "%s: could not read annotation file %s...\n",
                     Progname, fname);
-        if (mris->ct == nullptr)
+        if (mris->ct == NULL)
           ErrorExit(ERROR_BADPARM,
                     "%s: annot file does not contain a color table, specifiy "
                     "one with -t ",
@@ -203,8 +214,12 @@ int main(int argc, char *argv[]) {
               MRIsurfaceRASToVoxel(mri, xw, yw, zw, &xv, &yv, &zv);
             MRIsampleVolume(mri, xv, yv, zv, &val);
             annot_means[index] += val;
-            sprintf(fname, "%s-%s-%s.dat", annot_prefix, hemi,
-                    mris->ct->entries[index]->name);
+            int req = snprintf(fname, STRLEN, "%s-%s-%s.dat", annot_prefix,
+                               hemi, mris->ct->entries[index]->name);
+            if (req >= STRLEN) {
+              std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                        << std::endl;
+            }
             fp = fopen(fname, "a");
             fprintf(fp, "%f\n", val);
             fclose(fp);
@@ -212,13 +227,13 @@ int main(int argc, char *argv[]) {
         }
       } else /* read label in and print vals in it */
       {
-        area = LabelRead(nullptr, label_name);
+        area = LabelRead(NULL, label_name);
         if (!area)
           ErrorExit(ERROR_NOFILE, "%s: could not read label from %s", Progname,
                     label_name);
       }
     } else {
-      area = LabelRead(nullptr, label_name);
+      area = LabelRead(NULL, label_name);
       if (!area)
         ErrorExit(ERROR_NOFILE, "%s: could not read label from %s", Progname,
                   label_name);

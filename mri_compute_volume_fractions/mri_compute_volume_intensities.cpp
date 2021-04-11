@@ -331,16 +331,18 @@ static MRI *compute_unpartial_volumed_intensities(
             m_A = m_A2;
           } else // only wm in this voxel
           {
-            for (row = 1; row <= m_A3->rows; row++)
+            for (row = 1; row <= m_A3->rows; row++) {
               *MATRIX_RELT(m_A1, row, 1) = *MATRIX_RELT(m_A3, row, 1);
+            }
 
             v_s = v_s1;
             m_A = m_A1;
           }
         } else // only csf in this region
         {
-          for (row = 1; row <= m_A3->rows; row++)
+          for (row = 1; row <= m_A3->rows; row++) {
             *MATRIX_RELT(m_A1, row, 1) = *MATRIX_RELT(m_A3, row, 3);
+          }
 
           v_s = v_s1;
           m_A = m_A1;

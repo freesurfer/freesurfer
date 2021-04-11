@@ -22,10 +22,14 @@
  *
  */
 
+#include <errno.h>
+#include <string.h>
 #include <sys/stat.h>
 
-#include <cstring>
+#include <fstream>
+#include <iostream>
 #include <sstream>
+#include <stdexcept>
 
 #include "QdecGlmDesign.h"
 #include "mri.h"
@@ -42,7 +46,7 @@ QdecGlmDesign::QdecGlmDesign(QdecDataTable *iDataTable) {
   this->msHemi             = "lh";
   this->mSmoothness        = 10;
   this->msDesignMatrixType = "dods";
-  if (nullptr == getenv("SUBJECTS_DIR")) {
+  if (NULL == getenv("SUBJECTS_DIR")) {
     fprintf(stderr, "SUBJECTS_DIR not defined!\n");
     exit(1);
   }
@@ -51,7 +55,7 @@ QdecGlmDesign::QdecGlmDesign(QdecDataTable *iDataTable) {
   this->mfnFsgdfFile         = "qdec.fsgd";
   this->mfnYdataFile         = "y.mgh";
   this->mfnDefaultWorkingDir = "";
-  if (nullptr != getenv("QDEC_WORKING_DIR")) {
+  if (NULL != getenv("QDEC_WORKING_DIR")) {
     this->mfnDefaultWorkingDir = getenv("QDEC_WORKING_DIR");
   }
   if ("" == this->mfnDefaultWorkingDir) {
@@ -144,10 +148,10 @@ int QdecGlmDesign::Create(QdecDataTable *iDataTable, const char *isName,
   this->msHemi      = isHemi;
   this->mSmoothness = iSmoothnessLevel;
   QdecFactor *qf;
-  if ((nullptr != isFirstDiscreteFactor) &&
+  if ((NULL != isFirstDiscreteFactor) &&
       (strcmp(isFirstDiscreteFactor, "none"))) {
     qf = this->mDataTable->GetFactor(isFirstDiscreteFactor);
-    if (nullptr == qf) {
+    if (NULL == qf) {
       fprintf(stderr, "ERROR: QdecGlmDesign::Create: bad factor!\n");
       mDataTable->Dump(stderr);
       return -1;
@@ -155,40 +159,40 @@ int QdecGlmDesign::Create(QdecDataTable *iDataTable, const char *isName,
     assert(qf->IsDiscrete());
     this->mDiscreteFactors.push_back(qf);
   }
-  if ((nullptr != isSecondDiscreteFactor) &&
+  if ((NULL != isSecondDiscreteFactor) &&
       (strcmp(isSecondDiscreteFactor, "none"))) {
     qf = this->mDataTable->GetFactor(isSecondDiscreteFactor);
-    if (nullptr == qf) {
+    if (NULL == qf) {
       fprintf(stderr, "ERROR: QdecGlmDesign::Create: bad factor!\n");
       return -1;
     }
     assert(qf->IsDiscrete());
     this->mDiscreteFactors.push_back(qf);
   }
-  if ((nullptr != isFirstContinuousFactor) &&
+  if ((NULL != isFirstContinuousFactor) &&
       (strcmp(isFirstContinuousFactor, "none"))) {
     qf = this->mDataTable->GetFactor(isFirstContinuousFactor);
-    if (nullptr == qf) {
+    if (NULL == qf) {
       fprintf(stderr, "ERROR: QdecGlmDesign::Create: bad factor!\n");
       return -1;
     }
     assert(qf->IsContinuous());
     this->mContinuousFactors.push_back(qf);
   }
-  if ((nullptr != isSecondContinuousFactor) &&
+  if ((NULL != isSecondContinuousFactor) &&
       (strcmp(isSecondContinuousFactor, "none"))) {
     qf = this->mDataTable->GetFactor(isSecondContinuousFactor);
-    if (nullptr == qf) {
+    if (NULL == qf) {
       fprintf(stderr, "ERROR: QdecGlmDesign::Create: bad factor!\n");
       return -1;
     }
     assert(qf->IsContinuous());
     this->mContinuousFactors.push_back(qf);
   }
-  if ((nullptr != isNuisanceFactors) && (inNumNuisanceFactors)) {
+  if ((NULL != isNuisanceFactors) && (inNumNuisanceFactors)) {
     for (int i = 0; i < inNumNuisanceFactors; i++) {
       qf = this->mDataTable->GetFactor(isNuisanceFactors[i]);
-      if (nullptr == qf) {
+      if (NULL == qf) {
         fprintf(stderr, "ERROR: QdecGlmDesign::Create: bad factor!\n");
         return -1;
       }
@@ -196,13 +200,12 @@ int QdecGlmDesign::Create(QdecDataTable *iDataTable, const char *isName,
       this->mNuisanceFactors.push_back(qf);
     }
   }
-  //  if ( 0 == (this->mDiscreteFactors.size() +
-  //  this->mContinuousFactors.size()) )
+  //  if ( 0 == (this->mDiscreteFactors.size() + this->mContinuousFactors.size()) )
   //  {
   //    fprintf( stderr,"ERROR: QdecGlmDesign::Create: zero factors!\n" );
   //    return -1;
   //  }
-  if (this->mDataTable == nullptr ||
+  if (this->mDataTable == NULL ||
       0 == this->mDataTable->GetNumberOfSubjects()) {
     fprintf(stderr, "ERROR: QdecGlmDesign::Create: empty data table!\n");
     return -1;
@@ -369,7 +372,7 @@ void QdecGlmDesign::AddNuisanceFactor(const char *isFactorName) {
 std::string QdecGlmDesign::GetName() { return this->msName; }
 
 /**
- *
+ * 
  */
 void QdecGlmDesign::SetName(const char *isName) { this->msName = isName; }
 
@@ -379,7 +382,7 @@ void QdecGlmDesign::SetName(const char *isName) { this->msName = isName; }
 std::string QdecGlmDesign::GetHemi() { return this->msHemi; }
 
 /**
- *
+ * 
  */
 void QdecGlmDesign::SetHemi(const char *isHemi) { this->msHemi = isHemi; }
 
@@ -389,7 +392,7 @@ void QdecGlmDesign::SetHemi(const char *isHemi) { this->msHemi = isHemi; }
 std::string QdecGlmDesign::GetMeasure() { return this->msMeasure; }
 
 /**
- *
+ * 
  */
 void QdecGlmDesign::SetMeasure(const char *isMeasure) {
   this->msMeasure = isMeasure;
@@ -471,7 +474,7 @@ std::string QdecGlmDesign::GetYdataFileName() {
 }
 
 /**
- * @return vector< string >
+ * @return std::vector< std::string >
  */
 std::vector<std::string> QdecGlmDesign::GetContrastNames() {
   std::vector<std::string> tmp;
@@ -482,7 +485,7 @@ std::vector<std::string> QdecGlmDesign::GetContrastNames() {
 }
 
 /**
- * @return vector< string >
+ * @return std::vector< std::string >
  */
 std::vector<std::string> QdecGlmDesign::GetContrastQuestions() {
   std::vector<std::string> tmp;
@@ -493,7 +496,7 @@ std::vector<std::string> QdecGlmDesign::GetContrastQuestions() {
 }
 
 /**
- * @return vector< string >
+ * @return std::vector< std::string >
  */
 std::vector<std::string> QdecGlmDesign::GetContrastFileNames() {
   std::vector<std::string> tmp;
@@ -627,7 +630,7 @@ void QdecGlmDesign::ClearAllExcludedSubjects() {
   std::vector<QdecSubject *> subjs   = this->mDataTable->GetSubjects();
   unsigned int               nInputs = subjs.size();
   for (unsigned int m = 0; m < nInputs; m++) {
-    this->SetExcludeSubjectID(subjs[m]->GetId().c_str(), false);
+    this->SetExcludeSubjectID(subjs[m]->GetId().c_str(), 0);
   }
 }
 
@@ -731,7 +734,7 @@ int QdecGlmDesign::WriteFsgdFile() {
   std::string fsgdFile = this->GetFsgdFileName();
 
   FILE *fp = fopen(fsgdFile.c_str(), "w");
-  if (fp == nullptr) {
+  if (fp == NULL) {
     fprintf(stderr,
             "ERROR: QdecGlmDesign::WriteFsgdFile: "
             "could not open %s for writing\n",
@@ -753,7 +756,7 @@ int QdecGlmDesign::WriteFsgdFile() {
       fprintf(fp, "Class %s\n", ClassName.c_str());
       unsigned int f = 0;
       levels[f]++;
-      while (true) {
+      while (1) {
         if (levels[f] == this->mDiscreteFactors[f]->GetLevelNames().size()) {
           levels[f] = 0;
           f++;
@@ -882,7 +885,11 @@ int QdecGlmDesign::GenerateContrasts() {
             if (strlen(nfstr) > 2000)
               break;
           }
-          sprintf(tmpstr, "%s%s", question.c_str(), nfstr);
+          int req = snprintf(tmpstr, STRLEN, "%s%s", question.c_str(), nfstr);
+          if (req >= STRLEN) {
+            std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                      << std::endl;
+          }
           question = strdup(tmpstr);
         }
       } else if (ncf == 1) {
@@ -908,7 +915,11 @@ int QdecGlmDesign::GenerateContrasts() {
             if (strlen(nfstr) > 2000)
               break;
           }
-          sprintf(tmpstr, "%s%s", question.c_str(), nfstr);
+          int req = snprintf(tmpstr, STRLEN, "%s%s", question.c_str(), nfstr);
+          if (req >= STRLEN) {
+            std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                      << std::endl;
+          }
           question = strdup(tmpstr);
         }
       } else if (ncf == 2) {
@@ -942,7 +953,11 @@ int QdecGlmDesign::GenerateContrasts() {
             if (strlen(nfstr) > 2000)
               break;
           }
-          sprintf(tmpstr, "%s%s", question.c_str(), nfstr);
+          int req = snprintf(tmpstr, STRLEN, "%s%s", question.c_str(), nfstr);
+          if (req >= STRLEN) {
+            std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                      << std::endl;
+          }
           question = strdup(tmpstr);
         }
       }
@@ -997,7 +1012,11 @@ int QdecGlmDesign::GenerateContrasts() {
             if (strlen(nfstr) > 2000)
               break;
           }
-          sprintf(tmpstr, "%s%s", question.c_str(), nfstr);
+          int req = snprintf(tmpstr, STRLEN, "%s%s", question.c_str(), nfstr);
+          if (req >= STRLEN) {
+            std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                      << std::endl;
+          }
           question = strdup(tmpstr);
         }
       } else if (ncf == 1) {
@@ -1025,7 +1044,11 @@ int QdecGlmDesign::GenerateContrasts() {
             if (strlen(nfstr) > 2000)
               break;
           }
-          sprintf(tmpstr, "%s%s", question.c_str(), nfstr);
+          int req = snprintf(tmpstr, STRLEN, "%s%s", question.c_str(), nfstr);
+          if (req >= STRLEN) {
+            std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                      << std::endl;
+          }
           question = strdup(tmpstr);
         }
       } else if (ncf == 2) {
@@ -1059,7 +1082,11 @@ int QdecGlmDesign::GenerateContrasts() {
             if (strlen(nfstr) > 2000)
               break;
           }
-          sprintf(tmpstr, "%s%s", question.c_str(), nfstr);
+          int req = snprintf(tmpstr, STRLEN, "%s%s", question.c_str(), nfstr);
+          if (req >= STRLEN) {
+            std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                      << std::endl;
+          }
           question = strdup(tmpstr);
         }
       }
@@ -1097,7 +1124,11 @@ int QdecGlmDesign::GenerateContrasts() {
             if (strlen(nfstr) > 2000)
               break;
           }
-          sprintf(tmpstr, "%s%s", question.c_str(), nfstr);
+          int req = snprintf(tmpstr, STRLEN, "%s%s", question.c_str(), nfstr);
+          if (req >= STRLEN) {
+            std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                      << std::endl;
+          }
           question = strdup(tmpstr);
         }
       } else if (ncf == 1) {
@@ -1124,7 +1155,11 @@ int QdecGlmDesign::GenerateContrasts() {
             if (strlen(nfstr) > 2000)
               break;
           }
-          sprintf(tmpstr, "%s%s", question.c_str(), nfstr);
+          int req = snprintf(tmpstr, STRLEN, "%s%s", question.c_str(), nfstr);
+          if (req >= STRLEN) {
+            std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                      << std::endl;
+          }
           question = strdup(tmpstr);
         }
       } else if (ncf == 2) {
@@ -1159,7 +1194,11 @@ int QdecGlmDesign::GenerateContrasts() {
             if (strlen(nfstr) > 2000)
               break;
           }
-          sprintf(tmpstr, "%s%s", question.c_str(), nfstr);
+          int req = snprintf(tmpstr, STRLEN, "%s%s", question.c_str(), nfstr);
+          if (req >= STRLEN) {
+            std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                      << std::endl;
+          }
           question = strdup(tmpstr);
         }
       }
@@ -1227,7 +1266,11 @@ int QdecGlmDesign::GenerateContrasts() {
             if (strlen(nfstr) > 2000)
               break;
           }
-          sprintf(tmpstr, "%s%s", question.c_str(), nfstr);
+          int req = snprintf(tmpstr, STRLEN, "%s%s", question.c_str(), nfstr);
+          if (req >= STRLEN) {
+            std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                      << std::endl;
+          }
           question = strdup(tmpstr);
         }
       } else if (ncf == 1) {
@@ -1255,7 +1298,11 @@ int QdecGlmDesign::GenerateContrasts() {
             if (strlen(nfstr) > 2000)
               break;
           }
-          sprintf(tmpstr, "%s%s", question.c_str(), nfstr);
+          int req = snprintf(tmpstr, STRLEN, "%s%s", question.c_str(), nfstr);
+          if (req >= STRLEN) {
+            std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                      << std::endl;
+          }
           question = strdup(tmpstr);
         }
       } else if (ncf == 2) {
@@ -1289,7 +1336,11 @@ int QdecGlmDesign::GenerateContrasts() {
             if (strlen(nfstr) > 2000)
               break;
           }
-          sprintf(tmpstr, "%s%s", question.c_str(), nfstr);
+          int req = snprintf(tmpstr, STRLEN, "%s%s", question.c_str(), nfstr);
+          if (req >= STRLEN) {
+            std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                      << std::endl;
+          }
           question = strdup(tmpstr);
         }
       }
@@ -1319,7 +1370,12 @@ int QdecGlmDesign::GenerateContrasts() {
                 this->msMeasure.c_str(), df2Name.c_str(), df1l1name, df1l2name);
         question = strdup(tmpstr);
         if (nnf) {
-          sprintf(tmpstr, "%s\nNuisance factors:", question.c_str());
+          int req = snprintf(tmpstr, STRLEN,
+                             "%s\nNuisance factors:", question.c_str());
+          if (req >= STRLEN) {
+            std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                      << std::endl;
+          }
           question = strdup(tmpstr);
           char nfstr[2048];
           nfstr[0] = 0;
@@ -1331,24 +1387,41 @@ int QdecGlmDesign::GenerateContrasts() {
             if (strlen(nfstr) > 2000)
               break;
           }
-          sprintf(tmpstr, "%s%s", question.c_str(), nfstr);
+          req = snprintf(tmpstr, STRLEN, "%s%s", question.c_str(), nfstr);
+          if (req >= STRLEN) {
+            std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                      << std::endl;
+          }
           question = strdup(tmpstr);
         }
       } else if (ncf == 1) {
         QdecFactor *contFactor     = this->mContinuousFactors[nthcf - 1];
         std::string contFactorName = contFactor->GetFactorName();
-        sprintf(tmpstr, "%s-Diff-%s-%s-Cor-%s-%s", this->msHemi.c_str(),
-                df1l1name, df1l2name, this->msMeasure.c_str(),
-                contFactorName.c_str());
+        int         req = snprintf(tmpstr, STRLEN, "%s-Diff-%s-%s-Cor-%s-%s",
+                           this->msHemi.c_str(), df1l1name, df1l2name,
+                           this->msMeasure.c_str(), contFactorName.c_str());
+        if (req >= STRLEN) {
+          std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                    << std::endl;
+        }
         name = strdup(tmpstr);
-        sprintf(tmpstr,
-                "Does the %s--%s correlation, accounting for %s, "
-                "differ between %s and %s?",
-                this->msMeasure.c_str(), contFactorName.c_str(),
-                df2Name.c_str(), df1l1name, df1l2name);
+        req  = snprintf(tmpstr, STRLEN,
+                       "Does the %s--%s correlation, accounting for %s, "
+                       "differ between %s and %s?",
+                       this->msMeasure.c_str(), contFactorName.c_str(),
+                       df2Name.c_str(), df1l1name, df1l2name);
+        if (req >= STRLEN) {
+          std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                    << std::endl;
+        }
         question = strdup(tmpstr);
         if (nnf) {
-          sprintf(tmpstr, "%s\nNuisance factors:", question.c_str());
+          int req = snprintf(tmpstr, STRLEN,
+                             "%s\nNuisance factors:", question.c_str());
+          if (req >= STRLEN) {
+            std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                      << std::endl;
+          }
           question = strdup(tmpstr);
           char nfstr[2048];
           nfstr[0] = 0;
@@ -1360,7 +1433,11 @@ int QdecGlmDesign::GenerateContrasts() {
             if (strlen(nfstr) > 2000)
               break;
           }
-          sprintf(tmpstr, "%s%s", question.c_str(), nfstr);
+          req = snprintf(tmpstr, STRLEN, "%s%s", question.c_str(), nfstr);
+          if (req >= STRLEN) {
+            std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                      << std::endl;
+          }
           question = strdup(tmpstr);
         }
       } else if (ncf == 2) {
@@ -1372,19 +1449,32 @@ int QdecGlmDesign::GenerateContrasts() {
         else
           otherFactor = this->mContinuousFactors[nthcf - 2];
         std::string otherContFactorName = otherFactor->GetFactorName();
-        sprintf(tmpstr, "%s-Diff-%s-%s-Cor-%s-%s", this->msHemi.c_str(),
-                df1l1name, df1l2name, this->msMeasure.c_str(),
-                contFactorName.c_str());
+        int         req = snprintf(tmpstr, STRLEN, "%s-Diff-%s-%s-Cor-%s-%s",
+                           this->msHemi.c_str(), df1l1name, df1l2name,
+                           this->msMeasure.c_str(), contFactorName.c_str());
+        if (req >= STRLEN) {
+          std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                    << std::endl;
+        }
         name = strdup(tmpstr);
-        sprintf(tmpstr,
-                "Does the %s--%s correlation, accounting for %s and %s, "
-                "differ between %s and %s?",
-                this->msMeasure.c_str(), contFactorName.c_str(),
-                df2Name.c_str(), otherContFactorName.c_str(), df1l1name,
-                df1l2name);
+        req  = snprintf(tmpstr, STRLEN,
+                       "Does the %s--%s correlation, accounting for %s and %s, "
+                       "differ between %s and %s?",
+                       this->msMeasure.c_str(), contFactorName.c_str(),
+                       df2Name.c_str(), otherContFactorName.c_str(), df1l1name,
+                       df1l2name);
+        if (req >= STRLEN) {
+          std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                    << std::endl;
+        }
         question = strdup(tmpstr);
         if (nnf) {
-          sprintf(tmpstr, "%s\nNuisance factors:", question.c_str());
+          int req = snprintf(tmpstr, STRLEN,
+                             "%s\nNuisance factors:", question.c_str());
+          if (req >= STRLEN) {
+            std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                      << std::endl;
+          }
           question = strdup(tmpstr);
           char nfstr[2048];
           nfstr[0] = 0;
@@ -1396,7 +1486,11 @@ int QdecGlmDesign::GenerateContrasts() {
             if (strlen(nfstr) > 2000)
               break;
           }
-          sprintf(tmpstr, "%s%s", question.c_str(), nfstr);
+          req = snprintf(tmpstr, STRLEN, "%s%s", question.c_str(), nfstr);
+          if (req >= STRLEN) {
+            std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                      << std::endl;
+          }
           question = strdup(tmpstr);
         }
       }
@@ -1438,7 +1532,11 @@ int QdecGlmDesign::GenerateContrasts() {
             if (strlen(nfstr) > 2000)
               break;
           }
-          sprintf(tmpstr, "%s%s", question.c_str(), nfstr);
+          int req = snprintf(tmpstr, STRLEN, "%s%s", question.c_str(), nfstr);
+          if (req >= STRLEN) {
+            std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                      << std::endl;
+          }
           question = strdup(tmpstr);
         }
       } else if (ncf == 1) {
@@ -1467,7 +1565,11 @@ int QdecGlmDesign::GenerateContrasts() {
             if (strlen(nfstr) > 2000)
               break;
           }
-          sprintf(tmpstr, "%s%s", question.c_str(), nfstr);
+          int req = snprintf(tmpstr, STRLEN, "%s%s", question.c_str(), nfstr);
+          if (req >= STRLEN) {
+            std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                      << std::endl;
+          }
           question = strdup(tmpstr);
         }
       } else if (ncf == 2) {
@@ -1503,7 +1605,11 @@ int QdecGlmDesign::GenerateContrasts() {
             if (strlen(nfstr) > 2000)
               break;
           }
-          sprintf(tmpstr, "%s%s", question.c_str(), nfstr);
+          int req = snprintf(tmpstr, STRLEN, "%s%s", question.c_str(), nfstr);
+          if (req >= STRLEN) {
+            std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                      << std::endl;
+          }
           question = strdup(tmpstr);
         }
       }
@@ -1543,7 +1649,11 @@ int QdecGlmDesign::GenerateContrasts() {
             if (strlen(nfstr) > 2000)
               break;
           }
-          sprintf(tmpstr, "%s%s", question.c_str(), nfstr);
+          int req = snprintf(tmpstr, STRLEN, "%s%s", question.c_str(), nfstr);
+          if (req >= STRLEN) {
+            std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                      << std::endl;
+          }
           question = strdup(tmpstr);
         }
       } else if (ncf == 1) {
@@ -1569,7 +1679,11 @@ int QdecGlmDesign::GenerateContrasts() {
             if (strlen(nfstr) > 2000)
               break;
           }
-          sprintf(tmpstr, "%s%s", question.c_str(), nfstr);
+          int req = snprintf(tmpstr, STRLEN, "%s%s", question.c_str(), nfstr);
+          if (req >= STRLEN) {
+            std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                      << std::endl;
+          }
           question = strdup(tmpstr);
         }
       } else if (ncf == 2) {
@@ -1603,7 +1717,11 @@ int QdecGlmDesign::GenerateContrasts() {
             if (strlen(nfstr) > 2000)
               break;
           }
-          sprintf(tmpstr, "%s%s", question.c_str(), nfstr);
+          int req = snprintf(tmpstr, STRLEN, "%s%s", question.c_str(), nfstr);
+          if (req >= STRLEN) {
+            std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                      << std::endl;
+          }
           question = strdup(tmpstr);
         }
       }
@@ -1639,9 +1757,9 @@ int QdecGlmDesign::WriteContrastMatrices() {
 }
 
 /**
- * Creates the 'y' input data to mri_glmfit for a surface-based analysis,
+ * Creates the 'y' input data to mri_glmfit for a surface-based analysis, 
  * by concatenating the subject 'volumes' (actually, volume-encoded surface
- * data, like thickness), and writes it to the specified filename (a single
+ * data, like thickness), and writes it to the specified filename (a single 
  * volume: y.mgh).
  * @return int
  */
@@ -1738,7 +1856,7 @@ int QdecGlmDesign::WriteYdataFile() {
 }
 
 /**
- * Creates the 'y' input data to mri_glmfit for a volume-based analysis,
+ * Creates the 'y' input data to mri_glmfit for a volume-based analysis, 
  * by creating a multi-frame 'volume' of 1x1x1 size, sticking the single
  * dat point for each subject in the 'volume'.  One frame per subject.
  * @return int

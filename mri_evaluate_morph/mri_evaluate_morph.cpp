@@ -12,18 +12,27 @@
  *
  */
 
+#include <ctype.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "diag.h"
 #include "error.h"
+#include "macros.h"
+#include "mri.h"
+#include "proto.h"
 #include "transform.h"
 #include "version.h"
 
 int main(int argc, char *argv[]);
 
 static int  get_option(int argc, char *argv[]);
-static void usage_exit();
-static void print_usage();
-static void print_help();
-static void print_version();
+static void usage_exit(void);
+static void print_usage(void);
+static void print_help(void);
+static void print_version(void);
 
 const char *Progname;
 static char sdir[STRLEN] = "";
@@ -47,7 +56,7 @@ int          main(int argc, char *argv[]) {
 
   Progname = argv[0];
   ErrorInit(NULL, NULL, NULL);
-  DiagInit(nullptr, nullptr, nullptr);
+  DiagInit(NULL, NULL, NULL);
 
   if (strlen(sdir) == 0) {
     char *cp;
@@ -78,7 +87,12 @@ int          main(int argc, char *argv[]) {
 
   for (i = FIRST_SUBJECT; i < argc - 1; i++) {
     fprintf(stderr, "processing subject %s...\n", argv[i]);
-    sprintf(fname, "%s/%s/mri/%s", sdir, argv[i], seg_name);
+    int req = snprintf(fname, STRLEN, "%s/%s/mri/%s", sdir, argv[i], seg_name);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
+
     mri_seg[i - FIRST_SUBJECT] = MRIread(fname);
     if (!mri_seg[i - FIRST_SUBJECT])
       ErrorExit(ERROR_NOFILE, "%s: could not read segmentation %s", Progname,
@@ -96,14 +110,25 @@ int          main(int argc, char *argv[]) {
       s1 = argv[i + FIRST_SUBJECT];
       s2 = argv[j + FIRST_SUBJECT];
       printf("reading transforms for subjects %s and %s...\n", s1, s2);
-      sprintf(fname, "%s/%s/mri/transforms/%s", sdir, s1, xform_name);
+      int req = snprintf(fname, STRLEN, "%s/%s/mri/transforms/%s", sdir, s1,
+                         xform_name);
+      if (req >= STRLEN) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                  << std::endl;
+      }
+
       transform1 = TransformRead(fname);
-      if (transform1 == nullptr)
+      if (transform1 == NULL)
         ErrorExit(ERROR_NOFILE, "%s: could not read transform %s", Progname,
                   fname);
-      sprintf(fname, "%s/%s/mri/transforms/%s", sdir, s1, xform_name);
+      req = snprintf(fname, STRLEN, "%s/%s/mri/transforms/%s", sdir, s1,
+                     xform_name);
+      if (req >= STRLEN) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                  << std::endl;
+      }
       transform2 = TransformRead(fname);
-      if (transform2 == nullptr)
+      if (transform2 == NULL)
         ErrorExit(ERROR_NOFILE, "%s: could not read transform %s", Progname,
                   fname);
       printf("computing overlap for subjects %s and %s...\n", s1, s2);
@@ -161,18 +186,18 @@ static int get_option(int argc, char *argv[]) {
   return (nargs);
 }
 
-static void usage_exit() {
+static void usage_exit(void) {
   print_usage();
   exit(1);
 }
 
-static void print_usage() {
+static void print_usage(void) {
   fprintf(stderr,
           "usage: %s [options] <xform name> <s1> <s2> ... <output file>\n",
           Progname);
 }
 
-static void print_help() {
+static void print_help(void) {
   print_usage();
   fprintf(stderr, "\nThis program will compute the overlap of a set of "
                   "segmentations for a given morph\n");

@@ -2,7 +2,7 @@
  * @brief computes the interior volume of the ?h.white surfaces 
  * (excluding subcortical labels)
  *
- * computes the interior volume of the ?h.white surfaces (excluding
+ * computes the interior volume of the ?h.white surfaces (excluding 
  * subcortical labels), uses the aseg.mgz and the ?h.white surfaces.
  */
 /*
@@ -20,10 +20,23 @@
  *
  */
 
+#include "cma.h"
 #include "diag.h"
+#include "error.h"
+#include "label.h"
+#include "macros.h"
+#include "matrix.h"
+#include "mri.h"
 #include "mrisurf.h"
+#include "proto.h"
 #include "timer.h"
+#include "transform.h"
+#include "utils.h"
 #include "version.h"
+#include <ctype.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 int        main(int argc, char *argv[]);
 static int get_option(int argc, char *argv[]);
@@ -53,7 +66,7 @@ int main(int argc, char *argv[]) {
 
   Progname = argv[0];
   ErrorInit(NULL, NULL, NULL);
-  DiagInit(nullptr, nullptr, nullptr);
+  DiagInit(NULL, NULL, NULL);
 
   start.reset();
 
@@ -80,9 +93,14 @@ int main(int argc, char *argv[]) {
   //  printf("command line parsing finished\n");
 
   /*** Read in the input surfaces ***/
-  sprintf(fname, "%s/%s/surf/%s.%s", sdir, subject, hemi, white_name);
+  int req = snprintf(fname, STRLEN, "%s/%s/surf/%s.%s", sdir, subject, hemi,
+                     white_name);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
   mris = MRISread(fname);
-  if (mris == nullptr)
+  if (mris == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface %s", Progname, fname);
 
   eno = MRIScomputeEulerNumber(mris, &nv, &nf, &ne);
@@ -91,9 +109,13 @@ int main(int argc, char *argv[]) {
               "%s: surface %s has an incorrect topology (eno=%d)", Progname,
               fname, eno);
   /*** Read in the aseg volume ***/
-  sprintf(fname, "%s/%s/mri/%s", sdir, subject, aseg_name);
+  req = snprintf(fname, STRLEN, "%s/%s/mri/%s", sdir, subject, aseg_name);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
   mri_aseg = MRIread(fname);
-  if (mri_aseg == nullptr)
+  if (mri_aseg == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not read segmentation volume %s",
               Progname, fname);
 

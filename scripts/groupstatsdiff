@@ -18,6 +18,7 @@ set NoBA = 0;
 set DoAparcStats = 1
 set DoAsegStats = 1
 set DoWMParcStats = 1
+set DoPrune = 1
 set fwhmlist = ()
 
 set inputargs = ($argv);
@@ -183,6 +184,7 @@ if($DoMaps) then
         # glm ------------------------
         set glmdir = $outdir/maps/glm.$meas.$hemi.sm$fwhmstr
         set cmd = (mri_glmfit --surface fsaverage $hemi --y $smdifffile --glmdir $glmdir $gcmd)
+        if($DoPrune == 0) set cmd = ($cmd --no-prune)
         echo "#C# $cmd"  | tee -a $LF
         $cmd | tee -a $LF
         if($status) then
@@ -315,6 +317,10 @@ while( $#argv != 0 )
       set NoBA = 1;
       breaksw
 
+    case "--no-prune":
+      set DoPrune = 0
+      breaksw
+
     case "--lh":
       set hemilist = (lh)
       breaksw
@@ -418,6 +424,7 @@ usage_exit:
   echo "  --no-asegstats : do not do asegstats"
   echo "  --no-wparcstats : do not do wmparcstats"
   echo "  --no-stats : do not do any ROI stats"
+  echo "  --no-prune : do not prune when running mri_glmfit (may be nec if g1=g2)"
   echo "  --fwhm fwhm <--fwhm fwhm> : override the fwhm from group ana (must be present)"
   echo "  "
 

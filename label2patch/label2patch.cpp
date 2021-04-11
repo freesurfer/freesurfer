@@ -18,13 +18,24 @@
  *
  */
 
+#include <ctype.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+
 #include "diag.h"
+#include "error.h"
+#include "macros.h"
+#include "minc.h"
+#include "mri.h"
 #include "mrisurf.h"
+#include "proto.h"
+#include "utils.h"
 #include "version.h"
 
 int         main(int argc, char *argv[]);
 static int  get_option(int argc, char *argv[]);
-static void print_usage();
+static void print_usage(void);
 
 const char *Progname;
 
@@ -41,7 +52,8 @@ static int writesurf = 0;
 
 int main(int argc, char *argv[]) {
   int    ac, nargs;
-  char **av, *cp, surf_name[100], *hemi, *subject_name, *label_name, *out_fname;
+  char **av, *cp, surf_name[STRLEN], *hemi, *subject_name, *label_name,
+      *out_fname;
   MRI_SURFACE *mris;
   LABEL *      label;
 
@@ -52,7 +64,7 @@ int main(int argc, char *argv[]) {
 
   Progname = argv[0];
   ErrorInit(NULL, NULL, NULL);
-  DiagInit(nullptr, nullptr, nullptr);
+  DiagInit(NULL, NULL, NULL);
 
   /* read in command-line options */
   ac = argc;
@@ -78,8 +90,13 @@ int main(int argc, char *argv[]) {
     strcpy(subjects_dir, cp);
   }
 
-  sprintf(surf_name, "%s/%s/surf/%s.%s", subjects_dir, subject_name, hemi,
-          surface);
+  int req = snprintf(surf_name, STRLEN, "%s/%s/surf/%s.%s", subjects_dir,
+                     subject_name, hemi, surface);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
+
   fprintf(stderr, "reading %s...\n", surf_name);
   mris = MRISread(surf_name);
   if (!mris)
@@ -160,7 +177,7 @@ static int get_option(int argc, char *argv[]) {
 
   return (nargs);
 }
-static void print_usage() {
+static void print_usage(void) {
   printf("usage: %s [options] <subject name> <hemi> <label file name> <output "
          "patch file>...\n",
          Progname);

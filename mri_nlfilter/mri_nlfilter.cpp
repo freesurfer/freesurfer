@@ -12,17 +12,28 @@
  *
  */
 
+#include <ctype.h>
+#include <math.h>
+#include <memory.h>
+#include <stdio.h>
+#include <stdlib.h>
+
 #include "diag.h"
 #include "error.h"
+#include "filter.h"
+#include "macros.h"
+#include "mri.h"
+#include "proto.h"
 #include "region.h"
+#include "utils.h"
 #include "version.h"
 
 int         main(int argc, char *argv[]);
 static int  get_option(int argc, char *argv[]);
-static void usage_exit();
-static void print_usage();
-static void print_help();
-static void print_version();
+static void usage_exit(void);
+static void print_usage(void);
+static void print_help(void);
+static void print_version(void);
 
 #define GAUSSIAN_SIGMA 2.0f
 #define BLUR_SIGMA     0.5f
@@ -46,7 +57,7 @@ static MRI *mri_gaussian;
 
 static int   mean_mask_niter  = 100;
 static float mean_mask_thresh = 10;
-static MRI * mri_mean_mask    = nullptr;
+static MRI * mri_mean_mask    = NULL;
 
 #define REGION_SIZE 16
 
@@ -72,7 +83,7 @@ int        main(int argc, char *argv[]) {
 
   Progname = argv[0];
   ErrorInit(NULL, NULL, NULL);
-  DiagInit(nullptr, nullptr, nullptr);
+  DiagInit(NULL, NULL, NULL);
 
   for (; argc > 1 && ISOPTION(*argv[1]); argc--, argv++) {
     nargs = get_option(argc, argv);
@@ -97,7 +108,7 @@ int        main(int argc, char *argv[]) {
                 "%s: could not allocate blurring kernel with sigma=%2.3f",
                 Progname, blur_sigma);
   } else
-    mri_blur = nullptr;
+    mri_blur = NULL;
 
   if (crop)
     MRIboundingBox(mri_full, 0, &clip_region);
@@ -110,11 +121,11 @@ int        main(int argc, char *argv[]) {
   REGIONexpand(&clip_region, &clip_region, (filter_window_size + 1) / 2);
   if (mri_full->depth == 1)
     clip_region.dz = 1;
-  mri_src = MRIextractRegion(mri_full, nullptr, &clip_region);
+  mri_src = MRIextractRegion(mri_full, NULL, &clip_region);
   width   = mri_src->width;
   height  = mri_src->height;
   depth   = mri_src->depth;
-  mri_dst = MRIclone(mri_src, nullptr);
+  mri_dst = MRIclone(mri_src, NULL);
   if (!mri_dst)
     ErrorExit(ERROR_NOFILE, "%s: could allocate space for destination image",
               Progname);
@@ -125,7 +136,7 @@ int        main(int argc, char *argv[]) {
     MRI *mri_template;
 
     mri_template = MRIread(histo_template_fname);
-    if (mri_template == nullptr)
+    if (mri_template == NULL)
       exit(Gerror);
     //    mri_dst = MRIhistogramNormalize(mri_src, mri_template, mri_dst);
     mri_dst = MRIhistoEqualize(mri_src, mri_template, mri_dst, 0, 28000);
@@ -145,11 +156,11 @@ int        main(int argc, char *argv[]) {
            "%s, and writing output to %s\n",
            mean_mask_thresh, mean_mask_niter, mask_fname, out_fname);
     mri_mean_mask = MRIread(mask_fname);
-    if (mri_mean_mask == nullptr)
+    if (mri_mean_mask == NULL)
       ErrorExit(ERROR_NOFILE, "%s: could not load mask volume %s", Progname,
                 mask_fname);
-    mri_smooth = MRIcopy(mri_src, nullptr);
-    mri_dst    = MRIcopy(mri_src, nullptr);
+    mri_smooth = MRIcopy(mri_src, NULL);
+    mri_dst    = MRIcopy(mri_src, NULL);
     for (n = 0; n < mean_mask_niter; n++) {
       for (f = 0; f < mri_smooth->nframes; f++)
         for (x = 0; x < mri_smooth->width; x++)
@@ -181,21 +192,22 @@ int        main(int argc, char *argv[]) {
   }
 
   if (crop == 0 && no_offset) {
-    MRI *mri_tmp;
+    MRI *mri_tmp = nullptr;
     printf("disabling regional filtering\n");
     switch (filter_type) {
     default:
       ErrorExit(ERROR_UNSUPPORTED,
                 "%s: unsupported no crop no offset filter %d\n", Progname,
                 filter_type);
+      break;
     case FILTER_GAUSSIAN:
-      mri_tmp = MRIconvolveGaussian(mri_full, nullptr, mri_gaussian);
+      mri_tmp = MRIconvolveGaussian(mri_full, NULL, mri_gaussian);
       if (!mri_tmp)
         ErrorExit(ERROR_NOMEMORY,
                   "%s: could not allocate temporary buffer space", Progname);
       break;
     case FILTER_MEDIAN:
-      mri_tmp = MRImedian(mri_full, nullptr, filter_window_size, nullptr);
+      mri_tmp = MRImedian(mri_full, NULL, filter_window_size, NULL);
       if (!mri_tmp)
         ErrorExit(ERROR_NOMEMORY,
                   "%s: could not allocate temporary buffer space", Progname);
@@ -235,46 +247,46 @@ int        main(int argc, char *argv[]) {
                     "extracting region (%d, %d, %d) --> (%d, %d, %d)...",
                     region.x, region.y, region.z, region.x + region.dx - 1,
                     region.y + region.dy - 1, region.z + region.dz - 1);
-          mri_clip = MRIextractRegion(mri_src, nullptr, &region);
+          mri_clip = MRIextractRegion(mri_src, NULL, &region);
           if (DIAG_VERBOSE_ON && (Gdiag & DIAG_SHOW))
             fprintf(stderr, "done.\nsmoothing region and up-sampling...");
 
           if (mri_blur) /* smooth the input image to generate offset field */
-            mri_smooth = MRIconvolveGaussian(mri_clip, nullptr, mri_blur);
+            mri_smooth = MRIconvolveGaussian(mri_clip, NULL, mri_blur);
           else
-            mri_smooth = MRIcopy(mri_clip, nullptr); /* no smoothing */
+            mri_smooth = MRIcopy(mri_clip, NULL); /* no smoothing */
           if (!mri_smooth)
             ErrorExit(ERROR_BADPARM, "%s: image smoothing failed", Progname);
 
           /* now up-sample the smoothed image, and compute offset field in
-             up-sampled domain */
-          mri_up = MRIupsample2(mri_smooth, nullptr);
+	     up-sampled domain */
+          mri_up = MRIupsample2(mri_smooth, NULL);
           if (!mri_up)
             ErrorExit(ERROR_BADPARM, "%s: up sampling failed", Progname);
           MRIfree(&mri_smooth);
           if (DIAG_VERBOSE_ON && (Gdiag & DIAG_SHOW))
             fprintf(stderr, "done.\n");
           mri_smooth = mri_up;
-          mri_grad   = MRIsobel(mri_smooth, nullptr, nullptr);
-          mri_dir    = MRIclone(mri_smooth, nullptr);
+          mri_grad   = MRIsobel(mri_smooth, NULL, NULL);
+          mri_dir    = MRIclone(mri_smooth, NULL);
           MRIfree(&mri_smooth);
           if (DIAG_VERBOSE_ON && (Gdiag & DIAG_SHOW))
             fprintf(stderr, "computing direction map...");
-          mri_direction = MRIoffsetDirection(mri_grad, offset_window_size,
-                                             nullptr, mri_dir);
+          mri_direction =
+              MRIoffsetDirection(mri_grad, offset_window_size, NULL, mri_dir);
 
           if (DIAG_VERBOSE_ON && (Gdiag & DIAG_SHOW))
             fprintf(stderr, "computing offset magnitudes...");
           MRIfree(&mri_grad);
           mri_offset =
-              MRIoffsetMagnitude(mri_direction, nullptr, offset_search_len);
+              MRIoffsetMagnitude(mri_direction, NULL, offset_search_len);
           MRIfree(&mri_direction);
           if (!mri_offset)
             ErrorExit(ERROR_NOMEMORY, "%s: offset calculation failed",
                       Progname);
           if (DIAG_VERBOSE_ON && (Gdiag & DIAG_SHOW))
             fprintf(stderr, "done.\nfiltering image...");
-          mri_filter_src = MRIupsample2(mri_clip, nullptr);
+          mri_filter_src = MRIupsample2(mri_clip, NULL);
           MRIfree(&mri_clip);
 
           //-----------------------------------------------------------
@@ -282,9 +294,8 @@ int        main(int argc, char *argv[]) {
           case FILTER_CPOLV_MEDIAN:
             if (x == 0 && y == 0 && z == 0)
               printf("filter type: cpolv median\n");
-            mri_polv =
-                MRIplaneOfLeastVarianceNormal(mri_filter_src, nullptr, 5);
-            mri_filter_dst = MRIpolvMedian(mri_filter_src, nullptr, mri_polv,
+            mri_polv = MRIplaneOfLeastVarianceNormal(mri_filter_src, NULL, 5);
+            mri_filter_dst = MRIpolvMedian(mri_filter_src, NULL, mri_polv,
                                            filter_window_size);
             MRIfree(&mri_polv);
             break;
@@ -292,7 +303,7 @@ int        main(int argc, char *argv[]) {
             if (x == 0 && y == 0 && z == 0)
               printf("filter type: gaussian\n");
             mri_filter_dst =
-                MRIconvolveGaussian(mri_filter_src, nullptr, mri_gaussian);
+                MRIconvolveGaussian(mri_filter_src, NULL, mri_gaussian);
             if (!mri_filter_dst)
               ErrorExit(ERROR_NOMEMORY,
                         "%s: could not allocate temporary buffer space",
@@ -302,7 +313,7 @@ int        main(int argc, char *argv[]) {
             if (x == 0 && y == 0 && z == 0)
               printf("filter type: median\n");
             mri_filter_dst =
-                MRImedian(mri_filter_src, nullptr, filter_window_size, nullptr);
+                MRImedian(mri_filter_src, NULL, filter_window_size, NULL);
             if (!mri_filter_dst)
               ErrorExit(ERROR_NOMEMORY,
                         "%s: could not allocate temporary buffer space",
@@ -311,8 +322,7 @@ int        main(int argc, char *argv[]) {
           case FILTER_MEAN:
             if (x == 0 && y == 0 && z == 0)
               printf("filter type: mean\n");
-            mri_filter_dst =
-                MRImean(mri_filter_src, nullptr, filter_window_size);
+            mri_filter_dst = MRImean(mri_filter_src, NULL, filter_window_size);
             if (!mri_filter_dst)
               ErrorExit(ERROR_NOMEMORY,
                         "%s: could not allocate temporary buffer space",
@@ -322,7 +332,7 @@ int        main(int argc, char *argv[]) {
             if (x == 0 && y == 0 && z == 0)
               printf("filter type: minmax\n");
             mri_filter_dst =
-                MRIminmax(mri_filter_src, nullptr, mri_dir, filter_window_size);
+                MRIminmax(mri_filter_src, NULL, mri_dir, filter_window_size);
             if (!mri_filter_dst)
               ErrorExit(ERROR_NOMEMORY,
                         "%s: could not allocate space for filtered image",
@@ -331,21 +341,20 @@ int        main(int argc, char *argv[]) {
           default:
             if (x == 0 && y == 0 && z == 0)
               printf("filter type: none\n");
-            mri_filter_dst =
-                MRIcopy(mri_filter_src, nullptr); /* no filtering */
+            mri_filter_dst = MRIcopy(mri_filter_src, NULL); /* no filtering */
             break;
           }
           MRIfree(&mri_dir);
           MRIfree(&mri_filter_src);
 
           if (no_offset) {
-            mri_filtered = MRIcopy(mri_filter_dst, nullptr);
+            mri_filtered = MRIcopy(mri_filter_dst, NULL);
           } else {
             if (DIAG_VERBOSE_ON && (Gdiag & DIAG_SHOW))
               fprintf(stderr, "applying offset field...");
             if (Gdiag & DIAG_WRITE)
               MRIwrite(mri_filter_dst, "minmax.mgz");
-            mri_filtered = MRIapplyOffset(mri_filter_dst, nullptr, mri_offset);
+            mri_filtered = MRIapplyOffset(mri_filter_dst, NULL, mri_offset);
             if (!mri_filtered)
               ErrorExit(ERROR_NOMEMORY, "%s: could not allocate filtered image",
                         Progname);
@@ -358,7 +367,7 @@ int        main(int argc, char *argv[]) {
           MRIfree(&mri_filter_dst);
           if (Gdiag & DIAG_WRITE)
             MRIwrite(mri_filtered, "upfilt.mgz");
-          mri_tmp = MRIdownsample2(mri_filtered, nullptr);
+          mri_tmp = MRIdownsample2(mri_filtered, NULL);
           MRIfree(&mri_filtered);
           if (Gdiag & DIAG_WRITE)
             MRIwrite(mri_tmp, "downfilt.mgz");
@@ -500,19 +509,19 @@ static int get_option(int argc, char *argv[]) {
   return (nargs);
 }
 
-static void usage_exit() {
+static void usage_exit(void) {
   print_usage();
   exit(1);
 }
 
-static void print_usage() {
+static void print_usage(void) {
   fprintf(stderr,
           "usage: %s [options] <input image file> <output image file>\n",
           Progname);
   printf("  use --help to get help\n");
 }
 
-static void print_help() {
+static void print_help(void) {
   print_usage();
   fprintf(stderr,
           "\nThis program will process the image contained in "

@@ -12,16 +12,27 @@
  *
  */
 
+#include <ctype.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "diag.h"
+#include "error.h"
+#include "label.h"
+#include "macros.h"
+#include "mri.h"
 #include "mrisurf.h"
+#include "proto.h"
 #include "version.h"
 
 int main(int argc, char *argv[]);
 
 static int  get_option(int argc, char *argv[]);
-static void print_usage();
-static void print_help();
-static void print_version();
+static void print_usage(void);
+static void print_help(void);
+static void print_version(void);
 static int  compute_thickness_stats(MRI_SURFACE *mris, LABEL *area,
                                     double *pmean_w, double *pvar_w,
                                     double *pmean_thick, double *pvar_thick,
@@ -31,7 +42,7 @@ const char *Progname;
 
 static char  subjects_dir[STRLEN];
 static int   avgs   = 0;
-static FILE *log_fp = nullptr;
+static FILE *log_fp = NULL;
 
 int main(int argc, char *argv[]) {
   char **av, fname[STRLEN], env_string[STRLEN], *cp, *subject_name, *hemi,
@@ -48,7 +59,7 @@ int main(int argc, char *argv[]) {
 
   Progname = argv[0];
   ErrorInit(NULL, NULL, NULL);
-  DiagInit(nullptr, nullptr, nullptr);
+  DiagInit(NULL, NULL, NULL);
 
   ac = argc;
   av = argv;
@@ -69,7 +80,11 @@ int main(int argc, char *argv[]) {
     strcpy(subjects_dir, cp);
   }
 
-  sprintf(env_string, "SUBJECTS_DIR=%s", subjects_dir);
+  int req = snprintf(env_string, STRLEN, "SUBJECTS_DIR=%s", subjects_dir);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
   putenv(env_string);
   cp             = getenv("SUBJECTS_DIR");
   subject_name   = argv[1];
@@ -77,8 +92,12 @@ int main(int argc, char *argv[]) {
   thickness_name = argv[3];
   wfile_name     = argv[4];
 
-  sprintf(fname, "%s/%s/surf/%s.%s", subjects_dir, subject_name, hemi,
-          ORIG_NAME);
+  req = snprintf(fname, STRLEN, "%s/%s/surf/%s.%s", subjects_dir, subject_name,
+                 hemi, ORIG_NAME);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
   mris = MRISread(fname);
   if (!mris)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s", Progname,
@@ -97,7 +116,7 @@ int main(int argc, char *argv[]) {
     label_name = argv[i];
     printf("reading label file %s\n", label_name);
     area = LabelRead(subject_name, label_name);
-    if (area == nullptr)
+    if (area == NULL)
       ErrorExit(ERROR_BADPARM, "%s: could not read label file %s\n", Progname,
                 label_name);
     compute_thickness_stats(mris, area, &mean_w, &var_w, &mean_thick,
@@ -134,7 +153,7 @@ static int get_option(int argc, char *argv[]) {
     switch (toupper(*option)) {
     case 'L':
       log_fp = fopen(argv[2], "w");
-      if (log_fp == nullptr)
+      if (log_fp == NULL)
         ErrorExit(ERROR_NOFILE, "%s: could not open log file %s", Progname,
                   argv[2]);
       nargs = 1;
@@ -163,14 +182,14 @@ static int get_option(int argc, char *argv[]) {
   return (nargs);
 }
 
-static void print_usage() {
+static void print_usage(void) {
   fprintf(stderr,
           "usage: %s [options] <subject> <hemi> <thickness file> <w file> "
           "<label1> <label2>...\n",
           Progname);
 }
 
-static void print_help() {
+static void print_help(void) {
   print_usage();
   exit(1);
 }

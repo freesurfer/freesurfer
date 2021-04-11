@@ -20,9 +20,23 @@
  *
  */
 
+#include <ctype.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "cma.h"
 #include "diag.h"
+#include "error.h"
+#include "fastmarching.h"
+#include "macros.h"
+#include "mri.h"
 #include "mri2.h"
 #include "mrishash.h"
+#include "mrisurf.h"
+#include "proto.h"
+#include "utils.h"
 #include "version.h"
 
 int main(int argc, char *argv[]);
@@ -61,14 +75,6 @@ static float       rescale                   = 1.0f;
 static MRI *mri_overlay; // if "flattening" an overlay with an existing flatmap
 
 static LABEL *label_overlay = NULL;
-
-int main(int argc, char *argv[]);
-
-static int  get_option(int argc, char *argv[]);
-static void print_usage(void);
-static void print_help(void);
-static void print_version(void);
-int         MRISscaleUp(MRI_SURFACE *mris);
 
 static double rectangle_error(MRI_SURFACE *mris, double xmin, double ymin,
                               double xmax, double ymax) {
@@ -259,9 +265,9 @@ int main(int argc, char *argv[]) {
   Gdiag |= DIAG_SHOW;
   Progname = argv[0];
   ErrorInit(NULL, NULL, NULL);
-  DiagInit(nullptr, nullptr, nullptr);
+  DiagInit(NULL, NULL, NULL);
   Gdiag |= (DIAG_SHOW | DIAG_WRITE);
-  memset(&parms, 0, sizeof(parms));
+  // memset(&parms, 0, sizeof(parms)) ;
   parms.dt                 = .1;
   parms.projection         = PROJECT_PLANE;
   parms.tol                = 0.2;
@@ -303,10 +309,20 @@ int main(int argc, char *argv[]) {
     hemi[2] = 0;
   } else
     strcpy(hemi, "lh");
-  if (one_surf_flag)
-    sprintf(in_surf_fname, "%s", in_patch_fname);
-  else
-    sprintf(in_surf_fname, "%s/%s.%s", path, hemi, original_surf_name);
+  if (one_surf_flag) {
+    int req = snprintf(in_surf_fname, STRLEN, "%s", in_patch_fname);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
+  } else {
+    int req = snprintf(in_surf_fname, STRLEN, "%s/%s.%s", path, hemi,
+                       original_surf_name);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
+  }
 
   if (parms.base_name[0] == 0) {
     FileNameOnly(out_patch_fname, fname);
@@ -360,8 +376,8 @@ int main(int argc, char *argv[]) {
     if (label_fname) // read in a label instead of a patch
     {
       LABEL *area;
-      area = LabelRead(nullptr, label_fname);
-      if (area == nullptr)
+      area = LabelRead(NULL, label_fname);
+      if (area == NULL)
         ErrorExit(ERROR_BADPARM, "%s: could not read label file %s", Progname,
                   label_fname);
 
@@ -424,7 +440,12 @@ int main(int argc, char *argv[]) {
 
     if (!FZERO(parms.l_unfold) || !FZERO(parms.l_expand)) {
       static INTEGRATION_PARMS p2;
-      sprintf(in_surf_fname, "%s/%s.%s", path, hemi, original_surf_name);
+      int req = snprintf(in_surf_fname, STRLEN, "%s/%s.%s", path, hemi,
+                         original_surf_name);
+      if (req >= STRLEN) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                  << std::endl;
+      }
       if (stricmp(original_unfold_surf_name, "none") == 0) {
         printf("using current position of patch as initial position\n");
         MRISstoreMetricProperties(mris); /* use current positions */
@@ -467,7 +488,12 @@ int main(int argc, char *argv[]) {
       MRIfree(&parms.mri_dist);
     }
 
-    sprintf(in_surf_fname, "%s/%s.%s", path, hemi, original_surf_name);
+    int req = snprintf(in_surf_fname, STRLEN, "%s/%s.%s", path, hemi,
+                       original_surf_name);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
     if (!sphere_flag && !one_surf_flag)
       MRISreadOriginalProperties(mris, original_surf_name);
     if (randomly_flatten)
@@ -542,7 +568,7 @@ int main(int argc, char *argv[]) {
             start_index = mris->nvertices;
             end_index   = 2 * mris->nvertices - 1;
           }
-          mri_tmp = MRIextract(mri_overlay, nullptr, start_index, 0, 0,
+          mri_tmp = MRIextract(mri_overlay, NULL, start_index, 0, 0,
                                mris->nvertices, 1, 1);
           MRIfree(&mri_overlay);
           mri_overlay = mri_tmp;
@@ -564,14 +590,22 @@ int main(int argc, char *argv[]) {
       MRIsetValues(mri_overlay, 0);
       FileNameOnly(synth_name, fname_no_path);
       FileNamePath(synth_name, path);
-      sprintf(fname, "%s/lh.%s", path, fname_no_path);
-      area_lh = LabelRead(nullptr, fname);
-      if (area_lh == nullptr)
+      int req = snprintf(fname, STRLEN, "%s/lh.%s", path, fname_no_path);
+      if (req >= STRLEN) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                  << std::endl;
+      }
+      area_lh = LabelRead(NULL, fname);
+      if (area_lh == NULL)
         ErrorExit(ERROR_NOFILE, "%s: could not read label from %s", Progname,
                   fname);
-      sprintf(fname, "%s/rh.%s", path, fname_no_path);
-      area_rh = LabelRead(nullptr, fname);
-      if (area_rh == nullptr)
+      req = snprintf(fname, STRLEN, "%s/rh.%s", path, fname_no_path);
+      if (req >= STRLEN) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                  << std::endl;
+      }
+      area_rh = LabelRead(NULL, fname);
+      if (area_rh == NULL)
         ErrorExit(ERROR_NOFILE, "%s: could not read label from %s", Progname,
                   fname);
 #if 0
@@ -601,7 +635,7 @@ int main(int argc, char *argv[]) {
 #endif
     }
 
-    mri_flattened = MRIflattenOverlay(mris, mri_overlay, nullptr, 1.0,
+    mri_flattened = MRIflattenOverlay(mris, mri_overlay, NULL, 1.0,
                                       label_overlay, &mri_vertices);
     printf("writing flattened overlay to %s\n", out_patch_fname);
     MRIwrite(mri_flattened, out_patch_fname);
@@ -648,14 +682,14 @@ static int get_option(int argc, char *argv[]) {
   } else if (!stricmp(option, "overlay")) {
     mri_overlay = MRIread(argv[2]);
     nargs       = 1;
-    if (mri_overlay == nullptr)
+    if (mri_overlay == NULL)
       ErrorExit(ERROR_NOFILE, "%s: could not read overlay from %s", argv[2]);
     parms.niterations = 0; // this will disable the actual flattening
   } else if (!stricmp(option, "label_overlay") ||
              !stricmp(option, "overlay_label")) {
-    label_overlay = LabelRead(nullptr, argv[2]);
+    label_overlay = LabelRead(NULL, argv[2]);
     nargs         = 1;
-    if (label_overlay == nullptr)
+    if (label_overlay == NULL)
       ErrorExit(ERROR_NOFILE, "%s: could not read label overlay from %s",
                 Progname, argv[2]);
   } else if (!stricmp(option, "norand")) {
@@ -695,7 +729,7 @@ static int get_option(int argc, char *argv[]) {
                 Progname, argv[3]);
 
     mri_kernel     = MRIgaussian1d(1.0, -1);
-    parms.mri_dist = MRIconvolveGaussian(mri_tmp, nullptr, mri_kernel);
+    parms.mri_dist = MRIconvolveGaussian(mri_tmp, NULL, mri_kernel);
     MRIfree(&mri_kernel);
     MRIfree(&mri_tmp);
     nargs = 2;
@@ -873,12 +907,12 @@ static int get_option(int argc, char *argv[]) {
   return (nargs);
 }
 
-static void print_usage() {
+static void print_usage(void) {
   fprintf(stderr, "Usage: %s [options] <input patch> <output patch>\n",
           Progname);
 }
 
-static void print_help() {
+static void print_help(void) {
   print_usage();
   fprintf(stderr, "\nThis program will flatten a surface patch\n");
   fprintf(stderr, "\nvalid options are:\n\n");

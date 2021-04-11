@@ -2,30 +2,31 @@
 From Wikipedia:
 
 
-S. Beucher and F. Meyer introduced an algorithmic inter-pixel implementation of
-the watershed method,[5] given the following procedure:
+S. Beucher and F. Meyer introduced an algorithmic inter-pixel implementation of the watershed method,[5] given the following procedure:
 
-1. Label each minimum with a distinct label. Initialize a set S with the labeled
-nodes.
+1. Label each minimum with a distinct label. Initialize a set S with the labeled nodes.
 
-2. Extract from S a node x of minimal altitude F, that is to say F(x) =
-min{F(y)|y ∈ S}. Attribute the label of x to each non-labeled node y adjacent to
-x, and insert y in S.
+2. Extract from S a node x of minimal altitude F, that is to say F(x) = min{F(y)|y ∈ S}. Attribute the label of x to each non-labeled node y adjacent to x, and insert y in S.
 
 3. Repeat Step 2 until S is empty.
 
 
-[5] Serge Beucher and Fernand Meyer. The morphological approach to segmentation:
-the watershed transformation. In Mathematical Morphology in Image Processing
-(Ed. E. R. Dougherty), pages 433481 (1993).
+[5] Serge Beucher and Fernand Meyer. The morphological approach to segmentation: the watershed transformation. In Mathematical Morphology in Image Processing (Ed. E. R. Dougherty), pages 433481 (1993).
 
 */
-
-#ifdef HAVE_OPENMP
 #include "romp_support.h"
-#endif
+#include <ctype.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
+#include "colortab.h"
 #include "diag.h"
+#include "error.h"
+#include "fsinit.h"
+#include "macros.h"
+#include "mri.h"
 #include "mrisurf.h"
 #include "version.h"
 
@@ -33,10 +34,10 @@ const char *Progname;
 int         main(int argc, char *argv[]);
 
 static int  get_option(int argc, char *argv[]);
-static void usage_exit();
-static void print_usage();
-static void print_help();
-static void print_version();
+static void usage_exit(void);
+static void print_usage(void);
+static void print_help(void);
+static void print_version(void);
 int         MRISfindMaxLabel(MRI_SURFACE *mris);
 int         MRISinitWatershed(MRI_SURFACE *mris, MRI *mri);
 int         MRISwatershed(MRI_SURFACE *mris, MRI *mri, int max_clusters,
@@ -47,11 +48,11 @@ int         MRISmergeBasins(MRI_SURFACE *mris, int b1, int b2);
 #define MERGE_MOST_SIMILAR 1
 #define MERGE_SMALLEST     2
 
-static int merge_type   = MERGE_SMALLEST; // MERGE_MOST_SIMILAR ;
+static int merge_type   = MERGE_SMALLEST; //MERGE_MOST_SIMILAR ;
 static int nbrs         = 3;
 static int max_clusters = 60;
 
-static LABEL *mask_label = nullptr;
+static LABEL *mask_label = NULL;
 
 int main(int argc, char *argv[]) {
   MRI_SURFACE *mris;
@@ -66,7 +67,7 @@ int main(int argc, char *argv[]) {
 
   Progname = argv[0];
   ErrorInit(NULL, NULL, NULL);
-  DiagInit(nullptr, nullptr, nullptr);
+  DiagInit(NULL, NULL, NULL);
 
   setRandomSeed(-1L);
   for (; argc > 1 && ISOPTION(*argv[1]); argc--, argv++) {
@@ -126,19 +127,19 @@ int main(int argc, char *argv[]) {
   return (0);
 }
 
-static void usage_exit() {
+static void usage_exit(void) {
   print_usage();
   exit(1);
 }
 
-static void print_usage() {
+static void print_usage(void) {
   fprintf(stderr,
           "usage: %s [options] <input surface> <input gradient field> <output "
           "annotation>\n",
           Progname);
 }
 
-static void print_help() {
+static void print_help(void) {
   print_usage();
   fprintf(stderr, "\nThis program computes the watershed transform on the "
                   "surface of an intensity gradient\n"
@@ -178,8 +179,8 @@ static int get_option(int argc, char *argv[]) {
   } else if (!stricmp(option, "mask_label")) {
     nargs = 1;
     printf("reading masking label from %s\n", argv[2]);
-    mask_label = LabelRead(nullptr, argv[2]);
-    if (mask_label == nullptr)
+    mask_label = LabelRead(NULL, argv[2]);
+    if (mask_label == NULL)
       ErrorExit(ERROR_NOFILE, "%s: could not load label %s for masking\n",
                 Progname, argv[2]);
   } else if (!stricmp(option, "dilate") || !stricmp(option, "label_dilate") ||
@@ -274,9 +275,9 @@ static VERTEX_VALUE *MRISgetSortedVertexValues(MRI_SURFACE *mris, MRI *mri,
                                                VERTEX_VALUE *vv, int *pnvert) {
   int label, vno, n;
 
-  if (vv == nullptr) {
+  if (vv == NULL) {
     vv = (VERTEX_VALUE *)calloc(mris->nvertices, sizeof(VERTEX_VALUE));
-    if (vv == nullptr)
+    if (vv == NULL)
       ErrorExit(ERROR_NOMEMORY,
                 "MRISwatershed: could not allocated %d-elt val array",
                 mris->nvertices);
@@ -312,8 +313,13 @@ static int MRISfindMostSimilarBasin(MRI_SURFACE *mris, MRI *mri,
   int     best_basin, vno, n, basin, *nbr_vertices, nbr_basin, max_basin;
   double *avg_grad, min_grad;
 
-  nbr_vertices = (int *)calloc(mris->nvertices, sizeof(*nbr_vertices));
-  avg_grad     = (double *)calloc(mris->nvertices, sizeof(*avg_grad));
+  if (mris->nvertices >= 0) {
+    nbr_vertices = (int *)calloc(mris->nvertices, sizeof(*nbr_vertices));
+    avg_grad     = (double *)calloc(mris->nvertices, sizeof(*avg_grad));
+  } else {
+    ErrorExit(ERROR_BADPARM, "%s: mris->nvertices<0\n", Progname);
+    abort();
+  }
 
   max_basin = 0;
   for (vno = 0; vno < mris->nvertices; vno++) {
@@ -364,20 +370,12 @@ static int MRISfindMostSimilarBasins(MRI_SURFACE *mris, MRI *mri, int *pb2) {
     memset(avg_grad, 0, nbasins * sizeof(*avg_grad));
     max_basin = 0;
     // reductions for min and max aren't available in earlier openmp
-#ifdef HAVE_OPENMP
     ROMP_PF_begin
-#endif
-
 #if defined(HAVE_OPENMP) && GCC_VERSION > 40408
 #pragma omp parallel for if_ROMP(experimental) reduction(max : max_basin)
 #endif
         for (vno = 0; vno < mris->nvertices; vno++) {
-#ifdef HAVE_OPENMP
-      ROMP_PFLB_begin
-#endif
-
-          int n,
-          nbr_basin;
+      ROMP_PFLB_begin int n, nbr_basin;
 
       VERTEX_TOPOLOGY const *const vt = &mris->vertices_topology[vno];
       VERTEX const *const          v  = &mris->vertices[vno];
@@ -393,13 +391,9 @@ static int MRISfindMostSimilarBasins(MRI_SURFACE *mris, MRI *mri, int *pb2) {
         if (nbr_basin > max_basin)
           max_basin = nbr_basin;
       }
-#ifdef HAVE_OPENMP
       ROMP_PFLB_end
-#endif
     }
-#ifdef HAVE_OPENMP
     ROMP_PF_end
-#endif
 
         min_grad = 1e10;
     for (basin = 1; basin <= max_basin; basin++) {
@@ -495,7 +489,7 @@ int MRISmergeBasins(MRI_SURFACE *mris, int b1, int b2) {
 int MRISwatershed(MRI_SURFACE *mris, MRI *mri, int max_clusters,
                   int merge_type) {
   int           vno, nvert, niter;
-  VERTEX_VALUE *vv = nullptr;
+  VERTEX_VALUE *vv = NULL;
   double        max_val;
 
   printf("flooding surface...\n");
@@ -503,9 +497,9 @@ int MRISwatershed(MRI_SURFACE *mris, MRI *mri, int max_clusters,
   do {
     vv      = MRISgetSortedVertexValues(mris, mri, vv, &nvert);
     max_val = 0;
-    // ifdef HAVE_OPENMP
-    // pragma omp parallel for if_ROMP(experimental) reduction(max:max_val)
-    // endif
+    //ifdef HAVE_OPENMP
+    //pragma omp parallel for if_ROMP(experimental) reduction(max:max_val)
+    //endif
     for (vno = 0; vno < nvert; vno++) {
       double min_nbr_val;
       int    n;

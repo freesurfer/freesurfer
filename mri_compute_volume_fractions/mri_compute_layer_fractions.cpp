@@ -133,26 +133,19 @@ int  main(int argc, char *argv[]) {
 
   if (subject_name)
     subject = subject_name; // specified on command line
-  sprintf(fname, "%s/%s/mri/%s", sdir, subject, aseg_name);
+  int req = snprintf(fname, STRLEN, "%s/%s/mri/%s", sdir, subject, aseg_name);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
+
   printf("reading volume %s\n", fname);
   mri_aseg = MRIread(fname);
   if (mri_aseg == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not load aseg volume from %s", Progname,
               fname);
 
-  nvox = (int)ceil(256 / resolution);
-#if 0
-  mri_layers = MRIalloc(nvox, nvox, nvox, MRI_UCHAR) ;
-  MRIsetResolution(mri_layers, resolution, resolution, resolution) ;
-  mri_layers->xstart = -resolution*mri_layers->width/2.0 ;
-  mri_layers->xend = resolution*mri_layers->width/2.0 ;
-  mri_layers->ystart = -resolution*mri_layers->height/2.0 ;
-  mri_layers->yend = resolution*mri_layers->height/2.0 ;
-  mri_layers->zstart = -resolution*mri_layers->depth/2.0 ;
-  mri_layers->zend = resolution*mri_layers->depth/2 ;
-  mri_layers->c_r = mri_aseg->c_r ; mri_layers->c_a = mri_aseg->c_a ; 
-  mri_layers->c_s = mri_aseg->c_s ;
-#else
+  nvox   = (int)ceil(256 / resolution);
   mri_in = MRIreadHeader(in_fname, MRI_VOLUME_TYPE_UNKNOWN);
   if (mri_in == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not load input volume from %s", Progname,
@@ -181,7 +174,6 @@ int  main(int argc, char *argv[]) {
   mri_layers->c_a    = mri_in->c_a;
   mri_layers->c_s    = mri_in->c_s;
   MRIfree(&mri_in);
-#endif
 
   MRIreInitCache(mri_layers);
 
@@ -191,16 +183,36 @@ int  main(int argc, char *argv[]) {
   printf("reading laminar surfaces from %s.?\n", LAMINAR_NAME);
   for (i = 0; i <= nlayers; i++) {
     if (FS_names && nlayers == 1) {
-      if (i == 0)
-        sprintf(fname, "%s/%s/surf/%s.white", sdir, subject, hemi);
-      else
-        sprintf(fname, "%s/%s/surf/%s.pial", sdir, subject, hemi);
+      if (i == 0) {
+        int req =
+            snprintf(fname, STRLEN, "%s/%s/surf/%s.white", sdir, subject, hemi);
+        if (req >= STRLEN) {
+          std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                    << std::endl;
+        }
+      } else {
+        int req =
+            snprintf(fname, STRLEN, "%s/%s/surf/%s.pial", sdir, subject, hemi);
+        if (req >= STRLEN) {
+          std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                    << std::endl;
+        }
+      }
     } else {
-      sprintf(fname, "%s/%s/surf/%s.%s.%d", sdir, subject, hemi, LAMINAR_NAME,
-              i);
-      if (FileExists(fname) == 0)
-        sprintf(fname, "%s/%s/surf/%s.%s%3.3d", sdir, subject, hemi,
-                LAMINAR_NAME, i);
+      int req = snprintf(fname, STRLEN, "%s/%s/surf/%s.%s.%d", sdir, subject,
+                         hemi, LAMINAR_NAME, i);
+      if (req >= STRLEN) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                  << std::endl;
+      }
+      if (FileExists(fname) == 0) {
+        int req = snprintf(fname, STRLEN, "%s/%s/surf/%s.%s%3.3d", sdir,
+                           subject, hemi, LAMINAR_NAME, i);
+        if (req >= STRLEN) {
+          std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                    << std::endl;
+        }
+      }
     }
     printf("reading surface %s\n", fname);
     mris = MRISread(fname);
@@ -216,14 +228,12 @@ int  main(int argc, char *argv[]) {
       printf("writing layer %d interior to %s\n", i, fname);
       MRIwrite(mri_interior_top, fname);
     }
-    if (i == 0) // fill white matter
-    {
+    if (i == 0) { // fill white matter
       mri_tmp = MRIclone(mri_interior_top, NULL);
       MRIreplaceValuesOnly(mri_interior_top, mri_tmp, 1, WM_VAL);
       MRIcopyLabel(mri_tmp, mri_layers, WM_VAL);
       MRIfree(&mri_tmp);
-    } else // fill cortical layer
-    {
+    } else { // fill cortical layer
       mri_tmp = MRInot(mri_interior_bottom, NULL);
       MRIfree(&mri_interior_bottom);
       MRIand(mri_interior_top, mri_tmp, mri_tmp, 1);

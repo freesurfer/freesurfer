@@ -12,8 +12,20 @@
  *
  */
 
+#include <ctype.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+
 #include "diag.h"
+#include "error.h"
+#include "label.h"
+#include "macros.h"
+#include "minc.h"
+#include "mri.h"
 #include "mrisurf.h"
+#include "proto.h"
+#include "utils.h"
 #include "version.h"
 
 int        main(int argc, char *argv[]);
@@ -21,8 +33,8 @@ static int get_option(int argc, char *argv[]);
 
 static Transform *load_transform(char *subject_name, General_transform *xform);
 
-static void print_usage();
-void        print_help();
+static void print_usage(void);
+void        print_help(void);
 
 const char *Progname;
 
@@ -42,9 +54,9 @@ static char subjects_dir[NAME_LEN] = "";
 static General_transform transform;
 static Transform *       linear_transform;
 
-static char *output_subject = nullptr;
+static char *output_subject = NULL;
 
-static char *canon_name = nullptr;
+static char *canon_name = NULL;
 
 #if 0
 typedef struct {
@@ -71,8 +83,8 @@ int LabelToFlat(LABEL *area, MRI_SURFACE *mris) ;
 int main(int argc, char *argv[]) {
   char **av;
   int    ac, nargs;
-  char * cp, label_fname[100], *subject_name, *label_name, *out_fname,
-      *patch_name, surf_fname[100], hemi[10];
+  char * cp, label_fname[STRLEN], *subject_name, *label_name, *out_fname,
+      *patch_name, surf_fname[STRLEN], hemi[10];
   LABEL *      area;
   MRI_SURFACE *mris;
 
@@ -83,7 +95,7 @@ int main(int argc, char *argv[]) {
 
   Progname = argv[0];
   ErrorInit(NULL, NULL, NULL);
-  DiagInit(nullptr, nullptr, nullptr);
+  DiagInit(NULL, NULL, NULL);
 
   /* read in command-line options */
   ac = argc;
@@ -106,18 +118,28 @@ int main(int argc, char *argv[]) {
     ErrorExit(ERROR_BADPARM, "no subjects directory in environment.\n");
   strcpy(subjects_dir, cp);
 
-  sprintf(label_fname, "%s/%s/label/%s.label", subjects_dir, subject_name,
-          label_name);
+  int req = snprintf(label_fname, STRLEN, "%s/%s/label/%s.label", subjects_dir,
+                     subject_name, label_name);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
 
   linear_transform = load_transform(subject_name, &transform);
 
   cp = strrchr(patch_name, '.');
-  if (!cp)
+  if (!cp) {
     strcpy(hemi, "lh");
-  else
+  } else {
     strncpy(hemi, cp - 2, 2);
+  }
   hemi[2] = 0;
-  sprintf(surf_fname, "%s/%s/surf/%s.orig", subjects_dir, subject_name, hemi);
+  req     = snprintf(surf_fname, STRLEN, "%s/%s/surf/%s.orig", subjects_dir,
+                 subject_name, hemi);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
   fprintf(stderr, "reading surface %s...\n", surf_fname);
   mris = MRISread(surf_fname);
   if (!mris)
@@ -130,12 +152,21 @@ int main(int argc, char *argv[]) {
   if (canon_name) /* put it onto a canonical surface */
   {
     cp = strrchr(canon_name, '.');
-    if (cp) /* hemisphere specified explicitly */
-      sprintf(surf_fname, "%s/%s/surf/%s", subjects_dir, subject_name,
-              canon_name);
-    else
-      sprintf(surf_fname, "%s/%s/surf/%s.%s", subjects_dir, subject_name, hemi,
-              canon_name);
+    if (cp) { /* hemisphere specified explicitly */
+      int req = snprintf(surf_fname, STRLEN, "%s/%s/surf/%s", subjects_dir,
+                         subject_name, canon_name);
+      if (req >= STRLEN) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                  << std::endl;
+      }
+    } else {
+      int req = snprintf(surf_fname, STRLEN, "%s/%s/surf/%s.%s", subjects_dir,
+                         subject_name, hemi, canon_name);
+      if (req >= STRLEN) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                  << std::endl;
+      }
+    }
     MRISreadCanonicalCoordinates(mris, surf_fname);
     LabelToCanonical(area, mris);
   }
@@ -146,7 +177,12 @@ int main(int argc, char *argv[]) {
   if (output_subject) /* write onto a different subject's flat map */
   {
     MRISfree(&mris);
-    sprintf(surf_fname, "%s/%s/surf/%s.orig", subjects_dir, subject_name, hemi);
+    int req = snprintf(surf_fname, STRLEN, "%s/%s/surf/%s.orig", subjects_dir,
+                       subject_name, hemi);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
     fprintf(stderr, "reading surface %s...\n", surf_fname);
     mris = MRISread(surf_fname);
     if (!mris)
@@ -157,15 +193,25 @@ int main(int argc, char *argv[]) {
     if (canon_name) /* put it onto a canonical surface */
     {
       cp = strrchr(canon_name, '.');
-      if (cp) /* hemisphere specified explicitly */
-        sprintf(surf_fname, "%s/%s/surf/%s", subjects_dir, subject_name,
-                canon_name);
-      else
-        sprintf(surf_fname, "%s/%s/surf/%s.%s", subjects_dir, subject_name,
-                hemi, canon_name);
+      if (cp) { /* hemisphere specified explicitly */
+        int req = snprintf(surf_fname, STRLEN, "%s/%s/surf/%s", subjects_dir,
+                           subject_name, canon_name);
+        if (req >= STRLEN) {
+          std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                    << std::endl;
+        }
+      } else {
+        int req = snprintf(surf_fname, STRLEN, "%s/%s/surf/%s.%s", subjects_dir,
+                           subject_name, hemi, canon_name);
+        if (req >= STRLEN) {
+          std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                    << std::endl;
+        }
+      }
       MRISreadCanonicalCoordinates(mris, surf_fname);
-    } else
+    } else {
       MRISsaveVertexPositions(mris, CANONICAL_VERTICES);
+    }
 
     LabelFromCanonical(area, mris);
   }
@@ -242,8 +288,12 @@ static Transform *load_transform(char *             subject_name,
                                  General_transform *transform) {
   char xform_fname[100];
 
-  sprintf(xform_fname, "%s/%s/mri/transforms/talairach.xfm", subjects_dir,
-          subject_name);
+  int req = snprintf(xform_fname, 100, "%s/%s/mri/transforms/talairach.xfm",
+                     subjects_dir, subject_name);
+  if (req >= 100) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
   if (input_transform_file(xform_fname, transform) != OK)
     ErrorExit(ERROR_NOFILE, "%s: could not load transform file '%s'", Progname,
               xform_fname);
@@ -253,14 +303,14 @@ static Transform *load_transform(char *             subject_name,
   return (get_linear_transform_ptr(transform));
 }
 
-static void print_usage() {
+static void print_usage(void) {
   printf("usage: %s [options] <subject name> <label file> <patch file> "
          "<output file>\n",
          Progname);
   exit(1);
 }
 
-void print_help() {
+void print_help(void) {
   printf("usage: %s [options] <subject name> <label file> <patch file>"
          " <output file>\n",
          Progname);

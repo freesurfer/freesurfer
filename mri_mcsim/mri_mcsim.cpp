@@ -26,7 +26,7 @@ or for fsaverage/fsaverage_sum with a smaller search space.
 
 Example 1: Create tables for a new subject for whole hemisphere
 
-mri_mcsim --o /path/to/mult-comp-cor/newsubject/lh/cortex --base mc-z
+mri_mcsim --o /path/to/mult-comp-cor/newsubject/lh/cortex --base mc-z 
   --save-iter  --surf newsubject lh --nreps 10000
 
 This may take hours (or even days) to run; see below for
@@ -39,68 +39,77 @@ First, create the label by running
 
 mri_annotation2label --subject fsaverage --hemi lh --outdir labeldir
 
-mri_mcsim --o /path/to/mult-comp-cor/fsaverage/lh/superiortemporal --base mc-z
-  --save-iter  --surf fsaverage lh --nreps 10000
+mri_mcsim --o /path/to/mult-comp-cor/fsaverage/lh/superiortemporal --base mc-z 
+  --save-iter  --surf fsaverage lh --nreps 10000 
   --label labeldir/lh.superiortemporal.label
 
-When running mri_glmfit, make sure to use   --label
-labeldir/lh.superiortemporal.label When running mri_glmfit-sim, add --cache-dir
-/path/to/mult-comp-cor --cache-label superiortemporal
+When running mri_glmfit, make sure to use   --label labeldir/lh.superiortemporal.label
+When running mri_glmfit-sim, add --cache-dir /path/to/mult-comp-cor --cache-label superiortemporal
 
 Example 3: running simulations in parallel (two jobs, 5000 iterations
 each for a total of 10000)
 
-mri_mcsim --o /path/to/mult-comp-cor/fsaverage/lh/superiortemporal --base
-mc-z.j001
+mri_mcsim --o /path/to/mult-comp-cor/fsaverage/lh/superiortemporal --base mc-z.j001 
   --save-iter  --surf fsaverage lh --nreps 5000
   --label labeldir/lh.superiortemporal.label
 
-mri_mcsim --o /path/to/mult-comp-cor/fsaverage/lh/superiortemporal --base
-mc-z.j002
+mri_mcsim --o /path/to/mult-comp-cor/fsaverage/lh/superiortemporal --base mc-z.j002 
   --save-iter  --surf fsaverage lh --nreps 500
   --label labeldir/lh.superiortemporal.label
 
 When those jobs are done, merge the results into a single table with
 
-mri_surfcluster
-  --csd
-/path/to/mult-comp-cor/fsaverage/lh/superiortemporal/fwhm10/abs/th20/mc-z.j001.csd
-  --csd
-/path/to/mult-comp-cor/fsaverage/lh/superiortemporal/fwhm10/abs/th20/mc-z.j002.csd
-  --csd-out
-/path/to/mult-comp-cor/fsaverage/lh/superiortemporal/fwhm10/abs/th20/mc-z.csd
-  --csdpdf
-/path/to/mult-comp-cor/fsaverage/lh/superiortemporal/fwhm10/abs/th20/mc-z.cdf
---csdpdf-only
+mri_surfcluster 
+  --csd /path/to/mult-comp-cor/fsaverage/lh/superiortemporal/fwhm10/abs/th20/mc-z.j001.csd 
+  --csd /path/to/mult-comp-cor/fsaverage/lh/superiortemporal/fwhm10/abs/th20/mc-z.j002.csd 
+  --csd-out /path/to/mult-comp-cor/fsaverage/lh/superiortemporal/fwhm10/abs/th20/mc-z.csd 
+  --csdpdf  /path/to/mult-comp-cor/fsaverage/lh/superiortemporal/fwhm10/abs/th20/mc-z.cdf --csdpdf-only
 
 Repeat the above command for each FWHM, sign (pos, neg, abs) and threshold
 
 ENDHELP --------------------------------------------------------------
 */
-// double round(double x);
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+double round(double x);
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <sys/utsname.h>
+#include <unistd.h>
 
+#include "annotation.h"
 #include "cmdargs.h"
 #include "diag.h"
+#include "error.h"
 #include "fio.h"
 #include "fmriutils.h"
+#include "fsgdf.h"
+#include "fsglm.h"
+#include "label.h"
+#include "macros.h"
+#include "matfile.h"
+#include "matrix.h"
+#include "mri.h"
 #include "mri2.h"
+#include "mrisurf.h"
 #include "mrisutils.h"
 #include "pdf.h"
 #include "randomfields.h"
 #include "surfcluster.h"
 #include "timer.h"
+#include "utils.h"
 #include "version.h"
 #include "volcluster.h"
 
 static int  parse_commandline(int argc, char **argv);
-static void check_options();
-static void print_usage();
-static void usage_exit();
-static void print_help();
-static void print_version();
+static void check_options(void);
+static void print_usage(void);
+static void usage_exit(void);
+static void print_help(void);
+static void print_version(void);
 static void dump_options(FILE *fp);
-int         SaveOutput();
+int         SaveOutput(void);
 int         main(int argc, char *argv[]);
 
 const char *   Progname = NULL;
@@ -161,7 +170,7 @@ int main(int argc, char *argv[]) {
   SURFCLUSTERSUM *SurfClustList;
   Timer           mytimer;
   LABEL *         clabel;
-  FILE *          fp, *fpLog = nullptr;
+  FILE *          fp, *fpLog = NULL;
   float **        ppVal, **ppSig, **ppVal0, **ppSig0, **ppZ, **ppZ0;
 
   nargs = handleVersionOption(argc, argv, "mri_mcsim");
@@ -176,7 +185,7 @@ int main(int argc, char *argv[]) {
   argc--;
   argv++;
   ErrorInit(NULL, NULL, NULL);
-  DiagInit(nullptr, nullptr, nullptr);
+  DiagInit(NULL, NULL, NULL);
   if (argc == 0)
     usage_exit();
   parse_commandline(argc, argv);
@@ -187,7 +196,7 @@ int main(int argc, char *argv[]) {
 
   if (LogFile) {
     fpLog = fopen(LogFile, "w");
-    if (fpLog == nullptr) {
+    if (fpLog == NULL) {
       printf("ERROR: opening %s\n", LogFile);
       exit(1);
     }
@@ -214,10 +223,18 @@ int main(int argc, char *argv[]) {
           signstr = "pos";
         if (SignList[nthSign] == -1)
           signstr = "neg";
-        sprintf(tmpstr, "%s/fwhm%02d/%s/th%02d", OutTop,
-                (int)round(FWHMList[nthFWHM]), signstr,
-                (int)round(10 * ThreshList[nthThresh]));
-        sprintf(fname, "%s/%s.csd", tmpstr, csdbase);
+        int req = snprintf(tmpstr, STRLEN, "%s/fwhm%02d/%s/th%02d", OutTop,
+                           (int)round(FWHMList[nthFWHM]), signstr,
+                           (int)round(10 * ThreshList[nthThresh]));
+        if (req >= STRLEN) {
+          std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                    << std::endl;
+        }
+        req = snprintf(fname, STRLEN, "%s/%s.csd", tmpstr, csdbase);
+        if (req >= STRLEN) {
+          std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                    << std::endl;
+        }
         if (fio_FileExistsReadable(fname)) {
           printf("ERROR: output file %s exists\n", fname);
           if (fpLog)
@@ -261,23 +278,23 @@ int main(int argc, char *argv[]) {
       }
     }
     printf("Loading %s\n", tmpstr);
-    clabel   = LabelRead(nullptr, tmpstr);
-    mask     = MRISlabel2Mask(surf, clabel, nullptr);
+    clabel   = LabelRead(NULL, tmpstr);
+    mask     = MRISlabel2Mask(surf, clabel, NULL);
     FreeMask = 1;
   }
   if (MaskFile) {
     printf("Loading %s\n", MaskFile);
     mask = MRIread(MaskFile);
-    if (mask == nullptr)
+    if (mask == NULL)
       exit(1);
   }
   if (mask && strcmp(subject, "fsaverage") == 0 && strcmp(hemi, "lh") == 0 &&
       FixFSALH) {
-    // This is a hack to delete two stray vertices in the fsaverage
-    // lh.cortex.label file. They could be deleted in the label file. They have
-    // no effect on cluster correction, but they do affect the vertex-wise
-    // correction using the maximum stat because they end up being way to big
-    // since there is nothing around them to smooth with.
+    // This is a hack to delete two stray vertices in the fsaverage lh.cortex.label
+    // file. They could be deleted in the label file. They have no effect on cluster
+    // correction, but they do affect the vertex-wise correction using the maximum
+    // stat because they end up being way to big since there is nothing around
+    // them to smooth with.
     if (MRIgetVoxVal(mask, 102161, 0, 0, 0) > 0.5 ||
         MRIgetVoxVal(mask, 102162, 0, 0, 0) > 0.5) {
       printf("Removing vertices 102161 and 102162 from mask\n");
@@ -373,7 +390,7 @@ int main(int argc, char *argv[]) {
   sig = MRIallocSequence(surf->nvertices, 1, 1, MRI_FLOAT, 1);
 
   // Set up the random field specification
-  rfs            = RFspecInit(SynthSeed, nullptr);
+  rfs            = RFspecInit(SynthSeed, NULL);
   rfs->name      = strcpyalloc("gaussian");
   rfs->params[0] = 0;
   rfs->params[1] = 1;
@@ -444,7 +461,7 @@ int main(int argc, char *argv[]) {
       p    = RFstat2P(zabs, rfs, mask, 0, p);
       // Next, mult pvals by 2 to get two-sided bet 0 and 1
       MRIscalarMul(p, p, 2.0);
-      sig = MRIlog10(p, nullptr, sig, 1); // sig = -log10(p)
+      sig = MRIlog10(p, NULL, sig, 1); // sig = -log10(p)
 
       for (nthSign = 0; nthSign < nSignList; nthSign++) {
         csd = csdList[nthFWHM][0][nthSign]; // just need csd->threshsign
@@ -463,13 +480,13 @@ int main(int argc, char *argv[]) {
         }
         // Mask
         if (mask) {
-          // MRImask(sig,mask,sig,0.0,0.0); // a little slow
+          //MRImask(sig,mask,sig,0.0,0.0); // a little slow
           for (k = 0; k < nmaskout; k++)
             MRIsetVoxVal(sig, maskoutvtxno[k], 0, 0, 0, 0.0);
         }
 
         // Copy sig to vertexval
-        // MRIScopyMRI(surf, sig, 0, "val"); // MRIScopyMRI() is a little slow
+        //MRIScopyMRI(surf, sig, 0, "val"); // MRIScopyMRI() is a little slow
         ppVal = ppVal0;
         ppSig = ppSig0;
         for (k = 0; k < surf->nvertices; k++)
@@ -485,9 +502,8 @@ int main(int argc, char *argv[]) {
           else
             threshadj = csd->thresh - log10(2.0); // one-sided test
           // Compute clusters
-          SurfClustList =
-              sclustMapSurfClusters(surf, threshadj, -1, csd->threshsign, 0,
-                                    &nClusters, nullptr, nullptr);
+          SurfClustList = sclustMapSurfClusters(
+              surf, threshadj, -1, csd->threshsign, 0, &nClusters, NULL, NULL);
           // Actual area of cluster with max area
           csize = sclustMaxClusterArea(SurfClustList, nClusters);
           // Number of vertices of cluster with max number of vertices.
@@ -655,16 +671,16 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1)
         CMDargNErr(option, 1);
       MaskFile  = pargv[0];
-      LabelFile = nullptr;
+      LabelFile = NULL;
       nargsused = 1;
     } else if (!strcasecmp(option, "--label")) {
       if (nargc < 1)
         CMDargNErr(option, 1);
       LabelFile = pargv[0];
-      MaskFile  = nullptr;
+      MaskFile  = NULL;
       nargsused = 1;
     } else if (!strcasecmp(option, "--no-label")) {
-      LabelFile = nullptr;
+      LabelFile = NULL;
     } else if (!strcmp(option, "--sd")) {
       if (nargc < 1)
         CMDargNErr(option, 1);
@@ -717,12 +733,12 @@ static int parse_commandline(int argc, char **argv) {
   return (0);
 }
 /* ------------------------------------------------------ */
-static void usage_exit() {
+static void usage_exit(void) {
   print_usage();
   exit(1);
 }
 /* --------------------------------------------- */
-static void print_usage() {
+static void print_usage(void) {
   printf("%s \n", Progname);
   printf("\n");
   printf("   --o top-output-dir\n");
@@ -757,7 +773,7 @@ static void print_usage() {
   printf("\n");
 }
 /* --------------------------------------------- */
-static void print_help() {
+static void print_help(void) {
   print_usage();
   printf("\n");
   printf(
@@ -846,16 +862,16 @@ static void print_version(void) {
   exit(1);
 }
 /* --------------------------------------------- */
-static void check_options() {
-  if (subject == nullptr) {
+static void check_options(void) {
+  if (subject == NULL) {
     printf("ERROR: must specify a surface\n");
     exit(1);
   }
-  if (OutTop == nullptr) {
+  if (OutTop == NULL) {
     printf("ERROR: need to spec an output directory\n");
     exit(1);
   }
-  if (csdbase == nullptr) {
+  if (csdbase == NULL) {
     printf("ERROR: need to specify a csd base\n");
     exit(1);
   }
@@ -884,11 +900,11 @@ static void check_options() {
     ThreshList[4] = 3.3;
     ThreshList[5] = 4.0;
   }
-  if (StopFile == nullptr) {
+  if (StopFile == NULL) {
     sprintf(tmpstr, "%s/mri_mcsim.stop", OutTop);
     StopFile = strcpyalloc(tmpstr);
   }
-  if (SaveFile == nullptr) {
+  if (SaveFile == NULL) {
     sprintf(tmpstr, "%s/mri_mcsim.save", OutTop);
     SaveFile = strcpyalloc(tmpstr);
   }
@@ -924,7 +940,7 @@ static void dump_options(FILE *fp) {
   return;
 }
 
-int SaveOutput() {
+int SaveOutput(void) {
   int   nthSign, nthFWHM, nthThresh;
   FILE *fp;
 

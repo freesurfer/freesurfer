@@ -1031,6 +1031,7 @@ if(NOT FS_MINIMAL_BUILD)
                      mri_strip_nonwhite
                      mri_strip_subject_info
                      mri_surfacemask
+                     mri_synth_strip
                      mri_synthesize
                      mri_threshold
                      mri_topologycorrection
@@ -1090,6 +1091,7 @@ if(NOT FS_MINIMAL_BUILD)
                      mris_register_to_volume
                      mris_remove_variance
                      mris_remesh
+                     mris_reposition_surface
                      mris_resample
                      mris_rescale
                      mris_reverse

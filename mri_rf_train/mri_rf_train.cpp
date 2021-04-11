@@ -1,3 +1,4 @@
+
 /**
  * @brief Creates the Randomg Forest Array (RFA) atlas from training set
  *
@@ -18,12 +19,30 @@
  *
  */
 
+#include <ctype.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+#include "cma.h"
 #include "diag.h"
+#include "error.h"
 #include "flash.h"
+#include "gca.h"
+#include "gcamorph.h"
+#include "macros.h"
+#include "mri.h"
+#include "proto.h"
 #include "rfa.h"
+#include "rforest.h"
+#include "talairachex.h"
 #include "timer.h"
+#include "transform.h"
+#include "utils.h"
 #include "version.h"
 #include <fcntl.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 #define MAX_RFA_INPUTS 1000
 
@@ -105,18 +124,18 @@ int main(int argc, char *argv[]) {
   int    ac, nargs, i, n, options;
   int    msec, minutes, seconds, nsubjects, input, ordering[MAX_RFA_INPUTS], o;
   Timer  start;
-  MRI *  mri_seg, *mri_tmp, *mri_in = nullptr;
+  MRI *  mri_seg, *mri_tmp, *mri_in = 0;
   TRANSFORM *    transform;
   int            used[MAX_RFA_INPUTS];
   int            counts;
-  RFA *          rfa = nullptr;
-  RANDOM_FOREST *rf  = nullptr;
-  GCA *          gca = nullptr;
+  RFA *          rfa = NULL;
+  RANDOM_FOREST *rf  = NULL;
+  GCA *          gca = NULL;
 
   Progname = argv[0];
 
   ErrorInit(NULL, NULL, NULL);
-  DiagInit(nullptr, nullptr, nullptr);
+  DiagInit(NULL, NULL, NULL);
 
   start.reset();
 
@@ -179,7 +198,7 @@ int main(int argc, char *argv[]) {
 
   if (single_classifier_flag) {
     gca = GCAread(gca_name);
-    if (gca == nullptr)
+    if (gca == NULL)
       ErrorExit(ERROR_NOFILE, "%s: could not read GCA from %s", Progname,
                 gca_name);
   } else
@@ -201,7 +220,12 @@ int main(int argc, char *argv[]) {
            nsubjects);
 
     // reading this subject segmentation
-    sprintf(fname, "%s/%s/mri/%s", subjects_dir, subject_name, seg_dir);
+    int req = snprintf(fname, STRLEN, "%s/%s/mri/%s", subjects_dir,
+                       subject_name, seg_dir);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
     if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
       fprintf(stderr, "Reading segmentation from %s...\n", fname);
     mri_seg = MRIread(fname);
@@ -227,17 +251,27 @@ int main(int argc, char *argv[]) {
 
     if (wmsa_fname) {
       MRI *mri_wmsa;
-      sprintf(fname, "%s/%s/mri/%s", subjects_dir, subject_name, wmsa_fname);
+      int  req = snprintf(fname, STRLEN, "%s/%s/mri/%s", subjects_dir,
+                         subject_name, wmsa_fname);
+      if (req >= STRLEN) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                  << std::endl;
+      }
       printf("reading WMSA labels from %s...\n", fname);
       mri_wmsa = MRIread(fname);
-      if (mri_wmsa == nullptr)
+      if (mri_wmsa == NULL)
         ErrorExit(ERROR_NOFILE, "%s: could not read WMSA file %s", fname);
       MRIbinarize(mri_wmsa, mri_wmsa, 1, 0, WM_hypointensities);
       MRIcopyLabel(mri_wmsa, mri_seg, WM_hypointensities);
       lateralize_hypointensities(mri_seg);
       if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
         char s[STRLEN];
-        sprintf(s, "%s/%s/mri/seg_%s", subjects_dir, subject_name, wmsa_fname);
+        int  req = snprintf(s, STRLEN, "%s/%s/mri/seg_%s", subjects_dir,
+                           subject_name, wmsa_fname);
+        if (req >= STRLEN) {
+          std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                    << std::endl;
+        }
         MRIwrite(mri_seg, s);
       }
     }
@@ -253,9 +287,14 @@ int main(int argc, char *argv[]) {
     if (insert_fname) {
       MRI *mri_insert;
 
-      sprintf(fname, "%s/%s/mri/%s", subjects_dir, subject_name, insert_fname);
+      int req = snprintf(fname, STRLEN, "%s/%s/mri/%s", subjects_dir,
+                         subject_name, insert_fname);
+      if (req >= STRLEN) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                  << std::endl;
+      }
       mri_insert = MRIread(fname);
-      if (mri_insert == nullptr)
+      if (mri_insert == NULL)
         ErrorExit(ERROR_NOFILE,
                   "%s: could not read volume from %s for insertion", Progname,
                   insert_fname);
@@ -270,15 +309,19 @@ int main(int argc, char *argv[]) {
 
     // subjects loop index i
     if (i != 0) /* not the first image read -
-                   reorder it to be in the same order as 1st */
+		    reorder it to be in the same order as 1st */
     {
       // initialize the flag array
       for (input = 0; input < ninputs; input++)
         used[input] = 0;
 
       for (input = 0; input < ninputs; input++) {
-        sprintf(fname, "%s/%s/mri/%s", subjects_dir, subject_name,
-                input_names[input]);
+        int req = snprintf(fname, STRLEN, "%s/%s/mri/%s", subjects_dir,
+                           subject_name, input_names[input]);
+        if (req >= STRLEN) {
+          std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                    << std::endl;
+        }
         mri_tmp = MRIreadInfo(fname);
         if (!mri_tmp)
           ErrorExit(ERROR_NOFILE, "%s: could not read image from file %s",
@@ -339,8 +382,12 @@ int main(int argc, char *argv[]) {
       // thus we cannot allow flash data training.
       ////////////////////////////////////////////////////////////
 
-      sprintf(fname, "%s/%s/mri/%s", subjects_dir, subject_name,
-              input_names[ordering[input]]);
+      int req = snprintf(fname, STRLEN, "%s/%s/mri/%s", subjects_dir,
+                         subject_name, input_names[ordering[input]]);
+      if (req >= STRLEN) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                  << std::endl;
+      }
       if (DIAG_VERBOSE_ON)
         printf("reading co-registered input from %s...\n", fname);
       fprintf(stderr, "   reading input %d: %s\n", input, fname);
@@ -394,7 +441,12 @@ int main(int argc, char *argv[]) {
       if (mask_fname) {
         MRI *mri_mask;
 
-        sprintf(fname, "%s/%s/mri/%s", subjects_dir, subject_name, mask_fname);
+        int req = snprintf(fname, STRLEN, "%s/%s/mri/%s", subjects_dir,
+                           subject_name, mask_fname);
+        if (req >= STRLEN) {
+          std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                    << std::endl;
+        }
         printf("reading volume %s for masking...\n", fname);
         mri_mask = MRIread(fname);
         if (!mri_mask)
@@ -415,8 +467,12 @@ int main(int argc, char *argv[]) {
     /////////////////////////////////////////////////////////
     if (xform_name) {
       // we read talairach.xfm which is a RAS-to-RAS
-      sprintf(fname, "%s/%s/mri/transforms/%s", subjects_dir, subject_name,
-              xform_name);
+      int req = snprintf(fname, STRLEN, "%s/%s/mri/transforms/%s", subjects_dir,
+                         subject_name, xform_name);
+      if (req >= STRLEN) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                  << std::endl;
+      }
       if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
         printf("INFO: reading transform file %s...\n", fname);
       if (!FileExists(fname)) {
@@ -440,7 +496,7 @@ int main(int argc, char *argv[]) {
     } else {
       //        GCAreinit(mri_in, gca);
       // just use the input value, since dst = src volume
-      transform = TransformAlloc(LINEAR_VOXEL_TO_VOXEL, nullptr);
+      transform = TransformAlloc(LINEAR_VOXEL_TO_VOXEL, NULL);
     }
 
     /////////////////////////////////////////////////////////
@@ -463,7 +519,7 @@ int main(int argc, char *argv[]) {
       MRI *mri_tmp;
 
       mri_tmp =
-          MRIparameterMapsToFlash(mri_in, nullptr, TRs, TEs, FAs, parms.nvols);
+          MRIparameterMapsToFlash(mri_in, NULL, TRs, TEs, FAs, parms.nvols);
       MRIfree(&mri_in);
       mri_in = mri_tmp;
     }
@@ -597,7 +653,7 @@ static int get_option(int argc, char *argv[]) {
   } else if (!stricmp(option, "ctab")) {
     printf("reading color table from %s and embedding in .gca file", argv[2]);
     ctab = CTABreadASCII(argv[2]);
-    if (ctab == nullptr)
+    if (ctab == NULL)
       ErrorExit(ERROR_NOFILE, "%s: could not read color table from %s",
                 Progname, argv[2]);
     nargs = 1;
@@ -615,7 +671,7 @@ static int get_option(int argc, char *argv[]) {
     nargs      = 1;
     printf("reading xform from %s\n", xform_name);
   } else if (!stricmp(option, "NOXFORM")) {
-    xform_name = nullptr;
+    xform_name = NULL;
     printf("disabling application of xform...\n");
   } else if (!stricmp(option, "check")) {
     do_sanity_check = 1;
@@ -928,8 +984,8 @@ static int lateralize_hypointensities(MRI *mri_seg) {
         label = MRIgetVoxVal(mri_seg, x, y, z, 0);
         if (label != WM_hypointensities)
           continue;
-        MRIcomputeLabelNbhd(mri_seg, nullptr, x, y, z, label_counts, nullptr,
-                            WHALF, MAX_CMA_LABELS);
+        MRIcomputeLabelNbhd(mri_seg, NULL, x, y, z, label_counts, NULL, WHALF,
+                            MAX_CMA_LABELS);
         for (left = right = n = 0; n < MAX_CMA_LABELS; n++) {
           switch (n) {
           case Left_Lateral_Ventricle:
@@ -979,7 +1035,7 @@ static int lateralize_hypointensities(MRI *mri_seg) {
  * where they are known not to belong (indicating a bad manual edit)
  */
 static int check(MRI *mri_seg, char *subjects_dir, char *subject_name) {
-  MRI *  mri_fixed = nullptr;
+  MRI *  mri_fixed = NULL;
   int    errors    = 0;
   int    x, y, z, label = 0;
   double xw = 0.0, yw = 0.0, zw = 0.0;    // RAS coords
@@ -1000,10 +1056,10 @@ static int check(MRI *mri_seg, char *subjects_dir, char *subject_name) {
   printf("checking labels in subject %s...\n", subject_name);
 
   if (do_fix_badsubjs) {
-    mri_fixed = MRIcopy(mri_seg, nullptr);
+    mri_fixed = MRIcopy(mri_seg, NULL);
   }
 
-  if (nullptr == mri_seg->linear_transform) {
+  if (NULL == mri_seg->linear_transform) {
     ErrorExit(ERROR_BADFILE,
               "ERROR: mri_ca_train: talairach.xfm not found in %s!\n"
               "Run mri_add_xform_to_header to add to volume.\n",
@@ -1018,7 +1074,7 @@ static int check(MRI *mri_seg, char *subjects_dir, char *subject_name) {
          * rules:
          * - no label should have a voxel coord < 6 or > 249
          * - no left or right hippo labels with z tal coord > 15
-         * - no left hippo, caudate, amydala, putamen or pallidum
+         * - no left hippo, caudate, amydala, putamen or pallidum 
          *   labels with x tal coord > 5 (or right, with x tal coord < -5)
          */
         label            = MRIgetVoxVal(mri_seg, x, y, z, 0);
@@ -1062,6 +1118,10 @@ static int check(MRI *mri_seg, char *subjects_dir, char *subject_name) {
               fflush(stdout);
               errors++;
             }
+#if __GNUC__ >= 8
+            [[gnu::fallthrough]];
+#endif
+
             // no break (check xt)
 
           case Left_Caudate:
@@ -1099,6 +1159,9 @@ static int check(MRI *mri_seg, char *subjects_dir, char *subject_name) {
               fflush(stdout);
               errors++;
             }
+#if __GNUC__ >= 8
+            [[gnu::fallthrough]];
+#endif
             // no break (check xt)
 
           case Right_Caudate:
@@ -1184,7 +1247,7 @@ static int check(MRI *mri_seg, char *subjects_dir, char *subject_name) {
           }
         }
 
-        /*
+        /* 
          * if -check_and_fix is being used, then mod our fixed volume
          */
         if (do_fix_badsubjs && (label != proper_label)) {
@@ -1209,7 +1272,12 @@ static int check(MRI *mri_seg, char *subjects_dir, char *subject_name) {
 
   if (do_fix_badsubjs && errors) {
     char fname[STRLEN];
-    sprintf(fname, "%s/%s/mri/seg_fixed.mgz", subjects_dir, subject_name);
+    int  req = snprintf(fname, STRLEN, "%s/%s/mri/seg_fixed.mgz", subjects_dir,
+                       subject_name);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
     printf("Writing corrected volume to %s\n", fname);
     MRIwrite(mri_fixed, fname);
     MRIfree(&mri_fixed);
@@ -1309,8 +1377,7 @@ static RANDOM_FOREST *train_rforest(MRI **mri_inputs, MRI **mri_segs,
             label = 0;
             nnot++;
           }
-          // set label to one more than it will be for training so that 0 means
-          // this is not a training voxel
+          // set label to one more than it will be for training so that 0 means this is not a training voxel
           MRIsetVoxVal(mri_training_voxels, x, y, z, n, label + 1);
         }
   }
@@ -1397,12 +1464,12 @@ static RANDOM_FOREST *train_rforest(MRI **mri_inputs, MRI **mri_segs,
 
   // now build training features and classes
   training_classes = (int *)calloc(ntraining, sizeof(training_classes[0]));
-  if (training_classes == nullptr)
+  if (training_classes == NULL)
     ErrorExit(ERROR_NOFILE,
               "train_rforest: could not allocate %d-length training buffers",
               ntraining);
   training_data = (double **)calloc(ntraining, sizeof(training_data[0]));
-  if (training_classes == nullptr)
+  if (training_classes == NULL)
     ErrorExit(ERROR_NOFILE,
               "train_rforest: could not allocate %d-length training buffers",
               ntraining);
@@ -1430,19 +1497,17 @@ static RANDOM_FOREST *train_rforest(MRI **mri_inputs, MRI **mri_segs,
 
           training_classes[i] = tlabel;
           training_data[i]    = (double *)calloc(nfeatures, sizeof(double));
-          if (training_data[i] == nullptr)
+          if (training_data[i] == NULL)
             ErrorExit(
                 ERROR_NOMEMORY,
                 "train_rforest: could not allocate %d-len feature vector #%d",
                 nfeatures, i);
           training_classes[i] = training_classes[i];
-          //	  extract_feature(mri_in, parms->wsize, x, y, z,
-          // training_data[i], xatlas, yatlas, zatlas) ;
+          //	  extract_feature(mri_in, parms->wsize, x, y, z, training_data[i], xatlas, yatlas, zatlas) ;
           extract_feature(mri_in, parms->wsize, x, y, z, training_data[i], 0, 0,
                           0);
-          // scale up priors so that a min step size of 1 in training is still
-          // ok count # of unknowns nearby to avoid mislabeling partial-volumed
-          // CSF and cortex
+          // scale up priors so that a min step size of 1 in training is still ok
+          // count # of unknowns nearby to avoid mislabeling partial-volumed CSF and cortex
           training_data[i][nfeatures - 4] =
               MRIcountCSFInNbhd(mri_seg, 5, x, y, z);
           training_data[i][nfeatures - 3] =
@@ -1594,39 +1659,6 @@ static RANDOM_FOREST *train_rforest_with_wmsa_nbrs(MRI **      mri_inputs,
           training_classes[i++] = tlabel;
         }
   }
-
-  // 1st build list of training classes as this will be pruned later if too many
-  // WM labels
-  training_classes = (int *)calloc(ntraining, sizeof(training_classes[0]));
-  if (training_classes == nullptr)
-    ErrorExit(ERROR_NOFILE,
-              "train_rforest: could not allocate %d-length training buffers",
-              ntraining);
-  for (i = n = 0; n < nsubjects; n++) {
-    mri_in    = mri_inputs[n];
-    mri_seg   = mri_segs[n];
-    transform = transforms[n];
-    for (x = 0; x < mri_in->width; x++)
-      for (y = 0; y < mri_in->height; y++)
-        for (z = 0; z < mri_in->depth; z++) {
-          if (is_wmsa_border(mri_seg, x, y, z) == 0)
-            continue;
-          label  = MRIgetVoxVal(mri_seg, x, y, z, 0);
-          tlabel = IS_WMSA(label);
-          if (IS_FUTURE_WMSA(label)) {
-            nfuture++;
-            tlabel = 1;
-          } else if (IS_WMSA(label)) {
-            nwmsa++;
-            tlabel = 1;
-          } else {
-            nnot++;
-            tlabel = 0;
-          }
-
-          training_classes[i++] = tlabel;
-        }
-  }
   printf("total training set size = %2.1fM\n",
          (float)ntraining / (1024.0f * 1024.0f));
   printf("initial training set found with %dK FUTURE WMSA labels, %dK WMSA "
@@ -1635,7 +1667,7 @@ static RANDOM_FOREST *train_rforest_with_wmsa_nbrs(MRI **      mri_inputs,
          (float)nnot / (float)nfuture, (float)nnot / (float)nwmsa);
 
   ignore_indices = (int *)calloc(ntraining, sizeof(ignore_indices[0]));
-  if (ignore_indices == nullptr)
+  if (ignore_indices == NULL)
     ErrorExit(ERROR_NOMEMORY,
               "train_rforest: could not allocate %d length index vector",
               ntraining);
@@ -1647,7 +1679,7 @@ static RANDOM_FOREST *train_rforest_with_wmsa_nbrs(MRI **      mri_inputs,
         *random_indices;
     printf("removing %dK WM indices to reduce training set imbalance\n",
            total_to_remove / 1000);
-    random_indices = compute_permutation(ntraining, nullptr);
+    random_indices = compute_permutation(ntraining, NULL);
 
     for (ignored = i = 0; i < ntraining && ignored < total_to_remove; i++) {
       if (training_classes[random_indices[i]] == 0) // WM label
@@ -1660,7 +1692,7 @@ static RANDOM_FOREST *train_rforest_with_wmsa_nbrs(MRI **      mri_inputs,
     ntraining -= total_to_remove;
   }
   training_data = (double **)calloc(ntraining, sizeof(training_data[0]));
-  if (training_classes == nullptr)
+  if (training_classes == NULL)
     ErrorExit(ERROR_NOFILE,
               "train_rforest: could not allocate %d-length training buffers",
               ntraining);
@@ -1691,7 +1723,7 @@ static RANDOM_FOREST *train_rforest_with_wmsa_nbrs(MRI **      mri_inputs,
           else
             nnot++;
           training_data[i] = (double *)calloc(nfeatures, sizeof(double));
-          if (training_data[i] == nullptr)
+          if (training_data[i] == NULL)
             ErrorExit(
                 ERROR_NOMEMORY,
                 "train_rforest: could not allocate %d-len feature vector #%d",
@@ -1700,8 +1732,7 @@ static RANDOM_FOREST *train_rforest_with_wmsa_nbrs(MRI **      mri_inputs,
           extract_feature(mri_in, parms->wsize, x, y, z, training_data[i], 0, 0,
                           0);
 
-          // scale up priors so that a min step size of 1 in training is still
-          // ok
+          // scale up priors so that a min step size of 1 in training is still ok
           training_data[i][nfeatures - 3] =
               100 * gm_prior(gca, mri_in, transform, x, y, z);
           training_data[i][nfeatures - 2] =

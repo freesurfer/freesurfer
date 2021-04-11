@@ -19,13 +19,15 @@
  *
  */
 
-#include <cmath>
 #include <fstream>
 #include <iostream>
+#include <math.h>
 #include <sstream>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "QdecDataTable.h"
-#include <cstring>
 
 // Constructors/Destructors
 //
@@ -72,7 +74,7 @@ int QdecDataTable::Load(const char *isFileName, char *osNewSubjDir,
 
   // the file could contain a line beginning with SUBJECTS_DIR, to specify
   // where this data is located.  otherwise, assume enviro SUBJECTS_DIR
-  if (nullptr != osNewSubjDir)
+  if (NULL != osNewSubjDir)
     osNewSubjDir[0] = 0; // assume no new subj dir
 
   // delete any prior loaded data
@@ -149,8 +151,8 @@ int QdecDataTable::Load(const char *isFileName, char *osNewSubjDir,
   int   ncols   = 0;
   int   fsidcol = -1;
   char *token   = strtok(tmpstr, WHITESPC); // get first token in this line
-  while (token != nullptr) {
-    // std::cout << token << std::endl;
+  while (token != NULL) {
+    //cout << token << std::endl;
     if (!strcmp(token, "fsid"))
       fsidcol = ncols;
     else if (!strcmp(token, "ID"))
@@ -170,7 +172,7 @@ int QdecDataTable::Load(const char *isFileName, char *osNewSubjDir,
     else if (isFsIdColName && !strcmp(token, isFsIdColName))
       fsidcol = ncols;
     ncols++;
-    token = strtok(nullptr, WHITESPC); // get next token in this line
+    token = strtok(NULL, WHITESPC); // get next token in this line
   }
   if (fsidcol == -1) {
     std::cerr << "ERROR: QdecDataTable::Load could not find column named "
@@ -225,7 +227,7 @@ int QdecDataTable::Load(const char *isFileName, char *osNewSubjDir,
 
   /*
    * Look for a file named ignore.factors which can list any factors the
-   * user wishes to ignore (stuff like alternate subject ids which are
+   * user wishes to ignore (stuff like alternate subject ids which are 
    * neither continuous nor discrete data)
    */
   std::vector<std::string> sIgnoreFactors;
@@ -292,7 +294,7 @@ int QdecDataTable::Load(const char *isFileName, char *osNewSubjDir,
   while (tmpstr[0] == '#') // ignore lines beginning with # and SUBJECTS_DIR
   {
     ifsDatFile.getline(tmpstr, tmpstrMaxSize, eol_delim);
-    if (ifsDatFile.fail() || (nullptr == tmpstr)) {
+    if (ifsDatFile.fail() || (NULL == tmpstr)) {
       std::cerr << "ERROR2: QdecDataTable::Load failed to load first line of "
                 << isFileName << std::endl;
       ifsDatFile.close();
@@ -302,35 +304,35 @@ int QdecDataTable::Load(const char *isFileName, char *osNewSubjDir,
       tmpstr[0] = '#'; // continue
   }
   token = strtok(tmpstr, WHITESPC);
-  if (nullptr == token) {
+  if (NULL == token) {
     std::cerr << "ERROR: QdecDataTable::Load failed to tokenize string: "
               << tmpstr << std::endl;
     ifsDatFile.close();
     return (-1);
-  } // else std::cout << "token: %s\n",token);
+  } //else std::cout << "token: %s\n",token);
 
   int nthfactor = 0;
   while ((nthfactor < nFactors) && (token)) {
     if (fsidcol == nthfactor) {
       // skip-past the fsid column
-      token = strtok(nullptr, WHITESPC);
-      if (nullptr == token) {
+      token = strtok(NULL, WHITESPC);
+      if (NULL == token) {
         std::cerr << "ERROR2: QdecDataTable::Load failed to tokenize string: "
                   << tmpstr << std::endl;
         ifsDatFile.close();
         return (-1);
-      } // else std::cout << "token: %s\n",token);
+      } //else std::cout << "token: %s\n",token);
     }
 
     char factor[2048];
-    strncpy(factor, token, sizeof(factor));
-    // std::cout << "factor: " << factor << std::endl;
+    strncpy(factor, token, sizeof(factor) - 1);
+    //cout << "factor: " << factor << std::endl;
 
     // determine if this factor should be ignored (by comparing against
     // what we may have read from the ignore.factors file parsed earlier)
     bool bIgnore = false;
     for (unsigned int n = 0; n < sIgnoreFactors.size(); n++) {
-      // std::cout << this->mIgnoreFactors[n].c_str() << "  " << factor << std::endl;
+      //cout << this->mIgnoreFactors[n].c_str() << "  " << factor << std::endl;
       if (strcmp(sIgnoreFactors[n].c_str(), factor) == 0) {
         bIgnore = true;
       }
@@ -408,7 +410,7 @@ int QdecDataTable::Load(const char *isFileName, char *osNewSubjDir,
 
     nthfactor++;
 
-    token = strtok(nullptr, WHITESPC); // get next string in this line
+    token = strtok(NULL, WHITESPC); // get next string in this line
     if (!token)
       break;
   } // end while (nthfactor < nFactors)
@@ -443,7 +445,7 @@ int QdecDataTable::Load(const char *isFileName, char *osNewSubjDir,
     while (tmpstr[0] == '#') // ignore lines beginning with #
     {
       ifsDatFile.getline(tmpstr, tmpstrMaxSize, eol_delim);
-      if (ifsDatFile.fail() || (nullptr == tmpstr)) {
+      if (ifsDatFile.fail() || (NULL == tmpstr)) {
         std::cerr << "ERROR: QdecDataTable::Load failed to load line "
                   << nthInput + 2 << " of " << isFileName << std::endl;
         ifsDatFile.close();
@@ -451,7 +453,7 @@ int QdecDataTable::Load(const char *isFileName, char *osNewSubjDir,
       }
     }
     token = strtok(tmpstr, WHITESPC); // a token is each column item
-    if (nullptr == token) {
+    if (NULL == token) {
       std::cerr << "ERROR3: QdecDataTable::Load failed to tokenize string: "
                 << tmpstr << std::endl
                 << "on line " << nthInput + 2 << " of " << isFileName
@@ -477,7 +479,7 @@ int QdecDataTable::Load(const char *isFileName, char *osNewSubjDir,
             !this->mFactors[nthfactor]->HaveDotLevelsFile() &&
             !this->mFactors[nthfactor]
                  ->Ignore()) { // yes!  its a continuous factor
-          // std::cout << "\t" << nthInput << ": " << dtmp << std::endl;
+          //cout << "\t" << nthInput << ": " << dtmp << std::endl;
           QdecFactor *qf = new QdecFactor(
               this->mFactors[nthfactor]->GetFactorName().c_str(),
               QdecFactor::qdecContinuousFactorType, dtmp /* value */);
@@ -540,7 +542,7 @@ int QdecDataTable::Load(const char *isFileName, char *osNewSubjDir,
         nthfactor++;
       }
 
-      token = strtok(nullptr, WHITESPC); // get next factor in this line
+      token = strtok(NULL, WHITESPC); // get next factor in this line
       if (!token)
         break;
 
@@ -615,7 +617,7 @@ int QdecDataTable::Load(const char *isFileName, char *osNewSubjDir,
 /**
  * @return int
  * @param  isFileName
- *
+ * 
  */
 int QdecDataTable::Save(const char *isFileName) {
   int nFactors = this->GetContinuousFactorNames().size() +
@@ -628,7 +630,7 @@ int QdecDataTable::Save(const char *isFileName) {
   }
 
   FILE *fp = fopen(isFileName, "w");
-  if (nullptr == fp) {
+  if (NULL == fp) {
     std::cerr << "ERROR: Unable to open file" << isFileName
               << " for writing!\n";
     return 1;
@@ -656,7 +658,7 @@ int QdecDataTable::Save(const char *isFileName) {
         fprintf(fp, "%s ", subjectFactors[n]->GetIgnoreValue().c_str());
       } else if (subjectFactors[n]->IsOrdinal()) {
         double value = subjectFactors[n]->GetContinuousValue();
-        if (std::isnan(value)) {
+        if (isnan(value)) {
           fprintf(fp, "NaN ");
         } else {
           fprintf(fp, "%d ", (int)value);
@@ -755,7 +757,7 @@ void QdecDataTable::Dump(FILE *fp) {
 std::string QdecDataTable::GetFileName() { return mfnFileName; }
 
 /**
- * @return vector< string >
+ * @return std::vector< string >
  */
 std::vector<std::string> QdecDataTable::GetSubjectIDs() {
   std::vector<std::string> ids;
@@ -768,7 +770,7 @@ std::vector<std::string> QdecDataTable::GetSubjectIDs() {
 }
 
 /**
- * @return vector< QdecSubject* >
+ * @return std::vector< QdecSubject* >
  */
 std::vector<QdecSubject *> QdecDataTable::GetSubjects() {
   return this->mSubjects;
@@ -790,7 +792,7 @@ QdecFactor *QdecDataTable::GetFactor(const char *isFactorName) {
               << "' is not in datatable!" << std::endl;
   }
 
-  return nullptr;
+  return NULL;
 }
 
 /**
@@ -799,14 +801,14 @@ QdecFactor *QdecDataTable::GetFactor(const char *isFactorName) {
  */
 QdecFactor *QdecDataTable::GetFactor(const char *isSubjectName,
                                      const char *isFactorName) {
-  QdecFactor *qf = nullptr;
+  QdecFactor *qf = NULL;
   for (unsigned int i = 0; i < this->mSubjects.size(); i++) {
     if (0 == strcmp(isSubjectName, this->mSubjects[i]->GetId().c_str())) {
       qf = this->mSubjects[i]->GetFactor(isFactorName);
       break;
     }
   }
-  if (nullptr == qf) {
+  if (NULL == qf) {
     std::cerr << "ERROR: QdecDataTable::GetFactor: '" << isFactorName
               << "' is not in datatable!" << std::endl;
   }
@@ -815,7 +817,7 @@ QdecFactor *QdecDataTable::GetFactor(const char *isSubjectName,
 }
 
 /**
- * @return vector< string >
+ * @return std::vector< string >
  */
 std::vector<std::string> QdecDataTable::GetDiscreteFactorNames() {
   std::vector<std::string> discreteFactorNames;
@@ -828,7 +830,7 @@ std::vector<std::string> QdecDataTable::GetDiscreteFactorNames() {
 }
 
 /**
- * @return vector< string >
+ * @return std::vector< string >
  */
 std::vector<std::string> QdecDataTable::GetContinuousFactorNames() {
   std::vector<std::string> continuousFactorNames;
@@ -873,7 +875,7 @@ int QdecDataTable::GetNumberOfRegressors() {
 
 /**
  * GetMeanAndStdDev() - computes the average and stddev of continuous factor
- * @return vector< double > - first element is mean, second is the stddev
+ * @return std::vector< double > - first element is mean, second is the stddev
  * @param isFactorName
  */
 std::vector<double> QdecDataTable::GetMeanAndStdDev(const char *isFactorName) {
@@ -889,7 +891,7 @@ std::vector<double> QdecDataTable::GetMeanAndStdDev(const char *isFactorName) {
   std::vector<QdecSubject *> subjects = this->GetSubjects();
   for (unsigned int i = 0; i < this->GetSubjects().size(); i++, N++) {
     d = subjects[i]->GetContinuousFactorValue(isFactorName);
-    if (std::isnan(d)) {
+    if (isnan(d)) {
       N--;
     } else {
       Sum += d;
@@ -952,7 +954,7 @@ int QdecDataTable::PurgeNullFactors() {
 int QdecDataTable::MergeFactor(const char *   isFactorName,
                                QdecDataTable *iDataTable) {
   // first, some sanity checks on this alien data
-  if ((nullptr == isFactorName) || (0 == strlen(isFactorName))) {
+  if ((NULL == isFactorName) || (0 == strlen(isFactorName))) {
     std::cerr << "ERROR: QdecDataTable::MergeFactor: invalid factor name!"
               << std::endl;
     return 1;
@@ -1006,7 +1008,7 @@ int QdecDataTable::MergeFactor(const char *   isFactorName,
  */
 int QdecDataTable::DeleteFactor(const char *isFactorName) {
   // first, some sanity checks on this alien data
-  if ((nullptr == isFactorName) || (0 == strlen(isFactorName))) {
+  if ((NULL == isFactorName) || (0 == strlen(isFactorName))) {
     std::cerr << "ERROR: QdecDataTable::DeleteFactor: invalid factor name"
               << std::endl;
     return 1;

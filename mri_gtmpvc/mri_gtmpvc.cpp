@@ -2,9 +2,8 @@
  * @brief Peforms Partial volume correction based on the geometric transfer matrix GTM
  *
  *
- * Implementation of geometric transfer matrix (GTM). Also includes
- * Muller-Gartner (MG) and Region-based Voxelwise (RBV) partial volume
- * correction.
+ * Implementation of geometric transfer matrix (GTM). Also includes Muller-Gartner (MG) and
+ * Region-based Voxelwise (RBV) partial volume correction.
  */
 /*
  * Original Author: Douglas N. Greve
@@ -40,23 +39,36 @@
   ENDUSAGE
 */
 
+#include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <sys/utsname.h>
+#include <unistd.h>
 
 #include "cma.h"
 #include "cmdargs.h"
 #include "diag.h"
+#include "error.h"
 #include "fio.h"
 #include "fmriutils.h"
 #include "gtm.h"
+#include "macros.h"
 #include "matfile.h"
+#include "mri.h"
 #include "mri2.h"
 #include "mri_identify.h"
+#include "mrimorph.h"
+#include "mrisurf.h"
 #include "mrisutils.h"
 #include "numerics.h"
 #include "pdf.h"
 #include "region.h"
+#include "registerio.h"
+#include "resample.h"
 #include "timer.h"
+#include "utils.h"
 #include "version.h"
 
 #ifdef _OPENMP
@@ -64,11 +76,11 @@
 #endif
 
 static int  parse_commandline(int argc, char **argv);
-static void check_options();
-static void print_usage();
-static void usage_exit();
-static void print_help();
-static void print_version();
+static void check_options(void);
+static void print_usage(void);
+static void usage_exit(void);
+static void print_help(void);
+static void print_version(void);
 static void dump_options(FILE *fp);
 int         main(int argc, char *argv[]);
 
@@ -108,10 +120,10 @@ int    GTMOPTgtm2Params(GTMOPT *gtmopt);
 float compute_powell_cost(float *p);
 int   MinPowell();
 
-char * SrcVolFile = nullptr, *SegVolFile = nullptr, *MaskVolFile = nullptr;
-char * OutDir = nullptr, *AuxDir, *RBVVolFile = nullptr;
-char * OutBetaFile = nullptr, *OutBetaVarFile = nullptr, *OutXtXFile = nullptr;
-char * SrcBetaFile = nullptr;
+char * SrcVolFile = NULL, *SegVolFile = NULL, *MaskVolFile = NULL;
+char * OutDir = NULL, *AuxDir, *RBVVolFile = NULL;
+char * OutBetaFile = NULL, *OutBetaVarFile = NULL, *OutXtXFile = NULL;
+char * SrcBetaFile = NULL;
 int    SynthOnly = 0, SaveSynth = 0;
 int    GTMSynthSeed = 0, GTMSynthReps = 1;
 double SynthPSFFWHMCol = 0, SynthPSFFWHMRow = 0, SynthPSFFWHMSlice = 0,
@@ -120,22 +132,21 @@ double  SynthPSFStdCol = 0, SynthPSFStdRow = 0, SynthPSFStdSlice = 0;
 MATRIX *srcbeta;
 double  psfFWHM = -1;
 char    tmpstr[5000], logfile[5000];
-char *  PVFFile = nullptr, *SegTTypeFile = nullptr;
+char *  PVFFile = NULL, *SegTTypeFile = NULL;
 double  ApplyFWHM = 0;
-char *  Xfile = nullptr, *X0file = nullptr, *ymatfile = nullptr,
-     *betamatfile = nullptr;
-int   SaveX = 0, SaveX0 = 0, SaveYMat = 0, SaveBetaMat = 0;
-char *VRFStatsFile = nullptr;
-char *eresFile = nullptr, *yhatFile = nullptr, *yhat0File = nullptr,
-     *yhatFullFoVFile = nullptr;
-char *OutSegFile      = nullptr;
+char *  Xfile = NULL, *X0file = NULL, *ymatfile = NULL, *betamatfile = NULL;
+int     SaveX = 0, SaveX0 = 0, SaveYMat = 0, SaveBetaMat = 0;
+char *  VRFStatsFile = NULL;
+char *  eresFile = NULL, *yhatFile = NULL, *yhat0File = NULL,
+     *yhatFullFoVFile = NULL;
+char *OutSegFile      = NULL;
 MRI * mritmp;
-char *RVarFile = nullptr, *RVarUnscaledFile = nullptr, *SkewFile = nullptr,
-     *KurtosisFile = nullptr;
+char *RVarFile = NULL, *RVarUnscaledFile = NULL, *SkewFile = NULL,
+     *KurtosisFile = NULL;
 int   RVarOnly     = 0;
 int   nthreads     = 1;
 int   ttReduce     = 0;
-char *MGPVCFile = nullptr, *MeltzerPVCFile = nullptr;
+char *MGPVCFile = NULL, *MeltzerPVCFile = NULL;
 char *regfile;
 int   regidentity = 0;
 int   regtype;
@@ -196,15 +207,15 @@ int main(int argc, char *argv[]) {
   setRandomSeed(53);
 
   gtm = GTMalloc();
-  // gtm->ctGTMSeg = TissueTypeSchema(NULL,"default-jan-2014+head");
-  // gtm->ctGTMSeg = TissueTypeSchema(NULL,"default-jan-2014");
+  //gtm->ctGTMSeg = TissueTypeSchema(NULL,"default-jan-2014+head");
+  //gtm->ctGTMSeg = TissueTypeSchema(NULL,"default-jan-2014");
 
   // by default, rescale to Cerebellum WM
   gtm->rescale      = 1;
   gtm->scale_refval = 1;
-  // gtm->n_scale_refids = 2;
-  // gtm->scale_refids[0] = 7; // lh cerebellum wm
-  // gtm->scale_refids[1] = 46;// rh cerebellum wm
+  //gtm->n_scale_refids = 2;
+  //gtm->scale_refids[0] = 7; // lh cerebellum wm
+  //gtm->scale_refids[1] = 46;// rh cerebellum wm
   gtm->n_scale_refids    = 1;
   gtm->scale_refids[0]   = 174; // pons
   gtm->mask_rbv_to_brain = 1;
@@ -227,7 +238,7 @@ int main(int argc, char *argv[]) {
   argc--;
   argv++;
   ErrorInit(NULL, NULL, NULL);
-  DiagInit(nullptr, nullptr, nullptr);
+  DiagInit(NULL, NULL, NULL);
   if (argc == 0)
     usage_exit();
   parse_commandline(argc, argv);
@@ -247,7 +258,7 @@ int main(int argc, char *argv[]) {
   err = mkdir(OutDir, 0777);
   if (err != 0 && errno != EEXIST) {
     printf("ERROR: creating directory %s\n", OutDir);
-    perror(nullptr);
+    perror(NULL);
     return (1);
   }
   sprintf(logfile, "%s/mri_gtmpvc.log", OutDir);
@@ -258,7 +269,7 @@ int main(int argc, char *argv[]) {
   err = mkdir(AuxDir, 0777);
   if (err != 0 && errno != EEXIST) {
     printf("ERROR: creating directory %s\n", AuxDir);
-    perror(nullptr);
+    perror(NULL);
     return (1);
   }
   gtm->AuxDir = AuxDir;
@@ -273,7 +284,7 @@ int main(int argc, char *argv[]) {
   fprintf(logfp, "Loading seg for gtm %s\n", SegVolFile);
   fflush(logfp);
   gtm->anatseg = MRIread(SegVolFile);
-  if (gtm->anatseg == nullptr)
+  if (gtm->anatseg == NULL)
     exit(1);
   if (Gdiag_no > 0)
     printf("  done loading seg\n");
@@ -282,20 +293,20 @@ int main(int argc, char *argv[]) {
     PrintMemUsage(stdout);
 
   stem = IDstemFromName(SegVolFile);
-  if (gtm->ctGTMSeg == nullptr) {
+  if (gtm->ctGTMSeg == NULL) {
     sprintf(tmpstr, "%s.ctab", stem);
     printf("Loading seg ctab %s\n", tmpstr);
     fflush(stdout);
     fprintf(logfp, "Loading ctab %s\n", tmpstr);
     fflush(logfp);
     gtm->ctGTMSeg = CTABreadASCII(tmpstr);
-    if (gtm->ctGTMSeg == nullptr)
+    if (gtm->ctGTMSeg == NULL)
       exit(1);
     if (Gdiag_no > 0)
       printf("  done loading ctab\n");
     fflush(stdout);
   }
-  if (MergeHypos && gtm->ctGTMSeg->entries[77] == nullptr) {
+  if (MergeHypos && gtm->ctGTMSeg->entries[77] == NULL) {
     gtm->ctGTMSeg->entries[77] = (CTE *)malloc(sizeof(CTE));
     sprintf(gtm->ctGTMSeg->entries[77]->name, "WM-hypointensities");
     gtm->ctGTMSeg->entries[77]->ri = 255;
@@ -318,7 +329,7 @@ int main(int argc, char *argv[]) {
   }
 
   if (DoRegHeader)
-    gtm->anat2pet = TransformRegDat2LTA(gtm->anatseg, gtm->yvol, nullptr);
+    gtm->anat2pet = TransformRegDat2LTA(gtm->anatseg, gtm->yvol, NULL);
   VOL_GEOM vg;
   getVolGeom(gtm->yvol, &vg);
   if (!vg_isEqual(&vg, &(gtm->anat2pet->xforms[0].src))) {
@@ -344,16 +355,16 @@ int main(int argc, char *argv[]) {
     printf("Reading %s\n", tmpstr);
     fprintf(logfp, "Reading %s\n", tmpstr);
     gtm->anat2seg = LTAread(tmpstr);
-    if (gtm->anat2seg == nullptr)
+    if (gtm->anat2seg == NULL)
       exit(1);
   } else {
     printf("Assuming seg is in conformed space\n");
     fprintf(logfp, "Assuming seg is in conformed space\n");
-    gtm->anat2seg = TransformRegDat2LTA(gtm->anatseg, gtm->anatseg, nullptr);
+    gtm->anat2seg = TransformRegDat2LTA(gtm->anatseg, gtm->anatseg, NULL);
   }
-  gtm->seg2anat = LTAinvert(gtm->anat2seg, nullptr);
+  gtm->seg2anat = LTAinvert(gtm->anat2seg, NULL);
   gtm->seg2pet  = LTAconcat2(gtm->seg2anat, gtm->anat2pet, 1);
-  if (gtm->seg2pet == nullptr) {
+  if (gtm->seg2pet == NULL) {
     printf("ERROR: LTAconcat()\n");
     printf("mri_gtmpvc exited with errors\n");
     exit(1);
@@ -363,7 +374,7 @@ int main(int argc, char *argv[]) {
     printf("Replacing %d\n", gtm->nReplace);
     fflush(stdout);
     mritmp = MRIreplaceList(gtm->anatseg, gtm->SrcReplace, gtm->TrgReplace,
-                            gtm->nReplace, nullptr, nullptr);
+                            gtm->nReplace, NULL, NULL);
     if (Gdiag_no > 0)
       printf("  done replacing\n");
     fflush(stdout);
@@ -389,8 +400,8 @@ int main(int argc, char *argv[]) {
     COLOR_TABLE *ctTT;
     printf("Reducing seg to tissue type seg\n");
     fprintf(logfp, "Reducing seg to tissue type seg\n");
-    ttseg = MRIseg2TissueType(gtm->anatseg, gtm->ctGTMSeg, nullptr);
-    if (ttseg == nullptr)
+    ttseg = MRIseg2TissueType(gtm->anatseg, gtm->ctGTMSeg, NULL);
+    if (ttseg == NULL)
       exit(1);
     MRIfree(&gtm->anatseg);
     gtm->anatseg = ttseg;
@@ -411,9 +422,9 @@ int main(int argc, char *argv[]) {
     exit(1);
   }
 
-  // printf("Writing anat seg\n");
-  // sprintf(tmpstr,"%s/anat.seg.nii.gz",AuxDir);
-  // MRIwrite(gtm->anatseg,tmpstr);
+  //printf("Writing anat seg\n");
+  //sprintf(tmpstr,"%s/anat.seg.nii.gz",AuxDir);
+  //MRIwrite(gtm->anatseg,tmpstr);
 
   gtm->volperseg = CTABcount2MRI(gtm->ctGTMSeg, gtm->anatseg);
   sprintf(tmpstr, "%s/seg.vol.nii.gz", AuxDir);
@@ -429,8 +440,8 @@ int main(int argc, char *argv[]) {
     cStdApply = ApplyFWHM / sqrt(log(256.0));
     rStdApply = ApplyFWHM / sqrt(log(256.0));
     sStdApply = ApplyFWHM / sqrt(log(256.0));
-    mritmp    = MRIgaussianSmoothNI(gtm->yvol, cStdApply, rStdApply, sStdApply,
-                                 nullptr);
+    mritmp =
+        MRIgaussianSmoothNI(gtm->yvol, cStdApply, rStdApply, sStdApply, NULL);
     MRIfree(&gtm->yvol);
     gtm->yvol = mritmp;
   }
@@ -447,7 +458,7 @@ int main(int argc, char *argv[]) {
     fflush(stdout);
     fprintf(logfp, "Loading mask %s\n", MaskVolFile);
     gtm->mask = MRIread(MaskVolFile);
-    if (gtm->mask == nullptr)
+    if (gtm->mask == NULL)
       exit(1);
     err = MRIdimMismatch(gtm->yvol, gtm->mask, 0);
     if (err) {
@@ -468,7 +479,7 @@ int main(int argc, char *argv[]) {
       PrintMemUsage(stdout);
     PrintMemUsage(logfp);
   } else
-    gtm->mask = nullptr; // should already be NULL
+    gtm->mask = NULL; // should already be NULL
 
   if (gtm->reduce_fov && gtm->mask) {
     LTA *seg2bbpet, *anat2bbpet, *lta;
@@ -478,7 +489,7 @@ int main(int argc, char *argv[]) {
       gtm->automaskRegion = REGIONgetBoundingBox(gtm->mask, 1);
     if (gtm->reduce_fov == 2)
       gtm->automaskRegion = REGIONgetBoundingBoxEqOdd(gtm->mask, 1);
-    if (gtm->automaskRegion == nullptr) {
+    if (gtm->automaskRegion == NULL) {
       // REGIONgetBoundingBoxEqOdd() can fail when head is not centered
       sprintf(tmpstr, "%s/mask.bberr.nii.gz", AuxDir);
       printf("  writing mask to %s\n", tmpstr);
@@ -489,16 +500,16 @@ int main(int argc, char *argv[]) {
            gtm->yvol->depth);
     REGIONprint(stdout, gtm->automaskRegion);
     fflush(stdout);
-    masktmp = MRIextractRegion(gtm->mask, nullptr, gtm->automaskRegion);
-    yvoltmp = MRIextractRegion(gtm->yvol, nullptr, gtm->automaskRegion);
+    masktmp = MRIextractRegion(gtm->mask, NULL, gtm->automaskRegion);
+    yvoltmp = MRIextractRegion(gtm->yvol, NULL, gtm->automaskRegion);
     // delete file name avoid confusion because it gets propogated to lta
     memset(yvoltmp->fname, 0, strlen(yvoltmp->fname));
-    gtm->pet2bbpet = TransformRegDat2LTA(gtm->yvol, yvoltmp, nullptr);
+    gtm->pet2bbpet = TransformRegDat2LTA(gtm->yvol, yvoltmp, NULL);
     seg2bbpet      = LTAconcat2(gtm->seg2pet, gtm->pet2bbpet, 1);
     if (LTAmriIsSource(gtm->anat2pet, gtm->yvol))
-      lta = LTAinvert(gtm->anat2pet, nullptr);
+      lta = LTAinvert(gtm->anat2pet, NULL);
     else
-      lta = LTAcopy(gtm->anat2pet, nullptr);
+      lta = LTAcopy(gtm->anat2pet, NULL);
     anat2bbpet = LTAconcat2(lta, gtm->pet2bbpet, 1);
     LTAfree(&lta);
     gtm->yvol_full_fov = MRIallocHeader(gtm->yvol->width, gtm->yvol->height,
@@ -515,7 +526,7 @@ int main(int argc, char *argv[]) {
     gtm->anat2pet = anat2bbpet;
   } else
     gtm->pet2bbpet =
-        TransformRegDat2LTA(gtm->yvol, gtm->yvol, nullptr); // identity
+        TransformRegDat2LTA(gtm->yvol, gtm->yvol, NULL); // identity
 
   if (gtm->mask) {
     sprintf(tmpstr, "%s/mask.nii.gz", AuxDir);
@@ -566,11 +577,11 @@ int main(int argc, char *argv[]) {
   GTMprintRefIds(gtm, stdout);
   GTMprintRefIds(gtm, logfp);
 
-  /* Create the "SegPVF". This is a multi-frame volume, each frame corresponds
-     to a different Seg ID. The value is the PVF of that SegID. This is
-     independent of the PSF (but accounts for the volume fraction effect). */
-  // Note: tissue type lateralization (LateralizeTT) will sligthly affect this
-  // since the tissue type is used to resolve ties.
+  /* Create the "SegPVF". This is a multi-frame volume, each frame corresponds to a
+     different Seg ID. The value is the PVF of that SegID. This is independent of
+     the PSF (but accounts for the volume fraction effect). */
+  // Note: tissue type lateralization (LateralizeTT) will sligthly affect this since
+  // the tissue type is used to resolve ties.
   printf("Computing Seg volume fraction \n");
   fflush(stdout);
   if (Gdiag_no > 0)
@@ -578,8 +589,8 @@ int main(int argc, char *argv[]) {
   PrintMemUsage(logfp);
   gtm->segpvf =
       MRIseg2SegPVF(gtm->anatseg, gtm->seg2pet, segpvfresmm, gtm->segidlist,
-                    gtm->nsegs, gtm->mask, 0, nullptr, gtm->segpvf);
-  if (gtm->segpvf == nullptr)
+                    gtm->nsegs, gtm->mask, 0, NULL, gtm->segpvf);
+  if (gtm->segpvf == NULL)
     exit(1);
   if (Gdiag_no > 0)
     PrintMemUsage(stdout);
@@ -658,7 +669,7 @@ int main(int argc, char *argv[]) {
   PrintMemUsage(logfp);
   mytimer.reset();
   GTMbuildX(gtm);
-  if (gtm->X == nullptr)
+  if (gtm->X == NULL)
     exit(1);
   printf(" gtm build time %4.1f sec\n", mytimer.seconds());
   fflush(stdout);
@@ -668,8 +679,7 @@ int main(int argc, char *argv[]) {
     PrintMemUsage(stdout);
   PrintMemUsage(logfp);
 
-  // Create GTM pvf in pet space (why?). This is actually the fraction of each
-  // tissue type
+  // Create GTM pvf in pet space (why?). This is actually the fraction of each tissue type
   gtm->ttpvf = MRIsegPVF2TissueTypePVF(gtm->segpvf, gtm->segidlist, gtm->nsegs,
                                        gtm->ctGTMSeg, gtm->mask, gtm->ttpvf);
   sprintf(tmpstr, "%s/tissue.fraction.nii.gz", AuxDir);
@@ -677,24 +687,24 @@ int main(int argc, char *argv[]) {
 
   // Compute gray matter PVF with smoothing
   MRI *ctxpvf, *subctxpvf, *gmpvf, *ttpvfpsf;
-  ctxpvf    = fMRIframe(gtm->ttpvf, 0, nullptr);  // cortex PVF
-  subctxpvf = fMRIframe(gtm->ttpvf, 1, nullptr);  // subcortex GM PVF
-  gmpvf     = MRIadd(ctxpvf, subctxpvf, nullptr); // All GM PVF
+  ctxpvf    = fMRIframe(gtm->ttpvf, 0, NULL);  // cortex PVF
+  subctxpvf = fMRIframe(gtm->ttpvf, 1, NULL);  // subcortex GM PVF
+  gmpvf     = MRIadd(ctxpvf, subctxpvf, NULL); // All GM PVF
   // Smooth GM PVF by PSF
   gtm->gmpvfpsf = MRIgaussianSmoothNI(gmpvf, gtm->cStd, gtm->rStd, gtm->sStd,
-                                      nullptr); // just GM
+                                      NULL); // just GM
   ttpvfpsf = MRIgaussianSmoothNI(gtm->ttpvf, gtm->cStd, gtm->rStd, gtm->sStd,
-                                 nullptr); // All TisTypes
+                                 NULL); // All TisTypes
   if (gtm->UseMBrad) {
     MB2D *mb;
     MRI * mritmp;
-    mb     = MB2Dcopy(gtm->mbrad, 0, nullptr);
+    mb     = MB2Dcopy(gtm->mbrad, 0, NULL);
     mb->cR = 0;
     mb->rR = 0;
-    mritmp = MRImotionBlur2D(gtm->gmpvfpsf, mb, nullptr);
+    mritmp = MRImotionBlur2D(gtm->gmpvfpsf, mb, NULL);
     MRIfree(&gtm->gmpvfpsf);
     gtm->gmpvfpsf = mritmp;
-    mritmp        = MRImotionBlur2D(ttpvfpsf, mb, nullptr);
+    mritmp        = MRImotionBlur2D(ttpvfpsf, mb, NULL);
     MRIfree(&ttpvfpsf);
     ttpvfpsf = mritmp;
     MB2Dfree(&mb);
@@ -702,13 +712,13 @@ int main(int argc, char *argv[]) {
   if (gtm->UseMBtan) {
     MB2D *mb;
     MRI * mritmp;
-    mb     = MB2Dcopy(gtm->mbtan, 0, nullptr);
+    mb     = MB2Dcopy(gtm->mbtan, 0, NULL);
     mb->cR = 0;
     mb->rR = 0;
-    mritmp = MRImotionBlur2D(gtm->gmpvfpsf, mb, nullptr);
+    mritmp = MRImotionBlur2D(gtm->gmpvfpsf, mb, NULL);
     MRIfree(&gtm->gmpvfpsf);
     gtm->gmpvfpsf = mritmp;
-    mritmp        = MRImotionBlur2D(ttpvfpsf, mb, nullptr);
+    mritmp        = MRImotionBlur2D(ttpvfpsf, mb, NULL);
     MRIfree(&ttpvfpsf);
     ttpvfpsf = mritmp;
     MB2Dfree(&mb);
@@ -727,18 +737,18 @@ int main(int argc, char *argv[]) {
   LTAwrite(gtm->seg2pet, tmpstr);
   sprintf(tmpstr, "%s/anat2bbpet.lta", AuxDir);
   LTAwrite(gtm->anat2pet, tmpstr);
-  ltatmp = LTAinvert(gtm->anat2pet, nullptr);
+  ltatmp = LTAinvert(gtm->anat2pet, NULL);
   sprintf(tmpstr, "%s/bbpet2anat.lta", AuxDir);
   LTAwrite(ltatmp, tmpstr);
   LTAfree(&ltatmp);
   sprintf(tmpstr, "%s/pet2bbpet.lta", AuxDir);
   LTAwrite(gtm->pet2bbpet, tmpstr);
-  ltatmp = LTAinvert(gtm->pet2bbpet, nullptr);
+  ltatmp = LTAinvert(gtm->pet2bbpet, NULL);
   sprintf(tmpstr, "%s/bbpet2pet.lta", AuxDir);
   LTAwrite(ltatmp, tmpstr);
   LTAfree(&ltatmp);
-  // sprintf(tmpstr,"%s/anat2hrseg.lta",OutDir);
-  // LTAwrite(gtm->anat2seg,tmpstr);
+  //sprintf(tmpstr,"%s/anat2hrseg.lta",OutDir);
+  //LTAwrite(gtm->anat2seg,tmpstr);
 
   if (DoSimulation) {
     printf("Synthsizing using supplied beta %s\n", SrcBetaFile);
@@ -747,8 +757,8 @@ int main(int argc, char *argv[]) {
     GTMsynth(gtm, GTMSynthSeed, GTMSynthReps);
     printf("Smoothing synthsized %g %g %g\n", SynthPSFStdCol, SynthPSFStdRow,
            SynthPSFStdSlice);
-    gtm->ysynthsm = MRIgaussianSmoothNI(
-        gtm->ysynth, SynthPSFStdCol, SynthPSFStdRow, SynthPSFStdSlice, nullptr);
+    gtm->ysynthsm = MRIgaussianSmoothNI(gtm->ysynth, SynthPSFStdCol,
+                                        SynthPSFStdRow, SynthPSFStdSlice, NULL);
     if (SynthPSFMBSlope > 0) {
       printf("MB2D smoothing by %g\n", SynthPSFMBSlope);
       MB2D *mbtmp   = (MB2D *)calloc(sizeof(MB2D), 1);
@@ -758,7 +768,7 @@ int main(int argc, char *argv[]) {
       mbtmp->c0     = gtm->yvol->width / 2.0;
       mbtmp->r0     = gtm->yvol->height / 2.0;
       mbtmp->DeltaD = gtm->yvol->xsize / 2.0;
-      mritmp        = MRImotionBlur2D(gtm->ysynthsm, mbtmp, nullptr);
+      mritmp        = MRImotionBlur2D(gtm->ysynthsm, mbtmp, NULL);
       MRIfree(&gtm->ysynthsm);
       gtm->ysynthsm = mritmp;
     }
@@ -776,7 +786,7 @@ int main(int argc, char *argv[]) {
       exit(0);
     }
     MRIfree(&gtm->yvol);
-    gtm->yvol = MRIcopy(gtm->ysynthsm, nullptr);
+    gtm->yvol = MRIcopy(gtm->ysynthsm, NULL);
     MRIfree(&gtm->ysynth);
     MRIfree(&gtm->ysynthsm);
     MatrixFree(&gtm->beta);
@@ -794,7 +804,7 @@ int main(int argc, char *argv[]) {
       MatrixFree(&gtm->X);
       MatrixFree(&gtm->X0);
       GTMbuildX(gtm);
-      if (gtm->X == nullptr)
+      if (gtm->X == NULL)
         exit(1);
       printf(" gtm build time %4.1f sec\n", mytimer.seconds());
       fflush(stdout);
@@ -812,8 +822,8 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  // printf("Freeing segpvf\n"); fflush(stdout);
-  // MRIfree(&gtm->segpvf);
+  //printf("Freeing segpvf\n"); fflush(stdout);
+  //MRIfree(&gtm->segpvf);
   if (SaveX0) {
     printf("Writing X0 to %s\n", Xfile);
     MatlabWrite(gtm->X0, X0file, "X0");
@@ -844,12 +854,12 @@ int main(int argc, char *argv[]) {
     MATRIX *X0tX0, *X0t, *X0tX, *iX0tX0, *gtmmat;
     printf("Computing actual GTM Matrix\n");
     fflush(stdout);
-    X0tX0  = MatrixMtM(gtm->X0, nullptr);
-    iX0tX0 = MatrixInverse(X0tX0, nullptr);
+    X0tX0  = MatrixMtM(gtm->X0, NULL);
+    iX0tX0 = MatrixInverse(X0tX0, NULL);
 
-    X0t    = MatrixTranspose(gtm->X0, nullptr);
-    X0tX   = MatrixMultiplyD(X0t, gtm->X, nullptr);
-    gtmmat = MatrixMultiplyD(iX0tX0, X0tX, nullptr);
+    X0t    = MatrixTranspose(gtm->X0, NULL);
+    X0tX   = MatrixMultiplyD(X0t, gtm->X, NULL);
+    gtmmat = MatrixMultiplyD(iX0tX0, X0tX, NULL);
     sprintf(tmpstr, "%s/gtm.mat", AuxDir);
     MatrixWriteTxt(tmpstr, gtmmat);
     gtmmat = MatrixInverse(gtmmat, gtmmat);
@@ -1109,13 +1119,13 @@ int main(int argc, char *argv[]) {
   if (yhatFullFoVFile) {
     printf("Restoring FoV to yhat, saving in %s\n", yhatFullFoVFile);
     mritmp = MRIinsertRegion(gtm->ysynthsm, gtm->automaskRegion,
-                             gtm->yvol_full_fov, nullptr);
+                             gtm->yvol_full_fov, NULL);
     MRIwrite(mritmp, yhatFullFoVFile);
     MRIfree(&mritmp);
   }
 
   if (eresFile) {
-    gtmres = GTMmat2vol(gtm, gtm->res, nullptr);
+    gtmres = GTMmat2vol(gtm, gtm->res, NULL);
     MRIwrite(gtmres, eresFile);
     MRIfree(&gtmres);
   }
@@ -1222,7 +1232,7 @@ int main(int argc, char *argv[]) {
     if (Gdiag_no > 0)
       PrintMemUsage(stdout);
     fprintf(logfp, "lGTM PVC\n");
-    lgtmpvc = GTMlocal(gtm, nullptr);
+    lgtmpvc = GTMlocal(gtm, NULL);
     for (n = 0; n < gtm->ttpvf->nframes; n++) {
       sprintf(tmpstr, "%s/lgtm.%02d.nii.gz", OutDir, n);
       err = MRIwrite(lgtmpvc[n], tmpstr);
@@ -1266,7 +1276,7 @@ int main(int argc, char *argv[]) {
     LTAwrite(gtm->anat2rbv, tmpstr);
     sprintf(tmpstr, "%s/aux/anat2rbv.lta", OutDir);
     LTAwrite(gtm->anat2rbv, tmpstr);
-    ltatmp = LTAinvert(gtm->anat2rbv, nullptr);
+    ltatmp = LTAinvert(gtm->anat2rbv, NULL);
     sprintf(tmpstr, "%s/rbv2anat.lta", AuxDir);
     LTAwrite(ltatmp, tmpstr);
     LTAfree(&ltatmp);
@@ -1283,7 +1293,7 @@ int main(int argc, char *argv[]) {
   // Not very useful here, but have to wait until after RBV and MG
   printf("Freeing y\n");
   fflush(stdout);
-  mritmp = MRIcopyHeader(gtm->yvol, nullptr);
+  mritmp = MRIcopyHeader(gtm->yvol, NULL);
   MRIcopyPulseParameters(gtm->yvol, mritmp);
   MRIfree(&gtm->yvol);
   gtm->yvol = mritmp;
@@ -1399,16 +1409,16 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1)
         CMDargNErr(option, 1);
       gtm->ctGTMSeg = CTABreadASCII(pargv[0]);
-      if (gtm->ctGTMSeg == nullptr)
+      if (gtm->ctGTMSeg == NULL)
         exit(1);
-      if (gtm->ctGTMSeg->ctabTissueType == nullptr) {
+      if (gtm->ctGTMSeg->ctabTissueType == NULL) {
         printf("ERROR: ctab %s does not have a tissue type designation\n",
                pargv[0]);
         exit(1);
       }
       nargsused = 1;
     } else if (!strcmp(option, "--ctab-default"))
-      gtm->ctGTMSeg = TissueTypeSchemaDefaultHead(nullptr);
+      gtm->ctGTMSeg = TissueTypeSchemaDefaultHead(NULL);
     else if (!strcmp(option, "--lat"))
       LateralizeTT = 1;
     else if (!strcmp(option, "--no-lat"))
@@ -1452,11 +1462,10 @@ static int parse_commandline(int argc, char **argv) {
         printf("ERROR: cannot use register.dat-style registration matrix, must "
                "be LTA\n");
         exit(1);
-        // gtm->anatseg2pet = ltaReadRegisterDat(regfile, SrcVolFile,
-        // SegVolFile);
+        //gtm->anatseg2pet = ltaReadRegisterDat(regfile, SrcVolFile, SegVolFile);
       }
       gtm->anat2pet = LTAread(regfile);
-      if (gtm->anat2pet == nullptr) {
+      if (gtm->anat2pet == NULL) {
         printf("ERROR: reading %s\n", regfile);
         exit(1);
       }
@@ -1464,9 +1473,9 @@ static int parse_commandline(int argc, char **argv) {
     } else if (!strcmp(option, "--xfm")) {
       if (nargc < 6)
         CMDargNErr(option, 6);
-      // Note that the slice and row params are not in the order you might
-      // expect Dcol Dslice Drow Rcol Rslice Rrow Translations are in mm,
-      // Rotations in degrees
+      // Note that the slice and row params are not in the order you might expect
+      // Dcol Dslice Drow Rcol Rslice Rrow
+      // Translations are in mm, Rotations in degrees
       for (n = 0; n < 6; n++)
         sscanf(pargv[n], "%f", &pxfm[n]);
       ApplyXFM  = 1;
@@ -1789,10 +1798,10 @@ static int parse_commandline(int argc, char **argv) {
         CMDargNErr(option, 1);
       int nc                = gtm->nContrasts;
       gtm->contrasts[nc]    = (GTMCON *)calloc(sizeof(GTMCON), 1);
-      gtm->contrasts[nc]->C = MatrixReadTxt(pargv[0], nullptr);
-      if (gtm->contrasts[nc]->C == nullptr)
+      gtm->contrasts[nc]->C = MatrixReadTxt(pargv[0], NULL);
+      if (gtm->contrasts[nc]->C == NULL)
         exit(1);
-      gtm->contrasts[nc]->name = fio_basename(pargv[0], ".mtx"); // strip .mtx
+      gtm->contrasts[nc]->name = fio_basename(pargv[0], ".mtx"); //strip .mtx
       gtm->nContrasts++;
       nargsused = 1;
     } else if (!strcasecmp(option, "--synth")) {
@@ -1808,10 +1817,10 @@ static int parse_commandline(int argc, char **argv) {
         GTMSynthSeed = PDFtodSeed();
       sscanf(pargv[6], "%d", &GTMSynthReps);
       mritmp = MRIread(SrcBetaFile);
-      if (mritmp == nullptr)
+      if (mritmp == NULL)
         exit(1);
-      MATRIX *srcbetaT = fMRItoMatrix(mritmp, nullptr);
-      srcbeta          = MatrixTranspose(srcbetaT, nullptr);
+      MATRIX *srcbetaT = fMRItoMatrix(mritmp, NULL);
+      srcbeta          = MatrixTranspose(srcbetaT, NULL);
       MatrixFree(&srcbetaT);
       SynthPSFStdCol   = SynthPSFFWHMCol / sqrt(log(256.0));
       SynthPSFStdRow   = SynthPSFFWHMRow / sqrt(log(256.0));
@@ -1861,12 +1870,12 @@ static int parse_commandline(int argc, char **argv) {
   return (0);
 }
 /*---------------------------------------------------------------*/
-static void usage_exit() {
+static void usage_exit(void) {
   print_usage();
   exit(1);
 }
 /*---------------------------------------------------------------*/
-static void print_usage() {
+static void print_usage(void) {
   printf("USAGE: %s \n", Progname);
   printf("\n");
   printf("   --i   inputvol : source data to PVC\n");
@@ -1993,7 +2002,7 @@ static void print_usage() {
   printf("\n");
 }
 /*---------------------------------------------------------------*/
-static void print_help() {
+static void print_help(void) {
   print_usage();
   printf("See http://surfer.nmr.mgh.harvard.edu/fswiki/PetSurfer\n");
   exit(1);
@@ -2004,12 +2013,12 @@ static void print_version(void) {
   exit(1);
 }
 /*---------------------------------------------------------------*/
-static void check_options() {
-  if (SrcVolFile == nullptr) {
+static void check_options(void) {
+  if (SrcVolFile == NULL) {
     printf("ERROR: must spec source volume\n");
     exit(1);
   }
-  if (SegVolFile == nullptr) {
+  if (SegVolFile == NULL) {
     printf("ERROR: must spec segmentation volume\n");
     exit(1);
   }
@@ -2030,7 +2039,7 @@ static void check_options() {
   if (DoRBV) {
     sprintf(tmpstr, "%s/%s/mri/orig.mgz", SUBJECTS_DIR, gtm->anat2pet->subject);
     gtm->anatconf = MRIreadHeader(tmpstr, MRI_VOLUME_TYPE_UNKNOWN);
-    if (gtm->anatconf == nullptr) {
+    if (gtm->anatconf == NULL) {
       printf("ERROR: loading %s\n", tmpstr);
       printf(" This is needed for RBV\n");
       exit(1);
@@ -2042,7 +2051,7 @@ static void check_options() {
     exit(1);
   }
 
-  if (OutDir == nullptr) {
+  if (OutDir == NULL) {
     printf("ERROR: must spec an output folder with --o\n");
     exit(1);
   }
@@ -2076,7 +2085,7 @@ static void check_options() {
   printf("Loading input %s\n", SrcVolFile);
   fflush(stdout);
   gtm->yvol = MRIread(SrcVolFile);
-  if (gtm->yvol == nullptr)
+  if (gtm->yvol == NULL)
     exit(1);
   if (Frame == -2)
     Frame = gtm->yvol->nframes;
@@ -2087,7 +2096,7 @@ static void check_options() {
              gtm->yvol->nframes);
       exit(1);
     }
-    mritmp = fMRIframe(gtm->yvol, Frame, nullptr);
+    mritmp = fMRIframe(gtm->yvol, Frame, NULL);
     MRIfree(&gtm->yvol);
     gtm->yvol = mritmp;
   }
@@ -2104,13 +2113,13 @@ static void check_options() {
 
   if (regidentity) {
     printf("Using identity registration\n");
-    gtm->anat2pet = TransformRegDat2LTA(gtm->yvol, gtm->yvol, nullptr);
+    gtm->anat2pet = TransformRegDat2LTA(gtm->yvol, gtm->yvol, NULL);
   } else {
-    if (regfile != nullptr && DoRegHeader) {
+    if (regfile != NULL && DoRegHeader) {
       printf("ERROR: cannot spec both regfile and --regheader\n");
       exit(1);
     }
-    if (regfile == nullptr && DoRegHeader == 0) {
+    if (regfile == NULL && DoRegHeader == 0) {
       printf("ERROR: must spec regfile or --regheader \n");
       exit(1);
     }
@@ -2166,7 +2175,7 @@ static void dump_options(FILE *fp) {
     fprintf(fp, "SegId replacement list\n");
     GTMprintReplaceList(fp, gtm->nReplace, gtm->SrcReplace, gtm->TrgReplace);
   }
-  // fprintf(fp,"ApplyXFM %d: ",ApplyXFM);
+  //fprintf(fp,"ApplyXFM %d: ",ApplyXFM);
   for (n = 0; n < 6; n++)
     fprintf(fp, "%6.4f ", pxfm[n]);
   fprintf(fp, "\n");
@@ -2188,7 +2197,7 @@ MRI *MRIdownSmoothUp(MRI *src, int Fc, int Fr, int Fs, double cFWHM,
 
   if (Fr != Fc || Fs != Fc) {
     printf("ERROR: MRIdownSmoothUp(): sampling factor must be iso\n");
-    return (nullptr);
+    return (NULL);
   }
 
   if (Fc == 1 && Fr == 1 && Fs == 1)
@@ -2196,9 +2205,9 @@ MRI *MRIdownSmoothUp(MRI *src, int Fc, int Fr, int Fs, double cFWHM,
   else {
     printf("    downsample\n");
     fflush(stdout);
-    dvol = MRIdownsampleN(src, nullptr, Fc, Fr, Fs, 0);
-    if (dvol == nullptr)
-      return (nullptr);
+    dvol = MRIdownsampleN(src, NULL, Fc, Fr, Fs, 0);
+    if (dvol == NULL)
+      return (NULL);
 
     // Smooth unmasked
     printf("    smooth\n");
@@ -2207,8 +2216,8 @@ MRI *MRIdownSmoothUp(MRI *src, int Fc, int Fr, int Fs, double cFWHM,
     rStd = rFWHM / sqrt(log(256.0));
     sStd = sFWHM / sqrt(log(256.0));
     dvol = MRIgaussianSmoothNI(dvol, cStd, rStd, sStd, dvol);
-    if (dvol == nullptr)
-      return (nullptr);
+    if (dvol == NULL)
+      return (NULL);
     printf("    upsample\n");
     fflush(stdout);
     dst = MRIupsampleN(dvol, dst, Fc);
@@ -2258,8 +2267,8 @@ LTA *LTAapplyAffineParametersTKR(LTA *inlta, const float *p, const int np,
     if (p[6] == 0 || p[7] == 0 || p[8] == 0) {
       printf("ERROR: LTAapplyAffineParametersTKR(): 0 scale %f %f %f\n", p[6],
              p[7], p[8]);
-      outlta->xforms[0].m_L = nullptr;
-      return (nullptr);
+      outlta->xforms[0].m_L = NULL;
+      return (NULL);
     }
     M             = MatrixIdentity(4, M);
     M->rptr[1][1] = p[6];
@@ -2282,7 +2291,7 @@ LTA *LTAapplyAffineParametersTKR(LTA *inlta, const float *p, const int np,
       MatrixMultiply(R, M, R);
   }
 
-  if (false) {
+  if (0) {
     int n;
     printf("---------------------------\n");
     printf("Parameters: ");
@@ -2346,7 +2355,7 @@ double GTMcostPSF(GTM *gtm) {
   GTMpsfStd(gtm);
 
   GTMbuildX(gtm);
-  if (gtm->X == nullptr)
+  if (gtm->X == NULL)
     exit(1);
 
   err = GTMsolve(gtm);
@@ -2369,7 +2378,7 @@ float compute_powell_cost(float *pPowel) {
   int            n, newmin;
   float          curcost;
   static float   initcost = -1, mincost = -1, ppmin[100];
-  FILE *         fp = nullptr;
+  FILE *         fp = NULL;
   char           tmpstr[2000];
 
   for (n = 0; n < gtmopt->nparams; n++)
@@ -2709,7 +2718,7 @@ int GTMsom(GTM *gtm) {
   /* Normalize SOM(rNoPVC,cGTM) is the proportion that cGTM
      contributes to rNoPVC, ie, it is the amount of spill-out of
      cGTM into rNoPVC. */
-  if (false) { // Do normalization later
+  if (0) { // Do normalization later
     for (rthseg = 0; rthseg < gtm->nsegs; rthseg++) {
       sum = 0;
       for (cthseg = 0; cthseg < gtm->nsegs; cthseg++)

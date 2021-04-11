@@ -12,17 +12,28 @@
  *
  */
 
+#include <ctype.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "diag.h"
+#include "error.h"
+#include "macros.h"
+#include "mrisurf.h"
 #include "mrisurf_metricProperties.h"
+#include "proto.h"
+#include "utils.h"
 #include "version.h"
 
 int main(int argc, char *argv[]);
 
 static int  get_option(int argc, char *argv[]);
-static void usage_exit();
-static void print_usage();
-static void print_help();
-static void print_version();
+static void usage_exit(void);
+static void print_usage(void);
+static void print_help(void);
+static void print_version(void);
 int         MRISareaErrors(MRI_SURFACE *mris);
 int         MRISangleErrors(MRI_SURFACE *mris);
 
@@ -36,7 +47,7 @@ static int nbhd_size  = 7;
 static int max_nbrs   = 12;
 
 int main(int argc, char *argv[]) {
-  char *cp, **av, *in_fname, fname[100], path[100], name[100], hemi[100];
+  char *cp, **av, *in_fname, fname[STRLEN], path[100], name[100], hemi[100];
   int   ac, nargs;
 
   nargs = handleVersionOption(argc, argv, "mris_errors");
@@ -46,7 +57,7 @@ int main(int argc, char *argv[]) {
 
   Progname = argv[0];
   ErrorInit(NULL, NULL, NULL);
-  DiagInit(nullptr, nullptr, nullptr);
+  DiagInit(NULL, NULL, NULL);
 
   ac = argc;
   av = argv;
@@ -75,7 +86,11 @@ int main(int argc, char *argv[]) {
       hemi[2] = 0;
     } else
       strcpy(hemi, "lh");
-    sprintf(fname, "%s/%s.smoothwm", path, hemi);
+    int req = snprintf(fname, STRLEN, "%s/%s.smoothwm", path, hemi);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
     mris = MRISread(fname);
     if (!mris)
       ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s", Progname,
@@ -177,16 +192,16 @@ static int get_option(int argc, char *argv[]) {
   return (nargs);
 }
 
-static void usage_exit() {
+static void usage_exit(void) {
   print_usage();
   exit(1);
 }
 
-static void print_usage() {
+static void print_usage(void) {
   fprintf(stderr, "usage: %s [options] <input image file>\n", Progname);
 }
 
-static void print_help() {
+static void print_help(void) {
   print_usage();
   fprintf(
       stderr,

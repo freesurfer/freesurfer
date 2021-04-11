@@ -21,13 +21,13 @@
 #include <gnu/libc-version.h>
 #endif
 
-#include <cerrno>
 #include <chklc.h>
 #include <const.h>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
+#include <errno.h>
 #include <iostream>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -91,7 +91,6 @@ static const char *isdir_msg =
     "-\n";
 
 void chklc(void) {
-  return;
   char       dirname[STRLEN], *cp, *alt;
   FILE *     lfile = NULL;
   char *     email;
@@ -104,7 +103,7 @@ void chklc(void) {
   char *     crypt_gkey;
   static int first_time = 1;
 
-  sprintf(str, "S%sER%sRONT%sOR", "URF", "_F", "DO");
+  sprintf(str, "S%sER%sIDE%sOR", "URF", "_S", "DO");
   if (getenv(str) != NULL)
     return;
 
@@ -275,7 +274,6 @@ void chklc(void) {
 //
 //  if failed, error msg will be returned in msg. make sure msg is pre-allocated with enough space
 int chklc2(char *msg) {
-  return 1;
   char  dirname[STRLEN], *cp, *alt;
   FILE *lfile = NULL;
   char *email;

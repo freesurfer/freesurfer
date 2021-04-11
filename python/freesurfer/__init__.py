@@ -15,7 +15,6 @@ from .utils import warning
 from .utils import error
 from .utils import fatal
 from .utils import fshome
-from .utils import LookupTable
 
 # geometric utilities and algorithms
 from . import metrics
@@ -23,6 +22,10 @@ from . import geom
 from .transform import Geometry
 from .transform import LinearTransform
 from .transform import Warp
+
+# label
+from . import label
+from .label import LookupTable
 
 # ND array containers
 from .ndarray import Overlay

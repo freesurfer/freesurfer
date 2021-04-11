@@ -12,20 +12,30 @@
  *
  */
 
+#include <ctype.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "diag.h"
+#include "error.h"
+#include "macros.h"
+#include "mri.h"
 #include "mrisurf.h"
+#include "proto.h"
 #include "version.h"
 
 int main(int argc, char *argv[]);
 
 static int  get_option(int argc, char *argv[]);
-static void print_usage();
-static void print_help();
-static void print_version();
+static void print_usage(void);
+static void print_help(void);
+static void print_version(void);
 
 const char *Progname;
 
-static char *log_fname = nullptr;
+static char *log_fname = NULL;
 static int   navgs     = 0;
 static char  sdir[STRLEN];
 static int   normalize_flag = 0;
@@ -44,7 +54,7 @@ int main(int argc, char *argv[]) {
 
   Progname = argv[0];
   ErrorInit(NULL, NULL, NULL);
-  DiagInit(nullptr, nullptr, nullptr);
+  DiagInit(NULL, NULL, NULL);
 
   ac = argc;
   av = argv;
@@ -68,7 +78,12 @@ int main(int argc, char *argv[]) {
                 Progname);
     strcpy(sdir, cp);
   }
-  sprintf(fname, "%s/%s/surf/%s.%s", sdir, subject_name, hemi, ORIG_NAME);
+  int req = snprintf(fname, STRLEN, "%s/%s/surf/%s.%s", sdir, subject_name,
+                     hemi, ORIG_NAME);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
   mris = MRISfastRead(fname);
   if (!mris)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s", Progname,
@@ -173,12 +188,12 @@ static int get_option(int argc, char *argv[]) {
   return (nargs);
 }
 
-static void print_usage() {
+static void print_usage(void) {
   fprintf(stderr, "usage: %s [options] <subject> <hemi> <wfile> <curv file>\n",
           Progname);
 }
 
-static void print_help() {
+static void print_help(void) {
   print_usage();
   fprintf(stderr,
           "\nThis program computes the entropy of a surface activation pattern "

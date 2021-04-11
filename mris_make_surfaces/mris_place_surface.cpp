@@ -909,6 +909,8 @@ static int parse_commandline(int argc, char **argv) {
         CMDargNErr(option, 1);
       segvolpath = pargv[0];
       nargsused  = 1;
+    } else if (!strcasecmp(option, "--no-seg")) {
+      segvolpath = NULL; // allow undoing of --seg
     } else if (!strcasecmp(option, "--wm")) {
       if (nargc < 1)
         CMDargNErr(option, 1);

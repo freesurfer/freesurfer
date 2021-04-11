@@ -15,7 +15,7 @@ public:
   virtual ~LayerODF();
 
   bool Load(const QString &fn, const QString &vertex_fn = "",
-            const QString &face_fn = "");
+            const QString &face_fn = "", bool bPermute = false);
 
   inline LayerPropertyODF *GetProperty() {
     return (LayerPropertyODF *)mProperty;

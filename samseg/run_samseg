@@ -54,10 +54,6 @@ args = parser.parse_args()
 if not fs.fshome():
     fs.fatal('FREESURFER_HOME must be set')
 
-# Make sure tensorflow is installed if doing lesion segmentation
-if args.lesion:
-    fs.utils.check_tensorflow()
-
 # Start the process timer
 timer = fs.utils.Timer()
 

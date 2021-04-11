@@ -43,6 +43,7 @@ set ndilate = 0;
 set InputVol = ()
 set OutputVol = ()
 set OutputSurf = ()
+set DoCurv = 1
 
 if($#argv == 0) goto usage_exit;
 
@@ -137,8 +138,13 @@ if($status) then
 endif
 
 #----- Smooth the tessellation ---------#
-set cmd = (mris_smooth -n $NSmooth -b $outsurfdir/area.$headsurf \
-   -c $outsurfdir/curv.$headsurf  $OutputSurf $OutputSurf)
+set cmd = (mris_smooth -n $NSmooth)
+if($DoCurv) then
+  set cmd = ($cmd -b $outsurfdir/area.$headsurf -c $outsurfdir/curv.$headsurf)
+else
+  set cmd = ($cmd -nw)
+endif
+set cmd = ($cmd $OutputSurf $OutputSurf)
 echo "--------------------------------" |& tee -a $LF
 date |& tee -a $LF
 pwd |& tee -a $LF
@@ -268,6 +274,11 @@ while( $#argv != 0 )
       setenv SUBJECTS_DIR $argv[1]; shift;
       breaksw
 
+    case "-nocurv":
+    case "-no-curv":
+      set DoCurv = 0
+      breaksw
+
     case "-noseghead":
       set noseghead = 1;
       breaksw
@@ -277,6 +288,7 @@ while( $#argv != 0 )
       breaksw
 
     case "-noinflate":
+    case "-no-inflate":
       set DoInflate = 0;
       breaksw
 

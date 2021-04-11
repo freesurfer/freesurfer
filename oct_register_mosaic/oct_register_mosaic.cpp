@@ -19,13 +19,26 @@
  *
  */
 
-#ifdef HAVE_OPENMP
-#include "romp_support.h"
-#endif
+#include <ctype.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
 
+#include "romp_support.h"
+
+#include "const.h"
 #include "diag.h"
+#include "error.h"
+#include "fsinit.h"
+#include "histo.h"
+#include "macros.h"
+#include "mri.h"
+#include "mri_conform.h"
 #include "mrimorph.h"
 #include "numerics.h"
+#include "proto.h"
+#include "timer.h"
+#include "utils.h"
 #include "version.h"
 
 #define DX_I  1
@@ -58,8 +71,7 @@ static int  insert_image_into_mosaic(MRI *mri_mosaic, MRI *mri, double x0,
 int         main(int argc, char *argv[]);
 static int  get_option(int argc, char *argv[]);
 static MRI *mosaic_images(MRI **mri, int *x0, int *y0, int nimages, int pad);
-// static MRI *add_image_to_mosaic(MRI *mri_orig_mosaic, MRI *mri, double x0,
-// double y0, double ax, double ay, double a, double b, double c, double d) ;
+//static MRI *add_image_to_mosaic(MRI *mri_orig_mosaic, MRI *mri, double x0, double y0, double ax, double ay, double a, double b, double c, double d) ;
 static MRI *  undistort_and_mosaic_images(MRI **mri, double *x0, double *y0,
                                           int nimages, double *ax, double *ay,
                                           double a, double b, double c, double d,
@@ -99,19 +111,16 @@ static int niters = 100;
 #define MAX_IMAGES 10000
 #define MAX_TRANS  3
 
-static char *weight_fname = nullptr;
+static char *weight_fname = NULL;
 
 int main(int argc, char *argv[]) {
   char **av, *mosaic_input_fname, *out_fname;
   int    ac, nargs, msec, minutes, seconds, nimages, i;
   int    dx, dy, n, *image_numbers, frame, dx_best, dy_best, skip;
-#ifdef HAVE_OPENMP
-  Timer start;
-#endif
-
-  MRI *mri[MAX_IMAGES], *mri_orig[MAX_IMAGES], *mri_mosaic,
+  Timer  start;
+  MRI *  mri[MAX_IMAGES], *mri_orig[MAX_IMAGES], *mri_mosaic,
       *mri_smooth[MAX_IMAGES], *mri_weights;
-  FILE * fp = nullptr;
+  FILE * fp = NULL;
   double energy, best_energy, prev_best_energy, dxd, dyd;
   int    x0[MAX_IMAGES], y0[MAX_IMAGES], xbest[MAX_IMAGES], ybest[MAX_IMAGES];
   double x0d[MAX_IMAGES], y0d[MAX_IMAGES], ax[MAX_IMAGES], ay[MAX_IMAGES];
@@ -129,11 +138,9 @@ int main(int argc, char *argv[]) {
   //  FSinit() ;
   Progname = argv[0];
   ErrorInit(NULL, NULL, NULL);
-  DiagInit(nullptr, nullptr, nullptr);
+  DiagInit(NULL, NULL, NULL);
 
-#ifdef HAVE_OPENMP
   start.reset();
-#endif
 
   setRandomSeed(-1L);
   ac = argc;
@@ -149,7 +156,7 @@ int main(int argc, char *argv[]) {
   if (argc < 2)
     usage_exit(1);
 
-  if (argc == 3 && false) // disable for now
+  if (argc == 3 && 0) // disable for now
   {
     FileNameRemoveExtension(out_fname, Gout_name);
     printf("reading mosaic file names and initial positions from %s\n",
@@ -158,7 +165,7 @@ int main(int argc, char *argv[]) {
     nimages = FileNumberOfEntries(mosaic_input_fname);
 
     fp = fopen(mosaic_input_fname, "r");
-    if (fp == nullptr)
+    if (fp == NULL)
       ErrorExit(ERROR_NOFILE, "%s: could not open input list file %s\n",
                 Progname, mosaic_input_fname);
   } else {
@@ -166,16 +173,14 @@ int main(int argc, char *argv[]) {
   }
   printf("mosaicing %d images...\n", nimages);
 
-#ifdef HAVE_OPENMP
   ROMP_PF_begin
+#ifdef HAVE_OPENMP
 #pragma omp parallel for if_ROMP(experimental)                                 \
     firstprivate(downsample, blur_sigma)                                       \
         shared(x0, y0, xbest, ybest, mri, mri_orig, ax, ay, mri_smooth)
 #endif
       for (i = 0; i < nimages; i++) {
-#ifdef HAVE_OPENMP
     ROMP_PFLB_begin
-#endif
 
         VOL_GEOM vg;
     char *       cp, fname[STRLEN], line[STRLEN];
@@ -190,11 +195,11 @@ int main(int argc, char *argv[]) {
     xbest[i] = x0[i];
     ybest[i] = y0[i];
     mri[i]   = MRIread(fname);
-    if (mri[i] == nullptr)
+    if (mri[i] == NULL)
       ErrorExit(ERROR_NOFILE, "%s: could not open input volume %s\n", Progname,
                 fname);
     getVolGeom(mri[i], &vg);
-    if (fp == nullptr)
+    if (fp == NULL)
       printf("reading input volume %d of %d %s at (%2.1f, %2.1f, %2.1f)\n",
              i + 1, nimages, fname, vg.c_r, vg.c_a, vg.c_s);
     if (xsize > 0)
@@ -213,7 +218,7 @@ int main(int argc, char *argv[]) {
 #if 0
 	mri_tmp = MRIdownsample2(mri[i], NULL) ;
 #else
-        mri_tmp = MRIreduce(mri[i], nullptr);
+        mri_tmp = MRIreduce(mri[i], NULL);
 #endif
         MRIfree(&mri[i]);
         mri[i] = mri_tmp;
@@ -224,7 +229,7 @@ int main(int argc, char *argv[]) {
     vg.c_s -= (y0[i]*vg.ysize) ;
 #endif
 
-    mri_orig[i] = MRIcopy(mri[i], nullptr);
+    mri_orig[i] = MRIcopy(mri[i], NULL);
     sprintf(fname, "v%d.mgz", i);
 #if 0
     if (i == 0)
@@ -244,19 +249,16 @@ int main(int argc, char *argv[]) {
     ay[i] = (mri[i]->height - 1.0) / 2.0;
     if (blur_sigma > 0) {
       MRI *mri_blur = MRIgaussian1d(blur_sigma, 0);
-      mri_smooth[i] = MRIconvolveGaussian(mri[i], nullptr, mri_blur);
+      mri_smooth[i] = MRIconvolveGaussian(mri[i], NULL, mri_blur);
       MRIfree(&mri_blur);
     } else
-      mri_smooth[i] = MRIcopy(mri[i], nullptr);
+      mri_smooth[i] = MRIcopy(mri[i], NULL);
 
-      //    MRIwrite(mri[i], fname) ;
-#ifdef HAVE_OPENMP
+    //    MRIwrite(mri[i], fname) ;
     ROMP_PFLB_end
-#endif
   }
-#ifdef HAVE_OPENMP
   ROMP_PF_end
-#endif
+
       if (fp) fclose(fp);
 
   if (downsample > 0)
@@ -271,20 +273,25 @@ int main(int argc, char *argv[]) {
     if (fp) {
       FileNameExtension(out_fname, ext);
       FileNameRemoveExtension(out_fname, fname);
-    } else
+    } else {
       sprintf(fname, "mosaic");
-    sprintf(orig_fname, "%s.orig.%s", fname, ext);
+      int req = snprintf(orig_fname, STRLEN, "%s.orig.%s", fname, ext);
+      if (req >= STRLEN) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                  << std::endl;
+      }
+    }
     for (i = 0; i < nimages; i++) {
       x0d[i] = x0[i];
       y0d[i] = y0[i];
     }
     if (weight_fname) {
       mri_weights = MRIread(weight_fname);
-      if (mri_weights == nullptr)
+      if (mri_weights == NULL)
         ErrorExit(ERROR_NOFILE, "%s: could not read weights from %s",
                   weight_fname);
     } else
-      mri_weights = nullptr;
+      mri_weights = NULL;
     mri_mosaic = mosaic_images_with_xforms(mri, nimages, mri_weights, 0);
     if (undistort) // since this isn't the final image, save a copy
     {
@@ -347,16 +354,14 @@ int main(int argc, char *argv[]) {
   printf("writing final mosaic to %s\n", out_fname);
 
   mri_mosaic = undistort_and_mosaic_images(mri, x0d, y0d, nimages, ax, ay, a, b,
-                                           c, d, nullptr);
+                                           c, d, NULL);
   MRIwrite(mri_mosaic, out_fname);
-#ifdef HAVE_OPENMP
   msec    = start.milliseconds();
   seconds = nint((float)msec / 1000.0f);
   minutes = seconds / 60;
   seconds = seconds % 60;
   fprintf(stderr, "OCT mosaicing  took %d minutes and %d seconds.\n", minutes,
           seconds);
-#endif
   exit(0);
 
   mri_mosaic  = mosaic_images(mri, x0, y0, nimages, 0);
@@ -365,7 +370,7 @@ int main(int argc, char *argv[]) {
   for (skip = 1; skip > 0; skip--) {
     int max_trans = skip * MAX_TRANS;
     for (n = 0; n < 10; n++) {
-      image_numbers    = compute_permutation(nimages, nullptr);
+      image_numbers    = compute_permutation(nimages, NULL);
       prev_best_energy = best_energy;
       for (i = 0; i < nimages; i++) {
         frame   = image_numbers[i];
@@ -406,10 +411,8 @@ int main(int argc, char *argv[]) {
 
   mri_mosaic = mosaic_images(mri, xbest, ybest, nimages, 0);
   MRIwrite(mri_mosaic, out_fname);
-#ifdef HAVE_OPENMP
-  msec = start.milliseconds();
-#endif
 
+  msec    = start.milliseconds();
   seconds = nint((float)msec / 1000.0f);
   minutes = seconds / 60;
   seconds = seconds % 60;
@@ -423,6 +426,8 @@ int main(int argc, char *argv[]) {
 
            Description:
 ----------------------------------------------------------------------*/
+#include "label.h"
+#include "mrisegment.h"
 static int get_option(int argc, char *argv[]) {
   int   nargs = 0;
   char *option;
@@ -438,7 +443,7 @@ static int get_option(int argc, char *argv[]) {
 #if 0
   else if (!stricmp(option, "hough"))
   {
-    MRI *mri_hough ;
+    MRI *mri_hough ; 
     MRI_SEGMENTATION *mseg ;
 
     mri_hough = MRIread(argv[2]) ;
@@ -567,19 +572,14 @@ static MRI *mosaic_images(MRI **mri, int *x0, int *y0, int nimages, int pad) {
   mri_mosaic = MRIallocSequence(width, height, 1, MRI_FLOAT, nimages + 1);
   MRIcopyHeader(mri[0], mri_mosaic);
 
-  mri_counts = MRIclone(mri_mosaic, nullptr);
-#ifdef HAVE_OPENMP
+  mri_counts = MRIclone(mri_mosaic, NULL);
   ROMP_PF_begin
+#ifdef HAVE_OPENMP
 #pragma omp parallel for if_ROMP(experimental)
 #endif
       for (i = 0; i < nimages; i++) {
-#ifdef HAVE_OPENMP
-    ROMP_PFLB_begin
-#endif
-
-        int x,
-        y, count, xm, ym;
-    float val, sum;
+    ROMP_PFLB_begin int x, y, count, xm, ym;
+    float               val, sum;
     for (x = 0; x < mri[i]->width; x++) {
       xm = x + x0[i] - xmin;
       for (y = 0; y < mri[i]->height; y++) {
@@ -595,22 +595,16 @@ static MRI *mosaic_images(MRI **mri, int *x0, int *y0, int nimages, int pad) {
         MRIsetVoxVal(mri_mosaic, xm, ym, 0, i + 1, val);
       }
     }
-#ifdef HAVE_OPENMP
     ROMP_PFLB_end
-#endif
   }
-#ifdef HAVE_OPENMP
   ROMP_PF_end
-#endif
 
-#ifdef HAVE_OPENMP
       ROMP_PF_begin
+#ifdef HAVE_OPENMP
 #pragma omp parallel for if_ROMP(experimental)
 #endif
       for (x = 0; x < mri_mosaic->width; x++) {
-#ifdef HAVE_OPENMP
     ROMP_PFLB_begin
-#endif
 
         float sum,
         count;
@@ -622,13 +616,10 @@ static MRI *mosaic_images(MRI **mri, int *x0, int *y0, int nimages, int pad) {
       sum = MRIgetVoxVal(mri_mosaic, x, y, 0, 0);
       MRIsetVoxVal(mri_mosaic, x, y, 0, 0, sum / count);
     }
-#ifdef HAVE_OPENMP
+
     ROMP_PFLB_end
-#endif
   }
-#ifdef HAVE_OPENMP
   ROMP_PF_end
-#endif
 
       MRIfree(&mri_counts);
   return (mri_mosaic);
@@ -641,18 +632,13 @@ static double compute_mosaic_energy(MRI *mri_mosaic, int nimages) {
   energy  = 0.0;
   nonzero = overlap_voxels = 0;
 
-#ifdef HAVE_OPENMP
   ROMP_PF_begin
+#ifdef HAVE_OPENMP
 #pragma omp parallel for if_ROMP(experimental) reduction (+:overlap_voxels,nonzero,energy)
 #endif
       for (x = 0; x < mri_mosaic->width; x++) {
-#ifdef HAVE_OPENMP
-    ROMP_PFLB_begin
-#endif
-
-        int y,
-        count, frame;
-    double var, dif, val, mean, vals[MAX_IMAGES];
+    ROMP_PFLB_begin int y, count, frame;
+    double              var, dif, val, mean, vals[MAX_IMAGES];
     ;
     for (y = 0; y < mri_mosaic->height; y++) {
       if (x == Gx && y == Gy)
@@ -682,18 +668,11 @@ static double compute_mosaic_energy(MRI *mri_mosaic, int nimages) {
         energy += ((var / (double)count));
       }
     }
-#ifdef HAVE_OPENMP
     ROMP_PFLB_end
-#endif
   }
-#ifdef HAVE_OPENMP
-  ROMP_PF_end
-#endif
-
-      min_overlap_voxels = nint(nonzero * .1);
-  energy                 = (sqrt(energy / (double)overlap_voxels));
-//  printf("%d overlapping voxels (%2.3f%%) - energy = %2.4f\n", overlap_voxels,
-//  100.0f*overlap_voxels/(nonzero), energy) ;
+  ROMP_PF_end min_overlap_voxels = nint(nonzero * .1);
+  energy                         = (sqrt(energy / (double)overlap_voxels));
+//  printf("%d overlapping voxels (%2.3f%%) - energy = %2.4f\n", overlap_voxels, 100.0f*overlap_voxels/(nonzero), energy) ;
 #if 0
   if (overlap_voxels < min_overlap_voxels)
     energy = 1e10 ;  // disallow certain configurations
@@ -737,18 +716,13 @@ static double compute_pairwise_deformation_energy(MRI *mri1, MRI *mri2,
   nvox   = 0;
   energy = 0.0;
 
-#ifdef HAVE_OPENMP
   ROMP_PF_begin
+#ifdef HAVE_OPENMP
 #pragma omp parallel for if_ROMP(experimental) reduction(+ : energy, nvox)
 #endif
       for (x1 = xmin; x1 <= xmax; x1++) {
-#ifdef HAVE_OPENMP
-    ROMP_PFLB_begin
-#endif
-
-        double val1,
-        val2, x1u, y1u, x2u, y2u;
-    int x2, y1, y2;
+    ROMP_PFLB_begin double val1, val2, x1u, y1u, x2u, y2u;
+    int                    x2, y1, y2;
 
     x2 = x1 - dx;
     if (x2 < 0 || x2 >= mri2->width)
@@ -767,16 +741,10 @@ static double compute_pairwise_deformation_energy(MRI *mri1, MRI *mri2,
         energy += SQR(val1 - val2);
       }
     }
-#ifdef HAVE_OPENMP
     ROMP_PFLB_end
-#endif
   }
-#ifdef HAVE_OPENMP
-  ROMP_PF_end
-#endif
-
-      if (nvox == 0 || (xmax - xmin) < 100 ||
-          (ymax - ymin) < 100) return (1e10);
+  ROMP_PF_end if (nvox == 0 || (xmax - xmin) < 100 ||
+                  (ymax - ymin) < 100) return (1e10);
   energy = sqrt(energy / (double)nvox);
   if (energy < 7)
     DiagBreak();
@@ -856,8 +824,7 @@ static int powell_minimize(MRI *mri1, MRI *mri2, double dx, double dy, double a,
     fstart = fret;
     OpenPowell2(p, xi, NPARMS, intensity_tolerance, translation_tolerance,
                 niters, &iter, &fret, compute_powell_sse);
-    //    OpenPowell(p, xi, NPARMS, translation_tolerance, &iter, &fret,
-    //    compute_powell_sse);
+    //    OpenPowell(p, xi, NPARMS, translation_tolerance, &iter, &fret, compute_powell_sse);
     dx = p[DX_I];
     dy = p[DY_I];
     if (NPARMS > 2) {
@@ -926,21 +893,21 @@ add_image_to_mosaic(MRI *mri_orig_mosaic, MRI *mri, double x0, double y0, double
   int      width, height, x ;
   double   x1, y1, x2, y2 ;
 
-  x1 = 0 ; y1 = 0 ;
-  x2 = MAX(mri_orig_mosaic->width-1, x0 + mri->width-1) ;
+  x1 = 0 ; y1 = 0 ; 
+  x2 = MAX(mri_orig_mosaic->width-1, x0 + mri->width-1) ; 
   y2 = MAX(mri_orig_mosaic->height-1, y0 + mri->height-1) ;
   xmin = floor(x1) ; ymin = floor(y1) ;
   xmax = ceil(x2) ;  ymax = ceil(y2) ;
-
+  
   width = xmax - xmin + 1 ;
   height = ymax - ymin + 1 ;
   mri_mosaic = MRIallocSequence(width, height, 1, MRI_FLOAT, 2) ;
   MRIcopyHeader(mri_orig_mosaic, mri_mosaic) ;
-  MRIextractInto(mri_orig_mosaic, mri_mosaic, 0, 0, 0,
+  MRIextractInto(mri_orig_mosaic, mri_mosaic, 0, 0, 0, 
 		 mri_orig_mosaic->width,mri_orig_mosaic->height,mri_orig_mosaic->depth,0,0,0) ;
 
 //#ifdef HAVE_OPENMP
-//#pragma omp parallel for if_ROMP(experimental)
+//#pragma omp parallel for if_ROMP(experimental) 
 //#endif
   {
     int x, y, count, xstart, xend, ystart, yend ;
@@ -1037,24 +1004,18 @@ static MRI *undistort_and_mosaic_images(MRI **mri, double *x0, double *y0,
   MRIcopyHeader(mri[0], mri_jac);
   MRIcopyHeader(mri_mosaic, mri_vars);
 
-  mri_counts = MRIclone(mri_mosaic, nullptr);
+  mri_counts = MRIclone(mri_mosaic, NULL);
 
-#ifdef HAVE_OPENMP
   ROMP_PF_begin
+#ifdef HAVE_OPENMP
 #pragma omp parallel for if_ROMP(experimental)
 #endif
       for (i = 0; i < nimages; i++) {
-#ifdef HAVE_OPENMP
-    ROMP_PFLB_begin
-#endif
+    ROMP_PFLB_begin int x, y, count, xstart, xend, ystart, yend;
+    double              xu, yu, xf, yf;
+    double              val, sum;
 
-        int x,
-        y, count, xstart, xend, ystart, yend;
-    double xu, yu, xf, yf;
-    double val, sum;
-
-    // x and y are in the (larger) mosaic coords, while xf and yf are in the
-    // indidual tile coords
+    // x and y are in the (larger) mosaic coords, while xf and yf are in the indidual tile coords
     xstart = MAX(0, x0[i] - xmin);
     xend   = MIN(mri[i]->width - 1 + x0[i] - xmin, mri_mosaic->width - 1);
     ystart = MAX(0, y0[i] - ymin);
@@ -1065,10 +1026,9 @@ static MRI *undistort_and_mosaic_images(MRI **mri, double *x0, double *y0,
         if (x == Gx && y == Gy)
           DiagBreak();
         yf = y - y0[i] + ymin;
-        //	undistorted_coords(mri[i], xf, yf, ax[i], ay[i], a, b, c, d,
-        //&xu, &yu) ;
+        //	undistorted_coords(mri[i], xf, yf, ax[i], ay[i], a, b, c, d, &xu, &yu) ;
         xu = xf;
-        yu = yf; // disable unwarping for now
+        yu = yf; //disable unwarping for now
         if (MRIindexNotInVolume(mri[i], xu, yu, 0))
           continue;
         MRIsampleVolumeType(mri[i], xu, yu, 0, &val, SAMPLE_TRILINEAR);
@@ -1095,27 +1055,21 @@ static MRI *undistort_and_mosaic_images(MRI **mri, double *x0, double *y0,
         MRIsetVoxVal(mri_vars, x, y, 0, 0, sum + val * val);
       }
     }
-#ifdef HAVE_OPENMP
     ROMP_PFLB_end
-#endif
   }
-#ifdef HAVE_OPENMP
   ROMP_PF_end
-#endif
 
       //  MRIwrite(mri_jac, "jac.mgz") ;
       MRIfree(&mri_jac);
   energy  = 0.0;
   nvoxels = 0;
 
-#ifdef HAVE_OPENMP
   ROMP_PF_begin
+#ifdef HAVE_OPENMP
 #pragma omp parallel for if_ROMP(experimental) reduction(+ : energy, nvoxels)
 #endif
       for (x = 0; x < mri_mosaic->width; x++) {
-#ifdef HAVE_OPENMP
     ROMP_PFLB_begin
-#endif
 
         float sum,
         count, var;
@@ -1132,13 +1086,9 @@ static MRI *undistort_and_mosaic_images(MRI **mri, double *x0, double *y0,
       energy += var;
       nvoxels++;
     }
-#ifdef HAVE_OPENMP
     ROMP_PFLB_end
-#endif
   }
-#ifdef HAVE_OPENMP
   ROMP_PF_end
-#endif
 
       energy = sqrt(energy / nvoxels);
   if (penergy)
@@ -1150,10 +1100,10 @@ static MRI *undistort_and_mosaic_images(MRI **mri, double *x0, double *y0,
 
 #if 0
 static int
-jacobian_correct(MRI *mri_src, MRI *mri_dst, double ax, double ay, double a, double b, double c, double d)
+jacobian_correct(MRI *mri_src, MRI *mri_dst, double ax, double ay, double a, double b, double c, double d) 
 {
   int x, y ;
-
+  
   for (x = 0 ; x < mri_src->width ; x++)
   {
     double xp1, yp1, jac, xu, yu, val;
@@ -1162,7 +1112,7 @@ jacobian_correct(MRI *mri_src, MRI *mri_dst, double ax, double ay, double a, dou
     {
       if ( x== Gx && y == Gy)
 	DiagBreak() ;
-
+      
       undistorted_coords(mri_src, x, y, ax, ay, a, b, c, d, &xu, &yu) ;
       val = MRIgetVoxVal(mri_src, x, y, 0, 0) ;
       undistorted_coords(mri_src, x+1, y+1, ax, ay, a, b, c, d, &xp1, &yp1) ;
@@ -1220,7 +1170,11 @@ static void powell_step_func(float *p, int nparms) {
   double     x0d[MAX_IMAGES], y0d[MAX_IMAGES];
 
   nimages = (nparms + 2) / 2;
-  sprintf(fname, "%s powell iter %d", Gout_name, step);
+  int req = snprintf(fname, STRLEN, "%s powell iter %d", Gout_name, step);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
   dump_parms(p, nimages, fname);
   x0d[0] = Gx0;
   y0d[0] = Gy0;
@@ -1228,9 +1182,13 @@ static void powell_step_func(float *p, int nparms) {
     x0d[i] = p[i];
     y0d[i] = p[Gnimages - 1 + i];
   }
-  mri_mosaic = undistort_and_mosaic_images(Gmri, x0d, y0d, nimages, nullptr,
-                                           nullptr, 0, 0, 0, 1, nullptr);
-  sprintf(fname, "%s.powell.%2.2d.mgz", Gout_name, step);
+  mri_mosaic = undistort_and_mosaic_images(Gmri, x0d, y0d, nimages, 0, 0, 0, 0,
+                                           0, 1, NULL);
+  req        = snprintf(fname, STRLEN, "%s.powell.%2.2d.mgz", Gout_name, step);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
   printf("writing image after powell step %d to %s\n", step, fname);
   MRIwrite(mri_mosaic, fname);
 
@@ -1258,8 +1216,8 @@ static MRI *build_best_mosaic(MRI **mri, MRI **mri_smooth, double *x0d,
   Gy0 = y0d[0];
   for (i = 1; i < Gnimages; i++) {
     p[i]                = x0d[i];
-    p[Gnimages - 1 + i] = y0d[i]; // [0] slots are used to store first image
-                                  // offset but won't be modified
+    p[Gnimages - 1 + i] = y0d
+        [i]; // [0] slots are used to store first image offset but won't be modified
   }
   dump_parms(p, nimages, "original");
   orig_sse = min_sse = compute_powell_global_sse(p);
@@ -1295,8 +1253,8 @@ static MRI *build_best_mosaic(MRI **mri, MRI **mri_smooth, double *x0d,
   }
   x0d[0]     = Gx0;
   y0d[0]     = Gy0;
-  mri_mosaic = undistort_and_mosaic_images(mri, x0d, y0d, nimages, nullptr,
-                                           nullptr, 0, 0, 0, 1, nullptr);
+  mri_mosaic = undistort_and_mosaic_images(mri, x0d, y0d, nimages, 0, 0, 0, 0,
+                                           0, 1, NULL);
 
   min_sse = compute_powell_global_sse(p);
   free_matrix(xi, 1, nparms, 1, nparms);
@@ -1315,8 +1273,8 @@ static float compute_powell_global_sse(float *p) {
   }
   x0[0]      = Gx0;
   y0[0]      = Gy0;
-  mri_mosaic = undistort_and_mosaic_images(
-      Gmri_smooth, x0, y0, Gnimages, nullptr, nullptr, 0, 0, 0, 1, &energy);
+  mri_mosaic = undistort_and_mosaic_images(Gmri_smooth, x0, y0, Gnimages, 0, 0,
+                                           0, 0, 0, 1, &energy);
   //  energy = compute_mosaic_energy(mri_mosaic, Gnimages) ;
   MRIfree(&mri_mosaic);
   return (energy);
@@ -1380,8 +1338,7 @@ static MRI *mosaic_images_with_xforms(MRI **mri, int nimages, MRI *mri_weights,
   mri_mosaic = MRIallocSequence(width, height, depth, MRI_FLOAT, 1);
   MRIcopyHeader(mri[0], mri_mosaic);
 
-  //  compute vox2ras xform by mapping corners of RAS rectangle to corners of
-  //  image
+  //  compute vox2ras xform by mapping corners of RAS rectangle to corners of image
   {
     MATRIX *m_vox, *m_ras, *m_vox2ras, *m_pinv;
 
@@ -1476,8 +1433,8 @@ static MRI *mosaic_images_with_xforms(MRI **mri, int nimages, MRI *mri_weights,
     *MATRIX_RELT(m_ras, 3, 8) = zmax;
     *MATRIX_RELT(m_ras, 4, 8) = 1;
 
-    m_pinv = MatrixPseudoInverse(m_vox, nullptr);
-    if (m_pinv == nullptr) {
+    m_pinv = MatrixPseudoInverse(m_vox, NULL);
+    if (m_pinv == NULL) {
       MatrixPrint(stderr, m_vox);
       MatrixPrint(stderr, m_ras);
       ErrorExit(ERROR_BADPARM, "%s: could not invert vox coord matrix\n",
@@ -1505,7 +1462,7 @@ static MRI *mosaic_images_with_xforms(MRI **mri, int nimages, MRI *mri_weights,
          width, height, depth, xmin, xmax, ymin, ymax, zmin, zmax);
 
   m_ras2vox  = MRIgetRasToVoxelXform(mri_mosaic);
-  mri_counts = MRIclone(mri_mosaic, nullptr);
+  mri_counts = MRIclone(mri_mosaic, NULL);
   //#ifdef HAVE_OPENMP
   //#pragma omp parallel for if_ROMP(experimental)
   //#endif

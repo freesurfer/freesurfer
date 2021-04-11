@@ -32,11 +32,26 @@
 #include "cma.h"
 #include "dct.h"
 #include "diag.h"
+#include "error.h"
+#include "fastmarching.h"
+#include "gca.h"
 #include "gcamorph.h"
 #include "hippo.h"
+#include "macros.h"
+#include "matrix.h"
+#include "mri.h"
 #include "mrimorph.h"
 #include "numerics.h"
+#include "proto.h"
 #include "timer.h"
+#include "transform.h"
+#include "utils.h"
+#include "version.h"
+#include "voxlist.h"
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 static MRI *Gmri_source, *Gmri_target, *Gmri_orig_source, *Gmri_aseg,
     *Gmri_orig_target;
@@ -75,14 +90,14 @@ static int  get_option(int argc, char *argv[]);
 
 static MRI_REGION Gtarget_box, Gsource_box;
 
-static char *source_intensity_fname = nullptr;
+static char *source_intensity_fname = NULL;
 const char * Progname;
 
 static int skip = 4;
 
 static int Gncoef = 5;
 
-static TRANSFORM *     transform = nullptr;
+static TRANSFORM *     transform = NULL;
 static GCA_MORPH_PARMS mp;
 
 #define NONE  0
@@ -101,13 +116,13 @@ int        main(int argc, char *argv[]) {
   int     msec, hours, minutes, seconds;
   MATRIX *m_L /*, *m_I*/;
   LTA *   lta;
-  DCT *   dct = nullptr;
+  DCT *   dct = NULL;
 
   mp.npasses = skip + 1;
 
   start.reset();
   setRandomSeed(-1L);
-  DiagInit(nullptr, nullptr, nullptr);
+  DiagInit(NULL, NULL, NULL);
   ErrorInit(NULL, NULL, NULL);
 
   Progname = argv[0];
@@ -144,14 +159,14 @@ int        main(int argc, char *argv[]) {
 
   switch (which) {
   case HIPPO:
-    Gmri_orig_source = MRIcopy(mri_source, nullptr);
+    Gmri_orig_source = MRIcopy(mri_source, NULL);
     mri_source =
-        HIPPOestimateIntensityImage(mri_source, Gmri_aseg, mri_target, nullptr);
+        HIPPOestimateIntensityImage(mri_source, Gmri_aseg, mri_target, NULL);
     MRIwrite(mri_source, "hint.mgz");
     break;
   case NONE:
-    Gmri_orig_source = MRIcopy(mri_source, nullptr);
-    Gmri_orig_target = MRIcopy(mri_target, nullptr);
+    Gmri_orig_source = MRIcopy(mri_source, NULL);
+    Gmri_orig_target = MRIcopy(mri_target, NULL);
     break;
   }
 
@@ -164,14 +179,23 @@ int        main(int argc, char *argv[]) {
     MRIwrite(mri_target, "t.mgz");
 
   if (Gdiag & DIAG_WRITE && mp.write_iterations > 0) {
-    sprintf(fname, "%s_target", mp.base_name);
+    int req = snprintf(fname, STRLEN, "%s_target", mp.base_name);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
     MRIwriteImageViews(mri_target, fname, IMAGE_SIZE);
-    sprintf(fname, "%s_target.mgz", mp.base_name);
+
+    req = snprintf(fname, STRLEN, "%s_target.mgz", mp.base_name);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
     MRIwrite(mri_target, fname);
   }
 
-  if (transform == nullptr)
-    transform = TransformAlloc(LINEAR_RAS_TO_RAS, nullptr);
+  if (transform == NULL)
+    transform = TransformAlloc(LINEAR_RAS_TO_RAS, NULL);
 
   if (transform->type ==
       MORPH_3D_TYPE) // initializing m3d from a linear transform
@@ -183,8 +207,8 @@ int        main(int argc, char *argv[]) {
 
   new_transform = 1;
   lta           = ((LTA *)(transform->xform));
-  m_L = MRIrasXformToVoxelXform(mri_source, mri_target, lta->xforms[0].m_L,
-                                nullptr);
+  m_L =
+      MRIrasXformToVoxelXform(mri_source, mri_target, lta->xforms[0].m_L, NULL);
   MatrixFree(&lta->xforms[0].m_L);
 
   lta->xforms[0].m_L = m_L;
@@ -198,8 +222,8 @@ int        main(int argc, char *argv[]) {
   do {
     printf("------------------- sigma = %2.4f -----------------\n", sigma);
     mri_kernel        = MRIgaussian1d(sigma, -1);
-    mri_smooth_source = MRIconvolveGaussian(mri_source, nullptr, mri_kernel);
-    mri_smooth_target = MRIconvolveGaussian(mri_target, nullptr, mri_kernel);
+    mri_smooth_source = MRIconvolveGaussian(mri_source, NULL, mri_kernel);
+    mri_smooth_target = MRIconvolveGaussian(mri_target, NULL, mri_kernel);
     for (i = 0; i < mp.npasses; i++) {
       printf("------------- outer loop iteration %d of %d - skip %d, %d "
              "---------------\n",
@@ -218,11 +242,10 @@ int        main(int argc, char *argv[]) {
 
         FileNameRemoveExtension(out_fname, fname);
         strcat(fname, ".mgz");
-        mri_aligned =
-            DCTapply(dct, mri_source, nullptr, nullptr, SAMPLE_NEAREST);
+        mri_aligned = DCTapply(dct, mri_source, NULL, NULL, SAMPLE_NEAREST);
         if (mode_filters > 0) {
           MRI *mri_filtered;
-          mri_filtered = MRImodeFilter(mri_aligned, nullptr, mode_filters);
+          mri_filtered = MRImodeFilter(mri_aligned, NULL, mode_filters);
           MRIfree(&mri_aligned);
           mri_aligned = mri_filtered;
         }
@@ -251,10 +274,10 @@ int        main(int argc, char *argv[]) {
 
     FileNameRemoveExtension(out_fname, fname);
     strcat(fname, ".mgz");
-    mri_aligned = DCTapply(dct, mri_source, nullptr, nullptr, SAMPLE_NEAREST);
+    mri_aligned = DCTapply(dct, mri_source, NULL, NULL, SAMPLE_NEAREST);
     if (mode_filters > 0) {
       MRI *mri_filtered;
-      mri_filtered = MRImodeFilter(mri_aligned, nullptr, mode_filters);
+      mri_filtered = MRImodeFilter(mri_aligned, NULL, mode_filters);
       MRIfree(&mri_aligned);
       mri_aligned = mri_filtered;
     }
@@ -364,7 +387,7 @@ static int get_option(int argc, char *argv[]) {
     which     = HIPPO;
     flags     = FLAGS_SOURCESPACE;
     Gmri_aseg = MRIread(argv[2]);
-    if (Gmri_aseg == nullptr)
+    if (Gmri_aseg == NULL)
       ErrorExit(ERROR_BADFILE, "%s: could not read aseg from %s", argv[2]);
     nargs = 1;
     printf("assuming source is hires hippo and dst is aseg volume\n");
@@ -393,7 +416,7 @@ static int get_option(int argc, char *argv[]) {
     case 'T':
       printf("reading transform from %s...\n", argv[2]);
       transform = TransformRead(argv[2]);
-      if (transform == nullptr)
+      if (transform == NULL)
         ErrorExit(ERROR_NOFILE, "%s: could not read transform from %s\n",
                   Progname, argv[2]);
       nargs = 1;
@@ -456,7 +479,7 @@ static void usage_exit(int ecode) {
 
 #define NCORNERS 8
 int MRImapRegionToTargetMRI(MRI *mri_src, MRI *mri_dst, MRI_REGION *box) {
-  VECTOR *v1, *v2 = nullptr;
+  VECTOR *v1, *v2 = NULL;
   MATRIX *m_vox2vox;
   int     xs[NCORNERS], ys[NCORNERS], zs[NCORNERS];
   int xd[NCORNERS], yd[NCORNERS], zd[NCORNERS], xmin, xmax, ymin, ymax, zmin,
@@ -535,7 +558,7 @@ static DCT *find_optimal_dct(DCT *dct, MRI *mri_source, MRI *mri_target,
                              int ncoef, int skip) {
   Gmri_source = mri_source;
   Gmri_target = mri_target;
-  if (dct == nullptr) {
+  if (dct == NULL) {
     dct = DCTalloc(ncoef, mri_source);
     MatrixWrite(dct->m_x_basis, "xdct.mat", "xdct");
     MatrixWrite(dct->m_x_basis, "ydct.mat", "ydct");
@@ -552,10 +575,9 @@ static int write_snapshot(DCT *dct, MRI *mri_source, MRI *mri_target,
   char *cp, tmpstr[STRLEN];
 
   if (flags == FLAGS_SOURCESPACE)
-    mri_aligned = DCTapply(dct, mri_source, nullptr, nullptr, SAMPLE_NEAREST);
+    mri_aligned = DCTapply(dct, mri_source, NULL, NULL, SAMPLE_NEAREST);
   else
-    mri_aligned =
-        DCTapply(dct, mri_source, mri_target, nullptr, SAMPLE_NEAREST);
+    mri_aligned = DCTapply(dct, mri_source, mri_target, NULL, SAMPLE_NEAREST);
   printf("writing snapshot to %s\n", fname);
   MRIwrite(mri_aligned, fname);
 
@@ -639,13 +661,13 @@ static void dfp_step_func(int itno, float sse, void *vparms, float *p) {
   printf("%4.4d: rms = %2.3f\n", ino, rms);
 #endif
   if (Gdiag & DIAG_WRITE && ((ino % parms->write_iterations) == 0)) {
-    static DCT *dct = nullptr;
+    static DCT *dct = NULL;
     char        fname[STRLEN];
     int         i, k;
 
     if (dct && dct->ncoef != Gncoef)
       DCTfree(&dct);
-    if (dct == nullptr)
+    if (dct == NULL)
       dct = DCTalloc(Gncoef, Gmri_source);
     for (i = k = 1; k <= dct->ncoef; k++)
       VECTOR_ELT(dct->v_xk, k) = p[i++];
@@ -696,7 +718,7 @@ static int quasi_newton_minimize(DCT *dct, MRI *mri_source, MRI *mri_target,
   do {
     fstart = fret;
     OpenDFPMin(p, nparms, TOL, &iter, &fret, compute_sse, compute_gradient,
-               dfp_step_func, parms, nullptr);
+               dfp_step_func, parms, NULL);
     fret = compute_sse(p);
     start_t += iter;
     parms->start_t += iter;
@@ -717,16 +739,16 @@ static int quasi_newton_minimize(DCT *dct, MRI *mri_source, MRI *mri_target,
   return (NO_ERROR);
 }
 static float compute_sse(float *p) {
-  static DCT *   dct = nullptr;
+  static DCT *   dct = NULL;
   double         x, y, z, error, sse, source, target, xd, yd, zd, rms;
   int            i, k, x2, y2, z2, nvox;
   MRI *          mri_source = Gmri_source, *mri_target = Gmri_target;
-  static MATRIX *m_vox2vox = nullptr;
+  static MATRIX *m_vox2vox = NULL;
   static VECTOR *v1, *v2;
 
   if (dct && dct->ncoef != Gncoef)
     DCTfree(&dct);
-  if (dct == nullptr)
+  if (dct == NULL)
     dct = DCTalloc(Gncoef, Gmri_source);
   for (i = k = 1; k <= dct->ncoef; k++)
     VECTOR_ELT(dct->v_xk, k) = p[i++];
@@ -738,7 +760,7 @@ static float compute_sse(float *p) {
   dct->b = p[i++];
 #endif
 
-  if (m_vox2vox == nullptr) {
+  if (m_vox2vox == NULL) {
     m_vox2vox         = MRIgetVoxelToVoxelXform(mri_source, mri_target);
     v1                = VectorAlloc(4, MATRIX_REAL);
     v2                = VectorAlloc(4, MATRIX_REAL);
@@ -794,14 +816,14 @@ static float compute_sse(float *p) {
         Description
 ------------------------------------------------------*/
 static void compute_gradient(float *p, float *g) {
-  static DCT *   dct = nullptr;
+  static DCT *   dct = NULL;
   double         error, dx, dy, dz, target, source, xd, yd, zd;
   int            i, k, x, y, z, x2, y2, z2, nparms;
   MRI *          mri_source = Gmri_source, *mri_target = Gmri_target;
-  static MATRIX *m_vox2vox = nullptr;
+  static MATRIX *m_vox2vox = NULL;
   static VECTOR *v1, *v2;
 
-  if (m_vox2vox == nullptr) {
+  if (m_vox2vox == NULL) {
     m_vox2vox         = MRIgetVoxelToVoxelXform(mri_source, mri_target);
     v1                = VectorAlloc(4, MATRIX_REAL);
     v2                = VectorAlloc(4, MATRIX_REAL);
@@ -810,7 +832,7 @@ static void compute_gradient(float *p, float *g) {
 
   if (dct && dct->ncoef != Gncoef)
     DCTfree(&dct);
-  if (dct == nullptr)
+  if (dct == NULL)
     dct = DCTalloc(Gncoef, Gmri_source);
   nparms = 3 * dct->ncoef;
 #if SCALE_INTENSITIES

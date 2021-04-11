@@ -18,10 +18,23 @@
  *
  */
 
+#include <ctype.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+
 #include "romp_support.h"
 
+#include "const.h"
 #include "diag.h"
+#include "error.h"
+#include "macros.h"
+#include "mri.h"
+#include "mri_conform.h"
 #include "mrimorph.h"
+#include "proto.h"
+#include "timer.h"
+#include "utils.h"
 #include "version.h"
 
 typedef struct {
@@ -92,7 +105,7 @@ int main(int argc, char *argv[]) {
 
   Progname = argv[0];
   ErrorInit(NULL, NULL, NULL);
-  DiagInit(nullptr, nullptr, nullptr);
+  DiagInit(NULL, NULL, NULL);
 
   start.reset();
 
@@ -110,7 +123,7 @@ int main(int argc, char *argv[]) {
     usage_exit(1);
 
   mri = MRIread(argv[1]);
-  if (mri == nullptr)
+  if (mri == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not read MRI volume %s", Progname,
               argv[1]);
   if (downsample > 0) {
@@ -118,7 +131,7 @@ int main(int argc, char *argv[]) {
     int  n;
 
     for (n = 0; n < downsample; n++) {
-      mri_tmp = MRIreduce(mri, nullptr);
+      mri_tmp = MRIreduce(mri, NULL);
       MRIfree(&mri);
       mri = mri_tmp;
       train_slice /= 2;
@@ -127,7 +140,7 @@ int main(int argc, char *argv[]) {
     }
   }
   histo = MRIread(argv[2]);
-  if (histo == nullptr)
+  if (histo == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not read histological volume %s",
               Progname, argv[2]);
   if (training_src_fname) {
@@ -147,7 +160,7 @@ int main(int argc, char *argv[]) {
   }
   if (test_slice >= mri->depth)
     test_slice = (mri->depth - 1) / 2;
-  hsynth = HISTOsynthesize(mri, histo, test_slice, train_slice, nullptr, wsize,
+  hsynth = HISTOsynthesize(mri, histo, test_slice, train_slice, NULL, wsize,
                            flags, argv[3], mri_train_src, mri_train_dst);
   printf("writing output to %s\n", argv[3]);
   MRIwrite(hsynth, argv[3]);
@@ -271,23 +284,23 @@ MRI *HISTOsynthesize(MRI *mri, MRI *histo, int test_slice, int train_slice,
     farray[x].whalf = (wsize - 1) / 2;
     farray[x].flags = flags;
     farray[x].vals  = (double *)calloc(farray[x].len, sizeof(double));
-    if (farray[x].vals == nullptr)
+    if (farray[x].vals == NULL)
       ErrorExit(ERROR_NOMEMORY,
                 "HISTOsynthesize: could not allocate %d-len feature vector",
                 farray[x].len);
   }
 
-  if (hsynth == nullptr) {
+  if (hsynth == NULL) {
     if (flags & MRI_SPACE)
-      hsynth = MRIclone(mri, nullptr);
+      hsynth = MRIclone(mri, NULL);
     else
-      hsynth = MRIclone(histo, nullptr);
+      hsynth = MRIclone(histo, NULL);
     MRIsetValues(hsynth, 255);
   }
 
-  if (mri_train_src == nullptr)
+  if (mri_train_src == NULL)
     mri_train_src = mri;
-  if (mri_train_dst == nullptr)
+  if (mri_train_dst == NULL)
     mri_train_dst = histo;
 
   m_histo2mri       = MRIgetVoxelToVoxelXform(mri_train_dst, mri_train_src);
@@ -307,7 +320,7 @@ MRI *HISTOsynthesize(MRI *mri, MRI *histo, int test_slice, int train_slice,
   box_train.dy = 0;
   box_train.dz = 0;
 
-  mri_mask = MRIclone(mri_train_src, nullptr);
+  mri_mask = MRIclone(mri_train_src, NULL);
   for (x = 0; x < mri_train_src->width; x++) {
     for (y = 0; y < mri_train_src->height; y++) {
       for (z = 0; z < mri_train_src->depth; z++) {
@@ -491,7 +504,11 @@ MRI *HISTOsynthesize(MRI *mri, MRI *histo, int test_slice, int train_slice,
       }
       if (x % 50 == 0) {
         char fname[STRLEN];
-        sprintf(fname, "%s.%03d.mgz", base_name, x);
+        int  req = snprintf(fname, STRLEN, "%s.%03d.mgz", base_name, x);
+        if (req >= STRLEN) {
+          std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                    << std::endl;
+        }
         printf("writing snapshot to %s\n", fname);
         MRIwrite(hsynth, fname);
       }
@@ -600,7 +617,7 @@ static int find_most_similar_location(MRI *mri, FEATURE *fsrc, int z, int *pxd,
   ;
   f.flags = fsrc->flags;
   f.vals  = (double *)calloc(f.len, sizeof(double));
-  if (f.vals == nullptr)
+  if (f.vals == NULL)
     ErrorExit(
         ERROR_NOMEMORY,
         "find_most_similar_location: could not allocate %d-len feature vector",

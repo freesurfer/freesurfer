@@ -35,14 +35,14 @@
 #include "timer.h"
 #include "version.h"
 
-static char *aseg_fname = nullptr;
+static char *aseg_fname = NULL;
 
-static const char *FRAME_FIELD_NAMES[] = /* order correspond to
+static const char *FRAME_FIELD_NAMES[] = /* order correspond to 
                                             macros defined in mrisurf.h */
     {
-        nullptr,
+        NULL,
         "sulc",
-        nullptr, /* curvature directly computed */
+        NULL, /* curvature directly computed */
         GRAYMID_NAME,
         T1MID_NAME,
         T2MID_NAME,
@@ -59,10 +59,10 @@ static const char *FRAME_FIELD_NAMES[] = /* order correspond to
 int main(int argc, char *argv[]);
 
 static int  get_option(int argc, char *argv[]);
-static void usage_exit();
-static void print_usage();
-static void print_help();
-static void print_version();
+static void usage_exit(void);
+static void print_usage(void);
+static void print_help(void);
+static void print_version(void);
 
 const char *Progname;
 
@@ -187,7 +187,7 @@ int main(int argc, char *argv[]) {
 
   Progname = argv[0];
   ErrorInit(NULL, NULL, NULL);
-  DiagInit(nullptr, nullptr, nullptr);
+  DiagInit(NULL, NULL, NULL);
 
   start.reset();
 
@@ -252,14 +252,30 @@ int main(int argc, char *argv[]) {
 
     fprintf(stderr, "\n\nPROCESSING SUBJECT '%s' \n", subject_fname);
 
-    sprintf(fname, "%s/%s/surf/%s.white", subjects_dir, subject_fname, hemi);
+    int req = snprintf(fname, STRLEN, "%s/%s/surf/%s.white", subjects_dir,
+                       subject_fname, hemi);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
     fprintf(stderr, "reading surface from %s...\n", fname);
     mris = MRISread(fname);
 
-    if (aseg_fname)
-      sprintf(fname, "%s/%s/mri/%s", subjects_dir, subject_fname, aseg_fname);
-    else
-      sprintf(fname, "%s/%s/mri/aseg.mgz", subjects_dir, subject_fname);
+    if (aseg_fname) {
+      int req = snprintf(fname, STRLEN, "%s/%s/mri/%s", subjects_dir,
+                         subject_fname, aseg_fname);
+      if (req >= STRLEN) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                  << std::endl;
+      }
+    } else {
+      int req = snprintf(fname, STRLEN, "%s/%s/mri/aseg.mgz", subjects_dir,
+                         subject_fname);
+      if (req >= STRLEN) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                  << std::endl;
+      }
+    }
 
     fprintf(stderr, "reading mri segmentation from %s...\n", fname);
     mri = MRIread(fname);
@@ -272,7 +288,7 @@ int main(int argc, char *argv[]) {
       if (labels[n] >= 0) {
         fprintf(stderr, "generating distance map for label %d\n", labels[n]);
         MRIextractDistanceMap(mri, mri_distance, labels[n], fdistance, mode,
-                              nullptr);
+                              NULL);
 
         fprintf(stderr, "extracting distance values for label %d\n", labels[n]);
         mrisExtractMRIvalues(mris, mri, mri_distance, fdistance, mode);
@@ -280,12 +296,22 @@ int main(int argc, char *argv[]) {
         mrisProcessDistanceValues(mris);
 
         surface_reference = findSurfaceReference(labels[n]);
-        if (surface_reference >= 3 and surface_reference <= 14)
-          sprintf(fname, "%s/%s/surf/%s.%s", subjects_dir, subject_fname, hemi,
-                  FRAME_FIELD_NAMES[surface_reference]);
-        else
-          sprintf(fname, "%s/%s/surf/%s.dist_%d", subjects_dir, subject_fname,
-                  hemi, labels[n]);
+        if (surface_reference >= 3 and surface_reference <= 14) {
+          int req = snprintf(fname, STRLEN, "%s/%s/surf/%s.%s", subjects_dir,
+                             subject_fname, hemi,
+                             FRAME_FIELD_NAMES[surface_reference]);
+          if (req >= STRLEN) {
+            std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                      << std::endl;
+          }
+        } else {
+          int req = snprintf(fname, STRLEN, "%s/%s/surf/%s.dist_%d",
+                             subjects_dir, subject_fname, hemi, labels[n]);
+          if (req >= STRLEN) {
+            std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                      << std::endl;
+          }
+        }
 
         fprintf(stderr,
                 "writing out surface distance file for label %d in %s...\n",
@@ -293,20 +319,34 @@ int main(int argc, char *argv[]) {
         MRISaverageCurvatures(mris, navgs);
         MRISwriteCurvature(mris, fname);
       } else { /* extract layer IV */
-        sprintf(fname, "%s/%s/surf/%s.thickness", subjects_dir, subject_fname,
-                hemi);
+        int req = snprintf(fname, STRLEN, "%s/%s/surf/%s.thickness",
+                           subjects_dir, subject_fname, hemi);
+        if (req >= STRLEN) {
+          std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                    << std::endl;
+        }
         fprintf(stderr, "reading curvature from %s...\n", fname);
         MRISreadCurvature(mris, fname);
 
-        sprintf(fname, "%s/%s/mri/T1.mgz", subjects_dir, subject_fname);
+        req = snprintf(fname, STRLEN, "%s/%s/mri/T1.mgz", subjects_dir,
+                       subject_fname);
+        if (req >= STRLEN) {
+          std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                    << std::endl;
+        }
         fprintf(stderr, "reading orig mri segmentation from %s...\n", fname);
         mri_orig = MRIread(fname);
         mrisExtractMidGrayValues(mris, mri_orig);
         MRIfree(&mri_orig);
 
         surface_reference = 3;
-        sprintf(fname, "%s/%s/surf/%s.%s", subjects_dir, subject_fname, hemi,
-                FRAME_FIELD_NAMES[surface_reference]);
+        req =
+            snprintf(fname, STRLEN, "%s/%s/surf/%s.%s", subjects_dir,
+                     subject_fname, hemi, FRAME_FIELD_NAMES[surface_reference]);
+        if (req >= STRLEN) {
+          std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                    << std::endl;
+        }
         fprintf(stderr,
                 "writing out surface distance file for label %d in %s...\n",
                 labels[n], fname);
@@ -389,16 +429,16 @@ static int get_option(int argc, char *argv[]) {
   return (nargs);
 }
 
-static void usage_exit() {
+static void usage_exit(void) {
   print_usage();
   exit(1);
 }
 
-static void print_usage() {
+static void print_usage(void) {
   fprintf(stderr, "usage: %s [options] <hemisphere> <subjects_1>\n", Progname);
 }
 
-static void print_help() {
+static void print_help(void) {
   print_usage();
   fprintf(stderr, "\n");
   fprintf(stderr, "\nvalid options are:\n\n");

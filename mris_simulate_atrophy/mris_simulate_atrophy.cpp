@@ -1,9 +1,9 @@
 /**
  * @brief simulate cortical atrophy
- *
+  *
  * program to simulate atrophic changes in the cortical by
  * darkening the T1 intensities according to decrease volume fractions
- *
+ * 
  */
 /*
  * Original Author: Bruce Fischl
@@ -20,9 +20,24 @@
  *
  */
 
+#include <ctype.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+
 #include "cma.h"
+#include "const.h"
 #include "diag.h"
+#include "error.h"
+#include "label.h"
+#include "macros.h"
+#include "mri.h"
+#include "mri_conform.h"
+#include "mrimorph.h"
+#include "proto.h"
 #include "timer.h"
+#include "transform.h"
+#include "utils.h"
 #include "version.h"
 
 #define WM_VAL         1
@@ -101,7 +116,7 @@ int main(int argc, char *argv[]) {
 
   Progname = argv[0];
   ErrorInit(NULL, NULL, NULL);
-  DiagInit(nullptr, nullptr, nullptr);
+  DiagInit(NULL, NULL, NULL);
 
   start.reset();
 
@@ -116,9 +131,9 @@ int main(int argc, char *argv[]) {
   if (argc < 6)
     usage_exit(1);
 
-  if (sdir == nullptr) {
+  if (sdir == NULL) {
     char *cp = getenv("SUBJECTS_DIR");
-    if (cp == nullptr)
+    if (cp == NULL)
       ErrorExit(
           ERROR_UNSUPPORTED,
           "%s: SUBJECTS_DIR must be specified in env or on cmdline with -sdir",
@@ -129,8 +144,8 @@ int main(int argc, char *argv[]) {
   subject = argv[1];
   hemi    = argv[2];
   sprintf(fname, "%s/%s/label/%s.%s", sdir, subject, hemi, argv[3]);
-  area = LabelRead(nullptr, fname);
-  if (area == nullptr)
+  area = LabelRead(NULL, fname);
+  if (area == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not load label %s", Progname, fname);
   atrophy_frac = atof(argv[4]);
   if (atrophy_frac > 1) {
@@ -144,37 +159,37 @@ int main(int argc, char *argv[]) {
 
   sprintf(fname, "%s/%s/mri/%s", sdir, subject, T1_name);
   mri_norm = MRIread(fname);
-  if (mri_norm == nullptr)
+  if (mri_norm == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not read T1 volume from %s", Progname,
               fname);
 
   sprintf(fname, "%s/%s/mri/%s", sdir, subject, aseg_name);
   mri_aseg = MRIread(fname);
-  if (mri_aseg == nullptr)
+  if (mri_aseg == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not read aseg volume from %s", Progname,
               fname);
 
   sprintf(fname, "%s/%s/surf/rh.%s", sdir, subject, white_name);
   mris_white_rh = MRISread(fname);
-  if (mris_white_rh == nullptr)
+  if (mris_white_rh == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not read rh white surface from %s",
               Progname, fname);
 
   sprintf(fname, "%s/%s/surf/lh.%s", sdir, subject, white_name);
   mris_white_lh = MRISread(fname);
-  if (mris_white_lh == nullptr)
+  if (mris_white_lh == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not read lh white surface from %s",
               Progname, fname);
 
   sprintf(fname, "%s/%s/surf/rh.%s", sdir, subject, pial_name);
   mris_pial_rh = MRISread(fname);
-  if (mris_pial_rh == nullptr)
+  if (mris_pial_rh == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not read rh pial surface from %s",
               Progname, fname);
 
   sprintf(fname, "%s/%s/surf/lh.%s", sdir, subject, pial_name);
   mris_pial_lh = MRISread(fname);
-  if (mris_pial_lh == nullptr)
+  if (mris_pial_lh == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not read lh pial surface from %s",
               Progname, fname);
 
@@ -211,8 +226,8 @@ int main(int argc, char *argv[]) {
 
   printf("filling interior of lh pial surface...\n");
   MRISfillInterior(mris_pial_lh, resolution, mri_pial);
-  mri_seg = MRIclone(mri_pial, nullptr);
-  mri_tmp = MRIclone(mri_pial, nullptr);
+  mri_seg = MRIclone(mri_pial, NULL);
+  mri_tmp = MRIclone(mri_pial, NULL);
   printf("filling interior of rh pial surface...\n");
   MRISfillInterior(mris_pial_rh, resolution, mri_tmp);
   MRIcopyLabel(mri_tmp, mri_pial, 1);
@@ -228,7 +243,7 @@ int main(int argc, char *argv[]) {
   MRIcopyLabel(mri_tmp, mri_seg, CSF_VAL);
   MRIfree(&mri_tmp);
 
-  mri_ribbon = MRInot(mri_seg, nullptr);
+  mri_ribbon = MRInot(mri_seg, NULL);
   MRIcopyLabel(mri_seg, mri_pial, CSF_VAL);
   MRIreplaceValuesOnly(mri_pial, mri_pial, CSF_VAL, 0);
   MRIand(mri_ribbon, mri_pial, mri_ribbon, 1);
@@ -242,9 +257,9 @@ int main(int argc, char *argv[]) {
   mri_cortex =
       MRIalloc(mri_norm->width, mri_norm->height, mri_norm->depth, MRI_FLOAT);
   MRIcopyHeader(mri_norm, mri_cortex);
-  mri_subcort_gm = MRIclone(mri_cortex, nullptr);
-  mri_wm         = MRIclone(mri_cortex, nullptr);
-  mri_csf        = MRIclone(mri_cortex, nullptr);
+  mri_subcort_gm = MRIclone(mri_cortex, NULL);
+  mri_wm         = MRIclone(mri_cortex, NULL);
+  mri_csf        = MRIclone(mri_cortex, NULL);
   printf("computing partial volume fractions...\n");
   MRIcomputePartialVolumeFractions(mri_norm, m_vox2vox, mri_seg, mri_wm,
                                    mri_subcort_gm, mri_cortex, mri_csf, WM_VAL,
@@ -258,8 +273,8 @@ int main(int argc, char *argv[]) {
   }
   patch_csf_vol(mri_wm, mri_cortex, mri_subcort_gm, mri_csf);
   mri_unpv_intensities = compute_unpartial_volumed_intensities(
-      mri_norm, mri_wm, mri_cortex, mri_subcort_gm, mri_csf, whalf, sigma,
-      nullptr, 1);
+      mri_norm, mri_wm, mri_cortex, mri_subcort_gm, mri_csf, whalf, sigma, NULL,
+      1);
   if (Gdiag & DIAG_WRITE)
     MRIwrite(mri_unpv_intensities, "pvi.mgz");
 
@@ -267,32 +282,50 @@ int main(int argc, char *argv[]) {
        atrophy_frac += atrophy_step) {
     mri_norm_atrophy = MRISsimulateAtrophy(
         mri_norm, mri_unpv_intensities, mri_wm, mri_subcort_gm, mri_cortex,
-        mri_csf, area, atrophy_frac, nullptr, &mri_cortex_atrophy,
+        mri_csf, area, atrophy_frac, NULL, &mri_cortex_atrophy,
         &mri_csf_atrophy);
 
-    sprintf(fname, "%s.gm.atrophy%2.1f.%s", out_fname, atrophy_frac, extension);
+    int req = snprintf(fname, STRLEN, "%s.gm.atrophy%2.1f.%s", out_fname,
+                       atrophy_frac, extension);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
     printf("writing atrophic gm vfracs to %s\n", fname);
     MRIwrite(mri_cortex_atrophy, fname);
-    sprintf(fname, "%s.csf.atrophy%2.1f.%s", out_fname, atrophy_frac,
-            extension);
+    req = snprintf(fname, STRLEN, "%s.csf.atrophy%2.1f.%s", out_fname,
+                   atrophy_frac, extension);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
     printf("writing atrophic csf vfracs to %s\n", fname);
     MRIwrite(mri_csf_atrophy, fname);
-    sprintf(fname, "%s.atrophy.0.0.noise.0.0.%s", out_fname, extension);
+    req = snprintf(fname, STRLEN, "%s.atrophy.0.0.noise.0.0.%s", out_fname,
+                   extension);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
     printf("writing simulated atrophy with noise sigma = 0 image to %s\n",
            fname);
     MRIwrite(mri_norm_atrophy, fname);
 
-    for (mri_noisy_atrophy = nullptr, noise_sigma = noise_min;
+    for (mri_noisy_atrophy = NULL, noise_sigma = noise_min;
          noise_sigma <= noise_max; noise_sigma += noise_step) {
       mri_noise = MRIrandn(mri_norm->width, mri_norm->height, mri_norm->depth,
-                           1, 0, noise_sigma, nullptr);
+                           1, 0, noise_sigma, NULL);
       MRImaskZero(mri_noise, mri_norm, mri_noise);
       mri_noisy_atrophy =
           MRIadd(mri_noise, mri_norm_atrophy, mri_noisy_atrophy);
       MRIfree(&mri_noise);
 
-      sprintf(fname, "%s.atrophy.%2.2f.noise.%2.1f.%s", out_fname, atrophy_frac,
-              noise_sigma, extension);
+      req = snprintf(fname, STRLEN, "%s.atrophy.%2.2f.noise.%2.1f.%s",
+                     out_fname, atrophy_frac, noise_sigma, extension);
+      if (req >= STRLEN) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                  << std::endl;
+      }
       printf("writing simulated atrophy (%2.2f) with noise sigma = %2.1f image "
              "to %s\n",
              atrophy_frac, noise_sigma, fname);
@@ -415,8 +448,8 @@ int MRIcomputePartialVolumeFractions(MRI *mri_src, MATRIX *m_vox2vox,
   float   val, count;
   MATRIX *m_inv;
 
-  m_inv = MatrixInverse(m_vox2vox, nullptr);
-  if (m_inv == nullptr) {
+  m_inv = MatrixInverse(m_vox2vox, NULL);
+  if (m_inv == NULL) {
     MatrixPrint(stdout, m_vox2vox);
     ErrorExit(
         ERROR_BADPARM,
@@ -520,8 +553,8 @@ MRI *add_aseg_structures_outside_ribbon(MRI *mri_src, MRI *mri_aseg,
   MATRIX *m_vox2vox;
   int     x, y, z, xa, ya, za, seg_label, aseg_label;
 
-  if (mri_dst == nullptr)
-    mri_dst = MRIcopy(mri_src, nullptr);
+  if (mri_dst == NULL)
+    mri_dst = MRIcopy(mri_src, NULL);
   v1                = VectorAlloc(4, MATRIX_REAL);
   v2                = VectorAlloc(4, MATRIX_REAL);
   VECTOR_ELT(v1, 4) = 1.0;
@@ -625,7 +658,7 @@ static MRI *compute_unpartial_volumed_intensities(
   v_s1   = VectorAlloc(1, MATRIX_REAL);
   v_I    = VectorAlloc(nvox, MATRIX_REAL);
 
-  if (mri_dst == nullptr) {
+  if (mri_dst == NULL) {
     if (separate_frames) {
       mri_dst = MRIallocSequence(mri_src->width, mri_src->height,
                                  mri_src->depth, MRI_FLOAT, 3);
@@ -727,23 +760,25 @@ static MRI *compute_unpartial_volumed_intensities(
             m_A = m_A2;
           } else // only wm in this voxel
           {
-            for (row = 1; row <= m_A3->rows; row++)
+            for (row = 1; row <= m_A3->rows; row++) {
               *MATRIX_RELT(m_A1, row, 1) = *MATRIX_RELT(m_A3, row, 1);
+            }
 
             v_s = v_s1;
             m_A = m_A1;
           }
         } else // only csf in this region
         {
-          for (row = 1; row <= m_A3->rows; row++)
+          for (row = 1; row <= m_A3->rows; row++) {
             *MATRIX_RELT(m_A1, row, 1) = *MATRIX_RELT(m_A3, row, 3);
+          }
 
           v_s = v_s1;
           m_A = m_A1;
         }
 
-        m_A_pinv = MatrixPseudoInverse(m_A, nullptr);
-        if (m_A_pinv == nullptr)
+        m_A_pinv = MatrixPseudoInverse(m_A, NULL);
+        if (m_A_pinv == NULL)
           continue;
 
         MatrixMultiply(m_A_pinv, v_I, v_s);
@@ -815,14 +850,14 @@ static MRI *MRISsimulateAtrophy(MRI *mri_norm, MRI *mri_unpv_intensities,
       out_val, gm_reduced, max_csf;
   LABEL *lvox;
 
-  mri_unpv_intensities_out = MRIcopy(mri_unpv_intensities, nullptr);
-  mri_csf_out              = MRIcopy(mri_csf, nullptr);
-  mri_cortex_out           = MRIcopy(mri_cortex, nullptr);
+  mri_unpv_intensities_out = MRIcopy(mri_unpv_intensities, NULL);
+  mri_csf_out              = MRIcopy(mri_csf, NULL);
+  mri_cortex_out           = MRIcopy(mri_cortex, NULL);
 
   mri_norm_atrophy = MRIcopy(mri_norm, mri_norm_atrophy);
-  mri_filled       = MRIclone(mri_norm, nullptr);
+  mri_filled       = MRIclone(mri_norm, NULL);
 
-  lvox = LabelToVoxel(area, mri_norm, nullptr); // convert label to voxel coords
+  lvox = LabelToVoxel(area, mri_norm, NULL); // convert label to voxel coords
   for (n = 0; n < lvox->n_points; n++) {
     xv = nint(lvox->lv[n].x);
     yv = nint(lvox->lv[n].y);
@@ -884,8 +919,7 @@ static MRI *MRISsimulateAtrophy(MRI *mri_norm, MRI *mri_unpv_intensities,
       }
 
   MRIfree(&mri_filled);
-  // these are copies of those supplied by the caller - not the original volumes
-  // (alloced at start)
+  // these are copies of those supplied by the caller - not the original volumes (alloced at start)
   MRIfree(&mri_unpv_intensities_out);
   if (pmri_csf_out)
     *pmri_csf_out = mri_csf_out;

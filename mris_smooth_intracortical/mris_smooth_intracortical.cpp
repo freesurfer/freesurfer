@@ -3,9 +3,8 @@
  *
  * This method has been described in:
  * Blazejewska, AI, Fischl, B, Waldab, LL, Polimeni
- * Intracortical smoothing of small-voxel fMRI data can provide increased
- * detection power without spatial resolution losses compared to conventional
- * large-voxel fMRI data 2019, Neuroimage 189 (601-614)
+ * Intracortical smoothing of small-voxel fMRI data can provide increased detection power without spatial resolution losses compared to conventional large-voxel fMRI data
+ * 2019, Neuroimage 189 (601-614)
  * https://doi.org/10.1016/j.neuroimage.2019.01.054
  */
 
@@ -26,9 +25,8 @@
 
 /*!
  \file mri_surf_smooth.cpp
- \brief Smoothing along the cortical surface meshes with a given tangential and
- radial extent ((neighborhood size &number of surface meshes). \author Anna I.
- Blazejewska
+ \brief Smoothing along the cortical surface meshes with a given tangential and radial extent ((neighborhood size &number of surface meshes).
+ \author Anna I. Blazejewska
  */
 
 /*
@@ -43,12 +41,28 @@
  ENDUSAGE
  */
 
+#include <ctype.h>
+#include <glob.h>
+#include <libgen.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "diag.h"
+#include "error.h"
+#include "fsenv.h"
+#include "macros.h"
+#include "mri.h"
 #include "mrisurf.h"
+#include "proto.h"
+#include "registerio.h"
 #include "tags.h"
 #include "version.h"
 
-#include <glob.h>
-#include <libgen.h>
+#include <sys/time.h>
+#include <time.h>
+#include <unistd.h>
 
 #define MAX_NB       (6)       // the reasonable number of neighbors (tan size)
 #define MAX_SURF     (20)      // max number of surfaces
@@ -63,14 +77,12 @@ int         main(int argc, char *argv[]);
 static void calculate_nb_weights(float *nb_weights, int nb_num, int *hops);
 
 static int  parse_commandline(int argc, char **argv);
-static void print_help();
-static void check_options();
-static void print_usage();
-static void print_version();
+static void print_help(void);
+static void check_options(void);
+static void print_usage(void);
+static void print_version(void);
 
-static char vcid[] =
-    "$Id: mris_smooth_intracortical.c,v 1.30 2019/02/21 18:48:21 Anna Exp $";
-const char *Progname = nullptr;
+const char *Progname = NULL;
 
 char surf_path[STRLEN], over_path[STRLEN], out_path[STRLEN], surf_name[STRLEN],
     over_name[STRLEN], surf_dir[STRLEN], over_dir[STRLEN], out_dir[STRLEN],
@@ -85,32 +97,30 @@ int main(int argc, char *argv[]) {
   clock_t begin;
   begin = clock();
 
-  // fsenv = FSENVgetenv();
+  //fsenv = FSENVgetenv();
   parse_commandline(argc, argv);
 
   // get input files paths
   glob_t over_list, surf_list;
   glob(strcat(strcat(strcpy(over_path, over_dir), SEP), over_name), GLOB_PERIOD,
-       nullptr, &over_list);
+       NULL, &over_list);
   glob(strcat(strcat(strcpy(surf_path, surf_dir), SEP), surf_name), GLOB_PERIOD,
-       nullptr, &surf_list);
+       NULL, &surf_list);
   surf_num = surf_list.gl_pathc;
   over_num = over_list.gl_pathc;
 
-  // check consistency of other options with number of files and exits with
-  // error if any inconsistency is detected
+  // check consistency of other options with number of files and exits with error if any inconsistency is detected
   check_options();
 
   MRI_SURFACE *surf[ic_size];
   MRI *        over[ic_size], *output[ic_size];
 
-  // read only surfaces/overlays that are included in the radial extent of the
-  // kernel
+  // read only surfaces/overlays that are included in the radial extent of the kernel
   for (f = ic_start; f < ic_size + ic_start; f++) {
     // read overlays
     printf("Reading: %s\n", over_list.gl_pathv[f]);
     over[f - ic_start] = MRIread(over_list.gl_pathv[f]);
-    if (over[f - ic_start] == nullptr)
+    if (over[f - ic_start] == NULL)
       ErrorExit(ERROR_NOFILE, "%s: could not read MRI overlay file %s.\n",
                 Progname, over_list.gl_pathv[f]);
     if ((f > ic_start) && (over[f - ic_start]->nframes != over[0]->nframes))
@@ -119,16 +129,14 @@ int main(int argc, char *argv[]) {
                 "of frames in overlay %s = %d.\n",
                 over_list.gl_pathv[f], over[f - ic_start]->nframes,
                 over_list.gl_pathv[0], over[0]->nframes);
-    // read surfaces, currently only required for tangential smoothing.. this
-    // will change in the future
+    // read surfaces, currently only required for tangential smoothing.. this will change in the future
     if (nb_rad) {
       printf("Reading: %s\n", surf_list.gl_pathv[f]);
       surf[f - ic_start] = MRISread(surf_list.gl_pathv[f]);
       if (!surf[f - ic_start])
         ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s.\n",
                   Progname, surf_list.gl_pathv[f]);
-      // all surfaces must have the same number of vertices smaller than
-      // MAX_VERTICES
+      // all surfaces must have the same number of vertices smaller than MAX_VERTICES
       if (surf[f - ic_start]->nvertices > MAX_VERTICES)
         ErrorExit(ERROR_BADPARM, "Number of vertices %d is higher than %d.\n",
                   surf_list.gl_pathv[0], MAX_VERTICES);
@@ -153,18 +161,22 @@ int main(int argc, char *argv[]) {
     strcpy(out_dir, over_dir);
   if (strlen(out_name) == 0) {
     char *dot, *name;
+    char  tmp_out_name[STRLEN];
     name = basename(over_list.gl_pathv[0]);
     dot  = strrchr(name, '.');
-    strncpy(out_name, name, dot - name);
-    sprintf(out_name, "%s.nb%d_rad%d-%d.mgz", out_name, nb_rad, ic_start,
-            (ic_start + ic_size - 1));
+    strncpy(tmp_out_name, name, dot - name);
+    int req = snprintf(out_name, STRLEN, "%s.nb%d_rad%d-%d.mgz", tmp_out_name,
+                       nb_rad, ic_start, (ic_start + ic_size - 1));
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
   }
 
   globfree(&surf_list);
   globfree(&over_list);
 
-  // tangential smoothing part
-  // ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // tangential smoothing part ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   if (nb_rad > 0) {
     static int   neighbors[MAX_NEIGHBORS];
@@ -174,7 +186,7 @@ int main(int argc, char *argv[]) {
 
     // initializing the output with 0s
     for (f = 0; f < ic_size; f++)
-      output[f] = MRIclone(over[f], nullptr);
+      output[f] = MRIclone(over[f], NULL);
     float val, count;
     // for each surface & each vertex
     for (f = 0; f < ic_size; f++) {
@@ -182,7 +194,7 @@ int main(int argc, char *argv[]) {
         // neighborhood
         nb_num = MRISfindNeighborsAtVertex(surf[f], v, nb_rad, MAX_NEIGHBORS,
                                            neighbors, hops);
-        // TODO more weights
+        //TODO more weights
         calculate_nb_weights(nb_weights, nb_num, hops);
         // for each frame in the overlay corresponding to this surface
         for (t = 0; t < over[f]->nframes; t++) {
@@ -200,14 +212,13 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  // radial smoothing part
-  // ///////////////////////////////////////////////////////////////////////////////////////
+  // radial smoothing part ///////////////////////////////////////////////////////////////////////////////////////
   // TODO in 2.0 add weights
   if (ic_size > 1) {
     // initializing outputs with input overlays
     if (nb_rad == 0)
       for (f = 0; f < ic_size; f++)
-        output[f] = MRIcopy(over[f], nullptr);
+        output[f] = MRIcopy(over[f], NULL);
 
     float val;
     // only for ic smoothing so all overlays have the same number of frames
@@ -222,9 +233,12 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  // write an output overlay
-  // ///////////////////////////////////////////////////////////////////////////////////////
-  sprintf(out_path, "%s%s%s", out_dir, SEP, out_name);
+  // write an output overlay ///////////////////////////////////////////////////////////////////////////////////////
+  int req = snprintf(out_path, STRLEN, "%s%s%s", out_dir, SEP, out_name);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
   printf("Saving result: %s\n", out_path);
   MRIwrite(output[0], out_path);
 
@@ -248,7 +262,7 @@ static void calculate_nb_weights(float *nb_weights, int nb_num, int *hops) {
     for (n = 0; n < nb_num; n++)
       nb_weights[n] = (1 / (sigma * sqrt(2 * PI))) *
                       exp(-(hops[n] * hops[n]) / (2 * sigma * sigma));
-    // fmax(nb_weights);
+    //fmax(nb_weights);
     // 1/NB
   } else if (nb_wf == 1) {
     for (n = 0; n < nb_num; n++) {
@@ -355,7 +369,7 @@ static int parse_commandline(int argc, char **argv) {
 \fn static void check_options(void)
 \brief Checks command-line options
 */
-static void check_options() {
+static void check_options(void) {
   // check if ranges of the parameters are correct
   if (surf_num < 1)
     ErrorExit(ERROR_BADPARM, "At least 1 input surface is required. \n");
@@ -420,7 +434,7 @@ static void check_options() {
 \fn static void print_usage(void)
 \brief Prints usage and exits
 */
-static void print_usage() {
+static void print_usage(void) {
   printf(
       "USAGE: %s --surf_dir surfdir --surf_name surfname --overlay_dir overdir "
       "--overlay_name overname [--output_dir outdir --output_name outname "
@@ -522,7 +536,7 @@ static void print_version(void) {
 \fn static void print_help(void)
 \brief Prints help and exits
 */
-static void print_help() {
+static void print_help(void) {
   printf(
       "Smooths data overlaid onto to the cortical surface meshes using kernels "
       "for which tangential and radial extent can be specified. \n\n");

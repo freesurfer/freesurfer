@@ -17,10 +17,21 @@
  *
  */
 
+#include <ctype.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "MARS_DT_Boundary.h"
 #include "annotation.h"
 #include "diag.h"
+#include "error.h"
 #include "label.h"
+#include "macros.h"
+#include "mri.h"
+#include "mrisurf.h"
+#include "proto.h"
 #include "timer.h"
 #include "version.h"
 
@@ -78,11 +89,10 @@ int main(int argc, char *argv[]) {
 
   if (vol) {
     /*
-        mri_template = MRIread(argv[2]) ;
-        if (!mri_template)
-          ErrorExit(ERROR_NOFILE, "%s: could not read MRI volume from %s\n",
-       Progname, argv[2]) ;
-    */
+    mri_template = MRIread(argv[2]) ;
+    if (!mri_template)
+      ErrorExit(ERROR_NOFILE, "%s: could not read MRI volume from %s\n", Progname, argv[2]) ;
+*/
   } else {
     area = LabelRead(NULL, argv[2]);
     if (area == NULL)
@@ -135,8 +145,8 @@ int main(int argc, char *argv[]) {
       MRISrestoreVertexPositions(mris, TMP_VERTICES);
       MRIScomputeSecondFundamentalForm(mris);
 
-      // MRISdivideAnnotationUnit sets the marked to be in [0,divide-1], make it
-      // [1,divide] make sure they are oriented along original a/p direction
+      // MRISdivideAnnotationUnit sets the marked to be in [0,divide-1], make it [1,divide]
+      // make sure they are oriented along original a/p direction
 #define MAX_UNITS 100
       {
         double  cx[MAX_UNITS], cy[MAX_UNITS], cz[MAX_UNITS], min_a;
@@ -189,12 +199,20 @@ int main(int argc, char *argv[]) {
             "performing distance transform on division %d with %d vertices\n",
             i, area_division->n_points);
         if (output_label) {
-          sprintf(fname, "%s%d.label", base_name, i);
+          int req = snprintf(fname, STRLEN, "%s%d.label", base_name, i);
+          if (req >= STRLEN) {
+            std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                      << std::endl;
+          }
           printf("writing %dth subdivision to %s\n", i, fname);
           LabelWrite(area_division, fname);
         }
         MRISdistanceTransform(mris, area_division, mode);
-        sprintf(fname, "%s%d.%s", base_name, i, ext);
+        int req = snprintf(fname, STRLEN, "%s%d.%s", base_name, i, ext);
+        if (req >= STRLEN) {
+          std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                    << std::endl;
+        }
         if (normalize > 0)
           MRISmulVal(mris, 1.0 / normalize);
         MRISwriteValues(mris, fname);
@@ -271,18 +289,18 @@ static int get_option(int argc, char *argv[]) {
   return (nargs);
 }
 
-static void usage_exit() {
+static void usage_exit(void) {
   print_usage();
   exit(1);
 }
 
-static void print_usage() {
+static void print_usage(void) {
   printf("usage: %s [options] <surface> <label> <mode> <output file>\n",
          Progname);
   printf("where mode is one of 'signed', 'unsigned', 'outside'\n");
 }
 
-static void print_help() {
+static void print_help(void) {
   print_usage();
   fprintf(stderr, "This program computes the distance transform of a label on "
                   "the surface\n");
@@ -316,7 +334,7 @@ crop_anterior_label(LABEL *area, float anterior_dist)
     if (area->lv[n].y > amax)
       amax = area->lv[n].y ;
   }
-
+  
   amax -= anterior_dist ;
   printf("cropping all vertices with Y > %2.0f\n", amax) ;
   for (n = 0 ; n < area->n_points ; n++)
@@ -338,7 +356,7 @@ crop_posterior_label(LABEL *area, float anterior_dist)
     if (area->lv[n].y > amax)
       amax = area->lv[n].y ;
   }
-
+  
   amax += anterior_dist ;
   printf("cropping all vertices with Y > %2.0f\n", amax) ;
   for (n = 0 ; n < area->n_points ; n++)

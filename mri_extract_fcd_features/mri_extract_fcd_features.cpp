@@ -17,11 +17,24 @@
  *
  */
 
+#include <ctype.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+
 #include "cma.h"
+#include "const.h"
 #include "diag.h"
+#include "error.h"
 #include "histo.h"
 #include "label.h"
+#include "macros.h"
+#include "mri.h"
+#include "mri_conform.h"
+#include "mrimorph.h"
+#include "proto.h"
 #include "timer.h"
+#include "utils.h"
 #include "version.h"
 
 int        main(int argc, char *argv[]);
@@ -74,7 +87,7 @@ int main(int argc, char *argv[]) {
 
   Progname = argv[0];
   ErrorInit(NULL, NULL, NULL);
-  DiagInit(nullptr, nullptr, nullptr);
+  DiagInit(NULL, NULL, NULL);
 
   start.reset();
 
@@ -106,88 +119,144 @@ int main(int argc, char *argv[]) {
     strcpy(sdir, cp);
   }
 
-  sprintf(fname, "%s/%s/surf/%s.%s", sdir, subject, hemi, white_name);
+  int req = snprintf(fname, STRLEN, "%s/%s/surf/%s.%s", sdir, subject, hemi,
+                     white_name);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
   printf("reading %s\n", fname);
   mris = MRISread(fname);
-  if (mris == nullptr)
+  if (mris == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface from %s\n", Progname,
               fname);
   MRISsaveVertexPositions(mris, WHITE_VERTICES);
 
-  sprintf(fname, "%s/%s/surf/%s.%s", sdir, subject, ohemi, white_name);
+  req = snprintf(fname, STRLEN, "%s/%s/surf/%s.%s", sdir, subject, ohemi,
+                 white_name);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
   printf("reading %s\n", fname);
   mris_contra = MRISread(fname);
-  if (mris_contra == nullptr)
+  if (mris_contra == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface from %s\n", Progname,
               fname);
   MRISsaveVertexPositions(mris_contra, WHITE_VERTICES);
 
-  sprintf(fname, "%s/%s/mri/%s", sdir, subject, ribbon_name);
+  req = snprintf(fname, STRLEN, "%s/%s/mri/%s", sdir, subject, ribbon_name);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
+
   printf("reading %s\n", fname);
   mri_ribbon = MRIread(fname);
-  if (mri_ribbon == nullptr)
+  if (mri_ribbon == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not read ribbon from %s\n", Progname,
               fname);
 
-  sprintf(fname, "%s/%s/mri/%s", sdir, subject, aparc_name);
+  req = snprintf(fname, STRLEN, "%s/%s/mri/%s", sdir, subject, aparc_name);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
   printf("reading %s\n", fname);
   mri_aparc = MRIread(fname);
-  if (mri_aparc == nullptr)
+  if (mri_aparc == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not read ribbon from %s\n", Progname,
               fname);
 
-  sprintf(fname, "%s/%s/mri/%s", sdir, subject, aseg_name);
+  req = snprintf(fname, STRLEN, "%s/%s/mri/%s", sdir, subject, aseg_name);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
   printf("reading %s\n", fname);
   mri_aseg = MRIread(fname);
-  if (mri_aseg == nullptr)
+  if (mri_aseg == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not read aseg from %s\n", Progname,
               fname);
 
-  sprintf(fname, "%s/%s/surf/%s.%s", sdir, subject, hemi, pial_name);
+  req = snprintf(fname, STRLEN, "%s/%s/surf/%s.%s", sdir, subject, hemi,
+                 pial_name);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
   if (MRISreadPialCoordinates(mris, fname) != NO_ERROR)
     ErrorExit(ERROR_NOFILE, "%s: could not read pial coordinates from %s\n",
               Progname, fname);
 
-  sprintf(fname, "%s/%s/surf/%s.%s", sdir, subject, hemi, sphere_name);
+  req = snprintf(fname, STRLEN, "%s/%s/surf/%s.%s", sdir, subject, hemi,
+                 sphere_name);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
   if (MRISreadCanonicalCoordinates(mris, fname) != NO_ERROR)
     ErrorExit(ERROR_NOFILE,
               "%s: could not read left/right spherical coordinates from %s\n",
               Progname, fname);
 
-  sprintf(fname, "%s/%s/surf/%s.%s", sdir, subject, ohemi, pial_name);
+  req = snprintf(fname, STRLEN, "%s/%s/surf/%s.%s", sdir, subject, ohemi,
+                 pial_name);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
   if (MRISreadPialCoordinates(mris_contra, fname) != NO_ERROR)
     ErrorExit(ERROR_NOFILE, "%s: could not read pial coordinates from %s\n",
               Progname, fname);
 
-  sprintf(fname, "%s/%s/label/%s.%s", sdir, subject, hemi, cortex_label);
-  cortex = LabelRead(nullptr, fname);
-  if (cortex == nullptr)
+  req = snprintf(fname, STRLEN, "%s/%s/label/%s.%s", sdir, subject, hemi,
+                 cortex_label);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
+  cortex = LabelRead(NULL, fname);
+  if (cortex == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not read cortical label from %s\n",
               Progname, fname);
   LabelRipRestOfSurface(cortex, mris);
   LabelFree(&cortex);
 
-  sprintf(fname, "%s/%s/surf/%s.%s", sdir, subject, ohemi, sphere_name);
+  req = snprintf(fname, STRLEN, "%s/%s/surf/%s.%s", sdir, subject, ohemi,
+                 sphere_name);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
   if (MRISreadCanonicalCoordinates(mris_contra, fname) != NO_ERROR)
     ErrorExit(ERROR_NOFILE,
               "%s: could not read left/right spherical coordinates from %s\n",
               Progname, fname);
 
-  sprintf(fname, "%s/%s/mri/%s", sdir, subject, vol_name);
+  req = snprintf(fname, STRLEN, "%s/%s/mri/%s", sdir, subject, vol_name);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
   printf("reading %s\n", fname);
   mri = MRIread(fname);
-  if (mri == nullptr)
+  if (mri == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not read volume from %s\n", Progname,
               fname);
 
-  sprintf(fname, "%s/%s/mri/%s", sdir, subject, flair_name);
+  req = snprintf(fname, STRLEN, "%s/%s/mri/%s", sdir, subject, flair_name);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
   printf("reading %s\n", fname);
   mri_flair = MRIread(fname);
-  if (mri_flair == nullptr)
+  if (mri_flair == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not read volume from %s\n", Progname,
               fname);
 
-  if (false)
+  if (0)
     mri_features =
         MRIcomputeSurfaceDistanceProbabilities(mris, mri_ribbon, mri, mri_aseg);
   else {
@@ -202,7 +271,7 @@ int main(int argc, char *argv[]) {
         mris_contra, mri_ribbon, mri_aparc, mri, mri_aseg, whalf);
     mri_ohemi_mapped_to_hemi_features =
         MRISmapToSurface(mris_contra, mris, mri_ohemi_features,
-                         nullptr); // map contra feature to this surface
+                         NULL); // map contra feature to this surface
     MRIsubtract(mri_features, mri_ohemi_mapped_to_hemi_features, mri_features);
     //    MRIwrite(mri_ohemi_mapped_to_hemi_features, "test.mgz") ;
 
@@ -212,13 +281,17 @@ int main(int argc, char *argv[]) {
         mris_contra, mri_ribbon, mri_aparc, mri, mri_flair, mri_aseg, whalf);
     mri_ohemi_mapped_to_hemi_flair_features =
         MRISmapToSurface(mris_contra, mris, mri_ohemi_flair_features,
-                         nullptr); // map contra feature to this s
+                         NULL); // map contra feature to this s
     MRIsubtract(mri_flair_features, mri_ohemi_mapped_to_hemi_flair_features,
                 mri_flair_features);
     strcpy(fname, out_fname);
     FileNameExtension(fname, ext);
     FileNameRemoveExtension(fname, fname_no_ext);
-    sprintf(fname, "%s.flair.%s", fname_no_ext, ext);
+    int req = snprintf(fname, STRLEN, "%s.flair.%s", fname_no_ext, ext);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
     if (Gdiag_no >= 0)
       printf("feature(%d) = %f\n", Gdiag_no,
              MRIgetVoxVal(mri_flair_features, Gdiag_no, 0, 0, 0));
@@ -228,7 +301,7 @@ int main(int argc, char *argv[]) {
 
   if (navgs > 0) {
     MRI *mri_tmp;
-    mri_tmp = MRISsmoothMRI(mris, mri_features, navgs, nullptr, nullptr);
+    mri_tmp = MRISsmoothMRI(mris, mri_features, navgs, NULL, NULL);
     MRIfree(&mri_features);
     mri_features = mri_tmp;
   }
@@ -349,10 +422,10 @@ static MRI *MRIcomputeSurfaceDistanceProbabilities(MRI_SURFACE *mris,
       MRIallocSequence(mri->width, mri->height, mri->depth, MRI_FLOAT, 2);
   MRIcopyHeader(mri, mri_features);
 
-  mri_binary    = MRIcopy(mri_ribbon, nullptr);
-  mri_binary    = MRIbinarize(mri_ribbon, nullptr, 1, 0, 1);
-  mri_pial_dist = MRIdistanceTransform(
-      mri_binary, nullptr, 1, max_pial_dist + 1, DTRANS_MODE_SIGNED, nullptr);
+  mri_binary    = MRIcopy(mri_ribbon, NULL);
+  mri_binary    = MRIbinarize(mri_ribbon, NULL, 1, 0, 1);
+  mri_pial_dist = MRIdistanceTransform(mri_binary, NULL, 1, max_pial_dist + 1,
+                                       DTRANS_MODE_SIGNED, NULL);
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     MRIwrite(mri_pial_dist, "pd.mgz");
 
@@ -360,8 +433,8 @@ static MRI *MRIcomputeSurfaceDistanceProbabilities(MRI_SURFACE *mris,
   MRIcopyLabel(mri_ribbon, mri_binary, Left_Cerebral_White_Matter);
   MRIcopyLabel(mri_ribbon, mri_binary, Right_Cerebral_White_Matter);
   MRIbinarize(mri_binary, mri_binary, 1, 0, 1);
-  mri_white_dist = MRIdistanceTransform(
-      mri_binary, nullptr, 1, max_white_dist + 1, DTRANS_MODE_SIGNED, nullptr);
+  mri_white_dist = MRIdistanceTransform(mri_binary, NULL, 1, max_white_dist + 1,
+                                        DTRANS_MODE_SIGNED, NULL);
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     MRIwrite(mri_white_dist, "wd.mgz");
 
@@ -412,7 +485,7 @@ static MRI *MRIcomputeSurfaceDistanceProbabilities(MRI_SURFACE *mris,
 
   MRIclear(mri_binary);
   MRIbinarize(mri_ribbon, mri_binary, 1, 0, 1);
-  mri_mask = MRIcopy(mri_binary, nullptr);
+  mri_mask = MRIcopy(mri_binary, NULL);
   for (i = 0; i < close_order; i++) {
     MRIdilate(mri_binary, mri_mask);
     MRIcopy(mri_mask, mri_binary);
@@ -453,10 +526,10 @@ static MRI *MRIcomputeSurfaceDistanceIntensities(MRI_SURFACE *mris,
       1); // one samples inwards, one in ribbon, and one outside
   MRIcopyHeader(mri, mri_features);
 
-  mri_binary    = MRIcopy(mri_ribbon, nullptr);
-  mri_binary    = MRIbinarize(mri_ribbon, nullptr, 1, 0, 1);
-  mri_pial_dist = MRIdistanceTransform(
-      mri_binary, nullptr, 1, max_pial_dist + 1, DTRANS_MODE_SIGNED, nullptr);
+  mri_binary    = MRIcopy(mri_ribbon, NULL);
+  mri_binary    = MRIbinarize(mri_ribbon, NULL, 1, 0, 1);
+  mri_pial_dist = MRIdistanceTransform(mri_binary, NULL, 1, max_pial_dist + 1,
+                                       DTRANS_MODE_SIGNED, NULL);
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     MRIwrite(mri_pial_dist, "pd.mgz");
 
@@ -464,8 +537,8 @@ static MRI *MRIcomputeSurfaceDistanceIntensities(MRI_SURFACE *mris,
   MRIcopyLabel(mri_ribbon, mri_binary, Left_Cerebral_White_Matter);
   MRIcopyLabel(mri_ribbon, mri_binary, Right_Cerebral_White_Matter);
   MRIbinarize(mri_binary, mri_binary, 1, 0, 1);
-  mri_white_dist = MRIdistanceTransform(
-      mri_binary, nullptr, 1, max_white_dist + 1, DTRANS_MODE_SIGNED, nullptr);
+  mri_white_dist = MRIdistanceTransform(mri_binary, NULL, 1, max_white_dist + 1,
+                                        DTRANS_MODE_SIGNED, NULL);
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     MRIwrite(mri_white_dist, "wd.mgz");
 
@@ -519,12 +592,12 @@ static MRI *MRIcomputeSurfaceDistanceIntensities(MRI_SURFACE *mris,
           if (label != hemi_label)
             continue;
           label = MRIgetVoxVal(mri_aparc, xi, yi, zi, 0);
-          if (label && label != label0) // if  outside the ribbon it won't be
-                                        // assigned to a parcel
-            continue; // constrain it to be in the same cortical parcel
+          if (label &&
+              label !=
+                  label0) // if  outside the ribbon it won't be assigned to a parcel
+            continue;     // constrain it to be in the same cortical parcel
 
-          // search along vector connecting x0 to this point to make sure it is
-          // we don't perforate wm or leave and re-enter cortex
+          // search along vector connecting x0 to this point to make sure it is we don't perforate wm or leave and re-enter cortex
           nx         = xi - x0;
           ny         = yi - y0;
           nz         = zi - z0;
@@ -591,13 +664,13 @@ static MRI *MRIcomputeFlairRatio(MRI_SURFACE *mris, MRI *mri_ribbon,
 
   MRISsaveVertexPositions(mris, TMP2_VERTICES);
   MRISrestoreVertexPositions(mris, WHITE_VERTICES);
-  mri_tmp = MRISfillInterior(mris, mri->xsize / 2, nullptr);
+  mri_tmp = MRISfillInterior(mris, mri->xsize / 2, NULL);
   mri_filled =
-      MRIextractRegionAndPad(mri_tmp, nullptr, nullptr, nint(30 / mri->xsize));
+      MRIextractRegionAndPad(mri_tmp, NULL, NULL, nint(30 / mri->xsize));
   MRIfree(&mri_tmp);
   mri_dist_white = MRIcloneDifferentType(mri_filled, MRI_FLOAT);
   MRIdistanceTransform(mri_filled, mri_dist_white, 1, 100, DTRANS_MODE_SIGNED,
-                       nullptr);
+                       NULL);
   MRISrestoreVertexPositions(mris, TMP2_VERTICES);
   MRIfree(&mri_filled);
 

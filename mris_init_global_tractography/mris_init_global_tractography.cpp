@@ -1,9 +1,8 @@
 /**
  * @brief MCMC for computing posterior of splines connecting cortical parcellation with itself
  *
- * Fit a Catmull Rom spline to each pair of points in the cortex, initializing
- * it with a connection along the shortest interior path  between them, then use
- * MCMC to estimate the posterior distribution.
+ * Fit a Catmull Rom spline to each pair of points in the cortex, initializing it with a connection along the
+ * shortest interior path  between them, then use MCMC to estimate the posterior distribution.
  */
 /*
  * Original Author: Bruce Fischl
@@ -20,10 +19,27 @@
  *
  */
 
+#include <ctype.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+
 #include "cma.h"
 #include "cmat.h"
+#include "const.h"
 #include "diag.h"
+#include "error.h"
+#include "fsinit.h"
+#include "icosahedron.h"
+#include "macros.h"
+#include "mri.h"
+#include "mrisurf.h"
 #include "pdf.h"
+#include "proto.h"
+#include "timer.h"
+#include "transform.h"
+#include "tritri.h"
+#include "utils.h"
 #include "version.h"
 #include "voxlist.h"
 
@@ -60,8 +76,7 @@ static double max_wm_dist = -2.5 ;
 
 #endif
 
-// static VOXEL_LIST *MRIfindBestSpline(MRI *mri_aseg, MRI *mri_wm_dist, int
-// label1_target, int label2_target, int ncontrol) ;
+//static VOXEL_LIST *MRIfindBestSpline(MRI *mri_aseg, MRI *mri_wm_dist, int label1_target, int label2_target, int ncontrol) ;
 
 static int use_laplace   = 0;
 static int hemi          = 0;
@@ -133,7 +148,7 @@ int main(int argc, char *argv[]) {
   setRandomSeed(-1L);
   Progname = argv[0];
   ErrorInit(NULL, NULL, NULL);
-  DiagInit(nullptr, nullptr, nullptr);
+  DiagInit(NULL, NULL, NULL);
 
   FSinit();
   start.reset();
@@ -149,7 +164,7 @@ int main(int argc, char *argv[]) {
   if (sdir[0] == 0) // not specified on command line
   {
     char *cp = getenv("SUBJECTS_DIR");
-    if (cp == nullptr)
+    if (cp == NULL)
       ErrorExit(ERROR_UNSUPPORTED,
                 "%s: SUBJECTS_DIR must be specified on the command line or in "
                 "the env",
@@ -158,9 +173,13 @@ int main(int argc, char *argv[]) {
   }
   subject = argv[1];
 
-  sprintf(fname, "%s/%s/mri/%s.mgz", sdir, subject, argv[2]);
+  int req = snprintf(fname, STRLEN, "%s/%s/mri/%s.mgz", sdir, subject, argv[2]);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
   mri_aseg = MRIread(fname);
-  if (mri_aseg == nullptr)
+  if (mri_aseg == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not load aparc+aseg from %s", Progname,
               fname);
 
@@ -187,7 +206,7 @@ int main(int argc, char *argv[]) {
 
   printf("%d unique cortical labels found\n", nlabels);
 
-  mri_wm = MRIclone(mri_aseg, nullptr);
+  mri_wm = MRIclone(mri_aseg, NULL);
   //  MRIcopyLabel(mri_aseg, mri_wm, Right_VentralDC) ;
   //  MRIcopyLabel(mri_aseg, mri_wm, Left_VentralDC) ;
   //  MRIcopyLabel(mri_aseg, mri_wm, Brain_Stem) ;
@@ -210,12 +229,12 @@ int main(int argc, char *argv[]) {
     MRIcopyLabel(mri_aseg, mri_wm, label2_target);
   MRIbinarize(mri_wm, mri_wm, 1, 0, 1);
   mri_wm_dist =
-      MRIdistanceTransform(mri_wm, nullptr, 1, 25, DTRANS_MODE_SIGNED, nullptr);
+      MRIdistanceTransform(mri_wm, NULL, 1, 25, DTRANS_MODE_SIGNED, NULL);
   mri_wm_only =
-      MRIcopy(mri_wm, nullptr); // target label will be added to mri_wm later
-                                //  labels[0] = 1024 ;
-                                //  labels[1] = 1035 ;
-  if (label1_target > 0)        // operate in two-label mode
+      MRIcopy(mri_wm, NULL); // target label will be added to mri_wm later
+                             //  labels[0] = 1024 ;
+                             //  labels[1] = 1035 ;
+  if (label1_target > 0)     // operate in two-label mode
   {
     VOXEL_LIST *vl_spline;
 
@@ -261,17 +280,17 @@ int main(int argc, char *argv[]) {
       vl = MRIcomputeLaplaceStreamline(mri_laplace, 1500, xm, ym, zm,
                                        LAPLACE_SOURCE, LAPLACE_TARGET,
                                        LAPLACE_OUTSIDE);
-      if (vl == nullptr)
+      if (vl == NULL)
         ErrorExit(Gerror, "");
 
       if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
         MRIwrite(mri_laplace, "lap.mgz");
       printf("writing label to %s\n", argv[3]);
-      VLSTwriteLabel(vl, argv[3], nullptr, mri_aseg);
+      VLSTwriteLabel(vl, argv[3], NULL, mri_aseg);
       exit(0);
     }
 
-    mri_tmp = MRIclone(mri_aseg, nullptr);
+    mri_tmp = MRIclone(mri_aseg, NULL);
     MRIcopyLabel(mri_aseg, mri_tmp, label2_target);
     MRIbinarize(mri_tmp, mri_tmp, 1, 0, 2);
     MRIcopyLabel(mri_tmp, mri_wm,
@@ -279,20 +298,20 @@ int main(int argc, char *argv[]) {
     MRIfree(&mri_tmp);
 
     MRIcopy(mri_wm_only, mri_wm);
-    mri_tmp = MRInbrThresholdLabel(mri_aseg, nullptr, label2_target, 0, 1,
+    mri_tmp         = MRInbrThresholdLabel(mri_aseg, NULL, label2_target, 0, 1,
                                    5); // remove isolated voxels in label
-    mri_label1_dist = MRIinteriorDistanceTransform(mri_tmp, mri_wm, nullptr,
+    mri_label1_dist = MRIinteriorDistanceTransform(mri_tmp, mri_wm, NULL,
                                                    label2_target, hemi);
     MRIfree(&mri_tmp);
 
-    mri_smooth = MRIsmoothLabel6Connected(mri_label1_dist, mri_wm, nullptr, 500,
-                                          1, 2, .5);
+    mri_smooth =
+        MRIsmoothLabel6Connected(mri_label1_dist, mri_wm, NULL, 500, 1, 2, .5);
     MRIcopy(mri_wm_only, mri_wm);
     {
       int   x, y, z, i, l;
       float val;
 
-      mri_tmp = MRIcopy(mri_smooth, nullptr);
+      mri_tmp = MRIcopy(mri_smooth, NULL);
       for (i = 0; i < 10; i++) {
 #if 0
 #ifdef HAVE_OPENMP
@@ -321,17 +340,17 @@ int main(int argc, char *argv[]) {
     MRIfree(&mri_label1_dist);
     mri_label1_dist = mri_smooth;
     //    mri_label1_dist = mri_laplace ;
-    mri_dist_grad = MRIsobel(mri_label1_dist, nullptr, nullptr);
+    mri_dist_grad = MRIsobel(mri_label1_dist, NULL, NULL);
     MRInormalizeSequence(mri_dist_grad, 1.0);
     vl_spline = compute_spline_initialization(
         mri_aseg, mri_wm, mri_wm_dist, mri_label1_dist, mri_dist_grad,
         label2_target, label1_target, min_spline_control_points);
-    if (vl_spline == nullptr)
+    if (vl_spline == NULL)
       ErrorExit(ERROR_BADPARM, "%s: could not find path between labels",
                 Progname);
 
     printf("writing label to %s\n", argv[3]);
-    VLSTwriteLabel(vl_spline, argv[3], nullptr, mri_aseg);
+    VLSTwriteLabel(vl_spline, argv[3], NULL, mri_aseg);
 
     exit(0);
   }
@@ -348,27 +367,27 @@ int main(int argc, char *argv[]) {
     MRIcopy(mri_wm_only, mri_wm);
     if (label == 16)
       DiagBreak();
-    mri_tmp = MRInbrThresholdLabel(mri_aseg, nullptr, labels[label], 0, 1,
+    mri_tmp         = MRInbrThresholdLabel(mri_aseg, NULL, labels[label], 0, 1,
                                    5); // remove isolated voxels in label
-    mri_label1_dist = MRIinteriorDistanceTransform(mri_tmp, mri_wm, nullptr,
+    mri_label1_dist = MRIinteriorDistanceTransform(mri_tmp, mri_wm, NULL,
                                                    labels[label], hemi);
     MRIfree(&mri_tmp);
 
     // temporarily add target label to wm so it affects smoothing
-    mri_tmp = MRIclone(mri_aseg, nullptr);
+    mri_tmp = MRIclone(mri_aseg, NULL);
     MRIcopyLabel(mri_aseg, mri_tmp, labels[label]);
     MRIbinarize(mri_tmp, mri_tmp, 1, 0, 2);
     MRIcopyLabel(mri_tmp, mri_wm,
                  2); // this label will be a fixed point in the smoothing
     MRIfree(&mri_tmp);
-    mri_smooth = MRIsmoothLabel6Connected(mri_label1_dist, mri_wm, nullptr, 500,
-                                          1, 2, .5);
+    mri_smooth =
+        MRIsmoothLabel6Connected(mri_label1_dist, mri_wm, NULL, 500, 1, 2, .5);
     MRIcopy(mri_wm_only, mri_wm);
     {
       int   x, y, z, i, l;
       float val;
 
-      mri_tmp = MRIcopy(mri_smooth, nullptr);
+      mri_tmp = MRIcopy(mri_smooth, NULL);
       for (i = 0; i < 10; i++) {
         ROMP_PF_begin
 #if 0
@@ -403,9 +422,9 @@ int main(int argc, char *argv[]) {
 
     MRIfree(&mri_label1_dist);
     mri_label1_dist = mri_smooth;
-    mri_dist_grad   = MRIsobel(mri_label1_dist, nullptr, nullptr);
+    mri_dist_grad   = MRIsobel(mri_label1_dist, NULL, NULL);
     MRInormalizeSequence(mri_dist_grad, 1.0);
-    if (false && write_diags) {
+    if (0 && write_diags) {
       sprintf(fname, "dist.%d.mgz", labels[label]);
       MRIwrite(mri_label1_dist, fname);
       sprintf(fname, "grad.%d.mgz", labels[label]);
@@ -418,12 +437,11 @@ int main(int argc, char *argv[]) {
            (labels[label2] + XHEMI_OFFSET != labels[label])))
         continue;
       if (label2 == label || (xhemi == 0 && vl_splines[label2][label]))
-        continue; // if this spline has already been successfully computed from
-                  // the other direction
+        continue; // if this spline has already been successfully computed from the other direction
       vl = compute_spline_initialization(
           mri_aseg, mri_wm, mri_wm_dist, mri_label1_dist, mri_dist_grad,
           labels[label], labels[label2], min_spline_control_points);
-      if (vl == nullptr)
+      if (vl == NULL)
         continue;
       if (label < label2)
         vl_splines[label][label2] = vl;
@@ -442,7 +460,7 @@ int main(int argc, char *argv[]) {
                vl->xi[0], vl->yi[0], vl->zi[0], labels[label],
                vl->xi[vl->nvox - 1], vl->yi[vl->nvox - 1],
                vl->zi[vl->nvox - 1]);
-        VLSTwriteLabel(vl_splines[label][label2], fname, nullptr, mri_aseg);
+        VLSTwriteLabel(vl_splines[label][label2], fname, NULL, mri_aseg);
       } else
         printf("%d control point spline computed for %s (%d) --> %s (%d)\n",
                vl->nvox, cma_label_to_name(labels[label2]), labels[label2],
@@ -458,12 +476,12 @@ int main(int argc, char *argv[]) {
   cmat = CMATalloc(nlabels, labels);
   for (label = 0; label < nlabels - 1; label++)
     for (label2 = label + 1; label2 < nlabels; label2++) {
-      if (vl_splines[label][label2] == nullptr)
+      if (vl_splines[label][label2] == NULL)
         continue;
       cmat->splines[label][label2] =
-          VLSTtoLabel(vl_splines[label][label2], nullptr, mri_aseg);
+          VLSTtoLabel(vl_splines[label][label2], NULL, mri_aseg);
       cmat->splines[label2][label] =
-          VLSTtoLabel(vl_splines[label][label2], nullptr, mri_aseg);
+          VLSTtoLabel(vl_splines[label][label2], NULL, mri_aseg);
     }
 
   CMATwrite(cmat, argv[3]);
@@ -586,10 +604,10 @@ static MRI *MRIinteriorDistanceTransform(MRI *mri_aseg, MRI *mri_wm_interior,
   int x, y, z, nadded, n, max_thick_vox, i, xi, yi, zi, xk, yk, zk, label,
       nbr_label;
   VOXEL_LIST *vl_current, *vl_next;
-  MRI *       mri_dilated = nullptr;
+  MRI *       mri_dilated = NULL;
   float       fmin, fmax;
 
-  if (mri_paths == nullptr)
+  if (mri_paths == NULL)
     mri_paths = MRIcloneDifferentType(mri_aseg, MRI_FLOAT);
 
   MRIcopyLabel(mri_aseg, mri_paths, target_label);
@@ -623,8 +641,8 @@ static MRI *MRIinteriorDistanceTransform(MRI *mri_aseg, MRI *mri_wm_interior,
             if (MRIgetVoxVal(mri_paths, xi, yi, zi,
                              0)) // already in the current set
               continue;
-            if (label >= MIN_CORTEX) //  make first step from gm into wm of the
-                                     //  correct hemi
+            if (label >=
+                MIN_CORTEX) //  make first step from gm into wm of the correct hemi
             {
               // user might use a label that needs to be explicitly identified
               if ((label >= MIN_LH_CORTEX && label <= MAX_LH_CORTEX) ||
@@ -677,8 +695,7 @@ static MRI *MRIinteriorDistanceTransform(MRI *mri_aseg, MRI *mri_wm_interior,
     n++;
   } while (nadded > 0 && n < max_thick_vox);
 
-  // replace all exterior zeroes with valuse one greater than the max adjacent
-  // value
+  // replace all exterior zeroes with valuse one greater than the max adjacent value
   MRInonzeroValRange(mri_paths, &fmin, &fmax);
   VLSTcreate(mri_paths, fmin, fmax, vl_current, 0,
              1); // create from only the border voxels
@@ -733,7 +750,7 @@ compute_migration_probabilities(MRI_SURFACE *mris, MRI *mri_intensity, MRI *mri_
   MATRIX *m_intensity2aseg, *v_aseg, *v_intensity ;
   double gm_mean, gm_var, val, wm_mean, wm_var, entropy=1.0 ;
   VERTEX  *v;
-  MRI    *mri_wm_interior, *mri_wm_dist, *mri_kernel, *mri_tmp, *mri_posterior,
+  MRI    *mri_wm_interior, *mri_wm_dist, *mri_kernel, *mri_tmp, *mri_posterior, 
     *mri_entropy, *mri_total_posterior,
     *mri_eroded_aseg, *mri_possible_migration_paths,*mri_path_grad, *mri_splines;
   VOXEL_LIST *vl, *vl_spline, *vl_posterior ;
@@ -747,9 +764,9 @@ compute_migration_probabilities(MRI_SURFACE *mris, MRI *mri_intensity, MRI *mri_
   {
     char fname[STRLEN], path[STRLEN] ;
 
-    sprintf(fname, "%s/%s.splines.mgz",
-	    FileNamePath(mris->fname, path),
-	    mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh");
+    sprintf(fname, "%s/%s.splines.mgz", 
+	    FileNamePath(mris->fname, path), 
+	    mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh"); 
     printf("reading optimal splines from %s\n", fname) ;
     mri_splines = MRIread(fname) ;
     if (mri_splines == NULL)
@@ -781,7 +798,7 @@ compute_migration_probabilities(MRI_SURFACE *mris, MRI *mri_intensity, MRI *mri_
   VECTOR_ELT(v_aseg, 4) = 1.0 ;
   VECTOR_ELT(v_intensity, 4) = 1.0 ;
   m_intensity2aseg = MRIgetVoxelToVoxelXform(mri_intensity, mri_aseg) ;
-
+  
   for (nvox_wm = nvox = x = 0 ; x < mri_intensity->width ; x++)
     for (y = 0 ; y < mri_intensity->height ; y++)
       for (z = 0 ; z < mri_intensity->depth ; z++)
@@ -880,7 +897,7 @@ compute_migration_probabilities(MRI_SURFACE *mris, MRI *mri_intensity, MRI *mri_
       {
 	double     init_energy, energy ;
 	VOXEL_LIST *vl_init_spline, *vl_interp ;
-
+	
 	energy = compute_spline_energy(vl_spline, mri_intensity, mri_aseg, mri_wm_dist, gm_mean, energy_flags,
 				       spline_length_penalty, spline_nonwm_penalty, spline_interior_penalty) ;
 	printf("vno %d: final energy = %2.2f\n", vno, energy) ;
@@ -889,7 +906,7 @@ compute_migration_probabilities(MRI_SURFACE *mris, MRI *mri_intensity, MRI *mri_
 	VLSTwriteLabel(vl_interp, "spline.optimal.label", mris, mri_aseg) ;
 	val = compute_spline_energy(vl_spline, mri_intensity, mri_aseg, mri_wm_dist, gm_mean, energy_flags,
 				    spline_length_penalty, spline_nonwm_penalty, spline_interior_penalty) ;
-
+	
 	vl_init_spline = VLSTsplineFit(vl, min_spline_control_points) ;
 	VLSTwriteLabel(vl, "spline.init.label", mris, mri_aseg) ;
 	VLSTwriteLabel(vl_init_spline, "spline.init.cpts.label", mris, mri_aseg) ;
@@ -904,7 +921,7 @@ compute_migration_probabilities(MRI_SURFACE *mris, MRI *mri_intensity, MRI *mri_
     }
     else
       vl_spline = VLSTfromMRI(mri_splines, vno) ;
-    val = compute_spline_energy(vl_spline, mri_intensity, mri_eroded_aseg, mri_wm_dist, wm_mean,
+    val = compute_spline_energy(vl_spline, mri_intensity, mri_eroded_aseg, mri_wm_dist, wm_mean, 
 				SPLINE_ABOVE, spline_length_penalty, 0, spline_interior_penalty) ;
 
 
@@ -917,103 +934,103 @@ compute_migration_probabilities(MRI_SURFACE *mris, MRI *mri_intensity, MRI *mri_
     VLSTfree(&vl_spline) ;
 //    MRIsetVoxVal(mri_pvals, vno, 0, 0, 0, exp(val/100.0)) ;
     MRIsetVoxVal(mri_pvals, vno, 0, 0, 0, val) ;
-
+    
     ROMP_PFLB_end
   }
   ROMP_PF_end
-
+  
   if (read_flag == 0)
   {
     if (randomize_data)
-      sprintf(fname, "%s/%s.splines.rand.mgz",
-	      FileNamePath(mris->fname, path),
-	      mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh");
+      sprintf(fname, "%s/%s.splines.rand.mgz", 
+	      FileNamePath(mris->fname, path), 
+	      mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh"); 
     else
-      sprintf(fname, "%s/%s.splines.mgz",
-	      FileNamePath(mris->fname, path),
-	      mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh");
+      sprintf(fname, "%s/%s.splines.mgz", 
+	      FileNamePath(mris->fname, path), 
+	      mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh"); 
     printf("writing optimal splines to %s\n", fname) ;
     MRIwrite(mri_splines, fname) ;
 
     if (randomize_data)
-      sprintf(fname, "%s/%s.entropy.rand.mgz",
-	      FileNamePath(mris->fname, path),
-	      mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh");
+      sprintf(fname, "%s/%s.entropy.rand.mgz", 
+	      FileNamePath(mris->fname, path), 
+	      mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh"); 
     else
-      sprintf(fname, "%s/%s.entropy.mgz",
-	      FileNamePath(mris->fname, path),
-	      mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh");
+      sprintf(fname, "%s/%s.entropy.mgz", 
+	      FileNamePath(mris->fname, path), 
+	      mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh"); 
 
     printf("writing entropies to to %s\n", fname) ;
     MRIwrite(mri_entropy, fname) ;
     if (randomize_data)
-      sprintf(fname, "%s/%s.posterior.rand.mgz",
-	      FileNamePath(mris->fname, path),
-	      mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh");
+      sprintf(fname, "%s/%s.posterior.rand.mgz", 
+	      FileNamePath(mris->fname, path), 
+	      mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh"); 
     else
-      sprintf(fname, "%s/%s.posterior.mgz",
-	      FileNamePath(mris->fname, path),
-	      mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh");
+      sprintf(fname, "%s/%s.posterior.mgz", 
+	      FileNamePath(mris->fname, path), 
+	      mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh"); 
     printf("writing integrated posterior to %s\n", fname) ;
     MRIwrite(mri_total_posterior, fname) ;
   }
   else    // read previously computed data in
   {
     if (randomize_data)
-      sprintf(fname, "%s/%s.splines.rand.mgz",
-	      FileNamePath(mris->fname, path),
-	      mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh");
+      sprintf(fname, "%s/%s.splines.rand.mgz", 
+	      FileNamePath(mris->fname, path), 
+	      mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh"); 
     else
-      sprintf(fname, "%s/%s.splines.mgz",
-	      FileNamePath(mris->fname, path),
-	      mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh");
+      sprintf(fname, "%s/%s.splines.mgz", 
+	      FileNamePath(mris->fname, path), 
+	      mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh"); 
     printf("reading optimal splines from %s\n", fname) ;
     mri_splines = MRIread(fname) ;
 
     if (randomize_data)
-      sprintf(fname, "%s/%s.entropy.rand.mgz",
-	      FileNamePath(mris->fname, path),
-	      mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh");
+      sprintf(fname, "%s/%s.entropy.rand.mgz", 
+	      FileNamePath(mris->fname, path), 
+	      mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh"); 
     else
-      sprintf(fname, "%s/%s.entropy.mgz",
-	      FileNamePath(mris->fname, path),
-	      mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh");
+      sprintf(fname, "%s/%s.entropy.mgz", 
+	      FileNamePath(mris->fname, path), 
+	      mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh"); 
 
     printf("reading entropies from to %s\n", fname) ;
     mri_entropy = MRIread(fname) ;
     if (randomize_data)
-      sprintf(fname, "%s/%s.posterior.rand.mgz",
-	      FileNamePath(mris->fname, path),
-	      mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh");
+      sprintf(fname, "%s/%s.posterior.rand.mgz", 
+	      FileNamePath(mris->fname, path), 
+	      mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh"); 
     else
-      sprintf(fname, "%s/%s.posterior.mgz",
-	      FileNamePath(mris->fname, path),
-	      mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh");
+      sprintf(fname, "%s/%s.posterior.mgz", 
+	      FileNamePath(mris->fname, path), 
+	      mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh"); 
     printf("reading integrated posterior from %s\n", fname) ;
     mri_total_posterior = MRIread(fname) ;
 
   }
   mri_posterior_on_splines = compute_posterior_on_paths(mris, mri_splines, mri_total_posterior, mri_aseg,NULL) ;
   if (randomize_data)
-    sprintf(fname, "%s/%s.spline_posterior.rand.mgz",
-	    FileNamePath(mris->fname, path),
-	    mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh");
+    sprintf(fname, "%s/%s.spline_posterior.rand.mgz", 
+	    FileNamePath(mris->fname, path), 
+	    mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh"); 
   else
-    sprintf(fname, "%s/%s.spline_posterior.mgz",
-	    FileNamePath(mris->fname, path),
-	    mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh");
+    sprintf(fname, "%s/%s.spline_posterior.mgz", 
+	    FileNamePath(mris->fname, path), 
+	    mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh"); 
   printf("writing posterior projected onto optimal splines to %s\n", fname) ;
   MRIwrite(mri_posterior_on_splines, fname) ;
 
   mri_filtered_posterior_on_spline = compute_filtered_posterior_on_paths(mris, mri_splines, mri_total_posterior, mri_aseg,NULL) ;
   if (randomize_data)
-    sprintf(fname, "%s/%s.spline_posterior.filtered.rand.mgz",
-	    FileNamePath(mris->fname, path),
-	    mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh");
+    sprintf(fname, "%s/%s.spline_posterior.filtered.rand.mgz", 
+	    FileNamePath(mris->fname, path), 
+	    mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh"); 
   else
-    sprintf(fname, "%s/%s.spline_posterior.filtered.mgz",
-	    FileNamePath(mris->fname, path),
-	    mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh");
+    sprintf(fname, "%s/%s.spline_posterior.filtered.mgz", 
+	    FileNamePath(mris->fname, path), 
+	    mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh"); 
   printf("writing posterior projected and filtered onto optimal splines  to %s\n", fname) ;
   MRIwrite(mri_filtered_posterior_on_spline, fname) ;
 
@@ -1082,7 +1099,7 @@ compute_posterior_on_paths(MRI_SURFACE *mris, MRI *mri_splines, MRI *mri_total_p
 #define ANGLE_STEP RADIANS(10)
 
 static MRI *
-compute_filtered_posterior_on_paths(MRI_SURFACE *mris, MRI *mri_splines, MRI *mri_total_posterior, MRI *mri_aseg, MRI *mri_filtered_posterior_on_spline)
+compute_filtered_posterior_on_paths(MRI_SURFACE *mris, MRI *mri_splines, MRI *mri_total_posterior, MRI *mri_aseg, MRI *mri_filtered_posterior_on_spline) 
 {
   int         vno, nm1, np1, nsamples, n, nspline, outside_bad ;
   VOXEL_LIST  *vl_spline, *vl ;
@@ -1194,16 +1211,15 @@ static VOXEL_LIST *compute_spline_initialization(
     DiagBreak();
   vl = compute_path_to_label(mri_aseg, mri_wm, mri_dist_grad, mri_label1_dist,
                              label1, label2);
-  if (vl == nullptr || vl->nvox < MIN_SPLINE_CONTROL_POINTS) {
+  if (vl == NULL || vl->nvox < MIN_SPLINE_CONTROL_POINTS) {
     if (vl)
       VLSTfree(&vl);
-    return (nullptr);
+    return (NULL);
   }
   vl_spline = compute_optimal_number_of_control_points(
       mri_aseg, vl, min_spline_control_points, ALLOWABLE_SPLINE_DIST);
 
-  // use more control points to give spline flexibility to minimize energy
-  // functional
+  // use more control points to give spline flexibility to minimize energy functional
   vl_interp = VLSTinterpolate(vl_spline, 1);
   vl_init_spline =
       VLSTsplineFit(vl_interp, MIN(2 * vl_spline->nvox, vl_interp->nvox));
@@ -1218,10 +1234,10 @@ static VOXEL_LIST *compute_spline_initialization(
   if (write_diags || (label1 == 2010 && label2 == 1008)) // YYYY
   {
     printf("writing v[123].label\n");
-    VLSTwriteLabel(vl, "vl1.label", nullptr, mri_aseg);
-    VLSTwriteLabel(vl_spline, "vl2.label", nullptr, mri_aseg);
-    VLSTwriteLabel(vl_optimal, "vl3.label", nullptr, mri_aseg);
-    VLSTwriteLabel(vl_optimal_final, "vl4.label", nullptr, mri_aseg);
+    VLSTwriteLabel(vl, "vl1.label", 0L, mri_aseg);
+    VLSTwriteLabel(vl_spline, "vl2.label", 0L, mri_aseg);
+    VLSTwriteLabel(vl_optimal, "vl3.label", 0L, mri_aseg);
+    VLSTwriteLabel(vl_optimal_final, "vl4.label", 0L, mri_aseg);
     DiagBreak();
   }
 
@@ -1234,10 +1250,10 @@ static VOXEL_LIST *compute_spline_initialization(
   return (vl_optimal_final);
 }
 
-// static double momentum = .5 ;
+//static double momentum = .5 ;
 /*
-  starting for the centroid of label2, march down gradient of label1 distance
-  transform, staying in the interior of the WM, until we reach label1
+  starting for the centroid of label2, march down gradient of label1 distance transform, staying
+  in the interior of the WM, until we reach label1
 */
 #define MAX_PARCEL_DIST 200
 static VOXEL_LIST *compute_path_to_label(MRI *mri_aseg, MRI *mri_wm,
@@ -1251,7 +1267,7 @@ static VOXEL_LIST *compute_path_to_label(MRI *mri_aseg, MRI *mri_wm,
   MRI *mri_path;
   char fname[STRLEN];
 
-  mri_path = MRIclone(mri_aseg, nullptr);
+  mri_path = MRIclone(mri_aseg, NULL);
 
   step = mri_dist_grad->xsize / 2;
 
@@ -1307,8 +1323,7 @@ static VOXEL_LIST *compute_path_to_label(MRI *mri_aseg, MRI *mri_wm,
       }
   //  printf("initial spline anchor set to (%d, %d, %d)\n", xm, ym, zm) ;
 
-  // move downwards along distance transform direction moving through
-  // appropriate labels until we get to dest
+  // move downwards along distance transform direction moving through appropriate labels until we get to dest
   xv = xm;
   yv = ym;
   zv = zm;
@@ -1321,8 +1336,7 @@ static VOXEL_LIST *compute_path_to_label(MRI *mri_aseg, MRI *mri_wm,
     if (vl->nvox == Gdiag_no)
       DiagBreak();
 
-    // examine all 6-connected voxels except where we came from to see what
-    // direction to move in
+    // examine all 6-connected voxels except where we came from to see what direction to move in
     min_dist      = mri_aseg->width + mri_aseg->height + mri_aseg->depth;
     current_label = MRIgetVoxVal(mri_aseg, xv, yv, zv, 0);
     for (found = 0, xk = -1; xk <= 1; xk++)
@@ -1335,8 +1349,7 @@ static VOXEL_LIST *compute_path_to_label(MRI *mri_aseg, MRI *mri_wm,
           zi    = mri_dist->zi[(zv + zk)];
           dist  = MRIgetVoxVal(mri_dist, xi, yi, zi, 0);
           label = MRIgetVoxVal(mri_aseg, xi, yi, zi, 0);
-          // find the smallest distance that we haven't visited with a feasible
-          // label
+          // find the smallest distance that we haven't visited with a feasible label
           if ((label == label1 &&
                current_label !=
                    label2) || // found target label after leaving source label
@@ -1371,16 +1384,15 @@ static VOXEL_LIST *compute_path_to_label(MRI *mri_aseg, MRI *mri_wm,
           MRIclear(mri_path);
         restarted++;
         if (restarted > 3)
-          return (nullptr); // fail
+          return (NULL); // fail
       }
       continue;
 
-      //      printf("!!!!!!!!!!!!!!  path to label %d from label %d step could
-      //      not be found !!!!!!!!!!!\n", label1, label2) ;
+      //      printf("!!!!!!!!!!!!!!  path to label %d from label %d step could not be found !!!!!!!!!!!\n", label1, label2) ;
       if (write_diags) {
         MRIwrite(mri_path, "p.mgz");
         MRIwrite(mri_dist, "d.mgz");
-        VLSTwriteLabel(vl, "vl.label", nullptr, mri_aseg);
+        VLSTwriteLabel(vl, "vl.label", NULL, mri_aseg);
       }
 
       printf("vl: (%d, %d, %d) --> (%d, %d, %d)\n", vl->xi[0], vl->yi[0],
@@ -1400,7 +1412,7 @@ static VOXEL_LIST *compute_path_to_label(MRI *mri_aseg, MRI *mri_wm,
       if (write_diags) {
         MRIwrite(mri_path, "p.mgz");
         MRIwrite(mri_dist, "d.mgz");
-        VLSTwriteLabel(vl, "vl.label", nullptr, mri_aseg);
+        VLSTwriteLabel(vl, "vl.label", NULL, mri_aseg);
       }
 
       printf("vl: (%d, %d, %d) --> (%d, %d, %d)\n", vl->xi[0], vl->yi[0],
@@ -1441,7 +1453,7 @@ static VOXEL_LIST *compute_path_to_label(MRI *mri_aseg, MRI *mri_wm,
     MRIwrite(mri_path, fname);
     sprintf(fname, "path.%d.%d.label", label1, label2);
     printf("writing path to %s\n", fname);
-    VLSTwriteLabel(vl, fname, nullptr, mri_aseg);
+    VLSTwriteLabel(vl, fname, NULL, mri_aseg);
   }
   MRIfree(&mri_path);
   return (vl);
@@ -1451,8 +1463,8 @@ static VOXEL_LIST *compute_optimal_number_of_control_points(
     MRI *mri_aseg, VOXEL_LIST *vl, int min_points, double allowable_dist) {
   int         ncontrol, max_points;
   double      dist;
-  MRI *       mri_dist  = nullptr;
-  VOXEL_LIST *vl_spline = nullptr, *vl_spline_list;
+  MRI *       mri_dist  = NULL;
+  VOXEL_LIST *vl_spline = NULL, *vl_spline_list;
 
   vl->mri    = mri_aseg;
   max_points = MIN(10 * min_points, vl->nvox);
@@ -1494,7 +1506,7 @@ static VOXEL_LIST *find_optimal_spline(VOXEL_LIST *vl, MRI *mri_aseg,
                        "find_optimal_spline: input voxlist is too short (%d)",
                        vl->nvox));
 
-  vl_spline_optimal = VLSTcopy(vl, nullptr, 0, vl->nvox);
+  vl_spline_optimal = VLSTcopy(vl, NULL, 0, vl->nvox);
   best_energy =
       compute_spline_energy(vl_spline_optimal, mri_wm_dist, energy_flags,
                             spline_length_penalty, spline_interior_penalty);
@@ -1503,22 +1515,21 @@ static VOXEL_LIST *find_optimal_spline(VOXEL_LIST *vl, MRI *mri_aseg,
     VOXEL_LIST *vl_interp = VLSTinterpolate(vl_spline_optimal, .1);
 
     sprintf(fname, "spline.000.label");
-    VLSTwriteLabel(vl_interp, fname, nullptr, mri_aseg);
+    VLSTwriteLabel(vl_interp, fname, NULL, mri_aseg);
     sprintf(fname, "spline.000.cpts.label");
-    VLSTwriteLabel(vl_spline_optimal, fname, nullptr, mri_aseg);
+    VLSTwriteLabel(vl_spline_optimal, fname, NULL, mri_aseg);
     VLSTfree(&vl_interp);
   }
 
   vl_spline_current =
-      VLSTcopy(vl_spline_optimal, nullptr, 0, vl_spline_optimal->nvox);
+      VLSTcopy(vl_spline_optimal, NULL, 0, vl_spline_optimal->nvox);
   current_energy = best_energy;
   for (n = 0; n < mcmc_samples; n++) {
-    cnum = (int)randomNumber(1.0, vl_spline_current->nvox - .001);
-    vl_spline =
-        VLSTcopy(vl_spline_current, nullptr, 0, vl_spline_current->nvox);
-    xn = proposal_sigma * PDFgaussian();
-    yn = proposal_sigma * PDFgaussian();
-    zn = proposal_sigma * PDFgaussian();
+    cnum      = (int)randomNumber(1.0, vl_spline_current->nvox - .001);
+    vl_spline = VLSTcopy(vl_spline_current, NULL, 0, vl_spline_current->nvox);
+    xn        = proposal_sigma * PDFgaussian();
+    yn        = proposal_sigma * PDFgaussian();
+    zn        = proposal_sigma * PDFgaussian();
 
 #if 0
     // project out tangential component
@@ -1582,7 +1593,7 @@ static VOXEL_LIST *find_optimal_spline(VOXEL_LIST *vl, MRI *mri_aseg,
         best_energy = energy;
         VLSTfree(&vl_spline_optimal);
         vl_spline_optimal =
-            VLSTcopy(vl_spline_current, nullptr, 0, vl_spline_current->nvox);
+            VLSTcopy(vl_spline_current, NULL, 0, vl_spline_current->nvox);
         if (DIAG_VERBOSE_ON) {
           char        fname[STRLEN];
           VOXEL_LIST *vl_interp = VLSTinterpolate(vl_spline_optimal, 1);
@@ -1591,9 +1602,9 @@ static VOXEL_LIST *find_optimal_spline(VOXEL_LIST *vl, MRI *mri_aseg,
           printf("%d: new optimal energy %2.2f, perturbation %d: (%2.1f, "
                  "%2.1f, %2.1f)\n",
                  n, best_energy, cnum, xn, yn, zn);
-          VLSTwriteLabel(vl_interp, fname, nullptr, mri_aseg);
+          VLSTwriteLabel(vl_interp, fname, NULL, mri_aseg);
           sprintf(fname, "spline.%3.3d.cpts.label", n + 1);
-          VLSTwriteLabel(vl_spline_optimal, fname, nullptr, mri_aseg);
+          VLSTwriteLabel(vl_spline_optimal, fname, NULL, mri_aseg);
           VLSTfree(&vl_interp);
         }
       }

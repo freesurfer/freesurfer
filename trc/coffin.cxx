@@ -2652,10 +2652,11 @@ bool Coffin::ProposePathFull() {
     if (!IsInMask(cpoint)) {
       *isrej = true;
 
-      if (mDebug)
+      if (mDebug) {
         mLog << "Reject due to control point " << isrej - mRejectControl.begin()
              << " off mask at " << cpoint[0] << " " << cpoint[1] << " "
              << cpoint[2] << endl;
+      }
       LogObjectiveNaN(0);
     }
 

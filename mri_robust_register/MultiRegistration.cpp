@@ -2,7 +2,7 @@
  * @brief A class to handle registration of multiple files
  *
  * MultiRegistration is a class to compute a robust registration
- *  of several images. It makes use routines from Registration
+ *  of several images. It makes use routines from Registration 
  *
  * written by Martin Reuter
  *  Aug. 12th ,2009
@@ -489,7 +489,7 @@ bool MultiRegistration::computeTemplate(int itmax, double eps, int iterate,
     return true;
   }
 
-  strncpy(mri_mean->fname, (outdir + "template-it0.mgz").c_str(), STRLEN);
+  strncpy(mri_mean->fname, (outdir + "template-it0.mgz").c_str(), STRLEN - 1);
   if (debug) {
     cout << "debug: saving template-it0.mgz" << endl;
     MRIwrite(mri_mean, (outdir + "template-it0.mgz").c_str());
@@ -956,7 +956,7 @@ bool MultiRegistration::halfWayTemplate(int maxres, int iterate, double epsit,
 
 /** Flips/reorders images to be in LIA orientation (conform default)
    (future: maybe use the orientation of most of the inputs )
-   then computes average cosine matrix.
+   then computes average cosine matrix. 
    mri_mov images need to be set.
  */
 vnl_matrix_fixed<double, 3, 3> MultiRegistration::getAverageCosines() {
@@ -1056,11 +1056,10 @@ vnl_matrix_fixed<double, 3, 3> MultiRegistration::getAverageCosines() {
 
       //reorder = true;
       if (abs(xd) + abs(yd) + abs(zd) != 6) {
-        std::cout << "WARNING: reorder not clear ..." << std::endl;
-        vnl_matlab_print(std::cout, v2v, "v2v", vnl_matlab_print_format_long);
-        std::cout << std::endl;
-        std::cout << " xd: " << xd << " yd: " << yd << " zd: " << zd
-                  << std::endl;
+        cout << "WARNING: reorder not clear ..." << endl;
+        vnl_matlab_print(cout, v2v, "v2v", vnl_matlab_print_format_long);
+        cout << endl;
+        cout << " xd: " << xd << " yd: " << yd << " zd: " << zd << endl;
         if (vnl_determinant(v2v) < 0) { // cannot run sqrt later if det < 0
           cout << "ERROR: vox2vox det: " << vnl_determinant(v2v) << " < 0"
                << endl;
@@ -1245,7 +1244,7 @@ MRI *MultiRegistration::createTemplateGeo() {
     If fixtp is true, it stops there and creates average in that tp space.
     Else it computes average rotation and translation,
     constructs average template geometry and creates
-    LTA's to that mid space.
+    LTA's to that mid space. 
     Uses mri_mov and other parameters (e.g. satit, iscale, crascenter)
 */
 bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres,
@@ -1338,13 +1337,13 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres,
     if (i == 1) {
       centroid_temp += R.getCentroidT();
       if (debug) {
-        vnl_matlab_print(std::cout, R.getCentroidT(), "CentroidT",
+        vnl_matlab_print(cout, R.getCentroidT(), "CentroidT",
                          vnl_matlab_print_format_long);
         std::cout << std::endl;
       }
     }
     if (debug) {
-      vnl_matlab_print(std::cout, R.getCentroidSinT(), "CentroidSinT",
+      vnl_matlab_print(cout, R.getCentroidSinT(), "CentroidSinT",
                        vnl_matlab_print_format_long);
       std::cout << std::endl;
     }
@@ -1356,8 +1355,7 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres,
 
   centroid = (1.0 / nin) * centroid;
   if (debug) {
-    vnl_matlab_print(std::cout, centroid, "Centroid",
-                     vnl_matlab_print_format_long);
+    vnl_matlab_print(cout, centroid, "Centroid", vnl_matlab_print_format_long);
     std::cout << std::endl;
   }
 
@@ -1458,7 +1456,7 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres,
   //average translation
   meant = (1.0 / nin) * meant;
   if (debug) {
-    vnl_matlab_print(std::cout, meant, "meant", vnl_matlab_print_format_long);
+    vnl_matlab_print(cout, meant, "meant", vnl_matlab_print_format_long);
     std::cout << std::endl;
   }
 
@@ -1470,7 +1468,7 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres,
     meanr = MyMatrix::GeometricMean(mras3);
 
   if (debug) {
-    vnl_matlab_print(std::cout, meanr, "meanr", vnl_matlab_print_format_long);
+    vnl_matlab_print(cout, meanr, "meanr", vnl_matlab_print_format_long);
     std::cout << std::endl;
 
     cout << " Determinant( meanr ) : " << vnl_determinant(meanr) << endl
@@ -1479,12 +1477,12 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres,
     vnl_matrix<double>      Rot, Shear;
     vnl_diag_matrix<double> Scale;
     MyMatrix::Polar2Decomposition(meanr, Rot, Shear, Scale);
-    vnl_matlab_print(std::cout, Rot, "Rot", vnl_matlab_print_format_long);
-    std::cout << std::endl;
-    vnl_matlab_print(std::cout, Shear, "Shear", vnl_matlab_print_format_long);
-    std::cout << std::endl;
-    vnl_matlab_print(std::cout, Scale, "Scale", vnl_matlab_print_format_long);
-    std::cout << std::endl;
+    vnl_matlab_print(cout, Rot, "Rot", vnl_matlab_print_format_long);
+    cout << endl;
+    vnl_matlab_print(cout, Shear, "Shear", vnl_matlab_print_format_long);
+    cout << endl;
+    vnl_matlab_print(cout, Scale, "Scale", vnl_matlab_print_format_long);
+    cout << endl;
   }
 
   // put back together to matrix in homogeneous coords
@@ -1566,11 +1564,11 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres,
         std::cerr << " Rotation should not scale ( " << fnorm1 << " )"
                   << std::endl;
         std::cerr << " Debug Info: " << std::endl;
-        vnl_matlab_print(std::cerr, A, "A", vnl_matlab_print_format_long);
+        vnl_matlab_print(cerr, A, "A", vnl_matlab_print_format_long);
         std::cerr << std::endl;
-        vnl_matlab_print(std::cerr, R, "R", vnl_matlab_print_format_long);
+        vnl_matlab_print(cerr, R, "R", vnl_matlab_print_format_long);
         std::cerr << std::endl;
-        vnl_matlab_print(std::cerr, S, "S", vnl_matlab_print_format_long);
+        vnl_matlab_print(cerr, S, "S", vnl_matlab_print_format_long);
         std::cerr << std::endl;
         std::cerr
             << " Make sure input voxel sizes are identical for all images!"
@@ -1611,7 +1609,7 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres,
         ErrorExit(ERROR_OUT_OF_BOUNDS,
             "Internal InitialXforms Error:  produced reflection.\n");
 
-//         double eps = 0.0000001;
+//         double eps = 0.0000001;        
       double fnorm1 = (S - I).frobenius_norm();
       cout << "   mapping back to rot, err = " << fnorm1 << endl;
 //         if (fnorm1 > eps)
@@ -1622,8 +1620,8 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres,
 //           vnl_matlab_print(vcl_cerr,A,"A",vnl_matlab_print_format_long);std::cerr << std::endl;
 //           vnl_matlab_print(vcl_cerr,R,"R",vnl_matlab_print_format_long);std::cerr << std::endl;
 //           vnl_matlab_print(vcl_cerr,S,"S",vnl_matlab_print_format_long);std::cerr << std::endl;
-//
-//
+//           
+//         
 //           ErrorExit(ERROR_OUT_OF_BOUNDS, "Internal Error: Sqrt of Rotation should not scale.\n") ;
 //         }
 
@@ -1688,7 +1686,7 @@ bool MultiRegistration::writeMean(const std::string &mean) {
     cout << " ERROR: No average exists! Skipping output." << endl;
     return false;
   }
-  strncpy(mri_mean->fname, mean.c_str(), STRLEN);
+  strncpy(mri_mean->fname, mean.c_str(), STRLEN - 1);
   return (MRIwrite(mri_mean, mean.c_str()) == 0);
 }
 
@@ -1701,7 +1699,7 @@ bool MultiRegistration::writeConformMean(const std::string &mean) {
   // create conform mean
   MRI *mri_cmean = averageConformSet(0);
 
-  strncpy(mri_cmean->fname, mean.c_str(), STRLEN);
+  strncpy(mri_cmean->fname, mean.c_str(), STRLEN - 1);
   int ok = MRIwrite(mri_cmean, mean.c_str());
   return (ok == 0);
 }
@@ -1721,8 +1719,8 @@ bool MultiRegistration::writeLTAs(const std::vector<std::string> &nltas,
     } else {
       error += (LTAchangeType(ltas[i], LINEAR_RAS_TO_RAS) == NULL);
     }
-    strncpy(ltas[i]->xforms[0].dst.fname, mean.c_str(), STRLEN);
-    strncpy(ltas[i]->xforms[0].src.fname, mov[i].c_str(), STRLEN);
+    strncpy(ltas[i]->xforms[0].dst.fname, mean.c_str(), STRLEN - 1);
+    strncpy(ltas[i]->xforms[0].src.fname, mov[i].c_str(), STRLEN - 1);
     LTAwriteEx(ltas[i], nltas[i].c_str());
 
     vnl_matrix<double> fMv2v = MyMatrix::LTA2VOXmatrix(ltas[i]);
@@ -1869,7 +1867,7 @@ bool MultiRegistration::writeWeights(const std::vector<std::string> &nweights,
 
 /*!
  \fn MRI* averageSet(const vector < MRI * >& set, MRI* mean, int method, double sat)
- \brief Averages the passed and aligned volumes depending on method
+ \brief Averages the passed and aligned volumes depending on method 
  \param set vector of movable volumes
  \param mean  output of mean volume
  \param method  0 = mean, 1 = median, 2 = tukey biweight (testing)

@@ -1,9 +1,8 @@
 /**
  * @brief extract volume patches from a surface and a label file
  *
- * Extract volumetric patches around each labeled vertex and the corresponding
- * vertex in the other hemi
- *
+ * Extract volumetric patches around each labeled vertex and the corresponding vertex in the other hemi
+ * 
  */
 /*
  * Original Author: Bruce Fischl
@@ -20,9 +19,21 @@
  *
  */
 
+#include <ctype.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+#include "const.h"
 #include "diag.h"
+#include "error.h"
+#include "fsinit.h"
+#include "macros.h"
+#include "mri.h"
 #include "mrisurf.h"
+#include "proto.h"
 #include "timer.h"
+#include "utils.h"
 #include "version.h"
 
 int        main(int argc, char *argv[]);
@@ -64,7 +75,7 @@ int main(int argc, char *argv[]) {
 
   if (strlen(sdir) == 0) {
     char *env = getenv("SUBJECTS_DIR");
-    if (env == nullptr)
+    if (env == NULL)
       ErrorExit(ERROR_UNSUPPORTED,
                 "%s: SUBJECTS_DIR must be specified on command line with -sdir "
                 "or in env",
@@ -74,7 +85,7 @@ int main(int argc, char *argv[]) {
   Progname = argv[0];
   FSinit();
   ErrorInit(NULL, NULL, NULL);
-  DiagInit(nullptr, nullptr, nullptr);
+  DiagInit(NULL, NULL, NULL);
 
   start.reset();
   setRandomSeed(-1L);
@@ -93,12 +104,22 @@ int main(int argc, char *argv[]) {
 
   printf("processing subject %s hemi %s, label %s and writing results to %s\n",
          subject, hemi_name, label_name, out_dir);
-  sprintf(fname, "%s/%s/surf/%s.%s", sdir, subject, hemi_name, surf_name);
+  int req = snprintf(fname, STRLEN, "%s/%s/surf/%s.%s", sdir, subject,
+                     hemi_name, surf_name);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
   mris = MRISread(fname);
   if (!mris)
     ErrorExit(ERROR_NOFILE, "%s: MRISread(%s) failed", Progname, fname);
 
-  sprintf(fname, "%s/%s/surf/%s.%s", sdir, subject, ohemi_name, surf_name);
+  req = snprintf(fname, STRLEN, "%s/%s/surf/%s.%s", sdir, subject, ohemi_name,
+                 surf_name);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
   mris_ohemi = MRISread(fname);
   if (!mris_ohemi)
     ErrorExit(ERROR_NOFILE, "%s: MRISread(%s) failed", Progname, fname);
@@ -119,20 +140,32 @@ int main(int argc, char *argv[]) {
   MRIScomputeSecondFundamentalForm(mris);
   MRIScomputeSecondFundamentalForm(mris_ohemi);
 
-  sprintf(fname, "%s/%s/mri/%s", sdir, subject, vol_name);
+  req = snprintf(fname, STRLEN, "%s/%s/mri/%s", sdir, subject, vol_name);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
   mri_norm = MRIread(fname);
-  if (mri_norm == nullptr)
+  if (mri_norm == NULL)
     ErrorExit(ERROR_NOFILE, "%s: MRIread(%s) failed", Progname, fname);
 
-  sprintf(fname, "%s/%s/mri/%s", sdir, subject, ovol_name);
+  req = snprintf(fname, STRLEN, "%s/%s/mri/%s", sdir, subject, ovol_name);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
   mri_onorm = MRIread(fname);
-  if (mri_onorm == nullptr)
+  if (mri_onorm == NULL)
     ErrorExit(ERROR_NOFILE, "%s: MRIread(%s) failed", Progname, fname);
 
-  sprintf(fname, "%s/%s/label/%s.%s.label", sdir, subject, hemi_name,
-          label_name);
+  req = snprintf(fname, STRLEN, "%s/%s/label/%s.%s.label", sdir, subject,
+                 hemi_name, label_name);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
   area_tmp = LabelRead(subject, fname);
-  if (area_tmp == nullptr)
+  if (area_tmp == NULL)
     ErrorExit(ERROR_NOFILE, "%s: LabelRead(%s) failed", Progname, fname);
 
   LabelUnassign(area_tmp);
@@ -219,10 +252,20 @@ int main(int argc, char *argv[]) {
   }
 
   FileNameRemoveExtension(FileNameOnly(vol_name, fname_only), fname_only);
-  sprintf(fname, "%s/%s.patches.%s.mgz", out_dir, hemi_name, fname_only);
+  req = snprintf(fname, STRLEN, "%s/%s.patches.%s.mgz", out_dir, hemi_name,
+                 fname_only);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
   printf("writing output file %s\n", fname);
   MRIwrite(mri_patches, fname);
-  sprintf(fname, "%s/%s.labels.%s.mgz", out_dir, hemi_name, fname_only);
+  req = snprintf(fname, STRLEN, "%s/%s.labels.%s.mgz", out_dir, hemi_name,
+                 fname_only);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
   printf("writing output file %s\n", fname);
   MRIwrite(mri_labels, fname);
 
@@ -312,11 +355,21 @@ int main(int argc, char *argv[]) {
   }
 
   FileNameRemoveExtension(FileNameOnly(ovol_name, fname_only), fname_only);
-  sprintf(fname, "%s/%s.patches.%s.mgz", out_dir, ohemi_name, fname_only);
+  req = snprintf(fname, STRLEN, "%s/%s.patches.%s.mgz", out_dir, ohemi_name,
+                 fname_only);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
   printf("writing output file with %d patches to %s\n", mri_patches->nframes,
          fname);
   MRIwrite(mri_patches, fname);
-  sprintf(fname, "%s/%s.labels.%s.mgz", out_dir, ohemi_name, fname_only);
+  req = snprintf(fname, STRLEN, "%s/%s.labels.%s.mgz", out_dir, ohemi_name,
+                 fname_only);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
   printf("writing output file %s\n", fname);
   MRIwrite(mri_labels, fname);
 
@@ -446,8 +499,7 @@ MRI *MRISextractVolumeWindow(MRI_SURFACE *mris, MRI *mri, int wsize, int vno,
   mri_vol = MRIalloc(wsize, wsize, wsize, MRI_FLOAT);
 
   // form a window that has the vertex centered 2/3 of the way down so that more
-  // of the window extends 'outwards' (in the surface normal direction), than
-  // 'inwards
+  // of the window extends 'outwards' (in the surface normal direction), than 'inwards
   whalf = (wsize - 1) / 2.0;
   x0    = v->x;
   y0    = v->y;

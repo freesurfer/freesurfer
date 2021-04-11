@@ -43,6 +43,7 @@ set DoDefects = 0;
 set SegOutline = 0;
 set mainmin = ()
 set mainmax = ()
+set annot = ()
 
 set tmpdir = ();
 set cleanup = 1;
@@ -85,7 +86,7 @@ if(! $UseTkMedit) then
   if($#auxvol) set cmd = ($cmd -v $auxvol)
   if($#segvol) set cmd = ($cmd -v "$segvol":"opacity=$segopacity":"colormap=lut":"outline=$SegOutline")
   if($#segcolor) set cmd = ($cmd":lut=$segcolor")
-  if($#auxsegvol) set cmd = ($cmd -v "$auxsegvol":"lut=$auxsegcolor":"opacity=$segopacity":"colormap=lut")
+  if($#auxsegvol) set cmd = ($cmd -v "$auxsegvol":"lut=$auxsegcolor":"opacity=$segopacity":"colormap=lut":"outline=$SegOutline")
   @ nth = 0;
   foreach v ($segvollist) 
     @ nth = $nth + 1;
@@ -123,7 +124,16 @@ if(! $UseTkMedit) then
       if($surflist0[$nth] == lh.orig.nofix) set ov = ":overlay=$sdir/lh.defect_labels:edgecolor=overlay"
       if($surflist0[$nth] == rh.orig.nofix) set ov = ":overlay=$sdir/rh.defect_labels:edgecolor=overlay"
     endif
-    set cmd = ($cmd --surface $surf":"edgecolor=$surfcolor[$nth]$ov)
+    set annotarg = ()
+    if($#annot) then
+      set surfname = `basename $surf`
+      set hemi = `echo $surfname | cut -c1-2`
+      if($hemi == lh || $hemi == rh) then
+        set annotfile = $SUBJECTS_DIR/$subject/label/$hemi.$annot
+        set annotarg = ":annot=$annotfile":"annot_outline=0"
+      endif   
+    endif
+    set cmd = ($cmd --surface $surf":"edgecolor=$surfcolor[$nth]$ov$annotarg)
   end
   if($#CursorCRS) set cmd = ($cmd -slice $CursorCRS)
   if($CenterCursor) set cmd = ($cmd -cc)
@@ -228,6 +238,19 @@ while( $#argv != 0 )
       endif
       breaksw
 
+    case "-ctab":
+      if($#argv < 1) goto arg1err;
+      set segcolor = $argv[1]; shift
+      set segcolor2 = $segcolor
+      set auxsegcolor = $segcolor
+      breaksw
+
+    case "-no-ctab":
+      set segcolor = ()
+      set segcolor2 = ()
+      set auxsegcolor = ()
+      breaksw
+
     case "-aseg":
       set segvol0 = aseg.mgz
       breaksw
@@ -252,6 +275,15 @@ while( $#argv != 0 )
       if($#argv < 1) goto arg1err;
       set vol = $argv[1];
       set vollist0 = ($vollist0 $vol); shift;
+      breaksw
+
+    case "-annot":
+      if($#argv < 1) goto arg1err;
+      set annot = $argv[1];
+      breaksw
+
+    case "-aparc":
+      set annot = aparc.annot
       breaksw
 
     case "-op":
@@ -400,6 +432,24 @@ while( $#argv != 0 )
       set DoSurfs = 1;
       set surflist0 = ($surflist0 lh.orig.nofix rh.orig.nofix)
       set surfcolor = ($surfcolor cyan cyan)
+      breaksw
+
+    case "-inflated":
+      set DoSurfs = 1;
+      set surflist0 = ($surflist0 lh.inflated rh.inflated)
+      set surfcolor = ($surfcolor cyan cyan)
+      breaksw
+
+    case "-lh-inflated":
+      set DoSurfs = 1;
+      set surflist0 = ($surflist0 lh.inflated)
+      set surfcolor = ($surfcolor cyan)
+      breaksw
+
+    case "-rh-inflated":
+      set DoSurfs = 1;
+      set surflist0 = ($surflist0 rh.inflated)
+      set surfcolor = ($surfcolor cyan)
       breaksw
 
     case "-surfext":  
@@ -639,6 +689,9 @@ usage_exit:
   echo "-pial : load {l,r}h.pial"
   echo "-orig : load {l,r}h.orig"
   echo "-orig.nofix : load {l,r}h.orig.nofix"
+  echo "-inflated : load {l,r}h.inflated (-lh-inflated, -rh-inflated)"
+  echo "-annot annotname : load subject/label/hemi.annotname"
+  echo "-aparc : load subject/label/hemi.aparc.annot"
   echo "-surfext ext : add ext to the name of the surface"
   echo "-seg-outline : bring up segmentation in outline mode"
   echo "-main-minmax min max : set intensity min max on fist volume"

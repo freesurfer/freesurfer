@@ -12,9 +12,21 @@
  *
  */
 
+#include <ctype.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+#include "const.h"
 #include "diag.h"
+#include "error.h"
+#include "macros.h"
+#include "matrix.h"
+#include "mri.h"
 #include "mrisurf.h"
+#include "proto.h"
 #include "timer.h"
+#include "utils.h"
 #include "version.h"
 
 int        main(int argc, char *argv[]);
@@ -58,7 +70,7 @@ int main(int argc, char *argv[]) {
 
   Progname = argv[0];
   ErrorInit(NULL, NULL, NULL);
-  DiagInit(nullptr, nullptr, nullptr);
+  DiagInit(NULL, NULL, NULL);
 
   start.reset();
 
@@ -77,26 +89,31 @@ int main(int argc, char *argv[]) {
   hemi          = argv[2];
   nsubjects     = argc - 4;
   output_prefix = argv[argc - 1];
-  sprintf(fname, "%s/%s/surf/%s.sphere", subjects_dir, avg_subject, hemi);
+  int req       = snprintf(fname, STRLEN, "%s/%s/surf/%s.sphere", subjects_dir,
+                     avg_subject, hemi);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
   mris_avg = MRISread(fname);
-  if (mris_avg == nullptr)
+  if (mris_avg == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not read spherical surface from %s",
               Progname, fname);
 
   nbins      = nint(max_distance - min_distance);
   histograms = (float ***)calloc(mris_avg->nvertices, sizeof(float **));
-  if (histograms == nullptr)
+  if (histograms == NULL)
     ErrorExit(ERROR_NOMEMORY, "%s: could not allocate %d histogram pointers",
               Progname, mris_avg->nvertices);
   for (vno = 0; vno < mris_avg->nvertices; vno++) {
     histograms[vno] = (float **)calloc(nbins + 1, sizeof(float *));
-    if (histograms[vno] == nullptr)
+    if (histograms[vno] == NULL)
       ErrorExit(ERROR_NOMEMORY, "%s: could not allocate histogram bins %d",
                 Progname, vno);
     for (i = 0; i < nbins; i++) {
       histograms[vno][i] =
           (float *)calloc(MAX_SURFACE_SCALE * nbins + 1, sizeof(float));
-      if (histograms[vno][i] == nullptr)
+      if (histograms[vno][i] == NULL)
         ErrorExit(ERROR_NOMEMORY, "%s: could not allocate histogram bins %d",
                   Progname, vno);
     }
@@ -108,16 +125,31 @@ int main(int argc, char *argv[]) {
   for (i = 0; i < nsubjects; i++) {
     subject = argv[i + 3];
     printf("processing subject %s: %d of %d...\n", subject, i + 1, nsubjects);
-    sprintf(fname, "%s/%s/surf/%s.sphere.reg", subjects_dir, subject, hemi);
+    int req = snprintf(fname, STRLEN, "%s/%s/surf/%s.sphere.reg", subjects_dir,
+                       subject, hemi);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
     mris = MRISread(fname);
-    if (mris == nullptr)
+    if (mris == NULL)
       ErrorExit(ERROR_NOFILE, "%s: could not read spherical surface from %s",
                 Progname, fname);
-    sprintf(fname, "%s/%s/surf/%s.sphere", subjects_dir, subject, hemi);
+    req = snprintf(fname, STRLEN, "%s/%s/surf/%s.sphere", subjects_dir, subject,
+                   hemi);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
     if (MRISreadCanonicalCoordinates(mris, fname) != NO_ERROR)
       ErrorExit(ERROR_NOFILE, "%s: could not read spherical surface from %s",
                 Progname, fname);
-    sprintf(fname, "%s/%s/surf/%s.white", subjects_dir, subject, hemi);
+    req = snprintf(fname, STRLEN, "%s/%s/surf/%s.white", subjects_dir, subject,
+                   hemi);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
     if (MRISreadOriginalProperties(mris, fname) != NO_ERROR)
       ErrorExit(ERROR_NOFILE, "%s: could not read white surface from %s",
                 Progname, fname);
@@ -131,7 +163,11 @@ int main(int argc, char *argv[]) {
   printf("writing log files with prefix %s...\n", output_prefix);
   for (vno = 0; vno < mris_avg->nvertices; vno++) {
 
-    sprintf(fname, "%s%7.7d.histo", output_prefix, vno);
+    int req = snprintf(fname, STRLEN, "%s%7.7d.histo", output_prefix, vno);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
     fp = fopen(fname, "w");
     for (i = 0; i < nbins; i++) {
       for (j = 0; j < nbins * MAX_SURFACE_SCALE; j++) {

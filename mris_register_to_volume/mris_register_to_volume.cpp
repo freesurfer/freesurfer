@@ -1,10 +1,10 @@
 /**
  * @brief program for computing/optimizing registration of a surface to a volume
+ *        
  *
- *
- * Program to compute a rigid alignment between a surface and a volume by
- * maximizing the gradient magnitude across the gray/white boundary, divided by
- * its variance Now supports multiple similarity functions.
+ * Program to compute a rigid alignment between a surface and a volume by maximizing the gradient
+ * magnitude across the gray/white boundary, divided by its variance
+ * Now supports multiple similarity functions.
  */
 /*
  * Original Author: Greg Grev
@@ -29,8 +29,7 @@ BEGINUSAGE --------------------------------------------------------------
   --mov fvol
   --surf surface   : surface to read in
   --pial pial surface name   : pial surface to read in
-  --pial_only pial surface name   : pial surface to read in (don't use white in
-similarity)
+  --pial_only pial surface name   : pial surface to read in (don't use white in similarity)
 
   --median        : apply median filter
   --patch patch   :  patch  to read in
@@ -88,10 +87,29 @@ ENDHELP --------------------------------------------------------------
 
 */
 
-#include "cmdargs.h"
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
 #include "diag.h"
+#include "error.h"
+#include "macros.h"
+#include "proto.h"
+
+#include "MRIio_old.h"
+#include "cmdargs.h"
+#include "fio.h"
+#include "gca.h"
+#include "gcamorph.h"
+#include "matrix.h"
+#include "mri.h"
 #include "mri2.h"
+#include "mri_circulars.h"
+#include "mri_identify.h"
 #include "numerics.h"
+#include "pdf.h"
 #include "registerio.h"
 #include "resample.h"
 #include "timer.h"
@@ -105,8 +123,7 @@ ENDHELP --------------------------------------------------------------
 
 static int write_lta(MATRIX *m, char *fname, MRI_SURFACE *mris, MRI *mri_reg);
 
-// static int write_register_dat(MATRIX *m, char *fname, MRI_SURFACE *mris, MRI
-// *mri, char *subject) ;
+//static int write_register_dat(MATRIX *m, char *fname, MRI_SURFACE *mris, MRI *mri, char *subject) ;
 double *GetCosts(MRI *mri_reg, MRI *seg, MATRIX *R0, MATRIX *R, double *p,
                  double *costs);
 int Min1D(MRI *mri_reg, MRI_SURFACE *mris, MATRIX *R, double *p, char *costfile,
@@ -150,11 +167,11 @@ static double mrisRegistrationGradientNormalSimilarity(MRI_SURFACE *mris,
                                                        MRI *mri_mask, MATRIX *m,
                                                        int skip, double scale,
                                                        int diag);
-static void   check_options();
-static void   print_usage();
-static void   usage_exit();
-static void   print_help();
-static void   print_version();
+static void   check_options(void);
+static void   print_usage(void);
+static void   usage_exit(void);
+static void   print_help(void);
+static void   print_version(void);
 static void   argnerr(char *option, int n);
 static void   dump_options(FILE *fp);
 static int    singledash(char *flag);
@@ -202,8 +219,8 @@ MATRIX *R0;
 char *SUBJECTS_DIR = NULL;
 char *subject      = NULL;
 
-// static float ipr, bpr, intensity;
-// static int float2int ;
+//static float ipr, bpr, intensity;
+//static int float2int ;
 static int nargs;
 
 static int niter      = 0;
@@ -318,7 +335,7 @@ int main(int argc, char **argv) {
   }
   MRISresetNeighborhoodSize(mris, 2);
 
-  if (true) {
+  if (1) {
     if (read_median == 0) // otherwise will be read below
     {
       MRI *mri_tmp;
@@ -350,7 +367,7 @@ int main(int argc, char **argv) {
     strcat(fname, ".log");
     logfp = fopen(fname, "w");
   }
-  if (apply_median_filter) /* -median option ... modify
+  if (apply_median_filter) /* -median option ... modify 
                               mri_reg using the filter */
   {
     MRI *mri_tmp;
@@ -403,8 +420,18 @@ int main(int argc, char **argv) {
         fflush(logfp);
       }
       FileNameRemoveExtension(vol_fname, fname_only);
-      sprintf(fname_grad, "%s.grad.sigma%2.3f.mgz", fname_only, sigma);
-      sprintf(fname_mag, "%s.mag.sigma%2.3f.mgz", fname_only, sigma);
+      int req = snprintf(fname_grad, STRLEN, "%s.grad.sigma%2.3f.mgz",
+                         fname_only, sigma);
+      if (req >= STRLEN) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                  << std::endl;
+      }
+      req = snprintf(fname_mag, STRLEN, "%s.mag.sigma%2.3f.mgz", fname_only,
+                     sigma);
+      if (req >= STRLEN) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                  << std::endl;
+      }
       if (read_grad == 0) // compute gradient of smoothed image
       {
         mri_kernel = MRIgaussian1d(sigma / mri_reg->xsize, -1);
@@ -430,7 +457,7 @@ int main(int argc, char **argv) {
         if (mri_grad == NULL || mri_mag == NULL)
           ErrorExit(Gerror, "");
       }
-      if (false) {
+      if (0) {
         MRI *mri_edge, *mri_reduced, *mri_tmp, *mri_reduced_grad;
         int  nreductions = 0;
 
@@ -500,7 +527,7 @@ int main(int argc, char **argv) {
 
         find_optimal_translations(mris, mri_edge, mri_mask, R0, max_trans, skip,
                                   mrisRegistrationOverlapSimilarity);
-        if (false)
+        if (0)
           find_optimal_rotations(mris, mri_edge, mri_mask, R0, max_rot, skip,
                                  mrisRegistrationOverlapSimilarity);
         find_optimal_rigid_alignment(mris, mri_edge, mri_mask, R0, 0,
@@ -509,7 +536,7 @@ int main(int argc, char **argv) {
         MRIfree(&mri_edge);
         MRIfree(&mri_reduced);
       }
-      if (true) // threshold gradient image
+      if (1) // threshold gradient image
       {
         int        b;
         double     thresh;
@@ -544,8 +571,7 @@ int main(int argc, char **argv) {
             mris, mri_reg, mri_mask, R0, mri_reg->xsize / 2, max_trans / 10, .1,
             max_rot / 4, skip, similarity_func); // redo to finer scale
       }
-      //      powell_minimize_rigid(mris, mri_reg, mri_mask, R0,
-      //      skip,similarity_func);
+      //      powell_minimize_rigid(mris, mri_reg, mri_mask, R0, skip,similarity_func);
       if (pial_only)
         similarity = (*similarity_func)(mris, mri_reg, mri_mask, R0, 0, 1, 0);
       else
@@ -892,12 +918,12 @@ static int parse_commandline(int argc, char **argv) {
   return (0);
 }
 /* ------------------------------------------------------ */
-static void usage_exit() {
+static void usage_exit(void) {
   print_usage();
   exit(1);
 }
 /* --------------------------------------------- */
-static void print_usage() {
+static void print_usage(void) {
   printf("\n");
   printf("mris_register_to_volume\n");
   printf("  --surf surface\n");
@@ -950,7 +976,7 @@ static void print_help(void) {
   exit(1);
 }
 /* --------------------------------------------- */
-static void check_options() {
+static void check_options(void) {
   SUBJECTS_DIR = getenv("SUBJECTS_DIR");
   if (SUBJECTS_DIR == NULL) {
     printf("ERROR: SUBJECTS_DIR undefined.\n");
@@ -1095,7 +1121,7 @@ static int istringnmatch(char *str1, const char *str2, int n) {
 
 /*-------------------------------------------------------*/
 #if 0
-double *GetCosts(MRI *mri_reg, MRI *seg, MATRIX *R0, MATRIX *R,
+double *GetCosts(MRI *mri_reg, MRI *seg, MATRIX *R0, MATRIX *R, 
 		 double *p, double *costs)
 {
   double angles[0];
@@ -1130,13 +1156,13 @@ double *GetCosts(MRI *mri_reg, MRI *seg, MATRIX *R0, MATRIX *R,
   // vox2vox = invTin*R*Ttemp
   vox2vox = MatrixMultiply(invTin,R,vox2vox);
   MatrixMultiply(vox2vox,Ttemp,vox2vox);
-
+  
   // resample
   MRIvol2Vol(mri_reg,out,vox2vox,interpcode,sinchw);
-
+  
   // compute costs
   costs = SegRegCost(regseg,out,costs);
-
+  
   MatrixFree(&Mrot);
   MatrixFree(&Mtrans);
   MatrixFree(&vox2vox);
@@ -1149,7 +1175,7 @@ double *GetCosts(MRI *mri_reg, MRI *seg, MATRIX *R0, MATRIX *R,
 }
 
 /*---------------------------------------------------------------------*/
-int Min1D(MRI *mri_reg, MRI_SURFACE *mris, MATRIX *R, double *p,
+int Min1D(MRI *mri_reg, MRI_SURFACE *mris, MATRIX *R, double *p, 
 	  char *costfile, double *costs)
 {
   double q, q0, pp[6], c, copt=0, qopt=0, costsopt[8];
@@ -1161,7 +1187,7 @@ int Min1D(MRI *mri_reg, MRI_SURFACE *mris, MATRIX *R, double *p,
   if(p==NULL) exit(1);
   if(costs==NULL) exit(1);
 
-  for(nthp = 0; nthp < 6; nthp++)
+  for(nthp = 0; nthp < 6; nthp++) 
     pp[nthp] = p[nthp];
   R0 = MatrixCopy(R,NULL);
   Rtmp = MatrixAlloc(4,4,MATRIX_REAL);
@@ -1192,7 +1218,7 @@ int Min1D(MRI *mri_reg, MRI_SURFACE *mris, MATRIX *R, double *p,
 	fprintf(fp,"\n");
 	fclose(fp);
       }
-
+      
       fp = stdout;
       fprintf(fp,"%5d ",nth);
       fprintf(fp,"%7.3lf %7.3lf %7.3lf ",pp[0],pp[1],pp[2]);
@@ -1399,7 +1425,11 @@ static double mrisRegistrationCNRSimilarity(MRI_SURFACE *mris, MRI *mri_reg,
           MRIsetVoxVal(mri, xv, yv, zv, 0, -.01);
       }
 
-      sprintf(fname, "%s_hvol%03d.mgz", name, ncalls);
+      int req = snprintf(fname, STRLEN, "%s_hvol%03d.mgz", name, ncalls);
+      if (req >= STRLEN) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                  << std::endl;
+      }
       if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
         printf("writing hit vol to %s\n", fname);
         MRIwrite(mri, fname);
@@ -1669,7 +1699,11 @@ static double mrisRegistrationGradientNormalSimilarity(MRI_SURFACE *mris,
           MRIsetVoxVal(mri, xv, yv, zv, 0, -.01);
       }
       if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
-        sprintf(fname, "%s_hvol%03d.mgz", name, ncalls);
+        int req = snprintf(fname, STRLEN, "%s_hvol%03d.mgz", name, ncalls);
+        if (req >= STRLEN) {
+          std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                    << std::endl;
+        }
         printf("writing hit vol to %s\n", fname);
         MRIwrite(mri, fname);
       }
@@ -2020,15 +2054,27 @@ static int write_snapshot(MRI_SURFACE *mris, MATRIX *m, char *name, int n) {
     MRISsetXYZ(mris, vno, V3_X(v2), V3_Y(v2), V3_Z(v2));
   }
 
-  sprintf(fname, "%s%03d.dat", fname_only, n);
+  int req = snprintf(fname, STRLEN, "%s%03d.dat", fname_only, n);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
   regio_write_surfacexform_to_register_dat(m, fname, mris, mri_reg, subject,
                                            FLT2INT_ROUND);
   write_lta(m, fname, mris, mri_reg);
-  sprintf(fname, "%s%03d", fname_only, n);
+  req = snprintf(fname, STRLEN, "%s%03d", fname_only, n);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
   printf("writing snapshot to %s\n", fname);
   MRISwrite(mris, fname);
   MRISrestoreRipFlags(mris);
-  sprintf(fname, "%s%03d.patch", fname_only, n);
+  req = snprintf(fname, STRLEN, "%s%03d.patch", fname_only, n);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
   MRISwritePatch(mris, fname);
   MRISunrip(mris);
 
@@ -2044,10 +2090,18 @@ static int write_snapshot(MRI_SURFACE *mris, MATRIX *m, char *name, int n) {
       MRISsetXYZ(mris, vno, V3_X(v2), V3_Y(v2), V3_Z(v2));
     }
 
-    sprintf(fname, "%s_pial%03d", fname_only, n);
+    int req = snprintf(fname, STRLEN, "%s_pial%03d", fname_only, n);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
     printf("writing snapshot to %s\n", fname);
     MRISwrite(mris, fname);
-    sprintf(fname, "%s%03d.patch", fname_only, n);
+    req = snprintf(fname, STRLEN, "%s%03d.patch", fname_only, n);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
     MRISwritePatch(mris, fname);
   }
 
@@ -2203,7 +2257,7 @@ static int
 write_register_dat(MATRIX *B, char *fname, MRI_SURFACE *mris, MRI *mri, char *subject)
 {
   MATRIX *Ta, *Sa, *invTa, *A, *R, *S, *invS, *T, *m1, *m2 ;
-  MRI *mri_surf = MRIallocHeader(mris->vg.width, mris->vg.height,
+  MRI *mri_surf = MRIallocHeader(mris->vg.width, mris->vg.height, 
                                  mris->vg.depth, MRI_UCHAR) ;
 
   MRIcopyVolGeomToMRI(mri_surf, &mris->vg) ;
@@ -2215,7 +2269,7 @@ write_register_dat(MATRIX *B, char *fname, MRI_SURFACE *mris, MRI *mri, char *su
   Sa = MRIgetVoxelToRasXform(mri_surf);
   invTa = MatrixInverse(Ta,NULL);
   A  = MatrixMultiply(Sa,invTa, NULL);
-
+  
   m1 = MatrixMultiply(A, B, NULL) ;
   m2 = MatrixMultiply(invS, m1, NULL) ;
   R = MatrixMultiply(T, m2, NULL) ;

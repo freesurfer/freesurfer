@@ -19,8 +19,8 @@
 
 /*!
 \file mris_register_label_map.c
-\brief program to register an individual subject's resting state map to a group
-average \author Bruce Fischl
+\brief program to register an individual subject's resting state map to a group average
+\author Bruce Fischl
 
 */
 
@@ -36,14 +36,26 @@ average \author Bruce Fischl
   ENDUSAGE
 */
 
+#include <stdio.h>
+#include <stdlib.h>
 #include <sys/utsname.h>
+#include <unistd.h>
+
+#include "macros.h"
+
+#include "mri.h"
+#include "mri2.h"
+#include "mrisurf.h"
+#include "mrisurf_project.h"
 
 #include "cma.h"
 #include "cmdargs.h"
 #include "diag.h"
-#include "mri2.h"
-#include "mrisurf_project.h"
+#include "error.h"
+#include "fio.h"
+#include "matrix.h"
 #include "romp_support.h"
+#include "utils.h"
 #include "version.h"
 #include "voxlist.h"
 
@@ -59,12 +71,9 @@ static MRI *compute_voxlist_surface_correlations_across_runs(
     VOXEL_LIST *vl, int num_maps, MRI **mri_fvol, MRI **mri_fsurf, int runs,
     MRI *mri_dst);
 VOXEL_LIST *rank_voxels(MRI *mri_stats, int num_maps);
-// static MRI *compute_volume_correlations_in_surface_label(LABEL *area, MRI
-// *mri_fvol, MRI *mri_fsurf, MRI *mri_cmat, MRI *mri_mask)  ; static int
-// compute_volume_correlation_at_vertex(MRI *mri_fvol, MRI *mri_fsurf, int vno,
-// int frame, MRI *mri_cmat, MRI *mri_mask)  ; static MRI
-// *accumulate_subcortical_map(MRI **mri_fvol, MRI **mri_fsurf, LABEL *area, int
-// runs, MRI *mri_stats, MRI *mri_mask) ;
+//static MRI *compute_volume_correlations_in_surface_label(LABEL *area, MRI *mri_fvol, MRI *mri_fsurf, MRI *mri_cmat, MRI *mri_mask)  ;
+//static int compute_volume_correlation_at_vertex(MRI *mri_fvol, MRI *mri_fsurf, int vno, int frame, MRI *mri_cmat, MRI *mri_mask)  ;
+//static MRI *accumulate_subcortical_map(MRI **mri_fvol, MRI **mri_fsurf, LABEL *area, int runs, MRI *mri_stats, MRI *mri_mask) ;
 static MATRIX *compute_subcortical_map_weights(
     MRI_SURFACE *mris, MRI *mri_fvol[MAX_SUBJECTS][MAX_RUNS],
     MRI *mri_fsurf[MAX_SUBJECTS][MAX_RUNS], LABEL **labels, int runs,
@@ -245,7 +254,12 @@ int main(int argc, char *argv[]) {
       for (run = 0; run < runs; run++) {
         MRI *mri_tmp;
         sprintf(name, fmri_surf, hemi, run + 1);
-        sprintf(fname, "%s/%s/surf/%s", SUBJECTS_DIR, subject, name);
+        int req = snprintf(fname, STRLEN, "%s/%s/surf/%s", SUBJECTS_DIR,
+                           subject, name);
+        if (req >= STRLEN) {
+          std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                    << std::endl;
+        }
         mri_fsurf[n][run] = MRIread(fname);
         if (mri_fsurf[n][run] == NULL)
           ErrorExit(ERROR_NOFILE,
@@ -262,7 +276,12 @@ int main(int argc, char *argv[]) {
         }
 
         sprintf(name, fmri_vol, run + 1);
-        sprintf(fname, "%s/%s/mri/%s", SUBJECTS_DIR, subject, name);
+        req = snprintf(fname, STRLEN, "%s/%s/mri/%s", SUBJECTS_DIR, subject,
+                       name);
+        if (req >= STRLEN) {
+          std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                    << std::endl;
+        }
         mri_fvol[n][run] = MRIread(fname);
         if (mri_fvol[n][run] == NULL)
           ErrorExit(ERROR_NOFILE,
@@ -270,8 +289,12 @@ int main(int argc, char *argv[]) {
                     fname);
       }
       if (label_name) {
-        sprintf(fname, "%s/%s/label/%s.%s", SUBJECTS_DIR, subject, hemi,
-                label_name);
+        int req = snprintf(fname, STRLEN, "%s/%s/label/%s.%s", SUBJECTS_DIR,
+                           subject, hemi, label_name);
+        if (req >= STRLEN) {
+          std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                    << std::endl;
+        }
         labels[n] = LabelRead("", fname);
         if (!labels[n])
           ErrorExit(ERROR_NOFILE, "%s: could not read label from %s", Progname,
@@ -284,14 +307,23 @@ int main(int argc, char *argv[]) {
       }
     } else // using surface-based correlation to drive warp
     {
-      sprintf(fname, "%s/%s/surf/%s", SUBJECTS_DIR, subject, cmat_name);
+      int req = snprintf(fname, STRLEN, "%s/%s/surf/%s", SUBJECTS_DIR, subject,
+                         cmat_name);
+      if (req >= STRLEN) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                  << std::endl;
+      }
       mri_cmat = MRIread(fname);
       if (!mri_cmat)
         ErrorExit(ERROR_NOFILE, "%s: could not read cmat from %s", Progname,
                   fname);
 
-      sprintf(fname, "%s/%s/label/%s.%s", SUBJECTS_DIR, subject, hemi,
-              label_name);
+      req = snprintf(fname, STRLEN, "%s/%s/label/%s.%s", SUBJECTS_DIR, subject,
+                     hemi, label_name);
+      if (req >= STRLEN) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                  << std::endl;
+      }
       labels[n] = LabelRead("", fname);
       if (!labels[n])
         ErrorExit(ERROR_NOFILE, "%s: could not read label from %s", Progname,
@@ -303,7 +335,12 @@ int main(int argc, char *argv[]) {
       MRIfree(&mri_cmat);
 
       if (write_diags) {
-        sprintf(fname, "%s.%s.%s.label_avg.mgz", hemi, subject, output_name);
+        int req = snprintf(fname, STRLEN, "%s.%s.%s.label_avg.mgz", hemi,
+                           subject, output_name);
+        if (req >= STRLEN) {
+          std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                    << std::endl;
+        }
         mri_label_avg[n]->width /= 2;
         MRIwrite(mri_label_avg[n], fname);
         mri_label_avg[n]->width *= 2;
@@ -315,7 +352,12 @@ int main(int argc, char *argv[]) {
     mri_stats =
         compute_mean_and_variance_across_frames(mri_label_avg, nsubjects);
     if (write_diags) {
-      sprintf(fname, "%s.%s.label_avg.mgz", hemi, output_name);
+      int req =
+          snprintf(fname, STRLEN, "%s.%s.label_avg.mgz", hemi, output_name);
+      if (req >= STRLEN) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                  << std::endl;
+      }
       mri_stats->width /= 2;
       MRIwriteFrame(mri_stats, fname, 0);
       mri_stats->width *= 2;
@@ -326,8 +368,7 @@ int main(int argc, char *argv[]) {
     int  run;
     //    VOXEL_LIST *vl ;
 
-    if (label_name) // compute subcortical map that has highest correlation with
-                    // surface labels
+    if (label_name) // compute subcortical map that has highest correlation with surface labels
     {
       MRI *        mri_mask;
       int          n;
@@ -359,7 +400,12 @@ int main(int argc, char *argv[]) {
       for (run = 0; run < runs; run++) {
         MRI *mri_tmp;
         sprintf(name, fmri_surf, hemi, run + 1);
-        sprintf(fname, "%s/%s/surf/%s", SUBJECTS_DIR, trgsubject, name);
+        int req = snprintf(fname, STRLEN, "%s/%s/surf/%s", SUBJECTS_DIR,
+                           trgsubject, name);
+        if (req >= STRLEN) {
+          std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                    << std::endl;
+        }
         mri_fsurf[nsubjects][run] = MRIread(fname);
         if (mri_fsurf[nsubjects][run] == NULL)
           ErrorExit(ERROR_NOFILE,
@@ -377,7 +423,12 @@ int main(int argc, char *argv[]) {
         }
 
         sprintf(name, fmri_vol, run + 1);
-        sprintf(fname, "%s/%s/mri/%s", SUBJECTS_DIR, trgsubject, name);
+        req = snprintf(fname, STRLEN, "%s/%s/mri/%s", SUBJECTS_DIR, trgsubject,
+                       name);
+        if (req >= STRLEN) {
+          std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                    << std::endl;
+        }
         mri_fvol[nsubjects][run] = MRIread(fname);
         if (mri_fvol[nsubjects][run] == NULL)
           ErrorExit(ERROR_NOFILE,
@@ -385,8 +436,12 @@ int main(int argc, char *argv[]) {
                     fname);
       }
       if (label_name) {
-        sprintf(fname, "%s/%s/label/%s.%s", SUBJECTS_DIR, trgsubject, hemi,
-                label_name);
+        int req = snprintf(fname, STRLEN, "%s/%s/label/%s.%s", SUBJECTS_DIR,
+                           trgsubject, hemi, label_name);
+        if (req >= STRLEN) {
+          std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                    << std::endl;
+        }
         labels[nsubjects] = LabelRead("", fname);
         if (!labels[nsubjects])
           ErrorExit(ERROR_NOFILE, "%s: could not read label from %s", Progname,
@@ -400,7 +455,12 @@ int main(int argc, char *argv[]) {
     } else
       mri_stats = compute_mean_and_variance(mri_label_avg, nsubjects);
     if (write_diags) {
-      sprintf(fname, "%s.%s.label_avg.mgz", hemi, output_name);
+      int req =
+          snprintf(fname, STRLEN, "%s.%s.label_avg.mgz", hemi, output_name);
+      if (req >= STRLEN) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                  << std::endl;
+      }
       printf("writing mean and variance volume to %s\n", fname);
       MRIwrite(mri_stats, fname);
     }
@@ -409,7 +469,12 @@ int main(int argc, char *argv[]) {
     for (run = 0; run < runs; run++) {
       MRI *mri_tmp;
       sprintf(name, fmri_surf, hemi, run + 1);
-      sprintf(fname, "%s/%s/surf/%s", SUBJECTS_DIR, trgsubject, name);
+      int req = snprintf(fname, STRLEN, "%s/%s/surf/%s", SUBJECTS_DIR,
+                         trgsubject, name);
+      if (req >= STRLEN) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                  << std::endl;
+      }
       mri_fsurf[n][run] = MRIread(fname);
       if (mri_fsurf[n][run] == NULL)
         ErrorExit(ERROR_NOFILE,
@@ -426,15 +491,19 @@ int main(int argc, char *argv[]) {
       }
 
       sprintf(name, fmri_vol, run + 1);
-      sprintf(fname, "%s/%s/mri/%s", SUBJECTS_DIR, trgsubject, name);
+      req = snprintf(fname, STRLEN, "%s/%s/mri/%s", SUBJECTS_DIR, trgsubject,
+                     name);
+      if (req >= STRLEN) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                  << std::endl;
+      }
       mri_fvol[n][run] = MRIread(fname);
       if (mri_fvol[n][run] == NULL)
         ErrorExit(ERROR_NOFILE, "%s: could not load volume time series from %s",
                   Progname, fname);
     }
 
-    //   mri_target_label = compute_voxlist_surface_correlations_across_runs(vl,
-    //   num_maps, mri_fvol[n], mri_fsurf[n], runs, NULL) ;
+    //   mri_target_label = compute_voxlist_surface_correlations_across_runs(vl, num_maps, mri_fvol[n], mri_fsurf[n], runs, NULL) ;
 
     for (run = 0; run < runs; run++) {
       MRIfree(&mri_fvol[n][run]);
@@ -689,27 +758,23 @@ static int parse_commandline(int argc, char **argv) {
   }
   return (0);
 }
-/* -- Doxygen markup starts on the line below (this line not needed for Doxygen)
- * -- */
+/* -- Doxygen markup starts on the line below (this line not needed for Doxygen) -- */
 /*!
 \fn static void usage_exit(void)
 \brief Prints usage and exits
 */
-/* ------ Doxygen markup ends on the line above  (this line not needed for
- * Doxygen) -- */
-static void usage_exit() {
+/* ------ Doxygen markup ends on the line above  (this line not needed for Doxygen) -- */
+static void usage_exit(void) {
   print_usage();
   exit(1);
 }
-/* -- Doxygen markup starts on the line below (this line not needed for Doxygen)
- * -- */
+/* -- Doxygen markup starts on the line below (this line not needed for Doxygen) -- */
 /*!
 \fn static void print_usage(void)
 \brief Prints usage and returns (does not exit)
 */
-/* ------ Doxygen markup ends on the line above  (this line not needed for
- * Doxygen) -- */
-static void print_usage() {
+/* ------ Doxygen markup ends on the line above  (this line not needed for Doxygen) -- */
+static void print_usage(void) {
   printf("USAGE: %s \n", Progname);
   printf("\n");
   printf("   --subjects  SUBJECT_LIST: list of training subjects \n");
@@ -728,21 +793,18 @@ static void print_usage() {
   std::cout << getVersion() << std::endl;
   printf("\n");
 }
-/* -- Doxygen markup starts on the line below (this line not needed for Doxygen)
- * -- */
+/* -- Doxygen markup starts on the line below (this line not needed for Doxygen) -- */
 /*!
 \fn static void print_help(void)
 \brief Prints help and exits
 */
-/* ------ Doxygen markup ends on the line above  (this line not needed for
- * Doxygen) -- */
-static void print_help() {
+/* ------ Doxygen markup ends on the line above  (this line not needed for Doxygen) -- */
+static void print_help(void) {
   print_usage();
   printf("WARNING: this program is not yet tested!\n");
   exit(1);
 }
-/* -- Doxygen markup starts on the line below (this line not needed for Doxygen)
- * -- */
+/* -- Doxygen markup starts on the line below (this line not needed for Doxygen) -- */
 /*!
 \fn static void print_version(void)
 \brief Prints version and exits
@@ -752,25 +814,21 @@ static void print_version(void) {
   std::cout << getVersion() << std::endl;
   exit(1);
 }
-/* -- Doxygen markup starts on the line below (this line not needed for Doxygen)
- * -- */
+/* -- Doxygen markup starts on the line below (this line not needed for Doxygen) -- */
 /*!
 \fn static void check_options(void)
 \brief Checks command-line options
 */
-/* ------ Doxygen markup ends on the line above  (this line not needed for
- * Doxygen) -- */
-static void check_options() { return; }
+/* ------ Doxygen markup ends on the line above  (this line not needed for Doxygen) -- */
+static void check_options(void) { return; }
 
-/* -- Doxygen markup starts on the line below (this line not needed for Doxygen)
- * -- */
+/* -- Doxygen markup starts on the line below (this line not needed for Doxygen) -- */
 /*!
 \fn static void dump_options(FILE *fp)
 \brief Prints command-line options to the given file pointer
 \param FILE *fp - file pointer
 */
-/* ------ Doxygen markup ends on the line above  (this line not needed for
- * Doxygen) -- */
+/* ------ Doxygen markup ends on the line above  (this line not needed for Doxygen) -- */
 static void dump_options(FILE *fp) {
   fprintf(fp, "\n");
   fprintf(fp, "%s\n", getVersion().c_str());
@@ -1240,7 +1298,7 @@ static int compute_surface_correlation_map_at_voxel(MRI *mri_fvol,
 #if 0
 
 static MRI *
-compute_surface_correlations_in_aseg_label(MRI *mri_aseg, int aseg_label, MRI *mri_fvol, MRI *mri_fsurf, MRI *mri_cmat)
+compute_surface_correlations_in_aseg_label(MRI *mri_aseg, int aseg_label, MRI *mri_fvol, MRI *mri_fsurf, MRI *mri_cmat) 
 {
   int  nvox, x, y, z, n ;
 
@@ -1486,7 +1544,7 @@ static int warp_hemi(MRI_SURFACE *mris_mov, MRI_SURFACE *mris_fixed,
   if (write_diags)
   {
     char fname[STRLEN] ;
-    MRI  *mri_fixed ;
+    MRI  *mri_fixed ; 
 
     mri_fixed = sample_fixed(mris_mov, mris_fixed, mht_faces, mri_stats) ;
     sprintf(fname, "lh.label_avg.%3.3d.mgz",  iter) ;
@@ -1604,16 +1662,16 @@ accumulate_subcortical_map(MRI **mri_fvol, MRI **mri_fsurf, LABEL *area, int run
 
 }
 static int
-compute_volume_correlation_at_vertex(MRI *mri_fvol, MRI *mri_fsurf, int vno, int frame, MRI *mri_cmat, MRI *mri_mask)
+compute_volume_correlation_at_vertex(MRI *mri_fvol, MRI *mri_fsurf, int vno, int frame, MRI *mri_cmat, MRI *mri_mask) 
 {
   int   t, x, y, z, xmax, ymax, zmax ;
   float corr, sval, vval, norma, normb, max_corr ;
-  static MRI   *mri_surf = NULL;
+  static MRI   *mri_surf = NULL; 
 
   xmax = ymax = zmax = max_corr = 0.0 ;
   if (vno == Gdiag_no)
     DiagBreak() ;
-  for (x = 0 ; x < mri_fvol->width ; x++)
+  for (x = 0 ; x < mri_fvol->width ; x++)  
     for (y = 0 ; y < mri_fvol->height ; y++)
       for (z = 0 ; z < mri_fvol->depth ; z++)
       {
@@ -1651,7 +1709,7 @@ compute_volume_correlation_at_vertex(MRI *mri_fvol, MRI *mri_fsurf, int vno, int
   return(NO_ERROR) ;
 }
 static MRI *
-compute_volume_correlations_in_surface_label(LABEL *area, MRI *mri_fvol, MRI *mri_fsurf, MRI *mri_cmat, MRI *mri_mask)
+compute_volume_correlations_in_surface_label(LABEL *area, MRI *mri_fvol, MRI *mri_fsurf, MRI *mri_cmat, MRI *mri_mask) 
 {
   int  n ;
 
@@ -1718,7 +1776,7 @@ static MRI *compute_voxlist_surface_correlations_across_runs(
   }
 
   MRIscalarMul(mri_dst, mri_dst, 1.0 / (float)runs); // make it an average
-  if (false && write_diags) {
+  if (0 && write_diags) {
     static int cno = 1;
     char       fname[STRLEN];
     sprintf(fname, "c%d.mgz", cno++);
@@ -1741,9 +1799,9 @@ static VECTOR *compute_desired_map(MRI_SURFACE *mris, int cols, LABEL *area,
   if (ndilate > 0) {
     MRISclearMarks(mris);
 #if 1
-    LabelDilate(area, mris, 1,
-                CURRENT_VERTICES); // have a ring outside of label that isn't
-                                   // included in negative area
+    LabelDilate(
+        area, mris, 1,
+        CURRENT_VERTICES); // have a ring outside of label that isn't included in negative area
 #endif
     LabelMark(area, mris);
     MRIScopyMarkedToMarked2(mris);

@@ -1,5 +1,5 @@
 six
 nibabel
-numpy==1.16.*
+numpy
 scipy
 pyyaml

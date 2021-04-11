@@ -1246,8 +1246,9 @@ void Blood::MatchStreamlineEnds() {
         ivalid2++;
       }
 
-      if (!mMask.empty())
+      if (!mMask.empty()) {
         imask++;
+      }
       iaseg++;
     }
   } else { // Have labeling ROIs

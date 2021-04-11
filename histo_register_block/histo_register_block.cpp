@@ -12,11 +12,23 @@
  *
  */
 
+#include <ctype.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "density.h"
 #include "diag.h"
+#include "error.h"
+#include "macros.h"
+#include "matrix.h"
+#include "mri.h"
 #include "mri_circulars.h"
 #include "mrisegment.h"
 #include "numerics.h"
+#include "proto.h"
+#include "transform.h"
 #include "version.h"
 
 #define RGB_SIZE 500
@@ -84,10 +96,10 @@ static int    compute_optimal_xform(MRI *mri_src, MRI *mri_dst, MRI *mri_seg,
                                     int cost_type, int skip);
 
 static int  get_option(int argc, char *argv[]);
-static void usage_exit();
-static void print_usage();
-static void print_help();
-static void print_version();
+static void usage_exit(void);
+static void print_usage(void);
+static void print_help(void);
+static void print_version(void);
 
 const char * Progname;
 static float slice_thickness = 1.0;
@@ -118,7 +130,7 @@ int main(int argc, char *argv[]) {
 
   Progname = argv[0];
   ErrorInit(NULL, NULL, NULL);
-  DiagInit(nullptr, nullptr, nullptr);
+  DiagInit(NULL, NULL, NULL);
 
   ac = argc;
   av = argv;
@@ -132,12 +144,12 @@ int main(int argc, char *argv[]) {
     usage_exit();
 
   mri_block = MRIread(argv[1]);
-  if (mri_block == nullptr)
+  if (mri_block == NULL)
     ErrorExit(ERROR_BADPARM, "%s: could not open block face image %s...\n",
               argv[1]);
 
   mri_histo = MRIread(argv[2]);
-  if (mri_histo == nullptr)
+  if (mri_histo == NULL)
     ErrorExit(ERROR_BADPARM, "%s: could not open histology image %s...\n",
               argv[2]);
 
@@ -146,7 +158,7 @@ int main(int argc, char *argv[]) {
 
     printf("rotating block face image by %2.3f deg....\n",
            DEGREES(rotate_radians));
-    mri_tmp = rotate_image(mri_block, nullptr, rotate_radians);
+    mri_tmp = rotate_image(mri_block, NULL, rotate_radians);
     MRIfree(&mri_block);
     mri_block = mri_tmp;
   }
@@ -156,7 +168,7 @@ int main(int argc, char *argv[]) {
 
     sprintf(fname, "%s_level%d.den", argv[3], level);
     pdfs[level] = DensityRead(fname);
-    if (pdfs[level] == nullptr)
+    if (pdfs[level] == NULL)
       ErrorExit(ERROR_BADPARM, "%s: could not open joint density file %s...\n",
                 fname);
   }
@@ -185,7 +197,7 @@ int main(int argc, char *argv[]) {
     max_val = 199;
 
   mriseg  = MRImaxsegment(mri_histo, min_val, max_val);
-  mri_seg = MRIsegmentToImage(mri_histo, nullptr, mriseg, 0);
+  mri_seg = MRIsegmentToImage(mri_histo, NULL, mriseg, 0);
   MRIbinarize(mri_seg, mri_seg, 0, 0, 1);
 #if 0
   MRIdilate(mri_seg, mri_seg) ;
@@ -214,7 +226,7 @@ int main(int argc, char *argv[]) {
   mri_block = mri_tmp;
   MRIfree(&mri_template);
 #endif
-  mat = MatrixIdentity(3, nullptr);
+  mat = MatrixIdentity(3, NULL);
   if (probe) {
     probe_cost_function(mri_histo, mri_block, mri_seg, pdf, mat, cost_type,
                         out_name);
@@ -350,20 +362,20 @@ static int get_option(int argc, char *argv[]) {
   return (nargs);
 }
 
-static void usage_exit() {
+static void usage_exit(void) {
   //  print_usage() ; // print_help _calls print_usage
   print_help();
   exit(1);
 }
 
-static void print_usage() {
+static void print_usage(void) {
   fprintf(stderr,
           "usage: %s [options] <seg time1> <seg time 2> <transform 1> "
           "<transform 2> <output file>\n",
           Progname);
 }
 
-static void print_help() {
+static void print_help(void) {
   print_usage();
   fprintf(
       stderr,
@@ -432,12 +444,16 @@ static int compute_optimal_xform(MRI *mri_src, MRI *mri_dst, MRI *mri_seg,
   mri_dst_pyramid[0] = mri_dst;
   mri_seg_pyramid[0] = mri_seg;
   for (level = 1; level < nlevels; level++) {
-    mri_src_pyramid[level] = MRIreduce2D(mri_src_pyramid[level - 1], nullptr);
-    mri_seg_pyramid[level] = MRIreduce2D(mri_seg_pyramid[level - 1], nullptr);
-    mri_dst_pyramid[level] = MRIreduce2D(mri_dst_pyramid[level - 1], nullptr);
+    mri_src_pyramid[level] = MRIreduce2D(mri_src_pyramid[level - 1], NULL);
+    mri_seg_pyramid[level] = MRIreduce2D(mri_seg_pyramid[level - 1], NULL);
+    mri_dst_pyramid[level] = MRIreduce2D(mri_dst_pyramid[level - 1], NULL);
   }
 
-  sprintf(fname, "%s_target", base);
+  int req = snprintf(fname, STRLEN, "%s_target", base);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
   mriWriteImageView(mri_dst, fname, RGB_SIZE, MRI_CORONAL, 0, mri_dst);
   for (level = nlevels - 1; level >= 0; level--) {
     align_pyramid_level(mri_src_pyramid[level], mri_dst_pyramid[level],
@@ -458,8 +474,8 @@ static int align_pyramid_level(MRI *mri_src, MRI *mri_dst, MRI *mri_seg,
                                MRI *mri_fullres_src, int cost_type, int skip) {
   double s, scale, a, dx, dy, mina, maxa, maxt, astep, tstep, min_error, error,
       mins, maxs, sstep, thick, mint;
-  MATRIX *m_trans, *m_rot, *m_total = nullptr, *m = nullptr, *m_best, *m_scale,
-                           *m_origin, *m_tmp = nullptr, *m_origin_inv, *m_delta,
+  MATRIX *m_trans, *m_rot, *m_total = NULL, *m = NULL, *m_best, *m_scale,
+                           *m_origin, *m_tmp = NULL, *m_origin_inv, *m_delta,
                            *m_start;
   int found;
 
@@ -467,18 +483,18 @@ static int align_pyramid_level(MRI *mri_src, MRI *mri_dst, MRI *mri_seg,
   skip /= thick;
 
   printf("***********  aligning pyramid level %d... **************\n", level);
-  m_start = m_delta = nullptr;
+  m_start = m_delta = NULL;
 
   m_rot                        = MatrixAlloc(3, 3, MATRIX_REAL);
-  m_trans                      = MatrixIdentity(3, nullptr);
+  m_trans                      = MatrixIdentity(3, NULL);
   m_scale                      = MatrixAlloc(3, 3, MATRIX_REAL);
-  m_origin                     = MatrixIdentity(3, nullptr);
+  m_origin                     = MatrixIdentity(3, NULL);
   *MATRIX_RELT(m_origin, 1, 3) = mri_fullres_src->width / 2;
   *MATRIX_RELT(m_origin, 2, 3) = mri_fullres_src->height / 2;
   *MATRIX_RELT(m_rot, 3, 3)    = 1.0;
   *MATRIX_RELT(m_scale, 3, 3)  = 1.0;
-  m_origin_inv                 = MatrixInverse(m_origin, nullptr);
-  m_best                       = MatrixCopy(xform, nullptr);
+  m_origin_inv                 = MatrixInverse(m_origin, NULL);
+  m_best                       = MatrixCopy(xform, NULL);
   min_error = compute_alignment_error(mri_src, mri_dst, mri_seg, pdf, m_best,
                                       skip, level, cost_type);
   printf("starting error: %2.4f\n", min_error);
@@ -559,7 +575,7 @@ static int align_pyramid_level(MRI *mri_src, MRI *mri_dst, MRI *mri_seg,
                                               m_total, skip, level, cost_type);
               if (error < min_error) {
                 double  e;
-                MATRIX *m_id = MatrixIdentity(3, nullptr);
+                MATRIX *m_id = MatrixIdentity(3, NULL);
                 min_error    = error;
                 MatrixCopy(m_total, m_best);
                 printf("%3.3d: best alignment at (%2.3f deg, %2.3f vox, %2.3f "
@@ -627,7 +643,7 @@ static double compute_ml_alignment_error(MRI *mri_src, MRI *mri_dst,
   MATRIX *m_inv;
 
   skip++;
-  m_inv = MatrixInverse(m_total, nullptr);
+  m_inv = MatrixInverse(m_total, NULL);
 
   thick = pow(2.0, level);
   v_src = VectorAlloc(3, MATRIX_REAL);
@@ -685,8 +701,7 @@ static double compute_ml_alignment_error(MRI *mri_src, MRI *mri_dst,
       val_src = MRIvox(mri_src, x, y, 0);
 #if 1
       if (val_src == 0)
-        continue; /* part of background the image is embedded in - don't use it
-                   */
+        continue; /* part of background the image is embedded in - don't use it */
 #endif
       VECTOR_ELT(v_src, 2) = (double)y;
       MatrixMultiply(m_inv, v_src, v_dst);
@@ -764,7 +779,7 @@ static int mriWriteImageView(MRI *mri, char *base_name, int target_size,
       break;
     }
   }
-  I = MRItoImageView(mri, nullptr, slice, view, 0);
+  I = MRItoImageView(mri, NULL, slice, view, 0);
   if (!I)
     ErrorReturn(Gerror, (Gerror, "MRItoImageView failed"));
 
@@ -772,7 +787,7 @@ static int mriWriteImageView(MRI *mri, char *base_name, int target_size,
   if (!FEQUAL(scale, 1.0f)) {
     IMAGE *Itmp;
 
-    Itmp = ImageRescale(I, nullptr, scale);
+    Itmp = ImageRescale(I, NULL, scale);
     ImageFree(&I);
     I = Itmp;
   }
@@ -788,28 +803,43 @@ static int write_snapshot(MRI *mri, MRI *mri1, MRI *mri2, MATRIX *m, char *base,
   char fname[STRLEN];
 
   mri         = MRIresampleFill(mri, mri2, SAMPLE_NEAREST, 255);
-  mri_xformed = mri_apply_slice_xform(mri, nullptr, m, 0);
+  mri_xformed = mri_apply_slice_xform(mri, NULL, m, 0);
 
-  sprintf(fname, "%s%3.3d", base, n);
+  int req = snprintf(fname, STRLEN, "%s%3.3d", base, n);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
   printf("writing snapshot to %s...\n", fname);
   mriWriteImageView(mri_xformed, fname, RGB_SIZE, MRI_CORONAL, -1, mri2);
-  sprintf(fname, "%s%3.3d.mgz", base, n);
+  req = snprintf(fname, STRLEN, "%s%3.3d.mgz", base, n);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
   MRIwrite(mri_xformed, fname);
   MRIfree(&mri_xformed);
 
   if (pdf) {
     MATRIX *m_inv;
 
-    mri_ll = DensityLikelihoodImage(mri1, mri2, nullptr, m, pdf, mri_seg, 0);
-    sprintf(fname, "%s_ll_%3.3d.mgz", base, n);
+    mri_ll  = DensityLikelihoodImage(mri1, mri2, NULL, m, pdf, mri_seg, 0);
+    int req = snprintf(fname, STRLEN, "%s_ll_%3.3d.mgz", base, n);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
     printf("writing density map to %s...\n", fname);
     MRIwrite(mri_ll, fname);
     MRIfree(&mri_ll);
 
-    m_inv = MatrixInverse(m, nullptr);
-    mri_ll =
-        DensityLikelihoodImage(mri2, mri1, nullptr, m_inv, pdf, mri_seg, 1);
-    sprintf(fname, "%s_ll_src_%3.3d.mgz", base, n);
+    m_inv  = MatrixInverse(m, NULL);
+    mri_ll = DensityLikelihoodImage(mri2, mri1, NULL, m_inv, pdf, mri_seg, 1);
+    req    = snprintf(fname, STRLEN, "%s_ll_src_%3.3d.mgz", base, n);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+                << std::endl;
+    }
     printf("writing density map to %s...\n", fname);
     MRIwrite(mri_ll, fname);
     MRIfree(&mri_ll);
@@ -825,14 +855,14 @@ static MRI *mri_apply_slice_xform(MRI *mri_src, MRI *mri_dst, MATRIX *m,
   VECTOR *v_src, *v_dst;
 
   if (!mri_dst)
-    mri_dst = MRIcopy(mri_src, nullptr);
+    mri_dst = MRIcopy(mri_src, NULL);
 
   v_src = VectorAlloc(3, MATRIX_REAL);
   v_dst = VectorAlloc(3, MATRIX_REAL);
 
   VECTOR_ELT(v_src, 3) = 1.0;
   VECTOR_ELT(v_dst, 3) = 1.0;
-  mri_dst              = MRIclone(mri_src, nullptr);
+  mri_dst              = MRIclone(mri_src, NULL);
   for (x = 0; x < mri_dst->width; x++) {
     VECTOR_ELT(v_dst, 1) = (double)x;
     for (y = 0; y < mri_dst->height; y++) {
@@ -858,7 +888,7 @@ static int compute_optimal_translation(MRI *mri_src, MRI *mri_dst, MRI *mri_seg,
   double  thick, tstep, dx, dy, error, min_error, mint;
   int     found = 0;
 
-  m_trans = MatrixIdentity(3, nullptr);
+  m_trans = MatrixIdentity(3, NULL);
 
   min_error = compute_alignment_error(mri_src, mri_dst, mri_seg, pdf, m_best,
                                       skip, level, cost_type);
@@ -872,8 +902,8 @@ static int compute_optimal_translation(MRI *mri_src, MRI *mri_dst, MRI *mri_seg,
 
   printf("computing optimal translations from %d --> %d in %2.1f voxel steps\n",
          -maxt, maxt, tstep);
-  m_start   = MatrixCopy(m_best, nullptr);
-  m_total   = nullptr;
+  m_start   = MatrixCopy(m_best, NULL);
+  m_total   = NULL;
   min_error = compute_alignment_error(mri_src, mri_dst, mri_seg, pdf, m_best,
                                       skip, level, cost_type);
   mint      = -maxt;
@@ -892,8 +922,7 @@ static int compute_optimal_translation(MRI *mri_src, MRI *mri_dst, MRI *mri_seg,
                dx, dy, min_error);
         fflush(stdout);
         found = 1;
-        /*    write_snapshot(mri_fullres_src, m_total, base, snapshots++, level)
-         * ;*/
+        /*    write_snapshot(mri_fullres_src, m_total, base, snapshots++, level) ;*/
       }
     }
   }
@@ -915,7 +944,7 @@ static double compute_cr_alignment_error(MRI *mri_src, MRI *mri_dst,
   double  means[256], vars[256], cr, mean, var, num /*, cr2*/;
 
   skip++;
-  m_inv = MatrixInverse(m_total, nullptr);
+  m_inv = MatrixInverse(m_total, NULL);
 
   thick = pow(2.0, level);
   v_src = VectorAlloc(3, MATRIX_REAL);
@@ -1039,14 +1068,14 @@ static MRI *rotate_image(MRI *mri_src, MRI *mri_dst, double rotate_radians) {
   int     x, y;
 
   if (!mri_dst)
-    mri_dst = MRIclone(mri_src, nullptr);
+    mri_dst = MRIclone(mri_src, NULL);
 
   v_src = VectorAlloc(3, MATRIX_REAL);
   v_dst = VectorAlloc(3, MATRIX_REAL);
 
   VECTOR_ELT(v_src, 3)         = 1.0;
   VECTOR_ELT(v_dst, 3)         = 1.0;
-  m_origin                     = MatrixIdentity(3, nullptr);
+  m_origin                     = MatrixIdentity(3, NULL);
   *MATRIX_RELT(m_origin, 1, 3) = mri_src->width / 2;
   *MATRIX_RELT(m_origin, 2, 3) = mri_src->height / 2;
   m_rot                        = MatrixAlloc(3, 3, MATRIX_REAL);
@@ -1055,7 +1084,7 @@ static MRI *rotate_image(MRI *mri_src, MRI *mri_dst, double rotate_radians) {
   *MATRIX_RELT(m_rot, 1, 2)    = -sin(rotate_radians);
   *MATRIX_RELT(m_rot, 2, 2)    = cos(rotate_radians);
   *MATRIX_RELT(m_rot, 3, 3)    = 1.0;
-  m_origin_inv                 = MatrixInverse(m_origin, nullptr);
+  m_origin_inv                 = MatrixInverse(m_origin, NULL);
   m_total                      = MatrixMultiply(m_rot, m_origin_inv, NULL);
   MatrixMultiply(m_origin, m_total, m_origin_inv);
   MatrixCopy(m_origin_inv, m_total);
@@ -1110,7 +1139,7 @@ static double compute_overlap(MRI *mri_src, MRI *mri_dst, MATRIX *m_total) {
   thick = mri_src->xsize;
   v_src = VectorAlloc(3, MATRIX_REAL);
   v_dst = VectorAlloc(3, MATRIX_REAL);
-  m_inv = MatrixInverse(m_total, nullptr);
+  m_inv = MatrixInverse(m_total, NULL);
 
   VECTOR_ELT(v_src, 3) = 1.0;
   VECTOR_ELT(v_dst, 3) = 1.0 / thick;
@@ -1166,19 +1195,18 @@ static int probe_cost_function(MRI *mri_src, MRI *mri_dst, MRI *mri_seg,
                                DENSITY *pdf, MATRIX *mat, int cost_type,
                                char *out_name) {
   double  s, a, dx, dy, maxt, astep, tstep, error, sstep;
-  MATRIX *m_rot, *m_total = nullptr, *m = nullptr, *m_scale, *m_origin,
-                 *m_origin_inv;
-  FILE *fp;
-  char  fname[STRLEN];
+  MATRIX *m_rot, *m_total = NULL, *m = NULL, *m_scale, *m_origin, *m_origin_inv;
+  FILE *  fp;
+  char    fname[STRLEN];
 
   m_rot                        = MatrixAlloc(3, 3, MATRIX_REAL);
   m_scale                      = MatrixAlloc(3, 3, MATRIX_REAL);
-  m_origin                     = MatrixIdentity(3, nullptr);
+  m_origin                     = MatrixIdentity(3, NULL);
   *MATRIX_RELT(m_origin, 1, 3) = mri_src->width / 2;
   *MATRIX_RELT(m_origin, 2, 3) = mri_src->height / 2;
   *MATRIX_RELT(m_rot, 3, 3)    = 1.0;
   *MATRIX_RELT(m_scale, 3, 3)  = 1.0;
-  m_origin_inv                 = MatrixInverse(m_origin, nullptr);
+  m_origin_inv                 = MatrixInverse(m_origin, NULL);
 
   printf("probing scales...\n");
   sstep = (max_scale - min_scale) / (PROBE_SAMPLES - 1);
@@ -1315,11 +1343,11 @@ static int   powell_minimize(MRI *mri_block, MRI *mri_histo, MRI *mri_seg,
 }
 
 static float compute_powell_sse(float *p) {
-  static MATRIX *mat = nullptr;
+  static MATRIX *mat = NULL;
   float          error;
   int            i, r, c;
 
-  if (mat == nullptr)
+  if (mat == NULL)
     mat = MatrixAlloc(3, 3, MATRIX_REAL);
   for (i = r = 1; r <= 3; r++) {
     for (c = 1; c <= 3; c++) {

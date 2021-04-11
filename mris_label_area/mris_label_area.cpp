@@ -12,16 +12,26 @@
  *
  */
 
+#include <ctype.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+
 #include "annotation.h"
 #include "diag.h"
+#include "error.h"
+#include "macros.h"
+#include "mrisurf.h"
+#include "proto.h"
 #include "timer.h"
+#include "utils.h"
 #include "version.h"
 
 int        main(int argc, char *argv[]);
 static int get_option(int argc, char *argv[]);
 
 const char *  Progname;
-static char * log_fname = nullptr;
+static char * log_fname = NULL;
 static void   usage_exit(int code);
 static double MRISannotArea(MRI_SURFACE *mris, int label);
 static int    in_label  = -1;
@@ -47,7 +57,7 @@ int main(int argc, char *argv[]) {
 
   Progname = argv[0];
   ErrorInit(NULL, NULL, NULL);
-  DiagInit(nullptr, nullptr, nullptr);
+  DiagInit(NULL, NULL, NULL);
 
   start.reset();
 
@@ -74,7 +84,12 @@ int main(int argc, char *argv[]) {
                 "%s: SUBJECTS_DIR not defined in env or cmd line", Progname);
     strcpy(sdir, cp);
   }
-  sprintf(fname, "%s/%s/surf/%s.%s", sdir, subject_name, hemi, surf_name);
+  int req = snprintf(fname, STRLEN, "%s/%s/surf/%s.%s", sdir, subject_name,
+                     hemi, surf_name);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__
+              << std::endl;
+  }
   mris = MRISread(fname);
   if (!mris)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface from %s", Progname,
@@ -97,7 +112,7 @@ int main(int argc, char *argv[]) {
 
   for (i = 5; i < argc; i++) {
     label = atoi(argv[i]);
-    name  = annotation_to_name(index_to_annotation(label), nullptr);
+    name  = annotation_to_name(index_to_annotation(label), NULL);
     printf("processing label %s (%d)...\n", name, label);
 
     area = MRISannotArea(mris, label);
@@ -111,7 +126,7 @@ int main(int argc, char *argv[]) {
         ErrorExit(ERROR_BADFILE, "%s: could not open %s for writing", Progname,
                   fname);
     } else
-      log_fp = nullptr;
+      log_fp = NULL;
 
     if (compute_pct) {
       printf("%2.3f mm^2 in label %d (%s), %%%2.6f of total cortical area "
