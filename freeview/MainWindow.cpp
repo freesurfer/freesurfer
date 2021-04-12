@@ -2312,6 +2312,7 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
   QString gotoLabelName;
   QVariantMap sup_data;
   QString selected_labels;
+  bool bLinked = false;
   for ( int i = 1; i < sa_vol.size(); i++ )
   {
     QString strg = sa_vol[i];
@@ -2501,7 +2502,7 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
       }
       else if ( subOption == "link" || subOption == "linked")
       {
-        m_scripts.insert(0, QStringList("linkmri") << subArgu );
+        bLinked = true;
       }
       else if ( subOption == "visible" )
       {
@@ -2611,6 +2612,9 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
                                                             vector_norm_th << "new";
     m_scripts.insert( 0, script );
   }
+
+  if (bLinked)
+    m_scripts.insert(0, QStringList("linkmri") << "1" );
 
   int nView = this->GetMainViewId();
   if (nView > 2)
