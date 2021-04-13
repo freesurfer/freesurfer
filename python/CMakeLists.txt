@@ -17,9 +17,10 @@ install(PROGRAMS fspython DESTINATION bin)
 # install any package requirements
 if(INSTALL_PYTHON_DEPENDENCIES)
 
-  # packages not in requirements.txt
+  # packages not in requirements.txt (not needed for the FS module, but for other tools)
   set(EXTRA_PACKAGES " \
     tensorflow==2.4.1 \
+    h5py<3.0.0 \
     git+git://github.com/adalca/pystrum.git@3befbd1166595476e8315fef99bea373bfdc302c \
     git+git://github.com/adalca/neurite.git@ac74518f367113ddadca90b70acf12f6a8526839 \
     git+git://github.com/voxelmorph/voxelmorph.git@80d0c489febfb4fa32b4a247629e79720fbb4c14"
