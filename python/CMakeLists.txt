@@ -21,7 +21,7 @@ if(INSTALL_PYTHON_DEPENDENCIES)
   set(EXTRA_PACKAGES " \
     tensorflow==2.4.1 \
     git+git://github.com/adalca/pystrum.git@3befbd1166595476e8315fef99bea373bfdc302c \
-    git+git://github.com/adalca/neurite.git@1b1b3cf160384c66d5dd57383bfe95e550582140 \
+    git+git://github.com/adalca/neurite.git@ac74518f367113ddadca90b70acf12f6a8526839 \
     git+git://github.com/voxelmorph/voxelmorph.git@80d0c489febfb4fa32b4a247629e79720fbb4c14"
   )
 
