@@ -31,7 +31,7 @@ if(INSTALL_PYTHON_DEPENDENCIES)
   endif()
   install(CODE "
     message(STATUS \"Installing freesurfer python package dependencies\")
-    execute_process(COMMAND bash -c \"${CMAKE_INSTALL_PREFIX}/python/bin/python3 -m pip install --disable-pip-version-check ${EXTRA_PACKAGES} -r ${CMAKE_CURRENT_SOURCE_DIR}/requirements.txt ${PKG_TARGET}\" RESULT_VARIABLE retcode)
+    execute_process(COMMAND bash -c \"${CMAKE_INSTALL_PREFIX}/python/bin/python3 -m pip install --upgrade --disable-pip-version-check ${EXTRA_PACKAGES} -r ${CMAKE_CURRENT_SOURCE_DIR}/requirements.txt ${PKG_TARGET}\" RESULT_VARIABLE retcode)
     if(NOT \${retcode} STREQUAL 0)
       message(FATAL_ERROR \"Could not install freesurfer python dependencies\")
     endif()
