@@ -1,6 +1,6 @@
-numpy==1.16.*
+numpy
 scipy
 pandas
 matplotlib
 transforms3d
-scikit-image==0.16.2
+scikit-image
