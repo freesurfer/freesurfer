@@ -321,6 +321,8 @@ class Samseg:
                 'optimizationOptions': self.optimizationOptions,
                 'savePath': self.savePath
             }, 'imageBuffers': self.imageBuffers, 'mask': self.mask,
+                'cropping': self.cropping,
+                'transform': self.transform.as_numpy_array,
                 'historyWithinEachMultiResolutionLevel': self.optimizationHistory,
                 "labels": self.modelSpecifications.FreeSurferLabels, "names": self.modelSpecifications.names,
                 "volumesInCubicMm": volumesInCubicMm, "optimizationSummary": self.optimizationSummary}
@@ -819,6 +821,8 @@ class Samseg:
                 levelHistory['finalNodePositions'] = finalNodePositions
                 levelHistory['initialNodePositionsInTemplateSpace'] = initialNodePositionsInTemplateSpace
                 levelHistory['finalNodePositionsInTemplateSpace'] = finalNodePositionsInTemplateSpace
+                levelHistory['deformation'] = self.deformation.copy()
+                levelHistory['deformationAtlasFileName'] = self.deformationAtlasFileName
                 levelHistory['historyOfCost'] = historyOfCost
                 levelHistory['priorsAtEnd'] = downSampledClassPriors
                 levelHistory['posteriorsAtEnd'] = downSampledGaussianPosteriors
