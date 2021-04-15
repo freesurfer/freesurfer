@@ -103,7 +103,7 @@ check_params_return:
 goto dump_params;
 dump_params_return:
 
-if($FS_MKCON_USE_BIN == 0 && UseOctave == 0) then
+if($FS_MKCON_USE_BIN == 0 && $UseOctave == 0) then
   set MATLAB = `getmatlab`;
   if($status) then
     echo "ERROR: cannot find matlab. Is it in your path?"
