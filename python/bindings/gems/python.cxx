@@ -79,6 +79,7 @@ PYBIND11_MODULE(gemsbindings, m) {
             .def_property_readonly("point_count", &KvlMesh::PointCount, py::return_value_policy::take_ownership)
             .def_property("points", &KvlMesh::GetPointSet, &KvlMesh::SetPointSet, py::return_value_policy::take_ownership)
             .def_property("alphas", &KvlMesh::GetAlphas, &KvlMesh::SetAlphas, py::return_value_policy::take_ownership)
+            .def("collect_label_statistics_nodes", &KvlMesh::CollectLabelStatisticsInMeshNodes, py::return_value_policy::take_ownership)
             .def( "fit_alphas", &KvlMesh::FitAlphas, py::return_value_policy::take_ownership )
             .def("scale", &KvlMesh::Scale, py::return_value_policy::take_ownership)
             .def("rasterize_values", &KvlMesh::RasterizeValues, py::arg("shape"), py::arg("values"), py::return_value_policy::take_ownership)

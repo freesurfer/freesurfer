@@ -443,7 +443,80 @@ py::array KvlMesh::RasterizeValues(std::vector<size_t> size, py::array_t<double,
     return createNumpyArrayFStyle(size, buffer);
 }
 
+py::array_t<double> KvlMesh::CollectLabelStatisticsInMeshNodes(const py::array_t<uint16_t, py::array::f_style | py::array::forcecast> multiAlphaImageBuffer) {
 
+    // Determine the size of the image to be created
+    typedef kvl::AtlasMeshProbabilityImageStatisticsCollector::ProbabilityImageType  ProbabilityImageType;
+    typedef ProbabilityImageType::SizeType  SizeType;
+    SizeType  imageSize;
+    for ( int i = 0; i < 3; i++ )
+      {
+      imageSize[ i ] = multiAlphaImageBuffer.shape( i );
+      std::cout << "imageSize[ i ]: " << imageSize[ i ] << std::endl;
+      }
+
+    // Allocate an image of that size
+    const unsigned int  numberOfClasses = multiAlphaImageBuffer.shape( 3 );
+    std::cout << "numberOfClasses: " << numberOfClasses << std::endl;
+    ProbabilityImageType::Pointer  probabilityImage = ProbabilityImageType::New();
+    probabilityImage->SetRegions( imageSize );
+    probabilityImage->Allocate();
+    ProbabilityImageType::PixelType  emptyEntry( numberOfClasses );
+    emptyEntry.Fill( 0.0f );
+    probabilityImage->FillBuffer( emptyEntry );
+
+    // Fill in -- relying on the fact that we've guaranteed a F-style Numpy array input
+    auto  *data = multiAlphaImageBuffer.data();
+    for ( int classNumber = 0; classNumber < numberOfClasses; classNumber++ )
+      {
+      // Loop over all voxels
+      itk::ImageRegionIterator< ProbabilityImageType >  it( probabilityImage,
+                                                            probabilityImage->GetBufferedRegion() );
+      for ( ;!it.IsAtEnd(); ++it, ++data )
+        {
+        it.Value()[ classNumber ] = static_cast< float >( *data ) / 65535.0;
+        }
+
+      }
+
+    std::cout << "Created and filled probabilityImage" << std::endl;
+
+
+    // Retrieve input mesh
+    kvl::AtlasMesh::ConstPointer constMesh = static_cast< const kvl::AtlasMesh* >( mesh );
+    std::cout << "Got mesh" << std::endl;
+
+    // Collect statistics
+    kvl::AtlasMeshProbabilityImageStatisticsCollector::Pointer  statisticsCollector =
+                                            kvl::AtlasMeshProbabilityImageStatisticsCollector::New();
+    statisticsCollector->SetProbabilityImage( probabilityImage );
+    statisticsCollector->Rasterize( constMesh );
+
+
+    // Copy the computed statistics in the mesh nodes into a numpy array
+    const unsigned int  numberOfNodes = constMesh->GetPoints()->Size();
+    auto *outData = new double[numberOfNodes * numberOfClasses];
+    auto dataIterator = outData;
+
+    for ( kvl::AtlasMeshProbabilityImageStatisticsCollector::StatisticsContainerType::ConstIterator
+                statIt = statisticsCollector->GetLabelStatistics()->Begin();
+          statIt !=  statisticsCollector->GetLabelStatistics()->End(); ++statIt)
+      {
+
+      for ( int classNumber = 0; classNumber < numberOfClasses; classNumber++ )
+        {
+        *dataIterator++ = statIt.Value()[ classNumber ];
+        } // End loop over classes
+
+      } // End loop over all points
+
+
+    // Also return the minLogLikelihood
+    const double  minLogLikelihood = statisticsCollector->GetMinLogLikelihood();
+    std::cout << minLogLikelihood << std::endl; // TODO: return minLogLikelihood
+
+    return createNumpyArrayCStyle({numberOfNodes, numberOfClasses}, outData);
+}
 
 py::array_t<double> KvlMesh::FitAlphas( const py::array_t< uint16_t, 
                                                            py::array::f_style | py::array::forcecast >& 
