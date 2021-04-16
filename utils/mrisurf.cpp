@@ -879,3 +879,34 @@ int MRIcomputeLabelNormal(MRI *mri_aseg, int x0, int y0, int z0,
   *pnz = nz ;
   return(NO_ERROR) ;
 }
+
+/*!
+  \fn int MRIScopyCoords(MRIS *surf, MRIS *surfcoords)
+  \brief Transfers the xyz coords from surfcoords to the given surface.
+*/
+int MRIScopyCoords(MRIS *surf, MRIS *surfcoords)
+{
+  int k;
+
+  if(surf == NULL){
+    printf("ERROR: MRIScopyCoordsCoords(): surf is null\n");
+    return(1);
+  }
+  if(surfcoords == NULL){
+    printf("ERROR: MRIScopyCoordsCoords(): surfcoords is null\n");
+    return(1);
+  }
+  if(surf->nvertices != surfcoords->nvertices){
+    printf("ERROR: MRIScopyCoordsCoords(): surf and surfcoords have diff no of vetices\n");
+    return(1);
+  }
+
+  for(k=0; k < surf->nvertices; k++){
+    VERTEX *v = &surf->vertices[k];
+    //if(v->ripflag) continue;
+    v->x = surfcoords->vertices[k].x;
+    v->y = surfcoords->vertices[k].y;
+    v->z = surfcoords->vertices[k].z;
+  }
+  return(0);
+}

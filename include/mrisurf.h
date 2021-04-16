@@ -2464,6 +2464,7 @@ static bool mrisVerticesAreNeighbors(MRIS const * const mris, int const vno1, in
 int MRISripMidline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, const char *hemi, int which, int fix_mtl);
 int MRIcomputeLabelNormal(MRI *mri_aseg, int x0, int y0, int z0,int label, int whalf, double *pnx, double *pny,
 			  double *pnz, int use_abs);
+int MRIScopyCoords(MRIS *surf, MRIS *surfcoords);
 int MRISfindExpansionRegions(MRI_SURFACE *mris);
 int MRISwriteField(MRIS *surf, const char **fields, int nfields, const char *outname);
 

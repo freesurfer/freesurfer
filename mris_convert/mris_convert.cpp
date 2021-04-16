@@ -124,6 +124,8 @@ static int cras_add = 0;
 static int cras_subtract = 0;
 static int ToScanner = 0;
 static int ToTkr = 0;
+static int ToSurfCoords = 0;
+MRIS *SurfCoords = NULL;
 int WriteArea = 0;
 
 int DeleteCommands = 0;
@@ -322,6 +324,11 @@ main(int argc, char *argv[])
   if(cras_subtract){
     printf("Subtracting scanner CRAS from surface xyz\n");
     MRISshiftCRAS(mris, -1);
+  }
+  if(ToSurfCoords){
+    printf("Converting to coords of --to-surf surface\n");
+    int err = MRIScopyCoords(mris,SurfCoords);
+    if(err) exit(1);
   }
   if(ToScanner){
     printf("Converting from tkr to scanner coordinates\n");
@@ -797,6 +804,12 @@ get_option(int argc, char *argv[])
     cras_add = 0;
     cras_subtract = 0;
   }
+  else if (!stricmp(option, "-to-surf")) {
+    ToSurfCoords = 1;
+    SurfCoords = MRISread(argv[2]);
+    if(SurfCoords == NULL) exit (1);
+    nargs = 1 ;
+  }
   else if (!stricmp(option, "-vol-geom"))
   {
     VolGeomMRI = MRIreadHeader(argv[2],MRI_VOLUME_TYPE_UNKNOWN);
@@ -921,6 +934,7 @@ print_help(void)
   printf( "  --userealras : set the useRealRAS flag in the surface file to 1 \n") ;
   printf( "  --usesurfras : set the useRealRAS flag in the surface file to 0 \n") ;
   printf( "  --vol-geom MRIVol : use MRIVol to set the volume geometry\n") ;
+  printf( "  --to-surf surfcoords : copy coordinates from surfcoords to output (good for patches)\n") ;
   printf( "  --to-scanner : convert coordinates from native FS (tkr) coords to scanner coords\n") ;
   printf( "  --to-tkr : convert coordinates from scanner coords to native FS (tkr) coords \n") ;
   printf( "  --volume ?h.white ?h.pial ?h.volume : compute vertex-wise volume, no other args needed (uses th3)\n") ;
