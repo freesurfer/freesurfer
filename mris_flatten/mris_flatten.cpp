@@ -49,6 +49,7 @@ static void print_usage(void) ;
 static void print_help(void) ;
 static void print_version(void) ;
 int MRISscaleUp(MRI_SURFACE *mris) ;
+MRIS *SurfCopyCoords = NULL;
 
 const char *Progname ;
 
@@ -430,6 +431,7 @@ main(int argc, char *argv[])
     MRISsetNeighborhoodSizeAndDist(mris, nbrs) ;
 #endif
   }
+  if(SurfCopyCoords) MRIScopyCoords(mris,SurfCopyCoords);
 
   if (Gdiag_no >= 0)
     printf("vno %d is %sin patch\n", Gdiag_no,
@@ -750,6 +752,13 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     fprintf(stderr, "dilating cuts %d times\n", dilate) ;
   }
+  else if (!stricmp(option, "copy-coords"))
+  {
+    SurfCopyCoords = MRISread(argv[2]);
+    if(SurfCopyCoords == NULL) exit(1);
+    nargs = 1 ;
+    fprintf(stderr, "copying coords from %s\n", argv[2]);
+  }
   else if (!stricmp(option, "dist"))
   {
     sscanf(argv[2], "%f", &parms.l_dist) ;
@@ -1022,6 +1031,9 @@ print_help(void)
   fprintf(stderr,
           " -dilate <# of dilations>\n\t"
           "specify the number of times to dilate the ripped edges to ensure a clean cut\n") ;
+  printf(" -copy-coords surf : copy xyz coords from surface before flattening\n");
+  printf("    This allows creating cuts on, eg, white surface, but flattening the inflated\n");
+  printf("    eg, mris_flatten -copy-coords lh.inflated -dilate 1 lh.white.cut lh.inflated.cut.flatten\n");
   exit(1) ;
 }
 
