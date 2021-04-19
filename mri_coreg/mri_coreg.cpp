@@ -182,6 +182,7 @@ int COREGprint(FILE *fp, COREG *coreg);
 MRI *MRIconformNoScale(MRI *mri, MRI *mric);
 int COREGoptBruteForce(COREG *coreg, double lim0, int niters, int n1d);
 double *COREGoptSchema2MatrixPar(COREG *coreg, double *par);
+int COREGmatrixPar2OptSchema(COREG *coreg, double *par);
 
 COREG *coreg;
 FSENV *fsenv;
@@ -410,9 +411,10 @@ int main(int argc, char *argv[]) {
   fflush(stdout);
 
   // Initial parameters
-  for(n=0; n < 12; n++) coreg->params[n] = cmdargs->params[n];
+  //for(n=0; n < 12; n++) coreg->params[n] = cmdargs->params[n];
+  COREGmatrixPar2OptSchema(coreg, cmdargs->params);
   printf("Initial parameters ");
-  for(n=0; n < 12; n++) printf("%7.4lf ",coreg->params[n]);
+  for(n=0; n < cmdargs->dof; n++) printf("%7.4lf ",coreg->params[n]);
   printf("\n");
 
   coreg->nsep = cmdargs->nsep;
@@ -481,13 +483,19 @@ int main(int argc, char *argv[]) {
   MatrixPrint(stdout,coreg->M);
   printf("Final  RefVox-to-MovVox\n");
   MatrixPrint(stdout,coreg->V2V);
-  printf("Final parameters ");
+  printf("Final matrix parameters ");
+  double *mpar = COREGoptSchema2MatrixPar(coreg, NULL);
+  for(n=0; n < 12; n++) printf("%7.4lf ",mpar[n]);
+  printf("\n");
+  printf("Final opt parameters ");
   for(n=0; n < coreg->nparams; n++) printf("%7.4lf ",coreg->params[n]);
   printf("\n");
   if(cmdargs->outparamfile){
     FILE *fp;
     fp = fopen(cmdargs->outparamfile,"w");
-    for(n=0; n < coreg->nparams; n++) fprintf(fp,"%15.8lf ",coreg->params[n]);
+    // Not sure which set to write out here; keeping opt for now to maint conist
+    //for(n=0; n < 12; n++) fprintf(fp,"%15.8lf ",mpar[n]);
+    for(n=0; n < coreg->nparams; n++) fprintf(fp,"%7.4lf ",coreg->params[n]);
     fprintf(fp,"\n");
     fclose(fp);
   }
@@ -648,6 +656,10 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--xytrans+zrot"))   {
       cmdargs->optschema = 4;
       cmdargs->dof = 3;
+    }
+    else if (!strcasecmp(option, "--xytrans+zrot+xyscale+xyshear"))   {
+      cmdargs->optschema = 5;
+      cmdargs->dof = 6;
     }
     else if (!strcasecmp(option, "--zscale"))   {
       cmdargs->optschema = 3;
@@ -861,8 +873,9 @@ static void print_usage(void) {
   printf("   --s subject (forces --ref-mask aparc+aseg.mgz)\n");
   printf("   --dof DOF : default is %d (also: --6, --9, --12)\n",cmdargs->dof);
   printf("   --zscale : a 7 dof reg with xyz shift and rot and scaling in z\n");
-  printf("   --xytrans+zrot : for 2D images uses shifts in x and y and rot about z (no scale)\n");
   printf("   --xztrans+yrot : for 2D images uses shifts in x and z and rot about y (no scale) (was --2dz)\n");
+  printf("   --xytrans+zrot : for 2D images uses shifts in x and y and rot about z (no scale)\n");
+  printf("   --xytrans+zrot+xyscale+xyshear : for 2D images uses shifts in x and y, rot about y, scale in xy, and xy shear \n");
   printf("   --ref-mask refmaskvol : mask ref with refmaskvol\n");
   printf("   --no-ref-mask : do not mask ref (good to undo aparc+aseg.mgz, put AFTER --s)\n");
   printf("   --mov-mask movmaskvol : mask ref with movmaskvol\n");
@@ -1114,7 +1127,8 @@ int COREGhist(COREG *coreg)
 	  if(drmov < 0 || drmov > coreg->mov->height-1) oob = 1;
 
           double dsmov = 0;
-	  if(coreg->optschema != 2 && coreg->optschema != 4){
+	  if(coreg->optschema != 2 && coreg->optschema != 4 && coreg->optschema != 5){
+            // not z-only
 	    dsmov  = V2V[2]*dcref + V2V[6]*drref + V2V[10]*dsref +  V2V[14];
 	    if(dsmov < 0 || dsmov > coreg->mov->depth-1)  oob = 1;
 	  }
@@ -1518,10 +1532,73 @@ double *COREGoptSchema2MatrixPar(COREG *coreg, double *par)
     par[6] = par[7] = par[8] = 1; // scaling
     par[0] = coreg->params[0]; // x trans
     par[1] = coreg->params[1]; // y trans
-    par[5] = coreg->params[5]; // rotation about z
+    par[5] = coreg->params[2]; // rotation about z
+    break;
+  case 5: 
+    // schema 5 is for a 2D image (6dof: x and y trans/scale + xyschear with rot about z)
+    par[0] = coreg->params[0]; // x trans
+    par[1] = coreg->params[1]; // y trans
+    par[2] = 0;                // z trans fixed
+    par[3] = 0;                // x rot fixed
+    par[4] = 0;                // y rot fixed
+    par[5] = coreg->params[2]; // z rot 
+    par[6] = coreg->params[3]; // x scale
+    par[7] = coreg->params[4]; // y scale
+    par[8] = 1;                // z scale fixed
+    par[9]  = coreg->params[5]; // xy shear
+    par[10] = 0;                // xz shear fixed
+    par[11] = 0;                // yz shear fixed
+    //printf(" par  ");
+    //for(n=0; n<12; n++) printf("%6.3f ",par[n]);
+    //printf("\n");
     break;
   }
   return(par);
+}
+
+/*!
+  \fn int COREGmatrixPar2OptSchema(COREG *coreg, double *par)
+  \brief Copy the relevant items of the 12DOF parameters used to
+  create a matrix to the parameters to be optimized (coreg->params).
+ */
+int COREGmatrixPar2OptSchema(COREG *coreg, double *par)
+{
+  int n;
+
+  switch(coreg->optschema){
+  case 1: 
+    // schema 1 is that the number of params = dof and that
+    // the order is given by xyz shift, xyz rot, xyz scale, then shear
+    for(n=0; n<coreg->nparams;n++) coreg->params[n] = par[n];
+    break;
+  case 2: 
+    // schema 2 is for a 2D image (3dof: x and z trans with rot about y)
+    coreg->params[0] = par[0]; // x trans
+    coreg->params[1] = par[2]; // z trans
+    coreg->params[2] = par[4]; // rotation about y
+    break;
+  case 3: 
+    // schema 3 is 7 dof (xyz shift, xyz rot, and z scale)
+    for(n=0; n < 6; n++) coreg->params[n] = par[n];
+    coreg->params[6] = par[8];
+    break;
+  case 4: 
+    // schema 4 is for a 2D image (3dof: x and y trans with rot about z)
+    coreg->params[0] = par[0]; // x trans
+    coreg->params[1] = par[1]; // y trans
+    coreg->params[2] = par[5]; // rotation about z
+    break;
+  case 5: 
+    // schema 5 is for a 2D image (6dof: x and y trans/scale + xyschear with rot about z)
+    coreg->params[0] = par[0]; // x trans
+    coreg->params[1] = par[1]; // y trans
+    coreg->params[2] = par[5]; // z rot 
+    coreg->params[3] = par[6]; // x scale
+    coreg->params[4] = par[7]; // y scale
+    coreg->params[5] = par[9]; // xy shear
+    break;
+  }
+  return(0);
 }
 
 double COREGcost(COREG *coreg)
