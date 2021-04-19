@@ -29,6 +29,7 @@ set reg2 = ()
 set movvol3 = ();
 set reg3 = ()
 set DoTal = 0;
+set ColorMap = grayscale
 
 set tmpdir = ();
 set cleanup = 1;
@@ -121,26 +122,29 @@ if(! $UseTkRegister) then
   set targname = `basename $targ`
   set visible = 0
   if($#surflist == 0) set visible = 1
-  set cmd = ($cmd -v $targ":"visible=$visible":"name=$targname"(targ)")
+  set arg = ($targ":"visible=$visible":"name=$targname"(targ)"":"colormap=$ColorMap)
+  set cmd = ($cmd -v $arg)
   @ nthaux = 0;
   foreach aux ($auxlist)
     @ nthaux = $nthaux + 1;
-    if($auxreglist[$nthaux] == 0) set cmd = ($cmd $aux)
-    if($auxreglist[$nthaux] != 0) set cmd = ($cmd $aux":"reg=$auxreglist[$nthaux])    
+    set arg = $aux
+    if($auxreglist[$nthaux] != 0) set arg = ($arg $arg":"reg=$auxreglist[$nthaux])    
+    set arg = ($arg":"colormap=$ColorMap)
+    set cmd = ($cmd $arg)
   end
   if($#segvol) set cmd = ($cmd -v "$segvol":"lut=$segcolor":"opacity=$segopacity":"colormap=lut")
   set movname = `basename $movvol`
-  if($#reg == 1) set cmd = ($cmd $movvol":"name=$movname"(mov):"reg=$reg)
-  if($#reg == 0) set cmd = ($cmd $movvol":"name=$movname"(mov)")
+  if($#reg == 1) set cmd = ($cmd $movvol":"name=$movname"(mov):"reg=$reg":"colormap=$ColorMap)
+  if($#reg == 0) set cmd = ($cmd $movvol":"name=$movname"(mov)"":"colormap=$ColorMap)
   if($#movvol2) then
     set movname2 = `basename $movvol2`
-    if($#reg2 == 1) set cmd = ($cmd $movvol2":"name=$movname2"(mov2):"reg=$reg2)
-    if($#reg2 == 0) set cmd = ($cmd $movvol2":"name=$movname2"(mov2)")
+    if($#reg2 == 1) set cmd = ($cmd $movvol2":"name=$movname2"(mov2):"reg=$reg2":"colormap=$ColorMap)
+    if($#reg2 == 0) set cmd = ($cmd $movvol2":"name=$movname2"(mov2)"":"colormap=$ColorMap)
   endif
   if($#movvol3) then
     set movname3 = `basename $movvol3`
-    if($#reg3 == 1) set cmd = ($cmd $movvol3":"name=$movname3"(mov3):"reg=$reg3)
-    if($#reg3 == 0) set cmd = ($cmd $movvol3":"name=$movname3"(mov3)")
+    if($#reg3 == 1) set cmd = ($cmd $movvol3":"name=$movname3"(mov3):"reg=$reg3":"colormap=$ColorMap)
+    if($#reg3 == 0) set cmd = ($cmd $movvol3":"name=$movname3"(mov3)"":"colormap=$ColorMap)
   endif
   @ nth = 0;
   foreach surf ($surflist)
@@ -364,6 +368,10 @@ while( $#argv != 0 )
       if($Plane == ax)  set Plane = axial
       breaksw
 
+    case "--heat":
+      set ColorMap = heat
+      breaksw
+
     case "--fstal"
       set DoTal = 1;
       breaksw
@@ -549,6 +557,7 @@ usage_exit:
   echo "  --no-config : do not automatically raise transform config window"
   echo "  --mov2 mov2 <--reg2 reg2> : provide a second mov (and possibly reg)"
   echo "  --mov3 mov3 <--reg3 reg3> : provide a third mov (and possibly reg)"
+  echo "  --heat : use heat map color tables for all volumes"
   echo ""
   echo "  --fstal --s subject : only these two args to modify the talairach.xfm"
   echo ""
