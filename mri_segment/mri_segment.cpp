@@ -135,17 +135,17 @@ int main(int argc, char *argv[])
   DiagInit(NULL, NULL, NULL) ;
   ErrorInit(NULL, NULL, NULL) ;
 
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
-  {
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
     argv += nargs ;
   }
 
-  if (argc < 3)
-  {
-    usage_exit(1);
-  }
+  // the argument parsing here is a little old fashioned (options must come before
+  // positionals), so let's throw an error to prevent confusion
+  if (argc < 3) fs::fatal() << "Must provide input and output files. Use --help for more info.";
+  if (argc > 3) fs::fatal() << "Too many arguments provided. Flagged options must be used before"
+                               " positional arguments. Use --help for more info.";
 
   then.reset() ;
   input_file_name = argv[1] ;
@@ -189,18 +189,22 @@ int main(int argc, char *argv[])
     // This is the old code that tries to do the initial segmentation purely based on
     // thresholding without reference to the aseg
     mri_labels = MRIclone(mri_src, NULL) ;
-    if (auto_detect_stats && !wm_low_set) /* widen range to allow for more variability */
-      wm_low -= 10 ;
-    
-    printf(" WHITE_MATTER_MEAN  %d\n",WHITE_MATTER_MEAN);
-    printf(" wsize  %d\n",wsize);
-    
-    if(scan_type == MRI_MGH_MPRAGE)
-      printf("assuming input volume is MGH (Van der Kouwe) MP-RAGE\n") ;
-    printf(" wm_low %g\n",wm_low);
-    printf(" wm_hi  %g\n",wm_hi);
-    printf(" gray_low %g\n",gray_low);
-    printf(" gray_hi  %g\n",gray_hi);
+
+    // widen range to allow for more variability
+    if (auto_detect_stats && !wm_low_set) {
+      int decrease = 10;
+      std::cout << "Widening wm low from " << wm_low << " to " << (wm_low - decrease) << std::endl;
+      wm_low -= decrease;
+    }
+
+    if(scan_type == MRI_MGH_MPRAGE) printf("assuming input volume is MGH (Van der Kouwe) MP-RAGE\n") ;
+
+    std::cout << "wm mean:  " << WHITE_MATTER_MEAN << std::endl;
+    std::cout << "wsize:    " << wsize << std::endl;
+    std::cout << "wm low:   " << wm_low << std::endl;
+    std::cout << "wm hi:    " << wm_hi << std::endl;
+    std::cout << "gray low: " << gray_low << std::endl;
+    std::cout << "gray hi:  " << gray_hi << std::endl;
     fflush(stdout);fflush(stderr);
     
     // This is just a simple trinarization:
