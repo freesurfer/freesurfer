@@ -401,17 +401,37 @@ static int parse_commandline(int argc, char **argv) {
       exit(0);
     } 
     else if (!strcasecmp(option, "--lta-patch")) {
+      // Surf Patch LTA out
+      // The application is ex vivo reg between a whole hemi and the
+      // WM of a block. A registration is applied to the block flat
+      // map to bring it in reg with a flat map from the whole
+      // hemi. After that, then the standard surf2surf reg can be
+      // applied (using --patch)
       if(nargc < 4) CMDargNErr(option,4);
+      // surface needed to read in patch, actual coords not important
       printf("Reading in %s\n",pargv[0]);
-      MRIS *ltasurf = MRISread(pargv[0]);
+      MRIS *ltasurf = MRISread(pargv[0]); 
       if(ltasurf==NULL) exit(1);
       ltasurf->vg.valid = 0; // needed for ltaMult
+      // Now read in the (flat) patch
       printf("Reading in %s\n",pargv[1]);
       MRISreadPatch(ltasurf,pargv[1]);
       printf("Reading in %s\n",pargv[2]);
+      /* Read in the LTA. The coordinates are a little confusing here.
+      2D images of the curv are created with coords in the flat map
+      surface coords (ie, tkreg). The reg comes registering these two
+      maps with mri_coreg, so from the LTA standpoint, this is a RAS2RAS 
+      eventhough secretly they are tkRAS. Because we are applying the reg
+      to the surface xyz (tkRAS), we need to change the LTA coord designation
+      (but not the matrix) to tkRAS so that MRISltaMultiply() does not change
+      the matrix to tkRAS.*/
       LTA *lta = LTAread(pargv[2]);
       if(lta==NULL) exit(1);
-      lta->type = REGISTER_DAT; // hack, needed for ltaMult
+      if(lta->type != LINEAR_RAS_TO_RAS){
+	printf("Changing LTA type to RAS2RAS\n");
+	LTAchangeType(lta,LINEAR_RAS_TO_RAS);
+      }
+      lta->type = REGISTER_DAT; // The hack mentioned above
       int err = MRISltaMultiply(ltasurf, lta);
       if(err) exit(1);
       if (center_surface) MRIScenter(ltasurf, ltasurf);
