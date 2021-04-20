@@ -982,8 +982,19 @@ MRI *MRISapplyReg(MRI *SrcSurfVals, MRI_SURFACE **SurfReg, int nsurfs, int Rever
       /* find closest source vertex */
       if (UseHash) svtx = MHTfindClosestVertexNo2(Hash[kS], SurfReg[kS], SurfReg[kT], v, &dmin);
       if (!UseHash || svtx < 0) {
-        if (svtx < 0) printf("Target vertex %d of pair %d unmapped in hash, using brute force\n", tvtxN, n);
+	int bf = 0;
+        if (svtx < 0) {
+	  printf("Target vertex %d (%g,%g,%g) of pair %d unmapped in hash, using brute force\n", 
+		 tvtxN, v->x, v->y, v->z, n);
+	  bf = 1;
+	}
         svtx = MRISfindClosestVertex(SurfReg[kS], v->x, v->y, v->z, &dmin, CURRENT_VERTICES);
+	if(bf){
+	  VERTEX *vs = &(SurfReg[kS]->vertices[svtx]);
+	  printf("  Source vertex %d (%g,%g,%g) of pair %d mapped using brute force\n", 
+		 svtx, vs->x, vs->y, vs->z, n);
+	  fflush(stdout);
+	}
       }
       if(SurfReg[kS]->vertices[svtx].ripflag){
 	skip = 1;
