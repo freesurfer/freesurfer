@@ -1,21 +1,22 @@
+#!/usr/bin/env python
+
 import os
 import numpy as np
 import nibabel as nib
 import argparse
+import freesurfer as fs
+
 from freesurfer import samseg
+
+
 eps = np.finfo(float).eps
 
-# ------ Parse Command Line Arguments ------
-
-parser = argparse.ArgumentParser()
-
-# required
+parser = fs.utils.ArgumentParser()
 parser.add_argument('--subjects-dir', metavar='DIR', help='Directory with saved SAMSEG runs with --history flag.', required=True)
 parser.add_argument('--segmentations-dir', metavar='DIR', help='Directory with binary manual segmentations.', required=True)
-parser.add_argument('--segmentation-name', help='Filename of the segmentations, assumed to be the same for each subject', required=True)
+parser.add_argument('--segmentation-name', help='Filename of the segmentations, assumed to be the same for each subject.', required=True)
 parser.add_argument('--mesh-collections', nargs='+', metavar='FILE', help='Mesh collection file(s).', required=True)
-parser.add_argument('--out-dir', help='Output directory', required=True)
-# optional
+parser.add_argument('--out-dir', help='Output directory.', required=True)
 parser.add_argument('--showfigs', action='store_true', default=False, help='Show figures during run.')
 args = parser.parse_args()
 
@@ -33,8 +34,7 @@ atlas = samseg.ProbabilisticAtlas()
 
 numberOfSubjects = len(os.listdir(args.subjects_dir))
 
-level = 0
-for meshCollectionFile in args.mesh_collections:
+for level, meshCollectionFile in enumerate(args.mesh_collections):
 
     print("Working on mesh collection at level " + str(level + 1))
 
@@ -46,6 +46,7 @@ for meshCollectionFile in args.mesh_collections:
     # We are interested only on the reference mesh
     mesh = meshCollection.reference_mesh
     numberOfNodes = mesh.point_count
+
     #
     subjectList = os.listdir(args.subjects_dir)
     print('Number of subjects: ' + str(len(subjectList)))
@@ -53,8 +54,7 @@ for meshCollectionFile in args.mesh_collections:
     # Define what we are interesting in, i.e., the label statistics of lesion
     labelStatisticsInMeshNodes = np.zeros([numberOfNodes, 2, numberOfSubjects])
 
-    subjectNumber = 0
-    for subjectDir in subjectList:
+    for subjectNumber, subjectDir in enumerate(subjectList):
       
         # Read the manually annotated binary segmentation for the specific subject
         segmentationImage = nib.load(os.path.join(args.segmentations_dir, subjectDir, args.segmentation_name)).get_fdata()
@@ -74,6 +74,7 @@ for meshCollectionFile in args.mesh_collections:
             initialDeformation=deformations,
             initialDeformationMeshCollectionFileName=meshCollectionFile
         ).points
+
         # The image is cropped as well so the voxel coordinates
         # do not exactly match with the original image,
         # i.e., there's a shift. Let's undo that.
@@ -112,8 +113,5 @@ for meshCollectionFile in args.mesh_collections:
         # Save label statistics of subject
         labelStatisticsInMeshNodes[:, :, subjectNumber] = labelStatistics
 
-        subjectNumber = subjectNumber + 1
-
-    # Save label statistics in a npz file
-    np.save(os.path.join(args.out_dir, 'labelStatistics_' + 'atlas_' + str(level)), labelStatisticsInMeshNodes)
-    level = level + 1
+    # Save label statistics in a npy file
+    np.save(os.path.join(args.out_dir, 'labelStatistics_atlas_%d' % level), labelStatisticsInMeshNodes)
