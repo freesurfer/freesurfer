@@ -624,7 +624,26 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       precision = pargv[0];
       nargsused = 1;
-    } else {
+    } 
+    else if (!strcmp(option, "--flat2mri")) {
+      if(nargc < 6) argnerr(option,6);
+      // surf patch overlay res avg output
+      MRIS *surf = MRISread(pargv[0]);
+      if(surf==NULL) exit(1);
+      int err = MRISreadPatch(surf, pargv[1]);
+      if(err) exit(1);
+      MRI *overlay = MRIread(pargv[2]);
+      if(overlay == NULL) exit(1);
+      double res;
+      sscanf(pargv[3],"%lf",&res);
+      int DoAverage;
+      sscanf(pargv[4],"%d",&DoAverage);
+      MRI *mriflat = MRISflatMap2MRI(surf, overlay, res, DoAverage, NULL);
+      if(mriflat==NULL) exit(1);
+      err = MRIwrite(mriflat,pargv[5]);
+      exit(err);
+    } 
+    else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if (singledash(option))
         fprintf(stderr,"       Did you really mean -%s ?\n",option);
@@ -669,6 +688,7 @@ static void print_usage(void) {
   printf("  --merge vol : merge with this vol (becomes template)\n");
   printf("  --o outfile      : path to output volume\n");
   printf("  --vtxvol vtxfile : vertex map volume path id\n");
+  printf("  --flat2mri surf patch overlay res avg output\n");
   printf("  \n");
   printf("  Applies to both methods\n");
   printf("  --add const : add constant value to each non-zero output voxel\n");
