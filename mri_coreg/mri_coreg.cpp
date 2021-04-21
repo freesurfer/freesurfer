@@ -139,8 +139,9 @@ typedef struct {
   double reffwhm[3],refgstd[3];
   double movfwhm[3],movgstd[3];
   double histfwhm[2];
-  double params[12];
-  int nparams;
+  double params[12]; // params to be optimized, may be < 12
+  int nparams; // number of params to be optimized, may be < 12
+  double mparams[12]; // params to create the matrix, always=12
   double H01d[256*256];
   double **H0;
   double cost;
@@ -411,9 +412,14 @@ int main(int argc, char *argv[]) {
   fflush(stdout);
 
   // Initial parameters
-  //for(n=0; n < 12; n++) coreg->params[n] = cmdargs->params[n];
+  printf("Init matrix params ");
+  for(n=0; n < 12; n++){
+    printf("%7.4lf ",cmdargs->params[n]);
+    coreg->mparams[n] = cmdargs->params[n];
+  }
+  printf("\n");
   COREGmatrixPar2OptSchema(coreg, cmdargs->params);
-  printf("Initial parameters ");
+  printf("Initial parameters to be opt ");
   for(n=0; n < cmdargs->dof; n++) printf("%7.4lf ",coreg->params[n]);
   printf("\n");
 
@@ -1495,7 +1501,10 @@ double NMICost(double **H, int cols, int rows)
   \fn double *COREGoptSchema2MatrixPar(COREG *coreg, double *par)
   \brief Convert the vector of optimized parameters to parameters used
   to create an actual matrix transform. This schema allows for
-  differnt parameters to be optimized (and not just the first n dof)
+  differnt parameters to be optimized (and not just the first n dof).
+  It will only replace the values that are being optimized, so the
+  other values must be properly set (eg, if optimizing trans/rot, then
+  scale must be set to something non-zero).
  */
 double *COREGoptSchema2MatrixPar(COREG *coreg, double *par)
 {
@@ -1507,29 +1516,21 @@ double *COREGoptSchema2MatrixPar(COREG *coreg, double *par)
   case 1: 
     // schema 1 is that the number of params = dof and that
     // the order is given by xyz shift, xyz rot, xyz scale, then shear
-    for(n=0; n<12; n++) par[n] = 0;
-    par[6] = par[7] = par[8] = 1; // scaling
     for(n=0; n<coreg->nparams;n++) par[n] = coreg->params[n];
     break;
   case 2: 
     // schema 2 is for a 2D image (3dof: x and z trans with rot about y)
-    for(n=0; n<12; n++) par[n] = 0;
-    par[6] = par[7] = par[8] = 1; // scaling
     par[0] = coreg->params[0]; // x trans
     par[2] = coreg->params[1]; // z trans
     par[4] = coreg->params[2]; // rotation about y
     break;
   case 3: 
     // schema 3 is 7 dof (xyz shift, xyz rot, and z scale)
-    for(n=0; n<12; n++) par[n] = 0;
-    par[6] = par[7] = 1; // scaling in x and y
     for(n=0; n < 6; n++) par[n] = coreg->params[n];
     par[8] = coreg->params[6];
     break;
   case 4: 
     // schema 4 is for a 2D image (3dof: x and y trans with rot about z)
-    for(n=0; n<12; n++) par[n] = 0;
-    par[6] = par[7] = par[8] = 1; // scaling
     par[0] = coreg->params[0]; // x trans
     par[1] = coreg->params[1]; // y trans
     par[5] = coreg->params[2]; // rotation about z
@@ -1538,19 +1539,10 @@ double *COREGoptSchema2MatrixPar(COREG *coreg, double *par)
     // schema 5 is for a 2D image (6dof: x and y trans/scale + xyschear with rot about z)
     par[0] = coreg->params[0]; // x trans
     par[1] = coreg->params[1]; // y trans
-    par[2] = 0;                // z trans fixed
-    par[3] = 0;                // x rot fixed
-    par[4] = 0;                // y rot fixed
     par[5] = coreg->params[2]; // z rot 
     par[6] = coreg->params[3]; // x scale
     par[7] = coreg->params[4]; // y scale
-    par[8] = 1;                // z scale fixed
     par[9]  = coreg->params[5]; // xy shear
-    par[10] = 0;                // xz shear fixed
-    par[11] = 0;                // yz shear fixed
-    //printf(" par  ");
-    //for(n=0; n<12; n++) printf("%6.3f ",par[n]);
-    //printf("\n");
     break;
   }
   return(par);
@@ -1607,11 +1599,17 @@ double COREGcost(COREG *coreg)
   double *g1, *g2, sum, std1, std2;
   int r,c,n,lim1,lim2,ng1,ng2;
   int H1rows,H1cols,Hrows,Hcols;
-  static double *params=NULL;
+
+  /* Copy the params being optimized into the matrix param vector
+  (mparams). This will be used below to create the matarix.  mparams
+  may have non-trivial values in slots that are not being optimized,
+  eg, if a non-rigid matrix is passed as input but you are only
+  optimizing the rigid components, the non-rigid components will still
+  be part of the matrix.  */
+  COREGoptSchema2MatrixPar(coreg, coreg->mparams);
 
   // RefRAS-to-MovRAS
-  params = COREGoptSchema2MatrixPar(coreg, params);
-  coreg->M = TranformAffineParams2Matrix(params, coreg->M);
+  coreg->M = TranformAffineParams2Matrix(coreg->mparams, coreg->M);
 
   // AnatVox-to-FuncVox
   coreg->V2V = MRIgetVoxelToVoxelXformBase(coreg->ref,coreg->mov,coreg->M,coreg->V2V,0);
@@ -1739,11 +1737,11 @@ int COREGMinPowell()
   dof = coreg->nparams;
 
   printf("\n\n---------------------------------\n");
-  printf("Init Powel Params dof = %d\n",dof);
+  printf("Init Powel Params dof = %d: ",dof);
   pPowel = vector(1, dof) ;
-  for(n=0; n < dof; n++) pPowel[n+1] = coreg->params[n];
   for(n=0; n < dof; n++) printf("%f ",coreg->params[n]);
   printf("\n");
+  for(n=0; n < dof; n++) pPowel[n+1] = coreg->params[n];
 
   xi = matrix(1, dof, 1, dof) ;
   for (r = 1 ; r <= dof ; r++) {
@@ -1761,11 +1759,14 @@ int COREGMinPowell()
   //printf("EvalTimeSec %4.1f sec\n",(timer.seconds())/coreg->nCostEvaluations);
   fflush(stdout);
 
-  printf("Final parameters ");
+  printf("Final optimized parameters ");
   for(n=0; n < coreg->nparams; n++){
     coreg->params[n] = pPowel[n+1];
     printf("%12.8f ",coreg->params[n]);
   }
+  printf("\n");
+  printf("Final matrix parameters ");
+  for(n=0; n < 12; n++) printf("%7.4lf ",coreg->mparams[n]);
   printf("\n");
 
   COREGcost(coreg);
