@@ -44,6 +44,7 @@ set InputVol = ()
 set OutputVol = ()
 set OutputSurf = ()
 set DoCurv = 1
+set LF = ()
 
 if($#argv == 0) goto usage_exit;
 
@@ -74,9 +75,9 @@ mkdir -p $outvoldir $outsurfdir
 if($#subjid) then
   set subjdir = $SUBJECTS_DIR/$subjid
   mkdir -p $subjdir/scripts
-  set LF = $subjdir/scripts/mkheadsurf.log
+  if($#LF == 0) set LF = $subjdir/scripts/mkheadsurf.log
 else
-  set LF = $outvoldir/mkheadsurf.log
+  if($#LF == 0) set LF = $outvoldir/mkheadsurf.log
 endif
 if(-e $LF) mv $LF $LF.old
 echo "INFO: log file is $LF"
@@ -292,6 +293,12 @@ while( $#argv != 0 )
       set DoInflate = 0;
       breaksw
 
+    case "-log":
+    case "--log":
+      if($#argv < 1) goto arg1err;
+      set LF = $argv[1]; shift;
+      breaksw
+
     case "-verbose":
       set verbose = 1;
       breaksw
@@ -408,6 +415,7 @@ usage_exit:
   echo "   -hemi hemi         : default is lh"
   echo "   -sd subjectsdir    : default is SUBJECTS_DIR"
   echo "   -umask umask       : default is 2 (ie, group and individ writable)"
+  echo "   -log logfile"
   echo ""
   echo "See also: mri_seghead, mri_tessellate, and mris_smooth"
   echo ""
