@@ -30,6 +30,8 @@ set movvol3 = ();
 set reg3 = ()
 set DoTal = 0;
 set ColorMap = grayscale
+set params = (0 0 0 0 0 0 1 1 1 0 0 0); # 12dof
+set regheader = 0;
 
 set tmpdir = ();
 set cleanup = 1;
@@ -99,14 +101,25 @@ if($DoTal) then
   exit 0
 endif
 
+#set tmpdir = `fs_temp_dir`
+#mkdir -p $tmpdir
 if(! $UseTkRegister) then
   ### FreeView ####----------------------------------------------
-  if(! -e $reg) then
-    # Create registration if needed
-    set tmpfile = `fs_temp_file --suffix .dat`
-    set cmd = (tkregister2_cmdl --mov $movvol --targ $targ --regheader \
-      --reg $tmpfile --ltaout $reg --regheader)
+  if(! -e $reg || $regheader) then
+    # Not sure what to do here. 
+    # 1. Use $reg : if the user makes no changes, the $reg will still exist.
+    #    This might be what the user wants, or not. FV does not allow the
+    #    user to save the LTA unless it has been changed (unlike tkregister)
+    # 2. Use $tmpdir : when the user goes to save, will have to select a new reg
+    #    in a different folder; user may be happy with the reg and just exit
+    # Need a way to force the user to make a choice in FV
+    #set headerreg1 = $tmpdir/tkregisterfv.$$.tmp.lta
+    #set headerreg2 = $tmpdir/tkregisterfv.$$.tmp.lta
+    # 
+    # This was using tkregister_cmdl which outputs vox2vox, coreg outputs RAS2RAS
+    set cmd = (mri_coreg) 
     if($#subject) set cmd = ($cmd --s $subject)
+    set cmd = ($cmd --par2mat $params $movvol $targ $reg)
     echo $cmd 
     $cmd 
     if($status) then
@@ -114,7 +127,6 @@ if(! $UseTkRegister) then
       echo "ERROR: $cmd"
       exit 1;
     endif
-    rm $tmpfile
   endif
   set cmd = (freeview)
   if($ShowConfig)  set cmd = ($cmd -transform-volume)
@@ -161,10 +173,11 @@ endif
 echo "cd `pwd`"
 echo $cmd
 fsvglrun $cmd
+set st = $status
 
-#========================================================
+#rm -r $tmpdir
 
-exit 0
+exit $st
 
 ###############################################
 
@@ -271,9 +284,33 @@ while( $#argv != 0 )
       set reg = `getfullpath $reg`
       breaksw
 
-    case "--reg-header":
-    case "--regheader":
-      set regheader = 1;
+    case "--regheader"
+    case "--reg-header"
+      set regheader = 1
+      breaksw
+
+    case "--params":
+      if($#argv < 12) then
+        echo "ERROR: --params requires 12 arguments"
+        exit 1;
+      endif
+      set params = ($argv[1-12]);
+      set regheader = 1
+      breaksw
+
+    case "--flip-x":
+      set params[4] = 180
+      set regheader = 1
+      breaksw
+
+    case "--flip-y":
+      set params[5] = 180
+      set regheader = 1
+      breaksw
+
+    case "--flip-z":
+      set params[6] = 180
+      set regheader = 1
       breaksw
 
     case "--mov2":
@@ -519,6 +556,18 @@ if($DoSurfs) then
   end
 endif
 
+
+if(! -e $reg && ! $regheader) then
+  echo "ERROR: $reg does not exist. Spec a reg that does or use --regheader"
+  exit 1;
+endif
+
+if(-e $reg && $regheader) then
+  echo "ERROR: --regheader requested, but registration file $reg exists"
+  echo "  delete it or change the passed registration file"
+  exit 1;
+endif
+
 goto check_params_return;
 ############--------------##################
 
@@ -558,6 +607,12 @@ usage_exit:
   echo "  --mov2 mov2 <--reg2 reg2> : provide a second mov (and possibly reg)"
   echo "  --mov3 mov3 <--reg3 reg3> : provide a third mov (and possibly reg)"
   echo "  --heat : use heat map color tables for all volumes"
+  echo "  --regheader : create registration file assuming the two volumes share a RAS"
+  echo "  --params tx ty tz ry rx rz sy sx sz hxy hxz hyz : regheader with affine matrix parameters"
+  echo "      translations in mm, rotations in deg"
+  echo "  --flip-x : regheader with rx=180"
+  echo "  --flip-y : regheader with ry=180"
+  echo "  --flip-z : regheader with rz=180"
   echo ""
   echo "  --fstal --s subject : only these two args to modify the talairach.xfm"
   echo ""
