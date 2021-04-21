@@ -729,6 +729,8 @@ static int parse_commandline(int argc, char **argv) {
       MATRIX *T = TranformAffineParams2Matrix(par, NULL);
       MatrixInverse(T,T);
       LTA *lta = LTAcreate(mrisrc, mritarg, T, LINEAR_RAS_TO_RAS);
+      if(cmdargs->subject)  strncpy(lta->subject,cmdargs->subject,sizeof(lta->subject)-1);
+      else                  strncpy(lta->subject,"unknown",       sizeof(lta->subject)-1);
       int err = LTAwrite(lta,pargv[14]);
       MRIfree(&mrisrc);
       MRIfree(&mritarg);
@@ -917,6 +919,7 @@ static void print_usage(void) {
   printf("   --mat2par reg.lta : extract parameters out of registration\n");
   printf("   --mat2rot reg.lta rotreg.lta: convert registration to a pure rotation\n");
   printf("   --par2mat par1-par12 srcvol trgvol reg.lta : convert parameters to a  registration\n");
+  printf("      the subject in the output reg.lta can be set with --s before --par2mat\n");
   printf("   --rms radius filename reg1 reg2 : compute RMS diff between two registrations using MJ's method (rad ~= 50mm)\n");
   printf("      The rms will be written to filename; if filename == nofile, then no file is created\n");
   printf("   --movout movout volume : save the mov after all preprocessing\n");
