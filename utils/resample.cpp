@@ -1010,6 +1010,14 @@ MRI *MRISapplyReg(MRI *SrcSurfVals, MRI_SURFACE **SurfReg, int nsurfs, int Rever
     }
     if(skip) continue;
 
+    if(0){
+      // Good for debugging
+      v = &(SurfReg[0]->vertices[svtx]);
+      printf("  s=%d (%g,%g,%g)",svtx, v->x, v->y, v->z);
+      v = &(SurfReg[nsurfs-1]->vertices[tvtx]);
+      printf("  t=%d (%g,%g,%g)\n",tvtx, v->x, v->y, v->z);
+    }
+
     if (!DoJac) {
       /* update the number of hits */
       MRIFseq_vox(SrcHits, svtx, 0, 0, 0)++;
