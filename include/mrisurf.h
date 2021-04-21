@@ -2467,6 +2467,7 @@ int MRIcomputeLabelNormal(MRI *mri_aseg, int x0, int y0, int z0,int label, int w
 int MRIScopyCoords(MRIS *surf, MRIS *surfcoords);
 int MRISfindExpansionRegions(MRI_SURFACE *mris);
 int MRISwriteField(MRIS *surf, const char **fields, int nfields, const char *outname);
+MRI *MRISflatMap2MRI(MRIS *flatmap, MRI *overlay, double res, int DoAverage, MRI *out);
 
 /**
   class AutoDetGWStats. This class houses functions used to compute

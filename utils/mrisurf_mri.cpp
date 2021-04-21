@@ -9589,3 +9589,112 @@ MRIScomputeBorderValuesV6(MRI_SURFACE *mris,MRI *mri_brain,
   fflush(stdout);
   return(NO_ERROR) ;
 }
+
+/*!
+\fn MRI *MRISflatMap2MRI(MRIS *flatmap, MRI *overlay, double res, int DoAverage, MRI *out)
+\brief Samples a surface overlay into a 2D image (MRI) of resolution
+res given a flat map. The FoV of the image is side enough to encompass
+the flat map. The scannerRAS of the 2D image corresponds to the
+tkregRAS of the (flat part) of the surface, which should be in the xy
+plane (z=0). Handles multi-frame overlays. If DoAverage=1, then the
+average is computed over all the vertices that fall into a given
+voxel, otherwise the voxel value will be that of the last visited
+vertex. No attempt is made to fill holes. The orginal purpose of this
+was to sample curv maps into a 2D image so that they could be
+registered, eg,
+  mri_coreg --mov curv1.flat..mgz --tar curv2.flat.mgz --xytrans+zrot --reg reg.lta
+  mris_apply_reg --lta-patch lh.surf1 lh.flat1.patch reg.lta lh.flat1.patch.xfm
+  Then mris_apply_reg can be run to map between the surfaces
+*/
+MRI *MRISflatMap2MRI(MRIS *flatmap, MRI *overlay, double res, int DoAverage, MRI *out)
+{
+  int k,ncols,nrows;
+  int c, r, f = -1;
+
+  // Get the ranges
+  double xmin=10e10, xmax=-10e10, ymin=10e10, ymax=-10e10;
+  for(k=0; k < flatmap->nvertices; k++){
+    VERTEX *v = &flatmap->vertices[k];
+    if(v->ripflag) continue;
+    if(xmin > v->x) xmin = v->x;
+    if(xmax < v->x) xmax = v->x;
+    if(ymin > v->y) ymin = v->y;
+    if(ymax < v->y) ymax = v->y;
+  }
+  ncols = ceil((xmax-xmin)/res);
+  nrows = ceil((ymax-ymin)/res);
+  printf("min %g %g, max %g %g, res = %g, %d %d\n",xmin,ymin,xmax,ymax,res,ncols,nrows);
+
+  // Create 2D output and set voxel values to 0
+  if(!out) {
+    out = MRIallocSequence(ncols, nrows, 1, overlay->type, overlay->nframes);
+    MRIcopyHeader(overlay, out);
+    MRIcopyPulseParameters(overlay, out);
+  }
+  MRIsetValues(out, 0);
+
+  // Keep track of the count of vertices that land in each voxel
+  MRI *count = MRIallocSequence(ncols, nrows, 1, MRI_INT, 1);
+  MRIsetValues(count, 0);
+
+  // Create a vox2ras to map from vertex xyz into the 2D image. Flat
+  // map is in xy-plane (z=0)
+  MATRIX *vox2ras = MatrixIdentity(4,NULL);
+  vox2ras->rptr[1][1] = res;
+  vox2ras->rptr[2][2] = res;
+  vox2ras->rptr[1][4] = xmin;
+  vox2ras->rptr[2][4] = ymin;
+  MATRIX *ras2vox = MatrixInverse(vox2ras,NULL);
+
+  // Add vox2ras into MRI struct
+  MRIsetVox2RASFromMatrix(out,vox2ras);
+  MRIsetVox2RASFromMatrix(count,vox2ras);
+
+  MATRIX *xyz = MatrixAlloc(4,1,MATRIX_REAL);
+  MATRIX *crs = NULL;
+  xyz->rptr[4][1] = 1;
+  for(k=0; k < flatmap->nvertices; k++){
+    VERTEX *v = &flatmap->vertices[k];
+    if(v->ripflag) continue;
+    xyz->rptr[1][1] = v->x;
+    xyz->rptr[2][1] = v->y;
+    //printf("%d %6.4f %6.4f %6.4f\n",k,v->x,v->y,v->z);
+    crs = MatrixMultiplyD(ras2vox,xyz,crs);
+    c = nint(crs->rptr[1][1]);
+    r = nint(crs->rptr[2][1]);
+    if(c < 0) continue;
+    if(c >= ncols) continue;
+    if(r < 0) continue;
+    if(r >= nrows) continue;
+    int n = MRIgetVoxVal(count,c,r,0,0);
+    MRIsetVoxVal(count,c,r,0,0,(n+1));
+    double ov=0,val;
+    for(f=0; f < overlay->nframes; f++){
+      ov = MRIgetVoxVal(overlay,k,0,0,f);
+      val = MRIgetVoxVal(out,c,r,0,f);
+      if(DoAverage)  MRIsetVoxVal(out,c,r,0,f,ov+val);
+      else           MRIsetVoxVal(out,c,r,0,f,val); // last one
+    }
+  }
+
+  if(DoAverage){
+    // Compute the average
+    for(c=0; c < out->width; c++){
+      for(r=0; r < out->height; r++){
+	int n = MRIgetVoxVal(count,c,r,0,0);
+	if(n == 0) continue; 
+	double val;
+	for(f=0; f < overlay->nframes; f++){
+	  val = MRIgetVoxVal(out,c,r,0,f);
+	  MRIsetVoxVal(out,c,r,0,f,val/n);
+	}
+      }
+    }
+  }
+
+  // It would be nice to fill holes, eg, soap bubble
+
+  MRIfree(&count);
+
+  return(out);
+}
