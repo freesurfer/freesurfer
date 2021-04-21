@@ -19,6 +19,7 @@ set UseTkSurfer = 0;
 set curv = curv
 set DoAllSurfs = 0;
 set altargs = ()
+set patch = ()
 
 set tmpdir = ();
 set cleanup = 1;
@@ -77,6 +78,7 @@ if(! $UseTkSurfer) then
         set surfarg = "$surfarg":"label=$label"
       end
     endif
+    if($#patch) set surfarg = "$surfarg":"patch=$patch"
     if($DoAllSurfs) set surfarg = "$surfarg":"all=true"
     set cmd = ($cmd $surfarg)
   end
@@ -186,6 +188,11 @@ while( $#argv != 0 )
     case "-fmax":
       if($#argv < 1) goto arg1err;
       set fmax = $argv[1]; shift;
+      breaksw
+
+    case "-patch":
+      if($#argv < 1) goto arg1err;
+      set patch = $argv[1]; shift;
       breaksw
 
     case "-surf":
@@ -325,6 +332,19 @@ foreach annot ($annotlist)
   endif
   set annotfilelist = ($annotfilelist $annotfile)
 end
+
+if($#patch) then
+  if(! -e $patch) then
+    set tmppatch = $SUBJECTS_DIR/$subject/surf/$patch
+    if(! -e $tmppatch) then
+      echo "ERROR: cannot find $patch"
+      exit 1
+    else
+      set patch = $tmppatch
+    endif
+  endif
+endif
+
 
 goto check_params_return;
 ############--------------##################
