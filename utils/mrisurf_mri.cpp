@@ -9611,6 +9611,8 @@ MRI *MRISflatMap2MRI(MRIS *flatmap, MRI *overlay, double res, int DoAverage, MRI
   int k,ncols,nrows;
   int c, r, f = -1;
 
+  printf("MRISflatMap2MRI res = %g, DoAverage = %d\n",res,DoAverage);
+
   // Get the ranges
   double xmin=10e10, xmax=-10e10, ymin=10e10, ymax=-10e10;
   for(k=0; k < flatmap->nvertices; k++){
@@ -9630,11 +9632,15 @@ MRI *MRISflatMap2MRI(MRIS *flatmap, MRI *overlay, double res, int DoAverage, MRI
     out = MRIallocSequence(ncols, nrows, 1, overlay->type, overlay->nframes);
     MRIcopyHeader(overlay, out);
     MRIcopyPulseParameters(overlay, out);
+    out->xsize = res;
+    out->ysize = res;
   }
   MRIsetValues(out, 0);
 
   // Keep track of the count of vertices that land in each voxel
   MRI *count = MRIallocSequence(ncols, nrows, 1, MRI_INT, 1);
+  count->xsize = res;
+  count->ysize = res;
   MRIsetValues(count, 0);
 
   // Create a vox2ras to map from vertex xyz into the 2D image. Flat
@@ -9673,7 +9679,7 @@ MRI *MRISflatMap2MRI(MRIS *flatmap, MRI *overlay, double res, int DoAverage, MRI
       ov = MRIgetVoxVal(overlay,k,0,0,f);
       val = MRIgetVoxVal(out,c,r,0,f);
       if(DoAverage)  MRIsetVoxVal(out,c,r,0,f,ov+val);
-      else           MRIsetVoxVal(out,c,r,0,f,val); // last one
+      else           MRIsetVoxVal(out,c,r,0,f,ov); // last one
     }
   }
 
