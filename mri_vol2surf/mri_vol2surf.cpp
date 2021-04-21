@@ -1767,6 +1767,7 @@ MRI *MRIvol2surf(MRI *SrcVol, MATRIX *Rtk, MRI_SURFACE *TrgSurf,
   TrgVol = MRIallocSequence(TrgSurf->nvertices,1,1,MRI_FLOAT,SrcVol->nframes);
   if (TrgVol == NULL) return(NULL);
   MRIcopyHeader(SrcVol,TrgVol);
+  MRIcopyPulseParameters(SrcVol,TrgVol);
 
   /* Zero the source hit volume */
   if(SrcHitVol != NULL){
