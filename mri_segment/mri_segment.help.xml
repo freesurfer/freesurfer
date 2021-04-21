@@ -1,42 +1,17 @@
-<?xml version="1.0" encoding="ISO-8859-1"?>
-<!DOCTYPE help [
-<!ENTITY lt "#38;#60;">
-<!ENTITY gt "&#62;">
-<!ENTITY amp "&#38;#38;">
-<!ELEMENT help (name , synopsis , description , arguments+ , outputs* , example* , bugs* , reporting* , see-also*)*>
-<!ELEMENT name (#PCDATA)>
-<!ELEMENT synopsis (#PCDATA)>
-<!ELEMENT description (#PCDATA)>
-<!ELEMENT arguments (positional* , required-flagged* , optional-flagged*)*>
-<!ELEMENT positional (intro* , argument* , explanation*)*>
-<!ELEMENT required-flagged (intro* , argument* , explanation*)*>
-<!ELEMENT optional-flagged (intro* , argument* , explanation*)*>
-<!ELEMENT intro (#PCDATA)>
-<!ELEMENT argument (#PCDATA)>
-<!ELEMENT explanation (#PCDATA)>
-<!ELEMENT outputs (output* , explanation*)>
-<!ELEMENT output (#PCDATA)>
-<!ELEMENT example (#PCDATA)>
-<!ELEMENT bugs (#PCDATA)>
-<!ELEMENT reporting (#PCDATA)>
-<!ELEMENT see-also (#PCDATA)>
-]>
-
 <help>
+
 	<name>mri_segment</name>
-	<synopsis>mri_segment &lt;classifierfile&gt; &lt;invol&gt; &lt;outvol&gt;</synopsis>
-	<description>This program segments white matter from the input volume.  The input volume should be normalized such that white matter voxels are ~110-valued, and the volume is conformed to 256^3.  This can be accomplished by:  mri_normalize invol outvol -conform</description>
+	<synopsis>mri_segment [options] &lt;invol&gt; &lt;outvol&gt;</synopsis>
+	<description>This program segments white matter from the input volume. The input volume should be normalized such that white matter voxels are ~110-valued, and the volume is conformed to 256^3. This can be accomplished by `mri_normalize -conform invol outvol`. Note that flagged options must be provided before positional arguments.</description>
+
   <arguments>
     <positional>
-      <argument>&lt;classifierfile&gt;</argument>
-      <explanation>classifier file</explanation>
       <argument>&lt;invol&gt;</argument>
       <explanation>input volume</explanation>
       <argument>&lt;outvol&gt;</argument>
       <explanation>output volume</explanation>
     </positional>
-    <required-flagged>
-    </required-flagged>
+
     <optional-flagged>
       <argument>-no1d_remove &lt;s&gt;;</argument>
       <explanation>don't run code that removes 1D strands from segmentation</explanation>
@@ -59,7 +34,7 @@
       <argument>-ghi,-gray_hi &lt;h&gt;</argument>
       <explanation>set the gray matter high limit (default=100.000)</explanation>
       <argument>-wlo,-wm_low &lt;l&gt;</argument>
-      <explanation>set the white matter low limit (default=90.000)</explanation>
+      <explanation>set the white matter low limit (default=80.000)</explanation>
       <argument>-wm_low_factor &lt;f&gt;</argument>
       <explanation>wm_low = f*gray_mean + (1-f)*white_mean;</explanation>
       <argument>-whi,-wm_hi &lt;h&gt;</argument>
@@ -94,7 +69,7 @@
       <explanation>set len for plane of least variance (default=3)</explanation>
       <argument>-dat datfile</argument>
       <explanation>set datfile (default is segment.dat)</explanation>
-      <argument>-seg segmenationvolume SegErodeMM WMBiasFactor</argument>
+      <argument>-seg segmenation volume SegErodeMM WMBiasFactor</argument>
       <explanation>Uses segmentation (eg, aseg.presurf.mgz) to set thresholds</explanation>
       <argument>-diagno diagno</argument>
       <explanation>Set diagnostic number</explanation>
@@ -106,10 +81,5 @@
       <explanation>usage</explanation>
     </optional-flagged>
   </arguments>
-  <outputs>
-    <output>&lt;outvol&gt;</output>
-    <explanation>output volume</explanation>
-  </outputs>
-  <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>
-</help>
 
+</help>
