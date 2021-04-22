@@ -4826,7 +4826,9 @@ int LTAmriIsTarget(const LTA *lta, const MRI *mri)
 }
 /*!
   \fn LTA *LTAcreate(MRI *src, MRI *dst, MATRIX *T, int type)
-  \brief Create an LTA of the given type with the given matrix
+  \brief Create an LTA of the given type with the given matrix.
+  Note: when the matrix is of type REGISTER_DAT, the matrix
+  should point from destination to source. 
  */
 LTA *LTAcreate(MRI *src, MRI *dst, MATRIX *T, int type)
 {
@@ -4836,6 +4838,10 @@ LTA *LTAcreate(MRI *src, MRI *dst, MATRIX *T, int type)
   lta->xforms[0].m_L = MatrixCopy(T, NULL);
   lta->xforms[0].type = type;
   lta->type = type;
+  if(type == REGISTER_DAT){
+    // To help keep me from going crazy
+    printf("Using LTAcreate() with REGISTER_DAT, make sure matrix points in the right direction\n");
+  }
   return (lta);
 }
 
