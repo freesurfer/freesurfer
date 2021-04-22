@@ -1328,6 +1328,14 @@ if ($dointra && ! $dobase && -e $fsdir/mri/brain.mgz) then
   if ($usethalnuc) then
     set thalseg = ThalamicNuclei.v12.T1.FSvoxelSpace
 
+    if (! -e $fsdir/mri/$thalseg.mgz) then
+      echo "ERROR: Could not find $fsdir/mri/$thalseg.mgz"
+      echo "ERROR: Thalamic nuclei segmentation is strongly recommended to use"
+      echo "ERROR: for tracts that terminate in or travel near the thalamus"
+      echo "ERROR: If there is good reason not to use it, set usethalnuc = 0"
+      goto error_exit
+    endif
+
     # Replace thalamus in main segmentation with nearest neighbor labels
     set ids = ()
     foreach label (Left-Thalamus Right-Thalamus)
