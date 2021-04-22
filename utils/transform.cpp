@@ -3169,7 +3169,9 @@ LTAwriteEx(const LTA *lta, const char *fname)
     return (ltaMNIwrite((LTA *)lta, (char *)fname));
   }
   else if (!stricmp(FileNameExtension((char *)fname, ext), "DAT") ||
-           !stricmp(FileNameExtension((char *)fname, ext), "REG") || lta->type == REGISTER_DAT) {
+           !stricmp(FileNameExtension((char *)fname, ext), "REG") || 
+	   (lta->type == REGISTER_DAT && stricmp(FileNameExtension((char *)fname, ext), "LTA"))) {
+    // If extension is "lta", then don't save it as a .dat
     int err;
     err = regio_write_register((char *)fname,
                                (char *)lta->subject,
