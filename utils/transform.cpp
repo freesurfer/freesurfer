@@ -4840,7 +4840,7 @@ LTA *LTAcreate(MRI *src, MRI *dst, MATRIX *T, int type)
   lta->type = type;
   if(type == REGISTER_DAT){
     // To help keep me from going crazy
-    printf("Using LTAcreate() with REGISTER_DAT, make sure matrix points in the right direction\n");
+    printf("  ... using LTAcreate() with REGISTER_DAT, make sure matrix points in the right direction\n");
   }
   return (lta);
 }
@@ -5289,3 +5289,123 @@ double TransformAffineParamTest(int niters, double thresh)
 }
 
 
+int RegLandmarks::ReadCoords(void)
+{
+  // stvp is created by mris_apply_reg --stvp via MRISapplyReg() 
+  if(txyzfile.compare("stvp") != 0){
+    printf("ERROR: reglandmarks only accepts stvp files right now\n");
+    return(1);
+  }
+  int err = ReadSTVPairFile(sxyzfile);
+  return(err);
+}
+LTA *RegLandmarks::ComputeLTA(void)
+{
+
+  if(mrisrc==NULL){
+    mrisrc = MRIreadHeader(mrisrcfile.c_str(),MRI_VOLUME_TYPE_UNKNOWN);
+    if(mrisrc==NULL) return(NULL);
+  }
+  if(mritrg==NULL){
+    mritrg = MRIreadHeader(mritrgfile.c_str(),MRI_VOLUME_TYPE_UNKNOWN);
+    if(mritrg==NULL) return(NULL);
+  }
+  int coordtype = -100;
+  if(coordtypename.compare("RAS")==0) coordtype = LINEAR_RAS_TO_RAS;
+  if(coordtypename.compare("VOX")==0) coordtype = LINEAR_VOX_TO_VOX;
+  if(coordtypename.compare("TKR")==0) coordtype = REGISTER_DAT;
+  if(coordtype == -100){
+    printf("ERROR: unrecognized coord type name %s\n",coordtypename.c_str());
+    printf("   Expecting RAS, VOX, or TKR\n");
+    return(NULL);
+  }
+
+  int err = ReadCoords();
+  if(err) return(NULL);
+  MATRIX *R = ComputeReg(NULL);
+  if(coordtype == REGISTER_DAT){
+    R = MatrixInverse(R,R);
+    if(R==NULL) return(NULL);
+  }
+
+  LTA *lta = LTAcreate(mrisrc, mritrg, R, coordtype);
+  LTAchangeType(lta,LINEAR_RAS_TO_RAS);
+
+  return(lta);
+}
+MATRIX *RegLandmarks::ComputeReg(MATRIX *R)
+{
+  int npoints = sxyz.size();
+  MATRIX *X = MatrixAlloc(npoints,4,MATRIX_REAL);
+  MATRIX *y = MatrixAlloc(npoints,3,MATRIX_REAL);
+  int r,c;
+  for(r=0; r < npoints; r++){
+    X->rptr[r+1][4] = 1;
+    for(c=0; c < 3; c++){
+      X->rptr[r+1][c+1] = sxyz[r][c];
+      y->rptr[r+1][c+1] = txyz[r][c];
+    }
+  }
+  MATRIX *Xt = MatrixTranspose(X,NULL);
+  MATRIX *XtX = MatrixMultiply(Xt,X,NULL);
+  MATRIX *iXtX = MatrixInverse(XtX,NULL);
+  if(iXtX==NULL) return(NULL);
+  MATRIX *iXtXXt = MatrixMultiply(iXtX,Xt,NULL);
+  MATRIX *beta = MatrixMultiply(iXtXXt,y,NULL);
+  if(R==NULL) R = MatrixAlloc(4,4,MATRIX_REAL);
+  R->rptr[4][4] = 1.0;
+  for(r=0; r < 4; r++){
+    for(c=0; c < 4; c++){
+      if(r < 3) R->rptr[r+1][c+1] = beta->rptr[c+1][r+1];
+    }
+  }
+  MatrixFree(&X);
+  MatrixFree(&Xt);
+  MatrixFree(&XtX);
+  MatrixFree(&iXtX);
+  MatrixFree(&iXtXXt);
+  MatrixFree(&beta);
+  return(R);
+}
+int RegLandmarks::PrintXYZ(FILE *fp, std::vector<std::vector<double>> xyz)
+{
+  for ( const auto &row : xyz ) {
+    for ( const auto &s : row ) {
+      fprintf(fp,"%lf ",s);
+    }
+    fprintf(fp,"\n");
+  }
+  return(0);
+}
+int RegLandmarks::ReadSTVPairFile(std::string stvpairfile)
+{
+  // stvp is created by mris_apply_reg --stvp via MRISapplyReg() 
+  std::ifstream ifs;
+  ifs.open(stvpairfile.c_str());
+  if(ifs.fail()){
+    printf("ReadSTVPairFile(): %s %s\n",strerror(errno),stvpairfile.c_str());
+    return(1);
+  }
+  std::string line;
+  int sno, tno;
+  double sx, sy, sz, tx, ty, tz;
+  while(! ifs.eof()){
+    std::getline(ifs,line);
+    if(line.length()==0) break;
+    //printf("%s\n",line.c_str());
+    sscanf(line.c_str(),"%d %lf %lf %lf %d %lf %lf %lf",&sno,&sx,&sy,&sz,&tno,&tx,&ty,&tz);
+    svtxno.push_back(sno);
+    tvtxno.push_back(tno);
+    std::vector<double> vrow;
+    vrow.push_back(sx);
+    vrow.push_back(sy);
+    vrow.push_back(sz);
+    sxyz.push_back(vrow);
+    vrow.clear();
+    vrow.push_back(tx);
+    vrow.push_back(ty);
+    vrow.push_back(tz);
+    txyz.push_back(vrow);
+  }
+  return(0);
+}
