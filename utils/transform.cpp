@@ -3643,11 +3643,14 @@ LTA *LTAchangeType(LTA *lta, int ltatype)
       case REGISTER_DAT:
         // from LINEAR_RAS_TO_RAS to REGISTER_DAT:
         for (i = 0; i < lta->num_xforms; ++i) {
-          /* The definitions of mov=src and ref=dst are consistent with
-             tkregister2, LTAchangeType() and ltaReadRegisterDat(). This is an
-             unfortunate definition because the registration matrix actually
-             does from ref to mov. But this was an error introduced a long
-             time ago and the rest of the code base has built up around it. */
+          /* The definitions of mov=src and ref=dst are consistent
+             with tkregister2, LTAchangeType() and
+             ltaReadRegisterDat(). This is an unfortunate definition
+             because the TKR registration matrix actually goes from
+             ref to mov. All applications should recognize this and
+             invert the matrix as needed. This was an error introduced
+             a long, long time ago and the rest of the code base has built
+             up around it. */
           lt = &lta->xforms[i];  // movsrc->refdst
           m_L = lt->m_L;
           movmri = MRIallocHeader(lt->src.width, lt->src.height, lt->src.depth, MRI_UCHAR, 1);
