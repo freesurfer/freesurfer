@@ -76,6 +76,7 @@ int debug=0;
 int checkoptsonly=0;
 struct utsname uts;
 
+
 typedef struct {
   char *mov;
   const char *ref;
@@ -112,7 +113,6 @@ typedef struct {
   int seed=53;
   char *movoutfile=NULL;
 } CMDARGS;
-
 CMDARGS *cmdargs;
 
 MRI *MRIrescaleToUChar(MRI *mri, MRI *ucmri, double sat);
@@ -716,7 +716,7 @@ static int parse_commandline(int argc, char **argv) {
       exit(err);
     } 
     else if (!strcasecmp(option, "--par2mat")) {
-      if(nargc < 12) CMDargNErr(option,15);
+      if(nargc < 15) CMDargNErr(option,15);
       double par[12];
       int k;
       for(k=0; k<12; k++) sscanf(pargv[k],"%lf",&par[k]);
@@ -736,6 +736,22 @@ static int parse_commandline(int argc, char **argv) {
       MRIfree(&mritarg);
       MatrixFree(&T);
       LTAfree(&lta);
+      exit(err);
+    } 
+    else if (!strcasecmp(option, "--landmarks")) {
+      // --landmarks sxyzfile txyzfile coords mov targ outreg
+      if(nargc < 6) CMDargNErr(option,6);
+      RegLandmarks rlm;
+      rlm.sxyzfile = pargv[0];
+      rlm.txyzfile = pargv[1];
+      rlm.coordtypename = pargv[2];
+      rlm.mrisrcfile = pargv[3];
+      rlm.mritrgfile = pargv[4];
+      LTA *lta = rlm.ComputeLTA();
+      if(lta == NULL) exit(1);
+      if(cmdargs->subject)  strncpy(lta->subject,cmdargs->subject,sizeof(lta->subject)-1);
+      else                  strncpy(lta->subject,"unknown",       sizeof(lta->subject)-1);
+      int err = LTAwrite(lta,pargv[5]);
       exit(err);
     } 
     else if (!strcasecmp(option, "--rms")) {
@@ -920,6 +936,7 @@ static void print_usage(void) {
   printf("   --mat2rot reg.lta rotreg.lta: convert registration to a pure rotation\n");
   printf("   --par2mat par1-par12 srcvol trgvol reg.lta : convert parameters to a  registration\n");
   printf("      the subject in the output reg.lta can be set with --s before --par2mat\n");
+  printf("   --landmarks sxyz txyz coords mov targ outlta : convert landmarks to a registration\n");
   printf("   --rms radius filename reg1 reg2 : compute RMS diff between two registrations using MJ's method (rad ~= 50mm)\n");
   printf("      The rms will be written to filename; if filename == nofile, then no file is created\n");
   printf("   --movout movout volume : save the mov after all preprocessing\n");
