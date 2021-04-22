@@ -2106,12 +2106,15 @@ int MRISltaMultiply(MRIS *surf, const LTA *lta)
 
   // Must be in regdat space to apply it to the surface
   if(ltacopy->type != REGISTER_DAT){
+    printf("Changing type to REGISTER_DAT\n");
     LTAchangeType(ltacopy, REGISTER_DAT);
-    // When changing to regdat, the inverse reg is returned, so we
-    // have to undo that inverse here. Note can't use LTAinvert()
-    // because it will also reverse the src and dst vol geometries.
-    MatrixInverse(ltacopy->xforms[0].m_L,ltacopy->xforms[0].m_L);
   }
+
+  // In REGISTER_DAT format, the matrix actually goes from target/dst
+  // to mov/src so have to invert the matrix.  Note can't use
+  // LTAinvert() because it will also reverse the src and dst vol
+  // geometries.
+  MatrixInverse(ltacopy->xforms[0].m_L,ltacopy->xforms[0].m_L);
 
   // Print out the matrix that will be applied
   printf("MRISltaMultiply(): applying matrix\n");
