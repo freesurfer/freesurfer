@@ -950,6 +950,20 @@ MRI *MRISapplyReg(MRI *SrcSurfVals, MRI_SURFACE **SurfReg, int nsurfs, int Rever
     }
   }
 
+  /* Set up to create a text file with source-target vertex pairs (STVP) where the source
+     is the fist surface and the target is the last surface. The format will be
+         srcvtxno srcx srcy srcz trgvtxno trgx trgy trgz 
+     The actual coordinates will come from the TMP_VERTEX v->{tx,ty,tz}, 
+     so make sure those are set. This functionality is mostly for debugging purposes.  */
+  FILE *stvpairfp = NULL;
+  std::string stvpairfile = getenv("FS_MRISAPPLYREG_STVPAIR");
+  if(stvpairfile.length() > 0){
+    stvpairfp = fopen(stvpairfile.c_str(),"w");
+    if(stvpairfp == NULL){
+      printf("ERROR: could not open stvpairfile %s\n",stvpairfile.c_str());
+    }
+  }
+
   /* Go through the forwad loop (finding closest srcvtx to each trgvtx).
   This maps each target vertex to a source vertex */
   printf("MRISapplyReg: Forward Loop (%d)\n", TrgSurfReg->nvertices);
@@ -970,6 +984,7 @@ MRI *MRISapplyReg(MRI *SrcSurfVals, MRI_SURFACE **SurfReg, int nsurfs, int Rever
     // Compute the source vertex that corresponds to this target vertex
     tvtxN = tvtx;
     int skip = 0;
+    int bf = 0;
     for (n = npairs - 1; n >= 0; n--) {
       kS = 2 * n;
       kT = kS + 1;
@@ -980,9 +995,9 @@ MRI *MRISapplyReg(MRI *SrcSurfVals, MRI_SURFACE **SurfReg, int nsurfs, int Rever
 	break;
       }
       /* find closest source vertex */
+      bf = 0;
       if (UseHash) svtx = MHTfindClosestVertexNo2(Hash[kS], SurfReg[kS], SurfReg[kT], v, &dmin);
       if (!UseHash || svtx < 0) {
-	int bf = 0;
         if (svtx < 0) {
 	  printf("Target vertex %d (%g,%g,%g) of pair %d unmapped in hash, using brute force\n", 
 		 tvtxN, v->x, v->y, v->z, n);
@@ -1010,12 +1025,12 @@ MRI *MRISapplyReg(MRI *SrcSurfVals, MRI_SURFACE **SurfReg, int nsurfs, int Rever
     }
     if(skip) continue;
 
-    if(0){
+    if(!bf && stvpairfp){
       // Good for debugging
       v = &(SurfReg[0]->vertices[svtx]);
-      printf("  s=%d (%g,%g,%g)",svtx, v->x, v->y, v->z);
+      fprintf(stvpairfp,"%d %8.4f %8.4f %8.4f    ",svtx,v->tx, v->ty, v->tz);
       v = &(SurfReg[nsurfs-1]->vertices[tvtx]);
-      printf("  t=%d (%g,%g,%g)\n",tvtx, v->x, v->y, v->z);
+      fprintf(stvpairfp,"%d %8.4f %8.4f %8.4f\n",tvtx,v->tx, v->ty, v->tz);
     }
 
     if (!DoJac) {
@@ -1031,6 +1046,7 @@ MRI *MRISapplyReg(MRI *SrcSurfVals, MRI_SURFACE **SurfReg, int nsurfs, int Rever
     for (f = 0; f < SrcSurfVals->nframes; f++)
       MRIFseq_vox(TrgSurfVals, tvtx, 0, 0, f) += (MRIFseq_vox(SrcSurfVals, svtx, 0, 0, f) / nhits);
   }
+  if(stvpairfp) fclose(stvpairfp);
 
   /*---------------------------------------------------------------
   Go through the reverse loop (finding closest trgvtx to each srcvtx
