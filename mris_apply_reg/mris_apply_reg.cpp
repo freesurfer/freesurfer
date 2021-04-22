@@ -137,6 +137,7 @@ int main(int argc, char *argv[]) {
     }
     else
       SurfReg[n] = MRISread(SurfRegFile[n]);
+    MRISsaveVertexPositions(SurfReg[n], TMP_VERTICES); // In case --vertex-pair is set
     free(base);
     if(SurfReg[n]==NULL) exit(1);
     if(npatches>0){
@@ -381,6 +382,15 @@ static int parse_commandline(int argc, char **argv) {
       npatches++;
       nargsused = 2;
     } 
+    else if (!strcasecmp(option, "--stvpair")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      setenv("FS_MRISAPPLYREG_STVPAIR",pargv[0],1);
+      /* Set up to create a text file with source-target vertex pairs (STVP) where the source
+      is the fist surface and the target is the last surface. The format will be
+        srcvtxno srcx srcy srcz trgvtxno trgx trgy trgz 
+      The actual coordinates will come from TMP_VERTEX v->{tx,ty,tz}, so make sure those are set */
+      nargsused = 1;
+    } 
     else if (!strcasecmp(option, "--lta")) {
       if(nargc < 3) CMDargNErr(option,3);
       printf("Reading in %s\n",pargv[0]);
@@ -402,11 +412,11 @@ static int parse_commandline(int argc, char **argv) {
     } 
     else if (!strcasecmp(option, "--lta-patch")) {
       // Surf Patch LTA out
-      // The application is ex vivo reg between a whole hemi and the
-      // WM of a block. A registration is applied to the block flat
-      // map to bring it in reg with a flat map from the whole
-      // hemi. After that, then the standard surf2surf reg can be
-      // applied (using --patch)
+      // The application for this option is exvivo reg between a whole
+      // hemi and the WM surf of a block. This option allows a
+      // registration to be applied to the block flat map to bring it
+      // in reg with a flat map from the whole hemi. After that, then
+      // the standard surf2surf reg can be applied (using --patch)
       if(nargc < 4) CMDargNErr(option,4);
       // surface needed to read in patch, actual coords not important
       printf("Reading in %s\n",pargv[0]);
@@ -423,16 +433,21 @@ static int parse_commandline(int argc, char **argv) {
       maps with mri_coreg, so from the LTA standpoint, this is a RAS2RAS 
       eventhough secretly they are tkRAS. Because we are applying the reg
       to the surface xyz (tkRAS), we need to change the LTA coord designation
-      (but not the matrix) to tkRAS so that MRISltaMultiply() does not change
-      the matrix to tkRAS.*/
+      to tkRAS so that MRISltaMultiply() does not change
+      the matrix to tkRAS. To make matters worse, we have to invert the matrix
+      beucase tkR matrices point from targ-to-source. It's a mess.*/
       LTA *lta = LTAread(pargv[2]);
       if(lta==NULL) exit(1);
       if(lta->type != LINEAR_RAS_TO_RAS){
 	printf("Changing LTA type to RAS2RAS\n");
 	LTAchangeType(lta,LINEAR_RAS_TO_RAS);
       }
-      lta->type = REGISTER_DAT; // The hack mentioned above
+      // The hack mentioned above
+      lta->type = REGISTER_DAT; 
+      MatrixInverse(lta->xforms[0].m_L,lta->xforms[0].m_L);
       int err = MRISltaMultiply(ltasurf, lta);
+      // might could have just done this and skipped all the drama above
+      //int err = MRISmatrixMultiply(ltasurf, lta->xforms[0].m_L); 
       if(err) exit(1);
       if (center_surface) MRIScenter(ltasurf, ltasurf);
       printf("Writing patch to %s\n",pargv[3]);
@@ -526,6 +541,7 @@ static void print_usage(void) {
   printf("   --lta-patch source-surf surfpatch ltafile output-patch : apply LTA transform to patch\n");
   printf("   --reverse surf patchopt output : LR reverse suface. patchopt=patchfile or nopatch\n");
   printf("   --patch srcregNpatch trgregNpatch : patches, one for each --streg\n");
+  printf("   --stvpair stvpairfile : save srcvtxno srcx srcy srcz trgvtxno trgx trgy trgz from first and last surfs \n");
   printf("\n");
   printf("   --m3z source-surf m3zfile output-surf : apply m3z transform\n");
   printf("     other options do not apply to --m3z\n");
