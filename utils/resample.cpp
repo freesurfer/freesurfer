@@ -956,11 +956,13 @@ MRI *MRISapplyReg(MRI *SrcSurfVals, MRI_SURFACE **SurfReg, int nsurfs, int Rever
      The actual coordinates will come from the TMP_VERTEX v->{tx,ty,tz}, 
      so make sure those are set. This functionality is mostly for debugging purposes.  */
   FILE *stvpairfp = NULL;
-  std::string stvpairfile = getenv("FS_MRISAPPLYREG_STVPAIR");
-  if(stvpairfile.length() > 0){
-    stvpairfp = fopen(stvpairfile.c_str(),"w");
-    if(stvpairfp == NULL){
-      printf("ERROR: could not open stvpairfile %s\n",stvpairfile.c_str());
+  if(getenv("FS_MRISAPPLYREG_STVPAIR")){
+    std::string stvpairfile = getenv("FS_MRISAPPLYREG_STVPAIR");
+    if(stvpairfile.length() > 0){
+      stvpairfp = fopen(stvpairfile.c_str(),"w");
+      if(stvpairfp == NULL){
+	printf("ERROR: could not open stvpairfile %s\n",stvpairfile.c_str());
+      }
     }
   }
 
