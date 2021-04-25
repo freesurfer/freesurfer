@@ -101,25 +101,28 @@ if($DoTal) then
   exit 0
 endif
 
-#set tmpdir = `fs_temp_dir`
-#mkdir -p $tmpdir
+set tmpdir = `fs_temp_dir`
+mkdir -p $tmpdir
 if(! $UseTkRegister) then
   ### FreeView ####----------------------------------------------
-  if(! -e $reg || $regheader) then
-    # Not sure what to do here. 
-    # 1. Use $reg : if the user makes no changes, the $reg will still exist.
-    #    This might be what the user wants, or not. FV does not allow the
-    #    user to save the LTA unless it has been changed (unlike tkregister)
-    # 2. Use $tmpdir : when the user goes to save, will have to select a new reg
-    #    in a different folder; user may be happy with the reg and just exit
-    # Need a way to force the user to make a choice in FV
-    #set headerreg1 = $tmpdir/tkregisterfv.$$.tmp.lta
-    #set headerreg2 = $tmpdir/tkregisterfv.$$.tmp.lta
-    # 
+  set reg0 = $reg
+  if($regheader) then
+    # Not sure what to do here. The reg gets created prior to running
+    # FV. If the user does not like the reg and quits, then the reg
+    # file will still be there. Can use a different regname, but then
+    # user has to change the name when saving and, if the user is ok
+    # with the reg, there is no way to change the name because the reg
+    # has not been changed; it could also be that the user changes the
+    # reg, but then saves it as the changed name. Right now, I think
+    # the safest course is to change the name since few people will
+    # be using --regheader, and it is probably a bigger sin to have
+    # a misleading file laying around.
+    set headerreg1 = $reg.change-name.lta
+    set headerreg2 = $tmpdir/tkregisterfv.$$.tmp.lta; # copy to check for change
     # This was using tkregister_cmdl which outputs vox2vox, coreg outputs RAS2RAS
     set cmd = (mri_coreg) 
     if($#subject) set cmd = ($cmd --s $subject)
-    set cmd = ($cmd --par2mat $params $movvol $targ $reg)
+    set cmd = ($cmd --par2mat $params $movvol $targ $headerreg1)
     echo $cmd 
     $cmd 
     if($status) then
@@ -127,6 +130,8 @@ if(! $UseTkRegister) then
       echo "ERROR: $cmd"
       exit 1;
     endif
+    cp $headerreg1 $headerreg2; # 2 newer than 1
+    set reg = $headerreg1
   endif
   set cmd = (freeview)
   if($ShowConfig)  set cmd = ($cmd -transform-volume)
@@ -174,8 +179,37 @@ echo "cd `pwd`"
 echo $cmd
 fsvglrun $cmd
 set st = $status
+if($st) exit $st
 
-#rm -r $tmpdir
+if($regheader) then
+  # Several things can happen here
+  if(-e $reg0) then
+    test $reg0 -nt $headerreg1; # returns 0 of reg0 newer than headerreg1
+    if(! $status) then
+      # A new reg has been created, so delete regheaders
+      rm -f $headerreg1 $headerreg2
+    endif
+  else 
+    set n = `diff $headerreg1 $headerreg2 | wc -l`
+    if($n) then
+      # A new reg has been created as headerreg1, so leave headerreg1,
+      # delete headerreg2. This means that the desired reg file will
+      # not exit, but it is unclear what the intention of the user is
+      rm -f $headerreg2
+    else
+      # A new reg has not been created, so delete both regheaders. It
+      # is unclear what the intention of the user is as they could
+      # have looked at the reg and decided it was ok and just
+      # quit. But it seems safer to delete the headerregs and make
+      # them create the reg with intention. But they will have to use
+      # something other than tkregisterfv becaused FV does not allow
+      # the user to save the reg unless it has been changed.
+      rm -f $headerreg1 $headerreg2
+    endif
+  endif
+endif
+
+rm -r $tmpdir
 
 exit $st
 
@@ -556,7 +590,6 @@ if($DoSurfs) then
   end
 endif
 
-
 if(! -e $reg && ! $regheader) then
   echo "ERROR: $reg does not exist. Spec a reg that does or use --regheader"
   exit 1;
@@ -567,6 +600,8 @@ if(-e $reg && $regheader) then
   echo "  delete it or change the passed registration file"
   exit 1;
 endif
+
+if(! -e $reg) set regheader = 1
 
 goto check_params_return;
 ############--------------##################
