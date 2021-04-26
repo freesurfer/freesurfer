@@ -279,7 +279,7 @@ while( $#argv != 0 )
 
     case "-annot":
       if($#argv < 1) goto arg1err;
-      set annot = $argv[1];
+      set annot = $argv[1]; shift;
       breaksw
 
     case "-aparc":
