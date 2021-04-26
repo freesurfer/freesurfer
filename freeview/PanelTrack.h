@@ -39,12 +39,15 @@ protected:
 protected slots:
   void OnSliderOpacity(int);
   void OnLineEditOpacity(const QString&);
+  void OnSliderScalarThreshold(int);
+  void OnLineEditScalarThreshold(const QString&);
 
 private:
   Ui::PanelTrack *ui;
 
   QList<QWidget*> m_widgetlistDirectionalColor;
   QList<QWidget*> m_widgetlistSolidColor;
+  QList<QWidget*> m_widgetlistScalarColor;
 };
 
 #endif // PANELTRACK_H

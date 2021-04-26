@@ -18,6 +18,7 @@
 #include "Layer.h"
 #include <QColor>
 #include <QVariantMap>
+#include "vtkSmartPointer.h"
 
 class FSTrack;
 class LayerMRI;
@@ -25,7 +26,8 @@ class vtkActor;
 class vtkPoints;
 class vtkCellArray;
 class LayerPropertyTrack;
-class vtkUnsignedCharArray;
+class vtkDataArray;
+class vtkRGBAColorTransferFunction;
 
 class LayerTrack : public Layer
 {
@@ -66,6 +68,12 @@ public:
 
   bool HasEmbeddedColor();
 
+  QStringList GetScalarNames();
+
+  void GetScalarRange(double* range, int nIndex = -1);
+
+  vtkRGBAColorTransferFunction* GetColorTable() const;
+
 signals:
   void Progress(int n);
 
@@ -82,7 +90,7 @@ public slots:
 protected:
   virtual void OnSlicePositionChanged(int nPlane);
 
-  vtkActor* ConstructActor(vtkPoints* points, vtkCellArray* lines, vtkUnsignedCharArray* scalars);
+  vtkActor* ConstructActor(vtkPoints* points, vtkCellArray* lines, QList<vtkDataArray*> scalars);
   void VectorToColor(float* pt1, float* pt2, float* c_out, int nMappingType);
 
   FSTrack*    m_trackData;
@@ -90,6 +98,7 @@ protected:
   QList<vtkActor*>  m_actors;
   QStringList m_listFilenames;
   QVariantMap m_mapCluster;
+  vtkSmartPointer<vtkRGBAColorTransferFunction> m_colorTable;
 };
 
 #endif // LAYERTRACK_H

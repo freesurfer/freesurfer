@@ -40,7 +40,16 @@ PanelTrack::PanelTrack(QWidget *parent) :
                                << ui->comboBoxDirectionMapping;
   m_widgetlistSolidColor << ui->labelSolidColor
                          << ui->colorPickerSolidColor;
+  m_widgetlistScalarColor << ui->labelScalar << ui->labelScalarColor << ui->labelScalarMin << ui->labelScalarMax
+                          << ui->comboBoxScalar << ui->comboBoxScalarColor << ui->lineEditScalarMin << ui->lineEditScalarMax
+                          << ui->sliderScalarMin << ui->sliderScalarMax;
   connect(ui->pushButtonShowClusterMap, SIGNAL(clicked()), mainwnd, SLOT(ShowTractClusterMap()));
+  connect(ui->sliderOpacity, SIGNAL(valueChanged(int)), SLOT(OnSliderOpacity(int)));
+  connect(ui->lineEditOpacity, SIGNAL(textChanged(QString)), SLOT(OnLineEditOpacity(QString)));
+  connect(ui->sliderScalarMin, SIGNAL(valueChanged(int)), SLOT(OnSliderScalarThreshold(int)));
+  connect(ui->sliderScalarMax, SIGNAL(valueChanged(int)), SLOT(OnSliderScalarThreshold(int)));
+  connect(ui->lineEditScalarMin, SIGNAL(textChanged(QString)), SLOT(OnLineEditScalarThreshold(QString)));
+  connect(ui->lineEditScalarMax, SIGNAL(textChanged(QString)), SLOT(OnLineEditScalarThreshold(QString)));
 }
 
 PanelTrack::~PanelTrack()
@@ -64,8 +73,8 @@ void PanelTrack::ConnectLayer(Layer *layer_in)
   connect(ui->comboBoxDirectionMapping, SIGNAL(currentIndexChanged(int)), p, SLOT(SetDirectionMapping(int)));
   connect(ui->colorPickerSolidColor, SIGNAL(colorChanged(QColor)), p, SLOT(SetSolidColor(QColor)));
   connect(ui->comboBoxRenderRep, SIGNAL(currentIndexChanged(int)), p, SLOT(SetRenderRep(int)));
-  connect(ui->sliderOpacity, SIGNAL(valueChanged(int)), SLOT(OnSliderOpacity(int)));
-  connect(ui->lineEditOpacity, SIGNAL(textChanged(QString)), SLOT(OnLineEditOpacity(QString)));
+  connect(ui->comboBoxScalar, SIGNAL(currentIndexChanged(int)), p, SLOT(SetScalarIndex(int)));
+  connect(ui->comboBoxScalarColor, SIGNAL(currentIndexChanged(int)), p, SLOT(SetScalarColorMap(int)));
 }
 
 void PanelTrack::DoUpdateWidgets()
@@ -93,6 +102,9 @@ void PanelTrack::DoUpdateWidgets()
   }
 
   ui->lineEditFileName->clear();
+  ShowWidgets(m_widgetlistDirectionalColor, layer && layer->GetProperty()->GetColorCode() == LayerPropertyTrack::Directional);
+  ShowWidgets(m_widgetlistSolidColor, layer && layer->GetProperty()->GetColorCode() == LayerPropertyTrack::SolidColor);
+  ShowWidgets(m_widgetlistScalarColor, layer && layer->GetProperty()->GetColorCode() == LayerPropertyTrack::Scalar);
   if ( layer )
   {
     QString fn = layer->GetFileName();
@@ -101,6 +113,7 @@ void PanelTrack::DoUpdateWidgets()
     ui->lineEditFileName->setText(fn);
     ui->lineEditFileName->setCursorPosition( ui->lineEditFileName->text().size() );
     ui->comboBoxColorCode->setCurrentIndex(layer->GetProperty()->GetColorCode());
+    ui->comboBoxColorCode->setItemData(LayerPropertyTrack::Scalar, layer->GetScalarNames().isEmpty()?0:33, Qt::UserRole-1);
     ui->comboBoxColorCode->setItemData(LayerPropertyTrack::EmbeddedColor, layer->HasEmbeddedColor()?33:0, Qt::UserRole-1);
     ui->comboBoxDirectionMapping->setCurrentIndex(layer->GetProperty()->GetDirectionMapping());
     ui->comboBoxDirectionScheme->setCurrentIndex(layer->GetProperty()->GetDirectionScheme());
@@ -108,9 +121,29 @@ void PanelTrack::DoUpdateWidgets()
     ui->comboBoxRenderRep->setCurrentIndex(layer->GetProperty()->GetRenderRep());
     ChangeLineEditNumber(ui->lineEditOpacity, layer->GetProperty()->GetOpacity());
     ui->sliderOpacity->setValue(layer->GetProperty()->GetOpacity()*100);
+
+    ui->comboBoxScalar->clear();
+    QStringList scalarNames = layer->GetScalarNames();
+    foreach (QString name, scalarNames)
+      ui->comboBoxScalar->addItem(name);
+    ui->comboBoxScalar->setCurrentIndex(layer->GetProperty()->GetScalarIndex());
+
+    if (!scalarNames.isEmpty())
+    {
+      ui->comboBoxScalar->setCurrentIndex(layer->GetProperty()->GetScalarIndex());
+      ui->comboBoxScalarColor->setCurrentIndex(layer->GetProperty()->GetScalarColorMap());
+      double range[2], th[2];
+      layer->GetProperty()->GetScalarThreshold(th);
+      layer->GetScalarRange(range);
+      if (range[1] <= range[0])
+        range[1] = range[0]+1;
+      ChangeLineEditNumber(ui->lineEditScalarMin, th[0]);
+      ChangeLineEditNumber(ui->lineEditScalarMax, th[1]);
+      ui->sliderScalarMin->setValue((th[0]-range[0])/(range[1]-range[0])*100);
+      ui->sliderScalarMax->setValue((th[1]-range[0])/(range[1]-range[0])*100);
+    }
   }
-  ShowWidgets(m_widgetlistDirectionalColor, layer && layer->GetProperty()->GetColorCode() == LayerPropertyTrack::Directional);
-  ShowWidgets(m_widgetlistSolidColor, layer && layer->GetProperty()->GetColorCode() == LayerPropertyTrack::SolidColor);
+
   ui->labelFileName->setEnabled( layer );
   ui->lineEditFileName->setEnabled( layer );
   ui->pushButtonShowClusterMap->setVisible(layer && layer->IsCluster());
@@ -144,5 +177,43 @@ void PanelTrack::OnLineEditOpacity(const QString & text)
     ui->sliderOpacity->blockSignals(true);
     ui->sliderOpacity->setValue(val*100);
     ui->sliderOpacity->blockSignals(false);
+  }
+}
+
+
+void PanelTrack::OnSliderScalarThreshold(int val)
+{
+  LayerTrack* layer = GetCurrentLayer<LayerTrack*>();
+  if (layer)
+  {
+    double range[2], th[2];
+    layer->GetScalarRange(range);
+    layer->GetProperty()->GetScalarThreshold(th);
+    int n = (sender() == ui->sliderScalarMax)?1:0;
+    th[n] = (range[1]-range[0])*val/100+range[0];
+    layer->GetProperty()->SetScalarThreshold(th[0], th[1]);
+    ChangeLineEditNumber(n == 0?ui->lineEditScalarMin:ui->lineEditScalarMax, th[n]);
+  }
+}
+
+void PanelTrack::OnLineEditScalarThreshold(const QString & text)
+{
+  LayerTrack* layer = GetCurrentLayer<LayerTrack*>();
+  bool bOK;
+  double val = text.toDouble(&bOK);
+  if (layer && bOK)
+  {
+    double range[2], th[2];
+    if (range[1] <= range[0])
+      range[1] = range[0]+1;
+    layer->GetScalarRange(range);
+    layer->GetProperty()->GetScalarThreshold(th);
+    int n = (sender() == ui->lineEditScalarMax)?1:0;
+    th[n] = val;
+    layer->GetProperty()->SetScalarThreshold(th[0], th[1]);
+    QSlider* slider = (n == 0)?ui->sliderScalarMin:ui->sliderScalarMax;
+    slider->blockSignals(true);
+    slider->setValue((val-range[0])/(range[1]-range[0])*100);
+    slider->blockSignals(false);
   }
 }

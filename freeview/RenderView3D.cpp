@@ -389,7 +389,7 @@ void RenderView3D::RefreshAllActors(bool bForScreenShot)
   {
     m_renderer->AddViewProp( m_actorFocusFrame );
   }
-  if ( !mainwnd->GetLayerCollection("MRI")->IsEmpty() ||! mainwnd->GetLayerCollection("Surface")->IsEmpty() )
+  if ( !mainwnd->GetLayerCollection("MRI")->IsEmpty() ||! mainwnd->GetLayerCollection("Surface")->IsEmpty() || !mainwnd->GetLayerCollection("Tract")->IsEmpty() )
   {
     m_renderer->AddViewProp( m_actorScalarBar );
     if ( !mainwnd->GetLayerCollection("MRI")->IsEmpty() )
@@ -1367,6 +1367,7 @@ void RenderView3D::TriggerContextMenu( QMouseEvent* event )
   QList<Layer*> layers = mainwnd->GetLayers("Surface");
   layers << mainwnd->GetLayers("MRI");
   layers << mainwnd->GetLayers("PointSet");
+  layers << mainwnd->GetLayers("Tract");
 
   LayerMRI* mri = qobject_cast<LayerMRI*>(mainwnd->GetActiveLayer("MRI"));
   if (mri && mri->GetProperty()->GetShowAsContour() && mri->GetCurrentSurfaceRegion())
