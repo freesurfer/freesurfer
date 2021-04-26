@@ -64,7 +64,7 @@ void UIUpdateHelper::ChangeLineEditNumber( QLineEdit* w, double val, int precise
   }
 
   QString strg;
-  if (val < 1)
+  if (val < 0.01)
   {
     strg = QString("%1").arg(val);
   }

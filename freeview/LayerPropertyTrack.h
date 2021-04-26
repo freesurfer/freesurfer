@@ -24,10 +24,11 @@ class LayerPropertyTrack : public LayerProperty
 public:
   LayerPropertyTrack(QObject* parent = 0);
 
-  enum ColorCode { Directional = 0, SolidColor, EmbeddedColor };
+  enum ColorCode { Directional = 0, SolidColor, Scalar, EmbeddedColor };
   enum DirectionScheme { EndPoints = 0, MidSegment, EverySegment };
   enum DirectionMapping  { RGB = 0, RBG, GRB, GBR, BRG, BGR };
   enum RenderRep { Line = 0, Tube };
+  enum ScalarColorMap { Heatscale = 0, Jet };
 
   int GetColorCode()
   {
@@ -69,6 +70,20 @@ public:
     return m_dOpacity;
   }
 
+  int GetScalarColorMap()
+  {
+    return m_nScalarColorMap;
+  }
+
+  void GetScalarThreshold(double* th);
+
+  int GetScalarIndex()
+  {
+    return m_nScalarIndex;
+  }
+
+  void InitializeScalarThreshold(const QList< QPair<double, double> >& ranges);
+
 signals:
   void ColorCodeChanged(int);
   void DirectionSchemeChanged(int);
@@ -76,6 +91,9 @@ signals:
   void SolidColorChanged(const QColor& c);
   void RenderRepChanged();
   void OpacityChanged(double);
+  void ScalarColorMapChanged(int);
+  void ScalarThresholdChanged(double, double);
+  void ScalarIndexChanged(int);
 
 public slots:
   void SetColorCode(int nCode);
@@ -86,6 +104,9 @@ public slots:
   void SetTubeRadius(double dVal);
   void SetNumberOfSides(int nVal);
   void SetOpacity(double val);
+  void SetScalarThreshold(double dMin, double dMax);
+  void SetScalarColorMap(int nVal);
+  void SetScalarIndex(int nVal);
 
 private:
   int     m_nColorCode;
@@ -95,6 +116,9 @@ private:
   double  m_dTubeRadius;
   int     m_nNumberOfSides;
   double  m_dOpacity;
+  int     m_nScalarColorMap;
+  int     m_nScalarIndex;
+  QList<double>  m_listScalarThreshold;
   QColor  m_color;
 };
 
