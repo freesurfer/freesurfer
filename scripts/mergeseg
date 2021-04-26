@@ -7,6 +7,7 @@ set outseg = ();
 set mergeseg = ();
 set srcseg = ();
 set segid = ()
+set ctab = ()
 
 set tmpdir = ();
 set cleanup = 1;
@@ -96,6 +97,13 @@ echo $cmd | tee -a $LF
 $cmd | tee -a $LF
 if($status) goto error_exit;
 
+if($#ctab) then
+  set cmd = (mri_convert $outseg --ctab $ctab $outseg)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit;
+endif
+
 #========================================================
 
 # Cleanup
@@ -160,6 +168,11 @@ while( $#argv != 0 )
     case "--segid":
       if($#argv < 1) goto arg1err;
       set segid = $argv[1]; shift;
+      breaksw
+
+    case "--ctab":
+      if($#argv < 1) goto arg1err;
+      set ctab = $argv[1]; shift;
       breaksw
 
     case "--log":
@@ -241,6 +254,7 @@ usage_exit:
   echo " --merge merge seg volume "
   echo " --o outseg"
   echo " --segid segindex (optional)"
+  echo " --ctab ctab : color table to embed in the output"
   echo ""
 
   if(! $PrintHelp) exit 1;
