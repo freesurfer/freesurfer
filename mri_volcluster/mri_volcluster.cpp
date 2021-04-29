@@ -161,6 +161,8 @@ char *maxvoxwisesigfile=NULL;
 MRI  *voxwisesig, *clustwisesig;
 char *clustwisesigfile=NULL;
 
+char *maxcwpvalfile=NULL; // save p-value of largest cluster
+
 char *SUBJECTS_DIR=NULL;
 char *subject=NULL;
 char *segvolfile=NULL;
@@ -504,6 +506,14 @@ int main(int argc, char **argv) {
   ClusterList2 = clustSortClusterList(ClusterList2,nclusters,NULL);
   //clustFreeClusterList(&ClusterList,nclusters);/* Free - does not work */
   ClusterList = ClusterList2;
+
+  if(maxcwpvalfile != NULL){
+    // save sig of largest cluster
+    fp = fopen(maxcwpvalfile,"w");
+    if(nclusters > 1) fprintf(fp,"%10.5lf\n",ClusterList[0]->pval_clusterwise);
+    else              fprintf(fp,"1.0\n");
+    fclose(fp);
+  }
 
   /* Remove clusters that do not meet the minimum clusterwise pvalue */
   if(cwpvalthresh > 0 && (fwhm >0 || csd != NULL) ){
@@ -902,6 +912,11 @@ static int parse_commandline(int argc, char **argv) {
       maxvoxwisesigfile = pargv[0];
       nargsused = 1;
     } 
+    else if (!strcmp(option, "--maxcwpval")) {
+      if(nargc < 1) argnerr(option,1);
+      maxcwpvalfile = pargv[0];
+      nargsused = 1;
+    } 
     else if (!strcmp(option, "--sum")) {
       if (nargc < 1) argnerr(option,1);
       sumfile = pargv[0];
@@ -1112,6 +1127,7 @@ static void print_usage(void) {
   printf("   --csd csdfile <--csd csdfile ...>\n");
   printf("   --cwsig cwsig : map of corrected cluster-wise significances\n");
   printf("   --vwsig vwsig : map of corrected voxel-wise significances\n");
+  printf("   --maxcwpval maxcwpvalfile.txt : save p-value of the largest (max) cluster (1.0 if no cluster)\n");
   printf("   --csdpdf csdpdffile : PDF/CDF of cluster and max sig\n");
   printf("   --csdpdf-only : write csd pdf file and exit.\n");
   printf("\n");
