@@ -114,6 +114,11 @@ set longbasedir = $SUBJECTS_DIR/$longbaseid
 #-----------               -----------#
 if(! $LongSamseg) then
 if($longitudinal) then
+  # Copy a few things into the long time point
+  cp $longbasedir/base-tps $subjdir/scripts/long.base-tps
+  echo $longbaseid > $subjdir/scripts/long.base
+  echo $tpNid > $subjdir/scripts/long.cross
+
   # init regfile variable with map cross_tp to base:
   # used later in many places
   set tpNtobase_regfile = ${longbasedir}/mri/transforms/${tpNid}_to_${longbaseid}.lta
