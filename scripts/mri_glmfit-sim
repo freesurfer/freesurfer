@@ -642,9 +642,10 @@ foreach conname ($conlist)
       echo "ERROR: voxel size of input is $voxsize, expecting 2"
       exit 1
     endif
+    set maxcwpval = $glmdir/$conname/$csdbase.max.cwpval.txt
     set cmd = (mri_volcluster --in $sig --mask $mask --no-fixmni\
       --cwsig $cwsig --sum $sum --ocn $ocn --cwpvalthresh $cwpvalthresh \
-      --out $msig --allowdiag)
+      --out $msig --allowdiag --maxcwpval $maxcwpval)
     if(! $Do1D) then 
       set reg = $FREESURFER_HOME/subjects/$volsubject/mri.2mm/reg.2mm.dat 
       set aseg = aparc+aseg.mgz
