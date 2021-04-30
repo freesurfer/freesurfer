@@ -792,6 +792,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--fixmni"))     FixMNI = 1;
     else if (!strcasecmp(option, "--fsaverage"))  UseFSAverage = 1;
     else if (!strcmp(option, "--sig2p-max")) sig2pmax = 1;
+    else if (!strcmp(option, "--gte")) setenv("FS_CSDPVALCLUSTSIZE_GTE","1",1);
 
     else if (!strcasecmp(option, "--diag")) {
       if (nargc < 1) CMDargNErr(option,1);
@@ -1141,6 +1142,7 @@ static void print_usage(void) {
   printf("   --bonferroni N : addition correction across N (eg, spaces)\n");
   printf("   --bonferroni-max N : apply bonf cor to maximum (only applies with --sig2p-max)\n");
   printf("   --sig2p-max : convert max from sig to p\n");
+  printf("   --gte : use >= when computing p-value from CSD\n");
   printf("\n");
   printf("   --mask      mask volid (same dim as input)\n");
   printf("   --mask_type file format \n");
