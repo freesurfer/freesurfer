@@ -217,6 +217,7 @@ while($#glmfitcmd)
   case "--no-rescale-x"
   case "--fisher"
   case "--no-pcc"
+  case "--no-est-fwhm"
   case "dods"
   case "mri_glmfit.bin"
   case "--save-eres"
@@ -269,6 +270,17 @@ if(! $UseTable) then
   if($status) then
     echo "$mask"
     exit 1;
+  endif
+  set tmpfile = `fs_temp_file`
+  set cmd = (mri_info --dim $mask --o $tmpfile)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1;
+  set dim = `cat $tmpfile`
+  rm $tmpfile
+  if($dim[2] == 1 && $dim[3] == 1) then
+    echo "Turning on 1D dim = $dim" | tee -a $LF
+    set Do1D = 1
   endif
 endif
 
@@ -489,6 +501,7 @@ if($DoSim) then
         endif
         set cmd = ($cmd --in $sig --mask $mask --cwpvalthresh $cwpvalthresh \
          --sum $sum --thmin $thresh --sign $simsign)
+        if($Do1D) set cmd = ($cmd --gte)
         echo $cmd | tee -a $LF
         $cmd | tee -a $LF
         if($status) exit 1;
@@ -651,6 +664,8 @@ foreach conname ($conlist)
       set aseg = aparc+aseg.mgz
       if(! -e $FREESURFER_HOME/subjects/$volsubject/mri/$aseg) set aseg = aseg.mgz
       set cmd = ($cmd --seg $volsubject $aseg --reg $reg )
+    else
+      set cmd = ($cmd --gte)
     endif
     if($Bonferroni) set cmd = ($cmd --bonferroni $Bonferroni)
     if(! $UseGRF) set cmd = ($cmd --csdpdf $csdpdf $csdlist --vwsig $vwsig  --vwsigmax $vwsigmax)
@@ -815,10 +830,6 @@ while( $#argv != 0 )
 
     case "--centroid":
       set ReportCentroid = 1;
-      breaksw
-
-    case "--1d":
-      set Do1D = 1;
       breaksw
 
     case "--log":
