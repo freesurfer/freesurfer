@@ -87,16 +87,8 @@ for level, meshCollectionFile in enumerate(args.mesh_collections):
         segmentationMap[:, :, :, 1] = segmentationImage * 65535
         alphas = np.zeros([numberOfNodes, 2]) + 0.5
         mesh = meshCollection.reference_mesh
-        mesh.alphas = alphas
         mesh.points = nodePositions
-
-        for EMIterationNumber in range(20):
-            # E-step
-            # TODO: return also minLogLikelihood, now we are only printing it in the gems function
-            labelStatistics = mesh.collect_label_statistics_nodes(segmentationMap)
-            # M-step
-            alphas = labelStatistics / (np.expand_dims(np.sum(labelStatistics, axis=1) + eps, 1))
-            mesh.alphas = alphas
+        mesh.alphas = mesh.fit_alphas(segmentationMap)
 
         # Show rasterized prior with updated alphas
         if args.showfigs:
@@ -111,7 +103,7 @@ for level, meshCollectionFile in enumerate(args.mesh_collections):
         print('====================================================================')
 
         # Save label statistics of subject
-        labelStatisticsInMeshNodes[:, :, subjectNumber] = labelStatistics
+        labelStatisticsInMeshNodes[:, :, subjectNumber] = mesh.alphas.copy()
 
     # Save label statistics in a npy file
     np.save(os.path.join(args.out_dir, 'labelStatistics_atlas_%d' % level), labelStatisticsInMeshNodes)
