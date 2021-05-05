@@ -1,6 +1,0 @@
-numpy
-scipy
-pandas
-matplotlib
-transforms3d
-scikit-image
