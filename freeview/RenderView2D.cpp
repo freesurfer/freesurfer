@@ -647,6 +647,10 @@ void RenderView2D::TriggerContextMenu( QMouseEvent* event )
     act->setData(QVariant::fromValue((QObject*)reg));
     connect(act, SIGNAL(triggered()), this, SLOT(OnDuplicateRegion()));
     menu.addAction(act);
+    act = new QAction("Copy Value", this);
+    act->setData(QVariant::fromValue((QObject*)reg));
+    connect(act, SIGNAL(triggered()), this, SLOT(OnCopyRegionValue()));
+    menu.addAction(act);
   }
   if (layers.size() > 1)
   {
@@ -739,6 +743,20 @@ void RenderView2D::OnDuplicateRegion()
       reg->Offset(5, 5);
       AddRegion(reg);
     }
+  }
+}
+
+void RenderView2D::OnCopyRegionValue()
+{
+  QAction* act = qobject_cast<QAction*>(sender());
+  if (!act)
+    return;
+
+  Region2D* reg = qobject_cast<Region2D*>(act->data().value<QObject*>());
+  if (reg)
+  {
+    reg = reg->Duplicate(this);
+    QApplication::clipboard()->setText(reg->GetShortStats());
   }
 }
 

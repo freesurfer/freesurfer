@@ -143,6 +143,7 @@ protected slots:
   void OnInteractorError(const QString& msg);
   void OnCopyVoxelValue();
   void OnCopyLabelVolume();
+  void OnCopyRegionValue();
 
 protected:
   virtual void resizeEvent(QResizeEvent *event);
