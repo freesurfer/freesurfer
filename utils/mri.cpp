@@ -339,6 +339,7 @@ MRI::~MRI()
   }
 
   if (pedir) free(pedir);
+  if (ct) CTABfree(&ct);
 }
 
 
@@ -5810,7 +5811,7 @@ MRI *MRIcopyHeader(const MRI *mri_src, MRI *mri_dst)
   }
   mri_dst->ncmds = mri_src->ncmds;
 
-  if(mri_src->ct){
+  if(mri_src->ct) {
     if(mri_dst->ct) CTABfree(&mri_dst->ct);
     mri_dst->ct = CTABdeepCopy(mri_src->ct);
   }
