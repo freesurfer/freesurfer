@@ -247,10 +247,15 @@ class Freeview:
         # and let the filename creation get handled below
         if isinstance(volume, np.ndarray):
 
-            # swap batch axis to frame axis if specified
             if swap_batch_dim or self.swap_batch_dim:
+                # swap batch axis to frame axis if specified
                 if volume.shape[-1] == 1:
                     volume = volume[..., 0]
+                volume = np.moveaxis(volume, 0, -1)
+            elif volume.ndim == 5 and volume.shape[-1] == 1:
+                # this is a bit of a hack for Bruce that auto-checks
+                # and swaps dimensions for a volume that is batched
+                volume = volume[..., 0]
                 volume = np.moveaxis(volume, 0, -1)
 
             orig_shape = volume.shape
