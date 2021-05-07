@@ -481,6 +481,7 @@
     <addaction name="actionThresholdVolume"/>
     <addaction name="actionCreateOptimalCombinedVolume"/>
     <addaction name="separator"/>
+    <addaction name="actionTransformSurface"/>
     <addaction name="actionRepositionSurface"/>
     <addaction name="actionSmoothSurface"/>
     <addaction name="actionRemoveIntersectionsSurface"/>
@@ -1825,6 +1826,11 @@
   <action name="actionCloseODF">
    <property name="text">
     <string>Close ODF</string>
+   </property>
+  </action>
+  <action name="actionTransformSurface">
+   <property name="text">
+    <string>Transform Surface...</string>
    </property>
   </action>
  </widget>
@@ -3746,6 +3752,22 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>actionTransformSurface</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnTransformSurface()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <signal>CycleOverlayRequested()</signal>
@@ -3858,5 +3880,6 @@
   <slot>OnTileSyncedWindows()</slot>
   <slot>OnLoadODF()</slot>
   <slot>OnCloseODF()</slot>
+  <slot>OnTransformSurface()</slot>
  </slots>
 </ui>

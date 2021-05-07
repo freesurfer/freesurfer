@@ -26,10 +26,12 @@
 #include <QStringList>
 #include <vector>
 #include "CommonDataStruct.h"
+#include "vtkSmartPointer.h"
 
 class vtkRenderer;
 class vtkProp;
 class LayerProperty;
+class vtkTransform;
 
 class Layer : public QObject
 {
@@ -236,6 +238,19 @@ public:
 
   void CopyTransformation(Layer* layer);
 
+  void AppendTransform(vtkTransform* t);
+
+  void UpdateLastTransform(vtkTransform* t);
+
+  void AppendIdentityTransform();
+
+  void UpdateTotalTransform();
+
+  bool HasTransformUndo()
+  {
+    return !m_listTransform.isEmpty();
+  }
+
 Q_SIGNALS:
   void NameChanged( const QString& name );
   void Transformed();
@@ -243,6 +258,10 @@ Q_SIGNALS:
   void ActorUpdated();
   void ActorChanged();
   void VisibilityChanged(bool bVisible);
+
+public slots:
+  void ResetTransform();
+  void UndoLastTransform();
 
 protected:
   virtual bool DoRotate( std::vector<RotationElement>& rotations )
@@ -285,6 +304,8 @@ protected:
   QString   m_sSubjectName;
   QStringList m_strTypeNames;
   QString   m_sPrimaryType;
+  QList<vtkTransform*> m_listTransform;
+  vtkSmartPointer<vtkTransform> m_transform;
 
   int       m_nID;
   static int m_nLastID;

@@ -246,6 +246,8 @@ public:
     m_bIgnoreVG = bIgnore;
   }
 
+  bool SaveTransform(vtkTransform* t, const QString& filename);
+
 protected:
   bool InitializeData(const QString& vector_filename = QString(),
                       const QString& patch_filename = QString(),

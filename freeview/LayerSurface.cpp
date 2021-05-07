@@ -69,6 +69,7 @@
 #include "LayerPropertyROI.h"
 #include "SurfacePath.h"
 #include <QSet>
+#include "vtkBoundingBox.h"
 
 LayerSurface::LayerSurface( LayerMRI* ref, QObject* parent ) : LayerEditable( parent ),
   m_surfaceSource( NULL ),
@@ -690,24 +691,30 @@ void LayerSurface::InitializeActors()
     return;
   }
 
+  vtkSmartPointer<vtkTransformPolyDataFilter> tf = vtkSmartPointer<vtkTransformPolyDataFilter>::New();
+  tf->SetTransform( m_transform );
   // main surface actor
   vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
 #if VTK_MAJOR_VERSION > 5
-  mapper->SetInputData( m_surfaceSource->GetPolyData() );
+  tf->SetInputData( m_surfaceSource->GetPolyData() );
 #else
-  mapper->SetInput( m_surfaceSource->GetPolyData() );
+  tf->SetInput( m_surfaceSource->GetPolyData() );
 #endif
+  mapper->SetInputConnection(tf->GetOutputPort());
   m_mainActor->SetMapper( mapper );
   mapper->Update();
 
   // vector actor
+  tf = vtkSmartPointer<vtkTransformPolyDataFilter>::New();
+  tf->SetTransform( m_transform );
   mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
   vtkSmartPointer<vtkTubeFilter> tube = vtkSmartPointer<vtkTubeFilter>::New();
 #if VTK_MAJOR_VERSION > 5
-  tube->SetInputData(m_surfaceSource->GetVectorPolyData());
+  tf->SetInputData(m_surfaceSource->GetVectorPolyData());
 #else
-  tube->SetInput(m_surfaceSource->GetVectorPolyData());
+  tf->SetInput(m_surfaceSource->GetVectorPolyData());
 #endif
+  tube->SetInputConnection(tf->GetOutputPort());
   tube->SetNumberOfSides(8);
   tube->SetRadius(0.04);
   tube->CappingOn();
@@ -728,20 +735,26 @@ void LayerSurface::InitializeActors()
 
   // vertex actor
   mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+  tf = vtkSmartPointer<vtkTransformPolyDataFilter>::New();
+  tf->SetTransform( m_transform );
 #if VTK_MAJOR_VERSION > 5
-  mapper->SetInputData(  m_surfaceSource->GetVertexPolyData() );
+  tf->SetInputData(  m_surfaceSource->GetVertexPolyData() );
 #else
-  mapper->SetInput(  m_surfaceSource->GetVertexPolyData() );
+  tf->SetInput(  m_surfaceSource->GetVertexPolyData() );
 #endif
+  mapper->SetInputConnection(tf->GetOutputPort());
   m_vertexActor->SetMapper( mapper );
 
   // wireframe actor
   mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+  tf = vtkSmartPointer<vtkTransformPolyDataFilter>::New();
+  tf->SetTransform( m_transform );
 #if VTK_MAJOR_VERSION > 5
-  mapper->SetInputData(  m_surfaceSource->GetWireframePolyData() );
+  tf->SetInputData(  m_surfaceSource->GetWireframePolyData() );
 #else
-  mapper->SetInput(  m_surfaceSource->GetWireframePolyData() );
+  tf->SetInput(  m_surfaceSource->GetWireframePolyData() );
 #endif
+  mapper->SetInputConnection(tf->GetOutputPort());
   m_wireframeActor->SetMapper( mapper );
   mapper->Update();
 
@@ -762,11 +775,14 @@ void LayerSurface::InitializeActors()
     m_box[i] = vtkSmartPointer<vtkBox>::New();
     m_box[i]->SetBounds(bounds);
     vtkSmartPointer<vtkExtractPolyDataGeometry> extract = vtkSmartPointer<vtkExtractPolyDataGeometry>::New();
+    tf = vtkSmartPointer<vtkTransformPolyDataFilter>::New();
+    tf->SetTransform( m_transform );
 #if VTK_MAJOR_VERSION > 5
-    extract->SetInputData(m_surfaceSource->GetPolyData());
+    tf->SetInputData(m_surfaceSource->GetPolyData());
 #else
-    extract->SetInput(m_surfaceSource->GetPolyData());
+    tf->SetInput(m_surfaceSource->GetPolyData());
 #endif
+    extract->SetInputConnection(tf->GetOutputPort());
     extract->ExtractInsideOn();
     extract->ExtractBoundaryCellsOn();
     extract->SetImplicitFunction(m_box[i]);
@@ -3167,4 +3183,23 @@ SurfaceAnnotation* LayerSurface::CreateNewAnnotation(const QString &ct_file, con
     annot = NULL;
   }
   return annot;
+}
+
+bool LayerSurface::SaveTransform(const QString &filename)
+{
+  return m_surfaceSource->SaveTransform(m_transform, filename);
+}
+
+void LayerSurface::GetCenterOfActor(double *pt)
+{
+  vtkPolyData* poly = vtkPolyData::SafeDownCast(m_mainActor->GetMapper()->GetInput());
+  if (poly)
+  {
+    vtkPoints* pts = poly->GetPoints();
+    vtkBoundingBox bbox;
+    for (int i = 0; i < pts->GetNumberOfPoints(); i++)
+      bbox.AddPoint(pts->GetPoint(i));
+
+    bbox.GetCenter(pt);
+  }
 }

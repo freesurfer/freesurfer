@@ -58,6 +58,7 @@ class DialogVolumeSegmentation;
 class BinaryTreeView;
 class WindowLayerInfo;
 class QFileSystemWatcher;
+class DialogTransformSurface;
 
 #define MAX_RECENT_FILES    10
 
@@ -485,6 +486,7 @@ protected slots:
   void OnEditUndo();
   void OnEditRedo();
   void OnTransformVolume();
+  void OnTransformSurface();
   void OnCropVolume();
   void OnThresholdVolume();
   void OnSegmentVolume();
@@ -670,6 +672,7 @@ private:
   ToolWindowMeasure*    m_toolWindowMeasure;
   ToolWindowROIEdit*    m_toolWindowROIEdit;
   DialogTransformVolume*    m_dlgTransformVolume;
+  DialogTransformSurface*   m_dlgTransformSurface;
   DialogCropVolume*     m_dlgCropVolume;
   DialogSaveScreenshot* m_dlgSaveScreenshot;
   DialogWriteMovieFrames*   m_dlgWriteMovieFrames;

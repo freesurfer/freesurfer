@@ -199,6 +199,7 @@ if(BUILD_GUIS AND VTK_FOUND AND PETSC_FOUND AND TARGET vtkutils)
     LayerODF.cpp
     LayerPropertyODF.cpp
     PanelODF.cpp
+    DialogTransformSurface.cpp
     freeview.qrc
   )
 

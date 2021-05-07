@@ -109,6 +109,7 @@
 #include "Annotation2D.h"
 #include "PanelLayer.h"
 #include "WindowLayerInfo.h"
+#include "DialogTransformSurface.h"
 #include <QFileSystemWatcher>
 #include <QClipboard>
 #include <QDebug>
@@ -225,6 +226,10 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
             SLOT(SetCurrentLandmark(int)));
     connect(m_views[i], SIGNAL(CursorLocationClicked()), this, SLOT(On2DCursorClicked()));
   }
+
+  m_dlgTransformSurface = new DialogTransformSurface(this);
+  m_dlgTransformSurface->hide();
+
   connect(m_layerCollections["MRI"], SIGNAL(LayerModified()),this, SLOT(RequestRedraw()));
   connect(m_layerCollections["Supplement"], SIGNAL(LayerModified()),this, SLOT(RequestRedraw()));
 
@@ -562,6 +567,8 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
     ui->actionShowCoordinateAnnotation->setIcon(MacHelper::InvertIcon(ui->actionShowCoordinateAnnotation->icon(), QSize(), true));
   }
 #endif
+
+  ui->actionTransformSurface->setVisible(false);
 }
 
 MainWindow::~MainWindow()
@@ -1597,6 +1604,7 @@ void MainWindow::OnIdle()
   ui->actionToggleVoxelCoordinateDisplay->setEnabled( bHasLayer );
   ui->actionTransformVolume ->setEnabled( layerVolume );
   ui->actionThresholdVolume->setEnabled(layerVolume);
+  ui->actionTransformSurface->setEnabled(layerSurface);
   ui->actionVolumeSegmentation->setEnabled(layerVolume);
   ui->actionVolumeFilterConvolve->setEnabled( !bBusy && layerVolume && layerVolume->IsEditable() );
   ui->actionVolumeFilterMean    ->setEnabled( !bBusy && layerVolume && layerVolume->IsEditable() );
@@ -1687,6 +1695,12 @@ void MainWindow::OnIdle()
   {
     QTimer::singleShot(50, this, SLOT(SlotActivateWindow()));
   }
+
+  if (!layerSurface)
+    m_dlgTransformSurface->hide();
+
+  if (!layerVolume)
+    m_dlgTransformVolume->hide();
 }
 
 bool MainWindow::IsBusy()
@@ -7210,6 +7224,13 @@ void MainWindow::OnTransformVolume()
   m_dlgTransformVolume->show();
   m_dlgTransformVolume->raise();
   m_dlgTransformVolume->UpdateUI();
+}
+
+void MainWindow::OnTransformSurface()
+{
+  m_dlgTransformSurface->show();
+  m_dlgTransformSurface->raise();
+  m_dlgTransformSurface->UpdateUI();
 }
 
 void MainWindow::OnCropVolume()

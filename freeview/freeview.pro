@@ -27,6 +27,7 @@ SOURCES += \
     DialogPreferences.cpp \
     DialogSavePointSet.cpp \
     DialogSaveScreenshot.cpp \
+    DialogTransformSurface.cpp \
     DialogTransformVolume.cpp \
     DialogVolumeFilter.cpp \
     DialogWriteMovieFrames.cpp \
@@ -211,6 +212,7 @@ HEADERS  += \
     DialogNewVolume.h \
     DialogSavePointSet.h \
     DialogSaveScreenshot.h \
+    DialogTransformSurface.h \
     DialogTransformVolume.h \
     DialogVolumeFilter.h \
     DialogWriteMovieFrames.h \
@@ -368,6 +370,7 @@ HEADERS  += \
 FORMS    += MainWindow.ui \
     DialogControlPointComment.ui \
     DialogNewAnnotation.ui \
+    DialogTransformSurface.ui \
     PanelODF.ui \
     PanelVolume.ui \
     PanelSurface.ui \

@@ -452,6 +452,10 @@ public slots:
 
   vtkActor* GetMainActor();
 
+  bool SaveTransform(const QString& filename);
+
+  void GetCenterOfActor(double* pt);
+
 Q_SIGNALS:
   void SurfaceAnnotationAdded( SurfaceAnnotation* );
   void SurfaceLabelAdded( SurfaceLabel* );
@@ -483,6 +487,7 @@ protected slots:
   void UpdateVectorActor2D();
   void OnSlicePositionChanged3D();
   void SetHighlightedLabelOnAnnotation(int n);
+
 
 protected:
   void InitializeData();
