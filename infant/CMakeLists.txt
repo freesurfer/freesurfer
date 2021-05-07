@@ -31,6 +31,7 @@ install_pyscript(mri_label_fusion)
 add_subdirectory(labelfusion)
 
 # install external niftyreg binaries
+if(INSTALL_NIFTIREG_MARTINOS)
 if(APPLE)
   set(NIFTY_REG_DIR "/autofs/cluster/freesurfer/build/misc/infant/niftyreg-mac")
 else()
@@ -39,6 +40,7 @@ endif()
 foreach(CMD reg_resample reg_f3d reg_aladin)
   install(PROGRAMS ${NIFTY_REG_DIR}/${CMD} DESTINATION bin)
 endforeach()
+endif()
 
 # install externally-stored skullstripping models
 foreach(MODEL ax_sscnn.h5 cor_sscnn.h5 sag_sscnn.h5)
