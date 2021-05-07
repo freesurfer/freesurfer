@@ -38,6 +38,7 @@ option(INSTALL_PYTHON_DEPENDENCIES "Install python package dependencies" ON)
 #  compiler errors with "-Werror" turned on.  The WARNING_AS_ERROR option allows temporarily
 #  disabling warnings as errors to allow a more gradual move to supporting new compilers.
 option(WARNING_AS_ERROR "Convert build warnings to errors" ON)
+option(MARTINOS_BUILD "Does the build have access to the martinos network" ON)
 
 if(NOT APPLE)
   # linux-only build options

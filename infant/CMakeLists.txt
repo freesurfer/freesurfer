@@ -31,6 +31,7 @@ install_pyscript(mri_label_fusion)
 add_subdirectory(labelfusion)
 
 # install external niftyreg binaries
+if(MARTINOS_BUILD)
 if(APPLE)
   set(NIFTY_REG_DIR "/autofs/cluster/freesurfer/build/misc/infant/niftyreg-mac")
 else()
@@ -44,6 +45,7 @@ endforeach()
 foreach(MODEL ax_sscnn.h5 cor_sscnn.h5 sag_sscnn.h5)
   install(PROGRAMS /autofs/cluster/freesurfer/build/misc/infant/sscnn_skullstripping/${MODEL} DESTINATION average/sscnn_skullstripping)
 endforeach()
+endif()
 
 # install any package requirements
 if(INSTALL_PYTHON_DEPENDENCIES)
