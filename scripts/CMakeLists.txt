@@ -27,6 +27,7 @@ install_configured(
   conf2hires
   cor_to_minc
   cp-dicom
+  csvprint
   dcmdir-info-mgh
   dcmsplit
   dcmunpack
