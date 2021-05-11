@@ -54,7 +54,7 @@ typedef struct COLOR_TABLE
   int   version;  /* Version number, if read from binary */
   int   idbase;   // Add this to structure number when writing
   char  TissueTypeSchema[STRLEN];
-  struct COLOR_TABLE *ctabTissueType = nullptr;
+  struct COLOR_TABLE *ctabTissueType;
 }
 COLOR_TABLE, CT ;
 
