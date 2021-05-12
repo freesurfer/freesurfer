@@ -336,6 +336,8 @@ public:
   QString GetGeoSegErrorMessage();
 
   bool ExportLabelStats(const QString& fn);
+
+  QList<vtkActor*> GetContourActors();
   
 public slots:
   virtual void SetModified();

@@ -84,6 +84,7 @@ RenderView3D::RenderView3D( QWidget* parent ) : RenderView( parent )
   m_bShowAxes = false;
   m_bShowCursor = true;
   m_bFocalPointAtCursor = false;
+  m_actorForAxes = NULL;
   for ( int i = 0; i < 3; i++ )
   {
     m_actorSliceFrames[i] = vtkSmartPointer<vtkActor>::New();
@@ -124,7 +125,7 @@ RenderView3D::RenderView3D( QWidget* parent ) : RenderView( parent )
   m_actorAxesActor->SetXTitle("");
   m_actorAxesActor->SetYTitle("");
   m_actorAxesActor->SetZTitle("");
-  m_actorAxesActor->SetFlyModeToClosestTriad();
+  m_actorAxesActor->SetFlyModeToOuterEdges();
   m_actorAxesActor->SetCamera(m_renderer->GetActiveCamera());
 
   SetInteractionMode(IM_Navigate);
@@ -401,12 +402,10 @@ void RenderView3D::RefreshAllActors(bool bForScreenShot)
     }
   }
 
-  if (m_bShowAxes)
-    m_renderer->AddViewProp(m_actorAxesActor);
+  m_renderer->AddViewProp(m_actorAxesActor);
 
   //    mainwnd->GetConnectivityData()->AppendProps( m_renderer );
   mainwnd->GetVolumeCropper()->Append3DProps( m_renderer );
-
 
   m_renderer->ResetCameraClippingRange();
   RenderView::RefreshAllActors(bForScreenShot);
@@ -980,7 +979,7 @@ void RenderView3D::MoveSliceToScreenCoord( int x, int y )
   lc->SetCursorRASPosition( slicepos );
 }
 
-vtkProp* RenderView3D::PickProp( int posX, int posY, double* pos_out )
+vtkProp* RenderView3D::PickProp( int posX, int posY, double* pos_out, vtkPropCollection* props_in )
 {
   vtkCellPicker* picker = vtkCellPicker::SafeDownCast( this->GetRenderWindow()->GetInteractor()->GetPicker() );
   if ( !picker )
@@ -989,7 +988,9 @@ vtkProp* RenderView3D::PickProp( int posX, int posY, double* pos_out )
   }
 
   picker->InitializePickList();
-  vtkPropCollection* props = GetRenderer()->GetViewProps();
+  vtkPropCollection* props = props_in;
+  if (!props)
+    props = GetRenderer()->GetViewProps();
   if ( props )
   {
     props->InitTraversal();
@@ -1216,10 +1217,9 @@ bool RenderView3D::UpdateBounds()
 
 void RenderView3D::UpdateAxesActor()
 {
-  LayerSurface* surf = (LayerSurface*)MainWindow::GetMainWindow()->GetActiveLayer("Surface");
-  if (surf && surf->IsVisible())
+  vtkActor* prop = m_actorForAxes;
+  if (prop)
   {
-    vtkActor* prop = surf->GetMainActor();
     double bounds[6];
     prop->GetBounds(bounds);
     m_actorAxesActor->SetXAxisRange(0, bounds[1]-bounds[0]);
@@ -1455,12 +1455,6 @@ void RenderView3D::TriggerContextMenu( QMouseEvent* event )
       ag->addAction(act);
     }
     connect(ag, SIGNAL(triggered(QAction*)), this, SLOT(SetScalarBarLayer(QAction*)));
-
-    QAction* act = new QAction("Show 3D Scale", this);
-    act->setCheckable(true);
-    act->setChecked(GetShowAxes());
-    connect(act, SIGNAL(toggled(bool)), SLOT(SetShowAxes(bool)));
-    menu->addAction(act);
   }
 
   if (mri && mri->GetProperty()->GetShowAsContour())
@@ -1487,6 +1481,42 @@ void RenderView3D::TriggerContextMenu( QMouseEvent* event )
       connect(action, SIGNAL(triggered(bool)), mainwnd, SLOT(OnCopyView()));
       menu->addAction(action);
       menu->addAction(mainwnd->ui->actionSaveScreenshot);
+  }
+
+  QList<vtkActor*> actors;
+  layers = mainwnd->GetLayers("MRI");
+  foreach (Layer* layer, layers)
+  {
+    LayerMRI* mri = (LayerMRI*)layer;
+    if (mri->IsVisible() && mri->GetProperty()->GetShowAsContour())
+      actors << mri->GetContourActors();
+  }
+  layers = mainwnd->GetLayers("Surface");
+  foreach (Layer* layer, layers)
+  {
+    LayerSurface* surf = (LayerSurface*)layer;
+    if (surf->IsVisible())
+      actors << surf->GetMainActor();
+  }
+  vtkSmartPointer<vtkPropCollection> props = vtkSmartPointer<vtkPropCollection>::New();
+  foreach (vtkActor* actor, actors)
+    props->AddItem(actor);
+
+  if (!actors.isEmpty() || m_actorForAxes != NULL)
+  {
+    vtkProp* prop = actors.isEmpty()?NULL:PickProp(event->x(), event->y(), NULL, props);
+    act = new QAction("Show 3D Scale", this);
+    act->setCheckable(true);
+    if (prop)
+    {
+      act->setChecked(prop == m_actorForAxes);
+      act->setData((qulonglong)prop);
+    }
+    else
+      act->setChecked(m_actorForAxes != NULL);
+    connect(act, SIGNAL(toggled(bool)), SLOT(SetShowAxes(bool)));
+    menu->addSeparator();
+    menu->addAction(act);
   }
   menu->exec(event->globalPos());
 }
@@ -1663,5 +1693,32 @@ void RenderView3D::SetFocalPointAtCursor(bool b)
 void RenderView3D::SetShowAxes(bool b)
 {
   m_bShowAxes = b;
+  m_actorAxesActor->SetVisibility(b?1:0);
+  if (b)
+  {
+    QAction* act = qobject_cast<QAction*>(sender());
+    if (act)
+    {
+      vtkActor* prop = (vtkActor*)act->data().toULongLong();
+      if (prop)
+      {
+        m_actorForAxes = prop;
+        UpdateAxesActor();
+      }
+    }
+  }
+  else
+    m_actorForAxes = NULL;
   RefreshAllActors();
+}
+
+void RenderView3D::SetAxesFlyMode(int n)
+{
+  m_actorAxesActor->SetFlyMode(n);
+  Render();
+}
+
+int RenderView3D::GetAxesFlyMode()
+{
+  return m_actorAxesActor->GetFlyMode();
 }

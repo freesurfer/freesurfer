@@ -264,10 +264,10 @@ int CTABfree(COLOR_TABLE **pct)
   for (i = 0; i < ct->nentries; i++)
     if (NULL != ct->entries[i]) free(ct->entries[i]);
 
+  if (ct->ctabTissueType) CTABfree(&ct->ctabTissueType);
+
   free(ct->entries);
   free(ct);
-
-  if (ct->ctabTissueType) CTABfree(&ct->ctabTissueType);
 
   /* Set argument to null */
   *pct = NULL;
