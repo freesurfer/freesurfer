@@ -78,6 +78,7 @@ char tmpstr[2000], *SUBJECTS_DIR;
 char *inputs[10000];
 int ninputs = 0;
 CSD *csd = NULL;
+char *csdpdffile = NULL;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
@@ -153,6 +154,12 @@ int main(int argc, char *argv[]) {
   CSDprint(fp, csd);
   fclose(fp);
 
+  if(csdpdffile) {
+    printf("Creating CDFs from CSD files\n");
+    CSDpdf(csd,-1);
+    CSDwritePDF(csdpdffile,csd);
+  }
+
   printf("mri_maps2csd done\n");
   exit(0);
 }
@@ -183,6 +190,11 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--csd")) {
       if(nargc < 1) CMDargNErr(option,1);
       csdfile = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcmp(option, "--pdf")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      csdpdffile = pargv[0];
       nargsused = 1;
     } 
     else if (!strcasecmp(option, "--s")){
@@ -237,6 +249,7 @@ static void print_usage(void) {
   printf("%s   inputs\n",Progname) ;
   printf("\n");
   printf("   --csd csdfile\n");
+  printf("   --pdf pdffile : PDF created from CSD\n");
   printf("   --s subjectname hemi surf\n");
   //printf("   --surf surfpath\n");
   printf("   --thresh thresh (-log10 cluster-forming thresh)\n");
