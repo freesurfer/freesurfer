@@ -4233,3 +4233,17 @@ bool LayerMRI::ExportLabelStats(const QString &fn)
   }
   return true;
 }
+
+QList<vtkActor*> LayerMRI::GetContourActors()
+{
+  QList<vtkActor*> actors;
+  if (GetProperty()->GetShowAsLabelContour())
+  {
+    QList<int> keys = m_labelActors.keys();
+    foreach (int n, keys)
+      actors << m_labelActors[n];
+  }
+  else
+    actors << m_actorContour;
+  return actors;
+}

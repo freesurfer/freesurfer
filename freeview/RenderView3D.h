@@ -176,7 +176,7 @@ protected:
   virtual void OnSlicePositionChanged(bool bCenterView = false);
   virtual void OnIdle();
 
-  vtkProp* PickProp( int posX, int posY, double* pos_out = NULL );
+  vtkProp* PickProp( int posX, int posY, double* pos_out = NULL, vtkPropCollection* props_in = NULL );
 
 private:
   int  m_nPickCoord[2];
@@ -194,6 +194,7 @@ private:
   vtkSmartPointer<vtkCubeSource>  m_cubeSliceBoundingBox[3];
   vtkSmartPointer<vtkAnnotatedCubeActor> m_actorAnnotatedCube;
   vtkSmartPointer<vtkCubeAxesActor>          m_actorAxesActor;
+  vtkActor*     m_actorForAxes;
 
   double  m_dBounds[6];
   double  m_dBoundingTolerance;
