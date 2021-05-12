@@ -1711,3 +1711,14 @@ void RenderView3D::SetShowAxes(bool b)
     m_actorForAxes = NULL;
   RefreshAllActors();
 }
+
+void RenderView3D::SetAxesFlyMode(int n)
+{
+  m_actorAxesActor->SetFlyMode(n);
+  Render();
+}
+
+int RenderView3D::GetAxesFlyMode()
+{
+  return m_actorAxesActor->GetFlyMode();
+}

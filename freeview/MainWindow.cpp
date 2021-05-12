@@ -695,6 +695,7 @@ void MainWindow::LoadSettings()
       ((RenderView3D*)m_views[i])->GetInflatedSurfCursor()->SetSize(m_settings["CursorSize3D"].toInt());
       ((RenderView3D*)m_views[i])->GetCursor3D()->SetThickness(m_settings["CursorThickness3D"].toInt());
       ((RenderView3D*)m_views[i])->GetInflatedSurfCursor()->SetThickness(m_settings["CursorThickness3D"].toInt());
+      ((RenderView3D*)m_views[i])->SetAxesFlyMode(m_settings["3DAxesFlyMode"].toInt());
     }
   }
   SyncZoom(m_settings["SyncZoom"].toBool());

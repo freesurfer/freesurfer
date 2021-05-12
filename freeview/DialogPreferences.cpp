@@ -75,6 +75,8 @@ DialogPreferences::DialogPreferences(QWidget *parent) :
   connect(ui->radioButtonThemeDark, SIGNAL(toggled(bool)),
           mainwnd->GetCommandConsole(), SLOT(SetDarkTheme(bool)));
 
+  connect(ui->comboBox3DScaleStyle, SIGNAL(currentIndexChanged(int)), ((RenderView3D*)mainwnd->GetRenderView(3)), SLOT(SetAxesFlyMode(int)));
+
   ui->checkBoxMacUnified->hide();
 
 #ifdef Q_OS_MAC
@@ -157,6 +159,7 @@ void DialogPreferences::SetSettings(const QVariantMap &map)
   ui->spinBoxPrecision->setValue(map["Precision"].toInt());
   ui->checkBoxComma->setChecked(map["UseComma"].toBool());
   ui->checkBoxClickToLock->setChecked(map["ClickToLock"].toBool());
+  ui->comboBox3DScaleStyle->setCurrentIndex(map["3DAxesFlyMode"].toInt());
 
   MainWindow* mainwnd = MainWindow::GetMainWindow();
   QString val = map.value("ShortcutCycleLayer").toString();
@@ -210,6 +213,7 @@ QVariantMap DialogPreferences::GetSettings()
   map["Precision"] = ui->spinBoxPrecision->value();
   map["UseComma"] = ui->checkBoxComma->isChecked();
   map["ClickToLock"] = ui->checkBoxClickToLock->isChecked();
+  map["3DAxesFlyMode"] = ui->comboBox3DScaleStyle->currentIndex();
   return map;
 }
 

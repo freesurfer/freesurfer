@@ -131,6 +131,8 @@ public:
     return m_bShowAxes;
   }
 
+  int GetAxesFlyMode();
+
 signals:
   void SurfaceVertexClicked(LayerSurface* surf);
   void SurfaceRegionSelected(SurfaceRegion*);
@@ -166,6 +168,7 @@ public slots:
   void UpdateAxesActor();
   void SetShowAxes(bool b);  
   void DeleteCurrentSelectRegion();
+  void SetAxesFlyMode(int n);
 
 protected:
   void DoUpdateRASPosition( int posX, int posY, bool bCursor = false, bool bSlicePickOnly = false );
