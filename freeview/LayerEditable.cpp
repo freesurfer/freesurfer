@@ -19,6 +19,8 @@
  */
 
 #include "LayerEditable.h"
+#include <QDateTime>
+#include <QVariant>
 
 LayerEditable::LayerEditable( QObject* parent ) : Layer( parent ),
   m_nMaxUndoSteps( 100 ),
@@ -34,5 +36,6 @@ LayerEditable::~LayerEditable()
 void LayerEditable::SetModified()
 {
   m_bModified = true;
+  setProperty("last_modified", QDateTime::currentMSecsSinceEpoch());
   emit Modified();
 }

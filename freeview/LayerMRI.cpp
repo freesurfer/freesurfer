@@ -4220,7 +4220,7 @@ bool LayerMRI::ExportLabelStats(const QString &fn)
     return false;
 
   QTextStream out(&file);
-  out << "Label,Count,Volume (mm3)\n";
+  out << "Label,Name,Count,Volume (mm3)\n";
   double* vs = m_imageData->GetSpacing();
   QList<int> labels = m_nAvailableLabels;
   qSort(labels);
@@ -4228,8 +4228,8 @@ bool LayerMRI::ExportLabelStats(const QString &fn)
   {
     QVector<double> list = GetVoxelList(labels[i]);
     if (!list.isEmpty())
-      out << QString("%1,%2,%3\n").arg(labels[i])
-             .arg(list.size()/3).arg(list.size()/3*vs[0]*vs[1]*vs[2]);
+      out << QString("%1,%4,%2,%3\n").arg(labels[i])
+             .arg(list.size()/3).arg(list.size()/3*vs[0]*vs[1]*vs[2]).arg(GetLabelName(labels[i]));
   }
   return true;
 }
@@ -4246,4 +4246,12 @@ QList<vtkActor*> LayerMRI::GetContourActors()
   else
     actors << m_actorContour;
   return actors;
+}
+
+int LayerMRI::GetLabelCount(int nVal)
+{
+  if (m_labelVoxelCounts.contains(nVal))
+    return m_labelVoxelCounts[nVal];
+  else
+    return 0;
 }

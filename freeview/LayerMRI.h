@@ -331,6 +331,8 @@ public:
 
   QVector<double> GetVoxelList(int nVal, bool bForce = false);
 
+  int GetLabelCount(int nVal);
+
   QVariantMap GetTimeSeriesInfo();
 
   QString GetGeoSegErrorMessage();
@@ -485,6 +487,7 @@ private:
   QList<int>  m_nAvailableLabels;
   QMap<int, QList<double> > m_listLabelCenters;
   QMap<int, QVector<double> > m_voxelLists;
+  QMap<int, int> m_labelVoxelCounts;
 
   QMap<QObject*, double>  m_mapMaskThresholds;
   double      m_dMaskThreshold;
