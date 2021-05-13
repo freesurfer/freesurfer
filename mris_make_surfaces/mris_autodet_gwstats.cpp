@@ -222,7 +222,7 @@ static int parse_commandline(int argc, char **argv) {
       subject = pargv[0];
       nargsused = 1;
     }
-    else if(!strcmp(option, "--min_border_white")) {
+    else if(!strcmp(option, "--min_border_white") || !strcmp(option, "-seg-wlo")) {
       if(nargc < 1) CMDargNErr(option,1);
       adgws.min_border_white = atof(pargv[0]);
       adgws.min_border_white_set = 1;
@@ -240,7 +240,7 @@ static int parse_commandline(int argc, char **argv) {
       adgws.min_gray_at_white_border_set = 1;
       nargsused = 1;
     }
-    else if(!strcmp(option, "--max_gray")) {
+    else if(!strcmp(option, "--max_gray") || !strcmp(option, "-seg-ghi")) {
       if(nargc < 1) CMDargNErr(option,1);
       adgws.max_gray = atof(pargv[0]);
       adgws.max_gray_set = 1;
@@ -348,10 +348,10 @@ static void print_usage(void)
   printf(" --rh-surf rhsurf \n");
   printf(" --s subject : reads in brain.finalsurfs.mgz, wm.mgz, lh.orig and rh.orig\n");
   printf(" --sd SUBJECTS_DIR \n");
-  printf(" --min_border_white MinBW : Min border white\n");
+  printf(" --min_border_white MinBW : Min border white  (can also use -seg-wlo for compatibility)\n");
   printf(" --max_border_white MaxBW : Max border white\n");
   printf(" --min_gray_at_white_border MinGWB\n");
-  printf(" --max_gray MaxG\n");
+  printf(" --max_gray MaxG (can also use -seg-ghi for compatibility)\n");
   printf(" --max_gray_at_csf_border MaxGCSFB\n");
   printf(" --min_gray_at_csf_border MinGCSFB\n");
   printf(" --max_csf MaxCSF\n");
