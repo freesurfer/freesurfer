@@ -154,6 +154,7 @@ int AdjustThreshWhenOneTail=1;
 char *voxwisesigfile=NULL;
 MRI  *voxwisesig;
 char *maxvoxwisesigfile=NULL;
+char *maxcwpvalfile=NULL; // save p-value of largest cluster
 int ReallyUseAverage7 = 0;
 double fwhm = -1;
 double fdr = -1;
@@ -494,6 +495,14 @@ int main(int argc, char **argv) {
   scs2 = SortSurfClusterSum(scs, NClusters);
   free(scs);
   scs = scs2;
+
+  if(maxcwpvalfile != NULL){
+    // save sig of largest cluster
+    fp = fopen(maxcwpvalfile,"w");
+    if(NClusters > 1) fprintf(fp,"%10.5lf\n",scs->pval_clusterwise);
+    else              fprintf(fp,"1.0\n");
+    fclose(fp);
+  }
 
   /* Remove clusters that do not meet the minimum clusterwise pvalue */
   if(cwpvalthresh > 0 && (fwhm >0 || csd != NULL) ){
@@ -963,6 +972,11 @@ static int parse_commandline(int argc, char **argv) {
       maxvoxwisesigfile = pargv[0];
       nargsused = 1;
     } 
+    else if (!strcmp(option, "--maxcwpval")) {
+      if(nargc < 1) argnerr(option,1);
+      maxcwpvalfile = pargv[0];
+      nargsused = 1;
+    } 
     else if (!strcmp(option, "--olab")) {
       if (nargc < 1) argnerr(option,1);
       outlabelbase = pargv[0];
@@ -1045,6 +1059,7 @@ static void print_usage(void) {
   printf("   --csd csdfile <--csd csdfile ...>\n");
   printf("   --vwsig vwsig : map of corrected voxel-wise significances\n");
   printf("   --cwsig cwsig : map of cluster-wise significances\n");
+  printf("   --maxcwpval maxcwpvalfile.txt : save p-value of the largest (max) cluster (1.0 if no cluster)\n");
   printf("   --bonferroni N : addition correction across N (eg, spaces)\n");
   printf("   --sig2p-max : convert max from sig to p\n");
   printf("   --bonferroni-max N : apply bonf cor to maximum (only applies with --sig2p-max)\n");
