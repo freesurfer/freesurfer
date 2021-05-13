@@ -674,25 +674,18 @@ void RenderView2D::TriggerContextMenu( QMouseEvent* event )
     if (!menu.actions().isEmpty() && layers.size() == 1)
       menu.addSeparator();
 
+    LayerMRI* mri = (LayerMRI*)layers.first();
+    double val = mri->GetVoxelValue(mri->GetSlicePosition());
     if (layers.size() == 1)
     {
-      LayerMRI* mri = (LayerMRI*)layers.first();
-      double val = mri->GetVoxelValue(mri->GetSlicePosition());
       QAction* act = new QAction(QString("Copy Voxel Value  (%1)").arg(val), this);
       act->setProperty("voxel_value", val);
       connect(act, SIGNAL(triggered()), SLOT(OnCopyVoxelValue()));
       menu.addAction(act);
-      if (((LayerMRI*)layers[0])->GetProperty()->GetColorMap() == LayerPropertyMRI::LUT)
-      {
-        act = new QAction("Copy Label Volume", this);
-        act->setData(QVariant::fromValue((QObject*)mri));
-        connect(act, SIGNAL(triggered()), SLOT(OnCopyLabelVolume()));
-        menu.addAction(act);
-      }
     }
     else
     {
-      QMenu* menu2 = menu.addMenu("Copy Voxel Value");
+      QMenu* menu2 = menu.addMenu("Copy Voxel Values");
       foreach (Layer* layer, layers)
       {
         LayerMRI* mri = (LayerMRI*)layer;
@@ -702,6 +695,15 @@ void RenderView2D::TriggerContextMenu( QMouseEvent* event )
         connect(act, SIGNAL(triggered()), SLOT(OnCopyVoxelValue()));
         menu2->addAction(act);
       }
+    }
+    if (mri->GetProperty()->GetColorMap() == LayerPropertyMRI::LUT)
+    {
+      double vs[3];
+      mri->GetWorldVoxelSize(vs);
+      QAction* act = new QAction(QString("Copy Label Volume (%1 mm3)").arg(mri->GetLabelCount(val)*vs[0]*vs[1]*vs[2]), this);
+      act->setData(mri->GetLabelCount(val)*vs[0]*vs[1]*vs[2]);
+      connect(act, SIGNAL(triggered()), SLOT(OnCopyLabelVolume()));
+      menu.addAction(act);
     }
   }
 
@@ -806,14 +808,6 @@ void RenderView2D::OnCopyLabelVolume()
   QAction* act = qobject_cast<QAction*>(sender());
   if (act)
   {
-    LayerMRI* mri = qobject_cast<LayerMRI*>(act->data().value<QObject*>());
-    if (mri)
-    {
-      double val = mri->GetVoxelValue(mri->GetSlicePosition());
-      QVector<double> vlist = mri->GetVoxelList(val, true);
-      double vs[3];
-      mri->GetWorldVoxelSize(vs);
-      QApplication::clipboard()->setText(QString::number(vlist.size()/3*vs[0]*vs[1]*vs[2]));
-    }
+    QApplication::clipboard()->setText(QString::number(act->data().toDouble()));
   }
 }
