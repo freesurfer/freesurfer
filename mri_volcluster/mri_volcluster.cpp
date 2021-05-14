@@ -197,7 +197,6 @@ int main(int argc, char **argv) {
   int nthhit, n, m, nclusters, nprunedclusters;
   float x,y,z,val,pval;
   char *stem;
-  COLOR_TABLE *ct;
   FILE *fp;
 
   setRandomSeed(53);
@@ -703,21 +702,17 @@ int main(int argc, char **argv) {
 
   /* Write clusters numbers to a volume, include color LUT */
   if (outcnid != 0) {
-    ct = CTABalloc(nclusters+1);
-    strcpy(ct->entries[0]->name,"Unknown");
+    outvol = clustClusterList2Vol(ClusterList, nclusters, vol,frame, 0);
+    outvol->ct = CTABalloc(nclusters+1);
+    strcpy(outvol->ct->entries[0]->name,"Unknown");
     for (n = 0; n < nclusters; n++)
-      sprintf(ct->entries[n+1]->name,"Cluster-%03d",n+1);
+      sprintf(outvol->ct->entries[n+1]->name,"Cluster-%03d",n+1);
     stem = IDstemFromName(outcnid);
     sprintf(tmpstr,"%s.lut",stem);
-    CTABwriteFileASCII(ct, tmpstr);
-    outvol = clustClusterList2Vol(ClusterList, nclusters, vol,frame, 0);
-    if(outvol->ct) CTABfree(&outvol->ct);
-    outvol->ct = ct;
+    CTABwriteFileASCII(outvol->ct, tmpstr);
     printf("INFO: writing OCN to %s\n",outcnid);
     MRIwrite(outvol,outcnid);
-    //MRIwriteType(outvol,outcnid,outcntype);
     MRIfree(&outvol);
-    CTABfree(&ct);
     free(stem);
   }
 
