@@ -494,16 +494,18 @@ if (! $dolong) then
             set rep_gmids    = ($rep_gmids    $gmids[$ipath])
             set rep_ncpts    = ($rep_ncpts    $ncpts[$ipath])
           else
-            set outlist    = `printf '%s\n' $outlist    | grep -v $pathname`
-            set roi1list   = `printf '%s\n' $roi1list   | grep -v $pathname`
-            set roi2list   = `printf '%s\n' $roi2list   | grep -v $pathname`
-            set initlist   = `printf '%s\n' $initlist   | grep -v $pathname`
-            set sdplist    = `printf '%s\n' $sdplist    | grep -v $pathname`
-            set priorlist  = `printf '%s\n' $priorlist  | grep -v $pathname`
-            set npriorlist = `printf '%s\n' $npriorlist | grep -v $pathname`
-            set lpriorlist = `printf '%s\n' $lpriorlist | grep -v $pathname`
-            set tpriorlist = `printf '%s\n' $tpriorlist | grep -v $pathname`
-            set cpriorlist = `printf '%s\n' $cpriorlist | grep -v $pathname`
+            set pathpre = ${pathname}_$avgmode
+
+            set outlist    = `printf '%s\n' $outlist    | grep -v $pathpre`
+            set roi1list   = `printf '%s\n' $roi1list   | grep -v $pathpre`
+            set roi2list   = `printf '%s\n' $roi2list   | grep -v $pathpre`
+            set initlist   = `printf '%s\n' $initlist   | grep -v $pathpre`
+            set sdplist    = `printf '%s\n' $sdplist    | grep -v $pathpre`
+            set priorlist  = `printf '%s\n' $priorlist  | grep -v $pathpre`
+            set npriorlist = `printf '%s\n' $npriorlist | grep -v $pathpre`
+            set lpriorlist = `printf '%s\n' $lpriorlist | grep -v $pathpre`
+            set tpriorlist = `printf '%s\n' $tpriorlist | grep -v $pathpre`
+            set cpriorlist = `printf '%s\n' $cpriorlist | grep -v $pathpre`
           endif
 
           set cmd = (rm -rf $pathdir/tmp.nii.gz)
@@ -799,16 +801,18 @@ else
             set rep_gmids    = ($rep_gmids    $gmids[$ipath])
             set rep_ncpts    = ($rep_ncpts    $ncpts[$ipath])
           else
-            set outlist    = `printf '%s\n' $outlist    | grep -v $pathname`
-            set roi1list   = `printf '%s\n' $roi1list   | grep -v $pathname`
-            set roi2list   = `printf '%s\n' $roi2list   | grep -v $pathname`
-            set initlist   = `printf '%s\n' $initlist   | grep -v $pathname`
-            set sdplist    = `printf '%s\n' $sdplist    | grep -v $pathname`
-            set priorlist  = `printf '%s\n' $priorlist  | grep -v $pathname`
-            set npriorlist = `printf '%s\n' $npriorlist | grep -v $pathname`
-            set lpriorlist = `printf '%s\n' $lpriorlist | grep -v $pathname`
-            set tpriorlist = `printf '%s\n' $tpriorlist | grep -v $pathname`
-            set cpriorlist = `printf '%s\n' $cpriorlist | grep -v $pathname`
+            set pathpre = ${pathname}_$avgmode
+
+            set outlist    = `printf '%s\n' $outlist    | grep -v $pathpre`
+            set roi1list   = `printf '%s\n' $roi1list   | grep -v $pathpre`
+            set roi2list   = `printf '%s\n' $roi2list   | grep -v $pathpre`
+            set initlist   = `printf '%s\n' $initlist   | grep -v $pathpre`
+            set sdplist    = `printf '%s\n' $sdplist    | grep -v $pathpre`
+            set priorlist  = `printf '%s\n' $priorlist  | grep -v $pathpre`
+            set npriorlist = `printf '%s\n' $npriorlist | grep -v $pathpre`
+            set lpriorlist = `printf '%s\n' $lpriorlist | grep -v $pathpre`
+            set tpriorlist = `printf '%s\n' $tpriorlist | grep -v $pathpre`
+            set cpriorlist = `printf '%s\n' $cpriorlist | grep -v $pathpre`
           endif
 
           set cmd = (rm -rf $pathdir/tmp.nii.gz)
