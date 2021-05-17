@@ -73,6 +73,7 @@ SOURCES += \
     LivewireTool.cpp \
     LUTDataHolder.cpp \
     PanelODF.cpp \
+    Region3D.cpp \
     WindowEditAnnotation.cpp \
     main.cpp \
     MainWindow.cpp \
@@ -266,6 +267,7 @@ HEADERS  += \
     PanelROI.h \
     PanelSurface.h \
     PanelVolume.h \
+    Region3D.h \
     WindowEditAnnotation.h \
     qtcolorpicker.h \
     Region2D.h \

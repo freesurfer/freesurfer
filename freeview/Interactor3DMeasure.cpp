@@ -28,10 +28,13 @@
 #include "SurfaceRegion.h"
 #include "CursorFactory.h"
 #include <QDebug>
+#include "vtkProp.h"
 
 Interactor3DMeasure::Interactor3DMeasure(QObject* parent) :
   Interactor3D(parent),
-  m_bSelectRegion( false )
+  m_bSelectRegion( false ),
+  m_bDrawRegion(false),
+  m_prop(NULL)
 {}
 
 Interactor3DMeasure::~Interactor3DMeasure()
@@ -43,28 +46,38 @@ bool Interactor3DMeasure::ProcessMouseDownEvent( QMouseEvent* event, RenderView*
 
   bool ret = Interactor3D::ProcessMouseDownEvent( event, renderview );
 #ifdef Q_OS_MAC
-  if ( m_nAction == MM_SurfaceRegion && !Interactor3D::IsInAction() &&
+  if ( (m_nAction == MM_SurfaceRegion || m_nAction == MM_DrawOnSurface) && !Interactor3D::IsInAction() &&
        (event->button() == Qt::LeftButton || ( event->button() == Qt::RightButton && (event->buttons() & Qt::LeftButton) ) ) )
 #else
-  if ( m_nAction == MM_SurfaceRegion && !Interactor3D::IsInAction() &&
+  if ( (m_nAction == MM_SurfaceRegion || m_nAction == MM_DrawOnSurface) && !Interactor3D::IsInAction() &&
        event->button() == Qt::LeftButton )
 #endif
   {
     if ( event->modifiers() & CONTROL_MODIFIER && !(event->modifiers() & Qt::ShiftModifier) )
     {
-      if ( view->InitializeSelectRegion( event->x(), event->y() ) )
+      m_prop = view->InitializeSelectRegion( event->x(), event->y(), m_nAction );
+      if ( m_prop )
       {
-        m_bSelectRegion = true;
+        if (m_nAction == MM_SurfaceRegion)
+          m_bSelectRegion = true;
+        else
+          m_bDrawRegion = true;
         return false;   // do not pass down the event
       }
     }
     else if ( event->modifiers() & CONTROL_MODIFIER && event->modifiers() & Qt::ShiftModifier )
     {
       LayerMRI* mri = (LayerMRI*)MainWindow::GetMainWindow()->GetActiveLayer( "MRI" );
-      if ( mri && mri->GetCurrentSurfaceRegion() )
+      if ( mri && mri->GetCurrentSurfaceRegion() && m_nAction == MM_SurfaceRegion)
       {
         mri->GetCurrentSurfaceRegion()->ResetOutline();
         m_bSelectRegion = true;
+        return false;
+      }
+      else if (mri && mri->GetCurrent3DRegion() && m_nAction == MM_DrawOnSurface)
+      {
+        view->AddSelectRegionLoopPoint( event->x(), event->y(), m_prop, m_nAction );
+        m_bDrawRegion = true;
         return false;
       }
     }
@@ -89,11 +102,13 @@ bool Interactor3DMeasure::ProcessMouseUpEvent( QMouseEvent* event, RenderView* r
 {
   RenderView3D* view = ( RenderView3D* )renderview;
 
-  if ( m_bSelectRegion )
+  if ( m_bSelectRegion || m_bDrawRegion)
   {
-    view->CloseSelectRegion();
-    m_bSelectRegion = false;
+    view->CloseSelectRegion(m_nAction);
   }
+
+  m_bSelectRegion = false;
+  m_bDrawRegion = false;
 
   return Interactor3D::ProcessMouseUpEvent( event, renderview );
 }
@@ -102,9 +117,9 @@ bool Interactor3DMeasure::ProcessMouseMoveEvent( QMouseEvent* event, RenderView*
 {
   RenderView3D* view = ( RenderView3D* )renderview;
 
-  if ( m_bSelectRegion )
+  if ( m_bSelectRegion || m_bDrawRegion)
   {
-    view->AddSelectRegionLoopPoint( event->x(), event->y() );
+    view->AddSelectRegionLoopPoint( event->x(), event->y(), m_prop, m_nAction );
     return false;
   }
   else
@@ -117,10 +132,12 @@ bool Interactor3DMeasure::ProcessKeyDownEvent( QKeyEvent* event, RenderView* ren
 {
   RenderView3D* view = ( RenderView3D* )renderview;
 
-  qDebug() << event->key();
   if ( event->key() == Qt::Key_Delete || event->key() == Qt::Key_Backspace )
   {
-    view->DeleteCurrentSelectRegion();
+    if (m_nAction == MM_SurfaceRegion)
+      view->DeleteCurrentSelectRegion();
+    else if (m_nAction == MM_DrawOnSurface)
+      view->DeleteCurrent3DRegion();
     return false;
   }
   else

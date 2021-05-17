@@ -685,7 +685,7 @@ void RenderView2D::TriggerContextMenu( QMouseEvent* event )
     }
     else
     {
-      QMenu* menu2 = menu.addMenu("Copy Voxel Values");
+      QMenu* menu2 = menu.addMenu("Copy Voxel Value");
       foreach (Layer* layer, layers)
       {
         LayerMRI* mri = (LayerMRI*)layer;
@@ -698,12 +698,16 @@ void RenderView2D::TriggerContextMenu( QMouseEvent* event )
     }
     if (mri->GetProperty()->GetColorMap() == LayerPropertyMRI::LUT)
     {
-      double vs[3];
-      mri->GetWorldVoxelSize(vs);
-      QAction* act = new QAction(QString("Copy Label Volume (%1 mm3)").arg(mri->GetLabelCount(val)*vs[0]*vs[1]*vs[2]), this);
-      act->setData(mri->GetLabelCount(val)*vs[0]*vs[1]*vs[2]);
-      connect(act, SIGNAL(triggered()), SLOT(OnCopyLabelVolume()));
-      menu.addAction(act);
+      QString name = mri->GetLabelName(val);
+      if (!name.isEmpty())
+      {
+        double vs[3];
+        mri->GetWorldVoxelSize(vs);
+        QAction* act = new QAction(QString("Copy Volume of %1 (%2 mm3)").arg(name).arg(mri->GetLabelCount(val)*vs[0]*vs[1]*vs[2]), this);
+        act->setData(mri->GetLabelCount(val)*vs[0]*vs[1]*vs[2]);
+        connect(act, SIGNAL(triggered()), SLOT(OnCopyLabelVolume()));
+        menu.addAction(act);
+      }
     }
   }
 

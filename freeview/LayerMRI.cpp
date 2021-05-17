@@ -83,6 +83,7 @@
 #include "BrushProperty.h"
 #include "vtkImageResliceMapper.h"
 #include "vtkSTLWriter.h"
+#include "Region3D.h"
 
 
 #include "utils.h"
@@ -100,6 +101,7 @@ LayerMRI::LayerMRI( LayerMRI* ref, QObject* parent ) : LayerVolumeBase( parent )
   m_bConform( false ),
   m_bWriteResampled( true ),
   m_currentSurfaceRegion( NULL ),
+  m_current3DRegion(NULL),
   m_nGotoLabelSlice(-1),
   m_nGotoLabelOrientation(-1),
   m_layerMask(NULL),
@@ -258,6 +260,8 @@ void LayerMRI::ConnectProperty()
   connect( p, SIGNAL(UpSampleMethodChanged(int)), this, SLOT(UpdateUpSampleMethod()) );
   connect( this, SIGNAL(SurfaceRegionAdded()), this, SIGNAL(ActorChanged()));
   connect( this, SIGNAL(SurfaceRegionRemoved()), this, SIGNAL(ActorChanged()));
+  connect( this, SIGNAL(Region3DAdded()), this, SIGNAL(ActorChanged()));
+  connect( this, SIGNAL(Region3DRemoved()), this, SIGNAL(ActorChanged()));
   connect( p, SIGNAL(ProjectionMapChanged()), this, SLOT(UpdateProjectionMap()));
   connect( this, SIGNAL(ActiveFrameChanged(int)), this, SLOT(UpdateContour()));
   connect( p, SIGNAL(LabelContourChanged(int)), this, SLOT(OnLabelContourChanged(int)));
@@ -1181,6 +1185,11 @@ void LayerMRI::Append3DProps( vtkRenderer* renderer, bool* bSliceVisibility )
     for ( int i = 0; i < m_surfaceRegions.size(); i++ )
     {
       m_surfaceRegions[i]->AppendProps( renderer );
+    }
+
+    for (int i = 0; i < m_3DRegions.size(); i++)
+    {
+      m_3DRegions[i]->AppendProps( renderer );
     }
   }
 }
@@ -4234,14 +4243,17 @@ bool LayerMRI::ExportLabelStats(const QString &fn)
   return true;
 }
 
-QList<vtkActor*> LayerMRI::GetContourActors()
+QList<vtkActor*> LayerMRI::GetContourActors(bool bVisibleOnly)
 {
   QList<vtkActor*> actors;
   if (GetProperty()->GetShowAsLabelContour())
   {
     QList<int> keys = m_labelActors.keys();
     foreach (int n, keys)
-      actors << m_labelActors[n];
+    {
+      if (!bVisibleOnly || m_labelActors[n]->GetVisibility())
+        actors << m_labelActors[n];
+    }
   }
   else
     actors << m_actorContour;
@@ -4254,4 +4266,138 @@ int LayerMRI::GetLabelCount(int nVal)
     return m_labelVoxelCounts[nVal];
   else
     return 0;
+}
+
+Region3D* LayerMRI::CreateNew3DRegion( double* pt, vtkProp* prop )
+{
+  m_actorCurrentContour = vtkActor::SafeDownCast(prop);
+  if (!m_actorCurrentContour)
+    return NULL;
+
+  Region3D* r = new Region3D( this );
+  connect( r, SIGNAL(ColorChanged(QColor)), this, SIGNAL(ActorUpdated()), Qt::UniqueConnection);
+  r->AddPoint( pt );
+  m_3DRegions << r;
+  int nGroup = 1;
+  if ( m_current3DRegion )
+    m_current3DRegion->Highlight( false );
+
+  m_current3DRegion = r;
+  emit Region3DAdded();
+  return r;
+}
+
+bool LayerMRI::DeleteCurrent3DRegion()
+{
+  if ( m_current3DRegion )
+  {
+    for ( int i = 0; i < m_3DRegions.size(); i++ )
+    {
+      if ( m_3DRegions[i] == m_current3DRegion )
+      {
+        m_3DRegions.erase( m_3DRegions.begin() + i );
+        m_current3DRegion->deleteLater();
+        m_current3DRegion = NULL;
+        emit Region3DRemoved();
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+void LayerMRI::Add3DRegionPoint( double* pt )
+{
+  if ( m_current3DRegion )
+  {
+    m_current3DRegion->AddPoint( pt );
+    emit ActorUpdated();
+  }
+}
+
+Region3D* LayerMRI::Select3DRegion( double* pos, double dist )
+{
+  for ( int i = 0; i < m_3DRegions.size(); i++ )
+  {
+    if ( m_3DRegions[i]->HasPoint( pos, dist ) )
+    {
+      if ( m_current3DRegion )
+      {
+        m_current3DRegion->Highlight( false );
+      }
+      m_current3DRegion = m_3DRegions[i];
+      m_current3DRegion->Highlight( true );
+      return m_current3DRegion;
+    }
+  }
+
+  return NULL;
+}
+
+bool LayerMRI::SaveAll3DRegions( const QString& fn )
+{
+  FILE* fp = fopen( fn.toLatin1().data(), "w" );
+  if ( !fp )
+  {
+    return false;
+  }
+
+  if (m_3DRegions.size() == 0)
+  {
+    cerr << "No surface regions to save.\n";
+    return false;
+  }
+
+  bool ret = Region3D::WriteHeader( fp, this, m_3DRegions.size() );
+  for ( int i = 0; i < m_3DRegions.size(); i++ )
+  {
+    if ( !m_3DRegions[i]->WriteBody( fp ) )
+    {
+      ret = false;
+    }
+  }
+  fclose( fp );
+  return ret;
+}
+
+bool LayerMRI::Load3DRegions( const QString& fn )
+{
+  FILE* fp = fopen( fn.toLatin1().data(), "r" );
+  if ( !fp )
+  {
+    cerr << "Can not open file " << qPrintable(fn) << endl;
+    return false;
+  }
+  int nNum = 0;
+  char ch[1000];
+  float dTh_low, dTh_high;
+  fscanf( fp, "VOLUME_PATH %s\nVOLUME_THRESHOLD %f %f\nNUM_OF_REGIONS %d", ch, &dTh_low, &dTh_high, &nNum );
+  if ( nNum == 0 )
+  {
+    return false;
+  }
+
+  bool bSuccess = true;
+  vtkActor* actor = m_actorCurrentContour;
+  if (!actor)
+    actor = m_actorContour;
+  for ( int i = 0; i < nNum; i++ )
+  {
+    Region3D* r = new Region3D( this );
+    connect( r, SIGNAL(ColorChanged(QColor)), this, SIGNAL(ActorUpdated()), Qt::UniqueConnection);
+    if ( r->Load( fp ) )
+    {
+      m_3DRegions << r;
+      r->Highlight( false );
+    }
+    else
+    {
+      fclose( fp );
+      bSuccess = false;
+      break;
+    }
+  }
+
+  emit Region3DAdded();
+  return bSuccess;
 }

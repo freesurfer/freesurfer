@@ -123,6 +123,7 @@
 #endif
 
 #define LAYER_ID_OFFSET 10000
+#define SETTING_VERSION 1
 
 MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   QMainWindow( parent ),
@@ -668,7 +669,12 @@ void MainWindow::LoadSettings()
   {
     m_settings["Precision"] = 2;
   }
+  if (m_settings["Version"].toInt() < 1 )
+  {
+    m_settings["3DAxesFlyMode"] = 4;
+  }
 
+  m_settings["Version"] = SETTING_VERSION;
   if (!m_settings.contains("UseComma"))
     m_settings["UseComma"] = true;
 

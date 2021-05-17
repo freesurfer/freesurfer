@@ -23,6 +23,8 @@
 
 #include "Interactor3D.h"
 
+class vtkProp;
+
 class Interactor3DMeasure : public Interactor3D
 {
   Q_OBJECT
@@ -44,6 +46,8 @@ protected:
   int  m_nMousePosY;
 
   bool m_bSelectRegion;
+  bool m_bDrawRegion;
+  vtkProp* m_prop;
 };
 
 #endif
