@@ -222,7 +222,7 @@ static int parse_commandline(int argc, char **argv) {
       subject = pargv[0];
       nargsused = 1;
     }
-    else if(!strcmp(option, "--min_border_white") || !strcmp(option, "-seg-wlo")) {
+    else if(!strcmp(option, "--min_border_white") || !strcmp(option, "-wlo")) {
       if(nargc < 1) CMDargNErr(option,1);
       adgws.min_border_white = atof(pargv[0]);
       adgws.min_border_white_set = 1;
@@ -240,7 +240,7 @@ static int parse_commandline(int argc, char **argv) {
       adgws.min_gray_at_white_border_set = 1;
       nargsused = 1;
     }
-    else if(!strcmp(option, "--max_gray") || !strcmp(option, "-seg-ghi")) {
+    else if(!strcmp(option, "--max_gray") || !strcmp(option, "-ghi")) {
       if(nargc < 1) CMDargNErr(option,1);
       adgws.max_gray = atof(pargv[0]);
       adgws.max_gray_set = 1;
