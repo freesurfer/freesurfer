@@ -57,6 +57,7 @@ class LayerMRIWorkerThread;
 class LayerSurface;
 class LayerROI;
 class GeoSWorker;
+class Region3D;
 
 #ifndef IntList
 typedef QList<int> IntList;
@@ -339,8 +340,30 @@ public:
 
   bool ExportLabelStats(const QString& fn);
 
-  QList<vtkActor*> GetContourActors();
+  QList<vtkActor*> GetContourActors(bool bVisibleOnly = false);
+
+  Region3D* GetCurrent3DRegion()
+  {
+    return m_current3DRegion;
+  }
   
+  Region3D* CreateNew3DRegion( double* pt, vtkProp* prop );
+
+  bool DeleteCurrent3DRegion();
+
+  void Add3DRegionPoint( double* pt );
+
+  int GetNumberOf3DRegions()
+  {
+    return m_3DRegions.size();
+  }
+
+  Region3D* Select3DRegion( double* pos, double dist);
+
+  bool SaveAll3DRegions(const QString& fn);
+
+  bool Load3DRegions(const QString& fn);
+
 public slots:
   virtual void SetModified();
   void SetActiveFrame( int nFrame );
@@ -366,6 +389,8 @@ Q_SIGNALS:
   void GeodesicSegmentationApplied();
   void GeodesicSegmentationFinished(double time_in_secs);
   void GeodesicSegmentationProgress(double percentage);
+  void Region3DAdded();
+  void Region3DRemoved();
 
 protected slots:
   virtual void UpdateDisplayMode();
@@ -466,6 +491,9 @@ protected:
   QList<SurfaceRegion*>           m_surfaceRegions;
   SurfaceRegion*                  m_currentSurfaceRegion;
   SurfaceRegionGroups*            m_surfaceRegionGroups;
+
+  QList<Region3D*>            m_3DRegions;
+  Region3D*                   m_current3DRegion;
 
   int         m_nOrientationIndex[3];
 

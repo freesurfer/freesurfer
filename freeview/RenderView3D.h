@@ -41,6 +41,7 @@ class SurfaceROI;
 class Interactor3DPathEdit;
 class RenderView3D;
 class vtkInteractorStyleMyTrackballCamera;
+class Region3D;
 
 class RenderView3D : public RenderView
 {
@@ -75,11 +76,11 @@ public:
 
   void UpdateCursorRASPosition( int posX, int posY );
   void UpdateMouseRASPosition( int posX, int posY, bool bSlicePickOnly = false );
-  bool InitializeSelectRegion( int posX, int poboolsY );
+  vtkProp* InitializeSelectRegion( int posX, int poboolsY, int nDrawMode );
 
-  void AddSelectRegionLoopPoint( int posX, int posY );
+  void AddSelectRegionLoopPoint( int posX, int posY, vtkProp* prop_in, int nAction );
 
-  void CloseSelectRegion();
+  void CloseSelectRegion(int nDrawMode);
 
   bool PickSelectRegion( int nId );
 
@@ -138,6 +139,8 @@ signals:
   void SurfaceRegionSelected(SurfaceRegion*);
   void SurfaceRegionRemoved(SurfaceRegion*);
   void VolumeTrackMouseOver(Layer* layer, const QVariantMap& info);
+  void Region3DSelected(Region3D*);
+  void Region3DRemoved(Region3D*);
 
 public slots:
   void RefreshAllActors(bool bForScreenShot = false);
@@ -169,6 +172,7 @@ public slots:
   void SetShowAxes(bool b);  
   void DeleteCurrentSelectRegion();
   void SetAxesFlyMode(int n);
+  void DeleteCurrent3DRegion();
 
 protected:
   void DoUpdateRASPosition( int posX, int posY, bool bCursor = false, bool bSlicePickOnly = false );

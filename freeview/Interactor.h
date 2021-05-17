@@ -41,7 +41,7 @@ public:
 
   enum MeasureMode
   {
-    MM_Line = 0, MM_Polyline, MM_Spline, MM_Rectangle, MM_Label, MM_SurfaceRegion
+    MM_Line = 0, MM_Polyline, MM_Spline, MM_Rectangle, MM_Label, MM_SurfaceRegion, MM_DrawOnSurface
   };
 
   enum EditMode

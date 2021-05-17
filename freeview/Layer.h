@@ -309,7 +309,6 @@ protected:
 
   int       m_nID;
   static int m_nLastID;
-
   int       m_nLayerIndex;
 };
 
