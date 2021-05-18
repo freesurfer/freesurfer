@@ -1133,8 +1133,6 @@ void RenderView3D::CloseSelectRegion(int nAction)
   {
     if (nAction == Interactor::MM_SurfaceRegion)
       mri->CloseSurfaceRegion();
-    else if (nAction == Interactor::MM_DrawOnSurface)
-      ;
   }
 }
 
