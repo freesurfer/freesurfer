@@ -186,6 +186,7 @@ double round(double x);
 #include "surfcluster.h"
 #include "randomfields.h"
 #include "cma.h"
+#include "colortab.h"
 #include "region.h"
 #include "romp_support.h"
 
@@ -860,7 +861,8 @@ static int parse_commandline(int argc, char **argv) {
     } else if (!strcasecmp(option, "--inv")) {
       BinVal = 0;
       BinValNot = 1;
-    } else if (!strcasecmp(option, "--match")) {
+    } 
+    else if (!strcasecmp(option, "--match")) {
       if (nargc < 1) CMDargNErr(option,1);
       nth = 0;
       while(CMDnthIsArg(nargc, pargv, nth) ){
@@ -869,6 +871,23 @@ static int parse_commandline(int argc, char **argv) {
 	nth++;
       }
       nargsused = nth;
+      DoMatch = 1;
+    } 
+    else if (!strcasecmp(option, "--match-ctab")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      COLOR_TABLE *ctab = CTABreadASCII(pargv[0]);
+      if(ctab==NULL) exit(1);
+      int ntotalsegid,n;
+      CTABgetNumberOfTotalEntries(ctab,&ntotalsegid);
+      for(n=0; n < ntotalsegid; n++){
+	int valid;
+	CTABisEntryValid(ctab,n,&valid);
+	if(!valid) continue;
+	MatchValues[nMatch] = n;
+	nMatch ++;
+      }
+      CTABfree(&ctab);
+      nargsused = 1;
       DoMatch = 1;
     } 
     else if (!strcasecmp(option, "--subcort-gm")) {
@@ -977,6 +996,7 @@ static void print_usage(void) {
   printf("   --fdr fdrthresh : compute min based on FDR (assuming -log10(p) input)\n");
   printf("     --fdr-pos, --fdr-neg, --fdr-abs (use only pos, neg, or abs; abs is default)\n");
   printf("   --match matchval <matchval2 ...>  : match instead of threshold\n");
+  printf("   --match-ctab colortable  : match all entries in the given color table\n");
   printf("   --replaceonly V1 V2 : replace voxels=V1 with V2 and propagate other src voxels instead of binarizing\n");
   printf("   --replace V1 V2 : replace voxels=V1 with V2\n");
   printf("   --ctx-wm : set match vals to 2, 41, 77, 251-255 (aseg for cerebral WM)\n");
