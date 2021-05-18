@@ -585,25 +585,34 @@ bool LayerMRI::SaveVolume()
   }
   
   ::SetProgressCallback(ProgressCallback, 0, 60);
+  m_volumeSource->setProperty("label_value", property("label_value"));
   if ( !m_volumeSource->UpdateMRIFromImage( m_imageData, !m_bReorient ) )
   {
+    m_volumeSource->setProperty("label_value", 0);
     return false;
   }
   
   // now first save a copy of the old file if requested
-  if ( MainWindow::GetMainWindow()->GetSaveCopy() )
+  if ( MainWindow::GetMainWindow()->GetSaveCopy() && property("label_fn").toString().isEmpty())
   {
     QString new_fn = m_sFilename + "~";
     QFile::remove( new_fn );
     QFile::rename( m_sFilename, new_fn );
   }
   
+  QString fn = m_sFilename;
+  if (!property("label_fn").toString().isEmpty())
+    fn = property("label_fn").toString();
+
   ::SetProgressCallback(ProgressCallback, 60, 100);
   int nSampleMethod = GetProperty()->GetResliceInterpolation();
-  bool bSaved = m_volumeSource->MRIWrite( m_sFilename.toLatin1().data(),
+  bool bSaved = m_volumeSource->MRIWrite( fn.toLatin1().data(),
                                           nSampleMethod,
                                           m_bWriteResampled);
   m_bModified = !bSaved;
+  setProperty("saved_name", fn);
+  setProperty("label_fn", "");
+  setProperty("label_value", 0);
   
   return bSaved;
 }

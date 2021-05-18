@@ -1873,6 +1873,11 @@ void PanelVolume::OnCustomContextMenu(const QPoint &pt)
 #endif
           connect(act, SIGNAL(triggered()), SLOT(OnGoToNextPoint()));
           menu.addAction(act);
+          menu.addSeparator();
+          act = new QAction(tr("Save Label as Volume..."), this);
+          act->setProperty("label_value", val);
+          connect(act, SIGNAL(triggered(bool)), MainWindow::GetMainWindow(), SLOT(OnSaveLabelAsVolume()));
+          menu.addAction(act);
         }
         else
         {
