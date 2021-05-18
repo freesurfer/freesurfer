@@ -6427,13 +6427,12 @@ void MainWindow::OnIOError( Layer* layer, int jobtype )
   {
     if ( jobtype == ThreadIOWorker::JT_SaveVolume )
     {
-      msg = "Failed to save volume to ";
+      msg = "Failed to save volume to " + layer->property("saved_name").toString();
     }
     else if ( jobtype == ThreadIOWorker::JT_SaveSurface )
     {
-      msg = "Failed to save surface to ";
+      msg = "Failed to save surface to " + layer->GetFileName();
     }
-    msg += layer->GetFileName();
     if (!bQuit)
       QMessageBox::warning( this, "Error", msg);
     if ( jobtype != ThreadIOWorker::JT_SaveVolume && jobtype != ThreadIOWorker::JT_SaveSurface )
@@ -6727,7 +6726,7 @@ void MainWindow::OnIOFinished( Layer* layer, int jobtype )
 
   if ( jobtype == ThreadIOWorker::JT_SaveVolume)
   {
-    std::cout << qPrintable(qobject_cast<LayerMRI*>(layer)->GetFileName()) << " saved successfully.\n";
+    std::cout << qPrintable(layer->property("saved_name").toString()) << " saved successfully.\n";
   }
   else if ( jobtype == ThreadIOWorker::JT_SaveSurface)
   {
@@ -9577,4 +9576,25 @@ void MainWindow::CommandLoadODF(const QStringList& cmd )
   if (cmd.size() > 3)
     map["face_filename"] = QFileInfo(cmd[3]).absoluteFilePath();
   m_threadIOWorker->LoadODF( layer, map );
+}
+
+void MainWindow::OnSaveLabelAsVolume()
+{
+  LayerMRI* layer_mri = ( LayerMRI* )GetActiveLayer("MRI");
+  if ( !layer_mri || !sender())
+  {
+    return;
+  }
+
+  int nVal = sender()->property("label_value").toInt();
+  QString fn = QFileDialog::getSaveFileName( this, "Save volume",
+                                       QFileInfo( layer_mri->GetFileName() ).absolutePath(),
+                                       "Volume files (*.mgz *.mgh *.nii *.nii.gz *.img *.mnc);;All files (*)");
+  if ( !fn.isEmpty() )
+  {
+    layer_mri->setProperty("label_value", nVal);
+    layer_mri->setProperty("label_fn", fn);
+    m_scripts.append(QStringList("savelayer") << QString::number(layer_mri->GetID()));
+    ui->widgetAllLayers->UpdateWidgets();
+  }
 }

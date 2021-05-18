@@ -707,6 +707,11 @@ void RenderView2D::TriggerContextMenu( QMouseEvent* event )
         act->setData(mri->GetLabelCount(val)*vs[0]*vs[1]*vs[2]);
         connect(act, SIGNAL(triggered()), SLOT(OnCopyLabelVolume()));
         menu.addAction(act);
+        menu.addSeparator();
+        act = new QAction(tr("Save Label %1 (%2) as Volume...").arg(name).arg(val), this);
+        act->setProperty("label_value", val);
+        connect(act, SIGNAL(triggered(bool)), mainwnd, SLOT(OnSaveLabelAsVolume()));
+        menu.addAction(act);
       }
     }
   }
