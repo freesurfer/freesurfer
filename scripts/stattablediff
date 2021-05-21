@@ -19,6 +19,7 @@ parser.add_argument('--mul', nargs=1, default=1, type=float, help='multiply by m
 parser.add_argument('--div', nargs=1, default=1, type=float, help='divide by divval')
 parser.add_argument('--common', action='store_true', help='compute diff on common segs (may reorder)')
 parser.add_argument('--rm-exvivo', action='store_true', help='remove the string "_exvivo" from the column header')
+parser.add_argument('--diff-subjs', action='store_true', default=False, dest='diff', help='pass this flag to compare subjects with different names')
 args = parser.parse_args()
 
 # table reading utility
@@ -67,16 +68,28 @@ def check_differences(a, b, dtype):
             fs.fatal('tables have differing %ss, to diff only on common data, use the --common flag' % dtype)
     return common
 
-subjects = check_differences(values1.keys(), values2.keys(), 'subject')
 structures = check_differences(structlist1, structlist2, 'structure')
+
+# get list of subjects from both tables
+subs1 = [x for x in values1.keys()]
+subs2 = [x for x in values2.keys()]
+
+if not ((subs1 == subs2) or args.diff):
+    fs.fatal('subjects are not the same, to run on different subjects pass the --diff-subjs flag')
+
+if len(subs1) != len(subs2):
+    fs.fatal('tables have differing number of subjects, must have same number of subjects in both tables') 
+
+# will be subject names in output table
+subjects = [str(x[0]) + ',' + str(x[1]) for x in zip(subs1,subs2)]
 
 # build matrices from common data
 mat1 = np.zeros((len(subjects), len(structures)))
 mat2 = np.zeros((len(subjects), len(structures)))
 for i, subject in enumerate(subjects):
     for j, structure in enumerate(structures):
-        mat1[i, j] = values1[subject][structure]
-        mat2[i, j] = values2[subject][structure]
+        mat1[i, j] = values1[subs1[i]][structure]
+        mat2[i, j] = values2[subs2[i]][structure]
 
 # compute diff
 diff = (mat1 - mat2) * args.mul / args.div

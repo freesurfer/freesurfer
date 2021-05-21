@@ -5,7 +5,7 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright © 2013-2014 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -16,6 +16,9 @@
  * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
+
+#include <sstream>
+#include <iomanip>
 
 #include "fcd.h"
 #include "cma.h"
@@ -63,165 +66,186 @@ static int most_frequent_label(MRI *mri_seg, MRI_SEGMENT *mseg)
 FCD_DATA *FCDloadData(char *sdir, char *subject, char *suffix_in)
 {
   FCD_DATA *fcd;
-  char fname[STRLEN];
   MRI *mri_interior, *mri_dist, *mri_int_lh, *mri_int_rh, *mri_pvals;
-  char suffix[STRLEN] = "";
-
-  if (suffix_in) sprintf(suffix, ".%s", suffix_in);
+  std::string fname, suffix;
+  if( suffix_in != nullptr ) {
+    suffix = std::string(suffix_in);
+    suffix.insert(suffix.begin(), '.');
+  }
 
   fcd = (FCD_DATA *)calloc(1, sizeof(FCD_DATA));
 
-  sprintf(fname, "%s/%s/surf/lh.white%s", sdir, subject, suffix);
-  if (!FileExists(fname)) sprintf(fname, "%s/%s/surf/lh.white", sdir, subject);
-  fcd->mris_lh = MRISread(fname);
+  std::string baseName = std::string(sdir) + "/" + std::string(subject) + "/surf/";
+  fname = baseName + "lh.white" + suffix;
+  if (!FileExists(fname.c_str())) {
+    fname = baseName + "lh.white";
+  }
+  fcd->mris_lh = MRISread(fname.c_str());
   if (fcd->mris_lh == NULL) {
-    ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load %s", fname);
+    ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load %s", fname.c_str());
   }
   MRISsaveVertexPositions(fcd->mris_lh, WHITE_VERTICES);
 
-  char pialname[STRLEN] = "pial";
-  if (suffix_in) sprintf(pialname, "pial.%s", suffix_in);
-  sprintf(fname, "%s/%s/surf/lh.pial%s", sdir, subject, suffix);
-  if (!FileExists(fname)) {
-    sprintf(fname, "%s/%s/surf/lh.pial", sdir, subject);
-    sprintf(pialname, "pial");
+  std::string pialname("pial");
+  if (suffix_in) {
+    pialname += std::string(".") + suffix_in;
   }
-  if (MRISreadPialCoordinates(fcd->mris_lh, pialname) != NO_ERROR) {
+  fname = baseName + "lh.pial" + suffix;
+  if (!FileExists(fname.c_str())) {
+    fname = baseName + "lh.pial";
+    pialname = "pial";
+  }
+  if (MRISreadPialCoordinates(fcd->mris_lh, pialname.c_str()) != NO_ERROR) {
     ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load lh pial vertices");
   }
 
-  fcd->mris_lh_pial = MRISread(fname);
+  fcd->mris_lh_pial = MRISread(fname.c_str());
   if (fcd->mris_lh_pial == NULL) {
-    ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load %s", fname);
+    ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load %s", fname.c_str());
   }
 
-  sprintf(fname, "%s/%s/surf/lh.sphere.d1.left_right%s", sdir, subject, suffix);
-  if (!FileExists(fname)) sprintf(fname, "%s/%s/surf/lh.sphere.d1.left_right", sdir, subject);
-  fcd->mris_lh_sphere_d1 = MRISread(fname);
+  fname = baseName + "lh.sphere.d1.left_right" + suffix;
+  if (!FileExists(fname.c_str())) {
+    fname = baseName + "lh.sphere.d1.left_right";
+  }
+  fcd->mris_lh_sphere_d1 = MRISread(fname.c_str());
   if (fcd->mris_lh_sphere_d1 == NULL) {
-    ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load %s", fname);
+    ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load %s", fname.c_str());
   }
 
   exec_progress_callback(1, 12, 0, 1);
-  sprintf(fname, "%s/%s/surf/rh.white%s", sdir, subject, suffix);
-  if (!FileExists(fname)) sprintf(fname, "%s/%s/surf/rh.white", sdir, subject);
-  fcd->mris_rh = MRISread(fname);
+  fname = baseName + "rh.white" + suffix;
+  if (!FileExists(fname.c_str())) {
+    fname = baseName + "rh.white";
+  }
+  fcd->mris_rh = MRISread(fname.c_str());
   if (fcd->mris_rh == NULL) {
-    ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load %s", fname);
+    ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load %s", fname.c_str());
   }
   MRISsaveVertexPositions(fcd->mris_rh, WHITE_VERTICES);
 
-  if (suffix_in) sprintf(pialname, "pial.%s", suffix_in);
-  sprintf(fname, "%s/%s/surf/rh.pial%s", sdir, subject, suffix);
-  if (!FileExists(fname)) {
-    sprintf(fname, "%s/%s/surf/rh.pial", sdir, subject);
-    sprintf(pialname, "pial");
+  if (suffix_in) {
+    pialname = std::string("pial.") + suffix_in;
   }
-  if (MRISreadPialCoordinates(fcd->mris_rh, pialname) != NO_ERROR) {
+  fname = baseName + "rh.pial" + suffix;
+  if (!FileExists(fname.c_str())) {
+    fname = baseName + "rh.pial";
+    pialname = "pial";
+  }
+  if (MRISreadPialCoordinates(fcd->mris_rh, pialname.c_str()) != NO_ERROR) {
     ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load rh pial vertices");
   }
 
-  fcd->mris_rh_pial = MRISread(fname);
+  fcd->mris_rh_pial = MRISread(fname.c_str());
   if (fcd->mris_rh_pial == NULL) {
-    ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load %s", fname);
+    ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load %s", fname.c_str());
   }
 
-  sprintf(fname, "%s/%s/surf/rh.sphere.d1.left_right%s", sdir, subject, suffix);
-  if (!FileExists(fname)) sprintf(fname, "%s/%s/surf/rh.sphere.d1.left_right", sdir, subject);
-  fcd->mris_rh_sphere_d1 = MRISread(fname);
+  fname = baseName + "rh.sphere.d1.left_right" + suffix;
+  if (!FileExists(fname.c_str())) {
+    fname = baseName + "rh.sphere.d1.left_right";
+  }
+  fcd->mris_rh_sphere_d1 = MRISread(fname.c_str());
   if (fcd->mris_rh_sphere_d1 == NULL) {
-    ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load %s", fname);
+    ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load %s", fname.c_str());
   }
 
   exec_progress_callback(2, 12, 0, 1);
-  sprintf(fname, "%s/%s/mri/aseg%s.mgz", sdir, subject, suffix);
-  if (!FileExists(fname)) sprintf(fname, "%s/%s/mri/aseg.mgz", sdir, subject);
-  fcd->mri_aseg = MRIread(fname);
+  std::string mriBaseName = std::string(sdir) + "/" + std::string(subject) + "/mri/";
+  fname = mriBaseName + "aseg" + suffix + ".mgz";
+  if (!FileExists(fname.c_str())) {
+    fname = mriBaseName + "aseg.mgz";
+  }
+  fcd->mri_aseg = MRIread(fname.c_str());
   if (fcd->mri_aseg == NULL) {
-    ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load %s", fname);
+    ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load %s", fname.c_str());
   }
 
   exec_progress_callback(3, 12, 0, 1);
-  sprintf(fname, "%s/%s/mri/aparc+aseg%s.mgz", sdir, subject, suffix);
-  if (!FileExists(fname)) sprintf(fname, "%s/%s/mri/aparc+aseg.mgz", sdir, subject);
-  fcd->mri_aparc = MRIread(fname);
+  fname = mriBaseName + "aparc+aseg" + suffix + ".mgz";
+  if (!FileExists(fname.c_str())) {
+    fname = mriBaseName + "aparc+aseg.mgz";
+  }
+  fcd->mri_aparc = MRIread(fname.c_str());
   if (fcd->mri_aparc == NULL) {
-    ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load %s", fname);
+    ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load %s", fname.c_str());
   }
 
   exec_progress_callback(4, 12, 0, 1);
   fcd->mri_flair = NULL;
-  sprintf(fname, "%s/%s/mri/flair.reg.norm%s.mgz", sdir, subject, suffix);
-  if (!FileExists(fname)) {
-    sprintf(fname, "%s/%s/mri/FLAIR%s.mgz", sdir, subject, suffix);
-    if (!FileExists(fname)) {
-      sprintf(fname, "%s/%s/mri/FLAIRax%s.mgz", sdir, subject, suffix);
-      if (!FileExists(fname)) {
-        sprintf(fname, "%s/%s/mri/FLAIRcor%s.mgz", sdir, subject, suffix);
-        if (!FileExists(fname)) {
-          sprintf(fname, " ");
+  fname = mriBaseName + "flair.reg.norm" + suffix + ".mgz";
+  if (!FileExists(fname.c_str())) {
+    fname = mriBaseName + "FLAIR" + suffix + ".mgz";
+    if (!FileExists(fname.c_str())) {
+      fname = mriBaseName + "FLAIRax" + suffix + ".mgz";
+      if (!FileExists(fname.c_str())) {
+	fname = mriBaseName + "FLAIRcor" + suffix + ".mgz";
+        if (!FileExists(fname.c_str())) {
+	  fname = " ";
         }
       }
     }
   }
-  if (strlen(fname) <= 1) {
-    sprintf(fname, "%s/%s/mri/flair.reg.norm.mgz", sdir, subject);
-    if (!FileExists(fname)) {
-      sprintf(fname, "%s/%s/mri/FLAIR.mgz", sdir, subject);
-      if (!FileExists(fname)) {
-        sprintf(fname, "%s/%s/mri/FLAIRax.mgz", sdir, subject);
-        if (!FileExists(fname)) {
-          sprintf(fname, "%s/%s/mri/FLAIRcor.mgz", sdir, subject);
-          if (!FileExists(fname)) {
-            sprintf(fname, " ");
+  if ( fname.size() <= 1) {
+    fname = mriBaseName + "flair.reg.norm.mgz";
+    if (!FileExists(fname.c_str())) {
+      fname = mriBaseName + "FLAIR.mgz";
+      if (!FileExists(fname.c_str())) {
+	fname = mriBaseName + "FLAIRax.mgz";
+        if (!FileExists(fname.c_str())) {
+	  fname = mriBaseName + "FLAIRcor.mgz";
+          if (!FileExists(fname.c_str())) {
+	    fname = " ";
           }
         }
       }
     }
   }
-  if (strlen(fname) > 1) {
-    fcd->mri_flair = MRIread(fname);
+  if ( fname.size() > 1) {
+    fcd->mri_flair = MRIread(fname.c_str());
     if (fcd->mri_flair == NULL) {
-      ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load $s", fname);
+      ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load $s", fname.c_str());
     }
   }
 
   fcd->mri_t2 = NULL;
-  sprintf(fname, "%s/%s/mri/T2%s.mgz", sdir, subject, suffix);
-  if (!FileExists(fname)) {
-    sprintf(fname, "%s/%s/mri/T2ax%s.mgz", sdir, subject, suffix);
-    if (!FileExists(fname)) {
-      sprintf(fname, "%s/%s/mri/T2cor%s.mgz", sdir, subject, suffix);
-      if (!FileExists(fname)) {
-        sprintf(fname, " ");
+  fname = mriBaseName + "T2" + suffix + ".mgz";
+  if (!FileExists(fname.c_str())) {
+    fname = mriBaseName + "T2ax" + suffix + ".mgz";
+    if (!FileExists(fname.c_str())) {
+      fname = mriBaseName + "T2cor" + suffix + ".mgz";
+      if (!FileExists(fname.c_str())) {
+	fname = " ";
       }
     }
   }
-  if (strlen(fname) <= 1) {
-    sprintf(fname, "%s/%s/mri/T2.mgz", sdir, subject);
-    if (!FileExists(fname)) {
-      sprintf(fname, "%s/%s/mri/T2ax.mgz", sdir, subject);
-      if (!FileExists(fname)) {
-        sprintf(fname, "%s/%s/mri/T2cor.mgz", sdir, subject);
-        if (!FileExists(fname)) {
-          sprintf(fname, " ");
+  if ( fname.size() <= 1) {
+    fname = mriBaseName + "T2.mgz";
+    if (!FileExists(fname.c_str())) {
+      fname = mriBaseName + "T2ax.mgz";
+      if (!FileExists(fname.c_str())) {
+	fname = mriBaseName + "T2cor.mgz";
+        if (!FileExists(fname.c_str())) {
+	  fname = " ";
         }
       }
     }
   }
-  if (strlen(fname) > 1) {
-    fcd->mri_t2 = MRIread(fname);
+  if ( fname.size() > 1) {
+    fcd->mri_t2 = MRIread(fname.c_str());
     if (fcd->mri_t2 == NULL) {
-      ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load $s", fname);
+      ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load $s", fname.c_str());
     }
   }
 
   exec_progress_callback(5, 12, 0, 1);
-  sprintf(fname, "%s/%s/mri/norm%s.mgz", sdir, subject, suffix);
-  if (!FileExists(fname)) sprintf(fname, "%s/%s/mri/norm.mgz", sdir, subject);
-  fcd->mri_norm = MRIread(fname);
+  fname = mriBaseName + "norm" + suffix + ".mgz";
+  if (!FileExists(fname.c_str())) {
+    fname = mriBaseName + "norm.mgz";
+  }
+  fcd->mri_norm = MRIread(fname.c_str());
   if (fcd->mri_norm == NULL) {
-    ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load %s", fname);
+    ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load %s", fname.c_str());
   }
 
   fcd->mri_thickness_increase = MRIcloneDifferentType(fcd->mri_aseg, MRI_FLOAT);
@@ -229,40 +253,50 @@ FCD_DATA *FCDloadData(char *sdir, char *subject, char *suffix_in)
   fcd->mri_thickness_difference = MRIadd(fcd->mri_thickness_increase, fcd->mri_thickness_decrease, NULL);
 
   exec_progress_callback(6, 12, 0, 1);
-  sprintf(fname, "%s/%s/surf/lh.rh.thickness.smooth0%s.mgz", sdir, subject, suffix);
-  if (!FileExists(fname)) sprintf(fname, "%s/%s/surf/lh.rh.thickness.smooth0.mgz", sdir, subject);
-  fcd->rh_thickness_on_lh = MRIread(fname);
+  fname = baseName + "lh.rh.thickness.smooth0" + suffix + ".mgz";
+  if (!FileExists(fname.c_str())) {
+    fname = baseName + "lh.rh.thickness.smooth0.mgz";
+  }
+  fcd->rh_thickness_on_lh = MRIread(fname.c_str());
   if (fcd->rh_thickness_on_lh == NULL) {
-    ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load %s", fname);
+    ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load %s", fname.c_str());
   }
 
   exec_progress_callback(7, 12, 0, 1);
-  sprintf(fname, "%s/%s/surf/rh.thickness%s.mgz", sdir, subject, suffix);
-  if (!FileExists(fname)) sprintf(fname, "%s/%s/surf/rh.thickness.mgz", sdir, subject);
-  fcd->rh_thickness_on_rh = MRIread(fname);
+  fname = baseName + "rh.thickness" + suffix + ".mgz";
+  if (!FileExists(fname.c_str())) {
+    fname = baseName + "rh.thickness.mgz";
+  }
+  fcd->rh_thickness_on_rh = MRIread(fname.c_str());
   if (fcd->rh_thickness_on_rh == NULL) {
-    ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load %s", fname);
+    ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load %s", fname.c_str());
   }
 
   exec_progress_callback(8, 12, 0, 1);
-  sprintf(fname, "%s/%s/surf/lh.thickness%s.mgz", sdir, subject, suffix);
-  if (!FileExists(fname)) sprintf(fname, "%s/%s/surf/lh.thickness.mgz", sdir, subject);
-  fcd->lh_thickness_on_lh = MRIread(fname);
+  fname = baseName + "lh.thickness" + suffix + ".mgz";
+  if (!FileExists(fname.c_str())) {
+    fname = baseName + "lh.thickness.mgz";
+  }
+  fcd->lh_thickness_on_lh = MRIread(fname.c_str());
   if (fcd->lh_thickness_on_lh == NULL) {
-    ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load %s", fname);
+    ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load %s", fname.c_str());
   }
 
   exec_progress_callback(9, 12, 0, 1);
-  sprintf(fname, "%s/%s/surf/rh.lh.thickness.smooth0%s.mgz", sdir, subject, suffix);
-  if (!FileExists(fname)) sprintf(fname, "%s/%s/surf/rh.lh.thickness.smooth0.mgz", sdir, subject);
-  if (!FileExists(fname)) {
-    sprintf(fname, "%s/%s/surf/rh.lh.thickness%s.mgz", sdir, subject, suffix);
-    if (!FileExists(fname)) sprintf(fname, "%s/%s/surf/rh.lh.thickness.mgz", sdir, subject);
+  fname = baseName + "rh.lh.thickness.smooth0" + suffix + ".mgz";
+  if (!FileExists(fname.c_str())) {
+    fname = baseName + "rh.lh.thickness.smooth0.mgz";
+  }
+  if (!FileExists(fname.c_str())) {
+    fname = baseName + "rh.lh.thickness" + suffix + ".mgz";
+    if (!FileExists(fname.c_str())) {
+      fname = baseName + "rh.lh.thickness.mgz";
+    }
     if (fcd->lh_thickness_on_rh == NULL) {
-      ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load %s", fname);
+      ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load %s", fname.c_str());
     }
   }
-  fcd->lh_thickness_on_rh = MRIread(fname);
+  fcd->lh_thickness_on_rh = MRIread(fname.c_str());
 
   exec_progress_callback(10, 12, 0, 1);
   mri_int_lh = MRIclone(fcd->mri_norm, NULL);
@@ -544,12 +578,14 @@ int FCDcomputeThicknessLabels(FCD_DATA *fcd, double thickness_thresh, double sig
 int FCDwriteLabels(FCD_DATA *fcd, char *dir)
 {
   int s;
-  char label_name[STRLEN];
+  std::stringstream label_name;
 
   for (s = 0; s < fcd->nlabels; s++) {
     if (fcd->labels[s]) {
-      sprintf(label_name, "%s/fcd_%02d_%s", dir, s, fcd->labels[s]->name);
-      LabelWrite(fcd->labels[s], label_name);
+      label_name << dir << "/fcd"
+		 << std::setw(2) << std::setfill('0') << s
+		 << "_" << fcd->labels[s]->name;
+      LabelWrite(fcd->labels[s], label_name.str().c_str());
     }
   }
 

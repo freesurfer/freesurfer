@@ -3,7 +3,7 @@
  *
  * DTk http://trackvis.org/docs/?subsect=fileformat
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -44,7 +44,8 @@ DTK_TRACK_SET *DTKloadTrackSet(char *trkfile, char *mrifile)
   FILE *fp;
   size_t nread;
   int nthtrk;
-  char stem[2000], *fname;
+  std::string stem;
+  char *fname;
   MRI *mri = NULL;
   float dc, dr, ds;
 
@@ -57,8 +58,9 @@ DTK_TRACK_SET *DTKloadTrackSet(char *trkfile, char *mrifile)
 
   // Read in template MRI to get geometry
   if (mrifile == NULL) {
-    strncpy(stem, trkfile, strlen(trkfile) - 4);
-    fname = IDnameFromStem(stem);
+    stem = trkfile;
+    stem.erase(stem.size()-4);
+    fname = IDnameFromStem(stem.c_str());
     if (fname == NULL) {
       printf("WARNING: DTKloadTrackSet(): cannot find matching MRI file for %s\n", trkfile);
     }

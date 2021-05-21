@@ -26,6 +26,15 @@ SphericalInterpolator::SphericalInterpolator(MRIS *surf) : mris(surf)
 
 
 /*
+Set the interpolator overlay values.
+*/
+void SphericalInterpolator::setOverlay(const float *array)
+{
+  for (int vno = 0 ; vno < mris->nvertices ; vno++) overlay[vno] = array[vno];
+}
+
+
+/*
   Searches for the face containing the spherical point defined by (phi, theta) and
   returns the (barycentric) interpolated value at that point.
 */
@@ -170,9 +179,15 @@ bool SphericalInterpolator::testRayIntersection(int fno, float x, float y, float
   float l = 1.0f - v - u;
 
   // if the ray intersects, do interpolation here as we've already computed barycentric coordinates
-  *value = overlay[face->v[0]] * l +
-           overlay[face->v[1]] * u +
-           overlay[face->v[2]] * v;
+  if (nearestneighbor == true) {
+    std::vector<float> weights = {l, u, v};
+    int vtx = std::distance(std::begin(weights), std::max_element(std::begin(weights), std::end(weights)));
+    *value = overlay[face->v[vtx]];
+  } else {
+    *value = overlay[face->v[0]] * l +
+             overlay[face->v[1]] * u +
+             overlay[face->v[2]] * v;
+  }
 
   return true;
 }

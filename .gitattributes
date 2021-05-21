@@ -1,8 +1,26 @@
 # Map file extensions to git filters
 *.h filter=rcs-keywords
 *.hpp filter=rcs-keywords
+*.hxx filter=rcs-keywords
 *.c filter=rcs-keywords
 *.cpp filter=rcs-keywords
+*.cxx filter=rcs-keywords
 *.py filter=rcs-keywords
 *.am filter=rcs-keywords
 *.m filter=rcs-keywords
+*CMakeLists.txt annex.largefiles=nothing
+*.h             annex.largefiles=nothing
+*.hpp           annex.largefiles=nothing
+*.hxx           annex.largefiles=nothing
+*.c             annex.largefiles=nothing
+*.cpp           annex.largefiles=nothing
+*.cxx           annex.largefiles=nothing
+*.py            annex.largefiles=nothing
+*.am            annex.largefiles=nothing
+*.m             annex.largefiles=nothing
+*.sh            annex.largefiles=nothing
+samseg/samseg       annex.largefiles=nothing
+scripts/fvcompare   annex.largefiles=nothing
+scripts/recon-all   annex.largefiles=nothing
+CMakeLists.txt      annex.largefiles=nothing
+*.cmake             annex.largefiles=nothing

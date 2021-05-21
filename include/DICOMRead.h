@@ -5,7 +5,7 @@
 /*
  * Original Author: Sebastien Gicquel and Douglas Greve, 06/04/2001
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -238,7 +238,11 @@ typedef struct
 }
 SDCMFILEINFO;
 
-
+#ifdef _DICOMRead_SRC
+char DICOMReadFirstDicomFile[5000];
+#else
+extern char DICOMReadFirstDicomFile[5000];
+#endif
 
 void PrintDICOMInfo(DICOMInfo *dcminfo);
 CONDITION GetString(DCM_OBJECT** object, DCM_TAG tag, char **st);

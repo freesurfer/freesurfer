@@ -8,7 +8,7 @@
 /*
  * Original Author: Douglas N. Greve
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -200,7 +200,10 @@ double round(double x);
 #include "surfcluster.h"
 #include "randomfields.h"
 #include "cma.h"
+#include "colortab.h"
 #include "region.h"
+#include "romp_support.h"
+
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -271,12 +274,13 @@ int nsmoothsurf=0;
 int noverbose = 0;
 int DoBB = 0, nPadBB=0;
 int DoCount = 1;
+int ReverseFaceOrder = 0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
-  int nargs, c, r, s, nhits, InMask, n, mriType,nvox;
+  int nargs, c, nhits, n, mriType,nvox;
   int fstart, fend, nframes;
-  double val,maskval,mergeval,gmean,gstd,gmax,voxvol;
+  double gmean,gstd,gmax,voxvol;
   FILE *fp;
   MRI *mritmp;
 
@@ -442,11 +446,15 @@ int main(int argc, char *argv[]) {
   nhits = 0;
   if(!replace_only){
     // Binarize
-
-    mergeval = BinValNot;
-    InMask = 1;
     for(frame = fstart; frame <= fend; frame++){
+      // Do openmp for columns because often nframes = 1
+      #ifdef HAVE_OPENMP
+      printf("Starting parallel %d\n",omp_get_num_threads());
+      #pragma omp parallel for if_ROMP(assume_reproducible) reduction(+ : nhits)
+      #endif
       for (c=0; c < InVol->width; c++) {
+        int r,s;
+        double mergeval = BinValNot, maskval, val;
 	for (r=0; r < InVol->height; r++) {
 	  for (s=0; s < InVol->depth; s++) {
 	    if(MergeVol) mergeval = MRIgetVoxVal(MergeVol,c,r,s,frame);
@@ -473,7 +481,7 @@ int main(int argc, char *argv[]) {
 	    
 	    if(DoMatch){
 	      // Check for a match
-	      Matched = 0;
+              int Matched = 0;
 	      for(n=0; n < nMatch; n++){
 		if(fabs(val - MatchValues[n]) < 2*FLT_MIN){
 		  MRIsetVoxVal(OutVol,c,r,s,frame-fstart,BinVal);
@@ -621,7 +629,12 @@ int main(int argc, char *argv[]) {
   nhits = -1;
   if(DoCount && !replace_only){
     if(noverbose == 0) printf("Counting number of voxels in first frame\n");
+    #ifdef HAVE_OPENMP
+    #pragma omp parallel for if_ROMP(assume_reproducible) reduction(+ : nhits)
+    #endif
     for (c=0; c < OutVol->width; c++) {
+      double val;
+      int r,s;
       for (r=0; r < OutVol->height; r++) {
 	for (s=0; s < OutVol->depth; s++) {
 	  // Get the value at this voxel
@@ -655,12 +668,22 @@ int main(int argc, char *argv[]) {
   if (replace_only && (InVol->ct)) OutVol->ct = CTABdeepCopy(InVol->ct);
 
   // Save output
-  if(OutVolFile) MRIwrite(OutVol,OutVolFile);
+  if(OutVolFile) {
+    printf("Writing output to %s\n",OutVolFile);
+    int err = MRIwrite(OutVol,OutVolFile);
+    if(err) exit(1);
+  }
 
   if(SurfFile){
+    printf("Creating surface %s\n",SurfFile);
     MRIS *surf;
     surf = MRIStessellate(OutVol,BinVal,0);
     if(nsmoothsurf > 0) MRISaverageVertexPositions(surf, nsmoothsurf) ;
+    if(ReverseFaceOrder){
+      printf("Reversing face order\n");
+      MRISreverseFaceOrder(surf);
+      MRIScomputeMetricProperties(surf);
+    }
     MRISwrite(surf,SurfFile);
     MRISfree(&surf);
   }
@@ -714,6 +737,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--bincol")) DoBinCol = 1;
     else if (!strcasecmp(option, "--uchar")) mriTypeUchar = 1;
     else if (!strcasecmp(option, "--no-count")) DoCount = 0;
+    else if (!strcasecmp(option, "--reverse")) ReverseFaceOrder = 1;
     else if (!strcasecmp(option, "--zero-edges")){
       ZeroColEdges = 1;
       ZeroRowEdges = 1;
@@ -876,6 +900,15 @@ static int parse_commandline(int argc, char **argv) {
       DoFDR = 1;
       nargsused = 1;
     } 
+    else if(!strcasecmp(option, "--threads") || !strcasecmp(option, "--nthreads") ){
+      if(nargc < 1) CMDargNErr(option,1);
+      int nthreads=1;
+      sscanf(pargv[0],"%d",&nthreads);
+      #ifdef _OPENMP
+      omp_set_num_threads(nthreads);
+      #endif
+      nargsused = 1;
+    } 
     else if (!strcasecmp(option, "--fdr-pos")) FDRSign = +1;
     else if (!strcasecmp(option, "--fdr-neg")) FDRSign = -1;
     else if (!strcasecmp(option, "--fdr-abs")) FDRSign =  0; //default
@@ -927,7 +960,8 @@ static int parse_commandline(int argc, char **argv) {
     } else if (!strcasecmp(option, "--inv")) {
       BinVal = 0;
       BinValNot = 1;
-    } else if (!strcasecmp(option, "--match")) {
+    } 
+    else if (!strcasecmp(option, "--match")) {
       if (nargc < 1) CMDargNErr(option,1);
       nth = 0;
       while(CMDnthIsArg(nargc, pargv, nth) ){
@@ -936,6 +970,23 @@ static int parse_commandline(int argc, char **argv) {
 	nth++;
       }
       nargsused = nth;
+      DoMatch = 1;
+    } 
+    else if (!strcasecmp(option, "--match-ctab")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      COLOR_TABLE *ctab = CTABreadASCII(pargv[0]);
+      if(ctab==NULL) exit(1);
+      int ntotalsegid,n;
+      CTABgetNumberOfTotalEntries(ctab,&ntotalsegid);
+      for(n=0; n < ntotalsegid; n++){
+	int valid;
+	CTABisEntryValid(ctab,n,&valid);
+	if(!valid) continue;
+	MatchValues[nMatch] = n;
+	nMatch ++;
+      }
+      CTABfree(&ctab);
+      nargsused = 1;
       DoMatch = 1;
     } 
     else if (!strcasecmp(option, "--subcort-gm")) {
@@ -1044,6 +1095,7 @@ static void print_usage(void) {
   printf("   --fdr fdrthresh : compute min based on FDR (assuming -log10(p) input)\n");
   printf("     --fdr-pos, --fdr-neg, --fdr-abs (use only pos, neg, or abs; abs is default)\n");
   printf("   --match matchval <matchval2 ...>  : match instead of threshold\n");
+  printf("   --match-ctab colortable  : match all entries in the given color table\n");
   printf("   --replace V1 V2 : replace voxels=V1 with V2\n");
   printf("   --replaceonly V1 V2 : replace voxels=V1 with V2 and propagate other src voxels instead of binarizing\n");
   printf("   --replace-nn V1 W : replace voxels=V1 with their nearest neighbor within a window of W voxels\n");
@@ -1081,6 +1133,7 @@ static void print_usage(void) {
   printf("   --bb npad : reduce dim of output to the minimum volume of non-zero voxels with npad boundary\n");
   printf("   --surf surfname : create a surface mesh from the binarization\n");
   printf("   --surf-smooth niterations : iteratively smooth the surface mesh\n");
+  printf("   --threads nthreads (won't apply to replace)\n");
   printf("   --noverbose (default *verbose*) \n");
   printf("\n");
   printf("   --debug     turn on debugging\n");

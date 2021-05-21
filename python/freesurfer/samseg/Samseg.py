@@ -35,7 +35,9 @@ class Samseg:
         targetSearchStrings=None,
         modeNames=None,
         pallidumAsWM=True,
-        saveModelProbabilities=False
+        saveModelProbabilities=False,
+        gmmFileName=None,
+        ignoreUnknownPriors=False,
         ):
 
         # Store input parameters as class variables
@@ -55,12 +57,19 @@ class Samseg:
         self.modeNames = modeNames
 
         # Initialize some objects
-        self.affine = Affine()
+        self.affine = Affine( imageFileName=self.imageFileNames[0],
+                              meshCollectionFileName=os.path.join(self.atlasDir, 'atlasForAffineRegistration.txt.gz'),
+                              templateFileName=os.path.join(self.atlasDir, 'template.nii' ) )
         self.probabilisticAtlas = ProbabilisticAtlas()
 
         # Get full model specifications and optimization options (using default unless overridden by user)
-        self.modelSpecifications = getModelSpecifications(atlasDir, userModelSpecifications, pallidumAsWM=pallidumAsWM)
         self.optimizationOptions = getOptimizationOptions(atlasDir, userOptimizationOptions)
+        self.modelSpecifications = getModelSpecifications(
+            atlasDir,
+            userModelSpecifications,
+            pallidumAsWM=pallidumAsWM,
+            gmmFileName=gmmFileName
+        )
         
         # Set image-to-image matrix if provided
         self.imageToImageTransformMatrix = imageToImageTransformMatrix
@@ -95,6 +104,7 @@ class Samseg:
         self.saveHistory = saveHistory
         self.saveWarp = saveWarp
         self.saveMesh = saveMesh
+        self.ignoreUnknownPriors = ignoreUnknownPriors
 
         # Make sure we can write in the target/results directory
         os.makedirs(savePath, exist_ok=True)
@@ -113,12 +123,58 @@ class Samseg:
         self.deformation = None
         self.deformationAtlasFileName = None
 
-    def segment(self, costfile=None, timer=None, reg_only=False, worldToWorldTransformMatrix=None, initTransform=None):
+    def validateTransform(self, trf):
+        # =======================================================================================
+        #
+        # Internal utility to ensure that a provided affine transform file matches the template and
+        # input volume geometries. If the transform is determined to be [image->template], it
+        # will be inverted for convenience sake.
+        #
+        # =======================================================================================
+
+        # Load src (template) and trg (input) geometries (TODO these should really be cached)
+        src = fs.Volume.read(self.affine.templateFileName).geometry()
+        trg = fs.Volume.read(self.imageFileNames[0]).geometry()
+
+        # Just assume things are okay if no geometries are provided
+        if trf.source is None and trf.target is None:
+            return trf
+
+        equal = lambda a, b: fs.Geometry.is_equal(a, b, thresh=1e-2, require_affine=False)
+
+        # Make sure at least the source or target geometries match
+        if (trf.source is None or equal(trf.source, src)) and (trf.target is None or equal(trf.target, trg)):
+            return trf
+
+        # The only remaining possibility is that the transform is inverted (input->template)
+        if (trf.source is None or equal(trf.source, trg)) and (trf.target is None or equal(trf.target, src)):
+            return trf.inverse()
+
+        fs.fatal('provided transform does not match input or template geometries')
+
+    def segment(self, costfile=None, timer=None, reg_only=False, transformFile=None, initTransformFile=None):
         # =======================================================================================
         #
         # Main function that runs the whole segmentation pipeline
         #
         # =======================================================================================
+
+        # Initialization transform for registration
+        initTransform = None
+        if initTransformFile:
+            trg = self.validateTransform(fs.LinearTransform.read(initTransformFile))
+            initTransform = convertRASTransformToLPS(trg.as_ras().matrix)
+
+        # Affine transform used to skip registration
+        worldToWorldTransformMatrix = None
+        if transformFile:
+            if transformFile.endswith('.mat'):
+                worldToWorldTransformMatrix = scipy.io.loadmat(transformFile).get('worldToWorldTransformMatrix')
+            else:
+                trf = self.validateTransform(fs.LinearTransform.read(transformFile))
+                worldToWorldTransformMatrix = convertRASTransformToLPS(trf.as_ras().matrix)
+
+        # Register to template
         if self.imageToImageTransformMatrix is None:
             self.register(
                 costfile=costfile,
@@ -127,6 +183,7 @@ class Samseg:
                 worldToWorldTransformMatrix=worldToWorldTransformMatrix,
                 initTransform=initTransform
             )
+
         self.preProcess()
         self.fitModel()
         return self.postProcess()
@@ -140,9 +197,6 @@ class Samseg:
 
         # Perform registration on first input image
         self.imageToImageTransformMatrix, optimizationSummary = self.affine.registerAtlas(
-            imageFileName=self.imageFileNames[0],
-            meshCollectionFileName=os.path.join(self.atlasDir, 'atlasForAffineRegistration.txt.gz'),
-            templateFileName=os.path.join(self.atlasDir, 'template.nii'),
             savePath=self.savePath,
             visualizer=self.visualizer,
             worldToWorldTransformMatrix=worldToWorldTransformMatrix,
@@ -193,10 +247,12 @@ class Samseg:
             self.imageBuffers,
             self.modelSpecifications.atlasFileName,
             self.transform,
-            self.modelSpecifications.brainMaskingSmoothingSigma,
-            self.modelSpecifications.brainMaskingThreshold,
-            self.probabilisticAtlas
+            self.modelSpecifications.maskingProbabilityThreshold,
+            self.modelSpecifications.maskingDistance,
+            self.probabilisticAtlas,
+            self.voxelSpacing
         )
+
 
         # Let's prepare for the bias field correction that is part of the imaging model. It assumes
         # an additive effect, whereas the MR physics indicate it's a multiplicative one - so we log
@@ -251,8 +307,12 @@ class Samseg:
             print('Saving the final mesh in template space')
             deformedAtlasFileName = os.path.join(self.savePath, 'mesh.txt')
             self.probabilisticAtlas.saveDeformedAtlas(self.modelSpecifications.atlasFileName, deformedAtlasFileName, nodePositions)
-
-        # Save the history of the parameter estimation process
+            
+        # Save the Gaussian priors, (normalized) likelihoods and posteriors
+        if self.saveModelProbabilities:
+            self.saveGaussianProbabilities( os.path.join(self.savePath, 'probabilities') )
+ 
+       # Save the history of the parameter estimation process
         if self.saveHistory:
             history = {'input': {
                 'imageFileNames': self.imageFileNames,
@@ -261,11 +321,14 @@ class Samseg:
                 'optimizationOptions': self.optimizationOptions,
                 'savePath': self.savePath
             }, 'imageBuffers': self.imageBuffers, 'mask': self.mask,
+                'cropping': self.cropping,
+                'transform': self.transform.as_numpy_array,
                 'historyWithinEachMultiResolutionLevel': self.optimizationHistory,
                 "labels": self.modelSpecifications.FreeSurferLabels, "names": self.modelSpecifications.names,
                 "volumesInCubicMm": volumesInCubicMm, "optimizationSummary": self.optimizationSummary}
             with open(os.path.join(self.savePath, 'history.p'), 'wb') as file:
                 pickle.dump(history, file, protocol=pickle.HIGHEST_PROTOCOL)
+                                
 
         return self.modelSpecifications.FreeSurferLabels, self.modelSpecifications.names, volumesInCubicMm, self.optimizationSummary
 
@@ -405,6 +468,62 @@ class Samseg:
 
         # write the warp file
         fs.Warp(coordmap, source=imageGeom, target=templateGeom, affine=matrix).write(filename)
+        
+        
+    def saveGaussianProbabilities( self, probabilitiesPath ):
+        # Make output directory
+        os.makedirs(probabilitiesPath, exist_ok=True)
+          
+        # Get the class priors as dictated by the current mesh position
+        mesh = self.probabilisticAtlas.getMesh(self.modelSpecifications.atlasFileName, self.transform,
+                                              initialDeformation=self.deformation,
+                                              initialDeformationMeshCollectionFileName=self.deformationAtlasFileName)
+        mergedAlphas = kvlMergeAlphas( mesh.alphas, self.classFractions )
+        mesh.alphas = mergedAlphas
+        classPriors = mesh.rasterize(self.imageBuffers.shape[0:3], -1)
+        classPriors = classPriors[self.mask, :] / ( 2**16 - 1 )
+
+        # Get bias field corrected data
+        self.biasField.downSampleBasisFunctions([1, 1, 1])
+        biasFields = self.biasField.getBiasFields()
+        data = self.imageBuffers[self.mask, :] - biasFields[self.mask, :]
+
+        # Compute gaussian priors, (normalized) likelihoods and posteriors
+        gaussianPosteriors, _ = self.gmm.getGaussianPosteriors( data, classPriors )
+        gaussianLikelihoods, _ = self.gmm.getGaussianPosteriors( data, classPriors, priorWeight=0 )
+        gaussianPriors, _ = self.gmm.getGaussianPosteriors( data, classPriors, dataWeight=0 )
+
+        # Open gaussians file
+        file = open(os.path.join(probabilitiesPath, 'gaussians.txt'), 'w')
+
+        # Cycle through gaussians and write volumes and means/variances
+        classNames = [param.mergedName for param in self.modelSpecifications.sharedGMMParameters]
+        numberOfGaussiansPerClass = [param.numberOfComponents for param in self.modelSpecifications.sharedGMMParameters]
+        maxNameSize = len(max(classNames, key=len)) + 2
+        for classNumber, className in enumerate(classNames):
+            numComponents = numberOfGaussiansPerClass[classNumber]
+            for componentNumber in range(numComponents):
+                # 
+                gaussianNumber = int(np.sum(numberOfGaussiansPerClass[:classNumber])) + componentNumber
+                
+                # Write volume
+                probabilities = np.zeros( ( *( self.imageBuffers.shape[:3] ), 3 ), dtype=np.float32 )
+                probabilities[ self.mask, 0 ] = gaussianPosteriors[ :, gaussianNumber ]
+                probabilities[ self.mask, 1 ] = gaussianPriors[ :, gaussianNumber ]
+                probabilities[ self.mask, 2 ] = gaussianLikelihoods[ :, gaussianNumber ]
+                basename = className
+                if numComponents > 1:
+                    basename += '-%d' % (componentNumber + 1)
+                self.writeImage(probabilities, os.path.join(probabilitiesPath, basename + '.mgz'))
+
+                # write gaussian information
+                mean = self.gmm.means[gaussianNumber]
+                var = self.gmm.variances[gaussianNumber]
+                weight = self.gmm.mixtureWeights[gaussianNumber]
+                file.write('%s %.4f %.4f %.4f\n' % (basename.ljust(maxNameSize), mean, var, weight))
+
+        file.close()
+        
 
     def getDownSampledModel(self, atlasFileName, downSamplingFactors):
 
@@ -702,60 +821,14 @@ class Samseg:
                 levelHistory['finalNodePositions'] = finalNodePositions
                 levelHistory['initialNodePositionsInTemplateSpace'] = initialNodePositionsInTemplateSpace
                 levelHistory['finalNodePositionsInTemplateSpace'] = finalNodePositionsInTemplateSpace
+                levelHistory['deformation'] = self.deformation.copy()
+                levelHistory['deformationAtlasFileName'] = self.deformationAtlasFileName
                 levelHistory['historyOfCost'] = historyOfCost
                 levelHistory['priorsAtEnd'] = downSampledClassPriors
                 levelHistory['posteriorsAtEnd'] = downSampledGaussianPosteriors
                 self.optimizationHistory.append(levelHistory)
 
         # End resolution level loop
-
-        # Save the final model probabilities (posteriors, priors, likelihood) for each class gaussian
-        if self.saveModelProbabilities:
-
-            # Make output directory
-            probabilitiesPath = os.path.join(self.savePath, 'probabilities')
-            os.makedirs(probabilitiesPath, exist_ok=True)
-
-            classNames = [param.mergedName for param in self.modelSpecifications.sharedGMMParameters]
-            numberOfGaussiansPerClass = [param.numberOfComponents for param in self.modelSpecifications.sharedGMMParameters]
-            probabilities = np.zeros((np.sum(numberOfGaussiansPerClass), *downSampledMask.shape, 3))
-
-            # Precompute all likelihoods so we can normalize
-            for classNumber, className in enumerate(classNames):
-                for componentNumber in range(numberOfGaussiansPerClass[classNumber]):
-                    gaussianNumber = int(np.sum(numberOfGaussiansPerClass[:classNumber])) + componentNumber
-                    probabilities[gaussianNumber, downSampledMask, 0] = downSampledGaussianPosteriors[:, gaussianNumber]
-                    probabilities[gaussianNumber, downSampledMask, 1] = downSampledClassPriors[:, classNumber] * self.gmm.mixtureWeights[gaussianNumber]
-                    with np.errstate(divide='ignore', invalid='ignore'):
-                        probabilities[..., 2] = probabilities[..., 0] / probabilities[..., 1]
-                        probabilities[np.isnan(probabilities)] = 0
-
-            # Normalize likelihood across all gaussians
-            with np.errstate(divide='ignore', invalid='ignore'):
-                probabilities[..., 2] /= np.sum(probabilities[..., 2], axis=0)
-                probabilities[np.isnan(probabilities)] = 0
-
-            # Open gaussians file
-            file = open(os.path.join(probabilitiesPath, 'gaussians.txt'), 'w')
-
-            # Cycle through gaussians and write volumes and means/variances
-            maxNameSize = len(max(classNames, key=len)) + 2
-            for classNumber, className in enumerate(classNames):
-                numComponents = numberOfGaussiansPerClass[classNumber]
-                for componentNumber in range(numComponents):
-                    gaussianNumber = int(np.sum(numberOfGaussiansPerClass[:classNumber])) + componentNumber
-                    basename = className
-                    if numComponents > 1:
-                        basename += '-%d' % (componentNumber + 1)
-                    self.writeImage(probabilities[gaussianNumber, ...], os.path.join(probabilitiesPath, basename + '.mgz'))
-
-                    # write gaussian information
-                    mean = self.gmm.means[gaussianNumber]
-                    var = self.gmm.variances[gaussianNumber]
-                    weight = self.gmm.mixtureWeights[gaussianNumber]
-                    file.write('%s %.4f %.4f %.4f\n' % (basename.ljust(maxNameSize), mean, var, weight))
-
-            file.close()
 
     def computeFinalSegmentation(self):
         # Get the final mesh
@@ -766,6 +839,15 @@ class Samseg:
         # Get the priors as dictated by the current mesh position
         priors = mesh.rasterize(self.imageBuffers.shape[0:3], -1)
         priors = priors[self.mask, :]
+
+        if self.ignoreUnknownPriors:
+            unknown_search_strings = next(s for s in self.modelSpecifications.sharedGMMParameters if s.mergedName == 'Unknown').searchStrings
+            unknown_label = 0  # TODO: should we assume that 'Unknown' is always zero?
+            for label, name in enumerate(self.modelSpecifications.names):
+                for search_string in unknown_search_strings:
+                    if search_string in name:
+                        priors[:, unknown_label] += priors[:, label]
+                        priors[:, label] = 0
 
         # Get bias field corrected data
         # Make sure that the bias field basis function are not downsampled

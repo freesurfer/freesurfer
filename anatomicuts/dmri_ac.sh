@@ -40,7 +40,9 @@ function forAll()
 	echo ${cluster_call}
 	
 	cd ${SUBJECTS_DIR}                                                
+	
 	for s in */;       
+	#for s in `ls -dir [a-zA-Z]*`;       
 	do
 		subject=${s//[\/]/}                                                                                                    
 		echo ${subject}
@@ -259,12 +261,12 @@ function preGA()
 	std=$4
 	bb=$5	
 
-	Clean ${subject} ${targetSubject} ${lenght} ${std} ${bb}
-	Hungarian ${subject} ${targetSubject} ${lenght} ${std} ${bb}
-	Measures ${subject} ${targetSubject} ${lenght} ${std} ${bb}
-	ToAnat  ${subject} ${targetSubject} ${lenght} ${std} ${bb}
+	#Clean ${subject} ${targetSubject} ${lenght} ${std} ${bb}
+	#Hungarian ${subject} ${targetSubject} ${lenght} ${std} ${bb}
+	#Measures ${subject} ${targetSubject} ${lenght} ${std} ${bb}
+	#ToAnat  ${subject} ${targetSubject} ${lenght} ${std} ${bb}
 	SurfaceMeasures ${subject} ${targetSubject} ${lenght} ${std} ${bb}
-	ToTarget ${subject} ${targetSubject} ${lenght} ${std} ${bb}
+	#ToTarget ${subject} ${targetSubject} ${lenght} ${std} ${bb}
 	
 }
 function GA()
@@ -278,8 +280,12 @@ function GA()
 	groupB=$7
 	groups=$8
 	thickness=$9
+#	mkdir -p ${ODMRI_DIR}/average/dmri.ac/${2}/${3}/
+#	rm 	 ${ODMRI_DIR}/average/dmri.ac/${2}/${3}/*
+#${FREESURFER_HOME}/bin/anatomiCutsUtils -f GAL -m "DTI" -cf "${labels_file}" -cc ${labels_cols} -cta 200 -ts ${targetSubject} -s ${ODMRI_DIR} -d "," -ga $groupA -gb $groupB -l ${lenght} -std ${std} -pt ${groups} 
 #${FREESURFER_HOME}/bin/anatomiCutsUtils -f GA -m "DTI" -cf "${labels_file}" -cc ${labels_cols} -cta 50:100:150:200 -ts ${targetSubject} -s ${ODMRI_DIR} -d "," -ga $groupA -gb $groupB -l ${lenght} -std ${std} -pt ${groups} 
-${FREESURFER_HOME}/bin/anatomiCutsUtils -f thicknessPerStructure -m "DTI" -cf "${labels_file}" -cc ${labels_cols} -cta 50:100:150:200 -ts ${targetSubject} -s ${ODMRI_DIR} -d "," -ga $groupA -gb $groupB -l ${lenght} -std ${std} -pt ${groups} -t ${thickness} 
+${FREESURFER_HOME}/bin/anatomiCutsUtils -f diffAlongTheLine -m "DTI" -cf "${labels_file}" -cc ${labels_cols} -cta 50:100:150:200 -ts ${targetSubject} -s ${ODMRI_DIR} -d "," -ga $groupA -gb $groupB -l ${lenght} -std ${std} -pt ${groups} 
+#${FREESURFER_HOME}/bin/anatomiCutsUtils -f thicknessPerStructure -m "DTI" -cf "${labels_file}" -cc ${labels_cols} -cta 50:100:150:200 -ts ${targetSubject} -s ${ODMRI_DIR} -d "," -ga $groupA -gb $groupB -l ${lenght} -std ${std} -pt ${groups} -t ${thickness} 
 #${FREESURFER_HOME}/bin/anatomiCutsUtils -f connectivityGraph -m "DTI" -cf "${labels_file}" -cc ${labels_cols} -cta 50:100:150:200 -ts ${targetSubject} -s ${ODMRI_DIR} -d "," -ga $groupA -gb $groupB -l ${lenght} -std ${std} -pt ${groups} -t ${thickness} 
 
 #${FREESURFER_HOME}/bin/anatomiCutsUtils -f GA -m "DKI" -cf "/space/snoke/1/public/vivros/data/demos_fullID.csv" -cc 0:6 -cta 200 -ts ${targetSubject} -s ${ODMRI_DIR} -d " " -ga 3 -gb 1 -l ${lenght} -std ${std} 
@@ -323,6 +329,7 @@ function Hungarian()
 		ci=${ODMRI_DIR}/${targetSubject}/dmri.ac/${lenght}/${std}
 		cj=${ODMRI_DIR}/${subject}/dmri.ac/${lenght}/${std}
 		mkdir -p ${cj}/match/	
+		echo ${HungarianBin} -s1 ${si} -s2 ${sj} -h1 ${ci}/ -h2 ${cj}/ -o ${cj}/match/${targetSubject}_${subject}_c${c}_hungarian.csv  -labels -hungarian -c ${c} ${bb}
 		${HungarianBin} -s1 ${si} -s2 ${sj} -h1 ${ci}/ -h2 ${cj}/ -o ${cj}/match/${targetSubject}_${subject}_c${c}_hungarian.csv  -labels -hungarian -c ${c} ${bb}
 	done
 }
@@ -341,11 +348,12 @@ function Measures()
 
 		if [[ -e   ${SUBJECTS_DIR}/${subject}/dmri/DKI/dki_RD.nii.gz ]] ;
 		then 
-			string="${stats_ac_bin} -i ${anatomicuts}/  -n ${c} -c ${anatomicuts}/match/${targetSubject}_${subject}_c${c}_hungarian.csv -m 7 FA ${diff}/DKI/dki_FA.nii   MD ${diff}/DKI/dki_MD.nii   RD ${diff}/DKI/dki_RD.nii   AD ${diff}/DKI/dki_AD.nii   MK ${diff}/DKI/dki_MK.nii   RK ${diff}/DKI/dki_RK.nii   AK ${diff}/DKI/dki_AK.nii   -o ${anatomicuts}/measures/${targetSubject}_${subject}_c${c}.csv"
+			string="${stats_ac_bin} -i ${anatomicuts}/  -n ${c} -c ${anatomicuts}/match/${targetSubject}_${subject}_c${c}_hungarian.csv -m 7 FA ${diff}/DKI/dki_FA.nii.gz   MD ${diff}/DKI/dki_MD.nii.gz   RD ${diff}/DKI/dki_RD.nii.gz   AD ${diff}/DKI/dki_AD.nii.gz   MK ${diff}/DKI/dki_MK.nii.gz   RK ${diff}/DKI/dki_RK.nii.gz   AK ${diff}/DKI/dki_AK.nii.gz   -o ${anatomicuts}/measures/${targetSubject}_${subject}_c${c}.csv"
 		else
-			string="${stats_ac_bin} -i ${anatomicuts}/  -n ${c} -c ${anatomicuts}/match/${targetSubject}_${subject}_c${c}_hungarian.csv -m 4 FA ${diff}/DTI/dti_FA.nii.gz   MD ${diff}/DTI/dti_MD.nii   RD ${diff}/DTI/dti_RD.nii   AD ${diff}/DTI/dti_AD.nii  -o ${anatomicuts}/measures/${targetSubject}_${subject}_c${c}.csv"
+			string="${stats_ac_bin} -i ${anatomicuts}/  -n ${c} -c ${anatomicuts}/match/${targetSubject}_${subject}_c${c}_hungarian.csv -m 4 FA ${diff}/DTI/dti_FA.nii.gz.gz   MD ${diff}/DTI/dti_MD.nii.gz   RD ${diff}/DTI/dti_RD.nii.gz   AD ${diff}/DTI/dti_AD.nii.gz  -o ${anatomicuts}/measures/${targetSubject}_${subject}_c${c}.csv"
 		fi
 
+		echo ${string}
 		${string}
 	done
 }
@@ -363,8 +371,9 @@ function SurfaceMeasures()
 	annot=${SUBJECTS_DIR}/${subject}/label/
 	mri=${SUBJECTS_DIR}/${subject}/mri/
 	
+	diff=${ODMRI_DIR}/${subject}/dmri/
 
- 	${FREESURFER_HOME}/bin/dmri_extractSurfaceMeasurements -i ${anatomicuts}/*trk -sl ${surf}/lh.pial -tl ${surf}/lh.thickness -cl ${surf}/lh.curv.pial -sr ${surf}/rh.pial -tr ${surf}/rh.thickness -cr ${surf}/rh.curv.pial -rid ${mri}/brain.nii.gz -ria ${mri}/brain.nii.gz  -al ${annot}/lh.aparc.annot -ar ${annot}/rh.aparc.annot -o ${anatomicutsdiff}/measures/	-p ${anatomicutsdiff}/match/${targetSubject}_${subject}_c200_hungarian.csv 
+ 	${FREESURFER_HOME}/bin/dmri_extractSurfaceMeasurements -i ${anatomicuts}/*.trk -sl ${surf}/lh.pial -tl ${surf}/lh.thickness -cl ${surf}/lh.curv.pial -sr ${surf}/rh.pial -tr ${surf}/rh.thickness -cr ${surf}/rh.curv.pial -rid ${mri}/brain.nii.gz -ria ${mri}/brain.nii.gz  -al ${annot}/lh.aparc.annot -ar ${annot}/rh.aparc.annot -o ${anatomicutsdiff}/measures/	-p ${anatomicutsdiff}/match/${targetSubject}_${subject}_c200_hungarian.csv -fa 7 FA ${diff}/DKI/dki_FA.nii.gz   MD ${diff}/DKI/dki_MD.nii.gz   RD ${diff}/DKI/dki_RD.nii.gz   AD ${diff}/DKI/dki_AD.nii.gz   MK ${diff}/DKI/dki_MK.nii.gz   RK ${diff}/DKI/dki_RK.nii.gz   AK ${diff}/DKI/dki_AK.nii.gz   
 
 }
 function ToAnat()
@@ -392,6 +401,7 @@ function ToAnat()
 	mkdir -p ${ODMRI_DIR}/${subject}/dmri.ac/${lenght}/${std}/${common}/
         
 	common_clustering=${ODMRI_DIR}/${subject}/dmri.ac/${lenght}/${std}/${common}/
+	mkdir ${diff}/xfms/
 
 	flirt -in ${diff}/DTI/dti_FA.nii.gz -ref ${mri}/brain.nii.gz  -omat ${diff}/xfms/fa2brain.mat
 
@@ -464,7 +474,13 @@ function average()
 	targetSubject=$1	
 	lenght=$2
 	std=$3
-
+	labels_file=$4
+	labels_cols=$5
+	groupA=$6
+	groupB=$7
+	groups=$8
+	thickness=$9
+#	
 	mkdir -p ${ODMRI_DIR}/average/dmri.ac/${lenght}/${std}/images
         #correspondences="["
         #imagesFolder="["
@@ -480,13 +496,17 @@ function average()
                         if [ ${#correspondences} -ge 3 ]; then 
                                 correspondences=${correspondences},
                                 imagesFolder=${imagesFolder},
+                                subjectsNames=${subjectsNames},
                         fi
                         correspondences=${correspondences}${ODMRI_DIR}/${s}/dmri.ac/${lenght}/${std}/match/${s2}_${s}_c200_hungarian.csv   
                         imagesFolder=${imagesFolder}${ODMRI_DIR}/${s}/dmri.ac/${lenght}/${std}/to${targetSubject}/images/
+			subjectsNames=${subjectsNames}${s}
+			
                 fi
         done    
         correspondences=${correspondences}
         imagesFolder=${imagesFolder}
+	subjectsNames=${subjectsNames}	
 
         echo $correspondences
         echo $imagesFolder
@@ -494,9 +514,9 @@ function average()
         echo $clusterIndeces
         mkdir -p ${outputFolder}
         #correspondences, imagesFolder, outputFolder,  clusterIndeces   
-        cd /space/erebus/2/users/vsiless/code/freesurfer/anatomicuts/ 
+        cd ${SUBJECTS_DIR} 
         #pbsubmit -n 1 -c "python3 -c \"import anatomiCutsUtils;  anatomiCutsUtils.averageCorrespondingClusters($correspondences, $imagesFolder, $outputFolder,$clusterIndeces) \" "
-	anatomiCutsUtils -f averageCorrespondingClusters -co ${correspondences} -if ${imagesFolder} -of ${outputFolder} -in ${clusterIndeces} 
+	${FREESURFER_HOME}/bin/anatomiCutsUtils -f averageCorrespondingClusters -co ${correspondences} -if ${imagesFolder} -of ${outputFolder} -in ${clusterIndeces} -sn ${subjectsNames} -cf "${labels_file}" -cc ${labels_cols} -d "," -pt ${groups} 
         #python3 -c "import anatomiCutsUtils;  anatomiCutsUtils.averageCorrespondingClusters(${correspondences}, ${imagesFolder}, ${outputFolder},${clusterIndeces}) "
         
 }

@@ -134,7 +134,8 @@ def computeDistanceTransform(labelmask):
 
 def saveVolume(vol, fname):
     im = nib.Nifti1Image(vol, fixed_image.affine)
-    im.header['xyzt_units'] = fixed_image.header['xyzt_units']
+    if fixed_image.header.get('xyzt_units'):
+        im.header['xyzt_units'] = fixed_image.header['xyzt_units']
     nib.save(im, fname)
 
 
@@ -152,8 +153,9 @@ parser.add_argument('-b','--beta', type=float, default=0.3, help='beta. Defaults
 parser.add_argument('--bias', metavar='file', help='Save biasfield volume to filename.')
 parser.add_argument('--bf-order', type=int, default=4, help='Bias field order. Defaults to 4.')
 parser.add_argument('--max-lab', type=int, default=3, help='Maximum number of lab . Defaults to 3.')
-parser.add_argument('-e','--exclude', default=[], type=int, nargs='+', help='Exclude a set of labels.')
+parser.add_argument('-e','--exclude', default=[], type=int, nargs=4, action='append', help='Exclude a set of labels.')
 parser.add_argument('--unary-weight', type=int, default=5, help='Unary term weight. Defaults to 5.')
+parser.add_argument('--seed', type=int, default=1234, help='Seed for random number generator. Default is 1234.')
 parser.add_argument('-v', '--verbose', action='store_true', help='Verbose output.')
 args = parser.parse_args()
 
@@ -169,6 +171,9 @@ unary_term_weight = args.unary_weight
 # Constants
 downsample_factor = 10
 min_param_change = 2
+
+# Seed the generator
+np.random.seed(args.seed)
 
 # Check the output folder
 outdir = os.path.dirname(os.path.abspath(args.out))
@@ -255,6 +260,8 @@ sigmas = np.sqrt(variances)
 # Prepare basis functions for the bias field and initialize weights
 psi = prepBiasFieldBase(mask.shape, bias_field_order)
 bfc = np.zeros(psi.shape[3])
+# print(hash(str(bfc)))
+# exit(2)
 
 # Masked PSI
 psiv = psi[mask, :]
@@ -359,7 +366,7 @@ if args.smooth:
     seg = np.zeros(fixed_vol.shape)
     seg[cropping][mask] = labels[np.argmax(u, axis=3)][mask]
 
-saveVolume(seg, args.out)
+saveVolume(seg.astype('int32'), args.out)
 
 # Save bias field
 if args.bias:

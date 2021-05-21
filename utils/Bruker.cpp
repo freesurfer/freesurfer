@@ -1,6 +1,6 @@
 /*
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -819,7 +819,9 @@ int readBrukerVolume(MRI *mri, char *dataFile)
       }
       // this was not needed
       if (swap_bytes_flag) {
-        swab(mri->slices[k][j], mri->slices[k][j], mri->width * sizeof(short));
+	std::vector<short> tmp(mri->width);
+        swab(mri->slices[k][j], tmp.data(), mri->width * sizeof(short));
+	memcpy(mri->slices[k][j], tmp.data(), mri->width * sizeof(short));
       }
     }
     exec_progress_callback(k, mri->depth, 0, 1);

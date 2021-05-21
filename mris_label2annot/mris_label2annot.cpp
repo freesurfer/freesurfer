@@ -6,7 +6,7 @@
 /*
  * Original Author: Doug Greve
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -648,7 +648,10 @@ static void check_options(void) {
     for (n=0; n<ctab->nentries; n++) {
       if(ctab->entries[n] == NULL) continue;
       if (strlen(ctab->entries[n]->name) == 0) continue;
-      sprintf(tmpstr,"%s/%s.%s.label",labeldir,hemi,ctab->entries[n]->name);
+      int req = snprintf(tmpstr,1000,"%s/%s.%s.label",labeldir,hemi,ctab->entries[n]->name); 
+      if( req >= 1000 ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       if(!fio_FileExistsReadable(tmpstr)) continue;
       printf("%2d %s\n",n,tmpstr);
       LabelFiles[nlabels] = strcpyalloc(tmpstr);

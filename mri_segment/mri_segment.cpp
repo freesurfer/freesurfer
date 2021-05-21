@@ -8,7 +8,7 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -50,6 +50,7 @@ static float pct = 0.8 ;
 static float pslope = 1.0f ;
 static float nslope = 1.0f ;
 static float wm_low = 90 ;
+float wm_low_factor = 0.0;
 static float wm_hi = 125 ;
 static float gray_hi = 100 ;
 static float gray_low = 30 ;
@@ -134,17 +135,17 @@ int main(int argc, char *argv[])
   DiagInit(NULL, NULL, NULL) ;
   ErrorInit(NULL, NULL, NULL) ;
 
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
-  {
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
     argv += nargs ;
   }
 
-  if (argc < 3)
-  {
-    usage_exit(1);
-  }
+  // the argument parsing here is a little old fashioned (options must come before
+  // positionals), so let's throw an error to prevent confusion
+  if (argc < 3) fs::fatal() << "Must provide input and output files. Use --help for more info.";
+  if (argc > 3) fs::fatal() << "Too many arguments provided. Flagged options must be used before"
+                               " positional arguments. Use --help for more info.";
 
   then.reset() ;
   input_file_name = argv[1] ;
@@ -188,18 +189,22 @@ int main(int argc, char *argv[])
     // This is the old code that tries to do the initial segmentation purely based on
     // thresholding without reference to the aseg
     mri_labels = MRIclone(mri_src, NULL) ;
-    if (auto_detect_stats && !wm_low_set) /* widen range to allow for more variability */
-      wm_low -= 10 ;
-    
-    printf(" WHITE_MATTER_MEAN  %d\n",WHITE_MATTER_MEAN);
-    printf(" wsize  %d\n",wsize);
-    
-    if(scan_type == MRI_MGH_MPRAGE)
-      printf("assuming input volume is MGH (Van der Kouwe) MP-RAGE\n") ;
-    printf(" wm_low %g\n",wm_low);
-    printf(" wm_hi  %g\n",wm_hi);
-    printf(" gray_low %g\n",gray_low);
-    printf(" gray_hi  %g\n",gray_hi);
+
+    // widen range to allow for more variability
+    if (auto_detect_stats && !wm_low_set) {
+      int decrease = 10;
+      std::cout << "Widening wm low from " << wm_low << " to " << (wm_low - decrease) << std::endl;
+      wm_low -= decrease;
+    }
+
+    if(scan_type == MRI_MGH_MPRAGE) printf("assuming input volume is MGH (Van der Kouwe) MP-RAGE\n") ;
+
+    std::cout << "wm mean:  " << WHITE_MATTER_MEAN << std::endl;
+    std::cout << "wsize:    " << wsize << std::endl;
+    std::cout << "wm low:   " << wm_low << std::endl;
+    std::cout << "wm hi:    " << wm_hi << std::endl;
+    std::cout << "gray low: " << gray_low << std::endl;
+    std::cout << "gray hi:  " << gray_hi << std::endl;
     fflush(stdout);fflush(stderr);
     
     // This is just a simple trinarization:
@@ -240,8 +245,15 @@ int main(int argc, char *argv[])
 	  wm_low = (white_mean+gray_mean) / 2 ;
 	}
 	else {
-	  // Set wm_low to one stddev above GM mean
-	  wm_low = gray_mean + gray_sigma ;
+	  if(wm_low_factor == 0){
+	    // Set wm_low to one stddev above GM mean
+	    wm_low = gray_mean + gray_sigma ;
+	  }
+	  else {
+	    printf("using wm_low_factor = %2.1f\n", wm_low_factor) ;
+	    double f = wm_low_factor;
+	    wm_low = (1-f)*gray_mean + f*white_mean;
+	  }
 	}
       }
       
@@ -306,8 +318,15 @@ int main(int argc, char *argv[])
     MRIfree(&seg);
     MRIfree(&newseg);
     if(!wm_low_set){
-      // Set wm_low to one stddev above GM mean
-      wm_low = gray_mean + gray_sigma ;
+      if(wm_low_factor == 0){
+	// Set wm_low to one stddev above GM mean
+	wm_low = gray_mean + gray_sigma ;
+      }
+      else {
+	printf("using wm_low_factor = %2.1f\n", wm_low_factor) ;
+	double f = wm_low_factor;
+	wm_low = f*gray_mean + (1-f)*white_mean;
+      }
     }
     if (!gray_hi_set) {
       // Set gray_hi to two stddevs above GM mean
@@ -539,6 +558,12 @@ get_option(int argc, char *argv[])
     wm_low_set = 1 ;
     nargs = 1 ;
     fprintf(stderr, "using white lolim = %2.1f\n", wm_low) ;
+  }
+  else if (!stricmp(option, "wm_low_factor"))
+  {
+    wm_low_factor = atof(argv[2]) ;
+    printf("wm_low_factor set to %2.1f\n", wm_low_factor) ;
+    nargs = 1 ;
   }
   else if (!stricmp(option, "whi") || !stricmp(option, "wm_hi"))
   {

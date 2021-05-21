@@ -1,7 +1,7 @@
 /*
  * Original Author: Ruopeng Wang
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -33,10 +33,6 @@ DialogSaveScreenshot::DialogSaveScreenshot(QWidget *parent) :
   //  QSettings settings;
   //  ui->lineEditFileName->setText(settings.value("ScreenShot/LastSavedFile").toString());
   m_strLastDir = QDir::currentPath();
-#ifdef Q_OS_MAC
-  ui->checkBoxAutoTrim->hide();
-#endif
-//  qDebug() << m_strLastDir;
 }
 
 DialogSaveScreenshot::~DialogSaveScreenshot()
@@ -153,11 +149,12 @@ void DialogSaveScreenshot::OnSaveLayer()
      MainWindow::GetMainWindow()->GetMainView()->
          SaveScreenShot(m_listFilenames[m_nLayerIndex],
                         ui->checkBoxAntiAliasing,
-                        ui->spinBoxMagnification->value(),
-                        ui->checkBoxAutoTrim->isChecked());
+                        ui->spinBoxMagnification->value());
      m_nLayerIndex++;
      if (m_nLayerIndex < m_listLayers.size())
        QTimer::singleShot(250, this, SLOT(OnSaveLayer()));
+     else if (ui->checkBoxAutoTrim->isChecked())
+       MainWindow::GetMainWindow()->GetMainView()->TrimImageFiles(m_listFilenames);
    }
    ui->labelProgress->setText(QString("%1 / %2").arg(m_nLayerIndex).arg(m_listLayers.size()));
 }

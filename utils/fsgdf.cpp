@@ -43,7 +43,7 @@
 /*
  * Original Author: Doug Greve
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -55,6 +55,8 @@
  *
  */
 
+#include <string>
+#include <locale>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -83,7 +85,7 @@ int isblank (int c);
 #endif
 #endif
 
-static FSGD *gdfReadV1(char *gdfname);
+static FSGD *gdfReadV1(const char *gdfname);
 static int gdfPrintV1(FILE *fp, FSGD *gd);
 static int gdfCheckVarRep(FSGD *gd);
 static int gdfCheckClassRep(FSGD *gd);
@@ -126,7 +128,7 @@ int gdfFree(FSGD **ppgd) {
 
 
 /*--------------------------------------------------*/
-int gdfWrite(char *gdfname, FSGD *gd) {
+int gdfWrite(const char *gdfname, FSGD *gd) {
   FILE *fp;
 
   fp = fopen(gdfname,"w");
@@ -252,7 +254,7 @@ static int gdfPrintV1(FILE *fp, FSGD *gd) {
 
 
 /*--------------------------------------------------*/
-FSGD *gdfRead(char *gdfname, int LoadData) {
+FSGD *gdfRead(const char *gdfname, int LoadData) {
   FSGD *gd;
   FILE *fp;
   char tmpstr[1000];
@@ -260,7 +262,7 @@ FSGD *gdfRead(char *gdfname, int LoadData) {
   int nv;
   MRI *mritmp;
   char *dirname, *basename;
-  char datafilename[1000];
+  std::string datafilename;
   MATRIX *Xt,*XtX,*iXtX;
 
   printf("gdfRead(): reading %s\n",gdfname);
@@ -317,24 +319,24 @@ FSGD *gdfRead(char *gdfname, int LoadData) {
   if (strlen(gd->DesignMatFile) != 0) {
     /* Look for DesignMatFile first. If doesn't exist, prepend the
        directory from the gdf file. */
-    strcpy(datafilename,gd->DesignMatFile);
-    if (!fio_FileExistsReadable(datafilename)) {
-      sprintf(datafilename,"%s/%s",dirname,gd->DesignMatFile);
-      if (!fio_FileExistsReadable(datafilename)) {
+    datafilename = gd->DesignMatFile;
+    if (!fio_FileExistsReadable(datafilename.c_str())) {
+      datafilename = std::string(dirname) + "/" + std::string(gd->DesignMatFile);
+      if (!fio_FileExistsReadable(datafilename.c_str())) {
 
         /* If that doesn't work, try the path from the GDF file and the
            base of the file name. */
         basename = fio_basename(gd->DesignMatFile,NULL);
-        sprintf(datafilename,"%s/%s",dirname,basename);
+	datafilename = std::string(dirname) + "/" + std::string(basename);
         free(basename);
       }
 
-      if (!fio_FileExistsReadable(datafilename)) {
+      if (!fio_FileExistsReadable(datafilename.c_str())) {
         printf("ERROR: gdfRead: could not find file %s\n",gd->DesignMatFile);
         return(NULL);
       }
     }
-    gd->X = ReadMatlabFileVariable(datafilename,"X");
+    gd->X = ReadMatlabFileVariable(datafilename.c_str(),"X");
     if (gd->X == NULL) {
       printf("ERROR: gdfRead: could not read variable X from %s\n",
              gd->DesignMatFile);
@@ -359,24 +361,26 @@ FSGD *gdfRead(char *gdfname, int LoadData) {
   /* load the MRI containing our raw data. */
   if (LoadData && strlen(gd->datafile) > 0) {
 
-    if (fio_FileExistsReadable(gd->datafile))
-      strcpy(datafilename,gd->datafile);
+    if (fio_FileExistsReadable(gd->datafile)) {
+      datafilename = gd->datafile;
+    }
     else {
       /* Construct the path of the data file by concat the
          path from the GDF file and the data file name */
-      if (NULL != dirname)
-        sprintf(datafilename,"%s/%s",dirname,gd->datafile);
+      if (NULL != dirname) {
+	datafilename = std::string(dirname) + "/" + std::string(gd->datafile);
+      }
 
       /* If that doesn't work, try the path from the GDF file and the
          base of the file name. */
-      if (!fio_FileExistsReadable(datafilename)) {
+      if (!fio_FileExistsReadable(datafilename.c_str())) {
         basename = fio_basename(gd->datafile,NULL);
-        sprintf(datafilename,"%s/%s",dirname,basename);
+	datafilename = std::string(dirname) + "/" + std::string(basename);
         free(basename);
       }
     }
 
-    gd->data = MRIread(datafilename);
+    gd->data = MRIread(datafilename.c_str());
     if (NULL == gd->data) {
       printf("ERROR: gdfRead: Couldn't read raw data at %s \n",gd->datafile);
       gdfFree(&gd);
@@ -403,7 +407,7 @@ FSGD *gdfRead(char *gdfname, int LoadData) {
 
 
 /*--------------------------------------------------*/
-static FSGD *gdfReadV1(char *gdfname) {
+static FSGD *gdfReadV1(const char *gdfname) {
   FSGD *gd;
   FSENV *env;
   FILE *fp;
@@ -808,7 +812,7 @@ static FSGD *gdfReadV1(char *gdfname) {
   information for the data in the given FSGD header
   file. This is only the header info, not the data.
   --------------------------------------------------*/
-MRI *gdfReadDataInfo(char *gdfname) {
+MRI *gdfReadDataInfo(const char *gdfname) {
   FSGD *gd=NULL;
   MRI *info=NULL;
 
@@ -853,7 +857,7 @@ int gdfClassNo(FSGD *gd, char *class_number) {
   in the given string, where an item is defined as
   one or more contiguous non-blank characters.
   --------------------------------------------------*/
-int gdfCountItemsInString(char *str) {
+int gdfCountItemsInString(const char *str) {
   int len, n, nhits;
 
   len = strlen(str);
@@ -880,28 +884,56 @@ int gdfCountItemsInString(char *str) {
   is -1, then it returns the last item. item is a string that
   must be freed by the caller.
   ------------------------------------------------------------------*/
-char *gdfGetNthItemFromString(char *str, int nth) {
+char *gdfGetNthItemFromString(const char *str, const int nth) {
   char *item;
-  int nitems,n;
-  static char fmt[2000], tmpstr[2000];
-
-  memset(fmt,'\0',2000);
-  memset(tmpstr,'\0',2000);
+  int nitems;
 
   nitems = gdfCountItemsInString(str);
-  if (nth < 0) nth = nitems-1;
   if (nth >= nitems) {
     printf("ERROR: asking for item %d, only %d items in string\n",nth,nitems);
     printf("%s\n",str);
     return(NULL);
   }
 
-  for (n=0; n < nth; n++) sprintf(fmt,"%s %%*s",fmt);
-  sprintf(fmt,"%s %%s",fmt);
-  //printf("fmt %s\n",fmt);
-  sscanf(str,fmt,tmpstr);
+  const std::string src(str);
+  std::vector<std::string> items;
+  std::string tmpstr;
+  bool inItem = !std::isspace(src.at(0));
+  for(auto it=src.begin(); it!=src.end(); ++it ) {
+    if( std::isspace(*it) ) {
+      if( inItem ) {
+	// We've just completed the next item
+	items.push_back(tmpstr);
+	tmpstr.clear();
+      } else {
+	// Nothing to do; we're just consuming blanks
+      }
+      inItem = false;
+    } else {
+      inItem = true;
+      // We're inside an item, so accumulate
+      tmpstr.push_back(*it);
+    }
+  }
 
-  item = strcpyalloc(tmpstr);
+  if( items.size() != static_cast<size_t>(nitems) ) {
+    std::cerr << __FUNCTION__
+	      << ": Length of items vector did not match nitems"
+	      << std::endl;
+    std::cerr << "str: '" << str << std::endl;
+    std::cerr << "items: ";
+    for( auto it=items.begin(); it!=items.end(); ++it ) {
+      std::cerr << (*it) << " -|- ";
+    }
+    std::cerr << std::endl;
+    throw std::logic_error("Incorrect item count");
+  }
+  
+  if( nth < 0 ) {
+    item = strcpyalloc(items.back().c_str());
+  } else {
+    item = strcpyalloc(items.at(nth).c_str());
+  }
   return(item);
 }
 

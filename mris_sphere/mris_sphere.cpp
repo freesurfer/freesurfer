@@ -8,7 +8,7 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -113,12 +113,8 @@ main(int argc, char *argv[])
   float        max_dim ;
 
   std::string cmdline = getAllInfo(argc, argv, "mris_sphere");
-
   nargs = handleVersionOption(argc, argv, "mris_sphere");
-  if (nargs && argc - nargs == 1)
-  {
-    exit (0);
-  }
+  if (nargs && argc - nargs == 1) exit (0);
   argc -= nargs;
 
   then.reset() ;
@@ -126,7 +122,6 @@ main(int argc, char *argv[])
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
 
-  memset(&parms, 0, sizeof(parms)) ;
   parms.dt = .05 ;
   parms.projection = PROJECT_ELLIPSOID ;
   parms.tol = .5 /*1e-1*/ ;
@@ -174,16 +169,10 @@ main(int argc, char *argv[])
   in_surf_fname = argv[1] ;
   out_fname = argv[2] ;
 
-  printf("%s\n",getVersion().c_str());
-  printf("  %s\n",getVersion().c_str());
+  std::cout << "version: " << getVersion() << std::endl;
 
 #ifdef HAVE_OPENMP
-  {
-    int n_omp_threads = 1;
-    n_omp_threads = omp_get_max_threads(); 
-    printf("\n== Number of threads available to %s for OpenMP = %d == \n",
-      Progname, n_omp_threads);
-  }
+  std::cout << "available threads: " << omp_get_max_threads() << std::endl;
 #endif
 
   fflush(stdout); fflush(stderr);
@@ -322,7 +311,6 @@ main(int argc, char *argv[])
     INTEGRATION_PARMS inflation_parms ;
 
     MRIScenter(mris, mris) ;
-    memset(&inflation_parms, 0, sizeof(INTEGRATION_PARMS)) ;
     strcpy(inflation_parms.base_name, parms.base_name) ;
     inflation_parms.write_iterations = parms.write_iterations ;
     inflation_parms.niterations = inflate_iterations ;
@@ -380,21 +368,12 @@ main(int argc, char *argv[])
     mrisComputeOriginalVertexDistances(mris);
   }
   
-  fflush(stdout); fflush(stderr);
   fprintf(stderr, "projecting onto sphere...\n");
-  fflush(stdout); fflush(stderr);
-
   MRISprojectOntoSphere(mris, mris, target_radius) ;
 
-  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-  {
-    MRISwrite(mris, "after") ;
-  }
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) MRISwrite(mris, "after");
   
-  fflush(stdout); fflush(stderr);
   fprintf(stderr,"surface projected - minimizing metric distortion...\n");
-  fflush(stdout); fflush(stderr);
-  
   MRISsetNeighborhoodSize(mris, nbrs) ;
   
   int const countNegativeFaces   = MRIScountNegativeFaces(mris);
@@ -437,9 +416,6 @@ main(int argc, char *argv[])
   }
 
   fflush(stdout); fflush(stderr);
-  // Print usage stats to the terminal (and a file is specified)
-  PrintRUsage(RUSAGE_SELF, "mris_sphere ", stdout);
-  if(rusage_file) WriteRUsage(RUSAGE_SELF, "", rusage_file);
 
   msec = then.milliseconds() ;
   fflush(stdout); fflush(stderr);
@@ -454,6 +430,8 @@ main(int argc, char *argv[])
 #else
   printf("FSRUNTIME@ mris_sphere %7.4f hours %d threads\n",msec/(1000.0*60.0*60.0),1);
 #endif
+  printf("#VMPC# mris_sphere VmPeak  %d\n",GetVmPeak());
+  printf("mris_sphere done\n");
 
   exit(0) ;
   return(0) ;  /* for ansi */
@@ -508,6 +486,19 @@ get_option(int argc, char *argv[])
     nargs = 3 ;
     fprintf(stderr, "rotating brain by (%2.1f, %2.1f, %2.1f)\n",
             ralpha, rbeta, rgamma) ;
+  }
+  else if (!stricmp(option, "openmp") || !stricmp(option, "threads")) 
+  {
+    char str[STRLEN] ;
+    sprintf(str, "OMP_NUM_THREADS=%d", atoi(argv[2]));
+    putenv(str) ;
+#ifdef HAVE_OPENMP
+    omp_set_num_threads(atoi(argv[2]));
+#else
+    fprintf(stderr, "Warning - built without openmp support\n");
+#endif
+    nargs = 1 ;
+    fprintf(stderr, "Setting %s\n", str) ;
   }
   else if (!stricmp(option, "rusage"))
   {

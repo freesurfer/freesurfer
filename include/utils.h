@@ -5,7 +5,7 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -84,6 +84,13 @@ char *FileNameExtension(const char *fname, char *ext) ;
 char *AppendString(char *src, char *app);
 
 bool stringEndsWith(const std::string& value, const std::string& ending);
+
+bool directoryExists(std::string const &directory);
+bool directoryIsWritable(std::string const &directory);
+std::string getEnvironVar(std::string const &key);
+std::string getBaseTempDir();
+std::string makeTempFile(std::string const &suffix = "");
+std::string makeTempDir();
 
 int devIsinf(float value);
 int devIsnan(float value);

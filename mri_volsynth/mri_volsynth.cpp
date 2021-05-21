@@ -5,7 +5,7 @@
 /*
  * Original Author: Douglas N. Greve
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -608,15 +608,27 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = 2;
       sprintf(tmpstr,"%s/%s/surf/%s.thickness",getenv("SUBJECTS_DIR"),subject,hemi);
       tempid = strcpyalloc(tmpstr);
-    } else if ( !strcmp(option, "--dim") ) {
+    } 
+    else if ( !strcmp(option, "--dim") ) {
       if (nargc < 4) argnerr(option,4);
       for (i=0;i<4;i++) sscanf(pargv[i],"%d",&dim[i]);
       nargsused = 4;
       dimSpeced = 1;
     } 
+    else if ( !strcmp(option, "--dim-surf") ) {
+      if(nargc < 1) argnerr(option,1);
+      MRIS *surf = MRISread(pargv[0]);
+      if(surf==NULL) exit(1);
+      for (i=0;i<3;i++) dim[i] = 1;
+      dim[0] = surf->nvertices;
+      if(dim[3] == 0) dim[3] = 1;
+      nargsused = 1;
+      dimSpeced = 1;
+    } 
     else if ( !strcmp(option, "--nframes") ) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&nframes);
+      dim[3] = nframes;
       nargsused = 1;
     } 
     else if ( !strcmp(option, "--TR") || !strcmp(option, "--tr") ) {
@@ -698,12 +710,9 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&numdof);
       nargsused = 1;
-    } else if (!strcmp(option, "--val-a")) {
+    } 
+    else if (!strcmp(option, "--val-a")) {
       if (nargc < 1) argnerr(option,1);
-      if(*pargv[0] != '-' && !isdigit(*pargv[0])){
-	printf("ERROR: --val-a must be a number\n");
-	exit(1);
-      }
       sscanf(pargv[0],"%lf",&ValueA);
       nargsused = 1;
     } else if (!strcmp(option, "--val-b")) {
@@ -850,6 +859,7 @@ static void print_usage(void) {
   printf("   --fwhm fwhm_mm : smooth by FWHM mm\n");
   printf("   --sum2 fname   : save sum vol^2 into fname (implies "
          "delta,nf=1,no-output)\n");
+  printf("   --dim-surf : set dim to nvertices x 1 x 1 \n");
   printf("\n");
 }
 /* --------------------------------------------- */

@@ -5,7 +5,7 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -286,13 +286,60 @@ static int regionCornerCoords(MRI_REGION *r, int which_corner, int *px, int *py,
   return (NO_ERROR);
 }
 /*!
+  \fn MRI_REGION *REGIONgetBoundingBoxM(MRI *mask, int npad[6])
+  \brief Determines bounding box as corners of the smallest box needed
+  to fit all the non-zero voxels. npad[X] allows the BB to be expanded
+  in each direction. It will expand the first dimension by npad[0]
+  toward 0.  It will expand the first dimension by npad[1] toward inf.
+  Etc, for the remaining dims. region->{x,y,z} is the CRS 0-based
+  starting point of the box.  region->{dx,dy,dz} is the size of the
+  box such that a loop would run for(c=region->x; c <
+  region->x+region->dx; c++)
+*/
+MRI_REGION *REGIONgetBoundingBoxM(const MRI *mask, const int npad[6])
+{
+  int c, r, s;
+  int cmin, cmax, rmin, rmax, smin, smax;
+  MRI_REGION *region;
+  float v;
+
+  cmin = rmin = smin = 1000000;
+  cmax = rmax = smax = 0;
+
+  for (c = 0; c < mask->width; c++) {
+    for (r = 0; r < mask->height; r++) {
+      for (s = 0; s < mask->depth; s++) {
+        v = MRIgetVoxVal(mask, c, r, s, 0);
+        if (iszero(v)) continue;
+        if (cmin > c) cmin = c;
+        if (rmin > r) rmin = r;
+        if (smin > s) smin = s;
+        if (cmax < c) cmax = c;
+        if (rmax < r) rmax = r;
+        if (smax < s) smax = s;
+      }
+    }
+  }
+  region = REGIONalloc();
+  region->x = MAX(cmin - npad[0], 0);
+  region->y = MAX(rmin - npad[2], 0);
+  region->z = MAX(smin - npad[4], 0);
+  region->dx = MIN(cmax - cmin + npad[0] + npad[1], mask->width  - region->x);
+  region->dy = MIN(rmax - rmin + npad[2] + npad[3], mask->height - region->y);
+  region->dz = MIN(smax - smin + npad[4] + npad[5], mask->depth  - region->z);
+
+  return (region);
+}
+
+/*!
   \fn MRI_REGION *REGIONgetBoundingBox(MRI *mask, int npad)
   \brief Determines bounding box as corners of the smallest box needed
   to fit all the non-zero voxels. If npad is non-zero then then the box
   is expanded by npad in each direction (making it 2*npad bigger in each
   dimension). region->{x,y,z} is the CRS 0-based starting point of the box.
   region->{dx,dy,dz} is the size of the box such that a loop would run
-  for(c=region->x; c < region->x+region->dx; c++)
+  for(c=region->x; c < region->x+region->dx; c++). Note: should change this
+  to use REGIONgetBoundingBoxM()
 */
 MRI_REGION *REGIONgetBoundingBox(MRI *mask, int npad)
 {
@@ -300,6 +347,8 @@ MRI_REGION *REGIONgetBoundingBox(MRI *mask, int npad)
   int cmin, cmax, rmin, rmax, smin, smax;
   MRI_REGION *region;
   float v;
+
+  //Note: should change this to use REGIONgetBoundingBoxM()
 
   cmin = rmin = smin = 1000000;
   cmax = rmax = smax = 0;

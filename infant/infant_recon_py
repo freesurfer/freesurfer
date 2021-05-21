@@ -1,0 +1,537 @@
+#!/usr/bin/env python
+
+import os
+import yaml
+import heapq
+import shutil
+import glob
+import freesurfer as fs
+import freesurfer_pipeline as fsp
+
+
+description='''
+This program performs a recon on T1-weighted infant (0-2 yrs)
+brain MRI images. Please cite the following while journal
+submission is pending:
+
+L. Zöllei, J.E. Iglesias, Y. Ou, P.E. Grant, B. Fischl,
+Infant FreeSurfer: An automated segmentation and surface
+extraction pipeline for T1-weighted neuroimaging data of
+infants 0-2 years. arXiv:2001.03091, 2020
+'''
+
+
+# ---- Parse Options ----
+
+
+parser = fs.utils.ArgumentParser(description=description)
+
+# Input information
+parser.add_argument('-s', '--s', required=True, help='FreeSurfer subject name as found in $SUBJECTS_DIR. This' \
+                    ' identifies the subject that is to be processed. The input file, unless indicated otherwise,' \
+                    ' should be located in $SUBJECTS_DIR/subject/mprage.nii.gz before processing is started.')
+parser.add_argument('-i', '--inputfile', help='Input file - T1 image.')
+parser.add_argument('-o', '--outdir', help='Name of the output directory where all the recon results are written. The default' \
+                    ' is $SUBJECTS_DIR/subject.')
+parser.add_argument('--age', type=int, help='Age of the subject in months.')
+parser.add_argument('--masked', help='Pre-masked input image. Providing this will skip the skull-stripping step.')
+parser.add_argument('--segfile', help='Volumetric segmentation from another source. Unless --forceskullstrip is set, a masked' \
+                    ' input image is also expected along with and matching this input.')
+parser.add_argument('--t2', action='store_true', help='Enable T2 processing.')
+parser.add_argument('--t2file', help='Input file - T2 image.')
+
+# Training subject options
+parser.add_argument('--newborn', action='store_true', help='Indicate that the subject is a newborn. All five newborn subjects' \
+                    ' from the training data set will be used. No age input is needed if this flag is set.')
+parser.add_argument('--oneyear', action='store_true', help='Indicate that the subject is a one-year-old. All five' \
+                    ' approx-one-year-old subjects from the training data set will be used. No age input is needed if this flag is set.')
+parser.add_argument('--avoidtraining', help='Exclude specific training subject(s) from processing.')
+
+# Processing options
+parser.add_argument('--kneigh', type=int, help='Number of training subjects for acquiring prior information about segmentation.')
+parser.add_argument('--forceskullstrip', action='store_true', help='Enforce that skullstripping is carried out and a masked input image' \
+                    ' should not be expected along with the input volumetric segmentation.')
+parser.add_argument('--MI', action='store_true', help='Use an image-based similarity metric (mutual information) for deciding on the set' \
+                    ' of training subjects to use. By default, the set of training subjects is decided by age-at-scan information.')
+parser.add_argument('--gmwm', action='store_true', help='Guarantee that at least one of the training subjects has GM/WM information.')
+parser.add_argument('--ccseg', action='store_true', help='Compute the corpus callosum segmentation labels.')
+parser.add_argument('--no-stats', action='store_true', help='Do not compute aseg stats values as part of the recon process.')
+
+# Alternative utilities
+parser.add_argument('--usedramms', action='store_true', help='Use DRAMMS (as opposed to niftyreg) for non-linear registration. DRAMMS will' \
+                    ' need to be independently installed.')
+parser.add_argument('--intnormFSL', action='store_true', help='FSL will be used for intensity normalization instead of the default MNI tools.')
+
+# Pipeline options
+parser.add_argument('--keep-going', action='store_true', help='Pick-up processing pipeline where it left off or modified. Please make sure the' \
+                    ' original command line arguments are provided when this flag is used.')
+parser.add_argument('--force', action='store_true', help='Force all processing to be redone even if it had been run (partially) before.')
+parser.add_argument('--no-cleanup', action='store_true', help='Do not delete temporary files. If this option is set, make sure you have at least' \
+                    ' 2G space in the output directory.')
+parser.add_argument('--usegpu', action='store_true', help='Use the powers of GPU for the skullstripping computations.')
+parser.add_argument('--gpuid', default='0', help='This option specifies a GPU to be used for the computations.')
+parser.add_argument('--checkresults',action='store_true', help='View results with freeview through processing.')
+
+args = parser.parse_args()
+
+# Configure directories
+subj = args.s
+subjsdir = os.environ.get('SUBJECTS_DIR')
+outdir = os.path.abspath(args.outdir) if args.outdir else os.path.abspath(os.path.join(subjsdir, subj))
+
+# Check if FS is set
+fshome = fs.fshome()
+if not fshome:
+    fs.fatal('Must set FREESURFER_HOME before running.')
+template_subjs_dir = os.path.join(fshome, 'average', 'CNYBCH')
+
+# Set a few parameters
+check_gm_wm = args.gmwm
+enforce_gm_wm_template_subj = True
+subj_age = args.age
+check_results = args.checkresults
+regtype = 'dramms' if args.usedramms else 'niftyreg'
+gpu = args.gpuid if args.usegpu else '-1'
+set_custom_k_neighbors = args.kneigh is not None
+k_neighbors = args.kneigh if args.kneigh else 4
+
+# Set infant subject group
+subj_group = 'default'
+if args.newborn:
+    subj_group = 'newborn'
+if args.oneyear:
+    subj_group = 'oneyear'
+
+# Get absolute inputs
+input_t1 = os.path.abspath(args.inputfile) if args.inputfile else None
+input_masked = os.path.abspath(args.masked) if args.masked else None
+input_seg = os.path.abspath(args.segfile) if args.segfile else None
+
+
+# ---- Sanity check on the inputs ----
+
+
+if not args.keep_going and not args.force and os.path.exists(os.path.join(outdir, 'mri')):
+    message = f'Output already exists in {outdir}. To force overwrite, use the --force flag.' \
+               ' To pick-up from where the pipeline was left off or last modified, use the --keep-going' \
+               ' flag. Please make sure the original command line arguments are provided when this flag is used.'
+    fs.fatal(message)
+
+if not args.outdir and not subjsdir or not os.path.isdir(subjsdir):
+    fs.fatal('Must set SUBJECTS_DIR or use --outdir flag to indicate a valid data location.')
+
+if not input_t1 and not input_masked:
+    if not os.path.isfile(os.path.join(subjsdir, subj, 'mprage.nii.gz')):
+        fs.fatal('Must provide input T1 with --inputfile or --masked flag.')
+
+if input_masked and args.forceskullstrip:
+    fs.fatal('Cannot force skullstripping while providing skullstripped input.')
+
+if args.t2 and not args.t2file:
+    fs.fatal('Must have a T2w file provided by --t2file when --t2 flag is used.')
+
+if input_seg and not input_masked and not args.forceskullstrip:
+    fs.fatal('Must have a masked mprage file specified with --masked if the segmentation file is provided.')
+
+if subj_group == 'default' and not subj_age and not input_seg:
+    fs.fatal('Must set the age (in months) for the subject to be analyzed.')
+
+if args.newborn and args.oneyear:
+    fs.fatal('Cannot specify both --newborn and --oneyear.')
+
+if input_masked and input_seg:
+    img_shape = fs.Volume.read(input_masked).shape[:3]
+    seg_shape = fs.Volume.read(input_seg).shape[:3]
+    if img_shape != seg_shape:
+        fs.fatal('The masked mprage and segmentation files have to have the same volume dimensions!')
+
+
+# ---- Start pipeline ----
+
+
+# Let's start operating from within the output directory, so make sure
+# absolute paths to any inputs have been resolved by now
+os.makedirs(outdir, exist_ok=True)
+os.chdir(outdir)
+os.environ['SUBJECTS_DIR'] = os.path.dirname(outdir)
+
+pl = fsp.CommandPipeline(
+    name='Infant Recon', 
+    log='log/recon.log',
+    keep_going=args.keep_going,
+)
+
+pl.print(f'Processing subject: {subj}')
+
+# Set up directory structure
+for directory in ('log', 'mri/transforms', 'surf', 'label', 'stats'):
+    os.makedirs(directory, exist_ok=True)
+
+
+# ---- Step 1: Conform ----
+
+masked = 'mri/norm.nii.gz'
+
+if input_masked:
+
+    # Masked input was provided on the commandline
+    cmd = f'mri_convert --conform-dc {input_masked} {masked}'
+    pl.run(cmd, inputs=input_masked, outputs=masked)
+
+else:
+
+    # ---- Handle input volume ----
+
+    mprage = 'mprage.nii.gz'
+
+    if input_t1:
+        if not os.path.isfile(input_t1):
+            pl.fatal(f'{input_t1} is not a valid input file.')
+        pl.print(f'Input file: {input_t1}')
+        pl.run(f'mri_convert {input_t1} {mprage}', inputs=input_t1, outputs=mprage)
+    else:
+        if not os.path.isfile(mprage):
+            pl.fatal(f'{mprage} does not exist. Must provide input file.')
+
+    # ---- Normalize and mask ----
+
+    norm = 'work/mprage.nu.nii.gz'
+    conf = 'work/mprage.nu.conf.nii.gz'
+
+    commands = ['mkdir -p work']
+
+    if args.intnormFSL:
+        # normalize with fsl utilities
+        maxcmd = '`fslstats %s -R | awk \'{print $2}\'' % mprage
+        commands.append(f'fslmaths {mprage} -div {maxcmd} -mul 255 {norm} -odt char')
+    else:
+        # normalize with nmi utilities
+        commands.append(f'mri_nu_correct.mni --i {mprage} --o {norm} --n 2')
+
+    commands.append(f'mri_convert --conform-dc {norm} {conf}')
+    commands.append(f'sscnn_skullstrip -i {conf} -o work/sscnn -c t1w --gpu {gpu}')
+    commands.append(f'mri_mask {conf} work/sscnn/sscnn_skullstrip.nii.gz {masked}')
+
+    if not args.no_cleanup:
+        commands.append('rm -rf work/*')
+
+    pl.run(commands, inputs=mprage, outputs=masked)
+
+    if check_results:
+        fs.run(f'freeview -v {mprage} {masked}:colormap=heat')
+
+pl.print(f'Normalized and masked image: {masked}')
+
+
+# ---- Step 2: Segment ----
+
+
+aseg = 'mri/aseg.nii.gz'
+
+if input_seg:
+
+    pl.print('Working with existing segmentation: %s' % input_seg)
+    cmd = f'mri_convert --conform-dc {input_seg} {aseg} -rt nearest --no_scale 1'
+    pl.run(cmd, inputs=input_seg, outputs=aseg)
+
+else:
+
+    # Load template subject information into dictionary
+    with open(os.path.join(fshome, 'average', 'CNYBCH.yaml'), 'r') as file:
+        template_subjs_config = yaml.load(file, Loader=yaml.FullLoader)
+    
+    # Cache GM/WM subjects
+    gm_wm_subjs_lookup = template_subjs_config['GMWM']
+
+    # Load template subjects corresponding to group
+    if subj_group == 'default':
+        template_subjs_lookup = template_subjs_config['All']
+    elif subj_group == 'oneyear':
+        template_subjs_lookup = template_subjs_config['AroundOne']
+    elif subj_group == 'newborn':
+        template_subjs_lookup = template_subjs_config['Neonates']
+    else:
+        pl.fatal(f'Unknown subject group "{subj_group}"')
+
+    # Let's make sure the subject is not the template
+    template_subjs_lookup.pop(subj, None)
+    gm_wm_subjs_lookup.pop(subj, None)
+
+    # Remove any pre-specified template subject
+    if args.avoidtraining:
+        template_subjs_lookup.pop(args.avoidtraining, None)
+        gm_wm_subjs_lookup.pop(args.avoidtraining, None)
+
+    def find_neighbors_by_age():
+        # Find template neighbors through nearest ages
+        def get_nearest(d, num):
+            s = sorted(d.items(), key=lambda item: item[1], reverse=True)
+            nearest = heapq.nsmallest(num, s, key=lambda item: abs(item[1] - subj_age))
+            return [item[0] for item in nearest]
+        template_subjs = get_nearest(template_subjs_lookup, k_neighbors)
+        if enforce_gm_wm_template_subj:
+            gs = get_nearest(gm_wm_subjs_lookup, 1)[0]
+            if gs not in template_subjs:
+                template_subjs[-1] = gs
+        return template_subjs
+
+    def find_neighbors_by_mi():
+        # Find nearest template neighbors through mutual information (image similarity)
+        mi_scores = 'log/template_mi_scores.yaml'
+        tmpimg = 'work/tmp.mi.nii.gz'
+        tmplta = 'work/tmp.mi.lta'
+        commands = [
+            'mkdir -p work',
+            f'rm -f {mi_scores}'
+        ]
+        for ts in template_subjs_lookup.keys():
+            moving = os.path.join(template_subjs_dir, ts, 'norm.nii.gz')
+            commands.append(f'mri_robust_register --lta {tmplta} --mov {moving} --dst {masked} --mapmov {tmpimg} --affine --satit')
+            commands.append(f'echo {ts}: `mri_mi --silent {masked} {tmpimg}` >> {mi_scores}')
+            commands.append(f'rm -f {tmpimg} {tmplta}')
+        pl.run(commands, inputs=masked, outputs=mi_scores)
+        with open(mi_scores, 'r') as file:
+            scores = yaml.load(file, Loader=yaml.FullLoader)
+        ordered = sorted(scores.items(), key=lambda item: item[1], reverse=True)[:k_neighbors]
+        return [item[0] for item in ordered]
+
+    # Set template subjects
+    if subj_group != 'default':
+        if set_custom_k_neighbors:
+            pl.print('Selecting a subset of the training data')
+            template_subjs = find_neighbors_by_mi()
+        else:
+            template_subjs = template_subjs_lookup.keys()
+    else:
+        pl.print('Selecting a subset of the default training data')
+        template_subjs = find_neighbors_by_mi() if args.MI else find_neighbors_by_age()
+
+    # ---- Register template subjects and warp segmentations ----
+
+    # Volume to use for registration
+    voltype = 'norm'
+
+    # List to gather moved template segs
+    moved_segs = []
+
+    # Summary of template subjects
+    pl.print('Using template subjects:')
+    pl.print('\n  '.join(template_subjs))
+
+    commands = ['mkdir -p work']
+
+    for ts in template_subjs:
+
+        # Get moving template images
+        moving = os.path.join(template_subjs_dir, ts, f'{voltype}.nii.gz')
+        seg = os.path.join(template_subjs_dir, ts, 'manualseg.nii.gz')
+
+        # Prep filenames
+        basename = f'work/{ts}-2-{subj}.{regtype}'
+        moved = basename + '.nii.gz'
+        moved_seg = basename + '.manseg.nii.gz'
+        deform = basename + '.field.nii.gz'
+        affine = basename + '.affine.txt'
+        affine_img = basename + '.affine.nii.gz'
+
+        # Gather command outputs
+        outputs = [moved, deform, moved_seg]
+        moved_segs.append(moved_seg)
+
+        # Configure registration commands
+        if args.usedramms:
+            commands.append(f'dramms -S {moving} -T {masked} -O {moved} -D {deform} -v -v')
+            commands.append(f'dramms-warp {seg} {deform} {moved_seg} -n')
+        else:
+            commands.append(f'reg_aladin -ref {masked} -flo {moving} -aff {affine} -res {affine_img} -voff')
+            commands.append(f'reg_f3d -ref {masked} -flo {moving} -aff {affine} -cpp {deform} -res {moved}')
+            commands.append(f'reg_resample -ref {masked} -flo {seg} -trans {deform} -res {moved_seg} -inter 0')
+
+    # ---- Fuse segmentations ----
+
+    mrf_seg = f'work/labels.mrf.nii.gz'
+    moved_segs_str = ' '.join(moved_segs)
+
+    rho = 0.5 + len(moved_segs) * 0.05
+    beta = 0.3
+
+    cmd = f'mri_label_fusion -i {masked} -s {moved_segs_str} -o {mrf_seg} --verbose'
+    cmd += f' --smooth --rho {rho} --beta {beta} --bf-order 4 --max-lab 3 --unary-weight 5'
+    cmd += ' -e 2 41 3 42'    # cerebral WM hack
+    cmd += ' -e 7 46 8 47'    # cerebellar WM hack
+    cmd += ' -e 12 51 13 52'  # basal ganglia hack
+    commands.append(cmd)
+
+    # ---- Postprocess the segmentation ----
+
+    # Switching old thalamus labels to new FS ones
+    recoded = 'work/recoded.nii.gz'
+    commands.append(f'mri_binarize --i {mrf_seg} --replace 48 49 --replace 9 10 --o {recoded}')
+
+    # Full brain
+    # TODO is this even used?
+    label_mask = 'work/alllabelmask.nii.gz'
+    dist_map = 'work/alllabelmask.distmap.nii.gz'
+    commands.append(f'mri_binarize --i {recoded} --o {label_mask} --min 1')
+    commands.append(f'mri_distance_transform {label_mask} 1 3 3 {dist_map}')
+
+    # Correct segmentation (depending on whether GM/WM exists)
+    commands.append(f'mri_binarize --match 2 41 --count work/count.txt --i {recoded}')
+    commands.append('numvox=$(awk \'{print $1}\' work/count.txt)')
+    commands.append('if [ $numvox -eq 0 ]; then opt="-n"; fi')
+    commands.append(f'mri_correct_segmentations $opt {recoded} {aseg}')
+
+    if not args.no_cleanup:
+        commands.append('rm -rf work/*')
+
+    pl.run(commands, inputs=masked, outputs=aseg)
+
+
+# ---- Step 3: Preprocess for surface creation ----
+
+
+# Copy nifti files to mgh for prepare for surface stream
+# TODO can we just ditch nifti format entirely?
+pl.run(f'mri_convert {masked} mri/norm.mgz', inputs=masked, outputs='mri/norm.mgz')
+pl.run(f'mri_convert {aseg} mri/aseg.mgz', inputs=aseg, outputs='mri/aseg.mgz')
+pl.copy('mri/norm.mgz', 'mri/brain.mgz')
+pl.copy('mri/norm.mgz', 'mri/brainmask.mgz')
+
+# Register talairach (MNI 305)
+target = 'work/mni305.cor.nii.gz'
+affine = 'work/talairach.txt'
+res = 'work/talairach.nii.gz'
+xfm = 'mri/transforms/talairach.xfm'
+commands = [
+    f'mri_convert $FREESURFER_HOME/average/mni305.cor.mgz {target}',
+    f'reg_aladin -ref {target} -flo {masked} -res {res} -aff {affine} -voff',
+    f'lta_convert --inniftyreg {affine} --outmni {xfm} --src {masked} --trg {target}',
+]
+if not args.no_cleanup:
+    commands.append('rm -rf work/*')
+pl.run(commands, inputs=masked, outputs=xfm)
+pl.copy(xfm, 'mri/transforms/talairach.auto.xfm')
+
+# Optionally segment CC
+if args.ccseg:
+    cmd = f'mri_cc -aseg aseg.mgz -o aseg_CCseg.mgz {subj}'
+    pl.run(cmd, inputs='mri/aseg.mgz', outputs='mri/aseg_CCseg.mgz')
+
+# Check for GM/WM in final segmentation
+if check_gm_wm:
+    seg = fs.Volume.read(aseg).data
+    if 2 not in seg and 41 not in seg:
+        pl.print('Skipping surface creation as no GM/WM separation in the segmentation!')
+        pl.done()
+
+
+# ---- Step 4: Build surfaces ----
+
+
+# Build white surfaces
+inputs = [
+    'mri/aseg.mgz',
+    'mri/aseg.nii.gz',
+    'mri/brainmask.mgz',
+    'mri/brain.mgz',
+    'mri/norm.mgz',
+    'mri/transforms/talairach.auto.xfm',
+]
+outputs = [
+    'surf/lh.white', 'surf/rh.white',
+    'surf/lh.sphere', 'surf/rh.sphere',
+]
+pl.run(f'create_wm_surfaces_mprage_subject.csh --s {subj}', inputs, outputs)
+
+# Build pial surfaces
+inputs = ['surf/lh.white', 'surf/rh.white']
+outputs = ['surf/lh.pial', 'surf/rh.pial']
+pl.run(f'create_pial_surfaces_mprage_subject.csh --s {subj}', inputs, outputs)
+
+
+# ---- Step 5: Compute stats ----
+
+
+if not args.no_stats:
+
+    pl.copy('mri/aseg.mgz', 'mri/aseg.presurf.mgz')
+
+    cmd = (
+        'mris_volmask --label_left_white 2 --label_left_ribbon 3 '
+        '--label_right_white 41 --label_right_ribbon 42 '
+        f'--save_ribbon --save_distance {subj}'
+    )
+    inputs = [
+        'mri/aseg.mgz',
+        'surf/lh.white', 'surf/rh.white',
+        'surf/lh.pial', 'surf/rh.pial',
+    ]
+    outputs = ['mri/ribbon.mgz', 'mri/lh.ribbon.mgz', 'mri/rh.ribbon.mgz']
+    pl.run(cmd, inputs, outputs)
+
+    for hemi in ('lh', 'rh'):
+        inputs = [
+            'mri/aseg.presurf.mgz', 'mri/wm.mgz',
+            'surf/lh.white', 'surf/lh.pial',
+            'surf/rh.white', 'surf/rh.pial'
+        ]
+        statsfile = f'stats/{hemi}.aparc.stats'
+        outputs = [statsfile, 'label/aparc.annot.ctab']
+        cmd = f'mris_anatomical_stats -th3 -mgz -f {statsfile} -b -a aparc.annot -c label/aparc.annot.ctab {subj} {hemi}'
+        pl.run(cmd, inputs, outputs)
+
+    # Base options for mri_segstats
+    options = '--seg mri/aseg.mgz --sum stats/aseg.stats --pv mri/norm.mgz --empty --brainmask mri/brainmask.mgz --brain-vol-from-seg' \
+    ' --excludeid 0 --excl-ctxgmwm --supratent --subcortgray --in mri/norm.mgz --in-intensity-name norm --in-intensity-units MR' \
+    ' --surf-wm-vol --surf-ctx-vol --totalgray --euler --ctab $FREESURFER_HOME/ASegStatsLUT.txt --subject ' + subj
+
+    inputs = [
+        'mri/norm.mgz',
+        'mri/brainmask.mgz',
+        'mri/aseg.mgz',
+    ]
+    outputs = 'stats/aseg.stats'
+
+    # TODO: Needs further testing (12/06/2020)
+    if subj_age is None or subj_age < 12:
+        etiv = 'stats/eTIV.txt'
+        template = '$FREESURFER_HOME/average/all_c_robtemplate_affine_mean.05.01.2018.nii.gz'
+        base = 'mri/transforms/subj_2_common'
+        detfile = 'mri/transforms/det.txt'
+        mult = '400321.078176'  # see wiki for explanation
+        commands = [
+            f'reg_aladin -ref {template} -flo {masked} -aff {base}.txt -res {base}.nii.gz -voff',
+            f'lta_convert --inniftyreg {base}.txt --outlta {base}.lta --outmni {base}.xfm --src {masked} --trg {template}',
+            f'lta_diff {base}.lta --dist 5 >> {detfile}',
+            f'echo `tail -n 1 {detfile}` \* {mult} | bc -l >> {etiv}',
+        ]
+        pl.run(commands, inputs=masked, outputs=etiv)
+
+        pl.run(f'mri_segstats {options}', inputs, outputs)
+    else:
+        pl.run(f'mri_segstats --etiv {options}', inputs, outputs)
+
+
+# Compute aparc + aseg
+inputs = [
+    'mri/aseg.mgz', 'mri/ribbon.mgz',
+    'label/lh.aparc.annot', 'label/rh.aparc.annot',
+    'surf/lh.white', 'surf/rh.white',
+    'surf/lh.pial', 'surf/rh.pial',
+]
+outputs = 'mri/aparc+aseg.mgz'
+pl.run(f'mri_aparc2aseg --s {subj} --new-ribbon', inputs, outputs)
+
+
+# ---- Cleanup ----
+
+
+# cleanup
+if not args.no_cleanup:
+    if os.path.exists('work'):
+        shutil.rmtree('work')
+    for filename in glob.glob('surf/*.tmp'):
+        os.remove(filename)
+
+# All done!
+pl.done()

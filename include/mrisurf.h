@@ -8,7 +8,7 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -185,7 +185,6 @@ positive areas */
 #define IPFLAG_NOSCALE_TOL            0x8000   // don't scale tol with navgs
 #define IPFLAG_FORCE_GRADIENT_OUT    0x10000
 #define IPFLAG_FORCE_GRADIENT_IN     0x20000
-#define IPFLAG_FIND_FIRST_WM_PEAK    0x40000  // for Matt Glasser/David Van Essen
 
 #define INTEGRATE_LINE_MINIMIZE    0  /* use quadratic fit */
 #define INTEGRATE_MOMENTUM         1
@@ -229,12 +228,6 @@ typedef struct
 {
   MRI_SURFACE  *mris ;        /* surface it came from (if any) */
   IMAGE        *Ip ;
-#if 0
-  /* 2-d array of curvature, or sulc in parms */
-  float        data[X_DIM][Y_DIM] ;
-  float        distances[X_DIM][Y_DIM] ;
-  int          vertices[X_DIM][Y_DIM] ;   /* vertex numbers */
-#endif
   float        sigma ;                    /* blurring scale */
   float        radius ;
   float        scale ;
@@ -262,8 +255,8 @@ MRI_SURFACE_PARAMETERIZATION, MRI_SP ;
 /* VECTORIAL_REGISTRATION */
 #include "field_code.h"
 
-typedef struct INTEGRATION_PARMS
-{
+class INTEGRATION_PARMS {
+ public:
   double  tol ;               /* tolerance for terminating a step */
   float   l_angle ;           /* coefficient of angle term */
   float   l_pangle ;          /* coefficient of "positive" angle term - only penalize narrower angles */
@@ -452,11 +445,58 @@ typedef struct INTEGRATION_PARMS
   double       stressthresh ;
   int          explode_flag ;
   
-  INTEGRATION_PARMS() : fp(NULL) {}
-  INTEGRATION_PARMS(FILE* file) : fp(file) {}
+  /*
+    Introduce all initializers in an effort to avoid some memset() calls
+    which gcc8 finds unsettling.
+
+    I do find myself contemplating whether this class may benefit from
+    some splitting up - whether by composition, inheritance, or both.
+   */
+  INTEGRATION_PARMS(FILE* file = nullptr)
+    : tol(0), l_angle(0), l_pangle(0), l_area(0), l_parea(0),
+      l_nlarea(0), l_nldist(0), l_thick_normal(0), l_thick_spring(0),
+      l_ashburner_triangle(0), l_ashburner_lambda(0), l_corr(0),
+      l_ocorr(0), l_pcorr(0), l_curv(0), l_norm(0), l_scurv(0), l_lap(0),
+      l_link(0), l_spring(0), l_nlspring(0), l_max_spring(0),
+      l_spring_norm(0), l_tspring(0), l_nltspring(0), l_nspring(0),
+      l_spring_nzr(0), l_spring_nzr_len(0), l_hinge(0), l_repulse(0),
+      l_repulse_ratio(0), l_boundary(0), l_dist(0), l_location(0),
+      l_neg(0), l_intensity(0), l_sphere(0), l_expand(0), l_grad(0),
+      l_convex(0), l_tsmooth(0), l_surf_repulse(0), l_osurf_repulse(0),
+      l_external(0), l_thick_parallel(0), l_thick_min(0), l_shrinkwrap(0),
+      l_expandwrap(0), l_unfold(0), l_dura(0), l_histo(0), l_map(0),
+      l_map2d(0), dura_thresh(0), mri_dura(nullptr), n_averages(0),
+      min_averages(0), first_pass_averages(0), nbhd_size(0), max_nbrs(0),
+      write_iterations(0),
+      base_name(), /* Should default initialize array to zero */
+      projection(0), niterations(0), a(0), b(0), c(0), start_t(0), t(0),
+      fp(file), // Highlighted as the sole configurable value
+      Hdesired(0), integration_type(0), momentum(0), dt(0), base_dt(0),
+      flags(0), dt_increase(0), dt_decrease(0), error_ratio(0), epsilon(0),
+      desired_rms_height(0), starting_sse(0), ending_sse(0), scale(0),
+      mrisp(nullptr), frame_no(0), mrisp_template(nullptr),
+      mrisp_blurred_template(nullptr), area_coef_scale(0), sigma(0),
+      nfields(0),
+      fields(), /* Array should initialize to zero */
+      mri_brain(nullptr), mri_smooth(nullptr), user_parms(nullptr),
+      mri_dist(nullptr), target_radius(0), ignore_energy(0), check_tol(0),
+      overlay_dir(nullptr), nsurfaces(0), mri_ll(nullptr), rmin(0), rmax(0),
+      var_smoothness(0), vsmoothness(nullptr), dist_error(nullptr),
+      area_error(nullptr), geometry_error(nullptr), which_norm(0),
+      abs_norm(0), grad_dir(0), fill_interior(0), rms(0), complete_dist_mat(0),
+      nsubjects(0), nlabels(0), mht_array(nullptr), mris_array(nullptr),
+      mris_ico(nullptr), mht(nullptr), smooth_averages(0), ico_order(0),
+      remove_neg(0), mri_hires(nullptr), mri_hires_smooth(nullptr),
+      mri_vno(nullptr), mri_template(nullptr), which_surface(0),
+      trinarize_thresh(0), nonmax(0), smooth_intersections(0), uncompress(0),
+      min_dist(0), h_wm(nullptr), h_gm(nullptr), h_nonbrain(nullptr),
+      mri_labels(nullptr), mri_white(nullptr), mri_aseg(nullptr), hwm(nullptr),
+      hgm(nullptr), hout(nullptr), h2d_wm(nullptr), h2d_gm(nullptr), 
+      h2d_out(nullptr), h2d(nullptr), mri_volume_fractions(nullptr), 
+      mri_dtrans(nullptr), resolution(0), target_intensity(0), stressthresh(0),
+      explode_flag(0) {}
   
-}
-INTEGRATION_PARMS ;
+};
 
 void INTEGRATION_PARMS_copy   (INTEGRATION_PARMS* dst, INTEGRATION_PARMS const * src);
 
@@ -688,11 +728,6 @@ int          MRISvertexCoordToVoxel(MRI_SURFACE *, VERTEX *v, MRI *mri,
                                     int coord,
                                     double *pxv, double *pyv,
                                     double *pzv) ;
-#if 0
-int          MRISworldToTalairachVoxel(MRI_SURFACE *mris, MRI *mri,
-                                       double xw, double yw, double zw,
-                                       double *pxv, double *pyv, double *pzv) ;
-#endif
 
 int          MRISsurfaceRASToVoxel(MRI_SURFACE *mris, MRI *mri, double r, 
                                    double a, double s, 
@@ -992,26 +1027,15 @@ int MRISsaveNormals   (MRIS *mris, int which) ;
 #define NO_HEMISPHERE           2
 #define BOTH_HEMISPHERES        3
 
-#if 0
-#define DEFAULT_A  44.0f
-#define DEFAULT_B  122.0f
-#define DEFAULT_C  70.0f
-#else
 #define DEFAULT_A  122.0f
 #define DEFAULT_B  122.0f
 #define DEFAULT_C  122.0f
-#endif
 #define DEFAULT_RADIUS  100.0f
 
 #define MAX_DIM    DEFAULT_B
 
-#if 1
 #define DT_INCREASE  1.1 /* 1.03*/
 #define DT_DECREASE  0.5
-#else
-#define DT_INCREASE  1.0 /* 1.03*/
-#define DT_DECREASE  1.0
-#endif
 #define DT_MIN       0.01
 #ifdef ERROR_RATIO
 #undef ERROR_RATIO
@@ -1058,13 +1082,8 @@ int   MRISsoapBubbleOrigVertexPositions(MRI_SURFACE *mris, int navgs) ;
 int   MRISsoapBubbleTargetVertexPositions(MRI_SURFACE *mris, int navgs) ;
 MRI   *MRISwriteSurfaceIntoVolume(MRI_SURFACE *mris, MRI *mri_template,
                                   MRI *mri) ;
-#if 0
-int   MRISmeasureCorticalThickness(MRI_SURFACE *mris, MRI *mri_brain,
-                                   MRI *mri_wm, float nsigma) ;
-#else
 int   MRISmeasureCorticalThickness(MRI_SURFACE *mris, int nbhd_size,
                                    float max_thickness) ;
-#endif
 
 int  MRISmeasureThicknessFromCorrespondence(MRI_SURFACE *mris, MHT *mht, float max_thick) ;
 int MRISfindClosestOrigVertices(MRI_SURFACE *mris, int nbhd_size) ;
@@ -1110,6 +1129,13 @@ int   MRISaccumulateStandardErrorsOnSurface(MRI_SURFACE *mris,
     int total_dof,int new_dof);
 #define GRAY_WHITE     1
 #define GRAY_CSF       2
+int
+MRIScomputeBorderValuesV6(MRI_SURFACE *mris,MRI *mri_brain,
+			  MRI *mri_smooth, double inside_hi, double border_hi,
+			  double border_low, double outside_low, double outside_hi,
+			  double sigma, float max_thickness, FILE *log_fp,
+			  int which, MRI *mri_mask, double thresh,
+			  int flags,  MRI *mri_aseg,int junk1, int junk2);
 int
 MRIScomputeMaxGradBorderValuesPial(MRI_SURFACE *mris,MRI *mri_brain,
                                    MRI *mri_smooth, double sigma,
@@ -1403,7 +1429,6 @@ typedef struct
                                          surface in mris_total vertices */
 }
 MRI_SURFACE_ARRAY, MSA ;
-#if 1
 float  MRISdistanceToSurface(MRI_SURFACE *mris, MHT *mht,
                              float x0, float y0, float z0,
                              float nx, float ny, float nz) ;
@@ -1412,7 +1437,6 @@ int    MRISexpandSurface(MRI_SURFACE *mris,
                          INTEGRATION_PARMS *parms, int use_thickness, int nsurfaces) ;
 int MRISripZeroThicknessRegions(MRI_SURFACE *mris) ;
 
-#endif
 
 /* cortical ribbon */
 MRI   *MRISribbon(MRI_SURFACE *inner_mris,
@@ -1690,21 +1714,6 @@ MRIS*  MRISfromVerticesAndFaces(const float *vertices, int nvertices, const int 
 
 #define MRISgetCoords(v,c,vx,vy,vz) \
  MRISvertexCoord2XYZ_float(v,c,vx,vy,vz)
-#if 0 
- switch(c) { \
-   case ORIGINAL_VERTICES:  (*vx) = (v)->origx;  (*vy) = (v)->origy;  (*vz) = (v)->origz; break; \
-   case TMP_VERTICES:       (*vx) = (v)->tx;     (*vy) = (v)->ty;     (*vz) = (v)->tz; break; \
-   case CANONICAL_VERTICES: (*vx) = (v)->cx;     (*vy) = (v)->cy;     (*vz) = (v)->cz; break; \
-   case CURRENT_VERTICES:   (*vx) = (v)->x;      (*vy) = (v)->y;      (*vz) = (v)->z; break; \
-   case TARGET_VERTICES:    (*vx) = (v)->targx;  (*vy) = (v)->targy;  (*vz) = (v)->targz; break; \
-   case INFLATED_VERTICES:  (*vx) = (v)->infx;   (*vy) = (v)->infy;   (*vz) = (v)->infz; break; \
-   case FLATTENED_VERTICES: (*vx) = (v)->fx;     (*vy) = (v)->fy;     (*vz) = (v)->fz; break; \
-   case PIAL_VERTICES:      (*vx) = (v)->pialx;  (*vy) = (v)->pialy;  (*vz) = (v)->pialz; break; \
-   case TMP2_VERTICES:      (*vx) = (v)->t2x;    (*vy) = (v)->t2y;    (*vz) = (v)->t2z; break; \
-   case WHITE_VERTICES:     (*vx) = (v)->whitex; (*vy) = (v)->whitey; (*vz) = (v)->whitez; break; \
-   default: break; \
- }
-#endif
 
 int MRISlogOdds(MRI_SURFACE *mris, LABEL *area, double slope)  ;
 MRI_SP  *MRISPorLabel(MRI_SP *mrisp, MRI_SURFACE *mris, LABEL *area) ;
@@ -2419,16 +2428,6 @@ struct face_topology_type_ {    // not used much yet
 
 // Static function implementations
 //
-#if 0
-static CONST_EXCEPT_MRISURF_TOPOLOGY short* pVERTEXvnum(VERTEX_TOPOLOGY CONST_EXCEPT_MRISURF_TOPOLOGY * v, int i) {
-  switch (i) {
-  case 1: return &v->vnum;
-  case 2: return &v->v2num;
-  case 3: return &v->v3num;
-  default: cheapAssert(false); return NULL;
-  }    
-}
-#endif
 
 short        modVnum  (MRIS const *mris, int vno, short add, bool clearFirst = false);
 static short setVnum  (MRIS const *mris, int vno, short to)     { return modVnum(mris,vno, to,true );     }
@@ -2465,8 +2464,10 @@ static bool mrisVerticesAreNeighbors(MRIS const * const mris, int const vno1, in
 int MRISripMidline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, const char *hemi, int which, int fix_mtl);
 int MRIcomputeLabelNormal(MRI *mri_aseg, int x0, int y0, int z0,int label, int whalf, double *pnx, double *pny,
 			  double *pnz, int use_abs);
+int MRIScopyCoords(MRIS *surf, MRIS *surfcoords);
 int MRISfindExpansionRegions(MRI_SURFACE *mris);
 int MRISwriteField(MRIS *surf, const char **fields, int nfields, const char *outname);
+MRI *MRISflatMap2MRI(MRIS *flatmap, MRI *overlay, double res, int DoAverage, MRI *out);
 
 /**
   class AutoDetGWStats. This class houses functions used to compute
@@ -2515,6 +2516,7 @@ public:
   double white_inside_hi;
   double white_border_hi;
   double white_border_low;
+  double white_border_low_factor=1;
   double white_outside_low;
   double white_outside_hi;
   double pial_inside_hi;

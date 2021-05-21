@@ -4,6 +4,22 @@
 #include "kvlAtlasMesh.h"
 
 
+/*
+  If defined, this enables complete reproducibility across
+  number of threads. Normally, results are always deterministic
+  for a given number of threads, but not across threads, as
+  floating-point arithmetic will produce small but cascading
+  errors within the per-thread accumulators. However, using a
+  high-precision data type (float128) for the thread accumulator
+  is enough to keep floating-point rounding errors at bay.
+  Enabling this increases average runtime by 20% or more.
+*/
+#ifdef CROSS_THREAD_REPRODUCIBLE
+  #define ThreadAccumDataType __float128
+#else
+  #define ThreadAccumDataType double
+#endif
+
 
 namespace kvl
 {

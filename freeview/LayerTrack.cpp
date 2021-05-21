@@ -1,7 +1,7 @@
 /*
  * Original Author: Ruopeng Wang
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -29,10 +29,13 @@
 #include <vtkRenderer.h>
 #include <vtkTubeFilter.h>
 #include <vtkUnsignedCharArray.h>
+#include <vtkFloatArray.h>
 #include <vtkPointData.h>
 #include <vtkProperty.h>
 #include <vtkLODActor.h>
 #include "MyUtils.h"
+#include "vtkRGBAColorTransferFunction.h"
+#include "vtkDataArray.h"
 
 LayerTrack::LayerTrack(LayerMRI* ref, QObject* parent, bool bCluster) : Layer(parent),
   m_trackData(0),
@@ -45,8 +48,13 @@ LayerTrack::LayerTrack(LayerMRI* ref, QObject* parent, bool bCluster) : Layer(pa
   connect(mProperty, SIGNAL(DirectionSchemeChanged(int)), this, SLOT(RebuildActors()));
   connect(mProperty, SIGNAL(DirectionMappingChanged(int)), this, SLOT(RebuildActors()));
   connect(mProperty, SIGNAL(SolidColorChanged(QColor)), this, SLOT(UpdateColor()));
+  connect(mProperty, SIGNAL(ScalarColorMapChanged(int)), this, SLOT(UpdateColor()));
+  connect(mProperty, SIGNAL(ScalarIndexChanged(int)), this, SLOT(UpdateColor()));
+  connect(mProperty, SIGNAL(ScalarThresholdChanged(double, double)), this, SLOT(UpdateColor()));
   connect(mProperty, SIGNAL(RenderRepChanged()), this, SLOT(RebuildActors()));
   connect(mProperty, SIGNAL(OpacityChanged(double)), this, SLOT(UpdateOpacity(double)));
+
+  m_colorTable = vtkSmartPointer<vtkRGBAColorTransferFunction>::New();
 }
 
 LayerTrack::~LayerTrack()
@@ -58,6 +66,11 @@ LayerTrack::~LayerTrack()
   foreach (vtkActor* actor, m_actors)
     actor->Delete();
   m_actors.clear();
+}
+
+QStringList LayerTrack::GetScalarNames()
+{
+  return m_trackData?m_trackData->m_scalarNames:QStringList();
 }
 
 bool LayerTrack::LoadTrackFromFiles()
@@ -84,6 +97,8 @@ bool LayerTrack::LoadTrackFromFiles()
     SetName(QFileInfo(m_sFilename).dir().dirName());
   else
     SetName(QFileInfo(m_sFilename).completeBaseName());
+
+  GetProperty()->InitializeScalarThreshold(m_trackData->m_rangeScalar);
 
   if (m_trackData->HasEmbeddedColor())
   {
@@ -147,7 +162,25 @@ void LayerTrack::RebuildActors()
   vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
   vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
   vtkSmartPointer<vtkUnsignedCharArray> scalars = vtkSmartPointer<vtkUnsignedCharArray>::New();
+  vtkSmartPointer<vtkFloatArray> scalar_array[100];
   scalars->SetNumberOfComponents(4);
+  QList<vtkDataArray*> scalarList;
+  QStringList scalarNames = GetScalarNames();
+  if (GetProperty()->GetColorCode() == LayerPropertyTrack::Scalar)
+  {
+    int m = 0;
+    foreach (QString name, scalarNames)
+    {
+      vtkSmartPointer<vtkFloatArray> fa = vtkSmartPointer<vtkFloatArray>::New();
+      fa->SetName(qPrintable(name));
+      scalarList << fa;
+      scalar_array[m++] = fa;
+    }
+  }
+  else
+  {
+    scalarList << scalars;
+  }
   int nLimit = 1000000;
   int nCount = 0;
   float vals[4] = { 0,0,0,255 };
@@ -155,46 +188,78 @@ void LayerTrack::RebuildActors()
   for (int i = 0; i < m_trackData->m_tracks.size(); i++)
   {
     Track& t = m_trackData->m_tracks[i];
-    lines->InsertNextCell(t.nNum);
-    if (p->GetColorCode() == LayerPropertyTrack::EmbeddedColor)
+    lines->InsertNextCell(t.nNum);    
+    if (p->GetColorCode() == LayerPropertyTrack::Scalar)
     {
-      vals[0] = t.charColor[0];
-      vals[1] = t.charColor[1];
-      vals[2] = t.charColor[2];
-    }
-    else if (p->GetDirectionScheme() == LayerPropertyTrack::EndPoints)
-      VectorToColor(t.fPts, t.fPts + (t.nNum-1)*3, vals, p->GetDirectionMapping());
-    else if (p->GetDirectionScheme() == LayerPropertyTrack::MidSegment)
-      VectorToColor(t.fPts+t.nNum/2*3, t.fPts+(t.nNum/2-1)*3, vals, p->GetDirectionMapping());
-    for (int n = 0; n < t.nNum; n++)
-    {
-      points->InsertNextPoint(t.fPts + n*3);
-      lines->InsertCellPoint(nCount);
-      if (p->GetDirectionScheme() == LayerPropertyTrack::EverySegment)
+      for (int n = 0; n < t.nNum; n++)
       {
-        if (n == 0)
-          VectorToColor(t.fPts+n*3, t.fPts+n*3+3, vals, p->GetDirectionMapping());
-        else
-          VectorToColor(t.fPts+n*3, t.fPts+n*3-3, vals, p->GetDirectionMapping());
+        points->InsertNextPoint(t.fPts + n*3);
+        lines->InsertCellPoint(nCount);
+        for (int j = 0; j < scalarList.size(); j++)
+        {
+            scalar_array[j]->InsertNextValue(t.fScalars[j][n]);
+        }
+        nCount++;
       }
+    }
+    else
+    {
+      if (p->GetColorCode() == LayerPropertyTrack::EmbeddedColor)
+      {
+        vals[0] = t.charColor[0];
+        vals[1] = t.charColor[1];
+        vals[2] = t.charColor[2];
+      }
+      else if (p->GetDirectionScheme() == LayerPropertyTrack::EndPoints)
+        VectorToColor(t.fPts, t.fPts + (t.nNum-1)*3, vals, p->GetDirectionMapping());
+      else if (p->GetDirectionScheme() == LayerPropertyTrack::MidSegment)
+        VectorToColor(t.fPts+t.nNum/2*3, t.fPts+(t.nNum/2-1)*3, vals, p->GetDirectionMapping());
+      for (int n = 0; n < t.nNum; n++)
+      {
+        points->InsertNextPoint(t.fPts + n*3);
+        lines->InsertCellPoint(nCount);
+        if (p->GetDirectionScheme() == LayerPropertyTrack::EverySegment)
+        {
+          if (n == 0)
+            VectorToColor(t.fPts+n*3, t.fPts+n*3+3, vals, p->GetDirectionMapping());
+          else
+            VectorToColor(t.fPts+n*3, t.fPts+n*3-3, vals, p->GetDirectionMapping());
+        }
 
-      scalars->InsertNextTuple(vals);
-      nCount++;
+        scalars->InsertNextTuple(vals);
+        nCount++;
+      }
     }
     if (nCount > nLimit)
     {
-      vtkActor* actor = ConstructActor(points, lines, scalars);
+      vtkActor* actor = ConstructActor(points, lines, scalarList);
       m_actors << actor;
       points = vtkSmartPointer<vtkPoints>::New();
       lines = vtkSmartPointer<vtkCellArray>::New();
-      scalars = vtkSmartPointer<vtkUnsignedCharArray>::New();
-      scalars->SetNumberOfComponents(4);
+      scalarList.clear();
+      if (GetProperty()->GetColorCode() == LayerPropertyTrack::Scalar)
+      {
+        int m = 0;
+        foreach (QString name, scalarNames)
+        {
+          vtkSmartPointer<vtkFloatArray> fa = vtkSmartPointer<vtkFloatArray>::New();
+          fa->SetName(qPrintable(name));
+          scalarList << fa;
+          scalar_array[m++] = fa;
+        }
+      }
+      else
+      {
+        scalars = vtkSmartPointer<vtkUnsignedCharArray>::New();
+        scalars->SetNumberOfComponents(4);
+        scalarList << scalars;
+      }
       nCount = 0;
     }
   }
   if (nCount > 0)
   {
-    vtkActor* actor = ConstructActor(points, lines, scalars);
+    vtkActor* actor = ConstructActor(points, lines, scalarList);
     m_actors << actor;
   }
 
@@ -205,13 +270,53 @@ void LayerTrack::RebuildActors()
 
 void LayerTrack::UpdateColor(bool emitSignal)
 {
-  QColor qc = GetProperty()->GetSolidColor();
-  double c[3] = {qc.redF(), qc.greenF(), qc.blueF()};
+  int nCode = GetProperty()->GetColorCode();
   foreach (vtkActor* actor, m_actors)
+    actor->GetMapper()->SetScalarVisibility(nCode != LayerPropertyTrack::SolidColor);
+  if (nCode == LayerPropertyTrack::SolidColor)
   {
-    actor->GetProperty()->SetColor(c);
-    actor->GetMapper()->SetScalarVisibility(GetProperty()->GetColorCode() != LayerPropertyTrack::SolidColor);
+    QColor qc = GetProperty()->GetSolidColor();
+    double c[3] = {qc.redF(), qc.greenF(), qc.blueF()};
+    foreach (vtkActor* actor, m_actors)
+      actor->GetProperty()->SetColor(c);
   }
+  else if (nCode == LayerPropertyTrack::Scalar)
+  {
+    int nMap = GetProperty()->GetScalarColorMap();
+    double th[2];
+    GetProperty()->GetScalarThreshold(th);
+    if (th[1] <= th[0])
+      th[1] = th[0]+1;
+    m_colorTable->RemoveAllPoints();
+    switch (nMap)
+    {
+    case LayerPropertyTrack::Heatscale:
+      m_colorTable->AddRGBAPoint( th[0], 1, 0, 0, 1 );
+      m_colorTable->AddRGBAPoint( th[1], 1, 1, 0, 1 );
+      m_colorTable->Build();
+      break;
+    case LayerPropertyTrack::Jet:
+      m_colorTable->AddRGBAPoint( qMin( 0.0, th[0]), 0, 0, 0, 0 );
+      m_colorTable->AddRGBAPoint( th[0], 0, 0, 1, 1 );
+      m_colorTable->AddRGBAPoint( th[0] + (th[1] - th[0]) / 4, 0, 1, 1, 1 );
+      m_colorTable->AddRGBAPoint( (th[0] + th[1]) / 2, 0, 1, 0, 1 );
+      m_colorTable->AddRGBAPoint( th[1] - (th[1] - th[0]) / 4, 1, 1, 0, 1 );
+      m_colorTable->AddRGBAPoint( th[1], 1, 0, 0, 1 );
+      m_colorTable->Build();
+      break;
+    }
+
+    QStringList names = GetScalarNames();
+    int n = GetProperty()->GetScalarIndex();
+    foreach (vtkActor* actor, m_actors)
+    {
+      actor->GetMapper()->SetLookupTable(m_colorTable);
+      vtkPolyData* poly = vtkPolyData::SafeDownCast(actor->GetMapper()->GetInput());
+      if (poly)
+        poly->GetPointData()->SetActiveScalars(qPrintable(names[n]));
+    }
+  }
+
   if (emitSignal)
     emit ActorUpdated();
 }
@@ -256,7 +361,7 @@ void LayerTrack::VectorToColor(float *pt1, float *pt2, float *c_out, int nMappin
   c_out[2] = fabs(v[2])*255;
 }
 
-vtkActor* LayerTrack::ConstructActor(vtkPoints *points, vtkCellArray *lines, vtkUnsignedCharArray *scalars)
+vtkActor* LayerTrack::ConstructActor(vtkPoints *points, vtkCellArray *lines, QList<vtkDataArray*> scalars)
 {
   vtkActor* actor = vtkActor::New();
 #if VTK_MAJOR_VERSION > 5
@@ -265,11 +370,14 @@ vtkActor* LayerTrack::ConstructActor(vtkPoints *points, vtkCellArray *lines, vtk
   vtkSmartPointer<vtkPolyData> polydata = vtkSmartPointer<vtkPolyData>::New();
   polydata->SetPoints(points);
   polydata->SetLines(lines);
-  polydata->GetPointData()->SetScalars(scalars);
+  polydata->GetPointData()->SetScalars(scalars[0]);
+  for (int i = 1; i < scalars.size(); i++)
+    polydata->GetPointData()->AddArray(scalars[i]);
   vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
   if (GetProperty()->GetRenderRep() == LayerPropertyTrack::Tube)
   {
     vtkSmartPointer<vtkTubeFilter> tube = vtkSmartPointer<vtkTubeFilter>::New();
+    tube->CappingOn();
 #if VTK_MAJOR_VERSION > 5
     tube->SetInputData(polydata);
 #else
@@ -347,4 +455,22 @@ void LayerTrack::UpdateOpacity(double val)
   foreach(vtkActor* actor, m_actors)
     actor->GetProperty()->SetOpacity(val);
   emit ActorUpdated();
+}
+
+void LayerTrack::GetScalarRange(double *range, int nIndex)
+{
+  if (nIndex < 0)
+    nIndex = GetProperty()->GetScalarIndex();
+
+  QList< QPair<double, double> > ranges = m_trackData->m_rangeScalar;
+  if (nIndex < ranges.size())
+  {
+    range[0] = ranges[nIndex].first;
+    range[1] = ranges[nIndex].second;
+  }
+}
+
+vtkRGBAColorTransferFunction* LayerTrack::GetColorTable() const
+{
+  return m_colorTable;
 }

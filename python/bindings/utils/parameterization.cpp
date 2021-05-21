@@ -1,26 +1,38 @@
 #include "surface.h"
+#include "mrisp.h"
 
 namespace surf {
 
 
 /*
-  Parameterizes an nvertices-length overlay to a 256 x 512 image. Default method is barycentric.
+  Parameterizes an nvertices-length overlay to an image. Interp methods can be 'nearest' or
+  'barycentric'.
 */
-py::array parameterize(Bridge surf, const arrayf<float>& overlay)
+py::array parameterize(Bridge surf, const arrayf<float>& overlay, int scale, std::string interp)
 {
   // get frames and allocate mrisp
   int nframes = (overlay.ndim() == 2) ? overlay.shape(1) : 1;
-  MRI_SP *mrisp = MRISPalloc(1, nframes);
+  MRI_SP *mrisp = MRISPalloc(scale, nframes);
 
-  // parameterize
+  // configure projector
   MRIS *mris = surf.mris();
-  for (int frame = 0; frame < nframes ; frame++) {
-    const float* array = overlay.data() + frame * overlay.shape(0);
-    for (int vno = 0 ; vno < mris->nvertices ; vno++) mris->vertices[vno].curv = array[vno];
-    MRIStoParameterizationBarycentric(surf, mrisp, 1, frame);
+  SphericalProjector projector = SphericalProjector(mris, mrisp);
+  SphericalProjector::InterpMethod interpmethod;
+  if (interp == "nearest") {
+    interpmethod = SphericalProjector::Nearest;
+  } else if (interp == "barycentric") {
+    interpmethod = SphericalProjector::Barycentric;
+  } else {
+    throw py::value_error("unknown parameterization interpolation method");
   }
 
-  // convert to numpy array
+  // parameterize the overlay
+  for (int frame = 0; frame < nframes ; frame++) {
+    const float * array = overlay.data() + frame * overlay.shape(0);
+    projector.parameterizeOverlay(array, frame, interpmethod);
+  }
+
+  // convert MRISP to numpy array
   int udim = U_DIM(mrisp);
   int vdim = V_DIM(mrisp);
   float *const buffer = new float[udim * vdim * nframes];
@@ -33,16 +45,18 @@ py::array parameterize(Bridge surf, const arrayf<float>& overlay)
     }
   }
   MRISPfree(&mrisp);
+
   return makeArray({udim, vdim, nframes}, MemoryOrder::Fortran, buffer);
 }
 
 
 /*
-  Samples a 256 x 512 parameterization into an nvertices-length overlay. Sampling method is barycentric.
+  Samples a parameterization into an nvertices-length overlay. Interp methods can be 'nearest' or
+  'barycentric'.
 */
-py::array sampleParameterization(Bridge surf, const arrayf<float>& image)
+py::array sampleParameterization(Bridge surf, const arrayf<float>& image, std::string interp)
 {
-  // get number of frames
+  // extract number of frames
   int nframes = (image.ndim() == 3) ? image.shape(2) : 1;
 
   // init MRISP
@@ -52,7 +66,7 @@ py::array sampleParameterization(Bridge surf, const arrayf<float>& image)
   int vdim = V_DIM(mrisp);
   if ((image.shape(0) != udim) || (image.shape(1) != vdim)) throw py::value_error("parameterization image does not match scale");
 
-  // copy pixel values from image into MRISP
+  // convert numpy array image to MRISP
   float const *iptr = image.data();
   for (int f = 0; f < nframes ; f++) {
     for (int v = 0; v < vdim; v++) {
@@ -62,14 +76,26 @@ py::array sampleParameterization(Bridge surf, const arrayf<float>& image)
     }
   }
 
-  // sample and save results into numpy array
+  // init spherical projector
   MRIS *mris = surf.mris();
+  SphericalProjector projector = SphericalProjector(mris, mrisp);
+  SphericalProjector::InterpMethod interpmethod;
+  if (interp == "nearest") {
+    interpmethod = SphericalProjector::Nearest;
+  } else if (interp == "barycentric") {
+    interpmethod = SphericalProjector::Barycentric;
+  } else {
+    throw py::value_error("unknown parameterization interpolation method");
+  }
+
+  // sample MRISP
   float *const buffer = new float[mris->nvertices * nframes];
   float *vptr = buffer;
   for (int frame = 0; frame < nframes ; frame++) {
-    MRISfromParameterizationBarycentric(mrisp, mris, frame);
-    for (int v = 0 ; v < mris->nvertices ; v++) *vptr++ = mris->vertices[v].curv;
+    projector.sampleParameterization(vptr, frame, interpmethod);
+    vptr += mris->nvertices;
   }
+
   return makeArray({mris->nvertices, nframes}, MemoryOrder::Fortran, buffer);
 }
 

@@ -1,7 +1,7 @@
 /*
  * Original Author: Ruopeng Wang
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -75,10 +75,14 @@ DialogPreferences::DialogPreferences(QWidget *parent) :
   connect(ui->radioButtonThemeDark, SIGNAL(toggled(bool)),
           mainwnd->GetCommandConsole(), SLOT(SetDarkTheme(bool)));
 
+  connect(ui->comboBox3DScaleStyle, SIGNAL(currentIndexChanged(int)), ((RenderView3D*)mainwnd->GetRenderView(3)), SLOT(SetAxesFlyMode(int)));
+
+  ui->checkBoxMacUnified->hide();
+
 #ifdef Q_OS_MAC
   ui->groupBoxMac->setEnabled(true);
   ui->groupBoxMac->show();
-  connect(ui->checkBoxMacUnified, SIGNAL(toggled(bool)), mainwnd, SLOT(SetUnifiedTitleAndToolBar(bool)));
+//  connect(ui->checkBoxMacUnified, SIGNAL(toggled(bool)), mainwnd, SLOT(SetUnifiedTitleAndToolBar(bool)));
   connect(ui->checkBoxCommandKey, SIGNAL(toggled(bool)), mainwnd, SLOT(SetUseCommandControl(bool)));
 #else
   ui->groupBoxMac->setEnabled(false);
@@ -101,6 +105,7 @@ DialogPreferences::DialogPreferences(QWidget *parent) :
   connect(ui->checkBoxAutoMidToMin, SIGNAL(toggled(bool)), mainwnd, SLOT(UpdateSettings()));
   connect(ui->spinBoxPrecision, SIGNAL(valueChanged(int)), mainwnd, SLOT(UpdateSettings()));
   connect(ui->checkBoxComma, SIGNAL(toggled(bool)), mainwnd, SLOT(UpdateSettings()));
+  connect(ui->checkBoxClickToLock, SIGNAL(toggled(bool)), mainwnd, SLOT(UpdateSettings()));
 
   connect(ui->spinBoxPrecision, SIGNAL(valueChanged(int)), mainwnd, SLOT(UpdateInfoPanel()), Qt::QueuedConnection);
   connect(ui->checkBoxComma, SIGNAL(toggled(bool)), mainwnd, SLOT(UpdateInfoPanel()), Qt::QueuedConnection);
@@ -115,8 +120,9 @@ DialogPreferences::DialogPreferences(QWidget *parent) :
     if (act)
     {
       combo->addItem(act->shortcut().toString());
-      for (int i = 1; i <= 10; i++)
+      for (int i = 1; i <= 12; i++)
         combo->addItem(tr("F%1").arg(i));
+      combo->addItem(tr("Pause"));
       combo->setCurrentIndex(0);
     }
     connect(combo, SIGNAL(currentIndexChanged(QString)), this, SLOT(OnComboShortcutChanged(QString)));
@@ -152,6 +158,8 @@ void DialogPreferences::SetSettings(const QVariantMap &map)
   ui->spinBoxFontSize->setValue(map["TextSize"].toInt());
   ui->spinBoxPrecision->setValue(map["Precision"].toInt());
   ui->checkBoxComma->setChecked(map["UseComma"].toBool());
+  ui->checkBoxClickToLock->setChecked(map["ClickToLock"].toBool());
+  ui->comboBox3DScaleStyle->setCurrentIndex(map["3DAxesFlyMode"].toInt());
 
   MainWindow* mainwnd = MainWindow::GetMainWindow();
   QString val = map.value("ShortcutCycleLayer").toString();
@@ -204,6 +212,8 @@ QVariantMap DialogPreferences::GetSettings()
   map["AutoScaleText"] = ui->checkBoxAutoScaleFont->isChecked();
   map["Precision"] = ui->spinBoxPrecision->value();
   map["UseComma"] = ui->checkBoxComma->isChecked();
+  map["ClickToLock"] = ui->checkBoxClickToLock->isChecked();
+  map["3DAxesFlyMode"] = ui->comboBox3DScaleStyle->currentIndex();
   return map;
 }
 
@@ -269,6 +279,7 @@ void DialogPreferences::SetActionShortcut(QAction *act, const QString &text)
   QList<QKeySequence> list = act->shortcuts();
   for (int i = 1; i <= 12; i++)
     list.removeAll(QKeySequence(tr("F%1").arg(i)));
+  list.removeAll(QKeySequence(tr("Pause")));
 
   if (!list.contains(QKeySequence(text)))
     list << QKeySequence(text);

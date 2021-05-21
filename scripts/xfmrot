@@ -21,7 +21,7 @@ endif
 grep -q processing $xforms
 if (! $status) then					# eddy_correct log file
   set xfmtype = eddy_correct
-  set matfile = /tmp/xfmrot.$$.mat
+  set matfile = `fs_temp_file --suffix .mat`
 else if (`head -n 1 $xforms | wc -w` == 16) then	# eddy log file
   set xfmtype = eddy
   set matfile = ()

@@ -1,7 +1,7 @@
 /*
  * Original Author: Ruopeng Wang
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -17,8 +17,10 @@
 
 #include <QTreeWidget>
 #include <QItemDelegate>
+#include <QList>
 
 class Layer;
+class LayerMRI;
 class QDropEvent;
 
 class MyItemDelegate : public QItemDelegate
@@ -47,6 +49,11 @@ public:
   void mouseMoveEvent(QMouseEvent *event);
   void mouseReleaseEvent(QMouseEvent *event);
 
+  QList<LayerMRI*> GetLinkedVolumes()
+  {
+      return m_linkedVolumes;
+  }
+
 signals:
   void ToReorderLayers(const QList<Layer*>& newlist);
 
@@ -57,6 +64,8 @@ public slots:
   void OnHideAll();
   void OnLockAll();
   void OnUnlockAll();
+  void OnLockOthers();
+  void OnUnlockOthers();
   void OnShowAllInfo();
   void OnHideAllInfo();
   void OnSetColorMap();
@@ -69,6 +78,9 @@ public slots:
   }
   void DeselectAll();
   void SetSelectedLayers(const QList<int>& layer_ids);
+  void OnLinkVolumes();
+  void OnUnlinkVolumes();
+  void LinkVolume(LayerMRI* vol);
 
 protected:
   bool event(QEvent* e);
@@ -78,6 +90,7 @@ protected:
   MyItemDelegate* m_itemDelegate;
   QRect         rectCheckbox;
   bool          m_bCheckBoxClicked;
+  QList<LayerMRI*>  m_linkedVolumes;
 };
 
 

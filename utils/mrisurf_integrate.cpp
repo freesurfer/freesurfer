@@ -4,7 +4,7 @@
 /*
  * surfaces Author: Bruce Fischl, extracted from mrisurf.c by Bevin Brett
  *
- * $ © copyright-2014,2018 The General Hospital Corporation (Boston, MA) "MGH"
+ * $ Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -282,7 +282,12 @@ static int mrisIntegrationEpoch(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int
     if (Gdiag & DIAG_WRITE) {
       char fname[STRLEN];
       if (!parms->fp) {
-        sprintf(fname, "%s.%s.out", mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh", parms->base_name);
+        int req = snprintf(fname, STRLEN, "%s.%s.out", 
+			   mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh", parms->base_name);   
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
+
         if (!parms->start_t) {
           INTEGRATION_PARMS_openFp(parms, fname, "w");
         }
@@ -407,7 +412,12 @@ int MRISintegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
   if (Gdiag & DIAG_WRITE && parms->fp == NULL) {
     char fname[STRLEN];
 
-    sprintf(fname, "%s.%s.out", mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh", parms->base_name);
+    int req = snprintf(fname, STRLEN, "%s.%s.out", 
+		       mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh", parms->base_name); 
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
+
     if (!parms->start_t) {
       INTEGRATION_PARMS_openFp(parms, fname, "w");
     }
@@ -524,7 +534,12 @@ int MRISintegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
       MRIsetVoxVal(mri_vector, vno, 0, 0, 2, zp - zw);
     }
 
-    sprintf(fname, "%s.%s.%3.3d.mgz", mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", parms->base_name, parms->t);
+    int req = snprintf(fname, STRLEN, "%s.%s.%3.3d.mgz",
+		       mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", parms->base_name, parms->t);  
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
+    
     printf("writing vectors to %s\n", fname);
     MRIwrite(mri_vector, fname);
     MRIfree(&mri_vector);
@@ -652,11 +667,16 @@ int MRISintegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
           MRIsetVoxVal(mri_vector, vno, 0, 0, 2, zp - zw);
         }
 
-        sprintf(fname,
-                "%s.%s.%3.3d.vec.mgz",
-                mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh",
-                parms->base_name,
-                parms->t + 1);
+        int req = snprintf(fname,
+			   STRLEN,
+			   "%s.%s.%3.3d.vec.mgz",
+			   mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh",
+			   parms->base_name,
+			   parms->t + 1);   
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
+
         printf("writing vectors to %s\n", fname);
         MRIwrite(mri_vector, fname);
         MRIfree(&mri_vector);
@@ -677,7 +697,6 @@ int MRISintegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
     if (parms->remove_neg && mris->neg_area > 0) {
       INTEGRATION_PARMS p;
       //      printf("removing overlap with smoothing\n") ;
-      memset(&p, 0, sizeof(p));
       p.niterations = 150;
       MRISremoveOverlapWithSmoothing(mris, &p);
     }
@@ -792,7 +811,12 @@ int MRISregister(MRI_SURFACE *mris,
   }
   Timer start;
   FileNamePath(mris->fname, path);
-  sprintf(base_name, "%s/%s.%s", path, mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", parms->base_name);
+  int req = snprintf(base_name, STRLEN, "%s/%s.%s",
+		     path, mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", parms->base_name);  
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
+  
 
   mrisComputeOriginalVertexDistances(mris);
   
@@ -813,7 +837,12 @@ int MRISregister(MRI_SURFACE *mris,
   
   base_dt = parms->dt;
   if (Gdiag & DIAG_WRITE) {
-    sprintf(fname, "%s.%s.out", mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh", parms->base_name);
+    int req = snprintf(fname, STRLEN, "%s.%s.out",
+		       mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh", parms->base_name);
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
+
     if (!parms->start_t) {
       INTEGRATION_PARMS_openFp(parms, fname, "w");
     }
@@ -855,7 +884,12 @@ int MRISregister(MRI_SURFACE *mris,
     ino = parms->frame_no = sno * IMAGES_PER_SURFACE;
     if (curvature_names[sno]) /* read in precomputed curvature file */
     {
-      sprintf(fname, "%s.%s", mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh", curvature_names[sno]);
+      int req = snprintf(fname, STRLEN, "%s.%s", 
+			 mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh", curvature_names[sno]); 
+      if( req >= STRLEN ) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
+
       printf("%d Reading %s\n", sno, fname);
       if (MRISreadCurvatureFile(mris, fname) != NO_ERROR)
         ErrorExit(Gerror, "%s: could not read curvature file '%s'\n", "MRISregister", fname);
@@ -868,7 +902,11 @@ int MRISregister(MRI_SURFACE *mris,
     }
     else /* compute curvature of surface */
     {
-      sprintf(fname, "%s", mrisurf_surface_names[sno]);
+      int req = snprintf(fname, STRLEN, "%s", mrisurf_surface_names[sno]);
+      if( req >= STRLEN ) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
+
       MRISsaveVertexPositions(mris, TMP_VERTICES);
       printf("%d Reading %s\n", sno, fname);
       if (MRISreadVertexPositions(mris, fname) != NO_ERROR)
@@ -879,8 +917,9 @@ int MRISregister(MRI_SURFACE *mris,
       MRIScomputeSecondFundamentalForm(mris);
       MRISuseMeanCurvature(mris);
       MRISnormalizeCurvature(mris, parms->which_norm);
-      if (parms->nonmax)
+      if (parms->nonmax) {
 	MRISnonmaxSuppress(mris) ;
+      }
       MRISresetNeighborhoodSize(mris, 1); /*only use nearest neighbor distances*/
 
       MRISrestoreVertexPositions(mris, TMP_VERTICES);
@@ -964,12 +1003,17 @@ int MRISregister(MRI_SURFACE *mris,
         MRIScomputeMetricProperties(mris);
         MRISfromParameterization(mrisp_template, mris, ino);
         MRISnormalizeCurvature(mris, parms->which_norm);
-        sprintf(fname,
-                "%s/%s.%s.target%d",
-                path,
-                mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh",
-                parms->base_name,
-                sno);
+        int req = snprintf(fname,
+			   STRLEN,
+			   "%s/%s.%s.target%d",
+			   path,
+			   mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh",
+			   parms->base_name,
+			   sno);    
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
+	
         MRISwriteCurvature(mris, fname);
         MRISrestoreVertexPositions(mris, TMP_VERTICES);
         MRIScomputeMetricProperties(mris);
@@ -1014,13 +1058,18 @@ int MRISregister(MRI_SURFACE *mris,
         MRIScomputeMetricProperties(mris);
 #endif
         MRISfromParameterization(mrisp_template, mris, ino);
-        sprintf(fname,
-                "%s/%s.%s.sno%d_target_blur%2.2f",
-                path,
-                mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh",
-                parms->base_name,
-                sno,
-                sigma);
+        int req = snprintf(fname,
+			   STRLEN,
+			   "%s/%s.%s.sno%d_target_blur%2.2f",
+			   path,
+			   mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh",
+			   parms->base_name,
+			   sno,
+			   sigma);
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
+	
         MRISwriteCurvature(mris, fname);
 #if 1
         MRISrestoreVertexPositions(mris, TMP_VERTICES);
@@ -1041,23 +1090,32 @@ int MRISregister(MRI_SURFACE *mris,
                                 to projectSurface */
 
       if (Gdiag & DIAG_WRITE) {
-        sprintf(fname,
-                "%s/%s.%s.sno%d_blur%2.2f",
-                path,
-                mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh",
-                parms->base_name,
-                sno,
-                sigma);
+        int req = snprintf(fname,
+			   STRLEN,
+			   "%s/%s.%s.sno%d_blur%2.2f",
+			   path,
+			   mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh",
+			   parms->base_name,
+			   sno,
+			   sigma);
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
+
         MRISwriteCurvature(mris, fname);
       }
       if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
-        sprintf(fname,
-                "%s/%s.%s.%4.4dblur%2.2f",
-                path,
-                mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh",
-                parms->base_name,
-                parms->start_t,
-                sigma);
+        int req = snprintf(fname,
+			   STRLEN,
+			   "%s/%s.%s.%4.4dblur%2.2f",
+			   path,
+			   mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh",
+			   parms->base_name,
+			   parms->start_t,
+			   sigma);
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
         if (Gdiag & DIAG_SHOW) {
           fprintf(stdout, "writing curvature file %s...", fname);
         }
@@ -1065,7 +1123,12 @@ int MRISregister(MRI_SURFACE *mris,
         if (Gdiag & DIAG_SHOW) {
           fprintf(stdout, "done.\n");
         }
-        sprintf(fname, "target.%s.%4.4d.hipl", parms->base_name, parms->start_t);
+        req = snprintf(fname, STRLEN, "target.%s.%4.4d.hipl",
+		       parms->base_name, parms->start_t);   
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
+       
         if (Gdiag & DIAG_SHOW) {
           fprintf(stdout, "writing parameterization file %s...", fname);
         }
@@ -1092,12 +1155,17 @@ int MRISregister(MRI_SURFACE *mris,
           if (Gdiag & DIAG_WRITE && parms->write_iterations != 0) {
             char fname[STRLEN], path[STRLEN];
             FileNamePath(mris->fname, path);
-            sprintf(fname,
-                    "%s/%s.%s.sno%d.rotated",
-                    path,
-                    mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh",
-                    parms->base_name,
-                    sno);
+            int req = snprintf(fname,
+			       STRLEN,
+			       "%s/%s.%s.sno%d.rotated",
+			       path,
+			       mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh",
+			       parms->base_name,
+			       sno);
+	    if( req >= STRLEN ) {
+	      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	    }
+	    
             printf("writing rigid aligned surface to %s\n", fname);
             MRISwrite(mris, fname);
           }
@@ -1207,11 +1275,21 @@ int MRISvectorRegister(MRI_SURFACE *mris,
   Timer start;
   MRISsaveVertexPositions(mris, ORIGINAL_VERTICES);
   FileNamePath(mris->fname, path);
-  sprintf(base_name, "%s/%s.%s", path, mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", parms->base_name);
+  int req = snprintf(base_name, STRLEN, "%s/%s.%s",
+		     path, mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", parms->base_name);
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
+
 
   base_dt = parms->dt;
   if (Gdiag & DIAG_WRITE) {
-    sprintf(fname, "%s.%s.out", mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh", parms->base_name);
+    int req = snprintf(fname, STRLEN, "%s.%s.out",
+		       mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh", parms->base_name);  
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
+
     if (!parms->start_t) {
       INTEGRATION_PARMS_openFp(parms, fname, "w");
       if (!parms->fp) ErrorExit(ERROR_NOFILE, "%s: could not open log file %s", Progname, fname);
@@ -1285,19 +1363,29 @@ int MRISvectorRegister(MRI_SURFACE *mris,
       char path[STRLEN];
       FileNamePath(mris->fname, path);
       if (parms->overlay_dir == NULL) {
-        sprintf(fname,
-                "%s/../label/%s.%s",
-                path,
-                mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh",
-                parms->fields[n].name);
+        int req = snprintf(fname,
+			   STRLEN,
+			   "%s/../label/%s.%s",
+			   path,
+			   mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh",
+			   parms->fields[n].name);  
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
+
       }
       else {
-        sprintf(fname,
-                "%s/../%s/%s.%s",
-                path,
-                parms->overlay_dir,
-                mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh",
-                parms->fields[n].name);
+        int req = snprintf(fname,
+			   STRLEN,
+			   "%s/../%s/%s.%s",
+			   path,
+			   parms->overlay_dir,
+			   mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh",
+			   parms->fields[n].name);    
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
+	
       }
       printf("reading overlay file %s...\n", fname);
       if (MRISreadValues(mris, fname) != NO_ERROR)
@@ -1309,8 +1397,12 @@ int MRISvectorRegister(MRI_SURFACE *mris,
     }
     else if (ReturnFieldName(parms->fields[n].field)) {
       /* read in precomputed curvature file */
-      sprintf(
-          fname, "%s.%s", mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh", ReturnFieldName(parms->fields[n].field));
+      int req = snprintf(fname, STRLEN, "%s.%s", 
+			 mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh", ReturnFieldName(parms->fields[n].field));
+      if( req >= STRLEN ) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
+
       if (MRISreadCurvatureFile(mris, fname) != NO_ERROR) {
         fprintf(stderr, "%s: could not read curvature file '%s'\n", "MRISvectorRegister", fname);
         fprintf(stderr, "setting up correlation coefficient to zero\n");
@@ -1320,7 +1412,11 @@ int MRISvectorRegister(MRI_SURFACE *mris,
     }
     else {
       /* compute curvature of surface */
-      sprintf(fname, "%s", mrisurf_surface_names[parms->fields[n].field]);
+      int req = snprintf(fname, STRLEN, "%s", mrisurf_surface_names[parms->fields[n].field]);   
+      if( req >= STRLEN ) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
+
       /*                        if(parms->fields[n].field==0) */
       /*                                sprintf(fname, "inflated") ; */
       /*                        else */
@@ -1361,7 +1457,12 @@ int MRISvectorRegister(MRI_SURFACE *mris,
     if (Gdiag & DIAG_WRITE && !i && !parms->start_t) {
       MRISfromParameterizations(parms->mrisp_template, mris, frames, indices, nframes);
       //      MRISnormalizeCurvature(mris, parms->fields[0].which_norm) ;
-      sprintf(fname, "%s/%s.%s.target", path, mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh", parms->base_name);
+      int req = snprintf(fname, STRLEN, "%s/%s.%s.target",
+			 path, mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh", parms->base_name); 
+      if( req >= STRLEN ) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
+      
       if (Gdiag & DIAG_SHOW) {
         fprintf(stdout, "writing curvature file %s...\n", fname);
       }
@@ -1383,13 +1484,17 @@ int MRISvectorRegister(MRI_SURFACE *mris,
     if (Gdiag & DIAG_WRITE) fprintf(parms->fp, "\ncorrelating surfaces with with sigma=%2.2f\n", sigma);
 
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
-      sprintf(fname,
-              "%s/%s.%s.%4.4dtarget%2.2f",
-              path,
-              mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh",
-              parms->base_name,
-              parms->start_t,
-              sigma);
+      int req = snprintf(fname,
+			 STRLEN,
+			 "%s/%s.%s.%4.4dtarget%2.2f",
+			 path,
+			 mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh",
+			 parms->base_name,
+			 parms->start_t,
+			 sigma);
+      if( req >= STRLEN ) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       if (Gdiag & DIAG_SHOW) {
         fprintf(stdout, "writing curvature file %s...", fname);
       }
@@ -2056,7 +2161,11 @@ int MRISminimizeThicknessFunctional(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
       MRISwriteWhiteNormals(mris, fname) ;
     }
 #endif
-    sprintf(fname, "%s.wnormals.a%3.3d.%s.mgz", base_name, navgs, parms->base_name);
+    int req = snprintf(fname, STRLEN, "%s.wnormals.a%3.3d.%s.mgz",
+		       base_name, navgs, parms->base_name);   
+    if( req >= STRLEN ) {   
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     printf("writing smoothed white matter surface normals to %s\n", fname);
     MRISwriteWhiteNormals(mris, fname);
   }
@@ -2070,7 +2179,11 @@ int MRISminimizeThicknessFunctional(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
   if (Gdiag & DIAG_WRITE) {
     char fname[STRLEN];
 
-    sprintf(fname, "%s.%s.out", mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh", parms->base_name);
+    int req = snprintf(fname, STRLEN, "%s.%s.out",
+		       mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh", parms->base_name);  
+    if( req >= STRLEN ) {   
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     if (!parms->fp) {
       if (!parms->start_t) {
         INTEGRATION_PARMS_openFp(parms, fname, "w");
@@ -2199,7 +2312,11 @@ MRI_SURFACE *MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_pas
   if (Gdiag & DIAG_WRITE) {
     char fname[STRLEN];
 
-    sprintf(fname, "%s.%s.out", mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh", parms->base_name);
+    int req = snprintf(fname, STRLEN, "%s.%s.out",
+		       mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh", parms->base_name); 
+    if( req >= STRLEN ) {   
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     if (!parms->fp) {
       if (!parms->start_t) {
         INTEGRATION_PARMS_openFp(parms, fname, "w");
@@ -2496,7 +2613,11 @@ MRI_SURFACE *MRISquickSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int ma
   if (Gdiag & DIAG_WRITE) {
     char fname[STRLEN];
 
-    sprintf(fname, "%s.%s.out", mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh", parms->base_name);
+    int req = snprintf(fname, STRLEN, "%s.%s.out",
+		       mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh", parms->base_name);
+    if( req >= STRLEN ) {   
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     if (!parms->fp) {
       if (!parms->start_t) {
         INTEGRATION_PARMS_openFp(parms, fname, "w");
@@ -2648,7 +2769,10 @@ int MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   if (Gdiag & DIAG_WRITE) {
     char fname[STRLEN];
 
-    sprintf(fname, "%s.out", parms->base_name);
+    int req = snprintf(fname, STRLEN, "%s.out", parms->base_name);
+    if( req >= STRLEN ) {   
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     if (!parms->start_t) {
       INTEGRATION_PARMS_openFp(parms, fname, "w");
     }
@@ -2847,7 +2971,11 @@ int MRISinflateToSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 
   if (Gdiag & DIAG_WRITE) {
     char fname[STRLEN];
-    sprintf(fname, "%s.%s.out", mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh", parms->base_name);
+    int req = snprintf(fname, STRLEN, "%s.%s.out",
+		       mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh", parms->base_name);  
+    if( req >= STRLEN ) {   
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     if (!parms->fp) {
       if (!parms->start_t) 
         INTEGRATION_PARMS_openFp(parms, fname, "w");

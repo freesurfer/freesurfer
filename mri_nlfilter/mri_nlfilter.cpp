@@ -1,6 +1,6 @@
 /*
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -202,12 +202,13 @@ main(int argc, char *argv[]) {
 
   if (crop == 0 && no_offset)
   {
-    MRI *mri_tmp ;
+    MRI *mri_tmp = nullptr;
     printf("disabling regional filtering\n") ;
     switch (filter_type)
     {
     default:
       ErrorExit(ERROR_UNSUPPORTED, "%s: unsupported no crop no offset filter %d\n", Progname, filter_type) ;
+      break;
     case FILTER_GAUSSIAN:
       mri_tmp = MRIconvolveGaussian(mri_full, NULL, mri_gaussian) ;
       if (!mri_tmp)

@@ -8,7 +8,7 @@
 /*
  * Original Author: Douglas N. Greve
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -278,7 +278,8 @@ int main(int argc, char *argv[])
   fprintf(logfp,"Loading seg for gtm %s\n",SegVolFile);fflush(logfp);
   gtm->anatseg = MRIread(SegVolFile);
   if(gtm->anatseg==NULL) exit(1);
-  if(Gdiag_no > 0)printf("  done loading seg\n");fflush(stdout);
+  if(Gdiag_no > 0)printf("  done loading seg\n");
+  fflush(stdout);
   if(Gdiag_no > 0) PrintMemUsage(stdout);
 
   stem = IDstemFromName(SegVolFile);
@@ -288,7 +289,8 @@ int main(int argc, char *argv[])
     fprintf(logfp,"Loading ctab %s\n",tmpstr);fflush(logfp);
     gtm->ctGTMSeg = CTABreadASCII(tmpstr);
     if(gtm->ctGTMSeg == NULL) exit(1);
-    if(Gdiag_no > 0) printf("  done loading ctab\n");fflush(stdout);
+    if(Gdiag_no > 0) printf("  done loading ctab\n");
+    fflush(stdout);
   }
   if(MergeHypos && gtm->ctGTMSeg->entries[77] == NULL){
     gtm->ctGTMSeg->entries[77] = (CTE*) malloc(sizeof(CTE));
@@ -356,7 +358,8 @@ int main(int argc, char *argv[])
   if(gtm->nReplace > 0) {
     printf("Replacing %d\n",gtm->nReplace);fflush(stdout);
     mritmp = MRIreplaceList(gtm->anatseg, gtm->SrcReplace, gtm->TrgReplace, gtm->nReplace, NULL, NULL);
-    if(Gdiag_no > 0) printf("  done replacing\n");fflush(stdout);
+    if(Gdiag_no > 0) printf("  done replacing\n");
+    fflush(stdout);
     MRIfree(&gtm->anatseg);
     gtm->anatseg = mritmp;
     sprintf(tmpstr,"%s/seg.replace.list",AuxDir);
@@ -367,7 +370,8 @@ int main(int argc, char *argv[])
 
   printf("Pruning ctab\n"); fflush(stdout);
   gtm->ctGTMSeg = CTABpruneCTab(gtm->ctGTMSeg, gtm->anatseg);
-  if(Gdiag_no > 0) printf("  done pruning ctab\n"); fflush(stdout);
+  if(Gdiag_no > 0) printf("  done pruning ctab\n"); 
+  fflush(stdout);
 
   printf("tissue type schema %s\n",gtm->ctGTMSeg->TissueTypeSchema);
 
@@ -438,7 +442,8 @@ int main(int argc, char *argv[])
     if(Gdiag_no > 0) PrintMemUsage(stdout);
     PrintMemUsage(logfp);
     GTMautoMask(gtm);
-    if(Gdiag_no > 0) printf("  done auto mask \n");fflush(stdout);
+    if(Gdiag_no > 0) printf("  done auto mask \n");
+    fflush(stdout);
     if(Gdiag_no > 0) PrintMemUsage(stdout);
     PrintMemUsage(logfp);
   }

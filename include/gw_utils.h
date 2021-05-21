@@ -5,7 +5,7 @@
 /*
  * Original Author: Graham Wideman
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -63,7 +63,7 @@ extern int gw_log_init(char * AProgname,
                        char * AProgversion, 
                        char * ALogfilepath, 
                        int newfile);
-extern void gw_log_message(char * msg);
+extern void gw_log_message(const char * msg);
 extern void gw_log_timestamp(const char * label);
 extern void gw_log_begin(void);
 extern void gw_log_end(void);

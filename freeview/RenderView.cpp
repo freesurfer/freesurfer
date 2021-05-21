@@ -5,7 +5,7 @@
 /*
  * Original Author: Ruopeng Wang
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -26,6 +26,8 @@
 #include "LayerSurface.h"
 #include "SurfaceOverlay.h"
 #include "SurfaceOverlayProperty.h"
+#include "LayerTrack.h"
+#include "LayerPropertyTrack.h"
 #include <QTimer>
 #include <QApplication>
 #include "MyVTKUtils.h"
@@ -556,6 +558,12 @@ void RenderView::UpdateScalarBar()
       if (surf->GetActiveOverlay())
         m_actorScalarBar->SetLookupTable( surf->GetActiveOverlay()->GetProperty()->GetLookupTable() );
     }
+    else if (m_layerScalarBar->IsTypeOf("Tract"))
+    {
+      LayerTrack* t = qobject_cast<LayerTrack*>(m_layerScalarBar);
+      if (t->GetProperty()->GetColorCode() == LayerPropertyTrack::Scalar)
+        m_actorScalarBar->SetLookupTable( t->GetColorTable() );
+    }
   }
   emit RequestRedraw();
 }
@@ -588,14 +596,15 @@ bool RenderView::SaveScreenShot(const QString& filename, bool bAntiAliasing, int
   RefreshAllActors(true);
   blockSignals(false);
   QString fn = filename;
-  if (bAutoTrim)
-  {
-    fn = QFileInfo(QDir::temp(), QString::number(qrand()) + "." + QFileInfo(filename).suffix()).absoluteFilePath();
-  }
+//  if (bAutoTrim)
+//  {
+//    fn = QFileInfo(QDir::temp(), QString::number(qrand()) + "." + QFileInfo(filename).suffix()).absoluteFilePath();
+//  }
   bool ret = SaveImage(fn, bAntiAliasing, nMag);
   if (bAutoTrim)
   {
-    system(QString("convert -trim %1 %2").arg(fn).arg(filename).toLatin1().data());
+//    system(QString("convert -trim %1 %2").arg(fn).arg(filename).toLatin1().data());
+    TrimImageFiles(QStringList(fn));
   }
   RefreshAllActors(false);
   return ret;
@@ -631,4 +640,76 @@ void RenderView::mouseDoubleClickEvent(QMouseEvent *e)
 {
   emit DoubleClicked();
   e->accept();
+}
+
+void RenderView::TrimImageFiles(const QStringList &files)
+{
+  if (files.isEmpty())
+      return;
+
+  int x0 = 1e6, y0 = 1e6, x1 = 0, y1 = 0;
+  foreach (QString fn, files)
+  {
+    QImage image(fn);
+    QRgb* rgb = (QRgb*)image.constBits();
+    QRgb bg_val = rgb[0];
+    for (int i = 0; i < image.height(); i++)
+    {
+        for (int j = 0; j < image.width(); j++)
+        {
+            if (i >= y0 || rgb[i*image.width()+j] != bg_val)
+            {
+                if (i < y0)
+                    y0 = i;
+                break;
+            }
+        }
+    }
+
+    for (int i = image.height()-1; i >= 0; i--)
+    {
+        for (int j = 0; j < image.width(); j++)
+        {
+            if (i <= y1 || rgb[i*image.width()+j] != bg_val)
+            {
+                if (i > y1)
+                    y1 = i;
+                break;
+            }
+        }
+    }
+
+    for (int i = 0; i < image.width(); i++)
+    {
+        for (int j = 0; j < image.height(); j++)
+        {
+            if (i >= x0 || rgb[j*image.width()+i] != bg_val)
+            {
+                if (i < x0)
+                    x0 = i;
+                break;
+            }
+        }
+    }
+
+    for (int i = image.width()-1; i >= 0; i--)
+    {
+        for (int j = 0; j < image.height(); j++)
+        {
+            if (i <= x1 || rgb[j*image.width()+i] != bg_val)
+            {
+                if (i > x1)
+                    x1 = i;
+                break;
+            }
+        }
+    }
+  }
+
+  QRect rc(x0, y0, x1-x0+1, y1-y0+1);
+  foreach (QString fn, files)
+  {
+    QImage image = QImage(fn).copy(rc);
+    image.save(fn);
+  }
 }

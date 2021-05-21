@@ -104,7 +104,7 @@ endif
 
 # If SUBJECTS_DIR is provided, just set it
 if ($#argv == 2) then
-  set SUBJECTS_DIR = $2
+  set SUBJECTS_DIR = `getfullpath  $2`
 endif
 
 # Set name of subject
@@ -133,7 +133,7 @@ endif
 # Set additional parameters, if necessary
 set ANALYSISID="mainFreeSurferT1";
 if ($#argv > 2) then
-  set ADDVOL="$3";
+  set ADDVOL="`getfullpath  $3`";
   set ANALYSISID="$4";
   set BBREGMODE="$5";
   set DOBIASFIELDCORR="1";
@@ -232,7 +232,7 @@ echo "#@# Thalamic Nuclei processing `date`" \
   |& tee -a $THNUCLOG
 
 # command
-set cmd="run_SegmentThalamicNuclei.sh $RUNTIME $SUBJECTNAME $SUBJECTS_DIR $RESOLUTION $ATLASMESH $ATLASDUMP $LUT $K $OPTIMIZER $SUFFIX ${FREESURFER_HOME}/bin/ $USETWOCOMPS  $MRFCONSTANT"
+set cmd="run_SegmentThalamicNuclei.sh $RUNTIME $SUBJECTNAME $SUBJECTS_DIR $RESOLUTION $ATLASMESH $ATLASDUMP $LUT $K $OPTIMIZER $SUFFIX '${FREESURFER_HOME}/bin/fs_run_from_mcr ${FREESURFER_HOME}/bin/' $USETWOCOMPS  $MRFCONSTANT"
 if ($#argv > 2) then
   set cmd="$cmd $ADDVOL $ANALYSISID $DOBIASFIELDCORR $BBREGMODE";
 endif

@@ -105,10 +105,16 @@
       <argument>--no-intensity-proc </argument>
       <explanation>Do not process the input intensity volume (eg, to remove parts of eye socket)</explanation>
 
-      <argument>--debug_vertex vertexno </argument>
+      <argument>--debug-vertex vertexno </argument>
 
       <argument>--ripflag-out ripfile </argument>
       <explanation>Save ripflag as overlay. Spec full path including hemi, suffix, etc</explanation>
+
+      <argument>--local-max LocalMaxFoundFlagFile </argument>
+      <explanation>Save LocalMaxFoundFlag as overlay. Spec full path including hemi, suffix, etc</explanation>
+
+      <argument>--target TargetSurf </argument>
+      <explanation>Save CBV target surface</explanation>
 
       <argument>--mm_{min,max}_{inside,outside} </argument>
       <explanation>Intensity limits for placing pial on multimodal input (ie, T2/FLAIR)</explanation>
@@ -116,12 +122,21 @@
       <argument>--cover-seg SegVol </argument>
       <explanation>Force surface to cover the segmentation (or --cover_seg)</explanation>
 
+      <argument>--first-peak-d1 </argument>
+      <explanation>Use find-first-peak option with 1st derivative in ComputeBorderValues</explanation>
+      <argument>--first-peak-d2 </argument>
+      <explanation>Use find-first-peak option with 2nd derivative in ComputeBorderValues</explanation>
+
+      <argument>--white_border_low_factor f</argument>
+      <explanation>white_border_low = f*adgws.gray_mean + (1-f)*adgws.white_mean;</explanation>
+
     </optional>
     <cost-function>
       <argument>--intensity weight</argument>
-      <argument>--spring weight</argument>
-      <argument>--tspring weight</argument>
-      <argument>--nspring weight</argument>
+      <argument>--location  weight</argument>
+      <argument>--spring    weight</argument>
+      <argument>--tspring   weight</argument>
+      <argument>--nspring   weight</argument>
       <argument>--curv weight</argument>
       <argument>--hinge weight</argument>
       <argument>--spring_nzr weight</argument>
@@ -129,6 +144,8 @@
       <argument>--repluse weight</argument>
       <argument>--surf-repluse weight</argument>
       <explanation> For pushing the suface away from the repulse-surf (eg, to move pial away from white)</explanation>
+      <argument>--location-mov-len LOCATION_MOVE_LEN</argument>
+      <explanation> Used in mrisComputeTargetLocationTerm() </explanation>
     </cost-function>
   </arguments>
   <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>

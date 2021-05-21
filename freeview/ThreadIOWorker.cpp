@@ -1,7 +1,7 @@
 /*
  * Original Author: Ruopeng Wang
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -21,6 +21,7 @@
 #include "LayerVolumeTrack.h"
 #include "LayerConnectomeMatrix.h"
 #include "LayerFCD.h"
+#include "LayerODF.h"
 #include <QApplication>
 #include <QDebug>
 
@@ -100,6 +101,14 @@ void ThreadIOWorker::LoadFCD(Layer* layer, const QVariantMap& args)
 {
   m_layer = layer;
   m_nJobType = JT_LoadFCD;
+  m_args = args;
+  start();
+}
+
+void ThreadIOWorker::LoadODF(Layer *layer, const QVariantMap &args)
+{
+  m_layer = layer;
+  m_nJobType = JT_LoadODF;
   m_args = args;
   start();
 }
@@ -309,6 +318,23 @@ void ThreadIOWorker::run()
     else
     {
       emit FCDLoadFinished(layer);
+    }
+  }
+  else if (m_nJobType == JT_LoadODF)
+  {
+    LayerODF* layer = qobject_cast<LayerODF*>(m_layer);
+    if (!layer)
+      return;
+    QString fn = m_args["Filename"].toString();
+    QString fn2 = m_args["vertex_filename"].toString();
+    QString fn3 = m_args["face_filename"].toString();
+    if (!layer->Load(fn, fn2, fn3, m_args["permuted"].toBool()))
+    {
+      emit Error(m_layer, m_nJobType);
+    }
+    else
+    {
+      emit Finished(m_layer, m_nJobType);
     }
   }
   disconnect(qApp, SIGNAL(GlobalProgress(int)), this, SIGNAL(Progress(int)));

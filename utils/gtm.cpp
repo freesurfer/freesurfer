@@ -5,7 +5,7 @@
 /*
  * Original Author: Douglas N. Greve
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -572,7 +572,11 @@ COLOR_TABLE *GTMSEGctab(GTMSEG *gtmseg, COLOR_TABLE *ctSubCort)
     ct->entries[segid] = (CTE *)calloc(1, sizeof(COLOR_TABLE_ENTRY));
     cte = ct->entries[segid];
     memcpy(cte, cte0, sizeof(CTE));
-    sprintf(cte->name, "ctx-lh-%s", cte0->name);  // new name reflects cortex and hemi
+    // The memcpy on the previous line makes converting to std::string rather tricky
+    int err = snprintf(cte->name, STRLEN-1, "ctx-lh-%s", cte0->name);  // new name reflects cortex and hemi
+    if( err >= STRLEN-1 ) {
+      std::cerr << __FUNCTION__ << ": Truncation prepending ctx-lh-" << std::endl;
+    }
     cte->TissueType = 1;
   }
 
@@ -597,7 +601,11 @@ COLOR_TABLE *GTMSEGctab(GTMSEG *gtmseg, COLOR_TABLE *ctSubCort)
     ct->entries[segid] = (CTE *)calloc(1, sizeof(COLOR_TABLE_ENTRY));
     cte = ct->entries[segid];
     memcpy(cte, cte0, sizeof(CTE));
-    sprintf(cte->name, "ctx-rh-%s", cte0->name);
+    // The preceding memcpy is an issue with trying to change to std::string
+    int err = snprintf(cte->name, STRLEN-1, "ctx-rh-%s", cte0->name);
+    if( err >= STRLEN-1 ) {
+      std::cerr << __FUNCTION__ << ": Truncation prepending ctx-rh-" << std::endl;
+    }
     cte->TissueType = 1;
   }
 
@@ -623,7 +631,11 @@ COLOR_TABLE *GTMSEGctab(GTMSEG *gtmseg, COLOR_TABLE *ctSubCort)
       ct->entries[segid] = (CTE *)calloc(1, sizeof(COLOR_TABLE_ENTRY));
       cte = ct->entries[segid];
       memcpy(cte, cte0, sizeof(CTE));
-      sprintf(cte->name, "wm-lh-%s", cte0->name);
+      // The preceding memcpy is an issue with trying to change to std::string
+      int err = snprintf(cte->name, STRLEN-1, "wm-lh-%s", cte0->name);
+      if( err >= STRLEN-1 ) {
+	std::cerr << __FUNCTION__ << ": Truncation prepending wm-lh-" << std::endl;
+      }
       cte->TissueType = 3;
     }
     ct0 = gtmseg->rhw->ct;
@@ -646,7 +658,11 @@ COLOR_TABLE *GTMSEGctab(GTMSEG *gtmseg, COLOR_TABLE *ctSubCort)
       ct->entries[segid] = (CTE *)calloc(1, sizeof(COLOR_TABLE_ENTRY));
       cte = ct->entries[segid];
       memcpy(cte, cte0, sizeof(CTE));
-      sprintf(cte->name, "wm-rh-%s", cte0->name);
+      // The preceding memcpy is an issue with trying to change to std::string
+      int err = snprintf(cte->name, STRLEN-1, "wm-rh-%s", cte0->name);
+      if( err >= STRLEN-1 ) {
+	std::cerr << __FUNCTION__ << ": Truncation prepending wm-rh-" << std::endl;
+      }
       cte->TissueType = 3;
     }
   }
@@ -2902,7 +2918,7 @@ int GTMwriteText(GTM *gtm, char *OutDir, int DeMean)
 {
   int nthseg, f, segid;
   FILE *fp;
-  char fname[1000];
+  std::string fname;
   double mean;
 
   for(nthseg=0; nthseg < gtm->nsegs; nthseg++){
@@ -2912,10 +2928,11 @@ int GTMwriteText(GTM *gtm, char *OutDir, int DeMean)
       for(f=0; f < gtm->beta->cols; f++) mean += gtm->beta->rptr[nthseg+1][f+1];
       mean /= gtm->beta->cols;
     }
-    sprintf(fname,"%s/%s.dat",OutDir,gtm->ctGTMSeg->entries[segid]->name);
-    fp = fopen(fname,"w");
+    fname = std::string(OutDir) + '/' +
+      std::string(gtm->ctGTMSeg->entries[segid]->name) + ".dat";
+    fp = fopen(fname.c_str(),"w");
     if(fp==NULL){
-      printf("ERROR: GTMwriteText(): could not open %s\n",fname);
+      printf("ERROR: GTMwriteText(): could not open %s\n",fname.c_str());
       return(1);
     }
     for(f=0; f < gtm->beta->cols; f++) 

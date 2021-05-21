@@ -8,7 +8,7 @@
 /*
  * Original Authors: Bruce Fischl and Peng Yu
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -211,7 +211,10 @@ main(int argc, char *argv[])
 
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
   {
-    sprintf(ifname,"%s/%s/mri/cc_volume_%d.txt",data_dir,argv[1], dxi) ;
+    int req = snprintf(ifname,STRLEN,"%s/%s/mri/cc_volume_%d.txt",data_dir,argv[1], dxi) ; 
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     if ((fp = fopen(ifname, "a")) == NULL)
     {
       ErrorReturn
@@ -227,7 +230,11 @@ main(int argc, char *argv[])
   {
     MRI *mri_norm ;
 
-    sprintf(ifname,"%s/%s/mri/%s",data_dir,argv[1], aseg_fname) ;
+    int req = snprintf(ifname,STRLEN, "%s/%s/mri/%s",data_dir,argv[1], aseg_fname) ;  
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
+
     printf("reading aseg from %s\n", ifname);
     mri_aseg = MRIread(ifname) ;
     if (mri_aseg == NULL)
@@ -235,7 +242,10 @@ main(int argc, char *argv[])
                 Progname, ifname) ;
     if (lh_only || rh_only)
     {
-      sprintf(ofname,"%s/%s/mri/%s",data_dir,argv[1], output_fname) ;
+      int req = snprintf(ofname,STRLEN,"%s/%s/mri/%s",data_dir,argv[1], output_fname) ; 
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       fprintf(stdout, "copying aseg WITHOUT callosum to %s...\n", ofname) ;
       MRIwrite(mri_aseg, ofname) ;
       exit(0) ;
@@ -255,7 +265,10 @@ main(int argc, char *argv[])
       // need to replace the cc labels with either lh or rh wm here...
     }
 
-    sprintf(ifname,"%s/%s/mri/%s",data_dir,argv[1],norm_fname) ;
+    req = snprintf(ifname,STRLEN,"%s/%s/mri/%s",data_dir,argv[1],norm_fname) ;  
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     printf("reading norm from %s\n", ifname);
     mri_norm = MRIread(ifname) ;
     if (mri_norm == NULL)
@@ -270,11 +283,17 @@ main(int argc, char *argv[])
   }
   else
   {
-    sprintf(ifname,"%s/%s/%s",data_dir,argv[1],wmvolume) ;
+    int req = snprintf(ifname, STRLEN, "%s/%s/%s",data_dir,argv[1],wmvolume) ;   
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     printf("reading white matter volume from %s\n", ifname);
     mri_wm = MRIread(ifname) ;
 
-    sprintf(ifname,"%s/%s/mri/transforms/talairach.xfm",data_dir,argv[1]) ;
+    req = snprintf(ifname,STRLEN, "%s/%s/mri/transforms/talairach.xfm",data_dir,argv[1]) ;  
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     lta = LTAreadEx(ifname);
     if (lta==0)
     {
@@ -313,7 +332,10 @@ main(int argc, char *argv[])
 
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     {
-      sprintf(ofname,"%s/%s/mri/wm_tal.mgz",data_dir,argv[1]) ;
+      int req = snprintf(ofname,STRLEN,"%s/%s/mri/wm_tal.mgz",data_dir,argv[1]) ; 
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       fprintf(stdout,
               "writing talairach transformed white matter volume to %s...\n",
               ofname) ;
@@ -325,7 +347,10 @@ main(int argc, char *argv[])
     mrot = MatrixAlloc(4, 4, MATRIX_REAL) ;
 
     //try method 2 to get the rotation matrix
-    sprintf(ifname,"%s/%s/mri/transforms/talairach.xfm",data_dir,argv[1]) ;
+    req = snprintf(ifname,STRLEN,"%s/%s/mri/transforms/talairach.xfm",data_dir,argv[1]) ; 
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     lta2 = LTAreadEx(ifname);
     mtrans=lta2->xforms[0].m_L;
     Trns_ExtractRotationMatrix (mtrans,mrot);
@@ -350,7 +375,11 @@ main(int argc, char *argv[])
 
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     {
-      sprintf(ofname,"%s/%s/mri/wm.mgz",data_dir,argv[1]) ;
+      int req = snprintf(ofname,STRLEN,"%s/%s/mri/wm.mgz",data_dir,argv[1]) ; 
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
+
       fprintf(stdout,
               "writing rotated white matter volume to %s...\n", ofname) ;
       MRIwrite(mri_cc, ofname) ;
@@ -367,7 +396,10 @@ main(int argc, char *argv[])
                          lta, mri_cc_tal);
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     {
-      sprintf(ofname,"%s/%s/mri/cc_tal.mgz",data_dir,argv[1]) ;
+      int req = snprintf(ofname,STRLEN,"%s/%s/mri/cc_tal.mgz",data_dir,argv[1]) ;   
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       fprintf(stdout, "writing output to %s...\n", ofname) ;
       MRIwrite(mri_cc_tal, ofname) ;
     }
@@ -378,7 +410,10 @@ main(int argc, char *argv[])
     MRIfromTalairachEx(mri_cc_tal, mri_wm, lta);
     // binalize the rotated cc volume (mri_wm)
     MRIbinarize(mri_wm, mri_wm, CC_VAL/2-1, 0, 100) ;
-    sprintf(ofname,"%s/%s/mri/cc_org.mgz",data_dir,argv[1]) ;
+    req = snprintf(ofname,STRLEN,"%s/%s/mri/cc_org.mgz",data_dir,argv[1]) ;  
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     fprintf(stdout,
             "writing corpus callosum in original space to %s...\n",
             ofname) ;
@@ -628,7 +663,10 @@ main(int argc, char *argv[])
       }
     }
 
-    sprintf(ofname,"%s/%s/mri/%s",data_dir,argv[1], output_fname) ;
+    int req = snprintf(ofname,STRLEN,"%s/%s/mri/%s",data_dir,argv[1], output_fname) ;    
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     fprintf(stdout, "writing aseg with callosum to %s...\n", ofname) ;
     MRIwrite(mri_aseg, ofname) ;
   }
@@ -653,14 +691,20 @@ main(int argc, char *argv[])
 
   if (write_cc)
   {
-    sprintf(ofname,"%s/%s/mri/cc_new.mgz",data_dir,argv[1]) ;
+    int req = snprintf(ofname,STRLEN,"%s/%s/mri/cc_new.mgz",data_dir,argv[1]) ; 
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     fprintf(stdout, "writing corpus callosum output to %s...\n", ofname) ;
     MRIwrite(mri_cc, ofname) ;
   }
 
   if (mri_fornix && fornix)
   {
-    sprintf(ofname,"%s/%s/mri/fornix.mgz",data_dir,argv[1]) ;
+    int req = snprintf(ofname,STRLEN,"%s/%s/mri/fornix.mgz",data_dir,argv[1]) ; 
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     fprintf(stdout, "writing fornix to to %s...\n", ofname) ;
     MRIwrite(mri_fornix, ofname) ;
   }
@@ -700,6 +744,9 @@ main(int argc, char *argv[])
   {
     fclose(fp);
   }
+  printf("#VMPC# mri_cc VmPeak  %d\n",GetVmPeak());
+  printf("mri_cc done\n");
+
   exit(0) ;
   return(0) ;
 }
@@ -2238,8 +2285,10 @@ remove_fornix_new(MRI *mri_slice, MRI *mri_slice_edited)
     mri_slice_edited = MRIclone(mri_slice, NULL) ;
   }
 
+  // This was just xmin = mri_slice->width, but can cause an error
+  xmin = mri_slice->width - 1; 
+
   // find posterior/anterior extent of the cc
-  xmin = mri_slice->width ;
   ymax = xmax =  0 ;
   for (x = 0 ; x < mri_slice->width; x++)
   {
@@ -2405,7 +2454,7 @@ remove_fornix_new(MRI *mri_slice, MRI *mri_slice_edited)
   */
   {
     double mean_thickness = 0.0, std_thickness = 0.0 ;
-    int    num = 0, thickness = 256, first_on, last_on, min_x_fornix = 256,
+    int    num = 0, thickness = 256, first_on, last_on, min_x_fornix = mri_slice->width-1,
            max_thickness, first_off, ystart ;
 
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
@@ -2431,6 +2480,7 @@ remove_fornix_new(MRI *mri_slice, MRI *mri_slice_edited)
       }
 
 
+    int min_x_fornix_set = 0;
     for (x = xmin ; x <= xmax ; x++)
     {
       int val2, y1 ;
@@ -2447,6 +2497,7 @@ remove_fornix_new(MRI *mri_slice, MRI *mri_slice_edited)
         {
           thickness = 0 ;
           min_x_fornix = MIN(min_x_fornix, x) ;
+	  min_x_fornix_set = 1;
           first_on = last_on = -1 ;
           for (y1 = y ; y1 >= 0 ; y1--)
           {
@@ -2471,6 +2522,10 @@ remove_fornix_new(MRI *mri_slice, MRI *mri_slice_edited)
         }
       }
     }
+
+    if(!min_x_fornix_set) printf("WARNING: min_x_fornix not set\n");
+    else printf("min_x_fornix = %d\n",min_x_fornix);
+
     mean_thickness /= num ;
     std_thickness = sqrt(std_thickness/num - mean_thickness*mean_thickness);
     max_thickness = (int)ceil(mean_thickness+3*std_thickness); ;

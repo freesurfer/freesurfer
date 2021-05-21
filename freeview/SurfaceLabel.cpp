@@ -9,7 +9,7 @@
 /*
  * Original Author: Ruopeng Wang
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -171,6 +171,7 @@ bool SurfaceLabel::LoadLabel( const QString& filename )
     m_bTkReg = false;
   }
 
+
   // update vno if it is -1
   double max_spacing;
   int max_vno;
@@ -198,6 +199,8 @@ bool SurfaceLabel::LoadLabel( const QString& filename )
     else if (m_label->lv[i].stat > m_dHeatscaleMax)
       m_dHeatscaleMax = m_label->lv[i].stat;
   }
+
+  MHTfree(&hash);
 
   // create outline
   m_nOutlineIndices = new int[mris->nvertices];

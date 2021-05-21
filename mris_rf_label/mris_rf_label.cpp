@@ -7,7 +7,7 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -106,19 +106,28 @@ main(int argc, char *argv[]) {
   rf = RFread(argv[2]) ;
   noverlays = rf->nfeatures ;
 
-  sprintf(fname, "%s/%s/surf/%s.%s", sdir, subject, hemi, surf_name) ;
+  int req = snprintf(fname, STRLEN, "%s/%s/surf/%s.%s", sdir, subject, hemi, surf_name) ;
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   mris = MRISread(fname) ;
   if (!mris)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface from %s",Progname, fname) ;
     
   MRIScomputeMetricProperties(mris) ;
-  sprintf(fname, "%s/%s/label/%s.%s", sdir, subject, hemi, cortex_label_name) ;
+  req = snprintf(fname, STRLEN, "%s/%s/label/%s.%s", sdir, subject, hemi, cortex_label_name) ;
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   cortex_label = LabelRead(NULL, fname) ;
   if (cortex_label == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not read cortex label %s\n", Progname, fname) ;
   LabelRipRestOfSurface(cortex_label, mris) ;
 
-  sprintf(fname, "%s/%s/label/%s.%s", sdir, subject, hemi, label_name) ;
+  req = snprintf(fname, STRLEN, "%s/%s/label/%s.%s", sdir, subject, hemi, label_name) ;
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   if (FileExists(fname))
   {
     training_label = LabelRead(NULL, fname) ;
@@ -135,7 +144,10 @@ main(int argc, char *argv[]) {
 
   for (i = 0 ; i < noverlays ; i++)
   {
-    sprintf(fname, "%s/%s/surf/%s.%s", sdir, subject, hemi, rf->feature_names[i]) ;
+    int req = snprintf(fname, STRLEN, "%s/%s/surf/%s.%s", sdir, subject, hemi, rf->feature_names[i]) ;
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     mri_overlays[i] = MRIread(fname) ;
     if (mri_overlays[i] == NULL)
       ErrorExit(ERROR_NOFILE, "%s: could not read overlay %s (%d)\n", Progname, fname, i) ;

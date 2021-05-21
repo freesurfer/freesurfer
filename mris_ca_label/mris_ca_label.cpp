@@ -11,7 +11,7 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -148,7 +148,10 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not read classifier from %s",
               Progname, argv[4]) ;
 
-  sprintf(fname, "%s/%s/%s/%s.%s", subjects_dir,subject_name,surf_dir,hemi,orig_name);
+  int req = snprintf(fname, STRLEN, "%s/%s/%s/%s.%s", subjects_dir,subject_name,surf_dir,hemi,orig_name); 
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   if (DIAG_VERBOSE_ON)
   {
     printf("reading surface from %s...\n", fname) ;

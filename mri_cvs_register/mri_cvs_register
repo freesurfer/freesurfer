@@ -24,7 +24,7 @@
 #                      "maskmovinghemi"
 #
 #
-# Copyright © 2010-2012 The General Hospital Corporation (Boston, MA) "MGH"
+# Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
 #
 # Terms and conditions for use, reproduction, distribution and contribution
 # are found in the 'FreeSurfer Software License Agreement' contained
@@ -882,6 +882,11 @@ while( $#argv != 0 )
     case "--mov":
       if ( $#argv < 1) goto arg1err;
       set movingid = $argv[1]; shift;
+      breaksw
+
+    case "--voltype":
+      if ( $#argv < 1) goto arg1err;
+      set voltype = $argv[1]; shift;
       breaksw
 
     case "--outdir":

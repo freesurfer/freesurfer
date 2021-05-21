@@ -5,7 +5,7 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -141,9 +141,15 @@ main(int argc, char *argv[])
   printf("processing %d timepoints in SUBJECTS_DIR %s...\n", ninputs, sdir) ;
   for (input = 0 ; input < ninputs ; input++)
   {
-    sprintf(subject, "%s.long.%s", subjects[input], base_name) ;
+    int req = snprintf(subject, STRLEN, "%s.long.%s", subjects[input], base_name) ;
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     printf("reading subject %s - %d of %d\n", subject, input+1, ninputs) ;
-    sprintf(fname, "%s/%s/mri/%s", sdir, subject, in_fname) ;
+    req = snprintf(fname, STRLEN, "%s/%s/mri/%s", sdir, subject, in_fname) ;
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     mri_tmp = MRIread(fname) ;
     if (!mri_tmp)
       ErrorExit(ERROR_NOFILE, "%s: could not read input MR volume from %s",
@@ -205,7 +211,10 @@ main(int argc, char *argv[])
 
   for (input = 0 ; input < ninputs ; input++)
   {
-    sprintf(fname, "%s/%s.long.%s/mri/%s", sdir, subjects[input], base_name, out_fname) ;
+    int req = snprintf(fname, STRLEN, "%s/%s.long.%s/mri/%s", sdir, subjects[input], base_name, out_fname) ;
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     printf("writing normalized volume to %s...\n", fname) ;
     if (MRIwriteFrame(mri_in, fname, input)  != NO_ERROR)
       ErrorExit(ERROR_BADFILE, "%s: could not write normalized volume to %s",Progname, fname);

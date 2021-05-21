@@ -8,7 +8,7 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -126,7 +126,10 @@ main(int argc, char *argv[]) {
     strcpy(sdir, cp) ;
   }
 
-  sprintf(fname, "%s/%s/surf/%s.%s", sdir, sname, hemi, pial_name) ;
+  int req = snprintf(fname, STRLEN, "%s/%s/surf/%s.%s", sdir, sname, hemi, pial_name) ;
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   fprintf(stderr, "reading pial surface %s...\n", fname) ;
   mris = MRISread(fname) ;
   if (!mris)
@@ -237,7 +240,10 @@ main(int argc, char *argv[]) {
       char tmp[STRLEN] ;
       FileNameRemoveExtension(out_fname, tmp) ;
       
-      sprintf(fname, "%s.correspondence.init", tmp) ;
+      int req = snprintf(fname, STRLEN, "%s.correspondence.init", tmp) ;
+      if (req >= STRLEN) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       printf("writing initial correspondences to %s\n", fname) ;
       MRISrestoreVertexPositions(mris, PIAL_VERTICES) ;
       MRIScomputeMetricProperties(mris) ;
@@ -271,7 +277,10 @@ main(int argc, char *argv[]) {
         v->ny = v->y - v->whitey ; 
         v->nz = v->z - v->whitez ; 
       }
-      sprintf(fname, "%s.normals.init.mgz", tmp) ;
+      int req = snprintf(fname, STRLEN, "%s.normals.init.mgz", tmp) ;
+      if (req >= STRLEN) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       printf("writing initial surface normals to %s\n", fname) ;
       MRISwriteNormals(mris, fname) ;
       MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
@@ -307,7 +316,10 @@ main(int argc, char *argv[]) {
       VERTEX *v ;
       FileNameRemoveExtension(out_fname, tmp) ;
       
-      sprintf(fname, "%s.normals.mgz", tmp) ;
+      int req = snprintf(fname, STRLEN, "%s.normals.mgz", tmp) ;
+      if (req >= STRLEN) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       printf("writing final surface normals to %s\n", fname) ;
       MRISsaveVertexPositions(mris, TMP2_VERTICES) ;
       MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
@@ -357,12 +369,18 @@ main(int argc, char *argv[]) {
           break ;
         sscanf(line, "%s", subject) ;
         printf("processing longitudinal subject %s\n", subject) ;
-        sprintf(fname, "%s/%s.long.%s/surf/%s.%s", sdir, subject, base_name, hemi, 
+        int req = snprintf(fname, STRLEN, "%s/%s.long.%s/surf/%s.%s", sdir, subject, base_name, hemi,
                 white_name) ;
+        if (req >= STRLEN) {
+          std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+        }
         if (MRISreadWhiteCoordinates(mris, fname) != NO_ERROR)
           ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s", Progname, fname) ;
-        sprintf(fname, "%s/%s.long.%s/surf/%s.%s", sdir, subject, base_name, hemi, 
+        req = snprintf(fname, STRLEN, "%s/%s.long.%s/surf/%s.%s", sdir, subject, base_name, hemi,
                 pial_name) ;
+        if (req >= STRLEN) {
+          std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+        }
         if (MRISreadPialCoordinates(mris, fname) != NO_ERROR)
           ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s", Progname, fname) ;
         for (vno = 0 ; vno < mris->nvertices ; vno++)
@@ -384,7 +402,10 @@ main(int argc, char *argv[]) {
           v->curv = thick ; v->tx = xp ; v->ty = yp ; v->tz = zp ;
         }
         FileNameOnly(out_fname, out_fname_only) ;
-        sprintf(fname, "%s/%s.long.%s/surf/%s", sdir, subject, base_name, out_fname_only);
+        req = snprintf(fname, STRLEN, "%s/%s.long.%s/surf/%s", sdir, subject, base_name, out_fname_only);
+        if (req >= STRLEN) {
+          std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+        }
         printf("writing thickness estimate to %s\n", fname) ;
         MRISwriteCurvature(mris, fname) ;
       } while (strlen(line) > 0) ;

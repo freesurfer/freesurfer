@@ -19,7 +19,8 @@ set tmpdir = ();
 set cleanup = 1;
 set LF = ();
 
-set tclcmd0 = $FREESURFER_HOME/lib/tcl/twocond-views.tcl
+#set tclcmd0 = $FREESURFER_HOME/lib/tcl/twocond-views.tcl
+set tclcmd = ()
 
 set inputargs = ($argv);
 set PrintHelp = 0;
@@ -138,10 +139,12 @@ if($flat) setenv patchname $patch
 #echo "set dir $tmpdir" >> $tclcmd
 #echo "set floatstem map" >> $tclcmd
 
-if(! $flat) then
-  set tclcmd = $FREESURFER_HOME/lib/tcl/$stimtype-views.tcl
-else
-  set tclcmd = $FREESURFER_HOME/lib/tcl/$stimtype-flat.tcl
+if($#tclcmd == 0) then
+  if(! $flat) then
+    set tclcmd = $FREESURFER_HOME/lib/tcl/$stimtype-views.tcl
+  else
+    set tclcmd = $FREESURFER_HOME/lib/tcl/$stimtype-flat.tcl
+  endif
 endif
 
 set cmd = (tksurfer $subject $hemi inflated -aparc -tcl $tclcmd)
@@ -222,6 +225,15 @@ while( $#argv != 0 )
     case "--hemi":
       if($#argv < 1) goto arg1err;
       set hemi = $argv[1]; shift;
+      breaksw
+
+    case "--tcl":
+      if($#argv < 1) goto arg1err;
+      set tclcmd = $argv[1]; shift;
+      if(! -e $tclcmd) then
+        echo "ERROR: cannot find $tclcmd"
+        exit 1;
+      endif
       breaksw
 
     case "--ss":
@@ -363,6 +375,7 @@ usage_exit:
   echo ""
   echo "  --flat : display on occip.patch.flat"
   echo "  --patch patchname display on patchname"
+  echo "  --tcl tclcmd : use your own tcl command file"
   echo ""
   echo "  --no-cleanup : don't delete tmp dir"
   echo ""

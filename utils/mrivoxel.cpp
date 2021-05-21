@@ -5,7 +5,7 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -501,7 +501,14 @@ float MRIvoxelMedian(MRI *mri, int x0, int y0, int z0, int wsize)
   }
   wcubed = (wsize * wsize * wsize);
   median_index = wcubed / 2;
+#if GCC_VERSION > 80000
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wnonnull"
+#endif
   qsort(sort_array, wcubed, sizeof(float), compare_sort_array);
+#if GCC_VERSION > 80000
+#pragma GCC diagnostic pop
+#endif
   median = sort_array[median_index];
   return (median);
 }

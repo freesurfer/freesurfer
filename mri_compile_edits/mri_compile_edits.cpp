@@ -7,7 +7,7 @@
  *
  * Original Author: Bruce Fischl
  *
- * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -106,12 +106,19 @@ main(int argc, char *argv[])
   printf("Compiling volume edits for subject %s...\n", subject) ;
   fflush(stdout);
 
-  sprintf(mdir, "%s/%s/mri", sdir, subject) ;
+  int req = snprintf(mdir, STRLEN, "%s/%s/mri", sdir, subject) ;  
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
 
   /*
    * brain.mgz
    */
-  sprintf(fname, "%s/brain.mgz", mdir) ;
+  req = snprintf(fname, STRLEN, "%s/brain.mgz", mdir) ; 
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
+  
   mri = MRIread(fname) ;
   if (mri)
   {
@@ -135,7 +142,10 @@ main(int argc, char *argv[])
   /*
    * wm.mgz
    */
-  sprintf(fname, "%s/wm.mgz", mdir) ;
+  req = snprintf(fname, STRLEN, "%s/wm.mgz", mdir) ;  
+  if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   mri = MRIread(fname) ;
   if (mri)
   {
@@ -158,12 +168,19 @@ main(int argc, char *argv[])
   /*
    * brainmask.mgz
    */
-  sprintf(fname, "%s/brainmask.mgz", mdir) ;
+  req = snprintf(fname, STRLEN, "%s/brainmask.mgz", mdir) ; 
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   mri = MRIread(fname) ;
   if (mri)
   {
     if(NULL == mri_edits) mri_edits = MRIclone(mri, NULL) ;
-    sprintf(fname, "%s/brainmask.auto.mgz", mdir) ;
+    int req = snprintf(fname, STRLEN, "%s/brainmask.auto.mgz", mdir) ;  
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
+
     mri_bm_auto = MRIread(fname) ;
     if (mri_bm_auto)
     {
@@ -182,7 +199,10 @@ main(int argc, char *argv[])
   /*
    * brain.finalsurfs.mgz
    */
-  sprintf(fname, "%s/brain.finalsurfs.mgz", mdir) ;
+  req = snprintf(fname, STRLEN, "%s/brain.finalsurfs.mgz", mdir) ;   
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   mri = MRIread(fname) ;
   if (mri)
   {
@@ -206,12 +226,18 @@ main(int argc, char *argv[])
   /*
    * aseg.mgz
    */
-  sprintf(fname, "%s/aseg.mgz", mdir) ;
+  req = snprintf(fname, STRLEN, "%s/aseg.mgz", mdir) ;  
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   mri = MRIread(fname) ;
   if (mri)
   {
     if(NULL == mri_edits) mri_edits = MRIclone(mri, NULL) ;
-    sprintf(fname, "%s/aseg.auto.mgz", mdir) ;
+    int req = snprintf(fname, STRLEN, "%s/aseg.auto.mgz", mdir) ;   
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     mri_aseg_auto = MRIread(fname) ;
     if (mri_aseg_auto)
     {
@@ -318,7 +344,10 @@ main(int argc, char *argv[])
     MRIwrite(mri_edits, out_fname);
     if (mri_edits->ct)
     {
-      sprintf(fname, "%s/mri_compile_edits_LUT", mdir) ;
+      int req = snprintf(fname, STRLEN, "%s/mri_compile_edits_LUT", mdir) ; 
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       printf("Colortable saved to %s :\n",fname);
       CTABprintASCII(mri_edits->ct,stdout);
       ctfp = fopen(fname,"w");

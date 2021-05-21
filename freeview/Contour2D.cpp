@@ -5,7 +5,7 @@
 /*
  * Original Author: Ruopeng Wang
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -101,7 +101,10 @@ void Contour2D::Reset()
 
 vtkImageData* Contour2D::GetThresholdedImage()
 {
-  return m_filterMask->GetOutput();
+  if (m_filterMask->GetInput())
+    return m_filterMask->GetOutput();
+  else
+    return NULL;
 }
 
 void Contour2D::SetInput( vtkImageData* imagedata, double dContourValue, double dSliceLocation, int active_frame )

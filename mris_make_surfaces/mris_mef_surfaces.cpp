@@ -10,7 +10,7 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -197,7 +197,6 @@ main(int argc, char *argv[]) {
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
 
-  memset(&parms, 0, sizeof(parms)) ;
   parms.projection = NO_PROJECTION ;
   parms.tol = 1e-4 ;
   parms.dt = 0.5f ;
@@ -253,7 +252,10 @@ main(int argc, char *argv[]) {
               "%s: FREESURFER_HOME not defined in environment.\n", Progname) ;
   strcpy(mdir, cp) ;
 
-  sprintf(fname, "%s/%s/mri/filled", sdir, sname) ;
+  int req = snprintf(fname, STRLEN, "%s/%s/mri/filled", sdir, sname) ;
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   if (MGZ) strcat(fname, ".mgz");
   fprintf(stderr, "reading volume %s...\n", fname) ;
   mri_filled = MRIread(fname) ;
@@ -269,7 +271,10 @@ main(int argc, char *argv[]) {
     replace_val = lh_label ;
   }
 
-  sprintf(fname, "%s/%s/mri/%s", sdir, sname, T1_30_name) ;
+  req = snprintf(fname, STRLEN, "%s/%s/mri/%s", sdir, sname, T1_30_name) ;
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   if (MGZ) strcat(fname, ".mgz");
   fprintf(stderr, "reading volume %s...\n", fname) ;
   mri_T1_30 = MRIread(fname) ;
@@ -278,7 +283,10 @@ main(int argc, char *argv[]) {
     ErrorExit(ERROR_NOFILE, "%s: could not read input volume %s",
               Progname, fname) ;
 
-  sprintf(fname, "%s/%s/mri/%s", sdir, sname, T1_5_name) ;
+  req = snprintf(fname, STRLEN, "%s/%s/mri/%s", sdir, sname, T1_5_name) ;
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   if (MGZ) strcat(fname, ".mgz");
   fprintf(stderr, "reading volume %s...\n", fname) ;
   mri_T1_5 = MRIread(fname) ;
@@ -287,7 +295,10 @@ main(int argc, char *argv[]) {
     ErrorExit(ERROR_NOFILE, "%s: could not read input volume %s",
               Progname, fname) ;
 
-  sprintf(fname, "%s/%s/mri/%s", sdir, sname, em_name) ;
+  req = snprintf(fname, STRLEN, "%s/%s/mri/%s", sdir, sname, em_name) ;
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   if (MGZ) strcat(fname, ".mgz");
   fprintf(stderr, "reading volume %s...\n", fname) ;
   mri_em_seg = MRIread(fname) ;
@@ -331,7 +342,10 @@ main(int argc, char *argv[]) {
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     MRIwrite(mri_T1_30, "r30.mgz") ;
 
-  sprintf(fname, "%s/%s/mri/wm", sdir, sname) ;
+  req = snprintf(fname, STRLEN, "%s/%s/mri/wm", sdir, sname) ;
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   if (MGZ) strcat(fname, ".mgz");
   fprintf(stderr, "reading volume %s...\n", fname) ;
   mri_wm = MRIread(fname) ;
@@ -354,7 +368,10 @@ main(int argc, char *argv[]) {
          gray_mean[0], gray_mean[1], gray_std[0], gray_std[1]);
 
   MRIfree(&mri_wm) ;
-  sprintf(fname, "%s/%s/surf/%s.%s%s", sdir, sname, hemi, orig_name, suffix) ;
+  req = snprintf(fname, STRLEN, "%s/%s/surf/%s.%s%s", sdir, sname, hemi, orig_name, suffix) ;
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   fprintf(stderr, "reading original surface position from %s...\n", fname) ;
   mris = MRISreadOverAlloc(fname, 1.1) ;
   if (!mris)
@@ -458,8 +475,11 @@ main(int argc, char *argv[]) {
   }
 
   if (!nowhite) {
-    sprintf(fname, "%s/%s/surf/%s.%s%s%s", sdir, sname,hemi,white_matter_name,
+    req = snprintf(fname, STRLEN, "%s/%s/surf/%s.%s%s%s", sdir, sname,hemi,white_matter_name,
             output_suffix,suffix);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     fprintf(stderr, "writing white matter surface to %s...\n", fname) ;
     MRISaverageVertexPositions(mris, smoothwm) ;
     MRISwrite(mris, fname) ;
@@ -595,8 +615,11 @@ main(int argc, char *argv[]) {
     }
   }
 
-  sprintf(fname, "%s/%s/surf/%s.%s%s%s", sdir, sname, hemi, pial_name,
+  req = snprintf(fname, STRLEN, "%s/%s/surf/%s.%s%s%s", sdir, sname, hemi, pial_name,
           output_suffix, suffix) ;
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   fprintf(stderr, "writing pial surface to %s...\n", fname) ;
   MRISwrite(mris, fname) ;
 
@@ -620,8 +643,11 @@ main(int argc, char *argv[]) {
     if (graymid) {
       MRISsaveVertexPositions(mris, TMP_VERTICES) ;
       mrisFindMiddleOfGray(mris) ;
-      sprintf(fname, "%s/%s/surf/%s.%s%s", sdir, sname, hemi, GRAYMID_NAME,
+      req = snprintf(fname, STRLEN, "%s/%s/surf/%s.%s%s", sdir, sname, hemi, GRAYMID_NAME,
               suffix) ;
+      if( req >= STRLEN ) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       fprintf(stderr, "writing layer IV surface to %s...\n", fname) ;
       MRISwrite(mris, fname) ;
       MRISrestoreVertexPositions(mris, TMP_VERTICES) ;

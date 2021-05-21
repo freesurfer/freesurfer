@@ -5,7 +5,7 @@
 /*
  * Original Author: Ruopeng Wang
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -41,6 +41,7 @@ class SurfaceROI;
 class Interactor3DPathEdit;
 class RenderView3D;
 class vtkInteractorStyleMyTrackballCamera;
+class Region3D;
 
 class RenderView3D : public RenderView
 {
@@ -75,13 +76,11 @@ public:
 
   void UpdateCursorRASPosition( int posX, int posY );
   void UpdateMouseRASPosition( int posX, int posY, bool bSlicePickOnly = false );
-  bool InitializeSelectRegion( int posX, int poboolsY );
+  vtkProp* InitializeSelectRegion( int posX, int poboolsY, int nDrawMode );
 
-  void AddSelectRegionLoopPoint( int posX, int posY );
+  void AddSelectRegionLoopPoint( int posX, int posY, vtkProp* prop_in, int nAction );
 
-  void CloseSelectRegion();
-
-  void DeleteCurrentSelectRegion();
+  void CloseSelectRegion(int nDrawMode);
 
   bool PickSelectRegion( int nId );
 
@@ -133,11 +132,15 @@ public:
     return m_bShowAxes;
   }
 
+  int GetAxesFlyMode();
+
 signals:
   void SurfaceVertexClicked(LayerSurface* surf);
   void SurfaceRegionSelected(SurfaceRegion*);
   void SurfaceRegionRemoved(SurfaceRegion*);
   void VolumeTrackMouseOver(Layer* layer, const QVariantMap& info);
+  void Region3DSelected(Region3D*);
+  void Region3DRemoved(Region3D*);
 
 public slots:
   void RefreshAllActors(bool bForScreenShot = false);
@@ -166,7 +169,10 @@ public slots:
   void UpdateScalarBar();
   void SetFocalPointAtCursor(bool b);
   void UpdateAxesActor();
-  void SetShowAxes(bool b);
+  void SetShowAxes(bool b);  
+  void DeleteCurrentSelectRegion();
+  void SetAxesFlyMode(int n);
+  void DeleteCurrent3DRegion();
 
 protected:
   void DoUpdateRASPosition( int posX, int posY, bool bCursor = false, bool bSlicePickOnly = false );
@@ -177,7 +183,7 @@ protected:
   virtual void OnSlicePositionChanged(bool bCenterView = false);
   virtual void OnIdle();
 
-  vtkProp* PickProp( int posX, int posY, double* pos_out = NULL );
+  vtkProp* PickProp( int posX, int posY, double* pos_out = NULL, vtkPropCollection* props_in = NULL );
 
 private:
   int  m_nPickCoord[2];
@@ -195,6 +201,7 @@ private:
   vtkSmartPointer<vtkCubeSource>  m_cubeSliceBoundingBox[3];
   vtkSmartPointer<vtkAnnotatedCubeActor> m_actorAnnotatedCube;
   vtkSmartPointer<vtkCubeAxesActor>          m_actorAxesActor;
+  vtkActor*     m_actorForAxes;
 
   double  m_dBounds[6];
   double  m_dBoundingTolerance;

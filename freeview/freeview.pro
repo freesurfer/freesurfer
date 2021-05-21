@@ -14,6 +14,7 @@ SOURCES += \
     CursorFactory.cpp \
     BrushProperty.cpp  \
     DialogAbout.cpp \
+    DialogControlPointComment.cpp \
     DialogCropVolume.cpp \
     DialogGradientFilter.cpp \
     DialogLoadDTI.cpp \
@@ -26,6 +27,7 @@ SOURCES += \
     DialogPreferences.cpp \
     DialogSavePointSet.cpp \
     DialogSaveScreenshot.cpp \
+    DialogTransformSurface.cpp \
     DialogTransformVolume.cpp \
     DialogVolumeFilter.cpp \
     DialogWriteMovieFrames.cpp \
@@ -54,11 +56,13 @@ SOURCES += \
     LayerDTI.cpp \
     LayerEditable.cpp \
     LayerMRI.cpp \
+    LayerODF.cpp \
     LayerPLabel.cpp \
     LayerPointSet.cpp \
     LayerProperty.cpp \
     LayerPropertyDTI.cpp \
     LayerPropertyMRI.cpp \
+    LayerPropertyODF.cpp \
     LayerPropertyPointSet.cpp \
     LayerPropertyROI.cpp \
     LayerPropertySurface.cpp \
@@ -68,6 +72,8 @@ SOURCES += \
     LayerVolumeBase.cpp \
     LivewireTool.cpp \
     LUTDataHolder.cpp \
+    PanelODF.cpp \
+    Region3D.cpp \
     WindowEditAnnotation.cpp \
     main.cpp \
     MainWindow.cpp \
@@ -194,6 +200,7 @@ HEADERS  += \
     Cursor3D.h \
     CursorFactory.h \
     DialogAbout.h \
+    DialogControlPointComment.h \
     DialogCropVolume.h \
     DialogGradientFilter.h \
     DialogLoadDTI.h \
@@ -206,6 +213,7 @@ HEADERS  += \
     DialogNewVolume.h \
     DialogSavePointSet.h \
     DialogSaveScreenshot.h \
+    DialogTransformSurface.h \
     DialogTransformVolume.h \
     DialogVolumeFilter.h \
     DialogWriteMovieFrames.h \
@@ -233,11 +241,13 @@ HEADERS  += \
     LayerCollection.h \
     LayerDTI.h \
     LayerEditable.h \
+    LayerODF.h \
     LayerPLabel.h \
     LayerPointSet.h \
     LayerProperty.h \
     LayerPropertyDTI.h \
     LayerPropertyMRI.h \
+    LayerPropertyODF.h \
     LayerPropertyPointSet.h \
     LayerPropertyROI.h \
     LayerPropertySurface.h \
@@ -252,10 +262,12 @@ HEADERS  += \
     MyCmdLineParser.h \
     MyUtils.h \
     PanelLayer.h \
+    PanelODF.h \
     PanelPointSet.h \
     PanelROI.h \
     PanelSurface.h \
     PanelVolume.h \
+    Region3D.h \
     WindowEditAnnotation.h \
     qtcolorpicker.h \
     Region2D.h \
@@ -358,7 +370,10 @@ HEADERS  += \
     DialogScreenshotOverlay.h
 
 FORMS    += MainWindow.ui \
+    DialogControlPointComment.ui \
     DialogNewAnnotation.ui \
+    DialogTransformSurface.ui \
+    PanelODF.ui \
     PanelVolume.ui \
     PanelSurface.ui \
     PanelROI.ui \

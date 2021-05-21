@@ -1,6 +1,6 @@
 /*
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -250,6 +250,9 @@ edit_hippocampus(MRI *mri_in_labeled, MRI *mri_T1, MRI *mri_out_labeled) {
           switch (label) {
           case Left_Cerebral_White_Matter:
             left = 1 ;
+#if __GNUC__ >= 8
+  [[gnu::fallthrough]];
+#endif
           case Right_Cerebral_White_Matter:
             dgray = distance_to_label(mri_out_labeled,
                                       left ? Left_Cerebral_Cortex :
@@ -271,8 +274,14 @@ edit_hippocampus(MRI *mri_in_labeled, MRI *mri_T1, MRI *mri_out_labeled) {
                         left ? Left_Cerebral_Cortex : Right_Cerebral_Cortex,
                         left ? Left_Cerebral_White_Matter : Right_Cerebral_White_Matter) ;
             }
+#if __GNUC__ >= 8
+  [[gnu::fallthrough]];
+#endif
           case Left_Hippocampus:
             left = 1 ;
+#if __GNUC__ >= 8
+  [[gnu::fallthrough]];
+#endif
           case Right_Hippocampus:
             dgray = distance_to_label(mri_out_labeled,
                                       left ? Left_Cerebral_Cortex :
@@ -349,6 +358,9 @@ edit_hippocampus(MRI *mri_in_labeled, MRI *mri_T1, MRI *mri_out_labeled) {
           }
           case Left_Cerebral_Cortex:
             left = 1 ;
+#if __GNUC__ >= 8
+  [[gnu::fallthrough]];
+#endif
           case Right_Cerebral_Cortex:
             dup = distance_to_label(mri_out_labeled,
                                     left ?  Left_Hippocampus :
@@ -604,6 +616,9 @@ edit_amygdala(MRI *mri_in_labeled, MRI *mri_T1, MRI *mri_out_labeled) {
           switch (label) {
           case Left_Cerebral_Cortex:
             left = 1 ;
+#if __GNUC__ >= 8
+  [[gnu::fallthrough]];
+#endif
           case Right_Cerebral_Cortex:
             dup = distance_to_label(mri_out_labeled,
                                     left ?  Left_Amygdala :
@@ -882,6 +897,9 @@ edit_lateral_ventricles(MRI *mri_in_labeled, MRI *mri_T1, MRI *mri_out_labeled) 
           switch (label) {
           case Left_Inf_Lat_Vent:
             left = 1 ;
+#if __GNUC__ >= 8
+  [[gnu::fallthrough]];
+#endif
           case Right_Inf_Lat_Vent:
             dwhite = distance_to_label(mri_out_labeled,
                                        left ? Left_Cerebral_White_Matter :

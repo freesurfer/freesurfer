@@ -5,7 +5,7 @@
 /*
  * Original Author: Douglas N. Greve
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -82,10 +82,12 @@ struct utsname uts;
 char *SrcValFile=NULL;
 char *TrgValFile=NULL;
 char *SurfRegFile[100];
+char *SurfPatchFile[100];
 int ReverseMapFlag = 1;
 int DoJac = 0;
 int UseHash = 1;
 int nsurfs = 0;
+int npatches = 0;
 int DoSynthRand = 0;
 int DoSynthOnes = 0;
 int SynthSeed = -1;
@@ -96,6 +98,7 @@ int OutputCurvFormat=0;
 LABEL *MRISmask2Label(MRIS *surf, MRI *mask, int frame, double thresh);
 int ApplyScaleSurf(MRIS *surf, const double scale);
 double SourceSurfRegScale = 0;
+double TargetSurfRegScale = 0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
@@ -134,13 +137,22 @@ int main(int argc, char *argv[]) {
     }
     else
       SurfReg[n] = MRISread(SurfRegFile[n]);
+    MRISsaveVertexPositions(SurfReg[n], TMP_VERTICES); // In case --vertex-pair is set
     free(base);
     if(SurfReg[n]==NULL) exit(1);
+    if(npatches>0){
+      printf("Loading patch %s\n",SurfPatchFile[n]);
+      MRISreadPatch(SurfReg[n], SurfPatchFile[n]);
+    }
   }
 
   if(SourceSurfRegScale > 0){
     printf("Scaling first surface by %g\n",SourceSurfRegScale);
     ApplyScaleSurf(SurfReg[0], SourceSurfRegScale);
+  }
+  if(TargetSurfRegScale > 0){
+    printf("Scaling second surface by %g\n",TargetSurfRegScale);
+    ApplyScaleSurf(SurfReg[1], TargetSurfRegScale);
   }
 
   // Load in source data
@@ -227,12 +239,15 @@ int main(int argc, char *argv[]) {
   }
   else if(SurfXYZFile){
     printf("Writing surface to %s\n",TrgValFile);
-    MRIScopyMRI(SurfReg[nsurfs-1],TrgVal,0,"x");
-    MRIScopyMRI(SurfReg[nsurfs-1],TrgVal,1,"y");
-    MRIScopyMRI(SurfReg[nsurfs-1],TrgVal,2,"z");
-    if (center_surface)
-      MRIScenter(SurfReg[nsurfs-1], SurfReg[nsurfs-1]);
-    MRISwrite(SurfReg[nsurfs-1], TrgValFile);
+    // If this is a patch, reload the target surf without the patch
+    MRIS *tmpsurf = SurfReg[nsurfs-1];
+    if(npatches > 0) tmpsurf = MRISread(SurfRegFile[nsurfs-1]);
+    MRIScopyMRI(tmpsurf,TrgVal,0,"x");
+    MRIScopyMRI(tmpsurf,TrgVal,1,"y");
+    MRIScopyMRI(tmpsurf,TrgVal,2,"z");
+    if(center_surface)  MRIScenter(tmpsurf, tmpsurf);
+    MRISwrite(tmpsurf, TrgValFile);
+    if(npatches > 0) MRISfree(&tmpsurf);
   }
   else{
     printf("Writing %s\n",TrgValFile);
@@ -326,6 +341,14 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%lf",&SourceSurfRegScale);
       nargsused = 1;
     } 
+    else if (!strcasecmp(option, "--trg-reg-scale")){
+      if(nargc < 1) CMDargNErr(option,1);
+      // Scale the coords of the first surface by TargetSurfRegScale. This
+      // was implemented to make it easier to use CAT reg surfaces which
+      // have a radius of 1.
+      sscanf(pargv[0],"%lf",&TargetSurfRegScale);
+      nargsused = 1;
+    } 
     else if (!strcasecmp(option, "--sval-label") || !strcasecmp(option, "--src-label")){
       if (nargc < 1) CMDargNErr(option,1);
       LabelFile = pargv[0];
@@ -351,6 +374,23 @@ static int parse_commandline(int argc, char **argv) {
       nsurfs++;
       nargsused = 2;
     } 
+    else if (!strcasecmp(option, "--patch")) {
+      if (nargc < 2) CMDargNErr(option,2);
+      SurfPatchFile[npatches] = pargv[0];
+      npatches++;
+      SurfPatchFile[npatches] = pargv[1];
+      npatches++;
+      nargsused = 2;
+    } 
+    else if (!strcasecmp(option, "--stvpair")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      setenv("FS_MRISAPPLYREG_STVPAIR",pargv[0],1);
+      /* Set up to create a text file with source-target vertex pairs (STVP) where the source
+      is the fist surface and the target is the last surface. The format will be
+        srcvtxno srcx srcy srcz trgvtxno trgx trgy trgz 
+      The actual coordinates will come from TMP_VERTEX v->{tx,ty,tz}, so make sure those are set */
+      nargsused = 1;
+    } 
     else if (!strcasecmp(option, "--lta")) {
       if(nargc < 3) CMDargNErr(option,3);
       printf("Reading in %s\n",pargv[0]);
@@ -370,6 +410,67 @@ static int parse_commandline(int argc, char **argv) {
       printf("mris_apply_reg done\n");
       exit(0);
     } 
+    else if (!strcasecmp(option, "--lta-patch")) {
+      // Surf Patch LTA out
+      // The application for this option is exvivo reg between a whole
+      // hemi and the WM surf of a block. This option allows a
+      // registration to be applied to the block flat map to bring it
+      // in reg with a flat map from the whole hemi. After that, then
+      // the standard surf2surf reg can be applied (using --patch)
+      if(nargc < 4) CMDargNErr(option,4);
+      // surface needed to read in patch, actual coords not important
+      printf("Reading in %s\n",pargv[0]);
+      MRIS *ltasurf = MRISread(pargv[0]); 
+      if(ltasurf==NULL) exit(1);
+      ltasurf->vg.valid = 0; // needed for ltaMult
+      // Now read in the (flat) patch
+      printf("Reading in %s\n",pargv[1]);
+      MRISreadPatch(ltasurf,pargv[1]);
+      printf("Reading in %s\n",pargv[2]);
+      /* Read in the LTA. The coordinates are a little confusing here.
+      2D images of the curv are created with coords in the flat map
+      surface coords (ie, tkreg). The reg comes registering these two
+      maps with mri_coreg, so from the LTA standpoint, this is a RAS2RAS 
+      eventhough secretly they are tkRAS. Because we are applying the reg
+      to the surface xyz (tkRAS), we need to change the LTA coord designation
+      to tkRAS so that MRISltaMultiply() does not change
+      the matrix to tkRAS. To make matters worse, we have to invert the matrix
+      beucase tkR matrices point from targ-to-source. It's a mess.*/
+      LTA *lta = LTAread(pargv[2]);
+      if(lta==NULL) exit(1);
+      if(lta->type != LINEAR_RAS_TO_RAS){
+	printf("Changing LTA type to RAS2RAS\n");
+	LTAchangeType(lta,LINEAR_RAS_TO_RAS);
+      }
+      // The hack mentioned above
+      lta->type = REGISTER_DAT; 
+      MatrixInverse(lta->xforms[0].m_L,lta->xforms[0].m_L);
+      int err = MRISltaMultiply(ltasurf, lta);
+      // might could have just done this and skipped all the drama above
+      //int err = MRISmatrixMultiply(ltasurf, lta->xforms[0].m_L); 
+      if(err) exit(1);
+      if (center_surface) MRIScenter(ltasurf, ltasurf);
+      printf("Writing patch to %s\n",pargv[3]);
+      err = MRISwritePatch(ltasurf,pargv[3]);
+      if(err) exit(1);
+      nargsused = 4;
+      printf("mris_apply_reg done\n");
+      exit(0);
+    } 
+    else if (!strcasecmp(option, "--reverse")) {
+      if(nargc < 3) CMDargNErr(option,3);
+      MRIS *revsurf = MRISread(pargv[0]);
+      if(revsurf==NULL) exit(1);
+      if(strcmp(pargv[1],"nopatch")!=0)	MRISreadPatch(revsurf,pargv[1]);
+      MRISreverse(revsurf, REVERSE_X, 1);
+      int err;
+      if(strcmp(pargv[1],"nopatch")!=0)	err = MRISwritePatch(revsurf,pargv[2]);
+      else                              err = MRISwrite(revsurf,pargv[2]);
+      if(err) exit(1);
+      nargsused = 3;
+      printf("mris_apply_reg done\n");
+      exit(0);
+    }
     else if (!strcasecmp(option, "--m3z")) {
       if(nargc < 3) CMDargNErr(option,3);
       printf("Reading in %s\n",pargv[0]);
@@ -437,11 +538,16 @@ static void print_usage(void) {
   printf("\n");
   printf("   --lta source-surf ltafile output-surf : apply LTA transform\n");
   printf("     other options do not apply to --lta\n");
+  printf("   --lta-patch source-surf surfpatch ltafile output-patch : apply LTA transform to patch\n");
+  printf("   --reverse surf patchopt output : LR reverse suface. patchopt=patchfile or nopatch\n");
+  printf("   --patch srcregNpatch trgregNpatch : patches, one for each --streg\n");
+  printf("   --stvpair stvpairfile : save srcvtxno srcx srcy srcz trgvtxno trgx trgy trgz from first and last surfs \n");
   printf("\n");
   printf("   --m3z source-surf m3zfile output-surf : apply m3z transform\n");
   printf("     other options do not apply to --m3z\n");
   printf("\n");
   printf("   --src-reg-scale Scale : Scale the coords of the first surface\n");
+  printf("   --trg-reg-scale Scale : Scale the coords of the last surface\n");
   printf("   --debug     turn on debugging\n");
   printf("   --checkopts don't run anything, just check options and exit\n");
   printf("   --help      print out information on how to use this program\n");
@@ -501,6 +607,10 @@ static void check_options(void) {
       printf("ERROR: %s does not exist or is not readable by you\n",SurfRegFile[n]);
       exit(1);
     }
+  }
+  if(npatches>0 && npatches != nsurfs){
+    printf("ERROR: number of patches must match number of surfaces\n");
+    exit(1);
   }
   return;
 }

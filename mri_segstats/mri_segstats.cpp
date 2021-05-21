@@ -10,7 +10,7 @@
 /*
  * Original Author: Dougas N Greve
  *
- * Copyright Â© 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -261,24 +261,32 @@ int main(int argc, char **argv)
     if (talxfmfile)
     {
       // path to talairach.xfm file spec'd on the command line
-      sprintf(tmpstr,"%s",talxfmfile);
+      int req = snprintf(tmpstr,1000,"%s",talxfmfile); 
+      if( req >= 1000 ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
+
     }
     else
     {
-      sprintf
-      (tmpstr,
-       "%s/%s/mri/transforms/talairach.xfm",
-       SUBJECTS_DIR,
-       subject);
+      int req = snprintf(tmpstr,1000,
+			 "%s/%s/mri/transforms/talairach.xfm",
+			 SUBJECTS_DIR,
+			 subject);
+      if( req >= 1000 ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
     }
     if (DoOldETIVonly)
     {
       // back-door way to get the old way of calculating etiv, for debug
-      sprintf
-      (tmpstr,
-       "%s/%s/mri/transforms/talairach_with_skull.lta",
-       SUBJECTS_DIR,
-       subject);
+      int req = snprintf(tmpstr,1000,
+			 "%s/%s/mri/transforms/talairach_with_skull.lta",
+			 SUBJECTS_DIR,
+			 subject);
+      if( req >= 1000 ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       etiv_scale_factor = 2150;
     }
     double determinant = 0;
@@ -316,12 +324,18 @@ int main(int argc, char **argv)
   }
 
   if(DoEuler){
-    sprintf(tmpstr,"%s/%s/surf/lh.orig.nofix",SUBJECTS_DIR,subject);
+    int req = snprintf(tmpstr,1000,"%s/%s/surf/lh.orig.nofix",SUBJECTS_DIR,subject); 
+    if( req >= 1000 ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     if(!fio_FileExistsReadable(tmpstr)){
       printf("Warning: cannot find %s, not computing euler number\n",tmpstr);
       DoEuler = 0;
     }
-    sprintf(tmpstr,"%s/%s/surf/rh.orig.nofix",SUBJECTS_DIR,subject);
+    req = snprintf(tmpstr,1000,"%s/%s/surf/rh.orig.nofix",SUBJECTS_DIR,subject); 
+    if( req >= 1000 ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     if(!fio_FileExistsReadable(tmpstr)){
       printf("Warning: cannot find %s, not computing euler number\n",tmpstr);
       DoEuler = 0;
@@ -329,7 +343,10 @@ int main(int argc, char **argv)
   }
   if(DoEuler){
     int nvertices, nfaces, nedges;
-    sprintf(tmpstr,"%s/%s/surf/lh.orig.nofix",SUBJECTS_DIR,subject);
+    int req = snprintf(tmpstr,1000,"%s/%s/surf/lh.orig.nofix",SUBJECTS_DIR,subject);  
+    if( req >= 1000 ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     printf("Computing euler number\n");
     mris = MRISread(tmpstr);
     if(mris==NULL) exit(1);
@@ -438,8 +455,8 @@ int main(int argc, char **argv)
     mris->ct->idbase = segbase;
     if (mris->ct)
     {
-      sprintf(tmpstr,"/tmp/mri_segstats.tmp.%s.%s.%d.ctab",subject,hemi,
-              nint(randomNumber(0, 255)));
+      std::string tmpfile = makeTempFile(".ctab");
+      sprintf(tmpstr, "%s", tmpfile.c_str());
       ctabfile = strcpyalloc(tmpstr);
       CTABwriteFileASCII(mris->ct,ctabfile);
     }
@@ -2278,14 +2295,20 @@ int CountEdits(char *subject, char *outfile)
   SUBJECTS_DIR = getenv("SUBJECTS_DIR");
   sprintf(sd,"%s/%s",SUBJECTS_DIR,subject);
 
-  sprintf(tmpstr,"%s/tmp/control.dat",sd);
+  int req = snprintf(tmpstr,STRLEN,"%s/tmp/control.dat",sd);  
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   count = 0;
   if(fio_FileExistsReadable(tmpstr)){
     pArray = MRIreadControlPoints(tmpstr, &count, &useRealRAS);
     free(pArray);
   }
 
-  sprintf(tmpstr,"%s/mri/wm.mgz",sd);
+  req = snprintf(tmpstr,STRLEN,"%s/mri/wm.mgz",sd);  
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   mri = MRIread(tmpstr);
   if(mri == NULL) return(1);
   nWMErase = 0;
@@ -2301,10 +2324,16 @@ int CountEdits(char *subject, char *outfile)
   }
   MRIfree(&mri);
 
-  sprintf(tmpstr,"%s/mri/brainmask.mgz",sd);
+  req = snprintf(tmpstr,STRLEN,"%s/mri/brainmask.mgz",sd);  
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   mri = MRIread(tmpstr);
   if(mri == NULL) return(1);
-  sprintf(tmpstr,"%s/mri/brainmask.auto.mgz",sd);
+  req = snprintf(tmpstr,STRLEN,"%s/mri/brainmask.auto.mgz",sd);  
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   mri2 = MRIread(tmpstr);
   if(mri2 == NULL) return(1);
   nBMErase = 0;
@@ -2323,10 +2352,16 @@ int CountEdits(char *subject, char *outfile)
   MRIfree(&mri);
   MRIfree(&mri2);
 
-  sprintf(tmpstr,"%s/mri/aseg.mgz",sd);
+  req = snprintf(tmpstr,STRLEN,"%s/mri/aseg.mgz",sd);  
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   mri = MRIread(tmpstr);
   if(mri == NULL) return(1);
-  sprintf(tmpstr,"%s/mri/aseg.auto.mgz",sd);
+  req = snprintf(tmpstr,STRLEN,"%s/mri/aseg.auto.mgz",sd);   
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   mri2 = MRIread(tmpstr);
   if(mri2 == NULL) return(1);
   nASegChanges = 0;
@@ -2343,21 +2378,28 @@ int CountEdits(char *subject, char *outfile)
   MRIfree(&mri);
   MRIfree(&mri2);
 
+  // Note: ?h.orig.nofix files might not exist in longitudinal;
+  // number of holes will be 0 for long anyway
   int nvertices, nfaces, nedges;
   int lheno, rheno, lhholes, rhholes, totholes;
   MRIS *mris;
   sprintf(tmpstr,"%s/%s/surf/lh.orig.nofix",SUBJECTS_DIR,subject);
-  mris = MRISread(tmpstr);
-  if(mris==NULL) exit(1);
-  lheno = MRIScomputeEulerNumber(mris, &nvertices, &nfaces, &nedges) ;
-  MRISfree(&mris);
+  if(fio_FileExistsReadable(tmpstr)){
+    mris = MRISread(tmpstr);
+    if(mris==NULL) exit(1);
+    lheno = MRIScomputeEulerNumber(mris, &nvertices, &nfaces, &nedges) ;
+    MRISfree(&mris);
+    lhholes = 1-lheno/2;
+  } else lhholes = 0;
   sprintf(tmpstr,"%s/%s/surf/rh.orig.nofix",SUBJECTS_DIR,subject);
-  mris = MRISread(tmpstr);
-  if(mris==NULL) exit(1);
-  rheno = MRIScomputeEulerNumber(mris, &nvertices, &nfaces, &nedges) ;
-  MRISfree(&mris);
-  lhholes = 1-lheno/2;
-  rhholes = 1-rheno/2;
+  if(fio_FileExistsReadable(tmpstr)){
+    mris = MRISread(tmpstr);
+    if(mris==NULL) exit(1);
+    rheno = MRIScomputeEulerNumber(mris, &nvertices, &nfaces, &nedges) ;
+    MRISfree(&mris);
+    rhholes = 1-rheno/2;
+  }
+  else rhholes = 0;
   totholes = lhholes+rhholes;
 
   double determinant = 0;
@@ -2374,20 +2416,56 @@ int CountEdits(char *subject, char *outfile)
   // Erode=3, trim the top and bottom 2% when computing WM mean, std, etc
   wmstats = WMAnatStats(subject, "norm.mgz", 3, 2);
 
+  // Compute gray/white contrast, its spatial stddev, cnr = mean/std
+  double gwconmeansum=0, gwconvarsum=0;
+  int hemi;
+  for(hemi = 0; hemi < 2; hemi++){
+    LABEL *clabel;
+    MRI *wgcon;
+    char hemistr[3];
+    if(hemi==0) memcpy(hemistr,"lh",2);
+    if(hemi==1) memcpy(hemistr,"rh",2);
+    sprintf(tmpstr,"%s/%s/surf/%s.white",SUBJECTS_DIR,subject,hemistr);
+    mris = MRISread(tmpstr);
+    if(mris==NULL) exit(1);
+    sprintf(tmpstr,"%s/%s/label/%s.cortex.label",SUBJECTS_DIR,subject,hemistr);
+    clabel = LabelRead(NULL,tmpstr);
+    if(clabel == NULL) exit(1);
+    sprintf(tmpstr,"%s/%s/surf/%s.w-g.pct.mgh",SUBJECTS_DIR,subject,hemistr);
+    wgcon = MRIread(tmpstr);
+    seg = MRIalloc(mris->nvertices,1,1,MRI_INT);
+    int n;
+    for (n = 0; n < clabel->n_points; n++){
+      MRIsetVoxVal(seg,clabel->lv[n].vno,0,0,0, 1);
+    }
+    float min, max, range, mean, std;
+    MRIsegStats(seg, 1, wgcon, 0, &min, &max, &range, &mean, &std);
+    gwconmeansum += mean; gwconvarsum += (std*std);
+    MRISfree(&mris);
+    LabelFree(&clabel);
+    MRIfree(&wgcon);
+    MRIfree(&seg);
+    printf(" %s cnrstats: %6.3f %6.3f %6.3f\n",hemistr,mean,std,mean/std);
+  }
+  double gwconmean = gwconmeansum/2.0;
+  double gwconstd  = sqrt(gwconvarsum/2.0);
+
   printf("%s nc %3d, nWMErase %3d, nWMFill %3d, nBMErase %3d, nBMClone %3d, nASegChanges %3d, "
 	 "lhholes %4d, rhholes %4d, MaskVolToETIV %7.5f\n",
 	 subject,count,nWMErase,nWMFill,nBMErase,nBMClone,nASegChanges,
 	 lhholes,rhholes,MaskVolToETIV);
   printf("wmstats: %6.2f %6.2f %6.2f %6.2f %6.2f\n",wmstats[0],wmstats[1],
 	 wmstats[2],wmstats[3],wmstats[4]);
+  printf("cnrstats: %6.3f %6.3f %6.3f\n",gwconmean,gwconstd,gwconmean/gwconstd);
 
 
   if(outfile){
     fp = fopen(outfile,"w");
-    fprintf(fp,"%s %3d    %4d %4d    %4d %4d   %4d  %4d %4d %4d   %7.5f %6.2f %6.2f %6.2f %6.2f %6.2f %6.2f\n",
+    fprintf(fp,"%s %3d    %4d %4d    %4d %4d   %4d  %4d %4d %4d   %7.5f %6.2f %6.2f %6.2f %6.2f %6.2f %6.2f %6.3f %6.3f %6.3f\n",
 	    subject,count,nWMErase,nWMFill,nBMErase,nBMClone,nASegChanges,
 	    lhholes,rhholes,totholes,MaskVolToETIV,wmstats[0],wmstats[1],
-	    wmstats[2],wmstats[3],wmstats[4],wmstats[0]/wmstats[1]);
+	    wmstats[2],wmstats[3],wmstats[4],wmstats[0]/wmstats[1],
+	    gwconmean,gwconstd,gwconmean/gwconstd);
     fclose(fp);
   }
 

@@ -5,7 +5,7 @@
 /*
  * Original Author: Ruopeng Wang
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -22,6 +22,8 @@
 #define Interactor3DMeasure_h
 
 #include "Interactor3D.h"
+
+class vtkProp;
 
 class Interactor3DMeasure : public Interactor3D
 {
@@ -44,6 +46,8 @@ protected:
   int  m_nMousePosY;
 
   bool m_bSelectRegion;
+  bool m_bDrawRegion;
+  vtkProp* m_prop;
 };
 
 #endif

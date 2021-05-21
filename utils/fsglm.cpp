@@ -1,6 +1,6 @@
 /*
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -119,6 +119,10 @@
   1. Any weighting of y and X must be done prior to GLMfit().
 
 */
+
+#include <string>
+#include <sstream>
+#include <iomanip>
 
 #include <float.h>
 #include <math.h>
@@ -763,86 +767,93 @@ int GLMresynthTest(int niters, double *prvar)
   ---------------------------------------------------------*/
 int GLMdump(const char *dumpdir, GLMMAT *glm)
 {
-  char fname[1000], condir[1000];
+  std::string fname;
   FILE *fp;
   int c;
 
   mkdir(dumpdir, 0777);
+  
+  const std::string dds = std::string(dumpdir) + "/";
 
-  sprintf(fname, "%s/y.dat", dumpdir);
-  MatrixWriteTxt(fname, glm->y);
+  fname = dds + "y.dat";
+  MatrixWriteTxt(fname.c_str(), glm->y);
 
-  sprintf(fname, "%s/X.dat", dumpdir);
-  MatrixWriteTxt(fname, glm->X);
+  fname = dds + "X.dat";
+  MatrixWriteTxt(fname.c_str(), glm->X);
 
-  sprintf(fname, "%s/dof.dat", dumpdir);
-  fp = fopen(fname, "w");
+  fname = dds + "dof.dat";
+  fp = fopen(fname.c_str(), "w");
   fprintf(fp, "%lf\n", glm->dof);
   fclose(fp);
 
-  sprintf(fname, "%s/ill_cond_flag.dat", dumpdir);
-  fp = fopen(fname, "w");
+  fname = dds + "ill_cond_flag.dat";
+  fp = fopen(fname.c_str(), "w");
   fprintf(fp, "%d\n", glm->ill_cond_flag);
   fclose(fp);
   if (glm->ill_cond_flag) return (0);
 
-  sprintf(fname, "%s/beta.dat", dumpdir);
-  MatrixWriteTxt(fname, glm->beta);
+  fname = dds + "beta.dat";
+  MatrixWriteTxt(fname.c_str(), glm->beta);
 
-  sprintf(fname, "%s/yhat.dat", dumpdir);
-  MatrixWriteTxt(fname, glm->yhat);
+  fname = dds + "yhat.dat";
+  MatrixWriteTxt(fname.c_str(), glm->yhat);
 
-  sprintf(fname, "%s/eres.dat", dumpdir);
-  MatrixWriteTxt(fname, glm->eres);
+  fname = dds + "eres.dat";
+  MatrixWriteTxt(fname.c_str(), glm->eres);
 
-  sprintf(fname, "%s/rvar.dat", dumpdir);
-  fp = fopen(fname, "w");
+  fname = dds + "rvar.dat";
+  fp = fopen(fname.c_str(), "w");
   fprintf(fp, "%lf\n", glm->rvar);
   fclose(fp);
 
-  sprintf(fname, "%s/ncontrasts.dat", dumpdir);
-  fp = fopen(fname, "w");
+  fname = dds + "ncontrasts.dat";
+  fp = fopen(fname.c_str(), "w");
   fprintf(fp, "%d\n", glm->ncontrasts);
   fclose(fp);
 
   for (c = 0; c < glm->ncontrasts; c++) {
-    if (glm->Cname[c] != NULL)
-      sprintf(condir, "%s/%s", dumpdir, glm->Cname[c]);
-    else
-      sprintf(condir, "%s/contrast%03d", dumpdir, c + 1);
-    mkdir(condir, 0777);
+    std::string condir;
+    if (glm->Cname[c] != NULL) {
+      condir = dds + glm->Cname[c];
+    } else {
+      std::stringstream tmp;
+      tmp << "contrast" << std::setw(3) << std::setfill('0') << (c+1);
+      condir = dds + tmp.str();
+    }
+    mkdir(condir.c_str(), 0777);
+    condir = condir + '/';
 
-    sprintf(fname, "%s/C.dat", condir);
-    MatrixWriteTxt(fname, glm->C[c]);
+    fname = condir + "C.dat";
+    MatrixWriteTxt(fname.c_str(), glm->C[c]);
 
-    sprintf(fname, "%s/Ccond.dat", condir);
-    fp = fopen(fname, "w");
+    fname = condir + "Ccond.dat";
+    fp = fopen(fname.c_str(), "w");
     fprintf(fp, "%f\n", glm->Ccond[c]);
     fclose(fp);
 
-    sprintf(fname, "%s/Mpmf.dat", condir);
-    MatrixWriteTxt(fname, glm->Mpmf[c]);
+    fname = condir + "Mpmf.dat";
+    MatrixWriteTxt(fname.c_str(), glm->Mpmf[c]);
 
-    sprintf(fname, "%s/gamma.dat", condir);
-    MatrixWriteTxt(fname, glm->gamma[c]);
+    fname = condir + "gamma.dat";
+    MatrixWriteTxt(fname.c_str(), glm->gamma[c]);
     if (glm->UseGamma0[c]) {
-      sprintf(fname, "%s/gamma0.dat", condir);
-      MatrixWriteTxt(fname, glm->gamma0[c]);
+      fname = condir + "gamma0.dat";
+      MatrixWriteTxt(fname.c_str(), glm->gamma0[c]);
     }
 
-    sprintf(fname, "%s/F.dat", condir);
-    fp = fopen(fname, "w");
+    fname = condir + "F.dat";
+    fp = fopen(fname.c_str(), "w");
     fprintf(fp, "%lf\n", glm->F[c]);
     fclose(fp);
 
-    sprintf(fname, "%s/p.dat", condir);
-    fp = fopen(fname, "w");
+    fname = condir + "p.dat";
+    fp = fopen(fname.c_str(), "w");
     fprintf(fp, "%le\n", glm->p[c]);
     fclose(fp);
 
     if (glm->ypmfflag[c]) {
-      sprintf(fname, "%s/ypmf.dat", condir);
-      MatrixWriteTxt(fname, glm->ypmf[c]);
+      fname = condir + "ypmf.dat";
+      MatrixWriteTxt(fname.c_str(), glm->ypmf[c]);
     }
   }
 

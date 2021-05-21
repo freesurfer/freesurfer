@@ -1,7 +1,7 @@
 /*
  * Original Author: Ruopeng Wang
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -170,10 +170,6 @@ void InfoTreeWidget::UpdateAll()
       //      else
       //        dvalue = layer->GetVoxelValueByOriginalIndex(nIndex[0]+0.5, nIndex[1]+0.5, nIndex[2]+0.5);
       QString valueStrg = MyUtils::RealToNumber(dvalue, nPrecision);
-//      while (valueStrg[valueStrg.size()-1] != '.' && valueStrg[valueStrg.size()-1] == '0')
-//        valueStrg.resize(valueStrg.size()-1);
-//      if (valueStrg[valueStrg.size()-1] == '.')
-//        valueStrg.resize(valueStrg.size()-1);
       if (layer->GetNumberOfFrames() > 1 && layer->GetNumberOfFrames() <= 6)
       {
         QList<double> values = layer->GetVoxelValueByOriginalIndexAllFrames((int)(fIndex[0]+0.5), (int)(fIndex[1]+0.5), (int)(fIndex[2]+0.5));
@@ -184,8 +180,13 @@ void InfoTreeWidget::UpdateAll()
           values << (nval & 0x00ff) << ((nval >> 8) & 0x00ff) << ((nval >> 16) & 0x00ff);
         }
         QStringList strgs;
-        foreach (double value, values)
-          strgs << MyUtils::RealToNumber(value, nPrecision);
+        for (int n = 0; n < values.size(); n++)
+        {
+          if (n == layer->GetActiveFrame())
+            strgs << QString("*%1*").arg(MyUtils::RealToNumber(values[n], nPrecision));
+          else
+            strgs << MyUtils::RealToNumber(values[n], nPrecision);
+        }
         valueStrg = strgs.join(bComma?", ":" ");
         if (values.size() == 6)
         {

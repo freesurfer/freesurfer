@@ -6,7 +6,7 @@
 /*
  * surfaces Author: Bruce Fischl, extracted from mrisurf.c by Bevin Brett
  *
- * $ © copyright-2014,2018 The General Hospital Corporation (Boston, MA) "MGH"
+ * $ Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -96,7 +96,11 @@ int MRISreadTriangleProperties(MRI_SURFACE *mris, const char *mris_fname)
   hemi[2] = 0;
   FileNamePath(mris_fname, fpref);
 
-  sprintf(fname, "%s/%s.triangle_area", fpref, hemi);
+  int req = snprintf(fname, STRLEN, "%s/%s.triangle_area", fpref, hemi);
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
+
 
   fp = fopen(fname, "r");
   if (fp == NULL) {
@@ -140,7 +144,11 @@ int MRISreadTriangleProperties(MRI_SURFACE *mris, const char *mris_fname)
   }
 
   /* now open and read the angle file */
-  sprintf(fname, "%s/%s.triangle_angle", fpref, hemi);
+  req = snprintf(fname, STRLEN, "%s/%s.triangle_angle", fpref, hemi);
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
+
   fp = fopen(fname, "r");
   if (fp == NULL) {
     return (1); /* doesn't exist */
@@ -166,30 +174,6 @@ int MRISreadTriangleProperties(MRI_SURFACE *mris, const char *mris_fname)
       face->orig_angle[ano] = f;
     }
   }
-
-#if 0
-  /* read in the distances to all neighboring vertices */
-  sprintf(fname, "%s/%s.dist", fpref, hemi) ;
-  fp = fopen(fname,"rb");
-  if (!fp)
-    ErrorReturn(ERROR_NO_FILE,
-                (ERROR_NO_FILE,
-                 "MRISreadTriangleProperties: could not open %s",
-                 fname)) ;
-
-  fread4((float *)&vnum,fp);
-  fread4((float *)&fnum,fp);
-  for (vno = 0; vno < mris->nvertices ; vno++)
-  {
-    v = &mris->vertices[vno] ;
-    for (n = 0 ; n < v->vtotal ; n++)
-    {
-      v->dist_orig[n] = freadFloat(fp) ;
-    }
-  }
-
-  fclose(fp);
-#endif
 
   return (NO_ERROR);
 }
@@ -222,7 +206,11 @@ int MRISwriteTriangleProperties(MRI_SURFACE *mris, const char *mris_fname)
   hemi[2] = 0;
   FileNamePath(mris_fname, fpref);
 
-  sprintf(fname, "%s/%s.triangle_area", fpref, hemi);
+  int req = snprintf(fname, STRLEN, "%s/%s.triangle_area", fpref, hemi); 
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
+
   fp = fopen(fname, "wb");
   if (!fp) ErrorReturn(ERROR_NO_FILE, (ERROR_NO_FILE, "MRISwriteTriangleProperties: could not open %s", fname));
 
@@ -236,7 +224,11 @@ int MRISwriteTriangleProperties(MRI_SURFACE *mris, const char *mris_fname)
 
   fclose(fp);
 
-  sprintf(fname, "%s/%s.triangle_angle", fpref, hemi);
+  req = snprintf(fname, STRLEN, "%s/%s.triangle_angle", fpref, hemi);    
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
+
   fp = fopen(fname, "wb");
   if (!fp) ErrorReturn(ERROR_NO_FILE, (ERROR_NO_FILE, "MRISwriteTriangleProperties: could not open %s", fname));
 
@@ -251,30 +243,6 @@ int MRISwriteTriangleProperties(MRI_SURFACE *mris, const char *mris_fname)
   }
 
   fclose(fp);
-
-#if 0
-  /* write out the distances to all neighboring vertices */
-  sprintf(fname, "%s/%s.dist", fpref, hemi) ;
-  fp = fopen(fname,"wb");
-  if (!fp)
-    ErrorReturn(ERROR_NO_FILE,
-                (ERROR_NO_FILE,
-                 "MRISwriteTriangleProperties: could not open %s",
-                 fname)) ;
-
-  fwrite4(mris->nvertices,fp);
-  fwrite4(mris->nfaces,fp);
-  for (vno = 0; vno < mris->nvertices ; vno++)
-  {
-    v = &mris->vertices[vno] ;
-    for (n = 0 ; n < v->v2num ; n++)
-    {
-      fwriteFloat(v->dist[n], fp) ;
-    }
-  }
-
-  fclose(fp);
-#endif
 
   return (NO_ERROR);
 }
@@ -316,19 +284,31 @@ int MRISwriteCurvature(MRI_SURFACE *mris, const char *sname)
     if (!cp || ((cp - sname) != 2) || *(cp - 1) != 'h' || ((*(cp - 2) != 'l' && *(cp - 2) != 'r'))) {
       if (getenv("FS_POSIX")) {
         // PW 2017/05/15: If FS_POSIX is set, write to cwd (as per POSIX:4.11)
-        sprintf(fname, "./%s.%s", hemi, sname);
+        int req = snprintf(fname, STRLEN, "./%s.%s", hemi, sname);
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
       }
       else {
-        sprintf(fname, "%s/%s.%s", path, hemi, sname);
+        int req = snprintf(fname, STRLEN, "%s/%s.%s", path, hemi, sname);  
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
       }
     }
     else {
       if (getenv("FS_POSIX")) {
         // PW 2017/05/15: If FS_POSIX is set, write to cwd (as per POSIX:4.11)
-        sprintf(fname, "./%s", sname);
+        int req = snprintf(fname, STRLEN, "./%s", sname); 
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
       }
       else {
-        sprintf(fname, "%s/%s", path, sname);
+        int req = snprintf(fname, STRLEN, "%s/%s", path, sname);   
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
       }
     }
   }
@@ -337,10 +317,16 @@ int MRISwriteCurvature(MRI_SURFACE *mris, const char *sname)
     FileNameOnly(sname, name);
     cp = strchr(name, '.');
     if (!cp || ((cp - name) != 2) || *(cp - 1) != 'h' || ((*(cp - 2) != 'l' && *(cp - 2) != 'r'))) {
-      sprintf(fname, "%s/%s.%s", path, hemi, name);
+      int req = snprintf(fname, STRLEN, "%s/%s.%s", path, hemi, name); 
+      if( req >= STRLEN ) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
     }
     else {
-      sprintf(fname, "%s/%s", path, name);
+      int req = snprintf(fname, STRLEN, "%s/%s", path, name); 
+      if( req >= STRLEN ) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
     }
   }
   if (Gdiag & DIAG_SHOW) {
@@ -414,20 +400,33 @@ int MRISwriteDists(MRI_SURFACE *mris, const char *sname)
     if (!cp)
       if (getenv("FS_POSIX")) {
         // PW 2017/05/15: If FS_POSIX is set, write to cwd (as per POSIX:4.11)
-        sprintf(fname, "./%s.%s", mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", sname);
+        int req = snprintf(fname, STRLEN, "./%s.%s", mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", sname);  
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
       }
       else {
         // PW 2017/05/15: Legacy behaviour
-        sprintf(fname, "%s/%s.%s", path, mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", sname);
+        int req = snprintf(fname, STRLEN, "%s/%s.%s",
+			   path, mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", sname);
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
       }
     else {
       if (getenv("FS_POSIX")) {
         // PW 2017/05/15: If FS_POSIX is set, write to cwd (as per POSIX:4.11)
-        sprintf(fname, "./%s", sname);
+        int req = snprintf(fname, STRLEN, "./%s", sname); 
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
       }
       else {
         // PW 2017/05/15: Legacy behaviour
-        sprintf(fname, "%s/%s", path, sname);
+        int req = snprintf(fname, STRLEN, "%s/%s", path, sname);  
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
       }
     }
   }
@@ -1348,12 +1347,6 @@ static int mrisLabelVertices(MRI_SURFACE *mris, float cx, float cy, float cz, in
     yd = cy - v->y;
     zd = cz - v->z;
     d = sqrt(xd * xd + yd * yd + zd * zd);
-#if 0                                               // weird - see comment below
-    if (d <= radius)
-    {
-      v->label = label ;
-    }
-#endif
   }
 
   return (NO_ERROR);
@@ -1418,11 +1411,6 @@ int MRISreadAnnotation(MRI_SURFACE *mris, const char *sname)
   char fname[STRLEN], path[STRLEN], fname_no_path[STRLEN];
   const char *cp;
   int *array;
-#if 0
-  int   numannothist;
-  float f;
-  char  histfname[STRLEN], freqfname[STRLEN];
-#endif
 
   // first attempt to read as gifti file
   int mritype = mri_identify(sname);
@@ -1438,22 +1426,31 @@ int MRISreadAnnotation(MRI_SURFACE *mris, const char *sname)
   // else fall-thru with default .annot processing...
 
   cp = strchr(sname, '/');
-  if (!cp) /* no path - use same one as mris was read from */
-  {
+  if (!cp) {
+    /* no path - use same one as mris was read from */
     FileNameOnly(sname, fname_no_path);
     cp = strstr(fname_no_path, ".annot");
     if (!cp) {
       strcat(fname_no_path, ".annot");
     }
-
+      
     need_hemi = stricmp(fname_no_path, mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh");
-
+      
     FileNamePath(mris->fname, path);
     if (!need_hemi) {
-      sprintf(fname, "%s/../label/%s", path, fname_no_path);
+      int req = snprintf(fname, STRLEN, "%s/../label/%s", path, fname_no_path); 
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
     }
-    else /* no hemisphere specified */
-      sprintf(fname, "%s/../label/%s.%s", path, mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", fname_no_path);
+    else {
+      /* no hemisphere specified */
+      int req = snprintf(fname, STRLEN, "%s/../label/%s.%s", 
+			 path, mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", fname_no_path); 
+      if( req >= STRLEN ) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
+    }
   }
   else {
     strcpy(fname, sname); /* full path specified */
@@ -1462,10 +1459,13 @@ int MRISreadAnnotation(MRI_SURFACE *mris, const char *sname)
       strcat(fname, ".annot");
     }
   }
-
+  
   // As a last resort, just assume the sname is the path
   if (!fio_FileExistsReadable(fname) && fio_FileExistsReadable(sname)) {
-    sprintf(fname, "%s", sname);
+    int req = snprintf(fname, STRLEN, "%s", sname);  
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
   }
 
   /* Try to read it into an array. */
@@ -1489,77 +1489,6 @@ int MRISreadAnnotation(MRI_SURFACE *mris, const char *sname)
   if (NO_ERROR != return_code) {
     return return_code;
   }
-
-#if 0
-  for (vno=0; vno<vertex_index; vno++)
-  {
-    vertex[vno].annotfreq=1;
-  }
-
-  sprintf(freqfname,"%s.freq",fname);
-  fp = fopen(freqfname,"r");
-  if (fp!=NULL)
-  {
-    printf("file %s read\n",freqfname);
-    for (vno=0; vno<vertex_index; vno++)
-    {
-      vertex[vno].annotfreq=0;
-    }
-    fread(&num,1,sizeof(int),fp);
-    printf("surfer: num=%d\n",num);
-    for (j=0; j<num; j++)
-    {
-      fread(&vno,1,sizeof(int),fp);
-      fread(&f,1,sizeof(float),fp);
-      if (vno>=vertex_index||vno<0)
-      {
-        printf("surfer: vertex index out of range: %d f=%f\n",vno,f);
-      }
-      else
-      {
-        vertex[vno].annotfreq = f;
-      }
-    }
-    fclose(fp);
-  }
-
-  sprintf(histfname,"%s.hist",fname);
-  fp = fopen(histfname,"r");
-  if (fp!=NULL)
-  {
-    printf("file %s read\n",histfname);
-    for (vno=0; vno<vertex_index; vno++)
-    {
-      vertex[vno].numannothist=0;
-    }
-    fread(&num,1,sizeof(int),fp);
-    printf("surfer: num=%d\n",num);
-    for (j=0; j<num; j++)
-    {
-      fread(&vno,1,sizeof(int),fp);
-      fread(&numannothist,1,sizeof(int),fp);
-      if (vno>=vertex_index||vno<0)
-      {
-        printf("surfer: vertex index out of range: %d f=%f\n",vno,f);
-      }
-      else
-      {
-        vertex[vno].numannothist = numannothist;
-        vertex[vno].annothistlabel = calloc(numannothist,sizeof(int));
-        vertex[vno].annothistcount = calloc(numannothist,sizeof(int));
-        for (i=0; i<numannothist; i++)
-        {
-          fread(&vertex[vno].annothistlabel[i],1,sizeof(int),fp);
-        }
-        for (i=0; i<numannothist; i++)
-        {
-          fread(&vertex[vno].annothistcount[i],1,sizeof(int),fp);
-        }
-      }
-    }
-    fclose(fp);
-  }
-#endif
 
   return (NO_ERROR);
 }
@@ -1700,9 +1629,10 @@ int MRISreadCTABFromAnnotationIfPresent(const char *fname, COLOR_TABLE **out_tab
   if (TAG_OLD_COLORTABLE == tag) {
     /* We have a color table, read it with CTABreadFromBinary. If it
     fails, it will print its own error message. */
-    fprintf(stdout, "reading colortable from annotation file...\n");
+    if (DIAG_VERBOSE_ON)
+      fprintf(stdout, "reading colortable from annotation file...\n");
     ctab = CTABreadFromBinary(fp);
-    if (NULL != ctab) fprintf(stdout, "colortable with %d entries read (originally %s)\n", ctab->nentries, ctab->fname);
+    if ((NULL != ctab) && DIAG_VERBOSE_ON) fprintf(stdout, "colortable with %d entries read (originally %s)\n", ctab->nentries, ctab->fname);
   }
 
   fclose(fp);
@@ -1803,21 +1733,35 @@ int MRISwriteAnnotation(MRI_SURFACE *mris, const char *sname)
     if (!need_hemi) {
       if (getenv("FS_POSIX")) {
         // PW 2017/05/15: If FS_POSIX is set, write to cwd (as per POSIX:4.11)
-        sprintf(fname, "./%s", fname_no_path);
+        int req = snprintf(fname, STRLEN, "./%s", fname_no_path);
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
       }
       else {
         // PW 2017/05/15: Legacy behaviour
-        sprintf(fname, "%s/../label/%s", path, fname_no_path);
+        int req = snprintf(fname, STRLEN, "%s/../label/%s", path, fname_no_path); 
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
       }
     }
     else { /* no hemisphere specified */
       if (getenv("FS_POSIX")) {
         // PW 2017/05/15: If FS_POSIX is set, write to cwd (as per POSIX:4.11)
-        sprintf(fname, "./%s.%s", mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", fname_no_path);
+        int req = snprintf(fname, STRLEN, "./%s.%s",
+			   mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", fname_no_path);
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
       }
       else {
         // PW 2017/05/15: Legacy behaviour
-        sprintf(fname, "%s/../label/%s.%s", path, mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", fname_no_path);
+        int req = snprintf(fname, STRLEN, "%s/../label/%s.%s",
+			   path, mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", fname_no_path); 
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
       }
     }
   }
@@ -1905,7 +1849,7 @@ int MRISreadValuesIntoArray(const char *sname, int in_array_size, float **out_ar
   if (in_array_size < 0) ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "in_array_size was negative."));
 
   /* First try to load it as a volume */
-  strncpy(fname, sname, sizeof(fname));
+  strncpy(fname, sname, sizeof(fname)-1);
   type = mri_identify(fname);
   if (type != MRI_VOLUME_TYPE_UNKNOWN) {
     frame = MRISgetReadFrame();
@@ -2209,11 +2153,19 @@ int mrisWriteSnapshots(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int t)
   strcpy(base_name, parms->base_name);
 
   MRISrestoreVertexPositions(mris, PIAL_VERTICES);
-  sprintf(parms->base_name, "%s_pial", base_name);
+  int req = snprintf(parms->base_name, STRLEN, "%s_pial", base_name); 
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
+
   mrisWriteSnapshot(mris, parms, t);
 
   MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES);
-  sprintf(parms->base_name, "%s_white", base_name);
+  req = snprintf(parms->base_name, STRLEN, "%s_white", base_name); 
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
+
   mrisWriteSnapshot(mris, parms, t);
 
   MRISrestoreVertexPositions(mris, TMP_VERTICES);
@@ -2250,14 +2202,24 @@ int mrisWriteSnapshot(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int t)
       break;
   }
   FileNamePath(mris->fname, path);
-  sprintf(base_name, "%s/%s.%s", path, hemi, parms->base_name);
+  int req = snprintf(base_name, STRLEN, "%s/%s.%s", path, hemi, parms->base_name);
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
+
   if ((cp = strstr(base_name, ".geo")) != NULL) {
     *cp = 0;
-    sprintf(fname, "%s%4.4d.geo", base_name, t);
+    int req = snprintf(fname, STRLEN, "%s%4.4d.geo", base_name, t); 
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     *cp = '.';
   }
   else {
-    sprintf(fname, "%s%4.4d", base_name, t);
+    int req = snprintf(fname, STRLEN, "%s%4.4d", base_name, t);   
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
   }
 #if 1
   if (Gdiag & DIAG_SHOW) {
@@ -2302,7 +2264,10 @@ int mrisWriteSnapshot(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int t)
         MRIsetVoxVal(mri_vector, vno, 0, 0, 1, dy);
         MRIsetVoxVal(mri_vector, vno, 0, 0, 2, dz);
       }
-      sprintf(fname, "%s%4.4d.mgz", base_name, t);
+      int req = snprintf(fname, STRLEN, "%s%4.4d.mgz", base_name, t);
+      if( req >= STRLEN ) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       printf("writing vector field to %s\n", fname);
       MRIwrite(mri_vector, fname);
       MRIfree(&mri_vector);
@@ -2320,7 +2285,11 @@ int mrisWriteSnapshot(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int t)
   if (mris->status == MRIS_PARAMETERIZED_SPHERE && DIAG_VERBOSE_ON) {
     MRI_SP *mrisp = (MRI_SP *)mris->vp;
 
-    sprintf(fname, "%s%4.4d.hipl", parms->base_name, t);
+    int req = snprintf(fname, STRLEN, "%s%4.4d.hipl", parms->base_name, t);  
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
+
     if (Gdiag & DIAG_SHOW) {
       fprintf(stdout, "writing %s\n", fname);
     }
@@ -2328,7 +2297,11 @@ int mrisWriteSnapshot(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int t)
     MRISPwrite(mrisp, fname);
   }
   if (!FZERO(parms->l_area) && DIAG_VERBOSE_ON) {
-    sprintf(fname, "%s%4.4d.area_error", base_name, t);
+    int req = snprintf(fname, STRLEN, "%s%4.4d.area_error", base_name, t); 
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
+
     if (Gdiag & DIAG_SHOW) {
       fprintf(stdout, " %s...", fname);
     }
@@ -2336,7 +2309,11 @@ int mrisWriteSnapshot(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int t)
   }
 
   if (!FZERO(parms->l_corr) && DIAG_VERBOSE_ON) {
-    sprintf(fname, "%s%4.4d.angle_error", base_name, t);
+    int req = snprintf(fname, STRLEN, "%s%4.4d.angle_error", base_name, t); 
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
+
     if (Gdiag & DIAG_SHOW) {
       fprintf(stdout, " %s...", fname);
     }
@@ -3220,12 +3197,6 @@ int MRISwritePatchAscii(MRI_SURFACE *mris, const char *fname)
   int i;
 
   type = MRISfileNameType(fname);
-#if 0
-  if (type == MRIS_ASCII_TRIANGLE_FILE)
-  {
-    return(MRISwriteAscii(mris, fname)) ;
-  }
-#endif
 
   fp = fopen(fname, "w");
   if (!fp) ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE, "MRISwritePatchAscii: could not open file %s", fname));
@@ -3298,11 +3269,7 @@ static MRI_SURFACE *mrisReadAsciiFile(const char *fname)
   cp = fgetl(line, STRLEN, fp);
   sscanf(cp, "%d %d\n", &nvertices, &nfaces);
   mris = MRISalloc(nvertices, nfaces);
-#if 0
-  mris->type = MRIS_ASCII_TRIANGLE_FILE ;
-#else
   mris->type = MRIS_TRIANGULAR_SURFACE;
-#endif
   for (vno = 0; vno < mris->nvertices; vno++) {
     VERTEX * v = &mris->vertices[vno];
     float x,y,z;
@@ -3461,54 +3428,6 @@ static int mrisReadGeoFilePositions(MRI_SURFACE *mris, const char *fname)
   fclose(fp);
   return (NO_ERROR);
 }
-
-#if 0
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
-static MRI_SURFACE *
-mrisReadAsciiPatchFile(char *fname)
-{
-  MRI_SURFACE   *mris ;
-  char    line[STRLEN], *cp ;
-  int     vno, fno, n, nvertices, nfaces ;
-  VERTEX  *v ;
-  FACE    *face ;
-  FILE    *fp ;
-
-  fp = fopen(fname, "r") ;
-  if (!fp)
-    ErrorReturn(NULL,
-                (ERROR_NOFILE,
-                 "MRISreadAsciiFile: could not open file %s",fname));
-
-  cp = fgetl(line, 100, fp) ;
-  sscanf(cp, "%d %d\n", &nvertices, &nfaces) ;
-  mris = MRISalloc(nvertices, nfaces) ;
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
-  {
-    v = &mris->vertices[vno] ;
-    fscanf(fp, "%f  %f  %f\n", &v->x, &v->y, &v->z) ;
-  }
-  for (fno = 0 ; fno < mris->nfaces ; fno++)
-  {
-    face = &mris->faces[fno] ;
-    for (n = 0 ; n < VERTICES_PER_FACE ; n++)
-    {
-      fscanf(fp, "%d ", &face->v[n]) ;
-      mris->vertices[face->v[n]].num++;
-    }
-    fscanf(fp, "\n") ;
-  }
-
-  fclose(fp) ;
-  return(mris) ;
-}
-#endif
 
 
 /*-----------------------------------------------------
@@ -3692,9 +3611,6 @@ static MRIS* MRISreadOverAlloc_new(const char *fname, double nVFMultiplier)
           float z = freadFloat(fp);
           MRISsetXYZ(mris,vno, x,y,z);
         }
-  #if 0
-        vertex->label = NO_LABEL ;
-  #endif
         if (version == 0) /* old surface format */
         {
           int num;
@@ -4105,9 +4021,6 @@ static MRIS* MRISreadOverAlloc_old(const char *fname, double nVFMultiplier)
         float z = freadFloat(fp);
         MRISsetXYZ(mris,vno, x,y,z);
       }
-#if 0
-      vertex->label = NO_LABEL ;
-#endif
       /* brain-dead code and never used again either */
       imnr = (int)((vertex->y - START_Y) / SLICE_THICKNESS + 0.5);
       if (imnr > imnr1) {
@@ -4928,23 +4841,6 @@ int mrisReadTransform(MRIS *mris, const char *mris_fname)
   // mark to make sure it is freed
   mris->free_transform = 1;
 
-#if 0
-  if (input_transform_file(transform_fname, &mris->transform) != OK)
-  {
-    ErrorReturn(ERROR_NO_FILE,
-                (ERROR_NOFILE,
-                 "mrisReadTransform: could not read xform file '%s'",
-                 transform_fname)) ;
-  }
-  else
-  {
-    mris->linear_transform = get_linear_transform_ptr(&mris->transform) ;
-    mris->inverse_linear_transform =
-      get_inverse_linear_transform_ptr(&mris->transform) ;
-    mris->free_transform = 1 ;
-  }
-#endif
-
   mrisCheckVertexFaceTopology(mris);
   
   return (NO_ERROR);
@@ -4968,7 +4864,10 @@ int MRISreadBinaryCurvature(MRI_SURFACE *mris, const char *mris_fname)
 
   FileNamePath(mris_fname, fpref);
   strcpy(hemi, mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh");
-  sprintf(fname, "%s/%s.curv", fpref, hemi);
+  int req = snprintf(fname, STRLEN, "%s/%s.curv", fpref, hemi); 
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   return (MRISreadCurvatureFile(mris, fname));
 }
 
@@ -5030,17 +4929,28 @@ int MRISreadCurvatureFile(MRI_SURFACE *mris, const char *sname)
   {
     if (getenv("FS_POSIX")) {
       // PW 2017/05/15: If FS_POSIX is set, write to cwd (as per POSIX:4.11)
-      sprintf(fname, "./%s", sname);
+      int req = snprintf(fname, STRLEN, "./%s", sname);    
+      if( req >= STRLEN ) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
     }
     else {
       cp = strchr(sname, '.');
       FileNamePath(mris->fname, path);
       if (cp && ((strncmp(cp - 2, "lh", 2) == 0) || (strncmp(cp - 2, "rh", 2) == 0))) {
-        sprintf(fname, "%s/%s", path, sname);
+        int req = snprintf(fname, STRLEN, "%s/%s", path, sname); 
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
       }
       else /* no hemisphere specified */
       {
-        sprintf(fname, "%s/%s.%s", path, mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", sname);
+        int req = snprintf(fname, STRLEN, "%s/%s.%s", 
+			   path, mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", sname); 
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
+
       }
     }
   }
@@ -5191,10 +5101,19 @@ float *MRISreadCurvatureVector(MRI_SURFACE *mris, const char *sname)
     cp = strchr(sname, '.');
     FileNamePath(mris->fname, path);
     if (cp) {
-      sprintf(fname, "%s/%s", path, sname);
+      int req = snprintf(fname, STRLEN, "%s/%s", path, sname); 
+      if( req >= STRLEN ) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
     }
-    else /* no hemisphere specified */
-      sprintf(fname, "%s/%s.%s", path, mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", sname);
+    else {
+      /* no hemisphere specified */
+      int req = snprintf(fname, STRLEN, "%s/%s.%s",
+			 path, mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", sname); 
+      if( req >= STRLEN ) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
+    }
   }
   else {
     strcpy(fname, sname); /* path specified explcitly */
@@ -5281,10 +5200,18 @@ int MRISreadFloatFile(MRI_SURFACE *mris, const char *sname)
     cp = strchr(sname, '.');
     FileNamePath(mris->fname, path);
     if (cp) {
-      sprintf(fname, "%s/%s", path, sname);
+      int req = snprintf(fname, STRLEN, "%s/%s", path, sname);  
+      if( req >= STRLEN ) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
     }
-    else /* no hemisphere specified */
-      sprintf(fname, "%s/%s.%s", path, mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", sname);
+    else { /* no hemisphere specified */
+      int req = snprintf(fname, STRLEN, "%s/%s.%s",
+			 path, mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", sname);
+      if( req >= STRLEN ) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
+    }
   }
   else {
     strcpy(fname, sname); /* path specified explcitly */
@@ -5343,7 +5270,10 @@ int MRISreadBinaryAreas(MRI_SURFACE *mris, const char *mris_fname)
 
   FileNamePath(mris_fname, fpref);
   strcpy(hemi, mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh");
-  sprintf(fname, "%s/%s.area", fpref, hemi);
+  int req = snprintf(fname, STRLEN, "%s/%s.area", fpref, hemi);
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
 
   /*  mris->orig_area = 0.0f ;*/
   fp = fopen(fname, "r");
@@ -5366,14 +5296,6 @@ int MRISreadBinaryAreas(MRI_SURFACE *mris, const char *mris_fname)
   }
   fclose(fp);
 
-/* hack to correct for overestimation of area in compute_normals */
-#if 0
-  mris->orig_area /= 2;
-  if (Gdiag & DIAG_SHOW)
-  {
-    fprintf(stdout, "total area = %2.0f.\n", mris->orig_area) ;
-  }
-#endif
   return (NO_ERROR);
 }
 
@@ -5567,9 +5489,6 @@ static SMALL_SURFACE *mrisReadTriangleFileVertexPositionsOnly(const char *fname)
     v->x = freadFloat(fp);
     v->y = freadFloat(fp);
     v->z = freadFloat(fp);
-#if 0
-    v->label = NO_LABEL ;
-#endif
     if (fabs(v->x) > 10000 || !std::isfinite(v->x))
       ErrorExit(ERROR_BADFILE, "%s: vertex %d x coordinate %f!", Progname, vno, v->x);
     if (fabs(v->y) > 10000 || !std::isfinite(v->y))
@@ -5592,10 +5511,6 @@ static int mrisReadTriangleFilePositions(MRI_SURFACE *mris, const char *fname)
   int nvertices, nfaces, magic, vno;
   char line[STRLEN];
   FILE *fp;
-#if 0
-  FACE        *f ;
-  int         fno, n ;
-#endif
 
   fp = fopen(fname, "rb");
   if (!fp) ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE, "mrisReadTriangleFile(%s): could not open file", fname));
@@ -5632,20 +5547,6 @@ static int mrisReadTriangleFilePositions(MRI_SURFACE *mris, const char *fname)
     float z = freadFloat(fp);
     MRISsetXYZ(mris, vno, x,y,z);
   }
-
-#if 0
-  for (fno = 0 ; fno < mris->nfaces ; fno++)
-  {
-    f = &mris->faces[fno] ;
-    for (n = 0 ; n < VERTICES_PER_FACE ; n++)
-    {
-      f->v[n] = freadInt(fp);
-      if (f->v[n] >= mris->nvertices || f->v[n] < 0)
-        ErrorExit(ERROR_BADFILE, "f[%d]->v[%d] = %d - out of range!\n",
-                  fno, n, f->v[n]) ;
-    }
-  }
-#endif
 
   fclose(fp);
   return (NO_ERROR);
@@ -5735,11 +5636,6 @@ static MRI_SURFACE *mrisReadTriangleFile(const char *fname, double nVFMultiplier
       switch (tag) {
         case TAG_GROUP_AVG_SURFACE_AREA:
           mris->group_avg_surface_area = freadFloat(fp);
-#if 0
-        fprintf(stdout,
-                "reading group avg surface area %2.0f cm^2 from file\n",
-                mris->group_avg_surface_area/100.0) ;
-#endif
           break;
         case TAG_OLD_SURF_GEOM:
           readVolGeom(fp, &mris->vg);
@@ -5793,22 +5689,31 @@ int MRISbuildFileName(MRI_SURFACE *mris, const char *sname, char *fname)
     if (dot && (*(dot - 1) == 'h') && (*(dot - 2) == 'l' || *(dot - 2) == 'r')) {
       if (getenv("FS_POSIX")) {
         // PW 2017/05/15: If FS_POSIX is set, write to cwd (as per POSIX:4.11)
-        sprintf(fname, "./%s", sname);
+        int req = snprintf(fname, STRLEN, "./%s", sname); 
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
       }
       else {
         // PW 2017/05/15: Legacy behaviour
-        sprintf(fname, "%s/%s", path, sname);
+        int req = snprintf(fname, STRLEN, "%s/%s", path, sname); 
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
       }
     }
     else /* no hemisphere specified */
         if (getenv("FS_POSIX")) {
       // PW 2017/05/15: If FS_POSIX is set, write to cwd (as per POSIX:4.11)
-      sprintf(fname,
-              "./%s.%s",
-              mris->hemisphere == LEFT_HEMISPHERE ? "lh" : mris->hemisphere == BOTH_HEMISPHERES ? "both" : "rh",
-              sname);
-    }
-    else {
+	  int req = snprintf(fname, STRLEN,
+			     "./%s.%s",
+			     mris->hemisphere == LEFT_HEMISPHERE ? "lh" : mris->hemisphere == BOTH_HEMISPHERES ? "both" : "rh",
+			     sname);
+	  if( req >= STRLEN ) {
+	    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	  }
+	}
+	else {
       // PW 2017/05/15: Legacy behaviour
       sprintf(fname,
               "%s/%s.%s",
@@ -5904,10 +5809,19 @@ int MRISreadNewCurvatureFile(MRI_SURFACE *mris, const char *sname)
     cp = strchr(sname, '.');
     FileNamePath(mris->fname, path);
     if (cp) {
-      sprintf(fname, "%s/%s", path, sname);
+      int req = snprintf(fname, STRLEN, "%s/%s", path, sname); 
+      if( req >= STRLEN ) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
     }
-    else /* no hemisphere specified */
-      sprintf(fname, "%s/%s.%s", path, mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", sname);
+    else {
+      /* no hemisphere specified */
+      int req = snprintf(fname, STRLEN, "%s/%s.%s",
+			 path, mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", sname); 
+      if( req >= STRLEN ) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
+    }
   }
   else {
     strcpy(fname, sname); /* path specified explcitly */
@@ -5980,10 +5894,18 @@ float *MRISreadNewCurvatureVector(MRI_SURFACE *mris, const char *sname)
     cp = strchr(sname, '.');
     FileNamePath(mris->fname, path);
     if (cp) {
-      sprintf(fname, "%s/%s", path, sname);
+      int req = snprintf(fname, STRLEN, "%s/%s", path, sname);  
+      if( req >= STRLEN ) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
     }
-    else /* no hemisphere specified */
-      sprintf(fname, "%s/%s.%s", path, mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", sname);
+    else { /* no hemisphere specified */
+      int req = snprintf(fname, STRLEN, "%s/%s.%s",
+			 path, mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", sname);  
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
+    }
   }
   else {
     strcpy(fname, sname); /* path specified explcitly */

@@ -9,7 +9,7 @@
 /*
  * Original Author: Greg Grev
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -408,8 +408,14 @@ main(int argc, char **argv)
         fflush(logfp) ;
       }
       FileNameRemoveExtension(vol_fname, fname_only) ;
-      sprintf(fname_grad, "%s.grad.sigma%2.3f.mgz", fname_only, sigma) ;
-      sprintf(fname_mag, "%s.mag.sigma%2.3f.mgz", fname_only, sigma) ;
+      int req = snprintf(fname_grad, STRLEN, "%s.grad.sigma%2.3f.mgz", fname_only, sigma) ;
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
+      req = snprintf(fname_mag, STRLEN, "%s.mag.sigma%2.3f.mgz", fname_only, sigma) ;
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       if (read_grad == 0)  // compute gradient of smoothed image
       {
         mri_kernel = MRIgaussian1d(sigma/mri_reg->xsize, -1) ;
@@ -1322,7 +1328,10 @@ mrisRegistrationCNRSimilarity(MRI_SURFACE *mris, MRI *mri_reg, MRI *mri_mask, MA
           MRIsetVoxVal(mri, xv, yv, zv, 0, -.01) ;
       }
 
-      sprintf(fname, "%s_hvol%03d.mgz", name, ncalls) ;
+      int req = snprintf(fname, STRLEN, "%s_hvol%03d.mgz", name, ncalls) ;
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
       {
         printf("writing hit vol to %s\n", fname) ;
@@ -1569,7 +1578,10 @@ mrisRegistrationGradientNormalSimilarity(MRI_SURFACE *mris, MRI *mri_reg, MRI *m
       }
       if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
       {
-        sprintf(fname, "%s_hvol%03d.mgz", name, ncalls) ;
+        int req = snprintf(fname, STRLEN, "%s_hvol%03d.mgz", name, ncalls) ;
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
         printf("writing hit vol to %s\n", fname) ;
         MRIwrite(mri, fname) ;
       }
@@ -1918,15 +1930,24 @@ write_snapshot(MRI_SURFACE *mris, MATRIX *m, char *name, int n)
     MRISsetXYZ(mris,vno, V3_X(v2),V3_Y(v2),V3_Z(v2)) ;
   }
 
-  sprintf(fname, "%s%03d.dat", fname_only,n) ;
+  int req = snprintf(fname, STRLEN, "%s%03d.dat", fname_only,n) ;
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   regio_write_surfacexform_to_register_dat(m, fname, mris, mri_reg, subject,
                                            FLT2INT_ROUND) ;
   write_lta(m, fname, mris, mri_reg) ;
-  sprintf(fname, "%s%03d", fname_only,n) ;
+  req = snprintf(fname, STRLEN, "%s%03d", fname_only,n) ;
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   printf("writing snapshot to %s\n", fname) ;
   MRISwrite(mris, fname) ;
   MRISrestoreRipFlags(mris);
-  sprintf(fname, "%s%03d.patch", fname_only,n) ;
+  req = snprintf(fname, STRLEN, "%s%03d.patch", fname_only,n) ;
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   MRISwritePatch(mris, fname) ;
   MRISunrip(mris) ;
   
@@ -1942,10 +1963,16 @@ write_snapshot(MRI_SURFACE *mris, MATRIX *m, char *name, int n)
       MRISsetXYZ(mris,vno, V3_X(v2),V3_Y(v2),V3_Z(v2)) ;
     }
     
-    sprintf(fname, "%s_pial%03d", fname_only,n) ;
+    int req = snprintf(fname, STRLEN, "%s_pial%03d", fname_only,n) ;
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     printf("writing snapshot to %s\n", fname) ;
     MRISwrite(mris, fname) ;
-    sprintf(fname, "%s%03d.patch", fname_only,n) ;
+    req = snprintf(fname, STRLEN, "%s%03d.patch", fname_only,n) ;
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     MRISwritePatch(mris, fname) ;
   }
 

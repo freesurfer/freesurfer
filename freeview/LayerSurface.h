@@ -5,7 +5,7 @@
 /*
  * Original Author: Ruopeng Wang
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -452,6 +452,10 @@ public slots:
 
   vtkActor* GetMainActor();
 
+  bool SaveTransform(const QString& filename);
+
+  void GetCenterOfActor(double* pt);
+
 Q_SIGNALS:
   void SurfaceAnnotationAdded( SurfaceAnnotation* );
   void SurfaceLabelAdded( SurfaceLabel* );
@@ -483,6 +487,7 @@ protected slots:
   void UpdateVectorActor2D();
   void OnSlicePositionChanged3D();
   void SetHighlightedLabelOnAnnotation(int n);
+
 
 protected:
   void InitializeData();

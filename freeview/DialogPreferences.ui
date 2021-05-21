@@ -10,7 +10,7 @@
     <x>0</x>
     <y>0</y>
     <width>503</width>
-    <height>639</height>
+    <height>572</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -42,30 +42,220 @@
      </property>
      <widget class="QWidget" name="tab">
       <attribute name="title">
-       <string>General</string>
+       <string>View</string>
       </attribute>
       <layout class="QVBoxLayout" name="verticalLayout_6">
        <property name="spacing">
         <number>9</number>
        </property>
        <property name="leftMargin">
-        <number>12</number>
+        <number>15</number>
        </property>
        <property name="topMargin">
-        <number>12</number>
+        <number>15</number>
        </property>
        <property name="rightMargin">
-        <number>12</number>
+        <number>15</number>
        </property>
        <property name="bottomMargin">
-        <number>12</number>
+        <number>15</number>
        </property>
        <item>
-        <widget class="QGroupBox" name="groupBox">
-         <property name="title">
-          <string>View</string>
-         </property>
+        <widget class="QWidget" name="widget" native="true">
          <layout class="QGridLayout" name="gridLayout">
+          <property name="leftMargin">
+           <number>0</number>
+          </property>
+          <property name="topMargin">
+           <number>0</number>
+          </property>
+          <property name="rightMargin">
+           <number>0</number>
+          </property>
+          <property name="bottomMargin">
+           <number>0</number>
+          </property>
+          <item row="1" column="0">
+           <widget class="QLabel" name="label_2">
+            <property name="text">
+             <string>Cursor color</string>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="0" colspan="3">
+           <widget class="QGroupBox" name="groupBox_4">
+            <property name="title">
+             <string>Annotation</string>
+            </property>
+            <layout class="QGridLayout" name="gridLayout_4">
+             <item row="0" column="5">
+              <widget class="QCheckBox" name="checkBoxAutoScaleFont">
+               <property name="text">
+                <string>Auto-scale by viewport size</string>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="4">
+              <widget class="QSpinBox" name="spinBoxFontSize">
+               <property name="minimum">
+                <number>5</number>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="6">
+              <spacer name="horizontalSpacer_7">
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>5</width>
+                 <height>5</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+             <item row="0" column="0">
+              <widget class="QLabel" name="label_4">
+               <property name="text">
+                <string>Color</string>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="1">
+              <widget class="QtColorPicker" name="colorPickerAnnotation" native="true"/>
+             </item>
+             <item row="0" column="3">
+              <widget class="QLabel" name="label_14">
+               <property name="text">
+                <string>Font size</string>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="2">
+              <spacer name="horizontalSpacer_8">
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+               <property name="sizeType">
+                <enum>QSizePolicy::Fixed</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>15</width>
+                 <height>5</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+            </layout>
+           </widget>
+          </item>
+          <item row="2" column="2">
+           <spacer name="horizontalSpacer_3">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>118</width>
+              <height>0</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item row="8" column="0" colspan="3">
+           <widget class="QGroupBox" name="groupBox_7">
+            <property name="title">
+             <string>Info Panel</string>
+            </property>
+            <layout class="QVBoxLayout" name="verticalLayout_10">
+             <item>
+              <layout class="QHBoxLayout" name="horizontalLayout_2">
+               <property name="topMargin">
+                <number>0</number>
+               </property>
+               <item>
+                <widget class="QLabel" name="label_15">
+                 <property name="text">
+                  <string>Significant digits of voxel values on Info panel</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QSpinBox" name="spinBoxPrecision">
+                 <property name="maximumSize">
+                  <size>
+                   <width>40</width>
+                   <height>16777215</height>
+                  </size>
+                 </property>
+                 <property name="maximum">
+                  <number>9</number>
+                 </property>
+                 <property name="value">
+                  <number>2</number>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <spacer name="horizontalSpacer_10">
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>40</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+              </layout>
+             </item>
+             <item>
+              <widget class="QCheckBox" name="checkBoxComma">
+               <property name="text">
+                <string>Separate voxel values by comma</string>
+               </property>
+               <property name="checked">
+                <bool>true</bool>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QCheckBox" name="checkBoxDecimalVoxelCoord">
+               <property name="text">
+                <string>Show decimal voxel coordinates</string>
+               </property>
+               <property name="checked">
+                <bool>false</bool>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QtColorPicker" name="colorPickerBackground" native="true">
+            <property name="minimumSize">
+             <size>
+              <width>80</width>
+              <height>0</height>
+             </size>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QtColorPicker" name="colorPickerCursor" native="true"/>
+          </item>
+          <item row="0" column="0">
+           <widget class="QLabel" name="label">
+            <property name="text">
+             <string>Background color</string>
+            </property>
+           </widget>
+          </item>
           <item row="3" column="0" colspan="3">
            <widget class="QGroupBox" name="groupBox_3">
             <property name="title">
@@ -270,16 +460,6 @@
             </layout>
            </widget>
           </item>
-          <item row="0" column="1">
-           <widget class="QtColorPicker" name="colorPickerBackground" native="true">
-            <property name="minimumSize">
-             <size>
-              <width>80</width>
-              <height>0</height>
-             </size>
-            </property>
-           </widget>
-          </item>
           <item row="1" column="2">
            <spacer name="horizontalSpacer_2">
             <property name="orientation">
@@ -292,187 +472,6 @@
              </size>
             </property>
            </spacer>
-          </item>
-          <item row="1" column="1">
-           <widget class="QtColorPicker" name="colorPickerCursor" native="true"/>
-          </item>
-          <item row="5" column="0" colspan="3">
-           <widget class="QCheckBox" name="checkBoxSyncZoom">
-            <property name="text">
-             <string>Sync zoom factor of 2D views</string>
-            </property>
-            <property name="checked">
-             <bool>true</bool>
-            </property>
-           </widget>
-          </item>
-          <item row="1" column="0">
-           <widget class="QLabel" name="label_2">
-            <property name="text">
-             <string>Cursor color</string>
-            </property>
-           </widget>
-          </item>
-          <item row="2" column="2">
-           <spacer name="horizontalSpacer_3">
-            <property name="orientation">
-             <enum>Qt::Horizontal</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>118</width>
-              <height>0</height>
-             </size>
-            </property>
-           </spacer>
-          </item>
-          <item row="8" column="0" colspan="3">
-           <widget class="QGroupBox" name="groupBox_7">
-            <property name="title">
-             <string>Info Panel</string>
-            </property>
-            <layout class="QVBoxLayout" name="verticalLayout_10">
-             <item>
-              <layout class="QHBoxLayout" name="horizontalLayout_2">
-               <property name="topMargin">
-                <number>0</number>
-               </property>
-               <item>
-                <widget class="QLabel" name="label_15">
-                 <property name="text">
-                  <string>Significant digits of voxel values on Info panel</string>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <widget class="QSpinBox" name="spinBoxPrecision">
-                 <property name="maximumSize">
-                  <size>
-                   <width>40</width>
-                   <height>16777215</height>
-                  </size>
-                 </property>
-                 <property name="maximum">
-                  <number>9</number>
-                 </property>
-                 <property name="value">
-                  <number>2</number>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <spacer name="horizontalSpacer_10">
-                 <property name="orientation">
-                  <enum>Qt::Horizontal</enum>
-                 </property>
-                 <property name="sizeHint" stdset="0">
-                  <size>
-                   <width>40</width>
-                   <height>20</height>
-                  </size>
-                 </property>
-                </spacer>
-               </item>
-              </layout>
-             </item>
-             <item>
-              <widget class="QCheckBox" name="checkBoxComma">
-               <property name="text">
-                <string>Separate voxel values by comma</string>
-               </property>
-               <property name="checked">
-                <bool>true</bool>
-               </property>
-              </widget>
-             </item>
-            </layout>
-           </widget>
-          </item>
-          <item row="6" column="0" colspan="3">
-           <widget class="QCheckBox" name="checkBoxDecimalVoxelCoord">
-            <property name="text">
-             <string>Show decimal voxel coordinates on Info panel</string>
-            </property>
-            <property name="checked">
-             <bool>false</bool>
-            </property>
-           </widget>
-          </item>
-          <item row="0" column="0">
-           <widget class="QLabel" name="label">
-            <property name="text">
-             <string>Background color</string>
-            </property>
-           </widget>
-          </item>
-          <item row="4" column="0" colspan="3">
-           <widget class="QGroupBox" name="groupBox_4">
-            <property name="title">
-             <string>Annotation</string>
-            </property>
-            <layout class="QGridLayout" name="gridLayout_4">
-             <item row="0" column="5">
-              <widget class="QCheckBox" name="checkBoxAutoScaleFont">
-               <property name="text">
-                <string>Auto-scale by viewport size</string>
-               </property>
-              </widget>
-             </item>
-             <item row="0" column="4">
-              <widget class="QSpinBox" name="spinBoxFontSize">
-               <property name="minimum">
-                <number>5</number>
-               </property>
-              </widget>
-             </item>
-             <item row="0" column="6">
-              <spacer name="horizontalSpacer_7">
-               <property name="orientation">
-                <enum>Qt::Horizontal</enum>
-               </property>
-               <property name="sizeHint" stdset="0">
-                <size>
-                 <width>5</width>
-                 <height>5</height>
-                </size>
-               </property>
-              </spacer>
-             </item>
-             <item row="0" column="0">
-              <widget class="QLabel" name="label_4">
-               <property name="text">
-                <string>Color</string>
-               </property>
-              </widget>
-             </item>
-             <item row="0" column="1">
-              <widget class="QtColorPicker" name="colorPickerAnnotation" native="true"/>
-             </item>
-             <item row="0" column="3">
-              <widget class="QLabel" name="label_14">
-               <property name="text">
-                <string>Font size</string>
-               </property>
-              </widget>
-             </item>
-             <item row="0" column="2">
-              <spacer name="horizontalSpacer_8">
-               <property name="orientation">
-                <enum>Qt::Horizontal</enum>
-               </property>
-               <property name="sizeType">
-                <enum>QSizePolicy::Fixed</enum>
-               </property>
-               <property name="sizeHint" stdset="0">
-                <size>
-                 <width>15</width>
-                 <height>5</height>
-                </size>
-               </property>
-              </spacer>
-             </item>
-            </layout>
-           </widget>
           </item>
           <item row="0" column="2">
            <spacer name="horizontalSpacer">
@@ -490,6 +489,109 @@
          </layout>
         </widget>
        </item>
+       <item>
+        <widget class="QGroupBox" name="groupBox_9">
+         <property name="title">
+          <string>3D Scale</string>
+         </property>
+         <layout class="QGridLayout" name="gridLayout_5" columnstretch="0,1,1">
+          <item row="0" column="2">
+           <spacer name="horizontalSpacer_11">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>5</width>
+              <height>5</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item row="0" column="0">
+           <widget class="QLabel" name="label_16">
+            <property name="text">
+             <string>Fly mode</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QComboBox" name="comboBox3DScaleStyle">
+            <item>
+             <property name="text">
+              <string>Outer Edges</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Closest Triad</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Furthest Triad</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Static Triad</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Static Edges</string>
+             </property>
+            </item>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QCheckBox" name="checkBoxSyncZoom">
+         <property name="text">
+          <string>Sync zoom factor of 2D views</string>
+         </property>
+         <property name="checked">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="verticalSpacer">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>0</width>
+           <height>0</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="tab_3">
+      <attribute name="title">
+       <string>Special Settings</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_9">
+       <property name="spacing">
+        <number>9</number>
+       </property>
+       <property name="leftMargin">
+        <number>12</number>
+       </property>
+       <property name="topMargin">
+        <number>12</number>
+       </property>
+       <property name="rightMargin">
+        <number>12</number>
+       </property>
+       <property name="bottomMargin">
+        <number>12</number>
+       </property>
        <item>
         <widget class="QGroupBox" name="groupBox_2">
          <property name="title">
@@ -516,26 +618,6 @@
          </layout>
         </widget>
        </item>
-       <item>
-        <spacer name="verticalSpacer">
-         <property name="orientation">
-          <enum>Qt::Vertical</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>0</width>
-           <height>0</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-      </layout>
-     </widget>
-     <widget class="QWidget" name="tab_3">
-      <attribute name="title">
-       <string>Special Settings</string>
-      </attribute>
-      <layout class="QVBoxLayout" name="verticalLayout_9">
        <item>
         <widget class="QGroupBox" name="groupBox_6">
          <property name="title">
@@ -574,6 +656,28 @@
             </property>
             <property name="checked">
              <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="groupBox_8">
+         <property name="title">
+          <string>Layer List</string>
+         </property>
+         <property name="flat">
+          <bool>false</bool>
+         </property>
+         <layout class="QVBoxLayout" name="verticalLayout_11">
+          <item>
+           <widget class="QCheckBox" name="checkBoxClickToLock">
+            <property name="text">
+             <string>Click right side of the list item to lock layer</string>
+            </property>
+            <property name="checked">
+             <bool>false</bool>
             </property>
            </widget>
           </item>

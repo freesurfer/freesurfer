@@ -7,7 +7,7 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright © 2011-2017 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -23,6 +23,10 @@
   INCLUDE FILES
   -------------------------------------------------------*/
 #define _MRIIO_SRC
+
+#include <sstream>
+#include <iomanip>
+#include <vector>
 
 #include <ctype.h>
 #include <dirent.h>
@@ -84,18 +88,6 @@ static int niiPrintHdr(FILE *fp, struct nifti_1_header *hdr);
 #define MM_PER_METER 1000.0f
 #define INFO_FNAME "COR-.info"
 
-#if 0
-static int NormalizeVector(float *v, int n);
-static MRI *mincRead2(const char *fname, int read_volume);
-static int mincWrite2(MRI *mri, const char *fname);
-static int GetMINCInfo(MRI *mri,
-                       const char *dim_names[4],
-                       int   dim_sizes[4],
-                       double separations[4],
-                       double dircos[3][3],
-                       double VolCenterVox[3],
-                       double VolCenterWorld[3]);
-#endif
 
 MRI *mri_read(const char *fname, int type, int volume_flag, int start_frame, int end_frame);
 static MRI *corRead(const char *fname, int read_volume);
@@ -130,9 +122,6 @@ static int analyzeWrite4D(MRI *mri, const char *fname);
 
 static void swap_analyze_header(dsr *hdr);
 
-#if 0
-static int orient_with_register(MRI *mri);
-#endif
 static int nan_inf_check(MRI *mri);
 #ifdef VC_TO_CV
 static int voxel_center_to_center_voxel(MRI *mri, float *x, float *y, float *z);
@@ -425,22 +414,6 @@ void setMRIforSurface(MRI *mri)
               "%s: the volume is not conformed, that is, "
               "the volume must be in CORONAL direction.\n",
               Progname);
-#if 0
-  else
-  {
-    // we checked conformed in mriOKforSurface().
-    // The only thing missing is c_(r,a,s) = 0
-    // for surface creation assume that the
-    // volume is conformed and c_(r,a,s) = 0
-    mri->c_r=mri->c_a=mri->c_s = 0;
-    if (mri->i_to_r__)
-      MatrixFree(&mri->i_to_r__) ;
-    if (mri->r_to_i__)
-      MatrixFree(&mri->r_to_i__) ;
-    mri->i_to_r__ = extract_i_to_r(mri);
-    mri->r_to_i__ = extract_r_to_i(mri);
-  }
-#endif
 }
 
 int mriio_command_line(int argc, char *argv[])
@@ -468,30 +441,6 @@ int mriio_command_line(int argc, char *argv[])
   return (NO_ERROR);
 
 } /* end mriio_command_line() */
-
-int mriio_set_subject_name(const char *name)
-{
-  if (subject_name == NULL) subject_name = (char *)malloc(STRLEN);
-
-  if (subject_name == NULL) {
-    errno = 0;
-    ErrorReturn(ERROR_NO_MEMORY,
-                (ERROR_NO_MEMORY,
-                 "mriio_set_subject_name(): "
-                 "could't allocate %d bytes...!",
-                 STRLEN));
-  }
-
-  if (name == NULL)
-    strcpy(subject_name, name);
-  else {
-    free(subject_name);
-    subject_name = NULL;
-  }
-
-  return (NO_ERROR);
-
-} /* end mriio_set_subject_name() */
 
 void mriio_set_gdf_crop_flag(int new_gdf_crop_flag)
 {
@@ -1600,10 +1549,14 @@ static MRI *corRead(const char *fname, int read_volume)
 
   if (strlen(xform) > 0) {
     char xform_use[STRLEN];
-    if (xform[0] == '/')
+    if (xform[0] == '/') {
       strcpy(mri->transform_fname, xform);
-    else
-      sprintf(mri->transform_fname, "%s/%s", fname, xform);
+    } else {
+      int req = snprintf(mri->transform_fname, STRLEN, "%s/%s", fname, xform);
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
+    }
 
     strcpy(xform_use, mri->transform_fname);
 
@@ -2179,15 +2132,6 @@ static MRI *siemensRead(const char *fname, int read_volume_flag)
   }
   i = orderIntBytes(i);
 
-#if 0
-  if (i == 1 || i == 2)
-    mri->slice_direction = MRI_HORIZONTAL;
-  else if (i == 3 || i == 5)
-    mri->slice_direction = MRI_CORONAL;
-  else if (i == 4 || i == 6)
-    mri->slice_direction = MRI_SAGITTAL;
-  else
-#endif
   if (i < 1 || i > 6) {
     errno = 0;
     ErrorReturn(NULL, (ERROR_BADFILE, "siemensRead(): bad slice direction (%d) in file %s", i, fname_use));
@@ -2246,7 +2190,15 @@ static MRI *siemensRead(const char *fname, int read_volume_flag)
              (char *)&MRISvox(mri_raw, 0, i, file_n - n_low),
              sizeof(short) * cols);
 #else
-        swab(&MRISvox(mri_raw, 0, i, file_n - n_low), &MRISvox(mri_raw, 0, i, file_n - n_low), sizeof(short) * cols);
+	{
+	  std::vector<short> temp(cols);
+	  // Note:
+	  // void swab(const void *from, void *to, ssize_t n);
+	  // void *memcpy(void *dest, const void *src, size_t n);
+	  // Because consistency is the hobgoblin of small minds...
+	  swab(&MRISvox(mri_raw, 0, i, file_n - n_low), temp.data(), sizeof(short)*cols );
+	  memcpy(&MRISvox(mri_raw, 0, i, file_n - n_low), temp.data(), sizeof(short)*cols );
+	}
 #endif
 #endif
       }
@@ -2495,595 +2447,6 @@ static MRI *mincRead(const char *fname, int read_volume)
 
 } /* end mincRead() */
 
-#if 0
-/*-----------------------------------------------------------*/
-static MRI *mincRead2(const char *fname, int read_volume)
-{
-
-  MRI *mri;
-  Volume vol;
-  VIO_Status status;
-  char *dim_names[4];
-  int dim_sizes[4];
-  int ndims;
-  int dtype;
-  volume_input_struct input_info;
-  double separations[4];
-  double voxel[4];
-  double worldr, worlda, worlds;
-  double val;
-  int i, j, k, t;
-  float xfov, yfov, zfov;
-  double f;
-  BOOLEAN sflag = TRUE ;
-  MATRIX *T;
-  Transform *pVox2WorldLin;
-  General_transform *pVox2WorldGen;
-
-  /* Make sure file exists */
-  if (!FileExists(fname))
-  {
-    errno = 0;
-    ErrorReturn(NULL, (ERROR_BADFILE,
-                       "mincRead(): can't find file %s", fname));
-  }
-
-  /* Specify read-in order */
-  dim_names[0] = MIxspace; /* cols */
-  dim_names[1] = MIzspace; /* rows */
-  dim_names[2] = MIyspace; /* slices */
-  dim_names[3] = MItime;   /* time */
-
-  /* Read the header info into vol. input_info needed for further reads */
-  char * tmp = strcpyalloc(fname);
-  status = start_volume_input(tmp, 0, dim_names, NC_UNSPECIFIED, 0, 0, 0,
-                              TRUE, &vol, NULL, &input_info);
-  free(tmp);
-
-  if (Gdiag & DIAG_VERBOSE_ON & DIAG_SHOW)
-  {
-    printf("status = %d\n", status);
-    printf("n_dimensions = %d\n", get_volume_n_dimensions(vol));
-    printf("nc_data_type = %d\n", vol->nc_data_type);
-  }
-
-  if (status != OK)
-  {
-    errno = 0;
-    ErrorReturn(NULL, (ERROR_BADPARM, "mincRead(): error reading "
-                       "volume from file %s", fname));
-  }
-
-  /* ----- check the number of dimensions ----- */
-  ndims = get_volume_n_dimensions(vol);
-  if (ndims != 3 && ndims != 4)
-  {
-    errno = 0;
-    ErrorReturn(NULL, (ERROR_BADPARM, "mincRead(): %d dimensions "
-                       "in file; expecting 3 or 4", ndims));
-  }
-
-  /* ----- get the dimension sizes ----- */
-  get_volume_sizes(vol, dim_sizes);
-
-  /* --- one time point if there are only three dimensions in the file --- */
-  if (ndims == 3) dim_sizes[3] = 1;
-
-  dtype = get_volume_nc_data_type(vol, &sflag) ;
-  dtype = orderIntBytes(vol->nc_data_type) ;
-  get_volume_separations(vol, separations);
-
-  for (i=0;i<4;i++)
-    printf("%d %s %3d  %7.3f %6.4f %6.4f %6.4f \n",
-           i,dim_names[i],dim_sizes[i],separations[i],
-           vol->direction_cosines[i][0],vol->direction_cosines[i][1],
-           vol->direction_cosines[i][2]);
-  if ((Gdiag & DIAG_SHOW) && DIAG_VERBOSE_ON)
-    printf("DataType: %d\n", vol->nc_data_type);
-
-  /* Translate data type to that of mri structure */
-  switch (vol->nc_data_type)
-  {
-  case NC_BYTE:
-      dtype = MRI_UCHAR;
-    break;
-  case NC_CHAR:
-    dtype = MRI_UCHAR;
-    break;
-  case NC_SHORT:
-    dtype = MRI_SHORT;
-    break;
-  case NC_LONG:
-    dtype = MRI_LONG;
-    break;
-  case NC_FLOAT:
-    dtype = MRI_FLOAT;
-    break;
-  case NC_DOUBLE:
-    dtype = MRI_FLOAT;
-    break;
-  default:
-    errno = 0;
-    ErrorReturn(NULL, (ERROR_BADPARM, "mincRead(): bad data type "
-                       "(%d) in input file %s", vol->nc_data_type, fname));
-    break;
-  }
-
-  /* ----- allocate the mri structure ----- */
-  if (read_volume)
-    mri = MRIallocSequence(dim_sizes[0], dim_sizes[1], dim_sizes[2],
-                           dtype, dim_sizes[3]);
-  else
-  {
-    mri = MRIallocHeader(dim_sizes[0], dim_sizes[1], dim_sizes[2], dtype, dim_sizes[3]);
-    mri->nframes = dim_sizes[3];
-  }
-
-  /* ----- set up the mri structure ----- */
-  get_volume_separations(vol, separations);
-  mri->xsize = fabs(separations[0]); /* xsize = col   resolution */
-  mri->ysize = fabs(separations[1]); /* ysize = row   resolution */
-  mri->zsize = fabs(separations[2]); /* zsize = slice resolution */
-  mri->ps    = mri->xsize;
-  mri->thick = mri->zsize;
-
-  /* column direction cosines */
-  mri->x_r = vol->direction_cosines[0][0];
-  mri->x_a = vol->direction_cosines[0][1];
-  mri->x_s = vol->direction_cosines[0][2];
-
-  /* row direction cosines */
-  mri->y_r = vol->direction_cosines[1][0];
-  mri->y_a = vol->direction_cosines[1][1];
-  mri->y_s = vol->direction_cosines[1][2];
-
-  /* slice direction cosines */
-  mri->z_r = vol->direction_cosines[2][0];
-  mri->z_a = vol->direction_cosines[2][1];
-  mri->z_s = vol->direction_cosines[2][2];
-
-  if (separations[0] < 0)
-  {
-    mri->x_r = -mri->x_r;
-    mri->x_a = -mri->x_a;
-    mri->x_s = -mri->x_s;
-  }
-  if (separations[1] < 0)
-  {
-    mri->y_r = -mri->y_r;
-    mri->y_a = -mri->y_a;
-    mri->y_s = -mri->y_s;
-  }
-  if (separations[2] < 0)
-  {
-    mri->z_r = -mri->z_r;
-    mri->z_a = -mri->z_a;
-    mri->z_s = -mri->z_s;
-  }
-
-  /* Get center point */       // don't.  our convention is different
-  voxel[0] = (mri->width)/2.;  // (mri->width  - 1) / 2.0;
-  voxel[1] = (mri->height)/2.; // (mri->height - 1) / 2.0;
-  voxel[2] = (mri->depth)/2.;  //(mri->depth  - 1) / 2.0;
-  voxel[3] = 0.0;
-  convert_voxel_to_world(vol, voxel, &worldr, &worlda, &worlds);
-  mri->c_r = worldr;
-  mri->c_a = worlda;
-  mri->c_s = worlds;
-  printf("Center Voxel: %7.3f %7.3f %7.3f\n",voxel[0],voxel[1],voxel[2]);
-  printf("Center World: %7.3f %7.3f %7.3f\n",mri->c_r,mri->c_a,mri->c_s);
-
-  mri->ras_good_flag = 1;
-
-  mri->xend = mri->xsize * mri->width / 2.0;
-  mri->xstart = -mri->xend;
-  mri->yend = mri->ysize * mri->height/ 2.0;
-  mri->ystart = -mri->yend;
-  mri->zend = mri->zsize * mri->depth / 2.0;
-  mri->zstart = -mri->zend;
-
-  xfov = mri->xend - mri->xstart;
-  yfov = mri->yend - mri->ystart;
-  zfov = mri->zend - mri->zstart;
-
-  mri->fov =
-    (xfov > yfov ? (xfov > zfov ? xfov : zfov) : (yfov > zfov ? yfov : zfov));
-
-  strcpy(mri->fname, fname);
-
-  T = MRIxfmCRS2XYZ(mri,0);
-  printf("Input Coordinate Transform (CRS2XYZ)-------\n");
-  MatrixPrint(stdout,T);
-  MatrixFree(&T);
-  pVox2WorldGen = get_voxel_to_world_transform(vol);
-  pVox2WorldLin = get_linear_transform_ptr(pVox2WorldGen);
-  if ((Gdiag & DIAG_SHOW) && DIAG_VERBOSE_ON)
-  {
-    printf("MINC Linear Transform ----------------------\n");
-    for (i=0;i<4;i++)
-    {
-      for (j=0;j<4;j++) printf("%7.4f ",pVox2WorldLin->m[j][i]);
-      printf("\n");
-    }
-    printf("-------------------------------------------\n");
-  }
-
-  /* ----- copy the data from the file to the mri structure ----- */
-  if (read_volume)
-  {
-
-    while (input_more_of_volume(vol, &input_info, &f));
-
-    for (i = 0;i < mri->width;i++)
-    {
-      for (j = 0;j < mri->height;j++)
-      {
-        for (k = 0;k < mri->depth;k++)
-        {
-          for (t = 0;t < mri->nframes;t++)
-          {
-            val = get_volume_voxel_value(vol, i, j, k, t, 0);
-            switch (mri->type)
-            {
-            case MRI_UCHAR:
-                MRIseq_vox(mri,i,j,k,t) = (unsigned char)val;
-              break;
-            case MRI_SHORT:
-              MRISseq_vox(mri,i,j,k,t) = (short)val;
-              break;
-            case MRI_LONG:
-              MRILseq_vox(mri,i,j,k,t) = (long)val;
-              break;
-            case MRI_FLOAT:
-              MRIFseq_vox(mri,i,j,k,t) = (float)val;
-              break;
-            }
-          }
-        }
-      }
-    }
-  }
-
-  delete_volume_input(&input_info);
-  delete_volume(vol);
-
-  return(mri);
-
-} /* end mincRead2() */
-/*-----------------------------------------------------------*/
-static int GetMINCInfo(MRI *mri,
-                       char *dim_names[4],
-                       int   dim_sizes[4],
-                       double separations[4],
-                       double dircos[3][3],
-                       double VolCenterVox[3],
-                       double VolCenterWorld[3])
-{
-  int xspacehit, yspacehit, zspacehit;
-  float col_dc_x, col_dc_y, col_dc_z;
-  float row_dc_x, row_dc_y, row_dc_z;
-  float slc_dc_x, slc_dc_y, slc_dc_z;
-  double col_dc_sign, row_dc_sign, slc_dc_sign;
-  int err,i,j;
-
-  col_dc_x = fabs(mri->x_r);
-  col_dc_y = fabs(mri->x_a);
-  col_dc_z = fabs(mri->x_s);
-  col_dc_sign = 1;
-
-  row_dc_x = fabs(mri->y_r);
-  row_dc_y = fabs(mri->y_a);
-  row_dc_z = fabs(mri->y_s);
-  row_dc_sign = 1;
-
-  slc_dc_x = fabs(mri->z_r);
-  slc_dc_y = fabs(mri->z_a);
-  slc_dc_z = fabs(mri->z_s);
-  slc_dc_sign = 1;
-
-  xspacehit = 0;
-  yspacehit = 0;
-  zspacehit = 0;
-
-  /* Name the Column Axis */
-  if (col_dc_x >= row_dc_x && col_dc_x >= slc_dc_x)
-  {
-    dim_names[0] = MIxspace;
-    VolCenterVox[0] = (mri->width-1)/2.0;
-    if (mri->x_r < 0) col_dc_sign = -1;
-    xspacehit = 1;
-  }
-  else if (col_dc_y >= row_dc_y && col_dc_y >= slc_dc_y)
-  {
-    dim_names[0] = MIyspace;
-    VolCenterVox[0] = (mri->height-1)/2.0;
-    if (mri->x_a < 0) col_dc_sign = -1;
-    yspacehit = 1;
-  }
-  else if (col_dc_z >= row_dc_z && col_dc_z >= slc_dc_z)
-  {
-    dim_names[0] = MIzspace;
-    VolCenterVox[0] = (mri->depth-1)/2.0;
-    if (mri->x_s < 0) col_dc_sign = -1;
-    zspacehit = 1;
-  }
-
-  /* Name the Row Axis */
-  if (!xspacehit && row_dc_x >= slc_dc_x)
-  {
-    dim_names[1] = MIxspace;
-    VolCenterVox[1] = (mri->width-1)/2.0;
-    if (mri->y_r < 0) row_dc_sign = -1;
-    xspacehit = 1;
-  }
-  else if (!yspacehit && row_dc_y >= slc_dc_y)
-  {
-    dim_names[1] = MIyspace;
-    VolCenterVox[1] = (mri->height-1)/2.0;
-    if (mri->y_a < 0) row_dc_sign = -1;
-    yspacehit = 1;
-  }
-  else if (!zspacehit && row_dc_z >= slc_dc_z)
-  {
-    dim_names[1] = MIzspace;
-    VolCenterVox[1] = (mri->depth-1)/2.0;
-    if (mri->y_s < 0) row_dc_sign = -1;
-    zspacehit = 1;
-  }
-
-  /* Name the Slice Axis */
-  if (!xspacehit)
-  {
-    dim_names[2] = MIxspace;
-    VolCenterVox[2] = (mri->width-1)/2.0;
-    if (mri->z_r < 0) slc_dc_sign = -1;
-    xspacehit = 1;
-  }
-  else if (!yspacehit)
-  {
-    dim_names[2] = MIyspace;
-    VolCenterVox[2] = (mri->height-1)/2.0;
-    if (mri->z_a < 0) slc_dc_sign = -1;
-    yspacehit = 1;
-  }
-  if (!zspacehit)
-  {
-    dim_names[2] = MIzspace;
-    VolCenterVox[2] = (mri->depth-1)/2.0;
-    if (mri->z_s < 0) slc_dc_sign = -1;
-    zspacehit = 1;
-  }
-
-  /* Check for errors in the Axis Naming*/
-  err = 0;
-  if (!xspacehit)
-  {
-    printf("ERROR: could not assign xspace\n");
-    err = 1;
-  }
-  if (!yspacehit)
-  {
-    printf("ERROR: could not assign yspace\n");
-    err = 1;
-  }
-  if (!zspacehit)
-  {
-    printf("ERROR: could not assign zspace\n");
-    err = 1;
-  }
-  if (err) return(1);
-
-  /* Name the Frame Axis */
-  dim_names[3] = MItime;
-
-  /* Set world center */
-  VolCenterWorld[0] = mri->c_r;
-  VolCenterWorld[1] = mri->c_a;
-  VolCenterWorld[2] = mri->c_s;
-
-  /* Set dimension lengths */
-  dim_sizes[0] = mri->width;
-  dim_sizes[1] = mri->height;
-  dim_sizes[2] = mri->depth;
-  dim_sizes[3] = mri->nframes;
-
-  /* Set separations */
-  separations[0] = col_dc_sign * mri->xsize;
-  separations[1] = row_dc_sign * mri->ysize;
-  separations[2] = slc_dc_sign * mri->zsize;
-  separations[3] = mri->tr;
-
-  /* Set direction Cosines */
-  dircos[0][0] = col_dc_sign * mri->x_r;
-  dircos[0][1] = col_dc_sign * mri->x_a;
-  dircos[0][2] = col_dc_sign * mri->x_s;
-
-  dircos[1][0] = row_dc_sign * mri->y_r;
-  dircos[1][1] = row_dc_sign * mri->y_a;
-  dircos[1][2] = row_dc_sign * mri->y_s;
-
-  dircos[2][0] = slc_dc_sign * mri->z_r;
-  dircos[2][1] = slc_dc_sign * mri->z_a;
-  dircos[2][2] = slc_dc_sign * mri->z_s;
-
-  /* This is a hack for the case where the dircos are the default.
-     The MINC routines will not save the direction cosines as
-     NetCDF attriubtes if they correspond to the default. */
-  for (i=0;i<3;i++)
-    for (j=0;j<3;j++)
-      if (fabs(dircos[i][j] < .00000000001)) dircos[i][j] = .0000000000000001;
-
-  return(0);
-}
-
-/*-----------------------------------------------------------*/
-static int mincWrite2(MRI *mri, const char *fname)
-{
-  Volume minc_volume;
-  nc_type nc_data_type = NC_BYTE;
-  int ndim,i,j;
-  double min, max;
-  float fmin, fmax;
-  char *dim_names[4];
-  int   dim_sizes[4];
-  double separations[4];
-  double dircos[3][3];
-  double VolCenterVox[3];
-  double VolCenterWorld[3];
-  int signed_flag = 0;
-  int r,c,s,f;
-  double VoxVal = 0.0;
-  int return_value;
-  VIO_Status status;
-  MATRIX *T;
-  Transform *pVox2WorldLin;
-  General_transform *pVox2WorldGen;
-
-  /* Get the min and max for the volume */
-  if ((return_value = MRIlimits(mri, &fmin, &fmax)) != NO_ERROR)
-    return(return_value);
-  min = (double)fmin;
-  max = (double)fmax;
-
-  /* Translate mri type to NetCDF type */
-  switch (mri->type)
-  {
-  case MRI_UCHAR:
-    nc_data_type = NC_BYTE;
-    signed_flag = 0;
-    break;
-  case MRI_SHORT:
-    nc_data_type = NC_SHORT;
-    signed_flag = 1;
-    break;
-  case MRI_INT:
-    nc_data_type = NC_LONG;
-    signed_flag = 1;
-    break;
-  case MRI_LONG:
-    nc_data_type = NC_LONG;
-    signed_flag = 1;
-    break;
-  case MRI_FLOAT:
-    nc_data_type = NC_FLOAT;
-    signed_flag = 1;
-    break;
-  }
-
-  /* Assign default direction cosines, if needed */
-  if (mri->ras_good_flag == 0)
-  {
-    setDirectionCosine(mri, MRI_CORONAL);
-  }
-
-  GetMINCInfo(mri, dim_names, dim_sizes, separations, dircos,
-              VolCenterVox,VolCenterWorld);
-
-  if (mri->nframes > 1) ndim = 4;
-  else                 ndim = 3;
-
-  minc_volume = create_volume(ndim, dim_names, nc_data_type,
-                              signed_flag, min, max);
-  set_volume_sizes(minc_volume, dim_sizes);
-  alloc_volume_data(minc_volume);
-
-  for (i=0;i<3;i++)
-  {
-    printf("%d %s %4d %7.3f  %7.3f %7.3f %7.3f \n",
-           i,dim_names[i],dim_sizes[i],separations[i],
-           dircos[i][0],dircos[i][1],dircos[i][2]);
-    set_volume_direction_cosine(minc_volume, i, dircos[i]);
-  }
-  printf("Center Voxel: %7.3f %7.3f %7.3f\n",
-         VolCenterVox[0],VolCenterVox[1],VolCenterVox[2]);
-  printf("Center World: %7.3f %7.3f %7.3f\n",
-         VolCenterWorld[0],VolCenterWorld[1],VolCenterWorld[2]);
-
-  set_volume_separations(minc_volume, separations);
-  set_volume_translation(minc_volume, VolCenterVox, VolCenterWorld);
-
-  T = MRIxfmCRS2XYZ(mri,0);
-  printf("MRI Transform -----------------------------\n");
-  MatrixPrint(stdout,T);
-  pVox2WorldGen = get_voxel_to_world_transform(minc_volume);
-  pVox2WorldLin = get_linear_transform_ptr(pVox2WorldGen);
-  if ((Gdiag & DIAG_SHOW) && DIAG_VERBOSE_ON)
-  {
-    printf("MINC Linear Transform ----------------------\n");
-    for (i=0;i<4;i++)
-    {
-      for (j=0;j<4;j++) printf("%7.4f ",pVox2WorldLin->m[j][i]);
-      printf("\n");
-    }
-    printf("--------------------------------------------\n");
-  }
-  MatrixFree(&T);
-
-  printf("Setting Volume Values\n");
-  for (f = 0; f < mri->nframes; f++)
-  {     /* frames */
-    for (c = 0; c < mri->width;   c++)
-    {     /* columns */
-      for (r = 0; r < mri->height;  r++)
-      {     /* rows */
-        for (s = 0; s < mri->depth;   s++)
-        {     /* slices */
-
-          switch (mri->type)
-          {
-          case MRI_UCHAR:
-            VoxVal = (double)MRIseq_vox(mri,  c, r, s, f);
-            break;
-          case MRI_SHORT:
-            VoxVal = (double)MRISseq_vox(mri, c, r, s, f);
-            break;
-          case MRI_INT:
-            VoxVal = (double)MRIIseq_vox(mri, c, r, s, f);
-            break;
-          case MRI_LONG:
-            VoxVal = (double)MRILseq_vox(mri, c, r, s, f);
-            break;
-          case MRI_FLOAT:
-            VoxVal = (double)MRIFseq_vox(mri, c, r, s, f);
-            break;
-          }
-          set_volume_voxel_value(minc_volume, c, r, s, f, 0, VoxVal);
-        }
-      }
-    }
-  }
-
-  printf("Writing Volume\n");
-  status = output_volume((STRING)fname, nc_data_type, signed_flag, min, max,
-                         minc_volume, (STRING)"", NULL);
-  printf("Cleaning Up\n");
-  delete_volume(minc_volume);
-
-  if (status)
-  {
-    printf("ERROR: mincWrite: output_volume exited with %d\n",status);
-    return(1);
-  }
-
-  printf("mincWrite2: done\n");
-  return(NO_ERROR);
-}
-
-
-/*-------------------------------------------------------
-  NormalizeVector() - in-place vector normalization
-  -------------------------------------------------------*/
-static int NormalizeVector(float *v, int n)
-{
-  float sum2;
-  int i;
-  sum2 = 0;
-  for (i=0;i<n;i++) sum2 += v[i];
-  sum2 = sqrt(sum2);
-  for (i=0;i<n;i++) v[i] /= sum2;
-  return(0);
-}
-#endif
 /*----------------------------------------------------------*/
 /* time course clean */
 static int mincWrite(MRI *mri, const char *fname)
@@ -3123,100 +2486,6 @@ static int mincWrite(MRI *mri, const char *fname)
   di_y = 1;
   di_z = 2;
 
-#if 0
-  /*  The following remapping is only valid for COR files */
-  /*  In order to handle arbitrary volumes, we don't muck around */
-  /*  the axes anymore  ... tosa */
-
-  /* orig->minc map ***********************************/
-  /* r axis is mapped to (x_r, y_r, z_r) voxel coords */
-  /* thus find the biggest value among x_r, y_r, z_r  */
-  /* that one corresponds to the r-axis               */
-  r = 0;
-  r_max = fabs(mri->x_r);
-  if (fabs(mri->y_r) > r_max)
-  {
-    r_max = fabs(mri->y_r);
-    r = 1;
-  }
-  if (fabs(mri->z_r) > r_max)
-    r = 2;
-
-  /* a axis is mapped to (x_a, y_a, z_a) voxel coords */
-  if (r == 0)
-    a = (fabs(mri->y_a) > fabs(mri->z_a) ? 1 : 2);
-  else if (r == 1)
-    a = (fabs(mri->x_a) > fabs(mri->z_a) ? 0 : 2);
-  else
-    a = (fabs(mri->x_a) > fabs(mri->y_a) ? 0 : 1);
-
-  /* s axis is mapped to (x_s, y_s, z_s) voxel coords */
-  /* use the rest to figure                           */
-  s = 3 - r - a;
-
-  /* ----- set the appropriate minc axes to this orientation ----- */
-  /* r gives the mri structure axis of the lr coordinate */
-  /* lr = minc xspace = 0 */
-  /* a ..... of the pa coordinate *//* pa = minc yspace = 1 */
-  /* s ..... of the is coordinate *//* is = minc zspace = 2 */
-
-  /* di of this axis must be set to 2 */
-  /* ... and so on */
-
-  /* minc->orig map **************************************/
-  /* you don't need the routine above but do a similar thing */
-  /* to get exactly the same, i.e.                           */
-  /* x-axis corresponds to (x_r, x_a, x_s) minc coords */
-  /* y-axis                (y_r, y_a, y_s) minc coords */
-  /* z-axis                (z_r, z_a, z_s) minc coords */
-  /* thus we are doing too much work                   */
-
-  if (r == 0)
-  {
-    if (a == 1)
-    {
-      di_x = 0;
-      di_y = 1;
-      di_z = 2;
-    }
-    else
-    {
-      di_x = 0;
-      di_y = 2;
-      di_z = 1;
-    }
-  }
-  else if (r == 1)
-  {
-    if (a == 0)
-    {
-      di_x = 1;
-      di_y = 0;
-      di_z = 2;
-    }
-    else
-    {
-      di_x = 2;
-      di_y = 0;
-      di_z = 1;
-    }
-  }
-  else
-  {
-    if (a == 0)
-    {
-      di_x = 1;
-      di_y = 2;
-      di_z = 0;
-    }
-    else
-    {
-      di_x = 2;
-      di_y = 1;
-      di_z = 0;
-    }
-  }
-#endif
 
   /* ----- set the data type ----- */
   if (mri->type == MRI_UCHAR) {
@@ -3319,13 +2588,6 @@ static int mincWrite(MRI *mri, const char *fname)
 	  default: fprintf(stderr, "%s:%d bad type", __FILE__, __LINE__); exit(1);
           }
 
-#if 0
-          bool show = (vi[di_x] == 0) && (vi[di_y] == 0) && (34 < vi[di_z]) && (vi[di_z] < 39);
-          if (show) {
-	      printf("%s:%d vol[%d,%d,%d,%d]:%g\n", __FILE__, __LINE__, 
-	          vi[0], vi[1], vi[2], vi[3], voxel);
-	  }
-#endif
 	  
 	  set_volume_voxel_value(minc_volume,
                                    vi[0],
@@ -3334,29 +2596,12 @@ static int mincWrite(MRI *mri, const char *fname)
                                    vi[3],
                                    0,
                                    voxel);
-#if 0
-          if (show) {
-	      double gotten = get_volume_voxel_value(minc_volume, vi[0], vi[1], vi[2], vi[3], 0);
-	      printf("%s:%d get returned vol[%d,%d,%d,%d]:%g\n", __FILE__, __LINE__, 
-	          vi[0], vi[1], vi[2], vi[3], gotten);
-	  }
-#endif
 	}
       }
       exec_progress_callback(vi[di_x], mri->width, vi[3], mri->nframes);
     }
   }
 
-#if 0
-  if (1) {
-    int z;
-    for (z = 35; z < 39; z++) {
-      double voxel = get_volume_voxel_value(minc_volume, 0, 0, z, 0, 0);
-      printf("%s:%d vol[0,0,%d,0]:%g\n", __FILE__, __LINE__, z, voxel);
-    }
-  }
-  printf("%s:%d nc_data_type:%d\n", __FILE__, __LINE__, (int)nc_data_type);
-#endif
 
   status = output_volume((char*)fname, nc_data_type, signed_flag, min, max, minc_volume, "", NULL);
   delete_volume(minc_volume);
@@ -3377,7 +2622,7 @@ static int mincWrite(MRI *mri, const char *fname)
 static int bvolumeWrite(MRI *vol, const char *fname_passed, int type)
 {
   int i, j, t;
-  char fname[STRLEN];
+  std::string fname;;
   short *bufshort;
   float *buffloat;
   FILE *fp;
@@ -3487,8 +2732,14 @@ static int bvolumeWrite(MRI *vol, const char *fname_passed, int type)
     output_dir[od_length + 1] = '\0';
   }
 
-  sprintf(analyse_fname, "%s%s", output_dir, "analyse.dat");
-  sprintf(register_fname, "%s%s", output_dir, "register.dat");
+  int needed = snprintf(analyse_fname, STRLEN, "%s%s", output_dir, "analyse.dat");
+  if( needed >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": analyse_fname truncated" << std::endl;
+  }
+  needed = snprintf(register_fname, STRLEN, "%s%s", output_dir, "register.dat");
+  if( needed >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": register_fname truncated" << std::endl;
+  }
 
   bufsize = mri->width * size;
   bufshort = (short *)malloc(bufsize);
@@ -3525,25 +2776,29 @@ static int bvolumeWrite(MRI *vol, const char *fname_passed, int type)
 
   for (i = 0; i < mri->depth; i++) {
     /* ----- write the header file ----- */
-    sprintf(fname, "%s_%03d.hdr", stem, i);
-    if ((fp = fopen(fname, "w")) == NULL) {
+    std::stringstream tmp;
+    tmp << stem << '_' << std::setw(3) << std::setfill('0') << i << ".hdr";
+    fname = tmp.str();
+    if ((fp = fopen(fname.c_str(), "w")) == NULL) {
       if (dealloc) MRIfree(&mri);
       free(bufshort);
       free(buffloat);
       errno = 0;
-      ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "bvolumeWrite(): can't open file %s", fname));
+      ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "bvolumeWrite(): can't open file %s", fname.c_str()));
     }
     fprintf(fp, "%d %d %d %d\n", mri->height, mri->width, mri->nframes, endian);
     fclose(fp);
 
     /* ----- write the data file ----- */
-    sprintf(fname, "%s_%03d.%s", stem, i, ext);
-    if ((fp = fopen(fname, "w")) == NULL) {
+    tmp.str("");
+    tmp << stem << '_' << std::setw(3) << std::setfill('0') << i << '.' << ext;
+    fname = tmp.str();
+    if ((fp = fopen(fname.c_str(), "w")) == NULL) {
       if (dealloc) MRIfree(&mri);
       free(bufshort);
       free(buffloat);
       errno = 0;
-      ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "bvolumeWrite(): can't open file %s", fname));
+      ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "bvolumeWrite(): can't open file %s", fname.c_str()));
     }
 
     for (t = 0; t < mri->nframes; t++) {
@@ -3577,7 +2832,10 @@ static int bvolumeWrite(MRI *vol, const char *fname_passed, int type)
       if (dealloc) MRIfree(&mri);
     }
     else {
-      sprintf(subject_dir, "%s/%s", subjects_dir, sn);
+      int req = snprintf(subject_dir, STRLEN, "%s/%s", subjects_dir, sn);
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       if (stat(subject_dir, &stat_buf) < 0) {
         fprintf(stderr, "can't stat %s; writing to bhdr instead\n", subject_dir);
       }
@@ -3586,15 +2844,22 @@ static int bvolumeWrite(MRI *vol, const char *fname_passed, int type)
           fprintf(stderr, "%s is not a directory; writing to bhdr instead\n", subject_dir);
         }
         else {
-          sprintf(subject_volume_dir, "%s/mri/T1", subject_dir);
+          int needed = snprintf(subject_volume_dir, STRLEN, "%s/mri/T1", subject_dir);
+	  if( needed >= STRLEN ) {
+	    std::cerr << __FUNCTION__ << ": subject_volume_dir truncated" << std::endl;
+	  }
           subject_info = MRIreadInfo(subject_volume_dir);
           if (subject_info == NULL) {
-            sprintf(subject_volume_dir, "%s/mri/orig", subject_dir);
+            int needed = snprintf(subject_volume_dir, STRLEN, "%s/mri/orig", subject_dir);
+	    if( needed >= STRLEN ) {
+	      std::cerr << __FUNCTION__ << ": subject_volume_dir truncated" << std::endl;
+	    }
             subject_info = MRIreadInfo(subject_volume_dir);
-            if (subject_info == NULL)
+            if (subject_info == NULL) {
               fprintf(stderr,
                       "can't read the subject's orig or T1 volumes; "
                       "writing to bhdr instead\n");
+	    }
           }
         }
       }
@@ -3968,11 +3233,11 @@ static int bvolumeWrite(MRI *vol, const char *fname_passed, int type)
   }
 
   if (subject_info == NULL) {
-    sprintf(fname, "%s.bhdr", stem);
-    if ((fp = fopen(fname, "w")) == NULL) {
+    fname = std::string(stem) + ".hdr";
+    if ((fp = fopen(fname.c_str(), "w")) == NULL) {
       if (dealloc) MRIfree(&mri);
       errno = 0;
-      ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "bvolumeWrite(): can't open file %s", fname));
+      ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "bvolumeWrite(): can't open file %s", fname.c_str()));
     }
 
     result = write_bhdr(mri, fp);
@@ -4016,113 +3281,20 @@ static MRI *get_b_info(const char *fname_passed, int read_volume, char *director
 
   if (directory[0] == '\0') sprintf(directory, ".");
 
-#if 0
-
-  char sn[STRLEN];
-  char fname_descrip[STRLEN];
-  float fov_x, fov_y, fov_z;
-  MATRIX *m;
-  int res;
-  char register_fname[STRLEN], analyse_fname[STRLEN];
-  float ipr, st, intensity;
-  float m11, m12, m13, m14;
-  float m21, m22, m23, m24;
-  float m31, m32, m33, m34;
-  float m41, m42, m43, m44;
-  char t1_path[STRLEN];
-
-  /* ----- try register.dat and analyse.dat, then bhdr, then defaults ----- */
-  sprintf(register_fname, "%s/register.dat", directory);
-  sprintf(analyse_fname, "%s/analyse.dat", directory);
-
-  if ((fp = fopen(register_fname, "r")) != NULL)
-  {
-
-    fscanf(fp, "%s", sn);
-    fscanf(fp, "%f", &ipr);
-    fscanf(fp, "%f", &st);
-    fscanf(fp, "%f", &intensity);
-    fscanf(fp, "%f %f %f %f", &m11, &m12, &m13, &m14);
-    fscanf(fp, "%f %f %f %f", &m21, &m22, &m23, &m24);
-    fscanf(fp, "%f %f %f %f", &m31, &m32, &m33, &m34);
-    fscanf(fp, "%f %f %f %f", &m41, &m42, &m43, &m44);
-    fclose(fp);
-
-    if ((fp = fopen(analyse_fname, "r")) != NULL)
-    {
-
-      fscanf(fp, "%s", t1_path);
-      fscanf(fp, "%s", fname_descrip);
-      fscanf(fp, "%d %d", &nslices, &nt);
-      fscanf(fp, "%d %d", &nx, &ny);
-      fclose(fp);
-
-      if (read_volume)
-      {
-        mri = MRIallocSequence(nx, ny, nslices, MRI_SHORT, nt);
-      }
-      else
-      {
-        mri = MRIallocHeader(nx, ny, nslices, MRI_SHORT, nt);
-        mri->nframes = nt;
-      }
-
-      strcpy(mri->fname, fname_passed);
-      mri->imnr0 = 1;
-      mri->imnr1 = nslices;
-      mri->xsize = mri->ysize = mri->ps = ipr;
-      mri->zsize = mri->thick = st;
-
-      fov_x = mri->xsize * mri->width;
-      fov_y = mri->ysize * mri->height;
-      fov_z = mri->zsize * mri->depth;
-
-      mri->fov = (fov_x > fov_y ? (fov_x > fov_z ? fov_x : fov_z) :
-                      (fov_y > fov_z ? fov_y : fov_z));
-
-      mri->xend = fov_x / 2.0;
-      mri->xstart = -mri->xend;
-      mri->yend = fov_y / 2.0;
-      mri->ystart = -mri->yend;
-      mri->zend = fov_z / 2.0;
-      mri->zstart = -mri->zend;
-
-      mri->brightness = intensity;
-      strcpy(mri->subject_name, sn);
-      strcpy(mri->path_to_t1, t1_path);
-      strcpy(mri->fname_format, fname_descrip);
-
-      m = MatrixAlloc(4, 4, MATRIX_REAL);
-      if (m == NULL)
-  {
-        MRIfree(&mri);
-        errno = 0;
-        ErrorReturn(NULL, (ERROR_NO_MEMORY, "error allocating "
-                           "matrix in %s read", extension));
-      }
-      stuff_four_by_four(m, m11, m12, m13, m14,
-                         m21, m22, m23, m24,
-                         m31, m32, m33, m34,
-                         m41, m42, m43, m44);
-      mri->register_mat = m;
-      res = orient_with_register(mri);
-      if (res != NO_ERROR)
-      {
-        MRIfree(&mri);
-        return(NULL);
-      }
-      return(mri);
-    }
-  }
-#endif
 
   mri = MRIallocHeader(1, 1, 1, type, 1);
 
   /* ----- try to read the stem.bhdr ----- */
-  sprintf(bhdr_name, "%s/%s.bhdr", directory, stem);
+  int required = snprintf(bhdr_name, STRLEN, "%s/%s.bhdr", directory, stem);
+  if( required >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": bhdr_name truncated" << std::endl;
+  }
   if ((fp = fopen(bhdr_name, "r")) != NULL) {
     read_bhdr(mri, fp);
-    sprintf(fname, "%s/%s_000.hdr", directory, stem);
+    int required = snprintf(fname, STRLEN, "%s/%s_000.hdr", directory, stem);
+    if( required >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": fname truncated" << std::endl;
+    }
     if ((fp = fopen(fname, "r")) == NULL) {
       MRIfree(&mri);
       errno = 0;
@@ -4153,7 +3325,10 @@ static MRI *get_b_info(const char *fname_passed, int read_volume, char *director
               "If not suitable, please provide the information in %s file\n"
               "-----------------------------------------------------------------\n",
               bhdr_name);
-    sprintf(fname, "%s/%s_000.hdr", directory, stem);
+    int required = snprintf(fname, STRLEN, "%s/%s_000.hdr", directory, stem);
+    if( required >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     if ((fp = fopen(fname, "r")) == NULL) {
       MRIfree(&mri);
       errno = 0;
@@ -4169,7 +3344,10 @@ static MRI *get_b_info(const char *fname_passed, int read_volume, char *director
     fclose(fp);
 
     /* --- get the number of slices --- */
-    sprintf(fname, "%s/%s_000.%s", directory, stem, extension);
+    int req = snprintf(fname, STRLEN, "%s/%s_000.%s", directory, stem, extension);
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     if (!FileExists(fname)) {
       MRIfree(&mri);
       errno = 0;
@@ -4179,8 +3357,12 @@ static MRI *get_b_info(const char *fname_passed, int read_volume, char *director
                    "bailing out on read",
                    fname));
     }
-    for (nslices = 0; FileExists(fname); nslices++)
-      sprintf(fname, "%s/%s_%03d.%s", directory, stem, nslices, extension);
+    for (nslices = 0; FileExists(fname); nslices++) {
+      int req = snprintf(fname, STRLEN, "%s/%s_%03d.%s", directory, stem, nslices, extension);
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
+    }
     nslices--;
 
     mri->width = nx;
@@ -4235,7 +3417,7 @@ static MRI *bvolumeRead(const char *fname_passed, int read_volume, int type)
 {
   MRI *mri;
   FILE *fp;
-  char fname[STRLEN];
+  std::string fname;
   char directory[STRLEN];
   char stem[STRLEN];
   int swap_bytes_flag;
@@ -4271,9 +3453,13 @@ static MRI *bvolumeRead(const char *fname_passed, int read_volume, int type)
   if (!read_volume) return (mri);
 
   /* Read in the header of the first slice to get the endianness */
-  sprintf(fname, "%s/%s_%03d.hdr", directory, stem, 0);
-  if ((fp = fopen(fname, "r")) == NULL) {
-    fprintf(stderr, "ERROR: can't open file %s; assuming big-endian bvolume\n", fname);
+  std::stringstream tmp;
+  tmp << directory << '/' << stem << '_'
+      << std::setw(3) << std::setfill('0') << 0
+      << ".hdr";
+  fname = tmp.str();
+  if ((fp = fopen(fname.c_str(), "r")) == NULL) {
+    fprintf(stderr, "ERROR: can't open file %s; assuming big-endian bvolume\n", fname.c_str());
     swap_bytes_flag = 0;
   }
   else {
@@ -4288,12 +3474,16 @@ static MRI *bvolumeRead(const char *fname_passed, int read_volume, int type)
 
   /* Go through each slice */
   for (slice = 0; slice < mri->depth; slice++) {
-    /* Open the file for this slice */
-    sprintf(fname, "%s/%s_%03d.%s", directory, stem, slice, ext);
-    if ((fp = fopen(fname, "r")) == NULL) {
+    /* Open the file for this slice */ 
+    std::stringstream tmp;
+    tmp << directory << '/' << stem << '_'
+	<< std::setw(3) << std::setfill('0') << slice
+	<< '.' << ext;
+    fname = tmp.str();
+    if ((fp = fopen(fname.c_str(), "r")) == NULL) {
       MRIfree(&mri);
       errno = 0;
-      ErrorReturn(NULL, (ERROR_BADFILE, "bvolumeRead(): error opening file %s", fname));
+      ErrorReturn(NULL, (ERROR_BADFILE, "bvolumeRead(): error opening file %s", fname.c_str()));
     }
     // fprintf(stderr, "Reading %s ... \n", fname);
     /* Loop through the frames */
@@ -4312,14 +3502,21 @@ static MRI *bvolumeRead(const char *fname_passed, int read_volume, int type)
                       (ERROR_BADFILE,
                        "bvolumeRead(): "
                        "error reading from file %s",
-                       fname));
+                       fname.c_str()));
         }
 
         if (swap_bytes_flag) {
-          if (type == MRI_SHORT)
-            swab(mri->slices[k][row], mri->slices[k][row], (size_t)(mri->width * size));
-          else
+          if (type == MRI_SHORT) {
+	    std::vector<short> temp(mri->width);
+	    // Note:
+	    // void swab(const void *from, void *to, ssize_t n);
+	    // void *memcpy(void *dest, const void *src, size_t n);
+	    // Because consistency is the hobgoblin of small minds...
+	    swab(mri->slices[k][row], temp.data(), (size_t)(mri->width * size));
+	    memcpy(mri->slices[k][row], temp.data(), (size_t)(mri->width * size));
+          } else {
             byteswapbuffloat((void *)mri->slices[k][row], size * mri->width);
+	  }
         }
       } /* row loop */
     }   /* frame loop */
@@ -4339,217 +3536,6 @@ static MRI *bvolumeRead(const char *fname_passed, int read_volume, int type)
 
 } /* end bvolumeRead() */
 
-#if 0
-static int orient_with_register(MRI *mri)
-{
-
-  MRI *subject_mri;
-  char *subjects_dir;
-  char subject_directory[STRLEN];
-  MATRIX *sa, *fa;
-  MATRIX *sr, *fr;
-  MATRIX *rinv, *sainv;
-  MATRIX *r1, *r2;
-  int res;
-  float det;
-
-  subject_mri = NULL;
-  if ((subjects_dir = getenv("SUBJECTS_DIR")) != NULL)
-  {
-    sprintf
-    (subject_directory, "%s/%s/mri/T1", subjects_dir, mri->subject_name);
-    if ((subject_mri = MRIreadInfo(subject_directory)) == NULL)
-    {
-      errno = 0;
-      ErrorPrintf
-      (ERROR_BADPARM,
-       "can't get get information from %s; ", subject_directory);
-      sprintf
-      (subject_directory,
-       "%s/%s/mri/T1", subjects_dir, mri->subject_name);
-      ErrorPrintf
-      (ERROR_BADPARM, "trying %s instead...\n", subject_directory);
-      if ((subject_mri = MRIreadInfo(subject_directory)) == NULL)
-        ErrorPrintf
-        (ERROR_BADPARM,
-         "can't get information from %s\n", subject_directory);
-    }
-  }
-  else
-  {
-    errno = 0;
-    ErrorPrintf
-    (ERROR_BADPARM, "can't get environment variable SUBJECTS_DIR");
-  }
-
-  if (subject_mri == NULL)
-  {
-
-    errno = 0;
-    ErrorPrintf(ERROR_BADPARM, "guessing at COR- orientation...\n");
-
-    subject_mri = MRIallocHeader(256, 256, 256, MRI_UCHAR, 1);
-    subject_mri->fov = 256.0;
-    subject_mri->thick = subject_mri->ps = 1.0;
-    subject_mri->xsize = subject_mri->ysize = subject_mri->zsize = 1.0;
-    setDirectionCosine(subject_mri, MRI_CORONAL);
-    subject_mri->ras_good_flag = 1;
-  }
-
-  det = MatrixDeterminant(mri->register_mat);
-  if (det == 0.0)
-  {
-    MRIfree(&subject_mri);
-    errno = 0;
-    ErrorPrintf
-    (ERROR_BADPARM,
-     "orient_with_register(): registration matrix has zero determinant");
-    ErrorPrintf(ERROR_BADPARM, "matrix is:");
-    MatrixPrint(stderr, mri->register_mat);
-    return(ERROR_BADPARM);
-  }
-
-  rinv = MatrixInverse(mri->register_mat, NULL);
-
-  if (rinv == NULL)
-  {
-    MRIfree(&subject_mri);
-    errno = 0;
-    ErrorPrintf
-    (ERROR_BADPARM,
-     "orient_with_register(): error inverting registration matrix");
-    ErrorPrintf(ERROR_BADPARM, "matrix is:");
-    MatrixPrint(stderr, mri->register_mat);
-    return(ERROR_BADPARM);
-  }
-
-  sr = extract_i_to_r(subject_mri);
-
-  sa = MatrixAlloc(4, 4, MATRIX_REAL);
-  fa = MatrixAlloc(4, 4, MATRIX_REAL);
-
-  if (sr == NULL || sa == NULL || fa == NULL)
-  {
-    if (sr != NULL)
-      MatrixFree(&sr);
-    if (sa != NULL)
-      MatrixFree(&sa);
-    if (fa != NULL)
-      MatrixFree(&fa);
-    MatrixFree(&rinv);
-    MRIfree(&subject_mri);
-    errno = 0;
-    ErrorReturn
-    (ERROR_NO_MEMORY,
-     (ERROR_NO_MEMORY,
-      "orient_with_register(): error allocating matrix"));
-  }
-
-  stuff_four_by_four
-  (sa,
-   -subject_mri->xsize,
-   0.0,
-   0.0,
-   subject_mri->width * subject_mri->xsize / 2.0,
-   0.0,
-   0.0,
-   subject_mri->zsize,
-   -subject_mri->depth * subject_mri->zsize / 2.0,
-   0.0,
-   -subject_mri->ysize,
-   0.0,
-   subject_mri->height * subject_mri->ysize / 2.0,
-   0.0, 0.0, 0.0, 1.0);
-
-  MRIfree(&subject_mri);
-
-  stuff_four_by_four(fa, -mri->xsize, 0.0, 0.0, mri->width * mri->xsize / 2.0,
-                     0.0, 0.0, mri->zsize, -mri->depth * mri->zsize / 2.0,
-                     0.0, -mri->ysize, 0.0, mri->height * mri->ysize / 2.0,
-                     0.0, 0.0, 0.0, 1.0);
-  det = MatrixDeterminant(sa);
-  if (det == 0.0)
-  {
-    MatrixFree(&sr);
-    MatrixFree(&sa);
-    MatrixFree(&fa);
-    MatrixFree(&rinv);
-    errno = 0;
-    ErrorPrintf(ERROR_BADPARM,
-                "orient_with_register(): destination (ijk) -> r "
-                "space matrix has zero determinant");
-    ErrorPrintf(ERROR_BADPARM, "matrix is:");
-    MatrixPrint(stderr, sa);
-    return(ERROR_BADPARM);
-  }
-
-  sainv = MatrixInverse(sa, NULL);
-  MatrixFree(&sa);
-
-  if (sainv == NULL)
-  {
-    MatrixFree(&sr);
-    MatrixFree(&sa);
-    MatrixFree(&fa);
-    MatrixFree(&rinv);
-    errno = 0;
-    ErrorPrintf
-    (ERROR_BADPARM,
-     "orient_with_register(): error inverting "
-     "destination (ijk) -> r space matrix");
-    ErrorPrintf(ERROR_BADPARM, "matrix is:");
-    MatrixPrint(stderr, sainv);
-    return(ERROR_BADPARM);
-  }
-
-  r1 = MatrixMultiply(rinv, fa, NULL);
-  MatrixFree(&rinv);
-  MatrixFree(&fa);
-  if (r1 == NULL)
-  {
-    MatrixFree(&sr);
-    MatrixFree(&sa);
-    MatrixFree(&sainv);
-    errno = 0;
-    ErrorReturn(ERROR_BADPARM,
-                (ERROR_BADPARM,
-                 "orient_with_register(): error multiplying matrices"));
-  }
-
-  r2 = MatrixMultiply(sainv, r1, NULL);
-  MatrixFree(&r1);
-  MatrixFree(&sainv);
-  if (r2 == NULL)
-  {
-    MatrixFree(&sr);
-    MatrixFree(&sa);
-    errno = 0;
-    ErrorReturn(ERROR_BADPARM,
-                (ERROR_BADPARM,
-                 "orient_with_register(): error multiplying matrices"));
-  }
-
-  fr = MatrixMultiply(sr, r2, NULL);
-  MatrixFree(&sr);
-  MatrixFree(&r2);
-  if (fr == NULL)
-  {
-    errno = 0;
-    ErrorReturn(ERROR_BADPARM,
-                (ERROR_BADPARM,
-                 "orient_with_register(): error multiplying matrices"));
-  }
-
-  res = apply_i_to_r(mri, fr);
-  MatrixFree(&fr);
-
-  if (res != NO_ERROR)
-    return(res);
-
-  return(NO_ERROR);
-
-} /* end orient_with_register() */
-#endif
 
 int decompose_b_fname(const char *fname, char *dir, char *stem)
 {
@@ -4871,17 +3857,6 @@ int read_bhdr(MRI *mri, FILE *fp)
   MatrixFree(&CRSCenter);
   MatrixFree(&RASCenter);
 
-#if 0
-  /* This computation of the center is incorrect because TL is the center of
-     the first voxel (not the edge of the FOV). TR and BR are actually
-     outside of the FOV.  */
-  mri->c_r =
-    (brr + tlr) / 2.0 + (mri->depth - 1) * mri->z_r * mri->zsize / 2.0 ;
-  mri->c_a =
-    (bra + tla) / 2.0 + (mri->depth - 1) * mri->z_a * mri->zsize / 2.0 ;
-  mri->c_s =
-    (brs + tls) / 2.0 + (mri->depth - 1) * mri->z_s * mri->zsize / 2.0 ;
-#endif
 
   mri->ras_good_flag = 1;
 
@@ -4969,8 +3944,14 @@ static MRI *genesisRead(const char *fname, int read_volume)
       *c = '\0';
       // this is too quick to assume of this type
       // another type %s%%03d.MR" must be examined
-      sprintf(fname_format, "%s%%d.MR", fname_base);
-      sprintf(fname_format2, "%s%%03d.MR", fname_base);
+      int req = snprintf(fname_format, STRLEN, "%s%%d.MR", fname_base);
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
+      req = snprintf(fname_format2, STRLEN, "%s%%03d.MR", fname_base);
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
     }
     else {
       errno = 0;
@@ -4984,12 +3965,18 @@ static MRI *genesisRead(const char *fname, int read_volume)
 
   if (strlen(fname_format) != 0) {
     strcpy(temp_string, fname_format);
-    sprintf(fname_format, "%s%s", fname_dir, temp_string);
+    int req = snprintf(fname_format, STRLEN, "%s%s", fname_dir, temp_string);
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     printf("fname_format  : %s\n", fname_format);
   }
   if (strlen(fname_format2) != 0) {
     strcpy(temp_string, fname_format2);
-    sprintf(fname_format2, "%s%s", fname_dir, temp_string);
+    int req = snprintf(fname_format2, STRLEN, "%s%s", fname_dir, temp_string);
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     printf("fname_format2 : %s\n", fname_format2);
   }
   /* ----- find the low and high files ----- */
@@ -5287,7 +4274,15 @@ static MRI *genesisRead(const char *fname, int read_volume)
              (char *)&MRISseq_vox(mri, 0, y, slice, frame),
              sizeof(short) * mri->width);
 #else
-        swab(&MRISseq_vox(mri, 0, y, slice, frame), &MRISseq_vox(mri, 0, y, slice, frame), sizeof(short) * mri->width);
+        {
+	  std::vector<short> temp(mri->width);
+	  // Note:
+	  // void swab(const void *from, void *to, ssize_t n);
+	  // void *memcpy(void *dest, const void *src, size_t n);
+	  // Because consistency is the hobgoblin of small minds...
+	  swab(&MRISseq_vox(mri, 0, y, slice, frame), temp.data(), sizeof(short) * mri->width);
+	  memcpy(&MRISseq_vox(mri, 0, y, slice, frame), temp.data(), sizeof(short) * mri->width);
+	}
 #endif
 #endif
       }
@@ -5363,15 +4358,24 @@ static MRI *gelxRead(const char *fname, int read_volume)
     c = strrchr(fname_base, 'i');
     im_init = atoi(c + 1);
     *c = '\0';
-    sprintf(fname_format, "%si%%d", fname_base);
+    int req = snprintf(fname_format, STRLEN, "%si%%d", fname_base);
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
   }
   else {
     errno = 0;
     ErrorReturn(NULL, (ERROR_BADPARM, "genesisRead(): can't determine file name format for %s", fname));
   }
 
-  strcpy(temp_string, fname_format);
-  sprintf(fname_format, "%s%s", fname_dir, temp_string);
+  int req = snprintf(temp_string, STRLEN, "%s", fname_format);
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
+  req = snprintf(fname_format, STRLEN, "%s%s", fname_dir, temp_string);
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
 
   /* ----- find the low and high files ----- */
   im_low = im_init;
@@ -5568,7 +4572,15 @@ static MRI *gelxRead(const char *fname, int read_volume)
           ErrorReturn(NULL, (ERROR_BADFILE, "genesisRead(): error reading from file file %s", fname_use));
         }
 #if (BYTE_ORDER == LITTLE_ENDIAN)
-        swab(mri->slices[i - im_low][y], mri->slices[i - im_low][y], (size_t)(2 * mri->width));
+	{
+	  std::vector<short> temp(2*mri->width);
+	  // Note:
+	  // void swab(const void *from, void *to, ssize_t n);
+	  // void *memcpy(void *dest, const void *src, size_t n);
+	  // Because consistency is the hobgoblin of small minds...
+	  swab(mri->slices[i - im_low][y], temp.data(), (size_t)(2 * mri->width));
+	  memcpy(mri->slices[i - im_low][y], temp.data(), (size_t)(2 * mri->width));
+	}
 #endif
       }
 
@@ -6800,174 +5812,7 @@ static void swap_analyze_header(dsr *hdr)
 } /* end swap_analyze_header */
 /*------------------------------------------------------*/
 
-#if 0
-static int bad_ras_fill(MRI *mri)
-{
-  if (mri->slice_direction == MRI_CORONAL)
-  {
-    mri->x_r = -1.0;
-    mri->y_r =  0.0;
-    mri->z_r =  0.0;
-    mri->x_a =  0.0;
-    mri->y_a =  0.0;
-    mri->z_a =  1.0;
-    mri->x_s =  0.0;
-    mri->y_s = -1.0;
-    mri->z_s =  0.0;
-    mri->c_r = 0.0;
-    mri->c_a = 0.0;
-    mri->c_s = 0.0;
-  }
-  else if (mri->slice_direction == MRI_SAGITTAL)
-  {
-    mri->x_r =  0.0;
-    mri->y_r =  0.0;
-    mri->z_r = -1.0;
-    mri->x_a =  1.0;
-    mri->y_a =  0.0;
-    mri->z_a =  0.0;
-    mri->x_s =  0.0;
-    mri->y_s =  1.0;
-    mri->z_s =  0.0;
-    mri->c_r = 0.0;
-    mri->c_a = 0.0;
-    mri->c_s = 0.0;
-  }
-  else if (mri->slice_direction == MRI_HORIZONTAL)
-  {
-    mri->x_r =  1.0;
-    mri->y_r =  0.0;
-    mri->z_r =  0.0;
-    mri->x_a =  0.0;
-    mri->y_a = -1.0;
-    mri->z_a =  0.0;
-    mri->x_s =  0.0;
-    mri->y_s =  0.0;
-    mri->z_s =  1.0;
-    mri->c_r = 0.0;
-    mri->c_a = 0.0;
-    mri->c_s = 0.0;
-  }
-  else
-  {
-    errno = 0;
-    ErrorReturn
-    (ERROR_BADPARM,
-     (ERROR_BADPARM, "bad_ras_fill(): unknown slice direction"));
-  }
 
-  return(NO_ERROR);
-
-} /* end bad_ras_fill() */
-#endif
-
-#if 0
-// #ifdef VT_TO_CV
-
-static int voxel_center_to_center_voxel(MRI *mri, float *x, float *y, float *z)
-{
-
-  int result;
-  MATRIX *m, *i, *r, *mi;
-
-  if (!mri->ras_good_flag)
-    if ((result = bad_ras_fill(mri)) != NO_ERROR)
-      return(result);
-
-  if ((m = extract_i_to_r(mri)) == NULL)
-    return(ERROR_BADPARM);
-
-  mi = MatrixInverse(m, NULL);
-  if (mi == NULL)
-  {
-    MatrixFree(&m);
-    errno = 0;
-    ErrorReturn
-    (ERROR_BADPARM,
-     (ERROR_BADPARM,
-      "voxel_center_to_center_voxel(): error inverting matrix"));
-  }
-
-  r = MatrixAlloc(4, 1, MATRIX_REAL);
-  if (r == NULL)
-  {
-    MatrixFree(&m);
-    MatrixFree(&mi);
-    errno = 0;
-    ErrorReturn
-    (ERROR_NOMEMORY,
-     (ERROR_NOMEMORY,
-      "voxel_center_to_center_voxel(): couldn't allocate matrix"));
-  }
-
-  *MATRIX_RELT(r, 1, 1) = 0.0;
-  *MATRIX_RELT(r, 2, 1) = 0.0;
-  *MATRIX_RELT(r, 3, 1) = 0.0;
-  *MATRIX_RELT(r, 4, 1) = 1.0;
-
-  i = MatrixMultiply(mi, r, NULL);
-  if (i == NULL)
-  {
-    MatrixFree(&m);
-    MatrixFree(&mi);
-    MatrixFree(&r);
-    errno = 0;
-    ErrorReturn
-    (ERROR_BADPARM,
-     (ERROR_BADPARM,
-      "voxel_center_to_center_voxel(): "
-      "error in matrix multiplication"));
-  }
-
-  *x = *MATRIX_RELT(i, 1, 1);
-  *y = *MATRIX_RELT(i, 2, 1);
-  *z = *MATRIX_RELT(i, 3, 1);
-
-  MatrixFree(&m);
-  MatrixFree(&mi);
-  MatrixFree(&i);
-  MatrixFree(&r);
-
-  return(NO_ERROR);
-
-} /* end voxel_center_to_center_voxel() */
-
-// #endif
-
-static int center_voxel_to_voxel_center(MRI *mri, float x, float y, float z)
-{
-
-  int result;
-  MATRIX *m;
-
-  if (!mri->ras_good_flag)
-    if ((result = bad_ras_fill(mri)) != NO_ERROR)
-      return(result);
-
-  if ((m = extract_i_to_r(mri)) == NULL)
-    return(ERROR_BADPARM);
-
-  *MATRIX_RELT(m, 1, 4) =
-    0 - (*MATRIX_RELT(m, 1, 1) * x +
-         *MATRIX_RELT(m, 1, 2) * y +
-         *MATRIX_RELT(m, 1, 3) * z);
-  *MATRIX_RELT(m, 2, 4) =
-    0 - (*MATRIX_RELT(m, 2, 1) * x +
-         *MATRIX_RELT(m, 2, 2) * y +
-         *MATRIX_RELT(m, 2, 3) * z);
-  *MATRIX_RELT(m, 3, 4) =
-    0 - (*MATRIX_RELT(m, 3, 1) * x +
-         *MATRIX_RELT(m, 3, 2) * y +
-         *MATRIX_RELT(m, 3, 3) * z);
-
-  apply_i_to_r(mri, m);
-
-  MatrixFree(&m);
-
-  return(NO_ERROR);
-
-} /* end center_voxel_to_voxel_center() */
-#endif  // if 0
 
 static MRI *gdfRead(const char *fname, int read_volume)
 {
@@ -7171,37 +6016,16 @@ static MRI *gdfRead(const char *fname, int read_volume)
   c++;
   strcpy(file_path_2, c);
 
-#if 0
-
-  /* cardviews takes IMAGE_FILE_PATH relative to the working */
-  /* directory -- so we skip this step - ch                  */
-
-  /* ----- relative path -- go from directory with the .gdf file ----- */
-  if (file_path_1[0] != '/')
-  {
-
-    char gdf_path[STRLEN];
-
-    if (fname[0] == '/')
-      sprintf(gdf_path, "%s", fname);
-    else
-      sprintf(gdf_path, "./%s", fname);
-
-    c = strrchr(gdf_path, '/');
-    c[1] = '\0';
-
-    strcat(gdf_path, file_path_1);
-    strcpy(file_path_1, gdf_path);
-
-  }
-#endif
 
   pad_zeros_flag = FALSE;
 
   n_files = 0;
   do {
     n_files++;
-    sprintf(fname_use, "%s%d%s", file_path_1, n_files, file_path_2);
+    int req = snprintf(fname_use, STRLEN, "%s%d%s", file_path_1, n_files, file_path_2);
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
   } while (FileExists(fname_use));
 
   /* ----- try padding the zeros if no files are found ----- */
@@ -7211,7 +6035,10 @@ static MRI *gdfRead(const char *fname, int read_volume)
     n_files = 0;
     do {
       n_files++;
-      sprintf(fname_use, "%s%03d%s", file_path_1, n_files, file_path_2);
+      int req = snprintf(fname_use, STRLEN, "%s%03d%s", file_path_1, n_files, file_path_2);
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
     } while (FileExists(fname_use));
 
     /* ----- still a problem? ----- */
@@ -7318,10 +6145,17 @@ static MRI *gdfRead(const char *fname, int read_volume)
   }
 
   for (i = 1; i <= n_files; i++) {
-    if (pad_zeros_flag)
-      sprintf(fname_use, "%s%03d%s", file_path_1, i, file_path_2);
-    else
-      sprintf(fname_use, "%s%d%s", file_path_1, i, file_path_2);
+    if (pad_zeros_flag) {
+      int req = snprintf(fname_use, STRLEN, "%s%03d%s", file_path_1, i, file_path_2);
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
+    } else {
+      int req = snprintf(fname_use, STRLEN, "%s%d%s", file_path_1, i, file_path_2);
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
+    }
 
     fp = fopen(fname_use, "r");
     if (fp == NULL) {
@@ -7429,7 +6263,7 @@ static int gdfWrite(MRI *mri, const char *fname)
 {
   FILE *fp;
   int i, j;
-  char im_fname[STRLEN];
+  std::string im_fname;
   unsigned char *buf;
   int buf_size = 0;
 
@@ -7473,12 +6307,12 @@ static int gdfWrite(MRI *mri, const char *fname)
   }
 
   for (i = 0; i < mri->depth; i++) {
-    sprintf(im_fname, "%s_%d.img", mri->gdf_image_stem, i + 1);
-    fp = fopen(im_fname, "w");
+    im_fname = std::string(mri->gdf_image_stem) + '_' + std::to_string(i+1) + ".img";
+    fp = fopen(im_fname.c_str(), "w");
     if (fp == NULL) {
       free(buf);
       errno = 0;
-      ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "gdfWrite(): error opening file %s", im_fname));
+      ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "gdfWrite(): error opening file %s", im_fname.c_str()));
     }
 
     for (j = 0; j < mri->height; j++) {
@@ -7530,27 +6364,6 @@ static int gdfWrite(MRI *mri, const char *fname)
   return (NO_ERROR);
 }
 
-#if 0
-static int parc_fill(short label_value, short seed_x, short seed_y)
-{
-
-  if (seed_x < 0 || seed_x >= 512 || seed_y < 0 || seed_y >= 512)
-    return(NO_ERROR);
-
-  if (cma_field[seed_x][seed_y] == label_value)
-    return(NO_ERROR);
-
-  cma_field[seed_x][seed_y] = label_value;
-
-  parc_fill(label_value, seed_x + 1, seed_y    );
-  parc_fill(label_value, seed_x - 1, seed_y    );
-  parc_fill(label_value, seed_x    , seed_y + 1);
-  parc_fill(label_value, seed_x    , seed_y - 1);
-
-  return(NO_ERROR);
-
-} /* end parc_fill() */
-#endif
 
 static int register_unknown_label(const char *label)
 {
@@ -7834,7 +6647,15 @@ static int read_otl_file(
 #if defined(SunOS)
       swab((const char *)points, (char *)points, 2 * n_rows * sizeof(short));
 #else
-      swab(points, points, 2 * n_rows * sizeof(short));
+      {
+	std::vector<short> tmp(2*n_rows);
+	// Note:
+	// void swab(const void *from, void *to, ssize_t n);
+	// void *memcpy(void *dest, const void *src, size_t n);
+	// Because consistency is the hobgoblin of small minds...
+	swab(points, tmp.data(), 2 * n_rows * sizeof(short));
+	memcpy(points, tmp.data(), 2 * n_rows * sizeof(short));
+      }
 #endif
 #endif
     }
@@ -8135,7 +6956,15 @@ int list_labels_in_otl_file(FILE *fp)
 #if defined(SunOS)
       swab((const char *)points, (char *)points, 2 * n_rows * sizeof(short));
 #else
-      swab(points, points, 2 * n_rows * sizeof(short));
+      {
+	std::vector<short> tmp(2*n_rows);
+	// Note:
+	// void swab(const void *from, void *to, ssize_t n);
+	// void *memcpy(void *dest, const void *src, size_t n);
+	// Because consistency is the hobgoblin of small minds...
+	swab(points, tmp.data(), 2 * n_rows * sizeof(short));
+	memcpy(points, tmp.data(), 2 * n_rows * sizeof(short));
+      }
 #endif
 #endif
     }
@@ -8354,7 +7183,10 @@ static MRI *ximgRead(const char *fname, int read_volume)
       c++;
       im_init = atoi(c);
       *c = '\0';
-      sprintf(fname_format, "%s%%d.MR", fname_base);
+      int req = snprintf(fname_format, STRLEN, "%s%%d.MR", fname_base);
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
     }
     else {
       errno = 0;
@@ -8366,8 +7198,14 @@ static MRI *ximgRead(const char *fname, int read_volume)
     ErrorReturn(NULL, (ERROR_BADPARM, "genesisRead(): can't determine file name format for %s", fname));
   }
 
-  strcpy(temp_string, fname_format);
-  sprintf(fname_format, "%s%s", fname_dir, temp_string);
+  int req = snprintf(temp_string, STRLEN, "%s", fname_format);
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
+  req = snprintf(fname_format, STRLEN, "%s%s", fname_dir, temp_string);
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
 
   /* ----- find the low and high files ----- */
   im_low = im_init;
@@ -8611,7 +7449,15 @@ static MRI *ximgRead(const char *fname, int read_volume)
           ErrorReturn(NULL, (ERROR_BADFILE, "genesisRead(): error reading from file file %s", fname_use));
         }
 #if (BYTE_ORDER == LITTLE_ENDIAN)
-        swab(mri->slices[i - im_low][y], mri->slices[i - im_low][y], (size_t)(2 * mri->width));
+	{
+	  std::vector<short> tmp(2*mri->width);
+	  // Note:
+	  // void swab(const void *from, void *to, ssize_t n);
+	  // void *memcpy(void *dest, const void *src, size_t n);
+	  // Because consistency is the hobgoblin of small minds...
+	  swab(mri->slices[i - im_low][y], tmp.data(), (size_t)(2 * mri->width));
+	  memcpy(mri->slices[i - im_low][y], tmp.data(), (size_t)(2 * mri->width));
+	}
 #endif
       }
 
@@ -8696,8 +7542,14 @@ static MRI *nifti1Read(const char *fname, int read_volume)
   if (dot != NULL)
     if (strcmp(dot, ".img") == 0 || strcmp(dot, ".hdr") == 0) *dot = '\0';
 
-  sprintf(hdr_fname, "%s.hdr", fname_stem);
-  sprintf(img_fname, "%s.img", fname_stem);
+  int req = snprintf(hdr_fname, STRLEN, "%s.hdr", fname_stem);
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
+  req = snprintf(img_fname, STRLEN, "%s.img", fname_stem);
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
 
   fp = fopen(hdr_fname, "r");
   if (fp == NULL) {
@@ -8739,7 +7591,13 @@ static MRI *nifti1Read(const char *fname, int read_volume)
   else if (space_units == NIFTI_UNITS_MICRON)
     space_units_factor = 0.001;
   else if (space_units == NIFTI_UNITS_UNKNOWN) {
-    printf("nifti1Read(): NIFTI_UNITS_UNKNOWN, assuming mm\n");
+    static int printed = 0;
+    if (!printed && (getenv("FS_SUPPRESS_NIFTI_WARNINGS")==NULL))
+    {
+      printed = 1;
+      if (strcmp(getenv("FS_SUPPRESS_NIFTI_WARNINGS"), "2"))
+	printf("nifti1Read(): NIFTI_UNITS_UNKNOWN, assuming mm\n");
+    }
     space_units_factor = 1.0;
   }
   else {
@@ -9294,8 +8152,14 @@ static int nifti1Write(MRI *mri0, const char *fname)
   if (dot != NULL)
     if (strcmp(dot, ".img") == 0 || strcmp(dot, ".hdr") == 0) *dot = '\0';
 
-  sprintf(hdr_fname, "%s.hdr", fname_stem);
-  sprintf(img_fname, "%s.img", fname_stem);
+  int needed = snprintf(hdr_fname, STRLEN, "%s.hdr", fname_stem);
+  if( needed >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation of hdr_fname" << std::endl;
+  }
+  needed = snprintf(img_fname, STRLEN, "%s.img", fname_stem);
+  if( needed >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation of img_fname" << std::endl;
+  }
 
   fp = fopen(hdr_fname, "w");
   if (fp == NULL) {
@@ -10714,7 +9578,7 @@ MRI *MRIreadGeRoi(const char *fname, int n_slices)
   int n_digits;
   FILE *fp;
   int width, height;
-  char fname_use[STRLEN];
+  std::string fname_use;
   int read_one_flag;
   int pixel_data_offset;
   int y;
@@ -10775,8 +9639,10 @@ MRI *MRIreadGeRoi(const char *fname, int n_slices)
   read_one_flag = FALSE;
 
   for (i = 0; i < n_slices; i++) {
-    sprintf(fname_use, "%s%03d%s", prefix, i, postfix);
-    if ((fp = fopen(fname_use, "r")) != NULL) {
+    std::stringstream tmp;
+    tmp << prefix << std::setw(3) << std::setfill('0') << i << postfix;
+    fname_use = tmp.str();
+    if ((fp = fopen(fname_use.c_str(), "r")) != NULL) {
       fseek(fp, 4, SEEK_SET);
       if (fread(&pixel_data_offset, 4, 1, fp) != 1) {
          ErrorPrintf(ERROR_BADFILE, "MRIreadGeRoi(): could not read file");
@@ -10789,10 +9655,18 @@ MRI *MRIreadGeRoi(const char *fname, int n_slices)
           fclose(fp);
           MRIfree(&mri);
           errno = 0;
-          ErrorReturn(NULL, (ERROR_BADFILE, "MRIreadGeRoi(): error reading from file file %s", fname_use));
+          ErrorReturn(NULL, (ERROR_BADFILE, "MRIreadGeRoi(): error reading from file file %s", fname_use.c_str()));
         }
 #if (BYTE_ORDER == LITTLE_ENDIAN)
-        swab(mri->slices[i][y], mri->slices[i][y], (size_t)(2 * mri->width));
+	{
+	  std::vector<short> tmp(2*mri->width);
+	  // Note:
+	  // void swab(const void *from, void *to, ssize_t n);
+	  // void *memcpy(void *dest, const void *src, size_t n);
+	  // Because consistency is the hobgoblin of small minds...
+	  swab(mri->slices[i][y], tmp.data(), (size_t)(2 * mri->width));
+	  memcpy(mri->slices[i][y], tmp.data(), (size_t)(2 * mri->width));
+	}
 #endif
       }
 
@@ -11061,122 +9935,6 @@ static void int_local_buffer_to_image(int *buf, MRI *mri, int slice, int frame)
   }
 }
 
-#if 0
-static void
-image_to_int_buffer(int *buf, MRI *mri, int slice)
-{
-  int y, x, width, height, depth ;
-
-  width = mri->width ;
-  height = mri->height ;
-  depth = mri->depth;
-  for (y=0; y < height ; y++)
-  {
-    if (mri->type == MRI_UCHAR)
-    {
-      for (x = 0;x < depth;x++)
-        buf[x] = (int)MRIvox(mri, x, y, slice);
-    }
-    else if (mri->type == MRI_SHORT)
-    {
-      for (x = 0;x < depth;x++)
-        buf[x] = (int)MRISvox(mri, x, y, slice);
-    }
-    else if (mri->type == MRI_LONG)
-    {
-      for (x = 0;x < depth;x++)
-        buf[x] = (int)MRILvox(mri, x, y, slice);
-    }
-    else if (mri->type == MRI_FLOAT)
-    {
-      for (x = 0;x < depth;x++)
-        buf[x] = (int)MRIFvox(mri, x, y, slice);
-    }
-    else
-    {
-      memmove(buf, mri->slices[slice][y], width*sizeof(int)) ;
-    }
-
-    buf += width ;
-  }
-}
-static void
-image_to_long_buffer(long *buf, MRI *mri, int slice)
-{
-  int y, x, width, height, depth ;
-
-  width = mri->width ;
-  height = mri->height ;
-  depth = mri->depth;
-  for (y=0; y < height ; y++)
-  {
-    if (mri->type == MRI_UCHAR)
-    {
-      for (x = 0;x < depth;x++)
-        buf[x] = (long)MRIvox(mri, x, y, slice);
-    }
-    else if (mri->type == MRI_INT)
-    {
-      for (x = 0;x < depth;x++)
-        buf[x] = (long)MRIIvox(mri, x, y, slice);
-    }
-    else if (mri->type == MRI_SHORT)
-    {
-      for (x = 0;x < depth;x++)
-        buf[x] = (long)MRISvox(mri, x, y, slice);
-    }
-    else if (mri->type == MRI_FLOAT)
-    {
-      for (x = 0;x < depth;x++)
-        buf[x] = (long)MRIFvox(mri, x, y, slice);
-    }
-    else
-    {
-      memmove(buf, mri->slices[slice][y], width*sizeof(long)) ;
-    }
-
-    buf += width ;
-  }
-}
-static void
-image_to_float_buffer(float *buf, MRI *mri, int slice)
-{
-  int y, x, width, height, depth ;
-
-  width = mri->width ;
-  height = mri->height ;
-  depth = mri->depth;
-  for (y=0; y < height ; y++)
-  {
-    if (mri->type == MRI_UCHAR)
-    {
-      for (x = 0;x < depth;x++)
-        buf[x] = (float)MRIvox(mri, x, y, slice);
-    }
-    else if (mri->type == MRI_INT)
-    {
-      for (x = 0;x < depth;x++)
-        buf[x] = (float)MRIIvox(mri, x, y, slice);
-    }
-    else if (mri->type == MRI_LONG)
-    {
-      for (x = 0;x < depth;x++)
-        buf[x] = (float)MRILvox(mri, x, y, slice);
-    }
-    else if (mri->type == MRI_SHORT)
-    {
-      for (x = 0;x < depth;x++)
-        buf[x] = (float)MRISvox(mri, x, y, slice);
-    }
-    else
-    {
-      memmove(buf, mri->slices[slice][y], width*sizeof(float)) ;
-    }
-
-    buf += width ;
-  }
-}
-#endif
 
 static void long32_local_buffer_to_image(long32 *buf, MRI *mri, int slice, int frame)
 {
@@ -11264,10 +10022,10 @@ int znzTAGwriteMRIframes(znzFile fp, MRI *mri)
     znzwrite(frame->name, sizeof(char), STRLEN, fp);
     znzwriteInt(frame->dof, fp);
     if (frame->m_ras2vox && frame->m_ras2vox->rows > 0)
-      znzWriteMatrix(fp, frame->m_ras2vox);
+      znzWriteMatrix(fp, frame->m_ras2vox, 0);
     else {
       MATRIX *m = MatrixAlloc(4, 4, MATRIX_REAL);
-      znzWriteMatrix(fp, m);
+      znzWriteMatrix(fp, m, 0);
       MatrixFree(&m);
     }
     znzwriteFloat(frame->thresh, fp);
@@ -11700,6 +10458,10 @@ static MRI *mghRead(const char *fname, int read_volume, int frame)
           mri->AutoAlign = znzReadAutoAlignMatrix(fp);
           break;
 
+        case TAG_ORIG_RAS2VOX:
+          mri->origRas2Vox = znzReadMatrix(fp);
+          break;
+
         case TAG_PEDIR:
           mri->pedir = (char *)calloc(len + 1, sizeof(char));
           znzread(mri->pedir, sizeof(char), len, fp);
@@ -11879,13 +10641,7 @@ static int mghWrite(MRI *mri, const char *fname, int frame)
   // I write a tag with strlength and write it
   // I increase the tag_datasize with this amount
   if ((flen = strlen(mri->transform_fname)) > 0) {
-#if 0
-    fwriteInt(TAG_MGH_XFORM, fp);
-    fwriteInt(flen+1, fp); // write the size + 1 (for null) of string
-    fputs(mri->transform_fname, fp);
-#else
     znzTAGwrite(fp, TAG_MGH_XFORM, mri->transform_fname, flen + 1);
-#endif
   }
   // If we have any saved tag data, write it.
   if (NULL != mri->tag_data) {
@@ -11894,11 +10650,17 @@ static int mghWrite(MRI *mri, const char *fname, int frame)
     znzwrite(mri->tag_data, mri->tag_data_size, 1, fp);
   }
 
-  if (mri->AutoAlign) znzWriteMatrix(fp, mri->AutoAlign);
+  if (mri->AutoAlign) znzWriteMatrix(fp, mri->AutoAlign, TAG_AUTO_ALIGN);
   if (mri->pedir)
     znzTAGwrite(fp, TAG_PEDIR, mri->pedir, strlen(mri->pedir) + 1);
   else
     znzTAGwrite(fp, TAG_PEDIR, (void *)"UNKNOWN", strlen("UNKNOWN"));
+  if (mri->origRas2Vox)
+  {
+    printf("saving original ras2vox\n") ;
+    znzWriteMatrix(fp, mri->origRas2Vox, TAG_ORIG_RAS2VOX);
+  }
+
   znzTAGwrite(fp, TAG_FIELDSTRENGTH, (void *)(&mri->FieldStrength), sizeof(mri->FieldStrength));
 
   znzTAGwriteMRIframes(fp, mri);
@@ -12287,15 +11049,6 @@ int MRIwriteInfo(MRI *mri, const char *fpref)
     sprintf(fname, "%s", mri->transform_fname);
     fprintf(fp, "xform %s\n", fname);
 
-#if 0
-    /* doesn't work - I don't know why */
-    if (output_transform_file(fname, "talairach xfm", &mri->transform) != OK)
-    {
-      errno = 0;
-      ErrorPrintf
-      (ERROR_BADFILE, "MRIwriteInfo(%s): xform write failed",fpref);
-    }
-#endif
   }
 
   fprintf(fp, "%s %d\n", "ras_good_flag", mri->ras_good_flag);
@@ -12610,1259 +11363,6 @@ int MRIwriteAnyFormat(MRI *mri, const char *fileid, const char *fmt, int mrifram
 /*-------------------------------------------------------------------*/
 /*-------------------------------------------------------------------*/
 
-#if 0
-/*-------------------------------------------------------------------
-  bfloatWrite() - obsolete. Use bvolumeWrite.
-  -------------------------------------------------------------------*/
-static int bfloatWrite(MRI *vol, const char *stem)
-{
-
-  int i, j, t;
-  char fname[STRLEN];
-  float *buf;
-  FILE *fp;
-  int result;
-  MRI *mri = NULL;
-  int dealloc;
-  int nslices,nframes;
-
-  if (vol->type != MRI_FLOAT)
-  {
-    printf("INFO: bfloatWrite: changing type\n");
-    nslices = vol->depth;
-    nframes = vol->nframes;
-    vol->depth = nslices*nframes;
-    vol->nframes = 1;
-    mri = MRIchangeType(vol,MRI_FLOAT,0,0,0);
-    if (mri == NULL)
-    {
-      fprintf(stderr,"ERROR: bfloatWrite: MRIchangeType\n");
-      return(1);
-    }
-    vol->depth = nslices;
-    vol->nframes = nframes;
-    mri->depth = nslices;
-    mri->nframes = nframes;
-    dealloc = 1;
-  }
-  else
-  {
-    mri = vol;
-    dealloc = 0;
-  }
-
-  buf = (float *)malloc(mri->width * sizeof(float));
-
-  for (i = 0;i < mri->depth;i++)
-  {
-    /* ----- write the header file ----- */
-    sprintf(fname, "%s_%03d.hdr", stem, i);
-    if ((fp = fopen(fname, "w")) == NULL)
-    {
-      free(buf);
-      errno = 0;
-      ErrorReturn
-      (ERROR_BADFILE,
-       (ERROR_BADFILE,
-        "bfloatWrite(): can't open file %s", fname));
-    }
-#if (BYTE_ORDER == LITTLE_ENDIAN)
-    fprintf(fp, "%d %d %d %d\n", mri->height, mri->width, mri->nframes, 1);
-#else
-    fprintf(fp, "%d %d %d %d\n", mri->height, mri->width, mri->nframes, 0);
-#endif
-    fclose(fp);
-
-    /* ----- write the data file ----- */
-    sprintf(fname, "%s_%03d.bfloat", stem, i);
-    if ((fp = fopen(fname, "w")) == NULL)
-    {
-      if (dealloc) MRIfree(&mri);
-      free(buf);
-      errno = 0;
-      ErrorReturn
-      (ERROR_BADFILE,
-       (ERROR_BADFILE,
-        "bfloatWrite(): can't open file %s", fname));
-    }
-
-    for (t = 0;t < mri->nframes;t++)
-    {
-      for (j = 0;j < mri->height;j++)
-      {
-        memmove(buf, mri->slices[t*mri->depth + i][j],
-               mri->width * sizeof(float));
-#if 0
-        /* this byte swapping routine does not seem to work */
-        /* now uses endian flag in .hdr (above) */
-        for (pos = 0; pos < mri->width * sizeof(float);
-             pos += sizeof(float))
-        {
-          c = (char *) (&(buf[pos]));
-          memmove(&(swap_buf[0]), c, 4);
-          c[0] = swap_buf[3];
-          c[1] = swap_buf[2];
-          c[2] = swap_buf[1];
-          c[3] = swap_buf[0];
-        }
-#endif
-        fwrite(buf, sizeof(float), mri->width, fp);
-
-      }
-    }
-
-    fclose(fp);
-
-  }
-
-  free(buf);
-
-  /* ----- write the bhdr file ----- */
-  sprintf(fname, "%s.bhdr", stem);
-  if ((fp = fopen(fname, "w")) == NULL)
-  {
-    if (dealloc) MRIfree(&mri);
-    errno = 0;
-    ErrorReturn
-    (ERROR_BADFILE,
-     (ERROR_BADFILE,
-      "bfloatWrite(): can't open file %s", fname));
-  }
-
-  result = write_bhdr(mri, fp);
-
-  fclose(fp);
-
-  if (dealloc) MRIfree(&mri);
-  return(result);
-
-} /* end bfloatWrite() */
-
-/*-------------------------------------------------------------------
-  bshortWrite() - obsolete. Use bvolumeWrite.
-  -------------------------------------------------------------------*/
-static int bshortWrite(MRI *vol, const char *fname_passed)
-{
-
-  int i, j, t;
-  char fname[STRLEN];
-  short *buf;
-  FILE *fp;
-  int result;
-  MRI *subject_info = NULL;
-  char subject_volume_dir[STRLEN];
-  char *subjects_dir;
-  char *sn;
-  char analyse_fname[STRLEN], register_fname[STRLEN];
-  char output_dir[STRLEN];
-  char *c;
-  int od_length;
-  char t1_path[STRLEN];
-  MATRIX *cf, *bf, *ibf, *af, *iaf, *as, *bs, *cs, *ics, *r;
-  MATRIX *r1, *r2, *r3, *r4;
-  float det;
-  int bad_flag;
-  int l;
-  char stem[STRLEN];
-  char *c1, *c2, *c3;
-  struct stat stat_buf;
-  char subject_dir[STRLEN];
-  int dealloc, nslices, nframes;
-  MRI *mri;
-  float min,max;
-
-  if (vol->type != MRI_SHORT)
-  {
-    printf("INFO: bshortWrite: changing type\n");
-    nslices = vol->depth;
-    nframes = vol->nframes;
-    vol->depth = nslices*nframes;
-    vol->nframes = 1;
-    MRIlimits(vol,&min,&max);
-    printf("INFO: bshortWrite: range %g %g\n",min,max);
-    mri = MRIchangeType(vol,MRI_SHORT,min,max,1);
-    if (mri == NULL)
-    {
-      fprintf(stderr,"ERROR: bshortWrite: MRIchangeType\n");
-      return(1);
-    }
-    vol->depth = nslices;
-    vol->nframes = nframes;
-    mri->depth = nslices;
-    mri->nframes = nframes;
-    dealloc = 1;
-  }
-  else
-  {
-    mri = vol;
-    dealloc = 0;
-  }
-
-  /* ----- get the stem from the passed file name ----- */
-  /*
-    four options:
-    1. stem_xxx.bshort
-    2. stem.bshort
-    3. stem_xxx
-    4. stem
-    other possibles:
-    stem_.bshort
-  */
-
-  l = strlen(fname_passed);
-
-  c1 = fname_passed + l - 11;
-  c2 = fname_passed + l - 7;
-  c3 = fname_passed + l - 4;
-
-  strcpy(stem, fname_passed);
-
-  if (c1 > fname_passed)
-  {
-    if (*c1 == '_' && strcmp(c1+4, ".bshort") == 0)
-      stem[(int)(c1-fname_passed)] = '\0';
-  }
-  if (c2 > fname_passed)
-  {
-    if (strcmp(c2, ".bshort") == 0)
-      stem[(int)(c2-fname_passed)] = '\0';
-  }
-  if (c3 > fname_passed)
-  {
-    if (*c3 == '_')
-      stem[(int)(c3-fname_passed)] = '\0';
-  }
-
-  c = strrchr(stem, '/');
-  if (c == NULL)
-    output_dir[0] = '\0';
-  else
-  {
-    od_length = (int)(c - stem);
-    strncpy(output_dir, stem, od_length);
-    /* -- leaving the trailing '/' on a directory is not my
-       usual convention, but here it's a load easier
-       if there's no directory in stem... -ch -- */
-    output_dir[od_length] = '/';
-    output_dir[od_length+1] = '\0';
-  }
-
-  sprintf(analyse_fname, "%s%s", output_dir, "analyse.dat");
-  sprintf(register_fname, "%s%s", output_dir, "register.dat");
-
-  buf = (short *)malloc(mri->width * mri->height * sizeof(short));
-
-  for (i = 0;i < mri->depth;i++)
-  {
-
-    /* ----- write the header file ----- */
-    sprintf(fname, "%s_%03d.hdr", stem, i);
-    if ((fp = fopen(fname, "w")) == NULL)
-    {
-      if (dealloc) MRIfree(&mri);
-      free(buf);
-      errno = 0;
-      ErrorReturn
-      (ERROR_BADFILE,
-       (ERROR_BADFILE,
-        "bshortWrite(): can't open file %s", fname));
-    }
-    fprintf(fp, "%d %d %d %d\n", mri->height, mri->width, mri->nframes, 0);
-    fclose(fp);
-
-    /* ----- write the data file ----- */
-    sprintf(fname, "%s_%03d.bshort", stem, i);
-    if ((fp = fopen(fname, "w")) == NULL)
-    {
-      if (dealloc) MRIfree(&mri);
-      free(buf);
-      errno = 0;
-      ErrorReturn
-      (ERROR_BADFILE,
-       (ERROR_BADFILE, "bshortWrite(): can't open file %s", fname));
-    }
-
-    for (t = 0;t < mri->nframes;t++)
-    {
-      for (j = 0;j < mri->height;j++)
-      {
-
-#if (BYTE_ORDER == LITTLE_ENDIAN)
-        swab(mri->slices[t*mri->depth + i][j], buf,
-             mri->width * sizeof(short));
-#else
-        memmove(buf, mri->slices[t*mri->depth + i][j],
-               mri->width * sizeof(short));
-#endif
-
-        fwrite(buf, sizeof(short), mri->width, fp);
-
-      }
-
-    }
-
-    fclose(fp);
-
-  }
-
-  free(buf);
-
-  sn = subject_name;
-  if (mri->subject_name[0] != '\0')
-    sn = mri->subject_name;
-
-  if (sn != NULL)
-  {
-    if ((subjects_dir = getenv("SUBJECTS_DIR")) == NULL)
-    {
-      errno = 0;
-      ErrorPrintf
-      (ERROR_BADPARM,
-       "bshortWrite(): environment variable SUBJECTS_DIR unset");
-      if (dealloc) MRIfree(&mri);
-    }
-    else
-    {
-
-      sprintf(subject_dir, "%s/%s", subjects_dir, sn);
-      if (stat(subject_dir, &stat_buf) < 0)
-      {
-        fprintf
-        (stderr,
-         "can't stat %s; writing to bhdr instead\n", subject_dir);
-      }
-      else
-      {
-        if (!S_ISDIR(stat_buf.st_mode))
-        {
-          fprintf
-          (stderr,
-           "%s is not a directory; writing to bhdr instead\n",
-           subject_dir);
-        }
-        else
-        {
-          sprintf(subject_volume_dir, "%s/mri/T1", subject_dir);
-          subject_info = MRIreadInfo(subject_volume_dir);
-          if (subject_info == NULL)
-          {
-            sprintf(subject_volume_dir, "%s/mri/orig", subject_dir);
-            subject_info = MRIreadInfo(subject_volume_dir);
-            if (subject_info == NULL)
-              fprintf(stderr,
-                      "can't read the subject's orig or T1 volumes; "
-                      "writing to bhdr instead\n");
-          }
-        }
-      }
-
-    }
-
-  }
-
-  if (subject_info != NULL)
-  {
-    if (subject_info->ras_good_flag == 0)
-    {
-      subject_info->x_r = -1.0;
-      subject_info->x_a = 0.0;
-      subject_info->x_s =  0.0;
-      subject_info->y_r =  0.0;
-      subject_info->y_a = 0.0;
-      subject_info->y_s = -1.0;
-      subject_info->z_r =  0.0;
-      subject_info->z_a = 1.0;
-      subject_info->z_s =  0.0;
-      subject_info->c_r =  0.0;
-      subject_info->c_a = 0.0;
-      subject_info->c_s =  0.0;
-    }
-  }
-
-  cf = bf = ibf = af = iaf = as = bs = cs = ics = r = NULL;
-  r1 = r2 = r3 = r4 = NULL;
-
-  /* ----- write the register.dat and analyse.dat  or bhdr files ----- */
-  if (subject_info != NULL)
-  {
-
-    bad_flag = FALSE;
-
-    if ((as = MatrixAlloc(4, 4, MATRIX_REAL)) == NULL)
-    {
-      errno = 0;
-      ErrorPrintf(ERROR_BADPARM, "bshortWrite(): error creating matrix");
-      bad_flag = TRUE;
-    }
-    stuff_four_by_four
-    (as,
-     subject_info->x_r,
-     subject_info->y_r,
-     subject_info->z_r,
-     subject_info->c_r,
-     subject_info->y_r,
-     subject_info->y_r,
-     subject_info->y_r,
-     subject_info->c_r,
-     subject_info->z_r,
-     subject_info->z_r,
-     subject_info->z_r,
-     subject_info->c_r,
-     0.0,               0.0,               0.0,               1.0);
-
-    if ((af = MatrixAlloc(4, 4, MATRIX_REAL)) == NULL)
-    {
-      errno = 0;
-      ErrorPrintf(ERROR_BADPARM, "bshortWrite(): error creating matrix");
-      bad_flag = TRUE;
-    }
-    stuff_four_by_four(af, mri->x_r, mri->y_r, mri->z_r, mri->c_r,
-                       mri->y_r, mri->y_r, mri->y_r, mri->c_r,
-                       mri->z_r, mri->z_r, mri->z_r, mri->c_r,
-                       0.0,      0.0,      0.0,      1.0);
-
-    if ((bs = MatrixAlloc(4, 4, MATRIX_REAL)) == NULL)
-    {
-      errno = 0;
-      ErrorPrintf(ERROR_BADPARM, "bshortWrite(): error creating matrix");
-      bad_flag = TRUE;
-    }
-    stuff_four_by_four(bs, 1, 0, 0, (subject_info->width  - 1) / 2.0,
-                       0, 1, 0, (subject_info->height - 1) / 2.0,
-                       0, 0, 1, (subject_info->depth  - 1) / 2.0,
-                       0, 0, 0,                              1.0);
-
-    if ((bf = MatrixAlloc(4, 4, MATRIX_REAL)) == NULL)
-    {
-      errno = 0;
-      ErrorPrintf(ERROR_BADPARM, "bshortWrite(): error creating matrix");
-      bad_flag = TRUE;
-    }
-    stuff_four_by_four(bf, 1, 0, 0, (mri->width  - 1) / 2.0,
-                       0, 1, 0, (mri->height - 1) / 2.0,
-                       0, 0, 1, (mri->depth  - 1) / 2.0,
-                       0, 0, 0,                     1.0);
-
-    if ((cs = MatrixAlloc(4, 4, MATRIX_REAL)) == NULL)
-    {
-      errno = 0;
-      ErrorPrintf(ERROR_BADPARM, "bshortWrite(): error creating matrix");
-      bad_flag = TRUE;
-    }
-    stuff_four_by_four
-    (cs,
-     -subject_info->xsize, 0, 0,
-     (subject_info->width  * mri->xsize) / 2.0,
-     0, 0, subject_info->zsize, -(subject_info->depth  * mri->zsize) / 2.0,
-     0, -subject_info->ysize, 0,
-     (subject_info->height * mri->ysize) / 2.0,
-     0, 0, 0, 1);
-
-    if ((cf = MatrixAlloc(4, 4, MATRIX_REAL)) == NULL)
-    {
-      errno = 0;
-      ErrorPrintf(ERROR_BADPARM, "bshortWrite(): error creating matrix");
-      bad_flag = TRUE;
-    }
-    stuff_four_by_four
-    (cf,
-     -mri->xsize, 0,          0,  (mri->width  * mri->xsize) / 2.0,
-     0,           0, mri->zsize, -(mri->depth  * mri->zsize) / 2.0,
-     0, -mri->ysize,          0,  (mri->height * mri->ysize) / 2.0,
-     0,           0,          0,                                 1);
-
-    if (bad_flag)
-    {
-      errno = 0;
-      ErrorPrintf
-      (ERROR_BADPARM,
-       "bshortWrite(): error creating one "
-       "or more matrices; aborting register.dat "
-       "write and writing bhdr instead");
-      MRIfree(&subject_info);
-    }
-
-  }
-
-  if (subject_info != NULL)
-  {
-
-    bad_flag = FALSE;
-
-    if ((det = MatrixDeterminant(as)) == 0.0)
-    {
-      errno = 0;
-      ErrorPrintf
-      (ERROR_BADPARM,
-       "bshortWrite(): bad determinant in matrix "
-       "(check structural volume)");
-      bad_flag = TRUE;
-    }
-    if ((det = MatrixDeterminant(bs)) == 0.0)
-    {
-      errno = 0;
-      ErrorPrintf
-      (ERROR_BADPARM,
-       "bshortWrite(): bad determinant in matrix "
-       "(check structural volume)");
-      bad_flag = TRUE;
-    }
-    if ((det = MatrixDeterminant(cs)) == 0.0)
-    {
-      errno = 0;
-      ErrorPrintf
-      (ERROR_BADPARM,
-       "bshortWrite(): bad determinant in matrix "
-       "(check structural volume)");
-      bad_flag = TRUE;
-    }
-
-    if ((det = MatrixDeterminant(af)) == 0.0)
-    {
-      errno = 0;
-      ErrorPrintf
-      (ERROR_BADPARM,
-       "bshortWrite(): bad determinant in matrix "
-       "(check functional volume)");
-      bad_flag = TRUE;
-    }
-    if ((det = MatrixDeterminant(bf)) == 0.0)
-    {
-      errno = 0;
-      ErrorPrintf
-      (ERROR_BADPARM,
-       "bshortWrite(): bad determinant in matrix "
-       "(check functional volume)");
-      bad_flag = TRUE;
-    }
-    if ((det = MatrixDeterminant(cf)) == 0.0)
-    {
-      errno = 0;
-      ErrorPrintf
-      (ERROR_BADPARM,
-       "bshortWrite(): bad determinant in matrix "
-       "(check functional volume)");
-      bad_flag = TRUE;
-    }
-
-    if (bad_flag)
-    {
-      errno = 0;
-      ErrorPrintf
-      (ERROR_BADPARM,
-       "bshortWrite(): one or more zero "
-       "determinants; aborting register.dat write and "
-       "writing bhdr instead");
-      MRIfree(&subject_info);
-    }
-
-  }
-
-  if (subject_info != NULL)
-  {
-
-    bad_flag = FALSE;
-
-    if ((iaf = MatrixInverse(af, NULL)) == NULL)
-    {
-      errno = 0;
-      ErrorPrintf(ERROR_BADPARM, "bshortWrite(): error inverting matrix");
-      bad_flag = TRUE;
-    }
-    if ((ibf = MatrixInverse(bf, NULL)) == NULL)
-    {
-      errno = 0;
-      ErrorPrintf(ERROR_BADPARM, "bshortWrite(): error inverting matrix");
-      bad_flag = TRUE;
-    }
-    if ((ics = MatrixInverse(cs, NULL)) == NULL)
-    {
-      errno = 0;
-      ErrorPrintf(ERROR_BADPARM, "bshortWrite(): error inverting matrix");
-      bad_flag = TRUE;
-    }
-
-    if (bad_flag)
-    {
-      errno = 0;
-      ErrorPrintf
-      (ERROR_BADPARM,
-       "bshortWrite(): one or more zero "
-       "determinants; aborting register.dat write and "
-       "writing bhdr instead");
-      MRIfree(&subject_info);
-    }
-  }
-
-  bad_flag = FALSE;
-
-  if (subject_info != NULL)
-  {
-
-    if ((r1 = MatrixMultiply(bs, ics, NULL)) == NULL)
-    {
-      bad_flag = TRUE;
-      MRIfree(&subject_info);
-    }
-
-  }
-
-  if (subject_info != NULL)
-  {
-
-    if ((r2 = MatrixMultiply(as, r1, NULL)) == NULL)
-    {
-      bad_flag = TRUE;
-      MRIfree(&subject_info);
-    }
-
-  }
-
-  if (subject_info != NULL)
-  {
-
-    if ((r3 = MatrixMultiply(iaf, r2, NULL)) == NULL)
-    {
-      bad_flag = TRUE;
-      MRIfree(&subject_info);
-    }
-
-  }
-
-  if (subject_info != NULL)
-  {
-
-    if ((r4 = MatrixMultiply(ibf, r3, NULL)) == NULL)
-    {
-      bad_flag = TRUE;
-      MRIfree(&subject_info);
-    }
-
-  }
-
-  if (subject_info != NULL)
-  {
-
-    if ((r = MatrixMultiply(cf, r4, NULL)) == NULL)
-    {
-      bad_flag = TRUE;
-      MRIfree(&subject_info);
-    }
-
-  }
-
-  if (bad_flag)
-  {
-    errno = 0;
-    ErrorPrintf
-    (ERROR_BADPARM,
-     "bshortWrite(): error during matrix "
-     "multiplications; aborting register.dat write and "
-     "writing bhdr instead");
-  }
-
-  if ( as != NULL)  MatrixFree( &as);
-  if ( bs != NULL)  MatrixFree( &bs);
-  if ( cs != NULL)  MatrixFree( &cs);
-  if ( af != NULL)  MatrixFree( &af);
-  if ( bf != NULL)  MatrixFree( &bf);
-  if ( cf != NULL)  MatrixFree( &cf);
-  if (iaf != NULL)  MatrixFree(&iaf);
-  if (ibf != NULL)  MatrixFree(&ibf);
-  if (ics != NULL)  MatrixFree(&ics);
-  if ( r1 != NULL)  MatrixFree( &r1);
-  if ( r2 != NULL)  MatrixFree( &r2);
-  if ( r3 != NULL)  MatrixFree( &r3);
-  if ( r4 != NULL)  MatrixFree( &r4);
-
-  if (subject_info != NULL)
-  {
-
-    if (mri->path_to_t1[0] == '\0')
-      sprintf(t1_path, ".");
-    else
-      strcpy(t1_path, mri->path_to_t1);
-
-    if (FileExists(analyse_fname))
-      fprintf(stderr, "warning: overwriting file %s\n", analyse_fname);
-
-    if ((fp = fopen(analyse_fname, "w")) == NULL)
-    {
-      MRIfree(&subject_info);
-      errno = 0;
-      ErrorReturn
-      (ERROR_BADFILE,
-       (ERROR_BADFILE,
-        "bshortWrite(): couldn't open file %s for writing",
-        analyse_fname));
-    }
-
-    fprintf(fp, "%s\n", t1_path);
-    fprintf(fp, "%s_%%03d.bshort\n", stem);
-    fprintf(fp, "%d %d\n", mri->depth, mri->nframes);
-    fprintf(fp, "%d %d\n", mri->width, mri->height);
-
-    fclose(fp);
-
-    if (FileExists(analyse_fname))
-      fprintf(stderr, "warning: overwriting file %s\n", register_fname);
-
-    if ((fp = fopen(register_fname, "w")) == NULL)
-    {
-      MRIfree(&subject_info);
-      errno = 0;
-      ErrorReturn
-      (ERROR_BADFILE,
-       (ERROR_BADFILE,
-        "bshortWrite(): couldn't open file %s for writing",
-        register_fname));
-    }
-
-    fprintf(fp, "%s\n", sn);
-    fprintf(fp, "%g\n", mri->xsize);
-    fprintf(fp, "%g\n", mri->zsize);
-    fprintf(fp, "%g\n", 1.0);
-    fprintf(fp, "%g %g %g %g\n",
-            *MATRIX_RELT(r, 1, 1),
-            *MATRIX_RELT(r, 1, 2),
-            *MATRIX_RELT(r, 1, 3),
-            *MATRIX_RELT(r, 1, 4));
-    fprintf(fp, "%g %g %g %g\n",
-            *MATRIX_RELT(r, 2, 1),
-            *MATRIX_RELT(r, 2, 2),
-            *MATRIX_RELT(r, 2, 3),
-            *MATRIX_RELT(r, 2, 4));
-    fprintf(fp, "%g %g %g %g\n",
-            *MATRIX_RELT(r, 3, 1),
-            *MATRIX_RELT(r, 3, 2),
-            *MATRIX_RELT(r, 3, 3),
-            *MATRIX_RELT(r, 3, 4));
-    fprintf(fp, "%g %g %g %g\n",
-            *MATRIX_RELT(r, 4, 1),
-            *MATRIX_RELT(r, 4, 2),
-            *MATRIX_RELT(r, 4, 3),
-            *MATRIX_RELT(r, 4, 4));
-
-    fclose(fp);
-
-    MatrixFree(&r);
-
-  }
-
-  if (subject_info == NULL)
-  {
-    sprintf(fname, "%s.bhdr", stem);
-    if ((fp = fopen(fname, "w")) == NULL)
-    {
-      if (dealloc) MRIfree(&mri);
-      errno = 0;
-      ErrorReturn
-      (ERROR_BADFILE,
-       (ERROR_BADFILE, "bshortWrite(): can't open file %s", fname));
-    }
-
-    result = write_bhdr(mri, fp);
-
-    fclose(fp);
-
-    if (result != NO_ERROR)
-      return(result);
-
-  }
-  else
-    MRIfree(&subject_info);
-
-  if (dealloc) MRIfree(&mri);
-
-  return(NO_ERROR);
-
-} /* end bshortWrite() */
-
-/*-------------------------------------------------------------------
-  bshortRead() - obsolete. Use bvolumeRead.
-  -------------------------------------------------------------------*/
-static MRI *bshortRead(const char *fname_passed, int read_volume)
-{
-
-  MRI *mri;
-  FILE *fp;
-  char fname[STRLEN];
-  char directory[STRLEN];
-  char stem[STRLEN];
-  int swap_bytes_flag;
-  int slice, frame, row, k;
-  int nread;
-
-  mri = get_b_info(fname_passed, read_volume, directory, stem, MRI_SHORT);
-  if (mri == NULL)
-    return(NULL);
-
-  if (read_volume)
-  {
-
-    sprintf(fname, "%s/%s_%03d.hdr", directory, stem, 0);
-    if ((fp = fopen(fname, "r")) == NULL)
-    {
-      fprintf
-      (stderr, "can't open file %s; assuming big-endian bvolume\n", fname);
-      swap_bytes_flag = 0;
-    }
-    else
-    {
-      fscanf(fp, "%*d %*d %*d %d", &swap_bytes_flag);
-#if (BYTE_ORDER == LITTLE_ENDIAN)
-      swap_bytes_flag = !swap_bytes_flag;
-#endif
-      fclose(fp);
-    }
-
-    for (slice = 0;slice < mri->depth; slice++)
-    {
-
-      sprintf(fname, "%s/%s_%03d.bshort", directory, stem, slice);
-      if ((fp = fopen(fname, "r")) == NULL)
-      {
-        MRIfree(&mri);
-        errno = 0;
-        ErrorReturn(NULL, (ERROR_BADFILE,
-                           "bshortRead(): error opening file %s", fname));
-      }
-
-      for (frame = 0; frame < mri->nframes; frame ++)
-      {
-        k = slice + mri->depth*frame;
-        for (row = 0;row < mri->height; row++)
-        {
-
-          /* read in a column */
-          nread = fread(mri->slices[k][row], sizeof(short), mri->width, fp);
-          if ( nread != mri->width)
-          {
-            fclose(fp);
-            MRIfree(&mri);
-            errno = 0;
-            ErrorReturn
-            (NULL,
-             (ERROR_BADFILE,
-              "bshortRead(): error reading from file %s", fname));
-          }
-
-          if (swap_bytes_flag)
-            swab(mri->slices[k][row], mri->slices[k][row],
-                 mri->width * sizeof(short));
-
-        } /* row loop */
-      } /* frame loop */
-      fclose(fp);
-    }
-  }
-
-  return(mri);
-
-} /* end bshortRead() */
-
-
-/*-------------------------------------------------------------------
-  bfloatRead() - obsolete. Use bvolumeRead.
-  -------------------------------------------------------------------*/
-static MRI *bfloatRead(const char *fname_passed, int read_volume)
-{
-
-  MRI *mri;
-  FILE *fp;
-  char fname[STRLEN];
-  char directory[STRLEN];
-  char stem[STRLEN];
-  int swap_bytes_flag;
-  int i, j, k;
-
-  mri = get_b_info(fname_passed, read_volume, directory, stem, MRI_FLOAT);
-  if (mri == NULL)
-    return(NULL);
-
-  if (read_volume)
-  {
-
-    sprintf(fname, "%s/%s_%03d.hdr", directory, stem, 0);
-    if ((fp = fopen(fname, "r")) == NULL)
-    {
-      fprintf
-      (stderr,
-       "INFO: Can't open file %s; assuming big-endian bshorts\n",
-       fname);
-      swap_bytes_flag = 0;
-    }
-    else
-    {
-      fscanf(fp, "%*d %*d %*d %d", &swap_bytes_flag);
-#if (BYTE_ORDER == LITTLE_ENDIAN)
-      swap_bytes_flag = !swap_bytes_flag;
-#endif
-      fclose(fp);
-    }
-
-    printf("swap = %d\n",swap_bytes_flag);
-
-    for (i = 0;i < mri->depth;i++)
-    {
-
-      sprintf(fname, "%s/%s_%03d.bfloat", directory, stem, i);
-
-      if ((fp = fopen(fname, "r")) == NULL)
-      {
-        MRIfree(&mri);
-        errno = 0;
-        ErrorReturn
-        (NULL,
-         (ERROR_BADFILE,
-          "bfloatRead(): error opening file %s", fname));
-      }
-
-      for (j = 0;j < mri->height;j++)
-      {
-        if (fread(mri->slices[i][j], sizeof(float), mri->width, fp) !=
-            mri->width)
-        {
-          fclose(fp);
-          MRIfree(&mri);
-          errno = 0;
-          ErrorReturn
-          (NULL,
-           (ERROR_BADFILE,
-            "bfloatRead(): error reading from file %s", fname));
-        }
-        if (swap_bytes_flag)
-        {
-          for (k = 0;k < mri->depth;k++)
-            mri->slices[i][j][k] = swapFloat(mri->slices[i][j][k]);
-        }
-      }
-
-      fclose(fp);
-
-    }
-
-  }
-
-  return(mri);
-
-} /* end bfloatRead() */
-
-
-/*-------------------------------------------------------------------------*/
-static MRI *analyzeReadOld(const char *fname, int read_volume)
-{
-
-  MRI *mri = NULL;
-  FILE *fp;
-  char hdr_fname[STRLEN];
-  char mat_fname[STRLEN];
-  char *c;
-  dsr hdr;
-  int dtype;
-  int flip_flag = 0;
-  int i, j, k;
-  float dx, dy, dz;
-  int nread;
-  unsigned char *buf;
-  int bytes_per_voxel;
-  int bufsize;
-  MATRIX *m;
-  MATRIX *center_index_mat;
-  MATRIX *center_ras_mat;
-  float xfov, yfov, zfov;
-
-  c = strrchr(fname, '.');
-  if (c == NULL)
-  {
-    errno = 0;
-    ErrorReturn
-    (NULL, (ERROR_BADPARM, "analyzeRead(): bad file name %s", fname));
-  }
-  if (strcmp(c, ".img") != 0)
-  {
-    errno = 0;
-    ErrorReturn
-    (NULL, (ERROR_BADPARM, "analyzeRead(): bad file name %s", fname));
-  }
-
-  strcpy(hdr_fname, fname);
-  sprintf(hdr_fname + (c - fname), ".hdr");
-
-  strcpy(mat_fname, fname);
-  sprintf(mat_fname + (c - fname), ".mat");
-
-  /* Open the header file */
-  if ((fp = fopen(hdr_fname, "r")) == NULL)
-  {
-    errno = 0;
-    ErrorReturn(NULL, (ERROR_BADFILE, "read_analyze_header(): "
-                       "error opening file %s", fname));
-  }
-
-  /* Read the header file */
-  fread(&hdr, sizeof(hdr), 1, fp);
-  fclose(fp);
-
-  if (hdr.hk.sizeof_hdr != sizeof(hdr))
-  {
-    flip_flag = 1;
-    swap_analyze_header(&hdr);
-  }
-
-  if (hdr.dime.datatype == DT_UNSIGNED_CHAR)
-  {
-    dtype = MRI_UCHAR;
-    bytes_per_voxel = 1;
-  }
-  else if (hdr.dime.datatype == DT_SIGNED_SHORT)
-  {
-    dtype = MRI_SHORT;
-    bytes_per_voxel = 2;
-  }
-  else if (hdr.dime.datatype == DT_SIGNED_INT)
-  {
-    dtype = MRI_INT;
-    bytes_per_voxel = 4;
-  }
-  else if (hdr.dime.datatype == DT_FLOAT)
-  {
-    dtype = MRI_FLOAT;
-    bytes_per_voxel = 4;
-  }
-  else if (hdr.dime.datatype == DT_DOUBLE)
-  {
-    dtype = MRI_FLOAT;
-    bytes_per_voxel = 8;
-  }
-  else
-  {
-    errno = 0;
-    ErrorReturn(NULL, (ERROR_UNSUPPORTED, "analyzeRead: "
-                       "unsupported data type %d", hdr.dime.datatype));
-  }
-
-  /* ----- allocate the mri structure ----- */
-  if (read_volume)
-    mri = MRIalloc(hdr.dime.dim[1], hdr.dime.dim[2], hdr.dime.dim[3], dtype);
-  else
-    mri = MRIalloc(hdr.dime.dim[1], hdr.dime.dim[2], hdr.dime.dim[3], dtype);
-
-  mri->xsize = hdr.dime.pixdim[1];
-  mri->ysize = hdr.dime.pixdim[2];
-  mri->zsize = hdr.dime.pixdim[3];
-
-  mri->thick = mri->zsize;
-  mri->ps = mri->xsize;
-  mri->xend = mri->width * mri->xsize / 2.0;
-  mri->xstart = -mri->xend;
-  mri->yend = mri->height * mri->ysize / 2.0;
-  mri->ystart = -mri->yend;
-  mri->zend = mri->depth * mri->zsize / 2.0;
-  mri->zstart = -mri->zend;
-  xfov = mri->xend - mri->xstart;
-  yfov = mri->yend - mri->ystart;
-  zfov = mri->zend - mri->zstart;
-
-  mri->fov =
-    (xfov > yfov ? (xfov > zfov ? xfov : zfov) : (yfov > zfov ? yfov : zfov));
-
-  /* --- default (no .mat file) --- */
-  mri->x_r =  1.0;
-  mri->x_a = 0.0;
-  mri->x_s = 0.0;
-  mri->y_r =  0.0;
-  mri->y_a = 1.0;
-  mri->y_s = 0.0;
-  mri->z_r =  0.0;
-  mri->z_a = 0.0;
-  mri->z_s = 1.0;
-
-  /* --- originator gives the voxel index of (r, a, s) = (0, 0, 0) --- */
-  dx = (mri->width  - 1.0) / 2. - (float)(((short *)hdr.hist.originator)[0]);
-  dy = (mri->height - 1.0) / 2. - (float)(((short *)hdr.hist.originator)[1]);
-  dz = (mri->depth  - 1.0) / 2. - (float)(((short *)hdr.hist.originator)[2]);
-
-  mri->c_r = (dx * mri->x_r) + (dy * mri->y_r) + (dz * mri->z_r);
-  mri->c_a = (dx * mri->x_a) + (dy * mri->y_a) + (dz * mri->z_a);
-  mri->c_s = (dx * mri->x_s) + (dy * mri->y_s) + (dz * mri->z_s);
-
-  mri->ras_good_flag = 1;
-
-  strcpy(mri->fname, fname);
-
-  if (read_volume)
-  {
-
-    if ((fp = fopen(fname, "r")) == NULL)
-    {
-      MRIfree(&mri);
-      errno = 0;
-      ErrorReturn
-      (NULL,
-       (ERROR_BADFILE, "analyzeRead: error opening file %s", fname));
-    }
-
-    fseek(fp, (int)(hdr.dime.vox_offset), SEEK_SET);
-
-    bufsize = mri->width * bytes_per_voxel;
-    buf = (unsigned char *)malloc(bufsize);
-
-    for (k = 0;k < mri->depth;k++)
-    {
-      for (j = 0;j < mri->height;j++)
-      {
-
-        nread = fread(buf, bytes_per_voxel, mri->width, fp);
-        if (nread != mri->width)
-        {
-          free(buf);
-          fclose(fp);
-          errno = 0;
-          ErrorReturn
-          (NULL,
-           (ERROR_BADFILE,
-            "analyzeRead: error reading from file %s\n", fname));
-        }
-
-        if (flip_flag)
-          nflip(buf, bytes_per_voxel, mri->width);
-
-
-        for (i = 0;i < mri->width;i++)
-        {
-          if (hdr.dime.datatype == DT_UNSIGNED_CHAR)
-            MRIvox(mri, i, j, k) = buf[i];
-          if (hdr.dime.datatype == DT_SIGNED_SHORT)
-            MRISvox(mri, i, j, k) = ((short *)buf)[i];
-          if (hdr.dime.datatype == DT_SIGNED_INT)
-            MRIIvox(mri, i, j, k) = ((int *)buf)[i];
-          if (hdr.dime.datatype == DT_FLOAT)
-            MRIFvox(mri, i, j, k) = ((float *)buf)[i];
-          if (hdr.dime.datatype == DT_DOUBLE)
-            MRIFvox(mri, i, j, k) = (float)(((double *)buf)[i]);
-        }
-
-      }
-    }
-
-    free(buf);
-    fclose(fp);
-
-  }
-
-  /* ----- read mat file ----- */
-  if (FileExists(mat_fname))
-  {
-
-    m = MatlabRead(mat_fname);
-
-    if (m == NULL)
-    {
-      MRIfree(&mri);
-      return(NULL);
-    }
-
-    if (m->rows != 4 || m->cols != 4)
-    {
-      MRIfree(&mri);
-      errno = 0;
-      ErrorReturn
-      (NULL,
-       (ERROR_BADFILE,
-        "analyzeRead(): not a 4 by 4 matrix in file %s", mat_fname));
-    }
-
-    /* swap y and z here ?*/
-    mri->x_r = *MATRIX_RELT(m, 1, 1);
-    mri->y_r = *MATRIX_RELT(m, 1, 2);
-    mri->z_r = *MATRIX_RELT(m, 1, 3);
-    mri->x_a = *MATRIX_RELT(m, 2, 1);
-    mri->y_a = *MATRIX_RELT(m, 2, 2);
-    mri->z_a = *MATRIX_RELT(m, 2, 3);
-    mri->x_s = *MATRIX_RELT(m, 3, 1);
-    mri->y_s = *MATRIX_RELT(m, 3, 2);
-    mri->z_s = *MATRIX_RELT(m, 3, 3);
-
-    mri->xsize =
-      sqrt(mri->x_r * mri->x_r + mri->x_a * mri->x_a + mri->x_s * mri->x_s);
-    mri->ysize =
-      sqrt(mri->y_r * mri->y_r + mri->y_a * mri->y_a + mri->y_s * mri->y_s);
-    mri->zsize =
-      sqrt(mri->z_r * mri->z_r + mri->z_a * mri->z_a + mri->z_s * mri->z_s);
-
-    mri->x_r = mri->x_r / mri->xsize;
-    mri->x_a = mri->x_a / mri->xsize;
-    mri->x_s = mri->x_s / mri->xsize;
-    mri->y_r = mri->y_r / mri->ysize;
-    mri->y_a = mri->y_a / mri->ysize;
-    mri->y_s = mri->y_s / mri->ysize;
-    mri->z_r = mri->z_r / mri->zsize;
-    mri->z_a = mri->z_a / mri->zsize;
-    mri->z_s = mri->z_s / mri->zsize;
-
-    center_index_mat = MatrixAlloc(4, 1, MATRIX_REAL);
-
-    /* Is this right?? */
-    /* --- matlab matrices start at 1, so the middle index is
-       [(width, height, depth)+(1, 1, 1)]/2, (not -) --- */
-    *MATRIX_RELT(center_index_mat, 1, 1) = (mri->width + 1.0) / 2.0;
-    *MATRIX_RELT(center_index_mat, 2, 1) = (mri->height + 1.0) / 2.0;
-    *MATRIX_RELT(center_index_mat, 3, 1) = (mri->depth + 1.0) / 2.0;
-    *MATRIX_RELT(center_index_mat, 4, 1) = 1.0;
-
-    center_ras_mat = MatrixMultiply(m, center_index_mat, NULL);
-    if (center_ras_mat == NULL)
-    {
-
-      errno = 0;
-      ErrorPrintf(ERROR_BADPARM, "multiplying: m * cim:\n");
-      ErrorPrintf(ERROR_BADPARM, "m = \n");
-      MatrixPrint(stderr, m);
-      ErrorPrintf(ERROR_BADPARM, "cim = \n");
-      MatrixPrint(stderr, center_index_mat);
-
-      MatrixFree(&m);
-      MatrixFree(&center_index_mat);
-      MatrixFree(&center_ras_mat);
-      MRIfree(&mri);
-      errno = 0;
-      ErrorReturn
-      (NULL,
-       (ERROR_BADPARM, "analyzeRead(): error in matrix multiplication"));
-    }
-
-    mri->c_r = *MATRIX_RELT(center_ras_mat, 1, 1);
-    mri->c_a = *MATRIX_RELT(center_ras_mat, 2, 1);
-    mri->c_s = *MATRIX_RELT(center_ras_mat, 3, 1);
-
-    MatrixFree(&m);
-    MatrixFree(&center_index_mat);
-    MatrixFree(&center_ras_mat);
-
-  }
-
-  return(mri);
-
-} /* end analyzeRead() */
-
-static void nflip(unsigned char *buf, int b, int n)
-{
-  int i, j;
-  unsigned char *copy;
-
-  copy = (unsigned char *)malloc(b);
-  for (i = 0;i < n;i++)
-  {
-    memmove(copy, &buf[i*b], b);
-    for (j = 0;j < b;j++)
-      buf[i*b+j] = copy[b-j-1];
-  }
-  free(copy);
-
-} /* end nflip() */
-
-#endif
 #include "gca.h"
 static MRI *readGCA(const char *fname, int start_frame, int end_frame)
 {

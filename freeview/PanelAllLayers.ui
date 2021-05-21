@@ -28,6 +28,12 @@
      <height>857</height>
     </rect>
    </property>
+   <property name="sizePolicy">
+    <sizepolicy hsizetype="MinimumExpanding" vsizetype="MinimumExpanding">
+     <horstretch>1</horstretch>
+     <verstretch>1</verstretch>
+    </sizepolicy>
+   </property>
    <layout class="QVBoxLayout" name="verticalLayout_2">
     <property name="leftMargin">
      <number>5</number>
@@ -115,6 +121,7 @@
           <widget class="PanelConnectomeMatrix" name="pageCMAT"/>
           <widget class="PanelTrack" name="pageTrack"/>
           <widget class="PanelFCD" name="pageFCD"/>
+          <widget class="PanelODF" name="pageODF"/>
          </widget>
         </item>
         <item>
@@ -182,6 +189,12 @@
    <class>PanelFCD</class>
    <extends>QWidget</extends>
    <header>PanelFCD.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>PanelODF</class>
+   <extends>QWidget</extends>
+   <header>PanelODF.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

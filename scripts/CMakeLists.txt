@@ -27,6 +27,7 @@ install_configured(
   conf2hires
   cor_to_minc
   cp-dicom
+  csvprint
   dcmdir-info-mgh
   dcmsplit
   dcmunpack
@@ -39,7 +40,6 @@ install_configured(
   dmrirc.long.example
   dmrirc.long.multiscan.example
   dmrirc.multiscan.example
-  dsh
   dt_recon
   epidewarp.fsl
   extract_talairach_avi_QA.awk
@@ -61,6 +61,7 @@ install_configured(
   fsfirst.fsl
   fs_install_mcr
   fs_lib_check
+  fs_run_from_mcr
   fs_time
   fs_tutorial_data
   fs_update
@@ -134,7 +135,6 @@ install_configured(
   map_all_labels-lh
   map_central_sulcus
   map_to_base
-  mcparams2reg
   meanval
   mergeseg
   minc2seqinfo
@@ -169,7 +169,6 @@ install_configured(
   mri_nu_correct.mni
   mri_reorient_LR.csh
   mris_preproc
-  mris_roiCircle
   mris_volsmooth
   ms_refine_subject
   orientLAS
@@ -293,6 +292,7 @@ install_pyscript(
   rca-config2csh
 )
 
+install(FILES mri_nu_correct.mni.help.xml DESTINATION docs/xml)
 install_append_help(bbregister bbregister.help.xml bin)
 
 install_symlinks(fs_spmreg.glnxa64 irepifitvol.glnx64 TYPE programs DESTINATION bin)

@@ -16,7 +16,7 @@
 
 
 // set the platform
-#if defined(Linux) || defined(linux) || defined(__linux)
+#ifdef __linux__
   #define PLATFORM "Linux"
 #endif
 #if defined(Darwin) || defined(__MACOSX__) || defined(__APPLE__)

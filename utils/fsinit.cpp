@@ -9,13 +9,16 @@
 
 static void setLocale()
 {
-  if (getenv("FS_DISABLE_LANG") != NULL)
-    return;
-  if (setlocale(LC_NUMERIC, "en_US"))
-    return;
-  if (setlocale(LC_NUMERIC, "en_US.utf8"))
-    return;
-  ErrorPrintf(NO_ERROR, "Could not set locale");
+  if (getenv("FS_DISABLE_LANG") != NULL) return;
+  if (setlocale(LC_NUMERIC, "en_US")) return;
+  if (setlocale(LC_NUMERIC, "en_US.utf8")) return;
+  if (setlocale(LC_NUMERIC, "en_US.UTF-8")) return;
+
+  // use C.UTF-8 as a last resort
+  if (setlocale(LC_NUMERIC, "C.UTF-8")) return;
+
+  // but don't accept anything else
+  fs::warning() << "Please install the en_US locale for numeric consistency";
 }
 
 

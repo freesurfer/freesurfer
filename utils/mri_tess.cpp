@@ -6,7 +6,7 @@
 /*
  * Original Author: F. Segonne
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -950,9 +950,12 @@ static void make_surface_with_connectivity(tesselation_parms *parms)
                 nlabels = computeconnectedcomponents(&tab);
 
                 for (m = 0; m < nlabels; m++) {
-                  if (tab[0][0][0] * tab[0][0][1] * tab[0][1][0] * tab[0][1][1] * tab[1][0][0] * tab[1][0][1] *
-                      tab[1][1][0] * tab[1][1][1])
+                  if ((  tab[0][0][0] * tab[0][0][1] * tab[0][1][0]
+		       * tab[0][1][1] * tab[1][0][0] * tab[1][0][1]
+		       * tab[1][1][0] * tab[1][1][1])
+		      != 0) {
                     continue;
+		  }
                   comp = m + 2;
 
                   /*if(!(((tab[1][0][0]==comp)&&(!tab[0][0][0]))  ||

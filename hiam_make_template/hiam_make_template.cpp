@@ -7,7 +7,7 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -69,7 +69,7 @@ main(int argc, char *argv[]) {
   MRI_SP       *mrisp, *mrisp_aligned, *mrisp_template ;
   INTEGRATION_PARMS parms ;
 
-  memset(&parms, 0, sizeof(parms)) ;
+  // memset(&parms, 0, sizeof(parms)) ;
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
@@ -119,8 +119,12 @@ main(int argc, char *argv[]) {
   for (ino = 0 ; ino < argc-1 ; ino++) {
     subject = argv[ino] ;
     fprintf(stderr, "processing subject %s\n", subject) ;
-    sprintf(surf_fname, "%s/%s/surf/%s.%s",
-            subjects_dir, subject, hemi, sphere_name) ;
+    int req = snprintf(surf_fname, STRLEN,
+		       "%s/%s/surf/%s.%s",
+		       subjects_dir, subject, hemi, sphere_name) ;
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     fprintf(stderr, "reading spherical surface %s...\n", surf_fname) ;
     mris = MRISread(surf_fname) ;
     if (!mris)
@@ -133,8 +137,12 @@ main(int argc, char *argv[]) {
     for (sno = 0; sno < SURFACES ; sno++) {
       if (curvature_names[sno])  /* read in precomputed curvature file */
       {
-        sprintf(surf_fname, "%s/%s/surf/%s.%s",
-                subjects_dir, subject, hemi, curvature_names[sno]) ;
+        int req = snprintf(surf_fname, STRLEN,
+			   "%s/%s/surf/%s.%s",
+			   subjects_dir, subject, hemi, curvature_names[sno]) ;
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
         if (MRISreadCurvatureFile(mris, surf_fname) != NO_ERROR)
           ErrorExit(Gerror, "%s: could not read curvature file '%s'\n",
                     Progname, surf_fname) ;
@@ -175,13 +183,19 @@ main(int argc, char *argv[]) {
       cp = strchr(fname, '.') ;
       if (cp) {
         cp1 = strrchr(fname, '.') ;
-        if (cp1 && cp1 != cp)
+        if (cp1 && cp1 != cp) {
           strncpy(parms.base_name, cp+1, cp1-cp-1) ;
-        else
+        } else {
           strcpy(parms.base_name, cp+1) ;
-      } else
+	}
+      } else {
         strcpy(parms.base_name, "template") ;
-      sprintf(fname, "%s.%s.out", hemi, parms.base_name);
+      }
+      int req = snprintf(fname, STRLEN,
+			 "%s.%s.out", hemi, parms.base_name);
+      if( req >= STRLEN ) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       INTEGRATION_PARMS_openFp(&parms, fname, "w") ;
       printf("writing output to '%s'\n", fname) ;
     }
@@ -190,8 +204,12 @@ main(int argc, char *argv[]) {
       if (Gdiag & DIAG_WRITE)
         fprintf(parms.fp, "processing subject %s\n", subject) ;
       fprintf(stderr, "processing subject %s\n", subject) ;
-      sprintf(surf_fname, "%s/%s/surf/%s.%s",
-              subjects_dir, subject, hemi, sphere_name) ;
+      int req = snprintf(surf_fname, STRLEN,
+			 "%s/%s/surf/%s.%s",
+			 subjects_dir, subject, hemi, sphere_name) ;
+      if( req >= STRLEN ) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       fprintf(stderr, "reading spherical surface %s...\n", surf_fname) ;
       mris = MRISread(surf_fname) ;
       if (!mris)
@@ -200,8 +218,12 @@ main(int argc, char *argv[]) {
       MRIScomputeMetricProperties(mris) ;
       MRISstoreMetricProperties(mris) ;
       MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
-      sprintf(surf_fname, "%s/%s/surf/%s.%s",
-              subjects_dir, subject, hemi, "hippocampus.curv") ;
+      req = snprintf(surf_fname, STRLEN,
+		     "%s/%s/surf/%s.%s",
+		     subjects_dir, subject, hemi, "hippocampus.curv") ;
+      if( req >= STRLEN ) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       if (MRISreadCurvatureFile(mris, surf_fname) != NO_ERROR)
         ErrorExit(Gerror, "%s: could not read curvature file '%s'\n",
                   Progname, surf_fname) ;
@@ -225,8 +247,12 @@ main(int argc, char *argv[]) {
       for (sno = 0; sno < SURFACES ; sno++) {
         if (curvature_names[sno])  /* read in precomputed curvature file */
         {
-          sprintf(surf_fname, "%s/%s/surf/%s.%s",
-                  subjects_dir, subject, hemi, curvature_names[sno]) ;
+          int req = snprintf(surf_fname, STRLEN,
+			     "%s/%s/surf/%s.%s",
+			     subjects_dir, subject, hemi, curvature_names[sno]) ;
+	  if( req >= STRLEN ) {
+	    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	  }
           if (MRISreadCurvatureFile(mris, surf_fname) != NO_ERROR)
             ErrorExit(Gerror, "%s: could not read curvature file '%s'\n",
                       Progname, surf_fname) ;

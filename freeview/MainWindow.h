@@ -1,7 +1,7 @@
 /*
  * Original Author: Ruopeng Wang
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -57,6 +57,8 @@ class DialogThresholdVolume;
 class DialogVolumeSegmentation;
 class BinaryTreeView;
 class WindowLayerInfo;
+class QFileSystemWatcher;
+class DialogTransformSurface;
 
 #define MAX_RECENT_FILES    10
 
@@ -77,6 +79,8 @@ public:
   enum MainView  { MV_Sagittal = 0, MV_Coronal, MV_Axial, MV_3D };
 
   static MainWindow* GetMainWindow();
+
+  static void WriteLog(const QString& str, const QString& filename = "freeview_log.txt", bool bOverwrite = false);
 
   bool HadError()
   {
@@ -237,9 +241,11 @@ Q_SIGNALS:
   void SurfaceRepositionIntensityChanged();
   void NewVolumeCreated();
   void CycleOverlayRequested();
+  void CycleAnnotationRequested();
   void SupplementLayerChanged();
   void OverlayMaskRequested(const QString& fn);
   void RefreshLookUpTableRequested();
+  void LinkVolumeRequested(LayerMRI* mri);
 
 public slots:
   void SetMode( int nMode );
@@ -297,6 +303,10 @@ public slots:
   void OnExportLabelStats();
 
   bool ExportLineProfileThickness(const QString& filename, const QVariantMap& options);
+
+  void OnShowControlPanel(bool bShow);
+
+  void OnFloatPanels(bool bFloat);
 
 protected:
   void closeEvent   ( QCloseEvent * event );
@@ -356,6 +366,7 @@ protected:
   void CommandLoadSurfaceSpline ( const QStringList& cmd );
   void CommandLoadSurfaceCoordsFromParameterization ( const QStringList& cmd );
   void CommandLoadConnectomeMatrix  ( const QStringList& cmd );
+  void CommandLoadODF           ( const QStringList& cmd );
   void CommandLoadFCD           ( const QStringList& cmd );
   void CommandLoadWayPoints     ( const QStringList& cmd );
   void CommandLoadControlPoints ( const QStringList& cmd );
@@ -373,6 +384,7 @@ protected:
   void CommandSetHeadScaleOptions( const QStringList& sa );
   void CommandSetOpacity        ( const QStringList& cmd );
   void CommandSetLabelOutline   ( const QStringList& cmd );
+  void CommandSetSelectedLabels (const QStringList& cmd);
   void CommandSetSurfaceOverlayMethod     ( const QStringList& cmd );
   void CommandSetSurfaceOverlayColormap   ( const QStringList& cmd );
   void CommandSetSurfaceOverlayOpacity    ( const QStringList& cmd );
@@ -422,6 +434,7 @@ protected:
   void CommandSetActiveLayer    ( const QStringList& cmd );
   void CommandExportLineProfileThickness  (const QStringList& cmd);
   void CommandSetVolumeTrackFrame   ( const QStringList& cmd );
+  void CommandLinkVolume        ( const QStringList& cmd );
 
 public:
   void CommandSetCamera         ( const QStringList& cmd );
@@ -451,7 +464,7 @@ protected slots:
   void OnSaveROI();
   void OnSaveROIAs();
   void OnCloseROI(const QList<Layer*>& layers = QList<Layer*>());
-  void OnNewPointSet();
+  void OnNewPointSet(bool bSilent = false);
   void OnLoadPointSet();
   void OnSavePointSet(bool bForce = false);
   void OnSavePointSetAs();
@@ -473,6 +486,7 @@ protected slots:
   void OnEditUndo();
   void OnEditRedo();
   void OnTransformVolume();
+  void OnTransformSurface();
   void OnCropVolume();
   void OnThresholdVolume();
   void OnSegmentVolume();
@@ -586,6 +600,20 @@ protected slots:
 
   void UpdateLayerInfo(Layer* layer);
 
+  void OnSyncInstances(bool bChecked);
+
+  void OnSyncFileChanged(const QString& fn);
+
+  void UpdateSyncCoord();
+
+  void OnTileSyncedWindows();
+
+  void OnLoadODF();
+
+  void OnCloseODF();
+
+  void OnSaveLabelAsVolume();
+
 private:
   bool DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit);
   void SaveSettings();
@@ -604,6 +632,10 @@ private:
   QColor ParseColorInput(const QString& cmd);
 
   void LoadSphereLeftRightIfNeeded(LayerSurface* layer);
+
+  void UpdateSyncIds(bool bAdd = true);
+
+  void TileWindow(int n);
 
   int m_nViewLayout;
   int m_nMainView;
@@ -642,6 +674,7 @@ private:
   ToolWindowMeasure*    m_toolWindowMeasure;
   ToolWindowROIEdit*    m_toolWindowROIEdit;
   DialogTransformVolume*    m_dlgTransformVolume;
+  DialogTransformSurface*   m_dlgTransformSurface;
   DialogCropVolume*     m_dlgCropVolume;
   DialogSaveScreenshot* m_dlgSaveScreenshot;
   DialogWriteMovieFrames*   m_dlgWriteMovieFrames;
@@ -660,6 +693,8 @@ private:
   WindowQuickReference* m_wndQuickRef;
   WindowTimeCourse*     m_wndTimeCourse;
   WindowLayerInfo*      m_wndLayerInfo;
+  QWidget*              m_widgetFloatControlPanel;
+  QWidget*              m_widgetFloatInfoPanel;
 
   VolumeFilterWorkerThread* m_threadVolumeFilter;
 
@@ -676,6 +711,10 @@ private:
   bool                  m_bContinue;
 
   bool                  m_bHadError;
+  QString               m_sTitle;
+
+  QFileSystemWatcher*   m_syncFileWatcher;
+  QString               m_sSyncFilePath;
 };
 
 #endif // MAINWINDOW_H

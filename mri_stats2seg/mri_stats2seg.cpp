@@ -1,6 +1,6 @@
 /*
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -469,7 +469,10 @@ int LoadSuesTable(char *fname, int col1, int log10flag,
     memset(tmpstr2,'\0',2000);
     sscanf(tmpstr,"%s",tmpstr2);
     memcpy(hemi,tmpstr2,2);
-    sprintf(segname,"ctx-%2s-%s",hemi,&(tmpstr2[3]));
+    int req = snprintf(segname,2000,"ctx-%2s-%s",hemi,&(tmpstr2[3]));
+    if (req >= 2000) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     CTABfindName(fsenv->ctab, segname, &segindex);
     if (segindex < 0) {
       printf("ERROR: reading %s, cannot find %s in color table\n",

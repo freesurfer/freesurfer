@@ -1,3 +1,8 @@
+#if GCC_VERSION > 80000
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
+#endif
+
 static bool FUNCTION_NAME(
 #ifdef COMPILING_MRIS_MP
     MRIS_MP* mris, 
@@ -29,10 +34,13 @@ static bool FUNCTION_NAME(
       fprintf(stdout, "  but using the same formula_%d so not important\n", oldStatusFormula);
   }
 
+  // if v_dist_buffer isn't allocated here, OUTPUT_MAKER produces memory leaks when multithreaded
+#ifdef COMPILING_MRIS_MP
+  if (!mris->v_dist_buffer) mris->v_dist_buffer = (float**)calloc(mris->nvertices, sizeof(float*));
+#endif
+
   int nonZeroInputXCount = 0;
-  
   int errors = 0;
-  
   int vno;
 
   switch (MRIS_Status_distanceFormula(mris->INPUT_STATUS)) {
@@ -234,3 +242,7 @@ static bool FUNCTION_NAME(
 #undef INPUT_Z
 #undef OUTPUT_DIST
 #undef OUTPUT_MAKER
+
+#if GCC_VERSION > 80000
+#pragma GCC diagnostic pop
+#endif

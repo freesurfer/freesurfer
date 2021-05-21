@@ -33,10 +33,28 @@ int main(int argc, char **argv)
   parser.addArgument("-i", "--input",  1, String, true);
   parser.addArgument("-o", "--output", 1, String, true);
   parser.addArgument("-s", "--shrink", 1, Int, false);
+  parser.addArgument("-t", "--iters", '+', Int, false);
+  parser.addArgument("-d", "--dtype", 1, String, false);
   parser.parse(argc, argv);
 
   std::string inputname = parser.retrieve<std::string>("input");
   std::string outputname = parser.retrieve<std::string>("output");
+
+  // read target data type (default is float)
+  int dtype = MRI_FLOAT;
+  if (parser.exists("dtype")) {
+    std::string dtype_str = parser.retrieve<std::string>("dtype");
+    std::transform(dtype_str.begin(), dtype_str.end(), dtype_str.begin(), ::tolower);
+    if (dtype_str == "float") {
+      dtype = MRI_FLOAT;
+    } else if (dtype_str == "uchar") {
+      dtype = MRI_UCHAR;
+    } else if (dtype_str == "int") {
+      dtype = MRI_INT;
+    } else {
+      fs::fatal() << "unrecognized target dtype '" << dtype_str << "'";
+    }
+  }
 
   MRI* mri = MRIread(inputname.c_str());
 
@@ -60,15 +78,17 @@ int main(int argc, char **argv)
   CorrecterType::Pointer correcter = CorrecterType::New();
 
   // convergence options
-  CorrecterType::VariableSizeArrayType maximumNumberOfIterations(4);
-  maximumNumberOfIterations.Fill(50);
+  // set number of iterations (default is 50x50x50x50)
+  std::vector<int> numIters = {50, 50, 50, 50};
+  if (parser.exists("iters")) numIters = parser.retrieve<std::vector<int>>("iters");
+  CorrecterType::VariableSizeArrayType maximumNumberOfIterations(numIters.size());
+  for (unsigned int d = 0; d < numIters.size(); d++) maximumNumberOfIterations[d] = numIters[d];
   correcter->SetMaximumNumberOfIterations(maximumNumberOfIterations);
-  correcter->SetNumberOfFittingLevels(4);
+  correcter->SetNumberOfFittingLevels(numIters.size());
   correcter->SetConvergenceThreshold(0.0);
 
   // shrink the image to save time
   int shrinkFactor = parser.exists("shrink") ? parser.retrieve<int>("shrink") : 4;
-  std::cout << "Using shrink factor: " <<  shrinkFactor << std::endl;
 
   typedef itk::ShrinkImageFilter<ITKImageType, ITKImageType> ShrinkerType;
   ShrinkerType::Pointer shrinker = ShrinkerType::New();
@@ -136,10 +156,12 @@ int main(int argc, char **argv)
   cropper->Update();
 
   // load ITK image back into MRI and write to disk
-  mri->loadITKImage(cropper->GetOutput());
-  MRIwrite(mri, outputname.c_str());
+  MRI* dest = MRIallocSequence(mri->width, mri->height, mri->depth, dtype, mri->nframes);
+  MRIcopyHeader(mri, dest);
+  dest->loadITKImage(cropper->GetOutput());
+  MRIwrite(dest, outputname.c_str());
+  MRIfree(&dest);
   MRIfree(&mri);
 
   return 0;
 }
-

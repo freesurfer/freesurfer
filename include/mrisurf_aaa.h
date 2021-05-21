@@ -9,7 +9,7 @@
 /*
  * Original Author: Bruce Fischl    extracted by Bevin Brett
  *
- * Copyright © 2011,2019 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -305,9 +305,29 @@ static MRISBaseConst MRISBaseToConst (      MRISBase src                       )
 //  until surface placement.
 extern int UnitizeNormalFace;
 
-//  This variable can be used to turn on the hires options
+
+// Class used to control ComputeBorderValues()
+class  CBV_OPTIONS {
+ public:
+  MRIS *cbvsurf;
+  MRI *LocalMaxFound; // Keep track of which vertices had a local max found
+  // Alternative border low threshold - allows specification of a different
+  // border_low threshold in selected regions (eg, for high myelin)
+  double AltBorderLowFactor=0;
+  double AltBorderLow=0;
+  char *AltBorderLowLabelFile=NULL;
+  LABEL *AltBorderLowLabel=NULL;
+  MRI *AltBorderLowMask=NULL;
+  // functions
+  int Alloc(void);
+  int ReadAltBorderLowLabel(void);
+};
+extern CBV_OPTIONS CBVO;
+
+//  These variables can be used to turn on peak-finding options
 //  in MRIScomputeBorderValues_new()
-extern int BorderValsHiRes;
+extern int CBVfindFirstPeakD1;
+extern int CBVfindFirstPeakD2;
 
 //  This is used to record the actual value and difference
 //  into v->valbak and v->val2bak when running mrisRmsValError()

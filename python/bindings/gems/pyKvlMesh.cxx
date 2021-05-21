@@ -444,7 +444,6 @@ py::array KvlMesh::RasterizeValues(std::vector<size_t> size, py::array_t<double,
 }
 
 
-
 py::array_t<double> KvlMesh::FitAlphas( const py::array_t< uint16_t, 
                                                            py::array::f_style | py::array::forcecast >& 
                                         probabilityImageBuffer ) const

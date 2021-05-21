@@ -114,6 +114,11 @@ set longbasedir = $SUBJECTS_DIR/$longbaseid
 #-----------               -----------#
 if(! $LongSamseg) then
 if($longitudinal) then
+  # Copy a few things into the long time point
+  cp $longbasedir/base-tps $subjdir/scripts/long.base-tps
+  echo $longbaseid > $subjdir/scripts/long.base
+  echo $tpNid > $subjdir/scripts/long.cross
+
   # init regfile variable with map cross_tp to base:
   # used later in many places
   set tpNtobase_regfile = ${longbasedir}/mri/transforms/${tpNid}_to_${longbaseid}.lta
@@ -141,6 +146,7 @@ if($DoMotionCor) then
     if($DoConf2Hires) set cmd = ($cmd -conf2hires)
     set xopts = `fsr-getxopts longmc $XOptsFile`;
     set cmd = ($cmd $xopts)
+    echo $cmd  |& tee -a $LF
     if($RunIt) then
       $fs_time $cmd |& tee -a $LF
       if($status) goto error_exit;
@@ -157,7 +163,7 @@ if($DoSkullStrip) then
     # longitudinal processing stream (copy from base):
     set BM  = brainmask.mgz
     set bmbase = brainmask_${longbaseid}.mgz
-    set cmd = (cp -f --preserve=timestamps ${longbasedir}/mri/${BM} ./${bmbase})
+    set cmd = (cp -f -p ${longbasedir}/mri/${BM} ./${bmbase})
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
@@ -169,7 +175,7 @@ if($DoGCAReg) then
   $PWD |& tee -a $LF
   if($longitudinal) then
     # longitudinal processing:
-    set cmd = (cp -f --preserve=timestamps $longbasedir/mri/transforms/talairach.lta transforms/talairach.lta )
+    set cmd = (cp -f -p $longbasedir/mri/transforms/talairach.lta transforms/talairach.lta )
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
@@ -182,7 +188,7 @@ if($DoCANormalize) then
   if ($longitudinal) then
     # longitudinal processing:
     # cp aseg from base to current TP:
-    set cmd = (cp -f --preserve=timestamps ${longbasedir}/mri/aseg.mgz aseg_${longbaseid}.mgz)
+    set cmd = (cp -f -p ${longbasedir}/mri/aseg.mgz aseg_${longbaseid}.mgz)
     echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
     if ($RunIt) $fs_time $cmd |& tee -a $LF
     if ($status) goto error_exit;
@@ -196,18 +202,18 @@ if($DoWhiteSurfs) then
     $PWD |& tee -a $LF
 
     if( $longitudinal ) then
-      set cmd = (cp -f --preserve=timestamps $longbasedir/surf/${hemi}.white $subjdir/surf/${hemi}.orig)
+      set cmd = (cp -f -p $longbasedir/surf/${hemi}.white $subjdir/surf/${hemi}.orig)
       echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
       if($RunIt) $fs_time $cmd |& tee -a $LF
       if($status) goto error_exit;
 
-      set cmd = (cp -f --preserve=timestamps $longbasedir/surf/${hemi}.white $subjdir/surf/${hemi}.orig_white)
+      set cmd = (cp -f -p $longbasedir/surf/${hemi}.white $subjdir/surf/${hemi}.orig_white)
       echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
       if($RunIt) $fs_time $cmd |& tee -a $LF
       if($status) goto error_exit;
 
       # also copy pial just in case (needed if $DoPialSurf == 0 below)
-      set cmd = (cp -f --preserve=timestamps $longbasedir/surf/${hemi}.pial $subjdir/surf/${hemi}.orig_pial)
+      set cmd = (cp -f -p $longbasedir/surf/${hemi}.pial $subjdir/surf/${hemi}.orig_pial)
       echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
       if($RunIt) $fs_time $cmd |& tee -a $LF
       if($status) goto error_exit;
@@ -235,7 +241,7 @@ if($DoPialSurfs && ! $DoConf2Hires) then
     $PWD |& tee -a $LF
     if( $longitudinal && ! -e $subjdir/surf/${hemi}.orig_pial ) then
       # should rarely get here as this is copied above in Make White Surfaces
-      set cmd = (cp -f --preserve=timestamps $longbasedir/surf/${hemi}.pial $subjdir/surf/${hemi}.orig_pial)
+      set cmd = (cp -f -p $longbasedir/surf/${hemi}.pial $subjdir/surf/${hemi}.orig_pial)
       echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
       if($RunIt)  $cmd |& tee -a $LF
       if($status) goto error_exit;

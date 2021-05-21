@@ -5,7 +5,7 @@
 /*
  * Original Author: Ruopeng Wang
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -156,6 +156,7 @@ void RenderView2D::RefreshAllActors(bool bForScreenShot)
   mainwnd->GetLayerCollection( "ROI" )->Append2DProps( m_renderer, m_nViewPlane );
   mainwnd->GetLayerCollection( "FCD" )->Append2DProps( m_renderer, m_nViewPlane );
   mainwnd->GetLayerCollection( "Surface" )->Append2DProps( m_renderer, m_nViewPlane );
+  mainwnd->GetLayerCollection( "ODF" )->Append2DProps( m_renderer, m_nViewPlane );
   mainwnd->GetLayerCollection( "PointSet" )->Append2DProps( m_renderer, m_nViewPlane );
   mainwnd->GetLayerCollection( "Supplement" )->Append2DProps( m_renderer, m_nViewPlane );
 
@@ -408,7 +409,7 @@ void RenderView2D::StopSelection()
       m_selection2D->GetWorldPoint( 0, m_dPt0 );
       m_selection2D->GetWorldPoint( 2, m_dPt2 );
       int nColorMap = layer->GetProperty()->GetColorMap();
-      if (layer->IsVisible() && nColorMap != LayerPropertyMRI::LUT &&
+      if (nColorMap != LayerPropertyMRI::LUT &&
           nColorMap != LayerPropertyMRI::DirectionCoded && layer->GetVoxelValueRange( m_dPt0, m_dPt2, m_nViewPlane, range ) )
       {
         switch ( nColorMap )
@@ -634,12 +635,21 @@ void RenderView2D::TriggerContextMenu( QMouseEvent* event )
   bool bShowBar = this->GetShowScalarBar();
   MainWindow* mainwnd = MainWindow::GetMainWindow();
   QList<Layer*> layers = mainwnd->GetLayers("MRI");
+  foreach (Layer* layer, layers)
+  {
+    if (!layer->IsVisible())
+      layers.removeOne(layer);
+  }
   Region2D* reg = GetRegion(event->x(), event->y());
   if (reg)
   {
     QAction* act = new QAction("Duplicate", this);
     act->setData(QVariant::fromValue((QObject*)reg));
     connect(act, SIGNAL(triggered()), this, SLOT(OnDuplicateRegion()));
+    menu.addAction(act);
+    act = new QAction("Copy Value", this);
+    act->setData(QVariant::fromValue((QObject*)reg));
+    connect(act, SIGNAL(triggered()), this, SLOT(OnCopyRegionValue()));
     menu.addAction(act);
   }
   if (layers.size() > 1)
@@ -664,10 +674,10 @@ void RenderView2D::TriggerContextMenu( QMouseEvent* event )
     if (!menu.actions().isEmpty() && layers.size() == 1)
       menu.addSeparator();
 
+    LayerMRI* mri = (LayerMRI*)layers.first();
+    double val = mri->GetVoxelValue(mri->GetSlicePosition());
     if (layers.size() == 1)
     {
-      LayerMRI* mri = (LayerMRI*)layers.first();
-      double val = mri->GetVoxelValue(mri->GetSlicePosition());
       QAction* act = new QAction(QString("Copy Voxel Value  (%1)").arg(val), this);
       act->setProperty("voxel_value", val);
       connect(act, SIGNAL(triggered()), SLOT(OnCopyVoxelValue()));
@@ -684,6 +694,24 @@ void RenderView2D::TriggerContextMenu( QMouseEvent* event )
         act->setProperty("voxel_value", val);
         connect(act, SIGNAL(triggered()), SLOT(OnCopyVoxelValue()));
         menu2->addAction(act);
+      }
+    }
+    if (mri->GetProperty()->GetColorMap() == LayerPropertyMRI::LUT)
+    {
+      QString name = mri->GetLabelName(val);
+      if (!name.isEmpty())
+      {
+        double vs[3];
+        mri->GetWorldVoxelSize(vs);
+        QAction* act = new QAction(QString("Copy Volume of %1 (%2 mm3)").arg(name).arg(mri->GetLabelCount(val)*vs[0]*vs[1]*vs[2]), this);
+        act->setData(mri->GetLabelCount(val)*vs[0]*vs[1]*vs[2]);
+        connect(act, SIGNAL(triggered()), SLOT(OnCopyLabelVolume()));
+        menu.addAction(act);
+        menu.addSeparator();
+        act = new QAction(tr("Save Label %1 (%2) as Volume...").arg(name).arg(val), this);
+        act->setProperty("label_value", val);
+        connect(act, SIGNAL(triggered(bool)), mainwnd, SLOT(OnSaveLabelAsVolume()));
+        menu.addAction(act);
       }
     }
   }
@@ -729,6 +757,20 @@ void RenderView2D::OnDuplicateRegion()
   }
 }
 
+void RenderView2D::OnCopyRegionValue()
+{
+  QAction* act = qobject_cast<QAction*>(sender());
+  if (!act)
+    return;
+
+  Region2D* reg = qobject_cast<Region2D*>(act->data().value<QObject*>());
+  if (reg)
+  {
+    reg = reg->Duplicate(this);
+    QApplication::clipboard()->setText(reg->GetShortStats());
+  }
+}
+
 void RenderView2D::OnInteractorError(const QString &msg)
 {
   QMessageBox::warning(this, "Error", msg);
@@ -768,4 +810,13 @@ void RenderView2D::OnCopyVoxelValue()
 {
   if (sender())
     QApplication::clipboard()->setText(sender()->property("voxel_value").toString());
+}
+
+void RenderView2D::OnCopyLabelVolume()
+{
+  QAction* act = qobject_cast<QAction*>(sender());
+  if (act)
+  {
+    QApplication::clipboard()->setText(QString::number(act->data().toDouble()));
+  }
 }

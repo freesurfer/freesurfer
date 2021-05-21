@@ -5,7 +5,7 @@
 /*
  * surfaces Author: Bruce Fischl, extracted from mrisurf.c by Bevin Brett
  *
- * $ © copyright-2014,2018 The General Hospital Corporation (Boston, MA) "MGH"
+ * $ Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -682,13 +682,16 @@ void MRISdtr(MRIS *mris) {
   
   if (mris->ct) CTABfree(&mris->ct);
 
-  
   int vno;
   for (vno = 0; vno < mris->nvertices; vno++) {
     VERTEX_TOPOLOGYdtr(&mris->vertices_topology[vno]);
     VERTEXdtr         (&mris->vertices         [vno]);
   }
   freeAndNULL(mris->vertices);
+
+#ifdef SEPARATE_VERTEX_TOPOLOGY
+  freeAndNULL(mris->vertices_topology);
+#endif
 
   freeAndNULL(mris->faceNormDeferredEntries);
   freeAndNULL(mris->faceNormCacheEntries);
@@ -1611,20 +1614,18 @@ int slprints(char *apch_txt)
   size_t len_hostname;
   char *pch_timeMon = NULL;
   char *pch_time = NULL;
-  char pch_output[65536];
+  std::string pch_output;
 
   t = time(NULL);
   len_hostname = 255;
   gethostname(pch_hostname, len_hostname);
   strcpy(pch_hostname, strtok(pch_hostname, "."));
-  strcpy(pch_output, "");
   ptm_local = localtime(&t);
   pch_timeMon = strtok(asctime(ptm_local), "\n");
   pch_time = strdup(pch_timeMon + 4);
-  sprintf(pch_output, "%s %s", pch_time, pch_hostname);
-  sprintf(pch_output, "%s %s", pch_output, apch_txt);
-  printf("%s", pch_output);
-  return strlen(pch_output);
+  pch_output = std::string(pch_time) + std::string(pch_hostname) + apch_txt;
+  printf("%s", pch_output.c_str());
+  return pch_output.size();
 }
 
 void cprints(const char *apch_left, const char *apch_right)

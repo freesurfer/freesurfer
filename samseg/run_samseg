@@ -24,6 +24,8 @@ parser.add_argument('--reg-only', action='store_true', default=False, help='Only
 parser.add_argument('-r', '--reg', metavar='FILE', help='Skip initial affine registration and read transform from file.')
 parser.add_argument('--init-reg', metavar='FILE', help='Initial affine registration.')
 parser.add_argument('-a', '--atlas', metavar='DIR', help='Point to an alternative atlas directory.')
+parser.add_argument('--gmm', metavar='FILE', help='Point to an alternative GMM file.')
+parser.add_argument('--ignore-unknown', action='store_true', help='Ignore final priors corresponding to unknown class.')
 parser.add_argument('--options', metavar='FILE', help='Override advanced options via a json file.')
 parser.add_argument('--pallidum-separate', action='store_true', default=False, help='Move pallidum outside of global white matter class. Use this flag when T2/flair is used.')
 # optional lesion options
@@ -31,6 +33,8 @@ parser.add_argument('--lesion', action='store_true', default=False, help='Enable
 parser.add_argument('--threshold', type=float, default=0.3, help='Lesion threshold for final segmentation. Lesion segmentation must be enabled.')
 parser.add_argument('--samples', type=int, default=50, help='Number of samples for lesion segmentation. Lesion segmentation must be enabled.')
 parser.add_argument('--burnin', type=int, default=50, help='Number of burn-in samples for lesion segmentation. Lesion segmentation must be enabled.')
+parser.add_argument('--lesion-pseudo-samples', nargs=2, type=float, default=[500, 500], help='Lesion pseudo samples mean and variance.')
+parser.add_argument('--lesion-rho', type=float, default=50, help='Lesion ratio.')
 parser.add_argument('--lesion-mask-structure', default='Cortex', help='Intensity mask brain structure. Lesion segmentation must be enabled.')
 parser.add_argument('--lesion-mask-pattern', type=int, nargs='+', help='Lesion mask list (set value for each input volume): -1 below lesion mask structure mean, +1 above, 0 no mask. Lesion segmentation must be enabled.')
 # optional debugging options
@@ -49,10 +53,6 @@ args = parser.parse_args()
 # Make sure freesurfer has been sourced
 if not fs.fshome():
     fs.fatal('FREESURFER_HOME must be set')
-
-# Make sure tensorflow is installed if doing lesion segmentation
-if args.lesion:
-    fs.utils.check_tensorflow()
 
 # Start the process timer
 timer = fs.utils.Timer()
@@ -82,21 +82,6 @@ if not atlasDir:
 
 # Setup the visualization tool
 visualizer = samseg.initVisualizer(args.showfigs, args.movie)
-
-# Initialization transform for affine registration
-initTransform = None
-if args.init_reg:
-    matrix = fs.LinearTransform.read(args.init_reg).as_ras().matrix
-    initTransform = samseg.convertRASTransformToLPS(matrix)
-
-# Affine transform used to skip registration skip
-worldToWorldTransformMatrix = None
-if args.reg:
-    if args.reg.endswith('.mat'):
-        worldToWorldTransformMatrix = scipy.io.loadmat(args.reg).get('worldToWorldTransformMatrix')
-    else:
-        matrix = fs.LinearTransform.read(args.reg).as_ras().matrix
-        worldToWorldTransformMatrix = samseg.convertRASTransformToLPS(matrix)
 
 # ------ Prepare Samseg Parameters ------
 
@@ -134,7 +119,9 @@ samseg_kwargs = dict(
     saveWarp=args.save_warp,
     modeNames=args.mode,
     pallidumAsWM=(not args.pallidum_separate),
-    saveModelProbabilities=args.save_probabilities
+    saveModelProbabilities=args.save_probabilities,
+    gmmFileName=args.gmm,
+    ignoreUnknownPriors=args.ignore_unknown,
 )
 
 if args.lesion:
@@ -148,6 +135,9 @@ if args.lesion:
     # Delay import until here so that tensorflow doesn't get loaded unless needed
     from freesurfer.samseg.SamsegLesion import SamsegLesion
     samseg = SamsegLesion(**samseg_kwargs,
+        numberOfPseudoSamplesMean=args.lesion_pseudo_samples[0],
+        numberOfPseudoSamplesVariance=args.lesion_pseudo_samples[1],
+        rho=args.lesion_rho,
         intensityMaskingSearchString=args.lesion_mask_structure,
         intensityMaskingPattern=lesion_mask_pattern,
         numberOfBurnInSteps=args.burnin,
@@ -161,8 +151,8 @@ else:
 _, _, _, optimizationSummary = samseg.segment(
     costfile=costfile,
     timer=timer,
-    worldToWorldTransformMatrix=worldToWorldTransformMatrix,
-    initTransform=initTransform,
+    transformFile=args.reg,
+    initTransformFile=args.init_reg,
     reg_only=args.reg_only
 )
 

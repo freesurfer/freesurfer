@@ -5,7 +5,7 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -876,11 +876,11 @@ int fio_popd(void)
   by pushing into the file dir, getting the cwd, appending the file
   basename to the cwd to get the full path, then popping the stack.
   -------------------------------------------------------------------*/
-char *fio_fullpath(const char *fname)
+std::string fio_fullpath(const char *fname)
 {
   static char cwd[1000];
   char *dirname, *basename;
-  char *fullpath;
+  std::string fullpath;
   int err;
 
   basename = fio_basename(fname, NULL);
@@ -897,45 +897,45 @@ char *fio_fullpath(const char *fname)
   }
   fio_popd();
 
-  sprintf(cwd, "%s/%s", cwd, basename);
-  fullpath = strcpyalloc(cwd);
+  fullpath = std::string(cwd) + '/' + std::string(basename);
 
   free(dirname);
   free(basename);
 
-  return (fullpath);
+  return fullpath;
 }
 
 // Replicates mkdir -p
 int fio_mkdirp(const char *path, mode_t mode)
 {
-  int l, n, m, nthseg, err;
-  char seg[2000], path2[2000];
-  memset(path2, '\0', 2000);
-
-  l = strlen(path);
+  int nthseg, err;
+  std::string seg, path2;
+  size_t n;
+  
+  const size_t l = strlen(path);
 
   n = 0;
   nthseg = 0;
   while (n < l) {
-    m = 0;
+    std::string seg;
     while (n < l && path[n] != '/') {
-      seg[m] = path[n];
-      m++;
+      seg.push_back(path[n]);
       n++;
     }
-    seg[m] = '\0';
-    if (nthseg == 0 && path[0] != '/')
-      sprintf(path2, "%s", seg);
-    else
-      sprintf(path2, "%s/%s", path2, seg);
-    err = mkdir(path2, mode);
+    if (nthseg == 0 && path[0] != '/') {
+      path2 = seg;
+    } else {
+      path2 = path2 + '/' + seg;
+    }
+    err = mkdir(path2.c_str(), mode);
     if (err != 0 && errno != EEXIST) {
-      printf("ERROR: creating directory %s\n", path2);
+      printf("ERROR: creating directory %s\n", path2.c_str());
       perror(NULL);
       return (err);
     }
-    while (n < l && path[n] == '/') n++;
+    while (n < l && path[n] == '/') {
+      n++;
+    }
     nthseg++;
   }
 
@@ -950,7 +950,7 @@ int fio_mkdirp(const char *path, mode_t mode)
   The CRs can be replaced with a new line with
     cat file | sed 's/\r/\n/g' > newfile
  */
-int fio_FileHasCarriageReturn(char *fname)
+int fio_FileHasCarriageReturn(const char *fname)
 {
   FILE *fp;
   char c;

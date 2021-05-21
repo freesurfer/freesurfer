@@ -6,7 +6,7 @@
 /*
  * surfaces Author: Bruce Fischl, extracted from mrisurf.c by Bevin Brett
  *
- * $ © copyright-2014,2018 The General Hospital Corporation (Boston, MA) "MGH"
+ * $ Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -1828,11 +1828,16 @@ int mrisComputePosteriorTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     char fname[STRLEN], path[STRLEN];
 
     FileNamePath(mris->fname, path);
-    sprintf(fname,
-            "%s/%s.%d.dist.mgz",
-            path,
-            mris->hemisphere == LEFT_HEMISPHERE ? "lh" : mris->hemisphere == BOTH_HEMISPHERES ? "both" : "rh",
-            parms->t);
+    int req = snprintf(fname,
+		       STRLEN,
+		       "%s/%s.%d.dist.mgz",
+		       path,
+		       mris->hemisphere == LEFT_HEMISPHERE ? "lh" : mris->hemisphere == BOTH_HEMISPHERES ? "both" : "rh",
+		       parms->t);
+    if( req >= STRLEN ) {   
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
+
     MRISwriteD(mris, fname);
     DiagBreak();
   }
@@ -2004,7 +2009,11 @@ int mrisRemoveNegativeArea(
   if (Gdiag & DIAG_WRITE && parms->fp == NULL) {
     char fname[STRLEN];
 
-    sprintf(fname, "%s.%s.out", mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh", parms->base_name);
+    int req = snprintf(fname, STRLEN, "%s.%s.out", 
+		       mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh", parms->base_name); 
+    if( req >= STRLEN ) {   
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     if (!parms->start_t) {
       INTEGRATION_PARMS_openFp(parms, fname, "w");
     }
@@ -4241,7 +4250,6 @@ int MRISrepositionSurface(
 
   printf("flags = %x, size = %ld\n", flags, (long)sizeof(flags));
 
-  memset(&parms, 0, sizeof(parms));
   parms.fill_interior = 0;
   parms.projection = NO_PROJECTION;
   parms.tol = 1e-4;
@@ -4313,9 +4321,8 @@ int MRISrepositionSurfaceToCoordinate(
 
 #define SCALE .01
 
-  printf(
-      "MRISrepositionSurfaceToCoordinate(%d, %f, %f, %f, %d, %f, %x)\n", target_vno, tx, ty, tz, nsize, sigma, flags);
-  memset(&parms, 0, sizeof(parms));
+  printf("MRISrepositionSurfaceToCoordinate(%d, %f, %f, %f, %d, %f, %x)\n",
+	 target_vno, tx, ty, tz, nsize, sigma, flags);
   parms.fill_interior = 0;
   parms.projection = NO_PROJECTION;
   parms.tol = 1e-4;
@@ -4644,20 +4651,12 @@ MRIS *MRISsortVertices(MRIS *mris0)
   // the vertex/face array and properly calculate everything else in the
   // structure.  I felt this was the safest way to make sure everything
   // in the surface got recalculated properly.
-  char *tmpName = strdup("/tmp/mris_decimateXXXXXX");
-  int fd = mkstemp(tmpName);
-  if(fd == -1) {
-    printf("Error creating temporary file: %s\n",tmpName);
-    return(NULL);
-  }
-  char tmp_fpath[STRLEN];
-  FileNameAbsolute(tmpName, tmp_fpath);
-  MRISwrite(mris, tmp_fpath);
+  std::string tmpfile = makeTempFile();
+  MRISwrite(mris, tmpfile.c_str());
   MRISfree(&mris);
-  mris = MRISread(tmp_fpath);
-  remove(tmp_fpath);
+  mris = MRISread(tmpfile.c_str());
+  remove(tmpfile.c_str());
 
-  
   return(mris);
 }
 
@@ -4671,7 +4670,6 @@ int MRISrigidBodyAlignLocal(MRI_SURFACE *mris, INTEGRATION_PARMS *old_parms)
   /* dx,dy,dz interpreted as rotations in applyGradient when status is rigid */
   auto const old_status = mris->status; /* okay, okay, this is a hack too... */
   mris->status = MRIS_RIGID_BODY;
-  memset(&parms, 0, sizeof(parms));
   parms.integration_type = INTEGRATE_LM_SEARCH;
   parms.integration_type = INTEGRATE_LINE_MINIMIZE;
 
@@ -4713,7 +4711,6 @@ int MRISrigidBodyAlignVectorLocal(MRI_SURFACE *mris, INTEGRATION_PARMS *old_parm
   /* dx,dy,dz interpreted as rotations in applyGradient when status is rigid */
   auto const old_status = mris->status; /* okay, okay, this is a hack too... */
   mris->status = MRIS_RIGID_BODY;
-  memset(&parms, 0, sizeof(parms));
   parms.integration_type = INTEGRATE_LM_SEARCH;
   parms.integration_type = INTEGRATE_LINE_MINIMIZE;
 

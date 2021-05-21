@@ -2098,7 +2098,7 @@ if ($dopriors && ! $dobase) then
 
   foreach ntrain ($ntrainlist)
     # Use a subset of the training subjects
-    set slistfile = /tmp/subj$ntrain.$subj.$$.txt
+    set slistfile = `fs_temp_file --suffix .$ntrain.$subj.txt`
     printf '%s\n' $trainsubjlist[1-$ntrain] > $slistfile
 
     set avgmode = $avgname${ntrain}_${xspace}_$reg

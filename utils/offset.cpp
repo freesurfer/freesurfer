@@ -1,6 +1,6 @@
 /*
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -116,12 +116,7 @@ IMAGE *ImageCalculateNitShiOffset(IMAGE *Ix, IMAGE *Iy, int wsize, float mu, flo
   vsq = 0.0f; /* prevent compiler warning */
 
   whalf = (wsize - 1) / 2;
-#if 1
   c1 = c;
-#else
-  c1 = NS_FSCALE * c / (float)wsize;
-  c1 = NS_FSCALE * c;
-#endif
 
   /* create a local gaussian window */
   if (wsize != w) {
@@ -184,13 +179,11 @@ IMAGE *ImageCalculateNitShiOffset(IMAGE *Ix, IMAGE *Iy, int wsize, float mu, flo
         }
       }
 
-#if 1
       /* calculated phi(V), only needed for original NitShi algorithm */
       vsq = vx * vx + vy * vy;
 
       vx = vx * c1 / (float)sqrt((double)(mu * mu + vsq));
       vy = vy * c1 / (float)sqrt((double)(mu * mu + vsq));
-#endif
       x_plus_off = x0 - vx;
       y_plus_off = y0 - vy;
       if (x_plus_off < 0)
@@ -294,20 +287,9 @@ IMAGE *ImageNormalizeOffsetDistances(IMAGE *Isrc, IMAGE *Idst, int maxsteps)
               offset.
 ----------------------------------------------------------------------*/
 
-#if 0
-static float avg[] =
-  {
-    1.0f/9.0f, 1.0f/9.0f, 1.0f/9.0f,
-    1.0f/9.0f, 1.0f/9.0f, 1.0f/9.0f,
-    1.0f/9.0f, 1.0f/9.0f, 1.0f/9.0f
-  } ;
-#endif
 
 IMAGE *ImageSmoothOffsets(IMAGE *Isrc, IMAGE *Idst, int wsize)
 {
-#if 0
-  ImageConvolve3x3(Isrc, avg, Idst) ;
-#else
   float *src_xpix, *src_ypix, *dst_xpix, *dst_ypix, slope, dx, dy, f, xf, yf, *wdx, *wdy, *wphase, *wmag, dist, mag;
   int x0, y0, rows, cols, x = 0, y, delta, i, whalf, *wx, *wy;
 
@@ -409,20 +391,6 @@ neighbor's diirection is not bracketed by them, then modify it.
       {
         dist = angleDistance(wphase[0], wphase[2]);
         if (dist < MIN_ANGLE_DIST) {
-#if 0
-          if (wx[1] == 13 && wy[1] == 57)
-          {
-            fprintf(stderr, "left: (%d, %d) | (%d, %d) | (%d, %d)\n",
-                    wx[0], wy[0], wx[1], wy[1], x0, y0) ;
-            fprintf(stderr, "phase:  %2.0f -- %2.0f ===> %2.0f\n",
-                    DEGREES(wphase[2]), DEGREES(wphase[4]),
-                    DEGREES((wphase[2]+wphase[4])/2.0f)) ;
-            fprintf(stderr,
-                    "offset: (%2.2f, %2.2f) -- (%2.2f, %2.2f) ==> (%2.2f, %2.2f)\n",
-                    wdx[2], wdy[2], wdx[4],wdy[4], (wdx[2]+wdx[4])/2.0f,
-                    (wdy[2]+wdy[4])/2.0f) ;
-          }
-#endif
 
           dx = (wdx[2] + wdx[0]) / 2.0f;
           dy = (wdy[2] + wdy[0]) / 2.0f;
@@ -443,20 +411,6 @@ neighbor's diirection is not bracketed by them, then modify it.
       {
         dist = angleDistance(wphase[4], wphase[2]);
         if (dist < MIN_ANGLE_DIST) {
-#if 0
-          if (wx[3] == 13 && wy[3] == 57)
-          {
-            fprintf(stderr, "right: (%d, %d) | (%d, %d) | (%d, %d)\n",
-                    x0, y0, wx[3], wy[3], wx[4], wy[4]) ;
-            fprintf(stderr, "phase:  %2.0f -- %2.0f ===> %2.0f\n",
-                    DEGREES(wphase[2]), DEGREES(wphase[4]),
-                    DEGREES((wphase[2]+wphase[4])/2.0f)) ;
-            fprintf(stderr,
-                    "offset: (%2.2f, %2.2f) -- (%2.2f, %2.2f) ==> (%2.2f, %2.2f)\n",
-                    wdx[2], wdy[2], wdx[4],wdy[4], (wdx[2]+wdx[4])/2.0f,
-                    (wdy[2]+wdy[4])/2.0f) ;
-          }
-#endif
 
           dx = (wdx[2] + wdx[4]) / 2.0f;
           dy = (wdy[2] + wdy[4]) / 2.0f;
@@ -481,7 +435,6 @@ neighbor's diirection is not bracketed by them, then modify it.
   free(wdy);
   free(wphase);
   free(wmag);
-#endif
   return (Idst);
 }
 /*----------------------------------------------------------------------
@@ -558,10 +511,6 @@ IMAGE *ImageOffsetMedialAxis(IMAGE *Ioffset, IMAGE *Iedge)
   else
     Iout = Iedge;
 
-#if 0
-  if (!ImageCheckSize(Ioffset, Iout, 0, 0, 1))
-    ErrorReturn(NULL,(ERROR_SIZE,"ImageOffsetMedialAxis: dst not big enough"));
-#endif
 
   /* assume everything is an edge */
   ImageClearArea(Iout, -1, -1, -1, -1, 0.0f, -1);
@@ -583,7 +532,6 @@ IMAGE *ImageOffsetMedialAxis(IMAGE *Ioffset, IMAGE *Iedge)
   }
   return (Iedge);
 }
-#if 1
 /*----------------------------------------------------------------------
             Parameters:
 
@@ -673,7 +621,6 @@ IMAGE *ImageCalculateOffsetDirection(IMAGE *Ix, IMAGE *Iy, int wsize, IMAGE *Iof
 
   return (Ioffset);
 }
-#endif
 /*----------------------------------------------------------------------
             Parameters:
 
@@ -806,11 +753,6 @@ IMAGE *ImageOffsetScale(IMAGE *Isrc, IMAGE *Idst)
     }
   }
 
-#if 0
-  ImageWrite(Ioffset, "offset1.hipl") ;
-  ImageWrite(Ix, "ix.hipl") ;
-  ImageWrite(Iy, "iy.hipl") ;
-#endif
 
   ImageCopy(Ioffset, Ioffset2);
   /*
@@ -828,13 +770,9 @@ IMAGE *ImageOffsetScale(IMAGE *Isrc, IMAGE *Idst)
       dx = *IMAGEFpix(Ix, x0, y0); /* starting gradient values */
       dy = *IMAGEFpix(Iy, x0, y0);
 
-#if 0
-      if (FZERO(ox) && (FZERO(oy)))
-#else
 #define SMALL 0.00001f
 
       if ((fabs(ox) < SMALL) && (fabs(oy) < SMALL))
-#endif
       continue;
 
       if (fabs(ox) > fabs(oy)) /* use unit steps in x direction */
@@ -875,9 +813,6 @@ IMAGE *ImageOffsetScale(IMAGE *Isrc, IMAGE *Idst)
     }
   }
 
-#if 0
-  ImageWrite(Ioffset2, "offset2.hipl") ;
-#endif
 
   /* now use the offset field to scale the image with a median filter */
   xpix = IMAGEFpix(Ioffset2, 0, 0);
@@ -904,11 +839,7 @@ IMAGE *ImageOffsetScale(IMAGE *Isrc, IMAGE *Idst)
             xc = 0;
           else if (xc >= scols)
             xc = scols - 1;
-#if 0
-          *sptr++ = *IMAGEFseq_pix(inImage, xc, yc, frame) ;
-#else
           *sptr++ = *(spix + xc);
-#endif
         }
       }
       qsort(sort_array, 3 * 3, sizeof(float), compare_sort_array);
@@ -916,18 +847,7 @@ IMAGE *ImageOffsetScale(IMAGE *Isrc, IMAGE *Idst)
     }
   }
 
-#if 0
-  ImageWrite(Idst, "scale.hipl") ;
-#endif
 
-#if 0
-  ImageFree(&Igauss) ;
-  ImageFree(&Ismooth) ;
-  ImageFree(&Ix) ;
-  ImageFree(&Iy) ;
-  ImageFree(&Ioffset) ;
-  ImageFree(&Ioffset2) ;
-#endif
 
   return (Idst);
 }
@@ -1221,13 +1141,6 @@ IMAGE *ImageOffsetMagnitude(IMAGE *Isrc, IMAGE *Idst, int maxsteps)
         }
       }
 
-#if 0
-      if (dot == 0)  /* zero of vector field, not reversal */
-      {
-        xold = x ;
-        yold = y ;
-      }
-#endif
       *dst_xpix++ = (float)(xold - x1);
       *dst_ypix++ = (float)(yold - y1);
     }
@@ -1495,378 +1408,6 @@ IMAGE *ImageOffsetDirectionMagnitude(IMAGE *Isrc, IMAGE *Ix, IMAGE *Iy, int wsiz
   return (Idst);
 }
 
-#if 0
-
-
-/* code not worth using, but worth keeping */
-
-
-
-
-
-/*----------------------------------------------------------------------
-            Parameters:
-
-           Description:
-             use a Bresenham line drawing algorithm to do search
-----------------------------------------------------------------------*/
-#define FSCALE 1000.0f
-
-IMAGE *
-ImageOffsetDirectionMagnitude(IMAGE *Isrc, IMAGE *Idst, int maxsteps)
-{
-  int  rows, cols, x, y, ax, ay, sx, sy, x1, y1, pdx, pdy, odx, ody,
-  d, xn, yn, nsteps, psteps, steps, dx, dy, i, px, py, nx, ny ;
-  float *src_xpix, *src_ypix, *dst_xpix, *dst_ypix, *oxpix, *oypix, dot ;
-
-  if (!Idst)
-    Idst = ImageAlloc(Isrc->rows, Isrc->cols,Isrc->pixel_format,
-                      Isrc->num_frame);
-
-  rows = Isrc->rows ;
-  cols = Isrc->cols ;
-
-  nsteps = psteps = dx = dy = px = py = nx = ny = 0 ; /* compiler warnings */
-
-  src_xpix = IMAGEFpix(Isrc, 0, 0) ;
-  src_ypix = IMAGEFseq_pix(Isrc, 0, 0, 1) ;
-  dst_xpix = IMAGEFpix(Idst, 0, 0) ;
-  dst_ypix = IMAGEFseq_pix(Idst, 0, 0, 1) ;
-  for (y1 = 0 ; y1 < rows ; y1++)
-  {
-    for (x1 = 0 ; x1 < cols ; x1++, src_xpix++, src_ypix++)
-    {
-      if (x1 == 24 && y1 == 66)
-        DiagBreak() ;
-
-      /* do a Bresenham algorithm do find the offset line at this point */
-      pdx = nint(*src_xpix * FSCALE) ;
-      pdy = nint(*src_ypix * FSCALE) ;
-      ax = ABS(dx) << 1 ;
-      ay = ABS(dy) << 1 ;
-
-      for (i = -1 ; i <= 1 ; i += 2)
-      {
-        dx = i*pdx ;
-        dy = i*pdy ;
-        x = x1 ;
-        y = y1 ;
-        sx = SGN(dx) ;
-        sy = SGN(dy) ;
-
-        oxpix = src_xpix ;
-        oypix = src_ypix ;
-
-        if (ax > ay)  /* x dominant */
-        {
-          d = ay - (ax >> 1) ;
-          for (steps = 0 ; steps < maxsteps ; steps++)
-          {
-            odx = i*nint(*oxpix * FSCALE) ;
-            ody = i*nint(*oypix * FSCALE) ;
-            dot = odx * dx + ody * dy ;
-            if (dot <= 0)
-              break ;
-            if (d >= 0)
-            {
-              yn = y + sy ;
-              if (yn < 0 || yn >= rows)
-                break ;
-              oxpix += (sy * cols) ;
-              oypix += (sy * cols) ;
-              d -= ax ;
-            }
-            else
-              yn = y ;
-            oxpix += sx ;
-            oypix += sx ;
-            xn = x + sx ;
-            if (xn < 0 || xn >= cols)
-              break ;
-
-            x = xn ;
-            y = yn ;
-            d += ay ;
-          }
-        }
-        else    /* y dominant */
-        {
-          d = ax - (ay >> 1) ;
-          for (steps = 0 ; steps < maxsteps ; steps++)
-          {
-            odx = i*nint(*oxpix * FSCALE) ;
-            ody = i*nint(*oypix * FSCALE) ;
-            dot = odx * dx + ody * dy ;
-            if (dot <= 0)
-              break ;
-            if (d >= 0)
-            {
-              xn = x + sx ;
-              if (xn < 0 || xn >= cols)
-                break ;
-              oxpix += sx ;
-              oypix += sx ;
-              d -= ay ;
-            }
-            else
-              xn = x ;
-            yn = y + sy ;
-            if (yn < 0 || yn >= rows)
-              break ;
-
-            x = xn ;
-            y = yn ;
-            oypix += (sy * cols) ;
-            oxpix += (sy * cols) ;
-            d += ax ;
-          }
-        }
-        if (i > 0)  /* positive search ended */
-        {
-          px = x ;
-          py = y ;
-          psteps = steps ;
-        }
-        else     /* negative search ended */
-        {
-          nx = x ;
-          ny = y ;
-          nsteps = steps ;
-        }
-      }
-
-
-      if (nsteps > psteps)
-      {
-        x = px ;
-        y = py ;
-      }
-      else
-      {
-        x = nx ;
-        y = ny ;
-      }
-      *dst_xpix++ = (float)(x - x1) ;
-      *dst_ypix++ = (float)(y - y1) ;
-    }
-  }
-
-
-  return(Idst) ;
-}
-static IMAGE *imageOffsetFlipOrientations(IMAGE *Isrc, IMAGE *Idst) ;
-
-IMAGE *
-imageOffsetFlipOrientations(IMAGE *Isrc, IMAGE *Idst)
-{
-  /* don't need this */
-  return(Idst) ;
-}
-
-IMAGE *
-ImageOffsetOrientation(IMAGE *Ix, IMAGE *Iy, int wsize, IMAGE *Iorient)
-{
-  int    x0, y0, rows, cols, x, y, whalf, xc, yc, yoff, off ;
-  float  *xpix, *ypix, dx, dy, *or_xpix, *or_ypix ;
-
-  rows = Ix->rows ;
-  cols = Ix->cols ;
-
-  if (!Iorient)
-    Iorient = ImageAlloc(rows, cols, PFFLOAT, 2) ;
-
-  if (!ImageCheckSize(Ix, Iorient, 0, 0, 2))
-  {
-    ImageFree(&Iorient) ;
-    Iorient = ImageAlloc(rows, cols, PFFLOAT, 2) ;
-  }
-
-  whalf = (wsize-1)/2 ;
-  xpix = IMAGEFpix(Ix, 0, 0) ;
-  ypix = IMAGEFpix(Iy, 0, 0) ;
-  or_xpix = IMAGEFpix(Iorient, 0, 0) ;
-  or_ypix = IMAGEFseq_pix(Iorient, 0, 0, 1) ;
-  for (y0 = 0 ; y0 < rows ; y0++)
-  {
-    for (x0 = 0 ; x0 < cols ; x0++, xpix++, ypix++)
-    {
-
-      /*
-        Now calculate the orientation for this point by averaging local gradient
-        orientation within the specified window.
-
-        x and y are in window coordinates, while xc and yc are in image
-        coordinates.
-      */
-      dx = dy = 0.0f ;
-      for (y = -whalf ; y <= whalf ; y++)
-      {
-        /* reflect across the boundary */
-        yc = y + y0 ;
-        if ((yc < 0) || (yc >= rows))
-          continue ;
-
-        yoff = y*cols ;
-        for (x = -whalf ; x <= whalf ; x++)
-        {
-          xc = x0 + x ;
-          if ((xc < 0) || (xc >= cols))
-            continue ;
-
-          off = yoff + x ;
-          dx += *(xpix+off) ;
-          dy += *(ypix+off) ;
-        }
-      }
-      if (dx < 0)  /* if in left half-plane, flip by 180 */
-      {
-        dx = -dx ;
-        dy = -dy ;
-      }
-      *or_xpix++ = dx ;
-      *or_ypix++ = dy ;
-    }
-  }
-
-  return(Iorient) ;
-}
-
-IMAGE *
-ImageSmoothOffsets(IMAGE *Isrc, IMAGE *Idst, int wsize)
-{
-  float  *src_xpix, *src_ypix, *dst_xpix, *dst_ypix, slope, dx,dy, f,
-  xf, yf, *wdx, *wdy, *weights, *wphase, *wmag, dist, phase, maxw  ;
-  int    x0, y0, rows, cols, x, y, delta, i, j, whalf ;
-
-  if (!Idst)
-    Idst = ImageAlloc(Isrc->rows, Isrc->cols,Isrc->pixel_format,
-                      Isrc->num_frame);
-
-  whalf = (wsize-1) / 2 ;
-  /*
-    allocate five windows of the size specified by the user. Two to hold
-    the offset vectors, one for the magnitude, one for the phase, and 1 for
-    the voting weight.
-  */
-  weights = (float *)calloc(wsize, sizeof(float)) ;
-  wdx = (float *)calloc(wsize, sizeof(float)) ;
-  wdy = (float *)calloc(wsize, sizeof(float)) ;
-  wphase = (float *)calloc(wsize, sizeof(float)) ;
-  wmag = (float *)calloc(wsize, sizeof(float)) ;
-
-  rows = Isrc->rows ;
-  cols = Isrc->cols ;
-
-  src_xpix = IMAGEFpix(Isrc, 0, 0) ;
-  src_ypix = IMAGEFseq_pix(Isrc, 0, 0, 1) ;
-  dst_xpix = IMAGEFpix(Idst, 0, 0) ;
-  dst_ypix = IMAGEFseq_pix(Idst, 0, 0, 1) ;
-
-  /* for each point in the image */
-  for (y0 = 0 ; y0 < rows ; y0++)
-  {
-    for (x0 = 0 ; x0 < cols ; x0++,src_xpix++,src_ypix++,dst_ypix++,dst_xpix++)
-    {
-      /* fill the offset vector array */
-      dx = *src_xpix ;
-      dy = *src_ypix ;
-
-      /* calculate orthogonal slope = -dx/dy */
-      f = dx ;
-      dx = dy ;
-      dy = -f ;
-
-      /* if orientation is too small, don't know what direction to search in */
-      if (ISSMALL(dx) && (ISSMALL(dy)))
-      {
-        *dst_xpix = dx ;
-        *dst_ypix = dy ;
-        continue ;
-      }
-      else
-        if (fabs(dx) > fabs(dy))  /* use unit steps in x direction */
-        {
-          delta = dx / fabs(dx) ;
-          slope = delta  * dy / dx ;  /* orthogonal slope */
-
-          yf = (float)y0-(float)whalf*slope    ;
-          x = x0 - whalf * delta ;
-          for (i = -whalf ; i <= whalf ; x += delta, yf += slope, i++)
-          {
-            y = nint(yf) ;
-            if (y <= 0 || y >= (rows-1) || x <= 0 || x >= (cols-1))
-              wdx[i+whalf] = wdy[i+whalf] = wmag[i+whalf]=wphase[i+whalf] = 0.0f;
-            else
-            {
-              dx = *IMAGEFpix(Isrc, x, y) ;
-              dy = *IMAGEFseq_pix(Isrc, x, y, 1) ;
-              wdx[i+whalf] = dx ;
-              wdy[i+whalf] = dy ;
-              wmag[i+whalf] = (float)hypot((double)dx, (double)dy) ;
-              wphase[i+whalf] = latan2((double)dy, (double)dx) ;
-            }
-          }
-        }
-        else                     /* use unit steps in y direction */
-        {
-          delta = dy / fabs(dy) ;
-          slope = delta * dx /dy ;          /* orthogonal slope */
-          xf = (float)x0-(float)whalf*slope ;
-          y = y0 - whalf * delta ;
-          for (i = -whalf ; i <= whalf ; y += delta, xf += slope, i++)
-          {
-            x = nint(xf) ;
-            if (y <= 0 || y >= (rows-1) || x <= 0 || x >= (cols-1))
-              wdx[i+whalf] = wdy[i+whalf] = wmag[i+whalf]=wphase[i+whalf] = 0.0f;
-            else
-            {
-              dx = *IMAGEFpix(Isrc, x, y) ;
-              dy = *IMAGEFseq_pix(Isrc, x, y, 1) ;
-              wdx[i+whalf] = dx ;
-              wdy[i+whalf] = dy ;
-              wmag[i+whalf] = (float)hypot((double)dx, (double)dy) ;
-              wphase[i+whalf] = latan2((double)dy, (double)dx) ;
-            }
-          }
-        }
-
-      /* now fill in weight array */
-      for (i = 0 ; i < wsize ; i++)
-      {
-        phase = wphase[i] ;
-        weights[i] = 0.0f ;
-        for (j = 0 ; j < wsize ; j++)
-        {
-          dist = angleDistance(phase, wphase[j]) ;
-          weights[i] += (PI - dist) * wmag[j] ;
-        }
-      }
-
-      /* find maximum weight, and use that as offset vector */
-      for (maxw = 0.0f, i = j = 0 ; i < wsize ; i++)
-      {
-        if (weights[i] > maxw)
-        {
-          maxw = weights[i] ;
-          j = i ;
-        }
-      }
-      *dst_xpix = wdx[j] ;
-      *dst_ypix = wdy[j] ;
-
-    }
-  }
-
-  free(weights) ;
-  free(wdx) ;
-  free(wdy) ;
-  free(wphase) ;
-  free(wmag) ;
-
-  return(Idst) ;
-}
-
-#endif
 
 /*----------------------------------------------------------------------
             Parameters:

@@ -9,7 +9,7 @@
 /*
  * Original Authors: Kevin Teich and Nick Schmansky
  *
- * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -350,6 +350,12 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum)
     return NULL;
   }
 
+  // make sure version is recoded before validation
+  if (!strcmp(image->version, "1")) {
+    free(image->version);
+    image->version = strcpyalloc(GIFTI_XML_VERSION);
+  }
+
   /*
    * check for compliance
    */
@@ -390,7 +396,7 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum)
     }
     // memset(ct->entries,0,sizeof(ct->entries)); // original
     memset(ct->entries, 0, sizeof(*ct->entries));  // changed by dng
-    strncpy(ct->fname, fname, sizeof(ct->fname));
+    strncpy(ct->fname, fname, sizeof(ct->fname)-1);
 
     float *rgba = image->labeltable.rgba;
     if (NULL == rgba) {
@@ -425,7 +431,9 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum)
         return NULL;
       }
       strncpy(
-          ct->entries[label_index]->name, image->labeltable.label[label_index], sizeof(ct->entries[label_index]->name));
+          ct->entries[label_index]->name,
+	  image->labeltable.label[label_index],
+	  sizeof(ct->entries[label_index]->name)-1);
 
       ct->entries[label_index]->rf = rgba[0];
       ct->entries[label_index]->ri = floor((rgba[0]) * 256);
@@ -1098,6 +1106,12 @@ MRI *MRISreadGiftiAsMRI(const char *fname, int read_volume)
   if (NULL == image) {
     fprintf(stderr, "MRISreadGiftiAsMRI: gifti_read_image() returned NULL\n");
     return NULL;
+  }
+
+  // make sure version is recoded before validation
+  if (!strcmp(image->version, "1")) {
+    free(image->version);
+    image->version = strcpyalloc(GIFTI_XML_VERSION);
   }
 
   /* check for compliance */
@@ -1849,6 +1863,12 @@ int MRISwriteGIFTI(MRIS *mris, int intent_code, const char *out_fname, const cha
     }
   }  // end of if NIFTI_INTENT_<stats>
 
+  // make sure version is recoded before validation
+  if (!strcmp(image->version, "1")) {
+    free(image->version);
+    image->version = strcpyalloc(GIFTI_XML_VERSION);
+  }
+
   /* check for compliance */
   int valid = gifti_valid_gifti_image(image, 1);
   if (valid == 0) {
@@ -1953,6 +1973,12 @@ int mriWriteGifti(MRI *mri, const char *out_fname)
     }
 
     // next frame
+  }
+
+  // make sure version is recoded before validation
+  if (!strcmp(image->version, "1")) {
+    free(image->version);
+    image->version = strcpyalloc(GIFTI_XML_VERSION);
   }
 
   /* check for compliance */

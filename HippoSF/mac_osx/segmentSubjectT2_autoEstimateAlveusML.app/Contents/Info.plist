@@ -24,6 +24,8 @@
 	<string>1.0</string>
 	<key>CFResourcesFileMapped</key>
 	<true/>
+	<key>BundleIsRelocatable</key>
+	<false/>
 	<key>LSMinimumSystemVersion</key>
 	<string>10.7.0</string>
 	<key>NSMainNibFile</key>

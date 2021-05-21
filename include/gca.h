@@ -9,7 +9,7 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -33,9 +33,6 @@
 
 #include "affine.h"
 
-#if 0
-extern double MIN_PRIOR_FACTOR, MAX_PRIOR_FACTOR, PRIOR_FACTOR ;   // sorry, too hard to propagate this everywhere for now
-#endif
 
 
 #define GCA_RESTART      1
@@ -345,11 +342,6 @@ int  GCAnodeToSourceVoxel(GCA *gca, MRI *mri, TRANSFORM *transform,
 int  GCAnodeToSourceVoxelFloat(GCA *gca, MRI *mri, TRANSFORM *transform,
                                int xv, int yv, int zv,
                                float *pxn, float *pyn, float *pzn) ;
-#if 0
-int    GCAsampleStats(GCA *gca, MRI *mri, TRANSFORM *transform, int class,
-                      double x, double y, double z,
-                      double *pmean, double *pvar, double *pprior) ;
-#endif
 
 
 

@@ -1,7 +1,26 @@
 # project info
 cmake_minimum_required(VERSION 3.9)
-project(freesurfer)
-enable_language(C CXX Fortran)
+
+# requiring at least c++11 standard
+if(CMAKE_CXX_STANDARD EQUAL "98" )
+   message(FATAL_ERROR "CMAKE_CXX_STANDARD:STRING=98 is not supported in.")
+endif()
+
+# set the default language dialect settings (This must be done BEFORE the project call)
+if(NOT CMAKE_CXX_STANDARD)
+  set(CMAKE_CXX_STANDARD 11)
+endif()
+if(NOT CMAKE_CXX_STANDARD_REQUIRED)
+  set(CMAKE_CXX_STANDARD_REQUIRED ON)
+endif()
+if(NOT CMAKE_CXX_EXTENSIONS)
+  set(CMAKE_CXX_EXTENSIONS OFF)
+endif()
+
+project(freesurfer 
+  DESCRIPTION "An open source software suite for processing and analyzing (human) brain MRI images."
+  LANGUAGES C CXX Fortran
+)
 
 # a few build options
 option(MINIMAL "Only build core components" OFF)
@@ -10,9 +29,16 @@ option(BUILD_ATTIC "Build deprecated tools from the attic" OFF)
 option(INFANT_MODULE "Include infant recon-all" OFF)
 option(QATOOLS_MODULE "Install QA tools" ON)
 option(BUILD_DNG "Build Doug's testing tools" OFF)
-option(SUPPRESS_WARNINGS "Suppress some selected warnings" ON)
+option(FREEVIEW_LINEPROF "Build FreeView with lineprof enabled" OFF)
 option(PROFILING "Complile binaries for profiling with gprof" OFF)
 option(INSTALL_PYTHON_DEPENDENCIES "Install python package dependencies" ON)
+#  Modern compilers on new platforms often provide many more warnings than older compilers
+#  for example the gcc 7.5.0 compiler warnings about falling through switch statements
+#  without explicit breaks on every case.  This desired fallthrough behavior causes false
+#  compiler errors with "-Werror" turned on.  The WARNING_AS_ERROR option allows temporarily
+#  disabling warnings as errors to allow a more gradual move to supporting new compilers.
+option(WARNING_AS_ERROR "Convert build warnings to errors" ON)
+option(MARTINOS_BUILD "Does the build have access to the martinos network" ON)
 
 if(NOT APPLE)
   # linux-only build options
@@ -100,10 +126,16 @@ add_definitions(-DHAVE_ZLIB)
 # -------- gfortran/blas/lapack --------
 if(NOT APPLE)
   find_library(GFORTRAN_LIBRARIES
-    HINTS /usr/lib/gcc/*/*/
+    HINTS /usr/lib64 /usr/lib /usr/lib/gcc/*/*/
     NAMES libgfortran.a gfortran)
-  find_library(BLAS_LIBRARIES NAMES libblas.a)
+  find_library(BLAS_LIBRARIES NAMES libopenblas.a libblas.a)
   find_library(LAPACK_LIBRARIES NAMES liblapack.a)
+  find_library(QUADMATH_LIBRARIES
+    HINTS /usr/lib64 /usr/lib /usr/lib/gcc/*/*/
+    NAMES libquadmath.a libquadmath.so libquadmath.so.0)
+  if(NOT QUADMATH_LIBRARIES)
+    set(QUADMATH_LIBRARIES "")
+  endif()
 endif()
 
 # -------- armadillo --------
@@ -119,12 +151,6 @@ find_package(ITK HINTS ${ITK_DIR} REQUIRED)
 # -------- ann --------
 # ANN is only used by mris_resample
 find_package(ANN)
-
-# -------- gts --------
-# only used by mris_decimate (not available on mac)
-if(NOT APPLE)
-  find_package(GTS)
-endif()
 
 # -------- openMP --------
 if(APPLE)
@@ -215,9 +241,6 @@ else()
   set(BYTEORDER 1234)
 endif()
 
-# enable std c++11
-set(CMAKE_CXX_STANDARD 11)
-
 # --------------------------------------------------
 #                  third-party code
 # --------------------------------------------------
@@ -265,14 +288,31 @@ endif()
 #             freesurfer build settings
 # --------------------------------------------------
 
+host_os()
 # warnings
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -Wno-sign-compare -Wno-unused-result -Wno-unused-parameter")
+if(NOT NO_CXX_WARN)
+  if(WARNING_AS_ERROR)
+    set(WARN_AS_ERROR_FLAG "-Werror")
+    if(HOST_OS MATCHES "CentOS8")
+       # -Wno-cpp needed with gcc8 for /usr/pubse/packages/vtk 7.1 compiled with older compilers
+       # -Wno-restrict needed with gcc8 for ./freesurfer/mris_compute_acorr/mris_compute_acorr.cpp
+       # -Wno-format-overflow needed with gcc8 for ./fresurfer/mris2rgb/mris2rgb.cpp
+       set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra ${WARN_AS_ERROR_FLAG} -Wno-cpp -Wno-restrict -Wno-format-overflow -Wno-sign-compare -Wno-unused-result -Wno-unused-parameter")
+    else ()
+       set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra ${WARN_AS_ERROR_FLAG} -Wno-sign-compare -Wno-unused-result -Wno-unused-parameter")
+    endif()
+  endif()
+else ()
+   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error -Wno-deprecated-declarations -fpermissive") 
+endif()
 
 # clang complains about -Wno-unused-but-set-variable and says to use -Wno-unused-const-variable
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-const-variable -Wno-inconsistent-missing-override -Wno-self-assign-field")
 else()
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-but-set-variable")
+  if(NOT NO_CXX_WARN)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-but-set-variable")
+  endif()
 endif()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
@@ -333,6 +373,7 @@ add_subdirectories(
   AntsDenoiseImageFs
   AntsN4BiasFieldCorrectionFs
   lta_convert
+  io
   mri_and
   mri_add_xform_to_header
   mri_annotation2label
@@ -397,7 +438,6 @@ add_subdirectories(
   mris_convert
   mris_curvature
   mris_curvature_stats
-  mris_decimate
   mris_defects_pointset
   mris_diff
   mris_divide_parcellation
@@ -512,10 +552,13 @@ if(NOT MINIMAL)
     mri_sbbr
     mri_segcentroids
     mri_seghead
+    mri_segment_hypothalamic_subunits
     mri_strip_nonwhite
     mri_strip_subject_info
     mri_surfacemask
+    mri_synth_strip
     mri_synthesize
+    mri_threshold
     mri_topologycorrection
     mri_train
     mri_transform
@@ -573,6 +616,7 @@ if(NOT MINIMAL)
     mris_register_to_volume
     mris_remove_variance
     mris_remesh
+    mris_reposition_surface
     mris_resample
     mris_rescale
     mris_reverse
@@ -615,6 +659,37 @@ if(NOT MINIMAL)
     trc
     tridec
   )
+endif()
+
+# # Only build some old subdirectories if they exist
+# # AND the build host is a certain version of Cent/Redhat OS
+# if(EXISTS "/etc/redhat-release")
+#    execute_process(COMMAND cat \/etc\/redhat\-release OUTPUT_VARIABLE REDHAT_VERSION)
+#    string(STRIP ${REDHAT_VERSION} REDHAT_VERSION)
+#    # message(STATUS "Host is ${REDHAT_VERSION}")
+#    if(EXISTS "./mri_make_bem_surfaces")
+#       if(REDHAT_VERSION MATCHES "release 7")
+#          add_subdirectories(mri_make_bem_surfaces)
+#       elseif(REDHAT_VERSION MATCHES "release 8")
+#          add_subdirectories(mri_make_bem_surfaces)
+#       endif()
+#    endif()
+# endif()
+
+# host_os()
+# message(STATUS "FROM top level CMakeLists.txt HOST_OS=${HOST_OS}")
+message(STATUS "Building on host OS ${HOST_OS}")
+
+# Only build some old subdirectories if they exist
+# AND the build host is a certain version of Cent/Redhat OS
+if(EXISTS "./mri_make_bem_surfaces")
+   if(HOST_OS MATCHES "CentOS7")
+      add_subdirectories(mri_make_bem_surfaces)
+      message(STATUS "Adding mri_make_bem_surfaces to build on ${HOST_OS}")
+   elseif(HOST_OS MATCHES "CentOS8")
+      add_subdirectories(mri_make_bem_surfaces)
+      message(STATUS "Adding mri_make_bem_surfaces to build on ${HOST_OS}")
+   endif()
 endif()
 
 if(INFANT_MODULE)

@@ -5,7 +5,7 @@
 /*
  * Original Author: Bruce Fischl and Doug Greve
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -176,7 +176,11 @@ main(int argc, char *argv[])
   {
     mri_kernel = MRIgaussian1d(sigma, 100) ;
   }
-  sprintf(fname, "%s/%s/mri/wm", sdir, sname) ;
+  int req = snprintf(fname, STRLEN, "%s/%s/mri/wm", sdir, sname) ;
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
+
   if (MGZ)
   {
     strcat(fname, ".mgz");
@@ -192,18 +196,13 @@ main(int argc, char *argv[])
   {
     fprintf(stderr, "smoothing brain volume with sigma = %2.3f\n", sigma) ;
     MRIconvolveGaussian(mri_wm, mri_wm, mri_kernel) ;
-#if 0
-    fprintf(stderr, "smoothing wm volume with sigma = %2.3f\n", sigma) ;
-    MRIconvolveGaussian(mri_wm, mri_wm, mri_kernel) ;
-    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-    {
-      MRIwrite(mri_wm, "/tmp/wm_smooth.mnc") ;
-    }
-#endif
     MRIfree(&mri_kernel);
   }
 
-  sprintf(fname, "%s/%s/surf/%s.%s", sdir, sname, hemi, surf_name) ;
+  req = snprintf(fname, STRLEN, "%s/%s/surf/%s.%s", sdir, sname, hemi, surf_name) ;
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   fprintf(stderr, "reading input surface %s...\n", fname) ;
   mris = MRISread(fname) ;
   if (!mris)
@@ -225,13 +224,22 @@ main(int argc, char *argv[])
     LABEL *label;
     double totvol;
     printf("Using TH3 vertex volume calc\n");
-    sprintf(fname,"%s/%s/surf/%s.white", sdir, sname, hemi);
+    int req = snprintf(fname,STRLEN,"%s/%s/surf/%s.white", sdir, sname, hemi);
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     mrisw = MRISread(fname);
     if(!mrisw) exit(1);
-    sprintf(fname,"%s/%s/surf/%s.pial", sdir, sname, hemi);
+    req = snprintf(fname,STRLEN,"%s/%s/surf/%s.pial", sdir, sname, hemi);
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     mrisp = MRISread(fname);
     if(!mrisp) exit(1);
-    sprintf(fname,"%s/%s/label/%s.cortex.label",sdir,sname,hemi);
+    req = snprintf(fname,STRLEN,"%s/%s/label/%s.cortex.label",sdir,sname,hemi);
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     label = LabelRead(NULL, fname);
     if(label == NULL) exit(1);
     ctxmask = MRISlabel2Mask(mrisw, label, NULL);
@@ -247,13 +255,19 @@ main(int argc, char *argv[])
   MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
   // read in white and pial surfaces
   MRISsaveVertexPositions(mris, TMP_VERTICES) ;
-  sprintf(fname, "%s/%s/surf/%s.%s", sdir, sname, hemi, pial_name) ;
+  req = snprintf(fname, STRLEN, "%s/%s/surf/%s.%s", sdir, sname, hemi, pial_name) ;
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   fprintf(stderr, "reading input pial surface %s...\n", fname) ;
   if (MRISreadVertexPositions(mris, fname) != NO_ERROR)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
               Progname, fname) ;
   MRISsaveVertexPositions(mris, PIAL_VERTICES) ;
-  sprintf(fname, "%s/%s/surf/%s.%s", sdir, sname, hemi, white_name) ;
+  req = snprintf(fname, STRLEN, "%s/%s/surf/%s.%s", sdir, sname, hemi, white_name) ;
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   fprintf(stderr, "reading input white surface %s...\n", fname) ;
   if (MRISreadVertexPositions(mris, fname) != NO_ERROR)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
@@ -323,7 +337,10 @@ main(int argc, char *argv[])
 
   if (histo_flag)
   {
-    sprintf(fname, "%s/%s/mri/%s", sdir, sname, mri_name) ;
+    int req = snprintf(fname, STRLEN, "%s/%s/mri/%s", sdir, sname, mri_name) ;
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     if (MGZ)
     {
       strcat(fname, ".mgz");
@@ -364,11 +381,17 @@ main(int argc, char *argv[])
     LABEL  *area ;
     char   fname[STRLEN] ;
 
-    sprintf(fname, "%s/%s/label/%s", sdir, sname, label_name) ;
+    int req = snprintf(fname, STRLEN, "%s/%s/label/%s", sdir, sname, label_name) ;
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     // If that does not exist, use label_name as absolute path.
     if (! fio_FileExistsReadable(fname))
     {
-      sprintf(fname, "%s", label_name) ;
+      int req = snprintf(fname, STRLEN, "%s", label_name) ;
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
     }
 
     area = LabelRead(NULL, fname) ;
@@ -401,11 +424,17 @@ main(int argc, char *argv[])
       // build the full path string
       if (strstr(label_name, ".label") == NULL)
       {
-        sprintf(full_name, "%s/%s/label/%s.label", sdir, sname, label_name) ;
+        int req = snprintf(full_name, STRLEN, "%s/%s/label/%s.label", sdir, sname, label_name) ;
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
       }
       else
       {
-        sprintf(full_name, "%s/%s/label/%s", sdir, sname, label_name) ;
+        int req = snprintf(full_name, STRLEN, "%s/%s/label/%s", sdir, sname, label_name) ;
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
       }
     }
     if (! fio_FileExistsReadable(full_name))
@@ -426,24 +455,44 @@ main(int argc, char *argv[])
     else  // build the full path string
     {
       char tmp[STRLEN] ;
-      sprintf(tmp, "%s.", hemi) ;
+      int req = snprintf(tmp, STRLEN, "%s.", hemi) ;
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       if (strstr(annotation_name, tmp) == NULL) // no hemi in string
       {
-        if (strstr(annotation_name, ".annot") == NULL)
-          sprintf(full_name, "%s/%s/label/%s.%s.annot", sdir, sname,
-                  hemi, annotation_name) ;
-        else
-          sprintf(full_name, "%s/%s/label/%s.%s", sdir, sname,
-                  hemi,annotation_name) ;
+        if (strstr(annotation_name, ".annot") == NULL) {
+          int req = snprintf(full_name, STRLEN, "%s/%s/label/%s.%s.annot",
+			     sdir, sname, hemi, annotation_name) ;
+	  if( req >= STRLEN ) {
+	    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	  }
+        } else {
+          int req = snprintf(full_name, STRLEN,
+			     "%s/%s/label/%s.%s",
+			     sdir, sname, hemi,annotation_name) ;
+	  if( req >= STRLEN ) {
+	    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	  }
+	}
       }
       else
       {
-        if (strstr(annotation_name, ".annot") == NULL)
-          sprintf(full_name, "%s/%s/label/%s.annot", sdir, sname,
-                  annotation_name) ;
-        else
-          sprintf(full_name, "%s/%s/label/%s", sdir, sname,
-                  annotation_name) ;
+        if (strstr(annotation_name, ".annot") == NULL) {
+          int req = snprintf(full_name, STRLEN, 
+			     "%s/%s/label/%s.annot", 
+			     sdir, sname, annotation_name) ;
+	  if( req >= STRLEN ) {
+	    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	  }
+        } else {
+          int req = snprintf(full_name, STRLEN, 
+			     "%s/%s/label/%s", 
+			     sdir, sname,  annotation_name) ;
+	  if( req >= STRLEN ) {
+	    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	  }
+	}
       }
 
     }
@@ -1118,7 +1167,11 @@ get_option(int argc, char *argv[])
     strcpy(sdir, argv[2]) ;
     printf("using  %s as  SUBJECTS_DIR...\n", sdir)  ;
     nargs = 1 ;
-    sprintf(str, "SUBJECTS_DIR=%s", sdir) ;
+    int req = snprintf(str, STRLEN, "SUBJECTS_DIR=%s", sdir) ;
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
+
     putenv(str) ;
   }
   else if (!stricmp(option, "mgz"))

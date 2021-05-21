@@ -7,7 +7,7 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -107,7 +107,10 @@ main(int argc, char *argv[])
   if (Gdiag & DIAG_WRITE)
   {
     char log_fname[STRLEN] ;
-    sprintf(log_fname, "%s.log", fname) ;
+    int req = snprintf(log_fname, STRLEN, "%s.log", fname) ;
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     INTEGRATION_PARMS_openFp(&parms, log_fname, "w") ;
     if (parms.fp)
       printf("writing log results to %s\n", log_fname) ;

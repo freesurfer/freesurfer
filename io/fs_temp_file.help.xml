@@ -1,0 +1,27 @@
+<help>
+
+  <name>fs_temp_file</name>
+
+  <usage>fs_temp_file [options]</usage>
+
+  <description>Generates and creates an empty temporary file. The resulting path will be printed to stdout. The FS_TMPDIR environment variable can be used to override the default temporary directory.</description>
+
+  <arguments>
+  <optional>
+
+    <argument>-b, --base [dir]</argument>
+    <explanation>Manually specify base temporary directory.</explanation>
+
+    <argument>-s, --suffix [str]</argument>
+    <explanation>Optional file suffix.</explanation>
+
+    <argument>--scratch</argument>
+    <explanation>Use /scratch directory if available, but FS_TMPDIR takes priority.</explanation>
+
+    <argument>-h, --help</argument>
+    <explanation>Print this help text and exit.</explanation>
+
+  </optional>
+  </arguments>
+
+</help>

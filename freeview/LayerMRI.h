@@ -5,7 +5,7 @@
 /*
  * Original Author: Ruopeng Wang
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -57,6 +57,7 @@ class LayerMRIWorkerThread;
 class LayerSurface;
 class LayerROI;
 class GeoSWorker;
+class Region3D;
 
 #ifndef IntList
 typedef QList<int> IntList;
@@ -197,7 +198,7 @@ public:
 
   bool SaveContourToFile(const QString& fn);
 
-  SurfaceRegion* CreateNewSurfaceRegion( double* pt );
+  SurfaceRegion* CreateNewSurfaceRegion( double* pt, vtkProp* prop );
 
   void AddSurfaceRegionLoopPoint( double* pt );
 
@@ -316,7 +317,7 @@ public:
   
   bool IsObscuring();
 
-  bool GeodesicSegmentation(LayerMRI* seeds, double lambda, int wsize, double max_dist, double smoothing_std, LayerMRI* mask);
+  bool GeodesicSegmentation(LayerMRI* seeds, double lambda, int wsize, double max_dist, double smoothing_std, LayerMRI* mask, double max_foreground_dist = 0);
 
   void GeodesicSegmentationAbort();
 
@@ -329,14 +330,40 @@ public:
     m_bIgnoreHeader = b;
   }
 
-  QVector<double> GetVoxelList(int nVal);
+  QVector<double> GetVoxelList(int nVal, bool bForce = false);
+
+  int GetLabelCount(int nVal);
 
   QVariantMap GetTimeSeriesInfo();
 
   QString GetGeoSegErrorMessage();
 
   bool ExportLabelStats(const QString& fn);
+
+  QList<vtkActor*> GetContourActors(bool bVisibleOnly = false);
+
+  Region3D* GetCurrent3DRegion()
+  {
+    return m_current3DRegion;
+  }
   
+  Region3D* CreateNew3DRegion( double* pt, vtkProp* prop );
+
+  bool DeleteCurrent3DRegion();
+
+  void Add3DRegionPoint( double* pt );
+
+  int GetNumberOf3DRegions()
+  {
+    return m_3DRegions.size();
+  }
+
+  Region3D* Select3DRegion( double* pos, double dist);
+
+  bool SaveAll3DRegions(const QString& fn);
+
+  bool Load3DRegions(const QString& fn);
+
 public slots:
   virtual void SetModified();
   void SetActiveFrame( int nFrame );
@@ -362,9 +389,11 @@ Q_SIGNALS:
   void GeodesicSegmentationApplied();
   void GeodesicSegmentationFinished(double time_in_secs);
   void GeodesicSegmentationProgress(double percentage);
+  void Region3DAdded();
+  void Region3DRemoved();
 
 protected slots:
-  void UpdateDisplayMode();
+  virtual void UpdateDisplayMode();
   virtual void UpdateOpacity();
   void UpdateTextureSmoothing();
   void UpdateContour( int nSegIndex = -1 );
@@ -453,6 +482,7 @@ protected:
   vtkSmartPointer<vtkActor>   m_actorContour;
   vtkSmartPointer<vtkVolume>  m_propVolume;
   QMap<int, vtkActor*>            m_labelActors;
+  vtkActor*                   m_actorCurrentContour;
 
   int         m_nThreadID;
   vtkSmartPointer<vtkActor>       m_actorContourTemp;
@@ -461,6 +491,9 @@ protected:
   QList<SurfaceRegion*>           m_surfaceRegions;
   SurfaceRegion*                  m_currentSurfaceRegion;
   SurfaceRegionGroups*            m_surfaceRegionGroups;
+
+  QList<Region3D*>            m_3DRegions;
+  Region3D*                   m_current3DRegion;
 
   int         m_nOrientationIndex[3];
 
@@ -482,6 +515,7 @@ private:
   QList<int>  m_nAvailableLabels;
   QMap<int, QList<double> > m_listLabelCenters;
   QMap<int, QVector<double> > m_voxelLists;
+  QMap<int, int> m_labelVoxelCounts;
 
   QMap<QObject*, double>  m_mapMaskThresholds;
   double      m_dMaskThreshold;

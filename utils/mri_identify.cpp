@@ -5,7 +5,7 @@
 /*
  * Original Author: Christian Haselgrove
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -489,22 +489,22 @@ char *IDextensionFromName(const char *name)
   // Does not do .w
 
   // Try extensions of length 3
-  if (len < 5) return (NULL);  // cant be right
+  if (len < 5) {free(ext); return (NULL);}  // cant be right
   ext = strncpy(ext, &(name[len - 3]), 3);
   if (!strcmp(ext, "nii") || !strcmp(ext, "mgz") || !strcmp(ext, "mgh") || !strcmp(ext, "img")) return (ext);
 
   // Try extensions of length 4
-  if (len < 6) return (NULL);  // cant be right
+  if (len < 6) {free(ext); return (NULL);}  // cant be right
   ext = strncpy(ext, &(name[len - 4]), 4);
   if (!strcmp(ext, "bhdr")) return (ext);
 
   // Try extensions of length 6
-  if (len < 8) return (NULL);  // cant be right
+  if (len < 8) {free(ext); return (NULL);}  // cant be right
   ext = strncpy(ext, &(name[len - 6]), 6);
   if (!strcmp(ext, "nii.gz")) return (ext);
 
   // Try _000.bfloat and _000.short
-  if (len < 12) return (NULL);  // cant be right
+  if (len < 12) {free(ext); return (NULL);}  // cant be right
   ext = strncpy(ext, &(name[len - 11]), 11);
   if (!strcmp(ext, "_000.bfloat")) {
     sprintf(ext, "bfloat");
@@ -515,6 +515,7 @@ char *IDextensionFromName(const char *name)
     return (ext);
   }
 
+  free(ext);
   return (NULL);
 }
 
@@ -1035,7 +1036,7 @@ int is_ximg(const char *fname) { return (FALSE); } /* end is_ximg() */
 int is_nifti1(const char *fname)
 {
   char fname_stem[STRLEN];
-  char hdr_fname[STRLEN];
+  std::string hdr_fname;
   char *dot;
   FILE *fp;
   char magic[4];
@@ -1044,11 +1045,12 @@ int is_nifti1(const char *fname)
 
   strcpy(fname_stem, fname);
   dot = strrchr(fname_stem, '.');
-  if (dot != NULL)
+  if (dot != NULL) {
     if (strcmp(dot, ".img") == 0 || strcmp(dot, ".hdr") == 0) *dot = '\0';
-  sprintf(hdr_fname, "%s.hdr", fname_stem);
+  }
+  hdr_fname = std::string(fname_stem) + ".hdr";
 
-  fp = fopen(hdr_fname, "r");
+  fp = fopen(hdr_fname.c_str(), "r");
   if (fp == NULL) {
     errno = 0;
     return (FALSE);

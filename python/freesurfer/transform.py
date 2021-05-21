@@ -59,7 +59,7 @@ class LinearTransform:
 
     def inverse(self):
         '''Computes the inverse linear transform.'''
-        return LinearTransform(np.linalg.inv(self.matrix))
+        return LinearTransform(np.linalg.inv(self.matrix), source=self.target, target=self.source, type=self.type)
 
     def as_ras(self):
         '''Converts affine matrix to a RAS to RAS transform.'''
@@ -70,7 +70,7 @@ class LinearTransform:
             return self
         # include source/target RAS information
         matrix = self.target.affine @ self.matrix @ np.linalg.inv(self.source.affine)
-        return LinearTransform(matrix, source=self.source, target=self.target, type=LinearTransform.Type.vox)
+        return LinearTransform(matrix, source=self.source, target=self.target, type=LinearTransform.Type.ras)
 
     def as_vox(self):
         '''Converts affine matrix to a VOX to VOX transform.'''
@@ -80,8 +80,8 @@ class LinearTransform:
         if self.type == LinearTransform.Type.vox:
             return self
         # exclude source/target RAS information
-        matrix = self.target.affine @ self.matrix @ np.linalg.inv(self.source.affine)
-        return LinearTransform(matrix, source=self.source, target=self.target, type=LinearTransform.Type.ras)
+        matrix = np.linalg.inv(self.target.affine) @ self.matrix @ self.source.affine
+        return LinearTransform(matrix, source=self.source, target=self.target, type=LinearTransform.Type.vox)
 
     def write(self, filename):
         '''Writes the transform to an LTA file.'''
@@ -122,6 +122,26 @@ class Geometry:
                 self.voxsize == other.voxsize and \
                 np.array_equal(self.affine, other.affine)
         return equal
+
+    @staticmethod
+    def is_equal(a, b, thresh=1e-3, require_affine=True):
+        '''Compare geometries within some threshold.'''
+
+        differ = lambda a, b: not np.allclose(a, b, rtol=0.0, atol=thresh)
+
+        if differ(a.shape, b.shape):
+            return False
+        if differ(a.voxsize, b.voxsize):
+            return False
+
+        if a.affine is not None and b.affine is not None:
+            if differ(a.affine, b.affine):
+                print(np.abs(np.array(a.affine) - np.array(b.affine)))
+                return False
+        elif require_affine:
+            return False
+
+        return True
 
     def vox2ras(self):
         '''LinearTransform that maps voxel crs coordinates to ras xyz coordinates.'''

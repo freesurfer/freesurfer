@@ -5,7 +5,7 @@
 /*
  * Original Author: Ruopeng Wang
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -103,7 +103,7 @@ bool Interactor2D::ProcessMouseDownEvent( QMouseEvent* event, RenderView* render
   }
   else if ( (event->button() == Qt::MidButton && ( event->modifiers() & Qt::ShiftModifier )) ||
             (event->button() == Qt::RightButton && ( event->modifiers() & CONTROL_MODIFIER ) &&
-            ( event->modifiers() & Qt::ShiftModifier )) )
+             ( event->modifiers() & Qt::ShiftModifier )) )
   {
     m_bSelecting = true;
     view->StartSelection( m_nMousePosX, m_nMousePosY );
@@ -318,13 +318,44 @@ bool Interactor2D::ProcessKeyDownEvent( QKeyEvent* event, RenderView* renderview
 {
   RenderView2D* view = ( RenderView2D* )renderview;
 
-  if ( MainWindow::GetMainWindow()->IsEmpty() )
+  int nKeyCode = event->key();
+  if (nKeyCode == Qt::Key_Escape)
+  {
+    m_bWindowLevel = false;
+    m_bChangeSlice = false;
+    m_bMovingCursor = false;
+    m_bSelecting = false;
+  }
+
+  MainWindow* mainwnd = MainWindow::GetMainWindow();
+  if ( mainwnd->IsEmpty() )
   {
     return Interactor::ProcessKeyDownEvent( event, renderview );
   }
 
-  int nKeyCode = event->key();
-  if ( event->modifiers() & Qt::ShiftModifier )
+  if ( nKeyCode == Qt::Key_Plus )
+  {
+    LayerMRI* mri = (LayerMRI*)mainwnd->GetActiveLayer("MRI");
+    if (mri && mri->GetNumberOfFrames() > 1)
+    {
+      int n = mri->GetActiveFrame() + 1;
+      if (n >= mri->GetNumberOfFrames())
+        n = 0;
+      mri->SetActiveFrame(n);
+    }
+  }
+  else if ( nKeyCode == Qt::Key_Minus )
+  {
+    LayerMRI* mri = (LayerMRI*)mainwnd->GetActiveLayer("MRI");
+    if (mri && mri->GetNumberOfFrames() > 1)
+    {
+      int n = mri->GetActiveFrame() - 1;
+      if (n < 0)
+        n = mri->GetNumberOfFrames()-1;
+      mri->SetActiveFrame(n);
+    }
+  }
+  else if ( event->modifiers() & Qt::ShiftModifier )
   {
     if ( nKeyCode == Qt::Key_Up )
     {

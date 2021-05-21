@@ -1,6 +1,6 @@
 /*
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -89,7 +89,10 @@ main(int argc, char *argv[]) {
   if (!cp)
     ErrorExit(ERROR_BADPARM, "no subjects directory in environment.\n") ;
   strcpy (subjects_dir, cp) ;
-  sprintf(surf_name,"%s/%s/surf/%s.%s",subjects_dir,subject_name,hemi,surface);
+  int req = snprintf(surf_name,NAME_LEN,"%s/%s/surf/%s.%s",subjects_dir,subject_name,hemi,surface);
+  if( req >= NAME_LEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   fprintf (stderr, "reading %s...\n", surf_name) ;
   mris = MRISread (surf_name) ;
   if (!mris)
@@ -118,7 +121,11 @@ main(int argc, char *argv[]) {
   /* Read in the T1 for this subject and change its name to the one
      they passed in. Set all values to 0. We'll use this as the
      segmentation volume. */
-  sprintf (mri_name,"%s/%s/mri/T1",subjects_dir,subject_name);
+  req = snprintf (mri_name,NAME_LEN, "%s/%s/mri/T1",subjects_dir,subject_name);
+  if( req >= NAME_LEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
+
   mri = MRIread (mri_name);
   if (!mri)
     ErrorExit(ERROR_NOFILE, "%s: could not read T1 for template volume");

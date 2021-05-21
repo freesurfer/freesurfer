@@ -240,7 +240,7 @@ endif
 ##
 set allages = ($trainingages $subjage)
 set sortedages = `echo $allages | fmt -1 | sort -n`
-# echo SORTED TRAINING AGES including SUBJ AGE:  $sortedages
+# echo SORTED TRAINING AGES including SUBJ AGE:  $sortedages 
 
 if ($forcegmwm) then
   set allgmwmages = ($gmwmtrainingages $subjage)  
@@ -249,7 +249,7 @@ if ($forcegmwm) then
 endif
 
 ##
-## (2) find where the input age fits in
+## (2) find where the input age fits in -- first occurance of the searched age in the sorted age list
 ##
 set subjind = 1
 foreach n ($sortedages)
@@ -272,6 +272,7 @@ if ($forcegmwm) then
   # echo SUBJ AGE INDEX $subjind
   set gmwmind = $subjind
 endif
+# echo SUBJ INDEX $subjind
 
 ##
 ## (3) select the desired number of training subjects
@@ -291,6 +292,7 @@ set counter = 1
 @ upperind = $ind + 1
 @ lowerind = $ind - 1
 # echo COUNTER K $counter $k
+@ N = $N + 1 #LZ 02132021
 while ($counter <= $k)
 
   if($upperind > $N) then
@@ -299,6 +301,7 @@ while ($counter <= $k)
     set upper = $sortedages[$upperind]
     @ upperdiff = $upper - $subjage
   endif
+  #echo UPPERDIFF $upperdiff
 
   if($lowerind < 1) then
     set lowerdiff = 1000
@@ -306,6 +309,7 @@ while ($counter <= $k)
   set lower = $sortedages[$lowerind]
   @ lowerdiff =  $subjage - $lower
   endif
+  #echo LOWERDIFF $lowerdiff 
  
   # echo DIFFERENCES $lowerdiff  $upperdiff
   if ($lowerdiff < $upperdiff) then
@@ -319,9 +323,10 @@ while ($counter <= $k)
     set selectedagediffs = ($selectedagediffs $upperdiff  )
     @ upperind = $upperind + 1
   endif
+  #echo SELECTEDAGES $selectedages
   @ counter = $counter + 1
 end
-# echo THE LIST OF AGES OF THE SELECTED TRAINING SUBJECTS: ${selectedages}
+#echo THE LIST OF AGES OF THE SELECTED TRAINING SUBJECTS: ${selectedages}
 
 ##
 ## Assemble the list of training subjects

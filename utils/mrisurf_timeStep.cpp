@@ -5,7 +5,7 @@
 /*
  * surfaces Author: Bruce Fischl, extracted from mrisurf.c by Bevin Brett
  *
- * $ © copyright-2014,2018 The General Hospital Corporation (Boston, MA) "MGH"
+ * $ Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -2094,7 +2094,10 @@ int MRISexpandSurface(MRI_SURFACE *mris, float distance, INTEGRATION_PARMS *parm
       MRISsaveVertexPositions(mris, ORIGINAL_VERTICES);
       MRISsaveVertexPositions(mris, WHITE_VERTICES);
     }
-    sprintf(fname, "%s.%s%3.3d", hemi, parms->base_name, 0);
+    int req = snprintf(fname, STRLEN, "%s.%s%3.3d", hemi, parms->base_name, 0);
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     printf("writing expanded surface to %s...\n", fname);
     MRISwrite(mris, fname);
   }
@@ -2124,7 +2127,6 @@ int MRISexpandSurface(MRI_SURFACE *mris, float distance, INTEGRATION_PARMS *parm
   else {
     MRISsaveVertexPositions(mris, ORIGINAL_VERTICES);
     if (use_thick) {
-      memset(&thick_parms, 0, sizeof(thick_parms));
       thick_parms.dt = 0.2;
       thick_parms.momentum = .5;
       thick_parms.l_nlarea = 1;
@@ -2136,7 +2138,10 @@ int MRISexpandSurface(MRI_SURFACE *mris, float distance, INTEGRATION_PARMS *parm
       if (cp == NULL) {
         ErrorExit(ERROR_BADPARM, "%s: FREESURFER_HOME not defined in environment", cp);
       }
-      sprintf(fname, "%s/lib/bem/ic7.tri", cp);
+      int req = snprintf(fname, STRLEN, "%s/lib/bem/ic7.tri", cp);
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       mris_ico = MRISread(fname);
       if (!mris_ico) {
         ErrorExit(ERROR_NOFILE, "%s: could not open surface file %s", Progname, fname);
@@ -2279,10 +2284,16 @@ int MRISexpandSurface(MRI_SURFACE *mris, float distance, INTEGRATION_PARMS *parm
           }
         }
 
-        sprintf(fname, "%s.target_dist.%d.mgz", parms->base_name, surf_no);
+        int req = snprintf(fname, STRLEN, "%s.target_dist.%d.mgz", parms->base_name, surf_no);
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
         printf("writing target surface distances to %s\n", fname);
         MRISwriteD(mris, fname);
-        sprintf(fname, "%s.targets.%d", parms->base_name, surf_no);
+        req = snprintf(fname, STRLEN, "%s.targets.%d", parms->base_name, surf_no);
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
         printf("writing target surface to %s\n", fname);
         MRISsaveVertexPositions(mris, TMP_VERTICES);
         MRISrestoreVertexPositions(mris, TARGET_VERTICES);
@@ -2370,7 +2381,10 @@ int MRISexpandSurface(MRI_SURFACE *mris, float distance, INTEGRATION_PARMS *parm
       else {
         printf("\n");
       }
-      sprintf(fname, "%s.%s%3.3d", hemi, parms->base_name, surf_no + 1);
+      int req = snprintf(fname, STRLEN, "%s.%s%3.3d", hemi, parms->base_name, surf_no + 1);
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       if (nsurfaces > 1) {
         printf("writing expanded surface to %s...\n", fname);
         MRISwrite(mris, fname);
@@ -2389,34 +2403,39 @@ int MRISexpandSurface(MRI_SURFACE *mris, float distance, INTEGRATION_PARMS *parm
 
 
 static int mrisSmoothingTimeStep(MRI_SURFACE *mris, INTEGRATION_PARMS *parms);
+
 int MRISremoveOverlapWithSmoothing(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 {
   int negative, old_neg, same = 0, min_neg, min_neg_iter, last_expand;
 
   parms->dt = .99;
   parms->max_nbrs = 0;
-  min_neg = negative = MRIScountNegativeTriangles(mris);
   min_neg_iter = 0;
   last_expand = 0;
   parms->t = parms->start_t;
+  min_neg = negative = MRIScountNegativeTriangles(mris);
+
   if (Gdiag & DIAG_WRITE) {
     char fname[STRLEN];
-
     if (!parms->fp) {
-      sprintf(fname, "%s.%s.out", mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh", parms->base_name);
+      int req = snprintf(fname, STRLEN, "%s.%s.out",
+			 mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh", parms->base_name);
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       INTEGRATION_PARMS_openFp(parms, fname, "a");
       if (!parms->fp) ErrorExit(ERROR_NOFILE, "%s: could not open log file %s", Progname, fname);
     }
   }
-  printf("%03d: dt=%2.4f, %d negative triangles\n", -1, 0.0, negative);
+
+  printf("%03d: dt=%2.4f, %3d negative triangles  VmPeak %d\n", -1, 0.0, negative,GetVmPeak());
   while (negative > 0) {
     old_neg = negative;
 
-    //    if (Gdiag & DIAG_SHOW && (parms->t % 100 == 0) && parms->t > 0)
-    printf("%03d: dt=%2.4f, %d negative triangles\n", parms->t, parms->dt, negative);
     if (parms->fp && parms->t % 100 == 0)
       fprintf(parms->fp, "%03d: dt=%2.4f, %d negative triangles\n", parms->t, parms->dt, negative);
 
+    printf("%03d: dt=%2.4f, %3d negative triangles\n", parms->t, parms->dt, negative);
     mrisSmoothingTimeStep(mris, parms);
     parms->t++;  // advance time-step counter
     mrisProjectSurface(mris);
@@ -2437,7 +2456,6 @@ int MRISremoveOverlapWithSmoothing(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
         parms->max_nbrs++;
         printf("expanding nbhd size to %d\n", parms->max_nbrs);
       }
-      //      parms->dt /= 2 ;
       last_expand = parms->t;
       same = 0;
     }
@@ -2451,41 +2469,12 @@ int MRISremoveOverlapWithSmoothing(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
         parms->dt = 0.99;
         printf("expanding nbhd size to %d\n", parms->max_nbrs);
         last_expand = parms->t;
-        //        parms->dt /= 2 ;
         same = 0;
       }
     }
     else {
       same = 0;
     }
-#if 0
-    if (parms->t == parms->niterations/4)
-    {
-      parms->max_nbrs++ ;
-      //      parms->dt /= 2 ;
-      last_expand = parms->t ;
-      parms->dt = 0.99 ;
-      printf("expanding nbhd size to %d\n", parms->max_nbrs) ;
-    }
-    if (parms->t == parms->niterations/2)
-    {
-      parms->max_nbrs++ ;
-      //      parms->dt /= 2 ;
-      last_expand = parms->t ;
-      printf("expanding nbhd size to %d\n", parms->max_nbrs) ;
-      parms->dt = 0.99 ;
-    }
-
-    if (parms->t == 3*parms->niterations/4)
-    {
-      last_expand = parms->t ;
-      //      parms->dt /= 2 ;
-      parms->max_nbrs++ ;
-      parms->dt = 0.99 ;
-      printf("expanding nbhd size to %d\n", parms->max_nbrs) ;
-    }
-#endif
-
     if (parms->t - parms->start_t > parms->niterations) {
       break;
     }
@@ -2658,9 +2647,6 @@ int MRISremoveCompressedRegions(MRI_SURFACE *mris, double min_dist)
       setFaceOrigArea(mris,fno,0.5f);
     }
   }
-
-  memset(&parms, 0, sizeof(parms));
-
   parms.l_parea = .002;
   l_spring = .01;
   l_convex = 0;

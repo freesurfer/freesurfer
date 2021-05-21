@@ -5,6 +5,12 @@ set -e
 [ "$#" != "1" ] && echo "error: usage: build.sh <prefix>" && exit 1
 INSTALL_DIR="$1"
 
+export CC=${CC:-$(which gcc)}
+export CXX=${CXX:-$(which g++)}
+
+export CFLAGS=${CFLAGS:-"-msse2 -mfpmath=sse"}
+export CXXFLAGS=${CXXFLAGS:-"-msse2 -mfpmath=sse"}
+
 cd petsc
 
 export PETSC_DIR=$(pwd)
@@ -28,7 +34,7 @@ elif [ "$(uname -s)" == "Darwin" ]; then
 fi
 export PETSC_ARCH
 
-make -j8
+make -j 8
 
 # build mpich
 cd externalpackages/mpich2-1.0.5p4

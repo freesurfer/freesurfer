@@ -1,6 +1,6 @@
 /*
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -161,6 +161,8 @@ char *maxvoxwisesigfile=NULL;
 MRI  *voxwisesig, *clustwisesig;
 char *clustwisesigfile=NULL;
 
+char *maxcwpvalfile=NULL; // save p-value of largest cluster
+
 char *SUBJECTS_DIR=NULL;
 char *subject=NULL;
 char *segvolfile=NULL;
@@ -184,6 +186,7 @@ COLOR_TABLE *segctab = NULL;
 int Bonferroni = 0;
 int BonferroniMax = 0;
 int regheader = 0;
+char *pointset = NULL;
 
 /*--------------------------------------------------------------*/
 /*--------------------- MAIN -----------------------------------*/
@@ -194,7 +197,6 @@ int main(int argc, char **argv) {
   int nthhit, n, m, nclusters, nprunedclusters;
   float x,y,z,val,pval;
   char *stem;
-  COLOR_TABLE *ct;
   FILE *fp;
 
   setRandomSeed(53);
@@ -504,6 +506,14 @@ int main(int argc, char **argv) {
   //clustFreeClusterList(&ClusterList,nclusters);/* Free - does not work */
   ClusterList = ClusterList2;
 
+  if(maxcwpvalfile != NULL){
+    // save sig of largest cluster
+    fp = fopen(maxcwpvalfile,"w");
+    if(nclusters > 1) fprintf(fp,"%10.5lf\n",ClusterList[0]->pval_clusterwise);
+    else              fprintf(fp,"1.0\n");
+    fclose(fp);
+  }
+
   /* Remove clusters that do not meet the minimum clusterwise pvalue */
   if(cwpvalthresh > 0 && (fwhm >0 || csd != NULL) ){
     printf("Pruning by CW P-Value %g\n",cwpvalthresh);
@@ -643,6 +653,25 @@ int main(int argc, char **argv) {
   }
   if (sumfile != NULL) fclose(fpsum);
 
+  if(pointset != NULL){
+    fp = fopen(pointset,"w");
+    MATRIX *vox2ras = MRIxfmCRS2XYZ(vol,0);
+    MATRIX *crs = MatrixAlloc(4,1,MATRIX_REAL);
+    MATRIX *xyz=NULL;
+    crs->rptr[4][1] = 1;
+    for (n = 0; n < nclusters; n++) {
+      crs->rptr[1][1] = ClusterList[n]->col[ClusterList[n]->maxmember];
+      crs->rptr[2][1] = ClusterList[n]->row[ClusterList[n]->maxmember];
+      crs->rptr[3][1] = ClusterList[n]->slc[ClusterList[n]->maxmember];
+      xyz = MatrixMultiply(vox2ras,crs,xyz);
+      fprintf(fp,"%7.4f %7.4f %7.4f\n",xyz->rptr[1][1],xyz->rptr[2][1],xyz->rptr[3][1]);
+    }
+    fprintf(fp,"info\n");
+    fprintf(fp,"numpoints %d\n",nclusters);
+    fprintf(fp,"UseRealRAS 1\n");
+    fclose(fp);
+  }
+
   /* Write clusters values to a volume */
   if (outid != 0) {
     outvol = clustClusterList2Vol(ClusterList, nclusters, vol,frame, 1);
@@ -674,18 +703,16 @@ int main(int argc, char **argv) {
   /* Write clusters numbers to a volume, include color LUT */
   if (outcnid != 0) {
     outvol = clustClusterList2Vol(ClusterList, nclusters, vol,frame, 0);
-    printf("INFO: writing OCN to %s\n",outcnid);
-    MRIwrite(outvol,outcnid);
-    //MRIwriteType(outvol,outcnid,outcntype);
-    MRIfree(&outvol);
-    ct = CTABalloc(nclusters+1);
-    strcpy(ct->entries[0]->name,"Unknown");
+    outvol->ct = CTABalloc(nclusters+1);
+    strcpy(outvol->ct->entries[0]->name,"Unknown");
     for (n = 0; n < nclusters; n++)
-      sprintf(ct->entries[n+1]->name,"Cluster-%03d",n+1);
+      sprintf(outvol->ct->entries[n+1]->name,"Cluster-%03d",n+1);
     stem = IDstemFromName(outcnid);
     sprintf(tmpstr,"%s.lut",stem);
-    CTABwriteFileASCII(ct, tmpstr);
-    CTABfree(&ct);
+    CTABwriteFileASCII(outvol->ct, tmpstr);
+    printf("INFO: writing OCN to %s\n",outcnid);
+    MRIwrite(outvol,outcnid);
+    MRIfree(&outvol);
     free(stem);
   }
 
@@ -760,6 +787,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--fixmni"))     FixMNI = 1;
     else if (!strcasecmp(option, "--fsaverage"))  UseFSAverage = 1;
     else if (!strcmp(option, "--sig2p-max")) sig2pmax = 1;
+    else if (!strcmp(option, "--gte")) setenv("FS_CSDPVALCLUSTSIZE_GTE","1",1);
 
     else if (!strcasecmp(option, "--diag")) {
       if (nargc < 1) CMDargNErr(option,1);
@@ -878,6 +906,11 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcmp(option, "--vwsigmax")) {
       if(nargc < 1) argnerr(option,1);
       maxvoxwisesigfile = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcmp(option, "--maxcwpval")) {
+      if(nargc < 1) argnerr(option,1);
+      maxcwpvalfile = pargv[0];
       nargsused = 1;
     } 
     else if (!strcmp(option, "--sum")) {
@@ -1002,7 +1035,8 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       FILE *fp;
       srand48(PDFtodSeed());
-      sprintf(tmpstr,"/tmp/tmp.mri_volcluster.%d.reg.dat",(int)round(drand48()*10000));
+      std::string tmpname = makeTempFile(".dat");
+      sprintf(tmpstr, "%s", tmpname.c_str());
       regfile = strcpyalloc(tmpstr);
       fp = fopen(regfile,"w");
       fprintf(fp,"%s\n",pargv[0]);
@@ -1023,11 +1057,17 @@ static int parse_commandline(int argc, char **argv) {
       regfile = strcpyalloc(tmpstr);
       nargsused = 0;
     }
+    else if (!strcmp(option, "--pointset")) {
+      if (nargc < 1) argnerr(option,1);
+      pointset = pargv[0];
+      nargsused = 1;
+    } 
     else if (!strcmp(option, "--fwhm")) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%lf",&fwhm);
       nargsused = 1;
-    } else if (!strcmp(option, "--fwhmdat")) {
+    } 
+    else if (!strcmp(option, "--fwhmdat")) {
       if(nargc < 1) argnerr(option,1);
       fp = fopen(pargv[0],"r");
       if(fp == NULL){
@@ -1063,6 +1103,7 @@ static void print_usage(void) {
   printf("   --out      output volid \n");
   printf("   --ocn      output cluster number volid \n");
   printf("   --cwsig    clusterwise sig volid \n");
+  printf("   --pointset pointset.dat : create a freeview pointset of the clusters\n");
   printf("\n");
   printf("   --thmin   minthresh : minimum intensity threshold\n");
   printf("   --thmax   maxthresh : maximum intensity threshold\n");
@@ -1082,6 +1123,7 @@ static void print_usage(void) {
   printf("   --csd csdfile <--csd csdfile ...>\n");
   printf("   --cwsig cwsig : map of corrected cluster-wise significances\n");
   printf("   --vwsig vwsig : map of corrected voxel-wise significances\n");
+  printf("   --maxcwpval maxcwpvalfile.txt : save p-value of the largest (max) cluster (1.0 if no cluster)\n");
   printf("   --csdpdf csdpdffile : PDF/CDF of cluster and max sig\n");
   printf("   --csdpdf-only : write csd pdf file and exit.\n");
   printf("\n");
@@ -1095,6 +1137,7 @@ static void print_usage(void) {
   printf("   --bonferroni N : addition correction across N (eg, spaces)\n");
   printf("   --bonferroni-max N : apply bonf cor to maximum (only applies with --sig2p-max)\n");
   printf("   --sig2p-max : convert max from sig to p\n");
+  printf("   --gte : use >= when computing p-value from CSD\n");
   printf("\n");
   printf("   --mask      mask volid (same dim as input)\n");
   printf("   --mask_type file format \n");

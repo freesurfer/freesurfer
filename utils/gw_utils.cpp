@@ -6,7 +6,7 @@
 /*
  * Original Author: Graham Wideman
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -263,7 +263,7 @@ int gw_log_init(char *AProgname, char *AProgversion, char *ALogfilepath, int new
 }
 
 //------------------------------
-void gw_log_message(char *msg)
+void gw_log_message(const char *msg)
 {
   //------------------------------
   FILE *afile;
@@ -291,11 +291,13 @@ void gw_log_timestamp(const char *label)
 {
   //------------------------------
   char datestr[100];
-  char msg[200];
+  std::stringstream msg;
 
   nowstr(datestr);
-  sprintf(msg, "---[%s]--- %s version %s at %s", label, local_Progname, local_Progversion, datestr);
-  gw_log_message(msg);
+  msg << "---[" << label << "]--- "
+      << local_Progname << " version " << local_Progversion
+      << " at " << datestr;
+  gw_log_message(msg.str().c_str());
 }
 
 //------------------------------

@@ -1,6 +1,6 @@
 /*
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -83,14 +83,20 @@ main(int argc, char *argv[]) {
   out_fname = argv[argc-1] ;
 
   subject_name = argv[1] ;
-  sprintf(fname, "%s/%s/mri/%s", subjects_dir, subject_name, seg_dir) ;
+  int req = snprintf(fname, STRLEN, "%s/%s/mri/%s", subjects_dir, subject_name, seg_dir) ;
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   mri_seg = MRIread(fname) ;
   if (!mri_seg)
     ErrorExit(ERROR_NOFILE, "%s: could not read segmentation file %s",
               Progname, fname) ;
   mri_dst = MRImarkTemporalWM(mri_seg, NULL) ;
 
-  sprintf(fname, "%s/%s/mri/%s", subjects_dir, subject_name, out_fname) ;
+  req = snprintf(fname, STRLEN, "%s/%s/mri/%s", subjects_dir, subject_name, out_fname) ;
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   printf("writing labeled temporal lobe to %s...\n", fname) ;
   MRIwrite(mri_dst, fname) ;
   MRIfree(&mri_dst) ;

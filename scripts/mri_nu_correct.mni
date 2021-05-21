@@ -5,7 +5,7 @@
 #
 # Original Author: Doug Greve
 #
-# Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
+# Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
 #
 # Terms and conditions for use, reproduction, distribution and contribution
 # are found in the 'FreeSurfer Software License Agreement' contained
@@ -41,6 +41,7 @@ set DoUchar = 0;
 set talxfm = ();
 set DoAntsN3 = 0;
 set DoAntsN4 = 0;
+set DoAntsN4CharConvert = 1;
 
 set debug = 0;
 set PrintHelp = 0;
@@ -77,18 +78,7 @@ echo $VERSION | tee -a $LF
 uname -a | tee -a $LF
 date | tee -a $LF
 
-# check for existence of /dev/shm
-set templocation = $OutDir
-if (-d /dev/shm) then
-  # make sure shm has enough memory available (4G) since containers usually only have 64M allocated
-  set shmsize = `df -m /dev/shm | tail -1| awk '{print $2}'`
-  if ( "$shmsize" > = 4000 ) then
-    echo "Found /dev/shm , will use for temp dir" | tee -a $LF
-    set templocation = "/dev/shm"
-  endif
-endif
-
-if(! $#tmpdir) set tmpdir = $templocation/tmp.mri_nu_correct.mni.$$
+if(! $#tmpdir) set tmpdir = $OutDir/tmp.mri_nu_correct.mni.$$
 mkdir -p $tmpdir
 echo "tmpdir is $tmpdir" | tee -a $LF
 
@@ -128,6 +118,7 @@ if($DoAntsN3 || $DoAntsN4) then
   if($DoAntsN4) then
     set cmd = (AntsN4BiasFieldCorrectionFs -i $InVol -o $numnc)
     if($#MaskVol) set cmd = ($cmd -x $MaskVol)
+    if($DoAntsN4CharConvert) set cmd = ($cmd --dtype uchar)
   endif
   echo "cd `pwd`" | tee -a $LF
   echo $cmd | tee -a $LF
@@ -292,6 +283,10 @@ while( $#argv != 0 )
       breaksw
     case "--no-ants-n4":
       set DoAntsN4 = 0;
+      breaksw
+
+    case "--ants-no-char":
+      set DoAntsN4CharConvert = 0;
       breaksw
 
     case "--n":

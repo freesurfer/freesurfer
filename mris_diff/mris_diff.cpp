@@ -6,7 +6,7 @@
  * Original Author: Doug Greve
  * Modifications: Bevin R Brett
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -1112,6 +1112,21 @@ static int parse_commandline(int argc, char **argv) {
       int res = MRISdiffSimple(surf1tmp, surf2tmp, 0, .00000001, 0);
       exit(res);
     }
+    else if (!strcasecmp(option, "--simple-patch")) {
+      // surf surf2 patch2
+      if (nargc < 3) CMDargNErr(option,3);
+      MRIS *surf1tmp = MRISread(pargv[0]);
+      if(surf1tmp==NULL) exit(1);
+      int err = MRISreadPatch(surf1tmp,pargv[1]);
+      if(err) exit(1);
+      MRIS *surf2tmp = MRISread(pargv[0]); // re-read
+      if(surf2tmp==NULL) exit(1);
+      err = MRISreadPatch(surf2tmp,pargv[2]);
+      if(err) exit(1);
+      printf("Checking for differences in patches between %s and %s\n",pargv[0],pargv[1]);
+      int res = MRISdiffSimple(surf1tmp, surf2tmp, 0, .00000001, 0);
+      exit(res);
+    }
     else {
       if (surf1path == NULL) {
         surf1path = option;
@@ -1150,7 +1165,8 @@ static void print_usage(void) {
   printf("   --aparc2 aparc2   optional different name to compare to aparc\n");
   printf("\n");
   printf("other options:\n");
-  printf("   --simple : just report whether the surfaces are different\n");
+  printf("   --simple surf1 surf2: just report whether the surfaces are different\n");
+  printf("   --simple-patch surf patch1 patch2 : just report whether the patches are different\n");
   printf("   --thresh N    threshold (default=0) [note: not currently implemented!] \n");
   printf("   --maxerrs N   stop looping after N errors (default=%d)\n",
          MAX_NUM_ERRORS);
@@ -1344,10 +1360,22 @@ int MRISdiffSimple(MRIS *surf1, MRIS *surf2,  int ndiffmin, double rmsthresh, in
   }
 
   ndiff = 0;
+  for(n=0; n < surf1->nvertices; n++){
+    v1 = &(surf1->vertices[n]);
+    v2 = &(surf2->vertices[n]);
+    if(v1->ripflag != v2->ripflag) ndiff++;
+  }
+  if(ndiff > ndiffmin){
+    printf("Surfaces differ in ripflags ndiff=%d\n",ndiff);fflush(stdout);
+    return(4);
+  }
+
+  ndiff = 0;
   rmsmax = 0;
   for(n=0; n < surf1->nvertices; n++){
     v1 = &(surf1->vertices[n]);
     v2 = &(surf2->vertices[n]);
+    if(v1->ripflag || v2->ripflag) continue;
     dx = v1->x - v2->x;
     dy = v1->y - v2->y;
     dz = v1->z - v2->z;

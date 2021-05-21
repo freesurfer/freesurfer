@@ -5,7 +5,7 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -928,7 +928,11 @@ MRI *MRIcentralPlaneOfLeastVarianceNormal(MRI *mri_src, MRI *mri_dst, int wsize)
     MRI *mri_tmp;
 
     /* try and read previously computed CPOLV file from disk */
-    sprintf(fname, "%s/cpolv.mnc", mri_src->fname);
+    int req = snprintf(fname, 100, "%s/cpolv.mnc", mri_src->fname);
+    if( req >= 100 ) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
+
     mri_tmp = MRIread(fname);
     if (mri_tmp) {
       if (Gdiag & DIAG_SHOW) fprintf(stderr, "reading previously calculated cpolv %s\n", fname);
@@ -2989,11 +2993,6 @@ MRI *MRIcpolvSmooth(MRI *mri_orig, MRI *mri_src, MRI *mri_dst, int wsize, int lo
               nblack_to_white,
               100.0f * (float)nblack_to_white / (float)total_vox);
       fprintf(stderr, "              %8d skipped (%%%2.2f)\n", nskipped, 100.0f * (float)nskipped / (float)total_vox);
-    }
-    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
-      char fname[100];
-      sprintf(fname, "/tmp/smooth%d.mnc", i + 1);
-      MRIwrite(mri_dst, fname);
     }
     if (i < niter - 1) MRIcopy(mri_dst, mri_src);
   }

@@ -5,7 +5,7 @@
 /*
  * Original Author: Doug Greve
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -1859,6 +1859,10 @@ long double MRIStargetCostVertex(const MRIS *surf, const int vno, long double *d
   are stored in v->d{xyz}. The total cost and gradients are normalized
   by the number of edges. Uses OpenMP.
 */
+#if GCC_VERSION > 80000
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif
 long double MRIStargetCost(MRIS *surf, const double weight, int DoGrad)
 {
   int vno, nhits;
@@ -1937,6 +1941,10 @@ long double MRIStargetCost(MRIS *surf, const double weight, int DoGrad)
 
   return(totcost);
 }
+#if GCC_VERSION > 80000
+#pragma GCC diagnostic pop
+#endif
+
 
 int MRIStargetCostTest(MRIS *surf, const double delta, const double anglethresh, const double magthresh)
 {

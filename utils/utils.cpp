@@ -6,7 +6,7 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -34,9 +34,12 @@
 #include <stdlib.h>
 #include <sys/param.h>
 #include <sys/resource.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <time.h> /* msvc (dng) */
 #include <unistd.h>
+#include <vector>
+#include <random>
 
 /* This should be in ctype.h, but the compiler complains */
 #ifndef Darwin
@@ -98,7 +101,7 @@ long getRandomCalls(void) { return (nrgcalls); }
 
 double randomNumber(double low, double hi)
 {
-  double val, range;
+  double val;
 
   if (low > hi) {
     val = low;
@@ -106,38 +109,49 @@ double randomNumber(double low, double hi)
     hi = val;
   }
 
-  if (idum == 0L) /* change seed from run to run */
+  // check if seed not set
+  if (idum == 0L)
   {
-    if (1) {
+    std::string seed = getEnvironVar("FREESURFER_SEED");
+    if (!seed.empty())
+    {
+      // set seed from env variable
+      std::cout << "Setting seed for random number genererator to " << seed << std::endl;
+      setRandomSeed(std::stol(seed));
+    }
+    else
+    {
+      // set seed by random time
       static int laterTime = 0;
       if (!laterTime) {
         laterTime = 1; 
         char commBuffer[1024];
         FILE* commFile = fopen("/proc/self/comm", "r");
         int commSize = 0;
-        if (commFile) {
-            commSize = fread(commBuffer, 1, 1023, commFile);
-	    if (commSize > 0) commSize-=1; // drop the \n
-	    int i = 0;
-	    for (i = 0; i < commSize; i++) {
-	        if (commBuffer[i] == '/') commBuffer[i] = '@';
-	    }
-            fclose(commFile);
+        if (commFile)
+        {
+          commSize = fread(commBuffer, 1, 1023, commFile);
+          if (commSize > 0) commSize-=1; // drop the \n
+          for (int i = 0; i < commSize; i++)
+          {
+            if (commBuffer[i] == '/') commBuffer[i] = '@';
+          }
+          fclose(commFile);
         }
         commBuffer[commSize] = 0;
-        fprintf(stderr, "%s supposed to be reproducible but seed not set\n",
-            commBuffer);
+        fprintf(stderr, "%s supposed to be reproducible but seed not set\n", commBuffer);
       }
+      idum = -1L * (long)(abs((int)time(NULL)));
     }
-    idum = -1L * (long)(abs((int)time(NULL)));
   }
   
-  range = hi - low;
+  double range = hi - low;
   val = OpenRan1(&idum) * range + low;
-  // printf("randomcall %3ld %12.10lf\n",nrgcalls,val);
   nrgcalls++;
   if ((val < low) || (val > hi))
+  {
     ErrorPrintf(ERROR_BADPARM, "randomNumber(%2.1f, %2.1f) - %2.1f\n", (float)low, (float)hi, (float)val);
+  }
 
   return (val);
 }
@@ -1310,8 +1324,23 @@ char *GetNthItemFromString(const char *str, int nth)
     return (NULL);
   }
 
-  for (n = 0; n < nth; n++) sprintf(fmt, "%s %%*s", fmt);
-  sprintf(fmt, "%s %%s", fmt);
+#if GCC_VERSION > 80000
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wrestrict"
+#endif
+  for (n = 0; n < nth; n++) {
+    int req = snprintf(fmt, 2000, "%s %%*s", fmt);
+    if( req >= 2000 ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
+  }
+  int req = snprintf(fmt, 2000, "%s %%s", fmt);
+  if( req >= 2000 ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
+#if GCC_VERSION > 80000
+#pragma GCC diagnostic pop
+#endif
   // printf("fmt %s\n",fmt);
   sscanf(str, fmt, tmpstr);
 
@@ -1861,4 +1890,93 @@ double *DListStats(double *dlist, int nlist, double *stats)
 bool stringEndsWith(const std::string& value, const std::string& ending) {
   if (value.length() < ending.length()) return false;
   return (0 == value.compare (value.length() - ending.length(), ending.length(), ending));
+}
+
+
+/*!
+  /brief Returns environment variable value as string. If the variable does not
+  exist, an empty string is returned. 
+*/
+std::string getEnvironVar(std::string const &key)
+{
+  char * val = getenv(key.c_str());
+  return val == NULL ? std::string("") : std::string(val);
+}
+
+
+/*!
+  /brief Checks whether the directory exists.
+*/
+bool directoryExists(std::string const &directory) {
+  struct stat info;
+  if (stat(directory.c_str(), &info) != 0) {
+    return false;
+  } else if (S_ISDIR(info.st_mode)) {
+    return true;
+  }
+  return false;
+}
+
+
+/*!
+  /brief Checks whether the directory is writable.
+*/
+bool directoryIsWritable(std::string const &directory) {
+  if (!directoryExists(directory)) return false;
+  std::string filename = directory + "/tmp.XXXXXX";
+  int fid = mkstemp(&filename[0]);
+  if (fid < 0) return false;
+  close(fid);
+  unlink(filename.c_str());
+  return true;
+}
+
+
+/*!
+  /brief Returns the base directory path for temporary files. Checks for environment
+  variables `FS_TMPDIR`, `TMPDIR`, `TMP`, `TEMP`, and `TEMPDIR`. If none of those are set,
+  the default is `/tmp`.
+*/
+std::string getBaseTempDir()
+{
+  // check if base temporary directory has been set in the env
+  std::string basedir = "";
+  std::vector<std::string> varnames = { "FS_TMPDIR", "TMPDIR", "TMP", "TEMP", "TEMPDIR" };
+  for (const std::string& varname : varnames) {
+    basedir = getEnvironVar(varname);
+    if ((!basedir.empty()) && (directoryIsWritable(basedir))) break;
+  }
+
+  // default to /tmp
+  if (basedir.empty()) basedir = "/tmp";
+  if (!directoryIsWritable(basedir)) fs::fatal() << "Can not write to temporary directory " << basedir;
+
+  return basedir;
+}
+
+
+/*!
+  /brief Generates a unique, temporary file. Suffix is optional.
+*/
+std::string makeTempFile(std::string const &suffix)
+{
+  std::string basedir = getBaseTempDir();
+  std::string filename = basedir + "/tmp.XXXXXX" + suffix;
+  int fid = mkstemps(&filename[0], suffix.length());
+  if (fid < 0) fs::fatal() << "Could not create temporary file in " << basedir;
+  close(fid);
+  return filename;
+}
+
+
+/*!
+  /brief Generates a unique, temporary directory.
+*/
+std::string makeTempDir()
+{
+  std::string basedir = getBaseTempDir();
+  std::string dirname = basedir + "/tmp.XXXXXX";
+  char * res = mkdtemp(&dirname[0]);
+  if (res == nullptr) fs::fatal() << "Could not create temporary directory in " << basedir;
+  return dirname;
 }

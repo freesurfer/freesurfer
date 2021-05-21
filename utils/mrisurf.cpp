@@ -4,7 +4,7 @@
 /*
  * surfaces Author: Bruce Fischl
  *
- * $ © copyright-2014 The General Hospital Corporation (Boston, MA) "MGH"
+ * $ Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -19,9 +19,7 @@
 #include "mrisurf_base.h"
 
 int UnitizeNormalFace = 1;
-int BorderValsHiRes   = 0;
 int RmsValErrorRecord = 0;
-
 
 
 #if (!SPHERE_INTERSECTION)
@@ -880,4 +878,35 @@ int MRIcomputeLabelNormal(MRI *mri_aseg, int x0, int y0, int z0,
   *pny = ny ;
   *pnz = nz ;
   return(NO_ERROR) ;
+}
+
+/*!
+  \fn int MRIScopyCoords(MRIS *surf, MRIS *surfcoords)
+  \brief Transfers the xyz coords from surfcoords to the given surface.
+*/
+int MRIScopyCoords(MRIS *surf, MRIS *surfcoords)
+{
+  int k;
+
+  if(surf == NULL){
+    printf("ERROR: MRIScopyCoordsCoords(): surf is null\n");
+    return(1);
+  }
+  if(surfcoords == NULL){
+    printf("ERROR: MRIScopyCoordsCoords(): surfcoords is null\n");
+    return(1);
+  }
+  if(surf->nvertices != surfcoords->nvertices){
+    printf("ERROR: MRIScopyCoordsCoords(): surf and surfcoords have diff no of vetices\n");
+    return(1);
+  }
+
+  for(k=0; k < surf->nvertices; k++){
+    VERTEX *v = &surf->vertices[k];
+    //if(v->ripflag) continue;
+    v->x = surfcoords->vertices[k].x;
+    v->y = surfcoords->vertices[k].y;
+    v->z = surfcoords->vertices[k].z;
+  }
+  return(0);
 }

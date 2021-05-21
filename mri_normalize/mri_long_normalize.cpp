@@ -11,7 +11,7 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -129,7 +129,10 @@ main(int argc, char *argv[])
      tp_names[t] = (char *)calloc(strlen(cp)+1, sizeof(char)) ;
      strcpy(tp_names[t], cp) ;
 
-     sprintf(fname, "%s/%s.long.%s/mri/%s", sdir, cp, bname, in_fname) ;
+     int req = snprintf(fname, STRLEN, "%s/%s.long.%s/mri/%s", sdir, cp, bname, in_fname);
+     if (req >= STRLEN) {
+       std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+     }
      printf("reading input volume %s\n", fname) ;
      mri_tmp = MRIread(fname) ;
      if (mri_tmp == NULL)
@@ -142,7 +145,10 @@ main(int argc, char *argv[])
      MRIcopyFrame(mri_tmp, mri_norm, 0, t) ;
      MRIfree(&mri_tmp) ;
 
-     sprintf(fname, "%s/%s/mri/%s", sdir, cp, brain_name) ;
+     req = snprintf(fname, STRLEN, "%s/%s/mri/%s", sdir, cp, brain_name);
+     if (req >= STRLEN) {
+       std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+     }
      printf("reading input volume %s\n", fname) ;
      mri_tmp = MRIread(fname) ;
      if (mri_tmp == NULL)
@@ -153,7 +159,11 @@ main(int argc, char *argv[])
        MRIcopyHeader(mri_tmp, mri_brain) ;
      }
 
-     sprintf(fname, "%s/mri/transforms/%s_to_%s.lta", bdir, bname, tp_names[t]) ;
+     req = snprintf(fname, STRLEN, "%s/mri/transforms/%s_to_%s.lta", bdir, bname, tp_names[t]);
+     if (req >= STRLEN) {
+       std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+     }
+
      printf("reading input transform %s\n", fname) ;
      ltas[t] = LTAread(fname) ;
      if (ltas[t] == NULL)
@@ -164,7 +174,10 @@ main(int argc, char *argv[])
      MRIcopyFrame(mri_tmp2, mri_brain, 0, t) ;
      MRIfree(&mri_tmp) ; MRIfree(&mri_tmp2) ;
 
-     sprintf(fname, "%s/%s.long.%s/mri/%s", sdir, cp, bname, aseg_name) ;
+     req = snprintf(fname, STRLEN, "%s/%s.long.%s/mri/%s", sdir, cp, bname, aseg_name);
+     if (req >= STRLEN) {
+       std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+     }
      printf("reading input volume %s\n", fname) ;
      mri_tmp = MRIread(fname) ;
      if (mri_tmp == NULL)
@@ -206,7 +219,10 @@ main(int argc, char *argv[])
     mri_tmp = MRIcopyFrame(mri_norm, mri_tmp, t, 0) ;
     mri_bias = MRIbuildBiasImage(mri_tmp, mri_ctrl, NULL, bias_sigma) ;
     mri_dst = MRIapplyBiasCorrectionSameGeometry(mri_tmp, mri_bias, NULL, DEFAULT_DESIRED_WHITE_MATTER_VALUE) ;
-    sprintf(fname, "%s/%s.long.%s/mri/%s", sdir, tp_names[t], bname, out_fname) ;
+    int req = snprintf(fname, STRLEN, "%s/%s.long.%s/mri/%s", sdir, tp_names[t], bname, out_fname);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     printf("writing output to %s\n", fname) ;
     MRIwrite(mri_dst, fname) ;
   }

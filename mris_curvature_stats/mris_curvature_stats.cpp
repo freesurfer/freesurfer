@@ -10,7 +10,7 @@
 /*
  * Original Author: Bruce Fischl / heavily hacked by Rudolph Pienaar
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -555,8 +555,14 @@ main(int argc, char *argv[])
 
   subject_name  = argv[1] ;
   hemi    = argv[2] ;
-  sprintf(fname, "%s/%s/surf/%s.%s", sdir, subject_name, hemi, surf_name) ;
-  sprintf(pch_surface, "%s/%s.%s", subject_name, hemi, surf_name);
+  int req = snprintf(fname, STRBUF, "%s/%s/surf/%s.%s", sdir, subject_name, hemi, surf_name) ;
+  if( req >= STRBUF ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
+  req = snprintf(pch_surface, 16384, "%s/%s.%s", subject_name, hemi, surf_name);
+  if( req >= STRBUF ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   cprints("Setting surface", pch_surface);
   cprints("Reading surface...", "");
   mris = MRISread(fname) ;
@@ -1160,64 +1166,97 @@ MRIS_surfaceIntegrals_report(
     strcpy(pch_processedArea, "Whole Surface");
   }
 
-  sprintf(pch_misc, " Mean Vertex Separation (%s):", pch_processedArea);
+  int req = snprintf(pch_misc, STRBUF, " Mean Vertex Separation (%s):", pch_processedArea);
+  if( req >= STRBUF ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
 
-  sprintf(tmp, "%10s%-40s",
+  req = snprintf(tmp, 1024, "%10s%-40s",
           pch_curveName, " Curvature Calculation Type:");
+  if( req >= 1024 ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   strcat(apch_report,tmp);
 
-  sprintf(tmp, "%12s\n", Gpch_calc);
+  req = snprintf(tmp, 1024, "%12s\n", Gpch_calc);
+  if( req >= 1024 ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   strcat(apch_report,tmp);
 
-  sprintf(tmp, "%10s%-40s", pch_curveName, pch_misc);
+  req = snprintf(tmp, 1024, "%10s%-40s", pch_curveName, pch_misc);
+  if( req >= 1024 ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   strcat(apch_report,tmp);
 
   sprintf(tmp, "%12.5f +- %2.5f mm\n",
           apmris->avg_vertex_dist, apmris->std_vertex_dist);
   strcat(apch_report,tmp);
 
-  sprintf(tmp, "%10s%-40s", pch_curveName, " Total Surface Area:");
+  req = snprintf(tmp, 1024, "%10s%-40s", pch_curveName, " Total Surface Area:");
+  if( req >= 1024 ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   strcat(apch_report,tmp);
 
   sprintf(tmp, "%12.5f mm^2\n", apmris->total_area);
   strcat(apch_report,tmp);
 
-  sprintf(tmp, "%10s%-40s", pch_curveName, " Total Number of Vertices:");
+  req = snprintf(tmp, 1024, "%10s%-40s", pch_curveName, " Total Number of Vertices:");
+  if( req >= 1024 ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   strcat(apch_report,tmp);
 
   sprintf(tmp, "%12.5d\n", apmris->nvertices);
   strcat(apch_report,tmp);
 
-  sprintf(tmp, "%10s%-40s",
+  req = snprintf(tmp, 1024, "%10s%-40s",
           pch_curveName, " Average Vertex Area (Whole Surface):");
+  if( req >= 1024 ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   strcat(apch_report,tmp);
 
   sprintf(tmp, "%12.5f mm^2\n", apmris->avg_vertex_area);
   strcat(apch_report,tmp);
 
   if(Gb_filter || label_name) {
-    sprintf(tmp, "%10s%-40s", pch_curveName, " ROI Surface Area:");
+    int req = snprintf(tmp, 1024, "%10s%-40s", pch_curveName, " ROI Surface Area:");
+    if( req >= 1024 ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     strcat(apch_report,tmp);
 
     sprintf(tmp, "%12.5f mm^2\n", f_SInaturalArea);
     strcat(apch_report,tmp);
 
-    sprintf(tmp, "%10s%-40s", pch_curveName, " ROI Number of Vertices:");
+    req = snprintf(tmp, 1024, "%10s%-40s", pch_curveName, " ROI Number of Vertices:");
+    if( req >= 1024 ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     strcat(apch_report,tmp);
 
     sprintf(tmp, "%12.5d\n", SInaturalVertices);
     strcat(apch_report,tmp);
 
-    sprintf(tmp, "%10s%-40s",
+    req = snprintf(tmp, 1024, "%10s%-40s",
             pch_curveName, " ROI Surface Area Percentage:");
+    if( req >= STRBUF ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     strcat(apch_report,tmp);
 
     sprintf(tmp, "%12.2f%s\n",
             100 * (float)f_SInaturalArea / apmris->total_area, "%");
     strcat(apch_report,tmp);
 
-    sprintf(tmp, "%10s%-40s",
+    req = snprintf(tmp, 1024, "%10s%-40s",
             pch_curveName, " ROI Surface Vertex Percentage:");
+    if( req >= 1024 ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     strcat(apch_report,tmp);
 
     sprintf(tmp, "%12.2f%s\n",
@@ -1225,8 +1264,11 @@ MRIS_surfaceIntegrals_report(
     strcat(apch_report,tmp);
 
 
-    sprintf(tmp, "%10s%-40s",
+    req = snprintf(tmp, 1024, "%10s%-40s",
             pch_curveName, " Average Vertex Area (ROI Surface):");
+    if( req >= 1024 ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     strcat(apch_report,tmp);
 
     sprintf(tmp, "%12.5f mm^2\n", f_SInaturalArea / SInaturalVertices);
@@ -1238,40 +1280,55 @@ MRIS_surfaceIntegrals_report(
     }
   }
 
-  sprintf(tmp, "%10s%-40s",
+  req = snprintf(tmp, 1024, "%10s%-40s",
           pch_curveName, " Natural Surface Integral:");
+  if( req >= 1024 ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   strcat(apch_report,tmp);
 
   sprintf(tmp, "%12.5f\n",
           f_SInatural);
   strcat(apch_report,tmp);
 
-  sprintf(tmp, "%10s%-40s",
+  req = snprintf(tmp, 1024, "%10s%-40s",
           pch_curveName, " Rectified Surface Integral:");
+  if( req >= 1024 ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   strcat(apch_report,tmp);
 
   sprintf(tmp, "%12.5f\n",
           f_SIabs);
   strcat(apch_report,tmp);
 
-  sprintf(tmp, "%10s%-40s",
+  req = snprintf(tmp, 1024, "%10s%-40s",
           pch_curveName, " Positive Surface Integral:");
+  if( req >= 1024 ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   strcat(apch_report,tmp);
 
   sprintf(tmp, "%12.5f\n",
           f_SIpos);
   strcat(apch_report,tmp);
 
-  sprintf(tmp, "%10s%-40s",
+  req = snprintf(tmp, 1024, "%10s%-40s",
           pch_curveName, " Negative Surface Integral:");
+  if( req >= 1024 ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   strcat(apch_report,tmp);
 
   sprintf(tmp,"%12.5f\n",
           f_SIneg);
   strcat(apch_report,tmp);
 
-  sprintf(tmp, "%10s%-40s",
+  req = snprintf(tmp, 1024, "%10s%-40s",
           pch_curveName, " Mean Natural Surface Integral:");
+  if( req >= 1024 ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   strcat(apch_report,tmp);
 
   sprintf(tmp, "%12.5f across %d (%05.2f%s) vertices\n",
@@ -1280,8 +1337,11 @@ MRIS_surfaceIntegrals_report(
           "%");
   strcat(apch_report,tmp);
 
-  sprintf(tmp, "%10s%-40s",
+  req = snprintf(tmp, 1024, "%10s%-40s",
           pch_curveName, " Mean Rectified Surface Integral:");
+  if( req >= 1024 ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   strcat(apch_report,tmp);
 
   sprintf(tmp, "%12.5f across %d (%05.2f%s) vertices\n",
@@ -1289,8 +1349,11 @@ MRIS_surfaceIntegrals_report(
           100 * (float)SIabsVertices / totalVertices, "%");
   strcat(apch_report,tmp);
 
-  sprintf(tmp, "%10s%-40s",
+  req = snprintf(tmp, 1024, "%10s%-40s",
           pch_curveName, " Mean Positive Surface Integral:");
+  if( req >= 1024 ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   strcat(apch_report,tmp);
 
   sprintf(tmp, "%12.5f across %d (%05.2f%s) vertices\n",
@@ -1298,8 +1361,11 @@ MRIS_surfaceIntegrals_report(
           100 * (float)SIposVertices / totalVertices, "%");
   strcat(apch_report,tmp);
 
-  sprintf(tmp, "%10s%-40s",
+  req = snprintf(tmp, 1024, "%10s%-40s",
           pch_curveName, " Mean Negative Surface Integral:");
+  if( req >= 1024 ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   strcat(apch_report,tmp);
 
   sprintf(tmp, "%12.5f across %d (%05.2f%s) vertices\n",
@@ -1307,8 +1373,11 @@ MRIS_surfaceIntegrals_report(
           100 * (float)SInegVertices / totalVertices, "%");
   strcat(apch_report,tmp);
 
-  sprintf(tmp, "%10s%-40s",
+  req = snprintf(tmp, 1024, "%10s%-40s",
           pch_curveName, " AreaNorm Natural Surface Integral:");
+  if( req >= 1024 ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   strcat(apch_report,tmp);
 
   sprintf(tmp, "%12.5f across %f (%05.2f%s) mm^2\n",
@@ -1316,8 +1385,11 @@ MRIS_surfaceIntegrals_report(
           100 * f_SInaturalArea / f_totalSurfaceArea, "%");
   strcat(apch_report,tmp);
 
-  sprintf(tmp, "%10s%-40s",
+  req = snprintf(tmp, 1024, "%10s%-40s",
           pch_curveName, " AreaNorm Rectified Surface Integral:");
+  if( req >= 1024 ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   strcat(apch_report,tmp);
 
   sprintf(tmp, "%12.5f across %f (%05.2f%s) mm^2\n",
@@ -1325,8 +1397,11 @@ MRIS_surfaceIntegrals_report(
           100 * f_SIabsArea / f_totalSurfaceArea, "%");
   strcat(apch_report,tmp);
 
-  sprintf(tmp, "%10s%-40s",
+  req = snprintf(tmp, 1024, "%10s%-40s",
           pch_curveName, " AreaNorm Positive Surface Integral:");
+  if( req >= 1024 ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   strcat(apch_report,tmp);
 
   sprintf(tmp, "%12.5f across %f (%05.2f%s) mm^2\n",
@@ -1334,8 +1409,11 @@ MRIS_surfaceIntegrals_report(
           100 * f_SIposArea / f_totalSurfaceArea, "%");
   strcat(apch_report,tmp);
 
-  sprintf(tmp, "%10s%-40s",
+  req = snprintf(tmp, 1024, "%10s%-40s",
           pch_curveName, " AreaNorm Negative Surface Integral:");
+  if( req >= 1024 ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   strcat(apch_report,tmp);
 
   sprintf(tmp, "%12.5f across %f (%05.2f%s) mm^2\n",
@@ -1406,14 +1484,21 @@ MRIS_curvatureStats_analyze(
   //  First the mean/sigma results
   Gf_mean = MRIScomputeAverageCurvature(apmris, &Gf_sigma);
   if(aesot == e_Raw) {
-    sprintf(pch_text,
+    int req = snprintf(pch_text, STRBUF,
             "\n%s <mean> +- <std> (using '%s.%s'):",
             Gppch[aesot], hemi, curv_fname);
+    if( req >= STRBUF ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     strcpy(pch_units, "");
-  } else
-    sprintf(pch_text,
-            "\n%s <mean> +- <std> (using '%s.%s'):",
-            Gppch[aesot], hemi, surf_name);
+  } else {
+    int req = snprintf(pch_text, STRBUF,
+              "\n%s <mean> +- <std> (using '%s.%s'):",
+              Gppch[aesot], hemi, surf_name);
+    if( req >= STRBUF ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
+  }
   fprintf(GpSTDOUT, "%-50s", pch_text);
   fprintf(GpSTDOUT, " %12.5f +- %2.4f %s\n", Gf_mean, Gf_sigma, pch_units);
 

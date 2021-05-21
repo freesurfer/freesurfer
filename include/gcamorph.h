@@ -13,7 +13,7 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -456,13 +456,6 @@ int GCAMnormalizeIntensities(GCA_MORPH *gcam, MRI *mr_target) ;
 MRI *GCAMcreateDistanceTransforms(MRI *mri_source, MRI *mri_target,
 				  MRI *mri_all_dtrans, float max_dist,
 				  GCA_MORPH *gcam, MRI **pmri_atlas_dist_map) ;
-#if 0
-MRI *GCAMcreateDistanceTransforms(GCA_MORPH *gcam,
-                                  MRI *mri_target,
-                                  MRI *mri_all_dtrans, 
-                                  MRI **pmri_atlas_dtrans,
-                                  float max_dist);
-#endif
 
 #define MAX_LTT_LABELS 1000
 typedef struct

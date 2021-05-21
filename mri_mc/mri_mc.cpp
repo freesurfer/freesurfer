@@ -10,7 +10,7 @@
 /*
  * Original Author: Florent Segonne
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -793,8 +793,7 @@ void generateMCtesselation(tesselation_parms * parms) {
 int main(int argc, char *argv[]) {
   tesselation_parms *parms;
   MRIS **mris_table, *mris,*mris_corrected;
-  MRI *mri;
-
+  MRI *mri, *mri_orig;
 
   std::string cmdline = getAllInfo(argc, argv, "mri_mc");
 
@@ -832,7 +831,8 @@ int main(int argc, char *argv[]) {
                    0, 0, 0, 
                    mri->width, mri->height, mri->depth, 
                    1, 1, 1) ;
-    MRIfree(&mri) ;
+    //MRIfree(&mri) ;
+    mri_orig = mri;
     mri = mri_tmp ;
   }
   MRIreInitCache(mri);
@@ -922,16 +922,19 @@ int main(int argc, char *argv[]) {
   MRISfree(&mris);
 
   fprintf(stderr,"\nwriting out surface...");
-  MRISaddCommandLine(mris_corrected, cmdline) ;
-  if (mriConformed(mri) == 0) {
-    printf("input volume is not conformed - using useRealRAS=1\n") ;
-    mris_corrected->useRealRAS = 1 ;
-  }
+  //MRISaddCommandLine(mris_corrected, cmdline);
+  strcpy(mris_corrected->fname, argv[1]);
+  MRIScopyVolGeomFromMRI(mris_corrected, mri_orig) ;
+  //if (mriConformed(mri_orig) == 0) {
+  //  printf("input volume is not conformed - using useRealRAS=1\n") ;
+  //  mris_corrected->useRealRAS = 1 ;
+  //}   // (mr) maybe bad idea to assume this, e.g. in highres stream volume will not be 256 cube
   //  getVolGeom(mri, &mris_corrected->vg);
   MRISwrite(mris_corrected,argv[3]);
   fprintf(stderr,"done\n");
 
   MRIfree(&mri);
+  MRIfree(&mri_orig);
   MRISfree(&mris_corrected);
 
   return 0;

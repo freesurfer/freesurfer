@@ -5,7 +5,7 @@
 /*
  * Original Author: Ruopeng Wang
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -73,11 +73,13 @@ bool Interactor2DPointSetEdit::ProcessMouseDownEvent( QMouseEvent* event, Render
         if ( m_nCurrentIndex < 0 )
         {
           m_nCurrentIndex = wp->AddPoint( ras );
+          m_bEditing = false;
         }
       }
-      else
+      else if (wp->RemovePoint( ras ))
       {
-        wp->RemovePoint( ras );
+        m_nCurrentIndex = wp->GetNumberOfPoints()-1;
+        m_bEditing = false;
       }
     }
 

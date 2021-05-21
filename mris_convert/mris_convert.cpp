@@ -6,7 +6,7 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -118,11 +118,14 @@ static MATRIX *XFM=NULL;
 static int write_vertex_neighbors = 0;
 static int combinesurfs_flag = 0;
 static int userealras_flag = 0;
+static int usesurfras_flag = 0;
 static MRI *VolGeomMRI=NULL;
 static int cras_add = 0;
 static int cras_subtract = 0;
 static int ToScanner = 0;
 static int ToTkr = 0;
+static int ToSurfCoords = 0;
+MRIS *SurfCoords = NULL;
 int WriteArea = 0;
 
 int DeleteCommands = 0;
@@ -258,7 +261,10 @@ main(int argc, char *argv[])
       strcpy(hemi, "lh") ;
     }
 
-    sprintf(fname, "%s/%s.orig", path, hemi) ;
+    int req = snprintf(fname, STRLEN, "%s/%s.orig", path, hemi) ;    
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     mris = MRISread(fname) ;
     if (!mris)
       ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
@@ -302,8 +308,13 @@ main(int argc, char *argv[])
 
   if(userealras_flag)
   {
-    printf("Setting useRealRAS to 1!\n");
+    printf("Setting useRealRAS to 1\n");
     mris->useRealRAS = 1;
+  }
+  if(usesurfras_flag)
+  {
+    printf("Setting useRealRAS to 0\n");
+    mris->useRealRAS = 0;
   }
 
   if(cras_add){
@@ -313,6 +324,11 @@ main(int argc, char *argv[])
   if(cras_subtract){
     printf("Subtracting scanner CRAS from surface xyz\n");
     MRISshiftCRAS(mris, -1);
+  }
+  if(ToSurfCoords){
+    printf("Converting to coords of --to-surf surface\n");
+    int err = MRIScopyCoords(mris,SurfCoords);
+    if(err) exit(1);
   }
   if(ToScanner){
     printf("Converting from tkr to scanner coordinates\n");
@@ -757,6 +773,12 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "-userealras"))
   {
     userealras_flag = 1;
+    usesurfras_flag = 0;
+  }
+  else if (!stricmp(option, "-usesurfras"))
+  {
+    userealras_flag = 0;
+    usesurfras_flag = 1;
   }
   else if (!stricmp(option, "-cras_correction") || !stricmp(option, "-cras_add")) {
     cras_add = 1;
@@ -781,6 +803,12 @@ get_option(int argc, char *argv[])
     ToTkr = 1;
     cras_add = 0;
     cras_subtract = 0;
+  }
+  else if (!stricmp(option, "-to-surf")) {
+    ToSurfCoords = 1;
+    SurfCoords = MRISread(argv[2]);
+    if(SurfCoords == NULL) exit (1);
+    nargs = 1 ;
   }
   else if (!stricmp(option, "-vol-geom"))
   {
@@ -904,7 +932,9 @@ print_help(void)
   printf( "  --delete-cmds : delete command lines in surface\n") ;
   printf( "  --center : put center of surface at (0,0,0)\n") ;
   printf( "  --userealras : set the useRealRAS flag in the surface file to 1 \n") ;
+  printf( "  --usesurfras : set the useRealRAS flag in the surface file to 0 \n") ;
   printf( "  --vol-geom MRIVol : use MRIVol to set the volume geometry\n") ;
+  printf( "  --to-surf surfcoords : copy coordinates from surfcoords to output (good for patches)\n") ;
   printf( "  --to-scanner : convert coordinates from native FS (tkr) coords to scanner coords\n") ;
   printf( "  --to-tkr : convert coordinates from scanner coords to native FS (tkr) coords \n") ;
   printf( "  --volume ?h.white ?h.pial ?h.volume : compute vertex-wise volume, no other args needed (uses th3)\n") ;

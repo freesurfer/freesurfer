@@ -25,7 +25,7 @@
 /*
  * Original Author: Doug Greve
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -1125,7 +1125,7 @@ static int parse_commandline(int argc, char **argv) {
       if(nargc < 9){
 	printf("ERROR: --vol2surf requires 9 args\n");
 	printf("USAGE: --vol2surf vol surf projtype projdist projmap reg vsm interp output\n");
-	printf(" projtype 0=frac, 1=absdist (if 1, projmap arg will be ignored)\n");
+	printf(" projtype 0=absdist, 1=frac (if 0, projmap arg will be ignored)\n");
 	printf(" projmap : map to get the values for projection (usually thickness)\n");
 	printf(" reg : LTA registration file (or 'regheader', surf must have vol geom) \n");
 	printf("   LTA files can go in either direction if surf has a valid vol geom\n");
@@ -1141,7 +1141,7 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[2],"%d",&projtype);
       double projdist;
       sscanf(pargv[3],"%lf",&projdist);
-      if(projtype == 0){
+      if(projtype == 1){
 	err = MRISreadCurvatureFile(surf, pargv[4]);
 	if(err) exit(1);
       }
@@ -1182,6 +1182,7 @@ static int parse_commandline(int argc, char **argv) {
       }
       int interpmethod=0;
       sscanf(pargv[7],"%d",&interpmethod);
+      printf("projtype %d, projdist %g, interp %d\n",projtype,projdist,interpmethod);
       MRI *sval = MRIvol2surfVSM(mri, RegMat, surf, vsm, interpmethod, NULL, projdist, projtype, 1,NULL);
       err = MRIwrite(sval,pargv[8]);
       printf("mri_vol2surf --volsurf done\n");
@@ -1309,7 +1310,7 @@ static void print_usage(void) {
   printf("    This is an alternative way to run vol2surf that does not rely on the recon-all\n");
   printf("    directory structure. Generates the same output as standard invocation as long \n");
   printf("    as --use-new is added. --vol2surf does not have all the functionality. \n");
-  printf("      projtype 0=frac, 1=absdist (if 1, projmap arg will be ignored)\n");
+  printf("      projtype 0=absdist, 1=frac (if 0, projmap arg will be ignored)\n");
   printf("      projmap : map to get the values for projection (usually thickness)\n");
   printf("      reg : LTA registration file (or 'regheader', surf must have vol geom) \n");
   printf("        LTA files can go in either direction if surf has a valid vol geom\n");
@@ -1766,6 +1767,7 @@ MRI *MRIvol2surf(MRI *SrcVol, MATRIX *Rtk, MRI_SURFACE *TrgSurf,
   TrgVol = MRIallocSequence(TrgSurf->nvertices,1,1,MRI_FLOAT,SrcVol->nframes);
   if (TrgVol == NULL) return(NULL);
   MRIcopyHeader(SrcVol,TrgVol);
+  MRIcopyPulseParameters(SrcVol,TrgVol);
 
   /* Zero the source hit volume */
   if(SrcHitVol != NULL){

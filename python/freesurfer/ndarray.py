@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import copy
+import scipy
 
 from collections.abc import Iterable
 
@@ -21,7 +22,7 @@ class ArrayContainerTemplate:
 
     basedims = None
 
-    def __init__(self, data):
+    def __init__(self, data, lut=None, swap_batch_dim=False):
         '''
         Contructs the container object from an array. The input data is not copied, and
         the array should have ndims equal to the subclass' basedims (or basedims + 1).
@@ -38,13 +39,17 @@ class ArrayContainerTemplate:
         if isinstance(data, str):
             raise ValueError('if loading from file, use the %s.read() class method' % classname)
 
+        # swap frame dimension from first axis to last
+        if swap_batch_dim and data.ndim > self.basedims:
+            data = np.moveaxis(data, 0, -1)
+
         self.data = np.array(data, copy=False)
         # extra dim is assumed to represent data frames
         if self.data.ndim < self.basedims or self.data.ndim > self.basedims + 1:
             raise ValueError('%s (%dD) cannot be initialized by an array with %d dims' % (classname, self.basedims, self.data.ndim))
 
         # any array type might have a valid lookup table
-        self.lut = None
+        self.lut = lut
 
     @property
     def nframes(self):
@@ -114,20 +119,20 @@ class Overlay(ArrayContainerTemplate):
     '''1D array that represents values corresponding to surface vertices.'''
     basedims = 1
 
-    def __init__(self, data):
+    def __init__(self, data, lut=None, **kwargs):
         '''Contructs an overlay from a 1D or 2D data array. The 2nd dimension is
         always assumed to be the number of frames.'''
-        super().__init__(data)
+        super().__init__(data, lut=lut, **kwargs)
 
 
 class Image(ArrayContainerTemplate, Transformable):
     '''2D image with specific geometry.'''
     basedims = 2
 
-    def __init__(self, data, affine=None, pixsize=None):
+    def __init__(self, data, affine=None, pixsize=None, lut=None, **kwargs):
         '''Contructs an image from a 2D or 3D data array. The 3rd dimension is
         always assumed to be the number of frames.'''
-        ArrayContainerTemplate.__init__(self, data)
+        ArrayContainerTemplate.__init__(self, data, lut=lut, **kwargs)
         self.affine = affine
         self.pixsize = pixsize if pixsize is not None else (1.0, 1.0)
 
@@ -191,7 +196,7 @@ class Volume(ArrayContainerTemplate, Transformable):
     '''
     basedims = 3
 
-    def __init__(self, data, affine=None, voxsize=None):
+    def __init__(self, data, affine=None, voxsize=None, lut=None, **kwargs):
         '''
         Contructs a volume from a 3D or 4D data array. The 4th dimension is
         always assumed to be the number of frames.
@@ -211,7 +216,7 @@ class Volume(ArrayContainerTemplate, Transformable):
             newaxes = [1] * (3 - data.ndim)
             data = data.reshape(*data.shape, *newaxes)
 
-        ArrayContainerTemplate.__init__(self, data)
+        ArrayContainerTemplate.__init__(self, data, lut=lut, **kwargs)
         self.affine = affine
         self.voxsize = voxsize if voxsize is not None else (1.0, 1.0, 1.0)
 
@@ -328,6 +333,67 @@ class Volume(ArrayContainerTemplate, Transformable):
         cropped_vol.copy_metadata(self)
         return cropped_vol
 
+    def crop_to_bbox(self, thresh=0, margin=0):
+        '''
+        TODOC
+        '''
+        cropping = scipy.ndimage.find_objects(self.data > thresh)[0]
+        if margin > 0:
+            start = [max(0, c.start - n) for c in cropping]
+            stop = [min(self.shape[i], c.stop + n) for i, c in enumerate(cropping)]
+            step = [c.step for c in cropping]
+            cropping = tuple([slice(*s) for s in zip(start, stop, step)])
+        return self[cropping]
+
+    def fit_to_shape(self, shape, center='image'):
+        '''
+        Returns a volume fit to a given shape. Image will be
+        centered in the conformed volume.
+
+        TODO: Enable multi-frame support.
+        '''
+
+        # This is a quick hack
+        if center == 'bbox':
+            v = self.crop_to_bbox()
+            return v.fit_to_shape(shape, center='image')
+
+        if self.nframes > 1:
+            raise NotImplementedError('multiframe volumes not support yet for shape refit')
+
+        delta = (np.array(shape) - np.array(self.shape[:3])) / 2
+        low = np.floor(delta).astype(int)
+        high = np.ceil(delta).astype(int)
+
+        c_low = np.clip(low, 0, None)
+        c_high = np.clip(high, 0, None)
+        conformed_data = np.pad(self.data.squeeze(), list(zip(c_low, c_high)), mode='constant')
+
+        # note: low and high are intentionally swapped here
+        c_low = np.clip(-high, 0, None)
+        c_high = conformed_data.shape[:3] - np.clip(-low, 0, None)
+        cropping = tuple([slice(a, b) for a, b in zip(c_low, c_high)])
+        conformed_data = conformed_data[cropping]
+
+        # compute new affine if one exists
+        if self.affine is not None:
+            matrix = np.eye(4)
+            matrix[:3, :3] = self.affine[:3, :3]
+            p0crs = np.clip(-high, 0, None) - np.clip(low, 0, None)
+            p0 = self.vox2ras().transform(p0crs)
+            matrix[:3, 3] = p0
+            pcrs = np.append(np.array(conformed_data.shape[:3]) / 2, 1)
+            cras = np.matmul(matrix, pcrs)[:3]
+            matrix[:3, 3] = 0
+            matrix[:3, 3] = cras - np.matmul(matrix, pcrs)[:3]
+        else:
+            matrix = None
+
+        # construct cropped volume
+        conformed_vol = Volume(conformed_data, affine=matrix, voxsize=self.voxsize)
+        conformed_vol.copy_metadata(self)
+        return conformed_vol
+
     def transform(self, trf, interp_method='linear', indexing='ij'):
         '''
         Returns a volume transformed by either a dense deformation field or affine
@@ -356,6 +422,21 @@ class Volume(ArrayContainerTemplate, Transformable):
         # construct new volume
         resampled = Volume(resampled_data)
         resampled.copy_geometry(self)
+        resampled.copy_metadata(self)
+        return resampled
+
+    def resample_like(self, target, interp_method='linear'):
+        '''
+        Returns a resampled image in the target space.
+        '''
+        if target.affine is None or self.affine is None:
+            raise ValueError("Can't resample volume without geometry information.")
+
+        vox2vox = LinearTransform.matmul(self.ras2vox(), target.vox2ras())
+        resampled_data = resample(self.data, target.shape, vox2vox, interp_method=interp_method)
+
+        resampled = Volume(resampled_data)
+        resampled.copy_geometry(target)
         resampled.copy_metadata(self)
         return resampled
 

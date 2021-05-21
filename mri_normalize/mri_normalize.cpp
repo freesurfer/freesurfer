@@ -11,7 +11,7 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -150,6 +150,8 @@ static float grad_thresh = -1 ;
 static MRI *mri_not_control = NULL;
 
 static LABEL *control_point_label = NULL ;
+char *output_control_points_vol;
+int DoGentleCPFile = 1;
 
 static int nonmax_suppress = 1 ;
 static int erode = 0 ;
@@ -690,8 +692,13 @@ main(int argc, char *argv[])
      things in the right intensity range */
   if(long_flag == 0)   // if long, then this will already have been done with base control points
   {
-    if(control_point_fname != NULL || control_point_label != NULL)  /* do one pass with only
-                                         file control points first */
+    if(DoGentleCPFile && (control_point_fname != NULL || control_point_label != NULL) ){
+      /* do one pass with only file control points first */
+      /* Note: this can cause effects far away from the control points
+	 because it will affect intensities across the entire
+	 image. This effect is multiplied because it affects the
+	 selection of other points */
+      printf("Doing gentle normalization with control points/label\n");
       mri_dst =
         MRI3dGentleNormalize(mri_src,
                              NULL,
@@ -700,8 +707,10 @@ main(int argc, char *argv[])
                              intensity_above,
                              intensity_below/2,1,
                              bias_sigma, mri_not_control);
+    }
     else
     {
+      printf("NOT doing gentle normalization with control points/label\n");
       mri_dst = MRIcopy(mri_src, NULL) ;
     }
   }
@@ -773,6 +782,10 @@ main(int argc, char *argv[])
       MRIfree(&mri_kernel);
       fflush(stdout);
       fflush(stderr);
+    }
+    if(output_control_points_vol){
+      printf("Writing output control points volume to %s\n", output_control_points_vol);
+      MRIwrite(mri_ctrl,output_control_points_vol);
     }
     MRIfree(&mri_ctrl) ;
     MRIfree(&mri_aseg) ;
@@ -1035,6 +1048,12 @@ get_option(int argc, char *argv[])
     if (!gca || !xform)
       ErrorExit(ERROR_NOFILE, "%s: could not read gca (%s) or transform (%s)\n", Progname, argv[2], argv[3]) ;
   }
+  else if (!stricmp(option, "C"))
+  {
+    output_control_points_vol = argv[2] ;
+    nargs = 1 ;
+    printf("Writing output control points volume to %s\n", output_control_points_vol);
+  }
   else if (!stricmp(option, "MASK"))
   {
     mask_fname = argv[2] ;
@@ -1140,6 +1159,8 @@ get_option(int argc, char *argv[])
     printf("using Gaussian smoothing of bias field, sigma=%2.3f\n",
            bias_sigma) ;
   }
+  else if (!stricmp(option, "no-gentle-cp")) DoGentleCPFile = 0;
+  else if (!stricmp(option, "gentle-cp"))    DoGentleCPFile = 1;
   else if (!stricmp(option, "conform"))
   {
     conform = 1 ;

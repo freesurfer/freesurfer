@@ -1,6 +1,6 @@
 /*
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -87,7 +87,10 @@ main(int argc, char *argv[]) {
   }
   else
     strcpy(hemi, "lh") ;
-  sprintf(in_surf_fname, "%s/%s.%s", path, hemi, orig_surf_name) ;
+  int req = snprintf(in_surf_fname, STRLEN, "%s/%s.%s", path, hemi, orig_surf_name) ;
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
 
   FileNamePath(out_patch_fname, path) ;
   cp = strrchr(out_patch_fname, '/') ;
@@ -101,7 +104,10 @@ main(int argc, char *argv[]) {
   }
   else
     strcpy(hemi, "lh") ;
-  sprintf(out_surf_fname, "%s/%s.%s", path, hemi, orig_surf_name) ;
+  req = snprintf(out_surf_fname, STRLEN, "%s/%s.%s", path, hemi, orig_surf_name) ;
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
 
   mris_in = MRISread(in_surf_fname) ;
   mris_out = MRISread(out_surf_fname) ;

@@ -5,7 +5,7 @@
 /*
  * Original Authors: Segonne and Greve
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -1538,7 +1538,8 @@ LABEL *MRIScortexLabel(MRI_SURFACE *mris, MRI *mri_aseg, int min_vertices, int K
     sscanf(getenv("FS_NUCACC_IS_MEDIAL_WALL"),"%d",&NucAccIsMedialWall);
 
   printf(" Generating cortex label... RemoveHipAmgy=%d\n",KeepHipAmyg);
-  printf("NucAccIsMedialWall=%d\n",NucAccIsMedialWall);
+  printf(" NucAccIsMedialWall=%d\n",NucAccIsMedialWall);
+  printf(" mris->useRealRAS=%d\n",mris->useRealRAS);
 
   mri_aseg = MRIcopy(mri_aseg, NULL);  // so we can mess with it
 
@@ -1561,6 +1562,8 @@ LABEL *MRIScortexLabel(MRI_SURFACE *mris, MRI *mri_aseg, int min_vertices, int K
 
   // First, set all v->marked=1. Then removed vertices below
   MRISsetMarks(mris, 1);
+
+  if(Gdiag_no > 0) printf("vno %d, Start: marked=%d\n", Gdiag_no, mris->vertices[Gdiag_no].marked);
 
   ROMP_PF_begin
 #ifdef HAVE_OPENMP
@@ -1591,6 +1594,9 @@ LABEL *MRIScortexLabel(MRI_SURFACE *mris, MRI *mri_aseg, int min_vertices, int K
       label = nint(val);
       if (FZERO(d)) base_label = label;
 
+      if(vno == Gdiag_no) printf("vno %d d=%g label=%d marked=%d (%g %g %g) (%g %g %g) (%d %d %d)\n", 
+    vno,d,label,v->marked,v->x,v->y,v->z,xs,ys,zs,(int)xv,(int)yv,(int)zv);
+
       if(label == Left_Lateral_Ventricle ||
           ( !KeepHipAmyg && (IS_HIPPO(label) || IS_AMYGDALA(label)) ) ||
           (IS_WM(label) && IS_WM(base_label) && (base_label != label)) ||  // crossed hemi staying in wm
@@ -1603,10 +1609,12 @@ LABEL *MRIScortexLabel(MRI_SURFACE *mris, MRI *mri_aseg, int min_vertices, int K
         if (label == Left_Putamen || label == Right_Putamen) DiagBreak();
         if (vno == Gdiag_no) DiagBreak();
         v->marked = 0;
+        if (vno == Gdiag_no) printf("vno %d bad label %d  (%g %g %g)\n", vno,label,xv,yv,zv);
       }
       if(label == Left_Lesion || label == Right_Lesion) {
         v->marked = 0;
         v->marked3 = 1; // keep track of lesion
+        if (vno == Gdiag_no) printf("vno %d is lesion\n", vno);
       }
     }
 
@@ -1622,6 +1630,7 @@ LABEL *MRIScortexLabel(MRI_SURFACE *mris, MRI *mri_aseg, int min_vertices, int K
       if (MRIlabelsInNbhd(mri_aseg, x, y, z, 2, Left_Lateral_Ventricle) > 0) {
         if (vno == Gdiag_no) DiagBreak();
         v->marked = 0;
+        if (vno == Gdiag_no) printf("vno %d near left thal\n", vno);
       }
     }
     else if (right && right >= left)  // near right thalamus
@@ -1629,6 +1638,7 @@ LABEL *MRIScortexLabel(MRI_SURFACE *mris, MRI *mri_aseg, int min_vertices, int K
       if (MRIlabelsInNbhd(mri_aseg, x, y, z, 2, Right_Lateral_Ventricle) > 0) {
         if (vno == Gdiag_no) DiagBreak();
         v->marked = 0;
+        if (vno == Gdiag_no) printf("vno %d near right thal\n", vno);
       }
     }
     MRIsampleVolumeType(mri_aseg, xv, yv, zv, &val, SAMPLE_NEAREST);
@@ -1651,8 +1661,11 @@ LABEL *MRIScortexLabel(MRI_SURFACE *mris, MRI *mri_aseg, int min_vertices, int K
         if (d < 1.5) adjacent = 1;
       }
     }
-    if (adjacent && (double)nvox / (double)total_vox > 0.5)  // more than 50% putamen
+    if (adjacent && (double)nvox / (double)total_vox > 0.5){
+      // more than 50% putamen
       v->marked = 0;
+      if (vno == Gdiag_no) printf("vno %d more than 50%% putamen\n", vno);
+    }
 
     if (v->marked)  // check to see if there is any cortical gm in the region in aseg
     {
@@ -1671,6 +1684,8 @@ LABEL *MRIScortexLabel(MRI_SURFACE *mris, MRI *mri_aseg, int min_vertices, int K
     ROMP_PFLB_end
   }
   ROMP_PF_end
+
+  if(Gdiag_no > 0) printf("vno %d, Post Loop marked=%d\n", Gdiag_no, mris->vertices[Gdiag_no].marked);
 
   // remove small holes that shouldn't be non-cortex
   {
@@ -2167,7 +2182,6 @@ MRI_SP *MRISmakeTemplate(int nsubjects, char **subjlist, int nhemis, char **hemi
   MRIS *mris;
 
   /* default template fields*/
-  memset(&parms, 0, sizeof(parms));
   parms.nfields = 3;
   SetFieldLabel(&parms.fields[0], INFLATED_CURV_CORR_FRAME, 0, 0.0, 0.0, 0, which_norm);
   /* only use sulc for rigid registration */

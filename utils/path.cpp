@@ -1,6 +1,6 @@
 /*
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -310,10 +310,11 @@ PATH *PathAlloc(int n_points, const char *name)
   path->n_points = n_points;
 
   /* Copy in a name. */
-  if (NULL != name)
-    strncpy(path->name, name, 100);
-  else
+  if (NULL != name) {
+    strncpy(path->name, name, 100-1);
+  } else {
     strcpy(path->name, "");
+  }
 
   /* Allocate the point storage. */
   path->points = (PATH_POINT *)calloc(n_points, sizeof(PATH_POINT));

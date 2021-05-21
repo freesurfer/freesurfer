@@ -25,6 +25,9 @@ public :
   typedef itk::SmartPointer< Self >  Pointer;
   typedef itk::SmartPointer< const Self >  ConstPointer;
 
+  typedef itk::Vector< ThreadAccumDataType, 3 > AtlasPositionGradientThreadAccumType;
+  typedef itk::VectorContainer< AtlasMesh::PointIdentifier, AtlasPositionGradientThreadAccumType> AtlasPositionGradientThreadAccumContainerType;
+
   /** Method for creation through the object factory. */
   itkNewMacro( Self );
 
@@ -102,11 +105,11 @@ protected:
                                                  const AtlasAlphasType&  alphasInVertex1,
                                                  const AtlasAlphasType&  alphasInVertex2,
                                                  const AtlasAlphasType&  alphasInVertex3,
-                                                 double&  priorPlusDataCost,
-                                                 AtlasPositionGradientType&  gradientInVertex0,
-                                                 AtlasPositionGradientType&  gradientInVertex1,
-                                                 AtlasPositionGradientType&  gradientInVertex2,
-                                                 AtlasPositionGradientType&  gradientInVertex3 )
+                                                 ThreadAccumDataType&  priorPlusDataCost,
+                                                 AtlasPositionGradientThreadAccumType&  gradientInVertex0,
+                                                 AtlasPositionGradientThreadAccumType&  gradientInVertex1,
+                                                 AtlasPositionGradientThreadAccumType&  gradientInVertex2,
+                                                 AtlasPositionGradientThreadAccumType&  gradientInVertex3 )
    {
    }  
 
@@ -115,12 +118,12 @@ protected:
                                                   const AtlasMesh::PointType& p2,
                                                   const AtlasMesh::PointType& p3,
                                                   const ReferenceTetrahedronInfo& info,
-                                                  double&  priorPlusDataCost,
-                                                  AtlasPositionGradientType&  gradientInVertex0,
-                                                  AtlasPositionGradientType&  gradientInVertex1,
-                                                  AtlasPositionGradientType&  gradientInVertex2,
-                                                  AtlasPositionGradientType&  gradientInVertex3 );
-  
+                                                  ThreadAccumDataType&  priorPlusDataCost,
+                                                  AtlasPositionGradientThreadAccumType&  gradientInVertex0,
+                                                  AtlasPositionGradientThreadAccumType&  gradientInVertex1,
+                                                  AtlasPositionGradientThreadAccumType&  gradientInVertex2,
+                                                  AtlasPositionGradientThreadAccumType&  gradientInVertex3 );
+
   // Let's provide a "hook" for adding non-tetrahdron-based cost and gradient contributions
   virtual void PostProcessCostAndGradient( const AtlasMesh* mesh )
     {
@@ -158,8 +161,8 @@ private:
   SlidingBoundaryCorrectionMatrixType  m_SlidingBoundaryCorrectionMatrices[ 8 ]; 
   
   //
-  std::vector< AtlasPositionGradientContainerType::Pointer >  m_ThreadSpecificPositionGradients;
-  std::vector< double >  m_ThreadSpecificMinLogLikelihoodTimesPriors;
+  std::vector< AtlasPositionGradientThreadAccumContainerType::Pointer >  m_ThreadSpecificPositionGradients;
+  std::vector< ThreadAccumDataType >  m_ThreadSpecificMinLogLikelihoodTimesPriors;
 
 #if KVL_ENABLE_TIME_PROBE  
   //

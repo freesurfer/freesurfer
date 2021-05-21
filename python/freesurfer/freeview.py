@@ -2,7 +2,7 @@ import os
 import tempfile
 import numpy as np
 
-from . import error, run, Image, Overlay, Volume, Surface, collect_output
+from . import error, run, Image, Overlay, Volume, Surface, Geometry, collect_output
 
 
 class Freeview:
@@ -28,15 +28,37 @@ class Freeview:
             self.threshold = threshold
             self.opacity = opacity
 
+    class AnnotTag:
+        '''Configuration for annotation tags. See surf() for usage.'''
+        def __init__(self, data, lut=None, name=None):
+            self.data = Overlay(data.squeeze()) if isinstance(data, np.ndarray) else data
+            if lut is not None:
+                self.data.lut = lut
+            self.name = name
+
     class MRISPTag:
         '''Configuration for mrisp tags. See surf() for usage.'''
         def __init__(self, data, name=None):
             self.data = data
             self.name = name
 
-    def __init__(self):
+    def __init__(self, swap_batch_dim=False, geom=None):
+        '''
+        Args:
+            swap_batch_dim: Move the first axis to the last if image input is a numpy array. Default is False.
+            geom: Geometry to apply to any ndarray images. Can be a geometry or volume instance. Default is None.
+        '''
         self.tempdir = None
         self.flags = []
+        self.swap_batch_dim = swap_batch_dim
+        
+        if isinstance(geom, (Image, Volume, Surface)):
+            geom = geom.geometry()
+        elif isinstance(geom, Geometry):
+            geom = geom
+        elif geom is not None:
+            raise ValueError('Unsupported geometry type "%s"' % geom.__class__.__name__)
+        self.geom = geom
 
     def copy(self):
         '''
@@ -48,7 +70,7 @@ class Freeview:
         copied.tempdir = self.tempdir
         return copied
 
-    def vol(self, volume, **kwargs):
+    def vol(self, volume, swap_batch_dim=False, **kwargs):
         '''
         Loads a volume in the sessions. If the volume provided is not a filepath,
         then the input will be saved as a volume in a temporary directory. Any
@@ -56,11 +78,12 @@ class Freeview:
 
         Args:
             volume: An existing volume filename, numpy array, or fs array container.
+            swap_batch_dim: Move the first axis to the last if input is a numpy array. Default is False.
             opts: Additional options to append to the volume argument.
         '''
 
         # convert the input to a proper file (if it's not one already)
-        filename = self._vol_to_file(volume)
+        filename = self._vol_to_file(volume, swap_batch_dim=swap_batch_dim)
         if filename is None:
             return
 
@@ -68,7 +91,7 @@ class Freeview:
         flag = '-v ' + filename + self._kwargs_to_tags(kwargs)
         self.add_flag(flag)
 
-    def surf(self, surface, overlay=None, mrisp=None, sphere=None, curvature=None, **kwargs):
+    def surf(self, surface, overlay=None, annot=None, mrisp=None, sphere=None, curvature=None, **kwargs):
         '''
         Loads a surface in the freeview session. If the surface provided is not
         a filepath, then the input will be saved in a temporary directory. Any
@@ -89,6 +112,8 @@ class Freeview:
             surface: An existing filename or Surface instance.
             overlay: A file, array, Overlay, or OverlayTag instance to project onto the surface. Multiple overlays can
                 be provided with a list.
+            annot: An Overlay or AnnotTag instance to annotate the surface. Multiple
+                annotations can be provided with a list. Overlays must have embedded lookup tables.
             mrisp: A file, array, Image, or MRISPTag to project onto the surface. Multiple parameterizations can
                 be provided with a list.
             curvature: A file, array, or Overlay instance to load as the surface curvature.
@@ -116,6 +141,18 @@ class Freeview:
                     tag += ':overlay_opacity=%f' % config.opacity
                 kwargs['opts'] = tag + kwargs.get('opts', '')
 
+        # configure (potentially multiple) annots
+        if annot is not None:
+            annot = list(annot) if isinstance(annot, (list, tuple)) else [annot]
+            for an in annot:
+                config = an if isinstance(an, Freeview.AnnotTag) else Freeview.AnnotTag(an)
+                if config.name is None:
+                    config.name = 'annotation'
+                annot_filename = self._vol_to_file(config.data, name=config.name, force=Overlay, ext='annot')
+                if annot_filename is not None:
+                    tag = ':annot=%s' % annot_filename
+                    kwargs['opts'] = tag + kwargs.get('opts', '')
+
         # configure (potentially multiple) mrisps
         if mrisp is not None:
             mrisp = list(mrisp) if isinstance(mrisp, (list, tuple)) else [mrisp]
@@ -132,11 +169,12 @@ class Freeview:
         flag = '-f ' + filename + self._kwargs_to_tags(kwargs)
         self.add_flag(flag)
 
-    def show(self, background=True, opts='', verbose=False, noclean=False, threads=None):
+    def show(self, background=True, title=None, opts='', verbose=False, noclean=False, threads=None):
         '''Opens the configured freeview session.
 
         Args:
             background: Run freeview as a background process. Defaults to True.
+            title: Title for the freeview window. Defaults to None.
             opts: Additional arguments to append to the command.
             verbose: Print the freeview command before running. Defaults to False.
             noclean: Do not remove temporary directory for debugging purposes.
@@ -145,6 +183,9 @@ class Freeview:
 
         # compile the command
         command = '%s freeview %s %s' % (self._vgl_wrapper(), opts, ' '.join(self.flags))
+
+        if title is not None:
+            command += ' -subtitle "%s"' % title.replace('"', '\\"')
 
         # be sure to remove the temporary directory (if it exists) after freeview closes
         if self.tempdir and not noclean:
@@ -185,7 +226,7 @@ class Freeview:
 
         return tags + extra_tags
 
-    def _vol_to_file(self, volume, name=None, force=None):
+    def _vol_to_file(self, volume, name=None, force=None, ext='mgz', swap_batch_dim=False):
         '''
         Converts an unknown volume type (whether it's a filename, array, or
         other object) into a valid file.
@@ -198,24 +239,49 @@ class Freeview:
                 return None
             return volume
 
+        # check if input is a numpy-convertible tensor
+        if hasattr(volume, 'numpy'):
+            volume = volume.numpy()
+
         # if input is a numpy array, convert to the appropriate fs array type
         # and let the filename creation get handled below
         if isinstance(volume, np.ndarray):
+
+            if swap_batch_dim or self.swap_batch_dim:
+                # swap batch axis to frame axis if specified
+                if volume.shape[-1] == 1:
+                    volume = volume[..., 0]
+                volume = np.moveaxis(volume, 0, -1)
+            elif volume.ndim == 5 and volume.shape[-1] == 1:
+                # this is a bit of a hack for Bruce that auto-checks
+                # and swaps dimensions for a volume that is batched
+                volume = volume[..., 0]
+                volume = np.moveaxis(volume, 0, -1)
+
+            orig_shape = volume.shape
             volume = self._convert_ndarray(volume) if force is None else force(volume.squeeze())
             if volume is None:
-                error('cannot convert array of shape %s' % str(array.shape))
+                error('cannot convert array of shape %s' % str(orig_shape))
                 return None
+
+            if self.geom is not None and volume.basedims > 1:
+                volume.copy_geometry(self.geom)
 
         # configure filename
         if not name:
             if isinstance(volume, Overlay):
-                filename = self._unique_filename('overlay.mgz')
+                filename = self._unique_filename('overlay.%s' % ext)
             elif isinstance(volume, Image):
-                filename = self._unique_filename('image.mgz')
+                filename = self._unique_filename('image.%s' % ext)
             else:
-                filename = self._unique_filename('volume.mgz')
+                filename = self._unique_filename('volume.%s' % ext)
         else:
-            filename = self._unique_filename(name.replace(' ', '-') + '.mgz')
+            filename = self._unique_filename(name.replace(' ', '-') + '.' + ext)
+
+        # ensure annotations were provided lookup tables
+        if ext == 'annot' and volume.lut is None:
+            error('cannot save annotation without embedded lookup table')
+            return None
 
         # check if fs array container
         if isinstance(volume, (Overlay, Image, Volume)):
@@ -310,7 +376,7 @@ class Freeview:
         name = name_ext[0]
         ext = '.' + name_ext[1] if len(name_ext) == 2 else ''
         for n in range(2, 10000):
-            fullpath = os.path.join(directory, '%s-%d%s' % (name, n, ext))
+            fullpath = os.path.join(directory, '%s-%02d%s' % (name, n, ext))
             if not os.path.exists(fullpath):
                 return fullpath
         raise RuntimeError('could not generate a unique filename for "%s" after trying many times' % (filename))
@@ -331,18 +397,31 @@ class Freeview:
 def fv(*args, **kwargs):
     '''
     Freeview wrapper to quickly load an arbitray number of volumes and surfaces. Inputs
-    can be existing filenames, surfaces, volumes or numpy arrays. Use the `Freeview` class directly
-    to configure a more detailed session.
+    can be existing filenames, surfaces, volumes or numpy arrays. Lists are also supported.
+    Use the `Freeview` class directly to configure a more detailed session.
 
     Args:
         opts: Additional string of flags to add to the command.
         background: Run freeview as a background process. Defaults to True.
+        swap_batch_dim: Move the first axis to the last if input is a numpy image array. Default is False.
+        kwargs: kwargs are forwarded to the Freeview.show() call.
     '''
     background = kwargs.pop('background', True)
     opts = kwargs.pop('opts', '')
+    swap_batch_dim = kwargs.pop('swap_batch_dim', False)
+    geom = kwargs.pop('geom', None)
 
-    fv = Freeview()
-    for arg in args:
+    # expand any nested lists/tuples within args
+    def flatten(deep):
+        for el in deep:
+            if isinstance(el, (list, tuple)):
+                yield from flatten(el)
+            else:
+                yield el
+
+    fv = Freeview(geom=geom)
+
+    for arg in flatten(args):
         if isinstance(arg, str):
             # try to guess filetype if string
             if arg.endswith(('.mgz', '.mgh', '.nii.gz', '.nii')):
@@ -356,12 +435,12 @@ def fv(*args, **kwargs):
             fv.surf(arg)
         else:
             # assume anything else is a volume
-            fv.vol(arg)
+            fv.vol(arg, swap_batch_dim=swap_batch_dim)
 
-    fv.show(background=background, opts=opts)
+    fv.show(background=background, opts=opts, **kwargs)
 
 
-def fvoverlay(surface, overlay, background=True, opts='', verbose=False):
+def fvoverlay(surface, overlay, background=True, opts='', verbose=False, **kwargs):
     '''Freeview wrapper to quickly load an overlay onto a surface.
 
     Args:
@@ -369,7 +448,8 @@ def fvoverlay(surface, overlay, background=True, opts='', verbose=False):
         overlay: An existing volume filename, a numpy array, or a nibabel image to apply as an overlay.
         background: Run freeview as a background process. Defaults to True.
         verbose: Print the freeview command before running. Defaults to False.
+        kwargs: kwargs are forwarded to the Freeview.show() call.
     '''
     fv = Freeview()
     fv.surf(surface, overlay=overlay)
-    fv.show(background=background, opts=opts, verbose=verbose)
+    fv.show(background=background, opts=opts, verbose=verbose, **kwargs)

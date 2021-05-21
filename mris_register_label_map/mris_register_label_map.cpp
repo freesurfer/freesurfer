@@ -5,7 +5,7 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -224,7 +224,10 @@ int main(int argc, char *argv[])
       {
 	MRI *mri_tmp ;
 	sprintf(name, fmri_surf, hemi, run+1) ;
-	sprintf(fname, "%s/%s/surf/%s", SUBJECTS_DIR, subject, name) ;
+	int req = snprintf(fname, STRLEN, "%s/%s/surf/%s", SUBJECTS_DIR, subject, name) ;
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
 	mri_fsurf[n][run] = MRIread(fname) ;
 	if (mri_fsurf[n][run] == NULL)
 	  ErrorExit(ERROR_NOFILE, "%s: could not load surface time series from %s", Progname, fname) ;
@@ -238,14 +241,21 @@ int main(int argc, char *argv[])
 	}
 
 	sprintf(name, fmri_vol, run+1) ;
-	sprintf(fname, "%s/%s/mri/%s", SUBJECTS_DIR, subject, name) ;
+	req = snprintf(fname, STRLEN, "%s/%s/mri/%s", SUBJECTS_DIR, subject, name) ;
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
 	mri_fvol[n][run] = MRIread(fname) ;
 	if (mri_fvol[n][run] == NULL)
 	  ErrorExit(ERROR_NOFILE, "%s: could not load volume time series from %s", Progname, fname) ;
       }
       if (label_name)
       {
-        sprintf(fname, "%s/%s/label/%s.%s", SUBJECTS_DIR, subject, hemi, label_name) ;
+        int req = snprintf(fname, STRLEN, "%s/%s/label/%s.%s",
+			   SUBJECTS_DIR, subject, hemi, label_name) ;
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
         labels[n] = LabelRead("", fname) ;
         if (!labels[n])
 	  ErrorExit(ERROR_NOFILE, "%s: could not read label from %s", Progname, fname) ;
@@ -261,12 +271,18 @@ int main(int argc, char *argv[])
     }
     else   // using surface-based correlation to drive warp
     {
-      sprintf(fname, "%s/%s/surf/%s", SUBJECTS_DIR, subject, cmat_name) ;
+      int req = snprintf(fname, STRLEN, "%s/%s/surf/%s", SUBJECTS_DIR, subject, cmat_name) ;
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       mri_cmat = MRIread(fname) ;
       if (!mri_cmat)
 	ErrorExit(ERROR_NOFILE, "%s: could not read cmat from %s", Progname, fname) ;
       
-      sprintf(fname, "%s/%s/label/%s.%s", SUBJECTS_DIR, subject, hemi, label_name) ;
+      req = snprintf(fname, STRLEN, "%s/%s/label/%s.%s", SUBJECTS_DIR, subject, hemi, label_name) ;
+      if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       labels[n] = LabelRead("", fname) ;
       if (!labels[n])
 	ErrorExit(ERROR_NOFILE, "%s: could not read label from %s", Progname, fname) ;
@@ -277,7 +293,10 @@ int main(int argc, char *argv[])
 
       if (write_diags)
       {
-	sprintf(fname, "%s.%s.%s.label_avg.mgz", hemi, subject, output_name) ;
+	int req = snprintf(fname, STRLEN, "%s.%s.%s.label_avg.mgz", hemi, subject, output_name) ;
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
 	mri_label_avg[n]->width /= 2 ;
 	MRIwrite(mri_label_avg[n], fname) ;
 	mri_label_avg[n]->width *= 2 ;
@@ -289,7 +308,10 @@ int main(int argc, char *argv[])
     mri_stats = compute_mean_and_variance_across_frames(mri_label_avg, nsubjects) ;
     if (write_diags)
     {
-      sprintf(fname, "%s.%s.label_avg.mgz", hemi, output_name) ;
+      int req = snprintf(fname, STRLEN, "%s.%s.label_avg.mgz", hemi, output_name) ;
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       mri_stats->width /= 2 ;
       MRIwriteFrame(mri_stats, fname, 0) ;
       mri_stats->width *= 2 ;
@@ -333,7 +355,10 @@ int main(int argc, char *argv[])
       {
 	MRI *mri_tmp ;
 	sprintf(name, fmri_surf, hemi, run+1) ;
-	sprintf(fname, "%s/%s/surf/%s", SUBJECTS_DIR, trgsubject, name) ;
+	int req = snprintf(fname, STRLEN, "%s/%s/surf/%s", SUBJECTS_DIR, trgsubject, name) ;
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
 	mri_fsurf[nsubjects][run] = MRIread(fname) ;
 	if (mri_fsurf[nsubjects][run] == NULL)
 	  ErrorExit(ERROR_NOFILE, "%s: could not load surface time series from %s", Progname, fname) ;
@@ -347,14 +372,21 @@ int main(int argc, char *argv[])
 	}
       
 	sprintf(name, fmri_vol, run+1) ;
-	sprintf(fname, "%s/%s/mri/%s", SUBJECTS_DIR, trgsubject, name) ;
+	req = snprintf(fname, STRLEN, "%s/%s/mri/%s", SUBJECTS_DIR, trgsubject, name) ;
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
 	mri_fvol[nsubjects][run] = MRIread(fname) ;
 	if (mri_fvol[nsubjects][run] == NULL)
 	  ErrorExit(ERROR_NOFILE, "%s: could not load volume time series from %s", Progname, fname) ;
       }
       if (label_name)
       {
-        sprintf(fname, "%s/%s/label/%s.%s", SUBJECTS_DIR, trgsubject, hemi, label_name) ;
+        int req = snprintf(fname, STRLEN, "%s/%s/label/%s.%s", 
+			   SUBJECTS_DIR, trgsubject, hemi, label_name) ;
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
         labels[nsubjects] = LabelRead("", fname) ;
         if (!labels[nsubjects])
 	  ErrorExit(ERROR_NOFILE, "%s: could not read label from %s", Progname, fname) ;
@@ -367,7 +399,10 @@ int main(int argc, char *argv[])
       mri_stats = compute_mean_and_variance(mri_label_avg, nsubjects) ;
     if (write_diags)
     {
-      sprintf(fname, "%s.%s.label_avg.mgz", hemi, output_name) ;
+      int req = snprintf(fname, STRLEN, "%s.%s.label_avg.mgz", hemi, output_name) ;
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       printf("writing mean and variance volume to %s\n", fname) ;
       MRIwrite(mri_stats, fname) ;
     }
@@ -377,7 +412,10 @@ int main(int argc, char *argv[])
     {
       MRI *mri_tmp ;
       sprintf(name, fmri_surf, hemi, run+1) ;
-      sprintf(fname, "%s/%s/surf/%s", SUBJECTS_DIR, trgsubject, name) ;
+      int req = snprintf(fname, STRLEN, "%s/%s/surf/%s", SUBJECTS_DIR, trgsubject, name) ;
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       mri_fsurf[n][run] = MRIread(fname) ;
       if (mri_fsurf[n][run] == NULL)
 	ErrorExit(ERROR_NOFILE, "%s: could not load surface time series from %s", Progname, fname) ;
@@ -391,7 +429,10 @@ int main(int argc, char *argv[])
       }
       
       sprintf(name, fmri_vol, run+1) ;
-      sprintf(fname, "%s/%s/mri/%s", SUBJECTS_DIR, trgsubject, name) ;
+      req = snprintf(fname, STRLEN, "%s/%s/mri/%s", SUBJECTS_DIR, trgsubject, name) ;
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       mri_fvol[n][run] = MRIread(fname) ;
       if (mri_fvol[n][run] == NULL)
 	ErrorExit(ERROR_NOFILE, "%s: could not load volume time series from %s", Progname, fname) ;

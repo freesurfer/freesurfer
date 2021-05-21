@@ -1,7 +1,7 @@
 /*
  * Original Author: Ruopeng Wang
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -175,6 +175,7 @@ PanelSurface::PanelSurface(QWidget *parent) :
   connect(m_wndConfigureOverlay, SIGNAL(MaskLoadRequested(QString)), mainwnd, SLOT(OnLoadSurfaceLabelRequested(QString)));
   connect(m_wndConfigureOverlay, SIGNAL(OverlayChanged()), SLOT(UpdateWidgets()));
   connect(mainwnd, SIGNAL(OverlayMaskRequested(QString)), m_wndConfigureOverlay, SLOT(LoadLabelMask(QString)));
+  connect(mainwnd, SIGNAL(CycleAnnotationRequested()), this, SLOT(OnCycleAnnotation()));
 
   m_wndEditAnnotation = new WindowEditAnnotation(this);
   m_wndEditAnnotation->hide();
@@ -851,6 +852,18 @@ void PanelSurface::OnComboAnnotation( int nSel_in )
   }
 }
 
+void PanelSurface::OnCycleAnnotation()
+{
+  LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
+  if ( surf && surf->GetNumberOfAnnotations() > 1)
+  {
+    int n = ui->comboBoxAnnotation->currentIndex()+1;
+    if (n > surf->GetNumberOfAnnotations())
+      n = 1;
+    ui->comboBoxAnnotation->setCurrentIndex(n);
+  }
+}
+
 void PanelSurface::OnButtonLoadLabel()
 {
   MainWindow::GetMainWindow()->LoadSurfaceLabel();
@@ -1466,7 +1479,7 @@ void PanelSurface::OnCustomFillTriggered(const QVariantMap &options_in)
     if (options["UseAllPoints"].toBool())
       verts = surf->GetAllMarks();
 
-    if (m_wndEditAnnotation->isVisible() || surf->GetActiveAnnotation())
+    if (m_wndEditAnnotation->isVisible() && surf->GetActiveAnnotation())
     {
       options["AsAnnotation"] = true;
       options["FillAnnotationIndex"] = m_wndEditAnnotation->GetCurrentIndex();

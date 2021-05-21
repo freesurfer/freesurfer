@@ -49,6 +49,11 @@ set ForceUpdate = 0
 set PallidumSeparate = 0;
 set OptionsFile = ()
 set SaveHistory = 0
+set LesionMaskPattern = ()
+set GMM = ()
+set ShowFigs = 0
+set ShowMovie = 0;
+set IgnoreUnkown = 0;
 
 set inputargs = ($argv);
 set PrintHelp = 0;
@@ -82,8 +87,7 @@ set outdir = `pwd`;
 popd > /dev/null
 
 if($#tmpdir == 0) then
-  if(-dw /scratch)   set tmpdir = /scratch/tmpdir.samseg.$$
-  if(! -dw /scratch) set tmpdir = $outdir/tmpdir.samseg.$$
+  set tmpdir = `fs_temp_dir --scratch --base $outdir`
 endif
 mkdir -p $tmpdir
 
@@ -117,6 +121,8 @@ uname -a  | tee -a $LF
 if($?PBS_JOBID) then
   echo "pbsjob $PBS_JOBID"  >> $LF
 endif
+
+if($#GMM) cp $GMM $outdir/log/gmm.txt
 
 if($DoImport) then
   # Import the data
@@ -157,6 +163,11 @@ if($PallidumSeparate) set cmd0 = ($cmd0 --pallidum-separate)
 if($#OptionsFile)  set cmd0 = ($cmd0 --options $OptionsFile)
 if($SaveHistory)  set cmd0 = ($cmd0 --history)
 if($DoLesion) set cmd0 = ($cmd0 --lesion)  # TODO: if T2/flair is provided, --lesion-mask-pattern must be set
+if($#LesionMaskPattern) set cmd0 = ($cmd0 --lesion-mask-pattern $LesionMaskPattern)
+if($#GMM) set cmd0 = ($cmd0 --gmm $GMM)
+if($ShowFigs) set cmd0 = ($cmd0 --showfigs)
+if($ShowMovie) set cmd0 = ($cmd0 --movie)
+if($IgnoreUnkown) set cmd0 = ($cmd0 --ignore-unknown)
 
 # specify input list
 foreach input ($inputlist)
@@ -328,6 +339,16 @@ while( $#argv != 0 )
 
     case "--lesion":
       set DoLesion = 1
+      breaksw
+
+    case "--lesion-mask-pattern":
+      if($#argv < 2) goto arg1err;
+      set LesionMaskPattern = ($argv[1] $argv[2]); shift;shift;
+      breaksw
+
+    case "--gmm":
+      if($#argv < 1) goto arg1err;
+      set GMM = $argv[1]; shift
       breaksw
 
     case "--mrf":
@@ -557,6 +578,18 @@ while( $#argv != 0 )
       set LF = $argv[1]; shift;
       breaksw
 
+    case "--ignore-unknown":
+      set IgnoreUnkown = 1
+      breaksw   
+
+    case "--showfigs":
+      set ShowFigs = 1;
+      breaksw   
+
+    case "--movie":
+      set ShowMovie = 1;
+      breaksw   
+
     case "--nolog":
     case "--no-log":
       set LF = /dev/null
@@ -594,6 +627,7 @@ while( $#argv != 0 )
 
     case "--exvivo":
       set exvivo = 1;
+      set GMM = $FREESURFER/average/samseg/20Subjects_smoothing2_down2_smoothingForAffine2/exvivo.sharedGMMParameters.txt
       breaksw
 
     case "--cleanup":
@@ -736,6 +770,7 @@ usage_exit:
   echo "  --mrf/--no-mrf : do or do not do MRF (default is $DoMRF)"
   echo "  --threads nthreads : set the number of CPUs to use"
   echo "  --atlas SAMSEG_DATA_DIR"
+  echo "  --gmm gmmfile"
   echo ""
   echo "  --recon : run recon-all "
   echo "  --fill : use samseg to create filled.mgz instead of recon-all"
@@ -747,6 +782,8 @@ usage_exit:
   echo ""
   echo " --pallidum-separate : Move pallidum outside of global white matter class. Use this flag when"
   echo "   analyzing T2 or FLAIR"
+  echo " --lesion : Turn on lesion segmentation"
+  echo " --lesion-mask-pattern A B : Needed when using T2 (eg, 0 1)"
   echo " --regmat reg.mat : registration file (as output by samseg)"
   echo "    allows using the reg from one run with another run"
   echo " --initlta init.lta : initial registration"
@@ -756,6 +793,7 @@ usage_exit:
   echo " --options optionsfile : to pass to run_samseg"
   echo " --max-iters iters"
   echo " --dice seg.mgz"
+  echo " --ignore-unknown"
   echo ""
 
   if(! $PrintHelp) exit 1;

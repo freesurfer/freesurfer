@@ -1,6 +1,6 @@
 /*
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -82,7 +82,10 @@ main(int argc, char *argv[]) {
     else
       ErrorExit(ERROR_BADPARM, "%s: could not scan hemisphere from %s\n",
                 in_fname) ;
-    sprintf(fname, "%s/%s.%s", path, hemi, ORIG_NAME) ;
+    int req = snprintf(fname, STRLEN, "%s/%s.%s", path, hemi, ORIG_NAME) ;
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     mris = MRISread(fname) ;
     if (!mris)
       ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",

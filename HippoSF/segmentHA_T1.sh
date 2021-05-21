@@ -97,7 +97,7 @@ endif
 
 # If SUBJECTS_DIR is provided, just set it
 if ($#argv == 2) then
-  set SUBJECTS_DIR = $2
+  set SUBJECTS_DIR = `getfullpath  $2`
 endif
 
 # Set name of subject
@@ -216,7 +216,7 @@ foreach hemi ($hippohemilist)
     |& tee -a $HSFLOG
 
   # command
-  set cmd="run_segmentSubjectT1_autoEstimateAlveusML.sh $RUNTIME $SUBJECTNAME $SUBJECTS_DIR $RESOLUTION $ATLASMESH $ATLASDUMP $LUT $K $hemi $OPTIMIZER $SUFFIX ${FREESURFER_HOME}/bin/ $MRFCONSTANT"
+  set cmd="run_segmentSubjectT1_autoEstimateAlveusML.sh $RUNTIME $SUBJECTNAME $SUBJECTS_DIR $RESOLUTION $ATLASMESH $ATLASDUMP $LUT $K $hemi $OPTIMIZER $SUFFIX '${FREESURFER_HOME}/bin/fs_run_from_mcr ${FREESURFER_HOME}/bin/'  $MRFCONSTANT"
 
   fs_time ls >& /dev/null
   if ($status) then

@@ -1,6 +1,6 @@
 /*
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -91,7 +91,7 @@ MRI *MRInormWeights(MRI *w, int sqrtFlag, int invFlag, MRI *mask, MRI *wn);
 int MRIglmFitAndTest(MRIGLM *mriglm);
 int MRIglmFit(MRIGLM *glmmri);
 int MRIglmTest(MRIGLM *mriglm);
-int MRIglmLoadVox(MRIGLM *mriglm, int c, int r, int s, int LoadBeta);
+int MRIglmLoadVox(MRIGLM *mriglm, int c, int r, int s, int LoadBeta, GLMMAT *glm);
 int MRIglmNRegTot(MRIGLM *mriglm);
 VECTOR *MRItoVector(MRI *mri, int c, int r, int s, VECTOR *v);
 int MRIsetSign(MRI *invol, MRI *signvol, int frame);

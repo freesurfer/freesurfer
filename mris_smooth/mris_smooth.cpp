@@ -6,7 +6,7 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -342,14 +342,21 @@ main(int argc, char *argv[])
   {
     MRISnormalizeCurvature(mris, which_norm) ;
   }
-  sprintf(fname, "%s.%s", mris->hemisphere == LEFT_HEMISPHERE?"lh":"rh",
-          curvature_fname);
+  int req = snprintf(fname, STRLEN, "%s.%s", mris->hemisphere == LEFT_HEMISPHERE?"lh":"rh",
+		     curvature_fname);
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
+
   if (no_write == 0)
   {
     fprintf(stderr, "writing smoothed curvature to %s/%s\n", path,fname) ;
     MRISwriteCurvature(mris, fname) ;
-    sprintf(fname, "%s.%s", mris->hemisphere == LEFT_HEMISPHERE?"lh":"rh",
-            area_fname);
+    int req = snprintf(fname, STRLEN, "%s.%s", mris->hemisphere == LEFT_HEMISPHERE?"lh":"rh",
+		       area_fname);
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     fprintf(stderr, "writing smoothed area to %s/%s\n", path, fname) ;
     MRISwriteArea(mris, fname) ;
   }

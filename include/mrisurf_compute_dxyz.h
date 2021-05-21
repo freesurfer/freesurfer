@@ -5,7 +5,7 @@
 /*
  * Author: Author: Bruce Fischl, extracted from mrisurf.c by Bevin Brett 
  *
- * $ © copyright-2019 The General Hospital Corporation (Boston, MA) "MGH"
+ * $ Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -22,6 +22,7 @@
 //
 #include "mrisurf_metricProperties.h"
 
+void mrisDxyzSetLocationMoveLen(double newval);
 int mrisComputeAngleAreaTerms(MRIS *mris, INTEGRATION_PARMS *parms);
 int mrisComputeAshburnerTriangleTerm(MRIS *mris, double l_ashburner_triangle, INTEGRATION_PARMS *parms);
 int mrisComputeBorderTerm(MRIS *mris, double l_border);

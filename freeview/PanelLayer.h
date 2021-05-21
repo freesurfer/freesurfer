@@ -1,7 +1,7 @@
 /*
  * Original Author: Ruopeng Wang
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -109,6 +109,10 @@ template<typename T> QList<T> PanelLayer::GetSelectedLayers()
     if (t)
       list << t;
   }
+  T tc = qobject_cast<T>(m_currentLayer);
+  if (list.isEmpty() && tc)
+    list << tc;
+
   return list;
 }
 

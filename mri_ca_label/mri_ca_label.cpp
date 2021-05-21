@@ -8,7 +8,7 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -2577,6 +2577,9 @@ edit_hippocampus( MRI *mri_inputs, MRI *mri_labeled,
           {
           case Left_Cerebral_Cortex:
             left = 1 ;
+#if __GNUC__  >= 8
+	    [[gnu::fallthrough]];
+#endif
           case Right_Cerebral_Cortex:
             /*
               if the current label is gray,
@@ -2637,6 +2640,9 @@ edit_hippocampus( MRI *mri_inputs, MRI *mri_labeled,
         {
         case Left_Hippocampus:
           left = 1 ;
+#if __GNUC__  >= 8
+      [[gnu::fallthrough]];
+#endif
         case Right_Hippocampus:
 #define MIN_UNKNOWN 5
           for (i = 1 ; i <= MIN_UNKNOWN+3 ; i++)
@@ -2711,6 +2717,9 @@ edit_hippocampus( MRI *mri_inputs, MRI *mri_labeled,
         {
         case Left_Hippocampus:
           left = 1 ;
+#if __GNUC__  >= 8
+      [[gnu::fallthrough]];
+#endif
         case Right_Hippocampus:
           for (i = 1 ; i <= 10 ; i++)
           {
@@ -2997,6 +3006,9 @@ edit_amygdala( MRI *mri_inputs,
         {
         case Left_Amygdala:
           left = 1 ;
+#if __GNUC__  >= 8
+      [[gnu::fallthrough]];
+#endif
         case Right_Amygdala:
           for (i = 1 ; i <= 10 ; i++)
           {

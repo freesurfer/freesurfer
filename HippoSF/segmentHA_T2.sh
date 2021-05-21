@@ -118,12 +118,12 @@ endif
 
 # If SUBJECTS_DIR is provided, just set it
 if ($#argv == 5) then
-  set SUBJECTS_DIR = $5
+  set SUBJECTS_DIR = `getfullpath  $5`
 endif
 
 # Set name of subject
 set SUBJECTNAME = $1
-set T2VOL = $2
+set T2VOL = `getfullpath  $2`
 set ANALYSISID = $3
 set USET1 = $4
 
@@ -265,10 +265,10 @@ foreach hemi ($hippohemilist)
   # command
   if ( $USET1 == "1") then
     echo "#@# Hippocampal Subfields processing (T1+T2) $hemi `date`"  |& tee -a $HSFLOG
-    set cmd="run_segmentSubjectT1T2_autoEstimateAlveusML.sh $RUNTIME $SUBJECTNAME $SUBJECTS_DIR $T2VOL $RESOLUTION $ATLASMESH $ATLASDUMP $LUT $KT1T2 $hemi $OPTIMIZER $SUFFIX $ANALYSISID ${FREESURFER_HOME}/bin/ $MRFCONSTANT $BYPASSBF $USEWHOLEBRAININHP"
+    set cmd="run_segmentSubjectT1T2_autoEstimateAlveusML.sh $RUNTIME $SUBJECTNAME $SUBJECTS_DIR $T2VOL $RESOLUTION $ATLASMESH $ATLASDUMP $LUT $KT1T2 $hemi $OPTIMIZER $SUFFIX $ANALYSISID '${FREESURFER_HOME}/bin/fs_run_from_mcr ${FREESURFER_HOME}/bin/' $MRFCONSTANT $BYPASSBF $USEWHOLEBRAININHP"
   else
     echo "#@# Hippocampal Subfields processing (T2) $hemi `date`"  |& tee -a $HSFLOG
-    set cmd="run_segmentSubjectT2_autoEstimateAlveusML.sh $RUNTIME $SUBJECTNAME $SUBJECTS_DIR $T2VOL $RESOLUTION $ATLASMESH $ATLASDUMP $LUT $KT2 $hemi $OPTIMIZER $SUFFIX $ANALYSISID  ${FREESURFER_HOME}/bin/ $MRFCONSTANT $BYPASSBF $USEWHOLEBRAININHP"
+    set cmd="run_segmentSubjectT2_autoEstimateAlveusML.sh $RUNTIME $SUBJECTNAME $SUBJECTS_DIR $T2VOL $RESOLUTION $ATLASMESH $ATLASDUMP $LUT $KT2 $hemi $OPTIMIZER $SUFFIX $ANALYSISID  '${FREESURFER_HOME}/bin/fs_run_from_mcr ${FREESURFER_HOME}/bin/' $MRFCONSTANT $BYPASSBF $USEWHOLEBRAININHP"
   endif
 
   fs_time ls >& /dev/null

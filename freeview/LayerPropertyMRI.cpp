@@ -10,7 +10,7 @@
  * Original Author: Kevin Teich
  * Reimplemented by: Ruopeng Wang
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -167,6 +167,33 @@ void LayerPropertyMRI::CopySettings( const LayerPropertyMRI* p )
   m_colorBinary           =   p->m_colorBinary;
 
   SetLUTCTAB  ( p->mFreeSurferCTAB );
+
+  blockSignals( false );
+
+  this->OnColorMapChanged();
+}
+
+void LayerPropertyMRI::CopyWindowLevelSettings( const LayerPropertyMRI* p )
+{
+  blockSignals( true );
+  mMinVisibleValue        =   p->mMinVisibleValue;
+  mMaxVisibleValue        =   p->mMaxVisibleValue;
+  mMinGrayscaleWindow     =   p->mMinGrayscaleWindow;
+  mMaxGrayscaleWindow     =   p->mMaxGrayscaleWindow;
+  mHeatScaleMinThreshold  =   p->mHeatScaleMinThreshold;
+  mHeatScaleMidThreshold  =   p->mHeatScaleMidThreshold;
+  mHeatScaleMaxThreshold  =   p->mHeatScaleMaxThreshold;
+  mHeatScaleOffset        =   p->mHeatScaleOffset;
+  mbReverseHeatScale      =   p->mbReverseHeatScale;
+  mbShowPositiveHeatScaleValues =  p->mbShowPositiveHeatScaleValues;
+  mbShowNegativeHeatScaleValues =  p->mbShowNegativeHeatScaleValues;
+  mbClearBackground             =   p->mbClearBackground;
+  mClearBackgroundValue   =   p->mClearBackgroundValue;
+  mMinGenericThreshold    =   p->mMinGenericThreshold;
+  mMaxGenericThreshold    =   p->mMaxGenericThreshold;
+  m_bHeatScaleClearHigh   =   p->m_bHeatScaleClearHigh;
+  m_bHeatScaleTruncate    =   p->m_bHeatScaleTruncate;
+  m_bHeatScaleInvert      =   p->m_bHeatScaleInvert;
 
   blockSignals( false );
 

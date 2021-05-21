@@ -1,6 +1,6 @@
 /*
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -120,7 +120,7 @@ main(int argc, char *argv[]) {
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
 
-  memset(&parms, 0, sizeof(parms)) ;
+  // memset(&parms, 0, sizeof(parms)) ; Have proper constructor now
 
   parms.projection = NO_PROJECTION ;
   parms.tol = 0.05 ;

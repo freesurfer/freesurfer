@@ -1,7 +1,7 @@
 /*
  * Original Author: Ruopeng Wang
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -85,8 +85,10 @@ protected slots:
   void OnComboOverlayChanged(int n);
   void OnCycleOverlay();
   void UpdateGeometry();
-  void OnCheckFixedAxes(bool bChecked, bool bUpdateGraph = true);
+  void OnCheckFixedAxes(bool bUpdateGraph = true);
   void OnActiveOverlayChanged();
+  void OnButtonLoadCustom();
+  void OnButtonSaveCustom();
 
 private:
   Ui::WindowConfigureOverlay *ui;
@@ -96,6 +98,7 @@ private:
   float*        m_fDataCache;
   double        m_dSavedOffset;
   double        m_rangeOverall[2];
+  int           m_nMaxHistCount;
   DialogScreenshotOverlay*  m_dlgScreenshot;
 };
 

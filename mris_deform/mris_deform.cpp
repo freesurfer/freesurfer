@@ -8,7 +8,7 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -415,19 +415,28 @@ main(int argc, char *argv[]) {
     else
       v1_prior = NULL;
 
-    sprintf(fname, "%s.white", read_name) ;
+    int req = snprintf(fname, STRLEN, "%s.white", read_name) ;
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     if (MRISreadWhiteCoordinates(mris, fname) != NO_ERROR)
       ErrorExit(ERROR_NOFILE, "%s: could not read white coords from %s",
                 Progname, fname) ;
     vp_copy_from_surface(mris, WHITE_VERTICES, WHITE_VERTICES);
 
-    sprintf(fname, "%s.layerIV", read_name) ;
+    req = snprintf(fname, STRLEN, "%s.layerIV", read_name) ;
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     if (MRISreadWhiteCoordinates(mris, fname) != NO_ERROR)
       ErrorExit(ERROR_NOFILE, "%s: could not read layer IV coords from %s",
                 Progname, fname) ;
     vp_copy_from_surface(mris, WHITE_VERTICES, LAYERIV_VERTICES);
 
-    sprintf(fname, "%s.pial", read_name) ;
+    req = snprintf(fname, STRLEN, "%s.pial", read_name) ;
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     if (MRISreadWhiteCoordinates(mris, fname) != NO_ERROR)
       ErrorExit(ERROR_NOFILE, "%s: could not read pial coords from %s",
                 Progname, fname) ;
@@ -439,7 +448,10 @@ main(int argc, char *argv[]) {
     if (label_only)
     {
       v1 = label_v1(mris, mri, &dp) ;
-      sprintf(fname, "%s.%s.V1.label", hemi, parms.base_name);
+      int req = snprintf(fname, STRLEN, "%s.%s.V1.label", hemi, parms.base_name);
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       printf("writing v1 estimated position to %s\n", fname) ;
       if (v1)
       {
@@ -449,7 +461,10 @@ main(int argc, char *argv[]) {
       vp_copy_to_surface_vals(mris, DEEP_RATIO, &dp) ;
       //      MRISsoapBubbleVals(mris, 100) ; 
       MRISaverageVals(mris, vavgs) ;
-      sprintf(fname, "%s.%s.deep_ratio.mgz", hemi, parms.base_name);
+      req = snprintf(fname, STRLEN, "%s.%s.deep_ratio.mgz", hemi, parms.base_name);
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       printf("writing ratio of deep IG to layer IV to %s\n", fname) ;
       MRISwriteValues(mris, fname) ;
 
@@ -469,13 +484,19 @@ main(int argc, char *argv[]) {
         label_v1(mris, mri, &dp) ;
         vp_copy_to_surface_vals(mris, DEEP_RATIO, &dp) ;
         MRISaverageVals(mris, vavgs) ;
-        sprintf(fname, "%s.%s.mid.deep_ratio.mgz", hemi, parms.base_name);
+        int req = snprintf(fname, STRLEN, "%s.%s.mid.deep_ratio.mgz", hemi, parms.base_name);
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
         printf("writing ratio of deep middle surface to superficial to %s\n", fname) ;
         MRISwriteValues(mris, fname) ;
       }
       exit(0) ;
     }
-    sprintf(fname, "%s.%s.marked", hemi, base_read_name);
+    req = snprintf(fname, STRLEN, "%s.%s.marked", hemi, base_read_name);
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     if (MRISreadMarked(mris, fname)!= NO_ERROR)
       ErrorPrintf(Gerror, "could not read marked from %s", fname) ;
     MRISaverageVals(mris, vavgs) ;
@@ -483,19 +504,28 @@ main(int argc, char *argv[]) {
 
     if (dp.use_intensity) // use precomputed intensity info instead of optimizing it
     {
-      sprintf(fname, "%s.%s.ig_intensity.mgz", hemi, base_read_name);
+      int req = snprintf(fname, STRLEN, "%s.%s.ig_intensity.mgz", hemi, base_read_name);
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       if (MRISreadValues(mris, fname)!= NO_ERROR)
         ErrorExit(Gerror, "") ;
       MRISaverageVals(mris, vavgs) ;
       vp_copy_from_surface_vals(mris, IG_INTENSITY, &dp) ;
 
-      sprintf(fname, "%s.%s.wm_intensity.mgz", hemi, base_read_name);
+      req = snprintf(fname, STRLEN, "%s.%s.wm_intensity.mgz", hemi, base_read_name);
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       if (MRISreadValues(mris, fname)!= NO_ERROR)
         ErrorExit(Gerror, "") ;
       MRISaverageVals(mris, vavgs) ;
       vp_copy_from_surface_vals(mris, WM_INTENSITY, &dp) ;
 
-      sprintf(fname, "%s.%s.sg_intensity.mgz", hemi, base_read_name);
+      req = snprintf(fname, STRLEN, "%s.%s.sg_intensity.mgz", hemi, base_read_name);
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       if (MRISreadValues(mris, fname)!= NO_ERROR)
         ErrorExit(Gerror, "") ;
       MRISaverageVals(mris, vavgs) ;
@@ -506,7 +536,7 @@ main(int argc, char *argv[]) {
   {
     INTEGRATION_PARMS eparms ;
 
-    memset(&eparms, 0, sizeof(eparms)) ;
+    // memset(&eparms, 0, sizeof(eparms)) ; Have proper constructor now
     eparms.l_spring = .1;
     eparms.l_location = 1 ;
     // eparms.l_curv = 1.0 ;
@@ -524,7 +554,11 @@ main(int argc, char *argv[]) {
     if (Gdiag & DIAG_WRITE)
     {
       char fname[STRLEN] ;
-      sprintf(fname, "%s.%s.expanded", mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", parms.base_name);
+      int req = snprintf(fname, STRLEN, "%s.%s.expanded",
+			 mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", parms.base_name);
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       printf("writing expanded 'pial' surface to %s\n", fname) ;
       MRISwrite(mris, fname) ;
     }
@@ -587,7 +621,11 @@ main(int argc, char *argv[]) {
   {
     char fname[STRLEN] ;
     MRISstoreRipFlags(mris) ; MRISunrip(mris) ;
-    sprintf(fname, "%s.%s.wnormals.mgz", mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", parms.base_name);
+    int req = snprintf(fname, STRLEN, "%s.%s.wnormals.mgz",
+		       mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", parms.base_name);
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     printf("writing surface normals to %s\n", fname) ;
     MRISwriteNormals(mris, fname) ;
     MRISrestoreRipFlags(mris) ;
@@ -649,7 +687,10 @@ main(int argc, char *argv[]) {
           
           if (v1)
           {
-            sprintf(fname, "%s.%s.V1.%d.label", hemi, base_name,ino);
+            int req = snprintf(fname, STRLEN, "%s.%s.V1.%d.label", hemi, base_name,ino);
+	    if( req >= STRLEN ) {
+	      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	    }
             printf("writing v1 estimated position to %s\n", fname) ;
             LabelWrite(v1, fname) ;
             LabelFree(&v1) ;
@@ -657,38 +698,62 @@ main(int argc, char *argv[]) {
         }
 
         vp_copy_dist_to_surface_vals(mris, LAYERIV_VERTICES) ;
-        sprintf(fname, "%s.%s.layerIV.height.%d.mgz", hemi, base_name,ino);
+        int req = snprintf(fname, STRLEN, "%s.%s.layerIV.height.%d.mgz", hemi, base_name,ino);
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
         MRISwriteValues(mris, fname) ;
 
         vp_copy_to_surface_vals(mris, WM_INTENSITY, &dp) ;
-        sprintf(fname, "%s.%s.wtargets.%d.mgz", hemi, base_name,ino);
+        req = snprintf(fname, STRLEN, "%s.%s.wtargets.%d.mgz", hemi, base_name,ino);
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
         MRISwriteValues(mris, fname) ;
 
         vp_copy_to_surface_vals(mris, RMS, &dp) ;
-        sprintf(fname, "%s.%s.rms.%d.mgz", hemi, base_name,ino);
+        req = snprintf(fname, STRLEN, "%s.%s.rms.%d.mgz", hemi, base_name,ino);
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
         MRISwriteValues(mris, fname) ;
 
         vp_copy_to_surface_vals(mris, SG_INTENSITY, &dp) ;
-        sprintf(fname, "%s.%s.ptargets.%d.mgz", hemi, base_name,ino);
+        req = snprintf(fname, STRLEN, "%s.%s.ptargets.%d.mgz", hemi, base_name,ino);
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
         MRISwriteValues(mris, fname) ;
         vp_copy_to_surface_vals(mris, IG_INTENSITY, &dp) ;
-        sprintf(fname, "%s.%s.l4targets.%d.mgz", hemi, base_name,ino);
+        req = snprintf(fname, STRLEN, "%s.%s.l4targets.%d.mgz", hemi, base_name,ino);
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
         MRISwriteValues(mris, fname) ;
 
         MRISstoreRipFlags(mris) ; MRISunrip(mris) ;
 
         vp_copy_to_surface(mris, WHITE_TARGETS, CURRENT_VERTICES) ;
-        sprintf(fname, "%s.%s.wtarget.%d", hemi, base_name, ino);
+        req = snprintf(fname, STRLEN, "%s.%s.wtarget.%d", hemi, base_name, ino);
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
         printf("writing white target locations to %s\n", fname) ;
         MRISwrite(mris, fname) ;
 
         vp_copy_to_surface(mris, PIAL_TARGETS, CURRENT_VERTICES) ;
-        sprintf(fname, "%s.%s.ptarget.%d", hemi, base_name, ino);
+        req = snprintf(fname, STRLEN, "%s.%s.ptarget.%d", hemi, base_name, ino);
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
         printf("writing pial target locations to %s\n", fname) ;
         MRISwrite(mris, fname) ;
 
         vp_copy_to_surface(mris, LAYERIV_TARGETS, CURRENT_VERTICES) ;
-        sprintf(fname, "%s.%s.l4target.%d", hemi, base_name, ino);
+        req = snprintf(fname, STRLEN, "%s.%s.l4target.%d", hemi, base_name, ino);
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
         printf("writing layer IV target locations to %s\n", fname) ;
         MRISwrite(mris, fname) ;
 
@@ -710,8 +775,14 @@ main(int argc, char *argv[]) {
       }
 
       // do white matter surface
-      sprintf(parms.base_name, "%s.white", base_name) ;
-      sprintf(dp.base_name, "%s.white", base_name) ;
+      int req = snprintf(parms.base_name, STRLEN, "%s.white", base_name) ;
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
+      req = snprintf(dp.base_name, STRLEN, "%s.white", base_name) ;
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       vp_copy_to_surface(mris, WHITE_VERTICES, CURRENT_VERTICES) ;
       vp_copy_to_surface(mris, WHITE_TARGETS, TARGET_VERTICES) ;
       parms.l_surf_repulse = 0 ;
@@ -737,8 +808,14 @@ main(int argc, char *argv[]) {
       if (white_only == 0)
       {
         // do pial surface
-        sprintf(parms.base_name, "%s.pial", base_name) ;
-        sprintf(dp.base_name, "%s.pial", base_name) ;
+        int req = snprintf(parms.base_name, STRLEN, "%s.pial", base_name) ;
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
+        req = snprintf(dp.base_name, STRLEN, "%s.pial", base_name) ;
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
         vp_copy_to_surface(mris, PIAL_VERTICES, CURRENT_VERTICES) ;
         vp_copy_to_surface(mris, PIAL_TARGETS, TARGET_VERTICES) ;
         vp_copy_to_surface(mris, LAYERIV_VERTICES, ORIGINAL_VERTICES) ; // for surf repulse
@@ -754,8 +831,14 @@ main(int argc, char *argv[]) {
         MRISsaveVertexPositions(mris, PIAL_VERTICES) ;
         
         // do layer IV surface
-        sprintf(parms.base_name, "%s.layerIV", base_name) ;
-        sprintf(dp.base_name, "%s.layerIV", base_name) ;
+        req = snprintf(parms.base_name, STRLEN, "%s.layerIV", base_name) ;
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
+        req = snprintf(dp.base_name, STRLEN, "%s.layerIV", base_name) ;
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
         vp_copy_to_surface(mris, LAYERIV_VERTICES, CURRENT_VERTICES) ;
         vp_copy_to_surface(mris, LAYERIV_TARGETS, TARGET_VERTICES) ;
         vp_copy_to_surface(mris, WHITE_VERTICES, ORIGINAL_VERTICES) ; // for surf repulse
@@ -794,59 +877,89 @@ main(int argc, char *argv[]) {
   minutes = seconds / 60 ;
   seconds = seconds % 60 ;
   MRISunrip(mris) ;
-  sprintf(fname, "%s.white", argv[4]) ;
+  int req = snprintf(fname, STRLEN, "%s.white", argv[4]) ;
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   vp_copy_to_surface(mris, WHITE_VERTICES, CURRENT_VERTICES) ;
   printf("writing white final surface position to %s\n", fname) ;
   MRISwrite(mris, fname) ;
 
   vp_copy_dist_to_surface_vals(mris, LAYERIV_VERTICES) ;
   //  MRISsoapBubbleVals(mris, 100) ; 
-  sprintf(fname, "%s.%s.layerIV.height.mgz", hemi, base_name);
+  req = snprintf(fname, STRLEN, "%s.%s.layerIV.height.mgz", hemi, base_name);
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   printf("writing layer IV height to %s\n", fname) ;
   MRISwriteValues(mris, fname) ;
 
   vp_copy_to_surface_vals(mris, SG_INTENSITY, &dp) ;
   //  MRISsoapBubbleVals(mris, 100) ; 
-  sprintf(fname, "%s.%s.sg_intensity.mgz", hemi, base_name);
+  req = snprintf(fname, STRLEN, "%s.%s.sg_intensity.mgz", hemi, base_name);
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   printf("writing SG intensity to %s\n", fname) ;
   MRISwriteValues(mris, fname) ;
 
   vp_copy_to_surface_vals(mris, WM_INTENSITY, &dp) ;
   //  MRISsoapBubbleVals(mris, 100) ; 
-  sprintf(fname, "%s.%s.wm_intensity.mgz", hemi, base_name);
+  req = snprintf(fname, STRLEN, "%s.%s.wm_intensity.mgz", hemi, base_name);
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   printf("writing WM intensity to %s\n", fname) ;
   MRISwriteValues(mris, fname) ;
 
   vp_copy_to_surface_vals(mris, IG_INTENSITY, &dp) ;
   //  MRISsoapBubbleVals(mris, 100) ; 
-  sprintf(fname, "%s.%s.ig_intensity.mgz", hemi, base_name);
+  req = snprintf(fname, STRLEN, "%s.%s.ig_intensity.mgz", hemi, base_name);
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   printf("writing infragranular intensity to %s\n", fname) ;
   MRISwriteValues(mris, fname) ;
 
   vp_copy_to_surface_vals(mris, IG_WM_RATIO, &dp) ;
   //  MRISsoapBubbleVals(mris, 100) ; 
-  sprintf(fname, "%s.%s.ig_wm_ratio.mgz", hemi, base_name);
+  req = snprintf(fname, STRLEN, "%s.%s.ig_wm_ratio.mgz", hemi, base_name);
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   printf("writing infragranular/wm ratio to %s\n", fname) ;
   MRISwriteValues(mris, fname) ;
 
   vp_copy_to_surface_vals(mris, SG_WM_RATIO, &dp) ;
   //  MRISsoapBubbleVals(mris, 100) ; 
-  sprintf(fname, "%s.%s.sg_wm_ratio.mgz", hemi, base_name);
+  req = snprintf(fname, STRLEN, "%s.%s.sg_wm_ratio.mgz", hemi, base_name);
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   printf("writing supragranular/wm intensity ratio to %s\n", fname) ;
   MRISwriteValues(mris, fname) ;
 
   vp_copy_to_surface_vals(mris, SG_IG_RATIO, &dp) ;
   //  MRISsoapBubbleVals(mris, 100) ; 
-  sprintf(fname, "%s.%s.sg_ig_ratio.mgz", hemi, base_name);
+  req = snprintf(fname, STRLEN, "%s.%s.sg_ig_ratio.mgz", hemi, base_name);
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   printf("writing supragranular/infrgranular intensity ratio to %s\n", fname) ;
   MRISwriteValues(mris, fname) ;
 
-  sprintf(fname, "%s.pial", argv[4]) ;
+  req = snprintf(fname, STRLEN, "%s.pial", argv[4]) ;
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   vp_copy_to_surface(mris, PIAL_VERTICES, CURRENT_VERTICES) ;
   printf("writing pial final surface position to %s\n", fname) ;
   MRISwrite(mris, fname) ;
 
-  sprintf(fname, "%s.layerIV", argv[4]) ;
+  req = snprintf(fname, STRLEN, "%s.layerIV", argv[4]) ;
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   vp_copy_to_surface(mris, LAYERIV_VERTICES, CURRENT_VERTICES) ;
   printf("writing pial final surface position to %s\n", fname) ;
   MRISwrite(mris, fname) ;
@@ -854,11 +967,17 @@ main(int argc, char *argv[]) {
   vp_copy_to_surface_vals(mris, DEEP_RATIO, &dp) ;
   //      MRISsoapBubbleVals(mris, 100) ; 
   MRISaverageVals(mris, vavgs) ;
-  sprintf(fname, "%s.%s.deep_ratio.mgz", hemi, parms.base_name);
+  req = snprintf(fname, STRLEN, "%s.%s.deep_ratio.mgz", hemi, parms.base_name);
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   printf("writing ratio of deep IG to layer IV to %s\n", fname) ;
   MRISwriteValues(mris, fname) ;
 
-  sprintf(fname, "%s.marked", argv[4]) ;
+  req = snprintf(fname, STRLEN, "%s.marked", argv[4]) ;
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   printf("writing vertex marks to %s\n", fname) ;
   MRISwriteMarked(mris, fname) ;
 
@@ -1065,6 +1184,7 @@ get_option(int argc, char *argv[]) {
   case 'I':
     invert = 1 ;
     printf("inverting xform before applying\n") ;
+    break;
   case '?':
   case 'U':
     usage_exit(0) ;
@@ -1193,7 +1313,11 @@ compute_targets(MRI_SURFACE *mris, MRI *mri, double sigma, DP *dp, int skip)
   {
     char fname[STRLEN] ;
     MRISstoreRipFlags(mris) ; MRISunrip(mris) ;
-    sprintf(fname, "%s.%s.normals.%d.init.mgz", mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", parms.base_name, i);
+    int req = snprintf(fname, STRLEN, "%s.%s.normals.%d.init.mgz",
+		       mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", parms.base_name, i);
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     printf("writing surface normals to %s\n", fname) ;
     MRIScomputeNormals(mris) ;
     MRISwriteNormals(mris, fname) ;
@@ -1204,7 +1328,11 @@ compute_targets(MRI_SURFACE *mris, MRI *mri, double sigma, DP *dp, int skip)
   {
     char fname[STRLEN] ;
     MRISstoreRipFlags(mris) ; MRISunrip(mris) ;
-    sprintf(fname, "%s.%s.normals.%d.final.mgz", mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", parms.base_name,i);
+    int req = snprintf(fname, STRLEN, "%s.%s.normals.%d.final.mgz",
+		       mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", parms.base_name,i);
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     printf("writing surface normals to %s\n", fname) ;
     vp_copy_to_surface(mris, SURFACE_NORMALS, SURFACE_NORMALS) ;
     MRISwriteNormals(mris, fname) ;
@@ -1217,7 +1345,11 @@ compute_targets(MRI_SURFACE *mris, MRI *mri, double sigma, DP *dp, int skip)
     char fname[STRLEN] ;
     if (i == 0)
     {
-      sprintf(fname, "%s.%s.normals.mgz", mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", parms.base_name);
+      int req = snprintf(fname, STRLEN, "%s.%s.normals.mgz",
+			 mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", parms.base_name);
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       printf("reading surface normals from %s\n", fname) ;
       MRISreadNormals(mris, fname) ;
       vp_copy_from_surface(mris, SURFACE_NORMALS, SURFACE_NORMALS) ;
@@ -1812,13 +1944,19 @@ compute_targets(MRI_SURFACE *mris, MRI *mri, double sigma, DP *dp, int skip)
   {
     char fname[STRLEN] ;
     static int i = 0 ;
-    sprintf(fname, "%s.%s.wtvals.%3.3d.mgz",
-            mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", dp->base_name,i) ;
+    int req = snprintf(fname, STRLEN, "%s.%s.wtvals.%3.3d.mgz",
+		       mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", dp->base_name,i) ;
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     printf("writing white target vals to %s\n", fname) ;
     MRIwrite(mri_white, fname) ;
 
-    sprintf(fname, "%s.%s.ptvals.%3.3d.mgz",
-            mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", dp->base_name,i) ;
+    req = snprintf(fname, STRLEN, "%s.%s.ptvals.%3.3d.mgz",
+		   mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", dp->base_name,i) ;
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     printf("writing pial target vals to %s\n", fname) ;
     MRIwrite(mri_pial, fname) ;
 
@@ -3890,6 +4028,7 @@ vp_copy_to_surface_vals(MRI_SURFACE *mris, int which, DP *dp)
       break ;
     case SG_WM_RATIO:         
       val = (vp->sg_intensity_offset+dp->supra_granular_val) / (vp->wm_intensity_offset+dp->wm_val) ; 
+      break;
     case SG_IG_RATIO:         
       val = (vp->sg_intensity_offset+dp->supra_granular_val) / (vp->ig_intensity_offset+dp->infra_granular_val) ; 
       break ;
@@ -3930,7 +4069,7 @@ vp_copy_from_surface_vals(MRI_SURFACE *mris, int which, DP *dp)
     case IG_INTENSITY:        vp->ig_intensity_offset = v->val-dp->infra_granular_val ; break ;
     case SG_INTENSITY:        vp->sg_intensity_offset= v->val-dp->supra_granular_val ; break ;
     case WM_INTENSITY:        vp->wm_intensity_offset = v->val - dp->wm_val ; break ;
-    case DEEP_RATIO:          vp->deep_ratio = v->val ;
+    case DEEP_RATIO:          vp->deep_ratio = v->val ; break;
     default:
     case IG_WM_RATIO:         
     case SG_WM_RATIO:         
@@ -4585,7 +4724,7 @@ compute_normals(MRI_SURFACE *mris, VERTEX_PARMS *vp)
   //  return(NO_ERROR) ;
 
   MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
-  memset(&thick_parms, 0, sizeof(thick_parms)) ; 
+  // memset(&thick_parms, 0, sizeof(thick_parms)) ; Have proper constructor now
   if (cno++ > 0)
     thick_parms.dt = 0.01 ; 
   else

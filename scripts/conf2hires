@@ -24,12 +24,16 @@ set DoFLAIR = 0
 set DoFLAIRpial = 0
 set MMnormSigma = 8; 
 set MMBBRcon = t2;
+set CBVfindFirstPeakD1 = 0;
+set CBVfindFirstPeakD2 = 0;
 set DoSurfVolume = 0;
 set mps_n_averages = ()
 set XOptsFile = ()
 set GlobXOptsFile = ()
 set ForceUpdate = 0
 set RunIt = 1
+set UseHighMyelin = 0; # Allows using diff thresholds when placing white in high-myelin cortex
+set HighMyelinFactor = (); # Value between 0 (closer to white) and 1 (closer to cortical gm)
 
 # Options for mri_normalize, can strongly affect the pial placement
 set normOptsRCA = (-seed 1234 -mprage -aseg rawavg.aseg.presurf.mgz)
@@ -114,6 +118,7 @@ if($longitudinal) set srcsurf = orig_white
 
 set sdir = $SUBJECTS_DIR/$subject/surf
 set mdir = $SUBJECTS_DIR/$subject/mri
+set ldir = $SUBJECTS_DIR/$subject/label
 cd $mdir
 
 # This creates a highres template where all the dims are the same
@@ -370,13 +375,21 @@ foreach hemi ($hemilist)
     --wm $wm --invol $bfs --$hemi  --i $inputsurf --o $white \
     --white --nsmooth 0 --rip-label $cortex --rip-bg --rip-wmsa \
     --rip-surf $inputsurf --aparc $aparc)
+  if($CBVfindFirstPeakD1) set cmd = ($cmd --first-peak-d1)
+  if($CBVfindFirstPeakD2) set cmd = ($cmd --first-peak-d2)
   if($longitudinal) set cmd = ($cmd --max-cbv-dist 3.5) 
   if($#mps_n_averages) set cmd = ($cmd --n_averages $mps_n_averages)
+  if($UseHighMyelin) then
+    set hml = $ldir/$hemi.high-myelin.label
+    set cmd = ($cmd --alt-border-low $hml $HighMyelinFactor)
+  else
+    set hml = ()
+  endif
   set xopts = `fsr-getxopts PlaceWhiteSurf $XOptsFile $GlobXOptsFile`;
   set cmd = ($cmd $xopts)
   echo "cd `$PWD`" |& tee -a $LF |& tee -a $CF
   echo $cmd    |& tee -a $LF |& tee -a $CF
-  set ud = `UpdateNeeded $white $inputsurf $ads $bfs $wm $inputsurf $cortex`
+  set ud = `UpdateNeeded $white $inputsurf $ads $bfs $wm $inputsurf $cortex $hml`
   if($ud || $ForceUpdate) then
     if($RunIt) then
     $fs_time $cmd |& tee -a $LF
@@ -400,6 +413,8 @@ foreach hemi ($hemilist)
       --wm $wm --invol $bfs --$hemi  --i $inputsurf --o $pial \
       --pial --nsmooth 0 --rip-label $cortexha --pin-medial-wall $cortex \
       --aparc $aparc --repulse-surf $white  --white-surf $white)
+  if($CBVfindFirstPeakD1) set cmd = ($cmd --first-peak-d1)
+  if($CBVfindFirstPeakD2) set cmd = ($cmd --first-peak-d2)
   if($longitudinal) then
     set cmd = ($cmd --max-cbv-dist 3.5) # --long not used anymore
     set cmd = ($cmd --blend-surf .25 $white)
@@ -485,6 +500,7 @@ if($#MMode) then
   endif
   set cmd = (bbregister --s $subject --mov $MM --lta $MMregAuto --init-coreg \
     --$MMBBRcon --surf $srcsurf --gm-proj-abs 1.5 --wm-proj-abs 1 --threads $threads)
+  set cmd = ($cmd --no-coreg-ref-mask) # otherwise can become non-determin if aparc+aseg is there
   set xopts = `fsr-getxopts bbregister $XOptsFile $GlobXOptsFile`;
   set cmd = ($cmd $xopts)
   set ud = `UpdateNeeded $MMregAuto $MM ../surf/lh.$srcsurf ../surf/rh.$srcsurf`
@@ -596,7 +612,7 @@ if($#MMode) then
     set cmd = ($cmd $xopts)
     echo "cd `$PWD`" |& tee -a $LF |& tee -a $CF
     echo $cmd        |& tee -a $LF |& tee -a $CF
-    set ud = `UpdateNeeded $pialmm $pialt1 $bfs $cortex $cortexha $white $ads $wm `
+    set ud = `UpdateNeeded $pialmm $pialt1 $bfs $cortex $cortexha $white $ads $wm $mmvol`
     if($ud || $ForceUpdate) then
       if($RunIt) then
         $fs_time $cmd |& tee -a $LF
@@ -743,6 +759,20 @@ while( $#argv != 0 )
       set MMnormSigma = $argv[1];shift
       breaksw;
 
+    case "--first-peak-d1"
+      set CBVfindFirstPeakD1 = 1
+      breaksw;
+    case "--no-first-peak-d1"
+      set CBVfindFirstPeakD1 = 0
+      breaksw;
+
+    case "--first-peak-d2"
+      set CBVfindFirstPeakD2 = 1
+      breaksw;
+    case "--no-first-peak-d2"
+      set CBVfindFirstPeakD2 = 0
+      breaksw;
+
     case "--openmp":
     case "--threads"
     case "--nthreads"
@@ -752,6 +782,12 @@ while( $#argv != 0 )
       setenv FS_OMP_NUM_THREADS $OMP_NUM_THREADS # re-entrant recon-all
       set OMP_NUM_SET = 1
       breaksw;
+
+    case "--high-myelin":
+      if($#argv < 1) goto arg1err;
+      set HighMyelinFactor = $argv[1]; shift
+      set UseHighMyelin = 1
+      breaksw
 
     case "--longitudinal":
     case "--long":
@@ -936,6 +972,8 @@ usage_exit:
   echo "  --bbr-con contype : set BBR contrast type (default $MMBBRcon)"
   echo "  --bbr-t1 : set BBR contrast type to t1"
   echo "  --bbr-t2 : set BBR contrast type to t2"
+  echo "  --first-peak-d1 : refine surface targets in MRIScomputeBorderValues()"
+  echo "  --first-peak-d2 : refine surface targets in MRIScomputeBorderValues()"
   echo "  --expert xopts (or -expert)"
   echo "  --force-update"
   echo ""

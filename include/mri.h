@@ -6,7 +6,7 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -251,6 +251,7 @@ public:
   double flip_angle = 0;        // flip angle in radians
   float FieldStrength = 0;      // field strength
   char *pedir = nullptr;        // phase enc direction: ROW, COL, etc
+  MATRIX *origRas2Vox = nullptr ;         // to get to original voxel grid from ras
   float location = 0;           // NOT USED
 
   // ---- DTI ----
@@ -1338,7 +1339,6 @@ int MRIstats(MRI *mri, float *min, float *max, int *n_voxels,
 float MRIvolumeDeterminant(MRI *mri);
 
 int mriio_command_line(int argc, char *argv[]);
-int mriio_set_subject_name(const char *name);
 void mriio_set_gdf_crop_flag(int new_gdf_crop_flag);
 int MRIgetVolumeName(const char *string, char *name_only);
 MRI *MRIread(const char *fname);

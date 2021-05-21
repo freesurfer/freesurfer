@@ -18,6 +18,7 @@ set NoBA = 0;
 set DoAparcStats = 1
 set DoAsegStats = 1
 set DoWMParcStats = 1
+set DoPrune = 1
 set fwhmlist = ()
 
 set inputargs = ($argv);
@@ -85,6 +86,7 @@ foreach aparc ($aparclist)
     foreach hemi ($hemilist)
       foreach meas ($mapmeaslist)
         if($meas == curv || $meas == sulc) continue # curv breaks aparcstats2table
+        if($meas == w-g.pct && ($aparc != aparc || $surf != white)) continue 
         set Skip = 0;
         foreach nomeas ($nomeaslist)
           if($meas == $nomeas) then
@@ -106,7 +108,7 @@ foreach aparc ($aparclist)
         echo "#C# $cmd" | tee -a $LF
         $cmd | tee -a $LF
         if($status) exit 1;
-        set glmdir = $outdir/rois/glm.diff.$parc.$hemi.$surf.$meas
+        set glmdir = $outdir/rois/glm.$parc.$hemi.$surf.$meas
         set cmd = (mri_glmfit --table $difftable --glmdir $glmdir $gcmd)
         echo "#C# $cmd"  | tee -a $LF
         $cmd | tee -a $LF
@@ -131,7 +133,7 @@ foreach hemi ($hemilist other)
     echo "#C# $cmd" | tee -a $LF
     $cmd | tee -a $LF
     if($status) exit 1;
-    set glmdir = $outdir/rois/glm.diff.$b
+    set glmdir = $outdir/rois/glm.$b
     set cmd = (mri_glmfit --table $difftable --glmdir $glmdir $gcmd)
     echo "#C# $cmd"  | tee -a $LF
     $cmd | tee -a $LF
@@ -150,7 +152,7 @@ if($DoCommon) set cmd = ($cmd --common)
 echo "#C# $cmd" | tee -a $LF
 $cmd | tee -a $LF
 if($status) exit 1;
-set glmdir = $outdir/rois/glm.diff.wmparc.vol
+set glmdir = $outdir/rois/glm.wmparc.vol
 set cmd = (mri_glmfit --table $difftable --glmdir $glmdir $gcmd)
 echo "#C# $cmd"  | tee -a $LF
 $cmd | tee -a $LF
@@ -180,8 +182,9 @@ if($DoMaps) then
         $cmd | tee -a $LF
         if($status) exit 1;
         # glm ------------------------
-        set glmdir = $outdir/maps/glm.diff.$meas.$hemi.sm$fwhmstr
+        set glmdir = $outdir/maps/glm.$meas.$hemi.sm$fwhmstr
         set cmd = (mri_glmfit --surface fsaverage $hemi --y $smdifffile --glmdir $glmdir $gcmd)
+        if($DoPrune == 0) set cmd = ($cmd --no-prune)
         echo "#C# $cmd"  | tee -a $LF
         $cmd | tee -a $LF
         if($status) then
@@ -314,6 +317,10 @@ while( $#argv != 0 )
       set NoBA = 1;
       breaksw
 
+    case "--no-prune":
+      set DoPrune = 0
+      breaksw
+
     case "--lh":
       set hemilist = (lh)
       breaksw
@@ -381,7 +388,7 @@ endif
 set fsgd1 = $g1dir/group.fsgd
 set fsgd2 = $g2dir/group.fsgd
 set n = `diff $fsgd1 $fsgd2 | wc -l`
-if($n != 0) then
+if(0 && $n != 0) then
   echo "ERROR: fsgd files $fsgd1 and $fsgd2 are not the same"
   exit 1; 
 endif
@@ -417,6 +424,7 @@ usage_exit:
   echo "  --no-asegstats : do not do asegstats"
   echo "  --no-wparcstats : do not do wmparcstats"
   echo "  --no-stats : do not do any ROI stats"
+  echo "  --no-prune : do not prune when running mri_glmfit (may be nec if g1=g2)"
   echo "  --fwhm fwhm <--fwhm fwhm> : override the fwhm from group ana (must be present)"
   echo "  "
 
@@ -446,7 +454,7 @@ two analyses.
 One can then evaluate the differences with something like
 
 tksurfer fsaverage lh inflated -aparc \
-   -ov diffdir/maps/glm.diff.thickness.lh.sm10/osgm/sig.mgh \
+   -ov diffdir/maps/glm.thickness.lh.sm10/osgm/sig.mgh \
    -t diffdir/maps/diff.thickness.lh.sm10.mgh
 
 The map will indicate OSGM differences and the "time" course will show

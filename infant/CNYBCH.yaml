@@ -1,0 +1,53 @@
+All:
+    Template1: 9
+    Template2: 7
+    Template3: 6
+    Template4: 5
+    Template5: 18
+    Template6: 12
+    Template7: 0
+    Template8: 0
+    Template9: 3
+    Template10: 8
+    Template11: 10
+    Template12: 10
+    Template13: 18
+    Template14: 4
+    Template15: 2
+    Template16: 14
+    Template17: 3
+    Template18: 16
+    Template19: 0
+    Template20: 12
+    Template21: 0
+    Template22: 15
+    Template23: 5
+    Template24: 17
+    Template25: 16
+    Template26: 0
+
+GMWM:
+    Template5: 18
+    Template6: 12
+    Template8: 0
+    Template10: 8
+    Template13: 18
+    Template18: 16
+    Template20: 12
+    Template22: 15
+    Template26: 0
+
+Neonates:
+    Template7: 3
+    Template8: 4
+    Template19: 1
+    Template21: 2
+    Template26: 4
+
+
+AroundOne:
+    Template11: 10
+    Template12: 10
+    Template6: 12 
+    Template20: 12
+    Template16: 14

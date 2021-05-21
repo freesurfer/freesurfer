@@ -5,7 +5,7 @@
 /*
  * Original Author: Ruopeng Wang
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -19,6 +19,8 @@
  */
 
 #include "LayerEditable.h"
+#include <QDateTime>
+#include <QVariant>
 
 LayerEditable::LayerEditable( QObject* parent ) : Layer( parent ),
   m_nMaxUndoSteps( 100 ),
@@ -34,5 +36,6 @@ LayerEditable::~LayerEditable()
 void LayerEditable::SetModified()
 {
   m_bModified = true;
+  setProperty("last_modified", QDateTime::currentMSecsSinceEpoch());
   emit Modified();
 }

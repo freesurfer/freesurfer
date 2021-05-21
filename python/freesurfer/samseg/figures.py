@@ -251,7 +251,8 @@ class ShowFigures:
         if self.movie_flag:
             layer_sequence = self.movies.get(window_id)
             if layer_sequence:
-                layers = layer_sequence.rewind()
+                #layers = layer_sequence.rewind()
+                layers = layer_sequence.skip_to_end()
                 title = layer_sequence.title
                 self.hdav_view(layers, window_id, title)
                 if clear_memory:

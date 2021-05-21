@@ -1,6 +1,6 @@
 /*
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -165,7 +165,7 @@ char tmpstr[2000];
 MRI *InVals=NULL;
 
 char *maskpath=NULL;
-char *labelpath=NULL;
+std::string labelpath;
 MRI *mask=NULL;
 LABEL *label=NULL;
 int maskinv = 0;
@@ -204,6 +204,7 @@ int nthreads = 1;
 int DoSpatialINorm = 0;
 double fwhm = 0;
 int niters=-1;
+int varnorm = 0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
@@ -301,10 +302,10 @@ int main(int argc, char *argv[]) {
     MRIsquare(InVals,NULL,InVals);
   }
 
-  if(labelpath) {
-    label = LabelRead(subject, labelpath);
+  if(labelpath.size() != 0 ) {
+    label = LabelRead(subject, labelpath.c_str());
     if (label == NULL) {
-      printf("ERROR reading %s\n",labelpath);
+      printf("ERROR reading %s\n",labelpath.c_str());
       exit(1);
     }
     mask = MRISlabel2Mask(surf, label, NULL);
@@ -367,6 +368,15 @@ int main(int argc, char *argv[]) {
       mritmp = SpatialINorm(InVals, mask, NULL);
       MRIfree(&InVals);
       InVals = mritmp;
+    }
+    if(varnorm) {
+      printf("Rescaling to normalize variance\n");
+      RFS *rfs;
+      rfs = RFspecInit(-1,NULL); // seed does not matter
+      rfs->name = strcpyalloc("gaussian");
+      rfs->params[0] = 0; // mean
+      rfs->params[1] = 1; // std
+      RFrescale(InVals,rfs,mask,InVals);
     }
     if(SmoothOnly) {
       printf("Only smoothing, so saving and exiting now\n");
@@ -487,6 +497,8 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--synth")) synth = 1;
     else if (!strcasecmp(option, "--nosynth")) synth = 0;
     else if (!strcasecmp(option, "--no-detrend")) DoDetrend = 0;
+    else if (!strcasecmp(option, "--varnorm")) varnorm = 1;
+
     else if (!strcasecmp(option, "--prune"))    prunemask = 1;
     else if (!strcasecmp(option, "--no-prune")) prunemask = 0;
     else if (!strcasecmp(option, "--prune_thr")){
@@ -560,9 +572,11 @@ static int parse_commandline(int argc, char **argv) {
     } 
     else if (!strcasecmp(option, "--label")) {
       if (nargc < 1) CMDargNErr(option,1);
-      if(fio_FileExistsReadable(pargv[0]))
+      if(fio_FileExistsReadable(pargv[0])) {
 	labelpath = fio_fullpath(pargv[0]); // defeat LabelRead()
-      else labelpath = pargv[0];
+      } else {
+	labelpath = pargv[0];
+      }
       nargsused = 1;
     } 
     else if (!strcasecmp(option, "--cortex")) {
@@ -721,6 +735,7 @@ static void print_usage(void) {
   printf("   --prune - remove any voxel that is zero in any subject (after any inversion)\n");
   printf("   --no-prune - do not prune (default)\n");
   printf("   --out-mask outmask : save final mask\n");
+  printf("   --varnorm : normalize the variance across space within any mask\n");
   printf("   \n");
   printf("   --fwhm fwhm : apply before measuring\n");
   printf("   --niters-only <niters> : only report on niters for fwhm\n");
@@ -849,7 +864,7 @@ static void check_options(void) {
     printf("ERROR: need to specify --in or --synth\n");
     exit(1);
   }
-  if (maskpath && labelpath) {
+  if (maskpath && (labelpath.size() != 0 )) {
     printf("ERROR: cannot specify both --label and --mask\n");
     exit(1);
   }
@@ -872,12 +887,11 @@ static void check_options(void) {
     exit(1);
   }
   if(UseCortexLabel){
-    if(labelpath != NULL){
+    if(labelpath.size() != 0){
       printf("ERROR: cannot spec --label and --cortex\n");
       exit(1);
     }
-    sprintf(tmpstr,"%s/%s/label/%s.cortex.label",SUBJECTS_DIR,subject,hemi);
-    labelpath = strcpyalloc(tmpstr);
+    labelpath = std::string(SUBJECTS_DIR) + '/' + std::string(subject) + "/label/" + std::string(hemi) + ".cortex.label";
   }
   return;
 }

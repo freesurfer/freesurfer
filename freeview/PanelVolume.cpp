@@ -1,7 +1,7 @@
 /*
  * Original Author: Ruopeng Wang
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -36,6 +36,7 @@
 #include <QMimeData>
 #include <QToolTip>
 #include <QColorDialog>
+#include "LayerTreeWidget.h"
 
 #define FS_VOLUME_SETTING_ID    "freesurfer/volume-setting"
 
@@ -610,9 +611,11 @@ void PanelVolume::DoUpdateWidgets()
     m_bShowExistingLabelsOnly = false;
     if (m_curCTAB != layer->GetEmbeddedColorTable())
       PopulateColorTable(layer->GetEmbeddedColorTable());
+    ShowWidgets(m_widgetlistVolumeTrackSpecs, true);
   }
   else
   {
+    ShowWidgets(m_widgetlistVolumeTrackSpecs, false);
     ShowWidgets( m_widgetlistNormalDisplay, bNormalDisplay );
     ShowWidgets( m_widgetlistGrayScale, bNormalDisplay && nColorMap == LayerPropertyMRI::Grayscale );
     ShowWidgets( m_widgetlistHeatScale, bNormalDisplay && nColorMap == LayerPropertyMRI::Heat );
@@ -1576,6 +1579,19 @@ void PanelVolume::OnActiveFrameChanged(int nFrame)
       }
     }
   }
+  else
+  {
+      LayerMRI* mri = qobject_cast<LayerMRI*>(sender());
+      QList<LayerMRI*> linked_mri = qobject_cast<LayerTreeWidget*>(treeWidgetLayers)->GetLinkedVolumes();
+      if (mri && linked_mri.contains(mri))
+      {
+          foreach (LayerMRI* lm, linked_mri)
+          {
+              if (lm != mri)
+                  lm->SetActiveFrame(qMin(lm->GetNumberOfFrames()-1, nFrame));
+          }
+      }
+  }
 }
 
 void PanelVolume::OnShowExistingLabelsOnly(bool b)
@@ -1859,6 +1875,11 @@ void PanelVolume::OnCustomContextMenu(const QPoint &pt)
 #endif
           connect(act, SIGNAL(triggered()), SLOT(OnGoToNextPoint()));
           menu.addAction(act);
+          menu.addSeparator();
+          act = new QAction(tr("Save Label as Volume..."), this);
+          act->setProperty("label_value", val);
+          connect(act, SIGNAL(triggered(bool)), MainWindow::GetMainWindow(), SLOT(OnSaveLabelAsVolume()));
+          menu.addAction(act);
         }
         else
         {
@@ -2034,4 +2055,10 @@ void PanelVolume::OnLineEditClearBackgroundValue(const QString &text)
       layer->GetProperty()->SetClearBackgroundValue(val);
     }
   }
+}
+
+QList<LayerMRI*> PanelVolume::GetLinkedVolumes()
+{
+  QList<LayerMRI*> linked_mri = qobject_cast<LayerTreeWidget*>(treeWidgetLayers)->GetLinkedVolumes();
+  return linked_mri;
 }

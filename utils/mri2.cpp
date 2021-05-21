@@ -5,7 +5,7 @@
 /*
  * Original Author: Douglas N. Greve
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -2050,13 +2050,19 @@ int MRImakeVox2VoxReg(MRI *targ, MRI *mov, int regtype, char *regname, mriTransf
       /* If we're reading a file, copy the file from the input or
       generate one from our data file location. */
       if (VOX2VOXREGTYPE_FILE == regtype) {
-        strncpy(fullregname, regname, sizeof(fullregname));
+	int written = snprintf(fullregname, 1000-1, "%s", regname);
+	if( written == (1000-1)) {
+	  std::cerr << __FUNCTION__ << ": Truncation writing fullregname" << std::endl;
+	}
       }
       else if (VOX2VOXREGTYPE_FIND == regtype) {
         /* Copy the movable volume name and find the last / in the
            file name. From there, copy in "register.dat" for our file
            name. */
-        strncpy(regpath, mov->fname, sizeof(regpath));
+	int written = snprintf(regpath, 1000-1, "%s", mov->fname);
+	if( written == (1000-1)) {
+	  std::cerr << __FUNCTION__ << ": Truncation writing regpath" << std::endl;
+	}
         cur_char = regpath;
         base_end = regpath;
         while (NULL != cur_char && '\0' != *cur_char) {
@@ -2064,7 +2070,10 @@ int MRImakeVox2VoxReg(MRI *targ, MRI *mov, int regtype, char *regname, mriTransf
           cur_char++;
         }
         *base_end = '\0';
-        snprintf(fullregname, sizeof(fullregname), "%s/%s", regpath, "register.dat");
+        written = snprintf(fullregname, sizeof(fullregname), "%s/%s", regpath, "register.dat");
+	if( written == sizeof(fullregname) ) {
+	  std::cerr << __FUNCTION__ << ": Truncation writing fullregname (with regpath)" << std::endl;
+	}
       }
 
       /* Check that the file exists. */
@@ -5803,10 +5812,15 @@ MRI *MRIfindBrightNonWM(MRI *mri_T1, MRI *mri_wm)
   }
   // At this point mri_labeled is a binary volume with 0 or BRIGHT_LABEL
 
-  /* Within a bounding box of the above label, dilate voxels that are
-  > 115 in the brain.finalsurfs (mri_T1). This operation expands the
-  binaization above. Hidden parameters: 115 and 10=number of  dilations */
-  MRIdilateThreshLabel(mri_labeled, mri_T1, NULL, BRIGHT_LABEL, 10,115);
+  // Within a bounding box of the above label, dilate voxels that are > 115
+  // in the brain.finalsurfs (mri_T1). This operation expands the binaization
+  // above. Hidden parameters: 115 and 10=number of  dilations
+
+  // ATH: Commenting line this out since it's actually doing nothing and causing a
+  // memory leak, since the destination volume is not supplied and the return value
+  // is not stored. Fixing it appropriately will affect recon-all output.
+  // MRIdilateThreshLabel(mri_labeled, mri_T1, NULL, BRIGHT_LABEL, 10,115);
+  
   // One dilation followed by one erosion
   MRIclose(mri_labeled, mri_labeled) ;
 

@@ -7,7 +7,7 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -414,6 +414,7 @@ int MRISdivideAnnotation(MRI_SURFACE *mris, int *nunits)
     if (vno == Gdiag_no) {
       DiagBreak();
     }
+    
     CTABfindAnnotation(mris->ct, v->annotation, &index);
     if (index <= 0 || done[index])  // don't do unknown (index = 0)
     {
@@ -422,18 +423,15 @@ int MRISdivideAnnotation(MRI_SURFACE *mris, int *nunits)
     if (index == Gdiag_no) {
       DiagBreak();
     }
-#if 0
-    if (stricmp("postcentral", mris->ct->entries[index]->name))
-    {
-      continue ;
-    }
-#endif
+    if (Gdiag_no >= 0 && v->annotation == mris->vertices[Gdiag_no].annotation)
+      DiagBreak();
     num = MRISdivideAnnotationUnit(mris, v->annotation, nunits[index]);
     nadded += (num + 1);
     done[index] = 1 + num;
   }
 
-  printf("allocating new colortable with %d additional units...\n", nadded);
+  if (DIAG_VERBOSE_ON)
+    printf("allocating new colortable with %d additional units...\n", nadded);
   ct = CTABalloc(mris->ct->nentries + nadded);
   index = mris->ct->nentries;
   for (i = 0; i < mris->ct->nentries; i++) {
@@ -445,10 +443,13 @@ int MRISdivideAnnotation(MRI_SURFACE *mris, int *nunits)
     }
     *(ct->entries[i]) = *(mris->ct->entries[i]);
     for (j = 0; done[i] > 1 && j < done[i]; j++) {
-      int offset, new_index, ri, gi, bi, found;
+      int offset, new_index, ri, gi, bi, found, old_index;
 
       *(ct->entries[index]) = *(mris->ct->entries[i]);
-      sprintf(ct->entries[index]->name, "%s_div%d", ct->entries[i]->name, j + 1);
+      auto cx = snprintf(ct->entries[index]->name, STRLEN, "%s_div%d", ct->entries[i]->name, j + 1);
+      if( (cx<0) || (cx>STRLEN) ) {
+	std::cerr << __FUNCTION__ << ": snprintf returned error value" << std::endl;
+      }
       offset = j;
       found = 0;
       do {
@@ -465,17 +466,26 @@ int MRISdivideAnnotation(MRI_SURFACE *mris, int *nunits)
           ct->entries[index]->rf = (float)ri / 255.0f;
           ct->entries[index]->gf = (float)gi / 255.0f;
           ct->entries[index]->bf = (float)bi / 255.0f;
-          found = 1;
 
           CTABannotationAtIndex(ct, i, &annot);
           CTABannotationAtIndex(ct, index, &new_annot);
+	  CTABfindAnnotation(mris->ct, new_annot, &old_index);
+	  if (old_index >= 0)
+	    continue ;  // not unique
+          found = 1;
+
           // translate old annotations to new ones
           for (vno = 0; vno < mris->nvertices; vno++) {
+	    if (vno == Gdiag_no)
+	      DiagBreak() ;
             v = &mris->vertices[vno];
             if (v->ripflag || v->marked != j || v->annotation != annot) {
               continue;
             }
+	    if (vno == Gdiag_no)
+	      DiagBreak() ;
             v->annotation = new_annot;
+	    v->marked = -1 ;   // don't process it again
           }
         }
         else {
@@ -1108,7 +1118,8 @@ void writeAnnotationFromSeg(const MRI *overlay, const std::string& filename)
 
   // convert seg values back into annotation values (if lookup table exists)
   for (int vno = 0; vno < nvertices; vno++) {
-    int annot = MRIgetVoxVal(overlay, vno, 0, 0, 0);
+    // round in case it's a floating point overlay
+    int annot = std::round(MRIgetVoxVal(overlay, vno, 0, 0, 0));
     if (overlay->ct) {
       if (annot < 0) {
          // set all negative seg values to 0 and don't search for annotation

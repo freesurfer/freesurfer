@@ -8,7 +8,7 @@
 /*
  * Original Author: Graham Wideman, based on code by Bruce Fischl
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -745,9 +745,12 @@ void MRIS_HASH_TABLE_NoSurface::mhtFaceCentroid2xyz_float(
   -------------------------------------------------------------*/
 int MRIS_HASH_TABLE_NoSurface::mhtAddFaceOrVertexAtVoxIx(int xv, int yv, int zv, int forvnum)
 {
-  if (xv < 0) xv = 0; if (xv >= TABLE_SIZE) xv = TABLE_SIZE - 1;
-  if (yv < 0) yv = 0; if (yv >= TABLE_SIZE) yv = TABLE_SIZE - 1;
-  if (zv < 0) zv = 0; if (zv >= TABLE_SIZE) zv = TABLE_SIZE - 1;
+  if (xv < 0) xv = 0;
+  if (xv >= TABLE_SIZE) xv = TABLE_SIZE - 1;
+  if (yv < 0) yv = 0;
+  if (yv >= TABLE_SIZE) yv = TABLE_SIZE - 1;
+  if (zv < 0) zv = 0;
+  if (zv >= TABLE_SIZE) zv = TABLE_SIZE - 1;
 
   {
     MHBT *bucket = makeAndAcqBucket(xv, yv, zv);

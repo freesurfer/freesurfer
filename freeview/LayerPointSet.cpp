@@ -5,7 +5,7 @@
 /*
  * Original Author: Ruopeng Wang
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -80,7 +80,7 @@ LayerPointSet::LayerPointSet( LayerMRI* ref, int nType, QObject* parent ) : Laye
 
   m_mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
 
-  if ( nType == LayerPropertyPointSet::ControlPoint )
+  if ( nType == LayerPropertyPointSet::ControlPoint || nType == LayerPropertyPointSet::Enhanced)
   {
     GetProperty()->SetShowSpline( false );
     GetProperty()->SetRadius ( 0.5 );
@@ -762,6 +762,9 @@ bool LayerPointSet::RemovePoint( int nIndex )
 
 void LayerPointSet::UpdatePoint( int nIndex, double* ras, bool rebuildActor )
 {
+  if (m_points.size() <= nIndex)
+    return;
+
   if ( GetProperty()->GetSnapToVoxelCenter() )
   {
     m_layerRef->SnapToVoxelCenter( ras, m_points[nIndex].pt );

@@ -1,6 +1,41 @@
 # This file defines a few custom cmake utility functions to
 # simplify the freesurfer build process
 
+# Create an OS name and resvision for systems we build and test on,
+# e.g., CentOS6, CentOS7, CentOS8, Ubuntu18, MacOS-10.14.6
+# Call host_os() in CMakeLists.txt to test value of HOST_OS
+#
+# For Mac use the sw_vers command
+# For linux, use the mostly common /etc/os-release file
+function(host_os)
+   set(HOST_OS undefined)
+   if(EXISTS "/usr/bin/sw_vers")
+      execute_process(COMMAND sw_vers \-productVersion OUTPUT_VARIABLE OS_IDENT)
+      string(STRIP ${OS_IDENT} OS_IDENT)
+      set(HOST_OS "MacOS-${OS_IDENT}")
+   elseif(EXISTS "/etc/os-release")
+      execute_process(COMMAND grep PRETTY_NAME \/etc\/os\-release OUTPUT_VARIABLE OS_IDENT)
+      string(STRIP ${OS_IDENT} OS_IDENT)
+      if(OS_IDENT MATCHES "CentOS Linux 8")
+         set(HOST_OS CentOS8)
+      elseif(OS_IDENT MATCHES "CentOS Linux 7")
+         set(HOST_OS CentOS7)
+      elseif(OS_IDENT MATCHES "Ubuntu 18")
+         set(HOST_OS Ubuntu18)
+      elseif(OS_IDENT MATCHES "Ubuntu 20")
+         set(HOST_OS Ubuntu20)
+      endif()
+   # CentOS6 too old to use os-release
+   elseif(EXISTS "/etc/redhat-release")
+      execute_process(COMMAND cat \/etc\/redhat\-release OUTPUT_VARIABLE REDHAT_VERSION)
+      string(STRIP ${REDHAT_VERSION} REDHAT_VERSION)
+      if(REDHAT_VERSION MATCHES "release 6")
+         set(HOST_OS CentOS6)
+      endif()
+   endif()
+   # message(STATUS "FROM functions.cmake building on host running ${HOST_OS}")
+   set(HOST_OS ${HOST_OS} PARENT_SCOPE)
+endfunction()
 
 # add_subdirectories(<subdirs>)
 # Simple utility to add multiple subdirectories at once
@@ -60,8 +95,7 @@ function(install_tarball)
       RESULT_VARIABLE retcode
     )
     if(NOT \${retcode} STREQUAL 0)
-      # message(FATAL_ERROR \"Could not extract ${INSTALL_UNPARSED_ARGUMENTS} - perhaps it hasn't been downloaded from the annex?\")
-      message(SEND_ERROR \"Could not extract ${INSTALL_UNPARSED_ARGUMENTS} - perhaps it hasn't been downloaded from the annex?\")
+      message(FATAL_ERROR \"Could not extract ${INSTALL_UNPARSED_ARGUMENTS} - perhaps it hasn't been downloaded from the annex?\")
     endif()"
   )
 endfunction()
@@ -84,8 +118,7 @@ function(mac_deploy_qt)
     message(STATUS \"Deploying ${APP_BUNDLE}\")
     execute_process(COMMAND bash -c \"${CMAKE_SOURCE_DIR}/qt/mac_deploy ${Qt5_INSTALL_DIR} ${CMAKE_INSTALL_PREFIX}/${APP_BUNDLE}\" RESULT_VARIABLE retcode)
     if(NOT \${retcode} STREQUAL 0)
-      # message(FATAL_ERROR \"Could not deploy ${APP_TARGET}\")
-      message(SEND_ERROR \"Could not deploy ${APP_TARGET}\")
+      message(FATAL_ERROR \"Could not deploy ${APP_TARGET}\")
     endif()"
   )
 endfunction()
@@ -122,8 +155,7 @@ function(install_append_help SCRIPT HELPTEXT DESTINATION)
       RESULT_VARIABLE retcode
     )
     if(NOT \${retcode} STREQUAL 0)
-      # message(FATAL_ERROR \"Could not append help text to ${SCRIPT}\")
-      message(SEND_ERROR \"Could not append help text to ${SCRIPT}\")
+      message(FATAL_ERROR \"Could not append help text to ${SCRIPT}\")
     endif()"
   )
   install(FILES ${HELPTEXT} DESTINATION docs/xml)
@@ -144,8 +176,7 @@ function(install_osx_app APP_PATH)
       RESULT_VARIABLE retcode
     )
     if(NOT \${retcode} STREQUAL 0)
-      # message(FATAL_ERROR \"Could not install ${APP_NAME}\")
-      message(SEND_ERROR \"Could not install ${APP_NAME}\")
+      message(FATAL_ERROR \"Could not install ${APP_NAME}\")
     endif()"
   )
 endfunction()
@@ -158,8 +189,7 @@ function(symlink TARGET LINKNAME)
     message(STATUS \"Symlinking: ${LINKNAME} to ${TARGET}\")
     execute_process(COMMAND bash -c \"mkdir -p $(dirname ${LINKNAME}) && rm -f ${LINKNAME} && ln -s ${TARGET} ${LINKNAME}\" RESULT_VARIABLE retcode)
     if(NOT \${retcode} STREQUAL 0)
-      # message(FATAL_ERROR \"Could not create symlink to ${TARGET}\")
-      message(SEND_ERROR \"Could not create symlink to ${TARGET}\")
+      message(FATAL_ERROR \"Could not create symlink to ${TARGET}\")
     endif()"
   )
 endfunction()

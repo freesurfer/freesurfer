@@ -201,10 +201,6 @@ void JHISTOfill(MRI *mri1, MRI *mri2, JOINT_HISTOGRAM *jhisto)
           }
         }
   jhisto->sample_count = count;
-
-  FILE *fp = fopen("/tmp/testjhisto.txt", "w");
-  JHISTOdump(jhisto, fp);
-  fclose(fp);
 }
 
 double JHISTOgetEntropy(JOINT_HISTOGRAM *jhisto)

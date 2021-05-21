@@ -38,7 +38,7 @@
 /*
  * Original Author: Douglas Greve
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -1082,10 +1082,25 @@ static int parse_commandline(int argc, char **argv) {
       RegFile = pargv[0];
       regmethod = "volume";
       nargsused = 1;
-    } else if (!strcmp(option, "--outmask")) {
+    } 
+    else if (!strcmp(option, "--outmask")) {
       if (nargc < 1) argnerr(option,1);
       OutMaskFile = pargv[0];
       nargsused = 1;
+    } 
+    else if (!strcmp(option, "--surf-label2mask")) {
+      if(nargc != 3) {
+	printf("--surf-label2mask label surf mask\n");
+	exit(1);
+      }
+      srclabel = LabelRead(NULL, pargv[0]);
+      if(!srclabel) exit(1);
+      SrcSurfReg = MRISread(pargv[1]);
+      if(!SrcSurfReg) exit(1);
+      outmask = MRISlabel2Mask(SrcSurfReg,srclabel,NULL);
+      int err = MRIwrite(outmask,pargv[2]);
+      exit(err);
+      nargsused = 3;
     } 
     else if (!strcmp(option, "--outstat")) {
       if (nargc < 1) argnerr(option,1);
@@ -1093,6 +1108,12 @@ static int parse_commandline(int argc, char **argv) {
       DoOutMaskStat = 1;
       nargsused = 1;
     } 
+    else if(!strcmp(option, "--Gdiag_no")){
+      if (nargc < 1) argnerr(option,1);
+      Gdiag_no = atoi(pargv[0]) ;
+      printf("Gdiag_no set to %d\n",Gdiag_no);
+      nargsused = 1;
+    }
     else if (!strcmp(option, "--label-cortex")) {
       // surf aseg outlabel
       if(nargc < 4){
@@ -1189,6 +1210,7 @@ static void print_usage(void) {
   printf("   --dmindmin overlayfile : bin mask with vertex of closest label point when painting\n");
   printf("   --baryfill surf surflabel delta outlabel\n");
   printf("   --label-cortex surface aseg KeepHipAmyg01 outlabel : create a label like ?h.cortex.label\n");
+  printf("   --surf-label2mask label surf mask : stand-alone way to convert a label to a binary mask\n");
   printf("\n");
   printf("   --srcmask     surfvalfile thresh <format>\n");
   printf("   --srcmasksign sign (<abs>,pos,neg)\n");

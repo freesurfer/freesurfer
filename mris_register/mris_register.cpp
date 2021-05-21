@@ -7,7 +7,7 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -129,6 +129,7 @@ static int use_defaults = 1 ;
 static INTEGRATION_PARMS  parms ;
 static int remove_negative = 1 ;
 char *rusage_file=NULL;
+char *regfile = NULL;
 
 int
 main(int argc, char *argv[])
@@ -157,7 +158,6 @@ main(int argc, char *argv[])
   printf("\ncwd %s\n",cwd);
   printf("cmdline %s\n\n",cmdline2);
 
-  memset(&parms, 0, sizeof(parms)) ;
   parms.projection = PROJECT_SPHERE ;
   parms.flags |= IP_USE_CURVATURE ;
   parms.trinarize_thresh = 0.0 ;  // disabled by default
@@ -237,6 +237,19 @@ main(int argc, char *argv[])
   if (!mris)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
               Progname, surf_fname) ;
+
+  if(regfile){
+    printf("Reading in reg file %s\n",regfile);
+    LTA *lta = LTAread(regfile);
+    if(lta==NULL) exit(1);
+    printf("Extracting rotational components\n");
+    LTAmat2RotMat(lta);
+    printf("Applying rotation matrix to surface\n");
+    //MatrixPrint(stdout,lta->xforms[0].m_L);
+    int err = MRISltaMultiply(mris, lta);
+    if(err) exit(1);
+    LTAfree(&lta);
+  }
 
   if (parms.var_smoothness)
   {
@@ -332,7 +345,10 @@ main(int argc, char *argv[])
       mrisp_template = MRISPalloc(scale, IMAGES_PER_SURFACE*noverlays);
       for (sno = 0; sno < noverlays ; sno++)
       {
-        sprintf(fname, "%s/../label/%s.%s", surf_dir, hemi, overlays[sno]) ;
+        int req = snprintf(fname, STRLEN, "%s/../label/%s.%s", surf_dir, hemi, overlays[sno]) ; 
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
         if (MRISreadValues(mris_template, fname)  != NO_ERROR)
           ErrorExit(ERROR_NOFILE,
                     "%s: could not read overlay from %s",
@@ -354,7 +370,10 @@ main(int argc, char *argv[])
       {
         if (curvature_names[sno])  /* read in precomputed curvature file */
         {
-          sprintf(fname, "%s/%s.%s", surf_dir, hemi, curvature_names[sno]) ;
+          int req = snprintf(fname, STRLEN, "%s/%s.%s", surf_dir, hemi, curvature_names[sno]) ; 
+	  if( req >= STRLEN ) {
+	    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	  }
           if (MRISreadCurvatureFile(mris_template, fname) != NO_ERROR)
             ErrorExit(Gerror,
                       "%s: could not read curvature file '%s'\n",
@@ -366,7 +385,10 @@ main(int argc, char *argv[])
         }
         else                         /* compute curvature of surface */
         {
-          sprintf(fname, "%s/%s.%s", surf_dir, hemi, surface_names[sno]) ;
+          int req = snprintf(fname, STRLEN, "%s/%s.%s", surf_dir, hemi, surface_names[sno]) ; 
+	  if( req >= STRLEN ) {
+	    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	  }
           if (MRISreadVertexPositions(mris_template, fname) != NO_ERROR)
             ErrorExit(ERROR_NOFILE,
                       "%s: could not read surface file %s",
@@ -782,6 +804,11 @@ get_option(int argc, char *argv[])
     fprintf(stderr, "rotating brain by (%2.2f, %2.2f, %2.2f)\n",
             dalpha, dbeta, dgamma) ;
     nargs = 3 ;
+  }
+  else if (!stricmp(option, "reg"))
+  {
+    regfile = argv[2];
+    nargs = 1 ;
   }
   else if (!stricmp(option, "reverse"))
   {

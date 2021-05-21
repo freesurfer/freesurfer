@@ -51,10 +51,9 @@ pushd $outdir > /dev/null
 set outdir = `pwd`;
 popd > /dev/null
 
-if($#tmpdir == 0) then
-  if(-dw /scratch)   set tmpdir = /scratch/tmpdir.fsfirst.fsl.$$
-  if(! -dw /scratch) set tmpdir = $outdir/tmpdir.fsfirst.fsl.$$
-endif
+# if($#tmpdir == 0) then
+#   set tmpdir = `fs_temp_dir --scratch --base $outdir`
+# endif
 #mkdir -p $tmpdir
 
 # Set up log file
@@ -302,9 +301,9 @@ if($#subject) then
     exit 1;
   endif
   set source  = $SUBJECTS_DIR/$subject/mri/orig.mgz
-  set outdir = $SUBJECTS_DIR/$subject/mri/first
   set segstats = $SUBJECTS_DIR/$subject/stats/first.fsl.stats
   set diceseg  = $SUBJECTS_DIR/$subject/mri/aseg.presurf.mgz
+  if($#outdir == 0) set outdir = $SUBJECTS_DIR/$subject/mri/first
 endif
 
 if($#outdir == 0) then

@@ -88,7 +88,7 @@ endif
 
 # If SUBJECTS_DIR is provided, just set it
 if ($#argv == 2) then
-  set SUBJECTS_DIR = $2
+  set SUBJECTS_DIR = `getfullpath  $2`
 endif
 
 # Set name of subject
@@ -206,7 +206,7 @@ echo "#@# Brainstem Substructures processing `date`" \
   |& tee -a $BSSLOG
 
 # command
-set cmd="run_SegmentSubject.sh $RUNTIME $SUBJECTNAME $SUBJECTS_DIR $RESOLUTION $ATLASMESH $ATLASDUMP $LUT $K $OPTIMIZER $SUFFIX ${FREESURFER_HOME}/bin/"
+set cmd="run_SegmentSubject.sh $RUNTIME $SUBJECTNAME $SUBJECTS_DIR $RESOLUTION $ATLASMESH $ATLASDUMP $LUT $K $OPTIMIZER $SUFFIX '${FREESURFER_HOME}/bin/fs_run_from_mcr ${FREESURFER_HOME}/bin/'"
 
 fs_time ls >& /dev/null
 if ($status) then

@@ -1,7 +1,7 @@
 /*
  * Original Author: Ruopeng Wang
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -26,6 +26,7 @@ class ToolWindowMeasure;
 
 class Region2D;
 class SurfaceRegion;
+class Region3D;
 
 class ToolWindowMeasure : public QWidget, public UIUpdateHelper
 {
@@ -40,6 +41,7 @@ public:
 public slots:
   void SetRegion(Region2D* reg = 0);
   void SetSurfaceRegion( SurfaceRegion* reg = 0 );
+  void Set3DRegion( Region3D* reg = 0 );
 
 protected slots:
   void OnIdle();
@@ -64,8 +66,10 @@ private:
 
   QList<QWidget*> m_widgets2D;
   QList<QWidget*> m_widgets3D;
+  QList<QWidget*> m_widgets3DDraw;
   Region2D*       m_region;
   SurfaceRegion*  m_surfaceRegion;
+  Region3D*       m_3DRegion;
   bool            m_bToUpdateWidgets;
 };
 

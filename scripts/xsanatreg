@@ -7,7 +7,7 @@
 # for minctracc.  The inputs are directories pointing to COR volumes.
 #
 #
-# Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+# Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
 #
 # Terms and conditions for use, reproduction, distribution and contribution
 # are found in the 'FreeSurfer Software License Agreement' contained
@@ -49,7 +49,7 @@ parse_args_return:
 
 ## Set up the tmp directory ##
 if($#tmpdir == 0) then
-  set tmpdir = /tmp
+  set tmpdir = `fs_temp_dir`
 else
   mkdir -p $tmpdir
 endif

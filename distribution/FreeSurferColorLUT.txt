@@ -450,6 +450,17 @@
 702 GrayMatter-FSL-FAST                     205 62  78  0
 703 WhiteMatter-FSL-FAST                    0   225 0   0
 
+801 L_hypothalamus_anterior_inferior        250 255 50  0
+802 L_hypothalamus_anterior_superior        80  200 255 0
+803 L_hypothalamus_posterior                255 160 0   0
+804 L_hypothalamus_tubular_inferior         255 160 200 0
+805 L_hypothalamus_tubular_superior         20  180 130 0
+806 R_hypothalamus_anterior_inferior        250 255 50  0
+807 R_hypothalamus_anterior_superior        80  200 255 0
+808 R_hypothalamus_posterior                255 160 0   0
+809 R_hypothalamus_tubular_inferior         255 160 200 0
+810 R_hypothalamus_tubular_superior         20  180 130 0
+
 999 SUSPICIOUS                              255 100 100 0
 
 # Below is the color table for the cortical labels of the seg volume
@@ -1146,6 +1157,25 @@
 7100  Brainstem-inferior-colliculus                     42  201 168 0
 7101  Brainstem-cochlear-nucleus                        168 104 162 0
 
+7201  DR                                                121 255 250 0
+7202  MnR                                               0   255 0   0
+7203  PAG                                               153 153 255 0
+7204  VTA                                               255 0   255 0
+
+7301  Left-LC                                           0   0   255 0
+7302  Left-LDTg                                         255 127 0   0
+7303  Left-mRt                                          255 0   0   0
+7304  Left-PBC                                          255 255 0   0
+7305  Left-PnO                                          0   127 255 0
+7306  Left-PTg                                          127 0   255 0
+
+7401  Right-LC                                          0   0   255 0
+7402  Right-LDTg                                        255 127 0   0
+7403  Right-mRt                                         255 0   0   0
+7404  Right-PBC                                         255 255 0   0
+7405  Right-PnO                                         0   127 255 0
+7406  Right-PTg                                         127 0   255 0
+
 8001  Thalamus-Anterior                                 74  130 181 0
 8002  Thalamus-Ventral-anterior                         242 241 240 0
 8003  Thalamus-Lateral-dorsal                           206 65  78  0
@@ -1193,6 +1223,7 @@
 8129 Left-VLp 255 170 0 0
 8130 Left-VM 85 255 0 0
 8133 Left-VPL 255 0 255 0
+8134 Left-PaV 120 18  134 0
 
 8203 Right-AV 0 85 0 0
 8204 Right-CeM 170 85 0 0
@@ -1220,7 +1251,7 @@
 8229 Right-VLp 255 170 0 0
 8230 Right-VM 85 255 0 0
 8233 Right-VPL 255 0 255 0
-
+8234 Right-PaV 120 18  134 0
 
 #
 # Labels for thalamus parcellation using probabilistic tractography. See:

@@ -5,7 +5,7 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -46,6 +46,7 @@
 #define TAG_PEDIR                   41
 #define TAG_MRI_FRAME               42
 #define TAG_FIELDSTRENGTH           43
+#define TAG_ORIG_RAS2VOX            44
 
 int TAGreadStart(FILE *fp, long long *plen) ;
 int TAGwriteStart(FILE *fp, int tag, long long *phere, long long len) ;
@@ -64,7 +65,7 @@ int znzTAGwriteEnd(znzFile fp, long long there) ;
 int znzTAGskip(znzFile fp, int tag, long long len) ;
 int znzTAGwriteCommandLine(znzFile fp, char *cmd_line) ;
 int znzTAGwrite(znzFile fp, int tag, void *buf, long long len) ;
-int znzWriteMatrix(znzFile fp, MATRIX *M);
+int znzWriteMatrix(znzFile fp, MATRIX *M, int tag);
 MATRIX *znzReadMatrix(znzFile fp);
 int znzTAGreadFloat(float *pf, znzFile fp);
 

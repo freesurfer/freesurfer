@@ -11,7 +11,7 @@
 /*
  * Original Author: Anna I. Blazejewska
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -138,11 +138,16 @@ int main(int argc, char *argv[]) {
 	// if no output dir/name given - set based on 1st overlay
 	if (strlen(out_dir) == 0) strcpy(out_dir, over_dir);
 	if (strlen(out_name) == 0) {
-		char *dot, *name;
-		name = basename(over_list.gl_pathv[0]);
-		dot = strrchr(name, '.') ;
-		strncpy(out_name, name, dot - name);
-		sprintf(out_name, "%s.nb%d_rad%d-%d.mgz", out_name, nb_rad, ic_start, (ic_start+ic_size-1));
+	  char *dot, *name;
+	  char tmp_out_name[STRLEN];
+	  name = basename(over_list.gl_pathv[0]);
+	  dot = strrchr(name, '.') ;
+	  strncpy(tmp_out_name, name, dot - name);
+	  int req = snprintf(out_name, STRLEN, "%s.nb%d_rad%d-%d.mgz", 
+			     tmp_out_name, nb_rad, ic_start, (ic_start+ic_size-1));
+	  if( req >= STRLEN ) {
+	    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	  }
 	}
 
 	globfree(&surf_list);	globfree(&over_list);
@@ -200,7 +205,10 @@ int main(int argc, char *argv[]) {
 	}
 
 	// write an output overlay ///////////////////////////////////////////////////////////////////////////////////////
-	sprintf(out_path, "%s%s%s", out_dir, SEP, out_name);
+	int req = snprintf(out_path, STRLEN, "%s%s%s", out_dir, SEP, out_name);
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
 	printf("Saving result: %s\n", out_path);
 	MRIwrite(output[0], out_path);
 

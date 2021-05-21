@@ -5,7 +5,7 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -1341,10 +1341,16 @@ find_control_points
 
   if (mri_ctrl)
   {
-    sprintf(fname, "%s_init_label%d.labels.mgz", fname_only, label) ;
+    int req = snprintf(fname, STRLEN, "%s_init_label%d.labels.mgz", fname_only, label) ;
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     printf("writing initial sample points for %s to %s\n", cma_label_to_name(label), fname); 
     MRIwriteFrame(mri_ctrl, fname, 0) ;
-    sprintf(fname, "%s_init_label%d.priors.mgz", fname_only, label) ;
+    req = snprintf(fname, STRLEN, "%s_init_label%d.priors.mgz", fname_only, label) ;
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     printf("writing initial label priors for %s to %s\n", cma_label_to_name(label), fname); 
     MRIwriteFrame(mri_ctrl, fname, 1) ;
     MRIfree(&mri_ctrl) ;

@@ -1,6 +1,6 @@
 /*
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -34,6 +34,7 @@ MRI_REGION *REGIONexpand(MRI_REGION *rsrc, MRI_REGION *rdst, int n) ;
 float      REGIONminCornerDistance(MRI_REGION *r1, MRI_REGION *r2) ;
 int REGIONprint(FILE *fp, MRI_REGION *r);
 MRI_REGION *REGIONgetBoundingBox(MRI *mask, int npad);
+MRI_REGION *REGIONgetBoundingBoxM(const MRI *mask, const int npad[6]);
 MRI_REGION *REGIONgetBoundingBoxEqOdd(MRI *mask, int npad);
 
 #define REGION_INSIDE      1

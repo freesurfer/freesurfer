@@ -11,7 +11,7 @@
 /*
  * Original Author: Yasunari Tosa
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -31,7 +31,7 @@
 #ifndef BYTE_ORDER
 
 /////////////Linux////////////////////////////
-#ifdef linux
+#ifdef __linux__
 #include <endian.h>
 
 #ifndef BYTE_ORDER

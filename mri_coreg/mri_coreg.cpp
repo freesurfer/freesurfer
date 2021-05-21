@@ -5,7 +5,7 @@
 /*
  * Original Author: Douglas N. Greve
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -76,6 +76,7 @@ int debug=0;
 int checkoptsonly=0;
 struct utsname uts;
 
+
 typedef struct {
   char *mov;
   const char *ref;
@@ -86,6 +87,7 @@ typedef struct {
   char *subject;
   int DoCoordDither;
   int DoIntensityDither;
+  char *moviditherfile=NULL;
   int dof;
   double params[12];
   int nsep, seplist[10];
@@ -101,18 +103,20 @@ typedef struct {
   double BFLim;
   int BFNSamp;
   char *outparamfile;
+  char *outcostfile;
   double fwhmc, fwhmr, fwhms;
   int SmoothRef;
   double SatPct;
   int MovOOBFlag;
   const char *rusagefile;
   int optschema;
+  int seed=53;
+  char *movoutfile=NULL;
 } CMDARGS;
-
 CMDARGS *cmdargs;
 
 MRI *MRIrescaleToUChar(MRI *mri, MRI *ucmri, double sat);
-unsigned char *MRItoUCharVect(MRI *mri, RFS *rfs);
+unsigned char *MRItoUCharVect(MRI *mri, RFS *rfs, MRI *dither);
 MATRIX *MRIgetVoxelToVoxelXformBase(MRI *mri_src, MRI *mri_dst, MATRIX *SrcRAS2DstRAS, MATRIX *SrcVox2DstVox, int base);
 
 double **conv1dmat(double **M, int rows, int cols, double *v, int nv, int dim, 
@@ -135,8 +139,9 @@ typedef struct {
   double reffwhm[3],refgstd[3];
   double movfwhm[3],movgstd[3];
   double histfwhm[2];
-  double params[12];
-  int nparams;
+  double params[12]; // params to be optimized, may be < 12
+  int nparams; // number of params to be optimized, may be < 12
+  double mparams[12]; // params to create the matrix, always=12
   double H01d[256*256];
   double **H0;
   double cost;
@@ -153,11 +158,13 @@ typedef struct {
   MRI *cdither;
   int DoIntensityDither;
   RFS *refirfs,*movirfs;
+  MRI *movidither=NULL;
   int DoSmoothing;
   FILE *fplogcost;
   int MovOOBFlag;
   int optschema;
   int debug;
+  int seed;
 } COREG;
 
 double COREGcost(COREG *coreg);
@@ -176,6 +183,7 @@ int COREGprint(FILE *fp, COREG *coreg);
 MRI *MRIconformNoScale(MRI *mri, MRI *mric);
 int COREGoptBruteForce(COREG *coreg, double lim0, int niters, int n1d);
 double *COREGoptSchema2MatrixPar(COREG *coreg, double *par);
+int COREGmatrixPar2OptSchema(COREG *coreg, double *par);
 
 COREG *coreg;
 FSENV *fsenv;
@@ -214,6 +222,7 @@ int main(int argc, char *argv[]) {
   cmdargs->SatPct = 99.99;
   cmdargs->MovOOBFlag = 0;
   cmdargs->optschema = 1;
+  cmdargs->seed = 53;
   cmdargs->rusagefile = "";
 
   nargs = handleVersionOption(argc, argv, "mri_coreg");
@@ -236,6 +245,8 @@ int main(int argc, char *argv[]) {
   dump_options(stdout);
 
   coreg = (COREG *) calloc(sizeof(COREG),1);
+  coreg->seed = cmdargs->seed;
+  printf("Seed %d\n",coreg->seed);
 
   printf("Reading in mov %s\n",cmdargs->mov);
   coreg->mov = MRIread(cmdargs->mov);
@@ -252,6 +263,12 @@ int main(int argc, char *argv[]) {
     coreg->ref = mritmp; 
   }
   coreg->nvoxref = coreg->ref->width * coreg->ref->height * coreg->ref->depth;
+
+  if(cmdargs->moviditherfile){
+    printf("Reading mov intensity dither file %s\n",cmdargs->moviditherfile);
+    coreg->movidither = MRIread(cmdargs->moviditherfile);
+    if(!coreg->movidither) exit(1);
+  }
 
   if(cmdargs->refmask){
     printf("Reading in and applying refmask %s\n",cmdargs->refmask);
@@ -367,28 +384,43 @@ int main(int argc, char *argv[]) {
   if(coreg->DoCoordDither){
     // Creating a dither volume is needed for thread safety
     printf("Creating random numbers for coordinate dithering\n");
-    coreg->crfs = RFspecInit(53,NULL);
+    coreg->crfs = RFspecInit(coreg->seed,NULL);
     coreg->crfs->name = strcpyalloc("uniform");
     coreg->crfs->params[0] = 0;
     coreg->crfs->params[1] = 1;
     coreg->cdither = MRIallocSequence(coreg->ref->width, coreg->ref->height, coreg->ref->depth, MRI_FLOAT,3);
     RFsynth(coreg->cdither, coreg->crfs, NULL);
-  } else printf("NOT Creating random numbers for coordinate dithering\n");
+  } 
+  else printf("NOT Creating random numbers for coordinate dithering\n");
   if(coreg->DoIntensityDither){
     printf("Performing intensity dithering\n");
-    coreg->refirfs = RFspecInit(53,NULL);
+    coreg->refirfs = RFspecInit(coreg->seed,NULL);
     coreg->refirfs->name = strcpyalloc("uniform");
     coreg->refirfs->params[0] = 0;
     coreg->refirfs->params[1] = 1;
-    coreg->movirfs = RFspecInit(53,NULL);
-    coreg->movirfs->name = strcpyalloc("uniform");
-  } else printf("NOT Performing intensity dithering\n");
+    if(coreg->movidither){
+      printf("Performing intensity dithering on mov with input dither volume\n");
+      coreg->movirfs = NULL;
+    }
+    else {
+      printf("Performing intensity dithering on mov with computed dither\n");
+      coreg->movirfs = RFspecInit(coreg->seed,NULL);
+      coreg->movirfs->name = strcpyalloc("uniform");
+    }
+  } 
+  else printf("NOT Performing intensity dithering\n");
   fflush(stdout);
 
   // Initial parameters
-  for(n=0; n < 12; n++) coreg->params[n] = cmdargs->params[n];
-  printf("Initial parameters ");
-  for(n=0; n < 12; n++) printf("%7.4lf ",coreg->params[n]);
+  printf("Init matrix params ");
+  for(n=0; n < 12; n++){
+    printf("%7.4lf ",cmdargs->params[n]);
+    coreg->mparams[n] = cmdargs->params[n];
+  }
+  printf("\n");
+  COREGmatrixPar2OptSchema(coreg, cmdargs->params);
+  printf("Initial parameters to be opt ");
+  for(n=0; n < cmdargs->dof; n++) printf("%7.4lf ",coreg->params[n]);
   printf("\n");
 
   coreg->nsep = cmdargs->nsep;
@@ -401,6 +433,10 @@ int main(int argc, char *argv[]) {
   COREGprint(stdout, coreg);
 
   COREGpreproc(coreg);
+  if(cmdargs->movoutfile){
+    printf("Saving mov to %s\n",cmdargs->movoutfile);
+    MRIwrite(coreg->mov,cmdargs->movoutfile);
+  }
 
   if(cmdargs->logcost){
     coreg->fplogcost = fopen(cmdargs->logcost,"w");
@@ -453,13 +489,26 @@ int main(int argc, char *argv[]) {
   MatrixPrint(stdout,coreg->M);
   printf("Final  RefVox-to-MovVox\n");
   MatrixPrint(stdout,coreg->V2V);
-  printf("Final parameters ");
+  printf("Final matrix parameters ");
+  double *mpar = COREGoptSchema2MatrixPar(coreg, NULL);
+  for(n=0; n < 12; n++) printf("%7.4lf ",mpar[n]);
+  printf("\n");
+  printf("Final opt parameters ");
   for(n=0; n < coreg->nparams; n++) printf("%7.4lf ",coreg->params[n]);
   printf("\n");
   if(cmdargs->outparamfile){
     FILE *fp;
     fp = fopen(cmdargs->outparamfile,"w");
-    for(n=0; n < coreg->nparams; n++) fprintf(fp,"%15.8lf ",coreg->params[n]);
+    // Not sure which set to write out here; keeping opt for now to maint conist
+    //for(n=0; n < 12; n++) fprintf(fp,"%15.8lf ",mpar[n]);
+    for(n=0; n < coreg->nparams; n++) fprintf(fp,"%7.4lf ",coreg->params[n]);
+    fprintf(fp,"\n");
+    fclose(fp);
+  }
+  if(cmdargs->outcostfile){
+    FILE *fp;
+    fp = fopen(cmdargs->outcostfile,"w");
+    fprintf(fp,"%20.13lf ",coreg->cost);
     fprintf(fp,"\n");
     fclose(fp);
   }
@@ -523,9 +572,24 @@ static int parse_commandline(int argc, char **argv) {
       cmdargs->rusagefile = pargv[0];
       nargsused = 1;
     } 
+    else if (!strcasecmp(option, "--seed")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%d",&cmdargs->seed);
+      nargsused = 1;
+    } 
     else if (!strcasecmp(option, "--mov")) {
       if(nargc < 1) CMDargNErr(option,1);
       cmdargs->mov = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--movout")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      cmdargs->movoutfile = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--mov-idither")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      cmdargs->moviditherfile = pargv[0];
       nargsused = 1;
     } 
     else if (!strcasecmp(option, "--ref") || !strcasecmp(option, "--targ")) {
@@ -557,6 +621,11 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--params")){
       if(nargc < 1) CMDargNErr(option,1);
       cmdargs->outparamfile = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--final-cost")){
+      if(nargc < 1) CMDargNErr(option,1);
+      cmdargs->outcostfile = pargv[0];
       nargsused = 1;
     } 
     else if (!strcasecmp(option, "--log-cost")) {
@@ -593,6 +662,10 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--xytrans+zrot"))   {
       cmdargs->optschema = 4;
       cmdargs->dof = 3;
+    }
+    else if (!strcasecmp(option, "--xytrans+zrot+xyscale+xyshear"))   {
+      cmdargs->optschema = 5;
+      cmdargs->dof = 6;
     }
     else if (!strcasecmp(option, "--zscale"))   {
       cmdargs->optschema = 3;
@@ -631,6 +704,55 @@ static int parse_commandline(int argc, char **argv) {
       printf("\n");
       nargsused = 1;
       exit(0);
+    } 
+    else if (!strcasecmp(option, "--mat2rot")) {
+      if(nargc < 2) CMDargNErr(option,2);
+      LTA *lta;
+      lta = LTAread(pargv[0]);
+      if(lta==NULL) exit(1);
+      LTAmat2RotMat(lta);
+      int err = LTAwrite(lta,pargv[1]);
+      nargsused = 2;
+      exit(err);
+    } 
+    else if (!strcasecmp(option, "--par2mat")) {
+      if(nargc < 15) CMDargNErr(option,15);
+      double par[12];
+      int k;
+      for(k=0; k<12; k++) sscanf(pargv[k],"%lf",&par[k]);
+      //for(k=0; k<12; k++) printf("%lf\n",par[k]);
+      MRI *mrisrc, *mritarg;
+      mrisrc = MRIread(pargv[12]);
+      if(mrisrc==NULL) exit(1);
+      mritarg = MRIread(pargv[13]);
+      if(mritarg==NULL) exit(1);
+      MATRIX *T = TranformAffineParams2Matrix(par, NULL);
+      MatrixInverse(T,T);
+      LTA *lta = LTAcreate(mrisrc, mritarg, T, LINEAR_RAS_TO_RAS);
+      if(cmdargs->subject)  strncpy(lta->subject,cmdargs->subject,sizeof(lta->subject)-1);
+      else                  strncpy(lta->subject,"unknown",       sizeof(lta->subject)-1);
+      int err = LTAwrite(lta,pargv[14]);
+      MRIfree(&mrisrc);
+      MRIfree(&mritarg);
+      MatrixFree(&T);
+      LTAfree(&lta);
+      exit(err);
+    } 
+    else if (!strcasecmp(option, "--landmarks")) {
+      // --landmarks sxyzfile txyzfile coords mov targ outreg
+      if(nargc < 6) CMDargNErr(option,6);
+      RegLandmarks rlm;
+      rlm.sxyzfile = pargv[0];
+      rlm.txyzfile = pargv[1];
+      rlm.coordtypename = pargv[2];
+      rlm.mrisrcfile = pargv[3];
+      rlm.mritrgfile = pargv[4];
+      LTA *lta = rlm.ComputeLTA();
+      if(lta == NULL) exit(1);
+      if(cmdargs->subject)  strncpy(lta->subject,cmdargs->subject,sizeof(lta->subject)-1);
+      else                  strncpy(lta->subject,"unknown",       sizeof(lta->subject)-1);
+      int err = LTAwrite(lta,pargv[5]);
+      exit(err);
     } 
     else if (!strcasecmp(option, "--rms")) {
       if(nargc < 2) CMDargNErr(option,4);
@@ -775,8 +897,9 @@ static void print_usage(void) {
   printf("   --s subject (forces --ref-mask aparc+aseg.mgz)\n");
   printf("   --dof DOF : default is %d (also: --6, --9, --12)\n",cmdargs->dof);
   printf("   --zscale : a 7 dof reg with xyz shift and rot and scaling in z\n");
-  printf("   --xytrans+zrot : for 2D images uses shifts in x and y and rot about z (no scale)\n");
   printf("   --xztrans+yrot : for 2D images uses shifts in x and z and rot about y (no scale) (was --2dz)\n");
+  printf("   --xytrans+zrot : for 2D images uses shifts in x and y and rot about z (no scale)\n");
+  printf("   --xytrans+zrot+xyscale+xyshear : for 2D images uses shifts in x and y, rot about y, scale in xy, and xy shear \n");
   printf("   --ref-mask refmaskvol : mask ref with refmaskvol\n");
   printf("   --no-ref-mask : do not mask ref (good to undo aparc+aseg.mgz, put AFTER --s)\n");
   printf("   --mov-mask movmaskvol : mask ref with movmaskvol\n");
@@ -792,12 +915,14 @@ static void print_usage(void) {
   printf("   --shear Hxy Hxz Hyz : initial shear\n");
   printf("   --init-reg reg0.lta : initialize with given registration file\n");
   printf("   --params outparamfile : save parameters in this file\n");
+  printf("   --final-cost outcostfile : save final cost value in this file\n");
   printf("   --no-cras0 : do not set translation parameters to align centers of mov and ref\n");
   printf("   --centroid : intialize by aligning centeroids of mov and ref\n");
   printf("   --regheader : same as no-cras0\n");
   printf("   --nitersmax n : default is %d\n",cmdargs->nitersmax);
   printf("   --ftol ftol : default is %5.3le\n",cmdargs->ftol);
   printf("   --linmintol linmintol : default is %5.3le\n",cmdargs->linmintol);
+  printf("   --seed seed : set random seed for dithering\n");
   printf("   --sat SatPct : saturation threshold, default %5.3le\n",cmdargs->SatPct);
   printf("   --conf-ref : conform the refernece without rescaling (good for gca)\n");
   printf("   --no-bf : do not do brute force search\n");
@@ -808,8 +933,14 @@ static void print_usage(void) {
   printf("   --mov-oob : count mov voxels that are out-of-bounds as 0\n");
   printf("   --no-mov-oob : do not count mov voxels that are out-of-bounds as 0 (default)\n");
   printf("   --mat2par reg.lta : extract parameters out of registration\n");
+  printf("   --mat2rot reg.lta rotreg.lta: convert registration to a pure rotation\n");
+  printf("   --par2mat par1-par12 srcvol trgvol reg.lta : convert parameters to a  registration\n");
+  printf("      the subject in the output reg.lta can be set with --s before --par2mat\n");
+  printf("   --landmarks sxyz txyz coords mov targ outlta : convert landmarks to a registration\n");
   printf("   --rms radius filename reg1 reg2 : compute RMS diff between two registrations using MJ's method (rad ~= 50mm)\n");
   printf("      The rms will be written to filename; if filename == nofile, then no file is created\n");
+  printf("   --movout movout volume : save the mov after all preprocessing\n");
+  printf("   --mov-idither intensity dither volume : save the mov intensity dither volume\n");
   printf("\n");
   printf("   --debug     turn on debugging\n");
   printf("   --checkopts don't run anything, just check options and exit\n");
@@ -1022,7 +1153,8 @@ int COREGhist(COREG *coreg)
 	  if(drmov < 0 || drmov > coreg->mov->height-1) oob = 1;
 
           double dsmov = 0;
-	  if(coreg->optschema != 2 && coreg->optschema != 4){
+	  if(coreg->optschema != 2 && coreg->optschema != 4 && coreg->optschema != 5){
+            // not z-only
 	    dsmov  = V2V[2]*dcref + V2V[6]*drref + V2V[10]*dsref +  V2V[14];
 	    if(dsmov < 0 || dsmov > coreg->mov->depth-1)  oob = 1;
 	  }
@@ -1128,11 +1260,11 @@ MRI *MRIrescaleToUChar(MRI *mri, MRI *ucmri, double sat)
 }
 
 /*!
-  \fn unsigned char *MRItoUCharVect(MRI *mri)
+  \fn unsigned char *MRItoUCharVect(MRI *mri, RFS *rfs, MRI *dither)
   Converts mri values to a uchar vector.
   Important! Must be consistent withh COREGvolIndex()
 */
-unsigned char *MRItoUCharVect(MRI *mri, RFS *rfs)
+unsigned char *MRItoUCharVect(MRI *mri, RFS *rfs, MRI *dither)
 {
   int c,r,s,nvox;
   unsigned char *a, *pa;
@@ -1144,7 +1276,8 @@ unsigned char *MRItoUCharVect(MRI *mri, RFS *rfs)
   for(s=0; s < mri->depth; s++){
     for(r=0; r < mri->height; r++){
       for(c=0; c < mri->width; c++){
-	if(rfs) dval = RFdrawVal(rfs);
+	if(rfs)    dval = RFdrawVal(rfs);
+	if(dither) dval = MRIgetVoxVal(dither,c,r,s,0);
 	val = MRIgetVoxVal(mri,c,r,s,0)+dval;
 	if(val < 0)   val = 0;
 	if(val > 255) val = 255;
@@ -1388,7 +1521,10 @@ double NMICost(double **H, int cols, int rows)
   \fn double *COREGoptSchema2MatrixPar(COREG *coreg, double *par)
   \brief Convert the vector of optimized parameters to parameters used
   to create an actual matrix transform. This schema allows for
-  differnt parameters to be optimized (and not just the first n dof)
+  differnt parameters to be optimized (and not just the first n dof).
+  It will only replace the values that are being optimized, so the
+  other values must be properly set (eg, if optimizing trans/rot, then
+  scale must be set to something non-zero).
  */
 double *COREGoptSchema2MatrixPar(COREG *coreg, double *par)
 {
@@ -1400,35 +1536,81 @@ double *COREGoptSchema2MatrixPar(COREG *coreg, double *par)
   case 1: 
     // schema 1 is that the number of params = dof and that
     // the order is given by xyz shift, xyz rot, xyz scale, then shear
-    for(n=0; n<12; n++) par[n] = 0;
-    par[6] = par[7] = par[8] = 1; // scaling
     for(n=0; n<coreg->nparams;n++) par[n] = coreg->params[n];
     break;
   case 2: 
     // schema 2 is for a 2D image (3dof: x and z trans with rot about y)
-    for(n=0; n<12; n++) par[n] = 0;
-    par[6] = par[7] = par[8] = 1; // scaling
     par[0] = coreg->params[0]; // x trans
     par[2] = coreg->params[1]; // z trans
     par[4] = coreg->params[2]; // rotation about y
     break;
   case 3: 
     // schema 3 is 7 dof (xyz shift, xyz rot, and z scale)
-    for(n=0; n<12; n++) par[n] = 0;
-    par[6] = par[7] = 1; // scaling in x and y
     for(n=0; n < 6; n++) par[n] = coreg->params[n];
     par[8] = coreg->params[6];
     break;
   case 4: 
     // schema 4 is for a 2D image (3dof: x and y trans with rot about z)
-    for(n=0; n<12; n++) par[n] = 0;
-    par[6] = par[7] = par[8] = 1; // scaling
     par[0] = coreg->params[0]; // x trans
     par[1] = coreg->params[1]; // y trans
     par[5] = coreg->params[2]; // rotation about z
     break;
+  case 5: 
+    // schema 5 is for a 2D image (6dof: x and y trans/scale + xyschear with rot about z)
+    par[0] = coreg->params[0]; // x trans
+    par[1] = coreg->params[1]; // y trans
+    par[5] = coreg->params[2]; // z rot 
+    par[6] = coreg->params[3]; // x scale
+    par[7] = coreg->params[4]; // y scale
+    par[9]  = coreg->params[5]; // xy shear
+    break;
   }
   return(par);
+}
+
+/*!
+  \fn int COREGmatrixPar2OptSchema(COREG *coreg, double *par)
+  \brief Copy the relevant items of the 12DOF parameters used to
+  create a matrix to the parameters to be optimized (coreg->params).
+ */
+int COREGmatrixPar2OptSchema(COREG *coreg, double *par)
+{
+  int n;
+
+  switch(coreg->optschema){
+  case 1: 
+    // schema 1 is that the number of params = dof and that
+    // the order is given by xyz shift, xyz rot, xyz scale, then shear
+    for(n=0; n<coreg->nparams;n++) coreg->params[n] = par[n];
+    break;
+  case 2: 
+    // schema 2 is for a 2D image (3dof: x and z trans with rot about y)
+    coreg->params[0] = par[0]; // x trans
+    coreg->params[1] = par[2]; // z trans
+    coreg->params[2] = par[4]; // rotation about y
+    break;
+  case 3: 
+    // schema 3 is 7 dof (xyz shift, xyz rot, and z scale)
+    for(n=0; n < 6; n++) coreg->params[n] = par[n];
+    coreg->params[6] = par[8];
+    break;
+  case 4: 
+    // schema 4 is for a 2D image (3dof: x and y trans with rot about z)
+    coreg->params[0] = par[0]; // x trans
+    coreg->params[1] = par[1]; // y trans
+    coreg->params[2] = par[5]; // rotation about z
+    break;
+  case 5: 
+    // schema 5 is for a 2D image (6dof: x and y trans/scale + xyschear with rot about z)
+    coreg->params[0] = par[0]; // x trans
+    coreg->params[1] = par[1]; // y trans
+    coreg->params[2] = par[5]; // z rot 
+    coreg->params[3] = par[6]; // x scale
+    coreg->params[4] = par[7]; // y scale
+    coreg->params[5] = par[9]; // xy shear
+    break;
+  }
+  return(0);
 }
 
 double COREGcost(COREG *coreg)
@@ -1437,11 +1619,17 @@ double COREGcost(COREG *coreg)
   double *g1, *g2, sum, std1, std2;
   int r,c,n,lim1,lim2,ng1,ng2;
   int H1rows,H1cols,Hrows,Hcols;
-  static double *params=NULL;
+
+  /* Copy the params being optimized into the matrix param vector
+  (mparams). This will be used below to create the matarix.  mparams
+  may have non-trivial values in slots that are not being optimized,
+  eg, if a non-rigid matrix is passed as input but you are only
+  optimizing the rigid components, the non-rigid components will still
+  be part of the matrix.  */
+  COREGoptSchema2MatrixPar(coreg, coreg->mparams);
 
   // RefRAS-to-MovRAS
-  params = COREGoptSchema2MatrixPar(coreg, params);
-  coreg->M = TranformAffineParams2Matrix(params, coreg->M);
+  coreg->M = TranformAffineParams2Matrix(coreg->mparams, coreg->M);
 
   // AnatVox-to-FuncVox
   coreg->V2V = MRIgetVoxelToVoxelXformBase(coreg->ref,coreg->mov,coreg->M,coreg->V2V,0);
@@ -1569,8 +1757,10 @@ int COREGMinPowell()
   dof = coreg->nparams;
 
   printf("\n\n---------------------------------\n");
-  printf("Init Powel Params dof = %d\n",dof);
+  printf("Init Powel Params dof = %d: ",dof);
   pPowel = vector(1, dof) ;
+  for(n=0; n < dof; n++) printf("%f ",coreg->params[n]);
+  printf("\n");
   for(n=0; n < dof; n++) pPowel[n+1] = coreg->params[n];
 
   xi = matrix(1, dof, 1, dof) ;
@@ -1589,11 +1779,14 @@ int COREGMinPowell()
   //printf("EvalTimeSec %4.1f sec\n",(timer.seconds())/coreg->nCostEvaluations);
   fflush(stdout);
 
-  printf("Final parameters ");
+  printf("Final optimized parameters ");
   for(n=0; n < coreg->nparams; n++){
     coreg->params[n] = pPowel[n+1];
     printf("%12.8f ",coreg->params[n]);
   }
+  printf("\n");
+  printf("Final matrix parameters ");
+  for(n=0; n < 12; n++) printf("%7.4lf ",coreg->mparams[n]);
   printf("\n");
 
   COREGcost(coreg);
@@ -1626,7 +1819,7 @@ int COREGpreproc(COREG *coreg)
     MRIgaussianSmoothNI(mritmp, coreg->movgstd[0], coreg->movgstd[1], coreg->movgstd[2], mritmp);
   } else printf("NOT Smoothing mov\n");
   if(coreg->f) free(coreg->f);
-  coreg->f = MRItoUCharVect(mritmp,coreg->movirfs);
+  coreg->f = MRItoUCharVect(mritmp,coreg->movirfs,coreg->movidither);
   MRIfree(&mritmp);
   fflush(stdout);
 
@@ -1647,7 +1840,7 @@ int COREGpreproc(COREG *coreg)
     //MRIwrite(mritmp,"ref.smoothed.mgh");
   } else printf("NOT Smoothing ref\n");
   if(coreg->g) free(coreg->g);
-  coreg->g = MRItoUCharVect(mritmp,coreg->refirfs);
+  coreg->g = MRItoUCharVect(mritmp,coreg->refirfs,NULL);
   MRIfree(&mritmp);
   fflush(stdout);
 
@@ -1745,7 +1938,10 @@ MRI *MRIconformNoScale(MRI *mri, MRI *mric)
   // Map input to geometry template
   mric = MRIresample(mri, mritmp, SAMPLE_NEAREST);
 
-  sprintf(mric->fname,"%s/Conformed",mri->fname);
+  int req = snprintf(mric->fname,STRLEN,"%s/Conformed",mri->fname);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   MRIfree(&mritmp);
 
   return(mric);

@@ -41,6 +41,8 @@ set y = ()
 set framemask = ()
 set PermNonStatCor = 0;
 set fwhmmap = ()
+set DoSpatialSum = 0
+set Do1D = 0;
 
 set nJobs = 1;
 set DoBackground = 0;
@@ -215,6 +217,7 @@ while($#glmfitcmd)
   case "--no-rescale-x"
   case "--fisher"
   case "--no-pcc"
+  case "--no-est-fwhm"
   case "dods"
   case "mri_glmfit.bin"
   case "--save-eres"
@@ -267,6 +270,17 @@ if(! $UseTable) then
   if($status) then
     echo "$mask"
     exit 1;
+  endif
+  set tmpfile = `fs_temp_file`
+  set cmd = (mri_info --dim $mask --o $tmpfile)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1;
+  set dim = `cat $tmpfile`
+  rm $tmpfile
+  if($dim[2] == 1 && $dim[3] == 1) then
+    echo "Turning on 1D dim = $dim" | tee -a $LF
+    set Do1D = 1
   endif
 endif
 
@@ -384,6 +398,8 @@ if($#fwhmOverride) then
   set fwhm = $fwhmOverride
 endif
 
+mkdir -p $glmdir/csd
+
 if($UseCache) then
   #set fwhm = `cat $glmdir/fwhm.dat`;
   set fwhmStr = `perl -e "printf('"'%02d'"',int ( $fwhm+0.5+$fwhmAdd ) ) "`
@@ -392,6 +408,8 @@ if($UseCache) then
   set csdCache = $CacheDir/$subject/$hemi/$CacheLabel/fwhm$fwhmStr/$simsign/th$threshStr/mc-z.csd
   if(! -e $csdCache) then
     echo "ERROR: cannot find $csdCache" | tee -a $LF
+    echo " This often happens when the measured FWHM is very high and their is not a table entry." | tee -a $LF
+    echo " Consider using lower smoothing levels." | tee -a $LF
     exit 1;
   endif
   echo CSD $csdCache | tee -a $LF
@@ -422,7 +440,6 @@ if($DoSim) then
 
   # ----------------- Run glmfit simulation ----------------------
   # This may take a while
-  mkdir -p $glmdir/csd
   @ nthJob = 1
   while($nthJob <= $nJobs)
     set jpad = `printf j%03d $nthJob`
@@ -484,6 +501,7 @@ if($DoSim) then
         endif
         set cmd = ($cmd --in $sig --mask $mask --cwpvalthresh $cwpvalthresh \
          --sum $sum --thmin $thresh --sign $simsign)
+        if($Do1D) set cmd = ($cmd --gte)
         echo $cmd | tee -a $LF
         $cmd | tee -a $LF
         if($status) exit 1;
@@ -616,28 +634,39 @@ foreach conname ($conlist)
     if($DoClusterMean) then
       # Create an average "waveform" for each cluster
       set avgwf = $glmdir/$conname/$csdbase.y.ocn.dat
+      set tmpfile = `fs_temp_file`
       set cmd = (mri_segstats --seg $ocn --exclude 0  \
-       --i $y  --avgwf $avgwf --sum /tmp/mri_glmfit-sim.junk.$$)
+       --i $y   --sum $tmpfile)
+      if($DoSpatialSum == 0) set cmd = ($cmd --avgwf $avgwf)
+      if($DoSpatialSum == 1) set cmd = ($cmd --sumwf $avgwf)
       echo $cmd | tee -a $LF
       $cmd | tee -a $LF
       if($status) exit 1;
-      rm -f /tmp/mri_glmfit-sim.junk.$$
+      rm -f $tmpfile
     endif
   endif
 
   if($anattype == volume) then
-    mri_info --o  /tmp/mri_glmfit-sim.junk.$$.cres --cres $sig
-    set voxsize = `cat /tmp/mri_glmfit-sim.junk.$$.cres`
-    if($voxsize != 2) then
+    set tmpfile = `fs_temp_file --suffix .cres`
+    mri_info --o $tmpfile --cres $sig
+    set voxsize = `cat $tmpfile`
+    rm -f $tmpfile
+    if($voxsize != 2 && $UseGRF) then
       echo "ERROR: voxel size of input is $voxsize, expecting 2"
       exit 1
     endif
-    set reg = $FREESURFER_HOME/subjects/$volsubject/mri.2mm/reg.2mm.dat 
-    set aseg = aparc+aseg.mgz
-    if(! -e $FREESURFER_HOME/subjects/$volsubject/mri/$aseg) set aseg = aseg.mgz
-    set cmd = (mri_volcluster --in $sig --mask $mask --reg $reg --no-fixmni\
+    set maxcwpval = $glmdir/$conname/$csdbase.max.cwpval.txt
+    set cmd = (mri_volcluster --in $sig --mask $mask --no-fixmni\
       --cwsig $cwsig --sum $sum --ocn $ocn --cwpvalthresh $cwpvalthresh \
-      --seg $volsubject $aseg --out $msig --allowdiag)
+      --out $msig --allowdiag --maxcwpval $maxcwpval)
+    if(! $Do1D) then 
+      set reg = $FREESURFER_HOME/subjects/$volsubject/mri.2mm/reg.2mm.dat 
+      set aseg = aparc+aseg.mgz
+      if(! -e $FREESURFER_HOME/subjects/$volsubject/mri/$aseg) set aseg = aseg.mgz
+      set cmd = ($cmd --seg $volsubject $aseg --reg $reg )
+    else
+      set cmd = ($cmd --gte)
+    endif
     if($Bonferroni) set cmd = ($cmd --bonferroni $Bonferroni)
     if(! $UseGRF) set cmd = ($cmd --csdpdf $csdpdf $csdlist --vwsig $vwsig  --vwsigmax $vwsigmax)
     if($UseGRF)   set cmd = ($cmd --fwhmdat $glmdir/fwhm.dat --sign $simsign --thmin $thresh  --sign $simsign)
@@ -648,12 +677,15 @@ foreach conname ($conlist)
     if($DoClusterMean) then
       # Create an average "waveform" for each cluster
       set avgwf = $glmdir/$conname/$csdbase.y.ocn.dat
+      set tmpfile = `fs_temp_file`
       set cmd = (mri_segstats --seg $ocn --exclude 0 \
-       --i $y --avgwf $avgwf --sum /tmp/mri_glmfit-sim.junk.$$)
+       --i $y --sum $tmpfile)
+      if($DoSpatialSum == 0) set cmd = ($cmd --avgwf $avgwf)
+      if($DoSpatialSum == 1) set cmd = ($cmd --sumwf $avgwf)
       echo $cmd | tee -a $LF
       $cmd | tee -a $LF
       if($status) exit 1;
-      rm -f /tmp/mri_glmfit-sim.junk.$$
+      rm -f $tmpfile
     endif
 
     if($UseGRF && $DoGRFOCNAnat) then
@@ -720,6 +752,8 @@ while( $#argv != 0 )
       set simsign = $argv[1]; shift;
       set UseCache = 1;
       set DoSim = 0;
+      # Handles the case where LC_NUMERIC is not set to en_US.UTF-8
+      set thresh = `echo $thresh | sed 's/,/./g'`
       set thresh = `printf %2.1f $thresh`
       if($thresh != 1.3 && $thresh != 2.0 && $thresh != 2.3 && \
          $thresh != 3.0 && $thresh != 3.3 && $thresh != 4.0) then
@@ -912,6 +946,10 @@ while( $#argv != 0 )
       set DoSim = 0;
       breaksw
 
+    case "--spatial-sum":
+      set DoSpatialSum = 1;
+      breaksw
+
     case "--diag-cluster":
       set DiagCluster = 1;
       breaksw
@@ -1066,6 +1104,8 @@ usage_exit:
   echo " --no-cluster-mean : do not compute means of each subject in each cluster (was --no-y)"
   echo " --y yFile : use yFile instead of determining yFile from glmdir"
   echo " --centroid : report the coordinates/annotation of the centroid instead of max"
+  echo " --spatial-sum : compute the sum over voxels in the cluster rather than"
+  echo "   the average when creating the y.ocn file. This is good for when the input is area or volume"
   echo " --help"
   echo ""
 

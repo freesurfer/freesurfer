@@ -1,6 +1,6 @@
 /*
  *
- * Copyright © 2011-2017 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -90,7 +90,10 @@ main(int argc, char *argv[]) {
     FileNameOnly(xform_fname, xform_fname) ;
 
     FileNamePath(argv[1], path) ;
-    sprintf(fname, "%s/%s", path, xform_fname) ;
+    int req = snprintf(fname, STRLEN, "%s/%s", path, xform_fname) ;
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     lta_src = LTAread(fname) ;
     if (!lta_src)
       ErrorExit(ERROR_BADPARM, "%s: could not read xform from %s",
@@ -103,7 +106,10 @@ main(int argc, char *argv[]) {
                 Progname, fname) ;
 
     FileNamePath(argv[2], path) ;
-    sprintf(fname, "%s/%s", path, xform_fname) ;
+    req = snprintf(fname, STRLEN, "%s/%s", path, xform_fname) ;
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     lta_template = LTAread(fname) ;
     if (!lta_template)
       ErrorExit(ERROR_BADPARM, "%s: could not read xform from %s",
@@ -168,6 +174,7 @@ get_option(int argc, char *argv[]) {
   case 'T':
     xform_fname = argv[2] ;
     nargs = 1 ;
+    break;
   case '?':
   case 'U':
     usage_exit(0) ;

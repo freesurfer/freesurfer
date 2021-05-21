@@ -5,7 +5,7 @@
 /*
  * Original Author: Bruce Fischl (Apr 16, 1997)
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -41,7 +41,6 @@
 #include "fsinit.h"
 #include "fio.h"
 #include "mri_conform.h"
-
 
 /* ----- determines tolerance of non-orthogonal basis vectors ----- */
 #define CLOSE_ENOUGH  (5e-3)
@@ -81,6 +80,7 @@ int main(int argc, char *argv[])
   int voxel_size_flag;
   int nochange_flag ;
   int conform_flag;
+  int store_orig_ras2vox_flag = 0 ;
   int conform_min;  // conform to the smallest dimension
   int conform_width;
   int conform_width_256_flag;
@@ -154,6 +154,7 @@ int main(int argc, char *argv[])
   MRI *mritmp=NULL;
   int transform_type=-1;
   MATRIX *inverse_transform_matrix;
+  MATRIX *m_origRas2Vox = NULL ;
   int smooth_parcellation_flag, smooth_parcellation_count;
   int in_like_flag;
   char in_like_name[STRLEN];
@@ -167,6 +168,8 @@ int main(int argc, char *argv[])
   int erode_seg_flag=FALSE, n_erode_seg;
   int dil_seg_flag=FALSE, n_dil_seg;
   char dil_seg_mask[STRLEN];
+  char FirstDicomFile[STRLEN];
+  int FirstDicom=0;
   int read_otl_flags;
   int color_file_flag;
   char color_file_name[STRLEN];
@@ -505,6 +508,16 @@ int main(int argc, char *argv[])
       AutoAlign = MatrixReadTxt(AutoAlignFile,NULL);
       printf("Auto Align Matrix\n");
       MatrixPrint(stdout,AutoAlign);
+    }
+    else if (strcmp(argv[i], "-nc") == 0 ||
+             strcmp(argv[i], "--nochange") == 0)
+    {
+      nochange_flag = TRUE;
+    }
+    else if (strcmp(argv[i], "-so") == 0 ||
+             strcmp(argv[i], "--store_orig_ras2vox") == 0)
+    {
+      store_orig_ras2vox_flag = TRUE;
     }
     else if (strcmp(argv[i], "-nc") == 0 ||
              strcmp(argv[i], "--nochange") == 0)
@@ -1226,6 +1239,15 @@ int main(int argc, char *argv[])
     {
       get_string(argc, argv, &i, in_like_name);
       in_like_flag = TRUE;
+    }
+    else if(strcmp(argv[i], "--first-dicom") == 0)
+    {
+      // Write the path to the first dicom file into a file. The purpose of this
+      // is to make it easy to copy a dicom file that has very little, if any, actual
+      // tissue so as to have a dicom file but avoid issues with defacing. FHS.
+      get_string(argc, argv, &i, FirstDicomFile);
+      FirstDicom = TRUE;
+      memset(DICOMReadFirstDicomFile,'\0',sizeof(DICOMReadFirstDicomFile));
     }
     else if(strcmp(argv[i], "-roi") == 0 || strcmp(argv[i], "--roi") == 0)
     {
@@ -1957,6 +1979,7 @@ int main(int argc, char *argv[])
     exit(1);
   }
 
+
   if (outside_val > 0)
     mri->outside_val = outside_val ;
   if(UpsampleFlag){
@@ -2279,6 +2302,12 @@ int main(int argc, char *argv[])
     globalmean /= (double)(mri->width*mri->height*mri->depth*mri->nframes);
     printf("Global rescaling input mean from %g to %g\n",globalmean,rescale_factor);
     MRIscalarMul(mri, mri, rescale_factor/globalmean) ;
+  }
+
+  if (store_orig_ras2vox_flag)
+  {
+    printf("copying original vox2ras\n") ;
+    m_origRas2Vox = MRIgetRasToVoxelXform(mri);
   }
 
   MRIaddCommandLine(mri, cmdline) ;
@@ -3516,6 +3545,13 @@ int main(int argc, char *argv[])
   }
   if (!no_write_flag)
   {
+    mri->origRas2Vox = m_origRas2Vox ;
+    if (m_origRas2Vox)
+    {
+      printf("orig ras2vox:\n");
+      MatrixPrint(stdout, m_origRas2Vox);
+    }
+
     if(! SplitFrames)
     {
       printf("writing to %s...\n", out_name);
@@ -3563,6 +3599,21 @@ int main(int argc, char *argv[])
   // free memory
   //MRIfree(&mri); // This causes a seg fault with change of type
   MRIfree(&mri_template);
+
+  if(FirstDicom == TRUE){
+    if(strlen(DICOMReadFirstDicomFile)==0){
+      printf("ERROR: there is no first dicom file\n");
+      exit(1);
+    }
+    printf("Writing FirstDicomFile %s to %s\n",DICOMReadFirstDicomFile,FirstDicomFile);
+    FILE *fp = fopen(FirstDicomFile,"w");
+    if(fp == NULL){
+      printf("ERROR: opening %s\n",FirstDicomFile);
+      exit(1);
+    }
+    fprintf(fp,"%s\n",DICOMReadFirstDicomFile);
+    fclose(fp);
+  }
 
   exit(0);
 

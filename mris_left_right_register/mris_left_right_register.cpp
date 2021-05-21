@@ -7,7 +7,7 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -131,7 +131,6 @@ main(int argc, char *argv[])
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
 
-  memset(&parms, 0, sizeof(parms)) ;
   parms.projection = PROJECT_SPHERE ;
   parms.flags |= IP_USE_CURVATURE ;
   parms.tol = 0.5 ;    // was 1e-0*2.5
@@ -268,7 +267,10 @@ main(int argc, char *argv[])
       FileNamePath(template_fname, surf_dir) ;
       if (curvature_names[sno])  /* read in precomputed curvature file */
       {
-	sprintf(fname, "%s/%s.%s", surf_dir, template_hemi, curvature_names[sno]) ;
+	int req = snprintf(fname, STRLEN, "%s/%s.%s", surf_dir, template_hemi, curvature_names[sno]) ;
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
 	if (MRISreadCurvatureFile(mris_template, fname) != NO_ERROR)
 	  ErrorExit(Gerror,
 		    "%s: could not read curvature file '%s'\n",
@@ -280,7 +282,10 @@ main(int argc, char *argv[])
       }
       else                         /* compute curvature of surface */
       {
-	sprintf(fname, "%s/%s.%s", surf_dir, template_hemi, surface_names[sno]) ;
+	int req = snprintf(fname, STRLEN, "%s/%s.%s", surf_dir, template_hemi, surface_names[sno]) ;
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
 	if (MRISreadVertexPositions(mris_template, fname) != NO_ERROR)
 	  ErrorExit(ERROR_NOFILE,
 		    "%s: could not read surface file %s",
@@ -770,7 +775,7 @@ get_option(int argc, char *argv[])
       printf("setting l_external = %2.1f\n", parms.l_external) ;
       break ;
     case 'C':
-      strncpy(curvature_fname, argv[2], STRLEN) ; // Convert to strncpy at least
+      strncpy(curvature_fname, argv[2], STRLEN-1) ; // Convert to strncpy at least
       nargs = 1 ;
       break ;
     case 'A':

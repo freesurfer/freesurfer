@@ -9,7 +9,7 @@
 /*
  * Original Author: Ruopeng Wang
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -34,10 +34,7 @@
 #include "LayerMRI.h"
 #include "MyUtils.h"
 #include <QDateTime>
-
-
 #include "utils.h"
-
 
 SurfaceOverlay::SurfaceOverlay ( LayerSurface* surf ) :
   QObject(),
@@ -682,4 +679,33 @@ double SurfaceOverlay::PositionToPercentile(double pos, bool bIgnoreZeros)
   }
 
   return 100*dArea/m_dOutputTotalArea;
+}
+
+void SurfaceOverlay::UpdateMaxHistCount(double* range, int nBins)
+{
+  int* CntData = new int[nBins];
+  memset( CntData, 0, nBins * sizeof( int ) );
+  double binWidth = ( range[1] - range[0] ) / nBins;
+  for ( long i = 0; i < m_nDataSize; i++ )
+  {
+    int n = (int)( ( m_fData[i] - range[0] ) / binWidth );
+    if ( n >= 0 && n < nBins )
+    {
+      CntData[n] ++;
+    }
+  }
+
+  // find max and second max
+  int nMaxCount = 0;
+  for ( int i = 0; i < nBins; i++ )
+  {
+    if ( nMaxCount < CntData[i] )
+    {
+      nMaxCount  = CntData[i];
+    }
+  }
+
+  setProperty("HistMaxCount", nMaxCount);
+  setProperty("HistRange", range[0]);
+  setProperty("HistBins", nBins);
 }

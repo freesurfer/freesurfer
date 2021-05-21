@@ -7,7 +7,7 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -180,21 +180,29 @@ main(int argc, char *argv[])
 
   if (Gdiag & DIAG_WRITE && mp.write_iterations > 0)
   {
-		sprintf(fname, "%s_target", mp.base_name) ;
+    int req = snprintf(fname, STRLEN,
+		       "%s_target", mp.base_name) ;
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     MRIwriteImageViews(mri_target, fname, IMAGE_SIZE) ;	
-		sprintf(fname, "%s_target.mgz", mp.base_name) ;
-		MRIwrite(mri_target, fname) ;
-	}
-	
-	if (transform == NULL)
-		transform = TransformAlloc(LINEAR_RAS_TO_RAS, NULL) ;
-
-
-	if (transform->type == MORPH_3D_TYPE)  // initializing m3d from a linear transform
-	{
-		printf("using previously create gcam...\n") ;
-    ErrorExit(ERROR_UNSUPPORTED, "%s: can't initialize DCT with GCAM", Progname) ;
+    
+    req = snprintf(fname, STRLEN, "%s_target.mgz", mp.base_name) ;
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
+    MRIwrite(mri_target, fname) ;
   }
+  
+  if (transform == NULL)
+    transform = TransformAlloc(LINEAR_RAS_TO_RAS, NULL) ;
+  
+  
+  if (transform->type == MORPH_3D_TYPE)  // initializing m3d from a linear transform
+    {
+      printf("using previously create gcam...\n") ;
+      ErrorExit(ERROR_UNSUPPORTED, "%s: can't initialize DCT with GCAM", Progname) ;
+    }
   
   new_transform = 1 ;
   lta = ((LTA *)(transform->xform)) ;

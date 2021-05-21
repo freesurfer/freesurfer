@@ -5,7 +5,7 @@
 /*
  * Original Author: Ruopeng Wang
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -50,7 +50,6 @@ public:
 
   bool MRIRead( const QString& filename, const QString& reg_filename );
   bool MRIWrite( const QString& filename, int nSampleMethod = SAMPLE_NEAREST, bool resample = true );
-  bool MRIWrite();
   bool SaveRegistration( const QString& filename );
   bool Restore( const QString& filename, const QString& reg_filename );
 
