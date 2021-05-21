@@ -65,8 +65,7 @@ int main(int argc, char *argv[]);
 const char *Progname = "dmri_spline";
 
 bool showControls = false;
-char *inFile = NULL, *maskFile = NULL,
-     *outVolFile = NULL, *outTextFile = NULL, *outVecBase = NULL;
+string inFile, maskFile, outVolFile, outTextFile, outVecBase;
 
 struct utsname uts;
 char *cmdline, cwd[2000];
@@ -108,14 +107,14 @@ int main(int argc, char **argv) {
   cputime = cputimer.milliseconds();
   printf("Done in %g sec.\n", cputime/1000.0);
 
-  if (outVolFile)
+  if (!outVolFile.empty())
     myspline.WriteVolume(outVolFile, showControls);
 
-  if (outTextFile)
+  if (!outTextFile.empty())
     myspline.WriteAllPoints(outTextFile);
 
-  if (outVecBase) {
-    char fname[PATH_MAX];
+  if (!outVecBase.empty()) {
+    string fname;
 
     printf("Computing analytical tangent, normal, and curvature...\n");
     cputimer.reset();
@@ -128,11 +127,11 @@ int main(int argc, char **argv) {
     printf("Done in %g sec.\n", cputime/1000.0);
 
     // Write tangent, normal, and curvature (analytical) to text files
-    sprintf(fname, "%s_tang.txt", outVecBase);
+    fname = outVecBase + "_tang.txt";
     myspline.WriteTangent(fname);
-    sprintf(fname, "%s_norm.txt", outVecBase);
+    fname = outVecBase + "_norm.txt";
     myspline.WriteNormal(fname);
-    sprintf(fname, "%s_curv.txt", outVecBase);
+    fname = outVecBase + "_curv.txt";
     myspline.WriteCurvature(fname);
 
     printf("Computing discrete tangent, normal, and curvature...\n");
@@ -146,11 +145,11 @@ int main(int argc, char **argv) {
     printf("Done in %g sec.\n", cputime/1000.0);
 
     // Write tangent, normal, and curvature (discrete) to text files
-    sprintf(fname, "%s_tang_diff.txt", outVecBase);
+    fname = outVecBase + "_tang_diff.txt";
     myspline.WriteTangent(fname);
-    sprintf(fname, "%s_norm_diff.txt", outVecBase);
+    fname = outVecBase + "_norm_diff.txt";
     myspline.WriteNormal(fname);
-    sprintf(fname, "%s_curv_diff.txt", outVecBase);
+    fname = outVecBase + "_curv_diff.txt";
     myspline.WriteCurvature(fname);
   }
 
@@ -275,15 +274,15 @@ static void print_version(void) {
 
 /* --------------------------------------------- */
 static void check_options(void) {
-  if(!inFile) {
+  if(inFile.empty()) {
     cout << "ERROR: Must specify input text file" << endl;
     exit(1);
   }
-  if(!maskFile) {
+  if(maskFile.empty()) {
     cout << "ERROR: Must specify mask volume" << endl;
     exit(1);
   }
-  if(!outVolFile && !outTextFile && !outVecBase) {
+  if(outVolFile.empty() && outTextFile.empty() && outVecBase.empty()) {
     cout << "ERROR: Must specify at least one type of output file" << endl;
     exit(1);
   }
@@ -303,13 +302,13 @@ static void dump_options() {
 
   cout << "Control points: " << inFile << endl;
   cout << "Mask volume: " << maskFile << endl;
-  if (outVolFile) {
+  if (!outVolFile.empty()) {
     cout << "Output volume: " << outVolFile << endl
          << "Show controls: " << showControls << endl;
   }
-  if (outTextFile)
+  if (!outTextFile.empty())
     cout << "Output text file: " << outTextFile << endl;
-  if (outVecBase)
+  if (!outVecBase.empty())
     cout << "Output tangent vector file base name: " << outVecBase << endl;
 
   return;

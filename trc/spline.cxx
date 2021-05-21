@@ -156,7 +156,7 @@ vector<int> CurveFill(const vector<int> &InPoints) {
 //
 // Catmull-Rom cubic spline class
 //
-Spline::Spline(const char *ControlPointFile, const char *MaskFile) {
+Spline::Spline(const string ControlPointFile, const string MaskFile) {
   ReadControlPoints(ControlPointFile);
   mMask = 0;
   mVolume = 0;
@@ -709,7 +709,7 @@ void Spline::ComputeCurvature(const bool DoAnalytical) {
 //
 // Read control points from file
 //
-void Spline::ReadControlPoints(const char *ControlPointFile) {
+void Spline::ReadControlPoints(const string ControlPointFile) {
   float coord;
   ifstream infile(ControlPointFile, ios::in);
 
@@ -735,12 +735,12 @@ void Spline::ReadControlPoints(const char *ControlPointFile) {
 //
 // Read mask volume from file
 //
-void Spline::ReadMask(const char *MaskFile) {
+void Spline::ReadMask(const string MaskFile) {
   if (mMask)   MRIfree(&mMask);
   if (mVolume) MRIfree(&mVolume);
 
   cout << "Loading spline mask from " << MaskFile << endl;
-  mMask = MRIread(MaskFile);
+  mMask = MRIread(MaskFile.c_str());
   mVolume = MRIclone(mMask, NULL);
 }
 
@@ -768,20 +768,20 @@ void Spline::SetMask(MRI *Mask) {
 //
 // Write spline to volume
 //
-void Spline::WriteVolume(const char *VolumeFile, const bool ShowControls) {
+void Spline::WriteVolume(const string VolumeFile, const bool ShowControls) {
   if (ShowControls)
     for (vector<int>::const_iterator icpt = mControlPoints.begin();
                                      icpt != mControlPoints.end(); icpt += 3)
       MRIsetVoxVal(mVolume, icpt[0], icpt[1], icpt[2], 0, 2);
 
   cout << "Writing spline volume to " << VolumeFile << endl;
-  MRIwrite(mVolume, VolumeFile);
+  MRIwrite(mVolume, VolumeFile.c_str());
 }
 
 //
 // Write spline coordinates to file
 //
-void Spline::WriteAllPoints(const char *TextFile) {
+void Spline::WriteAllPoints(const string TextFile) {
   ofstream outfile(TextFile, ios::out);
   if (!outfile) {
     cout << "ERROR: Could not open " << TextFile << " for writing" << endl;
@@ -798,7 +798,7 @@ void Spline::WriteAllPoints(const char *TextFile) {
 //
 // Write tangent vectors along spline to file
 //
-void Spline::WriteTangent(const char *TextFile) {
+void Spline::WriteTangent(const string TextFile) {
   ofstream outfile(TextFile, ios::out);
   if (!outfile) {
     cout << "ERROR: Could not open " << TextFile << " for writing" << endl;
@@ -815,7 +815,7 @@ void Spline::WriteTangent(const char *TextFile) {
 //
 // Write normal vectors along spline to file
 //
-void Spline::WriteNormal(const char *TextFile) {
+void Spline::WriteNormal(const string TextFile) {
   ofstream outfile(TextFile, ios::out);
   if (!outfile) {
     cout << "ERROR: Could not open " << TextFile << " for writing" << endl;
@@ -832,7 +832,7 @@ void Spline::WriteNormal(const char *TextFile) {
 //
 // Write curvatures along spline to file
 //
-void Spline::WriteCurvature(const char *TextFile) {
+void Spline::WriteCurvature(const string TextFile) {
   ofstream outfile(TextFile, ios::out);
   if (!outfile) {
     cout << "ERROR: Could not open " << TextFile << " for writing" << endl;
@@ -849,7 +849,7 @@ void Spline::WriteCurvature(const char *TextFile) {
 //
 // Write the intensity values of each of a set of input volumes along the spline
 //
-void Spline::WriteValues(vector<MRI *> &ValueVolumes, const char *TextFile) {
+void Spline::WriteValues(vector<MRI *> &ValueVolumes, const string TextFile) {
   ofstream outfile(TextFile, ios::app);
   if (!outfile) {
     cout << "ERROR: Could not open " << TextFile << " for writing" << endl;

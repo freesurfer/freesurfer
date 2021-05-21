@@ -68,11 +68,9 @@ unsigned int nTract = 1,
              nBurnIn = 5000, nSample = 5000, nKeepSample = 10, nUpdateProp = 40,
              localPriorSet = 15, neighPriorSet = 14;
 float fminPath = 0;
-char *dwiFile = NULL, *gradFile = NULL, *bvalFile = NULL,
-     *maskFile = NULL, *bedpostDir = NULL,
-     *baseXfmFile = NULL, *baseMaskFile = NULL,
-     *affineXfmFile = NULL, *nonlinXfmFile = NULL;
-vector<char *> outDir, inDirList, initFile, roiFile1, roiFile2,
+string dwiFile, gradFile, bvalFile, maskFile, bedpostDir,
+       baseXfmFile, baseMaskFile, affineXfmFile, nonlinXfmFile;
+vector<string> outDir, inDirList, initFile, roiFile1, roiFile2,
                roiMeshFile1, roiMeshFile2, roiRefFile1, roiRefFile2,
                xyzPriorFile0, xyzPriorFile1, tangPriorFile, curvPriorFile,
                neighPriorFile, neighIdFile, localPriorFile, localIdFile,
@@ -85,7 +83,9 @@ Timer cputimer;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
-  bool doxyzprior = true,
+  bool islabel1 = false,
+       islabel2 = false,
+       doxyzprior = true,
        dotangprior = true,
        docurvprior = true,
        doneighprior = true,
@@ -124,6 +124,9 @@ int main(int argc, char **argv) {
   if (localPriorFile.empty()) dolocalprior = false;
   if (stdPropFile.empty())    dopropinit = false;
 
+  islabel1 = (roiFile1[0].find(".label") != string::npos);
+  islabel2 = (roiFile2[0].find(".label") != string::npos);
+
   Coffin mycoffin(outDir[0], inDirList, dwiFile,
                   gradFile, bvalFile,
                   maskFile, bedpostDir,
@@ -131,51 +134,54 @@ int main(int argc, char **argv) {
                   baseXfmFile, baseMaskFile,
                   initFile[0],
                   roiFile1[0], roiFile2[0],
-                  strstr(roiFile1[0], ".label") ? roiMeshFile1[ilab1] : 0,
-                  strstr(roiFile2[0], ".label") ? roiMeshFile2[ilab2] : 0,
-                  strstr(roiFile1[0], ".label") ? roiRefFile1[ilab1] : 0,
-                  strstr(roiFile2[0], ".label") ? roiRefFile2[ilab2] : 0,
-                  doxyzprior ? xyzPriorFile0[0] : 0,
-                  doxyzprior ? xyzPriorFile1[0] : 0,
-                  dotangprior ? tangPriorFile[0] : 0,
-                  docurvprior ? curvPriorFile[0] : 0,
-                  doneighprior ? neighPriorFile[0] : 0,
-                  doneighprior ? neighIdFile[0] : 0,
+                  islabel1 ? roiMeshFile1[ilab1] : string(),
+                  islabel2 ? roiMeshFile2[ilab2] : string(),
+                  islabel1 ? roiRefFile1[ilab1] : string(),
+                  islabel2 ? roiRefFile2[ilab2] : string(),
+                  doxyzprior ? xyzPriorFile0[0] : string(),
+                  doxyzprior ? xyzPriorFile1[0] : string(),
+                  dotangprior ? tangPriorFile[0] : string(),
+                  docurvprior ? curvPriorFile[0] : string(),
+                  doneighprior ? neighPriorFile[0] : string(),
+                  doneighprior ? neighIdFile[0] : string(),
                   doneighprior ? neighPriorSet : 0,
-                  dolocalprior ? localPriorFile[0] : 0,
-                  dolocalprior ? localIdFile[0] : 0,
+                  dolocalprior ? localPriorFile[0] : string(),
+                  dolocalprior ? localIdFile[0] : string(),
                   dolocalprior ? localPriorSet : 0,
                   asegList,
                   affineXfmFile, nonlinXfmFile,
                   nBurnIn, nSample, nKeepSample, nUpdateProp,
-                  dopropinit ? stdPropFile[0] : 0,
+                  dopropinit ? stdPropFile[0] : string(),
                   debug);
 
-  if (strstr(roiFile1[0], ".label")) ilab1++;
-  if (strstr(roiFile2[0], ".label")) ilab2++;
+  if (islabel1) ilab1++;
+  if (islabel2) ilab2++;
 
   for (unsigned int iout = 0; iout < outDir.size(); iout++) {
     if (iout > 0) {
+      islabel1 = (roiFile1[iout].find(".label") != string::npos);
+      islabel2 = (roiFile2[iout].find(".label") != string::npos);
+
       mycoffin.SetOutputDir(outDir[iout]);
       mycoffin.SetPathway(initFile[iout],
                   roiFile1[iout], roiFile2[iout],
-                  strstr(roiFile1[iout], ".label") ? roiMeshFile1[ilab1] : 0,
-                  strstr(roiFile2[iout], ".label") ? roiMeshFile2[ilab2] : 0,
-                  strstr(roiFile1[iout], ".label") ? roiRefFile1[ilab1] : 0,
-                  strstr(roiFile2[iout], ".label") ? roiRefFile2[ilab2] : 0,
-                  doxyzprior ? xyzPriorFile0[iout] : 0,
-                  doxyzprior ? xyzPriorFile1[iout] : 0,
-                  dotangprior ? tangPriorFile[iout] : 0,
-                  docurvprior ? curvPriorFile[iout] : 0,
-                  doneighprior ? neighPriorFile[iout] : 0,
-                  doneighprior ? neighIdFile[iout] : 0,
-                  dolocalprior ? localPriorFile[iout] : 0,
-                  dolocalprior ? localIdFile[iout] : 0);
+                  islabel1 ? roiMeshFile1[ilab1] : string(),
+                  islabel2 ? roiMeshFile2[ilab2] : string(),
+                  islabel1 ? roiRefFile1[ilab1] : string(),
+                  islabel2 ? roiRefFile2[ilab2] : string(),
+                  doxyzprior ? xyzPriorFile0[iout] : string(),
+                  doxyzprior ? xyzPriorFile1[iout] : string(),
+                  dotangprior ? tangPriorFile[iout] : string(),
+                  docurvprior ? curvPriorFile[iout] : string(),
+                  doneighprior ? neighPriorFile[iout] : string(),
+                  doneighprior ? neighIdFile[iout] : string(),
+                  dolocalprior ? localPriorFile[iout] : string(),
+                  dolocalprior ? localIdFile[iout] : string());
       mycoffin.SetMcmcParameters(nBurnIn, nSample, nKeepSample, nUpdateProp,
-                  dopropinit ? stdPropFile[iout] : 0);
+                  dopropinit ? stdPropFile[iout] : string());
 
-      if (strstr(roiFile1[iout], ".label")) ilab1++;
-      if (strstr(roiFile2[iout], ".label")) ilab2++;
+      if (islabel1) ilab1++;
+      if (islabel2) ilab2++;
     }
 
     cout << "Processing pathway " << iout+1 << " of " << outDir.size() << "..."
@@ -285,7 +291,7 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = 0;
       while (nargsused < nargc && strncmp(pargv[nargsused], "--", 2)) {
         roiFile1.push_back(fio_fullpath(pargv[nargsused]));
-        if(strstr(*(roiFile1.end()-1), ".label"))
+        if ((roiFile1.end()-1)->find(".label") != string::npos)
           nlab1++;
         nargsused++;
       }
@@ -295,7 +301,7 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = 0;
       while (nargsused < nargc && strncmp(pargv[nargsused], "--", 2)) {
         roiFile2.push_back(fio_fullpath(pargv[nargsused]));
-        if(strstr(*(roiFile2.end()-1), ".label"))
+        if ((roiFile2.end()-1)->find(".label") != string::npos)
           nlab2++;
         nargsused++;
       }
@@ -578,23 +584,23 @@ static void check_options(void) {
     cout << "ERROR: Must specify output directory" << endl;
     exit(1);
   }
-  if (!dwiFile) {
+  if (dwiFile.empty()) {
     cout << "ERROR: Must specify DWI volume series" << endl;
     exit(1);
   }
-  if (!gradFile) {
+  if (gradFile.empty()) {
     cout << "ERROR: Must specify gradient text file" << endl;
     exit(1);
   }
-  if (!bvalFile) {
+  if (bvalFile.empty()) {
     cout << "ERROR: Must specify b-value text file" << endl;
     exit(1);
   }
-  if (!maskFile) {
+  if (maskFile.empty()) {
     cout << "ERROR: Must specify mask volume" << endl;
     exit(1);
   }
-  if (!bedpostDir) {
+  if (bedpostDir.empty()) {
     cout << "ERROR: Must specify BEDPOST directory" << endl;
     exit(1);
   }
@@ -666,7 +672,7 @@ static void check_options(void) {
 
 /* --------------------------------------------- */
 static void dump_options() {
-  vector<char *>::const_iterator istr;
+  vector<string>::const_iterator istr;
 
   cout << endl
        << getVersion() << endl
@@ -783,10 +789,10 @@ static void dump_options() {
     cout  << endl;
   }
 
-  if (affineXfmFile)
+  if (!affineXfmFile.empty())
     cout << "DWI-to-atlas affine registration: " << affineXfmFile << endl;
 
-  if (nonlinXfmFile)
+  if (!nonlinXfmFile.empty())
     cout << "DWI-to-atlas nonlinear registration: " << nonlinXfmFile << endl;
 
   cout << "Number of burn-in samples: " << nBurnIn << endl

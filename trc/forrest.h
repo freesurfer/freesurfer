@@ -22,6 +22,7 @@
 #define FORREST_H
 
 #include <vector>
+#include <string>
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -35,11 +36,15 @@ class Forrest {
   public:
     Forrest();
     ~Forrest();
-    void ReadTestSubject(const char *TestDir, const char *MaskFile,
-                         const char *AsegFile, const char *OrientFile);
-    void ReadTrainingSubjects(const char *TrainListFile, const char *MaskFile,
-                              const char *AsegFile, const char *OrientFile,
-                              std::vector<char *> TractFileList);
+    void ReadTestSubject(const std::string TestDir,
+                         const std::string MaskFile,
+                         const std::string AsegFile,
+                         const std::string OrientFile);
+    void ReadTrainingSubjects(const std::string TrainListFile,
+                              const std::string MaskFile,
+                              const std::string AsegFile,
+                              const std::string OrientFile,
+                              std::vector<std::string> TractFileList);
     int GetNx();
     int GetNy();
     int GetNz();

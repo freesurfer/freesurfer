@@ -46,8 +46,8 @@ bool AffineReg::IsInvEmpty() { return mOutToIn.empty(); }
 //
 // Read affine registration matrix from file and set input/output resolutions
 //
-void AffineReg::ReadXfm(const char *XfmFile, const MRI *InRefVol,
-                                             const MRI *OutRefVol) {
+void AffineReg::ReadXfm(const string XfmFile, const MRI *InRefVol,
+                                              const MRI *OutRefVol) {
   bool islta = false;
   string matline;
 
@@ -55,7 +55,7 @@ void AffineReg::ReadXfm(const char *XfmFile, const MRI *InRefVol,
   mInToOut.clear();
   mOutToIn.clear();
 
-  if (XfmFile) {
+  if (!XfmFile.empty()) {
     float val;
     ifstream infile(XfmFile, ios::in);
 
@@ -78,7 +78,7 @@ void AffineReg::ReadXfm(const char *XfmFile, const MRI *InRefVol,
 
       cout << "LTA registration format detected" << endl;
 
-      lta = LTAread(XfmFile);
+      lta = LTAread(XfmFile.c_str());
       if (lta == NULL) {
         cout << "ERROR: cannot read " << XfmFile << endl;
         exit(1);
@@ -391,7 +391,7 @@ bool NonlinReg::IsEmpty() { return (mMorph->m_template == 0); }
 //
 // Read a non-linear transform from file
 //
-void NonlinReg::ReadXfm(const char *XfmFile, MRI *RefVol) {
+void NonlinReg::ReadXfm(const string XfmFile, MRI *RefVol) {
   unsigned int zlibBuffer = 5;
 
   ifstream xfile(XfmFile, ios::in);	// Just to check if file exists
@@ -405,7 +405,7 @@ void NonlinReg::ReadXfm(const char *XfmFile, MRI *RefVol) {
   mMorph->m_template = RefVol;
 
   try {
-    mMorph->load(XfmFile, zlibBuffer);
+    mMorph->load(XfmFile.c_str(), zlibBuffer);
   }
   catch (const char* msg) {
     cout << "Exception caught while loading registration: " << msg << endl;
@@ -450,7 +450,7 @@ bool NonlinReg::IsEmpty() { return (mMorph == 0); }
 //
 // Read a non-linear transform from file
 //
-void NonlinReg::ReadXfm(const char *XfmFile, MRI *RefVol) {
+void NonlinReg::ReadXfm(const string XfmFile, MRI *RefVol) {
   ifstream xfile(XfmFile, ios::in);	// Just to check if file exists
   if (!xfile) {
     cout << "ERROR: Could not open " << XfmFile << endl;
@@ -459,7 +459,7 @@ void NonlinReg::ReadXfm(const char *XfmFile, MRI *RefVol) {
   xfile.close();
 
   cout << "Loading non-linear registration from " << XfmFile << endl;
-  mMorph = GCAMreadAndInvertNonTal(XfmFile);
+  mMorph = GCAMreadAndInvertNonTal(XfmFile.c_str());
 
   if (mMorph == NULL) exit(1);
 

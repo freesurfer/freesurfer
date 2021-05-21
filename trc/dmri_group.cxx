@@ -68,7 +68,7 @@ const char *Progname = "dmri_group";
 
 int nSection = 0;
 
-char *inListFile = NULL, *outRefFile = NULL, *outBase = NULL;
+string inListFile, outRefFile, outBase;
 
 struct utsname uts;
 char *cmdline, cwd[2000];
@@ -123,9 +123,9 @@ int main(int argc, char **argv) {
   cputimer.reset();
 
   // Read output reference volume
-  if (outRefFile) {
+  if (!outRefFile.empty()) {
     cout << "Loading output reference volume from " << outRefFile << endl;
-    outref = MRIread(outRefFile);
+    outref = MRIread(outRefFile.c_str());
     if (!outref) {
       cout << "ERROR: Could not read " << outRefFile << endl;
       exit(1);
@@ -187,13 +187,13 @@ int main(int argc, char **argv) {
     // Fourth input on each line is a nonlinear transform
 #ifndef NO_CVS_UP_IN_HERE
     if (inputs.size() > 3) {
-      affinereg.ReadXfm(inputs[2].c_str(), inref, outref);
-      nonlinreg.ReadXfm(inputs[3].c_str(), outref);
+      affinereg.ReadXfm(inputs[2], inref, outref);
+      nonlinreg.ReadXfm(inputs[3], outref);
     }
     else
 #endif
     if (inputs.size() > 2)
-      affinereg.ReadXfm(inputs[2].c_str(), inref, outref);
+      affinereg.ReadXfm(inputs[2], inref, outref);
 
     // Read measures along the path
     while (getline(infile, measline)) {
@@ -368,7 +368,7 @@ int main(int argc, char **argv) {
 
 if (0) {
   // Write points of most representative path to file as RAS coords
-  filename = string(outBase) + ".median.txt";
+  filename = outBase + ".median.txt";
 
   cout << "Writing median path to " << filename << endl;
   pathrasfile.open(filename.c_str(), ios::out);
@@ -585,12 +585,12 @@ if (0) {
   }
 
   // Write points of mean path to file as voxel and RAS coords
-  filename = string(outBase) + ".coords.mean.txt";
+  filename = outBase + ".coords.mean.txt";
 
   cout << "Writing mean path voxel coords to " << filename << endl;
   pathfile.open(filename.c_str(), ios::out);
 
-  filename = string(outBase) + ".path.mean.txt";
+  filename = outBase + ".path.mean.txt";
 
   cout << "Writing mean path RAS coords to " << filename << endl;
   pathrasfile.open(filename.c_str(), ios::out);
@@ -634,7 +634,7 @@ if (0) {
   for (vector<string>::const_iterator imeas = measlist.begin();
                                       imeas < measlist.end(); imeas++) {
     int jpt = 0;
-    string outname = string(outBase) + "." + *imeas + ".txt";
+    string outname = outBase + "." + *imeas + ".txt";
     ofstream outfile;
 
     cout << "Writing group table to " << outname << endl;
@@ -671,17 +671,13 @@ if (0) {
 
     outfile.close();
 
-    outname = string(outBase) + "." + *imeas + ".nii.gz";
+    outname = outBase + "." + *imeas + ".nii.gz";
     cout << "Writing group table to " << outname << endl;
     MRIwrite(outvol, outname.c_str());
   }
 
   // Average measures over sections along the path
   if (nSection > 0) {
-    char nsec[PATH_MAX];
-
-    sprintf(nsec, "%dsec", nSection);
-
     darc = (arcmax - arcmin) / nSection;
 
     iallm = allmeas.begin();
@@ -734,7 +730,9 @@ if (0) {
 
     for (vector<string>::const_iterator imeas = measlist.begin();
                                         imeas < measlist.end(); imeas++) {
-      string outname = string(outBase) + "." + *imeas + "." + nsec + ".txt";
+      string outname = outBase + "." + *imeas + "."
+                                       + to_string(nSection) + "sec.txt";
+
       ofstream outfile;
 
       cout << "Writing group table to " << outname << endl;
@@ -884,11 +882,11 @@ static void print_version(void) {
 
 /* --------------------------------------------- */
 static void check_options(void) {
-  if (!outBase) {
+  if (outBase.empty()) {
     cout << "ERROR: must specify base name for output files" << endl;
     exit(1);
   }
-  if (!inListFile) {
+  if (inListFile.empty()) {
     cout << "ERROR: must specify input list file" << endl;
     exit(1);
   }
@@ -907,7 +905,7 @@ static void dump_options(FILE *fp) {
 
   cout << "Base name of output files: " << outBase << endl;
   cout << "Text file with list of individual inputs: " << inListFile << endl;
-  if (outRefFile)
+  if (!outRefFile.empty())
     cout << "Reference volume for output path: " << outRefFile << endl;
   if (nSection > 0)
     cout << "Number of path sections: " << nSection << endl;

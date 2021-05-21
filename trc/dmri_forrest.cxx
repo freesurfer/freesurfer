@@ -63,9 +63,8 @@ int main(int argc, char *argv[]);
 
 const char *Progname = "dmri_forrest";
 
-char *testDir = NULL, *trainListFile = NULL,
-     *maskFile = NULL, *asegFile = NULL, *orientFile = NULL;
-vector<char *> tractFileList;
+string testDir, trainListFile, maskFile, asegFile, orientFile;
+vector<string> tractFileList;
 
 struct utsname uts;
 char *cmdline, cwd[2000];
@@ -310,15 +309,15 @@ static void print_version(void) {
 
 /* --------------------------------------------- */
 static void check_options(void) {
-  if (!testDir) {
+  if (testDir.empty()) {
     cout << "ERROR: Must specify test subject directory" << endl;
     exit(1);
   }
-  if (!trainListFile) {
+  if (trainListFile.empty()) {
     cout << "ERROR: Must specify training subject list file" << endl;
     exit(1);
   }
-  if (!maskFile) {
+  if (maskFile.empty()) {
     cout << "ERROR: Must specify brain mask volume" << endl;
     exit(1);
   }
@@ -349,16 +348,16 @@ static void dump_options() {
 
   cout << "Location of streamline files relative to subject directory:";
   
-  for (vector<char *>::const_iterator istr = tractFileList.begin();
+  for (vector<string>::const_iterator istr = tractFileList.begin();
                                      istr < tractFileList.end(); istr++)
     cout << " " << *istr;
   cout << endl;
 
-  if (asegFile)
+  if (!asegFile.empty())
     cout << "Location of aparc+aseg's relative to subject directory: "
          << asegFile << endl;
 
-  if (orientFile)
+  if (!orientFile.empty())
     cout << "Location of diffusion orientations relative to subject directory: "
          << orientFile << endl;
 

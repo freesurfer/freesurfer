@@ -67,13 +67,13 @@ bool useTrunc = false, useAnatomy = false, useShape = false, excludeStr = false;
 int numStrMax = INT_MAX;
 vector<float> trainMaskLabel;
 vector< vector<int> > nControl;
-vector<char *> outTrkList, outPriorBase,
+vector<string> outTrkList, outPriorBase,
                trainTrkList, trainRoi1List, trainRoi2List,
                testMaskList, testFaList, testBaseXfmList;
-char *outPriorDir = NULL, *outTestDir = NULL,
-     *trainListFile = NULL, *trainAsegFile = NULL, *trainMaskFile = NULL,
-     *testAffineXfmFile = NULL, *testNonlinXfmFile = NULL,
-     *testNonlinRefFile = NULL, *testBaseMaskFile = NULL;
+string outPriorDir, outTestDir,
+       trainListFile, trainAsegFile, trainMaskFile,
+       testAffineXfmFile, testNonlinXfmFile,
+       testNonlinRefFile, testBaseMaskFile;
 
 struct utsname uts;
 char *cmdline, cwd[2000];
@@ -83,7 +83,7 @@ Timer cputimer;
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
   int nargs, cputime;
-  char excfile[PATH_MAX], fbase[PATH_MAX];
+  string excfile, fbase;
 
   nargs = handleVersionOption(argc, argv, "dmri_train");
   if (nargs && argc - nargs == 1) exit (0);
@@ -107,22 +107,34 @@ int main(int argc, char **argv) {
   dump_options();
 
   if (excludeStr) {
-      if (outPriorDir)
-	sprintf(excfile, "%s/%s_cpts_all.bad.txt", outPriorDir,
-                                                   outPriorBase[0]);
-      else
-	sprintf(excfile, "%s_cpts_all.bad.txt", outPriorBase[0]);
+    excfile = outPriorBase[0] + "_cpts_all.bad.txt";
+
+    if (!outPriorDir.empty())
+      excfile = outPriorDir + "/" + excfile;
   }
-  
+
+  if (trainRoi1List.empty()) {
+    trainRoi1List.resize(trainTrkList.size());
+    fill(trainRoi1List.begin(), trainRoi1List.end(), string());
+  }
+
+  if (trainRoi2List.empty()) {
+    trainRoi2List.resize(trainTrkList.size());
+    fill(trainRoi2List.begin(), trainRoi2List.end(), string());
+  }
+
+  if (trainMaskLabel.empty()) {
+    trainMaskLabel.resize(trainTrkList.size());
+    fill(trainMaskLabel.begin(), trainMaskLabel.end(), 0.0f);
+  }
+
   if (nControl.empty())
     nControl.push_back(vector<int>());
 
   Blood myblood(trainListFile, trainTrkList[0],
-                trainRoi1List.size() ? trainRoi1List[0] : 0,
-                trainRoi2List.size() ? trainRoi2List[0] : 0,
-                trainAsegFile, trainMaskFile,
-                trainMaskLabel.size() ? trainMaskLabel[0] : 0,
-                excludeStr ? excfile : 0,
+                trainRoi1List[0], trainRoi2List[0],
+                trainAsegFile, trainMaskFile, trainMaskLabel[0],
+                excfile,
                 testMaskList, testFaList,
                 testAffineXfmFile, testNonlinXfmFile, testNonlinRefFile,
                 testBaseXfmList, testBaseMaskFile,
@@ -132,21 +144,18 @@ int main(int argc, char **argv) {
   for (unsigned int itrk = 0; itrk < trainTrkList.size(); itrk++) {
     if (itrk > 0) {
       if (excludeStr) {
-        if (outPriorDir)
-          sprintf(excfile, "%s/%s_cpts_all.bad.txt", outPriorDir,
-                                                     outPriorBase[itrk]);
-        else
-          sprintf(excfile, "%s_cpts_all.bad.txt", outPriorBase[itrk]);
+        excfile = outPriorBase[itrk] + "_cpts_all.bad.txt";
+
+        if (!outPriorDir.empty())
+          excfile = outPriorDir + "/" + excfile;
       }
 
       if (nControl.size() > 1)		// Variable number of control points
         myblood.SetNumControls(nControl[itrk]);
 
       myblood.ReadStreamlines(trainListFile, trainTrkList[itrk],
-                              trainRoi1List.size() ? trainRoi1List[itrk] : 0,
-                              trainRoi2List.size() ? trainRoi2List[itrk] : 0,
-                              trainMaskLabel.size() ? trainMaskLabel[itrk] : 0,
-                              excludeStr ? excfile : 0);
+                              trainRoi1List[itrk], trainRoi2List[itrk],
+                              trainMaskLabel[itrk], excfile);
     }
 
     cout << "Processing pathway " << itrk+1 << " of " << trainTrkList.size()
@@ -161,20 +170,18 @@ int main(int argc, char **argv) {
     else {				// Compute priors for test subject
       myblood.ComputePriors();
 
-      if (outPriorDir)
-        sprintf(fbase, "%s/%s", outPriorDir, outPriorBase[itrk]);
-      else
-        strcpy(fbase, outPriorBase[itrk]);
+      fbase = outPriorBase[itrk];
 
-      if (outTestDir) {
-        char ftbase[PATH_MAX];
+      if (!outPriorDir.empty())
+        fbase = outPriorDir + "/" + fbase;
 
-        sprintf(ftbase, "%s/%s", outTestDir, outPriorBase[itrk]);
+      if (!outTestDir.empty()) {
+        string ftbase = outTestDir + "/" + outPriorBase[itrk];
 
-        myblood.WriteOutputs(fbase, ftbase);
+        myblood.WriteOutputs(fbase.c_str(), ftbase.c_str());
       }
       else
-        myblood.WriteOutputs(fbase);
+        myblood.WriteOutputs(fbase.c_str());
 
       cputime = cputimer.milliseconds();
       cout << "Done in " << cputime/1000.0 << " sec." << endl;
@@ -454,7 +461,7 @@ static void check_options(void) {
     cout << "ERROR: Must specify at least one output name" << endl;
     exit(1);
   }
-  if (!trainListFile) {
+  if (trainListFile.empty()) {
     cout << "ERROR: Must specify training subject list file" << endl;
     exit(1);
   }
@@ -473,11 +480,11 @@ static void check_options(void) {
          << endl;
     exit(1);
   }
-  if (!trainAsegFile) {
+  if (trainAsegFile.empty()) {
     cout << "ERROR: Must specify location of aparc+aseg volume" << endl;
     exit(1);
   }
-  if (!trainMaskFile) {
+  if (trainMaskFile.empty()) {
     cout << "ERROR: Must specify location of cortex mask volume" << endl;
     exit(1);
   }
@@ -512,12 +519,12 @@ static void check_options(void) {
            << endl;
       exit(1);
     }
-    if (testNonlinXfmFile && !testNonlinRefFile) {
+    if (!testNonlinXfmFile.empty() && testNonlinRefFile.empty()) {
       cout << "ERROR: Must specify source reference volume for nonlinear warp"
            << endl;
       exit(1);
     }
-    if (!testBaseXfmList.empty() && !testBaseMaskFile) {
+    if (!testBaseXfmList.empty() && testBaseMaskFile.empty()) {
       cout << "ERROR: Must specify reference volume for base space" << endl;
       exit(1);
     }
@@ -533,7 +540,7 @@ static void check_options(void) {
 
 /* --------------------------------------------- */
 static void dump_options() {
-  vector<char *>::const_iterator istr;
+  vector<string>::const_iterator istr;
 
   cout << endl
        << getVersion() << endl
@@ -544,10 +551,10 @@ static void dump_options() {
        << "machine  " << uts.machine << endl
        << "user     " << VERuser() << endl;
 
-  if (outPriorDir)
+  if (!outPriorDir.empty())
     cout << "Output directory: " << outPriorDir << endl;
 
-  if (outTestDir)
+  if (!outTestDir.empty())
     cout << "Output directory in test subject's space: " << outTestDir << endl;
 
   if (!outPriorBase.size()) {
@@ -598,40 +605,40 @@ static void dump_options() {
        << endl;
 
   cout << "Brain mask for output subject:";
-  for (vector<char *>::const_iterator ifile = testMaskList.begin();
+  for (vector<string>::const_iterator ifile = testMaskList.begin();
                                       ifile < testMaskList.end(); ifile++)
     cout << " " << *ifile;
   cout << endl;
 
   if (!testFaList.empty()) {
     cout << "FA map for output subject:";
-    for (vector<char *>::const_iterator ifile = testFaList.begin();
+    for (vector<string>::const_iterator ifile = testFaList.begin();
                                         ifile < testFaList.end(); ifile++)
       cout << " " << *ifile;
     cout << endl;
   }
 
-  if (testAffineXfmFile)
+  if (!testAffineXfmFile.empty())
     cout << "Affine registration from atlas to base for output subject: "
          << testAffineXfmFile << endl;
 
-  if (testNonlinXfmFile)
+  if (!testNonlinXfmFile.empty())
     cout << "Nonlinear registration from atlas to base for output subject: "
          << testNonlinXfmFile << endl;
 
-  if (testNonlinRefFile)
+  if (!testNonlinRefFile.empty())
     cout << "Nonlinear registration source reference for output subject: "
          << testNonlinRefFile << endl;
 
   if (!testBaseXfmList.empty()) {
     cout << "Affine registration from base to FA map for output subject:";
-    for (vector<char *>::const_iterator ifile = testBaseXfmList.begin();
+    for (vector<string>::const_iterator ifile = testBaseXfmList.begin();
                                         ifile < testBaseXfmList.end(); ifile++)
       cout << " " << *ifile;
     cout << endl;
   }
 
-  if (testBaseMaskFile)
+  if (!testBaseMaskFile.empty())
     cout << "Base mask for output subject: " << testBaseMaskFile << endl;
 
   cout << "Number of control points for initial spline:";

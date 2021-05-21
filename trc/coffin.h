@@ -48,11 +48,11 @@ class Aeon {		// One point in time
     static void SavePathPriors(std::vector<float> &Priors);
     static void SaveBasePath(std::vector<int> &PathPoints);
     static void SetPathMap(unsigned int PathIndex);
-    void ReadData(const char *RootDir, const char *DwiFile,
-                  const char *GradientFile, const char *BvalueFile,
-                  const char *MaskFile, const char *BedpostDir,
+    void ReadData(const string RootDir, const string DwiFile,
+                  const string GradientFile, const string BvalueFile,
+                  const string MaskFile, const string BedpostDir,
                   const int NumTract, const float FminPath,
-                  const char *BaseXfmFile);
+                  const string BaseXfmFile);
     MRI *GetMask() const;
     MRI *GetBaseMask() const;
     float GetDx() const;
@@ -60,7 +60,7 @@ class Aeon {		// One point in time
     float GetDz() const;
     unsigned int GetNumSample() const;
     void FreeMask();
-    void SetOutputDir(const char *OutDir);
+    void SetOutputDir(const string OutDir);
     const string &GetOutputDir() const;
     void ClearPath();
     bool MapPathFromBase(Spline &BaseSpline);
@@ -134,41 +134,41 @@ class Aeon {		// One point in time
 
 class Coffin {		// The main container
   public:
-    Coffin(const char *OutDir, std::vector<char *> InDirList,
-           const char *DwiFile,
-           const char *GradientFile, const char *BvalueFile,
-           const char *MaskFile, const char *BedpostDir,
+    Coffin(const string OutDir, std::vector<string> InDirList,
+           const string DwiFile,
+           const string GradientFile, const string BvalueFile,
+           const string MaskFile, const string BedpostDir,
            const int NumTract, const float FminPath,
-           const char *BaseXfmFile, const char *BaseMaskFile,
-           const char *InitFile,
-           const char *RoiFile1, const char *RoiFile2,
-           const char *RoiMeshFile1, const char *RoiMeshFile2,
-           const char *RoiRefFile1, const char *RoiRefFile2,
-           const char *XyzPriorFile0, const char *XyzPriorFile1,
-           const char *TangPriorFile, const char *CurvPriorFile,
-           const char *NeighPriorFile, const char *NeighIdFile,
+           const string BaseXfmFile, const string BaseMaskFile,
+           const string InitFile,
+           const string RoiFile1, const string RoiFile2,
+           const string RoiMeshFile1, const string RoiMeshFile2,
+           const string RoiRefFile1, const string RoiRefFile2,
+           const string XyzPriorFile0, const string XyzPriorFile1,
+           const string TangPriorFile, const string CurvPriorFile,
+           const string NeighPriorFile, const string NeighIdFile,
            const int NeighPriorSet,
-           const char *LocalPriorFile, const char *LocalIdFile,
+           const string LocalPriorFile, const string LocalIdFile,
            const int LocalPriorSet,
-           const std::vector<char *>AsegList,
-           const char *AffineXfmFile, const char *NonlinXfmFile,
+           const std::vector<string>AsegList,
+           const string AffineXfmFile, const string NonlinXfmFile,
            const int NumBurnIn, const int NumSample,
            const int KeepSampleNth, const int UpdatePropNth,
-           const char *PropStdFile,
+           const string PropStdFile,
            const bool Debug=false);
     ~Coffin();
-    void SetOutputDir(const char *OutDir);
-    void SetPathway(const char *InitFile,
-                    const char *RoiFile1, const char *RoiFile2,
-                    const char *RoiMeshFile1, const char *RoiMeshFile2,
-                    const char *RoiRefFile1, const char *RoiRefFile2,
-                    const char *XyzPriorFile0, const char *XyzPriorFile1,
-                    const char *TangPriorFile, const char *CurvPriorFile,
-                    const char *NeighPriorFile, const char *NeighIdFile,
-                    const char *LocalPriorFile, const char *LocalIdFile);
+    void SetOutputDir(const string OutDir);
+    void SetPathway(const string InitFile,
+                    const string RoiFile1, const string RoiFile2,
+                    const string RoiMeshFile1, const string RoiMeshFile2,
+                    const string RoiRefFile1, const string RoiRefFile2,
+                    const string XyzPriorFile0, const string XyzPriorFile1,
+                    const string TangPriorFile, const string CurvPriorFile,
+                    const string NeighPriorFile, const string NeighIdFile,
+                    const string LocalPriorFile, const string LocalIdFile);
     void SetMcmcParameters(const int NumBurnIn, const int NumSample,
                            const int KeepSampleNth, const int UpdatePropNth,
-                           const char *PropStdFile);
+                           const string PropStdFile);
     bool RunMcmcFull();
     bool RunMcmcSingle();
     void WriteOutputs();
@@ -191,7 +191,7 @@ class Coffin {		// The main container
            mShapePrior, mShapePriorNew,
            mPosteriorOnPath, mPosteriorOnPathNew, mPosteriorOnPathMap,
            mPosteriorOffPath, mPosteriorOffPathNew;
-    std::string mOutDir, mInfoGeneral, mInfoPathway, mInfoMcmc;
+    string mOutDir, mInfoGeneral, mInfoPathway, mInfoMcmc;
     std::vector<bool> mRejectControl;			// [mNumControl]
     std::vector<int> mAcceptCount, mRejectCount,	// [mNumControl]
                      mControlPoints, mControlPointsNew,
@@ -217,8 +217,8 @@ class Coffin {		// The main container
     std::vector<MRI *> mAseg;
     std::vector<Aeon> mDwi;
 
-    void ReadControlPoints(const char *ControlPointFile);
-    void ReadProposalStds(const char *PropStdFile);
+    void ReadControlPoints(const string ControlPointFile);
+    void ReadProposalStds(const string PropStdFile);
     bool InitializeMcmc();
     bool InitializeFixOffMask(int FailSegment);
     bool InitializeFixOffWhite(int FailSegment);

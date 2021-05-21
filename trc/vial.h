@@ -48,8 +48,8 @@ class AffineReg {
     ~AffineReg();
     bool IsEmpty();
     bool IsInvEmpty();
-    void ReadXfm(const char *XfmFile, const MRI *InRefVol, 
-                                      const MRI *OutRefVol);
+    void ReadXfm(const std::string XfmFile, const MRI *InRefVol, 
+                                            const MRI *OutRefVol);
     void ApplyXfm(std::vector<float> &OutPoint,
                   std::vector<float>::const_iterator InPoint);
     void ApplyXfmInv(std::vector<float> &OutPoint,
@@ -75,7 +75,7 @@ class NonlinReg {
     NonlinReg();
     ~NonlinReg();
     bool IsEmpty();
-    void ReadXfm(const char *XfmFile, MRI *RefVol);
+    void ReadXfm(const std::string XfmFile, MRI *RefVol);
     void ApplyXfm(std::vector<float> &OutPoint,
                   std::vector<float>::const_iterator InPoint);
     void ApplyXfmInv(std::vector<float> &OutPoint,
