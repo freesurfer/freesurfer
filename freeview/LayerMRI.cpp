@@ -83,6 +83,7 @@
 #include "BrushProperty.h"
 #include "vtkImageResliceMapper.h"
 #include "vtkSTLWriter.h"
+#include "vtkImageMathematics.h"
 #include "Region3D.h"
 
 
@@ -1728,7 +1729,7 @@ void LayerMRI::UpdateVectorActor()
 
 void LayerMRI::UpdateVectorActor( int nPlane )
 {
-  UpdateVectorActor( nPlane, m_imageData );
+  UpdateVectorActor( nPlane, m_imageDataBackup.GetPointer()?m_imageDataBackup:m_imageData );
 }
 
 void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageData* scaledata )
@@ -1867,6 +1868,8 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
     {
       for ( int j = 0; j < dim[2]; j+=nSkip )
       {
+        if (mask_ptr && MyVTKUtils::GetImageDataComponent(mask_ptr, dim, mask_frames, n[0], i, j, 0, mask_scalar_type) < m_dMaskThreshold)
+          continue;
         double v[3], v2[3] = {0}, vn[3], v_temp[3], v_temp2[3];
         double* vp = v;
         double pt[3];
@@ -3678,6 +3681,13 @@ bool LayerMRI::HasReg()
 void LayerMRI::SetMaskLayer(LayerMRI *layer_mask)
 {
   m_layerMask = layer_mask;
+  if (GetProperty()->GetDisplayVector() || GetProperty()->GetDisplayTensor())
+  {
+    UpdateDisplayMode();
+    GetProperty()->EmitChangeSignal();
+    return;
+  }
+
   vtkImageData* source = this->GetImageData();
   if (layer_mask == NULL)
   {
@@ -3706,7 +3716,7 @@ void LayerMRI::SetMaskLayer(LayerMRI *layer_mask)
     */
     
     vtkSmartPointer<vtkImageReslice> resampler = vtkSmartPointer<vtkImageReslice>::New();
-    vtkSmartPointer<vtkImageMask> mask_filter = vtkSmartPointer<vtkImageMask>::New();
+    vtkSmartPointer<vtkImageMathematics> mask_filter = vtkSmartPointer<vtkImageMathematics>::New();
     vtkSmartPointer<vtkImageThreshold> threshold = vtkSmartPointer<vtkImageThreshold>::New();
     double range[2];
     mask->GetScalarRange(range);
@@ -3716,7 +3726,7 @@ void LayerMRI::SetMaskLayer(LayerMRI *layer_mask)
     if (m_mapMaskThresholds.contains(layer_mask))
       m_dMaskThreshold = m_mapMaskThresholds[layer_mask];
     else
-      m_dMaskThreshold = (range[0]+range[1])/2.0;
+      m_dMaskThreshold = (range[0]+range[1])/5.0;
     
     double s1[3], s2[3];
     source->GetSpacing(s1);
@@ -3736,15 +3746,16 @@ void LayerMRI::SetMaskLayer(LayerMRI *layer_mask)
     threshold->ReplaceOutOn();
     threshold->SetInValue(1);
     threshold->SetOutValue(0);
-    threshold->SetOutputScalarTypeToUnsignedChar();
+    threshold->SetOutputScalarType(m_imageDataBackup->GetScalarType());
+    threshold->Update();
 #if VTK_MAJOR_VERSION > 5
-    mask_filter->SetInputData(m_imageDataBackup);
-    mask_filter->SetMaskInputData(threshold->GetOutput());
+    mask_filter->SetInput1Data(m_imageDataBackup);
+    mask_filter->SetInput2Data(threshold->GetOutput());
 #else
-    mask_filter->SetInput(m_imageDataBackup);
-    mask_filter->SetMaskInput(threshold->GetOutput());
+    mask_filter->SetInput1(m_imageDataBackup);
+    mask_filter->SetInput2(threshold->GetOutput());
 #endif
-    mask_filter->SetMaskedOutputValue(0);
+    mask_filter->SetOperationToMultiply();
     mask_filter->Update();
     source->DeepCopy(mask_filter->GetOutput());
   }

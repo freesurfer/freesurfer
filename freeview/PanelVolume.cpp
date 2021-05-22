@@ -611,9 +611,11 @@ void PanelVolume::DoUpdateWidgets()
     m_bShowExistingLabelsOnly = false;
     if (m_curCTAB != layer->GetEmbeddedColorTable())
       PopulateColorTable(layer->GetEmbeddedColorTable());
+    ShowWidgets(m_widgetlistVolumeTrackSpecs, true);
   }
   else
   {
+    ShowWidgets(m_widgetlistVolumeTrackSpecs, false);
     ShowWidgets( m_widgetlistNormalDisplay, bNormalDisplay );
     ShowWidgets( m_widgetlistGrayScale, bNormalDisplay && nColorMap == LayerPropertyMRI::Grayscale );
     ShowWidgets( m_widgetlistHeatScale, bNormalDisplay && nColorMap == LayerPropertyMRI::Heat );
