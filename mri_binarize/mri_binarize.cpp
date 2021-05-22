@@ -542,6 +542,7 @@ int main(int argc, char *argv[]) {
 
     for(frame = fstart; frame <= fend; frame++){
       for (c=0; c < InVol->width; c++) {
+        int r,s;
         for (r=0; r < InVol->height; r++) {
           for (s=0; s < InVol->depth; s++) {
             if (!MaskVol || MRIgetVoxVal(MaskVol, c, r, s, 0) > MaskThresh) {
