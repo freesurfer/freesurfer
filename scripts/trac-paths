@@ -527,24 +527,110 @@ if (! $dolong) then
     foreach pathname ($pathlist)
       set pathpre = ${pathname}_$avgmode
 
-      if (-e $outdir/$pathpre/path.map.txt) then
-        set pname = `echo $pathname | awk -v FS=_ '{print $1}'`
+      if (! -e $outdir/$pathpre/path.map.txt)	continue
 
-        set cmd = $trcdir/dmri_pathstats
-        set cmd = ($cmd --intrc  $outdir/$pathpre)
-        set cmd = ($cmd --dtbase $dwidir/dtifit)
-        set cmd = ($cmd --path   $pname)
-        set cmd = ($cmd --subj   $subj)
-        set cmd = ($cmd --out    $outdir/$pathpre/pathstats.overall.txt)
-        set cmd = ($cmd --outvox $outdir/$pathpre/pathstats.byvoxel.txt)
+      set pname = `echo $pathname | awk -v FS=_ '{print $1}'`
+
+      # Get whole-path and along-path statistics
+      set cmd = $trcdir/dmri_pathstats
+      set cmd = ($cmd --intrc  $outdir/$pathpre)
+      set cmd = ($cmd --dtbase $dwidir/dtifit)
+      set cmd = ($cmd --path   $pname)
+      set cmd = ($cmd --subj   $subj)
+      set cmd = ($cmd --out    $outdir/$pathpre/pathstats.overall.txt)
+      set cmd = ($cmd --outvox $outdir/$pathpre/pathstats.byvoxel.txt)
+      echo $cmd |& tee -a $LF |& tee -a $CF
+      if ($RunIt) then
+        $fs_time $cmd |& tee -a $LF
+        if ($status) goto error_exit
+      endif
+
+      # Project path endpoints onto cortical surface
+      # Skip cerebellum pathways
+      if ($pname == mcp)  continue
+
+      # Is it an inter-hemispheric pathway?
+      if ($pname =~ cc.* || $pname == acomm || $pname == mcp) then
+        set isinter = 1
+      else
+        set isinter = 0
+      endif
+
+      foreach pt (1 2)
+        if ( $pname =~ lh.* || ($isinter == 1 && $pt == 2) ) then
+          set hemi = lh
+        else
+          set hemi = rh
+        endif
+
+        if ($isinter) then
+          set labelname = $hemi.$pname
+        else
+          set labelname = $pname
+        endif
+
+        # Project from volume in DWI space to surface in structural space
+        set cmd = mri_vol2surf
+        set cmd = ($cmd --mov $outdir/$pathpre/endpt$pt.pd.nii.gz)
+        set cmd = ($cmd --reg $xfmdir/diff2anatorig.$reg.lta)
+        set cmd = ($cmd --srcsubject $subj)
+        set cmd = ($cmd --hemi $hemi)
+        set cmd = ($cmd --projdist-avg $projmin $projmax $dproj)
+        set cmd = ($cmd --trgsubject $subj)
+        set cmd = ($cmd --o $outdir/$pathpre/end$pt.surf.mgz)
         echo $cmd |& tee -a $LF |& tee -a $CF
         if ($RunIt) then
-          $fs_time $cmd |& tee -a $LF
+          $cmd |& tee -a $LF
           if ($status) goto error_exit
         endif
-      endif
+
+        set nproj = `echo "($projmax - ($projmin))/$dproj + 1" | bc -l`
+
+        set cmd = fscalc
+        set cmd = ($cmd     $outdir/$pathpre/end$pt.surf.mgz)
+        set cmd = ($cmd mul $nproj)
+        set cmd = ($cmd --o $outdir/$pathpre/end$pt.surf.mgz)
+        echo $cmd |& tee -a $LF |& tee -a $CF
+        if ($RunIt) then
+          $cmd |& tee -a $LF
+          if ($status) goto error_exit
+        endif
+
+        set cmd = mri_binarize
+        set cmd = ($cmd --min 1)
+        set cmd = ($cmd --i $outdir/$pathpre/end$pt.surf.mgz)
+        set cmd = ($cmd --o $outdir/$pathpre/end$pt.surf.bin.mgz)
+        echo $cmd |& tee -a $LF |& tee -a $CF
+        if ($RunIt) then
+          $cmd |& tee -a $LF
+          if ($status) goto error_exit
+        endif
+
+        set cmd = mri_cor2label
+        set cmd = ($cmd --i $outdir/$pathpre/end$pt.surf.bin.mgz)
+        set cmd = ($cmd --id 1)
+        set cmd = ($cmd --l $outdir/$pathpre/end$pt.surf.label)
+        set cmd = ($cmd --surf $subj $hemi white)
+        echo $cmd |& tee -a $LF |& tee -a $CF
+        if ($RunIt) then
+          $cmd |& tee -a $LF
+          if ($status) goto error_exit
+        endif
+
+        set cmd = mri_label2label
+        set cmd = ($cmd --srclabel $outdir/$pathpre/end$pt.surf.label)
+        set cmd = ($cmd --s $subj --hemi $hemi --regmethod surface)
+        set cmd = ($cmd --dilate 5 --erode 5)
+        set cmd = ($cmd --trglabel $outdir/$pathpre/end$pt.surf.label)
+        echo $cmd |& tee -a $LF |& tee -a $CF
+        if ($RunIt) then
+          $cmd |& tee -a $LF
+          if ($status) goto error_exit
+        endif
+      end
     end
 
+    # Merge all existing pathways into a 4D volume
     set mergelist = ()
     foreach dname ($outdir/*_$avgmode)
       if (-e $dname/path.pd.nii.gz) then
@@ -838,24 +924,110 @@ else
       foreach pathname ($pathlist)
         set pathdir = $outdir_t/${pathname}_$avgmode
 
-        if (-e $pathdir/path.map.txt) then
-          set pname = `echo $pathname | awk -v FS=_ '{print $1}'`
+        if (! -e $pathdir/path.map.txt)	continue
 
-          set cmd = $trcdir/dmri_pathstats
-          set cmd = ($cmd --intrc  $pathdir)
-          set cmd = ($cmd --dtbase $dwidir_t/dtifit)
-          set cmd = ($cmd --path   $pname)
-          set cmd = ($cmd --subj   $subj_t)
-          set cmd = ($cmd --out    $pathdir/pathstats.overall.txt)
-          set cmd = ($cmd --outvox $pathdir/pathstats.byvoxel.txt)
+        set pname = `echo $pathname | awk -v FS=_ '{print $1}'`
+
+        # Get whole-path and along-path statistics
+        set cmd = $trcdir/dmri_pathstats
+        set cmd = ($cmd --intrc  $pathdir)
+        set cmd = ($cmd --dtbase $dwidir_t/dtifit)
+        set cmd = ($cmd --path   $pname)
+        set cmd = ($cmd --subj   $subj_t)
+        set cmd = ($cmd --out    $pathdir/pathstats.overall.txt)
+        set cmd = ($cmd --outvox $pathdir/pathstats.byvoxel.txt)
+        echo $cmd |& tee -a $LF |& tee -a $CF
+        if ($RunIt) then
+          $fs_time $cmd |& tee -a $LF
+          if ($status) goto error_exit
+        endif
+
+        # Project path endpoints onto cortical surface
+        # Skip cerebellum pathways
+        if ($pname == mcp)  continue
+
+        # Is it an inter-hemispheric pathway?
+        if ($pname =~ cc.* || $pname == acomm || $pname == mcp) then
+          set isinter = 1
+        else
+          set isinter = 0
+        endif
+
+        foreach pt (1 2)
+          if ( $pname =~ lh.* || ($isinter == 1 && $pt == 2) ) then
+            set hemi = lh
+          else
+            set hemi = rh
+          endif
+
+          if ($isinter) then
+            set labelname = $hemi.$pname
+          else
+            set labelname = $pname
+          endif
+
+          # Project from volume in DWI space to surface in structural space
+          set cmd = mri_vol2surf
+          set cmd = ($cmd --mov $pathdir/endpt$pt.pd.nii.gz)
+          set cmd = ($cmd --reg $xfmdir/diff2anatorig.$reg.lta)
+          set cmd = ($cmd --srcsubject $subj_t)
+          set cmd = ($cmd --hemi $hemi)
+          set cmd = ($cmd --projdist-avg $projmin $projmax $dproj)
+          set cmd = ($cmd --trgsubject $subj_t)
+          set cmd = ($cmd --o $pathdir/end$pt.surf.mgz)
           echo $cmd |& tee -a $LF |& tee -a $CF
           if ($RunIt) then
-            $fs_time $cmd |& tee -a $LF
+            $cmd |& tee -a $LF
             if ($status) goto error_exit
           endif
-        endif
+
+          set nproj = `echo "($projmax - ($projmin))/$dproj + 1" | bc -l`
+
+          set cmd = fscalc
+          set cmd = ($cmd     $pathdir/end$pt.surf.mgz)
+          set cmd = ($cmd mul $nproj)
+          set cmd = ($cmd --o $pathdir/end$pt.surf.mgz)
+          echo $cmd |& tee -a $LF |& tee -a $CF
+          if ($RunIt) then
+            $cmd |& tee -a $LF
+            if ($status) goto error_exit
+          endif
+
+          set cmd = mri_binarize
+          set cmd = ($cmd --min 1)
+          set cmd = ($cmd --i $pathdir/end$pt.surf.mgz)
+          set cmd = ($cmd --o $pathdir/end$pt.surf.bin.mgz)
+          echo $cmd |& tee -a $LF |& tee -a $CF
+          if ($RunIt) then
+            $cmd |& tee -a $LF
+            if ($status) goto error_exit
+          endif
+
+          set cmd = mri_cor2label
+          set cmd = ($cmd --i $pathdir/end$pt.surf.bin.mgz)
+          set cmd = ($cmd --id 1)
+          set cmd = ($cmd --l $pathdir/end$pt.surf.label)
+          set cmd = ($cmd --surf $subj_t $hemi white)
+          echo $cmd |& tee -a $LF |& tee -a $CF
+          if ($RunIt) then
+            $cmd |& tee -a $LF
+            if ($status) goto error_exit
+          endif
+
+          set cmd = mri_label2label
+          set cmd = ($cmd --srclabel $pathdir/end$pt.surf.label)
+          set cmd = ($cmd --s $subj_t --hemi $hemi --regmethod surface)
+          set cmd = ($cmd --dilate 5 --erode 5)
+          set cmd = ($cmd --trglabel $pathdir/end$pt.surf.label)
+          echo $cmd |& tee -a $LF |& tee -a $CF
+          if ($RunIt) then
+            $cmd |& tee -a $LF
+            if ($status) goto error_exit
+          endif
+        end
       end
 
+      # Merge all existing pathways into a 4D volume
       set mergelist = ()
       foreach dname ($outdir_t/*_$avgmode)
         if (-e $dname/path.pd.nii.gz) then

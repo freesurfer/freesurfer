@@ -153,6 +153,9 @@ set nupdate = 0
 set nkeep = 5
 set doinitprop = 1
 set pmin = ()
+set projmin = -3
+set projmax = 3
+set dproj = .1
 set overwrite = 1
 set trcdir = $FREESURFER_HOME/bin
 
@@ -548,6 +551,9 @@ if ($#baselist == 0) then	#--->>> A single time point for each subject
     echo "set nkeep = ($nkeep)"						>> $RCF
     echo "set doinitprop = ($doinitprop)"				>> $RCF
     echo "set pmin = ($pmin)"						>> $RCF
+    echo "set projmin = ($projmin)"					>> $RCF
+    echo "set projmax = ($projmax)"					>> $RCF
+    echo "set dproj = ($dproj)"						>> $RCF
     echo "set overwrite = ($overwrite)"					>> $RCF
     echo "#"							 	>> $RCF
     echo "# Location of TRACULA executables"			 	>> $RCF
@@ -999,6 +1005,9 @@ else				#--->>> Multiple time points for each subject
       echo "set nkeep = ($nkeep)"					>> $RCF
       echo "set doinitprop = ($doinitprop)"				>> $RCF
       echo "set pmin = ($pmin)"						>> $RCF
+      echo "set projmin = ($projmin)"					>> $RCF
+      echo "set projmax = ($projmax)"					>> $RCF
+      echo "set dproj = ($dproj)"					>> $RCF
       echo "set overwrite = ($overwrite)"				>> $RCF
       echo "#"							 	>> $RCF
       echo "# Location of TRACULA executables"			 	>> $RCF
