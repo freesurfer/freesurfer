@@ -99,7 +99,7 @@ endif
 # in the merge anyway
 set seg2 = $tmpdir/seg2.mgh
 set cmd = (mri_binarize --i $seg1 --o $seg2 \
-  --replace 3 257 --replace 42 257 --replace 2 257 --replace 41 257)
+  --replaceonly 3 257 --replaceonly 42 257 --replaceonly 2 257 --replaceonly 41 257)
 echo $cmd | tee -a $LF
 $cmd | tee -a $LF
 if($status) goto error_exit;
@@ -153,7 +153,7 @@ if($status) exit 1;
 
 # Replace unlabeled voxels in the head with head seg
 set seg4 = $tmpdir/seg4.mgh
-set cmd = (mri_binarize --i $seg3 --o $seg4 --replace 0 258 --mask $seghead);
+set cmd = (mri_binarize --i $seg3 --o $seg4 --replaceonly 0 258 --mask $seghead);
 echo $cmd | tee -a $LF
 $cmd | tee -a $LF
 if($status) goto error_exit;
