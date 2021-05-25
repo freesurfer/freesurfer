@@ -59,7 +59,7 @@ for level, meshCollectionFile in enumerate(args.mesh_collections):
         # Read the manually annotated binary segmentation for the specific subject
         segmentationImage = nib.load(os.path.join(args.segmentations_dir, subjectDir, args.segmentation_name)).get_fdata()
 
-        history = np.load(os.path.join(args.subjects_dir, subjectDir, 'history.p'), allow_pickle=True)
+        history = np.load(os.path.join(args.subjects_dir, subjectDir, 'mri/samseg/history.p'), allow_pickle=True)
 
         # Get the node positions in image voxels
         modelSpecifications = history['input']['modelSpecifications']
