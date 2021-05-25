@@ -68,7 +68,7 @@ set cmd = (mri_binarize --i $apas --o $outseg)
 while ($n <= 35)
   @ lh = 1000 + $n
   @ rh = 2000 + $n
-  set cmd = ($cmd --replace $lh 3 --replace $rh 42)
+  set cmd = ($cmd --replaceonly $lh 3 --replaceonly $rh 42)
   @ n = $n + 1;
 end
 

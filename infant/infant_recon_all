@@ -688,7 +688,7 @@ endif
 set asegfile = $WORK_DIR/aseg.nii.gz
 
 # switching OLD thalamus labels to NEW FS standard ones
-set cmd = (mri_binarize --i $asegfile --replace 48 49 --replace 9 10 --o $asegfile)
+set cmd = (mri_binarize --i $asegfile --replaceonly 48 49 --replaceonly 9 10 --o $asegfile)
 echo $cmd >> $LF
 echo $cmd >> $sLF
 $cmd |& tee -a $LF

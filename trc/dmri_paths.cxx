@@ -6,7 +6,7 @@
 /*
  * Original Author: Anastasia Yendiki
  *
- * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -68,9 +68,9 @@ unsigned int nTract = 1,
              nBurnIn = 5000, nSample = 5000, nKeepSample = 10, nUpdateProp = 40,
              localPriorSet = 15, neighPriorSet = 14;
 float fminPath = 0;
-std::string dwiFile, gradFile, bvalFile, maskFile, bedpostDir,
-  baseXfmFile, baseMaskFile, affineXfmFile, nonlinXfmFile;
-vector<std::string> outDir, inDirList, initFile, roiFile1, roiFile2,
+string dwiFile, gradFile, bvalFile, maskFile, bedpostDir,
+       baseXfmFile, baseMaskFile, affineXfmFile, nonlinXfmFile;
+vector<string> outDir, inDirList, initFile, roiFile1, roiFile2,
                roiMeshFile1, roiMeshFile2, roiRefFile1, roiRefFile2,
                xyzPriorFile0, xyzPriorFile1, tangPriorFile, curvPriorFile,
                neighPriorFile, neighIdFile, localPriorFile, localIdFile,
@@ -83,7 +83,9 @@ Timer cputimer;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
-  bool doxyzprior = true,
+  bool islabel1 = false,
+       islabel2 = false,
+       doxyzprior = true,
        dotangprior = true,
        docurvprior = true,
        doneighprior = true,
@@ -122,6 +124,9 @@ int main(int argc, char **argv) {
   if (localPriorFile.empty()) dolocalprior = false;
   if (stdPropFile.empty())    dopropinit = false;
 
+  islabel1 = (roiFile1[0].find(".label") != string::npos);
+  islabel2 = (roiFile2[0].find(".label") != string::npos);
+
   Coffin mycoffin(outDir[0], inDirList, dwiFile,
                   gradFile, bvalFile,
                   maskFile, bedpostDir,
@@ -129,51 +134,54 @@ int main(int argc, char **argv) {
                   baseXfmFile, baseMaskFile,
                   initFile[0],
                   roiFile1[0], roiFile2[0],
-                  strstr(roiFile1[0].c_str(), ".label") ? roiMeshFile1[ilab1] : std::string(),
-                  strstr(roiFile2[0].c_str(), ".label") ? roiMeshFile2[ilab2] : std::string(),
-                  strstr(roiFile1[0].c_str(), ".label") ? roiRefFile1[ilab1] : std::string(),
-                  strstr(roiFile2[0].c_str(), ".label") ? roiRefFile2[ilab2] : std::string(),
-                  doxyzprior ? xyzPriorFile0[0] : std::string(),
-                  doxyzprior ? xyzPriorFile1[0] : std::string(),
-                  dotangprior ? tangPriorFile[0] : std::string(),
-                  docurvprior ? curvPriorFile[0] : std::string(),
-                  doneighprior ? neighPriorFile[0] : std::string(),
-                  doneighprior ? neighIdFile[0] : std::string(),
+                  islabel1 ? roiMeshFile1[ilab1] : string(),
+                  islabel2 ? roiMeshFile2[ilab2] : string(),
+                  islabel1 ? roiRefFile1[ilab1] : string(),
+                  islabel2 ? roiRefFile2[ilab2] : string(),
+                  doxyzprior ? xyzPriorFile0[0] : string(),
+                  doxyzprior ? xyzPriorFile1[0] : string(),
+                  dotangprior ? tangPriorFile[0] : string(),
+                  docurvprior ? curvPriorFile[0] : string(),
+                  doneighprior ? neighPriorFile[0] : string(),
+                  doneighprior ? neighIdFile[0] : string(),
                   doneighprior ? neighPriorSet : 0,
-                  dolocalprior ? localPriorFile[0] : std::string(),
-                  dolocalprior ? localIdFile[0] : std::string(),
+                  dolocalprior ? localPriorFile[0] : string(),
+                  dolocalprior ? localIdFile[0] : string(),
                   dolocalprior ? localPriorSet : 0,
                   asegList,
                   affineXfmFile, nonlinXfmFile,
                   nBurnIn, nSample, nKeepSample, nUpdateProp,
-                  dopropinit ? stdPropFile[0] : std::string(),
+                  dopropinit ? stdPropFile[0] : string(),
                   debug);
 
-  if (strstr(roiFile1[0].c_str(), ".label")) ilab1++;
-  if (strstr(roiFile2[0].c_str(), ".label")) ilab2++;
+  if (islabel1) ilab1++;
+  if (islabel2) ilab2++;
 
   for (unsigned int iout = 0; iout < outDir.size(); iout++) {
     if (iout > 0) {
+      islabel1 = (roiFile1[iout].find(".label") != string::npos);
+      islabel2 = (roiFile2[iout].find(".label") != string::npos);
+
       mycoffin.SetOutputDir(outDir[iout]);
       mycoffin.SetPathway(initFile[iout],
-			  roiFile1[iout], roiFile2[iout],
-			  strstr(roiFile1[iout].c_str(), ".label") ? roiMeshFile1[ilab1] : std::string(),
-			  strstr(roiFile2[iout].c_str(), ".label") ? roiMeshFile2[ilab2] : std::string(),
-			  strstr(roiFile1[iout].c_str(), ".label") ? roiRefFile1[ilab1] : std::string(),
-			  strstr(roiFile2[iout].c_str(), ".label") ? roiRefFile2[ilab2] : std::string(),
-			  doxyzprior ? xyzPriorFile0[iout] : std::string(),
-			  doxyzprior ? xyzPriorFile1[iout] : std::string(),
-			  dotangprior ? tangPriorFile[iout] : std::string(),
-			  docurvprior ? curvPriorFile[iout] : std::string(),
-			  doneighprior ? neighPriorFile[iout] : std::string(),
-			  doneighprior ? neighIdFile[iout] : std::string(),
-			  dolocalprior ? localPriorFile[iout] : std::string(),
-			  dolocalprior ? localIdFile[iout] : std::string());
+                  roiFile1[iout], roiFile2[iout],
+                  islabel1 ? roiMeshFile1[ilab1] : string(),
+                  islabel2 ? roiMeshFile2[ilab2] : string(),
+                  islabel1 ? roiRefFile1[ilab1] : string(),
+                  islabel2 ? roiRefFile2[ilab2] : string(),
+                  doxyzprior ? xyzPriorFile0[iout] : string(),
+                  doxyzprior ? xyzPriorFile1[iout] : string(),
+                  dotangprior ? tangPriorFile[iout] : string(),
+                  docurvprior ? curvPriorFile[iout] : string(),
+                  doneighprior ? neighPriorFile[iout] : string(),
+                  doneighprior ? neighIdFile[iout] : string(),
+                  dolocalprior ? localPriorFile[iout] : string(),
+                  dolocalprior ? localIdFile[iout] : string());
       mycoffin.SetMcmcParameters(nBurnIn, nSample, nKeepSample, nUpdateProp,
-				 dopropinit ? stdPropFile[iout] : std::string());
+                  dopropinit ? stdPropFile[iout] : string());
 
-      if (strstr(roiFile1.at(iout).c_str(), ".label")) ilab1++;
-      if (strstr(roiFile2.at(iout).c_str(), ".label")) ilab2++;
+      if (islabel1) ilab1++;
+      if (islabel2) ilab2++;
     }
 
     cout << "Processing pathway " << iout+1 << " of " << outDir.size() << "..."
@@ -181,11 +189,10 @@ int main(int argc, char **argv) {
     cputimer.reset();
 
     //if (mycoffin.RunMcmcFull())
-    if (mycoffin.RunMcmcSingle()) {
+    if (mycoffin.RunMcmcSingle())
       mycoffin.WriteOutputs();
-    } else {
+    else
       cout << "ERROR: Pathway reconstruction failed" << endl;
-    }
 
     cputime = cputimer.milliseconds();
     printf("Done in %g sec.\n", cputime/1000.0);
@@ -284,7 +291,7 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = 0;
       while (nargsused < nargc && strncmp(pargv[nargsused], "--", 2)) {
         roiFile1.push_back(fio_fullpath(pargv[nargsused]));
-        if(strstr(roiFile1.back().c_str(), ".label"))
+        if ((roiFile1.end()-1)->find(".label") != string::npos)
           nlab1++;
         nargsused++;
       }
@@ -294,7 +301,7 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = 0;
       while (nargsused < nargc && strncmp(pargv[nargsused], "--", 2)) {
         roiFile2.push_back(fio_fullpath(pargv[nargsused]));
-        if(strstr(roiFile2.back().c_str(), ".label"))
+        if ((roiFile2.end()-1)->find(".label") != string::npos)
           nlab2++;
         nargsused++;
       }
@@ -665,7 +672,7 @@ static void check_options(void) {
 
 /* --------------------------------------------- */
 static void dump_options() {
-  vector<std::string>::const_iterator istr;
+  vector<string>::const_iterator istr;
 
   cout << endl
        << getVersion() << endl
@@ -683,9 +690,8 @@ static void dump_options() {
 
   if (!inDirList.empty()) {
     cout << "Input directory:";
-    for (istr = inDirList.begin(); istr < inDirList.end(); istr++) {
+    for (istr = inDirList.begin(); istr < inDirList.end(); istr++)
       cout << " " << *istr;
-    }
     cout << endl;
   }
 
@@ -698,76 +704,65 @@ static void dump_options() {
        << "Tract volume fraction threshold: " << fminPath << endl;
 
   cout << "Initial control point file:";
-  for (istr = initFile.begin(); istr < initFile.end(); istr++) {
+  for (istr = initFile.begin(); istr < initFile.end(); istr++)
     cout << " " << *istr;
-  }
   cout << endl;
 
   cout << "End ROI 1:";
-  for (istr = roiFile1.begin(); istr < roiFile1.end(); istr++) {
+  for (istr = roiFile1.begin(); istr < roiFile1.end(); istr++)
     cout << " " << *istr;
-  }
   cout << endl;
 
   if (nlab1 > 0) {
     cout << "End ROI 1 mesh:";
-    for (istr = roiMeshFile1.begin(); istr < roiMeshFile1.end(); istr++) {
+    for (istr = roiMeshFile1.begin(); istr < roiMeshFile1.end(); istr++)
       cout << " " << *istr;
-    }
     cout << endl;
 
     cout << "End ROI 1 reference volume:";
-    for (istr = roiRefFile1.begin(); istr < roiRefFile1.end(); istr++) {
+    for (istr = roiRefFile1.begin(); istr < roiRefFile1.end(); istr++)
       cout << " " << *istr;
-    }
     cout << endl;
   }
 
   cout << "End ROI 2:";
-  for (istr = roiFile2.begin(); istr < roiFile2.end(); istr++) {
+  for (istr = roiFile2.begin(); istr < roiFile2.end(); istr++)
     cout << " " << *istr;
-  }
   cout << endl;
 
   if (nlab2 > 0) {
     cout << "End ROI 2 mesh:";
-    for (istr = roiMeshFile2.begin(); istr < roiMeshFile2.end(); istr++) {
+    for (istr = roiMeshFile2.begin(); istr < roiMeshFile2.end(); istr++)
       cout << " " << *istr;
-    }
     cout << endl;
 
     cout << "End ROI 2 reference volume:";
-    for (istr = roiRefFile2.begin(); istr < roiRefFile2.end(); istr++) {
+    for (istr = roiRefFile2.begin(); istr < roiRefFile2.end(); istr++)
       cout << " " << *istr;
-    }
     cout << endl;
   }
 
   if (!xyzPriorFile0.empty()) {
     cout << "Spatial prior (off path):";
-    for (istr = xyzPriorFile0.begin(); istr < xyzPriorFile0.end(); istr++) {
+    for (istr = xyzPriorFile0.begin(); istr < xyzPriorFile0.end(); istr++)
       cout << " " << *istr;
-    }
     cout << endl;
 
     cout << "Spatial prior (on path):";
-    for (istr = xyzPriorFile1.begin(); istr < xyzPriorFile1.end(); istr++) {
+    for (istr = xyzPriorFile1.begin(); istr < xyzPriorFile1.end(); istr++)
       cout << " " << *istr;
-    }
     cout << endl;
   }
 
   if (!neighPriorFile.empty()) {
     cout << "Neighbor aseg prior:";
-    for (istr = neighPriorFile.begin(); istr < neighPriorFile.end(); istr++) {
+    for (istr = neighPriorFile.begin(); istr < neighPriorFile.end(); istr++)
       cout << " " << *istr;
-    }
     cout << endl;
 
     cout << "Neighbor aseg label ID list:";
-    for (istr = neighIdFile.begin(); istr < neighIdFile.end(); istr++) {
+    for (istr = neighIdFile.begin(); istr < neighIdFile.end(); istr++)
       cout << " " << *istr;
-    }
     cout <<  endl;
 
     cout << "Neighbor aseg prior set: " << neighPriorSet << endl;
@@ -775,15 +770,13 @@ static void dump_options() {
 
   if (!localPriorFile.empty()) {
     cout << "Local aseg prior:";
-    for (istr = localPriorFile.begin(); istr < localPriorFile.end(); istr++) {
+    for (istr = localPriorFile.begin(); istr < localPriorFile.end(); istr++)
       cout << " " << *istr;
-    }
     cout  << endl;
 
     cout << "Local aseg label ID list:";
-    for (istr = localIdFile.begin(); istr < localIdFile.end(); istr++) {
+    for (istr = localIdFile.begin(); istr < localIdFile.end(); istr++)
       cout << " " << *istr;
-    }
     cout  << endl;
 
     cout << "Local aseg prior set: " << localPriorSet << endl;
@@ -791,19 +784,16 @@ static void dump_options() {
 
   if (!asegList.empty()) {
     cout << "Segmentation map: ";
-    for (istr = asegList.begin(); istr < asegList.end(); istr++) {
+    for (istr = asegList.begin(); istr < asegList.end(); istr++)
       cout << " " << *istr;
-    }
     cout  << endl;
   }
 
-  if (!affineXfmFile.empty()) {
+  if (!affineXfmFile.empty())
     cout << "DWI-to-atlas affine registration: " << affineXfmFile << endl;
-  }
 
-  if (!nonlinXfmFile.empty()) {
+  if (!nonlinXfmFile.empty())
     cout << "DWI-to-atlas nonlinear registration: " << nonlinXfmFile << endl;
-  }
 
   cout << "Number of burn-in samples: " << nBurnIn << endl
        << "Number of post-burn-in samples: " << nSample << endl
@@ -812,9 +802,8 @@ static void dump_options() {
 
   if (!stdPropFile.empty()) {
     cout << "Initial proposal SD file:";
-    for (istr = stdPropFile.begin(); istr < stdPropFile.end(); istr++) {
+    for (istr = stdPropFile.begin(); istr < stdPropFile.end(); istr++)
       cout << " " << *istr;
-    }
     cout << endl;
   }
 

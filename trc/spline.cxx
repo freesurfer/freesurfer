@@ -156,7 +156,7 @@ vector<int> CurveFill(const vector<int> &InPoints) {
 //
 // Catmull-Rom cubic spline class
 //
-Spline::Spline(const char *ControlPointFile, const char *MaskFile) {
+Spline::Spline(const string ControlPointFile, const string MaskFile) {
   ReadControlPoints(ControlPointFile);
   mMask = 0;
   mVolume = 0;
@@ -317,9 +317,9 @@ bool Spline::FitControlPoints(const vector<int> &InputPoints) {
             mingap = (int) ceil(seglen / 2);
   float s = 0;
   vector<bool> isfinal(mNumControl, false);
-  vector<int> peeksegs;
-  vector<float> peekcurvs, arcparam(npts);
-  vector< vector<int>::const_iterator > peekpts, dompts(mNumControl);
+  vector<int> peaksegs;
+  vector<float> peakcurvs, arcparam(npts);
+  vector< vector<int>::const_iterator > peakpts, dompts(mNumControl);
   vector<float>::iterator iarc = arcparam.begin();
 
   cout << "INFO: Minimum allowable distance between dominant points is "
@@ -354,8 +354,8 @@ bool Spline::FitControlPoints(const vector<int> &InputPoints) {
 
   *(dompts.end() - 1) = mAllPoints.end() - 3;		// Last point
 
-  // Find points where local peeks in curvature occur
-  cout << "INFO: Points where local peeks in curvature occur are" << endl;
+  // Find points where local peaks in curvature occur
+  cout << "INFO: Points where local peaks in curvature occur are" << endl;
 
   for (vector<float>::const_iterator icurv = mCurvature.begin() + mingap;
                                      icurv < mCurvature.end() - mingap;
@@ -366,9 +366,9 @@ bool Spline::FitControlPoints(const vector<int> &InputPoints) {
       vector<int>::const_iterator ipt = mAllPoints.begin() + 3*kpt;
 
       // Save info for this candidate point
-      peeksegs.push_back(idx);
-      peekcurvs.push_back(*icurv);
-      peekpts.push_back(ipt);
+      peaksegs.push_back(idx);
+      peakcurvs.push_back(*icurv);
+      peakpts.push_back(ipt);
 
       cout << " " << *ipt << " " << *(ipt+1) << " " << *(ipt+2)
            << " (curv = " << *icurv << ")" << endl;
@@ -379,15 +379,15 @@ bool Spline::FitControlPoints(const vector<int> &InputPoints) {
   *(isfinal.end() - 1) = true;
 
   // Go down the list of candidate points to pick out dominant points
-  while (!peekcurvs.empty()) {
+  while (!peakcurvs.empty()) {
     // Find candidate point with maximum curvature
-    const int ipeek = max_element(peekcurvs.begin(), peekcurvs.end()) - 
-                      peekcurvs.begin(),
-              iseg = peeksegs.at(ipeek);
+    const int ipeak = max_element(peakcurvs.begin(), peakcurvs.end()) - 
+                      peakcurvs.begin(),
+              iseg = peaksegs.at(ipeak);
     const bool isLfinal = isfinal.at(iseg),
                isRfinal = isfinal.at(iseg+1);
     vector<int>::iterator imatch;
-    vector<int>::const_iterator ipt  = peekpts.at(ipeek),
+    vector<int>::const_iterator ipt  = peakpts.at(ipeak),
                                 iptL = dompts.at(iseg),
                                 iptR = dompts.at(iseg+1);
     const int distL = (ipt - iptL) / 3,
@@ -406,21 +406,21 @@ bool Spline::FitControlPoints(const vector<int> &InputPoints) {
     }
 
     // Remove point from list of candidate points
-    peeksegs.erase(peeksegs.begin() + ipeek);
-    peekcurvs.erase(peekcurvs.begin() + ipeek);
-    peekpts.erase(peekpts.begin() + ipeek);
+    peaksegs.erase(peaksegs.begin() + ipeak);
+    peakcurvs.erase(peakcurvs.begin() + ipeak);
+    peakpts.erase(peakpts.begin() + ipeak);
 
     // Also remove any other candidate points that are in the same segment
-    imatch = find(peeksegs.begin(), peeksegs.end(), iseg);
+    imatch = find(peaksegs.begin(), peaksegs.end(), iseg);
 
-    while (imatch != peeksegs.end()) {
-      int irem = imatch - peeksegs.begin(); 
+    while (imatch != peaksegs.end()) {
+      int irem = imatch - peaksegs.begin(); 
 
-      peeksegs.erase(peeksegs.begin() + irem);
-      peekcurvs.erase(peekcurvs.begin() + irem);
-      peekpts.erase(peekpts.begin() + irem);
+      peaksegs.erase(peaksegs.begin() + irem);
+      peakcurvs.erase(peakcurvs.begin() + irem);
+      peakpts.erase(peakpts.begin() + irem);
 
-      imatch = find(peeksegs.begin(), peeksegs.end(), iseg);
+      imatch = find(peaksegs.begin(), peaksegs.end(), iseg);
     }
   }
 
@@ -709,7 +709,7 @@ void Spline::ComputeCurvature(const bool DoAnalytical) {
 //
 // Read control points from file
 //
-void Spline::ReadControlPoints(const char *ControlPointFile) {
+void Spline::ReadControlPoints(const string ControlPointFile) {
   float coord;
   ifstream infile(ControlPointFile, ios::in);
 
@@ -735,12 +735,12 @@ void Spline::ReadControlPoints(const char *ControlPointFile) {
 //
 // Read mask volume from file
 //
-void Spline::ReadMask(const char *MaskFile) {
+void Spline::ReadMask(const string MaskFile) {
   if (mMask)   MRIfree(&mMask);
   if (mVolume) MRIfree(&mVolume);
 
   cout << "Loading spline mask from " << MaskFile << endl;
-  mMask = MRIread(MaskFile);
+  mMask = MRIread(MaskFile.c_str());
   mVolume = MRIclone(mMask, NULL);
 }
 
@@ -768,20 +768,20 @@ void Spline::SetMask(MRI *Mask) {
 //
 // Write spline to volume
 //
-void Spline::WriteVolume(const char *VolumeFile, const bool ShowControls) {
+void Spline::WriteVolume(const string VolumeFile, const bool ShowControls) {
   if (ShowControls)
     for (vector<int>::const_iterator icpt = mControlPoints.begin();
                                      icpt != mControlPoints.end(); icpt += 3)
       MRIsetVoxVal(mVolume, icpt[0], icpt[1], icpt[2], 0, 2);
 
   cout << "Writing spline volume to " << VolumeFile << endl;
-  MRIwrite(mVolume, VolumeFile);
+  MRIwrite(mVolume, VolumeFile.c_str());
 }
 
 //
 // Write spline coordinates to file
 //
-void Spline::WriteAllPoints(const char *TextFile) {
+void Spline::WriteAllPoints(const string TextFile) {
   ofstream outfile(TextFile, ios::out);
   if (!outfile) {
     cout << "ERROR: Could not open " << TextFile << " for writing" << endl;
@@ -798,7 +798,7 @@ void Spline::WriteAllPoints(const char *TextFile) {
 //
 // Write tangent vectors along spline to file
 //
-void Spline::WriteTangent(const char *TextFile) {
+void Spline::WriteTangent(const string TextFile) {
   ofstream outfile(TextFile, ios::out);
   if (!outfile) {
     cout << "ERROR: Could not open " << TextFile << " for writing" << endl;
@@ -815,7 +815,7 @@ void Spline::WriteTangent(const char *TextFile) {
 //
 // Write normal vectors along spline to file
 //
-void Spline::WriteNormal(const char *TextFile) {
+void Spline::WriteNormal(const string TextFile) {
   ofstream outfile(TextFile, ios::out);
   if (!outfile) {
     cout << "ERROR: Could not open " << TextFile << " for writing" << endl;
@@ -832,7 +832,7 @@ void Spline::WriteNormal(const char *TextFile) {
 //
 // Write curvatures along spline to file
 //
-void Spline::WriteCurvature(const char *TextFile) {
+void Spline::WriteCurvature(const string TextFile) {
   ofstream outfile(TextFile, ios::out);
   if (!outfile) {
     cout << "ERROR: Could not open " << TextFile << " for writing" << endl;
@@ -849,7 +849,7 @@ void Spline::WriteCurvature(const char *TextFile) {
 //
 // Write the intensity values of each of a set of input volumes along the spline
 //
-void Spline::WriteValues(vector<MRI *> &ValueVolumes, const char *TextFile) {
+void Spline::WriteValues(vector<MRI *> &ValueVolumes, const string TextFile) {
   ofstream outfile(TextFile, ios::app);
   if (!outfile) {
     cout << "ERROR: Could not open " << TextFile << " for writing" << endl;

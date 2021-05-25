@@ -9652,6 +9652,39 @@ const char *cma_label_to_name(int label)
     return ("Tumor");
   }
 
+  if (label == cc_body) {
+    return ("Corpus Callosum - Body");
+  }
+  if (label == cc_bodypf) {
+    return ("Corpus Callosum - Body - Prefrontal");
+  }
+  if (label == cc_bodypm) {
+    return ("Corpus Callosum - Body - Premotor");
+  }
+  if (label == cc_bodyc) {
+    return ("Corpus Callosum - Body - Central");
+  }
+  if (label == cc_bodyp) {
+    return ("Corpus Callosum - Body - Parietal");
+  }
+  if (label == cc_bodyt) {
+    return ("Corpus Callosum - Body - Temporal");
+  }
+  if (label == cc_genu) {
+    return ("Corpus Callosum - Genu");
+  }
+  if (label == cc_rostrum) {
+    return ("Corpus Callosum - Rostrum");
+  }
+  if (label == cc_splenium) {
+    return ("Corpus Callosum - Splenium");
+  }
+  if (label == lh_af) {
+    return ("Left Arcuate Fasciculus");
+  }
+  if (label == rh_af) {
+    return ("Right Arcuate Fasciculus");
+  }
   if (label == lh_cst) {
     return ("Left Corticospinal Tract");
   }
@@ -9676,11 +9709,23 @@ const char *cma_label_to_name(int label)
   if (label == fminor) {
     return ("Corpus Callosum Forceps Minor");
   }
+  if (label == acomm) {
+    return ("Anterior Commissure");
+  }
+  if (label == mcp) {
+    return ("Middle Cerebellar Peduncle");
+  }
   if (label == lh_atr) {
     return ("Left Anterior Thalamic Radiation");
   }
   if (label == rh_atr) {
     return ("Right Anterior Thalamic Radiation");
+  }
+  if (label == lh_cb) {
+    return ("Left Cingulum Bundle");
+  }
+  if (label == rh_cb) {
+    return ("Right Cingulum Bundle");
   }
   if (label == lh_ccg) {
     return ("Left Cingulum - Cingulate Gyrus");
@@ -9693,6 +9738,30 @@ const char *cma_label_to_name(int label)
   }
   if (label == rh_cab) {
     return ("Right Cingulum - Angular Bundle");
+  }
+  if (label == lh_slf) {
+    return ("Left Superior Longitudinal Fasciculus");
+  }
+  if (label == rh_slf) {
+    return ("Right Superior Longitudinal Fasciculus");
+  }
+  if (label == lh_slf1) {
+    return ("Left Superior Longitudinal Fasciculus - I");
+  }
+  if (label == rh_slf1) {
+    return ("Right Superior Longitudinal Fasciculus - I");
+  }
+  if (label == lh_slf2) {
+    return ("Left Superior Longitudinal Fasciculus - II");
+  }
+  if (label == rh_slf2) {
+    return ("Right Superior Longitudinal Fasciculus - II");
+  }
+  if (label == lh_slf3) {
+    return ("Left Superior Longitudinal Fasciculus - III");
+  }
+  if (label == rh_slf3) {
+    return ("Right Superior Longitudinal Fasciculus - III");
   }
   if (label == lh_slfp) {
     return ("Left Superior Longitudinal Fasciculus - Parietal");
@@ -9712,11 +9781,71 @@ const char *cma_label_to_name(int label)
   if (label == rh_ifof) {
     return ("Right Inferior Fronto-Occipital Fasciculus  ");
   }  
-  if (label == lh_fornix) {
+  if (label == lh_fx) {
     return ("Left Fornix");
   }
-  if (label == rh_fornix) {
+  if (label == rh_fx) {
     return ("Right Fornix");
+  }
+  if (label == lh_fat) {
+    return ("Left Frontal Aslant Tract");
+  }
+  if (label == rh_fat) {
+    return ("Right Frontal Aslant Tract");
+  }
+  if (label == lh_or) {
+    return ("Left Optic Radiation");
+  }
+  if (label == rh_or) {
+    return ("Right Optic Radiation");
+  }
+  if (label == lh_mlf) {
+    return ("Left Middle Longitudinal Fasciculus");
+  }
+  if (label == rh_mlf) {
+    return ("Right Middle Longitudinal Fasciculus");
+  }
+  if (label == lh_afd) {
+    return ("Left Arcuate Fasciculus - Dorsal");
+  }
+  if (label == rh_afd) {
+    return ("Right Arcuate Fasciculus - Dorsal");
+  }
+  if (label == lh_afv) {
+    return ("Left Arcuate Fasciculus - Ventral");
+  }
+  if (label == rh_afv) {
+    return ("Right Arcuate Fasciculus - Ventral");
+  }
+  if (label == lh_ar) {
+    return ("Left Acoustic Radiation");
+  }
+  if (label == rh_ar) {
+    return ("Right Acoustic Radiation");
+  }
+  if (label == lh_cbd) {
+    return ("Left Cingulum Bundle - Dorsal");
+  }
+  if (label == rh_cbd) {
+    return ("Right Cingulum Bundle - Dorsal");
+  }
+  if (label == lh_cbv) {
+    return ("Left Cingulum Bundle - Ventral");
+  }
+  if (label == rh_cbv) {
+    return ("Right Cingulum Bundle - Ventral");
+  }
+  if (label == lh_emc) {
+    return ("Left Extreme Capsule");
+  }
+  if (label == rh_emc) {
+    return ("Right Extreme Capsule");
+  }
+  if (label == lh_uf) {
+    return ("Left Uncinate Fasciculus");
+  }
+  if (label == rh_uf) {
+    return ("Right Uncinate Fasciculus");
   }
   if (label == Cbm_Left_I_IV) {
     return ("Cbm_Left_I_IV");

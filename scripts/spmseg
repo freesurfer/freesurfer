@@ -208,8 +208,8 @@ if(! $monly) then
 
   # Change segnos to match FS
   set cmd = (mri_binarize --i $spmseg0 --o $spmseg0 \
-    --replace 1 3 --replace 2 2 --replace 3 257 \
-    --replace 4 165 --replace 5 258 --replace 6 130 )
+    --replaceonly 1 3 --replaceonly 2 2 --replaceonly 3 257 \
+    --replaceonly 4 165 --replaceonly 5 258 --replaceonly 6 130 )
   echo $cmd | tee -a $LF
   $cmd | tee -a $LF
   if($status) exit 1;

@@ -41,15 +41,21 @@ AffineReg::~AffineReg() {}
 
 bool AffineReg::IsEmpty() { return mInToOut.empty(); }
 
+bool AffineReg::IsInvEmpty() { return mOutToIn.empty(); }
+
 //
 // Read affine registration matrix from file and set input/output resolutions
 //
-void AffineReg::ReadXfm(const char *XfmFile, const MRI *InRefVol,
-                                             const MRI *OutRefVol) {
+void AffineReg::ReadXfm(const string XfmFile, const MRI *InRefVol,
+                                              const MRI *OutRefVol) {
+  bool islta = false;
+  string matline;
+
   // Read registration matrix from file
   mInToOut.clear();
+  mOutToIn.clear();
 
-  if (XfmFile) {
+  if (!XfmFile.empty()) {
     float val;
     ifstream infile(XfmFile, ios::in);
 
@@ -59,12 +65,69 @@ void AffineReg::ReadXfm(const char *XfmFile, const MRI *InRefVol,
     }
 
     cout << "Loading affine registration from " << XfmFile << endl;
-    while (infile >> val)
-      mInToOut.push_back(val);
+    while (getline(infile, matline))
+      if (strcmp(matline.c_str(), "src volume info") == 0) {
+        islta = true;
+        infile.close();
+        break;
+      }
 
-    if (mInToOut.size() != 16) {
-      cout << "ERROR: File " << XfmFile << " must contain a 4x4 matrix" << endl;
-      exit(1);
+    if (islta) {						// LTA format
+      MATRIX *mat;
+      LTA *lta;
+
+      cout << "LTA registration format detected" << endl;
+
+      lta = LTAread(XfmFile.c_str());
+      if (lta == NULL) {
+        cout << "ERROR: cannot read " << XfmFile << endl;
+        exit(1);
+      }
+
+      if (lta->type != LINEAR_RAS_TO_RAS) {
+        LTAchangeType(lta, LINEAR_RAS_TO_RAS);
+
+        if (lta->type != LINEAR_RAS_TO_RAS) {
+          cout << "ERROR: cannot change LTA type to RAS_TO_RAS" << endl;
+          exit(1);
+        }
+      }
+
+      getVolGeom(InRefVol,  &lta->xforms[0].src);
+      getVolGeom(OutRefVol, &lta->xforms[0].dst);
+
+      // Extract vox-to-vox transform matrix from LTA
+      LTAchangeType(lta, FSLREG_TYPE);
+
+      mat = lta->xforms[0].m_L;
+      for (int i = 1; i < 5; i++)
+        for (int j = 1; j < 5; j++)
+          mInToOut.push_back(mat->rptr[i][j]);
+
+      // Extract inverse transform matrix
+      LTAinvert(lta, lta);
+
+      mat = lta->xforms[0].m_L;
+      for (int i = 1; i < 5; i++)
+        for (int j = 1; j < 5; j++)
+          mOutToIn.push_back(mat->rptr[i][j]);
+
+      LTAfree(&lta);
+    }
+    else {			// FSL format
+      infile.clear();
+      infile.seekg(0, ios::beg);
+
+      while (infile >> val)
+        mInToOut.push_back(val);
+
+      if (mInToOut.size() != 16) {
+        cout << "ERROR: Unrecognized transform format in " << XfmFile
+             << " - LTA or FSL format expected" << endl;
+        exit(1);
+      }
+
+      cout << "FSL registration format detected" << endl;
     }
   }
   else {	// Identity by default
@@ -119,6 +182,34 @@ void AffineReg::ApplyXfm(vector<float> &OutPoint,
 
   for (int i = 0; i < 3; i++)
     OutPoint[i] = pout[i] / pout[3] / mOutVoxelSize[i];
+}
+
+//
+// Apply the inverse of an affine transform to a single point
+//
+void AffineReg::ApplyXfmInv(vector<float> &OutPoint,
+                            vector<float>::const_iterator InPoint) {
+  vector<float>::const_iterator in2out = mOutToIn.begin();
+  vector<float> pin, pout;
+
+  pin.resize(4);
+  pout.resize(4);
+
+  for (int i = 0; i < 3; i++)
+    pin[i] = InPoint[i] * mOutVoxelSize[i];
+  pin[3] = 1;
+
+  for (int i = 0; i < 4; i++) {
+    float psum = 0;
+    for (int j = 0; j < 4; j++) {
+      psum += (*in2out) * pin[j];
+      in2out++;
+    }
+    pout[i] = psum;
+  }
+
+  for (int i = 0; i < 3; i++)
+    OutPoint[i] = pout[i] / pout[3] / mInVoxelSize[i];
 }
 
 //
@@ -300,7 +391,7 @@ bool NonlinReg::IsEmpty() { return (mMorph->m_template == 0); }
 //
 // Read a non-linear transform from file
 //
-void NonlinReg::ReadXfm(const char *XfmFile, MRI *OutRefVol) {
+void NonlinReg::ReadXfm(const string XfmFile, MRI *RefVol) {
   unsigned int zlibBuffer = 5;
 
   ifstream xfile(XfmFile, ios::in);	// Just to check if file exists
@@ -311,10 +402,10 @@ void NonlinReg::ReadXfm(const char *XfmFile, MRI *OutRefVol) {
   xfile.close();
   
   cout << "Loading non-linear registration from " << XfmFile << endl;
-  mMorph->m_template = OutRefVol;
+  mMorph->m_template = RefVol;
 
   try {
-    mMorph->load(XfmFile, zlibBuffer);
+    mMorph->load(XfmFile.c_str(), zlibBuffer);
   }
   catch (const char* msg) {
     cout << "Exception caught while loading registration: " << msg << endl;
@@ -347,14 +438,19 @@ void NonlinReg::ApplyXfm(vector<float> &OutPoint,
 //
 NonlinReg::NonlinReg() : mMorph(0) {}
 
-NonlinReg::~NonlinReg() {}
+NonlinReg::~NonlinReg() {
+  if (mMorph != NULL) {
+    GCAfree(&(mMorph->gca));
+    GCAMfree(&mMorph);
+  }
+}
 
 bool NonlinReg::IsEmpty() { return (mMorph == 0); }
 
 //
 // Read a non-linear transform from file
 //
-void NonlinReg::ReadXfm(const char *XfmFile, MRI *OutRefVol) {
+void NonlinReg::ReadXfm(const string XfmFile, MRI *RefVol) {
   ifstream xfile(XfmFile, ios::in);	// Just to check if file exists
   if (!xfile) {
     cout << "ERROR: Could not open " << XfmFile << endl;
@@ -363,12 +459,12 @@ void NonlinReg::ReadXfm(const char *XfmFile, MRI *OutRefVol) {
   xfile.close();
 
   cout << "Loading non-linear registration from " << XfmFile << endl;
-  mMorph = GCAMreadAndInvertNonTal(XfmFile);
+  mMorph = GCAMreadAndInvertNonTal(XfmFile.c_str());
 
   if (mMorph == NULL) exit(1);
 
-  mMorph->gca = gcaAllocMax(1, 1, 1, OutRefVol->width, OutRefVol->height,
-                                                       OutRefVol->depth, 0, 0);
+  mMorph->gca = gcaAllocMax(1, 1, 1, RefVol->width, RefVol->height,
+                                                    RefVol->depth, 0, 0);
 }
 
 //

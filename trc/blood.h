@@ -6,7 +6,7 @@
 /*
  * Original Author: Anastasia Yendiki
  *
- * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -40,39 +40,52 @@
 
 class Blood {
   public:
-  Blood(const std::string TrainListFile, const std::string TrainTrkFile,
-	const std::string TrainRoi1File, const std::string TrainRoi2File,
-	const std::string TrainAsegFile, const std::string TrainMaskFile,
-	float TrainMaskLabel, const std::string ExcludeFile,
-	const std::vector<std::string> &TestMaskList,
-	const std::vector<std::string> &TestFaList,
-	const std::string TestAffineXfmFile,
-	const std::string TestNonlinXfmFile,
-	const std::string TestNonlinRefFile,
-	const std::vector<std::string> &TestBaseXfmList,
-	const std::string TestBaseMaskFile,
-	bool UseTruncated, std::vector<int> &NumControls,
-	bool Debug=false);
-  Blood(const std::string TrainTrkFile,
-	const std::string TrainRoi1File, const std::string TrainRoi2File,
-	bool Debug=false);
-  ~Blood();
-  void SetNumControls(std::vector<int> &NumControls);
-  void ReadStreamlines(const std::string TrainListFile, const std::string TrainTrkFile,
-		       const std::string TrainRoi1File, const std::string TrainRoi2File,
-		       float TrainMaskLabel, const std::string ExcludeFile);
-  void ReadAnatomy(const std::string TrainListFile, const std::string TrainAsegFile,
-		   const std::string TrainMaskFile);
+    Blood(const std::string TrainListFile, const std::string TrainTrkFile,
+          const std::string TrainRoi1File, const std::string TrainRoi2File,
+          const std::string TrainAsegFile, const std::string TrainMaskFile,
+          float TrainMaskLabel, const std::string ExcludeFile,
+          const std::vector<std::string> &TestMaskList,
+          const std::vector<std::string> &TestFaList,
+          const std::string TestAffineXfmFile,
+          const std::string TestNonlinXfmFile,
+          const std::string TestNonlinRefFile,
+          const std::vector<std::string> &TestBaseXfmList,
+          const std::string TestBaseMaskFile,
+          bool UseTruncated, bool UseAnatomy, bool UseShape,
+          std::vector<int> &NumControls,
+          int NumStrMax=INT_MAX, bool Debug=false);
+    Blood(const std::string TrainTrkFile,
+          const std::string TrainRoi1File, const std::string TrainRoi2File,
+          bool Debug=false);
+    Blood(const std::string TrainTrkFile,
+          const std::string RefVolFile,
+          bool Debug=false);
+    ~Blood();
+    void SetNumControls(std::vector<int> &NumControls);
+    void ReadStreamlines(const std::string TrainListFile,
+                         const std::string TrainTrkFile,
+                         const std::string TrainRoi1File,
+                         const std::string TrainRoi2File,
+                         float TrainMaskLabel, const std::string ExcludeFile);
+    void ReadAnatomy(const std::string TrainListFile,
+                     const std::string TrainAsegFile,
+                     const std::string TrainMaskFile);
     void RemoveLengthOutliers();
+    void PrepStreamlines();
     void MatchStreamlineEnds();
+    void SubsampleStreamlines();
+    void MatchTruncatedStreamlines();
     void ComputeHistogram();
     void ComputePriors();
     void FindCenterStreamline(bool CheckOverlap=true, bool CheckDeviation=true,
                                                       bool CheckFa=true);
-    void WriteOutputs(const char *OutTrainBase, const char *OutTestBase=NULL);
+    void WriteOutputs(const std::string OutTrainBase,
+                      const std::string OutTestBase=std::string());
     void WriteCenterStreamline(const std::string CenterTrkFile,
                                const std::string RefTrkFile);
     void WriteEndPoints(const std::string OutBase, MRI *RefVol);
+    void WriteStreamlines(const std::string TrainListFile,
+                          const std::string TrainTrkFile);
     void PrintStreamline(int SubjIndex, int LineIndex);
     std::vector<float> ComputeAvgPath(std::vector<MRI *> &ValueVolumes);
     std::vector<float> ComputeWeightAvgPath(std::vector<MRI *> &ValueVolumes);
@@ -97,14 +110,17 @@ class Blood {
                        mHausStepRatio, mControlStepRatio,
                        mTangentBinSize, mCurvatureBinSize;
 
-    const bool mDebug, mUseTruncated;
+    const bool mDebug, mUseTruncated, mUseAnatomy, mUseShape;
+    const int mNumStrMax;
+    bool mHavePresorted;
     int mNx, mNy, mNz, mNumTrain, mVolume,
         mNumStr, mLengthMin, mLengthMax,
         mNumStrEnds, mLengthMinEnds, mLengthMaxEnds,
         mNumArc, mNumLocal, mNumNear;
     float mMaskLabel, mDx, mLengthAvg, mLengthAvgEnds;
-    std::vector<bool> mIsInEnd1, mIsInEnd2;
+    std::vector<bool> mIsInEnd1, mIsInEnd2, mIsOutHist, mIsOutDev, mIsOutFa;
     std::vector<int> mNumLines, mLengths, mMidPoints, mTruncatedLengths,
+                     mDistanceRank,
                      mCenterStreamline, mDirLocal, mDirNear, mNumControls;
     std::vector<float> mMeanEnd1, mMeanEnd2, mMeanMid,
                        mVarEnd1, mVarEnd2, mVarMid;
@@ -136,6 +152,7 @@ class Blood {
     std::vector<AffineReg> mTestBaseReg;
     MRI *mHistoStr, *mHistoSubj, *mTestBaseMask;
 
+    void AllocateHistogram(MRI *RefVol);
     void ReadExcludedStreamlines(const std::string ExcludeFile);
     void ComputeStats();
     void ComputeStatsEnds();
@@ -145,9 +162,13 @@ class Blood {
     bool IsInRoi(std::vector<int>::const_iterator Point, MRI *Roi);
     bool IsInCortex(std::vector<int>::const_iterator Point,
                     MRI *Mask, MRI *Aseg);
+    void FindOutlierStreamlines(bool CheckOverlap, bool CheckDeviation,
+                                                   bool CheckFa);
+    void RankStreamlineDistance();
+    void UpdateDistanceRank();
     void SetArcSegments();
-    void ComputeAnatomyPrior(bool UseTruncated);
-    void ComputeShapePrior(bool UseTruncated);
+    void ComputeAnatomyPrior();
+    void ComputeShapePrior();
     void FindPointsOnStreamline(std::vector<int> &Streamline, int NumPoints);
     bool FindPointsOnStreamlineLS(std::vector<int> &Streamline, int NumPoints);
     bool FindPointsOnStreamlineComb(std::vector<int> &Streamline,
@@ -171,7 +192,9 @@ class Blood {
     bool MapPointToNative(std::vector<int>::iterator OutPoint,
                           std::vector<int>::const_iterator InPoint,
                           unsigned int FrameIndex);
-    void WritePriors(const char *OutBase, bool UseTruncated);
+    void WriteAnatomyPriors(const std::string OutBase);
+    void WriteShapePriors(const std::string OutBase);
 };
 
 #endif
+

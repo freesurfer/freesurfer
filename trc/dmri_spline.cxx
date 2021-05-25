@@ -6,7 +6,7 @@
 /*
  * Original Author: Anastasia Yendiki
  *
- * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -65,7 +65,7 @@ int main(int argc, char *argv[]);
 const char *Progname = "dmri_spline";
 
 bool showControls = false;
-std::string inFile, outVolFile, outVecBase, maskFile, outTextFile;
+string inFile, maskFile, outVolFile, outTextFile, outVecBase;
 
 struct utsname uts;
 char *cmdline, cwd[2000];
@@ -97,7 +97,7 @@ int main(int argc, char **argv) {
 
   dump_options();
 
-  Spline myspline(inFile.c_str(), maskFile.c_str());
+  Spline myspline(inFile, maskFile);
 
   printf("Computing spline...\n");
   cputimer.reset();
@@ -107,16 +107,14 @@ int main(int argc, char **argv) {
   cputime = cputimer.milliseconds();
   printf("Done in %g sec.\n", cputime/1000.0);
 
-  if (!outVolFile.empty() ) {
-    myspline.WriteVolume(outVolFile.c_str(), showControls);
-  }
+  if (!outVolFile.empty())
+    myspline.WriteVolume(outVolFile, showControls);
 
-  if (!outTextFile.empty()) {
-    myspline.WriteAllPoints(outTextFile.c_str());
-  }
+  if (!outTextFile.empty())
+    myspline.WriteAllPoints(outTextFile);
 
   if (!outVecBase.empty()) {
-    std::string fname;
+    string fname;
 
     printf("Computing analytical tangent, normal, and curvature...\n");
     cputimer.reset();
@@ -130,11 +128,11 @@ int main(int argc, char **argv) {
 
     // Write tangent, normal, and curvature (analytical) to text files
     fname = outVecBase + "_tang.txt";
-    myspline.WriteTangent(fname.c_str());
+    myspline.WriteTangent(fname);
     fname = outVecBase + "_norm.txt";
-    myspline.WriteNormal(fname.c_str());
+    myspline.WriteNormal(fname);
     fname = outVecBase + "_curv.txt";
-    myspline.WriteCurvature(fname.c_str());
+    myspline.WriteCurvature(fname);
 
     printf("Computing discrete tangent, normal, and curvature...\n");
     cputimer.reset();
@@ -148,11 +146,11 @@ int main(int argc, char **argv) {
 
     // Write tangent, normal, and curvature (discrete) to text files
     fname = outVecBase + "_tang_diff.txt";
-    myspline.WriteTangent(fname.c_str());
+    myspline.WriteTangent(fname);
     fname = outVecBase + "_norm_diff.txt";
-    myspline.WriteNormal(fname.c_str());
+    myspline.WriteNormal(fname);
     fname = outVecBase + "_curv_diff.txt";
-    myspline.WriteCurvature(fname.c_str());
+    myspline.WriteCurvature(fname);
   }
 
   printf("dmri_spline done\n");
@@ -276,15 +274,15 @@ static void print_version(void) {
 
 /* --------------------------------------------- */
 static void check_options(void) {
-  if(inFile.size() == 0) {
+  if(inFile.empty()) {
     cout << "ERROR: Must specify input text file" << endl;
     exit(1);
   }
-  if(maskFile.size() == 0) {
+  if(maskFile.empty()) {
     cout << "ERROR: Must specify mask volume" << endl;
     exit(1);
   }
-  if((outVolFile.size() + outTextFile.size() + outVecBase.size()) == 0) {
+  if(outVolFile.empty() && outTextFile.empty() && outVecBase.empty()) {
     cout << "ERROR: Must specify at least one type of output file" << endl;
     exit(1);
   }
@@ -304,16 +302,14 @@ static void dump_options() {
 
   cout << "Control points: " << inFile << endl;
   cout << "Mask volume: " << maskFile << endl;
-  if (outVolFile.size() != 0) {
+  if (!outVolFile.empty()) {
     cout << "Output volume: " << outVolFile << endl
          << "Show controls: " << showControls << endl;
   }
-  if (outTextFile.size() != 0) {
+  if (!outTextFile.empty())
     cout << "Output text file: " << outTextFile << endl;
-  }
-  if (outVecBase.size() != 0 ) {
+  if (!outVecBase.empty())
     cout << "Output tangent vector file base name: " << outVecBase << endl;
-  }
 
   return;
 }

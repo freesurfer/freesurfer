@@ -179,55 +179,54 @@ set doeddy = 2
 #
 set dorotbvecs = 1
 
-# Fractional intensity threshold for BET mask extraction from low-b images
-# This mask is used only if usemaskanat = 0
-# Default: 0.3
+# Intra-subject (diffusion-to-T1) registration method
+# 1: Affine with a correlation ratio cost
+# 2: Affine with a mutual information cost
+# 3: Affine with a boundary-based cost (default)
 #
-set thrbet = 0.5
+set intrareg = 3
 
-# Perform diffusion-to-T1 registration by flirt?
-# Default: 0 (no)
+# Degrees of freedom for intra-subject registration
+# Can be 6 (rigid), 9 (rigid+scaling), or 12 (full affine)
+# Default: 6 for infants, 9 otherwise
 #
-set doregflt = 0
+set intradof = 6
 
-# Perform diffusion-to-T1 registration by bbregister?
-# Default: 1 (yes)
+# Maximum rotation angle (degrees) for intra-subject registration
+# Default: 3 for infants, 90 otherwise
 #
-set doregbbr = 1
+set intrarot = 90
 
-# Perform registration of T1 to MNI template?
-# Default: 1 (yes)
+# Inter-subject registration method
+# 1: Affine T1-to-T1 with a correlation ratio cost
+# 2: Affine T1-to-T1 with a mutual information cost (default)
+# 3: Affine T1-to-T1 with a robust cost (default for infants)
+# 4: Nonlinear T1-to-T1 with CVS
+# 5: Nonlinear FA-to-FA with SyN
 #
-set doregmni = 1
+set interreg = 2
 
-# MNI template
-# Only used if doregmni = 1
-# Default: $FSLDIR/data/standard/MNI152_T1_1mm_brain.nii.gz
+# Target brain for inter-subject registration
+# Default for affine T1-to-T1: 
+#   $FSLDIR/data/standard/MNI152_T1_1mm_brain.nii.gz
+# Default for nonlinear T1-to-T1: 
+#   $FREESURFER_HOME/subjects/cvs_avg35/
+# Default for nonlinear FA-to-FA: 
+#   $FREESURFER_HOME/trctrain/hcp/MGH35_HCP_FA_template.nii.gz
 #
-set mnitemp = /path/to/mni_template.nii.gz
-
-# Perform registration of T1 to CVS template?
-# Default: 0 (no)
-#
-set doregcvs = 0
-
-# CVS template subject ID
-# Only used if doregcvs = 1
-# Default: cvs_avg35
-#
-set cvstemp = donald
-
-# Parent directory of the CVS template subject
-# Only used if doregcvs = 1
-# Default: $FREESURFER_HOME/subjects
-#
-set cvstempdir = /path/to/cvs/atlases/of/ducks
+set intertrg = /path/to/a/duck/template.nii.gz
 
 # Use brain mask extracted from T1 image instead of low-b diffusion image?
 # Has no effect if there is no T1 data
 # Default: 1 (yes)
 #
 set usemaskanat = 1
+
+# Fractional intensity threshold for BET mask extraction from low-b images
+# This mask is used only if usemaskanat = 0
+# Default: 0.3
+#
+set thrbet = 0.5
 
 # Paths to reconstruct
 # Default: All paths in the atlas

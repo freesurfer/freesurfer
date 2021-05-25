@@ -6,7 +6,7 @@
 /*
  * Original Author: Anastasia Yendiki
  *
- * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -68,8 +68,8 @@ const char *Progname = "dmri_motion";
 
 float T = 100, D = .001;
 
-vector<std::string> inDwiList, inBvalList;
-std::string inMatFile, outFile, outFrameFile;
+string inMatFile, outFile, outFrameFile;
+vector<string> inDwiList, inBvalList;
 
 MRI *dwi;
 
@@ -616,26 +616,24 @@ static void dump_options() {
 
   cout << "Output motion measure file: " << outFile << endl;
 
-  if (!outFrameFile.empty()) {
+  if (!outFrameFile.empty())
     cout << "Output frame-by-frame motion measure file: " << outFrameFile
          << endl;
-  }
 
-  if (!inMatFile.empty()) {
+  if (!inMatFile.empty())
     cout << "Input transform file: " << inMatFile << endl;
-  }
 
   if (!inDwiList.empty()) {
     cout << "Input DWI file(s):";
-    for (auto ifile = inDwiList.begin(); ifile < inDwiList.end(); ifile++) {
+    for (vector<string>::const_iterator ifile = inDwiList.begin();
+                                        ifile < inDwiList.end(); ifile++)
       cout << " " << *ifile;
-    }
     cout << endl;
 
     cout << "Input b-value table(s):";
-    for (auto ifile = inBvalList.begin(); ifile < inBvalList.end(); ifile++) {
+    for (vector<string>::const_iterator ifile = inBvalList.begin();
+                                        ifile < inBvalList.end(); ifile++)
       cout << " " << *ifile;
-    }
     cout << endl;
 
     cout << "Low-b image intensity threshold: " << T << endl;

@@ -6,7 +6,7 @@
 /*
  * Original Author: Anastasia Yendiki
  *
- * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -65,8 +65,8 @@ const char *Progname = "dmri_mergepaths";
 
 int nframe = 0;
 float dispThresh = 0;
-std::string inDir, outFile, ctabFile;
-std::vector<std::string> inFile;
+string inDir, outFile, ctabFile;
+vector<string> inFile;
 
 struct utsname uts;
 char *cmdline, cwd[2000];
@@ -76,7 +76,7 @@ Timer cputimer;
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
   int nargs, cputime;
-  std::string fname;
+  string fname, pname;
   MRI *invol = 0, *outvol = 0;
 
   nargs = handleVersionOption(argc, argv, "dmri_mergepaths");
@@ -108,14 +108,14 @@ int main(int argc, char **argv) {
     cout << "Merging volume " << iframe+1 << " of " << nframe << "... " << endl;
 
     // Read input volume
-    if (!inDir.empty()) {
-      fname = inDir + "/" + inFile.at(iframe);
-    } else {
-      fname = inFile.at(iframe);
-    }
+    fname = inFile[iframe];
+
+    if (!inDir.empty())
+      fname = inDir + "/" + fname;
 
     invol = MRIread(fname.c_str());
 
+    // Copy input volume to output volume series
     if (invol) {
       if (!outvol) {
         // Allocate output 4D volume
@@ -127,19 +127,27 @@ int main(int argc, char **argv) {
 
       MRIcopyFrame(invol, outvol, 0, iframe);
 
-      if (dispThresh > 0) {
+      if (dispThresh > 0)
         inmax = (float) MRIfindPercentile(invol, .99, 0);	// Robust max
-      }
     }
 
+    // Set display threshold for current volume
     outvol->frames[iframe].thresh = dispThresh * inmax;
+
+    // Look up pathway name for current volume
+    pname = inFile[iframe];
+    pname = pname.substr(0, pname.rfind("/"));
+    if (pname.rfind("/") != string::npos)
+      pname = pname.substr(pname.rfind("/")+1, string::npos);
+    pname = pname.substr(0, pname.find("_"));
 
     outvol->frames[iframe].label = 0;
 
     for (int ict = outvol->ct->nentries; ict > 0; ict--) {
       CTE *cte = outvol->ct->entries[ict];
 
-      if (cte != NULL && strstr(inFile.at(iframe).c_str(), cte->name)) {
+      if (cte != NULL && strstr(pname.c_str(), cte->name)
+                      && strlen(pname.c_str()) == strlen(cte->name)) {
         outvol->frames[iframe].label = ict;
         strcpy(outvol->frames[iframe].name, cma_label_to_name(ict));
 
@@ -152,9 +160,9 @@ int main(int argc, char **argv) {
   }
 
   // Write output file
-  if (outvol) {
+  if (outvol)
     MRIwrite(outvol, outFile.c_str());
-  } else {
+  else {
     cout << "ERROR: could not open any of the input files" << endl;
     exit(1);
   }
@@ -198,9 +206,8 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       nargsused = 0;
       while (nargsused < nargc && strncmp(pargv[nargsused], "--", 2)) {
-        inFile.push_back( std::string(pargv[nargsused]) );
+        inFile.push_back(pargv[nargsused]);
         nargsused++;
-        nframe++;
       }
     } 
     else if (!strcmp(option, "--out")) {
@@ -280,6 +287,8 @@ static void print_version(void) {
 
 /* --------------------------------------------- */
 static void check_options(void) {
+  nframe = inFile.size();
+
   if(nframe == 0) {
     printf("ERROR: must specify input volume(s)\n");
     exit(1);
@@ -310,13 +319,11 @@ static void dump_options(FILE *fp) {
   fprintf(fp,"machine  %s\n",uts.machine);
   fprintf(fp,"user     %s\n",VERuser());
 
-  if (!inDir.empty()) {
+  if (!inDir.empty())
     fprintf(fp, "Input directory: %s\n", inDir.c_str());
-  }
   fprintf(fp, "Input files:");
-  for (int k = 0; k < nframe; k++) {
+  for (int k = 0; k < nframe; k++)
     fprintf(fp, " %s", inFile[k].c_str());
-  }
   fprintf(fp, "\n");
   fprintf(fp, "Output file: %s\n", outFile.c_str());
   fprintf(fp, "Color table file: %s\n", ctabFile.c_str());

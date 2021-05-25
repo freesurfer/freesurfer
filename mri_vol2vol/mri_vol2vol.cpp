@@ -2298,10 +2298,13 @@ MRI *MRIvol2volGCAM(MRI *src, LTA *srclta, GCA_MORPH *gcam, LTA *dstlta, MRI *vs
      vgdst_src->ysize != 1   || vgdst_src->zsize != 1){
     if(vgdst_dst->width != 256 || vgdst_dst->height != 256 ||
        vgdst_dst->depth != 256 || vgdst_dst->xsize != 1 ||
-       vgdst_dst->ysize != 1   || vgdst_dst->zsize != 1){
-      printf("ERROR: MRIvol2volGCAM(): neither src nor dst VG of Dest LTA is conformed\n");
-      return(NULL);
-    }
+       vgdst_dst->ysize != 1   || vgdst_dst->zsize != 1)
+      if(getenv("MY_MORPHS_DO_NOT_CONFORM_DEAL_WITH_IT") == NULL) {
+        printf("ERROR: MRIvol2volGCAM(): neither src nor dst VG of Dest LTA is conformed\n");
+        return(NULL);
+      }
+      else
+        printf("WARN: MRIvol2volGCAM(): neither src nor dst VG of Dest LTA is conformed\n");
     else {
       printf("MRIvol2volGCAM(): Inverting Destination LTA\n");
       LTAinvert(dstlta,dstlta);
