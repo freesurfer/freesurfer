@@ -69,7 +69,7 @@ const char *Progname = "dmri_trk2trk";
 
 bool doMerge = false;
 int doInvXfm = 0, doFill = 0, doMean = 0, doNth = 0, strNum = -1,
-    lengthMin = -1, lengthMax = -1;
+    doEvery = 0, everyNum = -1, lengthMin = -1, lengthMax = -1;
 unsigned int nTract = 0;
 string inDir, outDir, inRefFile, outRefFile, affineXfmFile, nonlinXfmFile;
 vector<string> inTrkList, inAscList, outTrkList, outAscList, outVolList,
@@ -115,6 +115,9 @@ int main(int argc, char **argv) {
   if (checkoptsonly) return(0);
 
   dump_options(stdout);
+
+  if (doEvery)
+    strNum = 0;
 
   // Read reference volumes
   inref = MRIread(inRefFile.c_str());
@@ -205,7 +208,7 @@ int main(int argc, char **argv) {
         // Read a streamline from input file
         trkreader.GetNextTrackData(npts, rawpts, NULL, props);
 
-        if ( (doNth && nstr != strNum) ||
+        if ( ((doNth || doEvery) && nstr != strNum) ||
              (lengthMin > -1 && npts <= lengthMin) ||
              (lengthMax > -1 && npts >= lengthMax) ) {
           delete[] rawpts;
@@ -213,6 +216,9 @@ int main(int argc, char **argv) {
           nstr++;
           continue;
         }
+
+        if (doEvery && nstr == strNum)
+          strNum += everyNum;
 
         iraw = rawpts;
 
@@ -265,10 +271,13 @@ int main(int argc, char **argv) {
           point.push_back(val);
 
         if (point.empty()) {		// Empty line marks end of streamline
-          if ( (!doNth || nstr == strNum) &&
+          if ( (!(doNth || doEvery) || nstr == strNum) &&
                (lengthMin == -1 || (int) newpts.size()/3 > lengthMin) &&
                (lengthMax == -1 || (int) newpts.size()/3 < lengthMax) )
             streamlines.push_back(newpts);
+
+          if (doEvery && nstr == strNum)
+            strNum += everyNum;
 
           newpts.clear();
           nstr++;
@@ -1047,6 +1056,12 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = 1;
       doNth = 1;
     }
+    else if (!strcasecmp(option, "--every")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0], "%d", &everyNum);
+      nargsused = 1;
+      doEvery = 1;
+    }
     else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if (CMDsingleDash(option))
@@ -1111,6 +1126,8 @@ static void print_usage(void)
   << "     Only save the mean streamline (Default: save all)" << endl
   << "   --nth <num>:" << endl
   << "     Only save the n-th (0-based) streamline (Default: save all)" << endl
+  << "   --every <num>:" << endl
+  << "     Only save every n-th streamline (Default: save all)" << endl
   << endl
   << "Other options" << endl
   << "   --debug:     turn on debugging" << endl
@@ -1119,7 +1136,7 @@ static void print_usage(void)
   << "   --version:   print out version and exit" << endl
   << endl
   << "Order of operations (all optional):" << endl
-  << "   1. Keep n-th streamline only" << endl
+  << "   1. Keep the n-th streamline or every n-th streamline" << endl
   << "   2. Apply streamline length threshold(s)" << endl
   << "   3. Apply affine transform" << endl
   << "   4. Apply non-linear transform" << endl
@@ -1198,6 +1215,10 @@ static void check_options(void) {
   }
   if (doMean && doNth) {
     cout << "ERROR: cannot use both --mean and --nth" << endl;
+    exit(1);
+  }
+  if (doEvery && doNth) {
+    cout << "ERROR: cannot use both --every and --nth" << endl;
     exit(1);
   }
   return;
@@ -1294,12 +1315,14 @@ static void dump_options(FILE *fp) {
   if (!(affineXfmFile.empty() && nonlinXfmFile.empty()))
     cout << "Invert registration: " << doInvXfm << endl;
   cout << "Fill gaps between points: " << doFill << endl;
-  if (doMean)
-    cout << "Saving mean streamline" << endl;
-  else if (doNth)
-    cout << "Saving single streamline: " << strNum << endl;
-  else
-    cout << "Saving all streamlines" << endl;
+  if (doNth)
+    cout << "Keeping n-th streamline only: " << strNum << endl;
+  else {
+    if (doEvery)
+      cout << "Keeping every n-th streamline: " << everyNum << endl;
+    if (doMean)
+      cout << "Keeping mean streamline" << endl;
+  }
   if (doMerge)
     cout << "Merging multiple inputs into a single output" << endl;
 
