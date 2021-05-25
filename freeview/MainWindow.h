@@ -612,6 +612,8 @@ protected slots:
 
   void OnCloseODF();
 
+  void OnSaveLabelAsVolume();
+
 private:
   bool DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit);
   void SaveSettings();

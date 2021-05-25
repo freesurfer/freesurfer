@@ -50,7 +50,6 @@ public:
 
   bool MRIRead( const QString& filename, const QString& reg_filename );
   bool MRIWrite( const QString& filename, int nSampleMethod = SAMPLE_NEAREST, bool resample = true );
-  bool MRIWrite();
   bool SaveRegistration( const QString& filename );
   bool Restore( const QString& filename, const QString& reg_filename );
 

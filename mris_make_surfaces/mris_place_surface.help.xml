@@ -105,7 +105,7 @@
       <argument>--no-intensity-proc </argument>
       <explanation>Do not process the input intensity volume (eg, to remove parts of eye socket)</explanation>
 
-      <argument>--debug_vertex vertexno </argument>
+      <argument>--debug-vertex vertexno </argument>
 
       <argument>--ripflag-out ripfile </argument>
       <explanation>Save ripflag as overlay. Spec full path including hemi, suffix, etc</explanation>

@@ -3356,7 +3356,7 @@ if($DoFix && ( ! $longitudinal )) then
     if($status) goto error_exit;
     # Remove hemi.inflated, real one created after mris_make_surfaces
     #   Note sure this is needed anymore
-    set cmd = (rm ../surf/$hemi.inflated)
+    set cmd = (rm -f ../surf/$hemi.inflated)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $cmd |& tee -a $LF
     echo $cmd > $touchdir/$hemi.topofix.touch
@@ -3377,10 +3377,9 @@ if($DoAutoDetGWStats) then
     set orig = ../surf/$hemi.orig
     # Using the premesh makes a difference
     if($DoRemesh && ! $longitudinal) set orig = ../surf/$hemi.orig.premesh
-    # set cmd = ($cmd $WMSeg_wlo $WMSeg_ghi $xopts $subjid $hemi) # might need these
     set cmd = (mris_autodet_gwstats --o $ads  --i $bfs --wm $wm --surf $orig)
     set xopts = `fsr-getxopts mris_autodet_gwstats $XOptsFile $GlobXOptsFile`;
-    set cmd = ($cmd $xopts)
+    set cmd = ($cmd $WMSeg_wlo $WMSeg_ghi $xopts)
     echo "cd `$PWD`" |& tee -a $LF |& tee -a $CF
     echo $cmd        |& tee -a $LF |& tee -a $CF
     set ud = `UpdateNeeded $ads $bfs $wm $orig`

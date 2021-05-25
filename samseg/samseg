@@ -358,8 +358,9 @@ while( $#argv != 0 )
       set DoMRF = 0
       breaksw
 
+    case "--reg":
     case "--regmat":
-      # this must be a .mat file like that created by samseg
+      # this can be a .mat file like that created by samseg or an LUT
       if($#argv < 1) goto arg1err;
       set regmat = $argv[1]; shift;
       if(! -e $regmat) then
@@ -784,8 +785,9 @@ usage_exit:
   echo "   analyzing T2 or FLAIR"
   echo " --lesion : Turn on lesion segmentation"
   echo " --lesion-mask-pattern A B : Needed when using T2 (eg, 0 1)"
-  echo " --regmat reg.mat : registration file (as output by samseg)"
+  echo " --reg reg.{lta,mat} : registration file (LTA or  as output by samseg)"
   echo "    allows using the reg from one run with another run"
+  echo " --regmat reg.{lta.mat} same as --reg"
   echo " --initlta init.lta : initial registration"
   echo " --reg-only : only perform registration"
   echo " --ssdd SAMSEG_DATA_DIR : where the atlas is located"

@@ -611,9 +611,11 @@ void PanelVolume::DoUpdateWidgets()
     m_bShowExistingLabelsOnly = false;
     if (m_curCTAB != layer->GetEmbeddedColorTable())
       PopulateColorTable(layer->GetEmbeddedColorTable());
+    ShowWidgets(m_widgetlistVolumeTrackSpecs, true);
   }
   else
   {
+    ShowWidgets(m_widgetlistVolumeTrackSpecs, false);
     ShowWidgets( m_widgetlistNormalDisplay, bNormalDisplay );
     ShowWidgets( m_widgetlistGrayScale, bNormalDisplay && nColorMap == LayerPropertyMRI::Grayscale );
     ShowWidgets( m_widgetlistHeatScale, bNormalDisplay && nColorMap == LayerPropertyMRI::Heat );
@@ -1872,6 +1874,11 @@ void PanelVolume::OnCustomContextMenu(const QPoint &pt)
           act->setText("Go Through Voxels (Ctrl+Shift+N)");
 #endif
           connect(act, SIGNAL(triggered()), SLOT(OnGoToNextPoint()));
+          menu.addAction(act);
+          menu.addSeparator();
+          act = new QAction(tr("Save Label as Volume..."), this);
+          act->setProperty("label_value", val);
+          connect(act, SIGNAL(triggered(bool)), MainWindow::GetMainWindow(), SLOT(OnSaveLabelAsVolume()));
           menu.addAction(act);
         }
         else
