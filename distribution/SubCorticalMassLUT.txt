@@ -1,0 +1,5 @@
+# The values here match that used in mri_filled
+# No. Label Name:                            R   G   B   A
+0   Unknown                                 0   0   0   0
+127   Right-SubCorticalMass                 0 180   0   0
+255   Left-SubCorticalMass                  0   0 180   0
