@@ -173,6 +173,7 @@ public slots:
   void DeleteCurrentSelectRegion();
   void SetAxesFlyMode(int n);
   void DeleteCurrent3DRegion();
+  void DeleteAll3DRegions();
 
 protected:
   void DoUpdateRASPosition( int posX, int posY, bool bCursor = false, bool bSlicePickOnly = false );

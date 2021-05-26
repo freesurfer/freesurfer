@@ -4326,6 +4326,17 @@ bool LayerMRI::DeleteCurrent3DRegion()
   return false;
 }
 
+void LayerMRI::DeleteAll3DRegions()
+{
+  for ( int i = 0; i < m_3DRegions.size(); i++ )
+  {
+    m_3DRegions[i]->deleteLater();
+  }
+  m_3DRegions.clear();
+  m_current3DRegion = NULL;
+  emit Region3DRemoved();
+}
+
 void LayerMRI::Add3DRegionPoint( double* pt )
 {
   if ( m_current3DRegion )

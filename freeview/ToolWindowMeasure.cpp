@@ -69,13 +69,18 @@ ToolWindowMeasure::ToolWindowMeasure(QWidget *parent) :
   m_widgets3DDraw << ui->pushButtonSave
                  << ui->pushButtonLoad
                  << ui->colorPickerGroup
-                 << ui->lineSeparator;
+                 << ui->lineSeparator
+                 << ui->pushButtonDeleteDrawing
+                 << ui->pushButtonDeleteAllDrawing;
 
   m_widgets3D << ui->pushButtonSaveAll
               << ui->spinBoxId
               << ui->spinBoxGroup
               << ui->labelId
               << ui->labelGroup;
+
+  foreach (QWidget* w, m_widgets3D)
+    w->hide();
 
   m_region = NULL;
   m_surfaceRegion = NULL;
@@ -142,6 +147,7 @@ void ToolWindowMeasure::showEvent(QShowEvent* event)
   {
     this->move( parentWidget()->pos() + QPoint(20,100) );
     bFirstTime = false;
+    this->resize(sizeHint());
   }
 }
 
@@ -346,6 +352,9 @@ void ToolWindowMeasure::OnIdle()
   ui->pushButtonSaveAll->setEnabled( bSurfaceRegionValid );
   ui->pushButtonSave->setEnabled(bSurfaceRegionValid);
 
+  ui->pushButtonDeleteDrawing->setEnabled(m_3DRegion);
+  ui->pushButtonDeleteAllDrawing->setEnabled(mri && mri->GetNumberOf3DRegions() > 0);
+
   m_bToUpdateWidgets = false;
 
   for ( int i = 0; i < allwidgets.size(); i++ )
@@ -477,4 +486,18 @@ void ToolWindowMeasure::OnColorGroup( const QColor& color )
     m_3DRegion->SetColor(color);
     UpdateWidgets();
   }
+}
+
+void ToolWindowMeasure::OnButtonDelete3DRegion()
+{
+  RenderView3D* view = ( RenderView3D* )MainWindow::GetMainWindow()->GetRenderView( 3 );
+  view->DeleteCurrent3DRegion();
+}
+
+void ToolWindowMeasure::OnButtonDeleteAll3DRegions()
+{
+  RenderView3D* view = ( RenderView3D* )MainWindow::GetMainWindow()->GetRenderView( 3 );
+  m_3DRegion = NULL;
+  view->DeleteAll3DRegions();
+  UpdateWidgets();
 }
