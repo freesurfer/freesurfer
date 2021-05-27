@@ -14,6 +14,7 @@
 #include "MyUtils.h"
 #include "LayerMRI.h"
 #include "LayerPropertyMRI.h"
+#include "vtkSplineFilter.h"
 
 Region3D::Region3D(LayerMRI* owner ) : QObject(owner), m_mri(owner)
 {
@@ -24,7 +25,7 @@ Region3D::Region3D(LayerMRI* owner ) : QObject(owner), m_mri(owner)
 
   m_actor = vtkSmartPointer<vtkActor>::New();
   m_actor->GetProperty()->SetColor( 0, 1, 0 );
-  m_actor->GetProperty()->SetLineWidth( 3*ratio );
+  m_actor->GetProperty()->SetLineWidth( 5*ratio );
 
   m_points = vtkSmartPointer<vtkPoints>::New();
   m_color = Qt::blue;
@@ -39,14 +40,14 @@ void Region3D::AddPoint( double* pt )
   RebuildOutline( false );
 }
 
-void Region3D::RebuildOutline( bool bClose )
+void Region3D::RebuildOutline( bool bInterpolate )
 {
   vtkSmartPointer<vtkPolyData> polydata = vtkSmartPointer<vtkPolyData>::New();
   vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
-  if ( bClose && m_points->GetNumberOfPoints() > 0 )
-  {
-    m_points->InsertNextPoint( m_points->GetPoint( 0 ) );
-  }
+//  if ( bClose && m_points->GetNumberOfPoints() > 0 )
+//  {
+//    m_points->InsertNextPoint( m_points->GetPoint( 0 ) );
+//  }
   lines->InsertNextCell( m_points->GetNumberOfPoints() );
   for ( int i = 0; i < m_points->GetNumberOfPoints(); i++ )
   {
@@ -55,11 +56,26 @@ void Region3D::RebuildOutline( bool bClose )
   polydata->SetPoints( m_points );
   polydata->SetLines( lines );
   vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
-#if VTK_MAJOR_VERSION > 5
-  mapper->SetInputData( polydata );
-#else
-  mapper->SetInput( polydata );
-#endif
+  if (bInterpolate)
+  {
+    vtkSmartPointer<vtkSplineFilter> spline = vtkSmartPointer<vtkSplineFilter>::New();
+    spline->SetInputData(polydata);
+    int dim[3];
+    double vs[3];
+    m_mri->GetVolumeInfo(dim, vs);
+    spline->SetSubdivideToLength();
+    spline->SetLength(qMin(qMin(vs[0],vs[1]), vs[2])/3);
+    mapper->SetInputConnection(spline->GetOutputPort());
+  }
+  else
+  {
+  #if VTK_MAJOR_VERSION > 5
+    mapper->SetInputData( polydata );
+  #else
+    mapper->SetInput( polydata );
+  #endif
+  }
+
   m_actor->SetMapper( mapper );
 }
 

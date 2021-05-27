@@ -351,6 +351,8 @@ public:
 
   bool DeleteCurrent3DRegion();
 
+  void DeleteAll3DRegions();
+
   void Add3DRegionPoint( double* pt );
 
   int GetNumberOf3DRegions()

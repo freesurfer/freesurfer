@@ -1160,6 +1160,15 @@ void RenderView3D::DeleteCurrent3DRegion()
   }
 }
 
+void RenderView3D::DeleteAll3DRegions()
+{
+  LayerMRI* mri = (LayerMRI*)MainWindow::GetMainWindow()->GetActiveLayer( "MRI" );
+  if ( mri )
+  {
+    mri->DeleteAll3DRegions();
+  }
+}
+
 SurfaceROI* RenderView3D::InitializeSurfaceROI( int posX, int posY )
 {
   double pos[3];
