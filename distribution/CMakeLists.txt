@@ -5,6 +5,7 @@ install(FILES
   SegmentNoLUT.txt
   Simple_surface_labels2005.txt
   Simple_surface_labels2009.txt
+  SubCorticalMassLUT.txt
   tkmeditParcColorsCMA
   WMParcStatsLUT.txt
   DESTINATION .
