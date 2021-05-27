@@ -64,6 +64,7 @@ set DoCleanBM    = 0;
 set DoCleanBFSE  = 0;
 set DoCleanASeg  = 0;
 set DoCleanWM    = 0;
+set DoCleanFilled = 0;
 set DoCleanXopts = 0;
 set DoCleanT2    = 0;
 set DoCleanFLAIR = 0;
@@ -448,6 +449,9 @@ if($DoSBatch) then
   $cmd
   exit $status
 endif
+
+# Allow editing of filled.mgz
+if(! $?FS_ALLOW_FILLED_EDIT) setenv FS_ALLOW_FILLED_EDIT 0
 
 goto check_params;
 check_params_return:
@@ -949,6 +953,11 @@ if($DoCleanWM) then
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $cmd  |& tee -a $LF
 endif
+if($DoCleanFilled) then
+  set cmd = (mv -f $subjdir/mri/filled.mgz $subjdir/trash)
+  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+  if($RunIt) $cmd  |& tee -a $LF
+endif
 if($DoCleanCP) then
   set cmd = (mv -f $subjdir/tmp/control.dat $subjdir/trash)
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
@@ -1162,7 +1171,7 @@ if($longitudinal && ! $LongSamseg) then
   # if adding a new timepoint was requested by -addtp flag
   if($DoAddTp) then
     echo "Adding $tpNid as timepoint to base $longbaseid" |& tee -a $LF
-    set cmd=(mri_add_new_tp $longbaseid $tpNid)
+    set cmd = (mri_add_new_tp $longbaseid $tpNid)
     if($RunIt) $cmd |& tee -a $LF
     if($status) goto error_exit;
   endif
@@ -2675,13 +2684,13 @@ if($DoCALabel) then
     # Initizlize long TP using ...
     if($UseAsegFusion) then
       # fused' aseg just created above
-      set cmd=($cmd -r $subjdir/mri/aseg.fused.mgz)
+      set cmd = ($cmd -r $subjdir/mri/aseg.fused.mgz)
     endif
     if($UseAsegBase) then
       # aseg from base
-      set cmd=($cmd -r $longbasedir/mri/${asegbasename}.mgz)
+      set cmd = ($cmd -r $longbasedir/mri/${asegbasename}.mgz)
     endif
-    set cmd=($cmd -ri $longbasedir/mri/${asegbasename}.label_intensities.txt)
+    set cmd = ($cmd -ri $longbasedir/mri/${asegbasename}.label_intensities.txt)
   endif
   set cmd = ($cmd $xopts norm.mgz)
   set cmd = ($cmd transforms/talairach.m3z)
@@ -3013,11 +3022,28 @@ if($DoFill) then
   if ($RHonly) set cmd = ($cmd -rhonly )
   if($UseAseg) set cmd = ($cmd -segmentation aseg.presurf.mgz);
   if(! $UseOldTopoFix && ! $NoNormMGZ) set cmd = ($cmd -topofix norm.mgz);
+  set filledman = filled.mgz
+  set filledauto = filled.auto.mgz
+  if($FS_ALLOW_FILLED_EDIT) then
+    set cmd = ($cmd -ctab $FREESURFER/SubCorticalMassLUT.txt)
+    if(-e $filledauto && -e $filledman) then
+      set fillededits = ../tmp/filled.edits.txt
+      set cmd = ($cmd -auto-man $filledauto $filledman $fillededits)
+    endif
+  endif
   set cmd = ($cmd $xopts wm.mgz filled.mgz)
   $PWD |& tee -a $LF
   echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
-  if($RunIt) $fs_time $cmd |& tee -a $LF
-  if($status) goto error_exit;
+  if($RunIt) then 
+    $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    if(! -e $filledauto && $FS_ALLOW_FILLED_EDIT) then
+      set cmd = (cp $filledman $filledauto)
+      echo " $cmd" |& tee -a $LF |& tee -a $CF
+      $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    endif
+  endif
 
   echo $cmd > $touchdir/fill.touch
 endif
@@ -6238,6 +6264,14 @@ while( $#argv != 0 )
     case "-nofill":
       set DoFill = 0;
       breaksw
+
+    case "-allow-filled-edit":
+      setenv FS_ALLOW_FILLED_EDIT 1
+      breaksw
+    case "-no-allow-filled-edit":
+      setenv FS_ALLOW_FILLED_EDIT 0
+      breaksw
+
     case "-pons-crs":
       if ( $#argv < 3) goto arg3err;
       set PonsSeedCRS = ($argv[1] $argv[2] $argv[3]);
@@ -6844,6 +6878,7 @@ while( $#argv != 0 )
       set DoSegmentation   = 1;
 # no break!
     case "-autorecon2-wm":
+    case "-autorecon2-fill":
       set DoFill           = 1;
       set DoTessellate     = 1;
       set DoSmooth1        = 1;
@@ -7108,6 +7143,7 @@ while( $#argv != 0 )
       set DoCleanBM    = 1;
       set DoCleanASeg  = 1;
       set DoCleanWM    = 1;
+      set DoCleanFilled = 1;
       set DoCleanBFSE  = 1;
       set DoCleanXopts = 1;
       set DoCleanT2    = 1;
@@ -7132,6 +7168,10 @@ while( $#argv != 0 )
 
     case "-clean-wm":
       set DoCleanWM   = 1;
+      breaksw
+
+    case "-clean-filled":
+      set DoCleanFilled = 1;
       breaksw
 
     case "-clean-cpwm":
@@ -8053,8 +8093,24 @@ check_params:
     popd > /dev/null;
   endif
 
+  if($DoFill && ! $FS_ALLOW_FILLED_EDIT) then
+    set filledauto = $subjdir/mri/filled.auto.mgz
+    if(-e $filledauto) then
+      echo "ERROR: $filledauto exists but option is not turned on for this run"
+      echo "This probably means that you ran with the option turned on at some point"
+      echo "If you do not want to use this option, then delete the auto file with"
+      echo "  rm -f $filledauto"
+      echo "  Note that if you have made edits to filled.mgz, they will be lost when you re-run"
+      echo "If you want to run with this option, then add -allow-filled-edit or run"
+      echo "  setenv FS_ALLOW_FILLED_EDIT 1"
+      echo ""
+      exit 1
+    endif
+  endif
+
+
   if(! $DoCleanTal && ! $DoCleanCP && ! $DoCleanBM && ! $DoConvertInput && \
-     ! $DoCleanASeg && ! $DoCleanWM && ! $DoCleanSeed && ! $DoCleanCW256 && \
+     ! $DoCleanASeg && ! $DoCleanWM && ! $DoCleanFilled && ! $DoCleanSeed && ! $DoCleanCW256 && \
      ! $DoCortParc && ! $DoCortParc2 && ! $DoGCAReg && \
      ! $DoMotionCor && ! $DoTalairach && ! $DoTalCheck && ! $DoCleanXopts && \
      ! $DoNormalization  && \
