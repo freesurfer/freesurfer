@@ -4432,3 +4432,13 @@ bool LayerMRI::Load3DRegions( const QString& fn )
   emit Region3DAdded();
   return bSuccess;
 }
+
+
+void LayerMRI::Close3DRegion()
+{
+  if ( m_current3DRegion )
+  {
+    m_current3DRegion->Close();
+    emit ActorUpdated();
+  }
+}

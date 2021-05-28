@@ -15,6 +15,9 @@
 #include "LayerMRI.h"
 #include "LayerPropertyMRI.h"
 #include "vtkSplineFilter.h"
+#include <vtkKdTreePointLocator.h>
+#include "vtkCleanPolyData.h"
+#include <QDebug>
 
 Region3D::Region3D(LayerMRI* owner ) : QObject(owner), m_mri(owner)
 {
@@ -28,7 +31,16 @@ Region3D::Region3D(LayerMRI* owner ) : QObject(owner), m_mri(owner)
   m_actor->GetProperty()->SetLineWidth( 5*ratio );
 
   m_points = vtkSmartPointer<vtkPoints>::New();
+  m_interpolatedPoints = vtkSmartPointer<vtkPoints>::New();
   m_color = Qt::blue;
+
+  m_locator = vtkSmartPointer<vtkKdTreePointLocator>::New();
+  QList<vtkActor*> list = m_mri->GetContourActors(true);
+  if (!list.isEmpty())
+  {
+    m_locator->SetDataSet(vtkPolyData::SafeDownCast( list.first()->GetMapper()->GetInput() ));
+    m_locator->BuildLocator();
+  }
 }
 
 Region3D::~Region3D()
@@ -65,7 +77,20 @@ void Region3D::RebuildOutline( bool bInterpolate )
     m_mri->GetVolumeInfo(dim, vs);
     spline->SetSubdivideToLength();
     spline->SetLength(qMin(qMin(vs[0],vs[1]), vs[2])/3);
-    mapper->SetInputConnection(spline->GetOutputPort());
+    spline->Update();
+    m_interpolatedPoints = spline->GetOutput()->GetPoints();
+    polydata = vtkSmartPointer<vtkPolyData>::New();
+    lines = vtkSmartPointer<vtkCellArray>::New();
+    lines->InsertNextCell( m_interpolatedPoints->GetNumberOfPoints() );
+    for ( int i = 0; i < m_interpolatedPoints->GetNumberOfPoints(); i++ )
+    {
+      lines->InsertCellPoint( i );
+    }
+    polydata->SetPoints( m_interpolatedPoints );
+    polydata->SetLines( lines );
+    vtkSmartPointer<vtkCleanPolyData> clean = vtkSmartPointer<vtkCleanPolyData>::New();
+    clean->SetInputData(polydata);
+    mapper->SetInputConnection(clean->GetOutputPort());
   }
   else
   {
@@ -125,9 +150,12 @@ QColor Region3D::GetColor()
 bool Region3D::HasPoint(double *pt, double dist)
 {
   double th = dist*dist;
-  for (int i = 0; i < m_points->GetNumberOfPoints(); i++)
+  vtkPoints* pts = m_points;
+  if (m_interpolatedPoints.GetPointer())
+    pts = m_interpolatedPoints;
+  for (int i = 0; i < pts->GetNumberOfPoints(); i++)
   {
-    if (vtkMath::Distance2BetweenPoints(pt, m_points->GetPoint(i)) < th)
+    if (vtkMath::Distance2BetweenPoints(pt, pts->GetPoint(i)) < th)
       return true;
   }
   return false;
@@ -200,7 +228,7 @@ bool Region3D::Load( FILE* fp )
   }
   m_color = QColor(r, g, b);
 
-  RebuildOutline( false );
+  RebuildOutline( true );
 
   return true;
 }

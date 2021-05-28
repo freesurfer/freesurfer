@@ -366,6 +366,8 @@ public:
 
   bool Load3DRegions(const QString& fn);
 
+  void Close3DRegion();
+
 public slots:
   virtual void SetModified();
   void SetActiveFrame( int nFrame );
