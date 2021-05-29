@@ -1546,7 +1546,7 @@ void Blood::MatchStreamlineEnds() {
             // Is the end of path i closer to the start or the end of path j?
             dist2 += sqrt(dx21*dx21 + dy21*dy21 + dz21*dz21)
                    - sqrt(dx22*dx22 + dy22*dy22 + dz22*dz22);
-        }
+          }
 
         if ( (dist1 < 0 && dist2 < 0) ||
              (dist1 < 0 && dist2 > 0 && dist2 < -dist1) ||
