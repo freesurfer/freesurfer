@@ -105,9 +105,9 @@ set bvallist = ( /path/to/huey/year1/bvals.txt \
 # 1: Perform correction based on a field map
 #    Requires additional inputs (see below): b0mlist, b0plist, echospacing
 # 2: Perform correction based on reverse-polarity images
-#    Requires additional inputs: echospacing, pedir, epifactor
+#    Requires additional inputs (see below): echospacing, pedir, epifactor
 #
-set dob0 = 1
+set dob0 = 2
 
 # Input B0 field map magnitude DICOMs (file names can be relative to dcmroot)
 # Only used if dob0 = 1
@@ -170,12 +170,12 @@ set intrarot = 90
 
 # Inter-subject registration method
 # 1: Affine T1-to-T1 with a correlation ratio cost
-# 2: Affine T1-to-T1 with a mutual information cost (default)
+# 2: Affine T1-to-T1 with a mutual information cost
 # 3: Affine T1-to-T1 with a robust cost (default for infants)
 # 4: Nonlinear T1-to-T1 with CVS
-# 5: Nonlinear FA-to-FA with SyN
+# 5: Nonlinear FA-to-FA with SyN (default)
 #
-set interreg = 2
+set interreg = 5
 
 # Target brain for inter-subject registration
 # Default for affine T1-to-T1: 
@@ -200,25 +200,16 @@ set usemaskanat = 1
 set thrbet = 0.5
 
 # Paths to reconstruct
-# Default: All paths in the atlas
+# Default: All paths in $FREESURFER_HOME/trctrain/hcp/pathlist.txt
 #
-set pathlist = ( lh.cst_AS rh.cst_AS \
-                 lh.unc_AS rh.unc_AS \
-                 lh.ilf_AS rh.ilf_AS \
-                 fmajor_PP fminor_PP \
-                 lh.atr_PP rh.atr_PP \
-                 lh.ccg_PP rh.ccg_PP \
-                 lh.cab_PP rh.cab_PP \
-                 lh.slfp_PP rh.slfp_PP \
-                 lh.slft_PP rh.slft_PP )
+set pathlist = ( lh.uf rh.uf cc.rostrum )
 
 # Number of path control points
 # It can be a single number for all paths or a different number for each of the
-# paths specified in pathlist
-# Default: 7 for the forceps major, 6 for the corticospinal tract,
-#          4 for the angular bundle, and 5 for all other paths
+# paths specified in pathlist (recommended, with more points for longer paths)
+# Default: As in $FREESURFER_HOME/trctrain/hcp/pathlist.txt
 #
-set ncpts = (6 6 5 5 5 5 7 5 5 5 5 5 4 4 5 5 5 5)
+set ncpts = ( 7 7 5 )
 
 # List of training subjects
 # This text file lists the locations of training subject directories
