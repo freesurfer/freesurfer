@@ -28,7 +28,7 @@ if(PETSC_FOUND)
   install(TARGETS dmri_mergepaths DESTINATION bin)
 
   # dmri_trk2trk
-  add_executable(dmri_trk2trk dmri_trk2trk.cxx vial.cxx TrackIO.cxx)
+  add_executable(dmri_trk2trk dmri_trk2trk.cxx spline.cxx vial.cxx TrackIO.cxx)
   target_link_libraries(dmri_trk2trk utils fem_elastic tetgen)
   install(TARGETS dmri_trk2trk DESTINATION bin)
 
