@@ -119,19 +119,21 @@ int main(int argc, char **argv) {
 
   dump_options(stdout);
 
-  if (doEvery)
-    strNum = 0;
-
   // Read reference volumes
-  inref = MRIread(inRefFile.c_str());
-  outref = MRIread(outRefFile.c_str());
+  if (!inRefFile.empty())
+    inref = MRIread(inRefFile.c_str());
+
+  if (!outRefFile.empty())
+    outref = MRIread(outRefFile.c_str());
 
   if (!outVolList.empty())
     outvol = MRIclone(outref, NULL);
 
   // Output space orientation information
-  outv2r = MRIgetVoxelToRasXform(outref);
-  MRIdircosToOrientationString(outref, outorient);
+  if (outref) {
+    outv2r = MRIgetVoxelToRasXform(outref);
+    MRIdircosToOrientationString(outref, outorient);
+  }
 
   // Read transform files
   if (!affineXfmFile.empty()) {
@@ -226,6 +228,9 @@ int main(int argc, char **argv) {
       overlays.clear();
       properties.clear();
     }
+
+    if (doEvery)
+      strNum = 0;
 
     if (!inTrkList.empty()) {		// Read streamlines from .trk file
       fname = inTrkList[itract];
@@ -795,35 +800,37 @@ int main(int argc, char **argv) {
       else
         trkheadout = trkheadin;
 
-      trkheadout.voxel_size[0] = outref->xsize;
-      trkheadout.voxel_size[1] = outref->ysize;
-      trkheadout.voxel_size[2] = outref->zsize;
+      if (outref) {
+        trkheadout.voxel_size[0] = outref->xsize;
+        trkheadout.voxel_size[1] = outref->ysize;
+        trkheadout.voxel_size[2] = outref->zsize;
 
-      trkheadout.dim[0] = outref->width;
-      trkheadout.dim[1] = outref->height;
-      trkheadout.dim[2] = outref->depth;
+        trkheadout.dim[0] = outref->width;
+        trkheadout.dim[1] = outref->height;
+        trkheadout.dim[2] = outref->depth;
 
-      for (int i = 0; i < 4; i++)
-        for (int j = 0; j < 4; j++)
-          trkheadout.vox_to_ras[i][j] = outv2r->rptr[i+1][j+1];
+        for (int i = 0; i < 4; i++)
+          for (int j = 0; j < 4; j++)
+            trkheadout.vox_to_ras[i][j] = outv2r->rptr[i+1][j+1];
 
-      strcpy(trkheadout.voxel_order, outorient);
+        strcpy(trkheadout.voxel_order, outorient);
 
-      // Find patient-to-scanner coordinate transform:
-      // Take x and y vectors from vox2RAS matrix, convert to LPS,
-      // divide by voxel size
-      trkheadout.image_orientation_patient[0] = 
-        - trkheadout.vox_to_ras[0][0] / trkheadout.voxel_size[0];
-      trkheadout.image_orientation_patient[1] = 
-        - trkheadout.vox_to_ras[1][0] / trkheadout.voxel_size[0];
-      trkheadout.image_orientation_patient[2] = 
-          trkheadout.vox_to_ras[2][0] / trkheadout.voxel_size[0];
-      trkheadout.image_orientation_patient[3] = 
-        - trkheadout.vox_to_ras[0][1] / trkheadout.voxel_size[1];
-      trkheadout.image_orientation_patient[4] = 
-        - trkheadout.vox_to_ras[1][1] / trkheadout.voxel_size[1];
-      trkheadout.image_orientation_patient[5] = 
-          trkheadout.vox_to_ras[2][1] / trkheadout.voxel_size[1];
+        // Find patient-to-scanner coordinate transform:
+        // Take x and y vectors from vox2RAS matrix, convert to LPS,
+        // divide by voxel size
+        trkheadout.image_orientation_patient[0] = 
+          - trkheadout.vox_to_ras[0][0] / trkheadout.voxel_size[0];
+        trkheadout.image_orientation_patient[1] = 
+          - trkheadout.vox_to_ras[1][0] / trkheadout.voxel_size[0];
+        trkheadout.image_orientation_patient[2] = 
+            trkheadout.vox_to_ras[2][0] / trkheadout.voxel_size[0];
+        trkheadout.image_orientation_patient[3] = 
+          - trkheadout.vox_to_ras[0][1] / trkheadout.voxel_size[1];
+        trkheadout.image_orientation_patient[4] = 
+          - trkheadout.vox_to_ras[1][1] / trkheadout.voxel_size[1];
+        trkheadout.image_orientation_patient[5] = 
+            trkheadout.vox_to_ras[2][1] / trkheadout.voxel_size[1];
+      }
 
       trkheadout.n_count = (int) streamlines.size();
 
@@ -904,9 +911,12 @@ int main(int argc, char **argv) {
     cout << "Done in " << cputime/1000.0 << " sec." << endl;
   }
 
-  MatrixFree(&outv2r);
-  MRIfree(&inref);
-  MRIfree(&outref);
+  if (inref)
+    MRIfree(&inref);
+  if (outref) {
+    MatrixFree(&outv2r);
+    MRIfree(&outref);
+  }
   if (!outVolList.empty())
     MRIfree(&outvol);
   for (vector<MRI *>::iterator imask = incMask.begin();
@@ -1125,9 +1135,9 @@ static void print_usage(void)
   << "     Output directory (optional)" << endl
   << "     If specified, names of output .trk files and volumes are relative to this)" << endl
   << "   --inref <file>:" << endl
-  << "     Input reference volume" << endl
+  << "     Input reference volume (needed for --reg/--regnl)" << endl
   << "   --outref <file>:" << endl
-  << "     Output reference volume" << endl
+  << "     Output reference volume (needed for --reg/--regnl/--outvol)" << endl
   << "   --reg <file>:" << endl
   << "     Affine registration file (.lta or .mat), applied first" << endl
   << "   --regnl <file>:" << endl
@@ -1236,12 +1246,15 @@ static void check_options(void) {
          << ") does not match number of input files (" << nTract << ")" << endl;
     exit(1);
   }
-  if (inRefFile.empty()) {
-    cout << "ERROR: must specify input reference volume" << endl;
+  if (inRefFile.empty() && (!affineXfmFile.empty() || !nonlinXfmFile.empty())) {
+    cout << "ERROR: must specify input reference volume when using "
+         << "--reg or --regnl" << endl;
     exit(1);
   }
-  if (outRefFile.empty()) {
-    cout << "ERROR: must specify output reference volume" << endl;
+  if (outRefFile.empty() && (!affineXfmFile.empty() || !nonlinXfmFile.empty()
+                                                    || !outVolList.empty())) {
+    cout << "ERROR: must specify output reference volume when using "
+         << "--reg, --regnl, or --outvol" << endl;
     exit(1);
   }
   if (doMean && doNearMean) {
@@ -1348,8 +1361,10 @@ static void dump_options(FILE *fp) {
     cout << "Lower length threshold: " << lengthMin << endl;
   if (lengthMax > -1)
     cout << "Upper length threshold: " << lengthMax << endl;
-  cout << "Input reference: " << inRefFile << endl;
-  cout << "Output reference: " << outRefFile << endl;
+  if (!inRefFile.empty())
+    cout << "Input reference: " << inRefFile << endl;
+  if (!outRefFile.empty())
+    cout << "Output reference: " << outRefFile << endl;
   if (!affineXfmFile.empty())
     cout << "Affine registration: " << affineXfmFile << endl;
   if (!nonlinXfmFile.empty())
