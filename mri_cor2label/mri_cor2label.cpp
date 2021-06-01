@@ -24,6 +24,7 @@ BEGINUSAGE --------------------------------------------------------------
 mri_cor2label 
    --i  input     : vol or surface overlay
    --id labelid   : value to match in the input
+   --thresh thresh   : threshold the input to make label (ie, input>thresh)
    --l  labelfile : name of output file
    --v  volfile   : write label volume in file
    --surf subject hemi <surf> : interpret input as surface overlay
@@ -120,7 +121,7 @@ char *infile;
 char *labelfile;
 char *volfile;
 int  labelid;
-int DoStat;
+int DoStat=0;
 char *hemi, *SUBJECTS_DIR;
 const char *surfname = "white";
 MRI *mri;
@@ -143,7 +144,8 @@ double GetOptThresh(double targetSumVal, MRI *valmap, MRI *pmap, double delta);
 int label_erode = 0 ; // requires surface
 int label_dilate = 0 ;// requires surface
 int RemoveHolesAndIslands = 0;// requires surface
-
+int DoThresh = 0;
+double thresh=0;
 
 /*----------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -228,9 +230,12 @@ int main(int argc, char **argv) {
 
         voxval = MRIgetVoxVal(mri,xi,yi,zi,0);
 
-	if(DoStat == 0){
+	if(DoStat == 0 && DoThresh == 0){
 	  c = (int)voxval;
 	  if(c != labelid) continue;
+	}
+	else if(DoThresh){
+	  if(voxval < thresh) continue;
 	}
 	else {
 	  if(voxval == 0) continue;
@@ -360,6 +365,14 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[1],"%d",&labelid);
       nargs = 2;
     }
+    /* ---- thresh ---------- */
+    else if (!strcmp(option, "--thresh")) {
+      if (nargc < 2) argnerr(option,1);
+      sscanf(pargv[1],"%lf",&thresh);
+      DoThresh = 1;
+      labelid = 1;
+      nargs = 2;
+    }
     /* ---- copy voxel value to stat field ---------- */
     else if (!strcmp(option, "--stat")) {
       DoStat = 1;
@@ -440,6 +453,7 @@ printf("\n");
 printf("mri_cor2label \n");
 printf("   --i  input     : vol or surface overlay\n");
 printf("   --id labelid   : value to match in the input\n");
+printf("   --thresh thresh   : threshold the input to make label (ie, input>thresh) instead of --id\n");
 printf("   --l  labelfile : name of output file\n");
 printf("   --v  volfile   : write label volume in file\n");
 printf("   --surf subject hemi <surf> : interpret input as surface overlay\n");
@@ -529,11 +543,11 @@ static void check_options(void) {
     exit(1);
   }
   if (labelfile == NULL && volfile == NULL) {
-    fprintf(stderr,"ERROR: must be supply a label or volume file\n");
+    fprintf(stderr,"ERROR: must supply a label or volume file\n");
     exit(1);
   }
   if(labelid == -1 && DoStat == 0) {
-    fprintf(stderr,"ERROR: must supply a label id or --stat\n");
+    fprintf(stderr,"ERROR: must supply a label id or --stat or --thresh\n");
     exit(1);
   }
   if(labelid != -1 && DoStat != 0) {
