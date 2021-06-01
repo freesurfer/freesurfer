@@ -492,3 +492,364 @@ void NonlinReg::ApplyXfmInv(vector<float> &OutPoint,
 }
 #endif
 
+//
+// Streamline bundle class
+//
+StreamSet::StreamSet() {
+  mLengthMax = 0;
+  mLengthMin = 0;
+  mLengthAvg = 0;
+
+  mNumSteps = 0;
+
+  mMeanNearestStr = -1;
+}
+
+StreamSet::~StreamSet() {}
+
+//
+// Find the length of each streamline
+//
+void StreamSet::SetLengths(vector< vector<float> > &Streamlines) {
+  unsigned int strsum = 0;
+  vector<unsigned int>::iterator ilen;
+
+  // Find lengths and their mean
+  mLengths.resize(Streamlines.size());
+
+  ilen = mLengths.begin();
+
+  for (vector< vector<float> >::const_iterator istr = Streamlines.begin();
+                                               istr < Streamlines.end();
+                                               istr++) {
+    *ilen = istr->size()/3;
+
+    strsum += (*ilen);
+
+    ilen++;
+  }
+
+  mLengthAvg = round(strsum / (float) Streamlines.size());
+
+  // Find maximum length
+  mLengthMax = *max_element(mLengths.begin(), mLengths.end());
+
+  // Find minimum length
+  mLengthMin = *min_element(mLengths.begin(), mLengths.end());
+
+  cout << "INFO: Have " << Streamlines.size()
+       << " total streamlines with min/mean/max length: "
+       << mLengthMin << "/" << round(mLengthAvg) << "/" << mLengthMax << endl;
+}
+
+//
+// Set the number of along-streamline steps
+//
+void StreamSet::SetNumSteps(const unsigned int NumSteps) {
+  mNumSteps = NumSteps;
+}
+
+//
+// Set the number of along-streamline steps based on mean streamline length
+//
+unsigned int StreamSet::SetNumStepsAvgLength() {
+  mNumSteps = (unsigned int) mLengthAvg;
+
+  return mNumSteps;
+}
+
+//
+// Set the number of along-streamline steps based on minimum streamline length
+//
+unsigned int StreamSet::SetNumStepsMinLength() {
+  mNumSteps = mLengthMin;
+
+  return mNumSteps;
+}
+
+//
+// Compute the along-streamline step size for each streamline,
+// based on its length and the number of steps
+//
+void StreamSet::ComputeSteps() {
+  const float denom = float(mNumSteps - 1);
+  vector<float>::iterator istep;
+
+  if (mLengths.empty()) {
+    cout << "ERROR: Must set streamline lengths" << endl;
+    exit(1);
+  }
+
+  if (mNumSteps == 0) {
+    cout << "ERROR: Must set number of along-streamline steps" << endl;
+    exit(1);
+  }
+
+  mSteps.resize(mLengths.size());
+
+  istep = mSteps.begin();
+
+  for (vector<unsigned int>::iterator ilen = mLengths.begin();
+                                      ilen < mLengths.end(); ilen++) {
+    *istep = (*ilen - 1) / denom;
+    istep++;
+  }
+}
+
+//
+// Compute mean of streamline coordinates at each step
+//
+void StreamSet::ComputeMeanStreamline(vector< vector<float> > &Streamlines) {
+  const unsigned int nstream = Streamlines.size();
+  vector<float>::const_iterator istep;
+  vector<float>::iterator imean;
+
+  if ( (mLengths.size() != nstream) || (mSteps.size() != nstream) ) {
+    SetLengths(Streamlines);
+    ComputeSteps();
+  }
+
+  mStreamlineMean.resize(mNumSteps * 3);
+  fill(mStreamlineMean.begin(), mStreamlineMean.end(), 0.0);
+
+  istep = mSteps.begin();
+
+  for (vector< vector<float> >::const_iterator istr = Streamlines.begin();
+                                               istr < Streamlines.end();
+                                               istr++) {
+    imean = mStreamlineMean.begin();
+
+    for (unsigned int kpt = 0; kpt < mNumSteps; kpt++) {
+      const unsigned int idx = (unsigned int) round(kpt * (*istep));
+      vector<float>::const_iterator ipt = istr->begin() + idx * 3;
+
+      if (ipt > istr->end() - 3)
+        ipt = istr->end() - 3;
+
+      for (int k = 0; k < 3; k++)
+        imean[k] += (float) ipt[k];
+
+      imean += 3;
+    }
+
+    istep++;
+  }
+
+  for (imean = mStreamlineMean.begin(); imean < mStreamlineMean.end(); imean++)
+    *imean /= nstream;
+}
+
+//
+// Compute mean and standard deviation of streamline coordinates at each step
+//
+void StreamSet::ComputeMeanStdStreamline(vector< vector<float> > &Streamlines) {
+  const unsigned int nstream = Streamlines.size();
+  vector<float>::const_iterator istep;
+  vector<float>::iterator imean, istd;
+
+  if ( (mLengths.size() != nstream) || (mSteps.size() != nstream) ) {
+    SetLengths(Streamlines);
+    ComputeSteps();
+  }
+
+  mStreamlineMean.resize(mNumSteps * 3);
+  fill(mStreamlineMean.begin(), mStreamlineMean.end(), 0.0);
+  mStreamlineStd.resize(mStreamlineMean.size());
+  fill(mStreamlineStd.begin(), mStreamlineStd.end(), 0.0);
+
+  istep = mSteps.begin();
+
+  for (vector< vector<float> >::const_iterator istr = Streamlines.begin();
+                                               istr < Streamlines.end();
+                                               istr++) {
+    imean = mStreamlineMean.begin();
+    istd = mStreamlineStd.begin();
+
+    for (unsigned int kpt = 0; kpt < mNumSteps; kpt++) {
+      const unsigned int idx = (unsigned int) round(kpt * (*istep));
+      vector<float>::const_iterator ipt = istr->begin() + idx * 3;
+
+      if (ipt > istr->end() - 3)
+        ipt = istr->end() - 3;
+
+      for (int k = 0; k < 3; k++) {
+        imean[k] += (float) ipt[k];
+        istd[k]  += (float) ipt[k] * ipt[k];
+      }
+
+      imean += 3;
+      istd += 3;
+    }
+
+    istep++;
+  }
+
+  istd = mStreamlineStd.begin();
+
+  for (imean = mStreamlineMean.begin(); imean < mStreamlineMean.end();
+                                        imean++) {
+    *imean /= nstream;
+
+    if (nstream > 1)
+      *istd = sqrt((*istd - nstream * (*imean) * (*imean)) / (nstream-1));
+    else
+      *istd = 0;
+
+    istd++;
+  }
+}
+
+//
+// Find streamline nearest to the mean 
+// (Excludes streamlines with points that are two standard deviations away
+// from the mean for intermediate points, and one for endpoints)
+//
+unsigned int StreamSet::FindMeanNearestStreamline(vector< vector<float> >
+                                                                 &Streamlines) {
+  const unsigned int nstream = Streamlines.size();
+  unsigned int nstrout;
+  float dmin = numeric_limits<float>::infinity();
+  vector<float> strU, strL;
+  vector<bool>::iterator iout;
+  vector<float>::const_iterator istep, imean, istd;
+  vector<float>::iterator iupper, ilower;
+
+  if ( (mStreamlineMean.size() != mNumSteps * 3) ||
+       (mStreamlineMean.size() != mStreamlineStd.size()) )
+    ComputeMeanStdStreamline(Streamlines);
+
+  // Compute upper and lower limit for flagging a point as an outlier
+  strU.resize(mStreamlineMean.size());
+  strL.resize(mStreamlineMean.size());
+
+  istd = mStreamlineStd.begin();
+  iupper = strU.begin();
+  ilower = strL.begin();
+
+  for (vector<float>::const_iterator imean = mStreamlineMean.begin();
+                                     imean < mStreamlineMean.end(); imean++) {
+    float dout;
+
+    if (imean == mStreamlineMean.begin() || imean == mStreamlineMean.end() - 1)
+      dout = *istd;
+    else
+      dout = 2 * (*istd);
+
+    *iupper = *imean + dout;
+    *ilower = *imean - dout;
+
+    istd++;
+    iupper++;
+    ilower++;
+  }
+
+  // Flag streamlines with at least one outlier point
+  mIsOut.resize(nstream);
+  fill(mIsOut.begin(), mIsOut.end(), false);
+
+  iout = mIsOut.begin();
+  istep = mSteps.begin();
+
+  for (vector< vector<float> >::const_iterator istr = Streamlines.begin();
+                                               istr < Streamlines.end();
+                                               istr++) {
+    iupper = strU.begin();
+    ilower = strL.begin();
+
+    for (unsigned int kpt = 0; kpt < mNumSteps; kpt++) {
+      const unsigned int idx = (unsigned int) round(kpt * (*istep));
+      vector<float>::const_iterator ipt = istr->begin() + idx * 3;
+
+      for (int k = 0; k < 3; k++) {
+        if (*ipt > *iupper || *ipt < *ilower) {
+          *iout = true;
+          break;
+        }
+
+        ipt++;
+        iupper++;
+        ilower++;
+      }
+
+      if (*iout)
+        break;
+    }
+
+    iout++;
+    istep++;
+  }
+
+  nstrout = count(mIsOut.begin(), mIsOut.end(), true);
+
+  cout << "INFO: Found " << nstrout
+       << " streamlines with at least one outlier coordinate" << endl;
+
+ if (nstrout == nstream) {
+    cout << "INFO: Turning off outlier checks" << endl;
+
+    fill(mIsOut.begin(), mIsOut.end(), false);
+  }
+
+  iout = mIsOut.begin();
+  istep = mSteps.begin();
+
+  // Find the non-outlier streamline that is closest to the mean streamline
+  for (vector< vector<float> >::const_iterator istr = Streamlines.begin();
+                                               istr < Streamlines.end();
+                                               istr++) {
+    if (!*iout) {
+      float dist = 0;
+
+      vector<float>::const_iterator imean = mStreamlineMean.begin(),
+                                    istd = mStreamlineStd.begin();
+
+      for (unsigned int kpt = 0; kpt < mNumSteps; kpt++) {
+        const unsigned int idx = (unsigned int) round(kpt * (*istep));
+        vector<float>::const_iterator ipt = istr->begin() + idx * 3;
+
+        const float dx = ipt[0] - imean[0],
+                    dy = ipt[1] - imean[1],
+                    dz = ipt[2] - imean[2];
+
+        dist += sqrt(dx*dx + dy*dy + dz*dz);
+
+        imean += 3;
+        istd += 3;
+      }
+
+      if (dist < dmin) {
+        dmin = dist;
+        mMeanNearestStr = istr - Streamlines.begin();
+      }
+    }
+
+    iout++;
+    istep++;
+  }
+
+  cout << "INFO: Streamline closest to the mean is " << mMeanNearestStr << endl;
+
+  return mMeanNearestStr;
+}
+
+//
+// Get the number of along-streamline steps
+//
+unsigned int StreamSet::GetNumSteps() {
+  return mNumSteps;
+}
+
+//
+// Return pointer to streamline mean
+//
+vector<float>::const_iterator StreamSet::GetStreamlineMean() {
+  return mStreamlineMean.begin();
+}
+
+//
+// Return pointer to streamline standard deviation
+//
+vector<float>::const_iterator StreamSet::GetStreamlineStd() {
+  return mStreamlineStd.begin();
+}
+
