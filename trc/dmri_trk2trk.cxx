@@ -725,9 +725,10 @@ int main(int argc, char **argv) {
       streamlines.erase(streamlines.begin(), streamlines.begin() + kstrmean);
       streamlines.erase(streamlines.begin() + 1, streamlines.end());
 
-      if (!properties.empty())
+      if (!properties.empty()) {
         properties.erase(properties.begin(), properties.begin() + kstrmean);
         properties.erase(properties.begin() + 1, properties.end());
+      }
     }
 
     // Write transformed streamlines to volume
