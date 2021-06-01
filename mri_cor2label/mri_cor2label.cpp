@@ -209,8 +209,8 @@ int main(int argc, char **argv) {
   }
 
   if(DoSurf){
-    printf("Loading %s\n",surfpath);
-    surf = MRISread(tmpstr);
+    printf("Loading surf %s\n",surfpath);
+    surf = MRISread(surfpath);
     if(surf == NULL) exit(1);
     if(nv != surf->nvertices){
       printf("ERROR: dim mismatch between surface (%d) and input (%d)\n",
@@ -404,6 +404,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcmp(option, "--surf-path")) {
       if(nargc < 1) argnerr(option,1);
       strcpy(surfpath,pargv[1]);
+      subject_name = (char *) "";
       DoSurf = 1;
     }
 
@@ -466,6 +467,7 @@ printf("   --thresh thresh   : threshold the input to make label (ie, input>thre
 printf("   --l  labelfile : name of output file\n");
 printf("   --v  volfile   : write label volume in file\n");
 printf("   --surf subject hemi <surf> : interpret input as surface overlay\n");
+printf("   --surf-path surface : specify surface path rather than subject/hemi\n");
 printf("   --opt target delta valmap\n");
 printf("   --remove-holes-islands  : remove holes in label and islands (with --surf only)\n");
 printf("   --dilate ndilations : dilate label (with --surf only)\n");
@@ -563,15 +565,15 @@ static void check_options(void) {
     fprintf(stderr,"ERROR: cannot supply both label id and --stat\n");
     exit(1);
   }
-  if(label_dilate && subject_name == NULL){
+  if(label_dilate && DoSurf == 0){
     printf("ERROR: --dilate requires a surface\n");
     exit(1);
   }
-  if(label_erode && subject_name == NULL){
+  if(label_erode && DoSurf == 0){
     printf("ERROR: --erode requires a surface\n");
     exit(1);
   }
-  if(RemoveHolesAndIslands && subject_name == NULL){
+  if(RemoveHolesAndIslands && DoSurf == 0){
     printf("ERROR: --remove-holes-islands requires a surface\n");
     exit(1);
   }
