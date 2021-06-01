@@ -451,7 +451,7 @@ if($DoSBatch) then
 endif
 
 # Allow editing of filled.mgz
-if(! $?FS_ALLOW_FILLED_EDIT) setenv FS_ALLOW_FILLED_EDIT 0
+if(! $?FS_ALLOW_FILLED_EDIT) setenv FS_ALLOW_FILLED_EDIT 1
 
 goto check_params;
 check_params_return:
