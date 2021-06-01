@@ -351,6 +351,8 @@ public:
 
   bool DeleteCurrent3DRegion();
 
+  void DeleteAll3DRegions();
+
   void Add3DRegionPoint( double* pt );
 
   int GetNumberOf3DRegions()
@@ -363,6 +365,8 @@ public:
   bool SaveAll3DRegions(const QString& fn);
 
   bool Load3DRegions(const QString& fn);
+
+  void Close3DRegion();
 
 public slots:
   virtual void SetModified();

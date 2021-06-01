@@ -71,6 +71,7 @@ static char *long_fname = NULL ;
 
 static LABEL *cortex_label = NULL ;
 static LABEL *fsaverage_label = NULL ;
+MRI *GetThickFromSeg(MRIS *surf, LABEL *label, MRI *vol, double dmax, double ddelta, MRI* thick);
 
 #include "voxlist.h"
 #include "mrinorm.h"
@@ -562,11 +563,28 @@ get_option(int argc, char *argv[]) {
     signed_dist = 1 ;
     fprintf(stderr,  "measuring signed distance between input surface and %s\n", osurf_fname) ;
     nargs = 1 ;
-  } else if (!stricmp(option, "vno")) {
+  } 
+  else if (!stricmp(option, "vno")) {
     Gdiag_no = atoi(argv[2]) ;
     nargs = 1 ;
     fprintf(stderr,  "debugging vertex %d\n", Gdiag_no) ;
-  } else switch (toupper(*option)) {
+  } 
+  else if (!stricmp(option, "thickness-from-seg")) {
+    // surf label seg.mgz dmaxmm (eg, 6) ddeltamm (eg, .01) output.mgz
+    MRIS *surf = MRISread(argv[2]);
+    if(!surf) exit(1);
+    LABEL *mylabel = LabelRead(NULL,argv[3]);
+    if(!mylabel) exit(1);
+    MRI *seg = MRIread(argv[4]);
+    if(!seg) exit(1);
+    double dmax,ddelta;
+    sscanf(argv[5],"%lf",&dmax);
+    sscanf(argv[6],"%lf",&ddelta);
+    MRI *mri2 = GetThickFromSeg(surf, mylabel, seg, dmax, ddelta, NULL);
+    MRIwrite(mri2,argv[7]);
+    exit(0);
+  } 
+  else switch (toupper(*option)) {
   case 'W':
     parms.write_iterations = atoi(argv[2]) ;
     nargs = 1 ;
@@ -625,6 +643,14 @@ print_help(void) {
   fprintf(stderr, "\nvalid options are:\n\n") ;
   fprintf(stderr, "-max <max>\t use <max> to threshold thickness (default=5mm)\n") ;
   fprintf(stderr, "-fill_holes <cortex label> <fsaverage cortex label> fill in thickness in holes in the cortex label\n");
+  printf("\n");
+  printf("-thickness-from-seg surf label seg.mgz dmaxmm (eg, 6) ddeltamm (eg, .01) output.mgz\n");
+  printf("  This is a stand-alone option that allows thickness to be computed from a surface created around\n");
+  printf("  a segmentation by tracing a ray from one side to the other along the normal to the surface.\n");
+  printf("  The calculations are limited to the label. The output is a surface overlay with the values\n");
+  printf("  of the thickness at each vertex in the label. dmax is the maximum distance searched.\n");
+  printf("  ddelta is the step size.\n");
+
   exit(1) ;
 }
 
@@ -672,3 +698,54 @@ fill_thickness_holes(MRI_SURFACE *mris, LABEL *cortex_label, LABEL *fsaverage_la
   return(NO_ERROR) ;
 }
 
+MRI *GetThickFromSeg(MRIS *surf, LABEL *label, MRI *seg, double dmax, double ddelta, MRI* thick)
+{
+  if(thick==NULL){
+    thick = MRIalloc(surf->nvertices, 1, 1, MRI_FLOAT);
+  }
+  printf("GetThickFromLabel(): dmax = %g, ddelta = %g\n",dmax,ddelta);
+
+  MATRIX *CRS, *RAS;
+  CRS = MatrixAlloc(4,1,MATRIX_REAL);
+  CRS->rptr[4][1] = 1;
+  RAS = MatrixAlloc(4,1,MATRIX_REAL);
+  RAS->rptr[4][1] = 1;
+  MATRIX *vox2tkras = MRIxfmCRS2XYZtkreg(seg);
+  MATRIX *tkras2vox = MatrixInverse(vox2tkras,NULL);
+  MatrixFree(&vox2tkras);
+
+  int n;
+  double dsum = 0;
+  if(label){
+    for(n=0; n < label->n_points; n++){
+      int vno = label->lv[n].vno;
+      VERTEX *v;
+      v = &(surf->vertices[vno]);
+      double d;
+      for(d=1; d <= dmax; d += ddelta){
+	RAS->rptr[1][1] = v->x - d*v->nx;
+	RAS->rptr[2][1] = v->y - d*v->ny;
+	RAS->rptr[3][1] = v->z - d*v->nz;
+	CRS = MatrixMultiply(tkras2vox,RAS,CRS);
+	int c,r,s;
+	c = nint(CRS->rptr[1][1]);
+	r = nint(CRS->rptr[2][1]);
+	s = nint(CRS->rptr[3][1]);
+	if(c < 0 || c >= seg->width) continue;
+	if(r < 0 || r >= seg->height) continue;
+	if(s < 0 || s >= seg->depth) continue;
+	double val = MRIgetVoxVal(seg,c,r,s,0);
+	if(val > 0.5){
+	  //hit = 1;
+	  continue;
+	}
+	// val <= 0.5 -- this voxel not a hit
+	break;
+      }
+      MRIsetVoxVal(thick,vno,0,0,0,d);
+      dsum += d;
+    }
+    printf("%g %d   %g\n",dsum,label->n_points,dsum/label->n_points);
+  }
+  return(thick);
+}

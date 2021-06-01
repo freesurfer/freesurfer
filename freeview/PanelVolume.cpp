@@ -1604,10 +1604,11 @@ void PanelVolume::OnShowExistingLabelsOnly(bool b)
 void PanelVolume::OnComboMask(int sel)
 {
   LayerMRI* mask = qobject_cast<LayerMRI*>(ui->comboBoxMask->itemData(sel).value<QObject*>());
-  LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
-  if ( layer )
+  QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
+  foreach (LayerMRI* layer, layers)
   {
-    layer->SetMaskLayer(mask);
+    if (layer != mask)
+      layer->SetMaskLayer(mask);
   }
 }
 

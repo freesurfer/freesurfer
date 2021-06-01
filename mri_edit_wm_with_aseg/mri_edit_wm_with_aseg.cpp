@@ -178,11 +178,7 @@ main(int argc, char *argv[])
       exit(1);
     }
     MRIcopyLabel(mri_old, mri_wm, WM_EDITED_ON_VAL) ;
-    printf("115,126,128 old %g   new %g\n",MRIgetVoxVal(mri_old,115,126,128,0),
-           MRIgetVoxVal(mri_old,115,126,128,0));
     MRIcopyLabel(mri_old, mri_wm, WM_EDITED_OFF_VAL) ;
-    printf("115,126,128 old %g   new %g\n",MRIgetVoxVal(mri_old,115,126,128,0),
-           MRIgetVoxVal(mri_old,115,126,128,0));
     MRIfree(&mri_old) ;
   }
   if (lh_only || rh_only)
