@@ -210,11 +210,12 @@ Blood::Blood(const string TrainTrkFile,
     AllocateHistogram(refvol);
 
     // Read single input streamline file
-    ReadStreamlines(0, TrainTrkFile, 0, 0, 0, 0);
+    ReadStreamlines(string(), TrainTrkFile, string(), string(), 0, string());
   }
   else {
     // Read single input streamline file
-    ReadStreamlines(0, TrainTrkFile, TrainRoi1File, TrainRoi2File, 0, 0);
+    ReadStreamlines(string(), TrainTrkFile, TrainRoi1File, TrainRoi2File,
+                    0, string());
 
     // Allocate space for histograms
     if (!TrainRoi1File.empty())

@@ -21,6 +21,7 @@
  */
 
 #include "vial.h"	// Needs to be included first because of CVS libs
+#include "spline.h"
 #include "TrackIO.h"
 
 #include <stdio.h>
@@ -68,12 +69,15 @@ int main(int argc, char *argv[]) ;
 const char *Progname = "dmri_trk2trk";
 
 bool doMerge = false;
-int doInvXfm = 0, doFill = 0, doMean = 0, doNth = 0, strNum = -1,
-    doEvery = 0, everyNum = -1, lengthMin = -1, lengthMax = -1;
+int doInvXfm = 0, doFill = 0, doMean = 0, doNearMean = 0,
+    doNth = 0, strNum = -1, doEvery = 0, everyNum = -1, doSmooth = 0,
+    lengthMin = -1, lengthMax = -1;
 unsigned int nTract = 0;
 string inDir, outDir, inRefFile, outRefFile, affineXfmFile, nonlinXfmFile;
 vector<string> inTrkList, inAscList, outTrkList, outAscList, outVolList,
+               overList, overnames,
                incMaskList, excMaskList, incTermMaskList, excTermMaskList;
+vector< vector<float> > overvals;
 vector<MRI *>  incMask, excMask, incTermMask, excTermMask;
 
 struct utsname uts;
@@ -86,8 +90,8 @@ int main(int argc, char **argv) {
   int nargs, cputime;
   char outorient[4];
   string fname;
-  vector<float> point(3), step(3, 0);
-  vector< vector<float> > streamlines, properties;
+  vector<float> point(3), fillstep(3, 0);
+  vector< vector<float> > streamlines, overlays, properties;
   MATRIX *outv2r;
   MRI *inref = 0, *outref = 0, *outvol = 0;
   AffineReg affinereg;
@@ -116,19 +120,21 @@ int main(int argc, char **argv) {
 
   dump_options(stdout);
 
-  if (doEvery)
-    strNum = 0;
-
   // Read reference volumes
-  inref = MRIread(inRefFile.c_str());
-  outref = MRIread(outRefFile.c_str());
+  if (!inRefFile.empty())
+    inref = MRIread(inRefFile.c_str());
+
+  if (!outRefFile.empty())
+    outref = MRIread(outRefFile.c_str());
 
   if (!outVolList.empty())
     outvol = MRIclone(outref, NULL);
 
   // Output space orientation information
-  outv2r = MRIgetVoxelToRasXform(outref);
-  MRIdircosToOrientationString(outref, outorient);
+  if (outref) {
+    outv2r = MRIgetVoxelToRasXform(outref);
+    MRIdircosToOrientationString(outref, outorient);
+  }
 
   // Read transform files
   if (!affineXfmFile.empty()) {
@@ -152,6 +158,42 @@ int main(int argc, char **argv) {
       nonlinreg.ReadXfm(nonlinXfmFile, outref);
   }
 #endif
+
+  // Read scalar overlay vectors
+  for (vector<string>::const_iterator iover = overList.begin();
+                                      iover < overList.end(); iover++) {
+    int ndim = 0;
+    vector<float> overlay;
+    MRI *invol = MRIread((*iover).c_str());
+    string oname(*iover);
+
+    // Check dimensions of input overlay volume
+    if (invol->width   > 1)	ndim++;
+    if (invol->height  > 1)	ndim++;
+    if (invol->depth   > 1)	ndim++;
+    if (invol->nframes > 1)	ndim++;
+
+    if (ndim > 1)
+      cout << "WARN: Overlay " << *iover << " has more than one "
+           << "non-singular dimension - treating as vector" << endl;
+
+    // Read overlay values
+    for (int it = 0; it < invol->nframes; it++)
+      for (int iz = 0; iz < invol->depth; iz++)
+        for (int iy = 0; iy < invol->height; iy++)
+          for (int ix = 0; ix < invol->width; ix++)
+            overlay.push_back(MRIgetVoxVal(invol, ix, iy, iz, it));
+
+    overvals.push_back(overlay);
+
+    // Use file name as overlay name
+    if (oname.rfind("/") != string::npos)
+      oname = oname.substr(oname.rfind("/")+1, string::npos);
+
+    overnames.push_back(oname);
+
+    MRIfree(&invol);
+  }
 
   // Read inclusion masks
   for (vector<string>::const_iterator imask = incMaskList.begin();
@@ -184,8 +226,12 @@ int main(int argc, char **argv) {
 
     if (!doMerge) {
       streamlines.clear();
+      overlays.clear();
       properties.clear();
     }
+
+    if (doEvery)
+      strNum = 0;
 
     if (!inTrkList.empty()) {		// Read streamlines from .trk file
       fname = inTrkList[itract];
@@ -200,18 +246,21 @@ int main(int argc, char **argv) {
       }
 
       while (trkreader.GetNextPointCount(&npts)) {
-        const int veclen = npts*3;
-        float *iraw, *rawpts = new float[veclen],
-                     *props = new float [trkheadin.n_properties];
-        vector<float> newpts(veclen), newprops(trkheadin.n_properties);
+        const int veclen  = npts * 3,
+                  overlen = npts * trkheadin.n_scalars;
+        float *iraw, *rawpts  = new float[veclen],
+                     *scalars = new float[overlen],
+                     *props   = new float[trkheadin.n_properties];
+        vector<float> newpts(veclen);
 
         // Read a streamline from input file
-        trkreader.GetNextTrackData(npts, rawpts, NULL, props);
+        trkreader.GetNextTrackData(npts, rawpts, scalars, props);
 
         if ( ((doNth || doEvery) && nstr != strNum) ||
              (lengthMin > -1 && npts <= lengthMin) ||
              (lengthMax > -1 && npts >= lengthMax) ) {
           delete[] rawpts;
+          delete[] scalars;
           delete[] props;
           nstr++;
           continue;
@@ -232,6 +281,16 @@ int main(int argc, char **argv) {
 
         delete[] rawpts;
         streamlines.push_back(newpts);
+
+        // Store scalar overlays of input streamlines
+        if (overlen > 0) {
+          vector<float> newscalars(overlen);
+
+          copy(scalars, scalars+overlen, newscalars.begin());
+
+          delete[] scalars;
+          overlays.push_back(newscalars);
+        }
 
         // Store properties of input streamlines
         if (trkheadin.n_properties > 0) {
@@ -344,7 +403,7 @@ int main(int argc, char **argv) {
           for (int k = 0; k < 3; k++) {
             float dist = ipt[k+3] - ipt[k];
 
-            step[k] = dist;
+            fillstep[k] = dist;
             dist = fabs(dist);
 
             if (dist > dmax)
@@ -353,7 +412,7 @@ int main(int argc, char **argv) {
 
           if (dmax > 0)
             for (int k = 0; k < 3; k++)
-              step[k] /= dmax;
+              fillstep[k] /= dmax;
         }
 
         copy(ipt, ipt+3, point.begin());
@@ -362,7 +421,7 @@ int main(int argc, char **argv) {
           newpts.insert(newpts.end(), point.begin(), point.end());
 
           for (int k = 0; k < 3; k++)
-            point[k] += step[k];
+            point[k] += fillstep[k];
         }
       }
 
@@ -418,6 +477,8 @@ int main(int argc, char **argv) {
 
       if (!dokeep) {
         streamlines.erase(streamlines.begin() + kstr);
+        if (!overlays.empty())
+          overlays.erase(overlays.begin() + kstr);
         if (!properties.empty())
           properties.erase(properties.begin() + kstr);
         continue;
@@ -454,6 +515,8 @@ int main(int argc, char **argv) {
 
       if (!dokeep) {
         streamlines.erase(streamlines.begin() + kstr);
+        if (!overlays.empty())
+          overlays.erase(overlays.begin() + kstr);
         if (!properties.empty())
           properties.erase(properties.begin() + kstr);
         continue;
@@ -499,6 +562,8 @@ int main(int argc, char **argv) {
 
       if (!dokeep) {
         streamlines.erase(streamlines.begin() + kstr);
+        if (!overlays.empty())
+          overlays.erase(overlays.begin() + kstr);
         if (!properties.empty())
           properties.erase(properties.begin() + kstr);
         continue;
@@ -533,201 +598,145 @@ int main(int argc, char **argv) {
 
       if (!dokeep) {
         streamlines.erase(streamlines.begin() + kstr);
+        if (!overlays.empty())
+          overlays.erase(overlays.begin() + kstr);
         if (!properties.empty())
           properties.erase(properties.begin() + kstr);
       }
     }
 
+    // Find mean of streamlines
     if (doMean && !streamlines.empty()) {
-      unsigned int nstr = streamlines.size(), lmin, kmax, nstrout, kstrmean = 0;
-      float dmin = numeric_limits<float>::infinity();
-      vector<bool> isout(nstr);
-      vector<unsigned int> lengths(nstr);
-      vector<float> steps(nstr), strmean, strstd, strU, strL;
-      vector<bool>::iterator iout;
-      vector<unsigned int>::iterator ilen;
-      vector<float>::iterator istep, imean, istd, iupper, ilower;
+      unsigned int nsteps;
+      vector<float>::const_iterator imean0;
+      StreamSet bundle;
 
-      // Find the minimum streamline length
-      ilen = lengths.begin();
+      bundle.SetLengths(streamlines);
+      nsteps = bundle.SetNumStepsAvgLength();
+      bundle.ComputeSteps();
+      bundle.ComputeMeanStreamline(streamlines);
+      imean0 = bundle.GetStreamlineMean();
 
-      for (vector< vector<float> >::const_iterator istr = streamlines.begin();
-                                                   istr < streamlines.end();
-                                                   istr++) {
-        *ilen = istr->size()/3;
-        ilen++;
-      }
+      // Keep only the mean streamline for writing to disk
+      streamlines.clear();
+      streamlines.resize(1);
+      streamlines[0].insert(streamlines[0].begin(), imean0, imean0 + nsteps*3);
 
-      lmin = *min_element(lengths.begin(), lengths.end());
-      kmax = lmin - 1;
+      overlays.clear();
+      properties.clear();
+    }
 
-      // Set the step size for each streamline to have equal number of steps
-      istep = steps.begin();
+    // Find streamline nearest to the mean
+    if (doNearMean && !streamlines.empty()) {
+      unsigned int kstrmean;
+      StreamSet bundle;
 
-      for (ilen = lengths.begin(); ilen < lengths.end(); ilen++) {
-        *istep = (*ilen - 1) / (float) kmax;
-        istep++;
-      }
-
-      lengths.clear();
-
-      // Compute mean and standard deviation of point coordinates at each step
-      strmean.resize(lmin*3);
-      fill(strmean.begin(), strmean.end(), 0.0);
-      strstd.resize(strmean.size());
-      fill(strstd.begin(), strstd.end(), 0.0);
-
-      istep = steps.begin();
-
-      for (vector< vector<float> >::const_iterator istr = streamlines.begin();
-                                                   istr < streamlines.end();
-                                                   istr++) {
-        imean = strmean.begin();
-        istd = strstd.begin();
-
-        for (unsigned int kpt = 0; kpt < kmax; kpt++) {
-          const unsigned int idx = (unsigned int) round(kpt * (*istep));
-          vector<float>::const_iterator ipt = istr->begin() + idx * 3;
-
-          if (ipt > istr->end() - 3)
-            ipt = istr->end() - 3;
-
-          for (int k = 0; k < 3; k++) {
-            imean[k] += (float) ipt[k];
-            istd[k]  += (float) ipt[k] * ipt[k];
-          }
-
-          imean += 3;
-          istd += 3;
-        }
- 
-        istep++;
-      }
-
-      // Compute upper and lower limit for flagging a point as an outlier
-      strU.resize(strmean.size());
-      strL.resize(strmean.size());
-
-      istd = strstd.begin();
-      iupper = strU.begin();
-      ilower = strL.begin();
-
-      for (imean = strmean.begin(); imean < strmean.end(); imean++) {
-        float dout;
-
-        *imean /= nstr;
-
-        if (nstr > 1)
-          *istd = sqrt((*istd - nstr * (*imean) * (*imean)) / (nstr-1));
-        else
-          *istd = 0;
-
-        if (imean == strmean.begin() || imean == strmean.end() - 1)
-          dout = *istd;
-        else
-          dout = 2 * (*istd);
-
-        *iupper = *imean + dout;
-        *ilower = *imean - dout;
-
-        istd++;
-        iupper++;
-        ilower++;
-      }
-
-      // Flag streamlines with at least one outlier point
-      fill(isout.begin(), isout.end(), false);
-
-      iout = isout.begin();
-      istep = steps.begin();
-
-      for (vector< vector<float> >::const_iterator istr = streamlines.begin();
-                                                   istr < streamlines.end();
-                                                   istr++) {
-        iupper = strU.begin();
-        ilower = strL.begin();
-
-        for (unsigned int kpt = 0; kpt < kmax; kpt++) {
-          const unsigned int idx = (unsigned int) round(kpt * (*istep));
-          vector<float>::const_iterator ipt = istr->begin() + idx * 3;
-
-          for (int k = 0; k < 3; k++) {
-            if (*ipt > *iupper || *ipt < *ilower) {
-              *iout = true;
-              break;
-            }
-        
-            ipt++;
-            iupper++;
-            ilower++;
-          }
-
-          if (*iout)
-            break;
-        }
-
-        iout++;
-        istep++;
-      }
-
-      nstrout = count(isout.begin(), isout.end(), true);
-
-      cout << "INFO: Found " << nstrout
-           << " streamlines with at least one outlier coordinate"
-           << endl;
-
-      if (nstrout == nstr) {
-        cout << "INFO: Turning off outlier checks" << endl;
-
-        fill(isout.begin(), isout.end(), false);
-      }
-
-      // Find the non-outlier streamline that is closest to the mean streamline
-      iout = isout.begin();
-      istep = steps.begin();
-
-      for (vector< vector<float> >::const_iterator istr = streamlines.begin();
-                                                   istr < streamlines.end();
-                                                   istr++) {
-        if (!*iout) {
-          float dist = 0;
-
-          imean = strmean.begin();
-          istd = strstd.begin();
-
-          for (unsigned int kpt = 0; kpt < kmax; kpt++) {
-            const unsigned int idx = (unsigned int) round(kpt * (*istep));
-            vector<float>::const_iterator ipt = istr->begin() + idx * 3;
-
-            const float dx = ipt[0] - imean[0],
-                        dy = ipt[1] - imean[1],
-                        dz = ipt[2] - imean[2];
-
-            dist += sqrt(dx*dx + dy*dy + dz*dz);
-
-            imean += 3;
-            istd += 3;
-          }
-
-          if (dist < dmin) {
-            dmin = dist;
-            kstrmean = istr - streamlines.begin();
-          }
-        }
-
-        iout++;
-        istep++;
-      }
-
-      cout << "INFO: Streamline closest to the mean is " << kstrmean << endl;
+      bundle.SetLengths(streamlines);
+      bundle.SetNumStepsMinLength();
+      bundle.ComputeSteps();
+      bundle.ComputeMeanStdStreamline(streamlines);
+      kstrmean = bundle.FindMeanNearestStreamline(streamlines);
 
       // Keep only the chosen streamline for writing to disk
       streamlines.erase(streamlines.begin(), streamlines.begin() + kstrmean);
       streamlines.erase(streamlines.begin() + 1, streamlines.end());
 
+      if (!overlays.empty()) {
+        overlays.erase(overlays.begin(), overlays.begin() + kstrmean);
+        overlays.erase(overlays.begin() + 1, overlays.end());
+      }
+
       if (!properties.empty()) {
         properties.erase(properties.begin(), properties.begin() + kstrmean);
         properties.erase(properties.begin() + 1, properties.end());
+      }
+    }
+
+    // Smooth streamlines (assumes integer coordinates for now)
+    if (doSmooth) {
+      vector<int> strint;
+      vector<float> strsmooth;
+      vector<int>::iterator iptint;
+
+      for (vector< vector<float> >::iterator istr = streamlines.begin();
+                                             istr < streamlines.end(); istr++) {
+        strint.resize(istr->size());
+        strsmooth.resize(istr->size());
+
+        iptint = strint.begin();
+        
+        for (vector<float>::const_iterator ipt = istr->begin();
+                                           ipt < istr->end(); ipt ++) {
+          *iptint = (int) round(*ipt);
+          iptint++;
+        }
+
+        CurveSmooth(strsmooth, strint);
+
+        copy(strsmooth.begin(), strsmooth.end(), istr->begin());
+      }
+    }
+
+    // Assign a scalar overlay value to each point on each streamline
+    if (!overList.empty()) {
+      unsigned int nscalar = overlays.empty() ? 0 :
+                             (unsigned int) trkheadin.n_scalars;
+      vector<float>::const_iterator imean0;
+      StreamSet bundle;
+
+      bundle.SetLengths(streamlines);
+
+      if (overlays.empty())
+        overlays.resize(streamlines.size());
+
+      for (vector< vector<float> >::const_iterator ival = overvals.begin();
+                                                   ival < overvals.end();
+                                                   ival++) {
+        unsigned int nsteps = ival->size();
+
+        // Compute mean streamline with as many points as the overlay vector
+        if (bundle.GetNumSteps() != nsteps) {
+          bundle.SetNumSteps(nsteps);
+          bundle.ComputeSteps();
+          bundle.ComputeMeanStreamline(streamlines);
+          imean0 = bundle.GetStreamlineMean();
+        }
+
+        for (vector< vector<float> >::const_iterator istr = streamlines.begin();
+                                                     istr < streamlines.end();
+                                                     istr++) {
+          for (vector<float>::const_iterator ipt = istr->begin();
+                                             ipt < istr->end(); ipt += 3) {
+            unsigned int knear = 0;
+            float dmin = numeric_limits<float>::infinity();
+            vector<float>::const_iterator imean = imean0;
+            vector<float>::iterator iover_pt;
+            vector< vector<float> >::iterator iover_str;
+
+            // Find nearest point on the mean streamline
+            for (unsigned int k = 0; k < nsteps; k++) {
+              const float dx = ipt[0] - imean[0],
+                          dy = ipt[1] - imean[1],
+                          dz = ipt[2] - imean[2],
+                          dist2 = dx*dx + dy*dy + dz*dz;
+
+              if (dist2 < dmin) {
+                dmin = dist2;
+                knear = k;
+              }
+
+              imean += 3;
+            }
+
+            // Insert the corresponding scalar from the overlay vector
+            iover_str = overlays.begin() + (istr - streamlines.begin());
+            iover_pt = iover_str->begin() + (ipt - istr->begin()) / 3 * nscalar;
+
+            iover_str->insert(iover_pt + nscalar, *(ival->begin() + knear));
+          }
+        }
+
+        nscalar++;
       }
     }
 
@@ -803,7 +812,8 @@ int main(int argc, char **argv) {
     if (!outTrkList.empty()) {
       CTrackWriter trkwriter;
       TRACK_HEADER trkheadout;
-      vector< vector<float> >::iterator iprop = properties.begin();
+      vector< vector<float> >::iterator iover = overlays.begin(),
+                                        iprop = properties.begin();
 
       // Set output .trk header
       if (inTrkList.empty()) {
@@ -816,37 +826,59 @@ int main(int argc, char **argv) {
       else
         trkheadout = trkheadin;
 
-      trkheadout.voxel_size[0] = outref->xsize;
-      trkheadout.voxel_size[1] = outref->ysize;
-      trkheadout.voxel_size[2] = outref->zsize;
+      if (outref) {
+        trkheadout.voxel_size[0] = outref->xsize;
+        trkheadout.voxel_size[1] = outref->ysize;
+        trkheadout.voxel_size[2] = outref->zsize;
 
-      trkheadout.dim[0] = outref->width;
-      trkheadout.dim[1] = outref->height;
-      trkheadout.dim[2] = outref->depth;
+        trkheadout.dim[0] = outref->width;
+        trkheadout.dim[1] = outref->height;
+        trkheadout.dim[2] = outref->depth;
 
-      for (int i = 0; i < 4; i++)
-        for (int j = 0; j < 4; j++)
-          trkheadout.vox_to_ras[i][j] = outv2r->rptr[i+1][j+1];
+        for (int i = 0; i < 4; i++)
+          for (int j = 0; j < 4; j++)
+            trkheadout.vox_to_ras[i][j] = outv2r->rptr[i+1][j+1];
 
-      strcpy(trkheadout.voxel_order, outorient);
+        strcpy(trkheadout.voxel_order, outorient);
 
-      // Find patient-to-scanner coordinate transform:
-      // Take x and y vectors from vox2RAS matrix, convert to LPS,
-      // divide by voxel size
-      trkheadout.image_orientation_patient[0] = 
-        - trkheadout.vox_to_ras[0][0] / trkheadout.voxel_size[0];
-      trkheadout.image_orientation_patient[1] = 
-        - trkheadout.vox_to_ras[1][0] / trkheadout.voxel_size[0];
-      trkheadout.image_orientation_patient[2] = 
-          trkheadout.vox_to_ras[2][0] / trkheadout.voxel_size[0];
-      trkheadout.image_orientation_patient[3] = 
-        - trkheadout.vox_to_ras[0][1] / trkheadout.voxel_size[1];
-      trkheadout.image_orientation_patient[4] = 
-        - trkheadout.vox_to_ras[1][1] / trkheadout.voxel_size[1];
-      trkheadout.image_orientation_patient[5] = 
-          trkheadout.vox_to_ras[2][1] / trkheadout.voxel_size[1];
+        // Find patient-to-scanner coordinate transform:
+        // Take x and y vectors from vox2RAS matrix, convert to LPS,
+        // divide by voxel size
+        trkheadout.image_orientation_patient[0] = 
+          - trkheadout.vox_to_ras[0][0] / trkheadout.voxel_size[0];
+        trkheadout.image_orientation_patient[1] = 
+          - trkheadout.vox_to_ras[1][0] / trkheadout.voxel_size[0];
+        trkheadout.image_orientation_patient[2] = 
+            trkheadout.vox_to_ras[2][0] / trkheadout.voxel_size[0];
+        trkheadout.image_orientation_patient[3] = 
+          - trkheadout.vox_to_ras[0][1] / trkheadout.voxel_size[1];
+        trkheadout.image_orientation_patient[4] = 
+          - trkheadout.vox_to_ras[1][1] / trkheadout.voxel_size[1];
+        trkheadout.image_orientation_patient[5] = 
+            trkheadout.vox_to_ras[2][1] / trkheadout.voxel_size[1];
+      }
 
       trkheadout.n_count = (int) streamlines.size();
+
+      // In case I have cleared the old overlays/properties (if using --mean)
+      if (overlays.empty())
+        trkheadout.n_scalars = 0;
+
+      if (properties.empty())
+        trkheadout.n_properties = 0;
+
+      // Add names of new scalar overlays, if any
+      for (vector<string>::const_iterator iname = overnames.begin();
+                                          iname < overnames.end(); iname++) {
+        if (trkheadout.n_scalars == 20) {
+          cout << "ERROR: Exceeded max number of 20 scalar overlays" << endl;
+          exit(1);
+        }
+
+        strcpy(trkheadout.scalar_name[trkheadout.n_scalars], (*iname).c_str());
+
+        trkheadout.n_scalars++;
+      }
 
       // Open output .trk file
       if (doMerge)
@@ -871,13 +903,30 @@ int main(int argc, char **argv) {
           for (int k = 0; k < 3; k++)
             ipt[k] = (ipt[k] + .5) * trkheadout.voxel_size[k];
 
-        if (properties.empty())
-          trkwriter.WriteNextTrack(istr->size()/3, &(istr->at(0)));
+        if (overlays.empty()) {
+          if (properties.empty())
+            trkwriter.WriteNextTrack(istr->size()/3, &(istr->at(0)));
+          else {
+            // Transfer properties from input to output streamlines
+            trkwriter.WriteNextTrack(istr->size()/3, &(istr->at(0)),
+                                     NULL, &(iprop->at(0)));
+            iprop++;
+          }
+        }
         else {
-          // Transfer properties from input to output streamlines
-          trkwriter.WriteNextTrack(istr->size()/3, &(istr->at(0)),
-                                   NULL, &(iprop->at(0)));
-          iprop++;
+          if (properties.empty()) {
+            // Transfer scalar overlays from input to output streamlines
+            trkwriter.WriteNextTrack(istr->size()/3, &(istr->at(0)),
+                                     &(iover->at(0)), NULL);
+            iover++;
+          }
+          else {
+            // Transfer overlays & properties from input to output streamlines
+            trkwriter.WriteNextTrack(istr->size()/3, &(istr->at(0)),
+                                     &(iover->at(0)), &(iprop->at(0)));
+            iover++;
+            iprop++;
+          }
         }
       }
 
@@ -888,9 +937,12 @@ int main(int argc, char **argv) {
     cout << "Done in " << cputime/1000.0 << " sec." << endl;
   }
 
-  MatrixFree(&outv2r);
-  MRIfree(&inref);
-  MRIfree(&outref);
+  if (inref)
+    MRIfree(&inref);
+  if (outref) {
+    MatrixFree(&outv2r);
+    MRIfree(&outref);
+  }
   if (!outVolList.empty())
     MRIfree(&outvol);
   for (vector<MRI *>::iterator imask = incMask.begin();
@@ -1007,6 +1059,14 @@ static int parse_commandline(int argc, char **argv) {
       doInvXfm = 1;
     else if (!strcasecmp(option, "--fill"))
       doFill = 1;
+    else if (!strcmp(option, "--over")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      nargsused = 0;
+      while (nargsused < nargc && strncmp(pargv[nargsused], "--", 2)) {
+        overList.push_back(pargv[nargsused]);
+        nargsused++;
+      }
+    }
     else if (!strcmp(option, "--imask")) {
       if (nargc < 1) CMDargNErr(option,1);
       nargsused = 0;
@@ -1051,6 +1111,8 @@ static int parse_commandline(int argc, char **argv) {
     }
     else if (!strcasecmp(option, "--mean"))
       doMean = 1;
+    else if (!strcasecmp(option, "--nearmean"))
+      doNearMean = 1;
     else if (!strcasecmp(option, "--nth")) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0], "%d", &strNum);
@@ -1063,6 +1125,8 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = 1;
       doEvery = 1;
     }
+    else if (!strcasecmp(option, "--smooth"))
+      doSmooth = 1;
     else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if (CMDsingleDash(option))
@@ -1099,9 +1163,9 @@ static void print_usage(void)
   << "     Output directory (optional)" << endl
   << "     If specified, names of output .trk files and volumes are relative to this)" << endl
   << "   --inref <file>:" << endl
-  << "     Input reference volume" << endl
+  << "     Input reference volume (needed for --reg/--regnl)" << endl
   << "   --outref <file>:" << endl
-  << "     Output reference volume" << endl
+  << "     Output reference volume (needed for --reg/--regnl/--outvol)" << endl
   << "   --reg <file>:" << endl
   << "     Affine registration file (.lta or .mat), applied first" << endl
   << "   --regnl <file>:" << endl
@@ -1111,6 +1175,8 @@ static void print_usage(void)
   << "   --fill:" << endl
   << "     Fill gaps b/w mapped points by linear interpolation" << endl
   << "     (Default: don't fill)" << endl
+  << "   --over <file> [...]:" << endl
+  << "     Scalar overlay 1D volume(s), applied to all input .trk files" << endl
   << "   --imask <file> [...]:" << endl
   << "     Inclusion mask(s), applied to all input .trk files" << endl
   << "   --emask <file> [...]:" << endl
@@ -1124,11 +1190,15 @@ static void print_usage(void)
   << "   --lmax <num>:" << endl
   << "     Only save streamlines with length smaller than this number" << endl
   << "   --mean:" << endl
-  << "     Only save the mean streamline (Default: save all)" << endl
+  << "     Only save the mean of the streamlines (Default: save all)" << endl
+  << "   --nearmean:" << endl
+  << "     Only save the streamline nearest to the mean (Default: save all)" << endl
   << "   --nth <num>:" << endl
   << "     Only save the n-th (0-based) streamline (Default: save all)" << endl
   << "   --every <num>:" << endl
   << "     Only save every n-th streamline (Default: save all)" << endl
+  << "   --smooth:" << endl
+  << "     Smooth streamlines (default: no)" << endl
   << endl
   << "Other options" << endl
   << "   --debug:     turn on debugging" << endl
@@ -1144,6 +1214,7 @@ static void print_usage(void)
   << "   5. Apply inclusion mask(s)" << endl
   << "   6. Apply exclusion mask(s)" << endl
   << "   7. Find mean streamline" << endl
+  << "   8. Smooth streamline(s)" << endl
   << endl;
 }
 
@@ -1206,12 +1277,19 @@ static void check_options(void) {
          << ") does not match number of input files (" << nTract << ")" << endl;
     exit(1);
   }
-  if (inRefFile.empty()) {
-    cout << "ERROR: must specify input reference volume" << endl;
+  if (inRefFile.empty() && (!affineXfmFile.empty() || !nonlinXfmFile.empty())) {
+    cout << "ERROR: must specify input reference volume when using "
+         << "--reg or --regnl" << endl;
     exit(1);
   }
-  if (outRefFile.empty()) {
-    cout << "ERROR: must specify output reference volume" << endl;
+  if (outRefFile.empty() && (!affineXfmFile.empty() || !nonlinXfmFile.empty()
+                                                    || !outVolList.empty())) {
+    cout << "ERROR: must specify output reference volume when using "
+         << "--reg, --regnl, or --outvol" << endl;
+    exit(1);
+  }
+  if (doMean && doNearMean) {
+    cout << "ERROR: cannot use both --mean and --nearmean" << endl;
     exit(1);
   }
   if (doMean && doNth) {
@@ -1275,6 +1353,13 @@ static void dump_options(FILE *fp) {
       cout << " " << *istr;
     cout << endl;
   }
+  if (!overList.empty()) {
+    cout << "Scalar overlay volumes:";
+    for (vector<string>::const_iterator istr = overList.begin();
+                                        istr < overList.end(); istr++)
+      cout << " " << *istr;
+    cout << endl;
+  }
   if (!incMaskList.empty()) {
     cout << "Inclusion mask volumes:";
     for (vector<string>::const_iterator istr = incMaskList.begin();
@@ -1307,8 +1392,10 @@ static void dump_options(FILE *fp) {
     cout << "Lower length threshold: " << lengthMin << endl;
   if (lengthMax > -1)
     cout << "Upper length threshold: " << lengthMax << endl;
-  cout << "Input reference: " << inRefFile << endl;
-  cout << "Output reference: " << outRefFile << endl;
+  if (!inRefFile.empty())
+    cout << "Input reference: " << inRefFile << endl;
+  if (!outRefFile.empty())
+    cout << "Output reference: " << outRefFile << endl;
   if (!affineXfmFile.empty())
     cout << "Affine registration: " << affineXfmFile << endl;
   if (!nonlinXfmFile.empty())
@@ -1322,8 +1409,12 @@ static void dump_options(FILE *fp) {
     if (doEvery)
       cout << "Keeping every n-th streamline: " << everyNum << endl;
     if (doMean)
-      cout << "Keeping mean streamline" << endl;
+      cout << "Keeping mean of streamlines" << endl;
+    else if (doNearMean)
+      cout << "Keeping the streamline nearest to the mean" << endl;
   }
+  if (doSmooth)
+    cout << "Smoothing streamlines" << endl;
   if (doMerge)
     cout << "Merging multiple inputs into a single output" << endl;
 
