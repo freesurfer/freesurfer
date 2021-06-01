@@ -21,6 +21,7 @@
  */
 
 #include "vial.h"	// Needs to be included first because of CVS libs
+#include "spline.h"
 #include "TrackIO.h"
 
 #include <stdio.h>
@@ -69,7 +70,7 @@ const char *Progname = "dmri_trk2trk";
 
 bool doMerge = false;
 int doInvXfm = 0, doFill = 0, doMean = 0, doNearMean = 0,
-    doNth = 0, strNum = -1, doEvery = 0, everyNum = -1,
+    doNth = 0, strNum = -1, doEvery = 0, everyNum = -1, doSmooth = 0,
     lengthMin = -1, lengthMax = -1;
 unsigned int nTract = 0;
 string inDir, outDir, inRefFile, outRefFile, affineXfmFile, nonlinXfmFile;
@@ -118,9 +119,6 @@ int main(int argc, char **argv) {
   if (checkoptsonly) return(0);
 
   dump_options(stdout);
-
-  if (doEvery)
-    strNum = 0;
 
   // Read reference volumes
   if (!inRefFile.empty())
@@ -654,6 +652,31 @@ int main(int argc, char **argv) {
       }
     }
 
+    // Smooth streamlines (assumes integer coordinates for now)
+    if (doSmooth) {
+      vector<int> strint;
+      vector<float> strsmooth;
+      vector<int>::iterator iptint;
+
+      for (vector< vector<float> >::iterator istr = streamlines.begin();
+                                             istr < streamlines.end(); istr++) {
+        strint.resize(istr->size());
+        strsmooth.resize(istr->size());
+
+        iptint = strint.begin();
+        
+        for (vector<float>::const_iterator ipt = istr->begin();
+                                           ipt < istr->end(); ipt ++) {
+          *iptint = (int) round(*ipt);
+          iptint++;
+        }
+
+        CurveSmooth(strsmooth, strint);
+
+        copy(strsmooth.begin(), strsmooth.end(), istr->begin());
+      }
+    }
+
     // Assign a scalar overlay value to each point on each streamline
     if (!overList.empty()) {
       unsigned int nscalar = overlays.empty() ? 0 :
@@ -834,8 +857,6 @@ int main(int argc, char **argv) {
         trkheadout.image_orientation_patient[5] = 
             trkheadout.vox_to_ras[2][1] / trkheadout.voxel_size[1];
       }
-      else
-        trkheadout = trkheadin;
 
       trkheadout.n_count = (int) streamlines.size();
 
@@ -1104,6 +1125,8 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = 1;
       doEvery = 1;
     }
+    else if (!strcasecmp(option, "--smooth"))
+      doSmooth = 1;
     else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if (CMDsingleDash(option))
@@ -1174,6 +1197,8 @@ static void print_usage(void)
   << "     Only save the n-th (0-based) streamline (Default: save all)" << endl
   << "   --every <num>:" << endl
   << "     Only save every n-th streamline (Default: save all)" << endl
+  << "   --smooth:" << endl
+  << "     Smooth streamlines (default: no)" << endl
   << endl
   << "Other options" << endl
   << "   --debug:     turn on debugging" << endl
@@ -1189,6 +1214,7 @@ static void print_usage(void)
   << "   5. Apply inclusion mask(s)" << endl
   << "   6. Apply exclusion mask(s)" << endl
   << "   7. Find mean streamline" << endl
+  << "   8. Smooth streamline(s)" << endl
   << endl;
 }
 
@@ -1387,6 +1413,8 @@ static void dump_options(FILE *fp) {
     else if (doNearMean)
       cout << "Keeping the streamline nearest to the mean" << endl;
   }
+  if (doSmooth)
+    cout << "Smoothing streamlines" << endl;
   if (doMerge)
     cout << "Merging multiple inputs into a single output" << endl;
 
