@@ -68,8 +68,9 @@ int main(int argc, char *argv[]) ;
 const char *Progname = "dmri_trk2trk";
 
 bool doMerge = false;
-int doInvXfm = 0, doFill = 0, doMean = 0, doNth = 0, strNum = -1,
-    doEvery = 0, everyNum = -1, lengthMin = -1, lengthMax = -1;
+int doInvXfm = 0, doFill = 0, doMean = 0, doNearMean = 0,
+    doNth = 0, strNum = -1, doEvery = 0, everyNum = -1,
+    lengthMin = -1, lengthMax = -1;
 unsigned int nTract = 0;
 string inDir, outDir, inRefFile, outRefFile, affineXfmFile, nonlinXfmFile;
 vector<string> inTrkList, inAscList, outTrkList, outAscList, outVolList,
@@ -598,7 +599,29 @@ int main(int argc, char **argv) {
       }
     }
 
+    // Find mean of streamlines
     if (doMean && !streamlines.empty()) {
+      unsigned int nsteps;
+      vector<float>::const_iterator imean0;
+      StreamSet bundle;
+
+      bundle.SetLengths(streamlines);
+      nsteps = bundle.SetNumStepsAvgLength();
+      bundle.ComputeSteps();
+      bundle.ComputeMeanStreamline(streamlines);
+      imean0 = bundle.GetStreamlineMean();
+
+      // Keep only the mean streamline for writing to disk
+      streamlines.clear();
+      streamlines.resize(1);
+      streamlines[0].insert(streamlines[0].begin(), imean0, imean0 + nsteps*3);
+
+      overlays.clear();
+      properties.clear();
+    }
+
+    // Find streamline nearest to the mean
+    if (doNearMean && !streamlines.empty()) {
       unsigned int kstrmean;
       StreamSet bundle;
 
@@ -625,7 +648,8 @@ int main(int argc, char **argv) {
 
     // Assign a scalar overlay value to each point on each streamline
     if (!overList.empty()) {
-      unsigned int nscalar = (unsigned int) trkheadin.n_scalars;
+      unsigned int nscalar = overlays.empty() ? 0 :
+                             (unsigned int) trkheadin.n_scalars;
       vector<float>::const_iterator imean0;
       StreamSet bundle;
 
@@ -802,6 +826,13 @@ int main(int argc, char **argv) {
           trkheadout.vox_to_ras[2][1] / trkheadout.voxel_size[1];
 
       trkheadout.n_count = (int) streamlines.size();
+
+      // In case I have cleared the old overlays/properties (if using --mean)
+      if (overlays.empty())
+        trkheadout.n_scalars = 0;
+
+      if (properties.empty())
+        trkheadout.n_properties = 0;
 
       // Add names of new scalar overlays, if any
       for (vector<string>::const_iterator iname = overnames.begin();
@@ -1044,6 +1075,8 @@ static int parse_commandline(int argc, char **argv) {
     }
     else if (!strcasecmp(option, "--mean"))
       doMean = 1;
+    else if (!strcasecmp(option, "--nearmean"))
+      doNearMean = 1;
     else if (!strcasecmp(option, "--nth")) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0], "%d", &strNum);
@@ -1119,7 +1152,9 @@ static void print_usage(void)
   << "   --lmax <num>:" << endl
   << "     Only save streamlines with length smaller than this number" << endl
   << "   --mean:" << endl
-  << "     Only save the mean streamline (Default: save all)" << endl
+  << "     Only save the mean of the streamlines (Default: save all)" << endl
+  << "   --nearmean:" << endl
+  << "     Only save the streamline nearest to the mean (Default: save all)" << endl
   << "   --nth <num>:" << endl
   << "     Only save the n-th (0-based) streamline (Default: save all)" << endl
   << "   --every <num>:" << endl
@@ -1207,6 +1242,10 @@ static void check_options(void) {
   }
   if (outRefFile.empty()) {
     cout << "ERROR: must specify output reference volume" << endl;
+    exit(1);
+  }
+  if (doMean && doNearMean) {
+    cout << "ERROR: cannot use both --mean and --nearmean" << endl;
     exit(1);
   }
   if (doMean && doNth) {
@@ -1324,7 +1363,9 @@ static void dump_options(FILE *fp) {
     if (doEvery)
       cout << "Keeping every n-th streamline: " << everyNum << endl;
     if (doMean)
-      cout << "Keeping mean streamline" << endl;
+      cout << "Keeping mean of streamlines" << endl;
+    else if (doNearMean)
+      cout << "Keeping the streamline nearest to the mean" << endl;
   }
   if (doMerge)
     cout << "Merging multiple inputs into a single output" << endl;
