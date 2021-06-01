@@ -130,6 +130,8 @@ LABEL *lb;
 int xi,yi,zi, c, nlabel;
 float x,y,z;
 char *subject_name = NULL;
+int DoSurf = 0;
+char surfpath[2000];
 int doit;
 int synthlabel = 0;
 int verbose = 0;
@@ -203,8 +205,11 @@ int main(int argc, char **argv) {
 
   if(hemi != NULL){
     SUBJECTS_DIR = getenv("SUBJECTS_DIR");
-    sprintf(tmpstr,"%s/%s/surf/%s.%s",SUBJECTS_DIR,subject_name,hemi,surfname);
-    printf("Loading %s\n",tmpstr);
+    sprintf(surfpath,"%s/%s/surf/%s.%s",SUBJECTS_DIR,subject_name,hemi,surfname);
+  }
+
+  if(DoSurf){
+    printf("Loading %s\n",surfpath);
     surf = MRISread(tmpstr);
     if(surf == NULL) exit(1);
     if(nv != surf->nvertices){
@@ -379,9 +384,8 @@ static int parse_commandline(int argc, char **argv) {
       nargs = 1;
     }
 
-    /* ---- label id ---------- */
     else if (!strcmp(option, "--surf")) {
-      if(nargc < 2) argnerr(option,1);
+      if(nargc < 2) argnerr(option,3);
       subject_name = pargv[1];
       hemi = pargv[2];
       nargs = 3;
@@ -389,13 +393,18 @@ static int parse_commandline(int argc, char **argv) {
 	surfname = pargv[3];
 	nargs ++;
       }
+      DoSurf = 1;
     }
-
-    /* ---- label id ---------- */
     else if (!strcmp(option, "--sd")) {
       if(nargc < 2) argnerr(option,1);
       setenv("SUBJECTS_DIR",pargv[1],1);
       nargs = 2;
+    }
+
+    else if (!strcmp(option, "--surf-path")) {
+      if(nargc < 1) argnerr(option,1);
+      strcpy(surfpath,pargv[1]);
+      DoSurf = 1;
     }
 
     /* ---- opt-thresholded label ---------- */
