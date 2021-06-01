@@ -1602,10 +1602,10 @@ else if ($reg == bbr) then
   if (! $#intradof) set intradof = 6
 endif
 
-# Default settings for intra-subject registration
+# Default settings for inter-subject registration
 if (! $#interreg) then
   if   ($doinfant) set interreg = 3
-  if (! $doinfant) set interreg = 2
+  if (! $doinfant) set interreg = 5
 endif
 
 switch ($interreg)
