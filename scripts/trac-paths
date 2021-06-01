@@ -557,6 +557,13 @@ if (! $dolong) then
       endif
 
       foreach pt (1 2)
+        # Skip non-cortical endpoints
+        if ( ($pname =~ *.ar  && $pt == 1) || \
+             ($pname =~ *.atr && $pt == 2) || \
+             ($pname =~ *.cst && $pt == 2) || \
+             ($pname =~ *.fx  && $pt == 1) || \
+             ($pname =~ *.or  && $pt == 1) )	continue
+
         if ( $pname =~ lh.* || ($isinter == 1 && $pt == 2) ) then
           set hemi = lh
         else
@@ -954,6 +961,13 @@ else
         endif
 
         foreach pt (1 2)
+          # Skip non-cortical endpoints
+          if ( ($pname =~ *.ar  && $pt == 1) || \
+               ($pname =~ *.atr && $pt == 2) || \
+               ($pname =~ *.cst && $pt == 2) || \
+               ($pname =~ *.fx  && $pt == 1) || \
+               ($pname =~ *.or  && $pt == 1) )	continue
+
           if ( $pname =~ lh.* || ($isinter == 1 && $pt == 2) ) then
             set hemi = lh
           else

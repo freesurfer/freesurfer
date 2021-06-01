@@ -86,5 +86,31 @@ class NonlinReg {
 };
 #endif
 
+class StreamSet {
+  public:
+    StreamSet();
+    ~StreamSet();
+    void SetLengths(std::vector< std::vector<float> > &Streamlines);
+    void SetNumSteps(const unsigned int NumSteps);
+    unsigned int SetNumStepsAvgLength();
+    unsigned int SetNumStepsMinLength();
+    void ComputeSteps();
+    void ComputeMeanStreamline(std::vector< std::vector<float> > &Streamlines);
+    void ComputeMeanStdStreamline(std::vector< std::vector<float> >
+                                                                 &Streamlines);
+    unsigned int FindMeanNearestStreamline(std::vector< std::vector<float> >
+                                                                 &Streamlines);
+    unsigned int GetNumSteps();
+    std::vector<float>::const_iterator GetStreamlineMean();
+    std::vector<float>::const_iterator GetStreamlineStd();
+
+  private:
+    unsigned int mLengthMax, mLengthMin, mNumSteps, mMeanNearestStr;
+    float mLengthAvg;
+    std::vector<bool> mIsOut;
+    std::vector<unsigned int> mLengths;
+    std::vector<float> mSteps, mStreamlineMean, mStreamlineStd;
+};
+
 #endif
 
