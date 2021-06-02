@@ -1371,6 +1371,13 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
   if ( parser->Found("quit"))
     AddScript(QStringList("quit") );
 
+  QFileInfo fi("/tmp");
+  if (!fi.isWritable())
+  {
+    m_sSyncFilePath = QFileInfo(QStandardPaths::locate(QStandardPaths::HomeLocation, "", QStandardPaths::LocateDirectory),
+                                ".freeview_coord_sync").absoluteFilePath();
+  }
+
   if (parser->Found("sync", &sa))
   {
     if (sa.size() > 0)
@@ -1383,6 +1390,7 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
     QFile file(m_sSyncFilePath);
     file.remove();
   }
+
   if (!QFile::exists(m_sSyncFilePath))
   {
     QFile file(m_sSyncFilePath);
@@ -9390,6 +9398,9 @@ void MainWindow::CommandLinkVolume(const QStringList &cmd)
 
 void MainWindow::OnSyncInstances(bool bChecked)
 {
+  if (!QFileInfo(m_sSyncFilePath).isWritable())
+    return;
+
   if (bChecked)
   {
     m_syncFileWatcher->addPath(m_sSyncFilePath);
