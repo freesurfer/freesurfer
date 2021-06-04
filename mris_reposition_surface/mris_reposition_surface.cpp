@@ -105,7 +105,11 @@ int main(int argc, char **argv)
     for (auto it = points.begin(); it != points.end(); it++) {
       PointSet::Point p = *it;
       int vno = MHTfindClosestVertexNoXYZ(hash, surf, p.x, p.y, p.z, &distance);
-      if (vno < 0) fs::fatal() << "failed to find closest vertex";
+      if (vno < 0){
+	printf("Failed to find closest vertex in hash, using brute force\n");
+	vno = MRISfindClosestVertex(surf, p.x, p.y, p.z, &distance, CURRENT_VERTICES);
+	//fs::fatal() << "failed to find closest vertex";
+      }
       MRISrepositionSurfaceToCoordinate(surf, mri, vno, p.x, p.y, p.z, nsize, sigma, 0);
     }
     MRIScomputeNormals(surf);
