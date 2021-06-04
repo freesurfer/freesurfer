@@ -40,6 +40,10 @@
 #include <unistd.h>
 #include <vector>
 #include <random>
+#include <iostream>
+#include <string>
+#include <sstream>
+#include <iterator>
 
 /* This should be in ctype.h, but the compiler complains */
 #ifndef Darwin
@@ -1309,43 +1313,20 @@ int CountItemsInString(const char *str)
   ------------------------------------------------------------------*/
 char *GetNthItemFromString(const char *str, int nth)
 {
-  char *item;
-  int nitems, n;
-  static char fmt[2000], tmpstr[2000];
+  std::istringstream iss(str);
+  std::vector<std::string> tokens{
+    std::istream_iterator<std::string>{iss},
+    std::istream_iterator<std::string>{}};
 
-  memset(fmt, '\0', 2000);
-  memset(tmpstr, '\0', 2000);
+  if (nth < 0) nth = tokens.size() - 1;
 
-  nitems = CountItemsInString(str);
-  if (nth < 0) nth = nitems - 1;
-  if (nth >= nitems) {
-    printf("ERROR: asking for item %d, only %d items in string\n", nth, nitems);
-    printf("%s\n", str);
-    return (NULL);
+  if (nth >= tokens.size()) {
+    fs::error() << "asking for item " << nth << ", but " << tokens.size() << " items in string";
+    return nullptr;
   }
 
-#if GCC_VERSION > 80000
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wrestrict"
-#endif
-  for (n = 0; n < nth; n++) {
-    int req = snprintf(fmt, 2000, "%s %%*s", fmt);
-    if( req >= 2000 ) {
-      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
-    }
-  }
-  int req = snprintf(fmt, 2000, "%s %%s", fmt);
-  if( req >= 2000 ) {
-    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
-  }
-#if GCC_VERSION > 80000
-#pragma GCC diagnostic pop
-#endif
-  // printf("fmt %s\n",fmt);
-  sscanf(str, fmt, tmpstr);
-
-  item = strcpyalloc(tmpstr);
-  return (item);
+  char *item = strcpyalloc(tokens[nth].c_str());
+  return item;
 }
 
 /*---------------------------------------------------------------------------
