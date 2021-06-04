@@ -126,7 +126,7 @@ set intercost = ()
 set intertrg = ()
 set segname = aparc+aseg
 set gmgrow = ()
-set usethalnuc = 0
+set usethalnuc = 1
 set usemaskanat = 1
 set thrbet = 0.3
 set baselist = ()
@@ -1678,7 +1678,7 @@ if ($doinfant) then
   if (! $#gmgrow)    set gmgrow = 1
   if (! $#pmin)      set pmin = .1
 else
-  if (! $#trainfile) set trainfile = $FREESURFER_HOME/trctrain/trainlist.txt
+  if (! $#trainfile) set trainfile = $FREESURFER_HOME/trctrain/hcp/trainlist.txt
   if (! $#gmgrow)    set gmgrow = 2
   if (! $#pmin && ! $#baselist) set pmin = .2
   if (! $#pmin &&   $#baselist) set pmin = .02
