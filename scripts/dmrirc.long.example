@@ -2,7 +2,7 @@
 # dmrirc.long.example
 #
 # This example sets up a TRACULA analysis for a longitudinal study where
-# there is a single diffusion scan for each subject. 
+# there is a single diffusion scan per visit. 
 # - If you have multiple diffusion scans per session, see *.multiscan.*example
 # - If you have only one cross-sectional scan per subject, see dmrirc.example
 #
@@ -186,6 +186,24 @@ set interreg = 5
 #   $FREESURFER_HOME/trctrain/hcp/MGH35_HCP_FA_template.nii.gz
 #
 set intertrg = /path/to/a/duck/template.nii.gz
+
+# Whole-brain segmentation used to extract the anatomical neighborhood priors
+# of the pathways of interest
+# Must exist in each subject's FreeSurfer recon directory, under:
+#   $SUBJECTS_DIR/$subjid/mri/$segname.mgz
+# Default: aparc+aseg
+#
+set segname = aparc+aseg
+
+# Use the thalamic nuclei segmentation?
+# This is highly recommended to use for any pathways that terminate in
+# or neighbor the thalamus
+# When used, it is merged with the whole-brain segmentation above
+# Must exist in each subject's FreeSurfer recon directory, under:
+#   $SUBJECTS_DIR/$subjid/mri/ThalamicNuclei.v12.T1.FSvoxelSpace.mgz
+# Default: 1 (yes)
+#
+set usethalnuc = 1
 
 # Use brain mask extracted from T1 image instead of low-b diffusion image?
 # Has no effect if there is no T1 data
