@@ -1,40 +1,151 @@
 #!/usr/bin/env python3
 
 import os
+import sys
 import numpy as np
 import nibabel as nib
 import argparse
 import freesurfer as fs
+import tempfile
 
 from freesurfer import samseg
 
 eps = np.finfo(float).eps
 
-#parser = fs.utils.ArgumentParser()
-#parser.add_argument('--subjects-dir', metavar='DIR', help='Directory with saved SAMSEG runs with --history flag.', required=True)
-#parser.add_argument('--mesh-collections', nargs='+', metavar='FILE', help='Mesh collection file(s).', required=True)
-#parser.add_argument('--out-dir', help='Output directory.', required=True)
-#parser.add_argument('--showfigs', action='store_true', default=False, help='Show figures during run.')
-#args = parser.parse_args()
-
-
-subjects_dir = '/home/paul/lcn/20210426-ds001420-samseg-recon/fs-sub'
-# This needs to be the same atla used when running the dataset
-mesh_collections = ['/opt/freesurfer-20210513-fs-infant-dev-merge/average/samseg/20Subjects_smoothing2_down2_smoothingForAffine2/atlas_level1.txt.gz', '/opt/freesurfer-20210513-fs-infant-dev-merge/average/samseg/20Subjects_smoothing2_down2_smoothingForAffine2/atlas_level2.txt.gz']
-out_dir = '/tmp/out'
-showfigs = False
-
+parser = fs.utils.ArgumentParser()
+parser.add_argument(
+  '--subjects-dir', 
+  metavar='DIR', 
+  help='Directory with saved SAMSEG runs with --history and --save-posteriors flags (defaults to $SUBJECTS_DIR).', 
+  required=False)
+# --atlas should be one of:
+#  - 20Subjects_smoothing2_down2_smoothingForAffine2
+#  - 20Subjects_smoothing2_down2_smoothingForAffine2_lesion
+#  - 20Subjects_smoothing2_down2_smoothingForAffine2_lesion_wm_prior
+# Or whatever is returned when running
+# `find $FREESURFER_HOME/average/samseg/ -type d -maxdepth 1|sed 's/.*samseg\///'`
+# --atlas also needs to match the atlas used when running the subjects in --subjects-dir; 
+parser.add_argument(
+  '--atlas', 
+  help='The atlas used when samseg was run (default: 20Subjects_smoothing2_down2_smoothingForAffine2)', 
+  default='20Subjects_smoothing2_down2_smoothingForAffine2')
+parser.add_argument(
+  '--out-dir',
+  metavar='DIR',  
+  help='Output directory (will create a temp dir if not specified)', 
+  default='.')
 # After running a dataset through samseg with `--save-posteriors`, find a list of 
 # valid lables using:
 #   `ls -1 $SUBJECTS_DIR/$SUB/mri/samseg/posteriors |sed 's/.mgz//'
-# From Doug: For the cortex project, we'll need at least cortex (lh and rh) and wm (lh and rh), and maybe lateral ventricles (lh and rh).
-label_set = ['Left-Cerebral-Cortex', 'Left-Cerebral-White-Matter', 'Left-Lateral-Ventricle', 'Right-Cerebral-Cortex', 'Right-Cerebral-White-Matter', 'Right-Lateral-Ventricle']
+parser.add_argument(
+  '--label-set',
+  nargs='+',
+  help='The label set to consider when recomputing (defaults to the full label set).'
+)
+parser.add_argument('--showfigs', action='store_true', default=False, help='Show figures during run.')
+args = parser.parse_args()
 
-numberOfLabels = len(label_set)
+# Sanity Check Args
+if args.subjects_dir is not None:
+  subjects_dir = args.subjects_dir
+else:
+  subjects_dir = os.environ['SUBJECTS_DIR']
+if subjects_dir is None:
+  sys.exit("The flag --subjects-dir was not specified and the env var $SUBJECTS_DIR is not set")
+if not os.path.isdir(subjects_dir):
+  sys.exit("Invalid subjects_dir: "+subjects_dir)
 
+fshome_dir = os.environ['FREESURFER_HOME']
+if fshome_dir is None:
+  sys.exit("The env var $FREESURFER_HOME is not set")
+if not os.path.isdir(fshome_dir):
+  sys.exit("Invalid $FREESURFER_HOME env var: "+fshome_dir)
+
+atlas_dir = os.path.join(fshome_dir, 'average/samseg', args.atlas)
+if not os.path.isdir(atlas_dir):
+  sys.exit("Can't find samseg atlas dir: "+atlas_dir)
+
+mesh_collections = [os.path.join(atlas_dir, 'atlas_level1.txt.gz'),
+                    os.path.join(atlas_dir, 'atlas_level2.txt.gz')]
+for mesh_file in mesh_collections:
+  if not os.path.isfile(mesh_file):
+    sys.exit("Can't find samseg mesh file: "+mesh_file)
+
+out_dir = args.out_dir
 if not os.path.exists(out_dir):
+    print("Creating Output Directory: "+  out_dir)
     os.makedirs(out_dir)
 
+if args.label_set is not None:
+  label_set = args.label_set
+else:
+  label_set = [
+    '3rd-Ventricle',
+    '4th-Ventricle',
+    '5th-Ventricle',
+    'Brain-Stem',
+    'CSF',
+    'Fluid_Inside_Eyes',
+    'Left-Accumbens-area',
+    'Left-Amygdala',
+    'Left-Caudate',
+    'Left-Cerebellum-Cortex',
+    'Left-Cerebellum-White-Matter',
+    'Left-Cerebral-Cortex',
+    'Left-Cerebral-White-Matter',
+    'Left-choroid-plexus',
+    'Left-Hippocampus',
+    'Left-Inf-Lat-Vent',
+    'Left-Lateral-Ventricle',
+    'Left-Pallidum',
+    'Left-Putamen',
+    'Left-Thalamus',
+    'Left-VentralDC',
+    'Left-vessel',
+    'non-WM-hypointensities',
+    'Optic-Chiasm',
+    'Right-Accumbens-area',
+    'Right-Amygdala',
+    'Right-Caudate',
+    'Right-Cerebellum-Cortex',
+    'Right-Cerebellum-White-Matter',
+    'Right-Cerebral-Cortex',
+    'Right-Cerebral-White-Matter',
+    'Right-choroid-plexus',
+    'Right-Hippocampus',
+    'Right-Inf-Lat-Vent',
+    'Right-Lateral-Ventricle',
+    'Right-Pallidum',
+    'Right-Putamen',
+    'Right-Thalamus',
+    'Right-VentralDC',
+    'Right-vessel',
+    'Skull',
+    'Soft_Nonbrain_Tissue',
+    'Unknown',
+    'WM-hypointensities']
+
+showfigs = args.showfigs
+
+
+# From Doug: For the cortex project, we'll need at least cortex (lh and rh) and wm (lh and rh), and maybe lateral ventricles (lh and rh).
+#label_set = ['Left-Cerebral-Cortex', 'Left-Cerebral-White-Matter', 'Left-Lateral-Ventricle', 'Right-Cerebral-Cortex', 'Right-Cerebral-White-Matter', 'Right-Lateral-Ventricle']
+
+subjectList = [ pathname for pathname in os.listdir(subjects_dir) \
+                  if os.path.isdir(os.path.join(subjects_dir, pathname)) ]
+numberOfSubjects = len(subjectList)
+numberOfLabels = len(label_set)
+print('Number of subjects: ' + str(numberOfSubjects))
+print('Number of labels:   ' + str(numberOfLabels))
+
+# Sweep through all subjects and labels and ensure all the files we need can
+# be found
+for subject in subjectList:
+  for label in label_set:
+    filename = os.path.join(subjects_dir, subject, 'mri/samseg/posteriors', label+'.mgz')
+    if not os.path.isfile(filename):
+      sys.exit("Can't find the file: "+filename)
+    
 if showfigs:
     visualizer = samseg.initVisualizer(True, True)
 else:
@@ -44,14 +155,7 @@ else:
 # to call instance methods
 atlas = samseg.ProbabilisticAtlas()
 
-subjectList = [ pathname for pathname in os.listdir(subjects_dir) \
-                  if os.path.isdir(os.path.join(subjects_dir, pathname)) ]
-numberOfSubjects = len(subjectList)
-
-for level, meshCollectionFile in enumerate(mesh_collections):
-    ## DEBUG
-    if level > 1: break
-    
+for level, meshCollectionFile in enumerate(mesh_collections):    
     print("Working on mesh collection at level " + str(level + 1))
 
     # Read mesh collection
@@ -63,9 +167,7 @@ for level, meshCollectionFile in enumerate(mesh_collections):
     mesh = meshCollection.reference_mesh
     numberOfNodes = mesh.point_count
 
-    print('Number of subjects: ' + str(len(subjectList)))
-
-    # Define what we are interesting in, i.e., the label statistics of lesion
+    # Define what we are interested in, i.e., the label statistics of lesion
     labelStatisticsInMeshNodes = np.zeros([numberOfNodes, numberOfLabels, numberOfSubjects])
 
     for subjectNumber, subjectDir in enumerate(subjectList):
@@ -79,28 +181,34 @@ for level, meshCollectionFile in enumerate(mesh_collections):
         deformations = history['historyWithinEachMultiResolutionLevel'][level]['deformation']
         deformationAtlasFileName = history['historyWithinEachMultiResolutionLevel'][level]['deformationAtlasFileName']
         cropping = history['cropping']
-                
+ 
+        nodePositions = atlas.getMesh(
+          meshCollectionFile,
+          transform,
+          K=modelSpecifications.K,
+          initialDeformation=deformations,
+          initialDeformationMeshCollectionFileName=meshCollectionFile
+        ).points
+        # The image is cropped as well so the voxel coordinates
+        # do not exactly match with the original image,
+        # i.e., there's a shift. Let's undo that.            
+        nodePositions += [slc.start for slc in cropping]     
+
+        # Loop through the mri/samseg/posteriors and load each volume in label_set
+        # into the numpy array `subject_posteriorMap_float`                        
         for label_num, label_name in enumerate(label_set):
             print('Loading labal:', label_name)
-            posterior_filename = os.path.join(subjects_dir, subjectDir, 'mri/samseg/posteriors', label_name+'.mgz')
+            posterior_filename = os.path.join(
+              subjects_dir, subjectDir, 
+              'mri/samseg/posteriors', 
+              label_name+'.mgz')
             probImage = nib.load(posterior_filename).get_fdata()                      
-            nodePositions = atlas.getMesh(
-              meshCollectionFile,
-              transform,
-              K=modelSpecifications.K,
-              initialDeformation=deformations,
-              initialDeformationMeshCollectionFileName=meshCollectionFile
-            ).points
             # init np array
             if label_num == 0:
-                subject_posteriorMap_float = np.zeros([probImage.shape[0], probImage.shape[1], probImage.shape[2], numberOfLabels], np.float)
-            
+                subject_posteriorMap_float = np.zeros(
+                  [probImage.shape[0], probImage.shape[1], probImage.shape[2], numberOfLabels], 
+                  np.float)
             subject_posteriorMap_float[:,:,:,label_num] = probImage
-            # The image is cropped as well so the voxel coordinates
-            # do not exactly match with the original image,
-            # i.e., there's a shift. Let's undo that.            
-            nodePositions += [slc.start for slc in cropping]
-
         # subject_posteriorMap_float is now fully loaded, noramlize so it sums to 1 across the label dimension
         # TODO
     
