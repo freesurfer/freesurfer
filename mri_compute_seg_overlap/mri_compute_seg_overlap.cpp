@@ -35,6 +35,9 @@
 #include "fio.h"
 #include "version.h"
 #include "cma.h"
+#include "colortab.h"
+
+
 
 static int do_cortex = 1 ;
 static int do_wm = 1 ;
@@ -474,6 +477,34 @@ static int get_option(int argc, char *argv[])
     ctab = CTABreadASCII(tmpstr);
     printf("Using ctab %s\n",tmpstr);
   }
+  else if (!stricmp(option, "dice")){
+    // Stand-alone method to compute dice. Has  more flexibility
+    // 7: seg1 seg2 ctab ReportEmpty01 ExcludeId datfile tablefile
+    // seg1 - first segmentation (for fdr and tdr, this is ground truth)
+    // seg2 - second segmentation (for fdr and tdr, this is the test seg)
+    // ctab - color table of segmentations to report on
+    // ReportEmpty - 0=do not report segs that are empty in both, 1=report 
+    // ExcludeId - exclude this seg (eg, 0 to exclude Unknown)
+    // datfile - save the dice for each seg on a single line without anymore info
+    // tablefile - save as a table with each seg on a row followed by 
+    //   count1 count2 dice fdr tdr
+    SegDice sd;
+    sd.seg1 = MRIread(argv[2]);
+    if(sd.seg1==NULL) exit(1);
+    sd.seg2 = MRIread(argv[3]);
+    if(sd.seg2==NULL) exit(1);
+    sd.ctab = CTABreadASCII(argv[4]);
+    if(sd.ctab==NULL) exit(1);
+    sscanf(argv[5],"%d",&sd.ReportEmpty);
+    int ExcludeId;
+    sscanf(argv[6],"%d",&ExcludeId);
+    sd.excludelist.push_back(ExcludeId);
+    int err = sd.ComputeDice();
+    if(err) exit(err);
+    sd.WriteDiceDat(argv[7]);
+    sd.WriteDiceTable(argv[8]);
+    exit(0);
+  }
   else if (!stricmp(option, "slog"))
   {
     slog_fname = argv[2];
@@ -508,5 +539,3 @@ static int get_option(int argc, char *argv[])
   return(nargs) ;
 }
 
-
-/*  EOF  */
