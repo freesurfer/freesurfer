@@ -71,9 +71,10 @@ void LayerTreeWidget::drawRow( QPainter * painter, const QStyleOptionViewItem & 
   if (item)
       item->setData(0, Qt::UserRole+10, rc);
 
-  if ( layer && layer->IsLocked())
+  bool bClickToLock = MainWindow::GetMainWindow()->GetSetting("ClickToLock").toBool();
+  if ( layer && (layer->IsLocked() || bClickToLock))
   {
-    QImage img(":resource/icons/volume_lock.png");
+    QImage img(layer->IsLocked()?":resource/icons/volume_lock.png":":resource/icons/volume_unlock.png");
     int nsize = qMin(16, rc.height());
     painter->drawImage( rc.topLeft(),
                         img.scaled( nsize, nsize, Qt::KeepAspectRatio, Qt::SmoothTransformation) );
