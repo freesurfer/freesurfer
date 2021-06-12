@@ -613,6 +613,9 @@ if (! $dolong) then
           if ($status) goto error_exit
         endif
 
+        set nvert = `$cmd | grep "in range" | awk '{print $2}'`
+        if ($nvert == 0)	continue
+
         set cmd = mri_cor2label
         set cmd = ($cmd --i $outdir/$pathpre/end$pt.surf.bin.mgz)
         set cmd = ($cmd --id 1)
@@ -926,6 +929,7 @@ else
 
     foreach subj_t ($tplist)
       set dwidir_t = $dtroot/$subj_t/dmri
+      set xfmdir_t = $dwidir_t/xfms
       set outdir_t = $dtroot/$subj_t/$outdir
 
       foreach pathname ($pathlist)
@@ -983,7 +987,7 @@ else
           # Project from volume in DWI space to surface in structural space
           set cmd = mri_vol2surf
           set cmd = ($cmd --mov $pathdir/endpt$pt.pd.nii.gz)
-          set cmd = ($cmd --reg $xfmdir/diff2anatorig.$reg.lta)
+          set cmd = ($cmd --reg $xfmdir_t/diff2anatorig.$reg.lta)
           set cmd = ($cmd --srcsubject $subj_t)
           set cmd = ($cmd --hemi $hemi)
           set cmd = ($cmd --projdist-avg $projmin $projmax $dproj)
@@ -1016,6 +1020,9 @@ else
             $cmd |& tee -a $LF
             if ($status) goto error_exit
           endif
+
+          set nvert = `$cmd | grep "in range" | awk '{print $2}'`
+          if ($nvert == 0)	continue
 
           set cmd = mri_cor2label
           set cmd = ($cmd --i $pathdir/end$pt.surf.bin.mgz)
