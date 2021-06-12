@@ -706,4 +706,22 @@ MRI **MRIdilateSegWithinTT(MRI *seg, int nDils, COLOR_TABLE *ct, MRI **r);
 SEGSTAT *Seg2NbrNonBrain(MRI *seg, COLOR_TABLE *ctab, double threshmm);
 int Seg2NbrNonBrainWrapper(char *subject, char *segname, COLOR_TABLE *ctab, char *statname, double threshmm);
 
+class SegDice {
+public:
+  MRI *seg1=NULL, *seg2=NULL; // for TPR and FDR, seg1=true, seg2=test
+  COLOR_TABLE *ctab=NULL;
+  std::vector<int> seglist;
+  char *seg1file=NULL, *seg2file=NULL;
+  std::vector<double> dice, tpr, fdr;
+  std::vector<int> count1, count2, count12, countFD;
+  std::vector<int> excludelist;
+  int ReportEmpty = 0;
+  int Ctab2SegList();
+  int ComputeDice();
+  int PrintDiceDat(FILE *fp);
+  int WriteDiceDat(char *fname);
+  int PrintDiceTable(FILE *fp);
+  int WriteDiceTable(char *fname);
+};
+
 #endif

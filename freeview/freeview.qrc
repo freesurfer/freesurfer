@@ -135,5 +135,6 @@
         <file>resource/icons/annot_save_as.png</file>
         <file>resource/DSI_mesh_181.dat</file>
         <file>resource/DSI_vectors_181.dat</file>
+        <file>resource/icons/volume_unlock.png</file>
     </qresource>
 </RCC>

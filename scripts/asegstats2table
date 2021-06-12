@@ -190,6 +190,7 @@ def options_parse():
     parser.add_option('-v', '--debug', action='store_true', dest='verboseflag',
                       default=False, help=h_v)
     parser.add_option('','--scale', action='store', dest='scale', type='float', help=h_scale)
+    parser.add_option('--replace53', action='store_true', dest='replace53',help='replace 5.3 structure names with later names')
 
     (options, args) = parser.parse_args()
 
@@ -564,6 +565,21 @@ if __name__ == "__main__":
             if options.vol_extras is not True:
                 parsed.include_vol_extras = 0
             id_name_map, measurelist = parsed.parse(options.meas)
+            if(options.replace53):
+                list53 = {
+                    'Left-Thalamus-Proper':'Left-Thalamus',
+                    'Right-Thalamus-Proper':'Right-Thalamus',
+                    'CorticalWhiteMatterVol':'CerebralWhiteMatterVol',
+                    'lhCorticalWhiteMatterVol':'lhCerebralWhiteMatterVol',
+                    'rhCorticalWhiteMatterVol':'rhCerebralWhiteMatterVol'};
+                for str53, strnew in list53.items():
+                    keylist = list(id_name_map.keys()); # Seg numbers
+                    vallist = list(id_name_map.values()); # Seg names
+                    if str53 not in vallist: continue
+                    k = vallist.index(str53);
+                    vallist[k] = strnew;
+                    zipiterator = zip(keylist,vallist);
+                    id_name_map = fsutils.StableDict(zipiterator);
             l.debug('-- Parsed Ids, Names --')
             l.debug(id_name_map)
             l.debug('-- Measures --')
