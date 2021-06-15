@@ -590,18 +590,25 @@ if($DoSurfs) then
   end
 endif
 
-if(! -e $reg && ! $regheader) then
-  echo "ERROR: $reg does not exist. Spec a reg that does or use --regheader"
-  exit 1;
+if(! $DoTal) then
+  if($#reg == 0) then
+    echo "ERROR: must spec --reg"
+    exit 1;
+  endif
+  if(! $regheader) then
+    if(! -e $reg) then
+      echo "ERROR: $reg does not exist. Spec a reg that does or use --regheader"
+      exit 1;
+    endif
+  endif
+  if($regheader && $#reg ) then
+    if(-e $reg) then
+      echo "ERROR: --regheader requested, but registration file $reg exists"
+      echo "  delete it or change the passed registration file"
+      exit 1;
+    endif
+  endif
 endif
-
-if(-e $reg && $regheader) then
-  echo "ERROR: --regheader requested, but registration file $reg exists"
-  echo "  delete it or change the passed registration file"
-  exit 1;
-endif
-
-if(! -e $reg) set regheader = 1
 
 goto check_params_return;
 ############--------------##################
