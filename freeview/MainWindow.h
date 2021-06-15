@@ -308,6 +308,8 @@ public slots:
 
   void OnFloatPanels(bool bFloat);
 
+  void OnPointSetToLabel();
+
 protected:
   void closeEvent   ( QCloseEvent * event );
   void resizeEvent  (QResizeEvent * event);
