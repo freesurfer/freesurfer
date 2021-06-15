@@ -85,6 +85,7 @@
 #include "vtkSTLWriter.h"
 #include "vtkImageMathematics.h"
 #include "Region3D.h"
+#include "LayerPointSet.h"
 
 
 #include "utils.h"
@@ -4440,5 +4441,22 @@ void LayerMRI::Close3DRegion()
   {
     m_current3DRegion->Close();
     emit ActorUpdated();
+  }
+}
+
+void LayerMRI::UpdateVoxelsByPointSet(LayerPointSet *ps, int nPlane)
+{
+  vtkPoints* pts = ps->GetSplinedPoints();
+  if (pts)
+  {
+    double pt1[3], pt2[3];
+    double* pos = GetSlicePosition();
+    for (int i = 0; i < pts->GetNumberOfPoints()-1; i++)
+    {
+      pts->GetPoint(i, pt1);
+      pts->GetPoint(i+1, pt2);
+      pt1[nPlane] = pt2[nPlane] = pos[nPlane];
+      this->SetVoxelByRAS(pt1, pt2, nPlane, true, true);
+    }
   }
 }
