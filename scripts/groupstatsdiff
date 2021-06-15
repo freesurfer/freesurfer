@@ -20,6 +20,10 @@ set DoAsegStats = 1
 set DoWMParcStats = 1
 set DoPrune = 1
 set fwhmlist = ()
+set sd1 = ()
+set sd2 = ()
+set dicectab = $FREESURFER_HOME/ASegStatsLUT.txt
+set DoDice = 1;
 
 set inputargs = ($argv);
 set PrintHelp = 0;
@@ -77,6 +81,50 @@ endif
 
 #========================================================
 
+# ASEG Stats ----------------------------------------------------
+if($DoAsegStats) then
+foreach hemi ($hemilist other)
+  foreach meas (volume mean)
+    set b = aseg.$hemi.$meas
+    if($meas == mean) set b = aseg.$hemi.intensity
+    set table1 =  $g1dir/rois/$b.dat
+    set table2 =  $g2dir/rois/$b.dat
+    set difftable = $outdir/rois/diff.$b.dat
+    set cmd = (stattablediff --t1 $table1 --t2 $table2 --o $difftable --percent)
+    if($DoCommon) set cmd = ($cmd --common)
+    echo "#C# $cmd" | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1;
+    set glmdir = $outdir/rois/glm.$b
+    set cmd = (mri_glmfit --table $difftable --glmdir $glmdir $gcmd)
+    echo "#C# $cmd"  | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1;
+  end # meas
+end # hemi
+
+if($DoDice) then
+  set slist = (`grep Input $fsgd| awk '{print $2}'`)
+  set dicedir = $outdir/rois/aseg.dice
+  mkdir -p $dicedir
+  set dicefile = $dicedir/dice.dat 
+  cp $dicectab $dicedir/aseg.ctab
+  rm -f $dicefile $dicedir/slist.txt
+  foreach s ($slist)
+    echo $s >> $dicedir/slist.txt
+    set aseg1 = $sd1/$s/mri/aseg.mgz
+    set aseg2 = $sd2/$s/mri/aseg.mgz
+    set dicedat   = $dicedir/$s.dice.dat
+    set dicetable = $dicedir/$s.dice.table.dat
+    set cmd = (mri_compute_seg_overlap -dice $aseg1 $aseg2 $dicectab 1 0 $dicedat $dicetable)
+    echo "$cmd" | tee -a $LF
+    $cmd |& tee -a $LF 
+    if($status) goto exit 1;
+    cat $dicedat | tee -a $dicefile
+  end
+endif # DoDice
+endif # DoAseg
+
 # APARC Stats ----------------------------------------------------
 if($DoAparcStats) then
 foreach aparc ($aparclist)
@@ -119,28 +167,6 @@ foreach aparc ($aparclist)
 end # aparc
 endif
 
-# ASEG Stats ----------------------------------------------------
-if($DoAsegStats) then
-foreach hemi ($hemilist other)
-  foreach meas (volume mean)
-    set b = aseg.$hemi.$meas
-    if($meas == mean) set b = aseg.$hemi.intensity
-    set table1 =  $g1dir/rois/$b.dat
-    set table2 =  $g2dir/rois/$b.dat
-    set difftable = $outdir/rois/diff.$b.dat
-    set cmd = (stattablediff --t1 $table1 --t2 $table2 --o $difftable --percent)
-    if($DoCommon) set cmd = ($cmd --common)
-    echo "#C# $cmd" | tee -a $LF
-    $cmd | tee -a $LF
-    if($status) exit 1;
-    set glmdir = $outdir/rois/glm.$b
-    set cmd = (mri_glmfit --table $difftable --glmdir $glmdir $gcmd)
-    echo "#C# $cmd"  | tee -a $LF
-    $cmd | tee -a $LF
-    if($status) exit 1;
-  end # meas
-end # hemi
-endif
 
 # WMParc Stats --------------------------------------------
 if($DoWMParcStats) then
@@ -261,6 +287,37 @@ while( $#argv != 0 )
         echo "ERROR: cannot find $g2dir"
         exit 1;
       endif
+      breaksw
+
+    case "--sd1":
+      if($#argv < 1) goto arg1err;
+      set sd1 = $argv[1]; shift;
+      if(! -e $sd1) then
+        echo "ERROR: cannot find $sd1"
+        exit 1;
+      endif
+      breaksw
+
+    case "--sd2":
+      if($#argv < 1) goto arg1err;
+      set sd2 = $argv[1]; shift;
+      if(! -e $sd2) then
+        echo "ERROR: cannot find $sd2"
+        exit 1;
+      endif
+      breaksw
+
+    case "--dice-ctab":
+      if($#argv < 1) goto arg1err;
+      set dicectab = $argv[1]; shift;
+      if(! -e $dicectab) then
+        echo "ERROR: cannot find $dicectab"
+        exit 1;
+      endif
+      breaksw
+
+    case "--no-dice":
+      set DoDice = 0;
       breaksw
 
     case "--osgm":
@@ -394,6 +451,9 @@ if(0 && $n != 0) then
 endif
 set fsgd = $g1dir/group.fsgd
 
+if($#sd1 == 0) set sd1 = `dirname $g1dir`
+if($#sd2 == 0) set sd2 = `dirname $g2dir`
+
 goto check_params_return;
 ############--------------##################
 
@@ -426,6 +486,9 @@ usage_exit:
   echo "  --no-stats : do not do any ROI stats"
   echo "  --no-prune : do not prune when running mri_glmfit (may be nec if g1=g2)"
   echo "  --fwhm fwhm <--fwhm fwhm> : override the fwhm from group ana (must be present)"
+  echo "  --sd1 sd1, --sd2 sd2 : subjects dirs for computing dice (default is parent dir of groupdir)"
+  echo "  --no-dice : do not compute dice"
+  echo "  --dice-ctab ctab : ctab to use for dice (default is $ctab)"
   echo "  "
 
   if(! $PrintHelp) exit 1;
