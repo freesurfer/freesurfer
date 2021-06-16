@@ -9609,3 +9609,15 @@ void MainWindow::OnSaveLabelAsVolume()
     ui->widgetAllLayers->UpdateWidgets();
   }
 }
+
+void MainWindow::OnPointSetToLabel()
+{
+  LayerPointSet* ps = qobject_cast<LayerPointSet*>(GetActiveLayer("PointSet"));
+  LayerMRI* mri = qobject_cast<LayerMRI*>(GetActiveLayer("MRI"));
+  RenderView2D* view = qobject_cast<RenderView2D*>(GetMainView());
+  if (ps && mri && view)
+  {
+    mri->SaveForUndo(view->GetViewPlane());
+    mri->UpdateVoxelsByPointSet(ps, view->GetViewPlane());
+  }
+}

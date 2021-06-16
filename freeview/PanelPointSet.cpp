@@ -71,7 +71,8 @@ PanelPointSet::PanelPointSet(QWidget *parent) :
   m_widgetlistSpline << ui->labelSplineColor
                      << ui->comboBoxSplineColor
                      << ui->lineEditSplineRadius
-                     << ui->labelSplineRadius;
+                     << ui->labelSplineRadius
+                     << ui->checkBoxClosedSpline;
 
   m_self = qgetenv("USER");
   if (m_self.isEmpty())
@@ -110,6 +111,7 @@ void PanelPointSet::ConnectLayer( Layer* layer_in )
   connect( ui->colorpickerPointColor, SIGNAL(colorChanged(QColor)), p, SLOT(SetColor(QColor)));
   connect( ui->colorpickerSplineColor, SIGNAL(colorChanged(QColor)), p, SLOT(SetSplineColor(QColor)));
   connect( ui->comboBoxSplineColor, SIGNAL(currentIndexChanged(int)), p, SLOT(SetColorMap(int)));
+  connect( ui->checkBoxClosedSpline, SIGNAL(toggled(bool)), p, SLOT(SetClosedSpline(bool)));
 }
 
 void PanelPointSet::DoIdle()
@@ -196,6 +198,7 @@ void PanelPointSet::DoUpdateWidgets()
     ui->checkBoxShowSpline->setChecked( bShowSpline );
     ui->checkBoxSnapToCenter->setChecked( layer->GetProperty()->GetSnapToVoxelCenter() );
     ui->labelEndPointDistance->setText(QString("%1 mm").arg(layer->GetEndPointDistance(), 0, 'f', 3));
+    ui->checkBoxClosedSpline->setChecked(layer->GetProperty()->GetClosedSpline());
   }
 
   // MainWindow* mainWnd = MainWindow::GetMainWindowPointer();

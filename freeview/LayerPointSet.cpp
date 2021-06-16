@@ -75,6 +75,8 @@ LayerPointSet::LayerPointSet( LayerMRI* ref, int nType, QObject* parent ) : Laye
   m_layerRef = ref;
   m_pointSetSource = new FSPointSet();
 
+  m_splinedPoints = vtkSmartPointer<vtkPoints>::New();
+
   mProperty = new LayerPropertyPointSet( this );
   GetProperty()->SetType( nType );
 
@@ -96,6 +98,7 @@ LayerPointSet::LayerPointSet( LayerMRI* ref, int nType, QObject* parent ) : Laye
   connect(p, SIGNAL(ScalarChanged()), this, SLOT(RebuildActors()));
   connect(p, SIGNAL(SnapToVoxelCenterChanged(bool)), this, SLOT(UpdateSnapToVoxelCenter()));
   connect(p, SIGNAL(SplineVisibilityChanged(bool)), this, SLOT(UpdateSplineVisibility()));
+  connect(p, SIGNAL(ClosedSplineChanged(bool)), this, SLOT(RebuildActors()));
 }
 
 LayerPointSet::~LayerPointSet()
@@ -390,11 +393,12 @@ void LayerPointSet::RebuildActors( bool bRebuild3D )
   // double* origin = m_layerRef->GetWorldOrigin();
   double scale = qMin( voxel_size[0], qMin( voxel_size[1], voxel_size[2] ) );
   double radius = GetProperty()->GetRadius();
+  bool bClosed = GetProperty()->GetClosedSpline();
 
   vtkSmartPointer<vtkAppendPolyData> append = vtkSmartPointer<vtkAppendPolyData>::New();
   vtkPoints* pts = vtkPoints::New();
   vtkCellArray* lines = vtkCellArray::New();
-  lines->InsertNextCell( m_points.size() );
+  lines->InsertNextCell( m_points.size() + (bClosed?1:0) );
   for ( int i = 0; i < m_points.size(); i++ )
   {
     if (radius > 0)
@@ -407,8 +411,21 @@ void LayerPointSet::RebuildActors( bool bRebuild3D )
       append->AddInputConnection( sphere->GetOutputPort() );
       sphere->Delete();
     }
-    pts->InsertNextPoint( m_points[i].pt );
+    pts->InsertNextPoint( m_points[i].pt);
     lines->InsertCellPoint( i );
+  }
+  if (bClosed && m_points.size() > 1)
+  {
+//    int nLast = m_points.size()-1;
+//    // hack to avoid a VTK artifact
+//    double dDist = sqrt(vtkMath::Distance2BetweenPoints( m_points[0].pt, m_points[nLast].pt ));
+//    if (dDist == 0)
+//      dDist = 1;
+//    pts->InsertNextPoint( m_points[0].pt[0] - (m_points[0].pt[0] - m_points[nLast].pt[0])/dDist*0.1*scale,
+//                          m_points[0].pt[1] - (m_points[0].pt[1] - m_points[nLast].pt[1])/dDist*0.1*scale,
+//                          m_points[0].pt[2] - (m_points[0].pt[2] - m_points[nLast].pt[2])/dDist*0.1*scale );
+//    lines->InsertCellPoint(m_points.size());
+    lines->InsertCellPoint(0);
   }
   vtkPolyDataMapper* mapper = vtkPolyDataMapper::New();
   if ( m_points.size() > 0 && radius > 0 )
@@ -451,9 +468,11 @@ void LayerPointSet::RebuildActors( bool bRebuild3D )
       tube->SetNumberOfSides( NUM_OF_SIDES );
       tube->SetInputConnection( spline->GetOutputPort() );
       tube->SetRadius( GetProperty()->GetSplineRadius() * scale );
-      tube->CappingOn();
+//      if (!bClosed)
+        tube->CappingOn();
       m_mapper->SetInputConnection( tube->GetOutputPort() );
       tube->Update();
+      m_splinedPoints = spline->GetOutput()->GetPoints();
       polydata_tube = tube->GetOutput();
       m_actorSpline->SetMapper( m_mapper );
       tube->Delete();
@@ -558,7 +577,6 @@ void LayerPointSet::RebuildActors( bool bRebuild3D )
 #else
       triangleFilter->SetInput( cutpoly );
 #endif
-
       mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
       mapper->SetInputConnection(triangleFilter->GetOutputPort());
 
@@ -591,7 +609,8 @@ void LayerPointSet::UpdateScalars(vtkPolyData* polydata)
     scalars->SetNumberOfValues( nPts );
     //    double pt[3] = { 0, 0, 0 };
     double val = 0;
-    for ( int i = 0; i < nPts; i++ )
+    int nNum = m_points.size();
+    for ( int i = 0; i < m_points.size(); i++ )
     {
       if ( true ) // (i%NUM_OF_SIDES) == 0 )
       {
@@ -929,4 +948,9 @@ double LayerPointSet::GetEndPointDistance()
     val = MyUtils::GetDistance<double>(m_points.first().pt, m_points.last().pt);
   }
   return val;
+}
+
+vtkPoints* LayerPointSet::GetSplinedPoints()
+{
+  return m_splinedPoints;
 }

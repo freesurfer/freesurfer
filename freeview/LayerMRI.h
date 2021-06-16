@@ -58,6 +58,7 @@ class LayerSurface;
 class LayerROI;
 class GeoSWorker;
 class Region3D;
+class LayerPointSet;
 
 #ifndef IntList
 typedef QList<int> IntList;
@@ -367,6 +368,8 @@ public:
   bool Load3DRegions(const QString& fn);
 
   void Close3DRegion();
+
+  void UpdateVoxelsByPointSet(LayerPointSet* ps, int nPlane);
 
 public slots:
   virtual void SetModified();

@@ -18,6 +18,8 @@
 #include "LayerPropertyMRI.h"
 #include "LayerSurface.h"
 #include "LayerPropertySurface.h"
+#include "LayerPointSet.h"
+#include "LayerPropertyPointSet.h"
 #include <QPainter>
 #include <QContextMenuEvent>
 #include <QMenu>
@@ -261,6 +263,13 @@ void LayerTreeWidget::contextMenuEvent(QContextMenuEvent *e)
     menu->addAction(wnd->ui->actionLoadPointSet);
     menu->addAction(wnd->ui->actionReloadPointSet);
     menu->addSeparator();
+    if (wnd->GetMode() == RenderView::IM_VoxelEdit && ((LayerPointSet*)layer)->GetProperty()->GetShowSpline())
+    {
+      QAction* act = new QAction("Convert to Volume Label", this);
+      connect(act, SIGNAL(triggered(bool)), wnd, SLOT(OnPointSetToLabel()));
+      menu->addAction(act);
+      menu->addSeparator();
+    }
   }
 
   if (layers.size() > 0 && items.contains(item))
