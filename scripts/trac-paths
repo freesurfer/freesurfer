@@ -524,6 +524,40 @@ if (! $dolong) then
       @ irep = $irep + 1
     end
 
+    # Create reference paths for along-tract analysis
+    set refdir = `dirname $trainsubjlist[1]`/$xspace
+    if (-d $refdir) then
+      set srclist = `printf "$refdir/%s.mean.trk " $pathlist`
+      set trglist = `printf "$outdir/%s_$avgmode/path.ref.txt " $pathlist`
+
+      # Map mean paths from template to individual
+      set cmd = $trcdir/dmri_trk2trk
+      set cmd = ($cmd --in     $srclist)
+      set cmd = ($cmd --inref  $intertrg)
+      if ($xspace == mni || $xspace == rob) then
+        set cmd = ($cmd --reg $xfmdir/diff2$xspace.$reg.lta)
+      else if ($xspace == cvs) then
+        set cmd = ($cmd --reg $xfmdir/diff2anatorig.$reg.lta)
+      if ($subj != $cvstemp) then
+          set cmd = ($cmd --regnl $xfmdir/cvs/$cvswarp.m3z)
+        endif
+      else if ($xspace == syn) then
+        set cmd = ($cmd --reg   $xfmdir/diff2syn.lta)
+        set cmd = ($cmd --regnl $xfmdir/syn_warp.m3z)
+      else if ($xspace == fnt) then
+        set cmd = ($cmd --regnl $xfmdir/diff2fsl_warp.m3z)
+      endif
+      set cmd = ($cmd --inv)
+      set cmd = ($cmd --smooth)
+      set cmd = ($cmd --outasc $trglist)
+      set cmd = ($cmd --outref $dwidir/dtifit_FA.nii.gz)
+      echo $cmd |& tee -a $LF |& tee -a $CF
+      if ($RunIt) then
+        $fs_time $cmd |& tee -a $LF
+        if ($status) goto error_exit
+      endif
+    endif
+
     foreach pathname ($pathlist)
       set pathpre = ${pathname}_$avgmode
 
@@ -537,6 +571,9 @@ if (! $dolong) then
       set cmd = ($cmd --dtbase $dwidir/dtifit)
       set cmd = ($cmd --path   $pname)
       set cmd = ($cmd --subj   $subj)
+      if (-e $outdir/$pathpre/path.ref.txt) then
+       	set cmd = ($cmd --invox path.ref.txt)
+      endif
       set cmd = ($cmd --out    $outdir/$pathpre/pathstats.overall.txt)
       set cmd = ($cmd --outvox $outdir/$pathpre/pathstats.byvoxel.txt)
       echo $cmd |& tee -a $LF |& tee -a $CF
@@ -584,7 +621,7 @@ if (! $dolong) then
         set cmd = ($cmd --hemi $hemi)
         set cmd = ($cmd --projdist-avg $projmin $projmax $dproj)
         set cmd = ($cmd --trgsubject $subj)
-        set cmd = ($cmd --o $outdir/$pathpre/end$pt.surf.mgz)
+        set cmd = ($cmd --o $outdir/$pathpre/endpt$pt.surf.mgz)
         echo $cmd |& tee -a $LF |& tee -a $CF
         if ($RunIt) then
           $cmd |& tee -a $LF
@@ -594,9 +631,9 @@ if (! $dolong) then
         set nproj = `echo "($projmax - ($projmin))/$dproj + 1" | bc -l`
 
         set cmd = fscalc
-        set cmd = ($cmd     $outdir/$pathpre/end$pt.surf.mgz)
+        set cmd = ($cmd     $outdir/$pathpre/endpt$pt.surf.mgz)
         set cmd = ($cmd mul $nproj)
-        set cmd = ($cmd --o $outdir/$pathpre/end$pt.surf.mgz)
+        set cmd = ($cmd --o $outdir/$pathpre/endpt$pt.surf.mgz)
         echo $cmd |& tee -a $LF |& tee -a $CF
         if ($RunIt) then
           $cmd |& tee -a $LF
@@ -605,8 +642,8 @@ if (! $dolong) then
 
         set cmd = mri_binarize
         set cmd = ($cmd --min 1)
-        set cmd = ($cmd --i $outdir/$pathpre/end$pt.surf.mgz)
-        set cmd = ($cmd --o $outdir/$pathpre/end$pt.surf.bin.mgz)
+        set cmd = ($cmd --i $outdir/$pathpre/endpt$pt.surf.mgz)
+        set cmd = ($cmd --o $outdir/$pathpre/endpt$pt.surf.bin.mgz)
         echo $cmd |& tee -a $LF |& tee -a $CF
         if ($RunIt) then
           $cmd |& tee -a $LF
@@ -617,9 +654,9 @@ if (! $dolong) then
         if ($nvert == 0)	continue
 
         set cmd = mri_cor2label
-        set cmd = ($cmd --i $outdir/$pathpre/end$pt.surf.bin.mgz)
+        set cmd = ($cmd --i $outdir/$pathpre/endpt$pt.surf.bin.mgz)
         set cmd = ($cmd --id 1)
-        set cmd = ($cmd --l $outdir/$pathpre/end$pt.surf.label)
+        set cmd = ($cmd --l $outdir/$pathpre/endpt$pt.surf.label)
         set cmd = ($cmd --surf $subj $hemi white)
         echo $cmd |& tee -a $LF |& tee -a $CF
         if ($RunIt) then
@@ -628,10 +665,20 @@ if (! $dolong) then
         endif
 
         set cmd = mri_label2label
-        set cmd = ($cmd --srclabel $outdir/$pathpre/end$pt.surf.label)
+        set cmd = ($cmd --srclabel $outdir/$pathpre/endpt$pt.surf.label)
         set cmd = ($cmd --s $subj --hemi $hemi --regmethod surface)
         set cmd = ($cmd --dilate 5 --erode 5)
-        set cmd = ($cmd --trglabel $outdir/$pathpre/end$pt.surf.label)
+        set cmd = ($cmd --trglabel $outdir/$pathpre/endpt$pt.surf.label)
+        echo $cmd |& tee -a $LF |& tee -a $CF
+        if ($RunIt) then
+          $cmd |& tee -a $LF
+          if ($status) goto error_exit
+        endif
+
+        set cmd = mris_anatomical_stats
+        set cmd = ($cmd -l $outdir/$pathpre/endpt$pt.surf.label)
+        set cmd = ($cmd -f $outdir/$pathpre/endpt$pt.surf.stats)
+        set cmd = ($cmd $subj $hemi)
         echo $cmd |& tee -a $LF |& tee -a $CF
         if ($RunIt) then
           $cmd |& tee -a $LF
@@ -932,6 +979,40 @@ else
       set xfmdir_t = $dwidir_t/xfms
       set outdir_t = $dtroot/$subj_t/$outdir
 
+      # Create reference paths for along-tract analysis
+      set refdir = `dirname $trainsubjlist[1]`/$xspace
+      if (-d $refdir) then
+        set srclist = `printf "$refdir/%s.mean.trk " $pathlist`
+        set trglist = `printf "$outdir_t/%s_$avgmode/path.ref.txt " $pathlist`
+
+        # Map mean paths from template to individual
+        set cmd = $trcdir/dmri_trk2trk
+        set cmd = ($cmd --in     $srclist)
+        set cmd = ($cmd --inref  $intertrg)
+        if ($xspace == mni || $xspace == rob) then
+          set cmd = ($cmd --reg $xfmdir_t/diff2$xspace.$reg.lta)
+        else if ($xspace == cvs) then
+          set cmd = ($cmd --reg $xfmdir_t/diff2anatorig.$reg.lta)
+        if ($subj != $cvstemp) then
+            set cmd = ($cmd --regnl $xfmdir_t/cvs/$cvswarp.m3z)
+          endif
+        else if ($xspace == syn) then
+          set cmd = ($cmd --reg   $xfmdir_t/diff2syn.lta)
+          set cmd = ($cmd --regnl $xfmdir_t/syn_warp.m3z)
+        else if ($xspace == fnt) then
+          set cmd = ($cmd --regnl $xfmdir_t/diff2fsl_warp.m3z)
+        endif
+        set cmd = ($cmd --inv)
+        set cmd = ($cmd --smooth)
+        set cmd = ($cmd --outasc $trglist)
+        set cmd = ($cmd --outref $dwidir_t/dtifit_FA.nii.gz)
+        echo $cmd |& tee -a $LF |& tee -a $CF
+        if ($RunIt) then
+          $fs_time $cmd |& tee -a $LF
+          if ($status) goto error_exit
+        endif
+      endif
+
       foreach pathname ($pathlist)
         set pathdir = $outdir_t/${pathname}_$avgmode
 
@@ -945,6 +1026,9 @@ else
         set cmd = ($cmd --dtbase $dwidir_t/dtifit)
         set cmd = ($cmd --path   $pname)
         set cmd = ($cmd --subj   $subj_t)
+        if (-e $pathdir/path.ref.txt) then
+       	  set cmd = ($cmd --invox path.ref.txt)
+        endif
         set cmd = ($cmd --out    $pathdir/pathstats.overall.txt)
         set cmd = ($cmd --outvox $pathdir/pathstats.byvoxel.txt)
         echo $cmd |& tee -a $LF |& tee -a $CF
@@ -992,7 +1076,7 @@ else
           set cmd = ($cmd --hemi $hemi)
           set cmd = ($cmd --projdist-avg $projmin $projmax $dproj)
           set cmd = ($cmd --trgsubject $subj_t)
-          set cmd = ($cmd --o $pathdir/end$pt.surf.mgz)
+          set cmd = ($cmd --o $pathdir/endpt$pt.surf.mgz)
           echo $cmd |& tee -a $LF |& tee -a $CF
           if ($RunIt) then
             $cmd |& tee -a $LF
@@ -1002,9 +1086,9 @@ else
           set nproj = `echo "($projmax - ($projmin))/$dproj + 1" | bc -l`
 
           set cmd = fscalc
-          set cmd = ($cmd     $pathdir/end$pt.surf.mgz)
+          set cmd = ($cmd     $pathdir/endpt$pt.surf.mgz)
           set cmd = ($cmd mul $nproj)
-          set cmd = ($cmd --o $pathdir/end$pt.surf.mgz)
+          set cmd = ($cmd --o $pathdir/endpt$pt.surf.mgz)
           echo $cmd |& tee -a $LF |& tee -a $CF
           if ($RunIt) then
             $cmd |& tee -a $LF
@@ -1013,8 +1097,8 @@ else
 
           set cmd = mri_binarize
           set cmd = ($cmd --min 1)
-          set cmd = ($cmd --i $pathdir/end$pt.surf.mgz)
-          set cmd = ($cmd --o $pathdir/end$pt.surf.bin.mgz)
+          set cmd = ($cmd --i $pathdir/endpt$pt.surf.mgz)
+          set cmd = ($cmd --o $pathdir/endpt$pt.surf.bin.mgz)
           echo $cmd |& tee -a $LF |& tee -a $CF
           if ($RunIt) then
             $cmd |& tee -a $LF
@@ -1025,9 +1109,9 @@ else
           if ($nvert == 0)	continue
 
           set cmd = mri_cor2label
-          set cmd = ($cmd --i $pathdir/end$pt.surf.bin.mgz)
+          set cmd = ($cmd --i $pathdir/endpt$pt.surf.bin.mgz)
           set cmd = ($cmd --id 1)
-          set cmd = ($cmd --l $pathdir/end$pt.surf.label)
+          set cmd = ($cmd --l $pathdir/endpt$pt.surf.label)
           set cmd = ($cmd --surf $subj_t $hemi white)
           echo $cmd |& tee -a $LF |& tee -a $CF
           if ($RunIt) then
@@ -1036,10 +1120,20 @@ else
           endif
 
           set cmd = mri_label2label
-          set cmd = ($cmd --srclabel $pathdir/end$pt.surf.label)
+          set cmd = ($cmd --srclabel $pathdir/endpt$pt.surf.label)
           set cmd = ($cmd --s $subj_t --hemi $hemi --regmethod surface)
           set cmd = ($cmd --dilate 5 --erode 5)
-          set cmd = ($cmd --trglabel $pathdir/end$pt.surf.label)
+          set cmd = ($cmd --trglabel $pathdir/endpt$pt.surf.label)
+          echo $cmd |& tee -a $LF |& tee -a $CF
+          if ($RunIt) then
+            $cmd |& tee -a $LF
+            if ($status) goto error_exit
+          endif
+
+          set cmd = mris_anatomical_stats 
+          set cmd = ($cmd -l $pathdir/endpt$pt.surf.label)
+          set cmd = ($cmd -f $pathdir/endpt$pt.surf.stats)
+          set cmd = ($cmd $subj $hemi)
           echo $cmd |& tee -a $LF |& tee -a $CF
           if ($RunIt) then
             $cmd |& tee -a $LF

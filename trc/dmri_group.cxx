@@ -66,6 +66,7 @@ int main(int argc, char *argv[]);
 
 const char *Progname = "dmri_group";
 
+bool doInterp = true;
 int nSection = 0;
 
 string inListFile, outRefFile, outBase;
@@ -78,8 +79,9 @@ Timer cputimer;
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
   int nargs, cputime;
-  unsigned int nmeas, npt, narc, nsubjmin, ntot;
-  float distmin, darc, arcmin, arcmax, arc1m, arc2m, arc1s, arc2s,
+  unsigned int nmeas, npt = 0, narc, nsubjmin, ntot;
+  float distmin, darc, arcmin = 0, arcmax = -numeric_limits<float>::infinity(),
+        arc1m, arc2m, arc1s, arc2s,
         lthresh1, lthresh2, uthresh1, uthresh2;
   string listline, filename;
   vector<bool>::const_iterator iout;
@@ -273,6 +275,11 @@ int main(int argc, char **argv) {
     if (arc.empty())
       continue;
 
+    if (*(arc.end()-1) > arcmax)
+      arcmax = *(arc.end()-1);
+
+    npt = path.size() / 3;
+
     subjlist.push_back(subjid);
     lengths.push_back(arc.size());
     allarc.push_back(arc);
@@ -311,318 +318,322 @@ int main(int argc, char **argv) {
 
   nmeas = measlist.size();
 
-  // Find the most representative path
-  iallk = allknots.begin();
-  itemplate = allpaths.begin();
-  icenter = itemplate->begin() + (allknots[0][2] * 3);
-  distmin = numeric_limits<float>::infinity();
+  if (!doInterp)	// Assume subjects to be sampled at equivalent positions
+    allmeasint = allmeas;
+  else {
+    // Find the most representative path
+    iallk = allknots.begin();
+    itemplate = allpaths.begin();
+    icenter = itemplate->begin() + (allknots[0][2] * 3);
+    distmin = numeric_limits<float>::infinity();
 
-  for (vector< vector<float> >::const_iterator iallp = allpaths.begin();
-                                               iallp < allpaths.end();
-                                               iallp++) {
-    float dist = 0.0;
-    vector< vector<unsigned int> >::const_iterator jallk = allknots.begin();
+    for (vector< vector<float> >::const_iterator iallp = allpaths.begin();
+                                                 iallp < allpaths.end();
+                                                 iallp++) {
+      float dist = 0.0;
+      vector< vector<unsigned int> >::const_iterator jallk = allknots.begin();
 
-    for (vector< vector<float> >::const_iterator jallp = allpaths.begin();
-                                                 jallp < allpaths.end();
-                                                 jallp++) {
-      if (jallp != iallp) {
-        vector<unsigned int >::const_iterator iknot = iallk->begin();
+      for (vector< vector<float> >::const_iterator jallp = allpaths.begin();
+                                                   jallp < allpaths.end();
+                                                   jallp++) {
+        if (jallp != iallp) {
+          vector<unsigned int >::const_iterator iknot = iallk->begin();
 
-        for (vector<unsigned int>::const_iterator jknot = jallk->begin();
-                                                  jknot < jallk->end();
-                                                  jknot++) {
-          const unsigned int ioffset = (*iknot) * 3,
-                             joffset = (*jknot) * 3;
-          const float dx = iallp->at(ioffset)     - jallp->at(joffset),
-                      dy = iallp->at(ioffset + 1) - jallp->at(joffset + 1),
-                      dz = iallp->at(ioffset + 2) - jallp->at(joffset + 2);
+          for (vector<unsigned int>::const_iterator jknot = jallk->begin();
+                                                    jknot < jallk->end();
+                                                    jknot++) {
+            const unsigned int ioffset = (*iknot) * 3,
+                               joffset = (*jknot) * 3;
+            const float dx = iallp->at(ioffset)     - jallp->at(joffset),
+                        dy = iallp->at(ioffset + 1) - jallp->at(joffset + 1),
+                        dz = iallp->at(ioffset + 2) - jallp->at(joffset + 2);
 
-          dist += sqrt(dx*dx + dy*dy + dz*dz);
+            dist += sqrt(dx*dx + dy*dy + dz*dz);
 
-          iknot++;
+            iknot++;
+          }
         }
+
+        jallk++;
       }
 
-      jallk++;
+      if (dist < distmin) {
+        itemplate = iallp;			// Most representative path
+        icenter = iallp->begin() + (iallk->at(2) * 3);	// Mid-point on path
+        distmin = dist;
+      }
+
+      iallk++;
     }
 
-    if (dist < distmin) {
-      itemplate = iallp;			// Most representative path
-      icenter = iallp->begin() + (iallk->at(2) * 3);	// Mid-point on path
-      distmin = dist;
-    }
+    // Choose sampling interval for measures along the path
+    darc = *(allarc[itemplate - allpaths.begin()].end() - 1)
+         / lengths[itemplate - allpaths.begin()];
 
-    iallk++;
-  }
-
-  // Choose sampling interval for measures along the path
-  darc = *(allarc[itemplate - allpaths.begin()].end() - 1)
-       / lengths[itemplate - allpaths.begin()];
-
-  cout << "INFO: Sampling interval along path is ";
-  if (outref)
-    cout << darc * outref->xsize << " mm" << endl;
-  else
-    cout << darc << " voxels" << endl;
+    cout << "INFO: Sampling interval along path is ";
+    if (outref)
+      cout << darc * outref->xsize << " mm" << endl;
+    else
+      cout << darc << " voxels" << endl;
 
 if (0) {
-  // Write points of most representative path to file as RAS coords
-  filename = outBase + ".median.txt";
+    // Write points of most representative path to file as RAS coords
+    filename = outBase + ".median.txt";
 
-  cout << "Writing median path to " << filename << endl;
-  pathrasfile.open(filename.c_str(), ios::out);
+    cout << "Writing median path to " << filename << endl;
+    pathrasfile.open(filename.c_str(), ios::out);
 
-  pathrasfile << "#!ascii label, vox2ras=scanner" << endl
-              << itemplate->size() / 3 << endl;
+    pathrasfile << "#!ascii label, vox2ras=scanner" << endl
+                << itemplate->size() / 3 << endl;
 
-  npt = 1;
+    npt = 1;
 
-  for (vector<float>::const_iterator ipt = itemplate->begin();
-                                     ipt < itemplate->end(); ipt += 3) {
-    pathrasfile << npt;
+    for (vector<float>::const_iterator ipt = itemplate->begin();
+                                       ipt < itemplate->end(); ipt += 3) {
+      pathrasfile << npt;
 
-    for (int k = 1; k < 4; k++)		// Transform from voxel to RAS coords
-      pathrasfile << " " << ipt[0] * outv2r->rptr[k][1] +
-                            ipt[1] * outv2r->rptr[k][2] +
-                            ipt[2] * outv2r->rptr[k][3] +
-                                     outv2r->rptr[k][4];
+      for (int k = 1; k < 4; k++)	// Transform from voxel to RAS coords
+        pathrasfile << " " << ipt[0] * outv2r->rptr[k][1] +
+                              ipt[1] * outv2r->rptr[k][2] +
+                              ipt[2] * outv2r->rptr[k][3] +
+                                       outv2r->rptr[k][4];
 
-    pathrasfile << " 0" << endl;
+      pathrasfile << " 0" << endl;
 
-    npt++;
-  }
+      npt++;
+    }
 
-  pathrasfile.close();
+    pathrasfile.close();
 }
 
-  // Reparameterize the arc length on each path
-  ialla = allarc.begin();
+    // Reparameterize the arc length on each path
+    ialla = allarc.begin();
 
-  for (vector< vector<float> >::const_iterator iallp = allpaths.begin();
-                                               iallp < allpaths.end();
-                                               iallp++) {
-    float dmin = numeric_limits<float>::infinity(),
-          arc0 = 0;
-    vector<float>::const_iterator iarc = ialla->begin();
+    for (vector< vector<float> >::const_iterator iallp = allpaths.begin();
+                                                 iallp < allpaths.end();
+                                                 iallp++) {
+      float dmin = numeric_limits<float>::infinity(),
+            arc0 = 0;
+      vector<float>::const_iterator iarc = ialla->begin();
 
-    // Find the closest point to the mid-point of the most representative path
-    for (vector<float>::const_iterator ipath = iallp->begin();
-                                       ipath < iallp->end(); ipath += 3) {
-      const float dx = ipath[0] - icenter[0],
-                  dy = ipath[1] - icenter[1],
-                  dz = ipath[2] - icenter[2],
-                  dist = dx*dx + dy*dy + dz*dz;
+      // Find the closest point to the mid-point of the most representative path
+      for (vector<float>::const_iterator ipath = iallp->begin();
+                                         ipath < iallp->end(); ipath += 3) {
+        const float dx = ipath[0] - icenter[0],
+                    dy = ipath[1] - icenter[1],
+                    dz = ipath[2] - icenter[2],
+                    dist = dx*dx + dy*dy + dz*dz;
 //...
 
-      if (dist < dmin) {
-        arc0 = *iarc;
-        dmin = dist;
+        if (dist < dmin) {
+          arc0 = *iarc;
+          dmin = dist;
+        }
+
+        iarc++;
       }
 
-      iarc++;
+      // Make this point the origin of the arc length for this path
+      for (vector<float>::iterator iarcnew = ialla->begin();
+                                   iarcnew < ialla->end(); iarcnew++)
+        *iarcnew -= arc0;
+
+      arcend1.push_back(*min_element(ialla->begin(), ialla->end()));
+      arcend2.push_back(*max_element(ialla->begin(), ialla->end()));
+
+      ialla++;
     }
 
-    // Make this point the origin of the arc length for this path
-    for (vector<float>::iterator iarcnew = ialla->begin();
-                                 iarcnew < ialla->end(); iarcnew++)
-      *iarcnew -= arc0;
+    // Find outlier paths based on arc length parameterization
+    arc1m = accumulate(arcend1.begin(), arcend1.end(), 0.0) / arcend1.size();
+    arc2m = accumulate(arcend2.begin(), arcend2.end(), 0.0) / arcend2.size();
 
-    arcend1.push_back(*min_element(ialla->begin(), ialla->end()));
-    arcend2.push_back(*max_element(ialla->begin(), ialla->end()));
+    arc1s = sqrt(inner_product(arcend1.begin(), arcend1.end(),
+                               arcend1.begin(), 0.0) / arcend1.size()
+                 - arc1m * arc1m);
+    arc2s = sqrt(inner_product(arcend2.begin(), arcend2.end(),
+                               arcend2.begin(), 0.0) / arcend2.size()
+                 - arc2m * arc2m);
 
-    ialla++;
-  }
+    lthresh1 = arc1m - 3*arc1s;
+    lthresh2 = arc2m - 3*arc2s;
 
-  // Find outlier paths based on arc length parameterization
-  arc1m = accumulate(arcend1.begin(), arcend1.end(), 0.0) / arcend1.size();
-  arc2m = accumulate(arcend2.begin(), arcend2.end(), 0.0) / arcend2.size();
+    uthresh1 = arc1m + 3*arc1s;
+    uthresh2 = arc2m + 3*arc2s;
 
-  arc1s = sqrt(inner_product(arcend1.begin(), arcend1.end(),
-                             arcend1.begin(), 0.0) / arcend1.size()
-               - arc1m * arc1m);
-  arc2s = sqrt(inner_product(arcend2.begin(), arcend2.end(),
-                             arcend2.begin(), 0.0) / arcend2.size()
-               - arc2m * arc2m);
+    isout.resize(allarc.size());
+    fill(isout.begin(), isout.end(), false);
 
-  lthresh1 = arc1m - 3*arc1s;
-  lthresh2 = arc2m - 3*arc2s;
+    iarc1 = arcend1.begin();
+    iarc2 = arcend2.begin();
 
-  uthresh1 = arc1m + 3*arc1s;
-  uthresh2 = arc2m + 3*arc2s;
+    for (vector<bool>::iterator iout = isout.begin(); iout < isout.end();
+                                                      iout++) {
+      if (*iarc1 < lthresh1 || *iarc1 > uthresh1 ||
+          *iarc2 < lthresh2 || *iarc2 > uthresh2) {
+       *iout = true;
+       cout << "Found outlier path: " << subjlist[iout - isout.begin()] << endl;
+      }
 
-  isout.resize(allarc.size());
-  fill(isout.begin(), isout.end(), false);
-
-  iarc1 = arcend1.begin();
-  iarc2 = arcend2.begin();
-
-  for (vector<bool>::iterator iout = isout.begin(); iout < isout.end();
-                                                    iout++) {
-    if (*iarc1 < lthresh1 || *iarc1 > uthresh1 ||
-        *iarc2 < lthresh2 || *iarc2 > uthresh2) {
-     *iout = true;
-     cout << "Found outlier path: " << subjlist[iout - isout.begin()] << endl;
+      iarc1++;
+      iarc2++;
     }
 
-    iarc1++;
-    iarc2++;
-  }
+    // Interpolate measures at the same arc lengths on every path
+    arcmin = *min_element(arcend1.begin(), arcend1.end());
+    arcmax = *max_element(arcend2.begin(), arcend2.end());
 
-  // Interpolate measures at the same arc lengths on every path
-  arcmin = *min_element(arcend1.begin(), arcend1.end());
-  arcmax = *max_element(arcend2.begin(), arcend2.end());
+    narc = (unsigned int) floor((arcmax - arcmin) / darc);
 
-  narc = (unsigned int) floor((arcmax - arcmin) / darc);
+    nsubj.resize(narc);
+    fill(nsubj.begin(), nsubj.end(), 0);
 
-  nsubj.resize(narc);
-  fill(nsubj.begin(), nsubj.end(), 0);
+    meanpath.resize(narc * 3);
+    fill(meanpath.begin(), meanpath.end(), 0.0);
 
-  meanpath.resize(narc * 3);
-  fill(meanpath.begin(), meanpath.end(), 0.0);
+    iallm = allmeas.begin();
+    iallp = allpaths.begin();
+    iout = isout.begin();
 
-  iallm = allmeas.begin();
-  iallp = allpaths.begin();
-  iout = isout.begin();
+    for (vector< vector<float> >::const_iterator ialla = allarc.begin();
+                                                 ialla < allarc.end(); ialla++) {
+      float larc = arcmin + darc;
+      vector<unsigned int>::iterator insubj = nsubj.begin();
+      vector<float>::iterator imean = meanpath.begin();
+      vector<float> meas;
 
-  for (vector< vector<float> >::const_iterator ialla = allarc.begin();
-                                               ialla < allarc.end(); ialla++) {
-    float larc = arcmin + darc;
-    vector<unsigned int>::iterator insubj = nsubj.begin();
-    vector<float>::iterator imean = meanpath.begin();
-    vector<float> meas;
+      for (unsigned int ilen = 0; ilen < narc; ilen++) {
+        float slope;
+        vector<float>::const_iterator iarc = ialla->begin(),
+                                      imeas1, imeas0;
 
-    for (unsigned int ilen = 0; ilen < narc; ilen++) {
-      float slope;
-      vector<float>::const_iterator iarc = ialla->begin(),
-                                    imeas1, imeas0;
-
-      if (*iarc > larc)			// No points in this segment, skip ahead
-        for (int k = (int) nmeas; k > 0; k--)
-          meas.push_back(numeric_limits<float>::infinity());
-      else {
-        while (*iarc < larc && iarc < ialla->end())
-          iarc++;
-
-        if (iarc == ialla->end()) 	// No points in this segment, skip ahead
+        if (*iarc > larc)		// No points in this segment, skip ahead
           for (int k = (int) nmeas; k > 0; k--)
             meas.push_back(numeric_limits<float>::infinity());
         else {
-          // Linear interpolation
-          slope = (larc - *(iarc-1)) / (*iarc - *(iarc-1));
+          while (*iarc < larc && iarc < ialla->end())
+            iarc++;
 
-          imeas1 = iallm->begin() + nmeas * (iarc - ialla->begin());
-          imeas0 = imeas1 - nmeas;
+          if (iarc == ialla->end()) 	// No points in this segment, skip ahead
+            for (int k = (int) nmeas; k > 0; k--)
+              meas.push_back(numeric_limits<float>::infinity());
+          else {
+            // Linear interpolation
+            slope = (larc - *(iarc-1)) / (*iarc - *(iarc-1));
 
-          // Interpolate values of each measure
-          for (int k = (int) nmeas; k > 0; k--) {
-            meas.push_back(*imeas0 + (*imeas1 - *imeas0) * slope);
+            imeas1 = iallm->begin() + nmeas * (iarc - ialla->begin());
+            imeas0 = imeas1 - nmeas;
 
-            imeas1++;
-            imeas0++;
-          }
+            // Interpolate values of each measure
+            for (int k = (int) nmeas; k > 0; k--) {
+              meas.push_back(*imeas0 + (*imeas1 - *imeas0) * slope);
 
-          if (! *iout) {
-            vector<float>::const_iterator ipt = iallp->begin()
-                                              + 3 * (iarc - ialla->begin());
+              imeas1++;
+              imeas0++;
+            }
 
-            // Increment number of samples in this segment
-            (*insubj)++;
+            if (! *iout) {
+              vector<float>::const_iterator ipt = iallp->begin()
+                                                + 3 * (iarc - ialla->begin());
 
-            // Add point towards mean path
-            for (int k = 0; k < 3; k++)
-              imean[k] += ipt[k];
+              // Increment number of samples in this segment
+              (*insubj)++;
+
+              // Add point towards mean path
+              for (int k = 0; k < 3; k++)
+                imean[k] += ipt[k];
+            }
           }
         }
+
+        larc += darc;
+        insubj++;
+        imean += 3;
       }
 
-      larc += darc;
-      insubj++;
-      imean += 3;
+      allmeasint.push_back(meas);
+
+      iallm++;
+      iallp++;
+      iout++;
     }
 
-    allmeasint.push_back(meas);
+    // Minimum number of subjects that must contribute to a position on the path
+    nsubjmin = (unsigned int) ceil(.2 * (float) subjlist.size());
 
-    iallm++;
-    iallp++;
-    iout++;
+    // Remove positions from start of path that don't have enough samples
+    while (*nsubj.begin() < nsubjmin) {
+      nsubj.erase(nsubj.begin());
+
+      meanpath.erase(meanpath.begin(), meanpath.begin()+3);
+
+      for (vector< vector<float> >::iterator iallm = allmeasint.begin();
+                                             iallm < allmeasint.end(); iallm++)
+        iallm->erase(iallm->begin(), iallm->begin() + nmeas);
+    }
+
+    // Remove positions from end of path that don't have enough samples
+    while (*(nsubj.end()-1) < nsubjmin) {
+      nsubj.erase(nsubj.end()-1);
+
+      meanpath.erase(meanpath.end()-3, meanpath.end());
+
+      for (vector< vector<float> >::iterator iallm = allmeasint.begin();
+                                             iallm < allmeasint.end(); iallm++)
+        iallm->erase(iallm->end() - nmeas, iallm->end());
+    }
+
+    // Divide sums of points by number of samples to get mean path points
+    insubj = nsubj.begin();
+
+    for (vector<float>::iterator ipt = meanpath.begin(); ipt < meanpath.end();
+                                                         ipt += 3) {
+      for (int k = 0; k < 3; k++)
+        ipt[k] /= *insubj;
+
+      insubj++;
+    }
+
+    // Write points of mean path to file as voxel and RAS coords
+    filename = outBase + ".coords.mean.txt";
+
+    cout << "Writing mean path voxel coords to " << filename << endl;
+    pathfile.open(filename.c_str(), ios::out);
+
+    filename = outBase + ".path.mean.txt";
+
+    cout << "Writing mean path RAS coords to " << filename << endl;
+    pathrasfile.open(filename.c_str(), ios::out);
+
+    pathrasfile << "#!ascii label, vox2ras=scanner" << endl
+                << meanpath.size() / 3 << endl;
+
+    npt = 1;
+
+    for (vector<float>::iterator ipt = meanpath.begin(); ipt < meanpath.end();
+                                                         ipt += 3) {
+      // Write voxel coordinates
+      pathfile << ipt[0] << " " << ipt[1] << " " << ipt[2] << endl;
+
+      // Write RAS coordinates (in freeview waypoint file format)
+      pathrasfile << npt;
+
+      for (int k = 1; k < 4; k++)	// Transform from voxel to RAS coords
+        pathrasfile << " " << ipt[0] * outv2r->rptr[k][1] +
+                              ipt[1] * outv2r->rptr[k][2] +
+                              ipt[2] * outv2r->rptr[k][3] +
+                                       outv2r->rptr[k][4];
+
+      pathrasfile << " 0" << endl;
+
+      npt++;
+    }
+
+    npt--;
+
+    pathfile.close();
+    pathrasfile.close();
   }
-
-  // Minimum number of subjects that must contribute to a position on the path
-  nsubjmin = (unsigned int) ceil(.2 * (float) subjlist.size());
-
-  // Remove positions from start of path that don't have enough samples
-  while (*nsubj.begin() < nsubjmin) {
-    nsubj.erase(nsubj.begin());
-
-    meanpath.erase(meanpath.begin(), meanpath.begin()+3);
-
-    for (vector< vector<float> >::iterator iallm = allmeasint.begin();
-                                           iallm < allmeasint.end(); iallm++)
-      iallm->erase(iallm->begin(), iallm->begin() + nmeas);
-  }
-
-  // Remove positions from end of path that don't have enough samples
-  while (*(nsubj.end()-1) < nsubjmin) {
-    nsubj.erase(nsubj.end()-1);
-
-    meanpath.erase(meanpath.end()-3, meanpath.end());
-
-    for (vector< vector<float> >::iterator iallm = allmeasint.begin();
-                                           iallm < allmeasint.end(); iallm++)
-      iallm->erase(iallm->end() - nmeas, iallm->end());
-  }
-
-  // Divide sums of points by number of samples to get mean path points
-  insubj = nsubj.begin();
-
-  for (vector<float>::iterator ipt = meanpath.begin(); ipt < meanpath.end();
-                                                       ipt += 3) {
-    for (int k = 0; k < 3; k++)
-      ipt[k] /= *insubj;
-
-    insubj++;
-  }
-
-  // Write points of mean path to file as voxel and RAS coords
-  filename = outBase + ".coords.mean.txt";
-
-  cout << "Writing mean path voxel coords to " << filename << endl;
-  pathfile.open(filename.c_str(), ios::out);
-
-  filename = outBase + ".path.mean.txt";
-
-  cout << "Writing mean path RAS coords to " << filename << endl;
-  pathrasfile.open(filename.c_str(), ios::out);
-
-  pathrasfile << "#!ascii label, vox2ras=scanner" << endl
-              << meanpath.size() / 3 << endl;
-
-  npt = 1;
-
-  for (vector<float>::iterator ipt = meanpath.begin(); ipt < meanpath.end();
-                                                       ipt += 3) {
-    // Write voxel coordinates
-    pathfile << ipt[0] << " " << ipt[1] << " " << ipt[2] << endl;
-
-    // Write RAS coordinates (in freeview waypoint file format)
-    pathrasfile << npt;
-
-    for (int k = 1; k < 4; k++)	// Transform from voxel to RAS coords
-      pathrasfile << " " << ipt[0] * outv2r->rptr[k][1] +
-                            ipt[1] * outv2r->rptr[k][2] +
-                            ipt[2] * outv2r->rptr[k][3] +
-                                     outv2r->rptr[k][4];
-
-    pathrasfile << " 0" << endl;
-
-    npt++;
-  }
-
-  npt--;
-
-  pathfile.close();
-  pathrasfile.close();
 
   // Write output files
   outvol = MRIallocSequence(npt, 1, 1, MRI_FLOAT, subjlist.size());
@@ -814,6 +825,8 @@ static int parse_commandline(int argc, char **argv) {
       outBase = fio_fullpath(pargv[0]);
       nargsused = 1;
     }
+    else if (!strcmp(option, "--nointerp"))
+      doInterp = false;
     else if (!strcmp(option, "--sec")) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0], "%d", &nSection);
@@ -845,6 +858,9 @@ static void print_usage(void)
   << "     Base name of output stats files" << endl
   << endl
   << "Optional arguments" << endl
+  << "   --nointerp:" << endl
+  << "     Do not attempt to interpolate along-tract measures" << endl
+  << "     (Assume that subjects are sampled at equivalent positions)" << endl
   << "   --sec <num>:" << endl
   << "     Divide the pathway into a number of sections and output " << endl
   << "     average measures for each section" << endl
@@ -907,6 +923,8 @@ static void dump_options(FILE *fp) {
   cout << "Text file with list of individual inputs: " << inListFile << endl;
   if (!outRefFile.empty())
     cout << "Reference volume for output path: " << outRefFile << endl;
+  if (!doInterp)
+    cout << "Not interpolating measures along tract" << endl;
   if (nSection > 0)
     cout << "Number of path sections: " << nSection << endl;
 

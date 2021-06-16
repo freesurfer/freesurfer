@@ -1182,39 +1182,43 @@ if ($dostats) then
               set refvol = $labdir/anatorig/${segname}_mask.nii.gz
             endif
 
-            set inputs = ($pathdir $refvol)
+            if (-e $pathdir/path.ref.txt) then		# No need to interpolate
+              set inputs = ($pathdir)
+            else
+              set inputs = ($pathdir $refvol)
 
-            if ($xspace == mni || $xspace == rob) then
-              if (! $#baselist) then			# Cross-sectional
-                set inputs = ($inputs $xfmdir/diff2$xspace.$reg.lta)
-              else					# Longitudinal
-                set inputs = ($inputs $xfmdir/anatorig2$xspace.lta)
-              endif
-            else if ($xspace == cvs) then
-              if (! $#baselist) then			# Cross-sectional
-                set inputs = ($inputs $xfmdir/diff2anatorig.$reg.lta)
-                if (-e $xfmdir/cvs/$cvswarp.m3z) then
-                  set inputs = ($inputs $xfmdir/cvs/$cvswarp.m3z)
+              if ($xspace == mni || $xspace == rob) then
+                if (! $#baselist) then			# Cross-sectional
+                  set inputs = ($inputs $xfmdir/diff2$xspace.$reg.lta)
+                else					# Longitudinal
+                  set inputs = ($inputs $xfmdir/anatorig2$xspace.lta)
                 endif
-              else					# Longitudinal
-                if (-e $xfmdir/cvs/$cvswarp.m3z) then
-                  set inputs = ($inputs $xfmdir/cvs/$cvswarp.m3z)
+              else if ($xspace == cvs) then
+                if (! $#baselist) then			# Cross-sectional
+                  set inputs = ($inputs $xfmdir/diff2anatorig.$reg.lta)
+                  if (-e $xfmdir/cvs/$cvswarp.m3z) then
+                    set inputs = ($inputs $xfmdir/cvs/$cvswarp.m3z)
+                  endif
+                else					# Longitudinal
+                  if (-e $xfmdir/cvs/$cvswarp.m3z) then
+                    set inputs = ($inputs $xfmdir/cvs/$cvswarp.m3z)
+                  endif
                 endif
-              endif
-            else if ($xspace == syn) then
-              if (! $#baselist) then			# Cross-sectional
-                set inputs = ($inputs $xfmdir/diff2syn.lta)
-                set inputs = ($inputs $xfmdir/syn_warp.m3z)
-              else					# Longitudinal
-                set inputs = ($inputs $xfmdir/anatorig2syn.$reg.lta)
-                set inputs = ($inputs $xfmdir/syn_warp.m3z)
-              endif
-            else if ($xspace == fnt) then
-              if (! $#baselist) then			# Cross-sectional
-                set inputs = ($inputs $xfmdir/diff2fsl_warp.m3z)
-              else					# Longitudinal
-                set inputs = ($inputs $xfmdir/anatorig2diff.$reg.lta)
-                set inputs = ($inputs $xfmdir/diff2fsl_warp.m3z)
+              else if ($xspace == syn) then
+                if (! $#baselist) then			# Cross-sectional
+                  set inputs = ($inputs $xfmdir/diff2syn.lta)
+                  set inputs = ($inputs $xfmdir/syn_warp.m3z)
+                else					# Longitudinal
+                  set inputs = ($inputs $xfmdir/anatorig2syn.$reg.lta)
+                  set inputs = ($inputs $xfmdir/syn_warp.m3z)
+                endif
+              else if ($xspace == fnt) then
+                if (! $#baselist) then			# Cross-sectional
+                  set inputs = ($inputs $xfmdir/diff2fsl_warp.m3z)
+                else					# Longitudinal
+                  set inputs = ($inputs $xfmdir/anatorig2diff.$reg.lta)
+                  set inputs = ($inputs $xfmdir/diff2fsl_warp.m3z)
+                endif
               endif
             endif
 
@@ -1234,6 +1238,7 @@ if ($dostats) then
       set cmd = ($cmd --list $statdir/$pathname.$avgmode.inputs.txt)
       set cmd = ($cmd --ref  $intertrg)
       set cmd = ($cmd --out  $statdir/$pathname.$avgmode)
+      if ($#inputs == 1)	set cmd = ($cmd --nointerp)
 
       set LF = $statdir/$pathname.$avgmode.log
 
