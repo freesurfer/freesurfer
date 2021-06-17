@@ -52,6 +52,8 @@
       <explanation>Use mri_make_uchar instead of conforming</explanation>
       <argument>--no-uchar</argument>
       <explanation>Do not use mri_make_uchar (default)</explanation>
+      <argument>--ants-n4-replace-zeros</argument>
+      <explanation>Replace 0s with small random numbers then remove after nu (good for defaced data)</explanation>
       <argument>--cm</argument>
       <explanation>For use with data that is higher than 1mm resolution.</explanation>
       <argument>--help</argument>

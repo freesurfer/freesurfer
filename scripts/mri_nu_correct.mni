@@ -44,6 +44,11 @@ set DoAntsN4 = 0;
 set DoAntsN4CharConvert = 1;
 set lambda = ()
 
+if($?FS_ANTS_N4_REPLACE_ZEROS == 0) then
+  setenv FS_ANTS_N4_REPLACE_ZEROS 0
+endif
+set ReplaceZeros = $FS_ANTS_N4_REPLACE_ZEROS; # for ANTS
+
 set debug = 0;
 set PrintHelp = 0;
 
@@ -120,6 +125,7 @@ if($DoAntsN3 || $DoAntsN4) then
     set cmd = (AntsN4BiasFieldCorrectionFs -i $InVol -o $numnc)
     if($#MaskVol) set cmd = ($cmd -x $MaskVol)
     if($DoAntsN4CharConvert) set cmd = ($cmd --dtype uchar)
+    if($ReplaceZeros) set cmd = ($cmd --replace-zeros 0 1 1)
   endif
   echo "cd `pwd`" | tee -a $LF
   echo $cmd | tee -a $LF
@@ -289,6 +295,13 @@ while( $#argv != 0 )
 
     case "--ants-no-char":
       set DoAntsN4CharConvert = 0;
+      breaksw
+
+    case "--ants-n4-replace-zeros":
+      set ReplaceZeros = 1
+      breaksw
+    case "--no-ants-n4-replace-zeros":
+      set ReplaceZeros = 0
       breaksw
 
     case "--n":
