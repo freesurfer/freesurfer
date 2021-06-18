@@ -50,6 +50,7 @@
 #include <QApplication>
 #include <QClipboard>
 #include "LayerPointSet.h"
+#include "LayerPropertyPointSet.h"
 
 RenderView2D::RenderView2D( QWidget* parent ) : RenderView( parent )
 {
@@ -639,7 +640,7 @@ void RenderView2D::TriggerContextMenu( QMouseEvent* event )
   if (mainwnd->GetMode() == RenderView::IM_PointSetEdit)
   {
     LayerPointSet* wp = qobject_cast<LayerPointSet*>(mainwnd->GetActiveLayer("PointSet"));
-    if (wp && wp->IsVisible() && mainwnd->GetActiveLayer("MRI"))
+    if (wp && wp->IsVisible() && wp->GetProperty()->GetShowSpline() && mainwnd->GetActiveLayer("MRI"))
     {
       double ras[3];
       MousePositionToRAS( event->x(), event->y(), ras );
