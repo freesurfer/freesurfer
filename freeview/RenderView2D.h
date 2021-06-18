@@ -128,6 +128,7 @@ public slots:
   void CenterAtCursor();
   void SetAutoScaleText(bool b);
   void SetTextSize(int nsize);
+  void OnMovePointToLocalMaximum();
 
 signals:
   void RegionSelected( Region2D* );

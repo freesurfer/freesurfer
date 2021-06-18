@@ -49,6 +49,7 @@
 #include <QDebug>
 #include <QApplication>
 #include <QClipboard>
+#include "LayerPointSet.h"
 
 RenderView2D::RenderView2D( QWidget* parent ) : RenderView( parent )
 {
@@ -635,6 +636,26 @@ void RenderView2D::TriggerContextMenu( QMouseEvent* event )
   bool bShowBar = this->GetShowScalarBar();
   MainWindow* mainwnd = MainWindow::GetMainWindow();
   QList<Layer*> layers = mainwnd->GetLayers("MRI");
+  if (mainwnd->GetMode() == RenderView::IM_PointSetEdit)
+  {
+    LayerPointSet* wp = qobject_cast<LayerPointSet*>(mainwnd->GetActiveLayer("PointSet"));
+    if (wp && wp->IsVisible() && mainwnd->GetActiveLayer("MRI"))
+    {
+      double ras[3];
+      MousePositionToRAS( event->x(), event->y(), ras );
+      int nIndex = wp->FindPoint( ras );
+      if ( nIndex >= 0 )
+      {
+        QAction* act = new QAction("Move to Local Maximum Derivative", this);
+        act->setData(nIndex);
+        connect(act, SIGNAL(triggered()), this, SLOT(OnMovePointToLocalMaximum()));
+        menu.addAction(act);
+        menu.exec(event->globalPos());
+        return;
+      }
+    }
+  }
+
   foreach (Layer* layer, layers)
   {
     if (!layer->IsVisible())
@@ -818,5 +839,23 @@ void RenderView2D::OnCopyLabelVolume()
   if (act)
   {
     QApplication::clipboard()->setText(QString::number(act->data().toDouble()));
+  }
+}
+
+void RenderView2D::OnMovePointToLocalMaximum()
+{
+  MainWindow* mainwnd = MainWindow::GetMainWindow();
+  LayerPointSet* wp = qobject_cast<LayerPointSet*>(mainwnd->GetActiveLayer("PointSet"));
+  LayerMRI* mri = qobject_cast<LayerMRI*>(mainwnd->GetActiveLayer("MRI"));
+  QAction* act = qobject_cast<QAction*>(sender());
+  if (wp && mri && act)
+  {
+    double ras[3], v[3];
+    int n = act->data().toInt();
+    wp->GetPoint(n, ras);
+    wp->GetNormalAtPoint(n, v, GetViewPlane());
+    mri->LocateLocalMaximumAtRAS(ras, v[0], v[1], v[2], ras, 2);
+    wp->SaveForUndo();
+    wp->UpdatePoint(n, ras);
   }
 }

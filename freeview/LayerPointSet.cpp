@@ -954,3 +954,51 @@ vtkPoints* LayerPointSet::GetSplinedPoints()
 {
   return m_splinedPoints;
 }
+
+void LayerPointSet::GetNormalAtPoint(int nIndex, double *vnorm, int nPlane)
+{
+  double pt[3], pt0[3], pt1[3];
+  GetPoint(nIndex, pt);
+  int n = 0, n0, n1;
+  double* vs = m_layerRef->GetWorldVoxelSize();
+  double dTor2 = qMin(vs[0], qMin(vs[1], vs[2]))*0.02;
+  dTor2 *= dTor2;
+  double dMinDist2 = 1e8;
+  for (int i = 0; i < m_splinedPoints->GetNumberOfPoints(); i++)
+  {
+    double dval = vtkMath::Distance2BetweenPoints(pt, m_splinedPoints->GetPoint(i));
+    if (dval < dTor2)
+    {
+      n = i;
+      break;
+    }
+    else if (dval < dMinDist2)
+    {
+      n = i;
+      dMinDist2 = dval;
+    }
+  }
+  if (n == 0)
+  {
+    n0 = 0;
+    n1 = 1;
+  }
+  else if (n == m_splinedPoints->GetNumberOfPoints()-1)
+  {
+    n0 = m_splinedPoints->GetNumberOfPoints()-1;
+    n1 = n0-1;
+  }
+  else
+  {
+    n0 = n-1;
+    n1 = n+1;
+  }
+  m_splinedPoints->GetPoint(n0, pt0);
+  m_splinedPoints->GetPoint(n1, pt1);
+  double v[3], v2[3] = {0, 0, 0};
+  for (int i = 0; i < 3; i++)
+    v[i] = pt1[i] - pt0[i];
+  vtkMath::Normalize(v);
+  v2[nPlane] = 1;
+  vtkMath::Cross(v, v2, vnorm);
+}

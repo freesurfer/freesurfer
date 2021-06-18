@@ -110,6 +110,8 @@ public:
 
   vtkPoints* GetSplinedPoints();
 
+  void GetNormalAtPoint(int nIndex, double* vnorm, int nPlane);
+
 protected slots:
   void UpdateColorMap();
   void UpdateOpacity();
