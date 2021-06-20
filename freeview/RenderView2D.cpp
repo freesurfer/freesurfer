@@ -51,6 +51,7 @@
 #include <QClipboard>
 #include "LayerPointSet.h"
 #include "LayerPropertyPointSet.h"
+#include <QInputDialog>
 
 RenderView2D::RenderView2D( QWidget* parent ) : RenderView( parent )
 {
@@ -308,11 +309,11 @@ void RenderView2D::OnSlicePositionChanged(bool bCenter)
     double x, y, z;
     WorldToViewport(slicePos[0], slicePos[1], slicePos[2], x, y, z);
 #if VTK_MAJOR_VERSION > 7
-  if (devicePixelRatio() > 1)
-  {
+    if (devicePixelRatio() > 1)
+    {
       x /= devicePixelRatio();
       y /= devicePixelRatio();
-  }
+    }
 #endif
     if (!rect().contains(QPoint(x, y)))
       this->CenterAtCursor();
@@ -339,8 +340,8 @@ void RenderView2D::MousePositionToRAS( int posX, int posY, double* pos )
 #if VTK_MAJOR_VERSION > 7
   if (devicePixelRatio() > 1)
   {
-      pos[0] = pos[0] * devicePixelRatio();
-      pos[1] = pos[1] * devicePixelRatio();
+    pos[0] = pos[0] * devicePixelRatio();
+    pos[1] = pos[1] * devicePixelRatio();
   }
 #endif
   m_renderer->ViewportToNormalizedViewport( pos[0], pos[1] );
@@ -639,20 +640,32 @@ void RenderView2D::TriggerContextMenu( QMouseEvent* event )
   QList<Layer*> layers = mainwnd->GetLayers("MRI");
   if (mainwnd->GetMode() == RenderView::IM_PointSetEdit)
   {
-    LayerPointSet* wp = qobject_cast<LayerPointSet*>(mainwnd->GetActiveLayer("PointSet"));
-    if (wp && wp->IsVisible() && wp->GetProperty()->GetShowSpline() && mainwnd->GetActiveLayer("MRI"))
+    QList<Layer*> wp_layers = mainwnd->GetLayers("PointSet");
+    if (mainwnd->GetActiveLayer("MRI"))
     {
       double ras[3];
       MousePositionToRAS( event->x(), event->y(), ras );
-      int nIndex = wp->FindPoint( ras );
-      if ( nIndex >= 0 )
+      foreach (Layer* layer, wp_layers)
       {
-        QAction* act = new QAction("Move to Local Maximum Derivative", this);
-        act->setData(nIndex);
-        connect(act, SIGNAL(triggered()), this, SLOT(OnMovePointToLocalMaximum()));
-        menu.addAction(act);
-        menu.exec(event->globalPos());
-        return;
+        LayerPointSet* wp = qobject_cast<LayerPointSet*>(layer);
+        if (wp && wp->IsVisible() && wp->GetProperty()->GetShowSpline())
+        {
+          int nIndex = wp->FindPoint( ras );
+          if ( nIndex >= 0 )
+          {
+            mainwnd->GetLayerCollection("PointSet")->SetActiveLayer(wp);
+            QAction* act = new QAction("Move to Local Maximum Derivative", this);
+            act->setData(nIndex);
+            connect(act, SIGNAL(triggered()), this, SLOT(OnMovePointToLocalMaximum()));
+            menu.addAction(act);
+            act = new QAction("Move to Local Maximum Derivative Using Last Settings", this);
+            act->setData(nIndex);
+            connect(act, SIGNAL(triggered()), this, SLOT(OnMovePointToLocalMaximumDefault()));
+            menu.addAction(act);
+            menu.exec(event->globalPos());
+            return;
+          }
+        }
       }
     }
   }
@@ -750,11 +763,11 @@ void RenderView2D::TriggerContextMenu( QMouseEvent* event )
 
   if (!mainwnd->IsEmpty() && mainwnd->GetMainView() == this)
   {
-      menu.addSeparator();
-      QAction* action = new QAction("Copy", this);
-      connect(action, SIGNAL(triggered(bool)), mainwnd, SLOT(OnCopyView()));
-      menu.addAction(action);
-      menu.addAction(mainwnd->ui->actionSaveScreenshot);
+    menu.addSeparator();
+    QAction* action = new QAction("Copy", this);
+    connect(action, SIGNAL(triggered(bool)), mainwnd, SLOT(OnCopyView()));
+    menu.addAction(action);
+    menu.addAction(mainwnd->ui->actionSaveScreenshot);
   }
 
   if (!menu.actions().isEmpty())
@@ -843,8 +856,16 @@ void RenderView2D::OnCopyLabelVolume()
   }
 }
 
-void RenderView2D::OnMovePointToLocalMaximum()
+void RenderView2D::OnMovePointToLocalMaximum(bool bUseLast)
 {
+  double sigma = parent()->property("last_sigma").toDouble();
+  if (!bUseLast)
+  {
+    bool bOk;
+    sigma = QInputDialog::getDouble(this, "Enter Sigma value", "Enter Sigma value", sigma, 0, 100, 1, &bOk);
+    if (!bOk)
+      return;
+  }
   MainWindow* mainwnd = MainWindow::GetMainWindow();
   LayerPointSet* wp = qobject_cast<LayerPointSet*>(mainwnd->GetActiveLayer("PointSet"));
   LayerMRI* mri = qobject_cast<LayerMRI*>(mainwnd->GetActiveLayer("MRI"));
@@ -855,8 +876,14 @@ void RenderView2D::OnMovePointToLocalMaximum()
     int n = act->data().toInt();
     wp->GetPoint(n, ras);
     wp->GetNormalAtPoint(n, v, GetViewPlane());
-    mri->LocateLocalMaximumAtRAS(ras, v[0], v[1], v[2], ras, 2);
+    mri->LocateLocalMaximumAtRAS(ras, v[0], v[1], v[2], ras, sigma, 2);
     wp->SaveForUndo();
     wp->UpdatePoint(n, ras);
+    parent()->setProperty("last_sigma", sigma);
   }
+}
+
+void RenderView2D::OnMovePointToLocalMaximumDefault()
+{
+  OnMovePointToLocalMaximum(true);
 }

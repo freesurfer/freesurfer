@@ -4461,7 +4461,7 @@ void LayerMRI::UpdateVoxelsByPointSet(LayerPointSet *ps, int nPlane)
   }
 }
 
-void LayerMRI::LocateLocalMaximumAtRAS(double* ras_in, double dx, double dy, double dz, double* ras_out, double dist_in_vox)
+void LayerMRI::LocateLocalMaximumAtRAS(double* ras_in, double dx, double dy, double dz, double* ras_out, double sigma, double dist_in_vox)
 {
   double ras[3];
   TargetToRAS(ras_in, ras);
@@ -4479,7 +4479,7 @@ void LayerMRI::LocateLocalMaximumAtRAS(double* ras_in, double dx, double dy, dou
   double dMax = 0;
   double x = ras[0], y = ras[1], z = ras[2];
   double x_out = x, y_out = y, z_out = z;
-  ::MRIsampleVolumeDerivativeScale(m_volumeSource->GetMRI(), x, y, z, dx, dy, dz, &dMax, 0);
+  ::MRIsampleVolumeDerivativeScale(m_volumeSource->GetMRI(), x, y, z, dx, dy, dz, &dMax, sigma);
   dMax = qAbs(dMax);
   for (double d = 0; d <= dist_in_vox; d += 0.25)
   {
@@ -4487,7 +4487,7 @@ void LayerMRI::LocateLocalMaximumAtRAS(double* ras_in, double dx, double dy, dou
     x = ras[0] + d*dx;
     y = ras[1] + d*dy;
     z = ras[2] + d*dz;
-    ::MRIsampleVolumeDerivativeScale(m_volumeSource->GetMRI(), x, y, z, dx, dy, dz, &mag, 0);
+    ::MRIsampleVolumeDerivativeScale(m_volumeSource->GetMRI(), x, y, z, dx, dy, dz, &mag, sigma);
     if (qAbs(mag) > dMax)
     {
       dMax = qAbs(mag);
@@ -4498,7 +4498,7 @@ void LayerMRI::LocateLocalMaximumAtRAS(double* ras_in, double dx, double dy, dou
     x = ras[0] - d*dx;
     y = ras[1] - d*dy;
     z = ras[2] - d*dz;
-    ::MRIsampleVolumeDerivativeScale(m_volumeSource->GetMRI(), x, y, z, dx, dy, dz, &mag, 0);
+    ::MRIsampleVolumeDerivativeScale(m_volumeSource->GetMRI(), x, y, z, dx, dy, dz, &mag, sigma);
     if (qAbs(mag) > dMax)
     {
       dMax = qAbs(mag);

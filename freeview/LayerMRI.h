@@ -371,7 +371,7 @@ public:
 
   void UpdateVoxelsByPointSet(LayerPointSet* ps, int nPlane);
 
-  void LocateLocalMaximumAtRAS(double* ras_in, double dx, double dy, double dz, double* ras_out, double dist_in_vox = 3);
+  void LocateLocalMaximumAtRAS(double* ras_in, double dx, double dy, double dz, double* ras_out, double signma = 0, double dist_in_vox = 3);
 
 public slots:
   virtual void SetModified();
