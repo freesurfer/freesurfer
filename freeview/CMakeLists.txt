@@ -201,6 +201,7 @@ if(BUILD_GUIS AND VTK_FOUND AND PETSC_FOUND AND TARGET vtkutils)
     PanelODF.cpp
     DialogTransformSurface.cpp
     Region3D.cpp
+    DialogMovePoint.cpp
     freeview.qrc
   )
 

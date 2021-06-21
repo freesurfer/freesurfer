@@ -20,6 +20,7 @@ SOURCES += \
     DialogLoadDTI.cpp \
     DialogLoadPointSet.cpp \
     DialogLoadVolume.cpp \
+    DialogMovePoint.cpp \
     DialogNewAnnotation.cpp \
     DialogNewROI.cpp \
     DialogNewPointSet.cpp \
@@ -206,6 +207,7 @@ HEADERS  += \
     DialogLoadDTI.h \
     DialogLoadPointSet.h \
     DialogLoadVolume.h \
+    DialogMovePoint.h \
     DialogNewAnnotation.h \
     DialogPreferences.h \
     DialogNewPointSet.h \
@@ -371,6 +373,7 @@ HEADERS  += \
 
 FORMS    += MainWindow.ui \
     DialogControlPointComment.ui \
+    DialogMovePoint.ui \
     DialogNewAnnotation.ui \
     DialogTransformSurface.ui \
     PanelODF.ui \

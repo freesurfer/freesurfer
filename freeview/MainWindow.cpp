@@ -117,6 +117,7 @@
 #ifdef Q_OS_MAC
 #include "MacHelper.h"
 #endif
+#include "DialogMovePoint.h"
 
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
 #include <QtWidgets>
@@ -343,6 +344,11 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   m_wndTractCluster->setWindowTitle("Tract Cluster");
   m_wndTractCluster->hide();
   connect(m_wndTractCluster, SIGNAL(TreeDataLoaded(QVariantMap)), SLOT(OnTractClusterLoaded(QVariantMap)));
+
+  m_dlgMovePoint = new DialogMovePoint(this);
+  m_dlgMovePoint->hide();
+  for (int i = 0; i < 3; i++)
+    connect(m_views[i], SIGNAL(PointSetPicked(LayerPointSet*, int)), m_dlgMovePoint, SLOT(OnPointSetPicked(LayerPointSet*,int)));
 
   QStringList keys = m_layerCollections.keys();
   for ( int i = 0; i < keys.size(); i++ )

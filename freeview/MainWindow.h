@@ -59,6 +59,7 @@ class BinaryTreeView;
 class WindowLayerInfo;
 class QFileSystemWatcher;
 class DialogTransformSurface;
+class DialogMovePoint;
 
 #define MAX_RECENT_FILES    10
 
@@ -309,6 +310,11 @@ public slots:
   void OnFloatPanels(bool bFloat);
 
   void OnPointSetToLabel();
+
+  DialogMovePoint* GetMovePointDlg()
+  {
+    return m_dlgMovePoint;
+  }
 
 protected:
   void closeEvent   ( QCloseEvent * event );
@@ -697,6 +703,7 @@ private:
   WindowLayerInfo*      m_wndLayerInfo;
   QWidget*              m_widgetFloatControlPanel;
   QWidget*              m_widgetFloatInfoPanel;
+  DialogMovePoint*      m_dlgMovePoint;
 
   VolumeFilterWorkerThread* m_threadVolumeFilter;
 
