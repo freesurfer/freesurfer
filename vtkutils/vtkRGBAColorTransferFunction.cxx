@@ -585,7 +585,11 @@ void vtkRGBAColorTransferFunction::AddHSVASegment(
 
 //------------------------------------------------------------------------------
 // Returns the RGBA color evaluated at the specified location
+#if VTK_MAJOR_VERSION > 7
+const unsigned char* vtkRGBAColorTransferFunction::MapValue(double x)
+#else
 unsigned char* vtkRGBAColorTransferFunction::MapValue(double x)
+#endif
 {
   double rgb[4];
   this->GetColor(x, rgb);
