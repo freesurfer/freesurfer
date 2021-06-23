@@ -5,10 +5,11 @@
 
 int main(int argc, const char **argv)
 {
-  if (argc < 4)
+  if (argc < 5)
   {
-    std::cout << "pointset2label <way point file> <volume label file> <label value to write> [output volume filename]\n"
-                 "  if output not given, update input volume file\n\n";
+    std::cout << "pointset2label <waypoint file> <volume label file> <label value> [output volume file]\n\n"
+                 "Output file can be the same as the input volume file. In that case input volume file will be updated\n\n"
+                 "  Example: pointset2label wp.label foo.mgz 3 foo_out.mgz\n\n";
     return -1;
   }
 
