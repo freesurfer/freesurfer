@@ -18,6 +18,9 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import tensorflow as tf
 from tensorflow import keras
 
+global_debug = False
+
+
 # ================================================================================================
 #                                         Main Entrypoint
 # ================================================================================================
@@ -57,6 +60,7 @@ def main():
     parser.add_argument("--threads", type=int, default=1, help="(both modes, optional) Number of cores to be used. "
                                                                "Default uses 1 core.")
     parser.add_argument("--ctab", help="colortable")
+    parser.add_argument("--debug", action='store_true', help="get memory usage")
 
     # check for no arguments
     if len(sys.argv) < 2:
@@ -66,6 +70,10 @@ def main():
     # parse commandline
     args = parser.parse_args()
 
+    if args.debug:
+        global global_debug
+        global_debug = True
+
     # locate model weights
     if args.model:
         model = args.model
@@ -74,22 +82,20 @@ def main():
         fs.fatal('FREESURFER_HOME is not set. Please source freesurfer.')
     else:
         model = os.path.join(fs.fshome(), 'models', 'sclimbic.h5')
-    print("model is ",model)
+    print("Model is", model)
 
     if args.ctab:
         ctabfilename = args.ctab
     else:
         ctabfilename = os.path.join(fs.fshome(), 'models', 'sclimbic.ctab')
 
-    print("Reading ctab ",ctabfilename);
+    print("Reading ctab", ctabfilename);
     ctab = fs.LookupTable.read(ctabfilename);
-    for idx, elt in ctab.items():
-        print(idx,elt.name)
 
     # set tensorflow logging
     tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
-    print("vmpcmax ",getvmpcmax());
+    getvmpcmax()
 
     # run prediction
     predict(
@@ -105,14 +111,17 @@ def main():
         unetcrop=160,
         threads=args.threads
     )
-    print("vmpcmax ",getvmpcmax());
-    print("done");
+    getvmpcmax()
+    print("Done");
 
 # ================================================================================================
 #                                 Prediction and Processing Utilities
 # ================================================================================================
 
+
 def getvmpcmax():
+    if not global_debug:
+        return
     procstat = os.path.join('/proc',str(os.getpid()),'status')
     fp = open(procstat, "r")
     lines = fp.readlines();
@@ -120,7 +129,8 @@ def getvmpcmax():
         strs = line.split();
         if(len(strs) < 3): continue;
         if(strs[0] != 'VmPeak:'): continue;
-        return int(strs[1])
+        print('vmpcma:', int(strs[1]))
+
 
 def predict(name_subjects=None,
             path_subjects_dir=None,
@@ -160,9 +170,10 @@ def predict(name_subjects=None,
         write_csv_file(volumes=None, filename=path_main_volumes, subject=None, ctab=ctab, write_header=True, open_type='w')
 
     if threads == 1:
-        print('using 1 thread')
+        print('Using 1 thread')
     else:
-        print('using %s threads' % threads)
+        print('Using %s threads' % threads)
+    print()
 
     tf.config.threading.set_inter_op_parallelism_threads(threads)
     tf.config.threading.set_intra_op_parallelism_threads(threads)
@@ -173,7 +184,7 @@ def predict(name_subjects=None,
     for idx, (path_image, path_segmentation, path_posterior, path_volume, path_stat) in \
             enumerate(zip(images_to_segment, path_segmentations, path_posteriors, path_volumes, path_stats)):
         print_loop_info(idx, len(images_to_segment), 10)
-        print("vmpcmax ",getvmpcmax());
+        getvmpcmax()
 
         # preprocess image and get information
         try:
@@ -185,9 +196,8 @@ def predict(name_subjects=None,
             print('resuming program execution\n')
             continue
 
-        print(cropping)
         print(path_image)
-        print(model_input_shape)
+        print(cropping)
 
         # prepare net for first image or if input's size has changed
         if (idx == 0) | (previous_model_input_shape != model_input_shape):
@@ -196,11 +206,10 @@ def predict(name_subjects=None,
             if (idx != 0) & (previous_model_input_shape != model_input_shape):
                 print('image of different shape as previous ones, redefining network')
             previous_model_input_shape = model_input_shape
-            print(path_model)
             net = build_model(path_model, model_input_shape, len(label_list))
 
         # predict posteriors
-        print("predict")
+        print("Predicting")
         try:
             prediction_patch = net.predict(image)
         except Exception as e:
@@ -208,7 +217,6 @@ def predict(name_subjects=None,
             print(e)
             print('\nresuming program execution')
             continue
-        print("done predict")
 
         # get posteriors and segmentation
         try:
@@ -222,24 +230,23 @@ def predict(name_subjects=None,
         # compute volumes
         try:
             if (path_main_volumes is not None) | (path_volume is not None):  # compute volumes only if necessary
+                print('Writing volumes')
                 volumes = np.array([]);
                 for label in label_list:
                     if(label==0): continue; # Skip unknown
                     volume = np.count_nonzero(seg==label);
-                    print(label,volume)
+                    #print(label,volume)
                     volumes = np.append(volumes,volume);
                 if name_subjects is None:  # any T1 mode
                     subject_name = os.path.basename(path_image).replace('.nii.gz', '')
                 else:  # FS mode
                     subject_name = os.path.basename(os.path.dirname(os.path.dirname(path_image)))
-                print('Writing CSV')
                 if path_main_volumes is not None: # append volumes to main file (regrouping volumes of all subjects)
                     write_csv_file(volumes, path_main_volumes, subject_name, ctab, write_header=False, open_type='a')
                 if path_volume is not None:  # create individual volume file in each subject subdirectory (FS mode)
                     write_csv_file(volumes, path_volume, subject_name, ctab, write_header=True, open_type='w')
                 if path_stat is not None:  # create individual stats file in each subject subdirectory (FS mode)
                     write_fs_stats_file(volumes, ctab, path_stat)
-                print('done Writing CSV')
         except Exception as e:
             print('\nthe following problem occured when computing the volumes of '
                   'segmentation %s :' % path_segmentation)
@@ -250,7 +257,7 @@ def predict(name_subjects=None,
         # write results to disk
         try:
             if path_segmentation is not None:
-                save_volume(seg.astype('int'), aff, h, path_segmentation)
+                save_volume(seg.astype('int'), aff, h, path_segmentation, lut=ctab)
             if path_posterior is not None:
                 if n_channels > 1:
                     new_shape = list(posteriors.shape)
@@ -265,27 +272,28 @@ def predict(name_subjects=None,
             continue
 
     # print output info
+    print()
     if len(path_segmentations) == 1:  # either one image or one subject
-        print('segmentation saved in: ' + path_segmentations[0])
+        print('Segmentation saved in: ' + path_segmentations[0])
         if path_posteriors[0] is not None:
-            print('posteriors saved in:   ' + path_posteriors[0])
+            print('Posteriors saved in:   ' + path_posteriors[0])
         if path_volumes[0] is not None:  # for FS subject
-            print('volumes saved in:      ' + path_volumes[0])
+            print('Volumes saved in:      ' + path_volumes[0])
         if path_main_volumes is not None:  # for single image
-            print('volumes saved in:      ' + path_main_volumes)
+            print('Volumes saved in:      ' + path_main_volumes)
     else:
         if name_subjects is None:  # images in folder
-            print('\n\nsegmentations saved in: ' + os.path.dirname(path_segmentations[0]))
+            print('\n\nSegmentations saved in: ' + os.path.dirname(path_segmentations[0]))
             if path_posteriors[0] is not None:
-                print('posteriors saved in:    ' + os.path.dirname(path_posteriors[0]))
+                print('Posteriors saved in:    ' + os.path.dirname(path_posteriors[0]))
             if path_main_volumes is not None:
-                print('volumes saved in:       ' + path_main_volumes)
+                print('Volumes saved in:       ' + path_main_volumes)
         else:  # several subjects
             if path_posteriors[0] is not None:
-                print('\n\nsegmentations, posteriors, and individual subject volumes saved in each subject directory')
+                print('\n\nSegmentations, posteriors, and individual subject volumes saved in each subject directory')
             else:
-                print('\n\nsegmentations and individual subject volumes saved in each subject directory')
-            print('additional file regrouping the volumes of all subjects saved in: ' + path_main_volumes)
+                print('\n\nSegmentations and individual subject volumes saved in each subject directory')
+            print('Additional file regrouping the volumes of all subjects saved in: ' + path_main_volumes)
 
     print('\nIf you use this tool in a publication, please cite:')
     print('Automatic Segmentation of Subcortical Limbic Structures from MRI Images using Deep Leaning');
@@ -1100,7 +1108,7 @@ def load_volume(path_volume, im_only=True, squeeze=True, dtype=None, aff_ref=Non
         return volume, aff, header
 
 
-def save_volume(volume, aff, header, path, res=None, dtype=None, n_dims=3):
+def save_volume(volume, aff, header, path, res=None, dtype=None, n_dims=3, lut=None):
     """
     Save a volume.
     :param volume: volume to save
@@ -1113,26 +1121,32 @@ def save_volume(volume, aff, header, path, res=None, dtype=None, n_dims=3):
     :param n_dims: (optional) number of dimensions, to avoid confusion in multi-channel case. Default is None, where
     n_dims is automatically inferred.
     """
+    if header is None:
+        header = nib.Nifti1Header()
+
+    if isinstance(aff, str):
+        if aff == 'FS':
+            aff = np.array([[-1, 0, 0, 0], [0, 0, 1, 0], [0, -1, 0, 0], [0, 0, 0, 1]])
+    elif aff is None:
+        aff = np.eye(4)
+
     if dtype is not None:
         volume = volume.astype(dtype=dtype)
+    
     if '.npz' in path:
         np.savez_compressed(path, vol_data=volume)
     else:
-        if header is None:
-            header = nib.Nifti1Header()
-        if isinstance(aff, str):
-            if aff == 'FS':
-                aff = np.array([[-1, 0, 0, 0], [0, 0, 1, 0], [0, -1, 0, 0], [0, 0, 0, 1]])
-        elif aff is None:
-            aff = np.eye(4)
-        nifty = nib.Nifti1Image(volume, aff, header)
         if res is not None:
             if n_dims is None:
                 n_dims, _ = get_dims(volume.shape)
-            res = reformat_to_list(res, length=n_dims, dtype=None)
-            nifty.header.set_zooms(res)
-        nib.save(nifty, path)
-
+            voxsize = reformat_to_list(res, length=n_dims, dtype=None)
+        else:
+            voxsize = header.get_zooms()
+        vol = fs.Volume(volume, affine=aff, voxsize=voxsize)
+        if lut is not None:
+            vol.lut = lut
+        vol.write(path)
+ 
 
 def get_volume_info(path_volume, return_volume=False, aff_ref=None):
     """
