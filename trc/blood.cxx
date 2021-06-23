@@ -2129,10 +2129,7 @@ void Blood::RankStreamlineDistance() {
   const int lag = max(1, (int) round(mHausStepRatio * mLengthAvgEnds)) * 3;
   vector< pair<double,int> > distance(mNumStrEnds, make_pair(0,0));
   vector<bool>::const_iterator ivalid1 = mIsInEnd1.begin(),
-                               ivalid2 = mIsInEnd2.begin(),
-                               iouthist = mIsOutHist.begin(),
-                               ioutdev = mIsOutDev.begin(),
-                               ioutfa = mIsOutFa.begin();
+                               ivalid2 = mIsInEnd2.begin();
   vector<int>::iterator irank;
   vector< pair<double,int> >::iterator idout = distance.begin(), id0;
 
