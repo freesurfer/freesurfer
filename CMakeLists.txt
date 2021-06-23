@@ -550,6 +550,7 @@ if(NOT MINIMAL)
     mri_ribbon
     mri_rigid_register
     mri_sbbr
+    mri_sclimbic_seg
     mri_segcentroids
     mri_seghead
     mri_segment_hypothalamic_subunits
