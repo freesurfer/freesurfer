@@ -61,6 +61,7 @@ def main():
                                                                "Default uses 1 core.")
     parser.add_argument("--ctab", help="colortable")
     parser.add_argument("--debug", action='store_true', help="get memory usage")
+    parser.add_argument("--cuda-device", type=str, dest="cudadeviceno", default=None, help="cuda device for running on gpu")
 
     # check for no arguments
     if len(sys.argv) < 2:
@@ -73,6 +74,14 @@ def main():
     if args.debug:
         global global_debug
         global_debug = True
+
+    if args.cudadeviceno:
+        os.environ["CUDA_VISIBLE_DEVICES"] = args.cudadeviceno;
+
+    if os.getenv("CUDA_VISIBLE_DEVICES") is not None:
+        print('CUDA_VISIBLE_DEVICES set to ',os.getenv("CUDA_VISIBLE_DEVICES"));
+    else:
+        print('CUDA_VISIBLE_DEVICES not set, using CPU');
 
     # locate model weights
     if args.model:
