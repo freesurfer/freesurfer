@@ -48,7 +48,7 @@
 #include <QJsonDocument>
 #include "MyUtils.h"
 
-#define NUM_OF_SIDES  10  // must be even number!
+#define NUM_OF_SIDES  12  // must be even number!
 
 LayerPointSet::LayerPointSet( LayerMRI* ref, int nType, QObject* parent ) : LayerEditable( parent )
 {
@@ -450,6 +450,8 @@ void LayerPointSet::RebuildActors( bool bRebuild3D )
     polydata->SetPoints( pts );
     polydata->SetLines( lines );
     vtkSplineFilter* spline = vtkSplineFilter::New();
+    spline->SetSubdivideToSpecified();
+    spline->SetNumberOfSubdivisions(pts->GetNumberOfPoints()*2);
     if ( GetProperty()->GetScalarType() == LayerPropertyPointSet::ScalarSet )
     {
       spline->SetSubdivideToSpecified();
@@ -664,7 +666,11 @@ int LayerPointSet::FindPoint( double* ras, double tolerance )
 int LayerPointSet::AddPoint( double* ras_in, double value )
 {
   int nRet;
-  double ras[3];
+  int dim[3];
+  double ras[3], vs[3];
+  m_layerRef->GetVolumeInfo(dim, vs);
+  double min_tor2 = qMin(vs[0], qMin(vs[1], vs[2]))*3;
+  min_tor2 *= min_tor2;
   if ( GetProperty()->GetSnapToVoxelCenter() )
   {
     m_layerRef->SnapToVoxelCenter( ras_in, ras );
@@ -718,7 +724,7 @@ int LayerPointSet::AddPoint( double* ras_in, double value )
     double d2 = vtkMath::Distance2BetweenPoints( ras, m_points[n2].pt );
     double d3 = vtkMath::Distance2BetweenPoints( m_points[n1].pt, m_points[n2].pt );
 
-    if ( d3 >= d1 && d3 >= d2 )
+    if ( d3 >= d1 && d3 >= d2)
     {
       n = n2;
     }
@@ -729,6 +735,26 @@ int LayerPointSet::AddPoint( double* ras_in, double value )
     else
     {
       n = n2 + 1;
+    }
+
+    double d0 = vtkMath::Distance2BetweenPoints( ras, m_points[0].pt );
+    double dn = vtkMath::Distance2BetweenPoints( ras, m_points[m_points.size()-1].pt );
+//    if ((d0 > d1 && d0 < d2) || (d0 < d2 && d0 > d1) )
+//      n = 0;
+//    else if ((dn > d1 && dn < d2) || (dn < d2 && dn > d1) )
+//      n = m_points.size();
+
+    double pt[3];
+    pt[0] = (m_points[n1].pt[0] + m_points[n2].pt[0])/2;
+    pt[1] = (m_points[n1].pt[1] + m_points[n2].pt[1])/2;
+    pt[2] = (m_points[n1].pt[2] + m_points[n2].pt[2])/2;
+    double d4 = vtkMath::Distance2BetweenPoints( ras, pt );
+    if (d4 > d3/3)
+    {
+      if ( d0 < dn )
+        n = 0;
+      else
+        n = m_points.size();
     }
 
     ControlPoint p;

@@ -3,10 +3,34 @@
 #include "mri.h"
 #include "label.h"
 
+void set_voxel_value(MRI* mri, double dx, double dy, double dz, double val)
+{
+  int x = rint(dx), y = rint(dy), z = rint(dz);
+  switch ( mri->type )
+  {
+  case MRI_UCHAR:
+    MRIseq_vox( mri, x, y, z, 0 ) = (unsigned char)val;
+    break;
+  case MRI_INT:
+    MRIIseq_vox( mri, x, y, z, 0 ) = (int)val;
+    break;
+  case MRI_LONG:
+    MRIIseq_vox( mri, x, y, z, 0 ) = (int)val;
+    break;
+  case MRI_FLOAT:
+    MRIIseq_vox( mri, x, y, z, 0 ) = (int)val;
+    break;
+  case MRI_SHORT:
+    MRIIseq_vox( mri, x, y, z, 0 ) = (int)val;
+    break;
+  default:
+    break;
+  }
+}
+
 int main(int argc, const char **argv)
 {
-  if (argc < 5)
-  {
+  if (argc < 5) {
     std::cout << "pointset2label <waypoint file> <volume label file> <label value> [output volume file]\n\n"
                  "Output file can be the same as the input volume file. In that case input volume file will be updated\n\n"
                  "  Example: pointset2label wp.label foo.mgz 3 foo_out.mgz\n\n";
@@ -57,41 +81,20 @@ int main(int argc, const char **argv)
     pts[i*3+2] = label->lv[i].z;
   }
 
-  float step_length = fmin(mri->xsize, fmin(mri->ysize, mri->zsize))/2;
+  float step_length = fmin(mri->xsize, fmin(mri->ysize, mri->zsize));
   Spline spline(pts, label->n_points, 3);
   int num = spline.GetCurveCount(step_length);
   float* new_pts = new float[num*3];
   num = spline.GetCurve(new_pts, step_length);
-  int x0, y0, z0, x1, y1, z1;
+  double x0, y0, z0, x1, y1, z1;
   for (int i = 0; i < num-1; i++)
   {
-    MRIworldToVoxelIndex(mri, new_pts[i*3], new_pts[i*3+1], new_pts[i*3+2], &x0, &y0, &z0);
-    MRIworldToVoxelIndex(mri, new_pts[(i+1)*3], new_pts[(i+1)*3+1], new_pts[(i+1)*3+2], &x1, &y1, &z1);
-    switch ( mri->type )
-    {
-    case MRI_UCHAR:
-      MRIseq_vox( mri, x0, y0, z0, 0 ) = (unsigned char)nval;
-      MRIseq_vox( mri, x1, y1, z1, 0 ) = (unsigned char)nval;
-      break;
-    case MRI_INT:
-      MRIIseq_vox( mri, x0, y0, z0, 0 ) = (int)nval;
-      MRIIseq_vox( mri, x1, y1, z1, 0 ) = (int)nval;
-      break;
-    case MRI_LONG:
-      MRIIseq_vox( mri, x0, y0, z0, 0 ) = (int)nval;
-      MRIIseq_vox( mri, x1, y1, z1, 0 ) = (int)nval;
-      break;
-    case MRI_FLOAT:
-      MRIIseq_vox( mri, x0, y0, z0, 0 ) = (int)nval;
-      MRIIseq_vox( mri, x1, y1, z1, 0 ) = (int)nval;
-      break;
-    case MRI_SHORT:
-      MRIIseq_vox( mri, x0, y0, z0, 0 ) = (int)nval;
-      MRIIseq_vox( mri, x1, y1, z1, 0 ) = (int)nval;
-      break;
-    default:
-      break;
-    }
+    MRIworldToVoxel(mri, new_pts[i*3], new_pts[i*3+1], new_pts[i*3+2], &x0, &y0, &z0);
+    MRIworldToVoxel(mri, new_pts[(i+1)*3], new_pts[(i+1)*3+1], new_pts[(i+1)*3+2], &x1, &y1, &z1);
+    set_voxel_value(mri, x0, y0, z0, nval);
+    set_voxel_value(mri, x1, y1, z1, nval);
+    if (fabs(rint(x0)-rint(x1)) > 1 || fabs(rint(y0)-rint(y1)) > 1 || fabs(rint(z0)-rint(z1)) > 1)
+      set_voxel_value(mri, (x0+x1)/2, (y0+y1)/2, (z0+z1)/2, nval);
   }
 
   int err = MRIwrite( mri, out_fn );
