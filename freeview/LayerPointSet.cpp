@@ -47,8 +47,9 @@
 #include <QFile>
 #include <QJsonDocument>
 #include "MyUtils.h"
+#include "vtkContourTriangulator.h"
 
-#define NUM_OF_SIDES  12  // must be even number!
+#define NUM_OF_SIDES  10  // must be even number!
 
 LayerPointSet::LayerPointSet( LayerMRI* ref, int nType, QObject* parent ) : LayerEditable( parent )
 {
@@ -450,8 +451,10 @@ void LayerPointSet::RebuildActors( bool bRebuild3D )
     polydata->SetPoints( pts );
     polydata->SetLines( lines );
     vtkSplineFilter* spline = vtkSplineFilter::New();
-    spline->SetSubdivideToSpecified();
-    spline->SetNumberOfSubdivisions(pts->GetNumberOfPoints()*2);
+//    spline->SetSubdivideToSpecified();
+//    spline->SetNumberOfSubdivisions(pts->GetNumberOfPoints()*2);
+    spline->SetSubdivideToLength();
+    spline->SetLength(scale*2);
     if ( GetProperty()->GetScalarType() == LayerPropertyPointSet::ScalarSet )
     {
       spline->SetSubdivideToSpecified();
@@ -566,21 +569,10 @@ void LayerPointSet::RebuildActors( bool bRebuild3D )
 
       vtkSmartPointer<vtkStripper> stripper = vtkSmartPointer<vtkStripper>::New();
       stripper->SetInputConnection( cutter->GetOutputPort() );
-      stripper->Update();
-
-      vtkSmartPointer<vtkPolyData> cutpoly = vtkSmartPointer<vtkPolyData>::New();
-      cutpoly->SetPoints( stripper->GetOutput()->GetPoints() );
-      cutpoly->SetPolys( stripper->GetOutput()->GetLines() );
-      cutpoly->GetPointData()->SetScalars(stripper->GetOutput()->GetPointData()->GetScalars());
-
-      vtkSmartPointer<vtkTriangleFilter> triangleFilter = vtkSmartPointer<vtkTriangleFilter>::New();
-#if VTK_MAJOR_VERSION > 5
-      triangleFilter->SetInputData( cutpoly );
-#else
-      triangleFilter->SetInput( cutpoly );
-#endif
+      vtkSmartPointer<vtkContourTriangulator> ct = vtkSmartPointer<vtkContourTriangulator>::New();
+      ct->SetInputConnection(stripper->GetOutputPort());
       mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
-      mapper->SetInputConnection(triangleFilter->GetOutputPort());
+      mapper->SetInputConnection(ct->GetOutputPort());
 
       m_actorSplineSlice[i]->SetMapper(mapper);
     }
