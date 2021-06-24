@@ -492,6 +492,15 @@ int main(int argc, char **argv)
       exit(1);
     }
   }
+  else {
+    if(seg->ct){
+      ctab = seg->ct;
+      printf("Using embedded color table (and excluding seg 0)\n");
+      ExclSegIdList[nExcl] = 0;
+      nExcl ++;
+      DoExclSegId = 1;
+    }
+  }
 
   if (gcafile != NULL)
   {
