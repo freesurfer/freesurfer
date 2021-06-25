@@ -122,6 +122,11 @@ public:
 
   LayerPointSet* PickPointSetAtCursor(int nX, int nY);
 
+  QList<Region2D*> GetRegions()
+  {
+    return m_regions;
+  }
+
 public slots:
   void RefreshAllActors(bool bForScreenShot = false);
   void StopSelection();

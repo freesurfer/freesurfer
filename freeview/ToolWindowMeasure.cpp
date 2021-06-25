@@ -19,6 +19,9 @@
 #include "MainWindow.h"
 #include <QTimer>
 #include "Region2D.h"
+#include "Region2DLine.h"
+#include "Region2DPolyline.h"
+#include "Region2DRectangle.h"
 #include "SurfaceRegion.h"
 #include "SurfaceRegionGroups.h"
 #include "LayerCollection.h"
@@ -302,9 +305,20 @@ void ToolWindowMeasure::OnIdle()
                                col_mri->GetNumberOfLayers() > 1 && bLabelExist );
 
   QString strg;
+  RenderView2D* view2d = qobject_cast<RenderView2D*>(MainWindow::GetMainWindow()->GetMainView());
+  QList<Region2D*> regions;
+  if (view2d)
+    regions = view2d->GetRegions();
   if ( nAction == Interactor::MM_Label )
   {
     strg = GetLabelStats();
+  }
+  else if (!m_region || !qobject_cast<Region2DRectangle*>(m_region))
+  {
+    foreach (Region2D* r, regions)
+    {
+      strg += r->GetShortStats() + "\n";
+    }
   }
   else if ( m_region )
   {
