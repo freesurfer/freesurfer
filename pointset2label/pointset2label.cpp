@@ -31,22 +31,25 @@ void set_voxel_value(MRI* mri, double dx, double dy, double dz, double val)
 int main(int argc, const char **argv)
 {
   if (argc < 5) {
-    std::cout << "pointset2label <waypoint file> <volume label file> <label value> [output volume file]\n\n"
-                 "Output file can be the same as the input volume file. In that case input volume file will be updated\n\n"
-                 "  Example: pointset2label wp.label foo.mgz 3 foo_out.mgz\n\n";
+    std::cout << "pointset2label <waypoint file> <template volume file> <label value> <output volume label file>\n\n"
+                 "  Example: pointset2label wp.label T1.mgz 3 label_out.mgz\n\n";
     return -1;
   }
 
-  char* out_fn = (char*)argv[2];
-  if (argc >= 5)
-    out_fn = (char*)(argv[4]);
-
-  MRI* mri = MRIread(argv[2]);
-  if (!mri)
+  char* out_fn = (char*)(argv[4]);
+  MRI* mri_temp = MRIreadHeader(argv[2], MRI_VOLUME_TYPE_UNKNOWN);
+  if (!mri_temp)
   {
-    std::cerr << "Could not load volume from " << argv[2] << "\n";
+    std::cerr << "Could not read volume info from " << argv[2] << "\n";
     return -1;
   }
+
+  MRI* mri = MRIallocSequence( mri_temp->width,
+                              mri_temp->height,
+                              mri_temp->depth,
+                              MRI_INT, 1);
+  MRIcopyHeader( mri_temp, mri );
+  MRIfree(&mri_temp);
 
   LABEL* label = LabelRead(NULL, argv[1]);
   if (!label)
