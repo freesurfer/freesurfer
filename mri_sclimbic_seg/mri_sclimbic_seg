@@ -504,7 +504,7 @@ def write_csv_file(volumes, filename, subject, ctab, write_header, open_type):
     :param write_header: whether to write the header or not
     :param open_type: can be 'w' (write new file), or 'a' (add volume to an already existing file)
     '''
-    header = [];
+    header = ['case'];
     for idx, elt in ctab.items():
         if(idx == 0): continue # exclude unknown
         header.append(elt.name);
