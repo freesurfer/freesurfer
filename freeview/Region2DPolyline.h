@@ -32,6 +32,7 @@ class vtkTextActor;
 
 class Region2DPolyline : public Region2D
 {
+  Q_OBJECT
 public:
   Region2DPolyline( RenderView2D* view, bool bSpline = false );
   virtual ~Region2DPolyline();
