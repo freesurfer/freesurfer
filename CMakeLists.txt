@@ -208,6 +208,13 @@ if(VTK_FOUND AND VTK_BUILD_SHARED_LIBS)
   if(${VTK_VERSION} LESS 7)
     file(GLOB _vtk_library_list "${VTK_LIBRARY_DIRS}/lib*.so*")
   else()
+    # special libvtkproj
+    file(GLOB _found_library "${VTK_LIBRARY_DIRS}/libvtkproj*.so*")
+    list(APPEND _vtk_library_list ${_found_library})
+    # special libvtkNetCDF
+    file(GLOB _found_library "${VTK_LIBRARY_DIRS}/libvtkNetCDF*.so*")
+    list(APPEND _vtk_library_list ${_found_library})
+    # the rest of the VTK libraries
     foreach(_vtk_module ${VTK_MODULES_ENABLED})
       foreach(_vtk_library ${${_vtk_module}_LIBRARIES})
         file(GLOB _found_library "${${_vtk_module}_RUNTIME_LIBRARY_DIRS}/lib${_vtk_library}*.so*")
