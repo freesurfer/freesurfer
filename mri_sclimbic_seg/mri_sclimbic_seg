@@ -52,8 +52,10 @@ def main():
                                     "Must be the same type as input path (single file or folder).")
     parser.add_argument("--out_posteriors", help="(T1 mode, optional) Posteriors output. "
                                                  "Must be the same type as input path (single file or folder).")
-    parser.add_argument("--out_volumes", help="(T1 mode, optional) Path of a csv file where the volumes of the "
+    parser.add_argument("--csv", dest="out_volumes",help="(T1 mode, optional) Path of a csv file where the volumes of the "
                                               "limbic segmentations will be saved.")
+    parser.add_argument("--out_volumes", help="(T1 mode, optional) Path of a csv file where the volumes of the "
+                                              "limbic segmentations will be saved. Same as --csv")
 
     # in both cases
     parser.add_argument("--model", help=fs.utils.parser.argparse.SUPPRESS)
