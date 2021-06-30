@@ -3,6 +3,8 @@
 
 set VERSION = 'tkmeditfv @FS_VERSION@';
 
+setenv FS_COPY_HEADER_CTAB 1 # make sure that anything saved in FV has its colortable
+
 set subject = ();
 set overlay = ();
 set mainvol = ();
