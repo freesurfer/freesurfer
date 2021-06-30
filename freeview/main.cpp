@@ -115,6 +115,7 @@ int main(int argc, char *argv[])
   putenv((char*)"SURFER_FRONTDOOR=");
   if (getenv("FS_DISABLE_LANG") == NULL)
     putenv((char*)"LANG=en_US");
+  putenv((char*)"FS_COPY_HEADER_CTAB=1");
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
   qInstallMessageHandler(myMessageOutput);
 #else
