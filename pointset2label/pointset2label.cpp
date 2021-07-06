@@ -31,25 +31,42 @@ void set_voxel_value(MRI* mri, double dx, double dy, double dz, double val)
 int main(int argc, const char **argv)
 {
   if (argc < 5) {
-    std::cout << "pointset2label <waypoint file> <template volume file> <label value> <output volume label file>\n\n"
-                 "  Example: pointset2label wp.label T1.mgz 3 label_out.mgz\n\n";
+    std::cout << "pointset2label <waypoint file> <input volume file> <label value> <output volume label file> [-clear]\n\n"
+                 "  Example: pointset2label wp.label input.mgz 3 label_out.mgz\n\n"
+                 "  If -clear option is given, input volume will be cleared first. \n"
+                 "  If output is the same as input, input volume file will be overwritten.\n\n";
     return -1;
   }
 
   char* out_fn = (char*)(argv[4]);
-  MRI* mri_temp = MRIreadHeader(argv[2], MRI_VOLUME_TYPE_UNKNOWN);
-  if (!mri_temp)
+
+  bool bClear = false;
+  if (argc > 5)
   {
-    std::cerr << "Could not read volume info from " << argv[2] << "\n";
-    return -1;
+    bClear = (strcasecmp(argv[5], "-clear") == 0);
   }
 
-  MRI* mri = MRIallocSequence( mri_temp->width,
-                              mri_temp->height,
-                              mri_temp->depth,
-                              MRI_INT, 1);
-  MRIcopyHeader( mri_temp, mri );
-  MRIfree(&mri_temp);
+  MRI* mri;
+  if (bClear)
+  {
+    MRI* mri_temp = MRIreadHeader(argv[2], MRI_VOLUME_TYPE_UNKNOWN);
+    if (!mri_temp)
+    {
+      std::cerr << "Could not read volume info from " << argv[2] << "\n";
+      return -1;
+    }
+
+    mri = MRIallocSequence( mri_temp->width,
+                                mri_temp->height,
+                                mri_temp->depth,
+                                MRI_INT, 1);
+    MRIcopyHeader( mri_temp, mri );
+    MRIfree(&mri_temp);
+  }
+  else
+  {
+    mri = MRIread(argv[2]);
+  }
 
   LABEL* label = LabelRead(NULL, argv[1]);
   if (!label)
