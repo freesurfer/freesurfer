@@ -119,6 +119,7 @@ public:
   Layer* GetActiveLayer( const QString& strType );
   Layer* GetTopVisibleLayer( const QString& strType );
   QList<Layer*> GetLayers( const QString& strType );
+  QList<Layer*> GetVisibleLayers( const QString& strType );
 
   bool SetSlicePosition( int nPlane, double dPos, bool bRoundToGrid = true );
   bool SetSlicePosition( double* pos );
@@ -621,6 +622,8 @@ protected slots:
   void OnCloseODF();
 
   void OnSaveLabelAsVolume();
+
+  void OnCreateOptimalVolume();
 
 private:
   bool DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit);

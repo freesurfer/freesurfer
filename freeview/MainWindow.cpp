@@ -118,6 +118,7 @@
 #include "MacHelper.h"
 #endif
 #include "DialogMovePoint.h"
+#include "VolumeFilterOptimal.h"
 
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
 #include <QtWidgets>
@@ -2251,11 +2252,10 @@ void MainWindow::CommandLoadCommand(const QStringList &sa)
 
 void MainWindow::CommandLoadSubject(const QStringList &sa)
 {
-
   QString subject_path = QProcessEnvironment::systemEnvironment().value("SUBJECTS_DIR");
-  if (subject_path.isEmpty())
+  if (subject_path.isEmpty() || !QDir(subject_path).isReadable())
   {
-    cerr << "SUBJECTS_DIR is not set. Can not load subject.\n";
+    cerr << "SUBJECTS_DIR is not set or not accessible. Can not load subject.\n";
     return;
   }
   subject_path += "/" + sa[1];
@@ -5242,6 +5242,18 @@ QList<Layer*> MainWindow::GetLayers(const QString &strType)
     return lc->GetLayers();
   else
     return QList<Layer*>();
+}
+
+QList<Layer*> MainWindow::GetVisibleLayers(const QString &strType)
+{
+  QList<Layer*> list = GetLayers(strType);
+  QList<Layer*> list_visbile;
+  foreach (Layer* l, list)
+  {
+    if (l->IsVisible())
+      list_visbile << l;
+  }
+  return list_visbile;
 }
 
 void MainWindow::OnSetViewLayout( QAction* action )
@@ -9626,4 +9638,53 @@ void MainWindow::OnPointSetToLabel()
     mri->SaveForUndo(view->GetViewPlane());
     mri->UpdateVoxelsByPointSet(ps, view->GetViewPlane());
   }
+}
+
+void MainWindow::OnCreateOptimalVolume()
+{
+  QList<Layer*> mris = GetSelectedLayers("MRI");
+  if (mris.size() < 2)
+  {
+    mris = GetVisibleLayers("MRI");
+    if (mris.size() < 2)
+      mris = GetLayers("MRI");
+  }
+
+  QList<Layer*> rois = GetSelectedLayers("ROI");
+  if (rois.size() < 2)
+  {
+    rois = GetVisibleLayers("ROI");
+    if (rois.size() < 2)
+      rois = GetLayers("ROI");
+  }
+  if (rois.size() < 2)
+  {
+    QMessageBox::warning(this, "Optimal Combined Volume", "Need two ROIs to compute optimal combined volume");
+    return;
+  }
+
+  LayerMRI* mri_template = (LayerMRI*)GetActiveLayer( "MRI" );
+  LayerMRI* mri_new = new LayerMRI( mri_template );
+  if ( !mri_new->Create( mri_template, false, 3))
+  {
+    QMessageBox::warning( this, "Error", "Can not create new volume." );
+    delete mri_new;
+    return;
+  }
+  mri_new->GetProperty()->SetLUTCTAB( m_luts->GetColorTable( 0 ) );
+  mri_new->SetName( "optimal combined" );
+  GetLayerCollection("MRI")->AddLayer(mri_new);
+  ConnectMRILayer(mri_new);
+  emit NewVolumeCreated();
+
+  QList<LayerMRI*> input_mris;
+  QList<LayerROI*> input_rois;
+  for (int i = 0; i < mris.size(); i++)
+    input_mris << (LayerMRI*)mris[i];
+  for (int i = 0; i < 2; i++)
+    input_rois << (LayerROI*)rois[i];
+
+  VolumeFilterOptimal* filter = new VolumeFilterOptimal(input_mris, input_rois, mri_new, this);
+  filter->SetResetWindowLevel();
+  m_threadVolumeFilter->ExecuteFilter(filter);
 }

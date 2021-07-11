@@ -75,6 +75,7 @@ SOURCES += \
     LUTDataHolder.cpp \
     PanelODF.cpp \
     Region3D.cpp \
+    VolumeFilterOptimal.cpp \
     WindowEditAnnotation.cpp \
     main.cpp \
     MainWindow.cpp \
@@ -270,6 +271,7 @@ HEADERS  += \
     PanelSurface.h \
     PanelVolume.h \
     Region3D.h \
+    VolumeFilterOptimal.h \
     WindowEditAnnotation.h \
     qtcolorpicker.h \
     Region2D.h \

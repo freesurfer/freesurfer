@@ -202,6 +202,7 @@ if(BUILD_GUIS AND VTK_FOUND AND PETSC_FOUND AND TARGET vtkutils)
     DialogTransformSurface.cpp
     Region3D.cpp
     DialogMovePoint.cpp
+    VolumeFilterOptimal.cpp
     freeview.qrc
   )
 
