@@ -26,7 +26,9 @@
 #include "const.h"
 #include "diag.h"
 #include "error.h"
+#include "csv.h"
 #include "fsgdf.h"
+#include "fio.h"
 #include "machine.h"
 #include "matrix.h"
 #include "mghendian.h"
@@ -47,9 +49,8 @@ extern const char *Progname;
 
 MATRIX *StatLoadTalairachXFM(const char *subjid, const char *xfmfile);
 
-/*--------------------------------------------------------------------*/
-// Load output of asegstats2table or aparcstats2table.
-STAT_TABLE *LoadStatTable(const char *statfile)
+
+static STAT_TABLE *LoadStatTableFS(const char *statfile)
 {
   STAT_TABLE *st;
   FILE *fp;
@@ -134,6 +135,90 @@ STAT_TABLE *LoadStatTable(const char *statfile)
 
   return (st);
 }
+
+
+static STAT_TABLE *LoadStatTableCSV(const char *statfile)
+{
+  // read csv file
+  std::ifstream csvfile(statfile);
+  if(csvfile.fail()) {
+    printf("ERROR: could not open %s\n", statfile);
+    return nullptr;
+  }
+  std::vector<std::vector<std::string>> csv = readCSV(csvfile);
+  csvfile.close();
+
+  // allocate table
+  STAT_TABLE *st = (STAT_TABLE *)calloc(sizeof(STAT_TABLE), 1);
+  st->filename = strcpyalloc(statfile);
+
+  // configure rows and columns
+  st->nrows = csv.size() - 1;
+  st->ncols = csv[0].size() - 1;
+  std::cout << "Found " << st->ncols << " data colums\n";
+  std::cout << "Found " << st->nrows << " data rows\n";
+  st->colnames = (char **)calloc(st->ncols, sizeof(char *));
+  st->rownames = (char **)calloc(st->nrows, sizeof(char *));
+
+  // set the measure
+  st->measure = strcpyalloc(csv[0][0].c_str());
+
+  // set the column headers
+  for (int c = 0; c < st->ncols; c++) {
+    st->colnames[c] = strcpyalloc(csv[0][c + 1].c_str());
+  }
+
+  // alloc the data
+  st->data = (double **)calloc(st->nrows, sizeof(double *));
+  for (int r = 0; r < st->nrows; r++) st->data[r] = (double *)calloc(st->ncols, sizeof(double));
+
+  // set each row
+  for (int r = 0; r < st->nrows; r++) {
+    st->rownames[r] = strcpyalloc(csv[r + 1][0].c_str());
+    for (int c = 0; c < st->ncols; c++) {
+      try {
+        st->data[r][c] = std::stof(csv[r + 1][c + 1]);
+      } catch(const std::exception& e) {
+        printf("ERROR: format: %s at row %d, col %d\n", statfile, r, c);
+        return nullptr;
+      }
+    }
+  }
+
+  st->mri = MRIallocSequence(st->ncols, 1, 1, MRI_FLOAT, st->nrows);
+  st->mri->xsize = 1;
+  st->mri->ysize = 1;
+  st->mri->zsize = 1;
+  st->mri->x_r = 1;
+  st->mri->x_a = 0;
+  st->mri->x_s = 0;
+  st->mri->y_r = 0;
+  st->mri->y_a = 1;
+  st->mri->y_s = 0;
+  st->mri->z_r = 0;
+  st->mri->z_a = 0;
+  st->mri->z_s = 1;
+
+  for (int r = 0; r < st->nrows; r++)
+    for (int c = 0; c < st->ncols; c++) MRIsetVoxVal(st->mri, c, 0, 0, r, st->data[r][c]);
+
+  return st;
+}
+
+
+STAT_TABLE *LoadStatTable(const char *statfile)
+{
+  STAT_TABLE* table;
+  char* ext = fio_extension(statfile);
+  if (!strcasecmp(ext, "csv")){
+    table = LoadStatTableCSV(statfile);
+  } else {
+    table = LoadStatTableFS(statfile);
+  }
+  free(ext);
+  return table;
+}
+
 
 STAT_TABLE *AllocStatTable(int nrows, int ncols)
 {
