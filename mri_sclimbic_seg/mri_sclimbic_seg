@@ -102,13 +102,14 @@ def main():
         os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
         print('Using CPU')
     else:
-        print('using GPU device', cuda_device)
+        print('Using GPU device', cuda_device)
 
     # defer tensorflow importing until after parsing
-    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '0' if args.debug else '3'
     global tf
     import tensorflow as tf
-    tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
+    if not args.debug:
+        tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
     # set number of threads
     print('Using %d thread(s)' % args.threads)
