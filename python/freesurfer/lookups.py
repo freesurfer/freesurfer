@@ -1,10 +1,11 @@
 import os
+import collections
 import numpy as np
 
 from . import fshome
 
 
-class LookupTable(dict):
+class LookupTable(collections.OrderedDict):
     """
     TODOC
     """

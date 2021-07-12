@@ -8,6 +8,7 @@ from collections.abc import Iterable
 from . import bindings, warning
 from .geom import resample, apply_warp
 from .transform import Transformable, LinearTransform, Geometry, LIA
+from . import orientation as otn
 
 
 class ArrayContainerTemplate:
@@ -257,6 +258,9 @@ class Volume(ArrayContainerTemplate, Transformable):
         if not isinstance(voxsize, Iterable):
             voxsize = [voxsize] * self.basedims
 
+        if np.allclose(voxsize, self.voxsize):
+            return self
+
         src_shape = self.shape[:3]
         target_shape = tuple(np.ceil(np.array(self.voxsize).astype(float) * src_shape / voxsize).astype(int))
         
@@ -406,10 +410,15 @@ class Volume(ArrayContainerTemplate, Transformable):
         '''
 
         # convert high-level types to numpy arrays
+        trf_target = None
         if isinstance(trf, Volume):
             trf = trf.data
         elif isinstance(trf, LinearTransform):
+            trf_target = trf.target
             trf = trf.matrix
+
+        if trf_target is None:
+            trf_target = self
 
         # assert transform type and apply
         if trf.shape[-1] == self.basedims:
@@ -421,9 +430,49 @@ class Volume(ArrayContainerTemplate, Transformable):
 
         # construct new volume
         resampled = Volume(resampled_data)
-        resampled.copy_geometry(self)
+        resampled.copy_geometry(trf_target)
         resampled.copy_metadata(self)
         return resampled
+
+    def reorient(self, orientation):
+        """
+        Realigns image data and world matrix to conform to a specific slice orientation.
+
+        TODO ensure header if coorectly updated for mutlires data
+        """
+        trg_orientation = orientation.upper()
+        src_orientation = otn.orientation_from_matrix(self.affine)
+        if trg_orientation == src_orientation:
+            return self
+
+        axes = ['LR', 'PA', 'IS']
+        src_dirs = [[c in axis for axis in axes].index(True) for c in src_orientation]
+        trg_dirs = [[c in axis for axis in axes].index(True) for c in trg_orientation]
+        trg_shape = [self.shape[:3][src_dirs.index(x)] for x in trg_dirs]
+
+        src_vox2world = LinearTransform(otn.build_matrix(otn.matrix_from_orientation(src_orientation), self.shape))
+        trg_vox2world = LinearTransform(otn.build_matrix(otn.matrix_from_orientation(trg_orientation), trg_shape))
+        vox2vox = LinearTransform.matmul(src_vox2world.inverse(), trg_vox2world)
+        vox2world = LinearTransform.matmul(LinearTransform(self.affine), vox2vox)
+
+        resampled = resample(self.data, trg_shape, vox2vox, interp_method='nearest')
+
+        reoriented = Volume(resampled, vox2world.matrix)
+        reoriented.voxsize = self.voxsize
+        reoriented.copy_metadata(self)
+        return reoriented
+
+    def conform(self, shape=None, voxsize=1.0, orientation='LIA', interp_method='linear', dtype=None):
+        """
+        Conforms image to a specific shape, type, resolution, and orientation.
+        """
+        conformed = self.reorient(orientation)
+        conformed = conformed.reslice(voxsize, interp_method=interp_method)
+        if shape is not None:
+            conformed = conformed.fit_to_shape(shape)
+        if dtype is not None:
+            conformed.data = conformed.data.astype(dtype)
+        return conformed
 
     def resample_like(self, target, interp_method='linear'):
         '''
@@ -432,8 +481,18 @@ class Volume(ArrayContainerTemplate, Transformable):
         if target.affine is None or self.affine is None:
             raise ValueError("Can't resample volume without geometry information.")
 
+        target_shape = target.shape
+        if len(target_shape) == 4:
+            target_shape = (*target_shape[:3], self.nframes)
+        elif len(target_shape) == 3:
+            target_shape = (*target_shape, self.nframes)
+
+        source_data = self.data
+        if source_data.ndim == 3:
+            source_data = source_data[..., np.newaxes]
+
         vox2vox = LinearTransform.matmul(self.ras2vox(), target.vox2ras())
-        resampled_data = resample(self.data, target.shape, vox2vox, interp_method=interp_method)
+        resampled_data = resample(source_data, target_shape, vox2vox, interp_method=interp_method)
 
         resampled = Volume(resampled_data)
         resampled.copy_geometry(target)
