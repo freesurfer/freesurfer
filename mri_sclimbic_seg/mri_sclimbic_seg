@@ -51,12 +51,12 @@ def main():
     parser = fs.utils.ArgumentParser(description=description)
 
     # normal-mode options
-    parser.add_argument('--i', help='T1-w image(s) to segment. Can be a path to a single image or a directory of images.')
-    parser.add_argument('--o', help='Segmentation output (required if --i is provided). Must be the same type as '
+    parser.add_argument('-i', '--i', help='T1-w image(s) to segment. Can be a path to a single image or a directory of images.')
+    parser.add_argument('-o', '--o', help='Segmentation output (required if --i is provided). Must be the same type as '
                                     'the input path (a single file or directory).')
 
     # subject-mode options
-    parser.add_argument('--s', nargs='*', help='Process a series of freesurfer recon-all subjects (enables subject-mode).')
+    parser.add_argument('-s', '--s', nargs='*', help='Process a series of freesurfer recon-all subjects (enables subject-mode).')
     parser.add_argument('--sd', help='Set the subjects directory (overrides the SUBJECTS_DIR env variable).')
 
     # general options
@@ -168,6 +168,7 @@ def main():
                 'input_file': os.path.join(subjdir, 'mri', 'nu.mgz'),
                 'segmentation_path': os.path.join(subjdir, 'mri', 'sclimbic.mgz'),
                 'volumes_path': os.path.join(subjdir, 'stats', 'sclimbic.stats'),
+                'case_name': subj,
             }
 
             # estimate TIV from talairach xfm
@@ -187,7 +188,13 @@ def main():
 
             print('\nSegmenting subject %s %d/%d' % (subj, n + 1, len(subjects)))
             segmenter.process_files(**params)
+
+        # write all subject volumes in subjects directory
+        if len(subjects) > 0:
+            segmenter.write_case_volumes(os.path.join(sd, 'sclimbic_volumes_all.v1.csv'))
+
     else:
+        # normal input file/directory mode
 
         # available file formats
         exts = ('.mgh', '.mgz', '.nii', '.nii.gz')
@@ -221,8 +228,10 @@ def main():
             if not os.path.isdir(args.i):
                 params['segmentation_path'] = args.o
                 basename, ext = split_extension(args.o)
+                params['case_name'] = basename
             else:
                 basename, ext = split_extension(os.path.basename(input_file))
+                params['case_name'] = basename
                 basename = os.path.join(args.o, basename + '.sclimbic')
                 params['segmentation_path'] = f'{basename}{ext}'
 
@@ -243,6 +252,10 @@ def main():
 
             print('\nSegmenting image %d/%d' % (n + 1, len(input_files)))
             segmenter.process_files(**params)
+
+        # write all case volumes in output directory
+        if os.path.isdir(args.o) and len(input_files) > 0:
+            segmenter.write_case_volumes(os.path.join(args.o, 'sclimbic_volumes_all.v1.csv'))
 
     # check memory usage
     if args.debug:
@@ -273,6 +286,8 @@ class LimbicSegmenter:
         self.labels = list(lut.keys())
         self.conform = conform
         self.inshape = (160, 160, 160)
+        self.case_volumes = {}
+        self.case_etivs = {}
         self.model = unet(nb_features=24,
                           input_shape=(*self.inshape, 1),
                           nb_levels=3,
@@ -330,6 +345,22 @@ class LimbicSegmenter:
 
         processed.data = data
         return processed
+
+    def write_case_volumes(self, path):
+        """
+        Write all case volumes to a csv.
+        """
+        header = ['case'] + list([label.name for label in self.lut.values()])[1:]
+        if self.case_etivs:
+            header.append('eTIV')
+        with open(path, 'w') as file:
+            file.write(','.join(header) + '\n')
+            for case, volumes in self.case_volumes.items():
+                file.write(','.join([case] + ['%.4f' % v for v in volumes[1:]]))
+                if self.case_etivs:
+                    file.write(',%.4f' % self.case_etivs[case])
+                file.write('\n')
+        print('\nWrote summary of label volumes to', path)
 
     def segment(self, image):
         """
@@ -390,7 +421,9 @@ class LimbicSegmenter:
         posteriors_path=None,
         volumes_path=None,
         qa_stats_path=None,
-        etiv=None):
+        etiv=None,
+        case_name=None,
+        ):
 
         # load image
         if not os.path.isfile(input_file):
@@ -428,6 +461,12 @@ class LimbicSegmenter:
                 table.add_row([nid, count, vox_vol * count, self.lut[nid].name])
             table.write(volumes_path)
             print('Wrote volume stats to', volumes_path)
+
+        # store label volumes
+        if case_name:
+            self.case_volumes[case_name] = np.array(vox_counts) * np.prod(segmentation.voxsize)
+            if etiv is not None:
+                self.case_etivs[case_name] = etiv
 
         # write QA stats
         if qa_stats_path is not None:
