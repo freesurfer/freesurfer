@@ -863,7 +863,7 @@ date >> $SF
 # Put a copy of myself (this script) in the scripts dir
 if ("`uname -s`" == "Linux") then
   set FullProgName = `readlink -f $0`; 
-  cp -vp $FullProgName $subjdir/scripts/recon-all.local-copy
+  cp $FullProgName $subjdir/scripts/recon-all.local-copy
 endif
 
 # Wait for a file to appear #
@@ -1199,7 +1199,7 @@ if($longitudinal && ! $LongSamseg) then
     endif
   endif
 endif
-if($longitudinal) then
+if($longitudinal && $LongSamseg) then
   set cmd = (rca-long-tp-init -long-samseg $longbaseid $subjid -log $LF -cf $CF -sf $SF)
   echo $cmd 
   $cmd 
