@@ -489,7 +489,7 @@ class Volume(ArrayContainerTemplate, Transformable):
 
         source_data = self.data
         if source_data.ndim == 3:
-            source_data = source_data[..., np.newaxes]
+            source_data = source_data[..., np.newaxis]
 
         vox2vox = LinearTransform.matmul(self.ras2vox(), target.vox2ras())
         resampled_data = resample(source_data, target_shape, vox2vox, interp_method=interp_method)
