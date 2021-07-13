@@ -246,8 +246,10 @@ def main():
             # optional TIV estimation (really only applies to volume stats)
             if args.write_volumes and args.etiv:
                 if args.tal:
+                    print("computing etiv from tal");
                     params['etiv'] = compute_etiv_from_xfm(args.tal)
                 else:
+                    print("computing etiv from scratch");
                     params['etiv'] = compute_etiv_from_scratch(input_file)
 
             print('\nSegmenting image %d/%d' % (n + 1, len(input_files)))
@@ -523,7 +525,7 @@ def compute_etiv_from_scratch(image):
         fs.fatal('mri_convert --conform failed!')
 
     # run intensity normalization
-    ret = fs.run(f'mri_nu_correct.mni --no-rescale --i {norm} --o {norm} --n 1 --proto-iters 1000 --distance 50')
+    ret = fs.run(f'mri_nu_correct.mni --no-rescale --i {norm} --o {norm} --n 1 --proto-iters 1000 --distance 50 --ants-n4')
     if ret != 0:
         fs.fatal('mri_nu_correct failed!')
 
