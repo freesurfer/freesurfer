@@ -12,15 +12,21 @@
 
 setenv FS_LOAD_DWI 0 # turn off trying to load DWI
 
-# FS_RCA_LONG_TP_INIT_CP is a feature to address an error when the
-# base is created by one user but this script is run by another. When
-# cp is run below, it is run with -p, which preserves permissions and
-# timestamps and can cause an error when the user that created the
-# source is different than when the user running this
-# script. FS_RCA_LONG_TP_INIT_CP allows the user to simply copy the
-# file without preserving perms.
-if($?FS_RCA_LONG_TP_INIT_CP == 0) then
-  setenv FS_RCA_LONG_TP_INIT_CP "-f -p"
+# FS_RCA_LONG_TP_INIT_CP_FP and FS_RCA_LONG_TP_INIT_CP_FORCE is a
+# feature to address an error when the base is created by one user but
+# this script is run by another. Originally, the copy was done with
+# --preserve=timestamps, but this does not work on a mac, so it was
+# changed to -p, but this can throw an error when the copying user is
+# not same as the source. This script was changed to see whether the
+# source file is newer than the output file (if it exists), then 
+# just do a simple copy if it does. The old behavior can be recreated
+# with FS_RCA_LONG_TP_INIT_CP_FORCE=1 and FS_RCA_LONG_TP_INIT_CP_FP=1
+# These have flags below to control this behavior as well.
+if($?FS_RCA_LONG_TP_INIT_CP_FORCE == 0) then
+  setenv FS_RCA_LONG_TP_INIT_CP_FORCE 0
+endif
+if($?FS_RCA_LONG_TP_INIT_CP_FP == 0) then
+  setenv FS_RCA_LONG_TP_INIT_CP_FP 0
 endif
 
 if(-e $FREESURFER_HOME/sources.csh) then
@@ -80,9 +86,15 @@ parse_args_return:
 goto check_params;
 check_params_return:
 
+if($FS_RCA_LONG_TP_INIT_CP_FP) then
+  set cpfp = "-f -p"
+else
+  set cpfp = ""
+endif
+
 if ($DoTime) then
   fs_time ls >& /dev/null
-  if ( ! $status) set fs_time=(fs_time)
+  if( ! $status) set fs_time=(fs_time)
 endif
 
 set StartTime = `date`;
@@ -173,10 +185,13 @@ if($DoSkullStrip) then
     # longitudinal processing stream (copy from base):
     set BM  = brainmask.mgz
     set bmbase = brainmask_${longbaseid}.mgz
-    set cmd = (cp $FS_RCA_LONG_TP_INIT_CP ${longbasedir}/mri/${BM} ./${bmbase})
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    if($RunIt) $fs_time $cmd |& tee -a $LF
-    if($status) goto error_exit;
+    set ud = `UpdateNeeded ./${bmbase} ${longbasedir}/mri/${BM}`
+    if($ud || $FS_RCA_LONG_TP_INIT_CP_FORCE) then
+      set cmd = (cp $cpfp ${longbasedir}/mri/${BM} ./${bmbase})
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      if($RunIt) $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    endif
   endif
 endif
 
@@ -185,11 +200,14 @@ if($DoGCAReg) then
   $PWD |& tee -a $LF
   if($longitudinal) then
     # longitudinal processing:
-    set cmd = (cp $FS_RCA_LONG_TP_INIT_CP $longbasedir/mri/transforms/talairach.lta transforms/talairach.lta )
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    if($RunIt) $fs_time $cmd |& tee -a $LF
-    if($status) goto error_exit;
-    echo $cmd > $touchdir/em_register.touch
+    set ud = `UpdateNeeded transforms/talairach.lta $longbasedir/mri/transforms/talairach.lta`
+    if($ud || $FS_RCA_LONG_TP_INIT_CP_FORCE) then
+      set cmd = (cp $cpfp $longbasedir/mri/transforms/talairach.lta transforms/talairach.lta )
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      if($RunIt) $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+      echo $cmd > $touchdir/em_register.touch
+    endif
   endif
 endif
 
@@ -198,10 +216,13 @@ if($DoCANormalize) then
   if ($longitudinal) then
     # longitudinal processing:
     # cp aseg from base to current TP:
-    set cmd = (cp $FS_RCA_LONG_TP_INIT_CP ${longbasedir}/mri/aseg.mgz aseg_${longbaseid}.mgz)
-    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
-    if ($RunIt) $fs_time $cmd |& tee -a $LF
-    if ($status) goto error_exit;
+    set ud = `UpdateNeeded aseg_${longbaseid}.mgz ${longbasedir}/mri/aseg.mgz`
+    if($ud || $FS_RCA_LONG_TP_INIT_CP_FORCE) then
+      set cmd = (cp $cpfp ${longbasedir}/mri/aseg.mgz aseg_${longbaseid}.mgz)
+      echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+      if ($RunIt) $fs_time $cmd |& tee -a $LF
+      if ($status) goto error_exit;
+    endif
   endif
 endif
 endif
@@ -211,21 +232,30 @@ if($DoWhiteSurfs) then
     cd $subjdir/scripts > /dev/null
     $PWD |& tee -a $LF
     if( $longitudinal ) then
-      set cmd = (cp $FS_RCA_LONG_TP_INIT_CP $longbasedir/surf/${hemi}.white $subjdir/surf/${hemi}.orig)
-      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-      if($RunIt) $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
+      set ud = `UpdateNeeded $subjdir/surf/${hemi}.orig $longbasedir/surf/${hemi}.white`
+      if($ud || $FS_RCA_LONG_TP_INIT_CP_FORCE) then
+        set cmd = (cp $cpfp $longbasedir/surf/${hemi}.white $subjdir/surf/${hemi}.orig)
+        echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+        if($RunIt) $fs_time $cmd |& tee -a $LF
+        if($status) goto error_exit;
+      endif
 
-      set cmd = (cp $FS_RCA_LONG_TP_INIT_CP $longbasedir/surf/${hemi}.white $subjdir/surf/${hemi}.orig_white)
-      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-      if($RunIt) $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
+      set ud = `UpdateNeeded $subjdir/surf/${hemi}.orig_white $longbasedir/surf/${hemi}.white`
+      if($ud || $FS_RCA_LONG_TP_INIT_CP_FORCE) then
+        set cmd = (cp $cpfp $longbasedir/surf/${hemi}.white $subjdir/surf/${hemi}.orig_white)
+        echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+        if($RunIt) $fs_time $cmd |& tee -a $LF
+        if($status) goto error_exit;
+      endif
 
       # also copy pial just in case (needed if $DoPialSurf == 0 below)
-      set cmd = (cp $FS_RCA_LONG_TP_INIT_CP $longbasedir/surf/${hemi}.pial $subjdir/surf/${hemi}.orig_pial)
-      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-      if($RunIt) $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
+      set ud = `UpdateNeeded $subjdir/surf/${hemi}.orig_pial $longbasedir/surf/${hemi}.pial`
+      if($ud || $FS_RCA_LONG_TP_INIT_CP_FORCE) then
+        set cmd = (cp $cpfp $longbasedir/surf/${hemi}.pial $subjdir/surf/${hemi}.orig_pial)
+        echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+        if($RunIt) $fs_time $cmd |& tee -a $LF
+        if($status) goto error_exit;
+      endif
     endif
   end
 endif
@@ -236,10 +266,13 @@ if($DoSphere) then
     $PWD |& tee -a $LF
     if($longitudinal) then
       # longitudinal processing:
-      set cmd = (cp $longbasedir/surf/$hemi.sphere $subjdir/surf/$hemi.sphere)
-      if($RunIt) $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
-      echo $cmd > $touchdir/$hemi.sphmorph.touch
+      set ud = `UpdateNeeded $subjdir/surf/$hemi.sphere $longbasedir/surf/$hemi.sphere`
+      if($ud || $FS_RCA_LONG_TP_INIT_CP_FORCE) then
+        set cmd = (cp $cpfp $longbasedir/surf/$hemi.sphere $subjdir/surf/$hemi.sphere)
+        if($RunIt) $fs_time $cmd |& tee -a $LF
+        if($status) goto error_exit;
+        echo $cmd > $touchdir/$hemi.sphmorph.touch
+      endif
     endif
   end
 endif
@@ -250,10 +283,13 @@ if($DoPialSurfs && ! $DoConf2Hires) then
     $PWD |& tee -a $LF
     if( $longitudinal && ! -e $subjdir/surf/${hemi}.orig_pial ) then
       # should rarely get here as this is copied above in Make White Surfaces
-      set cmd = (cp $FS_RCA_LONG_TP_INIT_CP $longbasedir/surf/${hemi}.pial $subjdir/surf/${hemi}.orig_pial)
-      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-      if($RunIt)  $cmd |& tee -a $LF
-      if($status) goto error_exit;
+      set ud = `UpdateNeeded $subjdir/surf/${hemi}.orig_pial $longbasedir/surf/${hemi}.pial`
+      if($ud || $FS_RCA_LONG_TP_INIT_CP_FORCE) then
+        set cmd = (cp $cpfp $longbasedir/surf/${hemi}.pial $subjdir/surf/${hemi}.orig_pial)
+        echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+        if($RunIt)  $cmd |& tee -a $LF
+        if($status) goto error_exit;
+      endif
     endif
   end
 endif
@@ -398,14 +434,21 @@ while( $#argv != 0 )
       breaksw
 
     case "-cp-fp":
-      setenv FS_RCA_LONG_TP_INIT_CP "-f -p"
+      setenv FS_RCA_LONG_TP_INIT_CP_FP 1
       breaksw
     case "-no-cp-fp":
-      setenv FS_RCA_LONG_TP_INIT_CP 
+      setenv FS_RCA_LONG_TP_INIT_CP_FP 0
+      breaksw
+
+    case "-cp-force":
+      setenv FS_RCA_LONG_TP_INIT_CP_FORCE 1
+      breaksw
+    case "-no-cp-force":
+      setenv FS_RCA_LONG_TP_INIT_CP_FORCE 0
       breaksw
 
     case "-nolog":
-    case "-no-log":
+   case "-no-log":
       set LF = /dev/null
       breaksw
 
