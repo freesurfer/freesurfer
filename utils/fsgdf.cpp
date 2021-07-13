@@ -350,7 +350,7 @@ FSGD *gdfRead(const char *gdfname, int LoadData) {
     MatrixFree(&XtX);
     MatrixFree(&iXtX);
 
-    if (strcmp(gd->DesignMatMethod,"none") == 0) {
+    if (stricmp(gd->DesignMatMethod,"none") == 0) {
       printf(
         "\n WARNING: the creation method of the design matrix is unknown.\n"
         " This is OK, however, you will not be able to view regression\n"
@@ -1043,7 +1043,7 @@ static int gdfCheckAllClassesUsed(FSGD *gd) {
 int gdfCheckNPerClass(FSGD *gd)
 {
   int cno;
-  if(strcmp(gd->gd2mtx_method,"doss") == 0) return(0);
+  if(stricmp(gd->gd2mtx_method,"doss") == 0) return(0);
 
   for (cno = 0; cno < gd->nclasses; cno++) {
     //printf("Class %s has %d members\n",gd->classlabel[cno],(int)gd->NPerClass[cno]);
@@ -1255,9 +1255,9 @@ MATRIX *gdfMatrixDODS(FSGD *gd, MATRIX *X) {
 
 /*---------------------------------------------------*/
 int gdfCheckMatrixMethod(const char *gd2mtx_method) {
-  if ( strcmp(gd2mtx_method,"doss") == 0 ||
-       strcmp(gd2mtx_method,"dods") == 0 ||
-       strcmp(gd2mtx_method,"none") == 0
+  if ( stricmp(gd2mtx_method,"doss") == 0 ||
+       stricmp(gd2mtx_method,"dods") == 0 ||
+       stricmp(gd2mtx_method,"none") == 0
     ) return(0);
 
   printf("ERROR: gd2mtx method %s unrecoginzied.\n",gd2mtx_method);
@@ -1270,14 +1270,14 @@ int gdfCheckMatrixMethod(const char *gd2mtx_method) {
 MATRIX *gdfMatrix(FSGD *gd, const char *gd2mtx_method, MATRIX *X) {
   if (gdfCheckMatrixMethod(gd2mtx_method)) return(NULL);
 
-  if (strcmp(gd2mtx_method,"none") == 0) {
+  if (stricmp(gd2mtx_method,"none") == 0) {
     printf("ERROR: gdfMatrix: cannot create matrix when method is none\n");
     return(NULL);
   }
 
-  if (strcmp(gd2mtx_method,"doss") == 0)
+  if (stricmp(gd2mtx_method,"doss") == 0)
     X = gdfMatrixDOSS(gd,X);
-  if (strcmp(gd2mtx_method,"dods") == 0)
+  if (stricmp(gd2mtx_method,"dods") == 0)
     X = gdfMatrixDODS(gd,X);
 
   gd->X = X;
@@ -1305,7 +1305,7 @@ int gdfOffsetSlope(FSGD *gd, int classno, int varno,
   int nslope=0;
 
   if (strlen(gd->DesignMatMethod) == 0 ||
-      strcmp(gd->DesignMatMethod,"none") == 0) {
+      stricmp(gd->DesignMatMethod,"none") == 0) {
     printf("ERROR: gdfOffsetSlope: cannot determine the offset "
            "and slope for the \n"
            "given group descriptor because the design matrix \n"
@@ -1352,9 +1352,9 @@ int gdfOffsetSlope(FSGD *gd, int classno, int varno,
 
   *offset = b->rptr[classno+1][1];
 
-  if (strcmp(gd->DesignMatMethod,"doss") == 0)
+  if (stricmp(gd->DesignMatMethod,"doss") == 0)
     nslope = gd->nclasses + varno;
-  if (strcmp(gd->DesignMatMethod,"dods") == 0)
+  if (stricmp(gd->DesignMatMethod,"dods") == 0)
     nslope = classno + ((varno+1) * gd->nclasses);
 
   if (Gdiag) {
