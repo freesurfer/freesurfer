@@ -2939,19 +2939,15 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       fsgdfile = pargv[0];
       nargsused = 1;
-      fsgd = gdfRead(fsgdfile,0);
-      if (fsgd==NULL) exit(1);
       if(CMDnthIsArg(nargc, pargv, 1)) {
         gd2mtx_method = pargv[1];
         nargsused ++;
         if (gdfCheckMatrixMethod(gd2mtx_method)) exit(1);
       } 
-      else {
-	if(strcmp(fsgd->DesignMatMethod,"DOSS") == 0 ||
-	   strcmp(fsgd->DesignMatMethod,"doss") == 0)
-	  gd2mtx_method = "doss";
-	else gd2mtx_method = "dods";
-      }
+      fsgd = gdfRead(fsgdfile,gd2mtx_method,0);
+      if (fsgd==NULL) exit(1);
+      if(stricmp(fsgd->DesignMatMethod,"doss") == 0) gd2mtx_method = "doss";
+      else gd2mtx_method = "dods";
       printf("INFO: gd2mtx_method is %s\n",gd2mtx_method);
       strcpy(fsgd->DesignMatMethod,gd2mtx_method);
     } 
