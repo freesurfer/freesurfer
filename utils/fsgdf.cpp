@@ -85,7 +85,7 @@ int isblank (int c);
 #endif
 #endif
 
-static FSGD *gdfReadV1(const char *gdfname);
+static FSGD *gdfReadV1(const char *gdfname, const char *gd2mtx_method);
 static int gdfPrintV1(FILE *fp, FSGD *gd);
 static int gdfCheckVarRep(FSGD *gd);
 static int gdfCheckClassRep(FSGD *gd);
@@ -254,7 +254,8 @@ static int gdfPrintV1(FILE *fp, FSGD *gd) {
 
 
 /*--------------------------------------------------*/
-FSGD *gdfRead(const char *gdfname, int LoadData) {
+FSGD *gdfRead(const char *gdfname, const char *gd2mtx_method, int LoadData) 
+{
   FSGD *gd;
   FILE *fp;
   char tmpstr[1000];
@@ -300,7 +301,7 @@ FSGD *gdfRead(const char *gdfname, int LoadData) {
 
   switch (version) {
   case 1:
-    gd = gdfReadV1(gdfname);
+    gd = gdfReadV1(gdfname,gd2mtx_method);
     break;
   default:
     printf("ERROR: FSGDF version %d unsupported (%s) \n",version,gdfname);
@@ -407,7 +408,8 @@ FSGD *gdfRead(const char *gdfname, int LoadData) {
 
 
 /*--------------------------------------------------*/
-static FSGD *gdfReadV1(const char *gdfname) {
+static FSGD *gdfReadV1(const char *gdfname, const char *gd2mtx_method) 
+{
   FSGD *gd;
   FSENV *env;
   FILE *fp;
@@ -441,6 +443,12 @@ static FSGD *gdfReadV1(const char *gdfname) {
   gd->nvarsfromfile = 0;
   gd->DeMean = -1;
   gd->ReScale = 0;
+  if(gd2mtx_method){
+    if(stricmp(gd2mtx_method,"none")!=0){
+      strcpy(gd->gd2mtx_method,gd2mtx_method);
+      strcpy(gd->DesignMatMethod,gd2mtx_method);
+    }
+  }
 
   /*------- begin input loop --------------*/
   while (1) {
@@ -817,7 +825,7 @@ MRI *gdfReadDataInfo(const char *gdfname) {
   MRI *info=NULL;
 
   /* Read this header file but don't load the data. */
-  gd = gdfRead(gdfname, 0);
+  gd = gdfRead(gdfname, NULL, 0);
   if (NULL==gd) {
     printf("ERROR: gdfReadDataInfo: Couldn't read GDF %s\n",gdfname);
     return(NULL);
