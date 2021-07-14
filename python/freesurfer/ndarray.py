@@ -458,6 +458,9 @@ class Volume(ArrayContainerTemplate, Transformable):
         world_axes_trg = get_world_axes(trg_matrix[:self.basedims, :self.basedims])
         world_axes_src = get_world_axes(self.affine[:self.basedims, :self.basedims])
 
+        voxsize = np.asarray(self.voxsize)
+        voxsize = voxsize[world_axes_src][world_axes_trg]
+
         # init
         data = self.data.copy()
         affine = self.affine.copy()
@@ -478,8 +481,7 @@ class Volume(ArrayContainerTemplate, Transformable):
                 affine[:, i] = - affine[:, i]
                 affine[:3, 3] = affine[:3, 3] - affine[:3, i] * (data.shape[i] - 1)
 
-        reoriented = Volume(data, affine)
-        reoriented.voxsize = self.voxsize
+        reoriented = Volume(data, affine, voxsize=voxsize)
         reoriented.copy_metadata(self)
         return reoriented
 
@@ -502,18 +504,8 @@ class Volume(ArrayContainerTemplate, Transformable):
         if target.affine is None or self.affine is None:
             raise ValueError("Can't resample volume without geometry information.")
 
-        target_shape = target.shape
-        if len(target_shape) == 4:
-            target_shape = (*target_shape[:3], self.nframes)
-        elif len(target_shape) == 3:
-            target_shape = (*target_shape, self.nframes)
-
-        source_data = self.data
-        if source_data.ndim == 3:
-            source_data = source_data[..., np.newaxis]
-
         vox2vox = LinearTransform.matmul(self.ras2vox(), target.vox2ras())
-        resampled_data = resample(source_data, target_shape, vox2vox, interp_method=interp_method)
+        resampled_data = resample(self.data, target.shape, vox2vox, interp_method=interp_method)
 
         resampled = Volume(resampled_data)
         resampled.copy_geometry(target)

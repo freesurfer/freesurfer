@@ -75,10 +75,14 @@ def resample(source, target_shape, trg2src, interp_method='linear', smooth_sigma
         raise NotImplementedError('%dD resampling is not yet supported (must be 3D or 4D)' % source.ndim)
  
     # the resample binding function only works with 4D inputs for easier maintenance, so let's add an axis to any 3D input
+    target_shape = target_shape[:3]
+    if source.ndim == 4:
+        target_shape = (*target_shape, source.shape[-1])
+
     orig_target_shape = target_shape
     if source.ndim == 3:
         source = source[..., np.newaxis]
-        target_shape = (*target_shape, source.shape[-1])
+        target_shape = (*target_shape, 1)
 
     if len(target_shape) != source.ndim:
         raise ValueError('resampled target shape (%sD) must match source dims (%sD)' % (len(target_shape), source.ndim))

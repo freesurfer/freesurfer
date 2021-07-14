@@ -491,8 +491,7 @@ class LimbicSegmenter:
             volumes = voxvol * posteriors.data.reshape(-1, posteriors.shape[-1]).sum(0)
 
         # resample final hard segmentation to original space
-        segmentation = posteriors.copy(data=segmap)
-        segmentation.resample_like(image, interp_method='nearest')
+        segmentation = posteriors.copy(data=segmap).resample_like(image, interp_method='nearest')
         segmentation.lut = self.lut
 
         self.print_time('Postprocess time')
