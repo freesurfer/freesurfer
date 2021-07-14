@@ -1701,3 +1701,30 @@ int PrintSegStat(FILE *fp, SEGSTAT *segstat)
 
   return (0);
 }
+
+
+void ScaleStatTableByETIV(STAT_TABLE *table, float factor)
+{
+  // search for eTIV measurement
+  int matched_column = -1;
+  for (int c = 0; c < table->ncols; c++) {
+    std::string colname = table->colnames[c];
+    if (("EstimatedTotalIntraCranialVol" == colname) or ("eTIV" == colname)) {
+      matched_column = c;
+      break;
+    }
+  }
+
+  // couldn't find eTIV in table
+  if (matched_column < 0) fs::fatal() << "eTIV measure does not exist in stats table!";
+
+  // scale values in table
+  for (int c = 0; c < table->ncols; c++) {
+    if (matched_column == c) break;
+    for (int r = 0; r < table->nrows; r++) {
+      table->data[r][c] /= table->data[r][matched_column];
+      table->data[r][c] *= factor;
+      MRIsetVoxVal(table->mri, c, 0, 0, r, table->data[r][c]);
+    }
+  }
+}
