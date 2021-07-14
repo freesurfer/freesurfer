@@ -449,22 +449,36 @@ class Volume(ArrayContainerTemplate, Transformable):
         """
         trg_orientation = orientation.upper()
         src_orientation = otn.orientation_from_matrix(self.affine)
-        if trg_orientation == src_orientation:
+        if trg_orientation == src_orientation.upper():
             return self
 
-        axes = ['LR', 'PA', 'IS']
-        src_dirs = [[c in axis for axis in axes].index(True) for c in src_orientation]
-        trg_dirs = [[c in axis for axis in axes].index(True) for c in trg_orientation]
-        trg_shape = [self.shape[:3][src_dirs.index(x)] for x in trg_dirs]
+        # extract world axes
+        get_world_axes = lambda aff: np.argmax(np.absolute(np.linalg.inv(aff)), axis=0)
+        trg_matrix = otn.matrix_from_orientation(trg_orientation)
+        world_axes_trg = get_world_axes(trg_matrix[:self.basedims, :self.basedims])
+        world_axes_src = get_world_axes(self.affine[:self.basedims, :self.basedims])
 
-        src_vox2world = LinearTransform(otn.build_matrix(otn.matrix_from_orientation(src_orientation), self.shape))
-        trg_vox2world = LinearTransform(otn.build_matrix(otn.matrix_from_orientation(trg_orientation), trg_shape))
-        vox2vox = LinearTransform.matmul(src_vox2world.inverse(), trg_vox2world)
-        vox2world = LinearTransform.matmul(LinearTransform(self.affine), vox2vox)
+        # init
+        data = self.data.copy()
+        affine = self.affine.copy()
 
-        resampled = resample(self.data, trg_shape, vox2vox, interp_method='nearest')
+        # align axes
+        affine[:, world_axes_trg] = affine[:, world_axes_src]
+        for i in range(self.basedims):
+            if world_axes_src[i] != world_axes_trg[i]:
+                data = np.swapaxes(data, world_axes_src[i], world_axes_trg[i])
+                swapped_axis_idx = np.where(world_axes_src == world_axes_trg[i])
+                world_axes_src[swapped_axis_idx], world_axes_src[i] = world_axes_src[i], world_axes_src[swapped_axis_idx]
 
-        reoriented = Volume(resampled, vox2world.matrix)
+        # align directions
+        dot_products = np.sum(affine[:3, :3] * trg_matrix[:3, :3], axis=0)
+        for i in range(self.basedims):
+            if dot_products[i] < 0:
+                data = np.flip(data, axis=i)
+                affine[:, i] = - affine[:, i]
+                affine[:3, 3] = affine[:3, 3] - affine[:3, i] * (data.shape[i] - 1)
+
+        reoriented = Volume(data, affine)
         reoriented.voxsize = self.voxsize
         reoriented.copy_metadata(self)
         return reoriented
