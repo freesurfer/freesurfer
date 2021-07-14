@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 
 import os
+import time
 import sys
 import csv
 import glob
 import tempfile
 import shutil
+import platform
 import numpy as np
 import freesurfer as fs
 import scipy.ndimage
@@ -71,6 +73,7 @@ def main():
     parser.add_argument('--tal', help='Alternative talairach xfm transform for estimating TIV.')
     parser.add_argument('--conform', action='store_true', help='Allow for non-1mm-isotropic input images.')
     parser.add_argument('--debug', action='store_true', help='Enable debug logging.')
+    parser.add_argument('--vox-count-volumes', action='store_true', help='Use discrete voxel count for label volumes.')
     parser.add_argument('--cuda-device', help='Cuda device for GPU support.')
 
     # check for no arguments
@@ -93,7 +96,7 @@ def main():
     if not fs.fshome():
         fs.fatal('FREESURFER_HOME is not set. Please source FreeSurfer.')
 
-    # configure device
+    # configure cuda device
     if args.cuda_device is not None:
         os.environ['CUDA_VISIBLE_DEVICES'] = args.cuda_device
 
@@ -127,12 +130,19 @@ def main():
     else:
         pop_stats_file = os.path.join(fs.fshome(), 'models', 'sclimbic.volstats.csv')
     with open(pop_stats_file, 'r') as csvfile:
-        pop_stats = {row.pop('VolStat_mm3'): row for row in csv.DictReader(csvfile)}
+        population_stats = {row.pop('VolStat_mm3'): row for row in csv.DictReader(csvfile)}
     print('Loaded population stats', pop_stats_file)
 
     # load model weights and initialize segmenter
     model_file = args.model if args.model else os.path.join(fs.fshome(), 'models', 'sclimbic.h5')
-    segmenter = LimbicSegmenter(model_file=model_file, lut=lut, pop_stats=pop_stats, conform=args.conform)
+    segmenter = LimbicSegmenter(model_file=model_file,
+                                lut=lut,
+                                population_stats=population_stats,
+                                conform=args.conform,
+                                store_etiv=args.etiv,
+                                store_qa_stats=args.write_qa_stats,
+                                debug=args.debug,
+                                volumes_from_vox_count=args.vox_count_volumes)
     print('Loaded model weights', model_file) 
 
     # loop through each image and segment
@@ -143,6 +153,7 @@ def main():
         sd = os.getenv('SUBJECTS_DIR') if args.sd is None else args.sd
         if sd is None:
             fs.fatal('Must set subjects directory with --sd or SUBJECTS_DIR env variable.')
+        summary_file_prefix = os.path.join(sd, 'sclimbic_')
         print('Using subject directory', sd)
 
         # if no subjects have been provided, let's search the subjects directory
@@ -189,17 +200,16 @@ def main():
             print('\nSegmenting subject %s %d/%d' % (subj, n + 1, len(subjects)))
             segmenter.process_files(**params)
 
-        # write all subject volumes in subjects directory
-        if len(subjects) > 0:
-            segmenter.write_case_volumes(os.path.join(sd, 'sclimbic_volumes_all.v1.csv'))
+        segmenter.write_all_case_volumes(summary_file_prefix + 'volumes_all.v1.csv')
 
     else:
-        # normal input file/directory mode
+        # normal file/directory input mode
 
         # available file formats
         exts = ('.mgh', '.mgz', '.nii', '.nii.gz')
 
-        if os.path.isdir(args.i):
+        isdir = os.path.isdir(args.i)
+        if isdir:
             # find valid images in input directory
             input_files = sorted(glob.glob(os.path.join(args.i, '*[%s]' % ','.join(exts))))
             if len(input_files) == 0:
@@ -225,15 +235,15 @@ def main():
             params = {'input_file': input_file}
 
             # some logic to determine output filename
-            if not os.path.isdir(args.i):
-                params['segmentation_path'] = args.o
-                basename, ext = split_extension(args.o)
-                params['case_name'] = basename
-            else:
+            if isdir:
                 basename, ext = split_extension(os.path.basename(input_file))
                 params['case_name'] = basename
                 basename = os.path.join(args.o, basename + '.sclimbic')
                 params['segmentation_path'] = f'{basename}{ext}'
+            else:
+                basename, ext = split_extension(args.o)
+                params['case_name'] = basename
+                params['segmentation_path'] = args.o
 
             # optional outputs
             if args.write_posteriors:
@@ -255,9 +265,19 @@ def main():
             print('\nSegmenting image %d/%d' % (n + 1, len(input_files)))
             segmenter.process_files(**params)
 
+        if isdir:
+            summary_file_prefix = os.path.join(args.o, 'sclimbic_')
+        else:
+            summary_file_prefix = f'{basename}.'
+
         # write all case volumes in output directory
         if os.path.isdir(args.o) and len(input_files) > 0:
-            segmenter.write_case_volumes(os.path.join(args.o, 'sclimbic_volumes_all.v1.csv'))
+            segmenter.write_all_case_volumes(summary_file_prefix + 'volumes_all.v1.csv')
+
+    # write qa stats
+    if args.write_qa_stats:
+        segmenter.write_all_case_zscores(summary_file_prefix + 'zscores_all.v1.csv')
+        segmenter.write_all_case_confidences(summary_file_prefix + 'confidences_all.v1.csv')
 
     # check memory usage
     if args.debug:
@@ -280,16 +300,31 @@ class LimbicSegmenter:
     Isolated class to handle image IO, preprocessing, prediction, and postprocessing
     """
 
-    def __init__(self, model_file, lut, pop_stats, conform=True):
-        """
-        """
+    def __init__(self,
+                 model_file,
+                 lut,
+                 population_stats,
+                 conform=True,
+                 store_etiv=False,
+                 store_qa_stats=False,
+                 debug=False,
+                 volumes_from_vox_count=False):
+
         self.lut = lut
-        self.pop_stats = pop_stats
+        self.population_stats = population_stats
         self.labels = list(lut.keys())
+        self.label_names = [label.name for label in self.lut.values()]
         self.conform = conform
         self.inshape = (160, 160, 160)
         self.case_volumes = {}
-        self.case_etivs = {}
+        self.case_prob_means = {}
+        self.store_etiv = store_etiv
+        self.store_qa_stats = store_qa_stats
+        self.last_time = time.time()
+        self.debug = debug
+        self.volumes_from_vox_count = volumes_from_vox_count
+
+        # build and load model
         self.model = unet(nb_features=24,
                           input_shape=(*self.inshape, 1),
                           nb_levels=3,
@@ -310,6 +345,59 @@ class LimbicSegmenter:
                           batch_norm=-1,
                           input_model=None)
         self.model.load_weights(model_file, by_name=True)
+
+    def reset_timer(self):
+        """
+        Reset internal timer.
+        """
+        self.last_time = time.time()
+
+    def print_time(self, message):
+        """
+        Print timer time if debugging is enabled.
+        """
+        if self.debug:
+            print('%s: %.4f s' % (message, time.time() - self.last_time))
+
+    def write_all_case_volumes(self, path):
+        """
+        Write all case volumes to a csv.
+        """
+        header = ['case'] + self.label_names[1:]
+        if self.store_etiv:
+            header.append('eTIV')
+        with open(path, 'w') as file:
+            file.write(','.join(header) + '\n')
+            for case, volumes in self.case_volumes.items():
+                file.write(','.join([case] + ['%.4f' % v for v in volumes[1:]]))
+                file.write('\n')
+        print('\nWrote summary of label volumes to', path)
+
+    def write_all_case_zscores(self, path):
+        """
+        Write all case z-scores to a csv.
+        """
+        stats = [self.population_stats.get(label) for label in self.label_names]
+        mask = [idx for idx, stat in enumerate(stats) if stat is not None]
+        labels = [label for label, stat in zip(self.label_names, stats) if stat is not None]
+        mean = [float(stat['mean']) for stat in stats if stat is not None]
+        std = [float(stat['std']) for stat in stats if stat is not None]
+        with open(path, 'w') as file:
+            file.write(','.join(['case'] + labels) + '\n')
+            for case, volumes in self.case_volumes.items():
+                zscores = (volumes[mask] - mean) / std
+                file.write(','.join([case] + ['%.4f' % z for z in zscores]) + '\n')
+        print('Wrote summary of label z-scores to', path)
+
+    def write_all_case_confidences(self, path):
+        """
+        Write all case confidences (mean prediction prob) to a csv.
+        """
+        with open(path, 'w') as file:
+            file.write(','.join(['case'] + self.label_names[1:]) + '\n')
+            for case, prob_means in self.case_prob_means.items():
+                file.write(','.join([case] + ['%.4f' % v for v in prob_means[1:]]) + '\n')
+        print('Wrote summary of label prediction confidences to', path)
 
     def preprocess(self, image):
         """
@@ -348,60 +436,43 @@ class LimbicSegmenter:
         processed.data = data
         return processed
 
-    def write_case_volumes(self, path):
-        """
-        Write all case volumes to a csv.
-        """
-        header = ['case'] + list([label.name for label in self.lut.values()])[1:]
-        if self.case_etivs:
-            header.append('eTIV')
-        with open(path, 'w') as file:
-            file.write(','.join(header) + '\n')
-            for case, volumes in self.case_volumes.items():
-                file.write(','.join([case] + ['%.4f' % v for v in volumes[1:]]))
-                if self.case_etivs:
-                    file.write(',%.4f' % self.case_etivs[case])
-                file.write('\n')
-        print('\nWrote summary of label volumes to', path)
-
     def segment(self, image):
         """
         Segment a raw input image.
         """
+        self.reset_timer()
         conformed = self.preprocess(image)
+        self.print_time('Preprocess time')
 
         # posterior prediction
+        self.reset_timer()
         prediction = self.model.predict(conformed.data[np.newaxis]).squeeze()
+        self.print_time('Prediction time')
+        
+        self.reset_timer()
 
         # let's clean up the posteriors a bit, but we'll do this in
         # a minimal cropped space to speed things up
-        seg = prediction.argmax(-1)
-        bbox = fs.geom.bbox(seg > 0, margin=2)
+        seg = conformed.copy(data=prediction.argmax(-1))
+        bbox = seg.bbox(margin=2)
         cropped_seg = seg[bbox]
-
-        # copy so we don't overwrite the source buffer
-        cropped_pred = prediction[bbox].copy()
+        posteriors = conformed.copy(data=prediction)[bbox]
 
         # mask the posteriors around each label
         dilate_struct = build_binary_structure(1, 3)
         for label in range(1, len(self.labels)):
-            cropped_pred_label = cropped_pred[..., label]
-            label_mask = scipy.ndimage.binary_dilation(cropped_seg == label, dilate_struct)
+            cropped_pred_label = posteriors.data[..., label]
+            label_mask = scipy.ndimage.binary_dilation(cropped_seg.data == label, dilate_struct)
             cropped_pred_label[np.logical_not(label_mask)] = 0
-            cropped_pred[..., label] = cropped_pred_label
+            posteriors.data[..., label] = cropped_pred_label
 
-        # paste the masked posteriors back into the full conformed image
-        prediction.fill(0)
-        prediction[bbox] = cropped_pred
-
-        # resample the posteriors into the original image space
-        posteriors = conformed.copy(data=prediction)
-        posteriors = posteriors.resample_like(image, interp_method='linear')
-
-        # ensure that the posteriors sum to 1 in the original space
+        # ensure that the posteriors sum to 1 in the cropped space
         posteriors.data[..., 0] = 1.0 - np.sum(posteriors.data[..., 1:], axis=-1)
         posteriors.data = np.clip(posteriors.data, 0, 1)
         posteriors.data /= np.sum(posteriors.data, axis=-1, keepdims=True)
+
+        # resample cropped posteriors to original resolution
+        posteriors = posteriors.reslice(image.voxsize)
 
         # compute the final hard segmentation and compute voxel counts while we're at it
         vox_counts = []
@@ -411,10 +482,22 @@ class LimbicSegmenter:
             label_mask = argmax == n
             segmap[label_mask] = nid
             vox_counts.append(np.count_nonzero(label_mask))
+
+        # compute label volumes in original resolution
+        voxvol = np.prod(posteriors.voxsize)
+        if self.volumes_from_vox_count:
+            volumes = voxvol * np.array(vox_counts)
+        else:
+            volumes = voxvol * posteriors.data.reshape(-1, posteriors.shape[-1]).sum(0)
+
+        # resample final hard segmentation to original space
         segmentation = posteriors.copy(data=segmap)
+        segmentation.resample_like(image, interp_method='nearest')
         segmentation.lut = self.lut
 
-        return (posteriors, segmentation, vox_counts)
+        self.print_time('Postprocess time')
+
+        return (posteriors, segmentation, vox_counts, volumes)
 
     def process_files(
         self,
@@ -434,18 +517,18 @@ class LimbicSegmenter:
         print('Loaded input image from', input_file)
 
         # segment
-        posteriors, segmentation, vox_counts = self.segment(image)
+        post, seg, vox_counts, volumes = self.segment(image)
 
         # write segmentation
-        segmentation.write(segmentation_path)
+        seg.write(segmentation_path)
         print('Wrote segmentation to', segmentation_path)
 
         # write posteriors
         if posteriors_path is not None:
-            posteriors.write(posteriors_path)
+            post.write(posteriors_path)
             print('Wrote posteriors to', posteriors_path)
 
-        # write volume stats
+        # write volume stats in FS format
         if volumes_path is not None:
             table = fs.utils.Table(precision=4)
             table.header = [
@@ -455,42 +538,22 @@ class LimbicSegmenter:
                 table.header.append('Measure EstimatedTotalIntraCranialVol, eTIV, Estimated ' + \
                                     'Total Intracranial Volume, %.6f, mm^3' % etiv)
             table.columns = ['SegId', 'NVoxels', 'Volume_mm3', 'StructName']
-            vox_vol = np.prod(segmentation.voxsize)
+            vox_vol = np.prod(seg.voxsize)
             for n, nid in enumerate(self.lut.keys()):
                 if nid == 0:
                     continue
-                count = vox_counts[n]
-                table.add_row([nid, count, vox_vol * count, self.lut[nid].name])
+                table.add_row([nid, vox_counts[n], volumes[n], self.lut[nid].name])
             table.write(volumes_path)
             print('Wrote volume stats to', volumes_path)
 
         # store label volumes
-        if case_name:
-            self.case_volumes[case_name] = np.array(vox_counts) * np.prod(segmentation.voxsize)
-            if etiv is not None:
-                self.case_etivs[case_name] = etiv
+        self.case_volumes[case_name] = volumes
+        if self.store_etiv is not None:
+            self.case_volumes[case_name] = np.append(self.case_volumes[case_name], etiv)
 
         # write QA stats
-        if qa_stats_path is not None:
-            table = fs.utils.Table(precision=4)
-            table.header = [
-                'Subcortical Limbic QA Stats',
-                'Created by mri_sclimbic_seg']
-            table.columns = ['SegId', 'ZScore', 'ProbMin', 'ProbMean', 'StructName']
-            vox_vol = np.prod(segmentation.voxsize)
-            for n, nid in enumerate(self.lut.keys()):
-                if nid == 0:
-                    continue
-                name = self.lut[nid].name
-                stat = self.pop_stats.get(name)
-                if stat is None:
-                    continue
-                volume = vox_counts[n] * vox_vol
-                zscore = (volume - float(stat['mean'])) /  float(stat['std'])
-                prob = posteriors.data[..., n][segmentation.data == nid]
-                table.add_row([nid, zscore, prob.min(), prob.mean(), name])
-            table.write(qa_stats_path)
-            print('Wrote QA stats to', qa_stats_path)
+        if self.store_qa_stats:
+            self.case_prob_means[case_name] = [post.data[..., n][seg.data == nid].mean() for n, nid in enumerate(self.lut.keys())]
 
 
 # ------------------------------------------------------------------------------------------------
@@ -545,6 +608,8 @@ def print_vm_peak():
     Print the VM peak of the running process. This is only available
     on linux platforms.
     """
+    if platform.system() != 'Linux':
+        return
     procstat = os.path.join('/proc', str(os.getpid()), 'status')
     fp = open(procstat, 'r')
     lines = fp.readlines()
@@ -917,6 +982,5 @@ def conv_dec(nb_features,
     return model
 
 
-# execute script
 if __name__ == '__main__':
     main()

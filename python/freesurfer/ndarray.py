@@ -337,16 +337,23 @@ class Volume(ArrayContainerTemplate, Transformable):
         cropped_vol.copy_metadata(self)
         return cropped_vol
 
-    def crop_to_bbox(self, thresh=0, margin=0):
+    def bbox(self, thresh=0, margin=0):
         '''
         TODOC
         '''
         cropping = scipy.ndimage.find_objects(self.data > thresh)[0]
         if margin > 0:
-            start = [max(0, c.start - n) for c in cropping]
-            stop = [min(self.shape[i], c.stop + n) for i, c in enumerate(cropping)]
+            start = [max(0, c.start - margin) for c in cropping]
+            stop = [min(self.shape[i], c.stop + margin) for i, c in enumerate(cropping)]
             step = [c.step for c in cropping]
             cropping = tuple([slice(*s) for s in zip(start, stop, step)])
+        return cropping
+
+    def crop_to_bbox(self, thresh=0, margin=0):
+        '''
+        TODOC
+        '''
+        cropping = self.bbox(thresh=thresh, margin=margin)
         return self[cropping]
 
     def fit_to_shape(self, shape, center='image'):
