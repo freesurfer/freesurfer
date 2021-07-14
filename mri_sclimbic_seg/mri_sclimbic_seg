@@ -507,8 +507,7 @@ class LimbicSegmenter:
         volumes_path=None,
         qa_stats_path=None,
         etiv=None,
-        case_name=None,
-        ):
+        case_name=None):
 
         # load image
         if not os.path.isfile(input_file):
@@ -548,7 +547,7 @@ class LimbicSegmenter:
 
         # store label volumes
         self.case_volumes[case_name] = volumes
-        if self.store_etiv is not None:
+        if self.store_etiv:
             self.case_volumes[case_name] = np.append(self.case_volumes[case_name], etiv)
 
         # write QA stats
