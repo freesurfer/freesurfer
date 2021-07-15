@@ -228,6 +228,7 @@
 226 HP_tail                                 170 170 255 0
 227 Polymorphic-Layer                       128 255 128 0
 228 Intracellular-Space                     204 153 204 0
+229 molecular_layer_DG                      168 0   0   0
 
 231 HP_body                                 0 255 0 0
 232 HP_head                                 255 0 0 0
