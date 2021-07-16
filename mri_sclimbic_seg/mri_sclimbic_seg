@@ -497,12 +497,16 @@ class LimbicSegmenter:
 
         # compute the final hard segmentation and compute voxel counts while we're at it
         vox_counts = []
+        mean_probs = []
         argmax = posteriors.data.argmax(axis=-1)
         segmap = np.zeros(argmax.shape, dtype='int32')
         for n, nid in enumerate(self.lut.keys()):
             label_mask = argmax == n
             segmap[label_mask] = nid
             vox_counts.append(np.count_nonzero(label_mask))
+            if self.store_qa_stats:
+                probs = posteriors.data[..., n][label_mask]
+                mean_probs.append(probs.mean() if len(probs) > 0 else 0.0)
 
         # compute label volumes in original resolution
         voxvol = np.prod(posteriors.voxsize)
@@ -517,7 +521,7 @@ class LimbicSegmenter:
 
         self.print_time('Postprocess time')
 
-        return (posteriors, segmentation, vox_counts, volumes)
+        return (posteriors, segmentation, vox_counts, volumes, mean_probs)
 
     def process_files(
         self,
@@ -536,7 +540,7 @@ class LimbicSegmenter:
         print('Loaded input image from', input_file)
 
         # segment
-        post, seg, vox_counts, volumes = self.segment(image)
+        post, seg, vox_counts, volumes, mean_probs = self.segment(image)
 
         # write segmentation
         seg.write(segmentation_path)
@@ -570,9 +574,9 @@ class LimbicSegmenter:
         if self.store_etiv:
             self.case_volumes[case_name] = np.append(self.case_volumes[case_name], etiv)
 
-        # write QA stats
+        # write mean probs
         if self.store_qa_stats:
-            self.case_prob_means[case_name] = [post.data[..., n][seg.data == nid].mean() for n, nid in enumerate(self.lut.keys())]
+            self.case_prob_means[case_name] = mean_probs
 
 
 # ------------------------------------------------------------------------------------------------
