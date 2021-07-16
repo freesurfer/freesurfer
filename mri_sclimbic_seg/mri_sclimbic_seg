@@ -73,6 +73,7 @@ def main():
     parser.add_argument('--tal', help='Alternative talairach xfm transform for estimating TIV.')
     parser.add_argument('--conform', action='store_true', help='Allow for non-1mm-isotropic input images.')
     parser.add_argument('--debug', action='store_true', help='Enable debug logging.')
+    parser.add_argument('--vmp', action='store_true', help='Enable printing of vmpeak at the end.')
     parser.add_argument('--vox-count-volumes', action='store_true', help='Use discrete voxel count for label volumes.')
     parser.add_argument('--cuda-device', help='Cuda device for GPU support.')
 
@@ -107,6 +108,8 @@ def main():
     else:
         print('Using GPU device', cuda_device)
 
+    print(sys.argv)
+
     # defer tensorflow importing until after parsing
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = '0' if args.debug else '3'
     global tf
@@ -134,7 +137,7 @@ def main():
     print('Loaded population stats', pop_stats_file)
 
     # load model weights and initialize segmenter
-    model_file = args.model if args.model else os.path.join(fs.fshome(), 'models', 'sclimbic.h5')
+    model_file = args.model if args.model else os.path.join(fs.fshome(), 'models', 'sclimbic.fsm+ad.t1.nstd00-50.nstd32-50.h5')
     segmenter = LimbicSegmenter(model_file=model_file,
                                 lut=lut,
                                 population_stats=population_stats,
@@ -215,6 +218,7 @@ def main():
             if len(input_files) == 0:
                 fs.fatal(f'Could not find any valid input images in {args.i}.')
             os.makedirs(args.o, exist_ok=True)
+            logfile = os.path.join(args.o,'mri_sclimbic.log');
         else:
             if not args.i.endswith(exts):
                 fs.fatal(f'{args.i} is an unsupported image file type.')
@@ -222,6 +226,16 @@ def main():
             dirname = os.path.dirname(args.o)
             if dirname:
                 os.makedirs(dirname, exist_ok=True)
+            logfile = os.path.join(dirname,'mri_sclimbic.log');
+
+        # Write the command line. Prob not the best way to do it.
+        with open(logfile, 'w') as file:
+            file.write('modelfile ' + model_file + '\n');
+            file.write('ctab ' + lut_file + '\n');
+            file.write('cd ' + os.getcwd() + '\n');
+            for ele in sys.argv:
+                file.write(ele + ' ');
+            file.write('\n');
 
         # quick utility to add to filenames while keeping extension
         def split_extension(filename):
@@ -280,7 +294,7 @@ def main():
         segmenter.write_all_case_confidences(summary_file_prefix + 'confidences_all.v1.csv')
 
     # check memory usage
-    if args.debug:
+    if args.debug or args.vmp:
         print_vm_peak()
 
     # all done
