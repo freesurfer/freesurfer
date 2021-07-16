@@ -341,7 +341,10 @@ class Volume(ArrayContainerTemplate, Transformable):
         '''
         TODOC
         '''
-        cropping = scipy.ndimage.find_objects(self.data > thresh)[0]
+        mask = self.data > thresh
+        if not np.any(mask):
+            return tuple([slice(0, s) for s in mask.shape])
+        cropping = scipy.ndimage.find_objects(mask)[0]
         if margin > 0:
             start = [max(0, c.start - margin) for c in cropping]
             stop = [min(self.shape[i], c.stop + margin) for i, c in enumerate(cropping)]

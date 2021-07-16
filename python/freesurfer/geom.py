@@ -42,6 +42,8 @@ class Slicing(tuple):
 
 def bbox(mask, margin=0):
     '''Bounding box around the object in a binary image.'''
+    if not np.any(mask):
+        return tuple([slice(0, s) for s in mask.shape])
     bbox = scipy.ndimage.find_objects(mask)[0]
     if margin > 0:
         start = [max(0, c.start - margin) for c in bbox]

@@ -70,7 +70,7 @@ def main():
     parser.add_argument('--threads', type=int, default=1, help='Number of threads to use. Default is 1.')
     parser.add_argument('--ctab', help='Alternative color lookup table to embed in segmentation.')
     parser.add_argument('--model', help='Alternative model weights to load.')
-    parser.add_argument('--tal', help='Alternative talairach xfm transform for estimating TIV.')
+    parser.add_argument('--tal', help='Alternative talairach xfm transform for estimating TIV. Can be file or suffix (for multiple inputs).')
     parser.add_argument('--conform', action='store_true', help='Allow for non-1mm-isotropic input images.')
     parser.add_argument('--debug', action='store_true', help='Enable debug logging.')
     parser.add_argument('--vmp', action='store_true', help='Enable printing of vmpeak at the end.')
@@ -187,10 +187,11 @@ def main():
 
             # estimate TIV from talairach xfm
             if args.tal:
-                params['etiv'] = compute_etiv_from_xfm(args.tal)
+                xfm = os.path.join(subjdir, args.tal)
             else:
                 xfm = os.path.join(subjdir, 'mri', 'transforms', 'talairach.xfm')
-                params['etiv'] = compute_etiv_from_xfm(xfm)
+            params['etiv'] = compute_etiv_from_xfm(xfm)
+            print('Computed eTIV from talairach')
 
             # save posterior data to the mri subdir
             if args.write_posteriors:
@@ -214,7 +215,9 @@ def main():
         isdir = os.path.isdir(args.i)
         if isdir:
             # find valid images in input directory
-            input_files = sorted(glob.glob(os.path.join(args.i, '*[%s]' % ','.join(exts))))
+            input_files = []
+            for ext in exts:
+                input_files += sorted(glob.glob(os.path.join(args.i, '*' + ext)))
             if len(input_files) == 0:
                 fs.fatal(f'Could not find any valid input images in {args.i}.')
             os.makedirs(args.o, exist_ok=True)
@@ -250,9 +253,9 @@ def main():
 
             # some logic to determine output filename
             if isdir:
-                basename, ext = split_extension(os.path.basename(input_file))
-                params['case_name'] = basename
-                basename = os.path.join(args.o, basename + '.sclimbic')
+                true_basename, ext = split_extension(os.path.basename(input_file))
+                params['case_name'] = true_basename
+                basename = os.path.join(args.o, true_basename + '.sclimbic')
                 params['segmentation_path'] = f'{basename}{ext}'
             else:
                 basename, ext = split_extension(args.o)
@@ -270,10 +273,14 @@ def main():
             # optional TIV estimation (really only applies to volume stats)
             if args.write_volumes and args.etiv:
                 if args.tal:
-                    print("computing etiv from tal");
-                    params['etiv'] = compute_etiv_from_xfm(args.tal)
+                    if isdir:
+                        xfm = os.path.join(args.i, true_basename + args.tal)
+                    else:
+                        xfm = args.tal
+                    params['etiv'] = compute_etiv_from_xfm(xfm)
+                    print('Computed eTIV from talairach')
                 else:
-                    print("computing etiv from scratch");
+                    print("computing etiv from scratch")
                     params['etiv'] = compute_etiv_from_scratch(input_file)
 
             print('\nSegmenting image %d/%d' % (n + 1, len(input_files)))
