@@ -65,13 +65,14 @@ def main():
     parser.add_argument('--write_posteriors', action='store_true', help='Save the label posteriors.')
     parser.add_argument('--write_volumes', action='store_true', help='Save label volume stats (enabled by default in subject-mode).')
     parser.add_argument('--write_qa_stats', action='store_true', help='Save QA stats.')
-    parser.add_argument('--population_stats', help='Alternative population volume stats for QA output.')
+    parser.add_argument('--population-stats', help='Alternative population volume stats for QA output.')
     parser.add_argument('--etiv', action='store_true', help='Include eTIV in volume stats (enabled by default in subject-mode).')
     parser.add_argument('--threads', type=int, default=1, help='Number of threads to use. Default is 1.')
     parser.add_argument('--ctab', help='Alternative color lookup table to embed in segmentation.')
     parser.add_argument('--model', help='Alternative model weights to load.')
     parser.add_argument('--tal', help='Alternative talairach xfm transform for estimating TIV. Can be file or suffix (for multiple inputs).')
     parser.add_argument('--conform', action='store_true', help='Allow for non-1mm-isotropic input images.')
+    parser.add_argument('--exclude', type=int, nargs='+', default=[], help='List of label IDs to exclude in any output stats files.')
     parser.add_argument('--debug', action='store_true', help='Enable debug logging.')
     parser.add_argument('--vmp', action='store_true', help='Enable printing of vmpeak at the end.')
     parser.add_argument('--vox-count-volumes', action='store_true', help='Use discrete voxel count for label volumes.')
@@ -145,7 +146,8 @@ def main():
                                 store_etiv=args.etiv,
                                 store_qa_stats=args.write_qa_stats,
                                 debug=args.debug,
-                                volumes_from_vox_count=args.vox_count_volumes)
+                                volumes_from_vox_count=args.vox_count_volumes,
+                                exclude=args.exclude)
     print('Loaded model weights', model_file) 
 
     # loop through each image and segment
@@ -329,12 +331,12 @@ class LimbicSegmenter:
                  store_etiv=False,
                  store_qa_stats=False,
                  debug=False,
-                 volumes_from_vox_count=False):
+                 volumes_from_vox_count=False,
+                 exclude=[]):
 
         self.lut = lut
         self.population_stats = population_stats
         self.labels = list(lut.keys())
-        self.label_names = [label.name for label in self.lut.values()]
         self.conform = conform
         self.inshape = (160, 160, 160)
         self.case_volumes = {}
@@ -344,6 +346,12 @@ class LimbicSegmenter:
         self.last_time = time.time()
         self.debug = debug
         self.volumes_from_vox_count = volumes_from_vox_count
+
+        # build mask of labels to exclude in stats output files
+        # always ignore unknown label
+        self.exclude = [0] + exclude
+        self.exclude_mask = [sid not in self.exclude for sid in self.labels]
+        self.label_names = [label.name for i, label in zip(self.exclude_mask, self.lut.values()) if i]
 
         # build and load model
         self.model = unet(nb_features=24,
@@ -384,13 +392,13 @@ class LimbicSegmenter:
         """
         Write all case volumes to a csv.
         """
-        header = ['case'] + self.label_names[1:]
+        header = ['case'] + self.label_names
         if self.store_etiv:
             header.append('eTIV')
         with open(path, 'w') as file:
             file.write(','.join(header) + '\n')
             for case, volumes in self.case_volumes.items():
-                file.write(','.join([case] + ['%.4f' % v for v in volumes[1:]]))
+                file.write(','.join([case] + ['%.4f' % v for v in volumes[self.exclude_mask]]))
                 file.write('\n')
         print('\nWrote summary of label volumes to', path)
 
@@ -399,14 +407,15 @@ class LimbicSegmenter:
         Write all case z-scores to a csv.
         """
         stats = [self.population_stats.get(label) for label in self.label_names]
-        mask = [idx for idx, stat in enumerate(stats) if stat is not None]
+        stat_mask = [idx for idx, stat in enumerate(stats) if stat is not None]
         labels = [label for label, stat in zip(self.label_names, stats) if stat is not None]
         mean = [float(stat['mean']) for stat in stats if stat is not None]
         std = [float(stat['std']) for stat in stats if stat is not None]
         with open(path, 'w') as file:
             file.write(','.join(['case'] + labels) + '\n')
             for case, volumes in self.case_volumes.items():
-                zscores = (volumes[mask] - mean) / std
+                vol = volumes[self.exclude_mask][stat_mask]
+                zscores = (vol - mean) / std
                 file.write(','.join([case] + ['%.4f' % z for z in zscores]) + '\n')
         print('Wrote summary of label z-scores to', path)
 
@@ -415,9 +424,9 @@ class LimbicSegmenter:
         Write all case confidences (mean prediction prob) to a csv.
         """
         with open(path, 'w') as file:
-            file.write(','.join(['case'] + self.label_names[1:]) + '\n')
+            file.write(','.join(['case'] + self.label_names) + '\n')
             for case, prob_means in self.case_prob_means.items():
-                file.write(','.join([case] + ['%.4f' % v for v in prob_means[1:]]) + '\n')
+                file.write(','.join([case] + ['%.4f' % v for v in prob_means[self.exclude_mask]]) + '\n')
         print('Wrote summary of label prediction confidences to', path)
 
     def preprocess(self, image):
@@ -507,6 +516,8 @@ class LimbicSegmenter:
             if self.store_qa_stats:
                 probs = posteriors.data[..., n][label_mask]
                 mean_probs.append(probs.mean() if len(probs) > 0 else 0.0)
+        vox_counts = np.array(vox_counts)
+        mean_probs = np.array(mean_probs)
 
         # compute label volumes in original resolution
         voxvol = np.prod(posteriors.voxsize)
@@ -563,7 +574,7 @@ class LimbicSegmenter:
             table.columns = ['SegId', 'NVoxels', 'Volume_mm3', 'StructName']
             vox_vol = np.prod(seg.voxsize)
             for n, nid in enumerate(self.lut.keys()):
-                if nid == 0:
+                if nid in self.exclude:
                     continue
                 table.add_row([nid, vox_counts[n], volumes[n], self.lut[nid].name])
             table.write(volumes_path)
