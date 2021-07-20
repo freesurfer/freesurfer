@@ -73,6 +73,7 @@ def main():
     parser.add_argument('--tal', help='Alternative talairach xfm transform for estimating TIV. Can be file or suffix (for multiple inputs).')
     parser.add_argument('--conform', action='store_true', help='Allow for non-1mm-isotropic input images.')
     parser.add_argument('--exclude', type=int, nargs='+', default=[], help='List of label IDs to exclude in any output stats files.')
+    parser.add_argument('--keep_ac', action='store_true', help='Explicitly keep anterior commissure in the volume/qa files.')
     parser.add_argument('--debug', action='store_true', help='Enable debug logging.')
     parser.add_argument('--vmp', action='store_true', help='Enable printing of vmpeak at the end.')
     parser.add_argument('--vox-count-volumes', action='store_true', help='Use discrete voxel count for label volumes.')
@@ -93,6 +94,14 @@ def main():
         fs.fatal('Cannot provide both input image (--i) and subject (--s) flags. Choose one input mode.')
     if args.i is not None and args.o is None:
         fs.fatal('--o output flag must be provided if --i input is used.')
+
+    # Automatically exclude AntCom unless explicitly kept
+    if not args.keep_ac: # not explicity being kept
+        if not (853 in args.exclude): # not already in the list
+            args.exclude.append(853) # add it to the list
+    if not (853 in args.exclude): print('Keeping anterior commissure in vols and stats')
+
+    if len(args.exclude) > 0: print("Excluding seg ",args.exclude);
 
     # check for fs home
     if not fs.fshome():
