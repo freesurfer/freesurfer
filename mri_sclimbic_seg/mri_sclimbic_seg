@@ -109,6 +109,8 @@ def main():
 
     if len(args.exclude) > 0: print("Excluding seg ",args.exclude);
 
+    if len(args.tal) > 0: args.etiv = 1;
+
     # check for fs home
     if not fs.fshome():
         fs.fatal('FREESURFER_HOME is not set. Please source FreeSurfer.')
@@ -293,9 +295,9 @@ def main():
                     else:
                         xfm = args.tal
                     params['etiv'] = compute_etiv_from_xfm(xfm)
-                    print('Computed eTIV from talairach')
+                    print('Computed eTIV from talairach file')
                 else:
-                    print("computing etiv from scratch")
+                    print("Computing etiv from scratch")
                     params['etiv'] = compute_etiv_from_scratch(input_file)
 
             print('\nSegmenting image %d/%d' % (n + 1, len(input_files)))
