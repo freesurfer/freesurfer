@@ -62,21 +62,21 @@ def main():
     parser.add_argument('--sd', help='Set the subjects directory (overrides the SUBJECTS_DIR env variable).')
 
     # general options
+    parser.add_argument('--conform', action='store_true', help='Resample input to 1mm-iso; results will be put back in native resolution.')
+    parser.add_argument('--etiv', action='store_true', help='Include eTIV in volume stats (enabled by default in subject-mode).')
+    parser.add_argument('--tal', help='Alternative talairach xfm transform for estimating TIV. Can be file or suffix (for multiple inputs).')
     parser.add_argument('--write_posteriors', action='store_true', help='Save the label posteriors.')
     parser.add_argument('--write_volumes', action='store_true', help='Save label volume stats (enabled by default in subject-mode).')
     parser.add_argument('--write_qa_stats', action='store_true', help='Save QA stats.')
-    parser.add_argument('--population-stats', help='Alternative population volume stats for QA output.')
-    parser.add_argument('--etiv', action='store_true', help='Include eTIV in volume stats (enabled by default in subject-mode).')
-    parser.add_argument('--threads', type=int, default=1, help='Number of threads to use. Default is 1.')
-    parser.add_argument('--ctab', help='Alternative color lookup table to embed in segmentation.')
-    parser.add_argument('--model', help='Alternative model weights to load.')
-    parser.add_argument('--tal', help='Alternative talairach xfm transform for estimating TIV. Can be file or suffix (for multiple inputs).')
-    parser.add_argument('--conform', action='store_true', help='Resample input to 1mm-iso; results will be put back in native resolution.')
     parser.add_argument('--exclude', type=int, nargs='+', default=[], help='List of label IDs to exclude in any output stats files.')
     parser.add_argument('--keep_ac', action='store_true', help='Explicitly keep anterior commissure in the volume/qa files.')
+    parser.add_argument('--vox-count-volumes', action='store_true', help='Use discrete voxel count for label volumes.')
+    parser.add_argument('--model', help='Alternative model weights to load.')
+    parser.add_argument('--ctab', help='Alternative color lookup table to embed in segmentation.')
+    parser.add_argument('--population-stats', help='Alternative population volume stats for QA output.')
     parser.add_argument('--debug', action='store_true', help='Enable debug logging.')
     parser.add_argument('--vmp', action='store_true', help='Enable printing of vmpeak at the end.')
-    parser.add_argument('--vox-count-volumes', action='store_true', help='Use discrete voxel count for label volumes.')
+    parser.add_argument('--threads', type=int, default=1, help='Number of threads to use. Default is 1.')
     parser.add_argument('--cuda-device', help='Cuda device for GPU support.')
 
     # check for no arguments
@@ -84,6 +84,7 @@ def main():
         parser.print_help()
         sys.exit(1)
 
+    # print out the command line
     cmd = '';
     for ele in sys.argv:
         cmd = cmd + ' ' + ele;
