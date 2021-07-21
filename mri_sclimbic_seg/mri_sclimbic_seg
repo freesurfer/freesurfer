@@ -85,10 +85,7 @@ def main():
         sys.exit(1)
 
     # print out the command line
-    cmd = '';
-    for ele in sys.argv:
-        cmd = cmd + ' ' + ele;
-    print(cmd)
+    print(' '.join(sys.argv))
 
     # parse commandline
     args = parser.parse_args()
@@ -107,9 +104,9 @@ def main():
             args.exclude.append(853) # add it to the list
     if not (853 in args.exclude): print('Keeping anterior commissure in vols and stats')
 
-    if len(args.exclude) > 0: print("Excluding seg ",args.exclude);
+    if len(args.exclude) > 0: print("Excluding seg", args.exclude)
 
-    if len(args.tal) > 0: args.etiv = 1;
+    if args.tal is not None: args.etiv = 1
 
     # check for fs home
     if not fs.fshome():
@@ -253,9 +250,7 @@ def main():
             file.write('modelfile ' + model_file + '\n');
             file.write('ctab ' + lut_file + '\n');
             file.write('cd ' + os.getcwd() + '\n');
-            for ele in sys.argv:
-                file.write(ele + ' ');
-            file.write('\n');
+            file.write(' '.join(sys.argv) + '\n');
 
         # quick utility to add to filenames while keeping extension
         def split_extension(filename):
@@ -355,6 +350,7 @@ class LimbicSegmenter:
         self.conform = conform
         self.inshape = (160, 160, 160)
         self.case_volumes = {}
+        self.case_etivs = {}
         self.case_prob_means = {}
         self.store_etiv = store_etiv
         self.store_qa_stats = store_qa_stats
@@ -413,7 +409,10 @@ class LimbicSegmenter:
         with open(path, 'w') as file:
             file.write(','.join(header) + '\n')
             for case, volumes in self.case_volumes.items():
-                file.write(','.join([case] + ['%.4f' % v for v in volumes[self.exclude_mask]]))
+                volumes = volumes[self.exclude_mask]
+                if self.store_etiv:
+                    volumes = np.append(volumes, self.case_etivs[case])
+                file.write(','.join([case] + ['%.4f' % v for v in volumes]))
                 file.write('\n')
         print('\nWrote summary of label volumes to', path)
 
@@ -602,7 +601,7 @@ class LimbicSegmenter:
         # store label volumes
         self.case_volumes[case_name] = volumes
         if self.store_etiv:
-            self.case_volumes[case_name] = np.append(self.case_volumes[case_name], etiv)
+            self.case_etivs[case_name] = etiv
 
         # write mean probs
         if self.store_qa_stats:
