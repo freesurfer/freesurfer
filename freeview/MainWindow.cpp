@@ -2064,6 +2064,10 @@ void MainWindow::RunScript()
   {
     CommandSetSurfaceLabelColor( sa );
   }
+  else if (cmd == "setsurfacelabelthreshold")
+  {
+    CommandSetSurfaceLabelThreshold( sa );
+  }
   else if (cmd == "gotosurfacelabel")
   {
     OnGoToSurfaceLabel(true);
@@ -3764,6 +3768,20 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
             }
           }
         }
+        else if (subOption == "label_threshold" || subOption == "labelthreshold")
+        {
+          if (!subArgu.isEmpty())
+          {
+            for (int i = 0; i < m_scripts.size(); i++)
+            {
+              if (m_scripts[i][0] == "loadsurfacelabel")
+              {
+                m_scripts.insert(i+1, QStringList("setsurfacelabelthreshold") << subArgu);
+                break;
+              }
+            }
+          }
+        }
         else if (subOption == "label_centroid" || subOption == "labelcentroid")
         {
           if (!subArgu.isEmpty())
@@ -3913,6 +3931,20 @@ void MainWindow::CommandSetSurfaceLabelOpacity(const QStringList &cmd)
     if (ok && surf->GetActiveLabel())
     {
       surf->GetActiveLabel()->SetOpacity(cmd[1].toDouble());
+    }
+  }
+}
+
+void MainWindow::CommandSetSurfaceLabelThreshold(const QStringList &cmd)
+{
+  LayerSurface* surf = (LayerSurface*)GetLayerCollection( "Surface" )->GetActiveLayer();
+  if ( surf )
+  {
+    bool ok;
+    cmd[1].toDouble(&ok);
+    if (ok && surf->GetActiveLabel())
+    {
+      surf->GetActiveLabel()->SetThreshold(cmd[1].toDouble());
     }
   }
 }
@@ -8422,6 +8454,7 @@ void MainWindow::OnReloadSurface()
               AddScript(QStringList("setsurfacelabelopacity") << QString::number(label->GetOpacity()));
             double* c = label->GetColor();
             AddScript(QStringList("setsurfacelabelcolor") << QString("%1,%2,%3").arg((int)(c[0]*255)).arg((int)(c[1]*255)).arg((int)(c[2]*255)));
+            AddScript(QStringList("setsurfacelabelthreshold") << QString::number(label->GetThreshold()));
           }
         }
         for (int j = surf->GetNumberOfAnnotations()-1; j >= 0; j--)
