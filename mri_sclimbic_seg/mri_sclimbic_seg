@@ -63,11 +63,11 @@ def main():
 
     # general options
     parser.add_argument('--conform', action='store_true', help='Resample input to 1mm-iso; results will be put back in native resolution.')
-    parser.add_argument('--etiv', action='store_true', help='Include eTIV in volume stats (enabled by default in subject-mode).')
+    parser.add_argument('--etiv', action='store_true', help='Include eTIV in volume stats (enabled by default in subject-mode and --tal).')
     parser.add_argument('--tal', help='Alternative talairach xfm transform for estimating TIV. Can be file or suffix (for multiple inputs).')
     parser.add_argument('--write_posteriors', action='store_true', help='Save the label posteriors.')
     parser.add_argument('--write_volumes', action='store_true', help='Save label volume stats (enabled by default in subject-mode).')
-    parser.add_argument('--write_qa_stats', action='store_true', help='Save QA stats.')
+    parser.add_argument('--write_qa_stats', action='store_true', help='Save QA stats (z and confidence).')
     parser.add_argument('--exclude', type=int, nargs='+', default=[], help='List of label IDs to exclude in any output stats files.')
     parser.add_argument('--keep_ac', action='store_true', help='Explicitly keep anterior commissure in the volume/qa files.')
     parser.add_argument('--vox-count-volumes', action='store_true', help='Use discrete voxel count for label volumes.')
@@ -218,7 +218,7 @@ def main():
             print('\nSegmenting subject %s %d/%d' % (subj, n + 1, len(subjects)))
             segmenter.process_files(**params)
 
-        segmenter.write_all_case_volumes(summary_file_prefix + 'volumes_all.v1.csv')
+        segmenter.write_all_case_volumes(summary_file_prefix + 'volumes_all.csv')
 
     else:
         # normal file/directory input mode
@@ -305,12 +305,12 @@ def main():
 
         # write all case volumes in output directory
         if os.path.isdir(args.o) and len(input_files) > 0:
-            segmenter.write_all_case_volumes(summary_file_prefix + 'volumes_all.v1.csv')
+            segmenter.write_all_case_volumes(summary_file_prefix + 'volumes_all.csv')
 
     # write qa stats
     if args.write_qa_stats:
-        segmenter.write_all_case_zscores(summary_file_prefix + 'zscores_all.v1.csv')
-        segmenter.write_all_case_confidences(summary_file_prefix + 'confidences_all.v1.csv')
+        segmenter.write_all_case_zscores(summary_file_prefix + 'zqa_scores_all.csv')
+        segmenter.write_all_case_confidences(summary_file_prefix + 'confidences_all.csv')
 
     # check memory usage
     if args.debug or args.vmp:
