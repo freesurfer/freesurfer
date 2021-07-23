@@ -63,7 +63,7 @@ def main():
 
     # general options
     parser.add_argument('--conform', action='store_true', help='Resample input to 1mm-iso; results will be put back in native resolution.')
-    parser.add_argument('--etiv', action='store_true', help='Include eTIV in volume stats (enabled by default in subject-mode and --tal).')
+    parser.add_argument('--etiv', action='store_true', help='deInclude eTIV in volume stats (enabled by default in subject-mode and --tal).')
     parser.add_argument('--tal', help='Alternative talairach xfm transform for estimating TIV. Can be file or suffix (for multiple inputs).')
     parser.add_argument('--write_posteriors', action='store_true', help='Save the label posteriors.')
     parser.add_argument('--write_volumes', action='store_true', help='Save label volume stats (enabled by default in subject-mode).')
@@ -318,8 +318,8 @@ def main():
 
     # all done
     print('\nIf you use this tool in a publication, please cite:')
-    print('Automatic Segmentation of Subcortical Limbic Structures from MRI Images using Deep Leaning');
-    print('Greve, DN, Billot, B, Cordero, D, Hoopes, A, Dalca, A, Fischl, B,  Iglesias, JE, Augustinack, JC')
+    print('A Deep Learning Toolbox for Automatic Segmentation of Subcortical Limbic Structures from MRI Images');
+    print('Greve, DN, Billot, B, Cordero, D, Hoopes, M. Hoffmann, A, Dalca, A, Fischl, B,  Iglesias, JE, Augustinack, JC')
     print('Submitted')
 
 
