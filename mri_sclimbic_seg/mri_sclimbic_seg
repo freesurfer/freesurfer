@@ -62,25 +62,30 @@ def main():
     parser.add_argument('--sd', help='Set the subjects directory (overrides the SUBJECTS_DIR env variable).')
 
     # general options
+    parser.add_argument('--conform', action='store_true', help='Resample input to 1mm-iso; results will be put back in native resolution.')
+    parser.add_argument('--etiv', action='store_true', help='deInclude eTIV in volume stats (enabled by default in subject-mode and --tal).')
+    parser.add_argument('--tal', help='Alternative talairach xfm transform for estimating TIV. Can be file or suffix (for multiple inputs).')
     parser.add_argument('--write_posteriors', action='store_true', help='Save the label posteriors.')
     parser.add_argument('--write_volumes', action='store_true', help='Save label volume stats (enabled by default in subject-mode).')
-    parser.add_argument('--write_qa_stats', action='store_true', help='Save QA stats.')
-    parser.add_argument('--population_stats', help='Alternative population volume stats for QA output.')
-    parser.add_argument('--etiv', action='store_true', help='Include eTIV in volume stats (enabled by default in subject-mode).')
-    parser.add_argument('--threads', type=int, default=1, help='Number of threads to use. Default is 1.')
-    parser.add_argument('--ctab', help='Alternative color lookup table to embed in segmentation.')
+    parser.add_argument('--write_qa_stats', action='store_true', help='Save QA stats (z and confidence).')
+    parser.add_argument('--exclude', type=int, nargs='+', default=[], help='List of label IDs to exclude in any output stats files.')
+    parser.add_argument('--keep_ac', action='store_true', help='Explicitly keep anterior commissure in the volume/qa files.')
+    parser.add_argument('--vox-count-volumes', action='store_true', help='Use discrete voxel count for label volumes.')
     parser.add_argument('--model', help='Alternative model weights to load.')
-    parser.add_argument('--tal', help='Alternative talairach xfm transform for estimating TIV. Can be file or suffix (for multiple inputs).')
-    parser.add_argument('--conform', action='store_true', help='Allow for non-1mm-isotropic input images.')
+    parser.add_argument('--ctab', help='Alternative color lookup table to embed in segmentation.')
+    parser.add_argument('--population-stats', help='Alternative population volume stats for QA output.')
     parser.add_argument('--debug', action='store_true', help='Enable debug logging.')
     parser.add_argument('--vmp', action='store_true', help='Enable printing of vmpeak at the end.')
-    parser.add_argument('--vox-count-volumes', action='store_true', help='Use discrete voxel count for label volumes.')
+    parser.add_argument('--threads', type=int, default=1, help='Number of threads to use. Default is 1.')
     parser.add_argument('--cuda-device', help='Cuda device for GPU support.')
 
     # check for no arguments
     if len(sys.argv) < 2:
         parser.print_help()
         sys.exit(1)
+
+    # print out the command line
+    print(' '.join(sys.argv))
 
     # parse commandline
     args = parser.parse_args()
@@ -92,6 +97,16 @@ def main():
         fs.fatal('Cannot provide both input image (--i) and subject (--s) flags. Choose one input mode.')
     if args.i is not None and args.o is None:
         fs.fatal('--o output flag must be provided if --i input is used.')
+
+    # Automatically exclude AntCom unless explicitly kept
+    if not args.keep_ac: # not explicity being kept
+        if not (853 in args.exclude): # not already in the list
+            args.exclude.append(853) # add it to the list
+    if not (853 in args.exclude): print('Keeping anterior commissure in vols and stats')
+
+    if len(args.exclude) > 0: print("Excluding seg", args.exclude)
+
+    if args.tal is not None: args.etiv = 1
 
     # check for fs home
     if not fs.fshome():
@@ -107,8 +122,6 @@ def main():
         print('Using CPU')
     else:
         print('Using GPU device', cuda_device)
-
-    print(sys.argv)
 
     # defer tensorflow importing until after parsing
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = '0' if args.debug else '3'
@@ -145,7 +158,8 @@ def main():
                                 store_etiv=args.etiv,
                                 store_qa_stats=args.write_qa_stats,
                                 debug=args.debug,
-                                volumes_from_vox_count=args.vox_count_volumes)
+                                volumes_from_vox_count=args.vox_count_volumes,
+                                exclude=args.exclude)
     print('Loaded model weights', model_file) 
 
     # loop through each image and segment
@@ -204,7 +218,7 @@ def main():
             print('\nSegmenting subject %s %d/%d' % (subj, n + 1, len(subjects)))
             segmenter.process_files(**params)
 
-        segmenter.write_all_case_volumes(summary_file_prefix + 'volumes_all.v1.csv')
+        segmenter.write_all_case_volumes(summary_file_prefix + 'volumes_all.csv')
 
     else:
         # normal file/directory input mode
@@ -236,9 +250,7 @@ def main():
             file.write('modelfile ' + model_file + '\n');
             file.write('ctab ' + lut_file + '\n');
             file.write('cd ' + os.getcwd() + '\n');
-            for ele in sys.argv:
-                file.write(ele + ' ');
-            file.write('\n');
+            file.write(' '.join(sys.argv) + '\n');
 
         # quick utility to add to filenames while keeping extension
         def split_extension(filename):
@@ -278,9 +290,9 @@ def main():
                     else:
                         xfm = args.tal
                     params['etiv'] = compute_etiv_from_xfm(xfm)
-                    print('Computed eTIV from talairach')
+                    print('Computed eTIV from talairach file')
                 else:
-                    print("computing etiv from scratch")
+                    print("Computing etiv from scratch")
                     params['etiv'] = compute_etiv_from_scratch(input_file)
 
             print('\nSegmenting image %d/%d' % (n + 1, len(input_files)))
@@ -293,12 +305,12 @@ def main():
 
         # write all case volumes in output directory
         if os.path.isdir(args.o) and len(input_files) > 0:
-            segmenter.write_all_case_volumes(summary_file_prefix + 'volumes_all.v1.csv')
+            segmenter.write_all_case_volumes(summary_file_prefix + 'volumes_all.csv')
 
     # write qa stats
     if args.write_qa_stats:
-        segmenter.write_all_case_zscores(summary_file_prefix + 'zscores_all.v1.csv')
-        segmenter.write_all_case_confidences(summary_file_prefix + 'confidences_all.v1.csv')
+        segmenter.write_all_case_zscores(summary_file_prefix + 'zqa_scores_all.csv')
+        segmenter.write_all_case_confidences(summary_file_prefix + 'confidences_all.csv')
 
     # check memory usage
     if args.debug or args.vmp:
@@ -306,8 +318,8 @@ def main():
 
     # all done
     print('\nIf you use this tool in a publication, please cite:')
-    print('Automatic Segmentation of Subcortical Limbic Structures from MRI Images using Deep Leaning');
-    print('Greve, DN, Billot, B, Cordero, D, Hoopes, A, Dalca, A, Fischl, B,  Iglesias, JE, Augustinack, JC')
+    print('A Deep Learning Toolbox for Automatic Segmentation of Subcortical Limbic Structures from MRI Images');
+    print('Greve, DN, Billot, B, Cordero, D, Hoopes, M. Hoffmann, A, Dalca, A, Fischl, B,  Iglesias, JE, Augustinack, JC')
     print('Submitted')
 
 
@@ -329,21 +341,28 @@ class LimbicSegmenter:
                  store_etiv=False,
                  store_qa_stats=False,
                  debug=False,
-                 volumes_from_vox_count=False):
+                 volumes_from_vox_count=False,
+                 exclude=[]):
 
         self.lut = lut
         self.population_stats = population_stats
         self.labels = list(lut.keys())
-        self.label_names = [label.name for label in self.lut.values()]
         self.conform = conform
         self.inshape = (160, 160, 160)
         self.case_volumes = {}
+        self.case_etivs = {}
         self.case_prob_means = {}
         self.store_etiv = store_etiv
         self.store_qa_stats = store_qa_stats
         self.last_time = time.time()
         self.debug = debug
         self.volumes_from_vox_count = volumes_from_vox_count
+
+        # build mask of labels to exclude in stats output files
+        # always ignore unknown label
+        self.exclude = [0] + exclude
+        self.exclude_mask = [sid not in self.exclude for sid in self.labels]
+        self.label_names = [label.name for i, label in zip(self.exclude_mask, self.lut.values()) if i]
 
         # build and load model
         self.model = unet(nb_features=24,
@@ -384,13 +403,16 @@ class LimbicSegmenter:
         """
         Write all case volumes to a csv.
         """
-        header = ['case'] + self.label_names[1:]
+        header = ['case'] + self.label_names
         if self.store_etiv:
             header.append('eTIV')
         with open(path, 'w') as file:
             file.write(','.join(header) + '\n')
             for case, volumes in self.case_volumes.items():
-                file.write(','.join([case] + ['%.4f' % v for v in volumes[1:]]))
+                volumes = volumes[self.exclude_mask]
+                if self.store_etiv:
+                    volumes = np.append(volumes, self.case_etivs[case])
+                file.write(','.join([case] + ['%.4f' % v for v in volumes]))
                 file.write('\n')
         print('\nWrote summary of label volumes to', path)
 
@@ -399,14 +421,15 @@ class LimbicSegmenter:
         Write all case z-scores to a csv.
         """
         stats = [self.population_stats.get(label) for label in self.label_names]
-        mask = [idx for idx, stat in enumerate(stats) if stat is not None]
+        stat_mask = [idx for idx, stat in enumerate(stats) if stat is not None]
         labels = [label for label, stat in zip(self.label_names, stats) if stat is not None]
         mean = [float(stat['mean']) for stat in stats if stat is not None]
         std = [float(stat['std']) for stat in stats if stat is not None]
         with open(path, 'w') as file:
             file.write(','.join(['case'] + labels) + '\n')
             for case, volumes in self.case_volumes.items():
-                zscores = (volumes[mask] - mean) / std
+                vol = volumes[self.exclude_mask][stat_mask]
+                zscores = (vol - mean) / std
                 file.write(','.join([case] + ['%.4f' % z for z in zscores]) + '\n')
         print('Wrote summary of label z-scores to', path)
 
@@ -415,9 +438,9 @@ class LimbicSegmenter:
         Write all case confidences (mean prediction prob) to a csv.
         """
         with open(path, 'w') as file:
-            file.write(','.join(['case'] + self.label_names[1:]) + '\n')
+            file.write(','.join(['case'] + self.label_names) + '\n')
             for case, prob_means in self.case_prob_means.items():
-                file.write(','.join([case] + ['%.4f' % v for v in prob_means[1:]]) + '\n')
+                file.write(','.join([case] + ['%.4f' % v for v in prob_means[self.exclude_mask]]) + '\n')
         print('Wrote summary of label prediction confidences to', path)
 
     def preprocess(self, image):
@@ -430,10 +453,14 @@ class LimbicSegmenter:
             fs.fatal(f'Input image must be 3D, but is {image.basedims}D.')
 
         # check resolution
-        if not np.allclose(image.voxsize, (1, 1, 1), rtol=0, atol=1e-2) and not self.conform:
-            fs.fatal(f'Input image has resolution {image.voxsize}, '
-                      'but expected 1mm-isotropic input for optimal results. '
-                      'To ignore this message, use the --conform commandline flag.')
+        if not np.allclose(image.voxsize, (1, 1, 1), rtol=0, atol=1e-2):
+            if self.conform:
+                print('The input image has resolution (%4.2f,%4.2f,%4.2f) mm, but 1mm-isotropic input is required.\n'
+                      'However, --conform has been specified, so the volume will be resliced to 1mm iso.\n' % image.voxsize)
+            else:
+                print('');
+                fs.fatal(f'The input image has resolution {image.voxsize}, but 1mm-isotropic input is required.\n'
+                         'The volume can be resliced to 1mm-iso by specifying --conform (results may suffer).\n')
 
         # check channels
         if image.nframes > 1:
@@ -507,6 +534,8 @@ class LimbicSegmenter:
             if self.store_qa_stats:
                 probs = posteriors.data[..., n][label_mask]
                 mean_probs.append(probs.mean() if len(probs) > 0 else 0.0)
+        vox_counts = np.array(vox_counts)
+        mean_probs = np.array(mean_probs)
 
         # compute label volumes in original resolution
         voxvol = np.prod(posteriors.voxsize)
@@ -563,7 +592,7 @@ class LimbicSegmenter:
             table.columns = ['SegId', 'NVoxels', 'Volume_mm3', 'StructName']
             vox_vol = np.prod(seg.voxsize)
             for n, nid in enumerate(self.lut.keys()):
-                if nid == 0:
+                if nid in self.exclude:
                     continue
                 table.add_row([nid, vox_counts[n], volumes[n], self.lut[nid].name])
             table.write(volumes_path)
@@ -572,7 +601,7 @@ class LimbicSegmenter:
         # store label volumes
         self.case_volumes[case_name] = volumes
         if self.store_etiv:
-            self.case_volumes[case_name] = np.append(self.case_volumes[case_name], etiv)
+            self.case_etivs[case_name] = etiv
 
         # write mean probs
         if self.store_qa_stats:

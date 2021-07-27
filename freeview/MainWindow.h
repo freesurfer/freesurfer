@@ -414,6 +414,7 @@ protected:
   void CommandHideSurfaceIn3D       ( const QStringList &cmd );
   void CommandSetSurfaceVertexColor ( const QStringList& cmd );
   void CommandSetSurfaceLabelColor  ( const QStringList& cmd );
+  void CommandSetSurfaceLabelThreshold  ( const QStringList& cmd );
   void CommandHideSurfaceLabel (const QStringList& cmd );
   void CommandSetPointSetColor ( const QStringList& cmd );
   void CommandSetPointSetRadius( const QStringList& cmd );
