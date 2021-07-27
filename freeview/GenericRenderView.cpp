@@ -255,7 +255,6 @@ void GenericRenderView::SetBackgroundColor(const QColor& qc)
 void GenericRenderView::wheelEvent(QWheelEvent* event)
 {
   // remove horizontal scrolling
-
   QWheelEvent* e = event;
   if (qAbs(e->pixelDelta().x()) > 0)
   {
@@ -263,8 +262,9 @@ void GenericRenderView::wheelEvent(QWheelEvent* event)
     pixelDelta.setX(0);
     QPoint angleDelta = e->angleDelta();
     angleDelta.setX(0);
-    e = new QWheelEvent(e->posF(), e->globalPosF(),
-                        pixelDelta, angleDelta, e->buttons(), e->modifiers(), e->phase(), e->inverted(), e->source());
+    e = new QWheelEvent(e->posF(), e->globalPosition(),
+                        pixelDelta, angleDelta, pixelDelta.y(), Qt::Vertical,
+                        e->buttons(), e->modifiers(), e->phase(), e->source(), e->source());
   }
 
 #if VTK_MAJOR_VERSION > 7
