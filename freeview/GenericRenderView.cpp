@@ -262,7 +262,7 @@ void GenericRenderView::wheelEvent(QWheelEvent* event)
     pixelDelta.setX(0);
     QPoint angleDelta = e->angleDelta();
     angleDelta.setX(0);
-    e = new QWheelEvent(e->posF(), e->globalPosition(),
+    e = new QWheelEvent(e->posF(), e->globalPosF(),
                         pixelDelta, angleDelta, pixelDelta.y(), Qt::Vertical,
                         e->buttons(), e->modifiers(), e->phase(), e->source(), e->source());
   }
