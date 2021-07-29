@@ -23,6 +23,8 @@ parser.add_argument('--uthresh', type=float, help='Intensity threshold to erase 
 parser.add_argument('--norm', help='Save the conformed, normalized input data for debugging.')
 parser.add_argument('-v', '--verbose', action='store_true', help='Verbose output for debugging.')
 parser.add_argument('-g', '--gpu', help='GPU ID. CPU is used by default.')
+parser.add_argument('--remove_neck', default=None, type=int,
+                    help='remove bottom part of 2nd axis from listed locations to end')
 args = parser.parse_args()
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '0' if args.verbose else '3'
@@ -42,6 +44,10 @@ in_img = fs.Volume.read(args.input)
 # threshold input
 if args.uthresh is not None:
     in_img.data[in_img.data > args.uthresh] = 0
+
+if args.remove_neck is not None:
+    print(f'removing neck from {args.remove_neck} to bottom of image')
+    in_img.data[:, args.remove_neck:, :] = 0   # remove some of neck
 
 # conform image and normalize
 conf_img = in_img.reslice(1.0).fit_to_shape((256, 256, 256))
