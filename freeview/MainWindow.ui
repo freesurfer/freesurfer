@@ -1838,7 +1838,7 @@
     <string>Copy View</string>
    </property>
    <property name="shortcut">
-    <string>Meta+Alt+C</string>
+    <string>Ctrl+Shift+C</string>
    </property>
   </action>
  </widget>
