@@ -787,9 +787,7 @@ void RenderView2D::TriggerContextMenu( QMouseEvent* event )
   if (!mainwnd->IsEmpty() && mainwnd->GetMainView() == this)
   {
     menu.addSeparator();
-    QAction* action = new QAction("Copy", this);
-    connect(action, SIGNAL(triggered(bool)), mainwnd, SLOT(OnCopyView()));
-    menu.addAction(action);
+    menu.addAction(mainwnd->ui->actionCopyView);
     menu.addAction(mainwnd->ui->actionSaveScreenshot);
   }
 

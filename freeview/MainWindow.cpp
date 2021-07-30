@@ -190,6 +190,7 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   addAction(ui->actionResetViewRight);
   addAction(ui->actionResetViewSuperior);
   addAction(ui->actionResetViewInferior);
+  addAction(ui->actionCopyView);
 
   addAction(ui->actionNextLabelPoint);
 
