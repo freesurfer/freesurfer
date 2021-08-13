@@ -145,7 +145,7 @@ int main( int argc, char** argv )
   std::vector< LabelImageType::ConstPointer >  labelImages;
   for ( int argumentNumber = 7; argumentNumber < argc; argumentNumber++ )
     {
-    std::cout << "Reading input image: " << argv[ argumentNumber ] << std::endl
+    std::cout << "Reading input image: " << argv[ argumentNumber ] << std::endl;
     // Read the input image
     typedef itk::ImageFileReader< LabelImageType >  ReaderType;
     ReaderType::Pointer  reader = ReaderType::New();
@@ -255,7 +255,7 @@ int main( int argc, char** argv )
       } 
     else
       {
-      std::cout << "explicitStartCollection found; reading from: " << explicitStartCollectionFileName << std::endl
+      std::cout << "explicitStartCollection found; reading from: " << explicitStartCollectionFileName << std::endl;
       }
     }
 
