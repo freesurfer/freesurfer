@@ -18,6 +18,8 @@
 #include "LayerPropertyMRI.h"
 #include "LayerSurface.h"
 #include "LayerPropertySurface.h"
+#include "LayerPointSet.h"
+#include "LayerPropertyPointSet.h"
 #include <QPainter>
 #include <QContextMenuEvent>
 #include <QMenu>
@@ -71,9 +73,10 @@ void LayerTreeWidget::drawRow( QPainter * painter, const QStyleOptionViewItem & 
   if (item)
       item->setData(0, Qt::UserRole+10, rc);
 
-  if ( layer && layer->IsLocked())
+  bool bClickToLock = MainWindow::GetMainWindow()->GetSetting("ClickToLock").toBool();
+  if ( layer && (layer->IsLocked() || bClickToLock))
   {
-    QImage img(":resource/icons/volume_lock.png");
+    QImage img(layer->IsLocked()?":resource/icons/volume_lock.png":":resource/icons/volume_unlock.png");
     int nsize = qMin(16, rc.height());
     painter->drawImage( rc.topLeft(),
                         img.scaled( nsize, nsize, Qt::KeepAspectRatio, Qt::SmoothTransformation) );
@@ -260,6 +263,13 @@ void LayerTreeWidget::contextMenuEvent(QContextMenuEvent *e)
     menu->addAction(wnd->ui->actionLoadPointSet);
     menu->addAction(wnd->ui->actionReloadPointSet);
     menu->addSeparator();
+    if (wnd->GetMode() == RenderView::IM_VoxelEdit && ((LayerPointSet*)layer)->GetProperty()->GetShowSpline())
+    {
+      QAction* act = new QAction("Convert to Volume Label", this);
+      connect(act, SIGNAL(triggered(bool)), wnd, SLOT(OnPointSetToLabel()));
+      menu->addAction(act);
+      menu->addSeparator();
+    }
   }
 
   if (layers.size() > 0 && items.contains(item))

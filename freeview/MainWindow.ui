@@ -1833,6 +1833,14 @@
     <string>Transform Surface...</string>
    </property>
   </action>
+  <action name="actionCopyView">
+   <property name="text">
+    <string>Copy View</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+C</string>
+   </property>
+  </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>
@@ -3768,6 +3776,38 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>actionCreateOptimalCombinedVolume</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnCreateOptimalVolume()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionCopyView</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnCopyView()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <signal>CycleOverlayRequested()</signal>
@@ -3881,5 +3921,7 @@
   <slot>OnLoadODF()</slot>
   <slot>OnCloseODF()</slot>
   <slot>OnTransformSurface()</slot>
+  <slot>OnCreateOptimalVolume()</slot>
+  <slot>OnCopyView()</slot>
  </slots>
 </ui>

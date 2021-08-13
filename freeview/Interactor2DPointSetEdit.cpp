@@ -52,6 +52,11 @@ bool Interactor2DPointSetEdit::ProcessMouseDownEvent( QMouseEvent* event, Render
       //  return Interactor2D::ProcessMouseDownEvent( event, renderview );
     }
 
+    if ( !(event->modifiers() & Qt::ShiftModifier) )
+    {
+      view->PickPointSetAtCursor(event->x(), event->y());
+    }
+
     LayerCollection* lc = MainWindow::GetMainWindow()->GetLayerCollection( "PointSet" );
     LayerPointSet* wp = ( LayerPointSet* )lc->GetActiveLayer();
     if ( !wp || !wp->IsVisible() )

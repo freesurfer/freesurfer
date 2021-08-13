@@ -8,6 +8,7 @@ from collections.abc import Iterable
 from . import bindings, warning
 from .geom import resample, apply_warp
 from .transform import Transformable, LinearTransform, Geometry, LIA
+from . import orientation as otn
 
 
 class ArrayContainerTemplate:
@@ -257,6 +258,9 @@ class Volume(ArrayContainerTemplate, Transformable):
         if not isinstance(voxsize, Iterable):
             voxsize = [voxsize] * self.basedims
 
+        if np.allclose(voxsize, self.voxsize):
+            return self
+
         src_shape = self.shape[:3]
         target_shape = tuple(np.ceil(np.array(self.voxsize).astype(float) * src_shape / voxsize).astype(int))
         
@@ -333,16 +337,26 @@ class Volume(ArrayContainerTemplate, Transformable):
         cropped_vol.copy_metadata(self)
         return cropped_vol
 
+    def bbox(self, thresh=0, margin=0):
+        '''
+        TODOC
+        '''
+        mask = self.data > thresh
+        if not np.any(mask):
+            return tuple([slice(0, s) for s in mask.shape])
+        cropping = scipy.ndimage.find_objects(mask)[0]
+        if margin > 0:
+            start = [max(0, c.start - margin) for c in cropping]
+            stop = [min(self.shape[i], c.stop + margin) for i, c in enumerate(cropping)]
+            step = [c.step for c in cropping]
+            cropping = tuple([slice(*s) for s in zip(start, stop, step)])
+        return cropping
+
     def crop_to_bbox(self, thresh=0, margin=0):
         '''
         TODOC
         '''
-        cropping = scipy.ndimage.find_objects(self.data > thresh)[0]
-        if margin > 0:
-            start = [max(0, c.start - n) for c in cropping]
-            stop = [min(self.shape[i], c.stop + n) for i, c in enumerate(cropping)]
-            step = [c.step for c in cropping]
-            cropping = tuple([slice(*s) for s in zip(start, stop, step)])
+        cropping = self.bbox(thresh=thresh, margin=margin)
         return self[cropping]
 
     def fit_to_shape(self, shape, center='image'):
@@ -406,10 +420,15 @@ class Volume(ArrayContainerTemplate, Transformable):
         '''
 
         # convert high-level types to numpy arrays
+        trf_target = None
         if isinstance(trf, Volume):
             trf = trf.data
         elif isinstance(trf, LinearTransform):
+            trf_target = trf.target
             trf = trf.matrix
+
+        if trf_target is None:
+            trf_target = self
 
         # assert transform type and apply
         if trf.shape[-1] == self.basedims:
@@ -421,9 +440,65 @@ class Volume(ArrayContainerTemplate, Transformable):
 
         # construct new volume
         resampled = Volume(resampled_data)
-        resampled.copy_geometry(self)
+        resampled.copy_geometry(trf_target)
         resampled.copy_metadata(self)
         return resampled
+
+    def reorient(self, orientation):
+        """
+        Realigns image data and world matrix to conform to a specific slice orientation.
+
+        TODO ensure header if coorectly updated for mutlires data
+        """
+        trg_orientation = orientation.upper()
+        src_orientation = otn.orientation_from_matrix(self.affine)
+        if trg_orientation == src_orientation.upper():
+            return self
+
+        # extract world axes
+        get_world_axes = lambda aff: np.argmax(np.absolute(np.linalg.inv(aff)), axis=0)
+        trg_matrix = otn.matrix_from_orientation(trg_orientation)
+        world_axes_trg = get_world_axes(trg_matrix[:self.basedims, :self.basedims])
+        world_axes_src = get_world_axes(self.affine[:self.basedims, :self.basedims])
+
+        voxsize = np.asarray(self.voxsize)
+        voxsize = voxsize[world_axes_src][world_axes_trg]
+
+        # init
+        data = self.data.copy()
+        affine = self.affine.copy()
+
+        # align axes
+        affine[:, world_axes_trg] = affine[:, world_axes_src]
+        for i in range(self.basedims):
+            if world_axes_src[i] != world_axes_trg[i]:
+                data = np.swapaxes(data, world_axes_src[i], world_axes_trg[i])
+                swapped_axis_idx = np.where(world_axes_src == world_axes_trg[i])
+                world_axes_src[swapped_axis_idx], world_axes_src[i] = world_axes_src[i], world_axes_src[swapped_axis_idx]
+
+        # align directions
+        dot_products = np.sum(affine[:3, :3] * trg_matrix[:3, :3], axis=0)
+        for i in range(self.basedims):
+            if dot_products[i] < 0:
+                data = np.flip(data, axis=i)
+                affine[:, i] = - affine[:, i]
+                affine[:3, 3] = affine[:3, 3] - affine[:3, i] * (data.shape[i] - 1)
+
+        reoriented = Volume(data, affine, voxsize=voxsize)
+        reoriented.copy_metadata(self)
+        return reoriented
+
+    def conform(self, shape=None, voxsize=1.0, orientation='LIA', interp_method='linear', dtype=None):
+        """
+        Conforms image to a specific shape, type, resolution, and orientation.
+        """
+        conformed = self.reorient(orientation)
+        conformed = conformed.reslice(voxsize, interp_method=interp_method)
+        if shape is not None:
+            conformed = conformed.fit_to_shape(shape)
+        if dtype is not None:
+            conformed.data = conformed.data.astype(dtype)
+        return conformed
 
     def resample_like(self, target, interp_method='linear'):
         '''

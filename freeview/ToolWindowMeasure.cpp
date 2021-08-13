@@ -19,6 +19,9 @@
 #include "MainWindow.h"
 #include <QTimer>
 #include "Region2D.h"
+#include "Region2DLine.h"
+#include "Region2DPolyline.h"
+#include "Region2DRectangle.h"
 #include "SurfaceRegion.h"
 #include "SurfaceRegionGroups.h"
 #include "LayerCollection.h"
@@ -69,13 +72,18 @@ ToolWindowMeasure::ToolWindowMeasure(QWidget *parent) :
   m_widgets3DDraw << ui->pushButtonSave
                  << ui->pushButtonLoad
                  << ui->colorPickerGroup
-                 << ui->lineSeparator;
+                 << ui->lineSeparator
+                 << ui->pushButtonDeleteDrawing
+                 << ui->pushButtonDeleteAllDrawing;
 
   m_widgets3D << ui->pushButtonSaveAll
               << ui->spinBoxId
               << ui->spinBoxGroup
               << ui->labelId
               << ui->labelGroup;
+
+  foreach (QWidget* w, m_widgets3D)
+    w->hide();
 
   m_region = NULL;
   m_surfaceRegion = NULL;
@@ -142,6 +150,7 @@ void ToolWindowMeasure::showEvent(QShowEvent* event)
   {
     this->move( parentWidget()->pos() + QPoint(20,100) );
     bFirstTime = false;
+    this->resize(sizeHint());
   }
 }
 
@@ -296,9 +305,20 @@ void ToolWindowMeasure::OnIdle()
                                col_mri->GetNumberOfLayers() > 1 && bLabelExist );
 
   QString strg;
+  RenderView2D* view2d = qobject_cast<RenderView2D*>(MainWindow::GetMainWindow()->GetMainView());
+  QList<Region2D*> regions;
+  if (view2d)
+    regions = view2d->GetRegions();
   if ( nAction == Interactor::MM_Label )
   {
     strg = GetLabelStats();
+  }
+  else if (!m_region || !qobject_cast<Region2DRectangle*>(m_region))
+  {
+    foreach (Region2D* r, regions)
+    {
+      strg += r->GetShortStats() + "\n";
+    }
   }
   else if ( m_region )
   {
@@ -345,6 +365,9 @@ void ToolWindowMeasure::OnIdle()
   ui->colorPickerGroup->setEnabled( bSurfaceRegionValid );
   ui->pushButtonSaveAll->setEnabled( bSurfaceRegionValid );
   ui->pushButtonSave->setEnabled(bSurfaceRegionValid);
+
+  ui->pushButtonDeleteDrawing->setEnabled(m_3DRegion);
+  ui->pushButtonDeleteAllDrawing->setEnabled(mri && mri->GetNumberOf3DRegions() > 0);
 
   m_bToUpdateWidgets = false;
 
@@ -477,4 +500,18 @@ void ToolWindowMeasure::OnColorGroup( const QColor& color )
     m_3DRegion->SetColor(color);
     UpdateWidgets();
   }
+}
+
+void ToolWindowMeasure::OnButtonDelete3DRegion()
+{
+  RenderView3D* view = ( RenderView3D* )MainWindow::GetMainWindow()->GetRenderView( 3 );
+  view->DeleteCurrent3DRegion();
+}
+
+void ToolWindowMeasure::OnButtonDeleteAll3DRegions()
+{
+  RenderView3D* view = ( RenderView3D* )MainWindow::GetMainWindow()->GetRenderView( 3 );
+  m_3DRegion = NULL;
+  view->DeleteAll3DRegions();
+  UpdateWidgets();
 }

@@ -1133,6 +1133,8 @@ void RenderView3D::CloseSelectRegion(int nAction)
   {
     if (nAction == Interactor::MM_SurfaceRegion)
       mri->CloseSurfaceRegion();
+    else if (nAction == Interactor::MM_DrawOnSurface)
+      mri->Close3DRegion();
   }
 }
 
@@ -1157,6 +1159,15 @@ void RenderView3D::DeleteCurrent3DRegion()
     Region3D* reg = mri->GetCurrent3DRegion();
     if (mri->DeleteCurrent3DRegion())
       emit Region3DRemoved(reg);
+  }
+}
+
+void RenderView3D::DeleteAll3DRegions()
+{
+  LayerMRI* mri = (LayerMRI*)MainWindow::GetMainWindow()->GetActiveLayer( "MRI" );
+  if ( mri )
+  {
+    mri->DeleteAll3DRegions();
   }
 }
 
@@ -1550,9 +1561,7 @@ void RenderView3D::TriggerContextMenu( QMouseEvent* event )
   if (!mainwnd->IsEmpty() && mainwnd->GetMainView() == this)
   {
     menu->addSeparator();
-    QAction* action = new QAction("Copy", this);
-    connect(action, SIGNAL(triggered(bool)), mainwnd, SLOT(OnCopyView()));
-    menu->addAction(action);
+    menu->addAction(mainwnd->ui->actionCopyView);
     menu->addAction(mainwnd->ui->actionSaveScreenshot);
   }
 

@@ -16,6 +16,8 @@
       <explanation>Number of resolutions and max iterations per resolution. Default is `50 50 50 50`, which indicates 4 fitting levels with 50 iterations each.</explanation>
       <argument>-d, --dtype DTYPE</argument>
       <explanation>Corrected output datatype. Can be float, uchar, or int. Default is float.</explanation>
+      <argument>-r, --replace-zeros offset scale remask</argument>
+      <explanation>Replace 0s with offset + scale*rand(). Values will be remasked in the output if remask=1.</explanation>
     </optional-flagged>
   </arguments>
 </help>

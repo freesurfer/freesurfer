@@ -1,10 +1,11 @@
 import os
+import collections
 import numpy as np
 
 from . import fshome
 
 
-class LookupTable(dict):
+class LookupTable(collections.OrderedDict):
     """
     TODOC
     """
@@ -1674,6 +1675,18 @@ def tissue_type():
     return lut
 
 
+def tissue_type_no_skull():
+    """
+    """
+    lut = LookupTable()
+    lut.add(0, 'Unknown',                  [0,   0,   0])
+    lut.add(1, 'Cortex',                   [205, 62,  78])
+    lut.add(2, 'Subcortical-Gray-Matter',  [230, 148, 34])
+    lut.add(3, 'White-Matter',             [245, 245, 245])
+    lut.add(4, 'CSF',                      [120, 18,  134])
+    return lut
+
+
 def tissue_type_recoder():
     """
     Returns a recoding table that converts default brain labels to the
@@ -1740,6 +1753,143 @@ def tissue_type_recoder():
         255:  3,  # CC_Anterior
         257:  4,  # CSF-ExtraCerebral
         258:  5,  # Head-ExtraCerebral
+        1001: 1,  # ctx-lh-bankssts
+        1002: 1,  # ctx-lh-caudalanteriorcingulate
+        1003: 1,  # ctx-lh-caudalmiddlefrontal
+        1005: 1,  # ctx-lh-cuneus
+        1006: 1,  # ctx-lh-entorhinal
+        1007: 1,  # ctx-lh-fusiform
+        1008: 1,  # ctx-lh-inferiorparietal
+        1009: 1,  # ctx-lh-inferiortemporal
+        1010: 1,  # ctx-lh-isthmuscingulate
+        1011: 1,  # ctx-lh-lateraloccipital
+        1012: 1,  # ctx-lh-lateralorbitofrontal
+        1013: 1,  # ctx-lh-lingual
+        1014: 1,  # ctx-lh-medialorbitofrontal
+        1015: 1,  # ctx-lh-middletemporal
+        1016: 1,  # ctx-lh-parahippocampal
+        1017: 1,  # ctx-lh-paracentral
+        1018: 1,  # ctx-lh-parsopercularis
+        1019: 1,  # ctx-lh-parsorbitalis
+        1020: 1,  # ctx-lh-parstriangularis
+        1021: 1,  # ctx-lh-pericalcarine
+        1022: 1,  # ctx-lh-postcentral
+        1023: 1,  # ctx-lh-posteriorcingulate
+        1024: 1,  # ctx-lh-precentral
+        1025: 1,  # ctx-lh-precuneus
+        1026: 1,  # ctx-lh-rostralanteriorcingulate
+        1027: 1,  # ctx-lh-rostralmiddlefrontal
+        1028: 1,  # ctx-lh-superiorfrontal
+        1029: 1,  # ctx-lh-superiorparietal
+        1030: 1,  # ctx-lh-superiortemporal
+        1031: 1,  # ctx-lh-supramarginal
+        1032: 1,  # ctx-lh-frontalpole
+        1033: 1,  # ctx-lh-temporalpole
+        1034: 1,  # ctx-lh-transversetemporal
+        1035: 1,  # ctx-lh-insula
+        2001: 1,  # ctx-rh-bankssts
+        2002: 1,  # ctx-rh-caudalanteriorcingulate
+        2003: 1,  # ctx-rh-caudalmiddlefrontal
+        2005: 1,  # ctx-rh-cuneus
+        2006: 1,  # ctx-rh-entorhinal
+        2007: 1,  # ctx-rh-fusiform
+        2008: 1,  # ctx-rh-inferiorparietal
+        2009: 1,  # ctx-rh-inferiortemporal
+        2010: 1,  # ctx-rh-isthmuscingulate
+        2011: 1,  # ctx-rh-lateraloccipital
+        2012: 1,  # ctx-rh-lateralorbitofrontal
+        2013: 1,  # ctx-rh-lingual
+        2014: 1,  # ctx-rh-medialorbitofrontal
+        2015: 1,  # ctx-rh-middletemporal
+        2016: 1,  # ctx-rh-parahippocampal
+        2017: 1,  # ctx-rh-paracentral
+        2018: 1,  # ctx-rh-parsopercularis
+        2019: 1,  # ctx-rh-parsorbitalis
+        2020: 1,  # ctx-rh-parstriangularis
+        2021: 1,  # ctx-rh-pericalcarine
+        2022: 1,  # ctx-rh-postcentral
+        2023: 1,  # ctx-rh-posteriorcingulate
+        2024: 1,  # ctx-rh-precentral
+        2025: 1,  # ctx-rh-precuneus
+        2026: 1,  # ctx-rh-rostralanteriorcingulate
+        2027: 1,  # ctx-rh-rostralmiddlefrontal
+        2028: 1,  # ctx-rh-superiorfrontal
+        2029: 1,  # ctx-rh-superiorparietal
+        2030: 1,  # ctx-rh-superiortemporal
+        2031: 1,  # ctx-rh-supramarginal
+        2032: 1,  # ctx-rh-frontalpole
+        2033: 1,  # ctx-rh-temporalpole
+        2034: 1,  # ctx-rh-transversetemporal
+        2035: 1,  # ctx-rh-insula
+    }
+    return rlut
+
+def tissue_type_recoder_no_skull():
+    """
+    Returns a recoding table that converts default brain labels to the
+    corresponding tissue-type.
+
+    Returns:
+        RecodingLookupTable: .
+    """
+    rlut = RecodingLookupTable()
+    rlut.target_lut = tissue_type_no_skull()
+    rlut.mapping = {
+        0:    0,  # Unknown
+        2:    3,  # Left-Cerebral-White-Matter
+        3:    1,  # Left-Cerebral-Cortex
+        4:    4,  # Left-Lateral-Ventricle
+        5:    4,  # Left-Inf-Lat-Vent
+        7:    3,  # Left-Cerebellum-White-Matter
+        8:    2,  # Left-Cerebellum-Cortex
+        10:   2,  # Left-Thalamus
+        11:   2,  # Left-Caudate
+        12:   2,  # Left-Putamen
+        13:   2,  # Left-Pallidum
+        14:   4,  # 3rd-Ventricle
+        15:   4,  # 4th-Ventricle
+        16:   3,  # Brain-Stem
+        17:   2,  # Left-Hippocampus
+        18:   2,  # Left-Amygdala
+        24:   4,  # CSF
+        26:   2,  # Left-Accumbens-Area
+        28:   3,  # Left-VentralDC
+        30:   4,  # Left-Vessel
+        31:   4,  # Left-Choroid-Plexus
+        41:   3,  # Right-Cerebral-White-Matter
+        42:   1,  # Right-Cerebral-Cortex
+        43:   4,  # Right-Lateral-Ventricle
+        44:   4,  # Right-Inf-Lat-Vent
+        46:   3,  # Right-Cerebellum-White-Matter
+        47:   2,  # Right-Cerebellum-Cortex
+        49:   2,  # Right-Thalamus
+        50:   2,  # Right-Caudate
+        51:   2,  # Right-Putamen
+        52:   2,  # Right-Pallidum
+        53:   2,  # Right-Hippocampus
+        54:   2,  # Right-Amygdala
+        58:   2,  # Right-Accumbens-Area
+        60:   3,  # Right-VentralDC
+        62:   4,  # Right-Vessel
+        63:   4,  # Right-Choroid-Plexus
+        77:   3,  # WM-Hypointensities
+        78:   3,  # Left-WM-Hypointensities
+        79:   3,  # Right-WM-Hypointensities
+        80:   2,  # Non-WM-Hypointensities
+        81:   2,  # Left-Non-WM-Hypointensities
+        82:   2,  # Right-Non-WM-Hypointensities
+        85:   3,  # Optic-Chiasm
+        130:  0,  # Air
+        165:  0,  # Skull
+        172:  2,  # Vermis
+        174:  3,  # Pons
+        251:  3,  # CC_Posterior
+        252:  3,  # CC_Mid_Posterior
+        253:  3,  # CC_Central
+        254:  3,  # CC_Mid_Anterior
+        255:  3,  # CC_Anterior
+        257:  4,  # CSF-ExtraCerebral
+        258:  0,  # Head-ExtraCerebral
         1001: 1,  # ctx-lh-bankssts
         1002: 1,  # ctx-lh-caudalanteriorcingulate
         1003: 1,  # ctx-lh-caudalmiddlefrontal

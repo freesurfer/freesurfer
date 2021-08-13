@@ -10,7 +10,7 @@
     <x>0</x>
     <y>0</y>
     <width>503</width>
-    <height>572</height>
+    <height>589</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -674,7 +674,7 @@
           <item>
            <widget class="QCheckBox" name="checkBoxClickToLock">
             <property name="text">
-             <string>Click right side of the list item to lock layer</string>
+             <string>Show unlocked icon on the right side of volume items</string>
             </property>
             <property name="checked">
              <bool>false</bool>

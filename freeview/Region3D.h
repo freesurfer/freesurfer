@@ -16,6 +16,7 @@ class vtkClipPolyData;
 class vtkCleanPolyData;
 class RenderView3D;
 class LayerMRI;
+class vtkKdTreePointLocator;
 
 class Region3D : public QObject
 {
@@ -58,10 +59,12 @@ signals:
   void ColorChanged( const QColor& );
 
 private:
-  void RebuildOutline(bool bClose);
+  void RebuildOutline(bool bInterpolate);
 
   vtkSmartPointer<vtkActor>   m_actor;
   vtkSmartPointer<vtkPoints>  m_points;
+  vtkSmartPointer<vtkPoints>  m_interpolatedPoints;
+  vtkSmartPointer<vtkKdTreePointLocator> m_locator;
 
   LayerMRI*   m_mri;
   QColor      m_color;

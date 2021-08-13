@@ -366,7 +366,7 @@ else:
 
     # Switching old thalamus labels to new FS ones
     recoded = 'work/recoded.nii.gz'
-    commands.append(f'mri_binarize --i {mrf_seg} --replace 48 49 --replace 9 10 --o {recoded}')
+    commands.append(f'mri_binarize --i {mrf_seg} --replaceonly 48 49 --replaceonly 9 10 --o {recoded}')
 
     # Full brain
     # TODO is this even used?

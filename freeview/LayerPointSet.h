@@ -32,6 +32,7 @@ class vtkPolyData;
 class LayerPropertyPointSet;
 class wxWindow;
 class wxCommandEvent;
+class vtkPoints;
 
 class LayerPointSet : public LayerEditable
 {
@@ -107,6 +108,10 @@ public:
 
   double GetEndPointDistance();
 
+  vtkPoints* GetSplinedPoints();
+
+  void GetNormalAtPoint(int nIndex, double* vnorm, int nPlane);
+
 protected slots:
   void UpdateColorMap();
   void UpdateOpacity();
@@ -136,6 +141,8 @@ protected:
 
   FSPointSet*   m_pointSetSource;
   QVariantMap   m_mapEnhancedData;
+
+  vtkSmartPointer<vtkPoints>  m_splinedPoints;
 };
 
 #endif

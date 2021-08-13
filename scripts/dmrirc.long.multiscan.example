@@ -140,7 +140,7 @@ set bvallist = ( /path/to/huey/year1/run4/bvals.txt \
 # Perform correction for B0 inhomogeneity distortions?
 # 0: No correction (default)
 # 1: Perform correction based on a field map
-#    Requires additional inputs: b0mlist, b0plist, echospacing
+#    Requires additional inputs (see below): b0mlist, b0plist, echospacing
 # 2: Perform correction based on reverse-polarity images
 #    Requires additional inputs (see below): echospacing, pedir, epifactor
 #
@@ -179,49 +179,60 @@ set doeddy = 2
 #
 set dorotbvecs = 1
 
-# Fractional intensity threshold for BET mask extraction from low-b images
-# This mask is used only if usemaskanat = 0
-# Default: 0.3
+# Intra-subject (diffusion-to-T1) registration method
+# 1: Affine with a correlation ratio cost
+# 2: Affine with a mutual information cost
+# 3: Affine with a boundary-based cost (default)
 #
-set thrbet = 0.5
+set intrareg = 3
 
-# Perform diffusion-to-T1 registration by flirt?
-# Default: 0 (no)
+# Degrees of freedom for intra-subject registration
+# Can be 6 (rigid), 9 (rigid+scaling), or 12 (full affine)
+# Default: 6 for infants, 9 otherwise
 #
-set doregflt = 0
+set intradof = 6
 
-# Perform diffusion-to-T1 registration by bbregister?
+# Maximum rotation angle (degrees) for intra-subject registration
+# Default: 3 for infants, 90 otherwise
+#
+set intrarot = 90
+
+# Inter-subject registration method
+# 1: Affine T1-to-T1 with a correlation ratio cost
+# 2: Affine T1-to-T1 with a mutual information cost
+# 3: Affine T1-to-T1 with a robust cost (default for infants)
+# 4: Nonlinear T1-to-T1 with CVS
+# 5: Nonlinear FA-to-FA with SyN (default)
+#
+set interreg = 5
+
+# Target brain for inter-subject registration
+# Default for affine T1-to-T1: 
+#   $FSLDIR/data/standard/MNI152_T1_1mm_brain.nii.gz
+# Default for nonlinear T1-to-T1: 
+#   $FREESURFER_HOME/subjects/cvs_avg35/
+# Default for nonlinear FA-to-FA: 
+#   $FREESURFER_HOME/trctrain/hcp/MGH35_HCP_FA_template.nii.gz
+#
+set intertrg = /path/to/a/duck/template.nii.gz
+
+# Whole-brain segmentation used to extract the anatomical neighborhood priors
+# of the pathways of interest
+# Must exist in each subject's FreeSurfer recon directory, under:
+#   $SUBJECTS_DIR/$subjid/mri/$segname.mgz
+# Default: aparc+aseg
+#
+set segname = aparc+aseg
+
+# Use the thalamic nuclei segmentation?
+# This is highly recommended to use for any pathways that terminate in
+# or neighbor the thalamus
+# When used, it is merged with the whole-brain segmentation above
+# Must exist in each subject's FreeSurfer recon directory, under:
+#   $SUBJECTS_DIR/$subjid/mri/ThalamicNuclei.v12.T1.FSvoxelSpace.mgz
 # Default: 1 (yes)
 #
-set doregbbr = 1
-
-# Perform registration of T1 to MNI template?
-# Default: 1 (yes)
-#
-set doregmni = 1
-
-# MNI template
-# Only used if doregmni = 1
-# Default: $FSLDIR/data/standard/MNI152_T1_1mm_brain.nii.gz
-#
-set mnitemp = /path/to/mni_template.nii.gz
-
-# Perform registration of T1 to CVS template?
-# Default: 0 (no)
-#
-set doregcvs = 0
-
-# CVS template subject ID
-# Only used if doregcvs = 1
-# Default: cvs_avg35
-#
-set cvstemp = donald
-
-# Parent directory of the CVS template subject
-# Only used if doregcvs = 1
-# Default: $FREESURFER_HOME/subjects
-#
-set cvstempdir = /path/to/cvs/atlases/of/ducks
+set usethalnuc = 1
 
 # Use brain mask extracted from T1 image instead of low-b diffusion image?
 # Has no effect if there is no T1 data
@@ -229,26 +240,23 @@ set cvstempdir = /path/to/cvs/atlases/of/ducks
 #
 set usemaskanat = 1
 
-# Paths to reconstruct
-# Default: All paths in the atlas
+# Fractional intensity threshold for BET mask extraction from low-b images
+# This mask is used only if usemaskanat = 0
+# Default: 0.3
 #
-set pathlist = ( lh.cst_AS rh.cst_AS \
-                 lh.unc_AS rh.unc_AS \
-                 lh.ilf_AS rh.ilf_AS \
-                 fmajor_PP fminor_PP \
-                 lh.atr_PP rh.atr_PP \
-                 lh.ccg_PP rh.ccg_PP \
-                 lh.cab_PP rh.cab_PP \
-                 lh.slfp_PP rh.slfp_PP \
-                 lh.slft_PP rh.slft_PP )
+set thrbet = 0.5
+
+# Paths to reconstruct
+# Default: All paths in $FREESURFER_HOME/trctrain/hcp/pathlist.txt
+#
+set pathlist = ( lh.uf rh.uf cc.rostrum )
 
 # Number of path control points
 # It can be a single number for all paths or a different number for each of the
-# paths specified in pathlist
-# Default: 7 for the forceps major, 6 for the corticospinal tract,
-#          4 for the angular bundle, and 5 for all other paths
+# paths specified in pathlist (recommended, with more points for longer paths)
+# Default: As in $FREESURFER_HOME/trctrain/hcp/pathlist.txt
 #
-set ncpts = (6 6 5 5 5 5 7 5 5 5 5 5 4 4 5 5 5 5)
+set ncpts = ( 7 7 5 )
 
 # List of training subjects
 # This text file lists the locations of training subject directories

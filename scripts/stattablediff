@@ -20,10 +20,11 @@ parser.add_argument('--div', nargs=1, default=1, type=float, help='divide by div
 parser.add_argument('--common', action='store_true', help='compute diff on common segs (may reorder)')
 parser.add_argument('--rm-exvivo', action='store_true', help='remove the string "_exvivo" from the column header')
 parser.add_argument('--diff-subjs', action='store_true', default=False, dest='diff', help='pass this flag to compare subjects with different names')
+parser.add_argument('--noreplace53', action='store_true', help='do not replace 5.3 structure names with later names')
 args = parser.parse_args()
 
 # table reading utility
-def read_table(tablefile):
+def read_table(tablefile,Replace53):
 
     # check if file exists
     if not os.path.isfile(tablefile):
@@ -37,6 +38,12 @@ def read_table(tablefile):
         header = header.split()
         measure = header[0].split(':')[-1]
         structlist = header[1:]
+        if(Replace53):
+            structlist = ['Left-Thalamus'  if i=='Left-Thalamus-Proper' else i for i in structlist];
+            structlist = ['Right-Thalamus' if i=='Right-Thalamus-Proper' else i for i in structlist];
+            structlist = ['CorticalWhiteMatterVol' if i=='CerebralWhiteMatterVol' else i for i in structlist];
+            structlist = ['lhCorticalWhiteMatterVol' if i=='lhCerebralWhiteMatterVol' else i for i in structlist];
+            structlist = ['rhCorticalWhiteMatterVol' if i=='rhCerebralWhiteMatterVol' else i for i in structlist];
         values = collections.OrderedDict()
         for line in file:
             splitline = line.split()
@@ -48,8 +55,8 @@ def read_table(tablefile):
     return (structlist, values, measure)
 
 # read tables
-structlist1, values1, measure1 = read_table(args.t1)
-structlist2, values2, measure2 = read_table(args.t2)
+structlist1, values1, measure1 = read_table(args.t1,not args.noreplace53)
+structlist2, values2, measure2 = read_table(args.t2,not args.noreplace53)
 
 # check if measures are the same
 if measure1 != measure2:

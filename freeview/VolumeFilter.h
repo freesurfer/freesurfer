@@ -64,6 +64,11 @@ public:
     return m_volumeInput;
   }
 
+  void SetResetWindowLevel()
+  {
+    m_bResetWindowLevel = true;
+  }
+
   virtual QString GetName() = 0;
 
 signals:
@@ -82,6 +87,7 @@ protected:
   LayerMRI*   m_volumeOutput;
   int         m_nTimerCount;
   QTimer*     m_timerProgress;
+  bool        m_bResetWindowLevel;
 };
 
 #endif

@@ -62,6 +62,12 @@
       <explanation>voxel coords of the seed for the corpus callosum</explanation>
       <argument>-PV &lt;x&gt; &lt;y&gt; &lt;z&gt;</argument>
       <explanation>voxel coords of the seed for the pons</explanation>
+      <argument>-auto-man auto.mgz man.mgz edits.txt</argument>
+      <explanation>Get edits based on the difference between auto and man and apply to the output. Edit col,row,slice,autoval,manval will be written to the edits.txt file</explanation>
+      <argument>-no-auto-man </argument>
+      <explanation>Turns off -auto-man</explanation>
+      <argument>-ctab colortable  </argument>
+      <explanation>Embed color table in the output </explanation>
     </optional-flagged>
   </arguments>
   <outputs>

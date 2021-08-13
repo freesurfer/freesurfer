@@ -42,7 +42,7 @@ std::vector<int> CurveFill(const std::vector<int> &InPoints);
 
 class Spline {
   public:
-    Spline(const char *ControlPointFile, const char *MaskFile);
+    Spline(const std::string ControlPointFile, const std::string MaskFile);
     Spline(const std::vector<int> &ControlPoints, MRI *Mask);
     Spline(const int NumControl, MRI *Mask);
     Spline();
@@ -54,16 +54,18 @@ class Spline {
     void ComputeTangent(const bool DoAnalytical=true);
     void ComputeNormal(const bool DoAnalytical=true);
     void ComputeCurvature(const bool DoAnalytical=true);
-    void ReadControlPoints(const char *ControlPointFile);
-    void ReadMask(const char *MaskFile);
+    void ReadControlPoints(const std::string ControlPointFile);
+    void ReadMask(const std::string MaskFile);
     void SetControlPoints(const std::vector<int> &ControlPoints);
     void SetMask(MRI *Mask);
-    void WriteVolume(const char *VolumeFile, const bool ShowControls=false);
-    void WriteAllPoints(const char *TextFile);
-    void WriteTangent(const char *TextFile);
-    void WriteNormal(const char *TextFile);
-    void WriteCurvature(const char *TextFile);
-    void WriteValues(std::vector<MRI *> &ValueVolumes, const char *TextFile);
+    void WriteVolume(const std::string VolumeFile,
+                     const bool ShowControls=false);
+    void WriteAllPoints(const std::string TextFile);
+    void WriteTangent(const std::string TextFile);
+    void WriteNormal(const std::string TextFile);
+    void WriteCurvature(const std::string TextFile);
+    void WriteValues(std::vector<MRI *> &ValueVolumes,
+                     const std::string TextFile);
     std::vector<float> ComputeAvg(std::vector<MRI *> &ValueVolumes);
     void PrintControlPoints();
     void PrintAllPoints();

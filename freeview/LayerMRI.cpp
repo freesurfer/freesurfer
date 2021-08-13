@@ -85,6 +85,7 @@
 #include "vtkSTLWriter.h"
 #include "vtkImageMathematics.h"
 #include "Region3D.h"
+#include "LayerPointSet.h"
 
 
 #include "utils.h"
@@ -252,7 +253,7 @@ void LayerMRI::ConnectProperty()
   connect( p, SIGNAL(ContourColorChanged()), this, SLOT(UpdateContourColor()) );
   connect( p, SIGNAL(ContourShown(bool)), this, SLOT(ShowContour()) );
   connect( p, SIGNAL(ContourSmoothIterationChanged(int)), this, SLOT(RebuildContour()));
-  connect( p, SIGNAL(ContourVoxelized(bool)), this, SLOT(RebuildContour()));
+  connect( p, SIGNAL(ContourNeedsRebuild()), this, SLOT(RebuildContour()));
   connect( p, SIGNAL(DisplayModeChanged()), this, SLOT(UpdateDisplayMode()) );
   connect( p, SIGNAL(LabelOutlineChanged(bool)), this, SLOT(UpdateLabelOutline()) );
   connect( p, SIGNAL(OpacityChanged(double)), this, SLOT(UpdateOpacity()) );
@@ -4326,6 +4327,17 @@ bool LayerMRI::DeleteCurrent3DRegion()
   return false;
 }
 
+void LayerMRI::DeleteAll3DRegions()
+{
+  for ( int i = 0; i < m_3DRegions.size(); i++ )
+  {
+    m_3DRegions[i]->deleteLater();
+  }
+  m_3DRegions.clear();
+  m_current3DRegion = NULL;
+  emit Region3DRemoved();
+}
+
 void LayerMRI::Add3DRegionPoint( double* pt )
 {
   if ( m_current3DRegion )
@@ -4420,4 +4432,85 @@ bool LayerMRI::Load3DRegions( const QString& fn )
 
   emit Region3DAdded();
   return bSuccess;
+}
+
+
+void LayerMRI::Close3DRegion()
+{
+  if ( m_current3DRegion )
+  {
+    m_current3DRegion->Close();
+    emit ActorUpdated();
+  }
+}
+
+void LayerMRI::UpdateVoxelsByPointSet(LayerPointSet *ps, int nPlane)
+{
+  vtkPoints* pts = ps->GetSplinedPoints();
+  if (pts)
+  {
+    double pt1[3], pt2[3];
+    double* pos = GetSlicePosition();
+    for (int i = 0; i < pts->GetNumberOfPoints()-1; i++)
+    {
+      pts->GetPoint(i, pt1);
+      pts->GetPoint(i+1, pt2);
+      pt1[nPlane] = pt2[nPlane] = pos[nPlane];
+      this->SetVoxelByRAS(pt1, pt2, nPlane, true, true);
+    }
+  }
+}
+
+void LayerMRI::LocateLocalMaximumAtRAS(double* ras_in, double dx, double dy, double dz, double* ras_out, double sigma, double dist_in_vox)
+{
+  double ras[3];
+  TargetToRAS(ras_in, ras);
+  RASToOriginalIndex(ras, ras);
+  double pt0[3] = {0, 0, 0}, pt1[3] = {dx, dy, dz};
+  TargetToRAS(pt0, pt0);
+  RASToOriginalIndex(pt0, pt0);
+  TargetToRAS(pt1, pt1);
+  RASToOriginalIndex(pt1, pt1);
+  double r = sqrt(vtkMath::Distance2BetweenPoints(pt0, pt1));
+  dx = (pt1[0] - pt0[0])/r;
+  dy = (pt1[1] - pt0[1])/r;
+  dz = (pt1[2] - pt0[2])/r;
+
+  double dMax = 0;
+  double x = ras[0], y = ras[1], z = ras[2];
+  double x_out = x, y_out = y, z_out = z;
+  ::MRIsampleVolumeDerivativeScale(m_volumeSource->GetMRI(), x, y, z, dx, dy, dz, &dMax, sigma);
+  dMax = qAbs(dMax);
+  for (double d = 0; d <= dist_in_vox; d += 0.25)
+  {
+    double mag;
+    x = ras[0] + d*dx;
+    y = ras[1] + d*dy;
+    z = ras[2] + d*dz;
+    ::MRIsampleVolumeDerivativeScale(m_volumeSource->GetMRI(), x, y, z, dx, dy, dz, &mag, sigma);
+    if (qAbs(mag) > dMax)
+    {
+      dMax = qAbs(mag);
+      x_out = x;
+      y_out = y;
+      z_out = z;
+    }
+    x = ras[0] - d*dx;
+    y = ras[1] - d*dy;
+    z = ras[2] - d*dz;
+    ::MRIsampleVolumeDerivativeScale(m_volumeSource->GetMRI(), x, y, z, dx, dy, dz, &mag, sigma);
+    if (qAbs(mag) > dMax)
+    {
+      dMax = qAbs(mag);
+      x_out = x;
+      y_out = y;
+      z_out = z;
+    }
+  }
+
+  ras[0] = x_out;
+  ras[1] = y_out;
+  ras[2] = z_out;
+  OriginalVoxelToRAS(ras, ras);
+  RASToTarget(ras, ras_out);
 }

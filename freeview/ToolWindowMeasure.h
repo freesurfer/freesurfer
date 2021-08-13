@@ -57,6 +57,8 @@ protected slots:
   void OnSpinBoxId(int val);
   void OnSpinBoxGroup(int val);
   void OnColorGroup( const QColor& color );
+  void OnButtonDelete3DRegion();
+  void OnButtonDeleteAll3DRegions();
 
 protected:
   virtual void showEvent(QShowEvent *);

@@ -331,6 +331,7 @@ while( $#argv != 0 )
 
     case "--no-maps":
       set DoMaps = 0;
+      set fwhmlist = 0;
       breaksw
 
     case "--lh":

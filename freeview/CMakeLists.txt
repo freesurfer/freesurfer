@@ -201,6 +201,8 @@ if(BUILD_GUIS AND VTK_FOUND AND PETSC_FOUND AND TARGET vtkutils)
     PanelODF.cpp
     DialogTransformSurface.cpp
     Region3D.cpp
+    DialogMovePoint.cpp
+    VolumeFilterOptimal.cpp
     freeview.qrc
   )
 
@@ -227,6 +229,9 @@ if(BUILD_GUIS AND VTK_FOUND AND PETSC_FOUND AND TARGET vtkutils)
       QVTK8/QVTKInteractorAdapter.cxx
       QVTK8/QVTKWidget.cxx
       QVTK8/QVTKPaintEngine.cxx
+      QVTK8/QVTKOpenGLNativeWidget.cxx
+      QVTK8/QVTKOpenGLWidget.cxx
+      QVTK8/QVTKOpenGLWindow.cxx
     )
   endif()
 

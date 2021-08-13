@@ -85,7 +85,8 @@ void ThreadBuildContour::run()
 #endif
         actor->SetMapper( vtkSmartPointer<vtkPolyDataMapper>::New() );
         actor->GetMapper()->ScalarVisibilityOn();
-        MyVTKUtils::BuildLabelContourActor(imagedata, i, actor, nSmoothFactor, NULL, bExtractAllRegions, bUpsampleContour, m_mri->GetProperty()->GetShowVoxelizedContour());
+        MyVTKUtils::BuildLabelContourActor(imagedata, i, actor, nSmoothFactor, NULL, bExtractAllRegions, bUpsampleContour,
+                                           m_mri->GetProperty()->GetShowVoxelizedContour(), m_mri->GetProperty()->GetContourDilateFirst());
         map[i] = actor;
       }
     }
@@ -94,7 +95,7 @@ void ThreadBuildContour::run()
   {
     vtkActor* actor = vtkActor::New();
     actor->SetMapper( vtkSmartPointer<vtkPolyDataMapper>::New() );
-    MyVTKUtils::BuildContourActor( imagedata, dTh1, dTh2, actor, nSmoothFactor, NULL, bExtractAllRegions, bUpsampleContour );
+    MyVTKUtils::BuildContourActor( imagedata, dTh1, dTh2, actor, nSmoothFactor, NULL, bExtractAllRegions, bUpsampleContour, m_mri->GetProperty()->GetContourDilateFirst());
     m_mri->m_actorContourTemp = actor;
     actor->Delete();
   }

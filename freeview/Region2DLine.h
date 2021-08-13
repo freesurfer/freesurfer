@@ -31,6 +31,7 @@ class vtkTextActor;
 
 class Region2DLine : public Region2D
 {
+  Q_OBJECT
 public:
   Region2DLine( RenderView2D* view );
   virtual ~Region2DLine();

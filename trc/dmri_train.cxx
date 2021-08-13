@@ -6,7 +6,7 @@
 /*
  * Original Author: Anastasia Yendiki
  *
- * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -63,14 +63,17 @@ int main(int argc, char *argv[]);
 
 const char *Progname = "dmri_train";
 
-bool useTrunc = false, excludeStr = false;
+bool useTrunc = false, useAnatomy = false, useShape = false, excludeStr = false;
+int numStrMax = INT_MAX;
 vector<float> trainMaskLabel;
-vector<vector<int>> nControl;
-vector<std::string> outBase, trainTrkList, trainRoi1List, trainRoi2List,
+vector< vector<int> > nControl;
+vector<string> outTrkList, outPriorBase,
+               trainTrkList, trainRoi1List, trainRoi2List,
                testMaskList, testFaList, testBaseXfmList;
-std::string outDir, outTestDir, trainListFile,
-  trainAsegFile, trainMaskFile, testAffineXfmFile,
-  testNonlinXfmFile, testNonlinRefFile, testBaseMaskFile;
+string outPriorDir, outTestDir,
+       trainListFile, trainAsegFile, trainMaskFile,
+       testAffineXfmFile, testNonlinXfmFile,
+       testNonlinRefFile, testBaseMaskFile;
 
 struct utsname uts;
 char *cmdline, cwd[2000];
@@ -80,7 +83,7 @@ Timer cputimer;
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
   int nargs, cputime;
-  std::string excfile, fbase;
+  string excfile, fbase;
 
   nargs = handleVersionOption(argc, argv, "dmri_train");
   if (nargs && argc - nargs == 1) exit (0);
@@ -104,69 +107,85 @@ int main(int argc, char **argv) {
   dump_options();
 
   if (excludeStr) {
-    if (!outDir.empty()) {
-      excfile = outDir + '/' + outBase.at(0) + "_cpts_all.bad.txt";
-    } else {
-      excfile = outBase.at(0) + "_cpts_all.bad.txt";
-    }
+    excfile = outPriorBase[0] + "_cpts_all.bad.txt";
+
+    if (!outPriorDir.empty())
+      excfile = outPriorDir + "/" + excfile;
   }
-  
+
+  if (trainRoi1List.empty()) {
+    trainRoi1List.resize(trainTrkList.size());
+    fill(trainRoi1List.begin(), trainRoi1List.end(), string());
+  }
+
+  if (trainRoi2List.empty()) {
+    trainRoi2List.resize(trainTrkList.size());
+    fill(trainRoi2List.begin(), trainRoi2List.end(), string());
+  }
+
+  if (trainMaskLabel.empty()) {
+    trainMaskLabel.resize(trainTrkList.size());
+    fill(trainMaskLabel.begin(), trainMaskLabel.end(), 0.0f);
+  }
+
+  if (nControl.empty())
+    nControl.push_back(vector<int>());
+
   Blood myblood(trainListFile, trainTrkList[0],
-                trainRoi1List.size() ? trainRoi1List[0] : std::string(),
-                trainRoi2List.size() ? trainRoi2List[0] : std::string(),
-                trainAsegFile, trainMaskFile,
-                trainMaskLabel.size() ? trainMaskLabel[0] : 0.0f,
-                excludeStr ? excfile : std::string(),
+                trainRoi1List[0], trainRoi2List[0],
+                trainAsegFile, trainMaskFile, trainMaskLabel[0],
+                excfile,
                 testMaskList, testFaList,
                 testAffineXfmFile, testNonlinXfmFile, testNonlinRefFile,
                 testBaseXfmList, testBaseMaskFile,
-                useTrunc, nControl[0],
+                useTrunc, useAnatomy, useShape, nControl[0], numStrMax,
                 debug);
 
   for (unsigned int itrk = 0; itrk < trainTrkList.size(); itrk++) {
     if (itrk > 0) {
       if (excludeStr) {
-        if (!outDir.empty()) {
-	  excfile = outDir + '/' + outBase.at(itrk) + "_cpts_all.bad.txt";
-        } else {
-	  excfile = outBase.at(itrk) + "_cpts_all.bad.txt";
-	}
+        excfile = outPriorBase[itrk] + "_cpts_all.bad.txt";
+
+        if (!outPriorDir.empty())
+          excfile = outPriorDir + "/" + excfile;
       }
 
-      if (nControl.size() > 1)		// Variable number of controls
+      if (nControl.size() > 1)		// Variable number of control points
         myblood.SetNumControls(nControl[itrk]);
 
       myblood.ReadStreamlines(trainListFile, trainTrkList[itrk],
-                              trainRoi1List.size() ? trainRoi1List[itrk] : 0,
-                              trainRoi2List.size() ? trainRoi2List[itrk] : 0,
-                              trainMaskLabel.size() ? trainMaskLabel[itrk] : 0,
-                              excludeStr ? excfile : 0);
+                              trainRoi1List[itrk], trainRoi2List[itrk],
+                              trainMaskLabel[itrk], excfile);
     }
 
     cout << "Processing pathway " << itrk+1 << " of " << trainTrkList.size()
          << "..." << endl;
     cputimer.reset();
 
-    myblood.ComputePriors();
+    if (!outTrkList.empty()) {		// Prep training streamlines
+      myblood.PrepStreamlines();
 
-    if (!outDir.empty()) {
-      fbase = outDir + '/' + outBase.at(itrk);
-    } else {
-      fbase = outBase.at(itrk);
+      myblood.WriteStreamlines(trainListFile, outTrkList[itrk]);
     }
+    else {				// Compute priors for test subject
+      myblood.ComputePriors();
 
-    if (!outTestDir.empty()) {
-      std::string ftbase;
+      fbase = outPriorBase[itrk];
 
-      ftbase = outTestDir + outBase.at(itrk);
-      myblood.WriteOutputs(fbase.c_str(), ftbase.c_str());
+      if (!outPriorDir.empty())
+        fbase = outPriorDir + "/" + fbase;
+
+      if (!outTestDir.empty()) {
+        string ftbase = outTestDir + "/" + outPriorBase[itrk];
+
+        myblood.WriteOutputs(fbase.c_str(), ftbase.c_str());
+      }
+      else
+        myblood.WriteOutputs(fbase.c_str());
+
+      cputime = cputimer.milliseconds();
+      cout << "Done in " << cputime/1000.0 << " sec." << endl;
     }
-    else {
-      myblood.WriteOutputs(fbase.c_str());
-    }
-
-    cputime = cputimer.milliseconds();
-    cout << "Done in " << cputime/1000.0 << " sec." << endl;
   }
 
   cout << "dmri_train done" << endl;
@@ -198,7 +217,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
     else if (!strcmp(option, "--outdir")) {
       if (nargc < 1) CMDargNErr(option,1);
-      outDir = fio_fullpath(pargv[0]);
+      outPriorDir = fio_fullpath(pargv[0]);
       nargsused = 1;
     }
     else if (!strcmp(option, "--cptdir")) {
@@ -209,7 +228,14 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcmp(option, "--out")) {
       if (nargc < 1) CMDargNErr(option,1);
       while (nargsused < nargc && strncmp(pargv[nargsused], "--", 2)) {
-        outBase.push_back(pargv[nargsused]);
+        outPriorBase.push_back(pargv[nargsused]);
+        nargsused++;
+      }
+    }
+    else if (!strcmp(option, "--outtrk")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      while (nargsused < nargc && strncmp(pargv[nargsused], "--", 2)) {
+        outTrkList.push_back(pargv[nargsused]);
         nargsused++;
       }
     }
@@ -306,8 +332,17 @@ static int parse_commandline(int argc, char **argv) {
         nargsused++;
       }
     }
+    else if (!strcmp(option, "--max")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0], "%d", &numStrMax);
+      nargsused = 1;
+    }
     else if (!strcmp(option, "--trunc"))
       useTrunc = true;
+    else if (!strcmp(option, "--aprior"))
+      useAnatomy = true;
+    else if (!strcmp(option, "--sprior"))
+      useShape = true;
     else if (!strcmp(option, "--xstr"))
       excludeStr = true;
     else {
@@ -326,15 +361,7 @@ static int parse_commandline(int argc, char **argv) {
 static void print_usage(void) {
   cout
   << endl << "USAGE: " << Progname << endl << endl
-  << "Basic inputs (all must be in common space)" << endl
-  << "   --out <base> [...]:" << endl
-  << "     Base name(s) of output(s), one per path" << endl
-  << "   --outdir <dir>:" << endl
-  << "     Output directory (optional)" << endl
-  << "   --cptdir <dir>:" << endl
-  << "     Output directory for control points in test subject's space" << endl
-  << "     (optional, requires registration files)" << endl
-  << "     If specified, base names of outputs are relative to this" << endl
+  << "Basic inputs (all volumes in common space)" << endl
   << "   --slist <file>:" << endl
   << "     Text file with list of training subject directories" << endl
   << "   --trk <file> [...]:" << endl
@@ -351,6 +378,15 @@ static void print_usage(void) {
   << "   --lmask <id> [...]:" << endl
   << "     Add a label ID from aparc+aseg to cortex mask, one per path" << endl
   << "     (0 doesn't add any label)" << endl
+  << endl
+  << "Inputs used to prep training data (all volumes in common space)" << endl
+  << "   --bmask <file> [...]:" << endl
+  << "     Input brain mask volume(s)" << endl
+  << "   --outtrk <file> [...]:" << endl
+  << "     Name(s) of output, pre-sorted .trk file(s), one per path" << endl
+  << "     (Names relative to training subject directory)" << endl
+  << endl
+  << "Inputs used to compute priors (all volumes in common space)" << endl
   << "   --bmask <file> [...]:" << endl
   << "     Input brain mask volume(s) for test subject" << endl
   << "   --fa <file> [...]:" << endl
@@ -368,11 +404,25 @@ static void print_usage(void) {
   << "   --ncpts <num> [...]:" << endl
   << "     Number of control points for initial spline, one per path" << endl
   << "     or one for all paths" << endl
+  << "   --max <num>:" << endl
+  << "     Maximum number of training streamlines to keep per path" << endl
   << "   --xstr:" << endl
   << "     Exclude previously chosen center streamline(s) (Default: No)" << endl
+  << "   --aprior:" << endl
+  << "     Compute priors on underlying anatomy (Default: No)" << endl
+  << "   --sprior:" << endl
+  << "     Compute priors on shape (Default: No)" << endl
   << "   --trunc:" << endl
-  << "     Also save results using all streamlines, truncated or not" << endl
+  << "     Use all training streamlines, truncated or not" << endl
   << "     (Default: Only save results using non-truncated streamlines)" << endl
+  << "   --out <base> [...]:" << endl
+  << "     Base name(s) of output(s) for test subject, one per path" << endl
+  << "   --outdir <dir>:" << endl
+  << "     Output directory (optional)" << endl
+  << "   --cptdir <dir>:" << endl
+  << "     Output directory for control points in test subject's space" << endl
+  << "     (optional, requires registration files)" << endl
+  << "     If specified, base names of outputs are relative to this" << endl
   << endl
   << "Other options" << endl
   << "   --debug:     turn on debugging" << endl
@@ -407,7 +457,7 @@ static void print_version(void) {
 
 /* --------------------------------------------- */
 static void check_options(void) {
-  if (outBase.empty()) {
+  if (outTrkList.empty() && outPriorBase.empty()) {
     cout << "ERROR: Must specify at least one output name" << endl;
     exit(1);
   }
@@ -420,8 +470,13 @@ static void check_options(void) {
          << endl;
     exit(1);
   }
-  if (trainTrkList.size() != outBase.size()) {
+  if (!outPriorBase.empty() && (trainTrkList.size() != outPriorBase.size())) {
     cout << "ERROR: Numbers of input .trk files and output names must match"
+         << endl;
+    exit(1);
+  }
+  if (!outTrkList.empty() && (trainTrkList.size() != outTrkList.size())) {
+    cout << "ERROR: Numbers of input and output .trk files must match"
          << endl;
     exit(1);
   }
@@ -448,46 +503,44 @@ static void check_options(void) {
          << endl;
     exit(1);
   }
-  if (testMaskList.empty()) {
-    cout << "ERROR: Must specify brain mask volume for output subject" << endl;
-    exit(1);
-  }
-  if (!testFaList.empty() && (testFaList.size() != testMaskList.size())) {
-    cout << "ERROR: Must specify as many FA volumes as brain masks" << endl;
-    exit(1);
-  }
-  if (nControl.empty()) {
-    cout << "ERROR: Must specify number of control points for initial spline"
-         << endl;
-    exit(1);
-  }
-  if (nControl.size() > 1 && nControl.size() != trainTrkList.size()) {
-    cout << "ERROR: Must specify number of control points for each .trk file"
-         << "ERROR: or a single number of control points for all .trk files"
-         << endl;
-    exit(1);
-  }
-  if ((!testNonlinXfmFile.empty()) && testNonlinRefFile.empty()) {
-    cout << "ERROR: Must specify source reference volume for nonlinear warp"
-         << endl;
-    exit(1);
-  }
-  if (!testBaseXfmList.empty() && testBaseMaskFile.empty()) {
-    cout << "ERROR: Must specify reference volume for base space" << endl;
-    exit(1);
-  }
-  if (!testBaseXfmList.empty() &&
-      (testBaseXfmList.size() != testFaList.size())) {
-    cout << "ERROR: Must specify as many base registrations as FA volumes"
-         << endl;
-    exit(1);
+  if (!outPriorBase.empty()) {
+    if (!testFaList.empty() && (testFaList.size() != testMaskList.size())) {
+      cout << "ERROR: Must specify as many FA volumes as brain masks" << endl;
+      exit(1);
+    }
+    if (nControl.empty()) {
+      cout << "ERROR: Must specify number of control points for initial spline"
+           << endl;
+      exit(1);
+    }
+    if (nControl.size() > 1 && nControl.size() != trainTrkList.size()) {
+      cout << "ERROR: Must specify number of control points for each .trk file"
+           << "ERROR: or a single number of control points for all .trk files"
+           << endl;
+      exit(1);
+    }
+    if (!testNonlinXfmFile.empty() && testNonlinRefFile.empty()) {
+      cout << "ERROR: Must specify source reference volume for nonlinear warp"
+           << endl;
+      exit(1);
+    }
+    if (!testBaseXfmList.empty() && testBaseMaskFile.empty()) {
+      cout << "ERROR: Must specify reference volume for base space" << endl;
+      exit(1);
+    }
+    if (!testBaseXfmList.empty() &&
+        (testBaseXfmList.size() != testFaList.size())) {
+      cout << "ERROR: Must specify as many base registrations as FA volumes"
+           << endl;
+      exit(1);
+    }
   }
   return;
 }
 
 /* --------------------------------------------- */
 static void dump_options() {
-  vector<std::string>::const_iterator istr;
+  vector<string>::const_iterator istr;
 
   cout << endl
        << getVersion() << endl
@@ -498,39 +551,42 @@ static void dump_options() {
        << "machine  " << uts.machine << endl
        << "user     " << VERuser() << endl;
 
-  if (!outDir.empty()) {
-    cout << "Output directory: " << outDir << endl;
-  }
+  if (!outPriorDir.empty())
+    cout << "Output directory: " << outPriorDir << endl;
 
-  if (!outTestDir.empty()) {
+  if (!outTestDir.empty())
     cout << "Output directory in test subject's space: " << outTestDir << endl;
-  }
 
-  cout << "Output base:";
-  for (istr = outBase.begin(); istr < outBase.end(); istr++) {
-    cout << " " << *istr;
+  if (!outPriorBase.size()) {
+    cout << "Output base for anatomical priors:";
+    for (istr = outPriorBase.begin(); istr < outPriorBase.end(); istr++)
+      cout << " " << *istr;
+    cout << endl;
   }
-  cout << endl;
 
   cout << "Training subject directory list: " << trainListFile << endl;
 
-  cout << "Location of streamline files relative to base:";
-  for (istr = trainTrkList.begin(); istr < trainTrkList.end(); istr++) {
-    cout << " " << *istr;
+  if (!outTrkList.empty()) {
+    cout << "Location of output, pre-sorted streamline files relative to base:";
+    for (istr = outTrkList.begin(); istr < outTrkList.end(); istr++)
+      cout << " " << *istr;
+    cout << endl;
   }
+
+  cout << "Location of streamline files relative to base:";
+  for (istr = trainTrkList.begin(); istr < trainTrkList.end(); istr++)
+    cout << " " << *istr;
   cout << endl;
 
   if (!trainRoi1List.empty()) {
     cout << "Location of start ROI files relative to base:";
-    for (istr = trainRoi1List.begin(); istr < trainRoi1List.end(); istr++) {
+    for (istr = trainRoi1List.begin(); istr < trainRoi1List.end(); istr++)
       cout << " " << *istr;
-    }
     cout << endl;
 
     cout << "Location of end ROI files relative to base:";
-    for (istr = trainRoi2List.begin(); istr < trainRoi2List.end(); istr++) {
+    for (istr = trainRoi2List.begin(); istr < trainRoi2List.end(); istr++)
       cout << " " << *istr;
-    }
     cout << endl;
   }
 
@@ -540,9 +596,8 @@ static void dump_options() {
   if (!trainMaskLabel.empty()) {
     cout << "Label ID's from aparc+aseg to add to cortex mask:";
     for (vector<float>::const_iterator ilab = trainMaskLabel.begin();
-	 ilab < trainMaskLabel.end(); ilab++) {
+                                       ilab < trainMaskLabel.end(); ilab++)
       cout << " " << (int) *ilab;
-    }
     cout << endl;
   }
 
@@ -550,61 +605,58 @@ static void dump_options() {
        << endl;
 
   cout << "Brain mask for output subject:";
-  for (auto ifile = testMaskList.begin();
-       ifile < testMaskList.end(); ifile++) {
+  for (vector<string>::const_iterator ifile = testMaskList.begin();
+                                      ifile < testMaskList.end(); ifile++)
     cout << " " << *ifile;
-  }
   cout << endl;
 
   if (!testFaList.empty()) {
     cout << "FA map for output subject:";
-    for (auto ifile = testFaList.begin();
-	 ifile < testFaList.end(); ifile++) {
+    for (vector<string>::const_iterator ifile = testFaList.begin();
+                                        ifile < testFaList.end(); ifile++)
       cout << " " << *ifile;
-    }
     cout << endl;
   }
 
-  if (!testAffineXfmFile.empty()) {
+  if (!testAffineXfmFile.empty())
     cout << "Affine registration from atlas to base for output subject: "
          << testAffineXfmFile << endl;
-  }
 
-  if (!testNonlinXfmFile.empty()) {
+  if (!testNonlinXfmFile.empty())
     cout << "Nonlinear registration from atlas to base for output subject: "
          << testNonlinXfmFile << endl;
-  }
 
-  if (!testNonlinRefFile.empty()) {
+  if (!testNonlinRefFile.empty())
     cout << "Nonlinear registration source reference for output subject: "
          << testNonlinRefFile << endl;
-  }
 
   if (!testBaseXfmList.empty()) {
     cout << "Affine registration from base to FA map for output subject:";
-    for (auto ifile = testBaseXfmList.begin();
-	 ifile < testBaseXfmList.end(); ifile++) {
+    for (vector<string>::const_iterator ifile = testBaseXfmList.begin();
+                                        ifile < testBaseXfmList.end(); ifile++)
       cout << " " << *ifile;
-    }
     cout << endl;
   }
 
-  if (!testBaseMaskFile.c_str()) {
+  if (!testBaseMaskFile.empty())
     cout << "Base mask for output subject: " << testBaseMaskFile << endl;
-  }
 
   cout << "Number of control points for initial spline:";
   for (vector< vector<int> >::const_iterator inlist = nControl.begin();
-       inlist < nControl.end(); inlist++) {
+                                             inlist < nControl.end(); inlist++)
     for (vector<int>::const_iterator inum = inlist->begin();
-	 inum < inlist->end(); inum++) {
+                                     inum < inlist->end(); inum++)
       cout << " " << *inum;
-    }
-  }
   cout << endl;
 
+  if (numStrMax < INT_MAX)
+    cout << "Maximum number of training streamlines per path: "
+         << numStrMax << endl;
+
   cout << "Exclude previously chosen center streamlines: " << excludeStr << endl
-       << "Use truncated streamlines: " << useTrunc << endl;
+       << "Use truncated streamlines: " << useTrunc << endl
+       << "Compute priors on underlying anatomy: " << useAnatomy << endl
+       << "Compute priors on shape: " << useShape << endl;
 
   return;
 }

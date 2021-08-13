@@ -55,7 +55,8 @@ class Bite {
     std::vector<float> mF;			// [mNumTract]
 
   public:
-    static void SetStatic(const char *GradientFile, const char *BvalueFile,
+    static void SetStatic(const std::string GradientFile,
+                          const std::string BvalueFile,
                           int NumTract, int NumBedpost, float FminPath);
     static int GetNumTract();
     static int GetNumDir();

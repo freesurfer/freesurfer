@@ -117,7 +117,10 @@ static int lh_fill_val = MRI_LEFT_HEMISPHERE ;
 static int rh_fill_val = MRI_RIGHT_HEMISPHERE ;
 static int topofix = 0;
 static int topofix_pbm = 0;
-
+static char *automaneditsfile=NULL;
+std::vector<std::vector<double>> *automandiffvec=NULL;
+int DoAutoMan = 0;
+COLOR_TABLE *ctab=NULL;
 
 static int lhonly = 0 ;
 static int rhonly = 0 ;
@@ -3337,8 +3340,44 @@ main(int argc, char *argv[])
       MRIfree(&mri_rh) ;
     }
   }
+    
+  if(automandiffvec != NULL){
+    printf("DoAutoMan %d\n",DoAutoMan);
+    if(automandiffvec->size() > 0 && DoAutoMan){
+      printf("Applying edits to the output\n");
+      int napp;
+      MRI *mritmp = MRIapplyDiffVect(mri_fill, NULL, *automandiffvec, &napp, mri_fill);
+      if(mritmp == NULL) exit(1);
+      printf("Applied %d edits\n",napp);
+    }
+    else printf("No edits to apply\n");
+    if(DoAutoMan){
+      if(strcmp(automaneditsfile,"nofile") != 0){
+	printf("Writing edits to %s\n",automaneditsfile);
+	FILE *fp = fopen(automaneditsfile,"w");
+	if(fp == NULL){
+	  printf("ERROR: opening %s\n",automaneditsfile);
+	  exit(1);
+	}
+	std::vector<std::vector<double>>::iterator vit;
+	for(vit = automandiffvec->begin() ; vit != automandiffvec->end(); ++vit){
+	  int c,r,s;
+	  c = (int)(*vit)[0];
+	  r = (int)(*vit)[1];
+	  s = (int)(*vit)[2];
+	  fprintf(fp,"%3d %3d %3d %g %g\n",c,r,s,(*vit)[3],(*vit)[4]);
+	}
+	fclose(fp);
+      }
+    }
+    delete automandiffvec;
+  }
+  if(ctab){
+    printf("Embedding colortable\n");
+    mri_fill->ct = ctab;
+  }
 
-  fprintf(stderr, "writing output to %s...\n", out_fname) ;
+  printf("mri_fill done, writing output to %s...\n", out_fname) ;
   MRIwrite(mri_fill, out_fname) ;
   msec = then.milliseconds() ;
   fprintf(stderr,"filling took %2.1f minutes\n", (float)msec/(60*1000.0f));
@@ -3697,6 +3736,34 @@ get_option(int argc, char *argv[])
      "corpus callosum seed point\n",
      cc_vol_x, cc_vol_y, cc_vol_z) ;
     cc_seed_vol_set = 1 ;
+  }
+  else if (!stricmp(option, "ctab"))  {
+    ctab = CTABreadASCII(argv[2]);
+    if(ctab==NULL) exit(1);
+    nargs = 1;
+  }
+  else if (!stricmp(option, "auto-man"))  {
+    /* This option allows the user to specify an automatically
+       generated output and an output that has perhaps been edited to
+       find the differences and then propagate the differences to the
+       new output. The differences (ie, edits) are written to a text
+       file (the 3rd arg) unless that arg is nofile.
+     */
+    DoAutoMan = 1;
+    MRI *mriauto = MRIread(argv[2]);
+    if(mriauto==NULL) exit(1);
+    MRI *mriman = MRIread(argv[3]);
+    if(mriman==NULL) exit(1);
+    automaneditsfile = argv[4];
+    printf("Using auto-man %s %s %s\n",argv[2],argv[3],argv[4]);
+    automandiffvec = MRIdiff2Vect(mriauto, mriman, FLT_MIN, NULL);
+    printf("ndiff %d\n",(int)automandiffvec->size());
+    MRIfree(&mriauto);
+    MRIfree(&mriman);
+    nargs = 3 ;
+  }
+  else if (!stricmp(option, "no-auto-man"))  {
+    DoAutoMan = 0;
   }
   else switch (toupper(*option))
     {
@@ -6683,4 +6750,5 @@ MRIreplaceCCwithWM(MRI *mri_src, MRI *mri_dst)
   MRIfree(&mri_dist_lh) ; MRIfree(&mri_dist_rh) ;
   return(mri_dst) ;
 }
+
 

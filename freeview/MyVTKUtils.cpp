@@ -221,7 +221,7 @@ void MyVTKUtils::WorldToViewport( vtkRenderer* renderer,
 
 bool MyVTKUtils::BuildLabelContourActor( vtkImageData* data_in,
                                          int labelIndex,
-                                         vtkActor* actor_out, int nSmoothIterations, int* ext, bool bAllRegions, bool bUpsample, bool bVoxelized)
+                                         vtkActor* actor_out, int nSmoothIterations, int* ext, bool bAllRegions, bool bUpsample, bool bVoxelized, bool bDilate)
 {
   Q_UNUSED(ext);
   int i = labelIndex;
@@ -245,8 +245,21 @@ bool MyVTKUtils::BuildLabelContourActor( vtkImageData* data_in,
     resampler->SetOutputSpacing(vs[0]/2, vs[1]/2, vs[2]/2);
     resampler->SetInputConnection(threshold->GetOutputPort());
   }
+
   vtkSmartPointer<vtkMarchingCubes> contour = vtkSmartPointer<vtkMarchingCubes>::New();
-  contour->SetInputConnection( bUpsample? resampler->GetOutputPort() : threshold->GetOutputPort());
+  if (bDilate && !bVoxelized)
+  {
+    int nSwell = 2;
+    vtkSmartPointer<vtkImageDilateErode3D> dilate = vtkSmartPointer<vtkImageDilateErode3D>::New();
+    dilate->SetInputConnection(bUpsample? resampler->GetOutputPort() : threshold->GetOutputPort());
+    dilate->SetKernelSize(nSwell, nSwell, nSwell);
+    dilate->SetDilateValue(labelIndex);
+    dilate->SetErodeValue(0);
+    contour->SetInputConnection(dilate->GetOutputPort());
+  }
+  else
+    contour->SetInputConnection(bUpsample? resampler->GetOutputPort() : threshold->GetOutputPort());
+
   contour->SetValue(0, i);
 
   vtkSmartPointer<vtkPolyDataConnectivityFilter> conn = vtkSmartPointer<vtkPolyDataConnectivityFilter>::New();
@@ -418,10 +431,9 @@ bool MyVTKUtils::BuildLabelContourActor( vtkImageData* data_in,
 bool MyVTKUtils::BuildContourActor( vtkImageData* data_in,
                                     double dTh1, double dTh2,
                                     vtkActor* actor_out, int nSmoothIterations, int* ext, bool bAllRegions,
-                                    bool bUpsample)
+                                    bool bUpsample, bool bDilate)
 {
   double nValue = 1;
-  int nSwell = 2;
   vtkSmartPointer<vtkImageThreshold> threshold = vtkSmartPointer<vtkImageThreshold>::New();
 
   vtkSmartPointer<vtkImageReslice> resampler = vtkSmartPointer<vtkImageReslice>::New();
@@ -474,21 +486,27 @@ bool MyVTKUtils::BuildContourActor( vtkImageData* data_in,
   threshold->ReplaceOutOn();
   threshold->SetOutValue( dTh1-0.00001 );
 
-  // dilate/erode is not used for now
-  vtkSmartPointer<vtkImageDilateErode3D> dilate = vtkSmartPointer<vtkImageDilateErode3D>::New();
-  dilate->SetInputConnection(threshold->GetOutputPort());
-  dilate->SetKernelSize(nSwell, nSwell, nSwell);
-  dilate->SetDilateValue(nValue);
-  dilate->SetErodeValue(0);
+  /*
   vtkSmartPointer<vtkImageDilateErode3D> erode = vtkSmartPointer<vtkImageDilateErode3D>::New();
   erode->SetInputConnection(dilate->GetOutputPort());
   erode->SetKernelSize(1, 1, 1);
   erode->SetDilateValue(0);
   erode->SetErodeValue(nValue);
-  // end of dilate/erode
+  */
 
   vtkSmartPointer<vtkContourFilter> contour = vtkSmartPointer<vtkContourFilter>::New();
-  contour->SetInputConnection( threshold->GetOutputPort());
+  if (bDilate)
+  {
+    int nSwell = 2;
+    vtkSmartPointer<vtkImageDilateErode3D> dilate = vtkSmartPointer<vtkImageDilateErode3D>::New();
+    dilate->SetInputConnection(threshold->GetOutputPort());
+    dilate->SetKernelSize(nSwell, nSwell, nSwell);
+    dilate->SetDilateValue(dTh2);
+    dilate->SetErodeValue(0);
+    contour->SetInputConnection( dilate->GetOutputPort());
+  }
+  else
+    contour->SetInputConnection( threshold->GetOutputPort());
   contour->SetValue(0, dTh1);
   {
     vtkSmartPointer<vtkPolyDataConnectivityFilter> conn = vtkSmartPointer<vtkPolyDataConnectivityFilter>::New();

@@ -79,10 +79,13 @@ char *inputs[10000];
 int ninputs = 0;
 CSD *csd = NULL;
 char *csdpdffile = NULL;
+char *csdapplyout = NULL;
+int ApplyCSD = 0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
   int nargs;
+  FILE *fpapply=NULL;
 
   csd = CSDalloc();
   csd->threshsign = -2;
@@ -118,13 +121,17 @@ int main(int argc, char *argv[]) {
   SURFCLUSTERSUM *SurfClustList;
   printf("ninputs = %d\n",ninputs);
 
-  strcpy(csd->simtype,"perm");
-  strcpy(csd->anattype,"surface");
-  strcpy(csd->subject,subject);
-  strcpy(csd->hemi,hemi);
-  strcpy(csd->contrast,"no-con");
-  csd->nreps = ninputs;
-  CSDallocData(csd);
+  if(csdapplyout == NULL){
+    strcpy(csd->simtype,"perm");
+    strcpy(csd->anattype,"surface");
+    strcpy(csd->subject,subject);
+    strcpy(csd->hemi,hemi);
+    strcpy(csd->contrast,"no-con");
+    csd->nreps = ninputs;
+    CSDallocData(csd);
+  }  else {
+    fpapply = fopen(csdapplyout,"w");
+  }
 
   double threshadj = 0;
   if(csd->threshsign == 0) threshadj = csd->thresh;
@@ -138,21 +145,35 @@ int main(int argc, char *argv[]) {
     for (vtx = 0; vtx < surf->nvertices; vtx++)
       surf->vertices[vtx].val = MRIgetVoxVal(mri,vtx,0,0,0);
     SurfClustList = sclustMapSurfClusters(surf,threshadj,-1,csd->threshsign, 0,&nClusters,NULL,NULL);
-    double csize = sclustMaxClusterArea(SurfClustList, nClusters);
-    int cmax,rmax,smax;
-    double sigmax = MRIframeMax(mri,0,NULL,csd->threshsign,&cmax,&rmax,&smax);
-    printf("%3d %4d  %g %g\n",n,nClusters,csize,sigmax);
-    free(SurfClustList);
-    csd->nClusters[m] = nClusters;
-    csd->MaxClusterSize[m] = csize;
-    csd->MaxSig[m] = sigmax;
+    if(csdapplyout == NULL){
+      double csize = sclustMaxClusterArea(SurfClustList, nClusters);
+      int cmax,rmax,smax;
+      double sigmax = MRIframeMax(mri,0,NULL,csd->threshsign,&cmax,&rmax,&smax);
+      printf("%3d %4d  %g %g\n",n,nClusters,csize,sigmax);
+      free(SurfClustList);
+      csd->nClusters[m] = nClusters;
+      csd->MaxClusterSize[m] = csize;
+      csd->MaxSig[m] = sigmax;
+    } else {
+      double pvalLow, pvalHi, ciPct=90, ClusterSize = SurfClustList[0].area;
+      double pval = CSDpvalClustSize(csd, ClusterSize, ciPct, &pvalLow, &pvalHi);
+      fprintf(fpapply,"%4d %8.7lf %7.4f %4d\n",m,pval,ClusterSize,nClusters);
+      fflush(fpapply);
+      printf("%4d %8.7lf %9.4f %4d\n",m,pval,ClusterSize,nClusters);
+      fflush(stdout);
+    }
     m++;
   }
-  FILE *fp = fopen(csdfile,"w");
-  fprintf(fp,"# ClusterSimulationData 2\n");
-  fprintf(fp,"# mri_maps2csd simulation sim\n");
-  CSDprint(fp, csd);
-  fclose(fp);
+
+  if(csdapplyout == NULL){
+    FILE *fp = fopen(csdfile,"w");
+    fprintf(fp,"# ClusterSimulationData 2\n");
+    fprintf(fp,"# mri_maps2csd simulation sim\n");
+    CSDprint(fp, csd);
+    fclose(fp);
+  } else {
+    fclose(fpapply);
+  }
 
   if(csdpdffile) {
     printf("Creating CDFs from CSD files\n");
@@ -196,6 +217,20 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       csdpdffile = pargv[0];
       nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--csd-apply")) {
+      if(nargc < 2) CMDargNErr(option,2);
+      csd = CSDreadMerge(pargv[0],NULL);
+      if(csd == NULL) exit(1);
+      if(strcmp(csd->anattype,"surface")) {
+        printf("ERROR: csd must have anattype of surface\n");
+        exit(1);
+      }
+      subject = csd->subject;
+      hemi = csd->hemi;
+      surfname = "white";
+      csdapplyout = pargv[1];
+      nargsused = 2;
     } 
     else if (!strcasecmp(option, "--s")){
       if(nargc < 3) CMDargNErr(option,3);
@@ -248,13 +283,15 @@ static void usage_exit(void) {
 static void print_usage(void) {
   printf("%s   inputs\n",Progname) ;
   printf("\n");
+  printf("   --i input (or just put them on the command line)\n");
+  printf("   \n");
   printf("   --csd csdfile\n");
   printf("   --pdf pdffile : PDF created from CSD\n");
   printf("   --s subjectname hemi surf\n");
-  //printf("   --surf surfpath\n");
   printf("   --thresh thresh (-log10 cluster-forming thresh)\n");
   printf("   --sign +1,-1,0 : a sign causes the thresh to be adjusted\n");
-  printf("   --i input (or just put them on the command line)\n");
+  printf("   \n");
+  printf("   --csd-apply csdfile applyout : apply a CSD file to the inputs and output p-val of max cluster\n");
   printf("   \n");
   printf("   --sd SUBJECTS_DIR\n");
   printf("   --debug     turn on debugging\n");
@@ -295,12 +332,16 @@ static void check_options(void) {
     subject = "unknown";
     hemi = "unknown";
   }
-  if(csdfile==NULL) {
+  if(ninputs == 0){
+    printf("ERROR: No inputs specified\n");
+    exit(1);
+  }
+  if(csdfile==NULL && csdapplyout==NULL) {
     printf("ERROR: need to specify a csd file\n");
     exit(1);
   }
-  if(ninputs == 0){
-    printf("ERROR: No inputs specified\n");
+  if(csdfile!=NULL && csdapplyout!=NULL) {
+    printf("ERROR: cannot specify both --csd and --csd-apply\n");
     exit(1);
   }
   if(csd->thresh < 0){

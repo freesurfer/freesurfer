@@ -34,6 +34,7 @@
 #include <fenv.h>
 #include <QFile>
 #include <QSurfaceFormat>
+#include <QProcessEnvironment>
 
 #if VTK_MAJOR_VERSION > 7
 #include <QVTKOpenGLWidget.h>
@@ -115,6 +116,7 @@ int main(int argc, char *argv[])
   putenv((char*)"SURFER_FRONTDOOR=");
   if (getenv("FS_DISABLE_LANG") == NULL)
     putenv((char*)"LANG=en_US");
+  putenv((char*)"FS_COPY_HEADER_CTAB=1");
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
   qInstallMessageHandler(myMessageOutput);
 #else
@@ -126,6 +128,13 @@ int main(int argc, char *argv[])
   LineProf::InitializePetsc(true);
 #endif
   setRandomSeed(-1L);
+
+#ifdef Q_OS_MAC
+  // must set SUBJECTS_DIR so that mac standard-alone app can run properly
+  QString subject_path = QProcessEnvironment::systemEnvironment().value("SUBJECTS_DIR");
+  if (subject_path.isEmpty())
+    putenv((char*)"SUBJECTS_DIR=");
+#endif
 
   CmdLineEntry cmdLineDesc[] =
   {
@@ -213,6 +222,7 @@ int main(int argc, char *argv[])
     "':label_centroid=flag' Move 3D cursor to the centroid of the label. flag can be 'true', 'yes' or '1'.\n\n"
     "':label_visible=flag' Set label visibility.\n\n"
     "':label_opacity=value' Set label opacity. Value ranges from 0 to 1.\n\n"
+    "':label_threshold=value' Set label threshold. \n\n"
     "':label_zorder=number' Set z-order for rendering labels.\n\n"
     "':spline=filename' Load a spline file for display.\n\n"
     "':vertex=flag' Show surface vertices on both 2D and 3D views. flag can be 'true', 'on' or '1'.\n\n"
@@ -256,7 +266,7 @@ int main(int argc, char *argv[])
     "':resolution=value' Set resolution of the line profiles. Default value is 1.0.\n\n"
     "':offset=value' Set the offset to compute line profiles. Default value is 5.\n\n"
     "':segments=value' Set the number of segments on the line profiles. Default value is 100.\n", 1, 1 ),
-    CmdLineEntry( CMD_LINE_OPTION, "ss", "screenshot", "<FILENAME> <MAGIFICATION_FACTOR> <AUTO_TRIM>", "Take a screenshot of the main viewport and then quit the program. Default value for magnification factor is 1. AUTO_TRIM can be 'autotrim', 'true' or '1'. To automatically cycle through all the volumes/surfaces, put '%name' in the filename as the wildcard for layer name.", 1, 3 ),
+    CmdLineEntry( CMD_LINE_OPTION, "ss", "screenshot", "<FILENAME> <MAGNIFICATION_FACTOR> <AUTO_TRIM>", "Take a screenshot of the main viewport and then quit the program. Default value for magnification factor is 1. AUTO_TRIM can be 'autotrim', 'true' or '1'. To automatically cycle through all the volumes/surfaces, put '%name' in the filename as the wildcard for layer name.", 1, 3 ),
     //    CmdLineEntry( CMD_LINE_OPTION, "fly", "fly-through", "<START_SLICE_NUMBER> <END_SLICE_NUMBER> <PREFIX>", "Fly through slices and take screenshot of each slice", 1, 3 ),
     CmdLineEntry( CMD_LINE_OPTION, "layout", "layout", "<STYLE>", "Set layout of the view panels as given. Accepted styles are 1, 2, 3 & 4. 1 is single panel. The rest are 3 different 4-panel styles.", 1, 1 ),
     CmdLineEntry( CMD_LINE_OPTION, "view", "view", "<VIEW>", "Set the 3D view as given. Accepted views are 'left', 'right', 'lateral', 'medial', 'anterior', 'posterior', 'inferior' and 'superior'. 'lateral' and 'medial' will only work when there is visible surface.", 1, 1 ),

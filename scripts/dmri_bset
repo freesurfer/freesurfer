@@ -79,7 +79,7 @@ else
       exit 1;
     endif
 
-    set keepframes = ($frames)
+    set keepframes = ($keepframes $frames)
   end
 
   if (! $bsort) then	# Maintain original order (do not order by shell)
@@ -211,39 +211,37 @@ check_params:
     exit 1;
   endif
 
-  if(! $#outdwi == 0) then
-    echo "ERROR: must specify input DWI"
+  if(! $#outdwi) then
+    echo "ERROR: must specify output DWI"
     exit 1;
   endif
 
   if(! $#inbvals) then
     set ext = `fname2ext $indwi`
-    set inbvals = `echo $fname | sed "s/\(.*\)$ext/\1bvals/"`
+    set inbvals = `echo $indwi | sed "s/\(.*\)$ext/\1bvals/"`
     if (! -e $inbvals) then
-        echo "ERROR: $inbvals does not exist"
+      echo "ERROR: $inbvals does not exist"
+      exit 1;
     endif
-    exit 1;
   endif
 
   if(! $#inbvecs) then
     set ext = `fname2ext $indwi`
-    set inbvecs = `echo $fname | sed "s/\(.*\)$ext/\1bvecs/"`
+    set inbvecs = `echo $indwi | sed "s/\(.*\)$ext/\1bvecs/"`
     if (! -e $inbvecs) then
-        echo "ERROR: $inbvecs does not exist"
+      echo "ERROR: $inbvecs does not exist"
+      exit 1;
     endif
-    exit 1;
   endif
 
   if(! $#outbvals) then
     set ext = `fname2ext $outdwi`
-    set outbvals = `echo $fname | sed "s/\(.*\)$ext/\1bvals/"`
-    exit 1;
+    set outbvals = `echo $outdwi | sed "s/\(.*\)$ext/\1bvals/"`
   endif
 
   if(! $#outbvecs) then
     set ext = `fname2ext $outdwi`
-    set outbvecs = `echo $fname | sed "s/\(.*\)$ext/\1bvecs/"`
-    exit 1;
+    set outbvecs = `echo $outdwi | sed "s/\(.*\)$ext/\1bvecs/"`
   endif
 
   if(! $#bshell && ! $#bmax) then

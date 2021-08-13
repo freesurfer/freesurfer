@@ -1,5 +1,6 @@
 import sys
 import re
+import numpy as np
 import datetime as dt
 
 from . import term
@@ -106,10 +107,13 @@ class Table:
     Args:
         columns: List of column header names.
     '''
-    def __init__(self, columns, precision=2):
+    def __init__(self, columns=[], precision=2):
         self.rows = []
         self.columns = columns
         self.precision = precision
+
+    def add_row(self, cells):
+        self.addRow(cells)
 
     def addRow(self, cells):
         '''Adds a row of cells to the table. The number of cells provided must match the
@@ -118,18 +122,22 @@ class Table:
             raise ValueError('number of input cells does not match number of columns')
         self.rows.append([self._format(cell) for cell in cells])
 
+    def get_column(self, idx):
+        return [row[idx] for row in self.rows]
+
     def getColumn(self, idx):
         '''Returns a list of cells for a given column index.'''
         return [self.columns[idx]] + [row[idx] for row in self.rows]
 
     def _format(self, element):
-        if isinstance(element, float):
-            return '%.*f' % (self.precision, n)
+        if isinstance(element, np.floating):
+            return '%.*f' % (self.precision, element)
         return str(element)
 
-    def _pad(self, string, width):
+    def _pad(self, string, width, rjust=False):
         # width should never be smaller than the length of the string
-        return string + ' ' * (width - len(term.removecolor(string)))
+        string = term.removecolor(string)
+        return string.rjust(width) if rjust else string.ljust(width)
 
     def __str__(self):
         # compute column widths
@@ -145,3 +153,26 @@ class Table:
         for row in self.rows:
             strings.append('  '.join([self._pad(cell, widths[n]) for n, cell in enumerate(row)]))
         return '\n'.join(strings)
+
+    def write(self, filename):
+        with open(filename, 'w') as file:
+            if isinstance(self.header, str):
+                self.header = [self.header]
+            for line in self.header:
+                file.write('# %s\n' % line)
+            file.write('# NRows %d\n' % len(self.rows))
+            file.write('# NTableCols %d\n' % (len(self.columns) + 1))
+            file.write('# ColHeaders Index %s\n' % ' '.join(self.columns))
+
+            widths = []
+            rjusts = []
+            for col in range(len(self.columns)):
+                column = self.get_column(col)
+                widths.append(len(max(column, key=len)))
+                rjusts.append(all([s.replace('-','').replace('.','').isnumeric() for s in column]))
+
+            idxwidth = len(str(len(self.rows)))
+            for idx, row in enumerate(self.rows):
+                idx = str(idx + 1).rjust(idxwidth)
+                row_string = '  '.join([self._pad(cell, widths[n], rjusts[n]) for n, cell in enumerate(row)])
+                file.write('%s  %s\n' % (idx, row_string))

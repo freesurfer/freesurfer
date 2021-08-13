@@ -7607,20 +7607,29 @@ double MRISsampleValue(MRI_SURFACE *mris, FACE *f, double xp, double yp, double 
   return (val);
 }
 
-MRI *MRISsampleMRINorm(MRIS *mris, MRI *mri, double dstart, double dend, double dstep, double sigma, MRI *nsamp)
+/*!
+  \fn MRI *MRISsampleProfile(MRIS *mris, MRI *mri, double dstart, double dend, double dstep, double sigma, int interptype, MRI *profile)
+  \brief Samples the MRI along the normal at each vertex from dstart
+  to dend with stepsize of dstep. If sigma is >=0, then the derivative along the normal is computed. interptype 
+  controls the interpolation type (but does not apply to derivative). The derivative was only added 
+  to help study ComputeBorderValues when placing the surface.
+*/
+MRI *MRISsampleProfile(MRIS *mris, MRI *mri, double dstart, double dend, double dstep, double sigma, int interptype, MRI *profile)
 {
   int vno,frame,nframes;
   double val, x, y, z, c,r,s;
   VERTEX *v;
   double d;
 
+  printf("MRISsampleProfile(): %g %g %g %g %d\n",dstart,dend,dstep,sigma,interptype);
+
   MRIS_SurfRAS2VoxelMap* sras2v_map = MRIS_makeRAS2VoxelMap(mri, mris);
 
   nframes = 0;
   for(d=dstart; d<=dend; d += dstep) nframes++;
 
-  if(nsamp == NULL)
-    nsamp = MRIallocSequence(mris->nvertices,1,1,MRI_FLOAT,nframes);
+  if(profile == NULL)
+    profile = MRIallocSequence(mris->nvertices,1,1,MRI_FLOAT,nframes);
 
   for (vno = 0; vno < mris->nvertices; vno++) {
     v = &mris->vertices[vno];
@@ -7632,7 +7641,7 @@ MRI *MRISsampleMRINorm(MRIS *mris, MRI *mri, double dstart, double dend, double 
       z = v->z + d*v->nz;
       MRIS_useRAS2VoxelMap(sras2v_map, mri,x, y, z, &c, &r, &s);
       if(sigma < 0){
-	MRIsampleVolume(mri, c, r, s, &val);
+	MRIsampleVolumeType(mri, c, r, s, &val, interptype);
       }
       else {
 	double c2,r2,s2,dc,dr,ds,mag;
@@ -7647,14 +7656,14 @@ MRI *MRISsampleMRINorm(MRIS *mris, MRI *mri, double dstart, double dend, double 
 	MRIsampleVolumeDerivativeScale(mri, c,r,s, dc,dr,ds, &val, sigma);
 	val /= mri->xsize;
       }
-      MRIsetVoxVal(nsamp,vno,0,0,frame,val);
+      MRIsetVoxVal(profile,vno,0,0,frame,val);
       frame++;
     }
   }
 
   MRIS_freeRAS2VoxelMap(&sras2v_map);
 
-  return(nsamp);
+  return(profile);
 }
 
 MRI *MRISextractNormalMask(MRIS *surf, int vno, double dstart, double dend, double dstep, double UpsampleFactor)

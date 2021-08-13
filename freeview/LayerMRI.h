@@ -58,6 +58,7 @@ class LayerSurface;
 class LayerROI;
 class GeoSWorker;
 class Region3D;
+class LayerPointSet;
 
 #ifndef IntList
 typedef QList<int> IntList;
@@ -351,6 +352,8 @@ public:
 
   bool DeleteCurrent3DRegion();
 
+  void DeleteAll3DRegions();
+
   void Add3DRegionPoint( double* pt );
 
   int GetNumberOf3DRegions()
@@ -363,6 +366,12 @@ public:
   bool SaveAll3DRegions(const QString& fn);
 
   bool Load3DRegions(const QString& fn);
+
+  void Close3DRegion();
+
+  void UpdateVoxelsByPointSet(LayerPointSet* ps, int nPlane);
+
+  void LocateLocalMaximumAtRAS(double* ras_in, double dx, double dy, double dz, double* ras_out, double signma = 0, double dist_in_vox = 3);
 
 public slots:
   virtual void SetModified();

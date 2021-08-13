@@ -42,6 +42,12 @@ set talxfm = ();
 set DoAntsN3 = 0;
 set DoAntsN4 = 0;
 set DoAntsN4CharConvert = 1;
+set lambda = ()
+
+if($?FS_ANTS_N4_REPLACE_ZEROS == 0) then
+  setenv FS_ANTS_N4_REPLACE_ZEROS 0
+endif
+set ReplaceZeros = $FS_ANTS_N4_REPLACE_ZEROS; # for ANTS
 
 set debug = 0;
 set PrintHelp = 0;
@@ -119,6 +125,7 @@ if($DoAntsN3 || $DoAntsN4) then
     set cmd = (AntsN4BiasFieldCorrectionFs -i $InVol -o $numnc)
     if($#MaskVol) set cmd = ($cmd -x $MaskVol)
     if($DoAntsN4CharConvert) set cmd = ($cmd --dtype uchar)
+    if($ReplaceZeros) set cmd = ($cmd --replace-zeros 0 1 1)
   endif
   echo "cd `pwd`" | tee -a $LF
   echo $cmd | tee -a $LF
@@ -152,6 +159,7 @@ else
     if($#FWHM)          set cmd = ($cmd -fwhm $FWHM);
     if($#Shrink)        set cmd = ($cmd -shrink $Shrink);
     if($#MaskVol)       set cmd = ($cmd -mask $tmpdir/mask.mnc);
+    if($#lambda)        set cmd = ($cmd -lambda $lambda);
     echo $cmd |& tee -a $LF
     $cmd |& tee -a $LF
     if($status) then
@@ -289,6 +297,13 @@ while( $#argv != 0 )
       set DoAntsN4CharConvert = 0;
       breaksw
 
+    case "--ants-n4-replace-zeros":
+      set ReplaceZeros = 1
+      breaksw
+    case "--no-ants-n4-replace-zeros":
+      set ReplaceZeros = 0
+      breaksw
+
     case "--n":
       if ( $#argv == 0) goto arg1err;
       set nIters = $argv[1]; shift;
@@ -317,6 +332,11 @@ while( $#argv != 0 )
     case "--shrink":
       if ( $#argv == 0) goto arg1err;
       set Shrink = $argv[1]; shift;
+      breaksw
+
+    case "--lambda":
+      if ( $#argv == 0) goto arg1err;
+      set lambda = $argv[1]; shift;
       breaksw
 
     case "--uchar":
@@ -457,6 +477,7 @@ fsPrintHelp "mri_nu_correct.mni"
 #  echo " --distance Distance  : N3 -distance option"
 #  echo " --fwhm FWHM          : N3 -fwhm option"
 #  echo " --float : use floating point internally (default)"
+#  echo " --lambda lambda : bspline regularization for nu_correct"
 #  echo " --no-float : do NOT use floating point internally"
 #  echo ""
 #  echo " --cm        : conform COR volumes to the min voxel size "

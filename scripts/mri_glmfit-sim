@@ -43,6 +43,7 @@ set PermNonStatCor = 0;
 set fwhmmap = ()
 set DoSpatialSum = 0
 set Do1D = 0;
+set varfwhm = ()
 
 set nJobs = 1;
 set DoBackground = 0;
@@ -198,6 +199,10 @@ while($#glmfitcmd)
     # Technically don't need to do this here because automatically done in mri_glmfit
     set PermSignFlip = 1;
     breaksw
+  case "--var-fwhm"
+    set varfwhm = $glmfitcmd[1]; 
+    shift glmfitcmd;
+    breaksw
   # Ignore these options that have no args
   case "cmdline"
   case "mri_glmfit"
@@ -237,7 +242,6 @@ while($#glmfitcmd)
   case "--fwhm"
   case "--mask"
   case "--seed"
-  case "--var-fwhm"
   case "--yffxvar"
   case "--ffxdof"
   case "--ffxdofdat"
@@ -465,6 +469,7 @@ if($DoSim) then
     #if($#label) set cmd = ($cmd --label $label)
     if($PermForce) set cmd = ($cmd --perm-force)
     if($anattype == surface) set cmd = ($cmd --surf $subject $hemi $surf);
+    if($#varfwhm) set cmd = ($cmd --var-fwhm $varfwhm)
     if($#Seed) set cmd = ($cmd --seed $Seed);
     if($UseUniformPDF) set cmd = ($cmd --uniform $UniformPDFMin $UniformPDFMax);
     if($DiagCluster) set cmd = ($cmd --diag-cluster --debug)

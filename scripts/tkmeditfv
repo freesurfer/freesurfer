@@ -3,6 +3,8 @@
 
 set VERSION = 'tkmeditfv @FS_VERSION@';
 
+setenv FS_COPY_HEADER_CTAB 1 # make sure that anything saved in FV has its colortable
+
 set subject = ();
 set overlay = ();
 set mainvol = ();
@@ -29,6 +31,7 @@ set twfvol = ();
 set twfreg = ();
 set segcolor = $FREESURFER_HOME/FreeSurferColorLUT.txt
 set auxsegcolor = $FREESURFER_HOME/FreeSurferColorLUT.txt
+set ctabset = 0
 set segopacity = 1;
 set fthresh = 2;
 set fmax    = 5;
@@ -84,13 +87,29 @@ if(! $UseTkMedit) then
     set cmd = (freeview  -v $mainvol":"grayscale=$mainmin,$mainmax)
   endif
   if($#auxvol) set cmd = ($cmd -v $auxvol)
-  if($#segvol) set cmd = ($cmd -v "$segvol":"opacity=$segopacity":"colormap=lut":"outline=$SegOutline")
-  if($#segcolor) set cmd = ($cmd":lut=$segcolor")
-  if($#auxsegvol) set cmd = ($cmd -v "$auxsegvol":"lut=$auxsegcolor":"opacity=$segopacity":"colormap=lut":"outline=$SegOutline")
+  if($#segvol) then
+    set cmd = ($cmd -v "$segvol":"opacity=$segopacity":"colormap=lut":"outline=$SegOutline")
+    set hasctab = `mri_info --ctab $segvol | wc -l`
+ echo main hasctab $hasctab
+    if($ctabset || ! $hasctab) then
+      if($#segcolor) set cmd = ($cmd":lut=$segcolor")
+    endif
+  endif
+  if($#auxsegvol) then
+    set cmd = ($cmd -v "$auxsegvol":"opacity=$segopacity":"colormap=lut":"outline=$SegOutline")
+    set hasctab = `mri_info --ctab $auxsegvol | wc -l`
+    if($ctabset || ! $hasctab) then
+      if($#segcolor) set cmd = ($cmd":lut=$segcolor")
+    endif
+  endif
   @ nth = 0;
   foreach v ($segvollist) 
     @ nth = $nth + 1;
-    set cmd = ($cmd -v "$v":"lut=$segcolorlist[$nth]":"opacity=$segopacity":"colormap=lut")
+    set cmd = ($cmd -v "$v":"opacity=$segopacity":"colormap=lut")
+    set hasctab = `mri_info --ctab $v | wc -l`
+    if($ctabset || ! $hasctab) then
+      if($#segcolor) set cmd = ($cmd":lut=$segcolorlist[$nth]")
+    endif
   end
   if($#labellist) then
     foreach label ($labellist)
@@ -243,6 +262,7 @@ while( $#argv != 0 )
       set segcolor = $argv[1]; shift
       set segcolor2 = $segcolor
       set auxsegcolor = $segcolor
+      set ctabset = 1
       breaksw
 
     case "-no-ctab":
