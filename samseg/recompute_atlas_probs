@@ -79,6 +79,7 @@ if not os.path.exists(out_dir):
 if args.label_set is not None:
   label_set = args.label_set
 else:
+  # TODO: this should match the label set and order of the altas if re-writing alphas
   label_set = [
     '3rd-Ventricle',
     '4th-Ventricle',
@@ -210,19 +211,19 @@ for level, meshCollectionFile in enumerate(mesh_collections):
                   np.float)
             subject_posteriorMap_float[:,:,:,label_num] = probImage
         # subject_posteriorMap_float is now fully loaded, noramlize so it sums to 1 across the label dimension
-        # TODO
+        # If it's not already (TODO)
     
         # Estimate alphas representing the new posterior map, initialized with a flat prior
         subject_posteriorMap_uint16 = np.uint16(subject_posteriorMap_float * 65535)
-        alphas = np.zeros([numberOfNodes, 2]) + 0.5
+        #alphas = np.zeros([numberOfNodes, numberOfLabels]) + 0.5
         mesh = meshCollection.reference_mesh
         mesh.points = nodePositions
         mesh.alphas = mesh.fit_alphas(subject_posteriorMap_uint16)
 
         # Show rasterized prior with updated alphas
-        if showfigs:
-            rasterizedPrior = mesh.rasterize(segmentationImage.shape, 1) / 65535
-            visualizer.show(images=rasterizedPrior)
+        #if showfigs:
+        #    rasterizedPrior = mesh.rasterize(segmentationImage.shape, 1) / 65535
+        #    visualizer.show(images=rasterizedPrior)
 
         # Show progress to anyone who's watching
         print('====================================================================')
@@ -236,3 +237,5 @@ for level, meshCollectionFile in enumerate(mesh_collections):
 
     # Save label statistics in a npy file
     np.save(os.path.join(out_dir, 'labelStatistics_atlas_%d' % level), labelStatisticsInMeshNodes)
+    
+    new_altlas_priors = np.linalg.norm(labelStatisticsInMeshNodes, axis=2)
