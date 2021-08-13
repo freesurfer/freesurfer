@@ -252,6 +252,10 @@ int main( int argc, char** argv )
       {
       std::cerr << "Couldn't read mesh from file " << explicitStartCollectionFileName << std::endl;
       return -1;
+      } 
+    else
+      {
+      std::cout << "explicitStartCollection found; reading from: " << explicitStartCollectionFileName << std::endl
       }
     }
 
