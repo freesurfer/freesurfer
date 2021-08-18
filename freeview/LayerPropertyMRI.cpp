@@ -1944,3 +1944,4 @@ void LayerPropertyMRI::SetBinaryColor(const QColor &color)
     SetCustomColors(colors);
   }
 }
+

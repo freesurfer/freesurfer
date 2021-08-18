@@ -112,6 +112,8 @@ void PanelPointSet::ConnectLayer( Layer* layer_in )
   connect( ui->colorpickerSplineColor, SIGNAL(colorChanged(QColor)), p, SLOT(SetSplineColor(QColor)));
   connect( ui->comboBoxSplineColor, SIGNAL(currentIndexChanged(int)), p, SLOT(SetColorMap(int)));
   connect( ui->checkBoxClosedSpline, SIGNAL(toggled(bool)), p, SLOT(SetClosedSpline(bool)));
+  connect( ui->spinBoxOverallScore, SIGNAL(valueChanged(int)), this, SLOT(OnSpinBoxOverallScore(int)));
+  connect( ui->textEditOverallQuality, SIGNAL(textChanged()), this, SLOT(OnTextOverallQualityChanged()));
 }
 
 void PanelPointSet::DoIdle()
@@ -199,6 +201,9 @@ void PanelPointSet::DoUpdateWidgets()
     ui->checkBoxSnapToCenter->setChecked( layer->GetProperty()->GetSnapToVoxelCenter() );
     ui->labelEndPointDistance->setText(QString("%1 mm").arg(layer->GetEndPointDistance(), 0, 'f', 3));
     ui->checkBoxClosedSpline->setChecked(layer->GetProperty()->GetClosedSpline());
+
+    ui->spinBoxOverallScore->setValue(layer->GetEnhancedData("overall_score").toInt());
+    ui->textEditOverallQuality->setPlainText(layer->GetEnhancedData("overall_quality").toString());
   }
 
   // MainWindow* mainWnd = MainWindow::GetMainWindowPointer();
@@ -709,4 +714,19 @@ void PanelPointSet::OnCurrentStatItemChanged(QTreeWidgetItem *cur, QTreeWidgetIt
   Q_UNUSED(cur);
   Q_UNUSED(old);
   ui->pushButtonStatDelete->setEnabled(cur && ui->treeWidgetStats->indexOfTopLevelItem(cur) != 0);
+}
+
+void PanelPointSet::OnTextOverallQualityChanged()
+{
+  LayerPointSet* layer = GetCurrentLayer<LayerPointSet*>();
+  if (layer)
+    layer->SetEnhancedData("overall_quality", ui->textEditOverallQuality->toPlainText());
+}
+
+
+void PanelPointSet::OnSpinBoxOverallScore(int val)
+{
+  LayerPointSet* layer = GetCurrentLayer<LayerPointSet*>();
+  if (layer)
+    layer->SetEnhancedData("overall_score", val);
 }
