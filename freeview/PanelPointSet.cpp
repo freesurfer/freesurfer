@@ -446,9 +446,12 @@ QLabel* PanelPointSet::MakeCommentItem(const QVariantMap& map, QLabel* label_in)
 #ifdef Q_OS_MAC
   bDarkMode = MacHelper::IsDarkMode();
 #endif
-  QString text = QString("<span style=\"color:rgba(%4,%4,%4,150);font-size:10px;\">[%1] (%2)</span><br />%3")
+  QString prefilled = map.value("prefilled").toStringList().join(" / ");
+  if (!map["text"].toString().isEmpty() && !prefilled.isEmpty())
+    prefilled = " / " + prefilled;
+  QString text = QString("<span style=\"color:rgba(%4,%4,%4,150);font-size:10px;\">[%1] (%2)</span><br />%3 %5")
       .arg(map["timestamp"].toDateTime().toString("yyyy-MM-dd hh:mm:ss"))
-      .arg(map["user"].toString()).arg(map["text"].toString()).arg(bDarkMode?255:0);
+      .arg(map["user"].toString()).arg(map["text"].toString()).arg(bDarkMode?255:0).arg(prefilled);
   text += QString(" (<a href=\"edit\" style=\"font-size:11px;color:%1\">edit</a>)").arg(bDarkMode?"#00A6FF":"blue");
   if (map["user"].toString() == m_self)
     text += QString(" (<a href=\"delete\" style=\"font-size:11px;color:%1\">delete</a>)").arg(bDarkMode?"#00A6FF":"blue");
@@ -524,6 +527,7 @@ void PanelPointSet::OnButtonCommentAdd()
   {
     QVariantMap map;
     map["text"] = dlg.GetComment();
+    map["prefilled"] = dlg.GetPrefilledItems();
     // workaround for a QDateTime bug
     QDateTime local = QDateTime::currentDateTime();
     QDateTime utc = local.toUTC();
@@ -586,11 +590,12 @@ void PanelPointSet::OnCommentLabelClicked(const QString &link)
         {
           QVariantMap map = comments[i].toMap();
           DialogControlPointComment dlg(this);
-          dlg.SetComment(map["text"].toString());
+          dlg.SetComment(map["text"].toString(), map["prefilled"].toStringList());
           if (dlg.exec() != QDialog::Accepted)
             return;
 
           map["text"] = dlg.GetComment();
+          map["prefilled"] = dlg.GetPrefilledItems();
           map["user"] = m_self;
           map["edited"] = true;
           QDateTime local = QDateTime::currentDateTime();
