@@ -411,7 +411,7 @@ bool LayerSurface::LoadCurvatureFromFile( const QString& filename )
   }
 
   GetProperty()->RebuildCurvatureLUT();
-  UpdateOverlay(false);
+  UpdateColorMap();
   emit Modified();
   emit SurfaceCurvatureLoaded();
   emit ActorUpdated();
@@ -1721,7 +1721,6 @@ void LayerSurface::UpdateOverlay(bool bAskRedraw, bool pre_cached)
           }
           memcpy(m_nColorDataCache, data, nCount*4);
         }
-
         MapLabels( data, nCount );
         for ( int i = 0; i < nCount; i++ )
         {

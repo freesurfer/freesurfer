@@ -76,6 +76,7 @@ LayerPropertyMRI::LayerPropertyMRI (QObject* parent) : LayerProperty( parent ),
   m_nTensorRepresentation( TR_Boxoid ),
   m_bContourUseImageColorMap( false ),
   m_bContourExtractAll( true ),
+  m_bContourDilateFirst(false),
   m_bShowLabelOutline( false ),
   m_nUpSampleMethod( UM_None ),
   m_nContourSmoothIterations( 5 ),
@@ -1703,7 +1704,7 @@ void LayerPropertyMRI::SetShowVoxelizedContour(bool bVoxelize)
   if (m_bShowVoxelizedContour != bVoxelize)
   {
     m_bShowVoxelizedContour = bVoxelize;
-    emit ContourVoxelized(bVoxelize);
+    emit ContourNeedsRebuild();
   }
 }
 
@@ -1741,6 +1742,15 @@ void LayerPropertyMRI::SetContourExtractAllRegions( bool bExtractAll )
   {
     m_bContourExtractAll = bExtractAll;
     emit ContourChanged();
+  }
+}
+
+void LayerPropertyMRI::SetContourDilateFirst(bool bDilate)
+{
+  if (m_bContourDilateFirst != bDilate)
+  {
+    m_bContourDilateFirst = bDilate;
+    emit ContourNeedsRebuild();
   }
 }
 
@@ -1934,3 +1944,4 @@ void LayerPropertyMRI::SetBinaryColor(const QColor &color)
     SetCustomColors(colors);
   }
 }
+

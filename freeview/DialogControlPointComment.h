@@ -18,11 +18,13 @@ public:
   explicit DialogControlPointComment(QWidget *parent = nullptr);
   ~DialogControlPointComment();
 
-  void SetComment(const QString& text);
+  void SetComment(const QString& text, const QStringList& prefilled_items);
 
   void SetLabel(const QString& text);
 
   QString GetComment();
+
+  QStringList GetPrefilledItems();
 
 public slots:
   void OnCheckBoxToggled(bool bChecked);
