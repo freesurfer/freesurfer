@@ -234,6 +234,8 @@ if the input/output has extension .nii.gz, then compressed is used</explanation>
   If using -r4, the output geometry will likely be wrong. It is best to re-run mri_convert and specify a correctly oriented volume through the --in_like option.  </explanation>
       <argument>--invert_contrast threshold</argument>
       <explanation>All voxels in volume greater than threshold are replaced with 255-value. Only makes sense for 8 bit images. Only operates on the first frame. </explanation>
+      <argument>-ut, --uppert_thresh threshold</argument>
+      <explanation>All voxels in volume greater than threshold are replaced with 0 </explanation>
       <argument>-i, --input_volume</argument>
       <argument>-o, --output_volume</argument>
       <argument>-c, --conform</argument>
