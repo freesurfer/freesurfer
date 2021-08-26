@@ -31,6 +31,7 @@ set RunNoSkip = ()
 set iid = ()
 set ijd = ()
 set ikd = ()
+set DCR3 = 0
 
 set RunNos = ();
 set SubDirs = ();
@@ -398,6 +399,7 @@ foreach run ($RunNos)
     if($#ijd) set cmd = ($cmd -ijd $ijd);
     if($#ikd) set cmd = ($cmd -ikd $ikd);
     if($DoFirstDicom) set cmd = ($cmd --first-dicom $outdir/log/$FName.first.dicom.path)
+    if($DCR3) set cmd = ($cmd -dicomread3)
     echo $cmd |& tee -a $LF
     $cmd |& tee -a $LF
     if($status) then
@@ -692,6 +694,10 @@ while( $#argv != 0 )
     case "-copy-only":
       set DoConvert = 0;
       set DoCopy = 1;
+      breaksw
+
+    case "-dcr3":
+      set DCR3 = 1;
       breaksw
 
     case "-max":
