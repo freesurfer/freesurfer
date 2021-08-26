@@ -57,6 +57,9 @@ extern int errno;
 
 const char *Progname;
 
+float upper_thresh = 0.0 ;
+int upper_thresh_flag = FALSE ;
+
 int ncutends = 0, cutends_flag = 0;
 
 int slice_crop_flag = FALSE;
@@ -358,6 +361,11 @@ int main(int argc, char *argv[])
     {
       get_ints(argc, argv, &i, reorder4_vals, 4);
       reorder4_flag = TRUE;
+    }
+    else if(strcmp(argv[i], "-ut") == 0 || strcmp(argv[i], "--upper_thresh") == 0)
+    {
+      get_floats(argc, argv, &i, &upper_thresh, 1);
+      upper_thresh_flag = TRUE ;
     }
     else if(strcmp(argv[i], "-oval") == 0 || strcmp(argv[i], "--outside_val") == 0)
     {
@@ -1979,6 +1987,13 @@ int main(int argc, char *argv[])
     exit(1);
   }
 
+  if (upper_thresh_flag)
+  {
+    MRI *mri_tmp ;
+    mri_tmp = MRIupperthresholdAllFrames(mri, NULL, upper_thresh) ;
+    MRIfree(&mri) ;
+    mri = mri_tmp ;
+  }
 
   if (outside_val > 0)
     mri->outside_val = outside_val ;
