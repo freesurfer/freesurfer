@@ -6,7 +6,7 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -290,7 +290,10 @@ main(int argc, char *argv[])
     char path[STRLEN], fname[STRLEN] ;
     LABEL *area ;
     FileNamePath(mri_target->fname, path) ;
-    sprintf(fname, "%s/%s", path, label_ignore_name) ;
+    int req = snprintf(fname, STRLEN, "%s/%s", path, label_ignore_name) ;
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     area = LabelRead(NULL, fname) ;
     if (area == NULL)
     {
@@ -388,7 +391,10 @@ main(int argc, char *argv[])
       LABEL *area ;
 
       FileNamePath(mri_target->fname, path) ;
-      sprintf(fname, "%s/%s", path, label_dist_name) ;
+      int req = snprintf(fname, STRLEN, "%s/%s", path, label_dist_name) ;
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       area = LabelRead(NULL, fname) ;
       if (area == NULL)
       {
@@ -446,7 +452,10 @@ main(int argc, char *argv[])
               label = Right_Cerebral_Cortex ;
               hemi = "rh" ;
             }
-            sprintf(fname, "%s/%s%s.white", path, hemi, str) ;
+            int req = snprintf(fname, STRLEN, "%s/%s%s.white", path, hemi, str) ;
+	    if( req >= STRLEN ) {
+	      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	    }
             mris_white = MRISread(fname) ;
             if (mris_white == NULL)
             {
@@ -454,7 +463,10 @@ main(int argc, char *argv[])
                         "%s: could not read surface %s", Progname, fname) ;
             }
             MRISsaveVertexPositions(mris_white, WHITE_VERTICES) ;
-            sprintf(fname, "%s/%s%s.pial", path, hemi, str) ;
+            req = snprintf(fname, STRLEN, "%s/%s%s.pial", path, hemi, str) ;
+	    if( req >= STRLEN ) {
+	      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	    }
             mris_pial = MRISread(fname) ;
             if (mris_pial == NULL)
             {
@@ -505,7 +517,10 @@ main(int argc, char *argv[])
       LABEL *area ;
 
       FileNamePath(mri_target->fname, path) ;
-      sprintf(fname, "%s/%s", path, label_dist_name) ;
+      int req = snprintf(fname, STRLEN, "%s/%s", path, label_dist_name) ;
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       area = LabelRead(NULL, fname) ;
       if (area == NULL)
       {
@@ -554,17 +569,26 @@ main(int argc, char *argv[])
 
     if (getenv("DONT_COMPRESS"))
     {
-      sprintf(fname, "%s_target.mgh", mp.base_name) ;
+      int req = snprintf(fname, STRLEN, "%s_target.mgh", mp.base_name) ;
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
     }
     else
     {
-      sprintf(fname, "%s_target.mgz", mp.base_name) ;
+      int req = snprintf(fname, STRLEN, "%s_target.mgz", mp.base_name) ;
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
     }
     if (mp.diag_morph_from_atlas == 0)
     {
       printf("writing target volume to %s...\n", fname) ;
       MRIwrite(mri_target_diag, fname) ;
-      sprintf(fname, "%s_target", mp.base_name) ;
+      int req = snprintf(fname, STRLEN, "%s_target", mp.base_name) ;
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       MRIwriteImageViews(mri_target_diag, fname, IMAGE_SIZE) ;
     }
     else
@@ -580,7 +604,10 @@ main(int argc, char *argv[])
       }
       printf("writing target volume to %s...\n", fname) ;
       MRIwrite(mri_gca, fname) ;
-      sprintf(fname, "%s_target", mp.base_name) ;
+      int req = snprintf(fname, STRLEN, "%s_target", mp.base_name) ;
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       MRIwriteImageViews(mri_gca, fname, IMAGE_SIZE) ;
       MRIfree(&mri_gca) ;
     }
@@ -1204,20 +1231,32 @@ write_snapshot(MRI *mri_target, MRI *mri_source, MATRIX *m_vox_xform,
   }
   if (in_fname)
   {
-    sprintf(fname, "%s_%s", parms->base_name, in_fname) ;
+    int req = snprintf(fname, STRLEN, "%s_%s", parms->base_name, in_fname) ;
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
   }
   else
   {
-    sprintf(fname, "%s_%03d", parms->base_name, fno) ;
+    int req = snprintf(fname, STRLEN, "%s_%03d", parms->base_name, fno) ;
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
   }
   MRIwriteImageViews(mri_aligned, fname, IMAGE_SIZE) ;
   if (in_fname)
   {
-    sprintf(fname, "%s_%s.mgz", parms->base_name, in_fname) ;
+    int req = snprintf(fname, STRLEN, "%s_%s.mgz", parms->base_name, in_fname) ;
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
   }
   else
   {
-    sprintf(fname, "%s_%03d.mgz", parms->base_name, fno) ;
+    int req = snprintf(fname, STRLEN, "%s_%03d.mgz", parms->base_name, fno) ;
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
   }
   printf("writing snapshot to %s...\n", fname) ;
   MRIwrite(mri_aligned, fname) ;
@@ -1236,11 +1275,17 @@ write_snapshot(MRI *mri_target, MRI *mri_source, MATRIX *m_vox_xform,
 #endif
     if (in_fname)
     {
-      sprintf(fname, "orig_%s_%s.mgz", parms->base_name, in_fname) ;
+      int req =snprintf(fname, STRLEN, "orig_%s_%s.mgz", parms->base_name, in_fname) ;
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
     }
     else
     {
-      sprintf(fname, "orig_%s_%03d.mgz", parms->base_name, fno) ;
+      int req = snprintf(fname, STRLEN, "orig_%s_%03d.mgz", parms->base_name, fno) ;
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
     }
     printf("writing snapshot to %s...\n", fname) ;
     MRIwrite(mri_aligned, fname) ;

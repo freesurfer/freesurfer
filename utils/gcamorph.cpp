@@ -13,7 +13,7 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -405,7 +405,7 @@ int GCAMwrite(const GCA_MORPH *gcam, const char *fname)
   if (gcam->m_affine) {
     znzwriteInt(TAG_MGH_XFORM, file);
     // MatrixAsciiWriteInto(file, gcam->m_affine) ;
-    znzWriteMatrix(file, gcam->m_affine);
+    znzWriteMatrix(file, gcam->m_affine, 0);
   }
 
   znzclose(file);

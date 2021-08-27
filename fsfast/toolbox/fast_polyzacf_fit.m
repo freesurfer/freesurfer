@@ -17,7 +17,7 @@ function [coeff, acffit, X] = fast_polyzacf_fit(acf,order,maxlag,wflag)
 %
 % Original Author: Doug Greve
 %
-% Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+% Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
 %
 % Terms and conditions for use, reproduction, distribution and contribution
 % are found in the 'FreeSurfer Software License Agreement' contained

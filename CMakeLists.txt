@@ -38,6 +38,7 @@ option(INSTALL_PYTHON_DEPENDENCIES "Install python package dependencies" ON)
 #  compiler errors with "-Werror" turned on.  The WARNING_AS_ERROR option allows temporarily
 #  disabling warnings as errors to allow a more gradual move to supporting new compilers.
 option(WARNING_AS_ERROR "Convert build warnings to errors" ON)
+option(MARTINOS_BUILD "Does the build have access to the martinos network" ON)
 
 if(NOT APPLE)
   # linux-only build options
@@ -127,8 +128,14 @@ if(NOT APPLE)
   find_library(GFORTRAN_LIBRARIES
     HINTS /usr/lib64 /usr/lib /usr/lib/gcc/*/*/
     NAMES libgfortran.a gfortran)
-  find_library(BLAS_LIBRARIES NAMES libblas.a libopenblas.a)
+  find_library(BLAS_LIBRARIES NAMES libopenblas.a libblas.a)
   find_library(LAPACK_LIBRARIES NAMES liblapack.a)
+  find_library(QUADMATH_LIBRARIES
+    HINTS /usr/lib64 /usr/lib /usr/lib/gcc/*/*/
+    NAMES libquadmath.a libquadmath.so libquadmath.so.0)
+  if(NOT QUADMATH_LIBRARIES)
+    set(QUADMATH_LIBRARIES "")
+  endif()
 endif()
 
 # -------- armadillo --------
@@ -201,6 +208,13 @@ if(VTK_FOUND AND VTK_BUILD_SHARED_LIBS)
   if(${VTK_VERSION} LESS 7)
     file(GLOB _vtk_library_list "${VTK_LIBRARY_DIRS}/lib*.so*")
   else()
+    # special libvtkproj
+    file(GLOB _found_library "${VTK_LIBRARY_DIRS}/libvtkproj*.so*")
+    list(APPEND _vtk_library_list ${_found_library})
+    # special libvtkNetCDF
+    file(GLOB _found_library "${VTK_LIBRARY_DIRS}/libvtkNetCDF*.so*")
+    list(APPEND _vtk_library_list ${_found_library})
+    # the rest of the VTK libraries
     foreach(_vtk_module ${VTK_MODULES_ENABLED})
       foreach(_vtk_library ${${_vtk_module}_LIBRARIES})
         file(GLOB _found_library "${${_vtk_module}_RUNTIME_LIBRARY_DIRS}/lib${_vtk_library}*.so*")
@@ -281,12 +295,20 @@ endif()
 #             freesurfer build settings
 # --------------------------------------------------
 
+host_os()
 # warnings
 if(NOT NO_CXX_WARN)
   if(WARNING_AS_ERROR)
     set(WARN_AS_ERROR_FLAG "-Werror")
+    if(HOST_OS MATCHES "CentOS8")
+       # -Wno-cpp needed with gcc8 for /usr/pubse/packages/vtk 7.1 compiled with older compilers
+       # -Wno-restrict needed with gcc8 for ./freesurfer/mris_compute_acorr/mris_compute_acorr.cpp
+       # -Wno-format-overflow needed with gcc8 for ./fresurfer/mris2rgb/mris2rgb.cpp
+       set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra ${WARN_AS_ERROR_FLAG} -Wno-cpp -Wno-restrict -Wno-format-overflow -Wno-sign-compare -Wno-unused-result -Wno-unused-parameter")
+    else ()
+       set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra ${WARN_AS_ERROR_FLAG} -Wno-sign-compare -Wno-unused-result -Wno-unused-parameter")
+    endif()
   endif()
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra ${WARN_AS_ERROR_FLAG} -Wno-sign-compare -Wno-unused-result -Wno-unused-parameter")
 else ()
    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error -Wno-deprecated-declarations -fpermissive") 
 endif()
@@ -358,6 +380,7 @@ add_subdirectories(
   AntsDenoiseImageFs
   AntsN4BiasFieldCorrectionFs
   lta_convert
+  io
   mri_and
   mri_add_xform_to_header
   mri_annotation2label
@@ -534,13 +557,17 @@ if(NOT MINIMAL)
     mri_ribbon
     mri_rigid_register
     mri_sbbr
+    mri_sclimbic_seg
     mri_segcentroids
     mri_seghead
     mri_segment_hypothalamic_subunits
     mri_strip_nonwhite
     mri_strip_subject_info
     mri_surfacemask
+    mri_synth_strip
+    mri_SynthSR
     mri_synthesize
+    mri_threshold
     mri_topologycorrection
     mri_train
     mri_transform
@@ -598,6 +625,7 @@ if(NOT MINIMAL)
     mris_register_to_volume
     mris_remove_variance
     mris_remesh
+    mris_reposition_surface
     mris_resample
     mris_rescale
     mris_reverse
@@ -639,6 +667,7 @@ if(NOT MINIMAL)
     ThalamicNuclei
     trc
     tridec
+    pointset2label
   )
 endif()
 
@@ -657,7 +686,7 @@ endif()
 #    endif()
 # endif()
 
-host_os()
+# host_os()
 # message(STATUS "FROM top level CMakeLists.txt HOST_OS=${HOST_OS}")
 message(STATUS "Building on host OS ${HOST_OS}")
 

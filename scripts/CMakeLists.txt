@@ -27,6 +27,7 @@ install_configured(
   conf2hires
   cor_to_minc
   cp-dicom
+  csvprint
   dcmdir-info-mgh
   dcmsplit
   dcmunpack
@@ -34,9 +35,11 @@ install_configured(
   defect2seg
   defect-seg
   dicom-rename
+  dmri_bset
   dmrirc.example
   dmrirc.long.example
-  dsh
+  dmrirc.long.multiscan.example
+  dmrirc.multiscan.example
   dt_recon
   epidewarp.fsl
   extract_talairach_avi_QA.awk
@@ -132,7 +135,6 @@ install_configured(
   map_all_labels-lh
   map_central_sulcus
   map_to_base
-  mcparams2reg
   meanval
   mergeseg
   minc2seqinfo
@@ -167,7 +169,6 @@ install_configured(
   mri_nu_correct.mni
   mri_reorient_LR.csh
   mris_preproc
-  mris_roiCircle
   mris_volsmooth
   ms_refine_subject
   orientLAS

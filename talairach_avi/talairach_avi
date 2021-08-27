@@ -8,7 +8,7 @@
 # Original Author: Nick Schmansky
 #
 #
-# Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
+# Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
 #
 # Terms and conditions for use, reproduction, distribution and contribution
 # are found in the 'FreeSurfer Software License Agreement' contained
@@ -101,10 +101,20 @@ set cmd = (avi2talxfm \
 echo $cmd >>& $LF
 $cmd >>& $LF
 set st = $status
-mv -f talsrcimg_to_${target}_t4_vox2vox.txt transforms/
-if($st) then
-  echo "ERROR: avi2talxfm failed, see $LF"
-  exit 1;
+
+
+# This used to assume that "transforms" was the outdir
+set fname1 = `getfullpath talsrcimg_to_${target}_t4_vox2vox.txt`
+set fname2 = `getfullpath $OutDir/talsrcimg_to_${target}_t4_vox2vox.txt`
+if($fname1 != $fname2) then
+  set cmd = (mv -f $fname1 $fname2)
+  echo $cmd |& tee -a $LF
+  $cmd  |& tee -a $LF
+  set st = $status
+  if($st) then
+    echo "ERROR: avi2talxfm failed, see $LF"
+    exit 1;
+  endif
 endif
 
 # Create an lta version of the xfm for convenience

@@ -42,5 +42,5 @@ cmake ../ITK \
   -DModule_AnisotropicDiffusionLBR:BOOL=ON \
   -DBUILD_TESTING:BOOL=OFF
 
-cmake --build . --target all -j8
+cmake --build . --target all -j 8
 cmake --build . --target install

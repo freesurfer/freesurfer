@@ -5,7 +5,7 @@
 /*
  * Original Author: Ruopeng Wang
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -31,6 +31,7 @@ class vtkTextActor;
 
 class Region2DLine : public Region2D
 {
+  Q_OBJECT
 public:
   Region2DLine( RenderView2D* view );
   virtual ~Region2DLine();

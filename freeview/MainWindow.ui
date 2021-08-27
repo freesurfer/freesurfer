@@ -354,6 +354,9 @@
     <addaction name="actionLoadTractCluster"/>
     <addaction name="actionCloseTrack"/>
     <addaction name="separator"/>
+    <addaction name="actionLoadODF"/>
+    <addaction name="actionCloseODF"/>
+    <addaction name="separator"/>
     <addaction name="actionLoadFCD"/>
     <addaction name="actionCloseFCD"/>
     <addaction name="separator"/>
@@ -417,6 +420,8 @@
     <addaction name="actionShowSliceFrames"/>
     <addaction name="separator"/>
     <addaction name="actionStereoRender"/>
+    <addaction name="separator"/>
+    <addaction name="actionSyncInstances"/>
    </widget>
    <widget class="QMenu" name="menuLayer">
     <property name="title">
@@ -434,6 +439,8 @@
     <addaction name="actionTogglePointSetVisibility"/>
     <addaction name="separator"/>
     <addaction name="actionToggleAllSurfaces"/>
+    <addaction name="actionCycleOverlay"/>
+    <addaction name="actionCycleAnnotation"/>
     <addaction name="separator"/>
     <addaction name="actionSelectAllLayers"/>
     <addaction name="actionDeselectAllLayers"/>
@@ -474,6 +481,7 @@
     <addaction name="actionThresholdVolume"/>
     <addaction name="actionCreateOptimalCombinedVolume"/>
     <addaction name="separator"/>
+    <addaction name="actionTransformSurface"/>
     <addaction name="actionRepositionSurface"/>
     <addaction name="actionSmoothSurface"/>
     <addaction name="actionRemoveIntersectionsSurface"/>
@@ -482,6 +490,8 @@
     <addaction name="separator"/>
     <addaction name="actionSavePoint"/>
     <addaction name="actionGoToPoint"/>
+    <addaction name="actionSyncInstances"/>
+    <addaction name="actionTileSyncedWindows"/>
     <addaction name="separator"/>
     <addaction name="actionSaveCamera"/>
     <addaction name="actionLoadCamera"/>
@@ -1749,7 +1759,7 @@
   </action>
   <action name="actionCycleOverlay">
    <property name="text">
-    <string>Cycle Overlay</string>
+    <string>Cycle Throught Overlays</string>
    </property>
    <property name="shortcut">
     <string>Alt+R</string>
@@ -1785,6 +1795,50 @@
    </property>
    <property name="toolTip">
     <string>Floating Panels</string>
+   </property>
+  </action>
+  <action name="actionCycleAnnotation">
+   <property name="text">
+    <string>Cycle Through Annotations</string>
+   </property>
+   <property name="shortcut">
+    <string>Meta+Alt+A</string>
+   </property>
+  </action>
+  <action name="actionSyncInstances">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Sync With Other Instances</string>
+   </property>
+  </action>
+  <action name="actionTileSyncedWindows">
+   <property name="text">
+    <string>Tile Synced Windows</string>
+   </property>
+  </action>
+  <action name="actionLoadODF">
+   <property name="text">
+    <string>Load ODF ...</string>
+   </property>
+  </action>
+  <action name="actionCloseODF">
+   <property name="text">
+    <string>Close ODF</string>
+   </property>
+  </action>
+  <action name="actionTransformSurface">
+   <property name="text">
+    <string>Transform Surface...</string>
+   </property>
+  </action>
+  <action name="actionCopyView">
+   <property name="text">
+    <string>Copy View</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+C</string>
    </property>
   </action>
  </widget>
@@ -3642,6 +3696,118 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>actionSyncInstances</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnSyncInstances(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionTileSyncedWindows</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnTileSyncedWindows()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionLoadODF</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnLoadODF()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionCloseODF</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnCloseODF()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionTransformSurface</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnTransformSurface()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionCreateOptimalCombinedVolume</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnCreateOptimalVolume()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionCopyView</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnCopyView()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <signal>CycleOverlayRequested()</signal>
@@ -3750,5 +3916,12 @@
   <slot>OnVolumeFilterBoundary()</slot>
   <slot>OnShowControlPanel(bool)</slot>
   <slot>OnFloatPanels(bool)</slot>
+  <slot>OnSyncInstances(bool)</slot>
+  <slot>OnTileSyncedWindows()</slot>
+  <slot>OnLoadODF()</slot>
+  <slot>OnCloseODF()</slot>
+  <slot>OnTransformSurface()</slot>
+  <slot>OnCreateOptimalVolume()</slot>
+  <slot>OnCopyView()</slot>
  </slots>
 </ui>

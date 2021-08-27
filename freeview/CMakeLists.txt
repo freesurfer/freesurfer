@@ -195,6 +195,14 @@ if(BUILD_GUIS AND VTK_FOUND AND PETSC_FOUND AND TARGET vtkutils)
     WindowEditAnnotation.cpp
     DialogNewAnnotation.cpp
     DialogScreenshotOverlay.cpp
+    DialogControlPointComment.cpp
+    LayerODF.cpp
+    LayerPropertyODF.cpp
+    PanelODF.cpp
+    DialogTransformSurface.cpp
+    Region3D.cpp
+    DialogMovePoint.cpp
+    VolumeFilterOptimal.cpp
     freeview.qrc
   )
 
@@ -211,6 +219,19 @@ if(BUILD_GUIS AND VTK_FOUND AND PETSC_FOUND AND TARGET vtkutils)
       QVTK7/QVTKInteractorAdapter.cxx
       QVTK7/QVTKWidget.cxx
       QVTK7/QVTKPaintEngine.cxx
+    )
+  else()
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/QVTK8)
+    set(SOURCES ${SOURCES}
+      QVTK8/vtkEventQtSlotConnect.cxx
+      QVTK8/vtkQtConnection.cxx
+      QVTK8/QVTKInteractor.cxx
+      QVTK8/QVTKInteractorAdapter.cxx
+      QVTK8/QVTKWidget.cxx
+      QVTK8/QVTKPaintEngine.cxx
+      QVTK8/QVTKOpenGLNativeWidget.cxx
+      QVTK8/QVTKOpenGLWidget.cxx
+      QVTK8/QVTKOpenGLWindow.cxx
     )
   endif()
 

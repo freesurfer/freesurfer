@@ -7,7 +7,7 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -150,7 +150,7 @@ main(int argc, char *argv[])
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
 
-  memset(&parms, 0, sizeof(parms)) ;
+  // memset(&parms, 0, sizeof(parms)) ; Have proper constructor now
   parms.projection = PROJECT_SPHERE ;
   parms.flags |= IP_USE_CURVATURE ;
   parms.tol = 0.5 ;    // was 1e-0*2.5
@@ -229,7 +229,10 @@ main(int argc, char *argv[])
 
   for (i = 0 ; i < nsubjects ; i++)
   {
-    sprintf(fname, "%s/%s/surf/%s.%s", sdir, argv[i+3], hemi, surf_name) ;
+    int req = snprintf(fname, STRLEN, "%s/%s/surf/%s.%s", sdir, argv[i+3], hemi, surf_name) ;
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     fprintf(stderr, "reading surface from %s...\n", fname) ;
     mris_array[i] = MRISread(fname) ;
     if (!mris_array[i])
@@ -1048,7 +1051,10 @@ MRIScongeal(MRI_SURFACE *mris_ico, MRI_SURFACE **mris_array, int nsubjects,
   if (Gdiag & DIAG_WRITE)
   {
     char fname[STRLEN] ;
-    sprintf(fname, "%s.log", parms->base_name) ;
+    int req = snprintf(fname, STRLEN, "%s.log", parms->base_name) ;
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     INTEGRATION_PARMS_openFp(parms, fname, "a") ;
   }
 
@@ -1100,7 +1106,10 @@ MRIScongeal(MRI_SURFACE *mris_ico, MRI_SURFACE **mris_array, int nsubjects,
       if (Gdiag & DIAG_WRITE && parms->write_iterations > 0)
       {
         char fname[STRLEN] ;
-        sprintf(fname, "%s.template.sno%d.iter%d", parms->base_name, sno, iter) ;
+        int req = snprintf(fname, STRLEN, "%s.template.sno%d.iter%d", parms->base_name, sno, iter) ;
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
         MRISwriteCurvature(mris_ico, fname) ;
       }
       MRIScongealUpdateRigidRegistration(mris_ico, mris_array, mht_array, mht_ico, nsubjects, angle, parms) ;
@@ -1114,7 +1123,10 @@ MRIScongeal(MRI_SURFACE *mris_ico, MRI_SURFACE **mris_array, int nsubjects,
     if (Gdiag & DIAG_WRITE && parms->write_iterations > 0)
     {
       char fname[STRLEN] ;
-      sprintf(fname, "%s.template.sno%d.iter%d", parms->base_name, sno, iter) ;
+      int req = snprintf(fname, STRLEN, "%s.template.sno%d.iter%d", parms->base_name, sno, iter) ;
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       MRISwriteCurvature(mris_ico, fname) ;
     }
     do
@@ -1400,16 +1412,25 @@ mrisWriteSnapshot(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int t)
   char fname[STRLEN], path[STRLEN], base_name[STRLEN], *cp ;
 
   FileNamePath(mris->fname, path) ;
-  sprintf(base_name, "%s/%s.%s.sno%d.iter%d", path,
-          mris->hemisphere == LEFT_HEMISPHERE ? "lh":"rh", parms->base_name, Gsno, Giter);
+  int req = snprintf(base_name, STRLEN, "%s/%s.%s.sno%d.iter%d", path,
+		     mris->hemisphere == LEFT_HEMISPHERE ? "lh":"rh", parms->base_name, Gsno, Giter);
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   if ((cp = strstr(base_name, ".geo")) != NULL)
   {
     *cp = 0;
-    sprintf(fname, "%s%4.4d.geo", base_name, t) ;
+    int req=snprintf(fname, STRLEN, "%s%4.4d.geo", base_name, t) ;
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     *cp = '.' ;
+  } else {
+    int req = snprintf(fname, STRLEN, "%s.%4.4d", base_name, t) ;
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
   }
-  else
-    sprintf(fname, "%s.%4.4d", base_name, t) ;
 #if 1
   if (Gdiag & DIAG_SHOW)
     fprintf(stdout, "writing %s...", fname) ;
@@ -1429,7 +1450,10 @@ mrisWriteSnapshot(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int t)
   {
     MRI_SP *mrisp = (MRI_SP *)mris->vp ;
 
-    sprintf(fname, "%s%4.4d.hipl", parms->base_name, t) ;
+    int req = snprintf(fname, STRLEN, "%s%4.4d.hipl", parms->base_name, t) ;
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     if (Gdiag & DIAG_SHOW)
       fprintf(stdout, "writing %s\n", fname) ;
     MRIStoParameterization(mris, mrisp, 1, 0) ;

@@ -1,7 +1,7 @@
 /**
  * @brief program to transform an mri or cmat structure using a linear transform
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -513,6 +513,7 @@ get_option(int argc, char *argv[]) {
       nargs = 1 ;
       fprintf(stderr, "computing average distance traversed by label %d\n", labels[nlabels]) ;
       nlabels++ ;
+      break;
     case 'V':
       Gdiag_no = atoi(argv[2]) ;
       nargs = 1 ;

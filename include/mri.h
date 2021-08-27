@@ -6,7 +6,7 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -251,6 +251,7 @@ public:
   double flip_angle = 0;        // flip angle in radians
   float FieldStrength = 0;      // field strength
   char *pedir = nullptr;        // phase enc direction: ROW, COL, etc
+  MATRIX *origRas2Vox = nullptr ;         // to get to original voxel grid from ras
   float location = 0;           // NOT USED
 
   // ---- DTI ----
@@ -1607,5 +1608,7 @@ MRI *MRIsolveLaplaceEquation(MRI *mri_interior, MRI *mri_seg, int source_label, 
 int MRIsampleVolumeFrameMasked(const MRI *mri, const MRI *mri_mask, double x, double y, double z, const int frame, double *pval);
 
 int MRIclipBrightWM(MRI *mri_T1, const MRI *mri_wm);
+std::vector<std::vector<double>> *MRIdiff2Vect(const MRI *mri1, const MRI *mri2, const double thresh, const MRI *mask);
+MRI *MRIapplyDiffVect(MRI *mri1, const MRI *mask, std::vector<std::vector<double>> diffvec, int *napply, MRI *mri2);
 
 #endif

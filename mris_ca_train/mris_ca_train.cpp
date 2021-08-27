@@ -20,7 +20,7 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -220,8 +220,11 @@ main(int argc, char *argv[])
       subject_name = argv[i+4] ;
       printf("processing subject %s, %d of %d...\n", subject_name,i+1,
              nsubjects);
-      sprintf(fname, "%s/%s/surf/%s.%s", subjects_dir, subject_name,
-              hemi, orig_name) ;
+      int req = snprintf(fname, STRLEN, "%s/%s/surf/%s.%s", subjects_dir, subject_name,
+			 hemi, orig_name) ;    
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       if (DIAG_VERBOSE_ON)
         printf("reading surface from %s...\n", fname) ;
       mris = MRISread(fname) ;
@@ -238,8 +241,12 @@ main(int argc, char *argv[])
         int   i ;
         VERTEX *v ;
 
-        sprintf(fname, "%s/%s/label/%s.%s", 
-                subjects_dir, subject_name, hemi, annot_name) ;
+        int req = snprintf(fname, STRLEN, "%s/%s/label/%s.%s", 
+			   subjects_dir, subject_name, hemi, annot_name) ; 
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
+	
         area = LabelRead(subject_name, fname) ;
         if (area == NULL)
           ErrorExit

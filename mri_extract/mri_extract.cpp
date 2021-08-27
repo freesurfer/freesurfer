@@ -1,6 +1,6 @@
 /*
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -73,15 +73,19 @@ main(int argc, char *argv[]) {
   {
     if (argc < 2)
       ErrorExit(ERROR_BADPARM,
-		"usage: %s <src volume> x0 y0 z0 dx dy dz <dst volume>", Progname) ;
+		"usage: %s -like <template vol> <src volume>  <dst volume>", Progname) ;
 
     
   }
   else
   {
     if (argc < 8)
-      ErrorExit(ERROR_BADPARM,
-		"usage: %s <src volume> x0 y0 z0 dx dy dz <dst volume>", Progname) ;
+    {
+      printf("usage: %s -like <template vol> <src volume>  <dst volume>\n", Progname) ;
+      printf("\nor\n\n");
+      printf("usage: %s <src volume> x0 y0 z0 dx dy dz <dst volume>", Progname) ;
+      ErrorExit(ERROR_BADPARM, "", Progname) ;
+    }
 
     if (sscanf(argv[2], "%d", &x0) != 1)
       ErrorExit(ERROR_BADPARM,
@@ -197,9 +201,12 @@ get_option(int argc, char *argv[]) {
     fprintf(stderr, "reducing %d times\n", reductions) ;
     nargs = 1 ;
     break ;
+  case 'H':
   case '?':
   case 'U':
-    printf("usage: %s [input directory] [output directory]\n", argv[0]) ;
+    printf("usage: %s -like <template vol> <src volume>  <dst volume>\n", Progname) ;
+    printf("\nor\n\n");
+    printf("usage: %s <src volume> x0 y0 z0 dx dy dz <dst volume>", Progname) ;
     exit(1) ;
     break ;
   default:

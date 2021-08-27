@@ -9,7 +9,7 @@
  * Original Author: Kevin Teich
  * Reimplemented by: Ruopeng Wang
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -85,6 +85,7 @@ public:
   QVariantMap GetActiveSettings();
   QVariantMap GetFullSettings();
   void CopySettings  ( const LayerPropertyMRI* p );
+  void CopyWindowLevelSettings(const LayerPropertyMRI* p);
   void RestoreSettings( const QVariantMap& map);
   void RestoreSettings( const QString& filename );
   void SaveSettings   ( const QString& filename );
@@ -290,6 +291,11 @@ public:
     return m_bContourExtractAll;
   }
 
+  bool GetContourDilateFirst()
+  {
+    return m_bContourDilateFirst;
+  }
+
   bool GetShowLabelOutline()
   {
     return m_bShowLabelOutline;
@@ -435,6 +441,7 @@ public slots:
   void SetContourUseImageColorMap( bool bFlag );
   void SetContourUpsample( bool bFlag );
   void SetContourExtractAllRegions( bool bExtractAll );
+  void SetContourDilateFirst( bool bDilate );
   void SetContourColor(const QColor& c)
   {
     SetContourColor(c.redF(), c.greenF(), c.blueF());
@@ -479,7 +486,7 @@ signals:
   void ContourChanged();
   void ContourColorChanged();
   void ContourSmoothIterationChanged( int );
-  void ContourVoxelized(bool bVoxelize);
+  void ContourNeedsRebuild();
   void LabelOutlineChanged( bool bOutline );
   void UpSampleMethodChanged( int nMethod );
   void ProjectionMapChanged();
@@ -564,6 +571,7 @@ private:
   double  m_rgbContour[3];
   bool    m_bContourUseImageColorMap;
   bool    m_bContourExtractAll;
+  bool    m_bContourDilateFirst;
   int     m_nContourSmoothIterations;
   bool    m_bContourUpsample;
 

@@ -6,7 +6,7 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -339,6 +339,7 @@ MRI::~MRI()
   }
 
   if (pedir) free(pedir);
+  if (ct) CTABfree(&ct);
 }
 
 
@@ -5799,6 +5800,9 @@ MRI *MRIcopyHeader(const MRI *mri_src, MRI *mri_dst)
   if (mri_src->AutoAlign != NULL) {
     mri_dst->AutoAlign = MatrixCopy(mri_src->AutoAlign, NULL);
   }
+  if (mri_src->origRas2Vox != NULL) {
+    mri_dst->origRas2Vox = MatrixCopy(mri_src->origRas2Vox, NULL);
+  }
 
   for (i = 0; i < mri_dst->ncmds; i++) free(mri_dst->cmdlines[i]);
   for (i = 0; i < mri_src->ncmds; i++) {
@@ -5806,6 +5810,20 @@ MRI *MRIcopyHeader(const MRI *mri_src, MRI *mri_dst)
     strcpy(mri_dst->cmdlines[i], mri_src->cmdlines[i]);
   }
   mri_dst->ncmds = mri_src->ncmds;
+
+  // maybe copy ctab if FS_COPY_HEADER_CTAB is set
+  // (this is for timing purposes)
+  //printf("Copy ctab %s\n",getEnvironVar("FS_COPY_HEADER_CTAB"));
+  if(mri_src->ct) {
+    printf("MRIcopyHeader(): source has ctab\n");
+    std::string copy_ctab = getEnvironVar("FS_COPY_HEADER_CTAB");
+    if ((!copy_ctab.empty()) && (copy_ctab != "0"))
+    {
+      printf("  ... copying ctab\n");
+      if(mri_dst->ct) CTABfree(&mri_dst->ct);
+      mri_dst->ct = CTABdeepCopy(mri_src->ct);
+    }
+  }
 
   return (mri_dst);
 }
@@ -17129,3 +17147,114 @@ MRIlimitsMultipleTimes(MRI *mri_src, float *psrc_min, float *psrc_max, int ntime
 }
 
 	  
+
+/*!
+  \fn MRI *MRIapplyDiffVect(MRI *mri1, const MRI *mask, const std::vector<std::vector<double>> diffvec, int *napply, MRI *mri2)
+  \brief Modifies mri1 based on the diffvec. diffvec is a 2D vector as
+  created by MRIdiff2vect().  If this is called with the same args as
+  MRIdiff2vect(), then mri1 is converted to mri2. napply is the number
+  of changes that were applied. This may only be different fro the
+  length of diffvec if a mask is used. This function can be run
+  in-place.
+ */
+MRI *MRIapplyDiffVect(MRI *mri1, const MRI *mask, std::vector<std::vector<double>> diffvec, int *napply, MRI *mri2)
+{
+  *napply = 0;
+  if(mri1 == NULL){
+    printf("MRIapplyDiffVect(): ERROR: mri1 is NULL\n");
+    return(NULL);
+  }
+  if(mri1 != mri2){
+    mri2 = MRIcopy(mri1, mri2);
+    if(mri2 == NULL) return(NULL);
+    MRIcopyPulseParameters(mri1,mri2);
+  }
+  int err = MRIdimMismatch(mri1,mri2,0);
+  if(mri1->ct){
+    if(mri2->ct) CTABfree(&mri2->ct);
+    mri2->ct = CTABdeepCopy(mri1->ct);
+  }
+  if(err){
+    printf("MRIapplyDiffVect(): ERROR: dimension mismatch\n");
+    return(NULL);
+  }
+  if(mask){
+    err = MRIdimMismatch(mri1,mask,0);
+    if(err){
+      printf("MRIapplyDiffVect(): ERROR: dimension mismatch with mask\n");
+      return(NULL);
+    }
+  }
+  std::vector<std::vector<double>>::iterator vit;
+  for(vit = diffvec.begin() ; vit != diffvec.end(); ++vit){
+    int c,r,s;
+    c = (int)(*vit)[0];
+    r = (int)(*vit)[1];
+    s = (int)(*vit)[2];
+    if(c<0 || r<0 || s <0 || c>mri1->width || r>mri1->height || s>mri1->depth){
+      printf("MRIapplyDiffVect(): voxel index out of bounds %d %d %d\n",c,r,s);
+      return(NULL);
+    }
+    if(mask && MRIgetVoxVal(mask,c,r,s,0) < 0.5) continue;
+    MRIsetVoxVal(mri2,c,r,s,0,(*vit)[4]); // Note: use [4] here not [3]
+    (*napply)++;
+  }
+  return(mri2);
+}
+
+/*!
+  \fn std::vector<std::vector<double>> *MRIdiff2Vect(const MRI *mri1, const MRI *mri2, const double thresh, const MRI *mask)
+  \brief Makes a list of voxels where there is a difference (ie,
+  abs(v1-v1)>thresh) between mri1 and mri2 and the values of each at
+  these voxels. The output is a 2D vector where each row has 5 values:
+  row, col, slice, val1, val2. If the mask is non-null, then it only
+  considers values within the mask (ie, mask >= 0.5).
+ */
+std::vector<std::vector<double>> *MRIdiff2Vect(const MRI *mri1, const MRI *mri2, const double thresh, const MRI *mask)
+{
+  int c,r,s;
+  std::vector<std::vector<double>> *diffvec;
+  diffvec = new std::vector<std::vector<double>>;
+
+  if(mri1 == NULL){
+    printf("MRIdiff2Vect(): ERROR: mri1 is NULL\n");
+    return(NULL);
+  }
+  if(mri2 == NULL){
+    printf("MRIdiff2Vect(): ERROR: mri2 is NULL\n");
+    return(NULL);
+  }
+  int err = MRIdimMismatch(mri1,mri2,0);
+  if(err){
+    printf("MRIdiff2Vect(): ERROR: dimension mismatch\n");
+    return(NULL);
+  }
+  if(mask){
+    err = MRIdimMismatch(mri1,mask,0);
+    if(err){
+      printf("MRIdiff2Vect(): ERROR: dimension mismatch with mask\n");
+      return(NULL);
+    }
+  }
+
+  for(c=0; c < mri1->width; c++){
+    for(r=0; r < mri1->height; r++){
+      for(s=0; s < mri1->depth; s++){
+	if(mask && MRIgetVoxVal(mask,c,r,s,0) < 0.5) continue;
+	double v1 = MRIgetVoxVal(mri1,c,r,s,0);
+	double v2 = MRIgetVoxVal(mri2,c,r,s,0);
+	if(fabs(v1-v2) < thresh) continue;
+	std::vector<double> v;
+	v.push_back(c);
+	v.push_back(r);
+	v.push_back(s);
+	v.push_back(v1);
+	v.push_back(v2);
+	diffvec->push_back(v);
+      }
+    }
+  }
+  return(diffvec);
+}
+
+

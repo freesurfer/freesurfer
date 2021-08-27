@@ -228,6 +228,7 @@
 226 HP_tail                                 170 170 255 0
 227 Polymorphic-Layer                       128 255 128 0
 228 Intracellular-Space                     204 153 204 0
+229 molecular_layer_DG                      168 0   0   0
 
 231 HP_body                                 0 255 0 0
 232 HP_head                                 255 0 0 0
@@ -1046,44 +1047,71 @@
 #
 5100   fmajor                                           204 102 102 0
 5101   fminor                                           204 102 102 0
+5102   cc.body                                          204 102 102 0
+5103   cc.bodyc                                         255 153 153 0
+5104   cc.bodypf                                        255 153 153 0
+5105   cc.bodypm                                        255 204 204 0
+5106   cc.bodyp                                         255 102 102 0
+5107   cc.bodyt                                         255 204 204 0
+5108   cc.genu                                          255 102 102 0
+5109   cc.rostrum                                       204 51  51  0
+5110   cc.splenium                                      204 51  51  0
+5111   acomm                                            204 102 102 0
+5112   mcp                                              102 51  153 0
 #
-5102   lh.atr                                           255 255 102 0
-5103   lh.cab                                           153 204 0   0
-5104   lh.ccg                                           0   153 153 0
-5105   lh.cst                                           204 153 255 0
-5106   lh.ilf                                           255 153 51  0
-5107   lh.slfp                                          204 204 204 0
-5108   lh.slft                                          153 255 255 0
-5109   lh.unc                                           102 153 255 0
+5200   lh.atr                                           255 255 102 0
+5201   lh.cab                                           153 204 0   0
+5202   lh.ccg                                           0   153 153 0
+5203   lh.cst                                           204 153 255 0
+5204   lh.ilf                                           255 153 51  0
+5205   lh.slfp                                          204 204 204 0
+5206   lh.slft                                          153 255 255 0
+5207   lh.unc                                           102 153 255 0
+5208   lh.cb                                            0   153 153 0
+5209   lh.slf                                           204 204 204 0
+5210   lh.af                                            153 255 255 0
+5211   lh.ifof                                          51  153 51  0
+5212   lh.fx                                            255 153 204 0
+5213   lh.fat                                           204 51  102 0
+5214   lh.or                                            153 102 255 0
+5215   lh.mlf                                           255 255 204 0
+5216   lh.slf1                                          51  204 255 0
+5217   lh.slf2                                          51  255 204 0
+5218   lh.slf3                                          204 204 204 0
+5219   lh.afd                                           153 255 255 0
+5220   lh.afv                                           153 255 255 0
+5221   lh.ar                                            153 0   204 0
+5222   lh.cbd                                           0   153 153 0
+5223   lh.cbv                                           153 204 0   0
+5224   lh.emc                                           51  153 51  0
+5225   lh.uf                                            102 153 255 0
 #
-5110   rh.atr                                           255 255 102 0
-5111   rh.cab                                           153 204 0   0
-5112   rh.ccg                                           0   153 153 0
-5113   rh.cst                                           204 153 255 0
-5114   rh.ilf                                           255 153 51  0
-5115   rh.slfp                                          204 204 204 0
-5116   rh.slft                                          153 255 255 0
-5117   rh.unc                                           102 153 255 0
-
-# These are the same tracula labels as above in human-readable form
-5200   CC-ForcepsMajor                                  204 102 102 0
-5201   CC-ForcepsMinor                                  204 102 102 0
-5202   LAntThalRadiation                                255 255 102 0
-5203   LCingulumAngBundle                               153 204 0   0
-5204   LCingulumCingGyrus                               0   153 153 0
-5205   LCorticospinalTract                              204 153 255 0
-5206   LInfLongFas                                      255 153 51  0
-5207   LSupLongFasParietal                              204 204 204 0
-5208   LSupLongFasTemporal                              153 255 255 0
-5209   LUncinateFas                                     102 153 255 0
-5210   RAntThalRadiation                                255 255 102 0
-5211   RCingulumAngBundle                               153 204 0   0
-5212   RCingulumCingGyrus                               0   153 153 0
-5213   RCorticospinalTract                              204 153 255 0
-5214   RInfLongFas                                      255 153 51  0
-5215   RSupLongFasParietal                              204 204 204 0
-5216   RSupLongFasTemporal                              153 255 255 0
-5217   RUncinateFas                                     102 153 255 0
+5300   rh.atr                                           255 255 102 0
+5301   rh.cab                                           153 204 0   0
+5302   rh.ccg                                           0   153 153 0
+5303   rh.cst                                           204 153 255 0
+5304   rh.ilf                                           255 153 51  0
+5305   rh.slfp                                          204 204 204 0
+5306   rh.slft                                          153 255 255 0
+5307   rh.unc                                           102 153 255 0
+5308   rh.cb                                            0   153 153 0
+5309   rh.slf                                           204 204 204 0
+5310   rh.af                                            153 255 255 0
+5311   rh.ifof                                          51  153 51  0
+5312   rh.fx                                            255 153 204 0
+5313   rh.fat                                           204 51  102 0
+5314   rh.or                                            153 102 255 0
+5315   rh.mlf                                           255 255 204 0
+5316   rh.slf1                                          51  204 255 0
+5317   rh.slf2                                          51  255 204 0
+5318   rh.slf3                                          204 204 204 0
+5319   rh.afd                                           153 255 255 0
+5320   rh.afv                                           153 255 255 0
+5321   rh.ar                                            153 0   204 0
+5322   rh.cbd                                           0   153 153 0
+5323   rh.cbv                                           153 204 0   0
+5324   rh.emc                                           51  153 51  0
+5325   rh.uf                                            102 153 255 0
 
 ########################################
 
@@ -1129,6 +1157,25 @@
 
 7100  Brainstem-inferior-colliculus                     42  201 168 0
 7101  Brainstem-cochlear-nucleus                        168 104 162 0
+
+7201  DR                                                121 255 250 0
+7202  MnR                                               0   255 0   0
+7203  PAG                                               153 153 255 0
+7204  VTA                                               255 0   255 0
+
+7301  Left-LC                                           0   0   255 0
+7302  Left-LDTg                                         255 127 0   0
+7303  Left-mRt                                          255 0   0   0
+7304  Left-PBC                                          255 255 0   0
+7305  Left-PnO                                          0   127 255 0
+7306  Left-PTg                                          127 0   255 0
+
+7401  Right-LC                                          0   0   255 0
+7402  Right-LDTg                                        255 127 0   0
+7403  Right-mRt                                         255 0   0   0
+7404  Right-PBC                                         255 255 0   0
+7405  Right-PnO                                         0   127 255 0
+7406  Right-PTg                                         127 0   255 0
 
 8001  Thalamus-Anterior                                 74  130 181 0
 8002  Thalamus-Ventral-anterior                         242 241 240 0
@@ -1177,6 +1224,7 @@
 8129 Left-VLp 255 170 0 0
 8130 Left-VM 85 255 0 0
 8133 Left-VPL 255 0 255 0
+8134 Left-PaV 120 18  134 0
 
 8203 Right-AV 0 85 0 0
 8204 Right-CeM 170 85 0 0
@@ -1204,7 +1252,7 @@
 8229 Right-VLp 255 170 0 0
 8230 Right-VM 85 255 0 0
 8233 Right-VPL 255 0 255 0
-
+8234 Right-PaV 120 18  134 0
 
 #
 # Labels for thalamus parcellation using probabilistic tractography. See:

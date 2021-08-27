@@ -1,6 +1,6 @@
 /*
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -84,7 +84,11 @@ main(int argc, char *argv[]) {
                 Progname) ;
     strcpy(sdir, cp) ;
   }
-  sprintf(fname, "%s/%s/surf/%s.%s", sdir, subject_name, hemi, ORIG_NAME) ;
+  int req = snprintf(fname, STRLEN, "%s/%s/surf/%s.%s", 
+		     sdir, subject_name, hemi, ORIG_NAME) ;
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   mris = MRISfastRead(fname) ;
   if (!mris)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",

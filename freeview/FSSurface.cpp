@@ -5,7 +5,7 @@
 /*
  * Original Author: Ruopeng Wang
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -192,6 +192,23 @@ bool FSSurface::CreateFromMRIS(MRIS *mris)
   m_MRIS = mris;
   m_bSharedMRIS = true;
   return InitializeData();
+}
+
+bool FSSurface::LoadPatch(const QString &filename)
+{
+  if (::MRISreadPatchNoRemove(m_MRIS, filename.toLatin1().data() ) == 0 )
+  {
+    RipFaces();
+    UpdateHashTable();
+    UpdatePolyData();
+    SaveVertices( m_MRIS, SurfaceMain );
+    SaveNormals ( m_MRIS, SurfaceMain );
+    RestoreVertices( m_MRIS, SurfaceMain );
+    RestoreNormals( m_MRIS, SurfaceMain );
+    return true;
+  }
+  else
+    return false;
 }
 
 bool FSSurface::InitializeData(const QString &vector_filename,
@@ -834,12 +851,6 @@ void FSSurface::UpdatePolyData( MRIS* mris,
     surfaceRAS[1] = mris->vertices[vno].y;
     surfaceRAS[2] = mris->vertices[vno].z;
     this->ConvertSurfaceToRAS( surfaceRAS, point );
-    /*
-    if ( m_volumeRef )
-    {
-      m_volumeRef->RASToTarget( point, point );
-    }
-    */
     m_targetToRasTransform->GetInverse()->TransformPoint(point, point);
     newPoints->InsertNextPoint( point );
 
@@ -849,13 +860,6 @@ void FSSurface::UpdatePolyData( MRIS* mris,
     float orig[3] = { 0, 0, 0 };
     this->ConvertSurfaceToRAS( orig, orig );
     this->ConvertSurfaceToRAS( normal, normal );
-    /*
-    if ( m_volumeRef )
-    {
-      m_volumeRef->RASToTarget( orig, orig );
-      m_volumeRef->RASToTarget( normal, normal );
-    }
-    */
     m_targetToRasTransform->GetInverse()->TransformPoint(orig, orig);
     m_targetToRasTransform->GetInverse()->TransformPoint(normal, normal);
 
@@ -2323,4 +2327,68 @@ void FSSurface::ClearCuts(const QVector<int> &verts)
       v->ripflag = 0;
     }
   }
+}
+
+bool FSSurface::SaveTransform(vtkTransform *t_in, const QString &filename)
+{
+  if (!m_bValidVolumeGeometry)
+  {
+    qDebug() << "Surface does not contain valid volume information. Cannot save transformation.";
+    return false;
+  }
+
+  vtkSmartPointer<vtkTransform> surf2targ = vtkSmartPointer<vtkTransform>::New();
+  surf2targ->DeepCopy(m_SurfaceToRASTransform);
+  surf2targ->PostMultiply();
+  vtkSmartPointer<vtkMatrix4x4> mat = m_targetToRasTransform->GetMatrix();
+  mat->Invert();
+  surf2targ->Concatenate(mat);
+
+  vtkSmartPointer<vtkTransform> t = vtkSmartPointer<vtkTransform>::New();
+  t->DeepCopy(surf2targ);
+  t->PostMultiply();
+  t->Concatenate(t_in->GetMatrix());
+  mat = surf2targ->GetMatrix();
+  mat->Invert();
+  t->Concatenate(mat);
+
+  mat = t->GetMatrix();
+  MATRIX* m = MatrixAlloc( 4, 4, MATRIX_REAL );
+  for ( int i = 0; i < 16; i++ )
+  {
+    *MATRIX_RELT(m, (i/4)+1, (i%4)+1) = mat->Element[i/4][i%4];
+  }
+
+  MRI* mri = MRIallocHeader(m_MRIS->vg.width, m_MRIS->vg.height, m_MRIS->vg.depth, MRI_UCHAR, 1);
+  useVolGeomToMRI(&m_MRIS->vg, mri);
+
+  MATRIX* voxel_xform = MRIrasXformToVoxelXform( mri, NULL, m, NULL );
+  LTA* lta = LTAalloc(1, NULL);
+  LINEAR_TRANSFORM *lt = &lta->xforms[0];
+  lt->sigma = 1.0f ;
+  lt->x0 = lt->y0 = lt->z0 = 0;
+  lta->type = LINEAR_VOX_TO_VOX;
+  lt->m_L = voxel_xform;
+
+  VOL_GEOM srcG, dstG;
+  getVolGeom( mri, &srcG );
+  getVolGeom( mri, &dstG );
+  lta->xforms[0].src = srcG;
+  lta->xforms[0].dst = dstG;
+
+  FILE* fp = fopen( filename.toLatin1().data(),"w" );
+  bool ret = true;
+  if( !fp )
+  {
+    cerr << "ERROR: cannot open for writing: " << qPrintable(filename) << "\n";
+    ret = false;
+  }
+  else
+  {
+    LTAprint(fp, lta);
+    fclose( fp );
+  }
+
+  LTAfree(&lta);
+  return ret;
 }

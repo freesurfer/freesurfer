@@ -6,7 +6,7 @@
 /*
  * surfaces Author: Bruce Fischl, extracted from mrisurf.c by Bevin Brett
  *
- * $ © copyright-2014,2018 The General Hospital Corporation (Boston, MA) "MGH"
+ * $ Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -1629,9 +1629,10 @@ int MRISreadCTABFromAnnotationIfPresent(const char *fname, COLOR_TABLE **out_tab
   if (TAG_OLD_COLORTABLE == tag) {
     /* We have a color table, read it with CTABreadFromBinary. If it
     fails, it will print its own error message. */
-    fprintf(stdout, "reading colortable from annotation file...\n");
+    if (DIAG_VERBOSE_ON)
+      fprintf(stdout, "reading colortable from annotation file...\n");
     ctab = CTABreadFromBinary(fp);
-    if (NULL != ctab) fprintf(stdout, "colortable with %d entries read (originally %s)\n", ctab->nentries, ctab->fname);
+    if ((NULL != ctab) && DIAG_VERBOSE_ON) fprintf(stdout, "colortable with %d entries read (originally %s)\n", ctab->nentries, ctab->fname);
   }
 
   fclose(fp);

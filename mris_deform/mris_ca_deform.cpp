@@ -7,7 +7,7 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -113,7 +113,7 @@ main(int argc, char *argv[]) {
   TRANSFORM   *transform ;
   GCA         *gca ;
 
-  memset(&parms, 0, sizeof(parms)) ;
+  // memset(&parms, 0, sizeof(parms)) ; Now have proper constructor
   parms.integration_type = INTEGRATE_MOMENTUM ;
 
   // parms.l_nspring = .5; parms.l_tspring = 1; parms.l_curv = 1.0 ;

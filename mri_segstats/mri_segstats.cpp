@@ -10,7 +10,7 @@
 /*
  * Original Author: Dougas N Greve
  *
- * Copyright Â© 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -261,24 +261,32 @@ int main(int argc, char **argv)
     if (talxfmfile)
     {
       // path to talairach.xfm file spec'd on the command line
-      sprintf(tmpstr,"%s",talxfmfile);
+      int req = snprintf(tmpstr,1000,"%s",talxfmfile); 
+      if( req >= 1000 ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
+
     }
     else
     {
-      sprintf
-      (tmpstr,
-       "%s/%s/mri/transforms/talairach.xfm",
-       SUBJECTS_DIR,
-       subject);
+      int req = snprintf(tmpstr,1000,
+			 "%s/%s/mri/transforms/talairach.xfm",
+			 SUBJECTS_DIR,
+			 subject);
+      if( req >= 1000 ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
     }
     if (DoOldETIVonly)
     {
       // back-door way to get the old way of calculating etiv, for debug
-      sprintf
-      (tmpstr,
-       "%s/%s/mri/transforms/talairach_with_skull.lta",
-       SUBJECTS_DIR,
-       subject);
+      int req = snprintf(tmpstr,1000,
+			 "%s/%s/mri/transforms/talairach_with_skull.lta",
+			 SUBJECTS_DIR,
+			 subject);
+      if( req >= 1000 ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       etiv_scale_factor = 2150;
     }
     double determinant = 0;
@@ -316,12 +324,18 @@ int main(int argc, char **argv)
   }
 
   if(DoEuler){
-    sprintf(tmpstr,"%s/%s/surf/lh.orig.nofix",SUBJECTS_DIR,subject);
+    int req = snprintf(tmpstr,1000,"%s/%s/surf/lh.orig.nofix",SUBJECTS_DIR,subject); 
+    if( req >= 1000 ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     if(!fio_FileExistsReadable(tmpstr)){
       printf("Warning: cannot find %s, not computing euler number\n",tmpstr);
       DoEuler = 0;
     }
-    sprintf(tmpstr,"%s/%s/surf/rh.orig.nofix",SUBJECTS_DIR,subject);
+    req = snprintf(tmpstr,1000,"%s/%s/surf/rh.orig.nofix",SUBJECTS_DIR,subject); 
+    if( req >= 1000 ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     if(!fio_FileExistsReadable(tmpstr)){
       printf("Warning: cannot find %s, not computing euler number\n",tmpstr);
       DoEuler = 0;
@@ -329,7 +343,10 @@ int main(int argc, char **argv)
   }
   if(DoEuler){
     int nvertices, nfaces, nedges;
-    sprintf(tmpstr,"%s/%s/surf/lh.orig.nofix",SUBJECTS_DIR,subject);
+    int req = snprintf(tmpstr,1000,"%s/%s/surf/lh.orig.nofix",SUBJECTS_DIR,subject);  
+    if( req >= 1000 ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     printf("Computing euler number\n");
     mris = MRISread(tmpstr);
     if(mris==NULL) exit(1);
@@ -438,8 +455,8 @@ int main(int argc, char **argv)
     mris->ct->idbase = segbase;
     if (mris->ct)
     {
-      sprintf(tmpstr,"/tmp/mri_segstats.tmp.%s.%s.%d.ctab",subject,hemi,
-              nint(randomNumber(0, 255)));
+      std::string tmpfile = makeTempFile(".ctab");
+      sprintf(tmpstr, "%s", tmpfile.c_str());
       ctabfile = strcpyalloc(tmpstr);
       CTABwriteFileASCII(mris->ct,ctabfile);
     }
@@ -473,6 +490,15 @@ int main(int argc, char **argv)
     {
       printf("ERROR: reading %s\n",ctabfile);
       exit(1);
+    }
+  }
+  else {
+    if(seg->ct){
+      ctab = seg->ct;
+      printf("Using embedded color table (and excluding seg 0)\n");
+      ExclSegIdList[nExcl] = 0;
+      nExcl ++;
+      DoExclSegId = 1;
     }
   }
 
@@ -1684,6 +1710,20 @@ static int parse_commandline(int argc, char **argv)
     {
       InVolRegHeader = 1;
     }
+    else if(!strcmp(option, "--xfm2etiv"))
+    {
+      if(nargc < 2) argnerr(option,1);
+      double etiv_scale_factor = 1948.106, determinant = 0, atlas_icv;
+      atlas_icv = MRIestimateTIV(pargv[0],etiv_scale_factor,&determinant);
+      printf("%12.4lf\n",atlas_icv);
+      if(strcmp(pargv[1],"nofile")!=0){
+	FILE *fp = fopen(pargv[1],"w");
+	if(fp == NULL) exit(1);
+	fprintf(fp,"%12.4lf\n",atlas_icv);
+	fclose(fp);
+      }
+      exit(0);
+    }
     else if ( !strcmp(option, "--in-intensity-name") )
     {
       if (nargc < 1)
@@ -2278,14 +2318,20 @@ int CountEdits(char *subject, char *outfile)
   SUBJECTS_DIR = getenv("SUBJECTS_DIR");
   sprintf(sd,"%s/%s",SUBJECTS_DIR,subject);
 
-  sprintf(tmpstr,"%s/tmp/control.dat",sd);
+  int req = snprintf(tmpstr,STRLEN,"%s/tmp/control.dat",sd);  
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   count = 0;
   if(fio_FileExistsReadable(tmpstr)){
     pArray = MRIreadControlPoints(tmpstr, &count, &useRealRAS);
     free(pArray);
   }
 
-  sprintf(tmpstr,"%s/mri/wm.mgz",sd);
+  req = snprintf(tmpstr,STRLEN,"%s/mri/wm.mgz",sd);  
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   mri = MRIread(tmpstr);
   if(mri == NULL) return(1);
   nWMErase = 0;
@@ -2301,10 +2347,16 @@ int CountEdits(char *subject, char *outfile)
   }
   MRIfree(&mri);
 
-  sprintf(tmpstr,"%s/mri/brainmask.mgz",sd);
+  req = snprintf(tmpstr,STRLEN,"%s/mri/brainmask.mgz",sd);  
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   mri = MRIread(tmpstr);
   if(mri == NULL) return(1);
-  sprintf(tmpstr,"%s/mri/brainmask.auto.mgz",sd);
+  req = snprintf(tmpstr,STRLEN,"%s/mri/brainmask.auto.mgz",sd);  
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   mri2 = MRIread(tmpstr);
   if(mri2 == NULL) return(1);
   nBMErase = 0;
@@ -2323,10 +2375,16 @@ int CountEdits(char *subject, char *outfile)
   MRIfree(&mri);
   MRIfree(&mri2);
 
-  sprintf(tmpstr,"%s/mri/aseg.mgz",sd);
+  req = snprintf(tmpstr,STRLEN,"%s/mri/aseg.mgz",sd);  
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   mri = MRIread(tmpstr);
   if(mri == NULL) return(1);
-  sprintf(tmpstr,"%s/mri/aseg.auto.mgz",sd);
+  req = snprintf(tmpstr,STRLEN,"%s/mri/aseg.auto.mgz",sd);   
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   mri2 = MRIread(tmpstr);
   if(mri2 == NULL) return(1);
   nASegChanges = 0;

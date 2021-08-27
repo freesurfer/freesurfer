@@ -3,8 +3,17 @@
 # check for freesurfer home
 [ ! -e "$FREESURFER_HOME" ] && echo "error: freesurfer has not been properly sourced" && exit 1
 
-# point to freesurfer-installed packages
-export PYTHONPATH="${FREESURFER_HOME}/python/packages:$PYTHONPATH"
+# point to freesurfer-installed packages and make sure that PYTHONPATH is entirely
+# overwritten, since we don't want any user packages to interfere with things
+export PYTHONPATH="${FREESURFER_HOME}/python/packages"
+
+# futhermore, prevent local user packages from being accessed in fspython
+# since we want a very isolated environment
+export PYTHONNOUSERSITE=1
+unset PYTHONUSERBASE
+
+# don't check for pip upgrades, since it confuses people
+export PIP_DISABLE_PIP_VERSION_CHECK=1
 
 # run python
 if [ -e "${FREESURFER_HOME}/python/bin/python3" ]; then

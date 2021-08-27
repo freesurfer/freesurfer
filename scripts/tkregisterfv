@@ -29,6 +29,9 @@ set reg2 = ()
 set movvol3 = ();
 set reg3 = ()
 set DoTal = 0;
+set ColorMap = grayscale
+set params = (0 0 0 0 0 0 1 1 1 0 0 0); # 12dof
+set regheader = 0;
 
 set tmpdir = ();
 set cleanup = 1;
@@ -61,7 +64,7 @@ set tSecStart = `date '+%s'`;
 
 #========================================================
 if($DoTal) then
-  set tmpdir = /tmp/tkregisterfv-$$
+  set tmpdir = `fs_temp_dir`
   mkdir -p $tmpdir
   set mni305 = $FREESURFER_HOME/average/mni305.cor.mgz
   set mdir = $SUBJECTS_DIR/$subject/mri
@@ -98,13 +101,28 @@ if($DoTal) then
   exit 0
 endif
 
+set tmpdir = `fs_temp_dir`
+mkdir -p $tmpdir
 if(! $UseTkRegister) then
   ### FreeView ####----------------------------------------------
-  if(! -e $reg) then
-    # Create registration if needed
-    set cmd = (tkregister2_cmdl --mov $movvol --targ $targ --regheader \
-      --reg /tmp/tmp.reg.$$.dat --ltaout $reg --regheader)
+  set reg0 = $reg
+  if($regheader) then
+    # Not sure what to do here. The reg gets created prior to running
+    # FV. If the user does not like the reg and quits, then the reg
+    # file will still be there. Can use a different regname, but then
+    # user has to change the name when saving and, if the user is ok
+    # with the reg, there is no way to change the name because the reg
+    # has not been changed; it could also be that the user changes the
+    # reg, but then saves it as the changed name. Right now, I think
+    # the safest course is to change the name since few people will
+    # be using --regheader, and it is probably a bigger sin to have
+    # a misleading file laying around.
+    set headerreg1 = $reg.change-name.lta
+    set headerreg2 = $tmpdir/tkregisterfv.$$.tmp.lta; # copy to check for change
+    # This was using tkregister_cmdl which outputs vox2vox, coreg outputs RAS2RAS
+    set cmd = (mri_coreg) 
     if($#subject) set cmd = ($cmd --s $subject)
+    set cmd = ($cmd --par2mat $params $movvol $targ $headerreg1)
     echo $cmd 
     $cmd 
     if($status) then
@@ -112,7 +130,8 @@ if(! $UseTkRegister) then
       echo "ERROR: $cmd"
       exit 1;
     endif
-    rm /tmp/tmp.reg.$$.dat
+    cp $headerreg1 $headerreg2; # 2 newer than 1
+    set reg = $headerreg1
   endif
   set cmd = (freeview)
   if($ShowConfig)  set cmd = ($cmd -transform-volume)
@@ -120,26 +139,29 @@ if(! $UseTkRegister) then
   set targname = `basename $targ`
   set visible = 0
   if($#surflist == 0) set visible = 1
-  set cmd = ($cmd -v $targ":"visible=$visible":"name=$targname"(targ)")
+  set arg = ($targ":"visible=$visible":"name=$targname"(targ)"":"colormap=$ColorMap)
+  set cmd = ($cmd -v $arg)
   @ nthaux = 0;
   foreach aux ($auxlist)
     @ nthaux = $nthaux + 1;
-    if($auxreglist[$nthaux] == 0) set cmd = ($cmd $aux)
-    if($auxreglist[$nthaux] != 0) set cmd = ($cmd $aux":"reg=$auxreglist[$nthaux])    
+    set arg = $aux
+    if($auxreglist[$nthaux] != 0) set arg = ($arg $arg":"reg=$auxreglist[$nthaux])    
+    set arg = ($arg":"colormap=$ColorMap)
+    set cmd = ($cmd $arg)
   end
   if($#segvol) set cmd = ($cmd -v "$segvol":"lut=$segcolor":"opacity=$segopacity":"colormap=lut")
   set movname = `basename $movvol`
-  if($#reg == 1) set cmd = ($cmd $movvol":"name=$movname"(mov):"reg=$reg)
-  if($#reg == 0) set cmd = ($cmd $movvol":"name=$movname"(mov)")
+  if($#reg == 1) set cmd = ($cmd $movvol":"name=$movname"(mov):"reg=$reg":"colormap=$ColorMap)
+  if($#reg == 0) set cmd = ($cmd $movvol":"name=$movname"(mov)"":"colormap=$ColorMap)
   if($#movvol2) then
     set movname2 = `basename $movvol2`
-    if($#reg2 == 1) set cmd = ($cmd $movvol2":"name=$movname2"(mov2):"reg=$reg2)
-    if($#reg2 == 0) set cmd = ($cmd $movvol2":"name=$movname2"(mov2)")
+    if($#reg2 == 1) set cmd = ($cmd $movvol2":"name=$movname2"(mov2):"reg=$reg2":"colormap=$ColorMap)
+    if($#reg2 == 0) set cmd = ($cmd $movvol2":"name=$movname2"(mov2)"":"colormap=$ColorMap)
   endif
   if($#movvol3) then
     set movname3 = `basename $movvol3`
-    if($#reg3 == 1) set cmd = ($cmd $movvol3":"name=$movname3"(mov3):"reg=$reg3)
-    if($#reg3 == 0) set cmd = ($cmd $movvol3":"name=$movname3"(mov3)")
+    if($#reg3 == 1) set cmd = ($cmd $movvol3":"name=$movname3"(mov3):"reg=$reg3":"colormap=$ColorMap)
+    if($#reg3 == 0) set cmd = ($cmd $movvol3":"name=$movname3"(mov3)"":"colormap=$ColorMap)
   endif
   @ nth = 0;
   foreach surf ($surflist)
@@ -156,10 +178,40 @@ endif
 echo "cd `pwd`"
 echo $cmd
 fsvglrun $cmd
+set st = $status
+if($st) exit $st
 
-#========================================================
+if($regheader) then
+  # Several things can happen here
+  if(-e $reg0) then
+    test $reg0 -nt $headerreg1; # returns 0 of reg0 newer than headerreg1
+    if(! $status) then
+      # A new reg has been created, so delete regheaders
+      rm -f $headerreg1 $headerreg2
+    endif
+  else 
+    set n = `diff $headerreg1 $headerreg2 | wc -l`
+    if($n) then
+      # A new reg has been created as headerreg1, so leave headerreg1,
+      # delete headerreg2. This means that the desired reg file will
+      # not exit, but it is unclear what the intention of the user is
+      rm -f $headerreg2
+    else
+      # A new reg has not been created, so delete both regheaders. It
+      # is unclear what the intention of the user is as they could
+      # have looked at the reg and decided it was ok and just
+      # quit. But it seems safer to delete the headerregs and make
+      # them create the reg with intention. But they will have to use
+      # something other than tkregisterfv becaused FV does not allow
+      # the user to save the reg unless it has been changed.
+      rm -f $headerreg1 $headerreg2
+    endif
+  endif
+endif
 
-exit 0
+rm -r $tmpdir
+
+exit $st
 
 ###############################################
 
@@ -266,9 +318,33 @@ while( $#argv != 0 )
       set reg = `getfullpath $reg`
       breaksw
 
-    case "--reg-header":
-    case "--regheader":
-      set regheader = 1;
+    case "--regheader"
+    case "--reg-header"
+      set regheader = 1
+      breaksw
+
+    case "--params":
+      if($#argv < 12) then
+        echo "ERROR: --params requires 12 arguments"
+        exit 1;
+      endif
+      set params = ($argv[1-12]);
+      set regheader = 1
+      breaksw
+
+    case "--flip-x":
+      set params[4] = 180
+      set regheader = 1
+      breaksw
+
+    case "--flip-y":
+      set params[5] = 180
+      set regheader = 1
+      breaksw
+
+    case "--flip-z":
+      set params[6] = 180
+      set regheader = 1
       breaksw
 
     case "--mov2":
@@ -361,6 +437,10 @@ while( $#argv != 0 )
       if($Plane == cor) set Plane = coronal
       if($Plane == sag) set Plane = sagittal
       if($Plane == ax)  set Plane = axial
+      breaksw
+
+    case "--heat":
+      set ColorMap = heat
       breaksw
 
     case "--fstal"
@@ -494,18 +574,41 @@ if($#segvol0) then
   endif
 endif
 
-foreach surf ($surflist0)
-  if(-e $surf) then
-    set surflist = ($surflist $surf)
-  else
-    set surfpath = $SUBJECTS_DIR/$subject/surf/$surf
-    if(! -e $surfpath) then
-      echo "ERROR: cannot find $surfpath"
+echo $DoSurfs
+if($DoSurfs) then
+  foreach surf ($surflist0)
+    if(-e $surf) then
+      set surflist = ($surflist $surf)
+    else
+      set surfpath = $SUBJECTS_DIR/$subject/surf/$surf
+      if(! -e $surfpath) then
+        echo "ERROR: cannot find $surfpath"
+        exit 1;
+      endif
+      set surflist = ($surflist $surfpath)
+    endif
+  end
+endif
+
+if(! $DoTal) then
+  if($#reg == 0) then
+    echo "ERROR: must spec --reg"
+    exit 1;
+  endif
+  if(! $regheader) then
+    if(! -e $reg) then
+      echo "ERROR: $reg does not exist. Spec a reg that does or use --regheader"
       exit 1;
     endif
-    set surflist = ($surflist $surfpath)
   endif
-end
+  if($regheader && $#reg ) then
+    if(-e $reg) then
+      echo "ERROR: --regheader requested, but registration file $reg exists"
+      echo "  delete it or change the passed registration file"
+      exit 1;
+    endif
+  endif
+endif
 
 goto check_params_return;
 ############--------------##################
@@ -545,6 +648,13 @@ usage_exit:
   echo "  --no-config : do not automatically raise transform config window"
   echo "  --mov2 mov2 <--reg2 reg2> : provide a second mov (and possibly reg)"
   echo "  --mov3 mov3 <--reg3 reg3> : provide a third mov (and possibly reg)"
+  echo "  --heat : use heat map color tables for all volumes"
+  echo "  --regheader : create registration file assuming the two volumes share a RAS"
+  echo "  --params tx ty tz ry rx rz sy sx sz hxy hxz hyz : regheader with affine matrix parameters"
+  echo "      translations in mm, rotations in deg"
+  echo "  --flip-x : regheader with rx=180"
+  echo "  --flip-y : regheader with ry=180"
+  echo "  --flip-z : regheader with rz=180"
   echo ""
   echo "  --fstal --s subject : only these two args to modify the talairach.xfm"
   echo ""

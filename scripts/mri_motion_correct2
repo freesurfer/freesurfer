@@ -8,7 +8,7 @@
 #
 # Original Author: Doug Greve
 #
-# Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+# Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
 #
 # Terms and conditions for use, reproduction, distribution and contribution
 # are found in the 'FreeSurfer Software License Agreement' contained
@@ -408,11 +408,7 @@ check_params:
 
   # Create the tmp directory and get full path
   if($#tmpdir == 0) then
-    if(-dw /scratch) then
-      set tmpdir = /scratch/tmp-mri_motion_correct2-$$
-    else
-      set tmpdir = $outdir/tmp-mri_motion_correct2-$$
-    endif
+    set tmpdir = `fs_temp_dir --scratch --base $outdir`
   endif
   echo tmpdir is $tmpdir
   if($tmpdir != /tmp) then

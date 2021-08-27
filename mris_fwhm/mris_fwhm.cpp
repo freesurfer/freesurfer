@@ -1,6 +1,6 @@
 /*
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -204,6 +204,7 @@ int nthreads = 1;
 int DoSpatialINorm = 0;
 double fwhm = 0;
 int niters=-1;
+int varnorm = 0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
@@ -368,6 +369,15 @@ int main(int argc, char *argv[]) {
       MRIfree(&InVals);
       InVals = mritmp;
     }
+    if(varnorm) {
+      printf("Rescaling to normalize variance\n");
+      RFS *rfs;
+      rfs = RFspecInit(-1,NULL); // seed does not matter
+      rfs->name = strcpyalloc("gaussian");
+      rfs->params[0] = 0; // mean
+      rfs->params[1] = 1; // std
+      RFrescale(InVals,rfs,mask,InVals);
+    }
     if(SmoothOnly) {
       printf("Only smoothing, so saving and exiting now\n");
       err = MRIwrite(InVals,outpath);
@@ -487,6 +497,8 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--synth")) synth = 1;
     else if (!strcasecmp(option, "--nosynth")) synth = 0;
     else if (!strcasecmp(option, "--no-detrend")) DoDetrend = 0;
+    else if (!strcasecmp(option, "--varnorm")) varnorm = 1;
+
     else if (!strcasecmp(option, "--prune"))    prunemask = 1;
     else if (!strcasecmp(option, "--no-prune")) prunemask = 0;
     else if (!strcasecmp(option, "--prune_thr")){
@@ -723,6 +735,7 @@ static void print_usage(void) {
   printf("   --prune - remove any voxel that is zero in any subject (after any inversion)\n");
   printf("   --no-prune - do not prune (default)\n");
   printf("   --out-mask outmask : save final mask\n");
+  printf("   --varnorm : normalize the variance across space within any mask\n");
   printf("   \n");
   printf("   --fwhm fwhm : apply before measuring\n");
   printf("   --niters-only <niters> : only report on niters for fwhm\n");

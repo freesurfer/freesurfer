@@ -1,7 +1,7 @@
 /*
  * Original Author: Ruopeng Wang
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -19,12 +19,16 @@
 #include "MainWindow.h"
 #include <QTimer>
 #include "Region2D.h"
+#include "Region2DLine.h"
+#include "Region2DPolyline.h"
+#include "Region2DRectangle.h"
 #include "SurfaceRegion.h"
 #include "SurfaceRegionGroups.h"
 #include "LayerCollection.h"
 #include "LayerMRI.h"
 #include "LayerPropertyMRI.h"
 #include "Interactor.h"
+#include "Region3D.h"
 #include <QSettings>
 #include <QFileDialog>
 #include <QMessageBox>
@@ -51,29 +55,39 @@ ToolWindowMeasure::ToolWindowMeasure(QWidget *parent) :
   actGroup->addAction( ui->actionPolyLine );
   actGroup->addAction( ui->actionRectangle );
   actGroup->addAction( ui->actionSpline );
+  actGroup->addAction( ui->actionDrawOnContour );
+  ui->actionContour->setVisible(false);
   ui->actionContour ->setData( Interactor::MM_SurfaceRegion );
   ui->actionLabel   ->setData( Interactor::MM_Label );
   ui->actionLine    ->setData( Interactor::MM_Line );
   ui->actionPolyLine->setData( Interactor::MM_Polyline );
   ui->actionRectangle->setData( Interactor::MM_Rectangle );
   ui->actionSpline->setData( Interactor::MM_Spline);
+  ui->actionDrawOnContour->setData( Interactor::MM_DrawOnSurface );
   actGroup->setExclusive( true );
   connect(actGroup, SIGNAL(triggered(QAction*)), this, SLOT(OnAction(QAction*)) );
 
   m_widgets2D << ui->pushButtonCopy << ui->pushButtonExport;
 
-  m_widgets3D << ui->pushButtonSave
-              << ui->pushButtonLoad
-              << ui->pushButtonSaveAll
+  m_widgets3DDraw << ui->pushButtonSave
+                 << ui->pushButtonLoad
+                 << ui->colorPickerGroup
+                 << ui->lineSeparator
+                 << ui->pushButtonDeleteDrawing
+                 << ui->pushButtonDeleteAllDrawing;
+
+  m_widgets3D << ui->pushButtonSaveAll
               << ui->spinBoxId
               << ui->spinBoxGroup
               << ui->labelId
-              << ui->labelGroup
-              << ui->colorPickerGroup
-              << ui->lineSeparator;
+              << ui->labelGroup;
+
+  foreach (QWidget* w, m_widgets3D)
+    w->hide();
 
   m_region = NULL;
   m_surfaceRegion = NULL;
+  m_3DRegion = NULL;
   m_bToUpdateWidgets = true;
 
   MainWindow* mainwnd = MainWindow::GetMainWindow();
@@ -93,6 +107,10 @@ ToolWindowMeasure::ToolWindowMeasure(QWidget *parent) :
                this, SLOT(SetSurfaceRegion(SurfaceRegion*)));
       connect( ((RenderView3D*)view), SIGNAL(SurfaceRegionRemoved(SurfaceRegion*)),
                this, SLOT(SetSurfaceRegion()));
+      connect( ((RenderView3D*)view), SIGNAL(Region3DSelected(Region3D*)),
+               this, SLOT(Set3DRegion(Region3D*)));
+      connect( ((RenderView3D*)view), SIGNAL(Region3DRemoved(Region3D*)),
+               this, SLOT(Set3DRegion()));
     }
   }
   LayerCollection* col_mri = mainwnd->GetLayerCollection("MRI");
@@ -111,6 +129,7 @@ ToolWindowMeasure::ToolWindowMeasure(QWidget *parent) :
       ui->actionPolyLine->setIcon(MacHelper::InvertIcon(ui->actionPolyLine->icon(), QSize(), true));
       ui->actionSpline->setIcon(MacHelper::InvertIcon(ui->actionSpline->icon(), QSize(), true));
       ui->actionContour->setIcon(MacHelper::InvertIcon(ui->actionContour->icon(), QSize(), true));
+      ui->actionDrawOnContour->setIcon(MacHelper::InvertIcon(ui->actionDrawOnContour->icon(), QSize(), true));
   }
 #endif
 }
@@ -131,6 +150,7 @@ void ToolWindowMeasure::showEvent(QShowEvent* event)
   {
     this->move( parentWidget()->pos() + QPoint(20,100) );
     bFirstTime = false;
+    this->resize(sizeHint());
   }
 }
 
@@ -150,11 +170,16 @@ void ToolWindowMeasure::SetRegion( Region2D* reg )
   m_region = reg;
   if ( m_region )
   {
-    connect( m_region, SIGNAL(StatsUpdated()), this, SLOT(UpdateWidgets()), Qt::QueuedConnection);
+    connect( m_region, SIGNAL(StatsUpdated()), this, SLOT(UpdateWidgets()), Qt::UniqueConnection);
     if ( m_surfaceRegion )
     {
       m_surfaceRegion->disconnect( this );
       m_surfaceRegion = NULL;
+    }
+    if ( m_3DRegion )
+    {
+      m_3DRegion->disconnect( this );
+      m_3DRegion = NULL;
     }
     RenderView* view = MainWindow::GetMainWindow()->GetRenderView( 0 );
     if ( view->GetAction() == Interactor::MM_SurfaceRegion )
@@ -170,13 +195,29 @@ void ToolWindowMeasure::SetSurfaceRegion( SurfaceRegion* reg )
   m_surfaceRegion = reg;
   if ( m_surfaceRegion )
   {
-    connect(m_surfaceRegion, SIGNAL(ColorChanged(QColor)), this, SLOT(UpdateWidgets()), Qt::QueuedConnection);
+    connect(m_surfaceRegion, SIGNAL(ColorChanged(QColor)), this, SLOT(UpdateWidgets()), Qt::UniqueConnection);
     if ( m_region )
     {
       m_region->disconnect( this );
       m_region = NULL;
     }
     MainWindow::GetMainWindow()->SetAction( Interactor::MM_SurfaceRegion );
+  }
+  UpdateWidgets();
+}
+
+void ToolWindowMeasure::Set3DRegion( Region3D* reg )
+{
+  m_3DRegion = reg;
+  if ( m_3DRegion )
+  {
+    connect(m_3DRegion, SIGNAL(ColorChanged(QColor)), this, SLOT(UpdateWidgets()), Qt::UniqueConnection);
+    if ( m_region )
+    {
+      m_region->disconnect( this );
+      m_region = NULL;
+    }
+    MainWindow::GetMainWindow()->SetAction( Interactor::MM_DrawOnSurface );
   }
   UpdateWidgets();
 }
@@ -242,12 +283,14 @@ void ToolWindowMeasure::OnIdle()
     allwidgets[i]->blockSignals( true );
   }
   RenderView* view = MainWindow::GetMainWindow()->GetRenderView( 0 );
-  ui->actionLine->setChecked( view->GetAction() == Interactor::MM_Line );
-  ui->actionPolyLine->setChecked( view->GetAction() == Interactor::MM_Polyline );
-  ui->actionSpline->setChecked( view->GetAction() == Interactor::MM_Spline );
-  ui->actionRectangle->setChecked( view->GetAction() == Interactor::MM_Rectangle );
-  ui->actionLabel->setChecked( view->GetAction() == Interactor::MM_Label );
-  ui->actionContour->setChecked( view->GetAction() == Interactor::MM_SurfaceRegion );
+  int nAction = view->GetAction();
+  ui->actionLine->setChecked( nAction == Interactor::MM_Line );
+  ui->actionPolyLine->setChecked( nAction == Interactor::MM_Polyline );
+  ui->actionSpline->setChecked( nAction == Interactor::MM_Spline );
+  ui->actionRectangle->setChecked( nAction == Interactor::MM_Rectangle );
+  ui->actionLabel->setChecked( nAction == Interactor::MM_Label );
+  ui->actionContour->setChecked( nAction == Interactor::MM_SurfaceRegion );
+  ui->actionDrawOnContour->setChecked( nAction == Interactor::MM_DrawOnSurface );
   bool bLabelExist = false;
   LayerCollection* col_mri = MainWindow::GetMainWindow()->GetLayerCollection("MRI");
   for ( int i = 0; i < col_mri->GetNumberOfLayers(); i++ )
@@ -262,9 +305,20 @@ void ToolWindowMeasure::OnIdle()
                                col_mri->GetNumberOfLayers() > 1 && bLabelExist );
 
   QString strg;
-  if ( view->GetAction() == Interactor::MM_Label )
+  RenderView2D* view2d = qobject_cast<RenderView2D*>(MainWindow::GetMainWindow()->GetMainView());
+  QList<Region2D*> regions;
+  if (view2d)
+    regions = view2d->GetRegions();
+  if ( nAction == Interactor::MM_Label )
   {
     strg = GetLabelStats();
+  }
+  else if (!m_region || !qobject_cast<Region2DRectangle*>(m_region))
+  {
+    foreach (Region2D* r, regions)
+    {
+      strg += r->GetShortStats() + "\n";
+    }
   }
   else if ( m_region )
   {
@@ -277,12 +331,13 @@ void ToolWindowMeasure::OnIdle()
   ui->textBrowserInfo->setText( strg );
   ui->pushButtonCopy->setEnabled( !strg.isEmpty() );
   ui->pushButtonExport->setEnabled( !strg.isEmpty() );
-  ui->pushButtonUpdate->setVisible( view->GetAction() == Interactor::MM_Label );
+  ui->pushButtonUpdate->setVisible( nAction == Interactor::MM_Label );
 
-  ShowWidgets( m_widgets3D, view->GetAction() == Interactor::MM_SurfaceRegion );
-  ShowWidgets( m_widgets2D, view->GetAction() != Interactor::MM_SurfaceRegion );
+  ShowWidgets( m_widgets3DDraw, nAction == Interactor::MM_DrawOnSurface || nAction == Interactor::MM_SurfaceRegion );
+  ShowWidgets( m_widgets3D, nAction == Interactor::MM_SurfaceRegion);
+  ShowWidgets( m_widgets2D, nAction != Interactor::MM_SurfaceRegion && nAction != Interactor::MM_DrawOnSurface);
 
-  if ( m_surfaceRegion )
+  if ( m_surfaceRegion && ui->actionContour->isChecked() )
   {
     ui->spinBoxId->setValue( m_surfaceRegion->GetId() );
     ui->spinBoxGroup->setValue( m_surfaceRegion->GetGroup() );
@@ -291,10 +346,14 @@ void ToolWindowMeasure::OnIdle()
                                 ->GetGroupIdRange( m_surfaceRegion ) );
     ui->colorPickerGroup->setCurrentColor( m_surfaceRegion->GetColor() );
   }
+  if ( m_3DRegion && ui->actionDrawOnContour->isChecked() )
+  {
+    ui->colorPickerGroup->setCurrentColor( m_3DRegion->GetColor() );
+  }
 
   LayerMRI* mri = (LayerMRI*)MainWindow::GetMainWindow()->GetActiveLayer( "MRI" );
   ui->actionContour->setEnabled(mri &&  mri->GetProperty()->GetShowAsContour());
-  bool bSurfaceRegionValid = ( mri && mri->GetProperty()->GetShowAsContour() && mri->GetNumberOfSurfaceRegions() > 0 );
+  bool bSurfaceRegionValid = ( mri && mri->GetProperty()->GetShowAsContour() && (mri->GetNumberOfSurfaceRegions() > 0 || mri->GetNumberOf3DRegions() > 0) );
   if ( bSurfaceRegionValid )
   {
     ui->spinBoxId->setRange( 1, mri->GetNumberOfSurfaceRegions() );
@@ -303,8 +362,12 @@ void ToolWindowMeasure::OnIdle()
   ui->pushButtonSave->setEnabled( m_surfaceRegion && bSurfaceRegionValid );
   ui->spinBoxId->setEnabled( m_surfaceRegion && bSurfaceRegionValid );
   ui->spinBoxGroup->setEnabled( m_surfaceRegion && bSurfaceRegionValid );
-  ui->colorPickerGroup->setEnabled( m_surfaceRegion && bSurfaceRegionValid );
+  ui->colorPickerGroup->setEnabled( bSurfaceRegionValid );
   ui->pushButtonSaveAll->setEnabled( bSurfaceRegionValid );
+  ui->pushButtonSave->setEnabled(bSurfaceRegionValid);
+
+  ui->pushButtonDeleteDrawing->setEnabled(m_3DRegion);
+  ui->pushButtonDeleteAllDrawing->setEnabled(mri && mri->GetNumberOf3DRegions() > 0);
 
   m_bToUpdateWidgets = false;
 
@@ -324,7 +387,11 @@ void ToolWindowMeasure::OnLoad()
   LayerMRI* mri = (LayerMRI*)MainWindow::GetMainWindow()->GetActiveLayer( "MRI" );
   if ( mri && !filename.isEmpty() )
   {
-    if ( !mri->LoadSurfaceRegions( filename ) )
+    if (ui->actionContour->isChecked() && !mri->LoadSurfaceRegions( filename ) )
+    {
+      QMessageBox::warning(this, "Error", QString("Can not load file ") + filename);
+    }
+    else if (ui->actionDrawOnContour->isChecked() && !mri->Load3DRegions( filename ) )
     {
       QMessageBox::warning(this, "Error", QString("Can not load file ") + filename);
     }
@@ -338,11 +405,22 @@ void ToolWindowMeasure::OnSave()
                                                    "Save region",
                                                    "",
                                                    "All files (*)");
-  if ( m_surfaceRegion && !filename.isEmpty() )
+  if (ui->actionContour->isChecked())
   {
-    if ( !m_surfaceRegion->Write( filename ) )
+    if ( m_surfaceRegion && !filename.isEmpty() )
     {
-      QMessageBox::warning(this, "Error", QString("Can not write to file ") + filename);
+      if ( !m_surfaceRegion->Write( filename ) )
+      {
+        QMessageBox::warning(this, "Error", QString("Can not write to file ") + filename);
+      }
+    }
+  }
+  else if (ui->actionDrawOnContour->isChecked() && !filename.isEmpty())
+  {
+    LayerMRI* mri = (LayerMRI*)MainWindow::GetMainWindow()->GetActiveLayer( "MRI" );
+    if ( !mri->SaveAll3DRegions( filename ) )
+    {
+      QMessageBox::warning(this, "Error", QString("Failed to write to file ") + filename);
     }
   }
 }
@@ -411,10 +489,29 @@ void ToolWindowMeasure::OnSpinBoxGroup(int val)
 
 void ToolWindowMeasure::OnColorGroup( const QColor& color )
 {
-  if ( m_surfaceRegion )
+  if ( m_surfaceRegion && ui->actionContour->isChecked())
   {
     m_surfaceRegion->GetMRI()->GetSurfaceRegionGroups()
         ->SetGroupColor( m_surfaceRegion->GetGroup(), color );
     UpdateWidgets();
   }
+  else if (m_3DRegion && ui->actionDrawOnContour->isChecked())
+  {
+    m_3DRegion->SetColor(color);
+    UpdateWidgets();
+  }
+}
+
+void ToolWindowMeasure::OnButtonDelete3DRegion()
+{
+  RenderView3D* view = ( RenderView3D* )MainWindow::GetMainWindow()->GetRenderView( 3 );
+  view->DeleteCurrent3DRegion();
+}
+
+void ToolWindowMeasure::OnButtonDeleteAll3DRegions()
+{
+  RenderView3D* view = ( RenderView3D* )MainWindow::GetMainWindow()->GetRenderView( 3 );
+  m_3DRegion = NULL;
+  view->DeleteAll3DRegions();
+  UpdateWidgets();
 }

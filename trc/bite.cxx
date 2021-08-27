@@ -6,7 +6,7 @@
 /*
  * Original Author: Anastasia Yendiki
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -89,7 +89,7 @@ Bite::~Bite() {
 //
 // Set variables that are common for all voxels
 //
-void Bite::SetStatic(const char *GradientFile, const char *BvalueFile,
+void Bite::SetStatic(const string GradientFile, const string BvalueFile,
                      int NumTract, int NumBedpost, float FminPath) {
   float val;
   ifstream gfile(GradientFile, ios::in);

@@ -8,7 +8,7 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -2316,7 +2316,7 @@ double MinDistToTriangleBF(double p1[3], double p2[3], double p3[3], double ptes
 int MRISdistanceBetweenSurfacesExact(MRIS *surf1, MRIS *surf2);
 int MRISnorm2Pointset(MRIS *mris, int vno, double dstart, double dend, double dstep, FILE *fp);
 MRI *MRISextractNormalMask(MRIS *surf, int vno, double dstart, double dend, double dstep, double UpsampleFactor);
-MRI *MRISsampleMRINorm(MRIS *mris, MRI *mri, double dstart, double dend, double dstep, double sigma, MRI *nsamp);
+MRI *MRISsampleProfile(MRIS *mris, MRI *mri, double dstart, double dend, double dstep, double sigma, int interptype, MRI *profile);
 int MatlabPlotFace(FILE *fp, MRIS *surf, int faceno, char color, double NormLen);
 int MatlabPlotVertex(FILE *fp, MRIS *surf, int vno, char color, double NormLen);
 int MatlabPlotVertexNbhd(FILE *fp, MRIS *surf, int cvno, int nhops, char color, double NormLen);
@@ -2464,8 +2464,10 @@ static bool mrisVerticesAreNeighbors(MRIS const * const mris, int const vno1, in
 int MRISripMidline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, const char *hemi, int which, int fix_mtl);
 int MRIcomputeLabelNormal(MRI *mri_aseg, int x0, int y0, int z0,int label, int whalf, double *pnx, double *pny,
 			  double *pnz, int use_abs);
+int MRIScopyCoords(MRIS *surf, MRIS *surfcoords);
 int MRISfindExpansionRegions(MRI_SURFACE *mris);
 int MRISwriteField(MRIS *surf, const char **fields, int nfields, const char *outname);
+MRI *MRISflatMap2MRI(MRIS *flatmap, MRI *overlay, double res, int DoAverage, MRI *out);
 
 /**
   class AutoDetGWStats. This class houses functions used to compute

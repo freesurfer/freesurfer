@@ -1,7 +1,7 @@
 /*
  * surfaces Author: Bruce Fischl, extracted from mrisurf.c by Bevin Brett
  *
- * $ © copyright-2014,2019 The General Hospital Corporation (Boston, MA) "MGH"
+ * $ Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -18,6 +18,11 @@
 #include "mrisurf_sseTerms.h"
 
 #include "mrisurf_base.h"
+
+double LOCATION_MOVE_LEN = 0.25;
+void mrisDxyzSetLocationMoveLen(double newval){
+  LOCATION_MOVE_LEN = newval;
+}
 
 #define MAX_VOXELS          mrisurf_sse_MAX_VOXELS
 #define MAX_DISPLACEMENT    mrisurf_sse_MAX_DISPLACEMENT 

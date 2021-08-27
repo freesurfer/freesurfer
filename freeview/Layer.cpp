@@ -5,7 +5,7 @@
 /*
  * Original Author: Ruopeng Wang
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -25,6 +25,8 @@
 #include <QFileInfo>
 #include <QDir>
 #include <QDebug>
+#include "vtkSmartPointer.h"
+#include "vtkTransform.h"
 
 #define CLOSE_DISTANCE 1e-6
 
@@ -55,10 +57,13 @@ Layer::Layer( QObject* parent ) : QObject( parent )
   mProperty = NULL;
   m_nLayerIndex = 0;
   connect(this, SIGNAL(VisibilityChanged(bool)), this, SIGNAL(ActorUpdated()));
+
+  m_transform = vtkSmartPointer<vtkTransform>::New();
 }
 
 Layer::~Layer()
 {
+  ResetTransform();
 }
 
 void Layer::SetName( const QString& name )
@@ -374,4 +379,60 @@ void Layer::ParseSubjectName(const QString &file_path)
   QDir dir = QFileInfo(file_path).absoluteDir();
   dir.cdUp();
   m_sSubjectName = dir.dirName();
+}
+
+void Layer::AppendTransform(vtkTransform *t)
+{
+  m_listTransform << t;
+  UpdateTotalTransform();
+}
+
+void Layer::UpdateLastTransform(vtkTransform *t_in)
+{
+  if (m_listTransform.isEmpty())
+  {
+    AppendIdentityTransform();
+  }
+  vtkTransform* t = m_listTransform.last();
+  t->DeepCopy(t_in);
+  UpdateTotalTransform();
+}
+
+void Layer::AppendIdentityTransform()
+{
+  vtkTransform* t =vtkTransform::New();
+  t->Identity();
+  m_listTransform << t;
+}
+
+void Layer::ResetTransform()
+{
+  for (int i = 0; i < m_listTransform.size(); i++)
+  {
+    m_listTransform[i]->Delete();
+  }
+  m_listTransform.clear();
+  UpdateTotalTransform();
+}
+
+void Layer::UndoLastTransform()
+{
+  if (!m_listTransform.isEmpty())
+  {
+    vtkTransform* t = m_listTransform.last();
+    m_listTransform.removeLast();
+    t->Delete();
+    UpdateTotalTransform();
+  }
+}
+
+void Layer::UpdateTotalTransform()
+{
+  m_transform->Identity();
+  m_transform->PostMultiply();
+  for (int i = 0; i < m_listTransform.size(); i++)
+  {
+    m_transform->Concatenate(m_listTransform[i]->GetMatrix());
+  }
+  emit ActorUpdated();
 }

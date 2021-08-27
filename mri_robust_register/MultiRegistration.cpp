@@ -12,7 +12,7 @@
 /*
  * Original Author: Martin Reuter
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -519,7 +519,7 @@ bool MultiRegistration::computeTemplate(int itmax, double eps, int iterate,
     return true;
   }
 
-  strncpy(mri_mean->fname, (outdir + "template-it0.mgz").c_str(), STRLEN);
+  strncpy(mri_mean->fname, (outdir + "template-it0.mgz").c_str(), STRLEN-1);
   if (debug)
   {
     cout << "debug: saving template-it0.mgz" << endl;
@@ -1523,7 +1523,9 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres,
   //average translation
   meant = (1.0 / nin) * meant;
   if (debug)
+  {
     vnl_matlab_print(vcl_cout,meant,"meant",vnl_matlab_print_format_long);std::cout << std::endl;  
+  }
 
   // find mean rotation or linear map (in RAS coordinates)
   vnl_matrix_fixed<double, 3, 3> meanr;
@@ -1754,7 +1756,7 @@ bool MultiRegistration::writeMean(const std::string& mean)
     cout << " ERROR: No average exists! Skipping output." << endl;
     return false;
   }
-  strncpy(mri_mean->fname, mean.c_str(), STRLEN);
+  strncpy(mri_mean->fname, mean.c_str(), STRLEN-1);
   return (MRIwrite(mri_mean, mean.c_str()) == 0);
 }
 
@@ -1769,7 +1771,7 @@ bool MultiRegistration::writeConformMean(const std::string& mean)
   // create conform mean
   MRI * mri_cmean = averageConformSet(0);
 
-  strncpy(mri_cmean->fname, mean.c_str(), STRLEN);
+  strncpy(mri_cmean->fname, mean.c_str(), STRLEN-1);
   int ok = MRIwrite(mri_cmean, mean.c_str());
   return (ok == 0);
 }
@@ -1795,8 +1797,8 @@ bool MultiRegistration::writeLTAs(const std::vector<std::string> & nltas,
     {
       error += (LTAchangeType(ltas[i], LINEAR_RAS_TO_RAS) == NULL);
     }
-    strncpy(ltas[i]->xforms[0].dst.fname, mean.c_str(), STRLEN);
-    strncpy(ltas[i]->xforms[0].src.fname, mov[i].c_str(), STRLEN);
+    strncpy(ltas[i]->xforms[0].dst.fname, mean.c_str(), STRLEN-1);
+    strncpy(ltas[i]->xforms[0].src.fname, mov[i].c_str(), STRLEN-1);
     LTAwriteEx(ltas[i], nltas[i].c_str());
 
     vnl_matrix<double> fMv2v = MyMatrix::LTA2VOXmatrix(ltas[i]);

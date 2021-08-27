@@ -1,7 +1,7 @@
 /*
  * Original Author: Ruopeng Wang
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -254,10 +254,23 @@ void GenericRenderView::SetBackgroundColor(const QColor& qc)
 
 void GenericRenderView::wheelEvent(QWheelEvent* event)
 {
+  // remove horizontal scrolling
+  QWheelEvent* e = event;
+  if (qAbs(e->pixelDelta().x()) > 0)
+  {
+    QPoint pixelDelta = e->pixelDelta();
+    pixelDelta.setX(0);
+    QPoint angleDelta = e->angleDelta();
+    angleDelta.setX(0);
+    e = new QWheelEvent(e->posF(), e->globalPosF(),
+                        pixelDelta, angleDelta, pixelDelta.y(), Qt::Vertical,
+                        e->buttons(), e->modifiers(), e->phase(), e->source(), e->source());
+  }
+
 #if VTK_MAJOR_VERSION > 7
-  QVTKOpenGLNativeWidget::wheelEvent(event);
+  QVTKOpenGLNativeWidget::wheelEvent(e);
 #else
-  QVTKWidget::wheelEvent(event);
+  QVTKWidget::wheelEvent(e);
 #endif
   emit RenderTriggeredByWheel();
 }

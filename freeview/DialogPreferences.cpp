@@ -1,7 +1,7 @@
 /*
  * Original Author: Ruopeng Wang
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -74,6 +74,8 @@ DialogPreferences::DialogPreferences(QWidget *parent) :
           mainwnd, SLOT(SyncZoom(bool)));
   connect(ui->radioButtonThemeDark, SIGNAL(toggled(bool)),
           mainwnd->GetCommandConsole(), SLOT(SetDarkTheme(bool)));
+
+  connect(ui->comboBox3DScaleStyle, SIGNAL(currentIndexChanged(int)), ((RenderView3D*)mainwnd->GetRenderView(3)), SLOT(SetAxesFlyMode(int)));
 
   ui->checkBoxMacUnified->hide();
 
@@ -157,6 +159,7 @@ void DialogPreferences::SetSettings(const QVariantMap &map)
   ui->spinBoxPrecision->setValue(map["Precision"].toInt());
   ui->checkBoxComma->setChecked(map["UseComma"].toBool());
   ui->checkBoxClickToLock->setChecked(map["ClickToLock"].toBool());
+  ui->comboBox3DScaleStyle->setCurrentIndex(map["3DAxesFlyMode"].toInt());
 
   MainWindow* mainwnd = MainWindow::GetMainWindow();
   QString val = map.value("ShortcutCycleLayer").toString();
@@ -210,6 +213,7 @@ QVariantMap DialogPreferences::GetSettings()
   map["Precision"] = ui->spinBoxPrecision->value();
   map["UseComma"] = ui->checkBoxComma->isChecked();
   map["ClickToLock"] = ui->checkBoxClickToLock->isChecked();
+  map["3DAxesFlyMode"] = ui->comboBox3DScaleStyle->currentIndex();
   return map;
 }
 

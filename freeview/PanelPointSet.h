@@ -1,7 +1,7 @@
 /*
  * Original Author: Ruopeng Wang
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -63,9 +63,11 @@ protected slots:
   void OnStatItemChanged(QTreeWidgetItem* item, int col);
   void OnCurrentStatItemChanged(QTreeWidgetItem* cur, QTreeWidgetItem* old);
   void SetCurrentPoint(int nIndex);
+  void OnTextOverallQualityChanged();
+  void OnSpinBoxOverallScore(int);
 
 private:
-  QLabel* MakeCommentItem(const QVariantMap& map);
+  QLabel* MakeCommentItem(const QVariantMap& map, QLabel* label_in = NULL);
   QTreeWidgetItem* AddStatItem(const QString& name, double value);
 
   Ui::PanelPointSet *ui;

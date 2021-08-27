@@ -5,7 +5,7 @@
 /*
  * Original Author: Florent Segonne & Bruce Fischl
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -354,7 +354,10 @@ int main(int argc, char *argv[]) {
     char timeString[256];
     getTimeString(timeString);
     char filename[256];
-    sprintf(filename, "%s-%s.mgh", "binarized", timeString);
+    int req = snprintf(filename, 256, "%s-%s.mgh", "binarized", timeString);
+    if (req >= 256) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     MRIwrite(mri_with_skull, filename);
   }
   /* Main routine *********************/
@@ -1044,7 +1047,7 @@ static int Pre_CharSorting(STRIP_PARMS *parms,MRI_variables *MRI_var) {
   for (k=0;k<r;k++)
     for (j=0;j<r;j++)
       for (i=0;i<r;i++) {
-        if (!(i*j*k*(i-r+1)*(j-r+1)*(k-r+1))) {
+        if ((i*j*k*(i-r+1)*(j-r+1)*(k-r+1)) == 0) {
           mean=1000;
         } else {
           mean=0;
@@ -2238,6 +2241,9 @@ static int PostAnalyze(STRIP_PARMS *parms,MRI_variables *MRI_var) {
                   ((BasinCell*)MRI_var->Basin[k][j][i].next)->ambiguous,
                   ((BasinCell*)MRI_var->Basin[k][j][i].next)->size);
           free((BasinCell*)MRI_var->Basin[k][j][i].next);
+#if __GNUC__ >= 8
+  [[gnu::fallthrough]];
+#endif
         case 9:
           MRI_var->Basin[k][j][i].type=3;
           break;
@@ -2350,14 +2356,20 @@ static void Template_Deformation(STRIP_PARMS *parms,MRI_variables *MRI_var) {
   getTimeString(timeString);
   char filename[256];
   if (parms->surf_dbg) {
-    sprintf(filename, "surface1-%s-%.2f", timeString, parms->forceParam);
+    int req = snprintf(filename, 256, "surface1-%s-%.2f", timeString, parms->forceParam);
+    if (req >= 256) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     MRISwrite(MRI_var->mris, filename);
   }
   fprintf(stderr, "\n      calcForceGM... ");
   init_direction(MRI_var);
   MRISfit(MRI_var, calcForceGM, parms->forceParam);
   if (parms->surf_dbg) {
-    sprintf(filename, "surfaceFinal-%s-%.2f", timeString, parms->forceParam);
+    int req = snprintf(filename, 256, "surfaceFinal-%s-%.2f", timeString, parms->forceParam);
+    if (req >= 256) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     MRISwrite(MRI_var->mris, filename);
   }
   //

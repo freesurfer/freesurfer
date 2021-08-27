@@ -2,7 +2,7 @@ import os
 import tempfile
 import numpy as np
 
-from . import error, run, Image, Overlay, Volume, Surface, collect_output
+from . import error, run, Image, Overlay, Volume, Surface, Geometry, collect_output
 
 
 class Freeview:
@@ -42,9 +42,23 @@ class Freeview:
             self.data = data
             self.name = name
 
-    def __init__(self):
+    def __init__(self, swap_batch_dim=False, geom=None):
+        '''
+        Args:
+            swap_batch_dim: Move the first axis to the last if image input is a numpy array. Default is False.
+            geom: Geometry to apply to any ndarray images. Can be a geometry or volume instance. Default is None.
+        '''
         self.tempdir = None
         self.flags = []
+        self.swap_batch_dim = swap_batch_dim
+        
+        if isinstance(geom, (Image, Volume, Surface)):
+            geom = geom.geometry()
+        elif isinstance(geom, Geometry):
+            geom = geom
+        elif geom is not None:
+            raise ValueError('Unsupported geometry type "%s"' % geom.__class__.__name__)
+        self.geom = geom
 
     def copy(self):
         '''
@@ -56,7 +70,7 @@ class Freeview:
         copied.tempdir = self.tempdir
         return copied
 
-    def vol(self, volume, **kwargs):
+    def vol(self, volume, swap_batch_dim=False, **kwargs):
         '''
         Loads a volume in the sessions. If the volume provided is not a filepath,
         then the input will be saved as a volume in a temporary directory. Any
@@ -64,11 +78,12 @@ class Freeview:
 
         Args:
             volume: An existing volume filename, numpy array, or fs array container.
+            swap_batch_dim: Move the first axis to the last if input is a numpy array. Default is False.
             opts: Additional options to append to the volume argument.
         '''
 
         # convert the input to a proper file (if it's not one already)
-        filename = self._vol_to_file(volume)
+        filename = self._vol_to_file(volume, swap_batch_dim=swap_batch_dim)
         if filename is None:
             return
 
@@ -211,7 +226,7 @@ class Freeview:
 
         return tags + extra_tags
 
-    def _vol_to_file(self, volume, name=None, force=None, ext='mgz'):
+    def _vol_to_file(self, volume, name=None, force=None, ext='mgz', swap_batch_dim=False):
         '''
         Converts an unknown volume type (whether it's a filename, array, or
         other object) into a valid file.
@@ -231,10 +246,26 @@ class Freeview:
         # if input is a numpy array, convert to the appropriate fs array type
         # and let the filename creation get handled below
         if isinstance(volume, np.ndarray):
+
+            if swap_batch_dim or self.swap_batch_dim:
+                # swap batch axis to frame axis if specified
+                if volume.shape[-1] == 1:
+                    volume = volume[..., 0]
+                volume = np.moveaxis(volume, 0, -1)
+            elif volume.ndim == 5 and volume.shape[-1] == 1:
+                # this is a bit of a hack for Bruce that auto-checks
+                # and swaps dimensions for a volume that is batched
+                volume = volume[..., 0]
+                volume = np.moveaxis(volume, 0, -1)
+
+            orig_shape = volume.shape
             volume = self._convert_ndarray(volume) if force is None else force(volume.squeeze())
             if volume is None:
-                error('cannot convert array of shape %s' % str(volume.shape))
+                error('cannot convert array of shape %s' % str(orig_shape))
                 return None
+
+            if self.geom is not None and volume.basedims > 1:
+                volume.copy_geometry(self.geom)
 
         # configure filename
         if not name:
@@ -372,10 +403,13 @@ def fv(*args, **kwargs):
     Args:
         opts: Additional string of flags to add to the command.
         background: Run freeview as a background process. Defaults to True.
+        swap_batch_dim: Move the first axis to the last if input is a numpy image array. Default is False.
         kwargs: kwargs are forwarded to the Freeview.show() call.
     '''
     background = kwargs.pop('background', True)
     opts = kwargs.pop('opts', '')
+    swap_batch_dim = kwargs.pop('swap_batch_dim', False)
+    geom = kwargs.pop('geom', None)
 
     # expand any nested lists/tuples within args
     def flatten(deep):
@@ -385,7 +419,7 @@ def fv(*args, **kwargs):
             else:
                 yield el
 
-    fv = Freeview()
+    fv = Freeview(geom=geom)
 
     for arg in flatten(args):
         if isinstance(arg, str):
@@ -401,7 +435,7 @@ def fv(*args, **kwargs):
             fv.surf(arg)
         else:
             # assume anything else is a volume
-            fv.vol(arg)
+            fv.vol(arg, swap_batch_dim=swap_batch_dim)
 
     fv.show(background=background, opts=opts, **kwargs)
 

@@ -4,8 +4,6 @@
 #include "LayerVolumeBase.h"
 #include "vtkSmartPointer.h"
 
-
-
 #include "colortab.h"
 #include "fcd.h"
 

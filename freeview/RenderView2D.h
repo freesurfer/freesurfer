@@ -5,7 +5,7 @@
 /*
  * Original Author: Ruopeng Wang
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -35,6 +35,7 @@ class Interactor2DPointSetEdit;
 class Interactor2DVolumeCrop;
 class LayerMRI;
 class LayerLineProfile;
+class LayerPointSet;
 
 class RenderView2D : public RenderView
 {
@@ -119,6 +120,13 @@ public:
     return m_nTextSize;
   }
 
+  LayerPointSet* PickPointSetAtCursor(int nX, int nY);
+
+  QList<Region2D*> GetRegions()
+  {
+    return m_regions;
+  }
+
 public slots:
   void RefreshAllActors(bool bForScreenShot = false);
   void StopSelection();
@@ -128,6 +136,9 @@ public slots:
   void CenterAtCursor();
   void SetAutoScaleText(bool b);
   void SetTextSize(int nsize);
+  void OnMovePointToLocalMaximum(bool bUseLast = false);
+  void OnMovePointToLocalMaximumDefault();
+  void OnMoveAllPointsToLocalMaximum();
 
 signals:
   void RegionSelected( Region2D* );
@@ -135,6 +146,7 @@ signals:
   void Zooming(RenderView2D* view);
   void LineProfileIdPicked(LayerLineProfile* lp, int nId);
   void CursorLocationClicked();
+  void PointSetPicked(LayerPointSet* wp, int nIndex);
 
 protected slots:
   virtual void OnSlicePositionChanged(bool bCenterView = false);
@@ -142,6 +154,8 @@ protected slots:
   void OnDuplicateRegion();
   void OnInteractorError(const QString& msg);
   void OnCopyVoxelValue();
+  void OnCopyLabelVolume();
+  void OnCopyRegionValue();
 
 protected:
   virtual void resizeEvent(QResizeEvent *event);

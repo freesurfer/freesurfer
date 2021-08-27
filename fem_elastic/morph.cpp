@@ -188,6 +188,7 @@ void DenseDisplacementField::doInput(std::istream& is)
         start[ui] = TRead<int>(ss);
       region.SetIndex(start);
     }
+    break;
     case tagSpacing:
     {
       double spacing[3];

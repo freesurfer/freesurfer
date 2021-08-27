@@ -6,9 +6,15 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>285</width>
+    <width>397</width>
     <height>400</height>
    </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
   </property>
   <property name="windowTitle">
    <string>Measure</string>
@@ -20,7 +26,16 @@
    <property name="sizeConstraint">
     <enum>QLayout::SetMinimumSize</enum>
    </property>
-   <property name="margin">
+   <property name="leftMargin">
+    <number>0</number>
+   </property>
+   <property name="topMargin">
+    <number>0</number>
+   </property>
+   <property name="rightMargin">
+    <number>0</number>
+   </property>
+   <property name="bottomMargin">
     <number>0</number>
    </property>
    <item>
@@ -37,6 +52,7 @@
      <addaction name="actionRectangle"/>
      <addaction name="actionLabel"/>
      <addaction name="actionContour"/>
+     <addaction name="actionDrawOnContour"/>
     </widget>
    </item>
    <item>
@@ -47,7 +63,7 @@
     </widget>
    </item>
    <item>
-    <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,0,0,0,1">
+    <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,0,0,0,1,0,0">
      <property name="spacing">
       <number>6</number>
      </property>
@@ -93,6 +109,20 @@
        </property>
       </widget>
      </item>
+     <item>
+      <widget class="QPushButton" name="pushButtonDeleteDrawing">
+       <property name="text">
+        <string>Delete Current</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="pushButtonDeleteAllDrawing">
+       <property name="text">
+        <string>Delete All</string>
+       </property>
+      </widget>
+     </item>
     </layout>
    </item>
    <item>
@@ -116,12 +146,6 @@
    </item>
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout_3">
-     <property name="spacing">
-      <number>6</number>
-     </property>
-     <property name="margin">
-      <number>0</number>
-     </property>
      <item>
       <spacer name="horizontalSpacer_3">
        <property name="orientation">
@@ -328,6 +352,18 @@
     <string>Label</string>
    </property>
   </action>
+  <action name="actionDrawOnContour">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/measure_surface_region.png</normaloff>:/resource/icons/measure_surface_region.png</iconset>
+   </property>
+   <property name="text">
+    <string>Draw on Contour</string>
+   </property>
+  </action>
  </widget>
  <customwidgets>
   <customwidget>
@@ -372,7 +408,7 @@
      <y>56</y>
     </hint>
     <hint type="destinationlabel">
-     <x>415</x>
+     <x>408</x>
      <y>213</y>
     </hint>
    </hints>
@@ -384,11 +420,11 @@
    <slot>OnLoad()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>56</x>
-     <y>357</y>
+     <x>135</x>
+     <y>372</y>
     </hint>
     <hint type="destinationlabel">
-     <x>456</x>
+     <x>408</x>
      <y>291</y>
     </hint>
    </hints>
@@ -416,8 +452,8 @@
    <slot>OnSaveAll()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>240</x>
-     <y>357</y>
+     <x>330</x>
+     <y>372</y>
     </hint>
     <hint type="destinationlabel">
      <x>311</x>
@@ -432,12 +468,12 @@
    <slot>OnUpdate()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>73</x>
-     <y>387</y>
+     <x>152</x>
+     <y>398</y>
     </hint>
     <hint type="destinationlabel">
      <x>84</x>
-     <y>422</y>
+     <y>399</y>
     </hint>
    </hints>
   </connection>
@@ -448,12 +484,12 @@
    <slot>OnCopy()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>147</x>
-     <y>388</y>
+     <x>244</x>
+     <y>398</y>
     </hint>
     <hint type="destinationlabel">
      <x>166</x>
-     <y>427</y>
+     <y>399</y>
     </hint>
    </hints>
   </connection>
@@ -464,12 +500,12 @@
    <slot>OnExport()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>236</x>
-     <y>395</y>
+     <x>330</x>
+     <y>398</y>
     </hint>
     <hint type="destinationlabel">
      <x>241</x>
-     <y>432</y>
+     <y>399</y>
     </hint>
    </hints>
   </connection>
@@ -480,12 +516,44 @@
    <slot>OnColorGroup(QColor)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>228</x>
-     <y>61</y>
+     <x>214</x>
+     <y>67</y>
     </hint>
     <hint type="destinationlabel">
-     <x>417</x>
+     <x>408</x>
      <y>148</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonDeleteDrawing</sender>
+   <signal>clicked()</signal>
+   <receiver>ToolWindowMeasure</receiver>
+   <slot>OnButtonDelete3DRegion()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>279</x>
+     <y>62</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>560</x>
+     <y>243</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonDeleteAllDrawing</sender>
+   <signal>clicked()</signal>
+   <receiver>ToolWindowMeasure</receiver>
+   <slot>OnButtonDeleteAll3DRegions()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>361</x>
+     <y>55</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>608</x>
+     <y>178</y>
     </hint>
    </hints>
   </connection>
@@ -500,5 +568,7 @@
   <slot>OnCopy()</slot>
   <slot>OnExport()</slot>
   <slot>OnColorGroup(QColor)</slot>
+  <slot>OnButtonDelete3DRegion()</slot>
+  <slot>OnButtonDeleteAll3DRegions()</slot>
  </slots>
 </ui>

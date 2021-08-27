@@ -7,7 +7,7 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -106,7 +106,10 @@ main(int argc, char *argv[]) {
   skipped = 0 ;
   for (i = 4 ; i < argc-1 ; i++) {
     fprintf(stderr, "processing subject %s...\n", argv[i]) ;
-    sprintf(fname, "%s/%s/surf/%s.%s", sdir, argv[i], hemi, surf_name) ;
+    int req = snprintf(fname, STRLEN, "%s/%s/surf/%s.%s", sdir, argv[i], hemi, surf_name) ;
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     mris = MRISread(fname) ;
     if (!mris) {
       ErrorPrintf(ERROR_NOFILE, "%s: could not read surface file %s",
@@ -144,7 +147,10 @@ main(int argc, char *argv[]) {
   }
 
   if (output_surf_name) {
-    sprintf(fname, "%s/%s/surf/%s.%s", sdir,output_surf_name,ohemi,osurf);
+    int req = snprintf(fname, STRLEN, "%s/%s/surf/%s.%s", sdir,output_surf_name,ohemi,osurf);
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     fprintf(stderr, "reading output surface %s...\n", fname) ;
     if (mris)
       MRISfree(&mris) ;

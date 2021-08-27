@@ -90,7 +90,7 @@ endif
 # make_outer_surface.m
 #
 # create the outer surface from the filled volume
-set MLF = /tmp/mos"_$$_".m
+set MLF = `fs_temp_file --suffix .m`
 set arg1 = ${tmpdir}/${input}.filled.mgz
 set arg2 = ${closespheresize}
 set arg3 =  ${tmpdir}/${input}-outer
@@ -186,7 +186,7 @@ endif
 # find_corresponding_center_FSformat.m
 #
 # create ROI center files
-set MLF = /tmp/mrc"_$$_".m
+set MLF = `fs_temp_file --suffix .m`
 set arg1 = ${input}
 set arg2 = ${input}-outer-smoothed
 set arg3 = ${stepsize}
@@ -210,7 +210,7 @@ endif
 # make_roi_paths.m
 #
 # create ROI path files
-set MLF = /tmp/mrp"_$$_".m
+set MLF = `fs_temp_file --suffix .m`
 set arg1 = ${input}
 set arg2 = ${input}-outer-smoothed
 set arg3 = ${radius}
@@ -266,7 +266,7 @@ endif
 #
 # finally, compute lGI measurements
 compute_lgi:
-set MLF = /tmp/clgi"_$$_".m
+set MLF = `fs_temp_file --suffix .m`
 set arg1 = ${input}
 set arg2 = ${input}-outer-smoothed
 set arg3 = ${tmpdir}/${input}-outer-smoothed-normals.asc

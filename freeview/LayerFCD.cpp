@@ -5,7 +5,7 @@
 /*
  * Original Author: Ruopeng Wang
  *
- * Copyright © 2014 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -67,8 +67,6 @@ LayerFCD::LayerFCD(LayerMRI* layerMRI,
     m_sliceActor2D[i]->InterpolateOff();
     m_sliceActor3D[i]->InterpolateOff();
   }
-
-  mProperty = new LayerPropertyFCD( this );
 
   m_layerSource = layerMRI;
   if (m_layerSource)
@@ -248,7 +246,6 @@ bool LayerFCD::LoadFromFile()
   {
     return false;
   }
-
 
   if (m_fcd)
   {

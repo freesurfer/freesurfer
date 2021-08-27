@@ -10,7 +10,7 @@
 /*
  * Original Authors: Kevin Teich, Bruce Fischl
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -264,10 +264,10 @@ int CTABfree(COLOR_TABLE **pct)
   for (i = 0; i < ct->nentries; i++)
     if (NULL != ct->entries[i]) free(ct->entries[i]);
 
+  if (ct->ctabTissueType) CTABfree(&ct->ctabTissueType);
+
   free(ct->entries);
   free(ct);
-
-  if (ct->ctabTissueType) CTABfree(&ct->ctabTissueType);
 
   /* Set argument to null */
   *pct = NULL;

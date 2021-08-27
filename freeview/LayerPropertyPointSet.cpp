@@ -9,7 +9,7 @@
 /*
  * Original Author: Ruopeng Wang
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -64,6 +64,7 @@ LayerPropertyPointSet::LayerPropertyPointSet (QObject* parent) :
 
   m_bShowSpline = true;
   m_bSnapToVoxelCenter = false;
+  m_bClosedSpline = false;
 
   m_lutHeatScale = vtkSmartPointer<vtkRGBAColorTransferFunction>::New();
 
@@ -73,6 +74,7 @@ LayerPropertyPointSet::LayerPropertyPointSet (QObject* parent) :
   connect(this, SIGNAL(OpacityChanged(double)), this, SIGNAL(PropertyChanged()));
   connect(this, SIGNAL(RadiusChanged(double)), this, SIGNAL(PropertyChanged()));
   connect(this, SIGNAL(SplineRadiusChanged(double)), this, SIGNAL(PropertyChanged()));
+  connect(this, SIGNAL(ClosedSplineChanged(bool)), this, SIGNAL(PropertyChanged()));
 
   LoadSettings();
 }
@@ -202,6 +204,15 @@ void LayerPropertyPointSet::SetSplineRadius( double r )
   {
     m_dSplineRadius = r;
     emit SplineRadiusChanged( r );
+  }
+}
+
+void LayerPropertyPointSet::SetClosedSpline(bool bClosed)
+{
+  if (m_bClosedSpline != bClosed)
+  {
+    m_bClosedSpline = bClosed;
+    emit ClosedSplineChanged(bClosed);
   }
 }
 

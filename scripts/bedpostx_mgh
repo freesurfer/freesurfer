@@ -1,27 +1,27 @@
-#!/bin/bash
+#!/bin/sh
 
 # bedpostx_mgh
 # (This script was modified from FSL's bedpostx by Anastasia Yendiki)
 
-#   Copyright (C) 2004 University of Oxford
+#   Copyright (C) 2004,2013 University of Oxford
 #
 #   Part of FSL - FMRIB's Software Library
 #   http://www.fmrib.ox.ac.uk/fsl
 #   fsl@fmrib.ox.ac.uk
-#   
+#
 #   Developed at FMRIB (Oxford Centre for Functional Magnetic Resonance
 #   Imaging of the Brain), Department of Clinical Neurology, Oxford
 #   University, Oxford, UK
-#   
-#   
+#
+#
 #   LICENCE
-#   
-#   FMRIB Software Library, Release 4.0 (c) 2007, The University of
+#
+#   FMRIB Software Library, Release 6.0 (c) 2018, The University of
 #   Oxford (the "Software")
-#   
-#   The Software remains the property of the University of Oxford ("the
-#   University").
-#   
+#
+#   The Software remains the property of the Oxford University Innovation
+#   ("the University").
+#
 #   The Software is distributed "AS IS" under this Licence solely for
 #   non-commercial use in the hope that it will be useful, but in order
 #   that the University as a charitable foundation protects its assets for
@@ -33,13 +33,13 @@
 #   all responsibility for the use which is made of the Software. It
 #   further disclaims any liability for the outcomes arising from using
 #   the Software.
-#   
+#
 #   The Licensee agrees to indemnify the University and hold the
 #   University harmless from and against any and all claims, damages and
 #   liabilities asserted by third parties (including claims for
 #   negligence) which arise directly or indirectly from the use of the
 #   Software or the sale of any products based on the Software.
-#   
+#
 #   No part of the Software may be reproduced, modified, transmitted or
 #   transferred in any form or by any means, electronic or mechanical,
 #   without the express permission of the University. The permission of
@@ -50,7 +50,7 @@
 #   transmitted product. You may be held legally responsible for any
 #   copyright infringement that is caused or encouraged by your failure to
 #   abide by these terms and conditions.
-#   
+#
 #   You are not permitted under this Licence to use this Software
 #   commercially. Use for which any financial return is received shall be
 #   defined as commercial use, and includes (1) integration of all or part
@@ -62,20 +62,10 @@
 #   final aim of developing non-software products for sale or license to a
 #   third party, or (4) use of the Software to provide any service to an
 #   external organisation for which payment is received. If you are
-#   interested in using the Software commercially, please contact Isis
-#   Innovation Limited ("Isis"), the technology transfer company of the
+#   interested in using the Software commercially, please contact Oxford
+#   University Innovation ("OUI"), the technology transfer company of the
 #   University, to negotiate a licence. Contact details are:
-#   innovation@isis.ox.ac.uk quoting reference DE/1112.
-
-BPDIR=`dirname $0`
-
-if [ "x$SGE_ROOT" = "x" ] ; then
-    if [ -f /usr/local/share/sge/default/common/settings.sh ] ; then
-	. /usr/local/share/sge/default/common/settings.sh
-    elif [ -f /usr/local/sge/default/common/settings.sh ] ; then
-	. /usr/local/sge/default/common/settings.sh
-    fi
-fi
+#   fsl@innovation.ox.ac.uk quoting Reference Project 9564, FSL.
 
 # Check if this is being run on PBS but isn't a job itself (AY)
 if [ -d /pbs ] && [ -z $PBS_JOBID ] ; then
@@ -84,19 +74,26 @@ else
     dopbsjobs=0;
 fi
 
+BPDIR=`dirname $0`
+
+export LC_ALL=C
 
 Usage() {
     echo ""
-    echo "Usage: bedpostx_mgh <subject directory> [options] ..."
+    echo "Usage: bedpostx <subject directory> [options]"
     echo ""
     echo "expects to find bvals and bvecs in subject directory"
     echo "expects to find data and nodif_brain_mask in subject directory"
+    echo "expects to find grad_dev in subject directory, if -g is set"
     echo "options (old syntax)"
-    echo "-n (number of fibres per voxel, default 2)"
+    echo "-n (number of fibres per voxel, default 3)"
     echo "-w (ARD weight, more weight means less secondary fibres per voxel, default 1)"
     echo "-b (burnin period, default 1000)"
     echo "-j (number of jumps, default 1250)"
     echo "-s (sample every, default 25)"
+    echo "-model (Deconvolution model. 1: with sticks, 2: with sticks with a range of diffusivities (default), 3: with zeppelins)"
+    echo "-g (consider gradient nonlinearities, default off)"
+    #echo "-c do not use CUDA capable hardware/queue (if found)"
     echo ""
     echo ""
     echo "ALTERNATIVELY: you can pass on xfibres options onto directly bedpostx"
@@ -107,23 +104,23 @@ Usage() {
     echo "Note: Use EITHER old OR new syntax."
     echo ""
     echo "This is a modified version of FSL's bedpostx that is compatible with"
-    echo "the PBS queueing system running on launchpad/seychelles and can be"
-    echo "used by Martinos Center users to parallelize computation."
+    echo "the PBS queueing system running on launchpad and can be used by MGH"
+    echo "Martinos Center users to parallelize computation."
     echo ""
     echo "This script runs the exact same algorithm as bedpostx, but it submits"
-    echo "the processing for each slice as a separate PBS job. Thus, bedpostx"
-    echo "and bedpostx_mgh will give you the same result, but the former will"
-    echo "do it in days and the latter in hours."
+    echo "the processing for each slice as a separate PBS job. Thus,"
+    echo "bedpostx_mgh will give you the same result as bedpostx, but do it"
+    echo "an order of magnitude faster."
     echo ""
     echo "Command line options and the structure of the input directory are the"
     echo "same as for the original bedpostx."
     echo ""
-    echo "Do not submit bedpostx_mgh as a job on launchpad/seychelles. Run it"
-    echo "directly at the launchpad/seychelles prompt and it will submit the"
-    echo "jobs for you. Note that this will generate a large number of jobs, so"
-    echo "don't launch it on more than one data set at the same time. You may"
-    echo "get some PBS emails about jobs being held that you have to release -"
-    echo "you can ignore these emails as the script will take care of that."
+    echo "Do not submit bedpostx_mgh as a job on launchpad. Run it directly at"
+    echo "the launchpad prompt and it will submit the jobs for you. Note that"
+    echo "this will generate a large number of jobs, so don't launch it on more"
+    echo "than one data set at the same time. You may get some PBS emails about"
+    echo "jobs being held that you have to release - you can ignore these"
+    echo "emails as this script will take care of that."
     exit 1
 }
 
@@ -131,31 +128,60 @@ Usage() {
 fslver=(`cat $FSLDIR/etc/fslversion | sed 's/\./ /g'`)
 if [ -z ${fslver[1]} ]; then fslver[1]=0; fi
 if [ -z ${fslver[2]} ]; then fslver[2]=0; fi
-
-# The order of bedpostx_single_slice arguments has been shifting around
-# in different versions of FSL
-if [ ${fslver[0]} -lt 4 ]; then
-    echo "Unsupported FSL version (${fslver[0]}.${fslver[1]}.${fslver[2]})"
+if [ ${fslver[0]} -lt 6 ]; then
+    echo "Outdated FSL version (${fslver[0]}.${fslver[1]}.${fslver[2]})"
+    echo "Use 6.0.0 or newer"
     exit 1
-else
-    if [ ${fslver[0]} -eq 4 ] && [ ${fslver[1]} -eq 0 ]; then
-	if [ ${fslver[2]} -lt 2 ]; then
-	    argorder=400;				# Order as in FSL 4.0.0
-	else
-            argorder=402;				# Order as in FSL 4.0.2
-	fi
-    elif [ ${fslver[0]} -eq 4 ] && [ ${fslver[1]} -eq 1 ]; then
-	if [ ${fslver[2]} -lt 5 ]; then
-	    argorder=402;				# Order as in FSL 4.0.2
-	elif [ ${fslver[2]} -lt 9 ]; then
-	    argorder=415;				# Order as in FSL 4.1.5
-	else
-            argorder=419;				# Order as in FSL 4.1.9
-	fi
-    else
-	argorder=419;					# Order as in FSL 4.1.9
-    fi
 fi
+
+monitor(){
+    cat <<EOM > ${subjdir}.bedpostX/monitor
+#!/bin/sh
+echo
+echo "----- Bedpostx Monitor -----"
+finished=0
+lastprinted=0
+havedad=2
+while [ \$finished -eq 0 ] ; do
+    nfin=0
+    slice=0
+    errorFiles=\`ls ${subjdir}.bedpostX/logs/*.e* 2> /dev/null \`
+    for errorFile in \$errorFiles
+    do
+        if [ -s \$errorFile ]; then
+            echo An error ocurred. Please check file \$errorFile
+            kill -9 $$
+            exit 1
+        fi
+    done
+    while [ \$slice -le $nslices ];do
+        if [ -e ${subjdir}.bedpostX/logs/monitor/\$slice ]; then
+            nfin=\$((\$nfin + 1))
+        fi
+        slice=\$((\$slice + 1))
+    done
+    newmessages=\$((\$nfin - \$lastprinted))
+    while [ "\$newmessages" -gt 0 ];do
+        lastprinted=\$((\$lastprinted + 1))
+        echo \$lastprinted slices processed out of $nslices
+        newmessages=\$((\$newmessages - 1))
+    done
+    if [ -f ${subjdir}.bedpostX/xfms/eye.mat ] ; then
+        finished=1
+        echo "All slices processed"
+	exit 
+    fi
+    if [ ! \$havedad -gt 0 ]; then
+       exit 0
+    fi
+    if [ "x$SGE_ROOT" = "x" ] && [ $dopbsjobs -eq 0 ]; then
+        havedad=\`ps -e -o pid 2>&1 | grep "$$\\b" | wc -l\`        
+    fi
+    sleep 180;
+done
+EOM
+    chmod +x ${subjdir}.bedpostX/monitor
+}
 
 make_absolute(){
     dir=$1;
@@ -172,13 +198,18 @@ make_absolute(){
 
 [ "$1" = "" ] && Usage
 
+myopts="$@"
+
 #parse option arguments
-nfibres=2
+nfibres=3
 fudge=1
 burnin=1000
 njumps=1250
 sampleevery=25
-model=1
+model=2
+gflag=0
+nocuda=0
+other=""
 
 while [ ! -z "$1" ]
 do
@@ -192,14 +223,29 @@ do
         -j) njumps=$2;shift;;
         -s) sampleevery=$2;shift;;
         -model) model=$2;shift;;
-        *) break;;
+        -g) gflag=1;;
+        -c) nocuda=1;;
+        *) other=$other" "$1;;
     esac
   fi
   shift
 done
 opts="--nf=$nfibres --fudge=$fudge --bi=$burnin --nj=$njumps --se=$sampleevery --model=$model"
 defopts="--cnonlinear"
-opts="$opts $defopts $*"
+opts="$opts $defopts $other"
+if [ -n "$SGE_ROOT" ]; then
+	# Look for an SGE queue
+	if [ -n "$FSLGECUDAQ" -a "$nocuda" -eq 0 ]; then
+		# Test that the queue exists
+		qconf -sq $FSLGECUDAQ 2>&1 >/dev/null
+		if [ $? -eq 0 ]; then
+			# CUDA queue exists
+			if [ -x $0_gpu ]; then
+				exec $0_gpu $myopts
+			fi
+		fi
+	fi
+fi
 
 # Process multiple input directories, queue them up serially (AY)
 for subjdir in $dirlist; do
@@ -217,13 +263,21 @@ if [ ! -d $subjdir ]; then
 fi
 
 if [ ! -e ${subjdir}/bvecs ]; then
+    if [ -e ${subjdir}/bvecs.txt ]; then
+	mv ${subjdir}/bvecs.txt ${subjdir}/bvecs
+    else
 	echo "${subjdir}/bvecs not found"
 	exit 1
+    fi
 fi
 
 if [ ! -e ${subjdir}/bvals ]; then
+    if [ -e ${subjdir}/bvals.txt ]; then
+	mv ${subjdir}/bvals.txt ${subjdir}/bvals
+    else
 	echo "${subjdir}/bvals not found"
 	exit 1
+    fi
 fi
 
 if [ `${FSLDIR}/bin/imtest ${subjdir}/data` -eq 0 ]; then
@@ -231,8 +285,21 @@ if [ `${FSLDIR}/bin/imtest ${subjdir}/data` -eq 0 ]; then
 	exit 1
 fi
 
+if [ ${gflag} -eq 1 ]; then
+    if [ `${FSLDIR}/bin/imtest ${subjdir}/grad_dev` -eq 0 ]; then
+	echo "${subjdir}/grad_dev not found"
+	exit 1
+    fi
+fi
+
 if [ `${FSLDIR}/bin/imtest ${subjdir}/nodif_brain_mask` -eq 0 ]; then
 	echo "${subjdir}/nodif_brain_mask not found"
+	exit 1
+fi
+
+if [ -e ${subjdir}.bedpostX/xfms/eye.mat ]; then
+	echo "${subjdir} has already been processed: ${subjdir}.bedpostX." 
+	echo "Delete or rename ${subjdir}.bedpostX before repeating the process."
 	exit 1
 fi
 
@@ -241,139 +308,54 @@ echo Making bedpostx directory structure
 mkdir -p ${subjdir}.bedpostX/
 mkdir -p ${subjdir}.bedpostX/diff_slices
 mkdir -p ${subjdir}.bedpostX/logs
-mkdir -p ${subjdir}.bedpostX/logs/pid_${$}
+mkdir -p ${subjdir}.bedpostX/logs/monitor
 mkdir -p ${subjdir}.bedpostX/xfms
 
 mailto=`whoami`
 echo Queuing preprocessing stages
 if [ "x$mergeid" = "x" ] ; then
-    preprocid=`${BPDIR}/fsl_sub_mgh -T 60 -m a -N bedpostx_pre -l ${subjdir}.bedpostX/logs ${FSLDIR}/bin/bedpostx_preproc.sh ${subjdir}`
+    preprocid=`${BPDIR}/fsl_sub_mgh -T 60 -m a -N bedpostx_pre -l ${subjdir}.bedpostX/logs ${FSLDIR}/bin/bedpostx_preproc.sh ${subjdir} ${gflag}`
 else
-    preprocid=`${BPDIR}/fsl_sub_mgh -j $mergeid -T 60 -m a -N bedpostx_pre -l ${subjdir}.bedpostX/logs ${FSLDIR}/bin/bedpostx_preproc.sh ${subjdir}`
+    preprocid=`${BPDIR}/fsl_sub_mgh -j $mergeid -T 60 -m a -N bedpostx_pre -l ${subjdir}.bedpostX/logs ${FSLDIR}/bin/bedpostx_preproc.sh ${subjdir} ${gflag}`
 fi
 
 echo Queuing parallel processing stage
 nslices=`${FSLDIR}/bin/fslval ${subjdir}/data dim3`
 [ -f ${subjdir}.bedpostX/commands.txt ] && rm ${subjdir}.bedpostX/commands.txt
+
+monitor
 if [ "x$SGE_ROOT" = "x" ] && [ $dopbsjobs -eq 0 ]; then
-
-# 
-# Need to set off a backgrounded monitoring task
-# 
-    cat <<EOM > ${subjdir}.bedpostX/monitor
-#!/bin/sh
-finished=0
-logdir=${subjdir}.bedpostX/logs
-
-check() {
-    if [ \$finished -eq 1 ];then
-        echo "\$nfin slices processed"
-    else
-        nfin=0
-        slice=0
-        while [ "\$slice" -le $nslices ];do
-            slicezp=\`\$FSLDIR/bin/zeropad \$slice 4\`
-            isimg=\`\$FSLDIR/bin/imtest ${subjdir}.bedpostX/diff_slices/data_slice_\$slicezp/dyads1\`
-            if [ \$isimg -eq 1 ];then
-                nfin=\$((\$nfin + 1))
-            fi
-                slice=\$((\$slice + 1))
-        done
-        if [ \$nfin -eq $nslices ] ; then
-            finished=1
-        fi
-        echo "\$nfin slices processed"
-    fi
-}
-exit_test() {
-    isimg=\`\$FSLDIR/bin/imtest ${subjdir}.bedpostX/dyads1\`
-    if [ \$isimg -eq 0 ] ; then
-	echo For some reason the bedpostX process DOES NOT appear
-	echo to have successfully completed. Please examine your
-	echo results carefully.
-    else
-	echo All slices processed
-    fi
-}
-
-check
-n=0
-while [ \$finished -eq 0 ] ; do
-    sleep 10
-    if [ \$n -eq 60 ] ; then
-        check
-        n=0
-    else
-        n=\$((\$n + 1))
-    fi
-done
-exit_test
-EOM
-    chmod +x ${subjdir}.bedpostX/monitor
     ${subjdir}.bedpostX/monitor&
-    monitorpid=$!
 fi
+
 slice=0
 while [ $slice -lt $nslices ]
 do
     slicezp=`$FSLDIR/bin/zeropad $slice 4`
-    if [ `$FSLDIR/bin/imtest ${subjdir}.bedpostX/diff_slices/data_slice_$slicezp/dyads1` -eq 1 ];then
+    if [ `$FSLDIR/bin/imtest ${subjdir}.bedpostX/diff_slices/data_slice_$slicezp/dyads1` -eq 1 ] && [ -f ${subjdir}.bedpostX/logs/monitor/$slice ];then
 	echo "slice $slice has already been processed"
     else
-	if [ $argorder -eq 400 ]; then
-	    echo "${FSLDIR}/bin/bedpostx_single_slice.sh $subjdir $nfibres $fudge $burnin $slice" \
-	      >> ${subjdir}.bedpostX/commands.txt
-	elif [ $argorder -eq 402 ]; then
-	    echo "${FSLDIR}/bin/bedpostx_single_slice.sh $subjdir $nfibres $fudge $burnin $njumps $sampleevery $slice" \
-	      >> ${subjdir}.bedpostX/commands.txt
-	elif [ $argorder -eq 415 ]; then
-	    echo "${FSLDIR}/bin/bedpostx_single_slice.sh $subjdir $nfibres $fudge $burnin $njumps $sampleevery $model $slice" \
-	      >> ${subjdir}.bedpostX/commands.txt
-	elif [ $argorder -eq 419 ]; then
-	    echo "${FSLDIR}/bin/bedpostx_single_slice.sh $subjdir $slice $opts" \
-	      >> ${subjdir}.bedpostX/commands.txt
-	fi
+        [ -f ${subjdir}.bedpostX/logs/monitor/$slice ] && rm ${subjdir}.bedpostX/logs/monitor/$slice
+	if [ ${gflag} -eq 1 ]; then
+	    gopts="$opts --gradnonlin=${subjdir}/grad_dev_slice_${slicezp}"
+	else
+	    gopts=$opts
+	fi    
+	echo "${FSLDIR}/bin/bedpostx_single_slice.sh ${subjdir} ${slice} $gopts" \
+	    >> ${subjdir}.bedpostX/commands.txt
     fi
     slice=$(($slice + 1))
 done
-
 bedpostid=`${BPDIR}/fsl_sub_mgh -j $preprocid -l ${subjdir}.bedpostX/logs -m a -N bedpostx -t ${subjdir}.bedpostX/commands.txt`
 
 echo Queuing post processing stage
 mergeid=`${BPDIR}/fsl_sub_mgh -j $bedpostid -T 60 -m ae -N bedpostx_post -l ${subjdir}.bedpostX/logs ${FSLDIR}/bin/bedpostx_postproc.sh $subjdir`
 
-[ "x$SGE_ROOT" = "x" ] && [ $dopbsjobs -eq 0 ] && kill $monitorpid
+echo $mergeid > ${subjdir}.bedpostX/logs/postproc_ID
 
-if [ "x$SGE_ROOT" != "x" ]; then
+if [ "x$SGE_ROOT" != "x" ] || [ $dopbsjobs -eq 1 ]; then
     echo
     echo Type ${subjdir}.bedpostX/monitor to show progress.
-    cat <<EOM > ${subjdir}.bedpostX/monitor
-#!/bin/sh
-finished=0
-logdir=${subjdir}.bedpostX/logs
-while [ \$finished -eq 0 ] ; do
-    nfin=0
-    slice=0
-    while [ "\$slice" -le $nslices ];do
-        slicezp=\`\$FSLDIR/bin/zeropad \$slice 4\`
-        isimg=\`\$FSLDIR/bin/imtest ${subjdir}.bedpostX/diff_slices/data_slice_\$slicezp/dyads1\`
-        if [ \$isimg -eq 1 ];then
-          nfin=\$((\$nfin + 1))
-        fi
-        slice=\$((\$slice + 1))
-    done
-    echo "\$nfin slices processed"
-
-    if [ -f ${subjdir}.bedpostX/xfms/eye.mat ] ; then
-        finished=1
-        echo "All slices processed"
-    fi
-
-    sleep 600;
-done
-EOM
-    chmod +x ${subjdir}.bedpostX/monitor
-
     echo Type ${subjdir}.bedpostX/cancel to terminate all the queued tasks.
     cat <<EOC > ${subjdir}.bedpostX/cancel
 #!/bin/sh
@@ -384,54 +366,8 @@ EOC
     echo
     echo You will get an email at the end of the post-processing stage.
     echo
-elif [ $dopbsjobs -eq 1 ] ; then
-    echo
-    echo Type ${subjdir}.bedpostX/monitor on `hostname` to show progress.
-    cat <<EOM > ${subjdir}.bedpostX/monitor
-#!/bin/sh
-finished=0
-logdir=${subjdir}.bedpostX/logs
-while [ \$finished -eq 0 ] ; do
-    nfin=0
-    for job in \`cat \$logdir/joblist | awk '{print \$2}'\` ; do
-        status=\`jobinfo \$job | grep Exit | awk '{print \$3}'\`
-        if [ "\$status" -eq 0 ] ; then let nfin=nfin+1; fi
-    done
-    if [ \$nfin -eq $nslices ] ; then
-        finished=1
-    fi
-
-    echo "\$nfin of $nslices slices processed"
-    sleep 600;
-done
-EOM
-    chmod +x ${subjdir}.bedpostX/monitor
-
-    echo Type ${subjdir}.bedpostX/cputime on `hostname` to show CPU time of completed jobs.
-    cat <<EOT > ${subjdir}.bedpostX/cputime
-#!/bin/sh
-logdir=${subjdir}.bedpostX/logs
-for jobname in \`cat \$logdir/joblist | awk '{print \$1}' | sort\` ; do
-    jobid=\`grep \$jobname \$logdir/joblist | awk '{print \$2}'\`
-    jobtime=\`jobinfo \$jobid | grep Cputime | awk '{print \$2}'\`
-    if [ "\${jobtime}x" != "x" ]; then
-        echo "\$jobname \$jobtime"
-    fi
-done
-EOT
-    chmod +x ${subjdir}.bedpostX/cputime
-
-    echo Type ${subjdir}.bedpostX/cancel on `hostname` to terminate all the queued tasks.
-    cat <<EOC > ${subjdir}.bedpostX/cancel
-#!/bin/sh
-logdir=${subjdir}.bedpostX/logs
-qdel $mergeid \`sort -r \$logdir/joblist | awk '{printf \$2 " "}'\` $preprocid
-EOC
-    chmod +x ${subjdir}.bedpostX/cancel
-
-    echo
-    echo You will get an email at the end of the post-processing stage.
-    echo
+else
+    sleep 190
 fi
 
 # Process multiple input directories, queue them up serially (AY)

@@ -10,7 +10,7 @@
  * Original Author: Kevin Teich
  * Reimplemented by: Ruopeng Wang
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -76,6 +76,7 @@ LayerPropertyMRI::LayerPropertyMRI (QObject* parent) : LayerProperty( parent ),
   m_nTensorRepresentation( TR_Boxoid ),
   m_bContourUseImageColorMap( false ),
   m_bContourExtractAll( true ),
+  m_bContourDilateFirst(false),
   m_bShowLabelOutline( false ),
   m_nUpSampleMethod( UM_None ),
   m_nContourSmoothIterations( 5 ),
@@ -167,6 +168,33 @@ void LayerPropertyMRI::CopySettings( const LayerPropertyMRI* p )
   m_colorBinary           =   p->m_colorBinary;
 
   SetLUTCTAB  ( p->mFreeSurferCTAB );
+
+  blockSignals( false );
+
+  this->OnColorMapChanged();
+}
+
+void LayerPropertyMRI::CopyWindowLevelSettings( const LayerPropertyMRI* p )
+{
+  blockSignals( true );
+  mMinVisibleValue        =   p->mMinVisibleValue;
+  mMaxVisibleValue        =   p->mMaxVisibleValue;
+  mMinGrayscaleWindow     =   p->mMinGrayscaleWindow;
+  mMaxGrayscaleWindow     =   p->mMaxGrayscaleWindow;
+  mHeatScaleMinThreshold  =   p->mHeatScaleMinThreshold;
+  mHeatScaleMidThreshold  =   p->mHeatScaleMidThreshold;
+  mHeatScaleMaxThreshold  =   p->mHeatScaleMaxThreshold;
+  mHeatScaleOffset        =   p->mHeatScaleOffset;
+  mbReverseHeatScale      =   p->mbReverseHeatScale;
+  mbShowPositiveHeatScaleValues =  p->mbShowPositiveHeatScaleValues;
+  mbShowNegativeHeatScaleValues =  p->mbShowNegativeHeatScaleValues;
+  mbClearBackground             =   p->mbClearBackground;
+  mClearBackgroundValue   =   p->mClearBackgroundValue;
+  mMinGenericThreshold    =   p->mMinGenericThreshold;
+  mMaxGenericThreshold    =   p->mMaxGenericThreshold;
+  m_bHeatScaleClearHigh   =   p->m_bHeatScaleClearHigh;
+  m_bHeatScaleTruncate    =   p->m_bHeatScaleTruncate;
+  m_bHeatScaleInvert      =   p->m_bHeatScaleInvert;
 
   blockSignals( false );
 
@@ -1676,7 +1704,7 @@ void LayerPropertyMRI::SetShowVoxelizedContour(bool bVoxelize)
   if (m_bShowVoxelizedContour != bVoxelize)
   {
     m_bShowVoxelizedContour = bVoxelize;
-    emit ContourVoxelized(bVoxelize);
+    emit ContourNeedsRebuild();
   }
 }
 
@@ -1714,6 +1742,15 @@ void LayerPropertyMRI::SetContourExtractAllRegions( bool bExtractAll )
   {
     m_bContourExtractAll = bExtractAll;
     emit ContourChanged();
+  }
+}
+
+void LayerPropertyMRI::SetContourDilateFirst(bool bDilate)
+{
+  if (m_bContourDilateFirst != bDilate)
+  {
+    m_bContourDilateFirst = bDilate;
+    emit ContourNeedsRebuild();
   }
 }
 
@@ -1907,3 +1944,4 @@ void LayerPropertyMRI::SetBinaryColor(const QColor &color)
     SetCustomColors(colors);
   }
 }
+

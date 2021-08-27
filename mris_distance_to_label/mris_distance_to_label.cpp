@@ -7,7 +7,7 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -260,14 +260,26 @@ int main(int argc, char *argv[]) {
 
     fprintf(stderr,"\n\nPROCESSING SUBJECT '%s' \n",subject_fname);
 
-    sprintf(fname,"%s/%s/surf/%s.white", subjects_dir,subject_fname,hemi);
+    int req = snprintf(fname,STRLEN,"%s/%s/surf/%s.white", subjects_dir,subject_fname,hemi);
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     fprintf(stderr, "reading surface from %s...\n", fname) ;
     mris=MRISread(fname);
 
-    if (aseg_fname)
-      sprintf(fname,"%s/%s/mri/%s", subjects_dir,subject_fname,aseg_fname);
-    else
-      sprintf(fname,"%s/%s/mri/aseg.mgz", subjects_dir,subject_fname);
+    if (aseg_fname) {
+      int req = snprintf(fname,STRLEN,"%s/%s/mri/%s",
+			 subjects_dir,subject_fname,aseg_fname);
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
+    } else {
+      int req = snprintf(fname,STRLEN,"%s/%s/mri/aseg.mgz", 
+			 subjects_dir,subject_fname);
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
+    }
 
     fprintf(stderr, "reading mri segmentation from %s...\n", fname) ;
     mri=MRIread(fname);
@@ -288,13 +300,20 @@ int main(int argc, char *argv[]) {
         mrisProcessDistanceValues(mris);
 
         surface_reference=findSurfaceReference(labels[n]);
-        if (surface_reference>=3 and surface_reference<=14)
-          sprintf(fname,"%s/%s/surf/%s.%s",
-                  subjects_dir,subject_fname,hemi,
-                  FRAME_FIELD_NAMES[surface_reference]);
-        else
-          sprintf(fname,"%s/%s/surf/%s.dist_%d",
-                  subjects_dir,subject_fname,hemi,labels[n]);
+        if (surface_reference>=3 and surface_reference<=14) {
+          int req = snprintf(fname,STRLEN, "%s/%s/surf/%s.%s",
+			     subjects_dir,subject_fname,hemi,
+			     FRAME_FIELD_NAMES[surface_reference]);
+	  if( req >= STRLEN ) {
+	    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	  }
+        } else {
+          int req = snprintf(fname,STRLEN,"%s/%s/surf/%s.dist_%d",
+			     subjects_dir,subject_fname,hemi,labels[n]);
+	  if( req >= STRLEN ) {
+	    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	  }
+	}
 
         fprintf(stderr,
                 "writing out surface distance file for label %d in %s...\n",
@@ -302,21 +321,30 @@ int main(int argc, char *argv[]) {
         MRISaverageCurvatures(mris,navgs);
         MRISwriteCurvature(mris,fname);
       } else { /* extract layer IV */
-        sprintf(fname,"%s/%s/surf/%s.thickness",
-                subjects_dir,subject_fname,hemi);
+        int req = snprintf(fname,STRLEN,"%s/%s/surf/%s.thickness",
+			   subjects_dir,subject_fname,hemi);
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
         fprintf(stderr, "reading curvature from %s...\n", fname) ;
         MRISreadCurvature(mris,fname);
 
-        sprintf(fname,"%s/%s/mri/T1.mgz", subjects_dir,subject_fname);
+        req = snprintf(fname,STRLEN,"%s/%s/mri/T1.mgz", subjects_dir,subject_fname);
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
         fprintf(stderr, "reading orig mri segmentation from %s...\n", fname) ;
         mri_orig=MRIread(fname);
         mrisExtractMidGrayValues(mris,mri_orig);
         MRIfree(&mri_orig);
 
         surface_reference=3;
-        sprintf(fname,"%s/%s/surf/%s.%s",
-                subjects_dir,subject_fname,hemi,
-                FRAME_FIELD_NAMES[surface_reference]);
+        req = snprintf(fname,STRLEN,"%s/%s/surf/%s.%s",
+		       subjects_dir,subject_fname,hemi,
+		       FRAME_FIELD_NAMES[surface_reference]);
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+	}
         fprintf(stderr,
                 "writing out surface distance file for label %d in %s...\n",
                 labels[n],fname) ;

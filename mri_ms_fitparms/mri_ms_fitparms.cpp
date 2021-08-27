@@ -18,7 +18,7 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -52,6 +52,7 @@
 #include "mrinorm.h"
 #include "tukey.h"
 #include "mrisegment.h"
+#include "mriBSpline.h"
 
 static int check_finite(double val)
 {
@@ -136,13 +137,15 @@ static int estimate_flip_angle_field(MRI *mri_T1,  MRI *mri_PD,
 #endif
 static double estimate_ms_params(MRI **mri_flash, MRI **mri_flash_synth,
                                  int nvolumes, MRI *mri_T1, MRI *mri_PD,
-                                 MRI *mri_sse, MATRIX **M_reg,LTA *lta);
+                                 MRI *mri_sse, MATRIX **M_reg,LTA *lta,
+                                 MRI_BSPLINE **mri_flash_bsplines);
 static double estimate_ms_params_with_faf(MRI **mri_flash,
     MRI **mri_flash_synth,
     int nvolumes,
     MRI *mri_T1, MRI *mri_PD,
     MRI *mri_sse,
-    MATRIX **M_reg,MRI*mri_faf);
+    MATRIX **M_reg,MRI*mri_faf,
+    MRI_BSPLINE **mri_flash_bsplines);
 #if 0
 static double estimate_ms_params_in_label(MRI **mri_flash,
     MRI **mri_flash_synth,
@@ -161,7 +164,8 @@ static double estimate_ms_params_with_kalpha(MRI **mri_flash,
     MATRIX **M_reg);
 #endif
 static void estimate_rigid_regmatrix(MRI *mri_source, MRI *mri_traget,
-                                     MATRIX *M_reg, MRI *mri_mask);
+                                     MATRIX *M_reg, MRI *mri_mask,
+                                     MRI_BSPLINE *mri_target_bspline);
 
 static float        tr = 0, te = 0, fa = 0 ;
 
@@ -181,10 +185,12 @@ average_volumes_with_different_echo_times_and_set_Mreg(MRI **mri_flash,
     MATRIX **M_reg_orig,
     MATRIX **M_reg);
 
-static MRI *estimate_T2star(MRI **mri_all_flash, int nvolumes, MRI *mri_PD,
-                            MATRIX **Mreg, LTA *lta, MRI *mri_T1) ;
+static MRI *estimate_T2star(MRI **mri_flash, int nvolumes, MRI *mri_PD,
+                            MATRIX **Mreg, LTA *lta, MRI *mri_T1,
+                            MRI_BSPLINE **mri_all_bsplines) ;
 static MRI *compute_T2star_map(MRI **mri_flash, int nvolumes, int *scan_types,
-                               MATRIX **Mreg, LTA *lta) ;
+                               MATRIX **Mreg, LTA *lta,
+                               MRI_BSPLINE **mri_flash_bsplines) ;
 
 static int findUniqueTETRFA(MRI *mri_flash[], int numvolumes, float *ptr,
                             float *pte, double *pfa);
@@ -212,6 +218,8 @@ main(int argc, char *argv[])
   MRI    **mri_flash;
   MRI    **mri_flash_synth;
   MRI    **mri_all_flash;
+  MRI_BSPLINE **mri_flash_bsplines = NULL;
+  MRI_BSPLINE **mri_all_bsplines = NULL;
   MATRIX **M_reg;
   MATRIX **M_reg_orig;
 
@@ -260,6 +268,9 @@ main(int argc, char *argv[])
   mri_all_flash = (MRI **)malloc(sizeof(mri_flash)*MAX_IMAGES);
   M_reg = (MATRIX **)malloc(sizeof(mri_flash)*MAX_IMAGES);
   M_reg_orig = (MATRIX **)malloc(sizeof(mri_flash)*MAX_IMAGES);
+  mri_flash_bsplines = (MRI_BSPLINE **)malloc(sizeof(mri_flash)*MAX_IMAGES);
+  mri_all_bsplines = (MRI_BSPLINE **)malloc(sizeof(mri_flash)*MAX_IMAGES);
+
 
   for (i = 0 ; i < MAX_IMAGES ; i++)
   {
@@ -268,6 +279,8 @@ main(int argc, char *argv[])
     mri_all_flash[i] = NULL;
     M_reg[i] = NULL;
     M_reg_orig[i] = NULL;
+    mri_flash_bsplines[i] = NULL;
+    mri_all_bsplines[i] = NULL;
   }
 
 /////////////////////////////////////////////////////////////////////
@@ -443,6 +456,8 @@ main(int argc, char *argv[])
       MRI *mri_tmp ;
 
       printf("embedding and interpolating volume\n") ;
+      if (InterpMethod!=SAMPLE_TRILINEAR)
+        printf("WARNING: interpolation is trilinear in conform!\n") ;
       mri_tmp = MRIconform(mri_flash[nvolumes]) ;
       /*      MRIfree(&mri_src) ;*/
       mri_flash[nvolumes] = mri_tmp ;
@@ -534,25 +549,22 @@ main(int argc, char *argv[])
   }
 
   {
-    int i, j ;
-
-    for (i = 0 ; i < nvolumes ; i++)
+    int i=0, j;
+    for (j = i+1 ; j < nvolumes ; j++)
     {
-      for (j = i+1 ; j < nvolumes ; j++)
-      {
-        if ((mri_flash[i]->width != mri_flash[j]->width) ||
-            (mri_flash[i]->height != mri_flash[j]->height) ||
-            (mri_flash[i]->depth != mri_flash[j]->depth))
-          ErrorExit(ERROR_BADPARM, "%s:\nvolumes %d (type %d) and %d "
-                    "(type %d) don't match (%d x %d x %d) vs "
-                    "(%d x %d x %d)\n",
-                    Progname, i, mri_flash[i]->type, j,
-                    mri_flash[j]->type, mri_flash[i]->width,
-                    mri_flash[i]->height, mri_flash[i]->depth,
-                    mri_flash[j]->width, mri_flash[j]->height,
-                    mri_flash[j]->depth) ;
-      }
+      if ((mri_flash[i]->width != mri_flash[j]->width) ||
+          (mri_flash[i]->height != mri_flash[j]->height) ||
+          (mri_flash[i]->depth != mri_flash[j]->depth))
+        ErrorExit(ERROR_BADPARM, "%s:\nvolumes %d (type %d) and %d "
+                  "(type %d) don't match (%d x %d x %d) vs "
+                  "(%d x %d x %d)\n",
+                  Progname, i, mri_flash[i]->type, j,
+                  mri_flash[j]->type, mri_flash[i]->width,
+                  mri_flash[i]->height, mri_flash[i]->depth,
+                  mri_flash[j]->width, mri_flash[j]->height,
+                  mri_flash[j]->depth) ;
     }
+
   }
 
   if (Glta)
@@ -570,16 +582,24 @@ main(int argc, char *argv[])
     }
   }
 
-  if (nvolumes == 1)
+  
+  if (use_outside_reg == 0)
   {
     int j;
-
-    if (use_outside_reg == 0)
+    for (j=0; j<nvolumes; j++)
     {
-      for (j=0; j<nvolumes; j++)
-      {
         M_reg[j] = MatrixIdentity(4,(MATRIX *)NULL);
-      }
+    }
+  }
+
+  /* (mr) compute bspline images for interpolation */
+  if (InterpMethod == SAMPLE_CUBIC_BSPLINE)
+  {
+    int j;
+    printf("computing flash B-Spline images for cubic interpolation ...\n");
+    for (j=0; j<nvolumes; j++)
+    {
+        mri_flash_bsplines[j] = MRItoBSpline(mri_flash[j], NULL, 3);
     }
   }
 
@@ -597,13 +617,6 @@ main(int argc, char *argv[])
     mri_PD = MRIcloneDifferentType(mri_flash[0], MRI_FLOAT) ;
     mri_sse = MRIcloneDifferentType(mri_flash[0], MRI_FLOAT) ;
 
-    if (use_outside_reg == 0)
-    {
-      for (j=0; j<nvolumes; j++)
-      {
-        M_reg[j] = MatrixIdentity(4,(MATRIX *)NULL);
-      }
-    }
 
     if (niter == 0)
     {
@@ -613,11 +626,11 @@ main(int argc, char *argv[])
                                       synth_flag ? mri_flash_synth : \
                                       NULL, nvolumes, \
                                       mri_T1, mri_PD, mri_sse, \
-                                      M_reg, mri_faf) ;
+                                      M_reg, mri_faf, mri_flash_bsplines) ;
       else
         rms = estimate_ms_params(mri_flash, synth_flag ? \
                                  mri_flash_synth : NULL, nvolumes, \
-                                 mri_T1, mri_PD, mri_sse, M_reg, NULL) ;
+                                 mri_T1, mri_PD, mri_sse, M_reg, NULL, mri_flash_bsplines) ;
       printf("parameter rms = %2.3f\n", rms) ;
     }
 
@@ -629,10 +642,10 @@ main(int argc, char *argv[])
       if (mri_faf)
         rms = estimate_ms_params_with_faf(mri_flash, mri_flash_synth,
                                           nvolumes, mri_T1, mri_PD,
-                                          mri_sse, M_reg, mri_faf) ;
+                                          mri_sse, M_reg, mri_faf, mri_flash_bsplines) ;
       else
         rms = estimate_ms_params(mri_flash, mri_flash_synth, nvolumes,
-                                 mri_T1, mri_PD, mri_sse, M_reg, NULL) ;
+                                 mri_T1, mri_PD, mri_sse, M_reg, NULL, mri_flash_bsplines) ;
       printf("parameter rms = %2.3f\n", rms) ;
 
       if (use_brain_mask)
@@ -663,7 +676,7 @@ main(int argc, char *argv[])
         printf("estimating rigid alignment for FLASH volume "
                "#%d of %d\n", j+1, nvolumes) ;
         estimate_rigid_regmatrix(mri_flash_synth[j],mri_flash[j],
-                                 M_reg[j], mri_mask);
+                                 M_reg[j], mri_mask, mri_flash_bsplines[j]);
         if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
         {
           printf("M_reg[%d]\n",j);
@@ -723,7 +736,7 @@ main(int argc, char *argv[])
     if (Glta != NULL)
       rms = estimate_ms_params(mri_flash, synth_flag ? mri_flash_synth : \
                                NULL, nvolumes, mri_T1, mri_PD, mri_sse, \
-                               M_reg, Glta) ;
+                               M_reg, Glta, mri_flash_bsplines) ;
 #if 0
     if (nfaf >  0)
     {
@@ -858,8 +871,20 @@ main(int argc, char *argv[])
       }
     }
   }
+  
+  /* (mr) compute bspline images for interpolation */
+  if (InterpMethod == SAMPLE_CUBIC_BSPLINE)
+  {
+    int j;
+    printf("computing all B-Spline images for cubic interpolation (for T2star) ...\n");
+    for (j=0; j<nvolumes_total; j++)
+    {
+        mri_all_bsplines[j] = MRItoBSpline(mri_all_flash[j], NULL, 3);
+    }
+  }
   mri_T2star = estimate_T2star(mri_all_flash, nvolumes_total, mri_PD,
-                               M_reg, Glta, mri_T1) ;
+                               M_reg, Glta, mri_T1, mri_all_bsplines) ; 
+                               
   if (mri_T1)
     MRIfree(&mri_T1) ;
   if (mri_T2star)
@@ -895,6 +920,14 @@ main(int argc, char *argv[])
     if (M_reg_orig[i] != NULL)
     {
       MatrixFree(&M_reg_orig[i]);
+    }
+    if (mri_flash_bsplines[i] != NULL)
+    {
+      MRIfreeBSpline(&mri_flash_bsplines[i]);
+    }
+    if (mri_all_bsplines[i] != NULL)
+    {
+      MRIfreeBSpline(&mri_all_bsplines[i]);
     }
   }
 
@@ -1071,10 +1104,8 @@ get_option(int argc, char *argv[])
   }
   else if (!stricmp(option, "cubic"))
   {
-    InterpMethod = SAMPLE_CUBIC;
-    printf("using cubic interpolation\n");
-    printf("WARNING!!!! Cubic interpolation not implemented properly yet\n");
-    exit(1) ;
+    InterpMethod = SAMPLE_CUBIC_BSPLINE;
+    printf("using cubic B-Spline interpolation\n");
   }
   else if (!stricmp(option, "nearest"))
   {
@@ -1360,7 +1391,7 @@ static MATRIX *vox2ras[MAX_NVOLS], *ras2vox[MAX_NVOLS];
 static double
 estimate_ms_params(MRI **mri_flash, MRI **mri_flash_synth, int nvolumes,
                    MRI *mri_T1, MRI *mri_PD, MRI *mri_sse,
-                   MATRIX **M_reg, LTA *lta)
+                   MATRIX **M_reg, LTA *lta, MRI_BSPLINE** mri_flash_bsplines)
 {
   double   total_sse ;
   double   se, best_se, ss, sse, err, val, norm, T1, PD, xf, yf, zf ;
@@ -1444,6 +1475,10 @@ estimate_ms_params(MRI **mri_flash, MRI **mri_flash_synth, int nvolumes,
           if (InterpMethod==SAMPLE_SINC)
           {
             MRIsincSampleVolume(mri, xf, yf, zf, sinchalfwindow, &val) ;
+          }
+          else if (InterpMethod==SAMPLE_CUBIC_BSPLINE)
+          {
+            MRIsampleBSpline(mri_flash_bsplines[j], xf, yf, zf, 0, &val);
           }
           else
           {
@@ -1583,7 +1618,7 @@ static double
 estimate_ms_params_with_faf(MRI **mri_flash, MRI **mri_flash_synth,
                             int nvolumes, MRI *mri_T1, MRI *mri_PD,
                             MRI *mri_sse, MATRIX **M_reg,
-                            MRI *mri_faf)
+                            MRI *mri_faf, MRI_BSPLINE** mri_flash_bsplines)
 {
   double   total_sse ;
   double   se, best_se, ss, sse, err, val, norm, T1, PD, xf, yf, zf, inorm ;
@@ -1645,6 +1680,10 @@ estimate_ms_params_with_faf(MRI **mri_flash, MRI **mri_flash_synth,
           if (InterpMethod==SAMPLE_SINC)
           {
             MRIsincSampleVolume(mri, xf, yf, zf, sinchalfwindow, &val) ;
+          }
+          else if (InterpMethod==SAMPLE_CUBIC_BSPLINE)
+          {
+            MRIsampleBSpline(mri_flash_bsplines[j], xf, yf, zf, 0, &val);
           }
           else
           {
@@ -2303,7 +2342,7 @@ MRIsadd(MRI *mri1, MRI *mri2, MRI *mri_dst)
 
 static void
 estimate_rigid_regmatrix(MRI *mri_source, MRI *mri_target,
-                         MATRIX *M_reg, MRI *mri_mask)
+                         MATRIX *M_reg, MRI *mri_mask, MRI_BSPLINE *mri_target_bspline)
 {
   double   xf, yf, zf, tx, ty, tz, ax, ay, az, ca, sa, \
   val1, val2, err, sse, best_sse, dt=0.1, da=RADIANS(0.025), tol=0.00001;
@@ -2451,6 +2490,10 @@ estimate_rigid_regmatrix(MRI *mri_source, MRI *mri_target,
       if (InterpMethod==SAMPLE_SINC)
         MRIsincSampleVolume(mri_target, xf, yf, zf,
                             sinchalfwindow, &val2) ;
+      else if (InterpMethod==SAMPLE_CUBIC_BSPLINE)
+      {
+          MRIsampleBSpline(mri_target_bspline, xf, yf, zf, 0, &val2);
+      }
       else
       {
         MRIsampleVolumeType(mri_target, xf, yf, zf, &val2, InterpMethod) ;
@@ -2526,6 +2569,10 @@ estimate_rigid_regmatrix(MRI *mri_source, MRI *mri_target,
                     if (InterpMethod==SAMPLE_SINC)
                       MRIsincSampleVolume(mri_target, xf, yf, zf,
                                           sinchalfwindow, &val2) ;
+      							else if (InterpMethod==SAMPLE_CUBIC_BSPLINE)
+      							{
+          							MRIsampleBSpline(mri_target_bspline, xf, yf, zf, 0, &val2);
+      							}
                     else
                       MRIsampleVolumeType(mri_target, xf, yf, zf,
                                           &val2, InterpMethod) ;
@@ -2848,7 +2895,7 @@ average_volumes_with_different_echo_times_and_set_Mreg(MRI **mri_flash,
 
 static MRI *
 estimate_T2star(MRI **mri_flash, int nvolumes, MRI *mri_PD,
-                MATRIX **Mreg, LTA *lta, MRI *mri_T1)
+                MATRIX **Mreg, LTA *lta, MRI *mri_T1, MRI_BSPLINE **mri_flash_bsplines)
 {
   int    i, j, nechoes, processed[MAX_IMAGES], nprocessed, x, y,\
   z, different_te, width, depth, height, unique_te ;
@@ -2907,7 +2954,7 @@ estimate_T2star(MRI **mri_flash, int nvolumes, MRI *mri_PD,
   printf("estimating T2* with %d different acquisitions, "
          "each with %d echoes...\n",
          nvolumes/different_te, different_te) ;
-  mri_T2star = compute_T2star_map(mri_flash, nvolumes, processed, Mreg, lta) ;
+  mri_T2star = compute_T2star_map(mri_flash, nvolumes, processed, Mreg, lta, mri_flash_bsplines) ;
 
   /* now update PD map to take out T2* component */
   if (correct_PD)
@@ -3017,7 +3064,7 @@ estimate_T2star(MRI **mri_flash, int nvolumes, MRI *mri_PD,
 
 static MRI *
 compute_T2star_map(MRI **mri_flash, int nvolumes, int *scan_types,
-                   MATRIX **Mreg, LTA *lta)
+                   MATRIX **Mreg, LTA *lta, MRI_BSPLINE **mri_flash_bsplines)
 {
   MATRIX *mX, *mXpinv = NULL, *m_xform ;
   VECTOR *vY, *vParms = NULL, *v_src, *v_dst, *rasvec1, *rasvec2;
@@ -3137,7 +3184,11 @@ compute_T2star_map(MRI **mri_flash, int nvolumes, int *scan_types,
           if (InterpMethod==SAMPLE_SINC)
             MRIsincSampleVolume(mri_flash[e], xf, yf, zf,
                                 sinchalfwindow, &val) ;
-          else
+          else if (InterpMethod==SAMPLE_CUBIC_BSPLINE)
+      		{
+          	MRIsampleBSpline(mri_flash_bsplines[e], xf, yf, zf, 0, &val);
+      		}
+					else
             MRIsampleVolumeType(mri_flash[e], xf, yf, zf,
                                 &val, InterpMethod) ;
           if (val <= 0 || !std::isfinite(val))

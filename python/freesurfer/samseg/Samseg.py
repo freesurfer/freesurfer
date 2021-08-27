@@ -37,6 +37,7 @@ class Samseg:
         pallidumAsWM=True,
         saveModelProbabilities=False,
         gmmFileName=None,
+        ignoreUnknownPriors=False,
         ):
 
         # Store input parameters as class variables
@@ -103,6 +104,7 @@ class Samseg:
         self.saveHistory = saveHistory
         self.saveWarp = saveWarp
         self.saveMesh = saveMesh
+        self.ignoreUnknownPriors = ignoreUnknownPriors
 
         # Make sure we can write in the target/results directory
         os.makedirs(savePath, exist_ok=True)
@@ -319,6 +321,8 @@ class Samseg:
                 'optimizationOptions': self.optimizationOptions,
                 'savePath': self.savePath
             }, 'imageBuffers': self.imageBuffers, 'mask': self.mask,
+                'cropping': self.cropping,
+                'transform': self.transform.as_numpy_array,
                 'historyWithinEachMultiResolutionLevel': self.optimizationHistory,
                 "labels": self.modelSpecifications.FreeSurferLabels, "names": self.modelSpecifications.names,
                 "volumesInCubicMm": volumesInCubicMm, "optimizationSummary": self.optimizationSummary}
@@ -817,13 +821,14 @@ class Samseg:
                 levelHistory['finalNodePositions'] = finalNodePositions
                 levelHistory['initialNodePositionsInTemplateSpace'] = initialNodePositionsInTemplateSpace
                 levelHistory['finalNodePositionsInTemplateSpace'] = finalNodePositionsInTemplateSpace
+                levelHistory['deformation'] = self.deformation.copy()
+                levelHistory['deformationAtlasFileName'] = self.deformationAtlasFileName
                 levelHistory['historyOfCost'] = historyOfCost
                 levelHistory['priorsAtEnd'] = downSampledClassPriors
                 levelHistory['posteriorsAtEnd'] = downSampledGaussianPosteriors
                 self.optimizationHistory.append(levelHistory)
 
         # End resolution level loop
-
 
     def computeFinalSegmentation(self):
         # Get the final mesh
@@ -834,6 +839,15 @@ class Samseg:
         # Get the priors as dictated by the current mesh position
         priors = mesh.rasterize(self.imageBuffers.shape[0:3], -1)
         priors = priors[self.mask, :]
+
+        if self.ignoreUnknownPriors:
+            unknown_search_strings = next(s for s in self.modelSpecifications.sharedGMMParameters if s.mergedName == 'Unknown').searchStrings
+            unknown_label = 0  # TODO: should we assume that 'Unknown' is always zero?
+            for label, name in enumerate(self.modelSpecifications.names):
+                for search_string in unknown_search_strings:
+                    if search_string in name:
+                        priors[:, unknown_label] += priors[:, label]
+                        priors[:, label] = 0
 
         # Get bias field corrected data
         # Make sure that the bias field basis function are not downsampled

@@ -7,7 +7,7 @@
 #
 # Original Author: Anastasia Yendiki
 #
-# Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+# Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
 #
 # Terms and conditions for use, reproduction, distribution and contribution
 # are found in the 'FreeSurfer Software License Agreement' contained
@@ -72,9 +72,8 @@ set dostats = 0
 set docorr = 0
 set doqa = 0
 set dointra = 0
-set dointer = 0
-set domasks = 0
 set dotensor = 0
+set dointer = 0
 set dopriors = 0
 
 set rcfile = ()		# Run command file
@@ -96,6 +95,7 @@ if ($n != 0) then
 endif
 
 # Set defaults
+set doinfant = 0
 set dtroot = ()
 set subjlist = ()
 set runlist = ()
@@ -117,27 +117,24 @@ set pedir = ()
 set dTE = ()
 set doeddy = 2
 set dorotbvecs = 1
-set thrbet = 0.3
-set doregflt = 0
-set doregbbr = 1
-set doregmni = 1
-set doregcvs = 0
-set mnitemp = $FSLDIR/data/standard/MNI152_T1_1mm_brain.nii.gz
-set cvstempdir = $FREESURFER_HOME/subjects
-set cvstemp = cvs_avg35
+set intrareg = ()
+set intracost = ()
+set intradof = ()
+set intrarot = ()
+set interreg = ()
+set intercost = ()
+set intertrg = ()
+set segname = aparc+aseg
+set gmgrow = ()
+set usethalnuc = 1
 set usemaskanat = 1
+set thrbet = 0.3
 set baselist = ()
-set pathlist = ( lh.cst_AS rh.cst_AS \
-                 lh.ilf_AS rh.ilf_AS \
-                 lh.unc_AS rh.unc_AS \
-                 fmajor_PP fminor_PP \
-                 lh.atr_PP rh.atr_PP \
-                 lh.ccg_PP rh.ccg_PP \
-                 lh.cab_PP rh.cab_PP \
-                 lh.slfp_PP rh.slfp_PP \
-                 lh.slft_PP rh.slft_PP )
-set ncpts = (6 6 5 5 5 5 7 5 5 5 5 5 4 4 5 5 5 5)
-set trainfile = $FREESURFER_HOME/trctrain/trainlist.txt
+set pathfile = ()
+set pathlist = ()
+set gmids = ()
+set ncpts = ()
+set trainfile = ()
 set trainsubjlist = ()
 set ntrainlist = ()
 set avgname = ()
@@ -155,6 +152,10 @@ set nsample = ()		# Default is set below
 set nupdate = 0
 set nkeep = 5
 set doinitprop = 1
+set pmin = ()
+set projmin = -3
+set projmax = 3
+set dproj = .1
 set overwrite = 1
 set trcdir = $FREESURFER_HOME/bin
 
@@ -164,16 +165,22 @@ goto parse_args;
 parse_args_return:
 
 # Source run command file
-if ($#rcfile) source $rcfile
+if ($#rcfile) then
+  source $rcfile
 
-# Set default number of samples for cross-sectional or longitudinal case
-if ($#nsample == 0) then
-  if ($#baselist == 0) then
-    set nsample = 7500
-  else
-    set nsample = 12000
+  if ($status) then
+    echo "ERROR: Syntax error in configuration file $rcfile"
+    exit 1
   endif
 endif
+
+# Set defaults for registration (depending on adult or infant stream)
+goto set_reg_defaults;
+set_reg_defaults_return:
+
+# Set defaults for pathway reconstruction (depending on adult or infant stream)
+goto set_path_defaults;
+set_path_defaults_return:
 
 goto check_params;
 check_params_return:
@@ -187,8 +194,7 @@ popd > /dev/null
 echo "Actual FREESURFER_HOME $freesurfer_home_true"
 
 if ($onpbs) then
-  set pbslogdir = /tmp/trac-all.$$
-  mkdir -p $pbslogdir
+  set pbslogdir = `fs_temp_dir`
   if (! $#submitfile) set submitfile = $pbslogdir/submit.txt
 endif
 
@@ -280,8 +286,8 @@ if ($#baselist == 0) then	#--->>> A single time point for each subject
 
     if ($dostats) continue
 
-    # Check freesurfer directory
-    if (($dointra || $dointer || $domasks) && ! $do1out) then
+    # Check FreeSurfer directory
+    if (($dointra || $dointer) && ! $do1out) then
       set fsdir = $SUBJECTS_DIR/$subj
 
       if (! -e $fsdir) then
@@ -451,9 +457,8 @@ if ($#baselist == 0) then	#--->>> A single time point for each subject
     echo "set docorr = ($docorr)"					>> $RCF
     echo "set doqa = ($doqa)"						>> $RCF
     echo "set dointra = ($dointra)"					>> $RCF
-    echo "set dointer = ($dointer)"					>> $RCF
-    echo "set domasks = ($domasks)"					>> $RCF
     echo "set dotensor = ($dotensor)"					>> $RCF
+    echo "set dointer = ($dointer)"					>> $RCF
     echo "set dopriors = ($dopriors)"					>> $RCF
     echo "#"							 	>> $RCF
     echo "# Options for image corrections and tensor fit"	 	>> $RCF
@@ -506,13 +511,20 @@ if ($#baselist == 0) then	#--->>> A single time point for each subject
     echo "#"							 	>> $RCF
     echo "# Options for registrations"				 	>> $RCF
     echo "#"							 	>> $RCF
-    echo "set doregflt = ($doregflt)"					>> $RCF
-    echo "set doregbbr = ($doregbbr)"					>> $RCF
-    echo "set doregmni = ($doregmni)"					>> $RCF
-    echo "set doregcvs = ($doregcvs)"					>> $RCF
-    echo "set mnitemp = ($mnitemp)"					>> $RCF
-    echo "set cvstempdir = ($cvstempdir)"				>> $RCF
-    echo "set cvstemp = ($cvstemp)"					>> $RCF
+    echo "set intrareg = ($intrareg)"					>> $RCF
+    echo "set intracost = ($intracost)"					>> $RCF
+    echo "set intradof = ($intradof)"					>> $RCF
+    echo "set intrarot = ($intrarot)"					>> $RCF
+    echo "set interreg = ($interreg)"					>> $RCF
+    echo "set intercost = ($intercost)"					>> $RCF
+    echo "set intertrg = ($intertrg)"					>> $RCF
+    echo "#"							 	>> $RCF
+    echo "# Options for anatomical segmentation"		 	>> $RCF
+    echo "#"							 	>> $RCF
+    echo "set segname = ($segname)"					>> $RCF
+    echo "set gmgrow = ($gmgrow)"					>> $RCF
+    echo "set usethalnuc = ($usethalnuc)"				>> $RCF
+    echo "set usemaskanat = ($usemaskanat)"				>> $RCF
     echo "#"							 	>> $RCF
     echo "# Options for ball-and-stick model fit"		 	>> $RCF
     echo "#"							 	>> $RCF
@@ -520,8 +532,8 @@ if ($#baselist == 0) then	#--->>> A single time point for each subject
     echo "#"							 	>> $RCF
     echo "# Options for path reconstructions"				>> $RCF
     echo "#"							 	>> $RCF
-    echo "set usemaskanat = ($usemaskanat)"				>> $RCF
     echo "set pathlist = ($pathlist)"					>> $RCF
+    echo "set gmids = ($gmids)"						>> $RCF
     echo "set ncpts = ($ncpts)"						>> $RCF
     echo "set trainsubjlist = ($trainsubjlist)"				>> $RCF
     echo "set ntrainlist = ($ntrainlist)"				>> $RCF
@@ -538,6 +550,10 @@ if ($#baselist == 0) then	#--->>> A single time point for each subject
     echo "set nupdate = ($nupdate)"					>> $RCF
     echo "set nkeep = ($nkeep)"						>> $RCF
     echo "set doinitprop = ($doinitprop)"				>> $RCF
+    echo "set pmin = ($pmin)"						>> $RCF
+    echo "set projmin = ($projmin)"					>> $RCF
+    echo "set projmax = ($projmax)"					>> $RCF
+    echo "set dproj = ($dproj)"						>> $RCF
     echo "set overwrite = ($overwrite)"					>> $RCF
     echo "#"							 	>> $RCF
     echo "# Location of TRACULA executables"			 	>> $RCF
@@ -558,6 +574,20 @@ if ($#baselist == 0) then	#--->>> A single time point for each subject
         if ($status) exit 1
       endif
     else if ($dobedpost) then	# Bedpost ####################
+      # Create symbolic link to brain mask with the name that bedpostx expects
+      if ($usemaskanat) then
+        set bedmask = ../dlabel/diff/${segname}_mask.$reg.nii.gz
+      else
+        set bedmask = ../dlabel/diff/lowb_brain_mask.nii.gz
+      endif
+
+      set cmd = (ln -sf $bedmask $dtdir/dmri/nodif_brain_mask.nii.gz)
+      echo $cmd |& tee -a $LF |& tee -a $CF
+      if ($RunIt) then
+        $cmd |& tee -a $LF
+        if ($status) exit 1
+      endif
+
       if (! $onpbs) then
         if ($#submitfile) then
           set cmd =  (bedpostx_preproc.sh $dtdir/dmri)
@@ -578,7 +608,7 @@ if ($#baselist == 0) then	#--->>> A single time point for each subject
             |& tee -a $LF
           echo "WARN: It is recommended to run this step on a cluster" \
             |& tee -a $LF
-          set cmd = (bedpostx_mgh -n $nstick $dtdir/dmri)
+          set cmd = (bedpostx_mgh -n $nstick -model 1 $dtdir/dmri)
           echo $cmd |& tee -a $LF |& tee -a $CF
           if ($RunIt) then
             $cmd |& tee -a $LF
@@ -684,8 +714,8 @@ else				#--->>> Multiple time points for each subject
         continue
       endif
 
-      if (($dointra || $dointer || $domasks) && ! $do1out) then
-        # Check freesurfer directory
+      if (($dointra || $dointer) && ! $do1out) then
+        # Check FreeSurfer directory
         set fsdir = $SUBJECTS_DIR/$subj
 
         if (! -e $fsdir) then
@@ -861,14 +891,12 @@ else				#--->>> Multiple time points for each subject
       if ($subj == $bsubj) then
         echo "set docorr = (0)"						>> $RCF
         echo "set doqa = (0)"						>> $RCF
-        echo "set dointra = (0)"					>> $RCF
       else
         echo "set docorr = ($docorr)"					>> $RCF
         echo "set doqa = ($doqa)"					>> $RCF
-        echo "set dointra = ($dointra)"					>> $RCF
       endif
+      echo "set dointra = ($dointra)"					>> $RCF
       echo "set dointer = ($dointer)"					>> $RCF
-      echo "set domasks = ($domasks)"					>> $RCF
       if ($subj == $bsubj) then
         echo "set dotensor = (0)"					>> $RCF
         echo "set dopriors = ($dopriors)"				>> $RCF
@@ -909,36 +937,48 @@ else				#--->>> Multiple time points for each subject
       else
         echo "set b0pfile = ()"						>> $RCF
       endif
-      if ($#echospacing > 1) then
-        echo "set echospacing = ($my_echospacing)"			>> $RCF
+      if ($subj != $bsubj) then
+        if ($#echospacing > 1) then
+          echo "set echospacing = ($my_echospacing)"			>> $RCF
+        else
+          echo "set echospacing = ($echospacing)"			>> $RCF
+        endif
+        if ($#epifactor > 1) then
+          echo "set epifactor = ($my_epifactor)"			>> $RCF
+        else
+          echo "set epifactor = ($epifactor)"				>> $RCF
+        endif
+        if ($#pedir > 1) then
+          echo "set pedir = ($my_pedir)"				>> $RCF
+        else
+          echo "set pedir = ($pedir)"					>> $RCF
+        endif
       else
-        echo "set echospacing = ($echospacing)"				>> $RCF
-      endif
-      if ($#epifactor > 1) then
-        echo "set epifactor = ($my_epifactor)"				>> $RCF
-      else
-        echo "set epifactor = ($epifactor)"				>> $RCF
-      endif
-      if ($#pedir > 1) then
-        echo "set pedir = ($my_pedir)"					>> $RCF
-      else
-        echo "set pedir = ($pedir)"					>> $RCF
+        echo "set echospacing = ()"					>> $RCF
+        echo "set epifactor = ()"					>> $RCF
+        echo "set pedir = ()"						>> $RCF
       endif
       echo "set dTE = ($dTE)"						>> $RCF
       echo "set doeddy = ($doeddy)"					>> $RCF
       echo "set dorotbvecs = ($dorotbvecs)"				>> $RCF
       echo "set thrbet = ($thrbet)"					>> $RCF
-      echo "set usemaskanat = ($usemaskanat)"				>> $RCF
       echo "#"							 	>> $RCF
       echo "# Options for registrations"			 	>> $RCF
       echo "#"							 	>> $RCF
-      echo "set doregflt = ($doregflt)"					>> $RCF
-      echo "set doregbbr = ($doregbbr)"					>> $RCF
-      echo "set doregmni = ($doregmni)"					>> $RCF
-      echo "set doregcvs = ($doregcvs)"					>> $RCF
-      echo "set mnitemp = ($mnitemp)"					>> $RCF
-      echo "set cvstempdir = ($cvstempdir)"				>> $RCF
-      echo "set cvstemp = ($cvstemp)"					>> $RCF
+      echo "set intrareg = ($intrareg)"					>> $RCF
+      echo "set intracost = ($intracost)"				>> $RCF
+      echo "set intradof = ($intradof)"					>> $RCF
+      echo "set intrarot = ($intrarot)"					>> $RCF
+      echo "set interreg = ($interreg)"					>> $RCF
+      echo "set intercost = ($intercost)"				>> $RCF
+      echo "set intertrg = ($intertrg)"					>> $RCF
+      echo "#"							 	>> $RCF
+      echo "# Options for anatomical segmentation"		 	>> $RCF
+      echo "#"							 	>> $RCF
+      echo "set segname = ($segname)"					>> $RCF
+      echo "set gmgrow = ($gmgrow)"					>> $RCF
+      echo "set usethalnuc = ($usethalnuc)"				>> $RCF
+      echo "set usemaskanat = ($usemaskanat)"				>> $RCF
       echo "#"							 	>> $RCF
       echo "# Options for ball-and-stick model fit"		 	>> $RCF
       echo "#"							 	>> $RCF
@@ -947,6 +987,7 @@ else				#--->>> Multiple time points for each subject
       echo "# Options for path reconstructions"				>> $RCF
       echo "#"							 	>> $RCF
       echo "set pathlist = ($pathlist)"					>> $RCF
+      echo "set gmids = ($gmids)"					>> $RCF
       echo "set ncpts = ($ncpts)"					>> $RCF
       echo "set trainsubjlist = ($trainsubjlist)"			>> $RCF
       echo "set ntrainlist = ($ntrainlist)"				>> $RCF
@@ -963,6 +1004,10 @@ else				#--->>> Multiple time points for each subject
       echo "set nupdate = ($nupdate)"					>> $RCF
       echo "set nkeep = ($nkeep)"					>> $RCF
       echo "set doinitprop = ($doinitprop)"				>> $RCF
+      echo "set pmin = ($pmin)"						>> $RCF
+      echo "set projmin = ($projmin)"					>> $RCF
+      echo "set projmax = ($projmax)"					>> $RCF
+      echo "set dproj = ($dproj)"					>> $RCF
       echo "set overwrite = ($overwrite)"				>> $RCF
       echo "#"							 	>> $RCF
       echo "# Location of TRACULA executables"			 	>> $RCF
@@ -997,6 +1042,21 @@ else				#--->>> Multiple time points for each subject
     else if ($dobedpost) then	# Bedpost ####################
       @ iproc = 1
       while ($iproc <= $#proclist)
+        # Create symbolic link to brain mask with the name that bedpostx expects
+        if ($usemaskanat) then
+          set bedmask = ../dlabel/diff/${segname}_mask.$reg.nii.gz
+        else
+          set bedmask = ../dlabel/diff/lowb_brain_mask.nii.gz
+        endif
+
+        set cmd = (ln -sf $bedmask)
+        set cmd = ($cmd   $dtroot/$proclist[$iproc]/dmri/nodif_brain_mask.nii.gz)
+        echo $cmd |& tee -a $LF |& tee -a $CF
+        if ($RunIt) then
+          $cmd |& tee -a $LF
+          if ($status) exit 1
+        endif
+
         if (! $onpbs) then
           if ($#submitfile) then
             set cmd =  (bedpostx_preproc.sh $dtroot/$proclist[$iproc]/dmri)
@@ -1018,7 +1078,7 @@ else				#--->>> Multiple time points for each subject
               |& tee -a $LFlist[$iproc]
             echo "WARN: It is recommended to run this step on a cluster" \
               |& tee -a $LFlist[$iproc]
-            set cmd = (bedpostx_mgh -n $nstick $dtroot/$proclist[$iproc]/dmri)
+            set cmd = (bedpostx_mgh -n $nstick -model 1 $dtroot/$proclist[$iproc]/dmri)
             echo $cmd |& tee -a $LFlist[$iproc] |& tee -a $CFlist[$iproc]
             if ($RunIt) then
               $cmd |& tee -a $LFlist[$iproc]
@@ -1052,7 +1112,7 @@ if ($dostats) then
     exit 1
   endif
 
-  if ($#baselist == 0) then
+  if (! $#baselist) then
     set statdir = $dtroot/stats
   else
     set statdir = $dtroot/stats.long
@@ -1062,126 +1122,135 @@ if ($dostats) then
     mkdir -p $statdir
   endif
 
-  set cvswarp = final_CVSmorph_to$cvstemp
-
-  set xspacelist = ()
-  if ($doregmni) set xspacelist = ($xspacelist mni)
-  if ($doregcvs) set xspacelist = ($xspacelist cvs)
-
-  set reglist = ()
-  if ($doregflt) set reglist = ($reglist flt)
-  if ($doregbbr) set reglist = ($reglist bbr)
+  if ($xspace == cvs) then
+    set cvstemp = `dirname $intertrg`		# Assuming ../mri/norm.mgz
+    set cvstemp = `dirname $cvstemp`
+    set cvstemp = `basename $cvstemp`
+    set cvswarp = final_CVSmorph_to$cvstemp
+  endif
 
   foreach ntrain ($ntrainlist)
-    foreach xspace ($xspacelist)
-      foreach reg ($reglist)
-        set outdir = dpath
+    set outdir = dpath
 
-        if ($dopathsubdirs) then
-          set outdir = $outdir/${nsample}samp
+    if ($dopathsubdirs) then
+      set outdir = $outdir/${nsample}samp
 
-          set ptype = ()
+      set ptype = ()
 
-          if ($dosegprior) then
-            set ptype = seg14
-          endif
-          if ($dotangprior) then
-            if ($#ptype) then
-              set ptype = $ptype.tang
-            else
-              set ptype = tang
-            endif
-          endif
-          if ($doxyzprior) then
-            if ($#ptype) then
-              set ptype = $ptype.xyz
-            else
-              set ptype = xyz
-            endif
-          endif
-          if (! $#ptype) then
-            set ptype = none
-          endif
-
-          set outdir = $outdir/$ptype
+      if ($dosegprior) then
+        set ptype = seg14
+      endif
+      if ($dotangprior) then
+        if ($#ptype) then
+          set ptype = $ptype.tang
+        else
+          set ptype = tang
         endif
+      endif
+      if ($doxyzprior) then
+        if ($#ptype) then
+          set ptype = $ptype.xyz
+        else
+          set ptype = xyz
+        endif
+      endif
+      if (! $#ptype) then
+        set ptype = none
+      endif
 
-        set avgmode = $avgname${ntrain}_${xspace}_$reg
+      set outdir = $outdir/$ptype
+    endif
 
-        foreach pathname ($pathlist)
-          if ($RunIt) then
-            rm -f $statdir/$pathname.$avgmode.inputs.txt
+    set avgmode = $avgname${ntrain}_${xspace}_$reg
 
-            @ k = 1
-            while ($k <= $#subjdirs)
-              set pathdir = $subjdirs[$k]/$outdir/${pathname}_$avgmode
+    foreach pathname ($pathlist)
+      if ($RunIt) then
+        rm -f $statdir/$pathname.$avgmode.inputs.txt
 
-              if (-e $pathdir/path.pd.nii.gz) then
-                if ($#baselist == 0) then		# Cross-sectional
-                  set xfmdir = $subjdirs[$k]/dmri/xfms
-                  set labdir = $subjdirs[$k]/dlabel
-                  set refvol = $labdir/diff/aparc+aseg_mask.$reg.nii.gz
-                else					# Longitudinal
-                  set xfmdir = $basedirs[$k]/dmri/xfms
-                  set labdir = $basedirs[$k]/dlabel
-                  set refvol = $labdir/anatorig/aparc+aseg_mask.nii.gz
-                endif
+        @ k = 1
+        while ($k <= $#subjdirs)
+          set pathdir = $subjdirs[$k]/$outdir/${pathname}_$avgmode
 
-                set inputs = ($pathdir $refvol)
-
-                if ($xspace == mni) then
-                  if ($#baselist == 0) then		# Cross-sectional
-                    set inputs = ($inputs $xfmdir/diff2mni.$reg.mat)
-                  else					# Longitudinal
-                    set inputs = ($inputs $xfmdir/anatorig2mni.mat)
-                  endif
-                else if ($xspace == cvs) then
-                  if ($#baselist == 0) then		# Cross-sectional
-                    set inputs = ($inputs $xfmdir/diff2anatorig.$reg.mat)
-                    if (-e $xfmdir/cvs/$cvswarp.m3z) then
-                      set inputs = ($inputs $xfmdir/cvs/$cvswarp.m3z)
-                    endif
-                  else					# Longitudinal
-                    if (-e $xfmdir/cvs/$cvswarp.m3z) then
-                      set inputs = ($inputs $xfmdir/cvs/$cvswarp.m3z)
-                    endif
-                  endif
-                endif
-
-                echo $inputs >> $statdir/$pathname.$avgmode.inputs.txt
-              endif
-
-              @ k = $k + 1
-            end
-
-            if (! -e $statdir/$pathname.$avgmode.inputs.txt) then
-              echo "ERROR: no pathway reconstructions found"
-              exit 1
+          if (-e $pathdir/path.pd.nii.gz) then
+            if (! $#baselist) then			# Cross-sectional
+              set xfmdir = $subjdirs[$k]/dmri/xfms
+              set labdir = $subjdirs[$k]/dlabel
+              set refvol = $labdir/diff/${segname}_mask.$reg.nii.gz
+            else					# Longitudinal
+              set xfmdir = $basedirs[$k]/dmri/xfms
+              set labdir = $basedirs[$k]/dlabel
+              set refvol = $labdir/anatorig/${segname}_mask.nii.gz
             endif
-          endif
 
-          set cmd = $trcdir/dmri_group
-          set cmd = ($cmd --list  $statdir/$pathname.$avgmode.inputs.txt)
-          if ($xspace == mni) then
-            set cmd = ($cmd --ref $mnitemp)
-          else if ($xspace == cvs) then
-            set cmd = ($cmd --ref $cvstempdir/$cvstemp/mri/norm.mgz)
-          endif
-          set cmd = ($cmd --out   $statdir/$pathname.$avgmode)
-
-          set LF = $statdir/$pathname.$avgmode.log
-
-          if ($RunIt) then
-            if ($#submitfile) then
-              echo "$cmd |& tee -a $LF" >> $submitfile
+            if (-e $pathdir/path.ref.txt) then		# No need to interpolate
+              set inputs = ($pathdir)
             else
-              echo $cmd
-              $cmd |& tee -a $LF
-              if ($status) exit 1
+              set inputs = ($pathdir $refvol)
+
+              if ($xspace == mni || $xspace == rob) then
+                if (! $#baselist) then			# Cross-sectional
+                  set inputs = ($inputs $xfmdir/diff2$xspace.$reg.lta)
+                else					# Longitudinal
+                  set inputs = ($inputs $xfmdir/anatorig2$xspace.lta)
+                endif
+              else if ($xspace == cvs) then
+                if (! $#baselist) then			# Cross-sectional
+                  set inputs = ($inputs $xfmdir/diff2anatorig.$reg.lta)
+                  if (-e $xfmdir/cvs/$cvswarp.m3z) then
+                    set inputs = ($inputs $xfmdir/cvs/$cvswarp.m3z)
+                  endif
+                else					# Longitudinal
+                  if (-e $xfmdir/cvs/$cvswarp.m3z) then
+                    set inputs = ($inputs $xfmdir/cvs/$cvswarp.m3z)
+                  endif
+                endif
+              else if ($xspace == syn) then
+                if (! $#baselist) then			# Cross-sectional
+                  set inputs = ($inputs $xfmdir/diff2syn.lta)
+                  set inputs = ($inputs $xfmdir/syn_warp.m3z)
+                else					# Longitudinal
+                  set inputs = ($inputs $xfmdir/anatorig2syn.$reg.lta)
+                  set inputs = ($inputs $xfmdir/syn_warp.m3z)
+                endif
+              else if ($xspace == fnt) then
+                if (! $#baselist) then			# Cross-sectional
+                  set inputs = ($inputs $xfmdir/diff2fsl_warp.m3z)
+                else					# Longitudinal
+                  set inputs = ($inputs $xfmdir/anatorig2diff.$reg.lta)
+                  set inputs = ($inputs $xfmdir/diff2fsl_warp.m3z)
+                endif
+              endif
             endif
+
+            echo $inputs >> $statdir/$pathname.$avgmode.inputs.txt
           endif
+
+          @ k = $k + 1
         end
-      end
+
+        if (! -e $statdir/$pathname.$avgmode.inputs.txt) then
+          echo "ERROR: no pathway reconstructions found"
+          exit 1
+        endif
+      endif
+
+      set cmd = $trcdir/dmri_group
+      set cmd = ($cmd --list $statdir/$pathname.$avgmode.inputs.txt)
+      set cmd = ($cmd --ref  $intertrg)
+      set cmd = ($cmd --out  $statdir/$pathname.$avgmode)
+      if ($#inputs == 1)	set cmd = ($cmd --nointerp)
+
+      set LF = $statdir/$pathname.$avgmode.log
+
+      if ($RunIt) then
+        if ($#submitfile) then
+          echo "$cmd |& tee -a $LF" >> $submitfile
+        else
+          echo $cmd
+          $cmd |& tee -a $LF
+          if ($status) exit 1
+        endif
+      endif
     end
   end
 endif
@@ -1191,20 +1260,20 @@ if ($onpbs && $RunIt) then
 
   if ($dopreproc) then
     if (! $?MYPBSWAIT) setenv MYPBSWAIT 30
-    if ($doregcvs) setenv MYPBSARCH "ppn=4,vmem=28gb"
+    if ($xspace == cvs) setenv MYPBSARCH "ppn=4,vmem=28gb"
     echo Queueing pre-processing
     set preid = `fsl_sub_mgh -l $pbslogdir/log -m a -N trcpre -t $submitfile`
   else if ($dobedpost) then
     if (! $?MYPBSWAIT) setenv MYPBSWAIT 0
-    bedpostx_mgh -n $nstick `printf '%s/dmri ' $subjdirs`
+    bedpostx_mgh -n $nstick -model 1 `printf '%s/dmri ' $subjdirs`
   else if ($dopaths) then
     if (! $?MYPBSWAIT) setenv MYPBSWAIT 30
-    if ($doregcvs) setenv MYPBSARCH "ppn=4,vmem=28gb"
+    if ($xspace == cvs) setenv MYPBSARCH "ppn=4,vmem=28gb"
     echo Queueing path reconstruction
     set trcid = `fsl_sub_mgh -l $pbslogdir/log -m a -N trc -t $submitfile`
   else if ($dostats) then
     if (! $?MYPBSWAIT) setenv MYPBSWAIT 30
-    if ($doregcvs) setenv MYPBSARCH "ppn=4,vmem=28gb"
+    if ($xspace == cvs) setenv MYPBSARCH "ppn=4,vmem=28gb"
     echo Queueing group tables
     set grpid = `fsl_sub_mgh -l $pbslogdir/log -m a -N trcgrp -t $submitfile`
   endif
@@ -1280,9 +1349,8 @@ while( $#argv != 0 )
       set docorr = 1
       set doqa = 1
       set dointra = 1
-      set dointer = 1
-      set domasks = 1
       set dotensor = 1
+      set dointer = 1
       set dopriors = 1
       set dobedpost = 0
       set dopaths = 0
@@ -1346,30 +1414,6 @@ while( $#argv != 0 )
       set dointra = 0
       breaksw
 
-    case "-inter":
-      set dopreproc = 1
-      set dointer = 1
-      set dobedpost = 0
-      set dopaths = 0
-      set dostats = 0
-      breaksw
-
-    case "-nointer":
-      set dointer = 0
-      breaksw
-
-    case "-masks":
-      set dopreproc = 1
-      set domasks = 1
-      set dobedpost = 0
-      set dopaths = 0
-      set dostats = 0
-      breaksw
-
-    case "-nomasks":
-      set domasks = 0
-      breaksw
-
     case "-tensor":
       set dopreproc = 1
       set dotensor = 1
@@ -1382,6 +1426,18 @@ while( $#argv != 0 )
       set dotensor = 0
       breaksw
 
+    case "-inter":
+      set dopreproc = 1
+      set dointer = 1
+      set dobedpost = 0
+      set dopaths = 0
+      set dostats = 0
+      breaksw
+
+    case "-nointer":
+      set dointer = 0
+      breaksw
+
     case "-prior":
       set dopreproc = 1
       set dopriors = 1
@@ -1392,6 +1448,10 @@ while( $#argv != 0 )
 
     case "-noprior":
       set dopriors = 0
+      breaksw
+
+    case "-infant":
+      set doinfant = 1
       breaksw
 
     case "-cleancsdf":
@@ -1489,6 +1549,189 @@ end
 goto parse_args_return;
 
 ############--------------##################
+set_reg_defaults:
+
+# These variables are deprecated, but check for backwards compatibility
+if ($?doregflt) then
+  if ($doregflt) set intrareg = 1
+endif
+if ($?doregbbr) then
+  if ($doregbbr) set intrareg = 3
+endif
+if ($?doregcvs) then
+  if ($doregcvs) set interreg = 4
+endif
+if ($?doregmni) then
+  if ($doregmni) set interreg = 2
+endif
+if ($?mnitemp && ($interreg == 1 || $interreg == 2)) then
+  set intertrg = $mnitemp
+endif
+if ($?cvstemp && $interreg == 4) then
+  set intertrg = $cvstempdir/$cvstemp/mri/norm.mgz
+endif
+
+# Default settings for intra-subject registration
+if (! $#intrareg) then
+  if   ($doinfant) set intrareg = 2
+  if (! $doinfant) set intrareg = 3
+endif
+
+switch ($intrareg)
+  case 1:	# Affine with a correlation ratio cost
+    set reg = flt
+    set intracost = corratio
+    breaksw
+  case 2:	# Affine with a mutual information cost
+    set reg = flt
+    set intracost = mutualinfo
+    breaksw
+  case 3:	# Affine with a boundary-based cost
+    set reg = bbr
+    breaksw
+  default:
+    echo "ERROR: $intrareg not a valid option for intra-subject registration"
+    exit 1
+    breaksw
+endsw
+
+if ($reg == flt) then			# Parameters for affine registration
+  if ($doinfant) then
+    if (! $#intradof) set intradof = 6
+    if (! $#intrarot) set intrarot = 3
+  else
+    if (! $#intradof) set intradof = 12
+    if (! $#intrarot) set intrarot = 90
+  endif
+else if ($reg == bbr) then
+  if (! $#intradof) set intradof = 6
+endif
+
+# Default settings for inter-subject registration
+if (! $#interreg) then
+  if   ($doinfant) set interreg = 3
+  if (! $doinfant) set interreg = 5
+endif
+
+switch ($interreg)
+  case 1:	# Affine T1-to-T1 with a correlation ratio cost
+    set xspace = mni
+    set intercost = corratio
+    breaksw
+  case 2:	# Affine T1-to-T1 with a mutual information cost
+    set xspace = mni
+    set intercost = mutualinfo
+    breaksw
+  case 3:	# Affine T1-to-T1 with a robust cost
+    set xspace = rob
+    breaksw
+  case 4:	# Nonlinear T1-to-T1 with CVS
+    set xspace = cvs
+    breaksw
+  case 5:	# Nonlinear FA-to-FA with SyN
+    set xspace = syn
+    setenv MY_MORPHS_DO_NOT_CONFORM_DEAL_WITH_IT
+    breaksw
+  case 6:	# Nonlinear FA-to-FA with FNIRT
+    set xspace = fnt
+    breaksw
+  default:
+    echo "ERROR: $interreg not a valid option for inter-subject registration"
+    exit 1
+    breaksw
+endsw
+
+if (! $#intertrg) then			# Target for inter-subject registration
+  if ($xspace == mni || $xspace == rob) then
+    if ($doinfant) then
+      set intertrg = $FREESURFER_HOME/trctrain/inf/wustl_robtemplate_affine_mean.nii.gz
+    else
+      set intertrg = $FSLDIR/data/standard/MNI152_T1_1mm_brain.nii.gz
+    endif
+  else if ($xspace == cvs) then
+    if ($doinfant) then
+      echo "ERROR: CVS registration not available for infants"
+      exit 1
+    else
+      set intertrg = $FREESURFER_HOME/subjects/cvs_avg35/mri/norm.mgz
+    endif
+  else if ($xspace == syn) then
+    if ($doinfant) then
+      echo "ERROR: SyN registration not available for infants"
+      exit 1
+    else
+      set intertrg = $FREESURFER_HOME/trctrain/hcp/MGH35_HCP_FA_template.nii.gz
+    endif
+  else if ($xspace == fnt) then
+    if ($doinfant) then
+      echo "ERROR: FNIRT registration not available for infants"
+      exit 1
+    else
+      set intertrg = $FSLDIR/data/standard/FMRIB58_FA_1mm.nii.gz
+    endif
+  endif
+endif
+
+goto set_reg_defaults_return;
+
+############--------------##################
+set_path_defaults:
+
+# Default settings for pathway reconstruction
+if ($doinfant) then
+  if (! $#trainfile) set trainfile = $FREESURFER_HOME/trctrain/inf/trainlist.txt
+  if (! $#gmgrow)    set gmgrow = 1
+  if (! $#pmin)      set pmin = .1
+else
+  if (! $#trainfile) set trainfile = $FREESURFER_HOME/trctrain/hcp/trainlist.txt
+  if (! $#gmgrow)    set gmgrow = 2
+  if (! $#pmin && ! $#baselist) set pmin = .2
+  if (! $#pmin &&   $#baselist) set pmin = .02
+endif
+
+if (! $#pathfile) set pathfile = `dirname $trainfile`/pathlist.txt
+
+if (! $#pathlist) then		# Pathway names
+  if (! -e $pathfile) then
+    echo "ERROR: Cannot find list of pathways $pathfile"
+    exit 1
+  endif
+
+  set pathlist = `awk '{print $1}' $pathfile`
+endif
+
+if (! $#gmids) then		# Non-cortex label IDs to allow as pathway ends
+  if (! -e $pathfile) then
+    echo "ERROR: Cannot find list of pathways $pathfile"
+    exit 1
+  endif
+
+  set gmids = ()
+  foreach pname ($pathlist)
+    set gmids = ($gmids `awk -v p=$pname '{if ($1 == p) print $2}' $pathfile`)
+  end
+endif
+
+if (! $#ncpts) then		# Number of spline control points
+  if (! -e $pathfile) then
+    echo "ERROR: Cannot find list of pathways $pathfile"
+    exit 1
+  endif
+
+  set ncpts = ()
+  foreach pname ($pathlist)
+    set ncpts = ($ncpts `awk -v p=$pname '{if ($1 == p) print $3}' $pathfile`)
+  end
+endif
+
+if (! $#nsample) then		# Number of MCMC samples
+  if (! $#baselist) set nsample =  7500		# Cross-sectional case
+  if   ($#baselist) set nsample = 12000		# Longitudinal case
+endif
+
+goto set_path_defaults_return;
+
+############--------------##################
 arg1err:
   echo "ERROR: flag $flag requires one argument"
   exit 1
@@ -1580,9 +1823,15 @@ check_params:
       set dtroot = $SUBJECTS_DIR
     endif
 
-    if ($#ncpts > 1 && $#ncpts != $#pathlist) then
-      echo "ERROR: must specify either one number of control points"
-      echo "ERROR: or as many numbers as pathways"
+    if ($#gmids != $#pathlist) then
+      echo "ERROR: length of pathway list ($pathlist) and endpoint label ID list"
+      echo "ERROR: ($gmids) do not match"
+      exit 1
+    endif
+
+    if ($#ncpts != $#pathlist) then
+      echo "ERROR: length of pathway list ($pathlist) and control point list
+      echo "ERROR: ($ncpts) do not match"
       exit 1
     endif
 
@@ -1592,6 +1841,11 @@ check_params:
         exit 1
       endif
     end
+
+    if ($#bmax && $#bshell) then
+      echo "ERROR: cannot specify both bshell and bmax"
+      exit 1
+    endif
 
     if ($#runlist > $#subjlist) then
       echo "ERROR: run list is longer than subject ID list"
@@ -1681,8 +1935,8 @@ check_params:
     exit 1
   endif
 
-  if ((! $dopreproc || (! $docorr && ! $doqa && ! $dointra && ! $dointer && \
-                        ! $domasks && ! $dotensor && ! $dopriors)) && \
+  if ((! $dopreproc || (! $docorr && ! $doqa && ! $dointra && \
+                        ! $dotensor && ! $dointer && ! $dopriors)) && \
        ! $dobedpost && ! $dopaths && ! $dostats) then
     echo "ERROR: no analysis step (-{prep,bedp,path,stat}) has been selected"
     exit 1
@@ -1715,29 +1969,27 @@ usage_exit:
   echo "  -noqa     : don't do step 1.2"
   echo "  -intra    : do intra-subject registration (step 1.3)"
   echo "  -nointra  : don't do step 1.3"
-  echo "  -inter    : do inter-subject registration (step 1.4)"
-  echo "  -nointer  : don't do step 1.4"
-  echo "  -masks    : do masks (step 1.5)"
-  echo "  -nomasks  : don't do step 1.5"
-  echo "  -tensor   : do tensor fit (step 1.6)"
-  echo "  -notensor : don't do step 1.6"
-  echo "  -prior    : do pathway priors (step 1.7)"
-  echo "  -noprior  : don't do step 1.7"
+  echo "  -tensor   : do tensor fit (step 1.4)"
+  echo "  -notensor : don't do step 1.4"
+  echo "  -inter    : do inter-subject registration (step 1.5)"
+  echo "  -nointer  : don't do step 1.5"
+  echo "  -prior    : do pathway priors (step 1.6)"
+  echo "  -noprior  : don't do step 1.6"
   echo ""
   echo "Analysis steps:"
   echo "  1. Pre-processing"
   echo "     1.1 Image corrections (eddy-current and/or B0)"
   echo "     1.2 Image quality assessment (head motion measures)"
-  echo "     1.3 Intra-subject registration (diffusion to T1)"
-  echo "     1.4 Inter-subject registration (T1 to template)"
-  echo "     1.5 White-matter, cortical, and whole-brain masks"
-  echo "     1.6 Tensor fit"
-  echo "     1.7 Pathway priors from atlas and T1"
+  echo "     1.3 Intra-subject registration (individual DWI to individual T1)"
+  echo "     1.4 Tensor fit"
+  echo "     1.5 Inter-subject registration (individual DWI/T1 to template)"
+  echo "     1.6 Pathway priors from atlas and T1"
   echo "  2. Stick-and-ball model fitting with bedpost"
   echo "  3. Pathway reconstruction"
   echo "  4. Assemble pathway measures from all subjects"
   echo ""
   echo "Other options:"
+  echo "  -infant         : use infant brain processing options"
   echo "  -jobs <file>    : write a text file with command lines that can be"
   echo "                    run in parallel but do not run them - the user can"
   echo "                    then submit each line as a job on a compute cluster"
@@ -1798,18 +2050,22 @@ If there are conflicting step-wise arguments, the ones that come later
 in the command line override the ones that come earlier.
 
 Various aspects of each processing step can be configured in the dmrirc
-file. See dmrirc.example for more details.
+file. See example configuration files ($FREESURFER_HOME/bin/dmrirc.*) for
+more details:
+  dmrirc.example : Single session, single DWI scan per session
+  dmrirc.multiscan.example : Single session, multiple DWI scans per session
+  dmrirc.long.example : Multiple sessions, single DWI scan per session
+  dmrirc.long.multiscan.example : Multiple sessions, multiple DWI scans per session
 
 > Step 1: Pre-processing
           -prep to do this step
 
-  Pre-processing includes steps 1.1 through 1.5 below.
+  Pre-processing includes steps 1.1 through 1.6 below.
 
 > Step 1.1: Image corrections
             -corr to do this step, -nocorr to skip this step
 
-  Eddy current correction with eddy_correct, B0 field map correction with
-  epidewarp.fsl.
+  Eddy current and susceptibility distortion correction.
 
 > Step 1.2: Image quality assessment
             -qa to do this step, -noqa to skip this step
@@ -1819,25 +2075,19 @@ file. See dmrirc.example for more details.
 > Step 1.3: Intra-subject registration
             -intra to do this step, -nointra to skip this step
 
-  Diffusion-to-T1 registration with flirt and/or bbregister.
+  Individual DWI-to-T1 registration.
 
-> Step 1.4: Inter-subject registration
-            -inter to do this step, -nointer to skip this step
-
-  T1-to-template registration using MNI and/or CVS templates.
-
-> Step 1.5: White-matter, cortical, and whole-brain masks
-            -masks to do this step, -nomasks to skip this step
-
-  Generate masks of the white matter and cortex from FreeSurfer outputs,
-  whole-brain masks from T1 and DWIs.
-
-> Step 1.6: Tensor fit
+> Step 1.4: Tensor fit
             -tensor to do this step, -notensor to skip this step
 
   Tensor model fitting on DWIs.
 
-> Step 1.7: Pathway priors
+> Step 1.5: Inter-subject registration
+            -inter to do this step, -nointer to skip this step
+
+  Individual-to-template registration, affine or nonlinear, T1- or DWI-based.
+
+> Step 1.6: Pathway priors
             -prior to do this step, -noprior to skip this step
 
   Combine training data and subject's own data to generate pathway priors.
@@ -1855,10 +2105,11 @@ file. See dmrirc.example for more details.
 > Step 4: Assemble pathway measures from multiple subjects
           -stat to do this step
 
-   Combine whole-path or along-the-path measures (anisotropy and 
-   diffusivity) from multiple subjects to feed into group analyses.
+  Combine whole-path or along-the-path measures (anisotropy and 
+  diffusivity) from multiple subjects to feed into group analyses.
 
 OTHER OPTIONS
+-infant         : use infant brain processing options
 -jobs <file>    : write a text file with command lines that can be
                   run in parallel but do not run them - the user can
                   then submit each line as a job on a compute cluster
@@ -1882,5 +2133,6 @@ command line. If run on a local machine, trac-all will run all analyses locally.
 If run on the cluster, trac-all will submit the analysis of each subject listed
 in your dmrirc file as a job.
 
-SEE ALSO: dmrirc.example
+SEE ALSO: dmrirc.example, dmrirc.multiscan.example, dmrirc.long.example,
+          dmrirc.long.multiscan.example
 

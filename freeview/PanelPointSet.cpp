@@ -1,7 +1,7 @@
 /*
  * Original Author: Ruopeng Wang
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -32,6 +32,7 @@
 #include <QTreeWidgetItem>
 #include <QMessageBox>
 #include "DialogAddPointSetStat.h"
+#include "DialogControlPointComment.h"
 #ifdef Q_OS_MAC
 #include "MacHelper.h"
 #endif
@@ -70,7 +71,8 @@ PanelPointSet::PanelPointSet(QWidget *parent) :
   m_widgetlistSpline << ui->labelSplineColor
                      << ui->comboBoxSplineColor
                      << ui->lineEditSplineRadius
-                     << ui->labelSplineRadius;
+                     << ui->labelSplineRadius
+                     << ui->checkBoxClosedSpline;
 
   m_self = qgetenv("USER");
   if (m_self.isEmpty())
@@ -78,7 +80,7 @@ PanelPointSet::PanelPointSet(QWidget *parent) :
 
 #ifdef Q_OS_MAC
   if (MacHelper::IsDarkMode())
-      ui->commentsContentWidget->setStyleSheet(QString("#commentsContentWidget {background-color:#1E1E1E;}"));
+    ui->commentsContentWidget->setStyleSheet(QString("#commentsContentWidget {background-color:#1E1E1E;}"));
 #endif
 }
 
@@ -109,6 +111,9 @@ void PanelPointSet::ConnectLayer( Layer* layer_in )
   connect( ui->colorpickerPointColor, SIGNAL(colorChanged(QColor)), p, SLOT(SetColor(QColor)));
   connect( ui->colorpickerSplineColor, SIGNAL(colorChanged(QColor)), p, SLOT(SetSplineColor(QColor)));
   connect( ui->comboBoxSplineColor, SIGNAL(currentIndexChanged(int)), p, SLOT(SetColorMap(int)));
+  connect( ui->checkBoxClosedSpline, SIGNAL(toggled(bool)), p, SLOT(SetClosedSpline(bool)));
+  connect( ui->spinBoxOverallScore, SIGNAL(valueChanged(int)), this, SLOT(OnSpinBoxOverallScore(int)));
+  connect( ui->textEditOverallQuality, SIGNAL(textChanged()), this, SLOT(OnTextOverallQualityChanged()));
 }
 
 void PanelPointSet::DoIdle()
@@ -195,6 +200,10 @@ void PanelPointSet::DoUpdateWidgets()
     ui->checkBoxShowSpline->setChecked( bShowSpline );
     ui->checkBoxSnapToCenter->setChecked( layer->GetProperty()->GetSnapToVoxelCenter() );
     ui->labelEndPointDistance->setText(QString("%1 mm").arg(layer->GetEndPointDistance(), 0, 'f', 3));
+    ui->checkBoxClosedSpline->setChecked(layer->GetProperty()->GetClosedSpline());
+
+    ui->spinBoxOverallScore->setValue(layer->GetEnhancedData("overall_score").toInt());
+    ui->textEditOverallQuality->setPlainText(layer->GetEnhancedData("overall_quality").toString());
   }
 
   // MainWindow* mainWnd = MainWindow::GetMainWindowPointer();
@@ -426,22 +435,29 @@ void PanelPointSet::OnButtonGoToPoint()
   OnSpinBoxGoToPoint(ui->spinBoxGoToPoint->value());
 }
 
-QLabel* PanelPointSet::MakeCommentItem(const QVariantMap& map)
+QLabel* PanelPointSet::MakeCommentItem(const QVariantMap& map, QLabel* label_in)
 {
-  QLabel* label = new QLabel();
+  QLabel* label = label_in;
+  if (!label)
+    label = new QLabel();
   label->setWordWrap(true);
   label->setTextInteractionFlags(label->textInteractionFlags() | Qt::TextSelectableByMouse);
   bool bDarkMode = false;
 #ifdef Q_OS_MAC
   bDarkMode = MacHelper::IsDarkMode();
 #endif
-  QString text = QString("<span style=\"color:rgba(%4,%4,%4,150);font-size:10px;\">[%1] (%2)</span><br />%3").arg(map["timestamp"].toDateTime().toString())
-      .arg(map["user"].toString()).arg(map["text"].toString()).arg(bDarkMode?255:0);
+  QString prefilled = map.value("prefilled").toStringList().join(" / ");
+  if (!map["text"].toString().isEmpty() && !prefilled.isEmpty())
+    prefilled = " / " + prefilled;
+  QString text = QString("<span style=\"color:rgba(%4,%4,%4,150);font-size:10px;\">[%1] (%2)</span><br />%3 %5")
+      .arg(map["timestamp"].toDateTime().toString("yyyy-MM-dd hh:mm:ss"))
+      .arg(map["user"].toString()).arg(map["text"].toString()).arg(bDarkMode?255:0).arg(prefilled);
+  text += QString(" (<a href=\"edit\" style=\"font-size:11px;color:%1\">edit</a>)").arg(bDarkMode?"#00A6FF":"blue");
   if (map["user"].toString() == m_self)
     text += QString(" (<a href=\"delete\" style=\"font-size:11px;color:%1\">delete</a>)").arg(bDarkMode?"#00A6FF":"blue");
   label->setText(text);
   label->setStyleSheet("QLabel{font-size:12px;padding:2px;padding-top:3px;padding-bottom:3px;}");
-  connect(label, SIGNAL(linkActivated(QString)), SLOT(OnCommentLabelClicked(QString)));
+  connect(label, SIGNAL(linkActivated(QString)), SLOT(OnCommentLabelClicked(QString)), Qt::UniqueConnection);
   label->setProperty("comment", map);
   return label;
 }
@@ -506,11 +522,12 @@ void PanelPointSet::UpdatePointInfo()
 
 void PanelPointSet::OnButtonCommentAdd()
 {
-  QString text = QInputDialog::getText(this, "Add Comment", "Enter your comment:");
-  if (!text.isEmpty())
+  DialogControlPointComment dlg(this);
+  if (dlg.exec() == QDialog::Accepted)
   {
     QVariantMap map;
-    map["text"] = text;
+    map["text"] = dlg.GetComment();
+    map["prefilled"] = dlg.GetPrefilledItems();
     // workaround for a QDateTime bug
     QDateTime local = QDateTime::currentDateTime();
     QDateTime utc = local.toUTC();
@@ -540,30 +557,59 @@ void PanelPointSet::OnButtonCommentAdd()
 
 void PanelPointSet::OnCommentLabelClicked(const QString &link)
 {
-  if (link == "delete")
-  {
-    QLabel* l = qobject_cast<QLabel*>(sender());
-    if (l)
-    {
-      l->hide();
+  QLabel* l = qobject_cast<QLabel*>(sender());
+  if (!l)
+    return;
 
-      LayerPointSet* layer = GetCurrentLayer<LayerPointSet*>();
-      int nIndex = ui->spinBoxGoToPoint->value()-1;
-      if (layer && nIndex < layer->GetNumberOfPoints())
+  LayerPointSet* layer = GetCurrentLayer<LayerPointSet*>();
+  int nIndex = ui->spinBoxGoToPoint->value()-1;
+  if (layer && nIndex < layer->GetNumberOfPoints())
+  {
+    ControlPoint p = layer->GetPoint(nIndex);
+    QVariantList comments = p.info.value("comments").toList();
+    if (link == "delete")
+    {
+      if (QMessageBox::question(this, "Delete Comments", "Are you sure you want to delete this comment?") != QMessageBox::Yes)
+        return;
+
+      l->hide();
+      for (int i = 0; i < comments.size(); i++)
       {
-        ControlPoint p = layer->GetPoint(nIndex);
-        QVariantList comments = p.info.value("comments").toList();
-        for (int i = 0; i < comments.size(); i++)
+        if (comments[i].toMap() == l->property("comment").toMap())
         {
-          if (comments[i].toMap() == l->property("comment").toMap())
-          {
-            comments.removeAt(i);
-            break;
-          }
+          comments.removeAt(i);
+          break;
         }
-        layer->UpdatePoint(nIndex, "comments", comments);
       }
     }
+    else if (link == "edit")
+    {
+      for (int i = 0; i < comments.size(); i++)
+      {
+        if (comments[i].toMap() == l->property("comment").toMap())
+        {
+          QVariantMap map = comments[i].toMap();
+          DialogControlPointComment dlg(this);
+          dlg.SetComment(map["text"].toString(), map["prefilled"].toStringList());
+          if (dlg.exec() != QDialog::Accepted)
+            return;
+
+          map["text"] = dlg.GetComment();
+          map["prefilled"] = dlg.GetPrefilledItems();
+          map["user"] = m_self;
+          map["edited"] = true;
+          QDateTime local = QDateTime::currentDateTime();
+          QDateTime utc = local.toUTC();
+          utc.setTimeSpec(Qt::LocalTime);
+          local.setUtcOffset(utc.secsTo(local));
+          map["timestamp"] = local;
+          comments[i] = map;
+          MakeCommentItem(map, l);
+          break;
+        }
+      }
+    }
+    layer->UpdatePoint(nIndex, "comments", comments);
   }
 }
 
@@ -673,4 +719,19 @@ void PanelPointSet::OnCurrentStatItemChanged(QTreeWidgetItem *cur, QTreeWidgetIt
   Q_UNUSED(cur);
   Q_UNUSED(old);
   ui->pushButtonStatDelete->setEnabled(cur && ui->treeWidgetStats->indexOfTopLevelItem(cur) != 0);
+}
+
+void PanelPointSet::OnTextOverallQualityChanged()
+{
+  LayerPointSet* layer = GetCurrentLayer<LayerPointSet*>();
+  if (layer)
+    layer->SetEnhancedData("overall_quality", ui->textEditOverallQuality->toPlainText());
+}
+
+
+void PanelPointSet::OnSpinBoxOverallScore(int val)
+{
+  LayerPointSet* layer = GetCurrentLayer<LayerPointSet*>();
+  if (layer)
+    layer->SetEnhancedData("overall_score", val);
 }

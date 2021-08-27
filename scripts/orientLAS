@@ -6,7 +6,7 @@
 #
 # Original Author: Anastasia Yendiki
 #
-# Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+# Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
 #
 # Terms and conditions for use, reproduction, distribution and contribution
 # are found in the 'FreeSurfer Software License Agreement' contained
@@ -144,8 +144,7 @@ if (-e $inbvecs) then
 endif
 
 if $docheck then
-  set tmpdir = /tmp/checkswap.$$
-  mkdir -p $tmpdir
+  set tmpdir = `fs_temp_dir`
 
   #
   # General check for images

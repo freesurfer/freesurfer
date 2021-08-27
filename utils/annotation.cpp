@@ -7,7 +7,7 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -430,7 +430,8 @@ int MRISdivideAnnotation(MRI_SURFACE *mris, int *nunits)
     done[index] = 1 + num;
   }
 
-  printf("allocating new colortable with %d additional units...\n", nadded);
+  if (DIAG_VERBOSE_ON)
+    printf("allocating new colortable with %d additional units...\n", nadded);
   ct = CTABalloc(mris->ct->nentries + nadded);
   index = mris->ct->nentries;
   for (i = 0; i < mris->ct->nentries; i++) {

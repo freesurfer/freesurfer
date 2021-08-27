@@ -5,7 +5,7 @@
 /*
  * Original Author: Ruopeng Wang
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -84,6 +84,7 @@ RenderView3D::RenderView3D( QWidget* parent ) : RenderView( parent )
   m_bShowAxes = false;
   m_bShowCursor = true;
   m_bFocalPointAtCursor = false;
+  m_actorForAxes = NULL;
   for ( int i = 0; i < 3; i++ )
   {
     m_actorSliceFrames[i] = vtkSmartPointer<vtkActor>::New();
@@ -124,8 +125,9 @@ RenderView3D::RenderView3D( QWidget* parent ) : RenderView( parent )
   m_actorAxesActor->SetXTitle("");
   m_actorAxesActor->SetYTitle("");
   m_actorAxesActor->SetZTitle("");
-  m_actorAxesActor->SetFlyModeToClosestTriad();
+  m_actorAxesActor->SetFlyModeToOuterEdges();
   m_actorAxesActor->SetCamera(m_renderer->GetActiveCamera());
+  m_actorAxesActor->VisibilityOff();
 
   SetInteractionMode(IM_Navigate);
 }
@@ -368,6 +370,7 @@ void RenderView3D::RefreshAllActors(bool bForScreenShot)
   mainwnd->GetLayerCollection( "MRI" )->Append3DProps( m_renderer, b );
   mainwnd->GetLayerCollection( "ROI" )->Append3DProps( m_renderer, b );
   mainwnd->GetLayerCollection( "Surface" )->Append3DProps( m_renderer, b );
+  mainwnd->GetLayerCollection( "ODF" )->Append3DProps( m_renderer, b );
   mainwnd->GetLayerCollection( "PointSet" )->Append3DProps( m_renderer, b );
   mainwnd->GetLayerCollection( "Tract" )->Append3DProps( m_renderer, b );
   mainwnd->GetLayerCollection( "CMAT")->Append3DProps( m_renderer, b );
@@ -388,7 +391,7 @@ void RenderView3D::RefreshAllActors(bool bForScreenShot)
   {
     m_renderer->AddViewProp( m_actorFocusFrame );
   }
-  if ( !mainwnd->GetLayerCollection("MRI")->IsEmpty() ||! mainwnd->GetLayerCollection("Surface")->IsEmpty() )
+  if ( !mainwnd->GetLayerCollection("MRI")->IsEmpty() ||! mainwnd->GetLayerCollection("Surface")->IsEmpty() || !mainwnd->GetLayerCollection("Tract")->IsEmpty() )
   {
     m_renderer->AddViewProp( m_actorScalarBar );
     if ( !mainwnd->GetLayerCollection("MRI")->IsEmpty() )
@@ -400,12 +403,10 @@ void RenderView3D::RefreshAllActors(bool bForScreenShot)
     }
   }
 
-  if (m_bShowAxes)
-    m_renderer->AddViewProp(m_actorAxesActor);
+  m_renderer->AddViewProp(m_actorAxesActor);
 
   //    mainwnd->GetConnectivityData()->AppendProps( m_renderer );
   mainwnd->GetVolumeCropper()->Append3DProps( m_renderer );
-
 
   m_renderer->ResetCameraClippingRange();
   RenderView::RefreshAllActors(bForScreenShot);
@@ -456,13 +457,13 @@ void RenderView3D::DoUpdateRASPosition( int posX, int posY, bool bCursor, bool b
 
     double pos[3];
     posY = this->rect().height() - posY;
-  #if VTK_MAJOR_VERSION > 7
+#if VTK_MAJOR_VERSION > 7
     if (devicePixelRatio() > 1)
     {
-        posX *= devicePixelRatio();
-        posY *= devicePixelRatio();
+      posX *= devicePixelRatio();
+      posY *= devicePixelRatio();
     }
-  #endif
+#endif
     picker->Pick( posX, posY, 0, GetRenderer() );
     picker->GetPickPosition( pos );
 
@@ -547,15 +548,26 @@ void RenderView3D::DoUpdateRASPosition( int posX, int posY, bool bCursor, bool b
         if ( bCursor )
         {
           LayerMRI* mri = (LayerMRI*)lc_mri->HasProp( prop );
-          SurfaceRegion* reg = NULL;
-          if ( mri )
+          if (mri)
           {
-            reg = mri->SelectSurfaceRegion( pos );
-          }
-          if ( reg )
-          {
-            RequestRedraw( true ); // force redraw
-            emit SurfaceRegionSelected(reg);
+            SurfaceRegion* reg = mri->SelectSurfaceRegion( pos );
+            if ( reg )
+            {
+              RequestRedraw( true ); // force redraw
+              emit SurfaceRegionSelected(reg);
+            }
+            else
+            {
+              int dim[3];
+              double vs[3];
+              mri->GetVolumeInfo(dim, vs);
+              Region3D* reg = mri->Select3DRegion(pos, 3*qMin(vs[0], qMin(vs[1], vs[2])));
+              if (reg)
+              {
+                RequestRedraw(true);
+                emit Region3DSelected(reg);
+              }
+            }
           }
         }
         else
@@ -731,13 +743,13 @@ int RenderView3D::PickCurrentSurfaceVertex(int posX, int posY, LayerSurface* cur
     }
 
     double pos[3];
-  #if VTK_MAJOR_VERSION > 7
+#if VTK_MAJOR_VERSION > 7
     if (devicePixelRatio() > 1)
     {
-        posX *= devicePixelRatio();
-        posY *= devicePixelRatio();
+      posX *= devicePixelRatio();
+      posY *= devicePixelRatio();
     }
-  #endif
+#endif
     picker->Pick( posX, posY, 0, GetRenderer() );
     picker->GetPickPosition( pos );
 
@@ -979,7 +991,7 @@ void RenderView3D::MoveSliceToScreenCoord( int x, int y )
   lc->SetCursorRASPosition( slicepos );
 }
 
-vtkProp* RenderView3D::PickProp( int posX, int posY, double* pos_out )
+vtkProp* RenderView3D::PickProp( int posX, int posY, double* pos_out, vtkPropCollection* props_in )
 {
   vtkCellPicker* picker = vtkCellPicker::SafeDownCast( this->GetRenderWindow()->GetInteractor()->GetPicker() );
   if ( !picker )
@@ -988,7 +1000,9 @@ vtkProp* RenderView3D::PickProp( int posX, int posY, double* pos_out )
   }
 
   picker->InitializePickList();
-  vtkPropCollection* props = GetRenderer()->GetViewProps();
+  vtkPropCollection* props = props_in;
+  if (!props)
+    props = GetRenderer()->GetViewProps();
   if ( props )
   {
     props->InitTraversal();
@@ -1006,8 +1020,8 @@ vtkProp* RenderView3D::PickProp( int posX, int posY, double* pos_out )
 #if VTK_MAJOR_VERSION > 7
   if (devicePixelRatio() > 1)
   {
-      posX *= devicePixelRatio();
-      posY *= devicePixelRatio();
+    posX *= devicePixelRatio();
+    posY *= devicePixelRatio();
   }
 #endif
   picker->Pick( posX, posY, 0, GetRenderer() );
@@ -1018,13 +1032,13 @@ vtkProp* RenderView3D::PickProp( int posX, int posY, double* pos_out )
   return picker->GetViewProp();
 }
 
-bool RenderView3D::InitializeSelectRegion( int posX, int posY )
+vtkProp* RenderView3D::InitializeSelectRegion( int posX, int posY, int nDrawMode )
 {
   double pos[3];
   vtkProp* prop = this->PickProp( posX, posY, pos );
   if ( !prop )
   {
-    return false;
+    return NULL;
   }
 
   LayerCollection* lc_mri = MainWindow::GetMainWindow()->GetLayerCollection( "MRI" );
@@ -1041,16 +1055,27 @@ bool RenderView3D::InitializeSelectRegion( int posX, int posY )
 
   if ( !mri )
   {
-    return false;
+    return NULL;
   }
 
   lc_mri->SetActiveLayer( mri );
-  SurfaceRegion* reg = mri->CreateNewSurfaceRegion( pos );
-  if ( reg )
+  if (nDrawMode == Interactor::MM_SurfaceRegion)
   {
-    emit SurfaceRegionSelected(reg);
+    SurfaceRegion* reg = mri->CreateNewSurfaceRegion( pos, prop );
+    if ( reg )
+    {
+      emit SurfaceRegionSelected(reg);
+    }
   }
-  return true;
+  else
+  {
+    Region3D* reg = mri->CreateNew3DRegion( pos, prop );
+    if ( reg )
+    {
+      emit Region3DSelected(reg);
+    }
+  }
+  return prop;
 }
 
 bool RenderView3D::PickSelectRegion( int nId )
@@ -1080,28 +1105,36 @@ bool RenderView3D::PickSelectRegion( int nId )
   return true;
 }
 
-void RenderView3D::AddSelectRegionLoopPoint( int posX, int posY )
+void RenderView3D::AddSelectRegionLoopPoint( int posX, int posY, vtkProp* prop_in, int nAction )
 {
   LayerMRI* mri = (LayerMRI*)MainWindow::GetMainWindow()->GetActiveLayer( "MRI" );
   if ( mri )
   {
     double pos[3];
-    vtkProp* prop = this->PickProp( posX, posY, pos );
+    vtkSmartPointer<vtkPropCollection> pc = vtkSmartPointer<vtkPropCollection>::New();
+    pc->AddItem(prop_in);
+    vtkProp* prop = this->PickProp( posX, posY, pos, pc );
     if ( !prop || !mri->HasProp( prop ) )
     {
       return;
     }
 
-    mri->AddSurfaceRegionLoopPoint( pos );
+    if (nAction == Interactor::MM_SurfaceRegion)
+      mri->AddSurfaceRegionLoopPoint( pos );
+    else if (nAction == Interactor::MM_DrawOnSurface)
+      mri->Add3DRegionPoint( pos );
   }
 }
 
-void RenderView3D::CloseSelectRegion()
+void RenderView3D::CloseSelectRegion(int nAction)
 {
   LayerMRI* mri = (LayerMRI*)MainWindow::GetMainWindow()->GetActiveLayer( "MRI" );
   if ( mri )
   {
-    mri->CloseSurfaceRegion();
+    if (nAction == Interactor::MM_SurfaceRegion)
+      mri->CloseSurfaceRegion();
+    else if (nAction == Interactor::MM_DrawOnSurface)
+      mri->Close3DRegion();
   }
 }
 
@@ -1115,6 +1148,26 @@ void RenderView3D::DeleteCurrentSelectRegion()
     {
       emit SurfaceRegionRemoved(reg);
     }
+  }
+}
+
+void RenderView3D::DeleteCurrent3DRegion()
+{
+  LayerMRI* mri = (LayerMRI*)MainWindow::GetMainWindow()->GetActiveLayer( "MRI" );
+  if ( mri )
+  {
+    Region3D* reg = mri->GetCurrent3DRegion();
+    if (mri->DeleteCurrent3DRegion())
+      emit Region3DRemoved(reg);
+  }
+}
+
+void RenderView3D::DeleteAll3DRegions()
+{
+  LayerMRI* mri = (LayerMRI*)MainWindow::GetMainWindow()->GetActiveLayer( "MRI" );
+  if ( mri )
+  {
+    mri->DeleteAll3DRegions();
   }
 }
 
@@ -1215,22 +1268,54 @@ bool RenderView3D::UpdateBounds()
 
 void RenderView3D::UpdateAxesActor()
 {
-  LayerSurface* surf = (LayerSurface*)MainWindow::GetMainWindow()->GetActiveLayer("Surface");
-  if (surf && surf->IsVisible())
+  vtkActor* prop = m_actorForAxes;
+  double bounds[6];
+  if (prop)
   {
-    vtkActor* prop = surf->GetMainActor();
-    double bounds[6];
     prop->GetBounds(bounds);
-    m_actorAxesActor->SetXAxisRange(0, bounds[1]-bounds[0]);
-    m_actorAxesActor->SetYAxisRange(0, bounds[3]-bounds[2]);
-    m_actorAxesActor->SetZAxisRange(0, bounds[5]-bounds[4]);
-    m_actorAxesActor->SetBounds(bounds);
-    m_actorAxesActor->VisibilityOn();
   }
   else
   {
-    m_actorAxesActor->VisibilityOff();
+    QList<Layer*> layers = MainWindow::GetMainWindow()->GetLayers("MRI");
+    QList<vtkActor*> actors;
+    foreach (Layer* layer, layers)
+    {
+      LayerMRI* mri = (LayerMRI*)layer;
+      if (mri->IsVisible() && mri->GetProperty()->GetShowAsContour())
+      {
+        actors << mri->GetContourActors(true);
+        break;
+      }
+    }
+    for (int i = 0; i < actors.size(); i++)
+    {
+      vtkPolyDataMapper* mapper = vtkPolyDataMapper::SafeDownCast(actors[i]->GetMapper());
+      if (mapper && (!mapper->GetInput() || !mapper->GetInput()->GetPoints()))
+      {
+        actors.removeAt(i);
+        if (i >= actors.size())
+          break;
+      }
+      if (i == 0)
+        actors[i]->GetBounds(bounds);
+      else
+      {
+        double temp[6];
+        actors[i]->GetBounds(temp);
+        for (int j = 0; j < 6; j+=2)
+        {
+          if (temp[j] < bounds[j])
+            bounds[j] = temp[j];
+          if (temp[j+1] > bounds[j+1])
+            bounds[j+1] = temp[j+1];
+        }
+      }
+    }
   }
+  m_actorAxesActor->SetXAxisRange(0, bounds[1]-bounds[0]);
+  m_actorAxesActor->SetYAxisRange(0, bounds[3]-bounds[2]);
+  m_actorAxesActor->SetZAxisRange(0, bounds[5]-bounds[4]);
+  m_actorAxesActor->SetBounds(bounds);
 }
 
 bool RenderView3D::PickCroppingBound( int nX, int nY )
@@ -1366,6 +1451,16 @@ void RenderView3D::TriggerContextMenu( QMouseEvent* event )
   QList<Layer*> layers = mainwnd->GetLayers("Surface");
   layers << mainwnd->GetLayers("MRI");
   layers << mainwnd->GetLayers("PointSet");
+  layers << mainwnd->GetLayers("Tract");
+
+  LayerMRI* mri = qobject_cast<LayerMRI*>(mainwnd->GetActiveLayer("MRI"));
+  if (mri && mri->GetProperty()->GetShowAsContour() && mri->GetCurrentSurfaceRegion())
+  {
+    QAction* act = new QAction("Delete Iso-surface Region", this);
+    connect(act, SIGNAL(triggered()), this, SLOT(DeleteCurrentSelectRegion()));
+    menu->addAction(act);
+    menu->addSeparator();
+  }
 
   QMenu* submenu = menu->addMenu("Reset View");
   //  QAction* act = new QAction("Right", this);
@@ -1444,14 +1539,8 @@ void RenderView3D::TriggerContextMenu( QMouseEvent* event )
       ag->addAction(act);
     }
     connect(ag, SIGNAL(triggered(QAction*)), this, SLOT(SetScalarBarLayer(QAction*)));
-
-    QAction* act = new QAction("Show 3D Scale", this);
-    act->setCheckable(true);
-    act->setChecked(GetShowAxes());
-    connect(act, SIGNAL(toggled(bool)), SLOT(SetShowAxes(bool)));
-    menu->addAction(act);
   }
-  LayerMRI* mri = qobject_cast<LayerMRI*>(mainwnd->GetActiveLayer("MRI"));
+
   if (mri && mri->GetProperty()->GetShowAsContour())
   {
     menu->addSeparator();
@@ -1471,11 +1560,45 @@ void RenderView3D::TriggerContextMenu( QMouseEvent* event )
 
   if (!mainwnd->IsEmpty() && mainwnd->GetMainView() == this)
   {
-      menu->addSeparator();
-      QAction* action = new QAction("Copy", this);
-      connect(action, SIGNAL(triggered(bool)), mainwnd, SLOT(OnCopyView()));
-      menu->addAction(action);
-      menu->addAction(mainwnd->ui->actionSaveScreenshot);
+    menu->addSeparator();
+    menu->addAction(mainwnd->ui->actionCopyView);
+    menu->addAction(mainwnd->ui->actionSaveScreenshot);
+  }
+
+  QList<vtkActor*> actors;
+  layers = mainwnd->GetLayers("MRI");
+  foreach (Layer* layer, layers)
+  {
+    LayerMRI* mri = (LayerMRI*)layer;
+    if (mri->IsVisible() && mri->GetProperty()->GetShowAsContour())
+      actors << mri->GetContourActors();
+  }
+  layers = mainwnd->GetLayers("Surface");
+  foreach (Layer* layer, layers)
+  {
+    LayerSurface* surf = (LayerSurface*)layer;
+    if (surf->IsVisible())
+      actors << surf->GetMainActor();
+  }
+  vtkSmartPointer<vtkPropCollection> props = vtkSmartPointer<vtkPropCollection>::New();
+  foreach (vtkActor* actor, actors)
+    props->AddItem(actor);
+
+  if (!actors.isEmpty() || m_actorForAxes != NULL)
+  {
+    vtkProp* prop = actors.isEmpty()?NULL:PickProp(event->x(), event->y(), NULL, props);
+    act = new QAction("Show 3D Scale", this);
+    act->setCheckable(true);
+    if (prop)
+    {
+      act->setChecked(prop == m_actorForAxes);
+      act->setData((qulonglong)prop);
+    }
+    else
+      act->setChecked(m_actorAxesActor->GetVisibility());
+    connect(act, SIGNAL(toggled(bool)), SLOT(SetShowAxes(bool)));
+    menu->addSeparator();
+    menu->addAction(act);
   }
   menu->exec(event->globalPos());
 }
@@ -1652,5 +1775,29 @@ void RenderView3D::SetFocalPointAtCursor(bool b)
 void RenderView3D::SetShowAxes(bool b)
 {
   m_bShowAxes = b;
+  m_actorAxesActor->SetVisibility(b?1:0);
+  if (b)
+  {
+    QAction* act = qobject_cast<QAction*>(sender());
+    if (act)
+    {
+      vtkActor* prop = (vtkActor*)act->data().toULongLong();
+      m_actorForAxes = prop;
+      UpdateAxesActor();
+    }
+  }
+  else
+    m_actorForAxes = NULL;
   RefreshAllActors();
+}
+
+void RenderView3D::SetAxesFlyMode(int n)
+{
+  m_actorAxesActor->SetFlyMode(n);
+  Render();
+}
+
+int RenderView3D::GetAxesFlyMode()
+{
+  return m_actorAxesActor->GetFlyMode();
 }

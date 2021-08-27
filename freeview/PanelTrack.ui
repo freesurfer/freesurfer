@@ -72,10 +72,54 @@
       <property name="verticalSpacing">
        <number>6</number>
       </property>
-      <item row="6" column="0">
-       <widget class="QLabel" name="labelDirectionScheme">
+      <item row="11" column="0">
+       <widget class="QLabel" name="labelScalarMax">
         <property name="text">
-         <string>Scheme</string>
+         <string>Max</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item row="8" column="1">
+       <widget class="QComboBox" name="comboBoxScalar"/>
+      </item>
+      <item row="1" column="1">
+       <widget class="QLineEdit" name="lineEditFileName">
+        <property name="readOnly">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="1">
+       <widget class="QComboBox" name="comboBoxColorCode">
+        <item>
+         <property name="text">
+          <string>Directional</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Solid Color</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Scalar</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Embedded Color</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item row="7" column="0">
+       <widget class="QLabel" name="labelDirectionMapping">
+        <property name="text">
+         <string>Mapping</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -92,87 +136,13 @@
         </property>
        </widget>
       </item>
-      <item row="5" column="1">
-       <layout class="QHBoxLayout" name="horizontalLayout">
-        <item>
-         <widget class="QtColorPicker" name="colorPickerSolidColor" native="true"/>
-        </item>
-        <item>
-         <spacer name="horizontalSpacer">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>0</width>
-            <height>0</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-       </layout>
-      </item>
-      <item row="9" column="1">
-       <widget class="QPushButton" name="pushButtonShowClusterMap">
+      <item row="10" column="0">
+       <widget class="QLabel" name="labelScalarMin">
         <property name="text">
-         <string>Show Cluster Map</string>
-        </property>
-       </widget>
-      </item>
-      <item row="4" column="0">
-       <widget class="QLabel" name="label">
-        <property name="text">
-         <string>Color code</string>
-        </property>
-       </widget>
-      </item>
-      <item row="6" column="1">
-       <widget class="QComboBox" name="comboBoxDirectionScheme">
-        <item>
-         <property name="text">
-          <string>End Points</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>Mid Segment</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>Every Segment</string>
-         </property>
-        </item>
-       </widget>
-      </item>
-      <item row="2" column="0">
-       <widget class="QLabel" name="label_2">
-        <property name="text">
-         <string>Render</string>
-        </property>
-       </widget>
-      </item>
-      <item row="7" column="0">
-       <widget class="QLabel" name="labelDirectionMapping">
-        <property name="text">
-         <string>Mapping</string>
+         <string>Min</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="1">
-       <widget class="QLineEdit" name="lineEditFileName">
-        <property name="readOnly">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="0">
-       <widget class="QLabel" name="labelFileName">
-        <property name="text">
-         <string>File name</string>
         </property>
        </widget>
       </item>
@@ -188,6 +158,53 @@
           <string>Tubes (Slow!)</string>
          </property>
         </item>
+       </widget>
+      </item>
+      <item row="11" column="1">
+       <layout class="QHBoxLayout" name="horizontalLayout_5">
+        <item>
+         <widget class="QSlider" name="sliderScalarMax">
+          <property name="maximum">
+           <number>100</number>
+          </property>
+          <property name="pageStep">
+           <number>1</number>
+          </property>
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLineEdit" name="lineEditScalarMax">
+          <property name="maximumSize">
+           <size>
+            <width>60</width>
+            <height>16777215</height>
+           </size>
+          </property>
+          <property name="text">
+           <string>1.0</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item row="8" column="0">
+       <widget class="QLabel" name="labelScalar">
+        <property name="text">
+         <string>Scalar</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="0">
+       <widget class="QLabel" name="label_3">
+        <property name="text">
+         <string>Opacity</string>
+        </property>
        </widget>
       </item>
       <item row="7" column="1">
@@ -224,47 +241,112 @@
         </item>
        </widget>
       </item>
-      <item row="8" column="1">
-       <spacer name="verticalSpacer_2">
-        <property name="orientation">
-         <enum>Qt::Vertical</enum>
-        </property>
-        <property name="sizeType">
-         <enum>QSizePolicy::Fixed</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>5</width>
-          <height>5</height>
-         </size>
-        </property>
-       </spacer>
-      </item>
-      <item row="4" column="1">
-       <widget class="QComboBox" name="comboBoxColorCode">
-        <item>
-         <property name="text">
-          <string>Directional</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>Solid Color</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>Embedded Color</string>
-         </property>
-        </item>
-       </widget>
-      </item>
-      <item row="3" column="0">
-       <widget class="QLabel" name="label_3">
+      <item row="4" column="0">
+       <widget class="QLabel" name="label">
         <property name="text">
-         <string>Opacity</string>
+         <string>Color code</string>
         </property>
        </widget>
+      </item>
+      <item row="10" column="1">
+       <layout class="QHBoxLayout" name="horizontalLayout_3">
+        <item>
+         <widget class="QSlider" name="sliderScalarMin">
+          <property name="maximum">
+           <number>100</number>
+          </property>
+          <property name="pageStep">
+           <number>1</number>
+          </property>
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLineEdit" name="lineEditScalarMin">
+          <property name="maximumSize">
+           <size>
+            <width>60</width>
+            <height>16777215</height>
+           </size>
+          </property>
+          <property name="text">
+           <string>1.0</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item row="2" column="0">
+       <widget class="QLabel" name="label_2">
+        <property name="text">
+         <string>Render</string>
+        </property>
+       </widget>
+      </item>
+      <item row="6" column="1">
+       <widget class="QComboBox" name="comboBoxDirectionScheme">
+        <item>
+         <property name="text">
+          <string>End Points</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Mid Segment</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Every Segment</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item row="6" column="0">
+       <widget class="QLabel" name="labelDirectionScheme">
+        <property name="text">
+         <string>Scheme</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="labelFileName">
+        <property name="text">
+         <string>File name</string>
+        </property>
+       </widget>
+      </item>
+      <item row="13" column="1">
+       <widget class="QPushButton" name="pushButtonShowClusterMap">
+        <property name="text">
+         <string>Show Cluster Map</string>
+        </property>
+       </widget>
+      </item>
+      <item row="5" column="1">
+       <layout class="QHBoxLayout" name="horizontalLayout">
+        <item>
+         <widget class="QtColorPicker" name="colorPickerSolidColor" native="true"/>
+        </item>
+        <item>
+         <spacer name="horizontalSpacer">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>0</width>
+            <height>0</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
       </item>
       <item row="3" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout_2">
@@ -282,7 +364,7 @@
          <widget class="QLineEdit" name="lineEditOpacity">
           <property name="maximumSize">
            <size>
-            <width>40</width>
+            <width>60</width>
             <height>16777215</height>
            </size>
           </property>
@@ -292,6 +374,46 @@
          </widget>
         </item>
        </layout>
+      </item>
+      <item row="12" column="1">
+       <spacer name="verticalSpacer_2">
+        <property name="orientation">
+         <enum>Qt::Vertical</enum>
+        </property>
+        <property name="sizeType">
+         <enum>QSizePolicy::Fixed</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>5</width>
+          <height>5</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item row="9" column="0">
+       <widget class="QLabel" name="labelScalarColor">
+        <property name="text">
+         <string>Color</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item row="9" column="1">
+       <widget class="QComboBox" name="comboBoxScalarColor">
+        <item>
+         <property name="text">
+          <string>Heatscale</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Jet</string>
+         </property>
+        </item>
+       </widget>
       </item>
      </layout>
     </item>

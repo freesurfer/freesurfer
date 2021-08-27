@@ -1,7 +1,7 @@
 /*
  * Original Author: Ruopeng Wang
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -64,7 +64,7 @@ void UIUpdateHelper::ChangeLineEditNumber( QLineEdit* w, double val, int precise
   }
 
   QString strg;
-  if (val < 1)
+  if (val < 0.01)
   {
     strg = QString("%1").arg(val);
   }

@@ -5,7 +5,7 @@
 /*
  * Original Author: Ruopeng Wang
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -78,7 +78,7 @@ bool FSGroupDescriptor::Read( const QString& filename )
     ::gdfFree( &m_fsgd );
   }
 
-  m_fsgd = ::gdfRead( filename.toLatin1().data(), 1 );
+  m_fsgd = ::gdfRead( filename.toLatin1().data(), NULL, 1 );
   if ( m_fsgd == NULL )
   {
     cerr << "gdfRead failed\n";

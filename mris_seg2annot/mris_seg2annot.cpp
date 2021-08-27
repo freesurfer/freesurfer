@@ -1,6 +1,6 @@
 /*
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -150,12 +150,6 @@ int main(int argc, char *argv[]) {
   if (checkoptsonly) return(0);
   dump_options(stdout);
 
-
-
-  printf("Reading surface seg %s\n",surfsegfile);
-  surfseg = MRIread(surfsegfile);
-  if (surfseg == NULL) exit(1);
-
   nv = surfseg->width * surfseg->height * surfseg->depth;
   if (surfseg->height != 1 || surfseg->depth != 1) {
     printf("Reshaping\n");
@@ -186,15 +180,18 @@ int main(int argc, char *argv[]) {
   }
 
   if(AutoCTab == 0){
-    // Have to read ctab both ways (what does this mean?)
-    printf("Reading ctab %s\n",ctabfile);
-    ctab = CTABreadASCII(ctabfile);
-    if (ctab == NULL) {
-      printf("ERROR: reading %s\n",ctabfile);
-      exit(1);
+    if(ctabfile){
+      printf("Reading ctab %s\n",ctabfile);
+      ctab = CTABreadASCII(ctabfile);
+      if (ctab == NULL) {
+	printf("ERROR: reading %s\n",ctabfile);
+	exit(1);
+      }
     }
+    else ctab = surfseg->ct;
   }
   else {
+    // generate random ctab
     int *segidlist, nsegs;
     segidlist = MRIsegIdListNot0(surfseg, &nsegs, 0);
     printf("AutoCTab nsegs = %d\n",nsegs);
@@ -304,10 +301,21 @@ static int parse_commandline(int argc, char **argv) {
       if(seg == NULL) exit(1);
       MRIS *surf = MRISread(pargv[1]);
       if(surf == NULL) exit(1);
-      COLOR_TABLE *ctab = CTABreadASCII(pargv[2]);
-      if (ctab == NULL) {
-	printf("ERROR: reading %s\n",pargv[2]);
-	exit(1);
+      COLOR_TABLE *ctab;
+      if(strcmp(pargv[2],"embedded")!=0){
+	ctab = CTABreadASCII(pargv[2]);
+	if (ctab == NULL) {
+	  printf("ERROR: reading %s\n",pargv[2]);
+	  exit(1);
+	}
+      }
+      else{
+	if(seg->ct == NULL){
+	  printf("ERROR: %s does not have embedded colortable\n",pargv[0]);
+	  exit(1);
+	}
+	printf("Using embedded colortable\n");
+	ctab = seg->ct;
       }
       int err = MRISseg2annot(surf, seg, ctab);
       if(err) exit(1);
@@ -338,6 +346,7 @@ static void print_usage(void) {
   printf("   --seg  surfseg    : volume-encoded surface segmentation \n");
   printf("   --ctab colortable : color table (like FreeSurferColorLUT.txt)\n");
   printf("   --ctab-auto <outcolortable> : create a random color table, optionally save ctab\n");
+  printf("     Do not specify --ctab or --ctab-auto to use embedded colortable\n");
   printf("   --s subject   : subject name\n");
   printf("   --h hemi      : surface hemifield\n");
   printf("   --o annot     : output annotation file\n");
@@ -348,7 +357,7 @@ static void print_usage(void) {
   printf("   --help      print out information on how to use this program\n");
   printf("   --version   print out version and exit\n");
   printf("\n");
-  printf("   --seg2annot seg surf ctab output\n");
+  printf("   --seg2annot seg surf ctab output : set ctab=embedded to use ctab inside seg\n");
   printf("     This gives the same result but does not rely on recon-all directory structure\n");
   printf("\n");
   std::cout << getVersion() << std::endl;
@@ -416,10 +425,6 @@ static void check_options(void) {
     printf("ERROR: hemi not specified\n");
     exit(1);
   }
-  if(ctabfile == NULL && ! AutoCTab) {
-    printf("ERROR: ctab not specified\n");
-    exit(1);
-  }
   if (annotfile == NULL) {
     printf("ERROR: output not specified\n");
     exit(1);
@@ -428,6 +433,14 @@ static void check_options(void) {
     printf("ERROR: surfseg not specified\n");
     exit(1);
   }
+  printf("Reading surface seg %s\n",surfsegfile);
+  surfseg = MRIread(surfsegfile);
+  if(surfseg == NULL) exit(1);
+  if(ctabfile == NULL && ! AutoCTab && surfseg->ct == NULL) {
+    printf("ERROR: ctab not specified\n");
+    exit(1);
+  }
+
   return;
 }
 

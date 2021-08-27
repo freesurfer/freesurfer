@@ -5,7 +5,7 @@
 /*
  * Original Author: Ruopeng Wang
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -25,7 +25,7 @@
 #include "ProgressCallback.h"
 #include "MyVTKUtils.h"
 #include <QTimer>
-
+#include <QDebug>
 
 
 #include "utils.h"
@@ -33,7 +33,7 @@
 
 VolumeFilter::VolumeFilter( LayerMRI* input, LayerMRI* output, QObject* parent ) :
   QObject( parent ),
-  m_nKernelSize( 3 )
+  m_nKernelSize( 3 ), m_bResetWindowLevel(false)
 {
   SetInputOutputVolumes( input, output );
   m_timerProgress = new QTimer(this);
@@ -94,15 +94,16 @@ bool VolumeFilter::Update()
   {
     m_volumeOutput->SetModified();
     m_volumeOutput->SendActorUpdated();
+    if (m_bResetWindowLevel)
+      m_volumeOutput->ResetWindowLevel();
     return true;
   }
   else
   {
+    qWarning() << "Failed to execute filter";
     return false;
   }
 }
-
-#include <QDebug>
 
 MRI* VolumeFilter::CreateMRIFromVolume( LayerMRI* layer )
 {

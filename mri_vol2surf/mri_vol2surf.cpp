@@ -25,7 +25,7 @@
 /*
  * Original Author: Doug Greve
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -1094,9 +1094,9 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = 1;
     } 
     else if (!strcmp(option, "--profile")) {
-      if(nargc < 6){
-	printf("ERROR: --profile requires 6 args\n");
-	printf("USAGE: --profile surf vol dist delta sigma output\n");
+      if(nargc < 7){
+	printf("ERROR: --profile requires 7 args\n");
+	printf("USAGE: --profile surf vol dist delta sigma interp output\n");
 	exit(1);
       }
       MRIS *surf  = MRISread(pargv[0]);
@@ -1107,12 +1107,19 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[2],"%lf",&dist);
       sscanf(pargv[3],"%lf",&delta);
       sscanf(pargv[4],"%lf",&sigma);
+      int interpcode = MRIinterpCode(pargv[5]);
+      if(interpcode < 0) {
+	printf("Interp string %s not recog, use nearest, trilinear, tli, sinc, or cubic0\n",pargv[5]);
+	exit(1);
+      }
+      if(strcmp(pargv[5],"cubic")==0) interpcode = SAMPLE_CUBIC; // bug in MRIinterpCode?
       if(delta <= 0) delta = mri->xsize/2.0;
-      printf("dist %g, delta=%g, sigma=%g\n",dist,delta,sigma);
-      MRI *mri2 = MRISsampleMRINorm(surf, mri, -dist, +dist, delta, sigma, NULL);
+      printf("dist %g, delta=%g, sigma=%g, interp %s %d\n",dist,delta,sigma,pargv[5],interpcode);
+      MRI *mri2 = MRISsampleProfile(surf, mri, -dist, +dist, delta, sigma, interpcode, NULL);
       if(mri2==NULL) exit(1);
-      MRIwrite(mri2,pargv[5]);
-      printf("freeview -f %s:overlay=%s\n",pargv[0],pargv[5]);
+      int err = MRIwrite(mri2,pargv[6]);
+      if(err) exit(err);
+      printf("freeview -f %s:overlay=%s\n",pargv[0],pargv[6]);
       printf("mri_vol2surf --profile done\n");
       exit(0);
     }
@@ -1292,7 +1299,7 @@ static void print_usage(void) {
   printf("   --srcsynth-index : synthesize source volume with volume index no\n");
   printf("   --seedfile fname : save synth seed to fname\n");
   printf("   --sd SUBJECTS_DIR \n");
-  printf("   --profile surf vol dist delta sigma output\n");
+  printf("   --profile surf vol dist delta sigma interpname output\n");
   printf("     Computes intensity profile from -dist:delta:+dist\n");
   printf("     If delta is <= 0, then xsize/2 is used\n");
   printf("     If sigma >= 0, then the gradient is estimated with smoothing parameter sigma\n");
@@ -1767,6 +1774,7 @@ MRI *MRIvol2surf(MRI *SrcVol, MATRIX *Rtk, MRI_SURFACE *TrgSurf,
   TrgVol = MRIallocSequence(TrgSurf->nvertices,1,1,MRI_FLOAT,SrcVol->nframes);
   if (TrgVol == NULL) return(NULL);
   MRIcopyHeader(SrcVol,TrgVol);
+  MRIcopyPulseParameters(SrcVol,TrgVol);
 
   /* Zero the source hit volume */
   if(SrcHitVol != NULL){

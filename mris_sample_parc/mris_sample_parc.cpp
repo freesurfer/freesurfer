@@ -5,7 +5,7 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -127,10 +127,14 @@ main(int argc, char *argv[]) {
     strcpy(sdir, cp) ;
   }
 
-  if (parc_name[0] == '/')  // full path specified
+  if (parc_name[0] == '/')  { // full path specified
     strcpy(fname, parc_name) ;
-  else
-    sprintf(fname, "%s/%s/mri/%s", sdir, subject_name, parc_name) ;
+  } else {
+    int req =snprintf(fname, STRLEN, "%s/%s/mri/%s", sdir, subject_name, parc_name) ;
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
+  }
   printf("reading parcellation volume from %s...\n", fname) ;
   mri_parc = MRIread(fname) ;
   if (!mri_parc)
@@ -162,7 +166,10 @@ main(int argc, char *argv[]) {
   for (i = 0 ; i < ntrans ; i++) {
     MRIreplaceValues(mri_parc, mri_parc, trans_in[i], trans_out[i]) ;
   }
-  sprintf(fname, "%s/%s/surf/%s.%s", sdir, subject_name, hemi, surf_name) ;
+  int req = snprintf(fname, STRLEN, "%s/%s/surf/%s.%s", sdir, subject_name, hemi, surf_name) ;
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   printf("reading input surface %s...\n", fname) ;
   mris = MRISread(fname) ;
   if (!mris)

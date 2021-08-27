@@ -63,8 +63,8 @@ int main(int argc, char *argv[]);
 
 const char *Progname = "dmri_forrest";
 
-std::string testDir, trainListFile, maskFile, asegFile, orientFile;
-vector<char *> tractFileList;
+string testDir, trainListFile, maskFile, asegFile, orientFile;
+vector<string> tractFileList;
 
 struct utsname uts;
 char *cmdline, cwd[2000];
@@ -101,7 +101,7 @@ int main(int argc, char **argv) {
   cputimer.reset();
 
   cout << "Reading test subject data..." << endl;
-  myforrest.ReadTestSubject(testDir.c_str(), maskFile.c_str(), asegFile.c_str(), orientFile.c_str());
+  myforrest.ReadTestSubject(testDir, maskFile, asegFile, orientFile);
 
   // Get volume dimensions from test subject
   nx = myforrest.GetNx();
@@ -109,7 +109,7 @@ int main(int argc, char **argv) {
   nz = myforrest.GetNz();
 
   cout << "Reading training subject data..." << endl;
-  myforrest.ReadTrainingSubjects(trainListFile.c_str(), maskFile.c_str(), asegFile.c_str(), orientFile.c_str(),
+  myforrest.ReadTrainingSubjects(trainListFile, maskFile, asegFile, orientFile,
                                  tractFileList);
 
   // Get total number of training samples
@@ -348,20 +348,18 @@ static void dump_options() {
 
   cout << "Location of streamline files relative to subject directory:";
   
-  for (vector<char *>::const_iterator istr = tractFileList.begin();
+  for (vector<string>::const_iterator istr = tractFileList.begin();
                                      istr < tractFileList.end(); istr++)
     cout << " " << *istr;
   cout << endl;
 
-  if (!asegFile.empty()) {
+  if (!asegFile.empty())
     cout << "Location of aparc+aseg's relative to subject directory: "
          << asegFile << endl;
-  }
 
-  if (!orientFile.empty()) {
+  if (!orientFile.empty())
     cout << "Location of diffusion orientations relative to subject directory: "
          << orientFile << endl;
-  }
 
   return;
 }

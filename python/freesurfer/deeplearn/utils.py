@@ -703,7 +703,7 @@ def histo_norm_intensities(vol,nbins=100, target_range=[0.0, 1.0], anchors=[0.1,
 
 
   
-def pprint(A):
+def mat_print(A):
     if A.ndim==1:
         print(A)
     else:
@@ -728,3 +728,21 @@ def set_trainable(model, trainable):
             set_trainable(l, trainable)
         l.trainable = trainable
     
+
+def rebase_labels(labels):
+    '''Rebase labels and return lookup table (LUT) to convert to new labels in
+    interval [0, N[ as: LUT[label_map]. Be sure to pass all possible labels.'''
+    labels = np.unique(labels) # Sorted.
+    assert np.issubdtype(labels.dtype, np.integer), 'non-integer data'
+    lab_to_ind = np.zeros(np.max(labels) + 1, dtype='int_')
+    for i, lab in enumerate(labels):
+        lab_to_ind[ lab ] = i
+    ind_to_lab = labels
+    return lab_to_ind, ind_to_lab
+
+def np_one_hot(targets, nb_classes):
+    res = np.eye(nb_classes)[np.array(targets.astype(np.int)).reshape(-1)]
+    return res.reshape(list(targets.shape)+[nb_classes])
+
+
+

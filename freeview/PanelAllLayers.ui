@@ -121,6 +121,7 @@
           <widget class="PanelConnectomeMatrix" name="pageCMAT"/>
           <widget class="PanelTrack" name="pageTrack"/>
           <widget class="PanelFCD" name="pageFCD"/>
+          <widget class="PanelODF" name="pageODF"/>
          </widget>
         </item>
         <item>
@@ -188,6 +189,12 @@
    <class>PanelFCD</class>
    <extends>QWidget</extends>
    <header>PanelFCD.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>PanelODF</class>
+   <extends>QWidget</extends>
+   <header>PanelODF.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

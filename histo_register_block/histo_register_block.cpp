@@ -1,6 +1,6 @@
 /*
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -439,10 +439,15 @@ compute_optimal_xform(MRI *mri_src, MRI *mri_dst, MRI *mri_seg, DENSITY **pdfs, 
     mri_dst_pyramid[level] = MRIreduce2D(mri_dst_pyramid[level-1], NULL) ;
   }
 
-  sprintf(fname, "%s_target", base) ;
+  int req = snprintf(fname, STRLEN, "%s_target", base) ;
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   mriWriteImageView(mri_dst, fname, RGB_SIZE, MRI_CORONAL, 0, mri_dst) ;
   for (level = nlevels-1 ; level >= 0 ; level--) {
-    align_pyramid_level(mri_src_pyramid[level], mri_dst_pyramid[level], mri_seg_pyramid[level], xform, pdf, level, mri_src,
+    align_pyramid_level(mri_src_pyramid[level], 
+			mri_dst_pyramid[level], 
+			mri_seg_pyramid[level], xform, pdf, level, mri_src,
                         cost_type, skip);
   }
 
@@ -767,10 +772,16 @@ write_snapshot(MRI *mri, MRI *mri1, MRI *mri2, MATRIX *m, char *base, int n, int
   mri = MRIresampleFill(mri, mri2, SAMPLE_NEAREST, 255) ;
   mri_xformed = mri_apply_slice_xform(mri, NULL, m, 0) ;
 
-  sprintf(fname, "%s%3.3d", base, n) ;
+  int req = snprintf(fname, STRLEN, "%s%3.3d", base, n) ;
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   printf("writing snapshot to %s...\n", fname) ;
   mriWriteImageView(mri_xformed, fname, RGB_SIZE, MRI_CORONAL, -1, mri2) ;
-  sprintf(fname, "%s%3.3d.mgz", base, n) ;
+  req = snprintf(fname, STRLEN, "%s%3.3d.mgz", base, n) ;
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   MRIwrite(mri_xformed, fname) ;
   MRIfree(&mri_xformed) ;
 
@@ -778,14 +789,20 @@ write_snapshot(MRI *mri, MRI *mri1, MRI *mri2, MATRIX *m, char *base, int n, int
     MATRIX *m_inv ;
 
     mri_ll = DensityLikelihoodImage(mri1, mri2, NULL, m, pdf, mri_seg, 0) ;
-    sprintf(fname, "%s_ll_%3.3d.mgz", base, n) ;
+    int req = snprintf(fname, STRLEN, "%s_ll_%3.3d.mgz", base, n) ;
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     printf("writing density map to %s...\n", fname) ;
     MRIwrite(mri_ll, fname) ;
     MRIfree(&mri_ll) ;
 
     m_inv = MatrixInverse(m, NULL) ;
     mri_ll = DensityLikelihoodImage(mri2, mri1, NULL, m_inv, pdf, mri_seg, 1) ;
-    sprintf(fname, "%s_ll_src_%3.3d.mgz", base, n) ;
+    req = snprintf(fname, STRLEN, "%s_ll_src_%3.3d.mgz", base, n) ;
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     printf("writing density map to %s...\n", fname) ;
     MRIwrite(mri_ll, fname) ;
     MRIfree(&mri_ll) ;

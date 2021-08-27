@@ -1,0 +1,88 @@
+#!/usr/bin/env python
+
+import os
+import numpy as np
+import freesurfer as fs
+import warnings
+
+
+desc = '''
+This program strips skull and other outer non-brain tissue from
+an image. The conservativeness of the masking can be fine-tuned
+using the --border flag.
+'''
+
+# parse commandline args
+parser = fs.utils.ArgumentParser(description=desc)
+parser.add_argument('-i', '--input', required=True, help='Input image filename.')
+parser.add_argument('-o', '--output', required=True, help='Masked output image filename.')
+parser.add_argument('-m', '--mask', help='Output mask filename.')
+parser.add_argument('-b', '--border', default=1, type=int, help='Mask border threshold. Default is 1.')
+parser.add_argument('--model', help='Alternative model file.')
+parser.add_argument('--uthresh', type=float, help='Intensity threshold to erase from input image.')
+parser.add_argument('--norm', help='Save the conformed, normalized input data for debugging.')
+parser.add_argument('-v', '--verbose', action='store_true', help='Verbose output for debugging.')
+parser.add_argument('-g', '--gpu', help='GPU ID. CPU is used by default.')
+parser.add_argument('--remove_neck', default=None, type=int,
+                    help='remove bottom part of 2nd axis from listed locations to end')
+args = parser.parse_args()
+
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '0' if args.verbose else '3'
+
+# defer slow tensorflow imports for faster argument parsing
+import neurite as ne
+import tensorflow as tf
+
+# set verbosity
+if not args.verbose:
+    warnings.filterwarnings('ignore')
+    tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
+
+# load input volume
+in_img = fs.Volume.read(args.input)
+
+# threshold input
+if args.uthresh is not None:
+    in_img.data[in_img.data > args.uthresh] = 0
+
+if args.remove_neck is not None:
+    print(f'removing neck from {args.remove_neck} to bottom of image')
+    in_img.data[:, args.remove_neck:, :] = 0   # remove some of neck
+
+# conform image and normalize
+conf_img = in_img.reslice(1.0).fit_to_shape((256, 256, 256))
+in_data = conf_img.data.astype('float32')
+
+in_data -= in_data.min()
+in_data = np.clip(in_data / np.percentile(in_data, 97), 0, 1)
+
+# save normalized input data
+if args.norm:
+    conf_img.copy(in_data).write(args.norm)
+
+# configure model file
+if args.model is not None:
+    model_file = args.model
+else:
+    fshome = fs.fshome()
+    if fshome is None:
+        fs.fatal('FREESURFER_HOME must be configured to find model files.')
+    model_file = os.path.join(fshome, 'models', 'synthstrip.dtrans.gen2.00.mse.h5')
+
+# load model and predict
+device, ngpus = ne.tf.utils.setup_device(args.gpu)
+with tf.device(device):
+    model = ne.models.SynthStrip.load(model_file).get_strip_model()
+    pred = model.predict(in_data[np.newaxis, ..., np.newaxis]).squeeze()
+
+# unconform the predicted mask
+mask = conf_img.copy(pred).resample_like(in_img)
+
+# save mask
+if args.mask:
+    mask.write(args.mask)
+
+# mask the input image
+masked_img = in_img.copy()
+masked_img.data[mask.data >= args.border] = 0
+masked_img.write(args.output)

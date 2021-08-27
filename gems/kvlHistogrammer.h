@@ -29,6 +29,7 @@ public :
   typedef itk::Image< float, 3 >  ImageType;
   typedef itk::Image< int, 3 >  BinnedImageType;
   typedef std::vector< std::vector< double > >  HistogramType;
+  typedef std::vector< std::vector< ThreadAccumDataType > >  HistogramThreadAccumType;
   typedef std::vector< double >  ConditionalIntensityDistributionType;
   
 
@@ -120,8 +121,8 @@ private:
   double  m_MinLogLikelihood;
 
    //
-  std::vector< HistogramType >  m_ThreadSpecificHistograms;
-  std::vector< double >  m_ThreadSpecificMinLogLikelihoods;
+  std::vector< HistogramThreadAccumType >  m_ThreadSpecificHistograms;
+  std::vector< ThreadAccumDataType >  m_ThreadSpecificMinLogLikelihoods;
 
 };
 

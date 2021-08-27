@@ -1,7 +1,7 @@
 /*
  * Original Author: Ruopeng Wang
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -39,12 +39,15 @@ protected:
 protected slots:
   void OnSliderOpacity(int);
   void OnLineEditOpacity(const QString&);
+  void OnSliderScalarThreshold(int);
+  void OnLineEditScalarThreshold(const QString&);
 
 private:
   Ui::PanelTrack *ui;
 
   QList<QWidget*> m_widgetlistDirectionalColor;
   QList<QWidget*> m_widgetlistSolidColor;
+  QList<QWidget*> m_widgetlistScalarColor;
 };
 
 #endif // PANELTRACK_H

@@ -5,7 +5,7 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -102,25 +102,37 @@ main(int argc, char *argv[]) {
   for (i = 0 ; i < nsubjects ; i++)
   {
     subject = argv[i+3] ;
-    sprintf(fname, "%s/%s/label/lh.%s.label", sdir, subject, true_label_name) ;
+    int req = snprintf(fname, STRLEN, "%s/%s/label/lh.%s.label", sdir, subject, true_label_name) ;
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     if (FileExists(fname) == 0)
     {
-      sprintf(fname, "%s/%s/label/rh.%s.label", sdir, subject, true_label_name) ;
-    if (FileExists(fname) == 0)
-      ErrorExit(ERROR_NOFILE, "%s: subject %s has no training label for either hemisphere", Progname, subject) ;
+      int req = snprintf(fname, STRLEN, "%s/%s/label/rh.%s.label", sdir, subject, true_label_name) ;
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
+      if (FileExists(fname) == 0)
+	ErrorExit(ERROR_NOFILE, "%s: subject %s has no training label for either hemisphere", Progname, subject) ;
       hemi = "rh" ;
-    }
-    else
+    } else {
       hemi = "lh" ;
+    }
     printf("processing subject %s, hemi %s: %d of %d\n", subject, hemi,i+1, nsubjects) ;
     labels[i] = LabelRead(NULL, fname) ;
     if (labels[i] == NULL)
       ErrorExit(ERROR_NOFILE, "%s: could not load label from %s", Progname, fname) ;
-    sprintf(fname, "%s/%s/surf/%s.white", sdir, subject, hemi) ;
+    req = snprintf(fname, STRLEN, "%s/%s/surf/%s.white", sdir, subject, hemi) ;
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     mris[i] = MRISread(fname) ;
     if (mris[i] == NULL)
       ErrorExit(ERROR_NOFILE, "%s: could not load surface from %s", Progname, fname) ;
-    sprintf(fname, "%s/%s/surf/%s.%s", sdir, subject, hemi, segmentation_name) ;
+    req = snprintf(fname, STRLEN, "%s/%s/surf/%s.%s", sdir, subject, hemi, segmentation_name) ;
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     mri_overlays[i] = MRIread(fname) ;
     if (mri_overlays[i] == NULL)
       ErrorExit(ERROR_NOFILE, "%s: could not load overlay from %s", Progname, fname) ;

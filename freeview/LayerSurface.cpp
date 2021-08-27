@@ -5,7 +5,7 @@
 /*
  * Original Author: Ruopeng Wang
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -69,6 +69,7 @@
 #include "LayerPropertyROI.h"
 #include "SurfacePath.h"
 #include <QSet>
+#include "vtkBoundingBox.h"
 
 LayerSurface::LayerSurface( LayerMRI* ref, QObject* parent ) : LayerEditable( parent ),
   m_surfaceSource( NULL ),
@@ -218,6 +219,7 @@ bool LayerSurface::LoadSurfaceFromFile(bool bIgnoreVG)
 
   m_surfaceSource = new FSSurface( m_volumeRef ? m_volumeRef->GetSourceVolume() : NULL );
   m_surfaceSource->SetIgnoreVolumeGeometry(bIgnoreVG);
+  setProperty("IgnoreVG", bIgnoreVG);
   if ( !m_surfaceSource->MRISRead( m_sFilename,
                                    m_sVectorFilename,
                                    m_sPatchFilename,
@@ -409,7 +411,7 @@ bool LayerSurface::LoadCurvatureFromFile( const QString& filename )
   }
 
   GetProperty()->RebuildCurvatureLUT();
-  UpdateOverlay(false);
+  UpdateColorMap();
   emit Modified();
   emit SurfaceCurvatureLoaded();
   emit ActorUpdated();
@@ -689,24 +691,30 @@ void LayerSurface::InitializeActors()
     return;
   }
 
+  vtkSmartPointer<vtkTransformPolyDataFilter> tf = vtkSmartPointer<vtkTransformPolyDataFilter>::New();
+  tf->SetTransform( m_transform );
   // main surface actor
   vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
 #if VTK_MAJOR_VERSION > 5
-  mapper->SetInputData( m_surfaceSource->GetPolyData() );
+  tf->SetInputData( m_surfaceSource->GetPolyData() );
 #else
-  mapper->SetInput( m_surfaceSource->GetPolyData() );
+  tf->SetInput( m_surfaceSource->GetPolyData() );
 #endif
+  mapper->SetInputConnection(tf->GetOutputPort());
   m_mainActor->SetMapper( mapper );
   mapper->Update();
 
   // vector actor
+  tf = vtkSmartPointer<vtkTransformPolyDataFilter>::New();
+  tf->SetTransform( m_transform );
   mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
   vtkSmartPointer<vtkTubeFilter> tube = vtkSmartPointer<vtkTubeFilter>::New();
 #if VTK_MAJOR_VERSION > 5
-  tube->SetInputData(m_surfaceSource->GetVectorPolyData());
+  tf->SetInputData(m_surfaceSource->GetVectorPolyData());
 #else
-  tube->SetInput(m_surfaceSource->GetVectorPolyData());
+  tf->SetInput(m_surfaceSource->GetVectorPolyData());
 #endif
+  tube->SetInputConnection(tf->GetOutputPort());
   tube->SetNumberOfSides(8);
   tube->SetRadius(0.04);
   tube->CappingOn();
@@ -727,20 +735,26 @@ void LayerSurface::InitializeActors()
 
   // vertex actor
   mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+  tf = vtkSmartPointer<vtkTransformPolyDataFilter>::New();
+  tf->SetTransform( m_transform );
 #if VTK_MAJOR_VERSION > 5
-  mapper->SetInputData(  m_surfaceSource->GetVertexPolyData() );
+  tf->SetInputData(  m_surfaceSource->GetVertexPolyData() );
 #else
-  mapper->SetInput(  m_surfaceSource->GetVertexPolyData() );
+  tf->SetInput(  m_surfaceSource->GetVertexPolyData() );
 #endif
+  mapper->SetInputConnection(tf->GetOutputPort());
   m_vertexActor->SetMapper( mapper );
 
   // wireframe actor
   mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+  tf = vtkSmartPointer<vtkTransformPolyDataFilter>::New();
+  tf->SetTransform( m_transform );
 #if VTK_MAJOR_VERSION > 5
-  mapper->SetInputData(  m_surfaceSource->GetWireframePolyData() );
+  tf->SetInputData(  m_surfaceSource->GetWireframePolyData() );
 #else
-  mapper->SetInput(  m_surfaceSource->GetWireframePolyData() );
+  tf->SetInput(  m_surfaceSource->GetWireframePolyData() );
 #endif
+  mapper->SetInputConnection(tf->GetOutputPort());
   m_wireframeActor->SetMapper( mapper );
   mapper->Update();
 
@@ -761,11 +775,14 @@ void LayerSurface::InitializeActors()
     m_box[i] = vtkSmartPointer<vtkBox>::New();
     m_box[i]->SetBounds(bounds);
     vtkSmartPointer<vtkExtractPolyDataGeometry> extract = vtkSmartPointer<vtkExtractPolyDataGeometry>::New();
+    tf = vtkSmartPointer<vtkTransformPolyDataFilter>::New();
+    tf->SetTransform( m_transform );
 #if VTK_MAJOR_VERSION > 5
-    extract->SetInputData(m_surfaceSource->GetPolyData());
+    tf->SetInputData(m_surfaceSource->GetPolyData());
 #else
-    extract->SetInput(m_surfaceSource->GetPolyData());
+    tf->SetInput(m_surfaceSource->GetPolyData());
 #endif
+    extract->SetInputConnection(tf->GetOutputPort());
     extract->ExtractInsideOn();
     extract->ExtractBoundaryCellsOn();
     extract->SetImplicitFunction(m_box[i]);
@@ -808,7 +825,12 @@ void LayerSurface::InitializeActors()
 
     vtkSmartPointer<vtkPolyDataMapper> mapper3 = vtkSmartPointer<vtkPolyDataMapper>::New();
     m_vertexPoly2D[i] = vtkSmartPointer<vtkPolyData>::New();
+#if VTK_MAJOR_VERSION > 5
     mapper3->SetInputData(m_vertexPoly2D[i]);
+#else
+mapper3->SetInput(m_vertexPoly2D[i]);
+#endif 
+
     mapper3->ScalarVisibilityOff();
     m_vertexActor2D[i]->SetMapper(mapper3);
     m_vertexActor2D[i]->SetProperty( m_vertexActor2D[i]->MakeProperty() );
@@ -1699,7 +1721,6 @@ void LayerSurface::UpdateOverlay(bool bAskRedraw, bool pre_cached)
           }
           memcpy(m_nColorDataCache, data, nCount*4);
         }
-
         MapLabels( data, nCount );
         for ( int i = 0; i < nCount; i++ )
         {
@@ -2967,12 +2988,9 @@ bool LayerSurface::FillUncutArea(int vno)
 
 bool LayerSurface::LoadPatch(const QString &filename)
 {
-  MRIS* mris = m_surfaceSource->GetMRIS();
-  if (::MRISreadPatchNoRemove(mris, filename.toLatin1().data() ) == 0 )
+  if (m_surfaceSource->LoadPatch(filename))
   {
-    m_surfaceSource->RipFaces();
-    m_surfaceSource->UpdateHashTable();
-    m_surfaceSource->UpdatePolyData();
+    m_sPatchFilename = filename;
     emit ActorUpdated();
     return true;
   }
@@ -3164,4 +3182,23 @@ SurfaceAnnotation* LayerSurface::CreateNewAnnotation(const QString &ct_file, con
     annot = NULL;
   }
   return annot;
+}
+
+bool LayerSurface::SaveTransform(const QString &filename)
+{
+  return m_surfaceSource->SaveTransform(m_transform, filename);
+}
+
+void LayerSurface::GetCenterOfActor(double *pt)
+{
+  vtkPolyData* poly = vtkPolyData::SafeDownCast(m_mainActor->GetMapper()->GetInput());
+  if (poly)
+  {
+    vtkPoints* pts = poly->GetPoints();
+    vtkBoundingBox bbox;
+    for (int i = 0; i < pts->GetNumberOfPoints(); i++)
+      bbox.AddPoint(pts->GetPoint(i));
+
+    bbox.GetCenter(pt);
+  }
 }

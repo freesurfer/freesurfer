@@ -6,7 +6,7 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -100,6 +100,7 @@ static int PrintVoxVolSum = 0;
 static int PrintStats = 0;
 static int PrintVoxel = 0;
 static int PrintAutoAlign = 0;
+static int PrintOrigRas2Vox = 0;
 static int PrintCmds = 0;
 static int PrintDump = 0;
 static int VoxelCRS[3];
@@ -411,6 +412,10 @@ static int parse_commandline(int argc, char **argv)
     {
       PrintAutoAlign = 1;
     }
+    else if (!strcasecmp(option, "--orig_ras2vox"))
+    {
+      PrintOrigRas2Vox = 1;
+    }
     else if (!strcasecmp(option, "--entropy"))
     {
       PrintEntropy = 1;
@@ -525,6 +530,7 @@ static void print_usage(void)
          "(0-based, all frames)\n");
   printf("   --entropy : compute and print entropy \n");
   printf("   --o file : print flagged results to file \n");
+  printf("   ----orig_ras2vox : print orig Ras2Vox matrix if present\n") ;
   printf("   --in_type type : explicitly specify file type "
          "(see mri_convert) \n");
   printf("\n");
@@ -1029,6 +1035,16 @@ static void do_file(char *fname)
       return;
     }
     MatrixPrintFmt(fpout,"%10f",mri->AutoAlign);
+    return;
+  }
+  if (PrintOrigRas2Vox)
+  {
+    if(mri->origRas2Vox == NULL)
+    {
+      fprintf(fpout,"No orig ras2vox matrix present\n");
+      return;
+    }
+    MatrixPrintFmt(fpout,"%10f",mri->origRas2Vox);
     return;
   }
   if (PrintColorLookupTable)

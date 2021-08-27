@@ -8,7 +8,7 @@
 /*
  * Original Author: Ruopeng Wang
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -160,6 +160,11 @@ public:
     return m_bShowSpline;
   }
 
+  bool GetClosedSpline()
+  {
+    return m_bClosedSpline;
+  }
+
   int  GetType()
   {
     return m_nType;
@@ -178,6 +183,7 @@ signals:
   void OpacityChanged( double );
   void RadiusChanged( double );
   void SplineRadiusChanged( double );
+  void ClosedSplineChanged(bool);
 
 public slots:
   void SetOpacity( double opacity );
@@ -200,6 +206,8 @@ public slots:
   {
     SetSplineColor( c.redF(), c.greenF(), c.blueF() );
   }
+
+  void SetClosedSpline(bool bClosed);
 
 private:
   void SetColorMapChanged ();
@@ -237,6 +245,7 @@ private:
   int     m_nType;
   bool    m_bSnapToVoxelCenter;
   bool    m_bShowSpline;
+  bool    m_bClosedSpline;
 
   int         m_nScalarType;
   LayerMRI*   m_layerScalar;

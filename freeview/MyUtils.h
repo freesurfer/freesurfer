@@ -5,7 +5,7 @@
 /*
  * Original Author: Ruopeng Wang
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -35,7 +35,7 @@ public:
   static void FloodFill( char* data, int x, int y, int dim_x, int dim_y, int fill_value, int border_value );
 
   template <class T> static double GetDistance( const T* pt1, const T* pt2 );
-  template <class T> static void GetVector( T* pt1, T* pt2, double* v_out );
+  template <class T> static void GetVector( T* pt1, T* pt2, double* v_out, bool bNormalize = true);
   template <class T> static bool Equal( T* pt1, T* p2, int n = 3 );
   template <class T> static T** AllocateMatrix(int ny, int nx);
   template <class T> static void FreeMatrix(T** p, int ny);
@@ -107,7 +107,7 @@ double MyUtils::Dot( T* v1, T* v2 )
 }
 
 template <class T>
-void MyUtils::GetVector( T* pt1_in, T* pt2_in, double* v_out )
+void MyUtils::GetVector( T* pt1_in, T* pt2_in, double* v_out, bool bNormalize )
 {
   T pt1[3], pt2[3];
   for ( int i = 0; i < 3; i++ )
@@ -124,7 +124,9 @@ void MyUtils::GetVector( T* pt1_in, T* pt2_in, double* v_out )
 
   for ( int i = 0; i < 3; i++ )
   {
-    v_out[i] = ( (double)pt2[i] - (double)pt1[i] ) / dist;
+    v_out[i] = ( (double)pt2[i] - (double)pt1[i] );
+    if (bNormalize)
+      v_out[i] /= dist;
   }
 }
 

@@ -18,7 +18,7 @@
 /*
  * Original Author: Doug Greve
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -178,6 +178,7 @@ char *InVol1File=NULL;
 char *InVol2File=NULL;
 char *subject, *hemi, *SUBJECTS_DIR;
 double pixthresh=0, resthresh=0, geothresh=0;
+int diffcountthresh = 0;
 char *DiffFile=NULL;
 int DiffAbs=0, AbsDiff=1,DiffPct=0;
 char *AvgDiffFile=NULL;
@@ -498,8 +499,13 @@ int main(int argc, char *argv[]) {
 	if(CheckPixVals) fprintf(fp,"diffcount %d\n",ndiff);
         fclose(fp);
       }
-      ExitStatus = 106;
-      if (ExitOnDiff) exit(106);
+      if(ndiff > diffcountthresh) {
+	ExitStatus = 106;
+	if (ExitOnDiff) exit(106);
+      }
+      else {
+	printf("But diff count does not exceed diff count thresh %d\n",diffcountthresh);
+      }
     }
   }
 
@@ -681,11 +687,18 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       InVol2File = pargv[0];
       nargsused = 1;
-    } else if (!strcasecmp(option, "--thresh")) {
+    } 
+    else if (!strcasecmp(option, "--thresh")) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%lf",&pixthresh);
       nargsused = 1;
-    } else if (!strcasecmp(option, "--res-thresh")) {
+    } 
+    else if (!strcasecmp(option, "--count-thresh")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%d",&diffcountthresh);
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--res-thresh")) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%lf",&resthresh);
       CheckResolution=1;
@@ -821,6 +834,7 @@ static void print_usage(void) {
   printf("   --count      : print number of differing voxels\n");
   printf("\n");
   printf("   --thresh thresh : pix diffs must be greater than this \n");
+  printf("   --count-thresh nvox : there must be at least this many voxels that are diff\n");
   printf("   --log DiffFile : store diff info in this file. \n");
   printf("   --diff DiffVol : save difference image. \n");
   printf("   --diff_label_suspicious DiffVol : differing voxels replaced\n");

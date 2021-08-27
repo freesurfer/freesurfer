@@ -1,6 +1,6 @@
 /*
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -36,7 +36,7 @@ extern int fsgdf_AllowSubjRep;
 
 #define FSGDF_NCLASSES_MAX  128
 #define FSGDF_NVARS_MAX     128
-#define FSGDF_NINPUTS_MAX  20000
+#define FSGDF_NINPUTS_MAX  40000
 
 #define FSGD_FACTOR_DISCRETE 1
 #define FSGD_FACTOR_CONTINUOUS 2
@@ -122,7 +122,7 @@ GROUPDESCRIPTOR, FSGD;
 
 FSGD   *gdfAlloc(int version);
 int     gdfFree(FSGD **ppgd);
-FSGD   *gdfRead(const char *gdfname, int LoadData);
+FSGD   *gdfRead(const char *gdfname, const char *gd2mtx_method, int LoadData);
 int     gdfWrite(const char *gdfname, FSGD *gd);
 MRI    *gdfReadDataInfo(const char *gdfname);
 int     gdfPrintHeader(FILE *fp, FSGD *gd);

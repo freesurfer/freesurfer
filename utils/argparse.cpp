@@ -198,12 +198,6 @@ void ArgumentParser::parse(size_t ac, char** av)
   // name the app
   if (!argv.empty()) app_name = argv[0];
 
-  // make sure arguments were provided
-  if ((argv.size() <= 1) && (helptextsize > 0)) {
-    outputHelpXml(helptext, helptextsize);
-    exit(1);
-  }
-
   // first do a quick and dirty sweep of the options, making sure the minimum
   // amount of arguments have been provided
   for (StringVector::const_iterator in = argv.begin() + 1; in < argv.end(); ++in) {
@@ -385,7 +379,7 @@ void ArgumentParser::insertArgument(const ArgumentParser::Argument& arg)
   for (IndexMap::iterator it = index.begin(); it != index.end(); it++) {
     String stripped = strip(it->first);
     if (stripped == strip(arg.short_name) || stripped == strip(arg.name)) {
-      fs::fatal() << "invalid argument configuration. '" << arg.canonicalName() << "' is used twice";
+      fs::fatal() << "invalid argument configuration. Short name '" << stripped << "' of '"<< arg.canonicalName() << "' is used twice";
     }
   }
 

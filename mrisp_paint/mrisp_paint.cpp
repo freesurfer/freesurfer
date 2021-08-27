@@ -5,7 +5,7 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -182,7 +182,10 @@ main(int argc, char *argv[])
     /* reading or generating the field */
     if (ReturnFieldName(field_no))    /* read in precomputed curvature file */
     {
-      sprintf(fname, "%s/%s/surf/%s.%s", subjects_dir,subject_name,hemi,ReturnFieldName(field_no)) ;
+      int req = snprintf(fname, STRLEN, "%s/%s/surf/%s.%s", subjects_dir,subject_name,hemi,ReturnFieldName(field_no)) ;
+      if (req >= STRLEN) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       if (MRISreadCurvatureFile(mris_var, fname) != NO_ERROR)
       {
         MRISfree(&mris_var);
@@ -191,7 +194,10 @@ main(int argc, char *argv[])
     }
     else                           /* compute curvature of surface */
     {
-      sprintf(fname, "%s/%s/surf/%s.%s", subjects_dir,subject_name,hemi,surface_names[field_no]) ;
+      int req = snprintf(fname, STRLEN, "%s/%s/surf/%s.%s", subjects_dir,subject_name,hemi,surface_names[field_no]) ;
+      if (req >= STRLEN) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       /*    if(parms->fields[n].field==0) */
       /*     sprintf(fname, "inflated") ; */
       /*    else */

@@ -11,6 +11,7 @@ namespace Ui {
 class Layer;
 class QTreeWidgetItem;
 class PanelLayer;
+class LayerMRI;
 
 class PanelAllLayers : public QScrollArea
 {
@@ -23,6 +24,8 @@ public:
   QString GetCurrentLayerType();
 
   QList<Layer*> GetSelectedLayers(const QString& layerType);
+
+  QList<LayerMRI*> GetLinkedVolumes();
 
 signals:
   void LayerTypeTriggered(const QString& type);

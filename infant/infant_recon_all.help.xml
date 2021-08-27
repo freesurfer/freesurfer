@@ -48,6 +48,12 @@
       <argument>--masked masked_input_image</argument>
       <explanation>This flag indicates that there exists a skullstripped version of the input image and that should be used as the input. This means that the skull-stripping step is skipped during the processing.</explanation>
 
+      <argument>--segfile segmentation_image</argument>
+      <explanation>This flag indicates that there exists a volumetric segmentation file already from another source. Unless --forceskullstrip is set, a masked inout image is expected along and matching this input. </explanation>
+
+      <argument>--forceskullstrip</argument>
+      <explanation>This flag indicates that skullstripping should still be carried out and a masked input image should not be expected along with the input volumetric segmentation. </explanation>
+
       <argument>--force</argument>
       <explanation>This flag will force all the processing to be redone even if it had been run (partially) before. All previously computed files will be deleted at the beginning of the recon process.</explanation>
 
@@ -64,7 +70,7 @@
       <explanation>Use the powers of GPU for the skullstripping computations.</explanation>
       
       <argument>--ccseg</argument>
-      <explanation>If this option is set, compute the corpus callosum segmentation step.</explanation>
+      <explanation>If this option is set, compute the corpus callosum segmentation labels.</explanation>
       
       <argument>--usedramms</argument>
       <explanation>Use DRAMMS as a non-linear registration tool for aligning training subjects to the test one. (DRAMMS will need to be independently installed by the user and the config file changed accordingly.) The default option is niftyreg.</explanation>
@@ -73,7 +79,7 @@
       <explanation>This option specifies the specific GPU id to be used for the computations. By default it iset to be 1.</explanation>
       
       <argument>--stats</argument>
-      <explanation>If this flag is set, the aseg stats values will be computed as part of the recon process.</explanation>
+      <explanation>If this flag is set, the aseg stats values will be computed as part of the recon process. This is set to be 1 by default.</explanation>
       
       <argument>--intnormFSL</argument>
       <explanation>FSL will be used for intensity normalization instead of the default MNI tool.</explanation>

@@ -1,6 +1,0 @@
-numpy==1.16.*
-scipy
-pandas
-matplotlib
-transforms3d
-scikit-image==0.16.2

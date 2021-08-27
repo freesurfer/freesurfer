@@ -8,7 +8,7 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -122,7 +122,6 @@ main(int argc, char *argv[])
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
 
-  memset(&parms, 0, sizeof(parms)) ;
   parms.dt = .05 ;
   parms.projection = PROJECT_ELLIPSOID ;
   parms.tol = .5 /*1e-1*/ ;
@@ -312,7 +311,6 @@ main(int argc, char *argv[])
     INTEGRATION_PARMS inflation_parms ;
 
     MRIScenter(mris, mris) ;
-    memset(&inflation_parms, 0, sizeof(INTEGRATION_PARMS)) ;
     strcpy(inflation_parms.base_name, parms.base_name) ;
     inflation_parms.write_iterations = parms.write_iterations ;
     inflation_parms.niterations = inflate_iterations ;

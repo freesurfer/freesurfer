@@ -1454,7 +1454,8 @@
    </property>
    <property name="icon">
     <iconset resource="freeview.qrc">
-     <normaloff>:/resource/icons/volume_lock.png</normaloff>:/resource/icons/volume_lock.png</iconset>
+     <normaloff>:/resource/icons/volume_unlock.png</normaloff>
+     <normalon>:/resource/icons/volume_lock.png</normalon>:/resource/icons/volume_unlock.png</iconset>
    </property>
    <property name="text">
     <string>Lock Layer</string>

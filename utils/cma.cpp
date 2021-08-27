@@ -7,7 +7,7 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -915,6 +915,45 @@ int MRIasegContraLatLabel(int id)
   case 266: // Right-Eyeball
     id2 = 265; 
     break;
+
+    // These are limbic labels for Jean's FSM labeling
+  case 853: // Mid Ant Commissure, unlateralized
+    id2 = 853; 
+    break;
+  case 883: // Pituitary, unlateralized
+    id2 = 883; 
+    break;
+  case 865: // Left Basal forebrain 
+    id2 = 866; 
+    break;
+  case 866:  // Right Basal forebrain 
+    id2 = 865; 
+    break;
+  case 819: // Left-Hypothal
+    id2 = 820;
+    break;
+  case 820: // Right-Hypothal
+    id2 = 819;
+    break;
+  case 821: // Left-Fornix
+    id2 = 822;
+    break;
+  case 822: // Right-Fornix
+    id2 = 821;
+    break;
+  case 843: // Left-MammilliaryBody
+    id2 = 844;
+    break;
+  case 844: // Right-MammilliaryBody
+    id2 = 843;
+    break;
+  case 869: // Left-Septal
+    id2 = 870;
+    break;
+  case 870: // Right-Septal
+    id2 = 869;
+    break;
+
   // These are unlateralized
   case 72: // 5th vent
   case Optic_Chiasm:
@@ -1873,6 +1912,136 @@ SEGSTAT *Seg2NbrNonBrain(MRI *seg, COLOR_TABLE *ctab, double threshmm)
   free(segnolist);
   if (FreeCTab) CTABfree(&ctab);
   return (segstat);
+}
+int SegDice::Ctab2SegList()
+{
+  if(ctab==NULL){
+    printf("ERROR: Ctab2SegList(): ctab is NULL\n");
+    return(1);
+  }
+  seglist.clear();
+  int n;
+  for(n=0; n < ctab->nentries; n++){
+    CTE *cte = ctab->entries[n];
+    if(cte==NULL) continue;
+    seglist.push_back(n);
+  }
+  printf("Ctab2SegList(): found %d items in the ctab\n",(int)seglist.size());
+  return(0);
+}
+
+int SegDice::ComputeDice()
+{
+  if(seglist.size()==0){
+    int err = Ctab2SegList();
+    if(err) return(err);
+  }
+
+  count1.clear();
+  count1.resize(seglist.size());
+  count2.clear();
+  count2.resize(seglist.size());
+  count12.clear();
+  count12.resize(seglist.size());
+  countFD.clear();
+  countFD.resize(seglist.size());
+  dice.clear();
+  dice.resize(seglist.size());
+  tpr.clear();
+  tpr.resize(seglist.size());
+  fdr.clear();
+  fdr.resize(seglist.size());
+
+  int c;
+  for(c=0; c < seg1->width; c++){
+    int r,s;
+    for(r=0; r < seg1->height; r++){
+      for(s=0; s < seg1->depth; s++){
+	std::vector<int>::iterator ind1, ind2;
+	int k1=0, k2=0;
+	int v1 = MRIgetVoxVal(seg1,c,r,s,0);
+	int v2 = MRIgetVoxVal(seg2,c,r,s,0);
+	ind1 = std::find(seglist.begin(), seglist.end(), v1);
+	if(ind1 != seglist.end()){
+	  k1 = std::distance(seglist.begin(), ind1);
+	  count1[k1]++;
+	}
+	ind2 = std::find(seglist.begin(), seglist.end(), v2);
+	if(ind2 != seglist.end()){
+	  k2 = std::distance(seglist.begin(), ind2);
+	  count2[k2]++;
+	}
+	if(ind1 != seglist.end() && ind2 != seglist.end() && v1==v2) count12[k1]++; 
+	if(ind2 != seglist.end() && v1 != v2) countFD[k2]++; // a False Discovery
+      }
+    }
+  }
+  c = 0;
+  for(auto it = std::begin(seglist); it != std::end(seglist); ++it) {
+    dice[c] = 2.0*count12[c]/(count1[c]+count2[c]+FLT_EPSILON);
+    tpr[c]  = count12[c]/(count1[c]+FLT_EPSILON);
+    fdr[c]  = countFD[c]/(count2[c]+FLT_EPSILON);
+    c++;
+  }
+  return(0);
+}
+
+int SegDice::PrintDiceDat(FILE *fp)
+{
+  int c = -1;
+  for(auto it = std::begin(dice); it != std::end(dice); ++it) {
+    c++;
+    if(ReportEmpty==0 && count1[c]==0 && count2[c]==0) continue;
+    std::vector<int>::iterator ind = std::find(excludelist.begin(), excludelist.end(), seglist[c]);
+    if(ind != excludelist.end()) continue;
+    fprintf(fp,"%6.5lf ",*it);
+  }
+  fprintf(fp,"\n");
+  return(0);
+}
+int SegDice::WriteDiceDat(char *fname)
+{
+  FILE *fp;
+  fp = fopen(fname,"w");
+  if(fp==NULL){
+    printf("ERROR: WriteDiceDat(): could not open %s\n",fname);
+    return(1);
+  }
+  int err = PrintDiceDat(fp);
+  fclose(fp);
+  return(err);
+}
+int SegDice::PrintDiceTable(FILE *fp)
+{
+  if(ctab==NULL){
+    printf("ERROR: PrintDiceTable(): ctab is  NULL\n");
+    return(1);
+  }
+  int c = -1;
+  for(auto it = std::begin(dice); it != std::end(dice); ++it) {
+    c++;
+    if(ReportEmpty==0 && count1[c]==0 && count2[c]==0) continue;
+    std::vector<int>::iterator ind = std::find(excludelist.begin(), excludelist.end(), seglist[c]);
+    if(ind != excludelist.end()) continue;
+    int segid = seglist[c];
+    fprintf(fp,"%4d %-30s %6d %6d %6.5lf %6.5lf %6.5lf\n",
+	    segid,ctab->entries[segid]->name,count1[c],count2[c],
+	    dice[c],tpr[c],fdr[c]);
+  }
+  fprintf(fp,"\n");
+  return(0);
+}
+int SegDice::WriteDiceTable(char *fname)
+{
+  FILE *fp;
+  fp = fopen(fname,"w");
+  if(fp==NULL){
+    printf("ERROR: WriteDiceTable(): could not open %s\n",fname);
+    return(1);
+  }
+  int err = PrintDiceTable(fp);
+  fclose(fp);
+  return(err);
 }
 
 /* eof */

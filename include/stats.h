@@ -1,6 +1,6 @@
 /*
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -176,6 +176,7 @@ int       StatVolumeExists(const char *prefix) ;
 STAT_TABLE *LoadStatTable(const char *statfile);
 STAT_TABLE *AllocStatTable(int nrows, int ncols);
 STAT_TABLE *InitStatTableFromMRI(MRI* mri_in, const char* tablefile);
+void ScaleStatTableByETIV(STAT_TABLE *table, float factor);
 int PrintStatTable(FILE *fp, STAT_TABLE *st);
 int WriteStatTable(const char *fname, STAT_TABLE *st);
 

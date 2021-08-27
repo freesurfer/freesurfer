@@ -8,7 +8,7 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -49,6 +49,7 @@ static void print_usage(void) ;
 static void print_help(void) ;
 static void print_version(void) ;
 int MRISscaleUp(MRI_SURFACE *mris) ;
+MRIS *SurfCopyCoords = NULL;
 
 const char *Progname ;
 
@@ -269,7 +270,7 @@ main(int argc, char *argv[])
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
   Gdiag |= (DIAG_SHOW | DIAG_WRITE) ;
-  memset(&parms, 0, sizeof(parms)) ;
+  // memset(&parms, 0, sizeof(parms)) ;
   parms.dt = .1 ;
   parms.projection = PROJECT_PLANE ;
   parms.tol = 0.2 ;
@@ -314,10 +315,17 @@ main(int argc, char *argv[])
   }
   else
     strcpy(hemi, "lh") ;
-  if (one_surf_flag)
-    sprintf(in_surf_fname, "%s", in_patch_fname) ;
-  else
-    sprintf(in_surf_fname, "%s/%s.%s", path, hemi, original_surf_name) ;
+  if (one_surf_flag) {
+    int req = snprintf(in_surf_fname, STRLEN, "%s", in_patch_fname) ;
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
+  } else {
+    int req = snprintf(in_surf_fname, STRLEN, "%s/%s.%s", path, hemi, original_surf_name) ;
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
+  }
 
   if (parms.base_name[0] == 0)
   {
@@ -423,6 +431,7 @@ main(int argc, char *argv[])
     MRISsetNeighborhoodSizeAndDist(mris, nbrs) ;
 #endif
   }
+  if(SurfCopyCoords) MRIScopyCoords(mris,SurfCopyCoords);
 
   if (Gdiag_no >= 0)
     printf("vno %d is %sin patch\n", Gdiag_no,
@@ -446,7 +455,10 @@ main(int argc, char *argv[])
     if (!FZERO(parms.l_unfold) || !FZERO(parms.l_expand))
     {
       static INTEGRATION_PARMS p2 ;
-      sprintf(in_surf_fname, "%s/%s.%s", path, hemi, original_surf_name) ;
+      int req = snprintf(in_surf_fname, STRLEN, "%s/%s.%s", path, hemi, original_surf_name) ;
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       if (stricmp(original_unfold_surf_name,"none") == 0)
       {
         printf("using current position of patch as initial position\n") ;
@@ -491,7 +503,10 @@ main(int argc, char *argv[])
       MRIfree(&parms.mri_dist) ;
     }
 
-    sprintf(in_surf_fname, "%s/%s.%s", path, hemi, original_surf_name) ;
+    int req = snprintf(in_surf_fname, STRLEN, "%s/%s.%s", path, hemi, original_surf_name) ;
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     if (!sphere_flag && !one_surf_flag)
       MRISreadOriginalProperties(mris, original_surf_name) ;
     if (randomly_flatten)
@@ -593,12 +608,18 @@ main(int argc, char *argv[])
       MRIsetValues(mri_overlay, 0) ;
       FileNameOnly(synth_name, fname_no_path) ;
       FileNamePath(synth_name, path) ;
-      sprintf(fname, "%s/lh.%s", path, fname_no_path) ;
+      int req = snprintf(fname, STRLEN, "%s/lh.%s", path, fname_no_path) ;
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       area_lh = LabelRead(NULL, fname) ;
       if (area_lh == NULL)
         ErrorExit(ERROR_NOFILE, "%s: could not read label from %s",
                   Progname,fname) ;
-      sprintf(fname, "%s/rh.%s", path, fname_no_path) ;
+      req = snprintf(fname, STRLEN, "%s/rh.%s", path, fname_no_path) ;
+      if( req >= STRLEN ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       area_rh = LabelRead(NULL, fname) ;
       if (area_rh == NULL)
         ErrorExit(ERROR_NOFILE, "%s: could not read label from %s",
@@ -730,6 +751,13 @@ get_option(int argc, char *argv[])
     dilate = atoi(argv[2]) ;
     nargs = 1 ;
     fprintf(stderr, "dilating cuts %d times\n", dilate) ;
+  }
+  else if (!stricmp(option, "copy-coords"))
+  {
+    SurfCopyCoords = MRISread(argv[2]);
+    if(SurfCopyCoords == NULL) exit(1);
+    nargs = 1 ;
+    fprintf(stderr, "copying coords from %s\n", argv[2]);
   }
   else if (!stricmp(option, "dist"))
   {
@@ -1003,6 +1031,9 @@ print_help(void)
   fprintf(stderr,
           " -dilate <# of dilations>\n\t"
           "specify the number of times to dilate the ripped edges to ensure a clean cut\n") ;
+  printf(" -copy-coords surf : copy xyz coords from surface before flattening\n");
+  printf("    This allows creating cuts on, eg, white surface, but flattening the inflated\n");
+  printf("    eg, mris_flatten -copy-coords lh.inflated -dilate 1 lh.white.cut lh.inflated.cut.flatten\n");
   exit(1) ;
 }
 

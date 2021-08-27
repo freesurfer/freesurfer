@@ -5,7 +5,7 @@
 /*
  * Original Author: Ruopeng Wang
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -64,6 +64,11 @@ public:
     return m_volumeInput;
   }
 
+  void SetResetWindowLevel()
+  {
+    m_bResetWindowLevel = true;
+  }
+
   virtual QString GetName() = 0;
 
 signals:
@@ -82,6 +87,7 @@ protected:
   LayerMRI*   m_volumeOutput;
   int         m_nTimerCount;
   QTimer*     m_timerProgress;
+  bool        m_bResetWindowLevel;
 };
 
 #endif

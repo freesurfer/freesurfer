@@ -1,0 +1,14 @@
+VolStat_mm3,mean,std,min,max
+Left-Nucleus-Accumbens,369.6154,124.8495
+Right-Nucleus-Accumbens,374.1538,113.3487
+Left-HypoThal-noMB,447.0513, 73.4388
+Right-HypoThal-noMB,442.7179, 74.7726
+Left-Fornix,528.3077,105.3353
+Right-Fornix,528.2308,126.2699
+Left-MammillaryBody, 48.2051, 11.4459
+Right-MammillaryBody, 49.8718, 10.4408
+Mid-AntCom,201.5641, 55.8168
+Left-Basal-Forebrain,303.4615, 71.3943
+Right-Basal-Forebrain,308.5897, 66.2482
+Left-SeptalNuc,115.1282, 27.4918
+Right-SeptalNuc,113.4872, 28.2776

@@ -6,7 +6,7 @@
 /*
  * Original Author: Anastasia Yendiki
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -47,10 +47,13 @@ class AffineReg {
     AffineReg(std::vector<float> &InToOut);
     ~AffineReg();
     bool IsEmpty();
-    void ReadXfm(const char *XfmFile, const MRI *InRefVol, 
-                                      const MRI *OutRefVol);
+    bool IsInvEmpty();
+    void ReadXfm(const std::string XfmFile, const MRI *InRefVol, 
+                                            const MRI *OutRefVol);
     void ApplyXfm(std::vector<float> &OutPoint,
                   std::vector<float>::const_iterator InPoint);
+    void ApplyXfmInv(std::vector<float> &OutPoint,
+                     std::vector<float>::const_iterator InPoint);
     void DecomposeXfm();
     void PrintScale();
     void PrintShear();
@@ -61,7 +64,7 @@ class AffineReg {
     std::vector<float>::const_iterator GetScale();
 
   private:
-    std::vector<float> mInToOut,				// [4 x 4]
+    std::vector<float> mInToOut, mOutToIn,			// [4 x 4]
                        mInVoxelSize, mOutVoxelSize,		// [3]
                        mTranslate, mRotate, mScale, mShear;	// [3]
 };
@@ -72,7 +75,7 @@ class NonlinReg {
     NonlinReg();
     ~NonlinReg();
     bool IsEmpty();
-    void ReadXfm(const char *XfmFile, MRI *OutRefVol);
+    void ReadXfm(const std::string XfmFile, MRI *RefVol);
     void ApplyXfm(std::vector<float> &OutPoint,
                   std::vector<float>::const_iterator InPoint);
     void ApplyXfmInv(std::vector<float> &OutPoint,
@@ -82,6 +85,32 @@ class NonlinReg {
     GCAM *mMorph;
 };
 #endif
+
+class StreamSet {
+  public:
+    StreamSet();
+    ~StreamSet();
+    void SetLengths(std::vector< std::vector<float> > &Streamlines);
+    void SetNumSteps(const unsigned int NumSteps);
+    unsigned int SetNumStepsAvgLength();
+    unsigned int SetNumStepsMinLength();
+    void ComputeSteps();
+    void ComputeMeanStreamline(std::vector< std::vector<float> > &Streamlines);
+    void ComputeMeanStdStreamline(std::vector< std::vector<float> >
+                                                                 &Streamlines);
+    unsigned int FindMeanNearestStreamline(std::vector< std::vector<float> >
+                                                                 &Streamlines);
+    unsigned int GetNumSteps();
+    std::vector<float>::const_iterator GetStreamlineMean();
+    std::vector<float>::const_iterator GetStreamlineStd();
+
+  private:
+    unsigned int mLengthMax, mLengthMin, mNumSteps, mMeanNearestStr;
+    float mLengthAvg;
+    std::vector<bool> mIsOut;
+    std::vector<unsigned int> mLengths;
+    std::vector<float> mSteps, mStreamlineMean, mStreamlineStd;
+};
 
 #endif
 

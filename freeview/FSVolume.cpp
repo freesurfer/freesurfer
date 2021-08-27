@@ -5,7 +5,7 @@
 /*
  * Original Author: Ruopeng Wang
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -1121,11 +1121,6 @@ bool FSVolume::MRIWrite( const QString& filename, int nSampleMethod, bool resamp
   return err == 0;
 }
 
-bool FSVolume::MRIWrite()
-{
-  return MRIWrite( m_MRI->fname );
-}
-
 // if data_type < 0, use source data type
 bool FSVolume::UpdateMRIFromImage( vtkImageData* rasImage, bool resampleToOriginal, int data_type )
 {
@@ -1167,6 +1162,7 @@ bool FSVolume::UpdateMRIFromImage( vtkImageData* rasImage, bool resampleToOrigin
   int scalar_type = rasImage->GetScalarType();
   int* dim = rasImage->GetDimensions();
   int nNumberOfFrames = rasImage->GetNumberOfScalarComponents();
+  int label_val = property("label_value").toInt();
   if ( true ) // mri->nframes > 1 )
   {
     global_progress_range[1] = nstart+(nend-nstart)*2/3;
@@ -1180,6 +1176,8 @@ bool FSVolume::UpdateMRIFromImage( vtkImageData* rasImage, bool resampleToOrigin
           {
             //            float val = rasImage->GetScalarComponentAsFloat(i, j, k, nFrame);
             float val = (float)MyVTKUtils::GetImageDataComponent(ptr, dim, nNumberOfFrames, i, j, k, nFrame, scalar_type);
+            if (label_val > 0 && val != label_val)
+              val = 0;
             switch ( mri->type )
             {
             case MRI_UCHAR:
@@ -1229,6 +1227,7 @@ bool FSVolume::UpdateMRIFromImage( vtkImageData* rasImage, bool resampleToOrigin
       exec_progress_callback(k, mri->depth, 0, 1);
     }
   }
+  setProperty("label_value", 0);
 
   // create m_MRItemp for writing or rotation
   if ( m_MRITemp )

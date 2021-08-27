@@ -9,7 +9,7 @@
 /*
  * Original Authors: Kevin Teich and Nick Schmansky
  *
- * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -348,6 +348,12 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum)
   if (NULL == image) {
     fprintf(stderr, "mrisReadGIFTIfile: gifti_read_image() returned NULL\n");
     return NULL;
+  }
+
+  // make sure version is recoded before validation
+  if (!strcmp(image->version, "1")) {
+    free(image->version);
+    image->version = strcpyalloc(GIFTI_XML_VERSION);
   }
 
   /*
@@ -1102,6 +1108,12 @@ MRI *MRISreadGiftiAsMRI(const char *fname, int read_volume)
     return NULL;
   }
 
+  // make sure version is recoded before validation
+  if (!strcmp(image->version, "1")) {
+    free(image->version);
+    image->version = strcpyalloc(GIFTI_XML_VERSION);
+  }
+
   /* check for compliance */
   int valid = gifti_valid_gifti_image(image, 1);
   if (valid == 0) {
@@ -1851,6 +1863,12 @@ int MRISwriteGIFTI(MRIS *mris, int intent_code, const char *out_fname, const cha
     }
   }  // end of if NIFTI_INTENT_<stats>
 
+  // make sure version is recoded before validation
+  if (!strcmp(image->version, "1")) {
+    free(image->version);
+    image->version = strcpyalloc(GIFTI_XML_VERSION);
+  }
+
   /* check for compliance */
   int valid = gifti_valid_gifti_image(image, 1);
   if (valid == 0) {
@@ -1955,6 +1973,12 @@ int mriWriteGifti(MRI *mri, const char *out_fname)
     }
 
     // next frame
+  }
+
+  // make sure version is recoded before validation
+  if (!strcmp(image->version, "1")) {
+    free(image->version);
+    image->version = strcpyalloc(GIFTI_XML_VERSION);
   }
 
   /* check for compliance */

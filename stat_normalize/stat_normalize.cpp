@@ -1,6 +1,6 @@
 /*
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -94,11 +94,6 @@ main(int argc, char *argv[]) {
 
   out_prefix = argv[argc-1] ;
 
-#if 0
-  if (StatVolumeExists(out_prefix))
-    sv_avg = StatReadVolume(out_prefix) ;
-#endif
-
   for (ino = 1 ; ino < argc-1 ; ino++) {
     /* for each path/prefix specified, go through all slices */
     in_prefix = argv[ino] ;
@@ -120,8 +115,11 @@ main(int argc, char *argv[]) {
       break ;
     case SPHERICAL_COORDS:
     case ELLIPSOID_COORDS:
-      sprintf(fname, "%s/%s/surf/%s.orig",
-              subjects_dir, sv->reg->name, hemi) ;
+      int req = snprintf(fname, 100, "%s/%s/surf/%s.orig",
+			 subjects_dir, sv->reg->name, hemi) ;   
+      if( req >= 100 ) {
+	std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       fprintf(stderr, "reading surface %s\n", fname) ;
       mris = MRISread(fname) ;
       if (!mris)
@@ -138,13 +136,6 @@ main(int argc, char *argv[]) {
       MRISfree(&mris) ;
       break ;
     }
-
-#if 0
-    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
-      sprintf(out_fname, "avg%d.mnc", ino-1) ;
-      MRIwrite(sv->mri_avgs[0], out_fname) ;
-    }
-#endif
 
     StatFree(&sv) ;
   }

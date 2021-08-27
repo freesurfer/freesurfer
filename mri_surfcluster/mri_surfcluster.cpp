@@ -5,7 +5,7 @@
 /*
  * Original Author: Douglas N. Greve
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -154,6 +154,7 @@ int AdjustThreshWhenOneTail=1;
 char *voxwisesigfile=NULL;
 MRI  *voxwisesig;
 char *maxvoxwisesigfile=NULL;
+char *maxcwpvalfile=NULL; // save p-value of largest cluster
 int ReallyUseAverage7 = 0;
 double fwhm = -1;
 double fdr = -1;
@@ -165,6 +166,7 @@ int ReportCentroid = 0;
 int sig2pmax = 0; // convert max value from -log10(p) to p
 
 MRI *fwhmmap=NULL; // map of vertex-wise FWHM for non-stationary correction
+char *maxareafile=NULL;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -494,6 +496,14 @@ int main(int argc, char **argv) {
   free(scs);
   scs = scs2;
 
+  if(maxcwpvalfile != NULL){
+    // save sig of largest cluster
+    fp = fopen(maxcwpvalfile,"w");
+    if(NClusters > 1) fprintf(fp,"%10.5lf\n",scs->pval_clusterwise);
+    else              fprintf(fp,"1.0\n");
+    fclose(fp);
+  }
+
   /* Remove clusters that do not meet the minimum clusterwise pvalue */
   if(cwpvalthresh > 0 && (fwhm >0 || csd != NULL) ){
     printf("Pruning by CW P-Value %g\n",cwpvalthresh);
@@ -615,6 +625,12 @@ int main(int argc, char **argv) {
       fprintf(fp,"\n");
 
     }
+    fclose(fp);
+  }
+
+  if(maxareafile){
+    fp = fopen(maxareafile,"w");
+    fprintf(fp,"%10.4f\n",scs[0].area); // assuming 0 is max
     fclose(fp);
   }
 
@@ -894,11 +910,18 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&nth);
       nargsused = 1;
-    } else if (!strcmp(option, "--sum")) {
+    } 
+    else if (!strcmp(option, "--sum")) {
       if (nargc < 1) argnerr(option,1);
       sumfile = pargv[0];
       nargsused = 1;
-    } else if (!strcmp(option, "--pointset")) {
+    } 
+    else if (!strcmp(option, "--maxareafile")) {
+      if (nargc < 1) argnerr(option,1);
+      maxareafile = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcmp(option, "--pointset")) {
       if (nargc < 1) argnerr(option,1);
       pointsetfile = pargv[0];
       nargsused = 1;
@@ -947,6 +970,11 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcmp(option, "--vwsigmax")) {
       if(nargc < 1) argnerr(option,1);
       maxvoxwisesigfile = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcmp(option, "--maxcwpval")) {
+      if(nargc < 1) argnerr(option,1);
+      maxcwpvalfile = pargv[0];
       nargsused = 1;
     } 
     else if (!strcmp(option, "--olab")) {
@@ -1031,6 +1059,7 @@ static void print_usage(void) {
   printf("   --csd csdfile <--csd csdfile ...>\n");
   printf("   --vwsig vwsig : map of corrected voxel-wise significances\n");
   printf("   --cwsig cwsig : map of cluster-wise significances\n");
+  printf("   --maxcwpval maxcwpvalfile.txt : save p-value of the largest (max) cluster (1.0 if no cluster)\n");
   printf("   --bonferroni N : addition correction across N (eg, spaces)\n");
   printf("   --sig2p-max : convert max from sig to p\n");
   printf("   --bonferroni-max N : apply bonf cor to maximum (only applies with --sig2p-max)\n");
@@ -1049,6 +1078,7 @@ static void print_usage(void) {
   printf("   --centroid : report centroid instead of location of maximum stat\n");
   printf("   --sum sumfile     : text summary file\n");
   printf("   --pointset pointsetfile : file that can be read into freeview with -c\n");
+  printf("   --maxareafile file : write area of largest cluster to file\n");
   printf("   --o outid        : input with non-clusters set to 0\n");
   printf("   --ocn ocnid      : value is cluster number \n");
   printf("   --olab labelbase : output clusters as labels \n");

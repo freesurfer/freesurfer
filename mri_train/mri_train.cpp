@@ -5,7 +5,7 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -465,7 +465,11 @@ make_mask_from_segmentation(const char *sdir, const char *subject, char **long_n
 
   for (l = 0 ; l < nlong ; l++)
   {
-    sprintf(fname, "%s/%s%s.%s_base/mri/%s", sdir, subject, long_names[l], subject, seg_name) ;
+    int req = snprintf(fname, STRLEN, "%s/%s%s.%s_base/mri/%s",
+		       sdir, subject, long_names[l], subject, seg_name) ;
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     mri_long_seg[l] = MRIread(fname) ;
     if (mri_long_seg[l] == NULL)
       ErrorExit(ERROR_NOFILE, "%s: could not load segmentation from %s",

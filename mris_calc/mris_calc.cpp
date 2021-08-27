@@ -10,7 +10,7 @@
 /*
  * Original Author: Rudolph Pienaar
  *
- * Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -705,13 +705,11 @@ simpleSynopsis_show(void)
 {
   char  pch_errorMessage[STRBUF];
 
-  sprintf(pch_errorMessage, "Insufficient number of arguments.");
   sprintf(pch_errorMessage,
-          "%s\nYou should specify '<input1> <ACTION> [<input2> | <floatNumber>]'",
-          pch_errorMessage);
-  sprintf(pch_errorMessage,
-          "%s\nUse a '-u' for full usage instructions.",
-          pch_errorMessage);
+          "Insufficient number of arguments.\n"
+          "You should specify '<input1> <ACTION> [<input2> | <floatNumber>]'\n"
+          "Use a '-u' for full usage instructions.");
+
   ErrorExit(10, "%s: %s", G_pch_progname, pch_errorMessage);
 }
 
@@ -757,14 +755,11 @@ error_exit(
   char  pch_errorMessage[STRBUF];
   strcpy(pch_errorMessage, "");
 
-  sprintf(pch_errorMessage, "\n%s:", G_pch_progname);
-  sprintf(pch_errorMessage,
-          "%s\n\tSorry, but I seem to have encountered an error.",
-          pch_errorMessage);
-  sprintf(pch_errorMessage,
-          "%s\n\tWhile %s,", pch_errorMessage, apch_action);
-  sprintf(pch_errorMessage,
-          "%s\n\t%s\n", pch_errorMessage, apch_error);
+  sprintf(pch_errorMessage, "\n%s:\n"
+  "\tSorry, but I seem to have encountered an error.\n"
+  "\tWhile %s,\n"
+  "\t%s\n",
+  G_pch_progname, apch_action, apch_error);
 
   fprintf(stderr, "%s", pch_errorMessage);
   fprintf(stderr, "\n");

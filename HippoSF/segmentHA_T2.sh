@@ -118,12 +118,12 @@ endif
 
 # If SUBJECTS_DIR is provided, just set it
 if ($#argv == 5) then
-  set SUBJECTS_DIR = $5
+  set SUBJECTS_DIR = `getfullpath  $5`
 endif
 
 # Set name of subject
 set SUBJECTNAME = $1
-set T2VOL = $2
+set T2VOL = `getfullpath  $2`
 set ANALYSISID = $3
 set USET1 = $4
 

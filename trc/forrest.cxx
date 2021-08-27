@@ -6,7 +6,7 @@
 /*
  * Original Author: Anastasia Yendiki
  *
- * Copyright © 2031 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -63,9 +63,9 @@ Forrest::~Forrest() {
 //
 // Read data for test subject
 //
-void Forrest::ReadTestSubject(const char *TestDir, const char *MaskFile,
-                              const char *AsegFile, const char *OrientFile) {
-  string dirname = string(TestDir) + "/",
+void Forrest::ReadTestSubject(const string TestDir, const string MaskFile,
+                              const string AsegFile, const string OrientFile) {
+  string dirname = TestDir + "/",
          fname;
 
   if (mMask)
@@ -86,7 +86,7 @@ void Forrest::ReadTestSubject(const char *TestDir, const char *MaskFile,
   if (mAseg)
     MRIfree(&mAseg);
 
-  if (AsegFile) {
+  if (!AsegFile.empty()) {
     fname = dirname + AsegFile;
     cout << "Loading test anatomical segmentation from " << fname << endl;
     mAseg = MRIread(fname.c_str());
@@ -99,7 +99,7 @@ void Forrest::ReadTestSubject(const char *TestDir, const char *MaskFile,
   if (mOrient)
     MRIfree(&mOrient);
 
-  if (OrientFile) {
+  if (!OrientFile.empty()) {
     fname = dirname + OrientFile;
     cout << "Loading test diffusion orientations from " << fname << endl;
     mOrient = MRIread(fname.c_str());
@@ -113,11 +113,11 @@ void Forrest::ReadTestSubject(const char *TestDir, const char *MaskFile,
 //
 // Read data for training subjects
 //
-void Forrest::ReadTrainingSubjects(const char *TrainListFile,
-                                   const char *MaskFile,
-                                   const char *AsegFile,
-                                   const char *OrientFile,
-                                   vector<char *> TractFileList) {
+void Forrest::ReadTrainingSubjects(const string TrainListFile,
+                                   const string MaskFile,
+                                   const string AsegFile,
+                                   const string OrientFile,
+                                   vector<string> TractFileList) {
   string dirname;
   vector<string> dirlist;
   ifstream listfile(TrainListFile, ios::in);
@@ -150,7 +150,7 @@ void Forrest::ReadTrainingSubjects(const char *TrainListFile,
       exit(1);
     }
 
-    if (AsegFile) {
+    if (!AsegFile.empty()) {
       fname = *idir + AsegFile;
       cout << "Loading training anatomical segmentation from " << fname << endl;
       asegvol = MRIread(fname.c_str());
@@ -160,7 +160,7 @@ void Forrest::ReadTrainingSubjects(const char *TrainListFile,
       }
     }
 
-    if (OrientFile) {
+    if (!OrientFile.empty()) {
       fname = *idir + OrientFile;
       cout << "Loading training diffusion orientations from " << fname << endl;
       orientvol = MRIread(fname.c_str());
@@ -170,7 +170,7 @@ void Forrest::ReadTrainingSubjects(const char *TrainListFile,
       }
     }
 
-    for (vector<char *>::const_iterator ifile = TractFileList.begin();
+    for (vector<string>::const_iterator ifile = TractFileList.begin();
                                         ifile < TractFileList.end(); ifile++) {
       MRI *tractvol;
 

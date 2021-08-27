@@ -7,7 +7,7 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -313,29 +313,77 @@
 #define SUSPICIOUS 999 //                               255 100 100 0
 
 
-// Tracula labeling
+// TRACULA labeling
+// Interhemispheric tracts
 #define fmajor 5100 //                                  204 102 102 0
 #define fminor 5101 //                                  204 102 102 0
-#define lh_atr 5102 //                                  255 255 102 0
-#define lh_cab 5103 //                                  153 204 0   0
-#define lh_ccg 5104 //                                  0   153 153 0
-#define lh_cst 5105 //                                  204 153 255 0
-#define lh_ilf 5106 //                                  255 153 51  0
-#define lh_slfp 5107 //                                 204 204 204 0
-#define lh_slft 5108 //                                 153 255 255 0
-#define lh_unc 5109 //                                  102 153 255 0
-#define rh_atr 5110 //                                  255 255 102 0
-#define rh_cab 5111 //                                  153 204 0   0
-#define rh_ccg 5112 //                                  0   153 153 0
-#define rh_cst 5113 //                                  204 153 255 0
-#define rh_ilf 5114 //                                  255 153 51  0
-#define rh_slfp 5115 //                                 204 204 204 0
-#define rh_slft 5116 //                                 153 255 255 0
-#define rh_unc 5117 //                                  102 153 255 0
-#define lh_ifof 5118 //                                 153 255 255 0
-#define rh_ifof 5119 //                                 153 255 255 0
-#define lh_fornix 5120 //                               204 102 153 0
-#define rh_fornix 5121 //                               204 102 153 0
+#define cc_body 5102 //                                 255 153 153 0
+#define cc_bodyc 5103 //                                255 102 102 0
+#define cc_bodypf 5104 //                               255 102 102 0
+#define cc_bodypm 5105 //                               255 153 153 0
+#define cc_bodyp 5106 //                                255 102 102 0
+#define cc_bodyt 5107 //                                255 153 153 0
+#define cc_genu 5108 //                                 255 102 102 0
+#define cc_rostrum 5109 //                              204 51  51  0
+#define cc_splenium 5110 //                             204 51  51  0
+#define acomm 5111 //                                   204 102 102 0
+#define mcp 5112 //                                     102 51  153 0
+
+// Left hemi tracts
+#define lh_atr 5200 //                                  255 255 102 0
+#define lh_cab 5201 //                                  153 204 0   0
+#define lh_ccg 5202 //                                  0   153 153 0
+#define lh_cst 5203 //                                  204 153 255 0
+#define lh_ilf 5204 //                                  255 153 51  0
+#define lh_slfp 5205 //                                 204 204 204 0
+#define lh_slft 5206 //                                 153 255 255 0
+#define lh_unc 5207 //                                  102 153 255 0
+#define lh_cb 5208 //                                   0   153 153 0
+#define lh_slf 5209 //                                  204 204 204 0
+#define lh_af 5210 //                                   153 255 255 0
+#define lh_ifof 5211 //                                 51  153 51  0
+#define lh_fx 5212 //                                   255 153 204 0
+#define lh_fat 5213 //                                  204 51  102 0
+#define lh_or 5214 //                                   153 102 255 0
+#define lh_mlf 5215 //                                  255 255 204 0
+#define lh_slf1 5216 //                                 51  204 255 0
+#define lh_slf2 5217 //                                 51  255 204 0
+#define lh_slf3 5218 //                                 204 204 204 0
+#define lh_afd 5219 //                                  153 255 255 0
+#define lh_afv 5220 //                                  153 255 255 0
+#define lh_ar 5221 //                                   153 0   204 0
+#define lh_cbd 5222 //                                  0   153 153 0
+#define lh_cbv 5223 //                                  153 204 0   0
+#define lh_emc 5224 //                                  51  153 51  0
+#define lh_uf 5225 //                                   102 153 255 0
+
+// Right hemi tracts
+#define rh_atr 5300 //                                  255 255 102 0
+#define rh_cab 5301 //                                  153 204 0   0
+#define rh_ccg 5302 //                                  0   153 153 0
+#define rh_cst 5303 //                                  204 153 255 0
+#define rh_ilf 5304 //                                  255 153 51  0
+#define rh_slfp 5305 //                                 204 204 204 0
+#define rh_slft 5306 //                                 153 255 255 0
+#define rh_unc 5307 //                                  102 153 255 0
+#define rh_cb 5308 //                                   0   153 153 0
+#define rh_slf 5309 //                                  204 204 204 0
+#define rh_af 5310 //                                   153 255 255 0
+#define rh_ifof 5311 //                                 51  153 51  0
+#define rh_fx 5312 //                                   255 153 204 0
+#define rh_fat 5313 //                                  204 51  102 0
+#define rh_or 5314 //                                   153 102 255 0
+#define rh_mlf 5315 //                                  255 255 204 0
+#define rh_slf1 5316 //                                 51  204 255 0
+#define rh_slf2 5317 //                                 51  255 204 0
+#define rh_slf3 5318 //                                 204 204 204 0
+#define rh_afd 5319 //                                  153 255 255 0
+#define rh_afv 5320 //                                  153 255 255 0
+#define rh_ar 5321 //                                   153 0   204 0
+#define rh_cbd 5322 //                                  0   153 153 0
+#define rh_cbv 5323 //                                  153 204 0   0
+#define rh_emc 5324 //                                  51  153 51  0
+#define rh_uf 5325 //                                   102 153 255 0
 
 
 /*
@@ -657,5 +705,23 @@ MRI *MRIextractTissueTypeSeg(MRI *seg, COLOR_TABLE *ct, int tt, MRI *ttseg);
 MRI **MRIdilateSegWithinTT(MRI *seg, int nDils, COLOR_TABLE *ct, MRI **r);
 SEGSTAT *Seg2NbrNonBrain(MRI *seg, COLOR_TABLE *ctab, double threshmm);
 int Seg2NbrNonBrainWrapper(char *subject, char *segname, COLOR_TABLE *ctab, char *statname, double threshmm);
+
+class SegDice {
+public:
+  MRI *seg1=NULL, *seg2=NULL; // for TPR and FDR, seg1=true, seg2=test
+  COLOR_TABLE *ctab=NULL;
+  std::vector<int> seglist;
+  char *seg1file=NULL, *seg2file=NULL;
+  std::vector<double> dice, tpr, fdr;
+  std::vector<int> count1, count2, count12, countFD;
+  std::vector<int> excludelist;
+  int ReportEmpty = 0;
+  int Ctab2SegList();
+  int ComputeDice();
+  int PrintDiceDat(FILE *fp);
+  int WriteDiceDat(char *fname);
+  int PrintDiceTable(FILE *fp);
+  int WriteDiceTable(char *fname);
+};
 
 #endif

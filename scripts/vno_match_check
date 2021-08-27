@@ -71,6 +71,8 @@ foreach hemi ( $hemis )
 
     end
 
+    set tmplog = `fs_temp_file --suffix .log`
+
     # now check that the curvature files have the correct number of vertices
     # mris_info does this check via the $hemi.orig input argument
     foreach curv ( curv sulc area area.mid area.pial thickness volume)
@@ -80,9 +82,9 @@ foreach hemi ( $hemis )
             echo "ERROR: $SUBJECTS_DIR/$subj/surf/$hemi.$curv does not exist!"
             exit 1
         endif
-        mris_info $hemi.orig --c $hemi.$curv >& /tmp/mris_info.log
+        mris_info $hemi.orig --c $hemi.$curv >& $tmplog
         if ($status) then
-            grep ERROR /tmp/mris_info.log
+            grep ERROR $tmplog
             exit 1
         endif
 
@@ -99,13 +101,15 @@ foreach hemi ( $hemis )
             echo "ERROR: $SUBJECTS_DIR/$subj/label/$hemi.$annot does not exist!"
             exit 1
         endif
-        mris_info $hemi.orig --a ../label/$hemi.$annot >& /tmp/mris_info.log
+        mris_info $hemi.orig --a ../label/$hemi.$annot >& $tmplog
         if ($status) then
-            grep ERROR /tmp/mris_info.log
+            grep ERROR $tmplog
             exit 1
         endif
 
     end
 end
+
+rm -f $tmplog
 
 if ("x$2" != "x") echo "Pass: all surfaces and surface data for subject $subj for hemi $hemi have the same number of vertices."

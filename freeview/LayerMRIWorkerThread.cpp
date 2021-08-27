@@ -3,6 +3,7 @@
 #include "vtkImageData.h"
 #include <QMutexLocker>
 #include "MyVTKUtils.h"
+#include <QDateTime>
 
 LayerMRIWorkerThread::LayerMRIWorkerThread(LayerMRI *mri) :
   QThread(mri), m_bAbort(false)
@@ -74,6 +75,8 @@ void LayerMRIWorkerThread::run()
   QMutexLocker locker(&mutex);
   mri->m_nAvailableLabels = vals;
   mri->m_listLabelCenters = centers;
+  mri->m_labelVoxelCounts = counts;
+  mri->setProperty("stats_last_updated", QDateTime::currentMSecsSinceEpoch());
 
   emit LabelInformationReady();
 }

@@ -5,7 +5,7 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -282,5 +282,25 @@ int TransformCRS2MNI305(const MRI *mri, const double col, const double row, cons
 MATRIX *TranformAffineParams2Matrix(double *p, MATRIX *M);
 double *TranformExtractAffineParams(MATRIX *M, double *p);
 double TransformAffineParamTest(int niters, double thresh);
+
+
+// This is a class used to create a registration from landmarks, ie, 
+// when you have sets of matching points in both spaces.
+class RegLandmarks {
+public:
+  std::string sxyzfile,txyzfile; // Files to get coords from
+  std::string coordtypename; // RAS, VOX, TKR
+  std::vector<std::vector<double>> sxyz, txyz; // Nx3 source/mov target/dst coords
+  std::string mrisrcfile, mritrgfile; // template MRI files
+  MRI *mrisrc = NULL,*mritrg = NULL; // template MRIs
+  LTA *lta;
+  std::vector<int> svtxno, tvtxno; // vertex numbers when reading STVP file
+  int ReadCoords(void);
+  int ReadSTVPairFile(std::string stvpairfile);
+  int PrintXYZ(FILE *fp, std::vector<std::vector<double>> xyz);
+  MATRIX *ComputeReg(MATRIX *R);
+  LTA *ComputeLTA(void);
+};
+
 
 #endif

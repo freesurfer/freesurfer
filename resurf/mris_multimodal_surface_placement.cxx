@@ -99,6 +99,7 @@ int main(int narg, char*  arg[])
 
 		MRIS_MultimodalRefinement* t2refinement = new MRIS_MultimodalRefinement();	
 		std::vector<MRI*> images; 
+		int modality=0;
 		if( cl.search("-t1"))
 		{
 			MRI *t1 = MRIread(cl.follow("","-t1"));
@@ -110,18 +111,20 @@ int main(int narg, char*  arg[])
 			MRI *t2 = MRIread(cl.follow("","-t2"));
 			images.push_back(t2);
 			t2refinement->addImage(t2);
+			modality=1;
 		}
 		if( cl.search("-flair"))
 		{
 			MRI *flair = MRIread(cl.follow("","-flair"));
 			images.push_back(flair);
 			t2refinement->addImage(flair);
+			modality=2;
 		}
 
 		MRI* whiteMR= MRIcopy(images[0], NULL);
 		MRI* vesselMR= MRIcopy(images[0], NULL);
-		t2refinement->SegmentVessel(images[0], images[1],vesselMR);
-		t2refinement->SegmentWM(images[0], images[1],whiteMR);
+		t2refinement->SegmentVessel(images[0], images[1],vesselMR, modality);
+		t2refinement->SegmentWM(images[0], images[1],whiteMR,modality);
 		t2refinement->SetWhiteMR(whiteMR);
 		t2refinement->SetVesselMR(vesselMR);
 

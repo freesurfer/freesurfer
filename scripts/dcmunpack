@@ -31,6 +31,7 @@ set RunNoSkip = ()
 set iid = ()
 set ijd = ()
 set ikd = ()
+set DCR3 = 0
 
 set RunNos = ();
 set SubDirs = ();
@@ -46,10 +47,13 @@ set BIRNID = ();
 set VisitNo = ();
 set RunPars = ();
 set GetMax = 0;
+set DoExtraInfo = 0;
 
 set inputargs = ("$argv");
 set PrintHelp = 0;
 set LF = ();
+
+set DoFirstDicom = 0; 
 
 if($#argv == 0) goto usage_exit;
 set n = `echo "$argv" | grep -e -help | wc -l` 
@@ -111,7 +115,7 @@ echo "---------------------------------------" | tee -a $LF
 
 if($OnePerDir) then
   # This creates a list of all the subdirs in the tree 
-  set SrcDirList2 = (`find $d -type d`);
+  set SrcDirList2 = (`find -L $d -type d`);
 else
   set SrcDirList2 = ($SrcDirList)
 endif
@@ -122,9 +126,9 @@ set flist = ();
 foreach d ($SrcDirList2)
   #echo "Searching $d" >> $LF
   if($#SrcPre || $#SrcPat || $#SrcExt) then
-    set flist0 = (`find $d -name "$SrcPre*$SrcPat*$SrcExt"`)
+    set flist0 = (`find -L $d -name "$SrcPre*$SrcPat*$SrcExt"`)
   else
-    set flist0 = (`find $d`)
+    set flist0 = (`find -L $d`)
   endif
   if($OnePerDir && $#flist0 > 0) then
     set flist0 = ($flist0[1]);
@@ -151,7 +155,7 @@ if($#infofile == 0) then
   if($#TargetDir) then
     set infofile = $TargetDir/log/imagelist.dat
   else
-    set infofile = /tmp/dcmdir-all.$$
+    set infofile = `fs_temp_file`
   endif
 endif
 if($#SrcInfo) then
@@ -165,13 +169,15 @@ else
   rm -f $infofile
 endif
 
-set dumpfile = /tmp/dcmunpack.dump.$$
+set dumpfile = `fs_temp_file`
 rm -f $dumpfile 
 @ nth = 0;
+@ mth = 0;
 foreach f ($flist)
   @ nth = $nth + 1;
   set filetype = `mri_probedicom --i $f --d filetype`
   if($filetype == notdicom) continue;
+  @ mth = $mth + 1;
   #echo "#@# $nth/$#flist `date`" >>& $LF
 
   mri_probedicom --i $f >& $dumpfile
@@ -205,9 +211,10 @@ foreach f ($flist)
   # Special case for PixSpace. Found a file where pixel spacing had some funny
   # binary character in it, and it messed everything up
   set PixSpace  = (`cat $dumpfile | awk '{if($1 == "PixelSpacing") print $2}' | strings`)
-  echo $PixSpace > /tmp/ps.$$.dat
-  set PixSpace = (`cat /tmp/ps.$$.dat`)
-  rm /tmp/ps.$$.dat
+  set tmpdat = `fs_temp_file --suffix .dat`
+  echo $PixSpace > $tmpdat
+  set PixSpace = (`cat $tmpdat`)
+  rm $tmpdat
   if($#PixSpace == 0) set PixSpace = 'unknown';
   #------------------------------------------------------------------------#
   set PhaseEncDir  = (`cat $dumpfile | awk '{if($1 == "PhaseEncDir") print $2}'`)
@@ -219,8 +226,32 @@ foreach f ($flist)
   echo "$Patient $SeriesNo $Date $Time $EchoTime $TR $FlipAngle $PixSpace $PhaseEncDir $PixFreq $f" >> $infofile
 
 end
-rm -f $dumpfile
 
+if($mth == 0) then
+  echo "ERROR: could not find any dicom files in"
+  echo "  $SrcDirList2"
+  exit 1;
+endif
+
+set extra = ()
+if($DoExtraInfo) then
+  set fieldstrength = `grep FieldStrength $dumpfile | awk '{print $2}' | sed 's/ /-/g'`
+  if($#fieldstrength == 0) set fieldstrength = unknown
+  set manufacturer = `grep Manufacturer $dumpfile | awk '{print $2}' | sed 's/ /-/g'`
+  if($#manufacturer == 0) set manufacturer = unknown
+  set scannermodel = `grep ScannerModel $dumpfile | awk '{print $2}' | sed 's/ /-/g'`
+  if($#scannermodel == 0) set scannermodel = unknown
+  set scannerserialno = `grep ScannerSerialNo $dumpfile | awk '{print $2}' | sed 's/ /-/g'`
+  if($#scannerserialno == 0) set scannerserialno = unknown
+  set studydate = `grep StudyDate $dumpfile | awk '{print $2}' | sed 's/ /-/g'`
+  if($#studydate == 0) set studydate = unknown
+  set patient = `grep PatientName $dumpfile | awk '{print $2}' | sed 's/ /-/g'`
+  if($#patient == 0) set patient = unknown
+  set extra = ($patient $studydate $manufacturer $scannermodel $fieldstrength $scannerserialno )
+  echo "ExtraInfo: $extra"
+endif
+
+rm -f $dumpfile
 
 set SeriesNos = (`cat $infofile | awk '{print $2}' | sort -n | uniq`)
 echo "Found $#SeriesNos unique series: $SeriesNos" | tee -a $LF
@@ -244,7 +275,7 @@ if($#SeriesInfo == 0) then
   if($#TargetDir) then
     set SeriesInfo = $TargetDir/log/series-info.dat
   else
-    set SeriesInfo = /tmp/series-info-$$.dat
+    set SeriesInfo = `fs_temp_file --suffix .dat`
   endif
 endif
 rm -f $SeriesInfo
@@ -266,7 +297,8 @@ foreach series ($SeriesNos)
   endif
   set fname = $r[11];
   if($DoBase) set fname = `basename $f`
-  echo $Key $r[2] "$descr" $r[5-10] $fname $max | tee -a $SeriesInfo
+
+  echo $Key $r[2] "$descr" $r[5-10] $fname $max $extra | tee -a $SeriesInfo
 
   if($DoAutoRunSeq) then
     if("$descr" == Localizer || "$descr" == localizer || "$descr" == AAHScout || \
@@ -366,6 +398,8 @@ foreach run ($RunNos)
     if($#iid) set cmd = ($cmd -iid $iid);
     if($#ijd) set cmd = ($cmd -ijd $ijd);
     if($#ikd) set cmd = ($cmd -ikd $ikd);
+    if($DoFirstDicom) set cmd = ($cmd --first-dicom $outdir/log/$FName.first.dicom.path)
+    if($DCR3) set cmd = ($cmd -dicomread3)
     echo $cmd |& tee -a $LF
     $cmd |& tee -a $LF
     if($status) then
@@ -376,6 +410,20 @@ foreach run ($RunNos)
       endif
       echo "ERROR: a conversion error was detected in Run $run, but ExitOnError=1 so continuing to next run" |& tee -a $LF
       @ ErrorsFound = $ErrorsFound + 1;
+    endif
+    if($DoFirstDicom) then
+      set cmd = (cp `cat $outdir/log/$FName.first.dicom.path` $outdir/$FName.first.dcm)
+      echo $cmd |& tee -a $LF
+      $cmd |& tee -a $LF
+      if($status) then
+        if($ExitOnError) then
+          echo "ERROR: an error was detected in Run $run copying firt dicom file" |& tee -a $LF
+          echo "Either find out why, exclude this run, or run with -no-exit-on-error to continue with other runs" |& tee -a $LF
+          exit 1;
+        endif
+        echo "ERROR: an error was detected in Run $run copying firt dicom file, but ExitOnError=1 so continuing to next run" |& tee -a $LF
+        @ ErrorsFound = $ErrorsFound + 1;
+      endif
     endif
   endif
 
@@ -517,6 +565,11 @@ while( $#argv != 0 )
       set itdicom = ("-it dicom")
       breaksw
 
+    case "-first-dicom":
+      # Copy first dicom in the series 
+      set DoFirstDicom = 1
+      breaksw
+
     case "-src":
     case "-d":
       if($#argv < 1) goto arg1err;
@@ -529,6 +582,7 @@ while( $#argv != 0 )
         echo "ERROR: $d exists but is not readable"
         exit 1;
       endif
+      set d = `getfullpath $d`
       set SrcDirList = ($SrcDirList $d);
       breaksw
 
@@ -642,8 +696,19 @@ while( $#argv != 0 )
       set DoCopy = 1;
       breaksw
 
+    case "-dcr3":
+      set DCR3 = 1;
+      breaksw
+
     case "-max":
       set GetMax = 1;
+      breaksw
+
+    case "-extra-info":
+      set DoExtraInfo = 1;
+      breaksw
+    case "-no-extra-info":
+      set DoExtraInfo = 0;
       breaksw
 
     case "-generic":
@@ -759,7 +824,7 @@ if($DoUnpack) then
     endif
     # Sort the list of run numbers in ascending order and get
     # the run-within-paraidgm number
-    set tmp = /tmp/dcmdir.$$.tmp
+    set tmp = `fs_temp_file`
     #set tmp = dcmdir.tmp
     rm -f $tmp
     @ nth = 0;
@@ -858,6 +923,9 @@ usage_exit:
   echo "   -iid dcx dcy dcz : set -iid to mri_convert"
   echo "   -ijd dcx dcy dcz : set -ijd to mri_convert"
   echo "   -ikd dcx dcy dcz : set -ikd to mri_convert"
+  echo "   -extra-info : add session info to each line of the info file (pat, date, man, scan, field, serno)"
+  echo "   -first-dicom : copy first dicom file into output folder. This was implemented to "
+  echo "      be able to have the pixel data from a dicom file with little or no tissue in it"
   echo ""
   echo "   -fips project site birnid visit"
   echo "   -fips-run run paradigm <<nskip> ndrop>"

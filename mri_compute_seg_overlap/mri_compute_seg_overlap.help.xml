@@ -77,6 +77,8 @@
 	  labels from all calculation</explanation>
       <argument>-all_labels</argument>
       <explanation>check all labels</explanation>
+      <argument>-dice seg1 seg2 ctab ReportEmpty01 ExcludeId datfile tablefile</argument>
+      <explanation>Standalone way to compute dice. ctab can = embedded</explanation>
     </optional-flagged>
   </arguments>
   <example>mri_compute_seg_overlap manual_seg.mgz aseg.mgz

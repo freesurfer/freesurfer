@@ -11,7 +11,7 @@
 /*
  * Original Author: Bruce Fischl (June 16, 1998)
  *
- * Copyright © 2011-2017 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -199,7 +199,6 @@ main(int argc, char *argv[]) {
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
 
-  memset(&parms, 0, sizeof(parms)) ;
   parms.projection = NO_PROJECTION ;
   parms.fill_interior = 0 ;  // don't let gradient use exterior information (slows things down)
   parms.tol = 1e-4 ;
@@ -279,7 +278,10 @@ main(int argc, char *argv[]) {
   ///////////////////////////////////////////////////////////////////////
   // read orig surface
   ///////////////////////////////////////////////////////////////////////
-  sprintf(fname, "%s/%s/surf/%s.%s", sdir, sname, hemi, orig_name);
+  int req = snprintf(fname, STRLEN, "%s/%s/surf/%s.%s", sdir, sname, hemi, orig_name);
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   fprintf(stderr, "reading original surface position from %s...\n", fname) ;
   mris = MRISreadOverAlloc(fname, 1.1) ;
   // this tries to get src c_(ras) info
@@ -290,7 +292,10 @@ main(int argc, char *argv[]) {
   ///////////////////////////////////////////////////////////////////////
   // read hires volume
   ///////////////////////////////////////////////////////////////////////
-  sprintf(fname, "%s/%s/mri/%s", sdir, sname, argv[3]) ;
+  req = snprintf(fname, STRLEN, "%s/%s/mri/%s", sdir, sname, argv[3]) ;
+  if( req >= STRLEN ) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   if (MGZ) strcat(fname, ".mgz");
   fprintf(stderr, "reading hires volume %s...\n", fname) ;
 
@@ -436,7 +441,10 @@ main(int argc, char *argv[]) {
   /////////////////////////////////////////////////////////////////////////////
   if (argc > 4)  // label specified explicitly
   {
-    sprintf(fname, "%s/%s/label/%s", sdir, sname, argv[4]) ;
+    req = snprintf(fname, STRLEN, "%s/%s/label/%s", sdir, sname, argv[4]) ;
+    if( req >= STRLEN ) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     fprintf(stderr, "reading the label file %s...\n", fname);
     hires_label = LabelRead(NULL, fname) ;
     if (!hires_label)
@@ -447,7 +455,10 @@ main(int argc, char *argv[]) {
 
     for (i = 0 ; i < num_other_labels ; i++) {
       LABEL *olabel ;
-      sprintf(fname, "%s/%s/label/%s", sdir, sname, other_label_names[i]) ;
+      req = snprintf(fname, STRLEN, "%s/%s/label/%s", sdir, sname, other_label_names[i]) ;
+      if( req >= STRLEN ) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       fprintf(stderr, "reading the label file %s...\n", fname);
       olabel = LabelRead(NULL, fname) ;
       if (!olabel)
@@ -554,8 +565,10 @@ main(int argc, char *argv[]) {
   if (nbrs > 1)
     MRISsetNeighborhoodSizeAndDist(mris, nbrs) ;
 
-  sprintf(parms.base_name, "%s%s%s", 
-          white_matter_name, output_suffix, suffix) ;
+  req = snprintf(parms.base_name, STRLEN, "%s%s%s", white_matter_name, output_suffix, suffix);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
 
   ///////////////////////////////////////////////////////////////////////////
   MRIScomputeMetricProperties(mris) ;    /* recompute surface normals */
@@ -685,8 +698,11 @@ main(int argc, char *argv[]) {
   /////////////////////////////////////////////////////////////////////////
 
   if (!nowhite) {
-    sprintf(fname, "%s/%s/surf/%s.%s%s%s", sdir, sname,hemi,white_matter_name,
+    req = snprintf(fname, STRLEN, "%s/%s/surf/%s.%s%s%s", sdir, sname,hemi,white_matter_name,
             output_suffix,suffix);
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     fprintf(stderr, "writing white matter surface to %s...\n", fname) ;
     /////////////////////////////////////////////////////////////////////////
     // convert surface into lowres volume surface again for more processing
@@ -702,14 +718,20 @@ main(int argc, char *argv[]) {
       MRIScomputeSecondFundamentalForm(mris) ;
       MRISuseMeanCurvature(mris) ;
       MRISaverageCurvatures(mris, curvature_avgs) ;
-      sprintf(fname, "%s.curv%s%s",
+      req = snprintf(fname, STRLEN, "%s.curv%s%s",
               mris->hemisphere == LEFT_HEMISPHERE?"lh":"rh", output_suffix,
               suffix);
+      if (req >= STRLEN) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       fprintf(stderr, "writing smoothed curvature to %s\n", fname) ;
       MRISwriteCurvature(mris, fname) ;
-      sprintf(fname, "%s.area%s%s",
+      req = snprintf(fname, STRLEN, "%s.area%s%s",
               mris->hemisphere == LEFT_HEMISPHERE?"lh":"rh", output_suffix,
               suffix);
+      if (req >= STRLEN) {
+        std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+      }
       MRISprintTessellationStats(mris, stderr) ;
 
       //  restore to hires for further processing
@@ -717,7 +739,10 @@ main(int argc, char *argv[]) {
     }
   } else   /* read in previously generated white matter surface */
   {
-    sprintf(fname, "%s", white_matter_name) ;
+    req = snprintf(fname, STRLEN, "%s", white_matter_name) ;
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     if (MRISreadVertexPositions(mris, fname) != NO_ERROR)
       ErrorExit(Gerror, "%s: could not read white matter surfaces.",
                 Progname) ;
@@ -740,7 +765,10 @@ main(int argc, char *argv[]) {
   // now pial surface
   ///////////////////////////////////////////////////////////////////////
   parms.t = parms.start_t = 0 ;
-  sprintf(parms.base_name, "%s%s%s", pial_name, output_suffix, suffix) ;
+  req = snprintf(parms.base_name, STRLEN, "%s%s%s", pial_name, output_suffix, suffix);
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   parms.niterations = ngray ;
   MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ; /* save white-matter 
                                                         positions */
@@ -855,8 +883,11 @@ main(int argc, char *argv[]) {
     }
   }
 
-  sprintf(fname, "%s/%s/surf/%s.%s%s%s", sdir, sname, hemi, pial_name,
+  req = snprintf(fname, STRLEN, "%s/%s/surf/%s.%s%s%s", sdir, sname, hemi, pial_name,
           output_suffix, suffix) ;
+  if (req >= STRLEN) {
+    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+  }
   /////////////////////////////////////////////////////////////////////////
   // write out pial surface
   /////////////////////////////////////////////////////////////////////////
@@ -877,7 +908,10 @@ main(int argc, char *argv[]) {
     MRISmeasureCorticalThickness(mris, nbhd_size, max_thickness) ;
     fprintf(stderr,
             "writing cortical thickness estimate to 'thickness' file.\n") ;
-    sprintf(fname, "thickness%s%s", output_suffix, suffix) ;
+    req = snprintf(fname, STRLEN, "thickness%s%s", output_suffix, suffix) ;
+    if (req >= STRLEN) {
+      std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
+    }
     MRISwriteCurvature(mris, fname) ;
 
     /* at this point, the v->curv slots contain the cortical surface. Now

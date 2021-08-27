@@ -7,7 +7,7 @@
 #
 # Original Author: Doug Greve
 #
-# Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+# Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
 #
 # Terms and conditions for use, reproduction, distribution and contribution
 # are found in the 'FreeSurfer Software License Agreement' contained
@@ -227,6 +227,7 @@ if($initxfm) then
   set fslmat0 = $fslmat"0";
   set reg0 = $tmpdir/reg0.$$.dat
   set cmd = (tkregister2_cmdl --mov $movvolimg --reg $reg0 \
+     --targ $fsvol --fstarg \
      --regheader --fslregout $fslmat0 --s $subjid --noedit);
   pwd | tee -a $LF
   echo $cmd | tee -a $LF
@@ -318,6 +319,7 @@ set cmd = (tkregister2_cmdl --s $subjid)
 # The lines below are for backwards compatibiltiy
 if(! $DoSwap) set cmd = ($cmd --mov $movvol)
 if($DoSwap) set cmd = ($cmd --mov $movvolimg)
+set cmd = ($cmd --targ $fsvol --fstarg)
 set cmd = ($cmd --reg $regfile)
 set cmd = ($cmd --fslreg $fslmat)
 set tkregcheckcmd = ($cmd --surf orig);  # for visual inspection

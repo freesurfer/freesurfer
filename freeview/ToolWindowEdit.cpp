@@ -1,7 +1,7 @@
 /*
  * Original Author: Ruopeng Wang
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -171,7 +171,7 @@ ToolWindowEdit::ToolWindowEdit(QWidget *parent) :
 
 #ifdef Q_OS_MAC
   ui->labelTips->setText(ui->labelTips->text().replace("Ctrl +", "Cmd +"));
-  ui->labelTipsContour->setText(ui->labelTips->text().replace("Ctrl +", "Cmd +"));
+//  ui->labelTipsContour->setText(ui->labelTipsContour->text().replace("Ctrl +", "Cmd +"));
   if (MacHelper::IsDarkMode())
   {
       ui->actionFreeHand->setIcon(MacHelper::InvertIcon(ui->actionFreeHand->icon(), QSize(), true));

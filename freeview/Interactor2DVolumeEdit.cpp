@@ -5,7 +5,7 @@
 /*
  * Original Author: Ruopeng Wang
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -145,7 +145,7 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( QMouseEvent* event, RenderVi
   if ( event->button() == Qt::LeftButton ||
        ( event->button() == Qt::RightButton && (event->buttons() & Qt::LeftButton) ) )
   {
-    if ( (event->modifiers() & CONTROL_MODIFIER ) && (event->modifiers() & Qt::ShiftModifier) )
+    if ( (event->modifiers() & Qt::ControlModifier ) && (event->modifiers() & Qt::ShiftModifier) )
     {
       if (event->button() == Qt::LeftButton)
       {

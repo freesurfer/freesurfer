@@ -5,7 +5,7 @@
 /*
  * Original Author: Bruce Fischl
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -649,6 +649,9 @@ relabel_hypointensities(MRI *mri, MRI *mri_inputs,
 	    	 */  
 	   break ;
 	}
+#if __GNUC__ >= 8
+        [[gnu::fallthrough]];
+#endif
         case Left_WM_hypointensities:
         case Right_WM_hypointensities: // check to see if it's outside ribbon and change it to gm
           if (gca)  // if we have a gca, check to make sure gm is possible here

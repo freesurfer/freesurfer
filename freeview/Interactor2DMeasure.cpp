@@ -5,7 +5,7 @@
 /*
  * Original Author: Ruopeng Wang
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -31,6 +31,7 @@
 //#include "ToolWindowMeasure.h"
 #include "CursorFactory.h"
 #include <vtkRenderer.h>
+#include <QDebug>
 
 Interactor2DMeasure::Interactor2DMeasure( QObject* parent ) :
   Interactor2D( parent ),
@@ -251,8 +252,7 @@ bool Interactor2DMeasure::ProcessKeyDownEvent( QKeyEvent* event, RenderView* ren
 {
   RenderView2D* view = ( RenderView2D* )renderview;
   UpdateCursor( event, renderview );
-
-  if ( m_region && event->key() == Qt::Key_Delete )
+  if ( m_region && (event->key() == Qt::Key_Delete || event->key() == Qt::Key_Backspace) )
   {
     view->DeleteRegion( m_region );
     m_region = NULL;

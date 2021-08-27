@@ -34,7 +34,7 @@ elif [ "$(uname -s)" == "Darwin" ]; then
 fi
 export PETSC_ARCH
 
-make -j8
+make -j 8
 
 # build mpich
 cd externalpackages/mpich2-1.0.5p4

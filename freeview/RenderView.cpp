@@ -5,7 +5,7 @@
 /*
  * Original Author: Ruopeng Wang
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -26,6 +26,8 @@
 #include "LayerSurface.h"
 #include "SurfaceOverlay.h"
 #include "SurfaceOverlayProperty.h"
+#include "LayerTrack.h"
+#include "LayerPropertyTrack.h"
 #include <QTimer>
 #include <QApplication>
 #include "MyVTKUtils.h"
@@ -555,6 +557,12 @@ void RenderView::UpdateScalarBar()
       LayerSurface* surf = qobject_cast<LayerSurface*>(m_layerScalarBar);
       if (surf->GetActiveOverlay())
         m_actorScalarBar->SetLookupTable( surf->GetActiveOverlay()->GetProperty()->GetLookupTable() );
+    }
+    else if (m_layerScalarBar->IsTypeOf("Tract"))
+    {
+      LayerTrack* t = qobject_cast<LayerTrack*>(m_layerScalarBar);
+      if (t->GetProperty()->GetColorCode() == LayerPropertyTrack::Scalar)
+        m_actorScalarBar->SetLookupTable( t->GetColorTable() );
     }
   }
   emit RequestRedraw();

@@ -105,7 +105,7 @@
       <argument>--no-intensity-proc </argument>
       <explanation>Do not process the input intensity volume (eg, to remove parts of eye socket)</explanation>
 
-      <argument>--debug_vertex vertexno </argument>
+      <argument>--debug-vertex vertexno </argument>
 
       <argument>--ripflag-out ripfile </argument>
       <explanation>Save ripflag as overlay. Spec full path including hemi, suffix, etc</explanation>
@@ -144,6 +144,8 @@
       <argument>--repluse weight</argument>
       <argument>--surf-repluse weight</argument>
       <explanation> For pushing the suface away from the repulse-surf (eg, to move pial away from white)</explanation>
+      <argument>--location-mov-len LOCATION_MOVE_LEN</argument>
+      <explanation> Used in mrisComputeTargetLocationTerm() </explanation>
     </cost-function>
   </arguments>
   <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>
