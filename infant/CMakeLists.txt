@@ -30,6 +30,9 @@ install_symlinks(all_c_robtemplate_affine_mean.05.01.2018.nii.gz TYPE files DEST
 install_pyscript(mri_label_fusion)
 add_subdirectory(labelfusion)
 
+# Entrypoint for containers
+install(PROGRAMS docker/infant-container-entrypoint.bash DESTINATION bin)
+
 # install external niftyreg binaries
 if(MARTINOS_BUILD)
 if(APPLE)

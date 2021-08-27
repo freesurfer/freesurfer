@@ -44,6 +44,19 @@ if(INFANT_MODULE)
   install_tarball(CNYBCH.tar.gz DESTINATION average)
 endif()
 
+if(INFANT_MODULE AND MINIMAL)
+  install_symlinks(
+    TYPE files
+    DESTINATION average
+    lh.average.curvature.filled.buckner40.tif
+    rh.average.curvature.filled.buckner40.tif
+    lh.curvature.buckner40.filled.desikan_killiany.2010-03-25.gcs
+    rh.curvature.buckner40.filled.desikan_killiany.2010-03-25.gcs
+    lh.destrieux.simple.2009-07-29.gcs
+    rh.destrieux.simple.2009-07-29.gcs
+  )
+endif()
+
 # the following data isn't required for recon-all, but will be installed by default
 if(NOT MINIMAL)
 

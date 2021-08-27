@@ -239,7 +239,7 @@ AtlasMeshCollectionFastReferencePositionCost
 
   // Add the components
   double  totalCost = dataCost + alphasCost + positionCost;
-  if ( isnan( totalCost ) || isinf( totalCost ) )
+  if ( std::isnan( totalCost ) || std::isinf( totalCost ) )
     {
     totalCost = itk::NumericTraits< double >::max();
     }

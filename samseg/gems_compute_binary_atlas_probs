@@ -8,7 +8,6 @@ import freesurfer as fs
 
 from freesurfer import samseg
 
-
 eps = np.finfo(float).eps
 
 parser = fs.utils.ArgumentParser()
@@ -32,7 +31,10 @@ else:
 # to call instance methods
 atlas = samseg.ProbabilisticAtlas()
 
-numberOfSubjects = len(os.listdir(args.subjects_dir))
+
+subjectList = [ pathname for pathname in os.listdir(subjects_dir) \
+                  if os.path.isdir(os.path.join(subjects_dir, pathname)) ]
+numberOfSubjects = len(subjectList)
 
 for level, meshCollectionFile in enumerate(args.mesh_collections):
 
@@ -47,8 +49,6 @@ for level, meshCollectionFile in enumerate(args.mesh_collections):
     mesh = meshCollection.reference_mesh
     numberOfNodes = mesh.point_count
 
-    #
-    subjectList = os.listdir(args.subjects_dir)
     print('Number of subjects: ' + str(len(subjectList)))
 
     # Define what we are interesting in, i.e., the label statistics of lesion
@@ -59,7 +59,7 @@ for level, meshCollectionFile in enumerate(args.mesh_collections):
         # Read the manually annotated binary segmentation for the specific subject
         segmentationImage = nib.load(os.path.join(args.segmentations_dir, subjectDir, args.segmentation_name)).get_fdata()
 
-        history = np.load(os.path.join(args.subjects_dir, subjectDir, 'history.p'), allow_pickle=True)
+        history = np.load(os.path.join(args.subjects_dir, subjectDir, 'mri/samseg/history.p'), allow_pickle=True)
 
         # Get the node positions in image voxels
         modelSpecifications = history['input']['modelSpecifications']
