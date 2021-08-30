@@ -46,6 +46,12 @@ MRI *MRIconvertToUchar(MRI *mri_in, LTA *tal_xform, MRI *mri_out) ;
 const char *Progname ;
 static void usage_exit(int code) ;
 
+double FIRST_PERCENTILE = 0.01;
+double WM_PERCENTILE = 0.90;
+double MAX_R = 50;
+char *hcumfile = NULL;
+char *radfile = NULL;
+
 
 int
 main(int argc, char *argv[])
@@ -79,6 +85,10 @@ main(int argc, char *argv[])
 
   if (argc < 3)
     usage_exit(1) ;
+
+  printf("FIRST_PERCENTILE %lf\n",FIRST_PERCENTILE);
+  printf("WM_PERCENTILE    %lf\n",WM_PERCENTILE);
+  printf("MAX_R %lf\n",MAX_R);
 
 
   mri_in = MRIread(argv[1]) ;
@@ -122,6 +132,26 @@ get_option(int argc, char *argv[])
   case 'U':
     usage_exit(0) ;
     break ;
+  case 'F':
+    sscanf(argv[2],"%lf",&FIRST_PERCENTILE);
+    nargs = 1;
+    break ;
+  case 'W':
+    sscanf(argv[2],"%lf",&WM_PERCENTILE);
+    nargs = 1;
+    break ;
+  case 'R':
+    sscanf(argv[2],"%lf",&MAX_R);
+    nargs = 1;
+    break ;
+  case 'H':
+    hcumfile = argv[2];
+    nargs = 1;
+    break ;
+  case 'V':
+    radfile = argv[2];
+    nargs = 1;
+    break ;
   default:
     fprintf(stderr, "unknown option %s\n", argv[1]) ;
     exit(1) ;
@@ -146,15 +176,16 @@ usage_exit(int code)
     "approximately (110).\n\n"
     "usage: %s [options] <input volume> <talairach xform> <output volume>\n",
     Progname) ;
+
+  printf("-f FIRST_PERCENTILE (default %g)\n",FIRST_PERCENTILE);
+  printf("-w WM_PERCENTILE (default %g)\n",WM_PERCENTILE);
+  printf("-r MAX_R (default %g)\n",MAX_R);
+  printf("-h cumulative histo file\n");
+  printf("-v vradvol : volume with everthing outside of MAX_R set to 0\n");
+
+
   exit(code) ;
 }
-
-
-
-
-#define FIRST_PERCENTILE    0.01
-#define WM_PERCENTILE       0.90
-
 
 MRI *
 MRIconvertToUchar(MRI *mri_in, LTA *tal_xform, MRI *mri_out)
@@ -169,8 +200,6 @@ MRIconvertToUchar(MRI *mri_in, LTA *tal_xform, MRI *mri_out)
 
   if (mri_out == NULL)
     mri_out = MRIcloneDifferentType(mri_in, MRI_UCHAR) ;
-
-#define MAX_R 50
 
   VECTOR_ELT(v_X, 4) = 1.0 ;
   VECTOR_ELT(v_Y, 4) = 1.0 ;
@@ -202,6 +231,7 @@ MRIconvertToUchar(MRI *mri_in, LTA *tal_xform, MRI *mri_out)
   }
   MatrixFree(&v_X) ;
   MatrixFree(&v_Y) ;
+  if(radfile) MRIwrite(mri_out,radfile);
 
   // only in a radius around the center of the brain
   h = MRIhistogram(mri_out, 100) ;
@@ -210,9 +240,13 @@ MRIconvertToUchar(MRI *mri_in, LTA *tal_xform, MRI *mri_out)
   HISTOmakePDF(h, h) ;
   hcum = HISTOmakeCDF(h, NULL) ;
 
+  HISTOwriteTxt(h, "makeuchar.histo.txt") ;
+  if(hcumfile) HISTOwriteTxt(hcum, hcumfile);
+
   bin_size = h->bins[2] - h->bins[1] ;
   i1 = HISTOfindBinWithCount(hcum, FIRST_PERCENTILE) ;
   i2 = HISTOfindBinWithCount(hcum, WM_PERCENTILE) ;
+  printf("i1 = %d, i2 = %d\n",i1,i2);
 
   x1 = h->bins[i1] ;
   x2 = h->bins[i2] ;
@@ -226,7 +260,8 @@ MRIconvertToUchar(MRI *mri_in, LTA *tal_xform, MRI *mri_out)
   y2 = DEFAULT_DESIRED_WHITE_MATTER_VALUE ;
   m = (y2 - y1) / (x2 - x1) ;
   b = y2 - m * x2 ;
-  printf("mapping (%2.0f, %2.0f) to (%2.0f, %2.0f)\n", x1, x2, y1, y2) ;
+  printf("#mri_make_uchar# mapping %2.0f %2.0f to %2.0f %2.0f  :  b %g m %g : thresh %g maxsat %g\n", 
+	 x1, x2, y1, y2,b,m, -b, (255-b)/m) ;
 
   for (x = 0 ; x < mri_in->width ; x++)
   {
