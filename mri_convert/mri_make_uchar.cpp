@@ -260,25 +260,29 @@ MRIconvertToUchar(MRI *mri_in, LTA *tal_xform, MRI *mri_out)
   y2 = DEFAULT_DESIRED_WHITE_MATTER_VALUE ;
   m = (y2 - y1) / (x2 - x1) ;
   b = y2 - m * x2 ;
-  printf("#mri_make_uchar# mapping %2.0f %2.0f to %2.0f %2.0f  :  b %g m %g : thresh %g maxsat %g\n", 
-	 x1, x2, y1, y2,b,m, -b, (255-b)/m) ;
 
-  for (x = 0 ; x < mri_in->width ; x++)
-  {
-    for (y = 0 ; y < mri_in->height ; y++)
-    {
-      for (z = 0 ; z < mri_in->depth ; z++)
-      {
+  long nzero=0, nsat=0;
+  for (x = 0 ; x < mri_in->width ; x++)  {
+    for (y = 0 ; y < mri_in->height ; y++)    {
+      for (z = 0 ; z < mri_in->depth ; z++)      {
         val = MRIgetVoxVal(mri_in, x, y, z, 0) ;
         val = val * m + b ;
-        if (val < 0)
+        if (val < 0){
           val = 0 ;
-        else if (val > 255)
+	  nzero ++;
+	}
+        else if (val > 255){
           val = 255 ;
+	  nsat++;
+	}
         MRIsetVoxVal(mri_out, x, y, z, 0, val) ;
       }
     }
   }
+
+  printf("#mri_make_uchar# mapping %2.0f %2.0f to %2.0f %2.0f  :  b %g m %g : thresh %g maxsat %g : nzero %ld nsat %ld\n", 
+	 x1, x2, y1, y2,b,m, -b, (255-b)/m, nzero, nsat) ;
+
 
   return(mri_out) ;
 }
