@@ -281,7 +281,7 @@ MRIconvertToUchar(MRI *mri_in, LTA *tal_xform, MRI *mri_out)
   }
 
   printf("#mri_make_uchar# mapping %2.0f %2.0f to %2.0f %2.0f  :  b %g m %g : thresh %g maxsat %g : nzero %ld nsat %ld\n", 
-	 x1, x2, y1, y2,b,m, -b, (255-b)/m, nzero, nsat) ;
+	 x1, x2, y1, y2,b,m, -b/m, (255-b)/m, nzero, nsat) ;
 
 
   return(mri_out) ;
