@@ -848,7 +848,7 @@ if !(-e $datadir/$subj/mri/transforms/talairach.auto.xfm) then
 
   set talaffine = $datadir/$subj/mri/transforms/niftyreg_affine.txt
   set cmd = (reg_aladin -ref ./${targ:t:r}.nii.gz -flo $maskedfile -aff $talaffine \
-                                     -res ${talaffine:r}.nii.gz  -voff)
+                                     -res ${talaffine:r}.nii.gz -voff)
   echo $cmd >> $LF
   echo $cmd >> $sLF
   $cmd |& tee -a $LF
