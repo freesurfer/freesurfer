@@ -1,4 +1,4 @@
-# docker build for distributing a base fs 7.1.1 container
+# docker build for distributing a base fs 7.2.0 container
 
 FROM centos:7
 
@@ -12,7 +12,7 @@ RUN yum -y install mesa-libGL libXext libSM libXrender libXmu
 RUN yum clean all
 
 # install fs
-RUN wget https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/7.1.1/freesurfer-linux-centos7_x86_64-7.1.1.tar.gz -O fs.tar.gz && \
+RUN wget https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/7.2.0/freesurfer-linux-centos7_x86_64-7.2.0.tar.gz -O fs.tar.gz && \
     tar --no-same-owner -xzvf fs.tar.gz && \
     mv freesurfer /usr/local && \
     rm fs.tar.gz
