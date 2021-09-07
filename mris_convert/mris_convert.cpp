@@ -120,6 +120,7 @@ static int combinesurfs_flag = 0;
 static int userealras_flag = 0;
 static int usesurfras_flag = 0;
 static MRI *VolGeomMRI=NULL;
+static int RemoveVolGeom = 0;
 static int cras_add = 0;
 static int cras_subtract = 0;
 static int ToScanner = 0;
@@ -631,8 +632,11 @@ main(int argc, char *argv[])
   }
   else
   {
-    if(MRISfileNameType(out_fname) == MRIS_VOLUME_FILE)
-    {
+    if(RemoveVolGeom){
+      printf("Removing Vol Geom\n");
+      mris->vg.valid = 0;
+    }
+    if(MRISfileNameType(out_fname) == MRIS_VOLUME_FILE) {
       printf("Saving surface xyz %s as a volume format\n",out_fname);
       MRI *vol = MRIallocSequence(mris->nvertices, 1, 1, MRI_FLOAT, 3);
       MRIScopyMRI(mris,vol,0,"x");
@@ -645,8 +649,8 @@ main(int argc, char *argv[])
     {
       // default output:
       printf("Saving %s as a surface\n",out_fname);
-      if(VolGeomMRI)
-      {
+      if(VolGeomMRI) {
+	printf("Adding Vol Geom\n");
         getVolGeom(VolGeomMRI,&mris->vg);
       }
       MRISwrite(mris, out_fname) ;
@@ -819,6 +823,10 @@ get_option(int argc, char *argv[])
     }
     nargs = 1 ;
   }
+  else if (!stricmp(option, "-remove-vol-geom"))
+  {
+    RemoveVolGeom = 1;
+  }
   else switch (toupper(*option))
     {
     case 'A':
@@ -934,6 +942,7 @@ print_help(void)
   printf( "  --userealras : set the useRealRAS flag in the surface file to 1 \n") ;
   printf( "  --usesurfras : set the useRealRAS flag in the surface file to 0 \n") ;
   printf( "  --vol-geom MRIVol : use MRIVol to set the volume geometry\n") ;
+  printf( "  --remove-vol-geom : sets the valid flag in vg to 0\n") ;
   printf( "  --to-surf surfcoords : copy coordinates from surfcoords to output (good for patches)\n") ;
   printf( "  --to-scanner : convert coordinates from native FS (tkr) coords to scanner coords\n") ;
   printf( "  --to-tkr : convert coordinates from scanner coords to native FS (tkr) coords \n") ;
