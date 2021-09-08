@@ -16,8 +16,7 @@ set annot = aparc.annot;
 set InitLTA = ()
 set threads = 1
 set LF = ();
-
-set LF = ();
+set InitLTAfromTal = 0
 
 set inputargs = ($argv);
 set PrintHelp = 0;
@@ -65,7 +64,14 @@ if($DoXHemi) then
   if(! -e $sd/lrrev.register.dat) then
     echo "xhemi does not exist for $subject, running now"
     set cmd = (xhemireg --s $subject)
-    if($#hemilist == 1) set cmd = ($cmd --$hemilist)
+    if($#hemilist == 1) then
+      if($hemilist == lh) set cmd = ($cmd --rh)
+      if($hemilist == rh) set cmd = ($cmd --lh)
+    endif
+    if($InitLTAfromTal) then
+      set cmd = ($cmd --tal-estimate)
+      set InitLTA = $sd/mri/transforms/talairach.xfm.lta
+    endif
     echo $cmd | tee -a $LF
     $cmd | tee -a $LF
     if($status) exit 1;
@@ -152,6 +158,12 @@ while( $#argv != 0 )
         echo "ERROR: cannot find $InitLTA"
         exit 1
       endif
+      set InitLTAfromTal = 0
+      breaksw
+
+    case "--lta-init-from-tal":
+      set InitLTAfromTal = 1
+      set InitLTA = ()
       breaksw
 
     case "--lh":
