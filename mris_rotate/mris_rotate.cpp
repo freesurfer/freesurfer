@@ -39,9 +39,10 @@ static void print_help(void) ;
 static void print_version(void) ;
 
 const char *Progname ;
+char *regfile = NULL;
+int VolGeomValid = 1;
 
-int
-main(int argc, char *argv[]) {
+int main(int argc, char *argv[]) {
   char         **av, *in_fname, *out_fname ;
   int          ac, nargs ;
   MRI_SURFACE  *mris ;
@@ -84,16 +85,42 @@ main(int argc, char *argv[]) {
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
               Progname, in_fname) ;
 
-  alpha = RADIANS(alpha) ;
-  beta = RADIANS(beta) ;
-  gamma = RADIANS(gamma) ;
-  MRIScenter(mris, mris) ;
-  MRISrotate(mris, mris, alpha, beta, gamma) ;
-  if (!mris)
-    ErrorExit(ERROR_NOFILE, "%s: could not rotate surface", Progname) ;
+  if(regfile){
+    printf("Applying rotational components from regfile, ignoring alpha, beta, gamma\n");
+    MRIScenter(mris, mris) ; // not sure this is needed if this is a sphere
+    printf("Reading in reg file %s\n",regfile);
+    LTA *lta = LTAread(regfile);
+    if(lta==NULL) exit(1);
+    printf("Extracting rotational components\n");
+    LTAmat2RotMat(lta);
+    printf("Applying rotation matrix to surface\n");
+    MatrixPrint(stdout,lta->xforms[0].m_L);
+    int err = MRISltaMultiply(mris, lta);
+    if(err) exit(1);
+    LTAfree(&lta);
+    // This may be needed because lta is changed to tkreg and it gets an offset
+    MRIScenter(mris, mris) ;
+  }
+  else {
+    printf("alpha = %g  beta = %g gamma = %g\n",alpha,beta,gamma);
+    alpha = RADIANS(alpha) ;
+    beta = RADIANS(beta) ;
+    gamma = RADIANS(gamma) ;
+    MRIScenter(mris, mris) ;
+    MRISrotate(mris, mris, alpha, beta, gamma) ;
+    if (!mris)
+      ErrorExit(ERROR_NOFILE, "%s: could not rotate surface", Progname) ;
+  }
 
   if (Gdiag & DIAG_SHOW)
     fprintf(stderr, "writing rotated surface to %s\n", out_fname) ;
+
+  if(VolGeomValid == 0){
+    // This can be useful with spherical surfs when viewing in freeview
+    printf("Making vg invalid\n");
+    mris->vg.valid = 0;
+  }
+
   MRISwrite(mris, out_fname) ;
 
   exit(0) ;
@@ -121,6 +148,13 @@ get_option(int argc, char *argv[]) {
       print_usage() ;
       exit(1) ;
       break ;
+    case 'R':
+      regfile = argv[2];
+      nargs++;
+      break ;
+    case 'N':
+      VolGeomValid = 0;
+      break ;
     default:
       fprintf(stderr, "unknown option %s\n", argv[1]) ;
       exit(1) ;
@@ -138,23 +172,21 @@ usage_exit(void) {
 
 static void
 print_usage(void) {
-  fprintf(stderr,
-          "usage: %s [options] <surface file> <delta phi> <delta theta>"
-          " <output surface>\n", Progname) ;
+  printf("%s [options] input_surface alphaDeg betaDeg gammaDeg output_surface\n", Progname) ;
+  printf("-r regfile : extract angles from regfile (ignores alpha, beta, gamma)\n");
+  printf("-n : invalidate volume geometry in output\n");
 }
 
 static void
 print_help(void) {
   print_usage() ;
-  fprintf(stderr,
-          "\nThis program will add a template into an average surface.\n");
-  fprintf(stderr, "\nvalid options are:\n\n") ;
+  printf("This program will rotate a surface given the three angles\n");
   exit(1) ;
 }
 
 static void
 print_version(void) {
-  fprintf(stderr, "%s\n", getVersion().c_str()) ;
+  printf("%s\n", getVersion().c_str()) ;
   exit(1) ;
 }
 
