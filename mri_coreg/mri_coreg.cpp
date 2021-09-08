@@ -720,7 +720,7 @@ static int parse_commandline(int argc, char **argv) {
       double par[12];
       int k;
       for(k=0; k<12; k++) sscanf(pargv[k],"%lf",&par[k]);
-      //for(k=0; k<12; k++) printf("%lf\n",par[k]);
+      for(k=0; k<12; k++) printf("%lf\n",par[k]);
       MRI *mrisrc, *mritarg;
       mrisrc = MRIread(pargv[12]);
       if(mrisrc==NULL) exit(1);
@@ -736,6 +736,42 @@ static int parse_commandline(int argc, char **argv) {
       MRIfree(&mritarg);
       MatrixFree(&T);
       LTAfree(&lta);
+      exit(err);
+    } 
+    else if (!strcasecmp(option, "--lrrev")) {
+      /* This will give an approximate registration for when the
+         pixels in the input image are left-right reversed (eg, with
+         mri_convert --left-right-reverse-pix). It approximates the
+	 registration you would get if you registered the LR reversed
+	 input to the target. It would only be exact if the input image
+	 were truly symetrical. 
+      */
+      if(nargc < 2) CMDargNErr(option,2);
+      LTA *lta;
+      lta = LTAread(pargv[0]);
+      if(lta==NULL) exit(1);
+      int srctype = lta->type;
+      LTAchangeType(lta,LINEAR_RAS_TO_RAS);
+      LTAinvert(lta,lta);
+      double p[12];
+      TranformExtractAffineParams(lta->xforms[0].m_L,p);
+      printf("Input Parameters: ");
+      for(int k=0; k < 12; k++) printf("%g ",p[k]);
+      printf("\n");
+      p[0] = -p[0];
+      p[4] = -p[4];
+      p[5] = -p[5];
+      p[9] = -p[9];
+      p[10] = -p[10];
+      printf("New Parameters:   ");
+      for(int k=0; k < 12; k++) printf("%g ",p[k]);
+      printf("\n");
+      MATRIX *T = TranformAffineParams2Matrix(p, NULL);
+      MatrixInverse(T,T);
+      MatrixCopy(T,lta->xforms[0].m_L);
+      LTAchangeType(lta,srctype);
+      int err = LTAwrite(lta,pargv[1]);
+      nargsused = 2;
       exit(err);
     } 
     else if (!strcasecmp(option, "--landmarks")) {
@@ -936,6 +972,7 @@ static void print_usage(void) {
   printf("   --mat2rot reg.lta rotreg.lta: convert registration to a pure rotation\n");
   printf("   --par2mat par1-par12 srcvol trgvol reg.lta : convert parameters to a  registration\n");
   printf("      the subject in the output reg.lta can be set with --s before --par2mat\n");
+  printf("   --lrrev reg.lta reg.lrrev.lta : approx reg if you were to left-right rev the pix of the input image\n");
   printf("   --landmarks sxyz txyz coords mov targ outlta : convert landmarks to a registration\n");
   printf("   --rms radius filename reg1 reg2 : compute RMS diff between two registrations using MJ's method (rad ~= 50mm)\n");
   printf("      The rms will be written to filename; if filename == nofile, then no file is created\n");
