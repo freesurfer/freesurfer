@@ -752,22 +752,57 @@ static int parse_commandline(int argc, char **argv) {
       if(lta==NULL) exit(1);
       int srctype = lta->type;
       LTAchangeType(lta,LINEAR_RAS_TO_RAS);
-      LTAinvert(lta,lta);
+
+      // Have to compute where the RAS in the output space moves when
+      // flipped to get the x offset.
+      // Compute RAS in the input space for A0 = [0 0 0 1]' = center in output space
+      // P0 = inv(T)*A0 where T is the reg
+      // Compute the col,row,slice in the input space
+      // K0 = ras2vox*P0 is the 
+      // Compute where this point goes to when flipping
+      // K2 = K0 except in the dim being flipped where it is K2 = (ndim-1)-K0
+      // Compute where this point is in RAS
+      // P2 = vox2ras*K2 -- the value of the x offset becomes P2 in the flipping dim
+      MATRIX *Tinv0 = MatrixInverse(lta->xforms[0].m_L,NULL);
+      MATRIX *Mvox2ras = vg_i_to_r(&lta->xforms[0].src);
+      MATRIX *Mras2vox = vg_r_to_i(&lta->xforms[0].src);
+      MATRIX *M = MatrixMultiply(Mras2vox,Tinv0,NULL);
+      MRI *mri = MRIallocFromVolGeom(&lta->xforms[0].src, MRI_UCHAR, 1, 1);
+      char ostr[5];  ostr[4] = '\0';
+      MRIdircosToOrientationString(mri,ostr);
+      printf("Orientation %s\n",ostr);
+      int k = -1, ndim=0;
+      // Determine which dimension was flipped
+      if(ostr[0] == 'L' || ostr[0] == 'R') {k = 1; ndim=lta->xforms[0].src.width;}
+      if(ostr[1] == 'L' || ostr[1] == 'R') {k = 2; ndim=lta->xforms[0].src.height;}
+      if(ostr[2] == 'L' || ostr[2] == 'R') {k = 3; ndim=lta->xforms[0].src.depth;}
+      printf("k=%d ndim=%d\n",k,ndim);
+      MATRIX *K2 = MatrixAlloc(4,1,MATRIX_REAL);
+      for(int n=1; n <=4 ; n++) K2->rptr[n][1] = M->rptr[n][4];
+      K2->rptr[k][1] = (ndim-1) - K2->rptr[k][1] ;
+      MATRIX *P2 = MatrixMultiply(Mvox2ras,K2,NULL);
+
+      // Get affine parameters for new matrix based on above and the src params
+      LTAinvert(lta,lta); // Not entirely sure why I need this here, but see --mat2par
       double p[12];
       TranformExtractAffineParams(lta->xforms[0].m_L,p);
       printf("Input Parameters: ");
       for(int k=0; k < 12; k++) printf("%g ",p[k]);
       printf("\n");
-      p[0] = -p[0];
-      p[4] = -p[4];
-      p[5] = -p[5];
-      p[9] = -p[9];
-      p[10] = -p[10];
+      p[0] = P2->rptr[1][1]; // shift in x
+      p[4] = -p[4]; // rotation about y
+      p[5] = -p[5]; // rotation about z
+      p[9] = -p[9];   // xy shear
+      p[10] = -p[10]; // xz shear
+      // Leave the others as they are
       printf("New Parameters:   ");
       for(int k=0; k < 12; k++) printf("%g ",p[k]);
       printf("\n");
+
+      // Now create a matrix from the parameters
       MATRIX *T = TranformAffineParams2Matrix(p, NULL);
-      MatrixInverse(T,T);
+      MatrixInverse(T,T); // Again with the inverse
+
       MatrixCopy(T,lta->xforms[0].m_L);
       LTAchangeType(lta,srctype);
       int err = LTAwrite(lta,pargv[1]);
