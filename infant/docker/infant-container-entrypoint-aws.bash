@@ -1,24 +1,28 @@
 #!/bin/bash
 
-echo "---------------------------------------------------------------"
+echo "==============================================================="
 echo "ENVIRONMENT VARIABLES"
 echo ""
-echo "AWS_BATCH_JOB_ID:         $AWS_BATCH_JOB_ID"
-echo "AWS_BATCH_JQ_NAME:        $AWS_BATCH_JQ_NAME"
-echo "AWS_BATCH_CE_NAME:        $AWS_BATCH_CE_NAME"
+echo "AWS_BATCH_JOB_ID:                  $AWS_BATCH_JOB_ID"
+echo "AWS_BATCH_JQ_NAME:                 $AWS_BATCH_JQ_NAME"
+echo "AWS_BATCH_CE_NAME:                 $AWS_BATCH_CE_NAME"
+echo "---------------------------------------------------------------"
+echo "FREESURFER_HOME:                   $FREESURFER_HOME"
+echo "FS_INFANT_MODEL:                   $FS_INFANT_MODEL"
+echo "SUBJECTS_DIR:                      $SUBJECTS_DIR"
+echo "FS_SUB_NAME:                       $FS_SUB_NAME"
+echo "---------------------------------------------------------------"
 echo "FS_NIFTI_INPUT_S3_FILEPATH:        $FS_NIFTI_INPUT_S3_FILEPATH"
 echo "FS_NIFTI_INPUT_LOCAL_FILEPATH:     $FS_NIFTI_INPUT_LOCAL_FILEPATH"
 echo "FS_OUTPUT_S3_FILEPATH:             $FS_OUTPUT_S3_FILEPATH"
-echo "FS_SUB_NAME:                       $FS_SUB_NAME"
-echo "FS_SUBJECTS_DIR_IN_CONTAINER:      $FS_SUBJECTS_DIR_IN_CONTAINER"
-echo "FS_SUBJECTS_DIR_OUT_CONTAINER:     $FS_SUBJECTS_DIR_OUT_CONTAINER"
-echo "---------------------------------------------------------------"
+echo "==============================================================="
 
-if [ -n "${FS_SUBJECTS_DIR_OUT_CONTAINER}" ]; then
+# infant pipeline input must be ${SUBJECTS_DIR}:${FS_SUB_NAME}/mprage.nii.gz
+if [ -n "${SUBJECTS_DIR}" ] && [ -n "${FS_SUB_NAME}" ]; then
   echo "---------------------------------------------------------------"
-  echo "FS_SUBJECTS_DIR_OUT_CONTAINER detected. Attempting to make dir"
-  echo "mkdir -p ${FS_SUBJECTS_DIR_OUT_CONTAINER}"
-  mkdir -p ${FS_SUBJECTS_DIR_OUT_CONTAINER}
+  echo "SUBJECTS_DIR and FS_SUB_NAME detected. Attempting to make dir"
+  echo "mkdir -p ${SUBJECTS_DIR}/${FS_SUB_NAME}"
+  mkdir -p ${SUBJECTS_DIR}/${FS_SUB_NAME}
   echo "---------------------------------------------------------------"
 fi
 
