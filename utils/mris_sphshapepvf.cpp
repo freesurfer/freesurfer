@@ -154,7 +154,7 @@ int SphShapePVFSim::ComputePVF(void)
 #pragma omp parallel for reduction(+ : SumPVF)
 #endif
   for (c = 0; c < vol->width; c++) {
-    if(debug>0) printf("c=%d\n",c);fflush(stdout);
+    if(debug>0) {printf("c=%d\n",c);fflush(stdout);}
     int r,s;
     double D,vpvf;
     MATRIX *crs, *ras=NULL;
