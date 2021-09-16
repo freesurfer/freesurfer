@@ -92,7 +92,11 @@ Save final mask to outmaskvol.
 
 --ar1 ar1path
 
-Save spatial AR1 volume.
+Save spatial AR1 volume (6 frames)
+
+--ar1red ar1redpath
+
+Save spatial AR1 volume (3 frames), averaging the 6
 
 --X x.mat
 
@@ -231,6 +235,7 @@ double round(double x);
 #include "icosahedron.h"
 #include "pdf.h"
 #include "matfile.h"
+#include "mrinorm.h"
 
 #include "romp_support.h"
 
@@ -318,6 +323,7 @@ int SetTR=0;
 
 MB2D *mb2drad=NULL,*mb2dtan=NULL;
 int DoSpatialINorm = 0;
+char *ar1redfile=NULL, *fwhmvolfile=NULL;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
@@ -648,6 +654,18 @@ int main(int argc, char *argv[]) {
   printf("nresels %lf\n",nresels);
   printf("nvoxperresel %lf\n",nvoxperresel);
 
+  if(ar1redfile || fwhmvolfile){
+    MRI *ar1red = fMRIspatialARreduce(ar1,mask,NULL);
+    if(ar1redfile){
+      MRIwrite(ar1red,ar1redfile);
+    }
+    if(fwhmvolfile){
+      double fvoxsize[] = {ar1->xsize,ar1->ysize,ar1->zsize};
+      MRI *fwhmvol = fMRIarToFWHM(ar1red, 1, fvoxsize, mask, NULL);
+      MRIwrite(fwhmvol,fwhmvolfile);
+    }
+  }
+
   if(DoAR2){
     printf("Computing spatial AR2 in volume.\n");
     fMRIspatialAR2Mean(InVals, mask, &car2mn, &rar2mn, &sar2mn);
@@ -867,9 +885,20 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       outpath = pargv[0];
       nargsused = 1;
-    } else if (!strcasecmp(option, "--ar1")) {
+    } 
+    else if (!strcasecmp(option, "--ar1")) {
       if (nargc < 1) CMDargNErr(option,1);
       ar1path = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--ar1red")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      ar1redfile = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--fwhmvol")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      fwhmvolfile = pargv[0];
       nargsused = 1;
     } 
     else if (!strcasecmp(option, "--arN")) {
@@ -915,6 +944,17 @@ static int parse_commandline(int argc, char **argv) {
       #endif
       nargsused = 1;
     } 
+    else if(!strcasecmp(option, "--soap")){
+      // --soap src mask niters out
+      if(nargc < 4) CMDargNErr(option,4);
+      MRI *src  = MRIread(pargv[0]);
+      MRI *mask = MRIread(pargv[1]);
+      int niter;
+      sscanf(pargv[2],"%d",&niter);
+      MRI *out = MRIsoapBubble(src, mask, NULL, niter, .01);
+      MRIwrite(out,pargv[3]);
+      exit(0);
+    }
     else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if (CMDsingleDash(option))
@@ -1059,7 +1099,15 @@ printf("Save final mask to outmaskvol.\n");
 printf("\n");
 printf("--ar1 ar1path\n");
 printf("\n");
-printf("Save spatial AR1 volume.\n");
+printf("Save spatial AR1 volume. (6 frames)\n");
+printf("\n");
+printf("--ar1red ar1redpath\n");
+printf("\n");
+printf("Save spatial AR1 volume, 3 frames, average of the 6 frame.\n");
+printf("\n");
+printf("--fwhmvol fwhmvol\n");
+printf("\n");
+printf("Save 3 frame map of the FWHM at each voxel.\n");
 printf("\n");
 printf("--X x.mat\n");
 printf("\n");
