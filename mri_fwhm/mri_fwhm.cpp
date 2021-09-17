@@ -324,7 +324,7 @@ int SetTR=0;
 MB2D *mb2drad=NULL,*mb2dtan=NULL;
 int DoSpatialINorm = 0;
 char *ar1redfile=NULL, *fwhmvolfile=NULL;
-char *fwhmvolmnfile=NULL;
+char *fwhmvolmnfile=NULL,*fwhmdatfile=NULL;
 
 int fMRIspatialFWHMMean(MRI *fhwmvol, MRI *mask, double *cfwhmmn, double *rfwhmmn, double *sfwhmmn);
 
@@ -649,6 +649,11 @@ int main(int argc, char *argv[]) {
   printf("rowfwhm   = %lf\n",rfwhm);
   printf("slicefwhm = %lf\n",sfwhm);
   printf("outfwhm = %lf\n",fwhm);
+  if(fwhmdatfile){
+    FILE *fp = fopen(fwhmdatfile,"w");
+    fprintf(fp,"%8.4lf %8.4lf %8.4lf\n",cfwhm,rfwhm,sfwhm);
+    fclose(fp);
+  }
 
   reselvolume = cfwhm*rfwhm*sfwhm;
   nvoxperresel = reselvolume/voxelvolume;
@@ -921,6 +926,11 @@ static int parse_commandline(int argc, char **argv) {
       fwhmvolmnfile = pargv[0];
       nargsused = 1;
     } 
+    else if (!strcasecmp(option, "--fwhmdat")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      fwhmdatfile = pargv[0];
+      nargsused = 1;
+    } 
     else if (!strcasecmp(option, "--arN")) {
       if (nargc < 2) CMDargNErr(option,2);
       sscanf(pargv[0],"%d",&arNlags);
@@ -1022,7 +1032,10 @@ static void print_usage(void) {
   printf("   --to-fwhm-file file : save to-fwhm params in file\n");
   printf("\n");
   printf("   --sum sumfile : summary/log\n");
-  printf("   --dat datfile : only the final fwhm estimate\n");
+  printf("   --dat datfile : only the final fwhm estimate (base on mean ar1)\n");
+  printf("   --fwhmdat fwhmdatfile : compute and save the fwhm of each dim (based on mean ar1)\n");
+  printf("   --fwhmvolmn fwhmvolmnfile : compute and save the fwhm of each dim (based on fwhmvol)\n");
+  printf("   --fwhmvol fwhmvol : Save 3 frame map of the FWHM at each voxel.\n");
   printf("\n");
   printf("   --synth \n");
   printf("   --synth-frames nframes : default is 10 \n");
@@ -1132,6 +1145,10 @@ printf("\n");
 printf("--fwhmvolmn fwhmvolmn.dat\n");
 printf("\n");
 printf("Compute mean fwhm from fwhmvol and write into dat file\n");
+printf("\n");
+printf("--fwhmdat fwhm.dat\n");
+printf("\n");
+printf("Compute mean fwhm from ar1mean and write into dat file\n");
 printf("\n");
 printf("--X x.mat\n");
 printf("\n");
