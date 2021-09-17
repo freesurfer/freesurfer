@@ -324,6 +324,9 @@ int SetTR=0;
 MB2D *mb2drad=NULL,*mb2dtan=NULL;
 int DoSpatialINorm = 0;
 char *ar1redfile=NULL, *fwhmvolfile=NULL;
+char *fwhmvolmnfile=NULL;
+
+int fMRIspatialFWHMMean(MRI *fhwmvol, MRI *mask, double *cfwhmmn, double *rfwhmmn, double *sfwhmmn);
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
@@ -654,15 +657,27 @@ int main(int argc, char *argv[]) {
   printf("nresels %lf\n",nresels);
   printf("nvoxperresel %lf\n",nvoxperresel);
 
-  if(ar1redfile || fwhmvolfile){
+  if(ar1redfile || fwhmvolfile || fwhmvolmnfile){
+    // Reduce the 6 measures down to 3 by averaging
     MRI *ar1red = fMRIspatialARreduce(ar1,mask,NULL);
     if(ar1redfile){
       MRIwrite(ar1red,ar1redfile);
     }
-    if(fwhmvolfile){
+    if(fwhmvolfile || fwhmvolmnfile ){
+      // Compute fwhm at each voxel
       double fvoxsize[] = {ar1->xsize,ar1->ysize,ar1->zsize};
       MRI *fwhmvol = fMRIarToFWHM(ar1red, 1, fvoxsize, mask, NULL);
-      MRIwrite(fwhmvol,fwhmvolfile);
+      if(fwhmvolfile) MRIwrite(fwhmvol,fwhmvolfile);
+      double cfwhmmn, rfwhmmn, sfwhmmn;
+      fMRIspatialFWHMMean(fwhmvol, mask, &cfwhmmn, &rfwhmmn, &sfwhmmn);
+      printf("vcolfwhm   = %lf\n",cfwhmmn);
+      printf("vrowfwhm   = %lf\n",rfwhmmn);
+      printf("vslicefwhm = %lf\n",sfwhmmn);
+      if(fwhmvolmnfile){
+	FILE *fp = fopen(fwhmvolmnfile,"w");
+	fprintf(fp,"%8.4lf %8.4lf %8.4lf\n",cfwhmmn,rfwhmmn,sfwhmmn);
+	fclose(fp);
+      }
     }
   }
 
@@ -901,6 +916,11 @@ static int parse_commandline(int argc, char **argv) {
       fwhmvolfile = pargv[0];
       nargsused = 1;
     } 
+    else if (!strcasecmp(option, "--fwhmvolmn")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      fwhmvolmnfile = pargv[0];
+      nargsused = 1;
+    } 
     else if (!strcasecmp(option, "--arN")) {
       if (nargc < 2) CMDargNErr(option,2);
       sscanf(pargv[0],"%d",&arNlags);
@@ -1108,6 +1128,10 @@ printf("\n");
 printf("--fwhmvol fwhmvol\n");
 printf("\n");
 printf("Save 3 frame map of the FWHM at each voxel.\n");
+printf("\n");
+printf("--fwhmvolmn fwhmvolmn.dat\n");
+printf("\n");
+printf("Compute mean fwhm from fwhmvol and write into dat file\n");
 printf("\n");
 printf("--X x.mat\n");
 printf("\n");
@@ -1512,3 +1536,36 @@ int getybest(double xa, double ya, double xb, double yb, double xc, double yc,
   return(0);
 }
 
+
+int fMRIspatialFWHMMean(MRI *fwhmvol, MRI *mask, double *cfwhmmn, double *rfwhmmn, double *sfwhmmn)
+{
+  int c, r, s;
+  long nhits;
+  double m, cfwhmsum, rfwhmsum, sfwhmsum;
+
+  cfwhmsum = 0.0;
+  rfwhmsum = 0.0;
+  sfwhmsum = 0.0;
+  nhits = 0;
+  for (c = 1; c < fwhmvol->width - 1; c++) {
+    for (r = 1; r < fwhmvol->height - 1; r++) {
+      for (s = 1; s < fwhmvol->depth - 1; s++) {
+        if (mask) {
+          m = MRIgetVoxVal(mask, c, r, s, 0);
+          if (m < 0.5) continue;
+        }
+        if(MRIgetVoxVal(fwhmvol, c, r, s, 0) == 0) continue;
+        cfwhmsum += MRIgetVoxVal(fwhmvol, c, r, s, 0);
+        rfwhmsum += MRIgetVoxVal(fwhmvol, c, r, s, 1);
+        sfwhmsum += MRIgetVoxVal(fwhmvol, c, r, s, 2);
+        nhits++;
+      }
+    }
+  }
+
+  *cfwhmmn = (cfwhmsum / nhits);
+  *rfwhmmn = (rfwhmsum / nhits);
+  *sfwhmmn = (sfwhmsum / nhits);
+
+  return(0);
+}
