@@ -392,6 +392,18 @@ MRI_REGION *REGIONgetBoundingBoxEqOdd(MRI *mask, int npad)
   region = REGIONgetBoundingBox(mask, npad);
   isodd = (region->dz % 2);
 
+  printf("Volume size: %d %d %d, OrigRegion: ",mask->width,mask->height,mask->depth);
+  REGIONprint(stdout,region);
+ 
+  if(region->dx > mask->height){
+    printf("ERROR: REGIONgetBoundingBoxEqOdd(): dx is bigger than MRI height\n");
+    return(NULL);
+  }
+  if(region->dy > mask->width){
+    printf("ERROR: REGIONgetBoundingBoxEqOdd(): dy is bigger than MRI width\n");
+    return(NULL);
+  }
+
   if(region->dx == region->dy && isodd) 
     return(region);
 
@@ -432,6 +444,21 @@ MRI_REGION *REGIONgetBoundingBoxEqOdd(MRI *mask, int npad)
       region->dx += delta;
       return(region);
     }
+    // Well, that did not work, use asymmetric padding
+    int pad2 = mask->width - (region->x + region->dx);
+    if(region->x < pad2){
+      // Add as much as possible to the left, then pad to the right
+      region->x = 0;
+      region->dx = region->dy;
+    }
+    else {
+      // Add as much as possible to the right, then pad to the left
+      region->dx = region->dy;
+      region->x = mask->width - region->dx;
+    }
+    printf("Volume size: %d %d %d, xAsymRegion: ",mask->width,mask->height,mask->depth);
+    REGIONprint(stdout,region);
+    return(region);
   }
   if(region->dy < region->dx){
     // reduce the y start by half the difference
@@ -440,9 +467,21 @@ MRI_REGION *REGIONgetBoundingBoxEqOdd(MRI *mask, int npad)
       region->dy += delta;
       return(region);
     }
+    int pad2 = mask->height - (region->y + region->dy);
+    if(region->y < pad2){
+      region->y = 0;
+      region->dy = region->dx;
+    }
+    else {
+      region->dy = region->dx;
+      region->y = mask->height - region->dy;
+    }
+    printf("Volume size: %d %d %d, yAsymRegion: ",mask->width,mask->height,mask->depth);
+    REGIONprint(stdout,region);
+    return(region);
   }
 
-  // More can be done, eg, making the padding asymmetric.
+  // Should probably never get here
   printf("ERROR: REGIONgetBoundingBoxEqOdd(): cannot make x=y\n");
   printf("Volume size: %d %d %d, Region: ",mask->width,mask->height,mask->depth);
   REGIONprint(stdout,region);
