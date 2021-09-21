@@ -191,6 +191,7 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   addAction(ui->actionResetViewSuperior);
   addAction(ui->actionResetViewInferior);
   addAction(ui->actionCopyView);
+  addAction(ui->actionDeleteLayer);
 
   addAction(ui->actionNextLabelPoint);
 
@@ -681,6 +682,8 @@ void MainWindow::LoadSettings()
   {
     m_settings["3DAxesFlyMode"] = 4;
   }
+
+  ui->actionDeleteLayer->setVisible(m_settings["AllowDeleteKey"].toBool());
 
   m_settings["Version"] = SETTING_VERSION;
   if (!m_settings.contains("UseComma"))
@@ -8669,6 +8672,8 @@ void MainWindow::UpdateSettings()
         }
       }
     }
+
+    ui->actionDeleteLayer->setVisible(m_settings["AllowDeleteKey"].toBool());
   }
 }
 
@@ -9721,4 +9726,21 @@ void MainWindow::OnCreateOptimalVolume()
   VolumeFilterOptimal* filter = new VolumeFilterOptimal(input_mris, input_rois, mri_new, this);
   filter->SetResetWindowLevel();
   m_threadVolumeFilter->ExecuteFilter(filter);
+}
+
+void MainWindow::OnDeleteLayer()
+{
+  QString type = GetCurrentLayerType();
+  Layer* layer = GetActiveLayer(type);
+  if (!layer)
+    return;
+
+  if (type == "MRI")
+    OnCloseVolume();
+  else if (type == "Surface")
+    OnCloseSurface();
+  else if (type == "ROI")
+    OnCloseROI();
+  else if (type == "PointSet")
+    OnClosePointSet();
 }

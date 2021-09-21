@@ -626,6 +626,8 @@ protected slots:
 
   void OnCreateOptimalVolume();
 
+  void OnDeleteLayer();
+
 private:
   bool DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit);
   void SaveSettings();

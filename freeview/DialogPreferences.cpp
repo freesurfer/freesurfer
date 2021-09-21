@@ -106,6 +106,7 @@ DialogPreferences::DialogPreferences(QWidget *parent) :
   connect(ui->spinBoxPrecision, SIGNAL(valueChanged(int)), mainwnd, SLOT(UpdateSettings()));
   connect(ui->checkBoxComma, SIGNAL(toggled(bool)), mainwnd, SLOT(UpdateSettings()));
   connect(ui->checkBoxClickToLock, SIGNAL(toggled(bool)), mainwnd, SLOT(UpdateSettings()));
+  connect(ui->checkBoxAllowDeleteKey, SIGNAL(toggled(bool)), mainwnd, SLOT(UpdateSettings()));
 
   connect(ui->spinBoxPrecision, SIGNAL(valueChanged(int)), mainwnd, SLOT(UpdateInfoPanel()), Qt::QueuedConnection);
   connect(ui->checkBoxComma, SIGNAL(toggled(bool)), mainwnd, SLOT(UpdateInfoPanel()), Qt::QueuedConnection);
@@ -160,6 +161,7 @@ void DialogPreferences::SetSettings(const QVariantMap &map)
   ui->checkBoxComma->setChecked(map["UseComma"].toBool());
   ui->checkBoxClickToLock->setChecked(map["ClickToLock"].toBool());
   ui->comboBox3DScaleStyle->setCurrentIndex(map["3DAxesFlyMode"].toInt());
+  ui->checkBoxAllowDeleteKey->setChecked(map["AllowDeleteKey"].toBool());
 
   MainWindow* mainwnd = MainWindow::GetMainWindow();
   QString val = map.value("ShortcutCycleLayer").toString();
@@ -214,6 +216,7 @@ QVariantMap DialogPreferences::GetSettings()
   map["UseComma"] = ui->checkBoxComma->isChecked();
   map["ClickToLock"] = ui->checkBoxClickToLock->isChecked();
   map["3DAxesFlyMode"] = ui->comboBox3DScaleStyle->currentIndex();
+  map["AllowDeleteKey"] = ui->checkBoxAllowDeleteKey->isChecked();
   return map;
 }
 
