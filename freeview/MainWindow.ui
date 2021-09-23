@@ -1841,6 +1841,14 @@
     <string>Ctrl+Shift+C</string>
    </property>
   </action>
+  <action name="actionDeleteLayer">
+   <property name="text">
+    <string>Delete Layer</string>
+   </property>
+   <property name="shortcut">
+    <string>Del</string>
+   </property>
+  </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>
@@ -3808,6 +3816,22 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>actionDeleteLayer</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnDeleteLayer()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <signal>CycleOverlayRequested()</signal>
@@ -3923,5 +3947,6 @@
   <slot>OnTransformSurface()</slot>
   <slot>OnCreateOptimalVolume()</slot>
   <slot>OnCopyView()</slot>
+  <slot>OnDeleteLayer()</slot>
  </slots>
 </ui>
