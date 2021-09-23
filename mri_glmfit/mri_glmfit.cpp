@@ -765,6 +765,7 @@ int main(int argc, char **argv) {
   double Ccond, dtmp, threshadj, eff;
   const char *tmpstr2=NULL;
 
+  setenv("FS_MRIMASK_ALLOW_DIFF_GEOM","0",1);
   eresfwhm = -1;
   csd = CSDalloc();
   csd->threshsign = 0; //0=abs,+1,-1
