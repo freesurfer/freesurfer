@@ -2140,6 +2140,100 @@ int fMRIspatialAR1Mean(MRI *ar1, MRI *mask, double *car1mn, double *rar1mn, doub
   return (0);
 }
 
+/*!
+  \fn MRI *fMRIspatialARreduce(MRI *arVol, MRI *mask, MRI *arRed)
+  \brief Takes output of fMRIspatialAR1() and reduces to 3 frames
+  by averaging each direction.
+*/
+MRI *fMRIspatialARreduce(MRI *arVol, MRI *mask, MRI *arRed)
+{
+  int c;
+  double m;
+
+  //arVol should have 6 frames
+  if(arVol->nframes != 6){
+    printf("fMRIspatialARreduce(): arVol has %d frames, expecting 6\n",arVol->nframes);
+    return(NULL);
+  }
+  if(arRed == NULL) {
+    arRed = MRIallocSequence(arVol->width, arVol->height, arVol->depth, MRI_FLOAT, 3);
+    MRIcopyHeader(arVol, arRed);
+  }
+  MRIcopyPulseParameters(arVol, arRed);
+
+  for (c = 1; c < arVol->width - 1; c++) {
+    int r,s;
+    double a, b;
+    for(r = 1; r < arVol->height - 1; r++) {
+      for(s = 1; s < arVol->depth - 1; s++) {
+        if(mask) {
+          m = MRIgetVoxVal(mask, c, r, s, 0);
+          if (m < 0.5) continue;
+        }
+        if(MRIgetVoxVal(arVol, c, r, s, 0) == 0) continue;
+
+        a = MRIgetVoxVal(arVol, c, r, s, 0);
+        b = MRIgetVoxVal(arVol, c, r, s, 1);
+	MRIsetVoxVal(arRed,c,r,s,0,(a+b)/2.0);
+
+        a = MRIgetVoxVal(arVol, c, r, s, 2);
+        b = MRIgetVoxVal(arVol, c, r, s, 3);
+	MRIsetVoxVal(arRed,c,r,s,1,(a+b)/2.0);
+
+        a = MRIgetVoxVal(arVol, c, r, s, 4);
+        b = MRIgetVoxVal(arVol, c, r, s, 5);
+	MRIsetVoxVal(arRed,c,r,s,2,(a+b)/2.0);
+
+      }
+    }
+  }
+
+  return(arRed);
+}
+
+/*!
+  \fn MRI *fMRIarToFWHM(MRI *arVol, const int arOrder, const double *fvoxsize, const MRI *mask, MRI *fwhmVol)
+  \brief Converts the given AR volume into a map of FWHM. If fvoxsize is
+  null, then the units of the FWHM is voxels.  To have the units be in
+  mm, seg fvoxsize[k] = the voxel size that corrsponds to frame k in
+  arVol. arOrder is the order of the AR process (typically 1).
+ */
+MRI *fMRIarToFWHM(MRI *arVol, const int arOrder, const double *fvoxsize, const MRI *mask, MRI *fwhmVol)
+{
+  if (fwhmVol == NULL) {
+    fwhmVol = MRIallocSequence(arVol->width, arVol->height, arVol->depth, MRI_FLOAT, arVol->nframes);
+    MRIcopyHeader(arVol, fwhmVol);
+  }
+  if (arVol->nframes != fwhmVol->nframes) {
+    printf("ERROR: fMRIarToFWHMvox(): number of frames mismatch %d %d\n", arVol->nframes, fwhmVol->nframes);
+    return (NULL);
+  }
+  MRIcopyPulseParameters(arVol, fwhmVol);
+
+  double *fscale = (double *) calloc(arVol->nframes,sizeof(double));
+  for(int f=0; f<arVol->nframes; f++){
+    if(fvoxsize == NULL) fscale[f] = arOrder;
+    else                 fscale[f] = arOrder * fvoxsize[f];
+  }
+
+  int c;
+  for(c=0; c < arVol->width; c++){
+    int r,s,f;
+    double ar,fwhm;
+    for(r=0; r < arVol->height; r++){
+      for(s=0; s < arVol->depth; s++){
+	if(mask && MRIgetVoxVal(mask,c,r,s,0) < 0.5) continue;
+	for(f=0; f < arVol->nframes; f++){
+	  ar = MRIgetVoxVal(arVol,c,r,s,f);
+	  fwhm = RFar1ToFWHM(ar, arOrder*fscale[f]);
+	  MRIsetVoxVal(fwhmVol,c,r,s,f,fwhm);
+	}
+      }
+    }
+  }
+  return(fwhmVol);
+}
+
 /*----------------------------------------------------------
   fMRIspatialAR2Mean() - computes gobal mean of spatial AR2
   for col, row, and slice separately.

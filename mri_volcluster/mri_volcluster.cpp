@@ -397,7 +397,7 @@ int main(int argc, char **argv) {
     if (MRIgetVoxVal(HitMap,col,row,slc,0)) continue;
 
     /* Grow cluster using this hit as a seed */
-    ClusterList[nclusters] = clustGrow(col,row,slc,HitMap,allowdiag);
+    ClusterList[nclusters] = clustGrow(col,row,slc,HitMap,allowdiag,-1);
 
     /* Determine the member with the maximum value */
     clustMaxMember(ClusterList[nclusters], vol, frame, threshsign);
@@ -1077,7 +1077,25 @@ static int parse_commandline(int argc, char **argv) {
       fscanf(fp,"%lf",&fwhm);
       fclose(fp);
       nargsused = 1;
-    } else {
+    } 
+    else if (!strcmp(option, "--grow")) {
+      // --grow vol c r s niters out
+      if(nargc < 5) argnerr(option,5);
+      MRI *mri = MRIread(pargv[0]);
+      int c,r,s,niters;
+      sscanf(pargv[1],"%d",&c);
+      sscanf(pargv[2],"%d",&r);
+      sscanf(pargv[3],"%d",&s);
+      sscanf(pargv[4],"%d",&niters);
+      int nhits, *hitcol, *hitrow, *hitslc;
+      MRI *HitMap = clustInitHitMap(mri,0,0.5, 1.5,1,&nhits, &hitcol, &hitrow, &hitslc,NULL,0);
+      VOLCLUSTER *cluster = clustGrow(c,r,s,HitMap,0,niters);
+      MRI *outvol = clustClusterList2Vol(&cluster, 1, mri, 0, 0);
+      MRIwrite(outvol,pargv[5]);
+      nargsused = 6;
+      exit(0);
+    } 
+    else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if (singledash(option))
         fprintf(stderr,"       Did you really mean -%s ?\n",option);

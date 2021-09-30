@@ -71,7 +71,7 @@ if(! $UseTkSurfer) then
     foreach overlay ($overlaylist)
       # Change this when RP changes linear opaque in fv
       set fmid = $fthresh;
-      set surfarg = "$surfarg":"overlay=$overlay":"overlay_threshold=$fthresh,$fmid,$fmax"
+      set surfarg = "$surfarg":"overlay=$overlay":"overlay_threshold=$fthresh,$fmid,$fmax":overlay_method=piecewise
       if($#overlayreg) set surfarg = "$surfarg":"overlay_reg=$overlayreg"
     end
     if($#labellist) then

@@ -1466,6 +1466,15 @@ if($DoMotionCor) then
     endif
   endif
 
+  # output some basic info about rawavg
+  set cmd = (mri_info $rawavg)
+  echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+  if($RunIt) then
+    echo "rawavg.mgz ========================================" | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) goto error_exit;
+  endif
+
   # At this point, rawavg.mgz exists. Use it to create orig.mgz,
   # conform to COR FOV but keep mgz format.
   set cmd = (mri_convert $rawavg $origvol)
@@ -1487,6 +1496,15 @@ if($DoMotionCor) then
     $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
     echo $cmd > $touchdir/conform.touch
+  endif
+
+  # output some basic info about orig.mgz
+  set cmd = (mri_info $origvol)
+  echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+  if($RunIt) then
+    echo "orig.mgz ========================================" | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) goto error_exit;
   endif
 
   # this is the goto target for longitudinal processing (from above):
@@ -1517,6 +1535,7 @@ if($DoMotionCor) then
   endif
 
 endif # Motion Correction
+
 
 
 # MOD: this takes the externally supplied mask and resamples it into the

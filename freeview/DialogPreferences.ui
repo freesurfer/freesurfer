@@ -920,6 +920,13 @@
             </item>
            </layout>
           </item>
+          <item>
+           <widget class="QCheckBox" name="checkBoxAllowDeleteKey">
+            <property name="text">
+             <string>Allow Delete key to delete current selected volume/surface/etc.</string>
+            </property>
+           </widget>
+          </item>
          </layout>
         </widget>
        </item>

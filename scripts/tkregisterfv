@@ -329,6 +329,7 @@ while( $#argv != 0 )
         exit 1;
       endif
       set params = ($argv[1-12]);
+      shift;shift;shift;shift;shift;shift;shift;shift;shift;shift;shift;shift;
       set regheader = 1
       breaksw
 

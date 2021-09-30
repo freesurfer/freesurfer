@@ -141,6 +141,7 @@ add_library(utils STATIC
   mrishash.cpp
   mrisp.cpp
   MRISrigidBodyAlignGlobal.cpp
+  mris_sphshapepvf.cpp
   mrisurf.cpp
   mrisurf_base.cpp
   mrisurf_compute_dxyz.cpp
