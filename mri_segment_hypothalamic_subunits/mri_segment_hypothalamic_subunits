@@ -114,14 +114,13 @@ def predict(name_subjects=None,
 
     # prepare output filepaths
     images_to_segment, path_segmentations, path_posteriors, path_volumes, path_main_volumes, path_stats = \
-        prepare_output_files(
-            name_subjects,
-            path_subjects_dir,
-            write_posteriors_FS,
-            path_images,
-            path_segmentations,
-            path_posteriors,
-            path_volumes)
+        prepare_output_files(name_subjects,
+                             path_subjects_dir,
+                             write_posteriors_FS,
+                             path_images,
+                             path_segmentations,
+                             path_posteriors,
+                             path_volumes)
 
     # get label and classes lists
     label_list = np.concatenate([np.zeros(1, dtype='int32'), np.arange(801, 811)])
@@ -309,7 +308,7 @@ def prepare_output_files(name_subjects, subjects_dir, write_posteriors_FS, path_
                     if not os.path.exists(out_seg):
                         os.mkdir(out_seg)
                     filename = os.path.basename(path_images).replace('.nii', '_seg.nii')
-                    filename = filename.replace('mgz', '_seg.mgz')
+                    filename = filename.replace('.mgz', '_seg.mgz')
                     filename = filename.replace('.npz', '_seg.npz')
                     out_seg = os.path.join(out_seg, filename)
                 else:
@@ -322,7 +321,7 @@ def prepare_output_files(name_subjects, subjects_dir, write_posteriors_FS, path_
                     if not os.path.exists(out_posteriors):
                         os.mkdir(out_posteriors)
                     filename = os.path.basename(path_images).replace('.nii', '_posteriors.nii')
-                    filename = filename.replace('mgz', '_posteriors.mgz')
+                    filename = filename.replace('.mgz', '_posteriors.mgz')
                     filename = filename.replace('.npz', '_posteriors.npz')
                     out_posteriors = os.path.join(out_posteriors, filename)
                 else:
@@ -497,14 +496,14 @@ def preprocess_image(im_path, crop=184, n_levels=3):
     '''
 
     # read image and corresponding info
-    im, shape, aff, n_dims, n_channels, header, im_res = get_volume_info(im_path, True, np.eye(4))
+    im, shape, aff, n_dims, n_channels, header, im_res = get_volume_info(im_path, return_volume=True, aff_ref=np.eye(4))
     if n_channels > 1:
-        print('WARNING: detected more than 1 channel, only keeping the first channel')
+        print('WARNING: detected more than 1 channel, only keeping the first channel.')
         im = im[..., 0]
         shape = shape[:n_dims]
 
     if n_dims != 3:
-        fs.fatal('input images should be 3D, found %s dimensions' % n_dims)
+        fs.fatal('Input images should be 3D, found %s dimensions.' % n_dims)
 
     # check that shape is divisible by 2**n_levels
     crop = reformat_to_list(crop, length=n_dims, dtype='int')
@@ -590,9 +589,6 @@ def postprocess(prediction, im_shape, crop_idx, labels, aff):
 
 # ================================================================================================
 #                       Neurite Utilities - See github.com/adalca/neurite
-#
-# TODO: We should import neurite as an external library, but since it's not on pypi yet, let's
-# just copy in the needed functions below for now.
 # ================================================================================================
 
 
@@ -718,7 +714,6 @@ def conv_enc(nb_features,
 
     # volume size data
     ndims = len(input_shape) - 1
-    input_shape = tuple(input_shape)
     if isinstance(pool_size, int):
         pool_size = (pool_size,) * ndims
 
@@ -750,7 +745,7 @@ def conv_enc(nb_features,
                 # conv dropout along feature space only
                 name = '%s_dropout_downarm_%d_%d' % (prefix, level, conv)
                 noise_shape = [None, *[1] * ndims, nb_lvl_feats]
-                last_tensor = keras.layers.Dropout(conv_dropout, noise_shape=noise_shape)(last_tensor)
+                last_tensor = keras.layers.Dropout(conv_dropout, noise_shape=noise_shape, name=name)(last_tensor)
 
         if use_residuals:
             convarm_layer = last_tensor
@@ -768,7 +763,7 @@ def conv_enc(nb_features,
                 if conv_dropout > 0:
                     name = '%s_dropout_down_merge_%d_%d' % (prefix, level, conv)
                     noise_shape = [None, *[1] * ndims, nb_lvl_feats]
-                    last_tensor = keras.layers.Dropout(conv_dropout, noise_shape=noise_shape)(last_tensor)
+                    last_tensor = keras.layers.Dropout(conv_dropout, noise_shape=noise_shape, name=name)(last_tensor)
 
             name = '%s_res_down_merge_%d' % (prefix, level)
             last_tensor = keras.layers.add([add_layer, convarm_layer], name=name)
@@ -841,7 +836,6 @@ def conv_dec(nb_features,
 
     # vol size info
     ndims = len(input_shape) - 1
-    input_shape = tuple(input_shape)
     if isinstance(pool_size, int):
         if ndims > 1:
             pool_size = (pool_size,) * ndims
@@ -886,7 +880,7 @@ def conv_dec(nb_features,
             if conv_dropout > 0:
                 name = '%s_dropout_uparm_%d_%d' % (prefix, level, conv)
                 noise_shape = [None, *[1] * ndims, nb_lvl_feats]
-                last_tensor = keras.layers.Dropout(conv_dropout, noise_shape=noise_shape)(last_tensor)
+                last_tensor = keras.layers.Dropout(conv_dropout, noise_shape=noise_shape, name=name)(last_tensor)
 
         # residual block
         if use_residuals:
@@ -903,7 +897,7 @@ def conv_dec(nb_features,
                 if conv_dropout > 0:
                     name = '%s_dropout_up_merge_%d_%d' % (prefix, level, conv)
                     noise_shape = [None, *[1] * ndims, nb_lvl_feats]
-                    last_tensor = keras.layers.Dropout(conv_dropout, noise_shape=noise_shape)(last_tensor)
+                    last_tensor = keras.layers.Dropout(conv_dropout, noise_shape=noise_shape, name=name)(last_tensor)
 
             name = '%s_res_up_merge_%d' % (prefix, level)
             last_tensor = keras.layers.add([last_tensor, add_layer], name=name)
@@ -923,7 +917,6 @@ def conv_dec(nb_features,
     # output prediction layer
     # we use a softmax to compute P(L_x|I) where x is each location
     if final_pred_activation == 'softmax':
-        # print("using final_pred_activation %s for %s" % (final_pred_activation, model_name))
         name = '%s_prediction' % prefix
         softmax_lambda_fcn = lambda x: keras.activations.softmax(x, axis=ndims + 1)
         pred_tensor = keras.layers.Lambda(softmax_lambda_fcn, name=name)(last_tensor)
@@ -940,8 +933,6 @@ def conv_dec(nb_features,
 
 # ================================================================================================
 #                                        Lab2Im Utilities
-#
-# TODO: These should be either replaced or reasonably integrated with FS library utilities
 # ================================================================================================
 
 
@@ -1221,7 +1212,7 @@ def get_dims(shape, max_channels=10):
     return n_dims, n_channels
 
 
-def add_axis(x, axis=0):
+def add_axis(x, axis):
     """Add axis to a numpy array.
     :param axis: index of the new axis to add. Can also be a list of indices to add several axes at the same time."""
     axis = reformat_to_list(axis)
@@ -1327,7 +1318,7 @@ def build_binary_structure(connectivity, n_dims, shape=None):
 
 # ---------------------------------------------------- edit volume -----------------------------------------------------
 
-def rescale_volume(volume, new_min=0, new_max=255, min_percentile=2, max_percentile=98, use_positive_only=True):
+def rescale_volume(volume, new_min=0., new_max=255., min_percentile=2., max_percentile=98., use_positive_only=True):
     """This function linearly rescales a volume between new_min and new_max.
     :param volume: a numpy array
     :param new_min: (optional) minimum value for the rescaled image.
