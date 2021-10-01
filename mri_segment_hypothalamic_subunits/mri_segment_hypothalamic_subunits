@@ -134,40 +134,30 @@ def predict(name_subjects=None,
         print('using 1 thread')
     else:
         print('using %s threads' % threads)
-
     tf.config.threading.set_inter_op_parallelism_threads(threads)
     tf.config.threading.set_intra_op_parallelism_threads(threads)
 
+    # build network
+    _, _, n_dims, n_channels, _, _ = get_volume_info(images_to_segment[0])
+    model_input_shape = [None] * n_dims + [n_channels]
+    net = build_model(path_model, model_input_shape, len(label_list))
+
     # perform segmentation
-    net = None
-    previous_model_input_shape = None
-    loop_info = LoopInfo(len(images_to_segment), 10, 'predicting')
+    loop_info = LoopInfo(len(images_to_segment), 10, 'predicting', True)
     for idx, (path_image, path_segmentation, path_posterior, path_volume, path_stat) in \
             enumerate(zip(images_to_segment, path_segmentations, path_posteriors, path_volumes, path_stats)):
         loop_info.update(idx)
 
-        # preprocess image and get information
+        # preprocessing
         try:
             image, aff, h, im_res, shape, crop_idx = preprocess_image(path_image, crop)
-            model_input_shape = list(image.shape[1:])
         except Exception as e:
             print('\nthe following problem occured when preprocessing image %s :' % path_image)
             print(e)
             print('resuming program execution\n')
             continue
 
-        # prepare net for first image or if input's size has changed
-        if (net is None) | (previous_model_input_shape != model_input_shape):
-
-            # check for image size compatibility
-            if (net is not None) & (previous_model_input_shape != model_input_shape):
-                print('image of different shape as previous ones, redefining network')
-            previous_model_input_shape = model_input_shape
-
-            # build network
-            net = build_model(path_model, model_input_shape, len(label_list))
-
-        # predict posteriors
+        # prediction
         try:
             prediction_patch = net.predict(image)
         except Exception as e:
@@ -176,7 +166,7 @@ def predict(name_subjects=None,
             print('\nresuming program execution')
             continue
 
-        # get posteriors and segmentation
+        # postprocessing
         try:
             seg, posteriors = postprocess(prediction_patch, shape, crop_idx, label_list, aff)
         except Exception as e:
