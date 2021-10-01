@@ -1117,6 +1117,7 @@ static int parse_commandline(int argc, char **argv) {
       printf("dist %g, delta=%g, sigma=%g, interp %s %d\n",dist,delta,sigma,pargv[5],interpcode);
       MRI *mri2 = MRISsampleProfile(surf, mri, -dist, +dist, delta, sigma, interpcode, NULL);
       if(mri2==NULL) exit(1);
+      mri2->tr = delta;
       int err = MRIwrite(mri2,pargv[6]);
       if(err) exit(err);
       printf("freeview -f %s:overlay=%s\n",pargv[0],pargv[6]);

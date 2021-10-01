@@ -391,7 +391,7 @@ int clustGrowOneVoxel(VOLCLUSTER *vc, int col0, int row0, int slc0, MRI *HitMap,
 }
 
 /*------------------------------------------------------------------------*/
-VOLCLUSTER *clustGrow(int col0, int row0, int slc0, MRI *HitMap, int AllowDiag)
+VOLCLUSTER *clustGrow(int col0, int row0, int slc0, MRI *HitMap, int AllowDiag, int npassesmax)
 {
   VOLCLUSTER *vc;
   int nthmember, nmembers_now;
@@ -422,6 +422,7 @@ VOLCLUSTER *clustGrow(int col0, int row0, int slc0, MRI *HitMap, int AllowDiag)
     }
 
     nthpass++;
+    if(npassesmax > 0 && nthpass > npassesmax) break;
   }
 
   return (vc);
@@ -817,7 +818,7 @@ VOLCLUSTER **clustGetClusters(MRI *vol,
     if (MRIgetVoxVal(HitMap, col, row, slc, 0)) continue;
 
     /* Grow cluster using this hit as a seed */
-    ClusterList[nclusters] = clustGrow(col, row, slc, HitMap, allowdiag);
+    ClusterList[nclusters] = clustGrow(col, row, slc, HitMap, allowdiag, -1);
     ClusterList[nclusters]->voxsize = voxsizemm3;
 
     /* Determine the member with the maximum value */

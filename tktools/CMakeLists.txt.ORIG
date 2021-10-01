@@ -6,12 +6,10 @@ project(tktools)
 # Eventually these programs can be completely deprecated, but for now
 # we have to option to install precompiled binaries in linux distributions.
 
-# 9/2021 - per Doug, no longer install qdec binary (from here).
-# Added install of ./scripts/qdec which echoes qdec no longer supported.
-
 if(NOT APPLE)
 
   install_symlinks(
+    qdec
     tkmedit
     tkregister2
     tksurfer

@@ -233,8 +233,11 @@ int main(int argc, char *argv[]) {
 
   if (SynthSeed < 0) SynthSeed = PDFtodSeed();
 
-  sprintf(tmpstr,"%s/%s/surf/%s.%s",SUBJECTS_DIR,subject,hemi,surfname);
-  surfpath = strcpyalloc(tmpstr);
+  if(surfpath == NULL){
+    printf("%s %s %s\n",subject,hemi,surfname);
+    sprintf(tmpstr,"%s/%s/surf/%s.%s",SUBJECTS_DIR,subject,hemi,surfname);
+    surfpath = strcpyalloc(tmpstr);
+  }
 
   if (debug) dump_options(stdout);
 
@@ -248,7 +251,6 @@ int main(int argc, char *argv[]) {
   InterVertexDistStdDev = surf->std_vertex_dist;
   avgvtxarea = surf->avg_vertex_area;
 
-  printf("%s %s %s\n",subject,hemi,surfname);
   printf("Number of vertices %d\n",surf->nvertices);
   printf("Number of faces    %d\n",surf->nfaces);
   printf("Total area         %lf\n",surf->total_area);
@@ -555,7 +557,13 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       surfname = pargv[0];
       nargsused = 1;
-    } else if (!strcasecmp(option, "--i")) {
+    } 
+    else if (!strcasecmp(option, "--surfpath")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      surfpath = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--i")) {
       if (nargc < 1) CMDargNErr(option,1);
       inpath = pargv[0];
       nargsused = 1;
@@ -852,13 +860,15 @@ static void print_version(void) {
 }
 /* --------------------------------------------- */
 static void check_options(void) {
-  if (subject == NULL) {
-    printf("ERROR: need to specify --subject\n");
-    exit(1);
-  }
-  if (hemi == NULL) {
-    printf("ERROR: need to specify --hemi\n");
-    exit(1);
+  if(surfpath == NULL){
+    if (subject == NULL) {
+      printf("ERROR: need to specify --subject\n");
+      exit(1);
+    }
+    if (hemi == NULL) {
+      printf("ERROR: need to specify --hemi\n");
+      exit(1);
+    }
   }
   if (inpath == NULL && !synth) {
     printf("ERROR: need to specify --in or --synth\n");

@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>314</width>
-    <height>816</height>
+    <width>349</width>
+    <height>846</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -23,8 +23,8 @@
    <property name="geometry">
     <rect>
      <x>0</x>
-     <y>-35</y>
-     <width>313</width>
+     <y>0</y>
+     <width>335</width>
      <height>871</height>
     </rect>
    </property>
@@ -495,6 +495,13 @@
          </widget>
         </item>
         <item>
+         <widget class="QCheckBox" name="checkBoxSecond">
+          <property name="text">
+           <string>Second QA</string>
+          </property>
+         </widget>
+        </item>
+        <item>
          <spacer name="horizontalSpacer_9">
           <property name="orientation">
            <enum>Qt::Horizontal</enum>
@@ -681,7 +688,7 @@
           <rect>
            <x>0</x>
            <y>0</y>
-           <width>304</width>
+           <width>326</width>
            <height>98</height>
           </rect>
          </property>

@@ -765,6 +765,7 @@ int main(int argc, char **argv) {
   double Ccond, dtmp, threshadj, eff;
   const char *tmpstr2=NULL;
 
+  setenv("FS_MRIMASK_ALLOW_DIFF_GEOM","0",1);
   eresfwhm = -1;
   csd = CSDalloc();
   csd->threshsign = 0; //0=abs,+1,-1
@@ -1314,9 +1315,20 @@ int main(int argc, char **argv) {
     nmask = MRInMask(mriglm->mask);
     printf("Found %d voxels in mask\n",nmask);
     if(nmask == 0){
+      printf("\n\n");
       printf("ERROR: no voxels found in the mask\n");
-      if(prunemask)
+      if(prunemask){
 	printf("  make sure at least one voxel has a non-zero value for each input\n");
+	printf("You can do this with\n");
+	if(surf){
+	  printf("tksurferfv %s %s inflated -ov %s -fminmax .000001 .1\n",subject,hemi,yFile.c_str());
+	} else {
+	  printf("tkmeditfv -f %s -main-minmax .000001 .1\n",yFile.c_str());
+	}
+	printf("It will come up with a map of the first subject. Scroll through the subjects\n");
+	printf("using the frame button. Look for one or more subjects where the values are 0 across the surface\n");
+      }
+      printf("\n\n");
       exit(1);
     }
     if (!DontSave) {
