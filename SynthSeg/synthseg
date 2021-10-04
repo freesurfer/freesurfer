@@ -10,7 +10,6 @@ import nibabel as nib
 import freesurfer as fs
 from datetime import timedelta
 from itertools import combinations
-
 from scipy.ndimage import label as scipy_label
 from scipy.interpolate import RegularGridInterpolator
 from scipy.ndimage.morphology import distance_transform_edt, binary_fill_holes
@@ -66,10 +65,10 @@ def main():
 
     # locate model weights
     if not fs.fshome():
-        model = segmentation_label_list = segmentation_names_list = topology_classes = None
+        path_model = segmentation_label_list = segmentation_names_list = topology_classes = None
         fs.fatal('FREESURFER_HOME is not set. Please source freesurfer.')
     else:
-        model = os.path.join(fs.fshome(), 'models', 'SynthSeg_1.0.h5')
+        path_model = os.path.join(fs.fshome(), 'models', 'SynthSeg_1.0.h5')
         segmentation_label_list = os.path.join(fs.fshome(), 'models', 'SynthSeg_segmentation_labels.npy')
         segmentation_names_list = os.path.join(fs.fshome(), 'models', 'SynthSeg_segmentation_names.npy')
         topology_classes = os.path.join(fs.fshome(), 'models', 'SynthSeg_topological_classes.npy')
@@ -78,7 +77,7 @@ def main():
     predict(
         path_images=args.i,
         path_segmentations=args.o,
-        path_model=model,
+        path_model=path_model,
         segmentation_label_list=segmentation_label_list,
         segmentation_names_list=segmentation_names_list,
         topology_classes=topology_classes,
@@ -93,6 +92,7 @@ def main():
 # ================================================================================================
 #                                 Prediction and Processing Utilities
 # ================================================================================================
+
 
 def predict(path_images,
             path_segmentations,
@@ -111,7 +111,7 @@ def predict(path_images,
 
     assert path_model, "A model file is necessary"
 
-    # prepare output filepaths
+    # prepare input/output filepaths
     images_to_segment, path_segmentations, path_posteriors, path_volumes, path_resampled = \
         prepare_output_files(path_images, path_segmentations, path_posteriors, path_volumes, path_resampled)
 
@@ -156,9 +156,7 @@ def predict(path_images,
         csvFile.close()
 
     # build network
-    _, _, n_dims, n_channels, _, _ = get_volume_info(images_to_segment[0])
-    model_input_shape = [None] * n_dims + [n_channels]
-    net = build_model(path_model, model_input_shape, len(label_list))
+    net = build_model(path_model, len(label_list))
 
     # perform segmentation
     loop_info = LoopInfo(len(images_to_segment), 10, 'predicting', True)
@@ -242,7 +240,7 @@ def prepare_output_files(path_images, out_seg, out_posteriors, out_volumes, out_
     out_volumes = os.path.abspath(out_volumes) if (out_volumes is not None) else out_volumes
     out_resampled = os.path.abspath(out_resampled) if (out_resampled is not None) else out_resampled
 
-    # prepare input/output volumes
+    # path_images is a folder
     if ('.nii.gz' not in basename) & ('.nii' not in basename) & ('.mgz' not in basename) & ('.npz' not in basename):
         if os.path.isfile(path_images):
             raise Exception('Extension not supported for %s, only use: nii.gz, .nii, .mgz, or .npz' % path_images)
@@ -272,6 +270,7 @@ def prepare_output_files(path_images, out_seg, out_posteriors, out_volumes, out_
         else:
             out_resampled = [out_resampled] * len(images_to_segment)
 
+    # path_images is an image
     else:
         assert os.path.isfile(path_images), "file does not exist: %s " \
                                             "\nplease make sure the path and the extension are correct" % path_images
@@ -327,29 +326,29 @@ def prepare_output_files(path_images, out_seg, out_posteriors, out_volumes, out_
 def preprocess_image(im_path, n_levels=5, crop=192, path_resample=None):
 
     # read image and corresponding info
-    im, shape, aff, n_dims, n_channels, header, im_res = get_volume_info(im_path, return_volume=True, aff_ref=np.eye(4))
+    im, shape, aff, n_dims, n_channels, header, im_res = get_volume_info(im_path, return_volume=True)
     if n_channels > 1:
         print('WARNING: detected more than 1 channel, only keeping the first channel.')
         im = im[..., 0]
         shape = shape[:n_dims]
-
     if n_dims != 3:
         fs.fatal('Input images should be 3D, found %s dimensions.' % n_dims)
 
-    # resample image if necessary
+    # resample image if necessary and align
     if np.any((np.array(im_res) > 1.05) | (np.array(im_res) < 0.95)):
         im_res = np.array([1.]*3)
         im, aff = resample_volume(im, aff, im_res)
         shape = list(im.shape)
         if path_resample is not None:
             save_volume(im, aff, header, path_resample)
+    im = align_volume_to_ref(im, aff, aff_ref=np.eye(4), n_dims=n_dims)
 
     # pad image
     crop = reformat_to_list(crop, length=n_dims, dtype='int')
     im = pad_volume(im, padding_shape=crop)
     pad_shape = im.shape[:n_dims]
 
-    # crop image
+    # crop image to shape divisible by 32
     if not all([pad_shape[i] >= crop[i] for i in range(len(pad_shape))]):
         crop = [min(pad_shape[i], crop[i]) for i in range(n_dims)]
     if not all([size % (2**n_levels) == 0 for size in crop]):
@@ -369,7 +368,7 @@ def preprocess_image(im_path, n_levels=5, crop=192, path_resample=None):
     return im, aff, header, im_res, shape, pad_shape, crop_idx, im_flipped
 
 
-def build_model(model_file, input_shape, n_lab):
+def build_model(model_file, n_lab):
     '''
     Builds keras unet model.
     '''
@@ -377,12 +376,11 @@ def build_model(model_file, input_shape, n_lab):
 
     # build UNet
     net = unet(nb_features=24,
-               input_shape=input_shape,
+               input_shape=[None, None, None, 1],
                nb_levels=5,
                conv_size=3,
                nb_labels=n_lab,
                feat_mult=2,
-               activation='elu',
                nb_conv_per_level=2,
                batch_norm=-1)
     net.load_weights(model_file, by_name=True)
@@ -833,9 +831,8 @@ def load_volume(path_volume, im_only=True, squeeze=True, dtype=None, aff_ref=Non
 
     # align image to reference affine matrix
     if aff_ref is not None:
-        from . import edit_volumes  # the import is done here to avoid import loops
         n_dims, _ = get_dims(list(volume.shape), max_channels=10)
-        volume, aff = edit_volumes.align_volume_to_ref(volume, aff, aff_ref=aff_ref, return_aff=True, n_dims=n_dims)
+        volume, aff = align_volume_to_ref(volume, aff, aff_ref=aff_ref, return_aff=True, n_dims=n_dims)
 
     if im_only:
         return volume
@@ -1414,7 +1411,7 @@ def crop_volume_with_idx(volume, crop_idx, aff=None, n_dims=None):
         return new_volume
 
 
-def pad_volume(volume, padding_shape, padding_value=0, aff=None):
+def pad_volume(volume, padding_shape, padding_value=0, aff=None, return_pad_idx=False):
     """Pad volume to a given shape
     :param volume: volume to be padded
     :param padding_shape: shape to pad volume to. Can be a number, a sequence or a 1d numpy array.
@@ -1429,26 +1426,36 @@ def pad_volume(volume, padding_shape, padding_value=0, aff=None):
     n_dims, n_channels = get_dims(vol_shape)
     padding_shape = reformat_to_list(padding_shape, length=n_dims, dtype='int')
 
-    # get padding margins
-    min_pad_margins = np.maximum(np.int32(np.floor((np.array(padding_shape) - np.array(vol_shape)[:n_dims]) / 2)), 0)
-    max_pad_margins = np.maximum(np.int32(np.ceil((np.array(padding_shape) - np.array(vol_shape)[:n_dims]) / 2)), 0)
-    if (min_pad_margins == 0).all():
-        return new_volume
-    pad_margins = tuple([(min_pad_margins[i], max_pad_margins[i]) for i in range(n_dims)])
-    if n_channels > 1:
-        pad_margins = tuple(list(pad_margins) + [[0, 0]])
+    # check if need to pad
+    if not np.array_equal(np.array(padding_shape, dtype='int32'), np.array(vol_shape[:n_dims], dtype='int32')):
 
-    # pad volume
-    new_volume = np.pad(new_volume, pad_margins, mode='constant', constant_values=padding_value)
+        # get padding margins
+        min_margins = np.maximum(np.int32(np.floor((np.array(padding_shape) - np.array(vol_shape)[:n_dims]) / 2)), 0)
+        max_margins = np.minimum(np.int32(np.ceil((np.array(padding_shape) - np.array(vol_shape)[:n_dims]) / 2)),
+                                 np.array(vol_shape)[:n_dims])
+        pad_idx = np.concatenate([min_margins, min_margins + np.array(vol_shape)])
+        pad_margins = tuple([(min_margins[i], max_margins[i]) for i in range(n_dims)])
+        if n_channels > 1:
+            pad_margins = tuple(list(pad_margins) + [[0, 0]])
 
-    if aff is not None:
-        if n_dims == 2:
-            min_pad_margins = np.append(min_pad_margins, 0)
-        aff[:-1, -1] = aff[:-1, -1] - aff[:-1, :-1] @ min_pad_margins
-        return new_volume, aff
+        # pad volume
+        new_volume = np.pad(new_volume, pad_margins, mode='constant', constant_values=padding_value)
+
+        if aff is not None:
+            if n_dims == 2:
+                min_margins = np.append(min_margins, 0)
+            aff[:-1, -1] = aff[:-1, -1] - aff[:-1, :-1] @ min_margins
+
     else:
-        return new_volume
+        pad_idx = np.concatenate([np.array([0] * n_dims), np.array(vol_shape)])
 
+    # sort outputs
+    output = [new_volume]
+    if aff is not None:
+        output.append(aff)
+    if return_pad_idx:
+        output.append(pad_idx)
+    return output[0] if len(output) == 1 else tuple(output)
 
 def flip_volume(volume, axis=None, direction=None, aff=None):
     """Flip volume along a specified axis.
@@ -1841,3 +1848,8 @@ def meshgrid(*args, **kwargs):
             stack_sz[0], stack_sz[1] = stack_sz[1], stack_sz[0]
         output[i] = tf.tile(output[i], tf.stack(stack_sz))
     return output
+
+
+# execute script
+if __name__ == '__main__':
+    main()
