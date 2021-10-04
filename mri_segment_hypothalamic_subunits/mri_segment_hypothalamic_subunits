@@ -112,7 +112,7 @@ def predict(name_subjects=None,
 
     assert path_model, "A model file is necessary"
 
-    # prepare output filepaths
+    # prepare input/output filepaths
     images_to_segment, path_segmentations, path_posteriors, path_volumes, path_main_volumes, path_stats = \
         prepare_output_files(name_subjects,
                              path_subjects_dir,
@@ -501,7 +501,6 @@ def preprocess_image(im_path, crop=184, n_levels=3):
         print('WARNING: detected more than 1 channel, only keeping the first channel.')
         im = im[..., 0]
         shape = shape[:n_dims]
-
     if n_dims != 3:
         fs.fatal('Input images should be 3D, found %s dimensions.' % n_dims)
 
