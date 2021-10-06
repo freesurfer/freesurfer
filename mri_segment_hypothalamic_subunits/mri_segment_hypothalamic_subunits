@@ -9,7 +9,9 @@ import numpy as np
 import nibabel as nib
 import freesurfer as fs
 from datetime import timedelta
-from scipy.ndimage import label, binary_dilation, distance_transform_edt
+from scipy.ndimage import label as scipy_label
+from scipy.interpolate import RegularGridInterpolator
+from scipy.ndimage import binary_dilation, distance_transform_edt, gaussian_filter
 
 # set tensorflow logging
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
@@ -31,7 +33,7 @@ def main():
     # configure commandline
     parser = fs.utils.ArgumentParser(description="This module can be run in two modes: a) on FreeSurfer subjects, and "
                                                  "b) on any T1-weighted scan(s) of approximatively 1mm resolution. ",
-                                     epilog='\n\n')
+                                     epilog='\n')
 
     # FreeSurfer mode
     parser.add_argument("--s", nargs='*',
@@ -56,9 +58,9 @@ def main():
                                               "hypothalamic subunits will be saved.")
 
     # in both cases
-    parser.add_argument("--model", help=fs.utils.parser.argparse.SUPPRESS)
     parser.add_argument("--threads", type=int, default=1, help="(both modes, optional) Number of cores to be used. "
                                                                "Default uses 1 core.")
+    parser.add_argument("--cpu", action="store_true", help="(optional) enforce running with CPU rather than GPU.")
 
     # check for no arguments
     if len(sys.argv) < 2:
@@ -68,10 +70,14 @@ def main():
     # parse commandline
     args = parser.parse_args()
 
+    # enforce CPU processing if necessary
+    if args['cpu']:
+        print('using CPU, hiding all CUDA_VISIBLE_DEVICES')
+        os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+    del args['cpu']
+
     # locate model weights
-    if args.model:
-        model = args.model
-    elif not fs.fshome():
+    if not fs.fshome():
         model = None
         fs.fatal('FREESURFER_HOME is not set. Please source freesurfer.')
     else:
@@ -103,9 +109,10 @@ def predict(name_subjects=None,
             path_segmentations=None,
             path_model='../data/model.h5',
             path_posteriors=None,
+            path_resampled=None,
             path_volumes=None,
-            threads=1,
-            crop=184):
+            crop=184,
+            threads=1):
     '''
     Prediction pipeline.
     '''
@@ -113,13 +120,14 @@ def predict(name_subjects=None,
     assert path_model, "A model file is necessary"
 
     # prepare input/output filepaths
-    images_to_segment, path_segmentations, path_posteriors, path_volumes, path_main_volumes, path_stats = \
+    path_images, path_segmentations, path_posteriors, path_resampled, path_volumes, path_main_volumes, path_stats = \
         prepare_output_files(name_subjects,
                              path_subjects_dir,
                              write_posteriors_FS,
                              path_images,
                              path_segmentations,
                              path_posteriors,
+                             path_resampled,
                              path_volumes)
 
     # get label and classes lists
@@ -137,14 +145,14 @@ def predict(name_subjects=None,
     tf.config.threading.set_intra_op_parallelism_threads(threads)
 
     # build network
-    _, _, n_dims, n_channels, _, _ = get_volume_info(images_to_segment[0])
+    _, _, n_dims, n_channels, _, _ = get_volume_info(path_images[0])
     model_input_shape = [None] * n_dims + [n_channels]
     net = build_model(path_model, model_input_shape, len(label_list))
 
     # perform segmentation
-    loop_info = LoopInfo(len(images_to_segment), 10, 'predicting', True)
-    for idx, (path_image, path_segmentation, path_posterior, path_volume, path_stat) in \
-            enumerate(zip(images_to_segment, path_segmentations, path_posteriors, path_volumes, path_stats)):
+    loop_info = LoopInfo(len(path_images), 10, 'predicting', True)
+    for idx, (path_image, path_segmentation, path_posterior, path_resample, path_volume, path_stat) in \
+            enumerate(zip(path_images, path_segmentations, path_posteriors, path_resampled, path_volumes, path_stats)):
         loop_info.update(idx)
 
         # preprocessing
@@ -190,7 +198,7 @@ def predict(name_subjects=None,
         try:
             if (path_main_volumes is not None) | (path_volume is not None):  # compute volumes only if necessary
                 volumes = np.sum(posteriors[..., 1:], axis=tuple(range(0, len(posteriors.shape) - 1)))
-                volumes = volumes * np.prod(im_res)
+                volumes = np.around(volumes * np.prod(im_res), 3)
                 volumes_whole = np.array([np.sum(volumes[:int(len(volumes) / 2)]),
                                           np.sum(volumes[int(len(volumes) / 2):])])
                 volumes = np.concatenate([volumes, volumes_whole])
@@ -213,25 +221,31 @@ def predict(name_subjects=None,
 
     # print output info
     if len(path_segmentations) == 1:  # either one image or one subject
-        print('segmentation saved in: ' + path_segmentations[0])
+        print('\nsegmentation  saved in:    ' + path_segmentations[0])
         if path_posteriors[0] is not None:
-            print('posteriors saved in:   ' + path_posteriors[0])
+            print('posteriors saved in:       ' + path_posteriors[0])
         if path_volumes[0] is not None:  # for FS subject
-            print('volumes saved in:      ' + path_volumes[0])
+            print('volumes saved in:          ' + path_volumes[0])
+        if path_resampled[0] is not None:
+            print('resampled images saved in: ' + path_resampled[0])
         if path_main_volumes is not None:  # for single image
-            print('volumes saved in:      ' + path_main_volumes)
+            print('volumes saved in:          ' + path_main_volumes)
     else:
         if name_subjects is None:  # images in folder
-            print('\n\nsegmentations saved in: ' + os.path.dirname(path_segmentations[0]))
+            print('\nsegmentations saved in:    ' + os.path.dirname(path_segmentations[0]))
             if path_posteriors[0] is not None:
-                print('posteriors saved in:    ' + os.path.dirname(path_posteriors[0]))
+                print('posteriors saved in:       ' + os.path.dirname(path_posteriors[0]))
+            if path_resampled[0] is not None:
+                print('resampled images saved in: ' + os.path.dirname(path_resampled[0]))
             if path_main_volumes is not None:
-                print('volumes saved in:       ' + path_main_volumes)
+                print('volumes saved in:          ' + path_main_volumes)
         else:  # several subjects
             if path_posteriors[0] is not None:
-                print('\n\nsegmentations, posteriors, and individual subject volumes saved in each subject directory')
+                print('\nsegmentations, posteriors, resampled images, and individual subject volumes '
+                      'saved in each subject directory')
             else:
-                print('\n\nsegmentations and individual subject volumes saved in each subject directory')
+                print('\nsegmentations, resampled images, and individual subject volumes '
+                      'saved in each subject directory')
             print('additional file regrouping the volumes of all subjects saved in: ' + path_main_volumes)
 
     print('\nIf you use this tool in a publication, please cite:')
@@ -241,15 +255,12 @@ def predict(name_subjects=None,
 
 
 def prepare_output_files(name_subjects, subjects_dir, write_posteriors_FS, path_images, out_seg, out_posteriors,
-                         main_volumes):
+                         out_resampled, main_volumes):
     '''
     Prepare output files.
     '''
 
-    # variable that tracks if warnings are printed when initialising the output paths
-    printed_warning = False
-
-    # goes through all the possibilities of specifying inputs
+    # T1 mode
     if path_images is not None:
 
         # check other inputs
@@ -257,87 +268,92 @@ def prepare_output_files(name_subjects, subjects_dir, write_posteriors_FS, path_
         assert name_subjects is None, 'please choose between flags --i and --s, they cannot be used at the same time'
         if subjects_dir is not None:
             print('WARNING: $SUBJECT_DIR not used when flags --i and --o are specified, ignoring value of flag --sd')
-            printed_warning = True
         if write_posteriors_FS:
             print('WARNING: flag --write_posteriors not used whith flag --i, ignoring flag --write_posteriors.')
             print('WARNING: If you wish to write the posteriors in the T1 mode, '
                   'please use --out_posteriors <path_posteriors>.')
-            printed_warning = True
 
         # convert path to absolute paths
         path_images = os.path.abspath(path_images)
-        if out_seg is not None:
-            out_seg = os.path.abspath(out_seg)
-        if out_posteriors is not None:
-            out_posteriors = os.path.abspath(out_posteriors)
-        if main_volumes is not None:
-            main_volumes = os.path.abspath(main_volumes)
+        basename = os.path.basename(path_images)
+        out_seg = os.path.abspath(out_seg) if (out_seg is not None) else out_seg
+        out_posteriors = os.path.abspath(out_posteriors) if (out_posteriors is not None) else out_posteriors
+        out_resampled = os.path.abspath(out_resampled) if (out_resampled is not None) else out_resampled
+        main_volumes = os.path.abspath(main_volumes) if (main_volumes is not None) else main_volumes
 
-        # prepare input/output volumes
-        if ('.nii.gz' not in path_images) & ('.nii' not in path_images) & ('.mgz' not in path_images) & \
-                ('.npz' not in path_images):
-            images_to_segment = list_images_in_folder(path_images)
-            assert len(images_to_segment) > 0, "Could not find any training data"
-            if out_seg:
-                if not os.path.exists(out_seg):
-                    os.mkdir(out_seg)
-                out_seg = [os.path.join(out_seg, os.path.basename(image)).replace('.nii', '_seg.nii') for image in
-                           images_to_segment]
-                out_seg = [seg_path.replace('.mgz', '_seg.mgz') for seg_path in out_seg]
-                out_seg = [seg_path.replace('.npz', '_seg.npz') for seg_path in out_seg]
-            else:
-                out_seg = [out_seg] * len(images_to_segment)
-            if out_posteriors:
-                if not os.path.exists(out_posteriors):
-                    os.mkdir(out_posteriors)
+        # path_images is a folder
+        if ('.nii.gz' not in basename) & ('.nii' not in basename) & ('.mgz' not in basename) & ('.npz' not in basename):
+            if os.path.isfile(path_images):
+                raise Exception('Extension not supported for %s, only use: nii.gz, .nii, .mgz, or .npz' % path_images)
+            path_images = list_images_in_folder(path_images)
+            mkdir(out_seg)
+            out_seg = [os.path.join(out_seg, os.path.basename(image)).replace('.nii', '_hypo_seg.nii') for image in
+                       path_images]
+            out_seg = [seg_path.replace('.mgz', '_hypo_seg.mgz') for seg_path in out_seg]
+            out_seg = [seg_path.replace('.npz', '_hypo_seg.npz') for seg_path in out_seg]
+            if out_posteriors is not None:
+                mkdir(out_posteriors)
                 out_posteriors = [os.path.join(out_posteriors, os.path.basename(image)).replace('.nii',
-                                  '_posteriors.nii') for image in images_to_segment]
+                                  '_posteriors.nii') for image in path_images]
                 out_posteriors = [posteriors_path.replace('.mgz', '_posteriors.mgz')
                                   for posteriors_path in out_posteriors]
                 out_posteriors = [posteriors_path.replace('.npz', '_posteriors.npz')
                                   for posteriors_path in out_posteriors]
             else:
-                out_posteriors = [out_posteriors] * len(images_to_segment)
+                out_posteriors = [out_posteriors] * len(path_images)
+            if out_resampled is not None:
+                mkdir(out_resampled)
+                out_resampled = [os.path.join(out_resampled, os.path.basename(image)).replace('.nii',
+                                 '_resampled.nii') for image in path_images]
+                out_resampled = [resampled_path.replace('.mgz', '_resampled.mgz') for resampled_path in out_resampled]
+                out_resampled = [resampled_path.replace('.npz', '_resampled.npz') for resampled_path in out_resampled]
+            else:
+                out_resampled = [out_resampled] * len(path_images)
 
+        # path_images is an image
         else:
-            assert os.path.exists(path_images), "Could not find image to segment"
-            images_to_segment = [path_images]
-            if out_seg is not None:
-                if ('.nii.gz' not in out_seg) & ('.nii' not in out_seg) & ('.mgz' not in out_seg) & \
-                        ('.npz' not in out_seg):
-                    if not os.path.exists(out_seg):
-                        os.mkdir(out_seg)
-                    filename = os.path.basename(path_images).replace('.nii', '_seg.nii')
-                    filename = filename.replace('.mgz', '_seg.mgz')
-                    filename = filename.replace('.npz', '_seg.npz')
-                    out_seg = os.path.join(out_seg, filename)
-                else:
-                    if not os.path.exists(os.path.dirname(out_seg)):
-                        os.mkdir(os.path.dirname(out_seg))
+            assert os.path.isfile(path_images), "file does not exist: %s \n" \
+                                                "please make sure the path and the extension are correct" % path_images
+            path_images = [path_images]
+            if ('.nii.gz' not in out_seg) & ('.nii' not in out_seg) & ('.mgz' not in out_seg) & ('.npz' not in out_seg):
+                mkdir(out_seg)
+                filename = os.path.basename(path_images[0]).replace('.nii', '_hypo_seg.nii')
+                filename = filename.replace('.mgz', '_hypo_seg.mgz')
+                filename = filename.replace('.npz', '_hypo_seg.npz')
+                out_seg = os.path.join(out_seg, filename)
+            else:
+                mkdir(os.path.dirname(out_seg))
             out_seg = [out_seg]
             if out_posteriors is not None:
                 if ('.nii.gz' not in out_posteriors) & ('.nii' not in out_posteriors) & \
                         ('.mgz' not in out_posteriors) & ('.npz' not in out_posteriors):
-                    if not os.path.exists(out_posteriors):
-                        os.mkdir(out_posteriors)
-                    filename = os.path.basename(path_images).replace('.nii', '_posteriors.nii')
+                    mkdir(out_posteriors)
+                    filename = os.path.basename(path_images[0]).replace('.nii', '_posteriors.nii')
                     filename = filename.replace('.mgz', '_posteriors.mgz')
                     filename = filename.replace('.npz', '_posteriors.npz')
                     out_posteriors = os.path.join(out_posteriors, filename)
                 else:
-                    if not os.path.exists(os.path.dirname(out_posteriors)):
-                        os.mkdir(os.path.dirname(out_posteriors))
+                    mkdir(os.path.dirname(out_posteriors))
             out_posteriors = [out_posteriors]
+            if out_resampled is not None:
+                if ('.nii.gz' not in out_resampled) & ('.nii' not in out_resampled) & \
+                        ('.mgz' not in out_resampled) & ('.npz' not in out_resampled):
+                    mkdir(out_resampled)
+                    filename = os.path.basename(path_images[0]).replace('.nii', '_resampled.nii')
+                    filename = filename.replace('.mgz', '_resampled.mgz')
+                    filename = filename.replace('.npz', '_resampled.npz')
+                    out_resampled = os.path.join(out_resampled, filename)
+                else:
+                    mkdir(os.path.dirname(out_resampled))
+            out_resampled = [out_resampled]
 
         if main_volumes is not None:
             if main_volumes[-4:] != '.csv':
-                print('out_volumes provided without csv extension. Adding csv extension to output_volumes.')
-                printed_warning = True
+                print('Path for volume outputs provided without csv extension. Adding csv extension.')
                 main_volumes += '.csv'
-            if not os.path.exists(os.path.dirname(main_volumes)):
-                os.mkdir(os.path.dirname(main_volumes))
-        out_volumes = [None] * len(images_to_segment)
-        out_stats = [None] * len(images_to_segment)
+                mkdir(os.path.dirname(main_volumes))
+        out_volumes = [None] * len(path_images)
+        out_stats = [None] * len(path_images)
 
     # FS mode, run on either a subset of subjects, or on all subjects, with an option to override $SUBJECTS_DIR
     elif name_subjects is not None:
@@ -346,24 +362,19 @@ def prepare_output_files(name_subjects, subjects_dir, write_posteriors_FS, path_
         if out_seg is not None:
             print('WARNING: in FS mode segmentations are automatically saved in each subject directory, '
                   'ignoring value provided in --o')
-            printed_warning = True
         if main_volumes is not None:
             print('WARNING: in FS mode volumes are automatically saved in each subject directory, '
                   'ignoring value provided in --out_volumes')
-            printed_warning = True
         if write_posteriors_FS:
             if out_posteriors is not None:
                 print('WARNING: posteriors will automatically be saved in specified subject directory, '
                       'ignoring value provided in --out_posteriors')
-                printed_warning = True
             else:
                 print("Posteriors will be saved in each subject's directory.")
-                printed_warning = True
         elif out_posteriors is not None:  # write_posteriors is False and out_posteriros was specified
             print('WARNING: flag --out_posteriors not used in FS mode, ignoring flag --out_posteriors.')
             print('WARNING: If you wish to write the posteriors in the FS mode, '
                   'please append --write_posteriors to your command line.')
-            printed_warning = True
 
         # override SUBJECTS_DIR if necessary
         if subjects_dir is not None:
@@ -377,9 +388,10 @@ def prepare_output_files(name_subjects, subjects_dir, write_posteriors_FS, path_
         if not name_subjects:
             name_subjects = list_subfolders(subjects_dir, whole_path=False)
 
-        images_to_segment = list()
+        path_images = list()
         out_seg = list()
         out_posteriors = list()
+        out_resampled = list()
         out_volumes = list()
         out_stats = list()
         for name in name_subjects:
@@ -387,12 +399,13 @@ def prepare_output_files(name_subjects, subjects_dir, write_posteriors_FS, path_
             # check that provided subject dir
             subject_dir = os.path.join(subjects_dir, name)
             assert os.path.isdir(subject_dir), "Could not find subject dir " + subject_dir
-            image_to_segment = os.path.join(subject_dir, 'mri', 'nu.mgz')
+            path_image = os.path.join(subject_dir, 'mri', 'nu.mgz')
 
             # build paths if input image exists
-            if os.path.isfile(image_to_segment):
-                images_to_segment.append(image_to_segment)
+            if os.path.isfile(path_image):
+                path_images.append(path_image)
                 out_seg.append(os.path.join(subject_dir, 'mri', 'hypothalamic_subunits_seg.v1.mgz'))
+                out_resampled.append(os.path.join(subject_dir, 'mri', 'hypothalamic_subunits_nu_resampled_1mm.v1.mgz'))
                 out_volumes.append(os.path.join(subject_dir, 'mri', 'hypothalamic_subunits_volumes.v1.csv'))
                 out_stats.append(os.path.join(subject_dir, 'stats', 'hypothalamic_subunits_volumes.v1.stats'))
                 if write_posteriors_FS:
@@ -400,14 +413,13 @@ def prepare_output_files(name_subjects, subjects_dir, write_posteriors_FS, path_
                 else:
                     out_posteriors.append(None)
             else:
-                print('WARNING: no such file: ' + image_to_segment + ', continuing program execution without this file')
-                printed_warning = True
+                print('WARNING: no such file: ' + path_image + ', continuing program execution without this file')
 
         # check that we have a least one valid image
-        assert len(images_to_segment) > 0, "Could not find any image to segment"
+        assert len(path_images) > 0, "Could not find any image to segment"
 
         # if several subjects are run, all volumes are regrouped in a single file
-        if len(images_to_segment) > 1:
+        if len(path_images) > 1:
             main_volumes = os.path.join(subjects_dir, 'hypothalamic_subunits_volumes_all.v1.csv')
         else:
             main_volumes = None
@@ -415,14 +427,9 @@ def prepare_output_files(name_subjects, subjects_dir, write_posteriors_FS, path_
     else:
         fs.fatal('please provide an input image/directory (--i), or a specific FreeSurfer subject directory (--s), '
                  'or the FreeSurfer $SUBJECT_DIR (--sd)')
-        images_to_segment = None
-        out_volumes = None
-        out_stats = None
+        path_images = out_volumes = out_stats = None
 
-    if printed_warning:
-        print('')
-
-    return images_to_segment, out_seg, out_posteriors, out_volumes, main_volumes, out_stats
+    return path_images, out_seg, out_posteriors, out_resampled, out_volumes, main_volumes, out_stats
 
 
 def write_csv_file(volumes, filename, subject, write_header, open_type):
@@ -490,19 +497,30 @@ def write_fs_stats_file(volumes, filename):
             ))
 
 
-def preprocess_image(im_path, crop=184, n_levels=3):
+def preprocess_image(im_path, crop=184, n_levels=3, path_resample=None):
     '''
     Input image pre-processing.
     '''
 
     # read image and corresponding info
-    im, shape, aff, n_dims, n_channels, header, im_res = get_volume_info(im_path, return_volume=True, aff_ref=np.eye(4))
+    im, shape, aff, n_dims, n_channels, header, im_res = get_volume_info(im_path, True)
     if n_channels > 1:
         print('WARNING: detected more than 1 channel, only keeping the first channel.')
         im = im[..., 0]
         shape = shape[:n_dims]
     if n_dims != 3:
         fs.fatal('Input images should be 3D, found %s dimensions.' % n_dims)
+
+    # resample image if necessary
+    if np.any((im_res > np.array([1.15]*3)) | (im_res < np.array([0.95]*3))):
+        im_res = np.array([1.]*3)
+        im, aff = resample_volume(im, aff, im_res)
+        shape = list(im.shape)
+        if path_resample is not None:
+            save_volume(im, aff, header, path_resample)
+
+    # align image
+    im = align_volume_to_ref(im, aff, aff_ref=np.eye(4), n_dims=n_dims)
 
     # check that shape is divisible by 2**n_levels
     crop = reformat_to_list(crop, length=n_dims, dtype='int')
@@ -690,7 +708,7 @@ def conv_enc(nb_features,
              batch_norm=None,
              input_model=None):
     """
-    Fully Convolutional Encoder. Copied with permission from github.com/adalca/neurite.
+    Fully Convolutional Encoder
     """
 
     # naming
@@ -805,7 +823,7 @@ def conv_dec(nb_features,
              conv_dropout=0,
              input_model=None):
     """
-    Fully Convolutional Decoder. Copied with permission from github.com/adalca/neurite.
+    Fully Convolutional Decoder
 
     Parameters:
         ...
@@ -1037,11 +1055,11 @@ def get_volume_info(path_volume, return_volume=False, aff_ref=None):
 
     # get labels res
     if '.nii' in path_volume:
-        data_res = np.array(header['pixdim'][1:n_dims + 1]).tolist()
+        data_res = np.array(header['pixdim'][1:n_dims + 1])
     elif '.mgz' in path_volume:
-        data_res = np.array(header['delta']).tolist()  # mgz image
+        data_res = np.array(header['delta'])  # mgz image
     else:
-        data_res = [1.0] * n_dims
+        data_res = np.array([1.0] * n_dims)
 
     # align to given affine matrix
     if aff_ref is not None:
@@ -1053,7 +1071,6 @@ def get_volume_info(path_volume, return_volume=False, aff_ref=None):
         im_shape[ras_axes_ref] = im_shape[ras_axes]
         data_res[ras_axes_ref] = data_res[ras_axes]
         im_shape = im_shape.tolist()
-        data_res = data_res.tolist()
 
     # return info
     if return_volume:
@@ -1069,6 +1086,9 @@ def load_array_if_path(var, load_as_numpy=True):
         assert os.path.isfile(var), 'No such path: %s' % var
         var = np.load(var)
     return var
+
+
+# ----------------------------------------------- reformatting functions -----------------------------------------------
 
 
 def reformat_to_list(var, length=None, load_as_numpy=False, dtype=None):
@@ -1120,6 +1140,7 @@ def reformat_to_list(var, length=None, load_as_numpy=False, dtype=None):
         else:
             raise ValueError("dtype should be 'str', 'float', 'int', or 'bool'; had {}".format(dtype))
     return var
+
 
 # ----------------------------------------------- path-related functions -----------------------------------------------
 
@@ -1495,6 +1516,54 @@ def crop_volume_with_idx(volume, crop_idx, aff=None, n_dims=None):
         return new_volume
 
 
+def resample_volume(volume, aff, new_vox_size):
+    """This function resizes the voxels of a volume to a new provided size, while adjusting the header to keep the RAS
+    :param volume: a numpy array
+    :param aff: affine matrix of the volume
+    :param new_vox_size: new voxel size (3 - element numpy vector) in mm
+    :return: new volume and affine matrix
+    """
+
+    pixdim = np.sqrt(np.sum(aff * aff, axis=0))[:-1]
+    new_vox_size = np.array(new_vox_size)
+    factor = pixdim / new_vox_size
+    sigmas = 0.25 / factor
+    sigmas[factor > 1] = 0  # don't blur if upsampling
+
+    volume_filt = gaussian_filter(volume, sigmas)
+
+    # volume2 = zoom(volume_filt, factor, order=1, mode='reflect', prefilter=False)
+    x = np.arange(0, volume_filt.shape[0])
+    y = np.arange(0, volume_filt.shape[1])
+    z = np.arange(0, volume_filt.shape[2])
+
+    my_interpolating_function = RegularGridInterpolator((x, y, z), volume_filt)
+
+    start = - (factor - 1) / (2 * factor)
+    step = 1.0 / factor
+    stop = start + step * np.ceil(volume_filt.shape * factor)
+
+    xi = np.arange(start=start[0], stop=stop[0], step=step[0])
+    yi = np.arange(start=start[1], stop=stop[1], step=step[1])
+    zi = np.arange(start=start[2], stop=stop[2], step=step[2])
+    xi[xi < 0] = 0
+    yi[yi < 0] = 0
+    zi[zi < 0] = 0
+    xi[xi > (volume_filt.shape[0] - 1)] = volume_filt.shape[0] - 1
+    yi[yi > (volume_filt.shape[1] - 1)] = volume_filt.shape[1] - 1
+    zi[zi > (volume_filt.shape[2] - 1)] = volume_filt.shape[2] - 1
+
+    xig, yig, zig = np.meshgrid(xi, yi, zi, indexing='ij', sparse=True)
+    volume2 = my_interpolating_function((xig, yig, zig))
+
+    aff2 = aff.copy()
+    for c in range(3):
+        aff2[:-1, c] = aff2[:-1, c] / factor[c]
+    aff2[:-1, -1] = aff2[:-1, -1] - np.matmul(aff2[:-1, :-1], 0.5 * (factor - 1))
+
+    return volume2, aff2
+
+
 def get_ras_axes(aff, n_dims=3):
     """This function finds the RAS axes corresponding to each dimension of a volume, based on its affine matrix.
     :param aff: affine matrix Can be a 2d numpy array of size n_dims*n_dims, n_dims+1*n_dims+1, or n_dims*n_dims+1.
@@ -1583,7 +1652,7 @@ def get_largest_connected_component(mask, structure=None):
     :param mask: a 2d or 3d label map of boolean type.
     :param structure: numpy array defining the connectivity.
     """
-    components, n_components = label(mask, structure)
+    components, n_components = scipy_label(mask, structure)
     return components == np.argmax(np.bincount(components.flat)[1:]) + 1 if n_components > 0 else mask.copy()
 
 
