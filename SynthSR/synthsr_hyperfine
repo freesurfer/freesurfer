@@ -28,22 +28,23 @@ tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
 def main():
 
-    # configure commandline
+    # parse arguments
     parser = fs.utils.ArgumentParser(description="Implementation of SynthSR that generates a synthetic 1mm MP-RAGE "
                                                  "from a pair of T1-T2 standard Hyperfine scans (1.5x1.5x5mm axial)",
-                                     epilog='\n\n')
+                                     epilog='\n')
 
     # input/outputs
-    parser.add_argument("--t1", help="T1 image(s) to super-resolve, at native 1.5x1.5x5 axial resolution. "
-                                     "Can be a path to a single image or to a folder.")
-    parser.add_argument("--t2", help="T2 images (must be a folder if --i points to a folder). "
+    parser.add_argument("path_t1s", help="T1 image(s) to super-resolve, at native 1.5x1.5x5 axial resolution. "
+                                     "Can be a path to an image or to a folder.")
+    parser.add_argument("path_t2s", help="T2 image(s). Must be a folder if T1s are a folder. "
                                      "These must be registered to the T1s, in physical coordinates (i.e., with the "
                                      "headers, do NOT resample when registering; see instructions on FreeSurfer wiki)")
-    parser.add_argument("--o", help="Output (synthetic 1mm MP-RAGEs). Must be a folder if --i points to a folder.")
+    parser.add_argument("path_predictions", help="Output(s), i.e. synthetic 1mm MP-RAGE(s). "
+                                                   "Must be a folder if T1s are a folder.")
 
     # parameters
     parser.add_argument("--threads", type=int, default=1, help="(optional) Number of cores to be used. Default is 1.")
-    parser.add_argument("--cpu", action="store_true", help="(optional) enforce running with CPU rather than GPU.")
+    parser.add_argument("--cpu", action="store_true", help="(optional) Enforce running with CPU rather than GPU.")
 
     # check for no arguments
     if len(sys.argv) < 2:
@@ -68,11 +69,11 @@ def main():
 
     # run prediction
     predict(
-        path_t1_images=args.t1,
-        path_t2_images=args.t2,
-        path_predictions=args.o,
+        path_t1_images=args.path_t1s,
+        path_t2_images=args.path_t2s,
+        path_predictions=args.path_predictions,
         path_model=path_model,
-        threads=args.threads,
+        threads=args.threads
     )
 
 
@@ -746,11 +747,11 @@ def get_volume_info(path_volume, return_volume=False, aff_ref=None):
 
     # get labels res
     if '.nii' in path_volume:
-        data_res = np.array(header['pixdim'][1:n_dims + 1]).tolist()
+        data_res = np.array(header['pixdim'][1:n_dims + 1])
     elif '.mgz' in path_volume:
-        data_res = np.array(header['delta']).tolist()  # mgz image
+        data_res = np.array(header['delta'])  # mgz image
     else:
-        data_res = [1.0] * n_dims
+        data_res = np.array([1.0] * n_dims)
 
     # align to given affine matrix
     if aff_ref is not None:
@@ -762,7 +763,6 @@ def get_volume_info(path_volume, return_volume=False, aff_ref=None):
         im_shape[ras_axes_ref] = im_shape[ras_axes]
         data_res[ras_axes_ref] = data_res[ras_axes]
         im_shape = im_shape.tolist()
-        data_res = data_res.tolist()
 
     # return info
     if return_volume:

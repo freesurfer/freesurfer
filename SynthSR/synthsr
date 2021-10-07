@@ -28,19 +28,20 @@ tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
 def main():
 
-    # configure commandline
+    # parse arguments
     parser = fs.utils.ArgumentParser(description="Implementation of SynthSR that generates a synthetic 1mm MP-RAGE "
-                                                 "from a scan of any contrast and resolution ", epilog='\n\n')
+                                                 "from a scan of any contrast and resolution ", epilog='\n')
 
     # input/outputs
-    parser.add_argument("--i", help="Image(s) to segment. Can be a path to a single image or to a folder.")
-    parser.add_argument("--o", help="Output (synthetic 1mm MP-RAGEs). Must be a folder if --i points to a folder.")
-    parser.add_argument("--ct", action="store_true", help="Use this flag for CT scans in Hounsfield scale, it clips "
-                                                          "intensities to [0,80].")
+    parser.add_argument("path_images", help="Image(s) to super-resolve. Can be a path to an image or to a folder.")
+    parser.add_argument("path_predictions", help="Output(s), i.e. synthetic 1mm MP-RAGE(s). "
+                                                   "Must be a folder if images are a folder.")
+    parser.add_argument("--ct", action="store_true", help="(optional) Use this flag for CT scans in Hounsfield scale, "
+                                                          "it clips intensities to [0,80].")
 
     # parameters
     parser.add_argument("--threads", type=int, default=1, help="(optional) Number of cores to be used. Default is 1.")
-    parser.add_argument("--cpu", action="store_true", help="(optional) enforce running with CPU rather than GPU.")
+    parser.add_argument("--cpu", action="store_true", help="(optional) Enforce running with CPU rather than GPU.")
 
     # check for no arguments
     if len(sys.argv) < 2:
@@ -65,11 +66,11 @@ def main():
 
     # run prediction
     predict(
-        path_images=args.i,
-        path_predictions=args.o,
+        path_images=args.path_images,
+        path_predictions=args.path_predictions,
         path_model=path_model,
         ct_mode=args.ct,
-        threads=args.threads,
+        threads=args.threads
     )
 
 
@@ -143,6 +144,12 @@ def predict(path_images,
             print('\nresuming program execution')
             continue
 
+    # print output info
+    if len(path_predictions) == 1:
+        print('\nprediction  saved in: ' + path_predictions[0])
+    else:
+        print('\npredictions saved in: ' + os.path.dirname(path_predictions[0]))
+
     print('\nIf you use this tool in a publication, please cite:')
     print('Joint super-resolution and synthesis of 1 mm isotropic MP-RAGE volumes from clinical ')
     print('MRI exams with scans of different orientation, resolution and contrast\n')
@@ -164,28 +171,26 @@ def prepare_output_files(path_images, path_predictions):
             raise Exception('Extension not supported for %s, only use: .nii.gz, .nii, .mgz, or .npz' % path_images)
         path_images = list_images_in_folder(path_images)
         mkdir(path_predictions)
-        path_predictions = [os.path.join(path_predictions, os.path.basename(image)).replace('.nii', '_synthseg.nii')
+        path_predictions = [os.path.join(path_predictions, os.path.basename(image)).replace('.nii', '_synthsr.nii')
                             for image in path_images]
-        path_predictions = [path_pred.replace('.mgz', '_synthseg.mgz') for path_pred in path_predictions]
-        path_predictions = [path_pred.replace('.npz', '_synthseg.npz') for path_pred in path_predictions]
+        path_predictions = [path_pred.replace('.mgz', '_synthsr.mgz') for path_pred in path_predictions]
+        path_predictions = [path_pred.replace('.npz', '_synthsr.npz') for path_pred in path_predictions]
 
     # path_images is an image
     else:
-        assert os.path.isfile(path_images), "file does not exist: %s " \
-                                            "\nplease make sure the path and the extension are correct" % path_images
+        assert os.path.isfile(path_images), "file does not exist: %s \n" \
+                                            "please make sure the path and the extension are correct" % path_images
         path_images = [path_images]
-        # path_predictions is a folder
         if ('.nii.gz' not in path_predictions) & ('.nii' not in path_predictions) & \
                 ('.mgz' not in path_predictions) & ('.npz' not in path_predictions):
             mkdir(path_predictions)
-            filename = os.path.basename(path_images[0]).replace('.nii', '_synthseg.nii')
-            filename = filename.replace('.mgz', '_synthseg.mgz')
-            filename = filename.replace('.npz', '_synthseg.npz')
-            path_predictions = [os.path.join(path_predictions, filename)]
-        # path_predictions is an image
+            filename = os.path.basename(path_images[0]).replace('.nii', '_synthsr.nii')
+            filename = filename.replace('.mgz', '_synthsr.mgz')
+            filename = filename.replace('.npz', '_synthsr.npz')
+            path_predictions = os.path.join(path_predictions, filename)
         else:
             mkdir(os.path.dirname(path_predictions))
-            path_predictions = [path_predictions]
+        path_predictions = [path_predictions]
 
     return path_images, path_predictions
 
@@ -705,11 +710,11 @@ def get_volume_info(path_volume, return_volume=False, aff_ref=None):
 
     # get labels res
     if '.nii' in path_volume:
-        data_res = np.array(header['pixdim'][1:n_dims + 1]).tolist()
+        data_res = np.array(header['pixdim'][1:n_dims + 1])
     elif '.mgz' in path_volume:
-        data_res = np.array(header['delta']).tolist()  # mgz image
+        data_res = np.array(header['delta'])  # mgz image
     else:
-        data_res = [1.0] * n_dims
+        data_res = np.array([1.0] * n_dims)
 
     # align to given affine matrix
     if aff_ref is not None:
@@ -721,7 +726,6 @@ def get_volume_info(path_volume, return_volume=False, aff_ref=None):
         im_shape[ras_axes_ref] = im_shape[ras_axes]
         data_res[ras_axes_ref] = data_res[ras_axes]
         im_shape = im_shape.tolist()
-        data_res = data_res.tolist()
 
     # return info
     if return_volume:
