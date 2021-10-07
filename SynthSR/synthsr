@@ -1,0 +1,1124 @@
+#!/usr/bin/env python
+
+import os
+import sys
+import glob
+import time
+import numpy as np
+import nibabel as nib
+import freesurfer as fs
+from datetime import timedelta
+from scipy.ndimage import gaussian_filter
+from scipy.interpolate import RegularGridInterpolator
+
+# set tensorflow logging
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+
+import tensorflow as tf
+from tensorflow import keras
+
+# set tensorflow logging
+tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
+
+
+# ================================================================================================
+#                                         Main Entrypoint
+# ================================================================================================
+
+
+def main():
+
+    # parse arguments
+    parser = fs.utils.ArgumentParser(description="Implementation of SynthSR that generates a synthetic 1mm MP-RAGE "
+                                                 "from a scan of any contrast and resolution ", epilog='\n')
+
+    # input/outputs
+    parser.add_argument("--i", help="Image(s) to super-resolve. Can be a path to an image or to a folder.")
+    parser.add_argument("--o", help="Output(s), i.e. synthetic 1mm MP-RAGE(s). "
+                                    "Must be a folder if --i designates a folder.")
+    parser.add_argument("--ct", action="store_true", help="(optional) Use this flag for CT scans in Hounsfield scale, "
+                                                          "it clips intensities to [0,80].")
+
+    # parameters
+    parser.add_argument("--threads", type=int, default=1, help="(optional) Number of cores to be used. Default is 1.")
+    parser.add_argument("--cpu", action="store_true", help="(optional) Enforce running with CPU rather than GPU.")
+
+    # check for no arguments
+    if len(sys.argv) < 2:
+        parser.print_help()
+        sys.exit(1)
+
+    # parse commandline
+    args = parser.parse_args()
+
+    # enforce CPU processing if necessary
+    if args['cpu']:
+        print('using CPU, hiding all CUDA_VISIBLE_DEVICES')
+        os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+    del args['cpu']
+
+    # locate model weights
+    if not fs.fshome():
+        path_model = None
+        fs.fatal('FREESURFER_HOME is not set. Please source freesurfer.')
+    else:
+        path_model = os.path.join(fs.fshome(), 'models', 'SynthSR_v10_210712.h5')
+
+    # run prediction
+    predict(
+        path_images=args.i,
+        path_predictions=args.o,
+        path_model=path_model,
+        ct_mode=args.ct,
+        threads=args.threads
+    )
+
+
+# ================================================================================================
+#                                 Prediction and Processing Utilities
+# ================================================================================================
+
+
+def predict(path_images,
+            path_predictions,
+            path_model,
+            ct_mode,
+            threads=1):
+    '''
+    Prediction pipeline.
+    '''
+
+    assert path_model, "A model file is necessary"
+
+    # prepare input/output filepaths
+    path_images, path_predictions = prepare_output_files(path_images, path_predictions)
+
+    if threads == 1:
+        print('using 1 thread')
+    else:
+        print('using %s threads' % threads)
+    tf.config.threading.set_inter_op_parallelism_threads(threads)
+    tf.config.threading.set_intra_op_parallelism_threads(threads)
+
+    # build network
+    net = build_model(path_model)
+
+    # perform SR/synthesis
+    loop_info = LoopInfo(len(path_images), 10, 'predicting', True)
+    for idx, (path_image, path_prediction) in enumerate(zip(path_images, path_predictions)):
+        loop_info.update(idx)
+
+        # preprocessing
+        try:
+            image, aff, h, pad_idx = preprocess_image(path_image, ct_mode)
+        except Exception as e:
+            print('\nthe following problem occured when preprocessing image %s :' % path_image)
+            print(e)
+            print('resuming program execution\n')
+            continue
+
+        # prediction
+        try:
+            pred = np.squeeze(net.predict(image))
+        except Exception as e:
+            print('\nthe following problem occured when predicting output for image %s :' % path_image)
+            print(e)
+            print('\nresuming program execution')
+            continue
+
+        # postprocessing
+        try:
+            pred = postprocess(pred, pad_idx, aff)
+        except Exception as e:
+            print('\nthe following problem occured when postprocessing prediction for image %s :' % path_image)
+            print(e)
+            print('\nresuming program execution')
+            continue
+
+        # write results to disk
+        try:
+            save_volume(pred, aff, h, path_prediction)
+        except Exception as e:
+            print('\nthe following problem occured when saving the result for image %s :' % path_image)
+            print(e)
+            print('\nresuming program execution')
+            continue
+
+    # print output info
+    if len(path_predictions) == 1:
+        print('\nprediction  saved in: ' + path_predictions[0])
+    else:
+        print('\npredictions saved in: ' + os.path.dirname(path_predictions[0]))
+
+    print('\nIf you use this tool in a publication, please cite:')
+    print('Joint super-resolution and synthesis of 1 mm isotropic MP-RAGE volumes from clinical ')
+    print('MRI exams with scans of different orientation, resolution and contrast\n')
+    print('JE Iglesias, B Billot, Y Balbastre, A Tabari, J Conklin, RG Gonzalez, DC Alexander,')
+    print('P Golland, BL Edlow, B Fischl, for the ADNI')
+    print('NeuroImage 2021\n')
+
+
+def prepare_output_files(path_images, path_predictions):
+    '''
+    Prepare output files.
+    '''
+
+    # check inputs
+    assert path_images is not None, 'please specify an input file/folder (--i)'
+    assert path_predictions is not None, 'please specify an output file/folder (--o)'
+
+    # convert path to absolute paths
+    path_images = os.path.abspath(path_images)
+    basename = os.path.basename(path_images)
+    path_predictions = os.path.abspath(path_predictions) if (path_predictions is not None) else path_predictions
+
+    # path_images is a folder
+    if ('.nii.gz' not in basename) & ('.nii' not in basename) & ('.mgz' not in basename) & ('.npz' not in basename):
+        if os.path.isfile(path_images):
+            raise Exception('Extension not supported for %s, only use: .nii.gz, .nii, .mgz, or .npz' % path_images)
+        path_images = list_images_in_folder(path_images)
+        mkdir(path_predictions)
+        path_predictions = [os.path.join(path_predictions, os.path.basename(image)).replace('.nii', '_synthsr.nii')
+                            for image in path_images]
+        path_predictions = [path_pred.replace('.mgz', '_synthsr.mgz') for path_pred in path_predictions]
+        path_predictions = [path_pred.replace('.npz', '_synthsr.npz') for path_pred in path_predictions]
+
+    # path_images is an image
+    else:
+        assert os.path.isfile(path_images), "file does not exist: %s \n" \
+                                            "please make sure the path and the extension are correct" % path_images
+        path_images = [path_images]
+        if ('.nii.gz' not in path_predictions) & ('.nii' not in path_predictions) & \
+                ('.mgz' not in path_predictions) & ('.npz' not in path_predictions):
+            mkdir(path_predictions)
+            filename = os.path.basename(path_images[0]).replace('.nii', '_synthsr.nii')
+            filename = filename.replace('.mgz', '_synthsr.mgz')
+            filename = filename.replace('.npz', '_synthsr.npz')
+            path_predictions = os.path.join(path_predictions, filename)
+        else:
+            mkdir(os.path.dirname(path_predictions))
+        path_predictions = [path_predictions]
+
+    return path_images, path_predictions
+
+
+def preprocess_image(im_path, ct_mode, n_levels=5):
+
+    # read image and corresponding info
+    im, _, aff, n_dims, n_channels, header, _ = get_volume_info(im_path, return_volume=True)
+    if n_channels > 1:
+        print('WARNING: detected more than 1 channel, only keeping the first channel.')
+        im = im[..., 0]
+    if n_dims != 3:
+        fs.fatal('Input images should be 3D, found %s dimensions.' % n_dims)
+
+    # resample and align image
+    im, aff = resample_volume(im, aff, [1.0, 1.0, 1.0])
+    im = align_volume_to_ref(im, aff, aff_ref=np.eye(4), n_dims=3)
+
+    # pad image to shape divisible by 32
+    padding_shape = (np.ceil(np.array(im.shape) / 2**n_levels) * 2**n_levels).astype('int')
+    pad_idx = np.floor((padding_shape - im.shape) / 2).astype('int')
+    im = pad_volume(im, padding_shape)
+
+    # normalise image
+    if ct_mode:
+        im = np.clip(im, 0, 80)
+    im = im - np.min(im)
+    im = im / np.max(im)
+
+    # add batch and channel axes
+    im = add_axis(im, axis=[0, -1])
+
+    return im, aff, header, pad_idx
+
+
+def build_model(model_file):
+    '''
+    Builds keras unet model.
+    '''
+    assert os.path.isfile(model_file), "The provided model path does not exist."
+
+    # build UNet
+    net = unet(nb_features=24,
+               input_shape=[None, None, None, 1],
+               nb_levels=5,
+               conv_size=3,
+               nb_labels=1,
+               feat_mult=2,
+               nb_conv_per_level=2,
+               final_pred_activation='linear',
+               batch_norm=-1)
+    net.load_weights(model_file, by_name=True)
+
+    return net
+
+
+def postprocess(pred, pad_idx, aff):
+
+    # rescale output between [0, 255]
+    pred = np.clip(255 * pred, 0, 128)
+    pred = crop_volume_with_idx(pred, pad_idx, n_dims=3)
+
+    # align prediction back to first orientation
+    pred = align_volume_to_ref(pred, aff=np.eye(4), aff_ref=aff, n_dims=3)
+
+    return pred
+
+
+# ================================================================================================
+#                       Neurite Utilities - See github.com/adalca/neurite
+# ================================================================================================
+
+
+def unet(nb_features,
+         input_shape,
+         nb_levels,
+         conv_size,
+         nb_labels,
+         name='unet',
+         prefix=None,
+         feat_mult=1,
+         pool_size=2,
+         padding='same',
+         dilation_rate_mult=1,
+         activation='elu',
+         use_residuals=False,
+         final_pred_activation='softmax',
+         nb_conv_per_level=1,
+         layer_nb_feats=None,
+         conv_dropout=0,
+         batch_norm=None,
+         input_model=None):
+    """
+    Unet-style keras model with an overdose of parametrization. Copied with permission
+    from github.com/adalca/neurite.
+    """
+
+    # naming
+    model_name = name
+    if prefix is None:
+        prefix = model_name
+
+    # volume size data
+    ndims = len(input_shape) - 1
+    if isinstance(pool_size, int):
+        pool_size = (pool_size,) * ndims
+
+    # get encoding model
+    enc_model = conv_enc(nb_features,
+                         input_shape,
+                         nb_levels,
+                         conv_size,
+                         name=model_name,
+                         prefix=prefix,
+                         feat_mult=feat_mult,
+                         pool_size=pool_size,
+                         padding=padding,
+                         dilation_rate_mult=dilation_rate_mult,
+                         activation=activation,
+                         use_residuals=use_residuals,
+                         nb_conv_per_level=nb_conv_per_level,
+                         layer_nb_feats=layer_nb_feats,
+                         conv_dropout=conv_dropout,
+                         batch_norm=batch_norm,
+                         input_model=input_model)
+
+    # get decoder
+    # use_skip_connections=True makes it a u-net
+    lnf = layer_nb_feats[(nb_levels * nb_conv_per_level):] if layer_nb_feats is not None else None
+    dec_model = conv_dec(nb_features,
+                         None,
+                         nb_levels,
+                         conv_size,
+                         nb_labels,
+                         name=model_name,
+                         prefix=prefix,
+                         feat_mult=feat_mult,
+                         pool_size=pool_size,
+                         use_skip_connections=True,
+                         padding=padding,
+                         dilation_rate_mult=dilation_rate_mult,
+                         activation=activation,
+                         use_residuals=use_residuals,
+                         final_pred_activation=final_pred_activation,
+                         nb_conv_per_level=nb_conv_per_level,
+                         batch_norm=batch_norm,
+                         layer_nb_feats=lnf,
+                         conv_dropout=conv_dropout,
+                         input_model=enc_model)
+    final_model = dec_model
+
+    return final_model
+
+
+def conv_enc(nb_features,
+             input_shape,
+             nb_levels,
+             conv_size,
+             name=None,
+             prefix=None,
+             feat_mult=1,
+             pool_size=2,
+             dilation_rate_mult=1,
+             padding='same',
+             activation='elu',
+             layer_nb_feats=None,
+             use_residuals=False,
+             nb_conv_per_level=2,
+             conv_dropout=0,
+             batch_norm=None,
+             input_model=None):
+    """
+    Fully Convolutional Encoder. Copied with permission from github.com/adalca/neurite.
+    """
+
+    # naming
+    model_name = name
+    if prefix is None:
+        prefix = model_name
+
+    # first layer: input
+    name = '%s_input' % prefix
+    if input_model is None:
+        input_tensor = keras.layers.Input(shape=input_shape, name=name)
+        last_tensor = input_tensor
+    else:
+        input_tensor = input_model.inputs
+        last_tensor = input_model.outputs
+        if isinstance(last_tensor, list):
+            last_tensor = last_tensor[0]
+        last_tensor = keras.layers.Reshape(input_shape)(last_tensor)
+        input_shape = last_tensor.shape.as_list()[1:]
+
+    # volume size data
+    ndims = len(input_shape) - 1
+    if isinstance(pool_size, int):
+        pool_size = (pool_size,) * ndims
+
+    # prepare layers
+    convL = getattr(keras.layers, 'Conv%dD' % ndims)
+    conv_kwargs = {'padding': padding, 'activation': activation, 'data_format': 'channels_last'}
+    maxpool = getattr(keras.layers, 'MaxPooling%dD' % ndims)
+
+    # down arm:
+    # add nb_levels of conv + ReLu + conv + ReLu. Pool after each of first nb_levels - 1 layers
+    lfidx = 0  # level feature index
+    for level in range(nb_levels):
+        lvl_first_tensor = last_tensor
+        nb_lvl_feats = np.round(nb_features * feat_mult ** level).astype(int)
+        conv_kwargs['dilation_rate'] = dilation_rate_mult ** level
+
+        for conv in range(nb_conv_per_level):  # does several conv per level, max pooling applied at the end
+            if layer_nb_feats is not None:  # None or List of all the feature numbers
+                nb_lvl_feats = layer_nb_feats[lfidx]
+                lfidx += 1
+
+            name = '%s_conv_downarm_%d_%d' % (prefix, level, conv)
+            if conv < (nb_conv_per_level - 1) or (not use_residuals):
+                last_tensor = convL(nb_lvl_feats, conv_size, **conv_kwargs, name=name)(last_tensor)
+            else:  # no activation
+                last_tensor = convL(nb_lvl_feats, conv_size, padding=padding, name=name)(last_tensor)
+
+            if conv_dropout > 0:
+                # conv dropout along feature space only
+                name = '%s_dropout_downarm_%d_%d' % (prefix, level, conv)
+                noise_shape = [None, *[1] * ndims, nb_lvl_feats]
+                last_tensor = keras.layers.Dropout(conv_dropout, noise_shape=noise_shape, name=name)(last_tensor)
+
+        if use_residuals:
+            convarm_layer = last_tensor
+
+            # the "add" layer is the original input
+            # However, it may not have the right number of features to be added
+            nb_feats_in = lvl_first_tensor.get_shape()[-1]
+            nb_feats_out = convarm_layer.get_shape()[-1]
+            add_layer = lvl_first_tensor
+            if nb_feats_in > 1 and nb_feats_out > 1 and (nb_feats_in != nb_feats_out):
+                name = '%s_expand_down_merge_%d' % (prefix, level)
+                last_tensor = convL(nb_lvl_feats, conv_size, **conv_kwargs, name=name)(lvl_first_tensor)
+                add_layer = last_tensor
+
+                if conv_dropout > 0:
+                    name = '%s_dropout_down_merge_%d_%d' % (prefix, level, conv)
+                    noise_shape = [None, *[1] * ndims, nb_lvl_feats]
+                    last_tensor = keras.layers.Dropout(conv_dropout, noise_shape=noise_shape, name=name)(last_tensor)
+
+            name = '%s_res_down_merge_%d' % (prefix, level)
+            last_tensor = keras.layers.add([add_layer, convarm_layer], name=name)
+
+            name = '%s_res_down_merge_act_%d' % (prefix, level)
+            last_tensor = keras.layers.Activation(activation, name=name)(last_tensor)
+
+        if batch_norm is not None:
+            name = '%s_bn_down_%d' % (prefix, level)
+            last_tensor = keras.layers.BatchNormalization(axis=batch_norm, name=name)(last_tensor)
+
+        # max pool if we're not at the last level
+        if level < (nb_levels - 1):
+            name = '%s_maxpool_%d' % (prefix, level)
+            last_tensor = maxpool(pool_size=pool_size, name=name, padding=padding)(last_tensor)
+
+    # create the model and return
+    model = keras.Model(inputs=input_tensor, outputs=[last_tensor], name=model_name)
+    return model
+
+
+def conv_dec(nb_features,
+             input_shape,
+             nb_levels,
+             conv_size,
+             nb_labels,
+             name=None,
+             prefix=None,
+             feat_mult=1,
+             pool_size=2,
+             use_skip_connections=False,
+             padding='same',
+             dilation_rate_mult=1,
+             activation='elu',
+             use_residuals=False,
+             final_pred_activation='softmax',
+             nb_conv_per_level=2,
+             layer_nb_feats=None,
+             batch_norm=None,
+             conv_dropout=0,
+             input_model=None):
+    """
+    Fully Convolutional Decoder. Copied with permission from github.com/adalca/neurite.
+
+    Parameters:
+        ...
+        use_skip_connections (bool): if true, turns an Enc-Dec to a U-Net.
+            If true, input_tensor and tensors are required.
+            It assumes a particular naming of layers. conv_enc...
+    """
+
+    # naming
+    model_name = name
+    if prefix is None:
+        prefix = model_name
+
+    # if using skip connections, make sure need to use them.
+    if use_skip_connections:
+        assert input_model is not None, "is using skip connections, tensors dictionary is required"
+
+    # first layer: input
+    input_name = '%s_input' % prefix
+    if input_model is None:
+        input_tensor = keras.layers.Input(shape=input_shape, name=input_name)
+        last_tensor = input_tensor
+    else:
+        input_tensor = input_model.input
+        last_tensor = input_model.output
+        input_shape = last_tensor.shape.as_list()[1:]
+
+    # vol size info
+    ndims = len(input_shape) - 1
+    if isinstance(pool_size, int):
+        if ndims > 1:
+            pool_size = (pool_size,) * ndims
+
+    # prepare layers
+    convL = getattr(keras.layers, 'Conv%dD' % ndims)
+    conv_kwargs = {'padding': padding, 'activation': activation}
+    upsample = getattr(keras.layers, 'UpSampling%dD' % ndims)
+
+    # up arm:
+    # nb_levels - 1 layers of Deconvolution3D
+    #    (approx via up + conv + ReLu) + merge + conv + ReLu + conv + ReLu
+    lfidx = 0
+    for level in range(nb_levels - 1):
+        nb_lvl_feats = np.round(nb_features * feat_mult ** (nb_levels - 2 - level)).astype(int)
+        conv_kwargs['dilation_rate'] = dilation_rate_mult ** (nb_levels - 2 - level)
+
+        # upsample matching the max pooling layers size
+        name = '%s_up_%d' % (prefix, nb_levels + level)
+        last_tensor = upsample(size=pool_size, name=name)(last_tensor)
+        up_tensor = last_tensor
+
+        # merge layers combining previous layer
+        if use_skip_connections:
+            conv_name = '%s_conv_downarm_%d_%d' % (prefix, nb_levels - 2 - level, nb_conv_per_level - 1)
+            cat_tensor = input_model.get_layer(conv_name).output
+            name = '%s_merge_%d' % (prefix, nb_levels + level)
+            last_tensor = keras.layers.concatenate([cat_tensor, last_tensor], axis=ndims + 1, name=name)
+
+        # convolution layers
+        for conv in range(nb_conv_per_level):
+            if layer_nb_feats is not None:
+                nb_lvl_feats = layer_nb_feats[lfidx]
+                lfidx += 1
+
+            name = '%s_conv_uparm_%d_%d' % (prefix, nb_levels + level, conv)
+            if conv < (nb_conv_per_level - 1) or (not use_residuals):
+                last_tensor = convL(nb_lvl_feats, conv_size, **conv_kwargs, name=name)(last_tensor)
+            else:
+                last_tensor = convL(nb_lvl_feats, conv_size, padding=padding, name=name)(last_tensor)
+
+            if conv_dropout > 0:
+                name = '%s_dropout_uparm_%d_%d' % (prefix, level, conv)
+                noise_shape = [None, *[1] * ndims, nb_lvl_feats]
+                last_tensor = keras.layers.Dropout(conv_dropout, noise_shape=noise_shape, name=name)(last_tensor)
+
+        # residual block
+        if use_residuals:
+
+            # the "add" layer is the original input
+            # However, it may not have the right number of features to be added
+            add_layer = up_tensor
+            nb_feats_in = add_layer.get_shape()[-1]
+            nb_feats_out = last_tensor.get_shape()[-1]
+            if nb_feats_in > 1 and nb_feats_out > 1 and (nb_feats_in != nb_feats_out):
+                name = '%s_expand_up_merge_%d' % (prefix, level)
+                add_layer = convL(nb_lvl_feats, conv_size, **conv_kwargs, name=name)(add_layer)
+
+                if conv_dropout > 0:
+                    name = '%s_dropout_up_merge_%d_%d' % (prefix, level, conv)
+                    noise_shape = [None, *[1] * ndims, nb_lvl_feats]
+                    last_tensor = keras.layers.Dropout(conv_dropout, noise_shape=noise_shape, name=name)(last_tensor)
+
+            name = '%s_res_up_merge_%d' % (prefix, level)
+            last_tensor = keras.layers.add([last_tensor, add_layer], name=name)
+
+            name = '%s_res_up_merge_act_%d' % (prefix, level)
+            last_tensor = keras.layers.Activation(activation, name=name)(last_tensor)
+
+        if batch_norm is not None:
+            name = '%s_bn_up_%d' % (prefix, level)
+            last_tensor = keras.layers.BatchNormalization(axis=batch_norm, name=name)(last_tensor)
+
+    # Compute likelyhood prediction (no activation yet)
+    name = '%s_likelihood' % prefix
+    last_tensor = convL(nb_labels, 1, activation=None, name=name)(last_tensor)
+    like_tensor = last_tensor
+
+    # output prediction layer
+    # we use a softmax to compute P(L_x|I) where x is each location
+    if final_pred_activation == 'softmax':
+        name = '%s_prediction' % prefix
+        softmax_lambda_fcn = lambda x: keras.activations.softmax(x, axis=ndims + 1)
+        pred_tensor = keras.layers.Lambda(softmax_lambda_fcn, name=name)(last_tensor)
+
+    # otherwise create a layer that does nothing.
+    else:
+        name = '%s_prediction' % prefix
+        pred_tensor = keras.layers.Activation('linear', name=name)(like_tensor)
+
+    # create the model and retun
+    model = keras.Model(inputs=input_tensor, outputs=pred_tensor, name=model_name)
+    return model
+
+
+# ================================================================================================
+#                                        Lab2Im Utilities
+# ================================================================================================
+
+
+# ---------------------------------------------- loading/saving functions ----------------------------------------------
+
+
+def load_volume(path_volume, im_only=True, squeeze=True, dtype=None, aff_ref=None):
+    """
+    Load volume file.
+    :param path_volume: path of the volume to load. Can either be a nii, nii.gz, mgz, or npz format.
+    If npz format, 1) the variable name is assumed to be 'vol_data',
+    2) the volume is associated with a identity affine matrix and blank header.
+    :param im_only: (optional) if False, the function also returns the affine matrix and header of the volume.
+    :param squeeze: (optional) whether to squeeze the volume when loading.
+    :param dtype: (optional) if not None, convert the loaded volume to this numpy dtype.
+    :param aff_ref: (optional) If not None, the loaded volume is aligned to this affine matrix.
+    The returned affine matrix is also given in this new space. Must be a numpy array of dimension 4x4.
+    :return: the volume, with corresponding affine matrix and header if im_only is False.
+    """
+    assert path_volume.endswith(('.nii', '.nii.gz', '.mgz', '.npz')), 'Unknown data file: %s' % path_volume
+
+    if path_volume.endswith(('.nii', '.nii.gz', '.mgz')):
+        x = nib.load(path_volume)
+        if squeeze:
+            volume = np.squeeze(x.get_data())
+        else:
+            volume = x.get_data()
+        aff = x.affine
+        header = x.header
+    else:  # npz
+        volume = np.load(path_volume)['vol_data']
+        if squeeze:
+            volume = np.squeeze(volume)
+        aff = np.eye(4)
+        header = nib.Nifti1Header()
+    if dtype is not None:
+        volume = volume.astype(dtype=dtype)
+
+    # align image to reference affine matrix
+    if aff_ref is not None:
+        n_dims, _ = get_dims(list(volume.shape), max_channels=10)
+        volume, aff = align_volume_to_ref(volume, aff, aff_ref=aff_ref, return_aff=True, n_dims=n_dims)
+
+    if im_only:
+        return volume
+    else:
+        return volume, aff, header
+
+
+def save_volume(volume, aff, header, path, res=None, dtype=None, n_dims=3):
+    """
+    Save a volume.
+    :param volume: volume to save
+    :param aff: affine matrix of the volume to save. If aff is None, the volume is saved with an identity affine matrix.
+    aff can also be set to 'FS', in which case the volume is saved with the affine matrix of FreeSurfer outputs.
+    :param header: header of the volume to save. If None, the volume is saved with a blank header.
+    :param path: path where to save the volume.
+    :param res: (optional) update the resolution in the header before saving the volume.
+    :param dtype: (optional) numpy dtype for the saved volume.
+    :param n_dims: (optional) number of dimensions, to avoid confusion in multi-channel case. Default is None, where
+    n_dims is automatically inferred.
+    """
+
+    mkdir(os.path.dirname(path))
+    if dtype is not None:
+        volume = volume.astype(dtype=dtype)
+    if '.npz' in path:
+        np.savez_compressed(path, vol_data=volume)
+    else:
+        if header is None:
+            header = nib.Nifti1Header()
+        if isinstance(aff, str):
+            if aff == 'FS':
+                aff = np.array([[-1, 0, 0, 0], [0, 0, 1, 0], [0, -1, 0, 0], [0, 0, 0, 1]])
+        elif aff is None:
+            aff = np.eye(4)
+        nifty = nib.Nifti1Image(volume, aff, header)
+        if res is not None:
+            if n_dims is None:
+                n_dims, _ = get_dims(volume.shape)
+            res = reformat_to_list(res, length=n_dims, dtype=None)
+            nifty.header.set_zooms(res)
+        nib.save(nifty, path)
+
+
+def get_volume_info(path_volume, return_volume=False, aff_ref=None):
+    """
+    Gather information about a volume: shape, affine matrix, number of dimensions and channels, header, and resolution.
+    :param path_volume: path of the volume to get information form.
+    :param return_volume: (optional) whether to return the volume along with the information.
+    :param aff_ref: (optional) If not None, the loaded volume is aligned to this affine matrix.
+    All info relative to the volume is then given in this new space. Must be a numpy array of dimension 4x4.
+    :return: volume (if return_volume is true), and corresponding info. If aff_ref is not None, the returned aff is
+    the original one, i.e. the affine of the image before being aligned to aff_ref.
+    """
+    # read image
+    im, aff, header = load_volume(path_volume, im_only=False)
+
+    # understand if image is multichannel
+    im_shape = list(im.shape)
+    n_dims, n_channels = get_dims(im_shape, max_channels=10)
+    im_shape = im_shape[:n_dims]
+
+    # get labels res
+    if '.nii' in path_volume:
+        data_res = np.array(header['pixdim'][1:n_dims + 1])
+    elif '.mgz' in path_volume:
+        data_res = np.array(header['delta'])  # mgz image
+    else:
+        data_res = np.array([1.0] * n_dims)
+
+    # align to given affine matrix
+    if aff_ref is not None:
+        ras_axes = get_ras_axes(aff, n_dims=n_dims)
+        ras_axes_ref = get_ras_axes(aff_ref, n_dims=n_dims)
+        im = align_volume_to_ref(im, aff, aff_ref=aff_ref, n_dims=n_dims)
+        im_shape = np.array(im_shape)
+        data_res = np.array(data_res)
+        im_shape[ras_axes_ref] = im_shape[ras_axes]
+        data_res[ras_axes_ref] = data_res[ras_axes]
+        im_shape = im_shape.tolist()
+
+    # return info
+    if return_volume:
+        return im, im_shape, aff, n_dims, n_channels, header, data_res
+    else:
+        return im_shape, aff, n_dims, n_channels, header, data_res
+
+
+def load_array_if_path(var, load_as_numpy=True):
+    """If var is a string and load_as_numpy is True, this function loads the array writen at the path indicated by var.
+    Otherwise it simply returns var as it is."""
+    if (isinstance(var, str)) & load_as_numpy:
+        assert os.path.isfile(var), 'No such path: %s' % var
+        var = np.load(var)
+    return var
+
+
+# ----------------------------------------------- reformatting functions -----------------------------------------------
+
+
+def reformat_to_list(var, length=None, load_as_numpy=False, dtype=None):
+    """This function takes a variable and reformat it into a list of desired
+    length and type (int, float, bool, str).
+    If variable is a string, and load_as_numpy is True, it will be loaded as a numpy array.
+    If variable is None, this funtion returns None.
+    :param var: a str, int, float, list, tuple, or numpy array
+    :param length: (optional) if var is a single item, it will be replicated to a list of this length
+    :param load_as_numpy: (optional) whether var is the path to a numpy array
+    :param dtype: (optional) convert all item to this type. Can be 'int', 'float', 'bool', or 'str'
+    :return: reformated list
+    """
+
+    # convert to list
+    if var is None:
+        return None
+    var = load_array_if_path(var, load_as_numpy=load_as_numpy)
+    if isinstance(var, (int, float, np.int, np.int32, np.int64, np.float, np.float32, np.float64)):
+        var = [var]
+    elif isinstance(var, tuple):
+        var = list(var)
+    elif isinstance(var, np.ndarray):
+        var = np.squeeze(var).tolist()
+    elif isinstance(var, str):
+        var = [var]
+    elif isinstance(var, bool):
+        var = [var]
+    if isinstance(var, list):
+        if length is not None:
+            if len(var) == 1:
+                var = var * length
+            elif len(var) != length:
+                raise ValueError('if var is a list/tuple/numpy array, it should be of length 1 or {0}, '
+                                 'had {1}'.format(length, var))
+    else:
+        raise TypeError('var should be an int, float, tuple, list, numpy array, or path to numpy array')
+
+    # convert items type
+    if dtype is not None:
+        if dtype == 'int':
+            var = [int(v) for v in var]
+        elif dtype == 'float':
+            var = [float(v) for v in var]
+        elif dtype == 'bool':
+            var = [bool(v) for v in var]
+        elif dtype == 'str':
+            var = [str(v) for v in var]
+        else:
+            raise ValueError("dtype should be 'str', 'float', 'int', or 'bool'; had {}".format(dtype))
+    return var
+
+
+# ----------------------------------------------- path-related functions -----------------------------------------------
+
+
+def list_images_in_folder(path_dir, include_single_image=True):
+    """List all files with extension nii, nii.gz, mgz, or npz whithin a folder."""
+    basename = os.path.basename(path_dir)
+    if include_single_image & \
+            (('.nii.gz' in basename) | ('.nii' in basename) | ('.mgz' in basename) | ('.npz' in basename)):
+        assert os.path.isfile(path_dir), 'file %s does not exist' % path_dir
+        list_images = [path_dir]
+    else:
+        if os.path.isdir(path_dir):
+            list_images = sorted(glob.glob(os.path.join(path_dir, '*nii.gz')) +
+                                 glob.glob(os.path.join(path_dir, '*nii')) +
+                                 glob.glob(os.path.join(path_dir, '*.mgz')) +
+                                 glob.glob(os.path.join(path_dir, '*.npz')))
+        else:
+            raise Exception('extension not supported for %s, only use: nii.gz, .nii, .mgz, or .npz' % path_dir)
+        assert len(list_images) > 0, 'no .nii, .nii.gz, .mgz or .npz image could be found in %s' % path_dir
+    return list_images
+
+
+def mkdir(path_dir):
+    """Recursively creates the current dir as well as its parent folders if they do not already exist."""
+    if path_dir[-1] == '/':
+        path_dir = path_dir[:-1]
+    if not os.path.isdir(path_dir):
+        list_dir_to_create = [path_dir]
+        while not os.path.isdir(os.path.dirname(list_dir_to_create[-1])):
+            list_dir_to_create.append(os.path.dirname(list_dir_to_create[-1]))
+        for dir_to_create in reversed(list_dir_to_create):
+            os.mkdir(dir_to_create)
+
+
+# ---------------------------------------------- shape-related functions -----------------------------------------------
+
+
+def get_dims(shape, max_channels=10):
+    """Get the number of dimensions and channels from the shape of an array.
+    The number of dimensions is assumed to be the length of the shape, as long as the shape of the last dimension is
+    inferior or equal to max_channels (default 3).
+    :param shape: shape of an array. Can be a sequence or a 1d numpy array.
+    :param max_channels: maximum possible number of channels.
+    :return: the number of dimensions and channels associated with the provided shape.
+    example 1: get_dims([150, 150, 150], max_channels=10) = (3, 1)
+    example 2: get_dims([150, 150, 150, 3], max_channels=10) = (3, 3)
+    example 3: get_dims([150, 150, 150, 15], max_channels=10) = (4, 1), because 5>3"""
+    if shape[-1] <= max_channels:
+        n_dims = len(shape) - 1
+        n_channels = shape[-1]
+    else:
+        n_dims = len(shape)
+        n_channels = 1
+    return n_dims, n_channels
+
+
+def add_axis(x, axis):
+    """Add axis to a numpy array.
+    :param axis: index of the new axis to add. Can also be a list of indices to add several axes at the same time."""
+    axis = reformat_to_list(axis)
+    for ax in axis:
+        x = np.expand_dims(x, axis=ax)
+    return x
+
+
+# --------------------------------------------------- miscellaneous ----------------------------------------------------
+
+
+class LoopInfo:
+    """
+    Class to print the current iteration in a for loop, and optionally the estimated remaining time.
+    Instantiate just before the loop, and call the update method at the start of the loop.
+    The printed text has the following format:
+    processing i/total    remaining time: hh:mm:ss
+    """
+
+    def __init__(self, n_iterations, spacing=10, text='processing', print_time=False):
+        """
+        :param n_iterations: total number of iterations of the for loop.
+        :param spacing: frequency at which the update info will be printed on screen.
+        :param text: text to print. Default is processing.
+        :param print_time: whether to print the estimated remaining time. Default is False.
+        """
+
+        # loop parameters
+        self.n_iterations = n_iterations
+        self.spacing = spacing
+
+        # text parameters
+        self.text = text
+        self.print_time = print_time
+        self.print_previous_time = False
+        self.align = len(str(self.n_iterations)) * 2 + 1 + 3
+
+        # timing parameters
+        self.iteration_durations = np.zeros((n_iterations,))
+        self.start = time.time()
+        self.previous = time.time()
+
+    def update(self, idx):
+
+        # time iteration
+        now = time.time()
+        self.iteration_durations[idx] = now - self.previous
+        self.previous = now
+
+        # print text
+        if idx == 0:
+            print(self.text + ' 1/{}'.format(self.n_iterations))
+        elif idx % self.spacing == self.spacing - 1:
+            iteration = str(idx + 1) + '/' + str(self.n_iterations)
+            if self.print_time:
+                # estimate remaining time
+                max_duration = np.max(self.iteration_durations)
+                average_duration = np.mean(self.iteration_durations[self.iteration_durations > .01 * max_duration])
+                remaining_time = int(average_duration * (self.n_iterations - idx))
+                # print total remaining time only if it is greater than 1s or if it was previously printed
+                if (remaining_time > 1) | self.print_previous_time:
+                    eta = str(timedelta(seconds=remaining_time))
+                    print(self.text + ' {:<{x}} remaining time: {}'.format(iteration, eta, x=self.align))
+                    self.print_previous_time = True
+                else:
+                    print(self.text + ' {}'.format(iteration))
+            else:
+                print(self.text + ' {}'.format(iteration))
+
+
+# ---------------------------------------------------- edit volume -----------------------------------------------------
+
+
+def crop_volume_with_idx(volume, crop_idx, aff=None, n_dims=None):
+    """Crop a volume with given indices.
+    :param volume: a 2d or 3d numpy array
+    :param crop_idx: croppping indices, in the order [lower_bound_dim_1, ..., upper_bound_dim_1, ...].
+    Can be a list or a 1d numpy array.
+    :param aff: (optional) if aff is specified, this function returns an updated affine matrix of the volume after
+    cropping.
+    :param n_dims: (optional) number of dimensions (excluding channels) of the volume. If not provided, n_dims will be
+    inferred from the input volume.
+    :return: the cropped volume, and the updated affine matrix if aff is not None.
+    """
+
+    # get info
+    new_volume = volume.copy()
+    n_dims = int(np.array(crop_idx).shape[0] / 2) if n_dims is None else n_dims
+
+    # crop image
+    if n_dims == 2:
+        new_volume = new_volume[crop_idx[0]:crop_idx[2], crop_idx[1]:crop_idx[3], ...]
+    elif n_dims == 3:
+        new_volume = new_volume[crop_idx[0]:crop_idx[3], crop_idx[1]:crop_idx[4], crop_idx[2]:crop_idx[5], ...]
+    else:
+        raise Exception('cannot crop volumes with more than 3 dimensions')
+
+    if aff is not None:
+        aff[0:3, -1] = aff[0:3, -1] + aff[:3, :3] @ crop_idx[:3]
+        return new_volume, aff
+    else:
+        return new_volume
+
+
+def pad_volume(volume, padding_shape, padding_value=0, aff=None, return_pad_idx=False):
+    """Pad volume to a given shape
+    :param volume: volume to be padded
+    :param padding_shape: shape to pad volume to. Can be a number, a sequence or a 1d numpy array.
+    :param padding_value: (optional) value used for padding
+    :param aff: (optional) affine matrix of the volume
+    :return: padded volume, and updated affine matrix if aff is not None.
+    """
+
+    # get info
+    new_volume = volume.copy()
+    vol_shape = new_volume.shape
+    n_dims, n_channels = get_dims(vol_shape)
+    padding_shape = reformat_to_list(padding_shape, length=n_dims, dtype='int')
+
+    # check if need to pad
+    if not np.array_equal(np.array(padding_shape, dtype='int32'), np.array(vol_shape[:n_dims], dtype='int32')):
+
+        # get padding margins
+        min_margins = np.maximum(np.int32(np.floor((np.array(padding_shape) - np.array(vol_shape)[:n_dims]) / 2)), 0)
+        max_margins = np.minimum(np.int32(np.ceil((np.array(padding_shape) - np.array(vol_shape)[:n_dims]) / 2)),
+                                 np.array(vol_shape)[:n_dims])
+        pad_idx = np.concatenate([min_margins, min_margins + np.array(vol_shape)])
+        pad_margins = tuple([(min_margins[i], max_margins[i]) for i in range(n_dims)])
+        if n_channels > 1:
+            pad_margins = tuple(list(pad_margins) + [[0, 0]])
+
+        # pad volume
+        new_volume = np.pad(new_volume, pad_margins, mode='constant', constant_values=padding_value)
+
+        if aff is not None:
+            if n_dims == 2:
+                min_margins = np.append(min_margins, 0)
+            aff[:-1, -1] = aff[:-1, -1] - aff[:-1, :-1] @ min_margins
+
+    else:
+        pad_idx = np.concatenate([np.array([0] * n_dims), np.array(vol_shape)])
+
+    # sort outputs
+    output = [new_volume]
+    if aff is not None:
+        output.append(aff)
+    if return_pad_idx:
+        output.append(pad_idx)
+    return output[0] if len(output) == 1 else tuple(output)
+
+
+def resample_volume(volume, aff, new_vox_size):
+    """This function resizes the voxels of a volume to a new provided size, while adjusting the header to keep the RAS
+    :param volume: a numpy array
+    :param aff: affine matrix of the volume
+    :param new_vox_size: new voxel size (3 - element numpy vector) in mm
+    :return: new volume and affine matrix
+    """
+
+    pixdim = np.sqrt(np.sum(aff * aff, axis=0))[:-1]
+    new_vox_size = np.array(new_vox_size)
+    factor = pixdim / new_vox_size
+    sigmas = 0.25 / factor
+    sigmas[factor > 1] = 0  # don't blur if upsampling
+
+    volume_filt = gaussian_filter(volume, sigmas)
+
+    # volume2 = zoom(volume_filt, factor, order=1, mode='reflect', prefilter=False)
+    x = np.arange(0, volume_filt.shape[0])
+    y = np.arange(0, volume_filt.shape[1])
+    z = np.arange(0, volume_filt.shape[2])
+
+    my_interpolating_function = RegularGridInterpolator((x, y, z), volume_filt)
+
+    start = - (factor - 1) / (2 * factor)
+    step = 1.0 / factor
+    stop = start + step * np.ceil(volume_filt.shape * factor)
+
+    xi = np.arange(start=start[0], stop=stop[0], step=step[0])
+    yi = np.arange(start=start[1], stop=stop[1], step=step[1])
+    zi = np.arange(start=start[2], stop=stop[2], step=step[2])
+    xi[xi < 0] = 0
+    yi[yi < 0] = 0
+    zi[zi < 0] = 0
+    xi[xi > (volume_filt.shape[0] - 1)] = volume_filt.shape[0] - 1
+    yi[yi > (volume_filt.shape[1] - 1)] = volume_filt.shape[1] - 1
+    zi[zi > (volume_filt.shape[2] - 1)] = volume_filt.shape[2] - 1
+
+    xig, yig, zig = np.meshgrid(xi, yi, zi, indexing='ij', sparse=True)
+    volume2 = my_interpolating_function((xig, yig, zig))
+
+    aff2 = aff.copy()
+    for c in range(3):
+        aff2[:-1, c] = aff2[:-1, c] / factor[c]
+    aff2[:-1, -1] = aff2[:-1, -1] - np.matmul(aff2[:-1, :-1], 0.5 * (factor - 1))
+
+    return volume2, aff2
+
+
+def get_ras_axes(aff, n_dims=3):
+    """This function finds the RAS axes corresponding to each dimension of a volume, based on its affine matrix.
+    :param aff: affine matrix Can be a 2d numpy array of size n_dims*n_dims, n_dims+1*n_dims+1, or n_dims*n_dims+1.
+    :param n_dims: number of dimensions (excluding channels) of the volume corresponding to the provided affine matrix.
+    :return: two numpy 1d arrays of lengtn n_dims, one with the axes corresponding to RAS orientations,
+    and one with their corresponding direction.
+    """
+    aff_inverted = np.linalg.inv(aff)
+    img_ras_axes = np.argmax(np.absolute(aff_inverted[0:n_dims, 0:n_dims]), axis=0)
+    return img_ras_axes
+
+
+def align_volume_to_ref(volume, aff, aff_ref=None, return_aff=False, n_dims=None):
+    """This function aligns a volume to a reference orientation (axis and direction) specified by an affine matrix.
+    :param volume: a numpy array
+    :param aff: affine matrix of the floating volume
+    :param aff_ref: (optional) affine matrix of the target orientation. Default is identity matrix.
+    :param return_aff: (optional) whether to return the affine matrix of the aligned volume
+    :param n_dims: (optional) number of dimensions (excluding channels) of the volume. If not provided, n_dims will be
+    inferred from the input volume.
+    :return: aligned volume, with corresponding affine matrix if return_aff is True.
+    """
+
+    # work on copy
+    new_volume = volume.copy()
+    aff_flo = aff.copy()
+
+    # default value for aff_ref
+    if aff_ref is None:
+        aff_ref = np.eye(4)
+
+    # extract ras axes
+    if n_dims is None:
+        n_dims, _ = get_dims(new_volume.shape)
+    ras_axes_ref = get_ras_axes(aff_ref, n_dims=n_dims)
+    ras_axes_flo = get_ras_axes(aff_flo, n_dims=n_dims)
+
+    # align axes
+    aff_flo[:, ras_axes_ref] = aff_flo[:, ras_axes_flo]
+    for i in range(n_dims):
+        if ras_axes_flo[i] != ras_axes_ref[i]:
+            new_volume = np.swapaxes(new_volume, ras_axes_flo[i], ras_axes_ref[i])
+            swapped_axis_idx = np.where(ras_axes_flo == ras_axes_ref[i])
+            ras_axes_flo[swapped_axis_idx], ras_axes_flo[i] = ras_axes_flo[i], ras_axes_flo[swapped_axis_idx]
+
+    # align directions
+    dot_products = np.sum(aff_flo[:3, :3] * aff_ref[:3, :3], axis=0)
+    for i in range(n_dims):
+        if dot_products[i] < 0:
+            new_volume = np.flip(new_volume, axis=i)
+            aff_flo[:, i] = - aff_flo[:, i]
+            aff_flo[:3, 3] = aff_flo[:3, 3] - aff_flo[:3, i] * (new_volume.shape[i] - 1)
+
+    if return_aff:
+        return new_volume, aff_flo
+    else:
+        return new_volume
+
+
+# execute script
+if __name__ == '__main__':
+    main()

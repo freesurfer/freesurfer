@@ -16,7 +16,3 @@ pandas
 matplotlib
 transforms3d
 scikit-image==0.16.2
-
-## Samseg vis
-pyqtgraph
-PyQt5
