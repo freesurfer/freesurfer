@@ -210,7 +210,7 @@ void LayerSurface::SetRefVolume(LayerMRI *ref)
     connect( m_volumeRef, SIGNAL(destroyed()), this, SLOT(ResetVolumeRef()), Qt::UniqueConnection);
 }
 
-bool LayerSurface::LoadSurfaceFromFile(bool bIgnoreVG)
+bool LayerSurface::LoadSurfaceFromFile(bool bIgnoreVG, QString& sAffineXformFilename)
 {
   if ( m_surfaceSource )
   {
@@ -225,6 +225,7 @@ bool LayerSurface::LoadSurfaceFromFile(bool bIgnoreVG)
                                    m_sPatchFilename,
                                    m_sTargetFilename,
                                    m_sSphereFilename,
+                                   sAffineXformFilename,
                                    m_listSupFiles)
        )
   {

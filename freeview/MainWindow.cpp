@@ -3617,6 +3617,12 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
         {
           m_scripts.insert( 0, QStringList("setsurfaceedgecolor") << subArgu );
         }
+        else if ( subOption == "affinexfm")
+        {
+	  // The LTA can point in either direction as MRISltaMultiply() 
+	  // will determine the right direction if it can
+	  sup_options["affinexform_filename"] = subArgu;
+        }
         else if ( subOption == "edgethickness"|| subOption == "edge_thickness" )
         {
           m_scripts.insert( 0, QStringList("setsurfaceedgethickness") << subArgu );
@@ -6416,6 +6422,9 @@ void MainWindow::LoadSurfaceFile( const QString& filename, const QString& fn_pat
   QVariantMap args;
   if (sup_options.contains("ignore_vg"))
     args["ignore_vg"] = sup_options["ignore_vg"];
+  if (sup_options.contains("affinexform_filename"))
+    args["affinexform_filename"] = sup_options["affinexform_filename"];
+
   m_threadIOWorker->LoadSurface( layer, args );
   m_statusBar->StartTimer();
 }

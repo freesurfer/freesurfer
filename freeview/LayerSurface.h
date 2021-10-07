@@ -64,7 +64,7 @@ public:
   LayerSurface( LayerMRI* mri = NULL, QObject* parent = NULL );
   virtual ~LayerSurface();
 
-  bool LoadSurfaceFromFile(bool bIgnoreVG = false);
+  bool LoadSurfaceFromFile(bool bIgnoreVG, QString& sAffineXformFilename);
   bool LoadVectorFromFile();
   bool LoadCurvatureFromFile( const QString& filename );
   bool LoadOverlayFromFile( const QString& filename, const QString& fn_reg, bool bCorrelation, bool bSecondHalfData = false );
