@@ -33,9 +33,9 @@ def main():
                                                  "from a scan of any contrast and resolution ", epilog='\n')
 
     # input/outputs
-    parser.add_argument("path_images", help="Image(s) to super-resolve. Can be a path to an image or to a folder.")
-    parser.add_argument("path_predictions", help="Output(s), i.e. synthetic 1mm MP-RAGE(s). "
-                                                   "Must be a folder if images are a folder.")
+    parser.add_argument("--i", help="Image(s) to super-resolve. Can be a path to an image or to a folder.")
+    parser.add_argument("--o", help="Output(s), i.e. synthetic 1mm MP-RAGE(s). "
+                                    "Must be a folder if --i designates a folder.")
     parser.add_argument("--ct", action="store_true", help="(optional) Use this flag for CT scans in Hounsfield scale, "
                                                           "it clips intensities to [0,80].")
 
@@ -66,8 +66,8 @@ def main():
 
     # run prediction
     predict(
-        path_images=args.path_images,
-        path_predictions=args.path_predictions,
+        path_images=args.i,
+        path_predictions=args.o,
         path_model=path_model,
         ct_mode=args.ct,
         threads=args.threads
@@ -159,6 +159,13 @@ def predict(path_images,
 
 
 def prepare_output_files(path_images, path_predictions):
+    '''
+    Prepare output files.
+    '''
+
+    # check inputs
+    assert path_images is not None, 'please specify an input file/folder (--i)'
+    assert path_predictions is not None, 'please specify an output file/folder (--o)'
 
     # convert path to absolute paths
     path_images = os.path.abspath(path_images)

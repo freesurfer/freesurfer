@@ -34,13 +34,13 @@ def main():
                                      epilog='\n')
 
     # input/outputs
-    parser.add_argument("path_t1s", help="T1 image(s) to super-resolve, at native 1.5x1.5x5 axial resolution. "
+    parser.add_argument("--t1", help="T1 image(s) to super-resolve, at native 1.5x1.5x5 axial resolution. "
                                      "Can be a path to an image or to a folder.")
-    parser.add_argument("path_t2s", help="T2 image(s). Must be a folder if T1s are a folder. "
+    parser.add_argument("--t2", help="T2 image(s). Must be a folder if --t1 designates a folder. "
                                      "These must be registered to the T1s, in physical coordinates (i.e., with the "
                                      "headers, do NOT resample when registering; see instructions on FreeSurfer wiki)")
-    parser.add_argument("path_predictions", help="Output(s), i.e. synthetic 1mm MP-RAGE(s). "
-                                                   "Must be a folder if T1s are a folder.")
+    parser.add_argument("--o", help="Output(s), i.e. synthetic 1mm MP-RAGE(s). "
+                                    "Must be a folder if --t1 designates a folder.")
 
     # parameters
     parser.add_argument("--threads", type=int, default=1, help="(optional) Number of cores to be used. Default is 1.")
@@ -69,9 +69,9 @@ def main():
 
     # run prediction
     predict(
-        path_t1_images=args.path_t1s,
-        path_t2_images=args.path_t2s,
-        path_predictions=args.path_predictions,
+        path_t1_images=args.t1,
+        path_t2_images=args.t2,
+        path_predictions=args.o,
         path_model=path_model,
         threads=args.threads
     )
@@ -158,6 +158,14 @@ def predict(path_t1_images,
 
 
 def prepare_output_files(path_t1_images, path_t2_images, path_predictions):
+    '''
+    Prepare output files.
+    '''
+
+    # check inputs
+    assert path_t1_images is not None, 'please specify an input t1 file/folder (--t1)'
+    assert path_t2_images is not None, 'please specify an input t2 file/folder (--t2)'
+    assert path_predictions is not None, 'please specify an output file/folder (--o)'
 
     # convert path to absolute paths
     path_t1_images = os.path.abspath(path_t1_images)
