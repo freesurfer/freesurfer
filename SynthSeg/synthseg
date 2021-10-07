@@ -36,12 +36,12 @@ def main():
     parser = fs.utils.ArgumentParser(description="SynthSeg", epilog='\n')
 
     # input/outputs
-    parser.add_argument("path_images", type=str, help="Image(s) to segment. Can be a path to an image or to a folder.")
-    parser.add_argument("path_segmentations", help="Segmentation output(s). Must be a folder if images are a folder.")
-    parser.add_argument("--post", help="(optional) Posteriors output(s). Must be a folder if images are a folder.")
-    parser.add_argument("--resample", help="(optional) Paths where resampled images will be saved."
-                                           "Must be a folder if images are a folder.")
-    parser.add_argument("--vol", help="(optional) Path of a csv file where structure volumes will be saved.")
+    parser.add_argument("--i", help="Image(s) to segment. Can be a path to an image or to a folder.")
+    parser.add_argument("--o", help="Segmentation output(s). Must be a folder if --i designates a folder.")
+    parser.add_argument("--post", help="(optional) Posteriors output(s). Must be a folder if --i designates a folder.")
+    parser.add_argument("--resample", help="(optional) Resampled image(s). "
+                                           "Must be a folder if --i designates a folder.")
+    parser.add_argument("--vol", help="(optional) Output CSV file with volumes for all structures and subjects.")
 
     # parameters
     parser.add_argument("--crop", type=int, default=None, dest="crop", help="(optional) Size of 3D patches to analyse."
@@ -75,8 +75,8 @@ def main():
 
     # run prediction
     predict(
-        path_images=args.path_images,
-        path_segmentations=args.path_segmentations,
+        path_images=args.i,
+        path_segmentations=args.o,
         path_model=path_model,
         segmentation_label_list=segmentation_label_list,
         segmentation_names_list=segmentation_names_list,
@@ -250,12 +250,13 @@ def prepare_output_files(path_images, out_seg, out_posteriors, out_resampled, ou
     '''
 
     # check inputs
+    assert path_images is not None, 'please specify an input file/folder (--i)'
     assert out_seg is not None, 'please specify an output file/folder (--o)'
 
     # convert path to absolute paths
     path_images = os.path.abspath(path_images)
     basename = os.path.basename(path_images)
-    out_seg = os.path.abspath(out_seg) if (out_seg is not None) else out_seg
+    out_seg = os.path.abspath(out_seg)
     out_posteriors = os.path.abspath(out_posteriors) if (out_posteriors is not None) else out_posteriors
     out_resampled = os.path.abspath(out_resampled) if (out_resampled is not None) else out_resampled
     out_volumes = os.path.abspath(out_volumes) if (out_volumes is not None) else out_volumes
