@@ -565,7 +565,6 @@ if(NOT MINIMAL)
     mri_strip_subject_info
     mri_surfacemask
     mri_synth_strip
-    mri_SynthSR
     mri_synthesize
     mri_threshold
     mri_topologycorrection
