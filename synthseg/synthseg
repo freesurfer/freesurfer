@@ -68,10 +68,10 @@ def main():
         path_model = segmentation_label_list = segmentation_names_list = topology_classes = None
         fs.fatal('FREESURFER_HOME is not set. Please source freesurfer.')
     else:
-        path_model = os.path.join(fs.fshome(), 'models', 'SynthSeg_1.0.h5')
-        segmentation_label_list = os.path.join(fs.fshome(), 'models', 'SynthSeg_segmentation_labels.npy')
-        segmentation_names_list = os.path.join(fs.fshome(), 'models', 'SynthSeg_segmentation_names.npy')
-        topology_classes = os.path.join(fs.fshome(), 'models', 'SynthSeg_topological_classes.npy')
+        path_model = os.path.join(fs.fshome(), 'models', 'synthseg_1.0.h5')
+        segmentation_label_list = os.path.join(fs.fshome(), 'models', 'synthseg_segmentation_labels.npy')
+        segmentation_names_list = os.path.join(fs.fshome(), 'models', 'synthseg_segmentation_names.npy')
+        topology_classes = os.path.join(fs.fshome(), 'models', 'synthseg_topological_classes.npy')
 
     # run prediction
     predict(
@@ -109,7 +109,8 @@ def predict(path_images,
     Prediction pipeline.
     '''
 
-    assert path_model, "A model file is necessary"
+    if path_model is None:
+        fs.fatal("A model file is necessary")
 
     # prepare input/output filepaths
     path_images, path_segmentations, path_posteriors, path_resampled, path_volumes = \
@@ -250,8 +251,10 @@ def prepare_output_files(path_images, out_seg, out_posteriors, out_resampled, ou
     '''
 
     # check inputs
-    assert path_images is not None, 'please specify an input file/folder (--i)'
-    assert out_seg is not None, 'please specify an output file/folder (--o)'
+    if path_images is None:
+        fs.fatal('please specify an input file/folder (--i)')
+    if out_seg is None:
+        fs.fatal('please specify an output file/folder (--o)')
 
     # convert path to absolute paths
     path_images = os.path.abspath(path_images)
@@ -264,7 +267,7 @@ def prepare_output_files(path_images, out_seg, out_posteriors, out_resampled, ou
     # path_images is a folder
     if ('.nii.gz' not in basename) & ('.nii' not in basename) & ('.mgz' not in basename) & ('.npz' not in basename):
         if os.path.isfile(path_images):
-            raise Exception('Extension not supported for %s, only use: .nii.gz, .nii, .mgz, or .npz' % path_images)
+            fs.fatal('Extension not supported for %s, only use: .nii.gz, .nii, .mgz, or .npz' % path_images)
         path_images = list_images_in_folder(path_images)
         mkdir(out_seg)
         out_seg = [os.path.join(out_seg, os.path.basename(image)).replace('.nii', '_synthseg.nii') for image in
@@ -290,8 +293,8 @@ def prepare_output_files(path_images, out_seg, out_posteriors, out_resampled, ou
 
     # path_images is an image
     else:
-        assert os.path.isfile(path_images), "file does not exist: %s \n" \
-                                            "please make sure the path and the extension are correct" % path_images
+        if not os.path.isfile(path_images):
+            fs.fatal("file does not exist: %s \nplease make sure the path and the extension are correct" % path_images)
         path_images = [path_images]
         if ('.nii.gz' not in out_seg) & ('.nii' not in out_seg) & ('.mgz' not in out_seg) & ('.npz' not in out_seg):
             mkdir(out_seg)
@@ -387,7 +390,8 @@ def build_model(model_file, n_lab):
     '''
     Builds keras unet model.
     '''
-    assert os.path.isfile(model_file), "The provided model path does not exist."
+    if not os.path.isfile(model_file):
+        fs.fatal("The provided model path does not exist.")
 
     # build UNet
     net = unet(nb_features=24,

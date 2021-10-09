@@ -120,7 +120,8 @@ def predict(name_subjects=None,
     Prediction pipeline.
     '''
 
-    assert path_model, "A model file is necessary"
+    if path_model is None:
+        fs.fatal("A model file is necessary")
 
     # prepare input/output filepaths
     path_images, path_segmentations, path_posteriors, path_resampled, path_volumes, path_main_volumes, path_stats = \
@@ -267,8 +268,10 @@ def prepare_output_files(name_subjects, subjects_dir, write_posteriors_FS, path_
     if path_images is not None:
 
         # check other inputs
-        assert out_seg is not None, 'please specify an output file/folder (--o) when using flag --i'
-        assert name_subjects is None, 'please choose between flags --i and --s, they cannot be used at the same time'
+        if out_seg is None:
+            fs.fatal('please specify an output file/folder (--o) when using flag --i')
+        if name_subjects is not None:
+            fs.fatal('please choose between flags --i and --s, they cannot be used at the same time')
         if subjects_dir is not None:
             print('WARNING: $SUBJECT_DIR not used when flags --i and --o are specified, ignoring value of flag --sd')
         if write_posteriors_FS:
@@ -279,7 +282,7 @@ def prepare_output_files(name_subjects, subjects_dir, write_posteriors_FS, path_
         # convert path to absolute paths
         path_images = os.path.abspath(path_images)
         basename = os.path.basename(path_images)
-        out_seg = os.path.abspath(out_seg) if (out_seg is not None) else out_seg
+        out_seg = os.path.abspath(out_seg)
         out_posteriors = os.path.abspath(out_posteriors) if (out_posteriors is not None) else out_posteriors
         out_resampled = os.path.abspath(out_resampled) if (out_resampled is not None) else out_resampled
         main_volumes = os.path.abspath(main_volumes) if (main_volumes is not None) else main_volumes
@@ -287,7 +290,7 @@ def prepare_output_files(name_subjects, subjects_dir, write_posteriors_FS, path_
         # path_images is a folder
         if ('.nii.gz' not in basename) & ('.nii' not in basename) & ('.mgz' not in basename) & ('.npz' not in basename):
             if os.path.isfile(path_images):
-                raise Exception('Extension not supported for %s, only use: nii.gz, .nii, .mgz, or .npz' % path_images)
+                fs.fatal('Extension not supported for %s, only use: nii.gz, .nii, .mgz, or .npz' % path_images)
             path_images = list_images_in_folder(path_images)
             mkdir(out_seg)
             out_seg = [os.path.join(out_seg, os.path.basename(image)).replace('.nii', '_hypo_seg.nii') for image in
@@ -315,8 +318,9 @@ def prepare_output_files(name_subjects, subjects_dir, write_posteriors_FS, path_
 
         # path_images is an image
         else:
-            assert os.path.isfile(path_images), "file does not exist: %s \n" \
-                                                "please make sure the path and the extension are correct" % path_images
+            if not os.path.isfile(path_images):
+                fs.fatal("file does not exist: %s \n"
+                         "please make sure the path and the extension are correct" % path_images)
             path_images = [path_images]
             if ('.nii.gz' not in out_seg) & ('.nii' not in out_seg) & ('.mgz' not in out_seg) & ('.npz' not in out_seg):
                 mkdir(out_seg)
@@ -382,7 +386,8 @@ def prepare_output_files(name_subjects, subjects_dir, write_posteriors_FS, path_
         # override SUBJECTS_DIR if necessary
         if subjects_dir is not None:
             subjects_dir = os.path.abspath(subjects_dir)
-            assert os.path.isdir(subjects_dir), "Could not find " + subjects_dir
+            if not os.path.isdir(subjects_dir):
+                fs.fatal("Could not find " + subjects_dir)
             os.environ['SUBJECTS_DIR'] = subjects_dir
         else:
             subjects_dir = os.environ['SUBJECTS_DIR']
@@ -401,7 +406,8 @@ def prepare_output_files(name_subjects, subjects_dir, write_posteriors_FS, path_
 
             # check that provided subject dir
             subject_dir = os.path.join(subjects_dir, name)
-            assert os.path.isdir(subject_dir), "Could not find subject dir " + subject_dir
+            if not os.path.isdir(subject_dir):
+                fs.fatal("Could not find subject dir " + subject_dir)
             path_image = os.path.join(subject_dir, 'mri', 'nu.mgz')
 
             # build paths if input image exists
@@ -419,7 +425,8 @@ def prepare_output_files(name_subjects, subjects_dir, write_posteriors_FS, path_
                 print('WARNING: no such file: ' + path_image + ', continuing program execution without this file')
 
         # check that we have a least one valid image
-        assert len(path_images) > 0, "Could not find any image to segment"
+        if len(path_images) == 0:
+            fs.fatal("Could not find any image to segment")
 
         # if several subjects are run, all volumes are regrouped in a single file
         if len(path_images) > 1:
@@ -548,7 +555,8 @@ def build_model(model_file, input_shape, n_lab):
     '''
     Builds keras unet model.
     '''
-    assert os.path.isfile(model_file), "The provided model path does not exist."
+    if not os.path.isfile(model_file):
+        fs.fatal("The provided model path does not exist.")
 
     # build UNet
     net = unet(nb_features=24,

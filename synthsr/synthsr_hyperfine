@@ -65,7 +65,7 @@ def main():
         path_model = None
         fs.fatal('FREESURFER_HOME is not set. Please source freesurfer.')
     else:
-        path_model = os.path.join(fs.fshome(), 'models', 'SynthSR_v10_210712_hyperfine.h5')
+        path_model = os.path.join(fs.fshome(), 'models', 'synthsr_v10_210712_hyperfine.h5')
 
     # run prediction
     predict(
@@ -81,6 +81,7 @@ def main():
 #                                 Prediction and Processing Utilities
 # ================================================================================================
 
+
 def predict(path_t1_images,
             path_t2_images,
             path_predictions,
@@ -90,7 +91,8 @@ def predict(path_t1_images,
     Prediction pipeline.
     '''
 
-    assert path_model, "A model file is necessary"
+    if path_model is None:
+        fs.fatal("A model file is necessary")
 
     # prepare input/output filepaths
     path_t1_images, path_t2_images, path_predictions = prepare_output_files(path_t1_images,
@@ -149,6 +151,12 @@ def predict(path_t1_images,
             print('\nresuming program execution')
             continue
 
+    # print output info
+    if len(path_predictions) == 1:
+        print('\nprediction  saved in: ' + path_predictions[0])
+    else:
+        print('\npredictions saved in: ' + os.path.dirname(path_predictions[0]))
+
     print('\nIf you use this tool in a publication, please cite:')
     print('Joint super-resolution and synthesis of 1 mm isotropic MP-RAGE volumes from clinical ')
     print('MRI exams with scans of different orientation, resolution and contrast\n')
@@ -163,9 +171,12 @@ def prepare_output_files(path_t1_images, path_t2_images, path_predictions):
     '''
 
     # check inputs
-    assert path_t1_images is not None, 'please specify an input t1 file/folder (--t1)'
-    assert path_t2_images is not None, 'please specify an input t2 file/folder (--t2)'
-    assert path_predictions is not None, 'please specify an output file/folder (--o)'
+    if path_t1_images is None:
+        fs.fatal('please specify an input t1 file/folder (--t1)')
+    if path_t2_images is None:
+        fs.fatal('please specify an input t2 file/folder (--t2)')
+    if path_predictions is None:
+        fs.fatal('please specify an output file/folder (--o)')
 
     # convert path to absolute paths
     path_t1_images = os.path.abspath(path_t1_images)
@@ -180,45 +191,45 @@ def prepare_output_files(path_t1_images, path_t2_images, path_predictions):
 
         # list t1 images
         if os.path.isfile(path_t1_images):
-            fs.fatal('extension not supported for %s, only use: nii.gz, .nii, .mgz, or .npz' % path_t1_images)
+            fs.fatal('Extension not supported for %s, only use: .nii.gz, .nii, .mgz, or .npz' % path_t1_images)
         path_t1_images = list_images_in_folder(path_t1_images)
 
         # list corresponding t2 images
         if ('.nii.gz' in basename_t2) & ('.nii' in basename_t2) & ('.mgz' in basename_t2) & ('.npz' in basename_t2):
             fs.fatal('Please provide T2 images as a folder since T1 images are given as such.')
         if os.path.isfile(path_t2_images):
-            fs.fatal('extension not supported for %s, only use: nii.gz, .nii, .mgz, or .npz' % path_t2_images)
+            fs.fatal('Extension not supported for %s, only use: nii.gz, .nii, .mgz, or .npz' % path_t2_images)
         path_t2_images = list_images_in_folder(path_t1_images)
         if len(path_t1_images) != len(path_t2_images):
             fs.fatal('not the same number of images in T1 and T2 folders.')
 
         # prepare prediction files
         mkdir(path_predictions)
-        path_predictions = [os.path.join(path_predictions, os.path.basename(image)).replace('.nii', '_synthseg.nii')
+        path_predictions = [os.path.join(path_predictions, os.path.basename(image)).replace('.nii', '_synthsr.nii')
                             for image in path_t1_images]
-        path_predictions = [path_pred.replace('.mgz', '_synthseg.mgz') for path_pred in path_predictions]
-        path_predictions = [path_pred.replace('.npz', '_synthseg.npz') for path_pred in path_predictions]
+        path_predictions = [path_pred.replace('.mgz', '_synthsr.mgz') for path_pred in path_predictions]
+        path_predictions = [path_pred.replace('.npz', '_synthsr.npz') for path_pred in path_predictions]
 
     # path_t1_images is an image
     else:
         if not os.path.isfile(path_t1_images):
-            fs.fatal("file does not exist: %s please make sure the path and the extension are correct" % path_t1_images)
+            fs.fatal("file does not exist: %s \n"
+                     "please make sure the path and the extension are correct" % path_t1_images)
         path_t1_images = [path_t1_images]
         if not os.path.isfile(path_t2_images):
-            fs.fatal("file does not exist: %s please make sure the path and the extension are correct" % path_t2_images)
+            fs.fatal("file does not exist: %s \n"
+                     "please make sure the path and the extension are correct" % path_t2_images)
         path_t2_images = [path_t2_images]
-        # path_predictions is a folder
         if ('.nii.gz' not in path_predictions) & ('.nii' not in path_predictions) & \
                 ('.mgz' not in path_predictions) & ('.npz' not in path_predictions):
             mkdir(path_predictions)
-            filename = os.path.basename(path_t1_images[0]).replace('.nii', '_synthseg.nii')
-            filename = filename.replace('.mgz', '_synthseg.mgz')
-            filename = filename.replace('.npz', '_synthseg.npz')
-            path_predictions = [os.path.join(path_predictions, filename)]
-        # path_predictions is an image
+            filename = os.path.basename(path_t1_images[0]).replace('.nii', '_synthsr.nii')
+            filename = filename.replace('.mgz', '_synthsr.mgz')
+            filename = filename.replace('.npz', '_synthsr.npz')
+            path_predictions = os.path.join(path_predictions, filename)
         else:
             mkdir(os.path.dirname(path_predictions))
-            path_predictions = [path_predictions]
+        path_predictions = [path_predictions]
 
     return path_t1_images, path_t2_images, path_predictions
 
@@ -272,7 +283,8 @@ def build_model(model_file):
     '''
     Builds keras unet model.
     '''
-    assert os.path.isfile(model_file), "The provided model path does not exist."
+    if not os.path.isfile(model_file):
+        fs.fatal("The provided model path does not exist.")
 
     # build UNet
     net = unet(nb_features=24,
