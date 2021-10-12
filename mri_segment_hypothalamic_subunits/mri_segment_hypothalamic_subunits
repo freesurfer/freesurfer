@@ -73,10 +73,9 @@ def main():
     args = parser.parse_args()
 
     # enforce CPU processing if necessary
-    if args['cpu']:
+    if args.cpu:
         print('using CPU, hiding all CUDA_VISIBLE_DEVICES')
         os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
-    del args['cpu']
 
     # locate model weights
     if not fs.fshome():
