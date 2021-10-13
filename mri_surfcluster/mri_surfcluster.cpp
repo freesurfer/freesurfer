@@ -167,6 +167,7 @@ int sig2pmax = 0; // convert max value from -log10(p) to p
 
 MRI *fwhmmap=NULL; // map of vertex-wise FWHM for non-stationary correction
 char *maxareafile=NULL;
+char *surfpath = NULL;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -221,19 +222,23 @@ int main(int argc, char **argv) {
     printf("Found %d points in clabel.\n",clabel->n_points);
   }
 
-  sprintf(xfmpath,"%s/%s/mri/transforms/%s",subjectsdir,srcsubjid,xfmfile);
-  //XFM = LoadxfmMatrix(xfmpath);
-  XFM = DevolveXFM(srcsubjid, NULL, xfmfile);
-  if (XFM == NULL) exit(1);
+  if(srcsubjid){
+    sprintf(xfmpath,"%s/%s/mri/transforms/%s",subjectsdir,srcsubjid,xfmfile);
+    //XFM = LoadxfmMatrix(xfmpath);
+    XFM = DevolveXFM(srcsubjid, NULL, xfmfile);
+    if (XFM == NULL) exit(1);
+    printf("------------- XFM matrix (RAS2RAS) ---------------\n");
+    printf("%s\n",xfmpath);
+    MatrixPrint(stdout,XFM);
+    printf("----------------------------------------------------\n");
+  }
 
-  printf("------------- XFM matrix (RAS2RAS) ---------------\n");
-  printf("%s\n",xfmpath);
-  MatrixPrint(stdout,XFM);
-  printf("----------------------------------------------------\n");
-
-  sprintf(fname,"%s/%s/surf/%s.%s",subjectsdir,srcsubjid,hemi,srcsurfid);
-  printf("Reading source surface %s\n",fname);
-  srcsurf = MRISread(fname) ;
+  if(surfpath == NULL){
+    sprintf(fname,"%s/%s/surf/%s.%s",subjectsdir,srcsubjid,hemi,srcsurfid);
+    surfpath = fname;
+  }
+  printf("Reading source surface %s\n",surfpath);
+  srcsurf = MRISread(surfpath);
   if (!srcsurf)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface %s", Progname, fname) ;
   printf("Done reading source surface\n");
@@ -809,11 +814,18 @@ static int parse_commandline(int argc, char **argv) {
         }
       }
       nargsused = 1;
-    } else if (!strcmp(option, "--srcsurf") || !strcmp(option, "--surf")) {
+    } 
+    else if (!strcmp(option, "--srcsurf") || !strcmp(option, "--surf")) {
       if (nargc < 1) argnerr(option,1);
       srcsurfid = pargv[0];
       nargsused = 1;
-    } else if (!strcmp(option, "--srcframe") || !strcmp(option, "--frame")) {
+    } 
+    else if (!strcmp(option, "--surfpath")){
+      if (nargc < 1) argnerr(option,1);
+      surfpath = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcmp(option, "--srcframe") || !strcmp(option, "--frame")) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&srcframe);
       nargsused = 1;
@@ -1053,6 +1065,7 @@ static void print_usage(void) {
   printf("   --subject  subjid    : source surface subject (can be ico)\n");
   printf("   --hemi hemi          : lh or rh \n");
   printf("   --surf     surface   : get coorindates from surface (white)\n");
+  printf("   --surfpath path/to/surface  : specify full path\n");
   printf("   --annot    annotname : report annotation for max vertex (eg, aparc)\n");
   printf("   --frame frameno      : 0-based source frame number\n");
   printf("\n");
@@ -1394,19 +1407,21 @@ static void check_options(void) {
   if(stringmatch(thsign,"neg")) thsignid = -1;
   printf("thsign = %s, id = %d\n",thsign,thsignid);
 
-  if (hemi == NULL) {
-    printf("ERROR: hemi must be supplied\n");
-    exit(1);
-  }
-
   if (srcid == NULL) {
     printf("ERROR: srcid must be supplied\n");
     exit(1);
   }
-  if (srcsubjid == NULL) {
-    printf("ERROR: srcsubjid must be supplied\n");
-    exit(1);
+  if(surfpath == NULL){
+    if (hemi == NULL) {
+      printf("ERROR: hemi must be supplied\n");
+      exit(1);
+    }
+    if (srcsubjid == NULL) {
+      printf("ERROR: srcsubjid must be supplied\n");
+      exit(1);
+    }
   }
+  if(srcsubjid == NULL) FixMNI = 0;
   if(thmin < 0 && fdr < 0) {
     printf("ERROR: thmin or fdr must be supplied\n");
     exit(1);
