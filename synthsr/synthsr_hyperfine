@@ -158,7 +158,7 @@ def predict(path_t1_images,
 
     print('\nIf you use this tool in a publication, please cite:')
     print('Joint super-resolution and synthesis of 1 mm isotropic MP-RAGE volumes from clinical ')
-    print('MRI exams with scans of different orientation, resolution and contrast\n')
+    print('MRI exams with scans of different orientation, resolution and contrast')
     print('JE Iglesias, B Billot, Y Balbastre, A Tabari, J Conklin, RG Gonzalez, DC Alexander,')
     print('P Golland, BL Edlow, B Fischl, for the ADNI')
     print('NeuroImage 2021\n')
@@ -198,11 +198,14 @@ def prepare_output_files(path_t1_images, path_t2_images, path_predictions):
             fs.fatal('Please provide T2 images as a folder since T1 images are given as such.')
         if os.path.isfile(path_t2_images):
             fs.fatal('Extension not supported for %s, only use: nii.gz, .nii, .mgz, or .npz' % path_t2_images)
-        path_t2_images = list_images_in_folder(path_t1_images)
+        path_t2_images = list_images_in_folder(path_t2_images)
         if len(path_t1_images) != len(path_t2_images):
             fs.fatal('not the same number of images in T1 and T2 folders.')
 
         # prepare prediction files
+        if (path_predictions[-7:] == '.nii.gz') | (path_predictions[-4:] == '.nii') | \
+                (path_predictions[-4:] == '.mgz') | (path_predictions[-4:] == '.npz'):
+            fs.fatal('Output folders cannot have extensions: .nii.gz, .nii, .mgz, or .npz, had %s' % path_predictions)
         mkdir(path_predictions)
         path_predictions = [os.path.join(path_predictions, os.path.basename(image)).replace('.nii', '_synthsr.nii')
                             for image in path_t1_images]
@@ -268,9 +271,8 @@ def preprocess_image(path_t1_image, path_t2_image, n_levels=5):
     im = np.stack([im_t1, im_t2], axis=-1)
 
     # pad image to shape divisible by 32
-    padding_shape = (np.ceil(np.array(im_t1.shape) / 2**n_levels) * 2**n_levels).astype('int')
-    pad_idx = np.floor((padding_shape - im_t1.shape) / 2).astype('int')
-    im = pad_volume(im, padding_shape)
+    padding_shape = (np.ceil(np.array(im.shape[:n_dims]) / 2**n_levels) * 2**n_levels).astype('int')
+    im, pad_idx = pad_volume(im, padding_shape, return_pad_idx=True)
 
     # add batch axis
     im = add_axis(im, axis=0)
@@ -725,8 +727,6 @@ def save_volume(volume, aff, header, path, res=None, dtype=None, n_dims=3):
     """
 
     mkdir(os.path.dirname(path))
-    if dtype is not None:
-        volume = volume.astype(dtype=dtype)
     if '.npz' in path:
         np.savez_compressed(path, vol_data=volume)
     else:
@@ -738,6 +738,8 @@ def save_volume(volume, aff, header, path, res=None, dtype=None, n_dims=3):
         elif aff is None:
             aff = np.eye(4)
         nifty = nib.Nifti1Image(volume, aff, header)
+        if dtype is not None:
+            nifty.set_data_dtype(dtype)
         if res is not None:
             if n_dims is None:
                 n_dims, _ = get_dims(volume.shape)
@@ -1030,13 +1032,12 @@ def pad_volume(volume, padding_shape, padding_value=0, aff=None, return_pad_idx=
     padding_shape = reformat_to_list(padding_shape, length=n_dims, dtype='int')
 
     # check if need to pad
-    if not np.array_equal(np.array(padding_shape, dtype='int32'), np.array(vol_shape[:n_dims], dtype='int32')):
+    if np.any(np.array(padding_shape, dtype='int32') > np.array(vol_shape[:n_dims], dtype='int32')):
 
         # get padding margins
         min_margins = np.maximum(np.int32(np.floor((np.array(padding_shape) - np.array(vol_shape)[:n_dims]) / 2)), 0)
-        max_margins = np.minimum(np.int32(np.ceil((np.array(padding_shape) - np.array(vol_shape)[:n_dims]) / 2)),
-                                 np.array(vol_shape)[:n_dims])
-        pad_idx = np.concatenate([min_margins, min_margins + np.array(vol_shape)])
+        max_margins = np.maximum(np.int32(np.ceil((np.array(padding_shape) - np.array(vol_shape)[:n_dims]) / 2)), 0)
+        pad_idx = np.concatenate([min_margins, min_margins + np.array(vol_shape[:n_dims])])
         pad_margins = tuple([(min_margins[i], max_margins[i]) for i in range(n_dims)])
         if n_channels > 1:
             pad_margins = tuple(list(pad_margins) + [[0, 0]])
@@ -1050,7 +1051,7 @@ def pad_volume(volume, padding_shape, padding_value=0, aff=None, return_pad_idx=
             aff[:-1, -1] = aff[:-1, -1] - aff[:-1, :-1] @ min_margins
 
     else:
-        pad_idx = np.concatenate([np.array([0] * n_dims), np.array(vol_shape)])
+        pad_idx = np.concatenate([np.array([0] * n_dims), np.array(vol_shape[:n_dims])])
 
     # sort outputs
     output = [new_volume]

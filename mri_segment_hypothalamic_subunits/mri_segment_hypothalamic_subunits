@@ -160,7 +160,7 @@ def predict(name_subjects=None,
 
         # preprocessing
         try:
-            image, aff, h, im_res, shape, crop_idx = preprocess_image(path_image, crop)
+            image, aff, h, im_res, shape, crop_idx = preprocess_image(path_image, crop, path_resample=path_resample)
         except Exception as e:
             print('\nthe following problem occured when preprocessing image %s :' % path_image)
             print(e)
@@ -188,9 +188,9 @@ def predict(name_subjects=None,
         # write results to disk
         try:
             if path_segmentation is not None:
-                save_volume(seg.astype('int'), aff, h, path_segmentation)
+                save_volume(seg, aff, h, path_segmentation, dtype='int32')
             if path_posterior is not None:
-                save_volume(posteriors.astype('float'), aff, h, path_posterior)
+                save_volume(posteriors, aff, h, path_posterior, dtype='float32')
         except Exception as e:
             print('\nthe following problem occured when saving the results for image %s :' % path_image)
             print(e)
@@ -289,14 +289,21 @@ def prepare_output_files(name_subjects, subjects_dir, write_posteriors_FS, path_
         # path_images is a folder
         if ('.nii.gz' not in basename) & ('.nii' not in basename) & ('.mgz' not in basename) & ('.npz' not in basename):
             if os.path.isfile(path_images):
-                fs.fatal('Extension not supported for %s, only use: nii.gz, .nii, .mgz, or .npz' % path_images)
+                fs.fatal('Extension not supported for %s, only use: .nii.gz, .nii, .mgz, or .npz' % path_images)
             path_images = list_images_in_folder(path_images)
+            if (out_seg[-7:] == '.nii.gz') | (out_seg[-4:] == '.nii') | \
+                    (out_seg[-4:] == '.mgz') | (out_seg[-4:] == '.npz'):
+                fs.fatal('Output folders cannot have extensions: .nii.gz, .nii, .mgz, or .npz, had %s' % out_seg)
             mkdir(out_seg)
             out_seg = [os.path.join(out_seg, os.path.basename(image)).replace('.nii', '_hypo_seg.nii') for image in
                        path_images]
             out_seg = [seg_path.replace('.mgz', '_hypo_seg.mgz') for seg_path in out_seg]
             out_seg = [seg_path.replace('.npz', '_hypo_seg.npz') for seg_path in out_seg]
             if out_posteriors is not None:
+                if (out_posteriors[-7:] == '.nii.gz') | (out_posteriors[-4:] == '.nii') | \
+                        (out_posteriors[-4:] == '.mgz') | (out_posteriors[-4:] == '.npz'):
+                    fs.fatal('Output folders cannot have extensions: '
+                             '.nii.gz, .nii, .mgz, or .npz, had %s' % out_posteriors)
                 mkdir(out_posteriors)
                 out_posteriors = [os.path.join(out_posteriors, os.path.basename(image)).replace('.nii',
                                   '_posteriors.nii') for image in path_images]
@@ -307,6 +314,10 @@ def prepare_output_files(name_subjects, subjects_dir, write_posteriors_FS, path_
             else:
                 out_posteriors = [out_posteriors] * len(path_images)
             if out_resampled is not None:
+                if (out_resampled[-7:] == '.nii.gz') | (out_resampled[-4:] == '.nii') | \
+                        (out_resampled[-4:] == '.mgz') | (out_resampled[-4:] == '.npz'):
+                    fs.fatal('Output folders cannot have extensions: '
+                             '.nii.gz, .nii, .mgz, or .npz, had %s' % out_resampled)
                 mkdir(out_resampled)
                 out_resampled = [os.path.join(out_resampled, os.path.basename(image)).replace('.nii',
                                  '_resampled.nii') for image in path_images]
@@ -516,7 +527,6 @@ def preprocess_image(im_path, crop=184, n_levels=3, path_resample=None):
     if n_channels > 1:
         print('WARNING: detected more than 1 channel, only keeping the first channel.')
         im = im[..., 0]
-        shape = shape[:n_dims]
     if n_dims != 3:
         fs.fatal('Input images should be 3D, found %s dimensions.' % n_dims)
 
@@ -524,16 +534,16 @@ def preprocess_image(im_path, crop=184, n_levels=3, path_resample=None):
     if np.any((im_res > np.array([1.15]*3)) | (im_res < np.array([0.95]*3))):
         im_res = np.array([1.]*3)
         im, aff = resample_volume(im, aff, im_res)
-        shape = list(im.shape)
         if path_resample is not None:
             save_volume(im, aff, header, path_resample)
 
     # align image
     im = align_volume_to_ref(im, aff, aff_ref=np.eye(4), n_dims=n_dims)
+    shape = list(im.shape)
 
     # check that shape is divisible by 2**n_levels
     crop = reformat_to_list(crop, length=n_dims, dtype='int')
-    if not all([shape[i] >= crop[i] for i in range(len(shape))]):
+    if not all([shape[i] >= crop[i] for i in range(n_dims)]):
         crop = [min(shape[i], crop[i]) for i in range(n_dims)]
     if not all([size % (2**n_levels) == 0 for size in crop]):
         crop = [find_closest_number_divisible_by_m(size, 2 ** n_levels) for size in crop]
@@ -1024,8 +1034,6 @@ def save_volume(volume, aff, header, path, res=None, dtype=None, n_dims=3):
     """
 
     mkdir(os.path.dirname(path))
-    if dtype is not None:
-        volume = volume.astype(dtype=dtype)
     if '.npz' in path:
         np.savez_compressed(path, vol_data=volume)
     else:
@@ -1037,6 +1045,8 @@ def save_volume(volume, aff, header, path, res=None, dtype=None, n_dims=3):
         elif aff is None:
             aff = np.eye(4)
         nifty = nib.Nifti1Image(volume, aff, header)
+        if dtype is not None:
+            nifty.set_data_dtype(dtype)
         if res is not None:
             if n_dims is None:
                 n_dims, _ = get_dims(volume.shape)
@@ -1408,21 +1418,21 @@ def crop_volume(volume, cropping_margin=None, cropping_shape=None, aff=None, ret
     # find cropping indices
     if cropping_margin is not None:
         cropping_margin = reformat_to_list(cropping_margin, length=n_dims)
-        min_crop_idx = cropping_margin
-        max_crop_idx = [vol_shape[i] - cropping_margin[i] for i in range(n_dims)]
-        assert (np.array(max_crop_idx) >= np.array(min_crop_idx)).all(), 'cropping_margin is larger than volume shape'
+        do_cropping = np.array(vol_shape[:n_dims]) > 2 * np.array(cropping_margin)
+        min_crop_idx = [cropping_margin[i] if do_cropping[i] else 0 for i in range(n_dims)]
+        max_crop_idx = [vol_shape[i] - cropping_margin[i] if do_cropping[i] else vol_shape[i] for i in range(n_dims)]
     else:
         cropping_shape = reformat_to_list(cropping_shape, length=n_dims)
         if mode == 'center':
-            min_crop_idx = [int((vol_shape[i] - cropping_shape[i]) / 2) for i in range(n_dims)]
-            max_crop_idx = [min_crop_idx[i] + cropping_shape[i] for i in range(n_dims)]
+            min_crop_idx = np.maximum([int((vol_shape[i] - cropping_shape[i]) / 2) for i in range(n_dims)], 0)
+            max_crop_idx = np.minimum([min_crop_idx[i] + cropping_shape[i] for i in range(n_dims)],
+                                      np.array(vol_shape)[:n_dims])
         elif mode == 'random':
-            crop_max_val = np.array([vol_shape[i] - cropping_shape[i] for i in range(n_dims)])
+            crop_max_val = np.maximum(np.array([vol_shape[i] - cropping_shape[i] for i in range(n_dims)]), 0)
             min_crop_idx = np.random.randint(0, high=crop_max_val + 1)
-            max_crop_idx = min_crop_idx + np.array(cropping_shape)
+            max_crop_idx = np.minimum(min_crop_idx + np.array(cropping_shape), np.array(vol_shape)[:n_dims])
         else:
             raise ValueError('mode should be either "center" or "random", had %s' % mode)
-        assert (np.array(min_crop_idx) >= 0).all(), 'cropping_shape is larger than volume shape'
     crop_idx = np.concatenate([np.array(min_crop_idx), np.array(max_crop_idx)])
 
     # crop volume
