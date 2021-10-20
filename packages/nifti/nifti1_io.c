@@ -1739,7 +1739,7 @@ void nifti_mat44_to_quatern(mat44 R,
       b = -b;
       c = -c;
       d = -d;
-      a = -a;
+      a = -a;   // dcm2niix discarded this
     }
   }
 
@@ -2365,7 +2365,7 @@ void nifti_mat44_to_orientation(mat44 R, int *icod, int *jcod, int *kcod)
  *  Fixes http://bugs.debian.org/446893   Yaroslav <debian@onerussian.com>
  *
 */                                      /*--------------------------------------------------------------------*/
-void nifti_swap_2bytes(int n, void *ar) /* 2 bytes at a time */
+void nifti_swap_2bytes(size_t n, void *ar) /* 2 bytes at a time */
 {
   register int ii;
   unsigned char *cp1 = (unsigned char *)ar, *cp2;
@@ -2384,7 +2384,7 @@ void nifti_swap_2bytes(int n, void *ar) /* 2 bytes at a time */
 /*----------------------------------------------------------------------*/
 /*! swap 4 bytes at a time from the given list of n sets of 4 bytes
 */                                      /*--------------------------------------------------------------------*/
-void nifti_swap_4bytes(int n, void *ar) /* 4 bytes at a time */
+void nifti_swap_4bytes(size_t n, void *ar) /* 4 bytes at a time */
 {
   register int ii;
   unsigned char *cp0 = (unsigned char *)ar, *cp1, *cp2;
@@ -2411,7 +2411,7 @@ void nifti_swap_4bytes(int n, void *ar) /* 4 bytes at a time */
  *
  *  perhaps use this style for the general Nbytes, as Yaroslav suggests
 */                                      /*--------------------------------------------------------------------*/
-void nifti_swap_8bytes(int n, void *ar) /* 8 bytes at a time */
+void nifti_swap_8bytes(size_t n, void *ar) /* 8 bytes at a time */
 {
   register int ii;
   unsigned char *cp0 = (unsigned char *)ar, *cp1, *cp2;
@@ -2436,7 +2436,7 @@ void nifti_swap_8bytes(int n, void *ar) /* 8 bytes at a time */
 /*----------------------------------------------------------------------*/
 /*! swap 16 bytes at a time from the given list of n sets of 16 bytes
 */                                       /*--------------------------------------------------------------------*/
-void nifti_swap_16bytes(int n, void *ar) /* 16 bytes at a time */
+void nifti_swap_16bytes(size_t n, void *ar) /* 16 bytes at a time */
 {
   register int ii;
   unsigned char *cp0 = (unsigned char *)ar, *cp1, *cp2;
@@ -2462,7 +2462,7 @@ void nifti_swap_16bytes(int n, void *ar) /* 16 bytes at a time */
 /*----------------------------------------------------------------------*/
 /*! based on siz, call the appropriate nifti_swap_Nbytes() function
 */ /*--------------------------------------------------------------------*/
-void nifti_swap_Nbytes(int n, int siz, void *ar) /* subsuming case */
+void nifti_swap_Nbytes(size_t n, int siz, void *ar) /* subsuming case */
 {
   switch (siz) {
     case 2:
@@ -2512,6 +2512,10 @@ void swap_nifti_header(struct nifti_1_header *h, int is_nifti)
   swap_4(h->cal_min);
 
   /* this stuff is NIFTI specific */
+#if 0 // dcm2niix addition
+  nifti_swap_4bytes(1, &h->extents);
+  nifti_swap_2bytes(1, &h->session_error);
+#endif
 
   if (is_nifti) {
     swap_4(h->intent_p1);
@@ -2525,6 +2529,11 @@ void swap_nifti_header(struct nifti_1_header *h, int is_nifti)
     swap_4(h->scl_inter);
     swap_4(h->slice_duration);
     swap_4(h->toffset);
+
+#if 0  // dcm2niix addition
+    nifti_swap_4bytes(1, &h->glmax);
+    nifti_swap_4bytes(1, &h->glmin);
+#endif
 
     swap_2(h->qform_code);
     swap_2(h->sform_code);

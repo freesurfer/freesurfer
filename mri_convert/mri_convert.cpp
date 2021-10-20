@@ -95,6 +95,7 @@ int main(int argc, char *argv[])
   int in_stats_flag, out_stats_flag;
   int read_only_flag, no_write_flag;
   char in_name[STRLEN], out_name[STRLEN];
+  char dicomroot[STRLEN];
   int in_volume_type, out_volume_type;
   char resample_type[STRLEN];
   int resample_type_val;
@@ -1141,6 +1142,10 @@ int main(int argc, char *argv[])
       forced_in_type = string_to_type(in_type_string);
       force_in_type_flag = TRUE;
     }
+    else if (strcmp(argv[i], "-dicomread3") == 0)
+    {
+      UseDICOMRead3 = 1;
+    }
     else if(strcmp(argv[i], "-dicomread2") == 0)
     {
       UseDICOMRead2 = 1;
@@ -1471,6 +1476,10 @@ int main(int argc, char *argv[])
       /* Automatically determine whether to get slice thickness from 18,50 or 18,88
 	 depending upon  the value of 18,23 */
       AutoSliceResElTag = 1;
+    }
+    else if (strcmp(argv[i], "-dicomroot") == 0)
+    {
+      strcpy(dicomroot, argv[++i]);
     }
     /*-------------------------------------------------------------*/
     else

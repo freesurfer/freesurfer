@@ -1,6 +1,6 @@
 project(swi_processing)
 
-include_directories(${FS_INCLUDE_DIRS} ${CMAKE_SOURCE_DIR}/packages/dicom)
+include_directories(${FS_INCLUDE_DIRS} ${CMAKE_SOURCE_DIR}/packages/dicom ${CMAKE_SOURCE_DIR}/packages/dcm2niix)
 
 add_executable(swi_preprocess swi_preprocess.cpp cmd_line_interface.cpp)
 target_link_libraries(swi_preprocess utils)
