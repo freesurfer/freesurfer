@@ -48,7 +48,7 @@ pigzname = '\000'
 optsname = "..."
 indirParent = "..."
 imageComments = ""
-seriesNumber = {0 <repeats 16 times>}, 
+seriesNumber = nnn 
 numSeries = 0
  */
 void dcm2fsWrapper::setOpts(const char* dcmindir, const char* niioutdir)
