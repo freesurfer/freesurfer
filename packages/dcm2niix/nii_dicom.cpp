@@ -765,7 +765,11 @@ struct TDICOMdata clear_dicom_data() {
 	d.lastScanLoc = NAN;
 	d.TR = 0.0;
 	d.TE = 0.0;
+#ifdef MGH_FREESURFER
+	d.TI = -1.0; // default when there is no TI in dicom file
+#else
 	d.TI = 0.0;
+#endif
 	d.flipAngle = 0.0;
 	d.bandwidthPerPixelPhaseEncode = 0.0;
 	d.acquisitionDuration = 0.0;
