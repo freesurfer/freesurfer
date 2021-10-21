@@ -29,7 +29,7 @@ isTiltCorrect = true
 isRGBplanar = false
 isOnlySingleFile = false
 isForceStackDCE = true
-isIgnoreSeriesInstanceUID = false    // if true d.seriesUidCrc = d.seriesNum;
+isIgnoreSeriesInstanceUID = false    // if true, d.seriesUidCrc = d.seriesNum;
 isRotate3DAcq = true
 isCrop = false
 saveFormat = 0
@@ -41,13 +41,13 @@ isProgress = 0
 compressFlag = 0
 dirSearchDepth = 5
 gzLevel = 6
-filename = "%s_%p\000%t_%s"
-outdir = "/space/papancha/1/users/yh887/fs_test/dcm2niix/test2"
-indir = "/autofs/space/sulc_001/users/xdicom/dicom/INTEROPERABILITY"
+filename = "%s_%p"    // seriesNum_protocol
+outdir = "..."
+indir = "..."
 pigzname = '\000'
-optsname = "/homes/7/yh887/.dcm2nii.ini"
-indirParent = "INTEROPERABILITY", '\000' <repeats 495 times>, 
-imageComments = "\000\325\377\377\377\177\000\000`\325\377\377\377\177\000\000&\260be\000\000\000", 
+optsname = "..."
+indirParent = "..."
+imageComments = ""
 seriesNumber = {0 <repeats 16 times>}, 
 numSeries = 0
  */
@@ -79,7 +79,11 @@ bool dcm2fsWrapper::isDICOM(const char* file)
 int dcm2fsWrapper::dcm2NiiOneSeries(const char* dcmfile)
 {
   struct TDICOMdata tdicomData = readDICOM((char*)dcmfile);
-  double seriesNo = (double)tdicomData.seriesUidCrc;  //seriesNum;
+
+  double seriesNo = (double)tdicomData.seriesUidCrc;
+  if (tdcmOpts.isIgnoreSeriesInstanceUID)
+    seriesNo = (double)tdicomData.seriesNum;
+
   tdcmOpts.seriesNumber[0] = seriesNo;
   tdcmOpts.numSeries = 1;
 
