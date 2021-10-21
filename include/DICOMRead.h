@@ -27,6 +27,9 @@
 #include "dicom_objects.h"
 #include "condition.h"
 
+#include "nii_dicom.h"
+#include "nii_dicom_batch.h"
+
 #define NUMBEROFTAGS 24
 #define SHORTSIZE 16
 #ifndef INTSIZE
@@ -59,6 +62,7 @@ typedef unsigned short int BOOL;
 char *SDCMStatusFile = 0;
 char *SDCMListFile = 0;
 int  UseDICOMRead2 = 1; // use new dicom reader by default
+int  UseDICOMRead3 = 0;
 /* These variables allow the user to change the first tag checked to
    get the slice thickness.  This is needed with siemens mag res
    angiogram (MRAs) */
@@ -69,6 +73,7 @@ int AutoSliceResElTag = 0; // automatically determine which tag to use based on 
 extern char *SDCMStatusFile;
 extern char *SDCMListFile;
 extern int  UseDICOMRead2;
+extern int  UseDICOMRead3;
 extern long SliceResElTag1;
 extern long SliceResElTag2;
 extern int AutoSliceResElTag;
@@ -286,6 +291,7 @@ int CompareDCMFileInfo(const void *a, const void *b);
 int DCMCountFrames(DICOMInfo **dcmfi_list, int nlist);
 int DCMSliceDir(DICOMInfo **dcmfi_list, int nlist);
 MRI *DICOMRead2(const char *dcmfile, int LoadVolume);
+MRIFSSTRUCT *DICOMRead3(const char *dcmfile, int LoadVolume);
 
 DCM_ELEMENT *GetElementFromFile(const char *dicomfile, long grpid, long elid);
 int AllocElementData(DCM_ELEMENT *e);
