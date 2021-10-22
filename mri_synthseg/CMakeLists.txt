@@ -1,6 +1,6 @@
-project(synthseg)
+project(mri_synthseg)
 
-install_pyscript(synthseg)
+install_pyscript(mri_synthseg)
 
 install(FILES synthseg_1.0.h5 DESTINATION models)
 install(FILES synthseg_segmentation_labels.npy DESTINATION models)
