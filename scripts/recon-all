@@ -7044,8 +7044,8 @@ while( $#argv != 0 )
         echo "ERROR: hemi = $hemilist, must be either lh or rh"
         goto error_exit;
       endif
-      if($hemilist == lh) LHonly = 1 
-      if($hemilist == rh) RHonly = 1 
+      if($hemilist == lh) set LHonly = 1 
+      if($hemilist == rh) set RHonly = 1 
       breaksw
 
     # This is a temporary flag to test how changing the way the vertex
