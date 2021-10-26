@@ -1141,6 +1141,10 @@ int main(int argc, char *argv[])
       forced_in_type = string_to_type(in_type_string);
       force_in_type_flag = TRUE;
     }
+    else if (strcmp(argv[i], "-dicomread3") == 0)
+    {
+      UseDICOMRead3 = 1;
+    }
     else if(strcmp(argv[i], "-dicomread2") == 0)
     {
       UseDICOMRead2 = 1;

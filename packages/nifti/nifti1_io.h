@@ -16,6 +16,7 @@
 #define DONT_INCLUDE_ANALYZE_STRUCT  /*** not needed herein ***/
 #endif
 #include "nifti1.h"                  /*** NIFTI-1 header specification ***/
+#include "nifti1_io_core.h"
 
 #include <znzlib.h>
 
@@ -53,15 +54,6 @@ extern "C" {
       Modified and added many routines for I/O.
 */
 
-/********************** Some sample data structures **************************/
-
-typedef struct {                   /** 4x4 matrix struct **/
-  float m[4][4] ;
-} mat44 ;
-
-typedef struct {                   /** 3x3 matrix struct **/
-  float m[3][3] ;
-} mat33 ;
 
 /*...........................................................................*/
 
@@ -191,25 +183,10 @@ char *nifti_orientation_string( int ii ) ;
 
 int   nifti_is_inttype( int dt ) ;
 
-mat44 nifti_mat44_inverse( mat44 R ) ;
-
-mat33 nifti_mat33_inverse( mat33 R ) ;
-mat33 nifti_mat33_polar  ( mat33 A ) ;
-float nifti_mat33_rownorm( mat33 A ) ;
-float nifti_mat33_colnorm( mat33 A ) ;
-float nifti_mat33_determ ( mat33 R ) ;
-mat33 nifti_mat33_mul    ( mat33 A , mat33 B ) ;
-
-void  nifti_swap_2bytes ( int n , void *ar ) ;
-void  nifti_swap_4bytes ( int n , void *ar ) ;
-void  nifti_swap_8bytes ( int n , void *ar ) ;
-void  nifti_swap_16bytes( int n , void *ar ) ;
-void  nifti_swap_Nbytes ( int n , int siz , void *ar ) ;
 
 int    nifti_datatype_from_string(const char * name);
 char * nifti_datatype_to_string  (int dtype);
 
-void  swap_nifti_header ( struct nifti_1_header *h , int is_nifti ) ;
 int   nifti_get_filesize( const char *pathname ) ;
 
 /* main read/write routines */
@@ -286,32 +263,10 @@ znzFile nifti_write_ascii_image(nifti_image *nim, const nifti_brick_list * NBL,
 
 void nifti_datatype_sizes( int datatype , int *nbyper, int *swapsize ) ;
 
-void nifti_mat44_to_quatern( mat44 R ,
-                             float *qb, float *qc, float *qd,
-                             float *qx, float *qy, float *qz,
-                             float *dx, float *dy, float *dz, float *qfac ) ;
-
-mat44 nifti_quatern_to_mat44( float qb, float qc, float qd,
-                              float qx, float qy, float qz,
-                              float dx, float dy, float dz, float qfac );
-
-mat44 nifti_make_orthog_mat44( float r11, float r12, float r13 ,
-                               float r21, float r22, float r23 ,
-                               float r31, float r32, float r33  ) ;
 
 int nifti_short_order(void) ;              /* CPU byte order */
 
 
-/* Orientation codes that might be returned from nifti_mat44_to_orientation().*/
-
-#define NIFTI_L2R  1    /* Left to Right         */
-#define NIFTI_R2L  2    /* Right to Left         */
-#define NIFTI_P2A  3    /* Posterior to Anterior */
-#define NIFTI_A2P  4    /* Anterior to Posterior */
-#define NIFTI_I2S  5    /* Inferior to Superior  */
-#define NIFTI_S2I  6    /* Superior to Inferior  */
-
-void nifti_mat44_to_orientation( mat44 R , int *icod, int *jcod, int *kcod ) ;
 
 /*--------------------- Low level IO routines ------------------------------*/
 

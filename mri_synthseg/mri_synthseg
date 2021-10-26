@@ -44,8 +44,8 @@ def main():
     parser.add_argument("--vol", help="(optional) Output CSV file with volumes for all structures and subjects.")
 
     # parameters
-    parser.add_argument("--crop", type=int, default=192, dest="crop", help="(optional) Size of 3D patches to analyse."
-                                                                            "Default is 192.")
+    parser.add_argument("--crop", nargs='+', type=int, default=192, dest="crop",
+                        help="(optional) Size of 3D patches to analyse. Default is 192.")
     parser.add_argument("--threads", type=int, default=1, help="(optional) Number of cores to be used. Default is 1.")
     parser.add_argument("--cpu", action="store_true", help="(optional) Enforce running with CPU rather than GPU.")
 

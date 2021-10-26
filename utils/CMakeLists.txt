@@ -17,6 +17,7 @@ include_directories(
   ${CMAKE_SOURCE_DIR}/packages/netcdf
   ${CMAKE_SOURCE_DIR}/packages/nrrdio
   ${CMAKE_SOURCE_DIR}/packages/dicom
+  ${CMAKE_SOURCE_DIR}/packages/dcm2niix
   ${CMAKE_SOURCE_DIR}/packages/cephes
   ${CMAKE_SOURCE_DIR}/packages/nifti
   ${CMAKE_SOURCE_DIR}/packages/gifti
@@ -217,6 +218,7 @@ target_link_libraries(utils
   dicom
   cephes
   nifti
+  dcm2niix
   gifti
   expat
   ${ZLIB_LIBRARIES}

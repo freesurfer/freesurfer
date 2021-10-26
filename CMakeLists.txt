@@ -660,8 +660,8 @@ if(NOT MINIMAL)
     spline3
     stat_normalize
     stim_polar
-    synthseg
-    synthsr
+    mri_synthseg
+    mri_synthsr
     swi_processing
     template
     test_makevol

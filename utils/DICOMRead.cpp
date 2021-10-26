@@ -44,6 +44,8 @@ void *malloc(size_t size);
 #include "mosaic.h"
 #include "mri_identify.h"
 
+#include "dcm2fsWrapper.h"
+
 // #include "affine.h"
 
 #define _DICOMRead_SRC
@@ -5926,6 +5928,41 @@ MRI *DICOMRead2(const char *dcmfile, int LoadVolume)
   return (mri);
 }
 
+
+/*--------------------------------------------------------------
+  DICOMRead3() - generic dicom reader using dcm2fsWrapper. 
+  --------------------------------------------------------------*/
+MRIFSSTRUCT *DICOMRead3(const char *dcmfile, int LoadVolume)
+{
+  printf("Starting DICOMRead3()\n");
+
+  if (!fio_FileExistsReadable(dcmfile)) {
+    printf("ERROR: file %s does not exist.\n", dcmfile);
+    exit(1);
+  }
+  char *dcmdir = fio_dirname(dcmfile);
+  printf("dcmfile = %s\n", dcmfile);
+  printf("dcmdir = %s\n", dcmdir);
+  if (!dcm2fsWrapper::isDICOM(dcmfile)) {
+    setenv("FS_DICOM_DEBUG", "1", 1);
+    //dcm2fsWrapper::isDICOM(dcmfile);
+    printf("ERROR: %s is not a dicom file or some other problem\n", dcmfile);
+    exit(1);
+  }
+
+  dcm2fsWrapper::setOpts(dcmdir, NULL);
+  int ret = dcm2fsWrapper::dcm2NiiOneSeries(dcmfile);
+
+  MRIFSSTRUCT *mrifsStruct = NULL;
+  if (ret == EXIT_SUCCESS) {
+    mrifsStruct = dcm2fsWrapper::getMrifsStruct();
+    //dcm2fsWrapper::saveNii("fs.nii");
+  }
+
+  return mrifsStruct;
+}
+
+
 /*------------------------------------------------------------------
   CompareDCMFileInfo() - function to compare two DCM files for use
   with qsort. The order that files will be sorted is actually the
@@ -6788,7 +6825,7 @@ int dcmGetDWIParams(DCM_OBJECT *dcm, double *pbval, double *pxbvec, double *pybv
     return (10);
   }
 
-  if (strcmp(e->d.string, "SIEMENS") == 0 || strcmp(e->d.string, "SIEMENS ") == 0) {
+  if (stricmp(e->d.string, "SIEMENS") == 0 || stricmp(e->d.string, "SIEMENS ") == 0) {
     if (Gdiag_no > 0) printf("Attempting to get DWI Parameters from Siemens DICOM\n");
     err = dcmGetDWIParamsSiemens(dcm, pbval, pxbvec, pybvec, pzbvec);
     if (err) return (err);

@@ -13,6 +13,7 @@ add_subdirectories(
   xml2
   minc
   dicom
+  dcm2niix
   cephes
   netcdf
   tetgen
