@@ -5848,3 +5848,80 @@ MRI *MRIfindBrightNonWM(MRI *mri_T1, MRI *mri_wm)
   MRIfree(&mri_tmp) ;
   return(mri_labeled) ;
 }
+
+
+/*!
+  \fn MRI *MRIzconcat(MRI *mri1, MRI *mri2, int nskip, MRI *out)
+  \brief Concatenates mri2 onto mri1 in the z (slice) direction. The
+  first nskip slices are removed from mri2 before concatenation. The
+  original app for this was to combine two hires suscept slabs (JonP)
+  where the top slice of the bottom slab overlapped with the first
+  slice of the top slab. The geometry is such that it agrees with the
+  bottom slab (mri1). 
+*/
+MRI *MRIzconcat(MRI *mri1, MRI *mri2, int nskip, MRI *out)
+{
+  int nslices = mri1->depth + mri2->depth - nskip;
+  if(nskip >= mri2->depth){
+    printf("ERROR: MRIzconcat(): nskip=%d >= nslices in mri2 %d\n",nskip,mri2->depth);
+    return(NULL);
+  }
+  if(out == NULL) {
+    out = MRIallocSequence(mri1->width, mri1->height, nslices, mri1->type, mri1->nframes);
+    MRIcopyHeader(mri1, out);
+  }
+  if(mri1->width != mri2->width){
+    printf("ERROR: MRIzconcat(): mri1 and mri2 mismatch width %d %d\n",mri1->width,mri2->width);
+    return (NULL);
+  }
+  if(mri1->height != mri2->height){
+    printf("ERROR: MRIzconcat(): mri1 and mri2 mismatch height %d %d\n",mri1->height,mri2->height);
+    return (NULL);
+  }
+  if(mri1->nframes != out->nframes) {
+    printf("ERROR: MRIzconcat(): out nframes mismatch %d %d\n",mri1->nframes, out->nframes);
+    return (NULL);
+  }
+  if(mri1->width != out->width) {
+    printf("ERROR: MRIzconcat(): out width mismatch %d %d\n",mri1->width, out->width);
+    return (NULL);
+  }
+  if(mri1->height != out->height) {
+    printf("ERROR: MRIzconcat(): out height mismatch %d %d\n",mri1->height, out->height);
+    return (NULL);
+  }
+  if(nslices != out->depth) {
+    printf("ERROR: MRIzconcat(): out depth mismatch %d %d\n",nslices, out->depth);
+    return (NULL);
+  }
+  MRIcopyPulseParameters(mri1, out);
+
+  int c;
+  for(c=0; c < mri1->width; c++){
+    int r,s,f;
+    for(r=0; r < mri1->width; r++){
+      for(f=0; f < mri1->nframes; f++){
+	int sout = 0;
+	for(s=0; s < mri1->depth; s++){
+	  // Just copy the first volume
+	  double v = MRIgetVoxVal(mri1,c,r,s,f);
+	  MRIsetVoxVal(out,c,r,sout,f,v);
+	  sout++;
+	}
+	for(s=nskip; s < mri2->depth; s++){
+	  // Now append the second in the slice direction
+	  double v = MRIgetVoxVal(mri2,c,r,s,f);
+	  MRIsetVoxVal(out,c,r,sout,f,v);
+	  sout++;
+	}
+      } //f
+    } //r
+  } //c
+
+  // Need to fix geometry because we want to simply extend mri1
+  MATRIX *M = MRIxfmCRS2XYZ(mri1, 0);
+  MRIsetVox2RASFromMatrix(out, M);
+  MatrixFree(&M);
+
+  return(out);
+}
