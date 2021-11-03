@@ -32,6 +32,7 @@ set iid = ()
 set ijd = ()
 set ikd = ()
 set DCR3 = 0
+set DoPhase = 0;
 
 set RunNos = ();
 set SubDirs = ();
@@ -222,8 +223,17 @@ foreach f ($flist)
   set PixFreq  = (`cat $dumpfile | awk '{if($1 == "PixelFrequency") print $2}'`)
   if($#PixFreq == 0) set PixFreq = 'unknown';
 
+  set PhaseStr = ()
+  if($DoPhase) then
+    set ImageType = (`cat $dumpfile | awk '{if($1 == "ImageType") print $2}'`)
+    if($#ImageType == 1) then
+      if($ImageType == "ORIGINAL\PRIMARY\P\ND") set PhaseStr = "_phase"
+    endif
+    if($#PhaseStr == 0) set PhaseStr = NotPhase
+  endif
+
   if($#SrcInfo) break;
-  echo "$Patient $SeriesNo $Date $Time $EchoTime $TR $FlipAngle $PixSpace $PhaseEncDir $PixFreq $f" >> $infofile
+  echo "$Patient $SeriesNo $Date $Time $EchoTime $TR $FlipAngle $PixSpace $PhaseEncDir $PixFreq $f $PhaseStr" >> $infofile
 
 end
 
@@ -281,11 +291,18 @@ endif
 rm -f $SeriesInfo
 foreach series ($SeriesNos)
   set r = `cat $infofile | awk -v s=$series '{if($2 == s) print $0;if($2 == s) exit;}'`;
-  if($#r != 11) then
+  if($DoPhase == 0) set rexpected = 11
+  if($DoPhase == 1) set rexpected = 12
+  if($#r != $rexpected) then
     echo $r
     continue;
   endif
-  set f = $r[$#r];
+  if($DoPhase == 0) set f = $r[$#r];
+  if($DoPhase == 1) then
+    @ aa = $#r - 1;
+    set f = $r[$aa];
+  endif
+
   set max = ();
   if($GetMax) set max = (`mri_probedicom --i $f --max`)
   # Create a trap in case tag 8 103e is not present (eg, in philips)
@@ -391,7 +408,12 @@ foreach run ($RunNos)
 
   if($DoConvert) then
     set f = `cat $infofile | awk -v r=$run '{if($2 == r) print $11}' | head -n 1`
-    set outfname = $outdir/$FName.$Format
+    set PhaseStr = ()
+    if($DoPhase) then
+      set PhaseStr = `cat $infofile | awk -v r=$run '{if($2 == r) print $12}' | head -n 1`
+      if($PhaseStr == NotPhase) set PhaseStr = ""
+    endif
+    set outfname = $outdir/$FName$PhaseStr.$Format
     echo "" |& tee -a $LF
     echo "#@# Run $run `date` ==================================" |& tee -a $LF
     set cmd = (mri_convert $f $outfname --nskip $NSkip --ndrop $NDrop $itdicom)
@@ -696,8 +718,16 @@ while( $#argv != 0 )
       set DoCopy = 1;
       breaksw
 
+    case "-dcm2niix":
     case "-dcr3":
       set DCR3 = 1;
+      breaksw
+
+    case "-phase":
+      set DoPhase = 1;
+      breaksw
+    case "-no-phase":
+      set DoPhase = 0;
       breaksw
 
     case "-max":
@@ -926,6 +956,8 @@ usage_exit:
   echo "   -extra-info : add session info to each line of the info file (pat, date, man, scan, field, serno)"
   echo "   -first-dicom : copy first dicom file into output folder. This was implemented to "
   echo "      be able to have the pixel data from a dicom file with little or no tissue in it"
+  echo "   -dcm2niix : use internal version of dcm2niix to convert (output still user spec)"
+  echo "   -phase : add the string _phase to volumes that are phase images based on ImageType"
   echo ""
   echo "   -fips project site birnid visit"
   echo "   -fips-run run paradigm <<nskip> ndrop>"
