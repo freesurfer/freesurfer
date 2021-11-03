@@ -3463,7 +3463,9 @@ if($DoWhitePreAparc) then
     set cmd = ($cmd $xopts)
     echo "cd `$PWD`" |& tee -a $LF |& tee -a $CF
     echo $cmd        |& tee -a $LF |& tee -a $CF
-    set ud = `UpdateNeeded $whitepreaparc $ads $bfs $wm $orig`
+    set tmp = ()
+    if($UseAseg) set tmp = ($aseg)
+    set ud = `UpdateNeeded $whitepreaparc $ads $bfs $wm $orig $tmp`
     if($ud || $ForceUpdate) then
       if($RunIt) then
         $fs_time $cmd |& tee -a $LF
@@ -4000,7 +4002,7 @@ if($DoWhiteSurfs && ! $DoConf2Hires) then
     echo $cmd        |& tee -a $LF |& tee -a $CF
     set repos = $sdir/repos.$hemi.white.json
     if(! -e $repos) set repos = ()
-    set ud = `UpdateNeeded $white $inputsurf $ads $bfs $wm $inputsurf $cortex $hml $repos`
+    set ud = `UpdateNeeded $white $inputsurf $ads $bfs $wm $inputsurf $cortex $hml $repos $aseg`
     if($ud || $ForceUpdate) then
       if($RunIt) then
         $fs_time $cmd |& tee -a $LF
@@ -4061,7 +4063,7 @@ if($DoPialSurfs && ! $DoConf2Hires) then
     echo $cmd        |& tee -a $LF |& tee -a $CF
     set repos = $sdir/repos.$hemi.pial.json
     if(! -e $repos || $DoT2pial || $DoFLAIRpial) set repos = ()
-    set ud = `UpdateNeeded $pial $inputsurf $ads $bfs $wm $cortex $cortexha $repos`
+    set ud = `UpdateNeeded $pial $inputsurf $ads $bfs $wm $cortex $cortexha $repos $aseg`
     if($ud || $ForceUpdate) then
       if($RunIt) then
         $fs_time $cmd |& tee -a $LF
@@ -7044,8 +7046,8 @@ while( $#argv != 0 )
         echo "ERROR: hemi = $hemilist, must be either lh or rh"
         goto error_exit;
       endif
-      if($hemilist == lh) LHonly = 1 
-      if($hemilist == rh) RHonly = 1 
+      if($hemilist == lh) set LHonly = 1 
+      if($hemilist == rh) set RHonly = 1 
       breaksw
 
     # This is a temporary flag to test how changing the way the vertex

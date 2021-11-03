@@ -1087,11 +1087,11 @@ static int parse_commandline(int argc, char **argv) {
       printf("Use Exact = %d\n",UseExact);
       MRI *mindist;
       if(UseExact){
-	MRISdistanceBetweenSurfacesExact(surf2, surf1);
-	mindist = MRIcopyMRIS(NULL, surf2, 0, "curv");
+        MRISdistanceBetweenSurfacesExact(surf2, surf1);
+        mindist = MRIcopyMRIS(NULL, surf2, 0, "curv");
       }
       else 
-	mindist = MRISminDist(surf1, surf2);
+        mindist = MRISminDist(surf1, surf2);
       if(mindist==NULL) exit(1);
       printf("Writing mindist to %s\n",pargv[3]);
       MRIwrite(mindist,pargv[3]);

@@ -90,9 +90,9 @@ if(USE_JPEGLS)
         charls/interface.cpp
         charls/jpegstreamwriter.cpp
         charls/jpegstreamreader.cpp)
-    add_executable(dcm2niix ${DCM2NIIX_SRCS} ${CHARLS_SRCS})
+    #add_executable(dcm2niix ${DCM2NIIX_SRCS} ${CHARLS_SRCS})
 else()
-    add_executable(dcm2niix ${DCM2NIIX_SRCS})
+    #add_executable(dcm2niix ${DCM2NIIX_SRCS})
 endif()
 
 set(ZLIB_IMPLEMENTATION "Miniz" CACHE STRING "Choose zlib implementation.")
@@ -198,7 +198,7 @@ endif()
 
 if(APPLE)
     message("--   Adding Apple plist")
-    set_target_properties(dcm2niix PROPERTIES LINK_FLAGS "-Wl,-sectcreate,__TEXT,__info_plist,${CMAKE_SOURCE_DIR}/Info.plist")
+    # set_target_properties(dcm2niix PROPERTIES LINK_FLAGS "-Wl,-sectcreate,__TEXT,__info_plist,${CMAKE_SOURCE_DIR}/Info.plist")
     #Apple notarization requires a Info.plist
     # For .app bundles, the Info.plist is a separate file, for executables it is appended as a section
     #you can check that the Info.plist section has been inserted with either of these commands
@@ -210,8 +210,8 @@ endif()
 # we should not need this if we use target_compile_definitions()
 #target_link_libraries(dcm2niix nifti ${ZLIB_LIBRARIES})
 
-set(LIBRARY dcm2niixfs)
-add_library(dcm2niixfs STATIC
+set(LIBRARY dcm2niix)
+add_library(dcm2niix STATIC
     dcm2fsWrapper.cpp
     nii_dicom.cpp
     jpg_0XC3.cpp
@@ -220,14 +220,15 @@ add_library(dcm2niixfs STATIC
     nii_foreign.cpp
     nii_ortho.cpp
     nii_dicom_batch.cpp)
-target_compile_definitions(dcm2niixfs PUBLIC -DMGH_FREESURFER -DUSING_MGH_NIFTI_IO)
+target_compile_definitions(${LIBRARY} PUBLIC -DMGH_FREESURFER -DUSING_MGH_NIFTI_IO)
 
-set(DCM2NIIXFSEXE dcm2niixfsexe)
-add_executable(${DCM2NIIXFSEXE} dcm2fsmain.cpp)
-target_link_libraries(${DCM2NIIXFSEXE} dcm2niixfs nifti ${ZLIB_LIBRARIES})
+# DON'T build dcm2niixfsexe
+#set(DCM2NIIXFSEXE dcm2niixfsexe)
+#add_executable(${DCM2NIIXFSEXE} dcm2fsmain.cpp)
+#target_link_libraries(${DCM2NIIXFSEXE} dcm2niixfs nifti ${ZLIB_LIBRARIES})
 ### end of addition for FREESURFER
 
-install(TARGETS ${PROGRAMS} DESTINATION bin)
+#install(TARGETS ${PROGRAMS} DESTINATION bin)
 ### additions for FREESURFER
-install(TARGETS ${LIBRARY} DESTINATION bin)
-install(TARGETS ${DCM2NIIXFSEXE} DESTINATION bin)
+#install(TARGETS ${LIBRARY} DESTINATION bin)
+#install(TARGETS ${DCM2NIIXFSEXE} DESTINATION bin)

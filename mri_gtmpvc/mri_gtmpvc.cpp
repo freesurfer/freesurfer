@@ -1181,11 +1181,11 @@ int main(int argc, char *argv[])
   PrintMemUsage(stdout);
   PrintMemUsage(logfp);
 
-  fprintf(logfp,"#VMPC# mris_make_surfaces VmPeak  %d\n",GetVmPeak());
+  fprintf(logfp,"#VMPC# mri_gtmpvc VmPeak  %d\n",GetVmPeak());
   fprintf(logfp,"mri_gtmpvc-runtime %5.2f min\n",timer.minutes());
   fprintf(logfp,"mri_gtmpvc done\n");
   fclose(logfp);
-  printf("#VMPC# mris_make_surfaces VmPeak  %d\n",GetVmPeak());
+  printf("#VMPC# mri_gtmpvc VmPeak  %d\n",GetVmPeak());
   printf("mri_gtmpvc-runtime %5.2f min\n",timer.minutes());
   printf("mri_gtmpvc done\n");
   return(0);

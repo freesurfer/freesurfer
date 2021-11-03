@@ -231,6 +231,9 @@ def transform_to_midspace(a, b, transform=None, resample=True, interp_method='li
         target: Resampling target geometry. If None, the target is determined
             by a secondary midspace computed between the *aligned* images. In this
             case, the target shape and resolution is determined by `b`.
+
+    Returns:
+        mid_a, mid_b: Midspace-transformed images.
     """
     from scipy.linalg import sqrtm
 
