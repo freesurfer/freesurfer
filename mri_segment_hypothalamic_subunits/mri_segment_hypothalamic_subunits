@@ -134,7 +134,7 @@ def predict(name_subjects=None,
                              path_volumes)
 
     # get label and classes lists
-    label_list = np.concatenate([np.zeros(1, dtype='int32'), np.arange(801, 811)])
+    segmentation_labels = np.concatenate([np.zeros(1, dtype='int32'), np.arange(801, 811)])
 
     # prepare volume file if needed
     if path_main_volumes is not None:
@@ -150,7 +150,7 @@ def predict(name_subjects=None,
     # build network
     _, _, n_dims, n_channels, _, _ = get_volume_info(path_images[0])
     model_input_shape = [None] * n_dims + [n_channels]
-    net = build_model(path_model, model_input_shape, len(label_list))
+    net = build_model(path_model, model_input_shape, len(segmentation_labels))
 
     # perform segmentation
     loop_info = LoopInfo(len(path_images), 10, 'predicting', True)
@@ -178,7 +178,7 @@ def predict(name_subjects=None,
 
         # postprocessing
         try:
-            seg, posteriors = postprocess(prediction_patch, shape, crop_idx, label_list, aff)
+            seg, posteriors = postprocess(prediction_patch, shape, crop_idx, segmentation_labels, aff)
         except Exception as e:
             print('\nthe following problem occured when postprocessing segmentation %s :' % path_segmentation)
             print(e)

@@ -64,12 +64,12 @@ def main():
 
     # locate model weights
     if not fs.fshome():
-        path_model = segmentation_label_list = segmentation_names_list = topology_classes = None
+        path_model = segmentation_labels = segmentation_names_list = topology_classes = None
         fs.fatal('FREESURFER_HOME is not set. Please source freesurfer.')
     else:
         path_model = os.path.join(fs.fshome(), 'models', 'synthseg_1.0.h5')
-        segmentation_label_list = os.path.join(fs.fshome(), 'models', 'synthseg_segmentation_labels.npy')
-        segmentation_names_list = os.path.join(fs.fshome(), 'models', 'synthseg_segmentation_names.npy')
+        segmentation_labels = os.path.join(fs.fshome(), 'models', 'synthseg_segmentation_labels.npy')
+        segmentation_label_names = os.path.join(fs.fshome(), 'models', 'synthseg_segmentation_names.npy')
         topology_classes = os.path.join(fs.fshome(), 'models', 'synthseg_topological_classes.npy')
 
     # run prediction
@@ -77,8 +77,8 @@ def main():
         path_images=args.i,
         path_segmentations=args.o,
         path_model=path_model,
-        segmentation_label_list=segmentation_label_list,
-        segmentation_names_list=segmentation_names_list,
+        segmentation_labels=segmentation_labels,
+        segmentation_label_names=segmentation_label_names,
         topology_classes=topology_classes,
         path_posteriors=args.post,
         path_resampled=args.resample,
@@ -96,8 +96,8 @@ def main():
 def predict(path_images,
             path_segmentations,
             path_model,
-            segmentation_label_list,
-            segmentation_names_list,
+            segmentation_labels,
+            segmentation_label_names,
             topology_classes,
             path_posteriors=None,
             path_resampled=None,
@@ -122,41 +122,47 @@ def predict(path_images,
     tf.config.threading.set_inter_op_parallelism_threads(threads)
     tf.config.threading.set_intra_op_parallelism_threads(threads)
 
-    # build correspondance table between contralateral structures
-    label_list, n_neutral = get_list_labels(label_list=segmentation_label_list, FS_sort=True)
-    n_labels = len(label_list)
-    n_side_labels = int((n_labels - n_neutral) / 2)
-    lr_corresp = np.stack([label_list[n_neutral:n_neutral + n_side_labels], label_list[n_neutral + n_side_labels:]])
+    # get label list
+    segmentation_labels, _ = get_list_labels(label_list=segmentation_labels)
+    n_labels = len(segmentation_labels)
+    n_neutral_labels = 18
 
-    # get final version of label list
-    label_list, _ = get_list_labels(label_list=segmentation_label_list, FS_sort=False)
-    label_list, indices = np.unique(label_list, return_index=True)
+    # build correspondance table between contralateral structures
+    n_sided_labels = int((n_labels - n_neutral_labels) / 2)
+    lr_corresp = np.stack([segmentation_labels[n_neutral_labels:n_neutral_labels + n_sided_labels],
+                           segmentation_labels[n_neutral_labels + n_sided_labels:]])
+
+    # get unique label values
+    segmentation_labels, indices = np.unique(segmentation_labels, return_index=True)
+
+    # get indices of corresponding contralateral structures in new label order
+    lr_corresp_unique, lr_corresp_indices = np.unique(lr_corresp[0, :], return_index=True)
+    lr_corresp_unique = np.stack([lr_corresp_unique, lr_corresp[1, lr_corresp_indices]])
+    lr_corresp_unique = lr_corresp_unique[:, 1:] if not np.all(lr_corresp_unique[:, 0]) else lr_corresp_unique
+    lr_indices = np.zeros_like(lr_corresp_unique)
+    for i in range(lr_corresp_unique.shape[0]):
+        for j, lab in enumerate(lr_corresp_unique[i]):
+            lr_indices[i, j] = np.where(segmentation_labels == lab)[0]
 
     # prepare topology classes
     if topology_classes is not None:
         topology_classes = load_array_if_path(topology_classes, load_as_numpy=True)[indices]
 
-    # get correspondance for labels with different right/left values
-    lr_indices = np.zeros_like(lr_corresp)
-    for i in range(lr_corresp.shape[0]):
-        for j, lab in enumerate(lr_corresp[i]):
-            lr_indices[i, j] = np.where(label_list == lab)[0]
-
     # prepare volume file if needed
     if path_volumes is not None:
-        if segmentation_names_list is not None:
-            segmentation_names_list = load_array_if_path(segmentation_names_list)[indices]
-            csv_header = [[''] + segmentation_names_list[1:].tolist()]
-            csv_header += [[''] + [str(lab) for lab in label_list[1:]]]
+        if segmentation_label_names is not None:
+            segmentation_label_names = load_array_if_path(segmentation_label_names)[indices]
+            csv_header = [[''] + segmentation_label_names[1:].tolist()]
+            csv_header += [[''] + [str(lab) for lab in segmentation_labels[1:]]]
         else:
-            csv_header = [['subjects'] + [str(lab) for lab in label_list[1:]]]
+            csv_header = [['subjects'] + [str(lab) for lab in segmentation_labels[1:]]]
         with open(path_volumes, 'w') as csvFile:
             writer = csv.writer(csvFile)
             writer.writerows(csv_header)
         csvFile.close()
 
     # build network
-    net = build_model(path_model, len(label_list))
+    net = build_model(path_model, len(segmentation_labels))
 
     # perform segmentation
     loop_info = LoopInfo(len(path_images), 10, 'predicting', True)
@@ -186,7 +192,7 @@ def predict(path_images,
 
         # postprocessing
         try:
-            seg, posteriors = postprocess(prediction_patch, pad_shape, shape, crop_idx, label_list, lr_indices,
+            seg, posteriors = postprocess(prediction_patch, pad_shape, shape, crop_idx, segmentation_labels, lr_indices,
                                           aff, topology_classes, prediction_patch_flip)
         except Exception as e:
             print('\nthe following problem occured when postprocessing segmentation %s :' % path_segmentation)
@@ -419,7 +425,7 @@ def build_model(model_file, n_lab):
     return net
 
 
-def postprocess(post_patch, pad_shape, im_shape, crop, labels, left_right_indices, aff,
+def postprocess(post_patch, pad_shape, im_shape, crop, segmentation_labels, left_right_indices, aff,
                 topology_classes, post_patch_flip):
 
     # get posteriors
@@ -451,11 +457,11 @@ def postprocess(post_patch, pad_shape, im_shape, crop, labels, left_right_indice
 
     # paste patches back to matrix of original image size
     seg = np.zeros(shape=pad_shape, dtype='int32')
-    posteriors = np.zeros(shape=[*pad_shape, labels.shape[0]])
+    posteriors = np.zeros(shape=[*pad_shape, segmentation_labels.shape[0]])
     posteriors[..., 0] = np.ones(pad_shape)  # place background around patch
     seg[crop[0]:crop[3], crop[1]:crop[4], crop[2]:crop[5]] = seg_patch
     posteriors[crop[0]:crop[3], crop[1]:crop[4], crop[2]:crop[5], :] = post_patch
-    seg = labels[seg.astype('int')].astype('int')
+    seg = segmentation_labels[seg.astype('int')].astype('int')
 
     if im_shape != pad_shape:
         bounds = [int((p-i)/2) for (p, i) in zip(pad_shape, im_shape)]
