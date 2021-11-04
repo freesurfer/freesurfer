@@ -33,9 +33,12 @@ class LookupTable(collections.OrderedDict):
     def add(self, index, name, color):
         self[index] = LookupTable.Element(name, color)
 
-    def search(self, name):
-        allcaps = name.upper()
-        return [idx for idx, elt in self.items() if allcaps in elt.name.upper()]
+    def search(self, name, exact=False):
+        if exact:
+            return next((idx for idx, elt in self.items() if name == elt.name), None)
+        else:
+            allcaps = name.upper()
+            return [idx for idx, elt in self.items() if allcaps in elt.name.upper()]
 
     @classmethod
     def read(cls, filename):
