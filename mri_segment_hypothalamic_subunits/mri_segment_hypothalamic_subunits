@@ -1055,7 +1055,7 @@ def save_volume(volume, aff, header, path, res=None, dtype=None, n_dims=3):
         nib.save(nifty, path)
 
 
-def get_volume_info(path_volume, return_volume=False, aff_ref=None):
+def get_volume_info(path_volume, return_volume=False, aff_ref=None, max_channels=10):
     """
     Gather information about a volume: shape, affine matrix, number of dimensions and channels, header, and resolution.
     :param path_volume: path of the volume to get information form.
@@ -1070,7 +1070,7 @@ def get_volume_info(path_volume, return_volume=False, aff_ref=None):
 
     # understand if image is multichannel
     im_shape = list(im.shape)
-    n_dims, n_channels = get_dims(im_shape, max_channels=10)
+    n_dims, n_channels = get_dims(im_shape, max_channels=max_channels)
     im_shape = im_shape[:n_dims]
 
     # get labels res
@@ -1132,7 +1132,10 @@ def reformat_to_list(var, length=None, load_as_numpy=False, dtype=None):
     elif isinstance(var, tuple):
         var = list(var)
     elif isinstance(var, np.ndarray):
-        var = np.squeeze(var).tolist()
+        if var.shape == (1,):
+            var = [var[0]]
+        else:
+            var = np.squeeze(var).tolist()
     elif isinstance(var, str):
         var = [var]
     elif isinstance(var, bool):
@@ -1252,7 +1255,7 @@ def get_dims(shape, max_channels=10):
     return n_dims, n_channels
 
 
-def add_axis(x, axis):
+def add_axis(x, axis=0):
     """Add axis to a numpy array.
     :param axis: index of the new axis to add. Can also be a list of indices to add several axes at the same time."""
     axis = reformat_to_list(axis)
@@ -1323,23 +1326,23 @@ class LoopInfo:
                 print(self.text + ' {}'.format(iteration))
 
 
-def find_closest_number_divisible_by_m(n, m, smaller_ans=True):
-    """Return the closest integer to n that is divisible by m.
-    If smaller_ans is True, only values lower than n are considered."""
-    # quotient
-    q = int(n / m)
-    # 1st possible closest number
-    n1 = m * q
-    # 2nd possible closest number
-    if (n * m) > 0:
-        n2 = (m * (q + 1))
+def find_closest_number_divisible_by_m(n, m, answer_type='lower'):
+    """Return the closest integer to n that is divisible by m. answer_type can either be 'closer', 'lower' (only returns
+    values lower than n), or 'higher (only returns values higher than m)."""
+    if n % m == 0:
+        return n
     else:
-        n2 = (m * (q - 1))
-    # find closest solution
-    if (abs(n - n1) < abs(n - n2)) | smaller_ans:
-        return n1
-    else:
-        return n2
+        q = int(n / m)
+        lower = q * m
+        higher = (q + 1) * m
+        if answer_type == 'lower':
+            return lower
+        elif answer_type == 'higher':
+            return higher
+        elif answer_type == 'closer':
+            return lower if (n - lower) < (higher - n) else higher
+        else:
+            raise Exception('answer_type should be lower, higher, or closer, had : %s' % answer_type)
 
 
 def build_binary_structure(connectivity, n_dims, shape=None):
@@ -1451,30 +1454,55 @@ def crop_volume(volume, cropping_margin=None, cropping_shape=None, aff=None, ret
     return output[0] if len(output) == 1 else tuple(output)
 
 
-def crop_volume_around_region(volume, mask=None, threshold=0.1, masking_labels=None, margin=0, aff=None):
-    """Crop a volume around a specific region. This region is defined by a mask obtained by either
+def crop_volume_around_region(volume,
+                              mask=None,
+                              masking_labels=None,
+                              threshold=0.1,
+                              margin=0,
+                              cropping_shape=None,
+                              cropping_shape_div_by=None,
+                              aff=None):
+    """Crop a volume around a specific region.
+    This region is defined by a mask obtained by either:
     1) directly specifying it as input
-    2) thresholding the input volume
-    3) keeping a set of label values if the volume is a label map.
+    2) keeping a set of label values (defined by masking_labels) if the volume is a label map.
+    3) thresholding the input volume
+    The cropped region is defined by either:
+    1) cropping around the non-zero values in the above-defined mask (possibly with a margin)
+    2) cropping to a specified shape, centered around the middle of the above-defined mask
+    3) cropping to a shape divisible by the given number, centered around the middle of the above-defined mask
     :param volume: a 2d or 3d numpy array
     :param mask: (optional) mask of region to crop around. Must be same size as volume. Can either be boolean or 0/1.
-    it defaults to masking around all values above threshold.
-    :param threshold: (optional) if mask is None, lower bound to determine values to crop around
+    If no mask is given, it will be computed by either thresholding the input volume or using masking_labels.
     :param masking_labels: (optional) if mask is None, and if the volume is a label map, it can be cropped around a
     set of labels specified in masking_labels, which can either be a single int, a sequence or a 1d numpy array.
+    :param threshold: (optional) if mask amd masking_labels are None, lower bound to determine values to crop around.
     :param margin: (optional) add margin around mask
+    :param cropping_shape: (optional) shape to which the input volumes must be cropped. Volumes are padded around the
+    centre of the above-defined mask is they are too small for the given shape. Can be an integer or sequence.
+    Cannot be given at the same time as margin or cropping_shape_div_by.
+    :param cropping_shape_div_by: (optional) makes sure the shape of the cropped region is divisible by the provided
+    number. If it is not, then we enlarge the cropping area. If the enlarged area is too big fort he input volume, we
+    pad it with 0. Must be a integer. Cannot be given at the same time as margin or cropping_shape.
     :param aff: (optional) if specified, this function returns an updated affine matrix of the volume after cropping.
     :return: the cropped volume, the cropping indices (in the order [lower_bound_dim_1, ..., upper_bound_dim_1, ...]),
     and the updated affine matrix if aff is not None.
     """
 
+    assert not ((margin > 0) & (cropping_shape is not None)), "margin and cropping_shape can't be given together."
+    assert not ((margin > 0) & (cropping_shape_div_by is not None)), \
+        "margin and cropping_shape_div_by can't be given together."
+    assert not ((cropping_shape_div_by is not None) & (cropping_shape is not None)), \
+        "cropping_shape_div_by and cropping_shape can't be given together."
+
     new_vol = volume.copy()
-    n_dims, _ = get_dims(new_vol.shape)
+    n_dims, n_channels = get_dims(new_vol.shape)
+    vol_shape = np.array(new_vol.shape[:n_dims])
 
     # mask ROIs for cropping
     if mask is None:
         if masking_labels is not None:
-            masked_volume, mask = mask_label_map(new_vol, masking_values=masking_labels, return_mask=True)
+            _, mask = mask_label_map(new_vol, masking_values=masking_labels, return_mask=True)
         else:
             mask = new_vol > threshold
 
@@ -1482,16 +1510,48 @@ def crop_volume_around_region(volume, mask=None, threshold=0.1, masking_labels=N
     if np.any(mask):
         indices = np.nonzero(mask)
         min_idx = np.maximum(np.array([np.min(idx) for idx in indices]) - margin, 0)
-        max_idx = np.minimum(np.array([np.max(idx) for idx in indices]) + 1 + margin, np.array(new_vol.shape[:n_dims]))
+        max_idx = np.minimum(np.array([np.max(idx) for idx in indices]) + 1 + margin, vol_shape)
         cropping = np.concatenate([min_idx, max_idx])
+
+        # modify the cropping indices if we want the output to have a given shape
+        if (cropping_shape is not None) | (cropping_shape_div_by is not None):
+
+            # expand/retract (depending on the desired shape) the cropping region around the centre
+            intermediate_vol_shape = max_idx - min_idx
+            if cropping_shape is not None:
+                cropping_shape = np.array(reformat_to_list(cropping_shape, length=n_dims))
+            else:
+                cropping_shape = [find_closest_number_divisible_by_m(s, cropping_shape_div_by, answer_type='higher')
+                                  for s in intermediate_vol_shape]
+            min_idx = min_idx - np.int32(np.ceil((cropping_shape - intermediate_vol_shape)/2))
+            max_idx = max_idx + np.int32(np.floor((cropping_shape - intermediate_vol_shape)/2))
+
+            # check if we need to pad the output to the desired shape
+            min_padding = np.abs(np.minimum(min_idx, 0))
+            max_padding = np.maximum(max_idx - vol_shape, 0)
+            if np.any(min_padding > 0) | np.any(max_padding > 0):
+                pad_margins = tuple([(min_padding[i], max_padding[i]) for i in range(n_dims)])
+            else:
+                pad_margins = None
+            cropping = np.concatenate([np.maximum(min_idx, 0), np.minimum(max_idx, vol_shape)])
+
+        else:
+            pad_margins = None
 
         # crop volume
         if n_dims == 3:
-            new_vol = new_vol[min_idx[0]:max_idx[0], min_idx[1]:max_idx[1], min_idx[2]:max_idx[2], ...]
+            new_vol = new_vol[cropping[0]:cropping[3], cropping[1]:cropping[4], cropping[2]:cropping[5], ...]
         elif n_dims == 2:
-            new_vol = new_vol[min_idx[0]:max_idx[0], min_idx[1]:max_idx[1], ...]
+            new_vol = new_vol[cropping[0]:cropping[2], cropping[1]:cropping[3], ...]
         else:
             raise ValueError('cannot crop volumes with more than 3 dimensions')
+
+        # pad volume if necessary
+        if pad_margins is not None:
+            pad_margins = tuple(list(pad_margins) + [(0, 0)]) if n_channels > 1 else pad_margins
+            new_vol = np.pad(new_vol, pad_margins, mode='constant', constant_values=0)
+
+    # if there's nothing to crop around, we return the input as is
     else:
         min_idx = np.zeros((3, 1))
         cropping = None
@@ -1536,7 +1596,7 @@ def crop_volume_with_idx(volume, crop_idx, aff=None, n_dims=None):
         return new_volume
 
 
-def resample_volume(volume, aff, new_vox_size):
+def resample_volume(volume, aff, new_vox_size, interpolation='linear'):
     """This function resizes the voxels of a volume to a new provided size, while adjusting the header to keep the RAS
     :param volume: a numpy array
     :param aff: affine matrix of the volume
@@ -1557,7 +1617,7 @@ def resample_volume(volume, aff, new_vox_size):
     y = np.arange(0, volume_filt.shape[1])
     z = np.arange(0, volume_filt.shape[2])
 
-    my_interpolating_function = RegularGridInterpolator((x, y, z), volume_filt)
+    my_interpolating_function = RegularGridInterpolator((x, y, z), volume_filt, method=interpolation)
 
     start = - (factor - 1) / (2 * factor)
     step = 1.0 / factor

@@ -907,7 +907,7 @@ def save_volume(volume, aff, header, path, res=None, dtype=None, n_dims=3):
         nib.save(nifty, path)
 
 
-def get_volume_info(path_volume, return_volume=False, aff_ref=None):
+def get_volume_info(path_volume, return_volume=False, aff_ref=None, max_channels=10):
     """
     Gather information about a volume: shape, affine matrix, number of dimensions and channels, header, and resolution.
     :param path_volume: path of the volume to get information form.
@@ -922,7 +922,7 @@ def get_volume_info(path_volume, return_volume=False, aff_ref=None):
 
     # understand if image is multichannel
     im_shape = list(im.shape)
-    n_dims, n_channels = get_dims(im_shape, max_channels=10)
+    n_dims, n_channels = get_dims(im_shape, max_channels=max_channels)
     im_shape = im_shape[:n_dims]
 
     # get labels res
@@ -990,8 +990,9 @@ def get_list_labels(label_list=None, labels_dir=None, save_label_list=None, FS_s
     # sort labels in neutral/left/right according to FS labels
     n_neutral_labels = 0
     if FS_sort:
-        neutral_FS_labels = [0, 14, 15, 16, 21, 22, 23, 24, 72, 77, 80, 85, 101, 102, 103, 104, 105, 165, 251, 252, 253,
-                             254, 255, 258, 259, 331, 332, 333, 334, 335, 336, 337, 338, 339, 340,
+        neutral_FS_labels = [0, 14, 15, 16, 21, 22, 23, 24, 72, 77, 80, 85, 100, 101, 102, 103, 104, 105, 106, 107, 108,
+                             109, 165, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210,
+                             251, 252, 253, 254, 255, 258, 259, 260, 331, 332, 333, 334, 335, 336, 337, 338, 339, 340,
                              502, 506, 507, 508, 509, 511, 512, 514, 515, 516, 517, 530,
                              531, 532, 533, 534, 535, 536, 537]
         neutral = list()
@@ -1059,7 +1060,10 @@ def reformat_to_list(var, length=None, load_as_numpy=False, dtype=None):
     elif isinstance(var, tuple):
         var = list(var)
     elif isinstance(var, np.ndarray):
-        var = np.squeeze(var).tolist()
+        if var.shape == (1,):
+            var = [var[0]]
+        else:
+            var = np.squeeze(var).tolist()
     elif isinstance(var, str):
         var = [var]
     elif isinstance(var, bool):
@@ -1145,7 +1149,7 @@ def get_dims(shape, max_channels=10):
     return n_dims, n_channels
 
 
-def add_axis(x, axis):
+def add_axis(x, axis=0):
     """Add axis to a numpy array.
     :param axis: index of the new axis to add. Can also be a list of indices to add several axes at the same time."""
     axis = reformat_to_list(axis)
@@ -1230,23 +1234,23 @@ class LoopInfo:
                 print(self.text + ' {}'.format(iteration))
 
 
-def find_closest_number_divisible_by_m(n, m, smaller_ans=True):
-    """Return the closest integer to n that is divisible by m.
-    If smaller_ans is True, only values lower than n are considered."""
-    # quotient
-    q = int(n / m)
-    # 1st possible closest number
-    n1 = m * q
-    # 2nd possible closest number
-    if (n * m) > 0:
-        n2 = (m * (q + 1))
+def find_closest_number_divisible_by_m(n, m, answer_type='lower'):
+    """Return the closest integer to n that is divisible by m. answer_type can either be 'closer', 'lower' (only returns
+    values lower than n), or 'higher (only returns values higher than m)."""
+    if n % m == 0:
+        return n
     else:
-        n2 = (m * (q - 1))
-    # find closest solution
-    if (abs(n - n1) < abs(n - n2)) | smaller_ans:
-        return n1
-    else:
-        return n2
+        q = int(n / m)
+        lower = q * m
+        higher = (q + 1) * m
+        if answer_type == 'lower':
+            return lower
+        elif answer_type == 'higher':
+            return higher
+        elif answer_type == 'closer':
+            return lower if (n - lower) < (higher - n) else higher
+        else:
+            raise Exception('answer_type should be lower, higher, or closer, had : %s' % answer_type)
 
 
 def build_binary_structure(connectivity, n_dims, shape=None):
@@ -1465,7 +1469,7 @@ def pad_volume(volume, padding_shape, padding_value=0, aff=None, return_pad_idx=
         pad_idx = np.concatenate([min_margins, min_margins + np.array(vol_shape[:n_dims])])
         pad_margins = tuple([(min_margins[i], max_margins[i]) for i in range(n_dims)])
         if n_channels > 1:
-            pad_margins = tuple(list(pad_margins) + [[0, 0]])
+            pad_margins = tuple(list(pad_margins) + [(0, 0)])
 
         # pad volume
         new_volume = np.pad(new_volume, pad_margins, mode='constant', constant_values=padding_value)
@@ -1518,7 +1522,7 @@ def flip_volume(volume, axis=None, direction=None, aff=None):
     return np.flip(new_volume, axis=axis)
 
 
-def resample_volume(volume, aff, new_vox_size):
+def resample_volume(volume, aff, new_vox_size, interpolation='linear'):
     """This function resizes the voxels of a volume to a new provided size, while adjusting the header to keep the RAS
     :param volume: a numpy array
     :param aff: affine matrix of the volume
@@ -1539,7 +1543,7 @@ def resample_volume(volume, aff, new_vox_size):
     y = np.arange(0, volume_filt.shape[1])
     z = np.arange(0, volume_filt.shape[2])
 
-    my_interpolating_function = RegularGridInterpolator((x, y, z), volume_filt)
+    my_interpolating_function = RegularGridInterpolator((x, y, z), volume_filt, method=interpolation)
 
     start = - (factor - 1) / (2 * factor)
     step = 1.0 / factor
