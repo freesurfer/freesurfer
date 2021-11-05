@@ -64,12 +64,12 @@ def main():
 
     # locate model weights
     if not fs.fshome():
-        path_model = segmentation_label_list = segmentation_names_list = topology_classes = None
+        path_model = segmentation_labels = segmentation_names_list = topology_classes = None
         fs.fatal('FREESURFER_HOME is not set. Please source freesurfer.')
     else:
         path_model = os.path.join(fs.fshome(), 'models', 'synthseg_1.0.h5')
-        segmentation_label_list = os.path.join(fs.fshome(), 'models', 'synthseg_segmentation_labels.npy')
-        segmentation_names_list = os.path.join(fs.fshome(), 'models', 'synthseg_segmentation_names.npy')
+        segmentation_labels = os.path.join(fs.fshome(), 'models', 'synthseg_segmentation_labels.npy')
+        segmentation_label_names = os.path.join(fs.fshome(), 'models', 'synthseg_segmentation_names.npy')
         topology_classes = os.path.join(fs.fshome(), 'models', 'synthseg_topological_classes.npy')
 
     # run prediction
@@ -77,8 +77,8 @@ def main():
         path_images=args.i,
         path_segmentations=args.o,
         path_model=path_model,
-        segmentation_label_list=segmentation_label_list,
-        segmentation_names_list=segmentation_names_list,
+        segmentation_labels=segmentation_labels,
+        segmentation_label_names=segmentation_label_names,
         topology_classes=topology_classes,
         path_posteriors=args.post,
         path_resampled=args.resample,
@@ -96,8 +96,8 @@ def main():
 def predict(path_images,
             path_segmentations,
             path_model,
-            segmentation_label_list,
-            segmentation_names_list,
+            segmentation_labels,
+            segmentation_label_names,
             topology_classes,
             path_posteriors=None,
             path_resampled=None,
@@ -122,41 +122,47 @@ def predict(path_images,
     tf.config.threading.set_inter_op_parallelism_threads(threads)
     tf.config.threading.set_intra_op_parallelism_threads(threads)
 
-    # build correspondance table between contralateral structures
-    label_list, n_neutral = get_list_labels(label_list=segmentation_label_list, FS_sort=True)
-    n_labels = len(label_list)
-    n_side_labels = int((n_labels - n_neutral) / 2)
-    lr_corresp = np.stack([label_list[n_neutral:n_neutral + n_side_labels], label_list[n_neutral + n_side_labels:]])
+    # get label list
+    segmentation_labels, _ = get_list_labels(label_list=segmentation_labels)
+    n_labels = len(segmentation_labels)
+    n_neutral_labels = 18
 
-    # get final version of label list
-    label_list, _ = get_list_labels(label_list=segmentation_label_list, FS_sort=False)
-    label_list, indices = np.unique(label_list, return_index=True)
+    # build correspondance table between contralateral structures
+    n_sided_labels = int((n_labels - n_neutral_labels) / 2)
+    lr_corresp = np.stack([segmentation_labels[n_neutral_labels:n_neutral_labels + n_sided_labels],
+                           segmentation_labels[n_neutral_labels + n_sided_labels:]])
+
+    # get unique label values
+    segmentation_labels, indices = np.unique(segmentation_labels, return_index=True)
+
+    # get indices of corresponding contralateral structures in new label order
+    lr_corresp_unique, lr_corresp_indices = np.unique(lr_corresp[0, :], return_index=True)
+    lr_corresp_unique = np.stack([lr_corresp_unique, lr_corresp[1, lr_corresp_indices]])
+    lr_corresp_unique = lr_corresp_unique[:, 1:] if not np.all(lr_corresp_unique[:, 0]) else lr_corresp_unique
+    lr_indices = np.zeros_like(lr_corresp_unique)
+    for i in range(lr_corresp_unique.shape[0]):
+        for j, lab in enumerate(lr_corresp_unique[i]):
+            lr_indices[i, j] = np.where(segmentation_labels == lab)[0]
 
     # prepare topology classes
     if topology_classes is not None:
         topology_classes = load_array_if_path(topology_classes, load_as_numpy=True)[indices]
 
-    # get correspondance for labels with different right/left values
-    lr_indices = np.zeros_like(lr_corresp)
-    for i in range(lr_corresp.shape[0]):
-        for j, lab in enumerate(lr_corresp[i]):
-            lr_indices[i, j] = np.where(label_list == lab)[0]
-
     # prepare volume file if needed
     if path_volumes is not None:
-        if segmentation_names_list is not None:
-            segmentation_names_list = load_array_if_path(segmentation_names_list)[indices]
-            csv_header = [[''] + segmentation_names_list[1:].tolist()]
-            csv_header += [[''] + [str(lab) for lab in label_list[1:]]]
+        if segmentation_label_names is not None:
+            segmentation_label_names = load_array_if_path(segmentation_label_names)[indices]
+            csv_header = [[''] + segmentation_label_names[1:].tolist()]
+            csv_header += [[''] + [str(lab) for lab in segmentation_labels[1:]]]
         else:
-            csv_header = [['subjects'] + [str(lab) for lab in label_list[1:]]]
+            csv_header = [['subjects'] + [str(lab) for lab in segmentation_labels[1:]]]
         with open(path_volumes, 'w') as csvFile:
             writer = csv.writer(csvFile)
             writer.writerows(csv_header)
         csvFile.close()
 
     # build network
-    net = build_model(path_model, len(label_list))
+    net = build_model(path_model, len(segmentation_labels))
 
     # perform segmentation
     loop_info = LoopInfo(len(path_images), 10, 'predicting', True)
@@ -186,7 +192,7 @@ def predict(path_images,
 
         # postprocessing
         try:
-            seg, posteriors = postprocess(prediction_patch, pad_shape, shape, crop_idx, label_list, lr_indices,
+            seg, posteriors = postprocess(prediction_patch, pad_shape, shape, crop_idx, segmentation_labels, lr_indices,
                                           aff, topology_classes, prediction_patch_flip)
         except Exception as e:
             print('\nthe following problem occured when postprocessing segmentation %s :' % path_segmentation)
@@ -419,7 +425,7 @@ def build_model(model_file, n_lab):
     return net
 
 
-def postprocess(post_patch, pad_shape, im_shape, crop, labels, left_right_indices, aff,
+def postprocess(post_patch, pad_shape, im_shape, crop, segmentation_labels, left_right_indices, aff,
                 topology_classes, post_patch_flip):
 
     # get posteriors
@@ -451,11 +457,11 @@ def postprocess(post_patch, pad_shape, im_shape, crop, labels, left_right_indice
 
     # paste patches back to matrix of original image size
     seg = np.zeros(shape=pad_shape, dtype='int32')
-    posteriors = np.zeros(shape=[*pad_shape, labels.shape[0]])
+    posteriors = np.zeros(shape=[*pad_shape, segmentation_labels.shape[0]])
     posteriors[..., 0] = np.ones(pad_shape)  # place background around patch
     seg[crop[0]:crop[3], crop[1]:crop[4], crop[2]:crop[5]] = seg_patch
     posteriors[crop[0]:crop[3], crop[1]:crop[4], crop[2]:crop[5], :] = post_patch
-    seg = labels[seg.astype('int')].astype('int')
+    seg = segmentation_labels[seg.astype('int')].astype('int')
 
     if im_shape != pad_shape:
         bounds = [int((p-i)/2) for (p, i) in zip(pad_shape, im_shape)]
@@ -901,7 +907,7 @@ def save_volume(volume, aff, header, path, res=None, dtype=None, n_dims=3):
         nib.save(nifty, path)
 
 
-def get_volume_info(path_volume, return_volume=False, aff_ref=None):
+def get_volume_info(path_volume, return_volume=False, aff_ref=None, max_channels=10):
     """
     Gather information about a volume: shape, affine matrix, number of dimensions and channels, header, and resolution.
     :param path_volume: path of the volume to get information form.
@@ -916,7 +922,7 @@ def get_volume_info(path_volume, return_volume=False, aff_ref=None):
 
     # understand if image is multichannel
     im_shape = list(im.shape)
-    n_dims, n_channels = get_dims(im_shape, max_channels=10)
+    n_dims, n_channels = get_dims(im_shape, max_channels=max_channels)
     im_shape = im_shape[:n_dims]
 
     # get labels res
@@ -984,8 +990,9 @@ def get_list_labels(label_list=None, labels_dir=None, save_label_list=None, FS_s
     # sort labels in neutral/left/right according to FS labels
     n_neutral_labels = 0
     if FS_sort:
-        neutral_FS_labels = [0, 14, 15, 16, 21, 22, 23, 24, 72, 77, 80, 85, 101, 102, 103, 104, 105, 165, 251, 252, 253,
-                             254, 255, 258, 259, 331, 332, 333, 334, 335, 336, 337, 338, 339, 340,
+        neutral_FS_labels = [0, 14, 15, 16, 21, 22, 23, 24, 72, 77, 80, 85, 100, 101, 102, 103, 104, 105, 106, 107, 108,
+                             109, 165, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210,
+                             251, 252, 253, 254, 255, 258, 259, 260, 331, 332, 333, 334, 335, 336, 337, 338, 339, 340,
                              502, 506, 507, 508, 509, 511, 512, 514, 515, 516, 517, 530,
                              531, 532, 533, 534, 535, 536, 537]
         neutral = list()
@@ -1053,7 +1060,10 @@ def reformat_to_list(var, length=None, load_as_numpy=False, dtype=None):
     elif isinstance(var, tuple):
         var = list(var)
     elif isinstance(var, np.ndarray):
-        var = np.squeeze(var).tolist()
+        if var.shape == (1,):
+            var = [var[0]]
+        else:
+            var = np.squeeze(var).tolist()
     elif isinstance(var, str):
         var = [var]
     elif isinstance(var, bool):
@@ -1139,7 +1149,7 @@ def get_dims(shape, max_channels=10):
     return n_dims, n_channels
 
 
-def add_axis(x, axis):
+def add_axis(x, axis=0):
     """Add axis to a numpy array.
     :param axis: index of the new axis to add. Can also be a list of indices to add several axes at the same time."""
     axis = reformat_to_list(axis)
@@ -1224,23 +1234,23 @@ class LoopInfo:
                 print(self.text + ' {}'.format(iteration))
 
 
-def find_closest_number_divisible_by_m(n, m, smaller_ans=True):
-    """Return the closest integer to n that is divisible by m.
-    If smaller_ans is True, only values lower than n are considered."""
-    # quotient
-    q = int(n / m)
-    # 1st possible closest number
-    n1 = m * q
-    # 2nd possible closest number
-    if (n * m) > 0:
-        n2 = (m * (q + 1))
+def find_closest_number_divisible_by_m(n, m, answer_type='lower'):
+    """Return the closest integer to n that is divisible by m. answer_type can either be 'closer', 'lower' (only returns
+    values lower than n), or 'higher (only returns values higher than m)."""
+    if n % m == 0:
+        return n
     else:
-        n2 = (m * (q - 1))
-    # find closest solution
-    if (abs(n - n1) < abs(n - n2)) | smaller_ans:
-        return n1
-    else:
-        return n2
+        q = int(n / m)
+        lower = q * m
+        higher = (q + 1) * m
+        if answer_type == 'lower':
+            return lower
+        elif answer_type == 'higher':
+            return higher
+        elif answer_type == 'closer':
+            return lower if (n - lower) < (higher - n) else higher
+        else:
+            raise Exception('answer_type should be lower, higher, or closer, had : %s' % answer_type)
 
 
 def build_binary_structure(connectivity, n_dims, shape=None):
@@ -1459,7 +1469,7 @@ def pad_volume(volume, padding_shape, padding_value=0, aff=None, return_pad_idx=
         pad_idx = np.concatenate([min_margins, min_margins + np.array(vol_shape[:n_dims])])
         pad_margins = tuple([(min_margins[i], max_margins[i]) for i in range(n_dims)])
         if n_channels > 1:
-            pad_margins = tuple(list(pad_margins) + [[0, 0]])
+            pad_margins = tuple(list(pad_margins) + [(0, 0)])
 
         # pad volume
         new_volume = np.pad(new_volume, pad_margins, mode='constant', constant_values=padding_value)
@@ -1512,7 +1522,7 @@ def flip_volume(volume, axis=None, direction=None, aff=None):
     return np.flip(new_volume, axis=axis)
 
 
-def resample_volume(volume, aff, new_vox_size):
+def resample_volume(volume, aff, new_vox_size, interpolation='linear'):
     """This function resizes the voxels of a volume to a new provided size, while adjusting the header to keep the RAS
     :param volume: a numpy array
     :param aff: affine matrix of the volume
@@ -1533,7 +1543,7 @@ def resample_volume(volume, aff, new_vox_size):
     y = np.arange(0, volume_filt.shape[1])
     z = np.arange(0, volume_filt.shape[2])
 
-    my_interpolating_function = RegularGridInterpolator((x, y, z), volume_filt)
+    my_interpolating_function = RegularGridInterpolator((x, y, z), volume_filt, method=interpolation)
 
     start = - (factor - 1) / (2 * factor)
     step = 1.0 / factor
