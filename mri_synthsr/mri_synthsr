@@ -702,7 +702,7 @@ def save_volume(volume, aff, header, path, res=None, dtype=None, n_dims=3):
         nib.save(nifty, path)
 
 
-def get_volume_info(path_volume, return_volume=False, aff_ref=None):
+def get_volume_info(path_volume, return_volume=False, aff_ref=None, max_channels=10):
     """
     Gather information about a volume: shape, affine matrix, number of dimensions and channels, header, and resolution.
     :param path_volume: path of the volume to get information form.
@@ -717,7 +717,7 @@ def get_volume_info(path_volume, return_volume=False, aff_ref=None):
 
     # understand if image is multichannel
     im_shape = list(im.shape)
-    n_dims, n_channels = get_dims(im_shape, max_channels=10)
+    n_dims, n_channels = get_dims(im_shape, max_channels=max_channels)
     im_shape = im_shape[:n_dims]
 
     # get labels res
@@ -779,7 +779,10 @@ def reformat_to_list(var, length=None, load_as_numpy=False, dtype=None):
     elif isinstance(var, tuple):
         var = list(var)
     elif isinstance(var, np.ndarray):
-        var = np.squeeze(var).tolist()
+        if var.shape == (1,):
+            var = [var[0]]
+        else:
+            var = np.squeeze(var).tolist()
     elif isinstance(var, str):
         var = [var]
     elif isinstance(var, bool):
@@ -865,7 +868,7 @@ def get_dims(shape, max_channels=10):
     return n_dims, n_channels
 
 
-def add_axis(x, axis):
+def add_axis(x, axis=0):
     """Add axis to a numpy array.
     :param axis: index of the new axis to add. Can also be a list of indices to add several axes at the same time."""
     axis = reformat_to_list(axis)
@@ -994,7 +997,7 @@ def pad_volume(volume, padding_shape, padding_value=0, aff=None, return_pad_idx=
         pad_idx = np.concatenate([min_margins, min_margins + np.array(vol_shape[:n_dims])])
         pad_margins = tuple([(min_margins[i], max_margins[i]) for i in range(n_dims)])
         if n_channels > 1:
-            pad_margins = tuple(list(pad_margins) + [[0, 0]])
+            pad_margins = tuple(list(pad_margins) + [(0, 0)])
 
         # pad volume
         new_volume = np.pad(new_volume, pad_margins, mode='constant', constant_values=padding_value)
@@ -1016,7 +1019,7 @@ def pad_volume(volume, padding_shape, padding_value=0, aff=None, return_pad_idx=
     return output[0] if len(output) == 1 else tuple(output)
 
 
-def resample_volume(volume, aff, new_vox_size):
+def resample_volume(volume, aff, new_vox_size, interpolation='linear'):
     """This function resizes the voxels of a volume to a new provided size, while adjusting the header to keep the RAS
     :param volume: a numpy array
     :param aff: affine matrix of the volume
@@ -1037,7 +1040,7 @@ def resample_volume(volume, aff, new_vox_size):
     y = np.arange(0, volume_filt.shape[1])
     z = np.arange(0, volume_filt.shape[2])
 
-    my_interpolating_function = RegularGridInterpolator((x, y, z), volume_filt)
+    my_interpolating_function = RegularGridInterpolator((x, y, z), volume_filt, method=interpolation)
 
     start = - (factor - 1) / (2 * factor)
     step = 1.0 / factor

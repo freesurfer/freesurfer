@@ -257,7 +257,7 @@ def preprocess_image(path_t1_image, path_t2_image, n_levels=5):
     # resample and align image
     im_t1, aff_t1 = resample_volume(im_t1, aff_t1, [1.0, 1.0, 1.0])
     im_t1, aff_t1_mod = align_volume_to_ref(im_t1, aff_t1, aff_ref=np.eye(4), return_aff=True, n_dims=3)
-    im_t2 = resample_like(im_t1, aff_t1_mod, im_t2, aff_t2)
+    im_t2 = resample_volume_like(im_t1, aff_t1_mod, im_t2, aff_t2)
 
     # normalise images
     minimum = np.min(im_t1)
@@ -748,7 +748,7 @@ def save_volume(volume, aff, header, path, res=None, dtype=None, n_dims=3):
         nib.save(nifty, path)
 
 
-def get_volume_info(path_volume, return_volume=False, aff_ref=None):
+def get_volume_info(path_volume, return_volume=False, aff_ref=None, max_channels=10):
     """
     Gather information about a volume: shape, affine matrix, number of dimensions and channels, header, and resolution.
     :param path_volume: path of the volume to get information form.
@@ -763,7 +763,7 @@ def get_volume_info(path_volume, return_volume=False, aff_ref=None):
 
     # understand if image is multichannel
     im_shape = list(im.shape)
-    n_dims, n_channels = get_dims(im_shape, max_channels=10)
+    n_dims, n_channels = get_dims(im_shape, max_channels=max_channels)
     im_shape = im_shape[:n_dims]
 
     # get labels res
@@ -825,7 +825,10 @@ def reformat_to_list(var, length=None, load_as_numpy=False, dtype=None):
     elif isinstance(var, tuple):
         var = list(var)
     elif isinstance(var, np.ndarray):
-        var = np.squeeze(var).tolist()
+        if var.shape == (1,):
+            var = [var[0]]
+        else:
+            var = np.squeeze(var).tolist()
     elif isinstance(var, str):
         var = [var]
     elif isinstance(var, bool):
@@ -911,7 +914,7 @@ def get_dims(shape, max_channels=10):
     return n_dims, n_channels
 
 
-def add_axis(x, axis):
+def add_axis(x, axis=0):
     """Add axis to a numpy array.
     :param axis: index of the new axis to add. Can also be a list of indices to add several axes at the same time."""
     axis = reformat_to_list(axis)
@@ -1040,7 +1043,7 @@ def pad_volume(volume, padding_shape, padding_value=0, aff=None, return_pad_idx=
         pad_idx = np.concatenate([min_margins, min_margins + np.array(vol_shape[:n_dims])])
         pad_margins = tuple([(min_margins[i], max_margins[i]) for i in range(n_dims)])
         if n_channels > 1:
-            pad_margins = tuple(list(pad_margins) + [[0, 0]])
+            pad_margins = tuple(list(pad_margins) + [(0, 0)])
 
         # pad volume
         new_volume = np.pad(new_volume, pad_margins, mode='constant', constant_values=padding_value)
@@ -1062,7 +1065,7 @@ def pad_volume(volume, padding_shape, padding_value=0, aff=None, return_pad_idx=
     return output[0] if len(output) == 1 else tuple(output)
 
 
-def resample_volume(volume, aff, new_vox_size):
+def resample_volume(volume, aff, new_vox_size, interpolation='linear'):
     """This function resizes the voxels of a volume to a new provided size, while adjusting the header to keep the RAS
     :param volume: a numpy array
     :param aff: affine matrix of the volume
@@ -1083,7 +1086,7 @@ def resample_volume(volume, aff, new_vox_size):
     y = np.arange(0, volume_filt.shape[1])
     z = np.arange(0, volume_filt.shape[2])
 
-    my_interpolating_function = RegularGridInterpolator((x, y, z), volume_filt)
+    my_interpolating_function = RegularGridInterpolator((x, y, z), volume_filt, method=interpolation)
 
     start = - (factor - 1) / (2 * factor)
     step = 1.0 / factor
@@ -1110,21 +1113,9 @@ def resample_volume(volume, aff, new_vox_size):
     return volume2, aff2
 
 
-def get_ras_axes(aff, n_dims=3):
-    """This function finds the RAS axes corresponding to each dimension of a volume, based on its affine matrix.
-    :param aff: affine matrix Can be a 2d numpy array of size n_dims*n_dims, n_dims+1*n_dims+1, or n_dims*n_dims+1.
-    :param n_dims: number of dimensions (excluding channels) of the volume corresponding to the provided affine matrix.
-    :return: two numpy 1d arrays of lengtn n_dims, one with the axes corresponding to RAS orientations,
-    and one with their corresponding direction.
-    """
-    aff_inverted = np.linalg.inv(aff)
-    img_ras_axes = np.argmax(np.absolute(aff_inverted[0:n_dims, 0:n_dims]), axis=0)
-    return img_ras_axes
-
-
-def resample_like(vol_ref, aff_ref, vol_flo, aff_flo):
+def resample_volume_like(vol_ref, aff_ref, vol_flo, aff_flo, interpolation='linear'):
     """This function reslices a floating image to the space of a reference image
-    :param vol_res: a numpy array with the reference volume
+    :param vol_ref: a numpy array with the reference volume
     :param aff_ref: affine matrix of the reference volume
     :param vol_flo: a numpy array with the floating volume
     :param aff_flo: affine matrix of the floating volume
@@ -1137,7 +1128,8 @@ def resample_like(vol_ref, aff_ref, vol_flo, aff_flo):
     yf = np.arange(0, vol_flo.shape[1])
     zf = np.arange(0, vol_flo.shape[2])
 
-    my_interpolating_function = RegularGridInterpolator((xf, yf, zf), vol_flo, bounds_error=False, fill_value=0.0)
+    my_interpolating_function = RegularGridInterpolator((xf, yf, zf), vol_flo, bounds_error=False, fill_value=0.0,
+                                                        method=interpolation)
 
     xr = np.arange(0, vol_ref.shape[0])
     yr = np.arange(0, vol_ref.shape[1])
@@ -1154,6 +1146,18 @@ def resample_like(vol_ref, aff_ref, vol_flo, aff_flo):
     result = my_interpolating_function((coords_new[0, :], coords_new[1, :], coords_new[2, :]))
 
     return result.reshape(vol_ref.shape)
+
+
+def get_ras_axes(aff, n_dims=3):
+    """This function finds the RAS axes corresponding to each dimension of a volume, based on its affine matrix.
+    :param aff: affine matrix Can be a 2d numpy array of size n_dims*n_dims, n_dims+1*n_dims+1, or n_dims*n_dims+1.
+    :param n_dims: number of dimensions (excluding channels) of the volume corresponding to the provided affine matrix.
+    :return: two numpy 1d arrays of lengtn n_dims, one with the axes corresponding to RAS orientations,
+    and one with their corresponding direction.
+    """
+    aff_inverted = np.linalg.inv(aff)
+    img_ras_axes = np.argmax(np.absolute(aff_inverted[0:n_dims, 0:n_dims]), axis=0)
+    return img_ras_axes
 
 
 def align_volume_to_ref(volume, aff, aff_ref=None, return_aff=False, n_dims=None):
