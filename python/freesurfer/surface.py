@@ -79,6 +79,10 @@ class Surface(Transformable):
         '''Computes euler number of the mesh.'''
         return bindings.surf.compute_euler(self)
 
+    def count_intersections(self):
+        '''Counts the number of face intersection in the mesh.'''
+        return bindings.surf.count_intersections(self)
+
     def neighboring_faces(self, vertex):
         '''List of face indices that neighbor a vertex.'''
         return np.where(self.faces == vertex)[0]
@@ -216,3 +220,16 @@ class Surface(Transformable):
     def get_vertex_faces(self):  # TODEP
         '''Deprecated - use Surface.neighboring_faces instead'''
         raise DeprecationWarning('get_vertex_faces has been removed! Use Surface.neighboring_faces or email andrew if you get this!!!!')
+
+
+def distance(a, b):
+    return bindings.surf.distance(a, b)
+
+
+def read_label(filename, nvertices):
+    mask = np.zeros(nvertices, dtype=bool)
+    with open(filename) as f:
+        lines = f.read().splitlines()[2:]
+    vertices = np.array([int(l.split()[0]) for l in lines])
+    mask[vertices] = True
+    return Overlay(mask)

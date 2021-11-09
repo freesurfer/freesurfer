@@ -1,6 +1,8 @@
 #include "mrisurf_base.h"
 #include "surface.h"
 #include "xform.h"
+#include "mrisurf_metricProperties.h"
+
 
 namespace surf {
 
@@ -170,11 +172,36 @@ int computeEulerNumber(Bridge surf)
 
 
 /*
+  Count number of face intersections.
+*/
+int countIntersections(Bridge surf)
+{
+  MRIS *mris = surf.mris();
+  mrisMarkIntersections(mris);
+  int nintersections = 0;
+  for(int n = 0; n < mris->nvertices; n++) {
+    if (mris->vertices[n].marked) nintersections++;
+  }
+  return nintersections;
+}
+
+
+/*
   Smoothes an overlay along mesh vertices.
 */
 py::object smoothOverlay(Bridge surf, vol::Bridge overlay, int steps)
 {
   return vol::Bridge(MRISsmoothMRIFast(surf, overlay, steps, nullptr, nullptr));
+}
+
+
+/*
+  Smoothes an overlay along mesh vertices.
+*/
+py::object surfaceDistance(Bridge surf1, Bridge surf2)
+{
+  MRISdistanceBetweenSurfacesExact(surf2, surf1);
+  return vol::Bridge(MRIcopyMRIS(NULL, surf2, 0, "curv"));
 }
 
 

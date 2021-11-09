@@ -290,6 +290,7 @@ install_pyscript(
   asegstats2table
   tractstats2table
   stattablediff
+  table2map
   merge_stats_tables
   fspalm
   rca-config

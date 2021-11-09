@@ -458,8 +458,9 @@ class Volume(ArrayContainerTemplate, Transformable):
         # extract world axes
         get_world_axes = lambda aff: np.argmax(np.absolute(np.linalg.inv(aff)), axis=0)
         trg_matrix = otn.matrix_from_orientation(trg_orientation)
+        src_matrix = otn.matrix_from_orientation(src_orientation)
         world_axes_trg = get_world_axes(trg_matrix[:self.basedims, :self.basedims])
-        world_axes_src = get_world_axes(self.affine[:self.basedims, :self.basedims])
+        world_axes_src = get_world_axes(src_matrix[:self.basedims, :self.basedims])
 
         voxsize = np.asarray(self.voxsize)
         voxsize = voxsize[world_axes_src][world_axes_trg]
