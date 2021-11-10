@@ -8948,7 +8948,7 @@ static MRI *niiRead3(MRIFSSTRUCT *mrifsStruct)
   // set MRI values from struct TDICOMdata
   mri->te = tdicomData->TE;
   mri->ti = tdicomData->TI;
-  mri->flip_angle = M_PI * tdicomData->flipAngle / 180.0; //tdicomData->flipAngle;
+  mri->flip_angle = M_PI * tdicomData->flipAngle / 180.0; 
   mri->FieldStrength = tdicomData->fieldStrength;
   if (tdicomData->phaseEncodingRC == 'R')
     mri->pedir = strcpyalloc("ROW");
@@ -8961,6 +8961,11 @@ static MRI *niiRead3(MRIFSSTRUCT *mrifsStruct)
   int numDti = mrifsStruct->numDti;
   if (numDti > 0)
   {
+    int IsDWI = 1, IsPhilipsDWI = 0;
+    if (tdicomData->manufacturer == kMANUFACTURER_PHILIPS)
+      IsPhilipsDWI = 1;
+    printf("IsDWI = %d, IsPhilipsDWI = %d\n", IsDWI, IsPhilipsDWI);
+
     mri->bvals = MatrixAlloc(numDti, 1, MATRIX_REAL);
     mri->bvecs = MatrixAlloc(numDti, 3, MATRIX_REAL);
     if (DIAG_VERBOSE_ON)
@@ -8975,6 +8980,12 @@ static MRI *niiRead3(MRIFSSTRUCT *mrifsStruct)
     // mri->bvals, mri->bvecs start at index 1; tdti[].V[] starts at index 0
     for (int i = 0; i < numDti; i++)
     {
+      mri->bvals->rptr[i+1][1] = tdti[i].V[0];
+      mri->bvecs->rptr[i+1][1] = tdti[i].V[1];
+      mri->bvecs->rptr[i+1][2] = tdti[i].V[3];
+      mri->bvecs->rptr[i+1][3] = -tdti[i].V[2];
+
+#if 0
       for (int v = 0; v < 4; v++)
       {
 	if (v == 0)
@@ -8982,11 +8993,13 @@ static MRI *niiRead3(MRIFSSTRUCT *mrifsStruct)
 	else  // v = 1, 2, 3
 	  mri->bvecs->rptr[i+1][v] = tdti[i].V[v];
       }
+#endif
     }
 
-    // not sure how to assign bvec_space
-    //mri->bvec_space = BVEC_SPACE_VOXEL;
-    //if (IsPhilipsDWI) mri->bvec_space = BVEC_SPACE_SCANNER;
+    // assign bvec_space
+    mri->bvec_space = BVEC_SPACE_VOXEL;
+    if (IsPhilipsDWI)
+      mri->bvec_space = BVEC_SPACE_SCANNER;
   }
   /* end setting of bvals and bvecs */
 
