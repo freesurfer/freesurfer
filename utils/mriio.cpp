@@ -8982,8 +8982,8 @@ static MRI *niiRead3(MRIFSSTRUCT *mrifsStruct)
     {
       mri->bvals->rptr[i+1][1] = tdti[i].V[0];
       mri->bvecs->rptr[i+1][1] = tdti[i].V[1];
-      mri->bvecs->rptr[i+1][2] = tdti[i].V[3];
-      mri->bvecs->rptr[i+1][3] = -tdti[i].V[2];
+      mri->bvecs->rptr[i+1][2] = tdti[i].V[2];
+      mri->bvecs->rptr[i+1][3] = tdti[i].V[3];
 
 #if 0
       for (int v = 0; v < 4; v++)
