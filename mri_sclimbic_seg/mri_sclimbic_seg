@@ -77,7 +77,7 @@ def main():
     parser.add_argument('--debug', action='store_true', help='Enable debug logging.')
     parser.add_argument('--vmp', action='store_true', help='Enable printing of vmpeak at the end.')
     parser.add_argument('--threads', type=int, default=1, help='Number of threads to use. Default is 1.')
-    parser.add_argument('--7T', dest='sevenT', action='store_true', help='Preprocess 7T images.')
+    parser.add_argument('--7T', dest='sevenT', action='store_true', help='Preprocess 7T images (just sets percentile to 99.9).')
     parser.add_argument('--percentile', type=float, help='Use intensity percentile threshold for normalization.')
     parser.add_argument('--cuda-device', help='Cuda device for GPU support.')
 
