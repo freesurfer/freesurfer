@@ -32,6 +32,7 @@ class vtkRenderer;
 
 class Region2DRectangle : public Region2D
 {
+  Q_OBJECT
 public:
   Region2DRectangle( RenderView2D* view );
   virtual ~Region2DRectangle();

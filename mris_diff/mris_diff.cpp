@@ -1087,11 +1087,11 @@ static int parse_commandline(int argc, char **argv) {
       printf("Use Exact = %d\n",UseExact);
       MRI *mindist;
       if(UseExact){
-	MRISdistanceBetweenSurfacesExact(surf2, surf1);
-	mindist = MRIcopyMRIS(NULL, surf2, 0, "curv");
+        MRISdistanceBetweenSurfacesExact(surf2, surf1);
+        mindist = MRIcopyMRIS(NULL, surf2, 0, "curv");
       }
       else 
-	mindist = MRISminDist(surf1, surf2);
+        mindist = MRISminDist(surf1, surf2);
       if(mindist==NULL) exit(1);
       printf("Writing mindist to %s\n",pargv[3]);
       MRIwrite(mindist,pargv[3]);
@@ -1110,6 +1110,13 @@ static int parse_commandline(int argc, char **argv) {
       if(surf2tmp==NULL) exit(1);
       printf("Checking for differences between %s and %s\n",pargv[0],pargv[1]);
       int res = MRISdiffSimple(surf1tmp, surf2tmp, 0, .00000001, 0);
+      if(nargc > 2){
+	printf("Writing RMS diff to %s\n",pargv[2]);
+	const char **field;
+	field = (const char **)calloc(sizeof(char*),1);
+	field[0] = strcpyalloc("val");
+	MRISwriteField(surf1tmp,field,1,pargv[2]);
+      }
       exit(res);
     }
     else if (!strcasecmp(option, "--simple-patch")) {
@@ -1125,6 +1132,13 @@ static int parse_commandline(int argc, char **argv) {
       if(err) exit(1);
       printf("Checking for differences in patches between %s and %s\n",pargv[0],pargv[1]);
       int res = MRISdiffSimple(surf1tmp, surf2tmp, 0, .00000001, 0);
+      if(nargc > 2){
+	printf("Writing RMS diff to %s\n",pargv[2]);
+	const char **field;
+	field = (const char **)calloc(sizeof(char*),1);
+	field[0] = strcpyalloc("val");
+	MRISwriteField(surf1tmp,field,1,pargv[2]);
+      }
       exit(res);
     }
     else {
@@ -1165,7 +1179,7 @@ static void print_usage(void) {
   printf("   --aparc2 aparc2   optional different name to compare to aparc\n");
   printf("\n");
   printf("other options:\n");
-  printf("   --simple surf1 surf2: just report whether the surfaces are different\n");
+  printf("   --simple surf1 surf2 <rmsdiff.mgz>: just report whether the surfaces are different\n");
   printf("   --simple-patch surf patch1 patch2 : just report whether the patches are different\n");
   printf("   --thresh N    threshold (default=0) [note: not currently implemented!] \n");
   printf("   --maxerrs N   stop looping after N errors (default=%d)\n",
@@ -1380,6 +1394,7 @@ int MRISdiffSimple(MRIS *surf1, MRIS *surf2,  int ndiffmin, double rmsthresh, in
     dy = v1->y - v2->y;
     dz = v1->z - v2->z;
     rms = sqrt(dx*dx + dy*dy + dz*dz);
+    v1->val = rms;
     if(rmsmax < rms) rmsmax = rms;
     if(rms > rmsthresh){
       if(verbosity > 0){

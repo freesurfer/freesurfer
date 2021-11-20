@@ -40,9 +40,17 @@ class Slicing(tuple):
         return self.grow(dist * -1)
 
 
-def bbox(mask):
+def bbox(mask, margin=0):
     '''Bounding box around the object in a binary image.'''
-    return scipy.ndimage.find_objects(mask)[0]
+    if not np.any(mask):
+        return tuple([slice(0, s) for s in mask.shape])
+    bbox = scipy.ndimage.find_objects(mask)[0]
+    if margin > 0:
+        start = [max(0, c.start - margin) for c in bbox]
+        stop = [min(mask.shape[i], c.stop + margin) for i, c in enumerate(bbox)]
+        step = [c.step for c in bbox]
+        bbox = tuple([slice(*s) for s in zip(start, stop, step)])
+    return bbox
 
 
 def cmass(image):
@@ -67,15 +75,19 @@ def resample(source, target_shape, trg2src, interp_method='linear', smooth_sigma
         raise ValueError('resampling can not be done on arrays with more than 4 dimensions')
     elif source.ndim < 3:
         raise NotImplementedError('%dD resampling is not yet supported (must be 3D or 4D)' % source.ndim)
-
-    if len(target_shape) != source.ndim:
-        raise ValueError('resampled target shape (%sD) must match source dims (%sD)' % (len(target_shape), source.ndim))
  
     # the resample binding function only works with 4D inputs for easier maintenance, so let's add an axis to any 3D input
+    target_shape = target_shape[:3]
+    if source.ndim == 4:
+        target_shape = (*target_shape, source.shape[-1])
+
     orig_target_shape = target_shape
     if source.ndim == 3:
         source = source[..., np.newaxis]
         target_shape = (*target_shape, 1)
+
+    if len(target_shape) != source.ndim:
+        raise ValueError('resampled target shape (%sD) must match source dims (%sD)' % (len(target_shape), source.ndim))
 
     if target_shape[-1] != source.shape[-1]:
         raise ValueError('resampled target must have the same number of frames as the source')

@@ -2,6 +2,7 @@
 # tkmeditfv
 
 set VERSION = 'tksurferfv @FS_VERSION@';
+setenv FS_COPY_HEADER_CTAB 1 # make sure that anything saved in FV has its colortable
 
 set subject = ();
 set overlay = ();
@@ -70,7 +71,7 @@ if(! $UseTkSurfer) then
     foreach overlay ($overlaylist)
       # Change this when RP changes linear opaque in fv
       set fmid = $fthresh;
-      set surfarg = "$surfarg":"overlay=$overlay":"overlay_threshold=$fthresh,$fmid,$fmax"
+      set surfarg = "$surfarg":"overlay=$overlay":"overlay_threshold=$fthresh,$fmid,$fmax":overlay_method=piecewise
       if($#overlayreg) set surfarg = "$surfarg":"overlay_reg=$overlayreg"
     end
     if($#labellist) then

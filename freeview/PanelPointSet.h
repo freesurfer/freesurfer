@@ -63,6 +63,9 @@ protected slots:
   void OnStatItemChanged(QTreeWidgetItem* item, int col);
   void OnCurrentStatItemChanged(QTreeWidgetItem* cur, QTreeWidgetItem* old);
   void SetCurrentPoint(int nIndex);
+  void OnTextOverallQualityChanged();
+  void OnSpinBoxOverallScore(int);
+  void OnCheckBoxSecondToggled(bool);
 
 private:
   QLabel* MakeCommentItem(const QVariantMap& map, QLabel* label_in = NULL);

@@ -127,6 +127,7 @@ int DoRMS = 0; // compute root-mean-square on multi-frame input
 int DoCumSum = 0;
 int DoFNorm = 0;
 char *rusage_file=NULL;
+//MRI *MRIzconcat(MRI *mri1, MRI *mri2, int nskip, MRI *out);
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv)
@@ -1045,6 +1046,20 @@ static int parse_commandline(int argc, char **argv)
       DoMultiply = 1;
       nargsused = 1;
     }
+    else if ( !strcmp(option, "--zconcat") ) {
+      // --zconcat mri1 mri2 nskip out
+      if(nargc < 4) argnerr(option,4);
+      MRI *mri1 = MRIread(pargv[0]);
+      if(mri1 == NULL) exit(1);
+      MRI *mri2 = MRIread(pargv[1]);
+      if(mri2 == NULL) exit(1);
+      int nskip;
+      sscanf(pargv[2],"%d",&nskip);
+      MRI *out = MRIzconcat(mri1,mri2,nskip,NULL);
+      if(out == NULL) exit(1);
+      int err = MRIwrite(out,pargv[3]);
+      exit(err);
+    }
     else if ( !strcmp(option, "--add") ) {
       if (nargc < 1) argnerr(option,1);
       if(! isdigit(pargv[0][0]) && pargv[0][0] != '-' && pargv[0][0] != '+'){
@@ -1168,6 +1183,7 @@ static void print_usage(void)
   printf("   --pca  : output is pca. U is output.u.mtx and S is output.stats.dat\n");
   printf("   --pca-mask mask  : Only use voxels whose mask > 0.5\n");
   printf("   --scm  : compute spatial covariance matrix (can be huge!)\n");
+  printf("   --zconcat bot top nskip out : concat in the slice direction skipping nskip slices of the top\n");
   printf("\n");
   printf("   --max-bonfcor  : compute max and bonferroni correct (assumes -log10(p))\n");
   printf("   --mul mulval   : multiply by mulval\n");
@@ -1315,5 +1331,78 @@ MATRIX *GroupedMeanMatrix(int ngroups, int ntotal)
   return(M);
 }
 
+#if 0
+/*!
+  \fn MRI *MRIzconcat(MRI *mri1, MRI *mri2, int nskip, MRI *out)
+  \brief Concatenates mri2 onto mri1 in the z (slice) direction. The
+  first nskip slices are removed from mri2 before concatenation. The
+  original app for this was to combine two hires suscept slabs (JonP)
+  where the top slice of the bottom slab overlapped with the first
+  slice of the top slab. The geometry is such that it agrees with the
+  bottom slab (mri1). 
+*/
+MRI *MRIzconcat(MRI *mri1, MRI *mri2, int nskip, MRI *out)
+{
+  int nslices = mri1->depth + mri2->depth - nskip;
+  if(out == NULL) {
+    out = MRIallocSequence(mri1->width, mri1->height, nslices, mri1->type, mri1->nframes);
+    MRIcopyHeader(mri1, out);
+  }
+  if(mri1->width != mri2->width){
+    printf("ERROR: MRIzconcat(): mri1 and mri2 mismatch width %d %d\n",mri1->width,mri2->width);
+    return (NULL);
+  }
+  if(mri1->height != mri2->height){
+    printf("ERROR: MRIzconcat(): mri1 and mri2 mismatch height %d %d\n",mri1->height,mri2->height);
+    return (NULL);
+  }
+  if(mri1->nframes != out->nframes) {
+    printf("ERROR: MRIzconcat(): out nframes mismatch %d %d\n",mri1->nframes, out->nframes);
+    return (NULL);
+  }
+  if(mri1->width != out->width) {
+    printf("ERROR: MRIzconcat(): out width mismatch %d %d\n",mri1->width, out->width);
+    return (NULL);
+  }
+  if(mri1->height != out->height) {
+    printf("ERROR: MRIzconcat(): out height mismatch %d %d\n",mri1->height, out->height);
+    return (NULL);
+  }
+  if(nslices != out->depth) {
+    printf("ERROR: MRIzconcat(): out depth mismatch %d %d\n",nslices, out->depth);
+    return (NULL);
+  }
+
+
+  MRIcopyPulseParameters(mri1, out);
+
+  int c;
+  for(c=0; c < mri1->width; c++){
+    int r,s,f;
+    for(r=0; r < mri1->width; r++){
+      for(f=0; f < mri1->nframes; f++){
+	int sout = 0;
+	for(s=0; s < mri1->depth; s++){
+	  double v = MRIgetVoxVal(mri1,c,r,s,f);
+	  MRIsetVoxVal(out,c,r,sout,f,v);
+	  sout++;
+	}
+	for(s=nskip; s < mri2->depth; s++){
+	  double v = MRIgetVoxVal(mri2,c,r,s,f);
+	  MRIsetVoxVal(out,c,r,sout,f,v);
+	  sout++;
+	}
+      } //f
+    } //r
+  } //c
+
+  // Need to fix geometry because we want to simply extend mri1
+  MATRIX *M = MRIxfmCRS2XYZ(mri1, 0);
+  MRIsetVox2RASFromMatrix(out, M);
+  MatrixFree(&M);
+
+  return(out);
+}
+#endif
 
 

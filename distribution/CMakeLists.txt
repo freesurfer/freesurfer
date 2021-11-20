@@ -78,6 +78,11 @@ if(AFNIDIR)
 endif()
 
 # symlink MNI installation
-if(EXISTS ${FS_PACKAGES_DIR}/mni/current)
-  symlink(${FS_PACKAGES_DIR}/mni/current ${CMAKE_INSTALL_PREFIX}/mni)
+if(EXISTS ${FS_PACKAGES_DIR}/mni/1.5)
+  symlink(${FS_PACKAGES_DIR}/mni/1.5 ${CMAKE_INSTALL_PREFIX}/mni)
+endif()
+
+# symlink MNI 1.4 installation for debugging
+if(EXISTS ${FS_PACKAGES_DIR}/mni/1.4)
+  symlink(${FS_PACKAGES_DIR}/mni/1.4 ${CMAKE_INSTALL_PREFIX}/mni-1.4)
 endif()

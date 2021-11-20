@@ -671,6 +671,7 @@ Timer mytimer;
 int ReallyUseAverage7 = 0;
 int logflag = 0; // natural log
 float prune_thr = FLT_MIN;
+int scale_stats_by_etiv = 0;
 
 DTI *dti;
 int usedti = 0;
@@ -764,6 +765,7 @@ int main(int argc, char **argv) {
   double Ccond, dtmp, threshadj, eff;
   const char *tmpstr2=NULL;
 
+  setenv("FS_MRIMASK_ALLOW_DIFF_GEOM","0",1);
   eresfwhm = -1;
   csd = CSDalloc();
   csd->threshsign = 0; //0=abs,+1,-1
@@ -887,6 +889,7 @@ int main(int argc, char **argv) {
       printf("ERROR: loading y %s as a stat table\n",yFile.c_str());
       exit(1);
     }
+    if (scale_stats_by_etiv) ScaleStatTableByETIV(StatTable, 1e5);
     mriglm->y = StatTable->mri;
   }
   if (mriglm->y->type != MRI_FLOAT) {
@@ -1312,9 +1315,20 @@ int main(int argc, char **argv) {
     nmask = MRInMask(mriglm->mask);
     printf("Found %d voxels in mask\n",nmask);
     if(nmask == 0){
+      printf("\n\n");
       printf("ERROR: no voxels found in the mask\n");
-      if(prunemask)
+      if(prunemask){
 	printf("  make sure at least one voxel has a non-zero value for each input\n");
+	printf("You can do this with\n");
+	if(surf){
+	  printf("tksurferfv %s %s inflated -ov %s -fminmax .000001 .1\n",subject,hemi,yFile.c_str());
+	} else {
+	  printf("tkmeditfv -f %s -main-minmax .000001 .1\n",yFile.c_str());
+	}
+	printf("It will come up with a map of the first subject. Scroll through the subjects\n");
+	printf("using the frame button. Look for one or more subjects where the values are 0 across the surface\n");
+      }
+      printf("\n\n");
       exit(1);
     }
     if (!DontSave) {
@@ -2466,6 +2480,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--skew")) DoSkew = 1;
     else if (!strcasecmp(option, "--rm-spatial-mean")) RmSpatialMean = 1;
     else if (!strcasecmp(option, "--allow-zero-dof")) AllowZeroDOF = 1;
+    else if (!strcasecmp(option, "--scale-by-etiv")) scale_stats_by_etiv = 1;
     else if (!strcasecmp(option, "--prune_thr")){
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%f",&prune_thr); 
@@ -2939,19 +2954,15 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       fsgdfile = pargv[0];
       nargsused = 1;
-      fsgd = gdfRead(fsgdfile,0);
-      if (fsgd==NULL) exit(1);
       if(CMDnthIsArg(nargc, pargv, 1)) {
         gd2mtx_method = pargv[1];
         nargsused ++;
         if (gdfCheckMatrixMethod(gd2mtx_method)) exit(1);
       } 
-      else {
-	if(strcmp(fsgd->DesignMatMethod,"DOSS") == 0 ||
-	   strcmp(fsgd->DesignMatMethod,"doss") == 0)
-	  gd2mtx_method = "doss";
-	else gd2mtx_method = "dods";
-      }
+      fsgd = gdfRead(fsgdfile,gd2mtx_method,0);
+      if (fsgd==NULL) exit(1);
+      if(stricmp(fsgd->DesignMatMethod,"doss") == 0) gd2mtx_method = "doss";
+      else gd2mtx_method = "dods";
       printf("INFO: gd2mtx_method is %s\n",gd2mtx_method);
       strcpy(fsgd->DesignMatMethod,gd2mtx_method);
     } 
@@ -3320,6 +3331,10 @@ printf("--no-cortex. If --mask-inv is flagged, then performs analysis\n");
 printf("only where mask=0. If performing a simulation (--sim), map maximums\n");
 printf("and clusters will only be searched for in the mask. The final binary\n");
 printf("mask will automatically be saved in glmdir/mask.mgh\n");
+printf("\n");
+printf("--scale-by-etiv\n");
+printf("\n");
+printf("Normalize values in table by eTIV measure.\n");
 printf("\n");
 printf("--prune\n");
 printf("--no-prune\n");

@@ -29,16 +29,21 @@ void DialogControlPointComment::SetLabel(const QString &text)
   ui->label->setText(text);
 }
 
-void DialogControlPointComment::OnCheckBoxToggled(bool bChecked)
+QStringList DialogControlPointComment::GetPrefilledItems()
 {
   QStringList list;
   foreach (QCheckBox* box, m_listCheckBoxes)
   {
     if (box->isChecked())
+    {
       list << box->text();
+    }
   }
-  ui->textEdit->clear();
-  ui->textEdit->appendPlainText(list.join(". ") + ".");
+  return list;
+}
+
+void DialogControlPointComment::OnCheckBoxToggled(bool bChecked)
+{
 }
 
 QString DialogControlPointComment::GetComment()
@@ -46,14 +51,14 @@ QString DialogControlPointComment::GetComment()
   return ui->textEdit->toPlainText().trimmed();
 }
 
-void DialogControlPointComment::SetComment(const QString &text)
+void DialogControlPointComment::SetComment(const QString &text, const QStringList& prefilled_items)
 {
   ui->textEdit->clear();
   ui->textEdit->appendPlainText(text);
 
   foreach (QCheckBox* box, m_listCheckBoxes)
   {
-    if (text.contains(box->text(), Qt::CaseInsensitive))
+    if (prefilled_items.contains(box->text(), Qt::CaseInsensitive))
     {
       box->blockSignals(true);
       box->setChecked(true);

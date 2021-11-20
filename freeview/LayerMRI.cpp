@@ -253,7 +253,7 @@ void LayerMRI::ConnectProperty()
   connect( p, SIGNAL(ContourColorChanged()), this, SLOT(UpdateContourColor()) );
   connect( p, SIGNAL(ContourShown(bool)), this, SLOT(ShowContour()) );
   connect( p, SIGNAL(ContourSmoothIterationChanged(int)), this, SLOT(RebuildContour()));
-  connect( p, SIGNAL(ContourVoxelized(bool)), this, SLOT(RebuildContour()));
+  connect( p, SIGNAL(ContourNeedsRebuild()), this, SLOT(RebuildContour()));
   connect( p, SIGNAL(DisplayModeChanged()), this, SLOT(UpdateDisplayMode()) );
   connect( p, SIGNAL(LabelOutlineChanged(bool)), this, SLOT(UpdateLabelOutline()) );
   connect( p, SIGNAL(OpacityChanged(double)), this, SLOT(UpdateOpacity()) );
@@ -4459,4 +4459,58 @@ void LayerMRI::UpdateVoxelsByPointSet(LayerPointSet *ps, int nPlane)
       this->SetVoxelByRAS(pt1, pt2, nPlane, true, true);
     }
   }
+}
+
+void LayerMRI::LocateLocalMaximumAtRAS(double* ras_in, double dx, double dy, double dz, double* ras_out, double sigma, double dist_in_vox)
+{
+  double ras[3];
+  TargetToRAS(ras_in, ras);
+  RASToOriginalIndex(ras, ras);
+  double pt0[3] = {0, 0, 0}, pt1[3] = {dx, dy, dz};
+  TargetToRAS(pt0, pt0);
+  RASToOriginalIndex(pt0, pt0);
+  TargetToRAS(pt1, pt1);
+  RASToOriginalIndex(pt1, pt1);
+  double r = sqrt(vtkMath::Distance2BetweenPoints(pt0, pt1));
+  dx = (pt1[0] - pt0[0])/r;
+  dy = (pt1[1] - pt0[1])/r;
+  dz = (pt1[2] - pt0[2])/r;
+
+  double dMax = 0;
+  double x = ras[0], y = ras[1], z = ras[2];
+  double x_out = x, y_out = y, z_out = z;
+  ::MRIsampleVolumeDerivativeScale(m_volumeSource->GetMRI(), x, y, z, dx, dy, dz, &dMax, sigma);
+  dMax = qAbs(dMax);
+  for (double d = 0; d <= dist_in_vox; d += 0.25)
+  {
+    double mag;
+    x = ras[0] + d*dx;
+    y = ras[1] + d*dy;
+    z = ras[2] + d*dz;
+    ::MRIsampleVolumeDerivativeScale(m_volumeSource->GetMRI(), x, y, z, dx, dy, dz, &mag, sigma);
+    if (qAbs(mag) > dMax)
+    {
+      dMax = qAbs(mag);
+      x_out = x;
+      y_out = y;
+      z_out = z;
+    }
+    x = ras[0] - d*dx;
+    y = ras[1] - d*dy;
+    z = ras[2] - d*dz;
+    ::MRIsampleVolumeDerivativeScale(m_volumeSource->GetMRI(), x, y, z, dx, dy, dz, &mag, sigma);
+    if (qAbs(mag) > dMax)
+    {
+      dMax = qAbs(mag);
+      x_out = x;
+      y_out = y;
+      z_out = z;
+    }
+  }
+
+  ras[0] = x_out;
+  ras[1] = y_out;
+  ras[2] = z_out;
+  OriginalVoxelToRAS(ras, ras);
+  RASToTarget(ras, ras_out);
 }

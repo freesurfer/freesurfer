@@ -216,3 +216,49 @@ class Warp:
 
     def write(self, filename):
         bindings.morph.write_gcam(self, filename)
+
+
+def transform_to_midspace(a, b, transform=None, resample=True, interp_method='linear', target=None):
+    """
+    Transform volumes to midspace.
+
+    Parameters:
+        a, b: Images to transform.
+        transform: Linear transform aligning volume `a` to `b`.
+        resample: Resample images to a single target space. If disabled,
+            only the headers are updated.
+        interp_method: Interpolation method for resampling.
+        target: Resampling target geometry. If None, the target is determined
+            by a secondary midspace computed between the *aligned* images. In this
+            case, the target shape and resolution is determined by `b`.
+
+    Returns:
+        mid_a, mid_b: Midspace-transformed images.
+    """
+    from scipy.linalg import sqrtm
+
+    if transform is None:
+        transform = b.affine @ np.linalg.inv(a.affine)
+    else:
+        transform = LinearTransform.ensure(transform)
+        if transform.type is not None:
+            transform = transform.as_ras()
+        transform = transform.matrix
+
+    midspace = np.real(sqrtm(transform))
+    midspace_inv = np.real(sqrtm(np.linalg.inv(transform)))
+
+    mid_a = a.copy()
+    mid_b = b.copy()
+
+    mid_a.affine = midspace @ mid_a.affine
+    mid_b.affine = midspace_inv @ mid_b.affine
+
+    if resample:
+        if target is None:
+            affine = np.real(sqrtm(mid_a.affine @ np.linalg.inv(mid_b.affine))) @ mid_b.affine
+            target = Geometry(shape=mid_b.shape, voxsize=mid_b.voxsize, affine=affine)
+        mid_a = mid_a.resample_like(target, interp_method=interp_method)
+        mid_b = mid_b.resample_like(target, interp_method=interp_method)
+
+    return mid_a, mid_b

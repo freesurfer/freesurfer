@@ -482,7 +482,7 @@ static int get_option(int argc, char *argv[])
     // 7: seg1 seg2 ctab ReportEmpty01 ExcludeId datfile tablefile
     // seg1 - first segmentation (for fdr and tdr, this is ground truth)
     // seg2 - second segmentation (for fdr and tdr, this is the test seg)
-    // ctab - color table of segmentations to report on
+    // ctab - color table of segmentations to report on. can used "embedded"
     // ReportEmpty - 0=do not report segs that are empty in both, 1=report 
     // ExcludeId - exclude this seg (eg, 0 to exclude Unknown)
     // datfile - save the dice for each seg on a single line without anymore info
@@ -493,8 +493,19 @@ static int get_option(int argc, char *argv[])
     if(sd.seg1==NULL) exit(1);
     sd.seg2 = MRIread(argv[3]);
     if(sd.seg2==NULL) exit(1);
-    sd.ctab = CTABreadASCII(argv[4]);
-    if(sd.ctab==NULL) exit(1);
+    if(strcmp(argv[4],"embedded")!=0){
+      sd.ctab = CTABreadASCII(argv[4]);
+      if(sd.ctab==NULL) exit(1);
+    } 
+    else {
+      printf("Using embedded color table\n");
+      if(sd.seg1->ct != NULL) sd.ctab = sd.seg1->ct;
+      else if(sd.seg2->ct != NULL) sd.ctab = sd.seg2->ct;
+      else {
+	printf("ERROR: neither seg1 nor seg2 have an embedded color table\n");
+	exit(1);
+      }
+    }
     sscanf(argv[5],"%d",&sd.ReportEmpty);
     int ExcludeId;
     sscanf(argv[6],"%d",&ExcludeId);

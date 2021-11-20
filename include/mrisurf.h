@@ -2316,7 +2316,7 @@ double MinDistToTriangleBF(double p1[3], double p2[3], double p3[3], double ptes
 int MRISdistanceBetweenSurfacesExact(MRIS *surf1, MRIS *surf2);
 int MRISnorm2Pointset(MRIS *mris, int vno, double dstart, double dend, double dstep, FILE *fp);
 MRI *MRISextractNormalMask(MRIS *surf, int vno, double dstart, double dend, double dstep, double UpsampleFactor);
-MRI *MRISsampleMRINorm(MRIS *mris, MRI *mri, double dstart, double dend, double dstep, double sigma, MRI *nsamp);
+MRI *MRISsampleProfile(MRIS *mris, MRI *mri, double dstart, double dend, double dstep, double sigma, int interptype, MRI *profile);
 int MatlabPlotFace(FILE *fp, MRIS *surf, int faceno, char color, double NormLen);
 int MatlabPlotVertex(FILE *fp, MRIS *surf, int vno, char color, double NormLen);
 int MatlabPlotVertexNbhd(FILE *fp, MRIS *surf, int cvno, int nhops, char color, double NormLen);

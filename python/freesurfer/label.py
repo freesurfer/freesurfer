@@ -16,6 +16,13 @@ def recode(seg, mapping):
     Returns:
         Recoded array.
     """
+
+    # this is such an ugly hack - we really shouldn't include
+    # this kind of support 
+    if seg.__class__.__name__ in ('Tensor', 'EagerTensor'):
+        import neurite as ne
+        return ne.utils.seg.recode(seg, mapping)
+
     seg_data = seg.data if isinstance(seg, ArrayContainerTemplate) else seg
     recoded = np.zeros_like(seg_data, dtype=np.int32)
     recoded_lut = None

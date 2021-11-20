@@ -210,7 +210,7 @@ void LayerSurface::SetRefVolume(LayerMRI *ref)
     connect( m_volumeRef, SIGNAL(destroyed()), this, SLOT(ResetVolumeRef()), Qt::UniqueConnection);
 }
 
-bool LayerSurface::LoadSurfaceFromFile(bool bIgnoreVG)
+bool LayerSurface::LoadSurfaceFromFile(bool bIgnoreVG, QString& sAffineXformFilename)
 {
   if ( m_surfaceSource )
   {
@@ -225,6 +225,7 @@ bool LayerSurface::LoadSurfaceFromFile(bool bIgnoreVG)
                                    m_sPatchFilename,
                                    m_sTargetFilename,
                                    m_sSphereFilename,
+                                   sAffineXformFilename,
                                    m_listSupFiles)
        )
   {
@@ -411,7 +412,7 @@ bool LayerSurface::LoadCurvatureFromFile( const QString& filename )
   }
 
   GetProperty()->RebuildCurvatureLUT();
-  UpdateOverlay(false);
+  UpdateColorMap();
   emit Modified();
   emit SurfaceCurvatureLoaded();
   emit ActorUpdated();
@@ -1721,7 +1722,6 @@ void LayerSurface::UpdateOverlay(bool bAskRedraw, bool pre_cached)
           }
           memcpy(m_nColorDataCache, data, nCount*4);
         }
-
         MapLabels( data, nCount );
         for ( int i = 0; i < nCount; i++ )
         {

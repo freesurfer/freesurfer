@@ -23,6 +23,9 @@
 #include "argparse.h"
 #include "mri.h"
 #include "AntsN4BiasFieldCorrectionFs.help.xml.h"
+#ifdef _OPENMP
+#include "romp_support.h"
+#endif
 
 
 int main(int argc, char **argv)
@@ -35,10 +38,21 @@ int main(int argc, char **argv)
   parser.addArgument("-s", "--shrink", 1, Int, false);
   parser.addArgument("-t", "--iters", '+', Int, false);
   parser.addArgument("-d", "--dtype", 1, String, false);
+  parser.addArgument("-r", "--replace-zeros", 3, Float, false);// offset scale remaskflag
+  parser.addArgument("-e", "--threads-nondetermistic", 1, Int, false);
   parser.parse(argc, argv);
 
   std::string inputname = parser.retrieve<std::string>("input");
   std::string outputname = parser.retrieve<std::string>("output");
+  std::vector<float> replace0 = parser.retrieve<std::vector<float>>("replace-zeros");
+
+  // More than 1 thread is nondet in ITK
+  int threads = 1;
+  if(parser.exists("threads-nondetermistic")) threads = parser.retrieve<int>("threads-nondetermistic");
+  #ifdef _OPENMP
+  omp_set_num_threads(threads);
+  #endif
+  if(threads > 1) printf("threads %d > 1 -- ITK routines may be non-deterministic\n",threads);
 
   // read target data type (default is float)
   int dtype = MRI_FLOAT;
@@ -58,13 +72,42 @@ int main(int argc, char **argv)
 
   MRI* mri = MRIread(inputname.c_str());
 
+  MRI *masknonzero = NULL, *mritmp = NULL;
+  int nreplace = 0;
+  if(replace0.size()>0){
+    // Replace 0s with small random values. This can be important when
+    // the input is defaced.
+    printf("Replacing zeros: offset=%f scale=%f\n",replace0[0],replace0[1]);
+    if(mri->type != MRI_FLOAT){
+      printf("Changing type from %d to MRI_FLOAT\n",mri->type);
+      mritmp = MRIchangeType(mri,MRI_FLOAT,0,1,1);
+      MRIfree(&mri);
+      mri = mritmp;
+    }
+    masknonzero = MRIbinarize(mri, NULL, .000001, 0, 1);
+    // Don't parallize this or won't be deterministic
+    srand48(53); // seed for drand48()
+    int c,r,s;
+    for(c=0; c < mri->width; c++){
+      for(r=0; r < mri->height; r++){
+	for(s=0; s < mri->depth; s++){
+	  if(MRIgetVoxVal(masknonzero,c,r,s,0)>0.5) continue;
+	  double val = replace0[0] + replace0[1]*drand48();
+	  MRIsetVoxVal(mri,c,r,s,0,val);
+	  nreplace++;
+	}
+      }
+    }
+    printf("Replaced %d voxels\n",nreplace);
+  }
+
   if (mri->nframes != 1) fs::fatal() << "input cannot be 4D (has " << mri->nframes << " frames)";
 
   // convert to ITK image
   ITKImageType::Pointer inputImage = mri->toITKImage();
 
   // set itk threads to 1
-  itk::MultiThreader::SetGlobalDefaultNumberOfThreads(1);
+  itk::MultiThreader::SetGlobalDefaultNumberOfThreads(threads);
 
   // create a "mask" that just covers the whole image
   ITKImageType::Pointer maskImage = ITKImageType::New();
@@ -159,9 +202,23 @@ int main(int argc, char **argv)
   MRI* dest = MRIallocSequence(mri->width, mri->height, mri->depth, dtype, mri->nframes);
   MRIcopyHeader(mri, dest);
   dest->loadITKImage(cropper->GetOutput());
+
+  if(replace0.size()>0){
+    if(nreplace > 0 && replace0[2]){
+      printf("Remasking %d\n",nreplace);
+      MRImask(dest, masknonzero, dest, 0, 0);
+    }
+    else {
+      if(nreplace > 0) printf("Not remasking\n");
+      else printf("No voxels to remask\n");
+    }
+  }
+
   MRIwrite(dest, outputname.c_str());
   MRIfree(&dest);
   MRIfree(&mri);
+
+  printf("AntsN4BiasFieldCorrectionFs done\n");
 
   return 0;
 }

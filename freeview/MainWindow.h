@@ -59,6 +59,7 @@ class BinaryTreeView;
 class WindowLayerInfo;
 class QFileSystemWatcher;
 class DialogTransformSurface;
+class DialogMovePoint;
 
 #define MAX_RECENT_FILES    10
 
@@ -118,6 +119,7 @@ public:
   Layer* GetActiveLayer( const QString& strType );
   Layer* GetTopVisibleLayer( const QString& strType );
   QList<Layer*> GetLayers( const QString& strType );
+  QList<Layer*> GetVisibleLayers( const QString& strType );
 
   bool SetSlicePosition( int nPlane, double dPos, bool bRoundToGrid = true );
   bool SetSlicePosition( double* pos );
@@ -310,6 +312,11 @@ public slots:
 
   void OnPointSetToLabel();
 
+  DialogMovePoint* GetMovePointDlg()
+  {
+    return m_dlgMovePoint;
+  }
+
 protected:
   void closeEvent   ( QCloseEvent * event );
   void resizeEvent  (QResizeEvent * event);
@@ -407,6 +414,7 @@ protected:
   void CommandHideSurfaceIn3D       ( const QStringList &cmd );
   void CommandSetSurfaceVertexColor ( const QStringList& cmd );
   void CommandSetSurfaceLabelColor  ( const QStringList& cmd );
+  void CommandSetSurfaceLabelThreshold  ( const QStringList& cmd );
   void CommandHideSurfaceLabel (const QStringList& cmd );
   void CommandSetPointSetColor ( const QStringList& cmd );
   void CommandSetPointSetRadius( const QStringList& cmd );
@@ -616,6 +624,10 @@ protected slots:
 
   void OnSaveLabelAsVolume();
 
+  void OnCreateOptimalVolume();
+
+  void OnDeleteLayer();
+
 private:
   bool DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit);
   void SaveSettings();
@@ -697,6 +709,7 @@ private:
   WindowLayerInfo*      m_wndLayerInfo;
   QWidget*              m_widgetFloatControlPanel;
   QWidget*              m_widgetFloatInfoPanel;
+  DialogMovePoint*      m_dlgMovePoint;
 
   VolumeFilterWorkerThread* m_threadVolumeFilter;
 

@@ -205,7 +205,7 @@ template <class T> bool CalculateOptimalVolume_t( int* vox1,
   MATRIX* m2 = MatrixAlloc( nsize2, nvars, MATRIX_REAL );
   for ( int i = 0; i < nvars; i++ )
   {
-    T* input_vol = (T*)input_volumes[i];
+    T* input_vol = (T*)(input_volumes[i]);
     for ( int j = 0; j < nsize1; j++ )
     {
       *MATRIX_RELT( m1, j+1, i+1 ) = input_vol[vox1[j]];
@@ -235,7 +235,17 @@ template <class T> bool CalculateOptimalVolume_t( int* vox1,
   MATRIX* cov_inv = MatrixInverse( cov, NULL );
   if ( cov_inv == NULL )
   {
-    return false;
+    MatrixFree( &m1 );
+    MatrixFree( &m2 );
+    MatrixFree( &mean1 );
+    MatrixFree( &mean2 );
+    MatrixFree( &cov1 );
+    MatrixFree( &cov2 );
+    MatrixFree( &scov1 );
+    MatrixFree( &scov2 );
+    MatrixFree( &cov );
+    memcpy(output_volume, input_volumes[0], sizeof(T)*vol_size);
+    return true;
   }
   MATRIX* mean_sub = MatrixSubtract( mean1, mean2, NULL );
   MATRIX* weight = MatrixMultiply( cov_inv, mean_sub, NULL );

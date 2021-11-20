@@ -41,12 +41,14 @@ void write(Bridge surf, const std::string& filename);
 void computeNormals(Bridge surf);
 void computeTangents(Bridge surf);
 int computeEulerNumber(Bridge surf);
+int countIntersections(Bridge surf);
+
+py::object surfaceDistance(Bridge surf1, Bridge surf2);
 
 // overlay utils
 py::array parameterize(Bridge surf, const arrayf<float>& overlay, int scale, std::string interp);
 py::array sampleParameterization(Bridge surf, const arrayf<float>& image, std::string interp);
 py::object smoothOverlay(Bridge surf, vol::Bridge overlay, int steps);
-
 
 // surface submodule binding
 inline void bind(py::module &m)
@@ -59,9 +61,11 @@ inline void bind(py::module &m)
   m.def("compute_normals", &computeNormals);
   m.def("compute_tangents", &computeTangents);
   m.def("compute_euler", &computeEulerNumber);
+  m.def("count_intersections", &countIntersections);
   m.def("parameterize", &parameterize);
   m.def("sample_parameterization", &sampleParameterization);
   m.def("smooth_overlay", &smoothOverlay);
+  m.def("distance", &surfaceDistance);
   // m.def("read_directly", &read_directly);
 }
 

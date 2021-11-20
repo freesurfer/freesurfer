@@ -422,6 +422,7 @@ int main(int argc, char *argv[]) {
   fprintf(fp,"stdvtxdist  %lf\n",InterVertexDistStdDev);
   fprintf(fp,"vtx0xyz   %f %f %f\n",mris->vertices[0].x,mris->vertices[0].y,
           mris->vertices[0].z);
+  fprintf(fp,"num_intersecting_faces %d\n",mrisMarkIntersections(mris));
 
   if (outfile != NULL) fclose(fp);
 

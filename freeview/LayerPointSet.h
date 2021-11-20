@@ -110,6 +110,12 @@ public:
 
   vtkPoints* GetSplinedPoints();
 
+  void GetNormalAtPoint(int nIndex, double* vnorm, int nPlane);
+
+  QVariant GetEnhancedData(const QString& key);
+
+  void SetEnhancedData(const QString& key, const QVariant& val);
+
 protected slots:
   void UpdateColorMap();
   void UpdateOpacity();

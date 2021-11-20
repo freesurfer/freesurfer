@@ -35,6 +35,7 @@ class Interactor2DPointSetEdit;
 class Interactor2DVolumeCrop;
 class LayerMRI;
 class LayerLineProfile;
+class LayerPointSet;
 
 class RenderView2D : public RenderView
 {
@@ -119,6 +120,13 @@ public:
     return m_nTextSize;
   }
 
+  LayerPointSet* PickPointSetAtCursor(int nX, int nY);
+
+  QList<Region2D*> GetRegions()
+  {
+    return m_regions;
+  }
+
 public slots:
   void RefreshAllActors(bool bForScreenShot = false);
   void StopSelection();
@@ -128,6 +136,9 @@ public slots:
   void CenterAtCursor();
   void SetAutoScaleText(bool b);
   void SetTextSize(int nsize);
+  void OnMovePointToLocalMaximum(bool bUseLast = false);
+  void OnMovePointToLocalMaximumDefault();
+  void OnMoveAllPointsToLocalMaximum();
 
 signals:
   void RegionSelected( Region2D* );
@@ -135,6 +146,7 @@ signals:
   void Zooming(RenderView2D* view);
   void LineProfileIdPicked(LayerLineProfile* lp, int nId);
   void CursorLocationClicked();
+  void PointSetPicked(LayerPointSet* wp, int nIndex);
 
 protected slots:
   virtual void OnSlicePositionChanged(bool bCenterView = false);

@@ -122,7 +122,7 @@ GROUPDESCRIPTOR, FSGD;
 
 FSGD   *gdfAlloc(int version);
 int     gdfFree(FSGD **ppgd);
-FSGD   *gdfRead(const char *gdfname, int LoadData);
+FSGD   *gdfRead(const char *gdfname, const char *gd2mtx_method, int LoadData);
 int     gdfWrite(const char *gdfname, FSGD *gd);
 MRI    *gdfReadDataInfo(const char *gdfname);
 int     gdfPrintHeader(FILE *fp, FSGD *gd);

@@ -379,7 +379,7 @@ void ArgumentParser::insertArgument(const ArgumentParser::Argument& arg)
   for (IndexMap::iterator it = index.begin(); it != index.end(); it++) {
     String stripped = strip(it->first);
     if (stripped == strip(arg.short_name) || stripped == strip(arg.name)) {
-      fs::fatal() << "invalid argument configuration. '" << arg.canonicalName() << "' is used twice";
+      fs::fatal() << "invalid argument configuration. Short name '" << stripped << "' of '"<< arg.canonicalName() << "' is used twice";
     }
   }
 

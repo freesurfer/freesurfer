@@ -47,8 +47,10 @@
 #include <QFile>
 #include <QJsonDocument>
 #include "MyUtils.h"
+#include "vtkContourTriangulator.h"
 
 #define NUM_OF_SIDES  10  // must be even number!
+#define POINTSET_VERSION  1
 
 LayerPointSet::LayerPointSet( LayerMRI* ref, int nType, QObject* parent ) : LayerEditable( parent )
 {
@@ -192,6 +194,15 @@ bool LayerPointSet::LoadFromJsonFile(const QString &filename)
   }
   GetProperty()->SetType(LayerPropertyPointSet::Enhanced);
 
+  if (m_mapEnhancedData.contains("color"))
+  {
+    QVariantList list = m_mapEnhancedData["color"].toList();
+    if (list.size() == 3)
+    {
+      GetProperty()->SetColor(QColor(list[0].toInt(), list[1].toInt(), list[2].toInt()));
+    }
+  }
+
   return true;
 }
 
@@ -257,6 +268,11 @@ bool LayerPointSet::SaveAsJson(const QString& filename)
   m_mapEnhancedData["points"] = list;
   m_mapEnhancedData["data_type"] = "fs_pointset";
   m_mapEnhancedData["vox2ras"] = "scanner_ras";
+  double* rgb = GetProperty()->GetColor();
+  list.clear();
+  QColor c = QColor::fromRgbF(rgb[0], rgb[1], rgb[2]);
+  list << c.red() << c.green() << c.blue();
+  m_mapEnhancedData["color"] = list;
 
   QFile file( filename );
   if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
@@ -269,6 +285,7 @@ bool LayerPointSet::SaveAsJson(const QString& filename)
     return false;
   }
 
+  m_mapEnhancedData["version"] = POINTSET_VERSION;
   file.write(QJsonDocument::fromVariant(m_mapEnhancedData).toJson());
   return true;
 }
@@ -450,6 +467,10 @@ void LayerPointSet::RebuildActors( bool bRebuild3D )
     polydata->SetPoints( pts );
     polydata->SetLines( lines );
     vtkSplineFilter* spline = vtkSplineFilter::New();
+//    spline->SetSubdivideToSpecified();
+//    spline->SetNumberOfSubdivisions(pts->GetNumberOfPoints()*2);
+    spline->SetSubdivideToLength();
+    spline->SetLength(scale*2);
     if ( GetProperty()->GetScalarType() == LayerPropertyPointSet::ScalarSet )
     {
       spline->SetSubdivideToSpecified();
@@ -564,21 +585,10 @@ void LayerPointSet::RebuildActors( bool bRebuild3D )
 
       vtkSmartPointer<vtkStripper> stripper = vtkSmartPointer<vtkStripper>::New();
       stripper->SetInputConnection( cutter->GetOutputPort() );
-      stripper->Update();
-
-      vtkSmartPointer<vtkPolyData> cutpoly = vtkSmartPointer<vtkPolyData>::New();
-      cutpoly->SetPoints( stripper->GetOutput()->GetPoints() );
-      cutpoly->SetPolys( stripper->GetOutput()->GetLines() );
-      cutpoly->GetPointData()->SetScalars(stripper->GetOutput()->GetPointData()->GetScalars());
-
-      vtkSmartPointer<vtkTriangleFilter> triangleFilter = vtkSmartPointer<vtkTriangleFilter>::New();
-#if VTK_MAJOR_VERSION > 5
-      triangleFilter->SetInputData( cutpoly );
-#else
-      triangleFilter->SetInput( cutpoly );
-#endif
+      vtkSmartPointer<vtkContourTriangulator> ct = vtkSmartPointer<vtkContourTriangulator>::New();
+      ct->SetInputConnection(stripper->GetOutputPort());
       mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
-      mapper->SetInputConnection(triangleFilter->GetOutputPort());
+      mapper->SetInputConnection(ct->GetOutputPort());
 
       m_actorSplineSlice[i]->SetMapper(mapper);
     }
@@ -664,7 +674,11 @@ int LayerPointSet::FindPoint( double* ras, double tolerance )
 int LayerPointSet::AddPoint( double* ras_in, double value )
 {
   int nRet;
-  double ras[3];
+  int dim[3];
+  double ras[3], vs[3];
+  m_layerRef->GetVolumeInfo(dim, vs);
+  double min_tor2 = qMin(vs[0], qMin(vs[1], vs[2]))*3;
+  min_tor2 *= min_tor2;
   if ( GetProperty()->GetSnapToVoxelCenter() )
   {
     m_layerRef->SnapToVoxelCenter( ras_in, ras );
@@ -718,7 +732,7 @@ int LayerPointSet::AddPoint( double* ras_in, double value )
     double d2 = vtkMath::Distance2BetweenPoints( ras, m_points[n2].pt );
     double d3 = vtkMath::Distance2BetweenPoints( m_points[n1].pt, m_points[n2].pt );
 
-    if ( d3 >= d1 && d3 >= d2 )
+    if ( d3 >= d1 && d3 >= d2)
     {
       n = n2;
     }
@@ -729,6 +743,26 @@ int LayerPointSet::AddPoint( double* ras_in, double value )
     else
     {
       n = n2 + 1;
+    }
+
+    double d0 = vtkMath::Distance2BetweenPoints( ras, m_points[0].pt );
+    double dn = vtkMath::Distance2BetweenPoints( ras, m_points[m_points.size()-1].pt );
+//    if ((d0 > d1 && d0 < d2) || (d0 < d2 && d0 > d1) )
+//      n = 0;
+//    else if ((dn > d1 && dn < d2) || (dn < d2 && dn > d1) )
+//      n = m_points.size();
+
+    double pt[3];
+    pt[0] = (m_points[n1].pt[0] + m_points[n2].pt[0])/2;
+    pt[1] = (m_points[n1].pt[1] + m_points[n2].pt[1])/2;
+    pt[2] = (m_points[n1].pt[2] + m_points[n2].pt[2])/2;
+    double d4 = vtkMath::Distance2BetweenPoints( ras, pt );
+    if (d4 > d3/3)
+    {
+      if ( d0 < dn )
+        n = 0;
+      else
+        n = m_points.size();
     }
 
     ControlPoint p;
@@ -953,4 +987,66 @@ double LayerPointSet::GetEndPointDistance()
 vtkPoints* LayerPointSet::GetSplinedPoints()
 {
   return m_splinedPoints;
+}
+
+void LayerPointSet::GetNormalAtPoint(int nIndex, double *vnorm, int nPlane)
+{
+  double pt[3], pt0[3], pt1[3];
+  GetPoint(nIndex, pt);
+  int n = 0, n0, n1;
+  double* vs = m_layerRef->GetWorldVoxelSize();
+  double dTor2 = qMin(vs[0], qMin(vs[1], vs[2]))*0.02;
+  dTor2 *= dTor2;
+  double dMinDist2 = 1e8;
+  for (int i = 0; i < m_splinedPoints->GetNumberOfPoints(); i++)
+  {
+    double dval = vtkMath::Distance2BetweenPoints(pt, m_splinedPoints->GetPoint(i));
+    if (dval < dTor2)
+    {
+      n = i;
+      break;
+    }
+    else if (dval < dMinDist2)
+    {
+      n = i;
+      dMinDist2 = dval;
+    }
+  }
+  if (n == 0)
+  {
+    n0 = 0;
+    n1 = 1;
+  }
+  else if (n == m_splinedPoints->GetNumberOfPoints()-1)
+  {
+    n0 = m_splinedPoints->GetNumberOfPoints()-1;
+    n1 = n0-1;
+  }
+  else
+  {
+    n0 = n-1;
+    n1 = n+1;
+  }
+  m_splinedPoints->GetPoint(n0, pt0);
+  m_splinedPoints->GetPoint(n1, pt1);
+  double v[3], v2[3] = {0, 0, 0};
+  for (int i = 0; i < 3; i++)
+    v[i] = pt1[i] - pt0[i];
+  vtkMath::Normalize(v);
+  v2[nPlane] = 1;
+  vtkMath::Cross(v, v2, vnorm);
+}
+
+void LayerPointSet::SetEnhancedData(const QString &key, const QVariant &val)
+{
+  m_mapEnhancedData[key] = val;
+  SetModified();
+}
+
+QVariant LayerPointSet::GetEnhancedData(const QString &key)
+{
+  QVariant v;
+  if (m_mapEnhancedData.contains(key))
+    v = m_mapEnhancedData[key];
+  return v;
 }

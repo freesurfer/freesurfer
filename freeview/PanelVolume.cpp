@@ -187,7 +187,8 @@ PanelVolume::PanelVolume(QWidget *parent) :
                       << ui->checkBoxShowLabelContour
                       << ui->checkBoxUpsampleContour
                       << ui->checkBoxVoxelizedContour
-                      << ui->labelContourSpaceHolder;
+                      << ui->labelContourSpaceHolder
+                      << ui->checkBoxContourDilateFirst;
 
   m_widgetlistContourNormal << ui->sliderContourThresholdLow
                             << ui->sliderContourThresholdHigh
@@ -299,6 +300,7 @@ void PanelVolume::ConnectLayer( Layer* layer_in )
   connect( ui->checkBoxInvert, SIGNAL(toggled(bool)), p, SLOT(SetHeatScaleInvert(bool)) );
   connect( ui->checkBoxShowOutline, SIGNAL(toggled(bool)), p, SLOT(SetShowLabelOutline(bool)) );
   connect( ui->checkBoxContourExtractAll, SIGNAL(toggled(bool)), p, SLOT(SetContourExtractAllRegions(bool)) );
+  connect( ui->checkBoxContourDilateFirst, SIGNAL(toggled(bool)), p, SLOT(SetContourDilateFirst(bool)) );
   connect( ui->checkBoxUseColorMap, SIGNAL(toggled(bool)), p, SLOT(SetContourUseImageColorMap(bool)) );
   connect( ui->checkBoxShowInfo, SIGNAL(toggled(bool)), p, SLOT(SetShowInfo(bool)) );
   connect( ui->colorPickerContour, SIGNAL(colorChanged(QColor)), p, SLOT(SetContourColor(QColor)));
@@ -501,6 +503,7 @@ void PanelVolume::DoUpdateWidgets()
     ui->checkBoxUseColorMap->setChecked( layer->GetProperty()->GetContourUseImageColorMap() );
     ui->checkBoxUpsampleContour->setChecked( layer->GetProperty()->GetContourUpsample());
     ui->checkBoxContourExtractAll->setChecked( layer->GetProperty()->GetContourExtractAllRegions() );
+    ui->checkBoxContourDilateFirst->setChecked( layer->GetProperty()->GetContourDilateFirst() );
     ui->sliderContourSmoothIteration->setValue( layer->GetProperty()->GetContourSmoothIterations() );
     ChangeLineEditNumber( ui->lineEditContourSmoothIteration, layer->GetProperty()->GetContourSmoothIterations() );
 
@@ -665,6 +668,7 @@ void PanelVolume::DoUpdateWidgets()
       ShowWidgets( m_widgetlistContourNormal, !bShowAsLabelContour);
       ui->checkBoxVoxelizedContour->setVisible(bShowAsLabelContour);
       ui->checkBoxVoxelizedContour->setChecked(bVoxelizedContour);
+      ui->checkBoxContourDilateFirst->setVisible(bShowAsLabelContour);
       ui->labelSmoothIteration->setVisible(!bVoxelizedContour);
       ui->sliderContourSmoothIteration->setVisible(!bVoxelizedContour);
       ui->lineEditContourSmoothIteration->setVisible(!bVoxelizedContour);

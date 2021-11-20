@@ -54,6 +54,7 @@ set GMM = ()
 set ShowFigs = 0
 set ShowMovie = 0;
 set IgnoreUnkown = 0;
+set DoCharm = 0
 
 set inputargs = ($argv);
 set PrintHelp = 0;
@@ -120,6 +121,24 @@ echo $VERSION | tee -a $LF
 uname -a  | tee -a $LF
 if($?PBS_JOBID) then
   echo "pbsjob $PBS_JOBID"  >> $LF
+endif
+
+if($DoCharm) then
+  set defaultAtlas = $FREESURFER/average/samseg/20Subjects_smoothing2_down2_smoothingForAffine2 
+  set defaultGMM = $defaultAtlas/sharedGMMParameters.txt
+  set cmd = (samseg $inputargs --no-charm --atlas $defaultAtlas --gmm $defaultGMM \
+    --o $outdir/samseg.reg --reg-only)
+  echo $cmd | tee -a $LF
+  fs_time $cmd |& tee -a $LF
+  if($status) goto error_exit;
+  set defaultreg = $outdir/samseg.reg/template.lta
+  set charm2defaultreg = $SAMSEG_DATA_DIR/reg.samseg-default.lta
+  set charmreg = $outdir/charm.lta
+  set cmd = (mri_concatenate_lta $charm2defaultreg $defaultreg $charmreg)
+  echo $cmd | tee -a $LF
+  fs_time $cmd |& tee -a $LF
+  if($status) goto error_exit;
+  set regmat = $charmreg
 endif
 
 if($#GMM) cp $GMM $outdir/log/gmm.txt
@@ -613,6 +632,18 @@ while( $#argv != 0 )
         echo "ERROR: cannot find $SAMSEG_DATA_DIR"
         exit 1
       endif
+      breaksw
+
+    case "--charm":
+      setenv SAMSEG_DATA_DIR /autofs/space/sulc_001/users/charm-samseg
+      if(! -e $SAMSEG_DATA_DIR) then
+        echo "ERROR: cannot find $SAMSEG_DATA_DIR"
+        exit 1
+      endif
+      set DoCharm = 1
+      breaksw
+    case "--no-charm":
+      set DoCharm = 0
       breaksw
 
     case "--tmp":

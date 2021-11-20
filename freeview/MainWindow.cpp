@@ -117,6 +117,8 @@
 #ifdef Q_OS_MAC
 #include "MacHelper.h"
 #endif
+#include "DialogMovePoint.h"
+#include "VolumeFilterOptimal.h"
 
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
 #include <QtWidgets>
@@ -188,6 +190,8 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   addAction(ui->actionResetViewRight);
   addAction(ui->actionResetViewSuperior);
   addAction(ui->actionResetViewInferior);
+  addAction(ui->actionCopyView);
+  addAction(ui->actionDeleteLayer);
 
   addAction(ui->actionNextLabelPoint);
 
@@ -343,6 +347,11 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   m_wndTractCluster->setWindowTitle("Tract Cluster");
   m_wndTractCluster->hide();
   connect(m_wndTractCluster, SIGNAL(TreeDataLoaded(QVariantMap)), SLOT(OnTractClusterLoaded(QVariantMap)));
+
+  m_dlgMovePoint = new DialogMovePoint(this);
+  m_dlgMovePoint->hide();
+  for (int i = 0; i < 3; i++)
+    connect(m_views[i], SIGNAL(PointSetPicked(LayerPointSet*, int)), m_dlgMovePoint, SLOT(OnPointSetPicked(LayerPointSet*,int)));
 
   QStringList keys = m_layerCollections.keys();
   for ( int i = 0; i < keys.size(); i++ )
@@ -673,6 +682,8 @@ void MainWindow::LoadSettings()
   {
     m_settings["3DAxesFlyMode"] = 4;
   }
+
+  ui->actionDeleteLayer->setVisible(m_settings["AllowDeleteKey"].toBool());
 
   m_settings["Version"] = SETTING_VERSION;
   if (!m_settings.contains("UseComma"))
@@ -2057,6 +2068,10 @@ void MainWindow::RunScript()
   {
     CommandSetSurfaceLabelColor( sa );
   }
+  else if (cmd == "setsurfacelabelthreshold")
+  {
+    CommandSetSurfaceLabelThreshold( sa );
+  }
   else if (cmd == "gotosurfacelabel")
   {
     OnGoToSurfaceLabel(true);
@@ -2245,11 +2260,10 @@ void MainWindow::CommandLoadCommand(const QStringList &sa)
 
 void MainWindow::CommandLoadSubject(const QStringList &sa)
 {
-
   QString subject_path = QProcessEnvironment::systemEnvironment().value("SUBJECTS_DIR");
-  if (subject_path.isEmpty())
+  if (subject_path.isEmpty() || !QDir(subject_path).isReadable())
   {
-    cerr << "SUBJECTS_DIR is not set. Can not load subject.\n";
+    cerr << "SUBJECTS_DIR is not set or not accessible. Can not load subject.\n";
     return;
   }
   subject_path += "/" + sa[1];
@@ -3603,6 +3617,12 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
         {
           m_scripts.insert( 0, QStringList("setsurfaceedgecolor") << subArgu );
         }
+        else if ( subOption == "affinexfm")
+        {
+	  // The LTA can point in either direction as MRISltaMultiply() 
+	  // will determine the right direction if it can
+	  sup_options["affinexform_filename"] = subArgu;
+        }
         else if ( subOption == "edgethickness"|| subOption == "edge_thickness" )
         {
           m_scripts.insert( 0, QStringList("setsurfaceedgethickness") << subArgu );
@@ -3758,6 +3778,20 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
             }
           }
         }
+        else if (subOption == "label_threshold" || subOption == "labelthreshold")
+        {
+          if (!subArgu.isEmpty())
+          {
+            for (int i = 0; i < m_scripts.size(); i++)
+            {
+              if (m_scripts[i][0] == "loadsurfacelabel")
+              {
+                m_scripts.insert(i+1, QStringList("setsurfacelabelthreshold") << subArgu);
+                break;
+              }
+            }
+          }
+        }
         else if (subOption == "label_centroid" || subOption == "labelcentroid")
         {
           if (!subArgu.isEmpty())
@@ -3907,6 +3941,20 @@ void MainWindow::CommandSetSurfaceLabelOpacity(const QStringList &cmd)
     if (ok && surf->GetActiveLabel())
     {
       surf->GetActiveLabel()->SetOpacity(cmd[1].toDouble());
+    }
+  }
+}
+
+void MainWindow::CommandSetSurfaceLabelThreshold(const QStringList &cmd)
+{
+  LayerSurface* surf = (LayerSurface*)GetLayerCollection( "Surface" )->GetActiveLayer();
+  if ( surf )
+  {
+    bool ok;
+    cmd[1].toDouble(&ok);
+    if (ok && surf->GetActiveLabel())
+    {
+      surf->GetActiveLabel()->SetThreshold(cmd[1].toDouble());
     }
   }
 }
@@ -5238,6 +5286,18 @@ QList<Layer*> MainWindow::GetLayers(const QString &strType)
     return QList<Layer*>();
 }
 
+QList<Layer*> MainWindow::GetVisibleLayers(const QString &strType)
+{
+  QList<Layer*> list = GetLayers(strType);
+  QList<Layer*> list_visbile;
+  foreach (Layer* l, list)
+  {
+    if (l->IsVisible())
+      list_visbile << l;
+  }
+  return list_visbile;
+}
+
 void MainWindow::OnSetViewLayout( QAction* action )
 {
   if ( action == ui->actionLayout1x1 )
@@ -6362,6 +6422,9 @@ void MainWindow::LoadSurfaceFile( const QString& filename, const QString& fn_pat
   QVariantMap args;
   if (sup_options.contains("ignore_vg"))
     args["ignore_vg"] = sup_options["ignore_vg"];
+  if (sup_options.contains("affinexform_filename"))
+    args["affinexform_filename"] = sup_options["affinexform_filename"];
+
   m_threadIOWorker->LoadSurface( layer, args );
   m_statusBar->StartTimer();
 }
@@ -8404,6 +8467,7 @@ void MainWindow::OnReloadSurface()
               AddScript(QStringList("setsurfacelabelopacity") << QString::number(label->GetOpacity()));
             double* c = label->GetColor();
             AddScript(QStringList("setsurfacelabelcolor") << QString("%1,%2,%3").arg((int)(c[0]*255)).arg((int)(c[1]*255)).arg((int)(c[2]*255)));
+            AddScript(QStringList("setsurfacelabelthreshold") << QString::number(label->GetThreshold()));
           }
         }
         for (int j = surf->GetNumberOfAnnotations()-1; j >= 0; j--)
@@ -8617,6 +8681,8 @@ void MainWindow::UpdateSettings()
         }
       }
     }
+
+    ui->actionDeleteLayer->setVisible(m_settings["AllowDeleteKey"].toBool());
   }
 }
 
@@ -9620,4 +9686,70 @@ void MainWindow::OnPointSetToLabel()
     mri->SaveForUndo(view->GetViewPlane());
     mri->UpdateVoxelsByPointSet(ps, view->GetViewPlane());
   }
+}
+
+void MainWindow::OnCreateOptimalVolume()
+{
+  QList<Layer*> mris = GetSelectedLayers("MRI");
+  if (mris.size() < 2)
+  {
+    mris = GetVisibleLayers("MRI");
+    if (mris.size() < 2)
+      mris = GetLayers("MRI");
+  }
+
+  QList<Layer*> rois = GetSelectedLayers("ROI");
+  if (rois.size() < 2)
+  {
+    rois = GetVisibleLayers("ROI");
+    if (rois.size() < 2)
+      rois = GetLayers("ROI");
+  }
+  if (rois.size() < 2)
+  {
+    QMessageBox::warning(this, "Optimal Combined Volume", "Need two ROIs to compute optimal combined volume");
+    return;
+  }
+
+  LayerMRI* mri_template = (LayerMRI*)GetActiveLayer( "MRI" );
+  LayerMRI* mri_new = new LayerMRI( mri_template );
+  if ( !mri_new->Create( mri_template, false, 3))
+  {
+    QMessageBox::warning( this, "Error", "Can not create new volume." );
+    delete mri_new;
+    return;
+  }
+  mri_new->GetProperty()->SetLUTCTAB( m_luts->GetColorTable( 0 ) );
+  mri_new->SetName( "optimal combined" );
+  GetLayerCollection("MRI")->AddLayer(mri_new);
+  ConnectMRILayer(mri_new);
+  emit NewVolumeCreated();
+
+  QList<LayerMRI*> input_mris;
+  QList<LayerROI*> input_rois;
+  for (int i = 0; i < mris.size(); i++)
+    input_mris << (LayerMRI*)mris[i];
+  for (int i = 0; i < 2; i++)
+    input_rois << (LayerROI*)rois[i];
+
+  VolumeFilterOptimal* filter = new VolumeFilterOptimal(input_mris, input_rois, mri_new, this);
+  filter->SetResetWindowLevel();
+  m_threadVolumeFilter->ExecuteFilter(filter);
+}
+
+void MainWindow::OnDeleteLayer()
+{
+  QString type = GetCurrentLayerType();
+  Layer* layer = GetActiveLayer(type);
+  if (!layer)
+    return;
+
+  if (type == "MRI")
+    OnCloseVolume();
+  else if (type == "Surface")
+    OnCloseSurface();
+  else if (type == "ROI")
+    OnCloseROI();
+  else if (type == "PointSet")
+    OnClosePointSet();
 }

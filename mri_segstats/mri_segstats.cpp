@@ -492,6 +492,15 @@ int main(int argc, char **argv)
       exit(1);
     }
   }
+  else {
+    if(seg->ct){
+      ctab = seg->ct;
+      printf("Using embedded color table (and excluding seg 0)\n");
+      ExclSegIdList[nExcl] = 0;
+      nExcl ++;
+      DoExclSegId = 1;
+    }
+  }
 
   if (gcafile != NULL)
   {
@@ -1700,6 +1709,20 @@ static int parse_commandline(int argc, char **argv)
     else if(!strcmp(option, "--regheader"))
     {
       InVolRegHeader = 1;
+    }
+    else if(!strcmp(option, "--xfm2etiv"))
+    {
+      if(nargc < 2) argnerr(option,1);
+      double etiv_scale_factor = 1948.106, determinant = 0, atlas_icv;
+      atlas_icv = MRIestimateTIV(pargv[0],etiv_scale_factor,&determinant);
+      printf("%12.4lf\n",atlas_icv);
+      if(strcmp(pargv[1],"nofile")!=0){
+	FILE *fp = fopen(pargv[1],"w");
+	if(fp == NULL) exit(1);
+	fprintf(fp,"%12.4lf\n",atlas_icv);
+	fclose(fp);
+      }
+      exit(0);
     }
     else if ( !strcmp(option, "--in-intensity-name") )
     {

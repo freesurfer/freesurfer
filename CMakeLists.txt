@@ -208,6 +208,13 @@ if(VTK_FOUND AND VTK_BUILD_SHARED_LIBS)
   if(${VTK_VERSION} LESS 7)
     file(GLOB _vtk_library_list "${VTK_LIBRARY_DIRS}/lib*.so*")
   else()
+    # special libvtkproj
+    file(GLOB _found_library "${VTK_LIBRARY_DIRS}/libvtkproj*.so*")
+    list(APPEND _vtk_library_list ${_found_library})
+    # special libvtkNetCDF
+    file(GLOB _found_library "${VTK_LIBRARY_DIRS}/libvtkNetCDF*.so*")
+    list(APPEND _vtk_library_list ${_found_library})
+    # the rest of the VTK libraries
     foreach(_vtk_module ${VTK_MODULES_ENABLED})
       foreach(_vtk_library ${${_vtk_module}_LIBRARIES})
         file(GLOB _found_library "${${_vtk_module}_RUNTIME_LIBRARY_DIRS}/lib${_vtk_library}*.so*")
@@ -550,6 +557,7 @@ if(NOT MINIMAL)
     mri_ribbon
     mri_rigid_register
     mri_sbbr
+    mri_sclimbic_seg
     mri_segcentroids
     mri_seghead
     mri_segment_hypothalamic_subunits
@@ -652,12 +660,15 @@ if(NOT MINIMAL)
     spline3
     stat_normalize
     stim_polar
+    mri_synthseg
+    mri_synthsr
     swi_processing
     template
     test_makevol
     ThalamicNuclei
     trc
     tridec
+    pointset2label
   )
 endif()
 
@@ -695,6 +706,12 @@ endif()
 if(INFANT_MODULE)
   add_subdirectory(infant)
   add_subdirectory(sscnn_skullstripping)
+endif()
+
+if(INFANT_MODULE AND MINIMAL)
+  add_subdirectory(mri_distance_transform)
+  add_subdirectory(mri_correct_segmentations)
+  add_subdirectory(mri_morphology)
 endif()
 
 if(TKTOOLS_MODULE)

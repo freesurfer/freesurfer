@@ -58,6 +58,7 @@ public:
                  const QString& patch_filename = QString(),
                  const QString& target_filename = QString(),
                  const QString& sphere_filename = QString(),
+                 const QString& affinexfrom_filename = QString(),
                  const QStringList& sup_files = QStringList());
 
   bool CreateFromMRIS(MRIS* mris);

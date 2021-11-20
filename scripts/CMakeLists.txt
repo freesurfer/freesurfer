@@ -1,3 +1,6 @@
+# 9/2021 - per Doug, no longer install qdec binary from ./tktools.
+# Add/install qdec script here in order to echo qdec no longer supported.
+
 install_configured(
   annot2std
   aparc2feat
@@ -178,6 +181,7 @@ install_configured(
   polyorder
   print_unique_labels.csh
   progressbar.tcl
+  qdec
   rbbr
   rcbf-prep
   rebuild_gca_atlas.csh
@@ -286,6 +290,7 @@ install_pyscript(
   asegstats2table
   tractstats2table
   stattablediff
+  table2map
   merge_stats_tables
   fspalm
   rca-config
