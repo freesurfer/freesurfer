@@ -88,6 +88,7 @@ else if ($interreg == 4) then
   set cvswarp = final_CVSmorph_to$cvstemp
 else if ($interreg == 5) then
   set xspace = syn
+  setenv MY_MORPHS_DO_NOT_CONFORM_DEAL_WITH_IT
 else if ($interreg == 6) then
   set xspace = fnt
 endif
