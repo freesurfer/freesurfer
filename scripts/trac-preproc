@@ -686,15 +686,19 @@ if ($docorr && ! $dobase) then
     endif
 
     # Create volume index file
-    set indlist = ()
+    if ($nrun == 1) then		# Have one run only
+      set indlist = `awk '{printf "1 "}' $dwibase.bvals`
+    else
+      set indlist = ()
 
-    @ irun = 1
-    while ($irun <= $nrun)		# For each input DWI run
-      set indlist = ($indlist \
-        `awk -v irun=$irun '{printf irun" "}' $dwibase.$irun.bvals`)
+      @ irun = 1
+      while ($irun <= $nrun)		# For each input DWI run
+        set indlist = ($indlist \
+          `awk -v irun=$irun '{printf irun" "}' $dwibase.$irun.bvals`)
 
-      @ irun = $irun + 1
-    end					# For each input DWI run
+        @ irun = $irun + 1
+      end				# For each input DWI run
+    endif
 
     echo $indlist > $dwidir/index.txt
 
