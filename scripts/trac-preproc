@@ -88,6 +88,7 @@ else if ($interreg == 4) then
   set cvswarp = final_CVSmorph_to$cvstemp
 else if ($interreg == 5) then
   set xspace = syn
+  setenv MY_MORPHS_DO_NOT_CONFORM_DEAL_WITH_IT
 else if ($interreg == 6) then
   set xspace = fnt
 endif
@@ -686,15 +687,19 @@ if ($docorr && ! $dobase) then
     endif
 
     # Create volume index file
-    set indlist = ()
+    if ($nrun == 1) then		# Have one run only
+      set indlist = `awk '{printf "1 "}' $dwibase.bvals`
+    else
+      set indlist = ()
 
-    @ irun = 1
-    while ($irun <= $nrun)		# For each input DWI run
-      set indlist = ($indlist \
-        `awk -v irun=$irun '{printf irun" "}' $dwibase.$irun.bvals`)
+      @ irun = 1
+      while ($irun <= $nrun)		# For each input DWI run
+        set indlist = ($indlist \
+          `awk -v irun=$irun '{printf irun" "}' $dwibase.$irun.bvals`)
 
-      @ irun = $irun + 1
-    end					# For each input DWI run
+        @ irun = $irun + 1
+      end				# For each input DWI run
+    endif
 
     echo $indlist > $dwidir/index.txt
 
