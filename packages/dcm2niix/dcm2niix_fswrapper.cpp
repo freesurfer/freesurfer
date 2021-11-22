@@ -1,12 +1,11 @@
 #include <stdio.h>
 
 #include "nii_dicom.h"
-#include "dcm2fsWrapper.h"
+#include "dcm2niix_fswrapper.h"
 
-struct TDCMopts dcm2fsWrapper::tdcmOpts;
-//MRIFSSTRUCT dcm2fsWrapper::mrifsStruct;
+struct TDCMopts dcm2niix_fswrapper::tdcmOpts;
 
-/* oct06 version
+/* These are the TDCMopts defaults set in dcm2niix
 isIgnoreTriggerTimes = false
 isTestx0021x105E = false
 isAddNamePostFixes = true
@@ -41,17 +40,19 @@ isProgress = 0
 compressFlag = 0
 dirSearchDepth = 5
 gzLevel = 6
-filename = "%s_%p"    // seriesNum_protocol
+filename = "%s_%p"    // seriesNum_protocol -f "%s_%p"
 outdir = "..."
 indir = "..."
 pigzname = '\000'
-optsname = "..."
+optsname = "~/.dcm2nii.ini"
 indirParent = "..."
 imageComments = ""
 seriesNumber = nnn 
 numSeries = 0
  */
-void dcm2fsWrapper::setOpts(const char* dcmindir, const char* niioutdir)
+
+// set TDCMopts defaults, overwrite settings to output in mgz orientation
+void dcm2niix_fswrapper::setOpts(const char* dcmindir, const char* niioutdir)
 {
   memset(&tdcmOpts, 0, sizeof(tdcmOpts));
   setDefaultOpts(&tdcmOpts, NULL);
@@ -61,6 +62,7 @@ void dcm2fsWrapper::setOpts(const char* dcmindir, const char* niioutdir)
   if (niioutdir != NULL)
     strcpy(tdcmOpts.outdir, niioutdir);
 
+  // set the options for freesurfer mgz orientation
   tdcmOpts.isRotate3DAcq = false;
   tdcmOpts.isFlipY = false;
   tdcmOpts.isIgnoreSeriesInstanceUID = true;
@@ -71,57 +73,49 @@ void dcm2fsWrapper::setOpts(const char* dcmindir, const char* niioutdir)
   //tdcmOpts.isForceOnsetTimes = false;
 }
 
-bool dcm2fsWrapper::isDICOM(const char* file)
+// interface to isDICOMfile() in nii_dicom.cpp
+bool dcm2niix_fswrapper::isDICOM(const char* file)
 {
   return isDICOMfile(file);
 }
 
-int dcm2fsWrapper::dcm2NiiOneSeries(const char* dcmfile)
+/*
+ * interface to nii_loadDirCore() to search all dicom files from the directory input file is in,
+ * and convert dicom files with the same series as given file.
+ */
+int dcm2niix_fswrapper::dcm2NiiOneSeries(const char* dcmfile)
 {
+  // get seriesNo for given dicom file
   struct TDICOMdata tdicomData = readDICOM((char*)dcmfile);
 
   double seriesNo = (double)tdicomData.seriesUidCrc;
   if (tdcmOpts.isIgnoreSeriesInstanceUID)
     seriesNo = (double)tdicomData.seriesNum;
 
+  // set TDCMopts to convert just one series
   tdcmOpts.seriesNumber[0] = seriesNo;
   tdcmOpts.numSeries = 1;
 
-  //memset(&mrifsStruct, 0, sizeof(mrifsStruct));
   return nii_loadDirCore(tdcmOpts.indir, &tdcmOpts);
 }
 
-int dcm2fsWrapper::saveNii(const char* nii)
-{
-  FILE *fp = fopen(nii, "wb");
-  if (!fp) 
-    return 1;
-
-  MRIFSSTRUCT* mrifsStruct = getMrifsStruct();
-
-  //if (!opts.isSaveNativeEndian) swapEndian(&hdr, im, true); //byte-swap endian (e.g. little->big)
-  fwrite(&mrifsStruct->hdr0, sizeof(mrifsStruct->hdr0), 1, fp);
-  uint32_t pad = 0;
-  fwrite(&pad, sizeof( pad), 1, fp);
-  fwrite(mrifsStruct->imgM, mrifsStruct->imgsz, 1, fp);
-  fclose(fp);
-
-  return 0;
-}
-
-MRIFSSTRUCT* dcm2fsWrapper::getMrifsStruct(void)
+// interface to nii_getMrifsStruct()
+MRIFSSTRUCT* dcm2niix_fswrapper::getMrifsStruct(void)
 {
   return nii_getMrifsStruct();
 }
 
-nifti_1_header* dcm2fsWrapper::getNiiHeader(void)
+// return nifti header saved in MRIFSSTRUCT
+nifti_1_header* dcm2niix_fswrapper::getNiiHeader(void)
 {
   MRIFSSTRUCT* mrifsStruct = getMrifsStruct();
   return &mrifsStruct->hdr0;
 }
 
-const unsigned char* dcm2fsWrapper::getMRIimg(void)
+// return image data saved in MRIFSSTRUCT
+const unsigned char* dcm2niix_fswrapper::getMRIimg(void)
 {
   MRIFSSTRUCT* mrifsStruct = getMrifsStruct();
   return mrifsStruct->imgM;
 }
+

@@ -23,7 +23,7 @@ extern "C" {
     };
 #endif
 
-#ifdef MGH_FREESURFER
+#ifdef USING_DCM2NIIXFSWRAPPER 
 typedef struct 
 {
   struct nifti_1_header hdr0;
@@ -48,7 +48,6 @@ void nii_clrMrifsStruct();
 #define kMaximize16BitRange_False 0 //e.g. raw UINT16 values 0..4095 saved as INT16 (e.g. AFNI preserves INT16 "short", converts UINT16 to float32) 
 #define kMaximize16BitRange_True 1 //e.g. raw UINT16 values 0..4095 saved as 0..61425 UINT16 (SPM free precision)
 #define kMaximize16BitRange_Raw 2 //e.g. raw UINT16 values 0..4095 saved as UINT16 (retains raw data type, AFNI would convert to float32) 
-  //#define kMaximize16BitRange_Float32 3 //save 16-bit INT16 and UINT16 as FLOAT32 (AFNI will be happy, retain scale factors in Philips data where slope varies between slices)
 
 #define kSaveFormatNIfTI 0
 #define kSaveFormatNRRD 1
