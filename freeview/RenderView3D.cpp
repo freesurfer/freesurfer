@@ -30,6 +30,7 @@
 #include "SurfaceRegion.h"
 #include "SurfaceROI.h"
 #include "SurfaceOverlayProperty.h"
+#include "SurfacePath.h"
 #include <vtkProp.h>
 #include <vtkCellPicker.h>
 #include <vtkRenderWindow.h>
@@ -58,12 +59,14 @@
 #include <vtkCubeAxesActor.h>
 #include <vtkTextProperty.h>
 #include <QFileInfo>
+#include <QFileDialog>
 #include "MyUtils.h"
 #include "FSSurface.h"
 #include "Interactor3DPathEdit.h"
 #include <QElapsedTimer>
 #include "vtkInteractorStyleMyTrackballCamera.h"
 #include <vtkCubeAxesActor.h>
+#include <QMessageBox>
 
 #define SLICE_PICKER_PIXEL_TOLERANCE  15
 
@@ -619,7 +622,7 @@ bool RenderView3D::MapInflatedCoords(LayerSurface *surf, double *pos_in, double 
     surf->SetCurrentVertex(nVertex);
   else
     surf->SetMouseVertex(nVertex);
-  if (QFileInfo(surf->GetFileName()).fileName().contains("inflated") || surf->GetActiveSurface() == FSSurface::SurfaceInflated)
+  if (surf->IsInflated())
   {
     if (m_cursor3D->IsShown())
       m_cursorInflatedSurf->Show();
@@ -1600,6 +1603,24 @@ void RenderView3D::TriggerContextMenu( QMouseEvent* event )
     menu->addSeparator();
     menu->addAction(act);
   }
+
+  surf = (LayerSurface*)mainwnd->GetActiveLayer("Surface");
+  if (surf)
+  {
+    menu->addSeparator();
+    if (surf->GetMarks() && surf->GetMarks()->GetNumberOfPoints() > 0)
+    {
+      act = new QAction("Save Marked Vertices As Control Points", this);
+      connect(act, SIGNAL(triggered()), SLOT(SaveMarksAsControlPoints()));
+      menu->addAction(act);
+    }
+    if (surf->GetActivePath())
+    {
+      act = new QAction("Save Path As Control Points", this);
+      connect(act, SIGNAL(triggered()), SLOT(SavePathAsControlPoints()));
+      menu->addAction(act);
+    }
+  }
   menu->exec(event->globalPos());
 }
 
@@ -1800,4 +1821,31 @@ void RenderView3D::SetAxesFlyMode(int n)
 int RenderView3D::GetAxesFlyMode()
 {
   return m_actorAxesActor->GetFlyMode();
+}
+
+void RenderView3D::SavePathAsControlPoints()
+{
+  LayerSurface* surf = (LayerSurface*)MainWindow::GetMainWindow()->GetActiveLayer("Surface");
+  if (surf && surf->GetActivePath())
+    SavePathAsControlPoints(surf->GetActivePath());
+}
+
+void RenderView3D::SaveMarksAsControlPoints()
+{
+  LayerSurface* surf = (LayerSurface*)MainWindow::GetMainWindow()->GetActiveLayer("Surface");
+  if (surf && surf->GetMarks())
+    SavePathAsControlPoints(surf->GetMarks());
+}
+
+void RenderView3D::SavePathAsControlPoints(SurfacePath *sp)
+{
+  LayerSurface* surf = (LayerSurface*)MainWindow::GetMainWindow()->GetActiveLayer("Surface");
+  QString fn = QFileDialog::getSaveFileName( this, QString("Save %1 As").arg(sp->IsPathMade()?"Path":"Vertices"),
+                                             "",
+                                             "Control Point files (*)");
+  if ( !fn.isEmpty())
+  {
+    if (!surf->SavePathAsControlPoints(fn, !sp->IsPathMade()))
+      QMessageBox::warning(this, "Error", "Failed to save file " + fn);
+  }
 }

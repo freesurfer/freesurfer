@@ -81,6 +81,10 @@ public:
 
   double GetLength();
 
+  int GetNumberOfPoints();
+
+  bool SaveAsControlPoints(const QString& filename);
+
 signals:
   void ColorChanged( const QColor& );
   void Progress(int n);
