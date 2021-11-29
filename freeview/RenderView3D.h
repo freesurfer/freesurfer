@@ -42,6 +42,7 @@ class Interactor3DPathEdit;
 class RenderView3D;
 class vtkInteractorStyleMyTrackballCamera;
 class Region3D;
+class SurfacePath;
 
 class RenderView3D : public RenderView
 {
@@ -174,10 +175,13 @@ public slots:
   void SetAxesFlyMode(int n);
   void DeleteCurrent3DRegion();
   void DeleteAll3DRegions();
+  void SavePathAsControlPoints();
+  void SaveMarksAsControlPoints();
 
 protected:
   void DoUpdateRASPosition( int posX, int posY, bool bCursor = false, bool bSlicePickOnly = false );
   void DoUpdateConnectivityDisplay();
+  void SavePathAsControlPoints(SurfacePath* sp);
 
   void HighlightSliceFrame( int n );
 

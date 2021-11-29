@@ -486,3 +486,32 @@ double SurfacePath::GetLength()
     else
         return 0;
 }
+
+bool SurfacePath::SaveAsControlPoints(const QString &filename)
+{
+  QFile file( filename );
+  if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
+  {
+    QString strg = file.errorString();
+    if (strg.isEmpty())
+      cerr << "Can not open file for writing\n";
+    else
+      cerr << qPrintable(strg) << "\n";
+    return false;
+  }
+
+  QTextStream out(&file);
+  for (int n = 0; n < m_listVertices.size(); n++)
+  {
+    double pt[3];
+    m_mris->GetRASAtVertex(m_listVertices[n], pt, m_mris->IsInflated()?FSSurface::SurfaceWhite:-1);
+    out << QString("%1 %2 %3\n").arg(pt[0]).arg(pt[1]).arg(pt[2]);
+  }
+  out << QString("info\nnumpoints %1\nuseRealRAS 1\n").arg( m_listVertices.size() );
+  return true;
+}
+
+int SurfacePath::GetNumberOfPoints()
+{
+  return m_listVertices.size();
+}

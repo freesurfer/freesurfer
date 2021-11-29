@@ -1221,14 +1221,14 @@ int LayerSurface::GetVertexIndexAtTarget( double* pos, double* distance, int sur
   return m_surfaceSource->FindVertexAtRAS( realRas, distance, surface_type );
 }
 
-bool LayerSurface::GetRASAtVertex( int nVertex, double* ras )
+bool LayerSurface::GetRASAtVertex( int nVertex, double* ras, int surface_type )
 {
   if ( m_surfaceSource == NULL )
   {
     return false;
   }
 
-  return m_surfaceSource->GetRASAtVertex( nVertex, ras );
+  return m_surfaceSource->GetRASAtVertex( nVertex, ras, surface_type );
 }
 
 void LayerSurface::GetSurfaceRASAtTarget( double* pos_in, double* ras_out )
@@ -2282,7 +2282,8 @@ bool LayerSurface::GetCorrelationOverlayDataAtVertex(int nVert, float *output, i
 
 bool LayerSurface::IsInflated()
 {
-  return (GetFileName().toLower().contains("inflated") || GetActiveSurface() == FSSurface::SurfaceInflated);
+  return (QFileInfo(GetFileName()).fileName().toLower().contains("inflated") ||
+          GetActiveSurface() == FSSurface::SurfaceInflated);
 }
 
 bool LayerSurface::GetActiveLabelCentroidPosition(double *pos)
@@ -3202,4 +3203,20 @@ void LayerSurface::GetCenterOfActor(double *pt)
 
     bbox.GetCenter(pt);
   }
+}
+
+bool LayerSurface::SavePathAsControlPoints(const QString& fn, bool bMarks)
+{
+  SurfacePath* sp = NULL;
+  if (bMarks)
+  {
+    sp = m_marks;
+  }
+  else if (!m_paths.isEmpty())
+    sp = GetActivePath();
+
+  if (sp)
+    return sp->SaveAsControlPoints(fn);
+  else
+    return false;
 }
