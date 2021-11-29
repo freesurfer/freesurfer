@@ -87,7 +87,7 @@ void nifti_swap_2bytes( size_t n , void *ar )    // 2 bytes at a time
     If is_nifti, swap all (even UNUSED) fields of NIfTI header.
     Else, swap as a nifti_analyze75 struct.
 *//*---------------------------------------------------------------------- */
-void swap_nifti_header( struct nifti_1_header *h, int is_nifti  )
+void swap_nifti_header( struct nifti_1_header *h )
 {
 
    /* otherwise, swap all NIFTI fields */

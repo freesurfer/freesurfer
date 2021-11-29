@@ -196,9 +196,9 @@ set ncpts = ( 7 7 5 )
 
 # List of training subjects
 # This text file lists the locations of training subject directories
-# Default: $FREESURFER_HOME/trctrain/trainlist.txt
+# Default: $FREESURFER_HOME/trctrain/hcp/trainlist.txt
 #
-set trainfile = $FREESURFER_HOME/trctrain/trainlist.txt
+set trainfile = $FREESURFER_HOME/trctrain/hcp/trainlist.txt
 
 # Number of "sticks" (anisotropic diffusion compartments) in the bedpostx
 # ball-and-stick model
