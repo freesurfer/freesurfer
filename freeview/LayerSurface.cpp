@@ -2399,6 +2399,13 @@ bool LayerSurface::LoadRGBFromFile(const QString &filename)
         for (int j = 0; j < 3; j++)
           map.data << MRISseq_vox( mri, i, j, 0, 0 );
       break;
+
+    case MRI_USHRT:
+      for (int i = 0; i < GetNumberOfVertices(); i++)
+        for (int j = 0; j < 3; j++)
+          map.data << MRIUSseq_vox( mri, i, j, 0, 0 );
+      break;
+
     default:
       MRIfree(&mri);
       return false;

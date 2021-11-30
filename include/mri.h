@@ -58,6 +58,7 @@
 #define MRI_FLOAT_COMPLEX  7
 #define MRI_DOUBLE_COMPLEX  8
 #define MRI_RGB             9
+#define MRI_USHRT          10
 
 #define NEAREST_NEIGHBOR_FACE   1
 #define NEAREST_NEIGHBOR_EDGE   2
@@ -927,6 +928,7 @@ int MRIsurfaceRASToRAS(MRI *mri, double xsr, double ysr, double zsr,
 #define MRIclear_bit(mri,x,y,z)  MRIvox(mri,(x)/8,y,z) &= ~(0x001 << ((x)%8))
 
 #define MRISvox(mri,x,y,z)  (((short *)mri->slices[z][y])[x])
+#define MRIUSvox(mri,x,y,z) (((unsigned short *)mri->slices[z][y])[x])
 #define MRIFvox(mri,x,y,z)  (((float *)(mri->slices[z][y]))[x])
 #define MRIvox(mri,x,y,z)   (((BUFTYPE *)mri->slices[z][y])[x])
 #define MRISCvox(mri,x,y,z) (((signed char *)mri->slices[z][y])[x])
@@ -934,6 +936,8 @@ int MRIsurfaceRASToRAS(MRI *mri, double xsr, double ysr, double zsr,
 #define MRILvox(mri,x,y,z)  (((long32 *)mri->slices[z][y])[x])
 
 #define MRISseq_vox(mri,x,y,z,n)  (((short*)\
+mri->slices[z+(n)*mri->depth][y])[x])
+#define MRIUSseq_vox(mri,x,y,z,n) (((unsigned short*)\
 mri->slices[z+(n)*mri->depth][y])[x])
 #define MRISCseq_vox(mri,x,y,z,n) (((signed char*)\
 mri->slices[z+(n)*mri->depth][y])[x])

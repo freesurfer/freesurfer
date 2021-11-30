@@ -30,6 +30,7 @@
 typedef int long32;
 typedef long long long64;
 
+unsigned short swapUShort(unsigned short us);
 short  swapShort(short s) ;
 long32 swapLong32(long32 l);
 long64 swapLong64(long64 l);
@@ -47,6 +48,7 @@ int ByteSwap8(void *buf8, long int nitems);
 
 #define orderIntBytes(i)     swapInt(i)
 #define orderShortBytes(i)   swapShort(i)
+#define orderUShortBytes(i)  swapUShort(i)
 #define orderFloatBytes(i)   swapFloat(i)
 #define orderDoubleBytes(i)  swapDouble(i)
 #define orderLong32Bytes(i)  swapLong32(i)

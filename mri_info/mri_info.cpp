@@ -696,6 +696,7 @@ static void do_file(char *fname)
     case MRI_FLOAT: fprintf(fpout,"float\n") ;  break ;
     case MRI_LONG:  fprintf(fpout,"long\n") ;   break ;
     case MRI_SHORT: fprintf(fpout,"short\n") ;  break ;
+    case MRI_USHRT: fprintf(fpout,"ushrt\n") ;  break ;
     case MRI_INT:   fprintf(fpout,"int\n") ;    break ;
     case MRI_TENSOR: fprintf(fpout,"tensor\n") ; break ;
     }
@@ -761,7 +762,10 @@ static void do_file(char *fname)
     case MRI_SHORT:
       fprintf(fpout,"short\n") ;
       break ;
-    case MRI_INT:
+    case MRI_USHRT:
+      fprintf(fpout,"ushrt\n") ;
+      break ;
+       case MRI_INT:
       fprintf(fpout,"int\n") ;
       break ;
     case MRI_TENSOR:
@@ -1153,6 +1157,7 @@ static void do_file(char *fname)
   printf("          type: %s (%d)\n",
          mri->type == MRI_UCHAR   ? "UCHAR" :
          mri->type == MRI_SHORT   ? "SHORT" :
+	 mri->type == MRI_USHRT   ? "USHRT" :
          mri->type == MRI_INT     ? "INT" :
          mri->type == MRI_LONG    ? "LONG" :
          mri->type == MRI_BITMAP  ? "BITMAP" :
