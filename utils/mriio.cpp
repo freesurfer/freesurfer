@@ -10793,7 +10793,7 @@ static MRI *mghRead(const char *fname, int read_volume, int frame)
     }
 
     int USEVOXELBUF = 0;
-    if (getenv("FS_MGZIO_USEVOXELBUF"))
+    if (mri->ischunked && getenv("FS_MGZIO_USEVOXELBUF"))
     {
       USEVOXELBUF = 1;
       printf("INFO: Environment variable FS_MGZIO_USEVOXELBUF set\n");
@@ -10801,7 +10801,8 @@ static MRI *mghRead(const char *fname, int read_volume, int frame)
       if (buf) free(buf);
 
       int bytes_to_read = bytes * depth * (end_frame-start_frame+1);
-      BUFTYPE *bufsrc = (BUFTYPE*)calloc(bytes_to_read, sizeof(BUFTYPE));
+      //BUFTYPE *bufsrc = (BUFTYPE*)calloc(bytes_to_read, sizeof(BUFTYPE));
+      BUFTYPE *bufsrc = &MRIseq_vox(mri, 0, 0, 0, start_frame);
       if ((int)znzread(bufsrc, sizeof(BUFTYPE), bytes_to_read, fp) != bytes_to_read) {
         znzclose(fp);
         free(bufsrc);
@@ -10814,10 +10815,10 @@ static MRI *mghRead(const char *fname, int read_volume, int frame)
       if (bpv == 8) byteswapbuffloat(bufsrc, bytes_to_read);
 #endif
 
-      void *voxelbuf = &MRIseq_vox(mri, 0, 0, 0, start_frame);
-      memcpy(voxelbuf, bufsrc, bytes_to_read);
+      //void *voxelbuf = &MRIseq_vox(mri, 0, 0, 0, start_frame);
+      //memcpy(voxelbuf, bufsrc, bytes_to_read);
 
-      if (bufsrc) free(bufsrc);
+      //if (bufsrc) free(bufsrc);
     }
     else  // copy voxel point by point
     {
@@ -11139,7 +11140,7 @@ static int mghWrite(MRI *mri, const char *fname, int frame)
   }
 
   int USEVOXELBUF = 0;
-  if (getenv("FS_MGZIO_USEVOXELBUF"))
+  if (mri->ischunked && getenv("FS_MGZIO_USEVOXELBUF"))
   {
     USEVOXELBUF = 1;
     printf("INFO: Environment variable FS_MGZIO_USEVOXELBUF set\n");
