@@ -1760,9 +1760,8 @@ bool FSSurface::GetRASAtVertex ( int inVertex, float ioRAS[3], int surface_type 
 
 bool FSSurface::GetRASAtVertex ( int inVertex, double ioRAS[3], int surface_type )
 {
-  Q_UNUSED(surface_type);
   double surfaceRAS[3];
-  if ( this->GetSurfaceRASAtVertex( inVertex, surfaceRAS ) )
+  if ( this->GetSurfaceRASAtVertex( inVertex, surfaceRAS, surface_type ) )
   {
     this->ConvertSurfaceToRAS( surfaceRAS, ioRAS );
     return true;

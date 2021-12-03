@@ -24,6 +24,8 @@
 #include "LayerPropertyMRI.h"
 #include "LayerSurface.h"
 #include "LayerPropertySurface.h"
+#include "LayerPointSet.h"
+#include "LayerPropertyPointSet.h"
 #include "SurfaceOverlay.h"
 #include "VolumeCropper.h"
 #include "Cursor3D.h"
@@ -52,6 +54,7 @@
 #include "Interactor3DMeasure.h"
 #include "Interactor3DVolumeCrop.h"
 #include "Interactor3DROIEdit.h"
+#include "Interactor3DPointSetEdit.h"
 #include "LayerVolumeTrack.h"
 #include <vtkScalarBarActor.h>
 #include "vtkRGBAColorTransferFunction.h"
@@ -113,6 +116,7 @@ RenderView3D::RenderView3D( QWidget* parent ) : RenderView( parent )
   m_interactorVolumeCrop = new Interactor3DVolumeCrop(this);
   m_interactorROIEdit = new Interactor3DROIEdit(this);
   m_interactorPathEdit = new Interactor3DPathEdit(this);
+  m_interactorPointSetEdit = new Interactor3DPointSetEdit(this);
   connect(m_cursor3D, SIGNAL(Updated()), this, SLOT(RequestRedraw()));
 
   m_cursorInflatedSurf = new Cursor3D(this);
@@ -149,6 +153,9 @@ void RenderView3D::SetInteractionMode( int nMode )
     break;
   case IM_ROIEdit:
     m_interactor = m_interactorROIEdit;
+    break;
+  case IM_PointSetEdit:
+    m_interactor = m_interactorPointSetEdit;
     break;
   case IM_SurfacePath:
   case IM_SurfaceCut:
@@ -736,7 +743,7 @@ int RenderView3D::PickCurrentSurfaceVertex(int posX, int posY, LayerSurface* cur
       props->InitTraversal();
       vtkProp* prop = props->GetNextProp();
       while ( prop )
-      {
+      {        
         if ( vtkActor::SafeDownCast( prop ) )
         {
           picker->AddPickList( prop );
@@ -771,6 +778,64 @@ int RenderView3D::PickCurrentSurfaceVertex(int posX, int posY, LayerSurface* cur
     }
   }
   return nvo;
+}
+
+int RenderView3D::PickCurrentPointSetPoint(int posX, int posY, LayerPointSet *curPointSet)
+{
+  LayerCollection* lc_ps = MainWindow::GetMainWindow()->GetLayerCollection( "PointSet" );
+
+  this->setToolTip("");
+  if ( lc_ps->IsEmpty() )
+  {
+    return -1;
+  }
+
+  posY = this->rect().height() - posY;
+  int nPt = -1;
+  vtkCellPicker* picker = vtkCellPicker::SafeDownCast( this->GetRenderWindow()->GetInteractor()->GetPicker() );
+  if ( picker )
+  {
+    picker->InitializePickList();
+
+    vtkPropCollection* props = GetRenderer()->GetViewProps();
+    if ( props )
+    {
+      props->InitTraversal();
+      vtkProp* prop = props->GetNextProp();
+      while ( prop )
+      {
+        if ( vtkActor::SafeDownCast( prop ) )
+        {
+          picker->AddPickList( prop );
+        }
+        prop = props->GetNextProp();
+      }
+    }
+
+    double pos[3];
+#if VTK_MAJOR_VERSION > 7
+    if (devicePixelRatio() > 1)
+    {
+      posX *= devicePixelRatio();
+      posY *= devicePixelRatio();
+    }
+#endif
+    picker->Pick( posX, posY, 0, GetRenderer() );
+    picker->GetPickPosition( pos );
+
+    vtkProp* prop = picker->GetViewProp();
+    Layer* layer = lc_ps->HasProp( prop );
+    if (layer)
+    {
+      LayerPointSet* ps = (LayerPointSet*)layer;
+      if (ps)
+      {
+        double* voxel_size = ps->GetWorldVoxelSize();
+        nPt = ps->FindPoint(pos, ps->GetProperty()->GetRadius() * qMin( voxel_size[0], qMin( voxel_size[1], voxel_size[2] ) ) * 1.1);
+      }
+    }
+  }
+  return nPt;
 }
 
 void RenderView3D::DoUpdateConnectivityDisplay()
