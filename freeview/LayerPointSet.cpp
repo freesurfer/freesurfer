@@ -671,7 +671,7 @@ int LayerPointSet::FindPoint( double* ras, double tolerance )
 }
 
 // returns index of the point
-int LayerPointSet::AddPoint( double* ras_in, double value )
+int LayerPointSet::AddPoint( double* ras_in, double value, bool bNotToVoxelCenter )
 {
   int nRet;
   int dim[3];
@@ -679,7 +679,7 @@ int LayerPointSet::AddPoint( double* ras_in, double value )
   m_layerRef->GetVolumeInfo(dim, vs);
   double min_tor2 = qMin(vs[0], qMin(vs[1], vs[2]))*3;
   min_tor2 *= min_tor2;
-  if ( GetProperty()->GetSnapToVoxelCenter() )
+  if ( !bNotToVoxelCenter && GetProperty()->GetSnapToVoxelCenter() )
   {
     m_layerRef->SnapToVoxelCenter( ras_in, ras );
   }

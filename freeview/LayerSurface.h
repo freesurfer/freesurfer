@@ -104,7 +104,7 @@ public:
 
   int GetVertexAtSurfaceRAS(double* ras, double* distance );
 
-  bool GetTargetAtVertex( int nVertex, double* ras );
+  bool GetTargetAtVertex( int nVertex, double* ras, int surface_type = -1 );
 
   void GetSurfaceRASAtTarget( double* pos_in, double* ras_out );
 

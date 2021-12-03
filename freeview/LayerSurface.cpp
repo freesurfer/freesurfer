@@ -1314,24 +1314,27 @@ int LayerSurface::GetVertexAtSurfaceRAS(double *ras, double *distance)
   return m_surfaceSource->FindVertexAtSurfaceRAS(ras, distance);
 }
 
-bool LayerSurface::GetTargetAtVertex( int nVertex, double* ras )
+bool LayerSurface::GetTargetAtVertex( int nVertex, double* ras, int surface_type )
 {
   if ( m_surfaceSource == NULL )
   {
     return false;
   }
 
-  bool bRet = m_surfaceSource->GetRASAtVertex( nVertex, ras );
+  bool bRet = m_surfaceSource->GetRASAtVertex( nVertex, ras, surface_type );
   if ( bRet )
   {
     //m_volumeRef->RASToTarget( ras, ras );
     m_surfaceSource->ConvertRASToTarget(ras, ras);
   }
 
-  double* offset = GetProperty()->GetPosition();
-  for ( int i = 0; i < 3; i++ )
+  if (surface_type == m_nCurrentVertex || surface_type == -1)
   {
-    ras[i] += offset[i];
+    double* offset = GetProperty()->GetPosition();
+    for ( int i = 0; i < 3; i++ )
+    {
+      ras[i] += offset[i];
+    }
   }
 
   return bRet;
