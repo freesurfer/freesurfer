@@ -75,6 +75,9 @@ static float transfer_val;
 static int keep_mask_deletion_edits = 0; // if 1, keep mask voxels with value=1
 int DoAbs = 0;
 int DoBB = 0, nPadBB[6];
+double bgnoisescale = 0;
+int bgnoisesign=0;
+int InvertMask = 0;
 
 int main(int argc, char *argv[])
 {
@@ -119,6 +122,32 @@ int main(int argc, char *argv[])
   if (!mri_mask)
     ErrorExit(ERROR_BADPARM, "%s: could not read mask volume %s",
               Progname, argv[2]) ;
+
+  if(InvertMask){
+    double thresh = threshold;
+    if(! ThresholdSet) thresh = 0.5;
+    printf("Inverting and binarizing mask thresh = %g\n",thresh);
+    int c,count=0;
+    for(c=0; c < mri_mask->width; c++){
+      int r,s;
+      double v;
+      for(r=0; r < mri_mask->height; r++){
+	for(s=0; s < mri_mask->depth; s++){
+	  v = MRIgetVoxVal(mri_mask,c,r,s,0);
+	  if(DoAbs) v = fabs(v);
+	  if(v < thresh) {
+	    MRIsetVoxVal(mri_mask,c,r,s,0,1);
+	    count++;
+	  }
+	  else MRIsetVoxVal(mri_mask,c,r,s,0,0);
+	}
+      }
+    }
+    printf("count %d\n",count);
+    printf("Resetting threshold to 0.5\n");
+    threshold = 0.5;
+    ThresholdSet = 1;
+  }
 
   printf("DoAbs = %d\n",DoAbs);
 
@@ -280,6 +309,7 @@ int main(int argc, char *argv[])
       }
     }
   }
+
   if(DoBB){
     printf("Computing bounding box, npad = %d, %d, %d, %d, %d, %d\n",
 	   nPadBB[0],nPadBB[1],nPadBB[2],nPadBB[3],nPadBB[4],nPadBB[5]);
@@ -296,32 +326,45 @@ int main(int argc, char *argv[])
   }
 
   int mask=0;
-  if (do_transfer)
-  {
+  if (do_transfer)  {
     mask = (int)transfer_val;
     out_val = transfer_val;
   }
-  if (dilate > 0)
-  {
+  if (dilate > 0)  {
     int i ;
     for (i = 0 ; i < dilate ; i++)
       MRIdilate(mri_mask, mri_mask);
   }
 
   mri_out = MRImask(mri_in, mri_mask, NULL, mask, out_val) ;
-  if (!mri_out)
-  {
+  if (!mri_out)  {
     ErrorExit(Gerror, "%s: stripping failed", Progname) ;
   }
 
-  if (keep_mask_deletion_edits)
-  {
+  if (keep_mask_deletion_edits)  {
     MRI *mri_tmp ;
     mri_tmp = MRImask(mri_out, mri_mask_orig, NULL, 1, 1) ; // keep voxels = 1
     if (!mri_tmp)
       ErrorExit(Gerror, "%s: stripping failed on keep_mask_deletion_edits",
                 Progname) ;
     MRIfree(&mri_out) ; mri_out = mri_tmp ;
+  }
+
+  if(bgnoisescale > 0){
+    printf("Adding background noise %g %d\n",bgnoisescale,bgnoisesign);
+    for (z = 0 ; z <mri_mask->depth ; z++) {
+      for (y = 0 ; y < mri_mask->height ; y++) {
+	for (x = 0 ; x < mri_mask->width ; x++) {
+ 	  int m  = (int)MRIgetVoxVal(mri_mask, x, y, z, 0);
+	  if(m) continue;
+	  double v = (drand48() - bgnoisesign/2.0)*bgnoisescale;
+	  MRIsetVoxVal(mri_out, x, y, z, 0, v) ;
+	  
+	}
+      }
+    }
+
+
   }
 
   printf("Writing masked volume to %s...", argv[3]) ;
@@ -376,6 +419,14 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "abs"))
   {
     DoAbs = 1;
+  }
+  else if (!stricmp(option, "invert"))
+  {
+    InvertMask = 1;
+  }
+  else if (!stricmp(option, "no-invert"))
+  {
+    InvertMask = 0;
   }
   else if (!stricmp(option, "lh"))
   {
@@ -505,6 +556,11 @@ get_option(int argc, char *argv[])
     Gz = atoi(argv[4]) ;
     nargs = 3 ;
     printf("debugging node (%d, %d, %d)\n", Gx,Gy,Gz) ;
+  }
+  else if (!stricmp(option, "bgnoise")){
+    sscanf(argv[2],"%lf",&bgnoisescale);
+    sscanf(argv[3],"%d",&bgnoisesign);
+    nargs = 2;
   }
   else
   {
