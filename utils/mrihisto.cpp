@@ -278,6 +278,19 @@ static HISTOGRAM *mriHistogramLabel(MRI *mri, int nbins, HISTOGRAM *histo, LABEL
         histo->counts[bin_no]++;
       }
       break;
+    case MRI_USHRT:
+      for (i = 0; i < label->n_points; i++) {
+        // MRIworldToVoxel(mri, label->lv[i].x, label->lv[i].y, label->lv[i].z,
+        //                &xv, &yv, &zv) ;
+        MRIsurfaceRASToVoxel(mri, label->lv[i].x, label->lv[i].y, label->lv[i].z, &xv, &yv, &zv);
+        x = nint(xv);
+        y = nint(yv);
+        z = nint(zv);
+        val = (float)MRIUSvox(mri, x, y, z);
+        bin_no = nint((float)(val - fmin) / (float)bin_size);
+        histo->counts[bin_no]++;
+      }
+      break;
     case MRI_FLOAT:
       for (i = 0; i < label->n_points; i++) {
         // MRIworldToVoxel(mri, label->lv[i].x, label->lv[i].y, label->lv[i].z,
@@ -385,6 +398,19 @@ static HISTOGRAM *mriHistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo, MRI_
           spsrc = &MRISvox(mri, x0, y, z);
           for (x = x0; x < width; x++) {
             bin_no = nint((float)(*spsrc++ - fmin) / (float)histo->bin_size);
+            if (bin_no < 0) bin_no = 0;
+            if (bin_no >= histo->nbins) bin_no = histo->nbins - 1;
+            histo->counts[bin_no]++;
+          }
+        }
+      }
+      break;
+    case MRI_USHRT:
+      for (z = z0; z < depth; z++) {
+        for (y = y0; y < height; y++) {
+          unsigned short* uspsrc = &MRIUSvox(mri, x0, y, z);
+          for (x = x0; x < width; x++) {
+            bin_no = nint((float)(*uspsrc++ - fmin) / (float)histo->bin_size);
             if (bin_no < 0) bin_no = 0;
             if (bin_no >= histo->nbins) bin_no = histo->nbins - 1;
             histo->counts[bin_no]++;
@@ -775,6 +801,11 @@ HISTOGRAM *MRIhistogramLabelRegion(MRI *mri, MRI *mri_labeled, MRI_REGION *regio
             bin_no = nint((float)(val - bmin) / (float)histo->bin_size);
             histo->counts[bin_no]++;
             break;
+          case MRI_USHRT:
+            val = MRIUSvox(mri, x, y, z);
+            bin_no = nint((float)(val - bmin) / (float)histo->bin_size);
+            histo->counts[bin_no]++;
+            break;
           case MRI_FLOAT:
             fval = MRIFvox(mri, x, y, z);
             bin_no = nint((fval - fmin) / (float)histo->bin_size);
@@ -836,6 +867,15 @@ HISTOGRAM *MRIhistogramLabel(MRI *mri, MRI *mri_labeled, int label, int nbins)
             break;
           case MRI_SHORT:
             val = MRISvox(mri, x, y, z);
+            bin_no = nint((float)(val - bmin) / (float)histo->bin_size);
+            if (bin_no < 0)
+              bin_no = 0;
+            else if (bin_no >= histo->nbins)
+              bin_no = histo->nbins - 1;
+            histo->counts[bin_no]++;
+            break;
+          case MRI_USHRT:
+            val = MRIUSvox(mri, x, y, z);
             bin_no = nint((float)(val - bmin) / (float)histo->bin_size);
             if (bin_no < 0)
               bin_no = 0;

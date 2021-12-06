@@ -197,6 +197,9 @@ bool LayerODF::Load(const QString &fn, const QString& vertex_fn, const QString& 
             case MRI_SHORT:
               MRISseq_vox( mri2, j, k, n, i ) = MRISseq_vox( mri, i, j, k, n );
               break;
+            case MRI_USHRT:
+              MRIUSseq_vox( mri2, j, k, n, i ) = MRIUSseq_vox( mri, i, j, k, n );
+              break;
             default:
               break;
             }

@@ -125,8 +125,10 @@ MRI* VolumeFilter::CreateMRIFromVolume( LayerMRI* layer )
     mri_type = MRI_LONG;
     break;
   case VTK_SHORT:
-  case VTK_UNSIGNED_SHORT:
     mri_type = MRI_SHORT;
+    break;
+  case VTK_UNSIGNED_SHORT:
+    mri_type = MRI_USHRT;
     break;
   default:
     break;
@@ -179,6 +181,10 @@ MRI* VolumeFilter::CreateMRIFromVolume( LayerMRI* layer )
           case MRI_SHORT:
             MRISseq_vox( mri, i, j, k, nFrame ) =
                 (int)MyVTKUtils::GetImageDataComponent(ptr, dim, n_frames, i, j, k, nFrame, scalar_type);
+            break;
+          case MRI_USHRT:
+            MRIUSseq_vox( mri, i, j, k, nFrame ) =
+                (unsigned short)MyVTKUtils::GetImageDataComponent(ptr, dim, n_frames, i, j, k, nFrame, scalar_type);
             break;
           default:
             break;
@@ -233,6 +239,10 @@ void VolumeFilter::MapMRIToVolume( MRI* mri, LayerMRI* layer )
           case MRI_SHORT:
             MyVTKUtils::SetImageDataComponent(ptr, dim, n_frames, nX, nY, nZ, nFrame, scalar_type,
                                                 MRISseq_vox( mri, nX, nY, nZ, nFrame ) );
+            break;
+          case MRI_USHRT:
+            MyVTKUtils::SetImageDataComponent(ptr, dim, n_frames, nX, nY, nZ, nFrame, scalar_type,
+                                                MRIUSseq_vox( mri, nX, nY, nZ, nFrame ) );
             break;
           default:
             break;

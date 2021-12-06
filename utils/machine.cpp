@@ -120,6 +120,28 @@ short swapShort(short s)
   return (ss.s);
 }
 
+/* addition for unsigned short */
+typedef union {
+  unsigned short s;
+  unsigned char buf[sizeof(unsigned short)];
+} SWAP_USHORT;
+
+unsigned short swapUShort(unsigned short s)
+{
+  SWAP_USHORT ss;
+  unsigned char c;
+
+  /* first swap bytes in word */
+  // ss.s and ss.buf share the same memory location
+  ss.s = s;
+  c = ss.buf[0];
+  ss.buf[0] = ss.buf[1];
+  ss.buf[1] = c;
+
+  return (ss.s);
+}
+/* end of addition for unsigned short */
+
 typedef union {
   double d;
   long l[sizeof(double) / sizeof(long)];

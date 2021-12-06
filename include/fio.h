@@ -69,6 +69,7 @@ int znzreadShortEx   (short *ps,   znzFile fp) ;
 int znzwriteDouble (double d,  znzFile fp) ;
 int znzwriteFloat  (float f,   znzFile fp) ;
 int znzwriteShort  (short s,   znzFile fp) ;
+int znzwriteUShort (unsigned short s,   znzFile fp) ;
 int znzwriteInt    (int v,     znzFile fp) ;
 int znzwriteLong   (long long v, znzFile fp) ;
 int znzwrite1      (int v,     znzFile fp) ;

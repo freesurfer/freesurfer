@@ -4129,6 +4129,11 @@ MRI *GCAMmorphFromAtlas(MRI *mri_in, GCA_MORPH *gcam, MRI *mri_morphed, int samp
                 MRISseq_vox(mri_morphed, x, y, z, f) = (short)MRIFseq_vox(mri_s_morphed, x, y, z, f);
               }
               break;
+            case MRI_USHRT:
+              for (f = 0; f < frames; f++) {
+                MRIUSseq_vox(mri_morphed, x, y, z, f) = (unsigned short)MRIFseq_vox(mri_s_morphed, x, y, z, f);
+              }
+              break;
             case MRI_FLOAT:
               for (f = 0; f < frames; f++) {
                 MRIFseq_vox(mri_morphed, x, y, z, f) = MRIFseq_vox(mri_s_morphed, x, y, z, f);
@@ -7259,6 +7264,9 @@ MRI *GCAMbuildMostLikelyVolume(GCA_MORPH *gcam, MRI *mri)
                 case MRI_SHORT:
                   MRISseq_vox(mri, x, y, z, n) = nint(val);
                   break;
+                case MRI_USHRT:
+                  MRIUSseq_vox(mri, x, y, z, n) = nint(val);
+                  break;
                 case MRI_UCHAR:
                   MRIseq_vox(mri, x, y, z, n) = nint(val);
                   break;
@@ -7302,6 +7310,9 @@ MRI *GCAMbuildMostLikelyVolume(GCA_MORPH *gcam, MRI *mri)
                 break;
               case MRI_SHORT:
                 MRISseq_vox(mri, x, y, z, n) = nint(val);
+                break;
+              case MRI_USHRT:
+                MRIUSseq_vox(mri, x, y, z, n) = nint(val);
                 break;
               case MRI_UCHAR:
                 MRIseq_vox(mri, x, y, z, n) = nint(val);
@@ -7366,6 +7377,9 @@ MRI *GCAMbuildVolume(GCA_MORPH *gcam, MRI *mri)
                 break;
               case MRI_SHORT:
                 MRISseq_vox(mri, x, y, z, n) = nint(val);
+                break;
+              case MRI_USHRT:
+                MRIUSseq_vox(mri, x, y, z, n) = nint(val);
                 break;
               case MRI_UCHAR:
                 MRIseq_vox(mri, x, y, z, n) = nint(val);

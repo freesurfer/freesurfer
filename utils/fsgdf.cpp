@@ -1744,6 +1744,10 @@ int gdfGetNthSubjectMeasurement(FSGD *gd, int nsubject,
     v = MRISseq_vox(gd->data,x,y,z,nsubject);
     *value = v;
     break;
+  case MRI_USHRT:
+    v = MRIUSseq_vox(gd->data,x,y,z,nsubject);
+    *value = v;
+    break;
   default:
     break ;
   }
