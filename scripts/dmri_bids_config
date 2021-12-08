@@ -32,7 +32,8 @@ set inputargs = ($argv);
 set PWDCMD = `getpwdcmd`;
 
 set inroot = ();
-set outfile  = ();
+set RCF  = ();
+set FSGD  = ();
 set fsdir  = ();
 set trdir  = ();
 set acq  = ();
@@ -334,94 +335,96 @@ else
   echo "INFO: Found $#subjlist DWI scans, $#sesids sessions, $#subjids subjects"
 endif
 
-echo "INFO: Writing TRACULA config file $outfile"
+if ($#RCF) then
+  echo "INFO: Writing TRACULA config file $RCF"
 
-echo "# TRACULA configuration file created by dmri_bids_config"	>  $outfile
-echo								>> $outfile
-echo "# FreeSurfer SUBJECTS_DIR"				>> $outfile
-echo "# Outputs of recon-all are expected to be here"		>> $outfile
-echo "#"							>> $outfile
-echo "setenv SUBJECTS_DIR $fsdir"				>> $outfile
-echo								>> $outfile
-if ($#trdir) then
-  echo "# TRACULA output directory"				>> $outfile
-  echo "#"							>> $outfile
-  echo "set dtroot = ($trdir)"					>> $outfile
-  echo								>> $outfile
-endif
-echo "# Subject IDs"						>> $outfile
-echo "#"							>> $outfile
-echo "set subjlist = ($subjlist)"				>> $outfile
-echo								>> $outfile
-if ($#baselist) then
-  echo "# Longitudinal base template subject IDs"		>> $outfile
-  echo "#"							>> $outfile
-  echo "set baselist = ($baselist)"				>> $outfile
-  echo								>> $outfile
-endif
-echo "# Input DWI volumes (file names relative to dcmroot)"	>> $outfile
-echo "#"							>> $outfile
-echo "set dcmroot = ($dcmroot)"					>> $outfile
-echo "set dcmlist = ($dcmlist)"					>> $outfile
-echo								>> $outfile
-echo "# Input gradient tables (file names relative to dcmroot)"	>> $outfile
-echo "#"							>> $outfile
-echo "set bveclist = ($bveclist)"				>> $outfile
-echo								>> $outfile
-echo "# Input b-value tables (file names relative to dcmroot)"	>> $outfile
-echo "#"							>> $outfile
-echo "set bvallist = ($bvallist)"				>> $outfile
-echo								>> $outfile
-if ($#b0mlist) then
-  echo "# Input B0 field map magnitude volumes"			>> $outfile
-  echo "#"							>> $outfile
-  echo "set b0mlist = ($b0mlist)"				>> $outfile
-  echo								>> $outfile
-endif
-if ($#b0plist) then
-  echo "# Input B0 field map phase volumes"			>> $outfile
-  echo "#"							>> $outfile
-  echo "set b0plist = ($b0plist)"				>> $outfile
-  echo								>> $outfile
-endif
-if ($#dTE) then
-  echo "# Field mapping TE difference"				>> $outfile
-  echo "#"							>> $outfile
-  echo "set dTE = ($dTE)"					>> $outfile
-  echo								>> $outfile
-endif
-if ($#echospacing) then
-  echo "# Echo spacing"						>> $outfile
-  echo "#"							>> $outfile
-  echo "set echospacing = ($echospacing)"			>> $outfile
-  echo								>> $outfile
-endif
-if ($#pedir) then
-  echo "# Phase-encode direction"				>> $outfile
-  echo "#"							>> $outfile
-  echo "set pedir = ($pedir)"					>> $outfile
-  echo								>> $outfile
-endif
-if ($#epifactor) then
-  echo "# EPI factor"						>> $outfile
-  echo "#"							>> $outfile
-  echo "set epifactor = ($epifactor)"				>> $outfile
-  echo								>> $outfile
-endif
-if ($#pedir && $#epifactor && ($#pedir > 1 || $#epifactor > 1)) then
-  echo "# Correct B0 inhomogeneity distortions with topup"	>> $outfile
-  echo "#"							>> $outfile
-  echo "set dob0 = 2"						>> $outfile
-  echo								>> $outfile
-else if ($#b0mlist && $#b0plist && $#echospacing && $#dTE) then
-  echo "# Correct B0 inhomogeneity distortions with field maps"	>> $outfile
-  echo "#"							>> $outfile
-  echo "set dob0 = 1"						>> $outfile
-  echo								>> $outfile
-endif
+  echo "# TRACULA configuration file created by dmri_bids_config"	>  $RCF
+  echo									>> $RCF
+  echo "# FreeSurfer SUBJECTS_DIR"					>> $RCF
+  echo "# Outputs of recon-all are expected to be here"			>> $RCF
+  echo "#"								>> $RCF
+  echo "setenv SUBJECTS_DIR $fsdir"					>> $RCF
+  echo									>> $RCF
+  if ($#trdir) then
+    echo "# TRACULA output directory"					>> $RCF
+    echo "#"								>> $RCF
+    echo "set dtroot = ($trdir)"					>> $RCF
+    echo								>> $RCF
+  endif
+  echo "# Subject IDs"							>> $RCF
+  echo "#"								>> $RCF
+  echo "set subjlist = ($subjlist)"					>> $RCF
+  echo									>> $RCF
+  if ($#baselist) then
+    echo "# Longitudinal base template subject IDs"			>> $RCF
+    echo "#"								>> $RCF
+    echo "set baselist = ($baselist)"					>> $RCF
+    echo								>> $RCF
+  endif
+  echo "# Input DWI volumes (file names relative to dcmroot)"		>> $RCF
+  echo "#"								>> $RCF
+  echo "set dcmroot = ($dcmroot)"					>> $RCF
+  echo "set dcmlist = ($dcmlist)"					>> $RCF
+  echo									>> $RCF
+  echo "# Input gradient tables (file names relative to dcmroot)"	>> $RCF
+  echo "#"								>> $RCF
+  echo "set bveclist = ($bveclist)"					>> $RCF
+  echo									>> $RCF
+  echo "# Input b-value tables (file names relative to dcmroot)"	>> $RCF
+  echo "#"								>> $RCF
+  echo "set bvallist = ($bvallist)"					>> $RCF
+  echo									>> $RCF
+  if ($#b0mlist) then
+    echo "# Input B0 field map magnitude volumes"			>> $RCF
+    echo "#"								>> $RCF
+    echo "set b0mlist = ($b0mlist)"					>> $RCF
+    echo								>> $RCF
+  endif
+  if ($#b0plist) then
+    echo "# Input B0 field map phase volumes"				>> $RCF
+    echo "#"								>> $RCF
+    echo "set b0plist = ($b0plist)"					>> $RCF
+    echo								>> $RCF
+  endif
+  if ($#dTE) then
+    echo "# Field mapping TE difference"				>> $RCF
+    echo "#"								>> $RCF
+    echo "set dTE = ($dTE)"						>> $RCF
+    echo								>> $RCF
+  endif
+  if ($#echospacing) then
+    echo "# Echo spacing"						>> $RCF
+    echo "#"								>> $RCF
+    echo "set echospacing = ($echospacing)"				>> $RCF
+    echo								>> $RCF
+  endif
+  if ($#pedir) then
+    echo "# Phase-encode direction"					>> $RCF
+    echo "#"								>> $RCF
+    echo "set pedir = ($pedir)"						>> $RCF
+    echo								>> $RCF
+  endif
+  if ($#epifactor) then
+    echo "# EPI factor"							>> $RCF
+    echo "#"								>> $RCF
+    echo "set epifactor = ($epifactor)"					>> $RCF
+    echo								>> $RCF
+  endif
+  if ($#pedir && $#epifactor && ($#pedir > 1 || $#epifactor > 1)) then
+    echo "# Correct B0 inhomogeneity distortions with topup"		>> $RCF
+    echo "#"								>> $RCF
+    echo "set dob0 = 2"							>> $RCF
+    echo								>> $RCF
+  else if ($#b0mlist && $#b0plist && $#echospacing && $#dTE) then
+    echo "# Correct B0 inhomogeneity distortions with field maps"	>> $RCF
+    echo "#"								>> $RCF
+    echo "set dob0 = 1"							>> $RCF
+    echo								>> $RCF
+  endif
 
-echo "# For more options that you can set in this file, see:"	>> $outfile
-echo "# https://surfer.nmr.mgh.harvard.edu/fswiki/dmrirc"	>> $outfile
+  echo "# For more options that you can set in this file, see:"		>> $RCF
+  echo "# https://surfer.nmr.mgh.harvard.edu/fswiki/dmrirc"		>> $RCF
+endif
 
 # Convert BIDS participants to FSGD
 if (-e $inroot/participants.tsv) then
@@ -463,18 +466,16 @@ if (-e $inroot/participants.tsv) then
     set classids = ($classids $class)
   end
 
-  set fsgd = $outfile.fsgd
+  echo "INFO: Writing FreeSurfer Group Descriptor (FSGD) file $FSGD"
 
-  echo "INFO: Writing FreeSurfer Group Descriptor (FSGD) file $fsgd"
-
-  echo "GroupDescriptorFile 1"					>  $fsgd
-  echo "Title "`basename $inroot`				>> $fsgd
+  echo "GroupDescriptorFile 1"					>  $FSGD
+  echo "Title "`basename $inroot`				>> $FSGD
 
   foreach class (`printf '%s\n' $classids | sort --unique`)
-    echo "Class $class"						>> $fsgd
+    echo "Class $class"						>> $FSGD
   end
 
-  echo "Variables $contvars"					>> $fsgd
+  echo "Variables $contvars"					>> $FSGD
 
   @ isubj = 1
   while ($isubj <= $#subjids)
@@ -487,10 +488,12 @@ if (-e $inroot/participants.tsv) then
       set cvalues = (${cvalues} $values[$ivar])
     end
 
-    echo "Input $subj $class $cvalues"				>> $fsgd
+    echo "Input $subj $class $cvalues"				>> $FSGD
 
     @ isubj = $isubj + 1
   end
+else
+  echo "INFO: No participants.tsv file found in $inroot"
 endif
 
 echo "Done"
@@ -524,9 +527,14 @@ while( $#argv != 0 )
       endif
       breaksw
 
-    case "--out"
+    case "--c"
       if ($#argv == 0) goto arg1err;
-      set outfile = $argv[1]; shift;
+      set RCF = $argv[1]; shift;
+      breaksw
+
+    case "--f"
+      if ($#argv == 0) goto arg1err;
+      set FSGD = $argv[1]; shift;
       breaksw
 
     case "--fsdir"
@@ -576,10 +584,17 @@ check_params:
     exit 1;
   endif
 
-  if(! $#outfile) then
-    echo "ERROR: must specify output configuration file"
+  if(! $#RCF && ! $#FSGD) then
+    echo "ERROR: must specify an output (TRACULA config file or FSGD file)"
     exit 1;
   endif
+
+  if ($#RCF && ! $#FSGD) then
+    set FSGD = $RCF.fsgd
+  endif
+
+  if (-e $RCF)  mv -f $RCF  $RCF.orig
+  if (-e $FSGD) mv -f $FSGD $FSGD.orig
 
   if(! $#fsdir) then
     if(! $?SUBJECTS_DIR) then
@@ -604,17 +619,21 @@ usage_exit:
   echo ""
   echo "USAGE: dmri_bids_config"
   echo ""
-  echo "Required inputs"
+  echo "Required arguments"
   echo "   --in <directory>:"
-  echo "     Path to the input data (the top-level BIDS directory, not a"
-  echo "     single subject or session directory)"
-  echo "   --out <file>:"
-  echo "     Output TRACULA configuration file"
+  echo "     Path to the input data (the top-level BIDS directory for the"
+  echo "     study, not a single subject or session directory)"
   echo ""
-  echo "Optional inputs"
+  echo "At least one of the following two arguments is required"
+  echo "   --c <file>:"
+  echo "     Output TRACULA configuration file"
+  echo "   --f <file>:"
+  echo "     Output FSGD file (default: append .fsgd to the argument of --c)"
+  echo ""
+  echo "Optional arguments"
   echo "   --fsdir <directory>:"
   echo "     FreeSurfer SUBJECTS_DIR for this study"
-  echo "     (Must either specify here or with: setenv SUBJECTS_DIR ...)"
+  echo "     (Must be specified, either here or with: setenv SUBJECTS_DIR ...)"
   echo "   --trdir <directory>:"
   echo "     Output TRACULA directory for this study"
   echo "     (If not specified, TRACULA will use the FreeSurfer SUBJECTS_DIR)"
