@@ -263,6 +263,8 @@ if ($#baselist == 0) then	#--->>> A single time point for each subject
       set my_epifactor    = `printf '%s\n' $epifactor    | sed -n "$cmd"`
     if ($#pedir > 1) \
       set my_pedir        = `printf '%s\n' $pedir        | sed -n "$cmd"`
+    if ($#dTE > 1) \
+      set my_dTE          = `printf '%s\n' $dTE          | sed -n "$cmd"`
 
     if (-e $trainfile) then
       if ($do1out) then
@@ -504,7 +506,11 @@ if ($#baselist == 0) then	#--->>> A single time point for each subject
     else
       echo "set pedir = ($pedir)"					>> $RCF
     endif
-    echo "set dTE = ($dTE)"						>> $RCF
+    if ($#dTE > 1) then
+      echo "set dTE = ($my_dTE)"					>> $RCF
+    else
+      echo "set dTE = ($dTE)"						>> $RCF
+    endif
     echo "set doeddy = ($doeddy)"					>> $RCF
     echo "set dorotbvecs = ($dorotbvecs)"				>> $RCF
     echo "set thrbet = ($thrbet)"					>> $RCF
@@ -704,6 +710,8 @@ else				#--->>> Multiple time points for each subject
           set my_epifactor    = `printf '%s\n' $epifactor    | sed -n "$cmd"`
         if ($#pedir > 1) \
           set my_pedir        = `printf '%s\n' $pedir        | sed -n "$cmd"`
+        if ($#dTE > 1) \
+          set my_dTE          = `printf '%s\n' $dTE          | sed -n "$cmd"`
 
         set subjdirs = ($subjdirs $dtdir)
         set basedirs = ($basedirs $dtroot/$bsubj)
@@ -953,12 +961,17 @@ else				#--->>> Multiple time points for each subject
         else
           echo "set pedir = ($pedir)"					>> $RCF
         endif
+        if ($#dTE > 1) then
+          echo "set dTE = ($my_dTE)"					>> $RCF
+        else
+          echo "set dTE = ($dTE)"					>> $RCF
+        endif
       else
         echo "set echospacing = ()"					>> $RCF
         echo "set epifactor = ()"					>> $RCF
         echo "set pedir = ()"						>> $RCF
+        echo "set dTE = ()"						>> $RCF
       endif
-      echo "set dTE = ($dTE)"						>> $RCF
       echo "set doeddy = ($doeddy)"					>> $RCF
       echo "set dorotbvecs = ($dorotbvecs)"				>> $RCF
       echo "set thrbet = ($thrbet)"					>> $RCF

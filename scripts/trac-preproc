@@ -972,6 +972,12 @@ if ($docorr && ! $dobase) then
         set esp = $echospacing[$imap]
       endif
       
+      if ($#dTE == 1) then
+        set tediff = $dTE
+      else
+        set tediff = $dTE[$imap]
+      endif
+      
       set cmd = epidewarp.fsl
       set cmd = ($cmd --mag $magbase.nii.gz)
       if (`mri_info --nframes $phabase.nii.gz` == 2) then
@@ -984,7 +990,7 @@ if ($docorr && ! $dobase) then
       endif
       set cmd = ($cmd --exf $dwidir/lowb.nii.gz)
       set cmd = ($cmd --epi $dwibase.nii.gz)
-      set cmd = ($cmd --tediff $dTE --esp $esp)
+      set cmd = ($cmd --tediff $tediff --esp $esp)
       set cmd = ($cmd --vsm $dwidir/vsm.nii.gz)
       set cmd = ($cmd --epidw $outbase.nii.gz)
       echo $cmd |& tee -a $LF |& tee -a $CF
