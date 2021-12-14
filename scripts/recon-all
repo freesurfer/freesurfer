@@ -3044,7 +3044,7 @@ if($DoFill) then
   set filledman = filled.mgz
   set filledauto = filled.auto.mgz
   if($FS_ALLOW_FILLED_EDIT) then
-    set cmd = ($cmd -ctab $FREESURFER/SubCorticalMassLUT.txt)
+    set cmd = ($cmd -ctab $FREESURFER_HOME/SubCorticalMassLUT.txt)
     if(-e $filledauto && -e $filledman) then
       set fillededits = ../tmp/filled.edits.txt
       set cmd = ($cmd -auto-man $filledauto $filledman $fillededits)

@@ -1,0 +1,645 @@
+#! /bin/tcsh -f
+
+#
+# dmri_bids_config
+#
+# Generate a TRACULA configuration file from BIDS-formatted diffusion MRI data
+#
+# BIDS MRI specification:
+#   https://bids-specification.readthedocs.io/en/stable/04-modality-specific-files/01-magnetic-resonance-imaging-data.html
+#
+# Example DWI dataset:
+#   https://openneuro.org/datasets/ds000206/versions/1.0.0
+#
+#
+# Original Author: Anastasia Yendiki
+#
+# Copyright © 2021 The General Hospital Corporation (Boston, MA) "MGH"
+#
+# Terms and conditions for use, reproduction, distribution and contribution
+# are found in the 'FreeSurfer Software License Agreement' contained
+# in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+#
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+#
+# Reporting: freesurfer@nmr.mgh.harvard.edu
+#
+#
+
+set VERSION = 'dmri_bids_config @FS_VERSION@';
+set inputargs = ($argv);
+
+set PWDCMD = `getpwdcmd`;
+
+set inroot = ();
+set RCF  = ();
+set FSGD  = ();
+set fsdir  = ();
+set trdir  = ();
+set acq  = ();
+
+set n = `echo $argv | grep version | wc -l`
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+if($#argv == 0) then
+  goto usage_exit;
+  exit 1;
+endif
+
+source $FREESURFER_HOME/sources.csh
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+# Find all subjects in the input BIDS dataset
+set subjids = `cd $inroot; echo sub-*`
+
+if ($#subjids == 0) then
+  echo "WARN: No subjects found in $inroot"
+endif
+
+set dcmroot = `cd $inroot; pwd`
+
+set subjlist = ()
+set baselist = ()
+set dcmlist = ()
+set bveclist = ()
+set bvallist = ()
+set b0mlist = ()
+set b0plist = ()
+set dTE = ()
+set echospacing = ()
+set pedir = ()
+set epifactor = ()
+
+foreach subj ($subjids)
+  echo "INFO: Parsing subject $subj"
+
+  # Find all sessions with diffusion MRI scans for this subject
+  if (-d $inroot/$subj/dwi) then		# Single session
+    set dwilist  = dwi
+  else
+    set seslist = `cd $inroot/$subj; echo ses-*`
+
+    set dwilist = ()
+    foreach ses ($seslist)	
+      if (-d $inroot/$subj/$ses/dwi) then	# Multiple sessions
+        set dwilist  = ($dwilist  $ses/dwi)
+      endif
+    end
+  endif
+
+  if ($#dwilist == 0) then
+    echo "WARN: No DWI scans found for subject $subj"
+  endif
+
+  foreach dwi ($dwilist)
+    if ($#acq > 0) then
+      set scanlist = `cd $inroot/$subj/$dwi; echo *_acq-${acq}_run-*_dwi.nii*`
+    else
+      set scanlist = `cd $inroot/$subj/$dwi; echo *_run-*_dwi.nii*`
+    endif
+
+    if ($#scanlist == 0) then
+      if ($#acq > 0) then
+        echo "WARN: No DWI volumes found in $inroot/$subj/$dwi with acq-$acq"
+      else
+        echo "WARN: No DWI volumes found in $inroot/$subj/$dwi"
+      endif
+    endif
+
+    if ($dwi == dwi) then
+      set ses = ()
+    else
+      set ses = `echo $dwi | sed 's/\/dwi$//'`
+    endif
+
+    foreach scan ($scanlist)
+      # List of subjects (or time-points and subjects)
+      if ($#ses == 0) then
+        set subjlist = ($subjlist $subj)
+      else
+        set subjlist = ($subjlist $ses)
+      endif
+
+      set baselist = ($baselist $subj)
+
+      # List of input DWI scans
+      set dcmlist = ($dcmlist $subj/$dwi/$scan)
+
+      # List of input gradient tables
+      set fname = `echo $scan | awk -v FS=.nii '{print $1}'`.bvec
+        
+      if (! -e $inroot/$subj/$dwi/$fname) then
+        echo "ERROR: Missing $inroot/$subj/$dwi/$fname"
+        exit 1;
+      endif
+
+      set bveclist = ($bveclist $subj/$dwi/$fname)
+
+      # List of input b-value tables
+      set fname = `echo $scan | awk -v FS=.nii '{print $1}'`.bval
+      if (! -e $inroot/$subj/$dwi/$fname) then
+        echo "ERROR: Missing $inroot/$subj/$dwi/$fname"
+        exit 1;
+      endif
+
+      set bvallist = ($bvallist $subj/$dwi/$fname)
+
+      # Information needed to correct for B0 inhomogeneity distortions
+      set fname = `echo $scan | awk -v FS=.nii '{print $1}'`.json
+      set json = $inroot/$subj/$dwi/$fname
+      if (! -e $json)	continue
+
+      set esp = `awk '$1~/"EffectiveEchoSpacing":/ {print $2}' $json`
+      set esp = `echo $esp | sed 's/,$//'`
+      set echospacing = ($echospacing $esp)
+
+      set ped = `awk '$1~/"PhaseEncodingDirection":/ {print $2}' $json`
+      set ped = `echo $ped | sed 's/,$//'`
+      if ($#ped) then
+        set dim = `echo $ped | awk '{if ($0~/i/) print 1; \
+                                     if ($0~/j/) print 2; \
+                                     if ($0~/k/) print 3'}`
+        set sgn = `echo $ped | awk '{if ($0~/-/) {print -1} \
+                                     else print 1'}`
+
+        set orient = `mri_info --orientation $inroot/$subj/$dwi/$scan`
+        set orient = $orient[$#orient]
+
+        set pemax = `echo $orient | awk -v dim=$dim '{print substr($0,dim,1)}'`
+        set pemin = `echo $pemax | awk '{if ($0~/L/) print "R"; \
+                                         if ($0~/R/) print "L"; \
+                                         if ($0~/A/) print "P"; \
+                                         if ($0~/P/) print "A"; \
+                                         if ($0~/S/) print "I"; \
+                                         if ($0~/I/) print "S"'}`
+
+        if ($sgn == 1) then
+          set ped = $pemin$pemax
+        else
+          set ped = $pemax$pemin
+        endif
+
+        set pedir = ($pedir $ped)
+      endif
+
+      set rot = `awk '$1~/"TotalReadoutTime":/ {print $2}' $json`
+      set rot = `echo $rot | sed 's/,$//'`
+      if ($#esp && $#rot) then
+        set epif = `echo "$rot / ($esp * .001) + 1" | bc -l`
+        set epifactor = ($epifactor $epif)
+      endif
+
+      # Check if a separate field map scan was acquired in this session
+      set fmap = `echo $dwi | sed 's/dwi$/fmap/'`
+      if (! -d $inroot/$subj/$fmap)	continue
+
+      # Check if there is a specific field map intended for this DWI scan
+      set flist = ()
+      foreach json (`cd $inroot/$subj/$fmap; echo *.json`)
+        grep -q \"$dwi/$scan\" $inroot/$subj/$fmap/$json
+
+        if (! $status) then
+          set fname = `echo $json | sed 's/json$/nii/'`
+          set fname = `cd $inroot/$subj/$fmap; echo $fname*`
+          set flist = ($flist $fname)
+        endif
+      end
+
+      # If not, use the first available field map
+      if ($#flist == 0) then
+        set flist = (`cd $inroot/$subj/$fmap; echo *.nii.gz *.nii`)
+      endif
+
+      # Check if there is a phase difference volume
+      set pname = `printf '%s\n' $flist | awk '{if ($0~/phasediff.nii/) print}'`
+
+      if ($#pname) then			# Find a corresponding magnitude volume
+        set stem = `echo $pname | awk -v FS=_phasediff.nii '{print $1}'`
+        set mname = `cd $inroot/$subj/$fmap; echo ${stem}_magnitude[12].nii*`
+
+        if ($#mname) then
+          set mname = $mname[1]
+
+          set json = `echo $pname | awk -v FS=.nii '{print $1}'`.json
+          set json = $inroot/$subj/$fmap/$json
+
+          if (-e $json) then
+            set te1 = `awk '$1~/"EchoTime1":/ {print $2}' $json`
+            set te1 = `echo $te1 | sed 's/,$//'`
+
+            set te2 = `awk '$1~/"EchoTime2":/ {print $2}' $json`
+            set te2 = `echo $te2 | sed 's/,$//'`
+
+            if ($#te1 && $#te2) then
+              set tediff = `echo "$te2 - $te1" | bc -l | sed 's/-//'`
+
+              set dTE = ($dTE $tediff)
+              set b0mlist = ($b0mlist $subj/$fmap/$mname)
+              set b0plist = ($b0plist $subj/$fmap/$pname)
+
+              continue
+            endif
+          endif
+        endif
+      endif
+
+      # Check if there are two phase volumes
+      set pname1 = `printf '%s\n' $flist | awk '{if ($0~/phase1.nii/) print}'`
+      set pname2 = `printf '%s\n' $flist | awk '{if ($0~/phase2.nii/) print}'`
+
+      if ($#pname1 && $#pname2) then	# Find a corresponding magnitude volume
+        set stem = `echo $pname1 | awk -v FS=_phase1.nii '{print $1}'`
+        set mname = `cd $inroot/$subj/$fmap; echo ${stem}_magnitude[12].nii*`
+
+        if ($#mname) then
+          set mname = $mname[1]
+
+          set json = `echo $pname1 | awk -v FS=.nii '{print $1}'`.json
+          set json = $inroot/$subj/$fmap/$json
+
+          set te1 = ()
+          if (-e $json) then
+            set te1 = `awk '$1~/"EchoTime":/ {print $2}' $json`
+            set te1 = `echo $te1 | sed 's/,$//'`
+          endif
+
+          set json = `echo $pname2 | awk -v FS=.nii '{print $1}'`.json
+          set json = $inroot/$subj/$fmap/$json
+
+          set te2 = ()
+          if (-e $json) then
+            set te2 = `awk '$1~/"EchoTime":/ {print $2}' $json`
+            set te2 = `echo $te2 | sed 's/,$//'`
+          endif
+
+          if ($#te1 && $#te2) then
+            # Concatenate the two phase volumes and save under derivatives
+            set deriv = derivatives/freesurfer
+            mkdir -p $inroot/$deriv/$subj/$fmap
+
+            set pname = ${stem}_phase12.nii.gz
+
+            set cmd = mri_concat
+            set cmd = ($cmd --i $inroot/$subj/$fmap/$pname1)
+            set cmd = ($cmd     $inroot/$subj/$fmap/$pname2)
+            set cmd = ($cmd --o $inroot/$deriv/$subj/$fmap/$pname)
+            echo $cmd
+            $cmd
+
+            set tediff = `echo "$te2 - $te1" | bc -l | sed 's/-//'`
+
+            set dTE = ($dTE $tediff)
+            set b0mlist = ($b0mlist $subj/$fmap/$mname)
+            set b0plist = ($b0plist $deriv/$subj/$fmap/$pname)
+          endif
+        endif
+      endif
+    end
+  end
+end
+
+if (`printf '%s\n' $dTE | sort --unique | wc -w` == 1) then
+  set dTE = $dTE[1]
+endif
+
+if (`printf '%s\n' $echospacing | sort --unique | wc -w` == 1) then
+  set echospacing = $echospacing[1]
+endif
+
+if (`printf '%s\n' $pedir | sort --unique | wc -w` == 1) then
+  set pedir = $pedir[1]
+endif
+
+if (`printf '%s\n' $epifactor | sort --unique | wc -w` == 1) then
+  set epifactor = $epifactor[1]
+endif
+
+# Is this a cross-sectional study?
+set subjids = `printf '%s\n' $baselist | sort --unique`
+set sesids  = `printf '%s\n' $subjlist | sort --unique`
+
+if ($#subjids == $#sesids) then
+  set baselist = ()
+  echo "INFO: This is a cross-sectional study (one session per subject)"
+  echo "INFO: Found $#subjlist DWI scans, $#subjids subjects"
+else
+  echo "INFO: This is a longitudinal study (multiple sessions per subject)"
+  echo "INFO: Found $#subjlist DWI scans, $#sesids sessions, $#subjids subjects"
+endif
+
+if ($#RCF) then
+  echo "INFO: Writing TRACULA config file $RCF"
+
+  echo "# TRACULA configuration file created by dmri_bids_config"	>  $RCF
+  echo									>> $RCF
+  echo "# FreeSurfer SUBJECTS_DIR"					>> $RCF
+  echo "# Outputs of recon-all are expected to be here"			>> $RCF
+  echo "#"								>> $RCF
+  echo "setenv SUBJECTS_DIR $fsdir"					>> $RCF
+  echo									>> $RCF
+  if ($#trdir) then
+    echo "# TRACULA output directory"					>> $RCF
+    echo "#"								>> $RCF
+    echo "set dtroot = ($trdir)"					>> $RCF
+    echo								>> $RCF
+  endif
+  echo "# Subject IDs"							>> $RCF
+  echo "#"								>> $RCF
+  echo "set subjlist = ($subjlist)"					>> $RCF
+  echo									>> $RCF
+  if ($#baselist) then
+    echo "# Longitudinal base template subject IDs"			>> $RCF
+    echo "#"								>> $RCF
+    echo "set baselist = ($baselist)"					>> $RCF
+    echo								>> $RCF
+  endif
+  echo "# Input DWI volumes (file names relative to dcmroot)"		>> $RCF
+  echo "#"								>> $RCF
+  echo "set dcmroot = ($dcmroot)"					>> $RCF
+  echo "set dcmlist = ($dcmlist)"					>> $RCF
+  echo									>> $RCF
+  echo "# Input gradient tables (file names relative to dcmroot)"	>> $RCF
+  echo "#"								>> $RCF
+  echo "set bveclist = ($bveclist)"					>> $RCF
+  echo									>> $RCF
+  echo "# Input b-value tables (file names relative to dcmroot)"	>> $RCF
+  echo "#"								>> $RCF
+  echo "set bvallist = ($bvallist)"					>> $RCF
+  echo									>> $RCF
+  if ($#b0mlist) then
+    echo "# Input B0 field map magnitude volumes"			>> $RCF
+    echo "#"								>> $RCF
+    echo "set b0mlist = ($b0mlist)"					>> $RCF
+    echo								>> $RCF
+  endif
+  if ($#b0plist) then
+    echo "# Input B0 field map phase volumes"				>> $RCF
+    echo "#"								>> $RCF
+    echo "set b0plist = ($b0plist)"					>> $RCF
+    echo								>> $RCF
+  endif
+  if ($#dTE) then
+    echo "# Field mapping TE difference"				>> $RCF
+    echo "#"								>> $RCF
+    echo "set dTE = ($dTE)"						>> $RCF
+    echo								>> $RCF
+  endif
+  if ($#echospacing) then
+    echo "# Echo spacing"						>> $RCF
+    echo "#"								>> $RCF
+    echo "set echospacing = ($echospacing)"				>> $RCF
+    echo								>> $RCF
+  endif
+  if ($#pedir) then
+    echo "# Phase-encode direction"					>> $RCF
+    echo "#"								>> $RCF
+    echo "set pedir = ($pedir)"						>> $RCF
+    echo								>> $RCF
+  endif
+  if ($#epifactor) then
+    echo "# EPI factor"							>> $RCF
+    echo "#"								>> $RCF
+    echo "set epifactor = ($epifactor)"					>> $RCF
+    echo								>> $RCF
+  endif
+  if ($#pedir && $#epifactor && ($#pedir > 1 || $#epifactor > 1)) then
+    echo "# Correct B0 inhomogeneity distortions with topup"		>> $RCF
+    echo "#"								>> $RCF
+    echo "set dob0 = 2"							>> $RCF
+    echo								>> $RCF
+  else if ($#b0mlist && $#b0plist && $#echospacing && $#dTE) then
+    echo "# Correct B0 inhomogeneity distortions with field maps"	>> $RCF
+    echo "#"								>> $RCF
+    echo "set dob0 = 1"							>> $RCF
+    echo								>> $RCF
+  endif
+
+  echo "# For more options that you can set in this file, see:"		>> $RCF
+  echo "# https://surfer.nmr.mgh.harvard.edu/fswiki/dmrirc"		>> $RCF
+endif
+
+# Convert BIDS participants to FSGD
+if (-e $inroot/participants.tsv) then
+  echo "INFO: Parsing $inroot/participants.tsv"
+
+  set varlist = `awk 'NR==1' $inroot/participants.tsv`
+  set nrec = `awk 'NR>1' $inroot/participants.tsv | wc -l`
+
+  # Find discrete v. continous variables
+  set idisc = ()
+  set icont = ()
+  set contvars = ()
+  @ ivar = 2
+  while ($ivar <= $#varlist)
+    set nalpha = `awk -v ivar=$ivar \
+                      '{if (NR > 1 && $ivar ~ /[a-zA-Z]/) print $ivar}' \
+                      $inroot/participants.tsv | wc -l`
+    
+    if ($nalpha == $nrec) then
+      set idisc = ($idisc $ivar)
+    else
+      set icont = ($icont $ivar)
+      set contvars = ($contvars $varlist[$ivar])
+    endif
+
+    @ ivar = $ivar + 1
+  end
+
+  set classids = ()
+
+  foreach subj ($subjids)
+    set values = `grep "^${subj}[	]" $inroot/participants.tsv`
+
+    set class = ()
+    foreach ivar ($idisc)
+      set class = ${class}$values[$ivar]
+    end
+
+    set classids = ($classids $class)
+  end
+
+  echo "INFO: Writing FreeSurfer Group Descriptor (FSGD) file $FSGD"
+
+  echo "GroupDescriptorFile 1"					>  $FSGD
+  echo "Title "`basename $inroot`				>> $FSGD
+
+  foreach class (`printf '%s\n' $classids | sort --unique`)
+    echo "Class $class"						>> $FSGD
+  end
+
+  echo "Variables $contvars"					>> $FSGD
+
+  @ isubj = 1
+  while ($isubj <= $#subjids)
+    set subj = $subjids[$isubj]
+    set class = $classids[$isubj]
+    set values = `grep "^${subj}[	]" $inroot/participants.tsv`
+
+    set cvalues = ()
+    foreach ivar ($icont)
+      set cvalues = (${cvalues} $values[$ivar])
+    end
+
+    echo "Input $subj $class $cvalues"				>> $FSGD
+
+    @ isubj = $isubj + 1
+  end
+else
+  echo "INFO: No participants.tsv file found in $inroot"
+endif
+
+echo "Done"
+
+exit 0;
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+
+  switch($flag)
+
+    case "--in"
+      if ($#argv == 0) goto arg1err;
+      set inroot = $argv[1]; shift;
+      if(! -e $inroot) then
+        echo "ERROR: $inroot does not exist"
+        exit 1;
+      endif
+      if(! -d $inroot) then
+        echo "ERROR: $inroot is not a directory"
+        exit 1;
+      endif
+      if(! -e $inroot/dataset_description.json) then
+        echo "ERROR: $inroot does not appear to be a top-level BIDS directory"
+        echo "ERROR: (no dataset_description.json file found)"
+        exit 1;
+      endif
+      breaksw
+
+    case "--c"
+      if ($#argv == 0) goto arg1err;
+      set RCF = $argv[1]; shift;
+      breaksw
+
+    case "--f"
+      if ($#argv == 0) goto arg1err;
+      set FSGD = $argv[1]; shift;
+      breaksw
+
+    case "--fsdir"
+      if ($#argv == 0) goto arg1err;
+      set fsdir = $argv[1]; shift;
+      breaksw
+
+    case "--trdir"
+      if ($#argv == 0) goto arg1err;
+      set trdir = $argv[1]; shift;
+      breaksw
+
+    case "--acq"
+      if ($#argv == 0) goto arg1err;
+      set acq = $argv[1]; shift;
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo "ERROR: $flag not regocnized"
+      exit 1;
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if(! $#inroot) then
+    echo "ERROR: must specify input BIDS directory"
+    exit 1;
+  endif
+
+  if(! $#RCF && ! $#FSGD) then
+    echo "ERROR: must specify an output (TRACULA config file or FSGD file)"
+    exit 1;
+  endif
+
+  if ($#RCF && ! $#FSGD) then
+    set FSGD = $RCF.fsgd
+  endif
+
+  if (-e $RCF)  mv -f $RCF  $RCF.orig
+  if (-e $FSGD) mv -f $FSGD $FSGD.orig
+
+  if(! $#fsdir) then
+    if(! $?SUBJECTS_DIR) then
+      echo "ERROR: must specify FreeSurfer SUBJECTS_DIR"
+      exit 1;
+    else
+      set fsdir = $SUBJECTS_DIR
+    endif
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: dmri_bids_config"
+  echo ""
+  echo "Required arguments"
+  echo "   --in <directory>:"
+  echo "     Path to the input data (the top-level BIDS directory for the"
+  echo "     study, not a single subject or session directory)"
+  echo ""
+  echo "At least one of the following two arguments is required"
+  echo "   --c <file>:"
+  echo "     Output TRACULA configuration file"
+  echo "   --f <file>:"
+  echo "     Output FSGD file (default: append .fsgd to the argument of --c)"
+  echo ""
+  echo "Optional arguments"
+  echo "   --fsdir <directory>:"
+  echo "     FreeSurfer SUBJECTS_DIR for this study"
+  echo "     (Must be specified, either here or with: setenv SUBJECTS_DIR ...)"
+  echo "   --trdir <directory>:"
+  echo "     Output TRACULA directory for this study"
+  echo "     (If not specified, TRACULA will use the FreeSurfer SUBJECTS_DIR)"
+  echo "   --acq <name>:"
+  echo "     Only use diffusion MRI scans collected with this acquisition"
+  echo "     (The name of the NIfTI volumes in BIDS must include the string"
+  echo "     acq- followed by this name)"
+  echo ""
+exit 1;

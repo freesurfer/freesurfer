@@ -78,11 +78,11 @@ set bvallist = (/path/to/huey/bvals.txt \
 # Perform correction for B0 inhomogeneity distortions?
 # 0: No correction (default)
 # 1: Perform correction based on a field map
-#    Requires additional inputs (see below): b0mlist, b0plist, echospacing
+#    Requires additional inputs (see below): b0mlist, b0plist, echospacing, dTE
 # 2: Perform correction based on reverse-polarity images
 #    Requires additional inputs (see below): echospacing, pedir, epifactor
 #
-set dob0 = 2
+set dob0 = 1
 
 # Input B0 field map magnitude DICOMs (file names can be relative to dcmroot)
 # Only used if dob0 = 1
@@ -95,6 +95,12 @@ set b0mlist = (huey/fmag/XXX-1.dcm dewey/fmag/XXX-1.dcm louie/fmag/XXX-1.dcm)
 # Default: None
 #
 set b0plist = (huey/fphas/XXX-1.dcm dewey/fphas/XXX-1.dcm louie/fphas/XXX-1.dcm)
+
+# Field mapping TE difference (this is found in the scanner protocol printout)
+# Only used if dob0 = 1
+# Default: Read from field mapping phase DICOM
+#
+set dTE = 0.0025
 
 # Echo spacing (this is found in the scanner protocol printout)
 # Only used if dob0 = 1 or 2
