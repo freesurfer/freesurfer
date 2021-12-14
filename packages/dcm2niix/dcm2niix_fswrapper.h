@@ -32,6 +32,8 @@ public:
   // return image data saved in MRIFSSTRUCT
   static const unsigned char* getMRIimg(void);
 
+  static void dicomDump(const char* dicomdir);
+
 private:
   static struct TDCMopts tdcmOpts;
 };

@@ -6244,7 +6244,7 @@ int saveDcm2NiiCore(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata d
 		} //skip if we are only creating BIDS
 		if (hdr0.dim[4] > 1) //for 4d datasets, last volume should be acquired before first
 			checkDateTimeOrder(&dcmList[dcmSort[0].indx], &dcmList[dcmSort[nConvert - 1].indx]);
-	}
+	} // end of if (nConvert > 1)
 	if (opts.isVerbose > 1)
 		reportProtocolBlockGE(&dcmList[indx0], nameList->str[dcmSort[0].indx]);
 	int sliceDir = sliceTimingCore(dcmSort, dcmList, &hdr0, opts.isVerbose, nameList->str[dcmSort[0].indx], nConvert, opts);
@@ -6577,6 +6577,27 @@ int saveDcm2NiiCore(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata d
 } // saveDcm2NiiCore()
 
 int saveDcm2Nii(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata dcmList[], struct TSearchList *nameList, struct TDCMopts opts, struct TDTI4D *dti4D) {
+#ifdef USING_DCM2NIIXFSWRAPPER
+  if (opts.isDumpNotConvert) {
+    int indx0 = dcmSort[0].indx;
+    if (opts.isIgnoreSeriesInstanceUID)
+      printMessage("%d %s %s (total %d)\n", dcmList[indx0].seriesUidCrc, dcmList[indx0].protocolName, nameList->str[indx0], nConvert);
+    else
+      printMessage("%d %ld %s %s (total %d)\n", dcmList[indx0].seriesUidCrc, dcmList[indx0].seriesNum, dcmList[indx0].protocolName, nameList->str[indx0], nConvert);
+
+#if 0
+    for (int i = 0; i < nConvert; i++) {
+      int indx = dcmSort[i].indx;
+      if (opts.isIgnoreSeriesInstanceUID)
+	printMessage("\t#\%d: %d %s\n", i+1, dcmList[indx].seriesUidCrc, nameList->str[indx]);
+      else
+	printMessage("\t#\%d: %d %ld %s\n", i+1, dcmList[indx].seriesUidCrc, dcmList[indx].seriesNum, nameList->str[indx]);
+    }
+#endif
+
+      return 0;
+    }
+#endif
 	//this wrapper does nothing if all the images share the same echo time and scale
 	// however, it segments images when these properties vary
 	uint64_t indx = dcmSort[0].indx;
@@ -6774,7 +6795,7 @@ int isSameFloatDouble(double a, double b) {
 }
 
 struct TWarnings { //generate a warning only once per set
-	bool manufacturerVaries, modalityVaries, derivedVaries, acqNumVaries, dimensionVaries, dateTimeVaries, studyUidVaries, echoVaries, triggerVaries, phaseVaries, coilVaries, forceStackSeries, seriesUidVaries, nameVaries, nameEmpty, orientVaries;
+  bool manufacturerVaries, modalityVaries, derivedVaries, acqNumVaries, dimensionVaries, dateTimeVaries, studyUidVaries, echoVaries, triggerVaries, phaseVaries, coilVaries, forceStackSeries, seriesUidVaries, nameVaries, nameEmpty, orientVaries, nonParallelMosaicsSlices;
 };
 
 TWarnings setWarnings() {
@@ -6795,6 +6816,7 @@ TWarnings setWarnings() {
 	r.nameVaries = false;
 	r.nameEmpty = false;
 	r.orientVaries = false;
+	r.nonParallelMosaicsSlices = false;
 	return r;
 }
 
@@ -6895,9 +6917,65 @@ bool isSameSet(struct TDICOMdata d1, struct TDICOMdata d2, struct TDCMopts *opts
 		//	*isMultiEcho = true;
 		//}
 #ifdef USING_DCM2NIIXFSWRAPPER
-                printf("isForceStackSameSeries = true, seriesNum %ld, %ld, seriesInstanceUidCrc %d, %d\n", d1.seriesNum, d2.seriesNum, d1.seriesUidCrc, d2.seriesUidCrc);
-#endif
-		return true; //we will stack these images, even if they differ in the following attributes
+	       if ((d1.isHasImaginary != d2.isHasImaginary) || (d1.isHasPhase != d2.isHasPhase) || (d1.isHasReal != d2.isHasReal)) {
+                   if (!warnings->phaseVaries)
+			printMessage("Slices stacked: some are phase/real/imaginary/phase maps, others are not. Instances %d %d\n", d1.imageNum, d2.imageNum);
+		   warnings->phaseVaries = true;
+               } else if ((!(isSameFloat(d1.TE, d2.TE))) || (d1.echoNum != d2.echoNum)) {
+                   if ((!warnings->echoVaries) && (d1.isXRay)) //for CT/XRay we check DICOM tag 0018,1152 (XRayExposure)
+                       printMessage("Slices stacked: X-Ray Exposure varies (exposure %g, %g; number %d, %d).\n", d1.TE, d2.TE, d1.echoNum, d2.echoNum);
+		   if ((!warnings->echoVaries) && (!d1.isXRay)) //for MRI
+		       printMessage("Slices stacked: echo varies (TE %g, %g; echo %d, %d).\n", d1.TE, d2.TE, d1.echoNum, d2.echoNum);
+		   warnings->echoVaries = true;
+		   *isMultiEcho = true;
+	       } else if ((d1.triggerDelayTime != d2.triggerDelayTime) && (d1.manufacturer == kMANUFACTURER_PHILIPS) && (d1.aslFlags == kASL_FLAG_NONE)) { //issue 384
+                   if (!warnings->triggerVaries)
+                       printMessage("Slices stacked: trigger time varies\n");
+		   warnings->triggerVaries = true;
+	       } else if (d1.coilCrc != d2.coilCrc) {
+                   if (opts->isForceStackDCE) {
+                       if (!warnings->coilVaries)
+                           printMessage("Slices stacked despite coil variation '%s' vs '%s' (use '-m o' to turn off merging)\n", d1.coilName, d2.coilName);
+                       warnings->coilVaries = true;
+                       *isCoilVaries = true;
+		   } else {
+			if (!warnings->coilVaries)
+				printMessage("Slices stacked: coil varies '%s' vs '%s'\n", d1.coilName, d2.coilName);
+			warnings->coilVaries = true;
+			*isCoilVaries = true;
+		   } 
+	       } else if ((strlen(d1.protocolName) < 1) && (strlen(d2.protocolName) < 1)) {
+	           if (!warnings->nameEmpty)
+			printWarning("Empty protocol name(s) (0018,1030)\n");
+		   warnings->nameEmpty = true;
+	       } else if ((strcmp(d1.protocolName, d2.protocolName) != 0)) {
+	  	   if (!warnings->nameVaries)
+			printMessage("Slices stacked: protocol name varies '%s' != '%s'\n", d1.protocolName, d2.protocolName);
+		   warnings->nameVaries = true;
+	       } else if ((*isNonParallelSlices) && (d1.CSA.mosaicSlices > 1)) {
+		   if (!warnings->nonParallelMosaicsSlices)//issue 481
+		       printMessage("Slices stacked: non-parallel mosaics slices\n");
+                   warnings->nonParallelMosaicsSlices = true;
+                 
+	       } else if ((!isSameFloatGE(d1.orient[1], d2.orient[1]) || !isSameFloatGE(d1.orient[2], d2.orient[2]) || !isSameFloatGE(d1.orient[3], d2.orient[3]) ||
+	    	           !isSameFloatGE(d1.orient[4], d2.orient[4]) || !isSameFloatGE(d1.orient[5], d2.orient[5]) || !isSameFloatGE(d1.orient[6], d2.orient[6]))) {
+		   if ((!warnings->orientVaries) && (!d1.isNonParallelSlices) && (!d1.isLocalizer))
+			printMessage("Slices stacked: orientation varies (vNav or localizer?) [%g %g %g %g %g %g] != [%g %g %g %g %g %g]\n",
+				d1.orient[1], d1.orient[2], d1.orient[3], d1.orient[4], d1.orient[5], d1.orient[6],
+				d2.orient[1], d2.orient[2], d2.orient[3], d2.orient[4], d2.orient[5], d2.orient[6]);
+		   warnings->orientVaries = true;
+		   *isNonParallelSlices = true;
+	       } else if (d1.acquNum != d2.acquNum) {
+		   if ((!warnings->acqNumVaries) && (opts->isVerbose)) //virtually always people want to stack these
+			printMessage("Slices stacked despite varying acquisition numbers (if this is not desired recompile with 'mySegmentByAcq')\n");
+		   warnings->acqNumVaries = true;
+	       } else if ((!isForceStackSeries) && (d1.seriesUidCrc != d2.seriesUidCrc)) {
+	 	   if (!warnings->seriesUidVaries)
+			printMessage("Slices stacked: series instance UID varies (duplicates all other properties)\n");
+		   warnings->seriesUidVaries = true;
+	       }
+#endif		
+                return true; //we will stack these images, even if they differ in the following attributes
 	}
 	if ((d1.isHasImaginary != d2.isHasImaginary) || (d1.isHasPhase != d2.isHasPhase) || (d1.isHasReal != d2.isHasReal)) {
 		if (!warnings->phaseVaries)
@@ -7639,6 +7717,8 @@ int nii_loadDirCore(char *indir, struct TDCMopts *opts) {
 				nConvert++;
 			}
 		} //for all images with same seriesUID as first one
+
+#ifndef USING_DCM2NIIXFSWRAPPER
 		if ((isNonParallelSlices) && (dcmList[ii].CSA.mosaicSlices > 1) && (nConvert > 0)) { //issue481: if ANY volumes are non-parallel, save ALL as 3D
 			printWarning("Saving mosaics with non-parallel slices as 3D (issue 481)\n");
 			for (int j = i; j < (int)nDcm; j++) {
@@ -7661,6 +7741,8 @@ int nii_loadDirCore(char *indir, struct TDCMopts *opts) {
 			}
 			continue;
 		} //issue481
+#endif
+
 		//issue 381: ensure all images are informed if there are variations in echo, parallel slices, coil name:
 		if (isMultiEcho)
 			for (int j = i; j <= jMax; j++) {
@@ -7727,7 +7809,7 @@ int nii_loadDirOneDirAtATime(char *path, struct TDCMopts *opts, int maxDepth, in
 	//return kEXIT_NO_VALID_FILES_FOUND if no files in ANY sub folders
 	//return EXIT_FAILURE if ANY failure
 	//return EXIT_SUCCESS if no failures and at least one image converted
-	int ret = nii_loadDirCore(path, opts);
+        int ret = nii_loadDirCore(path, opts);
 	if (ret == EXIT_FAILURE)
 		return ret;
 	tinydir_dir dir;
@@ -7828,7 +7910,7 @@ int nii_loadDir(struct TDCMopts *opts) {
 #endif
 		if (is_fileNotDir(rname) && is_fileNotDir(pname)) {
 			//strcpy(opts->indir, pname); //set to original file name, not path
-			return convert_parRec(pname, *opts);
+		        return convert_parRec(pname, *opts);
 		};
 	}
 	if (isFile && (opts->isOnlySingleFile) && isExt(indir, ".txt")) {
@@ -7847,14 +7929,14 @@ int nii_loadDir(struct TDCMopts *opts) {
 		return EXIT_SUCCESS;
 	}
 	if ((isFile) && (opts->isOnlySingleFile))
-		return singleDICOM(opts, indir);
+                return singleDICOM(opts, indir);
 	if (opts->isOneDirAtATime) {
 		int maxDepth = opts->dirSearchDepth;
 		opts->dirSearchDepth = 0;
 		strcpy(indir, opts->indir);
 		return nii_loadDirOneDirAtATime(indir, opts, maxDepth, 0);
 	} else
-		return nii_loadDirCore(opts->indir, opts);
+                return nii_loadDirCore(opts->indir, opts);
 } // nii_loadDir()
 
 #if defined(_WIN64) || defined(_WIN32) || defined(USING_R)
@@ -8071,6 +8153,8 @@ void setDefaultOpts(struct TDCMopts *opts, const char *argv[]) { //either "setDe
 	opts->numSeries = 0;
 	memset(opts->seriesNumber, 0, sizeof(opts->seriesNumber));
 	strcpy(opts->filename, "%f_%p_%t_%s");
+
+	opts->isDumpNotConvert = false;
 } // setDefaultOpts()
 
 #if defined(_WIN64) || defined(_WIN32)
