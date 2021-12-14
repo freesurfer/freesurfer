@@ -47,6 +47,7 @@
 #include "talairachex.h"
 #include "connectcomp.h"
 #include "mrisegment.h"
+#include "ctrpoints.h"
 
 
 /*-------------------------------------------------------------------
@@ -3764,6 +3765,36 @@ get_option(int argc, char *argv[])
   }
   else if (!stricmp(option, "no-auto-man"))  {
     DoAutoMan = 0;
+  }
+  else if (!stricmp(option, "pointset")) {
+    /* Stand-alone option: takes one or more point sets and fills in
+       the all the voxels that intersect lines connecting any two
+       points within a given point set.  Fill value determined by the
+       sign of the xcentroid of a point set. The orginal use case for
+       this was to help correct the surface in entorhinal cortex where
+       there would often be a "bite" out of the surface. See docs for
+       MRIreadControlPoints().
+    */
+    if(argc < 4){
+      printf("-pointset invol outvol ps1 <ps2 ...>\n");
+      exit(1);
+    }
+    printf("Reading input %s\n",argv[2]);
+    MRI *invol = MRIread(argv[2]);
+    if(invol == NULL) exit(1);
+    char *outvolfile = argv[3];
+    int n;
+    for(n=0; n < argc-4; n++){
+      int count, useRealRAS;
+      printf("Reading control point file %s\n",argv[4+n]);
+      MPoint *mp = MRIreadControlPoints(argv[4+n], &count, &useRealRAS);
+      if(mp == NULL) exit(1);
+      MRIfillPoints(invol, 0, count, useRealRAS, mp);
+      free(mp);
+    }
+    printf("Writing output %s\n",outvolfile);
+    int err = MRIwrite(invol,outvolfile);
+    exit(err);
   }
   else switch (toupper(*option))
     {
