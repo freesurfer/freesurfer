@@ -101,6 +101,12 @@ set bvallist = ( /path/to/huey/run4/bvals.txt \
 #
 set dob0 = 2
 
+# Field mapping TE difference (this is found in the scanner protocol printout)
+# Only used if dob0 = 1
+# Default: Read from field mapping phase DICOM
+#
+set dTE = 0.0025
+
 # Echo spacing (this is found in the scanner protocol printout)
 # Only used if dob0 = 1 or 2
 # Default: None
