@@ -6900,6 +6900,7 @@ while( $#argv != 0 )
 # no break!
     case "-autorecon2-wm":
     case "-autorecon2-fill":
+    case "-autorecon2-filled":
       set DoFill           = 1;
       set DoTessellate     = 1;
       set DoSmooth1        = 1;
