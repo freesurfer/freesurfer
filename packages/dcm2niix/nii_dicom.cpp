@@ -3549,6 +3549,7 @@ unsigned char *nii_loadImgJPEGLS(char *imgname, struct nifti_1_header hdr, struc
 #ifdef myEnableJPEGLS1
 	if (JpegLsReadHeader(cImg, dcm.imageBytes, &params) != OK) {
 #else
+	  printMessage("myEnableJPEGLS defined. JpegLsReadHeader() ...\n");
 	using namespace charls;
 	if (JpegLsReadHeader(cImg, dcm.imageBytes, &params, nullptr) != ApiResult::OK) {
 #endif
@@ -3558,6 +3559,7 @@ unsigned char *nii_loadImgJPEGLS(char *imgname, struct nifti_1_header hdr, struc
 #ifdef myEnableJPEGLS1
 	if (JpegLsDecode(&bImg[0], imgsz, &cImg[0], dcm.imageBytes, &params) != OK) {
 #else
+	  printMessage("myEnableJPEGLS defined. JpegLsDecode() ...\n");
 	if (JpegLsDecode(&bImg[0], imgsz, &cImg[0], dcm.imageBytes, &params, nullptr) != ApiResult::OK) {
 #endif
 		free(bImg);
@@ -3585,6 +3587,7 @@ unsigned char *nii_loadImgXL(char *imgname, struct nifti_1_header *hdr, struct T
 #endif
 	} else if (dcm.compressionScheme == kCompressJPEGLS) {
 #if defined(myEnableJPEGLS) || defined(myEnableJPEGLS1)
+	  printMessage("myEnableJPEGLS defined. nii_loadImgJPEGLS() ...\n");
 		img = nii_loadImgJPEGLS(imgname, *hdr, dcm);
 		if (hdr->datatype == DT_RGB24) //convert to planar
 			img = nii_rgb2planar(img, hdr, dcm.isPlanarRGB); //do this BEFORE Y-Flip, or RGB order can be flipped
