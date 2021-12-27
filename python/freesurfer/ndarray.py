@@ -489,12 +489,14 @@ class Volume(ArrayContainerTemplate, Transformable):
         reoriented.copy_metadata(self)
         return reoriented
 
-    def conform(self, shape=None, voxsize=1.0, orientation='LIA', interp_method='linear', dtype=None):
+    def conform(self, shape=None, voxsize=1.0, orientation='LIA', interp_method='linear', 
+                dtype=None, smooth_sigma=0):
         """
         Conforms image to a specific shape, type, resolution, and orientation.
         """
         conformed = self.reorient(orientation)
-        conformed = conformed.reslice(voxsize, interp_method=interp_method)
+        conformed = conformed.reslice(voxsize, interp_method=interp_method, 
+                                      smooth_sigma=smooth_sigma)
         if shape is not None:
             conformed = conformed.fit_to_shape(shape)
         if dtype is not None:
