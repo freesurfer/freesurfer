@@ -207,12 +207,9 @@ if(APPLE)
 endif()
 
 ### start of addition for FREESURFER
-# we should not need this if we use target_compile_definitions()
-#target_link_libraries(dcm2niix nifti ${ZLIB_LIBRARIES})
-
-set(LIBRARY dcm2niix)
-add_library(dcm2niix STATIC
-    dcm2fsWrapper.cpp
+set(DCM2NIIXFSLIB dcm2niixfs)
+add_library(${DCM2NIIXFSLIB} STATIC
+    dcm2niix_fswrapper.cpp
     nii_dicom.cpp
     jpg_0XC3.cpp
     ujpeg.cpp
@@ -220,15 +217,8 @@ add_library(dcm2niix STATIC
     nii_foreign.cpp
     nii_ortho.cpp
     nii_dicom_batch.cpp)
-target_compile_definitions(${LIBRARY} PUBLIC -DMGH_FREESURFER -DUSING_MGH_NIFTI_IO)
-
-# DON'T build dcm2niixfsexe
-#set(DCM2NIIXFSEXE dcm2niixfsexe)
-#add_executable(${DCM2NIIXFSEXE} dcm2fsmain.cpp)
-#target_link_libraries(${DCM2NIIXFSEXE} dcm2niixfs nifti ${ZLIB_LIBRARIES})
+target_compile_definitions(${DCM2NIIXFSLIB} PUBLIC -DUSING_DCM2NIIXFSWRAPPER -DUSING_MGH_NIFTI_IO)
 ### end of addition for FREESURFER
 
 #install(TARGETS ${PROGRAMS} DESTINATION bin)
-### additions for FREESURFER
-#install(TARGETS ${LIBRARY} DESTINATION bin)
-#install(TARGETS ${DCM2NIIXFSEXE} DESTINATION bin)
+

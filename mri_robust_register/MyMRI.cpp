@@ -102,6 +102,26 @@ MRI * MyMRI::MRIvalscale(MRI *mri_src, MRI *mri_dst, double s, double b)
       }
     }
     break;
+    case MRI_USHRT:
+    for (f = 0; f < nf ; f++ )
+    for (z = 0; z < depth; z++)
+    {
+      for (y = 0; y < height; y++)
+      {
+        unsigned short *ps_src2 = &MRIUSseq_vox(mri_src, 0, y, z, f);
+        unsigned short *ps_dst2 = &MRIUSseq_vox(mri_dst, 0, y, z, f);
+        for (x = 0; x < width; x++)
+        {
+          val = (float)(*ps_src2++);
+          val -= b;
+          val *= s;
+          if (val < 0) val = 0;
+          if (val > USHRT_MAX) val = USHRT_MAX;
+          *ps_dst2++ = (unsigned short)nint(val);
+        }
+      }
+    }
+    break;
     case MRI_UCHAR:
     assert(s > 0);
     for (f = 0; f < nf ; f++ )

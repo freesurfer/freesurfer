@@ -218,7 +218,7 @@ target_link_libraries(utils
   dicom
   cephes
   nifti
-  dcm2niix
+  dcm2niixfs
   gifti
   expat
   ${ZLIB_LIBRARIES}

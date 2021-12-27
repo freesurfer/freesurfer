@@ -82,6 +82,7 @@ MRI_LONG =   2 ;
 MRI_FLOAT =  3 ;
 MRI_SHORT =  4 ;
 MRI_BITMAP = 5 ;
+MRI_USHRT = 10 ;
 
 fseek(fid, unused_space_size, 'cof') ;
 
@@ -95,7 +96,9 @@ switch type
   case MRI_SHORT,
     vol = fread(fid, nv, 'short') ; 
   case MRI_INT,
-    vol = fread(fid, nv, 'int') ; 
+    vol = fread(fid, nv, 'int') ;
+  case MRI_USHRT,
+    vol = fread(fid, nv, 'uint16') ;      
 end
 if(~feof(fid))
   [mr_parms count] = fread(fid,4,'float32');

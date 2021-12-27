@@ -3820,6 +3820,8 @@ MRI *MRIconjunct3(MRI *sig1, MRI *sig2, MRI *sig3, MRI *mask, MRI *c123)
   double sigv;
 
   f3 = MRIallocSequence(sig1->width,sig1->height,sig1->depth,MRI_FLOAT,3);
+  MRIcopyHeader(sig1,f3);
+  MRIcopyPulseParameters(sig1,f3);
 
   for(c=0; c < sig1->width; c++)  {
     for(r=0; r < sig1->height; r++)    {

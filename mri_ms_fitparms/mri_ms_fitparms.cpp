@@ -2636,6 +2636,7 @@ MRIssqrt(MRI *mri_src, MRI *mri_dst)
 {
   int     width, height, depth, x, y, z, frame ;
   short   *psrc, *pdst ;
+  unsigned short   *psrc2, *pdst2 ;
 
   width = mri_src->width ;
   height = mri_src->height ;
@@ -2662,6 +2663,15 @@ MRIssqrt(MRI *mri_src, MRI *mri_dst)
             *pdst++ = sqrt(*psrc++) ;
           }
           break ;
+        case MRI_USHRT:
+          psrc2 = &MRIUSseq_vox(mri_src, 0, y, z, frame) ;
+          pdst2 = &MRIUSseq_vox(mri_dst, 0, y, z, frame) ;
+          for (x = 0 ; x < width ; x++)
+          {
+	    check_finite(sqrt(*psrc2)) ;
+            *pdst2++ = sqrt(*psrc2++) ;
+          }
+          break ;
         default:
           ErrorReturn(NULL,
                       (ERROR_UNSUPPORTED,
@@ -2685,6 +2695,7 @@ MRIsscalarMul(MRI *mri_src, MRI *mri_dst, float scalar)
 {
   int     width, height, depth, x, y, z, frame ;
   short   *psrc, *pdst ;
+  unsigned short   *psrc2, *pdst2 ;
 
   width = mri_src->width ;
   height = mri_src->height ;
@@ -2708,6 +2719,14 @@ MRIsscalarMul(MRI *mri_src, MRI *mri_dst, float scalar)
           for (x = 0 ; x < width ; x++)
           {
             *pdst++ = *psrc++ * scalar ;
+          }
+          break ;
+        case MRI_USHRT:
+          psrc2 = &MRIUSseq_vox(mri_src, 0, y, z, frame) ;
+          pdst2 = &MRIUSseq_vox(mri_dst, 0, y, z, frame) ;
+          for (x = 0 ; x < width ; x++)
+          {
+            *pdst2++ = *psrc2++ * scalar ;
           }
           break ;
         default:

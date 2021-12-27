@@ -486,3 +486,81 @@ MPoint *GetTalControlPointsSFile(const char *subjectlistfile, int *pnctrtot)
   free(subjectlist);
   return (ctr);
 }
+
+/*!
+  \fn int MRIfillPoints(MRI *filled, const int fillval, const int npoints, const int useRealRAS, const MPoint *mp)
+  \brief Takes a point set and fills in the all the voxels that
+  intersect any line connecting any two points. The orginal use case
+  for this was to help correct the surface in entorhinal cortex where
+  there would often be a "bite" out of the surface.  The user could
+  create a path from one end of the bite to the other, save it as a
+  control point set, then run this function to fill in the
+  bite. Candiate voxels in filled will be filled with the value in
+  fillval. If fillval=0 then the function will determine the value to
+  use based on whether the x centroid of the pointset is positive or
+  negative.
+*/
+int MRIfillPoints(MRI *filled, const int fillval, const int npoints, const int useRealRAS, const MPoint *mp)
+{
+  double d = 0.1; // Should probably pass this as an arg
+  int n,m,nhits=0;
+  MATRIX *vox2ras, *ras2vox, *ras, *crs=NULL;
+
+  printf("MRIfillPoints(): npoints %d useReal %d fillval %d  d %g\n",
+	 npoints,useRealRAS,fillval,d);
+
+  if(useRealRAS) vox2ras = MRIxfmCRS2XYZ(filled, 0);
+  else           vox2ras = MRIxfmCRS2XYZtkreg(filled);
+  ras2vox = MatrixInverse(vox2ras,NULL);
+
+  int fillvaluse = fillval;
+  if(fillval == 0){
+    printf("Autodetecting value to use as fill\n");
+    double xsum = 0;
+    for(n=0; n < npoints; n++) xsum += mp[n].x;
+    xsum = xsum/npoints;
+    if(xsum <  0) fillvaluse = 255;
+    if(xsum >= 0) fillvaluse = 127;
+    printf("  xcentroid %g\n",xsum);
+  }
+  printf("fillvaluse %d\n",fillvaluse);
+
+  ras = MatrixAlloc(4,1,MATRIX_REAL);
+  ras->rptr[4][1] = 1;
+  for(n=0; n < npoints-1; n++){
+    for(m=n+1; m < npoints; m++){
+      // Now step from point n to point m by d
+      int k;
+      for(k=0; k < 10; k++){
+	double x,y,z,c,r,s;
+	x = mp[n].x + k*d*(mp[m].x-mp[n].x);
+	y = mp[n].y + k*d*(mp[m].y-mp[n].y);
+	z = mp[n].z + k*d*(mp[m].z-mp[n].z);
+	ras->rptr[1][1] = x;
+	ras->rptr[2][1] = y;
+	ras->rptr[3][1] = z;
+	crs = MatrixMultiply(ras2vox,ras,crs);
+	c = nint(crs->rptr[1][1]);
+	r = nint(crs->rptr[2][1]);
+	s = nint(crs->rptr[3][1]);
+	if(c<0 || c > filled->width-1)  continue;
+	if(r<0 || r > filled->height-1) continue;
+	if(s<0 || s > filled->depth-1)  continue;
+	double v = MRIgetVoxVal(filled,c,r,s,0);
+	if(v==fillvaluse) continue;
+	//printf("%g %g %g   %g %g %g\n",x,y,z,c,r,s);
+	//MatrixPrint(stdout,ras);
+	MRIsetVoxVal(filled,c,r,s,0,fillvaluse);
+	nhits++;
+      }
+    }
+  }
+  printf("nhits = %d\n",nhits);
+
+  MatrixFree(&vox2ras);
+  MatrixFree(&ras2vox);
+  MatrixFree(&ras);
+  MatrixFree(&crs);
+
+  return(0);
+}

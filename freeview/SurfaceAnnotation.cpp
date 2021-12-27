@@ -163,6 +163,9 @@ bool SurfaceAnnotation::LoadFromSegmentation(const QString &fn)
        case MRI_SHORT:
          n = MRIseq_vox( mri, i, 0, 0, 0);
          break;
+       case MRI_USHRT:
+         n = (int)MRIUSseq_vox( mri, i, 0, 0, 0);
+         break;
        default:
          break;
        }

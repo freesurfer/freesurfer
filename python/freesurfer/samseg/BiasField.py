@@ -5,8 +5,8 @@ eps = np.finfo( float ).eps
 
 
 class BiasField:
-    def __init__(self, imageSize, smoothingKernelSize):
-        self.fullBasisFunctions = self.getBiasFieldBasisFunctions(imageSize, smoothingKernelSize)
+    def __init__(self, imageSize, smoothingKernelSize, photo_mode=False):
+        self.fullBasisFunctions = self.getBiasFieldBasisFunctions(imageSize, smoothingKernelSize, photo_mode)
         self.basisFunctions = self.fullBasisFunctions.copy()
         self.coefficients = None
 
@@ -74,21 +74,49 @@ class BiasField:
         precisionMatrix = result.reshape( ( np.prod( Ms ), np.prod( Ms ) ) )
         return precisionMatrix
 
-    def getBiasFieldBasisFunctions(self, imageSize, smoothingKernelSize):
+    def getBiasFieldBasisFunctions(self, imageSize, smoothingKernelSize, photo_mode=False):
         # Our bias model is a linear combination of a set of basis functions. We are using so-called
         # "DCT-II" basis functions, i.e., the lowest few frequency components of the Discrete Cosine
         # Transform.
         biasFieldBasisFunctions = []
-        for dimensionNumber in range(3):
-            N = imageSize[dimensionNumber]
-            delta = smoothingKernelSize[dimensionNumber]
-            M = math.ceil(N / delta) + 1
-            Nvirtual = (M - 1) * delta
-            js = [(index + 0.5) * math.pi / Nvirtual for index in range(N)]
-            scaling = [math.sqrt(2 / Nvirtual)] * M
-            scaling[0] /= math.sqrt(2)
-            A = np.array([[math.cos(freq * m) * scaling[m] for m in range(M)] for freq in js])
-            biasFieldBasisFunctions.append(A)
+
+        # when we are working with reconstructed photos, we have a 2D basis per slice
+        if photo_mode:
+
+            if False:
+                for dimensionNumber in range(2):
+                    N = imageSize[dimensionNumber]
+                    A = np.ones((N, 1), dtype=np.float64)
+                    biasFieldBasisFunctions.append(A)
+
+                N = imageSize[2]
+                A = np.identity(N, dtype=np.float64)
+                biasFieldBasisFunctions.append(A)
+
+            else:
+                for dimensionNumber in range(2):
+                    N = imageSize[dimensionNumber]
+                    A = np.empty((N, 3), dtype=np.float64)
+                    A[:, 0] = np.ones((N), dtype=np.float64)
+                    A[:, 1] = np.linspace(0, 1, N, dtype=np.float64)
+                    A[:, 2] = np.flipud(A[:, 1])
+                    biasFieldBasisFunctions.append(A)
+
+                N = imageSize[2]
+                A = np.identity(N, dtype=np.float64)
+                biasFieldBasisFunctions.append(A)
+
+        else:
+            for dimensionNumber in range(3):
+                N = imageSize[dimensionNumber]
+                delta = smoothingKernelSize[dimensionNumber]
+                M = math.ceil(N / delta) + 1
+                Nvirtual = (M - 1) * delta
+                js = [(index + 0.5) * math.pi / Nvirtual for index in range(N)]
+                scaling = [math.sqrt(2 / Nvirtual)] * M
+                scaling[0] /= math.sqrt(2)
+                A = np.array([[math.cos(freq * m) * scaling[m] for m in range(M)] for freq in js])
+                biasFieldBasisFunctions.append(A)
 
         return biasFieldBasisFunctions
 
@@ -106,7 +134,7 @@ class BiasField:
 
         return biasFields
 
-    def fitBiasFieldParameters(self, imageBuffers, gaussianPosteriors, means, variances, mask):
+    def fitBiasFieldParameters(self, imageBuffers, gaussianPosteriors, means, variances, mask, photo_mode=False):
 
         # Bias field correction: implements Eq. 8 in the paper
         #    Van Leemput, "Automated Model-based Bias Field Correction of MR Images of the Brain", IEEE TMI 1999
@@ -157,6 +185,9 @@ class BiasField:
                                                                           tmpImageBuffer).reshape(-1, 1)
 
         # Solve the linear system x = lhs \ rhs
+        # When working with photos, we like to regularize
+        if photo_mode:
+            lhs = lhs + 1e-5 * np.identity(lhs.shape[1], lhs.dtype)
         solution = np.linalg.solve(lhs, rhs)
 
         #

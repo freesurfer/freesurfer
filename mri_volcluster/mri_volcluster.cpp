@@ -1860,6 +1860,9 @@ static MRI *MRIbinarize01(MRI *vol, float thmin, float thmax,
           case MRI_SHORT:
             val = (float)(MRISseq_vox(vol,col,row,slice,frame));
             break;
+          case MRI_USHRT:
+            val = (float)(MRIUSseq_vox(vol,col,row,slice,frame));
+            break;
           }
 
           if (ithsign ==  0) val = fabs(val);

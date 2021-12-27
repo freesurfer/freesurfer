@@ -1678,6 +1678,9 @@ apply_transform(MRI *mri_in, MRI *mri_target, MATRIX *M_reg, MRI *mri_xformed) {
         case MRI_SHORT:
           MRISvox(mri_xformed, x, y, z) = (short)nint(val) ;
           break ;
+        case MRI_USHRT:
+          MRIUSvox(mri_xformed, x, y, z) = (unsigned short)nint(val) ;
+          break ;
         case MRI_FLOAT:
           MRIFvox(mri_xformed, x, y, z) = (float)(val) ;
           break ;
@@ -1797,6 +1800,7 @@ MRI *
 MRIssqrt(MRI *mri_src, MRI *mri_dst) {
   int     width, height, depth, x, y, z, frame ;
   short   *psrc, *pdst ;
+  unsigned short   *psrc2, *pdst2 ;
 
   width = mri_src->width ;
   height = mri_src->height ;
@@ -1813,6 +1817,12 @@ MRIssqrt(MRI *mri_src, MRI *mri_dst) {
           pdst = &MRISseq_vox(mri_dst, 0, y, z, frame) ;
           for (x = 0 ; x < width ; x++)
             *pdst++ = sqrt(*psrc++) ;
+          break ;
+        case MRI_USHRT:
+          psrc2 = &MRIUSseq_vox(mri_src, 0, y, z, frame) ;
+          pdst2 = &MRIUSseq_vox(mri_dst, 0, y, z, frame) ;
+          for (x = 0 ; x < width ; x++)
+            *pdst2++ = sqrt(*psrc2++) ;
           break ;
         default:
           ErrorReturn(NULL,
@@ -1835,6 +1845,7 @@ MRI *
 MRIsscalarMul(MRI *mri_src, MRI *mri_dst, float scalar) {
   int     width, height, depth, x, y, z, frame ;
   short   *psrc, *pdst ;
+  unsigned short   *psrc2, *pdst2 ;
 
   width = mri_src->width ;
   height = mri_src->height ;
@@ -1851,6 +1862,12 @@ MRIsscalarMul(MRI *mri_src, MRI *mri_dst, float scalar) {
           pdst = &MRISseq_vox(mri_dst, 0, y, z, frame) ;
           for (x = 0 ; x < width ; x++)
             *pdst++ = *psrc++ * scalar ;
+          break ;
+        case MRI_USHRT:
+          psrc2 = &MRIUSseq_vox(mri_src, 0, y, z, frame) ;
+          pdst2 = &MRIUSseq_vox(mri_dst, 0, y, z, frame) ;
+          for (x = 0 ; x < width ; x++)
+            *pdst2++ = *psrc2++ * scalar ;
           break ;
         default:
           ErrorReturn(NULL,

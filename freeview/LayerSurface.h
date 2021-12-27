@@ -99,12 +99,12 @@ public:
 
   int GetVertexIndexAtTarget( double* ras, double* distance, int surface_type = -1 );
 
-  bool GetRASAtVertex       ( int nVertex, double* ras_out );
+  bool GetRASAtVertex       ( int nVertex, double* ras_out, int surface_type = -1 );
   bool GetSurfaceRASAtVertex( int nVertex, double* ras_out );
 
   int GetVertexAtSurfaceRAS(double* ras, double* distance );
 
-  bool GetTargetAtVertex( int nVertex, double* ras );
+  bool GetTargetAtVertex( int nVertex, double* ras, int surface_type = -1 );
 
   void GetSurfaceRASAtTarget( double* pos_in, double* ras_out );
 
@@ -455,6 +455,8 @@ public slots:
   bool SaveTransform(const QString& filename);
 
   void GetCenterOfActor(double* pt);
+
+  bool SavePathAsControlPoints(const QString& fn, bool bMarks = false);
 
 Q_SIGNALS:
   void SurfaceAnnotationAdded( SurfaceAnnotation* );

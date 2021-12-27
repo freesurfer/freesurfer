@@ -583,6 +583,9 @@ bool FSVolume::Create( FSVolume* src_vol, bool bCopyVoxelData, int data_type )
     case MRI_SHORT:
       m_imageData->AllocateScalars(VTK_SHORT, 1);
       break;
+    case MRI_USHRT:
+      m_imageData->AllocateScalars(VTK_UNSIGNED_SHORT, 1);
+      break;
     default:
       break;
     }
@@ -604,6 +607,9 @@ bool FSVolume::Create( FSVolume* src_vol, bool bCopyVoxelData, int data_type )
       break;
     case MRI_SHORT:
       m_imageData->SetScalarTypeToShort();
+      break;
+    case MRI_USHRT:
+      m_imageData->SetScalarTypeToUnsignedShort();
       break;
     default:
       break;
@@ -1194,6 +1200,9 @@ bool FSVolume::UpdateMRIFromImage( vtkImageData* rasImage, bool resampleToOrigin
               break;
             case MRI_SHORT:
               MRISseq_vox( mri, i, j, k, nFrame ) = (short)val;
+              break;
+            case MRI_USHRT:
+              MRIUSseq_vox( mri, i, j, k, nFrame ) = (unsigned short)val;
               break;
             default:
               break;
@@ -2042,6 +2051,9 @@ bool FSVolume::CreateImage( MRI* rasMRI )
   case MRI_SHORT:
     imageData->AllocateScalars(VTK_SHORT, zFrames);
     break;
+  case MRI_USHRT:
+    imageData->AllocateScalars(VTK_UNSIGNED_SHORT, zFrames);
+    break;
   default:
     return false;
   }
@@ -2064,6 +2076,9 @@ bool FSVolume::CreateImage( MRI* rasMRI )
     break;
   case MRI_SHORT:
     imageData->SetScalarTypeToShort();
+    break;
+  case MRI_USHRT:
+    imageData->SetScalarTypeToUnsignedShort();
     break;
   default:
     return false;
@@ -2150,6 +2165,9 @@ bool FSVolume::ResizeRotatedImage( MRI* rasMRI, MRI* refTarget, vtkImageData* re
   case MRI_SHORT:
     imageData->AllocateScalars(VTK_SHORT, zFrames);
     break;
+  case MRI_USHRT:
+    imageData->AllocateScalars(VTK_UNSIGNED_SHORT, zFrames);
+    break;
   default:
     return false;
   }
@@ -2172,6 +2190,9 @@ bool FSVolume::ResizeRotatedImage( MRI* rasMRI, MRI* refTarget, vtkImageData* re
     break;
   case MRI_SHORT:
     imageData->SetScalarTypeToShort();
+    break;
+  case MRI_USHRT:
+    imageData->SetScalarTypeToUnsignedShort();
     break;
   default:
     break ;
@@ -2405,6 +2426,9 @@ void FSVolume::CopyMRIDataToImage( MRI* mri,
               break;
             case MRI_SHORT:
               ((short*)ptr)[nTuple*zFrames+nFrame] = MRISseq_vox( mri, nX, nY, nZ, nFrame );
+              break;
+            case MRI_USHRT:
+              ((unsigned short*)ptr)[nTuple*zFrames+nFrame] = MRIUSseq_vox( mri, nX, nY, nZ, nFrame );
               break;
             default:
               break;
@@ -3154,6 +3178,24 @@ void FSVolume::GetFrameValueRange(int frame, double *range)
         for (x = 0 ; x < width ; x++)
         {
           val = (float)MRISseq_vox(mri, x, y, z, frame) ;
+          if (val < fmin)
+            fmin = val ;
+          if (val > fmax)
+            fmax = val ;
+        }
+      }
+    }
+  }
+    break ;
+  case MRI_USHRT:
+  {
+    for (z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+      {
+        for (x = 0 ; x < width ; x++)
+        {
+          val = (float)MRIUSseq_vox(mri, x, y, z, frame) ;
           if (val < fmin)
             fmin = val ;
           if (val > fmax)

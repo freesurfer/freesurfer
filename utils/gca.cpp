@@ -5416,6 +5416,9 @@ MRI *GCAlabelMri(GCA *gca, MRI *mri, int label, TRANSFORM *transform)
               case MRI_SHORT:
                 MRISseq_vox(mri, x, y, z, frame) = (short)val;
                 break;
+              case MRI_USHRT:
+                MRIUSseq_vox(mri, x, y, z, frame) = (unsigned short)val;
+                break;
               case MRI_FLOAT:
                 MRIFseq_vox(mri, x, y, z, frame) = (float)val;
                 break;
@@ -8204,6 +8207,9 @@ MRI *GCAnormalizeSamples(
               break;
             case MRI_SHORT:
               MRISseq_vox(mri_dst, x, y, z, input) = (short)nint(val);
+              break;
+            case MRI_USHRT:
+              MRIUSseq_vox(mri_dst, x, y, z, input) = (unsigned short)nint(val);
               break;
             case MRI_FLOAT:
               MRIFseq_vox(mri_dst, x, y, z, input) = val;

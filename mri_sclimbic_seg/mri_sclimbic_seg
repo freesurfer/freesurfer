@@ -77,6 +77,8 @@ def main():
     parser.add_argument('--debug', action='store_true', help='Enable debug logging.')
     parser.add_argument('--vmp', action='store_true', help='Enable printing of vmpeak at the end.')
     parser.add_argument('--threads', type=int, default=1, help='Number of threads to use. Default is 1.')
+    parser.add_argument('--7T', dest='sevenT', action='store_true', help='Preprocess 7T images (just sets percentile to 99.9).')
+    parser.add_argument('--percentile', type=float, help='Use intensity percentile threshold for normalization.')
     parser.add_argument('--cuda-device', help='Cuda device for GPU support.')
 
     # check for no arguments
@@ -135,6 +137,11 @@ def main():
     tf.config.threading.set_inter_op_parallelism_threads(args.threads)
     tf.config.threading.set_intra_op_parallelism_threads(args.threads)
 
+    percentile = args.percentile
+    if args.sevenT:
+        print('7T image flag provided, using 99.9 percentile normalization')
+        percentile = 99.9
+
     # load lookup table for segmentation
     lut_file = args.ctab if args.ctab else os.path.join(fs.fshome(), 'models', 'sclimbic.ctab')
     lut = fs.LookupTable.read(lut_file)
@@ -159,6 +166,7 @@ def main():
                                 store_qa_stats=args.write_qa_stats,
                                 debug=args.debug,
                                 volumes_from_vox_count=args.vox_count_volumes,
+                                percentile=percentile,
                                 exclude=args.exclude)
     print('Loaded model weights', model_file) 
 
@@ -342,6 +350,7 @@ class LimbicSegmenter:
                  store_qa_stats=False,
                  debug=False,
                  volumes_from_vox_count=False,
+                 percentile=None,
                  exclude=[]):
 
         self.lut = lut
@@ -357,6 +366,7 @@ class LimbicSegmenter:
         self.last_time = time.time()
         self.debug = debug
         self.volumes_from_vox_count = volumes_from_vox_count
+        self.percentile = percentile
 
         # build mask of labels to exclude in stats output files
         # always ignore unknown label
@@ -466,22 +476,24 @@ class LimbicSegmenter:
         if image.nframes > 1:
             fs.fatal(f'Input image cannot have more than 1 channel, but got {image.nframes}.')
 
+        # normalize image data
+        data = image.data
+        dmin = np.min(data)
+        if self.percentile is not None:
+            dmax = np.percentile(data[data != 0], self.percentile)
+        else:
+            dmax = np.max(data)
+        if dmin == dmax:
+            fs.fatal('Input image is blank!')
+        data = (data.astype('float32') - dmin) / (dmax - dmin)
+        image.data = np.clip(data, 0, 1)
+
         # conform to RAS 1mm space
         processed = image.conform(shape=self.inshape, voxsize=1.0, orientation='RAS', dtype='float32')
 
-        # normalize image data
-        data = processed.data
-        dmin = np.min(data)
-        dmax = np.max(data)
-        if dmin == dmax:
-            fs.fatal('Input image is blank!')
-        data = (data - dmin) / (dmax - dmin)
-
         # ensure image data has a channel axis
-        if data.ndim == 3:
-            data = data[..., np.newaxis]
-
-        processed.data = data
+        if processed.data.ndim == 3:
+            processed.data = processed.data[..., np.newaxis]
         return processed
 
     def segment(self, image):

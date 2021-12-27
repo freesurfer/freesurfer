@@ -765,7 +765,7 @@ struct TDICOMdata clear_dicom_data() {
 	d.lastScanLoc = NAN;
 	d.TR = 0.0;
 	d.TE = 0.0;
-#ifdef MGH_FREESURFER
+#ifdef USING_DCM2NIIXFSWRAPPER
 	d.TI = -1.0; // default when there is no TI in dicom file
 #else
 	d.TI = 0.0;
@@ -3549,6 +3549,7 @@ unsigned char *nii_loadImgJPEGLS(char *imgname, struct nifti_1_header hdr, struc
 #ifdef myEnableJPEGLS1
 	if (JpegLsReadHeader(cImg, dcm.imageBytes, &params) != OK) {
 #else
+	  printMessage("myEnableJPEGLS defined. JpegLsReadHeader() ...\n");
 	using namespace charls;
 	if (JpegLsReadHeader(cImg, dcm.imageBytes, &params, nullptr) != ApiResult::OK) {
 #endif
@@ -3558,6 +3559,7 @@ unsigned char *nii_loadImgJPEGLS(char *imgname, struct nifti_1_header hdr, struc
 #ifdef myEnableJPEGLS1
 	if (JpegLsDecode(&bImg[0], imgsz, &cImg[0], dcm.imageBytes, &params) != OK) {
 #else
+	  printMessage("myEnableJPEGLS defined. JpegLsDecode() ...\n");
 	if (JpegLsDecode(&bImg[0], imgsz, &cImg[0], dcm.imageBytes, &params, nullptr) != ApiResult::OK) {
 #endif
 		free(bImg);
@@ -3585,6 +3587,7 @@ unsigned char *nii_loadImgXL(char *imgname, struct nifti_1_header *hdr, struct T
 #endif
 	} else if (dcm.compressionScheme == kCompressJPEGLS) {
 #if defined(myEnableJPEGLS) || defined(myEnableJPEGLS1)
+	  printMessage("myEnableJPEGLS defined. nii_loadImgJPEGLS() ...\n");
 		img = nii_loadImgJPEGLS(imgname, *hdr, dcm);
 		if (hdr->datatype == DT_RGB24) //convert to planar
 			img = nii_rgb2planar(img, hdr, dcm.isPlanarRGB); //do this BEFORE Y-Flip, or RGB order can be flipped
@@ -6824,7 +6827,7 @@ const uint32_t kEffectiveTE = 0x0018 + (0x9082 << 16);
 				if (bits == 1)
 					break;
 				//old style Burned-In
-				printMessage("Illegal/Obsolete DICOM: Overlay Bits Allocated must be 1, not %d\n", bits);
+				printMessage("Illegal/Obsolete DICOM (%s): Overlay Bits Allocated must be 1, not %d\n", fname, bits);
 				overlayOK = false;
 				break;
 			}
@@ -6833,7 +6836,7 @@ const uint32_t kEffectiveTE = 0x0018 + (0x9082 << 16);
 				if (pos == 0)
 					break;
 				//old style Burned-In
-				printMessage("Illegal/Obsolete DICOM: Overlay Bit Position shall be 0, not %d\n", pos);
+				printMessage("Illegal/Obsolete DICOM (%s): Overlay Bit Position shall be 0, not %d\n", fname, pos);
 				overlayOK = false;
 				break;
 			}
@@ -7504,7 +7507,7 @@ const uint32_t kEffectiveTE = 0x0018 + (0x9082 << 16);
 	//printf("%g\t\t%g\t%g\t%g\t%s\n", d.CSA.dtiV[0], d.CSA.dtiV[1], d.CSA.dtiV[2], d.CSA.dtiV[3], fname);
 	//printMessage("buffer usage %d %d %d\n",d.imageStart, lPos+lFileOffset, MaxBufferSz);
 	return d;
-} // readDICOM()
+} // readDICOMx()
 
 void setDefaultPrefs(struct TDCMprefs *prefs) {
 	prefs->isVerbose = false;

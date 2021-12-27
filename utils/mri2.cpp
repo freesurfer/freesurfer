@@ -537,6 +537,9 @@ size_t mri_sizeof(MRI *vol)
     case MRI_SHORT:
       bytes = sizeof(short);
       break;
+    case MRI_USHRT:
+      bytes = sizeof(unsigned short);
+      break;
     case MRI_FLOAT:
       bytes = sizeof(float);
       break;
@@ -595,6 +598,9 @@ MRI *mri_reshape(MRI *vol, int ncols, int nrows, int nslices, int nframes)
               break;
             case MRI_SHORT:
               MRISseq_vox(outvol, c2, r2, s2, f2) = MRISseq_vox(vol, c, r, s, f);
+              break;
+            case MRI_USHRT:
+              MRIUSseq_vox(outvol, c2, r2, s2, f2) = MRIUSseq_vox(vol, c, r, s, f);
               break;
             case MRI_FLOAT:
               MRIFseq_vox(outvol, c2, r2, s2, f2) = MRIFseq_vox(vol, c, r, s, f);
