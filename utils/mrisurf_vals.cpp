@@ -1349,7 +1349,7 @@ int MRISripLabel(MRIS *mris, LABEL *area)
 
 int MRISripNotLabel(MRIS *mris, LABEL *area)
 {
-  int i, vno;
+  int i, vno, nripped=0, nok=0;
   VERTEX *v;
 
   for (i = 0; i < area->n_points; i++) {
@@ -1359,14 +1359,17 @@ int MRISripNotLabel(MRIS *mris, LABEL *area)
   for (vno = 0; vno < mris->nvertices; vno++) {
     v = &mris->vertices[vno];
     if (v->marked) {
+      nok++;
       continue;
     }
     v->ripflag = 1;
+    nripped ++;
   }
   for (i = 0; i < area->n_points; i++) {
     v = &mris->vertices[area->lv[i].vno];
     v->marked = 0;
   }
+  printf("MRISripNotLabel() ripped %d/%d vertices (%d unripped)\n",nripped,mris->nvertices,nok);
   return (NO_ERROR);
 }
 

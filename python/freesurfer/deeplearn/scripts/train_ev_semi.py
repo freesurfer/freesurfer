@@ -64,7 +64,7 @@ crop = -1
 spaths = spaths[0:crop]
 spaths_val = glob(os.path.join(fsdir_val, 'sub???'))
 
-# load all the data (if not previously loaded)
+ # load all the data (if not previously loaded)
 pad = 8
 smooth_steps = 200  # apply Gaussian smoothing on the surface (sigma~sqrt(smoothing))
 if 'spheres' not in locals() and 'spheres' not in globals():
