@@ -37,6 +37,9 @@ parser.add_argument('--lesion-pseudo-samples', nargs=2, type=float, default=[500
 parser.add_argument('--lesion-rho', type=float, default=50, help='Lesion ratio.')
 parser.add_argument('--lesion-mask-structure', default='Cortex', help='Intensity mask brain structure. Lesion segmentation must be enabled.')
 parser.add_argument('--lesion-mask-pattern', type=int, nargs='+', help='Lesion mask list (set value for each input volume): -1 below lesion mask structure mean, +1 above, 0 no mask. Lesion segmentation must be enabled.')
+# optional options for segmenting 3D reconstructions of photo volumes
+parser.add_argument('--dissection-photo', default=None, help='Use this flag for 3D reconstructed photos, and specify hemispheres that are present in the volumes: left, right, or both')
+
 # optional debugging options
 parser.add_argument('--history', action='store_true', default=False, help='Save history.')
 parser.add_argument('--save-posteriors', nargs='*', help='Save posterior volumes to the "posteriors" subdirectory.')
@@ -104,13 +107,21 @@ else:
 
 # ------ Run Samseg ------
 
+# If we are dealing with photos, we  skip rescaling of intensities and also force  ignoreUnknownPriors=True
+if args.dissection_photo is None:
+    intensityWM = 110
+    ignoreUnknownPriors = args.ignore_unknown
+else:
+    intensityWM = None
+    ignoreUnknownPriors = True
+
 samseg_kwargs = dict(
     imageFileNames=args.inputFileNames,
     atlasDir=atlasDir,
     savePath=args.outputDirectory,
     userModelSpecifications=userModelSpecifications,
     userOptimizationOptions=userOptimizationOptions,
-    targetIntensity=110,
+    targetIntensity=intensityWM,
     targetSearchStrings=[ 'Cerebral-White-Matter' ],
     visualizer=visualizer,
     saveHistory=args.history,
@@ -121,7 +132,9 @@ samseg_kwargs = dict(
     pallidumAsWM=(not args.pallidum_separate),
     saveModelProbabilities=args.save_probabilities,
     gmmFileName=args.gmm,
-    ignoreUnknownPriors=args.ignore_unknown,
+    ignoreUnknownPriors=ignoreUnknownPriors,
+    dissectionPhoto=args.dissection_photo,
+    nthreads=args.threads,
 )
 
 if args.lesion:

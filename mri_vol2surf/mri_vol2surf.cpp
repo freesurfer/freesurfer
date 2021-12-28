@@ -495,6 +495,7 @@ int main(int argc, char **argv) {
   }
   else
   {
+    printf("Projecting %g %g %g\n",ProjFracMin,ProjFracMax,ProjFracDelta);
     nproj = 0;
     for (ProjFrac=ProjFracMin; 
          ProjFrac <= ProjFracMax; 
@@ -521,11 +522,11 @@ int main(int argc, char **argv) {
       if (nproj == 0) SurfVals = MRIcopy(SurfValsP,NULL);
       else {
         if (!GetProjMax) MRIadd(SurfVals,SurfValsP,SurfVals);
-        else            MRImax(SurfVals,SurfValsP,SurfVals);
+        else             MRImax(SurfVals,SurfValsP,SurfVals);
       }
       MRIfree(&SurfValsP);
       nproj ++;
-    }
+    } // end proj loop
     if (!GetProjMax) MRImultiplyConst(SurfVals, 1.0/nproj, SurfVals);
   }
 
@@ -958,6 +959,9 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%f",&ProjFracMin);
       sscanf(pargv[1],"%f",&ProjFracMax);
       sscanf(pargv[2],"%f",&ProjFracDelta);
+      if(ProjFracDelta > ProjFracMax){
+	printf("\nINFO: Delta=%g > Max=%g, may be ok, maybe not\n\n",ProjFracDelta,ProjFracMax);
+      }
       ProjFrac = 0.5; // just make it non-zero
       GetProjMax = 1;
       nargsused = 3;
@@ -991,6 +995,9 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%f",&ProjFracMin);
       sscanf(pargv[1],"%f",&ProjFracMax);
       sscanf(pargv[2],"%f",&ProjFracDelta);
+      if(ProjFracDelta > ProjFracMax){
+	printf("\nINFO: Delta=%g > Max=%g, may be ok, maybe not\n\n",ProjFracDelta,ProjFracMax);
+      }
       ProjFrac = 0.5; // just make it non-zero
       ProjDistFlag = 1;
       GetProjMax = 1;

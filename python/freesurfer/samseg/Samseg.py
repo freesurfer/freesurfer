@@ -1,6 +1,7 @@
 import logging
 import pickle
 import scipy.io
+from scipy.ndimage.morphology import binary_dilation as dilation
 import freesurfer as fs
 import sys
 
@@ -38,10 +39,14 @@ class Samseg:
         saveModelProbabilities=False,
         gmmFileName=None,
         ignoreUnknownPriors=False,
+        dissectionPhoto=None,
+        nthreads=1,
         ):
 
         # Store input parameters as class variables
         self.imageFileNames = imageFileNames
+        self.originalImageFileNames = imageFileNames  # Keep a copy since photo version modifies self.imageFileNames
+        self.photo_mask = None  # Useful when working with photos
         self.savePath = savePath
         self.atlasDir = atlasDir
         self.threshold = threshold
@@ -63,7 +68,17 @@ class Samseg:
         self.probabilisticAtlas = ProbabilisticAtlas()
 
         # Get full model specifications and optimization options (using default unless overridden by user)
+        # Note that, when processing photos, we point to a different GMM file by default!
         self.optimizationOptions = getOptimizationOptions(atlasDir, userOptimizationOptions)
+        if dissectionPhoto and (gmmFileName is None):
+            if dissectionPhoto == 'left':
+                gmmFileName = self.atlasDir + '/photo.lh.sharedGMMParameters.txt'
+            elif dissectionPhoto == 'right':
+                gmmFileName = self.atlasDir + '/photo.rh.sharedGMMParameters.txt'
+            elif dissectionPhoto == 'both':
+                gmmFileName = self.atlasDir + '/photo.both.sharedGMMParameters.txt'
+            else:
+                fs.fatal('dissection photo mode must be left, right, or both')
         self.modelSpecifications = getModelSpecifications(
             atlasDir,
             userModelSpecifications,
@@ -105,6 +120,7 @@ class Samseg:
         self.saveWarp = saveWarp
         self.saveMesh = saveMesh
         self.ignoreUnknownPriors = ignoreUnknownPriors
+        self.dissectionPhoto = dissectionPhoto
 
         # Make sure we can write in the target/results directory
         os.makedirs(savePath, exist_ok=True)
@@ -122,6 +138,7 @@ class Samseg:
         self.optimizationHistory = None
         self.deformation = None
         self.deformationAtlasFileName = None
+        self.nthreads = nthreads
 
     def validateTransform(self, trf):
         # =======================================================================================
@@ -174,8 +191,43 @@ class Samseg:
                 trf = self.validateTransform(fs.LinearTransform.read(transformFile))
                 worldToWorldTransformMatrix = convertRASTransformToLPS(trf.as_ras().matrix)
 
-        # Register to template
+        if self.dissectionPhoto is not None:
+            # Dissection photos are converted to grayscale
+            input_vol = fs.Volume.read(self.imageFileNames[0])
+            while len(input_vol.data.shape) > 3:
+                input_vol.data = np.mean(input_vol.data, axis=-1)
+            # We also a small band of noise around the mask; otherwise the background/skull/etc may fit the cortex
+            self.photo_mask = input_vol.data > 0
+            mask_dilated = dilation(self.photo_mask, iterations=5)
+            ring = (mask_dilated==True) & (self.photo_mask == False)
+            max_noise = np.max(input_vol.data) / 50.0
+            rng = np.random.default_rng(2021)
+            input_vol.data[ring] = max_noise * rng.random(input_vol.data[ring].shape[0])
+            self.imageFileNames = []
+            self.imageFileNames.append(self.savePath + '/grayscale.mgz')
+            input_vol.write(self.imageFileNames[0])
+
+        # Register to template, either with SAMSEG code, or externally with FreeSurfer tools (for photos)
         if self.imageToImageTransformMatrix is None:
+
+            if self.dissectionPhoto is not None:
+                reference = self.imageFileNames[0]
+                if self.dissectionPhoto=='left':
+                    moving = self.atlasDir + '/exvivo.template.lh.suptent.nii'
+                elif self.dissectionPhoto=='right':
+                    moving = self.atlasDir + '/exvivo.template.rh.suptent.nii'
+                elif self.dissectionPhoto=='both':
+                    moving = self.atlasDir + '/exvivo.template.suptent.nii'
+                else:
+                    fs.fatal('dissection photo mode must be left, right, or both')
+                transformFile = self.savePath  + '/atlas2image.lta'
+                cmd = 'mri_coreg --mov ' + moving + ' --ref ' + reference + ' --reg ' + transformFile + \
+                      ' --dof 12 --threads ' + str(self.nthreads)
+                os.system(cmd)
+                trf = fs.LinearTransform.read(transformFile)
+                trf_val = self.validateTransform(trf)
+                worldToWorldTransformMatrix = convertRASTransformToLPS(trf_val.as_ras().matrix)
+
             self.register(
                 costfile=costfile,
                 timer=timer,
@@ -389,17 +441,29 @@ class Samseg:
         # Write out various images - segmentation first
         self.writeImage(segmentation, os.path.join(self.savePath, 'seg.mgz'), saveLabels=True)
 
-        for contrastNumber, imageFileName in enumerate(self.imageFileNames):
-            # Contrast-specific filename prefix
-            contastPrefix = os.path.join(self.savePath, self.modeNames[contrastNumber])
+        # Bias corrected images: depends on whether we're dealing with MRIs or 3D photo reconstructions
+        if self.dissectionPhoto is None:  # MRI
+            for contrastNumber, imageFileName in enumerate(self.imageFileNames):
+                # Contrast-specific filename prefix
+                contastPrefix = os.path.join(self.savePath, self.modeNames[contrastNumber])
 
-            # Write bias field and bias-corrected image
-            self.writeImage(expBiasFields[..., contrastNumber],   contastPrefix + '_bias_field.mgz')
-            self.writeImage(expImageBuffers[..., contrastNumber], contastPrefix + '_bias_corrected.mgz')
+                # Write bias field and bias-corrected image
+                self.writeImage(expBiasFields[..., contrastNumber],   contastPrefix + '_bias_field.mgz')
+                self.writeImage(expImageBuffers[..., contrastNumber], contastPrefix + '_bias_corrected.mgz')
 
-            # Save a note indicating the scaling factor
-            with open(contastPrefix + '_scaling.txt', 'w') as fid:
-                print(scalingFactors[contrastNumber], file=fid)
+                # Save a note indicating the scaling factor
+                with open(contastPrefix + '_scaling.txt', 'w') as fid:
+                    print(scalingFactors[contrastNumber], file=fid)
+
+        else: # photos
+            self.writeImage(expBiasFields[..., 0], self.savePath + '/illlumination_field.mgz')
+            original_vol = fs.Volume.read(self.originalImageFileNames[0])
+            bias_native = fs.Volume.read(self.savePath + '/illlumination_field.mgz')
+            if len(original_vol.data.shape) == 3:
+                original_vol.data = original_vol.data[..., np.newaxis]
+            original_vol.data = original_vol.data / (1e-6 + bias_native.data[..., np.newaxis])
+            original_vol.data = np.squeeze(original_vol.data)
+            original_vol.write(self.savePath + '/illlumination_corrected.mgz')
 
         if self.savePosteriors:
             posteriorPath = os.path.join(self.savePath, 'posteriors')
@@ -560,7 +624,7 @@ class Samseg:
         # Our bias model is a linear combination of a set of basis functions. We are using so-called "DCT-II" basis functions,
         # i.e., the lowest few frequency components of the Discrete Cosine Transform.
         self.biasField = BiasField(self.imageBuffers.shape[0:3],
-                                   self.modelSpecifications.biasFieldSmoothingKernelSize / self.voxelSpacing)
+                                   self.modelSpecifications.biasFieldSmoothingKernelSize / self.voxelSpacing, photo_mode=(self.dissectionPhoto is not None))
 
         # Visualize some stuff
         if hasattr(self.visualizer, 'show_flag'):
@@ -636,6 +700,10 @@ class Samseg:
                                                      [
                                                          multiResolutionLevel].targetDownsampledVoxelSpacing / self.voxelSpacing))
             downSamplingFactors[downSamplingFactors < 1] = 1
+            # When working with 3D reconstructed photos, we don't downsample in z
+            if self.dissectionPhoto is not None:
+                downSamplingFactors[2] = 1
+
             downSampledImageBuffers, downSampledMask, downSampledMesh, downSampledInitialDeformationApplied, \
             downSampledTransform = self.getDownSampledModel(
                 optimizationOptions.multiResolutionSpecification[multiResolutionLevel].atlasFileName,
@@ -728,7 +796,8 @@ class Samseg:
                     if (estimateBiasField and not ((iterationNumber == 0)
                                                    and skipBiasFieldParameterEstimationInFirstIteration)):
                         self.biasField.fitBiasFieldParameters(downSampledImageBuffers, downSampledGaussianPosteriors,
-                                                              self.gmm.means, self.gmm.variances, downSampledMask)
+                                                              self.gmm.means, self.gmm.variances, downSampledMask,
+                                                              photo_mode=(self.dissectionPhoto is not None))
                     # End test if bias field update
 
                 # End loop over EM iterations
@@ -848,6 +917,24 @@ class Samseg:
                     if search_string in name:
                         priors[:, unknown_label] += priors[:, label]
                         priors[:, label] = 0
+
+        # In dissection photos, we merge the choroid with the lateral ventricle
+        if self.dissectionPhoto is not None:
+            for n in range(len(self.modelSpecifications.names)):
+                if self.modelSpecifications.names[n]=='Left-Lateral-Ventricle':
+                    llv = n
+                elif self.modelSpecifications.names[n]=='Left-choroid-plexus':
+                    lcp = n
+                elif self.modelSpecifications.names[n]=='Right-Lateral-Ventricle':
+                    rlv = n
+                elif self.modelSpecifications.names[n]=='Right-choroid-plexus':
+                    rcp = n
+            if self.dissectionPhoto=='left' or self.dissectionPhoto=='both':
+                priors[:, llv] +=  priors[:, lcp]
+                priors[:, lcp] = 0
+            if self.dissectionPhoto=='right' or self.dissectionPhoto=='both':
+                priors[:, rlv] +=  priors[:, rcp]
+                priors[:, rcp] = 0
 
         # Get bias field corrected data
         # Make sure that the bias field basis function are not downsampled
