@@ -4,6 +4,7 @@
 #include "kvlAtlasMesh.h"
 #include "kvlAtlasMeshPositionCostAndGradientCalculator.h"
 
+#define USE_PRECONDITIONING 1
 
 namespace kvl
 {
@@ -177,14 +178,31 @@ protected:
                       AtlasMesh::PointsContainer::Pointer&  newPosition,
                       double&  newCost,
                       AtlasPositionGradientContainerType::Pointer& newGradient,
-                      double&  alphaUsed );                  
-                       
+                      double&  alphaUsed );
+
   //
   bool  m_Verbose;
   double  m_Cost;
   AtlasMesh::PointsContainer::Pointer  m_Position;
   AtlasPositionGradientContainerType::Pointer  m_Gradient;
 
+  
+#if USE_PRECONDITIONING
+  //
+  AtlasMesh::PointsContainer::Pointer  Precondition( const AtlasMesh::PointsContainer*  position, 
+                                                     bool undo = false ) const;
+  //void PreconditionPosition( AtlasMesh::PointsContainer::Pointer&  position, 
+  //                           bool undo = false ) const;
+  //void  PreconditionGradient( AtlasPositionGradientContainerType::Pointer&  gradient ) const;
+  void  PreconditionGradient( AtlasPositionGradientContainerType*  gradient ) const;
+  //void  PreconditionPosition( bool undo = false );
+  //void  PreconditionGradient();
+  
+  //
+  std::vector< double >  m_Preconditioner;
+#endif  
+  
+  
 private:
   AtlasMeshDeformationOptimizer(const Self&); //purposely not implemented
   void operator=(const Self&); //purposely not implemented

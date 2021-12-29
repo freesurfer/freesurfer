@@ -51,7 +51,11 @@ AtlasMeshDeformationOptimizer
   
   // Set up a mesh
   AtlasMesh::Pointer  mesh = AtlasMesh::New();
+#if USE_PRECONDITIONING
+  mesh->SetPoints( this->Precondition( position, true ) );
+#else
   mesh->SetPoints( const_cast< AtlasMesh::PointsContainer* >( position ) );
+#endif
   mesh->SetCells( m_Mesh->GetCells() );
   mesh->SetPointData( m_Mesh->GetPointData() );
   mesh->SetCellData( m_Mesh->GetCellData() );
@@ -63,6 +67,9 @@ AtlasMeshDeformationOptimizer
   cost = m_Calculator->GetMinLogLikelihoodTimesPrior();
   gradient = m_Calculator->GetPositionGradient();
 
+#if USE_PRECONDITIONING
+  this->PreconditionGradient( gradient );  
+#endif
   
 }
   
@@ -130,7 +137,15 @@ AtlasMeshDeformationOptimizer
     return 0.0;  
     }
     
-  m_Mesh->SetPoints( m_Position );
+#if USE_PRECONDITIONING
+  // this->PreconditionPosition( m_Position, true );
+  //std::cout << "m_Position->Begin().Value(): " << m_Position->Begin().Value() << std::endl;
+  m_Mesh->SetPoints( this->Precondition( m_Position, true ) );
+#else
+  m_Mesh->SetPoints( m_Position ); 
+#endif
+  //std::cout << "m_Mesh->GetPoints()->Begin().Value(): " << m_Mesh->GetPoints()->Begin().Value() << std::endl;
+  
   if ( !( m_IterationNumber % m_IterationEventResolution ) )
     {
     this->InvokeEvent( DeformationIterationEvent() );
@@ -195,7 +210,9 @@ AtlasMeshDeformationOptimizer
                   AtlasMesh::PointsContainer::Pointer&  newPosition,
                   double&  maximalDeformation ) const
 {
+
   maximalDeformation = 0.0;
+
   newPosition = AtlasMesh::PointsContainer::New();
   AtlasMesh::PointsContainer::ConstIterator  posIt = position->Begin();
   AtlasPositionGradientContainerType::ConstIterator  defIt = deformationDirection->Begin();
@@ -209,8 +226,9 @@ AtlasMeshDeformationOptimizer
       }
 
     newPosition->InsertElement( posIt.Index(), posIt.Value() + newStep );
-    }
   
+    }
+    
 }                  
   
 
@@ -298,7 +316,29 @@ AtlasMeshDeformationOptimizer
     }
 
   //
+#if USE_PRECONDITIONING
+  m_Preconditioner.assign( m_Mesh->GetPoints()->Size(), 1.0 );
+  
+  if ( m_Calculator->GetBoundaryCondition() == AtlasMeshPositionCostAndGradientCalculator::SLIDING )
+    {
+    for ( int i=0; i<1000; i++ )
+      {
+      m_Preconditioner[ i ] = 10;  
+      }
+    }  
+  std::cout << "??????????????????????????????????" << std::endl;
+  std::cout << "??????????????????????????????????" << std::endl;
+  std::cout << "   m_Preconditioner.size(): " << m_Preconditioner.size() << std::endl;
+  std::cout << "   m_Preconditioner[0]: " << m_Preconditioner[0] << std::endl;
+  std::cout << "   m_Preconditioner[2000]: " << m_Preconditioner[2000] << std::endl;
+  std::cout << "??????????????????????????????????" << std::endl;
+  std::cout << "??????????????????????????????????" << std::endl;
+  
+  m_Position = this->Precondition( m_Mesh->GetPoints() );   
+
+#else
   m_Position = m_Mesh->GetPoints();
+#endif  
   this->GetCostAndGradient( m_Position, m_Cost, m_Gradient );
   
   this->InvokeEvent( DeformationStartEvent() );
@@ -325,6 +365,14 @@ AtlasMeshDeformationOptimizer
                 AtlasPositionGradientContainerType::Pointer& newGradient,
                 double&  alphaUsed )
 {
+  
+  //
+  // Make sure this function can be called with startPosition and newPosition
+  // pointing to the same object: internally newPosition will become a new smart pointer 
+  // (New()), decreasing the reference count of startPosition if newPosition points to
+  // it, potentially setting it to zero which then destructs startPosition before it's
+  // being used.
+  AtlasMesh::PointsContainer::ConstPointer  tmp = startPosition;
   
   // 
   // Part I: Bracket minimum
@@ -758,9 +806,16 @@ AtlasMeshDeformationOptimizer
     if ( ( fabsf( highAlpha - lowAlpha ) * maximalDeformationOfSearchDirection )
          < m_LineSearchMaximalDeformationIntervalStopCriterion )
       {
+      std::cout << "!!!!!!!!!!!!!!!" << startPosition->Begin().Value() << std::endl;
+      std::cout << "!!!!!!!!!!!!!!!" << searchDirection->Begin().Value() << std::endl;
+      std::cout << "!!!!!!!!!!!!!!!" << lowAlpha << std::endl;
+
       double  dummy = 0.0;
       this->AddDeformation( startPosition, lowAlpha, searchDirection, 
                             newPosition, dummy ); // xStar = x + lowAlpha * p;
+      
+      std::cout << "!!!!!!!!!!!!!!!" << newPosition->Begin().Value() << std::endl;
+      
       newCost = lowCost;
       newGradient = const_cast< AtlasPositionGradientContainerType* >( lowGradient.GetPointer() );
       alphaUsed = lowAlpha;
@@ -768,7 +823,7 @@ AtlasMeshDeformationOptimizer
         {
         std::cout << "[ZOOMING] Zooming interval size too low; returning best: "
                   << lowAlpha * maximalDeformationOfSearchDirection << std::endl;
-        std::cout << "-----------------------" << std::endl;
+        std::cout << "-----------------------" << std::endl;        
         }
       return;
       }
@@ -777,7 +832,91 @@ AtlasMeshDeformationOptimizer
 
   
 }
-                       
+
+
+#if USE_PRECONDITIONING
+
+// //
+// //
+// //
+// void 
+// AtlasMeshDeformationOptimizer
+// ::PreconditionPosition( AtlasMesh::PointsContainer::Pointer&  position, bool undo ) const
+// {
+//   std::vector< double  >::const_iterator  precondIt = m_Preconditioner.begin();
+//   for ( AtlasMesh::PointsContainer::Iterator  posIt = position->Begin();
+//         posIt != position->End(); ++posIt, ++precondIt )
+//     {
+//     if (undo)
+//       {
+//       posIt.Value() /= *precondIt;
+//       }
+//     else
+//       {
+//       posIt.Value() *= *precondIt;
+//       }
+//     }
+//   
+// }
+  
+  
+//
+//
+//
+AtlasMesh::PointsContainer::Pointer
+AtlasMeshDeformationOptimizer
+::Precondition( const AtlasMesh::PointsContainer*  position, 
+                bool undo ) const
+{
+  
+  AtlasMesh::PointsContainer::Pointer  preconditionedPosition 
+                                                  = AtlasMesh::PointsContainer::New();
+
+  std::vector< double  >::const_iterator  precondIt = m_Preconditioner.begin();
+  AtlasMesh::PointsContainer::ConstIterator  posIt = position->Begin();
+  for ( ; posIt != position->End(); ++posIt, ++precondIt )
+    {
+    double scaler = *precondIt;
+    if ( undo )
+      {
+      scaler = 1 / scaler;  
+      }
+    AtlasMesh::PointType  preconditionedPoint = posIt.Value();
+    for ( int i = 0; i < 3; i++ )
+      {
+      preconditionedPoint[ i ] *= scaler; 
+      }
+
+    //     
+    preconditionedPosition->InsertElement( posIt.Index(),  preconditionedPoint );
+    } 
+  
+  return preconditionedPosition;
+}                                
+
+  
+  
+//
+//
+//
+void 
+AtlasMeshDeformationOptimizer
+::PreconditionGradient( AtlasPositionGradientContainerType*  gradient ) const
+{
+  std::vector< double  >::const_iterator  precondIt = m_Preconditioner.begin();
+  for ( AtlasPositionGradientContainerType::Iterator  gradIt = gradient->Begin();
+        gradIt != gradient->End(); ++gradIt, ++precondIt )
+    {     
+    gradIt.Value() /= *precondIt;
+    }
+  
+}
+
+
+
+#endif
+                
+                
                        
 } // end namespace kvl
 
