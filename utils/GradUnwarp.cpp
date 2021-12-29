@@ -451,7 +451,7 @@ void GradUnwarp::_skipCoeffComment()
       ptr++;
 
     // skip the comment lines. The comment section ends with line #*] END: 
-    if (ptr != '\0' && strncmp(ptr, "#*] END:", 8) == 0)
+    if (*ptr != '\0' && strncmp(ptr, "#*] END:", 8) == 0)
       return;
   }
 }
