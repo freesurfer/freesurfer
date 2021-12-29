@@ -61,6 +61,34 @@ class Samseg:
             raise ValueError('number of mode names does not match number of input images')
         self.modeNames = modeNames
 
+        # Eugenio: there's a bug in ITK that will cause kvlImage to fail if it contqins the string "recon" ...
+        # If this problem is not exclusive to the photo mode (RGB), we should move this chunk of code outside the if
+        # While at it, we also create a grayscale version and a version with a bit of noise around the cerebrum (so the
+        # background class doesn't go bananas)
+        # Dissection photos are converted to grayscale
+        if dissectionPhoto:
+
+            if len(self.imageFileNames) > 1:
+                raise ValueError('In photo mode, you cannot provide more than one input image volume')
+
+            input_vol = fs.Volume.read(self.imageFileNames[0])
+            input_vol.write(self.savePath + '/original_input.mgz')
+            while len(input_vol.data.shape) > 3:
+                input_vol.data = np.mean(input_vol.data, axis=-1)
+            input_vol.write(self.savePath + '/grayscale_input.mgz')
+
+            # We also a small band of noise around the mask; otherwise the background/skull/etc may fit the cortex
+            self.photo_mask = input_vol.data > 0
+            mask_dilated = dilation(self.photo_mask, iterations=5)
+            ring = (mask_dilated==True) & (self.photo_mask == False)
+            max_noise = np.max(input_vol.data) / 50.0
+            rng = np.random.default_rng(2021)
+            input_vol.data[ring] = max_noise * rng.random(input_vol.data[ring].shape[0])
+            self.imageFileNames = []
+            self.imageFileNames.append(self.savePath + '/grayscale_input_with_ring.mgz')
+            input_vol.write(self.imageFileNames[0])
+
+
         # Initialize some objects
         self.affine = Affine( imageFileName=self.imageFileNames[0],
                               meshCollectionFileName=os.path.join(self.atlasDir, 'atlasForAffineRegistration.txt.gz'),
@@ -85,7 +113,11 @@ class Samseg:
             pallidumAsWM=pallidumAsWM,
             gmmFileName=gmmFileName
         )
-        
+
+        # if dissectionPhoto is not None:
+        #     self.modelSpecifications['K'] = 0.01
+        # TODO: switch this on, and maybe make K dependent on the pixel size?
+
         # Set image-to-image matrix if provided
         self.imageToImageTransformMatrix = imageToImageTransformMatrix
 
@@ -191,27 +223,11 @@ class Samseg:
                 trf = self.validateTransform(fs.LinearTransform.read(transformFile))
                 worldToWorldTransformMatrix = convertRASTransformToLPS(trf.as_ras().matrix)
 
-        if self.dissectionPhoto is not None:
-            # Dissection photos are converted to grayscale
-            input_vol = fs.Volume.read(self.imageFileNames[0])
-            while len(input_vol.data.shape) > 3:
-                input_vol.data = np.mean(input_vol.data, axis=-1)
-            # We also a small band of noise around the mask; otherwise the background/skull/etc may fit the cortex
-            self.photo_mask = input_vol.data > 0
-            mask_dilated = dilation(self.photo_mask, iterations=5)
-            ring = (mask_dilated==True) & (self.photo_mask == False)
-            max_noise = np.max(input_vol.data) / 50.0
-            rng = np.random.default_rng(2021)
-            input_vol.data[ring] = max_noise * rng.random(input_vol.data[ring].shape[0])
-            self.imageFileNames = []
-            self.imageFileNames.append(self.savePath + '/grayscale.mgz')
-            input_vol.write(self.imageFileNames[0])
-
         # Register to template, either with SAMSEG code, or externally with FreeSurfer tools (for photos)
         if self.imageToImageTransformMatrix is None:
 
             if self.dissectionPhoto is not None:
-                reference = self.imageFileNames[0]
+                reference = self.savePath + '/grayscale_input.mgz'
                 if self.dissectionPhoto=='left':
                     moving = self.atlasDir + '/exvivo.template.lh.suptent.nii'
                 elif self.dissectionPhoto=='right':
@@ -221,7 +237,7 @@ class Samseg:
                 else:
                     fs.fatal('dissection photo mode must be left, right, or both')
                 transformFile = self.savePath  + '/atlas2image.lta'
-                cmd = 'mri_coreg --mov ' + moving + ' --ref ' + reference + ' --reg ' + transformFile + \
+                cmd = 'mri_coreg  --seed 2021 --mov ' + moving + ' --ref ' + reference + ' --reg ' + transformFile + \
                       ' --dof 12 --threads ' + str(self.nthreads)
                 os.system(cmd)
                 trf = fs.LinearTransform.read(transformFile)
