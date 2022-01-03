@@ -1,12 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-//#include <math.h>
-//double round(double x);
-//#include <sys/stat.h>
-//#include <sys/types.h>
 #include <sys/utsname.h>
-//#include <unistd.h>
-
 
 #include "version.h"
 #include "diag.h"
@@ -18,10 +12,10 @@
 #include "GradUnwarp.h"
 
 /* examples:
- * 1. do gradient unwarp
- * mris_gradient_unwarp/mris_gradient_unwarp $WKDIR/fs_test/gradunwarp/example/coeff_Sonata.grad $WKDIR/fs_test/gradunwarp/example/orig.mgz unwarped.mgz
- * 2. duplicate orig.mgz without gradient unwarping
- * mris_gradient_unwarp/mris_gradient_unwarp $WKDIR/fs_test/gradunwarp/example/coeff_Sonata.grad $WKDIR/fs_test/gradunwarp/example/orig.mgz orig.5.mgz 1
+ * 1. mris_gradient_unwarp/mris_gradient_unwarp --gradcoeff $WKDIR/fs_test/gradunwarp/example/coeff_Sonata.grad --invol $WKDIR/fs_test/gradunwarp/example/orig.mgz --outvol unwarped.mgz
+ * 2. mris_gradient_unwarp/mris_gradient_unwarp --gradcoeff $WKDIR/fs_test/gradunwarp/example/coeff_Sonata.grad --invol $WKDIR/fs_test/gradunwarp/example/orig.mgz --outvol orig.dup.mgz --dupinvol
+ * 3. mris_gradient_unwarp/mris_gradient_unwarp --gradcoeff $WKDIR/fs_test/gradunwarp/example/coeff_Sonata.grad --invol $WKDIR/fs_test/gradunwarp/example/orig.mgz --ras 0.1,0.2,0.3
+ * 4. mris_gradient_unwarp/mris_gradient_unwarp --gradcoeff $WKDIR/fs_test/gradunwarp/example/coeff_Sonata.grad --invol $WKDIR/fs_test/gradunwarp/example/orig.mgz  --crs 0,0,0
  */
 /****** BIG PICTURES ******/
 /*
@@ -61,6 +55,7 @@ std::string gradfile0, origmgz0, unwarpedmgz0;
 int dupinvol = 0, inputras = 0, inputcrs = 0;
 double ras_x, ras_y, ras_z;
 int crs_c = 0, crs_r = 0, crs_s = 0;
+
 int main(int argc, char *argv[])
 {
   int nargs;
@@ -105,9 +100,9 @@ int main(int argc, char *argv[])
     float Dx, Dy, Dz;
     gradUnwarp->spharm_evaluate(ras_x, ras_y, ras_z, &Dx, &Dy, &Dz);
 
-    printf(" x = %.6lf,  Dx = %.6lf\n", ras_x, Dx);
-    printf(" y = %.6lf,  Dy = %.6lf\n", ras_y, Dy);
-    printf(" z = %.6lf,  Dz = %.6lf\n", ras_z, Dz);
+    printf(" x = %.6f,  Dx = %.6lf\n", ras_x, Dx);
+    printf(" y = %.6f,  Dy = %.6lf\n", ras_y, Dy);
+    printf(" z = %.6f,  Dz = %.6lf\n", ras_z, Dz);
 
     delete gradUnwarp;
 
@@ -130,21 +125,7 @@ int main(int argc, char *argv[])
   MATRIX *vox2ras_orig = MRIxfmCRS2XYZ(origvol, 0);
 
 
-  //if (PrintVox2RAS)
-  {
-    //m = MRIgetVoxelToRasXform(mri) ;
-    MatrixPrint(stdout,vox2ras_orig);
-    int r, c;
-    for (r=1; r<=4; r++)
-    {
-      for (c=1; c<=4; c++)
-      {
-        printf("%10.5f ",vox2ras_orig->rptr[r][c]);
-      }
-      printf("\n");
-    }
-  }
-
+  MatrixPrint(stdout, vox2ras_orig);
 
   MRI *unwarpedvol = MRIallocSequence(origvol->width, origvol->height, origvol->depth, origvol->type, origvol->nframes);
   MRIcopyHeader(origvol, unwarpedvol);
@@ -155,18 +136,14 @@ int main(int argc, char *argv[])
   if (InterpCode == SAMPLE_CUBIC_BSPLINE)
     bspline = MRItoBSpline(origvol, NULL, 3);
 
-#if USE_VALVECTS
-  float *valvects[_MAX_FS_THREADS];
-  valvects[0] = (float *)calloc(sizeof(float), origvol->nframes);
-#endif
-
   printf("width=%4d height=%4d depth=%4d nframes=%4d\n", origvol->width, origvol->height, origvol->depth, origvol->nframes);
 
   int c;
 #ifdef HAVE_OPENMP
 #pragma omp parallel for 
 #endif
-  for (c = 0; c < origvol->width; c++)  {
+  for (c = 0; c < origvol->width; c++)
+  {
     int r, s, f;
     // You could make a vector of CRS nthreads long
     MATRIX *CRS = MatrixAlloc(4, 1, MATRIX_REAL);
@@ -207,16 +184,16 @@ int main(int argc, char *argv[])
           RAS->rptr[4][1] = 1;
           RAS = MatrixMultiply(vox2ras_orig, CRS, RAS);
 
-          float x = RAS->rptr[1][1];
-          float y = RAS->rptr[2][1];
-          float z = RAS->rptr[3][1];
+          double x = RAS->rptr[1][1];
+          double y = RAS->rptr[2][1];
+          double z = RAS->rptr[3][1];
           float Dx, Dy, Dz;
           gradUnwarp->spharm_evaluate(x, y, z, &Dx, &Dy, &Dz);
 
 	  if (inputcrs)
 	  {
             printf(" c=%d r=%d s=%d\n", crs_c, crs_r, crs_s);
-            printf(" x=%.6lf  y=%.6lf  z=%.6lf\n", x, y, z);
+            printf(" x=%.6f  y=%.6f  z=%.6f\n", x, y, z);
             printf("Dx=%.6lf Dy=%.6lf Dz=%.6lf\n", Dx, Dy, Dz);
 	  }
 
@@ -245,7 +222,7 @@ int main(int argc, char *argv[])
           if (inputcrs)
 	  {
             printf("fcs = %lf (%d), frs = %lf (%d), fss = %lf (%d)\n", fcs, ics, frs, irs, fss, iss);
-            return 0;
+            exit(0);
 	  }
 	}
         else
@@ -256,11 +233,7 @@ int main(int argc, char *argv[])
           iss =  s;
 	}
 
-#if USE_VALVECTS
-        valvect = valvects[0];
-#else
         valvect = new float[origvol->nframes]; 
-#endif
 
         /* Assign output volume values */
         if (InterpCode == SAMPLE_TRILINEAR)
@@ -269,16 +242,13 @@ int main(int argc, char *argv[])
           for (f = 0; f < origvol->nframes; f++) {
             switch (InterpCode) {
               case SAMPLE_NEAREST:
-                //valvect[f] = MRIgetVoxVal(origvol, ics, irs, iss, f);
                 rval = MRIgetVoxVal2(origvol, ics, irs, iss, f);
                 break;
               case SAMPLE_CUBIC_BSPLINE:
                 MRIsampleBSpline(bspline, fcs, frs, fss, f, &rval);
-                //valvect[f] = rval;
                 break;
               case SAMPLE_SINC: /* no multi-frame */
                 MRIsincSampleVolume(origvol, fcs, frs, fss, sinchw, &rval);
-                //valvect[f] = rval;
                 break;
               default:
                 printf("ERROR: MR: interpolation method %i unknown\n", InterpCode);
@@ -311,9 +281,6 @@ int main(int argc, char *argv[])
   MRIfree(&origvol);
   MRIfree(&unwarpedvol);
 
-#if USE_VALVECTS
-  free(valvects[0]);
-#endif
   if (bspline)
     MRIfreeBSpline(&bspline);
 
