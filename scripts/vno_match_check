@@ -92,7 +92,7 @@ foreach hemi ( $hemis )
 
     # now check that the annotation files have the correct number of vertices
     # mris_info does this check via the $hemi.orig input argument
-    set annot_list = ( aparc.annot aparc.a2009s.annot BA.annot BA.thresh.annot )
+    set annot_list = ( aparc.annot aparc.a2009s.annot BA_exvivo.annot BA_exvivo.thresh.annot )
     if ("x$2" == "xaparc_edited") set annot_list = ( $annot_list aparc_edited.annot )
     foreach annot ( $annot_list )
 

@@ -105,6 +105,7 @@ add_library(utils STATIC
   joint_histo.cpp
   kernel.cpp
   label.cpp
+  legendre.cpp
   log.cpp
   lut.cpp
   machine.cpp
@@ -143,6 +144,7 @@ add_library(utils STATIC
   mrisp.cpp
   MRISrigidBodyAlignGlobal.cpp
   mris_sphshapepvf.cpp
+  GradUnwarp.cpp
   mrisurf.cpp
   mrisurf_base.cpp
   mrisurf_compute_dxyz.cpp
