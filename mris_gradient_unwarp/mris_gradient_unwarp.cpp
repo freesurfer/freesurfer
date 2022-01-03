@@ -123,7 +123,7 @@ int main(int argc, char *argv[])
 
   MRI *origvol = MRIread(origmgz0.c_str());
   MATRIX *vox2ras_orig = MRIxfmCRS2XYZ(origvol, 0);
-
+  MATRIX *inv_vox2ras_orig = MatrixInverse(vox2ras_orig, NULL);
 
   MatrixPrint(stdout, vox2ras_orig);
 
@@ -202,7 +202,7 @@ int main(int argc, char *argv[])
           DeltaRAS->rptr[3][1] = Dz;
         
           DistortedRAS = MatrixAdd(RAS, DeltaRAS, DistortedRAS);
-          DistortedCRS = MatrixMultiply(MatrixInverse(vox2ras_orig, NULL), DistortedRAS, DistortedCRS);
+          DistortedCRS = MatrixMultiply(inv_vox2ras_orig, DistortedRAS, DistortedCRS);
         } 
  
         float fcs, frs, fss, *valvect;
@@ -281,6 +281,8 @@ int main(int argc, char *argv[])
 
   delete gradUnwarp;
 
+  MatrixFree(&vox2ras_orig);
+  MatrixFree(&inv_vox2ras_orig);
 
   MRIfree(&origvol);
   MRIfree(&unwarpedvol);
