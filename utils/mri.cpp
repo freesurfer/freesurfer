@@ -1540,6 +1540,37 @@ float MRIgetVoxVal(const MRI *mri, int c, int r, int s, int f)
   }
   return (-10000000000.9);
 }
+
+float MRIgetVoxVal2(const MRI *mri, int c, int r, int s, int f)
+{
+  // bounds checks:
+  if (c < 0) return mri->outside_val;
+  if (r < 0) return mri->outside_val;
+  if (s < 0) return mri->outside_val;
+
+  switch (mri->type) {
+  case MRI_UCHAR:
+    return ((float)MRIseq_vox(mri, c, r, s, f));
+    break;
+  case MRI_SHORT:
+    return ((float)MRISseq_vox(mri, c, r, s, f));
+    break;
+  case MRI_USHRT:
+    return ((float)MRIUSseq_vox(mri, c, r, s, f));
+    break;
+  case MRI_RGB:
+  case MRI_INT:
+    return ((float)MRIIseq_vox(mri, c, r, s, f));
+    break;
+  case MRI_LONG:
+    return ((float)MRILseq_vox(mri, c, r, s, f));
+    break;
+  case MRI_FLOAT:
+    return ((float)MRIFseq_vox(mri, c, r, s, f));
+    break;
+  }
+  return (-10000000000.9);
+}
 /*-------------------------------------------------------------------*/
 /*!
   \fn int MRIsetVoxVal(MRI *mri, int c, int r, int s, int f, float voxval)
@@ -1618,6 +1649,59 @@ int MRIsetVoxVal(MRI *mri, int c, int r, int s, int f, float voxval)
     break;
   case MRI_LONG:
     MRILseq_vox(mri, c, r, s, f) = nint(voxval);
+    break;
+  case MRI_FLOAT:
+    MRIFseq_vox(mri, c, r, s, f) = voxval;
+    break;
+  default:
+    return (1);
+    break;
+  }
+  return (0);
+}
+
+int MRIsetVoxVal2(MRI *mri, int c, int r, int s, int f, float voxval)
+{
+  // clipping
+  switch (mri->type) {
+  case MRI_UCHAR:
+    if (voxval < UCHAR_MIN) voxval = UCHAR_MIN;
+    if (voxval > UCHAR_MAX) voxval = UCHAR_MAX;
+    break;
+  case MRI_SHORT:
+    if (voxval < SHORT_MIN) voxval = SHORT_MIN;
+    if (voxval > SHORT_MAX) voxval = SHORT_MAX;
+    break;
+  case MRI_USHRT:
+    if (voxval < 0) voxval = 0;
+    if (voxval > USHRT_MAX) voxval = USHRT_MAX;
+    break;
+  case MRI_INT:
+    if (voxval < INT_MIN) voxval = INT_MIN;
+    if (voxval > INT_MAX) voxval = INT_MAX;
+    break;
+  case MRI_LONG:
+    if (voxval < LONG_MIN) voxval = LONG_MIN;
+    if (voxval > LONG_MAX) voxval = LONG_MAX;
+    break;
+  }
+
+  switch (mri->type) {
+  case MRI_UCHAR:
+    MRIseq_vox(mri, c, r, s, f) = voxval;
+    break;
+  case MRI_SHORT:
+    MRISseq_vox(mri, c, r, s, f) = voxval;
+    break;
+  case MRI_USHRT:
+    MRIUSseq_vox(mri, c, r, s, f) = voxval;
+    break;
+  case MRI_RGB:
+  case MRI_INT:
+    MRIIseq_vox(mri, c, r, s, f) = voxval;
+    break;
+  case MRI_LONG:
+    MRILseq_vox(mri, c, r, s, f) = voxval;
     break;
   case MRI_FLOAT:
     MRIFseq_vox(mri, c, r, s, f) = voxval;

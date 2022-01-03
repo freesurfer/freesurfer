@@ -48,6 +48,7 @@ set DoRefine = 0
 set ForceUpdate = 0
 set PallidumSeparate = 0;
 set OptionsFile = ()
+set DissectionPhotoMode = ()
 set SaveHistory = 0
 set LesionMaskPattern = ()
 set GMM = ()
@@ -180,6 +181,7 @@ if($SaveProbabilities) set cmd0 = ($cmd0 --save-probabilities)
 if($SaveWarp) set cmd0 = ($cmd0 --save-warp)
 if($PallidumSeparate) set cmd0 = ($cmd0 --pallidum-separate)
 if($#OptionsFile)  set cmd0 = ($cmd0 --options $OptionsFile)
+if($#DissectionPhotoMode)  set cmd0 = ($cmd0 --dissection-photo $DissectionPhotoMode)
 if($SaveHistory)  set cmd0 = ($cmd0 --history)
 if($DoLesion) set cmd0 = ($cmd0 --lesion)  # TODO: if T2/flair is provided, --lesion-mask-pattern must be set
 if($#LesionMaskPattern) set cmd0 = ($cmd0 --lesion-mask-pattern $LesionMaskPattern)
@@ -458,6 +460,11 @@ while( $#argv != 0 )
         echo "ERROR: cannot find $OptionsFile"
         exit 1;
       endif
+      breaksw
+
+    case "--dissection-photo":
+      if($#argv < 1) goto arg1err;
+      set DissectionPhotoMode = $argv[1]; shift;
       breaksw
 
     case "--i2":
@@ -793,6 +800,7 @@ usage_exit:
   echo "      --refmode modename (t1w/t2w/flair/modename)  "
   echo "  --o outdir "
   echo "  --options OptionsFile : json file for advanced"
+  echo "  --dissection-photo [left/right/both] : Mode to process 3D reconstructed dissection photos. You need to specify whether it is a left hemisphere, right, or both are present"
   echo "  --history : Turns on save history"
   echo "  --s subject : create subject, sets outdir to subject/mri/samseg"
   echo "                the first input must be the conformed T1 weighted input"

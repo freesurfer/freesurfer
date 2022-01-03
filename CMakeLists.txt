@@ -602,6 +602,7 @@ if(NOT MINIMAL)
     mris_find_flat_regions
     mris_flatten
     mris_fwhm
+    mris_gradient_unwarp
     mris_hausdorff_dist
     mris_init_global_tractography
     mris_interpolate_warp
