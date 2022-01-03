@@ -224,6 +224,10 @@ int main(int argc, char *argv[])
             printf("fcs = %lf (%d), frs = %lf (%d), fss = %lf (%d)\n", fcs, ics, frs, irs, fss, iss);
             exit(0);
 	  }
+
+          if (ics < 0 || irs < 0 || iss < 0 ||
+              ics >= origvol->width || irs >= origvol->height || iss >= origvol->depth)
+            continue;
 	}
         else
 	{
