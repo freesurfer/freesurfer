@@ -103,7 +103,7 @@ void GradUnwarp::read_siemens_coeff(const char *gradfilename)
   // only extract radius and ignore rest
   sscanf(coeffline, "%f\n", &R0);
   printf("WARN: returning R0 = %f in units of METERS!\n", R0);
-  R0 = R0 * 1000;  // R0 is now in mm
+  //R0 = R0 * 1000;  // R0 is now in mm
   
   // read next line, which contains gradient system mode "(0 = typ. tunnel magnet system; 1 = typ. open magnet system)"
   fgets(coeffline, sizeof(coeffline), fgrad);

@@ -1,6 +1,18 @@
 #include <stdio.h>
 #include <stdlib.h>
+//#include <math.h>
+//double round(double x);
+//#include <sys/stat.h>
+//#include <sys/types.h>
+#include <sys/utsname.h>
+//#include <unistd.h>
 
+
+#include "version.h"
+#include "diag.h"
+#include "log.h"
+#include "cmdargs.h"
+#include "fio.h"
 #include "mri.h"
 #include "mriBSpline.h"
 #include "GradUnwarp.h"
@@ -32,32 +44,75 @@
  *  VERTEX *v = surf->vertices[n]
  *  v->x, v->y, v->z
  */
-int main(int argc, const char *argv[])
+
+static void dump_exit_codes(FILE *fp);
+
+static int  parse_commandline(int argc, char **argv);
+static void check_options(void);
+static void print_usage(void) ;
+static void usage_exit(void);
+static void print_help(void) ;
+static void print_version(void) ;
+static void dump_options(FILE *fp);
+
+int debug = 0, checkoptsonly = 0;
+const char *Progname = NULL;
+std::string gradfile0, origmgz0, unwarpedmgz0;
+int dupinvol = 0, inputras = 0, inputcrs = 0;
+double ras_x, ras_y, ras_z;
+int crs_c = 0, crs_r = 0, crs_s = 0;
+int main(int argc, char *argv[])
 {
-#if 0 // test GradUnwarp class
+  int nargs;
+  struct utsname uts;
+  char *cmdline, cwd[2000];
 
-  GradUnwarp *gradUnwarp = new GradUnwarp();
-  gradUnwarp->read_siemens_coeff(argv[1]);
-  //mrisGradientNonlin->printCoeff();
+  nargs = handleVersionOption(argc, argv, "mris_gradient_unwarp");
+  if (nargs && argc - nargs == 1) exit (0);
+  argc -= nargs;
+  cmdline = argv2cmdline(argc,argv);
+  uname(&uts);
+  getcwd(cwd,2000);
 
-  gradUnwarp->initSiemensLegendreNormfact();
+  Progname = argv[0] ;
+  argc --;
+  argv++;
+  ErrorInit(NULL, NULL, NULL) ;
+  DiagInit(NULL, NULL, NULL) ;
+  if (argc == 0) usage_exit();
+  parse_commandline(argc, argv);
+  check_options();
+  if (checkoptsonly) return(0);
 
-  double x = atof(argv[2]);
-  double y = atof(argv[3]);
-  double z = atof(argv[4]);
+  printf("\n");
+  printf("%s\n",getVersion().c_str());
+  printf("cwd %s\n",cwd);
+  printf("cmdline %s\n",cmdline);
+  printf("sysname  %s\n",uts.sysname);
+  printf("hostname %s\n",uts.nodename);
+  printf("machine  %s\n",uts.machine);
 
-  float Dx, Dy, Dz;
-  gradUnwarp->spharm_evaluate(x, y, z, &Dx, &Dy, &Dz);
+  dump_options(stdout);
 
-  printf(" x = %.6lf,  Dx = %.6lf\n", x, Dx);
-  printf(" y = %.6lf,  Dy = %.6lf\n", y, Dy);
-  printf(" z = %.6lf,  Dz = %.6lf\n", z, Dz);
+  if (inputras) // for debugging only
+  {
+    GradUnwarp *gradUnwarp = new GradUnwarp();
+    gradUnwarp->read_siemens_coeff(argv[1]);
+    //mrisGradientNonlin->printCoeff();
 
-  delete gradUnwarp;
+    gradUnwarp->initSiemensLegendreNormfact();
 
-  return 0;
+    float Dx, Dy, Dz;
+    gradUnwarp->spharm_evaluate(ras_x, ras_y, ras_z, &Dx, &Dy, &Dz);
 
-#else
+    printf(" x = %.6lf,  Dx = %.6lf\n", ras_x, Dx);
+    printf(" y = %.6lf,  Dy = %.6lf\n", ras_y, Dy);
+    printf(" z = %.6lf,  Dz = %.6lf\n", ras_z, Dz);
+
+    delete gradUnwarp;
+
+    return 0;
+  }
 
   // ??? these two variables to be set by user as command line option ???
   int InterpCode = SAMPLE_NEAREST;
@@ -66,22 +121,29 @@ int main(int argc, const char *argv[])
   int (*nintfunc)( double );
   nintfunc = &nint;
 
-  const char *gradfile = argv[1];
-  const char *origmgz  = argv[2];
-  const char *unwarpedmgz = argv[3];
-
-  int duporigvol = 0;
-  if (argc > 4)
-    duporigvol = atoi(argv[4]);
-  if (duporigvol)
-    printf("\n!!! Duplicate original volume as %s ...\n\n", unwarpedmgz); 
 
   GradUnwarp *gradUnwarp = new GradUnwarp();
-  gradUnwarp->read_siemens_coeff(gradfile);
+  gradUnwarp->read_siemens_coeff(gradfile0.c_str());
   gradUnwarp->initSiemensLegendreNormfact();
 
-  MRI *origvol = MRIread(origmgz);
+  MRI *origvol = MRIread(origmgz0.c_str());
   MATRIX *vox2ras_orig = MRIxfmCRS2XYZ(origvol, 0);
+
+
+  //if (PrintVox2RAS)
+  {
+    //m = MRIgetVoxelToRasXform(mri) ;
+    int r, c;
+    for (r=1; r<=4; r++)
+    {
+      for (c=1; c<=4; c++)
+      {
+        printf("%10.5f ",vox2ras_orig->rptr[r][c]);
+      }
+      printf("\n");
+    }
+  }
+
 
   MRI *unwarpedvol = MRIalloc(origvol->width, origvol->height, origvol->depth, origvol->type);
   unwarpedvol->x_r = origvol->x_r;
@@ -128,7 +190,7 @@ int main(int argc, const char *argv[])
     {
       for (s = 0; s < origvol->depth; s++)
       {
-        if (!duporigvol)
+        if (!dupinvol)
         {
           // clear CRS, RAS, DeltaRAS, DistortedRAS, DistortedCRS
 	  MatrixClear(CRS);
@@ -137,10 +199,20 @@ int main(int argc, const char *argv[])
           MatrixClear(DistortedRAS);
           MatrixClear(DistortedCRS);
 
-          CRS->rptr[1][1] = c;
-          CRS->rptr[2][1] = r;
-          CRS->rptr[3][1] = s;
-          CRS->rptr[4][1] = 1;
+          if (inputcrs)
+          {
+            CRS->rptr[1][1] = crs_c;
+            CRS->rptr[2][1] = crs_r;
+            CRS->rptr[3][1] = crs_s;
+            CRS->rptr[4][1] = 1;          
+          }
+          else
+	  {
+            CRS->rptr[1][1] = c;
+            CRS->rptr[2][1] = r;
+            CRS->rptr[3][1] = s;
+            CRS->rptr[4][1] = 1;
+	  }
 
           // Convert the CRS to RAS
           RAS->rptr[4][1] = 1;
@@ -151,8 +223,13 @@ int main(int argc, const char *argv[])
           float z = RAS->rptr[3][1];
           float Dx, Dy, Dz;
           gradUnwarp->spharm_evaluate(x, y, z, &Dx, &Dy, &Dz);
-          printf(" x=%.6lf  y=%.6lf  z=%.6lf\n", x, y, z);
-          printf("Dx=%.6lf Dy=%.6lf Dz=%.6lf\n", Dx, Dy, Dz);
+
+	  if (inputcrs)
+	  {
+            printf(" c=%d r=%d s=%d\n", crs_c, crs_r, crs_s);
+            printf(" x=%.6lf  y=%.6lf  z=%.6lf\n", x, y, z);
+            printf("Dx=%.6lf Dy=%.6lf Dz=%.6lf\n", Dx, Dy, Dz);
+	  }
 
           DeltaRAS->rptr[1][1] = Dx;
           DeltaRAS->rptr[2][1] = Dy;
@@ -166,7 +243,7 @@ int main(int argc, const char *argv[])
         int ics, irs, iss;
         double rval = 0;
 
-        if (!duporigvol)
+        if (!dupinvol)
 	{
           fcs = DistortedCRS->rptr[1][1];
           frs = DistortedCRS->rptr[2][1];
@@ -176,7 +253,11 @@ int main(int argc, const char *argv[])
           irs =  nintfunc(frs);
           iss =  nintfunc(fss);
 
-          printf("fcs = %lf (%d), frs = %lf (%d), fss = %lf (%d)\n", fcs, ics, frs, irs, fss, iss);
+          if (inputcrs)
+	  {
+            printf("fcs = %lf (%d), frs = %lf (%d), fss = %lf (%d)\n", fcs, ics, frs, irs, fss, iss);
+            return 0;
+	  }
 	}
         else
 	{
@@ -224,7 +305,7 @@ int main(int argc, const char *argv[])
     }     // r
   }       // c
 
-  MRIwrite(unwarpedvol, unwarpedmgz);
+  MRIwrite(unwarpedvol, unwarpedmgz0.c_str());
 
   delete gradUnwarp;
 
@@ -244,6 +325,149 @@ int main(int argc, const char *argv[])
     MRIfreeBSpline(&bspline);
 
   return 0;
-#endif
 }
 
+
+/* --------------------------------------------- */
+static int parse_commandline(int argc, char **argv) {
+  int  nargc , nargsused;
+  char **pargv, *option ;
+
+  if (argc < 1) usage_exit();
+
+  nargc   = argc;
+  pargv = argv;
+  while (nargc > 0) {
+
+    option = pargv[0];
+    if (debug) printf("%d %s\n",nargc,option);
+    nargc -= 1;
+    pargv += 1;
+
+    nargsused = 0;
+
+    if (!strcasecmp(option, "--help"))  print_help() ;
+    else if (!strcasecmp(option, "--version")) print_version() ;
+    else if (!strcasecmp(option, "--debug"))   debug = 1;
+    else if (!strcasecmp(option, "--checkopts"))   checkoptsonly = 1;
+    else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
+
+    else if (!strcasecmp(option, "--dupinvol"))   dupinvol = 1;
+    else if (!strcmp(option, "--ras")) {
+      inputras = 1;
+      if (nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0], "%lf,%lf,%lf", &ras_x, &ras_y, &ras_z);
+      nargsused = 1;
+    } else if (!strcmp(option, "--crs")) {
+      inputcrs = 1;
+      if (nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0], "%d,%d,%d", &crs_c, &crs_r, &crs_s);
+      nargsused = 1;
+
+    } else if (!strcmp(option, "--gradcoeff")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      gradfile0 = fio_fullpath(pargv[0]);
+      nargsused = 1;
+    } else if (!strcmp(option, "--invol")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      origmgz0 = fio_fullpath(pargv[0]);
+      nargsused = 1;
+    } else if (!strcmp(option, "--outvol")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      unwarpedmgz0 = fio_fullpath(pargv[0]);
+      nargsused = 1;
+    } else {
+      fprintf(stderr,"ERROR: Option %s unknown\n",option);
+      if (CMDsingleDash(option))
+        fprintf(stderr,"       Did you really mean -%s ?\n",option);
+      exit(1);
+    }
+    nargc -= nargsused;
+    pargv += nargsused;
+  }
+  return(0);
+}
+
+/* ------------------------------------------------------ */
+static void usage_exit(void) {
+  print_usage() ;
+  exit(1) ;
+}
+
+/* --------------------------------------------- */
+static void print_usage(void) {
+  printf("USAGE: %s \n",Progname) ;
+  printf("\n");
+  printf("   --gradcoeff gradient coeff input \n");
+  printf("   --invol     input volume \n");
+  printf("   --outvol    unwarped outout volume \n");
+  printf("\n");
+  printf("   --ras       x,y,z\n");
+  printf("   --crs       c,r,s\n");
+  printf("\n"); 
+  printf("   --interpcode interpcode (to be implemented)\n");
+  printf("   --sinchw = nint(0) (to be implemented)\n");
+  printf("\n"); 
+  printf("   --debug     turn on debugging\n");
+  printf("   --checkopts don't run anything, just check options and exit\n");
+  printf("   --help      print out information on how to use this program\n");
+  printf("   --version   print out version and exit\n");
+  printf("\n");
+  std::cout << getVersion() << std::endl;
+  printf("\n");
+}
+
+/* --------------------------------------------- */
+static void print_help(void) {
+  print_usage() ;
+  printf(
+    "program description\n"
+    "...\n"
+    "...\n");
+
+  printf("\n");
+  dump_exit_codes(stdout);
+  printf("\n");
+
+  exit(1) ;
+}
+
+/* --------------------------------------------- */
+static void print_version(void) {
+  std::cout << getVersion() << std::endl;
+  exit(1) ;
+}
+
+/* --------------------------------------------- */
+static void check_options(void) {
+  /*if (vol1File.size() == 0) {
+    printf("ERROR: must specify a vol1 file\n");
+    exit(1);
+  }
+  if (vol2File.size() == 0) {
+    printf("ERROR: must specify a vol2 file\n");
+    exit(1);
+  }
+  return;
+  */
+}
+
+/* --------------------------------------------- */
+static void dump_options(FILE *fp) {
+  /*fprintf(fp,"vol1    %s\n",vol1File.c_str());
+  fprintf(fp,"vol2    %s\n",vol2File.c_str());
+  fprintf(fp,"pix thresh  %g\n",pixdiff_thresh);
+  fprintf(fp,"vox2ras thresh %g\n",vox2ras_thresh);
+  return;
+  */
+}
+
+/* --------------------------------------------- */
+static void dump_exit_codes(FILE *fp) {
+  /*  fprintf(fp,"dimensions inconsistent   %d\n",DIMENSION_EC);
+  fprintf(fp,"precision  inconsistent   %d\n",PRECISION_EC);
+  fprintf(fp,"resolution inconsistent   %d\n",RESOLUTION_EC);
+  fprintf(fp,"vox2ras    inconsistent   %d\n",VOX2RAS_EC);
+  fprintf(fp,"pixel      inconsistent   %d\n",PIXEL_EC);
+  */
+}
