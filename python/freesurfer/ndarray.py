@@ -242,6 +242,17 @@ class Volume(ArrayContainerTemplate, Transformable):
         self.affine = vol.affine
         self.voxsize = vol.voxsize
 
+    def gaussian_smooth(self, smooth_sigma, order=0):
+        '''smooths the input image with a gaussian kernel and returns a new fs.Volume '''
+        sigmas = (smooth_sigma, smooth_sigma, smooth_sigma)
+        if len(self.data.shape) > 3:
+            sigmas += (0,) * (len(self.data.shape) - 3)
+        smoothed_data = scipy.ndimage.gaussian_filter(self.data, sigma=sigmas, order=order)
+        smoothed_vol = self.copy()
+        smoothed_vol.data = smoothed_data
+        return smoothed_vol
+
+        
     def reslice(self, voxsize, interp_method='linear', smooth_sigma=0):
         '''
         Returns the resampled volume with a given resolution determined by voxel
