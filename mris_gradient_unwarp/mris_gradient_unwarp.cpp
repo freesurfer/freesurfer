@@ -133,6 +133,7 @@ int main(int argc, char *argv[])
   //if (PrintVox2RAS)
   {
     //m = MRIgetVoxelToRasXform(mri) ;
+    MatrixPrint(stdout,vox2ras_orig);
     int r, c;
     for (r=1; r<=4; r++)
     {
@@ -145,32 +146,10 @@ int main(int argc, char *argv[])
   }
 
 
-  MRI *unwarpedvol = MRIalloc(origvol->width, origvol->height, origvol->depth, origvol->type);
-  unwarpedvol->x_r = origvol->x_r;
-  unwarpedvol->x_a = origvol->x_a;
-  unwarpedvol->x_s = origvol->x_s;
+  MRI *unwarpedvol = MRIallocSequence(origvol->width, origvol->height, origvol->depth, origvol->type, origvol->nframes);
+  MRIcopyHeader(origvol, unwarpedvol);
+  MRIcopyPulseParameters(origvol, unwarpedvol);
 
-  unwarpedvol->y_r = origvol->y_r;
-  unwarpedvol->y_a = origvol->y_a;
-  unwarpedvol->y_s = origvol->y_s;
-
-  unwarpedvol->z_r = origvol->z_r;
-  unwarpedvol->z_a = origvol->z_a;
-  unwarpedvol->z_s = origvol->z_s;
-
-  unwarpedvol->c_r = origvol->c_r;
-  unwarpedvol->c_a = origvol->c_a;
-  unwarpedvol->c_s = origvol->c_s;
-
-  unwarpedvol->xsize = origvol->xsize;
-  unwarpedvol->ysize = origvol->ysize;
-  unwarpedvol->zsize = origvol->zsize;
-
-  MATRIX *CRS = MatrixAlloc(4, 1, MATRIX_REAL);
-  MATRIX *RAS = MatrixAlloc(4, 1, MATRIX_REAL);;
-  MATRIX *DeltaRAS = MatrixAlloc(4, 1, MATRIX_REAL);
-  MATRIX *DistortedRAS = MatrixAlloc(4, 1, MATRIX_REAL);
-  MATRIX *DistortedCRS = MatrixAlloc(4, 1, MATRIX_REAL);
 
   MRI_BSPLINE *bspline = NULL;
   if (InterpCode == SAMPLE_CUBIC_BSPLINE)
@@ -183,9 +162,19 @@ int main(int argc, char *argv[])
 
   printf("width=%4d height=%4d depth=%4d nframes=%4d\n", origvol->width, origvol->height, origvol->depth, origvol->nframes);
 
-  int c, r, s, f;
-  for (c = 0; c < origvol->width; c++)
-  {
+  int c;
+#ifdef HAVE_OPENMP
+#pragma omp parallel for 
+#endif
+  for (c = 0; c < origvol->width; c++)  {
+    int r, s, f;
+    // You could make a vector of CRS nthreads long
+    MATRIX *CRS = MatrixAlloc(4, 1, MATRIX_REAL);
+    MATRIX *RAS = MatrixAlloc(4, 1, MATRIX_REAL);;
+    MATRIX *DeltaRAS = MatrixAlloc(4, 1, MATRIX_REAL);
+    MATRIX *DistortedRAS = MatrixAlloc(4, 1, MATRIX_REAL);
+    MATRIX *DistortedCRS = MatrixAlloc(4, 1, MATRIX_REAL);
+
     for (r = 0; r < origvol->height; r++)
     {
       for (s = 0; s < origvol->depth; s++)
@@ -303,17 +292,21 @@ int main(int argc, char *argv[])
 
       }   // s
     }     // r
+
+    // MatrixFree(&CRS); ...
+    MatrixClear(CRS);
+    MatrixClear(RAS);
+    MatrixClear(DeltaRAS);
+    MatrixClear(DistortedRAS);
+    MatrixClear(DistortedCRS);
   }       // c
 
-  MRIwrite(unwarpedvol, unwarpedmgz0.c_str());
+  printf("Writing to %s\n",unwarpedmgz0.c_str());
+  int err = MRIwrite(unwarpedvol, unwarpedmgz0.c_str());
+  if(err) printf("something went wrong\n");
 
   delete gradUnwarp;
 
-  MatrixClear(CRS);
-  MatrixClear(RAS);
-  MatrixClear(DeltaRAS);
-  MatrixClear(DistortedRAS);
-  MatrixClear(DistortedCRS);
 
   MRIfree(&origvol);
   MRIfree(&unwarpedvol);
