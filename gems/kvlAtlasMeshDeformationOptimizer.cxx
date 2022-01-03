@@ -1,5 +1,9 @@
 #include "kvlAtlasMeshDeformationOptimizer.h"
 
+#if USE_PRECONDITIONING
+  #include <fstream>
+#endif
+
 
 namespace kvl
 {
@@ -317,15 +321,36 @@ AtlasMeshDeformationOptimizer
 
   //
 #if USE_PRECONDITIONING
-  m_Preconditioner.assign( m_Mesh->GetPoints()->Size(), 1.0 );
-  
+
   if ( m_Calculator->GetBoundaryCondition() == AtlasMeshPositionCostAndGradientCalculator::SLIDING )
     {
-    for ( int i=0; i<1000; i++ )
+    // for ( int i=0; i<1000; i++ )
+    //   {
+    //   m_Preconditioner[ i ] = 10;  
+    //   }
+      
+    m_Preconditioner.clear();
+    const std::string  preconditionerFileName = "/home/koen/data/testing/preconditioning/preconditioner_level1.txt";
+    std::ifstream  inFile( preconditionerFileName );
+    if ( inFile.is_open() )
       {
-      m_Preconditioner[ i ] = 10;  
-      }
+      double  value;
+      while ( inFile >> value ) 
+        {
+        m_Preconditioner.push_back( value );
+        }
+      
+      inFile.close(); 
+      }  
+    
     }  
+  if ( m_Mesh->GetPoints()->Size() != m_Preconditioner.size() )
+    {
+    // We can't use the provided preconditioner -- use a dummy one instead
+    m_Preconditioner.assign( m_Mesh->GetPoints()->Size(), 1.0 );
+  
+    std::cout << "Using dummy preconditioner" << std::endl;  
+    }
   std::cout << "??????????????????????????????????" << std::endl;
   std::cout << "??????????????????????????????????" << std::endl;
   std::cout << "   m_Preconditioner.size(): " << m_Preconditioner.size() << std::endl;
