@@ -169,13 +169,20 @@ AtlasMeshDeformationPartiallySeparableOptimizer
   // Use the Eigen C++ template library for this purpose
   // https://eigen.tuxfamily.org/dox/group__TutorialSparse.html
   
-  // TODO: first make a dense mapping from each pointId to a contiguous pointNumber. This pointNumber
+  // First make a dense mapping from each pointId to a contiguous pointNumber. This pointNumber
   // will be the contiguous index of the first element (of three) of each point
-  typedef Eigen::Triplet< double > TripletType;
-  std::vector< TripletType >  triplets;
   const int  numberOfPoints = m_Position->Size();
+  std::map< AtlasMesh::PointIdentifier, int >  nodeNumberLookupTable;
+  for ( AtlasMesh::PointsContainer::ConstIterator  it = m_Position->Begin();
+        it != m_Position->End(); ++it )
+    {
+    nodeNumberLookupTable[ it.Index() ] = nodeNumberLookupTable.size();
+    }
+  
   
   // TODO: loop over all tetrahedra, each time adding 12x12=144 entries to the triplets
+  typedef Eigen::Triplet< double > TripletType;
+  std::vector< TripletType >  triplets;
   triplets.push_back( TripletType( rowNumber, columnNumber, value ) )
   
   //
