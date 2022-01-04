@@ -273,12 +273,11 @@ static void unwarpVol(const char* origmgz, const char* unwarpedmgz, GradUnwarp* 
       }   // s
     }     // r
 
-    // MatrixFree(&CRS); ...
-    MatrixClear(CRS);
-    MatrixClear(RAS);
-    MatrixClear(DeltaRAS);
-    MatrixClear(DistortedRAS);
-    MatrixClear(DistortedCRS);
+    MatrixFree(&CRS);
+    MatrixFree(&RAS);
+    MatrixFree(&DeltaRAS);
+    MatrixFree(&DistortedRAS);
+    MatrixFree(&DistortedCRS);
   }       // c
 
   printf("Writing to %s\n",unwarpedmgz);
