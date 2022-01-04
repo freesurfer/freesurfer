@@ -48,6 +48,8 @@ static void usage_exit(void);
 static void print_help(void) ;
 static void print_version(void) ;
 static void dump_options(FILE *fp);
+static int isflag(char *flag);
+static int nth_is_arg(int nargc, char **argv, int nth);
 
 static void unwarpVol(const char* origmgz, const char* unwarpedmgz, GradUnwarp* gradUnwarp);
 
@@ -57,12 +59,17 @@ std::string gradfile0, origmgz0, unwarpedmgz0;
 int dupinvol = 0, inputras = 0, inputcrs = 0;
 double ras_x, ras_y, ras_z;
 int crs_c = 0, crs_r = 0, crs_s = 0;
+const char *interpmethod = "trilinear";
+int   interpcode = 0;
+int   sinchw = 0;
 
 int main(int argc, char *argv[])
 {
   int nargs;
   struct utsname uts;
   char *cmdline, cwd[2000];
+
+  interpcode = MRIinterpCode(interpmethod);
 
   nargs = handleVersionOption(argc, argv, "mris_gradient_unwarp");
   if (nargs && argc - nargs == 1) exit (0);
@@ -120,10 +127,6 @@ int main(int argc, char *argv[])
 /* --------------------------------------------- */
 static void unwarpVol(const char* origmgz, const char* unwarpedmgz, GradUnwarp* gradUnwarp)
 {
-  // ??? these two variables to be set by user as command line option ???
-  int InterpCode = SAMPLE_NEAREST;
-  int sinchw = nint(0); 
-
   int (*nintfunc)( double );
   nintfunc = &nint;
 
@@ -139,7 +142,7 @@ static void unwarpVol(const char* origmgz, const char* unwarpedmgz, GradUnwarp* 
 
 
   MRI_BSPLINE *bspline = NULL;
-  if (InterpCode == SAMPLE_CUBIC_BSPLINE)
+  if (interpcode == SAMPLE_CUBIC_BSPLINE)
     bspline = MRItoBSpline(origvol, NULL, 3);
 
   printf("width=%4d height=%4d depth=%4d nframes=%4d\n", origvol->width, origvol->height, origvol->depth, origvol->nframes);
@@ -211,9 +214,8 @@ static void unwarpVol(const char* origmgz, const char* unwarpedmgz, GradUnwarp* 
           DistortedCRS = MatrixMultiply(inv_vox2ras_orig, DistortedRAS, DistortedCRS);
         } 
  
-        float fcs, frs, fss, *valvect;
+        float fcs, frs, fss;
         int ics, irs, iss;
-        double rval = 0;
 
         if (!dupinvol)
 	{
@@ -243,14 +245,19 @@ static void unwarpVol(const char* origmgz, const char* unwarpedmgz, GradUnwarp* 
           iss =  s;
 	}
 
-        valvect = new float[origvol->nframes]; 
-
         /* Assign output volume values */
-        if (InterpCode == SAMPLE_TRILINEAR)
+        if (interpcode == SAMPLE_TRILINEAR) {
+          float *valvect = new float[origvol->nframes]; 
           MRIsampleSeqVolume(origvol, fcs, frs, fss, valvect, 0, origvol->nframes - 1);
-        else {
+          
+          for (f = 0; f < origvol->nframes; f++) 
+            MRIsetVoxVal2(unwarpedvol, c, r, s, f, valvect[f]);
+
+          free(valvect);
+	} else {
+          double rval = 0;
           for (f = 0; f < origvol->nframes; f++) {
-            switch (InterpCode) {
+            switch (interpcode) {
               case SAMPLE_NEAREST:
                 rval = MRIgetVoxVal2(origvol, ics, irs, iss, f);
                 break;
@@ -261,15 +268,13 @@ static void unwarpVol(const char* origmgz, const char* unwarpedmgz, GradUnwarp* 
                 MRIsincSampleVolume(origvol, fcs, frs, fss, sinchw, &rval);
                 break;
               default:
-                printf("ERROR: MR: interpolation method %i unknown\n", InterpCode);
+                printf("ERROR: MR: interpolation method '%i' unknown\n", interpcode);
                 exit(1);
             } // switch
 
             MRIsetVoxVal2(unwarpedvol, c, r, s, f, rval);
-            //printf("c=%4d r=%4d s=%4d f=%4d\n", c, r, s, f);
-          }
-        } // f
-
+          } // f
+        }
       }   // s
     }     // r
 
@@ -330,7 +335,6 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0], "%d,%d,%d", &crs_c, &crs_r, &crs_s);
       nargsused = 1;
-
     } else if (!strcmp(option, "--gradcoeff")) {
       if (nargc < 1) CMDargNErr(option,1);
       gradfile0 = fio_fullpath(pargv[0]);
@@ -343,6 +347,17 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       unwarpedmgz0 = fio_fullpath(pargv[0]);
       nargsused = 1;
+    } else if (!strcmp(option, "--interp")) {
+      if (nargc < 1) CMDargNErr(option, 1);
+      interpmethod = pargv[0];
+      interpcode = MRIinterpCode(interpmethod);
+      printf("!!! <interpmethod=%s, interpcode=%d> !!!\n", interpmethod, interpcode);
+      nargsused = 1;
+      if (!strcmp(interpmethod, "sinc") && nth_is_arg(nargc, pargv, 1)) {
+        sscanf(pargv[1], "%d", &sinchw);
+        printf("!!! <sinchw = %d> !!!\n", sinchw);
+        nargsused ++;
+      }
     } else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if (CMDsingleDash(option))
@@ -372,8 +387,7 @@ static void print_usage(void) {
   printf("   --ras       x,y,z\n");
   printf("   --crs       c,r,s\n");
   printf("\n"); 
-  printf("   --interpcode interpcode (to be implemented)\n");
-  printf("   --sinchw = nint(0) (to be implemented)\n");
+  printf("   --interp    interptype nearest | trilinear | sinc | cubic\n");
   printf("\n"); 
   printf("   --debug     turn on debugging\n");
   printf("   --checkopts don't run anything, just check options and exit\n");
@@ -407,6 +421,11 @@ static void print_version(void) {
 
 /* --------------------------------------------- */
 static void check_options(void) {
+  if (interpcode < 0) {
+    printf("ERROR: interpolation method %s unrecognized\n",interpmethod);
+    printf("       legal values are nearest, trilinear, sinc, and cubic\n");
+    exit(1);
+  }
   /*if (vol1File.size() == 0) {
     printf("ERROR: must specify a vol1 file\n");
     exit(1);
@@ -437,4 +456,28 @@ static void dump_exit_codes(FILE *fp) {
   fprintf(fp,"vox2ras    inconsistent   %d\n",VOX2RAS_EC);
   fprintf(fp,"pixel      inconsistent   %d\n",PIXEL_EC);
   */
+}
+
+/*---------------------------------------------------------------*/
+static int isflag(char *flag) {
+  int len;
+  len = strlen(flag);
+  if (len < 2) return(0);
+
+  if (flag[0] == '-' && flag[1] == '-') return(1);
+  return(0);
+}
+
+/*---------------------------------------------------------------*/
+static int nth_is_arg(int nargc, char **argv, int nth) {
+  /* Checks that nth arg exists and is not a flag */
+  /* nth is 0-based */
+
+  /* check that there are enough args for nth to exist */
+  if (nargc <= nth) return(0);
+
+  /* check whether the nth arg is a flag */
+  if (isflag(argv[nth])) return(0);
+
+  return(1);
 }
