@@ -49,6 +49,8 @@ static void print_help(void) ;
 static void print_version(void) ;
 static void dump_options(FILE *fp);
 
+static void unwarpVol(const char* origmgz, const char* unwarpedmgz, GradUnwarp* gradUnwarp);
+
 int debug = 0, checkoptsonly = 0;
 const char *Progname = NULL;
 std::string gradfile0, origmgz0, unwarpedmgz0;
@@ -89,14 +91,13 @@ int main(int argc, char *argv[])
 
   dump_options(stdout);
 
+  GradUnwarp *gradUnwarp = new GradUnwarp();
+  gradUnwarp->read_siemens_coeff(gradfile0.c_str());
+  //mrisGradientNonlin->printCoeff();
+  gradUnwarp->initSiemensLegendreNormfact();
+
   if (inputras) // for debugging only
   {
-    GradUnwarp *gradUnwarp = new GradUnwarp();
-    gradUnwarp->read_siemens_coeff(argv[1]);
-    //mrisGradientNonlin->printCoeff();
-
-    gradUnwarp->initSiemensLegendreNormfact();
-
     float Dx, Dy, Dz;
     gradUnwarp->spharm_evaluate(ras_x, ras_y, ras_z, &Dx, &Dy, &Dz);
 
@@ -109,6 +110,16 @@ int main(int argc, char *argv[])
     return 0;
   }
 
+  unwarpVol(origmgz0.c_str(), unwarpedmgz0.c_str(), gradUnwarp); 
+
+  delete gradUnwarp;
+
+  return 0;
+}
+
+/* --------------------------------------------- */
+static void unwarpVol(const char* origmgz, const char* unwarpedmgz, GradUnwarp* gradUnwarp)
+{
   // ??? these two variables to be set by user as command line option ???
   int InterpCode = SAMPLE_NEAREST;
   int sinchw = nint(0); 
@@ -116,12 +127,7 @@ int main(int argc, char *argv[])
   int (*nintfunc)( double );
   nintfunc = &nint;
 
-
-  GradUnwarp *gradUnwarp = new GradUnwarp();
-  gradUnwarp->read_siemens_coeff(gradfile0.c_str());
-  gradUnwarp->initSiemensLegendreNormfact();
-
-  MRI *origvol = MRIread(origmgz0.c_str());
+  MRI *origvol = MRIread(origmgz);
   MATRIX *vox2ras_orig = MRIxfmCRS2XYZ(origvol, 0);
   MATRIX *inv_vox2ras_orig = MatrixInverse(vox2ras_orig, NULL);
 
@@ -275,11 +281,10 @@ int main(int argc, char *argv[])
     MatrixClear(DistortedCRS);
   }       // c
 
-  printf("Writing to %s\n",unwarpedmgz0.c_str());
-  int err = MRIwrite(unwarpedvol, unwarpedmgz0.c_str());
+  printf("Writing to %s\n",unwarpedmgz);
+  int err = MRIwrite(unwarpedvol, unwarpedmgz);
   if(err) printf("something went wrong\n");
 
-  delete gradUnwarp;
 
   MatrixFree(&vox2ras_orig);
   MatrixFree(&inv_vox2ras_orig);
@@ -289,10 +294,7 @@ int main(int argc, char *argv[])
 
   if (bspline)
     MRIfreeBSpline(&bspline);
-
-  return 0;
 }
-
 
 /* --------------------------------------------- */
 static int parse_commandline(int argc, char **argv) {
