@@ -5108,6 +5108,7 @@ int MRISrigidBodyAlignVectorGlobal(
 }
 
 
+#if 0
 /*-----------------------------------------------------
   Parameters:
 
@@ -5246,7 +5247,6 @@ static int mrisPlaceVertexInOrigFace(MRIS * const mris_vno, int const vno, MRIS 
 }
 
 
-
 int MRISinverseSphericalMap(MRIS *mris, MRIS *mris_ico)
 {
   double r;
@@ -5344,7 +5344,7 @@ int MRISinverseSphericalMap(MRIS *mris, MRIS *mris_ico)
 
   return (NO_ERROR);
 }
-
+#endif
 
 /*-----------------------------------------------------
   Parameters:
