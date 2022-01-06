@@ -134,6 +134,8 @@ AtlasMeshDeformationPartiallySeparableOptimizer
                      =  this->LinearlyCombineDeformations( m_Gradient, 1.0, m_OldGradient, -1.0 ).GetPointer();
 
     // Loop over all tethradra
+    int  numberOfTetrahedra = 0;
+    int  numberOfUpdatedTetrahedra = 0;
     std::vector< miniApproxHessianType >::iterator  miniIt = m_MiniApproxHessians.begin();
     for ( AtlasMesh::CellsContainer::ConstIterator  cellIt = this->GetMesh()->GetCells()->Begin();
         cellIt != this->GetMesh()->GetCells()->End(); ++cellIt )
@@ -177,19 +179,27 @@ AtlasMeshDeformationPartiallySeparableOptimizer
         {
         // Perform the update
         miniApproxHessian += outer_product( tmp_mini, tmp_mini ) / denominator;
+        // std::cout << "outer_product( tmp_mini, tmp_mini ):" << outer_product( tmp_mini, tmp_mini ) << std::endl;
+        numberOfUpdatedTetrahedra++;
         }
   
+      ++numberOfTetrahedra;
       ++miniIt;
       } // End loop over tetrahedra  
 
+    std::cout << "numberOfUpdatedTetrahedra: " << numberOfUpdatedTetrahedra << std::endl;  
+    std::cout << "numberOfTetrahedra: " << numberOfTetrahedra << std::endl;  
+      
     } // End test if first iteration
-    
+  
     
   // Loop over all tetrahedra, adding each 12x12 mini Hessian to the global sparse Hessian
   // Use the Eigen C++ template library for this purpose
   // https://eigen.tuxfamily.org/dox/group__TutorialSparse.html
   std::cout << "m_MiniApproxHessians.size(): " << m_MiniApproxHessians.size() << std::endl;
   std::cout << "m_MiniApproxHessians[ 100 ]: " << m_MiniApproxHessians[ 100 ] << std::endl;
+  // std::cout << "m_MiniApproxHessians[ 1000 ]: " << m_MiniApproxHessians[ 1000 ] << std::endl;
+  // std::cout << "m_MiniApproxHessians[ 10000 ]: " << m_MiniApproxHessians[ 10000 ] << std::endl;
   
   
   // First make a dense mapping from each pointId to a contiguous pointNumber. This pointNumber
@@ -359,7 +369,7 @@ AtlasMeshDeformationPartiallySeparableOptimizer
   // [ https://eigen.tuxfamily.org/dox/classEigen_1_1ConjugateGradient.html ]
   Eigen::ConjugateGradient< HessianType, Eigen::Lower|Eigen::Upper >  solver;
   solver.compute( Hessian );
-  solver.setMaxIterations( 10 );
+  solver.setMaxIterations( 100 );
   Eigen::VectorXd  vectorizedSolution( 3 * numberOfPoints );
   vectorizedSolution = solver.solve( vectorizedGradient );
   std::cout << "#iterations:     " << solver.iterations() << std::endl;
