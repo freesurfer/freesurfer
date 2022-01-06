@@ -84,8 +84,26 @@ AtlasMeshDeformationPartiallySeparableOptimizer
     // for L-BFGS
     //gamma = initialAlpha1Distance / max( abs( gradient ) ); 
     const double  gamma = m_StartDistance / this->ComputeMaximalDeformation( m_Gradient );
+
+    const int  numberOfPoints = m_Position->Size();
+    int  numberOfTetrahedra = 0;  
+    for ( AtlasMesh::CellsContainer::ConstIterator  cellIt = this->GetMesh()->GetCells()->Begin();
+        cellIt != this->GetMesh()->GetCells()->End(); ++cellIt )
+      {
+      if ( cellIt.Value()->GetType() != AtlasMesh::CellType::TETRAHEDRON_CELL )
+        {
+        continue;
+        }
+        
+      numberOfTetrahedra++;
+      } // End loop over tetrahedra  
+    const double  averageNumberOfTetsPerNode = static_cast< double >( numberOfTetrahedra ) / numberOfPoints;
+    std::cout << "averageNumberOfTetsPerNode: " << averageNumberOfTetsPerNode << std::endl;
+    
+  
     const miniApproxHessianType  initialMiniApproxHessian 
-                                    = 1/gamma * miniApproxHessianType().set_identity();
+                                    = ( 1/gamma ) / averageNumberOfTetsPerNode 
+                                      * miniApproxHessianType().set_identity();
     std::cout << "initialMiniApproxHessian: " << initialMiniApproxHessian << std::endl;
 
     // m_MiniApproxHessians
@@ -236,6 +254,30 @@ AtlasMeshDeformationPartiallySeparableOptimizer
 
         triplets.push_back( TripletType( rowNumberInHessian, columnNumberInHessian, 
                                           miniApproxHessian( rowNumber, columnNumber ) ) );
+        
+        // if ( rowNumber != columnNumber )
+        //   {
+        //   if ( miniApproxHessian( rowNumber, columnNumber ) != 0 )
+        //     {
+        //     std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl; 
+        //     std::cout << miniApproxHessian << std::endl;  
+        //     std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl; 
+        //     }
+        //   }
+          
+          
+        // if ( (triplets.end()-1)->row() != (triplets.end()-1)->col() )
+        //   {
+        //   if ( (triplets.end()-1)->value() != 0 )
+        //     {
+        //     std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl; 
+        //     std::cout << miniApproxHessian << std::endl;  
+        //     std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl; 
+        //     }
+        //   }
+          
+          
+        
         }
       } // End loop over 12x12 elements
 
@@ -247,16 +289,16 @@ AtlasMeshDeformationPartiallySeparableOptimizer
                                    << triplets[ 400 ].value() 
                                    << std::endl;
   
-  int maxHessianRowNumber = 0;                                
-  int maxHessianColNumber = 0;
-  for ( std::vector< TripletType >::const_iterator it = triplets.begin();
-        it != triplets.end(); ++ it )
-    {
-    if ( it->row() > maxHessianRowNumber )
-      maxHessianRowNumber = it->row();
-    if ( it->col() > maxHessianColNumber )
-      maxHessianColNumber = it->col();
-    }
+  // int maxHessianRowNumber = 0;                                
+  // int maxHessianColNumber = 0;
+  // for ( std::vector< TripletType >::const_iterator it = triplets.begin();
+  //       it != triplets.end(); ++ it )
+  //   {
+  //   if ( it->row() > maxHessianRowNumber )
+  //     maxHessianRowNumber = it->row();
+  //   if ( it->col() > maxHessianColNumber )
+  //     maxHessianColNumber = it->col();
+  //   }
   //std::cout << "maxHessianRowNumber: " << maxHessianRowNumber << std::endl;  
   //std::cout << "maxHessianColNumber: " << maxHessianColNumber << std::endl;  
   
@@ -270,8 +312,21 @@ AtlasMeshDeformationPartiallySeparableOptimizer
   std::cout << "Hessian.rows(): " << Hessian.rows() << std::endl;
   std::cout << "Hessian.cols(): " << Hessian.cols() << std::endl;
   std::cout << "Hessian.nonZeros(): " << Hessian.nonZeros() << std::endl;
-  
-  
+  // for ( int k=0; k < Hessian.outerSize(); ++k )
+  //   {
+  //   for ( HessianType::InnerIterator it( Hessian, k ); it; ++it)
+  //     {
+  //     if ( it.row() != k )
+  //       {
+  //       if ( it.value() != 0 )
+  //         {
+  //         std::cout << "k, row, value: " << k << ", " << it.row() << ", " << it.value() << std::endl;
+  //         }
+  //       }
+  //     }
+  //   }
+    
+      
   // Also get the gradient in the same vectorized format
   Eigen::VectorXd  vectorizedGradient( 3 * numberOfPoints );   
   for ( AtlasPositionGradientContainerType::ConstIterator  gradIt = m_Gradient->Begin();
@@ -283,8 +338,19 @@ AtlasMeshDeformationPartiallySeparableOptimizer
       vectorizedGradient( nodeNumber*3 + dimensionNumber ) = gradIt.Value()[ dimensionNumber ];  
       }
     }
-  
-  
+
+  std::cout << vectorizedGradient.rows() << std::endl;
+  double myMin = 1e12;
+  double myMax = -1e12;
+  for ( int i = 0; i < vectorizedGradient.rows(); i++ )
+    { 
+    if ( vectorizedGradient[ i ] >  myMax )
+      myMax = vectorizedGradient[ i ];
+    if ( vectorizedGradient[ i ] <  myMin )
+      myMin = vectorizedGradient[ i ];   
+    }
+  std::cout << "myMin: " << myMin << std::endl;  
+  std::cout << "myMax: " << myMax << std::endl;  
   
       
   // Part I.b: Solve for the search direction using a modified conjugate gradient algorithm
@@ -299,6 +365,17 @@ AtlasMeshDeformationPartiallySeparableOptimizer
   std::cout << "#iterations:     " << solver.iterations() << std::endl;
   std::cout << "estimated error: " << solver.error()      << std::endl;
 
+  myMin = 1e12;
+  myMax = -1e12;
+  for ( int i = 0; i < vectorizedGradient.rows(); i++ )
+    { 
+    if ( vectorizedSolution[ i ] >  myMax )
+      myMax = vectorizedSolution[ i ];
+    if ( vectorizedSolution[ i ] <  myMin )
+      myMin = vectorizedSolution[ i ];   
+    }
+  std::cout << "myMin: " << myMin << std::endl;  
+  std::cout << "myMax: " << myMax << std::endl;  
   
   
   // Get solution back to the correct ITK format. Also, the searchDirection is
@@ -311,7 +388,7 @@ AtlasMeshDeformationPartiallySeparableOptimizer
     const int  nodeNumber = nodeNumberLookupTable[ gradIt.Index() ];
     for ( int dimensionNumber = 0; dimensionNumber < 3; dimensionNumber++ )
       {
-      tmp[ dimensionNumber ] = vectorizedSolution( nodeNumber*3 + dimensionNumber );  
+      tmp[ dimensionNumber ] = -vectorizedSolution( nodeNumber*3 + dimensionNumber );  
       }
   
     searchDirection->InsertElement( gradIt.Index(), tmp );
