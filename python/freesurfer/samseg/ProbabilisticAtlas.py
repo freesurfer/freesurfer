@@ -96,7 +96,8 @@ class ProbabilisticAtlas:
             numberOfGaussiansPerClass=numberOfGaussiansPerClass)
 
         # Get optimizer and plug calculator in it
-        optimizerType = 'L-BFGS'
+        #optimizerType = 'L-BFGS'
+        optimizerType = 'PartiallySeparable'
         optimizationParameters = {
             'Verbose': False,
             'MaximalDeformationStopCriterion': 0.001,  # measured in pixels,

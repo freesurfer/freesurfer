@@ -4,7 +4,7 @@
 #include "kvlAtlasMesh.h"
 #include "kvlAtlasMeshPositionCostAndGradientCalculator.h"
 
-#define USE_PRECONDITIONING 1
+#define USE_PRECONDITIONING 0
 
 namespace kvl
 {

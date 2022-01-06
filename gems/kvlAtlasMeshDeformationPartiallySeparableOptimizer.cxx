@@ -170,6 +170,9 @@ AtlasMeshDeformationPartiallySeparableOptimizer
   // Loop over all tetrahedra, adding each 12x12 mini Hessian to the global sparse Hessian
   // Use the Eigen C++ template library for this purpose
   // https://eigen.tuxfamily.org/dox/group__TutorialSparse.html
+  std::cout << "m_MiniApproxHessians.size(): " << m_MiniApproxHessians.size() << std::endl;
+  std::cout << "m_MiniApproxHessians[ 100 ]: " << m_MiniApproxHessians[ 100 ] << std::endl;
+  
   
   // First make a dense mapping from each pointId to a contiguous pointNumber. This pointNumber
   // will be the contiguous index of the first element (of three) of each point
@@ -178,8 +181,12 @@ AtlasMeshDeformationPartiallySeparableOptimizer
   for ( AtlasMesh::PointsContainer::ConstIterator  it = m_Position->Begin();
         it != m_Position->End(); ++it )
     {
-    nodeNumberLookupTable[ it.Index() ] = nodeNumberLookupTable.size();
+    const int  counter = nodeNumberLookupTable.size();
+    nodeNumberLookupTable[ it.Index() ] = counter;
     }
+  //std::cout << "numberOfPoints: " <<  numberOfPoints << std::endl;
+  //std::cout << "nodeNumberLookupTable.size(): " << nodeNumberLookupTable.size() << std::endl;
+  //std::cout << "nodeNumberLookupTable.begin()->second: " << nodeNumberLookupTable.begin()->second << std::endl;
   
   
   // Loop over all tetrahedra, each time adding 12x12=144 entries to the triplets
@@ -205,6 +212,15 @@ AtlasMeshDeformationPartiallySeparableOptimizer
       for ( int dimensionNumber = 0; dimensionNumber < 3; dimensionNumber++ )   
         {
         indicesInHessian.push_back( nodeNumber*3 + dimensionNumber );
+      
+        // if ( nodeNumber*3 + dimensionNumber >= 26770*3 )
+        //   {
+        //   std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl; 
+        //   std::cout << "nodeNumber: " << nodeNumber << std::endl;
+        //   std::cout << "dimensionNumber: " << dimensionNumber << std::endl;
+        //   std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;  
+        //   }
+      
         }  
       ++pit;
       }
@@ -225,12 +241,35 @@ AtlasMeshDeformationPartiallySeparableOptimizer
 
     ++miniIt;
     } // End loop over tetrahedra  
-
+  std::cout << "triplets.size(): " << triplets.size() << std::endl;
+  std::cout << "triplets[ 400 ]: " << triplets[ 400 ].row() << ", "
+                                   << triplets[ 400 ].col() << ", " 
+                                   << triplets[ 400 ].value() 
+                                   << std::endl;
+  
+  int maxHessianRowNumber = 0;                                
+  int maxHessianColNumber = 0;
+  for ( std::vector< TripletType >::const_iterator it = triplets.begin();
+        it != triplets.end(); ++ it )
+    {
+    if ( it->row() > maxHessianRowNumber )
+      maxHessianRowNumber = it->row();
+    if ( it->col() > maxHessianColNumber )
+      maxHessianColNumber = it->col();
+    }
+  //std::cout << "maxHessianRowNumber: " << maxHessianRowNumber << std::endl;  
+  //std::cout << "maxHessianColNumber: " << maxHessianColNumber << std::endl;  
+  
   
   // Construct the Hessian from the (row,col,value) triplets, adding their contributions
   typedef Eigen::SparseMatrix< double >  HessianType;
   HessianType  Hessian( 3*numberOfPoints, 3*numberOfPoints );
+  //std::cout << "Hessian.rows(): " << Hessian.rows() << std::endl;
+  //std::cout << "Hessian.cols(): " << Hessian.cols() << std::endl;
   Hessian.setFromTriplets( triplets.begin(), triplets.end() );
+  std::cout << "Hessian.rows(): " << Hessian.rows() << std::endl;
+  std::cout << "Hessian.cols(): " << Hessian.cols() << std::endl;
+  std::cout << "Hessian.nonZeros(): " << Hessian.nonZeros() << std::endl;
   
   
   // Also get the gradient in the same vectorized format
