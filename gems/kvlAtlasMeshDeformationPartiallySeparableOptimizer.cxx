@@ -3,6 +3,7 @@
 
 #include "vnl/vnl_vector_fixed.h"
 #include "Eigen/Sparse"
+#include "Eigen::ConjugateGradient"
 
 
 namespace kvl
@@ -165,7 +166,7 @@ AtlasMeshDeformationPartiallySeparableOptimizer
     } // End test if first iteration
     
     
-  // TODO: loop over all tetrahedra, adding each 12x12 mini Hessian to the global sparse Hessian
+  // Loop over all tetrahedra, adding each 12x12 mini Hessian to the global sparse Hessian
   // Use the Eigen C++ template library for this purpose
   // https://eigen.tuxfamily.org/dox/group__TutorialSparse.html
   
@@ -180,70 +181,103 @@ AtlasMeshDeformationPartiallySeparableOptimizer
     }
   
   
-  // TODO: loop over all tetrahedra, each time adding 12x12=144 entries to the triplets
+  // Loop over all tetrahedra, each time adding 12x12=144 entries to the triplets
   typedef Eigen::Triplet< double > TripletType;
   std::vector< TripletType >  triplets;
-  triplets.push_back( TripletType( rowNumber, columnNumber, value ) )
+  std::vector< miniApproxHessianType >::const_iterator  miniIt = m_MiniApproxHessians.begin();
+  for ( AtlasMesh::CellsContainer::ConstIterator  cellIt = this->GetMesh()->GetCells()->Begin();
+        cellIt != this->GetMesh()->GetCells()->End(); ++cellIt )
+    {
+    //  
+    if ( cellIt.Value()->GetType() != AtlasMesh::CellType::TETRAHEDRON_CELL )
+      {
+      continue;
+      }
+
+    AtlasMesh::CellType::PointIdIterator  pit = cellIt->PointIdsBegin();
+    // const std::vector< int >  nodeNumbers; 
+    std::vector< int >  indicesInHessian;
+    for ( int vertexNumber = 0; vertexNumber < 4; vertexNumber++ )
+      {
+      // nodeNumbers.push_back( nodeNumberLookupTable[ *pit ] );
+      nodeNumber = nodeNumberLookupTable[ *pit ];
+      for ( int dimensionNumber = 0; dimensionNumber < 3; dimensionNumber++ )   
+        {
+        indicesInHessian.push_back( nodeNumber*3 + dimensionNumber )
+        }  
+      ++pit;
+      }
+    
+    // Copy
+    const miniApproxHessianType&  miniApproxHessian = *miniIt;
+    for ( int rowNumber = 0; rowNumber < 12; rowNumber++ )
+      {
+      const  rowNumberInHessian = indicesInHessian[ rowNumber ];
+      for ( int columnNumber = 0; columnNumber < 12; columnNumber++ )
+        {
+        const  columnNumberInHessian = indicesInHessian[ columnNumber ];
+
+        triplets.push_back( TripletType( rowNumberInHessian, columnNumberInHessian, 
+                                          miniApproxHessian[ rowNumber, columnNumber ] ) );
+        }
+      } // End loop over 12x12 elements
+
+    ++miniIt;
+    } // End loop over tetrahedra  
+
   
-  //
+  // Construct the Hessian from the (row,col,value) triplets, adding their contributions
   typedef Eigen::SparseMatrix< double >  HessianType;
   HessianType  Hessian( 3*numberOfPoints, 3*numberOfPoints );
   Hessian.setFromTriplets( triplets.begin(), triplets.end() );
   
   
+  // Also get the gradient in the same vectorized format
+  Eigen::VectorXd  vectorizedGradient( 3 * numberOfPoints );   
+  for ( AtlasPositionGradientContainerType::ConstIterator  gradIt = gradient->Begin();
+        gradIt != gradient->End(); ++gradIt )
+    {     
+    const int  nodeNumber = nodeNumberLookupTable[ gradIt.Index() ];
+    for ( int dimensionNumber = 0; dimensionNumber < 3; dimensionNumber++ )   
+      {
+      vectorizedGradient( nodeNumber*3 + dimensionNumber ) = gradIt.Value()[ dimensionNumber ];  
+      }
+    }
+  
+  
+  
       
   // Part I.b: Solve for the search direction using a modified conjugate gradient algorithm
   // Use the Eigen CG gradient method as a starting point
-  // [https://eigen.tuxfamily.org/dox/ConjugateGradient_8h_source.html ]
-  
-  
-  
-  
-  
-  
-  
-# if 0
-  AtlasMesh::CellType::PointIdIterator  pit = mesh->GetCells()->ElementAt( tetrahedronId )->PointIdsBegin();
-  const AtlasMesh::PointIdentifier  id0 = *pit;
-  ++pit;
-  const AtlasMesh::PointIdentifier  id1 = *pit;
-  ++pit;
-  const AtlasMesh::PointIdentifier  id2 = *pit;
-  ++pit;
-  const AtlasMesh::PointIdentifier  id3 = *pit;
-  
-  //AtlasMesh::PointType p0;
-  //AtlasMesh::PointType p1;
-  //AtlasMesh::PointType p2;
-  //AtlasMesh::PointType p3;
-  //mesh->GetPoint( id0, &p0 );
-  //mesh->GetPoint( id1, &p1 );
-  //mesh->GetPoint( id2, &p2 );
-  //mesh->GetPoint( id3, &p3 );
-  // Implements internally mesh->GetPoints()->GetElementIfIndexExists(ptId, point);
-  // More efficient is AtlasMesh::PointType&  p0 = mesh->GetPoints()->ElementAt( id0 );
-  const AtlasMesh::PointType&  p0 = mesh->GetPoints()->ElementAt( id0 );
-  const AtlasMesh::PointType&  p1 = mesh->GetPoints()->ElementAt( id1 );
-  const AtlasMesh::PointType&  p2 = mesh->GetPoints()->ElementAt( id2 );
-  const AtlasMesh::PointType&  p3 = mesh->GetPoints()->ElementAt( id3 );
-  
-  ThreadAccumDataType&  priorPlusDataCost = m_ThreadSpecificMinLogLikelihoodTimesPriors[ threadNumber ];
+  // [ https://eigen.tuxfamily.org/dox/ConjugateGradient_8h_source.html ]
+  // [ https://eigen.tuxfamily.org/dox/classEigen_1_1ConjugateGradient.html ]
+  Eigen::ConjugateGradient< HessianType, Eigen::Lower|Eigen::Upper >  solver;
+  solver.compute( Hessian );
+  solver.setMaxIterations( 10 );
+  const Eigen::VectorXd  vectorizedSolution( 3 * numberOfPoints );
+  vectorizedSolution = solver.solve( vectorizedGradient );
+  std::cout << "#iterations:     " << solver.iterations() << std::endl;
+  std::cout << "estimated error: " << solver.error()      << std::endl;
 
-  AtlasPositionGradientThreadAccumType&  gradientInVertex0 = m_ThreadSpecificPositionGradients[ threadNumber ]->ElementAt( id0 );
-  AtlasPositionGradientThreadAccumType&  gradientInVertex1 = m_ThreadSpecificPositionGradients[ threadNumber ]->ElementAt( id1 );
-  AtlasPositionGradientThreadAccumType&  gradientInVertex2 = m_ThreadSpecificPositionGradients[ threadNumber ]->ElementAt( id2 );
-  AtlasPositionGradientThreadAccumType&  gradientInVertex3 = m_ThreadSpecificPositionGradients[ threadNumber ]->ElementAt( id3 );
+  
+  
+  // Get solution back to the correct ITK format. Also, the searchDirection is
+  // the *negative* of the solution
+  AtlasPositionGradientContainerType::Pointer  searchDirection = AtlasPositionGradientContainerType::New();
+  for ( AtlasPositionGradientContainerType::ConstIterator  gradIt = m_Gradient->Begin(); 
+        gradIt != m_Gradient->End(); ++gradIt )
+    {
+    AtlasPositionGradientThreadAccumType  tmp;
+    const int  nodeNumber = nodeNumberLookupTable[ gradIt.Index() ];
+    for ( int dimensionNumber = 0; dimensionNumber < 3; dimensionNumber++ )
+      {
+      tmp[ dimensionNumber ] = vectorizedSolution( nodeNumber*3 + dimensionNumber );  
+      }
+  
+    searchDirection->InsertElement( gradIt.Index(), tmp );
+    }
 
-#endif  
   
-  
-  
-  
-  
-  
-  // Direction is -r: p = -r;
-  AtlasPositionGradientContainerType::Pointer  searchDirection 
-                                                      = this->ScaleDeformation( r, -1.0 );
 
                                                       
   //
