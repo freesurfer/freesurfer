@@ -1,5 +1,5 @@
-#ifndef __kvlAtlasMeshDeformationPartiallySeparableSOptimizer_h
-#define __kvlAtlasMeshDeformationPartiallySeparableSOptimizer_h
+#ifndef __kvlAtlasMeshDeformationPartiallySeparableOptimizer_h
+#define __kvlAtlasMeshDeformationPartiallySeparableOptimizer_h
 
 #include "kvlAtlasMeshDeformationOptimizer.h"
 #include "vnl/vnl_matrix_fixed.h"
@@ -10,12 +10,12 @@ namespace kvl
 
 
 
-class AtlasMeshDeformationPartiallySeparableSOptimizer: public AtlasMeshDeformationOptimizer
+class AtlasMeshDeformationPartiallySeparableOptimizer: public AtlasMeshDeformationOptimizer
 {
 public :
   
   /** Standard class typedefs */
-  typedef AtlasMeshDeformationPartiallySeparableSOptimizer  Self;
+  typedef AtlasMeshDeformationPartiallySeparableOptimizer  Self;
   typedef AtlasMeshDeformationOptimizer  Superclass;
   typedef itk::SmartPointer< Self >  Pointer;
   typedef itk::SmartPointer< const Self >  ConstPointer;
@@ -24,19 +24,19 @@ public :
   itkNewMacro( Self );
 
   /** Run-time type information (and related methods). */
-  itkTypeMacro( AtlasMeshDeformationPartiallySeparableSOptimizer, AtlasMeshDeformationOptimizer );
+  itkTypeMacro( AtlasMeshDeformationPartiallySeparableOptimizer, AtlasMeshDeformationOptimizer );
 
   
 protected:
-  AtlasMeshDeformationPartiallySeparableSOptimizer();
-  virtual ~AtlasMeshDeformationPartiallySeparableSOptimizer();
+  AtlasMeshDeformationPartiallySeparableOptimizer();
+  virtual ~AtlasMeshDeformationPartiallySeparableOptimizer();
   
   void Initialize();
 
   double FindAndOptimizeNewSearchDirection(); 
   
 private:
-  AtlasMeshDeformationPartiallySeparableSOptimizer(const Self&); //purposely not implemented
+  AtlasMeshDeformationPartiallySeparableOptimizer(const Self&); //purposely not implemented
   void operator=(const Self&); //purposely not implemented
   
   double  m_OldCost;

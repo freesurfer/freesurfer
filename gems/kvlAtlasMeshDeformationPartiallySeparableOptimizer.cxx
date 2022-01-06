@@ -1,9 +1,9 @@
 #include "kvlAtlasMeshDeformationPartiallySeparableOptimizer.h"
 
 
-#include "vnl/vnl_vector_fixed.h"
+#include "vnl/vnl_vector.h"
 #include "Eigen/Sparse"
-#include "Eigen::ConjugateGradient"
+#include "Eigen/IterativeLinearSolvers"
 
 
 namespace kvl
@@ -83,7 +83,7 @@ AtlasMeshDeformationPartiallySeparableOptimizer
     // p = -gradient, and alpha1 of line search is always 1.0 
     // for L-BFGS
     //gamma = initialAlpha1Distance / max( abs( gradient ) ); 
-    gamma = m_StartDistance / this->ComputeMaximalDeformation( m_Gradient );
+    const double  gamma = m_StartDistance / this->ComputeMaximalDeformation( m_Gradient );
     const miniApproxHessianType  initialMiniApproxHessian = 1/gamma * miniApproxHessianType().set_identity();
     std::cout << "initialMiniApproxHessian: " << initialMiniApproxHessian << std::endl;
 
@@ -128,14 +128,14 @@ AtlasMeshDeformationPartiallySeparableOptimizer
   
       // Retrieve mini s and y vectors (12-dimensional vectors, stacking 3 coordinates of each of the 4 
       // vertices) 
-      vnl_vector_fixed< double, 12 >  s_mini;
-      vnl_vector_fixed< double, 12 >  y_mini;
+      vnl_vector< double >  s_mini( 12 );
+      vnl_vector< double >  y_mini( 12 );
       int index = 0;
-      AtlasMesh::CellType::PointIdIterator  pit = cellIt->PointIdsBegin();
+      AtlasMesh::CellType::PointIdIterator  pit = cellIt.Value()->PointIdsBegin();
       for ( int vertexNumber = 0; vertexNumber < 4; vertexNumber++ )
         {
-        const AtlasPositionGradientThreadAccumType&  sElement = s->ElementAt( *pit );
-        const AtlasPositionGradientThreadAccumType&  yElement = y->ElementAt( *pit );
+        const AtlasPositionGradientType&  sElement = s->ElementAt( *pit );
+        const AtlasPositionGradientType&  yElement = y->ElementAt( *pit );
       
         for ( int dimensionNumber = 0; dimensionNumber < 3; dimensionNumber++ )   
           {
@@ -151,13 +151,13 @@ AtlasMeshDeformationPartiallySeparableOptimizer
       
       // Actual RS1 update stuff
       // y - B * s
-      const vnl_vector_fixed< double, 12 >  tmp_mini = y_mini - miniApproxHessian * s_mini;
-      const double  denominator = tmp_mini.transpose() * s_mini; // tmp' * s;
+      const vnl_vector< double >  tmp_mini = y_mini - miniApproxHessian * s_mini;
+      const double  denominator = inner_product( tmp_mini, s_mini ); // tmp' * s;
       const double  r = 1e-8;
-      if ( abs( denominator ) > r * s.two_norm() * tmp.two_norm() ) 
+      if ( abs( denominator ) > r * s_mini.two_norm() * tmp_mini.two_norm() ) 
         {
         // Perform the update
-        miniApproxHessian += tmp_mini * tmp_mini.transpose() / denominator;
+        miniApproxHessian += outer_product( tmp_mini, tmp_mini ) / denominator;
         }
   
       ++miniIt;
@@ -165,6 +165,7 @@ AtlasMeshDeformationPartiallySeparableOptimizer
 
     } // End test if first iteration
     
+#if 0      
     
   // Loop over all tetrahedra, adding each 12x12 mini Hessian to the global sparse Hessian
   // Use the Eigen C++ template library for this purpose
@@ -267,7 +268,7 @@ AtlasMeshDeformationPartiallySeparableOptimizer
   for ( AtlasPositionGradientContainerType::ConstIterator  gradIt = m_Gradient->Begin(); 
         gradIt != m_Gradient->End(); ++gradIt )
     {
-    AtlasPositionGradientThreadAccumType  tmp;
+    AtlasPositionGradientType  tmp;
     const int  nodeNumber = nodeNumberLookupTable[ gradIt.Index() ];
     for ( int dimensionNumber = 0; dimensionNumber < 3; dimensionNumber++ )
       {
@@ -317,6 +318,7 @@ AtlasMeshDeformationPartiallySeparableOptimizer
   m_AlphaUsedLastTime = alphaUsed;
   
   return maximalDeformation;
+#endif  
 }
 
 
