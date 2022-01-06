@@ -84,7 +84,8 @@ AtlasMeshDeformationPartiallySeparableOptimizer
     // for L-BFGS
     //gamma = initialAlpha1Distance / max( abs( gradient ) ); 
     const double  gamma = m_StartDistance / this->ComputeMaximalDeformation( m_Gradient );
-    const miniApproxHessianType  initialMiniApproxHessian = 1/gamma * miniApproxHessianType().set_identity();
+    const miniApproxHessianType  initialMiniApproxHessian 
+                                    = 1/gamma * miniApproxHessianType().set_identity();
     std::cout << "initialMiniApproxHessian: " << initialMiniApproxHessian << std::endl;
 
     // m_MiniApproxHessians
@@ -165,7 +166,6 @@ AtlasMeshDeformationPartiallySeparableOptimizer
 
     } // End test if first iteration
     
-#if 0      
     
   // Loop over all tetrahedra, adding each 12x12 mini Hessian to the global sparse Hessian
   // Use the Eigen C++ template library for this purpose
@@ -195,16 +195,16 @@ AtlasMeshDeformationPartiallySeparableOptimizer
       continue;
       }
 
-    AtlasMesh::CellType::PointIdIterator  pit = cellIt->PointIdsBegin();
+    AtlasMesh::CellType::PointIdIterator  pit = cellIt->Value()->PointIdsBegin();
     // const std::vector< int >  nodeNumbers; 
     std::vector< int >  indicesInHessian;
     for ( int vertexNumber = 0; vertexNumber < 4; vertexNumber++ )
       {
       // nodeNumbers.push_back( nodeNumberLookupTable[ *pit ] );
-      nodeNumber = nodeNumberLookupTable[ *pit ];
+      const int  nodeNumber = nodeNumberLookupTable[ *pit ];
       for ( int dimensionNumber = 0; dimensionNumber < 3; dimensionNumber++ )   
         {
-        indicesInHessian.push_back( nodeNumber*3 + dimensionNumber )
+        indicesInHessian.push_back( nodeNumber*3 + dimensionNumber );
         }  
       ++pit;
       }
@@ -213,13 +213,13 @@ AtlasMeshDeformationPartiallySeparableOptimizer
     const miniApproxHessianType&  miniApproxHessian = *miniIt;
     for ( int rowNumber = 0; rowNumber < 12; rowNumber++ )
       {
-      const  rowNumberInHessian = indicesInHessian[ rowNumber ];
+      const int  rowNumberInHessian = indicesInHessian[ rowNumber ];
       for ( int columnNumber = 0; columnNumber < 12; columnNumber++ )
         {
-        const  columnNumberInHessian = indicesInHessian[ columnNumber ];
+        const int  columnNumberInHessian = indicesInHessian[ columnNumber ];
 
         triplets.push_back( TripletType( rowNumberInHessian, columnNumberInHessian, 
-                                          miniApproxHessian[ rowNumber, columnNumber ] ) );
+                                          miniApproxHessian( rowNumber, columnNumber ) ) );
         }
       } // End loop over 12x12 elements
 
@@ -235,8 +235,8 @@ AtlasMeshDeformationPartiallySeparableOptimizer
   
   // Also get the gradient in the same vectorized format
   Eigen::VectorXd  vectorizedGradient( 3 * numberOfPoints );   
-  for ( AtlasPositionGradientContainerType::ConstIterator  gradIt = gradient->Begin();
-        gradIt != gradient->End(); ++gradIt )
+  for ( AtlasPositionGradientContainerType::ConstIterator  gradIt = m_Gradient->Begin();
+        gradIt != m_Gradient->End(); ++gradIt )
     {     
     const int  nodeNumber = nodeNumberLookupTable[ gradIt.Index() ];
     for ( int dimensionNumber = 0; dimensionNumber < 3; dimensionNumber++ )   
@@ -255,7 +255,7 @@ AtlasMeshDeformationPartiallySeparableOptimizer
   Eigen::ConjugateGradient< HessianType, Eigen::Lower|Eigen::Upper >  solver;
   solver.compute( Hessian );
   solver.setMaxIterations( 10 );
-  const Eigen::VectorXd  vectorizedSolution( 3 * numberOfPoints );
+  Eigen::VectorXd  vectorizedSolution( 3 * numberOfPoints );
   vectorizedSolution = solver.solve( vectorizedGradient );
   std::cout << "#iterations:     " << solver.iterations() << std::endl;
   std::cout << "estimated error: " << solver.error()      << std::endl;
@@ -318,7 +318,6 @@ AtlasMeshDeformationPartiallySeparableOptimizer
   m_AlphaUsedLastTime = alphaUsed;
   
   return maximalDeformation;
-#endif  
 }
 
 
