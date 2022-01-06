@@ -175,13 +175,24 @@ AtlasMeshDeformationPartiallySeparableOptimizer
       const vnl_vector< double >  tmp_mini = y_mini - miniApproxHessian * s_mini;
       const double  denominator = inner_product( tmp_mini, s_mini ); // tmp' * s;
       const double  r = 1e-8;
-      if ( abs( denominator ) > r * s_mini.two_norm() * tmp_mini.two_norm() ) 
+      if ( std::abs( denominator ) > r * s_mini.two_norm() * tmp_mini.two_norm() )
         {
         // Perform the update
         miniApproxHessian += outer_product( tmp_mini, tmp_mini ) / denominator;
         // std::cout << "outer_product( tmp_mini, tmp_mini ):" << outer_product( tmp_mini, tmp_mini ) << std::endl;
+        //std::cout << "denominator: " << denominator << std::endl;
+        //std::cout << "s_mini.two_norm(): " << s_mini.two_norm() << std::endl;
+        //std::cout << "tmp_mini.two_norm(): " << tmp_mini.two_norm() << std::endl;
         numberOfUpdatedTetrahedra++;
         }
+      // else
+      //   {
+      //   std::cout << "denominator: " << denominator << std::endl;
+      //   std::cout << "s_mini.two_norm(): " << s_mini.two_norm() << std::endl;
+      //   std::cout << "tmp_mini.two_norm(): " << tmp_mini.two_norm() << std::endl;
+      //   std::cout << "std::abs( denominator ): " << std::abs( denominator ) << std::endl;
+      //   std::cout << "r * s_mini.two_norm() * tmp_mini.two_norm(): " << r * s_mini.two_norm() * tmp_mini.two_norm() << std::endl;
+      //   }
   
       ++numberOfTetrahedra;
       ++miniIt;
