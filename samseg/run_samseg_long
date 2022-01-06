@@ -25,6 +25,7 @@ parser.add_argument('--lesion-mask-pattern', type=int, nargs='+', help='Lesion m
 parser.add_argument('-m', '--mode', nargs='+', help='Output basenames for the input image mode.')
 parser.add_argument('-a', '--atlas', metavar='DIR', help='Point to an alternative atlas directory.')
 parser.add_argument('--save-warp', action='store_true', help='Save the image->template warp fields.')
+parser.add_argument('--save-mesh', action='store_true', help='Save the final mesh of each timepoint in template space.')
 parser.add_argument('--save-posteriors', nargs='*', help='Save posterior volumes to the "posteriors" subdirectory.')
 parser.add_argument('--pallidum-separate', action='store_true', default=False, help='Move pallidum outside of global white matter class. Use this flag when T2/flair is used.')
 parser.add_argument('--threads', type=int, default=default_threads, help='Number of threads to use. Defaults to current OMP_NUM_THREADS or 1.')
@@ -85,6 +86,7 @@ samseg_kwargs = dict(
     modeNames=args.mode,
     pallidumAsWM=(not args.pallidum_separate),
     savePosteriors=savePosteriors,
+    saveMesh=args.save_mesh,
     visualizer=visualizer
 )
 
