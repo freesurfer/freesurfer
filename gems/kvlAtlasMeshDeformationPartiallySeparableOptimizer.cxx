@@ -238,7 +238,7 @@ AtlasMeshDeformationPartiallySeparableOptimizer
 
     // std::cout << "numberOfUpdatedTetrahedra: " << numberOfUpdatedTetrahedra << std::endl;  
     // std::cout << "numberOfTetrahedra: " << numberOfTetrahedra << std::endl;  
-    std::cout << "updated mini Hessians in " 
+    std::cout << "  Updated mini Hessians in " 
               << ( 100.0 * numberOfUpdatedTetrahedra ) / numberOfTetrahedra  
               << "% of tetrahedra" << std::endl;  
       
@@ -247,7 +247,7 @@ AtlasMeshDeformationPartiallySeparableOptimizer
   
 #if KVL_ENABLE_TIME_PROBE2
   clock.Stop();
-  std::cout << "Time taken to update miniApproxHessians: " << clock.GetMean() << std::endl;
+  std::cout << "  Time taken to update miniApproxHessians: " << clock.GetMean() << std::endl;
   clock.Reset();
   clock.Start();
 #endif  
@@ -374,7 +374,7 @@ AtlasMeshDeformationPartiallySeparableOptimizer
   //std::cout << "maxHessianColNumber: " << maxHessianColNumber << std::endl;  
 #if KVL_ENABLE_TIME_PROBE2
   clock.Stop();
-  std::cout << "Time taken to construct triplets: " << clock.GetMean() << std::endl;
+  std::cout << "  Time taken to construct triplets: " << clock.GetMean() << std::endl;
   clock.Reset();
   clock.Start();
 #endif  
@@ -408,7 +408,7 @@ AtlasMeshDeformationPartiallySeparableOptimizer
   
 #if KVL_ENABLE_TIME_PROBE2
   clock.Stop();
-  std::cout << "Time taken to construct sparse Hessian from triplets: " << clock.GetMean() << std::endl;
+  std::cout << "  Time taken to construct sparse Hessian from triplets: " << clock.GetMean() << std::endl;
   clock.Reset();
   clock.Start();
 #endif  
@@ -462,7 +462,7 @@ AtlasMeshDeformationPartiallySeparableOptimizer
   solver.setTolerance( tolerance );
   Eigen::VectorXd  vectorizedSolution( 3 * numberOfPoints );
   vectorizedSolution = solver.solve( vectorizedGradient );
-  std::cout << "Number of CG iterations: " << solver.iterations() << std::endl;
+  std::cout << "  Number of CG iterations: " << solver.iterations() << std::endl;
   //std::cout << "  estimated error: " << solver.error()      << std::endl;
 
   // myMin = 1e12;
@@ -497,7 +497,7 @@ AtlasMeshDeformationPartiallySeparableOptimizer
 
 #if KVL_ENABLE_TIME_PROBE2
   clock.Stop();
-  std::cout << "Time taken to solve linear system for search direction: " << clock.GetMean() << std::endl;
+  std::cout << "  Time taken to solve linear system for search direction: " << clock.GetMean() << std::endl;
   clock.Reset();
   clock.Start();
 #endif  
@@ -542,7 +542,7 @@ AtlasMeshDeformationPartiallySeparableOptimizer
   
 #if KVL_ENABLE_TIME_PROBE2
   clock.Stop();
-  std::cout << "Time taken to do line search: " << clock.GetMean() << std::endl;
+  std::cout << "  Time taken to do line search: " << clock.GetMean() << std::endl;
 #endif  
   
   
