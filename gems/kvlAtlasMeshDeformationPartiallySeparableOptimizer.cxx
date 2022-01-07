@@ -4,8 +4,10 @@
 #include "vnl/vnl_vector.h"
 #include "Eigen/Sparse"
 #include "Eigen/IterativeLinearSolvers"
-
-
+#if 1
+  #include "vnl/algo/vnl_symmetric_eigensystem.h"
+#endif
+  
 namespace kvl
 {
 
@@ -170,30 +172,55 @@ AtlasMeshDeformationPartiallySeparableOptimizer
         ++pit;
         }
       
-      // Actual RS1 update stuff
-      // y - B * s
-      const vnl_vector< double >  tmp_mini = y_mini - miniApproxHessian * s_mini;
-      const double  denominator = inner_product( tmp_mini, s_mini ); // tmp' * s;
-      const double  r = 1e-8;
-      if ( std::abs( denominator ) > r * s_mini.two_norm() * tmp_mini.two_norm() )
+      if ( false )
         {
-        // Perform the update
-        miniApproxHessian += outer_product( tmp_mini, tmp_mini ) / denominator;
-        // std::cout << "outer_product( tmp_mini, tmp_mini ):" << outer_product( tmp_mini, tmp_mini ) << std::endl;
-        //std::cout << "denominator: " << denominator << std::endl;
-        //std::cout << "s_mini.two_norm(): " << s_mini.two_norm() << std::endl;
-        //std::cout << "tmp_mini.two_norm(): " << tmp_mini.two_norm() << std::endl;
-        numberOfUpdatedTetrahedra++;
+        // Actual RS1 update stuff
+        // y - B * s
+        const vnl_vector< double >  tmp_mini = y_mini - miniApproxHessian * s_mini;
+        const double  denominator = inner_product( tmp_mini, s_mini ); // tmp' * s;
+        const double  r = 1e-8;
+        if ( std::abs( denominator ) > r * s_mini.two_norm() * tmp_mini.two_norm() )
+          {
+          // Perform the update
+          miniApproxHessian += outer_product( tmp_mini, tmp_mini ) / denominator;
+          // std::cout << "outer_product( tmp_mini, tmp_mini ):" << outer_product( tmp_mini, tmp_mini ) << std::endl;
+          //std::cout << "denominator: " << denominator << std::endl;
+          //std::cout << "s_mini.two_norm(): " << s_mini.two_norm() << std::endl;
+          //std::cout << "tmp_mini.two_norm(): " << tmp_mini.two_norm() << std::endl;
+          numberOfUpdatedTetrahedra++;
+          }
+        // else
+        //   {
+        //   std::cout << "denominator: " << denominator << std::endl;
+        //   std::cout << "s_mini.two_norm(): " << s_mini.two_norm() << std::endl;
+        //   std::cout << "tmp_mini.two_norm(): " << tmp_mini.two_norm() << std::endl;
+        //   std::cout << "std::abs( denominator ): " << std::abs( denominator ) << std::endl;
+        //   std::cout << "r * s_mini.two_norm() * tmp_mini.two_norm(): " << r * s_mini.two_norm() * tmp_mini.two_norm() << std::endl;
+        //   }
         }
-      // else
-      //   {
-      //   std::cout << "denominator: " << denominator << std::endl;
-      //   std::cout << "s_mini.two_norm(): " << s_mini.two_norm() << std::endl;
-      //   std::cout << "tmp_mini.two_norm(): " << tmp_mini.two_norm() << std::endl;
-      //   std::cout << "std::abs( denominator ): " << std::abs( denominator ) << std::endl;
-      //   std::cout << "r * s_mini.two_norm() * tmp_mini.two_norm(): " << r * s_mini.two_norm() * tmp_mini.two_norm() << std::endl;
-      //   }
-  
+      else
+        {
+        // BFGS
+        if ( inner_product( y_mini, s_mini ) > 1e-10 )
+          {
+          const vnl_vector< double >  tmp_mini = miniApproxHessian * s_mini;
+          miniApproxHessian -= outer_product( tmp_mini, tmp_mini ) / inner_product( tmp_mini, s_mini );
+          miniApproxHessian += outer_product( y_mini, y_mini ) / inner_product( y_mini, s_mini );
+          numberOfUpdatedTetrahedra++;
+          }
+        }
+        
+      //  
+      //vnl_symmetric_eigensystem< double >  xxx( miniApproxHessian.as_matrix() );
+      //for ( int i = 0; i < 12; i++ )
+      //  {
+      //  std::cout << xxx.get_eigenvalue( i ) << std::endl;  
+      //  }
+      //if ( xxx.determinant() < 0 )
+      //  {
+      //  numberOfUpdatedTetrahedra++; 
+      //  }
+      
       ++numberOfTetrahedra;
       ++miniIt;
       } // End loop over tetrahedra  
@@ -207,8 +234,8 @@ AtlasMeshDeformationPartiallySeparableOptimizer
   // Loop over all tetrahedra, adding each 12x12 mini Hessian to the global sparse Hessian
   // Use the Eigen C++ template library for this purpose
   // https://eigen.tuxfamily.org/dox/group__TutorialSparse.html
-  std::cout << "m_MiniApproxHessians.size(): " << m_MiniApproxHessians.size() << std::endl;
-  std::cout << "m_MiniApproxHessians[ 100 ]: " << m_MiniApproxHessians[ 100 ] << std::endl;
+  //std::cout << "m_MiniApproxHessians.size(): " << m_MiniApproxHessians.size() << std::endl;
+  //std::cout << "m_MiniApproxHessians[ 100 ]: " << m_MiniApproxHessians[ 100 ] << std::endl;
   // std::cout << "m_MiniApproxHessians[ 1000 ]: " << m_MiniApproxHessians[ 1000 ] << std::endl;
   // std::cout << "m_MiniApproxHessians[ 10000 ]: " << m_MiniApproxHessians[ 10000 ] << std::endl;
   
@@ -304,11 +331,11 @@ AtlasMeshDeformationPartiallySeparableOptimizer
 
     ++miniIt;
     } // End loop over tetrahedra  
-  std::cout << "triplets.size(): " << triplets.size() << std::endl;
-  std::cout << "triplets[ 400 ]: " << triplets[ 400 ].row() << ", "
-                                   << triplets[ 400 ].col() << ", " 
-                                   << triplets[ 400 ].value() 
-                                   << std::endl;
+  // std::cout << "triplets.size(): " << triplets.size() << std::endl;
+  // std::cout << "triplets[ 400 ]: " << triplets[ 400 ].row() << ", "
+  //                                   << triplets[ 400 ].col() << ", " 
+  //                                   << triplets[ 400 ].value() 
+  //                                   << std::endl;
   
   // int maxHessianRowNumber = 0;                                
   // int maxHessianColNumber = 0;
@@ -360,7 +387,8 @@ AtlasMeshDeformationPartiallySeparableOptimizer
       }
     }
 
-  std::cout << vectorizedGradient.rows() << std::endl;
+  // std::cout << vectorizedGradient.rows() << std::endl;
+  std::cout << "  ============================" << std::endl;
   double myMin = 1e12;
   double myMax = -1e12;
   for ( int i = 0; i < vectorizedGradient.rows(); i++ )
@@ -370,21 +398,21 @@ AtlasMeshDeformationPartiallySeparableOptimizer
     if ( vectorizedGradient[ i ] <  myMin )
       myMin = vectorizedGradient[ i ];   
     }
-  std::cout << "myMin: " << myMin << std::endl;  
-  std::cout << "myMax: " << myMax << std::endl;  
+  std::cout << "  myMin: " << myMin << std::endl;  
+  std::cout << "  myMax: " << myMax << std::endl;  
   
       
   // Part I.b: Solve for the search direction using a modified conjugate gradient algorithm
   // Use the Eigen CG gradient method as a starting point
   // [ https://eigen.tuxfamily.org/dox/ConjugateGradient_8h_source.html ]
   // [ https://eigen.tuxfamily.org/dox/classEigen_1_1ConjugateGradient.html ]
-  Eigen::ConjugateGradient< HessianType, Eigen::Lower|Eigen::Upper >  solver;
+  Eigen::ConjugateGradientKvle< HessianType, Eigen::Lower|Eigen::Upper >  solver;
   solver.compute( Hessian );
-  solver.setMaxIterations( 100 );
+  solver.setMaxIterations( 1000 );
   Eigen::VectorXd  vectorizedSolution( 3 * numberOfPoints );
   vectorizedSolution = solver.solve( vectorizedGradient );
-  std::cout << "#iterations:     " << solver.iterations() << std::endl;
-  std::cout << "estimated error: " << solver.error()      << std::endl;
+  std::cout << "  #iterations:     " << solver.iterations() << std::endl;
+  std::cout << "  estimated error: " << solver.error()      << std::endl;
 
   myMin = 1e12;
   myMax = -1e12;
@@ -395,8 +423,9 @@ AtlasMeshDeformationPartiallySeparableOptimizer
     if ( vectorizedSolution[ i ] <  myMin )
       myMin = vectorizedSolution[ i ];   
     }
-  std::cout << "myMin: " << myMin << std::endl;  
-  std::cout << "myMax: " << myMax << std::endl;  
+  std::cout << "  myMin: " << myMin << std::endl;  
+  std::cout << "  myMax: " << myMax << std::endl;  
+  std::cout << "  ============================" << std::endl;
   
   
   // Get solution back to the correct ITK format. Also, the searchDirection is
