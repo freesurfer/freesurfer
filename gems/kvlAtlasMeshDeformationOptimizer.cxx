@@ -831,15 +831,15 @@ AtlasMeshDeformationOptimizer
     if ( ( fabsf( highAlpha - lowAlpha ) * maximalDeformationOfSearchDirection )
          < m_LineSearchMaximalDeformationIntervalStopCriterion )
       {
-      std::cout << "!!!!!!!!!!!!!!!" << startPosition->Begin().Value() << std::endl;
-      std::cout << "!!!!!!!!!!!!!!!" << searchDirection->Begin().Value() << std::endl;
-      std::cout << "!!!!!!!!!!!!!!!" << lowAlpha << std::endl;
+      //std::cout << "!!!!!!!!!!!!!!!" << startPosition->Begin().Value() << std::endl;
+      //std::cout << "!!!!!!!!!!!!!!!" << searchDirection->Begin().Value() << std::endl;
+      //std::cout << "!!!!!!!!!!!!!!!" << lowAlpha << std::endl;
 
       double  dummy = 0.0;
       this->AddDeformation( startPosition, lowAlpha, searchDirection, 
                             newPosition, dummy ); // xStar = x + lowAlpha * p;
       
-      std::cout << "!!!!!!!!!!!!!!!" << newPosition->Begin().Value() << std::endl;
+      //std::cout << "!!!!!!!!!!!!!!!" << newPosition->Begin().Value() << std::endl;
       
       newCost = lowCost;
       newGradient = const_cast< AtlasPositionGradientContainerType* >( lowGradient.GetPointer() );

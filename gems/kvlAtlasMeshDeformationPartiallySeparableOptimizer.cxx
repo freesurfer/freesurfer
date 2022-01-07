@@ -225,8 +225,12 @@ AtlasMeshDeformationPartiallySeparableOptimizer
       ++miniIt;
       } // End loop over tetrahedra  
 
-    std::cout << "numberOfUpdatedTetrahedra: " << numberOfUpdatedTetrahedra << std::endl;  
-    std::cout << "numberOfTetrahedra: " << numberOfTetrahedra << std::endl;  
+    // std::cout << "numberOfUpdatedTetrahedra: " << numberOfUpdatedTetrahedra << std::endl;  
+    // std::cout << "numberOfTetrahedra: " << numberOfTetrahedra << std::endl;  
+    std::cout << "updated mini Hessians in " 
+              << ( 100.0 * numberOfUpdatedTetrahedra ) / numberOfTetrahedra  
+              << "% of tetrahedra" << std::endl;  
+      
       
     } // End test if first iteration
   
@@ -357,9 +361,9 @@ AtlasMeshDeformationPartiallySeparableOptimizer
   //std::cout << "Hessian.rows(): " << Hessian.rows() << std::endl;
   //std::cout << "Hessian.cols(): " << Hessian.cols() << std::endl;
   Hessian.setFromTriplets( triplets.begin(), triplets.end() );
-  std::cout << "Hessian.rows(): " << Hessian.rows() << std::endl;
-  std::cout << "Hessian.cols(): " << Hessian.cols() << std::endl;
-  std::cout << "Hessian.nonZeros(): " << Hessian.nonZeros() << std::endl;
+  //std::cout << "Hessian.rows(): " << Hessian.rows() << std::endl;
+  //std::cout << "Hessian.cols(): " << Hessian.cols() << std::endl;
+  //std::cout << "Hessian.nonZeros(): " << Hessian.nonZeros() << std::endl;
   // for ( int k=0; k < Hessian.outerSize(); ++k )
   //   {
   //   for ( HessianType::InnerIterator it( Hessian, k ); it; ++it)
@@ -388,44 +392,56 @@ AtlasMeshDeformationPartiallySeparableOptimizer
     }
 
   // std::cout << vectorizedGradient.rows() << std::endl;
-  std::cout << "  ============================" << std::endl;
-  double myMin = 1e12;
-  double myMax = -1e12;
-  for ( int i = 0; i < vectorizedGradient.rows(); i++ )
-    { 
-    if ( vectorizedGradient[ i ] >  myMax )
-      myMax = vectorizedGradient[ i ];
-    if ( vectorizedGradient[ i ] <  myMin )
-      myMin = vectorizedGradient[ i ];   
-    }
-  std::cout << "  myMin: " << myMin << std::endl;  
-  std::cout << "  myMax: " << myMax << std::endl;  
+  //std::cout << "  ============================" << std::endl;
+  // double myMin = 1e12;
+  // double myMax = -1e12;
+  // for ( int i = 0; i < vectorizedGradient.rows(); i++ )
+  //   { 
+  //   if ( vectorizedGradient[ i ] >  myMax )
+  //     myMax = vectorizedGradient[ i ];
+  //   if ( vectorizedGradient[ i ] <  myMin )
+  //     myMin = vectorizedGradient[ i ];   
+  //   }
+  // std::cout << "  myMin: " << myMin << std::endl;  
+  // std::cout << "  myMax: " << myMax << std::endl;  
   
       
   // Part I.b: Solve for the search direction using a modified conjugate gradient algorithm
   // Use the Eigen CG gradient method as a starting point
   // [ https://eigen.tuxfamily.org/dox/ConjugateGradient_8h_source.html ]
   // [ https://eigen.tuxfamily.org/dox/classEigen_1_1ConjugateGradient.html ]
-  Eigen::ConjugateGradientKvle< HessianType, Eigen::Lower|Eigen::Upper >  solver;
+  const double  gradientNorm = std::sqrt( vectorizedGradient.squaredNorm() );
+  double  tmp = std::sqrt( gradientNorm );
+  if ( tmp > 0.5 )
+    {
+    tmp = 0.5;  
+    }
+  const double  epsilon = tmp * gradientNorm;
+  const double tolerance = epsilon / gradientNorm; // Reverse engineered to do the correct thing
+                                                  // (threshold is epsilon^2, and also tol*tol*rhsNorm2)
+  
+  //Eigen::ConjugateGradientKvle< HessianType, Eigen::Lower|Eigen::Upper >  solver;
+  Eigen::ConjugateGradient< HessianType, Eigen::Lower|Eigen::Upper >  solver;
   solver.compute( Hessian );
   solver.setMaxIterations( 1000 );
+  solver.setTolerance( tolerance );
   Eigen::VectorXd  vectorizedSolution( 3 * numberOfPoints );
   vectorizedSolution = solver.solve( vectorizedGradient );
-  std::cout << "  #iterations:     " << solver.iterations() << std::endl;
-  std::cout << "  estimated error: " << solver.error()      << std::endl;
+  std::cout << "Number of CG iterations: " << solver.iterations() << std::endl;
+  //std::cout << "  estimated error: " << solver.error()      << std::endl;
 
-  myMin = 1e12;
-  myMax = -1e12;
-  for ( int i = 0; i < vectorizedGradient.rows(); i++ )
-    { 
-    if ( vectorizedSolution[ i ] >  myMax )
-      myMax = vectorizedSolution[ i ];
-    if ( vectorizedSolution[ i ] <  myMin )
-      myMin = vectorizedSolution[ i ];   
-    }
-  std::cout << "  myMin: " << myMin << std::endl;  
-  std::cout << "  myMax: " << myMax << std::endl;  
-  std::cout << "  ============================" << std::endl;
+  // myMin = 1e12;
+  // myMax = -1e12;
+  // for ( int i = 0; i < vectorizedGradient.rows(); i++ )
+  //   { 
+  //   if ( vectorizedSolution[ i ] >  myMax )
+  //     myMax = vectorizedSolution[ i ];
+  //   if ( vectorizedSolution[ i ] <  myMin )
+  //     myMin = vectorizedSolution[ i ];   
+  //   }
+  // std::cout << "  myMin: " << myMin << std::endl;  
+  // std::cout << "  myMax: " << myMax << std::endl;  
+  //std::cout << "  ============================" << std::endl;
   
   
   // Get solution back to the correct ITK format. Also, the searchDirection is
