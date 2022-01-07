@@ -4,9 +4,17 @@
 #include "vnl/vnl_vector.h"
 #include "Eigen/Sparse"
 #include "Eigen/IterativeLinearSolvers"
-#if 1
+#if 0
   #include "vnl/algo/vnl_symmetric_eigensystem.h"
 #endif
+  
+#define KVL_ENABLE_TIME_PROBE2 1
+
+#if KVL_ENABLE_TIME_PROBE2
+  #include "itkTimeProbe.h"
+#endif
+
+  
   
 namespace kvl
 {
@@ -75,7 +83,10 @@ AtlasMeshDeformationPartiallySeparableOptimizer
   // Part I.a: Loop over all tetrahedra, updating each tethradron's mini (approximate) 12x12 Hessian 
   // using the SR1 update, and adding its contribution to the global sparse Hessian. If this is the
   // first iteration, use Hessian = 1/gamma * I, with gamma computed based on some m_StartDistance
-  
+#if KVL_ENABLE_TIME_PROBE2
+  itk::TimeProbe clock;
+  clock.Start();
+#endif  
   
   //  
   if ( this->GetIterationNumber() == 0 )
@@ -234,6 +245,14 @@ AtlasMeshDeformationPartiallySeparableOptimizer
       
     } // End test if first iteration
   
+#if KVL_ENABLE_TIME_PROBE2
+  clock.Stop();
+  std::cout << "Time taken to update miniApproxHessians: " << clock.GetMean() << std::endl;
+  clock.Reset();
+  clock.Start();
+#endif  
+  
+  
     
   // Loop over all tetrahedra, adding each 12x12 mini Hessian to the global sparse Hessian
   // Use the Eigen C++ template library for this purpose
@@ -378,6 +397,14 @@ AtlasMeshDeformationPartiallySeparableOptimizer
   //     }
   //   }
     
+  
+#if KVL_ENABLE_TIME_PROBE2
+  clock.Stop();
+  std::cout << "Time taken to construct sparse Hessian: " << clock.GetMean() << std::endl;
+  clock.Reset();
+  clock.Start();
+#endif  
+  
       
   // Also get the gradient in the same vectorized format
   Eigen::VectorXd  vectorizedGradient( 3 * numberOfPoints );   
@@ -460,6 +487,12 @@ AtlasMeshDeformationPartiallySeparableOptimizer
     searchDirection->InsertElement( gradIt.Index(), tmp );
     }
 
+#if KVL_ENABLE_TIME_PROBE2
+  clock.Stop();
+  std::cout << "Time taken to solve linear system for search direction: " << clock.GetMean() << std::endl;
+  clock.Reset();
+  clock.Start();
+#endif  
   
 
                                                       
@@ -498,6 +531,12 @@ AtlasMeshDeformationPartiallySeparableOptimizer
   // Some book keeping
   const double  maximalDeformation = alphaUsed * this->ComputeMaximalDeformation( searchDirection );
   m_AlphaUsedLastTime = alphaUsed;
+  
+#if KVL_ENABLE_TIME_PROBE2
+  clock.Stop();
+  std::cout << "Time taken to do line search: " << clock.GetMean() << std::endl;
+#endif  
+  
   
   return maximalDeformation;
 }
