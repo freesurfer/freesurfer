@@ -896,6 +896,9 @@ class Samseg:
                 levelHistory['priorsAtEnd'] = downSampledClassPriors
                 levelHistory['posteriorsAtEnd'] = downSampledGaussianPosteriors
                 self.optimizationHistory.append(levelHistory)
+                
+            # Make sure next resolution level has its own optimizer
+            self.probabilisticAtlas.optimizer = None
 
         # End resolution level loop
 

@@ -161,5 +161,12 @@ public:
         const double  minLogLikelihoodTimesPrior = optimizer->GetMinLogLikelihoodTimesPrior();
         return {minLogLikelihoodTimesPrior, maximalDeformation};
     }
+    
+    void SetCalculator( const KvlCostAndGradientCalculator &calculator ){
+      std::cout << "------------ start setting new calculator! ------------ " << std::endl;
+      optimizer->SetCostAndGradientCalculator( calculator.calculator );
+      std::cout << "------------ end setting new calculator! ------------ " << std::endl;
+    }
+    
 };
 #endif //GEMS_PYKVLOPTIMIZER_H

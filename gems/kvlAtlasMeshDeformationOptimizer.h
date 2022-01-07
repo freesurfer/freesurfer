@@ -58,6 +58,10 @@ public :
   void  SetCostAndGradientCalculator( AtlasMeshPositionCostAndGradientCalculator* calculator ) 
     {
     m_Calculator =  calculator;
+    if ( m_IterationNumber > 0 )
+      {
+      m_IterationNumber = 1;
+      }
     }
     
   const AtlasMeshPositionCostAndGradientCalculator*  GetCostAndGradientCalculator() const

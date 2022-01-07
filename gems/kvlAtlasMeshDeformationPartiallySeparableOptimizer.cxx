@@ -372,6 +372,14 @@ AtlasMeshDeformationPartiallySeparableOptimizer
   //   }
   //std::cout << "maxHessianRowNumber: " << maxHessianRowNumber << std::endl;  
   //std::cout << "maxHessianColNumber: " << maxHessianColNumber << std::endl;  
+#if KVL_ENABLE_TIME_PROBE2
+  clock.Stop();
+  std::cout << "Time taken to construct triplets: " << clock.GetMean() << std::endl;
+  clock.Reset();
+  clock.Start();
+#endif  
+  
+  
   
   
   // Construct the Hessian from the (row,col,value) triplets, adding their contributions
@@ -400,7 +408,7 @@ AtlasMeshDeformationPartiallySeparableOptimizer
   
 #if KVL_ENABLE_TIME_PROBE2
   clock.Stop();
-  std::cout << "Time taken to construct sparse Hessian: " << clock.GetMean() << std::endl;
+  std::cout << "Time taken to construct sparse Hessian from triplets: " << clock.GetMean() << std::endl;
   clock.Reset();
   clock.Start();
 #endif  

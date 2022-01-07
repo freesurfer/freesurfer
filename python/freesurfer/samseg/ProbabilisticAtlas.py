@@ -7,7 +7,8 @@ import freesurfer as fs
 
 class ProbabilisticAtlas:
     def __init__(self):
-        pass
+        # pass
+        self.optimizer = None
 
     def getMesh(self, meshCollectionFileName,
                 transform=None,
@@ -96,17 +97,25 @@ class ProbabilisticAtlas:
             numberOfGaussiansPerClass=numberOfGaussiansPerClass)
 
         # Get optimizer and plug calculator in it
-        #optimizerType = 'L-BFGS'
-        optimizerType = 'PartiallySeparable'
-        optimizationParameters = {
-            'Verbose': False,
-            'MaximalDeformationStopCriterion': 0.001,  # measured in pixels,
-            'LineSearchMaximalDeformationIntervalStopCriterion': 0.001,
-            'MaximumNumberOfIterations': 20,
-            'BFGS-MaximumMemoryLength': 12
-        }
-        optimizationParameters.update(userOptimizationParameters)
-        optimizer = gems.KvlOptimizer(optimizerType, mesh, calculator, optimizationParameters)
+        if self.optimizer is None:
+            #optimizerType = 'L-BFGS'
+            optimizerType = 'PartiallySeparable'
+            optimizationParameters = {
+                'Verbose': False,
+                'MaximalDeformationStopCriterion': 0.001,  # measured in pixels,
+                'LineSearchMaximalDeformationIntervalStopCriterion': 0.001,
+                'MaximumNumberOfIterations': 20,
+                'BFGS-MaximumMemoryLength': 12
+            }
+            optimizationParameters.update(userOptimizationParameters)
+            optimizer = gems.KvlOptimizer(optimizerType, mesh, calculator, optimizationParameters)
+            
+            self.optimizer = optimizer
+        else:    
+            print( "ProbabilisticAtlas reusing same optimizer!!" )
+            optimizer = self.optimizer
+            optimizer.set_calculator( calculator )
+            
 
         # Run deformation optimization
         historyOfDeformationCost = []
