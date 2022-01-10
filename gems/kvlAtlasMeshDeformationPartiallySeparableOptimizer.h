@@ -49,6 +49,10 @@ private:
   typedef vnl_matrix_fixed< double, 12, 12 >  miniApproxHessianType;
   std::vector< miniApproxHessianType >  m_MiniApproxHessians;
   
+  std::map< AtlasMesh::PointIdentifier, int >   m_NodeNumberLookupTable;
+  std::map< AtlasMesh::CellIdentifier, int >  m_TetrahedronNumberLookupTable;
+  
+  
 };
 
 

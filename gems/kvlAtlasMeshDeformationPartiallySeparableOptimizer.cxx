@@ -88,18 +88,13 @@ AtlasMeshDeformationPartiallySeparableOptimizer
   clock.Start();
 #endif  
   
+  
+  
   //  
   if ( this->GetIterationNumber() == 0 )
     { 
-    // Make sure that first try of line search will be given 
-    // by distance provided by user (first iteration means
-    // p = -gradient, and alpha1 of line search is always 1.0 
-    // for L-BFGS
-    //gamma = initialAlpha1Distance / max( abs( gradient ) ); 
-    const double  gamma = m_StartDistance / this->ComputeMaximalDeformation( m_Gradient );
-
-    const int  numberOfPoints = m_Position->Size();
-    int  numberOfTetrahedra = 0;  
+      
+    //
     for ( AtlasMesh::CellsContainer::ConstIterator  cellIt = this->GetMesh()->GetCells()->Begin();
         cellIt != this->GetMesh()->GetCells()->End(); ++cellIt )
       {
@@ -108,10 +103,44 @@ AtlasMeshDeformationPartiallySeparableOptimizer
         continue;
         }
         
-      numberOfTetrahedra++;
+      const int  counter = m_TetrahedronNumberLookupTable.size();
+      m_TetrahedronNumberLookupTable[ cellIt.Index() ] = counter;
+      // tetrahedronIds.push_back( cellIt.Index() );
       } // End loop over tetrahedra  
+  
+    // First make a dense mapping from each pointId to a contiguous pointNumber. This pointNumber
+    // will be the contiguous index of the first element (of three) of each point
+    for ( AtlasMesh::PointsContainer::ConstIterator  it = m_Position->Begin();
+          it != m_Position->End(); ++it )
+      {
+      const int  counter = m_NodeNumberLookupTable.size();
+      m_NodeNumberLookupTable[ it.Index() ] = counter;
+      }
+
+    //std::cout << "numberOfPoints: " <<  numberOfPoints << std::endl;
+    //std::cout << "m_NodeNumberLookupTable.size(): " << m_NodeNumberLookupTable.size() << std::endl;
+    //std::cout << "m_NodeNumberLookupTable.begin()->second: " << m_NodeNumberLookupTable.begin()->second << std::endl;
+      
+      
+      
+      
+      
+      
+    // Make sure that first try of line search will be given 
+    // by distance provided by user (first iteration means
+    // p = -gradient, and alpha1 of line search is always 1.0 
+    // for L-BFGS
+    //gamma = initialAlpha1Distance / max( abs( gradient ) ); 
+    const double  gamma = m_StartDistance / this->ComputeMaximalDeformation( m_Gradient );
+    const int  numberOfTetrahedra = m_TetrahedronNumberLookupTable.size();
+    //const int  numberOfTetrahedra = tetrahedronIds.size();
+    const int  numberOfPoints = m_NodeNumberLookupTable.size();
     const double  averageNumberOfTetsPerNode = static_cast< double >( numberOfTetrahedra ) / numberOfPoints;
     std::cout << "averageNumberOfTetsPerNode: " << averageNumberOfTetsPerNode << std::endl;
+
+  
+    
+    
     
   
     const miniApproxHessianType  initialMiniApproxHessian 
@@ -119,53 +148,52 @@ AtlasMeshDeformationPartiallySeparableOptimizer
                                       * miniApproxHessianType().set_identity();
     std::cout << "initialMiniApproxHessian: " << initialMiniApproxHessian << std::endl;
 
-    // m_MiniApproxHessians
-    // cellIt.Index()
-
-    for ( AtlasMesh::CellsContainer::ConstIterator  cellIt = this->GetMesh()->GetCells()->Begin();
-        cellIt != this->GetMesh()->GetCells()->End(); ++cellIt )
+    for ( int tetrahedronNumber = 0; tetrahedronNumber < numberOfTetrahedra; tetrahedronNumber++ )
       {
-      if ( cellIt.Value()->GetType() != AtlasMesh::CellType::TETRAHEDRON_CELL )
-        {
-        continue;
-        }
-        
       m_MiniApproxHessians.push_back( initialMiniApproxHessian );
       } // End loop over tetrahedra  
     
-    }
-  else
+    } // End test this->GetIterationNumber() == 0 )
+    
+    
+
+    
+    
+    
+  // Try to update miniApproxHessian using SR1 update rule
+  AtlasPositionGradientContainerType::ConstPointer  s = 0;
+  AtlasPositionGradientContainerType::ConstPointer  y = 0;
+  if ( this->GetIterationNumber() != 0 )
     {
-    // Try to update miniApproxHessian using SR1 update rule
-  
     // s = x - xOld; % Equivalent to alphaUsed * pOld;
-    AtlasPositionGradientContainerType::ConstPointer  s  
-                     = this->ScaleDeformation( m_OldSearchDirection, m_AlphaUsedLastTime ).GetPointer();
+    s = this->ScaleDeformation( m_OldSearchDirection, m_AlphaUsedLastTime ).GetPointer();
       
     // y = gradient - gradientOld;
-    AtlasPositionGradientContainerType::ConstPointer  y 
-                     =  this->LinearlyCombineDeformations( m_Gradient, 1.0, m_OldGradient, -1.0 ).GetPointer();
+    y = this->LinearlyCombineDeformations( m_Gradient, 1.0, m_OldGradient, -1.0 ).GetPointer();
+    }
+    
 
-    // Loop over all tethradra
-    int  numberOfTetrahedra = 0;
-    int  numberOfUpdatedTetrahedra = 0;
-    std::vector< miniApproxHessianType >::iterator  miniIt = m_MiniApproxHessians.begin();
-    for ( AtlasMesh::CellsContainer::ConstIterator  cellIt = this->GetMesh()->GetCells()->Begin();
-        cellIt != this->GetMesh()->GetCells()->End(); ++cellIt )
+  // Loop over all tethradra
+  int  numberOfUpdatedTetrahedra = 0;
+  typedef Eigen::Triplet< double >  TripletType;
+  std::vector< TripletType >  triplets;
+  for ( std::map< AtlasMesh::CellIdentifier, int >::const_iterator it 
+      = m_TetrahedronNumberLookupTable.begin(); it != m_TetrahedronNumberLookupTable.end(); ++it )
+    {
+    //
+    const  AtlasMesh::CellIdentifier   tetrahedronId = it->first;
+    const int  tetrahedronNumber =  m_TetrahedronNumberLookupTable[ tetrahedronId ];
+    miniApproxHessianType&  miniApproxHessian = m_MiniApproxHessians[ tetrahedronNumber ];
+
+    if ( s.GetPointer() != 0 )
       {
-      //  
-      if ( cellIt.Value()->GetType() != AtlasMesh::CellType::TETRAHEDRON_CELL )
-        {
-        continue;
-        }
-      miniApproxHessianType&  miniApproxHessian = *miniIt;
-  
       // Retrieve mini s and y vectors (12-dimensional vectors, stacking 3 coordinates of each of the 4 
       // vertices) 
       vnl_vector< double >  s_mini( 12 );
       vnl_vector< double >  y_mini( 12 );
       int index = 0;
-      AtlasMesh::CellType::PointIdIterator  pit = cellIt.Value()->PointIdsBegin();
+      AtlasMesh::CellType::PointIdIterator  pit 
+                          = this->GetMesh()->GetCells()->ElementAt( tetrahedronId )->PointIdsBegin();    
       for ( int vertexNumber = 0; vertexNumber < 4; vertexNumber++ )
         {
         const AtlasPositionGradientType&  sElement = s->ElementAt( *pit );
@@ -221,101 +249,24 @@ AtlasMeshDeformationPartiallySeparableOptimizer
           }
         }
         
-      //  
-      //vnl_symmetric_eigensystem< double >  xxx( miniApproxHessian.as_matrix() );
-      //for ( int i = 0; i < 12; i++ )
-      //  {
-      //  std::cout << xxx.get_eigenvalue( i ) << std::endl;  
-      //  }
-      //if ( xxx.determinant() < 0 )
-      //  {
-      //  numberOfUpdatedTetrahedra++; 
-      //  }
+      } // End test if s==0
       
-      ++numberOfTetrahedra;
-      ++miniIt;
-      } // End loop over tetrahedra  
 
-    // std::cout << "numberOfUpdatedTetrahedra: " << numberOfUpdatedTetrahedra << std::endl;  
-    // std::cout << "numberOfTetrahedra: " << numberOfTetrahedra << std::endl;  
-    std::cout << "  Updated mini Hessians in " 
-              << ( 100.0 * numberOfUpdatedTetrahedra ) / numberOfTetrahedra  
-              << "% of tetrahedra" << std::endl;  
-      
-      
-    } // End test if first iteration
-  
-#if KVL_ENABLE_TIME_PROBE2
-  clock.Stop();
-  std::cout << "  Time taken to update miniApproxHessians: " << clock.GetMean() << std::endl;
-  clock.Reset();
-  clock.Start();
-#endif  
-  
-  
-    
-  // Loop over all tetrahedra, adding each 12x12 mini Hessian to the global sparse Hessian
-  // Use the Eigen C++ template library for this purpose
-  // https://eigen.tuxfamily.org/dox/group__TutorialSparse.html
-  //std::cout << "m_MiniApproxHessians.size(): " << m_MiniApproxHessians.size() << std::endl;
-  //std::cout << "m_MiniApproxHessians[ 100 ]: " << m_MiniApproxHessians[ 100 ] << std::endl;
-  // std::cout << "m_MiniApproxHessians[ 1000 ]: " << m_MiniApproxHessians[ 1000 ] << std::endl;
-  // std::cout << "m_MiniApproxHessians[ 10000 ]: " << m_MiniApproxHessians[ 10000 ] << std::endl;
-  
-  
-  // First make a dense mapping from each pointId to a contiguous pointNumber. This pointNumber
-  // will be the contiguous index of the first element (of three) of each point
-  const int  numberOfPoints = m_Position->Size();
-  std::map< AtlasMesh::PointIdentifier, int >  nodeNumberLookupTable;
-  for ( AtlasMesh::PointsContainer::ConstIterator  it = m_Position->Begin();
-        it != m_Position->End(); ++it )
-    {
-    const int  counter = nodeNumberLookupTable.size();
-    nodeNumberLookupTable[ it.Index() ] = counter;
-    }
-  //std::cout << "numberOfPoints: " <<  numberOfPoints << std::endl;
-  //std::cout << "nodeNumberLookupTable.size(): " << nodeNumberLookupTable.size() << std::endl;
-  //std::cout << "nodeNumberLookupTable.begin()->second: " << nodeNumberLookupTable.begin()->second << std::endl;
-  
-  
-  // Loop over all tetrahedra, each time adding 12x12=144 entries to the triplets
-  typedef Eigen::Triplet< double > TripletType;
-  std::vector< TripletType >  triplets;
-  std::vector< miniApproxHessianType >::const_iterator  miniIt = m_MiniApproxHessians.begin();
-  for ( AtlasMesh::CellsContainer::ConstIterator  cellIt = this->GetMesh()->GetCells()->Begin();
-        cellIt != this->GetMesh()->GetCells()->End(); ++cellIt )
-    {
-    //  
-    if ( cellIt.Value()->GetType() != AtlasMesh::CellType::TETRAHEDRON_CELL )
-      {
-      continue;
-      }
-
-    AtlasMesh::CellType::PointIdIterator  pit = cellIt->Value()->PointIdsBegin();
-    // const std::vector< int >  nodeNumbers; 
+    //
     std::vector< int >  indicesInHessian;
+    AtlasMesh::CellType::PointIdIterator  pit 
+                        = this->GetMesh()->GetCells()->ElementAt( tetrahedronId )->PointIdsBegin();    
     for ( int vertexNumber = 0; vertexNumber < 4; vertexNumber++ )
       {
-      // nodeNumbers.push_back( nodeNumberLookupTable[ *pit ] );
-      const int  nodeNumber = nodeNumberLookupTable[ *pit ];
+      const int  nodeNumber = m_NodeNumberLookupTable[ *pit ];
       for ( int dimensionNumber = 0; dimensionNumber < 3; dimensionNumber++ )   
         {
         indicesInHessian.push_back( nodeNumber*3 + dimensionNumber );
-      
-        // if ( nodeNumber*3 + dimensionNumber >= 26770*3 )
-        //   {
-        //   std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl; 
-        //   std::cout << "nodeNumber: " << nodeNumber << std::endl;
-        //   std::cout << "dimensionNumber: " << dimensionNumber << std::endl;
-        //   std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;  
-        //   }
-      
         }  
       ++pit;
       }
     
     // Copy
-    const miniApproxHessianType&  miniApproxHessian = *miniIt;
     for ( int rowNumber = 0; rowNumber < 12; rowNumber++ )
       {
       const int  rowNumberInHessian = indicesInHessian[ rowNumber ];
@@ -351,39 +302,29 @@ AtlasMeshDeformationPartiallySeparableOptimizer
         
         }
       } // End loop over 12x12 elements
-
-    ++miniIt;
+      
+    
     } // End loop over tetrahedra  
-  // std::cout << "triplets.size(): " << triplets.size() << std::endl;
-  // std::cout << "triplets[ 400 ]: " << triplets[ 400 ].row() << ", "
-  //                                   << triplets[ 400 ].col() << ", " 
-  //                                   << triplets[ 400 ].value() 
-  //                                   << std::endl;
-  
-  // int maxHessianRowNumber = 0;                                
-  // int maxHessianColNumber = 0;
-  // for ( std::vector< TripletType >::const_iterator it = triplets.begin();
-  //       it != triplets.end(); ++ it )
-  //   {
-  //   if ( it->row() > maxHessianRowNumber )
-  //     maxHessianRowNumber = it->row();
-  //   if ( it->col() > maxHessianColNumber )
-  //     maxHessianColNumber = it->col();
-  //   }
-  //std::cout << "maxHessianRowNumber: " << maxHessianRowNumber << std::endl;  
-  //std::cout << "maxHessianColNumber: " << maxHessianColNumber << std::endl;  
+
+  // std::cout << "numberOfUpdatedTetrahedra: " << numberOfUpdatedTetrahedra << std::endl;  
+  // std::cout << "numberOfTetrahedra: " << numberOfTetrahedra << std::endl;  
+  std::cout << "  Updated mini Hessians in " 
+            << ( 100.0 * numberOfUpdatedTetrahedra ) / m_TetrahedronNumberLookupTable.size()  
+            << "% of tetrahedra" << std::endl;  
+      
+      
 #if KVL_ENABLE_TIME_PROBE2
   clock.Stop();
-  std::cout << "  Time taken to construct triplets: " << clock.GetMean() << std::endl;
+  std::cout << "  Time taken to update miniApproxHessians and construct triplets: " << clock.GetMean() << std::endl;
   clock.Reset();
   clock.Start();
 #endif  
   
   
-  
-  
   // Construct the Hessian from the (row,col,value) triplets, adding their contributions
+  // Cf. https://eigen.tuxfamily.org/dox/group__TutorialSparse.html
   typedef Eigen::SparseMatrix< double >  HessianType;
+  const int  numberOfPoints = m_NodeNumberLookupTable.size();
   HessianType  Hessian( 3*numberOfPoints, 3*numberOfPoints );
   //std::cout << "Hessian.rows(): " << Hessian.rows() << std::endl;
   //std::cout << "Hessian.cols(): " << Hessian.cols() << std::endl;
@@ -419,7 +360,7 @@ AtlasMeshDeformationPartiallySeparableOptimizer
   for ( AtlasPositionGradientContainerType::ConstIterator  gradIt = m_Gradient->Begin();
         gradIt != m_Gradient->End(); ++gradIt )
     {     
-    const int  nodeNumber = nodeNumberLookupTable[ gradIt.Index() ];
+    const int  nodeNumber = m_NodeNumberLookupTable[ gradIt.Index() ];
     for ( int dimensionNumber = 0; dimensionNumber < 3; dimensionNumber++ )   
       {
       vectorizedGradient( nodeNumber*3 + dimensionNumber ) = gradIt.Value()[ dimensionNumber ];  
@@ -486,7 +427,7 @@ AtlasMeshDeformationPartiallySeparableOptimizer
         gradIt != m_Gradient->End(); ++gradIt )
     {
     AtlasPositionGradientType  tmp;
-    const int  nodeNumber = nodeNumberLookupTable[ gradIt.Index() ];
+    const int  nodeNumber = m_NodeNumberLookupTable[ gradIt.Index() ];
     for ( int dimensionNumber = 0; dimensionNumber < 3; dimensionNumber++ )
       {
       tmp[ dimensionNumber ] = -vectorizedSolution( nodeNumber*3 + dimensionNumber );  
