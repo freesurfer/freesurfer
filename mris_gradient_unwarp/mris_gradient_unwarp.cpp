@@ -136,7 +136,7 @@ static void unwarpVol(const char* origmgz, const char* unwarpedmgz, GradUnwarp* 
 
   MatrixPrint(stdout, vox2ras_orig);
 
-  MRI *unwarpedvol = MRIallocSequence(origvol->width, origvol->height, origvol->depth, origvol->type, origvol->nframes);
+  MRI *unwarpedvol = MRIallocSequence(origvol->width, origvol->height, origvol->depth, MRI_FLOAT, origvol->nframes);
   MRIcopyHeader(origvol, unwarpedvol);
   MRIcopyPulseParameters(origvol, unwarpedvol);
 
@@ -153,7 +153,7 @@ static void unwarpVol(const char* origmgz, const char* unwarpedmgz, GradUnwarp* 
 #endif
   for (c = 0; c < origvol->width; c++)
   {
-    int r, s, f;
+    int r = 0, s = 0, f = 0;
     // You could make a vector of CRS nthreads long
     MATRIX *CRS = MatrixAlloc(4, 1, MATRIX_REAL);
     MATRIX *RAS = MatrixAlloc(4, 1, MATRIX_REAL);;
@@ -196,7 +196,7 @@ static void unwarpVol(const char* origmgz, const char* unwarpedmgz, GradUnwarp* 
           double x = RAS->rptr[1][1];
           double y = RAS->rptr[2][1];
           double z = RAS->rptr[3][1];
-          float Dx, Dy, Dz;
+          float Dx = 0, Dy = 0, Dz = 0;
           gradUnwarp->spharm_evaluate(x, y, z, &Dx, &Dy, &Dz);
 
 	  if (inputcrs)
@@ -214,8 +214,8 @@ static void unwarpVol(const char* origmgz, const char* unwarpedmgz, GradUnwarp* 
           DistortedCRS = MatrixMultiply(inv_vox2ras_orig, DistortedRAS, DistortedCRS);
         } 
  
-        float fcs, frs, fss;
-        int ics, irs, iss;
+        float fcs = 0, frs = 0, fss = 0;
+        int ics = 0, irs = 0, iss = 0;
 
         if (!dupinvol)
 	{
