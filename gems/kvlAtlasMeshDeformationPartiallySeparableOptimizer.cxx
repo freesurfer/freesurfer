@@ -404,6 +404,15 @@ AtlasMeshDeformationPartiallySeparableOptimizer
   // Let the beast go
   threader->SingleMethodExecute();
 
+#if KVL_ENABLE_TIME_PROBE2
+  clock.Stop();
+  std::cout << "  Time taken to construct " << this->GetNumberOfThreads() << " partial Hessians: " << clock.GetMean() << std::endl;
+  clock.Reset();
+  clock.Start();
+#endif  
+
+  
+  
   // TODO: Add Hessians across all threads
   // HessianType  Hessian( 123, 123 );
   HessianType&  Hessian = m_ThreadSpecificHessians[ 0 ];
@@ -411,6 +420,14 @@ AtlasMeshDeformationPartiallySeparableOptimizer
     {
     Hessian += m_ThreadSpecificHessians[ threadNumber ];  
     }
+  
+#if KVL_ENABLE_TIME_PROBE2
+  clock.Stop();
+  std::cout << "  Time taken to aggregate all partial Hessians: " << clock.GetMean() << std::endl;
+  clock.Reset();
+  clock.Start();
+#endif  
+  
   
 
 #endif
