@@ -33,6 +33,8 @@ AtlasMeshDeformationPartiallySeparableOptimizer
   m_AlphaUsedLastTime = 0.0;
   
   m_StartDistance = 1.0; // Measured in voxels
+  
+  m_NumberOfThreads = itk::MultiThreader::GetGlobalDefaultNumberOfThreads();
 
 }
 
@@ -108,6 +110,7 @@ AtlasMeshDeformationPartiallySeparableOptimizer
       // tetrahedronIds.push_back( cellIt.Index() );
       } // End loop over tetrahedra  
   
+  
     // First make a dense mapping from each pointId to a contiguous pointNumber. This pointNumber
     // will be the contiguous index of the first element (of three) of each point
     for ( AtlasMesh::PointsContainer::ConstIterator  it = m_Position->Begin();
@@ -173,6 +176,12 @@ AtlasMeshDeformationPartiallySeparableOptimizer
     }
     
 
+    
+    
+    
+    
+#ifndef KVL_ENABLE_MULTITREADING
+    
   // Loop over all tethradra
   int  numberOfUpdatedTetrahedra = 0;
   typedef Eigen::Triplet< double >  TripletType;
@@ -354,6 +363,66 @@ AtlasMeshDeformationPartiallySeparableOptimizer
   clock.Start();
 #endif  
   
+  
+  
+#else
+
+  //
+  std::vector< AtlasMesh::CellIdentifier >  tetrahedronIds;  
+  for ( AtlasMesh::CellsContainer::ConstIterator  cellIt = this->GetMesh()->GetCells()->Begin();
+        cellIt != this->GetMesh()->GetCells()->End(); ++cellIt )
+    {
+    if ( cellIt.Value()->GetType() != AtlasMesh::CellType::TETRAHEDRON_CELL )
+      {
+      continue;
+      }
+      
+    tetrahedronIds.push_back( cellIt.Index() );
+    }
+
+
+  //
+  m_ThreadSpecificHessians.clear();
+  const int  numberOfPoints = m_NodeNumberLookupTable.size();
+  for ( int threadNumber = 0; threadNumber < this->GetNumberOfThreads(); threadNumber++ )
+    {
+    m_ThreadSpecificHessians.push_back( HessianType( 3*numberOfPoints, 3*numberOfPoints ) );    
+    }
+
+  // Set up the multithreader
+  itk::MultiThreader::Pointer  threader = itk::MultiThreader::New();
+  threader->SetNumberOfThreads( this->GetNumberOfThreads() );
+  //threader->SetNumberOfThreads( 1 );
+  ThreadStruct  str;
+  str.m_Optimizer = this;
+  str.m_S = s;
+  str.m_Y = y;
+  str.m_Mesh = this->GetMesh();
+  str.m_TetrahedronIds = tetrahedronIds;
+  threader->SetSingleMethod( this->ThreaderCallback, &str );
+
+  // Let the beast go
+  threader->SingleMethodExecute();
+
+  // TODO: Add Hessians across all threads
+  // HessianType  Hessian( 123, 123 );
+  HessianType&  Hessian = m_ThreadSpecificHessians[ 0 ];
+  for ( int threadNumber = 1; threadNumber < this->GetNumberOfThreads(); threadNumber++ )
+    {
+    Hessian += m_ThreadSpecificHessians[ threadNumber ];  
+    }
+  
+
+#endif
+  
+  
+  
+  
+  
+  
+  
+  
+  
       
   // Also get the gradient in the same vectorized format
   Eigen::VectorXd  vectorizedGradient( 3 * numberOfPoints );   
@@ -492,8 +561,196 @@ AtlasMeshDeformationPartiallySeparableOptimizer
 
 
 
+#ifdef KVL_ENABLE_MULTITREADING
+
+//
+//
+//
+ITK_THREAD_RETURN_TYPE
+AtlasMeshDeformationPartiallySeparableOptimizer
+::ThreaderCallback( void *arg )
+{
+
+  // Retrieve the input arguments
+  const int  threadNumber = ((itk::MultiThreader::ThreadInfoStruct *)(arg))->ThreadID;
+  const int  numberOfThreads = ((itk::MultiThreader::ThreadInfoStruct *)(arg))->NumberOfThreads;
+  ThreadStruct*  str = (ThreadStruct *)(((itk::MultiThreader::ThreadInfoStruct *)(arg))->UserData);
+
+  //std::cout << str->m_Optimizer->m_NumberOfThreads << std::endl;
+
+  typedef Eigen::Triplet< double >  TripletType;
+  std::vector< TripletType >  triplets;
+  const int  numberOfTetrahedra = str->m_TetrahedronIds.size();
+  for ( int tetrahedronNumber = threadNumber; 
+        tetrahedronNumber < numberOfTetrahedra; 
+        tetrahedronNumber += numberOfThreads )
+    {
+    const  AtlasMesh::CellIdentifier   tetrahedronId = str->m_TetrahedronIds[ tetrahedronNumber ];
+    miniApproxHessianType&  miniApproxHessian = str->m_Optimizer->m_MiniApproxHessians[ tetrahedronNumber ];
+
+    if ( str->m_S.GetPointer() != 0 )
+      {
+      // Retrieve mini s and y vectors (12-dimensional vectors, stacking 3 coordinates of each of the 4 
+      // vertices) 
+      vnl_vector< double >  s_mini( 12 );
+      vnl_vector< double >  y_mini( 12 );
+      int index = 0;
+      AtlasMesh::CellType::PointIdIterator  pit 
+                          = str->m_Mesh->GetCells()->ElementAt( tetrahedronId )->PointIdsBegin();    
+      for ( int vertexNumber = 0; vertexNumber < 4; vertexNumber++ )
+        {
+        const AtlasPositionGradientType&  sElement = str->m_S->ElementAt( *pit );
+        const AtlasPositionGradientType&  yElement = str->m_Y->ElementAt( *pit );
+      
+        for ( int dimensionNumber = 0; dimensionNumber < 3; dimensionNumber++ )   
+          {
+          s_mini[ index ] = sElement[ dimensionNumber ];
+          y_mini[ index ] = yElement[ dimensionNumber ];
+            
+          //
+          ++index;  
+          }
+          
+        ++pit;
+        }
+      
+      if ( false )
+        {
+        // Actual RS1 update stuff
+        // y - B * s
+        const vnl_vector< double >  tmp_mini = y_mini - miniApproxHessian * s_mini;
+        const double  denominator = inner_product( tmp_mini, s_mini ); // tmp' * s;
+        const double  r = 1e-8;
+        if ( std::abs( denominator ) > r * s_mini.two_norm() * tmp_mini.two_norm() )
+          {
+          // Perform the update
+          miniApproxHessian += outer_product( tmp_mini, tmp_mini ) / denominator;
+          // std::cout << "outer_product( tmp_mini, tmp_mini ):" << outer_product( tmp_mini, tmp_mini ) << std::endl;
+          //std::cout << "denominator: " << denominator << std::endl;
+          //std::cout << "s_mini.two_norm(): " << s_mini.two_norm() << std::endl;
+          //std::cout << "tmp_mini.two_norm(): " << tmp_mini.two_norm() << std::endl;
+          //numberOfUpdatedTetrahedra++;
+          }
+        // else
+        //   {
+        //   std::cout << "denominator: " << denominator << std::endl;
+        //   std::cout << "s_mini.two_norm(): " << s_mini.two_norm() << std::endl;
+        //   std::cout << "tmp_mini.two_norm(): " << tmp_mini.two_norm() << std::endl;
+        //   std::cout << "std::abs( denominator ): " << std::abs( denominator ) << std::endl;
+        //   std::cout << "r * s_mini.two_norm() * tmp_mini.two_norm(): " << r * s_mini.two_norm() * tmp_mini.two_norm() << std::endl;
+        //   }
+        }
+      else
+        {
+        // BFGS
+        if ( inner_product( y_mini, s_mini ) > 1e-10 )
+          {
+          const vnl_vector< double >  tmp_mini = miniApproxHessian * s_mini;
+          miniApproxHessian -= outer_product( tmp_mini, tmp_mini ) / inner_product( tmp_mini, s_mini );
+          miniApproxHessian += outer_product( y_mini, y_mini ) / inner_product( y_mini, s_mini );
+          //numberOfUpdatedTetrahedra++;
+          }
+        }
+        
+      } // End test if s==0
+      
+
+    //
+    std::vector< int >  indicesInHessian;
+    AtlasMesh::CellType::PointIdIterator  pit 
+                        = str->m_Mesh->GetCells()->ElementAt( tetrahedronId )->PointIdsBegin();    
+    for ( int vertexNumber = 0; vertexNumber < 4; vertexNumber++ )
+      {
+      const int  nodeNumber = str->m_Optimizer->m_NodeNumberLookupTable[ *pit ];
+      for ( int dimensionNumber = 0; dimensionNumber < 3; dimensionNumber++ )   
+        {
+        indicesInHessian.push_back( nodeNumber*3 + dimensionNumber );
+        }  
+      ++pit;
+      }
+    
+    // Copy
+    for ( int rowNumber = 0; rowNumber < 12; rowNumber++ )
+      {
+      const int  rowNumberInHessian = indicesInHessian[ rowNumber ];
+      for ( int columnNumber = 0; columnNumber < 12; columnNumber++ )
+        {
+        const int  columnNumberInHessian = indicesInHessian[ columnNumber ];
+
+        triplets.push_back( TripletType( rowNumberInHessian, columnNumberInHessian, 
+                                          miniApproxHessian( rowNumber, columnNumber ) ) );
+        
+        // if ( rowNumber != columnNumber )
+        //   {
+        //   if ( miniApproxHessian( rowNumber, columnNumber ) != 0 )
+        //     {
+        //     std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl; 
+        //     std::cout << miniApproxHessian << std::endl;  
+        //     std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl; 
+        //     }
+        //   }
+          
+          
+        // if ( (triplets.end()-1)->row() != (triplets.end()-1)->col() )
+        //   {
+        //   if ( (triplets.end()-1)->value() != 0 )
+        //     {
+        //     std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl; 
+        //     std::cout << miniApproxHessian << std::endl;  
+        //     std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl; 
+        //     }
+        //   }
+          
+          
+        
+        }
+      } // End loop over 12x12 elements
+      
+    
+    } // End loop over tetrahedra  
+
+  // std::cout << "numberOfUpdatedTetrahedra: " << numberOfUpdatedTetrahedra << std::endl;  
+  // std::cout << "numberOfTetrahedra: " << numberOfTetrahedra << std::endl;  
+  //std::cout << "  Updated mini Hessians in " 
+  //          << ( 100.0 * numberOfUpdatedTetrahedra ) / m_TetrahedronNumberLookupTable.size()  
+  //          << "% of tetrahedra" << std::endl;  
+      
+        
+  
+  // Construct the Hessian from the (row,col,value) triplets, adding their contributions
+  // Cf. https://eigen.tuxfamily.org/dox/group__TutorialSparse.html
+  //const int  numberOfPoints = str->Optimizer->m_NodeNumberLookupTable.size();
+  //HessianType  Hessian( 3*numberOfPoints, 3*numberOfPoints );
+  //std::cout << "Hessian.rows(): " << Hessian.rows() << std::endl;
+  //std::cout << "Hessian.cols(): " << Hessian.cols() << std::endl;
+  str->m_Optimizer->m_ThreadSpecificHessians[ threadNumber ].setFromTriplets( triplets.begin(), 
+                                                                              triplets.end() );
+  //std::cout << "Hessian.rows(): " << Hessian.rows() << std::endl;
+  //std::cout << "Hessian.cols(): " << Hessian.cols() << std::endl;
+  //std::cout << "Hessian.nonZeros(): " << Hessian.nonZeros() << std::endl;
+  // for ( int k=0; k < Hessian.outerSize(); ++k )
+  //   {
+  //   for ( HessianType::InnerIterator it( Hessian, k ); it; ++it)
+  //     {
+  //     if ( it.row() != k )
+  //       {
+  //       if ( it.value() != 0 )
+  //         {
+  //         std::cout << "k, row, value: " << k << ", " << it.row() << ", " << it.value() << std::endl;
+  //         }
+  //       }
+  //     }
+  //   }
+  
+  
+  
+  
+  
+
+}
 
 
+#endif
 
 
 } // end namespace kvl

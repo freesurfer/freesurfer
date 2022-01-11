@@ -4,6 +4,13 @@
 #include "kvlAtlasMeshDeformationOptimizer.h"
 #include "vnl/vnl_matrix_fixed.h"
 
+#define KVL_ENABLE_MULTITREADING
+
+#ifdef KVL_ENABLE_MULTITREADING
+  #include "Eigen/Sparse"
+#endif
+
+
 
 namespace kvl
 {
@@ -26,6 +33,18 @@ public :
   /** Run-time type information (and related methods). */
   itkTypeMacro( AtlasMeshDeformationPartiallySeparableOptimizer, AtlasMeshDeformationOptimizer );
 
+  /** */
+  void SetNumberOfThreads( int numberOfThreads )
+    { 
+    m_NumberOfThreads = numberOfThreads;
+    }
+  
+  /** */
+  int GetNumberOfThreads() const
+    {
+    return m_NumberOfThreads;
+    }
+  
   
 protected:
   AtlasMeshDeformationPartiallySeparableOptimizer();
@@ -52,7 +71,22 @@ private:
   std::map< AtlasMesh::PointIdentifier, int >   m_NodeNumberLookupTable;
   std::map< AtlasMesh::CellIdentifier, int >  m_TetrahedronNumberLookupTable;
   
-  
+#ifdef KVL_ENABLE_MULTITREADING
+  //
+  int  m_NumberOfThreads;
+  typedef Eigen::SparseMatrix< double >  HessianType;
+  std::vector< HessianType >  m_ThreadSpecificHessians;
+  static ITK_THREAD_RETURN_TYPE ThreaderCallback( void *arg );
+  struct ThreadStruct
+    {
+    Pointer  m_Optimizer;
+    AtlasPositionGradientContainerType::ConstPointer  m_S;
+    AtlasPositionGradientContainerType::ConstPointer  m_Y;
+    AtlasMesh::ConstPointer  m_Mesh;
+    std::vector< AtlasMesh::CellIdentifier >  m_TetrahedronIds;
+    };
+#endif    
+
 };
 
 
