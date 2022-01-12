@@ -636,13 +636,13 @@ int main(int argc, char **argv)
       printf("Computing pial target locations using multimodal (%d)\n",mm_contrast_type); fflush(stdout);
       if(!UseMMRefine){
 	MRIScomputePialTargetLocationsMultiModal(surf, mmvol, NULL, 0, 
-					       mm_contrast_type, seg, 
-					       T2_min_inside, T2_max_inside, 
-					       T2_min_outside, T2_max_outside, 
-					       max_outward_dist,
-					       Ghisto_left_inside_peak_pct, Ghisto_right_inside_peak_pct, 
-					     Ghisto_left_outside_peak_pct, Ghisto_right_outside_peak_pct, 
-					       wm_weight, pial_sigma, invol) ;
+						 mm_contrast_type, seg, 
+						 T2_min_inside, T2_max_inside, 
+						 T2_min_outside, T2_max_outside, 
+						 max_outward_dist,
+						 Ghisto_left_inside_peak_pct, Ghisto_right_inside_peak_pct, 
+						 Ghisto_left_outside_peak_pct, Ghisto_right_outside_peak_pct, 
+						 wm_weight, pial_sigma, invol) ;
       }
       else{
 	std::cout<<"UseMMRefine, num vols"  << mmvols.size() << std::endl;
@@ -1256,6 +1256,56 @@ static int parse_commandline(int argc, char **argv) {
       exit(0);
       nargsused = 2;
     } 
+    else if(!strcasecmp(option, "--fit")){
+      if(nargc < 9) {
+	printf("ERROR: usage --fit inputsurf mri targsurf loc hin nzr rep iters outsurf\n");
+	exit(1);
+      }
+      int niters, nthiter;
+      INTEGRATION_PARMS fitparms;
+      fitparms.fill_interior = 0 ;
+      fitparms.projection = NO_PROJECTION ;
+      fitparms.tol = 1e-4 ;
+      fitparms.dt = 0.5f ;
+      fitparms.base_dt = fitparms.dt ;
+      fitparms.integration_type = INTEGRATE_MOMENTUM ;
+      fitparms.dt_increase = 1.0 /* DT_INCREASE */;
+      fitparms.dt_decrease = 0.50 /* DT_DECREASE*/ ;
+      fitparms.error_ratio = 50.0 /*ERROR_RATIO */;
+      fitparms.niterations = 10;
+      MRIS *inputsurf = MRISread(pargv[0]);
+      MRI *voltemplate = MRIread(pargv[1]);
+      //MRIS *targsurf = MRISread(pargv[2]); // ignore for now
+      MRISsaveVertexPositions(inputsurf, TARGET_VERTICES) ;
+      sscanf(pargv[3],"%f",&fitparms.l_location);
+      sscanf(pargv[4],"%f",&fitparms.l_hinge);
+      sscanf(pargv[5],"%f",&fitparms.l_spring_nzr);
+      sscanf(pargv[6],"%f",&fitparms.l_repulse);
+      sscanf(pargv[7],"%d",&niters);
+      MRIScomputeMetricProperties(inputsurf);
+      MRISfaceMetric(inputsurf,0);
+      MRISedgeMetric(inputsurf,0);
+      MRISprettyPrintSurfQualityStats(stdout, inputsurf);
+      if(fitparms.l_hinge > 0 || fitparms.l_spring_nzr > 0){
+	if(fitparms.l_spring_nzr > 0){
+	  double  *edgestats = MRISedgeStats(inputsurf, 0, NULL, NULL);
+	  fitparms.l_spring_nzr_len = edgestats[1];
+	  printf("edge len %g\n",edgestats[1]);
+	  free(edgestats);
+	}
+      }
+      nthiter = 0;
+      while(nthiter < niters){
+	nthiter ++;
+	printf("#@# nthiter %d ====================================\n",nthiter);fflush(stdout);
+	MRISpositionSurface(inputsurf, voltemplate, voltemplate, &fitparms);
+	MRIScomputeMetricProperties(inputsurf);
+	MRISprettyPrintSurfQualityStats(stdout, inputsurf);
+      }
+      MRISprettyPrintSurfQualityStats(stdout, inputsurf);
+      MRISwrite(inputsurf,pargv[8]);
+      exit(0);
+    }
     else if(!strcasecmp(option, "--threads") || !strcasecmp(option, "--nthreads") ){
       if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&nthreads);
@@ -1598,7 +1648,7 @@ int RIP_MNGR::RipVertices(void)
   }
   if(nRipSegs){
     // probably want to use white for this
-    printf("Ripping WMSA\n");
+    printf("Ripping segs (eg, WMSA, BG, frozen)\n");
     MRISripSegs(ripsurf, seg, RipSegNo, nRipSegs, dmin,dmax,dstep);
   }
 
