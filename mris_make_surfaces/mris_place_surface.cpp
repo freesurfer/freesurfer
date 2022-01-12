@@ -243,6 +243,7 @@ char *coversegpath = NULL;
 MRI *mri_cover_seg = NULL;
 char *LocalMaxFoundFile = NULL;
 char *TargetSurfaceFile = NULL;
+int SmoothAfterRip = 0;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) 
@@ -356,11 +357,13 @@ int main(int argc, char **argv)
   MRIScomputeMetricProperties(surf);
   if(nbrs > 1) MRISsetNeighborhoodSizeAndDist(surf, nbrs) ;
   if(nsmoothsurf > 0) {
-    printf("Smoothing surface with %d iterations\n",nsmoothsurf);
-    // In mris_make_surface, this is not done when orig_white is specified, ie,
-    // it is done when the orig surface is used for initiation (eg, when 
-    // creating white.preaparc). Don't smooth for pial.
-    MRISaverageVertexPositions(surf, nsmoothsurf) ;
+    if(!SmoothAfterRip){
+      printf("Smoothing surface before ripping with %d iterations\n",nsmoothsurf);
+      // In mris_make_surface, this is not done when orig_white is specified, ie,
+      // it is done when the orig surface is used for initiation (eg, when 
+      // creating white.preaparc). Don't smooth for pial.
+      MRISaverageVertexPositions(surf, nsmoothsurf) ;
+    }
   }
   else printf("Not smoothing input surface\n");
 
@@ -483,6 +486,11 @@ int main(int argc, char **argv)
   ripmngr.seg   = seg;
   ripmngr.surf  = surf;
   ripmngr.RipVertices();
+
+  if(nsmoothsurf > 0 && SmoothAfterRip){
+    printf("Smoothing surface after ripping with %d iterations\n",nsmoothsurf);
+    MRISaverageVertexPositions(surf, nsmoothsurf) ;
+  }
 
   if(mmvolpath){
     printf("Reading in multimodal volume %s\n",mmvolpath);
@@ -823,7 +831,9 @@ static int parse_commandline(int argc, char **argv) {
     else if(!strcmp(option, "--first-peak-d2"))    CBVfindFirstPeakD2 = 1;
     else if(!strcmp(option, "--no-first-peak-d2")) CBVfindFirstPeakD2 = 0;
     else if(!strcmp(option, "--lh"))  hemi = "lh";
-    else if(!strcmp(option, "--rh"))   hemi = "rh";
+    else if(!strcmp(option, "--rh"))  hemi = "rh";
+    else if(!strcmp(option, "--smooth-after-rip"))  SmoothAfterRip = 1;
+
     else if(!strcmp(option, "--rip-projection")){
       if(nargc < 3) CMDargNErr(option,3);
       sscanf(pargv[0],"%lf",&ripmngr.dmin);
