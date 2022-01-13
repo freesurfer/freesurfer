@@ -36,6 +36,10 @@ py::array_t<double> KvlMesh::GetAlphas() const {
     return AlphasToNumpy(mesh->GetPointData());
 }
 
+py::array_t<bool> KvlMesh::GetCanMoves() const {
+    return CanMovesToNumpy(mesh->GetPointData());
+}
+
 void KvlMesh::SetPointSet(const py::array_t<double> &source) {
     PointSetPointer points = const_cast<PointSetPointer>(mesh->GetPoints());
     CopyNumpyToPointSet(points, source);
@@ -44,6 +48,11 @@ void KvlMesh::SetPointSet(const py::array_t<double> &source) {
 void KvlMesh::SetAlphas(const py::array_t<double> &source) {
     PointDataPointer alphas = const_cast<PointDataPointer>(mesh->GetPointData());
     CopyNumpyToPointDataSet(alphas, source);
+}
+
+void KvlMesh::SetCanMoves(const py::array_t<bool> &source) {
+    PointDataPointer pointData = const_cast<PointDataPointer>(mesh->GetPointData());
+    CopyNumpyToCanMoves(pointData, source);
 }
 
 void TransformMeshPoints(MeshPointer mesh, const double *scaleFactor) {
@@ -640,6 +649,19 @@ py::array_t<double> AlphasToNumpy(PointDataConstPointer alphas) {
     return createNumpyArrayCStyle({numberOfNodes, numberOfLabels}, data);
 }
 
+py::array_t<bool> CanMovesToNumpy(PointDataConstPointer pointData ) {
+    const unsigned int numberOfNodes = pointData->Size();
+    auto *data = new bool[numberOfNodes * 3];
+    auto dataIterator = data;
+    for (auto srcIterator = pointData->Begin(); srcIterator != pointData->End(); ++srcIterator) {
+        *dataIterator++ = srcIterator.Value().m_CanMoveX;
+        *dataIterator++ = srcIterator.Value().m_CanMoveY;
+        *dataIterator++ = srcIterator.Value().m_CanMoveZ;
+    }
+    return createNumpyArrayCStyle({numberOfNodes, 3}, data);
+}
+
+
 void CopyNumpyToPointDataSet(PointDataPointer destinationAlphas, const py::array_t<double> &source)
 {
     if (source.ndim() != 2) {
@@ -670,3 +692,31 @@ void CopyNumpyToPointDataSet(PointDataPointer destinationAlphas, const py::array
     }
 }
 
+
+void CopyNumpyToCanMoves(PointDataPointer destinationPointData, const py::array_t<bool> &source)
+{
+    if (source.ndim() != 2) {
+        itkGenericExceptionMacro("canMove source shape must have two dimensions");
+    }
+    const unsigned int currentNumberOfNodes = destinationPointData->Size();
+    auto sourceShape = source.shape();
+    const unsigned int sourceNumberOfNodes = *sourceShape++;
+    const unsigned int numberOfDimensions = *sourceShape++;
+    if (sourceNumberOfNodes != currentNumberOfNodes) {
+        itkGenericExceptionMacro(
+                "source data point count of "
+                        << sourceNumberOfNodes
+                        << " not equal to mesh point count of "
+                        << currentNumberOfNodes
+        );
+    }
+    if (numberOfDimensions !=3 ) {
+        itkGenericExceptionMacro("source data have three directions not " << numberOfDimensions);
+    }
+    unsigned int pointIndex = 0;
+    for (auto destIterator = destinationPointData->Begin(); destIterator != destinationPointData->End(); ++destIterator, ++pointIndex) {
+        destIterator.Value().m_CanMoveX = *source.data(pointIndex, 0);
+        destIterator.Value().m_CanMoveY = *source.data(pointIndex, 1);
+        destIterator.Value().m_CanMoveZ = *source.data(pointIndex, 2);
+    }
+}

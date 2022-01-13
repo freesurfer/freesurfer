@@ -82,7 +82,8 @@ class ProbabilisticAtlas:
         images = []
         for contrastNumber in range(numberOfContrasts):
             tmp = np.zeros(mask.shape, order='F')
-            tmp[mask] = data[:, contrastNumber]
+            tmp[mask] = data[:, contrastNumber] + 1e-5 # Voxels with zero values but inside the mask 
+                                                       # should not be skipped in the C++ code!
             images.append(gems.KvlImage(requireNumpyArray(tmp)))
 
         # Set up cost calculator
@@ -98,8 +99,8 @@ class ProbabilisticAtlas:
 
         # Get optimizer and plug calculator in it
         if self.optimizer is None:
-            #optimizerType = 'L-BFGS'
-            optimizerType = 'PartiallySeparable'
+            optimizerType = 'L-BFGS'
+            #optimizerType = 'PartiallySeparable'
             optimizationParameters = {
                 'Verbose': False,
                 'MaximalDeformationStopCriterion': 0.001,  # measured in pixels,
@@ -121,6 +122,22 @@ class ProbabilisticAtlas:
         historyOfDeformationCost = []
         historyOfMaximalDeformation = []
         nodePositionsBeforeDeformation = mesh.points
+        
+        #
+        if True:
+            numberOfNodes = mesh.point_count
+            #mesh.can_moves.sum(axis=0) / numberOfNodes                                                                                          
+            orig_can_moves = mesh.can_moves                                                                                                     
+            numberOfBlocks = 2                                                                                                                  
+            numberOfNodesPerBlock = np.ceil( numberOfNodes / numberOfBlocks ).astype( 'int' )                                                                  
+            blockNumber=1                                                                                                                      
+            start = blockNumber * numberOfNodesPerBlock
+            end = min( (blockNumber+1) * numberOfNodesPerBlock, numberOfNodes )
+            can_moves = np.zeros_like( orig_can_moves )
+            can_moves[ start:end, : ] = orig_can_moves[ start:end, : ]
+            mesh.can_moves = can_moves
+        
+        
         while True:
             minLogLikelihoodTimesDeformationPrior, maximalDeformation = optimizer.step_optimizer_samseg()
             print("maximalDeformation=%.4f minLogLikelihood=%.4f" % (
