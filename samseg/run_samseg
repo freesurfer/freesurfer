@@ -37,6 +37,7 @@ parser.add_argument('--lesion-pseudo-samples', nargs=2, type=float, default=[500
 parser.add_argument('--lesion-rho', type=float, default=50, help='Lesion ratio.')
 parser.add_argument('--lesion-mask-structure', default='Cortex', help='Intensity mask brain structure. Lesion segmentation must be enabled.')
 parser.add_argument('--lesion-mask-pattern', type=int, nargs='+', help='Lesion mask list (set value for each input volume): -1 below lesion mask structure mean, +1 above, 0 no mask. Lesion segmentation must be enabled.')
+parser.add_argument('--random-seed', type=int, default=12345, help='Random seed.')
 # optional options for segmenting 3D reconstructions of photo volumes
 parser.add_argument('--dissection-photo', default=None, help='Use this flag for 3D reconstructed photos, and specify hemispheres that are present in the volumes: left, right, or both')
 
@@ -132,9 +133,7 @@ samseg_kwargs = dict(
     pallidumAsWM=(not args.pallidum_separate),
     saveModelProbabilities=args.save_probabilities,
     gmmFileName=args.gmm,
-    ignoreUnknownPriors=ignoreUnknownPriors,
-    dissectionPhoto=args.dissection_photo,
-    nthreads=args.threads,
+    ignoreUnknownPriors=ignoreUnknownPriors
 )
 
 if args.lesion:
@@ -155,11 +154,14 @@ if args.lesion:
         intensityMaskingPattern=lesion_mask_pattern,
         numberOfBurnInSteps=args.burnin,
         numberOfSamplingSteps=args.samples,
-        threshold=args.threshold
+        threshold=args.threshold,
+        randomSeed=args.random_seed
     )
 
 else:
-    samseg = samseg.Samseg(**samseg_kwargs)
+    samseg = samseg.Samseg(**samseg_kwargs, 
+                           dissectionPhoto=args.dissection_photo,
+                           nthreads=args.threads)
 
 _, _, _, optimizationSummary = samseg.segment(
     costfile=costfile,
