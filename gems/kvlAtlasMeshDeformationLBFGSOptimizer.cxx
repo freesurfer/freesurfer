@@ -63,6 +63,11 @@ AtlasMeshDeformationLBFGSOptimizer
 ::FindAndOptimizeNewSearchDirection()
 {
 
+#if 1  
+  m_Position = const_cast< AtlasMesh* >( this->GetMesh() )->GetPoints();
+  this->GetCostAndGradient( m_Position, m_Cost, m_Gradient );
+#endif  
+  
   // 
   // Part I: Decide on a new search direction
   //
