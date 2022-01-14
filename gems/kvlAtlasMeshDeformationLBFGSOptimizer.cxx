@@ -1,5 +1,11 @@
 #include "kvlAtlasMeshDeformationLBFGSOptimizer.h"
 
+#define KVL_ENABLE_TIME_PROBE3 0
+
+#if KVL_ENABLE_TIME_PROBE3
+  #include "itkTimeProbe.h"
+#endif
+
 
 namespace kvl
 {
@@ -63,6 +69,13 @@ AtlasMeshDeformationLBFGSOptimizer
 ::FindAndOptimizeNewSearchDirection()
 {
 
+  
+#if KVL_ENABLE_TIME_PROBE3  
+  itk::TimeProbe clock;
+  clock.Start();
+#endif
+  
+  
 #if 1  
   m_Position = const_cast< AtlasMesh* >( this->GetMesh() )->GetPoints();
   this->GetCostAndGradient( m_Position, m_Cost, m_Gradient );
@@ -169,6 +182,15 @@ AtlasMeshDeformationLBFGSOptimizer
                                                       = this->ScaleDeformation( r, -1.0 );
 
                                                       
+#if KVL_ENABLE_TIME_PROBE3     
+  clock.Stop();
+  std::cout << "  --- Time taken by determining search direction: " << clock.GetMean() << std::endl;
+  clock.Reset();
+  clock.Start();
+#endif 
+                                                
+                                                      
+                                                      
   //
   // PartII: Make an educated guess of the appropriate step size
   //
@@ -200,6 +222,11 @@ AtlasMeshDeformationLBFGSOptimizer
   
   //std::cout << "m_Cost: " << m_Cost << std::endl;
 
+#if KVL_ENABLE_TIME_PROBE3     
+  clock.Stop();
+  std::cout << "  --- Time taken by line search: " << clock.GetMean() << std::endl;
+#endif 
+  
 
   // Some book keeping
   const double  maximalDeformation = alphaUsed * this->ComputeMaximalDeformation( searchDirection );

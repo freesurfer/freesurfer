@@ -97,7 +97,7 @@ class ProbabilisticAtlas:
             mixtureWeights=mixtureWeights,
             numberOfGaussiansPerClass=numberOfGaussiansPerClass)
 
-        numberOfBlocks = 8
+        numberOfBlocks = 4
         if numberOfBlocks == 1:
             # Get optimizer and plug calculator in it
             if self.optimizer is None:
@@ -124,9 +124,12 @@ class ProbabilisticAtlas:
             historyOfDeformationCost = []
             historyOfMaximalDeformation = []
             nodePositionsBeforeDeformation = mesh.points
-            
+            import time
             while True:
+                globalTic = time.perf_counter()
                 minLogLikelihoodTimesDeformationPrior, maximalDeformation = optimizer.step_optimizer_samseg()
+                globalToc = time.perf_counter()
+                print( f"  Total time spent: {globalToc-globalTic:0.4f} sec" )
                 print("maximalDeformation=%.4f minLogLikelihood=%.4f" % (
                 maximalDeformation, minLogLikelihoodTimesDeformationPrior))
                 historyOfDeformationCost.append(minLogLikelihoodTimesDeformationPrior)
@@ -172,6 +175,9 @@ class ProbabilisticAtlas:
             orig_can_moves = mesh.can_moves                                                                                                     
             numberOfNodesPerBlock = np.ceil( numberOfNodes / numberOfBlocks ).astype( 'int' )
             while True:
+                #timeSpentDoingCxxCall = 0;
+                import time
+                globalTic = time.perf_counter()
                 maximalDeformation = 0.0
                 for blockNumber in range( numberOfBlocks ):
                     if False:
@@ -185,7 +191,10 @@ class ProbabilisticAtlas:
                     if False:
                         tmpLocalCostBefore, _ = calculator.evaluate_mesh_position( mesh )
                     optimizer = optimizers[ blockNumber ]
+                    #tic = time.perf_counter()
                     blockMinLogLikelihoodTimesDeformationPrior, blockMaximalDeformation = optimizer.step_optimizer_samseg()
+                    #toc = time.perf_counter()
+                    #timeSpentDoingCxxCall += ( toc - tic)
                     if False:
                         tmpLocalCostAfter, _ = calculator.evaluate_mesh_position( mesh )
                     maximalDeformation = max( maximalDeformation, blockMaximalDeformation )
@@ -197,11 +206,16 @@ class ProbabilisticAtlas:
                         print( f"    global decrease: {tmpGlobalCostBefore-tmpGlobalCostAfter} ({tmpGlobalCostBefore} - {tmpGlobalCostAfter})" )
 
 
-                    
+                globalToc = time.perf_counter()
+                print( f"  Total time spent: {globalToc-globalTic:0.4f} sec" )
+                #print( f"Total time spent in Cxx call: {timeSpentDoingCxxCall:0.4f} sec ({timeSpentDoingCxxCall/(globalToc-globalTic)*100:0.4f}%)" )
+
                 mesh.can_moves = orig_can_moves
                 #print( mesh.can_moves.sum(axis=0) / numberOfNodes * 100 )
+                tic = time.perf_counter()
                 minLogLikelihoodTimesDeformationPrior, _ = calculator.evaluate_mesh_position( mesh )
-            
+                toc = time.perf_counter()
+                print( f'  Additional time spent (unnecessarily) computing full cost function: {toc-tic:0.4f} sec' )
                 print("maximalDeformation=%.4f minLogLikelihood=%.4f" % (
                 maximalDeformation, minLogLikelihoodTimesDeformationPrior))
                 historyOfDeformationCost.append(minLogLikelihoodTimesDeformationPrior)
