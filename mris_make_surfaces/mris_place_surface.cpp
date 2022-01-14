@@ -485,7 +485,8 @@ int main(int argc, char **argv)
   ripmngr.invol = invol;
   ripmngr.seg   = seg;
   ripmngr.surf  = surf;
-  ripmngr.RipVertices();
+  err = ripmngr.RipVertices();
+  if(err) exit(1);
 
   if(nsmoothsurf > 0 && SmoothAfterRip){
     printf("Smoothing surface after ripping with %d iterations\n",nsmoothsurf);
@@ -582,7 +583,8 @@ int main(int argc, char **argv)
     if(seg && surftype == GRAY_WHITE && ripmngr.RipMidline){
       // This is done each cycle with white.preaparc
       printf("Freezing midline and others\n");  fflush(stdout);
-      ripmngr.RipVertices();
+      err = ripmngr.RipVertices();
+      if(err) exit(1);
     }
 
     if(mri_cover_seg) {
@@ -1654,7 +1656,8 @@ int RIP_MNGR::RipVertices(void)
   if(RipBG){
     // probably want to use white for this
     printf("Ripping BG\n");
-    MRISripBasalGanglia(ripsurf, seg, dmin,dmax,dstep);
+    int err = MRISripBasalGanglia(ripsurf, seg, dmin,dmax,dstep);
+    if(err) return(err);
   }
   if(nRipSegs){
     // probably want to use white for this
