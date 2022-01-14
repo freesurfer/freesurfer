@@ -1657,7 +1657,7 @@ int RIP_MNGR::RipVertices(void)
     // probably want to use white for this
     printf("Ripping BG\n");
     int err = MRISripBasalGanglia(ripsurf, seg, dmin,dmax,dstep);
-    if(err) return(err);
+    if(err < 0) return(1);
   }
   if(nRipSegs){
     // probably want to use white for this
