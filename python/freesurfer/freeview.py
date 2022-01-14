@@ -70,7 +70,7 @@ class Freeview:
         copied.tempdir = self.tempdir
         return copied
 
-    def vol(self, volume, swap_batch_dim=False, **kwargs):
+    def vol(self, volume, swap_batch_dim=False, lut=None, **kwargs):
         '''
         Loads a volume in the sessions. If the volume provided is not a filepath,
         then the input will be saved as a volume in a temporary directory. Any
@@ -83,7 +83,7 @@ class Freeview:
         '''
 
         # convert the input to a proper file (if it's not one already)
-        filename = self._vol_to_file(volume, swap_batch_dim=swap_batch_dim)
+        filename = self._vol_to_file(volume, swap_batch_dim=swap_batch_dim, lut=lut)
         if filename is None:
             return
 
@@ -226,7 +226,7 @@ class Freeview:
 
         return tags + extra_tags
 
-    def _vol_to_file(self, volume, name=None, force=None, ext='mgz', swap_batch_dim=False):
+    def _vol_to_file(self, volume, name=None, force=None, ext='mgz', lut=None, swap_batch_dim=False):
         '''
         Converts an unknown volume type (whether it's a filename, array, or
         other object) into a valid file.
@@ -285,6 +285,11 @@ class Freeview:
 
         # check if fs array container
         if isinstance(volume, (Overlay, Image, Volume)):
+
+            # set lookup table
+            if (lut is not None) and (volume.lut is None) and np.issubdtype(volume.data.dtype, np.integer):
+                volume.lut = lut
+
             volume.write(filename)
             return filename
 
@@ -403,6 +408,7 @@ def fv(*args, **kwargs):
     Args:
         opts: Additional string of flags to add to the command.
         background: Run freeview as a background process. Defaults to True.
+        lut: Provides LookupTable to segmentations without one.
         swap_batch_dim: Move the first axis to the last if input is a numpy image array. Default is False.
         kwargs: kwargs are forwarded to the Freeview.show() call.
     '''
@@ -410,6 +416,7 @@ def fv(*args, **kwargs):
     opts = kwargs.pop('opts', '')
     swap_batch_dim = kwargs.pop('swap_batch_dim', False)
     geom = kwargs.pop('geom', None)
+    lut = kwargs.pop('lut', None)
 
     # expand any nested lists/tuples within args
     def flatten(deep):
@@ -425,17 +432,17 @@ def fv(*args, **kwargs):
         if isinstance(arg, str):
             # try to guess filetype if string
             if arg.endswith(('.mgz', '.mgh', '.nii.gz', '.nii')):
-                fv.vol(arg)
+                fv.vol(arg, lut=lut)
             elif arg.startswith(('lh.', 'rh.')) or arg.endswith('.stl'):
                 fv.surf(arg)
             else:
-                fv.vol(arg)
+                fv.vol(arg, lut=lut)
         elif isinstance(arg, Surface):
             # surface
             fv.surf(arg)
         else:
             # assume anything else is a volume
-            fv.vol(arg, swap_batch_dim=swap_batch_dim)
+            fv.vol(arg, swap_batch_dim=swap_batch_dim, lut=lut)
 
     fv.show(background=background, opts=opts, **kwargs)
 
