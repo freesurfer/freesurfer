@@ -72,7 +72,7 @@ def main():
     parser.add_argument('--keep_ac', action='store_true', help='Explicitly keep anterior commissure in the volume/qa files.')
     parser.add_argument('--vox-count-volumes', action='store_true', help='Use discrete voxel count for label volumes.')
     parser.add_argument('--model', help='Alternative model weights to load.')
-    parser.add_argument('--ctab', help='Alternative color lookup table to embed in segmentation. Must be minimal and sorted.')
+    parser.add_argument('--ctab', help='Alternative color lookup table to embed in segmentation. Must be minimal, including 0, and sorted.')
     parser.add_argument('--population-stats', help='Alternative population volume stats for QA output.')
     parser.add_argument('--debug', action='store_true', help='Enable debug logging.')
     parser.add_argument('--vmp', action='store_true', help='Enable printing of vmpeak at the end.')
