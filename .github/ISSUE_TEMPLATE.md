@@ -1,11 +1,7 @@
-**---- PLEASE READ BEFORE OPENING AN ISSUE ----**
+*---- Please read before posting ----*
 
-Thanks for opening an issue. We reserve the GitHub issues page for tracking software bugs and code-specific discussions. To ask general processing questions or to report ambiguous runtime errors, please refer to the FreeSurfer support page -
+We reserve the GitHub "Issues" page specifically for tracking **known software bugs**. If you want to report a runtime issue or have a FreeSurfer processing question, please post to the FreeSurfer mailing list instead. Instructions for posting to the mailing list or searching the list archives are available on the [support wiki page](https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSupport).
 
-https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSupport
+**NOTE: Issues that do not match the above will be closed.**
 
-to get instructions for posting to the mailing list or searching the list archives.
-
-**When opening a GitHub issue, please be sure to include the FreeSurfer version and operating system information if applicable!**
-
-**---- REMOVE ALL TEXT FROM HERE AND ABOVE BEFORE POSTING ----**
+*---- Remove this text before posting ----*
