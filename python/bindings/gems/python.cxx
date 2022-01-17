@@ -85,6 +85,7 @@ PYBIND11_MODULE(gemsbindings, m) {
             .def("scale", &KvlMesh::Scale, py::return_value_policy::take_ownership)
             .def("rasterize_values", &KvlMesh::RasterizeValues, py::arg("shape"), py::arg("values"), py::return_value_policy::take_ownership)
             .def("rasterize", &KvlMesh::RasterizeMesh, py::arg("shape"), py::arg("classNumber") = -1, py::return_value_policy::take_ownership)
+            .def("get_submesh", &KvlMesh::GetSubmesh, py::return_value_policy::take_ownership)
             // Aliases to help with profiling
             .def("rasterize_warp", &KvlMesh::RasterizeMesh, py::arg("shape"), py::arg("classNumber") = -1, py::return_value_policy::take_ownership)
             .def("rasterize_atlas", &KvlMesh::RasterizeMesh, py::arg("shape"), py::arg("classNumber") = -1, py::return_value_policy::take_ownership)

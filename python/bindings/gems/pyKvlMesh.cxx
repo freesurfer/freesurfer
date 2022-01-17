@@ -720,3 +720,180 @@ void CopyNumpyToCanMoves(PointDataPointer destinationPointData, const py::array_
         destIterator.Value().m_CanMoveZ = *source.data(pointIndex, 2);
     }
 }
+
+
+KvlMesh* KvlMesh::GetSubmesh( const py::array_t<bool>& mask ) {
+  
+  if (mask.ndim() < 1 ) 
+    {
+    itkGenericExceptionMacro("mask shape must have at least one dimension");
+    }
+  const unsigned int  numberOfMeshNodes = mesh->GetPoints()->Size();
+  // auto  maskShape = mask.shape();
+  // const unsigned int  maskNumberOfNodes = *maskShape++;
+  const unsigned int  maskNumberOfNodes = mask.shape( 0 );
+  if ( numberOfMeshNodes != maskNumberOfNodes )
+    {
+    itkGenericExceptionMacro( "Numbe of nodes in mask not compatible with number of nodes in mesh (" 
+                              << maskNumberOfNodes << " vs. " << numberOfMeshNodes << ")" );
+    }
+    
+    
+  // [ List of points: ] make std::map pointId -> pointNumber
+  std::map< kvl::AtlasMesh::PointIdentifier, int >  pointIdLookupTable;
+  int  pointNumber = 0;
+  for ( auto it = mesh->GetPoints()->Begin(); it != mesh->GetPoints()->End(); 
+        ++it, ++pointNumber ) 
+    {
+    if ( *( mask.data( pointNumber ) ) )
+      {
+      const int  counter = pointIdLookupTable.size();
+      pointIdLookupTable[ it.Index() ] = counter;
+      }
+    }
+    
+    
+  // [ Number of points: ] record number of points for later usage
+  const int  numberOfSelectedPoints = pointIdLookupTable.size();
+  std::cout << "numberOfSelectedPoints: " << numberOfSelectedPoints << std::endl;
+  
+
+    
+  // [ List of tets: ] loop over all included points, looping over tets, each time inserting them 
+  // in a std::map tetId -> tetNumber
+  // [ use map.find(), and map[ tetId ] only if not found ]
+  std::map< kvl::AtlasMesh::CellIdentifier, int >  tetIdLookupTable;
+  mesh->BuildCellLinks();
+  const kvl::AtlasMesh::CellLinksContainer::ConstPointer  cellLinks = mesh->GetCellLinks();
+  // for ( auto it = cellLinks->Begin(); destIterator != destinationPointData->End(); ++destIterator, ++pointIndex) 
+  for ( auto pointIt = pointIdLookupTable.begin(); pointIt != pointIdLookupTable.end(); ++pointIt )
+    {
+    // Loop over all the tetrahedra attached to this point  
+    const std::set< kvl::AtlasMesh::CellIdentifier >&  cells 
+                                                       = cellLinks->ElementAt( pointIt->first );
+    for ( auto cellIt = cells.begin(); cellIt != cells.end(); ++cellIt )
+      {
+      //  
+      const kvl::AtlasMesh::CellIdentifier  cellId = *cellIt;
+      //const kvl::AtlasMesh::CellType&  cell = mesh->GetCells()->ElementAt( cellId );
+      const kvl::AtlasMesh::CellType*  cell = mesh->GetCells()->ElementAt( cellId );
+      if ( cell->GetType() != kvl::AtlasMesh::CellType::TETRAHEDRON_CELL )
+        {
+        //  
+        continue;  
+        }
+        
+      // OK, we're having a tetrahedron. Add it to our list if not already there
+      if ( tetIdLookupTable.find( cellId ) == tetIdLookupTable.end() )
+        {
+        const int  counter = tetIdLookupTable.size();
+        tetIdLookupTable[ cellId ] = counter;
+        }
+      
+      } // End loop over cells/tets
+  
+    } // End loop over points
+  
+  
+  // [ Augmented list of points: ] loop over all tets, each time looping over four points 
+  // and inserting them into the std::map pointId -> pointNumber if not exist yet
+  // [ this will cause a few extra points to appear at the end of the point list ]
+  for ( auto tetIt = tetIdLookupTable.begin(); tetIt != tetIdLookupTable.end(); ++tetIt )
+    {
+    //  
+    //const kvl::AtlasMesh::CellType&  tet = mesh->GetCells()->ElementAt( tetIt->first );
+    const kvl::AtlasMesh::CellType*  tet = mesh->GetCells()->ElementAt( tetIt->first );
+  
+  
+    // Loop over all points in tet
+    for ( auto pit = tet->PointIdsBegin(); pit != tet->PointIdsEnd(); ++ pit )
+      {
+      const kvl::AtlasMesh::PointIdentifier  pointId = *pit;
+        
+      //
+      if ( pointIdLookupTable.find( pointId ) == pointIdLookupTable.end() )
+        {
+        // Found a new, extra point  
+        const int  counter = pointIdLookupTable.size();
+        pointIdLookupTable[ pointId ] = counter;
+        }
+      } // End loop over all points in tet
+      
+    } // End loop over all tets  
+  
+  
+  //
+  // * [ Make mesh: ] 
+  //  - Loop over all points in std::map, copying both position and pointData (but with pointNumber as pointId )
+  kvl::AtlasMesh::PointsContainer::Pointer  subPoints =  kvl::AtlasMesh::PointsContainer::New();
+  kvl::AtlasMesh::PointDataContainer::Pointer  subPointData 
+                                                      = kvl::AtlasMesh::PointDataContainer::New();
+  for ( auto pointIt = pointIdLookupTable.begin(); pointIt != pointIdLookupTable.end(); ++pointIt )
+    {
+    subPoints->InsertElement( pointIt->second, mesh->GetPoints()->ElementAt( pointIt->first ) );
+    subPointData->InsertElement( pointIt->second, mesh->GetPointData()->ElementAt( pointIt->first ) );
+    }
+    
+    
+  // - Loop over all tets in std::map, creating tet cells and copying cellData (but with tetNumber as tetId, and pointNumber as pointIds )
+  kvl::AtlasMesh::CellsContainer::Pointer  subCells = kvl::AtlasMesh::CellsContainer::New();
+  kvl::AtlasMesh::CellDataContainer::Pointer  subCellData = kvl::AtlasMesh::CellDataContainer::New();
+  for ( auto tetIt = tetIdLookupTable.begin(); tetIt != tetIdLookupTable.end(); ++tetIt )
+    {
+    // Create new tet cell  
+    typedef itk::TetrahedronCell< kvl::AtlasMesh::CellType >  TetrahedronCell;
+    kvl::AtlasMesh::CellAutoPointer  newCell;
+    newCell.TakeOwnership( new TetrahedronCell );
+    // newCell->SetPointIds( cell->PointIdsBegin(),
+    //                       cell->PointIdsEnd() );
+    // regionGrownCells->InsertElement( *neighborIt, newCell.ReleaseOwnership() );
+    //const kvl::AtlasMesh::CellType&  tet = mesh->GetCells()->ElementAt( tetIt->first );
+    const kvl::AtlasMesh::CellType*  tet = mesh->GetCells()->ElementAt( tetIt->first );
+
+    int  localId = 0;
+    for ( auto pit = tet->PointIdsBegin(); pit != tet->PointIdsEnd(); ++pit, ++localId )
+      {
+      const kvl::AtlasMesh::PointIdentifier  pointId = *pit;
+      newCell->SetPointId( localId, pointIdLookupTable[ pointId ] );
+      }
+
+    // Insert new cell  
+    subCells->InsertElement( tetIt->second, newCell.ReleaseOwnership() );
+  
+    // Also copy cell data
+    subCellData->InsertElement( tetIt->second, mesh->GetCellData()->ElementAt( tetIt->first ) );
+
+    } // End loop over tets
+  
+  
+  // Last but not least: the extra points introduced because they are part of boundary tets
+  // need to be set to immobile. Finding them is easy because their pointNumber exceeds the
+  // original number of points
+  for ( auto pointIt = pointIdLookupTable.begin(); pointIt != pointIdLookupTable.end(); ++pointIt )
+    {
+    if ( pointIt->second >= numberOfSelectedPoints )
+      {
+      // Found an extra one -- make immobile  
+      subPointData->ElementAt( pointIt->second ).m_CanMoveX = false;
+      subPointData->ElementAt( pointIt->second ).m_CanMoveY = false;
+      subPointData->ElementAt( pointIt->second ).m_CanMoveZ = false;
+      }
+      
+    }  
+  
+  
+  
+  // Finally, create a mesh
+  kvl::AtlasMesh::Pointer  subMesh = kvl::AtlasMesh::New();
+  subMesh->SetPoints( subPoints );
+  subMesh->SetPointData( subPointData );
+  subMesh->SetCells( subCells );
+  subMesh->SetCellData( subCellData );
+
+
+  //
+  kvl::AtlasMesh::ConstPointer  tmp = subMesh.GetPointer();
+  return new KvlMesh( tmp );
+  
+}
+
