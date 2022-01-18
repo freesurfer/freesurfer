@@ -82,7 +82,8 @@ float p0[4];
 int usep0 = 0;
 float cdircos[3], rdircos[3], sdircos[3];
 const char *pdfname = "gaussian";
-char *precision=NULL; /* not used yet */
+char *precision=NULL; 
+int mritype; // precision
 MRI *mri, *mrism, *mritemp, *mri2;
 long seed = -1; /* < 0 for auto */
 char *seedfile = NULL;
@@ -538,6 +539,17 @@ int main(int argc, char **argv)
     printf("Computing absolute value\n");
     MRIabs(mri,mri);
   }
+  if(precision != NULL){
+    printf("Changing precision to %s (no rescale)\n",precision);
+    MRI *mri2 = MRISeqchangeType(mri, mritype, 0.0, 0.999, 1);
+    if(mri2 == NULL){
+      printf("ERROR: MRISeqchangeType\n");
+      exit(1);
+    }
+    MRIfree(&mri);
+    mri = mri2;
+  }
+
   if(colortablefile){
     printf("Embedding ctab from %s\n",colortablefile);
     mri->ct = CTABreadASCII(colortablefile);
@@ -999,6 +1011,17 @@ static void check_options(void) {
   }
   if(!DoCurv) getfmtid(volid);
 
+  if(precision != NULL){
+    
+    if(strcmp(StrLower(precision), "uchar") == 0)       mritype = MRI_UCHAR;
+    else if(strcmp(StrLower(precision), "short") == 0)  mritype = MRI_SHORT;
+    else if(strcmp(StrLower(precision), "int") == 0)    mritype = MRI_INT;
+    else if(strcmp(StrLower(precision), "float") == 0)  mritype = MRI_FLOAT;
+    else {
+      printf("ERROR: precision %s not supported\n",precision);
+      exit(1);
+    }
+  }
   return;
 }
 /* --------------------------------------------- */
