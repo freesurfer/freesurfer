@@ -137,97 +137,7 @@ class ProbabilisticAtlas:
                 if maximalDeformation == 0:
                     break
 
-        elif False:
-            # Get optimizer and plug calculator in it
-            if self.optimizer is None:
-                optimizerType = 'L-BFGS'
-                #optimizerType = 'PartiallySeparable'
-                optimizationParameters = {
-                    'Verbose': False,
-                    'MaximalDeformationStopCriterion': 0.001,  # measured in pixels,
-                    'LineSearchMaximalDeformationIntervalStopCriterion': 0.001,
-                    'MaximumNumberOfIterations': 20,
-                    'BFGS-MaximumMemoryLength': 12
-                }
-                optimizationParameters.update(userOptimizationParameters)
-                
-                optimizers = []
-                for blockNumber in range( 0, numberOfBlocks ): 
-                    optimizer = gems.KvlOptimizer(optimizerType, mesh, calculator, optimizationParameters)
-                    optimizers.append( optimizer )
-                
-                self.optimizer = optimizers
-            else:    
-                print( "ProbabilisticAtlas reusing same optimizer!!" )
-                optimizers = self.optimizer
-                for optimizer in optimizers:
-                    optimizer.set_calculator( calculator )
-                
-
-            # Run deformation optimization
-            historyOfDeformationCost = []
-            historyOfMaximalDeformation = []
-            nodePositionsBeforeDeformation = mesh.points
-            
-            #
-            numberOfNodes = mesh.point_count
-            #mesh.can_moves.sum(axis=0) / numberOfNodes                                                                                          
-            orig_can_moves = mesh.can_moves                                                                                                     
-            numberOfNodesPerBlock = np.ceil( numberOfNodes / numberOfBlocks ).astype( 'int' )
-            while True:
-                #timeSpentDoingCxxCall = 0;
-                import time
-                globalTic = time.perf_counter()
-                maximalDeformation = 0.0
-                for blockNumber in range( numberOfBlocks ):
-                    if False:
-                        mesh.can_moves = orig_can_moves
-                        tmpGlobalCostBefore, _ = calculator.evaluate_mesh_position( mesh )
-                    start = blockNumber * numberOfNodesPerBlock
-                    end = min( (blockNumber+1) * numberOfNodesPerBlock, numberOfNodes )
-                    can_moves = np.zeros_like( orig_can_moves )
-                    can_moves[ start:end, : ] = orig_can_moves[ start:end, : ]
-                    mesh.can_moves = can_moves
-                    if False:
-                        tmpLocalCostBefore, _ = calculator.evaluate_mesh_position( mesh )
-                    optimizer = optimizers[ blockNumber ]
-                    #tic = time.perf_counter()
-                    blockMinLogLikelihoodTimesDeformationPrior, blockMaximalDeformation = optimizer.step_optimizer_samseg()
-                    #toc = time.perf_counter()
-                    #timeSpentDoingCxxCall += ( toc - tic)
-                    if False:
-                        tmpLocalCostAfter, _ = calculator.evaluate_mesh_position( mesh )
-                    maximalDeformation = max( maximalDeformation, blockMaximalDeformation )
-                    if False:
-                        mesh.can_moves = orig_can_moves
-                        tmpGlobalCostAfter, _ = calculator.evaluate_mesh_position( mesh )
-                        print( f"  block {blockNumber}:" )
-                        print( f"    local decrease: {tmpLocalCostBefore-tmpLocalCostAfter} ({tmpLocalCostBefore} - {tmpLocalCostAfter})" )
-                        print( f"    global decrease: {tmpGlobalCostBefore-tmpGlobalCostAfter} ({tmpGlobalCostBefore} - {tmpGlobalCostAfter})" )
-
-
-                globalToc = time.perf_counter()
-                print( f"  Total time spent: {globalToc-globalTic:0.4f} sec" )
-                #print( f"Total time spent in Cxx call: {timeSpentDoingCxxCall:0.4f} sec ({timeSpentDoingCxxCall/(globalToc-globalTic)*100:0.4f}%)" )
-
-                mesh.can_moves = orig_can_moves
-                #print( mesh.can_moves.sum(axis=0) / numberOfNodes * 100 )
-                tic = time.perf_counter()
-                minLogLikelihoodTimesDeformationPrior, _ = calculator.evaluate_mesh_position( mesh )
-                toc = time.perf_counter()
-                print( f'  Additional time spent (unnecessarily) computing full cost function: {toc-tic:0.4f} sec' )
-                print("maximalDeformation=%.4f minLogLikelihood=%.4f" % (
-                maximalDeformation, minLogLikelihoodTimesDeformationPrior))
-                historyOfDeformationCost.append(minLogLikelihoodTimesDeformationPrior)
-                historyOfMaximalDeformation.append(maximalDeformation)
-                if maximalDeformation == 0:
-                    break
-
         else:
-            print( '=======================================================' )
-            print( 'being here' )
-            print( '=======================================================' )
-          
             # Get optimizer and plug calculator in it
             if self.optimizer is None:
                 optimizerType = 'L-BFGS'
@@ -254,52 +164,7 @@ class ProbabilisticAtlas:
                     mask = np.zeros( numberOfNodes, dtype=bool )
                     mask[ start:end ] = True
                     submesh = mesh.get_submesh( mask );
-                    
-                    #tmp, _ = calculator.evaluate_mesh_position( mesh )
-                    #print( tmp )
-                    #tmp, _ = calculator.evaluate_mesh_position( submesh )
-                    #print( tmp )
-                    
-                    #xxx = submesh.points
-                    #yyy = mesh.points[ mask, : ]
-                    #assert( np.allclose( xxx, yyy ) )
-                    #print( xxx.shape )
-                    #print( yyy.shape )
-                    #print( xxx.max( axis=0 ) )
-                    #print( yyy.max( axis=0 ) )
-                    #zzz = np.abs( xxx - yyy )
-                    #print( zzz.max( axis=0 ) )
-                    #print( xxx[ 0,:] )
-                    #print( yyy[ 0,:] )
-                    #print( xxx[-1,:] )
-                    #print( yyy[-1,:] )
-                    
                     optimizer = gems.KvlOptimizer(optimizerType, submesh, calculator, optimizationParameters)
-                    
-                    #submesh.points = mesh.points[ mask, : ]
-                    #costxxx, maximalDeformationxxx = optimizer.step_optimizer_samseg()
-                    #tmp = mesh.points
-                    #tmp[ mask, : ] = submesh.points
-                    #mesh.points = tmp
-                    #print( costxxx )
-
-                    #submesh.points = mesh.points[ mask, : ]
-                    #costxxx, maximalDeformationxxx = optimizer.step_optimizer_samseg()
-                    #tmp = mesh.points
-                    #tmp[ mask, : ] = submesh.points
-                    #mesh.points = tmp
-                    #print( costxxx )
-
-                    #submesh.points = mesh.points[ mask, : ]
-                    #costxxx, maximalDeformationxxx = optimizer.step_optimizer_samseg()
-                    #tmp = mesh.points
-                    #tmp[ mask, : ] = submesh.points
-                    #mesh.points = tmp
-                    #print( costxxx )
-
-                    #import sys
-                    #sys.exit()
-
                     
                     masks.append( mask )
                     submeshes.append( submesh )
@@ -326,26 +191,21 @@ class ProbabilisticAtlas:
                 
 
             # Run deformation optimization
-            historiesOfDeformationCost = [ [] for i in range( numberOfBlocks ) ]
+            #historiesOfDeformationCost = [ [] for i in range( numberOfBlocks ) ]
             historyOfMaximalDeformation = []
             nodePositionsBeforeDeformation = mesh.points
             
             #
-            #numberOfNodes = mesh.point_count
-            #mesh.can_moves.sum(axis=0) / numberOfNodes                                                                                          
-            #orig_can_moves = mesh.can_moves                                                                                                     
-            #numberOfNodesPerBlock = np.ceil( numberOfNodes / numberOfBlocks ).astype( 'int' )
             debug = False
-            if debug: debugHistoryOfDeformationCost = []
+            computeHistoryOfDeformationCost = False # Useful for analyzing convergence, but slow
+            if computeHistoryOfDeformationCost: historyOfDeformationCost = []
             currentNodePositions = nodePositionsBeforeDeformation.copy()
             while True:
-                #timeSpentDoingCxxCall = 0;
                 import time
                 globalTic = time.perf_counter()
                 maximalDeformation = 0.0
                 for blockNumber in range( numberOfBlocks ):
                     if debug:
-                        #print( f"blockNumber: {blockNumber}" )
                         mesh.points = currentNodePositions
                         tmpGlobalCostBefore, _ = calculator.evaluate_mesh_position( mesh )
 
@@ -353,58 +213,41 @@ class ProbabilisticAtlas:
                     mask = masks[ blockNumber ]
                     optimizer = optimizers[ blockNumber ]
 
-                    #submesh.points = mesh.points[ mask, : ]
                     submesh.points = currentNodePositions[ mask, : ]
                     
-
                     if debug:
                         tmpLocalCostBefore, _ = calculator.evaluate_mesh_position( submesh )
                     
-                    #tic = time.perf_counter()
                     blockMinLogLikelihoodTimesDeformationPrior, blockMaximalDeformation = optimizer.step_optimizer_samseg()
                     
-                    #mesh.points[ mask, : ] = submesh.points
-                    #tmp = mesh.points
-                    #tmp[ mask, : ] = submesh.points
-                    #mesh.points = tmp
-                    #xxx = currentNodePositions.copy()
                     currentNodePositions[ mask, : ] = submesh.points
-                    #yyy = currentNodePositions.copy()
-                    #zzz = np.sum( (xxx-yyy)**2, axis=1 )
-                    #print( np.sqrt( zzz.max() ) )
-                    #print( blockMaximalDeformation )
-                    
-                    historiesOfDeformationCost[ blockNumber ].append( blockMinLogLikelihoodTimesDeformationPrior )
-                    
-                    #toc = time.perf_counter()
-                    #timeSpentDoingCxxCall += ( toc - tic)
+
                     if debug:
                         tmpLocalCostAfter, _ = calculator.evaluate_mesh_position( submesh )
-                        #mesh.can_moves = orig_can_moves
                         mesh.points = currentNodePositions
                         tmpGlobalCostAfter, _ = calculator.evaluate_mesh_position( mesh )
                         print( f"  block {blockNumber}:" )
                         print( f"    local decrease: {tmpLocalCostBefore-tmpLocalCostAfter} ({tmpLocalCostBefore} - {tmpLocalCostAfter})" )
                         print( f"    global decrease: {tmpGlobalCostBefore-tmpGlobalCostAfter} ({tmpGlobalCostBefore} - {tmpGlobalCostAfter})" )
 
-                maximalDeformation = max( maximalDeformation, blockMaximalDeformation )
+                    maximalDeformation = max( maximalDeformation, blockMaximalDeformation )
+                    
+                    # End loop over blocks
+                    
                 historyOfMaximalDeformation.append(maximalDeformation)
 
                 globalToc = time.perf_counter()
                 print( f"Total time spent: {globalToc-globalTic:0.4f} sec" )
-                #print( f"Total time spent in Cxx call: {timeSpentDoingCxxCall:0.4f} sec ({timeSpentDoingCxxCall/(globalToc-globalTic)*100:0.4f}%)" )
 
-                #mesh.can_moves = orig_can_moves
-                #print( mesh.can_moves.sum(axis=0) / numberOfNodes * 100 )
-                if debug:
+                if computeHistoryOfDeformationCost:
                     tic = time.perf_counter()
                     mesh.points = currentNodePositions
-                    debugMinLogLikelihoodTimesDeformationPrior, _ = calculator.evaluate_mesh_position( mesh )
+                    minLogLikelihoodTimesDeformationPrior, _ = calculator.evaluate_mesh_position( mesh )
                     toc = time.perf_counter()
                     print( f'Additional time spent (unnecessarily) computing full cost function: {toc-tic:0.4f} sec' )
                     print("maximalDeformation=%.4f minLogLikelihood=%.4f" % (
-                    maximalDeformation, debugMinLogLikelihoodTimesDeformationPrior))
-                    debugHistoryOfDeformationCost.append(debugMinLogLikelihoodTimesDeformationPrior)
+                    maximalDeformation, minLogLikelihoodTimesDeformationPrior))
+                    historyOfDeformationCost.append(minLogLikelihoodTimesDeformationPrior)
                 else:
                     print( f"maximalDeformation={maximalDeformation:.4f}" )                  
                   
@@ -416,20 +259,12 @@ class ProbabilisticAtlas:
             #      
             mesh.points = currentNodePositions
             minLogLikelihoodTimesDeformationPrior, _ = calculator.evaluate_mesh_position( mesh )
+
             
-            # Reconstruct the historyOfDeformationCost backwards, from incremental improvements in each block
-            historyOfDeformationCost = [ minLogLikelihoodTimesDeformationPrior ]
-            numberOfIterations = len( historiesOfDeformationCost[0] )
-            costOfPreviousIteration = minLogLikelihoodTimesDeformationPrior
-            for iterationNumber in reversed( range( 1, numberOfIterations ) ):
-                improvementComparedToPreviousIteration = 0.0
-                for history in historiesOfDeformationCost:
-                    improvementComparedToPreviousIteration += ( history[ iterationNumber-1 ] - history[ iterationNumber ] )
-                costOfPreviousIteration += improvementComparedToPreviousIteration
-                historyOfDeformationCost.insert( 0, costOfPreviousIteration ) # prepend
-        
-            if debug:
-                assert( np.allclose( np.array( historyOfDeformationCost ), np.array( debugHistoryOfDeformationCost ) ) )
+            #
+            if not computeHistoryOfDeformationCost: 
+                historyOfDeformationCost = [ minLogLikelihoodTimesDeformationPrior ]
+
       
         # End test numberOfBlocks  
 

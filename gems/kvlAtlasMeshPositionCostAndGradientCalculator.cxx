@@ -371,21 +371,7 @@ AtlasMeshPositionCostAndGradientCalculator
   ++pit;
   const AtlasMesh::PointIdentifier  id3 = *pit;
   
-  // Skip doing any work for this tetrahedron if it is completely immobile
-  const AtlasMesh::PixelType&  tmp0 = mesh->GetPointData()->ElementAt( id0 );
-  const bool canMoveVertex0 = ( tmp0.m_CanMoveX || tmp0.m_CanMoveY || tmp0.m_CanMoveZ );
-  const AtlasMesh::PixelType&  tmp1 = mesh->GetPointData()->ElementAt( id1 );
-  const bool canMoveVertex1 = ( tmp1.m_CanMoveX || tmp1.m_CanMoveY || tmp1.m_CanMoveZ );
-  const AtlasMesh::PixelType&  tmp2 = mesh->GetPointData()->ElementAt( id2 );
-  const bool canMoveVertex2 = ( tmp2.m_CanMoveX || tmp2.m_CanMoveY || tmp2.m_CanMoveZ );
-  const AtlasMesh::PixelType&  tmp3 = mesh->GetPointData()->ElementAt( id3 );
-  const bool canMoveVertex3 = ( tmp3.m_CanMoveX || tmp3.m_CanMoveY || tmp3.m_CanMoveZ );
-  if ( !canMoveVertex0 && !canMoveVertex1 && !canMoveVertex2 && !canMoveVertex3 )
-    {
-    return true;  
-    }
-  
-  
+
   //AtlasMesh::PointType p0;
   //AtlasMesh::PointType p1;
   //AtlasMesh::PointType p2;
