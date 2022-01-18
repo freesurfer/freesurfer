@@ -97,7 +97,7 @@ class ProbabilisticAtlas:
             mixtureWeights=mixtureWeights,
             numberOfGaussiansPerClass=numberOfGaussiansPerClass)
 
-        numberOfBlocks = 4
+        numberOfBlocks = 8
         if numberOfBlocks == 1:
             # Get optimizer and plug calculator in it
             if self.optimizer is None:
@@ -309,10 +309,18 @@ class ProbabilisticAtlas:
                     print( f"submesh size {submesh.point_count / numberOfNodesPerBlock * 100:0.4f} %" )
                     print( f"setup time: {toc-tic:0.4f} sec" )
                 
-                #self.optimizer = optimizers
+                if True:
+                    # Save for reuse
+                    self.optimizer = optimizers
+                    self.submeshes = submeshes
+                    self.masks = masks
+                
             else:    
                 print( "ProbabilisticAtlas reusing same optimizer!!" )
                 optimizers = self.optimizer
+                submeshes = self.submeshes
+                masks = self.masks
+
                 for optimizer in optimizers:
                     optimizer.set_calculator( calculator )
                 
