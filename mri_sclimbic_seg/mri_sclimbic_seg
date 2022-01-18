@@ -72,7 +72,7 @@ def main():
     parser.add_argument('--keep_ac', action='store_true', help='Explicitly keep anterior commissure in the volume/qa files.')
     parser.add_argument('--vox-count-volumes', action='store_true', help='Use discrete voxel count for label volumes.')
     parser.add_argument('--model', help='Alternative model weights to load.')
-    parser.add_argument('--ctab', help='Alternative color lookup table to embed in segmentation. Must be minimal and sorted.')
+    parser.add_argument('--ctab', help='Alternative color lookup table to embed in segmentation. Must be minimal, including 0, and sorted.')
     parser.add_argument('--population-stats', help='Alternative population volume stats for QA output.')
     parser.add_argument('--debug', action='store_true', help='Enable debug logging.')
     parser.add_argument('--vmp', action='store_true', help='Enable printing of vmpeak at the end.')
@@ -80,6 +80,7 @@ def main():
     parser.add_argument('--7T', dest='sevenT', action='store_true', help='Preprocess 7T images (just sets percentile to 99.9).')
     parser.add_argument('--percentile', type=float, help='Use intensity percentile threshold for normalization.')
     parser.add_argument('--cuda-device', help='Cuda device for GPU support.')
+    parser.add_argument('--output-base', default='sclimbic',help='String to use in output file name; default is sclimbic')
 
     # check for no arguments
     if len(sys.argv) < 2:
@@ -178,7 +179,7 @@ def main():
         sd = os.getenv('SUBJECTS_DIR') if args.sd is None else args.sd
         if sd is None:
             fs.fatal('Must set subjects directory with --sd or SUBJECTS_DIR env variable.')
-        summary_file_prefix = os.path.join(sd, 'sclimbic_')
+        summary_file_prefix = os.path.join(sd, args.output_base + '_')
         print('Using subject directory', sd)
 
         # if no subjects have been provided, let's search the subjects directory
@@ -202,8 +203,8 @@ def main():
             # set default IO parameters
             params = {
                 'input_file': os.path.join(subjdir, 'mri', 'nu.mgz'),
-                'segmentation_path': os.path.join(subjdir, 'mri', 'sclimbic.mgz'),
-                'volumes_path': os.path.join(subjdir, 'stats', 'sclimbic.stats'),
+                'segmentation_path': os.path.join(subjdir, 'mri', args.output_base+'.mgz'),
+                'volumes_path': os.path.join(subjdir, 'stats', args.output_base+'.stats'),
                 'case_name': subj,
             }
 
@@ -217,11 +218,11 @@ def main():
 
             # save posterior data to the mri subdir
             if args.write_posteriors:
-                params['posteriors_path'] = os.path.join(subjdir, 'mri', 'sclimbic.posteriors.mgz')
+                params['posteriors_path'] = os.path.join(subjdir, 'mri', args.output_base+'.posteriors.mgz')
 
             # save QA output to the stats subdir
             if args.write_qa_stats:
-                params['qa_stats_path'] = os.path.join(subjdir, 'stats', 'sclimbic.qa.stats')
+                params['qa_stats_path'] = os.path.join(subjdir, 'stats', args.output_base+'.qa.stats')
 
             print('\nSegmenting subject %s %d/%d' % (subj, n + 1, len(subjects)))
             segmenter.process_files(**params)
@@ -275,7 +276,7 @@ def main():
             if isdir:
                 true_basename, ext = split_extension(os.path.basename(input_file))
                 params['case_name'] = true_basename
-                basename = os.path.join(args.o, true_basename + '.sclimbic')
+                basename = os.path.join(args.o, true_basename + '.'+args.output_base)
                 params['segmentation_path'] = f'{basename}{ext}'
             else:
                 basename, ext = split_extension(args.o)
@@ -307,7 +308,7 @@ def main():
             segmenter.process_files(**params)
 
         if isdir:
-            summary_file_prefix = os.path.join(args.o, 'sclimbic_')
+            summary_file_prefix = os.path.join(args.o, args.output_base+ '_')
         else:
             summary_file_prefix = f'{basename}.'
 
