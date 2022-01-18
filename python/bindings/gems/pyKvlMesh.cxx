@@ -722,7 +722,7 @@ void CopyNumpyToCanMoves(PointDataPointer destinationPointData, const py::array_
 }
 
 
-KvlMesh* KvlMesh::GetSubmesh( const py::array_t<bool>& mask ) {
+KvlMesh* KvlMesh::GetSubmesh( py::array_t<bool>& mask ) {
   
   if (mask.ndim() < 1 ) 
     {
@@ -740,22 +740,24 @@ KvlMesh* KvlMesh::GetSubmesh( const py::array_t<bool>& mask ) {
     
     
   // [ List of points: ] make std::map pointId -> pointNumber
-  std::map< kvl::AtlasMesh::PointIdentifier, int >  pointIdLookupTable;
+  //std::map< kvl::AtlasMesh::PointIdentifier, int >  pointIdLookupTable;
+  std::set< kvl::AtlasMesh::PointIdentifier >  initialPointIds;
   int  pointNumber = 0;
   for ( auto it = mesh->GetPoints()->Begin(); it != mesh->GetPoints()->End(); 
         ++it, ++pointNumber ) 
     {
     if ( *( mask.data( pointNumber ) ) )
       {
-      const int  counter = pointIdLookupTable.size();
-      pointIdLookupTable[ it.Index() ] = counter;
+      //const int  counter = pointIdLookupTable.size();
+      //pointIdLookupTable[ it.Index() ] = counter;
+      initialPointIds.insert( it.Index() );
       }
     }
     
     
   // [ Number of points: ] record number of points for later usage
-  const int  numberOfSelectedPoints = pointIdLookupTable.size();
-  std::cout << "numberOfSelectedPoints: " << numberOfSelectedPoints << std::endl;
+  //const int  numberOfSelectedPoints = pointIdLookupTable.size();
+  //std::cout << "numberOfSelectedPoints: " << numberOfSelectedPoints << std::endl;
   
 
     
@@ -766,11 +768,12 @@ KvlMesh* KvlMesh::GetSubmesh( const py::array_t<bool>& mask ) {
   mesh->BuildCellLinks();
   const kvl::AtlasMesh::CellLinksContainer::ConstPointer  cellLinks = mesh->GetCellLinks();
   // for ( auto it = cellLinks->Begin(); destIterator != destinationPointData->End(); ++destIterator, ++pointIndex) 
-  for ( auto pointIt = pointIdLookupTable.begin(); pointIt != pointIdLookupTable.end(); ++pointIt )
+  //for ( auto pointIt = pointIdLookupTable.begin(); pointIt != pointIdLookupTable.end(); ++pointIt )
+  for ( auto pointIt = initialPointIds.begin(); pointIt != initialPointIds.end(); ++pointIt )
     {
     // Loop over all the tetrahedra attached to this point  
     const std::set< kvl::AtlasMesh::CellIdentifier >&  cells 
-                                                       = cellLinks->ElementAt( pointIt->first );
+                                                       = cellLinks->ElementAt( *pointIt );
     for ( auto cellIt = cells.begin(); cellIt != cells.end(); ++cellIt )
       {
       //  
@@ -798,6 +801,7 @@ KvlMesh* KvlMesh::GetSubmesh( const py::array_t<bool>& mask ) {
   // [ Augmented list of points: ] loop over all tets, each time looping over four points 
   // and inserting them into the std::map pointId -> pointNumber if not exist yet
   // [ this will cause a few extra points to appear at the end of the point list ]
+  std::set< kvl::AtlasMesh::PointIdentifier >  extraPointIds;
   for ( auto tetIt = tetIdLookupTable.begin(); tetIt != tetIdLookupTable.end(); ++tetIt )
     {
     //  
@@ -806,20 +810,33 @@ KvlMesh* KvlMesh::GetSubmesh( const py::array_t<bool>& mask ) {
   
   
     // Loop over all points in tet
-    for ( auto pit = tet->PointIdsBegin(); pit != tet->PointIdsEnd(); ++ pit )
+    for ( auto pit = tet->PointIdsBegin(); pit != tet->PointIdsEnd(); ++pit )
       {
       const kvl::AtlasMesh::PointIdentifier  pointId = *pit;
         
       //
-      if ( pointIdLookupTable.find( pointId ) == pointIdLookupTable.end() )
+      //if ( pointIdLookupTable.find( pointId ) == pointIdLookupTable.end() )
+      if ( initialPointIds.find( pointId ) == initialPointIds.end() )
         {
         // Found a new, extra point  
-        const int  counter = pointIdLookupTable.size();
-        pointIdLookupTable[ pointId ] = counter;
+        // const int  counter = pointIdLookupTable.size();
+        // pointIdLookupTable[ pointId ] = counter;
+        extraPointIds.insert( pointId );
         }
       } // End loop over all points in tet
       
     } // End loop over all tets  
+    
+    
+  // Build look-up table
+  std::map< kvl::AtlasMesh::PointIdentifier, int >  pointIdLookupTable;
+  std::set< kvl::AtlasMesh::PointIdentifier >  mergedPointIds( initialPointIds );
+  mergedPointIds.insert( extraPointIds.begin(), extraPointIds.end() );
+  for ( auto it = mergedPointIds.begin(); it != mergedPointIds.end(); ++it )
+    {
+    const int  counter = pointIdLookupTable.size();
+    pointIdLookupTable[ *it ] = counter;
+    }
   
   
   //
@@ -869,18 +886,28 @@ KvlMesh* KvlMesh::GetSubmesh( const py::array_t<bool>& mask ) {
   // Last but not least: the extra points introduced because they are part of boundary tets
   // need to be set to immobile. Finding them is easy because their pointNumber exceeds the
   // original number of points
-  for ( auto pointIt = pointIdLookupTable.begin(); pointIt != pointIdLookupTable.end(); ++pointIt )
+  for ( auto pointIt = extraPointIds.begin(); pointIt != extraPointIds.end(); ++pointIt )
     {
-    if ( pointIt->second >= numberOfSelectedPoints )
-      {
-      // Found an extra one -- make immobile  
-      subPointData->ElementAt( pointIt->second ).m_CanMoveX = false;
-      subPointData->ElementAt( pointIt->second ).m_CanMoveY = false;
-      subPointData->ElementAt( pointIt->second ).m_CanMoveZ = false;
-      }
-      
+    const int  pointNumber = pointIdLookupTable[ *pointIt ];  
+    subPointData->ElementAt( pointNumber ).m_CanMoveX = false;
+    subPointData->ElementAt( pointNumber ).m_CanMoveY = false;
+    subPointData->ElementAt( pointNumber ).m_CanMoveZ = false;
     }  
   
+  
+  //
+  // py::array_t<bool>& mask
+  auto  x = mask.mutable_unchecked();
+  pointNumber = 0;
+  for ( auto it = mesh->GetPoints()->Begin(); it != mesh->GetPoints()->End(); 
+        ++it, ++pointNumber ) 
+    {
+    if ( pointIdLookupTable.find( it.Index() ) != pointIdLookupTable.end() )
+      {
+      //*( mask.data( pointNumber ) ) = true;
+      x( pointNumber ) = true;
+      }
+    }
   
   
   // Finally, create a mesh

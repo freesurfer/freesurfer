@@ -137,7 +137,7 @@ class ProbabilisticAtlas:
                 if maximalDeformation == 0:
                     break
 
-        elif True:
+        elif False:
             # Get optimizer and plug calculator in it
             if self.optimizer is None:
                 optimizerType = 'L-BFGS'
@@ -222,7 +222,179 @@ class ProbabilisticAtlas:
                 historyOfMaximalDeformation.append(maximalDeformation)
                 if maximalDeformation == 0:
                     break
+
+        elif True:
+            print( '=======================================================' )
+            print( 'being here' )
+            print( '=======================================================' )
+          
+            # Get optimizer and plug calculator in it
+            if self.optimizer is None:
+                optimizerType = 'L-BFGS'
+                #optimizerType = 'PartiallySeparable'
+                optimizationParameters = {
+                    'Verbose': False,
+                    'MaximalDeformationStopCriterion': 0.001,  # measured in pixels,
+                    'LineSearchMaximalDeformationIntervalStopCriterion': 0.001,
+                    'MaximumNumberOfIterations': 20,
+                    'BFGS-MaximumMemoryLength': 12
+                }
+                optimizationParameters.update(userOptimizationParameters)
+                
+                numberOfNodes = mesh.point_count
+                numberOfNodesPerBlock = np.ceil( numberOfNodes / numberOfBlocks ).astype( 'int' )
+                masks, submeshes, optimizers = [], [], []
+                calculators = []
+                import time
+                for blockNumber in range( numberOfBlocks ):
+                    tic = time.perf_counter()
+                    start = blockNumber * numberOfNodesPerBlock
+                    end = min( (blockNumber+1) * numberOfNodesPerBlock, numberOfNodes )
+                    
+                    mask = np.zeros( numberOfNodes, dtype=bool )
+                    mask[ start:end ] = True
+                    submesh = mesh.get_submesh( mask );
+                    
+                    #tmp, _ = calculator.evaluate_mesh_position( mesh )
+                    #print( tmp )
+                    #tmp, _ = calculator.evaluate_mesh_position( submesh )
+                    #print( tmp )
+                    
+                    #xxx = submesh.points
+                    #yyy = mesh.points[ mask, : ]
+                    #assert( np.allclose( xxx, yyy ) )
+                    #print( xxx.shape )
+                    #print( yyy.shape )
+                    #print( xxx.max( axis=0 ) )
+                    #print( yyy.max( axis=0 ) )
+                    #zzz = np.abs( xxx - yyy )
+                    #print( zzz.max( axis=0 ) )
+                    #print( xxx[ 0,:] )
+                    #print( yyy[ 0,:] )
+                    #print( xxx[-1,:] )
+                    #print( yyy[-1,:] )
+                    
+                    optimizer = gems.KvlOptimizer(optimizerType, submesh, calculator, optimizationParameters)
+                    
+                    #submesh.points = mesh.points[ mask, : ]
+                    #costxxx, maximalDeformationxxx = optimizer.step_optimizer_samseg()
+                    #tmp = mesh.points
+                    #tmp[ mask, : ] = submesh.points
+                    #mesh.points = tmp
+                    #print( costxxx )
+
+                    #submesh.points = mesh.points[ mask, : ]
+                    #costxxx, maximalDeformationxxx = optimizer.step_optimizer_samseg()
+                    #tmp = mesh.points
+                    #tmp[ mask, : ] = submesh.points
+                    #mesh.points = tmp
+                    #print( costxxx )
+
+                    #submesh.points = mesh.points[ mask, : ]
+                    #costxxx, maximalDeformationxxx = optimizer.step_optimizer_samseg()
+                    #tmp = mesh.points
+                    #tmp[ mask, : ] = submesh.points
+                    #mesh.points = tmp
+                    #print( costxxx )
+
+                    #import sys
+                    #sys.exit()
+
+                    
+                    masks.append( mask )
+                    submeshes.append( submesh )
+                    optimizers.append( optimizer )
+                    toc = time.perf_counter()
+                    
+                    print( f"submesh size {submesh.point_count / numberOfNodesPerBlock * 100:0.4f} %" )
+                    print( f"setup time: {toc-tic:0.4f} sec" )
+                
+                #self.optimizer = optimizers
+            else:    
+                print( "ProbabilisticAtlas reusing same optimizer!!" )
+                optimizers = self.optimizer
+                for optimizer in optimizers:
+                    optimizer.set_calculator( calculator )
+                
+
+            # Run deformation optimization
+            historyOfDeformationCost = []
+            historyOfMaximalDeformation = []
+            nodePositionsBeforeDeformation = mesh.points
+            currentNodePositions = nodePositionsBeforeDeformation.copy()
+            
+            #
+            #numberOfNodes = mesh.point_count
+            #mesh.can_moves.sum(axis=0) / numberOfNodes                                                                                          
+            #orig_can_moves = mesh.can_moves                                                                                                     
+            #numberOfNodesPerBlock = np.ceil( numberOfNodes / numberOfBlocks ).astype( 'int' )
+            debug = False
+            while True:
+                #timeSpentDoingCxxCall = 0;
+                import time
+                globalTic = time.perf_counter()
+                maximalDeformation = 0.0
+                for blockNumber in range( numberOfBlocks ):
+                    if debug:
+                        #print( f"blockNumber: {blockNumber}" )
+                        mesh.points = currentNodePositions
+                        tmpGlobalCostBefore, _ = calculator.evaluate_mesh_position( mesh )
+
+                    submesh = submeshes[ blockNumber ]
+                    mask = masks[ blockNumber ]
+                    optimizer = optimizers[ blockNumber ]
+
+                    #submesh.points = mesh.points[ mask, : ]
+                    submesh.points = currentNodePositions[ mask, : ]
+                    
+
+                    if debug:
+                        tmpLocalCostBefore, _ = calculator.evaluate_mesh_position( submesh )
+                    
+                    #tic = time.perf_counter()
+                    blockMinLogLikelihoodTimesDeformationPrior, blockMaximalDeformation = optimizer.step_optimizer_samseg()
+                    
+                    #mesh.points[ mask, : ] = submesh.points
+                    #tmp = mesh.points
+                    #tmp[ mask, : ] = submesh.points
+                    #mesh.points = tmp
+                    currentNodePositions[ mask, : ] = submesh.points
+                    
+                    #toc = time.perf_counter()
+                    #timeSpentDoingCxxCall += ( toc - tic)
+                    if debug:
+                        tmpLocalCostAfter, _ = calculator.evaluate_mesh_position( submesh )
+                        #mesh.can_moves = orig_can_moves
+                        mesh.points = currentNodePositions
+                        tmpGlobalCostAfter, _ = calculator.evaluate_mesh_position( mesh )
+                        print( f"  block {blockNumber}:" )
+                        print( f"    local decrease: {tmpLocalCostBefore-tmpLocalCostAfter} ({tmpLocalCostBefore} - {tmpLocalCostAfter})" )
+                        print( f"    global decrease: {tmpGlobalCostBefore-tmpGlobalCostAfter} ({tmpGlobalCostBefore} - {tmpGlobalCostAfter})" )
+
+                maximalDeformation = max( maximalDeformation, blockMaximalDeformation )
+
+                globalToc = time.perf_counter()
+                print( f"Total time spent: {globalToc-globalTic:0.4f} sec" )
+                #print( f"Total time spent in Cxx call: {timeSpentDoingCxxCall:0.4f} sec ({timeSpentDoingCxxCall/(globalToc-globalTic)*100:0.4f}%)" )
+
+                #mesh.can_moves = orig_can_moves
+                #print( mesh.can_moves.sum(axis=0) / numberOfNodes * 100 )
+                if True:
+                    tic = time.perf_counter()
+                    mesh.points = currentNodePositions
+                    minLogLikelihoodTimesDeformationPrior, _ = calculator.evaluate_mesh_position( mesh )
+                    toc = time.perf_counter()
+                    print( f'Additional time spent (unnecessarily) computing full cost function: {toc-tic:0.4f} sec' )
+                    print("maximalDeformation=%.4f minLogLikelihood=%.4f" % (
+                    maximalDeformation, minLogLikelihoodTimesDeformationPrior))
+                    historyOfDeformationCost.append(minLogLikelihoodTimesDeformationPrior)
+                    historyOfMaximalDeformation.append(maximalDeformation)
+                if maximalDeformation == 0:
+                    break
                   
+            #      
+            mesh.points = currentNodePositions
+      
         else:
             # Get optimizer and plug calculator in it
             if self.optimizer is None:
