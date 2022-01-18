@@ -312,6 +312,7 @@ void PanelVolume::ConnectLayer( Layer* layer_in )
   connect( layer, SIGNAL(IsoSurfaceUpdated()), ui->widgetBusyIndicator, SLOT(hide()));
   connect( ui->pushButtonResetWindowLevel, SIGNAL(clicked(bool)), SLOT(OnButtonResetWindowLevel()));
   connect( ui->spinBoxVectorSkip, SIGNAL(valueChanged(int)), p, SLOT(SetVectorSkip(int)));
+  connect( p, SIGNAL(AutoAdjustFrameContrastChanged(bool)), SLOT(OnAutoAdjustFrameContrastChanged(bool)), Qt::QueuedConnection);
 
   ui->colorLabelBrushValue->installEventFilter(this);
 }
@@ -726,7 +727,7 @@ void PanelVolume::DoUpdateWidgets()
     }
   }
 
-//  UpdateTrackVolumeThreshold();
+  //  UpdateTrackVolumeThreshold();
 
   ui->checkBoxUpsampleContour->hide();
 
@@ -1585,16 +1586,30 @@ void PanelVolume::OnActiveFrameChanged(int nFrame)
   }
   else
   {
-      LayerMRI* mri = qobject_cast<LayerMRI*>(sender());
-      QList<LayerMRI*> linked_mri = qobject_cast<LayerTreeWidget*>(treeWidgetLayers)->GetLinkedVolumes();
-      if (mri && linked_mri.contains(mri))
+    LayerMRI* mri = qobject_cast<LayerMRI*>(sender());
+    QList<LayerMRI*> linked_mri = qobject_cast<LayerTreeWidget*>(treeWidgetLayers)->GetLinkedVolumes();
+    if (mri && linked_mri.contains(mri))
+    {
+      foreach (LayerMRI* lm, linked_mri)
       {
-          foreach (LayerMRI* lm, linked_mri)
-          {
-              if (lm != mri)
-                  lm->SetActiveFrame(qMin(lm->GetNumberOfFrames()-1, nFrame));
-          }
+        if (lm != mri)
+          lm->SetActiveFrame(qMin(lm->GetNumberOfFrames()-1, nFrame));
       }
+    }
+  }
+}
+
+void PanelVolume::OnAutoAdjustFrameContrastChanged(bool bAuto)
+{
+  LayerPropertyMRI* p = qobject_cast<LayerPropertyMRI*>(sender());
+  QList<LayerMRI*> linked_mri = qobject_cast<LayerTreeWidget*>(treeWidgetLayers)->GetLinkedVolumes();
+  if (p && linked_mri.contains(qobject_cast<LayerMRI*>(p->parent())))
+  {
+    foreach (LayerMRI* lm, linked_mri)
+    {
+      if (lm->GetProperty() != p)
+        lm->GetProperty()->SetAutoAdjustFrameLevel(bAuto);
+    }
   }
 }
 
