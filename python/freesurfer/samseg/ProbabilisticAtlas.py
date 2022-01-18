@@ -156,13 +156,23 @@ class ProbabilisticAtlas:
                 masks, submeshes, optimizers = [], [], []
                 calculators = []
                 import time
+                useSmartClustering = True
+                if useSmartClustering:
+                    # Use k-means to group 
+                    from sklearn.cluster import KMeans
+                    nodePositions = mesh.points
+                    kmeans = KMeans(n_clusters=numberOfBlocks, random_state=0).fit( nodePositions )
                 for blockNumber in range( numberOfBlocks ):
                     tic = time.perf_counter()
                     start = blockNumber * numberOfNodesPerBlock
                     end = min( (blockNumber+1) * numberOfNodesPerBlock, numberOfNodes )
                     
-                    mask = np.zeros( numberOfNodes, dtype=bool )
-                    mask[ start:end ] = True
+                    if useSmartClustering:
+                        mask = ( kmeans.labels_ == blockNumber )
+                    else:  
+                        mask = np.zeros( numberOfNodes, dtype=bool )
+                        mask[ start:end ] = True
+                    origMask = mask.copy()    
                     submesh = mesh.get_submesh( mask );
                     optimizer = gems.KvlOptimizer(optimizerType, submesh, calculator, optimizationParameters)
                     
@@ -171,8 +181,12 @@ class ProbabilisticAtlas:
                     optimizers.append( optimizer )
                     toc = time.perf_counter()
                     
-                    print( f"submesh size {submesh.point_count / numberOfNodesPerBlock * 100:0.4f} %" )
-                    print( f"setup time: {toc-tic:0.4f} sec" )
+                    print( f"blockNumber {blockNumber}" )
+                    print( f"     efficiency: {mask.sum() / origMask.sum() * 100:.4f} %" )
+                    print( f"     relative size: {mask.sum() / numberOfNodes * 100:.4f} %" )
+                    print( f"     setup time: {toc-tic:0.4f} sec" )
+                  
+                    
                 
                 if True:
                     # Save for reuse
