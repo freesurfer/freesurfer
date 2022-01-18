@@ -9214,6 +9214,12 @@ static MRI *niiRead3(MRIFSSTRUCT *mrifsStruct)
             else if (hdr->datatype == DT_DOUBLE) {
               MRIFseq_vox(mri, nn, j, k, t) = hdr->scl_slope * ((double*)buf)[nn] + hdr->scl_inter;
             }
+            else if (hdr->datatype == DT_UINT32) {
+              MRIFseq_vox(mri, nn, j, k, t) = hdr->scl_slope * ((unsigned int*)buf)[nn] + hdr->scl_inter;
+            }
+            else if (hdr->datatype == DT_INT8) {
+              MRIFseq_vox(mri, nn, j, k, t) = hdr->scl_slope * ((char*)buf)[nn] + hdr->scl_inter;
+            }
           }
         } // height
         exec_progress_callback(k, mri->depth, t, mri->nframes);
