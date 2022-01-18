@@ -8352,7 +8352,7 @@ static MRI *niiRead(const char *fname, int read_volume)
         hdr.slice_code != NIFTI_SLICE_ALT_INC && hdr.slice_code != NIFTI_SLICE_ALT_DEC &&
         hdr.slice_code != NIFTI_SLICE_ALT_INC2 && hdr.slice_code != NIFTI_SLICE_ALT_DEC2) {
       ErrorReturn(
-          NULL, (ERROR_UNSUPPORTED, "nifti1Read(): unsupported slice timing pattern %d in %s", hdr.slice_code, fname));
+          NULL, (ERROR_UNSUPPORTED, "niiRead(): unsupported slice timing pattern %d in %s", hdr.slice_code, fname));
     }
   }
 
@@ -8804,7 +8804,6 @@ static MRI *niiRead3(MRIFSSTRUCT *mrifsStruct)
   int fs_type;
   float time_units_factor, space_units_factor;
   int swapped_flag;
-  int i, j, k, t;
   int bytes_per_voxel, time_units, space_units;
   int ncols, IsIco7 = 0;
 
@@ -8872,7 +8871,7 @@ static MRI *niiRead3(MRIFSSTRUCT *mrifsStruct)
         hdr->slice_code != NIFTI_SLICE_ALT_INC && hdr->slice_code != NIFTI_SLICE_ALT_DEC &&
         hdr->slice_code != NIFTI_SLICE_ALT_INC2 && hdr->slice_code != NIFTI_SLICE_ALT_DEC2) {
       ErrorReturn(
-          NULL, (ERROR_UNSUPPORTED, "nifti1Read(): unsupported slice timing pattern %d", hdr->slice_code));
+          NULL, (ERROR_UNSUPPORTED, "niiRead3(): unsupported slice timing pattern %d", hdr->slice_code));
     }
   }
 
@@ -8895,6 +8894,20 @@ static MRI *niiRead3(MRIFSSTRUCT *mrifsStruct)
   // check whether data needs to be scaled
   bool scaledata = (hdr->scl_slope != 0) && !((hdr->scl_slope == 1) && (hdr->scl_inter == 0));
 
+  // example values from tag (0028, 1052) and (0028, 1053):
+  // (0028,1052) DS [-4096]                                  #   6, 1 RescaleIntercept
+  // (0028,1053) DS [2]                                      #   2, 1 RescaleSlope
+  if (scaledata)
+  {
+    printf("\nRescale Slope (scl_slope) = %f, Rescale Intercept (scl_inter) = %f\n", hdr->scl_slope, hdr->scl_inter);
+    printf("Voxel values need to be scaled!\n");
+    if (getenv("NII_RESCALE_OFF"))
+    {
+      printf("Environment Variable NII_RESCALE_OFF set. Turn off voxel values scaling ...\n\n");
+      scaledata = false;
+    }
+  }
+
   if (!scaledata) {
     // voxel values are unscaled -- we use the file's data type
     if (hdr->datatype == DT_UNSIGNED_CHAR) {
@@ -8906,9 +8919,7 @@ static MRI *niiRead3(MRIFSSTRUCT *mrifsStruct)
       bytes_per_voxel = 2;
     }
     else if (hdr->datatype == DT_UINT16) {
-      // This will not always work ...
-      printf("INFO: This is an unsigned short.\n");// I'll try to read it, but\n");
-      //printf("      it might not work if there are values over 32k\n");
+      printf("INFO: This is an unsigned short.\n");
       fs_type = MRI_USHRT;
       bytes_per_voxel = 2;
     }
@@ -9100,14 +9111,13 @@ static MRI *niiRead3(MRIFSSTRUCT *mrifsStruct)
 
   if (!read_volume) return (mri);
 
+  int j, k, t;
   if (!scaledata) {
     // no voxel value scaling needed
     void *buf;
-    float *fbuf;
-    double *dbuf;
+    float *fbuf = (float *)calloc(mri->width, sizeof(float));
+    double *dbuf = (double *)calloc(mri->width, sizeof(double));
     int nn;
-    fbuf = (float *)calloc(mri->width, sizeof(float));
-    dbuf = (double *)calloc(mri->width, sizeof(double));
 
     int bytesRead = 0;
     for (t = 0; t < mri->nframes; t++) {
@@ -9144,6 +9154,12 @@ static MRI *niiRead3(MRIFSSTRUCT *mrifsStruct)
   else {
       int bytesRead = 0;
 
+      printf("Voxel values scaling ... (Set environment variable 'NII_RESCALE_OFF' to turn off scaling)\n\n");
+
+      /* these are set earlier:
+       * fs_type = MRI_FLOAT;
+       * bytes_per_voxel = 0;
+       */
       if (hdr->datatype == DT_UNSIGNED_CHAR)
 	bytes_per_voxel = 1;
       else if (hdr->datatype == DT_SIGNED_SHORT)
@@ -9161,6 +9177,60 @@ static MRI *niiRead3(MRIFSSTRUCT *mrifsStruct)
       else if (hdr->datatype == DT_UINT32)
 	bytes_per_voxel = 4;
 
+    // voxel value scaling needed
+    unsigned char *buf = (unsigned char *)malloc(mri->width * bytes_per_voxel);
+    int nn;
+
+    for (t = 0; t < mri->nframes; t++) {
+      for (k = 0; k < mri->depth; k++) {
+	for (j = 0; j < mri->height; j++) {
+          memcpy(buf, img+bytesRead, bytes_per_voxel*mri->width);
+          bytesRead += bytes_per_voxel*mri->width;
+
+          if (swapped_flag) {
+            if (bytes_per_voxel == 2) byteswapbufshort(buf, bytes_per_voxel * mri->width);
+            if (bytes_per_voxel == 4) byteswapbuffloat(buf, bytes_per_voxel * mri->width);
+            if (bytes_per_voxel == 8) byteswapbuffloat(buf, bytes_per_voxel * mri->width);
+          }
+
+          // additional logic to scale voxel values
+          for (nn = 0; nn < mri->width; nn++)
+	  {
+            if (hdr->datatype == DT_UNSIGNED_CHAR) {
+              MRIFseq_vox(mri, nn, j, k, t) = hdr->scl_slope * ((unsigned char*)buf)[nn] + hdr->scl_inter;
+            }
+            else if (hdr->datatype == DT_SIGNED_SHORT) {
+              MRIFseq_vox(mri, nn, j, k, t) = hdr->scl_slope * ((short*)buf)[nn] + hdr->scl_inter;
+            }
+            else if (hdr->datatype == DT_UINT16) {
+              MRIFseq_vox(mri, nn, j, k, t) = hdr->scl_slope * ((unsigned short*)buf)[nn] + hdr->scl_inter;
+            }
+            else if (hdr->datatype == DT_SIGNED_INT) {
+              MRIFseq_vox(mri, nn, j, k, t) = hdr->scl_slope * ((int*)buf)[nn] + hdr->scl_inter;
+            }
+            else if (hdr->datatype == DT_FLOAT) {
+              MRIFseq_vox(mri, nn, j, k, t) = hdr->scl_slope * ((float*)buf)[nn] + hdr->scl_inter;
+            }
+            else if (hdr->datatype == DT_DOUBLE) {
+              MRIFseq_vox(mri, nn, j, k, t) = hdr->scl_slope * ((double*)buf)[nn] + hdr->scl_inter;
+            }
+            else if (hdr->datatype == DT_UINT32) {
+              MRIFseq_vox(mri, nn, j, k, t) = hdr->scl_slope * ((unsigned int*)buf)[nn] + hdr->scl_inter;
+            }
+            else if (hdr->datatype == DT_INT8) {
+              MRIFseq_vox(mri, nn, j, k, t) = hdr->scl_slope * ((char*)buf)[nn] + hdr->scl_inter;
+            }
+          }
+        } // height
+        exec_progress_callback(k, mri->depth, t, mri->nframes);
+      } // depth
+    } //nframes
+
+    //free(fbuf);
+    //free(dbuf);
+
+#if 0 // original implementation
+    int i;
 
     // voxel value scaling needed
     unsigned char *buf = (unsigned char *)malloc(mri->width * bytes_per_voxel);
@@ -9205,6 +9275,7 @@ static MRI *niiRead3(MRIFSSTRUCT *mrifsStruct)
       }
     }
     free(buf);
+#endif
   }
 
   // Check for ico7 surface
