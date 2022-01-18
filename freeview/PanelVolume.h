@@ -99,6 +99,8 @@ protected slots:
 
   void OnActiveFrameChanged(int nFrame);
 
+  void OnAutoAdjustFrameContrastChanged(bool bAuto);
+
   void OnShowExistingLabelsOnly(bool b);
 
   void ShowAllLabels()

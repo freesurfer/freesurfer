@@ -494,6 +494,7 @@ signals:
   void LabelContourChanged(int n = -1);
   void VectorLineWidthChanged(double val);
   void VectorSkipChanged(int nSkip);
+  void AutoAdjustFrameContrastChanged(bool);
 
 private:
   void UpdateMinMaxValues();

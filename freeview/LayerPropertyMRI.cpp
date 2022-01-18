@@ -1877,10 +1877,14 @@ void LayerPropertyMRI::SetVectorLineWidth(double val)
 
 void LayerPropertyMRI::SetAutoAdjustFrameLevel(bool b)
 {
-  m_bAutoAdjustFrameLevel = b;
-  if (b)
-    UpdateMinMaxValues();
-  this->OnColorMapChanged();
+  if (m_bAutoAdjustFrameLevel != b)
+  {
+    m_bAutoAdjustFrameLevel = b;
+    if (b)
+      UpdateMinMaxValues();
+    this->OnColorMapChanged();
+    emit AutoAdjustFrameContrastChanged(b);
+  }
 }
 
 void LayerPropertyMRI::SetSelectAllLabels()
