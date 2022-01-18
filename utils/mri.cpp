@@ -6108,11 +6108,11 @@ MRI *MRIcopyHeader(const MRI *mri_src, MRI *mri_dst)
   // (this is for timing purposes)
   //printf("Copy ctab %s\n",getEnvironVar("FS_COPY_HEADER_CTAB"));
   if(mri_src->ct) {
-    printf("MRIcopyHeader(): source has ctab\n");
+    // printf("MRIcopyHeader(): source has ctab\n");
     std::string copy_ctab = getEnvironVar("FS_COPY_HEADER_CTAB");
     if ((!copy_ctab.empty()) && (copy_ctab != "0"))
     {
-      printf("  ... copying ctab\n");
+      // printf("  ... copying ctab\n");
       if(mri_dst->ct) CTABfree(&mri_dst->ct);
       mri_dst->ct = CTABdeepCopy(mri_src->ct);
     }

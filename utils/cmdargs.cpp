@@ -75,7 +75,7 @@ int CMDnthIsArg(int nargc, char **argv, int nth)
 /*------------------------------------------------------------
   CMDstringMatch() - returns 1 if the two strings match
   ------------------------------------------------------------*/
-int CMDstringMatch(char *str1, char *str2)
+int CMDstringMatch(const char *str1, const char *str2)
 {
   if (str1 == NULL && str2 != NULL) return (0);
   if (str2 == NULL && str1 != NULL) return (0);

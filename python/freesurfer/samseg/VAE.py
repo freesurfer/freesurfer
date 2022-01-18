@@ -7,7 +7,7 @@ tf.disable_v2_behavior()
 
 
 class VAE:
-    def __init__(self, atlasDir, transform, imageSize):
+    def __init__(self, atlasDir, transform, imageSize, seed):
 
         self.sess = tf.Session()
         self.imageSize = imageSize
@@ -28,6 +28,9 @@ class VAE:
         # When combining transformations the order of the transformations is from right to left.
         self.trainToSubjectMat = transform.as_numpy_array @ trainToTemplateMat
         self.subjectToTrainMat = np.linalg.inv(self.trainToSubjectMat)
+
+        # Set tf seed 
+        self.seed = seed
 
         # Create tf placeholder
         self.lesionPlaceholder = tf.placeholder(tf.float32, [1, self.net_shape[0], self.net_shape[1], self.net_shape[2], 1])
@@ -227,7 +230,7 @@ class VAE:
     # here is the net function. The input goes through the encoder, we sample from it and then it goes through the decoder
     def run_net(self, lesion, imageSize):
         mu, sigma = self.get_encoder(lesion)
-        sample_latent = tf.random.normal(mu.shape, 0, 1) * sigma + mu
+        sample_latent = tf.random.normal(mu.shape, 0, 1, seed=self.seed) * sigma + mu
         return self.get_decoder(sample_latent, imageSize)
 
     def sample(self, lesion):

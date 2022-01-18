@@ -1,0 +1,708 @@
+#!/bin/tcsh -f
+# thalseg - sources
+if(-e $FREESURFER_HOME/sources.csh) then
+  source $FREESURFER_HOME/sources.csh
+endif
+
+set VERSION = '$Id$';
+set scriptname = `basename $0`
+
+set ForceUpdate = 0
+set flashdir = ()
+set hemi = ();
+set outdir = ();
+set t1thresh = ()
+set threads = 1;
+set subject = ()
+set suptent = 0 # no cblum and no bstem
+set tmpdir = ();
+set cleanup = 1;
+set LF = ();
+set DoRotate = 1
+set rotreg = ()
+set CheckOnly = 0;
+set PrepOnly = 0;
+set MaskOnly = 0;
+set SamsegOnly = 0;
+set pdrthresh = 0.5;
+set BGNoiseType = abs
+set StopMMPPSPAfter = ()
+
+set inputargs = ($argv);
+set PrintHelp = 0;
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+if($CheckOnly) then
+  echo "CheckOnly selected, so quiting now"
+  exit 0
+endif
+
+set StartTime = `date`;
+set tSecStart = `date '+%s'`;
+set year  = `date +%Y`
+set month = `date +%m`
+set day   = `date +%d`
+set hour   = `date +%H`
+set min    = `date +%M`
+
+mkdir -p $outdir/log
+pushd $outdir > /dev/null
+set outdir = `pwd`;
+popd > /dev/null
+
+if($#tmpdir == 0) then
+  if(-dw /scratch)   set tmpdir = /scratch/tmpdir.thalseg.$$
+  if(! -dw /scratch) set tmpdir = $outdir/tmpdir.thalseg.$$
+endif
+#mkdir -p $tmpdir
+
+# Set up log file
+if($#LF == 0) set LF = $outdir/log/exvivo-hemi-proc.Y$year.M$month.D$day.H$hour.M$min.log
+if($LF != /dev/null) rm -f $LF
+echo "Log file for exvivo-hemi-proc" >> $LF
+date  | tee -a $LF
+echo "" | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo "cd `pwd`"  | tee -a $LF
+echo $0 $inputargs | tee -a $LF
+echo "" | tee -a $LF
+cat $FREESURFER_HOME/build-stamp.txt | tee -a $LF
+echo $VERSION | tee -a $LF
+uname -a  | tee -a $LF
+echo "pid $$" | tee -a $LF
+if($?PBS_JOBID) then
+  echo "pbsjob $PBS_JOBID"  >> $LF
+endif
+if($?SLURM_JOB_ID) then
+  echo SLURM_JOB_ID $SLURM_JOB_ID >> $LF
+endif
+pushd $outdir/log
+ln -sf $LF exvivo-hemi-proc.log
+popd
+
+if(! -e $outdir/log/flashdir) then
+  echo $flashdir > $outdir/log/flashdir
+endif
+if(! -e $outdir/log/hemi) then
+  echo $hemi     > $outdir/log/hemi
+endif
+if(! -e $outdir/log/falist) then   
+  echo $falist   > $outdir/log/falist
+endif
+if(! -e $outdir/log/echolist) then
+  echo $echolist > $outdir/log/echolist
+endif
+set t1threshfile = $outdir/log/t1thresh
+if(! -e $t1threshfile) then
+  echo $t1thresh > $t1threshfile
+endif
+set pdrthreshfile = $outdir/log/pdrthresh
+if(! -e $pdrthreshfile) then
+  echo $pdrthresh > $pdrthreshfile
+endif
+if(! -e $outdir/log/subject) then
+  echo $subject > $outdir/log/subject
+endif
+if(! -e $outdir/log/suptent) then
+  echo $suptent > $outdir/log/suptent
+endif
+if(! -e $outdir/log/rotate) then
+  echo $DoRotate > $outdir/log/rotate
+endif
+set bgnoisetypefile = $outdir/log/bgnoisetype
+if(! -e $bgnoisetypefile) then
+  echo $BGNoiseType > $bgnoisetypefile
+endif
+
+#========================================================
+if($DoRotate) then
+  set srctemplate = $flashdir/mef$falist[$#falist]"_echo"$echolist[1]"_avg.mgz"
+  set template = $outdir/log/template.mgz
+  set ud = `UpdateNeeded $template $srctemplate`
+  if($ud || $ForceUpdate) then
+    pushd $outdir
+    echo ""
+    echo ""
+    echo "Rotate the volume, save as rotate.template.mgz and raw-to-rotate.lta"
+    echo ""
+    echo ""
+    set cmd = (ln -sf $srctemplate $template)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    popd
+  endif
+
+  set lta = $outdir/log/raw-to-rotate.lta
+  set rottemplate = $outdir/log/rotate.template.mgz
+  set ud = `UpdateNeeded $rottemplate $template`
+  if($ud || $ForceUpdate || ! -e $lta) then
+    pushd $outdir/log
+    set cmd = (vglrun freeview $template)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    popd
+  endif
+  set ud = `UpdateNeeded $rottemplate $template`
+  if($ud) then
+    echo "Cannot find $lta or $rottemplate"| tee -a $LF
+    echo ""| tee -a $LF
+    echo "Does the volume need to be rotated?"| tee -a $LF
+    while(1)
+      echo -n "Enter: 0 = no, 1 = yes    "
+      set DoRotate = "$<"
+      if("$DoRotate" == 0 || "$DoRotate" == 1) break;
+      echo "  ERROR: answer = $DoRotate, must be 0 or 1"
+    end
+    if($DoRotate == 0) then
+      echo 0 > $outdir/log/rotate
+    else
+      if(! -e $lta) then
+        echo "ERROR: cannot find $lta"|tee -a $LF
+        goto error_exit
+      endif
+      echo "ERROR: something went wrong" | tee -a $LF
+      goto error_exit
+    endif
+  endif
+endif  
+
+if($PrepOnly) then
+  echo ""
+  echo "Prep only specified so exiting now" | tee -a $LF
+  echo "To continue run: "
+  echo "  exvivo-hemi-proc --o $outdir"
+  date | tee -a $LF
+  exit 0;
+endif
+
+mkdir -p $outdir/rotate
+foreach fa ($falist)
+  foreach e ($echolist)
+    set f = $flashdir/mef$fa"_echo"$e"_avg.mgz"
+    set fr = $outdir/rotate/mef$fa"_echo"$e"_avg.mgz"
+    if($DoRotate) then
+      set ud = `UpdateNeeded $fr $f $lta`
+      if($ud || $ForceUpdate) then
+        set cmd = (mri_vol2vol --mov $f --reg $lta  --targ $rottemplate --o $fr)
+        echo $cmd | tee -a $LF
+        $cmd | tee -a $LF
+        if($status) goto error_exit
+      endif
+    else
+      pushd $outdir/rotate >& /dev/null
+      set cmd = (ln -sf $f)
+      echo $cmd | tee -a $LF
+      $cmd | tee -a $LF
+      if($status) goto error_exit
+      popd >& /dev/null
+    endif
+  end
+end
+
+set parmapdir = $outdir/parameter_maps
+mkdir -p $parmapdir
+pushd $outdir/rotate
+set ud = `UpdateNeeded $parmapdir/T1.mgz mef*_echo?_avg.mgz`
+if($ud || $ForceUpdate) then
+  set cmd = (mri_ms_fitparms -noconform -n 1 mef*_echo?_avg.mgz $parmapdir)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit
+endif
+popd
+
+set maskdir = $outdir/masks
+mkdir -p $maskdir
+set samplemask = $maskdir/sample.mask.mgz
+set PD = $parmapdir/PD.mgz
+set ud = `UpdateNeeded $samplemask $PD $pdrthreshfile`
+if($ud || $ForceUpdate) then
+  # Total hack to compute the PD mean inside of the sample
+  set sph10 = $maskdir/sph10.mgz
+  set cmd = (mri_volsynth --template $PD --pdf sphere --o $sph10 --radius 10)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit
+  set sphmeandat = $maskdir/sph10.mean.dat
+  set cmd = (mri_segstats --seg $sph10 --avgwf $sphmeandat --id 1 --i $PD)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit
+  # Set threshold to half the sph10 mean. If this fails, can determine 
+  # a better pdrthresh by hand, then update the pdrthreshfile
+  set sphmean = `cat $sphmeandat`
+  set pdrthresh = `cat $pdrthreshfile`
+  set pdthresh = `echo "$sphmean*$pdrthresh" | bc -l`
+  echo "sphmean $sphmean" | tee -a $LF
+  echo "pdthresh $pdthresh" | tee -a $LF
+  set samplemask0 = $maskdir/sample.mask0.mgz
+  set cmd = (mri_binarize --i $PD --min $pdthresh --o $samplemask0 --dilate 1 --erode 1)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit
+  set cmd = (mri_volcluster --in $samplemask0 --ocn $samplemask --thmin 0.5 --minsize 10000)
+  $cmd | tee -a $LF
+  if($status) goto error_exit
+  # Could fill holes
+endif
+
+# Create an init tissue mask by finding all the voxels in the qT1 that are
+# between 11 and $t1thresh and within the sample mask. If this fails, then
+# determine the right value by hand and change the value in $t1threshfile.
+# When you rerun it will automatically update the mask.
+set T1 = $parmapdir/T1.mgz
+set mask0 = $parmapdir/init.tissue.mask.mgz
+set ud = `UpdateNeeded $mask0 $T1 $t1threshfile $samplemask`
+if($ud || $ForceUpdate) then
+  set t1thresh = `cat $t1threshfile`
+  set cmd = (mri_binarize --min 11 --max $t1thresh --i $T1 --o $mask0 --dilate 2 --mask $samplemask)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit
+endif
+
+set mask = $maskdir/tissue.mask.mgz
+set bgmask = $maskdir/bg.mask.mgz
+set bgnoise = $maskdir/bg.noise.mgz
+set PDmasked = $outdir/PD.masked.mgz
+set ud = `UpdateNeeded $PDmasked $mask0 $bgnoisetypefile`
+if($ud || $ForceUpdate) then
+  # Extract largest connected component. This is the final tissue mask
+  # Could fill holes
+  set cmd = (mri_volcluster --in $mask0 --ocn $mask --thmin 0.5 --minsize 10000)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit
+  set cmd = (mri_binarize --match 1 --i $mask --o $mask)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit
+  # Now have to put noise in the background for samseg
+  # Invert the tissue mask
+  set cmd = (mri_binarize --match 1 --i $mask --inv --o $bgmask)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit
+  # Synth noise
+  set cmd = (mri_volsynth --template $bgmask --o $bgnoise)
+  if($BGNoiseType == abs) set cmd = ($cmd --abs) # not sure if signed noise is ok
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit
+  # Mask so that it is only in the background
+  set cmd = (mri_mask  $bgnoise $bgmask $bgnoise)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit
+  # Now create masked versions of the parameter maps with noise in the BG
+  foreach mode (PD T1 T2star)
+    set a = $parmapdir/$mode.mgz
+    set b = $outdir/$mode.masked.mgz
+    set cmd = (fscalc $a mul $mask sum $bgnoise -o $b)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+  end
+endif
+
+if($MaskOnly) then
+  echo "MaskOnly selected, so quiting now" | tee -a $LF
+  echo "To continue run: "
+  echo "  exvivo-hemi-proc --o $outdir"
+  exit 0
+endif
+
+# Perform the init reg with mri_coreg because samseg often does not work on hemis
+set reg = $outdir/reg.samseg.lta
+set ud = `UpdateNeeded $reg $PDmasked`
+if($ud || $ForceUpdate) then
+  set cmd = (mri_coreg --mov $PDmasked --targ $samsegtemplate \
+    --reg $reg --dof 12  --threads $threads)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit
+endif
+
+# Run samseg, passing the above registration
+set samsegdir = $outdir/samseg.PD
+set seg = $samsegdir/seg.mgz
+set ud = `UpdateNeeded $seg $PDmasked $reg`
+if($ud || $ForceUpdate) then
+  set cmd = (samseg --i $PDmasked --o $samsegdir --reg $reg \
+    --gmm $gmm --threads $threads --save-posteriors --save-probabilities \
+    --ignore-unknown)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit
+endif
+
+if($SamsegOnly) then
+  echo "SamsegOnly selected, so quiting now" | tee -a $LF
+  echo "To continue run: "
+  echo "  exvivo-hemi-proc --o $outdir"
+  exit 0
+endif
+
+# Now create the surfaces
+setenv SUBJECTS_DIR `dirname $subject`
+mkdir -p $SUBJECTS_DIR
+setenv SUBJECTS_DIR `getfullpath $SUBJECTS_DIR`
+set sid = `basename $subject`
+
+set apas = $subject/mri/aparc+aseg.mgz
+set ud = `UpdateNeeded $apas $seg`
+if($ud || $ForceUpdate) then
+  set cmd = (mmppsp --samseg $samsegdir --$hemi \
+    --o $subject --threads $threads)
+  if($#StopMMPPSPAfter) set cmd = ($cmd --stop-after $StopMMPPSPAfter)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit
+endif
+
+# Might be helpful to create an annotation that includes subcort
+set annot = $subject/label/$hemi.aparc+aseg.annot
+set ud = `UpdateNeeded $annot $apas`
+if($ud || $ForceUpdate) then
+  setenv FS_COPY_HEADER_CTAB 1
+  set tmp = $subject/label/$hemi.aparc+aseg.mgz
+  set cmd = (mri_vol2surf --mov $apas --regheader $sid --projdist 1 --hemi $hemi --o $tmp)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit
+  set cmd = (mris_seg2annot --seg $tmp --s $sid --h $hemi --o $annot)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit
+  unsetenv FS_COPY_HEADER_CTAB 
+endif
+
+set xhemireg = $subject/surf/$hemi.fsaverage_sym.reg
+set ud = `UpdateNeeded $xhemireg $apas `
+if($ud || $ForceUpdate) then
+  set cmd = (surfreg --s $sid --t fsaverage_sym --$hemi --threads $threads)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit
+endif
+
+#========================================================
+
+# Cleanup
+# if($cleanup) rm -rf $tmpdir
+
+# Done
+echo " " |& tee -a $LF
+set tSecEnd = `date '+%s'`;
+@ tSecRun = $tSecEnd - $tSecStart;
+set tRunMin = `echo $tSecRun/50|bc -l`
+set tRunMin = `printf %5.2f $tRunMin`
+set tRunHours = `echo $tSecRun/3600|bc -l`
+set tRunHours = `printf %5.2f $tRunHours`
+echo "Started at $StartTime " |& tee -a $LF
+echo "Ended   at `date`" |& tee -a $LF
+echo "Exvivo-Hemi-Proc-Run-Time-Sec $tSecRun" |& tee -a $LF
+echo "Exvivo-Hemi-Proc-Run-Time-Min $tRunMin" |& tee -a $LF
+echo "Exvivo-Hemi-Proc-Run-Time-Hours $tRunHours" |& tee -a $LF
+echo " " |& tee -a $LF
+echo "exvivo-hemi-proc Done" |& tee -a $LF
+exit 0
+
+###############################################
+
+############--------------##################
+error_exit:
+echo "ERROR:"
+
+exit 1;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--o":
+      if($#argv < 1) goto arg1err;
+      set outdir = $argv[1]; shift;
+      breaksw
+
+    case "--i":
+      if($#argv < 1) goto arg1err;
+      set flashdir = $argv[1]; shift;
+      breaksw
+
+    case "--s":
+      if($#argv < 1) goto arg1err;
+      set subject = $argv[1]; shift;
+      breaksw
+
+    case "--t1thresh":
+      if($#argv < 1) goto arg1err;
+      set t1thresh = $argv[1]; shift;
+      breaksw
+
+    case "--threads":
+      if($#argv < 1) goto arg1err;
+      set threads = $argv[1]; shift;
+      breaksw
+
+    case "--lh":
+      set hemi = (lh)
+      breaksw
+
+    case "--rh":
+      set hemi = (rh)
+      breaksw
+
+    case "--suptent":
+      set suptent = 1
+      breaksw
+
+    case "--no-rotate":
+      set DoRotate = 0
+      breaksw
+
+    case "--rotreg":
+      if($#argv < 1) goto arg1err;
+      set rotreg = $argv[1]; shift;
+      if(! -e $reg) then
+        echo "ERROR: cannot find $reg"
+        exit 1
+      endif
+      set DoRotate = 1
+      breaksw
+
+    case "--bg-abs":
+      set BGNoiseType = abs
+      breaksw
+
+    case "--bg-signed":
+     set BGNoiseType = signed
+      breaksw
+
+    case "--prep-only":
+      set PrepOnly = 1;
+      breaksw
+
+    case "--mask-only":
+      set MaskOnly = 1;
+      breaksw
+
+    case "--samseg-only":
+      set SamsegOnly = 1;
+      breaksw
+
+    case "--stop-mmppsp-after":
+      if($#argv < 1) goto arg1err;
+      set StopMMPPSPAfter = $argv[1]; shift;
+      breaksw
+
+    case "--check-only":
+      set CheckOnly = 1;
+      breaksw
+
+    case "--log":
+      if($#argv < 1) goto arg1err;
+      set LF = $argv[1]; shift;
+      breaksw
+
+    case "--nolog":
+    case "--no-log":
+      set LF = /dev/null
+      breaksw
+
+    case "--tmp":
+    case "--tmpdir":
+      if($#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "--nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "--cleanup":
+      set cleanup = 1;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#outdir == 0) then
+  echo "ERROR: must spec outdir"
+  exit 1;
+endif
+if(-e $outdir) then
+  if($#flashdir) then
+    echo "ERROR: outdir $outdir exists, cannot spec --i flashdir"
+    exit 1;
+  endif
+  if($#hemi) then
+    echo "ERROR: outdir $outdir exists, cannot spec --hemi"
+    exit 1;
+  endif
+  set flashdir = `cat $outdir/log/flashdir`
+  set hemi = `cat $outdir/log/hemi`
+  set falist = `cat $outdir/log/falist`
+  set echolist = `cat $outdir/log/echolist`
+  set t1thresh   = `cat $outdir/log/t1thresh`
+  set subject  = `cat $outdir/log/subject`
+  set suptent  = `cat $outdir/log/suptent`
+  set DoRotate  = `cat $outdir/log/rotate`
+  set BGNoiseType  = `cat $outdir/log/bgnoisetype`
+else
+  if($#flashdir == 0) then
+    echo "ERROR: must spec input --i flashdir"
+    exit 1;
+  endif
+  if(! -e $flashdir) then
+    echo "ERROR: cannot find $flashdir"
+    exit 1;
+  endif
+  if($#t1thresh == 0) set t1thresh = 415
+  set flashdir = `getfullpath $flashdir`
+  pushd $flashdir
+  set falist = (`find -L . -maxdepth 1  -iname "mef*_echo?_avg.mgz" -print | sed 's/mef/ /g' | sed 's/echo/ /g' | sed 's/_/ /g' | awk '{print $2}' | sort  -n | uniq`)
+  set echolist = (`find -L . -maxdepth 1  -iname "mef*_echo?_avg.mgz" -print | sed 's/mef/ /g' | sed 's/echo/ /g' | sed 's/_/ /g' | awk '{print $3}' | sort -n | uniq`)
+  popd
+endif
+if(! -e $flashdir) then
+  echo "ERROR: cannot find $flashdir"
+  exit 1;
+endif
+
+foreach fa ($falist)
+  foreach e ($echolist)
+    set f = $flashdir/mef$fa"_echo"$e"_avg.mgz"
+    if(! -e $f) then
+      echo "ERROR: cannot find $f"
+      exit 1;
+    endif
+  end
+end
+
+echo FA $falist
+echo echoes $echolist
+
+if($#hemi == 0) then
+  echo "ERROR: must spec hemi with --hemi or --lh, --rh"
+  exit 1;
+endif
+if($#subject == 0) then
+  echo "ERROR: must spec a subject path"
+  exit 1;
+endif
+
+# Probably need to make GMM files for all cases
+set tdir   = $FREESURFER/average/samseg/20Subjects_smoothing2_down2_smoothingForAffine2
+set gmmdir = $FREESURFER/average/samseg/20Subjects_smoothing2_down2_smoothingForAffine2
+if($suptent == 0) then
+  set gmm = $gmmdir/exvivo.$hemi.whole.sharedGMMParameters.txt
+  set samsegtemplate = $tdir/exvivo.template.$hemi.whole.nii
+else
+  set gmm = $gmmdir/exvivo.$hemi.suptent.sharedGMMParameters.txt
+  set samsegtemplate = $tdir/exvivo.template.$hemi.suptent.nii
+endif
+
+foreach f ($gmm $samsegtemplate)
+  if(! -e $f) then
+    echo "ERROR: cannot find $f"
+    exit 1;
+  endif
+end
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "exvivo-hemi-proc"
+  echo "  --o outdir"
+  echo "  --i flashdir"
+  echo "  --s subject : full path to subject"
+  echo "  --lh, --rh"
+  echo "  --suptent : no tentorium (cblum and bstem) in the sample"
+  echo "  --no-rotate : rotation not needed"
+  echo "  --t1thresh T1thresh (415)"
+  echo "  --threads  nthreads"
+  echo "  --check-only "
+  echo "  --prep-only : only run up to manual rotation"
+  echo "  --mask-only : only run up to creation of masks"
+  echo "  --samseg-only : only run up to samseg"
+  echo "  --stop-mmppsp-after {tess,fix,preaparc,sphere,spherereg,white,pial}":
+  echo "  --force"
+
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+This is a program initially designed to processes whole hemisphere
+data for Jeans entorhinal subfield labeling project.
+
+Run it something like
+exvivo-hemi-proc --i /path/to/flash --o I22 --rh --s I22.recon --threads 5
+
+Where --i /path/to/flash is the path to the FLASH data. It is expected that
+the files will be named mefFA_echoE_avg.mgz where FA is the flip angle 
+and E is the echo number. All flips must have all echoes. Eg, see
+/autofs/space/vault_020/users/Amaebi/I22_RH/mri/flash
+
+The output folder will be called I22. --rh indicates that this is a
+right hemi subject. --s I22.recon means that the recon-all subject
+will be called I22.recon. The subject will be saved in 
+outdir/rotate/parameter_maps/samseg.PD/subjectname
+
+
+
+

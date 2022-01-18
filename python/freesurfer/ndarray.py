@@ -51,6 +51,7 @@ class ArrayContainerTemplate:
 
         # any array type might have a valid lookup table
         self.lut = lut
+        self.filename = None
 
     @property
     def nframes(self):
@@ -100,6 +101,7 @@ class ArrayContainerTemplate:
         if not os.path.isfile(filename):
             raise ValueError('file %s does not exist' % filename)
         result = bindings.vol.read(filename)
+        result.filename = filename
         # since the volume bindings do all the IO work here, it's possible the returned
         # object type does not match the calling class... if this is the case, print a warning
         if not isinstance(result, cls):

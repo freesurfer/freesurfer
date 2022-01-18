@@ -56,6 +56,9 @@
       <argument>--nsmooth nsmooth</argument>
       <explanation>Smooth input surface by number of iterations</explanation>
 
+      <argument>--smooth-after-rip</argument>
+      <explanation>When --nsmooth is used, smooth after ripping </explanation>
+
       <argument>--max-cbv-dist distmm</argument>
       <explanation>Limit distance MRIScomputeBorderValues() can search from the input</explanation>
 

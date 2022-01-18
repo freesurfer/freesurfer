@@ -46,6 +46,7 @@ install_configured(
   dt_recon
   epidewarp.fsl
   extract_talairach_avi_QA.awk
+  exvivo-hemi-proc
   feat2segstats
   feat2surf
   findsession
@@ -55,7 +56,6 @@ install_configured(
   fix_subject_corrected
   fix_subject_corrected-lh
   fix_subject_corrected-rh
-  fix_subject_on_seychelles
   fixup_mni_paths
   flirt.newdefault.20080811.sch
   fname2ext
@@ -146,6 +146,7 @@ install_configured(
   mkmnc_index.tcl
   mksubjdirs
   mksurfatlas
+  mmppsp
   mni152reg
   morph_only_subject
   morph_only_subject-lh
@@ -155,7 +156,6 @@ install_configured(
   morph_subject
   morph_subject-lh
   morph_subject-rh
-  morph_subject_on_seychelles
   morph_tables-lh
   morph_tables-rh
   mri-func2sph
