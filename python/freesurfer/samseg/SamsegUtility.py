@@ -328,6 +328,8 @@ def writeImage(fileName, buffer, cropping, example):
 def logTransform(imageBuffers, mask):
 
     logImageBuffers = imageBuffers.copy()
+    logImageBuffers[ logImageBuffers == 1 ] += 1e-5 # Voxels with zero values but inside the mask 
+                                                    # should not be skipped in the C++ code!
     logImageBuffers[np.logical_not(mask), :] = 1
     logImageBuffers = np.log(logImageBuffers)
 

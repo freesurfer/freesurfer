@@ -90,8 +90,7 @@ class ProbabilisticAtlas:
         images = []
         for contrastNumber in range(numberOfContrasts):
             tmp = np.zeros(mask.shape, order='F')
-            tmp[mask] = data[:, contrastNumber] + 1e-5 # Voxels with zero values but inside the mask 
-                                                       # should not be skipped in the C++ code!
+            tmp[mask] = data[:, contrastNumber]
             images.append(gems.KvlImage(requireNumpyArray(tmp)))
 
         # Set up cost calculator
