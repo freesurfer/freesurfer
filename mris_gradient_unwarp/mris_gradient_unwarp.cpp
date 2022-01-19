@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <sys/utsname.h>
 
+#include "romp_support.h"
+
 #include "version.h"
 #include "diag.h"
 #include "log.h"
@@ -100,7 +102,6 @@ int main(int argc, char *argv[])
 
   GradUnwarp *gradUnwarp = new GradUnwarp();
   gradUnwarp->read_siemens_coeff(gradfile0.c_str());
-  //mrisGradientNonlin->printCoeff();
   gradUnwarp->initSiemensLegendreNormfact();
 
   if (inputras) // for debugging only
@@ -131,21 +132,47 @@ static void unwarpVol(const char* origmgz, const char* unwarpedmgz, GradUnwarp* 
   nintfunc = &nint;
 
   MRI *origvol = MRIread(origmgz);
-  MATRIX *vox2ras_orig = MRIxfmCRS2XYZ(origvol, 0);
-  MATRIX *inv_vox2ras_orig = MatrixInverse(vox2ras_orig, NULL);
 
+  printf("\nVolume information for %s\n", origmgz);
+  if (origvol->nframes > 1)
+    printf("Dimensions: %d x %d x %d x %d\n", origvol->width, origvol->height, origvol->depth, origvol->nframes) ;
+  else
+    printf("Dimensions: %d x %d x %d\n", origvol->width, origvol->height, origvol->depth) ;
+  printf("Data Type: %s (%d)\n",
+         origvol->type == MRI_UCHAR   ? "UCHAR" :
+         origvol->type == MRI_SHORT   ? "SHORT" :
+	 origvol->type == MRI_USHRT   ? "USHRT" :
+         origvol->type == MRI_INT     ? "INT" :
+         origvol->type == MRI_LONG    ? "LONG" :
+         origvol->type == MRI_BITMAP  ? "BITMAP" :
+         origvol->type == MRI_TENSOR  ? "TENSOR" :
+         origvol->type == MRI_FLOAT   ? "FLOAT" : "UNKNOWN", origvol->type) ;
+
+  MATRIX *vox2ras_orig = extract_i_to_r(origvol);  //MRIxfmCRS2XYZ(origvol, 0);
+  printf("\nvoxel to ras transform:\n"); 
   MatrixPrint(stdout, vox2ras_orig);
+
+  MATRIX *inv_vox2ras_orig = MatrixInverse(vox2ras_orig, NULL);  //extract_r_to_i(origvol);
+  printf("\nras to voxel transform:\n");
+  MatrixPrint(stdout, inv_vox2ras_orig);
 
   MRI *unwarpedvol = MRIallocSequence(origvol->width, origvol->height, origvol->depth, MRI_FLOAT, origvol->nframes);
   MRIcopyHeader(origvol, unwarpedvol);
   MRIcopyPulseParameters(origvol, unwarpedvol);
 
-
   MRI_BSPLINE *bspline = NULL;
   if (interpcode == SAMPLE_CUBIC_BSPLINE)
     bspline = MRItoBSpline(origvol, NULL, 3);
 
-  printf("width=%4d height=%4d depth=%4d nframes=%4d\n", origvol->width, origvol->height, origvol->depth, origvol->nframes);
+  int outofrangevoxels[_MAX_FS_THREADS];
+#ifdef HAVE_OPENMP
+  int tid;
+  for (tid = 0; tid < _MAX_FS_THREADS; tid++) {
+    outofrangevoxels[tid] = 0;
+  }
+#else
+  outofrangevoxels[0] = 0;
+#endif
 
   int c;
 #ifdef HAVE_OPENMP
@@ -154,6 +181,7 @@ static void unwarpVol(const char* origmgz, const char* unwarpedmgz, GradUnwarp* 
   for (c = 0; c < origvol->width; c++)
   {
     int r = 0, s = 0, f = 0;
+
     // You could make a vector of CRS nthreads long
     MATRIX *CRS = MatrixAlloc(4, 1, MATRIX_REAL);
     MATRIX *RAS = MatrixAlloc(4, 1, MATRIX_REAL);;
@@ -199,19 +227,37 @@ static void unwarpVol(const char* origmgz, const char* unwarpedmgz, GradUnwarp* 
           float Dx = 0, Dy = 0, Dz = 0;
           gradUnwarp->spharm_evaluate(x, y, z, &Dx, &Dy, &Dz);
 
-	  if (inputcrs)
-	  {
-            printf(" c=%d r=%d s=%d\n", crs_c, crs_r, crs_s);
-            printf(" x=%.6f  y=%.6f  z=%.6f\n", x, y, z);
-            printf("Dx=%.6lf Dy=%.6lf Dz=%.6lf\n", Dx, Dy, Dz);
-	  }
-
           DeltaRAS->rptr[1][1] = Dx;
           DeltaRAS->rptr[2][1] = Dy;
           DeltaRAS->rptr[3][1] = Dz;
+          DeltaRAS->rptr[4][1] = 1; 
         
           DistortedRAS = MatrixAdd(RAS, DeltaRAS, DistortedRAS);
+          DistortedRAS->rptr[4][1] = 1;
           DistortedCRS = MatrixMultiply(inv_vox2ras_orig, DistortedRAS, DistortedCRS);
+	  
+          if (inputcrs)
+	  {
+            printf("\n");
+            printf("CRS:\n");
+            MatrixPrint(stdout, CRS);
+
+            printf("RAS:\n");
+            MatrixPrint(stdout, RAS);
+
+            printf("DeltaRAS:\n");
+            MatrixPrint(stdout, DeltaRAS);
+
+            printf("DistortedRAS:\n");
+            MatrixPrint(stdout, DistortedRAS);
+
+            printf("DistortedCRS:\n");
+            MatrixPrint(stdout, DistortedCRS);
+
+            printf("\n c=%d r=%d s=%d\n", crs_c, crs_r, crs_s);
+            printf(" x=%.6f  y=%.6f  z=%.6f\n", x, y, z);
+            printf("Dx=%.6lf Dy=%.6lf Dz=%.6lf\n", Dx, Dy, Dz);
+	  }
         } 
  
         float fcs = 0, frs = 0, fss = 0;
@@ -233,16 +279,24 @@ static void unwarpVol(const char* origmgz, const char* unwarpedmgz, GradUnwarp* 
             exit(0);
 	  }
 
-          if (ics < 0 || irs < 0 || iss < 0 ||
-              ics >= origvol->width || irs >= origvol->height || iss >= origvol->depth)
+          if (ics < 0 || ics >= origvol->width  ||
+              irs < 0 || irs >= origvol->height || 
+              iss < 0 || iss >= origvol->depth)
+          {
+#ifdef HAVE_OPENMP
+            int tid = omp_get_thread_num();
+            outofrangevoxels[tid]++;
+#else
+            outofrangevoxels[0]++;
+#endif
             continue;
+          }
 	}
         else
 	{
           // this should output the same vol as orig
-          ics =  c;
-          irs =  r;
-          iss =  s;
+          fcs =  c; frs =  r; fss =  s;
+          ics =  c; irs =  r; iss =  s;
 	}
 
         /* Assign output volume values */
@@ -289,6 +343,16 @@ static void unwarpVol(const char* origmgz, const char* unwarpedmgz, GradUnwarp* 
   int err = MRIwrite(unwarpedvol, unwarpedmgz);
   if(err) printf("something went wrong\n");
 
+  int totalCount = 0;
+#ifdef HAVE_OPENMP
+  for (tid = 0; tid < _MAX_FS_THREADS; tid++) {
+    totalCount += outofrangevoxels[tid];
+  }
+#else
+  totalCount = outofrangevoxels[0];
+#endif
+
+  printf("Total %d voxels are out of range\n", totalCount);
 
   MatrixFree(&vox2ras_orig);
   MatrixFree(&inv_vox2ras_orig);

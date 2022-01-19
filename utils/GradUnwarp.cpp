@@ -23,9 +23,6 @@ GradUnwarp::GradUnwarp()
 
 GradUnwarp::~GradUnwarp()
 {
-  //if (P != NULL)
-  //  free(P);
-
   int i = 0;
   for (; i < coeffDim; i++)
   {
@@ -271,12 +268,13 @@ void GradUnwarp::initSiemensLegendreNormfact()
   // initialize variables to pre-calculate normfact for siemens_legendre()
   minusonepow = new double[coeffDim];
   factorials  = new double[2*coeffDim];
-
   normfact = new double*[coeffDim];
+
   P = new double*[coeffDim];
   F2_x = new float*[coeffDim];
   F2_y = new float*[coeffDim];
   F2_z = new float*[coeffDim];
+
   int n;
   for (n = 0; n < coeffDim; n++)
   {
