@@ -3,7 +3,7 @@ from . import gems
 from freesurfer.samseg.warp_mesh import kvlWarpMesh
 from freesurfer.samseg.utilities import requireNumpyArray
 import freesurfer as fs
-
+import os
 
 class ProbabilisticAtlas:
     def __init__(self):
@@ -11,7 +11,7 @@ class ProbabilisticAtlas:
         self.useBlocksForDeformation = False # Use "grouped coordinate-descent (GCD)" 
                                              # aka "block coordinate-descent" (Fessler)
 
-        if True:
+        if os.environ.get('SAMSEG_EXPERIMENTAL_BLOCK_COORDINATE_DESCENT') is not None: 
             self.useWarmDeformationOptimizers = True
             self.useBlocksForDeformation = True
 
@@ -223,8 +223,8 @@ class ProbabilisticAtlas:
                     optimizer.update_calculator( calculator )
                 
 
-            # Run deformation optimization
-            #historiesOfDeformationCost = [ [] for i in range( numberOfBlocks ) ]
+            # Run deformation optimization for the specified number of steps (unless it stops moving
+            # properly earlier)
             historyOfMaximalDeformation = []
             nodePositionsBeforeDeformation = mesh.points
             

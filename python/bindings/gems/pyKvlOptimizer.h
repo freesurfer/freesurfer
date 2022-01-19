@@ -8,7 +8,6 @@
 #include "kvlAtlasMeshDeformationGradientDescentOptimizer.h"
 #include "kvlAtlasMeshDeformationConjugateGradientOptimizer.h"
 #include "kvlAtlasMeshDeformationLBFGSOptimizer.h"
-#include "kvlAtlasMeshDeformationPartiallySeparableOptimizer.h"
 
 #include "pyKvlNumpy.h"
 #include "pybind11/pybind11.h"
@@ -54,14 +53,6 @@ public:
 //                optimizer = myOptimizer;
 //                break;
 //            }
-            case 'P':
-            {
-                std::cout << "PartiallySeparable" << std::endl;
-                kvl::AtlasMeshDeformationPartiallySeparableOptimizer::Pointer  myOptimizer
-                        = kvl::AtlasMeshDeformationPartiallySeparableOptimizer::New();
-                optimizer = myOptimizer;
-                break;
-            }
             case 'L':
             {
                 std::cout << "L-BFGS" << std::endl;

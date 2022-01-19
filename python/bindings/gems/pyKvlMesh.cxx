@@ -729,8 +729,6 @@ KvlMesh* KvlMesh::GetSubmesh( py::array_t<bool>& mask ) {
     itkGenericExceptionMacro("mask shape must have at least one dimension");
     }
   const unsigned int  numberOfMeshNodes = mesh->GetPoints()->Size();
-  // auto  maskShape = mask.shape();
-  // const unsigned int  maskNumberOfNodes = *maskShape++;
   const unsigned int  maskNumberOfNodes = mask.shape( 0 );
   if ( numberOfMeshNodes != maskNumberOfNodes )
     {
@@ -738,9 +736,7 @@ KvlMesh* KvlMesh::GetSubmesh( py::array_t<bool>& mask ) {
                               << maskNumberOfNodes << " vs. " << numberOfMeshNodes << ")" );
     }
     
-    
-  // [ List of points: ] make std::map pointId -> pointNumber
-  //std::map< kvl::AtlasMesh::PointIdentifier, int >  pointIdLookupTable;
+  // Collect a list of points that the mask indicates should be included    
   std::set< kvl::AtlasMesh::PointIdentifier >  initialPointIds;
   int  pointNumber = 0;
   for ( auto it = mesh->GetPoints()->Begin(); it != mesh->GetPoints()->End(); 
@@ -754,21 +750,13 @@ KvlMesh* KvlMesh::GetSubmesh( py::array_t<bool>& mask ) {
       }
     }
     
-    
-  // [ Number of points: ] record number of points for later usage
-  //const int  numberOfSelectedPoints = pointIdLookupTable.size();
-  //std::cout << "numberOfSelectedPoints: " << numberOfSelectedPoints << std::endl;
   
-
-    
-  // [ List of tets: ] loop over all included points, looping over tets, each time inserting them 
-  // in a std::map tetId -> tetNumber
-  // [ use map.find(), and map[ tetId ] only if not found ]
+  // Build a list of tetrahedra that are attached to these nodes. At the same
+  // time, create a simple lookup table to converts the original cellIds into
+  // new cellIds (without gaps) in our new mesh 
   std::map< kvl::AtlasMesh::CellIdentifier, int >  tetIdLookupTable;
   mesh->BuildCellLinks();
   const kvl::AtlasMesh::CellLinksContainer::ConstPointer  cellLinks = mesh->GetCellLinks();
-  // for ( auto it = cellLinks->Begin(); destIterator != destinationPointData->End(); ++destIterator, ++pointIndex) 
-  //for ( auto pointIt = pointIdLookupTable.begin(); pointIt != pointIdLookupTable.end(); ++pointIt )
   for ( auto pointIt = initialPointIds.begin(); pointIt != initialPointIds.end(); ++pointIt )
     {
     // Loop over all the tetrahedra attached to this point  
@@ -778,7 +766,6 @@ KvlMesh* KvlMesh::GetSubmesh( py::array_t<bool>& mask ) {
       {
       //  
       const kvl::AtlasMesh::CellIdentifier  cellId = *cellIt;
-      //const kvl::AtlasMesh::CellType&  cell = mesh->GetCells()->ElementAt( cellId );
       const kvl::AtlasMesh::CellType*  cell = mesh->GetCells()->ElementAt( cellId );
       if ( cell->GetType() != kvl::AtlasMesh::CellType::TETRAHEDRON_CELL )
         {
@@ -797,10 +784,9 @@ KvlMesh* KvlMesh::GetSubmesh( py::array_t<bool>& mask ) {
   
     } // End loop over points
   
-  
-  // [ Augmented list of points: ] loop over all tets, each time looping over four points 
-  // and inserting them into the std::map pointId -> pointNumber if not exist yet
-  // [ this will cause a few extra points to appear at the end of the point list ]
+
+  // The tetrahedra will have extra points (not in the original mask) attached to them.
+  // These should also be part of our new mesh.
   std::set< kvl::AtlasMesh::PointIdentifier >  extraPointIds;
   for ( auto tetIt = tetIdLookupTable.begin(); tetIt != tetIdLookupTable.end(); ++tetIt )
     {
@@ -814,13 +800,9 @@ KvlMesh* KvlMesh::GetSubmesh( py::array_t<bool>& mask ) {
       {
       const kvl::AtlasMesh::PointIdentifier  pointId = *pit;
         
-      //
-      //if ( pointIdLookupTable.find( pointId ) == pointIdLookupTable.end() )
       if ( initialPointIds.find( pointId ) == initialPointIds.end() )
         {
         // Found a new, extra point  
-        // const int  counter = pointIdLookupTable.size();
-        // pointIdLookupTable[ pointId ] = counter;
         extraPointIds.insert( pointId );
         }
       } // End loop over all points in tet
@@ -828,7 +810,8 @@ KvlMesh* KvlMesh::GetSubmesh( py::array_t<bool>& mask ) {
     } // End loop over all tets  
     
     
-  // Build look-up table
+  // Build a look-up table converting the pointIds of all the relevant points in the 
+  // original mesh into a new pointId numbering system (without gaps) in our new mesh.
   std::map< kvl::AtlasMesh::PointIdentifier, int >  pointIdLookupTable;
   std::set< kvl::AtlasMesh::PointIdentifier >  mergedPointIds( initialPointIds );
   mergedPointIds.insert( extraPointIds.begin(), extraPointIds.end() );
@@ -839,9 +822,7 @@ KvlMesh* KvlMesh::GetSubmesh( py::array_t<bool>& mask ) {
     }
   
   
-  //
-  // * [ Make mesh: ] 
-  //  - Loop over all points in std::map, copying both position and pointData (but with pointNumber as pointId )
+  // Copy points and pointData   
   kvl::AtlasMesh::PointsContainer::Pointer  subPoints =  kvl::AtlasMesh::PointsContainer::New();
   kvl::AtlasMesh::PointDataContainer::Pointer  subPointData 
                                                       = kvl::AtlasMesh::PointDataContainer::New();
@@ -852,7 +833,7 @@ KvlMesh* KvlMesh::GetSubmesh( py::array_t<bool>& mask ) {
     }
     
     
-  // - Loop over all tets in std::map, creating tet cells and copying cellData (but with tetNumber as tetId, and pointNumber as pointIds )
+  // Same for cells and cellData
   kvl::AtlasMesh::CellsContainer::Pointer  subCells = kvl::AtlasMesh::CellsContainer::New();
   kvl::AtlasMesh::CellDataContainer::Pointer  subCellData = kvl::AtlasMesh::CellDataContainer::New();
   for ( auto tetIt = tetIdLookupTable.begin(); tetIt != tetIdLookupTable.end(); ++tetIt )
@@ -861,10 +842,6 @@ KvlMesh* KvlMesh::GetSubmesh( py::array_t<bool>& mask ) {
     typedef itk::TetrahedronCell< kvl::AtlasMesh::CellType >  TetrahedronCell;
     kvl::AtlasMesh::CellAutoPointer  newCell;
     newCell.TakeOwnership( new TetrahedronCell );
-    // newCell->SetPointIds( cell->PointIdsBegin(),
-    //                       cell->PointIdsEnd() );
-    // regionGrownCells->InsertElement( *neighborIt, newCell.ReleaseOwnership() );
-    //const kvl::AtlasMesh::CellType&  tet = mesh->GetCells()->ElementAt( tetIt->first );
     const kvl::AtlasMesh::CellType*  tet = mesh->GetCells()->ElementAt( tetIt->first );
 
     int  localId = 0;
@@ -895,8 +872,8 @@ KvlMesh* KvlMesh::GetSubmesh( py::array_t<bool>& mask ) {
     }  
   
   
-  //
-  // py::array_t<bool>& mask
+  // The original mask will not yet have the extra points in it -- add back as
+  // feedback to the user
   auto  x = mask.mutable_unchecked();
   pointNumber = 0;
   for ( auto it = mesh->GetPoints()->Begin(); it != mesh->GetPoints()->End(); 
@@ -904,7 +881,6 @@ KvlMesh* KvlMesh::GetSubmesh( py::array_t<bool>& mask ) {
     {
     if ( pointIdLookupTable.find( it.Index() ) != pointIdLookupTable.end() )
       {
-      //*( mask.data( pointNumber ) ) = true;
       x( pointNumber ) = true;
       }
     }

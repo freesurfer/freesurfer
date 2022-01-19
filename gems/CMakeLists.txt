@@ -67,7 +67,6 @@ set(SOURCES
   kvlAtlasMeshDeformationFixedStepGradientDescentOptimizer.cxx
   kvlAtlasMeshDeformationGradientDescentOptimizer.cxx
   kvlAtlasMeshDeformationLBFGSOptimizer.cxx
-  kvlAtlasMeshDeformationPartiallySeparableOptimizer.cxx
   kvlAtlasMeshDeformationOptimizer.cxx
   kvlAtlasMeshLabelImageStatisticsCollector.cxx
   kvlAtlasMeshMultiAlphaDrawer.cxx
