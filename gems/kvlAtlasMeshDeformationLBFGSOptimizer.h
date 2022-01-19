@@ -41,7 +41,7 @@ protected:
   AtlasMeshDeformationLBFGSOptimizer();
   virtual ~AtlasMeshDeformationLBFGSOptimizer();
   
-  void Initialize();
+  void WipeMemory();
 
   double FindAndOptimizeNewSearchDirection(); 
   

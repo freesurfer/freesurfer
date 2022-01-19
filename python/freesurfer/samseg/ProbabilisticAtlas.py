@@ -97,7 +97,7 @@ class ProbabilisticAtlas:
             mixtureWeights=mixtureWeights,
             numberOfGaussiansPerClass=numberOfGaussiansPerClass)
 
-        numberOfBlocks = 8
+        numberOfBlocks = 6
         if numberOfBlocks == 1:
             # Get optimizer and plug calculator in it
             if self.optimizer is None:
