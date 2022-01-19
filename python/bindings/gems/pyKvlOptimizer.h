@@ -163,10 +163,10 @@ public:
     }
     
     void UpdateCalculator( const KvlCostAndGradientCalculator &calculator ){
-      std::cout << "------------ start setting new calculator! ------------ " << std::endl;
+      //std::cout << "------------ start setting new calculator! ------------ " << std::endl;
       optimizer->SetCostAndGradientCalculator( calculator.calculator, 
                                                true, false, true );
-      std::cout << "------------ end setting new calculator! ------------ " << std::endl;
+      //std::cout << "------------ end setting new calculator! ------------ " << std::endl;
     }
     
     void UpdateMesh( const KvlMesh &mesh ){

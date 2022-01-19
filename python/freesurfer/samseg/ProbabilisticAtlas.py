@@ -7,8 +7,16 @@ import freesurfer as fs
 
 class ProbabilisticAtlas:
     def __init__(self):
-        # pass
-        self.optimizer = None
+        self.useWarmDeformationOptimizers = False
+        self.useBlocksForDeformation = False # Use "grouped coordinate-descent (GCD)" 
+                                             # aka "block coordinate-descent" (Fessler)
+
+        if True:
+            self.useWarmDeformationOptimizers = True
+            self.useBlocksForDeformation = True
+
+        self.previousDeformationMesh = None
+
 
     def getMesh(self, meshCollectionFileName,
                 transform=None,
@@ -96,31 +104,41 @@ class ProbabilisticAtlas:
             variances=variances,
             mixtureWeights=mixtureWeights,
             numberOfGaussiansPerClass=numberOfGaussiansPerClass)
-
-        numberOfBlocks = 6
-        if numberOfBlocks == 1:
-            # Get optimizer and plug calculator in it
-            if self.optimizer is None:
-                optimizerType = 'L-BFGS'
-                #optimizerType = 'PartiallySeparable'
-                optimizationParameters = {
-                    'Verbose': False,
-                    'MaximalDeformationStopCriterion': 0.001,  # measured in pixels,
-                    'LineSearchMaximalDeformationIntervalStopCriterion': 0.001,
-                    'MaximumNumberOfIterations': 20,
-                    'BFGS-MaximumMemoryLength': 12
-                }
-                optimizationParameters.update(userOptimizationParameters)
+        
+        # Prepare to set up optimizer
+        optimizerType = 'L-BFGS'
+        optimizationParameters = {
+            'Verbose': False,
+            'MaximalDeformationStopCriterion': 0.001,  # measured in pixels,
+            'LineSearchMaximalDeformationIntervalStopCriterion': 0.001,
+            'MaximumNumberOfIterations': 20,
+            'BFGS-MaximumMemoryLength': 12
+        }
+        optimizationParameters.update(userOptimizationParameters)
+                
+        if not self.useBlocksForDeformation:
+            #
+            # Vanilla case of a single optimizer
+            #
+          
+            # Get optimizer
+            if ( mesh != self.previousDeformationMesh ):
+                # Create a new optimizer and plug calculator in it
                 optimizer = gems.KvlOptimizer(optimizerType, mesh, calculator, optimizationParameters)
                 
-                self.optimizer = optimizer
-            else:    
-                print( "ProbabilisticAtlas reusing same optimizer!!" )
+                # Remember for a potential next time if warm optimizers are used
+                if self.useWarmDeformationOptimizers:
+                    self.previousDeformationMesh = mesh
+                    self.optimizer = optimizer
+                
+            else:
+                # Reuse a warm optimizer from last time -- just plug the current calculator into it
+                print( "ProbabilisticAtlas reusing warm optimizer!!" )
                 optimizer = self.optimizer
                 optimizer.update_calculator( calculator )
                 
-
-            # Run deformation optimization
+            # Run deformation optimization for the specified number of steps (unless it stops moving
+            # properly earlier)
             historyOfDeformationCost = []
             historyOfMaximalDeformation = []
             nodePositionsBeforeDeformation = mesh.points
@@ -129,28 +147,27 @@ class ProbabilisticAtlas:
                 globalTic = time.perf_counter()
                 minLogLikelihoodTimesDeformationPrior, maximalDeformation = optimizer.step_optimizer_samseg()
                 globalToc = time.perf_counter()
-                print( f"  Total time spent: {globalToc-globalTic:0.4f} sec" )
                 print("maximalDeformation=%.4f minLogLikelihood=%.4f" % (
                 maximalDeformation, minLogLikelihoodTimesDeformationPrior))
                 historyOfDeformationCost.append(minLogLikelihoodTimesDeformationPrior)
+                print( f"  Total time spent: {globalToc-globalTic:0.4f} sec" )
                 historyOfMaximalDeformation.append(maximalDeformation)
                 if maximalDeformation == 0:
                     break
 
         else:
-            # Get optimizer and plug calculator in it
-            if self.optimizer is None:
-                optimizerType = 'L-BFGS'
-                #optimizerType = 'PartiallySeparable'
-                optimizationParameters = {
-                    'Verbose': False,
-                    'MaximalDeformationStopCriterion': 0.001,  # measured in pixels,
-                    'LineSearchMaximalDeformationIntervalStopCriterion': 0.001,
-                    'MaximumNumberOfIterations': 20,
-                    'BFGS-MaximumMemoryLength': 12
-                }
-                optimizationParameters.update(userOptimizationParameters)
-                
+            #
+            # Use block coordinate descent in the hope of speeding up convergence.
+            # The idea is that solving M optimization problems of size N/M is faster
+            # than solving a single big optimization problem of size N. Of course in
+            # our case the M problems are not independent, but the coupling is pretty
+            # loose (only through a layer of tetrahedra that connect the M point sets)
+            #
+            numberOfBlocks = 6
+          
+            # Get optimizers
+            if ( mesh != self.previousDeformationMesh ):
+                # Create new optimizers and plug calculator in them
                 numberOfNodes = mesh.point_count
                 numberOfNodesPerBlock = np.ceil( numberOfNodes / numberOfBlocks ).astype( 'int' )
                 masks, submeshes, optimizers = [], [], []
@@ -158,7 +175,9 @@ class ProbabilisticAtlas:
                 import time
                 useSmartClustering = True
                 if useSmartClustering:
-                    # Use k-means to group 
+                    # Use k-means to group, in an attempt to limit the number of extra points
+                    # that need to be added because of boundary tetrahedra connecting 
+                    # submeshes with their neighbors
                     from sklearn.cluster import KMeans
                     nodePositions = mesh.points
                     kmeans = KMeans(n_clusters=numberOfBlocks, random_state=0).fit( nodePositions )
@@ -187,19 +206,19 @@ class ProbabilisticAtlas:
                     print( f"     setup time: {toc-tic:0.4f} sec" )
                   
                     
-                
-                if True:
-                    # Save for reuse
-                    self.optimizer = optimizers
+                # Remember for a potential next time if warm optimizers are used
+                if self.useWarmDeformationOptimizers:
+                    self.previousDeformationMesh = mesh
+                    self.optimizers = optimizers
                     self.submeshes = submeshes
                     self.masks = masks
-                
-            else:    
-                print( "ProbabilisticAtlas reusing same optimizer!!" )
-                optimizers = self.optimizer
+ 
+            else:
+                # Reuse warm optimizers from last time -- just plug the current calculator into it
+                print( "ProbabilisticAtlas reusing warm optimizers!!" )
+                optimizers = self.optimizers
                 submeshes = self.submeshes
                 masks = self.masks
-
                 for optimizer in optimizers:
                     optimizer.update_calculator( calculator )
                 
@@ -252,7 +271,7 @@ class ProbabilisticAtlas:
                 historyOfMaximalDeformation.append(maximalDeformation)
 
                 globalToc = time.perf_counter()
-                print( f"Total time spent: {globalToc-globalTic:0.4f} sec" )
+                print( f"  Total time spent: {globalToc-globalTic:0.4f} sec" )
 
                 if computeHistoryOfDeformationCost:
                     tic = time.perf_counter()
