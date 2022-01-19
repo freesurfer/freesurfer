@@ -72,7 +72,8 @@ PYBIND11_MODULE(gemsbindings, m) {
             .def("step_optimizer_warp", &KvlOptimizer::StepOptimizer)
             .def("step_optimizer_atlas", &KvlOptimizer::StepOptimizer)
             .def("step_optimizer_samseg", &KvlOptimizer::StepOptimizer)
-            .def("set_calculator", &KvlOptimizer::SetCalculator)
+            .def("update_calculator", &KvlOptimizer::UpdateCalculator)
+            .def("update_mesh", &KvlOptimizer::UpdateMesh)
             ;
 
     py::class_<KvlMesh>(m, "KvlMesh")

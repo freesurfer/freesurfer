@@ -41,11 +41,25 @@ public :
   itkTypeMacro( AtlasMeshDeformationOptimizer, itk::Object );
 
   /** */
-  void  SetMesh( AtlasMesh* mesh )
+  void  SetMesh( AtlasMesh* mesh, 
+                 bool resetIterations=true, 
+                 bool resetMemory=true, 
+                 bool reinitialize=true )
     {
     m_Mesh = mesh;
-    m_IterationNumber = 0;
-    this->WipeMemory();
+    if ( resetIterations )
+      {
+      m_IterationNumber = 0;
+      }
+    if ( resetMemory )
+      {
+      this->WipeMemory();
+      }
+    if ( reinitialize )
+      {
+      m_Initialized = false;
+      }
+      
     }
 
   /** */
@@ -55,10 +69,24 @@ public :
     }
 
   //
-  void  SetCostAndGradientCalculator( AtlasMeshPositionCostAndGradientCalculator* calculator ) 
+  void  SetCostAndGradientCalculator( AtlasMeshPositionCostAndGradientCalculator* calculator, 
+                                      bool resetIterations=false, 
+                                      bool resetMemory=false, 
+                                      bool reinitialize=false )
     {
     m_Calculator =  calculator;
-    m_IterationNumber = 0;
+    if ( resetIterations )
+      {
+      m_IterationNumber = 0;
+      }
+    if ( resetMemory )
+      {
+      this->WipeMemory();
+      }
+    if ( reinitialize )
+      {
+      m_Initialized = false;
+      }
     }
     
   const AtlasMeshPositionCostAndGradientCalculator*  GetCostAndGradientCalculator() const
@@ -202,6 +230,7 @@ private:
   int  m_IterationNumber;
   int  m_MaximumNumberOfIterations;
   int  m_IterationEventResolution;
+  bool  m_Initialized;
 
 
   AtlasMesh::Pointer  m_Mesh;

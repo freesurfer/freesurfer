@@ -162,11 +162,22 @@ public:
         return {minLogLikelihoodTimesPrior, maximalDeformation};
     }
     
-    void SetCalculator( const KvlCostAndGradientCalculator &calculator ){
+    void UpdateCalculator( const KvlCostAndGradientCalculator &calculator ){
       std::cout << "------------ start setting new calculator! ------------ " << std::endl;
-      optimizer->SetCostAndGradientCalculator( calculator.calculator );
+      optimizer->SetCostAndGradientCalculator( calculator.calculator, 
+                                               true, false, true );
       std::cout << "------------ end setting new calculator! ------------ " << std::endl;
     }
+    
+    void UpdateMesh( const KvlMesh &mesh ){
+      // std::cout << "------------ start setting new mesh! ------------ " << std::endl;
+      kvl::AtlasMesh::ConstPointer constMesh = mesh.mesh;
+      kvl::AtlasMesh::Pointer mutableMesh = const_cast< kvl::AtlasMesh* >( constMesh.GetPointer() );
+      optimizer->SetMesh( mutableMesh,
+                          false, false, true );
+      //std::cout << "------------ end setting new mesh! ------------ " << std::endl;
+    }
+    
     
 };
 #endif //GEMS_PYKVLOPTIMIZER_H

@@ -45,7 +45,7 @@ AtlasMeshDeformationLBFGSOptimizer
 void AtlasMeshDeformationLBFGSOptimizer
 ::WipeMemory()
 {
-
+  
   m_OldCost = 0;
   m_OldGradient = 0;
   m_OldSearchDirection = 0;

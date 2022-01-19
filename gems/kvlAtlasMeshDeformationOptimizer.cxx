@@ -16,6 +16,7 @@ AtlasMeshDeformationOptimizer
   m_IterationNumber = 0;
   m_MaximumNumberOfIterations = 1000 /* itk::NumericTraits< unsigned int >::max() */;
   m_IterationEventResolution = 10;
+  m_Initialized = false;
   m_Verbose = false;
   m_Calculator = 0;
   m_MaximalDeformationStopCriterion = 0.05;
@@ -102,12 +103,6 @@ AtlasMeshDeformationOptimizer
 ::Step()
 {
 
-  // If this is the first iteration, make sure to initialize some relevant variables 
-  if ( m_IterationNumber == 0 )
-    {
-    this->Initialize();  
-    }
-    
   // Test if we're running out of time
   if ( m_IterationNumber >= m_MaximumNumberOfIterations )
     {
@@ -115,6 +110,12 @@ AtlasMeshDeformationOptimizer
     return 0.0;  
     }
 
+  // Make sure m_Position and m_Gradient are available
+  if ( !m_Initialized )
+    {
+    this->Initialize();  
+    }
+    
     
   // Try to make one successful move
   double maximalDeformation = 0.0;
@@ -297,7 +298,7 @@ void
 AtlasMeshDeformationOptimizer
 ::Initialize()
 {
-  
+    
   if ( !m_Calculator )
     {
     itkExceptionMacro( << "Cost and gradient calculator missing!" );
@@ -306,6 +307,8 @@ AtlasMeshDeformationOptimizer
   //
   m_Position = m_Mesh->GetPoints();
   this->GetCostAndGradient( m_Position, m_Cost, m_Gradient );
+  
+  m_Initialized = true;
   
   this->InvokeEvent( DeformationStartEvent() );
   

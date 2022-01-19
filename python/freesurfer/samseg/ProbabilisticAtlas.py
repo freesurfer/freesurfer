@@ -117,7 +117,7 @@ class ProbabilisticAtlas:
             else:    
                 print( "ProbabilisticAtlas reusing same optimizer!!" )
                 optimizer = self.optimizer
-                optimizer.set_calculator( calculator )
+                optimizer.update_calculator( calculator )
                 
 
             # Run deformation optimization
@@ -201,7 +201,7 @@ class ProbabilisticAtlas:
                 masks = self.masks
 
                 for optimizer in optimizers:
-                    optimizer.set_calculator( calculator )
+                    optimizer.update_calculator( calculator )
                 
 
             # Run deformation optimization
@@ -210,7 +210,7 @@ class ProbabilisticAtlas:
             nodePositionsBeforeDeformation = mesh.points
             
             #
-            debug = False
+            debug = True
             computeHistoryOfDeformationCost = False # Useful for analyzing convergence, but slow
             if computeHistoryOfDeformationCost: historyOfDeformationCost = []
             currentNodePositions = nodePositionsBeforeDeformation.copy()
@@ -228,6 +228,7 @@ class ProbabilisticAtlas:
                     optimizer = optimizers[ blockNumber ]
 
                     submesh.points = currentNodePositions[ mask, : ]
+                    optimizer.update_mesh( submesh )
                     
                     if debug:
                         tmpLocalCostBefore, _ = calculator.evaluate_mesh_position( submesh )
