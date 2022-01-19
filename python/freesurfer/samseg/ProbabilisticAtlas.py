@@ -210,7 +210,7 @@ class ProbabilisticAtlas:
             nodePositionsBeforeDeformation = mesh.points
             
             #
-            debug = True
+            debug = False
             computeHistoryOfDeformationCost = False # Useful for analyzing convergence, but slow
             if computeHistoryOfDeformationCost: historyOfDeformationCost = []
             currentNodePositions = nodePositionsBeforeDeformation.copy()
