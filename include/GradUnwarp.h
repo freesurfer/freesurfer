@@ -51,13 +51,15 @@ private:
   float **Beta_x,  **Beta_y,  **Beta_z;
 
   // these variables are used to calculate siemens legendre
+  // they are pre-calculated in initSiemensLegendreNormfact()
   double *minusonepow;
   double *factorials;
   double **normfact;
-  
+
+  // these are reset and re-calculated for each (x, y, z) in siemens_B0()  
   double **P;
-  float  *F;
   float **F2_x, **F2_y, **F2_z;
+  float  *F;
   double *cosPhi, *sinPhi;
   float R, Theta, Phi;
 

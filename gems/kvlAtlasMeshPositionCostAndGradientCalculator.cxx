@@ -371,6 +371,7 @@ AtlasMeshPositionCostAndGradientCalculator
   ++pit;
   const AtlasMesh::PointIdentifier  id3 = *pit;
   
+
   //AtlasMesh::PointType p0;
   //AtlasMesh::PointType p1;
   //AtlasMesh::PointType p2;

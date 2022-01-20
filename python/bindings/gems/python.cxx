@@ -72,6 +72,8 @@ PYBIND11_MODULE(gemsbindings, m) {
             .def("step_optimizer_warp", &KvlOptimizer::StepOptimizer)
             .def("step_optimizer_atlas", &KvlOptimizer::StepOptimizer)
             .def("step_optimizer_samseg", &KvlOptimizer::StepOptimizer)
+            .def("update_calculator", &KvlOptimizer::UpdateCalculator)
+            .def("update_mesh", &KvlOptimizer::UpdateMesh)
             ;
 
     py::class_<KvlMesh>(m, "KvlMesh")
@@ -79,10 +81,12 @@ PYBIND11_MODULE(gemsbindings, m) {
             .def_property_readonly("point_count", &KvlMesh::PointCount, py::return_value_policy::take_ownership)
             .def_property("points", &KvlMesh::GetPointSet, &KvlMesh::SetPointSet, py::return_value_policy::take_ownership)
             .def_property("alphas", &KvlMesh::GetAlphas, &KvlMesh::SetAlphas, py::return_value_policy::take_ownership)
+            .def_property("can_moves", &KvlMesh::GetCanMoves, &KvlMesh::SetCanMoves, py::return_value_policy::take_ownership)
             .def( "fit_alphas", &KvlMesh::FitAlphas, py::return_value_policy::take_ownership )
             .def("scale", &KvlMesh::Scale, py::return_value_policy::take_ownership)
             .def("rasterize_values", &KvlMesh::RasterizeValues, py::arg("shape"), py::arg("values"), py::return_value_policy::take_ownership)
             .def("rasterize", &KvlMesh::RasterizeMesh, py::arg("shape"), py::arg("classNumber") = -1, py::return_value_policy::take_ownership)
+            .def("get_submesh", &KvlMesh::GetSubmesh, py::return_value_policy::take_ownership)
             // Aliases to help with profiling
             .def("rasterize_warp", &KvlMesh::RasterizeMesh, py::arg("shape"), py::arg("classNumber") = -1, py::return_value_policy::take_ownership)
             .def("rasterize_atlas", &KvlMesh::RasterizeMesh, py::arg("shape"), py::arg("classNumber") = -1, py::return_value_policy::take_ownership)
