@@ -123,6 +123,11 @@ uname -a  | tee -a $LF
 if($?PBS_JOBID) then
   echo "pbsjob $PBS_JOBID"  >> $LF
 endif
+if($?SAMSEG_EXPERIMENTAL_BLOCK_COORDINATE_DESCENT) then
+  echo "Using Block Coordinate Descent" | tee -a $LF
+else
+  echo "NOT using Block Coordinate Descent" | tee -a $LF
+endif
 
 if($DoCharm) then
   set defaultAtlas = $FREESURFER/average/samseg/20Subjects_smoothing2_down2_smoothingForAffine2 
@@ -653,6 +658,15 @@ while( $#argv != 0 )
       set DoCharm = 0
       breaksw
 
+    case "--block-coordinate-descent":
+    case "--bcd":
+      setenv SAMSEG_EXPERIMENTAL_BLOCK_COORDINATE_DESCENT 1
+      breaksw
+    case "--no-block-coordinate-descent":
+    case "--no-bcd":
+      unsetenv SAMSEG_EXPERIMENTAL_BLOCK_COORDINATE_DESCENT
+      breaksw
+
     case "--tmp":
     case "--tmpdir":
       if($#argv < 1) goto arg1err;
@@ -811,6 +825,7 @@ usage_exit:
   echo "  --threads nthreads : set the number of CPUs to use"
   echo "  --atlas SAMSEG_DATA_DIR"
   echo "  --gmm gmmfile"
+  echo "  --block-coordinate-descent (or --bcd) :  sets SAMSEG_EXPERIMENTAL_BLOCK_COORDINATE_DESCENT 1 (--no- to turn off)"
   echo ""
   echo "  --recon : run recon-all "
   echo "  --fill : use samseg to create filled.mgz instead of recon-all"
