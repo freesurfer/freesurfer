@@ -41,10 +41,25 @@ public :
   itkTypeMacro( AtlasMeshDeformationOptimizer, itk::Object );
 
   /** */
-  void  SetMesh( AtlasMesh* mesh )
+  void  SetMesh( AtlasMesh* mesh, 
+                 bool resetIterations=true, 
+                 bool resetMemory=true, 
+                 bool reinitialize=true )
     {
     m_Mesh = mesh;
-    m_IterationNumber = 0;
+    if ( resetIterations )
+      {
+      m_IterationNumber = 0;
+      }
+    if ( resetMemory )
+      {
+      this->WipeMemory();
+      }
+    if ( reinitialize )
+      {
+      m_Initialized = false;
+      }
+      
     }
 
   /** */
@@ -54,9 +69,24 @@ public :
     }
 
   //
-  void  SetCostAndGradientCalculator( AtlasMeshPositionCostAndGradientCalculator* calculator ) 
+  void  SetCostAndGradientCalculator( AtlasMeshPositionCostAndGradientCalculator* calculator, 
+                                      bool resetIterations=false, 
+                                      bool resetMemory=false, 
+                                      bool reinitialize=false )
     {
     m_Calculator =  calculator;
+    if ( resetIterations )
+      {
+      m_IterationNumber = 0;
+      }
+    if ( resetMemory )
+      {
+      this->WipeMemory();
+      }
+    if ( reinitialize )
+      {
+      m_Initialized = false;
+      }
     }
     
   const AtlasMeshPositionCostAndGradientCalculator*  GetCostAndGradientCalculator() const
@@ -136,6 +166,11 @@ protected:
   virtual void Initialize();
 
   //
+  virtual void WipeMemory()
+    {      
+    }
+
+  //
   virtual void  GetCostAndGradient( const AtlasMesh::PointsContainer* position, 
                                     double& cost, 
                                     AtlasPositionGradientContainerType::Pointer& gradient );
@@ -177,14 +212,15 @@ protected:
                       AtlasMesh::PointsContainer::Pointer&  newPosition,
                       double&  newCost,
                       AtlasPositionGradientContainerType::Pointer& newGradient,
-                      double&  alphaUsed );                  
-                       
+                      double&  alphaUsed );
+
   //
   bool  m_Verbose;
   double  m_Cost;
   AtlasMesh::PointsContainer::Pointer  m_Position;
   AtlasPositionGradientContainerType::Pointer  m_Gradient;
-
+  
+  
 private:
   AtlasMeshDeformationOptimizer(const Self&); //purposely not implemented
   void operator=(const Self&); //purposely not implemented
@@ -194,6 +230,7 @@ private:
   int  m_IterationNumber;
   int  m_MaximumNumberOfIterations;
   int  m_IterationEventResolution;
+  bool  m_Initialized;
 
 
   AtlasMesh::Pointer  m_Mesh;

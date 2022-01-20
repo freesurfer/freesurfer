@@ -912,6 +912,7 @@ class Samseg:
                 levelHistory['priorsAtEnd'] = downSampledClassPriors
                 levelHistory['posteriorsAtEnd'] = downSampledGaussianPosteriors
                 self.optimizationHistory.append(levelHistory)
+                
 
         # End resolution level loop
 

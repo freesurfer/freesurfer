@@ -3,11 +3,20 @@ from . import gems
 from freesurfer.samseg.warp_mesh import kvlWarpMesh
 from freesurfer.samseg.utilities import requireNumpyArray
 import freesurfer as fs
-
+import os
 
 class ProbabilisticAtlas:
     def __init__(self):
-        pass
+        self.useWarmDeformationOptimizers = False
+        self.useBlocksForDeformation = False # Use "grouped coordinate-descent (GCD)" 
+                                             # aka "block coordinate-descent" (Fessler)
+
+        if os.environ.get('SAMSEG_EXPERIMENTAL_BLOCK_COORDINATE_DESCENT') is not None: 
+            self.useWarmDeformationOptimizers = True
+            self.useBlocksForDeformation = True
+
+        self.previousDeformationMesh = None
+
 
     def getMesh(self, meshCollectionFileName,
                 transform=None,
@@ -94,8 +103,8 @@ class ProbabilisticAtlas:
             variances=variances,
             mixtureWeights=mixtureWeights,
             numberOfGaussiansPerClass=numberOfGaussiansPerClass)
-
-        # Get optimizer and plug calculator in it
+        
+        # Prepare to set up optimizer
         optimizerType = 'L-BFGS'
         optimizationParameters = {
             'Verbose': False,
@@ -105,20 +114,192 @@ class ProbabilisticAtlas:
             'BFGS-MaximumMemoryLength': 12
         }
         optimizationParameters.update(userOptimizationParameters)
-        optimizer = gems.KvlOptimizer(optimizerType, mesh, calculator, optimizationParameters)
+                
+        if not self.useBlocksForDeformation:
+            #
+            # Vanilla case of a single optimizer
+            #
+          
+            # Get optimizer
+            if ( mesh != self.previousDeformationMesh ):
+                # Create a new optimizer and plug calculator in it
+                optimizer = gems.KvlOptimizer(optimizerType, mesh, calculator, optimizationParameters)
+                
+                # Remember for a potential next time if warm optimizers are used
+                if self.useWarmDeformationOptimizers:
+                    self.previousDeformationMesh = mesh
+                    self.optimizer = optimizer
+                
+            else:
+                # Reuse a warm optimizer from last time -- just plug the current calculator into it
+                print( "ProbabilisticAtlas reusing warm optimizer!!" )
+                optimizer = self.optimizer
+                optimizer.update_calculator( calculator )
+                
+            # Run deformation optimization for the specified number of steps (unless it stops moving
+            # properly earlier)
+            historyOfDeformationCost = []
+            historyOfMaximalDeformation = []
+            nodePositionsBeforeDeformation = mesh.points
+            import time
+            while True:
+                globalTic = time.perf_counter()
+                minLogLikelihoodTimesDeformationPrior, maximalDeformation = optimizer.step_optimizer_samseg()
+                globalToc = time.perf_counter()
+                print("maximalDeformation=%.4f minLogLikelihood=%.4f" % (
+                maximalDeformation, minLogLikelihoodTimesDeformationPrior))
+                historyOfDeformationCost.append(minLogLikelihoodTimesDeformationPrior)
+                print( f"  Total time spent: {globalToc-globalTic:0.4f} sec" )
+                historyOfMaximalDeformation.append(maximalDeformation)
+                if maximalDeformation == 0:
+                    break
 
-        # Run deformation optimization
-        historyOfDeformationCost = []
-        historyOfMaximalDeformation = []
-        nodePositionsBeforeDeformation = mesh.points
-        while True:
-            minLogLikelihoodTimesDeformationPrior, maximalDeformation = optimizer.step_optimizer_samseg()
-            print("maximalDeformation=%.4f minLogLikelihood=%.4f" % (
-            maximalDeformation, minLogLikelihoodTimesDeformationPrior))
-            historyOfDeformationCost.append(minLogLikelihoodTimesDeformationPrior)
-            historyOfMaximalDeformation.append(maximalDeformation)
-            if maximalDeformation == 0:
-                break
+        else:
+            #
+            # Use block coordinate descent in the hope of speeding up convergence.
+            # The idea is that solving M optimization problems of size N/M is faster
+            # than solving a single big optimization problem of size N. Of course in
+            # our case the M problems are not independent, but the coupling is pretty
+            # loose (only through a layer of tetrahedra that connect the M point sets)
+            #
+            numberOfBlocks = 6
+          
+            # Get optimizers
+            if ( mesh != self.previousDeformationMesh ):
+                # Create new optimizers and plug calculator in them
+                numberOfNodes = mesh.point_count
+                numberOfNodesPerBlock = np.ceil( numberOfNodes / numberOfBlocks ).astype( 'int' )
+                masks, submeshes, optimizers = [], [], []
+                calculators = []
+                import time
+                useSmartClustering = True
+                if useSmartClustering:
+                    # Use k-means to group, in an attempt to limit the number of extra points
+                    # that need to be added because of boundary tetrahedra connecting 
+                    # submeshes with their neighbors
+                    from sklearn.cluster import KMeans
+                    nodePositions = mesh.points
+                    kmeans = KMeans(n_clusters=numberOfBlocks, random_state=0).fit( nodePositions )
+                for blockNumber in range( numberOfBlocks ):
+                    tic = time.perf_counter()
+                    start = blockNumber * numberOfNodesPerBlock
+                    end = min( (blockNumber+1) * numberOfNodesPerBlock, numberOfNodes )
+                    
+                    if useSmartClustering:
+                        mask = ( kmeans.labels_ == blockNumber )
+                    else:  
+                        mask = np.zeros( numberOfNodes, dtype=bool )
+                        mask[ start:end ] = True
+                    origMask = mask.copy()    
+                    submesh = mesh.get_submesh( mask );
+                    optimizer = gems.KvlOptimizer(optimizerType, submesh, calculator, optimizationParameters)
+                    
+                    masks.append( mask )
+                    submeshes.append( submesh )
+                    optimizers.append( optimizer )
+                    toc = time.perf_counter()
+                    
+                    print( f"blockNumber {blockNumber}" )
+                    print( f"     efficiency: {mask.sum() / origMask.sum() * 100:.4f} %" )
+                    print( f"     relative size: {mask.sum() / numberOfNodes * 100:.4f} %" )
+                    print( f"     setup time: {toc-tic:0.4f} sec" )
+                  
+                    
+                # Remember for a potential next time if warm optimizers are used
+                if self.useWarmDeformationOptimizers:
+                    self.previousDeformationMesh = mesh
+                    self.optimizers = optimizers
+                    self.submeshes = submeshes
+                    self.masks = masks
+ 
+            else:
+                # Reuse warm optimizers from last time -- just plug the current calculator into it
+                print( "ProbabilisticAtlas reusing warm optimizers!!" )
+                optimizers = self.optimizers
+                submeshes = self.submeshes
+                masks = self.masks
+                for optimizer in optimizers:
+                    optimizer.update_calculator( calculator )
+                
+
+            # Run deformation optimization for the specified number of steps (unless it stops moving
+            # properly earlier)
+            historyOfMaximalDeformation = []
+            nodePositionsBeforeDeformation = mesh.points
+            
+            #
+            debug = False
+            computeHistoryOfDeformationCost = False # Useful for analyzing convergence, but slow
+            if computeHistoryOfDeformationCost: historyOfDeformationCost = []
+            currentNodePositions = nodePositionsBeforeDeformation.copy()
+            while True:
+                import time
+                globalTic = time.perf_counter()
+                maximalDeformation = 0.0
+                for blockNumber in range( numberOfBlocks ):
+                    if debug:
+                        mesh.points = currentNodePositions
+                        tmpGlobalCostBefore, _ = calculator.evaluate_mesh_position( mesh )
+
+                    submesh = submeshes[ blockNumber ]
+                    mask = masks[ blockNumber ]
+                    optimizer = optimizers[ blockNumber ]
+
+                    submesh.points = currentNodePositions[ mask, : ]
+                    optimizer.update_mesh( submesh )
+                    
+                    if debug:
+                        tmpLocalCostBefore, _ = calculator.evaluate_mesh_position( submesh )
+                    
+                    blockMinLogLikelihoodTimesDeformationPrior, blockMaximalDeformation = optimizer.step_optimizer_samseg()
+                    
+                    currentNodePositions[ mask, : ] = submesh.points
+
+                    if debug:
+                        tmpLocalCostAfter, _ = calculator.evaluate_mesh_position( submesh )
+                        mesh.points = currentNodePositions
+                        tmpGlobalCostAfter, _ = calculator.evaluate_mesh_position( mesh )
+                        print( f"  block {blockNumber}:" )
+                        print( f"    local decrease: {tmpLocalCostBefore-tmpLocalCostAfter} ({tmpLocalCostBefore} - {tmpLocalCostAfter})" )
+                        print( f"    global decrease: {tmpGlobalCostBefore-tmpGlobalCostAfter} ({tmpGlobalCostBefore} - {tmpGlobalCostAfter})" )
+
+                    maximalDeformation = max( maximalDeformation, blockMaximalDeformation )
+                    
+                    # End loop over blocks
+                    
+                historyOfMaximalDeformation.append(maximalDeformation)
+
+                globalToc = time.perf_counter()
+                print( f"  Total time spent: {globalToc-globalTic:0.4f} sec" )
+
+                if computeHistoryOfDeformationCost:
+                    tic = time.perf_counter()
+                    mesh.points = currentNodePositions
+                    minLogLikelihoodTimesDeformationPrior, _ = calculator.evaluate_mesh_position( mesh )
+                    toc = time.perf_counter()
+                    print( f'Additional time spent (unnecessarily) computing full cost function: {toc-tic:0.4f} sec' )
+                    print("maximalDeformation=%.4f minLogLikelihood=%.4f" % (
+                    maximalDeformation, minLogLikelihoodTimesDeformationPrior))
+                    historyOfDeformationCost.append(minLogLikelihoodTimesDeformationPrior)
+                else:
+                    print( f"maximalDeformation={maximalDeformation:.4f}" )                  
+                  
+                    
+                # Check early convergence    
+                if maximalDeformation == 0:
+                    break
+                  
+            #      
+            mesh.points = currentNodePositions
+            minLogLikelihoodTimesDeformationPrior, _ = calculator.evaluate_mesh_position( mesh )
+
+            
+            #
+            if not computeHistoryOfDeformationCost: 
+                historyOfDeformationCost = [ minLogLikelihoodTimesDeformationPrior ]
+
+      
+        # End test numberOfBlocks  
 
         # Return
         nodePositionsAfterDeformation = mesh.points
