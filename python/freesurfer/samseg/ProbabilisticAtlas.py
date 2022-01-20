@@ -163,6 +163,7 @@ class ProbabilisticAtlas:
             # loose (only through a layer of tetrahedra that connect the M point sets)
             #
             numberOfBlocks = 6
+            numberOfPassesOverEntireMesh = 3 # Between 1 and optimizationParameters[ 'MaximumNumberOfIterations' ]
           
             # Get optimizers
             if ( mesh != self.previousDeformationMesh ):
@@ -231,6 +232,8 @@ class ProbabilisticAtlas:
             debug = False
             computeHistoryOfDeformationCost = False # Useful for analyzing convergence, but slow
             if computeHistoryOfDeformationCost: historyOfDeformationCost = []
+            numberOfInnerLoops = round( optimizationParameters[ 'MaximumNumberOfIterations' ] / 
+                                        numberOfPassesOverEntireMesh )
             currentNodePositions = nodePositionsBeforeDeformation.copy()
             while True:
                 import time
@@ -251,7 +254,14 @@ class ProbabilisticAtlas:
                     if debug:
                         tmpLocalCostBefore, _ = calculator.evaluate_mesh_position( submesh )
                     
-                    blockMinLogLikelihoodTimesDeformationPrior, blockMaximalDeformation = optimizer.step_optimizer_samseg()
+                  
+                    blockPositionsBeforeDeformation = submesh.points
+                    for innerLoopNumber in range( numberOfInnerLoops ):
+                        optimizer.step_optimizer_samseg()
+                    blockPositionsAfterDeformation = submesh.points
+                    blockMaximalDeformation = \
+                        np.sqrt( np.max( np.sum( ( blockPositionsAfterDeformation - 
+                                                   blockPositionsBeforeDeformation ) ** 2, 1 ) ) )
                     
                     currentNodePositions[ mask, : ] = submesh.points
 
