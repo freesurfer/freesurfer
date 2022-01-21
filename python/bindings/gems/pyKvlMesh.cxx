@@ -282,6 +282,15 @@ unsigned int KvlMeshCollection::MeshCount() const {
     return meshCollection->GetNumberOfMeshes();
 }
 
+void KvlMeshCollection::Smooth(double sigma) {
+    kvl::AtlasMeshCollection::Pointer atlasMeshCollectionPtr = this->GetMeshCollection();
+    kvl::AtlasMeshSmoother::Pointer  smoother = kvl::AtlasMeshSmoother::New();
+    smoother->SetMeshCollection(atlasMeshCollectionPtr);
+    smoother->SetSigma(sigma);
+    // note: it's very unclear that this actually updates the source mesh collection
+    smoother->GetSmoothedMeshCollection();
+}
+
 py::array_t<uint16_t> KvlMesh::RasterizeMesh(std::vector<size_t> size, int classNumber) {
     // Some typedefs
     typedef kvl::AtlasMeshAlphaDrawer::ImageType  AlphaImageType;

@@ -7,6 +7,7 @@
 #include <vector>
 #include "itkObject.h"
 #include "kvlAtlasMeshCollection.h"
+#include "kvlAtlasMeshSmoother.h"
 #include "pyKvlTransform.h"
 
 namespace py = pybind11;
@@ -66,6 +67,7 @@ public:
                    double initialStiffness,
                    unsigned int numberOfClasses, unsigned int numberOfMeshes);
     void Transform(const KvlTransform &transform);
+    void Smooth(double sigma);
 
     // C++ use only
     KvlMeshCollection();
