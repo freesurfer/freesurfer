@@ -1918,7 +1918,11 @@ void MainWindow::RunScript()
   }
   else if ( cmd == "setheatscaleoptions" )
   {
-    CommandSetHeadScaleOptions( sa );
+    CommandSetHeatScaleOptions( sa );
+  }
+  else if ( cmd == "setheatscaleoffset")
+  {
+    CommandSetHeatScaleOffset( sa );
   }
   else if ( cmd == "setlut" )
   {
@@ -2152,6 +2156,10 @@ void MainWindow::RunScript()
   {
     CommandSetActiveFrame(sa);
   }
+  else if (cmd == "setautoadjustframecontrast")
+  {
+    CommandSetAutoAdjustFrameContrast(sa);
+  }
   else if (cmd == "setactivelayer")
   {
     CommandSetActiveLayer(sa);
@@ -2376,11 +2384,17 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
         scales = subArgu.split(",");
       }
       else if ( subOption == "heatscaleoption" ||
-                subOption == "heatscaleoptions" )
+                subOption == "heatscaleoptions" ||
+                subOption == "heatscale_option" ||
+                subOption == "heatscale_options")
       {
         QStringList script("setheatscaleoptions");
         script << subArgu.split(",");
         m_scripts.insert( 0, script );
+      }
+      else if ( subOption == "heatscale_offset" )
+      {
+        m_scripts.insert( 0, QStringList() << "setheatscaleoffset" << subArgu );
       }
       else if ( subOption == "lut" )
       {
@@ -2584,6 +2598,10 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
       {
         m_scripts.insert( 0, QStringList() << "setactiveframe" << subArgu );
       }
+      else if ( subOption == "auto_adjust_frame_contrast" )
+      {
+        m_scripts.insert( 0, QStringList() << "setautoadjustframecontrast" << subArgu );
+      }
       else if (subOption == "ignore_header")
       {
         sup_data["IgnoreHeader"] = true;
@@ -2775,7 +2793,7 @@ void MainWindow::CommandSetSelectedLabels(const QStringList &cmd)
   }
 }
 
-void MainWindow::CommandSetHeadScaleOptions( const QStringList& sa )
+void MainWindow::CommandSetHeatScaleOptions( const QStringList& sa )
 {
   if ( GetLayerCollection( "MRI" )->GetActiveLayer() )
   {
@@ -2791,6 +2809,22 @@ void MainWindow::CommandSetHeadScaleOptions( const QStringList& sa )
         p->SetHeatScaleTruncate( true );
       }
     }
+  }
+}
+
+void MainWindow::CommandSetHeatScaleOffset(const QStringList &sa)
+{
+  if ( GetLayerCollection( "MRI" )->GetActiveLayer() )
+  {
+    bool bOK;
+    double dValue = sa[1].toDouble(&bOK);
+    if ( !bOK )
+    {
+      cerr << "Heatscale offset value is not valid.\n";
+      return;
+    }
+    LayerPropertyMRI* p = ( (LayerMRI*)GetLayerCollection( "MRI" )->GetActiveLayer() )->GetProperty();
+    p->SetHeatScaleOffset(dValue);
   }
 }
 
@@ -3116,6 +3150,16 @@ void MainWindow::CommandSetActiveFrame( const QStringList& sa )
     }
   }
 }
+
+void MainWindow::CommandSetAutoAdjustFrameContrast( const QStringList& sa )
+{
+  LayerMRI* mri = (LayerMRI*)GetLayerCollection( "MRI" )->GetActiveLayer();
+  if ( mri )
+  {
+    mri->GetProperty()->SetAutoAdjustFrameLevel(sa[1].toLower() == "true" || sa[1] == "1");
+  }
+}
+
 
 void MainWindow::CommandSetDisplayIsoSurface( const QStringList& sa )
 {
