@@ -11,37 +11,57 @@ typedef struct
   char xyz;
 } COEFF;
 
+class Siemens_B
+{
+public:
+  Siemens_B(int coeffDim0, int nmax0, float R0, double **normfact0, float X, float Y, float Z);
+  ~Siemens_B();
+
+  float siemens_B_x(float **Alpha_x, float **Beta_x);
+  float siemens_B_y(float **Alpha_y, float **Beta_y);
+  float siemens_B_z(float **Alpha_z, float **Beta_z);
+  float siemens_B(float **Alpha, float **Beta);
+  void  siemens_legendre(int n, double x);
+
+private:
+  int coeffDim;
+  int nmax;
+  float R0_mm;
+
+  double **normfact;
+
+  double **P;
+  float  *F;
+  double *cosPhi, *sinPhi;
+  float R, Theta, Phi;
+};
+
 class GradUnwarp
 {
 public:
   GradUnwarp();
   ~GradUnwarp();
 
-  void  setup();
-  void  list_coeff_files();
+  void  setup() {};
+  void  list_coeff_files() {};
 
   void  read_siemens_coeff(const char *gradfilename);
   void  printCoeff();
 
-  float siemens_B_x();
-  float siemens_B_y();
-  float siemens_B_z();
-  float siemens_B(float **Alpha, float **Beta, float **F2);
-  void  siemens_B0(float X, float Y, float Z);
-  void  siemens_legendre(int n, double x, double **P);
-
+  void initSiemensLegendreNormfact();
   void  spharm_evaluate(float X, float Y, float Z, float *Dx, float *Dy, float *Dz);
 
-  void  initSiemensLegendreNormfact();
-
-  void  unwarp();
-  void  unwap_volume();
-  void  unwarp_surface();
+  void  unwarp() {};
+  void  unwap_volume() {};
+  void  unwarp_surface() {};
   
 private:
   FILE *fgrad;
 
   COEFF coeff[100];
+
+  int nmax;
+  int mmax;
 
   int coeffCount;
   int coeffDim;
@@ -55,13 +75,6 @@ private:
   double *minusonepow;
   double *factorials;
   double **normfact;
-
-  // these are reset and re-calculated for each (x, y, z) in siemens_B0()  
-  double **P;
-  float **F2_x, **F2_y, **F2_z;
-  float  *F;
-  double *cosPhi, *sinPhi;
-  float R, Theta, Phi;
 
 private:
   void _skipCoeffComment();
