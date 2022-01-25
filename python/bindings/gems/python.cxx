@@ -107,6 +107,7 @@ PYBIND11_MODULE(gemsbindings, m) {
             .def("construct", &KvlMeshCollection::Construct, py::return_value_policy::take_ownership)
             .def("read", &KvlMeshCollection::Read, py::return_value_policy::take_ownership)
             .def("transform", &KvlMeshCollection::Transform, py::return_value_policy::take_ownership)
+            .def("smooth", &KvlMeshCollection::Smooth, py::return_value_policy::take_ownership)
             .def("write", &KvlMeshCollection::Write, py::return_value_policy::take_ownership)
             ;
      m.def("setGlobalDefaultNumberOfThreads", &setGlobalDefaultNumberOfThreads, "Sets the maximum number of threads for ITK.");

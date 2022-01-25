@@ -51,7 +51,7 @@ public:
     
     
     // Retrieve K
-    const float  K = static_cast< float >( *( mxGetPr( prhs[ 1 ] ) ) );
+    const double  K = static_cast< double >( *( mxGetPr( prhs[ 1 ] ) ) );
  
     
     // 
