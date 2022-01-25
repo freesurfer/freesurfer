@@ -103,8 +103,12 @@ int main(int argc, char *argv[])
 
   GradUnwarp *gradUnwarp = new GradUnwarp();
   gradUnwarp->read_siemens_coeff(gradfile0.c_str());
-  //gradUnwarp->printCoeff();
-  //return 0;
+  if (getenv("PRN_GRADCOEFF_ONLY"))
+  {
+    gradUnwarp->printCoeff();
+    return 0;
+  }
+
   gradUnwarp->initSiemensLegendreNormfact();
 
   if (inputras) // for debugging only
@@ -167,16 +171,15 @@ static void unwarpVol(const char* origmgz, const char* unwarpedmgz, GradUnwarp* 
   if (interpcode == SAMPLE_CUBIC_BSPLINE)
     bspline = MRItoBSpline(origvol, NULL, 3);
 
-  int outofrange_total = 0;
-
 #ifdef HAVE_OPENMP
   printf("\nSet OPEN MP NUM threads to %d\n", nthreads);
   omp_set_num_threads(nthreads);
 #endif
 
-  int c;
+  int c; 
+  int outofrange_total = 0;
 #ifdef HAVE_OPENMP
-#pragma omp parallel for 
+#pragma omp parallel for reduction(+ : outofrange_total) 
 #endif
   for (c = 0; c < origvol->width; c++)
   {
@@ -188,7 +191,7 @@ static void unwarpVol(const char* origmgz, const char* unwarpedmgz, GradUnwarp* 
     MATRIX *DistortedCRS = MatrixAlloc(4, 1, MATRIX_REAL);
 
     int r = 0, s = 0;
-    int outofrange_local = 0;
+    //int outofrange_local = 0;
 
 #if 0
 #ifdef HAVE_OPENMP
@@ -293,10 +296,13 @@ static void unwarpVol(const char* origmgz, const char* unwarpedmgz, GradUnwarp* 
               irs < 0 || irs >= origvol->height || 
               iss < 0 || iss >= origvol->depth)
           {
+            outofrange_total++;
+#if 0
 #ifdef HAVE_OPENMP
             outofrange_local++;
 #else
             outofrange_total++;
+#endif
 #endif
             continue;
           }
@@ -344,10 +350,12 @@ static void unwarpVol(const char* origmgz, const char* unwarpedmgz, GradUnwarp* 
       }   // s
     }     // r
 
+#if 0
 #ifdef HAVE_OPENMP
 #pragma omp critical 
     outofrange_total += outofrange_local; 
     //printf("update out of range voxel count: + %d = %d\n", outofrange_local, outofrange_total);
+#endif
 #endif
 
     MatrixFree(&CRS);

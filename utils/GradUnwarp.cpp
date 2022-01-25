@@ -9,8 +9,8 @@
 
 /*****************************************************************************/
 /******************** Implementation of GradUnwarp class *********************/
-/**********    3 environment variables to enable debug info:        **********/
-/********** COEFF_READ_DEBUG, LEGENDRE_NORMFACT_DEBUG, PRN_LEGENDRE **********/
+/***************     3 environment variables to enable debug info:        **************/
+/********** PRN_GRADCOEFF, PRN_LEGENDRE_NORMFACT, PRN_LEGENDRE, PRN_SIEMENS_B **********/
 GradUnwarp::GradUnwarp()
 {
   fgrad = NULL;
@@ -57,7 +57,6 @@ GradUnwarp::~GradUnwarp()
 void GradUnwarp::read_siemens_coeff(const char *gradfilename)
 {
   // check if gradfile has extension .grad
-  // ...
 
   // open gradfilename
   fgrad = fopen(gradfilename, "r");
@@ -126,10 +125,7 @@ void GradUnwarp::read_siemens_coeff(const char *gradfilename)
     if (*ptr == '\0')
       continue;
 
-    // start filling coeff entries at index 1
-    coeffCount++;
-
-    if (getenv("COEFF_READ_DEBUG"))
+    if (getenv("PRN_GRADCOEFF_READ"))
       printf("entry #%d: %s\n", coeffCount, coeffline);
 
     sscanf(ptr, "%d %c(%d, %d) %f %c", 
@@ -139,17 +135,21 @@ void GradUnwarp::read_siemens_coeff(const char *gradfilename)
     mmax = (coeff[coeffCount].m > mmax) ? coeff[coeffCount].m : mmax;
     //printf("%d %c (%d, %d) %f %c\n", coeff[coeffCount].num, 
     //       coeff[coeffCount].A_or_B, coeff[coeffCount].n, coeff[coeffCount].m, coeff[coeffCount].value, coeff[coeffCount].xyz);
+
+    coeffCount++;
   }
 
   fclose(fgrad);    
 
-  coeffDim = (nmax > mmax) ? nmax+1 : mmax+1;
+  nmax = (nmax > mmax) ? nmax : mmax;
+  coeffDim = nmax+1;
+
   _initCoeff();
 
   /**************************************************************************/
   /****** organize coefficient values ******/
   int n;
-  for (n = 1; n <= coeffCount; n++)
+  for (n = 0; n < coeffCount; n++)
   {
     float **arrPtr = NULL;
     if (coeff[n].A_or_B == 'A')
@@ -179,7 +179,7 @@ void GradUnwarp::read_siemens_coeff(const char *gradfilename)
 
     int row = coeff[n].n;
     int col = coeff[n].m; 
-    arrPtr[row+1][col+1] = coeff[n].value;
+    arrPtr[row][col] = coeff[n].value;
   }
 }
 
@@ -201,22 +201,22 @@ void GradUnwarp::initSiemensLegendreNormfact()
   for (n = 0; n < 2*coeffDim; n++)
     factorials[n] = factorial(n);
 
-  if (getenv("LEGENDRE_NORMFACT_DEBUG"))
+  if (getenv("PRN_LEGENDRE_NORMFACT"))
     printf("\n");
 
   for (n = 0; n < coeffDim; n++)
   {
     int m;
-    for (m = 1; m <= n; m++)
+    for (m = 0; m < n; m++)
     {
-      normfact[n][m] = minusonepow[m] * sqrt((2*n+1)*factorials[n-m]/(2*factorials[n+m]));
+      normfact[n][m] = minusonepow[m+1] * sqrt((2*n+1)*factorials[n-m-1]/(2*factorials[n+m+1]));
    
-      if (getenv("LEGENDRE_NORMFACT_DEBUG"))
-        printf("normfact2[%2d][%2d] = %s%.6lf, pow((-1), %2d) * sqrt((%2d)*factorial(%2d)/(2*factorial(%2d)))\n",
-               n, m, (normfact[n][m] > 0) ? " " : "", normfact[n][m], m, 2*n+1, n-m, n+m);
+      if (getenv("PRN_LEGENDRE_NORMFACT"))
+        printf("normfact[%2d][%2d] = %s%.6lf, pow((-1), %2d) * sqrt((%2d)*factorial(%2d)/(2*factorial(%2d)))\n",
+               n, m, (normfact[n][m] > 0) ? " " : "", normfact[n][m], m+1, 2*n+1, n-m-1, n+m+1);
     }
 
-    if (getenv("LEGENDRE_NORMFACT_DEBUG"))
+    if (getenv("PRN_LEGENDRE_NORMFACT"))
       printf("\n");
   }
 }
@@ -229,7 +229,8 @@ void GradUnwarp::spharm_evaluate(float X, float Y, float Z, float *Dx, float *Dy
   float by = siemens_B->siemens_B_y(Alpha_y, Beta_y);
   float bz = siemens_B->siemens_B_z(Alpha_z, Beta_z);
 
-  //printf("bx=%lf, by=%lf, bz=%lf\n", bx, by, bz);
+  if (getenv("PRN_SIEMENS_B"))
+    printf("bx=%lf, by=%lf, bz=%lf\n", bx, by, bz);
 
   *Dx = bx * R0;
   *Dy = by * R0;
@@ -309,42 +310,40 @@ void GradUnwarp::_skipCoeffComment()
 
 void GradUnwarp::_initCoeff()
 {
-  printf("coeffDim = %d, coeffCount=%d\n", coeffDim, coeffCount);
+  printf("nmax = %d, coeffDim = %d, coeffCount = %d\n", nmax, coeffDim, coeffCount);
 
   // allocate float *Alpha_x, *Alpha_y, *Alpha_z; float *Beta_x,  *Beta_y,  *Beta_z;
-  // first row and first col of Alpha_x, Alpha_y, Alpha_z, Beta_x, Beta_y, Beta_z are all zeros, they are not used.
-  // this is to align with MATLAB matrix which has index starting at 1.
-  int arrsize = coeffDim + 1;
-  Alpha_x = new float*[arrsize];
-  Alpha_y = new float*[arrsize];
-  Alpha_z = new float*[arrsize];
-  Beta_x  = new float*[arrsize];
-  Beta_y  = new float*[arrsize];
-  Beta_z  = new float*[arrsize];
+  Alpha_x = new float*[coeffDim];
+  Alpha_y = new float*[coeffDim];
+  Alpha_z = new float*[coeffDim];
+  Beta_x  = new float*[coeffDim];
+  Beta_y  = new float*[coeffDim];
+  Beta_z  = new float*[coeffDim];
 
   // initialize coefficient arrays
   int i;
-  for (i = 0; i <= coeffDim; i++)
+  for (i = 0; i < coeffDim; i++)
   {
-    Alpha_x[i] = new float[arrsize];
-    memset(Alpha_x[i], 0, sizeof(float)*arrsize);
+    Alpha_x[i] = new float[coeffDim];
+    memset(Alpha_x[i], 0, sizeof(float)*coeffDim);
 
-    Alpha_y[i] = new float[arrsize];
-    memset(Alpha_y[i], 0, sizeof(float)*arrsize);
+    Alpha_y[i] = new float[coeffDim];
+    memset(Alpha_y[i], 0, sizeof(float)*coeffDim);
 
-    Alpha_z[i] = new float[arrsize];
-    memset(Alpha_z[i], 0, sizeof(float)*arrsize);
+    Alpha_z[i] = new float[coeffDim];
+    memset(Alpha_z[i], 0, sizeof(float)*coeffDim);
 
-    Beta_x[i]  = new float[arrsize];
-    memset(Beta_x[i], 0, sizeof(float)*arrsize);
+    Beta_x[i]  = new float[coeffDim];
+    memset(Beta_x[i], 0, sizeof(float)*coeffDim);
 
-    Beta_y[i]  = new float[arrsize];
-    memset(Beta_y[i], 0, sizeof(float)*arrsize);
+    Beta_y[i]  = new float[coeffDim];
+    memset(Beta_y[i], 0, sizeof(float)*coeffDim);
 
-    Beta_z[i]  = new float[arrsize];
-    memset(Beta_z[i], 0, sizeof(float)*arrsize);
+    Beta_z[i]  = new float[coeffDim];
+    memset(Beta_z[i], 0, sizeof(float)*coeffDim);
   }
 }
+
 
 
 /***********************************************************************************/
@@ -361,9 +360,8 @@ Siemens_B::Siemens_B(int coeffDim0, int nmax0, float R0, double **normfact0, flo
   int n;
   for (n = 0; n < coeffDim; n++)
   {
-    // P[0][] is not used, MATLAB index starts at 1 
-    P[n] = new double[coeffDim+1];
-    memset(P[n], 0, (coeffDim+1)*sizeof(double));
+    P[n] = new double[coeffDim];
+    memset(P[n], 0, (coeffDim)*sizeof(double));
   }
 
   F = new float[coeffDim];
@@ -383,7 +381,7 @@ Siemens_B::Siemens_B(int coeffDim0, int nmax0, float R0, double **normfact0, flo
   Phi = atan2(Y/R, X/R);
 
   // evaluate the Legendre polynomial (using Siemens's normalization)
-  for (n = 0; n <= nmax; n++)
+  for (n = 0; n < coeffDim; n++)
   {
     siemens_legendre(n, cos(Theta));
 
@@ -424,13 +422,13 @@ float Siemens_B::siemens_B(float **Alpha, float **Beta)
 {
   float B = 0;
   int n;
-  for (n = 0; n <= nmax; n++)
+  for (n = 0; n < coeffDim; n++)
   {
     int m;
     for (m = 0; m <= n; m++)
     {
-      float F2 = Alpha[n+1][m+1] * cosPhi[m] + Beta[n+1][m+1] * sinPhi[m];
-      B = B + F[n]*P[n][m+1]*F2;
+      float F2 = Alpha[n][m] * cosPhi[m] + Beta[n][m] * sinPhi[m];
+      B = B + F[n]*P[n][m]*F2;
     }
   }
 
@@ -442,33 +440,25 @@ void Siemens_B::siemens_legendre(int n, double x)
   int m;
   for (m = 0; m <= n; m++)
   {
-    P[n][m+1] = gsl_sf_legendre_Plm_e(n, m, x);
+    P[n][m] = gsl_sf_legendre_Plm_e(n, m, x);
   }
 
   if (getenv("PRN_LEGENDRE"))
   {
     printf("\nlegendre (n=%d, x=%lf) = \n", n, x);
-    for (m = 0; m <= n+1; m++)
+    for (m = 0; m <= n; m++)
       printf("\tP[%d][%d] = %lf\n", n, m, P[n][m]);
   }
 
-  for (m = 1; m <= n; m++)
+  for (m = 0; m < n; m++)
   {
     P[n][m+1] *= normfact[n][m];
-#if 0
-    double normfact = pow((-1), m+1) * sqrt((2*n+1)*factorial(n-m-1)/(2*factorial(n+m+1)));
-    P[m+1] *= normfact;
-
-    printf("normfact[%d][%d] = %lf, pow((-1), %d) * sqrt((%d)*factorial(%d)/(2*factorial(%d)))\n",
-           n, m, normfact, m+1, 2*n+1, n-m-1, n+m+1);
-#endif
   }
 
   if (getenv("PRN_LEGENDRE"))
   {
     printf("\nsiemens_legendre (n=%d, x=%lf) = \n", n, x);
-    for (m = 0; m <= n+1; m++)
+    for (m = 0; m <= n; m++)
       printf("\tP[%d][%d] = %lf\n", n, m, P[n][m]);
   }
 }
- 
