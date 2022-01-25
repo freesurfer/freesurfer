@@ -14,10 +14,10 @@
 #include "GradUnwarp.h"
 
 /* examples:
- * 1. mris_gradient_unwarp/mris_gradient_unwarp --gradcoeff $WKDIR/fs_test/gradunwarp/example/coeff_Sonata.grad --invol $WKDIR/fs_test/gradunwarp/example/orig.mgz --outvol unwarped.mgz
- * 2. mris_gradient_unwarp/mris_gradient_unwarp --gradcoeff $WKDIR/fs_test/gradunwarp/example/coeff_Sonata.grad --invol $WKDIR/fs_test/gradunwarp/example/orig.mgz --outvol orig.dup.mgz --dupinvol
- * 3. mris_gradient_unwarp/mris_gradient_unwarp --gradcoeff $WKDIR/fs_test/gradunwarp/example/coeff_Sonata.grad --invol $WKDIR/fs_test/gradunwarp/example/orig.mgz --ras 0.1,0.2,0.3
- * 4. mris_gradient_unwarp/mris_gradient_unwarp --gradcoeff $WKDIR/fs_test/gradunwarp/example/coeff_Sonata.grad --invol $WKDIR/fs_test/gradunwarp/example/orig.mgz  --crs 0,0,0
+ * 1. mris_gradient_unwarp/mris_gradient_unwarp --gradcoeff $FS_TEST/gradunwarp/example/coeff_Sonata.grad --invol $FS_TEST/gradunwarp/example/orig.mgz --outvol unwarped.mgz
+ * 2. mris_gradient_unwarp/mris_gradient_unwarp --gradcoeff $FS_TEST/gradunwarp/example/coeff_Sonata.grad --invol $FS_TEST/gradunwarp/example/orig.mgz --outvol orig.dup.mgz --dupinvol
+ * 3. mris_gradient_unwarp/mris_gradient_unwarp --gradcoeff $FS_TEST/gradunwarp/example/coeff_Sonata.grad --invol $FS_TEST/gradunwarp/example/orig.mgz --ras 0.1,0.2,0.3
+ * 4. mris_gradient_unwarp/mris_gradient_unwarp --gradcoeff $FS_TEST/gradunwarp/example/coeff_Sonata.grad --invol $FS_TEST/gradunwarp/example/orig.mgz  --crs 0,0,0
  */
 /****** BIG PICTURES ******/
 /*
@@ -62,8 +62,9 @@ int dupinvol = 0, inputras = 0, inputcrs = 0;
 double ras_x, ras_y, ras_z;
 int crs_c = 0, crs_r = 0, crs_s = 0;
 const char *interpmethod = "trilinear";
-int   interpcode = 0;
+int   interpcode = -1;
 int   sinchw = 0;
+int   nthreads = 1;
 
 int main(int argc, char *argv[])
 {
@@ -102,6 +103,12 @@ int main(int argc, char *argv[])
 
   GradUnwarp *gradUnwarp = new GradUnwarp();
   gradUnwarp->read_siemens_coeff(gradfile0.c_str());
+  if (getenv("PRN_GRADCOEFF_ONLY"))
+  {
+    gradUnwarp->printCoeff();
+    return 0;
+  }
+
   gradUnwarp->initSiemensLegendreNormfact();
 
   if (inputras) // for debugging only
@@ -164,30 +171,36 @@ static void unwarpVol(const char* origmgz, const char* unwarpedmgz, GradUnwarp* 
   if (interpcode == SAMPLE_CUBIC_BSPLINE)
     bspline = MRItoBSpline(origvol, NULL, 3);
 
-  int outofrangevoxels[_MAX_FS_THREADS];
 #ifdef HAVE_OPENMP
-  int tid;
-  for (tid = 0; tid < _MAX_FS_THREADS; tid++) {
-    outofrangevoxels[tid] = 0;
-  }
-#else
-  outofrangevoxels[0] = 0;
+  printf("\nSet OPEN MP NUM threads to %d\n", nthreads);
+  omp_set_num_threads(nthreads);
 #endif
 
-  int c;
+  int c; 
+  int outofrange_total = 0;
 #ifdef HAVE_OPENMP
-#pragma omp parallel for 
+#pragma omp parallel for reduction(+ : outofrange_total) 
 #endif
   for (c = 0; c < origvol->width; c++)
   {
-    int r = 0, s = 0, f = 0;
-
     // You could make a vector of CRS nthreads long
     MATRIX *CRS = MatrixAlloc(4, 1, MATRIX_REAL);
     MATRIX *RAS = MatrixAlloc(4, 1, MATRIX_REAL);;
     MATRIX *DeltaRAS = MatrixAlloc(4, 1, MATRIX_REAL);
     MATRIX *DistortedRAS = MatrixAlloc(4, 1, MATRIX_REAL);
     MATRIX *DistortedCRS = MatrixAlloc(4, 1, MATRIX_REAL);
+
+    int r = 0, s = 0;
+    //int outofrange_local = 0;
+
+#if 0
+#ifdef HAVE_OPENMP
+    int tid = omp_get_thread_num();
+    printf("hello from thread #%d (%d, %d, %d) ...\n", tid, c, r, s);
+#else
+    printf("hello from process %d ...\n", getpid());
+#endif
+#endif
 
     for (r = 0; r < origvol->height; r++)
     {
@@ -196,7 +209,7 @@ static void unwarpVol(const char* origmgz, const char* unwarpedmgz, GradUnwarp* 
         if (!dupinvol)
         {
           // clear CRS, RAS, DeltaRAS, DistortedRAS, DistortedCRS
-	  MatrixClear(CRS);
+          MatrixClear(CRS);
           MatrixClear(RAS);
           MatrixClear(DeltaRAS);
           MatrixClear(DistortedRAS);
@@ -283,11 +296,13 @@ static void unwarpVol(const char* origmgz, const char* unwarpedmgz, GradUnwarp* 
               irs < 0 || irs >= origvol->height || 
               iss < 0 || iss >= origvol->depth)
           {
+            outofrange_total++;
+#if 0
 #ifdef HAVE_OPENMP
-            int tid = omp_get_thread_num();
-            outofrangevoxels[tid]++;
+            outofrange_local++;
 #else
-            outofrangevoxels[0]++;
+            outofrange_total++;
+#endif
 #endif
             continue;
           }
@@ -304,12 +319,15 @@ static void unwarpVol(const char* origmgz, const char* unwarpedmgz, GradUnwarp* 
           float *valvect = new float[origvol->nframes]; 
           MRIsampleSeqVolume(origvol, fcs, frs, fss, valvect, 0, origvol->nframes - 1);
           
+          int f;
           for (f = 0; f < origvol->nframes; f++) 
             MRIsetVoxVal2(unwarpedvol, c, r, s, f, valvect[f]);
 
           free(valvect);
 	} else {
           double rval = 0;
+
+          int f;
           for (f = 0; f < origvol->nframes; f++) {
             switch (interpcode) {
               case SAMPLE_NEAREST:
@@ -332,6 +350,14 @@ static void unwarpVol(const char* origmgz, const char* unwarpedmgz, GradUnwarp* 
       }   // s
     }     // r
 
+#if 0
+#ifdef HAVE_OPENMP
+#pragma omp critical 
+    outofrange_total += outofrange_local; 
+    //printf("update out of range voxel count: + %d = %d\n", outofrange_local, outofrange_total);
+#endif
+#endif
+
     MatrixFree(&CRS);
     MatrixFree(&RAS);
     MatrixFree(&DeltaRAS);
@@ -343,16 +369,7 @@ static void unwarpVol(const char* origmgz, const char* unwarpedmgz, GradUnwarp* 
   int err = MRIwrite(unwarpedvol, unwarpedmgz);
   if(err) printf("something went wrong\n");
 
-  int totalCount = 0;
-#ifdef HAVE_OPENMP
-  for (tid = 0; tid < _MAX_FS_THREADS; tid++) {
-    totalCount += outofrangevoxels[tid];
-  }
-#else
-  totalCount = outofrangevoxels[0];
-#endif
-
-  printf("Total %d voxels are out of range\n", totalCount);
+  printf("Total %d voxels are out of range\n", outofrange_total);
 
   MatrixFree(&vox2ras_orig);
   MatrixFree(&inv_vox2ras_orig);
@@ -422,6 +439,10 @@ static int parse_commandline(int argc, char **argv) {
         printf("!!! <sinchw = %d> !!!\n", sinchw);
         nargsused ++;
       }
+    } else if(!strcasecmp(option, "--threads") || !strcasecmp(option, "--nthreads") ){
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%d", &nthreads);
+      nargsused = 1;
     } else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if (CMDsingleDash(option))
@@ -452,6 +473,8 @@ static void print_usage(void) {
   printf("   --crs       c,r,s\n");
   printf("\n"); 
   printf("   --interp    interptype nearest | trilinear | sinc | cubic\n");
+  printf("\n"); 
+  printf("   --nthreads  nthreads : Set OPEN MP threads\n");
   printf("\n"); 
   printf("   --debug     turn on debugging\n");
   printf("   --checkopts don't run anything, just check options and exit\n");

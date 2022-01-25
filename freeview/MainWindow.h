@@ -390,7 +390,8 @@ protected:
   void CommandWriteSurfaceIntersection( const QStringList& cmd);
   void CommandSetColorMap       ( const QStringList& cmd );
   void CommandSetLUT            ( const QStringList& cmd );
-  void CommandSetHeadScaleOptions( const QStringList& sa );
+  void CommandSetHeatScaleOptions( const QStringList& sa );
+  void CommandSetHeatScaleOffset ( const QStringList& sa );
   void CommandSetOpacity        ( const QStringList& cmd );
   void CommandSetLabelOutline   ( const QStringList& cmd );
   void CommandSetSelectedLabels (const QStringList& cmd);
@@ -441,6 +442,7 @@ protected:
   void CommandReorderLayers   ( const QStringList& cmd );
   void CommandUnloadLayers    ( const QStringList& cmd );
   void CommandSetActiveFrame    ( const QStringList& cmd );
+  void CommandSetAutoAdjustFrameContrast ( const QStringList& cmd );
   void CommandSetActiveLayer    ( const QStringList& cmd );
   void CommandExportLineProfileThickness  (const QStringList& cmd);
   void CommandSetVolumeTrackFrame   ( const QStringList& cmd );

@@ -142,7 +142,8 @@ int main(int argc, char *argv[])
     "':colormap=name' Set colormap for display. Valid names are grayscale/lut/heat/jet/gecolor/nih/pet/binary. \n\n"
     "':grayscale=min,max' Set grayscale window values.\n\n"
     "':heatscale=min,mid,max' Set heat scale values. If only 2 values given, min and mid will be set to the same value.\n\n"
-    "':heatscaleoptions=option1[,option2]' Set heat scale options. Options can be 'truncate','invert', or both.\n\n"
+    "':heatscale_options=option1[,option2]' Set heat scale options. Options can be 'truncate','invert', or both.\n\n"
+    "':heatscale_offset=val' Set heat scale offset value.\n\n"
     "':colorscale=min,max' Set generic colorscale values for jet/gecolor/nih/pet.\n\n"
     "':lut=name' Set lookup table to the given name. Name can be the name of a stock color table or the filename of a color table file.\n\n"
     "':binary_color=color' Set the color of the non-zero voxels. Colormap must be set to binary. Color can be a color name such as 'red' or 3 values as RGB components of the color, e.g., '255,0,0'.\n\n"
@@ -176,6 +177,7 @@ int main(int argc, char *argv[])
     "':structure=name_or_value' Move the slice in the main viewport to where it has the most of the given structure.\n\n"
     "':ignore_header=flag' Ignore header information. Use the existing volume's header info. Flag can be '1' or '0' or 'true' or 'false'.\n\n"
     "':frame=number' Set active frame (0 based).\n\n"
+    "':auto_adjust_frame_contrast=flag' Set flag for automatically adjust frame contrast. Flag can be '1' or 'true'.\n\n"
     "':select_label=label_index' When colormap is set as look up table, select and show only the given labels. Multiple labels can be given separated by comma, such as, '5,10,20'.\n\n"
     "Example:\nfreeview -v T1.mgz:colormap=heatscale:heatscale=10,100,200\n", 1, 1000 ),
     CmdLineEntry( CMD_LINE_SWITCH, "r", "resample", "", "Resample oblique data to standard RAS." ),
