@@ -72,7 +72,7 @@ set day   = `date +%d`
 set hour   = `date +%H`
 set min    = `date +%M`
 
-mkdir -p $outdir/mri/transforms $outdir/surf $outdir/scripts $outdir/label
+mkdir -p $outdir/mri/transforms $outdir/surf $outdir/scripts/log $outdir/label
 pushd $outdir > /dev/null
 set outdir = `pwd`;
 popd > /dev/null
@@ -85,15 +85,18 @@ endif
 
 setenv SUBJECTS_DIR `dirname $outdir`
 set subject = `basename $outdir`
+set mdir = $SUBJECTS_DIR/$subject/mri
+set sdir = $SUBJECTS_DIR/$subject/surf
 
 # Set up log file
 if($#LF == 0) then
-  set LF = $outdir/scripts/mmppsp.Y$year.M$month.D$day.H$hour.M$min.log
-  pushd $outdir >& /dev/null
-  ln -sf scripts/mmppsp.Y$year.M$month.D$day.H$hour.M$min.log mmppsp.log
+  set LF = $outdir/scripts/log/mmppsp.Y$year.M$month.D$day.H$hour.M$min.log
+  pushd $outdir/scripts >& /dev/null
+  ln -sf log/mmppsp.Y$year.M$month.D$day.H$hour.M$min.log mmppsp.log
   popd >& /dev/null
 endif
 if($LF != /dev/null) rm -f $LF
+echo Logfile is $LF
 echo "Log file for mmppsp" >> $LF
 date  | tee -a $LF
 echo "" | tee -a $LF
@@ -353,7 +356,10 @@ endif
 set filled = $outdir/mri/filled.mgz
 set filledauto = $outdir/mri/filled.auto.mgz
 set tallta = $samsegdir/samseg.talairach.lta
-set ud = `UpdateNeeded $filled $wm $seg $tallta`
+set entowm = $outdir/mri/entowm.mgz
+set entowmmask = $mdir/entowm.mask.mgz
+if(! -e $entowm) set entowm = ()
+set ud = `UpdateNeeded $filled $wm $seg $tallta $entowm`
 if($ud || $ForceUpdate) then
   set cmd = (mri_fill -ctab $FREESURFER/SubCorticalMassLUT.txt)
   if($#hemilist == 1) set cmd = ($cmd -$hemilist"only")
@@ -361,7 +367,7 @@ if($ud || $ForceUpdate) then
     set fillededits = ../tmp/filled.edits.txt
     set cmd = ($cmd -auto-man $filledauto $filledman $fillededits)
   endif
-  set cmd = ($cmd -xform $tallta  -segmentation $seg $wm $filled)
+  set cmd = ($cmd -xform $tallta -segmentation $seg $wm $filled)
   echo $cmd | tee -a $LF
   $cmd |& tee -a $LF
   if($status) goto error_exit
@@ -371,10 +377,24 @@ if($ud || $ForceUpdate) then
     $cmd |& tee -a $LF
     if($status) goto error_exit;
   endif
+  if($#entowm) then
+    # This is a little bit of a hack to fix entorhinal cortex. Ento WM is often 
+    # terrribly underlabeled. entowm.mgz should have ento WM labeled as 3006 (lh)
+    # and 4006 (rh). This section will edit the filled.mgz to force those labels
+    # to be in the fill. Other labels can be in the seg as long as they are not 127
+    # or 255. If other labels are there, then they will effectively edit out any
+    # filled voxels. 
+    set cmd = (entowm --s $subject --o $filled --entowmmask $entowmmask)
+    if($#hemilist == 1) set cmd = ($cmd --$hemilist)
+    echo " $cmd" |& tee -a $LF 
+    $cmd |& tee -a $LF
+    if($status) goto error_exit;
+  endif
 else
   echo "$filled does not need updating" | tee -a $LF
 endif
 
+# Get the voxel resolution for decimation purposes
 set voxresfile = /tmp/voxres.$$.dat
 set cmd = (mri_info --o $voxresfile --res $filled)
 echo $cmd | tee -a $LF
@@ -510,6 +530,18 @@ foreach hemi ($hemilist)
     goto done_exit
   endif
 
+  # Should probably add something at the end to combine hemis
+  set surfdefects = $outdir/mri/$hemi.surface.defects.mgz
+  set ud = `UpdateNeeded $surfdefects $orig`
+  if($ud || $ForceUpdate) then
+    set cmd = (defect2seg --s $subject --$hemi-only)
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) goto error_exit
+  else
+    echo "$surfdefects does not need updating" | tee -a $LF
+  endif
+
   set initsurf = $orig
 
   set gwstats = $outdir/surf/autodet.gwstats.$hemi.dat
@@ -523,6 +555,22 @@ foreach hemi ($hemilist)
     echo "$gwstats does not need updating" | tee -a $LF
   endif
 
+  set entowmmaskov = ()
+  if($#entowm) then
+    # Sample onto an overlay for freezing
+    set entowmmaskov = $sdir/$hemi.entowm.mask.mgz
+    set ud = `UpdateNeeded $entowmmaskov $entowmmask $orig`
+    set cmd = (mri_vol2surf --regheader $subject --projdist-max -1.0 0 .1 \
+     --hemi $hemi --surf orig --mov $entowmmask --o $entowmmaskov)
+    if($ud || $ForceUpdate) then
+      echo $cmd | tee -a $LF
+      $cmd |& tee -a $LF
+      if($status) goto error_exit
+    else
+      echo "$entowmmaskov does not need updating" | tee -a $LF
+    endif
+  endif
+
   set wpreaparcsurf = $outdir/surf/$hemi.white.preaparc
   set wpreaparcsurftarg = $outdir/surf/$hemi.white.preaparc.targ
   set cmd = (mris_place_surface --adgws-in $gwstats \
@@ -531,7 +579,8 @@ foreach hemi ($hemilist)
     --invol $scm --$hemi  --i $initsurf --o $wpreaparcsurf --white --nsmooth 5 \
     --seg $seg --threads $threads --target $wpreaparcsurftarg) 
     #--aparc $aparc --rip-surf $initsurf --rip-label $riplabel --rip-bg  
-  set ud = `UpdateNeeded $wpreaparcsurf $gwstats $initsurf $scm $seg $riplabel`
+  if($#entowm) set cmd = ($cmd --rip-overlay $entowmmaskov)
+  set ud = `UpdateNeeded $wpreaparcsurf $gwstats $initsurf $scm $seg $riplabel $entowmmaskov`
   if($ud || $ForceUpdate) then
     echo "Placing white.preaparc surface `date`" | tee -a $LF
     echo $cmd | tee -a $LF
@@ -675,7 +724,8 @@ foreach hemi ($hemilist)
     --white_border_low 0.1 --white_outside_low 0.1 --no-intensity-proc \
     --invol $scm --$hemi  --i $initsurf --o $wsurf --white --nsmooth 0 --target $wsurftarg\
     --rip-label $cortexlab --rip-bg  --rip-surf $initsurf --seg $seg --aparc $annot)
-  set ud = `UpdateNeeded $wsurf $gwstats $initsurf $scm $seg $cortexlab`
+  if($#entowm) set cmd = ($cmd --rip-overlay $entowmmaskov)
+  set ud = `UpdateNeeded $wsurf $gwstats $initsurf $scm $seg $cortexlab $entowmmaskov`
   if($ud || $ForceUpdate) then
     echo "Placing white surface `date`" | tee -a $LF
     echo $cmd | tee -a $LF
@@ -760,6 +810,7 @@ endif
 
 set apas = $SUBJECTS_DIR/$subject/mri/aparc+aseg.mgz
 set psurf = $outdir/surf/$hemi.pial # hemi still set from above
+set ud = `UpdateNeeded $apas $psurf`
 if($ud || $ForceUpdate) then
   set cmd = (recon-all -s $subject  -cortparc2 -cortparc3 -balabels \
     -apas2aseg -aparc2aseg -cortribbon  -wmparc -parcstats -parcstats2 \
