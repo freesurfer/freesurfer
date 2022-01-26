@@ -1466,6 +1466,15 @@ if($DoMotionCor) then
     endif
   endif
 
+  # output some basic info about rawavg
+  set cmd = (mri_info $rawavg)
+  echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+  if($RunIt) then
+    echo "rawavg.mgz ========================================" | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) goto error_exit;
+  endif
+
   # At this point, rawavg.mgz exists. Use it to create orig.mgz,
   # conform to COR FOV but keep mgz format.
   set cmd = (mri_convert $rawavg $origvol)
@@ -1487,6 +1496,15 @@ if($DoMotionCor) then
     $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
     echo $cmd > $touchdir/conform.touch
+  endif
+
+  # output some basic info about orig.mgz
+  set cmd = (mri_info $origvol)
+  echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+  if($RunIt) then
+    echo "orig.mgz ========================================" | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) goto error_exit;
   endif
 
   # this is the goto target for longitudinal processing (from above):
@@ -1517,6 +1535,7 @@ if($DoMotionCor) then
   endif
 
 endif # Motion Correction
+
 
 
 # MOD: this takes the externally supplied mask and resamples it into the
@@ -3025,7 +3044,7 @@ if($DoFill) then
   set filledman = filled.mgz
   set filledauto = filled.auto.mgz
   if($FS_ALLOW_FILLED_EDIT) then
-    set cmd = ($cmd -ctab $FREESURFER/SubCorticalMassLUT.txt)
+    set cmd = ($cmd -ctab $FREESURFER_HOME/SubCorticalMassLUT.txt)
     if(-e $filledauto && -e $filledman) then
       set fillededits = ../tmp/filled.edits.txt
       set cmd = ($cmd -auto-man $filledauto $filledman $fillededits)
@@ -3444,7 +3463,9 @@ if($DoWhitePreAparc) then
     set cmd = ($cmd $xopts)
     echo "cd `$PWD`" |& tee -a $LF |& tee -a $CF
     echo $cmd        |& tee -a $LF |& tee -a $CF
-    set ud = `UpdateNeeded $whitepreaparc $ads $bfs $wm $orig`
+    set tmp = ()
+    if($UseAseg) set tmp = ($aseg)
+    set ud = `UpdateNeeded $whitepreaparc $ads $bfs $wm $orig $tmp`
     if($ud || $ForceUpdate) then
       if($RunIt) then
         $fs_time $cmd |& tee -a $LF
@@ -3981,7 +4002,7 @@ if($DoWhiteSurfs && ! $DoConf2Hires) then
     echo $cmd        |& tee -a $LF |& tee -a $CF
     set repos = $sdir/repos.$hemi.white.json
     if(! -e $repos) set repos = ()
-    set ud = `UpdateNeeded $white $inputsurf $ads $bfs $wm $inputsurf $cortex $hml $repos`
+    set ud = `UpdateNeeded $white $inputsurf $ads $bfs $wm $inputsurf $cortex $hml $repos $aseg`
     if($ud || $ForceUpdate) then
       if($RunIt) then
         $fs_time $cmd |& tee -a $LF
@@ -4042,7 +4063,7 @@ if($DoPialSurfs && ! $DoConf2Hires) then
     echo $cmd        |& tee -a $LF |& tee -a $CF
     set repos = $sdir/repos.$hemi.pial.json
     if(! -e $repos || $DoT2pial || $DoFLAIRpial) set repos = ()
-    set ud = `UpdateNeeded $pial $inputsurf $ads $bfs $wm $cortex $cortexha $repos`
+    set ud = `UpdateNeeded $pial $inputsurf $ads $bfs $wm $cortex $cortexha $repos $aseg`
     if($ud || $ForceUpdate) then
       if($RunIt) then
         $fs_time $cmd |& tee -a $LF
@@ -6879,6 +6900,7 @@ while( $#argv != 0 )
 # no break!
     case "-autorecon2-wm":
     case "-autorecon2-fill":
+    case "-autorecon2-filled":
       set DoFill           = 1;
       set DoTessellate     = 1;
       set DoSmooth1        = 1;
@@ -7025,8 +7047,8 @@ while( $#argv != 0 )
         echo "ERROR: hemi = $hemilist, must be either lh or rh"
         goto error_exit;
       endif
-      if($hemilist == lh) LHonly = 1 
-      if($hemilist == rh) RHonly = 1 
+      if($hemilist == lh) set LHonly = 1 
+      if($hemilist == rh) set RHonly = 1 
       breaksw
 
     # This is a temporary flag to test how changing the way the vertex

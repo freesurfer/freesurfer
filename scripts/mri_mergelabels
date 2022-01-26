@@ -121,7 +121,7 @@ while( $#argv != 0 )
       breaksw
 
     default:
-      echo "ERROR: $flag not regocnized"
+      echo "ERROR: $flag not recognized"
       exit 1;
       breaksw
   endsw

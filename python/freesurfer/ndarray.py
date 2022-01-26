@@ -51,6 +51,7 @@ class ArrayContainerTemplate:
 
         # any array type might have a valid lookup table
         self.lut = lut
+        self.filename = None
 
     @property
     def nframes(self):
@@ -100,6 +101,7 @@ class ArrayContainerTemplate:
         if not os.path.isfile(filename):
             raise ValueError('file %s does not exist' % filename)
         result = bindings.vol.read(filename)
+        result.filename = filename
         # since the volume bindings do all the IO work here, it's possible the returned
         # object type does not match the calling class... if this is the case, print a warning
         if not isinstance(result, cls):
@@ -242,6 +244,17 @@ class Volume(ArrayContainerTemplate, Transformable):
         self.affine = vol.affine
         self.voxsize = vol.voxsize
 
+    def gaussian_smooth(self, smooth_sigma, order=0):
+        '''smooths the input image with a gaussian kernel and returns a new fs.Volume '''
+        sigmas = (smooth_sigma, smooth_sigma, smooth_sigma)
+        if len(self.data.shape) > 3:
+            sigmas += (0,) * (len(self.data.shape) - 3)
+        smoothed_data = scipy.ndimage.gaussian_filter(self.data, sigma=sigmas, order=order)
+        smoothed_vol = self.copy()
+        smoothed_vol.data = smoothed_data
+        return smoothed_vol
+
+        
     def reslice(self, voxsize, interp_method='linear', smooth_sigma=0):
         '''
         Returns the resampled volume with a given resolution determined by voxel
@@ -458,8 +471,9 @@ class Volume(ArrayContainerTemplate, Transformable):
         # extract world axes
         get_world_axes = lambda aff: np.argmax(np.absolute(np.linalg.inv(aff)), axis=0)
         trg_matrix = otn.matrix_from_orientation(trg_orientation)
+        src_matrix = otn.matrix_from_orientation(src_orientation)
         world_axes_trg = get_world_axes(trg_matrix[:self.basedims, :self.basedims])
-        world_axes_src = get_world_axes(self.affine[:self.basedims, :self.basedims])
+        world_axes_src = get_world_axes(src_matrix[:self.basedims, :self.basedims])
 
         voxsize = np.asarray(self.voxsize)
         voxsize = voxsize[world_axes_src][world_axes_trg]
@@ -488,12 +502,14 @@ class Volume(ArrayContainerTemplate, Transformable):
         reoriented.copy_metadata(self)
         return reoriented
 
-    def conform(self, shape=None, voxsize=1.0, orientation='LIA', interp_method='linear', dtype=None):
+    def conform(self, shape=None, voxsize=1.0, orientation='LIA', interp_method='linear', 
+                dtype=None, smooth_sigma=0):
         """
         Conforms image to a specific shape, type, resolution, and orientation.
         """
         conformed = self.reorient(orientation)
-        conformed = conformed.reslice(voxsize, interp_method=interp_method)
+        conformed = conformed.reslice(voxsize, interp_method=interp_method, 
+                                      smooth_sigma=smooth_sigma)
         if shape is not None:
             conformed = conformed.fit_to_shape(shape)
         if dtype is not None:

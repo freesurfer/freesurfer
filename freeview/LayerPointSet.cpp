@@ -50,6 +50,7 @@
 #include "vtkContourTriangulator.h"
 
 #define NUM_OF_SIDES  10  // must be even number!
+#define POINTSET_VERSION  1
 
 LayerPointSet::LayerPointSet( LayerMRI* ref, int nType, QObject* parent ) : LayerEditable( parent )
 {
@@ -193,6 +194,15 @@ bool LayerPointSet::LoadFromJsonFile(const QString &filename)
   }
   GetProperty()->SetType(LayerPropertyPointSet::Enhanced);
 
+  if (m_mapEnhancedData.contains("color"))
+  {
+    QVariantList list = m_mapEnhancedData["color"].toList();
+    if (list.size() == 3)
+    {
+      GetProperty()->SetColor(QColor(list[0].toInt(), list[1].toInt(), list[2].toInt()));
+    }
+  }
+
   return true;
 }
 
@@ -258,6 +268,11 @@ bool LayerPointSet::SaveAsJson(const QString& filename)
   m_mapEnhancedData["points"] = list;
   m_mapEnhancedData["data_type"] = "fs_pointset";
   m_mapEnhancedData["vox2ras"] = "scanner_ras";
+  double* rgb = GetProperty()->GetColor();
+  list.clear();
+  QColor c = QColor::fromRgbF(rgb[0], rgb[1], rgb[2]);
+  list << c.red() << c.green() << c.blue();
+  m_mapEnhancedData["color"] = list;
 
   QFile file( filename );
   if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
@@ -270,6 +285,7 @@ bool LayerPointSet::SaveAsJson(const QString& filename)
     return false;
   }
 
+  m_mapEnhancedData["version"] = POINTSET_VERSION;
   file.write(QJsonDocument::fromVariant(m_mapEnhancedData).toJson());
   return true;
 }
@@ -655,7 +671,7 @@ int LayerPointSet::FindPoint( double* ras, double tolerance )
 }
 
 // returns index of the point
-int LayerPointSet::AddPoint( double* ras_in, double value )
+int LayerPointSet::AddPoint( double* ras_in, double value, bool bNotToVoxelCenter )
 {
   int nRet;
   int dim[3];
@@ -663,7 +679,7 @@ int LayerPointSet::AddPoint( double* ras_in, double value )
   m_layerRef->GetVolumeInfo(dim, vs);
   double min_tor2 = qMin(vs[0], qMin(vs[1], vs[2]))*3;
   min_tor2 *= min_tor2;
-  if ( GetProperty()->GetSnapToVoxelCenter() )
+  if ( !bNotToVoxelCenter && GetProperty()->GetSnapToVoxelCenter() )
   {
     m_layerRef->SnapToVoxelCenter( ras_in, ras );
   }
@@ -1019,4 +1035,18 @@ void LayerPointSet::GetNormalAtPoint(int nIndex, double *vnorm, int nPlane)
   vtkMath::Normalize(v);
   v2[nPlane] = 1;
   vtkMath::Cross(v, v2, vnorm);
+}
+
+void LayerPointSet::SetEnhancedData(const QString &key, const QVariant &val)
+{
+  m_mapEnhancedData[key] = val;
+  SetModified();
+}
+
+QVariant LayerPointSet::GetEnhancedData(const QString &key)
+{
+  QVariant v;
+  if (m_mapEnhancedData.contains(key))
+    v = m_mapEnhancedData[key];
+  return v;
 }

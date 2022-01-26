@@ -42,6 +42,7 @@
 #include "version.h"
 #include "fio.h"
 #include "fsenv.h"
+#include "mris_sphshapepvf.h"
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -620,10 +621,30 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 3) argnerr(option,3);
       for (i=0;i<3;i++) sscanf(pargv[i],"%f",&sdircos[i]);
       nargsused = 3;
-    } else if (!strcmp(option, "--precision")) {
+    } 
+    else if (!strcmp(option, "--precision")) {
       if (nargc < 1) argnerr(option,1);
       precision = pargv[0];
       nargsused = 1;
+    } 
+    else if (!strcmp(option, "--sphpvf")) {
+      // --sphpvf radius nvox voxsize fsubsamp icoorder outvol outsurf
+      if(nargc < 7) argnerr(option,7);
+      BasicSpherePVF b;
+      sscanf(pargv[0],"%lf",&b.radius);
+      int nvox; sscanf(pargv[1],"%d",&nvox);
+      double voxsize; sscanf(pargv[2],"%lf",&voxsize);
+      sscanf(pargv[3],"%lf",&b.fsubsample);
+      sscanf(pargv[4],"%d",&b.icoOrder);
+      b.LoadIcoSurf();
+      b.SetSurfXYZ();
+      b.NormDot(b.surf);
+      b.MakeMRI(nvox,voxsize);
+      b.ComputePVF();
+      MRIwrite(b.vol,pargv[5]);
+      MRISwrite(b.surf,pargv[6]);
+      nargsused = 7;
+      exit(0);
     } 
     else if (!strcmp(option, "--flat2mri")) {
       if(nargc < 6) argnerr(option,6);
@@ -689,6 +710,7 @@ static void print_usage(void) {
   printf("  --o outfile      : path to output volume\n");
   printf("  --vtxvol vtxfile : vertex map volume path id\n");
   printf("  --flat2mri surf patch overlay res avg output\n");
+  printf("  --sphpvf radius nvox voxsize fsubsamp icoorder outvol outsurf\n");
   printf("  \n");
   printf("  Applies to both methods\n");
   printf("  --add const : add constant value to each non-zero output voxel\n");

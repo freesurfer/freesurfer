@@ -33,15 +33,18 @@ class SurfaceRegion;
 class Interactor3DNavigate;
 class Interactor3DMeasure;
 class Interactor3DROIEdit;
+class Interactor3DPointSetEdit;
 class Interactor3DVolumeCrop;
 class vtkAnnotatedCubeActor;
 class Layer;
 class LayerSurface;
+class LayerPointSet;
 class SurfaceROI;
 class Interactor3DPathEdit;
 class RenderView3D;
 class vtkInteractorStyleMyTrackballCamera;
 class Region3D;
+class SurfacePath;
 
 class RenderView3D : public RenderView
 {
@@ -110,6 +113,8 @@ public:
 
   int PickCurrentSurfaceVertex(int posX, int posY, LayerSurface* curSurf = NULL);
 
+  int PickCurrentPointSetPoint(int posX, int posY, LayerPointSet* curPointSet = NULL);
+
   void ShowSlice(int nPlane, bool bshow);
 
   QVariantMap GetCamera();
@@ -174,10 +179,13 @@ public slots:
   void SetAxesFlyMode(int n);
   void DeleteCurrent3DRegion();
   void DeleteAll3DRegions();
+  void SavePathAsControlPoints();
+  void SaveMarksAsControlPoints();
 
 protected:
   void DoUpdateRASPosition( int posX, int posY, bool bCursor = false, bool bSlicePickOnly = false );
   void DoUpdateConnectivityDisplay();
+  void SavePathAsControlPoints(SurfacePath* sp);
 
   void HighlightSliceFrame( int n );
 
@@ -219,6 +227,7 @@ private:
   Interactor3DVolumeCrop* m_interactorVolumeCrop;
   Interactor3DROIEdit*    m_interactorROIEdit;
   Interactor3DPathEdit*   m_interactorPathEdit;
+  Interactor3DPointSetEdit* m_interactorPointSetEdit;
 
   vtkSmartPointer<vtkInteractorStyleMyTrackballCamera>  m_interactorStyle;
 };

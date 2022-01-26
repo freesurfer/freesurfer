@@ -52,6 +52,7 @@ SOURCES += \
     Interactor3DMeasure.cpp \
     Interactor3DNavigate.cpp \
     Interactor3DVolumeCrop.cpp \
+    Interactor3DPointSetEdit.cpp \
     Layer.cpp \
     LayerCollection.cpp \
     LayerDTI.cpp \

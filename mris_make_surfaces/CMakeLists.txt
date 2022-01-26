@@ -31,6 +31,10 @@ add_help(mris_place_surface mris_place_surface.help.xml)
 target_link_libraries(mris_place_surface utils)
 install(TARGETS mris_place_surface DESTINATION bin)
 
+add_executable(mris_target_pos mris_target_pos.cpp)
+target_link_libraries(mris_target_pos utils)
+install(TARGETS mris_target_pos DESTINATION bin)
+
 add_executable(mris_autodet_gwstats mris_autodet_gwstats.cpp)
 target_link_libraries(mris_autodet_gwstats utils)
 install(TARGETS mris_autodet_gwstats DESTINATION bin)

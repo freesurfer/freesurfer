@@ -106,6 +106,8 @@ MRI *MRIframeMedian(MRI *vol, MRI *volmn);
 MRI *fMRIdetrend(MRI *y, MATRIX *X);
 MRI *fMRItemporalAR1(MRI *fmri, float DOFAdjust, MRI *mask, MRI *ar1);
 MRI *fMRIspatialAR1(MRI *src, MRI *mask, MRI *ar1);
+MRI *fMRIspatialARreduce(MRI *arVol, MRI *mask, MRI *arRed);
+MRI *fMRIarToFWHM(MRI *arVol, const int arOrder, const double *fvoxsize, const MRI *mask, MRI *fwhmVol);
 MRI *fMRIspatialAR2(MRI *src, MRI *mask, MRI *ar2);
 int fMRIspatialAR1Mean(MRI *ar1, MRI *mask, double *car1mn,
                        double *rar1mn,double *sar1mn);

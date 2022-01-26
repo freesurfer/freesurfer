@@ -28,7 +28,8 @@ set DoReg = 0;
 set PrintHelp = 0;
 set outdir = ();
 set DoAllVol = 0;
-set DoTal = 1;
+set DoComputeTal = 1;
+set DoEstimateTal = 0;
 set gcaprep = 0
 set CoRegThreads = 1
 
@@ -68,7 +69,7 @@ if($#outdir == 0) then
   set xsubject = $subject/xhemi
   set outdir = $SUBJECTS_DIR/$xsubject
 endif
-mkdir -p $outdir/mri $outdir/surf $outdir/label $outdir/scripts 
+mkdir -p $outdir/mri/transforms $outdir/surf $outdir/label $outdir/scripts 
 set outdir = `getfullpath $outdir`
 echo "outdir is $outdir" 
 
@@ -104,6 +105,20 @@ foreach srchemi ($srchemilist)
     # Create LR registration
     date | tee -a $LF
 
+    # Determine which dimension gets reversed
+    set xsign = "+1"
+    set ysign = "+1"
+    set zsign = "+1"
+    set orientation = `mri_info --orientation mri/orig.mgz`
+    set o1 = `echo $orientation | cut -c 1`
+    set o2 = `echo $orientation | cut -c 2`
+    set o3 = `echo $orientation | cut -c 3`
+    if($o1 == L || $o1 == R) set xsign = "-1"
+    if($o2 == L || $o2 == R) set zsign = "-1" # 2=z in tkreg
+    if($o3 == L || $o3 == R) set ysign = "-1" # 3=y in tkreg
+
+    echo orientation: $orientation $o1  $o2  $o3 | tee -a $LF
+
     # This is the same as --left-right-reverse-pix
     set reg = $outdir/lrrev.register.dat
     rm -f $reg
@@ -111,9 +126,9 @@ foreach srchemi ($srchemilist)
     echo "1" >> $reg
     echo "1" >> $reg
     echo "1" >> $reg
-    echo "-1 0 0 1" >> $reg
-    echo " 0 1 0 0" >> $reg
-    echo " 0 0 1 0" >> $reg
+    echo "$xsign 0 0 1" >> $reg
+    echo " 0 $ysign 0 0" >> $reg
+    echo " 0 0 $zsign 0" >> $reg
     echo " 0 0 0 1" >> $reg
     echo "round" >> $reg
 
@@ -123,9 +138,9 @@ foreach srchemi ($srchemilist)
     echo "1" >> $regpure
     echo "1" >> $regpure
     echo "1" >> $regpure
-    echo "-1 0 0 0" >> $regpure
-    echo " 0 1 0 0" >> $regpure
-    echo " 0 0 1 0" >> $regpure
+    echo "$xsign 0 0 0" >> $regpure
+    echo " 0 $ysign 0 0" >> $regpure
+    echo " 0 0 $zsign 0" >> $regpure
     echo " 0 0 0 1" >> $regpure
     echo "round" >> $regpure
 
@@ -161,14 +176,60 @@ foreach srchemi ($srchemilist)
 
     end
 
-    # Recompute talairach registration
-    if($DoTal) then
+    # Compute talairach reg in one of two ways
+    set xxfm = $SUBJECTS_DIR/$subject/xhemi/mri/transforms/talairach.xfm
+    set xlta = $SUBJECTS_DIR/$subject/xhemi/mri/transforms/talairach.xfm.lta
+    # The LTA may be used to init the surfreg
+    if($DoComputeTal) then
+      # Recompute talairach registration by doing the registration
       set cmd = (recon-all -sb $subject/xhemi -talairach)
       date | tee -a $LF
       echo $cmd  | tee -a $LF
       $cmd | tee -a $LF
       if($status) exit 1;
-      #set cmd = (xhemi-tal --s $subject)
+      # Create the LTA
+      set ud = `UpdateNeeded $xlta $xxfm`
+      if($ud) then
+        set mni305 = $FREESURFER_HOME/average/mni305.cor.mgz
+        set cmd = (lta_convert --src $subjdir/mri/orig.mgz --trg $mni305 --inxfm $xxfm \
+            --outlta $xlta --subject fsaverage --ltavox2vox)
+        echo $cmd |& tee -a $LF 
+        $cmd |& tee -a $LF
+        if($status) exit 1
+      endif
+
+    endif
+
+    if($DoEstimateTal) then 
+      # Compute the reg based on the unflipped; then create xfm from
+      # it.  This saves time, but it also better than recomputing it
+      # when a non-recon-all process was needed to compute the
+      # unflipped xfm.
+      # Create the xfm.lta in the unflipped, if needed. 
+      set subjdir = $SUBJECTS_DIR/$subject
+      set xfm = $subjdir/mri/transforms/talairach.xfm # unflipped
+      set lta = $subjdir/mri/transforms/talairach.xfm.lta
+      set tlta = $subjdir/mri/transforms/talairach.lta
+      set ud = `UpdateNeeded $lta $xfm`
+      if($ud) then
+        set mni305 = $FREESURFER_HOME/average/mni305.cor.mgz
+        set cmd = (lta_convert --src $subjdir/mri/orig.mgz --trg $mni305 --inxfm $xfm \
+            --outlta $lta --subject fsaverage --ltavox2vox)
+        echo $cmd |& tee -a $LF 
+        $cmd |& tee -a $LF
+        if($status) exit 1
+      endif
+      set ud = (`UpdateNeeded $xlta $lta`)
+      if($ud) then
+        set cmd = (mri_coreg --lrrev $lta $xlta)
+        echo $cmd |& tee -a $LF 
+        $cmd |& tee -a $LF
+        if($status) exit 1
+        set cmd = (lta_convert --inlta $xlta --outmni $xxfm)
+        echo $cmd |& tee -a $LF 
+        $cmd |& tee -a $LF
+        if($status) exit 1
+      endif
     endif
 
     if($gcaprep) then
@@ -207,6 +268,7 @@ foreach srchemi ($srchemilist)
       echo "To test new registration run:"  | tee -a $LF
       echo " tkregister2 --fstal --s `basename $outdir`"  | tee -a $LF
     endif
+
   endif # nthhemi == 1
 
   # Convert Surfaces (apply LR registration)
@@ -350,8 +412,20 @@ while( $#argv != 0 )
       set DoReg = 1;
       breaksw
 
+    case "--tal-compute":
+      set DoComputeTal = 1;
+      breaksw
     case "--no-tal":
-      set DoTal = 0;
+    case "--no-tal-compute":
+      set DoComputeTal = 0;
+      breaksw
+
+    case "--tal-estimate":
+      set DoEstimateTal = 1;
+      set DoComputeTal = 0;
+      breaksw
+    case "--no-tal-estimate":
+      set DoEstimateTal = 0;
       breaksw
 
     case "--debug":
@@ -412,7 +486,10 @@ usage_exit:
   echo "   --reg       : perform reg to create sphere.reg"
   echo "   --rh : srchemi = rh (map from right to left) "
   echo "   --o outdir  : output dir (subject/xhemireg.hemi by def)"
-  echo "   --no-tal    : do not perform talairach registration"
+  echo "   --tal-compute    : recompute talairach registration (default)"
+  echo "   --no-tal-compute  : do not perform talairach registration"
+  echo "   --tal-estimate    : compute estimate of talairach registration from unflipped reg"
+  echo "   --no-tal-estimate "
   echo "   --gcaprep seg xfm : for training symmetrical GCA atlases (see gcaprepone)"
   echo "   --threads nthreads: only applies with --gcaprep"
   echo "   --version   : print version and exit"

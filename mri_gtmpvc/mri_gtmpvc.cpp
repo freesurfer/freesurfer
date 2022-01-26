@@ -106,6 +106,7 @@ typedef struct
   int niters,nitersmax;
   int nCostEvaluations;
   double tLastEval;
+  MATRIX *betaIdeal=NULL;
 } GTMOPT;
 int GTMOPTsetup(GTMOPT *gtmopt);
 double GTMcostPSF(GTM *gtm);
@@ -1180,11 +1181,11 @@ int main(int argc, char *argv[])
   PrintMemUsage(stdout);
   PrintMemUsage(logfp);
 
-  fprintf(logfp,"#VMPC# mris_make_surfaces VmPeak  %d\n",GetVmPeak());
+  fprintf(logfp,"#VMPC# mri_gtmpvc VmPeak  %d\n",GetVmPeak());
   fprintf(logfp,"mri_gtmpvc-runtime %5.2f min\n",timer.minutes());
   fprintf(logfp,"mri_gtmpvc done\n");
   fclose(logfp);
-  printf("#VMPC# mris_make_surfaces VmPeak  %d\n",GetVmPeak());
+  printf("#VMPC# mri_gtmpvc VmPeak  %d\n",GetVmPeak());
   printf("mri_gtmpvc-runtime %5.2f min\n",timer.minutes());
   printf("mri_gtmpvc done\n");
   return(0);
@@ -1362,6 +1363,14 @@ static int parse_commandline(int argc, char **argv) {
     }
     else if(!strcasecmp(option, "--opt-gm")) gtmopt->optmask = 1;
     else if(!strcasecmp(option, "--opt-brain")) gtmopt->optmask = 2;
+    else if(!strcasecmp(option, "--opt-beta")){
+      MRI *tmp = MRIread(pargv[0]);
+      if(tmp==NULL) exit(1);
+      gtmopt->betaIdeal = MatrixAlloc(tmp->width,1,MATRIX_REAL);
+      for(int n=0; n < tmp->width; n++) gtmopt->betaIdeal->rptr[n+1][1] = MRIgetVoxVal(tmp,n,0,0,0);
+      MRIfree(&tmp);
+      nargsused = 1;
+    }
     else if(!strcasecmp(option, "--psf")){
       if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%lf",&psfFWHM);
@@ -2093,6 +2102,14 @@ double GTMcostPSF(GTM *gtm)
     gtm->rvarUnscaled->rptr[1][1] = 10e10;
     return(10e10);
   }
+  if(gtmopt->betaIdeal){
+    if(gtmopt->betaIdeal->rows != gtm->beta->rows){
+      printf("ERROR: dim mismatch between betaIdeal and beta %d %d\n",
+	     gtmopt->betaIdeal->rows,gtm->beta->rows);
+    }
+    double cost = MatrixRMS(gtmopt->betaIdeal,gtm->beta);
+    return(cost);
+  }
   if(gtmopt->optmask == 1) return(gtm->rvargm->rptr[1][1]);
   if(gtmopt->optmask == 2) return(gtm->rvarbrain->rptr[1][1]);
   return(gtm->rvarUnscaled->rptr[1][1]);
@@ -2131,6 +2148,8 @@ float compute_powell_cost(float *pPowel)
     for(n=0; n<gtmopt->nparams; n++) ppmin[n] = gtmopt->params[n];
     printf("InitialCost %f %f\n",initcost,gtm->rvargm->rptr[1][1]);
     fp=fopen(tmpstr,"w");
+    //MatrixWriteTxt("beta.mtx", gtm->beta);
+    //MatrixWriteTxt("beta.ideal.mtx", gtmopt->betaIdeal);
   }
   else fp=fopen(tmpstr,"a");
 

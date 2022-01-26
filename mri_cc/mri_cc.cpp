@@ -47,6 +47,11 @@
 #include "mrisegment.h"
 #include "tritri.h"
 
+// these were originally defined in cma.h but they created a big problem as
+// they became out of sync with FreeSurferColorLUT.txt
+#define MIN_CC_EXTRA 230 
+#define MAX_CC_EXTRA 249
+
 #define MAX_CC_ROT      RADIANS(7)
 #define CC_ANGLE_DELTA  RADIANS(.25)
 #define LABEL_IN_CC     128

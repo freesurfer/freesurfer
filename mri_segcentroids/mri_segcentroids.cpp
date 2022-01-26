@@ -33,6 +33,10 @@ public:
   int precision;
 
   InputParser(int &argc, char **argv) {
+
+    // check for any input
+    if (argc == 1) printHelp(1);
+
     include_zero = false;
     int i = 1;
     std::string opt;

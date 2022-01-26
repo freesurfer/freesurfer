@@ -291,6 +291,7 @@ class spherical_loss(object):
 
     def atlas_dice_loss(self, weight, warped_segs):
         def loss(y_true, y_pred):
+            #gdb.set_trace()
             total_loss = 0
             for seg in warped_segs:
                 total_loss += dice_loss(seg, y_pred)
@@ -330,6 +331,7 @@ class spherical_loss(object):
 
     def gradientLoss(self, penalty='l2'):
         def loss(y_true, y_pred):
+            #gdb.set_trace()
             if self.pad > 0:
                 #y_true = y_true[:,self.pad:-self.pad,self.pad:-self.pad,:]
                 y_pred = y_pred[:,self.pad:-self.pad,self.pad:-self.pad,:]
@@ -507,23 +509,26 @@ class spherical_loss(object):
 
             try:
                 y = tf.reduce_mean(tf.square(y_pred-y_true), axis=-1)
-                y = tf.debugging.assert_all_finite(y, 'y')
+                #y = tf.debugging.assert_all_finite(y, 'y')
                 y_tf = tf.multiply(tf.cast(y, tf.float32), de)
-                y_tf = tf.debugging.assert_all_finite(y_tf, 'y_tf')
+                #y_tf = tf.debugging.assert_all_finite(y_tf, 'y_tf')
 
                 if image_sigma is not None:
+                    #gdb.set_trace()
                     retval = weight*tf.sqrt(tf.reduce_mean(tf.math.divide_no_nan(0.5*y_tf,image_sigma_sq)))
-                    retval = tf.debugging.assert_all_finite(retval, 'retval')
+                    #retval = tf.debugging.assert_all_finite(retval, 'retval')
                 else:
                     retval = weight*tf.sqrt(tf.reduce_mean(0.5*y_tf))
             except:
+                retval = 100
                 gdb.set_trace()
 
             return retval
 
         if image_sigma is not None:
             if self.pad > 0:
-                image_sigma = tf.squeeze(image_sigma[self.pad:-self.pad,self.pad:-self.pad,...])
+                image_sigma = tf.squeeze(image_sigma[:,self.pad:-self.pad,self.pad:-self.pad,...])
+            image_sigma = tf.cast(image_sigma, tf.float32)
             image_sigma_sq = tf.clip_by_value(image_sigma*image_sigma, 1e-3, 1e4)
 
         

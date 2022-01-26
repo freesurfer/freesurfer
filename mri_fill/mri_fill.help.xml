@@ -66,6 +66,8 @@
       <explanation>Get edits based on the difference between auto and man and apply to the output. Edit col,row,slice,autoval,manval will be written to the edits.txt file</explanation>
       <argument>-no-auto-man </argument>
       <explanation>Turns off -auto-man</explanation>
+      <argument>-pointset invol outvol ps {ps2 ...} </argument>
+      <explanation>Stand-alone option: takes one or more pointsets and fills in the all the voxels that intersect lines connecting any two points within a given point set.</explanation>
       <argument>-ctab colortable  </argument>
       <explanation>Embed color table in the output </explanation>
     </optional-flagged>

@@ -88,6 +88,7 @@ else if ($interreg == 4) then
   set cvswarp = final_CVSmorph_to$cvstemp
 else if ($interreg == 5) then
   set xspace = syn
+  setenv MY_MORPHS_DO_NOT_CONFORM_DEAL_WITH_IT
 else if ($interreg == 6) then
   set xspace = fnt
 endif
@@ -686,15 +687,19 @@ if ($docorr && ! $dobase) then
     endif
 
     # Create volume index file
-    set indlist = ()
+    if ($nrun == 1) then		# Have one run only
+      set indlist = `awk '{printf "1 "}' $dwibase.bvals`
+    else
+      set indlist = ()
 
-    @ irun = 1
-    while ($irun <= $nrun)		# For each input DWI run
-      set indlist = ($indlist \
-        `awk -v irun=$irun '{printf irun" "}' $dwibase.$irun.bvals`)
+      @ irun = 1
+      while ($irun <= $nrun)		# For each input DWI run
+        set indlist = ($indlist \
+          `awk -v irun=$irun '{printf irun" "}' $dwibase.$irun.bvals`)
 
-      @ irun = $irun + 1
-    end					# For each input DWI run
+        @ irun = $irun + 1
+      end				# For each input DWI run
+    endif
 
     echo $indlist > $dwidir/index.txt
 
@@ -943,8 +948,8 @@ if ($docorr && ! $dobase) then
         if ($status) goto error_exit
       endif
 
-      # Will use info from DICOM header to find dTE
-      if (`mri_info --format $infile` =~ *dicom*) then
+      # If dTE is not specified, use info from DICOM header to find it
+      if (($#dTE == 0) && (`mri_info --format $infile` =~ *dicom*)) then
         set cmd = (mri_probedicom --i $infile)
         echo "$cmd > $infbase.dat" |& tee -a $LF |& tee -a $CF
         if ($RunIt) then
@@ -956,7 +961,7 @@ if ($docorr && ! $dobase) then
         set dTE = `echo "($TE[2] - $TE[1])/1000" | bc -l`
       endif
 
-      if ($#dTE) then
+      if ($#dTE == 0) then
         echo "ERROR: Need dTE for field map $infile"
         goto error_exit
       endif
@@ -965,6 +970,12 @@ if ($docorr && ! $dobase) then
         set esp = $echospacing
       else
         set esp = $echospacing[$imap]
+      endif
+      
+      if ($#dTE == 1) then
+        set tediff = $dTE
+      else
+        set tediff = $dTE[$imap]
       endif
       
       set cmd = epidewarp.fsl
@@ -979,7 +990,7 @@ if ($docorr && ! $dobase) then
       endif
       set cmd = ($cmd --exf $dwidir/lowb.nii.gz)
       set cmd = ($cmd --epi $dwibase.nii.gz)
-      set cmd = ($cmd --tediff $dTE --esp $esp)
+      set cmd = ($cmd --tediff $tediff --esp $esp)
       set cmd = ($cmd --vsm $dwidir/vsm.nii.gz)
       set cmd = ($cmd --epidw $outbase.nii.gz)
       echo $cmd |& tee -a $LF |& tee -a $CF

@@ -101,9 +101,10 @@ if(! $?path ) then
     set path = ( ~/bin /bin /usr/bin /usr/local/bin )
 endif
 
-## If FS_OVERRIDE is set, this script will automatically assign
-## defaults to all locations. Otherwise, it will only do so if the
-## variable isn't already set
+## If FS_OVERRIDE is set, automatically assign the standard freesurfer
+## defaults to all locations.  Otherwise, it will only do so if the
+## variable isn't already set.
+
 if(! $?FS_OVERRIDE) then
     setenv FS_OVERRIDE 0
 endif
@@ -114,6 +115,10 @@ endif
 
 if(! $?SUBJECTS_DIR  || $FS_OVERRIDE) then
     setenv SUBJECTS_DIR $FREESURFER_HOME/subjects
+endif
+
+if(! $?FUNCTIONALS_DIR  || $FS_OVERRIDE) then
+    setenv FUNCTIONALS_DIR $FREESURFER_HOME/sessions
 endif
 
 if((! $?NO_MINC) && (! $?MINC_BIN_DIR  || $FS_OVERRIDE)) then
@@ -304,7 +309,7 @@ if(! $?NO_MINC) then
         endif
     endif
     ## nu_correct and other MINC tools require a path to mni perl scripts
-    if (! $?MNI_PERL5LIB) then
+    if ((! $?MNI_PERL5LIB || $FS_OVERRIDE )) then
         if ( -e $FREESURFER_HOME/mni/share/perl5) then
             # Linux CentOS 6 w/ mni/1.5 build:
             setenv MNI_PERL5LIB       "$FREESURFER_HOME/mni/share/perl5"
@@ -348,7 +353,7 @@ if(! $?NO_MINC) then
             setenv MNI_PERL5LIB       ""
         endif
     endif
-    if (! $?PERL5LIB) then
+    if ((! $?PERL5LIB || $FS_OVERRIDE )) then
         setenv PERL5LIB       $MNI_PERL5LIB
     else if ( "$PERL5LIB" != "$MNI_PERL5LIB" ) then
         setenv PERL5LIB      "$MNI_PERL5LIB":"$PERL5LIB"

@@ -693,6 +693,7 @@ int MRISmergeAnnotations(MRIS *mris, int nparcs, std::vector<std::string> parcna
   ct = CTABalloc(nnewparcs);
   nthnewparc = 0;
   for (nthparc = 0; nthparc < mris->ct->nentries; nthparc++) {
+    if(mris->ct->entries[nthparc] == NULL) continue;
     // This checks whether the nth parc is in the list to merge
     match = 0;
     for (m = 0; m < nparcs; m++) {

@@ -82,7 +82,8 @@ float p0[4];
 int usep0 = 0;
 float cdircos[3], rdircos[3], sdircos[3];
 const char *pdfname = "gaussian";
-char *precision=NULL; /* not used yet */
+char *precision=NULL; 
+int mritype; // precision
 MRI *mri, *mrism, *mritemp, *mri2;
 long seed = -1; /* < 0 for auto */
 char *seedfile = NULL;
@@ -124,6 +125,8 @@ MPoint *ctrpoints=NULL, *crsctrpoints=NULL;
 int nctrpoints=0, CPUseRealRAS;
 int cgridspace=8, rgridspace=8, sgridspace=2;
 int spherecenter[3], spherecenterset = 0;
+double cubeedgemm = -1;
+char *colortablefile = NULL;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv)
@@ -190,6 +193,11 @@ int main(int argc, char **argv)
       mritemp->ysize = res[1];
       mritemp->zsize = res[2];
       mritemp->tr    = res[3];
+    }
+    else {
+      res[0] = mritemp->xsize;
+      res[1] = mritemp->ysize;
+      res[2] = mritemp->zsize;
     }
 
     dim[0] = mritemp->width;
@@ -345,8 +353,49 @@ int main(int argc, char **argv)
       mritemp->zsize = res[2];
       mritemp->tr = res[3];
     }
-    mri=MRIgrid(mritemp,cgridspace,rgridspace,sgridspace,1,NULL);
+    mri=MRIgrid(mritemp,cgridspace,rgridspace,sgridspace,ValueA,NULL);
     if(!mri) exit(1);
+  } 
+  else if (strcmp(pdfname,"cube")==0) {
+    int c0 = round(dim[0]/2.0);
+    int r0 = round(dim[1]/2.0);
+    int s0 = round(dim[2]/2.0);
+    int c1 = round((dim[0] - cubeedgemm/res[0])/2.0);
+    int c2 = round((dim[0] + cubeedgemm/res[0])/2.0);
+    int r1 = round((dim[1] - cubeedgemm/res[1])/2.0);
+    int r2 = round((dim[1] + cubeedgemm/res[1])/2.0);
+    int s1 = round((dim[2] - cubeedgemm/res[2])/2.0);
+    int s2 = round((dim[2] + cubeedgemm/res[2])/2.0);
+    printf("Cube %lf (%d %d %d) %d %d %d %d %d %d\n",cubeedgemm,c0,r0,s0,c1,c2,r1,r2,s1,s2);
+    printf("dim %d %d %d, res = %lf %lf %lf\n",dim[0],dim[1],dim[2],res[0],res[1],res[2]);
+    if(c1 <= 0 || c1 >= dim[0]) exit(1);
+    if(c2 <= 0 || c2 >= dim[0]) exit(1);
+    if(r1 <= 0 || r1 >= dim[1]) exit(1);
+    if(r2 <= 0 || r2 >= dim[1]) exit(1);
+    if(s1 <= 0 || s1 >= dim[2]) exit(1);
+    if(s2 <= 0 || s2 >= dim[2]) exit(1);
+    if(mritemp == NULL){
+      mritemp = MRIconst(dim[0], dim[1], dim[2], dim[3], 0, NULL);
+      mritemp->xsize = res[0];
+      mritemp->ysize = res[1];
+      mritemp->zsize = res[2];
+      mritemp->tr = res[3];
+    }
+    mri = MRIconst(dim[0], dim[1], dim[2], dim[3], 0, NULL);
+    if(!mri) exit(1);
+    mri->xsize = res[0];
+    mri->ysize = res[1];
+    mri->zsize = res[2];
+    mri->tr = res[3];
+    MRIsetVoxVal(mri,c0,r0,s0,0,ValueA);
+    MRIsetVoxVal(mri,c1,r1,s1,0,ValueA);
+    MRIsetVoxVal(mri,c1,r1,s2,0,ValueA);
+    MRIsetVoxVal(mri,c1,r2,s1,0,ValueA);
+    MRIsetVoxVal(mri,c1,r2,s2,0,ValueA);
+    MRIsetVoxVal(mri,c2,r1,s1,0,ValueA);
+    MRIsetVoxVal(mri,c2,r1,s2,0,ValueA);
+    MRIsetVoxVal(mri,c2,r2,s1,0,ValueA);
+    MRIsetVoxVal(mri,c2,r2,s2,0,ValueA);
   } 
   else if (strcmp(pdfname,"sliceno")==0) {
     printf("SliceNo \n");
@@ -396,7 +445,8 @@ int main(int argc, char **argv)
     // Override
     if(nframes > 0) mri->nframes = nframes;
     if(TR > 0) mri->tr = TR;
-  } else {
+  } 
+  else {
     if(mri == NULL) {
       usage_exit();
     }
@@ -488,6 +538,22 @@ int main(int argc, char **argv)
   if(DoAbs){
     printf("Computing absolute value\n");
     MRIabs(mri,mri);
+  }
+  if(precision != NULL){
+    printf("Changing precision to %s (no rescale)\n",precision);
+    MRI *mri2 = MRISeqchangeType(mri, mritype, 0.0, 0.999, 1);
+    if(mri2 == NULL){
+      printf("ERROR: MRISeqchangeType\n");
+      exit(1);
+    }
+    MRIfree(&mri);
+    mri = mri2;
+  }
+
+  if(colortablefile){
+    printf("Embedding ctab from %s\n",colortablefile);
+    mri->ct = CTABreadASCII(colortablefile);
+    if(mri->ct == NULL) exit(1);
   }
 
   if(!NoOutput){
@@ -685,11 +751,13 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%ld",&seed);
       nargsused = 1;
-    } else if (!strcmp(option, "--seedfile")) {
+    } 
+    else if (!strcmp(option, "--seedfile")) {
       if (nargc < 1) argnerr(option,1);
       seedfile = pargv[0];
       nargsused = 1;
-    } else if (!strcmp(option, "--pdf")) {
+    } 
+    else if (!strcmp(option, "--pdf")) {
       if (nargc < 1) argnerr(option,1);
       pdfname = pargv[0];
       nargsused = 1;
@@ -758,6 +826,12 @@ static int parse_commandline(int argc, char **argv) {
       pdfname = "grid";
       nargsused = 3;
     } 
+    else if (!strcmp(option, "--cube")) {
+      if(nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%lf",&cubeedgemm);
+      pdfname = "cube";
+      nargsused = 1;
+    } 
     else if (!strcmp(option, "--delta-crsf")) {
       if (nargc < 4) argnerr(option,4);
       sscanf(pargv[0],"%d",&delta_crsf[0]);
@@ -785,6 +859,11 @@ static int parse_commandline(int argc, char **argv) {
       ctrpoints = MRIreadControlPoints(pargv[0], &nctrpoints, &CPUseRealRAS);
       printf("nctrpoints = %d, UseRealRAS=%d\n",nctrpoints, CPUseRealRAS);
       pdfname = "cp";
+      nargsused = 1;
+    } 
+    else if (!strcmp(option, "--ctab")) {
+      if (nargc < 1) argnerr(option,1);
+      colortablefile = pargv[0];
       nargsused = 1;
     } 
     else {
@@ -860,6 +939,7 @@ static void print_usage(void) {
   printf("   --sum2 fname   : save sum vol^2 into fname (implies "
          "delta,nf=1,no-output)\n");
   printf("   --dim-surf : set dim to nvertices x 1 x 1 \n");
+  printf("   --ctab colortable : embed ctab\n");
   printf("\n");
 }
 /* --------------------------------------------- */
@@ -931,6 +1011,17 @@ static void check_options(void) {
   }
   if(!DoCurv) getfmtid(volid);
 
+  if(precision != NULL){
+    
+    if(strcmp(StrLower(precision), "uchar") == 0)       mritype = MRI_UCHAR;
+    else if(strcmp(StrLower(precision), "short") == 0)  mritype = MRI_SHORT;
+    else if(strcmp(StrLower(precision), "int") == 0)    mritype = MRI_INT;
+    else if(strcmp(StrLower(precision), "float") == 0)  mritype = MRI_FLOAT;
+    else {
+      printf("ERROR: precision %s not supported\n",precision);
+      exit(1);
+    }
+  }
   return;
 }
 /* --------------------------------------------- */

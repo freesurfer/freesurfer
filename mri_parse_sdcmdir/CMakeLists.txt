@@ -1,6 +1,6 @@
 project(mri_parse_sdcmdir)
 
-include_directories(${FS_INCLUDE_DIRS} ${CMAKE_SOURCE_DIR}/packages/dicom)
+include_directories(${FS_INCLUDE_DIRS} ${CMAKE_SOURCE_DIR}/packages/dicom ${CMAKE_SOURCE_DIR}/packages/dcm2niix)
 
 add_executable(mri_parse_sdcmdir mri_parse_sdcmdir.cpp)
 target_link_libraries(mri_parse_sdcmdir utils)

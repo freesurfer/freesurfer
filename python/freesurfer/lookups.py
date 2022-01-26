@@ -30,12 +30,15 @@ class LookupTable(collections.OrderedDict):
             lines.append(str(idx).ljust(col1) + elt.name.ljust(col2) + colorstr)
         return '\n'.join(lines)
 
-    def add(self, index, name, color):
+    def add(self, index, name, color=None):
         self[index] = LookupTable.Element(name, color)
 
-    def search(self, name):
-        allcaps = name.upper()
-        return [idx for idx, elt in self.items() if allcaps in elt.name.upper()]
+    def search(self, name, exact=False):
+        if exact:
+            return next((idx for idx, elt in self.items() if name == elt.name), None)
+        else:
+            allcaps = name.upper()
+            return [idx for idx, elt in self.items() if allcaps in elt.name.upper()]
 
     @classmethod
     def read(cls, filename):
@@ -68,6 +71,36 @@ class LookupTable(collections.OrderedDict):
                 color[3] = 255 - color[3]  # invert alpha value
                 colorstr = ' '.join([str(c).ljust(3) for c in color])
                 file.write(str(idx).ljust(col1) + elt.name.ljust(col2) + colorstr + '\n')
+
+    def extract(self, labels):
+        """
+        Extract a new LookupTable from a list of label indices.
+        """
+        lut = LookupTable()
+        for label in labels:
+            elt = self.get(label)
+            if elt is None:
+                raise ValueError(f'Index {label} does not exist in the LookupTable.')
+            lut.add(label, elt.name, elt.color)
+        return lut
+
+    def copy_colors(self, source_lut):
+        """
+        Copies colors of matching label indices from a source LookupTable.
+        """
+        for label in self.keys():
+            elt = source_lut.get(label)
+            if elt is not None and elt.color is not None:
+                self[label].color = elt.color
+
+    def copy_names(self, source_lut):
+        """
+        Copies names of matching label indices from a source LookupTable.
+        """
+        for label in self.keys():
+            elt = source_lut.get(label)
+            if elt is not None:
+                self[label].name = elt.name
 
 
 class RecodingLookupTable(dict):

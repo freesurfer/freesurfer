@@ -63,6 +63,7 @@ if(BUILD_GUIS AND VTK_FOUND AND PETSC_FOUND AND TARGET vtkutils)
     Interactor3DVolumeCrop.cpp
     Interactor3DROIEdit.cpp
     Interactor3DPathEdit.cpp
+    Interactor3DPointSetEdit.cpp
     Layer.cpp
     LayerCollection.cpp
     LayerDTI.cpp

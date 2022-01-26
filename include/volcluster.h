@@ -65,7 +65,7 @@ int clustDumpCluster(FILE *fp, VOLCLUSTER *vc, MRI *vol, int frame);
 int clustAddMember(VOLCLUSTER *vc, int col, int row, int slc);
 
 VOLCLUSTER *clustGrow(int col0, int row0, int slc0,
-                      MRI *HitMap, int AllowDiag);
+                      MRI *HitMap, int AllowDiag,int npassesmax);
 int clustGrowOneVoxel(VOLCLUSTER *vc, int col0, int row0, int slc0,
                       MRI *HitMap, int AllowDiag);
 

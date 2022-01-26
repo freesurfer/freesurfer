@@ -227,7 +227,8 @@ void ThreadIOWorker::run()
     {
       return;
     }
-    if ( !surf->LoadSurfaceFromFile(m_args["ignore_vg"].toBool()) )
+    QString affinexform_filename = m_args["affinexform_filename"].toString();
+    if ( !surf->LoadSurfaceFromFile(m_args["ignore_vg"].toBool(), affinexform_filename) )
     {
       emit Error( m_layer, m_nJobType );
     }

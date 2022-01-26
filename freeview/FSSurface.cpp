@@ -158,6 +158,7 @@ bool FSSurface::MRISRead( const QString& filename,
                           const QString& patch_filename,
                           const QString& target_filename,
                           const QString& sphere_filename,
+                          const QString& affinexform_filename,
                           const QStringList& sup_files )
 {
   if ( m_MRIS )
@@ -173,6 +174,7 @@ bool FSSurface::MRISRead( const QString& filename,
 //    return false;
 //  }
 
+
   m_MRIS = ::MRISread( filename.toLatin1().data() );
   if ( m_MRIS == NULL )
   {
@@ -181,10 +183,25 @@ bool FSSurface::MRISRead( const QString& filename,
   }
   else
   {
+    if(!affinexform_filename.isEmpty()){
+      printf("Reading surf xfm LTA %s\n",affinexform_filename.toStdString().c_str());
+      LTA *lta = LTAread(affinexform_filename.toStdString().c_str());
+      if(lta == NULL){
+	cerr << "LTAread failed\n";
+	return false;
+      }
+      int err = MRISltaMultiply(m_MRIS, lta);
+      if(err){
+	cerr << "ERROR: applying LTA\n";
+	return false;
+      }
+      LTAfree(&lta);
+    }
     if (!sphere_filename.isEmpty())
       MRISreadCanonicalCoordinates(m_MRIS, qPrintable(sphere_filename));
     return InitializeData(vector_filename, patch_filename, target_filename, sup_files);
   }
+
 }
 
 bool FSSurface::CreateFromMRIS(MRIS *mris)
@@ -1743,9 +1760,8 @@ bool FSSurface::GetRASAtVertex ( int inVertex, float ioRAS[3], int surface_type 
 
 bool FSSurface::GetRASAtVertex ( int inVertex, double ioRAS[3], int surface_type )
 {
-  Q_UNUSED(surface_type);
   double surfaceRAS[3];
-  if ( this->GetSurfaceRASAtVertex( inVertex, surfaceRAS ) )
+  if ( this->GetSurfaceRASAtVertex( inVertex, surfaceRAS, surface_type ) )
   {
     this->ConvertSurfaceToRAS( surfaceRAS, ioRAS );
     return true;

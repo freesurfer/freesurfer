@@ -21,6 +21,7 @@ void set_voxel_value(MRI* mri, double dx, double dy, double dz, double val)
     MRIIseq_vox( mri, x, y, z, 0 ) = (int)val;
     break;
   case MRI_SHORT:
+  case MRI_USHRT:
     MRIIseq_vox( mri, x, y, z, 0 ) = (int)val;
     break;
   default:

@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+echo "Please note that qdec is no longer supported and has been removed from the freesurfer distribution."
+echo "Use the \"command line\" stream instead (ie, mris_preproc, mris_surf2surf, mri_glmfit, and mri_glmfit-sim)."
+
+exit 1
+

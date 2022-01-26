@@ -565,7 +565,6 @@ if(NOT MINIMAL)
     mri_strip_subject_info
     mri_surfacemask
     mri_synth_strip
-    mri_SynthSR
     mri_synthesize
     mri_threshold
     mri_topologycorrection
@@ -603,6 +602,7 @@ if(NOT MINIMAL)
     mris_find_flat_regions
     mris_flatten
     mris_fwhm
+    mris_gradient_unwarp
     mris_hausdorff_dist
     mris_init_global_tractography
     mris_interpolate_warp
@@ -661,6 +661,8 @@ if(NOT MINIMAL)
     spline3
     stat_normalize
     stim_polar
+    mri_synthseg
+    mri_synthsr
     swi_processing
     template
     test_makevol
@@ -697,6 +699,9 @@ if(EXISTS "./mri_make_bem_surfaces")
       add_subdirectories(mri_make_bem_surfaces)
       message(STATUS "Adding mri_make_bem_surfaces to build on ${HOST_OS}")
    elseif(HOST_OS MATCHES "CentOS8")
+      add_subdirectories(mri_make_bem_surfaces)
+      message(STATUS "Adding mri_make_bem_surfaces to build on ${HOST_OS}")
+   elseif(APPLE)
       add_subdirectories(mri_make_bem_surfaces)
       message(STATUS "Adding mri_make_bem_surfaces to build on ${HOST_OS}")
    endif()

@@ -667,7 +667,7 @@ class SamsegTumor(Samseg):
         # Uncrop image
         volume = fs.Volume(data, affine=geom.affine, voxsize=geom.voxsize)
         if saveLabels:
-            volume.lut = fs.LookupTable.read_default()
+            volume.lut = fs.LookupTable.read(os.path.join(self.atlasDir, 'modifiedFreeSurferColorLUT.txt'))
         volume.write(path)
 
     def computeFinalSegmentation(self):

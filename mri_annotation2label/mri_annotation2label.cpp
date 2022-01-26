@@ -201,6 +201,7 @@ int main(int argc, char **argv)
 
   if(LobesFile) {
     MRISaparc2lobes(Surf, (int) Ge_lobarDivision);
+    printf("Writing annot to %s\n",LobesFile);
     MRISwriteAnnotation(Surf,LobesFile);
     if(ctabfile != NULL) {
       Surf->ct->idbase = segbase;
@@ -225,6 +226,7 @@ int main(int argc, char **argv)
         }
         Surf->vertices[vtxno].annotation = 0;
       }
+      printf("Writing border annot to %s\n",BorderAnnotFile);
       err = MRISwriteAnnotation(Surf,BorderAnnotFile);
       if(err) {
         printf("ERROR: cannot write %s\n",BorderAnnotFile);

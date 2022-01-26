@@ -182,6 +182,30 @@ def semi_surf_gen(mrisp_list, mrisp_label_list, batch_size=4, use_rand=True):
         outputs = [batch_fixed, zero_warp, batch_fixed_labels]
         yield inputs, outputs
             
+def semi_surf_template_gen(mrisp_list, mrisp_label_list, batch_size=4, use_rand=True):
+    nsubjects = len(mrisp_list)
+    nlabels = mrisp_label_list[0].shape[-1]
+    mrisp_shape = mrisp_list[0].shape[0:-1]
+    nfeats = mrisp_list[0].shape[-1]
+    batch_image = np.zeros((batch_size, *mrisp_shape, nfeats))
+    batch_labels = np.zeros((batch_size, *mrisp_shape, nlabels))
+    zero_warp = np.zeros((batch_size, *mrisp_shape, 2))
+    zero_sub_in_atlas = np.zeros((batch_size, *mrisp_shape, 1))
+    ind = -1
+    while True:
+        for bno in range(batch_size):
+            if use_rand:
+                ind = np.random.randint(0,nsubjects)
+            else:
+                ind = np.mod(ind+1, nsubjects)
+
+            batch_image[bno, ...] = mrisp_list[ind]
+            batch_labels[bno,...] = mrisp_label_list[ind]
+
+        inputs = [batch_image]
+        outputs = [batch_image, zero_sub_in_atlas, batch_labels, zero_warp]
+        yield inputs, outputs
+            
 
 def semi_surf_atlas_gen(mrisp_list, mrisp_label_list, atlas_mean, atlas_var, batch_size=4, use_rand=True):
     nsubjects = len(mrisp_list)
@@ -740,8 +764,12 @@ def loadSphere(surfName, curvFileName, padSize=8, which_norm='Median'):
         return paddata
 
 def padSphere(mrisp, pad):
-    paddata = np.pad(mrisp, ((pad,pad), (0,0)), 'wrap')
-    paddata = np.pad(paddata, ((0,0), (pad,pad)), 'reflect')
+    if len(mrisp.shape) == 2:
+        paddata = np.pad(mrisp, ((pad,pad), (0,0)), 'wrap')
+        paddata = np.pad(paddata, ((0,0), (pad,pad)), 'reflect')
+    else:
+        paddata = np.pad(mrisp, ((pad,pad), (0,0), (0,0)), 'wrap')
+        paddata = np.pad(paddata, ((0,0), (pad,pad), (0,0)), 'reflect')
     return paddata
 
 def mrisp_semi_gen(mrisps_geom, mrisps_func, batch_size=4, use_rand=True, func_thresh=0, warp_downsize=1):

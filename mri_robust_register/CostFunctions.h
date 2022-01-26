@@ -203,6 +203,7 @@ protected:
 
   float fromUCHAR(void);
   float fromSHORT(void);
+  float fromUSHRT(void);
   float fromINT(void);
   float fromLONG(void);
   float fromFLOAT(void);
@@ -235,6 +236,10 @@ inline MRIiterator::MRIiterator(MRI * i) :
   case MRI_SHORT:
     getVal = &MRIiterator::fromSHORT;
     bytes_per_voxel = sizeof(short);
+    break;
+  case MRI_USHRT:
+    getVal = &MRIiterator::fromUSHRT;
+    bytes_per_voxel = sizeof(unsigned short);
     break;
   case MRI_INT:
     getVal = &MRIiterator::fromINT;
@@ -330,6 +335,11 @@ inline float MRIiterator::fromUCHAR()
 inline float MRIiterator::fromSHORT()
 {
   return ((float) *(short *) pos);
+}
+
+inline float MRIiterator::fromUSHRT()
+{
+  return ((float) *(unsigned short *) pos);
 }
 
 inline float MRIiterator::fromINT()

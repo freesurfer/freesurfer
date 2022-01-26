@@ -36,6 +36,10 @@ py::array_t<double> KvlMesh::GetAlphas() const {
     return AlphasToNumpy(mesh->GetPointData());
 }
 
+py::array_t<bool> KvlMesh::GetCanMoves() const {
+    return CanMovesToNumpy(mesh->GetPointData());
+}
+
 void KvlMesh::SetPointSet(const py::array_t<double> &source) {
     PointSetPointer points = const_cast<PointSetPointer>(mesh->GetPoints());
     CopyNumpyToPointSet(points, source);
@@ -44,6 +48,11 @@ void KvlMesh::SetPointSet(const py::array_t<double> &source) {
 void KvlMesh::SetAlphas(const py::array_t<double> &source) {
     PointDataPointer alphas = const_cast<PointDataPointer>(mesh->GetPointData());
     CopyNumpyToPointDataSet(alphas, source);
+}
+
+void KvlMesh::SetCanMoves(const py::array_t<bool> &source) {
+    PointDataPointer pointData = const_cast<PointDataPointer>(mesh->GetPointData());
+    CopyNumpyToCanMoves(pointData, source);
 }
 
 void TransformMeshPoints(MeshPointer mesh, const double *scaleFactor) {
@@ -271,6 +280,15 @@ KvlMesh *KvlMeshCollection::GetReferenceMesh() {
 
 unsigned int KvlMeshCollection::MeshCount() const {
     return meshCollection->GetNumberOfMeshes();
+}
+
+void KvlMeshCollection::Smooth(double sigma) {
+    kvl::AtlasMeshCollection::Pointer atlasMeshCollectionPtr = this->GetMeshCollection();
+    kvl::AtlasMeshSmoother::Pointer  smoother = kvl::AtlasMeshSmoother::New();
+    smoother->SetMeshCollection(atlasMeshCollectionPtr);
+    smoother->SetSigma(sigma);
+    // note: it's very unclear that this actually updates the source mesh collection
+    smoother->GetSmoothedMeshCollection();
 }
 
 py::array_t<uint16_t> KvlMesh::RasterizeMesh(std::vector<size_t> size, int classNumber) {
@@ -640,6 +658,19 @@ py::array_t<double> AlphasToNumpy(PointDataConstPointer alphas) {
     return createNumpyArrayCStyle({numberOfNodes, numberOfLabels}, data);
 }
 
+py::array_t<bool> CanMovesToNumpy(PointDataConstPointer pointData ) {
+    const unsigned int numberOfNodes = pointData->Size();
+    auto *data = new bool[numberOfNodes * 3];
+    auto dataIterator = data;
+    for (auto srcIterator = pointData->Begin(); srcIterator != pointData->End(); ++srcIterator) {
+        *dataIterator++ = srcIterator.Value().m_CanMoveX;
+        *dataIterator++ = srcIterator.Value().m_CanMoveY;
+        *dataIterator++ = srcIterator.Value().m_CanMoveZ;
+    }
+    return createNumpyArrayCStyle({numberOfNodes, 3}, data);
+}
+
+
 void CopyNumpyToPointDataSet(PointDataPointer destinationAlphas, const py::array_t<double> &source)
 {
     if (source.ndim() != 2) {
@@ -668,5 +699,213 @@ void CopyNumpyToPointDataSet(PointDataPointer destinationAlphas, const py::array
         }
         alphasIterator.Value().m_Alphas = alphas;
     }
+}
+
+
+void CopyNumpyToCanMoves(PointDataPointer destinationPointData, const py::array_t<bool> &source)
+{
+    if (source.ndim() != 2) {
+        itkGenericExceptionMacro("canMove source shape must have two dimensions");
+    }
+    const unsigned int currentNumberOfNodes = destinationPointData->Size();
+    auto sourceShape = source.shape();
+    const unsigned int sourceNumberOfNodes = *sourceShape++;
+    const unsigned int numberOfDimensions = *sourceShape++;
+    if (sourceNumberOfNodes != currentNumberOfNodes) {
+        itkGenericExceptionMacro(
+                "source data point count of "
+                        << sourceNumberOfNodes
+                        << " not equal to mesh point count of "
+                        << currentNumberOfNodes
+        );
+    }
+    if (numberOfDimensions !=3 ) {
+        itkGenericExceptionMacro("source data have three directions not " << numberOfDimensions);
+    }
+    unsigned int pointIndex = 0;
+    for (auto destIterator = destinationPointData->Begin(); destIterator != destinationPointData->End(); ++destIterator, ++pointIndex) {
+        destIterator.Value().m_CanMoveX = *source.data(pointIndex, 0);
+        destIterator.Value().m_CanMoveY = *source.data(pointIndex, 1);
+        destIterator.Value().m_CanMoveZ = *source.data(pointIndex, 2);
+    }
+}
+
+
+KvlMesh* KvlMesh::GetSubmesh( py::array_t<bool>& mask ) {
+  
+  if (mask.ndim() < 1 ) 
+    {
+    itkGenericExceptionMacro("mask shape must have at least one dimension");
+    }
+  const unsigned int  numberOfMeshNodes = mesh->GetPoints()->Size();
+  const unsigned int  maskNumberOfNodes = mask.shape( 0 );
+  if ( numberOfMeshNodes != maskNumberOfNodes )
+    {
+    itkGenericExceptionMacro( "Numbe of nodes in mask not compatible with number of nodes in mesh (" 
+                              << maskNumberOfNodes << " vs. " << numberOfMeshNodes << ")" );
+    }
+    
+  // Collect a list of points that the mask indicates should be included    
+  std::set< kvl::AtlasMesh::PointIdentifier >  initialPointIds;
+  int  pointNumber = 0;
+  for ( auto it = mesh->GetPoints()->Begin(); it != mesh->GetPoints()->End(); 
+        ++it, ++pointNumber ) 
+    {
+    if ( *( mask.data( pointNumber ) ) )
+      {
+      //const int  counter = pointIdLookupTable.size();
+      //pointIdLookupTable[ it.Index() ] = counter;
+      initialPointIds.insert( it.Index() );
+      }
+    }
+    
+  
+  // Build a list of tetrahedra that are attached to these nodes. At the same
+  // time, create a simple lookup table to converts the original cellIds into
+  // new cellIds (without gaps) in our new mesh 
+  std::map< kvl::AtlasMesh::CellIdentifier, int >  tetIdLookupTable;
+  mesh->BuildCellLinks();
+  const kvl::AtlasMesh::CellLinksContainer::ConstPointer  cellLinks = mesh->GetCellLinks();
+  for ( auto pointIt = initialPointIds.begin(); pointIt != initialPointIds.end(); ++pointIt )
+    {
+    // Loop over all the tetrahedra attached to this point  
+    const std::set< kvl::AtlasMesh::CellIdentifier >&  cells 
+                                                       = cellLinks->ElementAt( *pointIt );
+    for ( auto cellIt = cells.begin(); cellIt != cells.end(); ++cellIt )
+      {
+      //  
+      const kvl::AtlasMesh::CellIdentifier  cellId = *cellIt;
+      const kvl::AtlasMesh::CellType*  cell = mesh->GetCells()->ElementAt( cellId );
+      if ( cell->GetType() != kvl::AtlasMesh::CellType::TETRAHEDRON_CELL )
+        {
+        //  
+        continue;  
+        }
+        
+      // OK, we're having a tetrahedron. Add it to our list if not already there
+      if ( tetIdLookupTable.find( cellId ) == tetIdLookupTable.end() )
+        {
+        const int  counter = tetIdLookupTable.size();
+        tetIdLookupTable[ cellId ] = counter;
+        }
+      
+      } // End loop over cells/tets
+  
+    } // End loop over points
+  
+
+  // The tetrahedra will have extra points (not in the original mask) attached to them.
+  // These should also be part of our new mesh.
+  std::set< kvl::AtlasMesh::PointIdentifier >  extraPointIds;
+  for ( auto tetIt = tetIdLookupTable.begin(); tetIt != tetIdLookupTable.end(); ++tetIt )
+    {
+    //  
+    //const kvl::AtlasMesh::CellType&  tet = mesh->GetCells()->ElementAt( tetIt->first );
+    const kvl::AtlasMesh::CellType*  tet = mesh->GetCells()->ElementAt( tetIt->first );
+  
+  
+    // Loop over all points in tet
+    for ( auto pit = tet->PointIdsBegin(); pit != tet->PointIdsEnd(); ++pit )
+      {
+      const kvl::AtlasMesh::PointIdentifier  pointId = *pit;
+        
+      if ( initialPointIds.find( pointId ) == initialPointIds.end() )
+        {
+        // Found a new, extra point  
+        extraPointIds.insert( pointId );
+        }
+      } // End loop over all points in tet
+      
+    } // End loop over all tets  
+    
+    
+  // Build a look-up table converting the pointIds of all the relevant points in the 
+  // original mesh into a new pointId numbering system (without gaps) in our new mesh.
+  std::map< kvl::AtlasMesh::PointIdentifier, int >  pointIdLookupTable;
+  std::set< kvl::AtlasMesh::PointIdentifier >  mergedPointIds( initialPointIds );
+  mergedPointIds.insert( extraPointIds.begin(), extraPointIds.end() );
+  for ( auto it = mergedPointIds.begin(); it != mergedPointIds.end(); ++it )
+    {
+    const int  counter = pointIdLookupTable.size();
+    pointIdLookupTable[ *it ] = counter;
+    }
+  
+  
+  // Copy points and pointData   
+  kvl::AtlasMesh::PointsContainer::Pointer  subPoints =  kvl::AtlasMesh::PointsContainer::New();
+  kvl::AtlasMesh::PointDataContainer::Pointer  subPointData 
+                                                      = kvl::AtlasMesh::PointDataContainer::New();
+  for ( auto pointIt = pointIdLookupTable.begin(); pointIt != pointIdLookupTable.end(); ++pointIt )
+    {
+    subPoints->InsertElement( pointIt->second, mesh->GetPoints()->ElementAt( pointIt->first ) );
+    subPointData->InsertElement( pointIt->second, mesh->GetPointData()->ElementAt( pointIt->first ) );
+    }
+    
+    
+  // Same for cells and cellData
+  kvl::AtlasMesh::CellsContainer::Pointer  subCells = kvl::AtlasMesh::CellsContainer::New();
+  kvl::AtlasMesh::CellDataContainer::Pointer  subCellData = kvl::AtlasMesh::CellDataContainer::New();
+  for ( auto tetIt = tetIdLookupTable.begin(); tetIt != tetIdLookupTable.end(); ++tetIt )
+    {
+    // Create new tet cell  
+    typedef itk::TetrahedronCell< kvl::AtlasMesh::CellType >  TetrahedronCell;
+    kvl::AtlasMesh::CellAutoPointer  newCell;
+    newCell.TakeOwnership( new TetrahedronCell );
+    const kvl::AtlasMesh::CellType*  tet = mesh->GetCells()->ElementAt( tetIt->first );
+
+    int  localId = 0;
+    for ( auto pit = tet->PointIdsBegin(); pit != tet->PointIdsEnd(); ++pit, ++localId )
+      {
+      const kvl::AtlasMesh::PointIdentifier  pointId = *pit;
+      newCell->SetPointId( localId, pointIdLookupTable[ pointId ] );
+      }
+
+    // Insert new cell  
+    subCells->InsertElement( tetIt->second, newCell.ReleaseOwnership() );
+  
+    // Also copy cell data
+    subCellData->InsertElement( tetIt->second, mesh->GetCellData()->ElementAt( tetIt->first ) );
+
+    } // End loop over tets
+  
+  
+  // Last but not least: the extra points introduced because they are part of boundary tets
+  // need to be set to immobile. Finding them is easy because their pointNumber exceeds the
+  // original number of points
+  for ( auto pointIt = extraPointIds.begin(); pointIt != extraPointIds.end(); ++pointIt )
+    {
+    const int  pointNumber = pointIdLookupTable[ *pointIt ];  
+    subPointData->ElementAt( pointNumber ).m_CanMoveX = false;
+    subPointData->ElementAt( pointNumber ).m_CanMoveY = false;
+    subPointData->ElementAt( pointNumber ).m_CanMoveZ = false;
+    }  
+  
+  
+  // The original mask will not yet have the extra points in it -- add back as
+  // feedback to the user
+  auto  x = mask.mutable_unchecked();
+  pointNumber = 0;
+  for ( auto it = mesh->GetPoints()->Begin(); it != mesh->GetPoints()->End(); 
+        ++it, ++pointNumber ) 
+    {
+    if ( pointIdLookupTable.find( it.Index() ) != pointIdLookupTable.end() )
+      {
+      x( pointNumber ) = true;
+      }
+    }
+  
+  
+  // Finally, create a mesh
+  kvl::AtlasMesh::Pointer  subMesh = kvl::AtlasMesh::New();
+  subMesh->SetPoints( subPoints );
+  subMesh->SetPointData( subPointData );
+  subMesh->SetCells( subCells );
+  subMesh->SetCellData( subCellData );
+
+
+  //
+  kvl::AtlasMesh::ConstPointer  tmp = subMesh.GetPointer();
+  return new KvlMesh( tmp );
+  
 }
 

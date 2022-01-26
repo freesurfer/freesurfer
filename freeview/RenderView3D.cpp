@@ -24,12 +24,15 @@
 #include "LayerPropertyMRI.h"
 #include "LayerSurface.h"
 #include "LayerPropertySurface.h"
+#include "LayerPointSet.h"
+#include "LayerPropertyPointSet.h"
 #include "SurfaceOverlay.h"
 #include "VolumeCropper.h"
 #include "Cursor3D.h"
 #include "SurfaceRegion.h"
 #include "SurfaceROI.h"
 #include "SurfaceOverlayProperty.h"
+#include "SurfacePath.h"
 #include <vtkProp.h>
 #include <vtkCellPicker.h>
 #include <vtkRenderWindow.h>
@@ -51,6 +54,7 @@
 #include "Interactor3DMeasure.h"
 #include "Interactor3DVolumeCrop.h"
 #include "Interactor3DROIEdit.h"
+#include "Interactor3DPointSetEdit.h"
 #include "LayerVolumeTrack.h"
 #include <vtkScalarBarActor.h>
 #include "vtkRGBAColorTransferFunction.h"
@@ -58,12 +62,14 @@
 #include <vtkCubeAxesActor.h>
 #include <vtkTextProperty.h>
 #include <QFileInfo>
+#include <QFileDialog>
 #include "MyUtils.h"
 #include "FSSurface.h"
 #include "Interactor3DPathEdit.h"
 #include <QElapsedTimer>
 #include "vtkInteractorStyleMyTrackballCamera.h"
 #include <vtkCubeAxesActor.h>
+#include <QMessageBox>
 
 #define SLICE_PICKER_PIXEL_TOLERANCE  15
 
@@ -110,6 +116,7 @@ RenderView3D::RenderView3D( QWidget* parent ) : RenderView( parent )
   m_interactorVolumeCrop = new Interactor3DVolumeCrop(this);
   m_interactorROIEdit = new Interactor3DROIEdit(this);
   m_interactorPathEdit = new Interactor3DPathEdit(this);
+  m_interactorPointSetEdit = new Interactor3DPointSetEdit(this);
   connect(m_cursor3D, SIGNAL(Updated()), this, SLOT(RequestRedraw()));
 
   m_cursorInflatedSurf = new Cursor3D(this);
@@ -146,6 +153,9 @@ void RenderView3D::SetInteractionMode( int nMode )
     break;
   case IM_ROIEdit:
     m_interactor = m_interactorROIEdit;
+    break;
+  case IM_PointSetEdit:
+    m_interactor = m_interactorPointSetEdit;
     break;
   case IM_SurfacePath:
   case IM_SurfaceCut:
@@ -619,7 +629,7 @@ bool RenderView3D::MapInflatedCoords(LayerSurface *surf, double *pos_in, double 
     surf->SetCurrentVertex(nVertex);
   else
     surf->SetMouseVertex(nVertex);
-  if (QFileInfo(surf->GetFileName()).fileName().contains("inflated") || surf->GetActiveSurface() == FSSurface::SurfaceInflated)
+  if (surf->IsInflated())
   {
     if (m_cursor3D->IsShown())
       m_cursorInflatedSurf->Show();
@@ -733,7 +743,7 @@ int RenderView3D::PickCurrentSurfaceVertex(int posX, int posY, LayerSurface* cur
       props->InitTraversal();
       vtkProp* prop = props->GetNextProp();
       while ( prop )
-      {
+      {        
         if ( vtkActor::SafeDownCast( prop ) )
         {
           picker->AddPickList( prop );
@@ -768,6 +778,64 @@ int RenderView3D::PickCurrentSurfaceVertex(int posX, int posY, LayerSurface* cur
     }
   }
   return nvo;
+}
+
+int RenderView3D::PickCurrentPointSetPoint(int posX, int posY, LayerPointSet *curPointSet)
+{
+  LayerCollection* lc_ps = MainWindow::GetMainWindow()->GetLayerCollection( "PointSet" );
+
+  this->setToolTip("");
+  if ( lc_ps->IsEmpty() )
+  {
+    return -1;
+  }
+
+  posY = this->rect().height() - posY;
+  int nPt = -1;
+  vtkCellPicker* picker = vtkCellPicker::SafeDownCast( this->GetRenderWindow()->GetInteractor()->GetPicker() );
+  if ( picker )
+  {
+    picker->InitializePickList();
+
+    vtkPropCollection* props = GetRenderer()->GetViewProps();
+    if ( props )
+    {
+      props->InitTraversal();
+      vtkProp* prop = props->GetNextProp();
+      while ( prop )
+      {
+        if ( vtkActor::SafeDownCast( prop ) )
+        {
+          picker->AddPickList( prop );
+        }
+        prop = props->GetNextProp();
+      }
+    }
+
+    double pos[3];
+#if VTK_MAJOR_VERSION > 7
+    if (devicePixelRatio() > 1)
+    {
+      posX *= devicePixelRatio();
+      posY *= devicePixelRatio();
+    }
+#endif
+    picker->Pick( posX, posY, 0, GetRenderer() );
+    picker->GetPickPosition( pos );
+
+    vtkProp* prop = picker->GetViewProp();
+    Layer* layer = lc_ps->HasProp( prop );
+    if (layer)
+    {
+      LayerPointSet* ps = (LayerPointSet*)layer;
+      if (ps)
+      {
+        double* voxel_size = ps->GetWorldVoxelSize();
+        nPt = ps->FindPoint(pos, ps->GetProperty()->GetRadius() * qMin( voxel_size[0], qMin( voxel_size[1], voxel_size[2] ) ) * 1.1);
+      }
+    }
+  }
+  return nPt;
 }
 
 void RenderView3D::DoUpdateConnectivityDisplay()
@@ -1600,6 +1668,24 @@ void RenderView3D::TriggerContextMenu( QMouseEvent* event )
     menu->addSeparator();
     menu->addAction(act);
   }
+
+  surf = (LayerSurface*)mainwnd->GetActiveLayer("Surface");
+  if (surf)
+  {
+    menu->addSeparator();
+    if (surf->GetMarks() && surf->GetMarks()->GetNumberOfPoints() > 0)
+    {
+      act = new QAction("Save Marked Vertices As Control Points", this);
+      connect(act, SIGNAL(triggered()), SLOT(SaveMarksAsControlPoints()));
+      menu->addAction(act);
+    }
+    if (surf->GetActivePath())
+    {
+      act = new QAction("Save Path As Control Points", this);
+      connect(act, SIGNAL(triggered()), SLOT(SavePathAsControlPoints()));
+      menu->addAction(act);
+    }
+  }
   menu->exec(event->globalPos());
 }
 
@@ -1800,4 +1886,31 @@ void RenderView3D::SetAxesFlyMode(int n)
 int RenderView3D::GetAxesFlyMode()
 {
   return m_actorAxesActor->GetFlyMode();
+}
+
+void RenderView3D::SavePathAsControlPoints()
+{
+  LayerSurface* surf = (LayerSurface*)MainWindow::GetMainWindow()->GetActiveLayer("Surface");
+  if (surf && surf->GetActivePath())
+    SavePathAsControlPoints(surf->GetActivePath());
+}
+
+void RenderView3D::SaveMarksAsControlPoints()
+{
+  LayerSurface* surf = (LayerSurface*)MainWindow::GetMainWindow()->GetActiveLayer("Surface");
+  if (surf && surf->GetMarks())
+    SavePathAsControlPoints(surf->GetMarks());
+}
+
+void RenderView3D::SavePathAsControlPoints(SurfacePath *sp)
+{
+  LayerSurface* surf = (LayerSurface*)MainWindow::GetMainWindow()->GetActiveLayer("Surface");
+  QString fn = QFileDialog::getSaveFileName( this, QString("Save %1 As").arg(sp->IsPathMade()?"Path":"Vertices"),
+                                             "",
+                                             "Control Point files (*)");
+  if ( !fn.isEmpty())
+  {
+    if (!surf->SavePathAsControlPoints(fn, !sp->IsPathMade()))
+      QMessageBox::warning(this, "Error", "Failed to save file " + fn);
+  }
 }

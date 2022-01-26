@@ -495,6 +495,7 @@ int main(int argc, char **argv) {
   }
   else
   {
+    printf("Projecting %g %g %g\n",ProjFracMin,ProjFracMax,ProjFracDelta);
     nproj = 0;
     for (ProjFrac=ProjFracMin; 
          ProjFrac <= ProjFracMax; 
@@ -521,11 +522,11 @@ int main(int argc, char **argv) {
       if (nproj == 0) SurfVals = MRIcopy(SurfValsP,NULL);
       else {
         if (!GetProjMax) MRIadd(SurfVals,SurfValsP,SurfVals);
-        else            MRImax(SurfVals,SurfValsP,SurfVals);
+        else             MRImax(SurfVals,SurfValsP,SurfVals);
       }
       MRIfree(&SurfValsP);
       nproj ++;
-    }
+    } // end proj loop
     if (!GetProjMax) MRImultiplyConst(SurfVals, 1.0/nproj, SurfVals);
   }
 
@@ -958,6 +959,9 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%f",&ProjFracMin);
       sscanf(pargv[1],"%f",&ProjFracMax);
       sscanf(pargv[2],"%f",&ProjFracDelta);
+      if(ProjFracDelta > ProjFracMax){
+	printf("\nINFO: Delta=%g > Max=%g, may be ok, maybe not\n\n",ProjFracDelta,ProjFracMax);
+      }
       ProjFrac = 0.5; // just make it non-zero
       GetProjMax = 1;
       nargsused = 3;
@@ -991,6 +995,9 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%f",&ProjFracMin);
       sscanf(pargv[1],"%f",&ProjFracMax);
       sscanf(pargv[2],"%f",&ProjFracDelta);
+      if(ProjFracDelta > ProjFracMax){
+	printf("\nINFO: Delta=%g > Max=%g, may be ok, maybe not\n\n",ProjFracDelta,ProjFracMax);
+      }
       ProjFrac = 0.5; // just make it non-zero
       ProjDistFlag = 1;
       GetProjMax = 1;
@@ -1035,6 +1042,9 @@ static int parse_commandline(int argc, char **argv) {
     } 
     else if (!strcmp(option, "--use-new")) {
       UseOld = 0;
+    } 
+    else if (!strcmp(option, "--copy-ctab")) {
+      setenv("FS_COPY_HEADER_CTAB","1",1);
     } 
     else if (!strcmp(option, "--vsm")) {
       if (nargc < 1) argnerr(option,1);
@@ -1117,6 +1127,7 @@ static int parse_commandline(int argc, char **argv) {
       printf("dist %g, delta=%g, sigma=%g, interp %s %d\n",dist,delta,sigma,pargv[5],interpcode);
       MRI *mri2 = MRISsampleProfile(surf, mri, -dist, +dist, delta, sigma, interpcode, NULL);
       if(mri2==NULL) exit(1);
+      mri2->tr = delta;
       int err = MRIwrite(mri2,pargv[6]);
       if(err) exit(err);
       printf("freeview -f %s:overlay=%s\n",pargv[0],pargv[6]);
@@ -1298,6 +1309,7 @@ static void print_usage(void) {
   printf("   --srcsynth seed : synthesize source volume\n");
   printf("   --srcsynth-index : synthesize source volume with volume index no\n");
   printf("   --seedfile fname : save synth seed to fname\n");
+  printf("   --copy-ctab : setenv FS_COPY_HEADER_CTAB to copy any ctab in the mov header\n");
   printf("   --sd SUBJECTS_DIR \n");
   printf("   --profile surf vol dist delta sigma interpname output\n");
   printf("     Computes intensity profile from -dist:delta:+dist\n");

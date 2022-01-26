@@ -13,9 +13,10 @@ set cleanup = 1;
 set OutSurf = ();
 set InitSurf = ();
 set annot = aparc.annot;
+set InitLTA = ()
+set threads = 1
 set LF = ();
-
-set LF = ();
+set InitLTAfromTal = 0
 
 set inputargs = ($argv);
 set PrintHelp = 0;
@@ -63,6 +64,14 @@ if($DoXHemi) then
   if(! -e $sd/lrrev.register.dat) then
     echo "xhemi does not exist for $subject, running now"
     set cmd = (xhemireg --s $subject)
+    if($#hemilist == 1) then
+      if($hemilist == lh) set cmd = ($cmd --rh)
+      if($hemilist == rh) set cmd = ($cmd --lh)
+    endif
+    if($InitLTAfromTal) then
+      set cmd = ($cmd --tal-estimate)
+      set InitLTA = $sd/mri/transforms/talairach.xfm.lta
+    endif
     echo $cmd | tee -a $LF
     $cmd | tee -a $LF
     if($status) exit 1;
@@ -81,7 +90,8 @@ foreach hemi ($hemilist)
   endif
   set outreg = $sd/surf/$hemi.$OutSurf
   set InitSurfPath = $sd/surf/$hemi.$InitSurf
-  set cmd = (mris_register -curv)
+  set cmd = (mris_register -curv -threads $threads)
+  if($#InitLTA) set cmd = ($cmd -reg $InitLTA) # consider -norot as well
   if($#annot) set cmd = ($cmd -annot $annot)
   if($UseNoNeg) set cmd = ($cmd -remove_negative 1)
   set cmd = ($cmd $InitSurfPath $AvgTif $outreg)
@@ -123,10 +133,6 @@ while( $#argv != 0 )
     case "--t":
       if($#argv < 1) goto arg1err;
       set target = $argv[1]; shift;
-      if(! -e $SUBJECTS_DIR/$target) then
-        echo "ERROR: cannot find $target in $SUBJECTS_DIR"
-        exit 1;
-      endif
       breaksw
 
     case "--o":
@@ -143,6 +149,21 @@ while( $#argv != 0 )
     case "--log":
       if($#argv < 1) goto arg1err;
       set LF = $argv[1]; shift;
+      breaksw
+
+    case "--lta":
+      if($#argv < 1) goto arg1err;
+      set InitLTA = $argv[1]; shift;
+      if(! -e $InitLTA) then
+        echo "ERROR: cannot find $InitLTA"
+        exit 1
+      endif
+      set InitLTAfromTal = 0
+      breaksw
+
+    case "--lta-init-from-tal":
+      set InitLTAfromTal = 1
+      set InitLTA = ()
       breaksw
 
     case "--lh":
@@ -168,6 +189,11 @@ while( $#argv != 0 )
 
     case "--no-annot":
       set annot = ();
+      breaksw
+
+    case "--threads":
+      if($#argv < 1) goto arg1err;
+      set threads = $argv[1]; shift;
       breaksw
 
     case "--noneg":
@@ -212,6 +238,16 @@ if(! -e $sd) then
   exit 1;
 endif
 if($DoXHemi) set sd = $SUBJECTS_DIR/$subject/xhemi
+if(! -e $SUBJECTS_DIR/$target) then
+   if($target == fsaverage_sym) then
+      pushd $SUBJECTS_DIR
+      ln -s $FREESURFER_HOME/subjects/fsaverage_sym
+      popd
+   else
+     echo "ERROR: cannot find $target in $SUBJECTS_DIR"
+     exit 1;
+   endif
+endif
 
 if($#OutSurf == 0) then
   if($target == fsaverage) set OutSurf = sphere.reg
@@ -274,8 +310,10 @@ usage_exit:
   echo "  --aparc : sets annotname to aparc.annot (default)"
   echo "  --noneg "
   echo "  --init-reg initregname : default is sphere (do not include hemi)"
+  echo "  --lta reg.lta : apply rotational components of affine reg"
   echo "  --o outsurfname : default is target.sphere.reg (do not include hemi)"
   echo "      If target is fsaverage, then default is sphere.reg"
+  echo "  --threads threads : run in parallel"
   echo ""
 
   if(! $PrintHelp) exit 1;
