@@ -7,9 +7,16 @@
 #include "GradUnwarp.h"
 #include "legendre.h"
 
+/*****************************************************************************/
+/******************** Implementation of GradUnwarp class *********************/
+/***************     3 environment variables to enable debug info:        **************/
+/********** PRN_GRADCOEFF, PRN_LEGENDRE_NORMFACT, PRN_LEGENDRE, PRN_SIEMENS_B **********/
 GradUnwarp::GradUnwarp()
 {
   fgrad = NULL;
+
+  nmax = 0;
+  mmax = 0;
 
   coeffCount = 0;
   coeffDim = 0;
@@ -17,14 +24,12 @@ GradUnwarp::GradUnwarp()
   R0 = 0;
   Alpha_x = NULL; Alpha_y = NULL; Alpha_z = NULL;
   Beta_x  = NULL; Beta_y  = NULL; Beta_z  = NULL;
-
-  P = NULL;
 }
 
 GradUnwarp::~GradUnwarp()
 {
-  int i = 0;
-  for (; i < coeffDim; i++)
+  int i;
+  for (i = 0; i < coeffDim; i++)
   {
     free(Alpha_x[i]);
     free(Alpha_y[i]);
@@ -43,21 +48,10 @@ GradUnwarp::~GradUnwarp()
 
   free(minusonepow);
   free(factorials);
+
   for (i = 0; i < coeffDim; i++)
-  {
     free(normfact[i]);
-    free(P[i]);
-  }
   free(normfact);
-  free(P);
-}
-
-void GradUnwarp::setup()
-{
-}
-
-void GradUnwarp::list_coeff_files()
-{
 }
 
 void GradUnwarp::read_siemens_coeff(const char *gradfilename)
@@ -76,6 +70,9 @@ void GradUnwarp::read_siemens_coeff(const char *gradfilename)
 
   _skipCoeffComment();
 
+  // hard-coded limits:
+  // number of coeff entries - 100
+  // length of each entry    - 1024
   char coeffline[1024];
 
   // skip the next line. (It contains an information about the system type.)
@@ -115,10 +112,8 @@ void GradUnwarp::read_siemens_coeff(const char *gradfilename)
 
   /***********************************************************/
   /****** begin reading spherical harmonic coefficients ******/
-  while (!feof(fgrad))
+  while (fgets(coeffline, sizeof(coeffline), fgrad) != NULL)
   {
-    fgets(coeffline, sizeof(coeffline), fgrad);
-
     int len = strlen(coeffline);
     char* ptr = coeffline;
     char* endptr = ptr + len;
@@ -130,24 +125,31 @@ void GradUnwarp::read_siemens_coeff(const char *gradfilename)
     if (*ptr == '\0')
       continue;
 
+    if (getenv("PRN_GRADCOEFF_READ"))
+      printf("entry #%d: %s\n", coeffCount, coeffline);
+
     sscanf(ptr, "%d %c(%d, %d) %f %c", 
                       &coeff[coeffCount].num, &coeff[coeffCount].A_or_B, &coeff[coeffCount].n, &coeff[coeffCount].m, 
                       &coeff[coeffCount].value, &coeff[coeffCount].xyz);
-    int larger = (coeff[coeffCount].n > coeff[coeffCount].m) ? (coeff[coeffCount].n+1) : (coeff[coeffCount].m+1);
-    coeffDim = (coeffDim < larger) ? larger : coeffDim; 
+    nmax = (coeff[coeffCount].n > nmax) ? coeff[coeffCount].n : nmax;
+    mmax = (coeff[coeffCount].m > mmax) ? coeff[coeffCount].m : mmax;
     //printf("%d %c (%d, %d) %f %c\n", coeff[coeffCount].num, 
     //       coeff[coeffCount].A_or_B, coeff[coeffCount].n, coeff[coeffCount].m, coeff[coeffCount].value, coeff[coeffCount].xyz);
+
     coeffCount++;
   }
 
   fclose(fgrad);    
 
+  nmax = (nmax > mmax) ? nmax : mmax;
+  coeffDim = nmax+1;
+
   _initCoeff();
 
   /**************************************************************************/
   /****** organize coefficient values ******/
-  int n = 0;
-  for (; n < coeffCount; n++)
+  int n;
+  for (n = 0; n < coeffCount; n++)
   {
     float **arrPtr = NULL;
     if (coeff[n].A_or_B == 'A')
@@ -181,88 +183,6 @@ void GradUnwarp::read_siemens_coeff(const char *gradfilename)
   }
 }
 
-float GradUnwarp::siemens_B_x()
-{
-  return GradUnwarp::siemens_B(Alpha_x, Beta_x, F2_x);
-}
-
-float GradUnwarp::siemens_B_y()
-{
-  return GradUnwarp::siemens_B(Alpha_y, Beta_y, F2_y);
-}
-
-float GradUnwarp::siemens_B_z()
-{
-  return GradUnwarp::siemens_B(Alpha_z, Beta_z, F2_z);
-}
-
-void GradUnwarp::siemens_B0(float X, float Y, float Z)
-{
-  int n;
-  for (n = 0; n < coeffDim; n++)
-  {
-    memset(P[n], 0, coeffDim*sizeof(double));
-    memset(F2_x[n], 0, coeffDim*sizeof(float));
-    memset(F2_y[n], 0, coeffDim*sizeof(float));
-    memset(F2_z[n], 0, coeffDim*sizeof(float));
-  }
-
-  memset(F, 0, coeffDim*sizeof(float));
-  memset(cosPhi, 0, coeffDim*sizeof(double));
-  memset(sinPhi, 0, coeffDim*sizeof(double));
-
-  // hack to avoid singularities at origin (R==0)
-  X = X+0.0001;
-
-  // convert to spherical coordinates
-  R = sqrt(X*X + Y*Y + Z*Z);
-  Theta = acos(Z/R);
-  Phi = atan2(Y/R, X/R);
-
-  // evaluate the Legendre polynomial (using Siemens's normalization)
-  int nmax = coeffDim - 1;
-
-  for (n = 0; n < nmax+1; n++)
-  {
-    siemens_legendre(n, cos(Theta), P);
-
-    F[n] = pow((R/R0), n);
-    cosPhi[n] = cos(n*Phi);
-    sinPhi[n] = sin(n*Phi);
-  }
-
-  for (n = 0; n < nmax+1; n++)
-  {
-    int m = 0;
-    for (; m < n+1; m++)
-    {
-      F2_x[n][m] = Alpha_x[n][m] * cosPhi[m] + Beta_x[n][m] * sinPhi[m];
-      F2_y[n][m] = Alpha_y[n][m] * cosPhi[m] + Beta_y[n][m] * sinPhi[m];
-      F2_z[n][m] = Alpha_z[n][m] * cosPhi[m] + Beta_z[n][m] * sinPhi[m];
-    }
-  }
-}
-
-float GradUnwarp::siemens_B(float **Alpha, float **Beta, float **F2)
-{
-  int nmax = coeffDim - 1;
-  float B = 0;
-  int n = 0;
-  for (; n < nmax+1; n++)
-  {
-    int m = 0;
-    for (; m < n+1; m++)
-    {
-      //float F2 = Alpha[n][m] * cos(m*Phi) + Beta[n][m] * sin(m*Phi);
-      //float F2 = Alpha[n][m] * cosPhi[m] + Beta[n][m] * sinPhi[m];
-      //B = B + F[n]*P[n][m]*F2;
-      B = B + F[n]*P[n][m]*F2[n][m];
-    }
-  }
-
-  return B;
-}
-
 void GradUnwarp::initSiemensLegendreNormfact()
 {
   // initialize variables to pre-calculate normfact for siemens_legendre()
@@ -270,119 +190,53 @@ void GradUnwarp::initSiemensLegendreNormfact()
   factorials  = new double[2*coeffDim];
   normfact = new double*[coeffDim];
 
-  P = new double*[coeffDim];
-  F2_x = new float*[coeffDim];
-  F2_y = new float*[coeffDim];
-  F2_z = new float*[coeffDim];
-
   int n;
   for (n = 0; n < coeffDim; n++)
-  {
     normfact[n] = new double[coeffDim];
-    P[n] = new double[coeffDim];
-
-    F2_x[n] = new float[coeffDim];
-    F2_y[n] = new float[coeffDim];
-    F2_z[n] = new float[coeffDim];
-  }
-
-  F = new float[coeffDim];
-  cosPhi = new double[coeffDim];
-  sinPhi = new double[coeffDim];
 
   // pre-calculate minusonepow, factorials, & normfact
-  for (n=0; n < coeffDim; n++)
-  {
+  for (n = 0; n < coeffDim; n++)
     minusonepow[n] = pow((-1), n);
-  }
 
-  for (n=0; n < 2*coeffDim; n++)
-  {
+  for (n = 0; n < 2*coeffDim; n++)
     factorials[n] = factorial(n);
-  }
 
-#if PRN_LEGENDRE
-  printf("\n");
-#endif
-  for (n=0; n < coeffDim; n++)
+  if (getenv("PRN_LEGENDRE_NORMFACT"))
+    printf("\n");
+
+  for (n = 0; n < coeffDim; n++)
   {
-    int m = 0;
-    for (; m < n; m++)
+    int m;
+    for (m = 0; m < n; m++)
     {
       normfact[n][m] = minusonepow[m+1] * sqrt((2*n+1)*factorials[n-m-1]/(2*factorials[n+m+1]));
    
-#if PRN_LEGENDRE
-      printf("normfact2[%2d][%2d] = %s%.6lf, pow((-1), %2d) * sqrt((%2d)*factorial(%2d)/(2*factorial(%2d)))\n",
-             n, m, (normfact[n][m] > 0) ? " " : "", normfact[n][m], m+1, 2*n+1, n-m-1, n+m+1);
-#endif
+      if (getenv("PRN_LEGENDRE_NORMFACT"))
+        printf("normfact[%2d][%2d] = %s%.6lf, pow((-1), %2d) * sqrt((%2d)*factorial(%2d)/(2*factorial(%2d)))\n",
+               n, m, (normfact[n][m] > 0) ? " " : "", normfact[n][m], m+1, 2*n+1, n-m-1, n+m+1);
     }
-#if PRN_LEGENDRE
-    printf("\n");
-#endif
+
+    if (getenv("PRN_LEGENDRE_NORMFACT"))
+      printf("\n");
   }
 }
 
-void GradUnwarp::siemens_legendre(int n, double x, double **P)
-{
-  int m = 0;
-  for (; m < n+1; m++)
-  {
-    P[n][m] = gsl_sf_legendre_Plm_e(n, m, x);
-  }
-
-#if PRN_LEGENDRE
-  printf("\nlegendre (n=%d) = \n", n);
-  for (m = 0; m < n+1; m++)
-  {
-    printf("\tP[%d][%d] = %lf\n", n, m, P[n][m]);
-  }
-#endif
-
-  m = 0;
-  for (; m < n; m++)
-  {
-    P[n][m+1] *= normfact[n][m];
-#if 0
-    double normfact = pow((-1), m+1) * sqrt((2*n+1)*factorial(n-m-1)/(2*factorial(n+m+1)));
-    P[m+1] *= normfact;
-
-    printf("normfact[%d][%d] = %lf, pow((-1), %d) * sqrt((%d)*factorial(%d)/(2*factorial(%d)))\n",
-           n, m, normfact, m+1, 2*n+1, n-m-1, n+m+1);
-#endif
-  }
-
-#if PRN_LEGENDRE
-  printf("\nsiemens_legendre (n=%d) = \n", n);
-  for (m = 0; m < n+1; m++)
-  {
-    printf("\tP[%d][%d] = %lf\n", n, m, P[n][m]);
-  }
-#endif
-}
- 
 void GradUnwarp::spharm_evaluate(float X, float Y, float Z, float *Dx, float *Dy, float *Dz)
 {
-  siemens_B0(X, Y, Z);
+  Siemens_B *siemens_B = new Siemens_B(coeffDim, nmax, R0, normfact, X, Y, Z);
 
-  float bx = siemens_B_x();
-  float by = siemens_B_y();
-  float bz = siemens_B_z();
+  float bx = siemens_B->siemens_B_x(Alpha_x, Beta_x);
+  float by = siemens_B->siemens_B_y(Alpha_y, Beta_y);
+  float bz = siemens_B->siemens_B_z(Alpha_z, Beta_z);
+
+  if (getenv("PRN_SIEMENS_B"))
+    printf("bx=%lf, by=%lf, bz=%lf\n", bx, by, bz);
 
   *Dx = bx * R0;
   *Dy = by * R0;
   *Dz = bz * R0;
-}
 
-void GradUnwarp::unwarp()
-{
-}
-
-void GradUnwarp::unwap_volume()
-{
-}
-
-void GradUnwarp::unwarp_surface()
-{
+  delete siemens_B;
 }
 
 void GradUnwarp::printCoeff()
@@ -456,8 +310,7 @@ void GradUnwarp::_skipCoeffComment()
 
 void GradUnwarp::_initCoeff()
 {
-
-  printf("coeffDim = %d, coeffCount=%d\n", coeffDim, coeffCount);
+  printf("nmax = %d, coeffDim = %d, coeffCount = %d\n", nmax, coeffDim, coeffCount);
 
   // allocate float *Alpha_x, *Alpha_y, *Alpha_z; float *Beta_x,  *Beta_y,  *Beta_z;
   Alpha_x = new float*[coeffDim];
@@ -467,8 +320,9 @@ void GradUnwarp::_initCoeff()
   Beta_y  = new float*[coeffDim];
   Beta_z  = new float*[coeffDim];
 
-  int i = 0;
-  for (; i < coeffDim; i++)
+  // initialize coefficient arrays
+  int i;
+  for (i = 0; i < coeffDim; i++)
   {
     Alpha_x[i] = new float[coeffDim];
     memset(Alpha_x[i], 0, sizeof(float)*coeffDim);
@@ -490,3 +344,121 @@ void GradUnwarp::_initCoeff()
   }
 }
 
+
+
+/***********************************************************************************/
+/************************ Implementation of Siemens_B class ************************/
+Siemens_B::Siemens_B(int coeffDim0, int nmax0, float R0, double **normfact0, float X, float Y, float Z)
+{
+  coeffDim = coeffDim0;    // coeffDime = nmax + 1
+  nmax = nmax0;
+  R0_mm = R0;
+  normfact = normfact0;
+
+  P = new double*[coeffDim];
+
+  int n;
+  for (n = 0; n < coeffDim; n++)
+  {
+    P[n] = new double[coeffDim];
+    memset(P[n], 0, (coeffDim)*sizeof(double));
+  }
+
+  F = new float[coeffDim];
+  cosPhi = new double[coeffDim];
+  sinPhi = new double[coeffDim];
+
+  memset(F, 0, coeffDim*sizeof(float));
+  memset(cosPhi, 0, coeffDim*sizeof(double));
+  memset(sinPhi, 0, coeffDim*sizeof(double));
+
+  // hack to avoid singularities at origin (R==0)
+  X = X+0.0001;
+
+  // convert to spherical coordinates
+  R = sqrt(X*X + Y*Y + Z*Z);
+  Theta = acos(Z/R);
+  Phi = atan2(Y/R, X/R);
+
+  // evaluate the Legendre polynomial (using Siemens's normalization)
+  for (n = 0; n < coeffDim; n++)
+  {
+    siemens_legendre(n, cos(Theta));
+
+    F[n] = pow((R/R0_mm), n);
+    cosPhi[n] = cos(n*Phi);
+    sinPhi[n] = sin(n*Phi);
+  }
+}
+
+Siemens_B::~Siemens_B()
+{
+  int n;
+  for (n = 0; n < coeffDim; n++)
+    free(P[n]);
+
+  free(P);
+  free(F);
+  free(cosPhi);
+  free(sinPhi);
+}
+
+float Siemens_B::siemens_B_x(float **Alpha_x, float **Beta_x)
+{
+  return Siemens_B::siemens_B(Alpha_x, Beta_x);
+}
+
+float Siemens_B::siemens_B_y(float **Alpha_y, float **Beta_y)
+{
+  return Siemens_B::siemens_B(Alpha_y, Beta_y);
+}
+
+float Siemens_B::siemens_B_z(float **Alpha_z, float **Beta_z)
+{
+  return Siemens_B::siemens_B(Alpha_z, Beta_z);
+}
+
+float Siemens_B::siemens_B(float **Alpha, float **Beta)
+{
+  float B = 0;
+  int n;
+  for (n = 0; n < coeffDim; n++)
+  {
+    int m;
+    for (m = 0; m <= n; m++)
+    {
+      float F2 = Alpha[n][m] * cosPhi[m] + Beta[n][m] * sinPhi[m];
+      B = B + F[n]*P[n][m]*F2;
+    }
+  }
+
+  return B;
+}
+
+void Siemens_B::siemens_legendre(int n, double x)
+{
+  int m;
+  for (m = 0; m <= n; m++)
+  {
+    P[n][m] = gsl_sf_legendre_Plm_e(n, m, x);
+  }
+
+  if (getenv("PRN_LEGENDRE"))
+  {
+    printf("\nlegendre (n=%d, x=%lf) = \n", n, x);
+    for (m = 0; m <= n; m++)
+      printf("\tP[%d][%d] = %lf\n", n, m, P[n][m]);
+  }
+
+  for (m = 0; m < n; m++)
+  {
+    P[n][m+1] *= normfact[n][m];
+  }
+
+  if (getenv("PRN_LEGENDRE"))
+  {
+    printf("\nsiemens_legendre (n=%d, x=%lf) = \n", n, x);
+    for (m = 0; m <= n; m++)
+      printf("\tP[%d][%d] = %lf\n", n, m, P[n][m]);
+  }
+}
