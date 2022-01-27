@@ -50,32 +50,70 @@ AtlasMeshPositionCostAndGradientCalculator
   m_Abort = false;
   m_PositionGradient = 0;
   m_MinLogLikelihoodTimesPrior = 0;
-  m_ThreadSpecificPositionGradients.clear();
-  m_ThreadSpecificMinLogLikelihoodTimesPriors.clear();
 
 #if KVL_ENABLE_TIME_PROBE  
   itk::TimeProbe clock;
   clock.Start();
 #endif
   
-  // For each thread, create an empty gradient and cost so that
-  // different threads never interfere with one another
-  for ( int threadNumber = 0; threadNumber < this->GetNumberOfThreads(); threadNumber++ )
+  
+  bool allocateNewMemory = true;
+  if ( m_ThreadSpecificPositionGradients.size() == this->GetNumberOfThreads() )
     {
-    // Initialize cost to zero for this thread
-    m_ThreadSpecificMinLogLikelihoodTimesPriors.push_back( 0.0 );  
-      
-    // Create a container to hold the position gradient of this thread, and initialize to zero
-    AtlasPositionGradientThreadAccumContainerType::Pointer  positionGradient = AtlasPositionGradientThreadAccumContainerType::New();
-    AtlasPositionGradientThreadAccumType  zeroEntry( 0.0f );
-    for ( AtlasMesh::PointsContainer::ConstIterator pointIt = mesh->GetPoints()->Begin();
-          pointIt != mesh->GetPoints()->End(); ++pointIt )
+    if ( m_ThreadSpecificPositionGradients[0]->Size() == mesh->GetPoints()->Size() )
       {
-      positionGradient->InsertElement( pointIt.Index(), zeroEntry );
+      allocateNewMemory = false;  
       }
-    m_ThreadSpecificPositionGradients.push_back( positionGradient );
-    
-    } // End loop over threads
+    }
+  
+  
+  
+  
+  if ( allocateNewMemory )
+    {
+    m_ThreadSpecificPositionGradients.clear();
+    m_ThreadSpecificMinLogLikelihoodTimesPriors.clear();
+      
+    // For each thread, create an empty gradient and cost so that
+    // different threads never interfere with one another
+    for ( int threadNumber = 0; threadNumber < this->GetNumberOfThreads(); threadNumber++ )
+      {
+      // Initialize cost to zero for this thread
+      m_ThreadSpecificMinLogLikelihoodTimesPriors.push_back( 0.0 );  
+        
+      // Create a container to hold the position gradient of this thread, and initialize to zero
+      AtlasPositionGradientThreadAccumContainerType::Pointer  positionGradient = AtlasPositionGradientThreadAccumContainerType::New();
+      AtlasPositionGradientThreadAccumType  zeroEntry( 0.0f );
+      for ( AtlasMesh::PointsContainer::ConstIterator pointIt = mesh->GetPoints()->Begin();
+            pointIt != mesh->GetPoints()->End(); ++pointIt )
+        {
+        positionGradient->InsertElement( pointIt.Index(), zeroEntry );
+        }
+      m_ThreadSpecificPositionGradients.push_back( positionGradient );
+      
+      } // End loop over threads
+    }
+  else
+    {
+    // Simply zero out existing memory  
+    for ( int threadNumber = 0; threadNumber < this->GetNumberOfThreads(); threadNumber++ )
+      {
+      m_ThreadSpecificMinLogLikelihoodTimesPriors[ threadNumber ] = 0.0;
+        
+      // 
+      AtlasPositionGradientThreadAccumContainerType::Pointer  positionGradient
+                                       = m_ThreadSpecificPositionGradients[ threadNumber ];
+      AtlasPositionGradientThreadAccumType  zeroEntry( 0.0f );
+      for ( auto gradIt = positionGradient->Begin();
+            gradIt != positionGradient->End(); ++gradIt )
+        {
+        gradIt.Value() = zeroEntry;
+        }
+      
+      } // End loop over threads
+      
+    }
+      
     
 #if KVL_ENABLE_TIME_PROBE      
   clock.Stop();
@@ -111,15 +149,29 @@ AtlasMeshPositionCostAndGradientCalculator
   clock.Start();
 #endif  
   
-  // Initialize gradient-to-return to zero
-  m_PositionGradient = AtlasPositionGradientContainerType::New();
-  AtlasPositionGradientType  zeroEntry( 0.0f );
-  for ( AtlasMesh::PointsContainer::ConstIterator pointIt = mesh->GetPoints()->Begin();
-        pointIt != mesh->GetPoints()->End(); ++pointIt )
+  
+  if ( true )
     {
-    m_PositionGradient->InsertElement( pointIt.Index(), zeroEntry );
+    // Initialize gradient-to-return to zero
+    m_PositionGradient = AtlasPositionGradientContainerType::New();
+    AtlasPositionGradientType  zeroEntry( 0.0f );
+    for ( AtlasMesh::PointsContainer::ConstIterator pointIt = mesh->GetPoints()->Begin();
+          pointIt != mesh->GetPoints()->End(); ++pointIt )
+      {
+      m_PositionGradient->InsertElement( pointIt.Index(), zeroEntry );
+      }
     }
+  else
+    {
+    // Initialize gradient-to-return to zero
+    AtlasPositionGradientType  zeroEntry( 0.0f );
+    for ( auto gradIt = m_PositionGradient->Begin();
+          gradIt != m_PositionGradient->End(); ++gradIt )
+      {
+      gradIt.Value() = zeroEntry;
+      }
     
+    }
 
   // Make sure everything has gone smoothly
   if ( m_Abort )
