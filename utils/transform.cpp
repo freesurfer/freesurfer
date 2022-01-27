@@ -5185,7 +5185,9 @@ MATRIX *TranformAffineParams2Matrix(double *p, MATRIX *M)
   \fn double *TranformExtractAffineParams(MATRIX *M, double *p)
   \brief Extracts parameters from a 12 dof (ie, affine) transformation
   matrix.  This is consistent with TranfromAffineParams2Matrix().
-  Angles are in degrees.
+  Angles are in degrees. Handles matrices with a negative determinant
+  by making the first scale parameter negative; this is arbitrary
+  as any of the scale parameters could have been negated.
  */
 double *TranformExtractAffineParams(MATRIX *M, double *p)
 {
@@ -5217,8 +5219,17 @@ double *TranformExtractAffineParams(MATRIX *M, double *p)
       if(R->rptr[r][c] < 0) P->rptr[r][c] = -1;
     }
   }
+
+  // Have to do something when the det<0 because the scales will be >1
+  // and so the scale matrix will have det>0 and the rotation matrix
+  // will have det=1, so just change the sign of the first scale to
+  // preserve the neg determinant. Most real transforms will have det>0
+  // anyway; this handles some corner case.
+  double det = MatrixDeterminant(M);
+  if(det < 0) P->rptr[1][1] *= -1;
+
   // M = (Q*P)*(P*R) where P*P=I
-  // New Q = Q*P
+  //New Q = Q*P
   MatrixMultiply(Q,P,Q);
   // New R = P*R
   MatrixMultiply(P,R,R);
@@ -5258,24 +5269,39 @@ double *TranformExtractAffineParams(MATRIX *M, double *p)
 double TransformAffineParamTest(int niters, double thresh)
 {
   MATRIX *M  = MatrixAlloc(4,4,MATRIX_REAL);
+  MATRIX *M2 = MatrixAlloc(4,4,MATRIX_REAL);
   double p[12],p2[12],emax,en;
-  int k,n;
+  int k,n,r,c;
 
   emax = 0;
   for(n=0; n < niters; n++){
-    for(k=0; k < 12; k++) p[k] = drand48();
+    for(k=0; k <  3; k++) p[k] = 10*(drand48()-0.5); // translations (-5 to +5)
+    for(k=3; k <  6; k++) p[k] = 2*(drand48()-0.5)*180; // rotations (-180 to +180)
+    // Those with prod(scale)<0 will have neg determinant
+    for(k=6; k <  9; k++) p[k] = 4*(drand48()-0.5); // scale (-2 to +2)
+    for(k=9; k < 12; k++) p[k] = 2*(drand48()-0.5); // shear (-1 to + 1)
     // dont let scale get close to 0
-    for(k=6; k <=8; k++) if(p[k] < .01) p[k] = 1;
+    for(k=6; k <=8; k++) if(fabs(p[k]) < .01) p[k] = 1;
     TranformAffineParams2Matrix(p, M);
     TranformExtractAffineParams(M, p2);
+    TranformAffineParams2Matrix(p2, M2);
     en = 0;
-    for(k=0; k < 12; k++) if(en < fabs(p[k]-p2[k])) en = fabs(p[k]-p2[k]);
+    //for(k=0; k < 12; k++) if(en < fabs(p[k]-p2[k])) en = fabs(p[k]-p2[k]);
+    for(r=1; r<=3; r++){
+      for(c=1; c<=4; c++){
+	double en0 = fabs(M->rptr[r][c]-M2->rptr[r][c]);
+	if(en < en0) en = en0;
+      }
+    }
     if(emax < en) emax = en;
     if(en > thresh){
       // This is just a random threshold
-      printf("n = %d, en = %g\n",n,en);
+      printf("n = %d, en = %g, det = %g ============\n",n,en,MatrixDeterminant(M));
       printf("M = [\n");
       MatrixPrint(stdout,M);
+      printf("]\n");
+      printf("M2 = [\n");
+      MatrixPrint(stdout,M2);
       printf("]\n");
       for(k=0; k < 12; k++) printf("%g ",p[k]);
       printf("\n");
