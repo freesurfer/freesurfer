@@ -39,6 +39,7 @@ public:
     py::array_t<double> FitAlphas( const py::array_t< uint16_t,
                                                       py::array::f_style | py::array::forcecast >& 
                                    probabilityImageBuffer ) const;
+    py::array_t<double> DrawJacobianDeterminant(std::vector<size_t> size);
     KvlMesh* GetSubmesh( py::array_t<bool>& mask );
 
     // C++ Only
