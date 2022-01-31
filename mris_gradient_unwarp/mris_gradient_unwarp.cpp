@@ -64,10 +64,21 @@
  *       NewVol(col,row,slice) =
  *           MRIsampleVol(vol,distcol,distrow,distslice, interpolationcode);
  *
- * surf = MRISread('lh.white');
+ * MRIS *surf = MRISread('lh.white');
  * for n = 0:surf->nvertices-1
  *  VERTEX *v = surf->vertices[n]
- *  v->x, v->y, v->z
+ *     v->x, v->y, v->z // by default these are in the warped space
+ *     tkRAS->rptr[1][1] = v->x;
+ *     tkRAS->rptr[2][1] = v->y;
+ *     tkRAS->rptr[3][1] = v->z;
+ *     MATRIX *M = TkrRAS2VoxfromVolGeom(&surf->vg); // convert from tkreg space to voxel
+ *     MATRIX *V = vg_getVoxelToRasXform(&surf->vg); // converts from voxel to RAS
+ *     MATRIX *Q = MatrixMultiply(V,M,NULL); // convert from tkreg space to RAS
+ *     DistortedRAS = MatrixMultiply(Q,tkRAS,DistortedCRS);
+       spharm_evaluate(Distx, Disty, Distz, &Dx, &Dy, &Dz);
+       v->x +/- Dx;
+       v->y +/- Dy;
+       v->z +/- Dz;
  */
 
 static void dump_exit_codes(FILE *fp);
