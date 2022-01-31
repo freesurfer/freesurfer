@@ -422,7 +422,7 @@ class MeshModel:
         # We're not interested in image areas that fall outside our cuboid ROI where our atlas is defined. Therefore,
         # generate a mask of what's inside the ROI. Also, by convention we're skipping all voxels with zero intensity.
         mask = (mesh.rasterize(workingImageShape).sum(-1) / 65535) > 0.99
-        is self.alphaMaskStrel > 0:
+        if self.alphaMaskStrel > 0:
             mask = scipy.ndimage.morphology.binary_erosion(mask, utils.spherical_strel(self.alphaMaskStrel), border_value=1)
         mask = np.asfortranarray(mask & (workingImage.data > 0))
 
