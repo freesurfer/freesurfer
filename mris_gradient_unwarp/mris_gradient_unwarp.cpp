@@ -2,8 +2,6 @@
 #include <stdlib.h>
 #include <sys/utsname.h>
 
-#include "romp_support.h"
-
 #include "version.h"
 #include "diag.h"
 #include "log.h"
@@ -14,10 +12,41 @@
 #include "GradUnwarp.h"
 
 /* examples:
- * 1. mris_gradient_unwarp/mris_gradient_unwarp --gradcoeff $FS_TEST/gradunwarp/example/coeff_Sonata.grad --invol $FS_TEST/gradunwarp/example/orig.mgz --outvol unwarped.mgz
- * 2. mris_gradient_unwarp/mris_gradient_unwarp --gradcoeff $FS_TEST/gradunwarp/example/coeff_Sonata.grad --invol $FS_TEST/gradunwarp/example/orig.mgz --outvol orig.dup.mgz --dupinvol
- * 3. mris_gradient_unwarp/mris_gradient_unwarp --gradcoeff $FS_TEST/gradunwarp/example/coeff_Sonata.grad --invol $FS_TEST/gradunwarp/example/orig.mgz --ras 0.1,0.2,0.3
- * 4. mris_gradient_unwarp/mris_gradient_unwarp --gradcoeff $FS_TEST/gradunwarp/example/coeff_Sonata.grad --invol $FS_TEST/gradunwarp/example/orig.mgz  --crs 0,0,0
+ *
+ * unwarp at given crs
+ * 1. mris_gradient_unwarp/mris_gradient_unwarp 
+ *    --gradcoeff $FS_TEST/gradunwarp/example/coeff_Sonata.grad 
+ *    --invol $FS_TEST/gradunwarp/example/orig.mgz 
+ *    --crs 0,0,0
+ *
+ * unwarp for given ras
+ * 2. mris_gradient_unwarp/mris_gradient_unwarp 
+ *    --gradcoeff $FS_TEST/gradunwarp/example/coeff_Sonata.grad 
+ *    --invol $FS_TEST/gradunwarp/example/orig.mgz 
+ *    --ras 0.1,0.2,0.3
+ *
+ * save gradient unwarp transformation table
+ * 3. mris_gradient_unwarp/mris_gradient_unwarp 
+ *    --gradcoeff $FS_TEST/gradunwarp/example/coeff_Sonata.grad 
+ *    --invol $FS_TEST/gradunwarp/example/orig.mgz 
+ *    --save_transtbl gradunwarp.m3z
+ *    --nthreads 10
+ *
+ * transform given volume, save gradient unwarp transformation table
+ * 4. mris_gradient_unwarp/mris_gradient_unwarp 
+ *    --gradcoeff $FS_TEST/gradunwarp/example/coeff_Sonata.grad 
+ *    --invol $FS_TEST/gradunwarp/example/orig.mgz 
+ *    --outvol orig.unwarped.cubic.mgz --interp cubic 
+ *    --save_transtbl gradunwarp.m3z
+ *    --nthreads 10
+ *
+ * transform given volume using input gradient unwarp transformation table
+ * 5. mris_gradient_unwarp/mris_gradient_unwarp 
+ *    --load_transtbl $FS_TEST/gradunwarp/transtbl/savetbl/gradunwarp.m3z
+ *    --invol $FS_TEST/gradunwarp/example/orig.mgz 
+ *    --outvol orig.unwarped.cubic.mgz --interp cubic 
+ *    --nthreads 10
+ *
  */
 /****** BIG PICTURES ******/
 /*
@@ -53,12 +82,13 @@ static void dump_options(FILE *fp);
 static int isflag(char *flag);
 static int nth_is_arg(int nargc, char **argv, int nth);
 
-static void unwarpVol(const char* origmgz, const char* unwarpedmgz, GradUnwarp* gradUnwarp);
+static void unwarpCRS(GradUnwarp *gradUnwarp, MATRIX *vox2ras, MATRIX *inv_vox2ras);
 
 int debug = 0, checkoptsonly = 0;
 const char *Progname = NULL;
-std::string gradfile0, origmgz0, unwarpedmgz0;
-int dupinvol = 0, inputras = 0, inputcrs = 0;
+std::string gradfile_str, origmgz_str, unwarpedmgz_str, loadtrans_str, savetrans_str;
+const char *gradfile = NULL, *origmgz = NULL, *unwarpedmgz = NULL, *loadtrans = NULL, *savetrans = NULL;
+int inputras = 0, inputcrs = 0;
 double ras_x, ras_y, ras_z;
 int crs_c = 0, crs_r = 0, crs_s = 0;
 const char *interpmethod = "trilinear";
@@ -101,42 +131,26 @@ int main(int argc, char *argv[])
 
   dump_options(stdout);
 
-  GradUnwarp *gradUnwarp = new GradUnwarp();
-  gradUnwarp->read_siemens_coeff(gradfile0.c_str());
-  if (getenv("PRN_GRADCOEFF_ONLY"))
+  if (gradfile == NULL && loadtrans == NULL)
   {
-    gradUnwarp->printCoeff();
-    return 0;
+    printf("Use --gradcoeff to specify gradient coeff file, \n");
+    printf(" or --load_transtbl to specify unwarp transformation table \n");
+    return 0; 
   }
 
-  gradUnwarp->initSiemensLegendreNormfact();
-
-  if (inputras) // for debugging only
+  if (gradfile != NULL && loadtrans != NULL)
   {
-    float Dx, Dy, Dz;
-    gradUnwarp->spharm_evaluate(ras_x, ras_y, ras_z, &Dx, &Dy, &Dz);
-
-    printf(" x = %.6f,  Dx = %.6lf\n", ras_x, Dx);
-    printf(" y = %.6f,  Dy = %.6lf\n", ras_y, Dy);
-    printf(" z = %.6f,  Dz = %.6lf\n", ras_z, Dz);
-
-    delete gradUnwarp;
-
-    return 0;
+    printf("--gradcoeff and --load_transtbl are mutually excluded. \n");
+    printf("Use --gradcoeff to specify gradient coeff file, \n");
+    printf(" or --load_transtbl to specify unwarp transformation table \n");
+    return 0; 
   }
 
-  unwarpVol(origmgz0.c_str(), unwarpedmgz0.c_str(), gradUnwarp); 
-
-  delete gradUnwarp;
-
-  return 0;
-}
-
-/* --------------------------------------------- */
-static void unwarpVol(const char* origmgz, const char* unwarpedmgz, GradUnwarp* gradUnwarp)
-{
-  int (*nintfunc)( double );
-  nintfunc = &nint;
+  if (origmgz == NULL)
+  {
+    printf("Use --invol to specify input volumn\n");
+    return 0;
+  }
 
   MRI *origvol = MRIread(origmgz);
 
@@ -163,222 +177,148 @@ static void unwarpVol(const char* origmgz, const char* unwarpedmgz, GradUnwarp* 
   printf("\nras to voxel transform:\n");
   MatrixPrint(stdout, inv_vox2ras_orig);
 
-  MRI *unwarpedvol = MRIallocSequence(origvol->width, origvol->height, origvol->depth, MRI_FLOAT, origvol->nframes);
-  MRIcopyHeader(origvol, unwarpedvol);
-  MRIcopyPulseParameters(origvol, unwarpedvol);
-
-  MRI_BSPLINE *bspline = NULL;
-  if (interpcode == SAMPLE_CUBIC_BSPLINE)
-    bspline = MRItoBSpline(origvol, NULL, 3);
-
-#ifdef HAVE_OPENMP
-  printf("\nSet OPEN MP NUM threads to %d\n", nthreads);
-  omp_set_num_threads(nthreads);
-#endif
-
-  int c; 
-  int outofrange_total = 0;
-#ifdef HAVE_OPENMP
-#pragma omp parallel for reduction(+ : outofrange_total) 
-#endif
-  for (c = 0; c < origvol->width; c++)
+  MRI *unwarpedvol = NULL;
+  if (unwarpedmgz != NULL)
   {
-    // You could make a vector of CRS nthreads long
-    MATRIX *CRS = MatrixAlloc(4, 1, MATRIX_REAL);
-    MATRIX *RAS = MatrixAlloc(4, 1, MATRIX_REAL);;
-    MATRIX *DeltaRAS = MatrixAlloc(4, 1, MATRIX_REAL);
-    MATRIX *DistortedRAS = MatrixAlloc(4, 1, MATRIX_REAL);
-    MATRIX *DistortedCRS = MatrixAlloc(4, 1, MATRIX_REAL);
+    unwarpedvol = MRIallocSequence(origvol->width, origvol->height, origvol->depth, MRI_FLOAT, origvol->nframes);
+    MRIcopyHeader(origvol, unwarpedvol);
+    MRIcopyPulseParameters(origvol, unwarpedvol);
+  }
 
-    int r = 0, s = 0;
-    //int outofrange_local = 0;
-
-#if 0
-#ifdef HAVE_OPENMP
-    int tid = omp_get_thread_num();
-    printf("hello from thread #%d (%d, %d, %d) ...\n", tid, c, r, s);
-#else
-    printf("hello from process %d ...\n", getpid());
-#endif
-#endif
-
-    for (r = 0; r < origvol->height; r++)
+  GradUnwarp *gradUnwarp = new GradUnwarp(nthreads);
+  if (gradfile != NULL)
+  {
+    gradUnwarp->read_siemens_coeff(gradfile);
+    gradUnwarp->initSiemensLegendreNormfact();
+    if (getenv("PRN_GRADCOEFF_ONLY"))
     {
-      for (s = 0; s < origvol->depth; s++)
-      {
-        if (!dupinvol)
-        {
-          // clear CRS, RAS, DeltaRAS, DistortedRAS, DistortedCRS
-          MatrixClear(CRS);
-          MatrixClear(RAS);
-          MatrixClear(DeltaRAS);
-          MatrixClear(DistortedRAS);
-          MatrixClear(DistortedCRS);
+      gradUnwarp->printCoeff();
+      delete gradUnwarp;
 
-          if (inputcrs)
-          {
-            CRS->rptr[1][1] = crs_c;
-            CRS->rptr[2][1] = crs_r;
-            CRS->rptr[3][1] = crs_s;
-            CRS->rptr[4][1] = 1;          
-          }
-          else
-	  {
-            CRS->rptr[1][1] = c;
-            CRS->rptr[2][1] = r;
-            CRS->rptr[3][1] = s;
-            CRS->rptr[4][1] = 1;
-	  }
+      return 0;
+    }
+    else if (inputras) // for debugging only
+    {
+      float Dx, Dy, Dz;
+      gradUnwarp->spharm_evaluate(ras_x, ras_y, ras_z, &Dx, &Dy, &Dz);
 
-          // Convert the CRS to RAS
-          RAS->rptr[4][1] = 1;
-          RAS = MatrixMultiply(vox2ras_orig, CRS, RAS);
+      printf(" x = %.6f,  Dx = %.6lf\n", ras_x, Dx);
+      printf(" y = %.6f,  Dy = %.6lf\n", ras_y, Dy);
+      printf(" z = %.6f,  Dz = %.6lf\n", ras_z, Dz);
 
-          double x = RAS->rptr[1][1];
-          double y = RAS->rptr[2][1];
-          double z = RAS->rptr[3][1];
-          float Dx = 0, Dy = 0, Dz = 0;
-          gradUnwarp->spharm_evaluate(x, y, z, &Dx, &Dy, &Dz);
+      delete gradUnwarp;
 
-          DeltaRAS->rptr[1][1] = Dx;
-          DeltaRAS->rptr[2][1] = Dy;
-          DeltaRAS->rptr[3][1] = Dz;
-          DeltaRAS->rptr[4][1] = 1; 
-        
-          DistortedRAS = MatrixAdd(RAS, DeltaRAS, DistortedRAS);
-          DistortedRAS->rptr[4][1] = 1;
-          DistortedCRS = MatrixMultiply(inv_vox2ras_orig, DistortedRAS, DistortedCRS);
-	  
-          if (inputcrs)
-	  {
-            printf("\n");
-            printf("CRS:\n");
-            MatrixPrint(stdout, CRS);
+      return 0;
+    }
+    else if (inputcrs) // for debugging
+    {
+      unwarpCRS(gradUnwarp, vox2ras_orig, inv_vox2ras_orig);
+      return 0;
+    }
 
-            printf("RAS:\n");
-            MatrixPrint(stdout, RAS);
+    gradUnwarp->create_transtable(origvol, unwarpedvol, vox2ras_orig, inv_vox2ras_orig);
+  }
+  else
+  {
+    gradUnwarp->load_transtable(loadtrans);
+  }
 
-            printf("DeltaRAS:\n");
-            MatrixPrint(stdout, DeltaRAS);
+  if (unwarpedvol != NULL)
+  {
+    gradUnwarp->unwarp_volume(origvol, unwarpedvol, interpcode, sinchw);
 
-            printf("DistortedRAS:\n");
-            MatrixPrint(stdout, DistortedRAS);
+    printf("Writing to %s\n", unwarpedmgz);
+    int err = MRIwrite(unwarpedvol, unwarpedmgz);
+    if (err) 
+      printf("something went wrong\n");
 
-            printf("DistortedCRS:\n");
-            MatrixPrint(stdout, DistortedCRS);
+    MRIfree(&unwarpedvol);
+  }
 
-            printf("\n c=%d r=%d s=%d\n", crs_c, crs_r, crs_s);
-            printf(" x=%.6f  y=%.6f  z=%.6f\n", x, y, z);
-            printf("Dx=%.6lf Dy=%.6lf Dz=%.6lf\n", Dx, Dy, Dz);
-	  }
-        } 
- 
-        float fcs = 0, frs = 0, fss = 0;
-        int ics = 0, irs = 0, iss = 0;
+  if (savetrans != NULL)
+    gradUnwarp->save_transtable(savetrans);
 
-        if (!dupinvol)
-	{
-          fcs = DistortedCRS->rptr[1][1];
-          frs = DistortedCRS->rptr[2][1];
-          fss = DistortedCRS->rptr[3][1];
-
-          ics =  nintfunc(fcs);
-          irs =  nintfunc(frs);
-          iss =  nintfunc(fss);
-
-          if (inputcrs)
-	  {
-            printf("fcs = %lf (%d), frs = %lf (%d), fss = %lf (%d)\n", fcs, ics, frs, irs, fss, iss);
-            exit(0);
-	  }
-
-          if (ics < 0 || ics >= origvol->width  ||
-              irs < 0 || irs >= origvol->height || 
-              iss < 0 || iss >= origvol->depth)
-          {
-            outofrange_total++;
-#if 0
-#ifdef HAVE_OPENMP
-            outofrange_local++;
-#else
-            outofrange_total++;
-#endif
-#endif
-            continue;
-          }
-	}
-        else
-	{
-          // this should output the same vol as orig
-          fcs =  c; frs =  r; fss =  s;
-          ics =  c; irs =  r; iss =  s;
-	}
-
-        /* Assign output volume values */
-        if (interpcode == SAMPLE_TRILINEAR) {
-          float *valvect = new float[origvol->nframes]; 
-          MRIsampleSeqVolume(origvol, fcs, frs, fss, valvect, 0, origvol->nframes - 1);
-          
-          int f;
-          for (f = 0; f < origvol->nframes; f++) 
-            MRIsetVoxVal2(unwarpedvol, c, r, s, f, valvect[f]);
-
-          free(valvect);
-	} else {
-          double rval = 0;
-
-          int f;
-          for (f = 0; f < origvol->nframes; f++) {
-            switch (interpcode) {
-              case SAMPLE_NEAREST:
-                rval = MRIgetVoxVal2(origvol, ics, irs, iss, f);
-                break;
-              case SAMPLE_CUBIC_BSPLINE:
-                MRIsampleBSpline(bspline, fcs, frs, fss, f, &rval);
-                break;
-              case SAMPLE_SINC: /* no multi-frame */
-                MRIsincSampleVolume(origvol, fcs, frs, fss, sinchw, &rval);
-                break;
-              default:
-                printf("ERROR: MR: interpolation method '%i' unknown\n", interpcode);
-                exit(1);
-            } // switch
-
-            MRIsetVoxVal2(unwarpedvol, c, r, s, f, rval);
-          } // f
-        }
-      }   // s
-    }     // r
-
-#if 0
-#ifdef HAVE_OPENMP
-#pragma omp critical 
-    outofrange_total += outofrange_local; 
-    //printf("update out of range voxel count: + %d = %d\n", outofrange_local, outofrange_total);
-#endif
-#endif
-
-    MatrixFree(&CRS);
-    MatrixFree(&RAS);
-    MatrixFree(&DeltaRAS);
-    MatrixFree(&DistortedRAS);
-    MatrixFree(&DistortedCRS);
-  }       // c
-
-  printf("Writing to %s\n",unwarpedmgz);
-  int err = MRIwrite(unwarpedvol, unwarpedmgz);
-  if(err) printf("something went wrong\n");
-
-  printf("Total %d voxels are out of range\n", outofrange_total);
+  delete gradUnwarp;
 
   MatrixFree(&vox2ras_orig);
   MatrixFree(&inv_vox2ras_orig);
 
   MRIfree(&origvol);
-  MRIfree(&unwarpedvol);
 
-  if (bspline)
-    MRIfreeBSpline(&bspline);
+  return 0;
+}
+
+/* --------------------------------------------- */
+static void unwarpCRS(GradUnwarp *gradUnwarp, MATRIX *vox2ras, MATRIX *inv_vox2ras)
+{
+  int (*nintfunc)( double );
+  nintfunc = &nint;
+
+  MATRIX *CRS = MatrixAlloc(4, 1, MATRIX_REAL);
+  MATRIX *RAS = MatrixAlloc(4, 1, MATRIX_REAL);;
+  MATRIX *DeltaRAS = MatrixAlloc(4, 1, MATRIX_REAL);
+  MATRIX *DistortedRAS = MatrixAlloc(4, 1, MATRIX_REAL);
+  MATRIX *DistortedCRS = MatrixAlloc(4, 1, MATRIX_REAL);
+
+  CRS->rptr[1][1] = crs_c;
+  CRS->rptr[2][1] = crs_r;
+  CRS->rptr[3][1] = crs_s;
+  CRS->rptr[4][1] = 1;          
+
+  // Convert the CRS to RAS
+  RAS->rptr[4][1] = 1;
+  RAS = MatrixMultiply(vox2ras, CRS, RAS);
+
+  double x = RAS->rptr[1][1];
+  double y = RAS->rptr[2][1];
+  double z = RAS->rptr[3][1];
+  float Dx = 0, Dy = 0, Dz = 0;
+  gradUnwarp->spharm_evaluate(x, y, z, &Dx, &Dy, &Dz);
+
+  DeltaRAS->rptr[1][1] = Dx;
+  DeltaRAS->rptr[2][1] = Dy;
+  DeltaRAS->rptr[3][1] = Dz;
+  DeltaRAS->rptr[4][1] = 1; 
+        
+  DistortedRAS = MatrixAdd(RAS, DeltaRAS, DistortedRAS);
+  DistortedRAS->rptr[4][1] = 1;
+  DistortedCRS = MatrixMultiply(inv_vox2ras, DistortedRAS, DistortedCRS);
+	  
+  printf("\n");
+  printf("CRS:\n");
+  MatrixPrint(stdout, CRS);
+
+  printf("RAS:\n");
+  MatrixPrint(stdout, RAS);
+
+  printf("DeltaRAS:\n");
+  MatrixPrint(stdout, DeltaRAS);
+
+  printf("DistortedRAS:\n");
+  MatrixPrint(stdout, DistortedRAS);
+
+  printf("DistortedCRS:\n");
+  MatrixPrint(stdout, DistortedCRS);
+
+  printf("\n c=%d r=%d s=%d\n", crs_c, crs_r, crs_s);
+  printf(" x=%.6f  y=%.6f  z=%.6f\n", x, y, z);
+  printf("Dx=%.6lf Dy=%.6lf Dz=%.6lf\n", Dx, Dy, Dz);
+ 
+  float fcs = DistortedCRS->rptr[1][1];
+  float frs = DistortedCRS->rptr[2][1];
+  float fss = DistortedCRS->rptr[3][1];
+
+  int ics =  nintfunc(fcs);
+  int irs =  nintfunc(frs);
+  int iss =  nintfunc(fss);
+
+  printf("fcs = %lf (%d), frs = %lf (%d), fss = %lf (%d)\n", fcs, ics, frs, irs, fss, iss);
+
+  MatrixFree(&CRS);
+  MatrixFree(&RAS);
+  MatrixFree(&DeltaRAS);
+  MatrixFree(&DistortedRAS);
+  MatrixFree(&DistortedCRS);
 }
 
 /* --------------------------------------------- */
@@ -404,8 +344,6 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--debug"))   debug = 1;
     else if (!strcasecmp(option, "--checkopts"))   checkoptsonly = 1;
     else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
-
-    else if (!strcasecmp(option, "--dupinvol"))   dupinvol = 1;
     else if (!strcmp(option, "--ras")) {
       inputras = 1;
       if (nargc < 1) CMDargNErr(option,1);
@@ -418,15 +356,28 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = 1;
     } else if (!strcmp(option, "--gradcoeff")) {
       if (nargc < 1) CMDargNErr(option,1);
-      gradfile0 = fio_fullpath(pargv[0]);
+      gradfile_str = fio_fullpath(pargv[0]);
+      gradfile = gradfile_str.c_str();
       nargsused = 1;
     } else if (!strcmp(option, "--invol")) {
       if (nargc < 1) CMDargNErr(option,1);
-      origmgz0 = fio_fullpath(pargv[0]);
+      origmgz_str = fio_fullpath(pargv[0]);
+      origmgz = origmgz_str.c_str();
       nargsused = 1;
     } else if (!strcmp(option, "--outvol")) {
       if (nargc < 1) CMDargNErr(option,1);
-      unwarpedmgz0 = fio_fullpath(pargv[0]);
+      unwarpedmgz_str = fio_fullpath(pargv[0]);
+      unwarpedmgz = unwarpedmgz_str.c_str();
+      nargsused = 1;
+    } else if (!strcmp(option, "--load_transtbl")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      loadtrans_str = fio_fullpath(pargv[0]);
+      loadtrans = loadtrans_str.c_str();
+      nargsused = 1;
+    } else if (!strcmp(option, "--save_transtbl")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      savetrans_str = fio_fullpath(pargv[0]);
+      savetrans = savetrans_str.c_str();
       nargsused = 1;
     } else if (!strcmp(option, "--interp")) {
       if (nargc < 1) CMDargNErr(option, 1);
@@ -465,9 +416,11 @@ static void usage_exit(void) {
 static void print_usage(void) {
   printf("USAGE: %s \n",Progname) ;
   printf("\n");
-  printf("   --gradcoeff gradient coeff input \n");
-  printf("   --invol     input volume \n");
-  printf("   --outvol    unwarped outout volume \n");
+  printf("   --gradcoeff     gradient coeff input \n");
+  printf("   --load_transtbl load unwarp transform table in m3z format \n");
+  printf("   --invol         input volume \n");
+  printf("   --outvol        unwarped output volume \n");
+  printf("   --save_transtbl save unwarp transform table in m3z format \n");
   printf("\n");
   printf("   --ras       x,y,z\n");
   printf("   --crs       c,r,s\n");

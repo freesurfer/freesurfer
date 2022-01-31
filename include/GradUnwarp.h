@@ -1,6 +1,9 @@
 #ifndef GRADUNWARP_H
 #define GRADUNWARP_H
 
+#include "gcamorph.h"
+#include "mri.h"
+
 typedef struct
 {
   int num;
@@ -39,23 +42,25 @@ private:
 class GradUnwarp
 {
 public:
-  GradUnwarp();
+  GradUnwarp(int nthreads = 1);
   ~GradUnwarp();
-
-  void  setup() {};
-  void  list_coeff_files() {};
 
   void  read_siemens_coeff(const char *gradfilename);
   void  printCoeff();
 
-  void initSiemensLegendreNormfact();
+  void  initSiemensLegendreNormfact();
   void  spharm_evaluate(float X, float Y, float Z, float *Dx, float *Dy, float *Dz);
 
-  void  unwarp() {};
-  void  unwap_volume() {};
-  void  unwarp_surface() {};
+  void  create_transtable(MRI *origvol, MRI *unwarpedvol, MATRIX *vox2ras, MATRIX *inv_vox2ras);
+  void  load_transtable(const char* morphfile);
+  void  save_transtable(const char* morphfile);
+
+  MRI*  unwarp_volume(MRI *origvol, MRI *unwarpedvol, int interpcode, int sinchw);
+  void  unwarp_surface();
   
 private:
+  int nthreads;
+
   FILE *fgrad;
 
   COEFF coeff[100];
@@ -65,6 +70,8 @@ private:
 
   int coeffCount;
   int coeffDim;
+
+  bool Alpha_Beta_initialized;
 
   float R0;
   float **Alpha_x, **Alpha_y, **Alpha_z;
@@ -76,9 +83,14 @@ private:
   double *factorials;
   double **normfact;
 
+  GCAM *gcam;
+
 private:
   void _skipCoeffComment();
   void _initCoeff();
+  void _update_GCAMnode(int c, int r, int s, float fcs, float frs, float fss);
+  void _assignUnWarpedVolumeValues(MRI* origvol, MRI* unwarpedvol, MRI_BSPLINE *bspline, int interpcode, int sinchw,
+                                   int c, int r, int s, float fcs, float frs, float fss);
 };
 
 #endif
