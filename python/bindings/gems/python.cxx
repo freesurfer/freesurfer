@@ -83,6 +83,7 @@ PYBIND11_MODULE(gemsbindings, m) {
             .def_property("alphas", &KvlMesh::GetAlphas, &KvlMesh::SetAlphas, py::return_value_policy::take_ownership)
             .def_property("can_moves", &KvlMesh::GetCanMoves, &KvlMesh::SetCanMoves, py::return_value_policy::take_ownership)
             .def( "fit_alphas", &KvlMesh::FitAlphas, py::return_value_policy::take_ownership )
+            .def("draw_jacobian_determinant", &KvlMesh::DrawJacobianDeterminant, py::return_value_policy::take_ownership)
             .def("scale", &KvlMesh::Scale, py::return_value_policy::take_ownership)
             .def("rasterize_values", &KvlMesh::RasterizeValues, py::arg("shape"), py::arg("values"), py::return_value_policy::take_ownership)
             .def("rasterize", &KvlMesh::RasterizeMesh, py::arg("shape"), py::arg("classNumber") = -1, py::return_value_policy::take_ownership)
