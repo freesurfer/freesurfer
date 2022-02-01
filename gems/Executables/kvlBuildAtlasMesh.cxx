@@ -115,7 +115,7 @@ int main( int argc, char** argv )
   // Sanity check on input
   if ( argc < 8 )
     {
-    std::cerr << "Usage: " << argv[ 0 ] << " numberOfUpsamplingSteps meshSizeX meshSizeY meshSizeZ stiffness logDirectory fileName1 [ fileName2 ... ]" << std::endl;
+    std::cerr << "Usage: " << argv[ 0 ] << " numberOfUpsamplingSteps meshSizeX meshSizeY meshSizeZ stiffness numberOfIterations edgeCollapseFactor logDirectory fileName1 [ fileName2 ... ]" << std::endl;
 
     return -1;
     }
@@ -126,7 +126,7 @@ int main( int argc, char** argv )
 
   // Retrieve the input parameters
   std::ostringstream  inputParserStream;
-  for ( int argumentNumber = 1; argumentNumber < 7; argumentNumber++ ) 
+  for ( int argumentNumber = 1; argumentNumber < 9; argumentNumber++ ) 
     {
     inputParserStream << argv[ argumentNumber ] << " ";
     }
@@ -136,9 +136,26 @@ int main( int argc, char** argv )
   unsigned int  meshSizeY;
   unsigned int  meshSizeZ;
   double  stiffness;
+  unsigned int  numberOfIterations;
+  double  edgeCollapseFactor;
   std::string  logDirectory;
-  inputStream >> numberOfUpsamplingSteps >>  meshSizeX >> meshSizeY >> meshSizeZ >> stiffness >> logDirectory;
+  inputStream >> \
+    numberOfUpsamplingSteps >> \
+    meshSizeX >> meshSizeY >> meshSizeZ >> \
+    stiffness >> \
+    numberOfIterations \
+    edgeCollapseFactor \
+    logDirectory;
 
+  std::cout << "kvlBuildAtlasMesh Command line params:" << std::endl;
+  std::cout << "  numberOfUpsamplingSteps: " << numberOfUpsamplingSteps << std::endl;
+  std::cout << "  meshSizeX:               " << meshSizeX << std::endl;
+  std::cout << "  meshSizeY:               " << meshSizeY << std::endl;
+  std::cout << "  meshSizeZ:               " << meshSizeZ << std::endl;
+  std::cout << "  stiffness:               " << stiffness << std::endl;
+  std::cout << "  numberOfIterations:      " << numberOfIterations << std::endl;
+  std::cout << "  edgeCollapseFactor:      " << numberOfIterations << std::endl;
+  std::cout << "  logDirectory:            " << logDirectory << std::endl;
   
   // Read the input images
   typedef kvl::CompressionLookupTable::ImageType  LabelImageType;
