@@ -1,9 +1,12 @@
+import os
 import numpy as np
-from . import gems
+import scipy.ndimage
+import freesurfer as fs
+
+from freesurfer.samseg import gems
 from freesurfer.samseg.warp_mesh import kvlWarpMesh
 from freesurfer.samseg.utilities import requireNumpyArray
-import freesurfer as fs
-import os
+
 
 class ProbabilisticAtlas:
     def __init__(self):
@@ -18,17 +21,45 @@ class ProbabilisticAtlas:
         self.previousDeformationMesh = None
 
 
-    def getMesh(self, meshCollectionFileName,
+    def getMesh(self,
+                meshCollectionFileName,
                 transform=None,
                 K=None,
-                initialDeformation=None, initialDeformationMeshCollectionFileName=None,
-                returnInitialDeformationApplied=False):
+                initialDeformation=None,
+                initialDeformationMeshCollectionFileName=None,
+                returnInitialDeformationApplied=False,
+                competingStructures=None,
+                smoothingSigma=0):
 
         # Get the mesh
         mesh_collection = gems.KvlMeshCollection()
         mesh_collection.read(meshCollectionFileName)
         if K is not None:
             mesh_collection.k = K
+
+        # Do competing structure smoothing if enabled
+        if smoothingSigma > 0 and competingStructures:
+
+            print(f'Smoothing competing atlas priors with sigma {smoothingSigma:.2f}')
+
+            # Get initial priors
+            size = np.array(mesh_collection.reference_position.max(axis=0) + 1.5, dtype=int)
+            priors = mesh_collection.reference_mesh.rasterize(size, -1)
+
+            # Smooth the cortex and WM alphas
+            for competingStructureNumbers in competingStructures:
+                miniPriors = priors[..., competingStructureNumbers]
+                weightsToReassign = np.sum(miniPriors, axis=-1, keepdims=True)
+                miniPriors = scipy.ndimage.gaussian_filter(miniPriors.astype(float), sigma=(smoothingSigma, smoothingSigma, smoothingSigma, 0))
+                miniPriors /= (np.sum(miniPriors, -1, keepdims=True) + 1e-12)  # Normalize to sum to 1
+                miniPriors *= weightsToReassign
+                priors[..., competingStructureNumbers] = miniPriors
+
+            # Set the alphas
+            alphas = mesh_collection.reference_mesh.fit_alphas(priors)
+            mesh_collection.reference_mesh.alphas = alphas
+
+        # Transform
         if transform:
             mesh_collection.transform(transform)
         else:

@@ -285,6 +285,18 @@ class Samseg:
             print('registration-only requested, so quiting now')
             sys.exit()
 
+    def getMesh(self, *args, **kwargs):
+        """
+        Load the atlas mesh and perform optional smoothing of the cortex and WM priors.
+        """
+        if self.modelSpecifications.whiteMatterAndCortexSmoothingSigma > 0:
+            competingNames = [['Left-Cerebral-White-Matter',  'Left-Cerebral-Cortex'],
+                              ['Right-Cerebral-White-Matter', 'Right-Cerebral-Cortex']]
+            competingStructures = [[self.modelSpecifications.names.index(n) for n in names] for names in competingNames]
+            kwargs['competingStructures'] = competingStructures
+            kwargs['smoothingSigma'] = self.modelSpecifications.whiteMatterAndCortexSmoothingSigma
+        return self.probabilisticAtlas.getMesh(*args, **kwargs)
+
     def preProcess(self):
         # =======================================================================================
         #
@@ -321,20 +333,15 @@ class Samseg:
             self.voxelSpacing
         )
 
-
         # Let's prepare for the bias field correction that is part of the imaging model. It assumes
         # an additive effect, whereas the MR physics indicate it's a multiplicative one - so we log
         # transform the data first.
         self.imageBuffers = logTransform(self.imageBuffers, self.mask)
 
-        mesh = self.probabilisticAtlas.getMesh(self.modelSpecifications.atlasFileName, self.transform)
-        priors = mesh.rasterize(self.imageBuffers.shape[:3], 4).astype(float)
-        self.writeImage(priors, os.path.join(self.savePath, 'priors-testing.mgz'))
-
         # Visualize some stuff
         if hasattr(self.visualizer, 'show_flag'):
             self.visualizer.show(
-                mesh=self.probabilisticAtlas.getMesh(self.modelSpecifications.atlasFileName, self.transform),
+                mesh=self.getMesh(self.modelSpecifications.atlasFileName, self.transform),
                 shape=self.imageBuffers.shape,
                 window_id='samsegment mesh', title='Mesh',
                 names=self.modelSpecifications.names, legend_width=350)
@@ -512,7 +519,7 @@ class Samseg:
 
     def saveWarpField(self, filename):
         # extract node positions in image space
-        nodePositions = self.probabilisticAtlas.getMesh(
+        nodePositions = self.getMesh(
             self.modelSpecifications.atlasFileName,
             self.transform,
             initialDeformation=self.deformation,
@@ -536,7 +543,7 @@ class Samseg:
         matrix = scipy.io.loadmat(matricesFileName)['imageToImageTransformMatrix']
 
         # rasterize the final node coordinates (in image space) using the initial template mesh
-        mesh = self.probabilisticAtlas.getMesh(self.modelSpecifications.atlasFileName)
+        mesh = self.getMesh(self.modelSpecifications.atlasFileName)
         coordmap = mesh.rasterize_values(templateGeom.shape, nodePositions)
 
         # the rasterization is a bit buggy and some voxels are not filled - mark these as invalid
@@ -555,9 +562,9 @@ class Samseg:
         os.makedirs(probabilitiesPath, exist_ok=True)
           
         # Get the class priors as dictated by the current mesh position
-        mesh = self.probabilisticAtlas.getMesh(self.modelSpecifications.atlasFileName, self.transform,
-                                              initialDeformation=self.deformation,
-                                              initialDeformationMeshCollectionFileName=self.deformationAtlasFileName)
+        mesh = self.getMesh(self.modelSpecifications.atlasFileName, self.transform,
+                            initialDeformation=self.deformation,
+                            initialDeformationMeshCollectionFileName=self.deformationAtlasFileName)
         mergedAlphas = kvlMergeAlphas( mesh.alphas, self.classFractions )
         mesh.alphas = mergedAlphas
         classPriors = mesh.rasterize(self.imageBuffers.shape[0:3], -1)
@@ -625,15 +632,14 @@ class Samseg:
         downSampledTransform = gems.KvlTransform(requireNumpyArray(downSamplingTransformMatrix @ self.transform.as_numpy_array))
 
         # Get the mesh
-        downSampledMesh, downSampledInitialDeformationApplied = self.probabilisticAtlas.getMesh(atlasFileName,
-                                                                                                downSampledTransform,
-                                                                                                self.modelSpecifications.K,
-                                                                                                self.deformation,
-                                                                                                self.deformationAtlasFileName,
-                                                                                                returnInitialDeformationApplied=True)
+        downSampledMesh, downSampledInitialDeformationApplied = self.getMesh(atlasFileName,
+                                                                             downSampledTransform,
+                                                                             self.modelSpecifications.K,
+                                                                             self.deformation,
+                                                                             self.deformationAtlasFileName,
+                                                                             returnInitialDeformationApplied=True)
 
-        return downSampledImageBuffers, downSampledMask, downSampledMesh, downSampledInitialDeformationApplied, \
-               downSampledTransform,
+        return downSampledImageBuffers, downSampledMask, downSampledMesh, downSampledInitialDeformationApplied, downSampledTransform
 
     def initializeBiasField(self):
 
@@ -918,9 +924,9 @@ class Samseg:
 
     def computeFinalSegmentation(self):
         # Get the final mesh
-        mesh = self.probabilisticAtlas.getMesh(self.modelSpecifications.atlasFileName, self.transform,
-                                               initialDeformation=self.deformation,
-                                               initialDeformationMeshCollectionFileName=self.deformationAtlasFileName)
+        mesh = self.getMesh(self.modelSpecifications.atlasFileName, self.transform,
+                            initialDeformation=self.deformation,
+                            initialDeformationMeshCollectionFileName=self.deformationAtlasFileName)
 
         # Get the priors as dictated by the current mesh position
         priors = mesh.rasterize(self.imageBuffers.shape[0:3], -1)
