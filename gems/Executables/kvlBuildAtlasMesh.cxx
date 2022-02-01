@@ -191,7 +191,7 @@ int main( int argc, char** argv )
   kvl::AtlasMeshBuilder::Pointer  builder = kvl::AtlasMeshBuilder::New();
   const itk::Size< 3 >  initialSize = { meshSizeX,  meshSizeY, meshSizeZ };
   std::vector< double >  initialStiffnesses( numberOfUpsamplingSteps+1, stiffness );
-  builder->SetUp( labelImages, lookupTable, initialSize, initialStiffnesses );
+  builder->SetUp( labelImages, lookupTable, initialSize, initialStiffnesses, numberOfIterations);
   builder->SetVerbose( false );
 
   // Add some observers/callbacks
