@@ -96,7 +96,7 @@ AtlasMeshBuilder
   m_InitialSize = initialSize;
   m_InitialStiffnesses = initialStiffnesses;
   m_Mesher->SetUp( m_LabelImages, m_CompressionLookupTable, m_InitialSize, m_InitialStiffnesses );
-  m_MaximumNumberOfIterations = maximumNumberOfIterations
+  m_MaximumNumberOfIterations = maximumNumberOfIterations;
 }
 
 
