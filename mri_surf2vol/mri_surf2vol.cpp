@@ -587,6 +587,9 @@ static int parse_commandline(int argc, char **argv) {
       subject = ArrayLTA->subject;
       nargsused = 1;
     } 
+    else if (!strcmp(option, "--copy-ctab")) {
+      setenv("FS_COPY_HEADER_CTAB","1",1);
+    } 
     else if (istringnmatch(option, "--ribbon",8)) {
       if(nargc < 1) argnerr(option,1);
       ribbon = MRIread(pargv[0]);
@@ -714,6 +717,7 @@ static void print_usage(void) {
   printf("  \n");
   printf("  Applies to both methods\n");
   printf("  --add const : add constant value to each non-zero output voxel\n");
+  printf("  --copy-ctab : setenv FS_COPY_HEADER_CTAB 1\n");
   printf("  --sd subjectsdir : FreeSurfer subjects' directory\n");
   printf("  --help    : hidden secrets of success\n");
   printf("  --gdiagno number : set diag level\n");

@@ -68,10 +68,7 @@ if($DoXHemi) then
       if($hemilist == lh) set cmd = ($cmd --rh)
       if($hemilist == rh) set cmd = ($cmd --lh)
     endif
-    if($InitLTAfromTal) then
-      set cmd = ($cmd --tal-estimate)
-      set InitLTA = $sd/mri/transforms/talairach.xfm.lta
-    endif
+    if($InitLTAfromTal) set cmd = ($cmd --tal-estimate)
     echo $cmd | tee -a $LF
     $cmd | tee -a $LF
     if($status) exit 1;
@@ -247,6 +244,13 @@ if(! -e $SUBJECTS_DIR/$target) then
      echo "ERROR: cannot find $target in $SUBJECTS_DIR"
      exit 1;
    endif
+endif
+if($InitLTAfromTal && ! $DoXHemi) then
+  set InitLTA = $sd/mri/transforms/talairach.xfm.lta
+  if(! -e $InitLTA) then
+    echo "ERROR: cannot find $InitLTA"
+    exit 1
+  endif
 endif
 
 if($#OutSurf == 0) then
