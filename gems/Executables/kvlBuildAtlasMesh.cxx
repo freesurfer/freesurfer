@@ -137,30 +137,30 @@ int main( int argc, char** argv )
   unsigned int  meshSizeZ;
   double  stiffness;
   unsigned int  numberOfIterations;
-  double  edgeCollapseFactor;
+  double  edgeCollapseEncouragmentFactor;
   std::string  logDirectory;
   inputStream >> \
     numberOfUpsamplingSteps >> \
     meshSizeX >> meshSizeY >> meshSizeZ >> \
     stiffness >> \
     numberOfIterations >> \
-    edgeCollapseFactor >> \
+    edgeCollapseEncouragmentFactor >> \
     logDirectory;
 
   std::cout << "kvlBuildAtlasMesh Command line params:" << std::endl;
-  std::cout << "  numberOfUpsamplingSteps: " << numberOfUpsamplingSteps << std::endl;
-  std::cout << "  meshSizeX:               " << meshSizeX << std::endl;
-  std::cout << "  meshSizeY:               " << meshSizeY << std::endl;
-  std::cout << "  meshSizeZ:               " << meshSizeZ << std::endl;
-  std::cout << "  stiffness:               " << stiffness << std::endl;
-  std::cout << "  numberOfIterations:      " << numberOfIterations << std::endl;
-  std::cout << "  edgeCollapseFactor:      " << numberOfIterations << std::endl;
-  std::cout << "  logDirectory:            " << logDirectory << std::endl;
+  std::cout << "  numberOfUpsamplingSteps:        " << numberOfUpsamplingSteps << std::endl;
+  std::cout << "  meshSizeX:                      " << meshSizeX << std::endl;
+  std::cout << "  meshSizeY:                      " << meshSizeY << std::endl;
+  std::cout << "  meshSizeZ:                      " << meshSizeZ << std::endl;
+  std::cout << "  stiffness:                      " << stiffness << std::endl;
+  std::cout << "  numberOfIterations:             " << numberOfIterations << std::endl;
+  std::cout << "  edgeCollapseEncouragmentFactor: " << edgeCollapseEncouragmentFactor << std::endl;
+  std::cout << "  logDirectory:                   " << logDirectory << std::endl;
   
   // Read the input images
   typedef kvl::CompressionLookupTable::ImageType  LabelImageType;
   std::vector< LabelImageType::ConstPointer >  labelImages;
-  for ( int argumentNumber = 7; argumentNumber < argc; argumentNumber++ )
+  for ( int argumentNumber = 9; argumentNumber < argc; argumentNumber++ )
     {
     std::cout << "Reading input image: " << argv[ argumentNumber ] << std::endl;
     // Read the input image
@@ -277,7 +277,7 @@ int main( int argc, char** argv )
     }
 
   // If edgeCollapseEncouragmentFactor.txt exists in the current directory, read it's content
-  double  edgeCollapseEncouragmentFactor = 1.0;
+  //double  edgeCollapseEncouragmentFactor = 1.0;
   const std::string  edgeCollapseEncouragmentFactorFileName = "edgeCollapseEncouragmentFactor.txt";
   //if ( itksys::SystemTools::FileExists( edgeCollapseEncouragmentFactorFileName.c_str(), true ) )
   //  {
