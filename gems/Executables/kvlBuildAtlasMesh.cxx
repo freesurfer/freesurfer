@@ -143,8 +143,8 @@ int main( int argc, char** argv )
     numberOfUpsamplingSteps >> \
     meshSizeX >> meshSizeY >> meshSizeZ >> \
     stiffness >> \
-    numberOfIterations \
-    edgeCollapseFactor \
+    numberOfIterations >> \
+    edgeCollapseFactor >> \
     logDirectory;
 
   std::cout << "kvlBuildAtlasMesh Command line params:" << std::endl;
