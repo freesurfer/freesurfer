@@ -6,7 +6,7 @@ import freesurfer as fs
 
 from freesurfer import samseg
 from freesurfer.subfields import utils
-from freesurfer.subfields.base import MeshModel
+from freesurfer.subfields.core import MeshModel
 
 
 class ThalamicNuclei(MeshModel):
@@ -26,6 +26,11 @@ class ThalamicNuclei(MeshModel):
         self.meshSmoothingSigmas = [1.5, 1.125, 0.75, 0]
         self.imageSmoothingSigmas = [0, 0, 0, 0]
         self.maxIterations = [7, 5, 5, 3]
+
+        # Longitudinal mesh-fitting parameters
+        self.longMeshSmoothingSigmas = [[1.5, 1.125, 0.75], [1.125, 0.75, 0]]
+        self.longImageSmoothingSigmas = [[0, 0, 0], [0, 0, 0]]
+        self.longMaxIterations = [[7, 5, 3], [3, 2, 1]]
 
         # When creating the smooth atlas alignment target, dilate before eroding
         self.atlasTargetSmoothing = 'forward'
@@ -247,7 +252,7 @@ class ThalamicNuclei(MeshModel):
         nHyper = np.zeros(len(sameGaussianParameters))
         meanHyper = np.zeros(len(sameGaussianParameters))
 
-        # TODO this needs to be adapted for multi-image cases as well as masking
+        # TODO this needs to be adapted for multi-image cases (with masking)
         DATA = self.inputImages[0]
 
         for g in range(len(sameGaussianParameters)):
@@ -327,7 +332,7 @@ class ThalamicNuclei(MeshModel):
         GMind = 2
         ThInt = meanHyper[-1]
 
-        # TODO
+        # TODO this needs to be enabled with non-T1s are used
         if True:
             # Lateral, brighter
             nHyper[-1] = 25

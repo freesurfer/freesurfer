@@ -6,7 +6,7 @@ import freesurfer as fs
 
 from freesurfer import samseg
 from freesurfer.subfields import utils
-from freesurfer.subfields.base import MeshModel
+from freesurfer.subfields.core import MeshModel
 
 
 class BrainstemSubstructures(MeshModel):
@@ -24,6 +24,11 @@ class BrainstemSubstructures(MeshModel):
         self.meshSmoothingSigmas = [2, 1, 0]
         self.imageSmoothingSigmas = [0, 0, 0]
         self.maxIterations = [7, 5, 3]
+
+        # Longitudinal mesh-fitting parameters
+        self.longMeshSmoothingSigmas = [[2, 1], [1, 0]]
+        self.longImageSmoothingSigmas = [[0, 0], [0, 0]]
+        self.longMaxIterations = [[6, 3], [2, 1]]
 
         # Let's not smooth the target mask at all
         self.atlasTargetSmoothing = None
@@ -48,6 +53,7 @@ class BrainstemSubstructures(MeshModel):
         self.synthImage = self.inputSeg.copy()
         labels = [self.BRAINSTEM, 7, 8, 15, 28, 46, 47, 60]
         mask = np.isin(self.synthImage.data, labels)
+        self.synthImage.data.fill(1)
         self.synthImage.data[mask] = 255
         self.synthImage.write(os.path.join(self.tempDir, 'synthImage.mgz'))
 
@@ -56,13 +62,8 @@ class BrainstemSubstructures(MeshModel):
         fixedMargin = int(np.round(15 / np.mean(self.inputSeg.voxsize)))
         imageCropping = self.inputSeg.copy(brainstemMask).bbox(margin=fixedMargin)
 
-        # dilate mask substantially
-        radius = int(np.round(5 / self.resolution))
-        mask = scipy.ndimage.morphology.binary_dilation(self.inputSeg.data > 0, utils.spherical_strel(radius), border_value=1)
-
         # Mask and convert to the target resolution
         images = []
-        imageMask = self.synthImage.copy(mask)
         for i, image in enumerate(self.inputImages):
 
             # FS python library does not have cubic interpolation yet, so we'll use mri_convert
@@ -70,14 +71,22 @@ class BrainstemSubstructures(MeshModel):
             image[imageCropping].write(tempFile)
             utils.run(f'mri_convert {tempFile} {tempFile} -odt float -rt cubic -vs {self.resolution} {self.resolution} {self.resolution}')
             image = fs.Volume.read(tempFile)
-            
-            # Resample and apply the image mask in high-resolution target space
-            imageMask = imageMask.resample_like(image, interp_method='nearest')
-            image.data[imageMask.data == 0] = 0            
             images.append(image.data)
 
         # Define the pre-processed target image
         self.processedImage = image.copy(np.stack(images, axis=-1))
+
+        # Resample and apply the seg mask in high-resolution target space
+        croppedSeg = self.inputSeg[imageCropping].copy()
+        croppedSeg = croppedSeg.resample_like(self.processedImage, interp_method='nearest')
+
+        # Create mask and dilate substantially
+        radius = int(np.round(5 / self.resolution))
+        mask = scipy.ndimage.morphology.binary_dilation(croppedSeg.data > 0, utils.spherical_strel(radius))
+
+        # Apply the mask
+        self.processedImage.data[mask == 0] = 0            
+        
 
     def postprocess_segmentation(self):
         """
@@ -155,7 +164,7 @@ class BrainstemSubstructures(MeshModel):
         Return a tuple of (meanHyps, nHyps) for Gaussian parameter estimation.
         """
 
-        # TODO this needs to be adapted for multi-image cases as well as masking
+        # TODO this needs to be adapted for multi-image cases (plus masking)
         DATA = self.inputImages[0]
 
         nHyper = np.zeros(len(sameGaussianParameters))
@@ -196,7 +205,7 @@ class BrainstemSubstructures(MeshModel):
             if len(listMask) > 0:
                 MASK = np.zeros(DATA.data.shape, dtype='bool')
                 for l in range(len(listMask)):
-                    MASK = MASK | (self.inputSeg.data == listMask[l])  # TODO I think this uses an unmodified seg!
+                    MASK = MASK | (self.inputSeg.data == listMask[l])
                 MASK = scipy.ndimage.morphology.binary_erosion(MASK, utils.spherical_strel(1), border_value=1)
                 total_mask = MASK & (DATA.data > 0)
                 data = DATA.data[total_mask]

@@ -62,17 +62,17 @@ class MeshModel:
         self.fileSuffix = fileSuffix
         self.debug = debug
 
-        # Some optimization defaults that should probably be overwritten by each subclass
-        self.cheatingMeshSmoothingSigmas = None
-        self.cheatingMaxIterations = None
+        # Some optimization defaults that should be overwritten by each subclass
+        self.cheatingMeshSmoothingSigmas = [3.0, 2.0]
+        self.cheatingMaxIterations = [300, 150]
 
-        self.meshSmoothingSigmas = None
-        self.imageSmoothingSigmas = None
-        self.maxIterations = None
+        self.meshSmoothingSigmas = [1.5, 0.75, 0]
+        self.imageSmoothingSigmas = [0, 0, 0]
+        self.maxIterations = [7, 5, 3]
 
-        self.longMeshSmoothingSigmas = None
-        self.longImageSmoothingSigmas = None
-        self.longMaxIterations = None
+        self.longMeshSmoothingSigmas = [[1.5, 0.75], [0.75, 0]]
+        self.longImageSmoothingSigmas = [[0, 0], [0, 0]]
+        self.longMaxIterations = [[6, 3], [2, 1]]
 
         # Here are some options that control how to much to dilate masks throughout different
         # stages. Might be necessary to tune depending on the geometry of the ROI (like brainstem).
@@ -197,13 +197,6 @@ class MeshModel:
 
         return (reducedAlphas, reducingLookupTable)
 
-    def update_alphas_from_label_groups(self, labelGroups):
-        """
-        TODOC
-        """
-        self.sameGaussians = None
-
-
     def crop_image_by_atlas(self, image):
         """
         Crop image to the aligned atlas image. Also construct a 3-D affine transformation that will later be used
@@ -223,7 +216,7 @@ class MeshModel:
         cropping = tuple([slice(l, u + 1) for l, u in zip(lower, upper)])
 
         transform = samseg.gems.KvlTransform(np.asfortranarray(trf.matrix))
-        return image[cropping], transform
+        return (image[cropping].copy(), transform)
 
     def align_atlas_to_seg(self):
         """
@@ -266,9 +259,9 @@ class MeshModel:
 
         # Write the atlas as well
         alignedAtlasFile = os.path.join(self.tempDir, 'alignedAtlasImage.mgz')
-        shutil.copyfile(self.atlasDumpFileName, alignedAtlasFile)
         # ATH TODO skipping this for now... we'll just copy instead
         # self.atlasImage.write(alignedAtlasFile)
+        shutil.copyfile(self.atlasDumpFileName, alignedAtlasFile)
 
         # Run the actual registration and load the result
         utils.run(f'mri_robust_register --mov {alignedAtlasFile} --dst {targetMaskFile} --lta {self.tempDir}/trash.lta --mapmovhdr {alignedAtlasFile} --sat 50 -verbose 0')
@@ -277,7 +270,7 @@ class MeshModel:
 
     def prepare_for_seg_fitting(self):
         """
-        TODOC
+        Prepare the mesh collection, preprocessed image, reduced alphas, and Gaussians parameters.
         """
 
         # Make sure the subclass has computed the synthed target
@@ -374,16 +367,16 @@ class MeshModel:
                 minLogLikelihoodTimesPrior, maximalDeformation = optimizer.step_optimizer_samseg()
 
                 # Log step information
-                iteration_info = [
+                iterationInfo = [
                     f'Res: {multiResolutionLevel + 1:03d}',
                     f'Iter: {iteration + 1:03d}',
                     f'MaxDef: {maximalDeformation:.4f}',
                     f'MinLLxP: {minLogLikelihoodTimesPrior:.4f}',
                 ]
-                print('  '.join(iteration_info))
+                print('  '.join(iterationInfo))
 
                 # Track optimization history
-                previous = history[-1] if history else (1 / np.finfo(np.float32).eps)
+                previous = history[-1] if history else np.finfo(np.float32).max
                 history.append(minLogLikelihoodTimesPrior)
 
                 # Check for stop criteria
@@ -405,7 +398,7 @@ class MeshModel:
 
     def prepare_for_image_fitting(self):
         """
-        TODOC
+        Prepare the mesh collection, preprocessed image, reduced alphas, and estimated hyperparameters.
         """
 
         # Make sure the subclass has computed the target image
@@ -425,7 +418,7 @@ class MeshModel:
         self.meshCollection = samseg.gems.KvlMeshCollection()
         self.meshCollection.read(self.warpedMeshFileName)
         self.meshCollection.transform(self.transform)
-        # self.meshCollection.k = self.meshStiffness  # TODO ATH I'm pretty sure stiffness needs to be reset here!!!!!
+        self.meshCollection.k = self.meshStiffness
 
         # Retrieve the correct mesh to use from the meshCollection
         self.mesh = self.meshCollection.get_mesh(0)
@@ -461,6 +454,10 @@ class MeshModel:
         # Compute the hyperparameters
         self.meanHyper, self.nHyper = self.get_gaussian_hyps(self.sameGaussianParameters, self.mesh)
 
+        # Init empty means and variances
+        self.means = None
+        self.variances = None
+
     def fit_mesh_to_image(self):
         """
         Fit mesh to the image data.
@@ -488,6 +485,9 @@ class MeshModel:
                 self.mesh.alphas = self.reducedAlphas
                 # Compute new Gaussian hyperparameters
                 self.meanHyper, self.nHyper = self.get_second_gaussian_hyps(self.sameGaussianParameters, self.meanHyper, self.nHyper)
+                # Reset means and variances to be computed
+                self.means = None
+                self.variances = None
 
             # Set the mesh alphas back
             # ATH is this necessary though?
@@ -533,7 +533,7 @@ class MeshModel:
                 posteriors = priors / 65535
 
                 # Start EM iterations. Initialize the parameters if this is the first time ever you run this
-                if iterationNumber == 0 and (multiResolutionLevel == 0 or (self.useTwoComponents and multiResolutionLevel == 1)):
+                if (self.means is None) or (self.variances is None):
 
                     self.means = np.zeros(numberOfClasses)
                     self.variances = np.zeros(numberOfClasses)
@@ -575,15 +575,15 @@ class MeshModel:
                         fs.fatal('minLogLikelihood is NaN')
 
                     # Log some iteration information
-                    iteration_info = [
+                    iterationInfo = [
                         f'Res: {multiResolutionLevel + 1:03d}',
                         f'Iter: {iterationNumber + 1:03d} | {EMIterationNumber + 1:03d}',
                         f'MinLL: {minLogLikelihood:.4f}',
                     ]
-                    print('  '.join(iteration_info))
+                    print('  '.join(iterationInfo))
 
                     # Track EM history
-                    previous = historyOfEMCost[-1] if historyOfEMCost else (1 / np.finfo(np.float32).eps)
+                    previous = historyOfEMCost[-1] if historyOfEMCost else np.finfo(np.float32).max
                     historyOfEMCost.append(minLogLikelihood)
 
                     # Check for convergence
@@ -643,13 +643,13 @@ class MeshModel:
                     minLogLikelihoodTimesPrior, maximalDeformation = optimizer.step_optimizer_samseg()
 
                     # Log optimization information
-                    iteration_info = [
+                    iterationInfo = [
                         f'Res: {multiResolutionLevel + 1:03d}',
                         f'Iter: {iterationNumber + 1:03d} | {positionUpdatingIterationNumber + 1:03d}',
                         f'MaxDef: {maximalDeformation:.4f}',
                         f'MinLLxP: {minLogLikelihoodTimesPrior:.4f}',
                     ]
-                    print('  '.join(iteration_info))
+                    print('  '.join(iterationInfo))
 
                     if np.isnan(minLogLikelihoodTimesPrior):
                         fs.error('minLogLikelihoodTimesPrior is NaN')
@@ -663,7 +663,7 @@ class MeshModel:
                         break
 
                 # Keep track of the cost function we're optimizing
-                previous = historyOfCost[-1] if historyOfCost else (1 / np.finfo(np.float32).eps)
+                previous = historyOfCost[-1] if historyOfCost else np.finfo(np.float32).max
                 historyOfCost.append(minLogLikelihoodTimesPrior)
                 
                 # Determine if we should stop the overall iterations over the two set of parameters
@@ -672,7 +672,7 @@ class MeshModel:
 
     def extract_segmentation(self):
         """
-        TODO
+        Extract discrete labels and volumes from the fit mesh.
         """
 
         # First, undo the collapsing of several structures into super-structures

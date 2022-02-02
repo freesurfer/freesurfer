@@ -7,14 +7,15 @@ import freesurfer as fs
 
 from freesurfer import samseg
 from freesurfer.subfields import utils
-from freesurfer.subfields.base import MeshModel
+from freesurfer.subfields.core import MeshModel
+
 
 class HippoAmygdalaSubfields(MeshModel):
 
     def __init__(self, side, wmParcFileName, resolution=0.33333, **kwargs):
 
         atlasDir = os.path.join(fs.fshome(), 'average/HippoSF/atlas')
-        super().__init__(atlasDir=atlasDir, **kwargs)
+        super().__init__(atlasDir=atlasDir, resolution=resolution, **kwargs)
 
         # This is a hippocampus-specific setting to specify
         # which hemisphere to segment
@@ -33,13 +34,6 @@ class HippoAmygdalaSubfields(MeshModel):
         self.longMeshSmoothingSigmas = [[1.5, 0.75], [0.75, 0]]
         self.longImageSmoothingSigmas = [[0, 0], [0, 0]]
         self.longMaxIterations = [[6, 3], [2, 1]]
-
-        # # TODO FOR TESTING ONLY!!
-        # self.cheatingMeshSmoothingSigmas = [3.0, 2.0]
-        # self.cheatingMaxIterations = [10, 10]
-        # self.longMeshSmoothingSigmas = [[1.5, 0.75], [0.75, 0]]
-        # self.longImageSmoothingSigmas = [[0, 0], [0, 0]]
-        # self.longMaxIterations = [[1, 1], [1, 1]]
 
         # Cache some useful info 
         self.wmparc = fs.Volume.read(wmParcFileName)
@@ -123,7 +117,6 @@ class HippoAmygdalaSubfields(MeshModel):
         # And convert background to 1
         data[data == 0] = 1
 
-        # TODO figure this out
         segMerged = self.inputSeg.copy(data)
 
         # We now merge hippo, amygdala, and cortex. This will be the
@@ -155,7 +148,6 @@ class HippoAmygdalaSubfields(MeshModel):
             # FS python library does not have cubic interpolation yet, so we'll use mri_convert
             tempFile = os.path.join(self.tempDir, 'tempImage.mgz')
             image[imageCropping].write(tempFile)
-            image[imageCropping].write('testTmp.mgz')
             utils.run(f'mri_convert {tempFile} {tempFile} -odt float -rt cubic -vs {self.resolution} {self.resolution} {self.resolution}')
             image = fs.Volume.read(tempFile)
 
@@ -238,7 +230,7 @@ class HippoAmygdalaSubfields(MeshModel):
         labels = [l for l in np.unique(V) if l not in (0, 214, 215)]
         mask = V == 214
         for i, label in enumerate(labels):
-            dmap = scipy.ndimage.distance_transform_edt(V != label)  # TODO make sure this is correctly reversed....
+            dmap = scipy.ndimage.distance_transform_edt(V != label)
             if i == 0:
                 mini = dmap[mask]
                 seg = label * np.ones(mini.shape)

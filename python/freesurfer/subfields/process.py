@@ -108,7 +108,7 @@ def run_longitudinal(structure, baseParameters, tpParameters):
     baseMaskFile = os.path.join(baseModel.tempDir, 'binaryMaskCropped.mgz')
     mask.write(baseMaskFile)
 
-    # TODOC
+    # This is our target resampled image that all timepoints should be resampled to
     baseProcessedFile = os.path.join(baseModel.tempDir, 'processedImage.mgz')
     baseModel.processedImage.write(baseProcessedFile)
 
@@ -131,11 +131,11 @@ def run_longitudinal(structure, baseParameters, tpParameters):
         # Again, since we don't have cubic interpolation yet in the python utils, let's just use mri_convert
         correctedImageFile = os.path.join(tpModel.tempDir, 'correctedImage.mgz')
         resampledFile = os.path.join(tpModel.tempDir, 'resampledImage.mgz')
-        tpModel.correctedImages[0].write(correctedImageFile)  # TODOC about multi-files
+        tpModel.correctedImages[0].write(correctedImageFile)  # ATH this will need to be adapted for multi-image inputs
         utils.run(f'mri_convert {correctedImageFile} {resampledFile} -odt float -rl {baseProcessedFile} -rt cubic -at {transformFile}')
         tpModel.processedImage = fs.Volume.read(resampledFile)
 
-        # TODOC
+        # Since we're now working in base-space, we can reuse the base-aligned atlas for every timepoint
         tpModel.alignedAtlas = baseModel.alignedAtlas
 
     print(f'Timepoint alignment took {timer.elapsed.seconds} seconds\n')
@@ -151,49 +151,47 @@ def run_longitudinal(structure, baseParameters, tpParameters):
     timer = fs.utils.Timer()
     print('Step 5: global mesh fitting')
 
-    # TODOC
+    # Prepare the base for image fitting so that we can extract some mesh information
     baseModel.prepare_for_image_fitting()
     atlasPositions = baseModel.meshCollection.get_mesh(-1).points
     subjectAtlasPositions = baseModel.mesh.points
 
-    # TODOC
+    # Now that we've the mesh to the base segmentation mask, we
+    # should use this mesh collection in the timepoint models
     for tpModel in tpModels:
         tpModel.warpedMeshFileName = baseModel.warpedMeshFileName
         tpModel.originalAlphas = baseModel.originalAlphas
         tpModel.prepare_for_image_fitting()
-        # TODOC
+
+        # We should keep the masking consistent across timepoints
         tpModel.workingMask = baseModel.workingMask
         tpModel.maskIndices = baseModel.maskIndices
         tpModel.workingImage.data[tpModel.workingMask.data == 0] = 0
 
-    # TODOC
+    # Gather initial subject timepoint mesh positions
     subjectTPpositions = [tpModel.mesh.points for tpModel in tpModels]
 
     # This will be the mesh collection we'll use for temporary data
     meshCollection = samseg.gems.KvlMeshCollection()
     meshCollection.read(baseModel.warpedMeshFileName)
     meshCollection.transform(baseModel.transform)
-    # meshCollection.K = Katl TODO
+    meshCollection.K = baseModel.meshStiffness
     mesh = meshCollection.get_mesh(0)
     mesh.alphas = baseModel.reducedAlphas
 
-    # TODO
-    Katl = baseModel.meshStiffness
-    Ktp = baseModel.meshStiffness
-
-    # TODOC
-    maxGlobalLongIterations = 5  # TODO should be 5!!
+    # Start the global iterations
+    maxGlobalLongIterations = 5
     for globalIteration in range(maxGlobalLongIterations):
 
         print(f'\nGlobal iteration {globalIteration + 1}: estimating subject-specific atlas\n')
 
-        # TODOC
+        # Set temporary data
         meshCollection.set_positions(atlasPositions, [subjectAtlasPositions])
         meshSA = meshCollection.get_mesh(0)
         meshCollection.set_positions(atlasPositions, subjectTPpositions)
 
         # Get optimizer and plug calculator into it
-        calculator = samseg.gems.KvlCostAndGradientCalculator(meshCollection, Katl, Ktp, baseModel.transform)
+        calculator = samseg.gems.KvlCostAndGradientCalculator(meshCollection, baseModel.meshStiffness, baseModel.meshStiffness, baseModel.transform)
         maximalDeformationStopCriterion = 1e-10
         optimizationParameters = {
             'Verbose': 0,
@@ -226,28 +224,24 @@ def run_longitudinal(structure, baseParameters, tpParameters):
                 print('maximalDeformation is too small - stopping')
                 break
 
-        # TODO
-        # ATH why are we setting K again?
+        # Update positions
         subjectAtlasPositions = meshSA.points
         baseModel.meshCollection.set_positions(atlasPositions, [subjectAtlasPositions])
-        # baseModel.meshCollection.K = K?? TODO
         for t, tpModel in enumerate(tpModels):
             tpModel.meshCollection.set_positions(subjectAtlasPositions, [subjectTPpositions[t]])
-            # tpModel.meshCollection.K = K?? TODO
     
-        # TODOC
+        # Now let's fit each timepoint
         for t, tpModel in enumerate(tpModels):
             print(f'\nGlobal iteration {globalIteration + 1}: deforming time point {t + 1}\n')
 
-            # TODOC
+            # Update the multi-resolution settings
             idx = 0 if globalIteration < 2 else 1
             tpModel.meshSmoothingSigmas = tpModel.longMeshSmoothingSigmas[idx]
             tpModel.imageSmoothingSigmas = tpModel.longImageSmoothingSigmas[idx]
             tpModel.maxIterations = tpModel.longMaxIterations[idx]
 
-            # TODOC
+            # Do the fitting stage
             tpModel.fit_mesh_to_image()
-            # also, check_global_IT iteration init is different when ==1 !
 
         # Get updated positions
         subjectTPpositions = [tpModel.mesh.points for tpModel in tpModels]
@@ -255,11 +249,11 @@ def run_longitudinal(structure, baseParameters, tpParameters):
     print(f'Global mesh fitting took {timer.elapsed.seconds} seconds\n')
 
     # Finalize results
-    for tpModel in tpModels:
+    for t, tpModel in enumerate(tpModels):
         tpModel.extract_segmentation()
-        
-        # TODO here we want to set the header back to where we got it from...
-
+        # Let's transform (just the header) the output segmentations back to original timepoint space
+        trf = baseTransforms[t].inverse().matrix
+        tpModel.discreteLabels.affine = trf @ tpModel.discreteLabels.affine
         # Do the subclass-defined postprocessing and cleanup
         tpModel.postprocess_segmentation()
         tpModel.cleanup()
