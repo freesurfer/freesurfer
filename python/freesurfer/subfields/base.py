@@ -4,12 +4,13 @@ import tempfile
 import numpy as np
 import scipy.ndimage
 import freesurfer as fs
-from freesurfer import samseg
 
-from . import utils
+from freesurfer import samseg
+from freesurfer.subfields import utils
 
 
 class MeshModel:
+
     def __init__(
         self,
         atlasDir,
@@ -21,9 +22,9 @@ class MeshModel:
         bbregisterMode=None,
         resolution=0.5,
         useTwoComponents=False,
-        openMethod=None,
         tempDir=None,
         fileSuffix='',
+        debug=False,
         ):
         """
         MeshModel is a generic base class to facilitate GEMS mesh deformation for given ROIs.
@@ -57,16 +58,21 @@ class MeshModel:
         self.bbregisterMode = bbregisterMode
         self.resolution = resolution
         self.useTwoComponents = useTwoComponents
-        self.openMethod = openMethod
         self.tempDir = tempDir
         self.fileSuffix = fileSuffix
+        self.debug = debug
 
         # Some optimization defaults that should probably be overwritten by each subclass
-        self.cheatingMeshSmoothingSigmas = [3.0]
-        self.cheatingMaxIterations = [300]
-        self.meshSmoothingSigmas = [2, 1, 0]
-        self.imageSmoothingSigmas = [0, 0, 0]
-        self.maxIterations = [7, 5, 3]
+        self.cheatingMeshSmoothingSigmas = None
+        self.cheatingMaxIterations = None
+
+        self.meshSmoothingSigmas = None
+        self.imageSmoothingSigmas = None
+        self.maxIterations = None
+
+        self.longMeshSmoothingSigmas = None
+        self.longImageSmoothingSigmas = None
+        self.longMaxIterations = None
 
         # Here are some options that control how to much to dilate masks throughout different
         # stages. Might be necessary to tune depending on the geometry of the ROI (like brainstem).
@@ -74,17 +80,15 @@ class MeshModel:
         self.cheatingAlphaMaskStrel = 3
         self.alphaMaskStrel = 5
 
-    def run_cross(self):
+    def cleanup(self):
         """
-        Run full cross-sectional processing steps on the input image(s).
+        Essentially the only thing to do during cleanup is (potentially)
+        remove the temporary directory.
         """
-        self.initialize()
-        self.preprocess_images()
-        self.align_atlas_to_seg()
-        self.fit_mesh_to_seg()
-        self.fit_mesh_to_image()
-        self.postprocess_segmentation()
-        self.cleanup()
+        if not self.debug:
+            shutil.rmtree(self.tempDir)
+        else:
+            print(f'Not removing temporary directory: {self.tempDir}')
 
     def initialize(self):
         """
@@ -97,8 +101,10 @@ class MeshModel:
         if self.tempDir is None:
             self.tempDir = tempfile.mkdtemp()
         else:
-            self.tempDir = tempDir
             os.makedirs(self.tempDir, exist_ok=True)
+
+        # Make sure the output directory exists as well
+        os.makedirs(self.outDir, exist_ok=True)
 
         # Sanity check on the optimizer type
         optimizerTypes = ['FixedStepGradientDescent', 'GradientDescent', 'ConjugateGradient', 'L-BFGS']
@@ -126,8 +132,10 @@ class MeshModel:
         self.warpedMeshNoAffineFileName = os.path.join(self.tempDir, 'warpedOriginalMeshNoAffine.txt')
 
         # Read the input volumes (images and reference segmentation)
-        self.inputSeg = fs.Volume.read(inputSegFileName)
-        self.inputImages = [fs.Volume.read(path) for path in inputImageFileNames]
+        self.inputSeg = fs.Volume.read(self.inputSegFileName)
+        self.inputImages = [fs.Volume.read(path) for path in self.inputImageFileNames]
+        self.correctedImages = [img.copy() for img in self.inputImages]
+        self.highResImage = np.mean(self.inputImages[0].voxsize) < 0.99
 
         # Now we define a set of volume members that must be properly computed during
         # the `preprocess_images` stage of all MeshModel subclasses. Further documentation below.
@@ -149,16 +157,6 @@ class MeshModel:
         It is expected that these are fs.Volume objects (soon to be surfa volumes) with proper geometry information.
         """
         raise NotImplementedError('All subclasses of MeshModel must implement the preprocess_images() function!')
-
-    def cleanup(self):
-        """
-        Essentially the only thing to do during cleanup is (potentially)
-        remove the temporary directory.
-        """
-        if self.debug is not None:
-            shutil.rmtree(self.tempDir)
-        else:
-            print(f'Not removing temporary directory: {self.tempDir}')
 
     def label_group_names_to_indices(self, labelNames):
         """
@@ -182,12 +180,14 @@ class MeshModel:
         reducedAlphas = np.zeros((alphas.shape[0], numberOfReducedLabels), dtype='float32')
         reducingLookupTable = np.zeros(alphas.shape[1], dtype='int32')
 
+        # Convert to list so we can use index
+        fslabels = list(self.FreeSurferLabels)
+
         # Reduce the labels
         for reducedLabel in range(numberOfReducedLabels):
             sameGaussians = sameGaussianParameters[reducedLabel]
             for label in sameGaussians:
-                compressedLabel = self.FreeSurferLabels.index(label)
-                name = names[compressedLabel]
+                compressedLabel = fslabels.index(label)
                 reducedAlphas[:, reducedLabel] += alphas[:, compressedLabel]
                 reducingLookupTable[compressedLabel] = reducedLabel
 
@@ -196,6 +196,13 @@ class MeshModel:
             fs.fatal('The vector of prior probabilities in the mesh nodes must always sum to one over all classes')
 
         return (reducedAlphas, reducingLookupTable)
+
+    def update_alphas_from_label_groups(self, labelGroups):
+        """
+        TODOC
+        """
+        self.sameGaussians = None
+
 
     def crop_image_by_atlas(self, image):
         """
@@ -225,10 +232,9 @@ class MeshModel:
         This step requires that the atlasAlignmentTarget has been properly configured
         during preprocessing.
         """
-        print('Registering atlas image to subject segmentation')
 
         # Make sure the subclass has computed the target mask
-        mask = self.atlasAlignmentTarget
+        mask = self.atlasAlignmentTarget.copy()
         if mask is None:
             fs.fatal('All MeshModel subclasses must compute atlasAlignmentTarget during preprocessing!')
 
@@ -245,7 +251,7 @@ class MeshModel:
             strel = utils.spherical_strel(1)
             mask.data = scipy.ndimage.morphology.binary_dilation(mask.data, strel)
             mask.data = scipy.ndimage.morphology.binary_erosion(mask.data, strel, border_value=1)
-        elif self.openMethod == 'backward':
+        elif self.atlasTargetSmoothing == 'backward':
             strel = utils.spherical_strel(1)
             mask.data = scipy.ndimage.morphology.binary_erosion(mask.data, strel, border_value=1)
             mask.data = scipy.ndimage.morphology.binary_dilation(mask.data, strel)
@@ -269,6 +275,50 @@ class MeshModel:
         utils.run(f'mri_robust_register --mov {alignedAtlasFile} --dst {targetMaskFile} --lta {self.tempDir}/trash.lta --mapmovhdr {alignedAtlasFile} --affine --sat 50 -verbose 0')
         self.alignedAtlas = fs.Volume.read(alignedAtlasFile)
 
+    def prepare_for_seg_fitting(self):
+        """
+        TODOC
+        """
+
+        # Make sure the subclass has computed the synthed target
+        if self.synthImage is None:
+            fs.fatal('All MeshModel subclasses must compute synthImage during preprocessing!')
+
+        # Crop the synthesized image by the aligned atlas and compute the new mesh alignment
+        self.workingImage, self.transform = self.crop_image_by_atlas(self.synthImage)
+        self.workingImageShape = self.workingImage.shape[:3]
+
+        # Read in collection, set stiffness, and apply transform
+        self.meshCollection = samseg.gems.KvlMeshCollection()
+        self.meshCollection.read(self.atlasMeshFileName)
+        self.meshCollection.transform(self.transform)
+        self.meshCollection.k = self.meshStiffness
+
+        # Retrieve the reference mesh, i.e. the mesh representing the average shape
+        self.mesh = self.meshCollection.reference_mesh
+        self.originalNodePositions = self.mesh.points.copy(order='K')
+        self.originalAlphas = self.mesh.alphas.copy(order='K')
+
+        # Compute the cheating Gaussian label groups
+        labelGroups = self.get_cheating_label_groups()
+        self.sameGaussianParameters = self.label_group_names_to_indices(labelGroups)
+
+        # Compute the reduced alphas - those referring to the super-structures
+        self.reducedAlphas, _ = self.reduce_alphas(self.sameGaussianParameters)
+        self.mesh.alphas = self.reducedAlphas 
+        mask = (self.mesh.rasterize(self.workingImageShape).sum(-1) / 65535) > 0.99
+        if self.cheatingAlphaMaskStrel > 0:
+            mask = scipy.ndimage.morphology.binary_erosion(mask, utils.spherical_strel(self.cheatingAlphaMaskStrel), border_value=1)
+        self.workingImage.data[mask == 0] = 0
+
+        # Get the inital Gaussian parameters
+        self.means, self.variances = self.get_cheating_gaussians(self.sameGaussianParameters)
+
+        # Write the inital and cropped/masked images for debugging purposes
+        if self.debug:
+            self.synthImage.write(os.path.join(self.tempDir, 'synthImage.mgz'))
+            self.workingImage.write(os.path.join(self.tempDir, 'synthImageMasked.mgz'))
+
     def fit_mesh_to_seg(self):
         """
         The second processing step involves deforming the roughly-aligned mesh to the subject segmentation.
@@ -276,53 +326,15 @@ class MeshModel:
         during preprocessing.
         """
 
-        # Make sure the subclass has computed the synthed target
-        if self.synthImage is None:
-            fs.fatal('All MeshModel subclasses must compute atlasAlignmentTarget during preprocessing!')
-
-        # Crop the synthesized image by the aligned atlas and compute the new mesh alignment
-        croppedSynthImage, transform = self.crop_image_by_atlas(self.synthImage)
-
-        # Read in collection, set stiffness, and apply transform
-        self.meshCollection = samseg.gems.KvlMeshCollection()
-        self.meshCollection.read(self.atlasMeshFileName)
-        self.meshCollection.transform(transform)
-        self.meshCollection.k = self.meshStiffness
-
-        # Retrieve the reference mesh, i.e. the mesh representing the average shape
-        mesh = self.meshCollection.reference_mesh
-        self.originalNodePositions = mesh.points.copy(order='K')
-        self.originalAlphas = mesh.alphas.copy(order='K')
-
-        # Compute the cheating Gaussian label groups
-        labelGroups = self.get_cheating_label_groups()
-        sameGaussianParameters = self.label_group_names_to_indices(labelGroups)
-
-        # Compute the reduced alphas - those referring to the super-structures
-        reducedAlphas, _ = self.reduce_alphas(sameGaussianParameters)
-        mesh.alphas = reducedAlphas 
-        mask = (mesh.rasterize(croppedSynthImage.shape[:3]).sum(-1) / 65535) > 0.99
-        if self.cheatingAlphaMaskStrel > 0:
-            mask = scipy.ndimage.morphology.binary_erosion(mask, utils.spherical_strel(self.cheatingAlphaMaskStrel), border_value=1)
-        croppedSynthImage.data[mask == 0] = 0
-
-        # Get the inital Gaussian parameters
-        means, variances = self.get_cheating_gaussians()
-
-        # Write the inital and cropped/masked images for debugging purposes
-        if self.debug:
-            self.synthImage.write(os.path.join(self.tempDir, 'synthImage.mgz'))
-            croppedSynthImage.write(os.path.join(self.tempDir, 'synthImageCropped.mgz'))
-
         # Just get the image buffer (array) and convert to a Kvl image object
-        imageBuffer = croppedSynthImage.data.copy(order='K')
+        imageBuffer = self.workingImage.data.copy(order='K')
         image = samseg.gems.KvlImage(samseg.utilities.requireNumpyArray(imageBuffer))
 
         # Use a multi-resolution approach
         for multiResolutionLevel, meshSmoothingSigma in enumerate(self.cheatingMeshSmoothingSigmas):
 
             # Set mesh alphas
-            mesh.alphas = reducedAlphas
+            self.mesh.alphas = self.reducedAlphas
 
             # It's good to smooth the mesh, otherwise we get weird compressions of the mesh along the boundaries
             if meshSmoothingSigma > 0:
@@ -334,11 +346,11 @@ class MeshModel:
                 typeName='AtlasMeshToIntensityImage',
                 images=[image],
                 boundaryCondition='Sliding',
-                transform=transform,
-                means=means.reshape((-1, 1)),
-                variances=variances.reshape((-1, 1, 1)),
-                mixtureWeights=np.ones(len(means), dtype='float32'),
-                numberOfGaussiansPerClass=np.ones(len(means), dtype='int32'))
+                transform=self.transform,
+                means=self.means.reshape((-1, 1)),
+                variances=self.variances.reshape((-1, 1, 1)),
+                mixtureWeights=np.ones(len(self.means), dtype='float32'),
+                numberOfGaussiansPerClass=np.ones(len(self.means), dtype='int32'))
 
             # Step some optimizer stop criteria
             maximalDeformationStopCriterion = 1e-10
@@ -352,7 +364,7 @@ class MeshModel:
                 'MaximumNumberOfIterations': 1000,
                 'BFGS-MaximumMemoryLength': 12
             }
-            optimizer = samseg.gems.KvlOptimizer(self.optimizerType, mesh, calculator, optimizationParams)
+            optimizer = samseg.gems.KvlOptimizer(self.optimizerType, self.mesh, calculator, optimizationParams)
 
             # Run the optimizations
             history = []
@@ -363,7 +375,7 @@ class MeshModel:
 
                 # Log step information
                 iteration_info = [
-                    f'Res: {level + 1:03d}',
+                    f'Res: {multiResolutionLevel + 1:03d}',
                     f'Iter: {iteration + 1:03d}',
                     f'MaxDef: {maximalDeformation:.4f}',
                     f'MinLLxP: {minLogLikelihoodTimesPrior:.4f}',
@@ -381,18 +393,17 @@ class MeshModel:
 
         # OK, we're done. Let's modify the mesh atlas in such a way that our computed mesh node positions are
         # assigned to what was originally the mesh warp corresponding to the first training subject
-        mesh.alphas = self.originalAlphas 
-        self.meshCollection.set_positions(self.originalNodePositions, [mesh.points])
+        self.mesh.alphas = self.originalAlphas 
+        self.meshCollection.set_positions(self.originalNodePositions, [self.mesh.points])
 
         # Write the resulting atlas mesh to file in native atlas space.
         # This is nice because all we need to do is to modify imageDump_coregistered
         # with the T1-to-T2 transform to have the warped mesh in T2 space
-        inverseTransform = samseg.gems.KvlTransform(np.asfortranarray(np.linalg.inv(transform.as_numpy_array)))
+        inverseTransform = samseg.gems.KvlTransform(np.asfortranarray(np.linalg.inv(self.transform.as_numpy_array)))
         self.meshCollection.transform(inverseTransform)
         self.meshCollection.write(self.warpedMeshFileName)
 
-
-    def fit_mesh_to_image(self):
+    def prepare_for_image_fitting(self):
         """
         TODOC
         """
@@ -402,59 +413,66 @@ class MeshModel:
             fs.fatal('All MeshModel subclasses must compute processedImage during preprocessing!')
 
         # Crop the image by the aligned atlas and compute the new mesh alignment
-        workingImage, transform = self.crop_image_by_atlas(self.processedImage)
+        self.workingImage, self.transform = self.crop_image_by_atlas(self.processedImage)
 
-        # ATH for now let's squeeze the data, but will need to adapt something better for multi-image
-        # cases down the road
-        workingImage.data = np.asfortranarray(workingImage.data.squeeze())
-        workingImageShape = workingImage.data.shape[:3]
+        # ATH for now let's squeeze the data, but will need to adapt something better
+        # for multi-image cases down the road
+        self.workingImage.data = np.asfortranarray(self.workingImage.data.squeeze())
+        self.workingImageShape = self.workingImage.data.shape[:3]
 
         # Read the atlas mesh from file, and apply the previously determined transform to the location of its nodes
         # ATH does this have to be re-read?
         self.meshCollection = samseg.gems.KvlMeshCollection()
         self.meshCollection.read(self.warpedMeshFileName)
-        self.meshCollection.transform(transform)
+        self.meshCollection.transform(self.transform)
+        # self.meshCollection.k = self.meshStiffness  # TODO ATH I'm pretty sure stiffness needs to be reset here!!!!!
 
         # Retrieve the correct mesh to use from the meshCollection
-        mesh = self.meshCollection.get_mesh(0)
-        alphas = mesh.alphas
+        self.mesh = self.meshCollection.get_mesh(0)
 
         # We're not interested in image areas that fall outside our cuboid ROI where our atlas is defined. Therefore,
         # generate a mask of what's inside the ROI. Also, by convention we're skipping all voxels with zero intensity.
-        mask = (mesh.rasterize(workingImageShape).sum(-1) / 65535) > 0.99
+        mask = (self.mesh.rasterize(self.workingImageShape).sum(-1) / 65535) > 0.99
         if self.alphaMaskStrel > 0:
             mask = scipy.ndimage.morphology.binary_erosion(mask, utils.spherical_strel(self.alphaMaskStrel), border_value=1)
-        mask = np.asfortranarray(mask & (workingImage.data > 0))
+        mask = np.asfortranarray(mask & (self.workingImage.data > 0))
 
         # Apply the mask to the image we're analyzing by setting the intensity of all voxels not belonging
         # to the brain mask to zero. This will automatically discard those voxels in subsequent C++ routines, as
         # voxels with intensity zero are simply skipped in the computations.
-        workingMask = workingImage.copy(mask)
-        workingImage.data[mask == 0] = 0
-        maskIndices = np.where(mask)
-        numMaskIndices = len(maskIndices[0])
+        self.workingMask = self.workingImage.copy(mask)
+        self.workingImage.data[mask == 0] = 0
+        self.maskIndices = np.where(mask)
 
         # Write the initial and cropped/masked images for debugging purposes
         if self.debug:
             self.processedImage.write(os.path.join(self.tempDir, 'processedImage.mgz'))
-            workingImage.write(os.path.join(self.tempDir, 'processedImageCropped.mgz'))
-            workingMask.write(os.path.join(self.tempDir, 'processedImageCroppedMask.mgz'))
-
-        # Just get the image buffer (array) and convert to a Kvl image object
-        imageBuffer = workingImage.data.copy(order='K')
-        image = samseg.gems.KvlImage(samseg.utilities.requireNumpyArray(imageBuffer))
+            self.workingImage.write(os.path.join(self.tempDir, 'processedImageMasked.mgz'))
+            self.workingMask.write(os.path.join(self.tempDir, 'processedImageMask.mgz'))
 
         # Compute the Gaussian label groups
         labelGroups = self.get_label_groups()
-        sameGaussianParameters = self.label_group_names_to_indices(labelGroups)
-        numberOfClasses = len(sameGaussianParameters)
+        self.sameGaussianParameters = self.label_group_names_to_indices(labelGroups)
 
         # Compute the reduced alphas
-        reducedAlphas, reducingLookupTable = self.reduce_alphas(sameGaussianParameters)
-        mesh.alphas = reducedAlphas
+        self.reducedAlphas, self.reducingLookupTable = self.reduce_alphas(self.sameGaussianParameters)
+        self.mesh.alphas = self.reducedAlphas
 
         # Compute the hyperparameters
-        meanHyper, nHyper = self.get_gaussian_hyps()
+        self.meanHyper, self.nHyper = self.get_gaussian_hyps(self.sameGaussianParameters, self.mesh)
+
+    def fit_mesh_to_image(self):
+        """
+        Fit mesh to the image data.
+        """
+
+        # Just get the original image buffer (array) and convert to a Kvl image object
+        imageBuffer = self.workingImage.data.copy(order='K')
+        image = samseg.gems.KvlImage(samseg.utilities.requireNumpyArray(imageBuffer))
+        
+        # Useful to have cached
+        numMaskIndices = len(self.maskIndices[0])
+        numberOfClasses = len(self.sameGaussianParameters)
 
         # Multi-resolution loop
         numberOfMultiResolutionLevels = len(self.meshSmoothingSigmas)
@@ -464,16 +482,16 @@ class MeshModel:
             if self.useTwoComponents and multiResolutionLevel == 1:
                 # Get second component label groups
                 labelGroups = self.get_second_label_groups()
-                sameGaussianParameters = self.label_group_names_to_indices(labelGroups)
-                numberOfClasses = len(sameGaussianParameters)
-                reducedAlphas, reducingLookupTable = self.reduce_alphas(sameGaussianParameters)
-                mesh.alphas = reducedAlphas
+                self.sameGaussianParameters = self.label_group_names_to_indices(labelGroups)
+                numberOfClasses = len(self.sameGaussianParameters)
+                self.reducedAlphas, self.reducingLookupTable = self.reduce_alphas(self.sameGaussianParameters)
+                self.mesh.alphas = self.reducedAlphas
                 # Compute new Gaussian hyperparameters
-                meanHyper, nHyper = self.get_second_gaussian_hyps(meanHyper, nHyper)
+                self.meanHyper, self.nHyper = self.get_second_gaussian_hyps(self.sameGaussianParameters, self.meanHyper, self.nHyper)
 
             # Set the mesh alphas back
             # ATH is this necessary though?
-            mesh.alphas = reducedAlphas
+            self.mesh.alphas = self.reducedAlphas
 
             # Smooth the mesh using a Gaussian kernel
             meshSmoothingSigma = self.meshSmoothingSigmas[multiResolutionLevel]
@@ -506,34 +524,34 @@ class MeshModel:
                 # Part I: estimate Gaussian mean and variances using EM
                 
                 # Get the priors as dictated by the current mesh position as well as the image intensities
-                data = imageBuffer[maskIndices]
+                data = imageBuffer[self.maskIndices]
                 
                 # Avoid spike in memory during the posterior computation
                 priors = np.zeros((numMaskIndices, numberOfClasses), dtype='uint16')
                 for l in range(numberOfClasses):
-                    priors[:, l] = mesh.rasterize(workingImageShape, l)[maskIndices]
+                    priors[:, l] = self.mesh.rasterize(self.workingImageShape, l)[self.maskIndices]
                 posteriors = priors / 65535
 
                 # Start EM iterations. Initialize the parameters if this is the first time ever you run this
                 if iterationNumber == 0 and (multiResolutionLevel == 0 or (self.useTwoComponents and multiResolutionLevel == 1)):
 
-                    means = np.zeros(numberOfClasses)
-                    variances = np.zeros(numberOfClasses)
+                    self.means = np.zeros(numberOfClasses)
+                    self.variances = np.zeros(numberOfClasses)
 
                     thresh = 1e-2
                     for classNumber in range(numberOfClasses):
                         posterior = posteriors[:, classNumber]
                         if np.sum(posterior) > thresh:
-                            mu = (meanHyper[classNumber] * nHyper[classNumber] + data @ posterior) / (nHyper[classNumber] + np.sum(posterior) + thresh)
-                            variance = (((data - mu) ** 2) @ posterior + nHyper[classNumber] * (mu - meanHyper[classNumber]) ** 2) / (np.sum(posterior) + thresh)
-                            means[classNumber] = mu
-                            variances[classNumber] = variance + thresh
+                            mu = (self.meanHyper[classNumber] * self.nHyper[classNumber] + data @ posterior) / (self.nHyper[classNumber] + np.sum(posterior) + thresh)
+                            variance = (((data - mu) ** 2) @ posterior + self.nHyper[classNumber] * (mu - self.meanHyper[classNumber]) ** 2) / (np.sum(posterior) + thresh)
+                            self.means[classNumber] = mu
+                            self.variances[classNumber] = variance + thresh
                         else:
-                            means[classNumber] = meanHyper(classNumber)
-                            variances[classNumber] = 100
+                            self.means[classNumber] = self.meanHyper[classNumber]
+                            self.variances[classNumber] = 100
 
                     # Prevents NaNs during the optimization
-                    variances[variances == 0] = 100
+                    self.variances[self.variances == 0] = 100
 
                 stopCriterionEM = 1e-5
                 historyOfEMCost = []
@@ -543,12 +561,12 @@ class MeshModel:
 
                     minLogLikelihood = 0
                     for classNumber in range(numberOfClasses):
-                        mu = means[classNumber]
-                        variance = variances[classNumber]
+                        mu = self.means[classNumber]
+                        variance = self.variances[classNumber]
                         prior = priors[:, classNumber] / 65535
                         posteriors[:, classNumber] = (np.exp(-(data - mu) ** 2 / 2 / variance) * prior) / np.sqrt(2 * np.pi * variance)
-                        minLogLikelihood = minLogLikelihood + 0.5 * np.log(2 * np.pi * variance) - 0.5 * np.log(nHyper[classNumber]) + \
-                                                              0.5 * nHyper[classNumber] / variance * (mu - meanHyper[classNumber]) ** 2
+                        minLogLikelihood = minLogLikelihood + 0.5 * np.log(2 * np.pi * variance) - 0.5 * np.log(self.nHyper[classNumber]) + \
+                                                              0.5 * self.nHyper[classNumber] / variance * (mu - self.meanHyper[classNumber]) ** 2
 
                     normalizer = np.sum(posteriors, -1) + np.finfo(np.float32).eps
                     posteriors /= normalizer[..., np.newaxis]
@@ -581,16 +599,16 @@ class MeshModel:
                     for classNumber in range(numberOfClasses):
                         posterior = posteriors[:, classNumber]
                         if np.sum(posterior) > thresh:
-                            mu = (meanHyper[classNumber] * nHyper[classNumber] + data @ posterior) / (nHyper[classNumber] + np.sum(posterior) + thresh)
-                            variance = (((data - mu) ** 2) @ posterior + nHyper[classNumber] * (mu - meanHyper[classNumber]) ** 2) / (np.sum(posterior) + thresh)
-                            means[classNumber] = mu
-                            variances[classNumber] = variance + thresh
+                            mu = (self.meanHyper[classNumber] * self.nHyper[classNumber] + data @ posterior) / (self.nHyper[classNumber] + np.sum(posterior) + thresh)
+                            variance = (((data - mu) ** 2) @ posterior + self.nHyper[classNumber] * (mu - self.meanHyper[classNumber]) ** 2) / (np.sum(posterior) + thresh)
+                            self.means[classNumber] = mu
+                            self.variances[classNumber] = variance + thresh
                         else:
-                            means[classNumber] = meanHyper[classNumber]
-                            variances[classNumber] = 100
+                            self.means[classNumber] = self.meanHyper[classNumber]
+                            self.variances[classNumber] = 100
 
                     # Prevents NaNs during the optimization
-                    variances[variances == 0] = 100
+                    self.variances[self.variances == 0] = 100
 
                 # Part II: update the position of the mesh nodes for the current set of Gaussian parameters
 
@@ -602,11 +620,11 @@ class MeshModel:
                     typeName='AtlasMeshToIntensityImage',
                     images=[image],
                     boundaryCondition='Sliding',
-                    transform=transform,
-                    means=means[..., np.newaxis],
-                    variances=variances[..., np.newaxis, np.newaxis],
-                    mixtureWeights=np.ones(len(means), dtype='float32'),
-                    numberOfGaussiansPerClass=np.ones(len(means), dtype='int32'))
+                    transform=self.transform,
+                    means=self.means[..., np.newaxis],
+                    variances=self.variances[..., np.newaxis, np.newaxis],
+                    mixtureWeights=np.ones(len(self.means), dtype='float32'),
+                    numberOfGaussiansPerClass=np.ones(len(self.means), dtype='int32'))
 
                 # Get optimizer and plug calculator into it
                 maximalDeformationStopCriterion = 1e-10
@@ -617,7 +635,7 @@ class MeshModel:
                     'MaximumNumberOfIterations': 1000,
                     'BFGS-MaximumMemoryLength': 12
                 }
-                optimizer = samseg.gems.KvlOptimizer(self.optimizerType, mesh, calculator, optimizationParameters)
+                optimizer = samseg.gems.KvlOptimizer(self.optimizerType, self.mesh, calculator, optimizationParameters)
 
                 for positionUpdatingIterationNumber in range(positionUpdatingMaximumNumberOfIterations):
 
@@ -652,46 +670,52 @@ class MeshModel:
                 if not haveMoved or (((previous - minLogLikelihoodTimesPrior) / minLogLikelihoodTimesPrior) < 1e-6):
                     break
 
-        # OK, all the parameters have been estimated! First, undo the collapsing of several structures into super-structures
-        mesh.alphas = self.originalAlphas
+    def extract_segmentation(self):
+        """
+        TODO
+        """
+
+        # First, undo the collapsing of several structures into super-structures
+        self.mesh.alphas = self.originalAlphas
         numberOfClasses = self.originalAlphas.shape[-1]
+        numMaskIndices = len(self.maskIndices[0])
 
         # Compute normalized posteriors
-        imgdata = workingImage.data[maskIndices]
+        imgdata = self.workingImage.data[self.maskIndices]
         posteriors = np.zeros((numMaskIndices, numberOfClasses), dtype='float32')
         for classNumber in range(numberOfClasses):
-            prior = mesh.rasterize(workingImageShape, classNumber)
-            mu = means[reducingLookupTable[classNumber]]
-            variance = variances[reducingLookupTable[classNumber]]
-            posteriors[:, classNumber] = (np.exp(-(imgdata - mu) ** 2 / 2 / variance) * (prior[maskIndices] / 65535)) / np.sqrt(2 * np.pi * variance)
+            prior = self.mesh.rasterize(self.workingImageShape, classNumber)
+            mu = self.means[self.reducingLookupTable[classNumber]]
+            variance = self.variances[self.reducingLookupTable[classNumber]]
+            posteriors[:, classNumber] = (np.exp(-(imgdata - mu) ** 2 / 2 / variance) * (prior[self.maskIndices] / 65535)) / np.sqrt(2 * np.pi * variance)
         normalizer = np.sum(posteriors, -1) + np.finfo(np.float32).eps
         posteriors /= normalizer[..., np.newaxis]
         posteriors = np.round(posteriors * 65535).astype('uint16')
 
-        # Write the resulting atlas mesh, as well as the image we segmented, to file for future reference.
-        self.meshCollection.write(self.warpedMeshFileName)
-
-        # Also write the warped mesh in atlas space
-        inverseTransform = samseg.gems.KvlTransform(np.asfortranarray(np.linalg.inv(transform.as_numpy_array)))
-        self.meshCollection.transform(inverseTransform)
-        self.meshCollection.write(self.warpedMeshNoAffineFileName)
+        if self.debug:
+            # Write the resulting atlas mesh to file for future reference
+            self.meshCollection.write(os.path.join(self.tempDir, 'finalWarpedMesh.txt'))
+            # Also write the warped mesh in atlas space
+            inverseTransform = samseg.gems.KvlTransform(np.asfortranarray(np.linalg.inv(self.transform.as_numpy_array)))
+            self.meshCollection.transform(inverseTransform)
+            self.meshCollection.write(os.path.join(self.tempDir, 'finalWarpedMeshNoAffine.txt'))
 
         # Here we do a memory efficient computation of discrete labels and volumes
         self.volumes = {}
-        inds = np.zeros(workingImageShape, dtype='int32')
+        inds = np.zeros(self.workingImageShape, dtype='int32')
         for i in range(numberOfClasses):
 
             if i == 0:
                 sillyAlphas = np.zeros((len(self.originalAlphas), 2), dtype='float32')
                 sillyAlphas[:, 0] = self.originalAlphas[:, 0]
                 sillyAlphas[:, 1] = 1 - sillyAlphas[:, 0]
-                mesh.alphas = sillyAlphas
-                post = mesh.rasterize(workingImageShape)[..., 0]
-                mesh.alphas = self.originalAlphas
+                self.mesh.alphas = sillyAlphas
+                post = self.mesh.rasterize(self.workingImageShape)[..., 0]
+                self.mesh.alphas = self.originalAlphas
             else:
-                post = mesh.rasterize(workingImageShape, i)
+                post = self.mesh.rasterize(self.workingImageShape, i)
 
-            post[maskIndices] = posteriors[:, i]
+            post[self.maskIndices] = posteriors[:, i]
 
             if i == 0:
                 max_post = post
@@ -704,9 +728,28 @@ class MeshModel:
             self.volumes[self.names[i]] = (self.resolution ** 3) * (post.sum() / 65535)
 
         # Compute all discrete labels and mask
-        self.discreteLabels = workingImage.copy(self.FreeSurferLabels[inds])
-        self.discreteLabels.data[workingMask.data == 0] = 0
+        self.discreteLabels = self.workingImage.copy(self.FreeSurferLabels[inds])
+        self.discreteLabels.data[self.workingMask.data == 0] = 0
         self.discreteLabels.lut = fs.lookups.default()
+
+        if self.debug:
+            self.discreteLabels.write(os.path.join(self.tempDir, 'discreteLabelsAll.mgz'))
+
+    def write_volumes(self, filename, volumes=None):
+        """
+        Write the cached volume dictionary to a text file.
+        """
+        if volumes is None:
+            volumes = self.volumes 
+        with open(filename, 'w') as file:
+            for name, volume in volumes.items():
+                file.write(f'{name} {volume:.6f}\n')
+
+    def postprocess_segmentation(self):
+        """
+        This function should perform any necessary modifications to and write the discreteLabels segmentation and labelVolumes.
+        """
+        raise NotImplementedError('A MeshModel subclass must implement the postprocess_segmentation() function!')
 
     def get_cheating_label_groups(self):
         """
@@ -715,7 +758,7 @@ class MeshModel:
         """
         raise NotImplementedError('A MeshModel subclass must implement the get_cheating_label_groups() function!')
 
-    def get_cheating_gaussians(self):
+    def get_cheating_gaussians(self, sameGaussianParameters):
         """
         This function should return a tuple of (means, variances) for the initial segmentation-fitting stage.
         """
@@ -728,7 +771,7 @@ class MeshModel:
         """
         raise NotImplementedError('A MeshModel subclass must implement the get_label_groups() function!')
 
-    def get_gaussian_hyps(self):
+    def get_gaussian_hyps(self, sameGaussianParameters, mesh):
         """
         This function should return a tuple of (meanHyps, nHyps) for Gaussian parameter estimation.
         """
@@ -741,7 +784,7 @@ class MeshModel:
         """
         raise NotImplementedError('A two-component MeshModel must implement the get_second_label_groups() function!')
 
-    def get_second_gaussian_hyps(self):
+    def get_second_gaussian_hyps(self, sameGaussianParameters, meanHyper, nHyper):
         """
         This optional function should return a tuple of (meanHyps, nHyps) for Gaussian parameter estimation
         in the second-component of the primary image-fitting stage.

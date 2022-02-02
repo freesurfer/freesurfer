@@ -1,0 +1,147 @@
+#!/usr/bin/env python
+
+import os
+import freesurfer as fs
+from freesurfer import subfields
+
+
+description = f'''
+Avalable structures are: {", ".join(subfields.structure_names)}.
+For example, to segment the thalamic nuclei in a cross-sectional analysis:
+
+    segment_subfields thalamus --cross subj
+
+Similarly, for a longitudinal analysis, run:
+
+    segment_subfields thalamus --long-tps subj-scan1 subj-scan2 \
+                               --long-base subj-base
+
+where each argument to --long-tps represents a subject timepoint. Output segmentations and
+computed structure volumes will be saved to the subject's `mri` subdirectory.
+'''
+
+parser = fs.utils.ArgumentParser(description=description)
+parser.add_argument('structure', help=f'Structure to segment. Options are: {", ".join(subfields.structure_names)}.')
+parser.add_argument('--cross', help='Subject to segment in cross-sectional analysis.')
+parser.add_argument('--long-tps', nargs='+', help='Subject timepoints to segment in longitudinal analysis.')
+parser.add_argument('--long-base', help='Base subject for longitudinal analysis.')
+parser.add_argument('--sd', help='Specify subjects directory (will override SUBJECTS_DIR env variable).')
+parser.add_argument('--temp-dir', help='Use alternative temporary directory. This will get deleted unless --debug is enabled.')
+parser.add_argument('--out-dir', help='Use alternative output directory (only for cross-sectional). Default is the subject\'s `mri` directory.')
+parser.add_argument('--debug', action='store_true', help='Write intermediate debugging outputs.')
+parser.add_argument('--threads', type=int, default=1, help='Number of threads to use. Defaults to 1.')
+args = parser.parse_args()
+
+# Make sure freesurfer has been sourced
+if not fs.fshome():
+    fs.fatal('FREESURFER_HOME must be set!')
+
+# Specify the maximum number of threads the GEMS code will use
+subfields.set_thread_count(args.threads)
+
+# Sanity check on process type
+if args.cross and (args.long_base or args.long_tps):
+    fs.fatal('Cannot specify arguments for both cross-sectional and longitudinal processing')
+if not args.cross and not args.long_base and not args.long_tps:
+    fs.fatal('Must specify inputs for either cross-sectional or longitudinal processing')
+if (args.long_base or args.long_tps) and not (args.long_base and args.long_tps):
+    fs.fatal('Must provide both --long-tps and --long-base arguments for longitudinal processing')
+
+# Get the subjects directory
+subjects_dir = args.sd if args.sd is not None else os.environ.get('SUBJECTS_DIR')
+if subjects_dir is None:
+    fs.fatal('Subjects directory must be set by --sd or the SUBJECTS_DIR env var')
+    
+# Input volumes
+input_image_types = ['norm.mgz']
+input_seg_type = 'aseg.mgz'
+
+# Might need to run on each hemi
+if args.structure == 'hippo-amygdala':
+    sides = ['left', 'right']
+    # TODO FOR TESTING ONLY!!
+    sides = ['left']
+else:
+    sides = [None]
+
+
+
+for side in sides:
+
+    # Configure initial parameters
+    parameters = {
+        'debug': args.debug,
+    }
+
+    # Make sure to indicate hemi if necessary
+    if side is not None:
+        print(f'\nProcessing {side} hemisphere\n')
+        parameters['side'] = side
+
+    if args.cross:
+        # Cross-sectional analysis
+        subjdir = os.path.join(subjects_dir, args.cross)
+
+        # Configure options
+        parameters.update({
+            'inputImageFileNames': [os.path.join(subjdir, 'mri', i) for i in input_image_types],
+            'inputSegFileName': os.path.join(subjdir, 'mri', input_seg_type),
+            'outDir': args.out_dir if args.out_dir else os.path.join(subjdir, 'mri'),
+            'tempDir': args.temp_dir,
+        })
+
+        # Provide some extra data for hippocampal subfields
+        if args.structure == 'hippo-amygdala':
+            parameters['wmParcFileName'] = os.path.join(subjdir, 'mri', 'wmparc.mgz')
+
+        # Go ahead and run
+        subfields.run_cross_sectional(args.structure, parameters)
+
+    else:
+
+
+
+
+        # Get base subject
+        subjdir = os.path.join(subjects_dir, args.long_base)
+
+        # Configure options
+        baseParameters = parameters.copy()
+        baseParameters.update({
+            'inputImageFileNames': [os.path.join(subjdir, 'mri', i) for i in input_image_types],
+            'inputSegFileName': os.path.join(subjdir, 'mri', input_seg_type),
+            'outDir': args.out_dir if args.out_dir else os.path.join(subjdir, 'mri'),
+            'tempDir': os.path.join(args.temp_dir, 'base'),
+        })
+
+        # Provide some extra data for hippocampal subfields
+        if args.structure == 'hippo-amygdala':
+            baseParameters['wmParcFileName'] = os.path.join(subjdir, 'mri', 'wmparc.mgz')
+
+
+
+        tpParameters = []
+        for t, subj in enumerate(args.long_tps):
+
+            # Get subject
+            subjdir = os.path.join(subjects_dir, subj)
+
+            # Configure options
+            tp = parameters.copy()
+            tp.update({
+                'inputImageFileNames': [os.path.join(subjdir, 'mri', i) for i in input_image_types],
+                'inputSegFileName': os.path.join(subjdir, 'mri', input_seg_type),
+                'outDir': args.out_dir if args.out_dir else os.path.join(subjdir, 'mri'),
+                'tempDir': os.path.join(args.temp_dir, f'tp{t:02d}'),
+            })
+
+            # Provide some extra data for hippocampal subfields
+            if args.structure == 'hippo-amygdala':
+                tp['wmParcFileName'] = os.path.join(subjdir, 'mri', 'wmparc.mgz')
+
+            tpParameters.append(tp)
+
+
+
+        # Go ahead and run
+        subfields.run_longitudinal(args.structure, baseParameters, tpParameters)
