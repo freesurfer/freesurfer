@@ -32,6 +32,7 @@ add_subdirectory(labelfusion)
 
 # Entrypoint for containers
 install(PROGRAMS docker/infant-container-entrypoint.bash DESTINATION bin)
+install(PROGRAMS docker/infant-container-entrypoint-aws.bash DESTINATION bin)
 
 # install external niftyreg binaries
 if(MARTINOS_BUILD)
