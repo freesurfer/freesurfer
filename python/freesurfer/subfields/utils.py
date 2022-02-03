@@ -2,6 +2,7 @@ import os
 import scipy.ndimage
 import numpy as np
 import freesurfer as fs
+
 from freesurfer import samseg
 
 
@@ -49,8 +50,9 @@ def get_largest_cc(mask):
     masked away in the returned array.
     ATH TODO: This should be implemented as a function of the Volume object.
     """
-    labels = scipy.ndimage.label(mask)
-    return labels == np.argmax(np.bincount(labels.flat)[1:]) + 1
+    labels = scipy.ndimage.label(mask)[0]
+    return labels == np.argmax(np.bincount(labels.flatten())[1:]) + 1
+
 
 def geometries_differ(a, b):
     """
