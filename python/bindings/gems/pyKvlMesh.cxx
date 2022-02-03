@@ -463,9 +463,7 @@ py::array KvlMesh::RasterizeValues(std::vector<size_t> size, py::array_t<double,
 }
 
 
-py::array_t<double> KvlMesh::FitAlphas( const py::array_t< uint16_t, 
-                                                           py::array::f_style | py::array::forcecast >& 
-                                        probabilityImageBuffer ) const
+py::array_t<double> KvlMesh::FitAlphas( const py::array_t< uint16_t, py::array::f_style | py::array::forcecast >& probabilityImageBuffer, int EMIterations ) const
 {
   
   // Retrieve size of image and number of number of classes
@@ -553,7 +551,7 @@ py::array_t<double> KvlMesh::FitAlphas( const py::array_t< uint16_t,
 
 
   // Do the actual EM algorithm using (an updating the alphas in) our private mesh
-  for ( int iterationNumber = 0; iterationNumber < 10; iterationNumber++ )
+  for ( int iterationNumber = 0; iterationNumber < EMIterations; iterationNumber++ )
     {
     // E-step: assign voxels to mesh nodes
     kvl::AtlasMeshProbabilityImageStatisticsCollector::Pointer  statisticsCollector = 
