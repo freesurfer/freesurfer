@@ -6,18 +6,20 @@ from freesurfer import subfields
 
 
 description = f'''
-Avalable structures are: {", ".join(subfields.structure_names)}.
-For example, to segment the thalamic nuclei in a cross-sectional analysis:
+Cross-sectional and longitudinal segmentation for the following
+structures: {", ".join(subfields.structure_names)}. To segment
+the thalamic nuclei, for example, in a cross-sectional analysis:
 
     segment_subfields thalamus --cross subj
 
 Similarly, for a longitudinal analysis, run:
 
-    segment_subfields thalamus --long-tps subj-scan1 subj-scan2 \
-                               --long-base subj-base
+    segment_subfields thalamus --long-base base \\ 
+                      --long-tps m00.long.base m24.long.base
 
-where each argument to --long-tps represents a subject timepoint. Output segmentations and
-computed structure volumes will be saved to the subject's `mri` subdirectory.
+where each argument to --long-tps represents a subject timepoint.
+Output segmentations and computed structure volumes will be
+saved to the subject's `mri` subdirectory.
 '''
 
 parser = fs.utils.ArgumentParser(description=description)
