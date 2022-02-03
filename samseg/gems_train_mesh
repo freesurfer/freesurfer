@@ -13,6 +13,7 @@ import sys
 import argparse
 import tempfile
 import errno
+import shutil
 
 def parse_args(args):
   parser = argparse.ArgumentParser()
@@ -48,7 +49,7 @@ def parse_args(args):
   
   return args
 
-# The training shedule format is a list of list, eg:
+# The training shedule format is a list of lists, eg:
 # [ [num_itr, stiffness, edgeCollaseFactor],
 #   [num_itr, stiffness, edgeCollaseFactor] ]
 def default_training_schedule():
@@ -58,34 +59,63 @@ def default_training_schedule():
 def read_schedule_file(filename):
   with open(filename) as f:
     schedule = [[float(x) for x in line.split()] for line in f]
+  # Every line of the training schedule should have exactly three values:
+  #   - num itr (uint)
+  #   - stiffness (float)
+  #   - edge collapse factor (float)
   for epoch in schedule:
-    # Every line of the training schedule should have three values:
-    #   - num itr
-    #   - stiffness
-    #   - edge collapse factot
     assert(len(epoch) == 3)  
   return schedule
+
+# Runs kvl_BuildAtlasMesh and returns a filename string with the last meshCollection created   
+def run_kvlBuildAtlasMesh(binary, work_dir, epoch_num, num_upsamples, mesh_size, num_itr=5, stiffness=1.0, edgeCollapse=1.0, startCollection=None):
+  launch_dir = os.path.join(work_dir, 'epoch_'+'{:04d}'.format(epoch_num)+'_launch_dir')
+  out_dir = os.path.join(work_dir, 'epoch_'+'{:04d}'.format(epoch_num)+'_out_dir')
+  print(f"gems_train_mesh: epoch: {epoch_num}\n  launch dir: {launch_dir}\n  out dir: {out_dir}")
+  if startCollection is not None:
+    startCollection_dest = os.path.join(launch_dir, 'explicitStartCollection.gz')
+    shutil.copy(startCollection, startCollection_dest)
   
-def run_kvlBuildAtlasMesh(binary, work_dir, num_itr=5, stiffness=1.0, edgeCollapse=1.0, startCollection=None):
-  print(binary+' ')
-  return "/foo/bar"
+  # launch
+  os.makedirs(launch_dir, exist_ok=True)
+  os.makedirs(out_dir, exist_ok=True)
+  orig_dir = os.getcwd()
+  os.chdir(launch_dir)
+  launch_cmd = f"{binary} {num_upsamples} {mesh_size[0]} {mesh_size[1]} {mesh_size[2]} {stiffness} {num_itr} {edgeCollapse} {out_dir}"
+  print("  launch command: "+launch_cmd)
+  os.chdir(orig_dir)
+
+  # kvlBuildAtlasMesh will create meshCollections in out_dir up to and including num_itr.
+  # If we can't find the last meshCollection, then something went wrong with kvlBuildAtlasMesh 
+  lastMeshCollection_file = os.path.join(out_dir, f"CurrentMeshCollection{num_itr}.gz")
+  if not os.path.exists(lastMeshCollection_file):
+    print(f"gems_train_mesh:  ERROR: Can't find the file {lastMeshCollection_file} that we were expecting kvlBuildAtlasMesh to create")
+    raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), lastMeshCollection_file)
+  return lastMeshCollection_file
 
 def main(argv):
   args = parse_args(argv)
+  orig_cwd = os.getcwd()
   startCollection = None
-  for epoch in args.schedule:
-    kvl_num_itr = int(epoch[0])
-    kvl_stiffness = float(epoch[1])
-    kvl_edge_collapse = float(epoch[2])
+  try:
+    for epoch_num, epoch in enumerate(args.schedule):
+      kvl_num_itr = int(epoch[0])
+      kvl_stiffness = float(epoch[1])
+      kvl_edge_collapse = float(epoch[2])
+      startCollection = run_kvlBuildAtlasMesh(\
+                              binary=args.binary, \
+                              work_dir=args.work_dir, \
+                              epoch_num=epoch_num, \
+                              num_upsamples=args.num_upsamples, \
+                              mesh_size=args.mesh_size, \
+                              num_itr=kvl_num_itr, \
+                              stiffness=kvl_stiffness, \
+                              edgeCollapse=kvl_edge_collapse, \
+                              startCollection=startCollection)
+  except Exception as e:
+    os.chdir(orig_cwd)
+    raise e
 
-    startCollection = run_kvlBuildAtlasMesh(\
-                            binary=args.binary, \
-                            work_dir=args.work_dir, \
-                            num_itr=kvl_num_itr, \
-                            stiffness=kvl_stiffness, \
-                            edgeCollapse=kvl_edge_collapse, \
-                            startCollection=startCollection)
-    
 if __name__ == "__main__":
   sys.exit(main(sys.argv))
 
