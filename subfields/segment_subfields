@@ -80,7 +80,7 @@ for side in sides:
     # Let's make a utility function to configure subject-specific parameters
     # to avoid redundancy with the longitudinal options
     def config_subj_params(subject, out_dir=None, temp_subdir=''):
-        subjdir = os.path.join(subjects_dir, args.cross)
+        subjdir = os.path.join(subjects_dir, subject)
         subjParameters = parameters.copy()
         temp_dir = os.path.join(args.temp_dir, temp_subdir) if args.temp_dir else None
         subjParameters.update({
@@ -101,5 +101,5 @@ for side in sides:
     else:
         # Longitudinal analysis
         baseParameters = config_subj_params(args.long_base, temp_subdir=f'base')
-        tpParameters = [config_subj_params(subj, temp_subdir=f'tp{t:02d}') for t, subj in args.long_tps]
+        tpParameters = [config_subj_params(subj, temp_subdir=f'tp{t:02d}') for t, subj in enumerate(args.long_tps)]
         subfields.run_longitudinal(args.structure, baseParameters, tpParameters)

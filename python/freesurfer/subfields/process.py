@@ -175,7 +175,7 @@ def run_longitudinal(structure, baseParameters, tpParameters):
     meshCollection = samseg.gems.KvlMeshCollection()
     meshCollection.read(baseModel.warpedMeshFileName)
     meshCollection.transform(baseModel.transform)
-    meshCollection.K = baseModel.meshStiffness
+    meshCollection.k = baseModel.meshStiffness
     mesh = meshCollection.get_mesh(0)
     mesh.alphas = baseModel.reducedAlphas
 
