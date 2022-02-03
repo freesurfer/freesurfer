@@ -29,12 +29,16 @@ def parse_args(args):
                       help='Location of `kvlBuildAtlasMesh` binary')
   parser.add_argument('-l', '--label-files', nargs='+', required=True, \
                       help='The ground truth lables to train against')
+  #parser.add_argument('-t', '--lookup-table', required=False, default=None, \
+  #                    help='The FreeSurfer-like lookup table')
   args = parser.parse_args()
+
   if args.schedule_file is None:
     args.schedule = default_training_schedule()
   else:
     args.schedule = read_schedule_file(args.schedule_file)
-    
+
+  # Make sure we can find the kvlBuildAtlasMesh binary    
   if args.binary is None:
     if os.environ.get('FREESURFER_HOME'):
       args.binary = os.path.join(os.environ.get('FREESURFER_HOME'),'gems/bin/kvlBuildAtlasMesh')
@@ -42,12 +46,21 @@ def parse_args(args):
     print("gems_train_mesh:  ERROR: Can't find kvlBuildAtlasMesh, either set the FREESURFER_HOME env var or use -b")
     raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), args.binary)
 
+  # Make sure we can find the FreeSurfer lookup table
+  #if args.lookup_table is None:
+  #  if os.environ.get('FREESURFER_HOME'):
+  #    args.lookup_table = os.path.join(os.environ.get('FREESURFER_HOME'),'FreeSurferColorLUT.txt')
+  #if args.lookup_table is None or not os.path.exists(args.lookup_table)
+  #  print("gems_train_mesh:  ERROR: Can't find FreeSurfer-like lookup table, either set the FREESURFER_HOME env var or use -t")
+  #  raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), args.binary)
+  
   # Make sure all input label files exist
   for file in args.label_files:
     if not os.path.exists(file):
       print("gems_train_mesh:  ERROR: Can't find label file "+file)
       raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), file)
 
+  # Make the working dir if it doesn't exist
   if args.work_dir is None:
     args.work_dir = tempfile.mkdtemp()
     print("gems_train_mesh:  No workdir specified so using "+args.work_dir)
@@ -78,7 +91,10 @@ def read_schedule_file(filename):
 def run_kvlBuildAtlasMesh(binary, work_dir, epoch_num, num_upsamples, mesh_size, label_files, num_itr=5, stiffness=1.0, edgeCollapse=1.0, startCollection=None):
   launch_dir = os.path.join(work_dir, 'epoch_'+'{:04d}'.format(epoch_num)+'_launch_dir')
   out_dir = os.path.join(work_dir, 'epoch_'+'{:04d}'.format(epoch_num)+'_out_dir')
+  
   print(f"gems_train_mesh: epoch: {epoch_num}\n  launch dir: {launch_dir}\n  out dir: {out_dir}")
+
+  # Copy explicitStartCollection.gz to launch dir if specified
   if startCollection is not None:
     startCollection_dest = os.path.join(launch_dir, 'explicitStartCollection.gz')
     shutil.copy(startCollection, startCollection_dest)
@@ -90,6 +106,7 @@ def run_kvlBuildAtlasMesh(binary, work_dir, epoch_num, num_upsamples, mesh_size,
   os.chdir(launch_dir)
   launch_cmd = f"{binary} {num_upsamples} {mesh_size[0]} {mesh_size[1]} {mesh_size[2]} {stiffness} {num_itr} {edgeCollapse} {out_dir} "+' '.join(label_files)
   print("  launch command: "+launch_cmd)
+  os.system(launch_cmd)
   os.chdir(orig_dir)
 
   # kvlBuildAtlasMesh will create meshCollections in out_dir up to and including num_itr.
