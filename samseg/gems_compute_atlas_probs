@@ -61,9 +61,10 @@ subject_list.sort()
 number_of_subjects = len(subject_list)
 
 logfile = os.path.join(args.out_dir,'gems_compute_atlas_probs.log');
-with open(logfile,"w") as f:
-    f.write("cd "+os.getcwd()+"\n");
-    f.write(' '.join(sys.argv)+"\n")
+logfp = open(logfile,"w")
+logfp.write("cd "+os.getcwd()+"\n");
+logfp.write(' '.join(sys.argv)+"\n")
+logfp.flush();
 
 outsubjectsfile = os.path.join(args.out_dir,'subjects.txt');
 with open(outsubjectsfile,"w") as f:
@@ -126,7 +127,9 @@ for level, mesh_collection_file in enumerate(args.mesh_collections):
         print("Level %d Subject %d/%d %s %6.1f" % (level+1,subject_number+1,number_of_subjects,subject_dir,telapsed))
         print("")
         print("====================================================================")
-      
+        logfp.write("Level %d Subject %d/%d %s %6.1f\n" % (level+1,subject_number+1,number_of_subjects,subject_dir,telapsed))
+        logfp.flush();
+
         # Read the manually annotated segmentation for the specific subject
         if args.gt_from_FS:
             segmentation_image = nib.load(os.path.join(args.segmentations_dir, subject_dir, 'mri', 'aseg.mgz')).get_fdata()
@@ -212,5 +215,9 @@ for level, mesh_collection_file in enumerate(args.mesh_collections):
 
 # end level loop
 
-print ("gems_compute_atlas_probs done")
+logfp.write("gems_compute_atlas_probs done\n");
+logfp.close();
+print ("gems_compute_atlas_probs done");
+
+
 
