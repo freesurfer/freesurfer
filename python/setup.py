@@ -13,7 +13,8 @@ packages = [
     'freesurfer',
     'freesurfer.utils',
     'freesurfer.samseg',
-    'freesurfer.deeplearn'
+    'freesurfer.deeplearn',
+    'freesurfer.subfields',
 ]
 
 # get required dependencies from requirements.txt
