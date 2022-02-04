@@ -165,6 +165,8 @@ for level, mesh_collection_file in enumerate(args.mesh_collections):
             for label_number, label in enumerate(labels):
                 # + 1 here since we want background as first class
                 segmentation_map[:, :, :, label_number + 1] = (segmentation_image == label) * 65535
+            # Make sure to fill what is left in background class
+            segmentation_map[:, :, :, 0] = 65535 - np.sum(segmentation_map[:, :, :, 1:], axis=3)
         else:
             segmentation_map[:, :, :, 0] = (1 - segmentation_image) * 65535
             segmentation_map[:, :, :, 1] = segmentation_image * 65535
