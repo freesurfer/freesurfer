@@ -12,10 +12,12 @@
 #
 ###########################
 
+import sys
 import os
 import numpy as np
 import nibabel as nib
 import freesurfer as fs
+import time
 from freesurfer import samseg
 
 parser = fs.utils.ArgumentParser()
@@ -58,6 +60,16 @@ else:
 subject_list.sort()
 number_of_subjects = len(subject_list)
 
+logfile = os.path.join(args.out_dir,'gems_compute_atlas_probs.log');
+with open(logfile,"w") as f:
+    f.write("cd "+os.getcwd()+"\n");
+    f.write(' '.join(sys.argv)+"\n")
+
+outsubjectsfile = os.path.join(args.out_dir,'subjects.txt');
+with open(outsubjectsfile,"w") as f:
+    for subject in subject_list:
+        f.write(subject+"\n")
+
 if(args.labels_file == None):
     labels = args.labels;
 else:
@@ -68,6 +80,12 @@ else:
             for item in line.split():
                 labels.append(int(item))
 
+outlabelfile = os.path.join(args.out_dir,'labels.txt');
+with open(outlabelfile,"w") as f:
+    for label in labels:
+        f.write(str(label)+"\n")
+
+print("Labels")
 print(labels)
 
 if args.multi_structure:
@@ -79,6 +97,7 @@ else:
 # to call instance methods
 atlas = samseg.ProbabilisticAtlas()
 
+t0 = time.time();
 for level, mesh_collection_file in enumerate(args.mesh_collections):
 
     print("Working on mesh collection at level " + str(level + 1))
@@ -100,9 +119,11 @@ for level, mesh_collection_file in enumerate(args.mesh_collections):
     for subject_number, subject_dir in enumerate(subject_list):
 
         # Show progress to anyone who's watching
+        telapsed = (time.time()-t0)/60;
         print("====================================================================")
         print("")
-        print("Subject number: " + str(subject_number + 1) + " "+ subject_dir)
+        #print("Subject number: " + str(subject_number + 1)+"/"+str(number_of_subjects) + " "+ subject_dir + " " str(telapsed))
+        print("Level %d Subject %d/%d %s %6.1f" % (level+1,subject_number+1,number_of_subjects,subject_dir,telapsed))
         print("")
         print("====================================================================")
       
