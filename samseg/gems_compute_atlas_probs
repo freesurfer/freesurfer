@@ -32,6 +32,8 @@ parser.add_argument('--EM-iterations', type=int, default=10, help="EM iterations
 parser.add_argument('--show-figs', action='store_true', default=False, help='Show figures during run.')
 parser.add_argument('--save-figs', action='store_true', default=False, help='Save rasterized prior of each subject.')
 parser.add_argument('--save-average-figs', action='store_true', default=False, help='Save average rasterized prior.')
+parser.add_argument('--subjects_file', help='Text file with list of subjects.')
+parser.add_argument('--labels_file', help='Text file with list of labels (instead of --labels).')
 args = parser.parse_args()
 
 if not os.path.exists(args.out_dir):
@@ -45,18 +47,37 @@ else:
 if args.save_figs:
     import nibabel as nib
 
-# We need an init of the probabilistic segmentation class
-# to call instance methods
-atlas = samseg.ProbabilisticAtlas()
+if(args.subjects_file != None):
+    with open(args.subjects_file) as f:
+        lines = f.readlines();
+        subject_list = [];
+        for line in lines:
+            subject_list.append(line.strip());
+else:
+    subject_list = [pathname for pathname in os.listdir(args.subjects_dir) if os.path.isdir(os.path.join(args.subjects_dir, pathname))]
+subject_list.sort()
+number_of_subjects = len(subject_list)
+
+if(args.labels_file == None):
+    labels = args.labels;
+else:
+    with open(args.labels_file) as f:
+        lines = f.readlines();
+        labels = [];
+        for line in lines:
+            for item in line.split():
+                labels.append(int(item))
+
+print(labels)
 
 if args.multi_structure:
-    number_of_classes = len(args.labels) + 1 # + 1 for background
+    number_of_classes = len(labels) + 1 # + 1 for background
 else:
     number_of_classes = 2 # 1 is background
 
-subject_list = [pathname for pathname in os.listdir(args.subjects_dir) if os.path.isdir(os.path.join(args.subjects_dir, pathname))]
-subject_list.sort()
-number_of_subjects = len(subject_list)
+# We need an init of the probabilistic segmentation class
+# to call instance methods
+atlas = samseg.ProbabilisticAtlas()
 
 for level, mesh_collection_file in enumerate(args.mesh_collections):
 
@@ -81,7 +102,7 @@ for level, mesh_collection_file in enumerate(args.mesh_collections):
         # Show progress to anyone who's watching
         print("====================================================================")
         print("")
-        print("Subject number: " + str(subject_number + 1))
+        print("Subject number: " + str(subject_number + 1) + " "+ subject_dir)
         print("")
         print("====================================================================")
       
@@ -120,7 +141,7 @@ for level, mesh_collection_file in enumerate(args.mesh_collections):
         segmentation_map = np.zeros([segmentation_image.shape[0], segmentation_image.shape[1], segmentation_image.shape[2],
                                     number_of_classes], np.uint16)
         if args.multi_structure:
-            for label_number, label in enumerate(args.labels):
+            for label_number, label in enumerate(labels):
                 # + 1 here since we want background as first class
                 segmentation_map[:, :, :, label_number + 1] = (segmentation_image == label) * 65535
         else:
@@ -165,4 +186,8 @@ for level, mesh_collection_file in enumerate(args.mesh_collections):
 
     # Save label statistics in a npy file
     np.save(os.path.join(args.out_dir, "label_statistics_atlas_" + str(level + 1)), label_statistics_in_mesh_nodes)
+
+# end level loop
+
+print ("gems_compute_atlas_probs done")
 
