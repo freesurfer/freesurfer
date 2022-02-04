@@ -5931,3 +5931,60 @@ MRI *MRIzconcat(MRI *mri1, MRI *mri2, int nskip, MRI *out)
 
   return(out);
 }
+
+// See class definition for docs
+int FixSubCortMassHA::FixSCM(void)
+{
+  int c;
+
+  mask = MRIalloc(aseg->width,aseg->height,aseg->depth,MRI_INT);
+  MRIcopyHeader(aseg, mask);
+  MRIcopyPulseParameters(aseg, mask);
+
+  // create a mask with WM, cortex, and background. 
+  // Importantly, hippocampus is not in the mask
+#ifdef HAVE_OPENMP
+#pragma omp parallel for 
+#endif
+  for(c=0; c < aseg->width; c++){
+    int r,s;
+    for(r=0; r < aseg->height; r++){
+      for(s=0; s < aseg->depth; s++){
+	int segid = MRIgetVoxVal(aseg,c,r,s,0);
+	if(segid == 0 || segid == 2 || segid == 3 || segid == 41 || segid == 42){
+	  MRIsetVoxVal(mask,c,r,s,0,1);
+	}
+      }
+    }
+  }
+
+  // Dilate the mask. This will dilate the mask into hippocampus
+  printf("Dilating %d voxels in 3d\n",nDilate);
+  for(int n=0; n < nDilate; n++) MRIdilate(mask,mask);
+
+  // Now, remove amyg and ILV and any hippo that is not in the mask
+#ifdef HAVE_OPENMP
+#pragma omp parallel for 
+#endif
+  for(c=0; c < aseg->width; c++){
+    int r,s;
+    for(r=0; r < aseg->height; r++){
+      for(s=0; s < aseg->depth; s++){
+	int segid = MRIgetVoxVal(aseg,c,r,s,0);
+	if(IS_AMYGDALA(segid) || IS_INF_LAT_VENT(segid)){
+	  // If in amyg or ventricle, just zero the input regardless of mask
+	  MRIsetVoxVal(subcorticalmass,c,r,s,0, 0);
+	  continue;
+	}
+	if(MRIgetVoxVal(mask,c,r,s,0)>0.5) continue;
+	if(IS_HIPPO(segid) && MRIgetVoxVal(mask,c,r,s,0)<0.5){
+	  // If in hipp but not in the mask, zero
+	  MRIsetVoxVal(subcorticalmass,c,r,s,0, 0);
+	  continue;
+	}
+      }
+    }
+  }
+  return(0);
+}
+
