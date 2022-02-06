@@ -63,7 +63,7 @@
       <argument>--label-wm</argument>
       <explanation>Relabel cerebral WM in the input segmentation with surface annotation</explanation>
       <argument>--label-wm-unknown lhval rhval</argument>
-      <explanation>Relabel unknown WM as lhval and rhval (default is 5001 and 5002)</explanation>
+      <explanation>Relabel unknown WM as lhval and rhval  (default is 5001 and 5002)</explanation>
 
       <argument>--lh-annot lhannotation lhbaseoffset</argument>
       <explanation>lh annotation for --label-cortex and --label-wm</explanation>

@@ -224,7 +224,7 @@ static int parse_commandline(int argc, char **argv)
       s2vseg.RipUnknown = 1;
     }
     else if (!strcmp(option, "--label-wm")){
-      s2vseg.LabelWM = 1;
+      s2vseg.LabelWM = 1; 
       s2vseg.RipUnknown = 1;
       s2vseg.LabelHypoAsWM = 1;
     }
