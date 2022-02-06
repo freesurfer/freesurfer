@@ -252,8 +252,11 @@ def run_longitudinal(structure, baseParameters, tpParameters):
     for t, tpModel in enumerate(tpModels):
         tpModel.extract_segmentation()
         # Let's transform (just the header) the output segmentations back to original timepoint space
-        trf = baseTransforms[t].inverse().matrix
-        tpModel.discreteLabels.affine = trf @ tpModel.discreteLabels.affine
+        trf = baseTransforms[t]
+        tpModel.discreteLabels.affine = trf.inverse().matrix @ tpModel.discreteLabels.affine
+        # Also, scale the volumes by the determinant of the transform
+        det = np.linalg.det(trf.matrix[:3, :3])
+        tpModel.volumes = {key: vol / det for key, vol in tpModel.volumes.items()}
         # Do the subclass-defined postprocessing and cleanup
         tpModel.postprocess_segmentation()
         tpModel.cleanup()
