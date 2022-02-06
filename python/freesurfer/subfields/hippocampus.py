@@ -314,7 +314,7 @@ class HippoAmygdalaSubfields(MeshModel):
         for l in range(len(sameGaussianParameters)):
             labels = np.array(sameGaussianParameters[l])
 
-            if any((labels >= 200) & (labels <= 226)):
+            if any((labels >= 200) & (labels <= 226) & (labels != 215)):
                 means[l] = 3  # Hippo SF > Hippo
             elif any((labels >= 7000)):
                 means[l] = 3  # Amygdala Subnuclei -> Amygdala
