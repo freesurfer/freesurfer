@@ -23,8 +23,8 @@
 ]>
 
 <help>
-  <name>mri_surf2segvol</name>
-  <synopsis>mri_surf2segvol [options]</synopsis>
+  <name>mri_surf2volseg</name>
+  <synopsis>mri_surf2volseg [options]</synopsis>
 	<description> Performs three functions: (1) cleans up presurf aseg cortex and WM. (2) maps cortical labels from an annotation into a volume, and (3) labels cerebral WM with closest cortical label.  This is a replacement for mri_aparc2aseg.
 </description>
 
@@ -62,6 +62,8 @@
       <explanation>Relabel cortex in the input segmentation with surface annotation</explanation>
       <argument>--label-wm</argument>
       <explanation>Relabel cerebral WM in the input segmentation with surface annotation</explanation>
+      <argument>--label-wm-unknown lhval rhval</argument>
+      <explanation>Relabel unknown WM as lhval and rhval (default is 5001 and 5002)</explanation>
 
       <argument>--lh-annot lhannotation lhbaseoffset</argument>
       <explanation>lh annotation for --label-cortex and --label-wm</explanation>
