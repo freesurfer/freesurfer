@@ -387,7 +387,10 @@ class Samseg:
         if self.saveModelProbabilities:
             self.saveGaussianProbabilities( os.path.join(self.savePath, 'probabilities') )
  
-       # Save the history of the parameter estimation process
+        # Save the class means and standard deviations
+        self.saveGaussianStats()
+
+        # Save the history of the parameter estimation process
         if self.saveHistory:
             history = {'input': {
                 'imageFileNames': self.imageFileNames,
@@ -456,7 +459,7 @@ class Samseg:
         segmentation[self.mask] = fslabels[structureNumbers]
 
         #
-        scalingFactors = scaleBiasFields(biasFields, self.imageBuffers, self.mask, posteriors, self.targetIntensity, self.targetSearchStrings, names)
+        self.scalingFactors = scaleBiasFields(biasFields, self.imageBuffers, self.mask, posteriors, self.targetIntensity, self.targetSearchStrings, names)
 
         # Get corrected intensities and bias field images in the non-log transformed domain
         expImageBuffers, expBiasFields = undoLogTransformAndBiasField(self.imageBuffers, biasFields, self.mask)
@@ -476,7 +479,7 @@ class Samseg:
 
                 # Save a note indicating the scaling factor
                 with open(contastPrefix + '_scaling.txt', 'w') as fid:
-                    print(scalingFactors[contrastNumber], file=fid)
+                    print(self.scalingFactors[contrastNumber], file=fid)
 
         else: # photos
             self.writeImage(expBiasFields[..., 0], self.savePath + '/illlumination_field.mgz')
@@ -555,9 +558,8 @@ class Samseg:
 
         # write the warp file
         fs.Warp(coordmap, source=imageGeom, target=templateGeom, affine=matrix).write(filename)
-        
-        
-    def saveGaussianProbabilities( self, probabilitiesPath ):
+
+    def saveGaussianProbabilities(self, probabilitiesPath):
         # Make output directory
         os.makedirs(probabilitiesPath, exist_ok=True)
           
@@ -580,19 +582,15 @@ class Samseg:
         gaussianLikelihoods, _ = self.gmm.getGaussianPosteriors( data, classPriors, priorWeight=0 )
         gaussianPriors, _ = self.gmm.getGaussianPosteriors( data, classPriors, dataWeight=0 )
 
-        # Open gaussians file
-        file = open(os.path.join(probabilitiesPath, 'gaussians.txt'), 'w')
-
-        # Cycle through gaussians and write volumes and means/variances
+        # Cycle through gaussians and write volumes
         classNames = [param.mergedName for param in self.modelSpecifications.sharedGMMParameters]
         numberOfGaussiansPerClass = [param.numberOfComponents for param in self.modelSpecifications.sharedGMMParameters]
-        maxNameSize = len(max(classNames, key=len)) + 2
         for classNumber, className in enumerate(classNames):
             numComponents = numberOfGaussiansPerClass[classNumber]
             for componentNumber in range(numComponents):
                 # 
                 gaussianNumber = int(np.sum(numberOfGaussiansPerClass[:classNumber])) + componentNumber
-                
+
                 # Write volume
                 probabilities = np.zeros( ( *( self.imageBuffers.shape[:3] ), 3 ), dtype=np.float32 )
                 probabilities[ self.mask, 0 ] = gaussianPosteriors[ :, gaussianNumber ]
@@ -603,14 +601,43 @@ class Samseg:
                     basename += '-%d' % (componentNumber + 1)
                 self.writeImage(probabilities, os.path.join(probabilitiesPath, basename + '.mgz'))
 
-                # write gaussian information
-                mean = self.gmm.means[gaussianNumber]
-                var = self.gmm.variances[gaussianNumber]
-                weight = self.gmm.mixtureWeights[gaussianNumber]
-                file.write('%s %.4f %.4f %.4f\n' % (basename.ljust(maxNameSize), mean, var, weight))
+    def saveGaussianStats(self):
 
-        file.close()
-        
+        # Determine gaussians classes
+        classNames = [param.mergedName for param in self.modelSpecifications.sharedGMMParameters]
+        numberOfGaussiansPerClass = [param.numberOfComponents for param in self.modelSpecifications.sharedGMMParameters]
+        maxNameSize = len(max(classNames, key=len)) + 2
+        space = 20
+
+        with open(os.path.join(self.savePath, 'gaussians.rescaled.txt'), 'w') as fid:
+
+            # Write header
+            modes = ''.join([mode.rjust(space) for mode in self.modeNames])
+            fid.write(f"{'# class':<{maxNameSize}}{modes}\n")
+
+            # Cycle through gaussians
+            for classNumber, className in enumerate(classNames):
+                numComponents = numberOfGaussiansPerClass[classNumber]
+                for componentNumber in range(numComponents):
+                    gaussianNumber = int(np.sum(numberOfGaussiansPerClass[:classNumber])) + componentNumber
+                    basename = f'{className}-{componentNumber + 1}' if numComponents > 1 else className
+
+                    stats = []
+                    for contrastNumber in range(len((self.modeNames))):
+
+                        # Get gaussian information
+                        log_mean = self.gmm.means[gaussianNumber, contrastNumber]
+                        log_variance = self.gmm.variances[gaussianNumber, contrastNumber, contrastNumber]
+
+                        # Convert from log-space
+                        scaling = self.scalingFactors[contrastNumber]
+                        mean = np.exp(log_mean) * scaling
+                        std = np.sqrt(log_variance) * mean
+
+                        stats.append(f'{mean:.2f} ± {std:.2f}'.rjust(space))
+
+                    # Write class
+                    fid.write(basename.ljust(maxNameSize) + ''.join(stats) + '\n')
 
     def getDownSampledModel(self, atlasFileName, downSamplingFactors):
 
