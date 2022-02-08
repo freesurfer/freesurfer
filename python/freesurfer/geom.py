@@ -106,6 +106,30 @@ def resample(source, target_shape, trg2src, interp_method='linear', smooth_sigma
     else:
         raise ValueError('invalid resample interpolation method "%s"' % interp_method)
 
+def sample_volume(volume, points, interp_method='linear', fill_value=0):
+    '''
+    Parameters:
+        volume: ndarray
+            Image array to sample from.
+        points: ndarray
+            (N, 3) image coordinates to sample from.
+        interp_method: str, optional
+            The method of interpolation to perform. Supported are 'linear' and 'nearest'.
+        fill_value: number, optional
+            If provided, the value to use for points outside of the
+            interpolation domain. If None, values outside the domain are extrapolated.
+    '''
+    if volume.ndim > 4:
+        raise ValueError('resampling can not be done on arrays with more than 4 dimensions')
+    elif volume.ndim < 3:
+        raise NotImplementedError('%dD resampling is not yet supported (must be 3D or 4D)' % source.ndim)
+    elif volume.ndim == 3:
+        volume = volume[..., np.newaxis]
+
+    linvec = [np.arange(0, dim) for dim in volume.shape[:3]]
+    sampler = lambda x: interpn(linvec, volume[..., x], points, method=interp_method, bounds_error=False, fill_value=fill_value)
+    return np.stack([sampler(f) for f in range(volume.shape[-1])], axis=-1).squeeze()
+
 
 def sample_into_volume(volume, weights, coords, values):
     '''
