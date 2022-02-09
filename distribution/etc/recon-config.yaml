@@ -81,3 +81,10 @@ CBVfindFirstPeakD1:
     action: enable
     descr: Refinement of target surf location in MRIScomputeBorderValues with first derivative (d1)
 
+DefectsCortex:
+    value: False
+    flags: -defects-cortex
+    action: enable
+    descr: Limits defects to cortex when running defects2seg, ie, remove from medial wall (visualization only)
+    
+    
