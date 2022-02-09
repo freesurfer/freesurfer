@@ -16,11 +16,12 @@ DoAntsN3:
     action: enable
     descr: Use ANTS N3BiasFieldCorrection instead of MNI N3
 
-DoAntsN4:
-    value: True
-    flags: -ants-n4
-    action: enable
-    descr: Use ANTS N4BiasFieldCorrection instead of MNI N3
+#Removed this because it is overridden below (no repeats allowed)
+#DoAntsN4:
+#    value: True
+#    flags: -ants-n4
+#    action: enable
+#    descr: Use ANTS N4BiasFieldCorrection instead of MNI N3
 
 DoAntsN4:
     value: True
@@ -28,11 +29,12 @@ DoAntsN4:
     action: disable
     descr: Do not use ANTS N4BiasFieldCorrection instead of MNI N3
 
-DoAntsDenoising:
-    value: True
-    flags: -ants-denoise
-    action: enable
-    descr: Use ANTS DenoiseImage before mri_segment
+#Removed this because it is overridden below (no repeats allowed)
+#DoAntsDenoising:
+#    value: True
+#    flags: -ants-denoise
+#    action: enable
+#    descr: Use ANTS DenoiseImage before mri_segment
 
 DoAntsDenoising:
     value: True
@@ -40,11 +42,12 @@ DoAntsDenoising:
     action: disable
     descr: Do not use ANTS DenoiseImage before mri_segment
 
-DoRemesh:
-    value: True
-    flags: -remesh
-    action: enable
-    descr: Use Martin's code to remesh ?h.orig to improve triangle quality after topo fix
+#Removed this because it is overridden below (no repeats allowed)
+#DoRemesh:
+#    value: True
+#    flags: -remesh
+#    action: enable
+#    descr: Use Martin's code to remesh ?h.orig to improve triangle quality after topo fix
     
 DoRemesh:
     value: True
