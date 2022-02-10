@@ -1,0 +1,270 @@
+#!/bin/tcsh -f
+# fs-check-version - sources
+if(-e $FREESURFER_HOME/sources.csh) then
+  source $FREESURFER_HOME/sources.csh
+endif
+
+set VERSION = '$Id$';
+set scriptname = `basename $0`
+
+set outfile = ();
+set subject = ();
+
+set tmpdir = ();
+set cleanup = 1;
+set LF = ();
+
+set inputargs = ($argv);
+set PrintHelp = 0;
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+# Set up log file
+if($#LF == 0) set LF = /dev/null
+if($LF != /dev/null) rm -f $LF
+echo "Log file for fs-check-version" >> $LF
+date  | tee -a $LF
+echo "" | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo "cd `pwd`"  | tee -a $LF
+echo $0 $inputargs | tee -a $LF
+ls -l $0  | tee -a $LF
+echo "" | tee -a $LF
+cat $FREESURFER_HOME/build-stamp.txt | tee -a $LF
+echo $VERSION | tee -a $LF
+uname -a  | tee -a $LF
+echo "pid $$" | tee -a $LF
+if($?PBS_JOBID) then
+  echo "pbsjob $PBS_JOBID"  >> $LF
+endif
+if($?SLURM_JOB_ID) then
+  echo SLURM_JOB_ID $SLURM_JOB_ID >> $LF
+endif
+
+set bstampfile0 = $FREESURFER_HOME/build-stamp.txt
+set bstamp0 = `cat $bstampfile0`
+echo "Current FS Version $bstamp0"| tee -a $LF
+
+if($#subject) then
+  # copy bstamp into subject if needed
+  mkdir -p $SUBJECTS_DIR/$subject/scripts
+  set bstampfile  = $SUBJECTS_DIR/$subject/scripts/build-stamp.txt
+  if(! -e $bstampfile) cp $bstampfile0 $bstampfile
+  set bstamp = `cat $bstampfile`
+  echo "Subject FS Version: $bstamp"
+endif
+
+set ok = 0
+if($?REQUIRE_FS_MATCH == 0) setenv REQUIRE_FS_MATCH 0
+set fsav = $SUBJECTS_DIR/fs-allowed-versions.txt
+
+if(! $REQUIRE_FS_MATCH && ! -e $fsav) then
+  echo "No constraints on version" | tee -a $LF
+  set ok = 1
+  set goto done;
+endif
+
+if($#subject && $REQUIRE_FS_MATCH) then
+  if("$bstamp0" != "$bstamp") then
+    echo "ERROR: FreeSurfer build stamps do not match and a match is required"|& tee -a $LF
+    set ok = 0
+    goto done;
+  else
+    echo "Current FreeSurfer build stamp matches that in subject" |& tee -a $LF
+    set ok = 1
+    goto done;
+  endif
+endif
+
+if(-e $fsav) then
+  set ok = 0
+  foreach ver (`cat $fsav`)
+    if($ver == $bstamp0) then
+      echo "found a match with FS version in $fsav"|& tee -a $LF
+      set ok = 1;
+      goto done;
+    endif
+  end
+  # ok defaults to 0 above, so not ok if a match is not found
+  echo "ERROR: could not find a match with FS version in $fsav"|& tee -a $LF
+  echo "Options:"|& tee -a $LF
+  cat $fsav|& tee -a $LF
+  goto done;
+endif
+
+done:
+
+# Put ok value in outfile
+echo $ok > $outfile
+
+echo "#@#% fs-check-version ok = $ok"|& tee -a $LF
+echo "fs-check-version Done" |& tee -a $LF
+exit 0
+
+###############################################
+
+############--------------##################
+error_exit:
+echo "ERROR:"
+
+exit 1;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--o":
+      if($#argv < 1) goto arg1err;
+      set outfile = $argv[1]; shift;
+      breaksw
+
+    case "--s":
+      if($#argv < 1) goto arg1err;
+      set subject = $argv[1]; shift;
+      breaksw
+
+    case "--sd":
+      if($#argv < 1) goto arg1err;
+      setenv SUBJECTS_DIR $argv[1]; shift;
+      breaksw
+
+    case "--require-match":
+      setenv REQUIRE_FS_MATCH 1
+      breaksw
+
+    case "--no-require-match":
+      setenv REQUIRE_FS_MATCH 0
+      breaksw
+
+    case "--log":
+      if($#argv < 1) goto arg1err;
+      set LF = $argv[1]; shift;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#outfile == 0) then
+  echo "ERROR: must spec out file"
+  exit 1;
+endif
+
+if($#subject) then
+  if(! -e $SUBJECTS_DIR/$subject) then
+    echo "ERROR: cannot find $subject"
+    exit 1;
+  endif
+endif
+
+rm -f $outfile
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "fs-check-version"
+  echo " --sd SUBJECTS_DIR"
+  echo " --o outfile"
+  echo "--require-match, --no-require-match : set or unset REQUIRE_FS_MATCH for testing"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+This script manages which version of freesurfer can be used to analyze
+data in an effort to make sure that all data are analyzed with the
+desired version of FS.  The idea is that the build stamp of the
+currently sourced version of FS needs to match that of some
+specification. If there is a match, then a 1 will be put into the
+output text file, otherwise it will have a 0.
+
+Version information can be found in $FREESURFER_HOME/build-stamp.txt
+
+The specification can take one of two forms:
+
+1. env variable REQUIRE_FS_MATCH=1 causes this script to check the
+build stamp found in
+$SUBJECTS_DIR/$subject/scripts/build-stamp.txt. If that file does not
+exist, the current build stamp is copied into it (regardless of
+REQUIRE_FS_MATCH). If a subject is not specified, then this
+functionality is skipped.
+
+2. The presence of the file
+$SUBJECTS_DIR/fs-allowed-versions.txt. This file should have a list of
+allowed versions in it. If the current version matches one of the
+allowed versions, then it is ok to proceed. This allows multiple
+version of FS to be used; e.g., if someone analyzed data in 7.1 but
+then wanted to use 7.2, this would be ok because they have the same
+output. The user could put both build stamps into
+fs-allowed-versions.txt.
+
+Return ok=1 no matter what if:
+  - REQUIRE_FS_MATCH does not exist or is 0
+  - AND SUBJECTS_DIR/fs-allowed-versions.txt does not exist
+
+If REQUIRE_FS_MATCH is set
+  - return ok=1 if there is a match
+  - return ok=0 if there is not a match (regardless of fs-allowed-versions.txt)
+Else
+  - return ok=1 if buildstamp matches one in fs-allowed-versions.txt
+  - return ok=0 if there is no match
+
+The idea here is that if REQUIRE_FS_MATCH set, it reverts to the behavior
+of that feature regardless of fs-allowed-versions because REQUIRE_FS_MATCH
+has been around a while and the behavior should not change.
+
+Note that it does not need a subject, in which case it would only
+apply the constraints from fs-allowed-versions.txt.
