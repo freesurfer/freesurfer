@@ -516,7 +516,7 @@ class Volume(ArrayContainerTemplate, Transformable):
             conformed.data = conformed.data.astype(dtype)
         return conformed
 
-    def resample_like(self, target, interp_method='linear'):
+    def resample_like(self, target, interp_method='linear', fill=0):
         '''
         Returns a resampled image in the target space.
         '''
@@ -524,7 +524,7 @@ class Volume(ArrayContainerTemplate, Transformable):
             raise ValueError("Can't resample volume without geometry information.")
 
         vox2vox = LinearTransform.matmul(self.ras2vox(), target.vox2ras())
-        resampled_data = resample(self.data, target.shape, vox2vox, interp_method=interp_method)
+        resampled_data = resample(self.data, target.shape, vox2vox, interp_method=interp_method, fill=fill)
 
         resampled = Volume(resampled_data)
         resampled.copy_geometry(target)

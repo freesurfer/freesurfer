@@ -58,7 +58,7 @@ def cmass(image):
     return scipy.ndimage.center_of_mass(image)
 
 
-def resample(source, target_shape, trg2src, interp_method='linear', smooth_sigma=0):
+def resample(source, target_shape, trg2src, interp_method='linear', fill=0, smooth_sigma=0):
     '''
     Resamples a volume array from one space to another given
     a target-to-source transformation matrix.
@@ -100,9 +100,9 @@ def resample(source, target_shape, trg2src, interp_method='linear', smooth_sigma
     trg2src = LinearTransform.ensure(trg2src).matrix
 
     if interp_method == 'linear':
-        return bindings.vol.resample_volume_linear(source, target_shape, trg2src).reshape(orig_target_shape)
+        return bindings.vol.resample_volume_linear(source, target_shape, trg2src, fill).reshape(orig_target_shape)
     elif interp_method == 'nearest':
-        return bindings.vol.resample_volume_nearest(source, target_shape, trg2src).reshape(orig_target_shape)
+        return bindings.vol.resample_volume_nearest(source, target_shape, trg2src, fill).reshape(orig_target_shape)
     else:
         raise ValueError('invalid resample interpolation method "%s"' % interp_method)
 
