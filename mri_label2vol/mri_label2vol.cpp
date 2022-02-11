@@ -726,20 +726,32 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = 1;
     } 
     else if (!strcmp(option, "--defects")) {
-      // surf defectno template offset mergeflag
+      // surf defectno template offset mergeflag output
       if(nargc < 6) {
-	printf("usage: --defects surf defectno.mgz template.mgz offset mergeflag\n");
+	printf("usage: --defects surf defectno.mgz voltemplate.mgz offset mergeflag <label>\n");
 	argnerr(option,6);
       }
-      MRIS *defsurf  = MRISread(pargv[0]); // surf
+      MRIS *defsurf  = MRISread(pargv[0]); // surf (eg, lh.orig.nofix)
       if(defsurf==NULL) exit(1);
-      MRI *defno    = MRIread(pargv[1]); //defects no
+      MRI *defno    = MRIread(pargv[1]); //defects number overlay 
       if(defno==NULL) exit(1);
-      MRI *deftemp  = MRIread(pargv[2]); //template
+      MRI *deftemp  = MRIread(pargv[2]); //volume template (eg, orig.mgz)
       if(deftemp==NULL) exit(1);
       int defmerge, defoffset,deferr;
       sscanf(pargv[3],"%d",&defoffset);
       sscanf(pargv[4],"%d",&defmerge);
+      if(nargc > 6 && CMDnthIsArg(nargc+6, pargv, 0)){
+	printf("Contraining to label %s\n",pargv[6]);
+	LABEL *label = LabelRead(NULL, pargv[6]);
+	if (!label) exit(1);
+	// set values outside of the label to 0
+	MRI *tmp = MRISlabel2Mask(defsurf, label, NULL);
+	for (int v = 0 ; v < defsurf->nvertices ; v++) {
+	  if (!MRIgetVoxVal(tmp, v, 0, 0, 0)) MRIsetVoxVal(defno, v, 0, 0, 0, 0);
+	}
+	MRIfree(&tmp);
+	LabelFree(&label);
+      }
       if(defmerge==0){
 	MRIconst(deftemp->width,deftemp->height,deftemp->depth,deftemp->nframes,0,deftemp); // set MRI to 0
 	if(deftemp->type != MRI_INT) {
@@ -815,10 +827,12 @@ static void print_usage(void) {
   printf("   --label-stat statvol : map the label stats field into the vol\n");
   printf("   --stat-thresh thresh : only use label point where stat > thresh\n");
   printf("   --offset k : add k to segmentation numbers (good when 0 should not be ignored)\n");
-  printf("   --defects surf defectno.mgz orig.mgz offset mergeflag (ignores all other inputs)\n");
+  printf("   --defects surf defectno.mgz voltemplate.mgz offset mergeflag <label>\n");
   printf("     Creates a segmentation volume of the surface defects, eg, \n");
   printf("       mri_label2vol --defects surf/lh.orig surf/lh.defect_labels mri/orig.mgz    1000 0 mri/defects.mgz\n");
   printf("       mri_label2vol --defects surf/rh.orig surf/rh.defect_labels mri/defects.mgz 2000 1 mri/defects.mgz\n");
+  printf("       If a label is included, it will be used to mask out defects outside of the label;\n");
+  printf("         defect numbers are not changed\n");
   printf("\n");
   printf("   --native-vox2ras : use native vox2ras xform instead of tkregister-style\n");
   printf("   --version : print version and exit\n");

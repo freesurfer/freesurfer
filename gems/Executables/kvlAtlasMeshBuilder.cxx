@@ -88,14 +88,15 @@ AtlasMeshBuilder
 ::SetUp( const std::vector< LabelImageType::ConstPointer >& labelImages,
          const CompressionLookupTable*  compressionLookupTable,
          const itk::Size< 3>&  initialSize, 
-         const std::vector< double >& initialStiffnesses )
+         const std::vector< double >& initialStiffnesses,
+         const unsigned int maximumNumberOfIterations)
 {
   m_LabelImages = labelImages;
   m_CompressionLookupTable = compressionLookupTable;
   m_InitialSize = initialSize;
   m_InitialStiffnesses = initialStiffnesses;
   m_Mesher->SetUp( m_LabelImages, m_CompressionLookupTable, m_InitialSize, m_InitialStiffnesses );
-
+  m_MaximumNumberOfIterations = maximumNumberOfIterations;
 }
 
 

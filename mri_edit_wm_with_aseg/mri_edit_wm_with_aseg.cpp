@@ -85,6 +85,8 @@ static int keep_edits_input = 0 ;
 static void usage_exit(int code) ;
 
 static int fcd = 0 ;
+int FixSCMHA = 0;
+int FixSCMHANdil = 0;
 
 int
 main(int argc, char *argv[])
@@ -157,6 +159,14 @@ main(int argc, char *argv[])
   remove_paths_to_cortex(mri_wm, mri_T1, mri_aseg) ;
   edit_segmentation(mri_wm, mri_T1, mri_aseg) ;
   spackle_wm_superior_to_mtl(mri_wm, mri_T1, mri_aseg) ;
+  if(FixSCMHA){
+    FixSubCortMassHA fscmha;
+    fscmha.aseg = mri_aseg;
+    fscmha.subcorticalmass = mri_wm;
+    fscmha.nDilate = FixSCMHANdil;
+    fscmha.FixSCM();
+    MRIfree(&fscmha.mask);
+  }
   if (keep_edits)
   {
     MRI *mri_old ;
@@ -253,6 +263,28 @@ get_option(int argc, char *argv[])
     keep_edits = 1 ;
     keep_edits_input = 1 ;
     fprintf(stderr, "preserving editing changes in input volume...\n");
+  }
+  else if (!stricmp(option, "fix-scm-ha"))
+  {
+    FixSCMHA = 1 ;
+    FixSCMHANdil = atoi(argv[2]) ; // usually set to 1
+    printf("FixSCM HA %d\n",FixSCMHANdil);
+    nargs = 1;
+  }
+  else if (!stricmp(option, "fix-scm-ha-only"))
+  {
+    // mri_edit_wm_with_aseg aseg.presurf.mgz SCM.mgz ndil out.mgz
+    // SCM = wm.seg.mgz, wm.mgz, filled.mgz, etc; ndil usually = 1
+    FixSubCortMassHA fscmha;
+    fscmha.aseg = MRIread(argv[2]);
+    if(fscmha.aseg==NULL) exit(1);
+    fscmha.subcorticalmass = MRIread(argv[3]);
+    if(fscmha.subcorticalmass==NULL) exit(1);
+    fscmha.nDilate = atoi(argv[4]) ;    
+    fscmha.FixSCM();
+    MRIfree(&fscmha.mask);
+    int err = MRIwrite(fscmha.subcorticalmass,argv[5]);
+    exit(err);
   }
   else if (!stricmp(option, "debug_voxel"))
   {

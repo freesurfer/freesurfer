@@ -62,6 +62,7 @@ install_configured(
   fname2stem
   freesurfer
   fsfirst.fsl
+  fs-check-version
   fs_install_mcr
   fs_lib_check
   fs_run_from_mcr
