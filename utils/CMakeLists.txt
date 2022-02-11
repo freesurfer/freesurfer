@@ -145,6 +145,7 @@ add_library(utils STATIC
   MRISrigidBodyAlignGlobal.cpp
   mris_sphshapepvf.cpp
   GradUnwarp.cpp
+  vol_geom.cpp
   mrisurf.cpp
   mrisurf_base.cpp
   mrisurf_compute_dxyz.cpp
