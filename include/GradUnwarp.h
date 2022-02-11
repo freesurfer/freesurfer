@@ -3,6 +3,7 @@
 
 #include "gcamorph.h"
 #include "mri.h"
+#include "vol_geom.h"
 
 typedef struct
 {
@@ -51,12 +52,13 @@ public:
   void  initSiemensLegendreNormfact();
   void  spharm_evaluate(float X, float Y, float Z, float *Dx, float *Dy, float *Dz);
 
-  void  create_transtable(MRI *origvol, MRI *unwarpedvol, MATRIX *vox2ras, MATRIX *inv_vox2ras);
+  void  create_transtable(VOL_GEOM *vg, MATRIX *vox2ras, MATRIX *inv_vox2ras);
   void  load_transtable(const char* morphfile);
   void  save_transtable(const char* morphfile);
 
   MRI*  unwarp_volume(MRI *origvol, MRI *unwarpedvol, int interpcode, int sinchw);
-  void  unwarp_surface();
+  MRIS* unwarp_surface_gradfile(MRIS *origsurf, MRIS *unwarpedsurf);
+  MRIS* unwarp_surface(MRIS *origsurf, MRIS *unwarpedsurf);
   
 private:
   int nthreads;

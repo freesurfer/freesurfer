@@ -24,8 +24,11 @@
 #include "const.h"
 #include "float.h"
 
+#include "vol_geom.h"
+
 typedef enum { MINC, TKREG, GENERIC, UNKNOWN=-1 } TransformType;
 
+#if 0
 typedef struct
 {
   int           valid;   /* whether this is a
@@ -43,6 +46,7 @@ typedef struct
   char          fname[STRLEN];  // volume filename
 }
 VOL_GEOM, VG;
+#endif
 
 typedef struct
 {
