@@ -91,6 +91,9 @@ def read_schedule_file(filename):
 def run_kvlBuildAtlasMesh(binary, work_dir, epoch_num, num_upsamples, mesh_size, label_files, num_itr=5, stiffness=1.0, edgeCollapse=1.0, startCollection=None):
   launch_dir = os.path.join(work_dir, 'epoch_'+'{:04d}'.format(epoch_num)+'_launch_dir')
   out_dir = os.path.join(work_dir, 'epoch_'+'{:04d}'.format(epoch_num)+'_out_dir')
+
+  os.makedirs(launch_dir, exist_ok=True)
+  os.makedirs(out_dir, exist_ok=True)
   
   print(f"gems_train_mesh: epoch: {epoch_num}\n  launch dir: {launch_dir}\n  out dir: {out_dir}")
 
@@ -98,10 +101,8 @@ def run_kvlBuildAtlasMesh(binary, work_dir, epoch_num, num_upsamples, mesh_size,
   if startCollection is not None:
     startCollection_dest = os.path.join(launch_dir, 'explicitStartCollection.gz')
     shutil.copy(startCollection, startCollection_dest)
-  
-  # launch
-  os.makedirs(launch_dir, exist_ok=True)
-  os.makedirs(out_dir, exist_ok=True)
+
+  # launch  
   orig_dir = os.getcwd()
   os.chdir(launch_dir)
   launch_cmd = f"{binary} {num_upsamples} {mesh_size[0]} {mesh_size[1]} {mesh_size[2]} {stiffness} {num_itr} {edgeCollapse} {out_dir} "+' '.join(label_files)
