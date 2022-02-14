@@ -1,7 +1,6 @@
 #ifndef VOL_GEOM_H
 #define VOL_GEOM_H
 
-//#include "gca.h"
 #include "mri.h"
 
 struct VOL_GEOM;
@@ -68,4 +67,5 @@ struct VOL_GEOM
 };
 
 typedef VOL_GEOM VG;
+
 #endif

@@ -159,7 +159,8 @@ int main(int argc, char *argv[])
     vox2ras_orig = extract_i_to_r(origvol);  //MRIxfmCRS2XYZ(origvol, 0);
     inv_vox2ras_orig = MatrixInverse(vox2ras_orig, NULL);  //extract_r_to_i(origvol);
 
-    vg.copyFromMRI(origvol);
+    //vg.copyFromMRI(origvol);  // vol_geom.cpp
+    getVolGeom(origvol, &vg);
 
     printVolInfo(origvol, vox2ras_orig, inv_vox2ras_orig);
   }
@@ -167,10 +168,13 @@ int main(int argc, char *argv[])
   {
     origsurf = MRISread(insurf);
 
-    vox2ras_orig     = origsurf->vg.getVox2RAS();
-    inv_vox2ras_orig = origsurf->vg.getRAS2Vox();
+    //vox2ras_orig     = origsurf->vg.getVox2RAS();
+    //inv_vox2ras_orig = origsurf->vg.getRAS2Vox();
+    //vg.copy(&origsurf->vg);  // vol_geom.cpp
 
-    vg.copy(&origsurf->vg);
+    vox2ras_orig     = vg_i_to_r(&origsurf->vg);
+    inv_vox2ras_orig = vg_r_to_i(&origsurf->vg);
+    copyVolGeom(&origsurf->vg, &vg);
   }
 
   GradUnwarp *gradUnwarp = new GradUnwarp(nthreads);

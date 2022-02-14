@@ -3,7 +3,7 @@
 
 #include "gcamorph.h"
 #include "mri.h"
-#include "vol_geom.h"
+//#include "vol_geom.h"
 
 typedef struct
 {
