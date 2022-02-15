@@ -12,6 +12,18 @@
 #   - The number of interations to run for this epoch (unsigned int)
 #   - The 'stiffness' factor to pass to kvlBuildAtlasMesh (float)
 #   - The 'edgeCollapseEncouragementFactor' to pass to kvlBuildAtlasMesh (float)
+#
+# Example:
+#  /autofs/cluster/gerenuk/pwighton/fs/freesurfer/samseg/gems_train_mesh \
+#    --num-upsamples 1 \
+#    --mesh-size 3 3 3 \
+#    --schedule-file /autofs/cluster/gerenuk/pwighton/fs/freesurfer/samseg/training-schedule-example.txt \
+#    --work-dir /autofs/cluster/gerenuk/pwighton/samseg/test-gems-train-mesh-02 \
+#    --binary /autofs/cluster/gerenuk/pwighton/samseg/install/gems/bin/kvlBuildAtlasMesh \
+#    --label-files \
+#        seg_1.mgz \
+#        seg_2.mgz \
+#        seg_3.mgz
 ###########################
 
 import os
