@@ -659,7 +659,7 @@ if(NOT MINIMAL)
     qdec_glmfit
     resurf
     spline3
-    subfields
+    subregions
     stat_normalize
     stim_polar
     mri_synthseg

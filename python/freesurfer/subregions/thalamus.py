@@ -5,8 +5,8 @@ import scipy.ndimage
 import freesurfer as fs
 
 from freesurfer import samseg
-from freesurfer.subfields import utils
-from freesurfer.subfields.core import MeshModel
+from freesurfer.subregions import utils
+from freesurfer.subregions.core import MeshModel
 
 
 class ThalamicNuclei(MeshModel):
