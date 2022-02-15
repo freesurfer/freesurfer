@@ -3645,7 +3645,10 @@ static void check_options(void) {
     exit(1);
   }
 
-
+  if(DoSim && !strcmp(csd->simtype,"perm") && npvr != 0){
+    printf("ERROR: PVR is not supported with permutation simulations\n");
+    exit(1);
+  }
   return;
 }
 

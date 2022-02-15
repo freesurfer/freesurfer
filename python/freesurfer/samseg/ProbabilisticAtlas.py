@@ -56,7 +56,7 @@ class ProbabilisticAtlas:
                 priors[..., competingStructureNumbers] = miniPriors
 
             # Set the alphas
-            alphas = mesh_collection.reference_mesh.fit_alphas(priors)
+            alphas = mesh_collection.reference_mesh.fit_alphas(priors, 10)
             mesh_collection.reference_mesh.alphas = alphas
 
         # Transform

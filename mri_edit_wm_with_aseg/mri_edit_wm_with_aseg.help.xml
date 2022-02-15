@@ -35,6 +35,10 @@
     </required-flagged>
     <optional-flagged>
       <argument>-fillven</argument>
+      <argument>-fix-scm-ha ndil</argument>
+      <explanation>Remove voxels in amyg, ILV, and parts of hippo</explanation>
+      <argument>-fix-scm-ha-only aseg.presurf.mgz SCM ndil out.mgz</argument>
+      <explanation>Standalone: </explanation>
       <argument>-keep</argument>
       <explanation>keep edits as found in output volume</explanation>
       <argument>-keep-in</argument>

@@ -256,7 +256,11 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--debug"))   debug = 1;
     else if (!strcasecmp(option, "--checkopts"))   checkoptsonly = 1;
     else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
-
+    else if (!strcasecmp(option, "--debug-vertex")){
+      debug = 1;
+      sscanf(pargv[0],"%d",&Gdiag_no);
+      nargsused = 1;
+    }
     else if (!strcasecmp(option, "--s")) {
       if (nargc < 1) CMDargNErr(option,1);
       subject = pargv[0];
@@ -353,6 +357,7 @@ static void print_usage(void) {
   printf("\n");
   printf("   --surf surfname : default is white\n");
   printf("   --debug     turn on debugging\n");
+  printf("   --debug-vertex vtxno :  turn on debugging for vertex\n");
   printf("   --checkopts don't run anything, just check options and exit\n");
   printf("   --help      print out information on how to use this program\n");
   printf("   --version   print out version and exit\n");

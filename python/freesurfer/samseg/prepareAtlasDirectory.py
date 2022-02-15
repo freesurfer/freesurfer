@@ -125,7 +125,7 @@ def smoothMeshCollection( meshCollection, sigma, returnPriors=False, showFigures
     priors = ndimage.gaussian_filter( priors.astype( float ), 
                                       sigma=( sigma, sigma, sigma, 0 ) ).astype( priors.dtype )
     visualizer.show( probabilities=priors )
-    alphas = meshCollection.reference_mesh.fit_alphas( priors )
+    alphas = meshCollection.reference_mesh.fit_alphas( priors , 10 )
     meshCollection.reference_mesh.alphas = alphas
     visualizer.show( probabilities=meshCollection.reference_mesh.rasterize( size, -1 ) )
 
@@ -236,7 +236,7 @@ def prepareAtlasDirectory( directoryName,
         priors = smoothMeshCollection( meshCollection, smoothingSigmaForAffine, returnPriors=True )
         #visualizer.show( probabilities=priors )
         meshCollection.construct( [ 30, 30, 30 ], priors.shape[ 0:3 ], 1000.0, 2, 1 )
-        alphas = meshCollection.reference_mesh.fit_alphas( priors )
+        alphas = meshCollection.reference_mesh.fit_alphas( priors , 10 )
         meshCollection.reference_mesh.alphas = alphas
         #visualizer.show( probabilities=meshCollection.reference_mesh.rasterize( 
         #                                                    priors.shape[ 0:3 ], -1 ) )
