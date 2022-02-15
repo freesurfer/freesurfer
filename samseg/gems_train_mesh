@@ -6,6 +6,12 @@
 # and makes repeated calls to `kvlBuildAtlasMesh` according to the training
 # schedule, using the output of one call to `kvlBuildAtlasMesh` as input to the
 # next (via `explicitStartCollection`)
+#
+# The file `training-schedule-example.txt` contains an example training schedule
+# every line should contain 3 numbers
+#   - The number of interations to run for this epoch (unsigned int)
+#   - The 'stiffness' factor to pass to kvlBuildAtlasMesh (float)
+#   - The 'edgeCollapseEncouragementFactor' to pass to kvlBuildAtlasMesh (float)
 ###########################
 
 import os
