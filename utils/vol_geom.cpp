@@ -498,16 +498,19 @@ MATRIX* VOL_GEOM::getRAS2Vox(int base)
   return (ras2vox);
 }
 
+
+// tkregister space vox2ras from vol geom
+// MATRIX *TkrVox2RASfromVolGeom(const VOL_GEOM *vg)
+// MATRIX *MRIxfmCRS2XYZtkreg(const MRI *mri)
 MATRIX* VOL_GEOM::getTkregVox2RAS(int base)
 {
   if (tkregvox2ras != NULL)
     return tkregvox2ras;
-
   
-  MATRIX *PxyzOffset, *Pcrs;
-
   tkregvox2ras = MatrixAlloc(4, 4, MATRIX_REAL);
 
+  /* Set tkregister defaults */
+  /* column         row           slice          center      */
   float x_r_tkreg = -1;
   float y_r_tkreg = 0;
   float z_r_tkreg = 0;
@@ -553,7 +556,7 @@ MATRIX* VOL_GEOM::getTkregVox2RAS(int base)
   /* At this point, m = Mdc * D */
 
   /* Col, Row, Slice at the Center of the Volume */
-  Pcrs = MatrixAlloc(4, 1, MATRIX_REAL);
+  MATRIX *Pcrs = MatrixAlloc(4, 1, MATRIX_REAL);
   *MATRIX_RELT(Pcrs, 1, 1) = (double)width / 2.0 + base;
   *MATRIX_RELT(Pcrs, 2, 1) = (double)height / 2.0 + base;
   *MATRIX_RELT(Pcrs, 3, 1) = (double)depth / 2.0 + base;
@@ -561,7 +564,7 @@ MATRIX* VOL_GEOM::getTkregVox2RAS(int base)
 
   /* XYZ offset the first Col, Row, and Slice from Center */
   /* PxyzOffset = Mdc*D*PcrsCenter */
-  PxyzOffset = MatrixMultiply(tkregvox2ras, Pcrs, NULL);
+  MATRIX *PxyzOffset = MatrixMultiply(tkregvox2ras, Pcrs, NULL);
 
   /* XYZ at the Center of the Volume is c_r, c_a, c_s  */
 

@@ -3,10 +3,10 @@ import numpy as np
 import freesurfer as fs
 
 from freesurfer import samseg
-from freesurfer.subfields import utils
-from freesurfer.subfields.thalamus import ThalamicNuclei
-from freesurfer.subfields.brainstem import BrainstemSubstructures
-from freesurfer.subfields.hippocampus import HippoAmygdalaSubfields
+from freesurfer.subregions import utils
+from freesurfer.subregions.thalamus import ThalamicNuclei
+from freesurfer.subregions.brainstem import BrainstemSubstructures
+from freesurfer.subregions.hippocampus import HippoAmygdalaSubfields
 
 
 model_lookup = {

@@ -2,20 +2,20 @@
 
 import os
 import freesurfer as fs
-from freesurfer import subfields
+from freesurfer import subregions
 
 
 description = f'''
 Cross-sectional and longitudinal segmentation for the following
-structures: {", ".join(subfields.structure_names)}. To segment
+structures: {", ".join(subregions.structure_names)}. To segment
 the thalamic nuclei, for example, in a cross-sectional analysis:
 
-    segment_subfields thalamus --cross subj
+    segment_subregions thalamus --cross subj
 
 Similarly, for a longitudinal analysis, run:
 
-    segment_subfields thalamus --long-base base \\ 
-                      --long-tps m00.long.base m24.long.base
+    segment_subregions thalamus --long-base base \\ 
+                        --long-tps m00.long.base m24.long.base
 
 where each argument to --long-tps represents a subject timepoint.
 Output segmentations and computed structure volumes will be
@@ -23,7 +23,7 @@ saved to the subject's `mri` subdirectory.
 '''
 
 parser = fs.utils.ArgumentParser(description=description)
-parser.add_argument('structure', help=f'Structure to segment. Options are: {", ".join(subfields.structure_names)}.')
+parser.add_argument('structure', help=f'Structure to segment. Options are: {", ".join(subregions.structure_names)}.')
 parser.add_argument('--cross', help='Subject to segment in cross-sectional analysis.')
 parser.add_argument('--long-tps', nargs='+', help='Subject timepoints to segment in longitudinal analysis.')
 parser.add_argument('--long-base', help='Base subject for longitudinal analysis.')
@@ -40,7 +40,7 @@ if not fs.fshome():
     fs.fatal('FREESURFER_HOME must be set!')
 
 # Specify the maximum number of threads the GEMS code will use
-subfields.set_thread_count(args.threads)
+subregions.set_thread_count(args.threads)
 
 # Sanity check on process type
 if args.cross and (args.long_base or args.long_tps):
@@ -92,16 +92,16 @@ for side in sides:
             'tempDir': args.temp_dir,
         })
         if args.structure == 'hippo-amygdala':
-            # Provide some extra data for hippocampal subfields
+            # Provide some extra data for hippocampal subregions
             subjParameters['wmParcFileName'] = os.path.join(subjdir, 'mri', 'wmparc.mgz')
         return subjParameters
 
     if args.cross:
         # Cross-sectional analysis
         parameters = config_subj_params(args.cross, out_dir=args.out_dir)
-        subfields.run_cross_sectional(args.structure, parameters)
+        subregions.run_cross_sectional(args.structure, parameters)
     else:
         # Longitudinal analysis
         baseParameters = config_subj_params(args.long_base, temp_subdir=f'base')
         tpParameters = [config_subj_params(subj, temp_subdir=f'tp{t:02d}') for t, subj in enumerate(args.long_tps)]
-        subfields.run_longitudinal(args.structure, baseParameters, tpParameters)
+        subregions.run_longitudinal(args.structure, baseParameters, tpParameters)

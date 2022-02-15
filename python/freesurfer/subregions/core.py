@@ -6,7 +6,7 @@ import scipy.ndimage
 import freesurfer as fs
 
 from freesurfer import samseg
-from freesurfer.subfields import utils
+from freesurfer.subregions import utils
 
 
 class MeshModel:

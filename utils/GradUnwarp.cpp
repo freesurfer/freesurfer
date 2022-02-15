@@ -574,14 +574,15 @@ MRIS* GradUnwarp::unwarp_surface_gradfile(MRIS *origsurf, MRIS *unwarpedsurf)
 #endif
 
   // to do: extract VOL_GEOM out of transform.h/transform.cpp
-  MATRIX *Tinv = origsurf->vg.getTkregRAS2Vox();       // tkreg space, RAS to VOX
-  MATRIX *S    = origsurf->vg.getVox2RAS();            // scanner space, VOX to RAS
+  //MATRIX *Tinv = origsurf->vg.getTkregRAS2Vox();       // tkreg space, RAS to VOX
+  //MATRIX *S    = origsurf->vg.getVox2RAS();            // scanner space, VOX to RAS
+  //MATRIX *Q    = origsurf->vg.getRAS2Vox();            // scanner space, RAS to VOX
 
-  //MATRIX *Tinv = TkrRAS2VoxfromVolGeom(&origsurf->vg); // tkreg space, RAS to VOX
-  //MATRIX *S    = vg_i_to_r(&origsurf->vg);             // scanner space, VOX to RAS
+  MATRIX *Tinv = TkrRAS2VoxfromVolGeom(&origsurf->vg); // tkreg space, RAS to VOX
+  MATRIX *S    = vg_i_to_r(&origsurf->vg);             // scanner space, VOX to RAS
   MATRIX *M    = MatrixMultiply(S, Tinv, NULL);        // RAS to RAS, tkreg space to scanner space
     
-  MATRIX *Q    = origsurf->vg.getRAS2Vox();            // scanner space, RAS to VOX
+  MATRIX *Q    = vg_r_to_i(&origsurf->vg);             // scanner space, RAS to VOX
 
   int n; 
 #ifdef HAVE_OPENMP
@@ -690,8 +691,12 @@ MRIS* GradUnwarp::unwarp_surface(MRIS *origsurf, MRIS *unwarpedsurf)
 #endif
 
   // to do: extract VOL_GEOM out of transform.h/transform.cpp
-  MATRIX *Tinv = origsurf->vg.getTkregRAS2Vox();       // tkreg space, RAS to VOX
-  MATRIX *S    = origsurf->vg.getVox2RAS();            // scanner space, VOX to RAS
+  //MATRIX *Tinv = origsurf->vg.getTkregRAS2Vox();       // tkreg space, RAS to VOX
+  //MATRIX *S    = origsurf->vg.getVox2RAS();            // scanner space, VOX to RAS
+
+  MATRIX *Tinv = TkrRAS2VoxfromVolGeom(&origsurf->vg); // tkreg space, RAS to VOX
+  MATRIX *S    = vg_i_to_r(&origsurf->vg);             // scanner space, VOX to RAS
+
   MATRIX *M    = MatrixMultiply(S, Tinv, NULL);        // RAS to RAS, tkreg space to scanner space
 
   int n; 
