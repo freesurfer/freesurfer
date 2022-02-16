@@ -56,9 +56,9 @@ public:
   void  load_transtable(const char* morphfile);
   void  save_transtable(const char* morphfile);
 
-  MRI*  unwarp_volume(MRI *origvol, MRI *unwarpedvol, int interpcode, int sinchw);
-  MRIS* unwarp_surface_gradfile(MRIS *origsurf, MRIS *unwarpedsurf);
-  MRIS* unwarp_surface(MRIS *origsurf, MRIS *unwarpedsurf);
+  MRI*  unwarp_volume(MRI *warpedvol, MRI *unwarpedvol, int interpcode, int sinchw);
+  MRIS* unwarp_surface_gradfile(MRIS *warpedsurf, MRIS *unwarpedsurf);
+  MRIS* unwarp_surface(MRIS *warpedsurf, MRIS *unwarpedsurf);
   
 private:
   int nthreads;
@@ -91,7 +91,7 @@ private:
   void _skipCoeffComment();
   void _initCoeff();
   void _update_GCAMnode(int c, int r, int s, float fcs, float frs, float fss);
-  void _assignUnWarpedVolumeValues(MRI* origvol, MRI* unwarpedvol, MRI_BSPLINE *bspline, int interpcode, int sinchw,
+  void _assignUnWarpedVolumeValues(MRI* warpedvol, MRI* unwarpedvol, MRI_BSPLINE *bspline, int interpcode, int sinchw,
                                    int c, int r, int s, float fcs, float frs, float fss);
 };
 
