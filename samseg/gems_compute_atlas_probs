@@ -26,7 +26,7 @@ parser.add_argument('--mesh-collections', nargs='+', help='Mesh collection file(
 parser.add_argument('--out-dir', help='Output directory.', required=True)
 parser.add_argument('--segmentations-dir', help='Directory with GT segmentations.')
 parser.add_argument('--gt-from-FS', action='store_true', default=False, help='GT from FreeSurfer segmentations.')
-parser.add_argument('--segmentation-name', help='Filename of the segmentations, assumed to be the same for each subject.')
+parser.add_argument('--segmentation-name', default='aseg.mgz',help='Filename of the segmentations, assumed to be the same for each subject.')
 parser.add_argument('--multi-structure', action='store_true', default=False, help="Estimate alphas from more than 1 structure.")
 parser.add_argument('--labels', type=int, nargs='+', help="Labels numbers. Needs --multi-structure flag on.")
 parser.add_argument('--from-samseg', action='store_true', default=False, help="SAMSEG runs obtained from command samseg instead of run_samseg.")
@@ -132,8 +132,10 @@ for level, mesh_collection_file in enumerate(args.mesh_collections):
 
         # Read the manually annotated segmentation for the specific subject
         if args.gt_from_FS:
-            segmentation_image = nib.load(os.path.join(args.segmentations_dir, subject_dir, 'mri', 'aseg.mgz')).get_fdata()
-            affine = nib.load(os.path.join(args.segmentations_dir, subject_dir, 'mri', 'aseg.mgz')).affine
+            segpath = os.path.join(args.segmentations_dir, subject_dir, 'mri', args.segmentation_name);
+            print("seg %s" % segpath);
+            segmentation_image = nib.load(segpath).get_fdata()
+            affine = nib.load(os.path.join(args.segmentations_dir, subject_dir, 'mri', args.segmentation_name)).affine
         else:
             segmentation_image = nib.load(os.path.join(args.segmentations_dir, subject_dir, args.segmentation_name)).get_fdata()
             affine = nib.load(os.path.join(args.segmentations_dir, subject_dir, args.segmentation_name)).affine
