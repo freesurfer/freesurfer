@@ -14,26 +14,26 @@
 /* examples:
  *
  * unwarp at given crs (debugging)
- * 1. mris_gradient_unwarp/mris_gradient_unwarp 
+ * 1. mri_gradunwarp/mri_gradunwarp 
  *    --gradcoeff $FS_TEST/gradunwarp/example/coeff_Sonata.grad 
  *    --i $FS_TEST/gradunwarp/example/orig.mgz 
  *    --crs 0,0,0
  *
  * unwarp for given ras (debugging)
- * 2. mris_gradient_unwarp/mris_gradient_unwarp 
+ * 2. mri_gradunwarp/mri_gradunwarp 
  *    --gradcoeff $FS_TEST/gradunwarp/example/coeff_Sonata.grad 
  *    --i $FS_TEST/gradunwarp/example/orig.mgz 
  *    --ras 0.1,0.2,0.3
  *
  * create gradient unwarp transformation table
- * 3. mris_gradient_unwarp/mris_gradient_unwarp 
+ * 3. mri_gradunwarp/mri_gradunwarp 
  *    --gradcoeff $FS_TEST/gradunwarp/example/coeff_Sonata.grad 
  *    --i $FS_TEST/gradunwarp/example/orig.mgz 
  *    --save_transtbl gradunwarp.m3z
  *    --nthreads 10
  *
  * transform given volume, save gradient unwarp transformation table
- * 4. mris_gradient_unwarp/mris_gradient_unwarp 
+ * 4. mri_gradunwarp/mri_gradunwarp 
  *    --gradcoeff $FS_TEST/gradunwarp/example/coeff_Sonata.grad 
  *    --i $FS_TEST/gradunwarp/example/orig.mgz 
  *    --o orig.unwarped.cubic.mgz --interp cubic --unwarpvol
@@ -41,7 +41,7 @@
  *    --nthreads 10
  *
  * transform given volume using input gradient unwarp transformation table
- * 5. mris_gradient_unwarp/mris_gradient_unwarp 
+ * 5. mri_gradunwarp/mri_gradunwarp 
  *    --load_transtbl $FS_TEST/gradunwarp/transtbl/savetbl/gradunwarp.m3z
  *    --i $FS_TEST/gradunwarp/example/orig.mgz 
  *    --o orig.unwarped.cubic.mgz --interp cubic --unwarpvol
@@ -118,7 +118,7 @@ int main(int argc, char *argv[])
 
   interpcode = MRIinterpCode(interpmethod);
 
-  nargs = handleVersionOption(argc, argv, "mris_gradient_unwarp");
+  nargs = handleVersionOption(argc, argv, "mri_gradunwarp");
   if (nargs && argc - nargs == 1) exit (0);
   argc -= nargs;
   cmdline = argv2cmdline(argc,argv);
