@@ -1,11 +1,11 @@
-project(mris_gradient_unwarp)
+project(mri_gradunwarp)
 
 include_directories(${FS_INCLUDE_DIRS})
 
-set(TARGET_EXE mris_gradient_unwarp)
+set(TARGET_EXE mri_gradunwarp)
 
 add_executable(${TARGET_EXE} 
-    mris_gradient_unwarp.cpp)
+    mri_gradunwarp.cpp)
 
 target_link_libraries(${TARGET_EXE} utils)
 
