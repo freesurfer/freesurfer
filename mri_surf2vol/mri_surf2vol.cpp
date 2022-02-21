@@ -370,8 +370,8 @@ int main(int argc, char **argv) {
     printf("INFO: resampling surface to volume\n");
     nhits = MRIsurf2Vol(SurfVal, OutVol, VtxVol);
     printf("INFO: sampled %d voxels in the volume\n",nhits);
-    MRIcopyHeader(OutVol,VtxVol); // should fix MRIsurf2vol()
   }
+  MRIcopyHeader(OutVol,VtxVol); // should fix MRIsurf2vol()
 
   if(DoAddVal){
     printf("Adding %lf to non-zero voxels\n",AddVal);
