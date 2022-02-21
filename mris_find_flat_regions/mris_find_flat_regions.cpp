@@ -41,7 +41,7 @@ static void print_version(void) ;
 
 const char *Progname ;
 
-static int segment_rois = 1 ;
+static int segment_rois = 0 ;
 static  float  thresh =  0.99 ;
 
 int
