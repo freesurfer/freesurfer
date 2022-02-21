@@ -136,7 +136,7 @@ static MRI *ximgRead(const char *fname, int read_volume);
 static MRI *nifti1Read(const char *fname, int read_volume);
 static int nifti1Write(MRI *mri, const char *fname);
 static MRI *niiRead(const char *fname, int read_volume);
-static MRI *niiRead3(MRIFSSTRUCT *mrifsStruct);
+static MRI *niiReadFromMriFsStruct(MRIFSSTRUCT *mrifsStruct);
 static int niiWrite(MRI *mri, const char *fname);
 static int itkMorphWrite(MRI *mri, const char *fname);
 static int niftiQformToMri(MRI *mri, struct nifti_1_header *hdr);
@@ -687,7 +687,7 @@ MRI *mri_read(const char *fname, int type, int volume_flag, int start_frame, int
       if (mrifsStruct == NULL) 
 	return NULL;
 
-      mri = niiRead3(mrifsStruct);
+      mri = niiReadFromMriFsStruct(mrifsStruct);
       if (mri != NULL && mri->ti < 0)
 	mri->ti = 0;
 
@@ -705,7 +705,7 @@ MRI *mri_read(const char *fname, int type, int volume_flag, int start_frame, int
       if (mrifsStruct == NULL) 
 	return NULL;
 
-      mri = niiRead3(mrifsStruct);
+      mri = niiReadFromMriFsStruct(mrifsStruct);
 
       free(mrifsStruct->imgM);
       free(mrifsStruct->tdti);
@@ -8792,12 +8792,15 @@ static MRI *niiRead(const char *fname, int read_volume)
 
 
 /*------------------------------------------------------------------
-  niiRead3() - note: there are also nifti1Read() and niiRead(). Make sure to
+  niiReadFromMriFsStruct() - note: there are also nifti1Read() and niiRead(). Make sure to
   edit all. Automatically detects whether an input is Ico7
   and reshapes.
   This function is used with DICOMRead3().
+  DICOMRead3() read/parse dicom files using dcm2niix_fswrapper.
+  MRIFSSTRUCT holds the parsing output from dcm2niix, which contains nifti header, 
+  image data, acqusition parameters, and bvecs. See nii_dicom_batch.h for details.
   -----------------------------------------------------------------*/
-static MRI *niiRead3(MRIFSSTRUCT *mrifsStruct)
+static MRI *niiReadFromMriFsStruct(MRIFSSTRUCT *mrifsStruct)
 {
   MRI *mri, *mritmp;
   int nslices;
@@ -8816,21 +8819,21 @@ static MRI *niiRead3(MRIFSSTRUCT *mrifsStruct)
     swapped_flag = TRUE;
     swap_nifti_1_header(hdr);
     if (hdr->dim[0] < 1 || hdr->dim[0] > 7) {
-      ErrorReturn(NULL, (ERROR_BADFILE, "niiRead3(): bad number of dimensions (%hd)", hdr->dim[0]));
+      ErrorReturn(NULL, (ERROR_BADFILE, "niiReadFromMriFsStruct(): bad number of dimensions (%hd)", hdr->dim[0]));
     }
   }
 
   if (memcmp(hdr->magic, NII_MAGIC, 4) != 0) {
-    ErrorReturn(NULL, (ERROR_BADFILE, "niiRead3(): bad magic number"));
+    ErrorReturn(NULL, (ERROR_BADFILE, "niiReadFromMriFsStruct(): bad magic number"));
   }
 
   //  if (hdr.dim[0] != 2 && hdr.dim[0] != 3 && hdr.dim[0] != 4){
   if (hdr->dim[0] < 1 || hdr->dim[0] > 5) {
-    ErrorReturn(NULL, (ERROR_UNSUPPORTED, "niiRead3(): %hd dimensions; unsupported", hdr->dim[0]));
+    ErrorReturn(NULL, (ERROR_UNSUPPORTED, "niiReadFromMriFsStruct(): %hd dimensions; unsupported", hdr->dim[0]));
   }
 
   if (hdr->datatype == DT_NONE || hdr->datatype == DT_UNKNOWN) {
-    ErrorReturn(NULL, (ERROR_UNSUPPORTED, "niiRead3(): unknown or no data type; bailing out"));
+    ErrorReturn(NULL, (ERROR_UNSUPPORTED, "niiReadFromMriFsStruct(): unknown or no data type; bailing out"));
   }
   if (hdr->dim[4] == 0) {
     printf("WARNING: hdr->dim[4] = 0 (nframes), setting to 1\n");
@@ -8848,7 +8851,7 @@ static MRI *niiRead3(MRIFSSTRUCT *mrifsStruct)
     space_units_factor = 1.0;
   }
   else
-    ErrorReturn(NULL, (ERROR_BADFILE, "niiRead3(): unknown space units %d", space_units));
+    ErrorReturn(NULL, (ERROR_BADFILE, "niiReadFromMriFsStruct(): unknown space units %d", space_units));
 
   time_units = XYZT_TO_TIME(hdr->xyzt_units);
   if (time_units == NIFTI_UNITS_SEC)
@@ -8871,7 +8874,7 @@ static MRI *niiRead3(MRIFSSTRUCT *mrifsStruct)
         hdr->slice_code != NIFTI_SLICE_ALT_INC && hdr->slice_code != NIFTI_SLICE_ALT_DEC &&
         hdr->slice_code != NIFTI_SLICE_ALT_INC2 && hdr->slice_code != NIFTI_SLICE_ALT_DEC2) {
       ErrorReturn(
-          NULL, (ERROR_UNSUPPORTED, "niiRead3(): unsupported slice timing pattern %d", hdr->slice_code));
+          NULL, (ERROR_UNSUPPORTED, "niiReadFromMriFsStruct(): unsupported slice timing pattern %d", hdr->slice_code));
     }
   }
 
@@ -8883,7 +8886,7 @@ static MRI *niiRead3(MRIFSSTRUCT *mrifsStruct)
   // put extra dims in frames
   if (hdr->dim[0] > 4 && hdr->dim[5] > 0) nslices *= hdr->dim[5];
   if (Gdiag_no > 0)
-    printf("niiRead3(): hdr->dim %d %d %d %d %d %d\n",
+    printf("niiReadFromMriFsStruct(): hdr->dim %d %d %d %d %d %d\n",
            hdr->dim[0],
            hdr->dim[1],
            hdr->dim[2],
@@ -8934,19 +8937,19 @@ static MRI *niiRead3(MRIFSSTRUCT *mrifsStruct)
     else if (hdr->datatype == DT_DOUBLE) {
       fs_type = MRI_FLOAT;
       bytes_per_voxel = 8;
-      printf("niiRead3(): detected input as 64 bit double, reading in as 32 bit float\n");
+      printf("niiReadFromMriFsStruct(): detected input as 64 bit double, reading in as 32 bit float\n");
     }
 #if 0    // MRI_RBG not support in mghWrite
     else if (hdr->datatype == DT_RGB) {
       fs_type = MRI_UCHAR;    //MRI_RGB;
       bytes_per_voxel = 3;
-      printf("niiRead3(): DT_RGB, MRI_RGB\n");
+      printf("niiReadFromMriFsStruct(): DT_RGB, MRI_RGB\n");
     }
 #endif
     else {
       ErrorReturn(
           NULL,
-          (ERROR_UNSUPPORTED, "niiRead3(): unsupported datatype %d (with scl_slope = 0)", hdr->datatype)); 
+          (ERROR_UNSUPPORTED, "niiReadFromMriFsStruct(): unsupported datatype %d (with scl_slope = 0)", hdr->datatype)); 
     }
   }
   else {
@@ -8956,7 +8959,7 @@ static MRI *niiRead3(MRIFSSTRUCT *mrifsStruct)
         hdr->datatype != DT_UINT32) {
       ErrorReturn(
           NULL,
-          (ERROR_UNSUPPORTED, "niiRead3(): unsupported datatype %d (with scl_slope != 0)", hdr->datatype));
+          (ERROR_UNSUPPORTED, "niiReadFromMriFsStruct(): unsupported datatype %d (with scl_slope != 0)", hdr->datatype));
     }
     fs_type = MRI_FLOAT;
     bytes_per_voxel = 0; /* set below -- avoid the compiler warning */
@@ -9288,7 +9291,7 @@ static MRI *niiRead3(MRIFSSTRUCT *mrifsStruct)
 
   return (mri);
 
-} /* end niiRead3() */
+} /* end niiReadFromMriFsStruct() */
 
 /*------------------------------------------------------------------
   niiWrite() - note: there is also an nifti1Write(). Make sure to
