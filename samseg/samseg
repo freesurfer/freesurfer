@@ -56,6 +56,7 @@ set ShowFigs = 0
 set ShowMovie = 0;
 set IgnoreUnkown = 0;
 set DoCharm = 0
+set WMCortexPriorsSigma = 0
 
 set inputargs = ($argv);
 set PrintHelp = 0;
@@ -194,6 +195,7 @@ if($#GMM) set cmd0 = ($cmd0 --gmm $GMM)
 if($ShowFigs) set cmd0 = ($cmd0 --showfigs)
 if($ShowMovie) set cmd0 = ($cmd0 --movie)
 if($IgnoreUnkown) set cmd0 = ($cmd0 --ignore-unknown)
+if($WMCortexPriorsSigma != 0) set cmd0 = ($cmd0 --smooth-wm-cortex-priors $WMCortexPriorsSigma)
 
 # specify input list
 foreach input ($inputlist)
@@ -598,6 +600,16 @@ while( $#argv != 0 )
       set SaveProbabilities = 1;
       breaksw
 
+    case "--save-p"
+      set SavePosteriors = 1;
+      set SaveProbabilities = 1;
+      breaksw
+
+    case "--smooth-wm-cortex":
+      if($#argv < 1) goto arg1err;
+      set WMCortexPriorsSigma = $argv[1]; shift
+      breaksw
+
     case "--save-warp":
       set SaveWarp = 1;
       breaksw
@@ -820,6 +832,7 @@ usage_exit:
   echo "                the first input must be the conformed T1 weighted input"
   echo "  --save-posteriors : save posterior probs"
   echo "  --save-probabilities : save post, prior, and likelihood as 3-frame vol foreach tissue type" 
+  echo "  --save-p : same as --save-prosteriors and --save-probabilities"
   echo "  --no-save-warp : do not save m3z-style warp"
   echo "  --mrf/--no-mrf : do or do not do MRF (default is $DoMRF)"
   echo "  --threads nthreads : set the number of CPUs to use"
@@ -850,6 +863,7 @@ usage_exit:
   echo " --max-iters iters"
   echo " --dice seg.mgz"
   echo " --ignore-unknown"
+  echo " --smooth-wm-cortex sigma : smooth wm and cortex priors"
   echo ""
 
   if(! $PrintHelp) exit 1;

@@ -524,6 +524,7 @@ if(NOT MINIMAL)
     mri_fuse_intensity_images
     mri_gca_ambiguous
     mri_glmfit
+    mri_gradunwarp
     mri_gtmpvc
     mri_gtmseg
     mri_hausdorff_dist
@@ -602,7 +603,6 @@ if(NOT MINIMAL)
     mris_find_flat_regions
     mris_flatten
     mris_fwhm
-    mris_gradient_unwarp
     mris_hausdorff_dist
     mris_init_global_tractography
     mris_interpolate_warp
@@ -659,6 +659,7 @@ if(NOT MINIMAL)
     qdec_glmfit
     resurf
     spline3
+    subregions
     stat_normalize
     stim_polar
     mri_synthseg

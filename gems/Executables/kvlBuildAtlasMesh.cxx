@@ -115,7 +115,7 @@ int main( int argc, char** argv )
   // Sanity check on input
   if ( argc < 8 )
     {
-    std::cerr << "Usage: " << argv[ 0 ] << " numberOfUpsamplingSteps meshSizeX meshSizeY meshSizeZ stiffness logDirectory fileName1 [ fileName2 ... ]" << std::endl;
+    std::cerr << "Usage: " << argv[ 0 ] << " numberOfUpsamplingSteps meshSizeX meshSizeY meshSizeZ stiffness numberOfIterations edgeCollapseFactor logDirectory fileName1 [ fileName2 ... ]" << std::endl;
 
     return -1;
     }
@@ -126,7 +126,7 @@ int main( int argc, char** argv )
 
   // Retrieve the input parameters
   std::ostringstream  inputParserStream;
-  for ( int argumentNumber = 1; argumentNumber < 7; argumentNumber++ ) 
+  for ( int argumentNumber = 1; argumentNumber < 9; argumentNumber++ ) 
     {
     inputParserStream << argv[ argumentNumber ] << " ";
     }
@@ -136,16 +136,33 @@ int main( int argc, char** argv )
   unsigned int  meshSizeY;
   unsigned int  meshSizeZ;
   double  stiffness;
+  unsigned int  numberOfIterations;
+  double  edgeCollapseEncouragmentFactor;
   std::string  logDirectory;
-  inputStream >> numberOfUpsamplingSteps >>  meshSizeX >> meshSizeY >> meshSizeZ >> stiffness >> logDirectory;
+  inputStream >> \
+    numberOfUpsamplingSteps >> \
+    meshSizeX >> meshSizeY >> meshSizeZ >> \
+    stiffness >> \
+    numberOfIterations >> \
+    edgeCollapseEncouragmentFactor >> \
+    logDirectory;
 
+  std::cout << "kvlBuildAtlasMesh Command line params:" << std::endl;
+  std::cout << "  numberOfUpsamplingSteps:        " << numberOfUpsamplingSteps << std::endl;
+  std::cout << "  meshSizeX:                      " << meshSizeX << std::endl;
+  std::cout << "  meshSizeY:                      " << meshSizeY << std::endl;
+  std::cout << "  meshSizeZ:                      " << meshSizeZ << std::endl;
+  std::cout << "  stiffness:                      " << stiffness << std::endl;
+  std::cout << "  numberOfIterations:             " << numberOfIterations << std::endl;
+  std::cout << "  edgeCollapseEncouragmentFactor: " << edgeCollapseEncouragmentFactor << std::endl;
+  std::cout << "  logDirectory:                   " << logDirectory << std::endl;
   
   // Read the input images
   typedef kvl::CompressionLookupTable::ImageType  LabelImageType;
   std::vector< LabelImageType::ConstPointer >  labelImages;
-  for ( int argumentNumber = 7; argumentNumber < argc; argumentNumber++ )
+  for ( int argumentNumber = 9; argumentNumber < argc; argumentNumber++ )
     {
-    std::cout << "Reading input image: " << argv[ argumentNumber ] << std::endl
+    std::cout << "Reading input image: " << argv[ argumentNumber ] << std::endl;
     // Read the input image
     typedef itk::ImageFileReader< LabelImageType >  ReaderType;
     ReaderType::Pointer  reader = ReaderType::New();
@@ -174,7 +191,7 @@ int main( int argc, char** argv )
   kvl::AtlasMeshBuilder::Pointer  builder = kvl::AtlasMeshBuilder::New();
   const itk::Size< 3 >  initialSize = { meshSizeX,  meshSizeY, meshSizeZ };
   std::vector< double >  initialStiffnesses( numberOfUpsamplingSteps+1, stiffness );
-  builder->SetUp( labelImages, lookupTable, initialSize, initialStiffnesses );
+  builder->SetUp( labelImages, lookupTable, initialSize, initialStiffnesses, numberOfIterations);
   builder->SetVerbose( false );
 
   // Add some observers/callbacks
@@ -252,11 +269,15 @@ int main( int argc, char** argv )
       {
       std::cerr << "Couldn't read mesh from file " << explicitStartCollectionFileName << std::endl;
       return -1;
+      } 
+    else
+      {
+      std::cout << "explicitStartCollection found; reading from: " << explicitStartCollectionFileName << std::endl;
       }
     }
 
   // If edgeCollapseEncouragmentFactor.txt exists in the current directory, read it's content
-  double  edgeCollapseEncouragmentFactor = 1.0;
+  //double  edgeCollapseEncouragmentFactor = 1.0;
   const std::string  edgeCollapseEncouragmentFactorFileName = "edgeCollapseEncouragmentFactor.txt";
   //if ( itksys::SystemTools::FileExists( edgeCollapseEncouragmentFactorFileName.c_str(), true ) )
   //  {

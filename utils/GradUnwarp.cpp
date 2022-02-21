@@ -4,6 +4,9 @@
 #include <math.h>
 #include <ctype.h>
 
+#include "romp_support.h"
+#include "mriBSpline.h"
+
 #include "GradUnwarp.h"
 #include "legendre.h"
 
@@ -11,8 +14,9 @@
 /******************** Implementation of GradUnwarp class *********************/
 /***************     3 environment variables to enable debug info:        **************/
 /********** PRN_GRADCOEFF, PRN_LEGENDRE_NORMFACT, PRN_LEGENDRE, PRN_SIEMENS_B **********/
-GradUnwarp::GradUnwarp()
+GradUnwarp::GradUnwarp(int nthreads0)
 {
+  nthreads = nthreads0;
   fgrad = NULL;
 
   nmax = 0;
@@ -24,10 +28,22 @@ GradUnwarp::GradUnwarp()
   R0 = 0;
   Alpha_x = NULL; Alpha_y = NULL; Alpha_z = NULL;
   Beta_x  = NULL; Beta_y  = NULL; Beta_z  = NULL;
+
+  Alpha_Beta_initialized = false;
+
+  gcam = NULL;
 }
 
 GradUnwarp::~GradUnwarp()
 {
+  if (!Alpha_Beta_initialized)
+  {
+    if (gcam != NULL)
+      GCAMfree(&gcam);
+
+    return;
+  }
+
   int i;
   for (i = 0; i < coeffDim; i++)
   {
@@ -181,6 +197,8 @@ void GradUnwarp::read_siemens_coeff(const char *gradfilename)
     int col = coeff[n].m; 
     arrPtr[row][col] = coeff[n].value;
   }
+
+  Alpha_Beta_initialized = true;
 }
 
 void GradUnwarp::initSiemensLegendreNormfact()
@@ -223,6 +241,9 @@ void GradUnwarp::initSiemensLegendreNormfact()
 
 void GradUnwarp::spharm_evaluate(float X, float Y, float Z, float *Dx, float *Dy, float *Dz)
 {
+  if (!Alpha_Beta_initialized)
+    return;
+
   Siemens_B *siemens_B = new Siemens_B(coeffDim, nmax, R0, normfact, X, Y, Z);
 
   float bx = siemens_B->siemens_B_x(Alpha_x, Beta_x);
@@ -287,6 +308,504 @@ void GradUnwarp::printCoeff()
       printf("\n");
     }
   }
+}
+
+void GradUnwarp::create_transtable(VOL_GEOM *vg, MATRIX *vox2ras, MATRIX *inv_vox2ras)
+{
+  printf("GradUnwarp::create_transtable() ...\n");
+  if (gcam != NULL)
+    GCAMfree(&gcam);
+
+  gcam = GCAMalloc(vg->width, vg->height, vg->depth);
+
+  // save volgeom orig and target
+  //GCAMinitVolGeom(gcam, origvol, origvol);
+
+#ifdef HAVE_OPENMP
+  printf("\nSet OPEN MP NUM threads to %d (create_transtable)\n", nthreads);
+  omp_set_num_threads(nthreads);
+#endif
+
+  int c; 
+#ifdef HAVE_OPENMP
+#pragma omp parallel for
+#endif
+  for (c = 0; c < vg->width; c++)
+  {
+    // You could make a vector of CRS nthreads long
+    MATRIX *CRS = MatrixAlloc(4, 1, MATRIX_REAL);
+    MATRIX *RAS = MatrixAlloc(4, 1, MATRIX_REAL);;
+    MATRIX *DeltaRAS = MatrixAlloc(4, 1, MATRIX_REAL);
+    MATRIX *DistortedRAS = MatrixAlloc(4, 1, MATRIX_REAL);
+    MATRIX *DistortedCRS = MatrixAlloc(4, 1, MATRIX_REAL);
+
+    int r = 0, s = 0;
+    for (r = 0; r < vg->height; r++)
+    {
+      for (s = 0; s < vg->depth; s++)
+      {
+        // clear CRS, RAS, DeltaRAS, DistortedRAS, DistortedCRS
+        MatrixClear(CRS);
+        MatrixClear(RAS);
+        MatrixClear(DeltaRAS);
+        MatrixClear(DistortedRAS);
+        MatrixClear(DistortedCRS);
+
+        CRS->rptr[1][1] = c;
+        CRS->rptr[2][1] = r;
+        CRS->rptr[3][1] = s;
+        CRS->rptr[4][1] = 1;
+
+        // Convert the CRS to RAS
+        RAS->rptr[4][1] = 1;
+        RAS = MatrixMultiply(vox2ras, CRS, RAS);
+
+        double x = RAS->rptr[1][1];
+        double y = RAS->rptr[2][1];
+        double z = RAS->rptr[3][1];
+        float Dx = 0, Dy = 0, Dz = 0;
+        spharm_evaluate(x, y, z, &Dx, &Dy, &Dz);
+
+        DeltaRAS->rptr[1][1] = Dx;
+        DeltaRAS->rptr[2][1] = Dy;
+        DeltaRAS->rptr[3][1] = Dz;
+        DeltaRAS->rptr[4][1] = 1; 
+        
+        DistortedRAS = MatrixAdd(RAS, DeltaRAS, DistortedRAS);
+        DistortedRAS->rptr[4][1] = 1;
+        DistortedCRS = MatrixMultiply(inv_vox2ras, DistortedRAS, DistortedCRS);
+	   
+        float fcs = DistortedCRS->rptr[1][1];
+        float frs = DistortedCRS->rptr[2][1];
+        float fss = DistortedCRS->rptr[3][1];
+
+        //printf("%f => %f, %f => %f, %f => %f\n", (float)c, fcs, (float)r, frs, (float)s, fss);
+
+        // update GCAM nodes
+        _update_GCAMnode(c, r, s, fcs, frs, fss);
+      }   // s
+    }     // r
+
+    MatrixFree(&CRS);
+    MatrixFree(&RAS);
+    MatrixFree(&DeltaRAS);
+    MatrixFree(&DistortedRAS);
+    MatrixFree(&DistortedCRS);
+  }       // c
+}
+
+void GradUnwarp::_update_GCAMnode(int c, int r, int s, float fcs, float frs, float fss)
+{
+  // gcam->nodes are indexed by unwarped (c, r, s)
+  GCA_MORPH_NODE *gcamn = &gcam->nodes[c][r][s];
+  gcamn->origx = c; gcamn->origy = r; gcamn->origz = s;
+  gcamn->x = fcs; gcamn->y = frs; gcamn->z = fss;
+}
+
+void GradUnwarp::load_transtable(const char* transfile)
+{
+  printf("GradUnwarp::load_transtable(%s) ...\n", transfile);
+  gcam = GCAMread(transfile);
+}
+
+void GradUnwarp::save_transtable(const char* transfile)
+{
+  printf("GradUnwarp::save_transtable(%s) ...\n", transfile);
+  GCAMwrite(gcam, transfile);
+}
+
+MRI *GradUnwarp::unwarp_volume(MRI *warpedvol, MRI *unwarpedvol, int interpcode, int sinchw)
+{
+  printf("GradUnwarp::unwarp_volume() ...\n");
+
+   int (*nintfunc)( double );
+  nintfunc = &nint;
+
+  if (unwarpedvol == NULL)
+  {
+    unwarpedvol = MRIallocSequence(warpedvol->width, warpedvol->height, warpedvol->depth, MRI_FLOAT, warpedvol->nframes);
+    MRIcopyHeader(warpedvol, unwarpedvol);
+    MRIcopyPulseParameters(warpedvol, unwarpedvol);
+  }
+
+  MRI_BSPLINE *bspline = NULL;
+  if (interpcode == SAMPLE_CUBIC_BSPLINE)
+    bspline = MRItoBSpline(warpedvol, NULL, 3);
+
+#ifdef HAVE_OPENMP
+  printf("\nSet OPEN MP NUM threads to %d (unwarp_volume)\n", nthreads);
+  omp_set_num_threads(nthreads);
+#endif
+
+  int c; 
+  int outofrange_total = 0;
+  int out_of_gcam;
+#ifdef HAVE_OPENMP
+#pragma omp parallel for reduction(+ : outofrange_total) 
+#endif
+  for (c = 0; c < unwarpedvol->width; c++)
+  {
+    int r = 0, s = 0;
+    //int outofrange_local = 0;
+    for (r = 0; r < unwarpedvol->height; r++)
+    {
+      for (s = 0; s < unwarpedvol->depth; s++)
+      {
+        float fcs = 0, frs = 0, fss = 0;
+        int ics = 0, irs = 0, iss = 0;
+
+        // (c, r, s) is in unwarped volume, (fcs, frs, fss) is in warped volume
+	// (c, r, s) => (fcs, frs, fss)
+        out_of_gcam = GCAMsampleMorph(gcam, (float)c, (float)r, (float)s, &fcs, &frs, &fss);
+
+        ics =  nintfunc(fcs);
+        irs =  nintfunc(frs);
+        iss =  nintfunc(fss);
+
+        if (ics < 0 || ics >= unwarpedvol->width  ||
+            irs < 0 || irs >= unwarpedvol->height || 
+            iss < 0 || iss >= unwarpedvol->depth)
+        {
+          outofrange_total++;
+#if 0
+#ifdef HAVE_OPENMP
+          outofrange_local++;
+#else
+          outofrange_total++;
+#endif
+#endif
+          continue;
+        }
+
+        //printf("%f => %f, %f => %f, %f => %f\n", (float)c, fcs, (float)r, frs, (float)s, fss);
+        _assignUnWarpedVolumeValues(warpedvol, unwarpedvol, bspline, interpcode, sinchw, c, r, s, fcs, frs, fss);
+      }   // s
+    }     // r
+
+#if 0
+#ifdef HAVE_OPENMP
+#pragma omp critical 
+    outofrange_total += outofrange_local; 
+    //printf("update out of range voxel count: + %d = %d\n", outofrange_local, outofrange_total);
+#endif
+#endif
+  }       // c
+
+  printf("Total %d voxels are out of range\n", outofrange_total);
+
+  if (bspline)
+    MRIfreeBSpline(&bspline);
+
+  return unwarpedvol;
+}
+
+// (c, r, s) is in unwarped volume, (fcs, frs, fss) is in warped volume
+// find value at (fcs, frs, fss) in warped volume,
+// put it at (c, r, s) in unwarped volume
+void GradUnwarp::_assignUnWarpedVolumeValues(MRI* warpedvol, MRI* unwarpedvol, MRI_BSPLINE *bspline, int interpcode, int sinchw, 
+                                             int c, int r, int s, float fcs, float frs, float fss)
+{
+  int (*nintfunc)( double );
+  nintfunc = &nint;
+
+  int ics =  nintfunc(fcs);
+  int irs =  nintfunc(frs);
+  int iss =  nintfunc(fss);
+
+  if (interpcode == SAMPLE_TRILINEAR) {
+    float *valvect = new float[warpedvol->nframes];
+    MRIsampleSeqVolume(warpedvol, fcs, frs, fss, valvect, 0, warpedvol->nframes - 1);
+
+    int f;
+    for (f = 0; f < warpedvol->nframes; f++)
+      MRIsetVoxVal2(unwarpedvol, c, r, s, f, valvect[f]);
+
+    free(valvect);
+  } else {
+    double rval = 0;
+
+    int f;
+    for (f = 0; f < warpedvol->nframes; f++) {
+      switch (interpcode) {
+        case SAMPLE_NEAREST:
+          rval = MRIgetVoxVal2(warpedvol, ics, irs, iss, f);
+          break;
+        case SAMPLE_CUBIC_BSPLINE:
+          MRIsampleBSpline(bspline, fcs, frs, fss, f, &rval);
+          break;
+        case SAMPLE_SINC: /* no multi-frame */
+          MRIsincSampleVolume(warpedvol, fcs, frs, fss, sinchw, &rval);
+          break;
+        default:
+          printf("ERROR: MR: interpolation method '%i' unknown\n", interpcode);
+          exit(1);
+      } // switch
+
+      MRIsetVoxVal2(unwarpedvol, c, r, s, f, rval);
+    } // f
+  }
+}
+
+/*
+ * MRIS *surf = MRISread('lh.white');
+ * for n = 0:surf->nvertices-1
+ *  VERTEX *v = surf->vertices[n]
+ *     v->x, v->y, v->z // by default these are in the warped space
+ *     tkRAS->rptr[1][1] = v->x;
+ *     tkRAS->rptr[2][1] = v->y;
+ *     tkRAS->rptr[3][1] = v->z;
+ *     MATRIX *Tinv = TkrRAS2VoxfromVolGeom(&surf->vg); // convert from tkreg space to voxel
+ *     MATRIX *S = vg_i_to_r(&surf->vg); // converts from voxel to RAS
+ *     MATRIX *M = MatrixMultiply(S, Tinv, NULL); // convert from tkreg space to RAS
+ *     DistortedRAS = MatrixMultiply(M, tkRAS, DistortedCRS);
+ *     spharm_evaluate(Distx, Disty, Distz, &Dx, &Dy, &Dz);
+ *     v->x +/- Dx;
+ *     v->y +/- Dy;
+ *     v->z +/- Dz;
+ *
+ *  (include/transform.h:#define vg_getVoxelToRasXform vg_i_to_r)
+ */
+MRIS* GradUnwarp::unwarp_surface_gradfile(MRIS *warpedsurf, MRIS *unwarpedsurf)
+{
+  printf("GradUnwarp::unwarp_surface_gradfile() ...\n");
+
+  if (unwarpedsurf == NULL)
+  {
+    unwarpedsurf = MRISalloc(warpedsurf->nvertices, 0);
+  }
+
+#ifdef HAVE_OPENMP
+  printf("\nSet OPEN MP NUM threads to %d (unwarp_surface_gradfile)\n", nthreads);
+  omp_set_num_threads(nthreads);
+#endif
+
+  // to do: extract VOL_GEOM out of transform.h/transform.cpp
+  //MATRIX *Tinv = warpedsurf->vg.getTkregRAS2Vox();       // tkreg space, RAS to VOX
+  //MATRIX *S    = warpedsurf->vg.getVox2RAS();            // scanner space, VOX to RAS
+  //MATRIX *Q    = warpedsurf->vg.getRAS2Vox();            // scanner space, RAS to VOX
+
+  MATRIX *Tinv = TkrRAS2VoxfromVolGeom(&warpedsurf->vg); // tkreg space, RAS to VOX
+  MATRIX *S    = vg_i_to_r(&warpedsurf->vg);             // scanner space, VOX to RAS
+  MATRIX *M    = MatrixMultiply(S, Tinv, NULL);        // RAS to RAS, tkreg space to scanner space
+    
+  MATRIX *Q    = vg_r_to_i(&warpedsurf->vg);             // scanner space, RAS to VOX
+
+  int n; 
+#ifdef HAVE_OPENMP
+#pragma omp parallel for
+#endif
+  for (n = 0; n < warpedsurf->nvertices; n++)
+  {
+    VERTEX *v = &warpedsurf->vertices[n];
+
+    // v->x, v->y, v->z // by default these are in the warped space
+    MATRIX *tkregRAS = MatrixAlloc(4, 1, MATRIX_REAL);
+    tkregRAS->rptr[1][1] = v->x;
+    tkregRAS->rptr[2][1] = v->y;
+    tkregRAS->rptr[3][1] = v->z;
+    tkregRAS->rptr[4][1] = 1;
+
+    // Convert surface xyz coords from tkregister space to scanner space
+    MATRIX *warpedRAS = MatrixMultiply(M, tkregRAS, NULL);
+
+    // scanner space RAS
+    double Sx = warpedRAS->rptr[1][1];
+    double Sy = warpedRAS->rptr[2][1];
+    double Sz = warpedRAS->rptr[3][1];
+    
+    float  Dx = 0, Dy = 0, Dz = 0;
+    spharm_evaluate(Sx, Sy, Sz, &Dx, &Dy, &Dz);
+
+    if (getenv("PRN_GRADUNWARP_DEBUG"))
+    {
+      // convert to surface xyz coords to CRS
+      //MATRIX *warpedCRS = MatrixMultiply(Tinv, tkregRAS, NULL);
+      MATRIX *warpedCRS = MatrixMultiply(Q, warpedRAS, NULL);
+      MATRIX *DeltaRAS = MatrixAlloc(4, 1, MATRIX_REAL);
+      DeltaRAS->rptr[1][1] = Dx;
+      DeltaRAS->rptr[2][1] = Dy;
+      DeltaRAS->rptr[3][1] = Dz;
+      DeltaRAS->rptr[4][1] = 1; 
+      MATRIX *unwarpedRAS = MatrixSubtract(warpedRAS, DeltaRAS, NULL);
+      MATRIX *unwarpedCRS = MatrixMultiply(Q, unwarpedRAS, NULL);
+
+      MATRIX *deltaCRS = MatrixAlloc(4, 1, MATRIX_REAL); 
+      deltaCRS = MatrixSubtract(warpedCRS, unwarpedCRS, NULL);
+      deltaCRS->rptr[4][1] = 1;
+
+      MATRIX *deltaRAS2 = MatrixMultiply(S, deltaCRS, NULL);
+
+      printf("%d) (x=%f, y=%f, z=%f)\n", n, v->x, v->y, v->z);
+      printf("\t\t(Dc=%f (%f-%f), Dr=%f (%f-%f), Ds=%f (%f-%f))\n", 
+             deltaCRS->rptr[1][1], warpedCRS->rptr[1][1], unwarpedCRS->rptr[1][1], 
+             deltaCRS->rptr[2][1], warpedCRS->rptr[2][1], unwarpedCRS->rptr[2][1], 
+             deltaCRS->rptr[3][1], warpedCRS->rptr[3][1], unwarpedCRS->rptr[3][1]);
+      printf("\t\t(Dx =%f, Dy =%f, Dz =%f)\n", Dx, Dy, Dz);
+      printf("\t\t(Dx2=%f, Dy2=%f, Dz2=%f)\n", deltaRAS2->rptr[1][1], deltaRAS2->rptr[2][1], deltaRAS2->rptr[3][1]);
+
+      MatrixFree(&deltaRAS2);
+      MatrixFree(&deltaCRS);
+      MatrixFree(&unwarpedCRS);
+      MatrixFree(&unwarpedRAS);
+      MatrixFree(&DeltaRAS);
+      MatrixFree(&warpedCRS);
+    }
+    
+    // warped => unwarped vertext xyz
+    double x = v->x - Dx; // + Dx, warping
+    double y = v->y - Dy; // + Dy, warping
+    double z = v->z - Dz; // + Dz, warping
+
+    // set unwarped vertext xyz
+    MRISsetXYZ(unwarpedsurf, n, x, y, z);
+
+    MatrixFree(&warpedRAS);
+    MatrixFree(&tkregRAS);
+  }       // n
+
+  // Copy the volume geometry
+  //copyVolGeom(&(warpedsurf->vg), &(unwarpedsurf->vg));
+
+  MatrixFree(&Q);
+  MatrixFree(&M);
+  MatrixFree(&S);
+  MatrixFree(&Tinv);
+
+  return unwarpedsurf;
+}
+
+// using m3z transform table
+MRIS* GradUnwarp::unwarp_surface(MRIS *warpedsurf, MRIS *unwarpedsurf)
+{
+  if (gcam == NULL)
+  {
+    printf("GCAM not initialized!\n");
+    return NULL;
+  }
+
+  int (*nintfunc)( double );
+  nintfunc = &nint;
+
+  printf("GradUnwarp::unwarp_surface() ...\n");
+
+  if (unwarpedsurf == NULL)
+  {
+    unwarpedsurf = MRISalloc(warpedsurf->nvertices, 0);
+  }
+
+  printf("create GCAM inverse ...\n");
+  gcam->spacing = 1;
+  MRI *tempMri = MRIallocFromVolGeom(&warpedsurf->vg, MRI_VOLUME_TYPE_UNKNOWN, 1, 1);
+  GCAMinvert(gcam, tempMri);
+
+#ifdef HAVE_OPENMP
+  printf("\nSet OPEN MP NUM threads to %d (unwarp_surface)\n", nthreads);
+  omp_set_num_threads(nthreads);
+#endif
+
+  // to do: extract VOL_GEOM out of transform.h/transform.cpp
+  //MATRIX *Tinv = warpedsurf->vg.getTkregRAS2Vox();       // tkreg space, RAS to VOX
+  //MATRIX *S    = warpedsurf->vg.getVox2RAS();            // scanner space, VOX to RAS
+
+  MATRIX *Tinv = TkrRAS2VoxfromVolGeom(&warpedsurf->vg); // tkreg space, RAS to VOX
+  MATRIX *S    = vg_i_to_r(&warpedsurf->vg);             // scanner space, VOX to RAS
+
+  MATRIX *M    = MatrixMultiply(S, Tinv, NULL);        // RAS to RAS, tkreg space to scanner space
+
+  int n; 
+  int outofrange_total = 0;
+#ifdef HAVE_OPENMP
+#pragma omp parallel for reduction(+ : outofrange_total) 
+#endif
+  for (n = 0; n < warpedsurf->nvertices; n++)
+  {
+    VERTEX *v = &warpedsurf->vertices[n];
+
+    // v->x, v->y, v->z // by default these are in the warped space
+    MATRIX *tkregRAS = MatrixAlloc(4, 1, MATRIX_REAL);;
+    tkregRAS->rptr[1][1] = v->x;
+    tkregRAS->rptr[2][1] = v->y;
+    tkregRAS->rptr[3][1] = v->z;
+    tkregRAS->rptr[4][1] = 1;
+
+    // Convert surface xyz coords from tkregister space to scanner space
+    MATRIX *warpedRAS = MatrixMultiply(M, tkregRAS, NULL);
+
+    // convert to surface xyz coords to CRS
+    MATRIX *warpedCRS = MatrixMultiply(Tinv, tkregRAS, NULL);
+
+    // warped CRS (c, r, s) => unwarped CRS (fcs, frs, fss)
+    float fcs = 0, frs = 0, fss = 0;
+    float c = warpedCRS->rptr[1][1];
+    float r = warpedCRS->rptr[2][1];
+    float s = warpedCRS->rptr[3][1];
+    GCAMsampleInverseMorph(gcam, c, r, s, &fcs, &frs, &fss);
+
+    // these are unwarped CRS
+    int ics =  nintfunc(fcs);
+    int irs =  nintfunc(frs);
+    int iss =  nintfunc(fss);
+
+    if (ics < 0 || ics >= unwarpedsurf->vg.width  ||
+        irs < 0 || irs >= unwarpedsurf->vg.height  || 
+        iss < 0 || iss >= unwarpedsurf->vg.depth)
+    {
+      outofrange_total++;
+      continue;
+    }
+
+    // convert delta CRS to delta RAS in scanner space
+    MATRIX *unwarpedCRS = MatrixAlloc(4, 1, MATRIX_REAL); 
+    unwarpedCRS->rptr[1][1] = fcs;
+    unwarpedCRS->rptr[2][1] = frs;
+    unwarpedCRS->rptr[3][1] = fss;
+    unwarpedCRS->rptr[4][1] = 1;
+
+    MATRIX *unwarpedRAS = MatrixMultiply(S, unwarpedCRS, NULL);
+
+    // scanner space RAS  
+    MATRIX *deltaRAS = MatrixSubtract(warpedRAS, unwarpedRAS, NULL);
+
+    float Dx = deltaRAS->rptr[1][1];
+    float Dy = deltaRAS->rptr[2][1];
+    float Dz = deltaRAS->rptr[3][1];
+
+    if (getenv("PRN_GRADUNWARP_DEBUG"))
+    {
+      printf("%d) (x=%f, y=%f, z=%f)\n", n, v->x, v->y, v->z);
+      printf("\t\t(Dc=%f (%f-%f), Dr=%f (%f-%f), Ds=%f (%f-%f))\n", 
+             (warpedCRS->rptr[1][1]-unwarpedCRS->rptr[1][1]), warpedCRS->rptr[1][1], unwarpedCRS->rptr[1][1], 
+             (warpedCRS->rptr[2][1]-unwarpedCRS->rptr[2][1]), warpedCRS->rptr[2][1], unwarpedCRS->rptr[2][1], 
+             (warpedCRS->rptr[3][1]-unwarpedCRS->rptr[3][1]), warpedCRS->rptr[3][1], unwarpedCRS->rptr[3][1]);
+      printf("\t\t(Dx=%f (%f - %f), Dy=%f (%f - %f), Dz=%f (%f - %f))\n",
+             Dx, warpedRAS->rptr[1][1], unwarpedRAS->rptr[1][1],
+             Dy, warpedRAS->rptr[2][1], unwarpedRAS->rptr[2][1],
+             Dz, warpedRAS->rptr[3][1], unwarpedRAS->rptr[3][1]);
+    }
+ 
+    // warped => unwarped xyz
+    double x = v->x - Dx; // + Dx, warping
+    double y = v->y - Dy; // + Dy, warping
+    double z = v->z - Dz; // + Dz, warping
+
+    // set unwarped vertext xyz
+    MRISsetXYZ(unwarpedsurf, n, x, y, z);
+
+    MatrixFree(&deltaRAS);
+    MatrixFree(&unwarpedRAS);
+    MatrixFree(&unwarpedCRS);
+    MatrixFree(&warpedRAS);
+    MatrixFree(&warpedCRS);
+    MatrixFree(&tkregRAS);
+  }       // n
+
+  // Copy the volume geometry
+  //copyVolGeom(&(warpedsurf->vg), &(unwarpedsurf->vg));
+
+  MatrixFree(&S);
+  MatrixFree(&Tinv);
+
+  return unwarpedsurf;
 }
 
 void GradUnwarp::_skipCoeffComment()

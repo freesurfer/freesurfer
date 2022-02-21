@@ -30,6 +30,7 @@ parser.add_argument('--save-posteriors', nargs='*', help='Save posterior volumes
 parser.add_argument('--pallidum-separate', action='store_true', default=False, help='Move pallidum outside of global white matter class. Use this flag when T2/flair is used.')
 parser.add_argument('--threads', type=int, default=default_threads, help='Number of threads to use. Defaults to current OMP_NUM_THREADS or 1.')
 # optional debugging options
+parser.add_argument('--history', action='store_true', default=False, help='Save history.')
 parser.add_argument('--showfigs', action='store_true', default=False, help='Show figures during run.')
 parser.add_argument('--movie', action='store_true', default=False, help='Show history as arrow key controlled time sequence.')
 
@@ -87,6 +88,7 @@ samseg_kwargs = dict(
     pallidumAsWM=(not args.pallidum_separate),
     savePosteriors=savePosteriors,
     saveMesh=args.save_mesh,
+    saveHistory=args.history,
     visualizer=visualizer
 )
 

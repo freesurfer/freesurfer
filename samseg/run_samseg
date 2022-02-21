@@ -28,6 +28,9 @@ parser.add_argument('--gmm', metavar='FILE', help='Point to an alternative GMM f
 parser.add_argument('--ignore-unknown', action='store_true', help='Ignore final priors corresponding to unknown class.')
 parser.add_argument('--options', metavar='FILE', help='Override advanced options via a json file.')
 parser.add_argument('--pallidum-separate', action='store_true', default=False, help='Move pallidum outside of global white matter class. Use this flag when T2/flair is used.')
+parser.add_argument('--mesh-stiffness', type=float, help='Override mesh stiffness.')
+parser.add_argument('--smooth-wm-cortex-priors', type=float, help='Sigma value to smooth the WM and cortex atlas priors.')
+parser.add_argument('--bias-field-smoothing-kernel', type=float, help='Distance in mm of sinc function center to first zero crossing.')
 # optional lesion options
 parser.add_argument('--lesion', action='store_true', default=False, help='Enable lesion segmentation (requires tensorflow).')
 parser.add_argument('--threshold', type=float, default=0.3, help='Lesion threshold for final segmentation. Lesion segmentation must be enabled.')
@@ -105,6 +108,15 @@ if args.save_posteriors is not None and len(args.save_posteriors) == 0:
     savePosteriors = True
 else:
     savePosteriors = args.save_posteriors
+
+if args.smooth_wm_cortex_priors is not None:
+    userModelSpecifications['whiteMatterAndCortexSmoothingSigma'] = args.smooth_wm_cortex_priors
+
+if args.bias_field_smoothing_kernel is not None:
+    userModelSpecifications['biasFieldSmoothingKernelSize'] = args.bias_field_smoothing_kernel
+
+if args.mesh_stiffness is not None:
+    userModelSpecifications['K'] = args.mesh_stiffness
 
 # ------ Run Samseg ------
 

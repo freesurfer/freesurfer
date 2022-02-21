@@ -50,8 +50,9 @@ for n = 1:2
   end
   fprintf(fp,'valid = 1\n');
   fprintf(fp,'filename = %s\n',mrifname);
-  fprintf(fp,'volume = %d %d %d\n',mri.volsize(1),mri.volsize(2),mri.volsize(3));
-  fprintf(fp,'voxelsize = %18.15f %18.15f %18.15f\n',mri.volres(1),mri.volres(2),mri.volres(3));
+  fprintf(fp,'volume = %d %d %d\n',mri.volsize(2),mri.volsize(1),mri.volsize(3));
+  % I think this vol res is right:)
+  fprintf(fp,'voxelsize = %18.15f %18.15f %18.15f\n',mri.volres(2),mri.volres(1),mri.volres(3));
   fprintf(fp,'xras = %18.15f %18.15f %18.15f\n',mri.x_r,mri.x_a,mri.x_s);
   fprintf(fp,'yras = %18.15f %18.15f %18.15f\n',mri.y_r,mri.y_a,mri.y_s);
   fprintf(fp,'zras = %18.15f %18.15f %18.15f\n',mri.z_r,mri.z_a,mri.z_s);

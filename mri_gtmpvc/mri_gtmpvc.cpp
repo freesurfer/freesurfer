@@ -453,7 +453,7 @@ int main(int argc, char *argv[])
   if(gtm->reduce_fov && gtm->mask){
     LTA *seg2bbpet,*anat2bbpet,*lta;
     MRI *masktmp,*yvoltmp;
-    printf("Automask, reducing FOV\n");
+    printf("Automask, reducing FOV %d\n",gtm->reduce_fov);
     if(gtm->reduce_fov == 1)
       gtm->automaskRegion = REGIONgetBoundingBox(gtm->mask,1);
     if(gtm->reduce_fov == 2)
@@ -606,7 +606,7 @@ int main(int argc, char *argv[])
     fprintf(logfp,"Turning VoxFracCor ON for simulation. It will be turned OFF for anlaysis.\n");
     gtm->DoVoxFracCor = 1;
   }
-  printf("Building GTM DoVoxFracCor=%d\n",gtm->DoVoxFracCor);fflush(stdout); 
+  printf("Building GTM DoVoxFracCor=%d (TFE)\n",gtm->DoVoxFracCor);fflush(stdout); 
   if(Gdiag_no > 0) PrintMemUsage(stdout);
   PrintMemUsage(logfp);
   mytimer.reset();
@@ -1226,6 +1226,13 @@ static int parse_commandline(int argc, char **argv) {
     else if(!strcasecmp(option, "--sim-anat-seg"))  DoSimAnatSeg=1;
     else if (!strcasecmp(option, "--chunk")) setenv("FS_USE_MRI_CHUNK","1",1);
     else if (!strcasecmp(option, "--no-chunk") ) unsetenv("FS_USE_MRI_CHUNK");
+    else if(!strcasecmp(option, "--no-pvc")){
+      // Turn off all pvc
+      gtm->cFWHM = 0;
+      gtm->rFWHM = 0;
+      gtm->sFWHM = 0;
+      gtm->DoVoxFracCor=0;
+    }
     else if(!strcasecmp(option, "--auto-mask")){
       if(nargc < 2) CMDargNErr(option,2);
       sscanf(pargv[0],"%lf",&gtm->automask_fwhm);
@@ -1678,7 +1685,7 @@ static void print_usage(void) {
   printf("\n");
   printf("   --i   inputvol : source data to PVC\n");
   printf("         --frame F : only process 0-based frame F from inputvol\n");
-  printf("   --psf psfmm : scanner PSF FWHM in mm\n");
+  printf("   --psf psfmm : scanner PSF FWHM in mm (see also --no-tfe and --no-pvc)\n");
   printf("   --seg segfile : anatomical segmentation to define regions for GTM\n");
   printf("   --reg reg.lta : LTA registration file that maps PET to anatomical\n");
   printf("   --regheader : assume input and seg share scanner space\n");
@@ -1709,7 +1716,8 @@ static void print_usage(void) {
   printf("      Note: tissue type lateralization will sligthly affect results since \n");
   printf("      the tissue type is used to resolve ties.\n");
   printf("\n");
-  printf("   --no-tfe : do not correction for tissue fraction effect (with --psf 0 turns off PVC entirely)\n");
+  printf("   --no-tfe : do not correction for tissue fraction effect (corrects by default)\n");
+  printf("   --no-pvc : turns off PVC entirely (both PSF and TFE)\n");
   printf("   --segpvfres resmm : set the tissue fraction resolution parameter (def is %g)\n",segpvfresmm);
   printf("     if a negative number is used, then it is treated as an upsampling factor (eg, -3)\n");
   printf("     The TF is computed by dividing the PET voxel into subvoxels of size segpvfres\n");

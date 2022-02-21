@@ -53,6 +53,7 @@ def getModelSpecifications(atlasDir, userModelSpecifications={}, pallidumAsWM=Tr
         'maskingDistance': 10.0, # distance in mm of how far into background the mask goes out
         'K': 0.1,  # stiffness of the mesh
         'biasFieldSmoothingKernelSize': 50,  # distance in mm of sinc function center to first zero crossing
+        'whiteMatterAndCortexSmoothingSigma': 0,  # Sigma value to smooth the WM and cortex atlas priors
     }
 
     modelSpecifications.update(userModelSpecifications)

@@ -496,7 +496,7 @@ void sampleIntoVolume(py::array volume, py::array weights, arrayc<double> coords
   See resampleVolume() for full documentation.
 */
 template <typename T>
-static py::array_t<T> resampleTypedVolumeLinear(py::array_t<T> source_vol, py::object target_shape, py::array_t<double> target2source)
+static py::array_t<T> resampleTypedVolumeLinear(py::array_t<T> source_vol, py::object target_shape, py::array_t<double> target2source, T fill)
 {
   // make target volume
   py::module numpy = py::module::import("numpy");
@@ -566,14 +566,14 @@ static py::array_t<T> resampleTypedVolumeLinear(py::array_t<T> source_vol, py::o
         for (int f = 0; f < nf; f++) {
 
           // extract (valid) voxel values
-          T v0 = (valid_xl && valid_yl && valid_zl) ? source_m(sx_low , sy_low , sz_low , f) : 0.0;
-          T v1 = (valid_xh && valid_yl && valid_zl) ? source_m(sx_high, sy_low , sz_low , f) : 0.0;
-          T v2 = (valid_xl && valid_yh && valid_zl) ? source_m(sx_low , sy_high, sz_low , f) : 0.0;
-          T v3 = (valid_xl && valid_yl && valid_zh) ? source_m(sx_low , sy_low , sz_high, f) : 0.0;
-          T v4 = (valid_xh && valid_yl && valid_zh) ? source_m(sx_high, sy_low , sz_high, f) : 0.0;
-          T v5 = (valid_xl && valid_yh && valid_zh) ? source_m(sx_low , sy_high, sz_high, f) : 0.0;
-          T v6 = (valid_xh && valid_yh && valid_zl) ? source_m(sx_high, sy_high, sz_low , f) : 0.0;
-          T v7 = (valid_xh && valid_yh && valid_zh) ? source_m(sx_high, sy_high, sz_high, f) : 0.0;
+          T v0 = (valid_xl && valid_yl && valid_zl) ? source_m(sx_low , sy_low , sz_low , f) : fill;
+          T v1 = (valid_xh && valid_yl && valid_zl) ? source_m(sx_high, sy_low , sz_low , f) : fill;
+          T v2 = (valid_xl && valid_yh && valid_zl) ? source_m(sx_low , sy_high, sz_low , f) : fill;
+          T v3 = (valid_xl && valid_yl && valid_zh) ? source_m(sx_low , sy_low , sz_high, f) : fill;
+          T v4 = (valid_xh && valid_yl && valid_zh) ? source_m(sx_high, sy_low , sz_high, f) : fill;
+          T v5 = (valid_xl && valid_yh && valid_zh) ? source_m(sx_low , sy_high, sz_high, f) : fill;
+          T v6 = (valid_xh && valid_yh && valid_zl) ? source_m(sx_high, sy_high, sz_low , f) : fill;
+          T v7 = (valid_xh && valid_yh && valid_zh) ? source_m(sx_high, sy_high, sz_high, f) : fill;
 
           // interpolate
           T val = w0 * v0 +
@@ -600,11 +600,12 @@ static py::array_t<T> resampleTypedVolumeLinear(py::array_t<T> source_vol, py::o
   See resampleVolume() for full documentation.
 */
 template <typename T>
-static py::array_t<T> resampleTypedVolumeNearest(py::array_t<T> source_vol, py::object target_shape, py::array_t<double> target2source)
+static py::array_t<T> resampleTypedVolumeNearest(py::array_t<T> source_vol, py::object target_shape, py::array_t<double> target2source, T fill)
 {
   // make target volume
   py::module numpy = py::module::import("numpy");
   py::array_t<T> target_vol = numpy.attr("zeros")(target_shape);  // TODO construct with dtype instead
+  if (fill != 0) target_vol.attr("fill")(fill);
   int nx = target_vol.shape(0);
   int ny = target_vol.shape(1);
   int nz = target_vol.shape(2);
@@ -663,12 +664,12 @@ static py::array_t<T> resampleTypedVolumeNearest(py::array_t<T> source_vol, py::
   \param target_shape   Shape of the returned target array.
   \param target2source  4x4 affine matrix that transforms target coords to source coords.
 */
-py::array resampleVolumeLinear(py::array source_vol, py::object target_shape, py::array_t<double> target2source)
+py::array resampleVolumeLinear(py::array source_vol, py::object target_shape, py::array_t<double> target2source, double fill)
 {
   if (py::isinstance<py::array_t<double>>(source_vol)) {
-    return resampleTypedVolumeLinear<double>(source_vol, target_shape, target2source);
+    return resampleTypedVolumeLinear<double>(source_vol, target_shape, target2source, fill);
   } else {
-    return resampleTypedVolumeLinear<float>(source_vol, target_shape, target2source);
+    return resampleTypedVolumeLinear<float>(source_vol, target_shape, target2source, fill);
   }
 }
 
@@ -683,12 +684,12 @@ py::array resampleVolumeLinear(py::array source_vol, py::object target_shape, py
   \param target_shape   Shape of the returned target array.
   \param target2source  4x4 affine matrix that transforms target coords to source coords.
 */
-py::array resampleVolumeNearest(py::array source_vol, py::object target_shape, py::array_t<double> target2source)
+py::array resampleVolumeNearest(py::array source_vol, py::object target_shape, py::array_t<double> target2source, double fill)
 {
   if (py::isinstance<py::array_t<double>>(source_vol)) {
-    return resampleTypedVolumeNearest<double>(source_vol, target_shape, target2source);
+    return resampleTypedVolumeNearest<double>(source_vol, target_shape, target2source, fill);
   } else {
-    return resampleTypedVolumeNearest<float>(source_vol, target_shape, target2source);
+    return resampleTypedVolumeNearest<float>(source_vol, target_shape, target2source, fill);
   }
 }
 

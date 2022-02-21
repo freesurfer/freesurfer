@@ -3331,6 +3331,7 @@ if($DoFix && ( ! $longitudinal )) then
     # Convert the defects into a segmentation
     set cmd = (defect2seg --s $subjid) # This needs to be updated for remeshing
     if($#hemilist == 1) set cmd = ($cmd --$hemilist-only)
+    if($DefectsCortex) set cmd = ($cmd --cortex)
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
 
@@ -4839,7 +4840,7 @@ if($DoSegStats) then
   set xopts = `fsr-getxopts mri_segstats $XOptsFile $GlobXOptsFile`;
   set cmd = (mri_segstats)
   if ($NoRandomness) set cmd = ($cmd --seed $RngSeed)
-  set cmd = ($cmd --seg mri/aseg.mgz --sum stats/aseg.stats)
+  set cmd = ($cmd --seg mri/aseg.mgz --sum stats/aseg.stats) # This should probably be aseg.presurf
   set cmd = ($cmd --pv mri/norm.mgz --empty)
   set cmd = ($cmd --brainmask mri/brainmask.mgz --brain-vol-from-seg)
   set cmd = ($cmd --excludeid 0 --excl-ctxgmwm)
@@ -6801,13 +6802,12 @@ while( $#argv != 0 )
       breaksw
 
     case "-autorecon2":
-      set DoGCAReg         = 1;
       set DoRemoveNeck     = 0;
       set DoSkullLTA       = 0;
-      set DoCANormalize    = 1;
-      set DoCAReg          = 1;
-      set DoCALabel        = 1;
       set DoSegStats       = 0;
+      set DoCANormalize    = 1;
+      set DoGCAReg         = 1;
+      set DoCALabel        = 1;
       set DoNormalization2 = 1;
       set DoMaskBFS        = 1;
       set DoSegmentation   = 1;

@@ -36,9 +36,8 @@ public:
     void Scale(const SCALE_3D &scaling);
     py::array_t<uint16_t> RasterizeMesh(std::vector<size_t> size, int classNumber=-1);
     py::array RasterizeValues(std::vector<size_t> size, py::array_t<double, py::array::c_style | py::array::forcecast> values);
-    py::array_t<double> FitAlphas( const py::array_t< uint16_t,
-                                                      py::array::f_style | py::array::forcecast >& 
-                                   probabilityImageBuffer ) const;
+    py::array_t<double> FitAlphas( const py::array_t< uint16_t, py::array::f_style | py::array::forcecast >& probabilityImageBuffer, int EMIterations=10 ) const;
+    py::array_t<double> DrawJacobianDeterminant(std::vector<size_t> size);
     KvlMesh* GetSubmesh( py::array_t<bool>& mask );
 
     // C++ Only

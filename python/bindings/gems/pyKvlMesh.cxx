@@ -11,6 +11,7 @@
 #include "kvlAtlasMeshMultiAlphaDrawer.h"
 #include "kvlAtlasMeshValueDrawer.h"
 #include "kvlAtlasMeshProbabilityImageStatisticsCollector.h"
+#include "kvlAtlasMeshJacobianDeterminantDrawer.h"
 #include "itkImageRegionIterator.h"
 
 
@@ -462,9 +463,7 @@ py::array KvlMesh::RasterizeValues(std::vector<size_t> size, py::array_t<double,
 }
 
 
-py::array_t<double> KvlMesh::FitAlphas( const py::array_t< uint16_t, 
-                                                           py::array::f_style | py::array::forcecast >& 
-                                        probabilityImageBuffer ) const
+py::array_t<double> KvlMesh::FitAlphas( const py::array_t< uint16_t, py::array::f_style | py::array::forcecast >& probabilityImageBuffer, int EMIterations ) const
 {
   
   // Retrieve size of image and number of number of classes
@@ -552,7 +551,7 @@ py::array_t<double> KvlMesh::FitAlphas( const py::array_t< uint16_t,
 
 
   // Do the actual EM algorithm using (an updating the alphas in) our private mesh
-  for ( int iterationNumber = 0; iterationNumber < 10; iterationNumber++ )
+  for ( int iterationNumber = 0; iterationNumber < EMIterations; iterationNumber++ )
     {
     // E-step: assign voxels to mesh nodes
     kvl::AtlasMeshProbabilityImageStatisticsCollector::Pointer  statisticsCollector = 
@@ -583,7 +582,41 @@ py::array_t<double> KvlMesh::FitAlphas( const py::array_t< uint16_t,
 }
 
 
+py::array_t<double> KvlMesh::DrawJacobianDeterminant(std::vector<size_t> size)
+{
+  // Some typedefs
+  typedef kvl::AtlasMeshJacobianDeterminantDrawer::ImageType  JacobianDeterminantImageType;
+  typedef JacobianDeterminantImageType::SizeType  SizeType;
 
+  SizeType  imageSize;
+  for ( int i = 0; i < 3; i++ )
+  {
+    imageSize[ i ] = size[ i ];
+    //std::cout << "imageSize[ i ]: " << imageSize[ i ] << std::endl;
+  }
+  std::cout << "imageSize: " << imageSize << std::endl;
+
+  // get mesh
+  kvl::AtlasMesh::ConstPointer constMesh = static_cast< const kvl::AtlasMesh* >( mesh );
+
+  // Rasterize
+  kvl::AtlasMeshJacobianDeterminantDrawer::Pointer  drawer = kvl::AtlasMeshJacobianDeterminantDrawer::New();
+  drawer->SetRegions( imageSize );
+  drawer->Rasterize( mesh );
+
+  // Finally, copy the buffer contents into a Numpy array
+  auto *outData = new double[imageSize[0] * imageSize[1] * imageSize[2]];
+  auto dataIterator = outData;
+
+  itk::ImageRegionConstIterator< JacobianDeterminantImageType > it( drawer->GetImage(), drawer->GetImage()->GetBufferedRegion() );
+  for ( ;!it.IsAtEnd(); ++it )
+  {
+    *dataIterator++ = it.Value();
+  }
+
+  return createNumpyArrayFStyle({imageSize[0], imageSize[1], imageSize[2]}, outData);
+
+}
 
 
 py::array_t<double> PointSetToNumpy(PointSetConstPointer points) {

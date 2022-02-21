@@ -488,7 +488,7 @@ usage_exit:
   echo "  --fwhm fwhm <--fwhm fwhm> : override the fwhm from group ana (must be present)"
   echo "  --sd1 sd1, --sd2 sd2 : subjects dirs for computing dice (default is parent dir of groupdir)"
   echo "  --no-dice : do not compute dice"
-  echo "  --dice-ctab ctab : ctab to use for dice (default is $ctab)"
+  echo "  --dice-ctab ctab : ctab to use for dice (default is $dicectab)"
   echo "  "
 
   if(! $PrintHelp) exit 1;

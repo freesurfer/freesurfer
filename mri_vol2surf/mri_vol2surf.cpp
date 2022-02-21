@@ -1043,6 +1043,9 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcmp(option, "--use-new")) {
       UseOld = 0;
     } 
+    else if (!strcmp(option, "--copy-ctab")) {
+      setenv("FS_COPY_HEADER_CTAB","1",1);
+    } 
     else if (!strcmp(option, "--vsm")) {
       if (nargc < 1) argnerr(option,1);
       vsmfile = pargv[0];
@@ -1306,6 +1309,7 @@ static void print_usage(void) {
   printf("   --srcsynth seed : synthesize source volume\n");
   printf("   --srcsynth-index : synthesize source volume with volume index no\n");
   printf("   --seedfile fname : save synth seed to fname\n");
+  printf("   --copy-ctab : setenv FS_COPY_HEADER_CTAB to copy any ctab in the mov header\n");
   printf("   --sd SUBJECTS_DIR \n");
   printf("   --profile surf vol dist delta sigma interpname output\n");
   printf("     Computes intensity profile from -dist:delta:+dist\n");
