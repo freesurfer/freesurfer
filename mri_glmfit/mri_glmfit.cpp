@@ -548,8 +548,10 @@ double round(double x);
 #include "dti.h"
 #include "image.h"
 #include "stats.h"
+#include "evschutils.h"
 
 int MRISmaskByLabel(MRI *y, MRIS *surf, LABEL *lb, int invflag);
+int RandPermMatrixAndPVR(MATRIX *X, MRI **pvrs, int npvrs);
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -1738,11 +1740,11 @@ int main(int argc, char **argv) {
           SmoothSurfOrVol(surf, mriglm->y, mriglm->mask, SmoothLevel);
       }
       if (!strcmp(csd->simtype,"perm")) {
-        if (!OneSamplePerm) MatrixRandPermRows(mriglm->Xg);
+        if (!OneSamplePerm) RandPermMatrixAndPVR(mriglm->Xg,mriglm->pvr,mriglm->npvr);
         else {
           for (n=0; n < mriglm->y->nframes; n++) {
             if (drand48() > 0.5) m = +1;
-            else                m = -1;
+            else                 m = -1;
             mriglm->Xg->rptr[n+1][1] = m;
           }
           //MatrixPrint(stdout,mriglm->Xg);
@@ -3645,7 +3647,8 @@ static void check_options(void) {
     exit(1);
   }
 
-  if(DoSim && !strcmp(csd->simtype,"perm") && npvr != 0){
+  if(0 && DoSim && !strcmp(csd->simtype,"perm") && npvr != 0){
+    // Modified to allow for pvrs with sim
     printf("ERROR: PVR is not supported with permutation simulations\n");
     exit(1);
   }
@@ -4140,6 +4143,45 @@ int MRIloganize(MATRIX **X, MRI **Ct, MRI **intCt, const MATRIX *t, const double
   return(0);
 }
 
+/*!
+  \fn int RandPermMatrixAndPVR(MATRIX *X, MRI **pvrs, int npvrs)
+  \brief Permutes both the design matrix and any PVRs
+ */
+int RandPermMatrixAndPVR(MATRIX *X, MRI **pvrs, int npvrs)
+{
+  int *NewRowOrder, r;
+  MATRIX *X0;
+
+  NewRowOrder = RandPerm(X->rows, NULL);
+  for (r = 0; r < X->rows; r++) {
+    NewRowOrder[r]++;  // Make one-based
+    printf("%d\n",NewRowOrder[r]);
+  }
+  X0 = MatrixCopy(X, NULL);
+  MatrixReorderRows(X0, NewRowOrder, X);
+
+  int n;
+  for(n=0; n < npvrs; n++){
+    int c,r,f;
+    MRI *pvr = pvrs[n];
+    for(c=0; c < pvr->width; c++){
+      double *vect = (double *) calloc(sizeof(double),X->rows);
+      for(r=0; r < pvr->height; r++){
+	for(s=0; s < pvr->depth; s++){
+	  for(f=0; f < X->rows; f++) vect[f] = MRIgetVoxVal(pvr,c,r,s,f);
+	  for(f=0; f < X->rows; f++) {
+	    int f2 = NewRowOrder[f] - 1;
+	    MRIsetVoxVal(pvr,c,r,s,f, vect[f2]);
+	  }
+	}
+      }
+      free(vect);
+    }
+  }
+
+  free(NewRowOrder);
+  return (0);
+}
 
 
 
