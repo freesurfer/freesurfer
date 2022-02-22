@@ -175,10 +175,13 @@ int main(int argc, char *argv[]) {
     MRI *orig;
     MRI *temp;
     sprintf(tmpstr,"%s/%s/mri/orig.mgz",SUBJECTS_DIR,subject);
+    printf("Loading orig %s\n",tmpstr);
     orig = MRIreadHeader(tmpstr,MRI_VOLUME_TYPE_UNKNOWN);
     if(orig==0) exit(1);
+    printf("Loading template %s\n",TempVolFile);
     temp = MRIreadHeader(TempVolFile,MRI_VOLUME_TYPE_UNKNOWN);
     if(temp==0) exit(1);
+    printf("TempVol Dim %d %d %d\n",temp->width,temp->height,temp->depth);
     aseg2vol = TransformRegDat2LTA(orig, temp, NULL);
     printf("Computing registration from header\n");
     MatrixPrint(stdout,aseg2vol->xforms[0].m_L);
@@ -555,7 +558,7 @@ static void dump_options(FILE *fp) {
   fprintf(fp,"segfile %s\n",asegfile);
   fprintf(fp,"wsurf %s\n",wsurf);
   fprintf(fp,"psurf %s\n",psurf);
-  if(TempVolFile) fprintf(fp,"TempVolFile %s\n",regfile);
+  if(TempVolFile) fprintf(fp,"TempVolFile %s\n",TempVolFile);
   fprintf(fp,"USF %d\n",USF);
   if(subjectoverride) fprintf(fp,"subjectoverride %s\n",subjectoverride );
   return;
