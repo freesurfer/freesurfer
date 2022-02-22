@@ -116,6 +116,28 @@ class RecodingLookupTable(dict):
     def add_target(self, index, name=None, color=None):
         self.target_lut.add(index, name, color)
 
+    @classmethod
+    def read(cls, filename):
+        rlut = cls()
+        with open(filename, 'r') as file:
+            lines = file.readlines()
+        for line in lines:
+            split = line.lstrip().split()
+            if not split or split[0].startswith('#'):
+                continue
+            elif len(split) == 3:
+                rlut.mapping[int(split[0])] = int(split[1])
+            else:
+                # goes to target lookup table
+                idx, name = split[:2]
+                if len(split) >= 5:
+                    color = list(map(int, split[2:6]))
+                    color[3] = 255 - color[3]  # invert alpha value
+                else:
+                    color = None
+                rlut.target_lut.add(int(idx), name, color)
+        return rlut
+
 
 def default():
     """
