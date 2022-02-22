@@ -4155,7 +4155,6 @@ int RandPermMatrixAndPVR(MATRIX *X, MRI **pvrs, int npvrs)
   NewRowOrder = RandPerm(X->rows, NULL);
   for (r = 0; r < X->rows; r++) {
     NewRowOrder[r]++;  // Make one-based
-    printf("%d\n",NewRowOrder[r]);
   }
   X0 = MatrixCopy(X, NULL);
   MatrixReorderRows(X0, NewRowOrder, X);
