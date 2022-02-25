@@ -492,6 +492,7 @@ if(NOT MINIMAL)
     histo_compute_joint_density
     histo_register_block
     histo_synthesize
+    julia
     label2flat
     label2patch
     mkxsubjreg
