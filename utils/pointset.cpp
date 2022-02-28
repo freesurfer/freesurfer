@@ -1,5 +1,6 @@
 #include <fstream>
 
+#include "json.h"
 #include "pointset.h"
 
 
@@ -59,3 +60,25 @@ bool PointSet::save_as_ctrlpoint(std::string filename)
   return true;
 }
 
+
+PointSet loadPointSet(std::string filename)
+{
+  // read the JSON file from stream
+  std::ifstream is(filename);
+  nlohmann::json j;
+  is >> j;
+
+  // init pointset 
+  PointSet ps = PointSet();
+
+  // get space
+  ps.vox2ras = j["vox2ras"];
+
+  // get point data
+  for (nlohmann::json point : j["points"]) {
+    nlohmann::json coord = point["coordinates"];
+    ps.add(coord["x"], coord["y"], coord["z"], point["legacy_stat"]);
+  }
+
+  return ps;
+}

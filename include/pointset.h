@@ -58,4 +58,6 @@ private:
 
 };
 
+PointSet loadPointSet(std::string filename);
+
 #endif
