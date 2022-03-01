@@ -6,7 +6,11 @@ if("${CMAKE_Fortran_COMPILER_ID}" MATCHES "Intel")
   set(ICC_LIBRARIES irc svml imf)
   set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -ax=CORE-AVX512 -qopenmp -132 -nofor_main")
 else()
-  set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -ffixed-line-length-132 -fno-second-underscore")
+  if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -ffixed-line-length-132 -fno-second-underscore -fallow-invalid-boz")
+  else()
+    set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -ffixed-line-length-132 -fno-second-underscore")
+  endif()
 endif()
 
 install_configured(
