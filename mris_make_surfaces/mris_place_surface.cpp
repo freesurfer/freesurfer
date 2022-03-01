@@ -148,6 +148,7 @@ public:
   char *ripsurffile=NULL;
   MRIS *ripsurf;
   char *aparcpath=NULL;
+  char *ripoverlayfile=NULL;
   double dmin = -2.0, dmax = +2.0, dstep = 0.5;
 };
 
@@ -751,6 +752,7 @@ int main(int argc, char **argv)
     MRISpinMedialWallToWhite(surf, pinlabel);
   }
 
+  // This can move things around, even for ripped vertices
   MRISremoveIntersections(surf); //matches mris_make_surface
 
   printf("\n\n");
@@ -943,6 +945,11 @@ static int parse_commandline(int argc, char **argv) {
       if(nargc < 1) CMDargNErr(option,1);
       ripmngr.riplabelfile = pargv[0];
       ripmngr.RipMidline = 0;
+      nargsused = 1;
+    } 
+    else if(!strcasecmp(option, "--rip-overlay")){
+      if(nargc < 1) CMDargNErr(option,1);
+      ripmngr.ripoverlayfile = pargv[0];
       nargsused = 1;
     } 
     else if(!strcmp(option, "--o")){
@@ -1601,6 +1608,24 @@ int RIP_MNGR::RipVertices(void)
     printf("Ripping Lesion voxels\n");
     RipSegNo[nRipSegs++] = 25;
     RipSegNo[nRipSegs++] = 57;
+  }
+
+  if(ripoverlayfile){
+    printf("Ripping vertices > 0.5 in overlay %s\n",ripoverlayfile);
+    MRI *ov = MRIread(ripoverlayfile);
+    if(ov==NULL) exit(1);
+    if(ov->width != surf->nvertices){
+      printf("ERROR: dim mismatch bet ov and surf %d %d\n",ov->width,surf->nvertices);
+      exit(1);
+    }
+    int nripped = 0;
+    for(int n=0; n < surf->nvertices; n++){
+      if(MRIgetVoxVal(ov,n,0,0,0) < 0.5) continue;
+      surf->vertices[n].ripflag = 1;
+      nripped++;
+    }
+    printf("Ripped %d vertices from overlay\n",nripped);
+    MRIfree(&ov);
   }
 
   if(riplabelfile){

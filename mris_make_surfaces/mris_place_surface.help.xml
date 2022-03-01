@@ -80,6 +80,9 @@
       <argument>--rip-lesion</argument>
       <explanation>Do not move vertices in/near lesions (25 and 57 as defined in seg)</explanation>
 
+      <argument>--rip-overlay surfaceoverlayfile</argument>
+      <explanation>Rip vertices > 0.5 in the surface overlay file</explanation>
+
       <argument>--ripsurface rip-surface</argument>
       <explanation>Use this surface with ripping midline, BG, Freezes, Lesions, and WMSA.</explanation>
 
