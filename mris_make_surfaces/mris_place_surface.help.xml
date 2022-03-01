@@ -71,6 +71,9 @@
       <argument>--rip-bg</argument>
       <explanation>Do not move vertices near basal ganglia (as defined by seg)</explanation>
 
+      <argument>--rip-bg-no-annot</argument>
+      <explanation>Do not require surface have an annotation when ripping BG</explanation>
+
       <argument>--no-rip-freeze</argument>
       <explanation>Do NOT move vertices in/near freeze voxels (247 as defined in seg)</explanation>
 

@@ -143,6 +143,7 @@ public:
   int nRipSegs= 0;
   int RipSegNo[100];
   int RipBG = 0;
+  int RipBGRequireAnnot = 1;
   int RipMidline = 1;
   char *riplabelfile = NULL;
   char *ripsurffile=NULL;
@@ -152,7 +153,7 @@ public:
   double dmin = -2.0, dmax = +2.0, dstep = 0.5;
 };
 
-int MRISripBasalGanglia(MRIS *surf, MRI *seg, const double dmin, const double dmax, const double dstep);
+int MRISripBasalGanglia(MRIS *surf, MRI *seg, const int RequireAnnot, const double dmin, const double dmax, const double dstep);
 int MRISripSegs(MRIS *surf, MRI *seg, const double dmin, const double dmax, const double dstep);
 int MRISpinMedialWallToWhite(MRIS *surf, const LABEL *cortex);
 
@@ -825,8 +826,9 @@ static int parse_commandline(int argc, char **argv) {
     else if(!strcmp(option, "--no-rip-freeze")) ripmngr.RipFreeze = 0;
     else if(!strcmp(option, "--rip-lesion"))    ripmngr.RipLesion = 1;
     else if(!strcmp(option, "--no-rip-lesion"))    ripmngr.RipLesion = 0;
-    else if(!strcmp(option, "--rip-bg"))    ripmngr.RipBG = 1;
-    else if(!strcmp(option, "--no-rip-bg")) ripmngr.RipBG = 0;
+    else if(!strcmp(option, "--rip-bg"))          ripmngr.RipBG = 1;
+    else if(!strcmp(option, "--rip-bg-no-annot")) ripmngr.RipBGRequireAnnot = 0;
+    else if(!strcmp(option, "--no-rip-bg"))       ripmngr.RipBG = 0;
     else if(!strcmp(option, "--rip-midline"))     ripmngr.RipMidline = 1;
     else if(!strcmp(option, "--no-rip-midline"))  ripmngr.RipMidline = 0;
     else if(!strcmp(option, "--no-intensity-proc"))  DoIntensityProc = 0;
@@ -1531,20 +1533,21 @@ int MRISripSegs(MRIS *surf, MRI *seg, const int *SegNo, const int nSegNos,
 }
 
 
-int MRISripBasalGanglia(MRIS *surf, MRI *seg, const double dmin, const double dmax, const double dstep)
+int MRISripBasalGanglia(MRIS *surf, MRI *seg, const int RequireAnnot, const double dmin, const double dmax, const double dstep)
 {
   int vno, nripped=0;
   int indices[100], nindices=0, n;
 
-  if(! surf->ct){
-    printf("ERROR: MRISripPutamenNucAcc(): surface must have annotation\n");
-    return(-1);
+  if(RequireAnnot){
+    if(! surf->ct){
+      printf("ERROR: MRISripPutamenNucAcc(): surface must have annotation\n");
+      return(-1);
+    }
+    nindices=0;
+    CTABfindName(surf->ct, "medialorbitofrontal", &indices[nindices++]);
+    CTABfindName(surf->ct, "rostralanteriorcingulate", &indices[nindices++]);
+    CTABfindName(surf->ct, "insula", &indices[nindices++]);
   }
-
-  nindices=0;
-  CTABfindName(surf->ct, "medialorbitofrontal", &indices[nindices++]);
-  CTABfindName(surf->ct, "rostralanteriorcingulate", &indices[nindices++]);
-  CTABfindName(surf->ct, "insula", &indices[nindices++]);
 
   for(vno=0; vno < surf->nvertices; vno++){
     VERTEX *v;
@@ -1554,15 +1557,17 @@ int MRISripBasalGanglia(MRIS *surf, MRI *seg, const double dmin, const double dm
     v = &(surf->vertices[vno]);
     if(v->ripflag)  continue ;
 
-    CTABfindAnnotation(surf->ct, v->annotation, &index);
-    hit = 0;
-    for(n=0; n < nindices; n++){
-      if(index == indices[n]){
-	hit = 1;
-	break;
+    if(RequireAnnot){
+      CTABfindAnnotation(surf->ct, v->annotation, &index);
+      hit = 0;
+      for(n=0; n < nindices; n++){
+	if(index == indices[n]){
+	  hit = 1;
+	  break;
+	}
       }
+      if(! hit) continue;
     }
-    if(! hit) continue;
 
     for (d = dmin ; d <= dmax ; d += dstep) {
       xs = v->x + d*v->nx ;
@@ -1586,7 +1591,7 @@ int MRISripBasalGanglia(MRIS *surf, MRI *seg, const double dmin, const double dm
     }
   }
 
-  printf("MRISripBasalGanglia(): %g %g %g ripped %d\n",dmin,dmax,dstep,nripped);
+  printf("MRISripBasalGanglia(): %d %g %g %g ripped %d\n",RequireAnnot,dmin,dmax,dstep,nripped);
   return(nripped);
 }
 
@@ -1681,7 +1686,7 @@ int RIP_MNGR::RipVertices(void)
   if(RipBG){
     // probably want to use white for this
     printf("Ripping BG\n");
-    int err = MRISripBasalGanglia(ripsurf, seg, dmin,dmax,dstep);
+    int err = MRISripBasalGanglia(ripsurf, seg, RipBGRequireAnnot, dmin,dmax,dstep);
     if(err < 0) return(1);
   }
   if(nRipSegs){
