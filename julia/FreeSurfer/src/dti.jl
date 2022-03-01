@@ -49,21 +49,21 @@ Perform least-squares fitting of tensors from DWIs and return a `DTI` structure.
 function dti_fit_ls(dwi::MRI, mask::MRI)
 
   if isempty(dwi.bval)
-    error("Missing b-value table from input volume")
+    error("Missing b-value table from input DWI structure")
   end
 
   if isempty(dwi.bvec)
-    error("Missing gradient table from input volume")
+    error("Missing gradient table from input DWI structure")
   end
 
-  idwi = dwi.bval[:,1] .> 0
-  b = dwi.bval[idwi]
-  g = dwi.bvec[idwi, :]
+  ib0 = (dwi.bval .== minimum(dwi.bval))
 
-  bB = b .* hcat(g[:,1].^2, 2*g[:,1].*g[:,2], 2*g[:,1].*g[:,3],
-                 g[:,2].^2, 2*g[:,2].*g[:,3], g[:,3].^2)
+  A = hcat(dwi.bvec[:,1].^2, 2*dwi.bvec[:,1].*dwi.bvec[:,2],
+           2*dwi.bvec[:,1].*dwi.bvec[:,3], dwi.bvec[:,2].^2,
+           2*dwi.bvec[:,2].*dwi.bvec[:,3], dwi.bvec[:,3].^2)
+  A = hcat(-dwi.bval .* A, ones(size(A, 1), 1))
 
-  pbB = pinv(bB)
+  pA = pinv(A)
 
   Eval1 = MRI(mask, 1)
   Eval2 = MRI(mask, 1)
@@ -72,26 +72,34 @@ function dti_fit_ls(dwi::MRI, mask::MRI)
   Evec2 = MRI(mask, 3)
   Evec3 = MRI(mask, 3)
 
-  for iz in 1:size(dwi.vol, 3)
+  Threads.@threads for iz in 1:size(dwi.vol, 3)
     for iy in 1:size(dwi.vol, 2)
       for ix in 1:size(dwi.vol, 1)
-        if mask.vol[ix, iy, iz] > 0
-          s  = dwi.vol[ix, iy, iz, idwi]
-          s0 = mean(dwi.vol[ix, iy, iz, .!idwi])
+        mask.vol[ix, iy, iz] == 0 && continue
 
-          D = -pbB * log.(abs.(s) / abs(s0))
+        # Only use positive DWI values to fit the model
+        ipos = dwi.vol[ix, iy, iz, :] .> 0
+        npos = sum(ipos)
 
-          E = eigen([D[1] D[2] D[3];
-                     D[2] D[4] D[5];
-                     D[3] D[5] D[6]])
-
-          Eval1.vol[ix, iy, iz]    = E.values[3]
-          Eval2.vol[ix, iy, iz]    = E.values[2]
-          Eval3.vol[ix, iy, iz]    = E.values[1]
-          Evec1.vol[ix, iy, iz, :] = E.vectors[:, 3]
-          Evec2.vol[ix, iy, iz, :] = E.vectors[:, 2]
-          Evec3.vol[ix, iy, iz, :] = E.vectors[:, 1]
+        if npos == length(dwi.bval)
+          D = pA * log.(dwi.vol[ix, iy, iz, :])
+        elseif npos > 6
+          sum(ipos .&& ib0) == 0 && continue
+          D = pinv(A[ipos, :]) * log.(dwi.vol[ix, iy, iz, ipos])
+        else
+          continue
         end
+
+        E = eigen([D[1] D[2] D[3];
+                   D[2] D[4] D[5];
+                   D[3] D[5] D[6]])
+
+        Eval1.vol[ix, iy, iz]    = E.values[3]
+        Eval2.vol[ix, iy, iz]    = E.values[2]
+        Eval3.vol[ix, iy, iz]    = E.values[1]
+        Evec1.vol[ix, iy, iz, :] = E.vectors[:, 3]
+        Evec2.vol[ix, iy, iz, :] = E.vectors[:, 2]
+        Evec3.vol[ix, iy, iz, :] = E.vectors[:, 1]
       end
     end
   end
