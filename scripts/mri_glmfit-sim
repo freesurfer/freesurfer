@@ -123,6 +123,7 @@ echo $glmfitcmd
 set gd2mtx = dods
 set UseTable = 0;
 set label = ();
+set pvrlist = ()
 while($#glmfitcmd)
   set flag = $glmfitcmd[1]; shift glmfitcmd;
   #echo $flag
@@ -250,6 +251,7 @@ while($#glmfitcmd)
     breaksw
   case "--pvr"
     set IsPVR = 1;
+    set pvrlist = ($pvrlist $glmfitcmd[1]);
     shift glmfitcmd;
     breaksw
   # Ignore these options that have two args
@@ -457,6 +459,9 @@ if($DoSim) then
     if($#X)    set cmd = ($cmd --X $X)
     if($#wls)  set cmd = ($cmd --wls $wls)
     if($#framemask)  set cmd = ($cmd --frame-mask $framemask)
+    foreach pvr ($pvrlist) 
+      set cmd = ($cmd --pvr $pvr)
+    end
     # --y must go after --fsgd
     if(! $UseTable) then
       set cmd = ($cmd --mask $mask)

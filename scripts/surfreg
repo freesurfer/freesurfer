@@ -1,5 +1,5 @@
 #!/bin/tcsh -f
-# thalseg
+# surfreg
 
 set VERSION = 'surfreg @FS_VERSION@';
 
@@ -17,6 +17,7 @@ set InitLTA = ()
 set threads = 1
 set LF = ();
 set InitLTAfromTal = 0
+set AnnotSet = 0
 
 set inputargs = ($argv);
 set PrintHelp = 0;
@@ -177,15 +178,18 @@ while( $#argv != 0 )
 
     case "--aparc":
       set annot = aparc.annot;
+      set AnnotSet = 1
       breaksw
 
     case "--annot":
       if($#argv < 1) goto arg1err;
       set annot = $argv[1]; shift;
+      set AnnotSet = 1
       breaksw
 
     case "--no-annot":
       set annot = ();
+      set AnnotSet = 1
       breaksw
 
     case "--threads":
@@ -245,9 +249,9 @@ if(! -e $SUBJECTS_DIR/$target) then
      exit 1;
    endif
 endif
-if($InitLTAfromTal && ! $DoXHemi) then
+if($InitLTAfromTal) then
   set InitLTA = $sd/mri/transforms/talairach.xfm.lta
-  if(! -e $InitLTA) then
+  if(! -e $InitLTA && ! $DoXHemi) then
     echo "ERROR: cannot find $InitLTA"
     exit 1
   endif
@@ -286,6 +290,14 @@ foreach hemi ($hemilist)
     exit 1;
   endif
 end
+
+if($AnnotSet == 0) then
+  echo "ERROR: you must specify either --aparc, --annot annot, or --no-annot"
+  echo "If you want to replicate previous behavior, use --aparc, though"
+  echo "it has been found that using an annot sometimes causes artifacts "
+  echo "around the edge of the medial wall, so --no-annot is now recommended"
+  exit 1
+endif
 
 goto check_params_return;
 ############--------------##################
