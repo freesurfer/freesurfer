@@ -20,10 +20,15 @@
 #ifndef MRI2_H
 #define MRI2_H
 
+#include <vector>
+#include <array>
+
 #include "mri.h"
 #include "mriTransform.h"
 #include "mrisurf.h"
 #include "connectcomp.h"
+
+#include "pointset.h"
 
 MRI *mri_load_bvolume(char *bfstem);
 int  mri_save_as_bvolume(MRI *vol, char *stem, int svendian, int svtype);
@@ -168,5 +173,6 @@ public:
   int FixSCM(void);
 };
 
+MRI *ExpandSegIndices(MRI *seg, int segid, MRI *mask, int niters, int nmax, int topo, int *nexpansions, PointSet &centroid, MRI* newseg);
 
 #endif

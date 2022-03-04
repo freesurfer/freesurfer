@@ -115,15 +115,15 @@ int   outcntype = MRI_VOLUME_TYPE_UNKNOWN;
 char  *outcntypestring;
 
 char *outid   = NULL;
-char *synthfunction;
+char *synthfunction = NULL;
 int   outtype = MRI_VOLUME_TYPE_UNKNOWN;
 char  *outtypestring;
 
 char *sumfile;
 
 int nlabelcluster = -1;
-char *labelfile;
-char *labelbase;
+char *labelfile = NULL;
+char *labelbase = NULL;
 
 float threshmin  = -1.0;
 float threshmax  = -1.0;
