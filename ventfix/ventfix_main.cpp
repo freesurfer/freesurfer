@@ -17,7 +17,7 @@ int main(int argc, char *argv[])
   char *asegps  = argv[2];
   char *segids  = argv[3];
   
-  char mdir[256] = {'\0'}, asegpspath[256] = {'\0'}, brainmask[256] = {'\0'};
+  char mdir[256] = {'\0'}, asegpspath[1024] = {'\0'}, brainmask[1024] = {'\0'};
   char *subjdir = getenv("SUBJECTS_DIR");
   sprintf(mdir, "%s/%s/mri", subjdir, subject);
   sprintf(asegpspath, "%s/%s", mdir, asegps);
