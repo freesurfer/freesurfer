@@ -405,6 +405,7 @@ VOLCLUSTER *clustGrow(int col0, int row0, int slc0, MRI *HitMap, int AllowDiag, 
   MRIsetVoxVal(HitMap, col0, row0, slc0, 0, 1);
   vc->voxsize = HitMap->xsize * HitMap->ysize * HitMap->zsize;
 
+  nthmember = 0;
   nthpass = 0;
   nadded = 1;
   while (nadded > 0) {
@@ -412,7 +413,7 @@ VOLCLUSTER *clustGrow(int col0, int row0, int slc0, MRI *HitMap, int AllowDiag, 
 
     nadded = 0;
     nmembers_now = vc->nmembers;
-    for (nthmember = 0; nthmember < nmembers_now; nthmember++) {
+    for (; nthmember < nmembers_now; nthmember++) {
       col = vc->col[nthmember];
       row = vc->row[nthmember];
       slc = vc->slc[nthmember];

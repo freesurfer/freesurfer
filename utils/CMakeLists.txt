@@ -201,6 +201,7 @@ add_library(utils STATIC
   tritri.cpp
   tukey.cpp
   utils.cpp
+  ventfix.cpp
   version.cpp
   vertexRotator.cpp
   vlabels.cpp

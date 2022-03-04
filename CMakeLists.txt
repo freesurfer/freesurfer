@@ -671,6 +671,7 @@ if(NOT MINIMAL)
     ThalamicNuclei
     trc
     tridec
+    ventfix
     pointset2label
   )
 endif()
