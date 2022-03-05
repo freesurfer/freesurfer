@@ -135,7 +135,7 @@ void GradUnwarp::read_siemens_coeff(const char *gradfilename)
     char* endptr = ptr + len;
 
     // skip leading spaces and tabs, also empty lines
-    while (ptr != endptr && (*ptr == ' ' || *ptr == '\t' || *ptr == '\n'))
+    while (ptr != endptr && (*ptr == ' ' || *ptr == '\t' || *ptr == '\r' || *ptr == '\n'))
       ptr++;
 
     if (*ptr == '\0')
