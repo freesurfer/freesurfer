@@ -22,6 +22,7 @@ GradUnwarp::GradUnwarp(int nthreads0)
   nmax = 0;
   mmax = 0;
 
+  coeff = NULL;
   coeffCount = 0;
   coeffDim = 0;
 
@@ -43,6 +44,9 @@ GradUnwarp::~GradUnwarp()
 
     return;
   }
+
+  if (coeff != NULL)
+    free(coeff);
 
   int i;
   for (i = 0; i < coeffDim; i++)
@@ -125,8 +129,36 @@ void GradUnwarp::read_siemens_coeff(const char *gradfilename)
   for (int ind = 0; ind < 5; ind++)
       fgets(coeffline, sizeof(coeffline), fgrad);
 
+  // remember the starting of spherical harmonic coefficients
+  size_t fpos = ftell(fgrad);
 
-  /***********************************************************/
+  // first pass: get the entry counts
+  while (fgets(coeffline, sizeof(coeffline), fgrad) != NULL)
+  {
+    int len = strlen(coeffline);
+    char* ptr = coeffline;
+    char* endptr = ptr + len;
+
+    // skip leading spaces and tabs, also empty lines
+    while (ptr != endptr && (*ptr == ' ' || *ptr == '\t' || *ptr == '\r' || *ptr == '\n'))
+      ptr++;
+
+    if (*ptr == '\0')
+      continue;
+
+    if (getenv("PRN_GRADCOEFF_READ"))
+      printf("(first pass) entry #%d: %s\n", coeffCount, coeffline);
+
+    coeffCount++;
+  }
+
+  coeff = new COEFF[coeffCount];
+  coeffCount = 0;
+
+  // rewind file pointer
+  fseek(fgrad, fpos, SEEK_SET);
+
+  /******************** second pass **************************/
   /****** begin reading spherical harmonic coefficients ******/
   while (fgets(coeffline, sizeof(coeffline), fgrad) != NULL)
   {
@@ -142,15 +174,17 @@ void GradUnwarp::read_siemens_coeff(const char *gradfilename)
       continue;
 
     if (getenv("PRN_GRADCOEFF_READ"))
-      printf("entry #%d: %s\n", coeffCount, coeffline);
+      printf("(second pass) entry #%d: %s\n", coeffCount, coeffline);
 
     sscanf(ptr, "%d %c(%d, %d) %f %c", 
                       &coeff[coeffCount].num, &coeff[coeffCount].A_or_B, &coeff[coeffCount].n, &coeff[coeffCount].m, 
                       &coeff[coeffCount].value, &coeff[coeffCount].xyz);
     nmax = (coeff[coeffCount].n > nmax) ? coeff[coeffCount].n : nmax;
     mmax = (coeff[coeffCount].m > mmax) ? coeff[coeffCount].m : mmax;
-    //printf("%d %c (%d, %d) %f %c\n", coeff[coeffCount].num, 
-    //       coeff[coeffCount].A_or_B, coeff[coeffCount].n, coeff[coeffCount].m, coeff[coeffCount].value, coeff[coeffCount].xyz);
+
+    if (getenv("PRN_GRADCOEFF_READ"))
+      printf("(second pass) %d %c (%d, %d) %f %c\n", coeff[coeffCount].num, 
+             coeff[coeffCount].A_or_B, coeff[coeffCount].n, coeff[coeffCount].m, coeff[coeffCount].value, coeff[coeffCount].xyz);
 
     coeffCount++;
   }

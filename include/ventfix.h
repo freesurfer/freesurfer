@@ -4,11 +4,15 @@
 #include "mri.h"
 #include "volcluster.h"
 
+#include "pointset.h"
+
 class VentFix
 {
 public:
   static MRI *fixasegps(MRI *asegps, MRI *brainmask, char *segids, float threshmin, int niters, int nmax, int topo);
- 
+  static MRI *ExpandSegIndices(MRI *seg, int segid, MRI *mask, int niters, int nmax, int topo, int *nexpansions, PointSet &centroid, MRI* newseg);
+
+
 #if 0
   VentFix();
   ~VentFix();

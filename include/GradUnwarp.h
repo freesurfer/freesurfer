@@ -65,7 +65,7 @@ private:
 
   FILE *fgrad;
 
-  COEFF coeff[100];
+  COEFF *coeff;
 
   int nmax;
   int mmax;
