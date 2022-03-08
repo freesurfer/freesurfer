@@ -254,6 +254,11 @@
        </item>
        <item>
         <property name="text">
+         <string>Turbo</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
          <string>GE Color</string>
         </property>
        </item>
