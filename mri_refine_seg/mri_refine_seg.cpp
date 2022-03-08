@@ -377,12 +377,12 @@ int main(int argc, char **argv) {
     // saving a pointset representing each changed voxel will be quite large (and tedious to
     // use), so instead we'll compute clusters of the change-mask and save a point from there
     clusters = clustGetClusters(mask_buffer, 0, 1, 1, 1, 0, mask_buffer, &nclusters, NULL);
-    PointSet changed_voxels;
+    fsPointSet changed_voxels;
     for (int clustid = 0 ; clustid < nclusters ; clustid++) {
       VOLCLUSTER* clr = clusters[clustid];
       double x, y, z;
       MRIvoxelToWorld(seg, clr->col[0], clr->row[0], clr->slc[0], &x, &y, &z);
-      changed_voxels.add(PointSet::Point(x, y, z));
+      changed_voxels.add(fsPointSet::Point(x, y, z));
     }
     clustFreeClusterList(&clusters, nclusters);
 

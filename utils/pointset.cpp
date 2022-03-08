@@ -8,7 +8,7 @@
 /// TODO: support the .dat output format as well and
 /// use json.h instead of hard-coding this stuff
 
-bool PointSet::save(std::string filename)
+bool fsPointSet::save(std::string filename)
 {
   std::ofstream jsonfile;
   jsonfile.open(filename);
@@ -44,7 +44,7 @@ bool PointSet::save(std::string filename)
 }
 
 // Save in control point format, v6 compatible
-bool PointSet::save_as_ctrlpoint(std::string filename)
+bool fsPointSet::save_as_ctrlpoint(std::string filename)
 {
   std::ofstream ctrpfile;
   ctrpfile.open(filename);
@@ -61,7 +61,7 @@ bool PointSet::save_as_ctrlpoint(std::string filename)
 }
 
 
-PointSet loadPointSet(std::string filename)
+fsPointSet loadfsPointSet(std::string filename)
 {
   // read the JSON file from stream
   std::ifstream is(filename);
@@ -69,7 +69,7 @@ PointSet loadPointSet(std::string filename)
   is >> j;
 
   // init pointset 
-  PointSet ps = PointSet();
+  fsPointSet ps = fsPointSet();
 
   // get space
   ps.vox2ras = j["vox2ras"];
