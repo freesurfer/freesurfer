@@ -2709,6 +2709,10 @@ void MainWindow::CommandSetColorMap( const QStringList& sa )
   {
     nColorMap = LayerPropertyMRI::Jet;
   }
+  else if ( strg == "turbo" || strg == "turboscale" )
+  {
+    nColorMap = LayerPropertyMRI::Turbo;
+  }
   else if ( strg == "lut" )
   {
     nColorMap = LayerPropertyMRI::LUT;

@@ -472,6 +472,7 @@ void PanelVolume::DoUpdateWidgets()
     }
     ui->comboBoxColorMap->addItem( "Heat", LayerPropertyMRI::Heat );
     ui->comboBoxColorMap->addItem( "Jet", LayerPropertyMRI::Jet );
+    ui->comboBoxColorMap->addItem( "Turbo", LayerPropertyMRI::Turbo );
     ui->comboBoxColorMap->addItem( "GE Color", LayerPropertyMRI::GEColor );
     ui->comboBoxColorMap->addItem( "NIH", LayerPropertyMRI::NIH );
     ui->comboBoxColorMap->addItem( "PET", LayerPropertyMRI::PET );
