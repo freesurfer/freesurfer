@@ -16,7 +16,7 @@
 
 
 
-static PointSet::Point sras2ras(MRIS* surf, PointSet::Point point);
+static fsPointSet::Point sras2ras(MRIS* surf, fsPointSet::Point point);
 
 int main(int argc, char **argv) 
 {
@@ -89,11 +89,11 @@ int main(int argc, char **argv)
   }
 
   // cycle through each defect and find its center position
-  PointSet centroids;
+  fsPointSet centroids;
   for (auto &defect : defects) {
     if (!defect.empty()) {
       // average the points in the defect
-      PointSet::Point centroid;
+      fsPointSet::Point centroid;
       int npoints = 0;
       for (auto &vnum : defect) {
         centroid.x += surf->vertices[vnum].x;
@@ -140,7 +140,7 @@ int main(int argc, char **argv)
 
 // returns a point transformed from surface RAS to scanner RAS coordinates - ideally
 // this function should be moved to mrisurf.c or somewhere else more appropriate 
-static PointSet::Point sras2ras(MRIS* surf, PointSet::Point point)
+static fsPointSet::Point sras2ras(MRIS* surf, fsPointSet::Point point)
 {
   static MATRIX *sras2ras_matrix;
   static VECTOR *v1, *v2;
@@ -162,5 +162,5 @@ static PointSet::Point sras2ras(MRIS* surf, PointSet::Point point)
   V3_X(v1) = point.x; V3_Y(v1) = point.y; V3_Z(v1) = point.z;
   MatrixMultiply(sras2ras_matrix, v1, v2);
 
-  return PointSet::Point(V3_X(v2), V3_Y(v2), V3_Z(v2), point.value);
+  return fsPointSet::Point(V3_X(v2), V3_Y(v2), V3_Z(v2), point.value);
 }
