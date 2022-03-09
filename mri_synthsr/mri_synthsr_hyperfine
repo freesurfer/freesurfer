@@ -116,7 +116,7 @@ def predict(path_t1_images,
 
         # preprocessing
         try:
-            image, aff, h, pad_idx, t1_image, minimum, spread = preprocess_image(path_t1_image, path_t2_image)
+            image, aff, h, pad_idx, t1_image, minimum, spread = preprocess(path_t1_image, path_t2_image)
         except Exception as e:
             print('\nthe following problem occured when preprocessing image %s :' % path_t1_image)
             print(e)
@@ -184,16 +184,38 @@ def prepare_output_files(path_t1_images, path_t2_images, path_predictions):
     basename_t2 = os.path.basename(path_t2_images)
     path_predictions = os.path.abspath(path_predictions)
 
+    if basename_t1[-4:] == '.txt':
+
+        # input t1 images
+        if not os.path.isfile(path_t1_images):
+            fs.fatal('provided text file containing paths of input images does not exist' % path_t1_images)
+        with open(path_t1_images, 'r') as f:
+            path_t1_images = [line.replace('\n', '') for line in f.readlines() if line != '\n']
+
+        # input t2 images
+        if not os.path.isfile(path_t2_images):
+            fs.fatal('provided text file containing paths of input images does not exist' % path_t2_images)
+        with open(path_t2_images, 'r') as f:
+            path_t2_images = [line.replace('\n', '') for line in f.readlines() if line != '\n']
+
+        # predictions
+        if path_predictions[-4:] != '.txt':
+            fs.fatal('if path_images given as text file, so must be the output predictions')
+        with open(path_predictions, 'r') as f:
+            path_predictions = [line.replace('\n', '') for line in f.readlines() if line != '\n']
+
     # path_t1_images is a folder
-    if ('.nii.gz' not in basename_t1) & ('.nii' not in basename_t1) & ('.mgz' not in basename_t1) & \
+    elif ('.nii.gz' not in basename_t1) & ('.nii' not in basename_t1) & ('.mgz' not in basename_t1) & \
             ('.npz' not in basename_t1):
 
-        # list t1 images
+        # input t1 images
         if os.path.isfile(path_t1_images):
             fs.fatal('Extension not supported for %s, only use: .nii.gz, .nii, .mgz, or .npz' % path_t1_images)
         path_t1_images = list_images_in_folder(path_t1_images)
 
-        # list corresponding t2 images
+        # input t2 images
+        if path_t2_images[-4:] == '.txt':
+            fs.fatal('path_t2_images can only be given as text file when path_t1_images is.')
         if ('.nii.gz' in basename_t2) & ('.nii' in basename_t2) & ('.mgz' in basename_t2) & ('.npz' in basename_t2):
             fs.fatal('Please provide T2 images as a folder since T1 images are given as such.')
         if os.path.isfile(path_t2_images):
@@ -202,7 +224,9 @@ def prepare_output_files(path_t1_images, path_t2_images, path_predictions):
         if len(path_t1_images) != len(path_t2_images):
             fs.fatal('not the same number of images in T1 and T2 folders.')
 
-        # prepare prediction files
+        # predictions
+        if path_predictions[-4:] == '.txt':
+            fs.fatal('path_predictions can only be given as text file when path_t1_images is.')
         if (path_predictions[-7:] == '.nii.gz') | (path_predictions[-4:] == '.nii') | \
                 (path_predictions[-4:] == '.mgz') | (path_predictions[-4:] == '.npz'):
             fs.fatal('Output folders cannot have extensions: .nii.gz, .nii, .mgz, or .npz, had %s' % path_predictions)
@@ -214,14 +238,24 @@ def prepare_output_files(path_t1_images, path_t2_images, path_predictions):
 
     # path_t1_images is an image
     else:
+
+        # input t1 images
         if not os.path.isfile(path_t1_images):
-            fs.fatal("file does not exist: %s \n"
-                     "please make sure the path and the extension are correct" % path_t1_images)
+            fs.fatal('file does not exist: %s \n'
+                     'please make sure the path and the extension are correct' % path_t1_images)
         path_t1_images = [path_t1_images]
+
+        # input t2 images
+        if path_t2_images[-4:] == '.txt':
+            fs.fatal('path_t2_images can only be given as text file when path_t1_images is.')
         if not os.path.isfile(path_t2_images):
-            fs.fatal("file does not exist: %s \n"
-                     "please make sure the path and the extension are correct" % path_t2_images)
+            fs.fatal('file does not exist: %s \n'
+                     'please make sure the path and the extension are correct' % path_t2_images)
         path_t2_images = [path_t2_images]
+
+        # predictions
+        if path_predictions[-4:] == '.txt':
+            fs.fatal('path_predictions can only be given as text file when path_t1_images is.')
         if ('.nii.gz' not in path_predictions) & ('.nii' not in path_predictions) & \
                 ('.mgz' not in path_predictions) & ('.npz' not in path_predictions):
             mkdir(path_predictions)
@@ -236,23 +270,31 @@ def prepare_output_files(path_t1_images, path_t2_images, path_predictions):
     return path_t1_images, path_t2_images, path_predictions
 
 
-def preprocess_image(path_t1_image, path_t2_image, n_levels=5):
+def preprocess(path_t1_image, path_t2_image, n_levels=5):
 
     # read t1 image and corresponding info
     im_t1, _, aff_t1, n_dims, n_channels, h, _ = get_volume_info(path_t1_image, return_volume=True)
-    if n_channels > 1:
-        print('WARNING: detected more than 1 channel for T1 image, only keeping the first channel.')
+    if n_dims < 3:
+        fs.fatal('input should have 3 dimensions, had %s' % n_dims)
+    elif n_dims == 4 and n_channels == 1:
         im_t1 = im_t1[..., 0]
-    if n_dims != 3:
-        fs.fatal('T1 images should be 3D, found %s dimensions.' % n_dims)
+    elif n_dims > 3:
+        fs.fatal('input should have 3 dimensions, had %s' % n_dims)
+    elif n_channels > 1:
+        print('WARNING: detected more than 1 channel, only keeping the first channel.')
+        im_t1 = im_t1[..., 0]
 
     # read t2 image and corresponding info
     im_t2, _, aff_t2, n_dims, n_channels, _, _ = get_volume_info(path_t2_image, return_volume=True)
-    if n_channels > 1:
-        print('WARNING: detected more than 1 channel for T2 image, only keeping the first channel.')
+    if n_dims < 3:
+        fs.fatal('input should have 3 dimensions, had %s' % n_dims)
+    elif n_dims == 4 and n_channels == 1:
         im_t2 = im_t2[..., 0]
-    if n_dims != 3:
-        fs.fatal('T2 images should be 3D, found %s dimensions.' % n_dims)
+    elif n_dims > 3:
+        fs.fatal('input should have 3 dimensions, had %s' % n_dims)
+    elif n_channels > 1:
+        print('WARNING: detected more than 1 channel, only keeping the first channel.')
+        im_t2 = im_t2[..., 0]
 
     # resample and align image
     im_t1, aff_t1 = resample_volume(im_t1, aff_t1, [1.0, 1.0, 1.0])
@@ -334,6 +376,7 @@ def unet(nb_features,
          padding='same',
          dilation_rate_mult=1,
          activation='elu',
+         skip_n_concatenations=0,
          use_residuals=False,
          final_pred_activation='softmax',
          nb_conv_per_level=1,
@@ -388,6 +431,7 @@ def unet(nb_features,
                          feat_mult=feat_mult,
                          pool_size=pool_size,
                          use_skip_connections=True,
+                         skip_n_concatenations=skip_n_concatenations,
                          padding=padding,
                          dilation_rate_mult=dilation_rate_mult,
                          activation=activation,
@@ -439,8 +483,6 @@ def conv_enc(nb_features,
         last_tensor = input_model.outputs
         if isinstance(last_tensor, list):
             last_tensor = last_tensor[0]
-        last_tensor = keras.layers.Reshape(input_shape)(last_tensor)
-        input_shape = last_tensor.shape.as_list()[1:]
 
     # volume size data
     ndims = len(input_shape) - 1
@@ -493,7 +535,6 @@ def conv_enc(nb_features,
                 if conv_dropout > 0:
                     name = '%s_dropout_down_merge_%d_%d' % (prefix, level, conv)
                     noise_shape = [None, *[1] * ndims, nb_lvl_feats]
-                    last_tensor = keras.layers.Dropout(conv_dropout, noise_shape=noise_shape, name=name)(last_tensor)
 
             name = '%s_res_down_merge_%d' % (prefix, level)
             last_tensor = keras.layers.add([add_layer, convarm_layer], name=name)
@@ -525,6 +566,7 @@ def conv_dec(nb_features,
              feat_mult=1,
              pool_size=2,
              use_skip_connections=False,
+             skip_n_concatenations=0,
              padding='same',
              dilation_rate_mult=1,
              activation='elu',
@@ -589,7 +631,7 @@ def conv_dec(nb_features,
         up_tensor = last_tensor
 
         # merge layers combining previous layer
-        if use_skip_connections:
+        if use_skip_connections & (level < (nb_levels - skip_n_concatenations - 1)):
             conv_name = '%s_conv_downarm_%d_%d' % (prefix, nb_levels - 2 - level, nb_conv_per_level - 1)
             cat_tensor = input_model.get_layer(conv_name).output
             name = '%s_merge_%d' % (prefix, nb_levels + level)
@@ -699,6 +741,8 @@ def load_volume(path_volume, im_only=True, squeeze=True, dtype=None, aff_ref=Non
         aff = np.eye(4)
         header = nib.Nifti1Header()
     if dtype is not None:
+        if 'int' in dtype:
+            volume = np.round(volume)
         volume = volume.astype(dtype=dtype)
 
     # align image to reference affine matrix
@@ -739,6 +783,9 @@ def save_volume(volume, aff, header, path, res=None, dtype=None, n_dims=3):
             aff = np.eye(4)
         nifty = nib.Nifti1Image(volume, aff, header)
         if dtype is not None:
+            if 'int' in dtype:
+                volume = np.round(volume)
+            volume = volume.astype(dtype=dtype)
             nifty.set_data_dtype(dtype)
         if res is not None:
             if n_dims is None:
@@ -861,7 +908,7 @@ def reformat_to_list(var, length=None, load_as_numpy=False, dtype=None):
 # ----------------------------------------------- path-related functions -----------------------------------------------
 
 
-def list_images_in_folder(path_dir, include_single_image=True):
+def list_images_in_folder(path_dir, include_single_image=True, check_if_empty=True):
     """List all files with extension nii, nii.gz, mgz, or npz whithin a folder."""
     basename = os.path.basename(path_dir)
     if include_single_image & \
@@ -875,8 +922,9 @@ def list_images_in_folder(path_dir, include_single_image=True):
                                  glob.glob(os.path.join(path_dir, '*.mgz')) +
                                  glob.glob(os.path.join(path_dir, '*.npz')))
         else:
-            raise Exception('extension not supported for %s, only use: nii.gz, .nii, .mgz, or .npz' % path_dir)
-        assert len(list_images) > 0, 'no .nii, .nii.gz, .mgz or .npz image could be found in %s' % path_dir
+            raise Exception('Folder does not exist: %s' % path_dir)
+        if check_if_empty:
+            assert len(list_images) > 0, 'no .nii, .nii.gz, .mgz or .npz image could be found in %s' % path_dir
     return list_images
 
 
@@ -988,7 +1036,7 @@ class LoopInfo:
 # ---------------------------------------------------- edit volume -----------------------------------------------------
 
 
-def crop_volume_with_idx(volume, crop_idx, aff=None, n_dims=None):
+def crop_volume_with_idx(volume, crop_idx, aff=None, n_dims=None, return_copy=True):
     """Crop a volume with given indices.
     :param volume: a 2d or 3d numpy array
     :param crop_idx: croppping indices, in the order [lower_bound_dim_1, ..., upper_bound_dim_1, ...].
@@ -1001,7 +1049,7 @@ def crop_volume_with_idx(volume, crop_idx, aff=None, n_dims=None):
     """
 
     # get info
-    new_volume = volume.copy()
+    new_volume = volume.copy() if return_copy else volume
     n_dims = int(np.array(crop_idx).shape[0] / 2) if n_dims is None else n_dims
 
     # crop image
@@ -1157,10 +1205,16 @@ def get_ras_axes(aff, n_dims=3):
     """
     aff_inverted = np.linalg.inv(aff)
     img_ras_axes = np.argmax(np.absolute(aff_inverted[0:n_dims, 0:n_dims]), axis=0)
+    for i in range(n_dims):
+        if i not in img_ras_axes:
+            unique, counts = np.unique(img_ras_axes, return_counts=True)
+            incorrect_value = unique[np.argmax(counts)]
+            img_ras_axes[np.where(img_ras_axes == incorrect_value)[0][-1]] = i
+
     return img_ras_axes
 
 
-def align_volume_to_ref(volume, aff, aff_ref=None, return_aff=False, n_dims=None):
+def align_volume_to_ref(volume, aff, aff_ref=None, return_aff=False, n_dims=None, return_copy=True):
     """This function aligns a volume to a reference orientation (axis and direction) specified by an affine matrix.
     :param volume: a numpy array
     :param aff: affine matrix of the floating volume
@@ -1172,7 +1226,7 @@ def align_volume_to_ref(volume, aff, aff_ref=None, return_aff=False, n_dims=None
     """
 
     # work on copy
-    new_volume = volume.copy()
+    new_volume = volume.copy() if return_copy else volume
     aff_flo = aff.copy()
 
     # default value for aff_ref

@@ -20,6 +20,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 import tensorflow as tf
 from tensorflow import keras
+import tensorflow.keras.layers as KL
 
 # set tensorflow logging
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
@@ -44,8 +45,10 @@ def main():
     parser.add_argument("--vol", help="(optional) Output CSV file with volumes for all structures and subjects.")
 
     # parameters
-    parser.add_argument("--crop", nargs='+', type=int, default=192, dest="crop",
-                        help="(optional) Size of 3D patches to analyse. Default is 192.")
+    parser.add_argument("--robust", action="store_true", help="(optional) Whether to use robust predictions (slower).")
+    parser.add_argument("--fast", action="store_true", help="(optional) bypass some postprocessing for faster predictions.")
+    parser.add_argument("--crop", nargs='+', type=int, default=None, dest="crop",
+                        help="(optional) Size of the central patch to analyse. The whole image is analysed by default.")
     parser.add_argument("--threads", type=int, default=1, help="(optional) Number of cores to be used. Default is 1.")
     parser.add_argument("--cpu", action="store_true", help="(optional) Enforce running with CPU rather than GPU.")
 
@@ -64,20 +67,27 @@ def main():
 
     # locate model weights
     if not fs.fshome():
-        path_model = segmentation_labels = segmentation_names_list = topology_classes = None
+        path_model = group_labels = segmentation_labels = segmentation_label_names = topology_classes = None
         fs.fatal('FREESURFER_HOME is not set. Please source freesurfer.')
     else:
-        path_model = os.path.join(fs.fshome(), 'models', 'synthseg_1.0.h5')
+        group_labels = os.path.join(fs.fshome(), 'models', 'synthseg_group_labels.npy')
         segmentation_labels = os.path.join(fs.fshome(), 'models', 'synthseg_segmentation_labels.npy')
         segmentation_label_names = os.path.join(fs.fshome(), 'models', 'synthseg_segmentation_names.npy')
         topology_classes = os.path.join(fs.fshome(), 'models', 'synthseg_topological_classes.npy')
+        if args.robust:
+            path_model = os.path.join(fs.fshome(), 'models', 'synthseg_plus_1.0.h5')
+        else:
+            path_model = os.path.join(fs.fshome(), 'models', 'synthseg_1.0.h5')
 
     # run prediction
     predict(
         path_images=args.i,
         path_segmentations=args.o,
         path_model=path_model,
+        robust=args.robust,
+        fast=args.fast,
         segmentation_labels=segmentation_labels,
+        group_labels=group_labels,
         segmentation_label_names=segmentation_label_names,
         topology_classes=topology_classes,
         path_posteriors=args.post,
@@ -96,13 +106,16 @@ def main():
 def predict(path_images,
             path_segmentations,
             path_model,
+            robust,
+            fast,
             segmentation_labels,
+            group_labels,
             segmentation_label_names,
             topology_classes,
             path_posteriors=None,
             path_resampled=None,
             path_volumes=None,
-            crop=192,
+            crop=None,
             threads=1):
     '''
     Prediction pipeline.
@@ -112,7 +125,7 @@ def predict(path_images,
         fs.fatal("A model file is necessary")
 
     # prepare input/output filepaths
-    path_images, path_segmentations, path_posteriors, path_resampled, path_volumes = \
+    path_images, path_segmentations, path_posteriors, path_resampled, path_volumes, unique_vol_file = \
         prepare_output_files(path_images, path_segmentations, path_posteriors, path_resampled, path_volumes)
 
     if threads == 1:
@@ -124,6 +137,7 @@ def predict(path_images,
 
     # get label list
     segmentation_labels, _ = get_list_labels(label_list=segmentation_labels)
+    group_labels, _ = get_list_labels(label_list=group_labels)
     n_labels = len(segmentation_labels)
     n_neutral_labels = 18
 
@@ -149,31 +163,37 @@ def predict(path_images,
         topology_classes = load_array_if_path(topology_classes, load_as_numpy=True)[indices]
 
     # prepare volume file if needed
-    if path_volumes is not None:
+    if unique_vol_file & (path_volumes[0] is not None):
         if segmentation_label_names is not None:
             segmentation_label_names = load_array_if_path(segmentation_label_names)[indices]
             csv_header = [[''] + segmentation_label_names[1:].tolist()]
             csv_header += [[''] + [str(lab) for lab in segmentation_labels[1:]]]
         else:
             csv_header = [['subjects'] + [str(lab) for lab in segmentation_labels[1:]]]
-        with open(path_volumes, 'w') as csvFile:
+        with open(path_volumes[0], 'w') as csvFile:
             writer = csv.writer(csvFile)
             writer.writerows(csv_header)
-        csvFile.close()
 
     # build network
-    net = build_model(path_model, len(segmentation_labels))
+    net = build_model(path_model, n_labels, len(group_labels), robust)
+
+    # set cropping/padding
+    if crop is not None:
+        crop = reformat_to_list(crop, length=3, dtype='int')
+        min_pad = crop
+    else:
+        min_pad = 160
 
     # perform segmentation
     loop_info = LoopInfo(len(path_images), 10, 'predicting', True)
-    for idx, (path_image, path_segmentation, path_posterior, path_resample) in \
-            enumerate(zip(path_images, path_segmentations, path_posteriors, path_resampled)):
+    for idx, (path_image, path_segmentation, path_posterior, path_resample, path_volume) in \
+            enumerate(zip(path_images, path_segmentations, path_posteriors, path_resampled, path_volumes)):
         loop_info.update(idx)
 
         # preprocessing
         try:
-            image, aff, h, im_res, shape, pad_shape, crop_idx, im_flipped = \
-                preprocess_image(path_image, crop=crop, path_resample=path_resample)
+            image, aff, h, im_res, shape, pad_idx, crop_idx, im_flipped = \
+                preprocess(path_image, crop=crop, min_pad=min_pad, path_resample=path_resample)
         except Exception as e:
             print('\nthe following problem occured when preprocessing image %s :' % path_image)
             print(e)
@@ -183,7 +203,7 @@ def predict(path_images,
         # prediction
         try:
             prediction_patch = net.predict(image)
-            prediction_patch_flip = net.predict(im_flipped)
+            prediction_patch_flip = net.predict(im_flipped) if not (fast | robust) else None
         except Exception as e:
             print('\nthe following problem occured when predicting segmentation of image %s :' % path_image)
             print(e)
@@ -192,7 +212,7 @@ def predict(path_images,
 
         # postprocessing
         try:
-            seg, posteriors = postprocess(prediction_patch, pad_shape, shape, crop_idx, segmentation_labels, lr_indices,
+            seg, posteriors = postprocess(prediction_patch, shape, pad_idx, crop_idx, segmentation_labels, lr_indices,
                                           aff, topology_classes, prediction_patch_flip)
         except Exception as e:
             print('\nthe following problem occured when postprocessing segmentation %s :' % path_segmentation)
@@ -202,8 +222,7 @@ def predict(path_images,
 
         # write results to disk
         try:
-            if path_segmentation is not None:
-                save_volume(seg, aff, h, path_segmentation, dtype='int32')
+            save_volume(seg, aff, h, path_segmentation, dtype='int32')
             if path_posterior is not None:
                 save_volume(posteriors, aff, h, path_posterior, dtype='float32')
         except Exception as e:
@@ -214,14 +233,20 @@ def predict(path_images,
 
         # compute volumes
         try:
-            if path_volumes is not None:
+            if path_volume is not None:
+                mkdir(os.path.dirname(path_volume))
                 volumes = np.sum(posteriors[..., 1:], axis=tuple(range(0, len(posteriors.shape) - 1)))
                 volumes = np.around(volumes * np.prod(im_res), 3)
                 row = [os.path.basename(path_image).replace('.nii.gz', '')] + [str(vol) for vol in volumes]
-                with open(path_volumes, 'a') as csvFile:
-                    writer = csv.writer(csvFile)
-                    writer.writerow(row)
-                csvFile.close()
+                if unique_vol_file:
+                    with open(path_volume, 'a') as csvFile:
+                        writer = csv.writer(csvFile)
+                        writer.writerow(row)
+                else:
+                    rows = [[''] + [str(lab) for lab in segmentation_labels[1:]], row]
+                    with open(path_volume, 'w') as csvFile:
+                        writer = csv.writer(csvFile)
+                        writer.writerows(rows)
         except Exception as e:
             print('\nthe following problem occured when computing the volumes of '
                   'segmentation %s :' % path_segmentation)
@@ -230,20 +255,21 @@ def predict(path_images,
             continue
 
     # print output info
-    if len(path_segmentations) == 1:
-        print('\nsegmentation  saved in:    ' + path_segmentations[0])
-        if path_posteriors[0] is not None:
-            print('posteriors saved in:       ' + path_posteriors[0])
-        if path_resampled[0] is not None:
-            print('resampled images saved in: ' + path_resampled[0])
-    else:
-        print('\nsegmentations saved in:    ' + os.path.dirname(path_segmentations[0]))
-        if path_posteriors[0] is not None:
-            print('posteriors saved in:       ' + os.path.dirname(path_posteriors[0]))
-        if path_resampled[0] is not None:
-            print('resampled images saved in: ' + os.path.dirname(path_resampled[0]))
-    if path_volumes is not None:
-        print('volumes saved in:          ' + path_volumes)
+    if unique_vol_file:
+        if len(path_segmentations) == 1:
+            print('\nsegmentation  saved in:    ' + path_segmentations[0])
+            if path_posteriors[0] is not None:
+                print('posteriors saved in:       ' + path_posteriors[0])
+            if path_resampled[0] is not None:
+                print('resampled images saved in: ' + path_resampled[0])
+        else:
+            print('\nsegmentations saved in:    ' + os.path.dirname(path_segmentations[0]))
+            if path_posteriors[0] is not None:
+                print('posteriors saved in:       ' + os.path.dirname(path_posteriors[0]))
+            if path_resampled[0] is not None:
+                print('resampled images saved in: ' + os.path.dirname(path_resampled[0]))
+        if path_volumes is not None:
+            print('volumes saved in:          ' + path_volumes[0])
 
     print('\nIf you use this tool in a publication, please cite:')
     print('SynthSeg: domain randomisation for segmentation of brain MRI scans of any contrast and resolution')
@@ -269,11 +295,59 @@ def prepare_output_files(path_images, out_seg, out_posteriors, out_resampled, ou
     out_resampled = os.path.abspath(out_resampled) if (out_resampled is not None) else out_resampled
     out_volumes = os.path.abspath(out_volumes) if (out_volumes is not None) else out_volumes
 
+    if basename[-4:] == '.txt':
+
+        # input images
+        if not os.path.isfile(path_images):
+            raise Exception('provided text file containing paths of input images does not exist' % path_images)
+        with open(path_images, 'r') as f:
+            path_images = [line.replace('\n', '') for line in f.readlines() if line != '\n']
+
+        # segmentations
+        if out_seg[-4:] != '.txt':
+            fs.fatal('if path_images given as text file, so must be the output segmentations')
+        with open(out_seg, 'r') as f:
+            out_seg = [line.replace('\n', '') for line in f.readlines() if line != '\n']
+
+        # volumes
+        if out_volumes is not None:
+            if out_volumes[-4:] != '.txt':
+                fs.fatal('if path_images given as text file, so must be the output volumes')
+            with open(out_volumes, 'r') as f:
+                out_volumes = [line.replace('\n', '') for line in f.readlines() if line != '\n']
+        else:
+            out_volumes = [None] * len(path_images)
+        unique_volume_file = False
+
+        # posteriors
+        if out_posteriors is not None:
+            if out_posteriors[-4:] != '.txt':
+                fs.fatal('if path_images given as text file, so must be the output posteriors')
+            with open(out_posteriors, 'r') as f:
+                out_posteriors = [line.replace('\n', '') for line in f.readlines() if line != '\n']
+        else:
+            out_posteriors = [None] * len(path_images)
+
+        # resampled
+        if out_resampled is not None:
+            if out_resampled[-4:] != '.txt':
+                fs.fatal('if path_images given as text file, so must be the output resampled')
+            with open(out_resampled, 'r') as f:
+                out_resampled = [line.replace('\n', '') for line in f.readlines() if line != '\n']
+        else:
+            out_resampled = [None] * len(path_images)
+
     # path_images is a folder
-    if ('.nii.gz' not in basename) & ('.nii' not in basename) & ('.mgz' not in basename) & ('.npz' not in basename):
+    elif ('.nii.gz' not in basename) & ('.nii' not in basename) & ('.mgz' not in basename) & ('.npz' not in basename):
+
+        # input images
         if os.path.isfile(path_images):
             fs.fatal('Extension not supported for %s, only use: .nii.gz, .nii, .mgz, or .npz' % path_images)
         path_images = list_images_in_folder(path_images)
+
+        # segmentations
+        if out_seg[-4:] == '.txt':
+            fs.fatal('path_segmentations can only be given as text file when path_images is.')
         if (out_seg[-7:] == '.nii.gz') | (out_seg[-4:] == '.nii') | (out_seg[-4:] == '.mgz') | (out_seg[-4:] == '.npz'):
             fs.fatal('Output folders cannot have extensions: .nii.gz, .nii, .mgz, or .npz, had %s' % out_seg)
         mkdir(out_seg)
@@ -281,7 +355,22 @@ def prepare_output_files(path_images, out_seg, out_posteriors, out_resampled, ou
                    path_images]
         out_seg = [seg_path.replace('.mgz', '_synthseg.mgz') for seg_path in out_seg]
         out_seg = [seg_path.replace('.npz', '_synthseg.npz') for seg_path in out_seg]
+
+        # volumes
+        if out_volumes is not None:
+            if out_volumes[-4:] == '.txt':
+                fs.fatal('path_volumes can only be given as text file when path_images is.')
+            if out_volumes[-4:] != '.csv':
+                print('Path for volume outputs provided without csv extension. Adding csv extension.')
+                out_volumes += '.csv'
+            mkdir(os.path.dirname(out_volumes))
+        out_volumes = [out_volumes] * len(path_images)
+        unique_volume_file = True
+
+        # posteriors
         if out_posteriors is not None:
+            if out_posteriors[-4:] == '.txt':
+                fs.fatal('path_posteriors can only be given as text file when path_images is.')
             if (out_posteriors[-7:] == '.nii.gz') | (out_posteriors[-4:] == '.nii') | \
                     (out_posteriors[-4:] == '.mgz') | (out_posteriors[-4:] == '.npz'):
                 fs.fatal('Output folders cannot have extensions: .nii.gz, .nii, .mgz, or .npz, had %s' % out_posteriors)
@@ -291,8 +380,12 @@ def prepare_output_files(path_images, out_seg, out_posteriors, out_resampled, ou
             out_posteriors = [posteriors_path.replace('.mgz', '_posteriors.mgz') for posteriors_path in out_posteriors]
             out_posteriors = [posteriors_path.replace('.npz', '_posteriors.npz') for posteriors_path in out_posteriors]
         else:
-            out_posteriors = [out_posteriors] * len(path_images)
+            out_posteriors = [None] * len(path_images)
+
+        # resampled
         if out_resampled is not None:
+            if out_resampled[-4:] == '.txt':
+                fs.fatal('path_resampled can only be given as text file when path_images is.')
             if (out_resampled[-7:] == '.nii.gz') | (out_resampled[-4:] == '.nii') | \
                     (out_resampled[-4:] == '.mgz') | (out_resampled[-4:] == '.npz'):
                 fs.fatal('Output folders cannot have extensions: .nii.gz, .nii, .mgz, or .npz, had %s' % out_resampled)
@@ -302,13 +395,19 @@ def prepare_output_files(path_images, out_seg, out_posteriors, out_resampled, ou
             out_resampled = [resampled_path.replace('.mgz', '_resampled.mgz') for resampled_path in out_resampled]
             out_resampled = [resampled_path.replace('.npz', '_resampled.npz') for resampled_path in out_resampled]
         else:
-            out_resampled = [out_resampled] * len(path_images)
+            out_resampled = [None] * len(path_images)
 
     # path_images is an image
     else:
+
+        # input images
         if not os.path.isfile(path_images):
             fs.fatal("file does not exist: %s \nplease make sure the path and the extension are correct" % path_images)
         path_images = [path_images]
+
+        # segmentations
+        if out_seg[-4:] == '.txt':
+            fs.fatal('path_segmentations can only be given as text file when path_images is.')
         if ('.nii.gz' not in out_seg) & ('.nii' not in out_seg) & ('.mgz' not in out_seg) & ('.npz' not in out_seg):
             mkdir(out_seg)
             filename = os.path.basename(path_images[0]).replace('.nii', '_synthseg.nii')
@@ -318,7 +417,22 @@ def prepare_output_files(path_images, out_seg, out_posteriors, out_resampled, ou
         else:
             mkdir(os.path.dirname(out_seg))
         out_seg = [out_seg]
+
+        # volumes
+        if out_volumes is not None:
+            if out_volumes[-4:] == '.txt':
+                fs.fatal('path_volumes can only be given as text file when path_images is.')
+            if out_volumes[-4:] != '.csv':
+                print('Path for volume outputs provided without csv extension. Adding csv extension.')
+                out_volumes += '.csv'
+            mkdir(os.path.dirname(out_volumes))
+        out_volumes = [out_volumes]
+        unique_volume_file = True
+
+        # posteriors
         if out_posteriors is not None:
+            if out_posteriors[-4:] == '.txt':
+                fs.fatal('path_posteriors can only be given as text file when path_images is.')
             if ('.nii.gz' not in out_posteriors) & ('.nii' not in out_posteriors) &\
                     ('.mgz' not in out_posteriors) & ('.npz' not in out_posteriors):
                 mkdir(out_posteriors)
@@ -329,7 +443,11 @@ def prepare_output_files(path_images, out_seg, out_posteriors, out_resampled, ou
             else:
                 mkdir(os.path.dirname(out_posteriors))
         out_posteriors = [out_posteriors]
+
+        # resampled
         if out_resampled is not None:
+            if out_resampled[-4:] == '.txt':
+                fs.fatal('path_resampled can only be given as text file when path_images is.')
             if ('.nii.gz' not in out_resampled) & ('.nii' not in out_resampled) &\
                     ('.mgz' not in out_resampled) & ('.npz' not in out_resampled):
                 mkdir(out_resampled)
@@ -341,52 +459,54 @@ def prepare_output_files(path_images, out_seg, out_posteriors, out_resampled, ou
                 mkdir(os.path.dirname(out_resampled))
         out_resampled = [out_resampled]
 
-    if out_volumes is not None:
-        if out_volumes[-4:] != '.csv':
-            print('Path for volume outputs provided without csv extension. Adding csv extension.')
-            out_volumes += '.csv'
-            mkdir(os.path.dirname(out_volumes))
-
-    return path_images, out_seg, out_posteriors, out_resampled, out_volumes
+    return path_images, out_seg, out_posteriors, out_resampled, out_volumes, unique_volume_file
 
 
-def preprocess_image(im_path, crop=192, n_levels=5, path_resample=None):
+def preprocess(path_image, n_levels=5, crop=None, min_pad=None, path_resample=None):
 
     # read image and corresponding info
-    im, shape, aff, n_dims, n_channels, header, im_res = get_volume_info(im_path, True)
-    if n_channels > 1:
+    im, _, aff, n_dims, n_channels, h, im_res = get_volume_info(path_image, True)
+    if n_dims < 3:
+        fs.fatal('input should have 3 dimensions, had %s' % n_dims)
+    elif n_dims == 4 and n_channels == 1:
+        n_dims = 3
+        im = im[..., 0]
+    elif n_dims > 3:
+        fs.fatal('input should have 3 dimensions, had %s' % n_dims)
+    elif n_channels > 1:
         print('WARNING: detected more than 1 channel, only keeping the first channel.')
         im = im[..., 0]
-    if n_dims != 3:
-        fs.fatal('Input images should be 3D, found %s dimensions.' % n_dims)
 
     # resample image if necessary
-    if np.any((np.array(im_res) > 1.05) | (np.array(im_res) < 0.95)):
+    if np.any((im_res > 1.05) | (im_res < 0.95)):
         im_res = np.array([1.]*3)
         im, aff = resample_volume(im, aff, im_res)
         if path_resample is not None:
-            save_volume(im, aff, header, path_resample)
+            save_volume(im, aff, h, path_resample)
 
     # align image
-    im = align_volume_to_ref(im, aff, aff_ref=np.eye(4), n_dims=n_dims)
-    shape = list(im.shape)
+    im = align_volume_to_ref(im, aff, aff_ref=np.eye(4), n_dims=n_dims, return_copy=False)
+    shape = list(im.shape[:n_dims])
 
-    # pad image
-    crop = reformat_to_list(crop, length=n_dims, dtype='int')
-    im = pad_volume(im, padding_shape=crop)
-    pad_shape = im.shape[:n_dims]
-
-    # check that shape is divisible by 2**n_levels
-    if not all([pad_shape[i] >= crop[i] for i in range(n_dims)]):
-        crop = [min(pad_shape[i], crop[i]) for i in range(n_dims)]
-    if not all([size % (2**n_levels) == 0 for size in crop]):
-        crop = [find_closest_number_divisible_by_m(size, 2 ** n_levels) for size in crop]
-
-    # crop image
-    im, crop_idx = crop_volume(im, cropping_shape=crop, return_crop_idx=True)
+    # crop image if necessary
+    if crop is not None:
+        crop = reformat_to_list(crop, length=n_dims, dtype='int')
+        crop_shape = [find_closest_number_divisible_by_m(s, 2 ** n_levels, 'higher') for s in crop]
+        im, crop_idx = crop_volume(im, cropping_shape=crop_shape, return_crop_idx=True)
+    else:
+        crop_idx = None
 
     # normalise image
     im = rescale_volume(im, new_min=0, new_max=1, min_percentile=0.5, max_percentile=99.5)
+
+    # pad image
+    input_shape = im.shape[:n_dims]
+    pad_shape = [find_closest_number_divisible_by_m(s, 2 ** n_levels, 'higher') for s in input_shape]
+    if min_pad is not None:
+        min_pad = reformat_to_list(min_pad, length=n_dims, dtype='int')
+        min_pad = [find_closest_number_divisible_by_m(s, 2 ** n_levels, 'higher') for s in min_pad]
+        pad_shape = np.maximum(pad_shape, min_pad)
+    im, pad_idx = pad_volume(im, padding_shape=pad_shape, return_pad_idx=True)
 
     # test-time augmentation by RL flipping
     im_flipped = flip_volume(im, direction='rl', aff=np.eye(4))
@@ -395,83 +515,144 @@ def preprocess_image(im_path, crop=192, n_levels=5, path_resample=None):
     im = add_axis(im, axis=[0, -1])
     im_flipped = add_axis(im_flipped, axis=[0, -1])
 
-    return im, aff, header, im_res, shape, pad_shape, crop_idx, im_flipped
+    return im, aff, h, im_res, shape, pad_idx, crop_idx, im_flipped
 
 
-def build_model(model_file, n_lab):
-    '''
-    Builds keras unet model.
-    '''
+def build_model(model_file, n_lab, n_group, robust):
+
     if not os.path.isfile(model_file):
         fs.fatal("The provided model path does not exist.")
 
-    # build UNet
-    net = unet(nb_features=24,
-               input_shape=[None, None, None, 1],
-               nb_levels=5,
-               conv_size=3,
-               nb_labels=n_lab,
-               feat_mult=2,
-               nb_conv_per_level=2,
-               batch_norm=-1)
-    net.load_weights(model_file, by_name=True)
+    if robust:
 
-    # smooth posteriors
-    last_tensor = net.output
-    last_tensor._keras_shape = tuple(last_tensor.get_shape().as_list())
-    last_tensor = GaussianBlur(sigma=0.5)(last_tensor)
-    net = keras.Model(inputs=net.inputs, outputs=last_tensor)
+        # build first UNet
+        net = unet(nb_features=24,
+                   input_shape=[None, None, None, 1],
+                   nb_levels=5,
+                   conv_size=3,
+                   nb_labels=n_group,
+                   feat_mult=2,
+                   activation='elu',
+                   nb_conv_per_level=2,
+                   batch_norm=-1)
+
+        # transition between the two networks: one_hot -> argmax -> one_hot (it simulates how the network was trained)
+        last_tensor = net.output
+        last_tensor = KL.Lambda(lambda x: tf.argmax(x, axis=-1))(last_tensor)
+        last_tensor = KL.Lambda(lambda x: tf.one_hot(tf.cast(x, 'int32'), depth=n_group, axis=-1))(last_tensor)
+        net = keras.Model(inputs=net.inputs, outputs=last_tensor)
+
+        # build denoiser
+        net = unet(nb_features=16,
+                   input_shape=[None, None, None, 1],
+                   nb_levels=5,
+                   conv_size=5,
+                   nb_labels=n_group,
+                   feat_mult=2,
+                   nb_conv_per_level=2,
+                   batch_norm=-1,
+                   activation='elu',
+                   skip_n_concatenations=2,
+                   input_model=net,
+                   name='l2l')
+
+        # transition between the two networks: one_hot -> argmax -> one_hot, and concatenate input image and labels
+        input_image = net.inputs[0]
+        last_tensor = net.output
+        last_tensor = KL.Lambda(lambda x: tf.argmax(x, axis=-1))(last_tensor)
+        last_tensor = KL.Lambda(lambda x: tf.one_hot(tf.cast(x, 'int32'), depth=n_group, axis=-1))(last_tensor)
+        last_tensor = KL.Lambda(lambda x: tf.cast(tf.concat(x, axis=-1), 'float32'))([input_image, last_tensor])
+        net = keras.Model(inputs=net.inputs, outputs=last_tensor)
+
+        # build 2nd network
+        net = unet(nb_features=24,
+                   input_shape=[None, None, None, 1],
+                   nb_levels=5,
+                   conv_size=3,
+                   nb_labels=n_lab,
+                   feat_mult=2,
+                   activation='elu',
+                   nb_conv_per_level=2,
+                   batch_norm=-1,
+                   input_model=net,
+                   name='unet2')
+        net.load_weights(model_file, by_name=True)
+
+    else:
+        # build UNet
+        net = unet(nb_features=24,
+                   input_shape=[None, None, None, 1],
+                   nb_levels=5,
+                   conv_size=3,
+                   nb_labels=n_lab,
+                   feat_mult=2,
+                   nb_conv_per_level=2,
+                   batch_norm=-1)
+        net.load_weights(model_file, by_name=True)
+
+        # smooth posteriors
+        last_tensor = net.output
+        last_tensor._keras_shape = tuple(last_tensor.get_shape().as_list())
+        last_tensor = GaussianBlur(sigma=0.5)(last_tensor)
+        net = keras.Model(inputs=net.inputs, outputs=last_tensor)
 
     return net
 
 
-def postprocess(post_patch, pad_shape, im_shape, crop, segmentation_labels, left_right_indices, aff,
+def postprocess(post_patch, shape, pad_idx, crop_idx, segmentation_labels, lr_indices, aff,
                 topology_classes, post_patch_flip):
 
     # get posteriors
     post_patch = np.squeeze(post_patch)
-    post_patch_flip = flip_volume(np.squeeze(post_patch_flip), direction='rl', aff=np.eye(4))
-    post_patch_flip[..., left_right_indices.flatten()] = post_patch_flip[..., left_right_indices[::-1].flatten()]
-    post_patch = 0.5 * (post_patch + post_patch_flip)
+    if post_patch_flip is not None:
+        post_patch_flip = np.squeeze(post_patch_flip)
+        post_patch_flip = flip_volume(post_patch_flip, direction='rl', aff=np.eye(4), return_copy=False)
+        post_patch_flip[..., lr_indices.flatten()] = post_patch_flip[..., lr_indices[::-1].flatten()]
+        post_patch = 0.5 * (post_patch + post_patch_flip)
 
     # keep biggest connected component
     tmp_post_patch = post_patch[..., 1:]
     post_patch_mask = np.sum(tmp_post_patch, axis=-1) > 0.25
     post_patch_mask = get_largest_connected_component(post_patch_mask)
     post_patch_mask = np.stack([post_patch_mask]*tmp_post_patch.shape[-1], axis=-1)
-    tmp_post_patch = mask_volume(tmp_post_patch, mask=post_patch_mask)
+    tmp_post_patch = mask_volume(tmp_post_patch, mask=post_patch_mask, return_copy=False)
     post_patch[..., 1:] = tmp_post_patch
 
     # reset posteriors to zero outside the largest connected component of each topological class
-    post_patch_mask = post_patch > 0.25
-    for topology_class in np.unique(topology_classes)[1:]:
-        tmp_topology_indices = np.where(topology_classes == topology_class)[0]
-        tmp_mask = np.any(post_patch_mask[..., tmp_topology_indices], axis=-1)
-        tmp_mask = get_largest_connected_component(tmp_mask)
-        for idx in tmp_topology_indices:
-            post_patch[..., idx] *= tmp_mask
+    if post_patch_flip is not None:
+        post_patch_mask = post_patch > 0.25
+        for topology_class in np.unique(topology_classes)[1:]:
+            tmp_topology_indices = np.where(topology_classes == topology_class)[0]
+            tmp_mask = np.any(post_patch_mask[..., tmp_topology_indices], axis=-1)
+            tmp_mask = get_largest_connected_component(tmp_mask)
+            for idx in tmp_topology_indices:
+                post_patch[..., idx] *= tmp_mask
+    else:
+        post_patch_mask = post_patch > 0.2
+        post_patch[..., 1:] *= post_patch_mask[..., 1:]
 
     # renormalise posteriors and get hard segmentation
     post_patch /= np.sum(post_patch, axis=-1)[..., np.newaxis]
     seg_patch = post_patch.argmax(-1)
 
     # paste patches back to matrix of original image size
-    seg = np.zeros(shape=pad_shape, dtype='int32')
-    posteriors = np.zeros(shape=[*pad_shape, segmentation_labels.shape[0]])
-    posteriors[..., 0] = np.ones(pad_shape)  # place background around patch
-    seg[crop[0]:crop[3], crop[1]:crop[4], crop[2]:crop[5]] = seg_patch
-    posteriors[crop[0]:crop[3], crop[1]:crop[4], crop[2]:crop[5], :] = post_patch
+    seg_patch = crop_volume_with_idx(seg_patch, pad_idx, n_dims=3, return_copy=False)
+    post_patch = crop_volume_with_idx(post_patch, pad_idx, n_dims=3, return_copy=False)
+    if crop_idx is not None:
+        # we need to go through this because of the posteriors of the background, otherwise pad_volume would work
+        seg = np.zeros(shape=shape, dtype='int32')
+        posteriors = np.zeros(shape=[*shape, segmentation_labels.shape[0]])
+        posteriors[..., 0] = np.ones(shape)  # place background around patch
+        seg[crop_idx[0]:crop_idx[3], crop_idx[1]:crop_idx[4], crop_idx[2]:crop_idx[5]] = seg_patch
+        posteriors[crop_idx[0]:crop_idx[3], crop_idx[1]:crop_idx[4], crop_idx[2]:crop_idx[5], :] = post_patch
+    else:
+        seg = seg_patch
+        posteriors = post_patch
     seg = segmentation_labels[seg.astype('int')].astype('int')
 
-    if im_shape != pad_shape:
-        bounds = [int((p-i)/2) for (p, i) in zip(pad_shape, im_shape)]
-        bounds += [p + i for (p, i) in zip(bounds, im_shape)]
-        seg = crop_volume_with_idx(seg, bounds)
-        posteriors = crop_volume_with_idx(posteriors, bounds, n_dims=3)
-
     # align prediction back to first orientation
-    seg = align_volume_to_ref(seg, aff=np.eye(4), aff_ref=aff, n_dims=3)
-    posteriors = align_volume_to_ref(posteriors, aff=np.eye(4), aff_ref=aff, n_dims=3)
+    seg = align_volume_to_ref(seg, aff=np.eye(4), aff_ref=aff, n_dims=3, return_copy=False)
+    posteriors = align_volume_to_ref(posteriors, np.eye(4), aff_ref=aff, n_dims=3, return_copy=False)
 
     return seg, posteriors
 
@@ -493,6 +674,7 @@ def unet(nb_features,
          padding='same',
          dilation_rate_mult=1,
          activation='elu',
+         skip_n_concatenations=0,
          use_residuals=False,
          final_pred_activation='softmax',
          nb_conv_per_level=1,
@@ -547,6 +729,7 @@ def unet(nb_features,
                          feat_mult=feat_mult,
                          pool_size=pool_size,
                          use_skip_connections=True,
+                         skip_n_concatenations=skip_n_concatenations,
                          padding=padding,
                          dilation_rate_mult=dilation_rate_mult,
                          activation=activation,
@@ -598,8 +781,6 @@ def conv_enc(nb_features,
         last_tensor = input_model.outputs
         if isinstance(last_tensor, list):
             last_tensor = last_tensor[0]
-        last_tensor = keras.layers.Reshape(input_shape)(last_tensor)
-        input_shape = last_tensor.shape.as_list()[1:]
 
     # volume size data
     ndims = len(input_shape) - 1
@@ -652,7 +833,6 @@ def conv_enc(nb_features,
                 if conv_dropout > 0:
                     name = '%s_dropout_down_merge_%d_%d' % (prefix, level, conv)
                     noise_shape = [None, *[1] * ndims, nb_lvl_feats]
-                    last_tensor = keras.layers.Dropout(conv_dropout, noise_shape=noise_shape, name=name)(last_tensor)
 
             name = '%s_res_down_merge_%d' % (prefix, level)
             last_tensor = keras.layers.add([add_layer, convarm_layer], name=name)
@@ -684,6 +864,7 @@ def conv_dec(nb_features,
              feat_mult=1,
              pool_size=2,
              use_skip_connections=False,
+             skip_n_concatenations=0,
              padding='same',
              dilation_rate_mult=1,
              activation='elu',
@@ -748,7 +929,7 @@ def conv_dec(nb_features,
         up_tensor = last_tensor
 
         # merge layers combining previous layer
-        if use_skip_connections:
+        if use_skip_connections & (level < (nb_levels - skip_n_concatenations - 1)):
             conv_name = '%s_conv_downarm_%d_%d' % (prefix, nb_levels - 2 - level, nb_conv_per_level - 1)
             cat_tensor = input_model.get_layer(conv_name).output
             name = '%s_merge_%d' % (prefix, nb_levels + level)
@@ -858,6 +1039,8 @@ def load_volume(path_volume, im_only=True, squeeze=True, dtype=None, aff_ref=Non
         aff = np.eye(4)
         header = nib.Nifti1Header()
     if dtype is not None:
+        if 'int' in dtype:
+            volume = np.round(volume)
         volume = volume.astype(dtype=dtype)
 
     # align image to reference affine matrix
@@ -898,6 +1081,9 @@ def save_volume(volume, aff, header, path, res=None, dtype=None, n_dims=3):
             aff = np.eye(4)
         nifty = nib.Nifti1Image(volume, aff, header)
         if dtype is not None:
+            if 'int' in dtype:
+                volume = np.round(volume)
+            volume = volume.astype(dtype=dtype)
             nifty.set_data_dtype(dtype)
         if res is not None:
             if n_dims is None:
@@ -1096,7 +1282,7 @@ def reformat_to_list(var, length=None, load_as_numpy=False, dtype=None):
 # ----------------------------------------------- path-related functions -----------------------------------------------
 
 
-def list_images_in_folder(path_dir, include_single_image=True):
+def list_images_in_folder(path_dir, include_single_image=True, check_if_empty=True):
     """List all files with extension nii, nii.gz, mgz, or npz whithin a folder."""
     basename = os.path.basename(path_dir)
     if include_single_image & \
@@ -1110,8 +1296,9 @@ def list_images_in_folder(path_dir, include_single_image=True):
                                  glob.glob(os.path.join(path_dir, '*.mgz')) +
                                  glob.glob(os.path.join(path_dir, '*.npz')))
         else:
-            raise Exception('extension not supported for %s, only use: nii.gz, .nii, .mgz, or .npz' % path_dir)
-        assert len(list_images) > 0, 'no .nii, .nii.gz, .mgz or .npz image could be found in %s' % path_dir
+            raise Exception('Folder does not exist: %s' % path_dir)
+        if check_if_empty:
+            assert len(list_images) > 0, 'no .nii, .nii.gz, .mgz or .npz image could be found in %s' % path_dir
     return list_images
 
 
@@ -1270,7 +1457,7 @@ def build_binary_structure(connectivity, n_dims, shape=None):
 # ---------------------------------------------------- edit volume -----------------------------------------------------
 
 def mask_volume(volume, mask=None, threshold=0.1, dilate=0, erode=0, fill_holes=False, masking_value=0,
-                return_mask=False):
+                return_mask=False, return_copy=True):
     """Mask a volume, either with a given mask, or by keeping only the values above a threshold.
     :param volume: a numpy array, possibly with several channels
     :param mask: (optional) a numpy array to mask volume with.
@@ -1287,7 +1474,7 @@ def mask_volume(volume, mask=None, threshold=0.1, dilate=0, erode=0, fill_holes=
     """
 
     # get info
-    new_volume = volume.copy()
+    new_volume = volume.copy() if return_copy else volume
     vol_shape = list(new_volume.shape)
     n_dims, n_channels = get_dims(vol_shape)
 
@@ -1321,7 +1508,7 @@ def mask_volume(volume, mask=None, threshold=0.1, dilate=0, erode=0, fill_holes=
         return new_volume
 
 
-def rescale_volume(volume, new_min=0., new_max=255., min_percentile=2., max_percentile=98., use_positive_only=True):
+def rescale_volume(volume, new_min=0, new_max=255, min_percentile=2, max_percentile=98, use_positive_only=False):
     """This function linearly rescales a volume between new_min and new_max.
     :param volume: a numpy array
     :param new_min: (optional) minimum value for the rescaled image.
@@ -1340,14 +1527,14 @@ def rescale_volume(volume, new_min=0., new_max=255., min_percentile=2., max_perc
 
     # define min and max intensities in original image for normalisation
     robust_min = np.min(intensities) if min_percentile == 0 else np.percentile(intensities, min_percentile)
-    robust_max = np.max(intensities) if max_percentile == 0 else np.percentile(intensities, max_percentile)
+    robust_max = np.max(intensities) if max_percentile == 100 else np.percentile(intensities, max_percentile)
 
     # trim values outside range
     new_volume = np.clip(new_volume, robust_min, robust_max)
 
     # rescale image
     if robust_min != robust_max:
-        return new_min + (new_volume - robust_min) / (robust_max - robust_min) * new_max
+        return new_min + (new_volume - robust_min) / (robust_max - robust_min) * (new_max - new_min)
     else:  # avoid dividing by zero
         return np.zeros_like(new_volume)
 
@@ -1414,7 +1601,7 @@ def crop_volume(volume, cropping_margin=None, cropping_shape=None, aff=None, ret
     return output[0] if len(output) == 1 else tuple(output)
 
 
-def crop_volume_with_idx(volume, crop_idx, aff=None, n_dims=None):
+def crop_volume_with_idx(volume, crop_idx, aff=None, n_dims=None, return_copy=True):
     """Crop a volume with given indices.
     :param volume: a 2d or 3d numpy array
     :param crop_idx: croppping indices, in the order [lower_bound_dim_1, ..., upper_bound_dim_1, ...].
@@ -1427,7 +1614,7 @@ def crop_volume_with_idx(volume, crop_idx, aff=None, n_dims=None):
     """
 
     # get info
-    new_volume = volume.copy()
+    new_volume = volume.copy() if return_copy else volume
     n_dims = int(np.array(crop_idx).shape[0] / 2) if n_dims is None else n_dims
 
     # crop image
@@ -1491,7 +1678,7 @@ def pad_volume(volume, padding_shape, padding_value=0, aff=None, return_pad_idx=
     return output[0] if len(output) == 1 else tuple(output)
 
 
-def flip_volume(volume, axis=None, direction=None, aff=None):
+def flip_volume(volume, axis=None, direction=None, aff=None, return_copy=True):
     """Flip volume along a specified axis.
     If unknown, this axis can be inferred from an affine matrix with a specified anatomical direction.
     :param volume: a numpy array
@@ -1502,7 +1689,7 @@ def flip_volume(volume, axis=None, direction=None, aff=None):
     :return: flipped volume
     """
 
-    new_volume = volume.copy()
+    new_volume = volume.copy() if return_copy else volume
     assert (axis is not None) | ((aff is not None) & (direction is not None)), \
         'please provide either axis, or an affine matrix with a direction'
 
@@ -1579,10 +1766,16 @@ def get_ras_axes(aff, n_dims=3):
     """
     aff_inverted = np.linalg.inv(aff)
     img_ras_axes = np.argmax(np.absolute(aff_inverted[0:n_dims, 0:n_dims]), axis=0)
+    for i in range(n_dims):
+        if i not in img_ras_axes:
+            unique, counts = np.unique(img_ras_axes, return_counts=True)
+            incorrect_value = unique[np.argmax(counts)]
+            img_ras_axes[np.where(img_ras_axes == incorrect_value)[0][-1]] = i
+
     return img_ras_axes
 
 
-def align_volume_to_ref(volume, aff, aff_ref=None, return_aff=False, n_dims=None):
+def align_volume_to_ref(volume, aff, aff_ref=None, return_aff=False, n_dims=None, return_copy=True):
     """This function aligns a volume to a reference orientation (axis and direction) specified by an affine matrix.
     :param volume: a numpy array
     :param aff: affine matrix of the floating volume
@@ -1594,7 +1787,7 @@ def align_volume_to_ref(volume, aff, aff_ref=None, return_aff=False, n_dims=None
     """
 
     # work on copy
-    new_volume = volume.copy()
+    new_volume = volume.copy() if return_copy else volume
     aff_flo = aff.copy()
 
     # default value for aff_ref
@@ -1737,6 +1930,13 @@ class GaussianBlur(keras.layers.Layer):
 
 def gaussian_kernel(sigma, max_sigma=None, blur_range=None, separable=True):
     """Build gaussian kernels of the specified standard deviation. The outputs are given as tensorflow tensors.
+    :param sigma: standard deviation of the tensors. Can be given as a list/numpy array or as tensors. In each case,
+    sigma must have the same length as the number of dimensions of the volume that will be blurred with the output
+    tensors (e.g. sigma must have 3 values for 3D volumes).
+    :param max_sigma:
+    :param blur_range:
+    :param separable:
+    :return:
     """
     # convert sigma into a tensor
     if not tf.is_tensor(sigma):
