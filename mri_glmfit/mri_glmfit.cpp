@@ -2141,6 +2141,7 @@ int main(int argc, char **argv) {
     MRIfree(&sig);
 
     if(mriglm->npvr == 0){
+      printf("Computing efficiency\n");
       eff = GLMEfficiency(mriglm->Xg,mriglm->glm->C[n]);
       sprintf(tmpstr,"%s/%s/efficiency.dat",GLMDir,mriglm->glm->Cname[n]);
       fp = fopen(tmpstr,"w");
@@ -3859,6 +3860,10 @@ double GLMEfficiency(MATRIX *X, MATRIX *C)
 
   XtX = MatrixMultiplyD(Xt,X,NULL);
   iXtX = MatrixInverse(XtX,NULL);
+  if(iXtX == NULL){
+    printf("Could not compute efficiency because matrix is not invertible\n");
+    return(-1);
+  }
   // M = C*inv(X'*X)*C'
   A = MatrixMultiplyD(C,iXtX,NULL);
   M = MatrixMultiplyD(A,Ct,NULL);
