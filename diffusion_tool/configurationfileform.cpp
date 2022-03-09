@@ -7,6 +7,9 @@
 
 #include "configurationfileform.h"
 
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 15, 0))
+#define endl Qt::endl
+#endif
 
 ConfigurationFileForm::ConfigurationFileForm(QDialog *parent)  : QDialog(parent)
 {

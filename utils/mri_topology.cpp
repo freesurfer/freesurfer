@@ -1408,6 +1408,26 @@ static void setBorderValue(MRI *mri, int val, int dst)
       for (k = dst; k < depth - dst; k++)
         for (j = dst; j < height - dst; j++) MRISvox(mri, i, j, k) = val;
       break;
+    case MRI_USHRT:
+      k = dst;
+      for (i = dst; i < mri->width - dst; i++)
+        for (j = dst; j < height - dst; j++) MRIUSvox(mri, i, j, k) = val;
+      k = depth - 1 - dst;
+      for (i = dst; i < width - dst; i++)
+        for (j = dst; j < height - dst; j++) MRIUSvox(mri, i, j, k) = val;
+      j = dst;
+      for (i = dst; i < width - dst; i++)
+        for (k = dst; k < depth - dst; k++) MRIUSvox(mri, i, j, k) = val;
+      j = height - 1 - dst;
+      for (i = dst; i < width - dst; i++)
+        for (k = dst; k < depth - dst; k++) MRIUSvox(mri, i, j, k) = val;
+      i = dst;
+      for (k = dst; k < depth - dst; k++)
+        for (j = dst; j < height - dst; j++) MRIUSvox(mri, i, j, k) = val;
+      i = width - 1 - dst;
+      for (k = dst; k < depth - dst; k++)
+        for (j = dst; j < height - dst; j++) MRIUSvox(mri, i, j, k) = val;
+      break;
     case MRI_FLOAT:
       k = dst;
       for (i = dst; i < mri->width - dst; i++)

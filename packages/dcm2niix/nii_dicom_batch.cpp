@@ -104,14 +104,18 @@ const char kFileSep[2] = "/";
 
 #endif
 
-#ifdef MGH_FREESURFER
+#ifdef USING_DCM2NIIXFSWRAPPER
+// create the struct to save nifti header, image data, TDICOMdata, & TDTI information.
+// no .nii, .bval, .bvec are created.
 MRIFSSTRUCT mrifsStruct;
 
+// retrieve the struct
 MRIFSSTRUCT* nii_getMrifsStruct()
 {
   return &mrifsStruct;
 }
 
+// free the memory used for the image and dti
 void nii_clrMrifsStruct()
 {
   free(mrifsStruct.imgM);
@@ -1969,7 +1973,11 @@ void swapEndian(struct nifti_1_header *hdr, unsigned char *im, bool isNative) {
 	// must be told which is native to detect datatype and number of voxels
 	// one could also auto-detect: hdr->sizeof_hdr==348
 	if (!isNative)
+#ifdef USING_MGH_NIFTI_IO
 	  swap_nifti_header(hdr, 1);
+#else
+	  swap_nifti_header(hdr);
+#endif
 	int nVox = 1;
 	for (int i = 1; i < 8; i++)
 		if (hdr->dim[i] > 1)
@@ -1977,7 +1985,11 @@ void swapEndian(struct nifti_1_header *hdr, unsigned char *im, bool isNative) {
 	int bitpix = hdr->bitpix;
 	int datatype = hdr->datatype;
 	if (isNative)
+#ifdef USING_MGH_NIFTI_IO
 	  swap_nifti_header(hdr, 1);
+#else
+	  swap_nifti_header(hdr);
+#endif
 	if (datatype == DT_RGBA32)
 		return;
 	//n.b. do not swap 8-bit, 24-bit RGB, and 32-bit RGBA
@@ -2396,7 +2408,7 @@ int *nii_saveDTI(char pathoutname[], int nConvert, struct TDCMsort dcmSort[], st
 				for (int v = 0; v < 4; v++) //for each vector+B-value
 					dti4D->S[i].V[v] = vx[i].V[v];
 		}
-#ifdef MGH_FREESURFER
+#ifdef USING_DCM2NIIXFSWRAPPER
 		mrifsStruct.tdti = vx;
 		mrifsStruct.numDti = numDti;
 #else
@@ -2405,7 +2417,7 @@ int *nii_saveDTI(char pathoutname[], int nConvert, struct TDCMsort dcmSort[], st
 		return volOrderIndex;
 	}
 
-#ifndef MGH_FREESURFER
+#ifndef USING_DCM2NIIXFSWRAPPER
 	char txtname[2048] = {""};
 	strcpy(txtname, pathoutname);
 	strcat(txtname, ".bval");
@@ -2426,7 +2438,7 @@ int *nii_saveDTI(char pathoutname[], int nConvert, struct TDCMsort dcmSort[], st
 	fclose(fp);
 #endif
 	if (isIsotropic) { //issue 405: ISOTROPIC images have bval but not bvec
-#ifdef MGH_FREESURFER
+#ifdef USING_DCM2NIIXFSWRAPPER
 		mrifsStruct.tdti = vx;
 		mrifsStruct.numDti = numDti;
 #else
@@ -2435,7 +2447,7 @@ int *nii_saveDTI(char pathoutname[], int nConvert, struct TDCMsort dcmSort[], st
 		return volOrderIndex;
 	}
 
-#ifndef MGH_FREESURFER
+#ifndef USING_DCM2NIIXFSWRAPPER
 	strcpy(txtname, pathoutname);
 	if (dcmList[indx0].isVectorFromBMatrix)
 		strcat(txtname, ".mvec");
@@ -2461,7 +2473,7 @@ int *nii_saveDTI(char pathoutname[], int nConvert, struct TDCMsort dcmSort[], st
 #endif
 #endif
 
-#ifdef MGH_FREESURFER
+#ifdef USING_DCM2NIIXFSWRAPPER
 	mrifsStruct.tdti = vx;
 	mrifsStruct.numDti = numDti;
 #else
@@ -4275,7 +4287,7 @@ int nii_saveNII(char *niiFilename, struct nifti_1_header hdr, unsigned char *im,
 	}
 #endif
 
-#ifndef MGH_FREESURFER
+#ifndef USING_DCM2NIIXFSWRAPPER
 	FILE *fp = fopen(fname, "wb");
 	if (!fp)
 		return EXIT_FAILURE;
@@ -5781,7 +5793,7 @@ void loadOverlay(char *imgname, unsigned char *img, int offset, int x, int y, in
 } //loadOverlay()
 
 int saveDcm2NiiCore(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata dcmList[], struct TSearchList *nameList, struct TDCMopts opts, struct TDTI4D *dti4D, int segVol) {
-#ifdef MGH_FREESURFER
+#ifdef USING_DCM2NIIXFSWRAPPER
   double seriesNum = (double) dcmList[dcmSort[0].indx].seriesUidCrc;
   int segVolEcho = segVol;
   if ((dcmList[dcmSort[0].indx].echoNum > 1) && (segVolEcho <= 0))
@@ -5846,7 +5858,7 @@ int saveDcm2NiiCore(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata d
 	bool saveAs3D = false;
 #endif
 
-#ifdef MGH_FREESURFER
+#ifdef USING_DCM2NIIXFSWRAPPER
         mrifsStruct.tdicomData = dcmList[indx];  // first in sorted list dcmSort
 #endif 
 
@@ -5866,7 +5878,7 @@ int saveDcm2NiiCore(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata d
 	memcpy(&imgM[0], &img[0], imgsz);
 	free(img);
 
-#ifdef MGH_FREESURFER
+#ifdef USING_DCM2NIIXFSWRAPPER
         printMessage("load Image %s, size %ld\n", nameList->str[indx], imgsz);
 #endif
 
@@ -6224,7 +6236,7 @@ int saveDcm2NiiCore(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata d
 				memcpy(&imgM[(uint64_t)i * imgsz], &img[0], imgsz);
 				free(img);
 
-#ifdef MGH_FREESURFER
+#ifdef USING_DCM2NIIXFSWRAPPER
                                 if (opts.isVerbose)
 				  printMessage("load Image #%d %s, size %ld\n", i, nameList->str[indx], imgsz);
 #endif
@@ -6277,7 +6289,7 @@ int saveDcm2NiiCore(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata d
 		nii_SaveBIDSX(pathoutname, dcmList[dcmSort[0].indx], opts, &hdr0, nameList->str[dcmSort[0].indx], dti4D);
 	if (opts.isOnlyBIDS) {
 		//note we waste time loading every image, however this ensures hdr0 matches actual output
-#ifndef MGH_FREESURFER
+#ifndef USING_DCM2NIIXFSWRAPPER
 		free(imgM);
 #endif
 		return EXIT_SUCCESS;
@@ -6333,15 +6345,14 @@ int saveDcm2NiiCore(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata d
 	struct nifti_1_header hdrrx = hdr0;
 	bool isFlipZ = false;
 	if (sliceDir < 0) {
-#ifdef MGH_FREESURFER     // freesurfer fix dcm/261000-10-6?.dcm
-      printMessage("***MGH_FREESURFER***: skip nii_flipZ() when sliceDir < 0 (%s:%s:%d)\n", __FILE__, __func__, __LINE__);
+#ifdef USING_DCM2NIIXFSWRAPPER     // freesurfer fix dcm/261000-10-6?.dcm
+      printMessage("***USING_DCM2NIIXFSWRAPPER***: skip nii_flipZ() when sliceDir < 0 (%s:%s:%d)\n", __FILE__, __func__, __LINE__);
 #else
 		isFlipZ = true;
 		imgM = nii_flipZ(imgM, &hdr0);
 		sliceDir = abs(sliceDir); //change this, we have flipped the image so GE DTI bvecs no longer need to be flipped!
 #endif
 	}
-
 	nii_saveText(pathoutname, dcmList[dcmSort[0].indx], opts, &hdr0, nameList->str[indx]);
 	int numADC = 0;
 	int *volOrderIndex = nii_saveDTI(pathoutname, nConvert, dcmSort, dcmList, opts, sliceDir, dti4D, &numADC, hdr0.dim[4]);
@@ -6360,7 +6371,7 @@ int saveDcm2NiiCore(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata d
 		printWarning("Siemens XA DICOM inadequate for robust conversion (issue 236)\n");
 	if ((dcmList[dcmSort[0].indx].isXA10A) && (nConvert > 1))
 		printWarning("Siemens XA exported as classic not enhanced DICOM (issue 236)\n");
-#ifndef MGH_FREESURFER
+#ifndef USING_DCM2NIIXFSWRAPPER
 	printMessage("Convert %d DICOM as %s (%dx%dx%dx%d)\n", nConvert, pathoutname, hdr0.dim[1], hdr0.dim[2], hdr0.dim[3], hdr0.dim[4]);
 #else
     printMessage( "Convert %d DICOM (%dx%dx%dx%d)\n",  nConvert, hdr0.dim[1],hdr0.dim[2],hdr0.dim[3],hdr0.dim[4]);
@@ -6381,7 +6392,6 @@ int saveDcm2NiiCore(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata d
 	bool isFlipY = false;
 	bool isSetOrtho = false;
 	if ((opts.isRotate3DAcq) && (dcmList[dcmSort[0].indx].is3DAcq) && (!dcmList[dcmSort[0].indx].isEPI) && (hdr0.dim[3] > 1) && (hdr0.dim[0] < 4)) {
-	        // freesurfer fix isRotate3DAcq is set to false in dcm2niixWrapper dcm/261000-10-6?.dcm
 		bool isSliceEquidistant = true; //issue539
 		if ((nConvert > 0)  && (sliceMMarray != NULL)){
 			float dx = sliceMMarray[1] - sliceMMarray[0];
@@ -6398,7 +6408,6 @@ int saveDcm2NiiCore(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata d
 			isSetOrtho = true;
 		}
 	} else if (opts.isFlipY) { //(FLIP_Y) //(dcmList[indx0].CSA.mosaicSlices < 2) &&
-	        // freesurfer fix isFlipY is set to false in dcm2niixWrapper
 		imgM = nii_flipY(imgM, &hdr0);
 		isFlipY = true;
 	} else
@@ -6553,7 +6562,7 @@ int saveDcm2NiiCore(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata d
 		nii_saveAttributes(dcmList[dcmSort[0].indx], hdr0, opts, nameList->str[dcmSort[0].indx]);
 #endif
 
-#ifdef MGH_FREESURFER
+#ifdef USING_DCM2NIIXFSWRAPPER
       hdr0.vox_offset = 352;
 
       mrifsStruct.hdr0 = hdr0;
@@ -6568,6 +6577,27 @@ int saveDcm2NiiCore(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata d
 } // saveDcm2NiiCore()
 
 int saveDcm2Nii(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata dcmList[], struct TSearchList *nameList, struct TDCMopts opts, struct TDTI4D *dti4D) {
+#ifdef USING_DCM2NIIXFSWRAPPER
+  if (opts.isDumpNotConvert) {
+    int indx0 = dcmSort[0].indx;
+    if (opts.isIgnoreSeriesInstanceUID)
+      printMessage("%d %s %s (total %d)\n", dcmList[indx0].seriesUidCrc, dcmList[indx0].protocolName, nameList->str[indx0], nConvert);
+    else
+      printMessage("%d %ld %s %s (total %d)\n", dcmList[indx0].seriesUidCrc, dcmList[indx0].seriesNum, dcmList[indx0].protocolName, nameList->str[indx0], nConvert);
+
+#if 0
+    for (int i = 0; i < nConvert; i++) {
+      int indx = dcmSort[i].indx;
+      if (opts.isIgnoreSeriesInstanceUID)
+	printMessage("\t#\%d: %d %s\n", i+1, dcmList[indx].seriesUidCrc, nameList->str[indx]);
+      else
+	printMessage("\t#\%d: %d %ld %s\n", i+1, dcmList[indx].seriesUidCrc, dcmList[indx].seriesNum, nameList->str[indx]);
+    }
+#endif
+
+      return 0;
+    }
+#endif
 	//this wrapper does nothing if all the images share the same echo time and scale
 	// however, it segments images when these properties vary
 	uint64_t indx = dcmSort[0].indx;
@@ -6765,7 +6795,7 @@ int isSameFloatDouble(double a, double b) {
 }
 
 struct TWarnings { //generate a warning only once per set
-	bool manufacturerVaries, modalityVaries, derivedVaries, acqNumVaries, dimensionVaries, dateTimeVaries, studyUidVaries, echoVaries, triggerVaries, phaseVaries, coilVaries, forceStackSeries, seriesUidVaries, nameVaries, nameEmpty, orientVaries;
+  bool manufacturerVaries, modalityVaries, derivedVaries, acqNumVaries, dimensionVaries, dateTimeVaries, studyUidVaries, echoVaries, triggerVaries, phaseVaries, coilVaries, forceStackSeries, seriesUidVaries, nameVaries, nameEmpty, orientVaries, nonParallelMosaicsSlices;
 };
 
 TWarnings setWarnings() {
@@ -6786,6 +6816,7 @@ TWarnings setWarnings() {
 	r.nameVaries = false;
 	r.nameEmpty = false;
 	r.orientVaries = false;
+	r.nonParallelMosaicsSlices = false;
 	return r;
 }
 
@@ -6885,10 +6916,66 @@ bool isSameSet(struct TDICOMdata d1, struct TDICOMdata d2, struct TDCMopts *opts
 		//if (((!(isSameFloat(d1.TE, d2.TE))) || (d1.echoNum != d2.echoNum)) && (!d1.isXRay)) {
 		//	*isMultiEcho = true;
 		//}
-#ifdef MGH_FREESURFER
-                printf("isForceStackSameSeries = true, seriesNum %ld, %ld, seriesInstanceUidCrc %d, %d\n", d1.seriesNum, d2.seriesNum, d1.seriesUidCrc, d2.seriesUidCrc);
-#endif
-		return true; //we will stack these images, even if they differ in the following attributes
+#ifdef USING_DCM2NIIXFSWRAPPER
+	       if ((d1.isHasImaginary != d2.isHasImaginary) || (d1.isHasPhase != d2.isHasPhase) || (d1.isHasReal != d2.isHasReal)) {
+                   if (!warnings->phaseVaries)
+			printMessage("Slices stacked: some are phase/real/imaginary/phase maps, others are not. Instances %d %d\n", d1.imageNum, d2.imageNum);
+		   warnings->phaseVaries = true;
+               } else if ((!(isSameFloat(d1.TE, d2.TE))) || (d1.echoNum != d2.echoNum)) {
+                   if ((!warnings->echoVaries) && (d1.isXRay)) //for CT/XRay we check DICOM tag 0018,1152 (XRayExposure)
+                       printMessage("Slices stacked: X-Ray Exposure varies (exposure %g, %g; number %d, %d).\n", d1.TE, d2.TE, d1.echoNum, d2.echoNum);
+		   if ((!warnings->echoVaries) && (!d1.isXRay)) //for MRI
+		       printMessage("Slices stacked: echo varies (TE %g, %g; echo %d, %d).\n", d1.TE, d2.TE, d1.echoNum, d2.echoNum);
+		   warnings->echoVaries = true;
+		   *isMultiEcho = true;
+	       } else if ((d1.triggerDelayTime != d2.triggerDelayTime) && (d1.manufacturer == kMANUFACTURER_PHILIPS) && (d1.aslFlags == kASL_FLAG_NONE)) { //issue 384
+                   if (!warnings->triggerVaries)
+                       printMessage("Slices stacked: trigger time varies\n");
+		   warnings->triggerVaries = true;
+	       } else if (d1.coilCrc != d2.coilCrc) {
+                   if (opts->isForceStackDCE) {
+                       if (!warnings->coilVaries)
+                           printMessage("Slices stacked despite coil variation '%s' vs '%s' (use '-m o' to turn off merging)\n", d1.coilName, d2.coilName);
+                       warnings->coilVaries = true;
+                       *isCoilVaries = true;
+		   } else {
+			if (!warnings->coilVaries)
+				printMessage("Slices stacked: coil varies '%s' vs '%s'\n", d1.coilName, d2.coilName);
+			warnings->coilVaries = true;
+			*isCoilVaries = true;
+		   } 
+	       } else if ((strlen(d1.protocolName) < 1) && (strlen(d2.protocolName) < 1)) {
+	           if (!warnings->nameEmpty)
+			printWarning("Empty protocol name(s) (0018,1030)\n");
+		   warnings->nameEmpty = true;
+	       } else if ((strcmp(d1.protocolName, d2.protocolName) != 0)) {
+	  	   if (!warnings->nameVaries)
+			printMessage("Slices stacked: protocol name varies '%s' != '%s'\n", d1.protocolName, d2.protocolName);
+		   warnings->nameVaries = true;
+	       } else if ((*isNonParallelSlices) && (d1.CSA.mosaicSlices > 1)) {
+		   if (!warnings->nonParallelMosaicsSlices)//issue 481
+		       printMessage("Slices stacked: non-parallel mosaics slices\n");
+                   warnings->nonParallelMosaicsSlices = true;
+                 
+	       } else if ((!isSameFloatGE(d1.orient[1], d2.orient[1]) || !isSameFloatGE(d1.orient[2], d2.orient[2]) || !isSameFloatGE(d1.orient[3], d2.orient[3]) ||
+	    	           !isSameFloatGE(d1.orient[4], d2.orient[4]) || !isSameFloatGE(d1.orient[5], d2.orient[5]) || !isSameFloatGE(d1.orient[6], d2.orient[6]))) {
+		   if ((!warnings->orientVaries) && (!d1.isNonParallelSlices) && (!d1.isLocalizer))
+			printMessage("Slices stacked: orientation varies (vNav or localizer?) [%g %g %g %g %g %g] != [%g %g %g %g %g %g]\n",
+				d1.orient[1], d1.orient[2], d1.orient[3], d1.orient[4], d1.orient[5], d1.orient[6],
+				d2.orient[1], d2.orient[2], d2.orient[3], d2.orient[4], d2.orient[5], d2.orient[6]);
+		   warnings->orientVaries = true;
+		   *isNonParallelSlices = true;
+	       } else if (d1.acquNum != d2.acquNum) {
+		   if ((!warnings->acqNumVaries) && (opts->isVerbose)) //virtually always people want to stack these
+			printMessage("Slices stacked despite varying acquisition numbers (if this is not desired recompile with 'mySegmentByAcq')\n");
+		   warnings->acqNumVaries = true;
+	       } else if ((!isForceStackSeries) && (d1.seriesUidCrc != d2.seriesUidCrc)) {
+	 	   if (!warnings->seriesUidVaries)
+			printMessage("Slices stacked: series instance UID varies (duplicates all other properties)\n");
+		   warnings->seriesUidVaries = true;
+	       }
+#endif		
+                return true; //we will stack these images, even if they differ in the following attributes
 	}
 	if ((d1.isHasImaginary != d2.isHasImaginary) || (d1.isHasPhase != d2.isHasPhase) || (d1.isHasReal != d2.isHasReal)) {
 		if (!warnings->phaseVaries)
@@ -7356,7 +7443,7 @@ int reportProgress(int progressPct, float frac) {
 #endif
 
 int nii_loadDirCore(char *indir, struct TDCMopts *opts) {
-#ifdef MGH_FREESURFER
+#ifdef USING_DCM2NIIXFSWRAPPER
   memset(&mrifsStruct, 0, sizeof(mrifsStruct));
 #endif
 
@@ -7474,7 +7561,6 @@ int nii_loadDirCore(char *indir, struct TDCMopts *opts) {
 		if ((dcmList[i].isValid) && ((dti4D->sliceOrder[0] >= 0) || (dcmList[i].CSA.numDti > 1))) { //4D dataset: dti4D arrays require huge amounts of RAM - write this immediately
 			struct TDCMsort dcmSort[1];
 			fillTDCMsort(dcmSort[0], i, dcmList[i]);
-			//printMessage("***MGH_FREESURFER***: calling saveDcm2Nii() (%s:%s:%d)\n", __FILE__, __func__, __LINE__);
 			dcmList[i].converted2NII = 1;
 			int ret = saveDcm2Nii(1, dcmSort, dcmList, &nameList, *opts, dti4D);
 			if (ret == EXIT_SUCCESS)
@@ -7607,10 +7693,12 @@ int nii_loadDirCore(char *indir, struct TDCMopts *opts) {
 		if (!dcmList[ii].isValid)
 			continue;
 
-#ifdef MGH_FREESURFER
-          double seriesNum = (double) dcmList[ii].seriesUidCrc;
-          if (!isSameDouble(opts->seriesNumber[0], seriesNum))
-            continue;   // we convert one series at a time, skip the ones that we are not interested in 
+#ifdef USING_DCM2NIIXFSWRAPPER
+		if (opts->numSeries > 0) {
+		  double seriesNum = (double) dcmList[ii].seriesUidCrc;
+		  if (!isSameDouble(opts->seriesNumber[0], seriesNum))
+		    continue;   // we convert one series at a time, skip the ones that we are not interested in 
+		}
 #endif
 
 		int nConvert = 0;
@@ -7629,6 +7717,8 @@ int nii_loadDirCore(char *indir, struct TDCMopts *opts) {
 				nConvert++;
 			}
 		} //for all images with same seriesUID as first one
+
+#ifndef USING_DCM2NIIXFSWRAPPER
 		if ((isNonParallelSlices) && (dcmList[ii].CSA.mosaicSlices > 1) && (nConvert > 0)) { //issue481: if ANY volumes are non-parallel, save ALL as 3D
 			printWarning("Saving mosaics with non-parallel slices as 3D (issue 481)\n");
 			for (int j = i; j < (int)nDcm; j++) {
@@ -7651,6 +7741,8 @@ int nii_loadDirCore(char *indir, struct TDCMopts *opts) {
 			}
 			continue;
 		} //issue481
+#endif
+
 		//issue 381: ensure all images are informed if there are variations in echo, parallel slices, coil name:
 		if (isMultiEcho)
 			for (int j = i; j <= jMax; j++) {
@@ -7717,7 +7809,7 @@ int nii_loadDirOneDirAtATime(char *path, struct TDCMopts *opts, int maxDepth, in
 	//return kEXIT_NO_VALID_FILES_FOUND if no files in ANY sub folders
 	//return EXIT_FAILURE if ANY failure
 	//return EXIT_SUCCESS if no failures and at least one image converted
-  int ret = nii_loadDirCore(path, opts);
+        int ret = nii_loadDirCore(path, opts);
 	if (ret == EXIT_FAILURE)
 		return ret;
 	tinydir_dir dir;
@@ -7818,7 +7910,7 @@ int nii_loadDir(struct TDCMopts *opts) {
 #endif
 		if (is_fileNotDir(rname) && is_fileNotDir(pname)) {
 			//strcpy(opts->indir, pname); //set to original file name, not path
-		  return convert_parRec(pname, *opts);
+		        return convert_parRec(pname, *opts);
 		};
 	}
 	if (isFile && (opts->isOnlySingleFile) && isExt(indir, ".txt")) {
@@ -7837,14 +7929,14 @@ int nii_loadDir(struct TDCMopts *opts) {
 		return EXIT_SUCCESS;
 	}
 	if ((isFile) && (opts->isOnlySingleFile))
-	  return singleDICOM(opts, indir);
+                return singleDICOM(opts, indir);
 	if (opts->isOneDirAtATime) {
 		int maxDepth = opts->dirSearchDepth;
 		opts->dirSearchDepth = 0;
 		strcpy(indir, opts->indir);
 		return nii_loadDirOneDirAtATime(indir, opts, maxDepth, 0);
 	} else
-	  return nii_loadDirCore(opts->indir, opts);
+                return nii_loadDirCore(opts->indir, opts);
 } // nii_loadDir()
 
 #if defined(_WIN64) || defined(_WIN32) || defined(USING_R)
@@ -8061,6 +8153,8 @@ void setDefaultOpts(struct TDCMopts *opts, const char *argv[]) { //either "setDe
 	opts->numSeries = 0;
 	memset(opts->seriesNumber, 0, sizeof(opts->seriesNumber));
 	strcpy(opts->filename, "%f_%p_%t_%s");
+
+	opts->isDumpNotConvert = false;
 } // setDefaultOpts()
 
 #if defined(_WIN64) || defined(_WIN32)

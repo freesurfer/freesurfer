@@ -44,7 +44,7 @@ void *malloc(size_t size);
 #include "mosaic.h"
 #include "mri_identify.h"
 
-#include "dcm2fsWrapper.h"
+#include "dcm2niix_fswrapper.h"
 
 // #include "affine.h"
 
@@ -5930,7 +5930,7 @@ MRI *DICOMRead2(const char *dcmfile, int LoadVolume)
 
 
 /*--------------------------------------------------------------
-  DICOMRead3() - generic dicom reader using dcm2fsWrapper. 
+  DICOMRead3() - generic dicom reader using dcm2niix_fswrapper. 
   --------------------------------------------------------------*/
 MRIFSSTRUCT *DICOMRead3(const char *dcmfile, int LoadVolume)
 {
@@ -5943,19 +5943,19 @@ MRIFSSTRUCT *DICOMRead3(const char *dcmfile, int LoadVolume)
   char *dcmdir = fio_dirname(dcmfile);
   printf("dcmfile = %s\n", dcmfile);
   printf("dcmdir = %s\n", dcmdir);
-  if (!dcm2fsWrapper::isDICOM(dcmfile)) {
+  if (!dcm2niix_fswrapper::isDICOM(dcmfile)) {
     setenv("FS_DICOM_DEBUG", "1", 1);
-    //dcm2fsWrapper::isDICOM(dcmfile);
+    //dcm2niix_fswrapper::isDICOM(dcmfile);
     printf("ERROR: %s is not a dicom file or some other problem\n", dcmfile);
     exit(1);
   }
 
-  dcm2fsWrapper::setOpts(dcmdir, NULL);
-  int ret = dcm2fsWrapper::dcm2NiiOneSeries(dcmfile);
+  dcm2niix_fswrapper::setOpts(dcmdir, NULL);
+  int ret = dcm2niix_fswrapper::dcm2NiiOneSeries(dcmfile);
 
   MRIFSSTRUCT *mrifsStruct = NULL;
   if (ret == EXIT_SUCCESS) {
-    mrifsStruct = dcm2fsWrapper::getMrifsStruct();
+    mrifsStruct = dcm2niix_fswrapper::getMrifsStruct();
     //dcm2fsWrapper::saveNii("fs.nii");
   }
 

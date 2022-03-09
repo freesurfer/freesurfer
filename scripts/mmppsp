@@ -1,0 +1,1108 @@
+#!/bin/tcsh -f
+# mmppsp - multimodal post-prob surface placement using samseg post probs
+if(-e $FREESURFER_HOME/sources.csh) then
+  source $FREESURFER_HOME/sources.csh
+endif
+
+set SubCortMassList = (Brain-Stem  Left-Accumbens-area  Left-Caudate \
+   Left-Cerebral-White-Matter \
+   Left-Lateral-Ventricle Left-Pallidum Left-Putamen Left-Thalamus Left-VentralDC \
+   Left-vessel non-WM-hypointensities Right-Accumbens-area \
+   Right-Caudate Right-Cerebral-White-Matter \
+   Right-Lateral-Ventricle Right-Pallidum Right-Putamen \
+   Right-Thalamus Right-VentralDC Right-vessel WM-hypointensities)
+# Left-choroid-plexus Left-Inf-Lat-Vent Right-choroid-plexus Right-Inf-Lat-Vent \\
+
+set VERSION = '$Id$';
+set scriptname = `basename $0`
+
+set outdir = ();
+set StopAfterTess = 0;
+set StopAfterFix = 0;
+set StopAfterPreAparc = 0;
+set StopAfterSphere = 0
+set StopAfterSphereReg = 0;
+set StopAfterWhite = 0
+set StopAfterPial = 0;
+set wexpanddist = 2
+
+set samsegdir = ();
+set hemilist = ()
+set initsurflh = ()
+set initsurfrh = ()
+set riplabellh = ()
+set riplabelrh = ()
+set ForceUpdate = 0
+set UseProbs = 2;
+set seg = ();
+set threads = 1
+set InitSphReg = 1
+set DecimationFaceArea = 0.5
+set WMSeg_wlo = ();
+set WMSeg_whi = ();
+set PutIsGM = 0
+
+set tmpdir = ();
+set cleanup = 1;
+set LF = ();
+
+set inputargs = ($argv);
+set PrintHelp = 0;
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+set StartTime = `date`;
+set tSecStart = `date '+%s'`;
+set year  = `date +%Y`
+set month = `date +%m`
+set day   = `date +%d`
+set hour   = `date +%H`
+set min    = `date +%M`
+
+mkdir -p $outdir/mri/transforms $outdir/surf $outdir/scripts/log $outdir/label
+pushd $outdir > /dev/null
+set outdir = `pwd`;
+popd > /dev/null
+
+if($#tmpdir == 0) then
+  if(-dw /scratch)   set tmpdir = /scratch/tmpdir.mmppsp.$$
+  if(! -dw /scratch) set tmpdir = $outdir/tmpdir.mmppsp.$$
+endif
+#mkdir -p $tmpdir
+
+setenv SUBJECTS_DIR `dirname $outdir`
+set subject = `basename $outdir`
+set mdir = $SUBJECTS_DIR/$subject/mri
+set sdir = $SUBJECTS_DIR/$subject/surf
+
+# Set up log file
+if($#LF == 0) then
+  set LF = $outdir/scripts/log/mmppsp.Y$year.M$month.D$day.H$hour.M$min.log
+  pushd $outdir/scripts >& /dev/null
+  ln -sf log/mmppsp.Y$year.M$month.D$day.H$hour.M$min.log mmppsp.log
+  popd >& /dev/null
+endif
+if($LF != /dev/null) rm -f $LF
+echo Logfile is $LF
+echo "Log file for mmppsp" >> $LF
+date  | tee -a $LF
+echo "" | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo "cd `pwd`"  | tee -a $LF
+echo $0 $inputargs | tee -a $LF
+echo "" | tee -a $LF
+cat $FREESURFER_HOME/build-stamp.txt | tee -a $LF
+echo $VERSION | tee -a $LF
+uname -a  | tee -a $LF
+echo "pid $$" | tee -a $LF
+if($?PBS_JOBID) then
+  echo "pbsjob $PBS_JOBID"  >> $LF
+endif
+
+#========================================================
+
+pushd $outdir/mri
+if(! -e mode01_bias_corrected.mgz) then
+  ln -sf $samsegdir/mode01_bias_corrected.mgz .
+endif
+foreach f (orig nu norm)
+  if(! -e $f.mgz) ln -sf mode01_bias_corrected.mgz $f.mgz
+end
+if(! -e samseg.mgz) then
+  ln -s $samsegdir/seg.mgz samseg.mgz
+endif
+foreach f (aseg.presurf aseg.presurf.hypos) 
+  ln -sf samseg.mgz $f.mgz
+end
+cd transforms
+if(! -e talairach.m3z) then
+  ln -sf $samsegdir/template.m3z talairach.m3z
+endif
+if(! -e talairach.lta) then
+  ln -sf $samsegdir/samseg.talairach.lta talairach.lta 
+endif
+if(! -e talairach.xfm) then
+  ln -sf $samsegdir/samseg.talairach.xfm talairach.xfm
+endif
+popd
+
+# Create a brain mask by binarizing everything outside of the brain,
+# inverting it, then dilating by 2 voxel
+set aseg = $outdir/mri/aseg.presurf.mgz
+set mask = $outdir/mri/mask.mgz
+set cmd = (mri_binarize --i $aseg --match 0 165 258 259 24 --inv --o $mask --dilate 2)
+set ud = `UpdateNeeded $mask $aseg`
+if($ud || $ForceUpdate) then
+  echo $cmd | tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) goto error_exit
+else
+  echo "$mask does not need updating" | tee -a $LF
+endif
+
+set scm = $outdir/mri/SubCortMass.mgz
+set cm  = $outdir/mri/CortMass.mgz
+if($UseProbs == -1) then
+  # Use Posteriors
+  set flist = ()
+  foreach label ($SubCortMassList)
+    set f = $samsegdir/posteriors/$label.mgz
+    set flist = ($f $flist)
+  end
+  set cmd = (mri_concat --o $scm --sum $flist --mul 110 --no-check)
+  set ud = `UpdateNeeded $scm $flist`
+  if($ud || $ForceUpdate) then
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) goto error_exit
+  else
+    echo "$scm does not need updating" | tee -a $LF
+  endif
+  set flist = ()
+  foreach label (Left-Cerebral-Cortex Right-Cerebral-Cortex)
+    set f = $samsegdir/posteriors/$label.mgz
+    set flist = ($f $flist)
+  end
+  # First sum the label posteriors for cortex
+  set cmd = (mri_concat --o $cm --sum $flist --mul 110 --no-check)
+  set ud = `UpdateNeeded $cm $flist $scm`
+  if($ud || $ForceUpdate) then
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) goto error_exit
+    # now add cm and scm to get the final cm
+    set cmd = (mri_concat $scm $cm --sum --o $cm)
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) goto error_exit
+  else
+    echo "$cm does not need updating" | tee -a $LF
+  endif
+else # Use Probs (liklihood)
+  set globwm0 = $samsegdir/probabilities/GlobalWM.mgz
+  set globwm = $outdir/mri/GlobalWM.prob.mgz
+  set ud = `UpdateNeeded $globwm $globwm0`
+  if($ud || $ForceUpdate) then
+    set cmd = (mri_convert $globwm0 --frame $UseProbs $globwm)
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) goto error_exit
+  else
+    echo "$globwm does not need updating" | tee -a $LF
+  endif
+  set wmsumfile = $outdir/mri/wm.sum.dat
+  set ud = `UpdateNeeded $wmsumfile $globwm $seg`
+  if($ud || $ForceUpdate) then
+    set cmd = (mri_segstats --seg-erode 2 --seg $seg --i $globwm --sum $wmsumfile)
+    foreach hemi ($hemilist)
+      if($hemi == lh) set cmd = ($cmd --id  2)
+      if($hemi == rh) set cmd = ($cmd --id 41)
+    end
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) goto error_exit
+  else
+    echo "$wmsumfile does not need updating" | tee -a $LF
+  endif
+  # Need to compute mean across both hemis, but use [1] for now
+  set wmmean = `grep -v \# $wmsumfile | awk '{print $6}'`
+  set wmmax  = `grep -v \# $wmsumfile | awk '{print $9}'`
+  echo "wmmean = $wmmean" | tee -a $LF
+  echo "wmmax = $wmmax" | tee -a $LF
+  set wmmean = $wmmean[1] | tee -a $LF
+  set wmmax = $wmmax[1] | tee -a $LF
+  set scale = `echo "110/$wmmean[1]"|bc -l`
+  echo "scale = $scale" | tee -a $LF
+  if($#WMSeg_whi == 0) set WMSeg_whi = `echo "$scale*$wmmax" | bc -l`
+
+  set ud = `UpdateNeeded $scm $globwm $wmsumfile $mask`
+  if($ud || $ForceUpdate) then
+    set cmd = (mri_convert --scale $scale $globwm $scm)
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) goto error_exit
+    set cmd = (fscalc $scm mul $mask --o $scm)
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) goto error_exit
+  else
+    echo "$scm does not need updating" | tee -a $LF
+  endif
+  
+  # It may be the case that GM has multiple gaussians
+  set flist = ($samsegdir/probabilities/GlobalGM*.mgz)
+  if($PutIsGM) set flist = ($flist $samsegdir/probabilities/Putamen.mgz)
+  set globgm0 = $outdir/mri/GlobalGM.mgz
+  if($#flist == 1) then
+    set globgm0 = $flist
+  else
+    set ud = `UpdateNeeded $globgm0 $flist`  
+    if($ud || $ForceUpdate) then
+      set cmd = (fscalc -o $globgm0 $flist[1])
+      foreach f ($flist[2-$#flist]) 
+        set cmd = ($cmd add $f)
+      end
+      #set cmd = ($cmd div $#flist) # sum, don't average!
+      echo $cmd | tee -a $LF
+      $cmd |& tee -a $LF
+      if($status) goto error_exit
+    endif
+  endif
+
+  # Now compute the cortical mass
+  set ud = `UpdateNeeded $cm $globgm0 $scm $mask`
+  if($ud || $ForceUpdate) then
+    set cmd = (mri_convert $globgm0 --frame $UseProbs --scale $scale $cm)
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) goto error_exit
+    set cmd = (mri_concat $scm $cm --sum --o $cm)
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) goto error_exit
+    set cmd = (fscalc $cm mul $mask --o $cm)
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) goto error_exit
+  else
+    echo "$cm does not need updating" | tee -a $LF
+  endif
+endif
+
+pushd $outdir/mri
+if(! -e brain.mgz) then
+  ln -sf SubCortMass.mgz brain.mgz
+endif
+foreach f (brainmask.mgz brainmask.finalsurfs.mgz)
+  if(! -e $f) ln -sf CortMass.mgz $f
+end
+popd
+
+set wm = $outdir/mri/wm.mgz
+set wmseg = $outdir/mri/wm.seg.mgz
+ls -l $wmseg
+set cmd = (mri_segment -wsizemm 13 -dat $outdir/mri/segment.dat)
+if($#WMSeg_wlo) set cmd = ($cmd -wlo $WMSeg_wlo)
+if($#WMSeg_whi) set cmd = ($cmd -whi $WMSeg_whi)
+set cmd = ($cmd $scm $wmseg)
+if( -e $wm && -e $wmseg) then
+  # Check whether there have been edits to wm.mgz
+  set countfile = /tmp/mmppsp.$$.wm.count.dat
+  set cmd2 = (mri_binarize --i $wm --match 1 255 --count $countfile)
+  echo $cmd2 | tee -a $LF
+  $cmd2 |& tee -a $LF
+  if($status) goto error_exit
+  @ count = `cat $countfile | awk '{print $1}'`
+  echo wmedit count $count
+  if($count > 0) then
+    # Check whether they are different
+    mri_diff $wm $wmseg | tee -a $LF
+    set st = $status
+    if($st) then
+      echo "Diff bettween $wm and $wmseg found, copying" | tee -a $LF
+      set cmd2 = (cp $wm $wmseg)
+      echo $cmd2 | tee -a $LF
+      $cmd2 |& tee -a $LF
+      if($status) goto error_exit
+      set cmd = ($cmd -keep)
+    else
+      echo "No diff bettween $wm and $wmseg found, not copying" | tee -a $LF
+    endif
+  endif
+endif
+set ud = `UpdateNeeded $wmseg $scm`
+if($ud || $ForceUpdate) then
+  echo $cmd | tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) goto error_exit
+else
+  echo "$wmseg does not need updating" | tee -a $LF
+endif
+
+set wmaseg = $outdir/mri/wm.asegedit.mgz
+set cmd = (mri_edit_wm_with_aseg -keep-in $wmseg $scm $seg $wmaseg)
+set ud = `UpdateNeeded $wmaseg $wmseg $scm $seg`
+if($ud || $ForceUpdate) then
+  echo $cmd | tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) goto error_exit
+else
+  echo "$wmaseg does not need updating" | tee -a $LF
+endif
+
+set ud = `UpdateNeeded $wm $wmaseg $wmseg $scm`
+if($ud || $ForceUpdate) then
+  set cmd = (mri_pretess $wmaseg wm $scm $wm)
+  echo $cmd | tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) goto error_exit
+else
+  echo "$wm does not need updating" | tee -a $LF
+endif
+
+set filled = $outdir/mri/filled.mgz
+set filledauto = $outdir/mri/filled.auto.mgz
+set tallta = $samsegdir/samseg.talairach.lta
+set entowm = $outdir/mri/entowm.mgz
+set entowmmask = $mdir/entowm.mask.mgz
+if(! -e $entowm) set entowm = ()
+set ud = `UpdateNeeded $filled $wm $seg $tallta $entowm`
+if($ud || $ForceUpdate) then
+  set cmd = (mri_fill -ctab $FREESURFER/SubCorticalMassLUT.txt)
+  if($#hemilist == 1) set cmd = ($cmd -$hemilist"only")
+  if(-e $filledauto && -e $filled) then
+    set fillededits = ../tmp/filled.edits.txt
+    set cmd = ($cmd -auto-man $filledauto $filledman $fillededits)
+  endif
+  set cmd = ($cmd -xform $tallta -segmentation $seg $wm $filled)
+  echo $cmd | tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) goto error_exit
+  if(! -e $filledauto) then
+    set cmd = (cp $filled $filledauto)
+    echo " $cmd" |& tee -a $LF 
+    $cmd |& tee -a $LF
+    if($status) goto error_exit;
+  endif
+  if($#entowm) then
+    # This is a little bit of a hack to fix entorhinal cortex. Ento WM is often 
+    # terrribly underlabeled. entowm.mgz should have ento WM labeled as 3006 (lh)
+    # and 4006 (rh). This section will edit the filled.mgz to force those labels
+    # to be in the fill. Other labels can be in the seg as long as they are not 127
+    # or 255. If other labels are there, then they will effectively edit out any
+    # filled voxels. 
+    set cmd = (entowm --s $subject --o $filled --entowmmask $entowmmask)
+    if($#hemilist == 1) set cmd = ($cmd --$hemilist)
+    echo " $cmd" |& tee -a $LF 
+    $cmd |& tee -a $LF
+    if($status) goto error_exit;
+  endif
+else
+  echo "$filled does not need updating" | tee -a $LF
+endif
+
+# Get the voxel resolution for decimation purposes
+set voxresfile = /tmp/voxres.$$.dat
+set cmd = (mri_info --o $voxresfile --res $filled)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) goto error_exit
+set voxres = (`cat $voxresfile`)
+echo voxres $voxres | tee -a $LF
+rm -f $voxresfile
+
+set DoDecimation = 0;
+if( `echo "$voxres[1] < 1" |bc -l` || `echo "$voxres[2] < 1" |bc -l` \
+ || `echo "$voxres[3] < 1" |bc -l`) set DoDecimation = 1;
+echo DoDecimation $DoDecimation | tee -a $LF
+
+foreach hemi ($hemilist)
+  if($hemi == lh) then
+    set riplabel = $riplabellh
+    set initsurf = $initsurflh
+    set v = 255
+    #set aparc = $aparclh
+  endif
+  if($hemi == rh) then
+    set riplabel = $riplabelrh
+    set initsurf = $initsurfrh
+    set v = 127
+    #set aparc = $aparcrh
+  endif
+
+  set filledpretess = $outdir/mri/filled-pretess$v.mgz
+  set cmd = (mri_pretess $filled $v $scm $filledpretess)
+  set ud = `UpdateNeeded $filledpretess $filled $scm`
+  if($ud || $ForceUpdate) then
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) goto error_exit
+  else
+    echo "$filledpretess does not need updating" | tee -a $LF
+  endif
+
+  set orignofixpredec = $outdir/surf/$hemi.orig.nofix.predec
+  # Have to use -new here or get a QUAD file when input does not 
+  # have equal cols, rows, slices (?)
+  set cmd = (mri_tessellate -new $filledpretess $v $orignofixpredec)
+  set ud = `UpdateNeeded $orignofixpredec $filledpretess`
+  if($ud || $ForceUpdate) then
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) goto error_exit
+    set cmd = (mris_extract_main_component $orignofixpredec $orignofixpredec)
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) goto error_exit
+  else
+    echo "$orignofixpredec does not need updating" | tee -a $LF
+  endif
+  if($StopAfterTess) then
+    echo ""
+    echo "Stopping after tess" | tee -a $LF
+    goto done_exit
+  endif
+
+  set orignofix = $outdir/surf/$hemi.orig.nofix
+  if($DoDecimation) then  
+    set cmd = (mris_remesh --desired-face-area $DecimationFaceArea \
+      --input $orignofixpredec --output $orignofix)
+    set ud = `UpdateNeeded $orignofixpredec $orignofix`
+    if($ud || $ForceUpdate) then
+      echo "" | tee -a $LF
+      echo $cmd | tee -a $LF
+      $cmd |& tee -a $LF
+      if($status) goto error_exit
+    else
+      echo "$orignofix does not need updating" | tee -a $LF
+    endif
+  else
+    pushd $outdir/surf
+    if(! -e $hemi.orig.nofix) then
+      set cmd = (ln -sf $hemi.orig.nofix.predec $hemi.orig.nofix)
+      echo $cmd | tee -a $LF
+      $cmd |& tee -a $LF
+      if($status) goto error_exit
+    endif
+    popd
+  endif
+
+  set smoothwmnofix = $outdir/surf/$hemi.smoothwm.nofix
+  set ud = `UpdateNeeded $smoothwmnofix $orignofix`
+  if($ud || $ForceUpdate) then
+    set cmd = (mris_smooth -nw $orignofix $smoothwmnofix)
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) goto error_exit
+  else
+    echo "$smoothwmnofix does not need updating" | tee -a $LF
+  endif
+
+  set inflatednofix = $outdir/surf/$hemi.inflated.nofix
+  set ud = `UpdateNeeded $inflatednofix $smoothwmnofix`
+  if($ud || $ForceUpdate) then
+    set cmd = (mris_inflate -no-save-sulc $smoothwmnofix $inflatednofix)
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) goto error_exit
+  else
+    echo "$inflatednofix does not need updating" | tee -a $LF
+  endif
+
+  set qspherenofix = $outdir/surf/$hemi.qsphere.nofix
+  set ud = `UpdateNeeded $qspherenofix $inflatednofix`
+  if($ud || $ForceUpdate) then
+    set cmd = (mris_sphere -q -p 6 -a 128 $inflatednofix $qspherenofix)
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) goto error_exit
+  else
+    echo "$qspherenofix does not need updating" | tee -a $LF
+  endif
+
+  set orig = $outdir/surf/$hemi.orig
+  set ud = `UpdateNeeded $orig $inflatednofix $qspherenofix $orignofix`
+  if($ud || $ForceUpdate) then
+    set cmd = (mris_fix_topology -mgz -sphere qsphere.nofix -inflated inflated.nofix \
+      -orig orig.nofix -out orig $subject $hemi)
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) goto error_exit
+  else
+    echo "$orig does not need updating" | tee -a $LF
+  endif
+  if($StopAfterFix) then
+    echo ""
+    echo "Stopping after topo fix" | tee -a $LF
+    goto done_exit
+  endif
+
+  # Should probably add something at the end to combine hemis
+  set surfdefects = $outdir/mri/$hemi.surface.defects.mgz
+  set ud = `UpdateNeeded $surfdefects $orig`
+  if($ud || $ForceUpdate) then
+    set cmd = (defect2seg --s $subject --$hemi-only)
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) goto error_exit
+  else
+    echo "$surfdefects does not need updating" | tee -a $LF
+  endif
+
+  set initsurf = $orig
+
+  set gwstats = $outdir/surf/autodet.gwstats.$hemi.dat
+  set ud = `UpdateNeeded $gwstats $initsurf $scm`
+  set cmd = (mris_autodet_gwstats --o $gwstats --$hemi-surf $initsurf --i $scm --wm $scm)
+  if($ud || $ForceUpdate) then
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) goto error_exit
+  else
+    echo "$gwstats does not need updating" | tee -a $LF
+  endif
+
+  set entowmmaskov = ()
+  if($#entowm) then
+    # Sample onto an overlay for freezing
+    set entowmmaskov = $sdir/$hemi.entowm.mask.mgz
+    set ud = `UpdateNeeded $entowmmaskov $entowmmask $orig`
+    set cmd = (mri_vol2surf --regheader $subject --projdist-max -1.0 0 .1 \
+     --hemi $hemi --surf orig --mov $entowmmask --o $entowmmaskov)
+    if($ud || $ForceUpdate) then
+      echo $cmd | tee -a $LF
+      $cmd |& tee -a $LF
+      if($status) goto error_exit
+    else
+      echo "$entowmmaskov does not need updating" | tee -a $LF
+    endif
+  endif
+
+  set wpreaparcsurf = $outdir/surf/$hemi.white.preaparc
+  set wpreaparcsurftarg = $outdir/surf/$hemi.white.preaparc.targ
+  set cmd = (mris_place_surface --adgws-in $gwstats \
+    --white_border_hi 110 --white_inside_hi 110 --white_outside_hi 110\
+    --white_border_low  0 --white_outside_low 0 --no-intensity-proc \
+    --invol $scm --$hemi  --i $initsurf --o $wpreaparcsurf --white --nsmooth 5 \
+    --seg $seg --threads $threads --target $wpreaparcsurftarg) 
+    #--aparc $aparc --rip-surf $initsurf --rip-label $riplabel --rip-bg  
+  if($#entowm) set cmd = ($cmd --rip-overlay $entowmmaskov)
+  set ud = `UpdateNeeded $wpreaparcsurf $gwstats $initsurf $scm $seg $riplabel $entowmmaskov`
+  if($ud || $ForceUpdate) then
+    echo "Placing white.preaparc surface `date`" | tee -a $LF
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) goto error_exit
+  else
+    echo "$wpreaparcsurf does not need updating" | tee -a $LF
+  endif
+  if($StopAfterPreAparc) then
+    echo ""
+    echo "Stopping after preaparc" | tee -a $LF
+    goto done_exit
+  endif
+
+  set cortexlab = $outdir/label/$hemi.cortex.label
+  set ud = `UpdateNeeded $cortexlab $wpreaparcsurf $seg`
+  if($ud || $ForceUpdate) then
+    set cmd = (mri_label2label --label-cortex $wpreaparcsurf $seg 0 $cortexlab)
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) goto error_exit
+  else
+    echo "$cortexlab does not need updating" | tee -a $LF
+  endif
+
+  set cortexhalab = $outdir/label/$hemi.cortex+hipamyg.label
+  set ud = `UpdateNeeded $cortexhalab $wpreaparcsurf $seg`
+  if($ud || $ForceUpdate) then
+    set cmd = (mri_label2label --label-cortex $wpreaparcsurf $seg 1 $cortexhalab)
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) goto error_exit
+  else
+    echo "$cortexhalab does not need updating" | tee -a $LF
+  endif
+
+  set smoothwm = $outdir/surf/$hemi.smoothwm
+  set ud = `UpdateNeeded $smoothwm $wpreaparcsurf`
+  if($ud || $ForceUpdate) then
+    set cmd = (mris_smooth -n 3 -nw $wpreaparcsurf $smoothwm)
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) goto error_exit
+  else
+    echo "$smoothwm does not need updating" | tee -a $LF
+  endif
+
+  set inflated = $outdir/surf/$hemi.inflated
+  set ud = `UpdateNeeded $inflated $smoothwm`
+  if($ud || $ForceUpdate) then
+    set cmd = (mris_inflate $smoothwm $inflated) # creates sulc
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) goto error_exit
+    # Create inflated.H (might not be needed)
+    set cmd = (mris_curvature -seed 53 -thresh .999 -n -a 5 -w -distances 10 10 $inflated)
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) goto error_exit
+  else
+    echo "$inflated does not need updating" | tee -a $LF
+  endif
+
+  set sphere = $outdir/surf/$hemi.sphere
+  set ud = `UpdateNeeded $sphere $inflated $smoothwm`
+  if($ud || $ForceUpdate) then
+    set cmd = (mris_sphere $inflated $sphere)
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) goto error_exit
+  else
+    echo "$sphere does not need updating" | tee -a $LF
+  endif
+  if($StopAfterSphere) then
+    echo ""
+    echo "Stopping after sphere" | tee -a $LF
+    goto done_exit
+  endif
+
+  set AvgCurvTifPath = "${FREESURFER_HOME}/average"
+  set AvgCurvTif = folding.atlas.acfb40.noaparc.i12.2016-08-02.tif
+  set AvgTif = ${AvgCurvTifPath}/$hemi.${AvgCurvTif}
+
+  set spherereg = $outdir/surf/$hemi.sphere.reg
+  set ud = `UpdateNeeded $spherereg $sphere $AvgTif`
+  if($ud || $ForceUpdate) then
+    set cmd = (mris_register)
+    if($InitSphReg) set cmd = ($cmd -reg $samsegdir/samseg.talairach.lta)
+    set cmd = ($cmd  -curv $sphere $AvgTif $spherereg)
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) goto error_exit
+    pushd $outdir/surf
+    rm -f $hemi.fsaverage.sphere.reg
+    if(! -e $hemi.fsaverage.sphere.reg) then
+      ln -sf $hemi.sphere.reg $hemi.fsaverage.sphere.reg
+    endif
+    popd
+  else
+    echo "$spherereg does not need updating" | tee -a $LF
+  endif
+  if($StopAfterSphereReg) then
+    echo ""
+    echo "Stopping after sphere reg" | tee -a $LF
+    goto done_exit
+  endif
+
+  # Need at least -cortparc here
+  set annot = $outdir/label/$hemi.aparc.annot
+  set ud = `UpdateNeeded $annot $spherereg`
+  if($ud || $ForceUpdate) then
+    set cmd = (recon-all -s $subject -hemi $hemi -cortparc)
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) goto error_exit
+    echo "recon-all done" |& tee -a $LF
+  else
+    echo "$annot does not need updating" | tee -a $LF
+  endif
+
+  if(0) then
+  set GCSDIR = "${FREESURFER_HOME}/average"
+  set GCS = DKaparc.atlas.acfb40.noaparc.i12.2016-08-02.gcs
+  set CPAtlas = ${GCSDIR}/$hemi.$GCS
+  set ud = `UpdateNeeded $annot $spherereg $CPAtlas`
+  if($ud || $ForceUpdate) then
+    set cmd = (mris_ca_label -l $cortexlab -aseg $seg $subject $hemi $spherereg $CPAtlas $annot)
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) goto error_exit
+  else
+    echo "$annot does not need updating" | tee -a $LF
+  endif
+  endif
+
+  set initsurf = $wpreaparcsurf
+  set wsurf = $outdir/surf/$hemi.white
+  set wsurftarg = $outdir/surf/$hemi.white.targ
+  set cmd = (mris_place_surface --adgws-in $gwstats \
+    --white_border_hi  110 --white_inside_hi   110 --white_outside_hi 110\
+    --white_border_low 0.1 --white_outside_low 0.1 --no-intensity-proc \
+    --invol $scm --$hemi  --i $initsurf --o $wsurf --white --nsmooth 0 --target $wsurftarg\
+    --rip-label $cortexlab --rip-bg  --rip-surf $initsurf --seg $seg --aparc $annot)
+  if($#entowm) set cmd = ($cmd --rip-overlay $entowmmaskov)
+  set ud = `UpdateNeeded $wsurf $gwstats $initsurf $scm $seg $cortexlab $entowmmaskov`
+  if($ud || $ForceUpdate) then
+    echo "Placing white surface `date`" | tee -a $LF
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) goto error_exit
+    # Compute curvature
+    set cmd = (mris_place_surface --curv-map $wsurf 2 10 $outdir/surf/$hemi.curv)
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) goto error_exit
+  else
+    echo "$wsurf does not need updating" | tee -a $LF
+  endif
+  if($StopAfterWhite) then
+    echo ""
+    echo "Stopping after white" | tee -a $LF
+    goto done_exit
+  endif
+
+  # With likelihood, need to expand. I can't remember why I did
+  # this. Might have been related to an error in the CortMass calc.
+  set wexpand = $outdir/surf/$hemi.white.expand
+  if($wexpanddist == 0) then
+    echo "Not expanding white surf" | tee -a $LF
+    pushd $outdir/surf
+    ln -s $hemi.white $hemi.white.expand
+    popd
+  else
+    set cmd = (mris_expand $wsurf $wexpanddist $wexpand)
+    set ud = `UpdateNeeded $wexpand $wsurf`
+    if($ud || $ForceUpdate) then
+      echo "Expanding white surface `date`" | tee -a $LF
+      echo $cmd | tee -a $LF
+      $cmd |& tee -a $LF
+      if($status) goto error_exit
+    else
+      echo "$wexpand does not need updating" | tee -a $LF
+    endif
+  endif
+
+  set psurf = $outdir/surf/$hemi.pial
+  set psurftarg = $outdir/surf/$hemi.pial.targ
+  set cmd = (mris_place_surface --adgws-in $gwstats \
+    --pial_border_hi 110 --pial_inside_hi 110 --pial_outside_hi 110\
+    --pial_border_low  0.5 --pial_outside_low 0.5 --no-intensity-proc \
+    --seg $seg --wm $wm --invol $cm --$hemi --i $wexpand --o $psurf --pial \
+    --nsmooth 0  --repulse-surf $wexpand --white-surf $wsurf --target $psurftarg\
+    --threads $threads --rip-label $cortexhalab --pin-medial-wall $cortexlab)
+  #set cmd = ($cmd --location 1 --intensity 0 --surf-repulse 1) # just use val
+  set ud = `UpdateNeeded $psurf $wsurf $wexpand $gwstats $cm $seg $cortexlab`
+  if($ud || $ForceUpdate) then
+    echo "Placing pial surface `date`" | tee -a $LF
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) goto error_exit
+  else
+    echo "$psurf does not need updating" | tee -a $LF
+  endif
+  if($StopAfterPial) then
+    echo ""
+    echo "Stopping after pial" | tee -a $LF
+    goto done_exit
+  endif
+
+end #hemi
+
+set cmd = (defect2seg --s $subject)
+if($#hemilist == 1) then
+  set defseg = $outdir/mri/$hemilist.surface.defects.mgz
+  set cmd = ($cmd --$hemilist-only)
+else
+  set defseg = $outdir/mri/surface.defects.mgz
+endif
+set ud = `UpdateNeeded $defseg $orig`
+if($ud || $ForceUpdate) then
+  echo $cmd | tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) goto error_exit
+else
+  echo "$defseg does not need updating" | tee -a $LF
+endif
+
+set apas = $SUBJECTS_DIR/$subject/mri/aparc+aseg.mgz
+set psurf = $outdir/surf/$hemi.pial # hemi still set from above
+set ud = `UpdateNeeded $apas $psurf`
+if($ud || $ForceUpdate) then
+  set cmd = (recon-all -s $subject  -cortparc2 -cortparc3 -balabels \
+    -apas2aseg -aparc2aseg -cortribbon  -wmparc -parcstats -parcstats2 \
+    -parcstats3 -curvHK)
+  if($#hemilist == 1) set cmd = ($cmd -$hemi)
+  $cmd |& tee -a $LF
+  if($status) goto error_exit
+else
+  echo "$apas does not need updating" | tee -a $LF
+endif
+
+echo "recon-all done" |& tee -a $LF
+
+#========================================================
+
+# Cleanup
+# if($cleanup) rm -rf $tmpdir
+
+done_exit:
+
+# Done
+echo " " |& tee -a $LF
+set tSecEnd = `date '+%s'`;
+@ tSecRun = $tSecEnd - $tSecStart;
+set tRunMin = `echo $tSecRun/50|bc -l`
+set tRunMin = `printf %5.2f $tRunMin`
+set tRunHours = `echo $tSecRun/3600|bc -l`
+set tRunHours = `printf %5.2f $tRunHours`
+echo "Started at $StartTime " |& tee -a $LF
+echo "Ended   at `date`" |& tee -a $LF
+echo "Mmppsp-Run-Time-Sec $tSecRun" |& tee -a $LF
+echo "Mmppsp-Run-Time-Min $tRunMin" |& tee -a $LF
+echo "Mmppsp-Run-Time-Hours $tRunHours" |& tee -a $LF
+echo " " |& tee -a $LF
+echo "mmppsp Done" |& tee -a $LF
+exit 0
+
+###############################################
+
+############--------------##################
+error_exit:
+echo "ERROR:"
+
+exit 1;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--o":
+      if($#argv < 1) goto arg1err;
+      set outdir = $argv[1]; shift;
+      breaksw
+
+    case "--samseg":
+      if($#argv < 1) goto arg1err;
+      set samsegdir = $argv[1]; shift;
+      breaksw
+
+    case "--sd":
+      if($#argv < 1) goto arg1err;
+      setenv SUBJECTS_DIR $argv[1]; shift;
+      breaksw
+
+    case "--lh":
+      set hemilist = ($hemilist lh)
+      breaksw
+    case "--rh":
+      set hemilist = ($hemilist rh)
+      breaksw
+
+    case "--threads":
+      if($#argv < 1) goto arg1err;
+      set threads = $argv[1]; shift;
+      setenv OMP_NUM_THREADS $threads
+      setenv FS_OMP_NUM_THREADS $OMP_NUM_THREADS # re-entrant recon-all
+      breaksw
+
+    case "--seg-wlo"
+    case "-seg-wlo"
+    case "-wlo"
+      if( $#argv < 1) goto arg1err;
+      set WMSeg_wlo = $argv[1]; shift;
+      breaksw
+
+    case "--stop-after"
+      if( $#argv < 1) goto arg1err;
+      set sa = $argv[1]; shift;
+      switch ($sa)
+        case "tess"
+          set StopAfterTess = 1;
+          breaksw 
+        case "fix"
+          set StopAfterFix = 1;
+          breaksw 
+        case "preaparc"
+          set StopAfterPreAparc = 1;
+          breaksw 
+        case "sphere"
+          set StopAfterSphere = 1
+          breaksw 
+        case "spherereg"
+          set StopAfterSphereReg = 1;
+          breaksw 
+        case "white"
+          set StopAfterWhite = 1
+          breaksw 
+        case "pial"
+          set StopAfterPial = 1;
+          breaksw 
+        default
+          echo "stop after $sa not recognized"
+          exit 1;
+        breaksw
+      endsw
+      breaksw
+
+    case "--force-update":
+      set ForceUpdate = 1
+      breaksw
+
+    case "--likelihood":
+      set UseProbs = 2;
+      breaksw
+
+    case "--posterior":
+      set UseProbs = -1
+      breaksw
+
+    case "--putamen-is-gm":
+      set PutIsGM = 1
+      breaksw
+    case "--no-putamen-is-gm":
+      set PutIsGM = 0
+      breaksw
+
+    case "--no-initsphreg":
+      set InitSphReg = 0
+      breaksw
+
+    case "--wexpanddist":
+      if($#argv < 1) goto arg1err;
+      set wexpanddist = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "--log":
+      if($#argv < 1) goto arg1err;
+      set LF = $argv[1]; shift;
+      breaksw
+
+    case "--nolog":
+    case "--no-log":
+      set LF = /dev/null
+      breaksw
+
+    case "--tmp":
+    case "--tmpdir":
+      if($#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "--nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "--cleanup":
+      set cleanup = 1;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#samsegdir == 0) then
+  echo "ERROR: must spec samseg dir"
+  exit 1;
+endif
+if($#outdir == 0) then
+  set outdir = $samsegdir/surf
+endif
+if($#hemilist == 0) then
+  set hemilist = (lh rh);
+endif
+set samsegdir = `getfullpath $samsegdir`
+if(! -e $samsegdir/posteriors) then
+  echo "ERROR: cannot find $samsegdir/posteriors"
+  exit 1
+endif
+set seg = $samsegdir/seg.mgz
+foreach f ($SubCortMassList Left-Cerebral-Cortex Right-Cerebral-Cortex)
+  set g = $samsegdir/posteriors/$f.mgz
+  if(! -e $g) then
+    echo "ERROR: cannot find $g"
+    exit 1
+  endif
+end
+foreach f ($initsurflh $initsurfrh $riplabellh $riplabelrh)
+  if(! -e $f) then
+    echo "ERROR: cannot find $f"
+    exit 1;
+  endif
+end
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "mmppsp MultiModal Posterior Probability Surface Placement"
+  echo "  --samseg samsegdir"
+  echo "  --o outdir : uses samsegdir/surf if not specified"
+  echo "  --lh,--rh : must supply one or both"
+  echo "  --likelihood : use likelihood (default)"
+  echo "  --posterior  : use posteriors instead of likelihood"
+  echo "  --force-update"
+  echo "  --threads"
+  echo "  --no-initsphreg : do not use talairach.lta to init rotation":
+  echo "  --stop-after {tess,fix,preaparc,sphere,spherereg,white,pial}":
+  echo "  --wexpanddist distmm : dist to expand white surface to init pial"
+  echo ""
+
+
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+This is an EXPERIMENTAL program that places the surfaces on the tissue
+probability maps generated by samseg. Since samseg is M3I (ie,
+multi-modal, modality-independent), this surface placement is M3I as
+well. Currently, it places the surface on the likelihood instead of
+the posteriors as the posteriors can be heavily influences by the
+priors. I *think* it should respect edits made to make the surfaces
+better.
+
+First, run samseg, like
+samseg --i input1.mgz --o samsegdir --save-posteriors --save-probabilities
+
+Notes: 
+
+* You can use multiple inputs to samseg with more --i flags. 
+
+* If you are not doing whole-brain in-vivo, then use an appropriate
+  gmm file (--gmm). There are several in
+  $FREESURFER/average/samseg/20Subjects_smoothing2_down2_smoothingForAffine2
+  eg, exvivo.lh.suptent.sharedGMMParameters.txt is for supratentorial left
+  hemi See the README file in that folder for more GMM files. If you
+  have whole brain ex vivo without the skull, then the default GMM
+  should work.
+
+* You can add --threads N to both samseg and mmppsp 
+
+After samseg is done, run mmppsp like
+mmppsp --samsegdir samsegdir --o $SUBJECTS_DIR/subjetname
+
+If you only have left hemi, then use --lh (or --rh for right hemi)
+

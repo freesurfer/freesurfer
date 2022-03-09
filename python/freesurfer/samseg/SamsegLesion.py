@@ -21,7 +21,7 @@ class SamsegLesion(Samseg):
                  numberOfSamplingSteps=50, numberOfBurnInSteps=50,
                  numberOfPseudoSamplesMean=500, numberOfPseudoSamplesVariance=500, rho=50,
                  intensityMaskingPattern=None, intensityMaskingSearchString='Cortex', gmmFileName=None, sampler=True,
-                 ignoreUnknownPriors=False,
+                 ignoreUnknownPriors=False, randomSeed=12345,
                  ):
         Samseg.__init__(self, imageFileNames, atlasDir, savePath, userModelSpecifications, userOptimizationOptions,
                  imageToImageTransformMatrix, visualizer, saveHistory, savePosteriors,
@@ -36,6 +36,10 @@ class SamsegLesion(Samseg):
         self.rho = rho
         self.intensityMaskingClassNumber = self.getClassNumber(intensityMaskingSearchString)
         self.sampler = sampler
+
+        # Set random seed 
+        self.seed = randomSeed
+        self.rngNumpy = np.random.default_rng(self.seed)
 
         if intensityMaskingPattern is None:
             raise ValueError('Intensity mask pattern must be set')
@@ -156,7 +160,7 @@ class SamsegLesion(Samseg):
 
         # Initialize the VAE tensorflow model and its various settings.
         # Restore from checkpoint the VAE
-        vae = VAE(self.atlasDir, self.transform, imageSize)
+        vae = VAE(self.atlasDir, self.transform, imageSize, self.seed)
 
         # Do the actual sampling of lesion, latent variables of the VAE model, and mean/variance of the lesion intensity model.
         averagePosteriors = np.zeros_like(likelihoods)
@@ -177,7 +181,7 @@ class SamsegLesion(Samseg):
 
             # Sample from the mean and variance, conditioned on the data and the lesion segmentation
             mean, variance = self.gmm.sampleMeansAndVariancesConditioned(data, lesion[self.mask].reshape(-1, 1),
-                                                                         self.lesionGaussianNumber)
+                                                                         self.lesionGaussianNumber, self.rngNumpy)
 
             # Sample from the lesion segmentation, conditioned on the data and the VAE latent variables
             # (Implementation-wise the latter is encoded in the VAE prior). At the same time we also
@@ -202,7 +206,7 @@ class SamsegLesion(Samseg):
             likelihoods[:, self.lesionStructureNumber] = self.gmm.getGaussianLikelihoods(data, mean, variance)
             posteriors = effectivePriors * likelihoods
             posteriors /= np.expand_dims(np.sum(posteriors, axis=1) + eps, 1)
-            sample = np.random.rand(numberOfVoxels) <= posteriors[:, self.lesionStructureNumber]
+            sample = self.rngNumpy.random(numberOfVoxels) <= posteriors[:, self.lesionStructureNumber]
             lesion = np.zeros(imageSize)
             lesion[self.mask] = sample
 

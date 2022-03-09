@@ -25,6 +25,7 @@
 #include "mrisurf.h"
 #include "connectcomp.h"
 
+
 MRI *mri_load_bvolume(char *bfstem);
 int  mri_save_as_bvolume(MRI *vol, char *stem, int svendian, int svtype);
 MRI *mri_load_bvolume_frame(char *bfstem, int frameno);
@@ -146,5 +147,26 @@ int QuadEulerCharChangeCheckReorder(MRI *mri, const char *testname, int decExpec
 
 MRI *MRIfindBrightNonWM(MRI *mri_T1, MRI *mri_wm);
 MRI *MRIzconcat(MRI *mri1, MRI *mri2, int nskip, MRI *out);
+
+/*!
+  \fn class FixSubCortMassHA
+  \brief This class "fixes" the SCM by removing stray voxels in
+  hippocampus, amyg, and inferior lateral ventricle.  The SCM can be
+  the wm.seg.mgz, wm.mgz, or filled.mgz.  The need for this stems from
+  the fact that there is a lot of WM in the hippo (eg, alveus, fimria)
+  and these often get segmented into the SCM where they create defects
+  or make the surface distorted.  All the voxels in amyg and ILV are
+  removed. Most of the voxels in hippo are removed except for those
+  within nDilate of cortex, wm, and background. These are the voxels
+  most likely to be in the wm of entorhinal cortex.
+ */
+class FixSubCortMassHA {
+public:
+  MRI *subcorticalmass=NULL; // wm.seg, wm, or filled
+  MRI *aseg=NULL;  // aseg.presurf
+  MRI *mask=NULL;  // a temporary mask
+  int nDilate = 1;
+  int FixSCM(void);
+};
 
 #endif

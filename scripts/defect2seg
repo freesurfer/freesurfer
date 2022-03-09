@@ -19,6 +19,10 @@ set rhoffset = ();
 set template = ()
 set DoLH = 1;
 set DoRH = 1;
+set DoCortex = 0;
+set lhlabel = ()
+set rhlabel = ()
+set aseg = ()
 
 set tmpdir = ();
 set cleanup = 1;
@@ -56,10 +60,15 @@ pushd $outdir > /dev/null
 set outdir = `pwd`;
 popd > /dev/null
 
-# if($#tmpdir == 0) then
-#   set tmpdir = `fs_temp_dir --scratch --base $outdir`
-# endif
-#mkdir -p $tmpdir
+if($#tmpdir == 0) then
+  set tmpdir = `fs_temp_dir --scratch --base $outdir`
+endif
+mkdir -p $tmpdir
+
+if($DoCortex && $#subject == 0) then
+  set lhlabel = $tmpdir/lh.nofix.cortex.label
+  set rhlabel = $tmpdir/rh.nofix.cortex.label
+endif
 
 # Set up log file
 if($#LF == 0) set LF = $outdir/defect2seg.log
@@ -81,27 +90,43 @@ endif
 
 #========================================================
 if($#lhsurf) then
-   set cmd = (mri_label2vol --defects $lhsurf $lhdefects $template $lhoffset 0 $outputseg)
+   if($DoCortex) then
+     # Create a cortex label in the nofix space
+     set cmd = (mri_label2label --label-cortex $lhsurf $aseg 0 $lhlabel)
+     echo "$cmd"|& tee -a $LF
+     $cmd |& tee -a $LF
+     if($status) goto error_exit;
+   endif
+   set cmd = (mri_label2vol --defects $lhsurf $lhdefects $template $lhoffset 0 $outputseg $lhlabel)
    echo "$cmd"|& tee -a $LF
    $cmd |& tee -a $LF
    if($status) goto error_exit;
    set cmd = (mris_defects_pointset -s $lhsurf -d $lhdefects -o $lhpointset)
+   if($DoCortex) set cmd = ($cmd --label $lhlabel)
    echo "$cmd"|& tee -a $LF
    $cmd |& tee -a $LF
    if($status) goto error_exit;
 endif
 if($#rhsurf) then
+   if($DoCortex) then
+     # Create a cortex label in the nofix space
+     set cmd = (mri_label2label --label-cortex $rhsurf $aseg 0 $rhlabel)
+     echo "$cmd"|& tee -a $LF
+     $cmd |& tee -a $LF
+     if($status) goto error_exit;
+   endif
    set src = $template
    set merge = 0
    if($#lhsurf) then
      set src = $outputseg
      set merge = 1
    endif
-   set cmd = (mri_label2vol --defects $rhsurf $rhdefects $src $rhoffset $merge $outputseg)
+   set cmd = (mri_label2vol --defects $rhsurf $rhdefects $src $rhoffset $merge $outputseg $rhlabel)
    echo "$cmd"|& tee -a $LF
    $cmd |& tee -a $LF
    if($status) goto error_exit;
    set cmd = (mris_defects_pointset -s $rhsurf -d $rhdefects -o $rhpointset)
+   if($DoCortex) set cmd = ($cmd --label $rhlabel)
    echo "$cmd"|& tee -a $LF
    $cmd |& tee -a $LF
    if($status) goto error_exit;
@@ -110,7 +135,7 @@ endif
 #========================================================
 
 # Cleanup
-# if($cleanup) rm -rf $tmpdir
+if($cleanup) rm -rf $tmpdir
 
 # Done
 echo " " |& tee -a $LF
@@ -183,6 +208,13 @@ while( $#argv != 0 )
       set rhdefects  = $argv[1]; shift;
       set rhpointset = $argv[1]; shift;
       set rhoffset   = $argv[1]; shift;
+      breaksw
+
+    case "--cortex":
+      set DoCortex = 1;
+      breaksw
+    case "--no-cortex":
+      set DoCortex = 0;
       breaksw
 
     case "--t":
@@ -267,6 +299,11 @@ if($#subject)then
     set rhpointset = $sd/surf/rh.defects.pointset
     set rhoffset   = 2000
   endif
+  if($DoCortex) then
+    set aseg = $sd/mri/aseg.presurf.mgz
+    set lhlabel = $sd/label/lh.nofix.cortex.label
+    set rhlabel = $sd/label/rh.nofix.cortex.label
+  endif
 endif
 
 if($#lhsurf == 0 && $#rhsurf == 0) then
@@ -278,7 +315,7 @@ if($#template == 0) then
   exit 1;
 endif
 
-foreach fname ($lhsurf $lhdefects $rhsurf $rhdefects $template)
+foreach fname ($lhsurf $lhdefects $rhsurf $rhdefects $template $aseg)
   if(! -e $fname) then
     echo "ERROR: cannot find $fname"
     exit 1;
@@ -320,6 +357,8 @@ usage_exit:
   echo "     sets lh.orig lh.defect_labels lh.defects.pointset 1000"
   echo "     sets rh.orig rh.defect_labels rh.defects.pointset 2000"
   echo "  --lh-only, --rh-only"
+  echo "  --cortex : constrain to defects within cortex (also --no-cortex)"
+  echo "    Note: does not renumber the defects"
   echo "  These only apply to --s. Changes the ouutput to ?h.surface.defects.mgz"
   echo ""
   echo ""

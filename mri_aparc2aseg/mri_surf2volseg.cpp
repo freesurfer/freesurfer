@@ -54,6 +54,7 @@ public:
   std::string lhcortexlabelpath, rhcortexlabelpath;
   std::string lhannotname="lh.aparc.annot", lhannotpath, rhannotname="rh.aparc.annot", rhannotpath;
   int lhbaseoffset = 1000, rhbaseoffset = 2000;
+  int lhwmunlabeled = 5001,rhwmunlabeled = 5002;
   int nHopsMax = 5;
   int RipUnknown = 0;
   int LabelHypoAsWM = 0;
@@ -223,9 +224,16 @@ static int parse_commandline(int argc, char **argv)
       s2vseg.RipUnknown = 1;
     }
     else if (!strcmp(option, "--label-wm")){
-      s2vseg.LabelWM = 1;
+      s2vseg.LabelWM = 1; 
       s2vseg.RipUnknown = 1;
       s2vseg.LabelHypoAsWM = 1;
+    }
+    else if (!strcmp(option, "--label-wm-unknown")){
+      // Set values for the unknown label in labeling WM, default is 5001 and 5002
+      if(nargc < 2) CMDargNErr(option,2);
+      sscanf(pargv[0],"%d",&s2vseg.lhwmunlabeled);
+      sscanf(pargv[1],"%d",&s2vseg.rhwmunlabeled);
+      nargsused = 2;
     }
     else if (!strcmp(option, "--lh-white")){
       if (nargc < 1) CMDargNErr(option,1);
@@ -478,11 +486,11 @@ int Surf2VolSeg::RelabelSegVox(int c, int r, int s, int *ndotcheck, int *hemi, i
     if(*dmin > wmparc_dist_thresh) newsegid = 0;
     if(*hemi == 1) {
       if(newsegid > 0) newsegid += lhbaseoffset;
-      else             newsegid = 5001;
+      else             newsegid = lhwmunlabeled;
     }
     if(*hemi == 2){
       if(newsegid > 0) newsegid += rhbaseoffset;
-      else             newsegid = 5002;
+      else             newsegid = rhwmunlabeled;
     }
   }
   if(debug) printf("RelabelSegVox(): %d %d %d   %d %d   %d %d %d %g\n",c,r,s,volsegid,newsegid,*ndotcheck,*hemi,*surftype,*dmin);

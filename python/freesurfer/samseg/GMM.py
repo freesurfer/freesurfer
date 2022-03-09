@@ -404,7 +404,7 @@ class GMM:
         self.hyperMeans[self.gaussNumber2Tied] = self.means[self.gaussNumber1Tied]
         self.hyperVariances[self.gaussNumber2Tied] = self.rho * self.variances[self.gaussNumber1Tied]
 
-    def sampleMeansAndVariancesConditioned(self, data, posterior, gaussianNumber,constraints=None):
+    def sampleMeansAndVariancesConditioned(self, data, posterior, gaussianNumber, rngNumpy=np.random.default_rng(), constraints=None):
         tmpGmm = GMM([1], self.numberOfContrasts, self.useDiagonalCovarianceMatrices,
                   initialHyperMeans=np.array([self.hyperMeans[gaussianNumber]]),
                   initialHyperMeansNumberOfMeasurements=np.array([self.hyperMeansNumberOfMeasurements[gaussianNumber]]),
@@ -416,7 +416,8 @@ class GMM:
 
         # Murphy, page 134 with v0 = hyperVarianceNumberOfMeasurements - numberOfContrasts - 2
         variance = invwishart.rvs(N + tmpGmm.hyperVariancesNumberOfMeasurements[0] - self.numberOfContrasts - 2,
-                              tmpGmm.variances[0] * (tmpGmm.hyperVariancesNumberOfMeasurements[0] + N))
+                                  tmpGmm.variances[0] * (tmpGmm.hyperVariancesNumberOfMeasurements[0] + N),
+                                  random_state=rngNumpy)
 
         # If numberOfContrast is 1 force variance to be a (1,1) array
         if self.numberOfContrasts == 1:
@@ -425,8 +426,8 @@ class GMM:
         if self.useDiagonalCovarianceMatrices:
             variance = np.diag(np.diag(variance))
 
-        mean = np.random.multivariate_normal(tmpGmm.means[0],
-                                             variance / (tmpGmm.hyperMeansNumberOfMeasurements[0] + N)).reshape(-1, 1)
+        mean = rngNumpy.multivariate_normal(tmpGmm.means[0],
+                                            variance / (tmpGmm.hyperMeansNumberOfMeasurements[0] + N)).reshape(-1, 1)
         if constraints is not None:
             def truncsample(mean, var, lower, upper):
                 from scipy.stats import truncnorm

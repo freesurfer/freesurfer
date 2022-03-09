@@ -136,7 +136,7 @@ static MRI *ximgRead(const char *fname, int read_volume);
 static MRI *nifti1Read(const char *fname, int read_volume);
 static int nifti1Write(MRI *mri, const char *fname);
 static MRI *niiRead(const char *fname, int read_volume);
-static MRI *niiRead3(MRIFSSTRUCT *mrifsStruct);
+static MRI *niiReadFromMriFsStruct(MRIFSSTRUCT *mrifsStruct);
 static int niiWrite(MRI *mri, const char *fname);
 static int itkMorphWrite(MRI *mri, const char *fname);
 static int niftiQformToMri(MRI *mri, struct nifti_1_header *hdr);
@@ -687,7 +687,7 @@ MRI *mri_read(const char *fname, int type, int volume_flag, int start_frame, int
       if (mrifsStruct == NULL) 
 	return NULL;
 
-      mri = niiRead3(mrifsStruct);
+      mri = niiReadFromMriFsStruct(mrifsStruct);
       if (mri != NULL && mri->ti < 0)
 	mri->ti = 0;
 
@@ -705,7 +705,7 @@ MRI *mri_read(const char *fname, int type, int volume_flag, int start_frame, int
       if (mrifsStruct == NULL) 
 	return NULL;
 
-      mri = niiRead3(mrifsStruct);
+      mri = niiReadFromMriFsStruct(mrifsStruct);
 
       free(mrifsStruct->imgM);
       free(mrifsStruct->tdti);
@@ -831,35 +831,57 @@ MRI *mri_read(const char *fname, int type, int volume_flag, int start_frame, int
   mri2->imnr0 = 1;
   mri2->imnr0 = mri2->nframes;
 
-  if (mri2->type == MRI_UCHAR)
+  if (0)   // disable it for now, don't know a case to execute this code path // (getenv("FS_MGZIO_USEVOXELBUF"))
+  {
+    printf("mri_read(): copy voxel by row ...\n");
     for (t = 0; t < mri2->nframes; t++)
-      for (i = 0; i < mri2->width; i++)
-        for (j = 0; j < mri2->height; j++)
-          for (k = 0; k < mri2->depth; k++) MRIseq_vox(mri2, i, j, k, t) = MRIseq_vox(mri, i, j, k, t + start_frame);
+      for (k = 0; k < mri2->depth; k++) {
+        //for (j = 0; j < mri2->height; j++) {
+          int bytes_to_copy = MRIsizeof(mri2->type) * mri2->width * mri2->height;
+          void *pbufsrc = &MRIseq_vox(mri, 0, 0, k, t + start_frame);
+          void *pbufdst = &MRIseq_vox(mri2, 0, 0, k, t);
+	  memcpy(pbufdst, pbufsrc, bytes_to_copy);
+	  //}
+      }
+  }
+  else
+  {
+    if (mri2->type == MRI_UCHAR)
+      for (t = 0; t < mri2->nframes; t++)
+        for (i = 0; i < mri2->width; i++)
+          for (j = 0; j < mri2->height; j++)
+            for (k = 0; k < mri2->depth; k++) MRIseq_vox(mri2, i, j, k, t) = MRIseq_vox(mri, i, j, k, t + start_frame);
 
-  if (mri2->type == MRI_SHORT)
-    for (t = 0; t < mri2->nframes; t++)
-      for (i = 0; i < mri2->width; i++)
-        for (j = 0; j < mri2->height; j++)
-          for (k = 0; k < mri2->depth; k++) MRISseq_vox(mri2, i, j, k, t) = MRISseq_vox(mri, i, j, k, t + start_frame);
+    if (mri2->type == MRI_SHORT)
+      for (t = 0; t < mri2->nframes; t++)
+        for (i = 0; i < mri2->width; i++)
+          for (j = 0; j < mri2->height; j++)
+            for (k = 0; k < mri2->depth; k++) MRISseq_vox(mri2, i, j, k, t) = MRISseq_vox(mri, i, j, k, t + start_frame);
 
-  if (mri2->type == MRI_INT)
-    for (t = 0; t < mri2->nframes; t++)
-      for (i = 0; i < mri2->width; i++)
-        for (j = 0; j < mri2->height; j++)
-          for (k = 0; k < mri2->depth; k++) MRIIseq_vox(mri2, i, j, k, t) = MRIIseq_vox(mri, i, j, k, t + start_frame);
+    if (mri2->type == MRI_USHRT)
+      for (t = 0; t < mri2->nframes; t++)
+        for (i = 0; i < mri2->width; i++)
+          for (j = 0; j < mri2->height; j++)
+            for (k = 0; k < mri2->depth; k++) MRIUSseq_vox(mri2, i, j, k, t) = MRIUSseq_vox(mri, i, j, k, t + start_frame);
 
-  if (mri2->type == MRI_LONG)
-    for (t = 0; t < mri2->nframes; t++)
-      for (i = 0; i < mri2->width; i++)
-        for (j = 0; j < mri2->height; j++)
-          for (k = 0; k < mri2->depth; k++) MRILseq_vox(mri2, i, j, k, t) = MRILseq_vox(mri, i, j, k, t + start_frame);
+    if (mri2->type == MRI_INT)
+      for (t = 0; t < mri2->nframes; t++)
+        for (i = 0; i < mri2->width; i++)
+          for (j = 0; j < mri2->height; j++)
+            for (k = 0; k < mri2->depth; k++) MRIIseq_vox(mri2, i, j, k, t) = MRIIseq_vox(mri, i, j, k, t + start_frame);
 
-  if (mri2->type == MRI_FLOAT)
-    for (t = 0; t < mri2->nframes; t++)
-      for (i = 0; i < mri2->width; i++)
-        for (j = 0; j < mri2->height; j++)
-          for (k = 0; k < mri2->depth; k++) MRIFseq_vox(mri2, i, j, k, t) = MRIFseq_vox(mri, i, j, k, t + start_frame);
+    if (mri2->type == MRI_LONG)
+      for (t = 0; t < mri2->nframes; t++)
+        for (i = 0; i < mri2->width; i++)
+          for (j = 0; j < mri2->height; j++)
+            for (k = 0; k < mri2->depth; k++) MRILseq_vox(mri2, i, j, k, t) = MRILseq_vox(mri, i, j, k, t + start_frame);
+
+    if (mri2->type == MRI_FLOAT)
+      for (t = 0; t < mri2->nframes; t++)
+        for (i = 0; i < mri2->width; i++)
+          for (j = 0; j < mri2->height; j++)
+            for (k = 0; k < mri2->depth; k++) MRIFseq_vox(mri2, i, j, k, t) = MRIFseq_vox(mri, i, j, k, t + start_frame);
+  }
 
   if (nan_inf_check(mri) != NO_ERROR) {
     MRIfree(&mri);
@@ -4787,10 +4809,10 @@ static dsr *ReadAnalyzeHeader(const char *hdrfile, int *swap, int *mritype, int 
   }
   else if (hdr->dime.datatype == DT_UINT16) {
     // Can happen if this is nifti
-    printf(
-        "Unsigned short not supported, but trying to read it \n"
-        "in as a signed short. Will be ok if no vals >= 32k.\n");
-    *mritype = MRI_SHORT;
+    printf("INFO: This is an unsigned short.\n");
+    //    "Unsigned short not supported, but trying to read it \n"
+    //    "in as a signed short. Will be ok if no vals >= 32k.\n");
+    *mritype = MRI_USHRT;
     *bytes_per_voxel = 2;
   }
   else if (hdr->dime.datatype == DT_SIGNED_INT) {
@@ -5382,6 +5404,10 @@ static int analyzeWriteFrame(MRI *mri, const char *fname, int frame)
     hdr.dime.datatype = DT_SIGNED_SHORT;
     bytes_per_voxel = 2;
   }
+  else if (mri->type == MRI_USHRT) {
+    hdr.dime.datatype = DT_UINT16;
+    bytes_per_voxel = 2;
+  }
   /* --- assuming long and int are identical --- */
   else if (mri->type == MRI_INT || mri->type == MRI_LONG) {
     hdr.dime.datatype = DT_SIGNED_INT;
@@ -5652,6 +5678,10 @@ static int analyzeWrite4D(MRI *mri, const char *fname)
   }
   else if (mri->type == MRI_SHORT) {
     hdr.dime.datatype = DT_SIGNED_SHORT;
+    bytes_per_voxel = 2;
+  }
+  else if (mri->type == MRI_USHRT) {
+    hdr.dime.datatype = DT_UINT16;
     bytes_per_voxel = 2;
   }
   /* --- assuming long and int are identical --- */
@@ -7668,9 +7698,9 @@ static MRI *nifti1Read(const char *fname, int read_volume)
     }
     else if (hdr.datatype == DT_UINT16) {
       // This will not always work ...
-      printf("INFO: this is an unsiged short. I'll try to read it, but\n");
-      printf("      it might not work if there are values over 32k\n");
-      fs_type = MRI_SHORT;
+      printf("INFO: This is an unsigned short.\n");    // I'll try to read it, but\n");
+      //printf("      it might not work if there are values over 32k\n");
+      fs_type = MRI_USHRT;
       bytes_per_voxel = 2;
     }
     else if (hdr.datatype == DT_SIGNED_INT) {
@@ -8135,6 +8165,10 @@ static int nifti1Write(MRI *mri0, const char *fname)
     hdr.datatype = DT_SIGNED_SHORT;
     hdr.bitpix = 16;
   }
+  else if (mri->type == MRI_USHRT) {
+    hdr.datatype = DT_UINT16;
+    hdr.bitpix = 16;
+  }
   else if (mri->type == MRI_BITMAP) {
     ErrorReturn(ERROR_UNSUPPORTED, (ERROR_UNSUPPORTED, "nifti1Write(): data type MRI_BITMAP unsupported"));
   }
@@ -8318,7 +8352,7 @@ static MRI *niiRead(const char *fname, int read_volume)
         hdr.slice_code != NIFTI_SLICE_ALT_INC && hdr.slice_code != NIFTI_SLICE_ALT_DEC &&
         hdr.slice_code != NIFTI_SLICE_ALT_INC2 && hdr.slice_code != NIFTI_SLICE_ALT_DEC2) {
       ErrorReturn(
-          NULL, (ERROR_UNSUPPORTED, "nifti1Read(): unsupported slice timing pattern %d in %s", hdr.slice_code, fname));
+          NULL, (ERROR_UNSUPPORTED, "niiRead(): unsupported slice timing pattern %d in %s", hdr.slice_code, fname));
     }
   }
 
@@ -8353,9 +8387,9 @@ static MRI *niiRead(const char *fname, int read_volume)
     }
     else if (hdr.datatype == DT_UINT16) {
       // This will not always work ...
-      printf("INFO: this is an unsiged short. I'll try to read it, but\n");
-      printf("      it might not work if there are values over 32k\n");
-      fs_type = MRI_SHORT;
+      printf("INFO: This is an unsigined short.\n");    // I'll try to read it, but\n");
+      //printf("      it might not work if there are values over 32k\n");
+      fs_type = MRI_USHRT;
       bytes_per_voxel = 2;
     }
     else if (hdr.datatype == DT_SIGNED_INT) {
@@ -8758,19 +8792,21 @@ static MRI *niiRead(const char *fname, int read_volume)
 
 
 /*------------------------------------------------------------------
-  niiRead3() - note: there are also nifti1Read() and niiRead(). Make sure to
+  niiReadFromMriFsStruct() - note: there are also nifti1Read() and niiRead(). Make sure to
   edit all. Automatically detects whether an input is Ico7
   and reshapes.
   This function is used with DICOMRead3().
+  DICOMRead3() read/parse dicom files using dcm2niix_fswrapper.
+  MRIFSSTRUCT holds the parsing output from dcm2niix, which contains nifti header, 
+  image data, acqusition parameters, and bvecs. See nii_dicom_batch.h for details.
   -----------------------------------------------------------------*/
-static MRI *niiRead3(MRIFSSTRUCT *mrifsStruct)
+static MRI *niiReadFromMriFsStruct(MRIFSSTRUCT *mrifsStruct)
 {
   MRI *mri, *mritmp;
   int nslices;
   int fs_type;
   float time_units_factor, space_units_factor;
   int swapped_flag;
-  int i, j, k, t;
   int bytes_per_voxel, time_units, space_units;
   int ncols, IsIco7 = 0;
 
@@ -8783,21 +8819,21 @@ static MRI *niiRead3(MRIFSSTRUCT *mrifsStruct)
     swapped_flag = TRUE;
     swap_nifti_1_header(hdr);
     if (hdr->dim[0] < 1 || hdr->dim[0] > 7) {
-      ErrorReturn(NULL, (ERROR_BADFILE, "niiRead3(): bad number of dimensions (%hd)", hdr->dim[0]));
+      ErrorReturn(NULL, (ERROR_BADFILE, "niiReadFromMriFsStruct(): bad number of dimensions (%hd)", hdr->dim[0]));
     }
   }
 
   if (memcmp(hdr->magic, NII_MAGIC, 4) != 0) {
-    ErrorReturn(NULL, (ERROR_BADFILE, "niiRead3(): bad magic number"));
+    ErrorReturn(NULL, (ERROR_BADFILE, "niiReadFromMriFsStruct(): bad magic number"));
   }
 
   //  if (hdr.dim[0] != 2 && hdr.dim[0] != 3 && hdr.dim[0] != 4){
   if (hdr->dim[0] < 1 || hdr->dim[0] > 5) {
-    ErrorReturn(NULL, (ERROR_UNSUPPORTED, "niiRead3(): %hd dimensions; unsupported", hdr->dim[0]));
+    ErrorReturn(NULL, (ERROR_UNSUPPORTED, "niiReadFromMriFsStruct(): %hd dimensions; unsupported", hdr->dim[0]));
   }
 
   if (hdr->datatype == DT_NONE || hdr->datatype == DT_UNKNOWN) {
-    ErrorReturn(NULL, (ERROR_UNSUPPORTED, "niiRead3(): unknown or no data type; bailing out"));
+    ErrorReturn(NULL, (ERROR_UNSUPPORTED, "niiReadFromMriFsStruct(): unknown or no data type; bailing out"));
   }
   if (hdr->dim[4] == 0) {
     printf("WARNING: hdr->dim[4] = 0 (nframes), setting to 1\n");
@@ -8815,7 +8851,7 @@ static MRI *niiRead3(MRIFSSTRUCT *mrifsStruct)
     space_units_factor = 1.0;
   }
   else
-    ErrorReturn(NULL, (ERROR_BADFILE, "niiRead3(): unknown space units %d", space_units));
+    ErrorReturn(NULL, (ERROR_BADFILE, "niiReadFromMriFsStruct(): unknown space units %d", space_units));
 
   time_units = XYZT_TO_TIME(hdr->xyzt_units);
   if (time_units == NIFTI_UNITS_SEC)
@@ -8838,7 +8874,7 @@ static MRI *niiRead3(MRIFSSTRUCT *mrifsStruct)
         hdr->slice_code != NIFTI_SLICE_ALT_INC && hdr->slice_code != NIFTI_SLICE_ALT_DEC &&
         hdr->slice_code != NIFTI_SLICE_ALT_INC2 && hdr->slice_code != NIFTI_SLICE_ALT_DEC2) {
       ErrorReturn(
-          NULL, (ERROR_UNSUPPORTED, "nifti1Read(): unsupported slice timing pattern %d", hdr->slice_code));
+          NULL, (ERROR_UNSUPPORTED, "niiReadFromMriFsStruct(): unsupported slice timing pattern %d", hdr->slice_code));
     }
   }
 
@@ -8850,7 +8886,7 @@ static MRI *niiRead3(MRIFSSTRUCT *mrifsStruct)
   // put extra dims in frames
   if (hdr->dim[0] > 4 && hdr->dim[5] > 0) nslices *= hdr->dim[5];
   if (Gdiag_no > 0)
-    printf("niiRead3(): hdr->dim %d %d %d %d %d %d\n",
+    printf("niiReadFromMriFsStruct(): hdr->dim %d %d %d %d %d %d\n",
            hdr->dim[0],
            hdr->dim[1],
            hdr->dim[2],
@@ -8860,6 +8896,20 @@ static MRI *niiRead3(MRIFSSTRUCT *mrifsStruct)
 
   // check whether data needs to be scaled
   bool scaledata = (hdr->scl_slope != 0) && !((hdr->scl_slope == 1) && (hdr->scl_inter == 0));
+
+  // example values from tag (0028, 1052) and (0028, 1053):
+  // (0028,1052) DS [-4096]                                  #   6, 1 RescaleIntercept
+  // (0028,1053) DS [2]                                      #   2, 1 RescaleSlope
+  if (scaledata)
+  {
+    printf("\nRescale Slope (scl_slope) = %f, Rescale Intercept (scl_inter) = %f\n", hdr->scl_slope, hdr->scl_inter);
+    printf("Voxel values need to be scaled!\n");
+    if (getenv("NII_RESCALE_OFF"))
+    {
+      printf("Environment Variable NII_RESCALE_OFF set. Turn off voxel values scaling ...\n\n");
+      scaledata = false;
+    }
+  }
 
   if (!scaledata) {
     // voxel values are unscaled -- we use the file's data type
@@ -8872,10 +8922,8 @@ static MRI *niiRead3(MRIFSSTRUCT *mrifsStruct)
       bytes_per_voxel = 2;
     }
     else if (hdr->datatype == DT_UINT16) {
-      // This will not always work ...
-      printf("INFO: this is an unsiged short. I'll try to read it, but\n");
-      printf("      it might not work if there are values over 32k\n");
-      fs_type = MRI_SHORT;
+      printf("INFO: This is an unsigned short.\n");
+      fs_type = MRI_USHRT;
       bytes_per_voxel = 2;
     }
     else if (hdr->datatype == DT_SIGNED_INT) {
@@ -8889,19 +8937,19 @@ static MRI *niiRead3(MRIFSSTRUCT *mrifsStruct)
     else if (hdr->datatype == DT_DOUBLE) {
       fs_type = MRI_FLOAT;
       bytes_per_voxel = 8;
-      printf("niiRead3(): detected input as 64 bit double, reading in as 32 bit float\n");
+      printf("niiReadFromMriFsStruct(): detected input as 64 bit double, reading in as 32 bit float\n");
     }
 #if 0    // MRI_RBG not support in mghWrite
     else if (hdr->datatype == DT_RGB) {
       fs_type = MRI_UCHAR;    //MRI_RGB;
       bytes_per_voxel = 3;
-      printf("niiRead3(): DT_RGB, MRI_RGB\n");
+      printf("niiReadFromMriFsStruct(): DT_RGB, MRI_RGB\n");
     }
 #endif
     else {
       ErrorReturn(
           NULL,
-          (ERROR_UNSUPPORTED, "niiRead3(): unsupported datatype %d (with scl_slope = 0)", hdr->datatype)); 
+          (ERROR_UNSUPPORTED, "niiReadFromMriFsStruct(): unsupported datatype %d (with scl_slope = 0)", hdr->datatype)); 
     }
   }
   else {
@@ -8911,7 +8959,7 @@ static MRI *niiRead3(MRIFSSTRUCT *mrifsStruct)
         hdr->datatype != DT_UINT32) {
       ErrorReturn(
           NULL,
-          (ERROR_UNSUPPORTED, "niiRead3(): unsupported datatype %d (with scl_slope != 0)", hdr->datatype));
+          (ERROR_UNSUPPORTED, "niiReadFromMriFsStruct(): unsupported datatype %d (with scl_slope != 0)", hdr->datatype));
     }
     fs_type = MRI_FLOAT;
     bytes_per_voxel = 0; /* set below -- avoid the compiler warning */
@@ -8948,7 +8996,7 @@ static MRI *niiRead3(MRIFSSTRUCT *mrifsStruct)
   // set MRI values from struct TDICOMdata
   mri->te = tdicomData->TE;
   mri->ti = tdicomData->TI;
-  mri->flip_angle = M_PI * tdicomData->flipAngle / 180.0; //tdicomData->flipAngle;
+  mri->flip_angle = M_PI * tdicomData->flipAngle / 180.0; 
   mri->FieldStrength = tdicomData->fieldStrength;
   if (tdicomData->phaseEncodingRC == 'R')
     mri->pedir = strcpyalloc("ROW");
@@ -8961,6 +9009,11 @@ static MRI *niiRead3(MRIFSSTRUCT *mrifsStruct)
   int numDti = mrifsStruct->numDti;
   if (numDti > 0)
   {
+    int IsDWI = 1, IsPhilipsDWI = 0;
+    if (tdicomData->manufacturer == kMANUFACTURER_PHILIPS)
+      IsPhilipsDWI = 1;
+    printf("IsDWI = %d, IsPhilipsDWI = %d\n", IsDWI, IsPhilipsDWI);
+
     mri->bvals = MatrixAlloc(numDti, 1, MATRIX_REAL);
     mri->bvecs = MatrixAlloc(numDti, 3, MATRIX_REAL);
     if (DIAG_VERBOSE_ON)
@@ -8975,6 +9028,12 @@ static MRI *niiRead3(MRIFSSTRUCT *mrifsStruct)
     // mri->bvals, mri->bvecs start at index 1; tdti[].V[] starts at index 0
     for (int i = 0; i < numDti; i++)
     {
+      mri->bvals->rptr[i+1][1] = tdti[i].V[0];
+      mri->bvecs->rptr[i+1][1] = tdti[i].V[1];
+      mri->bvecs->rptr[i+1][2] = tdti[i].V[2];
+      mri->bvecs->rptr[i+1][3] = tdti[i].V[3];
+
+#if 0
       for (int v = 0; v < 4; v++)
       {
 	if (v == 0)
@@ -8982,11 +9041,13 @@ static MRI *niiRead3(MRIFSSTRUCT *mrifsStruct)
 	else  // v = 1, 2, 3
 	  mri->bvecs->rptr[i+1][v] = tdti[i].V[v];
       }
+#endif
     }
 
-    // not sure how to assign bvec_space
-    //mri->bvec_space = BVEC_SPACE_VOXEL;
-    //if (IsPhilipsDWI) mri->bvec_space = BVEC_SPACE_SCANNER;
+    // assign bvec_space
+    mri->bvec_space = BVEC_SPACE_VOXEL;
+    if (IsPhilipsDWI)
+      mri->bvec_space = BVEC_SPACE_SCANNER;
   }
   /* end setting of bvals and bvecs */
 
@@ -9053,14 +9114,13 @@ static MRI *niiRead3(MRIFSSTRUCT *mrifsStruct)
 
   if (!read_volume) return (mri);
 
+  int j, k, t;
   if (!scaledata) {
     // no voxel value scaling needed
     void *buf;
-    float *fbuf;
-    double *dbuf;
+    float *fbuf = (float *)calloc(mri->width, sizeof(float));
+    double *dbuf = (double *)calloc(mri->width, sizeof(double));
     int nn;
-    fbuf = (float *)calloc(mri->width, sizeof(float));
-    dbuf = (double *)calloc(mri->width, sizeof(double));
 
     int bytesRead = 0;
     for (t = 0; t < mri->nframes; t++) {
@@ -9097,6 +9157,12 @@ static MRI *niiRead3(MRIFSSTRUCT *mrifsStruct)
   else {
       int bytesRead = 0;
 
+      printf("Voxel values scaling ... (Set environment variable 'NII_RESCALE_OFF' to turn off scaling)\n\n");
+
+      /* these are set earlier:
+       * fs_type = MRI_FLOAT;
+       * bytes_per_voxel = 0;
+       */
       if (hdr->datatype == DT_UNSIGNED_CHAR)
 	bytes_per_voxel = 1;
       else if (hdr->datatype == DT_SIGNED_SHORT)
@@ -9114,6 +9180,60 @@ static MRI *niiRead3(MRIFSSTRUCT *mrifsStruct)
       else if (hdr->datatype == DT_UINT32)
 	bytes_per_voxel = 4;
 
+    // voxel value scaling needed
+    unsigned char *buf = (unsigned char *)malloc(mri->width * bytes_per_voxel);
+    int nn;
+
+    for (t = 0; t < mri->nframes; t++) {
+      for (k = 0; k < mri->depth; k++) {
+	for (j = 0; j < mri->height; j++) {
+          memcpy(buf, img+bytesRead, bytes_per_voxel*mri->width);
+          bytesRead += bytes_per_voxel*mri->width;
+
+          if (swapped_flag) {
+            if (bytes_per_voxel == 2) byteswapbufshort(buf, bytes_per_voxel * mri->width);
+            if (bytes_per_voxel == 4) byteswapbuffloat(buf, bytes_per_voxel * mri->width);
+            if (bytes_per_voxel == 8) byteswapbuffloat(buf, bytes_per_voxel * mri->width);
+          }
+
+          // additional logic to scale voxel values
+          for (nn = 0; nn < mri->width; nn++)
+	  {
+            if (hdr->datatype == DT_UNSIGNED_CHAR) {
+              MRIFseq_vox(mri, nn, j, k, t) = hdr->scl_slope * ((unsigned char*)buf)[nn] + hdr->scl_inter;
+            }
+            else if (hdr->datatype == DT_SIGNED_SHORT) {
+              MRIFseq_vox(mri, nn, j, k, t) = hdr->scl_slope * ((short*)buf)[nn] + hdr->scl_inter;
+            }
+            else if (hdr->datatype == DT_UINT16) {
+              MRIFseq_vox(mri, nn, j, k, t) = hdr->scl_slope * ((unsigned short*)buf)[nn] + hdr->scl_inter;
+            }
+            else if (hdr->datatype == DT_SIGNED_INT) {
+              MRIFseq_vox(mri, nn, j, k, t) = hdr->scl_slope * ((int*)buf)[nn] + hdr->scl_inter;
+            }
+            else if (hdr->datatype == DT_FLOAT) {
+              MRIFseq_vox(mri, nn, j, k, t) = hdr->scl_slope * ((float*)buf)[nn] + hdr->scl_inter;
+            }
+            else if (hdr->datatype == DT_DOUBLE) {
+              MRIFseq_vox(mri, nn, j, k, t) = hdr->scl_slope * ((double*)buf)[nn] + hdr->scl_inter;
+            }
+            else if (hdr->datatype == DT_UINT32) {
+              MRIFseq_vox(mri, nn, j, k, t) = hdr->scl_slope * ((unsigned int*)buf)[nn] + hdr->scl_inter;
+            }
+            else if (hdr->datatype == DT_INT8) {
+              MRIFseq_vox(mri, nn, j, k, t) = hdr->scl_slope * ((char*)buf)[nn] + hdr->scl_inter;
+            }
+          }
+        } // height
+        exec_progress_callback(k, mri->depth, t, mri->nframes);
+      } // depth
+    } //nframes
+
+    //free(fbuf);
+    //free(dbuf);
+
+#if 0 // original implementation
+    int i;
 
     // voxel value scaling needed
     unsigned char *buf = (unsigned char *)malloc(mri->width * bytes_per_voxel);
@@ -9158,6 +9278,7 @@ static MRI *niiRead3(MRIFSSTRUCT *mrifsStruct)
       }
     }
     free(buf);
+#endif
   }
 
   // Check for ico7 surface
@@ -9170,7 +9291,7 @@ static MRI *niiRead3(MRIFSSTRUCT *mrifsStruct)
 
   return (mri);
 
-} /* end niiRead3() */
+} /* end niiReadFromMriFsStruct() */
 
 /*------------------------------------------------------------------
   niiWrite() - note: there is also an nifti1Write(). Make sure to
@@ -9275,6 +9396,10 @@ static int niiWrite(MRI *mri0, const char *fname)
   }
   else if (mri->type == MRI_SHORT) {
     hdr.datatype = DT_SIGNED_SHORT;
+    hdr.bitpix = 16;
+  }
+  else if (mri->type == MRI_USHRT) {
+    hdr.datatype = DT_UINT16;
     hdr.bitpix = 16;
   }
   else if (mri->type == MRI_BITMAP) {
@@ -10682,6 +10807,9 @@ static MRI *mghRead(const char *fname, int read_volume, int frame)
     case MRI_SHORT:
       bpv = sizeof(short);
       break;
+    case MRI_USHRT:
+      bpv = sizeof(unsigned short);
+      break;
     case MRI_INT:
       bpv = sizeof(int);
       break;
@@ -10730,52 +10858,108 @@ static MRI *mghRead(const char *fname, int read_volume, int frame)
     buf = (BUFTYPE *)calloc(bytes, sizeof(BUFTYPE));
     mri = MRIallocSequence(width, height, depth, type, nframes);
     mri->dof = dof;
-    for (frame = start_frame; frame <= end_frame; frame++) {
-      for (z = 0; z < depth; z++) {
-        if ((int)znzread(buf, sizeof(char), bytes, fp) != bytes) {
-          // fclose(fp) ;
-          znzclose(fp);
-          free(buf);
-          ErrorReturn(NULL, (ERROR_BADFILE, "mghRead(%s): could not read %d bytes at slice %d", fname, bytes, z));
-        }
-        switch (type) {
-          case MRI_INT:
-            for (i = y = 0; y < height; y++) {
-              for (x = 0; x < width; x++, i++) {
-                ival = orderIntBytes(((int *)buf)[i]);
-                MRIIseq_vox(mri, x, y, z, frame - start_frame) = ival;
-              }
-            }
-            break;
-          case MRI_SHORT:
-            for (i = y = 0; y < height; y++) {
-              for (x = 0; x < width; x++, i++) {
-                sval = orderShortBytes(((short *)buf)[i]);
-                MRISseq_vox(mri, x, y, z, frame - start_frame) = sval;
-              }
-            }
-            break;
-          case MRI_TENSOR:
-          case MRI_FLOAT:
-            for (i = y = 0; y < height; y++) {
-              for (x = 0; x < width; x++, i++) {
-                fval = orderFloatBytes(((float *)buf)[i]);
-                MRIFseq_vox(mri, x, y, z, frame - start_frame) = fval;
-              }
-            }
-            break;
-          case MRI_UCHAR:
-            local_buffer_to_image(buf, mri, z, frame - start_frame);
-            break;
-          default:
-            errno = 0;
-            ErrorReturn(NULL, (ERROR_UNSUPPORTED, "mghRead: unsupported type %d", mri->type));
-            break;
-        }
-        exec_progress_callback(z, depth, frame - start_frame, end_frame - start_frame + 1);
-      }
+
+    struct timespec begin, end;
+    if (getenv("FS_MGZIO_TIMING"))
+    {
+      printf("INFO: Environment variable FS_MGZIO_TIMING set\n");
+      clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &begin);
     }
-    if (buf) free(buf);
+
+    int USEVOXELBUF = 0;
+    if (mri->ischunked && getenv("FS_MGZIO_USEVOXELBUF"))
+    {
+      USEVOXELBUF = 1;
+      printf("INFO: Environment variable FS_MGZIO_USEVOXELBUF set\n");
+      printf("mghRead(): read voxel buffer ...\n");
+      if (buf) free(buf);
+
+      int bytes_to_read = bytes * depth * (end_frame-start_frame+1);
+      //BUFTYPE *bufsrc = (BUFTYPE*)calloc(bytes_to_read, sizeof(BUFTYPE));
+      BUFTYPE *bufsrc = &MRIseq_vox(mri, 0, 0, 0, start_frame);
+      if ((int)znzread(bufsrc, sizeof(BUFTYPE), bytes_to_read, fp) != bytes_to_read) {
+        znzclose(fp);
+        free(bufsrc);
+        ErrorReturn(NULL, (ERROR_BADFILE, "mghRead (read voxel buffer): could not read %d bytes", bytes_to_read));
+      }
+
+#if (BYTE_ORDER == LITTLE_ENDIAN)
+      if (bpv == 2) byteswapbufshort(bufsrc, bytes_to_read);
+      if (bpv == 4) byteswapbuffloat(bufsrc, bytes_to_read);
+      if (bpv == 8) byteswapbuffloat(bufsrc, bytes_to_read);
+#endif
+
+      //void *voxelbuf = &MRIseq_vox(mri, 0, 0, 0, start_frame);
+      //memcpy(voxelbuf, bufsrc, bytes_to_read);
+
+      //if (bufsrc) free(bufsrc);
+    }
+    else  // copy voxel point by point
+    {
+      for (frame = start_frame; frame <= end_frame; frame++) {
+        for (z = 0; z < depth; z++) {
+          if ((int)znzread(buf, sizeof(char), bytes, fp) != bytes) {
+            // fclose(fp) ;
+            znzclose(fp);
+            free(buf);
+            ErrorReturn(NULL, (ERROR_BADFILE, "mghRead(%s): could not read %d bytes at slice %d", fname, bytes, z));
+          }
+          switch (type) {
+            case MRI_INT:
+              for (i = y = 0; y < height; y++) {
+                for (x = 0; x < width; x++, i++) {
+                  ival = orderIntBytes(((int *)buf)[i]);
+                  MRIIseq_vox(mri, x, y, z, frame - start_frame) = ival;
+                }
+              }
+              break;
+            case MRI_SHORT:
+              for (i = y = 0; y < height; y++) {
+                for (x = 0; x < width; x++, i++) {
+                  sval = orderShortBytes(((short *)buf)[i]);
+                  MRISseq_vox(mri, x, y, z, frame - start_frame) = sval;
+                }
+              }
+              break;
+            case MRI_USHRT:
+              for (i = y = 0; y < height; y++) {
+                for (x = 0; x < width; x++, i++) {
+                  unsigned short usval = orderUShortBytes(((unsigned short *)buf)[i]);
+                  MRIUSseq_vox(mri, x, y, z, frame - start_frame) = usval;
+                }
+              }
+              break;
+            case MRI_TENSOR:
+            case MRI_FLOAT:
+              for (i = y = 0; y < height; y++) {
+                for (x = 0; x < width; x++, i++) {
+                  fval = orderFloatBytes(((float *)buf)[i]);
+                  MRIFseq_vox(mri, x, y, z, frame - start_frame) = fval;
+                }
+              }
+              break;
+            case MRI_UCHAR:
+              local_buffer_to_image(buf, mri, z, frame - start_frame);
+              break;
+            default:
+              errno = 0;
+              ErrorReturn(NULL, (ERROR_UNSUPPORTED, "mghRead: unsupported type %d", mri->type));
+              break;
+          } // switch
+          exec_progress_callback(z, depth, frame - start_frame, end_frame - start_frame + 1);
+        } // depth
+      } // frame
+      if (buf) free(buf);
+    } // end of copying voxel point by point
+
+    if (getenv("FS_MGZIO_TIMING"))
+    {
+      clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &end);
+      printf("Total time (mghRead) = %ld.%09ld seconds%s\n", 
+             (end.tv_nsec < begin.tv_nsec) ? (end.tv_sec - 1 - begin.tv_sec) : (end.tv_sec - begin.tv_sec), 
+             (end.tv_nsec < begin.tv_nsec) ? (1000000000 + end.tv_nsec - begin.tv_nsec) : (end.tv_nsec - begin.tv_nsec),
+             (USEVOXELBUF) ? " (USEVOXELBUF)" : "");
+    }
   }
 
   if (good_ras_flag > 0) {
@@ -11022,48 +11206,103 @@ static int mghWrite(MRI *mri, const char *fname, int frame)
   memset(buf, 0, UNUSED_SPACE_SIZE * sizeof(char));
   znzwrite(buf, sizeof(char), unused_space_size, fp);
 
-  for (frame = start_frame; frame <= end_frame; frame++) {
-    for (z = 0; z < depth; z++) {
-      for (y = 0; y < height; y++) {
-        switch (mri->type) {
-          case MRI_SHORT:
-            for (x = 0; x < width; x++) {
-              if (z == 74 && y == 16 && x == 53) DiagBreak();
-              sval = MRISseq_vox(mri, x, y, z, frame);
-              znzwriteShort(sval, fp);
-            }
-            break;
-          case MRI_INT:
-            for (x = 0; x < width; x++) {
-              if (z == 74 && y == 16 && x == 53) DiagBreak();
-              ival = MRIIseq_vox(mri, x, y, z, frame);
-              znzwriteInt(ival, fp);
-            }
-            break;
-          case MRI_FLOAT:
-            for (x = 0; x < width; x++) {
-              if (z == 74 && y == 16 && x == 53) DiagBreak();
-              // printf("mghWrite: MRI_FLOAT: curr (x, y, z, frame) = (%d, %d, %d, %d)\n", x, y, z, frame);
-              fval = MRIFseq_vox(mri, x, y, z, frame);
-              // if(x==10 && y == 0 && z == 0 && frame == 67)
-              // printf("MRIIO: %g\n",fval);
-              znzwriteFloat(fval, fp);
-            }
-            break;
-          case MRI_UCHAR:
-            if ((int)znzwrite(&MRIseq_vox(mri, 0, y, z, frame), sizeof(BUFTYPE), width, fp) != width) {
-              errno = 0;
-              ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "mghWrite: could not write %d bytes to %s", width, fname));
-            }
-            break;
-          default:
-            errno = 0;
-            ErrorReturn(ERROR_UNSUPPORTED, (ERROR_UNSUPPORTED, "mghWrite: unsupported type %d", mri->type));
-            break;
-        }
-      }
-      exec_progress_callback(z, depth, frame - start_frame, end_frame - start_frame + 1);
+  struct timespec begin, end;
+  if (getenv("FS_MGZIO_TIMING"))
+  {
+    printf("INFO: Environment variable FS_MGZIO_TIMING set\n");
+    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &begin);
+  }
+
+  int USEVOXELBUF = 0;
+  if (mri->ischunked && getenv("FS_MGZIO_USEVOXELBUF"))
+  {
+    USEVOXELBUF = 1;
+    printf("INFO: Environment variable FS_MGZIO_USEVOXELBUF set\n");
+    printf("mghWrite(): output voxel bufer ...\n");
+    int bytes_per_voxel = MRIsizeof(mri->type);
+    BUFTYPE *voxelbuf = &MRIseq_vox(mri, 0, 0, 0, start_frame);
+    int bytes_to_write = bytes_per_voxel * width * height * depth * (end_frame-start_frame+1);
+
+#if 0
+    printf("<DEBUG> voxelbuf = %p - %p (%p - %p) %d (frame=%d, depth=%d, height=%d) (%d %d)\n", 
+           voxelbuf, voxelbuf+(MRIsizeof(mri->type)*(width-1)), 
+	   &MRISseq_vox(mri, 0, y, z, frame), &MRISseq_vox(mri, width-1, z, y, frame),
+	   bytes_to_write, frame, y, z, (int)mri->bytes_per_vox, width);
+#endif
+
+#if (BYTE_ORDER == LITTLE_ENDIAN)
+    if (bytes_per_voxel == 2) byteswapbufshort(voxelbuf, bytes_to_write);
+    if (bytes_per_voxel == 4) byteswapbuffloat(voxelbuf, bytes_to_write);
+    if (bytes_per_voxel == 8) byteswapbuffloat(voxelbuf, bytes_to_write);
+#endif
+
+    if ((int)znzwrite(voxelbuf, sizeof(BUFTYPE), bytes_to_write, fp) != bytes_to_write) 
+    {
+      errno = 0;
+      ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "mghWrite: (output voxel buffer) could not write %d bytes", bytes_to_write));
     }
+  }
+  else
+  {
+    for (frame = start_frame; frame <= end_frame; frame++) {
+      for (z = 0; z < depth; z++) {
+        for (y = 0; y < height; y++) {
+          switch (mri->type) {
+            case MRI_SHORT:
+              for (x = 0; x < width; x++) {
+                if (z == 74 && y == 16 && x == 53) DiagBreak();
+                sval = MRISseq_vox(mri, x, y, z, frame);
+                znzwriteShort(sval, fp);
+              }
+              break;
+            case MRI_USHRT:
+              for (x = 0; x < width; x++) {
+                if (z == 74 && y == 16 && x == 53) DiagBreak();
+                unsigned short usval = MRIUSseq_vox(mri, x, y, z, frame);
+                znzwriteUShort(usval, fp);
+              }
+              break;
+            case MRI_INT:
+              for (x = 0; x < width; x++) {
+                if (z == 74 && y == 16 && x == 53) DiagBreak();
+                ival = MRIIseq_vox(mri, x, y, z, frame);
+                znzwriteInt(ival, fp);
+              }
+              break;
+            case MRI_FLOAT:
+              for (x = 0; x < width; x++) {
+                if (z == 74 && y == 16 && x == 53) DiagBreak();
+                // printf("mghWrite: MRI_FLOAT: curr (x, y, z, frame) = (%d, %d, %d, %d)\n", x, y, z, frame);
+                fval = MRIFseq_vox(mri, x, y, z, frame);
+                // if(x==10 && y == 0 && z == 0 && frame == 67)
+                // printf("MRIIO: %g\n",fval);
+                znzwriteFloat(fval, fp);
+              }
+              break;
+            case MRI_UCHAR:
+              if ((int)znzwrite(&MRIseq_vox(mri, 0, y, z, frame), sizeof(BUFTYPE), width, fp) != width) {
+                errno = 0;
+                ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "mghWrite: could not write %d bytes to %s", width, fname));
+              }
+              break;
+            default:
+              errno = 0;
+              ErrorReturn(ERROR_UNSUPPORTED, (ERROR_UNSUPPORTED, "mghWrite: unsupported type %d", mri->type));
+              break;
+	      } // switch
+	} // height
+        exec_progress_callback(z, depth, frame - start_frame, end_frame - start_frame + 1);
+      } // depth
+    } // frame
+  } // end of writing voxel point by point
+
+  if (getenv("FS_MGZIO_TIMING"))
+  {
+    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &end);
+    printf("Total time (mghWrite) = %ld.%09ld seconds%s\n", 
+           (end.tv_nsec < begin.tv_nsec) ? (end.tv_sec - 1 - begin.tv_sec) : (end.tv_sec - begin.tv_sec), 
+           (end.tv_nsec < begin.tv_nsec) ? (1000000000 + end.tv_nsec - begin.tv_nsec) : (end.tv_nsec - begin.tv_nsec),
+           (USEVOXELBUF) ? " (USEVOXELBUF)" : "");
   }
 
   znzwriteFloat(mri->tr, fp);
@@ -11410,6 +11649,9 @@ MRI *MRIreorder(MRI *mri_src, MRI *mri_dst, int xdim, int ydim, int zdim)
           switch (mri_src->type) {
             case MRI_SHORT:
               MRISseq_vox(mri_dst, xd, yd, zd, f) = MRISseq_vox(mri_src, xs, ys, zs, f);
+              break;
+            case MRI_USHRT:
+              MRIUSseq_vox(mri_dst, xd, yd, zd, f) = MRIUSseq_vox(mri_src, xs, ys, zs, f);
               break;
             case MRI_FLOAT:
               MRIFseq_vox(mri_dst, xd, yd, zd, f) = MRIFseq_vox(mri_src, xs, ys, zs, f);

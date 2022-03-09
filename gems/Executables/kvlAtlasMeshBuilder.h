@@ -171,7 +171,8 @@ public :
   void SetUp( const std::vector< LabelImageType::ConstPointer >& labelImages,
               const CompressionLookupTable*  compressionLookupTable,
               const itk::Size< 3>&  initialSize, 
-              const std::vector< double >& initialStiffnesses );
+              const std::vector< double >& initialStiffnesses,
+              const unsigned int maximumNumberOfIterations );
 
   // Get label images
   const std::vector< LabelImageType::ConstPointer >&  GetLabelImages() const

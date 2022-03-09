@@ -392,6 +392,8 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = 1;
     } 
     else if (!strcasecmp(option, "--lta")) {
+      /*Automatically determines which direction the LTA goes by looking
+	at the volume geometries of the LTA and the surface.*/
       if(nargc < 3) CMDargNErr(option,3);
       printf("Reading in %s\n",pargv[0]);
       MRIS *ltasurf = MRISread(pargv[0]);
@@ -537,7 +539,7 @@ static void print_usage(void) {
   printf("   --curv  : save output in curv file format (spec full path)\n");
   printf("\n");
   printf("   --lta source-surf ltafile output-surf : apply LTA transform\n");
-  printf("     other options do not apply to --lta\n");
+  printf("     automatically determins direction; other options do not apply to --lta\n");
   printf("   --lta-patch source-surf surfpatch ltafile output-patch : apply LTA transform to patch\n");
   printf("   --reverse surf patchopt output : LR reverse suface. patchopt=patchfile or nopatch\n");
   printf("   --patch srcregNpatch trgregNpatch : patches, one for each --streg\n");

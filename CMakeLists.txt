@@ -315,7 +315,7 @@ endif()
 
 # clang complains about -Wno-unused-but-set-variable and says to use -Wno-unused-const-variable
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-const-variable -Wno-inconsistent-missing-override -Wno-self-assign-field")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-const-variable -Wno-inconsistent-missing-override -Wno-self-assign-field -Wno-tautological-overlap-compare -Wno-tautological-compare -Wno-unused-value -Wno-range-loop-analysis -Wno-return-stack-address -Wno-dangling-gsl")
 else()
   if(NOT NO_CXX_WARN)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-but-set-variable")
@@ -492,6 +492,7 @@ if(NOT MINIMAL)
     histo_compute_joint_density
     histo_register_block
     histo_synthesize
+    julia
     label2flat
     label2patch
     mkxsubjreg
@@ -524,6 +525,7 @@ if(NOT MINIMAL)
     mri_fuse_intensity_images
     mri_gca_ambiguous
     mri_glmfit
+    mri_gradunwarp
     mri_gtmpvc
     mri_gtmseg
     mri_hausdorff_dist
@@ -658,6 +660,7 @@ if(NOT MINIMAL)
     qdec_glmfit
     resurf
     spline3
+    subregions
     stat_normalize
     stim_polar
     mri_synthseg
@@ -668,6 +671,7 @@ if(NOT MINIMAL)
     ThalamicNuclei
     trc
     tridec
+    ventfix
     pointset2label
   )
 endif()
@@ -698,6 +702,9 @@ if(EXISTS "./mri_make_bem_surfaces")
       add_subdirectories(mri_make_bem_surfaces)
       message(STATUS "Adding mri_make_bem_surfaces to build on ${HOST_OS}")
    elseif(HOST_OS MATCHES "CentOS8")
+      add_subdirectories(mri_make_bem_surfaces)
+      message(STATUS "Adding mri_make_bem_surfaces to build on ${HOST_OS}")
+   elseif(APPLE)
       add_subdirectories(mri_make_bem_surfaces)
       message(STATUS "Adding mri_make_bem_surfaces to build on ${HOST_OS}")
    endif()

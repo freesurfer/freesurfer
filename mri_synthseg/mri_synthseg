@@ -23,7 +23,7 @@ from tensorflow import keras
 import tensorflow.keras.layers as KL
 
 # set tensorflow logging
-tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
+# tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
 
 # ================================================================================================

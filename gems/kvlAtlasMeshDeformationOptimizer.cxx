@@ -16,6 +16,7 @@ AtlasMeshDeformationOptimizer
   m_IterationNumber = 0;
   m_MaximumNumberOfIterations = 1000 /* itk::NumericTraits< unsigned int >::max() */;
   m_IterationEventResolution = 10;
+  m_Initialized = false;
   m_Verbose = false;
   m_Calculator = 0;
   m_MaximalDeformationStopCriterion = 0.05;
@@ -102,12 +103,6 @@ AtlasMeshDeformationOptimizer
 ::Step()
 {
 
-  // If this is the first iteration, make sure to initialize some relevant variables 
-  if ( m_IterationNumber == 0 )
-    {
-    this->Initialize();  
-    }
-    
   // Test if we're running out of time
   if ( m_IterationNumber >= m_MaximumNumberOfIterations )
     {
@@ -115,6 +110,12 @@ AtlasMeshDeformationOptimizer
     return 0.0;  
     }
 
+  // Make sure m_Position and m_Gradient are available
+  if ( !m_Initialized )
+    {
+    this->Initialize();  
+    }
+    
     
   // Try to make one successful move
   double maximalDeformation = 0.0;
@@ -130,7 +131,9 @@ AtlasMeshDeformationOptimizer
     return 0.0;  
     }
     
-  m_Mesh->SetPoints( m_Position );
+  m_Mesh->SetPoints( m_Position ); 
+  //std::cout << "m_Mesh->GetPoints()->Begin().Value(): " << m_Mesh->GetPoints()->Begin().Value() << std::endl;
+  
   if ( !( m_IterationNumber % m_IterationEventResolution ) )
     {
     this->InvokeEvent( DeformationIterationEvent() );
@@ -195,7 +198,9 @@ AtlasMeshDeformationOptimizer
                   AtlasMesh::PointsContainer::Pointer&  newPosition,
                   double&  maximalDeformation ) const
 {
+
   maximalDeformation = 0.0;
+
   newPosition = AtlasMesh::PointsContainer::New();
   AtlasMesh::PointsContainer::ConstIterator  posIt = position->Begin();
   AtlasPositionGradientContainerType::ConstIterator  defIt = deformationDirection->Begin();
@@ -209,8 +214,9 @@ AtlasMeshDeformationOptimizer
       }
 
     newPosition->InsertElement( posIt.Index(), posIt.Value() + newStep );
-    }
   
+    }
+    
 }                  
   
 
@@ -292,6 +298,7 @@ void
 AtlasMeshDeformationOptimizer
 ::Initialize()
 {
+    
   if ( !m_Calculator )
     {
     itkExceptionMacro( << "Cost and gradient calculator missing!" );
@@ -300,6 +307,8 @@ AtlasMeshDeformationOptimizer
   //
   m_Position = m_Mesh->GetPoints();
   this->GetCostAndGradient( m_Position, m_Cost, m_Gradient );
+  
+  m_Initialized = true;
   
   this->InvokeEvent( DeformationStartEvent() );
   
@@ -325,6 +334,14 @@ AtlasMeshDeformationOptimizer
                 AtlasPositionGradientContainerType::Pointer& newGradient,
                 double&  alphaUsed )
 {
+  
+  //
+  // Make sure this function can be called with startPosition and newPosition
+  // pointing to the same object: internally newPosition will become a new smart pointer 
+  // (New()), decreasing the reference count of startPosition if newPosition points to
+  // it, potentially setting it to zero which then destructs startPosition before it's
+  // being used.
+  AtlasMesh::PointsContainer::ConstPointer  tmp = startPosition;
   
   // 
   // Part I: Bracket minimum
@@ -758,9 +775,16 @@ AtlasMeshDeformationOptimizer
     if ( ( fabsf( highAlpha - lowAlpha ) * maximalDeformationOfSearchDirection )
          < m_LineSearchMaximalDeformationIntervalStopCriterion )
       {
+      //std::cout << "!!!!!!!!!!!!!!!" << startPosition->Begin().Value() << std::endl;
+      //std::cout << "!!!!!!!!!!!!!!!" << searchDirection->Begin().Value() << std::endl;
+      //std::cout << "!!!!!!!!!!!!!!!" << lowAlpha << std::endl;
+
       double  dummy = 0.0;
       this->AddDeformation( startPosition, lowAlpha, searchDirection, 
                             newPosition, dummy ); // xStar = x + lowAlpha * p;
+      
+      //std::cout << "!!!!!!!!!!!!!!!" << newPosition->Begin().Value() << std::endl;
+      
       newCost = lowCost;
       newGradient = const_cast< AtlasPositionGradientContainerType* >( lowGradient.GetPointer() );
       alphaUsed = lowAlpha;
@@ -768,7 +792,7 @@ AtlasMeshDeformationOptimizer
         {
         std::cout << "[ZOOMING] Zooming interval size too low; returning best: "
                   << lowAlpha * maximalDeformationOfSearchDirection << std::endl;
-        std::cout << "-----------------------" << std::endl;
+        std::cout << "-----------------------" << std::endl;        
         }
       return;
       }
@@ -777,7 +801,8 @@ AtlasMeshDeformationOptimizer
 
   
 }
-                       
+
+
                        
 } // end namespace kvl
 

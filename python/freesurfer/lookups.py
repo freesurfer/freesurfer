@@ -30,12 +30,15 @@ class LookupTable(collections.OrderedDict):
             lines.append(str(idx).ljust(col1) + elt.name.ljust(col2) + colorstr)
         return '\n'.join(lines)
 
-    def add(self, index, name, color):
+    def add(self, index, name, color=None):
         self[index] = LookupTable.Element(name, color)
 
-    def search(self, name):
-        allcaps = name.upper()
-        return [idx for idx, elt in self.items() if allcaps in elt.name.upper()]
+    def search(self, name, exact=False):
+        if exact:
+            return next((idx for idx, elt in self.items() if name == elt.name), None)
+        else:
+            allcaps = name.upper()
+            return [idx for idx, elt in self.items() if allcaps in elt.name.upper()]
 
     @classmethod
     def read(cls, filename):
@@ -69,6 +72,36 @@ class LookupTable(collections.OrderedDict):
                 colorstr = ' '.join([str(c).ljust(3) for c in color])
                 file.write(str(idx).ljust(col1) + elt.name.ljust(col2) + colorstr + '\n')
 
+    def extract(self, labels):
+        """
+        Extract a new LookupTable from a list of label indices.
+        """
+        lut = LookupTable()
+        for label in labels:
+            elt = self.get(label)
+            if elt is None:
+                raise ValueError(f'Index {label} does not exist in the LookupTable.')
+            lut.add(label, elt.name, elt.color)
+        return lut
+
+    def copy_colors(self, source_lut):
+        """
+        Copies colors of matching label indices from a source LookupTable.
+        """
+        for label in self.keys():
+            elt = source_lut.get(label)
+            if elt is not None and elt.color is not None:
+                self[label].color = elt.color
+
+    def copy_names(self, source_lut):
+        """
+        Copies names of matching label indices from a source LookupTable.
+        """
+        for label in self.keys():
+            elt = source_lut.get(label)
+            if elt is not None:
+                self[label].name = elt.name
+
 
 class RecodingLookupTable(dict):
     """
@@ -82,6 +115,28 @@ class RecodingLookupTable(dict):
 
     def add_target(self, index, name=None, color=None):
         self.target_lut.add(index, name, color)
+
+    @classmethod
+    def read(cls, filename):
+        rlut = cls()
+        with open(filename, 'r') as file:
+            lines = file.readlines()
+        for line in lines:
+            split = line.lstrip().split()
+            if not split or split[0].startswith('#'):
+                continue
+            elif len(split) == 3:
+                rlut.mapping[int(split[0])] = int(split[1])
+            else:
+                # goes to target lookup table
+                idx, name = split[:2]
+                if len(split) >= 5:
+                    color = list(map(int, split[2:6]))
+                    color[3] = 255 - color[3]  # invert alpha value
+                else:
+                    color = None
+                rlut.target_lut.add(int(idx), name, color)
+        return rlut
 
 
 def default():

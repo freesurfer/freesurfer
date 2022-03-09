@@ -428,6 +428,14 @@ int znzwriteShort(short s, znzFile fp)
   return (znzwrite(&s, sizeof(short), 1, fp));
 }
 
+int znzwriteUShort(unsigned short s, znzFile fp)
+{
+#if (BYTE_ORDER == LITTLE_ENDIAN)
+  s = swapUShort(s);
+#endif
+  return (znzwrite(&s, sizeof(unsigned short), 1, fp));
+}
+
 double znzreadDouble(znzFile fp)
 {
   double d;

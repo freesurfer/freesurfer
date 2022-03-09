@@ -43,10 +43,13 @@ set CenterCursor = 0;
 set Zoom = ();
 set altargs = ()
 set DoDefects = 0;
+set DoDefectsPS = 0;
 set SegOutline = 0;
 set mainmin = ()
 set mainmax = ()
 set annot = ()
+set DoManCheck = 0
+set DoCDMRI = 0;
 
 set tmpdir = ();
 set cleanup = 1;
@@ -131,8 +134,15 @@ if(! $UseTkMedit) then
   foreach vol ($vollist)
     set cmd = ($cmd -v $vol)
   end
-  if($DoDefects) then
-    set cmd = ($cmd -c $SUBJECTS_DIR/$subject/surf/?h.defects.pointset)
+  if($DoDefectsPS) then
+    foreach hemi (lh rh)
+      set dfps = $SUBJECTS_DIR/$subject/surf/$hemi.defects.pointset
+      if(! -e $dfps) continue
+      set cmd = ($cmd -c ${dfps}:color=magenta)
+    end
+  endif
+  if($DoManCheck) then
+    set cmd = ($cmd -c $ManCheckJson":new")
   endif
   @ nth = 0;
   foreach surf ($surflist)
@@ -140,17 +150,18 @@ if(! $UseTkMedit) then
     set ov = ()
     if($DoDefects) then
       set sdir = $SUBJECTS_DIR/$subject/surf
-      if($surflist0[$nth] == lh.orig.nofix) set ov = ":overlay=$sdir/lh.defect_labels:edgecolor=overlay"
-      if($surflist0[$nth] == rh.orig.nofix) set ov = ":overlay=$sdir/rh.defect_labels:edgecolor=overlay"
+      if($surflist0[$nth] == lh.smoothwm.nofix) set ov = ":overlay=$sdir/lh.defect_labels:edgecolor=overlay:lock=1:visible=0"
+      if($surflist0[$nth] == rh.smoothwm.nofix) set ov = ":overlay=$sdir/rh.defect_labels:edgecolor=overlay:lock=1:visible=0"
     endif
     set annotarg = ()
-    if($#annot) then
-      set surfname = `basename $surf`
+    set surfname = `basename $surf`
+    if($#annot && $surfname != lh.orig.nofix && $surfname != rh.orig.nofix && \
+       $surfname != lh.smoothwm.nofix && $surfname != rh.smoothwm.nofix) then
       set hemi = `echo $surfname | cut -c1-2`
       if($hemi == lh || $hemi == rh) then
         set annotfile = $SUBJECTS_DIR/$subject/label/$hemi.$annot
         set annotarg = ":annot=$annotfile":"annot_outline=0"
-      endif   
+      endif
     endif
     set cmd = ($cmd --surface $surf":"edgecolor=$surfcolor[$nth]$ov$annotarg)
   end
@@ -282,13 +293,40 @@ while( $#argv != 0 )
     case "-defect":
     case "-defects":
       set DoDefects = 1;
+      set DoDefectsPS = 1;
       set segvol0 = surface.defects.mgz
       set segcolor = (); # color table imbedded
-      set surflist0 = ($surflist0 lh.orig.nofix)
-      set surflist0 = ($surflist0 rh.orig.nofix)
+      set surflist0 = ($surflist0 lh.smoothwm.nofix)
+      set surflist0 = ($surflist0 rh.smoothwm.nofix)
       set surflist0 = ($surflist0 lh.orig)
       set surflist0 = ($surflist0 rh.orig)
       set surfcolor = ($surfcolor green green yellow yellow)
+      breaksw
+
+    case "-lh-defect":
+    case "-lh-defects":
+      set DoDefects = 1;
+      set DoDefectsPS = 1;
+      set segvol0 = lh.surface.defects.mgz # wont work if both surfs exist
+      set segcolor = (); # color table imbedded
+      set surflist0 = ($surflist0 lh.smoothwm.nofix)
+      set surflist0 = ($surflist0 lh.orig)
+      set surfcolor = ($surfcolor green yellow)
+      breaksw
+
+    case "-rh-defect":
+    case "-rh-defects":
+      set DoDefects = 1;
+      set DoDefectsPS = 1;
+      set segvol0 = rh.surface.defects.mgz # wont work if both surfs exist
+      set segcolor = (); # color table imbedded
+      set surflist0 = ($surflist0 rh.smoothwm.nofix)
+      set surflist0 = ($surflist0 rh.orig)
+      set surfcolor = ($surfcolor green yellow)
+      breaksw
+
+    case "-defectps":
+      set DoDefectsPS = 1;
       breaksw
 
     case "-vol":
@@ -418,6 +456,18 @@ while( $#argv != 0 )
       set surfcolor = ($surfcolor yellow red);
       breaksw
 
+    case "-lh-white":
+      set DoSurfs = 1;
+      set surflist0 = ($surflist0 lh.white)
+      set surfcolor = ($surfcolor yellow)
+      breaksw
+
+    case "-rh-white":
+      set DoSurfs = 1;
+      set surflist0 = ($surflist0 rh.white)
+      set surfcolor = ($surfcolor yellow)
+      breaksw
+
     case "-rh-surfs":
       set DoSurfs = 1;
       set surflist0 = ($surflist0 rh.white rh.pial)
@@ -430,6 +480,12 @@ while( $#argv != 0 )
       set surfcolor = ($surfcolor red red);
       breaksw
 
+    case "-smoothwmnf":
+      set DoSurfs = 1;
+      set surflist0 = ($surflist0 lh.smoothwm.nofix rh.smoothwm.nofix)
+      set surfcolor = ($surfcolor green green);
+      breaksw
+
     case "-woT2":
       set DoSurfs = 1;
       set surflist0 = ($surflist0 lh.woT2.pial rh.woT2.pial)
@@ -440,6 +496,24 @@ while( $#argv != 0 )
       set DoSurfs = 1;
       set surflist0 = ($surflist0 lh.white rh.white)
       set surfcolor = ($surfcolor yellow yellow)
+      breaksw
+
+    case "-white.preaparc":
+      set DoSurfs = 1;
+      set surflist0 = ($surflist0 lh.white.preaparc rh.white.preaparc)
+      set surfcolor = ($surfcolor yellow yellow)
+      breaksw
+
+    case "-lh.white":
+      set DoSurfs = 1;
+      set surflist0 = ($surflist0 lh.white)
+      set surfcolor = ($surfcolor yellow)
+      breaksw
+
+    case "-rh.white":
+      set DoSurfs = 1;
+      set surflist0 = ($surflist0 rh.white)
+      set surfcolor = ($surfcolor yellow)
       breaksw
 
     case "-orig":
@@ -477,11 +551,24 @@ while( $#argv != 0 )
       set surfext = $argv[1]; shift
       breaksw
 
+    case "-cd-mri":  
+    case "-cdmri":  
+      # good for fv when loading new volumes
+      set DoCDMRI = 1;
+      breaksw
+
     case "-crs":
       if($#argv < 3) goto arg3err;
       set CursorCRS = ($argv[1-3]);
       shift;shift;shift;
       set CenterCursor = 1;
+      breaksw
+
+    case "-mancheck":
+      set DoManCheck = 1
+      breaksw
+    case "-no-mancheck":
+      set DoManCheck = 0
       breaksw
 
     case "-zoom":
@@ -491,6 +578,11 @@ while( $#argv != 0 )
 
     case "-seg-outline":
       set SegOutline = 1;
+      breaksw
+
+    case "-sd":
+      if($#argv < 1) goto arg1err;
+      setenv SUBJECTS_DIR $argv[1]; shift;
       breaksw
 
     case "-tkmedit":
@@ -647,6 +739,11 @@ else
   set surflist = ($surflist0)
 endif
 
+if($DoCDMRI) then
+  echo "cding into the mri folder"
+  cd $SUBJECTS_DIR/$subject/mri
+endif
+
 foreach label ($labellist)
   if(! -e $label) then
     echo "ERROR: cannot find $label"
@@ -669,6 +766,16 @@ foreach vol0 ($vollist0)
   endif
   set vollist = ($vollist $vol) 
 end
+
+if($DoManCheck) then
+  if($#subject == 0) then
+    echo "ERROR: ManCheck can only be used with a subject"
+    exit 1;
+  endif
+  # This does not have to exist
+  set ManCheckJson = $SUBJECTS_DIR/$subject/scripts/mancheck.json
+endif
+
 
 goto check_params_return;
 ############--------------##################
@@ -709,12 +816,16 @@ usage_exit:
   echo "-pial : load {l,r}h.pial"
   echo "-orig : load {l,r}h.orig"
   echo "-orig.nofix : load {l,r}h.orig.nofix"
+  echo "-smoothwm.nofix : load {l,r}h.smooth.nofix"
+  echo "-white.preaparc : load {l,r}h.white.preaparc"
   echo "-inflated : load {l,r}h.inflated (-lh-inflated, -rh-inflated)"
   echo "-annot annotname : load subject/label/hemi.annotname"
   echo "-aparc : load subject/label/hemi.aparc.annot"
   echo "-surfext ext : add ext to the name of the surface"
   echo "-seg-outline : bring up segmentation in outline mode"
   echo "-main-minmax min max : set intensity min max on fist volume"
+  echo "-defects : load info needed to evaluate defects"
+  echo "-defectps : load defect pointset (also loaded with -defects)"
   echo "-vgl :   setenv VGL_DISPLAY :0 and runs freeview with /usr/pubsw/bin/vglrun"
   echo ""
   if(! $PrintHelp) exit 1;

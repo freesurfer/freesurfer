@@ -53,6 +53,7 @@ def getModelSpecifications(atlasDir, userModelSpecifications={}, pallidumAsWM=Tr
         'maskingDistance': 10.0, # distance in mm of how far into background the mask goes out
         'K': 0.1,  # stiffness of the mesh
         'biasFieldSmoothingKernelSize': 50,  # distance in mm of sinc function center to first zero crossing
+        'whiteMatterAndCortexSmoothingSigma': 0,  # Sigma value to smooth the WM and cortex atlas priors
     }
 
     modelSpecifications.update(userModelSpecifications)
@@ -327,7 +328,9 @@ def writeImage(fileName, buffer, cropping, example):
 
 def logTransform(imageBuffers, mask):
 
-    logImageBuffers = imageBuffers.copy()
+    logImageBuffers = imageBuffers.copy().astype( 'float' )
+    logImageBuffers[ logImageBuffers == 1 ] += 1e-5 # Voxels with zero values but inside the mask 
+                                                    # should not be skipped in the C++ code!
     logImageBuffers[np.logical_not(mask), :] = 1
     logImageBuffers = np.log(logImageBuffers)
 

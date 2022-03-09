@@ -62,7 +62,7 @@ void DialogLoadVolume::UpdateLUT()
 void DialogLoadVolume::OnOpen()
 {
   QString fn = ui->comboBoxFilenames->currentText().trimmed();
-  if (fn == "current folder")
+  if (fn.isEmpty() || fn == "current folder")
     fn = QDir::currentPath();
   else
     fn =  QFileInfo(fn).absolutePath();
@@ -107,6 +107,7 @@ void DialogLoadVolume::SetRecentFiles( const QStringList& filenames )
   if ( !filenames.isEmpty() )
   {
     ui->comboBoxFilenames->setCurrentIndex( 0 );
+    ui->comboBoxFilenames->setCurrentText("");
     ui->comboBoxFilenames->lineEdit()->setCursorPosition( ui->comboBoxFilenames->currentText().size() );
   }
 }
@@ -179,7 +180,7 @@ int DialogLoadVolume::GetSampleMethod()
 QString DialogLoadVolume::GetColorMap()
 {
   QStringList names;
-  names << "grayscale" << "lut" << "heat" << "jet" << "gecolor" << "nih" << "pet";
+  names << "grayscale" << "lut" << "heat" << "jet" << "turbo" << "gecolor" << "nih" << "pet";
   return names[ui->comboBoxColorMap->currentIndex()];
 }
 

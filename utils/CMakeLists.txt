@@ -105,6 +105,7 @@ add_library(utils STATIC
   joint_histo.cpp
   kernel.cpp
   label.cpp
+  legendre.cpp
   log.cpp
   lut.cpp
   machine.cpp
@@ -143,6 +144,8 @@ add_library(utils STATIC
   mrisp.cpp
   MRISrigidBodyAlignGlobal.cpp
   mris_sphshapepvf.cpp
+  GradUnwarp.cpp
+  #vol_geom.cpp
   mrisurf.cpp
   mrisurf_base.cpp
   mrisurf_compute_dxyz.cpp
@@ -198,6 +201,7 @@ add_library(utils STATIC
   tritri.cpp
   tukey.cpp
   utils.cpp
+  ventfix.cpp
   version.cpp
   vertexRotator.cpp
   vlabels.cpp
@@ -218,7 +222,7 @@ target_link_libraries(utils
   dicom
   cephes
   nifti
-  dcm2niix
+  dcm2niixfs
   gifti
   expat
   ${ZLIB_LIBRARIES}

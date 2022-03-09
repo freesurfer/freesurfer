@@ -54,5 +54,6 @@ MATRIX *ControlPoints2TalMatrix(char *subject);
 MPoint *ControlPointsApplyMatrix(MPoint *srcctr, int nctrpoints, MATRIX *M, MPoint *outctr);
 MPoint *GetTalControlPoints(char **subjectlist, int nsubjects, int *pnctrtot);
 MPoint *GetTalControlPointsSFile(const char *subjectlistfile, int *pnctrtot);
+int MRIfillPoints(MRI *filled, const int fillval, const int npoints, const int useRealRAS, const MPoint *mp);
 
 #endif // inclusion guard

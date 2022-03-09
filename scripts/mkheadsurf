@@ -349,9 +349,9 @@ check_params:
       echo "ERROR: cannot find subject $subjid in $SUBJECTS_DIR"
       exit 1;
     endif
-    set InputVol = $SUBJECTS_DIR/$subjid/mri/$srcvol
-    set OutputVol = $SUBJECTS_DIR/$subjid/mri/$headvol
-    set OutputSurf = $subjdir/surf/$hemi.$headsurf
+    set InputVol   = $SUBJECTS_DIR/$subjid/mri/$srcvol
+    set OutputVol  = $SUBJECTS_DIR/$subjid/mri/$headvol
+    set OutputSurf = $SUBJECTS_DIR/$subjid/surf/$hemi.$headsurf
   endif
 
   if($#InputVol == 0) then

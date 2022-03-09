@@ -7,6 +7,7 @@
 #include <vector>
 #include "itkObject.h"
 #include "kvlAtlasMeshCollection.h"
+#include "kvlAtlasMeshSmoother.h"
 #include "pyKvlTransform.h"
 
 namespace py = pybind11;
@@ -30,13 +31,14 @@ public:
     void SetPointSet(const py::array_t<double> &source);
     py::array_t<double> GetAlphas() const;
     void SetAlphas(const py::array_t<double> &source);
+    py::array_t<bool> GetCanMoves() const;
+    void SetCanMoves(const py::array_t<bool> &source);
     void Scale(const SCALE_3D &scaling);
     py::array_t<uint16_t> RasterizeMesh(std::vector<size_t> size, int classNumber=-1);
     py::array RasterizeValues(std::vector<size_t> size, py::array_t<double, py::array::c_style | py::array::forcecast> values);
-    py::array_t<double> FitAlphas( const py::array_t< uint16_t,
-                                                      py::array::f_style | py::array::forcecast >& 
-                                   probabilityImageBuffer ) const;
-
+    py::array_t<double> FitAlphas( const py::array_t< uint16_t, py::array::f_style | py::array::forcecast >& probabilityImageBuffer, int EMIterations=10 ) const;
+    py::array_t<double> DrawJacobianDeterminant(std::vector<size_t> size);
+    KvlMesh* GetSubmesh( py::array_t<bool>& mask );
 
     // C++ Only
     KvlMesh(MeshPointer& aMesh);
@@ -64,6 +66,7 @@ public:
                    double initialStiffness,
                    unsigned int numberOfClasses, unsigned int numberOfMeshes);
     void Transform(const KvlTransform &transform);
+    void Smooth(double sigma);
 
     // C++ use only
     KvlMeshCollection();
@@ -78,7 +81,9 @@ public:
 py::array_t<double> PointSetToNumpy(PointSetConstPointer points);
 void CopyNumpyToPointSet(PointSetPointer points, const py::array_t<double> &source);
 py::array_t<double> AlphasToNumpy(PointDataConstPointer alphas);
+py::array_t<bool> CanMovesToNumpy(PointDataConstPointer pointData );
 void CopyNumpyToPointDataSet(PointDataPointer alphas, const py::array_t<double> &source);
+void CopyNumpyToCanMoves(PointDataPointer destinationPointData, const py::array_t<bool> &source);
 void CreatePointSetFromNumpy(PointSetPointer targetPoints, const py::array_t<double> &source);
 
 #endif //GEMS_PYKVLMESH_H_H

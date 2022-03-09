@@ -82,7 +82,8 @@ float p0[4];
 int usep0 = 0;
 float cdircos[3], rdircos[3], sdircos[3];
 const char *pdfname = "gaussian";
-char *precision=NULL; /* not used yet */
+char *precision=NULL; 
+int mritype; // precision
 MRI *mri, *mrism, *mritemp, *mri2;
 long seed = -1; /* < 0 for auto */
 char *seedfile = NULL;
@@ -125,6 +126,7 @@ int nctrpoints=0, CPUseRealRAS;
 int cgridspace=8, rgridspace=8, sgridspace=2;
 int spherecenter[3], spherecenterset = 0;
 double cubeedgemm = -1;
+char *colortablefile = NULL;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv)
@@ -537,6 +539,22 @@ int main(int argc, char **argv)
     printf("Computing absolute value\n");
     MRIabs(mri,mri);
   }
+  if(precision != NULL){
+    printf("Changing precision to %s (no rescale)\n",precision);
+    MRI *mri2 = MRISeqchangeType(mri, mritype, 0.0, 0.999, 1);
+    if(mri2 == NULL){
+      printf("ERROR: MRISeqchangeType\n");
+      exit(1);
+    }
+    MRIfree(&mri);
+    mri = mri2;
+  }
+
+  if(colortablefile){
+    printf("Embedding ctab from %s\n",colortablefile);
+    mri->ct = CTABreadASCII(colortablefile);
+    if(mri->ct == NULL) exit(1);
+  }
 
   if(!NoOutput){
     printf("Saving\n");
@@ -733,11 +751,13 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%ld",&seed);
       nargsused = 1;
-    } else if (!strcmp(option, "--seedfile")) {
+    } 
+    else if (!strcmp(option, "--seedfile")) {
       if (nargc < 1) argnerr(option,1);
       seedfile = pargv[0];
       nargsused = 1;
-    } else if (!strcmp(option, "--pdf")) {
+    } 
+    else if (!strcmp(option, "--pdf")) {
       if (nargc < 1) argnerr(option,1);
       pdfname = pargv[0];
       nargsused = 1;
@@ -841,6 +861,11 @@ static int parse_commandline(int argc, char **argv) {
       pdfname = "cp";
       nargsused = 1;
     } 
+    else if (!strcmp(option, "--ctab")) {
+      if (nargc < 1) argnerr(option,1);
+      colortablefile = pargv[0];
+      nargsused = 1;
+    } 
     else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if (singledash(option))
@@ -914,6 +939,7 @@ static void print_usage(void) {
   printf("   --sum2 fname   : save sum vol^2 into fname (implies "
          "delta,nf=1,no-output)\n");
   printf("   --dim-surf : set dim to nvertices x 1 x 1 \n");
+  printf("   --ctab colortable : embed ctab\n");
   printf("\n");
 }
 /* --------------------------------------------- */
@@ -985,6 +1011,17 @@ static void check_options(void) {
   }
   if(!DoCurv) getfmtid(volid);
 
+  if(precision != NULL){
+    
+    if(strcmp(StrLower(precision), "uchar") == 0)       mritype = MRI_UCHAR;
+    else if(strcmp(StrLower(precision), "short") == 0)  mritype = MRI_SHORT;
+    else if(strcmp(StrLower(precision), "int") == 0)    mritype = MRI_INT;
+    else if(strcmp(StrLower(precision), "float") == 0)  mritype = MRI_FLOAT;
+    else {
+      printf("ERROR: precision %s not supported\n",precision);
+      exit(1);
+    }
+  }
   return;
 }
 /* --------------------------------------------- */

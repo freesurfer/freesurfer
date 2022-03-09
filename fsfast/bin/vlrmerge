@@ -11,6 +11,7 @@ set lrvol = ();
 set subcortmask = ();
 set DoCorrection = 0; # Correction for multiple comparsisons
 set subject = fsaverage
+set DoFSA2CVS = 0;
 
 set tmpdir = ();
 set cleanup = 1;
@@ -67,16 +68,39 @@ echo $VERSION | tee -a $LF
 cat $FREESURFER_HOME/build-stamp.txt | tee -a $LF
 uname -a  | tee -a $LF
 
+set cvstemplate = $FREESURFER/subjects/cvs_avg35_inMNI152/mri.2mm/orig.mgz
+set cvslta      = $FREESURFER/subjects/cvs_avg35_inMNI152/mri.2mm/register.lta
+
+if($DoFSA2CVS) then
+  # Map surfaces to fsaverage to cvs
+  foreach hemi (lh rh)
+    set cvssurf = $tmpdir/input.cvs.$hemi.mgh
+    if($hemi == lh) set insurf = $lhsurf
+    if($hemi == rh) set insurf = $rhsurf
+    set cmd = (mris_apply_reg --src $insurf --trg $cvssurf \
+      --streg $FREESURFER/subjects/fsaverage/surf/$hemi.sphere.reg \
+              $FREESURFER/subjects/cvs_avg35_inMNI152/surf/$hemi.sphere.reg)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1;
+    if($hemi == lh) set lhsurf = $cvssurf
+    if($hemi == rh) set rhsurf = $cvssurf
+  end
+endif
+
 # 1. Map the lh and rh into the volume
 set surfvol = $tmpdir/junk.mgh
-set cmd = (mri_surf2vol --fstal 2 \
-  --template $SUBJECTS_DIR/$subject/mri.2mm/orig.mgz \
+set cmd = (mri_surf2vol --template $SUBJECTS_DIR/$subject/mri.2mm/orig.mgz \
   --hemi lh --surfval $lhsurf --o $surfvol --fillribbon)
+if($subject == fsaverage) set cmd = ($cmd --fstal 2)
+if($subject == cvs_avg35_inMNI152) set cmd = ($cmd --template $cvstemplate --reg $cvslta)
 echo $cmd | tee -a $LF
 $cmd | tee -a $LF
 if($status) exit 1;
-set cmd = (mri_surf2vol --fstal 2 --merge $surfvol \
+set cmd = (mri_surf2vol --merge $surfvol \
    --hemi rh --surfval $rhsurf  --o $surfvol --fillribbon)
+if($subject == fsaverage) set cmd = ($cmd --fstal 2)
+if($subject == cvs_avg35_inMNI152) set cmd = ($cmd --template $cvstemplate --reg $cvslta)
 echo $cmd | tee -a $LF
 $cmd | tee -a $LF
 if($status) exit 1;
@@ -152,6 +176,16 @@ while( $#argv != 0 )
     case "--s":
       if($#argv < 1) goto arg1err;
       set subject = $argv[1]; shift;
+      breaksw
+
+    case "--cvs":
+      set subject = cvs_avg35_inMNI152
+      set DoFSA2CVS = 1;
+      breaksw
+
+    case "--cvs-no-fsa2cvs":
+      set subject = cvs_avg35_inMNI152
+      set DoFSA2CVS = 0;
       breaksw
 
     case "--lh":
@@ -260,7 +294,7 @@ if($#outvol == 0) then
   exit 1;
 endif
 if($#subcortmask == 0) then
-  echo "ERROR: must specify a subcortical mask "
+  echo "ERROR: must specify a subcortical mask with --subcortmask"
   exit 1;
 endif
 
@@ -288,7 +322,9 @@ usage_exit:
   echo "  --rh rhsurf"
   echo "  --subcortmask mask (--scm)"
   echo "  --correct : bonferroni correct across 3 spaces"
-  echo "  "
+  echo "  --s subject : default is fsaverage"
+  echo "  --cvs : set subject to cvs_avg35_inMNI152 (ie, volume is in cvs, not fsaverage, space)"
+  echo "  --cvs-no-fsa2cvs : set subject to cvs_avg35_inMNI152 and assume that suraces are in CVS surf space"
   echo "  --lrvol lrvol : output a volume with only lh and rh"
   echo ""
   echo "  --help"
@@ -310,7 +346,13 @@ left hemisphere, and right hemisphere, and group analysis results are
 produced in each space. This program allows these maps to be merged
 into a single volume using the surface-based analysis for the cortex
 and volume-based analysis for subcortical. This can allow you to look
-at all results inside the volume.
+at all results inside the volume. By default, it is assumed that the
+surface and volume maps are in fsaverage space. If the volume maps are
+in CVS space (cvs_avg35_inMNI152) and the surface maps are in
+fsaverage space, then add --cvs; in this case, it will convert the
+maps from fsaverage to CVS surface space.  If both the volume and
+surface maps are in CVS space, then use --cvs --no-fsa2cvs (Note: 
+--no-fsa2cvs must be put AFTER --cvs).
 
 The usage would be something like:
 1. Create and run FSFAST analysis in each space
@@ -324,7 +366,7 @@ vlrmerge --o vlr.nii.gz \
   --subcortmask  analysis.mni305/subcort.mask.nii.gz
 
 View with
-  tkmedit fsaverage orig.mgz -aparc+aseg -ov vlr.mgh
+  tkmeditfv fsaverage orig.mgz -aparc+aseg -ov vlr.mgh
 
 If you do corrections for multiple comparisons for each space, you
 can combine the cluster-corrected images into the volume and 

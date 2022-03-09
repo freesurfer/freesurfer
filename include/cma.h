@@ -195,10 +195,11 @@
 #define Right_fimbria             200
 #endif
 
-// reserve 230-249 for more CC divisions
-
-#define MIN_CC_EXTRA      230
-#define MAX_CC_EXTRA      249
+// reserve 230-249 for more CC divisions - should have put a note in
+// color table to let people know. As these positions have long been
+// taken.  these values are no longer being reserved.
+// #define MIN_CC_EXTRA 230 
+// #define MAX_CC_EXTRA 249
 
 #define Fornix            250
 #define CC_Posterior      251
@@ -207,7 +208,9 @@
 #define CC_Mid_Anterior   254
 #define CC_Anterior       255
 
-#define IS_CC(l) ((l >= CC_Posterior && l <= CC_Anterior) || (l >= MIN_CC_EXTRA && l <= MAX_CC_EXTRA))
+//See above 
+//#define IS_CC(l) ((l >= CC_Posterior && l <= CC_Anterior) || (l >= MIN_CC_EXTRA && l <= MAX_CC_EXTRA))
+#define IS_CC(l) ((l >= CC_Posterior && l <= CC_Anterior))
 
 #define VOXEL_UNCHANGED   256
 #define CSF_ExtraCerebral 257

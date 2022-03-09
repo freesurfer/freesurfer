@@ -1,12 +1,16 @@
+#!/usr/bin/env python3
+
 from freesurfer.samseg import initVisualizer, requireNumpyArray, gems
 from freesurfer.samseg.io import GMMparameter, kvlReadCompressionLookupTable, \
-                                 kvlWriteCompressionLookupTable, kvlWriteSharedGMMParameters
+                                 kvlWriteCompressionLookupTable, kvlWriteSharedGMMParameters, \
+                                 kvlReadSharedGMMParameters
 from freesurfer.samseg.merge_alphas import kvlGetMergingFractionsTable, kvlMergeAlphas
 import numpy as np
 from scipy import ndimage
 import matplotlib.pyplot as plt
 import os, shutil
-    
+import sys
+import argparse
 
 def readAndSimplifyCompressionLookupTable( compressionLookupTableFileName, 
                                            uninterestingStructureSearchStrings=None ):
@@ -121,7 +125,7 @@ def smoothMeshCollection( meshCollection, sigma, returnPriors=False, showFigures
     priors = ndimage.gaussian_filter( priors.astype( float ), 
                                       sigma=( sigma, sigma, sigma, 0 ) ).astype( priors.dtype )
     visualizer.show( probabilities=priors )
-    alphas = meshCollection.reference_mesh.fit_alphas( priors )
+    alphas = meshCollection.reference_mesh.fit_alphas( priors , 10 )
     meshCollection.reference_mesh.alphas = alphas
     visualizer.show( probabilities=meshCollection.reference_mesh.rasterize( size, -1 ) )
 
@@ -232,7 +236,7 @@ def prepareAtlasDirectory( directoryName,
         priors = smoothMeshCollection( meshCollection, smoothingSigmaForAffine, returnPriors=True )
         #visualizer.show( probabilities=priors )
         meshCollection.construct( [ 30, 30, 30 ], priors.shape[ 0:3 ], 1000.0, 2, 1 )
-        alphas = meshCollection.reference_mesh.fit_alphas( priors )
+        alphas = meshCollection.reference_mesh.fit_alphas( priors , 10 )
         meshCollection.reference_mesh.alphas = alphas
         #visualizer.show( probabilities=meshCollection.reference_mesh.rasterize( 
         #                                                    priors.shape[ 0:3 ], -1 ) )
@@ -254,5 +258,39 @@ def prepareAtlasDirectory( directoryName,
 
     return
   
-  
-  
+def parse_args(args):
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-a", "--atlasdir", required=True,
+                        help="The atlas directory to create")
+    parser.add_argument("-m", "--mesh", required=True,
+                        help="The filename of the mesh collection to use (output of kvlBuildAtlasMesh)")
+    parser.add_argument("-c", "--compression_lut", required=True,
+                        help="The compression lookup table to use (output of kvlBuildAtlasMesh)")
+    parser.add_argument("-g", "--shared_gmm_params", required=True,
+                        help="The filename of the shared GMM parameters to use")
+    parser.add_argument("-t", "--template", required=True,
+                        help="The filename of the template nifti to use")
+    parser.add_argument("--show_figs", default=False)
+    return parser.parse_args()
+
+def main(argv):
+    args = parse_args(argv)
+    if not os.path.exists(args.mesh):
+        print("ERROR: Can't find the mesh file " + args.mesh)
+    if not os.path.exists(args.compression_lut):
+        print("ERROR: Can't find the compression LUT file " + args.compression_lut)
+    if not os.path.exists(args.shared_gmm_params):
+        print("ERROR: Can't find the shared GMM params file " + args.shared_gmm_params)
+    if not os.path.exists(args.template):
+        print("ERROR: Can't find the template file " + args.template)
+
+    shared_gmm_params = kvlReadSharedGMMParameters(args.shared_gmm_params)
+    prepareAtlasDirectory(args.atlasdir,
+                          args.mesh,
+                          args.compression_lut,
+                          shared_gmm_params,
+                          args.template,
+                          showFigures=args.show_figs)
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))

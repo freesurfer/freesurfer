@@ -1,5 +1,11 @@
 #include "kvlAtlasMeshDeformationLBFGSOptimizer.h"
 
+#define KVL_ENABLE_TIME_PROBE3 0
+
+#if KVL_ENABLE_TIME_PROBE3
+  #include "itkTimeProbe.h"
+#endif
+
 
 namespace kvl
 {
@@ -37,9 +43,9 @@ AtlasMeshDeformationLBFGSOptimizer
 //
 //
 void AtlasMeshDeformationLBFGSOptimizer
-::Initialize()
+::WipeMemory()
 {
-
+  
   m_OldCost = 0;
   m_OldGradient = 0;
   m_OldSearchDirection = 0;
@@ -47,9 +53,6 @@ void AtlasMeshDeformationLBFGSOptimizer
   m_Ss.clear();
   m_Ys.clear();
   m_InverseRhos.clear();
-  
-  
-  Superclass::Initialize();
   
 }
 
@@ -63,13 +66,52 @@ AtlasMeshDeformationLBFGSOptimizer
 ::FindAndOptimizeNewSearchDirection()
 {
 
+  //
+  // BFGS does
+  // 
+  //    newPosition = oldPosition - alpha * H * gradient
+  //
+  // where H is an approximation of the inverse Hessian in two steps:
+  // 
+  // * Part I: Compute the search direction -H*gradient, by first 
+  //           updating H based on the estimate we used in the previous
+  //           iteration and the change in position and gradient in that
+  //           iteration, and then computing -H*gradient
+  //
+  // * Part II: Do a line search to find the scalar alpha to determine
+  //            the correct setp size
+  // 
+  // We initialize H in the very first iteration as H_0 = gamma * I (diagonal matrix),
+  // where gamma is computed so that H_0 * gradient makes a change in position of a
+  // physically plausable size (a value alpha=1 is the first guestimate of the line
+  // search in the very first iteration, so you're simply doing simple gradient descent
+  // of a reasonable step size in the very first iteration).
+  //
+  // Now L-BFGS does three smart things: 
+  //   (1) instead of storing H and gradually updating it in each iteration, it always 
+  //       starts from scratch from H_0 and makes the relevant computations on-the-fly 
+  //       by memorizing the differences in position and gradient across previous iterations
+  //       (up to a fixed, smallish number, forgetting old iterations); 
+  //   (2) instead of computing H explicitly and then computing H * gradient, the two
+  //       processes are intertwined so you never have to explicitly handle the massive 
+  //       full H matrix
+  //   (3) sneakily, instead of using always the same H_0 = gamma * I, it uses a different
+  //       gamma for each new iteration, determined with some prescribed recipe
+  
+  
+#if KVL_ENABLE_TIME_PROBE3  
+  itk::TimeProbe clock;
+  clock.Start();
+#endif
+  
+  
   // 
   // Part I: Decide on a new search direction
   //
 
   // Compute r = H * gradient without ever computing H explicitly    
   double  gamma = 0.0;
-  if ( this->GetIterationNumber() == 0 )
+  if ( m_OldSearchDirection.GetPointer() == 0 )
     {
     // Make sure that first try of line search will be given 
     // by distance provided by user (first iteration means
@@ -164,6 +206,15 @@ AtlasMeshDeformationLBFGSOptimizer
                                                       = this->ScaleDeformation( r, -1.0 );
 
                                                       
+#if KVL_ENABLE_TIME_PROBE3     
+  clock.Stop();
+  std::cout << "  --- Time taken by determining search direction: " << clock.GetMean() << std::endl;
+  clock.Reset();
+  clock.Start();
+#endif 
+                                                
+                                                      
+                                                      
   //
   // PartII: Make an educated guess of the appropriate step size
   //
@@ -195,6 +246,11 @@ AtlasMeshDeformationLBFGSOptimizer
   
   //std::cout << "m_Cost: " << m_Cost << std::endl;
 
+#if KVL_ENABLE_TIME_PROBE3     
+  clock.Stop();
+  std::cout << "  --- Time taken by line search: " << clock.GetMean() << std::endl;
+#endif 
+  
 
   // Some book keeping
   const double  maximalDeformation = alphaUsed * this->ComputeMaximalDeformation( searchDirection );

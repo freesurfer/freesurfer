@@ -1320,7 +1320,11 @@ static int parse_commandline(int argc, char **argv) {
       subject = pargv[0];
       R = MatrixIdentity(4,NULL);
       nargsused = 1;
-    } else if (istringnmatch(option, "--fsl",0) ||
+    } 
+    else if (!strcmp(option, "--copy-ctab")) {
+      setenv("FS_COPY_HEADER_CTAB","1",1);
+    } 
+    else if (istringnmatch(option, "--fsl",0) ||
                istringnmatch(option, "--fslreg",0)) {
       if(nargc < 1) argnerr(option,1);
       fslregfile = pargv[0];
@@ -1573,7 +1577,7 @@ printf("  --mov  movvol       : input (or output template with --inv)\n");
 printf("  --targ targvol      : output template (or input with --inv)\n");
 printf("  --o    outvol       : output volume\n");
 printf("  --disp dispvol      : displacement volume\n");
-printf("  --downsample N1 N2 N3 : downsample input volume (do not include a targ or regsitration)\n");
+printf("  --downsample N1 N2 N3 : downsample factor (eg, 2) (do not include a targ or regsitration)\n");
 printf("         sets --fill-average, --fill-upsample 2, and --regheader\n");
 printf("\n");
 printf("  --reg  register.dat : tkRAS-to-tkRAS matrix   (tkregister2 format)\n");
@@ -1609,13 +1613,14 @@ printf("  --cubic             : cubic B-Spline interpolation\n");
 printf("  --interp interptype : interpolation cubic, trilin, nearest (def is trilin)\n");
 printf("  --fill-average      : compute mean of all source voxels in a given target voxel\n");
 printf("  --fill-conserve     : compute sum  of all source voxels in a given target voxel\n");
-printf("  --fill-upsample USF : source upsampling factor for --fill-xxx (default is 2)\n");
+printf("  --fill-upsample USF : source upsampling factor for --fill-{avg,cons} (default is 2)\n");
 printf("\n");
 printf("  --mul mulval   : multiply output by mulval\n");
 printf("\n");
 printf("  --precision precisionid : output precision (def is float)\n");
 printf("  --keep-precision  : set output precision to that of input\n");
 printf("  --kernel            : save the trilinear interpolation kernel instead\n");
+printf("   --copy-ctab : setenv FS_COPY_HEADER_CTAB to copy any ctab in the mov header\n");
 printf("\n");
 printf("  --gcam mov srclta gcam dstlta vsm interp out\n");
 printf("     srclta, gcam, or vsm can be set to 0 to indicate identity\n");

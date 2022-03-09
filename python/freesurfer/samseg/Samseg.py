@@ -1,6 +1,7 @@
 import logging
 import pickle
 import scipy.io
+from scipy.ndimage.morphology import binary_dilation as dilation
 import freesurfer as fs
 import sys
 
@@ -38,10 +39,14 @@ class Samseg:
         saveModelProbabilities=False,
         gmmFileName=None,
         ignoreUnknownPriors=False,
+        dissectionPhoto=None,
+        nthreads=1,
         ):
 
         # Store input parameters as class variables
         self.imageFileNames = imageFileNames
+        self.originalImageFileNames = imageFileNames  # Keep a copy since photo version modifies self.imageFileNames
+        self.photo_mask = None  # Useful when working with photos
         self.savePath = savePath
         self.atlasDir = atlasDir
         self.threshold = threshold
@@ -56,6 +61,34 @@ class Samseg:
             raise ValueError('number of mode names does not match number of input images')
         self.modeNames = modeNames
 
+        # Eugenio: there's a bug in ITK that will cause kvlImage to fail if it contqins the string "recon" ...
+        # If this problem is not exclusive to the photo mode (RGB), we should move this chunk of code outside the if
+        # While at it, we also create a grayscale version and a version with a bit of noise around the cerebrum (so the
+        # background class doesn't go bananas)
+        # Dissection photos are converted to grayscale
+        if dissectionPhoto:
+
+            if len(self.imageFileNames) > 1:
+                raise ValueError('In photo mode, you cannot provide more than one input image volume')
+
+            input_vol = fs.Volume.read(self.imageFileNames[0])
+            input_vol.write(self.savePath + '/original_input.mgz')
+            while len(input_vol.data.shape) > 3:
+                input_vol.data = np.mean(input_vol.data, axis=-1)
+            input_vol.write(self.savePath + '/grayscale_input.mgz')
+
+            # We also a small band of noise around the mask; otherwise the background/skull/etc may fit the cortex
+            self.photo_mask = input_vol.data > 0
+            mask_dilated = dilation(self.photo_mask, iterations=5)
+            ring = (mask_dilated==True) & (self.photo_mask == False)
+            max_noise = np.max(input_vol.data) / 50.0
+            rng = np.random.default_rng(2021)
+            input_vol.data[ring] = max_noise * rng.random(input_vol.data[ring].shape[0])
+            self.imageFileNames = []
+            self.imageFileNames.append(self.savePath + '/grayscale_input_with_ring.mgz')
+            input_vol.write(self.imageFileNames[0])
+
+
         # Initialize some objects
         self.affine = Affine( imageFileName=self.imageFileNames[0],
                               meshCollectionFileName=os.path.join(self.atlasDir, 'atlasForAffineRegistration.txt.gz'),
@@ -63,14 +96,28 @@ class Samseg:
         self.probabilisticAtlas = ProbabilisticAtlas()
 
         # Get full model specifications and optimization options (using default unless overridden by user)
+        # Note that, when processing photos, we point to a different GMM file by default!
         self.optimizationOptions = getOptimizationOptions(atlasDir, userOptimizationOptions)
+        if dissectionPhoto and (gmmFileName is None):
+            if dissectionPhoto == 'left':
+                gmmFileName = self.atlasDir + '/photo.lh.sharedGMMParameters.txt'
+            elif dissectionPhoto == 'right':
+                gmmFileName = self.atlasDir + '/photo.rh.sharedGMMParameters.txt'
+            elif dissectionPhoto == 'both':
+                gmmFileName = self.atlasDir + '/photo.both.sharedGMMParameters.txt'
+            else:
+                fs.fatal('dissection photo mode must be left, right, or both')
         self.modelSpecifications = getModelSpecifications(
             atlasDir,
             userModelSpecifications,
             pallidumAsWM=pallidumAsWM,
             gmmFileName=gmmFileName
         )
-        
+
+        # if dissectionPhoto is not None:
+        #     self.modelSpecifications['K'] = 0.01
+        # TODO: switch this on, and maybe make K dependent on the pixel size?
+
         # Set image-to-image matrix if provided
         self.imageToImageTransformMatrix = imageToImageTransformMatrix
 
@@ -105,6 +152,7 @@ class Samseg:
         self.saveWarp = saveWarp
         self.saveMesh = saveMesh
         self.ignoreUnknownPriors = ignoreUnknownPriors
+        self.dissectionPhoto = dissectionPhoto
 
         # Make sure we can write in the target/results directory
         os.makedirs(savePath, exist_ok=True)
@@ -122,6 +170,7 @@ class Samseg:
         self.optimizationHistory = None
         self.deformation = None
         self.deformationAtlasFileName = None
+        self.nthreads = nthreads
 
     def validateTransform(self, trf):
         # =======================================================================================
@@ -174,8 +223,27 @@ class Samseg:
                 trf = self.validateTransform(fs.LinearTransform.read(transformFile))
                 worldToWorldTransformMatrix = convertRASTransformToLPS(trf.as_ras().matrix)
 
-        # Register to template
+        # Register to template, either with SAMSEG code, or externally with FreeSurfer tools (for photos)
         if self.imageToImageTransformMatrix is None:
+
+            if self.dissectionPhoto is not None:
+                reference = self.savePath + '/grayscale_input.mgz'
+                if self.dissectionPhoto=='left':
+                    moving = self.atlasDir + '/exvivo.template.lh.suptent.nii'
+                elif self.dissectionPhoto=='right':
+                    moving = self.atlasDir + '/exvivo.template.rh.suptent.nii'
+                elif self.dissectionPhoto=='both':
+                    moving = self.atlasDir + '/exvivo.template.suptent.nii'
+                else:
+                    fs.fatal('dissection photo mode must be left, right, or both')
+                transformFile = self.savePath  + '/atlas2image.lta'
+                cmd = 'mri_coreg  --seed 2021 --mov ' + moving + ' --ref ' + reference + ' --reg ' + transformFile + \
+                      ' --dof 12 --threads ' + str(self.nthreads)
+                os.system(cmd)
+                trf = fs.LinearTransform.read(transformFile)
+                trf_val = self.validateTransform(trf)
+                worldToWorldTransformMatrix = convertRASTransformToLPS(trf_val.as_ras().matrix)
+
             self.register(
                 costfile=costfile,
                 timer=timer,
@@ -217,6 +285,18 @@ class Samseg:
             print('registration-only requested, so quiting now')
             sys.exit()
 
+    def getMesh(self, *args, **kwargs):
+        """
+        Load the atlas mesh and perform optional smoothing of the cortex and WM priors.
+        """
+        if self.modelSpecifications.whiteMatterAndCortexSmoothingSigma > 0:
+            competingNames = [['Left-Cerebral-White-Matter',  'Left-Cerebral-Cortex'],
+                              ['Right-Cerebral-White-Matter', 'Right-Cerebral-Cortex']]
+            competingStructures = [[self.modelSpecifications.names.index(n) for n in names] for names in competingNames]
+            kwargs['competingStructures'] = competingStructures
+            kwargs['smoothingSigma'] = self.modelSpecifications.whiteMatterAndCortexSmoothingSigma
+        return self.probabilisticAtlas.getMesh(*args, **kwargs)
+
     def preProcess(self):
         # =======================================================================================
         #
@@ -253,20 +333,15 @@ class Samseg:
             self.voxelSpacing
         )
 
-
         # Let's prepare for the bias field correction that is part of the imaging model. It assumes
         # an additive effect, whereas the MR physics indicate it's a multiplicative one - so we log
         # transform the data first.
         self.imageBuffers = logTransform(self.imageBuffers, self.mask)
 
-        mesh = self.probabilisticAtlas.getMesh(self.modelSpecifications.atlasFileName, self.transform)
-        priors = mesh.rasterize(self.imageBuffers.shape[:3], 4).astype(float)
-        self.writeImage(priors, os.path.join(self.savePath, 'priors-testing.mgz'))
-
         # Visualize some stuff
         if hasattr(self.visualizer, 'show_flag'):
             self.visualizer.show(
-                mesh=self.probabilisticAtlas.getMesh(self.modelSpecifications.atlasFileName, self.transform),
+                mesh=self.getMesh(self.modelSpecifications.atlasFileName, self.transform),
                 shape=self.imageBuffers.shape,
                 window_id='samsegment mesh', title='Mesh',
                 names=self.modelSpecifications.names, legend_width=350)
@@ -312,7 +387,10 @@ class Samseg:
         if self.saveModelProbabilities:
             self.saveGaussianProbabilities( os.path.join(self.savePath, 'probabilities') )
  
-       # Save the history of the parameter estimation process
+        # Save the class means and standard deviations
+        self.saveGaussianStats()
+
+        # Save the history of the parameter estimation process
         if self.saveHistory:
             history = {'input': {
                 'imageFileNames': self.imageFileNames,
@@ -381,7 +459,7 @@ class Samseg:
         segmentation[self.mask] = fslabels[structureNumbers]
 
         #
-        scalingFactors = scaleBiasFields(biasFields, self.imageBuffers, self.mask, posteriors, self.targetIntensity, self.targetSearchStrings, names)
+        self.scalingFactors = scaleBiasFields(biasFields, self.imageBuffers, self.mask, posteriors, self.targetIntensity, self.targetSearchStrings, names)
 
         # Get corrected intensities and bias field images in the non-log transformed domain
         expImageBuffers, expBiasFields = undoLogTransformAndBiasField(self.imageBuffers, biasFields, self.mask)
@@ -389,17 +467,29 @@ class Samseg:
         # Write out various images - segmentation first
         self.writeImage(segmentation, os.path.join(self.savePath, 'seg.mgz'), saveLabels=True)
 
-        for contrastNumber, imageFileName in enumerate(self.imageFileNames):
-            # Contrast-specific filename prefix
-            contastPrefix = os.path.join(self.savePath, self.modeNames[contrastNumber])
+        # Bias corrected images: depends on whether we're dealing with MRIs or 3D photo reconstructions
+        if self.dissectionPhoto is None:  # MRI
+            for contrastNumber, imageFileName in enumerate(self.imageFileNames):
+                # Contrast-specific filename prefix
+                contastPrefix = os.path.join(self.savePath, self.modeNames[contrastNumber])
 
-            # Write bias field and bias-corrected image
-            self.writeImage(expBiasFields[..., contrastNumber],   contastPrefix + '_bias_field.mgz')
-            self.writeImage(expImageBuffers[..., contrastNumber], contastPrefix + '_bias_corrected.mgz')
+                # Write bias field and bias-corrected image
+                self.writeImage(expBiasFields[..., contrastNumber],   contastPrefix + '_bias_field.mgz')
+                self.writeImage(expImageBuffers[..., contrastNumber], contastPrefix + '_bias_corrected.mgz')
 
-            # Save a note indicating the scaling factor
-            with open(contastPrefix + '_scaling.txt', 'w') as fid:
-                print(scalingFactors[contrastNumber], file=fid)
+                # Save a note indicating the scaling factor
+                with open(contastPrefix + '_scaling.txt', 'w') as fid:
+                    print(self.scalingFactors[contrastNumber], file=fid)
+
+        else: # photos
+            self.writeImage(expBiasFields[..., 0], self.savePath + '/illlumination_field.mgz')
+            original_vol = fs.Volume.read(self.originalImageFileNames[0])
+            bias_native = fs.Volume.read(self.savePath + '/illlumination_field.mgz')
+            if len(original_vol.data.shape) == 3:
+                original_vol.data = original_vol.data[..., np.newaxis]
+            original_vol.data = original_vol.data / (1e-6 + bias_native.data[..., np.newaxis])
+            original_vol.data = np.squeeze(original_vol.data)
+            original_vol.write(self.savePath + '/illlumination_corrected.mgz')
 
         if self.savePosteriors:
             posteriorPath = os.path.join(self.savePath, 'posteriors')
@@ -432,7 +522,7 @@ class Samseg:
 
     def saveWarpField(self, filename):
         # extract node positions in image space
-        nodePositions = self.probabilisticAtlas.getMesh(
+        nodePositions = self.getMesh(
             self.modelSpecifications.atlasFileName,
             self.transform,
             initialDeformation=self.deformation,
@@ -456,7 +546,7 @@ class Samseg:
         matrix = scipy.io.loadmat(matricesFileName)['imageToImageTransformMatrix']
 
         # rasterize the final node coordinates (in image space) using the initial template mesh
-        mesh = self.probabilisticAtlas.getMesh(self.modelSpecifications.atlasFileName)
+        mesh = self.getMesh(self.modelSpecifications.atlasFileName)
         coordmap = mesh.rasterize_values(templateGeom.shape, nodePositions)
 
         # the rasterization is a bit buggy and some voxels are not filled - mark these as invalid
@@ -468,16 +558,15 @@ class Samseg:
 
         # write the warp file
         fs.Warp(coordmap, source=imageGeom, target=templateGeom, affine=matrix).write(filename)
-        
-        
-    def saveGaussianProbabilities( self, probabilitiesPath ):
+
+    def saveGaussianProbabilities(self, probabilitiesPath):
         # Make output directory
         os.makedirs(probabilitiesPath, exist_ok=True)
           
         # Get the class priors as dictated by the current mesh position
-        mesh = self.probabilisticAtlas.getMesh(self.modelSpecifications.atlasFileName, self.transform,
-                                              initialDeformation=self.deformation,
-                                              initialDeformationMeshCollectionFileName=self.deformationAtlasFileName)
+        mesh = self.getMesh(self.modelSpecifications.atlasFileName, self.transform,
+                            initialDeformation=self.deformation,
+                            initialDeformationMeshCollectionFileName=self.deformationAtlasFileName)
         mergedAlphas = kvlMergeAlphas( mesh.alphas, self.classFractions )
         mesh.alphas = mergedAlphas
         classPriors = mesh.rasterize(self.imageBuffers.shape[0:3], -1)
@@ -493,19 +582,15 @@ class Samseg:
         gaussianLikelihoods, _ = self.gmm.getGaussianPosteriors( data, classPriors, priorWeight=0 )
         gaussianPriors, _ = self.gmm.getGaussianPosteriors( data, classPriors, dataWeight=0 )
 
-        # Open gaussians file
-        file = open(os.path.join(probabilitiesPath, 'gaussians.txt'), 'w')
-
-        # Cycle through gaussians and write volumes and means/variances
+        # Cycle through gaussians and write volumes
         classNames = [param.mergedName for param in self.modelSpecifications.sharedGMMParameters]
         numberOfGaussiansPerClass = [param.numberOfComponents for param in self.modelSpecifications.sharedGMMParameters]
-        maxNameSize = len(max(classNames, key=len)) + 2
         for classNumber, className in enumerate(classNames):
             numComponents = numberOfGaussiansPerClass[classNumber]
             for componentNumber in range(numComponents):
                 # 
                 gaussianNumber = int(np.sum(numberOfGaussiansPerClass[:classNumber])) + componentNumber
-                
+
                 # Write volume
                 probabilities = np.zeros( ( *( self.imageBuffers.shape[:3] ), 3 ), dtype=np.float32 )
                 probabilities[ self.mask, 0 ] = gaussianPosteriors[ :, gaussianNumber ]
@@ -516,14 +601,43 @@ class Samseg:
                     basename += '-%d' % (componentNumber + 1)
                 self.writeImage(probabilities, os.path.join(probabilitiesPath, basename + '.mgz'))
 
-                # write gaussian information
-                mean = self.gmm.means[gaussianNumber]
-                var = self.gmm.variances[gaussianNumber]
-                weight = self.gmm.mixtureWeights[gaussianNumber]
-                file.write('%s %.4f %.4f %.4f\n' % (basename.ljust(maxNameSize), mean, var, weight))
+    def saveGaussianStats(self):
 
-        file.close()
-        
+        # Determine gaussians classes
+        classNames = [param.mergedName for param in self.modelSpecifications.sharedGMMParameters]
+        numberOfGaussiansPerClass = [param.numberOfComponents for param in self.modelSpecifications.sharedGMMParameters]
+        maxNameSize = len(max(classNames, key=len)) + 2
+        space = 20
+
+        with open(os.path.join(self.savePath, 'gaussians.rescaled.txt'), 'w') as fid:
+
+            # Write header
+            modes = ''.join([mode.rjust(space) for mode in self.modeNames])
+            fid.write(f"{'# class':<{maxNameSize}}{modes}\n")
+
+            # Cycle through gaussians
+            for classNumber, className in enumerate(classNames):
+                numComponents = numberOfGaussiansPerClass[classNumber]
+                for componentNumber in range(numComponents):
+                    gaussianNumber = int(np.sum(numberOfGaussiansPerClass[:classNumber])) + componentNumber
+                    basename = f'{className}-{componentNumber + 1}' if numComponents > 1 else className
+
+                    stats = []
+                    for contrastNumber in range(len((self.modeNames))):
+
+                        # Get gaussian information
+                        log_mean = self.gmm.means[gaussianNumber, contrastNumber]
+                        log_variance = self.gmm.variances[gaussianNumber, contrastNumber, contrastNumber]
+
+                        # Convert from log-space
+                        scaling = self.scalingFactors[contrastNumber]
+                        mean = np.exp(log_mean) * scaling
+                        std = np.sqrt(log_variance) * mean
+
+                        stats.append(f'{mean:.2f} ± {std:.2f}'.rjust(space))
+
+                    # Write class
+                    fid.write(basename.ljust(maxNameSize) + ''.join(stats) + '\n')
 
     def getDownSampledModel(self, atlasFileName, downSamplingFactors):
 
@@ -545,22 +659,21 @@ class Samseg:
         downSampledTransform = gems.KvlTransform(requireNumpyArray(downSamplingTransformMatrix @ self.transform.as_numpy_array))
 
         # Get the mesh
-        downSampledMesh, downSampledInitialDeformationApplied = self.probabilisticAtlas.getMesh(atlasFileName,
-                                                                                                downSampledTransform,
-                                                                                                self.modelSpecifications.K,
-                                                                                                self.deformation,
-                                                                                                self.deformationAtlasFileName,
-                                                                                                returnInitialDeformationApplied=True)
+        downSampledMesh, downSampledInitialDeformationApplied = self.getMesh(atlasFileName,
+                                                                             downSampledTransform,
+                                                                             self.modelSpecifications.K,
+                                                                             self.deformation,
+                                                                             self.deformationAtlasFileName,
+                                                                             returnInitialDeformationApplied=True)
 
-        return downSampledImageBuffers, downSampledMask, downSampledMesh, downSampledInitialDeformationApplied, \
-               downSampledTransform,
+        return downSampledImageBuffers, downSampledMask, downSampledMesh, downSampledInitialDeformationApplied, downSampledTransform
 
     def initializeBiasField(self):
 
         # Our bias model is a linear combination of a set of basis functions. We are using so-called "DCT-II" basis functions,
         # i.e., the lowest few frequency components of the Discrete Cosine Transform.
         self.biasField = BiasField(self.imageBuffers.shape[0:3],
-                                   self.modelSpecifications.biasFieldSmoothingKernelSize / self.voxelSpacing)
+                                   self.modelSpecifications.biasFieldSmoothingKernelSize / self.voxelSpacing, photo_mode=(self.dissectionPhoto is not None))
 
         # Visualize some stuff
         if hasattr(self.visualizer, 'show_flag'):
@@ -636,6 +749,10 @@ class Samseg:
                                                      [
                                                          multiResolutionLevel].targetDownsampledVoxelSpacing / self.voxelSpacing))
             downSamplingFactors[downSamplingFactors < 1] = 1
+            # When working with 3D reconstructed photos, we don't downsample in z
+            if self.dissectionPhoto is not None:
+                downSamplingFactors[2] = 1
+
             downSampledImageBuffers, downSampledMask, downSampledMesh, downSampledInitialDeformationApplied, \
             downSampledTransform = self.getDownSampledModel(
                 optimizationOptions.multiResolutionSpecification[multiResolutionLevel].atlasFileName,
@@ -728,7 +845,8 @@ class Samseg:
                     if (estimateBiasField and not ((iterationNumber == 0)
                                                    and skipBiasFieldParameterEstimationInFirstIteration)):
                         self.biasField.fitBiasFieldParameters(downSampledImageBuffers, downSampledGaussianPosteriors,
-                                                              self.gmm.means, self.gmm.variances, downSampledMask)
+                                                              self.gmm.means, self.gmm.variances, downSampledMask,
+                                                              photo_mode=(self.dissectionPhoto is not None))
                     # End test if bias field update
 
                 # End loop over EM iterations
@@ -827,14 +945,15 @@ class Samseg:
                 levelHistory['priorsAtEnd'] = downSampledClassPriors
                 levelHistory['posteriorsAtEnd'] = downSampledGaussianPosteriors
                 self.optimizationHistory.append(levelHistory)
+                
 
         # End resolution level loop
 
     def computeFinalSegmentation(self):
         # Get the final mesh
-        mesh = self.probabilisticAtlas.getMesh(self.modelSpecifications.atlasFileName, self.transform,
-                                               initialDeformation=self.deformation,
-                                               initialDeformationMeshCollectionFileName=self.deformationAtlasFileName)
+        mesh = self.getMesh(self.modelSpecifications.atlasFileName, self.transform,
+                            initialDeformation=self.deformation,
+                            initialDeformationMeshCollectionFileName=self.deformationAtlasFileName)
 
         # Get the priors as dictated by the current mesh position
         priors = mesh.rasterize(self.imageBuffers.shape[0:3], -1)
@@ -848,6 +967,24 @@ class Samseg:
                     if search_string in name:
                         priors[:, unknown_label] += priors[:, label]
                         priors[:, label] = 0
+
+        # In dissection photos, we merge the choroid with the lateral ventricle
+        if self.dissectionPhoto is not None:
+            for n in range(len(self.modelSpecifications.names)):
+                if self.modelSpecifications.names[n]=='Left-Lateral-Ventricle':
+                    llv = n
+                elif self.modelSpecifications.names[n]=='Left-choroid-plexus':
+                    lcp = n
+                elif self.modelSpecifications.names[n]=='Right-Lateral-Ventricle':
+                    rlv = n
+                elif self.modelSpecifications.names[n]=='Right-choroid-plexus':
+                    rcp = n
+            if self.dissectionPhoto=='left' or self.dissectionPhoto=='both':
+                priors[:, llv] +=  priors[:, lcp]
+                priors[:, lcp] = 0
+            if self.dissectionPhoto=='right' or self.dissectionPhoto=='both':
+                priors[:, rlv] +=  priors[:, rcp]
+                priors[:, rcp] = 0
 
         # Get bias field corrected data
         # Make sure that the bias field basis function are not downsampled

@@ -35,6 +35,7 @@
 #include "FSVolume.h"
 #include "LayerMRI.h"
 #include "StockColorMap.h"
+#include "TurboColorMap.h"
 #include <QtGlobal>
 #include <QSettings>
 #include <QVariantMap>
@@ -471,6 +472,7 @@ QVariantMap LayerPropertyMRI::GetActiveSettings()
     }
     break;
   case Jet:
+  case Turbo:
   case GEColor:
   case NIH:
   case PET:
@@ -760,6 +762,10 @@ void LayerPropertyMRI::OnColorMapChanged ()
     mColorMapTable->AddRGBAPoint( MaxGenericThreshold, 1, 0, 0, 1 );
     //  mColorMapTable->AddRGBAPoint( mMaxGenericThreshold + (mMaxGenericThreshold - mMinJGenericThreshold), 1, 0, 0, 1 );
     mColorMapTable->Build();
+    break;
+
+  case Turbo:
+    BuildGenericLUT( stock_turbo_color );
     break;
 
   case GEColor:
@@ -1877,10 +1883,14 @@ void LayerPropertyMRI::SetVectorLineWidth(double val)
 
 void LayerPropertyMRI::SetAutoAdjustFrameLevel(bool b)
 {
-  m_bAutoAdjustFrameLevel = b;
-  if (b)
-    UpdateMinMaxValues();
-  this->OnColorMapChanged();
+  if (m_bAutoAdjustFrameLevel != b)
+  {
+    m_bAutoAdjustFrameLevel = b;
+    if (b)
+      UpdateMinMaxValues();
+    this->OnColorMapChanged();
+    emit AutoAdjustFrameContrastChanged(b);
+  }
 }
 
 void LayerPropertyMRI::SetSelectAllLabels()

@@ -1946,6 +1946,10 @@ normalizeFromLabel(MRI *mri_in, MRI *mri_dst, MRI *mri_seg, double *fas)
             MRISseq_vox(mri_dst, x, y, z, input) =
               (short)nint(val) ;
             break ;
+          case MRI_USHRT:
+            MRIUSseq_vox(mri_dst, x, y, z, input) =
+              (unsigned short)nint(val) ;
+            break ;
           case MRI_FLOAT:
             MRIFseq_vox(mri_dst, x, y, z, input) =
               val ;
@@ -2145,6 +2149,10 @@ normalizeChannelFromLabel(MRI *mri_in, MRI *mri_dst, MRI *mri_seg,
           case MRI_SHORT:
             MRISseq_vox(mri_dst, x, y, z, input_index) =
               (short)nint(val) ;
+            break ;
+          case MRI_USHRT:
+            MRIUSseq_vox(mri_dst, x, y, z, input_index) =
+              (unsigned short)nint(val) ;
             break ;
           case MRI_FLOAT:
             MRIFseq_vox(mri_dst, x, y, z, input_index) =

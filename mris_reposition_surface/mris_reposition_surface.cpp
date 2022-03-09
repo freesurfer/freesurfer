@@ -59,9 +59,9 @@ int main(int argc, char **argv)
   if (js_pts.size() < 1) fs::fatal() << "could not read control points";
 
   bool bTkReg = (js["vox2ras"].get<std::string>() == std::string("tkreg"));
-  PointSet points;
+  fsPointSet points;
   for (int i = 0; i < js_pts.size(); i++) {
-      PointSet::Point p;
+      fsPointSet::Point p;
       p.x = js_pts[i]["coordinates"]["x"].get<float>();
       p.y = js_pts[i]["coordinates"]["y"].get<float>();
       p.z = js_pts[i]["coordinates"]["z"].get<float>();
@@ -103,7 +103,7 @@ int main(int argc, char **argv)
     MRIS_HASH_TABLE* hash = MHTcreateVertexTable_Resolution(surf, CURRENT_VERTICES, max_spacing);
     // cycle through each points
     for (auto it = points.begin(); it != points.end(); it++) {
-      PointSet::Point p = *it;
+      fsPointSet::Point p = *it;
       int vno = MHTfindClosestVertexNoXYZ(hash, surf, p.x, p.y, p.z, &distance);
       if (vno < 0){
 	printf("Failed to find closest vertex in hash, using brute force\n");

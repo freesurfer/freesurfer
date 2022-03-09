@@ -219,6 +219,8 @@ void MRI::initSlices()
           ptr = (void *)((unsigned char*)ptr + vox_per_row); break;
         case MRI_SHORT:
           ptr = (void *)((short *)ptr + vox_per_row); break;
+        case MRI_USHRT:
+          ptr = (void *)((unsigned short *)ptr + vox_per_row); break;
         case MRI_RGB:
         case MRI_INT:
           ptr = (void *)((int *)ptr + vox_per_row); break;
@@ -1339,6 +1341,7 @@ size_t MRIsizeof(int mritype)
     case MRI_FLOAT:  return sizeof(float);
     case MRI_TENSOR: return sizeof(float);
     case MRI_SHORT:  return sizeof(short);
+    case MRI_USHRT:  return sizeof(unsigned short);
   }
   return (-1);  // should never get here
 }
@@ -1362,6 +1365,9 @@ double MRIptr2dbl(void *pmric, int mritype)
     break;
   case MRI_SHORT:
     v = (double)(*((short *)pmric));
+    break;
+  case MRI_USHRT:
+    v = (double)(*((unsigned short *)pmric));
     break;
   case MRI_INT:
     v = (double)(*((int *)pmric));
@@ -1394,6 +1400,9 @@ void MRIdbl2ptr(double v, void *pmric, int mritype)
     break;
   case MRI_SHORT:
     *((short *)pmric) = nint(v);
+    break;
+  case MRI_USHRT:
+    *((unsigned short *)pmric) = nint(v);
     break;
   case MRI_INT:
     *((int *)pmric) = nint(v);
@@ -1492,6 +1501,9 @@ float MRIgetVoxVal(const MRI *mri, int c, int r, int s, int f)
     case MRI_SHORT:
       return (float)* ((short *)mri->chunk + c + r * mri->vox_per_row + s * mri->vox_per_slice + f * mri->vox_per_vol);
       break;
+    case MRI_USHRT:
+      return (float)* ((unsigned short *)mri->chunk + c + r * mri->vox_per_row + s * mri->vox_per_slice + f * mri->vox_per_vol);
+      break;
     case MRI_RGB:
     case MRI_INT:
       return (float)* ((int *)mri->chunk + c + r * mri->vox_per_row + s * mri->vox_per_slice + f * mri->vox_per_vol);
@@ -1511,6 +1523,40 @@ float MRIgetVoxVal(const MRI *mri, int c, int r, int s, int f)
     break;
   case MRI_SHORT:
     return ((float)MRISseq_vox(mri, c, r, s, f));
+    break;
+  case MRI_USHRT:
+    return ((float)MRIUSseq_vox(mri, c, r, s, f));
+    break;
+  case MRI_RGB:
+  case MRI_INT:
+    return ((float)MRIIseq_vox(mri, c, r, s, f));
+    break;
+  case MRI_LONG:
+    return ((float)MRILseq_vox(mri, c, r, s, f));
+    break;
+  case MRI_FLOAT:
+    return ((float)MRIFseq_vox(mri, c, r, s, f));
+    break;
+  }
+  return (-10000000000.9);
+}
+
+float MRIgetVoxVal2(const MRI *mri, int c, int r, int s, int f)
+{
+  // bounds checks:
+  if (c < 0) return mri->outside_val;
+  if (r < 0) return mri->outside_val;
+  if (s < 0) return mri->outside_val;
+
+  switch (mri->type) {
+  case MRI_UCHAR:
+    return ((float)MRIseq_vox(mri, c, r, s, f));
+    break;
+  case MRI_SHORT:
+    return ((float)MRISseq_vox(mri, c, r, s, f));
+    break;
+  case MRI_USHRT:
+    return ((float)MRIUSseq_vox(mri, c, r, s, f));
     break;
   case MRI_RGB:
   case MRI_INT:
@@ -1549,6 +1595,10 @@ int MRIsetVoxVal(MRI *mri, int c, int r, int s, int f, float voxval)
     if (voxval < SHORT_MIN) voxval = SHORT_MIN;
     if (voxval > SHORT_MAX) voxval = SHORT_MAX;
     break;
+  case MRI_USHRT:
+    if (voxval < 0) voxval = 0;
+    if (voxval > USHRT_MAX) voxval = USHRT_MAX;
+    break;
   case MRI_INT:
     if (voxval < INT_MIN) voxval = INT_MIN;
     if (voxval > INT_MAX) voxval = INT_MAX;
@@ -1566,6 +1616,9 @@ int MRIsetVoxVal(MRI *mri, int c, int r, int s, int f, float voxval)
       break;
     case MRI_SHORT:
       *((short *)mri->chunk + c + r * mri->vox_per_row + s * mri->vox_per_slice + f * mri->vox_per_vol) = nint(voxval);
+      break;
+    case MRI_USHRT:
+      *((unsigned short *)mri->chunk + c + r * mri->vox_per_row + s * mri->vox_per_slice + f * mri->vox_per_vol) = nint(voxval);
       break;
     case MRI_RGB:
     case MRI_INT:
@@ -1587,12 +1640,68 @@ int MRIsetVoxVal(MRI *mri, int c, int r, int s, int f, float voxval)
   case MRI_SHORT:
     MRISseq_vox(mri, c, r, s, f) = nint(voxval);
     break;
+  case MRI_USHRT:
+    MRIUSseq_vox(mri, c, r, s, f) = nint(voxval);
+    break;
   case MRI_RGB:
   case MRI_INT:
     MRIIseq_vox(mri, c, r, s, f) = nint(voxval);
     break;
   case MRI_LONG:
     MRILseq_vox(mri, c, r, s, f) = nint(voxval);
+    break;
+  case MRI_FLOAT:
+    MRIFseq_vox(mri, c, r, s, f) = voxval;
+    break;
+  default:
+    return (1);
+    break;
+  }
+  return (0);
+}
+
+int MRIsetVoxVal2(MRI *mri, int c, int r, int s, int f, float voxval)
+{
+  // clipping
+  switch (mri->type) {
+  case MRI_UCHAR:
+    if (voxval < UCHAR_MIN) voxval = UCHAR_MIN;
+    if (voxval > UCHAR_MAX) voxval = UCHAR_MAX;
+    break;
+  case MRI_SHORT:
+    if (voxval < SHORT_MIN) voxval = SHORT_MIN;
+    if (voxval > SHORT_MAX) voxval = SHORT_MAX;
+    break;
+  case MRI_USHRT:
+    if (voxval < 0) voxval = 0;
+    if (voxval > USHRT_MAX) voxval = USHRT_MAX;
+    break;
+  case MRI_INT:
+    if (voxval < INT_MIN) voxval = INT_MIN;
+    if (voxval > INT_MAX) voxval = INT_MAX;
+    break;
+  case MRI_LONG:
+    if (voxval < LONG_MIN) voxval = LONG_MIN;
+    if (voxval > LONG_MAX) voxval = LONG_MAX;
+    break;
+  }
+
+  switch (mri->type) {
+  case MRI_UCHAR:
+    MRIseq_vox(mri, c, r, s, f) = voxval;
+    break;
+  case MRI_SHORT:
+    MRISseq_vox(mri, c, r, s, f) = voxval;
+    break;
+  case MRI_USHRT:
+    MRIUSseq_vox(mri, c, r, s, f) = voxval;
+    break;
+  case MRI_RGB:
+  case MRI_INT:
+    MRIIseq_vox(mri, c, r, s, f) = voxval;
+    break;
+  case MRI_LONG:
+    MRILseq_vox(mri, c, r, s, f) = voxval;
     break;
   case MRI_FLOAT:
     MRIFseq_vox(mri, c, r, s, f) = voxval;
@@ -1650,6 +1759,7 @@ int MRIprecisionCode(const char *PrecisionString)
 {
   if (!strcasecmp(PrecisionString, "uchar")) return (MRI_UCHAR);
   if (!strcasecmp(PrecisionString, "short")) return (MRI_SHORT);
+  if (!strcasecmp(PrecisionString, "ushrt")) return (MRI_USHRT);
   if (!strcasecmp(PrecisionString, "int")) return (MRI_INT);
   if (!strcasecmp(PrecisionString, "long")) return (MRI_LONG);
   if (!strcasecmp(PrecisionString, "float")) return (MRI_FLOAT);
@@ -1670,6 +1780,9 @@ const char *MRIprecisionString(int PrecisionCode)
     break;
   case MRI_SHORT:
     return ("short");
+    break;
+  case MRI_USHRT:
+    return ("ushrt");
     break;
   case MRI_INT:
     return ("int");
@@ -1764,6 +1877,7 @@ MRI *MRIscalarMul(MRI *mri_src, MRI *mri_dst, float scalar)
   BUFTYPE *psrc, *pdst;
   float *pfsrc, *pfdst, dval;
   short *pssrc, *psdst;
+  unsigned short *pussrc, *pusdst;
 
   width = mri_src->width;
   height = mri_src->height;
@@ -1779,7 +1893,7 @@ MRI *MRIscalarMul(MRI *mri_src, MRI *mri_dst, float scalar)
             MRIsetVoxVal(mri_dst, x, y, z, frame, dval * scalar);
           }
         }
-        else
+        else  // not used
           switch (mri_src->type) {
           case MRI_UCHAR:
             psrc = &MRIseq_vox(mri_src, 0, y, z, frame);
@@ -1801,6 +1915,11 @@ MRI *MRIscalarMul(MRI *mri_src, MRI *mri_dst, float scalar)
             psdst = &MRISseq_vox(mri_dst, 0, y, z, frame);
             for (x = 0; x < width; x++) *psdst++ = (short)nint((float)*pssrc++ * scalar);
             break;
+          case MRI_USHRT:
+            pussrc = &MRIUSseq_vox(mri_src, 0, y, z, frame);
+            pusdst = &MRIUSseq_vox(mri_dst, 0, y, z, frame);
+            for (x = 0; x < width; x++) *pusdst++ = (unsigned short)nint((float)*pussrc++ * scalar);
+            break;
           default:
             ErrorReturn(NULL, (ERROR_UNSUPPORTED, "MRIscalarMul: unsupported type %d", mri_src->type));
           }
@@ -1817,6 +1936,7 @@ MRI *MRIscalarMulFrame(MRI *mri_src, MRI *mri_dst, float scalar, int frame)
   BUFTYPE *psrc, *pdst;
   float *pfsrc, *pfdst, dval;
   short *pssrc, *psdst;
+  unsigned short *pussrc, *pusdst;
 
   width = mri_src->width;
   height = mri_src->height;
@@ -1845,6 +1965,11 @@ MRI *MRIscalarMulFrame(MRI *mri_src, MRI *mri_dst, float scalar, int frame)
         pssrc = &MRISseq_vox(mri_src, 0, y, z, frame);
         psdst = &MRISseq_vox(mri_dst, 0, y, z, frame);
         for (x = 0; x < width; x++) *psdst++ = (short)nint((float)*pssrc++ * scalar);
+        break;
+      case MRI_USHRT:
+        pussrc = &MRIUSseq_vox(mri_src, 0, y, z, frame);
+        pusdst = &MRIUSseq_vox(mri_dst, 0, y, z, frame);
+        for (x = 0; x < width; x++) *pusdst++ = (unsigned short)nint((float)*pussrc++ * scalar);
         break;
       default:
         ErrorReturn(NULL, (ERROR_UNSUPPORTED, "MRIscalarMulFrame: unsupported type %d", mri_src->type));
@@ -1933,6 +2058,19 @@ int MRIvalRange(MRI *mri, float *pmin, float *pmax)
         for (y = 0; y < height; y++) {
           for (x = 0; x < width; x++) {
             val = (float)MRISseq_vox(mri, x, y, z, frame);
+            if (val < fmin) fmin = val;
+            if (val > fmax) fmax = val;
+          }
+        }
+      }
+    }
+    break;
+  case MRI_USHRT:
+    for (frame = 0; frame < mri->nframes; frame++) {
+      for (z = 0; z < depth; z++) {
+        for (y = 0; y < height; y++) {
+          for (x = 0; x < width; x++) {
+            val = (float)MRIUSseq_vox(mri, x, y, z, frame);
             if (val < fmin) fmin = val;
             if (val > fmax) fmax = val;
           }
@@ -2044,6 +2182,17 @@ int MRIvalRangeFrame(MRI *mri, float *pmin, float *pmax, int frame)
       for (y = 0; y < height; y++) {
         for (x = 0; x < width; x++) {
           val = (float)MRISseq_vox(mri, x, y, z, frame);
+          if (val < fmin) fmin = val;
+          if (val > fmax) fmax = val;
+        }
+      }
+    }
+    break;
+  case MRI_USHRT:
+    for (z = 0; z < depth; z++) {
+      for (y = 0; y < height; y++) {
+        for (x = 0; x < width; x++) {
+          val = (float)MRIUSseq_vox(mri, x, y, z, frame);
           if (val < fmin) fmin = val;
           if (val > fmax) fmax = val;
         }
@@ -2210,6 +2359,18 @@ MRI *MRIvalScale(MRI *mri_src, MRI *mri_dst, float flo, float fhi)
         }
       }
       break;
+    case MRI_USHRT:
+      for (z = 0; z < depth; z++) {
+        for (y = 0; y < height; y++) {
+          unsigned short *pus_src = &MRIUSvox(mri_src, 0, y, z);
+          unsigned short *pus_dst = &MRIUSvox(mri_dst, 0, y, z);
+          for (x = 0; x < width; x++) {
+            val = (float)(*pus_src++);
+            *pus_dst++ = (unsigned short)nint((val - fmin) * scale + flo);
+          }
+        }
+      }
+      break;
     case MRI_UCHAR:
       for (z = 0; z < depth; z++) {
         for (y = 0; y < height; y++) {
@@ -2327,6 +2488,36 @@ int MRIboundingBoxNbhd(MRI *mri, int thresh, int wsize, MRI_REGION *box)
                 for (xk = -whalf; in_brain && xk <= whalf; xk++) {
                   xi = mri->xi[x + xk];
                   if (MRISvox(mri, xi, yi, zi) < thresh) in_brain = 0;
+                }
+              }
+            }
+            if (in_brain) {
+              if (x < box->x) box->x = x;
+              if (y < box->y) box->y = y;
+              if (z < box->z) box->z = z;
+              if (x > x1) x1 = x;
+              if (y > y1) y1 = y;
+              if (z > z1) z1 = z;
+            }
+          }
+        }
+      }
+    }
+    break;
+  case MRI_USHRT:
+    for (z = 0; z < depth; z++) {
+      for (y = 0; y < height; y++) {
+        unsigned short *pussrc = &MRIUSvox(mri, 0, y, z);
+        for (x = 0; x < width; x++) {
+          if (*pussrc++ > thresh) {
+            in_brain = 1;
+            for (zk = -whalf; in_brain && zk <= whalf; zk++) {
+              zi = mri->zi[z + zk];
+              for (yk = -whalf; in_brain && yk <= whalf; yk++) {
+                yi = mri->yi[y + yk];
+                for (xk = -whalf; in_brain && xk <= whalf; xk++) {
+                  xi = mri->xi[x + xk];
+                  if (MRIUSvox(mri, xi, yi, zi) < thresh) in_brain = 0;
                 }
               }
             }
@@ -2714,6 +2905,23 @@ int MRIboundingBox(MRI *mri, int thresh, MRI_REGION *box)
         pssrc = &MRISvox(mri, 0, y, z);
         for (x = 0; x < width; x++) {
           if (*pssrc++ > thresh) {
+            if (x < box->x) box->x = x;
+            if (y < box->y) box->y = y;
+            if (z < box->z) box->z = z;
+            if (x > x1) x1 = x;
+            if (y > y1) y1 = y;
+            if (z > z1) z1 = z;
+          }
+        }
+      }
+    }
+    break;
+  case MRI_USHRT:
+    for (z = 0; z < depth; z++) {
+      for (y = 0; y < height; y++) {
+        unsigned short *pussrc = &MRIUSvox(mri, 0, y, z);
+        for (x = 0; x < width; x++) {
+          if (*pussrc++ > thresh) {
             if (x < box->x) box->x = x;
             if (y < box->y) box->y = y;
             if (z < box->z) box->z = z;
@@ -3662,6 +3870,9 @@ MRI *MRIextractInto(MRI *mri_src, MRI *mri_dst, int x0, int y0, int z0, int dx, 
   case MRI_SHORT:
     bytes *= sizeof(short);
     break;
+  case MRI_USHRT:
+    bytes *= sizeof(unsigned short);
+    break;
   case MRI_UCHAR:
     break;
   }
@@ -3681,6 +3892,9 @@ MRI *MRIextractInto(MRI *mri_src, MRI *mri_dst, int x0, int y0, int z0, int dx, 
           break;
         case MRI_SHORT:
           memmove(&MRISseq_vox(mri_dst, x1, yd, zd, frame), &MRISseq_vox(mri_src, x0, ys, zs, frame), bytes);
+          break;
+        case MRI_USHRT:
+          memmove(&MRIUSseq_vox(mri_dst, x1, yd, zd, frame), &MRIUSseq_vox(mri_src, x0, ys, zs, frame), bytes);
           break;
         case MRI_LONG:
           memmove(&MRILseq_vox(mri_dst, x1, yd, zd, frame), &MRILseq_vox(mri_src, x0, ys, zs, frame), bytes);
@@ -3963,6 +4177,9 @@ int MRIclear(MRI *mri)
     break;
   case MRI_SHORT:
     bytes *= sizeof(short);
+    break;
+  case MRI_USHRT:
+    bytes *= sizeof(unsigned short);
     break;
   default:
     ErrorReturn(ERROR_UNSUPPORTED, (ERROR_UNSUPPORTED, "MRIclear: unsupported input type %d", mri->type));
@@ -4656,6 +4873,7 @@ MRI *MRIsubtract(MRI *mri1, MRI *mri2, MRI *mri_dst)
   float v1, v2, v = 0.0;
   BUFTYPE *p1 = NULL, *p2 = NULL, *pdst = NULL;
   short *ps1 = NULL, *ps2 = NULL, *psdst = NULL;
+  unsigned short *pus1 = NULL, *pus2 = NULL, *pusdst = NULL;
   int *pi1 = NULL, *pi2 = NULL, *pidst = NULL;
   long *pl1 = NULL, *pl2 = NULL, *pldst = NULL;
   float *pf1 = NULL, *pf2 = NULL, *pfdst = NULL;
@@ -4699,6 +4917,9 @@ MRI *MRIsubtract(MRI *mri1, MRI *mri2, MRI *mri_dst)
         case MRI_SHORT:
           psdst = (short *)mri_dst->slices[s][y];
           break;
+        case MRI_USHRT:
+          pusdst = (unsigned short *)mri_dst->slices[s][y];
+          break;
         case MRI_INT:
           pidst = (int *)mri_dst->slices[s][y];
           break;
@@ -4717,6 +4938,10 @@ MRI *MRIsubtract(MRI *mri1, MRI *mri2, MRI *mri_dst)
         case MRI_SHORT:
           ps1 = (short *)mri1->slices[s][y];
           ps2 = (short *)mri2->slices[s][y];
+          break;
+        case MRI_USHRT:
+          pus1 = (unsigned short *)mri1->slices[s][y];
+          pus2 = (unsigned short *)mri2->slices[s][y];
           break;
         case MRI_INT:
           pi1 = (int *)mri1->slices[s][y];
@@ -4740,6 +4965,9 @@ MRI *MRIsubtract(MRI *mri1, MRI *mri2, MRI *mri_dst)
           case MRI_SHORT:
             v = (float)(*ps1++) - (float)(*ps2++);
             break;
+          case MRI_USHRT:
+            v = (float)(*pus1++) - (float)(*pus2++);
+            break;
           case MRI_INT:
             v = (float)(*pi1++) - (float)(*pi2++);
             break;
@@ -4757,6 +4985,9 @@ MRI *MRIsubtract(MRI *mri1, MRI *mri2, MRI *mri_dst)
             break;
           case MRI_SHORT:
             (*psdst++) = (short)nint(v);
+            break;
+          case MRI_USHRT:
+            (*pusdst++) = (unsigned short)nint(v);
             break;
           case MRI_INT:
             (*pidst++) = (int)nint(v);
@@ -4925,6 +5156,7 @@ MRI *MRIadd(MRI *mri1, MRI *mri2, MRI *mri_dst)
   float v1, v2, v = 0.0;
   BUFTYPE *p1 = NULL, *p2 = NULL, *pdst = NULL;
   short *ps1 = NULL, *ps2 = NULL, *psdst = NULL;
+  unsigned short *pus1 = NULL, *pus2 = NULL, *pusdst = NULL;
   int *pi1 = NULL, *pi2 = NULL, *pidst = NULL;
   long *pl1 = NULL, *pl2 = NULL, *pldst = NULL;
   float *pf1 = NULL, *pf2 = NULL, *pfdst = NULL;
@@ -4970,6 +5202,9 @@ MRI *MRIadd(MRI *mri1, MRI *mri2, MRI *mri_dst)
         case MRI_SHORT:
           psdst = (short *)mri_dst->slices[s][y];
           break;
+        case MRI_USHRT:
+          pusdst = (unsigned short *)mri_dst->slices[s][y];
+          break;
         case MRI_INT:
           pidst = (int *)mri_dst->slices[s][y];
           break;
@@ -4989,6 +5224,10 @@ MRI *MRIadd(MRI *mri1, MRI *mri2, MRI *mri_dst)
         case MRI_SHORT:
           ps1 = (short *)mri1->slices[s][y];
           ps2 = (short *)mri2->slices[s][y];
+          break;
+        case MRI_USHRT:
+          pus1 = (unsigned short *)mri1->slices[s][y];
+          pus2 = (unsigned short *)mri2->slices[s][y];
           break;
         case MRI_INT:
           pi1 = (int *)mri1->slices[s][y];
@@ -5015,6 +5254,9 @@ MRI *MRIadd(MRI *mri1, MRI *mri2, MRI *mri_dst)
             case MRI_SHORT:
               (*pdst++) = (BUFTYPE)((*ps1++) + (*ps2++));
               break;
+            case MRI_USHRT:
+              (*pdst++) = (BUFTYPE)((*pus1++) + (*pus2++));
+              break;
             case MRI_INT:
               (*pdst++) = (BUFTYPE)((*pi1++) + (*pi2++));
               break;
@@ -5034,6 +5276,9 @@ MRI *MRIadd(MRI *mri1, MRI *mri2, MRI *mri_dst)
             case MRI_SHORT:
               (*psdst++) = (short)((*ps1++) + (*ps2++));
               break;
+            case MRI_USHRT:
+              (*psdst++) = (short)((*pus1++) + (*pus2++));
+              break;
             case MRI_INT:
               (*psdst++) = (short)((*pi1++) + (*pi2++));
               break;
@@ -5045,6 +5290,28 @@ MRI *MRIadd(MRI *mri1, MRI *mri2, MRI *mri_dst)
               break;
             }
             break;
+          case MRI_USHRT:
+            switch (mri1->type) {
+            case MRI_UCHAR:
+              (*pusdst++) = ((unsigned short)(*p1++) + (*p2++));
+              break;
+            case MRI_SHORT:
+              (*pusdst++) = (unsigned short)((*ps1++) + (*ps2++));
+              break;
+            case MRI_USHRT:
+              (*pusdst++) = (unsigned short)((*pus1++) + (*pus2++));
+              break;
+            case MRI_INT:
+              (*pusdst++) = (unsigned short)((*pi1++) + (*pi2++));
+              break;
+            case MRI_LONG:
+              (*pusdst++) = (unsigned short)((*pl1++) + (*pl2++));
+              break;
+            case MRI_FLOAT:
+              (*pusdst++) = (unsigned short)nint((*pf1++) + (*pf2++));
+              break;
+            }
+            break;
           case MRI_INT:
             switch (mri1->type) {
             case MRI_UCHAR:
@@ -5052,6 +5319,9 @@ MRI *MRIadd(MRI *mri1, MRI *mri2, MRI *mri_dst)
               break;
             case MRI_SHORT:
               (*pidst++) = ((int)(*ps1++) + (*ps2++));
+              break;
+            case MRI_USHRT:
+              (*pidst++) = ((int)(*pus1++) + (*pus2++));
               break;
             case MRI_INT:
               (*pidst++) = (int)((*pi1++) + (*pi2++));
@@ -5072,6 +5342,9 @@ MRI *MRIadd(MRI *mri1, MRI *mri2, MRI *mri_dst)
             case MRI_SHORT:
               (*pldst++) = ((long)(*ps1++) + (*ps2++));
               break;
+            case MRI_USHRT:
+              (*pldst++) = ((long)(*pus1++) + (*pus2++));
+              break;
             case MRI_INT:
               (*pldst++) = ((long)(*pi1++) + (*pi2++));
               break;
@@ -5090,6 +5363,9 @@ MRI *MRIadd(MRI *mri1, MRI *mri2, MRI *mri_dst)
               break;
             case MRI_SHORT:
               (*pfdst++) = ((float)(*ps1++) + (*ps2++));
+              break;
+            case MRI_USHRT:
+              (*pfdst++) = ((float)(*pus1++) + (*pus2++));
               break;
             case MRI_INT:
               (*pfdst++) = ((float)(*pi1++) + (*pi2++));
@@ -5376,6 +5652,9 @@ MRI *MRIcopy(MRI *mri_src, MRI *mri_dst)
     case MRI_SHORT:
       bytes *= sizeof(short);
       break;
+    case MRI_USHRT:
+      bytes *= sizeof(unsigned short);
+      break;
     case MRI_FLOAT:
       bytes *= sizeof(float);
       break;
@@ -5408,6 +5687,20 @@ MRI *MRIcopy(MRI *mri_src, MRI *mri_dst)
               for (x = 0; x < width; x++) {
                 val = nint(*fsrc++);
                 *sdst++ = (short)val;
+              }
+            }
+          }
+        }
+        break;
+      case MRI_USHRT: /* float --> unsigned short */
+        for (frame = 0; frame < mri_src->nframes; frame++) {
+          for (z = 0; z < depth; z++) {
+            for (y = 0; y < height; y++) {
+              unsigned short *usdst = &MRIUSseq_vox(mri_dst, 0, y, z, frame);
+              fsrc = &MRIFseq_vox(mri_src, 0, y, z, frame);
+              for (x = 0; x < width; x++) {
+                val = nint(*fsrc++);
+                *usdst++ = (unsigned short)val;
               }
             }
           }
@@ -5815,11 +6108,11 @@ MRI *MRIcopyHeader(const MRI *mri_src, MRI *mri_dst)
   // (this is for timing purposes)
   //printf("Copy ctab %s\n",getEnvironVar("FS_COPY_HEADER_CTAB"));
   if(mri_src->ct) {
-    printf("MRIcopyHeader(): source has ctab\n");
+    // printf("MRIcopyHeader(): source has ctab\n");
     std::string copy_ctab = getEnvironVar("FS_COPY_HEADER_CTAB");
     if ((!copy_ctab.empty()) && (copy_ctab != "0"))
     {
-      printf("  ... copying ctab\n");
+      // printf("  ... copying ctab\n");
       if(mri_dst->ct) CTABfree(&mri_dst->ct);
       mri_dst->ct = CTABdeepCopy(mri_src->ct);
     }
@@ -6797,6 +7090,9 @@ MRI *ImageToMRI(IMAGE *I)
         case MRI_SHORT:
           MRISseq_vox(mri, x, y, 0, frames) = *(IMAGESpix(I, x, yp) + frame_offset);
           break;
+        case MRI_USHRT:
+          MRIUSseq_vox(mri, x, y, 0, frames) = *(IMAGESpix(I, x, yp) + frame_offset);
+          break;
         case MRI_INT: {
           // int val;
 
@@ -7202,6 +7498,7 @@ MRI *MRIdownsample2(MRI *mri_src, MRI *mri_dst)
   int width, depth, height, x, y, z, x1, y1, z1;
   BUFTYPE *psrc;
   short *pssrc;
+  unsigned short *pussrc;
   float *pfsrc;
   float val;
 
@@ -7232,6 +7529,10 @@ MRI *MRIdownsample2(MRI *mri_src, MRI *mri_dst)
               pssrc = &MRISvox(mri_src, 2 * x, y1, z1);
               for (x1 = 2 * x; x1 <= 2 * x + 1; x1++) val += *pssrc++;
               break;
+            case MRI_USHRT:
+              pussrc = &MRIUSvox(mri_src, 2 * x, y1, z1);
+              for (x1 = 2 * x; x1 <= 2 * x + 1; x1++) val += *pussrc++;
+              break;
             case MRI_FLOAT:
               pfsrc = &MRIFvox(mri_src, 2 * x, y1, z1);
               for (x1 = 2 * x; x1 <= 2 * x + 1; x1++) val += *pfsrc++;
@@ -7250,6 +7551,9 @@ MRI *MRIdownsample2(MRI *mri_src, MRI *mri_dst)
           break;
         case MRI_SHORT:
           MRISvox(mri_dst, x, y, z) = (short)nint(val / 8.0f);
+          break;
+        case MRI_USHRT:
+          MRIUSvox(mri_dst, x, y, z) = (unsigned short)nint(val / 8.0f);
           break;
         }
       }
@@ -7388,6 +7692,7 @@ MRI *MRIdownsampleNOld(MRI *mri_src, MRI *mri_dst, int N)
   int width, depth, height, x, y, z, x1, y1, z1;
   BUFTYPE *psrc;
   short *pssrc;
+  unsigned short *pussrc;
   float *pfsrc;
   float val;
 
@@ -7418,6 +7723,10 @@ MRI *MRIdownsampleNOld(MRI *mri_src, MRI *mri_dst, int N)
               pssrc = &MRISvox(mri_src, N * x, y1, z1);
               for (x1 = N * x; x1 <= N * x + (N - 1); x1++) val += *pssrc++;
               break;
+            case MRI_USHRT:
+              pussrc = &MRIUSvox(mri_src, N * x, y1, z1);
+              for (x1 = N * x; x1 <= N * x + (N - 1); x1++) val += *pussrc++;
+              break;
             case MRI_FLOAT:
               pfsrc = &MRIFvox(mri_src, N * x, y1, z1);
               for (x1 = N * x; x1 <= N * x + (N - 1); x1++) val += *pfsrc++;
@@ -7436,6 +7745,9 @@ MRI *MRIdownsampleNOld(MRI *mri_src, MRI *mri_dst, int N)
           break;
         case MRI_SHORT:
           MRISvox(mri_dst, x, y, z) = (short)nint(val / (N * N * N));
+          break;
+        case MRI_USHRT:
+          MRIUSvox(mri_dst, x, y, z) = (unsigned short)nint(val / (N * N * N));
           break;
         }
       }
@@ -7491,6 +7803,9 @@ int MRIvalueFill(MRI *mri, float value)
             break;
           case MRI_SHORT:
             MRISseq_vox(mri, c, r, s, f) = (short)(nint(value));
+            break;
+          case MRI_USHRT:
+            MRIUSseq_vox(mri, c, r, s, f) = (unsigned short)(nint(value));
             break;
           case MRI_INT:
             MRIIseq_vox(mri, c, r, s, f) = (int)(nint(value));
@@ -8601,6 +8916,16 @@ int MRIsampleVolumeFrame(const MRI *mri, double x, double y, double z, const int
         xmd * ymd * zpd * (double)MRISseq_vox(mri, xp, yp, zm, frame) +
         xmd * ymd * zmd * (double)MRISseq_vox(mri, xp, yp, zp, frame);
     break;
+  case MRI_USHRT:
+    *pval = val = xpd * ypd * zpd * (double)MRIUSseq_vox(mri, xm, ym, zm, frame) +
+        xpd * ypd * zmd * (double)MRIUSseq_vox(mri, xm, ym, zp, frame) +
+        xpd * ymd * zpd * (double)MRIUSseq_vox(mri, xm, yp, zm, frame) +
+        xpd * ymd * zmd * (double)MRIUSseq_vox(mri, xm, yp, zp, frame) +
+        xmd * ypd * zpd * (double)MRIUSseq_vox(mri, xp, ym, zm, frame) +
+        xmd * ypd * zmd * (double)MRIUSseq_vox(mri, xp, ym, zp, frame) +
+        xmd * ymd * zpd * (double)MRIUSseq_vox(mri, xp, yp, zm, frame) +
+        xmd * ymd * zmd * (double)MRIUSseq_vox(mri, xp, yp, zp, frame);
+    break;
   case MRI_INT:
     *pval = val = xpd * ypd * zpd * (double)MRIIseq_vox(mri, xm, ym, zm, frame) +
         xpd * ypd * zmd * (double)MRIIseq_vox(mri, xm, ym, zp, frame) +
@@ -8894,6 +9219,9 @@ int MRIsampleVolumeType(const MRI *mri, double x, double y, double z, double *pv
   case MRI_SHORT:
     *pval = (float)MRISvox(mri, xv, yv, zv);
     break;
+  case MRI_USHRT:
+    *pval = (float)MRIUSvox(mri, xv, yv, zv);
+    break;
   case MRI_INT:
     *pval = (float)MRIIvox(mri, xv, yv, zv);
     break;
@@ -8966,6 +9294,9 @@ int MRIsampleVolumeFrameType(
   case MRI_SHORT:
     *pval = (float)MRISseq_vox(mri, xv, yv, zv, frame);
     break;
+  case MRI_USHRT:
+    *pval = (float)MRIUSseq_vox(mri, xv, yv, zv, frame);
+    break;
   case MRI_INT:
     *pval = (float)MRIIseq_vox(mri, xv, yv, zv, frame);
     break;
@@ -9025,6 +9356,10 @@ int   MRIsampleVolumeFrameType_xyzInt_nRange_SAMPLE_NEAREST_floats(const MRI *mr
   case MRI_SHORT:
     for (frame = frameBegin; frame < frameEnd; frame++)
       valForEachFrame[frame - frameBegin] = (float)MRISseq_vox(mri, xv, yv, zv, frame);
+    break;
+  case MRI_USHRT:
+    for (frame = frameBegin; frame < frameEnd; frame++)
+      valForEachFrame[frame - frameBegin] = (float)MRIUSseq_vox(mri, xv, yv, zv, frame);
     break;
   case MRI_INT:
     for (frame = frameBegin; frame < frameEnd; frame++)
@@ -9117,6 +9452,16 @@ int MRIinterpolateIntoVolumeFrame(MRI *mri, double x, double y, double z, int fr
     MRISseq_vox(mri, xp, ym, zp, frame) += nint(xmd * ypd * zmd * val);
     MRISseq_vox(mri, xp, yp, zm, frame) += nint(xmd * ymd * zpd * val);
     MRISseq_vox(mri, xp, yp, zp, frame) += nint(xmd * ymd * zmd * val);
+    break;
+  case MRI_USHRT:
+    MRIUSseq_vox(mri, xm, ym, zm, frame) += nint(xpd * ypd * zpd * val);
+    MRIUSseq_vox(mri, xm, ym, zp, frame) += nint(xpd * ypd * zmd * val);
+    MRIUSseq_vox(mri, xm, yp, zm, frame) += nint(xpd * ymd * zpd * val);
+    MRIUSseq_vox(mri, xm, yp, zp, frame) += nint(xpd * ymd * zmd * val);
+    MRIUSseq_vox(mri, xp, ym, zm, frame) += nint(xmd * ypd * zpd * val);
+    MRIUSseq_vox(mri, xp, ym, zp, frame) += nint(xmd * ypd * zmd * val);
+    MRIUSseq_vox(mri, xp, yp, zm, frame) += nint(xmd * ymd * zpd * val);
+    MRIUSseq_vox(mri, xp, yp, zp, frame) += nint(xmd * ymd * zmd * val);
     break;
   case MRI_INT:
     MRIIseq_vox(mri, xm, ym, zm, frame) += nint(xpd * ypd * zpd * val);
@@ -9212,6 +9557,13 @@ int MRIsampleVolume(const MRI *mri, double x, double y, double z, double *pval)
         xpd * ymd * zpd * (double)MRISvox(mri, xm, yp, zm) + xpd * ymd * zmd * (double)MRISvox(mri, xm, yp, zp) +
         xmd * ypd * zpd * (double)MRISvox(mri, xp, ym, zm) + xmd * ypd * zmd * (double)MRISvox(mri, xp, ym, zp) +
         xmd * ymd * zpd * (double)MRISvox(mri, xp, yp, zm) + xmd * ymd * zmd * (double)MRISvox(mri, xp, yp, zp);
+    break;
+  case MRI_USHRT:
+    *pval = val =
+        xpd * ypd * zpd * (double)MRIUSvox(mri, xm, ym, zm) + xpd * ypd * zmd * (double)MRIUSvox(mri, xm, ym, zp) +
+        xpd * ymd * zpd * (double)MRIUSvox(mri, xm, yp, zm) + xpd * ymd * zmd * (double)MRIUSvox(mri, xm, yp, zp) +
+        xmd * ypd * zpd * (double)MRIUSvox(mri, xp, ym, zm) + xmd * ypd * zmd * (double)MRIUSvox(mri, xp, ym, zp) +
+        xmd * ymd * zpd * (double)MRIUSvox(mri, xp, yp, zm) + xmd * ymd * zmd * (double)MRIUSvox(mri, xp, yp, zp);
     break;
   case MRI_INT:
     *pval = val =
@@ -9391,6 +9743,16 @@ int MRIsampleSeqVolume(const MRI *mri, double x, double y, double z, float *valv
           xmd * ymd * zpd * (double)MRISseq_vox(mri, xp, yp, zm, f) +
           xmd * ymd * zmd * (double)MRISseq_vox(mri, xp, yp, zp, f);
       break;
+    case MRI_USHRT:
+      valvect[f] = xpd * ypd * zpd * (double)MRIUSseq_vox(mri, xm, ym, zm, f) +
+          xpd * ypd * zmd * (double)MRIUSseq_vox(mri, xm, ym, zp, f) +
+          xpd * ymd * zpd * (double)MRIUSseq_vox(mri, xm, yp, zm, f) +
+          xpd * ymd * zmd * (double)MRIUSseq_vox(mri, xm, yp, zp, f) +
+          xmd * ypd * zpd * (double)MRIUSseq_vox(mri, xp, ym, zm, f) +
+          xmd * ypd * zmd * (double)MRIUSseq_vox(mri, xp, ym, zp, f) +
+          xmd * ymd * zpd * (double)MRIUSseq_vox(mri, xp, yp, zm, f) +
+          xmd * ymd * zmd * (double)MRIUSseq_vox(mri, xp, yp, zp, f);
+      break;
     case MRI_INT:
       valvect[f] = xpd * ypd * zpd * (double)MRIIseq_vox(mri, xm, ym, zm, f) +
           xpd * ypd * zmd * (double)MRIIseq_vox(mri, xm, ym, zp, f) +
@@ -9527,6 +9889,9 @@ int MRIsampleSeqVolumeType(
           xmd * ypd * zmd * (double)MRISseq_vox(mri, xp, ym, zp, f) +
           xmd * ymd * zpd * (double)MRISseq_vox(mri, xp, yp, zm, f) +
           xmd * ymd * zmd * (double)MRISseq_vox(mri, xp, yp, zp, f) ;*/
+      break;
+    case MRI_USHRT:
+      valvect[f] = (double)MRIUSseq_vox(mri, xv, yv, zv, f);
       break;
     case MRI_INT:
       valvect[f] = (double)MRIIseq_vox(mri, xv, yv, zv, f);
@@ -9772,6 +10137,9 @@ int MRIcubicSampleVolume(const MRI *mri, double x, double y, double z, double *p
         case MRI_SHORT:
           vv[ix][iy][iz] = (double)MRISvox(mri, ix_low - 1 + ix, iy_low - 1 + iy, iz_low - 1 + iz);
           break;
+        case MRI_USHRT:
+          vv[ix][iy][iz] = (double)MRIUSvox(mri, ix_low - 1 + ix, iy_low - 1 + iy, iz_low - 1 + iz);
+          break;
         case MRI_INT:
           vv[ix][iy][iz] = (double)MRIIvox(mri, ix_low - 1 + ix, iy_low - 1 + iy, iz_low - 1 + iz);
           break;
@@ -9976,6 +10344,9 @@ int MRIcubicSampleVolumeFrame(MRI *mri, double x, double y, double z, int frame,
         case MRI_SHORT:
           vv[ix][iy][iz] = (double)MRISseq_vox(mri, ix_low - 1 + ix, iy_low - 1 + iy, iz_low - 1 + iz, frame);
           break;
+        case MRI_USHRT:
+          vv[ix][iy][iz] = (double)MRIUSseq_vox(mri, ix_low - 1 + ix, iy_low - 1 + iy, iz_low - 1 + iz, frame);
+          break;
         case MRI_INT:
           vv[ix][iy][iz] = (double)MRIIseq_vox(mri, ix_low - 1 + ix, iy_low - 1 + iy, iz_low - 1 + iz, frame);
           break;
@@ -10099,6 +10470,9 @@ int MRIsincSampleVolume(const MRI *mri, double x, double y, double z, int hw, do
           case MRI_SHORT:
             sum_x += (coeff_x[jx_rel] / coeff_x_sum) * (double)MRISvox(mri, jx1, jy1, jz1);
             break;
+          case MRI_USHRT:
+            sum_x += (coeff_x[jx_rel] / coeff_x_sum) * (double)MRIUSvox(mri, jx1, jy1, jz1);
+            break;
           case MRI_INT:
             sum_x += (coeff_x[jx_rel] / coeff_x_sum) * (double)MRIIvox(mri, jx1, jy1, jz1);
             break;
@@ -10200,6 +10574,9 @@ int MRIsincSampleVolumeFrame(MRI *mri, double x, double y, double z, int frame, 
             break;
           case MRI_SHORT:
             sum_x += (coeff_x[jx_rel] / coeff_x_sum) * (double)MRISseq_vox(mri, jx1, jy1, jz1, frame);
+            break;
+          case MRI_USHRT:
+            sum_x += (coeff_x[jx_rel] / coeff_x_sum) * (double)MRIUSseq_vox(mri, jx1, jy1, jz1, frame);
             break;
           case MRI_INT:
             sum_x += (coeff_x[jx_rel] / coeff_x_sum) * (double)MRIIseq_vox(mri, jx1, jy1, jz1, frame);
@@ -11363,6 +11740,10 @@ MRI *MRIchangeType(MRI *src, int dest_type, float f_low, float f_high, int no_sc
       dest_min = SHORT_MIN;
       dest_max = SHORT_MAX;
     }
+    if (dest_type == MRI_USHRT) {
+      dest_min = 0;
+      dest_max = USHRT_MAX;
+    }
     if (dest_type == MRI_INT) {
       dest_min = INT_MIN;
       dest_max = INT_MAX;
@@ -11729,6 +12110,32 @@ MRI *MRIresampleFill(MRI *src, MRI *template_vol, int resample_type, float fill_
                           : (float)MRISseq_vox(src, si + 1, sj + 1, sk + 1, nframe));
               }
 
+              if (src->type == MRI_USHRT) {
+                val000 =
+                    (!i_good_flag || !j_good_flag || !k_good_flag ? 0.0 : (float)MRIUSseq_vox(src, si, sj, sk, nframe));
+                val001 =
+                    (!i_good_flag || !j_good_flag || !k1_good_flag ? 0.0
+                                                                   : (float)MRIUSseq_vox(src, si, sj, sk + 1, nframe));
+                val010 =
+                    (!i_good_flag || !j1_good_flag || !k_good_flag ? 0.0
+                                                                   : (float)MRIUSseq_vox(src, si, sj + 1, sk, nframe));
+                val011 = (!i_good_flag || !j1_good_flag || !k1_good_flag
+                          ? 0.0
+                          : (float)MRIUSseq_vox(src, si, sj + 1, sk + 1, nframe));
+                val100 =
+                    (!i1_good_flag || !j_good_flag || !k_good_flag ? 0.0
+                                                                   : (float)MRIUSseq_vox(src, si + 1, sj, sk, nframe));
+                val101 = (!i1_good_flag || !j_good_flag || !k1_good_flag
+                          ? 0.0
+                          : (float)MRIUSseq_vox(src, si + 1, sj, sk + 1, nframe));
+                val110 = (!i1_good_flag || !j1_good_flag || !k_good_flag
+                          ? 0.0
+                          : (float)MRIUSseq_vox(src, si + 1, sj + 1, sk, nframe));
+                val111 = (!i1_good_flag || !j1_good_flag || !k1_good_flag
+                          ? 0.0
+                          : (float)MRIUSseq_vox(src, si + 1, sj + 1, sk + 1, nframe));
+              }
+
               if (src->type == MRI_INT) {
                 val000 =
                     (!i_good_flag || !j_good_flag || !k_good_flag ? 0.0 : (float)MRIIseq_vox(src, si, sj, sk, nframe));
@@ -11955,6 +12362,11 @@ MRI *MRIresampleFill(MRI *src, MRI *template_vol, int resample_type, float fill_
               if (val > SHORT_MAX) val = SHORT_MAX;
               MRISseq_vox(dest, di, dj, dk, nframe) = (short)nint(val);
             }
+            if (dest->type == MRI_USHRT) {
+              if (val < 0) val = 0;
+              if (val > USHRT_MAX) val = USHRT_MAX;
+              MRIUSseq_vox(dest, di, dj, dk, nframe) = (unsigned short)nint(val);
+            }
             if (dest->type == MRI_INT) {
               if (val < INT_MIN) val = INT_MIN;
               if (val > INT_MAX) val = INT_MAX;
@@ -12132,6 +12544,23 @@ int MRIstats(MRI *mri, float *min, float *max, int *n_voxels, float *mean, float
         for (k = 0; k < mri->depth; k++)
           for (t = 0; t < mri->nframes; t++) {
             val = (float)MRISseq_vox(mri, i, j, k, t);
+
+            if (val < *min) *min = val;
+            if (val > *max) *max = val;
+
+            sum += val;
+            sq_sum += val * val;
+          }
+  }
+
+  if (mri->type == MRI_USHRT) {
+    *min = *max = (float)MRIUSseq_vox(mri, 0, 0, 0, 0);
+
+    for (i = 0; i < mri->width; i++)
+      for (j = 0; j < mri->height; j++)
+        for (k = 0; k < mri->depth; k++)
+          for (t = 0; t < mri->nframes; t++) {
+            val = (float)MRIUSseq_vox(mri, i, j, k, t);
 
             if (val < *min) *min = val;
             if (val > *max) *max = val;
@@ -12948,6 +13377,9 @@ MRI *MRIlog(MRI *in, MRI *mask, double a, double b, MRI *out)
           case MRI_SHORT:
             v = (double) *((short *)pin + nvox);
             break;
+          case MRI_USHRT:
+            v = (double) *((unsigned short *)pin + nvox);
+            break;
           case MRI_INT:
             v = (double) *((int *)pin + nvox);
             break;
@@ -13140,6 +13572,7 @@ MRI *MRIdrand48(int ncols, int nrows, int nslices, int nframes, float min, float
   float range, v;
   BUFTYPE *pmri = NULL;
   short *psmri = NULL;
+  unsigned short *pusmri = NULL;
   int *pimri = NULL;
   long *plmri = NULL;
   float *pfmri = NULL;
@@ -13170,6 +13603,9 @@ MRI *MRIdrand48(int ncols, int nrows, int nslices, int nframes, float min, float
         case MRI_SHORT:
           psmri = (short *)mri->slices[n][r];
           break;
+        case MRI_USHRT:
+          pusmri = (unsigned short *)mri->slices[n][r];
+          break;
         case MRI_INT:
           pimri = (int *)mri->slices[n][r];
           break;
@@ -13188,6 +13624,9 @@ MRI *MRIdrand48(int ncols, int nrows, int nslices, int nframes, float min, float
             break;
           case MRI_SHORT:
             *psmri++ = (short)nint(v);
+            break;
+          case MRI_USHRT:
+            *pusmri++ = (unsigned short)nint(v);
             break;
           case MRI_INT:
             *pimri++ = (int)nint(v);
@@ -13256,6 +13695,7 @@ MRI *MRIconst(int ncols, int nrows, int nslices, int nframes, float val, MRI *mr
   int c, r, s, f, n;
   BUFTYPE *pmri = NULL;
   short *psmri = NULL;
+  unsigned short *pusmri = NULL;
   int *pimri = NULL;
   long *plmri = NULL;
   float *pfmri = NULL;
@@ -13285,6 +13725,9 @@ MRI *MRIconst(int ncols, int nrows, int nslices, int nframes, float val, MRI *mr
         case MRI_SHORT:
           psmri = (short *)mri->slices[n][r];
           break;
+        case MRI_USHRT:
+          pusmri = (unsigned short *)mri->slices[n][r];
+          break;
         case MRI_INT:
           pimri = (int *)mri->slices[n][r];
           break;
@@ -13302,6 +13745,9 @@ MRI *MRIconst(int ncols, int nrows, int nslices, int nframes, float val, MRI *mr
             break;
           case MRI_SHORT:
             *psmri++ = (short)nint(val);
+            break;
+          case MRI_USHRT:
+            *pusmri++ = (unsigned short)nint(val);
             break;
           case MRI_INT:
             *pimri++ = (int)nint(val);
@@ -13346,6 +13792,9 @@ int MRInormalizeSequence(MRI *mri, float target)
             break;
           case MRI_SHORT:
             MRISseq_vox(mri, x, y, z, frame) = MRISseq_vox(mri, x, y, z, frame) / norm;
+            break;
+          case MRI_USHRT:
+            MRIUSseq_vox(mri, x, y, z, frame) = MRIUSseq_vox(mri, x, y, z, frame) / norm;
             break;
           case MRI_FLOAT:
             MRIFseq_vox(mri, x, y, z, frame) /= norm;
@@ -15802,6 +16251,8 @@ const char *MRItype2str(int type)
     return ("uchar");
   case MRI_SHORT:
     return ("short");
+  case MRI_USHRT:
+    return ("ushrt");
   case MRI_INT:
     return ("int");
   case MRI_LONG:

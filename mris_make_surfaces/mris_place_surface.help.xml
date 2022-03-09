@@ -56,6 +56,9 @@
       <argument>--nsmooth nsmooth</argument>
       <explanation>Smooth input surface by number of iterations</explanation>
 
+      <argument>--smooth-after-rip</argument>
+      <explanation>When --nsmooth is used, smooth after ripping </explanation>
+
       <argument>--max-cbv-dist distmm</argument>
       <explanation>Limit distance MRIScomputeBorderValues() can search from the input</explanation>
 
@@ -68,6 +71,9 @@
       <argument>--rip-bg</argument>
       <explanation>Do not move vertices near basal ganglia (as defined by seg)</explanation>
 
+      <argument>--rip-bg-no-annot</argument>
+      <explanation>Do not require surface have an annotation when ripping BG</explanation>
+
       <argument>--no-rip-freeze</argument>
       <explanation>Do NOT move vertices in/near freeze voxels (247 as defined in seg)</explanation>
 
@@ -76,6 +82,9 @@
 
       <argument>--rip-lesion</argument>
       <explanation>Do not move vertices in/near lesions (25 and 57 as defined in seg)</explanation>
+
+      <argument>--rip-overlay surfaceoverlayfile</argument>
+      <explanation>Rip vertices > 0.5 in the surface overlay file</explanation>
 
       <argument>--ripsurface rip-surface</argument>
       <explanation>Use this surface with ripping midline, BG, Freezes, Lesions, and WMSA.</explanation>

@@ -1,0 +1,504 @@
+#!/bin/tcsh -f
+# fs-check-version - sources
+if(-e $FREESURFER_HOME/sources.csh) then
+  source $FREESURFER_HOME/sources.csh
+endif
+
+set VERSION = '$Id$';
+set scriptname = `basename $0`
+
+set outfile = ();
+set subject = ();
+
+set tmpdir = ();
+set cleanup = 1;
+set LF = ();
+
+set inputargs = ($argv);
+set PrintHelp = 0;
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+# Set up log file
+if($#LF == 0) set LF = /dev/null
+if($LF != /dev/null) rm -f $LF
+echo "Log file for fs-check-version" >> $LF
+date  | tee -a $LF
+echo "" | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo "cd `pwd`"  | tee -a $LF
+echo $0 $inputargs | tee -a $LF
+ls -l $0  | tee -a $LF
+echo "" | tee -a $LF
+cat $FREESURFER_HOME/build-stamp.txt | tee -a $LF
+echo $VERSION | tee -a $LF
+uname -a  | tee -a $LF
+echo "pid $$" | tee -a $LF
+if($?PBS_JOBID) then
+  echo "pbsjob $PBS_JOBID"  >> $LF
+endif
+if($?SLURM_JOB_ID) then
+  echo SLURM_JOB_ID $SLURM_JOB_ID >> $LF
+endif
+
+set bstampfile0 = $FREESURFER_HOME/build-stamp.txt
+set bstamp0 = `cat $bstampfile0`
+echo "Current FS Version $bstamp0"| tee -a $LF
+
+# Regardless of how the version is controlled, copy the current 
+# version into the subject if it does not exist
+if($#subject) then
+  # copy bstamp into subject if needed
+  mkdir -p $SUBJECTS_DIR/$subject/scripts
+  set bstampfile = $SUBJECTS_DIR/$subject/scripts/build-stamp.txt
+  if(! -e $bstampfile) then
+    echo "Subject does not have a bstampfile, copying $bstampfile0"
+    cp $bstampfile0 $bstampfile
+  else
+    echo "bstampfile exists $bstampfile"
+  endif
+  set bstamp = `cat $bstampfile`
+  echo "Subject FS Version: $bstamp"
+endif
+
+set fsav = $SUBJECTS_DIR/fs-allowed-versions.txt
+
+#setenv REQUIRE_FS_MATCH freesurfer-local-build-20220204:freesurfer-linux-centos7_x86_64-dev-20220215-f9c46e6:freesurfer-Linux-centos7_x86_64-stable-v6-20161229-80ac5eb:freesurfer-linux-centos7_x86_64-7.2.0-20210720-aa8f76b
+#setenv REQUIRE_FS_MATCH 0
+#setenv REQUIRE_FS_MATCH 1
+
+set match = 0 # Assume the worst
+
+if( ($?REQUIRE_FS_MATCH == 0 && ! -e $fsav)) then
+  echo "No constraints on version because REQ=UnSet and FsVerFile=NotThere" | tee -a $LF
+  set match = 1
+  goto done;
+endif
+
+if($?REQUIRE_FS_MATCH) then
+  if("$REQUIRE_FS_MATCH" == 0) then
+    echo "No constraints on version because REQ=0" | tee -a $LF
+    set match = 1
+    goto done;
+  endif
+ if("$REQUIRE_FS_MATCH" == 1 && $#subject == 0) then
+    echo "No constraints on version because REQ=1 but Subject=UnSpec" | tee -a $LF
+    set match = 1
+    goto done;
+  endif
+ if("$REQUIRE_FS_MATCH" == 2 && $#subject == 0 && ! -e $fsav) then
+    echo "No constraints on version because REQ=2 and fsav=NotThere and Subject=UnSpec" | tee -a $LF
+    set match = 1
+    goto done;
+  endif
+else
+  # REQ is not set, so set it to NotSet for convenience
+  setenv REQUIRE_FS_MATCH NotSet
+endif
+
+# Never gets here if REQ=0 
+
+if("$REQUIRE_FS_MATCH" == 1 || ("$REQUIRE_FS_MATCH" == 2 && ! -e $fsav) ) then
+  # Revert outcome
+  if($#subject) then
+    if("$bstamp0" != "$bstamp") then
+      echo "ERROR: subject and FreeSurfer build stamps do not match and a match is required"|& tee -a $LF
+      set match = 0
+      goto done;
+    else
+      echo "Current FreeSurfer build stamp matches that in subject" |& tee -a $LF
+      set match = 1
+      goto done;
+    endif
+  endif
+endif
+
+if("$REQUIRE_FS_MATCH" != 0 && "$REQUIRE_FS_MATCH" != 1 &&\
+   "$REQUIRE_FS_MATCH" != 2 && "$REQUIRE_FS_MATCH" != NotSet) then
+  # Only gets here if REQUIRE_FS_MATCH was set but is not 0 or 1 or 2, so interpet it
+  # as a list of one or more acceptable versions separated by colons (:)
+  # eg, freesurfer-local-build-20220204:freesurfer-linux-centos7_x86_64-dev-20220215-f9c46e6
+  set verlist = (`echo $REQUIRE_FS_MATCH | sed 's/:/ /g'`)
+  foreach ver ($verlist)
+    if("$ver" == "$bstamp0") then
+      echo "found a match with current FS version in REQUIRE_FS_MATCH" |& tee -a $LF
+      set match = 1;
+      goto done;
+    endif
+  end
+  # default is match=0 above, so not match if it gets here
+  echo "ERROR: could not find a match with current FS version in REQUIRE_FS_MATCH"|& tee -a $LF
+  echo "  Options are:"|& tee -a $LF
+  foreach ver ($verlist)
+    echo "   $ver $bstamp0"|& tee -a $LF
+  end
+  goto done;
+endif
+
+if(-e $fsav && ("$REQUIRE_FS_MATCH" == 2 || "$REQUIRE_FS_MATCH" == NotSet) ) then
+  set verlist = (`cat $fsav`)
+  echo FSAV $verlist | tee -a $LF
+  foreach ver ($verlist)
+    if("$ver" == "$bstamp0") then
+      echo "found a match with current FS version in $fsav"|& tee -a $LF
+      set match = 1;
+      goto done;
+    endif
+  end
+  # default is match=0 above, so not match if it gets here
+  echo "ERROR: could not find a match with current FS version in $fsav"|& tee -a $LF
+  echo "  Options are:"|& tee -a $LF
+  foreach ver ($verlist)
+    echo "   $ver $bstamp0"|& tee -a $LF
+  end
+  goto done;
+endif
+
+date  |& tee -a $LF
+echo "ERROR: fs-check-version should never get here" |& tee -a $LF
+echo "FREESURFER_HOME $FREESURFER_HOME" |& tee -a $LF
+echo "SUBJECTS_DIR $SUBJECTS_DIR" |& tee -a $LF
+echo "  fs-check-verion $inputargs" |& tee -a $LF
+if($#subject) then
+  echo "  subject $subject" |& tee -a $LF
+else
+  echo "  subject not specified" |& tee -a $LF
+endif
+echo "  REQ = $REQUIRE_FS_MATCH" |& tee -a $LF
+echo "  fsav $fsav" |& tee -a $LF
+if(-e $fsav) then
+  echo "  fsav exists" |& tee -a $LF
+else
+  echo "  fsav does not exist" |& tee -a $LF
+endif
+exit 1;
+
+done:
+
+# Put match value in outfile
+echo $match > $outfile
+
+echo "#@#% fs-check-version match = $match"|& tee -a $LF
+echo "fs-check-version Done" |& tee -a $LF
+exit 0
+
+###############################################
+
+############--------------##################
+error_exit:
+echo "ERROR:"
+
+exit 1;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--o":
+      if($#argv < 1) goto arg1err;
+      set outfile = $argv[1]; shift;
+      breaksw
+
+    case "--s":
+      if($#argv < 1) goto arg1err;
+      set subject = $argv[1]; shift;
+      breaksw
+
+    case "--sd":
+      if($#argv < 1) goto arg1err;
+      setenv SUBJECTS_DIR $argv[1]; shift;
+      breaksw
+
+    case "--require-match":
+      setenv REQUIRE_FS_MATCH 1
+      breaksw
+
+    case "--no-require-match":
+      setenv REQUIRE_FS_MATCH 0
+      breaksw
+
+    case "--test":
+    case "--test-debug":
+      set bstampfile0 = $FREESURFER_HOME/build-stamp.txt
+      set bstamp0 = `cat $bstampfile0`
+      set checkfile = `fs_temp_file`
+      setenv SUBJECTS_DIR /tmp/fs-check-version-test-$$
+      mkdir -p $SUBJECTS_DIR
+      set fsav = $SUBJECTS_DIR/fs-allowed-versions.txt
+      @ err = 0
+      foreach subject (nosubject mysubject mysubject-match mysubject-nomatch)
+        # nosubject = no subject passed to fs-check-version
+        # mysubject = subject passed but no buildstamp file
+        # mysubject-match = subject passed and has matching buildstamp file
+        # mysubject-nomatch = subject passed and has buildstamp file but does not match
+        foreach req (0 1 2 3 4 5 6 7) 
+          # req=0 REQUIRE_FS_MATCH = 0
+          # req=1 REQUIRE_FS_MATCH = 1
+          # req=2 REQUIRE_FS_MATCH = 2
+          # req=3 REQUIRE_FS_MATCH unset
+          # req=4 REQUIRE_FS_MATCH set to matching version
+          # req=5 REQUIRE_FS_MATCH set to non-matching version
+          # req=6 REQUIRE_FS_MATCH unset and fs-allowed-versions.txt set to match
+          # req=7 REQUIRE_FS_MATCH unset and fs-allowed-versions.txt set to non-match
+          rm -rf $SUBJECTS_DIR/$subject
+          rm -f $fsav      
+          echo "\n\n"
+          echo "s = $subject REQ = $req ==================================="
+          setenv REQUIRE_FS_MATCH $req
+          set matchexp = 1
+          if(($req == 1 || $req == 2) && $subject == mysubject-nomatch) set matchexp = 0
+          if("$req" == "3") unsetenv REQUIRE_FS_MATCH
+          if("$req" == "4") setenv REQUIRE_FS_MATCH $bstamp0
+          if("$req" == "5") then
+            setenv REQUIRE_FS_MATCH ver-nomatch
+            set matchexp = 0
+          endif
+          if("$req" == "6") then
+            unsetenv REQUIRE_FS_MATCH 
+            echo $bstamp0 > $fsav
+            set matchexp = 1
+          endif
+          if("$req" == "7") then
+            unsetenv REQUIRE_FS_MATCH 
+            echo ver-nomatch > $fsav
+            set matchexp = 0
+          endif
+          rm -f $checkfile
+          set cmd = (fs-check-version --o $checkfile)
+          if($subject != nosubject) then
+            mkdir -p $SUBJECTS_DIR/$subject/scripts
+            set bstampfile = $SUBJECTS_DIR/$subject/scripts/build-stamp.txt
+            rm -f $bstampfile
+            if(-e $bstampfile) then
+              echo "exists0 $bstampfile"
+            endif
+            if("$subject" == "mysubject-match") then
+              echo $bstamp0    > $bstampfile
+            endif
+            if("$subject" == "mysubject-nomatch") then
+              echo ver-nomatch > $bstampfile
+            endif
+            set cmd = ($cmd --s $subject)
+          endif
+          if("$flag" == "--test-debug") set cmd = ($cmd --debug)
+          $cmd
+          if($status) exit 1;
+          set match = `cat $checkfile`
+          if($match != $matchexp) then
+            echo "\n\n"
+            echo "TEST ERROR: s = $subject REQ = $req m=$match mexp=$matchexp"
+            echo "setenv SUBJECTS_DIR $SUBJECTS_DIR"
+            echo "$cmd"
+            echo "\n\n"
+            @ err = $err + 1
+            exit 1
+          endif
+        end # req
+      end # subject
+      echo "Found $err errors"
+      if($err == 0) rm -r $SUBJECTS_DIR $checkfile
+      exit $err
+      breaksw
+
+    case "--log":
+      if($#argv < 1) goto arg1err;
+      set LF = $argv[1]; shift;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#outfile == 0) then
+  echo "ERROR: must spec out file"
+  exit 1;
+endif
+
+if($#subject) then
+  if(! -e $SUBJECTS_DIR/$subject) then
+    echo "ERROR: cannot find $subject"
+    exit 1;
+  endif
+endif
+
+rm -f $outfile
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "fs-check-version"
+  echo " --sd SUBJECTS_DIR"
+  echo " --o outfile"
+  echo " --s subject (optional)"
+  echo " --require-match, --no-require-match : set or unset REQUIRE_FS_MATCH for testing"
+  echo " --test, --test-debug : go through permutations"
+
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+This script manages which version of freesurfer can be used to analyze
+data in an effort to make sure that all data are analyzed with the
+desired version of FS.  The idea is that the build stamp of the
+currently sourced version of FS needs to match that of some
+specification. If there is a match, then a 1 will be put into the
+output text file, otherwise it will have a 0. This functionality
+can allow a match to more than one version to handle cases where
+multiple version of FS will give the same answer. This can happen
+when you want to upgrade to a new version of FS because it has
+some new functionality.
+
+Version information can be found in $FREESURFER_HOME/build-stamp.txt
+
+The specification can take one of two forms:
+
+Setting environment variable REQUIRE_FS_MATCH and/or creating a file
+called $SUBJECTS_DIR/fs-allowed-versions.txt
+
+REQUIRE_FS_MATCH has been in all versions of FS whereas
+fs-allowed-versions.txt is new to 7.3+.
+
+If REQUIRE_FS_MATCH is set to 0 or 1, then it defaults to the standard
+behavior of pre-7.3 versions, ie, if 0, then there are no constraints
+and the output file will contain 1. If 1, then this script checks the
+build stamp found in $SUBJECTS_DIR/$subject/scripts/build-stamp.txt.
+If it matches the current version, then the output file will contain
+1, otherwise 0. If that file does not exist, the current build stamp
+is copied into it (regardless of REQUIRE_FS_MATCH).  If a subject is
+not specified, then other criteria area used to determine whether
+there is match.
+
+With 7.3+ versions, REQUIRE_FS_MATCH can be set to 2. If
+fs-allowed-versions.txt does not exist, then it has the same
+behavior as if it were set to 1. This allows some slight backwards
+compatibility in that pre-7.3 versions will treat 2 the same as 1 (but 
+will not be aware of the fs-allowed-versions.txt file). 
+
+With 7.3+ versions, REQUIRE_FS_MATCH can be set to a colon separaeted
+list of allowable versions. If the current FS version must matche ones
+of them. This will not be compatable with pre-7.3 versions (recon-all
+will crash).
+
+In 7.3+, if REQUIRE_FS_MATCH is not set or is set to 2 and
+fs-allowed-versions.txt exists, then a list of one or more
+versions is read from that file. The current FS version must match one
+of them.
+
+Below is some logic used to help program
+
+REQ 5 states:       NotSet, 0, 1, 2, or VerList
+FsVerFile 2 states: There or NotThere
+Subject 2 states:   Speced or UnSpeced
+5x2x2 = 20 possible branches
+
+PrevBehav = if subject version exists, requires a match with current version
+
+Regardless of which fork gets taken, copy current version into subject
+if the version file if the subject does not exist (part of previous
+behavior). 
+
+REQ=NotSet AND FsVerFile=NotThere
+- no constraints regardless of Subject
+
+REQ=0 
+- no constraints regardless of FsVerFile and Subject
+
+REQ=1 AND
+  Subject=Speced 
+   - reverts to previous behavior regardless of FsVerFile
+  Subject=UnSpeced 
+   - no constraints regardless of FsVerFile (same as prev behav)
+
+REQ=VerList
+- requires match with VerList regardless of FsVerFile and Subject
+
+REQ=2 AND
+ FsVerFile=NotThere
+  - reverts to previous behavior (like REQ=1)
+    - continues to behave in the same as REQ=1 in pre-7.3
+ FsVerFile=There
+  - requires a match with versions in the FsVerFile regardless of Subject
+
+FsVerFile=There AND (REQ=NotSet OR REQ=2)
+  - requires a match with versions in the FsVerFile regardless of Subject
+
+Outcomes:
+
+No constraints: (REQ=0 OR (REQ=NotSet AND FsVerFile=NotThere) OR (REQ=1 AND Subject=Unspeced))
+
+Reverts: (REQ=1 OR (REQ=2 AND FsVerFile=NotThere))
+
+VerList in REQ: (REQ!=0 AND REQ!=1 AND REQ!=2 AND AND REQ is set)
+
+FsVerFile: (REQ=NotSet OR REQ=2) AND FsVerFile=There
+
+
+Use cases:
+
+Have several studies which use different version. Have REQ=1 set in
+cshrc file. This simply breaks any mixed version. Can change it to
+REQ=2 and it will behave the same in pre-7.3 versions but allows new
+behavior in 7.3+ versions.
+
+Starting a new study in 7.3+. Can use REQ=1 or REQ=2 or REQ=ver or FsVerFile.
+
+Have data analyzed in 7.2 but using 7.3 too. Can set REQ=2 to have the same behavior
+in 7.2 but new behavior in 7.3. Howver, if analyzed a subject in 7.3, then it would 
+fail if tried to run in 7.2 regardless.
+
+
+
+
+

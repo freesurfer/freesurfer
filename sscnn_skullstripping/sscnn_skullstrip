@@ -43,7 +43,9 @@ os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
 os.environ['CUDA_VISIBLE_DEVICES'] = str(args.gpu)
 
 # get model files
-model_dir = os.path.join(fs.fshome(), 'average', 'sscnn_skullstripping')
+model_dir = os.environ.get('SSCNN_MODEL_DIR')
+if model_dir is None:
+    model_dir = os.path.join(fs.fshome(), 'average', 'sscnn_skullstripping')
 if not os.path.exists(model_dir):
     model_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'model_files')
 if not os.path.exists(model_dir):

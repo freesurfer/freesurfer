@@ -30,7 +30,7 @@
 #include "version.h"
 #include "label.h"
 #include "mri_identify.h"
-
+#include "colortab.h"
 
 int main(int argc, char *argv[]) ;
 
@@ -41,6 +41,7 @@ static void print_version(void) ;
 
 const char *Progname ;
 
+static int segment_rois = 0 ;
 static  float  thresh =  0.99 ;
 
 int
@@ -88,9 +89,40 @@ main(int argc, char *argv[]) {
       v->val = 1 ;
   }
 
-  if (mri_identify(wfile_name) == MGH_LABEL_FILE)
+  if (segment_rois)
+  {
+    int   nlabels, lno, num, vno ;
+    LABEL    **labels ;
+
+    MRISthresholdValIntoMarked(mris, thresh) ;
+    MRISsegmentMarked(mris, &labels, &nlabels, 1) ;
+    printf("%d labels total\n", nlabels) ;
+    for (num = lno = 0 ; lno < nlabels ; lno++)
+    {
+      if (labels[lno]->n_points >= segment_rois)
+      {
+	if (num == 0)
+	  printf("vertex %d gets annotation %d\n",  labels[lno]->lv[0].vno, num+1);
+	for (vno = 0 ; vno < labels[lno]->n_points ; vno++)
+	{
+	  mris->vertices[labels[lno]->lv[vno].vno].annotation = num+1 ;
+	}
+
+	char fname[STRLEN] ;
+	sprintf(fname, "flat%3.3d.label", num) ;
+	num++ ;
+	//LabelWrite(labels[lno], fname) ;
+      }
+    }
+    printf("%d labels found. Writing annotation to %s\n", num, wfile_name) ;
+    mris->ct = CTABalloc(num+1) ;
+    CTABrandom(mris->ct) ;
+    MRISwriteAnnotation(mris, wfile_name) ;
+  }
+  else if (mri_identify(wfile_name) == MGH_LABEL_FILE)
   {
     LABEL *area ;
+
     area = LabelFromSurface(mris, VERTEX_VALS, .9) ;
     LabelWrite(area, wfile_name) ;
   }
@@ -117,6 +149,11 @@ get_option(int argc, char *argv[]) {
   else if (!stricmp(option, "-version"))
     print_version() ;
   else switch (toupper(*option)) {
+    case 'S':
+      segment_rois  = atoi(argv[2]) ;
+      nargs = 1 ;
+      printf("segmenting surface into ROIs with at least %d vertices\n", segment_rois) ;
+      break ;
     case '?':
     case 'U':
       print_usage() ;

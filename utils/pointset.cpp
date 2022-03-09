@@ -1,5 +1,6 @@
 #include <fstream>
 
+#include "json.h"
 #include "pointset.h"
 
 
@@ -7,7 +8,7 @@
 /// TODO: support the .dat output format as well and
 /// use json.h instead of hard-coding this stuff
 
-bool PointSet::save(std::string filename)
+bool fsPointSet::save(std::string filename)
 {
   std::ofstream jsonfile;
   jsonfile.open(filename);
@@ -43,7 +44,7 @@ bool PointSet::save(std::string filename)
 }
 
 // Save in control point format, v6 compatible
-bool PointSet::save_as_ctrlpoint(std::string filename)
+bool fsPointSet::save_as_ctrlpoint(std::string filename)
 {
   std::ofstream ctrpfile;
   ctrpfile.open(filename);
@@ -59,3 +60,25 @@ bool PointSet::save_as_ctrlpoint(std::string filename)
   return true;
 }
 
+
+fsPointSet loadfsPointSet(std::string filename)
+{
+  // read the JSON file from stream
+  std::ifstream is(filename);
+  nlohmann::json j;
+  is >> j;
+
+  // init pointset 
+  fsPointSet ps = fsPointSet();
+
+  // get space
+  ps.vox2ras = j["vox2ras"];
+
+  // get point data
+  for (nlohmann::json point : j["points"]) {
+    nlohmann::json coord = point["coordinates"];
+    ps.add(coord["x"], coord["y"], coord["z"], point["legacy_stat"]);
+  }
+
+  return ps;
+}

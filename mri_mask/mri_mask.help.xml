@@ -52,6 +52,8 @@
       <explanation>Create and extract data from a bounding box around the mask. The bounding box is expanded by npad[X] voxels in each direction. npad should be at least 1 to avoid clipping</explanation>
       <argument>-abs</argument>
       <explanation>take abs() before applying threshold</explanation>
+      <argument>-invert, -no-invert</argument>
+      <explanation>Invert mask (or turn off inversion)</explanation>
       <argument>-rh</argument>
       <explanation>set mask in rh labels to 1 (assumes input mask is an aseg)</explanation>
       <argument>-lh</argument>

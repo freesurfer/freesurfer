@@ -23,6 +23,7 @@ set DoAparcStats = 1
 set DoAsegStats = 1
 set DoWMParcStats = 1
 set SrcSurfReg = sphere.reg
+set Replace53 = "--replace53"
 
 set inputargs = ($argv);
 set PrintHelp = 0;
@@ -146,7 +147,7 @@ foreach aparc ($aparclist)
           endif
         else
           set cmd = (asegstats2table --subjects $slist -m mean -t $outfile \
-            --no-segno 0 1000 2000 --statsfile=$hemi.w-g.pct.stats)
+            --no-segno 0 1000 2000 --statsfile=$hemi.w-g.pct.stats $Replace53)
           echo "#C# $cmd"  | tee -a $LF
           $cmd | tee -a $LF
           if($status) exit 1;
@@ -187,7 +188,7 @@ foreach hemi ($hemilist other)
     if($meas == mean) set outfile = $outdir/rois/aseg.$hemi.intensity.dat
     if(! -e $outfile || $OverWrite) then
       set cmd = (asegstats2table --subjects $slist -m $meas -t $outfile \
-        --segno `cat $segidlist`)
+        --segno `cat $segidlist` $Replace53)
       echo "#C# $cmd" | tee -a $LF
       $cmd | tee -a $LF
       if($status) exit 1
@@ -208,7 +209,7 @@ set segids = (`grep -v \# $WMParcLUT | awk '{if($1 >= 3001 && $1 <= 3035 && $1 !
 set outfile =  $outdir/rois/wmparc.vol.dat
 if(! -e $outfile || $OverWrite) then
   set cmd = (asegstats2table --subjects $slist -m volume -t $outfile \
-    --segno $segids --stats=wmparc.stats )
+    --segno $segids --stats=wmparc.stats $Replace53)
   echo "#C# $cmd" | tee -a $LF
   $cmd | tee -a $LF
   if($status) exit 1
@@ -369,6 +370,11 @@ while( $#argv != 0 )
       set DoWMParcStats = 0
       breaksw
 
+    case "--keep53":
+    case "--no-replace53":
+      set Replace53 = ""
+      breaksw
+
     case "--log":
       if($#argv < 1) goto arg1err;
       set LF = $argv[1]; shift;
@@ -472,6 +478,7 @@ usage_exit:
   echo "  --no-wparcstats : do not do wmparcstats"
   echo "  --no-stats : do not do any ROI stats"
   echo "  --new : append .new.mris_make_surfaces to map names"
+  echo "  --keep53 : keep 5.3 aseg names (eg, Thalamus-Proper)"
   echo "  "
 
   if(! $PrintHelp) exit 1;

@@ -78,6 +78,7 @@ class SamsegLongitudinal:
         userOptimizationOptions={},
         visualizer=None, 
         saveHistory=False,
+        saveMesh=None,
         targetIntensity=None,
         targetSearchStrings=None,
         numberOfIterations=5,
@@ -126,6 +127,7 @@ class SamsegLongitudinal:
             self.visualizer = visualizer
 
         self.saveHistory = saveHistory
+        self.saveMesh = saveMesh
         self.saveSSTResults = saveSSTResults
         self.updateLatentMeans = updateLatentMeans
         self.updateLatentVariances = updateLatentVariances
@@ -678,6 +680,31 @@ class SamsegLongitudinal:
             # Save the timepoint->template warp
             if saveWarp:
                 timepointModel.saveWarpField(os.path.join(timepointDir, 'template.m3z'))
+
+            # Save the final mesh collection
+            if self.saveMesh:
+                print('Saving the final mesh in template space')
+                deformedAtlasFileName = os.path.join(timepointModel.savePath, 'mesh.txt')
+                timepointModel.probabilisticAtlas.saveDeformedAtlas(timepointModel.modelSpecifications.atlasFileName,
+                                                                    deformedAtlasFileName, nodePositions)
+
+            # Save the history of the parameter estimation process
+            if self.saveHistory:
+                history = {'input': {
+                    'imageFileNames': timepointModel.imageFileNames,
+                    'imageToImageTransformMatrix': timepointModel.imageToImageTransformMatrix,
+                    'modelSpecifications': timepointModel.modelSpecifications,
+                    'optimizationOptions': timepointModel.optimizationOptions,
+                    'savePath': timepointModel.savePath
+                }, 'imageBuffers': timepointModel.imageBuffers, 'mask': timepointModel.mask,
+                    'cropping': timepointModel.cropping,
+                    'transform': timepointModel.transform.as_numpy_array,
+                    'historyWithinEachMultiResolutionLevel': timepointModel.optimizationHistory,
+                    "labels": timepointModel.modelSpecifications.FreeSurferLabels, "names": timepointModel.modelSpecifications.names,
+                    "volumesInCubicMm": volumesInCubicMm, "optimizationSummary": timepointModel.optimizationSummary}
+                with open(os.path.join(timepointModel.savePath, 'history.p'), 'wb') as file:
+                    pickle.dump(history, file, protocol=pickle.HIGHEST_PROTOCOL)
+            
 
             self.timepointVolumesInCubicMm.append(volumesInCubicMm)
 

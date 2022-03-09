@@ -1221,14 +1221,14 @@ int LayerSurface::GetVertexIndexAtTarget( double* pos, double* distance, int sur
   return m_surfaceSource->FindVertexAtRAS( realRas, distance, surface_type );
 }
 
-bool LayerSurface::GetRASAtVertex( int nVertex, double* ras )
+bool LayerSurface::GetRASAtVertex( int nVertex, double* ras, int surface_type )
 {
   if ( m_surfaceSource == NULL )
   {
     return false;
   }
 
-  return m_surfaceSource->GetRASAtVertex( nVertex, ras );
+  return m_surfaceSource->GetRASAtVertex( nVertex, ras, surface_type );
 }
 
 void LayerSurface::GetSurfaceRASAtTarget( double* pos_in, double* ras_out )
@@ -1314,24 +1314,27 @@ int LayerSurface::GetVertexAtSurfaceRAS(double *ras, double *distance)
   return m_surfaceSource->FindVertexAtSurfaceRAS(ras, distance);
 }
 
-bool LayerSurface::GetTargetAtVertex( int nVertex, double* ras )
+bool LayerSurface::GetTargetAtVertex( int nVertex, double* ras, int surface_type )
 {
   if ( m_surfaceSource == NULL )
   {
     return false;
   }
 
-  bool bRet = m_surfaceSource->GetRASAtVertex( nVertex, ras );
+  bool bRet = m_surfaceSource->GetRASAtVertex( nVertex, ras, surface_type );
   if ( bRet )
   {
     //m_volumeRef->RASToTarget( ras, ras );
     m_surfaceSource->ConvertRASToTarget(ras, ras);
   }
 
-  double* offset = GetProperty()->GetPosition();
-  for ( int i = 0; i < 3; i++ )
+  if (surface_type == m_nCurrentVertex || surface_type == -1)
   {
-    ras[i] += offset[i];
+    double* offset = GetProperty()->GetPosition();
+    for ( int i = 0; i < 3; i++ )
+    {
+      ras[i] += offset[i];
+    }
   }
 
   return bRet;
@@ -2282,7 +2285,8 @@ bool LayerSurface::GetCorrelationOverlayDataAtVertex(int nVert, float *output, i
 
 bool LayerSurface::IsInflated()
 {
-  return (GetFileName().toLower().contains("inflated") || GetActiveSurface() == FSSurface::SurfaceInflated);
+  return (QFileInfo(GetFileName()).fileName().toLower().contains("inflated") ||
+          GetActiveSurface() == FSSurface::SurfaceInflated);
 }
 
 bool LayerSurface::GetActiveLabelCentroidPosition(double *pos)
@@ -2398,6 +2402,13 @@ bool LayerSurface::LoadRGBFromFile(const QString &filename)
         for (int j = 0; j < 3; j++)
           map.data << MRISseq_vox( mri, i, j, 0, 0 );
       break;
+
+    case MRI_USHRT:
+      for (int i = 0; i < GetNumberOfVertices(); i++)
+        for (int j = 0; j < 3; j++)
+          map.data << MRIUSseq_vox( mri, i, j, 0, 0 );
+      break;
+
     default:
       MRIfree(&mri);
       return false;
@@ -3202,4 +3213,20 @@ void LayerSurface::GetCenterOfActor(double *pt)
 
     bbox.GetCenter(pt);
   }
+}
+
+bool LayerSurface::SavePathAsControlPoints(const QString& fn, bool bMarks)
+{
+  SurfacePath* sp = NULL;
+  if (bMarks)
+  {
+    sp = m_marks;
+  }
+  else if (!m_paths.isEmpty())
+    sp = GetActivePath();
+
+  if (sp)
+    return sp->SaveAsControlPoints(fn);
+  else
+    return false;
 }

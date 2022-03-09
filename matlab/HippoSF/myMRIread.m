@@ -537,6 +537,7 @@ MRI_LONG =   2 ;
 MRI_FLOAT =  3 ;
 MRI_SHORT =  4 ;
 MRI_BITMAP = 5 ;
+MRI_USHRT = 10 ;
 
 % Determine number of bytes per voxel
 switch type
@@ -545,6 +546,8 @@ switch type
     case MRI_UCHAR,
         nbytespervox = 1;
     case MRI_SHORT,
+        nbytespervox = 2;
+    case MRI_USHRT,
         nbytespervox = 2;
     case MRI_INT,
         nbytespervox = 4;
@@ -572,6 +575,8 @@ if(slices(1) <= 0 & frames(1) <= 0)
             vol = fread(fid, nv, 'uchar') ;
         case MRI_SHORT,
             vol = fread(fid, nv, 'short') ;
+        case MRI_USHRT,
+            vol = fread(fid, nv, 'uint16') ;    
         case MRI_INT,
             vol = fread(fid, nv, 'int') ;
     end
@@ -620,6 +625,8 @@ for frame = frames
                 [tmpslice nread]  = fread(fid, nvslice, 'uchar') ;
             case MRI_SHORT,
                 [tmpslice nread]  = fread(fid, nvslice, 'short') ;
+            case MRI_USHRT,
+                [tmpslice nread]  = fread(fid, nvslice, 'uint16') ;
             case MRI_INT,
                 [tmpslice nread]  = fread(fid, nvslice, 'int') ;
         end

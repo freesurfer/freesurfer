@@ -5,5 +5,5 @@ install_pyscript(
   run_samseg
   run_samseg_long
   sbtiv
-  gems_compute_binary_atlas_probs
+  gems_compute_atlas_probs
 )
