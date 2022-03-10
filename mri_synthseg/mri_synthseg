@@ -75,7 +75,7 @@ def main():
         segmentation_label_names = os.path.join(fs.fshome(), 'models', 'synthseg_segmentation_names.npy')
         topology_classes = os.path.join(fs.fshome(), 'models', 'synthseg_topological_classes.npy')
         if args.robust:
-            path_model = os.path.join(fs.fshome(), 'models', 'synthseg_plus_1.0.h5')
+            path_model = os.path.join(fs.fshome(), 'models', 'synthseg_robust_1.0.h5')
         else:
             path_model = os.path.join(fs.fshome(), 'models', 'synthseg_1.0.h5')
 
