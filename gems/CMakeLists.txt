@@ -102,10 +102,6 @@ target_link_libraries(kvlGEMSCommon ${ITK_LIBRARIES} ${ZLIB_LIBRARIES})
 
 # gems library with dynamic meshes.  Needed for `kvlBuildAtlasMesh` but causes
 # samseg to run slower, so only use when nessesary.
-#add_definitions(-DUSE_DYNAMIC_MESH)
-#add_library(kvlGEMSCommon_dynmesh ${SOURCES})
-#target_link_libraries(kvlGEMSCommon_dynmesh ${ITK_LIBRARIES} ${ZLIB_LIBRARIES})
-
 add_library(kvlGEMSCommon_dynmesh ${SOURCES})
 target_compile_definitions(kvlGEMSCommon_dynmesh PRIVATE -DUSE_DYNAMIC_MESH)
 target_link_libraries(kvlGEMSCommon_dynmesh ${ITK_LIBRARIES} ${ZLIB_LIBRARIES})
