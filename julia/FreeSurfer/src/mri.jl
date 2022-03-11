@@ -277,7 +277,12 @@ function MRI(ref::MRI, nframes::Integer=ref.nframes)
   end
 
   mri.nframes = nframes
-  mri.vol = zeros(Float32, ref.volsize..., nframes)
+
+  if nframes == 1
+    mri.vol = zeros(Float32, ref.volsize...)
+  else
+    mri.vol = zeros(Float32, ref.volsize..., nframes)
+  end
   
   return mri
 end
