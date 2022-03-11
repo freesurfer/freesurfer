@@ -13,7 +13,7 @@
 =#
  
 #=
-  File i/o based on MATLAB code by Doug Greve, Bruce Fischl:
+  File i/o for nii/mgh files based on MATLAB code by Doug Greve, Bruce Fischl:
     MRIfspec.m
     MRIread.m
     MRIwrite.m
@@ -546,210 +546,403 @@ end
 """
     mri_read(infile::String, headeronly::Bool=false, permuteflag::Bool=false)
 
-Read a volume from disk and return an `MRI` structure similar to the FreeSurfer
-MRI struct defined in mri.h.
+Read an image volume from disk and return an `MRI` structure similar to the
+FreeSurfer MRI struct defined in mri.h.
 
 # Arguments
-- `infile::String`: Path to the input file, which can be:
+- `infile::String`: Path to the input, which can be:
   1. An MGH file, e.g., f.mgh or f.mgz
   2. A NIfTI file, e.g., f.nii or f.nii.gz
   3. A file stem, in which case the format and full file name are determined
      by finding a file on disk named `infile`.{mgh, mgz, nii, nii.gz}
+  4. A Bruker scan directory, which is expected to contain the following files:
+     method, pdata/1/reco, pdata/1/2dseq
 
 - `headeronly::Bool=false`: If true, the pixel data are not read in.
 
-- `permuteflag::Bool==false`: If true the first two dimensions of the image
+- `permuteflag::Bool==false`: If true, the first two dimensions of the image
   volume are permuted in the .vol, .volsize, and .volres fields of the output
   structure (this is the default behavior of the MATLAB version). The
-  `permuteflag` will not affect the vox2ras fields.
+  `permuteflag` will not affect the vox2ras matrices, which always map indices
+  in the (column, row, slice) convention.
 
-In the output structure, times are in ms and angles are in radians. The
-.vox2ras0 field contains the vox2ras matrix that converts 0-based (column, row,
-slice) indices to x, y, z coordinates. The .vox2ras1 field contains the same
-for 1-based (column, row, slice) indices.
+# Output
+In the `MRI` structure:
+- Times are in ms and angles are in radians.
 
-If the input file is NIfTI, the output `MRI` structure contains a `NIfTIheader`
-object in its .niftihdr field.
+- `vox2ras0`: This field contains the vox2ras matrix that converts 0-based
+  (column, row, slice) voxel indices to (x, y, z) coordinates. This is the also
+  the matrix that mri_write() uses to derive all geometry information
+  (e.g., direction cosines, voxel resolution, P0). Thus if any other geometry
+  fields of the structure are modified, the change will not be reflected in
+  the output volume.
+
+- `vox2ras1`: This field contains the vox2ras matrix that converts 1-based
+  (column, row, slice) voxel indices to (x, y, z) coordinates.
+
+- `niftihdr`: If the input file is NIfTI, this field contains a `NIfTIheader`
+  structure.
 """
 function mri_read(infile::String, headeronly::Bool=false, permuteflag::Bool=false)
 
   mri = MRI()
 
-  (fname, fstem, fext) = mri_filename(infile)
-  if isempty(fname) 
-    error("Cannot determine format of " * infile)
-  end
-
-  if any(cmp.(fext, ["mgh", "mgz"]) .== 0)		#-------- MGH --------#
-    (mri.vol, M, mr_parms, volsz) = 
-     load_mgh(fname, nothing, nothing, headeronly)
-
-    if isempty(M)
-      error("Loading " * fname * " as MGH")
+  if isdir(infile)					#------ Bruker -------#
+    mri = load_bruker(infile)
+  else
+    (fname, fstem, fext) = mri_filename(infile)
+    if isempty(fname) 
+      error("Cannot determine format of " * infile)
     end
 
-    if isempty(mr_parms)
-      tr = flip_angle = te = ti = 0.0
+    mri.fspec = fname
+    mri.pwd = pwd()
+
+    if any(fext .== ["mgh", "mgz"])			#-------- MGH --------#
+      (mri.vol, M, mr_parms, volsz) = 
+       load_mgh(fname, nothing, nothing, headeronly)
+
+      if !isempty(mr_parms)
+        (mri.tr, mri.flip_angle, mri.te, mri.ti) = mr_parms
+      end
+
+      if isempty(M)
+        error("Loading " * fname * " as MGH")
+      else
+        mri.vox2ras0 = M
+      end
+
+      mri.volsize = volsz[1:3]
+      mri.nframes = length(volsz) < 4 ? 1 : volsz[4]
+    elseif any(fext .== ["nii", "nii.gz"])		#------- NIfTI -------#
+      hdr = load_nifti(fname, headeronly)
+
+      if !headeronly && isempty(hdr.vol)
+        error("Loading " * fname * " as NIfTI")
+      end
+
+      # Compatibility with MRIread.m:
+      # When data have > 4 dims, put all data into dim 4.
+      volsz = hdr.dim[2:end]
+      volsz = volsz[volsz.>0]
+      volsz = Int.(volsz)
+      if headeronly
+        mri.vol = []
+      else
+        mri.vol = hdr.vol
+
+        if length(volsz) > 4
+          mri.vol = reshape(mri.vol, volsz[1], volsz[2], volsz[3], :)
+        end
+      end
+
+      hdr.vol = []		# Already have it above, so clear it 
+      mri.niftihdr = hdr
+
+      mri.tr = hdr.pixdim[5]	# Already in msec
+
+      mri.flip_angle = mri.te = mri.ti = 0
+
+      mri.vox2ras0 = hdr.vox2ras
+
+      mri.volsize = volsz[1:3]
+      mri.nframes = length(volsz) < 4 ? 1 : volsz[4]
     else
-      (tr, flip_angle, te, ti) = mr_parms
-    end
-  elseif any(cmp.(fext, ["nii", "nii.gz"]) .== 0)	#------- NIfTI -------#
-    hdr = load_nifti(fname, headeronly)
-
-    if !headeronly && isempty(hdr.vol)
-      error("Loading " * fname * " as NIfTI")
+      error("File extension " * fext * " not supported")
     end
 
-    # Compatibility with MRIread.m:
-    # When data have > 4 dims, put all data into dim 4.
-    volsz = hdr.dim[2:end]
-    volsz = volsz[volsz.>0]
-    volsz = Int.(volsz)
-    if headeronly
-      mri.vol = []
-    else
-      mri.vol = hdr.vol
+    # Optional DWI tables -----------------------------------------------#
 
-      if length(volsz) > 4
-        mri.vol = reshape(mri.vol, volsz[1], volsz[2], volsz[3], :)
+    bfile = fstem * ".bvals"
+
+    if ~isfile(bfile)
+      bfile = fstem * ".bval"
+
+      if ~isfile(bfile)
+        bfile = ""
       end
     end
 
-    tr = hdr.pixdim[5]	# Already msec
-    flip_angle = 0
-    te = 0
-    ti = 0
-    hdr.vol = []	# Already have it above, so clear it 
-    M = hdr.vox2ras
+    gfile = fstem * ".bvecs"
 
-    mri.niftihdr = hdr
-  else
-    error("File extension " * fext * " not supported")
+    if ~isfile(gfile)
+      gfile = fstem * ".bvec"
+
+      if ~isfile(gfile)
+        gfile = ""
+      end
+    end
+
+    if ~isempty(bfile) && ~isempty(gfile)
+      (b, g) = mri_read_bfiles(bfile, gfile)
+
+      if length(b) == mri.nframes
+        mri.bval = b
+        mri.bvec = g
+      end
+    end
   end
 
+  # Dimensions not redundant when using header only
+  (mri.width, mri.height, mri.depth) = collect(mri.volsize)
+
+  # Set additional header fields related to volume geometry
+  mri_set_geometry!(mri)
+
+  # Permute volume from col-row-slice to row-col-slice, if desired
+  # (This is the default behavior in the MATLAB version, but not here)
   if permuteflag
     mri.vol = permutedims(mri.vol, [2; 1; 3:ndims(mri.vol)])
+    mri.volsize = mri.volsize[[2,1,3]]
+    mri.volres = mri.volres[[2,1,3]]
     mri.ispermuted = true
   end
 
-  mri.fspec = fname
-  mri.pwd = pwd()
+  return mri
+end
 
-  mri.flip_angle = flip_angle
-  mri.tr = tr
-  mri.te = te
-  mri.ti = ti
 
-  # Assumes indices are 0-based. See vox2ras1 below for 1-based.  Note:
-  # mri_write() derives all geometry information (ie, direction cosines,
-  # voxel resolution, and P0 from vox2ras0. If you change other geometry
-  # elements of the structure, it will not be reflected in the output
-  # volume. Also note that vox2ras always maps Col-Row-Slice, even if
-  # the vol matrix has been permuted and is therefore Row-Col-Slice. 
-  mri.vox2ras0 = M; 
+"""
+    mri_set_geometry!(mri::MRI)
 
-  # Dimensions not redundant when using header only
-  for k in (length(volsz)+1):4	# Make sure all 4 dims are represented
-    push!(volsz, 1)
-  end
-  mri.width   = volsz[1]
-  mri.height  = volsz[2]
-  mri.depth   = volsz[3]
-  mri.nframes = volsz[4]
+Set header fields related to volume geometry in an `MRI` structure.
 
-  if mri.ispermuted
-    mri.volsize = volsz[[2,1,3]]
-  else
-    mri.volsize = volsz[1:3]
-  end
+These are redundant fields that can be derived from the `vox2ras0`,
+`width`, `height`, `depth` fields. They are in the MRI struct defined
+in mri.h, as well as the MATLAB version of this structure, so they have
+been added here for completeness.
 
-  #--------------------------------------------------------------------#
-  # Everything below is redundant in that they can be derived from
-  # stuff above, but they are in the MRI struct defined in mri.h, so I
-  # thought I would add them here for completeness.  Note: mri_write()
-  # derives all geometry information (ie, direction cosines, voxel
-  # resolution, and P0 from vox2ras0. If you change other geometry
-  # elements below, it will not be reflected in the output volume.
+Note: mri_write() derives all geometry information (i.e., direction cosines,
+voxel resolution, and P0 from vox2ras0. If any of the redundant geometry
+elements below are modified, the change will not be reflected in the output
+volume.
+"""
+function mri_set_geometry!(mri::MRI)
 
   mri.vox2ras = mri.vox2ras0
 
   mri.nvoxels = mri.width * mri.height * mri.depth	# Number of voxels
-  mri.xsize = sqrt(sum(M[:,1].^2))	# Col
-  mri.ysize = sqrt(sum(M[:,2].^2))	# Row
-  mri.zsize = sqrt(sum(M[:,3].^2))	# Slice
+  mri.xsize = sqrt(sum(mri.vox2ras[:,1].^2))	# Col
+  mri.ysize = sqrt(sum(mri.vox2ras[:,2].^2))	# Row
+  mri.zsize = sqrt(sum(mri.vox2ras[:,3].^2))	# Slice
 
-  mri.x_r = M[1,1]/mri.xsize	# Col
-  mri.x_a = M[2,1]/mri.xsize
-  mri.x_s = M[3,1]/mri.xsize
+  mri.x_r = mri.vox2ras[1,1]/mri.xsize	# Col
+  mri.x_a = mri.vox2ras[2,1]/mri.xsize
+  mri.x_s = mri.vox2ras[3,1]/mri.xsize
 
-  mri.y_r = M[1,2]/mri.ysize	# Row
-  mri.y_a = M[2,2]/mri.ysize
-  mri.y_s = M[3,2]/mri.ysize
+  mri.y_r = mri.vox2ras[1,2]/mri.ysize	# Row
+  mri.y_a = mri.vox2ras[2,2]/mri.ysize
+  mri.y_s = mri.vox2ras[3,2]/mri.ysize
 
-  mri.z_r = M[1,3]/mri.zsize	# Slice
-  mri.z_a = M[2,3]/mri.zsize
-  mri.z_s = M[3,3]/mri.zsize
+  mri.z_r = mri.vox2ras[1,3]/mri.zsize	# Slice
+  mri.z_a = mri.vox2ras[2,3]/mri.zsize
+  mri.z_s = mri.vox2ras[3,3]/mri.zsize
 
   ic = [mri.width/2; mri.height/2; mri.depth/2; 1]
-  c = M*ic
+  c = mri.vox2ras * ic
   mri.c_r = c[1]
   mri.c_a = c[2]
   mri.c_s = c[3]
-  #--------------------------------------------------------------------#
 
   #--------------------------------------------------------------------#
-  # The stuff here is for convenience
+  # These are in the MATLAB version of this structure for convenience
 
   # 1-based vox2ras: Good for doing transforms on julia indices
-  mri.vox2ras1 = vox2ras_0to1(M)
+  mri.vox2ras1 = vox2ras_0to1(mri.vox2ras)
 
   # Matrix of direction cosines
-  mri.Mdc = M[1:3, 1:3] * Diagonal(1 ./ [mri.xsize, mri.ysize, mri.zsize])
+  mri.Mdc = mri.vox2ras[1:3, 1:3] *
+            Diagonal(1 ./ [mri.xsize, mri.ysize, mri.zsize])
 
   # Vector of voxel resolutions
-  if mri.ispermuted		# Row-Col-Slice
-    mri.volres     = [mri.ysize, mri.xsize, mri.zsize]
-    mri.tkrvox2ras = vox2ras_tkreg(mri.volsize[[2,1,3]], mri.volres[[2,1,3]])
-  else				# Col-Row-Slice
-    mri.volres     = [mri.xsize, mri.ysize, mri.zsize]
-    mri.tkrvox2ras = vox2ras_tkreg(mri.volsize, mri.volres)
+  mri.volres = [mri.xsize, mri.ysize, mri.zsize]
+
+  mri.tkrvox2ras = vox2ras_tkreg(mri.volsize, mri.volres)
+end
+
+
+"""
+    load_bruker(indir::String, headeronly::Bool=false)
+
+Read Bruker image data from disk and return an `MRI` structure similar to the
+FreeSurfer MRI struct defined in mri.h.
+
+# Arguments
+- `indir::String`: Path to a Bruker scan directory (files called method,
+pdata/1/reco, and pdata/1/2dseq are expected to be found in it)
+
+- `headeronly::Bool=false`: If true, the pixel data are not read in.
+"""
+function load_bruker(indir::String, headeronly::Bool=false)
+
+  dname = abspath(indir)
+  methfile = dname * "/method" 
+  recofile = dname * "/pdata/1/reco"
+  imgfile  = dname * "/pdata/1/2dseq"
+
+  if any(.!isfile.([methfile, recofile, imgfile]))
+    error("Input directory must contain the files: " *
+          "method, pdata/1/reco, pdata/1/2dseq")
   end
 
-  #--------------------------------------------------------------------#
-  # Optional DWI tables
+  mri = MRI()
 
-  bfile = fstem * ".bvals"
+  mri.fspec = imgfile
+  mri.pwd = pwd()
 
-  if ~isfile(bfile)
-    bfile = fstem * ".bval"
+  # Read information for the image header from the Bruker method file
+  io = open(methfile, "r")
 
-    if ~isfile(bfile)
-      bfile = ""
+  while !eof(io)
+    ln = readline(io)
+
+    if startswith(ln, "##\$PVM_SpatResol=")		# Voxel size
+      ln = readline(io)
+      ln = split(ln)
+      mri.volres = parse.(Float32, ln)
+    elseif startswith(ln, "##\$PVM_Matrix=")		# Matrix size
+      ln = readline(io)
+      ln = split(ln)
+      mri.volsize = parse.(Float32, ln)
+    elseif startswith(ln, "##\$EchoTime=")		# TE
+      ln = split(ln, "=")[2]
+      mri.te = parse(Float32, ln)
+    elseif startswith(ln, "##\$PVM_RepetitionTime=")	# TR
+      ln = split(ln, "=")[2]
+      mri.tr = parse(Float32, ln)
+    elseif startswith(ln, "##\$PVM_DwDir=")		# Diffusion gradients
+      nval = split(ln, "(")[2]
+      nval = split(nval, ")")[1]
+      nval = split(nval, ",")
+      nval = prod(parse.(Int64, nval))
+
+      nread = 0
+      bvec = Vector{Float32}(undef, 0)
+
+      while nread < nval
+        ln = readline(io)
+        ln = split(ln)
+
+        nread += length(ln)
+	push!(bvec, parse.(Float32, ln)...)
+      end
+
+      mri.bvec = permutedims(reshape(bvec, 3, :), [2 1])
+    elseif startswith(ln, "##\$PVM_DwEffBval=")		# b-values
+      nval = split(ln, "(")[2]
+      nval = split(nval, ")")[1]
+      nval = parse(Int64, nval)
+
+      nread = 0
+      bval = Vector{Float32}(undef, 0)
+
+      while nread < nval
+        ln = readline(io)
+        ln = split(ln)
+        
+        nread += length(ln)
+	push!(bval, parse.(Float32, ln)...)
+      end
+
+      mri.bval = bval
     end
   end
 
-  gfile = fstem * ".bvecs"
+  close(io)
 
-  if ~isfile(gfile)
-    gfile = fstem * ".bvec"
+  # Read information about image binary data from Bruker reco file
+  io = open(recofile, "r")
 
-    if ~isfile(gfile)
-      gfile = ""
+  data_type = Int32
+  int_offset = Vector{Float32}(undef, 0)
+  int_slope = Vector{Float32}(undef, 0)
+  byte_order = ""
+
+  while !eof(io)
+    ln = readline(io)
+
+    if startswith(ln, "##\$RECO_wordtype=")		# Bytes per voxel
+      ln = split(ln, "=")[2]
+
+      if ln == "_32BIT_SGN_INT"
+        data_type = Int32
+      elseif ln == "_16BIT_SGN_INT"
+        data_type = Int16
+      elseif ln == "_8BIT_SGN_INT"
+        data_type = Int8
+      end
+    elseif startswith(ln, "##\$RECO_map_offset=")	# Intensity offset
+      nval = split(ln, "(")[2]
+      nval = split(nval, ")")[1]
+      nval = parse(Int64, nval)
+
+      nread = 0
+
+      while nread < nval
+        ln = readline(io)
+        ln = split(ln)
+
+        nread += length(ln)
+        push!(int_offset, parse.(Float32, ln)...)
+      end
+    elseif startswith(ln, "##\$RECO_map_slope")		# Intensity slope
+      nval = split(ln, "(")[2]
+      nval = split(nval, ")")[1]
+      nval = parse(Int64, nval)
+
+      nread = 0
+
+      while nread < nval
+        ln = readline(io)
+        ln = split(ln)
+
+        nread += length(ln)
+        push!(int_slope, parse.(Float32, ln)...)
+      end
+    elseif startswith(ln, "##\$RECO_byte_order=")	# Byte order
+      byte_order = split(ln, "=")[2]
     end
   end
 
-  if ~isempty(bfile) && ~isempty(gfile)
-    (b, g) = mri_read_bfiles(bfile, gfile)
+  close(io)
 
-    if length(b) == mri.nframes
-      mri.bval = b
-      mri.bvec = g
+  mri.nframes = length(int_slope)
+
+  mri.vox2ras0 = Matrix(Diagonal([mri.volres; 1]))
+
+  if headeronly
+    return mri
+  end
+
+  # Read image data
+  io = open(imgfile, "r")
+
+  vol = read!(io, Array{data_type}(undef, (mri.volsize..., mri.nframes)))
+
+  close(io)
+
+  if byte_order == "littleEndian"
+    vol = ltoh.(vol)
+  else
+    vol = ntoh.(vol)
+  end
+
+  # Apply intensity offset and slope
+  vol = Int32.(vol)
+
+  if data_type == Float32
+    mri.vol = Float32.(vol)
+  else
+    mri.vol = Array{Float32}(undef, size(vol))
+    for iframe in 1:mri.nframes
+      mri.vol[:,:,:,iframe] = vol[:,:,:,iframe] ./ int_slope[iframe] .+
+                                                   int_offset[iframe]
     end
   end
-  #--------------------------------------------------------------------#
 
   return mri
 end
+
 
 """
     load_mgh(fname::String, slices::Union{Vector{Unsigned}, Nothing}=nothing, frames::Union{Vector{Unsigned}, Nothing}=nothing, headeronly::Bool=false)
