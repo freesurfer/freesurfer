@@ -19,6 +19,7 @@ export DTI, dti_fit, dti_write
 
 "Container for outputs of a DTI fit"
 struct DTI
+  s0::MRI
   eigval1::MRI
   eigval2::MRI
   eigval3::MRI
@@ -65,6 +66,7 @@ function dti_fit_ls(dwi::MRI, mask::MRI)
 
   pA = pinv(A)
 
+  S0    = MRI(mask, 1)
   Eval1 = MRI(mask, 1)
   Eval2 = MRI(mask, 1)
   Eval3 = MRI(mask, 1)
@@ -90,6 +92,8 @@ function dti_fit_ls(dwi::MRI, mask::MRI)
           continue
         end
 
+        S0.vol[ix, iy, iz] = exp(D[7])
+
         E = eigen([D[1] D[2] D[3];
                    D[2] D[4] D[5];
                    D[3] D[5] D[6]])
@@ -104,7 +108,7 @@ function dti_fit_ls(dwi::MRI, mask::MRI)
     end
   end
 
-  return DTI(Eval1, Eval2, Eval3, Evec1, Evec2, Evec3,
+  return DTI(S0, Eval1, Eval2, Eval3, Evec1, Evec2, Evec3,
              dti_maps(Eval1, Eval2, Eval3)...)
 end
 
