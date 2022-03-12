@@ -1611,6 +1611,18 @@ function mri_write(mri::MRI, outfile::String, datatype::DataType=Float32)
     println("WARNING: Problem saving " * outfile)
   end
 
+  # Optional DWI tables -----------------------------------------------#
+
+  if !isempty(mri.bval)
+    bfile = fstem * ".bvals"
+    writedlm(bfile, mri.bval, ' ')
+  end
+
+  if !isempty(mri.bvec)
+    gfile = fstem * ".bvecs"
+    writedlm(gfile, mri.bvec, ' ')
+  end
+
   return err
 end
 
