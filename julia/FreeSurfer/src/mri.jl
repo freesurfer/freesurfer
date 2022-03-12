@@ -1654,7 +1654,12 @@ function save_mgh(vol::Array, fname::String, M::Matrix=Diagonal(ones(4)), mr_par
     error("mr_parms length=" * string(length(mr_parms)) * ", must be 4")
   end
 
-  # Not all of these appear to be used
+  (ndim1, ndim2, ndim3, frames) = size(vol)
+
+  dtype = eltype(vol)
+
+  # The MATLAB version ingores these and always writes the data as float
+  # Here we use them properly
   MRI_UCHAR =  0
   MRI_INT =    1
   MRI_LONG =   2
@@ -1662,10 +1667,25 @@ function save_mgh(vol::Array, fname::String, M::Matrix=Diagonal(ones(4)), mr_par
   MRI_SHORT =  4
   MRI_BITMAP = 5
   MRI_TENSOR = 6
+  MRI_USHRT  = 10
+
+  # Determine number of bytes per voxel
+  if dtype == Float32
+    type = MRI_FLOAT
+  elseif dtype == UInt8
+    type = MRI_UCHAR
+  elseif dtype == Int32
+    type = MRI_INT
+  elseif dtype == Int64
+    type = MRI_LONG
+  elseif dtype == Int16
+    type = MRI_SHORT
+  elseif dtype == UInt16
+    type = MRI_USHRT
+  end
 
   io = open(fname, "w")
 
-  (ndim1, ndim2, ndim3, frames) = size(vol)
   nb = 0
 
   # Write everything as big-endian
@@ -1674,13 +1694,7 @@ function save_mgh(vol::Array, fname::String, M::Matrix=Diagonal(ones(4)), mr_par
   nb += write(io, hton(Int32(ndim2)))
   nb += write(io, hton(Int32(ndim3)))
   nb += write(io, hton(Int32(frames)))
-  if ndims(vol) == 5
-    is_tensor = true
-    nb += write(io, hton(Int32(MRI_TENSOR)))	# type = MRI_TENSOR
-  else
-    is_tensor = false
-    nb += write(io, hton(Int32(MRI_FLOAT)))	# type = MRI_FLOAT
-  end
+  nb += write(io, hton(Int32(type)))
 
   nb += write(io, hton(Int32(1)))		# dof (not used)
 
@@ -1705,7 +1719,7 @@ function save_mgh(vol::Array, fname::String, M::Matrix=Diagonal(ones(4)), mr_par
   unused_space_size = unused_space_size - USED_SPACE_SIZE
   nb += write(io, UInt8.(zeros(unused_space_size)))
 
-  nb += write(io, hton.(Float32.(vol)))
+  nb += write(io, hton.(vol))
 
   nb += write(io, hton.(Float32.(mr_parms)))
 
@@ -1714,7 +1728,8 @@ function save_mgh(vol::Array, fname::String, M::Matrix=Diagonal(ones(4)), mr_par
   err = (nb != (sizeof(Int32) * 7 +
                 sizeof(Int16) + 
                 sizeof(UInt8) * unused_space_size +
-                sizeof(Float32) * (19 + length(vol))))
+                sizeof(Float32) * 19 +
+                sizeof(dtype) * length(vol)))
 
   ext = lowercase(fname[(end-1):end])
 
