@@ -6,6 +6,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 import freesurfer as fs
+import scipy.ndimage
 
 description = '''
 Robust, universal skull-stripping.
@@ -186,6 +187,7 @@ model.load_state_dict(checkpoint['model_state_dict'])
 
 # load input volume
 image = fs.Volume.read(args.image)
+print(f'Input image read from: {args.image}')
 
 # conform image
 conformed = image.conform(voxsize=1.0, dtype='float32', interp_method='nearest', orientation='LIA')
@@ -204,19 +206,22 @@ input_tensor = torch.from_numpy(in_data).to(device)
 with torch.no_grad():
     sdt = model(input_tensor).cpu().numpy().squeeze()
 
-# unconform the sdt
+# unconform the sdt and extract mask
 sdt = conformed.copy(sdt).resample_like(image, fill=100)
-
-# mask the input image
 bg = np.min([0, image.data.min()])
-image.data[sdt.data.squeeze() >= args.border] = bg
+
+# find largest CC (just do this to be safe for now)
+components = scipy.ndimage.label(sdt.data.squeeze() < args.border)[0]
+bincount = np.bincount(components.flatten())[1:]
+mask = (components == (np.argmax(bincount) + 1))
+mask = scipy.ndimage.morphology.binary_fill_holes(mask)
 
 # write the masked output
+image.data[mask == 0] = bg
 image.write(args.out)
 print(f'Masked image saved to: {args.out}')
 
 # write the brain mask
 if args.mask:
-    sdt.data = sdt.data.squeeze() < args.border
-    sdt.write(args.mask)
+    image.copy(mask).write(args.mask)
     print(f'Binary brain mask saved to: {args.mask}')
