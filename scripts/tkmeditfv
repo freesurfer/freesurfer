@@ -135,7 +135,11 @@ if(! $UseTkMedit) then
     set cmd = ($cmd -v $vol)
   end
   if($DoDefectsPS) then
-    set cmd = ($cmd -c $SUBJECTS_DIR/$subject/surf/?h.defects.pointset)
+    foreach hemi (lh rh)
+      set dfps = $SUBJECTS_DIR/$subject/surf/$hemi.defects.pointset
+      if(! -e $dfps) continue
+      set cmd = ($cmd -c ${dfps}:color=magenta)
+    end
   endif
   if($DoManCheck) then
     set cmd = ($cmd -c $ManCheckJson":new")
@@ -150,13 +154,14 @@ if(! $UseTkMedit) then
       if($surflist0[$nth] == rh.smoothwm.nofix) set ov = ":overlay=$sdir/rh.defect_labels:edgecolor=overlay:lock=1:visible=0"
     endif
     set annotarg = ()
-    if($#annot && $surf != lh.orig.nofix&& $surf != rh.orig.nofix && $surf != lh.smoothwm.nofix&& $surf != rh.smoothwm.nofix) then
-      set surfname = `basename $surf`
+    set surfname = `basename $surf`
+    if($#annot && $surfname != lh.orig.nofix && $surfname != rh.orig.nofix && \
+       $surfname != lh.smoothwm.nofix && $surfname != rh.smoothwm.nofix) then
       set hemi = `echo $surfname | cut -c1-2`
       if($hemi == lh || $hemi == rh) then
         set annotfile = $SUBJECTS_DIR/$subject/label/$hemi.$annot
         set annotarg = ":annot=$annotfile":"annot_outline=0"
-      endif   
+      endif
     endif
     set cmd = ($cmd --surface $surf":"edgecolor=$surfcolor[$nth]$ov$annotarg)
   end
@@ -473,6 +478,12 @@ while( $#argv != 0 )
       set DoSurfs = 1;
       set surflist0 = ($surflist0 lh.pial rh.pial)
       set surfcolor = ($surfcolor red red);
+      breaksw
+
+    case "-smoothwmnf":
+      set DoSurfs = 1;
+      set surflist0 = ($surflist0 lh.smoothwm.nofix rh.smoothwm.nofix)
+      set surfcolor = ($surfcolor green green);
       breaksw
 
     case "-woT2":
@@ -805,6 +816,7 @@ usage_exit:
   echo "-pial : load {l,r}h.pial"
   echo "-orig : load {l,r}h.orig"
   echo "-orig.nofix : load {l,r}h.orig.nofix"
+  echo "-smoothwm.nofix : load {l,r}h.smooth.nofix"
   echo "-white.preaparc : load {l,r}h.white.preaparc"
   echo "-inflated : load {l,r}h.inflated (-lh-inflated, -rh-inflated)"
   echo "-annot annotname : load subject/label/hemi.annotname"

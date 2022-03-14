@@ -180,7 +180,7 @@ int DialogLoadVolume::GetSampleMethod()
 QString DialogLoadVolume::GetColorMap()
 {
   QStringList names;
-  names << "grayscale" << "lut" << "heat" << "jet" << "gecolor" << "nih" << "pet";
+  names << "grayscale" << "lut" << "heat" << "jet" << "turbo" << "gecolor" << "nih" << "pet";
   return names[ui->comboBoxColorMap->currentIndex()];
 }
 

@@ -14,7 +14,7 @@
 /// work-in-progress - and right now, pointsets can only be
 /// saved as json files
 
-class PointSet
+class fsPointSet
 {
 public:
 
@@ -58,6 +58,6 @@ private:
 
 };
 
-PointSet loadPointSet(std::string filename);
+fsPointSet loadfsPointSet(std::string filename);
 
 #endif

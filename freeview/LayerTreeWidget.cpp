@@ -350,6 +350,12 @@ void LayerTreeWidget::contextMenuEvent(QContextMenuEvent *e)
       act->setChecked(nColorMap == LayerPropertyMRI::Jet);
       connect(act, SIGNAL(triggered()), this, SLOT(OnSetColorMap()));
       submenu->addAction(act);
+      act = new QAction("Turbo", this);
+      act->setData(LayerPropertyMRI::Turbo);
+      act->setCheckable(true);
+      act->setChecked(nColorMap == LayerPropertyMRI::Turbo);
+      connect(act, SIGNAL(triggered()), this, SLOT(OnSetColorMap()));
+      submenu->addAction(act);
       act = new QAction("GE Color", this);
       act->setData(LayerPropertyMRI::GEColor);
       act->setCheckable(true);
