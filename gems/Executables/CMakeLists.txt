@@ -16,6 +16,7 @@ add_executable(kvlBuildAtlasMesh
   kvlAtlasMeshCollectionModelLikelihoodCalculator.cxx
   kvlMultiResolutionAtlasMesher.cxx
 )
+add_definitions(-DUSE_DYNAMIC_MESH)
 target_link_libraries(kvlBuildAtlasMesh kvlGEMSCommon_dynmesh)
 if(MAKE_SPARSE_INITIAL_MESHES)
   target_link_libraries(kvlBuildAtlasMesh ${Tetgen_LIBRARIES})
