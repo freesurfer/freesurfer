@@ -60,9 +60,13 @@ def main():
                                       "Output CSV file with volumes for all structures and subjects.")
 
     # in both cases
+    parser.add_argument("--crop", nargs='+', type=int, default=None, dest="crop",
+                        help="(both modes, optional) Size of the central patch to analyse (must be divisible by 8). "
+                             "The whole image is analysed by default.")
     parser.add_argument("--threads", type=int, default=1, help="(both modes, optional) Number of cores to be used. "
                                                                "Default uses 1 core.")
-    parser.add_argument("--cpu", action="store_true", help="(optional) enforce running with CPU rather than GPU.")
+    parser.add_argument("--cpu", action="store_true", help="(both modes, optional) enforce running with CPU rather "
+                                                           "than GPU.")
 
     # check for no arguments
     if len(sys.argv) < 2:
@@ -95,7 +99,8 @@ def main():
         path_posteriors=args.post,
         path_resampled=args.resample,
         path_volumes=args.vol,
-        threads=args.threads
+        threads=args.threads,
+        crop=args.crop,
     )
 
 
