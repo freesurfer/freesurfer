@@ -566,7 +566,6 @@ if(NOT MINIMAL)
     mri_strip_nonwhite
     mri_strip_subject_info
     mri_surfacemask
-    mri_synth_strip
     mri_synthesize
     mri_threshold
     mri_topologycorrection
@@ -663,6 +662,7 @@ if(NOT MINIMAL)
     subregions
     stat_normalize
     stim_polar
+    synthstrip
     mri_synthseg
     mri_synthsr
     swi_processing
