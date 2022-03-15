@@ -8,7 +8,7 @@ from __future__ import print_function
 # The aim of this script is to minimize the effort required to use the
 # SynthStrip Singularity container by automatically mounting any necessary input
 # and output files paths. This script can be used with the same syntax as the
-# default FreeSurfer `synthstrip` command (use the --help flag for more info).
+# default FreeSurfer `mri_synthstrip` command (use the --help flag for more info).
 # Before the first use, the appropriate Singularity image must be pulled from
 # DockerHub, using the following command:
 

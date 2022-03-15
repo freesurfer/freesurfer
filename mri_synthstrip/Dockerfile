@@ -16,7 +16,7 @@ RUN pip3 install scipy torch==1.10.2
 RUN pip3 install /external/fsmodule
 
 # install synthstrip
-RUN cp /external/synthstrip /freesurfer/
+RUN cp /external/mri_synthstrip /freesurfer/
 
 # configure model
 ENV FREESURFER_HOME /freesurfer
@@ -30,4 +30,4 @@ ENV FSF_OUTPUT_FORMAT nii.gz
 # clean up
 RUN rm -rf /external /root/.cache/pip
 
-ENTRYPOINT ["python3", "/freesurfer/synthstrip"]
+ENTRYPOINT ["python3", "/freesurfer/mri_synthstrip"]

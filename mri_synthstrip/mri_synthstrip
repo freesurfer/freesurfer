@@ -22,6 +22,10 @@ parser.add_argument('-b', '--border', default=1, type=int, help='Mask border thr
 parser.add_argument('--model', metavar='file', help='Alternative model weights.')
 args = parser.parse_args()
 
+# sanity check on the inputs
+if not args.out and not args.mask:
+    fs.fatal('Must provide at least --out or --mask output flags.')
+
 # necessary for speed gains (I think)
 torch.backends.cudnn.benchmark = True
 torch.backends.cudnn.deterministic = True
@@ -177,11 +181,14 @@ with torch.no_grad():
 # load model weights
 if args.model is not None:
     modelfile = args.model
+    print('Using custom model weights')
 else:
+    version = '1'
+    print(f'Running SynthStrip model version {version}')
     fshome = fs.fshome()
     if fshome is None:
         fs.fatal('FREESURFER_HOME env variable must be set! Make sure FreeSurfer is properly sourced.')
-    modelfile = os.path.join(fshome, 'models', 'synthstrip.1.pt')
+    modelfile = os.path.join(fshome, 'models', f'synthstrip.{version}.pt')
 checkpoint = torch.load(modelfile, map_location=device)
 model.load_state_dict(checkpoint['model_state_dict'])
 
@@ -208,7 +215,6 @@ with torch.no_grad():
 
 # unconform the sdt and extract mask
 sdt = conformed.copy(sdt).resample_like(image, fill=100)
-bg = np.min([0, image.data.min()])
 
 # find largest CC (just do this to be safe for now)
 components = scipy.ndimage.label(sdt.data.squeeze() < args.border)[0]
@@ -218,6 +224,7 @@ mask = scipy.ndimage.morphology.binary_fill_holes(mask)
 
 # write the masked output
 if args.out:
+    bg = np.min([0, image.data.min()])
     image.data[mask == 0] = bg
     image.write(args.out)
     print(f'Masked image saved to: {args.out}')

@@ -662,7 +662,7 @@ if(NOT MINIMAL)
     subregions
     stat_normalize
     stim_polar
-    synthstrip
+    mri_synthstrip
     mri_synthseg
     mri_synthsr
     swi_processing

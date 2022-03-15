@@ -8,7 +8,7 @@ from __future__ import print_function
 # The aim of this script is to minimize the effort required to use the
 # SynthStrip docker container by automatically mounting any necessary input
 # and output files paths. This script can be used with the same syntax as the
-# default FreeSurfer `synthstrip` command (use the --help flag for more info).
+# default FreeSurfer `mri_synthstrip` command (use the --help flag for more info).
 # Upon first use, the relevant docker image will be automatically pulled from
 # DockerHub. To use a different SynthStrip version, update the variable below.
 version = '1.0'
@@ -48,7 +48,7 @@ args = ' '.join(args)
 mounts = list(set([os.path.dirname(p) for p in paths]))
 mounts = ' '.join(['-v %s:%s' % (p, p) for p in mounts])
 
-print('Running SynthStrip v%s from Docker' % version)
+print('Running SynthStrip from Docker')
 
 # Get image tag
 image = 'freesurfer/synthstrip:' + version
