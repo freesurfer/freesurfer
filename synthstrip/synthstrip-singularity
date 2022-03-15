@@ -1,0 +1,79 @@
+#!/usr/bin/env python
+
+from __future__ import print_function
+
+# -------------------------------- SynthStrip --------------------------------
+
+# This is a short wrapper script around a Singularity version of SynthStrip.
+# The aim of this script is to minimize the effort required to use the
+# SynthStrip Singularity container by automatically mounting any necessary input
+# and output files paths. This script can be used with the same syntax as the
+# default FreeSurfer `synthstrip` command (use the --help flag for more info).
+# Before the first use, the appropriate Singularity image must be pulled from
+# DockerHub, using the following command:
+
+# singularity pull synthstrip.1.0.sif docker://freesurfer/synthstrip:1.0
+
+# Once this command has been run, set the below `image_path` variable to the
+# absolute path pointing to the downloaded synthstrip.1.0.sif file. Once this
+# is run once, it does not need to be run again.
+
+image_path = ''
+
+# ----------------------------------------------------------------------------
+
+import os
+import sys
+import subprocess
+import shutil
+
+# Sanity check on env
+if shutil.which('singularity') is None:
+    print('Cannot find singularity in PATH. Make sure it is installed.')
+    exit(1)
+
+# Sanity check on the Singularity image
+if not image_path:
+    msg = 'Note: Before running the SynthStrip singularity wrapper, the relevant singularity ' \
+          'image needs to be pulled from DockerHub (this only needs to be done once). Please ' \
+          'follow the instructions at the top of this script to finish the configuration.'
+    print(msg)
+    exit(1)
+if not os.path.isfile(image_path):
+    msg = 'Singularity image %s does not exist. Please revisit the instructions at the top of ' \
+          'this script to appropriately reconfigure the correct image path.' % image_path
+    print(msg)
+    exit(1)
+
+# Since we're wrapping a Singularity image, we want to get the full paths of all input and output
+# files so that we can mount their corresponding paths. Tedious, but a fine option for now...
+flags = ['-i', '--input', '-o', '--output', '-m', '--mask', '--model']
+
+# Loop through the arguments and expand any necessary paths
+idx = 1
+args = []
+paths = []
+while idx < len(sys.argv):
+    arg = sys.argv[idx]
+    args.append(arg)
+    if arg in flags:
+        idx += 1
+        path = os.path.realpath(os.path.abspath(sys.argv[idx]))
+        args.append(path)
+        paths.append(path)
+    idx += 1
+args = ' '.join(args)
+
+# Get the unique mount points
+mounts = list(set([os.path.dirname(p) for p in paths]))
+mounts = ' '.join(['-B %s:%s' % (p, p) for p in mounts])
+
+print('Running SynthStrip from Singularity')
+
+# Go ahead and run the entry point
+command = 'singularity run %s %s %s' % (mounts, image_path, args)
+proc = subprocess.Popen(command, shell=True)
+proc.communicate()
+if proc.returncode != 0:
+    print('Error running singularity image.')
+    exit(proc.returncode)

@@ -14,7 +14,7 @@ Robust, universal skull-stripping.
 
 # parse command line
 parser = fs.utils.ArgumentParser(description=description)
-parser.add_argument('-i', '--image', metavar='file', required=True, help='Imput image to skullstrip.')
+parser.add_argument('-i', '--image', metavar='file', required=True, help='Input image to skullstrip.')
 parser.add_argument('-o', '--out', metavar='file', help='Save stripped image to path.')
 parser.add_argument('-m', '--mask', metavar='file', help='Save binary brain mask to path.')
 parser.add_argument('-g', '--gpu', action='store_true', help='Use the GPU.')
