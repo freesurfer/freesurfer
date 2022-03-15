@@ -217,9 +217,10 @@ mask = (components == (np.argmax(bincount) + 1))
 mask = scipy.ndimage.morphology.binary_fill_holes(mask)
 
 # write the masked output
-image.data[mask == 0] = bg
-image.write(args.out)
-print(f'Masked image saved to: {args.out}')
+if args.out:
+    image.data[mask == 0] = bg
+    image.write(args.out)
+    print(f'Masked image saved to: {args.out}')
 
 # write the brain mask
 if args.mask:
