@@ -248,3 +248,146 @@ MRI* VentFix::ExpandSegIndices(MRI *seg, int segid, MRI *ocn, int niters, int nm
   return(newseg);
 }
 
+// 1. create clusters for voxels with segA in asegVol
+// 2. if the cluster has any voxel with a face neighboring voxel of a certain segid (eg, 2 = left cortex)
+//      replace the value in such clusters with a given value (newsegid)
+// 3. create a point set of the centroid for all the clusters changed
+MRI* VentFix::relabelSegANeighboingSegB(MRI *asegVol, int segA, int topo, int segB, int newsegid, fsPointSet *centroid)
+{
+  if (asegVol == NULL) 
+    return NULL;
+
+  MRI* newseg = MRIcopy(asegVol, NULL);
+  if (newseg == NULL) 
+    return NULL;
+
+  MRIcopyHeader(asegVol, newseg);
+  //MRIcopyPulseParameters(asegVol, newseg);
+
+  // create clusters for segA in asegVol
+  int nClusters;
+  VOLCLUSTER **ClusterList = clustGetClusters(asegVol, 0, segA, segA, 0, 0, NULL, &nClusters, NULL);
+
+  MATRIX *vox2ras = MRIxfmCRS2XYZ(asegVol, 0);
+
+  // Go thru each cluster, determine if each voxel in the cluster has a face neighbor with newsegid
+  int nthvc;
+  for (nthvc = 0; nthvc < nClusters; nthvc++)
+  {
+    VOLCLUSTER *vc = ClusterList[nthvc];
+
+    int hassegB = hasneighbor(asegVol, vc, segB, topo);
+
+    if (hassegB)
+    {
+      printf("\n****** topo = %d neighbor (segid=%d) found in cluster #%d ...\n", topo, segB, nthvc);
+      printf("****** replacing %d cluster members in cluster #%d ...\n", vc->nmembers, nthvc);
+      relabelCluster(newseg, vc, newsegid, vox2ras, centroid);
+    }
+  }
+
+  MatrixFree(&vox2ras);
+  clustFreeClusterList(&ClusterList, nClusters);
+
+  return newseg;
+}
+
+int VentFix::hasneighbor(MRI* asegps, VOLCLUSTER *vc, int newsegid, int topo)
+{
+  int hasnewsegid = 0;
+  
+  int n;
+  for (n = 0; n < vc->nmembers; n++)
+  {
+    int c0 = vc->col[n];
+    int r0 = vc->row[n];
+    int s0 = vc->slc[n];
+
+    // Go through the nearest neighbors
+    int dc, dr, ds;
+    for (dc = -1; dc <= 1; dc++)
+    {
+      int c = c0 + dc;
+      if (c < 0 || c >= asegps->width)
+        continue;
+
+      for (dr = -1; dr <= 1; dr++)
+      {
+        int r = r0 + dr;
+	if (r < 0 || r >= asegps->height)
+          continue;
+
+	for (ds = -1; ds <= 1; ds++)
+        {
+	  int s = s0 + ds;
+	  if (s < 0 || s >= asegps->depth)
+            continue;
+
+	  // proceed or not if this voxel is in the topology contraint
+	  // topo = 1 = face neighbors only
+	  // topo = 2 = face neighbors + edge neighbors only
+	  // topo = 3 = face neighbors + edge neighbors + corner neighbors
+	  if ((abs(dc)+abs(dr)+abs(ds)) > topo) 
+          {
+	    //printf("#@# %d %d %d topo skip (%d %d %d)\n", c, r, s, c0, r0, s0);
+	    //fflush(stdout);
+	    continue; 
+	  }
+
+          float segid = MRIgetVoxVal(asegps, c, r, s, 0);
+          if (segid == newsegid)
+	  {
+            hasnewsegid = 1;
+            return hasnewsegid;
+          }
+        }
+      }
+    }
+  }
+
+  return hasnewsegid;
+}
+
+void VentFix::relabelCluster(MRI *newseg, VOLCLUSTER *vc, int newsegid, MATRIX *vox2ras, fsPointSet *centroid)
+{
+  double csum = 0, rsum = 0, ssum = 0;
+
+  int n;
+  for (n = 0; n < vc->nmembers; n++)
+  {
+    int c = vc->col[n];
+    int r = vc->row[n];
+    int s = vc->slc[n];
+
+    csum += c; rsum += r; ssum += s;
+
+    float segid = MRIgetVoxVal(newseg, c, r, s, 0);
+    MRIsetVoxVal(newseg, c, r, s, 0, newsegid);
+    printf("#@# (%d, %d, %d) %f => %f\n", c, r, s, segid, (float)newsegid);
+  }
+
+  csum /= vc->nmembers; rsum /= vc->nmembers; ssum /= vc->nmembers;
+
+  MATRIX *crs = MatrixAlloc(4, 1, MATRIX_REAL);
+  crs->rptr[1][1] = csum;
+  crs->rptr[2][1] = rsum;
+  crs->rptr[3][1] = ssum;
+  crs->rptr[4][1] = 1;
+ 
+  MATRIX *ras = MatrixMultiply(vox2ras, crs, NULL);
+  //printf("Centriod CRS %6.4lf %6.4lf %6.4lf\n",csum,rsum,ssum);
+  //printf("Centriod RAS %6.4lf %6.4lf %6.4lf\n",
+  //       ras->rptr[1][1],ras->rptr[2][1],ras->rptr[3][1]);
+    
+  if (centroid != NULL)
+  {
+    fsPointSet::Point centroidp;
+    centroidp.x = ras->rptr[1][1];
+    centroidp.y = ras->rptr[2][1];
+    centroidp.z = ras->rptr[3][1];
+    centroid->add(centroidp);
+  }
+    
+  MatrixFree(&crs);
+  MatrixFree(&ras);
+}
