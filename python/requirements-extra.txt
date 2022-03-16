@@ -6,9 +6,9 @@ torch==1.10.2
 # these are also required for FS DL utilities, but we need some features
 # that haven't quite made it into the stable releases yet - this should be
 # updated once they do
-git+git://github.com/adalca/pystrum.git@3befbd1166595476e8315fef99bea373bfdc302c
-git+git://github.com/adalca/neurite.git@ac74518f367113ddadca90b70acf12f6a8526839
-git+git://github.com/voxelmorph/voxelmorph.git@80d0c489febfb4fa32b4a247629e79720fbb4c14
+git+https://github.com/adalca/pystrum.git@3befbd1166595476e8315fef99bea373bfdc302c
+git+https://github.com/adalca/neurite.git@ac74518f367113ddadca90b70acf12f6a8526839
+git+https://github.com/voxelmorph/voxelmorph.git@80d0c489febfb4fa32b4a247629e79720fbb4c14
 
 # extra packages required for QA tools
 numpy
