@@ -5,11 +5,11 @@
 #include <vector>
 
 
-/// \class PointSet
+/// \class fsPointSet
 /// \brief A 3d point collection
 ///
-/// PointSet is a collection of 3d points used mostly by the user
-/// within freeview. Freeview has it's own PointSet class, but we don't
+/// fsPointSet is a collection of 3d points used mostly by the user
+/// within freeview. Freeview has it's own fsPointSet class, but we don't
 /// want to rely on Qt for such a simple class. This class is a
 /// work-in-progress - and right now, pointsets can only be
 /// saved as json files
@@ -40,7 +40,7 @@ public:
     return points.size() - 1;
   }
 
-  // let's make PointSet an extension of std::vector for ease of use
+  // let's make fsPointSet an extension of std::vector for ease of use
   void clear() { points.clear(); }
   void remove(int index) { points.erase(points.begin() + index); }
   Point& operator[](int index) { return points[index]; }

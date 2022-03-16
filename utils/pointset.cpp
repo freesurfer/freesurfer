@@ -52,7 +52,7 @@ bool fsPointSet::save_as_ctrlpoint(std::string filename)
   for (const Point& point : points)
     ctrpfile << point.x << " " << point.y << " " << point.z << "\n";
   ctrpfile << "info\n";
-  ctrpfile << "numpoints" << points.size() << "\n";
+  ctrpfile << "numpoints " << points.size() << "\n";
   ctrpfile << "useRealRAS 1\n";
 
   ctrpfile.close();
