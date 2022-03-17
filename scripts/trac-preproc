@@ -1796,7 +1796,7 @@ if ($dointer && ! $dobase) then
     endif
 
     # Convert affine transform to .lta
-    set cmd = ConvertTransformFile
+    set cmd = $ANTSPATH/ConvertTransformFile
     set cmd = ($cmd 3 $xfmdir/diff2syn0GenericAffine.mat)
     set cmd = ($cmd   $xfmdir/diff2syn0GenericAffine.txt)
     set cmd = ($cmd --hm --ras)
