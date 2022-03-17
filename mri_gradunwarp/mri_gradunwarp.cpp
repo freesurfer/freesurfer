@@ -1,6 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/utsname.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 #include "version.h"
 #include "diag.h"
@@ -154,7 +157,10 @@ int main(int argc, char *argv[])
   {
     origvol = MRIread(invol);
     if (origvol == NULL)
+    {
+      printf("ERROR: could not open volume %s\n", invol);
       exit(1);
+    }
 
     vox2ras_orig = extract_i_to_r(origvol);  //MRIxfmCRS2XYZ(origvol, 0);
     inv_vox2ras_orig = MatrixInverse(vox2ras_orig, NULL);  //extract_r_to_i(origvol);
@@ -167,6 +173,11 @@ int main(int argc, char *argv[])
   else if (insurf != NULL)
   {
     origsurf = MRISread(insurf);
+    if (origsurf == NULL)
+    {
+      printf("ERROR: could not open surface %s\n", insurf);
+      exit(1);
+    }
 
     //vox2ras_orig     = origsurf->vg.getVox2RAS();
     //inv_vox2ras_orig = origsurf->vg.getRAS2Vox();
@@ -383,6 +394,14 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = 1;
     } else if (!strcmp(option, "--i")) {
       if (nargc < 1) CMDargNErr(option,1);
+
+      struct stat stat_buf;
+      if (stat(pargv[0], &stat_buf) < 0)
+      {
+        printf("ERROR: could not find --i %s\n", pargv[0]);
+        exit(1);
+      }
+
       inf_str = fio_fullpath(pargv[0]);
       inf = inf_str.c_str();
       nargsused = 1;
@@ -393,6 +412,14 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = 1;
     } else if (!strcmp(option, "--load_transtbl")) {
       if (nargc < 1) CMDargNErr(option,1);
+
+      struct stat stat_buf;
+      if (stat(pargv[0], &stat_buf) < 0)
+      {
+        printf("ERROR: could not find --load_transtbl %s\n", pargv[0]);
+        exit(1);
+      }
+
       loadtrans_str = fio_fullpath(pargv[0]);
       loadtrans = loadtrans_str.c_str();
       nargsused = 1;
@@ -526,6 +553,14 @@ static void check_options(void)
       printf("Use --o to specify output unwarped %s\n", (unwarpvol) ? "volume" : "surface");
       exit(1);
     }   
+  }
+
+  if (!unwarpvol && !unwarpsurf && !inputcrs && !inputras && savetrans == NULL)
+  {
+    printf("Use --unwarpvol        to unwarp a volume \n");
+    printf(" or --unwarpsurf       to unwarp a surface\n");
+    printf(" or --save_transtbl    to create m3z table\n");
+    exit(1);
   }
 
   if (unwarpvol || inputcrs || gradfile != NULL)

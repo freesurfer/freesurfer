@@ -175,7 +175,7 @@ def predict(path_images,
             writer.writerows(csv_header)
 
     # build network
-    net = build_model(path_model, n_labels, len(group_labels), robust)
+    net = build_model(path_model, len(segmentation_labels), len(group_labels), robust)
 
     # set cropping/padding
     if crop is not None:
@@ -268,7 +268,7 @@ def predict(path_images,
                 print('posteriors saved in:       ' + os.path.dirname(path_posteriors[0]))
             if path_resampled[0] is not None:
                 print('resampled images saved in: ' + os.path.dirname(path_resampled[0]))
-        if path_volumes is not None:
+        if path_volumes[0] is not None:
             print('volumes saved in:          ' + path_volumes[0])
 
     print('\nIf you use this tool in a publication, please cite:')
