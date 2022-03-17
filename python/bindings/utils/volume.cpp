@@ -34,6 +34,8 @@ py::object Bridge::python()
       dtype = py::dtype::of<long>(); break;
     case MRI_FLOAT:
       dtype = py::dtype::of<float>(); break;
+    case MRI_USHRT:
+      dtype = py::dtype::of<unsigned short>(); break;
     default:
       throw py::value_error("unknown MRI data type ID: " + std::to_string(p_mri->type));
     }
@@ -169,6 +171,7 @@ MRI* Bridge::mri()
   else if (py::isinstance<py::array_t<short>>(mri_buffer)) { dtype = MRI_SHORT; }
   else if (py::isinstance<py::array_t<long>> (mri_buffer)) { dtype = MRI_LONG; }
   else if (py::isinstance<py::array_t<float>>(mri_buffer)) { dtype = MRI_FLOAT; }
+  else if (py::isinstance<py::array_t<unsigned short>>(mri_buffer)) { dtype = MRI_USHRT; }
   else {
     throw py::value_error("unsupported array dtype " + py::str(mri_buffer.attr("dtype")).cast<std::string>());
   }
