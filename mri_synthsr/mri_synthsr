@@ -16,9 +16,8 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 import tensorflow as tf
 from tensorflow import keras
-
-# set tensorflow logging
-tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
+from tensorflow.keras import backend
+backend.set_image_data_format('channels_last')
 
 
 # ================================================================================================
