@@ -464,36 +464,13 @@ set tSecStart = `date '+%s'`;
 # masked (which is a bug). 
 if($?FS_RCA_T2_MASK_71 == 0) setenv FS_RCA_T2_MASK_71 1
 
-# This allows the user to require that the build stamp be
-# consistent from one recon-all invocation to the next.
-# Good for frozen versions.
-if($?REQUIRE_FS_MATCH == 0) setenv REQUIRE_FS_MATCH 0
-#echo "REQUIRE_FS_MATCH $REQUIRE_FS_MATCH"
 set bstampfile0 = $FREESURFER_HOME/build-stamp.txt
-mkdir -p $SUBJECTS_DIR/$subjid/scripts
-set bstampfile  = $SUBJECTS_DIR/$subjid/scripts/build-stamp.txt
-if(-e $bstampfile0) then
-  if(! -e $bstampfile) cp $bstampfile0 $bstampfile
-  set bstamp0 = `cat $bstampfile0`
-  set bstamp  = `cat $bstampfile`
-  if("$bstamp0" != "$bstamp") then
-    if($REQUIRE_FS_MATCH) then
-      echo "ERROR: FreeSurfer build stamps do not match"
-      echo "Subject Stamp: $bstamp"
-      echo "Current Stamp: $bstamp0"
-      exit 1;
-    else
-      echo "INFO: FreeSurfer build stamps do not match"
-    endif
-  endif
-  echo "Subject Stamp: $bstamp"
-  echo "Current Stamp: $bstamp0"
-endif
+cp $bstampfile0 $SUBJECTS_DIR/$subjid/scripts/lastcall.build-stamp.txt
+
 rm -f $SUBJECTS_DIR/$subjid/scripts/patchdir.txt
 if($?PatchDir) then
   echo "$PatchDir" > $SUBJECTS_DIR/$subjid/scripts/patchdir.txt
 endif
-cp $bstampfile0 $SUBJECTS_DIR/$subjid/scripts/lastcall.build-stamp.txt
 
 if ($DoMakefile) then
   setenv RECONALL_MAKE_SUBJECT $subjid
@@ -6846,13 +6823,12 @@ while( $#argv != 0 )
       breaksw
 
     case "-autorecon2-volonly":
-      set DoGCAReg         = 1;
       set DoRemoveNeck     = 0;
       set DoSkullLTA       = 0;
+      set DoSegStats       = 0;
       set DoCANormalize    = 1;
       set DoCAReg          = 1;
       set DoCALabel        = 1;
-      set DoSegStats       = 0;
       set DoNormalization2 = 1;
       set DoMaskBFS        = 1;
       set DoSegmentation   = 1;
@@ -7981,6 +7957,20 @@ check_params:
     endif
   else
     set subjdir = /tmp
+  endif
+
+  # Check that the current version is acceptable. See fs-check-version for rules
+  set checkfile = `fs_temp_file`
+  set cmd = (fs-check-version --s $subjid --o $checkfile)
+  echo $cmd
+  $cmd
+  set ok = `cat $checkfile`
+  rm -f $checkfile
+  if(! $ok) then
+    echo "recon-all: version check failed"
+    echo $cmd
+    echo ""
+    exit 1
   endif
 
   if(! $?FREESURFER_HOME ) then
