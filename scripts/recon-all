@@ -464,36 +464,13 @@ set tSecStart = `date '+%s'`;
 # masked (which is a bug). 
 if($?FS_RCA_T2_MASK_71 == 0) setenv FS_RCA_T2_MASK_71 1
 
-# This allows the user to require that the build stamp be
-# consistent from one recon-all invocation to the next.
-# Good for frozen versions.
-if($?REQUIRE_FS_MATCH == 0) setenv REQUIRE_FS_MATCH 0
-#echo "REQUIRE_FS_MATCH $REQUIRE_FS_MATCH"
 set bstampfile0 = $FREESURFER_HOME/build-stamp.txt
-mkdir -p $SUBJECTS_DIR/$subjid/scripts
-set bstampfile  = $SUBJECTS_DIR/$subjid/scripts/build-stamp.txt
-if(-e $bstampfile0) then
-  if(! -e $bstampfile) cp $bstampfile0 $bstampfile
-  set bstamp0 = `cat $bstampfile0`
-  set bstamp  = `cat $bstampfile`
-  if("$bstamp0" != "$bstamp") then
-    if($REQUIRE_FS_MATCH) then
-      echo "ERROR: FreeSurfer build stamps do not match"
-      echo "Subject Stamp: $bstamp"
-      echo "Current Stamp: $bstamp0"
-      exit 1;
-    else
-      echo "INFO: FreeSurfer build stamps do not match"
-    endif
-  endif
-  echo "Subject Stamp: $bstamp"
-  echo "Current Stamp: $bstamp0"
-endif
+cp $bstampfile0 $SUBJECTS_DIR/$subjid/scripts/lastcall.build-stamp.txt
+
 rm -f $SUBJECTS_DIR/$subjid/scripts/patchdir.txt
 if($?PatchDir) then
   echo "$PatchDir" > $SUBJECTS_DIR/$subjid/scripts/patchdir.txt
 endif
-cp $bstampfile0 $SUBJECTS_DIR/$subjid/scripts/lastcall.build-stamp.txt
 
 if ($DoMakefile) then
   setenv RECONALL_MAKE_SUBJECT $subjid
@@ -1536,7 +1513,55 @@ if($DoMotionCor) then
 
 endif # Motion Correction
 
+if($UseSamseg) then
+  # what to do if have T2, FLAIR, long, etc?
+  set origvol = $subjdir/mri/orig.mgz
+  set samsegdir = $subjdir/mri/samseg.rca
+  set ud = `UpdateNeeded $samsegdir/seg.mgz $origvol`
+  if($ud || $ForceUpdate) then
+    set xopts = `fsr-getxopts samseg $XOptsFile`;
+    set cmd = (samseg --t1w $origvol --refmode t1w --o $samsegdir --threads $OMP_NUM_THREADS $xopts)
+    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+    if($RunIt) then
+      $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    endif
+  endif
+  # Fix hypos and vents
+  set xopts = `fsr-getxopts samseg2recon $XOptsFile`;
+  set cmd = (samseg2recon --s $subjid --samsegdir $samsegdir $xopts) # no update option
+  echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+  if($RunIt) then
+    $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+  endif
+endif
 
+if($DoCAReg && $DoCALabel && $UseSynthSeg) then
+  # Note: no m3z will be produced
+  set origvol  = $subjdir/mri/orig.mgz
+  set synthseg = $subjdir/mri/synthseg.rca.mgz
+  set ud = `UpdateNeeded $synthseg $origvol`
+  if($ud || $ForceUpdate) then
+    set xopts = `fsr-getxopts synthseg $XOptsFile`;
+    set cmd = (synthseg --i $origvol --o $synthseg --cpu --threads $OMP_NUM_THREADS $xopts)
+    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+    if($RunIt) then
+      $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+      pushd $subjdir/mri 
+      rm -f aseg.auto_noCCseg.mgz
+      ln -sf synthseg.rca.mgz aseg.auto_noCCseg.mgz
+      popd
+    endif
+    set cmd = (mri_convert $synthseg $synthseg --ctab $FREESURFER_HOME/FreeSurferColorLUT.txt)
+    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+    if($RunIt) then
+      $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    endif
+  endif
+endif
 
 # MOD: this takes the externally supplied mask and resamples it into the
 # orig space so that it can be used with mri_em_register
@@ -2491,7 +2516,7 @@ endif # DoCANormalize
 #------------ Canonical Registration --------------#
 ##-----------        -careg          --------------#
 #------------                        --------------#
-if($DoCAReg) then
+if($DoCAReg && ! $UseSynthSeg) then
   echo "#--------------------------------------"|& tee -a $LF |& tee -a $CF
   echo "#@# CA Reg `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
   cd $subjdir/mri > /dev/null
@@ -2592,7 +2617,7 @@ endif
 #-------------- SubCort Segmentation --------------#
 ##-------------        -calabel      --------------#
 #--------------                      --------------#
-if($DoCALabel) then
+if($DoCALabel  && ! $UseSynthSeg) then
   echo "#--------------------------------------"|& tee -a $LF |& tee -a $CF
   echo "#@# SubCort Seg `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
   cd $subjdir/mri > /dev/null
@@ -6846,13 +6871,12 @@ while( $#argv != 0 )
       breaksw
 
     case "-autorecon2-volonly":
-      set DoGCAReg         = 1;
       set DoRemoveNeck     = 0;
       set DoSkullLTA       = 0;
+      set DoSegStats       = 0;
       set DoCANormalize    = 1;
       set DoCAReg          = 1;
       set DoCALabel        = 1;
-      set DoSegStats       = 0;
       set DoNormalization2 = 1;
       set DoMaskBFS        = 1;
       set DoSegmentation   = 1;
@@ -7787,6 +7811,42 @@ check_params:
       exit 1;
     endif
 
+    if($UseSamseg && $UseSynthSeg) then
+      echo "ERROR: cannot specify -samseg AND -synthseg"
+      exit 1
+    endif
+
+    if($UseSamseg) then
+      if($longitudinal || $LongSamseg) then
+        echo "ERROR: cannot use -samseg with long or longsamseg"
+        exit 1;
+      endif
+      set DoTalairach      = 0;
+      set DoTalCheck       = 0;
+      set DoNormalization  = 0;
+      set DoSkullStrip     = 0;
+      set DoNuIntensityCor = 0;
+      set DoGCAReg         = 0;
+      set DoRemoveNeck     = 0; # Should be 0 anyway
+      set DoSkullLTA       = 0; # Should be 0 anyway
+      set DoCANormalize    = 0;
+      set DoCAReg          = 0;
+      set DoCALabel        = 0;
+      set DoCCSeg          = 0;
+      set DoASegMerge      = 1;
+      set DoSamsegReg      = 0;
+    endif
+
+    if($UseSynthSeg) then
+      if($longitudinal || $LongSamseg) then
+        echo "ERROR: cannot use -synthseg with long or longsamseg"
+        exit 1;
+      endif
+      set DoCCSeg     = 1;
+      set DoASegMerge = 1;
+      set DoSamsegReg = 1
+    endif
+
     # If not using emreg, then use an lta created from the talairach.xfm, get matching GCA
     if($EMRegStrip == 0) set GCASkull = RB_all_withskull_2019_10_22.talxfm.mni305.gca
     if($EMRegAseg  == 0) set GCA      = RB_all_2019_10_25.talxfm.mni305.gca
@@ -7981,6 +8041,20 @@ check_params:
     endif
   else
     set subjdir = /tmp
+  endif
+
+  # Check that the current version is acceptable. See fs-check-version for rules
+  set checkfile = `fs_temp_file`
+  set cmd = (fs-check-version --s $subjid --o $checkfile)
+  echo $cmd
+  $cmd
+  set ok = `cat $checkfile`
+  rm -f $checkfile
+  if(! $ok) then
+    echo "recon-all: version check failed"
+    echo $cmd
+    echo ""
+    exit 1
   endif
 
   if(! $?FREESURFER_HOME ) then

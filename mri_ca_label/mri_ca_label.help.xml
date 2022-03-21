@@ -119,6 +119,8 @@
       <explanation>reclassify voxels at least &lt;thresh&gt; std devs from the mean using a &lt;wsize&gt; Gaussian window (with &lt;sigma&gt; standard dev) to recompute priors and likelihoods</explanation>
       <argument>-nowmsa</argument>
       <explanation>disables WMSA labels (hypo/hyper-intensities), selects second most probable label for each WMSA labelled voxel instead</explanation>
+      <argument>-vent-fix niters nmax topo</argument>
+      <explanation>Fix underlabeled ventricle (eg, -1 7000 1)</explanation>
       <argument>-threads or -nthreads NTHREADS</argument>
       <explanation>Set the number of open mp threads</explanation>
     </optional-flagged>

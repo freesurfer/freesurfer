@@ -21,9 +21,8 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import tensorflow as tf
 from tensorflow import keras
 import tensorflow.keras.layers as KL
-
-# set tensorflow logging
-# tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
+from tensorflow.keras import backend
+backend.set_image_data_format('channels_last')
 
 
 # ================================================================================================
@@ -271,9 +270,14 @@ def predict(path_images,
         if path_volumes[0] is not None:
             print('volumes saved in:          ' + path_volumes[0])
 
-    print('\nIf you use this tool in a publication, please cite:')
-    print('SynthSeg: domain randomisation for segmentation of brain MRI scans of any contrast and resolution')
-    print('B. Billot, D. N. Greeve, O. Puonti, A. Thielscher, K. Van Leemput, B. Fischl, A. V. Dalca, J. E. Iglesias')
+    if robust:
+        print('\nIf you use the new robust version of SynthSeg in a publication, please cite:')
+        print('Robust Segmentation of Brain MRI in the Wild with Hierarchical CNNs and no Retraining')
+        print('B. Billot, M. Collin, S.E. Arnold, S. Das, J.E. Iglesias')
+    else:
+        print('\nIf you use this tool in a publication, please cite:')
+        print('SynthSeg: domain randomisation for segmentation of brain MRI scans of any contrast and resolution')
+        print('B. Billot, D.N. Greeve, O. Puonti, A. Thielscher, K. Van Leemput, B. Fischl, A.V. Dalca, J.E. Iglesias')
 
 
 def prepare_output_files(path_images, out_seg, out_posteriors, out_resampled, out_volumes):
