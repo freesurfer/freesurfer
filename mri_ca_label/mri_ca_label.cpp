@@ -50,6 +50,7 @@
 #include "mrinorm.h"
 #include "version.h"
 #include "fsinit.h"
+#include "ventfix.h"
 
 static char *write_likelihood = NULL ;
 static double PRIOR_FACTOR = 1.0 ;
@@ -218,6 +219,11 @@ static int anneal = 0 ;
 static char *mri_fname = NULL ;
 static int hippocampus_flag = 1 ;
 static char *wmsa_probs = NULL;
+
+int FixVents=0;
+int nitersFixVents = -1;
+int nmaxFixVents = 5000;
+int topoFixVents = 1;
 
 #define CMA_PARCELLATION  0
 static int parcellation_type = CMA_PARCELLATION ;
@@ -994,15 +1000,16 @@ int main(int argc, char *argv[])
         {
           MRI *mri_imp ;
           mri_imp = GCAmarkImpossible(gca, mri_labeled, NULL, transform) ;
-          fix_putamen(gca, mri_inputs, mri_imp, transform, 
-                      mri_labeled, mri_labeled,-.1) ;
+	  
+	  // This is never run because of the -0.1
+          fix_putamen(gca, mri_inputs, mri_imp, transform,  mri_labeled, mri_labeled,-.1) ;
           if (Gdiag & DIAG_WRITE)
           {
             MRIwrite(mri_imp, "gca_imp.mgz") ;
           }
           MRIfree(&mri_imp) ;
         }
-      }
+      } // renormalize_align
       else if (renormalize_iter > 0)
       {
         if (renormalize_new)
@@ -1389,6 +1396,14 @@ int main(int argc, char *argv[])
   if (fcd)
     gcaCheckForFCDs(mri_labeled, mri_labeled, gca, transform, mri_inputs) ;
 
+  if(FixVents){
+    printf("Fixing vents  niters = %d  nmax = %d topo = %d\n", nitersFixVents, nmaxFixVents, topoFixVents);
+    char segids[5] = "4,43";
+    MRI *newseg = VentFix::fixasegps(mri_labeled, mri_inputs, &(segids[0]), 0.5, nitersFixVents, nmaxFixVents, topoFixVents);
+    MRIfree(&mri_labeled);
+    mri_labeled = newseg;
+  }
+
   printf("writing labeled volume to %s\n", out_fname) ;
   if (MRIwrite(mri_labeled, out_fname) != NO_ERROR)
   {
@@ -1682,6 +1697,23 @@ get_option(int argc, char *argv[])
     Gzp = atoi(argv[4]) ;
     nargs = 3 ;
     printf("debugging prior (%d, %d, %d)\n", Gxp,Gyp,Gzp) ;
+  }
+  else if (!stricmp(option, "VENT-FIX"))
+  {
+    /* This labels underlabeled vertices in ventricles. It iteratively
+       grows the ventricle into 0-valued voxels until one of three
+       stopping criteria is reached: (1) number of iters exceeds
+       niters (if niters < 0, then no max iters). (2) the number of
+       changed voxels exceeds nmax. or (3) there are no more 0-valued
+       voxels that neighbor a ventricle voxel. A neighbor is defined
+       by the topo: 1=face, 2=face+edge, 3=face+edge+corner. Typical
+       -1 7000 1. This may fail if the unlabeled ventricle is not
+       completely surrounded by non-zero segments. */
+    FixVents = 1;
+    nitersFixVents = atoi(argv[2]) ; // -1
+    nmaxFixVents = atoi(argv[3]) ; // 7000
+    topoFixVents = atoi(argv[4]) ; // 1
+    nargs = 3 ;
   }
   else if (!stricmp(option, "DEBUG_LABEL"))
   {
@@ -4717,6 +4749,7 @@ int MRItoUCHAR(MRI **pmri)
   *pmri = mri2;
   return(1);
 }
+
 static MRI *
 fix_putamen(GCA *gca,
             MRI *mri_inputs,
@@ -4730,6 +4763,7 @@ fix_putamen(GCA *gca,
   int gm, wm, iter, total_changed ;
   double     pwm, pgm ;
   GCA_PRIOR *gcap ;
+  // This function is called above with prior_thresh < 0, so never run
 
   if (mri_dst_labeled == NULL)
   {
@@ -4740,6 +4774,7 @@ fix_putamen(GCA *gca,
     return(mri_dst_labeled) ;
   }
 
+  printf("fix_putamen()\n");
   for (iter = total_changed = 0 ; iter < 5 ; iter++)
   {
     for (nchanged = x = 0 ; x < mri_imp->width ; x++)
