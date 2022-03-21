@@ -45,6 +45,7 @@
 /* ----- determines tolerance of non-orthogonal basis vectors ----- */
 #define CLOSE_ENOUGH  (5e-3)
 
+void applyGaussianFilter(MRI *inVol, float *voxsize);
 void get_ints(int argc, char *argv[], int *pos, int *vals, int nvals);
 void get_floats(int argc, char *argv[], int *pos, float *vals, int nvals);
 void get_string(int argc, char *argv[], int *pos, char *val);
@@ -197,6 +198,7 @@ int main(int argc, char *argv[])
   int nthframe=-1;
   int reduce = 0 ;
   float fwhm, gstd;
+  int antialias_flag = FALSE;
   int sphinx_flag = FALSE;
   int LeftRightReverse = FALSE;
   int LeftRightReversePix = FALSE;
@@ -1015,6 +1017,10 @@ int main(int argc, char *argv[])
       get_ints(argc, argv, &i, &in_n_k, 1);
       in_n_k_flag = TRUE;
     }
+    else if(strcmp(argv[i], "--antialias") == 0)
+    {
+      antialias_flag = TRUE;
+    }
     else if(strcmp(argv[i], "--fwhm") == 0)
     {
       get_floats(argc, argv, &i, &fwhm, 1);
@@ -1513,6 +1519,20 @@ int main(int argc, char *argv[])
   }
   /**** Finished parsing command line ****/
   /* option inconsistency checks */
+  if (antialias_flag == TRUE && voxel_size_flag == FALSE)
+  {
+    fprintf(stderr, "ERROR: use --voxsize to specify voxel size for --antialias\n");
+    exit(1);
+  }
+
+  if (antialias_flag == TRUE && fwhm > 0)
+  {
+    fprintf(stderr, "ERROR: --antialias and --fwhm are mutually excluded!\n"
+                    "       use --antialias to automatically calculate FWHM, \n"
+	            "       or, --fwhm to specify desired FWHM\n");
+    exit(1);
+  }
+
   if (force_ras_good && (in_i_direction_flag || in_j_direction_flag ||
                          in_k_direction_flag))
   {
@@ -2299,7 +2319,9 @@ int main(int argc, char *argv[])
     }
   }
 
-  if(fwhm > 0)
+  if (antialias_flag == TRUE)
+    applyGaussianFilter(mri, voxel_size);
+  else if (fwhm > 0)
   {
     printf("Smoothing input at fwhm = %g, gstd = %g\n",fwhm,gstd);
     MRIgaussianSmooth(mri, gstd, 1, mri);
@@ -3638,6 +3660,36 @@ int main(int argc, char *argv[])
 
 } /* end main() */
 /*----------------------------------------------------------------------*/
+
+void applyGaussianFilter(MRI *inVol, float *voxsize)
+{
+    float std[3];
+
+    int n;
+    for (n = 0; n < 3; n++)
+    {
+      // sigma = R * log(F) / pi
+      float insize = inVol->xsize;
+      if ( n == 1)
+        insize = inVol->ysize;
+      else if (n == 2)
+        insize = inVol->zsize;
+
+      std[n] = 0;
+      if (voxsize[n] > insize)
+      {
+        float R = voxsize[n] / insize;
+        float F = 5.0;
+        float sigma = R*log(F)/M_PI;
+
+        float fwhm = sigma * sqrt(8 * log(2));
+        std[n] = fwhm/sqrt(log(256.0));
+        printf("dimension #%d: insize = %f, outsize = %f, sigma = %g, fwhm = %g, gstd = %g\n", n+1, insize, voxsize[n], sigma, fwhm, std[n]);
+      }
+    }
+
+    MRIgaussianSmoothNI(inVol, std[0], std[1], std[2], inVol);
+}
 
 void get_ints(int argc, char *argv[], int *pos, int *vals, int nvals)
 {
