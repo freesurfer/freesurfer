@@ -56,6 +56,7 @@ public:
   void  load_transtable(const char* morphfile);
   void  save_transtable(const char* morphfile);
 
+  MRI*  unwarp_volume_gradfile(MRI *warpedvol, MRI *unwarpedvol, MATRIX *vox2ras, MATRIX *inv_vox2ras, int interpcode, int sinchw);
   MRI*  unwarp_volume(MRI *warpedvol, MRI *unwarpedvol, int interpcode, int sinchw);
   MRIS* unwarp_surface_gradfile(MRIS *warpedsurf, MRIS *unwarpedsurf);
   MRIS* unwarp_surface(MRIS *warpedsurf, MRIS *unwarpedsurf);
@@ -93,6 +94,7 @@ private:
   void _update_GCAMnode(int c, int r, int s, float fcs, float frs, float fss);
   void _assignUnWarpedVolumeValues(MRI* warpedvol, MRI* unwarpedvol, MRI_BSPLINE *bspline, int interpcode, int sinchw,
                                    int c, int r, int s, float fcs, float frs, float fss);
+  void _printMatrix(MATRIX *matrix, const char *desc);
 };
 
 #endif
