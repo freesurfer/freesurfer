@@ -10,7 +10,7 @@
 #include "diag.h"
 
 /*!
-\fn MRI* VentFix::fixasegps(MRI *asegps, MRI *brainmask, char *segids, float threshmin, int niters, int nmax, int topo) MRI *MRIreorder4(MRI *mri, int order[4])
+\fn MRI* VentFix::fixasegps(MRI *asegps, MRI *brainmask, char *segids, float threshmin, int niters, int nmax, int topo)
 \brief fix ventricles that are underlabled in FreeSurfer
 \param asegps    - input aseg.presurf.mgz
 \param brainmask - input brainmask
