@@ -10,10 +10,12 @@
 #include "GradUnwarp.h"
 #include "legendre.h"
 
-/*****************************************************************************/
-/******************** Implementation of GradUnwarp class *********************/
-/***************     3 environment variables to enable debug info:        **************/
-/********** PRN_GRADCOEFF, PRN_LEGENDRE_NORMFACT, PRN_LEGENDRE, PRN_SIEMENS_B **********/
+/*******************************************************************************************/
+/******************** Implementation of GradUnwarp class ***********************************/
+/*********************   ennvironment variables to enable debug info:  *********************/
+/**********     GRADUNWARP_PRN_GRADCOEFF, GRADUNWARP_PRN_GRADCOEFF_READ,       *************/
+/**********     GRADUNWARP_PRN_LEGENDRE_NORMFACT, GRADUNWARP_PRN_LEGENDRE,     *************/
+/**********             GRADUNWARP_PRN_SIEMENS_B, GRADUNWARP_PRN_DEBUG         *************/
 GradUnwarp::GradUnwarp(int nthreads0)
 {
   nthreads = nthreads0;
@@ -146,7 +148,7 @@ void GradUnwarp::read_siemens_coeff(const char *gradfilename)
     if (*ptr == '\0')
       continue;
 
-    if (getenv("PRN_GRADCOEFF_READ"))
+    if (getenv("GRADUNWARP_PRN_GRADCOEFF_READ"))
       printf("(first pass) entry #%d: %s\n", coeffCount, coeffline);
 
     coeffCount++;
@@ -173,7 +175,7 @@ void GradUnwarp::read_siemens_coeff(const char *gradfilename)
     if (*ptr == '\0')
       continue;
 
-    if (getenv("PRN_GRADCOEFF_READ"))
+    if (getenv("GRADUNWARP_PRN_GRADCOEFF_READ"))
       printf("(second pass) entry #%d: %s\n", coeffCount, coeffline);
 
     sscanf(ptr, "%d %c(%d, %d) %f %c", 
@@ -182,7 +184,7 @@ void GradUnwarp::read_siemens_coeff(const char *gradfilename)
     nmax = (coeff[coeffCount].n > nmax) ? coeff[coeffCount].n : nmax;
     mmax = (coeff[coeffCount].m > mmax) ? coeff[coeffCount].m : mmax;
 
-    if (getenv("PRN_GRADCOEFF_READ"))
+    if (getenv("GRADUNWARP_PRN_GRADCOEFF_READ"))
       printf("(second pass) %d %c (%d, %d) %f %c\n", coeff[coeffCount].num, 
              coeff[coeffCount].A_or_B, coeff[coeffCount].n, coeff[coeffCount].m, coeff[coeffCount].value, coeff[coeffCount].xyz);
 
@@ -253,7 +255,7 @@ void GradUnwarp::initSiemensLegendreNormfact()
   for (n = 0; n < 2*coeffDim; n++)
     factorials[n] = factorial(n);
 
-  if (getenv("PRN_LEGENDRE_NORMFACT"))
+  if (getenv("GRADUNWARP_PRN_LEGENDRE_NORMFACT"))
     printf("\n");
 
   for (n = 0; n < coeffDim; n++)
@@ -263,12 +265,12 @@ void GradUnwarp::initSiemensLegendreNormfact()
     {
       normfact[n][m] = minusonepow[m+1] * sqrt((2*n+1)*factorials[n-m-1]/(2*factorials[n+m+1]));
    
-      if (getenv("PRN_LEGENDRE_NORMFACT"))
+      if (getenv("GRADUNWARP_PRN_LEGENDRE_NORMFACT"))
         printf("normfact[%2d][%2d] = %s%.6lf, pow((-1), %2d) * sqrt((%2d)*factorial(%2d)/(2*factorial(%2d)))\n",
                n, m, (normfact[n][m] > 0) ? " " : "", normfact[n][m], m+1, 2*n+1, n-m-1, n+m+1);
     }
 
-    if (getenv("PRN_LEGENDRE_NORMFACT"))
+    if (getenv("GRADUNWARP_PRN_LEGENDRE_NORMFACT"))
       printf("\n");
   }
 }
@@ -276,7 +278,11 @@ void GradUnwarp::initSiemensLegendreNormfact()
 void GradUnwarp::spharm_evaluate(float X, float Y, float Z, float *Dx, float *Dy, float *Dz)
 {
   if (!Alpha_Beta_initialized)
-    return;
+  {
+    printf("gradient file not loaded!\n");
+    exit(1);
+    //return;
+  }
 
   Siemens_B *siemens_B = new Siemens_B(coeffDim, nmax, R0, normfact, X, Y, Z);
 
@@ -284,7 +290,7 @@ void GradUnwarp::spharm_evaluate(float X, float Y, float Z, float *Dx, float *Dy
   float by = siemens_B->siemens_B_y(Alpha_y, Beta_y);
   float bz = siemens_B->siemens_B_z(Alpha_z, Beta_z);
 
-  if (getenv("PRN_SIEMENS_B"))
+  if (getenv("GRADUNWARP_PRN_SIEMENS_B"))
     printf("bx=%lf, by=%lf, bz=%lf\n", bx, by, bz);
 
   *Dx = bx * R0;
@@ -394,11 +400,13 @@ void GradUnwarp::create_transtable(VOL_GEOM *vg, MATRIX *vox2ras, MATRIX *inv_vo
         RAS->rptr[4][1] = 1;
         RAS = MatrixMultiply(vox2ras, CRS, RAS);
 
-        double x = RAS->rptr[1][1];
-        double y = RAS->rptr[2][1];
-        double z = RAS->rptr[3][1];
+        // convert RAS to LAI
+        RAS->rptr[1][1] = -RAS->rptr[1][1];
+        RAS->rptr[2][1] =  RAS->rptr[2][1];
+        RAS->rptr[3][1] = -RAS->rptr[3][1];
+
         float Dx = 0, Dy = 0, Dz = 0;
-        spharm_evaluate(x, y, z, &Dx, &Dy, &Dz);
+        spharm_evaluate(RAS->rptr[1][1], RAS->rptr[2][1], RAS->rptr[3][1], &Dx, &Dy, &Dz);
 
         DeltaRAS->rptr[1][1] = Dx;
         DeltaRAS->rptr[2][1] = Dy;
@@ -407,8 +415,14 @@ void GradUnwarp::create_transtable(VOL_GEOM *vg, MATRIX *vox2ras, MATRIX *inv_vo
         
         DistortedRAS = MatrixAdd(RAS, DeltaRAS, DistortedRAS);
         DistortedRAS->rptr[4][1] = 1;
+
+        // convert LAI to RAS
+        DistortedRAS->rptr[1][1] = -DistortedRAS->rptr[1][1];
+        DistortedRAS->rptr[2][1] =  DistortedRAS->rptr[2][1];
+        DistortedRAS->rptr[3][1] = -DistortedRAS->rptr[3][1];
+
         DistortedCRS = MatrixMultiply(inv_vox2ras, DistortedRAS, DistortedCRS);
-	   
+
         float fcs = DistortedCRS->rptr[1][1];
         float frs = DistortedCRS->rptr[2][1];
         float fss = DistortedCRS->rptr[3][1];
@@ -448,11 +462,145 @@ void GradUnwarp::save_transtable(const char* transfile)
   GCAMwrite(gcam, transfile);
 }
 
+MRI *GradUnwarp::unwarp_volume_gradfile(MRI *warpedvol, MRI *unwarpedvol, MATRIX *vox2ras, MATRIX *inv_vox2ras, int interpcode, int sinchw)
+{
+  printf("GradUnwarp::unwarp_volume_gradfile() ...\n");
+
+  int (*nintfunc)( double );
+  nintfunc = &nint;
+
+  if (unwarpedvol == NULL)
+  {
+    unwarpedvol = MRIallocSequence(warpedvol->width, warpedvol->height, warpedvol->depth, MRI_FLOAT, warpedvol->nframes);
+    MRIcopyHeader(warpedvol, unwarpedvol);
+    MRIcopyPulseParameters(warpedvol, unwarpedvol);
+  }
+
+  MRI_BSPLINE *bspline = NULL;
+  if (interpcode == SAMPLE_CUBIC_BSPLINE)
+    bspline = MRItoBSpline(warpedvol, NULL, 3);
+
+#ifdef HAVE_OPENMP
+  printf("\nSet OPEN MP NUM threads to %d (unwarp_volume_gradfile)\n", nthreads);
+  omp_set_num_threads(nthreads);
+#endif
+
+  int c; 
+  int outofrange_total = 0;
+#ifdef HAVE_OPENMP
+#pragma omp parallel for reduction(+ : outofrange_total)
+#endif
+  for (c = 0; c < unwarpedvol->width; c++)
+  {
+    // You could make a vector of CRS nthreads long
+    MATRIX *unwarpedCRS = MatrixAlloc(4, 1, MATRIX_REAL);
+    MATRIX *unwarpedRAS = MatrixAlloc(4, 1, MATRIX_REAL);;
+    MATRIX *DeltaRAS    = MatrixAlloc(4, 1, MATRIX_REAL);
+    MATRIX *warpedRAS   = MatrixAlloc(4, 1, MATRIX_REAL);
+    MATRIX *warpedCRS   = MatrixAlloc(4, 1, MATRIX_REAL);
+
+    int r = 0, s = 0;
+    for (r = 0; r < unwarpedvol->height; r++)
+    {
+      for (s = 0; s < unwarpedvol->depth; s++)
+      {
+        // clear unwarpedCRS, unwarpedRAS, DeltaRAS, warpedRAS, warpedCRS
+        MatrixClear(unwarpedCRS);
+        MatrixClear(unwarpedRAS);
+        MatrixClear(DeltaRAS);
+        MatrixClear(warpedRAS);
+        MatrixClear(warpedCRS);
+
+        unwarpedCRS->rptr[1][1] = c;
+        unwarpedCRS->rptr[2][1] = r;
+        unwarpedCRS->rptr[3][1] = s;
+        unwarpedCRS->rptr[4][1] = 1;
+
+        // Convert the CRS to RAS
+        unwarpedRAS->rptr[4][1] = 1;
+        unwarpedRAS = MatrixMultiply(vox2ras, unwarpedCRS, unwarpedRAS);
+
+        // convert RAS to LAI
+        unwarpedRAS->rptr[1][1] = -unwarpedRAS->rptr[1][1];
+        unwarpedRAS->rptr[2][1] =  unwarpedRAS->rptr[2][1];
+        unwarpedRAS->rptr[3][1] = -unwarpedRAS->rptr[3][1];
+
+        float Dx = 0, Dy = 0, Dz = 0;
+        spharm_evaluate(unwarpedRAS->rptr[1][1], unwarpedRAS->rptr[2][1], unwarpedRAS->rptr[3][1], &Dx, &Dy, &Dz);
+
+        DeltaRAS->rptr[1][1] = Dx;
+        DeltaRAS->rptr[2][1] = Dy;
+        DeltaRAS->rptr[3][1] = Dz;
+        DeltaRAS->rptr[4][1] = 1; 
+        
+        warpedRAS = MatrixAdd(unwarpedRAS, DeltaRAS, warpedRAS);
+        warpedRAS->rptr[4][1] = 1;
+
+        // convert LAI to RAS
+        warpedRAS->rptr[1][1] = -warpedRAS->rptr[1][1];
+        warpedRAS->rptr[2][1] =  warpedRAS->rptr[2][1];
+        warpedRAS->rptr[3][1] = -warpedRAS->rptr[3][1];
+
+        warpedCRS = MatrixMultiply(inv_vox2ras, warpedRAS, warpedCRS);
+
+        // (c, r, s) is in unwarped volume, (fcs, frs, fss) is in warped volume
+        float fcs = warpedCRS->rptr[1][1];
+        float frs = warpedCRS->rptr[2][1];
+        float fss = warpedCRS->rptr[3][1];
+
+        int ics =  nintfunc(fcs);
+        int irs =  nintfunc(frs);
+        int iss =  nintfunc(fss);
+
+        if (ics < 0 || ics >= unwarpedvol->width  ||
+            irs < 0 || irs >= unwarpedvol->height || 
+            iss < 0 || iss >= unwarpedvol->depth)
+        {
+          outofrange_total++;
+#if 0
+#ifdef HAVE_OPENMP
+          outofrange_local++;
+#else
+          outofrange_total++;
+#endif
+#endif
+          continue;
+        }
+
+        //printf("%f => %f, %f => %f, %f => %f\n", (float)c, fcs, (float)r, frs, (float)s, fss);
+        _assignUnWarpedVolumeValues(warpedvol, unwarpedvol, bspline, interpcode, sinchw, c, r, s, fcs, frs, fss);
+      }   // s
+    }     // r
+
+
+#if 0
+#ifdef HAVE_OPENMP
+#pragma omp critical 
+    outofrange_total += outofrange_local; 
+    //printf("update out of range voxel count: + %d = %d\n", outofrange_local, outofrange_total);
+#endif
+#endif
+
+    MatrixFree(&unwarpedCRS);
+    MatrixFree(&unwarpedRAS);
+    MatrixFree(&DeltaRAS);
+    MatrixFree(&warpedRAS);
+    MatrixFree(&warpedCRS);
+  }       // c
+
+  printf("Total %d voxels are out of range\n", outofrange_total);
+
+  if (bspline)
+    MRIfreeBSpline(&bspline);
+
+  return unwarpedvol;
+}
+
 MRI *GradUnwarp::unwarp_volume(MRI *warpedvol, MRI *unwarpedvol, int interpcode, int sinchw)
 {
   printf("GradUnwarp::unwarp_volume() ...\n");
 
-   int (*nintfunc)( double );
+  int (*nintfunc)( double );
   nintfunc = &nint;
 
   if (unwarpedvol == NULL)
@@ -618,11 +766,21 @@ MRIS* GradUnwarp::unwarp_surface_gradfile(MRIS *warpedsurf, MRIS *unwarpedsurf)
   //MATRIX *S    = warpedsurf->vg.getVox2RAS();            // scanner space, VOX to RAS
   //MATRIX *Q    = warpedsurf->vg.getRAS2Vox();            // scanner space, RAS to VOX
 
+  MATRIX *T    = TkrVox2RASfromVolGeom(&warpedsurf->vg); // tkreg space, VOX to RAS ???
   MATRIX *Tinv = TkrRAS2VoxfromVolGeom(&warpedsurf->vg); // tkreg space, RAS to VOX
   MATRIX *S    = vg_i_to_r(&warpedsurf->vg);             // scanner space, VOX to RAS
+  MATRIX *Sinv = vg_r_to_i(&warpedsurf->vg);             // scanner space, RAS to VOX ???
+
   MATRIX *M    = MatrixMultiply(S, Tinv, NULL);        // RAS to RAS, tkreg space to scanner space
-    
-  MATRIX *Q    = vg_r_to_i(&warpedsurf->vg);             // scanner space, RAS to VOX
+  MATRIX *Q    = MatrixMultiply(T, Sinv, NULL);        // RAS to RAS, scanner space to tkreg space ???
+
+  if (getenv("GRADUNWARP_PRN_DEBUG"))
+  {
+    _printMatrix(Tinv, "tkreg space, RAS to VOX");                   // TkrRas2Vox
+    _printMatrix(S,    "scanner space, VOX to RAS");                 // SVox2Ras
+    _printMatrix(M,    "tkreg space to scanner space, RAS to RAS");  // Tkr2SRas2Ras
+    _printMatrix(Q,    "scanner space to tkreg space, RAS to RAS");  // S2TkrRas2Ras
+  }
 
   int n; 
 #ifdef HAVE_OPENMP
@@ -642,59 +800,47 @@ MRIS* GradUnwarp::unwarp_surface_gradfile(MRIS *warpedsurf, MRIS *unwarpedsurf)
     // Convert surface xyz coords from tkregister space to scanner space
     MATRIX *warpedRAS = MatrixMultiply(M, tkregRAS, NULL);
 
-    // scanner space RAS
-    double Sx = warpedRAS->rptr[1][1];
-    double Sy = warpedRAS->rptr[2][1];
-    double Sz = warpedRAS->rptr[3][1];
-    
+    // convert warpedRAS from RAS to LAI
+    warpedRAS->rptr[1][1] = -warpedRAS->rptr[1][1];
+    warpedRAS->rptr[2][1] =  warpedRAS->rptr[2][1];
+    warpedRAS->rptr[3][1] = -warpedRAS->rptr[3][1];
+
     float  Dx = 0, Dy = 0, Dz = 0;
-    spharm_evaluate(Sx, Sy, Sz, &Dx, &Dy, &Dz);
-
-    if (getenv("PRN_GRADUNWARP_DEBUG"))
-    {
-      // convert to surface xyz coords to CRS
-      //MATRIX *warpedCRS = MatrixMultiply(Tinv, tkregRAS, NULL);
-      MATRIX *warpedCRS = MatrixMultiply(Q, warpedRAS, NULL);
-      MATRIX *DeltaRAS = MatrixAlloc(4, 1, MATRIX_REAL);
-      DeltaRAS->rptr[1][1] = Dx;
-      DeltaRAS->rptr[2][1] = Dy;
-      DeltaRAS->rptr[3][1] = Dz;
-      DeltaRAS->rptr[4][1] = 1; 
-      MATRIX *unwarpedRAS = MatrixSubtract(warpedRAS, DeltaRAS, NULL);
-      MATRIX *unwarpedCRS = MatrixMultiply(Q, unwarpedRAS, NULL);
-
-      MATRIX *deltaCRS = MatrixAlloc(4, 1, MATRIX_REAL); 
-      deltaCRS = MatrixSubtract(warpedCRS, unwarpedCRS, NULL);
-      deltaCRS->rptr[4][1] = 1;
-
-      MATRIX *deltaRAS2 = MatrixMultiply(S, deltaCRS, NULL);
-
-      printf("%d) (x=%f, y=%f, z=%f)\n", n, v->x, v->y, v->z);
-      printf("\t\t(Dc=%f (%f-%f), Dr=%f (%f-%f), Ds=%f (%f-%f))\n", 
-             deltaCRS->rptr[1][1], warpedCRS->rptr[1][1], unwarpedCRS->rptr[1][1], 
-             deltaCRS->rptr[2][1], warpedCRS->rptr[2][1], unwarpedCRS->rptr[2][1], 
-             deltaCRS->rptr[3][1], warpedCRS->rptr[3][1], unwarpedCRS->rptr[3][1]);
-      printf("\t\t(Dx =%f, Dy =%f, Dz =%f)\n", Dx, Dy, Dz);
-      printf("\t\t(Dx2=%f, Dy2=%f, Dz2=%f)\n", deltaRAS2->rptr[1][1], deltaRAS2->rptr[2][1], deltaRAS2->rptr[3][1]);
-
-      MatrixFree(&deltaRAS2);
-      MatrixFree(&deltaCRS);
-      MatrixFree(&unwarpedCRS);
-      MatrixFree(&unwarpedRAS);
-      MatrixFree(&DeltaRAS);
-      MatrixFree(&warpedCRS);
-    }
+    spharm_evaluate(warpedRAS->rptr[1][1], warpedRAS->rptr[2][1], warpedRAS->rptr[3][1], &Dx, &Dy, &Dz);  //spharm_evaluate(Sx, Sy, Sz, &Dx, &Dy, &Dz);
     
-    // warped => unwarped vertext xyz
-    double x = v->x - Dx; // + Dx, warping
-    double y = v->y - Dy; // + Dy, warping
-    double z = v->z - Dz; // + Dz, warping
+
+    // warped => unwarped scanner xyz in LAI orientation
+    MATRIX *unwarpedRAS = MatrixAlloc(4, 1, MATRIX_REAL);
+    unwarpedRAS->rptr[1][1] = warpedRAS->rptr[1][1] - Dx; // + Dx, warping
+    unwarpedRAS->rptr[2][1] = warpedRAS->rptr[2][1] - Dy; // + Dy, warping
+    unwarpedRAS->rptr[3][1] = warpedRAS->rptr[3][1] - Dz; // + Dz, warping
+    unwarpedRAS->rptr[4][1] = 1;
+
+    // convert unwarpedRAS from LAI to RAS
+    unwarpedRAS->rptr[1][1] = -unwarpedRAS->rptr[1][1];
+    unwarpedRAS->rptr[2][1] =  unwarpedRAS->rptr[2][1];
+    unwarpedRAS->rptr[3][1] = -unwarpedRAS->rptr[3][1];
+
+    // convert unwarpedRAS from scanner space to tkregister space
+    MATRIX *unwarpedtkregRAS = MatrixMultiply(Q, unwarpedRAS, NULL);
 
     // set unwarped vertext xyz
-    MRISsetXYZ(unwarpedsurf, n, x, y, z);
+    MRISsetXYZ(unwarpedsurf, n, unwarpedtkregRAS->rptr[1][1], unwarpedtkregRAS->rptr[2][1], unwarpedtkregRAS->rptr[3][1]);
 
+    if (getenv("GRADUNWARP_PRN_DEBUG"))
+    {
+      printf("%d) \n", n);
+      printf("\ttkregRAS         (x=%f, y=%f, z=%f)\n", tkregRAS->rptr[1][1], tkregRAS->rptr[2][1], tkregRAS->rptr[3][1]); //v->x, v->y, v->z);
+      printf("\twarpedRAS (LAI)  (x=%f, y=%f, z=%f)\n", warpedRAS->rptr[1][1], warpedRAS->rptr[2][1], warpedRAS->rptr[3][1]);  //Sx, Sy, Sz);
+      printf("\tunwarpedRAS      (x=%f, y=%f, z=%f)\n", unwarpedRAS->rptr[1][1], unwarpedRAS->rptr[2][1], unwarpedRAS->rptr[3][1]);
+      //printf("\tdeltaRAS         (x=%f, y=%f, z=%f)\n", Dx, Dy, Dz);
+      printf("\tunwarpedtkregRAS (x=%f, y=%f, z=%f)\n", unwarpedtkregRAS->rptr[1][1], unwarpedtkregRAS->rptr[2][1], unwarpedtkregRAS->rptr[3][1]);
+    }
+    
     MatrixFree(&warpedRAS);
+    MatrixFree(&unwarpedRAS);
     MatrixFree(&tkregRAS);
+    MatrixFree(&unwarpedtkregRAS);
   }       // n
 
   // Copy the volume geometry
@@ -703,6 +849,8 @@ MRIS* GradUnwarp::unwarp_surface_gradfile(MRIS *warpedsurf, MRIS *unwarpedsurf)
   MatrixFree(&Q);
   MatrixFree(&M);
   MatrixFree(&S);
+  MatrixFree(&Sinv);
+  MatrixFree(&T);
   MatrixFree(&Tinv);
 
   return unwarpedsurf;
@@ -741,10 +889,21 @@ MRIS* GradUnwarp::unwarp_surface(MRIS *warpedsurf, MRIS *unwarpedsurf)
   //MATRIX *Tinv = warpedsurf->vg.getTkregRAS2Vox();       // tkreg space, RAS to VOX
   //MATRIX *S    = warpedsurf->vg.getVox2RAS();            // scanner space, VOX to RAS
 
+  MATRIX *T    = TkrVox2RASfromVolGeom(&warpedsurf->vg); // tkreg space, VOX to RAS ???
   MATRIX *Tinv = TkrRAS2VoxfromVolGeom(&warpedsurf->vg); // tkreg space, RAS to VOX
   MATRIX *S    = vg_i_to_r(&warpedsurf->vg);             // scanner space, VOX to RAS
+  MATRIX *Sinv = vg_r_to_i(&warpedsurf->vg);             // scanner space, RAS to VOX ???
 
   MATRIX *M    = MatrixMultiply(S, Tinv, NULL);        // RAS to RAS, tkreg space to scanner space
+  MATRIX *Q    = MatrixMultiply(T, Sinv, NULL);        // RAS to RAS, scanner space to tkreg space ???
+
+  if (getenv("GRADUNWARP_PRN_DEBUG"))
+  {
+    _printMatrix(Tinv, "tkreg space, RAS to VOX");                   // TkrRas2Vox
+    _printMatrix(S,    "scanner space, VOX to RAS");                 // SVox2Ras
+    _printMatrix(M,    "tkreg space to scanner space, RAS to RAS");  // Tkr2SRas2Ras
+    _printMatrix(Q,    "scanner space to tkreg space, RAS to RAS");  // S2TkrRas2Ras
+  }
 
   int n; 
   int outofrange_total = 0;
@@ -788,7 +947,7 @@ MRIS* GradUnwarp::unwarp_surface(MRIS *warpedsurf, MRIS *unwarpedsurf)
       continue;
     }
 
-    // convert delta CRS to delta RAS in scanner space
+    // convert CRS to RAS in scanner space
     MATRIX *unwarpedCRS = MatrixAlloc(4, 1, MATRIX_REAL); 
     unwarpedCRS->rptr[1][1] = fcs;
     unwarpedCRS->rptr[2][1] = frs;
@@ -796,50 +955,48 @@ MRIS* GradUnwarp::unwarp_surface(MRIS *warpedsurf, MRIS *unwarpedsurf)
     unwarpedCRS->rptr[4][1] = 1;
 
     MATRIX *unwarpedRAS = MatrixMultiply(S, unwarpedCRS, NULL);
-
-    // scanner space RAS  
-    MATRIX *deltaRAS = MatrixSubtract(warpedRAS, unwarpedRAS, NULL);
-
-    float Dx = deltaRAS->rptr[1][1];
-    float Dy = deltaRAS->rptr[2][1];
-    float Dz = deltaRAS->rptr[3][1];
-
-    if (getenv("PRN_GRADUNWARP_DEBUG"))
-    {
-      printf("%d) (x=%f, y=%f, z=%f)\n", n, v->x, v->y, v->z);
-      printf("\t\t(Dc=%f (%f-%f), Dr=%f (%f-%f), Ds=%f (%f-%f))\n", 
-             (warpedCRS->rptr[1][1]-unwarpedCRS->rptr[1][1]), warpedCRS->rptr[1][1], unwarpedCRS->rptr[1][1], 
-             (warpedCRS->rptr[2][1]-unwarpedCRS->rptr[2][1]), warpedCRS->rptr[2][1], unwarpedCRS->rptr[2][1], 
-             (warpedCRS->rptr[3][1]-unwarpedCRS->rptr[3][1]), warpedCRS->rptr[3][1], unwarpedCRS->rptr[3][1]);
-      printf("\t\t(Dx=%f (%f - %f), Dy=%f (%f - %f), Dz=%f (%f - %f))\n",
-             Dx, warpedRAS->rptr[1][1], unwarpedRAS->rptr[1][1],
-             Dy, warpedRAS->rptr[2][1], unwarpedRAS->rptr[2][1],
-             Dz, warpedRAS->rptr[3][1], unwarpedRAS->rptr[3][1]);
-    }
- 
-    // warped => unwarped xyz
-    double x = v->x - Dx; // + Dx, warping
-    double y = v->y - Dy; // + Dy, warping
-    double z = v->z - Dz; // + Dz, warping
+    unwarpedRAS->rptr[4][1] = 1;
+    MATRIX *unwarpedtkregRAS = MatrixMultiply(Q, unwarpedRAS, NULL);
 
     // set unwarped vertext xyz
-    MRISsetXYZ(unwarpedsurf, n, x, y, z);
+    MRISsetXYZ(unwarpedsurf, n, unwarpedtkregRAS->rptr[1][1], unwarpedtkregRAS->rptr[2][1], unwarpedtkregRAS->rptr[3][1]);
 
-    MatrixFree(&deltaRAS);
+    if (getenv("GRADUNWARP_PRN_DEBUG"))
+    {
+      printf("%d) \n", n);
+      printf("\ttkregRAS         (x=%f, y=%f, z=%f)\n", tkregRAS->rptr[1][1],    tkregRAS->rptr[2][1], tkregRAS->rptr[3][1]); //v->x, v->y, v->z);
+      printf("\twarpedRAS        (x=%f, y=%f, z=%f) (%f, %f, %f)\n", warpedRAS->rptr[1][1],   warpedRAS->rptr[2][1],   warpedRAS->rptr[3][1], c, r, s);
+      printf("\tunwarpedRAS      (x=%f, y=%f, z=%f) (%f, %f, %f)\n", unwarpedRAS->rptr[1][1], unwarpedRAS->rptr[2][1], unwarpedRAS->rptr[3][1], fcs, frs, fss);
+      //      printf("\tdeltaRAS    (x=%f, y=%f, z=%f)\n", Dx, Dy, Dz);
+      printf("\tunwarpedtkregRAS (x=%f, y=%f, z=%f)\n", unwarpedtkregRAS->rptr[1][1], unwarpedtkregRAS->rptr[2][1], unwarpedtkregRAS->rptr[3][1]);
+    }
+ 
     MatrixFree(&unwarpedRAS);
     MatrixFree(&unwarpedCRS);
     MatrixFree(&warpedRAS);
     MatrixFree(&warpedCRS);
     MatrixFree(&tkregRAS);
+    MatrixFree(&unwarpedtkregRAS);
   }       // n
 
   // Copy the volume geometry
   //copyVolGeom(&(warpedsurf->vg), &(unwarpedsurf->vg));
 
+  MatrixFree(&Q);
+  MatrixFree(&M);
   MatrixFree(&S);
+  MatrixFree(&Sinv);
+  MatrixFree(&T);
   MatrixFree(&Tinv);
 
   return unwarpedsurf;
+}
+
+void GradUnwarp::_printMatrix(MATRIX *matrix, const char *desc)
+{
+  printf("\n%s\n", desc);
+
+  MatrixPrint(stdout, matrix);
 }
 
 void GradUnwarp::_skipCoeffComment()
@@ -996,7 +1153,7 @@ void Siemens_B::siemens_legendre(int n, double x)
     P[n][m] = gsl_sf_legendre_Plm_e(n, m, x);
   }
 
-  if (getenv("PRN_LEGENDRE"))
+  if (getenv("GRADUNWARP_PRN_LEGENDRE"))
   {
     printf("\nlegendre (n=%d, x=%lf) = \n", n, x);
     for (m = 0; m <= n; m++)
@@ -1008,7 +1165,7 @@ void Siemens_B::siemens_legendre(int n, double x)
     P[n][m+1] *= normfact[n][m];
   }
 
-  if (getenv("PRN_LEGENDRE"))
+  if (getenv("GRADUNWARP_PRN_LEGENDRE"))
   {
     printf("\nsiemens_legendre (n=%d, x=%lf) = \n", n, x);
     for (m = 0; m <= n; m++)
