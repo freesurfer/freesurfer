@@ -16,18 +16,18 @@
 	<string>SegmentThalamicNuclei</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.0.0.0</string>
 	<key>CFBundleSignature</key>
 	<string>SegmentThalamicNuclei</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
 	<key>CFBundleVersionString</key>
-	<string>1.0</string>
+	<string>1.0.0.0</string>
 	<key>CFResourcesFileMapped</key>
 	<true/>
-	<key>BundleIsRelocatable</key>
-	<false/>
 	<key>LSMinimumSystemVersion</key>
-	<string>10.7.0</string>
+	<string>10.13.6</string>
 	<key>NSMainNibFile</key>
 	<string>MainMenu</string>
 	<key>NSPrincipalClass</key>
