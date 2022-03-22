@@ -9,16 +9,29 @@
 #include "mri_identify.h"
 #include "diag.h"
 
-// fix ventricles that are underlabled in FreeSurfer
-// 1. binarize input asegps using threshmin as threshold
-//    voxels not belonging to any clusters in asegps (voxels not labelled) will have value 1; 
-//    otherwise, they will have value 0
-// 2. use brainmask to cut out the binarize volume
-// 3. create clusters from the binary volume (the areas not labelled in asegps).
-// 4. output cluster list as MRI structure (ocn) with voxel values as assigned cluster numbers
-// 5. call ExpandSegIndices() to find/label voxels in segid cluster but not labeled in asegps
+/*!
+\fn MRI* VentFix::fixasegps(MRI *asegps, MRI *brainmask, char *segids, float threshmin, int niters, int nmax, int topo) MRI *MRIreorder4(MRI *mri, int order[4])
+\brief fix ventricles that are underlabled in FreeSurfer
+\param asegps    - input aseg.presurf.mgz
+\param brainmask - input brainmask
+\param segids    - input clusters to expand, multiple cluster ids are separate by ','
+\param threshmin - input minimum threshold used to binarize asegps
+\param niters    - input number of iterations to look for neighbors to add; if it is -1, keep adding voxels until nmax is reached
+\param nmax      - input maximum voxels to add
+\param topo      - input topology constraint, 1=face neighbors only, 2=face neighbors + edge neighbors only, 3=face neighbors + edge neighbors + corner neighbors
+Example:
+  MRI *newsegVol = VentFix::fixasegps(asegVol, maskVol, "4,43", 0.5, -1, 10000, 1);
+*/
 MRI* VentFix::fixasegps(MRI *asegps, MRI *brainmask, char *segids, float threshmin, int niters, int nmax, int topo)
 {
+  // 1. binarize input asegps using threshmin as threshold
+  //    voxels not belonging to any clusters in asegps (voxels not labelled) will have value 1; 
+  //    otherwise, they will have value 0
+  // 2. use brainmask to cut out the binarize volume
+  // 3. create clusters from the binary volume (the areas not labelled in asegps).
+  // 4. output cluster list as MRI structure (ocn) with voxel values as assigned cluster numbers
+  // 5. call ExpandSegIndices() to find/label voxels in segid cluster but not labeled in asegps
+
   // Prepare the output binary volume
   MRI *binVol = MRIallocSequence(asegps->width, asegps->height, asegps->depth, MRI_INT, 1);
   if (binVol == NULL) exit(1);
@@ -94,6 +107,7 @@ MRI* VentFix::fixasegps(MRI *asegps, MRI *brainmask, char *segids, float threshm
 }
 
 //-----------------------------------------------------
+// private function
 // 1. copy MRI *seg (asegps) to MRI *newseg
 // 2. find all voxels in asegps with segid, remember their (c, r, s) in a vector idx (first iteration)
 // 3. go through the vector idx, 
@@ -164,7 +178,7 @@ MRI* VentFix::ExpandSegIndices(MRI *seg, int segid, MRI *ocn, int niters, int nm
 	    if(s < 0 || s >= seg->depth) continue;
 	    int debug = 0;
 	    if(c == 139 && r == 153 && s == 73) debug = 1;
-	    // proceed or not if this voxel is in the topology contraint
+	    // proceed or not if this voxel is in the topology constraint
 	    // topo = 1 = face neighbors only
 	    // topo = 2 = face neighbors + edge neighbors only
 	    // topo = 3 = face neighbors + edge neighbors + corner neighbors
@@ -248,12 +262,23 @@ MRI* VentFix::ExpandSegIndices(MRI *seg, int segid, MRI *ocn, int niters, int nm
   return(newseg);
 }
 
-// 1. create clusters for voxels with segA in asegVol
-// 2. if the cluster has any voxel with a face neighboring voxel of a certain segid (eg, 2 = left cortex)
-//      replace the value in such clusters with a given value (newsegid)
-// 3. create a point set of the centroid for all the clusters changed
-MRI* VentFix::relabelSegANeighboingSegB(MRI *asegVol, int segA, int topo, int segB, int newsegid, fsPointSet *centroid)
+/*!
+\fn MRI* relabelSegANeighboringSegB(MRI *asegVol, int segA, int topo, int segB, int newsegid, fsPointSet *centroid)
+\brief relabel clusters in aseg.presurf.mgz if any voxel has neighbors meeting the topology constraint
+\param asegVol    - input aseg.presurf.mgz
+\param segA       - input clusters that we are looking to replace their values
+\param topo       - input topology constraint, 1=face neighbors only, 2=face neighbors + edge neighbors only, 3=face neighbors + edge neighbors + corner neighbors
+\param segB       - input clusters that are neighboring segA with topo constraint 
+\param newsegid   - input new segid that will be used to relabel clusters segA if conditions are met
+\param centroid   - output point set of centroid for all the clusters changed
+*/
+MRI* VentFix::relabelSegANeighboringSegB(MRI *asegVol, int segA, int topo, int segB, int newsegid, fsPointSet *centroid)
 {
+  // 1. create clusters for voxels with segA in asegVol
+  // 2. if the cluster has any voxel with a face neighboring voxel of a certain segid (eg, 2 = left cortex)
+  //      replace the value in such clusters with a given value (newsegid)
+  // 3. create a point set of the centroid for all the clusters changed
+
   if (asegVol == NULL) 
     return NULL;
 
@@ -292,6 +317,9 @@ MRI* VentFix::relabelSegANeighboingSegB(MRI *asegVol, int segA, int topo, int se
   return newseg;
 }
 
+//-----------------------------------------------------
+// private function
+// check if any voxel in the given cluster has a neighbor with newsegid value and meets the topology constraint
 int VentFix::hasneighbor(MRI* asegps, VOLCLUSTER *vc, int newsegid, int topo)
 {
   int hasnewsegid = 0;
@@ -323,7 +351,7 @@ int VentFix::hasneighbor(MRI* asegps, VOLCLUSTER *vc, int newsegid, int topo)
 	  if (s < 0 || s >= asegps->depth)
             continue;
 
-	  // proceed or not if this voxel is in the topology contraint
+	  // proceed or not if this voxel is in the topology constraint
 	  // topo = 1 = face neighbors only
 	  // topo = 2 = face neighbors + edge neighbors only
 	  // topo = 3 = face neighbors + edge neighbors + corner neighbors
@@ -348,6 +376,10 @@ int VentFix::hasneighbor(MRI* asegps, VOLCLUSTER *vc, int newsegid, int topo)
   return hasnewsegid;
 }
 
+//-----------------------------------------------------
+// private function
+// relabel voxels in the given cluster with a new value (newsegid);
+// output point set of centroid for all the clusters changed
 void VentFix::relabelCluster(MRI *newseg, VOLCLUSTER *vc, int newsegid, MATRIX *vox2ras, fsPointSet *centroid)
 {
   double csum = 0, rsum = 0, ssum = 0;
