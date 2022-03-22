@@ -191,14 +191,14 @@ if($?PBS_JOBID) then
 endif
 
 # Parameters
-set RUNTIME="$FREESURFER_HOME/MCRv84/";
+set RUNTIME="$FREESURFER_HOME/MCRv97/";
 set RESOLUTION="0.5";
 set ATLASMESH="$FREESURFER_HOME/average/ThalamicNuclei/atlas/AtlasMesh.gz";
 set ATLASDUMP="$FREESURFER_HOME/average/ThalamicNuclei/atlas/AtlasDump.mgz";
 set LUT="$FREESURFER_HOME/average/ThalamicNuclei/atlas/compressionLookupTable.txt";
 set K="0.05";
 set OPTIMIZER="L-BFGS";
-set SUFFIX="v12";
+set SUFFIX="v13";
 set USETWOCOMPS="1";
 set MRFCONSTANT="0";
 

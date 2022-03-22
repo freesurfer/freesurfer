@@ -56,8 +56,8 @@ for i in `eval echo {1..$numberOfSubjects}`; do
   subjectName=`echo "${subjectName//\/}"` # strips the /
 
   # Files with volumes
-  leftVolFile="$resultsDirectory/$subjectName/mri/lh.${prefix}Volumes-${suffix}.v21.txt"
-  rightVolFile="$resultsDirectory/$subjectName/mri/rh.${prefix}Volumes-${suffix}.v21.txt"
+  leftVolFile="$resultsDirectory/$subjectName/mri/lh.${prefix}Volumes-${suffix}.v22.txt"
+  rightVolFile="$resultsDirectory/$subjectName/mri/rh.${prefix}Volumes-${suffix}.v22.txt"
 
   # If they exist, collect data
   if [ -f $leftVolFile ] && [ -f $rightVolFile ]; then

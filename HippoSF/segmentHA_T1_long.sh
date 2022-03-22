@@ -206,7 +206,7 @@ if($?PBS_JOBID) then
 endif
 
 # Parameters
-set RUNTIME="$FREESURFER_HOME/MCRv84/";
+set RUNTIME="$FREESURFER_HOME/MCRv97/";
 set RESOLUTION="0.333333333333333333333333333333333333";
 set ATLASMESH="$FREESURFER_HOME/average/HippoSF/atlas/AtlasMesh.gz";
 set ATLASDUMP="$FREESURFER_HOME/average/HippoSF/atlas/AtlasDump.mgz";
@@ -215,7 +215,7 @@ set K1="0.05";
 set K2="0.05";
 set OPTIMIZER="L-BFGS";
 set MRFCONSTANT="0";
-set SUFFIX="long.v21";
+set SUFFIX="long.v22";
 
 # Now the real job
 set hippohemilist=(left right)
