@@ -3661,6 +3661,14 @@ int main(int argc, char *argv[])
 } /* end main() */
 /*----------------------------------------------------------------------*/
 
+/*
+ * This function implements '--antialias --voxsize <>'.
+ *  Apply Gaussian filter to smooth input volume.
+ *  fwhm is automatically calculated for each dimension based on the ratio of output and input volume resolutions.
+ *        sigma = R * log(F) / pi
+ *        F = 5.0
+ *        fwhm = sigma * sqrt(8 * log(2));
+ */
 void applyGaussianFilter(MRI *inVol, float *voxsize)
 {
     float std[3];
@@ -3689,7 +3697,7 @@ void applyGaussianFilter(MRI *inVol, float *voxsize)
     }
 
     MRIgaussianSmoothNI(inVol, std[0], std[1], std[2], inVol);
-}
+} /* end applyGaussianFilter() */
 
 void get_ints(int argc, char *argv[], int *pos, int *vals, int nvals)
 {
