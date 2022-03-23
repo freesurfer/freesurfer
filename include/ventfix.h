@@ -11,7 +11,7 @@ class VentFix
 public:
   static MRI *fixasegps(MRI *asegps, MRI *brainmask, char *segids, float threshmin, int niters, int nmax, int topo);
 
-  static MRI *relabelSegANeighboingSegB(MRI *asegps, int segA, int topo, int segB, int newsegid, fsPointSet *centroid);
+  static MRI *relabelSegANeighboringSegB(MRI *asegps, int segA, int topo, int segB, int newsegid, fsPointSet *centroid);
 
 private:
   static MRI *ExpandSegIndices(MRI *seg, int segid, MRI *mask, int niters, int nmax, int topo, int *nexpansions, fsPointSet &centroid, MRI* newseg);

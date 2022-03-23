@@ -7,7 +7,7 @@ set -e
 # check arguments
 if [ "$#" -ne 1 ]; then
     echo "ERROR: must specify MCR version as argument"
-    echo "EXAMPLE: fs_install_mcr R2014b"
+    echo "EXAMPLE: fs_install_mcr R2019b"
     exit 1
 fi
 
@@ -41,8 +41,13 @@ fi
 # download the os-specific installer
 if [[ "$MCR_VER" =~ R2012a|R2012b|R2013a ]]; then
     curl --location https://ssd.mathworks.com/supportfiles/MCR_Runtime/$MCR_VER/MCR_${MCR_VER}_${OS_TAG}_installer.zip -o installer.zip
-else
+elif [[ "$MCR_VER" =~ R2019b ]]; then
+    curl --location https://ssd.mathworks.com/supportfiles/downloads/$MCR_VER/Release/9/deployment_files/installer/complete/$OS_TAG/MATLAB_Runtime_${MCR_VER}_Update_9_${OS_TAG}.zip -o installer.zip
+elif [[ "$MCR_VER" =~ R2014a|R2014b ]]; then
     curl --location https://ssd.mathworks.com/supportfiles/downloads/$MCR_VER/deployment_files/$MCR_VER/installers/$OS_TAG/MCR_${MCR_VER}_${OS_TAG}_installer.zip -o installer.zip
+else
+    echo "Unsupported runtime version $MCR_VER"
+    exit 1
 fi
 unzip installer.zip
 
