@@ -183,6 +183,7 @@ FOUND:
 int MRISprojectDist(MRIS *surf, const MRI *mridist);
 int MRISbrainSurfToSkull(MRIS *surf, const double *params, const MRI *vol);
 int MakeSkullSurface(char *subject, double *params, char *innername, char *outername);
+int rescale = 0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -220,9 +221,10 @@ int main(int argc, char **argv) {
     exit(1);
   }
 
-  invol = MRIchangeType(invol_orig,MRI_UCHAR,0,255,1);
+  printf("Changing type, rescale = %d\n",rescale);
+  invol = MRIchangeType(invol_orig,MRI_UCHAR,0,255,!rescale);
   if (invol == NULL) {
-    printf("ERROR: bvolumeWrite: MRIchangeType\n");
+    printf("ERROR: MRIchangeType\n");
     return(1);
   }
 
@@ -431,6 +433,8 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--fillrows")) fillrows = 1;
     else if (!strcasecmp(option, "--fillcols")) fillcols = 1;
     else if (!strcasecmp(option, "--fillslices")) fillslices = 1;
+    else if (!strcasecmp(option, "--rescale")) rescale = 1;
+    else if (!strcasecmp(option, "--no-rescale")) rescale = 0;
     else if (!strcasecmp(option, "--get-signal-behind-head")) GetSignalBehindHead = 1;
 
     else if ( stringmatch(option, "--invol") ||
@@ -538,6 +542,7 @@ static void print_usage(void) {
   printf("   --nhitsmin  min number of consecutive hits (2) \n");
   printf("   --hvoldat   file : write head volume (mm3) to an ascii file \n");
   printf("   --get-signal-behind-head  \n");
+  printf("   --rescale : rescale input when converting to uchar (--no-rescale)  \n");
   printf("\n");
 }
 /* --------------------------------------------- */
