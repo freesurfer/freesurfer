@@ -193,7 +193,7 @@ int main(int argc, char *argv[])
   {
     gradUnwarp->read_siemens_coeff(gradfile);
     gradUnwarp->initSiemensLegendreNormfact();
-    if (getenv("PRN_GRADCOEFF_ONLY"))
+    if (getenv("GRADUNWARP_PRN_GRADCOEFF_ONLY"))
     {
       gradUnwarp->printCoeff();
       delete gradUnwarp;
@@ -219,7 +219,8 @@ int main(int argc, char *argv[])
       return 0;
     }
 
-    gradUnwarp->create_transtable(&vg, vox2ras_orig, inv_vox2ras_orig);
+    if (getenv("GRADUNWARP_USE_GRADFILE") == NULL)
+      gradUnwarp->create_transtable(&vg, vox2ras_orig, inv_vox2ras_orig);
   }
   else
   {
@@ -232,7 +233,15 @@ int main(int argc, char *argv[])
     MRIcopyHeader(origvol, unwarpedvol);
     MRIcopyPulseParameters(origvol, unwarpedvol);
 
-    gradUnwarp->unwarp_volume(origvol, unwarpedvol, interpcode, sinchw);
+    if (getenv("GRADUNWARP_USE_GRADFILE"))
+    {
+      printf("****** env GRADUNWARP_USE_GRADFILE set. ******\n");
+      gradUnwarp->unwarp_volume_gradfile(origvol, unwarpedvol, vox2ras_orig, inv_vox2ras_orig, interpcode, sinchw);
+    }
+    else
+    {
+      gradUnwarp->unwarp_volume(origvol, unwarpedvol, interpcode, sinchw);
+    }
 
     printf("Writing to %s\n", outf);
     int err = MRIwrite(unwarpedvol, outf);
@@ -251,10 +260,15 @@ int main(int argc, char *argv[])
   }
   else if (unwarpsurf)
   {
-    if (getenv("USE_GRADFILE"))
+    if (getenv("GRADUNWARP_USE_GRADFILE"))
+    {
+      printf("****** env GRADUNWARP_USE_GRADFILE set. ******\n");
       gradUnwarp->unwarp_surface_gradfile(origsurf, origsurf);
+    }
     else
+    {
       gradUnwarp->unwarp_surface(origsurf, origsurf);
+    }
 
     //origsurf->vg.copy(&unwarpedsurf->vg);
 
@@ -389,6 +403,14 @@ static int parse_commandline(int argc, char **argv) {
       unwarpsurf = 1;
     } else if (!strcmp(option, "--gradcoeff")) {
       if (nargc < 1) CMDargNErr(option,1);
+
+      struct stat stat_buf;
+      if (stat(pargv[0], &stat_buf) < 0)
+      {
+        printf("ERROR: could not find --gradcoeff %s\n", pargv[0]);
+        exit(1);
+      }
+
       gradfile_str = fio_fullpath(pargv[0]);
       gradfile = gradfile_str.c_str();
       nargsused = 1;

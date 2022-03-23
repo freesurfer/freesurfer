@@ -634,7 +634,7 @@ class Samseg:
                         mean = np.exp(log_mean) * scaling
                         std = np.sqrt(log_variance) * mean
 
-                        stats.append(f'{mean:.2f} ± {std:.2f}'.rjust(space))
+                        stats.append(f'{mean:.2f} +/- {std:.2f}'.rjust(space))
 
                     # Write class
                     fid.write(basename.ljust(maxNameSize) + ''.join(stats) + '\n')
