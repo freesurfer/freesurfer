@@ -233,3 +233,8 @@ if args.out:
 if args.mask:
     image.copy(mask).write(args.mask)
     print(f'Binary brain mask saved to: {args.mask}')
+
+print('If you use SynthStrip in your analysis, please cite:')
+print('----------------------------------------------------')
+print('SynthStrip: Skull-Stripping for Any Brain Image.')
+print('A Hoopes, JS Mora, AV Dalca, B Fischl, M Hoffmann.')
