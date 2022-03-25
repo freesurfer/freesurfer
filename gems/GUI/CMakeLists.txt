@@ -28,7 +28,7 @@ add_executable(kvlEstimateAtlasParameters
   kvlEstimateAtlasParameters.cxx
   kvlAtlasParameterEstimationConsole.cxx
 )
-target_link_libraries(kvlEstimateAtlasParameters kvlGEMSCommon kvlGEMSGUI)
+target_link_libraries(kvlEstimateAtlasParameters kvlGEMSCommon_dynmesh kvlGEMSGUI)
 
 # add executable
 fltk_wrap_ui(kvlViewMeshCollectionWithGUI kvlAtlasMeshViewingConsoleGUI.fl)
@@ -38,4 +38,4 @@ add_executable(kvlViewMeshCollectionWithGUI
   kvlViewMeshCollectionWithGUI.cxx
   kvlAtlasMeshViewingConsole.cxx
 )
-target_link_libraries(kvlViewMeshCollectionWithGUI kvlGEMSCommon kvlGEMSGUI)
+target_link_libraries(kvlViewMeshCollectionWithGUI kvlGEMSCommon_dynmesh kvlGEMSGUI)
