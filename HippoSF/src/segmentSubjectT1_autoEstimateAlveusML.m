@@ -44,6 +44,8 @@ if ~isempty(aux)
     end
 end
 
+% March 2021: fix to accommodate 'fs_run_from_mcr'
+FSpath = [FSpath '/fs_run_from_mcr ' FSpath '/'];
 
 % sanity check
 if exist('MRFconstant','var')==0

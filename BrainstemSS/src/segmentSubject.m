@@ -31,6 +31,9 @@ if ~isempty(aux)
     end
 end
 
+% March 2021: fix to accommodate 'fs_run_from_mcr'
+FSdir = [FSdir '/fs_run_from_mcr ' FSdir '/'];
+
 
 % sanity check
 if nargin<7

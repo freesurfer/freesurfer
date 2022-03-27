@@ -33,122 +33,15 @@ function SegmentThalamicNuclei(subjectName,subjectDir,resolution,atlasMeshFileNa
     atlasDumpFileName,compressionLUTfileName,K,optimizerType,suffix,FSpath,...
     useTwoComponents,MRFconstant,additionalVol,analysisID,doBFcorrection,BBregisterMode)
 
-% clear
-% subjectName='testSubject';
-% subjectDir='/autofs/space/panamint_005/users/iglesias/data/FGATIR/FSdir/';
-% resolution=0.5;
-% atlasMeshFileName='/autofs/space/panamint_005/users/iglesias/atlases/thalamus_180321_0.5mm/output/CurrentMeshCollection30.gz';
-% atlasDumpFileName='/autofs/space/panamint_005/users/iglesias/atlases/thalamus_180321_0.5mm/output/imageDump.mgz';
-% compressionLUTfileName='/autofs/homes/002/iglesias/matlab/code/THALAMODEL/FSversionGEMS2/compressionLookupTable.txt';
-% K=0.05;
-% optimizerType='L-BFGS';
-% suffix='vTest';
-% FSpath='/usr/local/freesurfer/dev/bin/';
-% useTwoComponents=1;
-% MRFconstant=0;
-% additionalVol='/autofs/space/panamint_005/users/iglesias/data/FGATIR/20170816_135213FGATIRs059a1001.nii.gz';
-% analysisID='FGATIR';
-% doBFcorrection=1;
-% BBregisterMode='t2';
-% nargin=16;
-
-% clear
-% subjectName='testSubject';
-% subjectDir='/autofs/space/panamint_005/users/iglesias/data/FGATIR/FSdir/';
-% resolution=0.5;
-% atlasMeshFileName='/autofs/space/panamint_005/users/iglesias/atlases/thalamus_180321_0.5mm/output/CurrentMeshCollection30.gz';
-% atlasDumpFileName='/autofs/space/panamint_005/users/iglesias/atlases/thalamus_180321_0.5mm/output/imageDump.mgz';
-% compressionLUTfileName='/autofs/homes/002/iglesias/matlab/code/THALAMODEL/FSversionGEMS2/compressionLookupTable.txt';
-% K=0.05;
-% optimizerType='L-BFGS';
-% suffix='vTest';
-% FSpath='/usr/local/freesurfer/dev/bin/';
-% useTwoComponents=1;
-% nargin=11;
-
-
-% clear
-% subjectName='subject1';
-% subjectDir='/autofs/space/panamint_005/users/iglesias/data/WinterburnHippocampalAtlas/FSdirConformed/';
-% resolution=0.5;
-% atlasMeshFileName='/autofs/space/panamint_005/users/iglesias/atlases/thalamus_180321_0.5mm/output/CurrentMeshCollection30.gz';
-% atlasDumpFileName='/autofs/space/panamint_005/users/iglesias/atlases/thalamus_180321_0.5mm/output/imageDump.mgz';
-% compressionLUTfileName='/autofs/homes/002/iglesias/matlab/code/THALAMODEL/FSversionGEMS2/compressionLookupTable.txt';
-% K=0.05;
-% optimizerType='L-BFGS';
-% suffix='vTest';
-% FSpath='/usr/local/freesurfer/dev/bin/';
-% useTwoComponents=1;
-% nargin=11;
-
-% clear
-% subjectName='aman_anat';
-% subjectDir='/autofs/space/panamint_005/users/iglesias/data/LGNshahin/subjects/Without_fLGN/';
-% resolution=0.5;
-% atlasMeshFileName='/usr/local/freesurfer/dev/average/ThalamicNuclei/atlas/AtlasMesh.gz';
-% atlasDumpFileName='/usr/local/freesurfer/dev/average/ThalamicNuclei/atlas/AtlasDump.mgz';
-% compressionLUTfileName='/usr/local/freesurfer/dev/average/ThalamicNuclei/atlas/compressionLookupTable.txt';
-% K=0.05;
-% optimizerType='L-BFGS';
-% suffix='vTest';
-% FSpath='/usr/local/freesurfer/stable6_0_0/bin/';
-% useTwoComponents=1;
-% nargin=11;
-
-% clear
-% subjectName='aman_anat';
-% subjectDir='/autofs/space/panamint_005/users/iglesias/data/LGNshahin/subjects/Without_fLGN/';
-% resolution=0.5;
-% atlasMeshFileName='/autofs/space/panamint_005/users/iglesias/atlases/thalamus_191125_0.5mm/output/CurrentMeshCollection30.fixed2.gz';
-% atlasDumpFileName='/autofs/space/panamint_005/users/iglesias/atlases/thalamus_191125_0.5mm/output/imageDump.mgz';
-% compressionLUTfileName='/autofs/space/panamint_005/users/iglesias/atlases/thalamus_191125_0.5mm/output/compressionLookupTable.txt';
-% K=0.05;
-% optimizerType='L-BFGS';
-% suffix='vTestNewAtlas';
-% FSpath='/usr/local/freesurfer/stable6_0_0/bin/';
-% useTwoComponents=1;
-% nargin=11;
-
-% clear
-% subjectName='uces_anat';
-% subjectDir='/autofs/space/panamint_005/users/iglesias/data/LGNshahin/subjects/With_fcLGN/';
-% resolution=0.5;
-% atlasMeshFileName='/autofs/space/panamint_005/users/iglesias/atlases/thalamus_200228_0.5mm_nike_cont/output/CurrentMeshCollection7.simplified.gz';
-% atlasDumpFileName='/autofs/space/panamint_005/users/iglesias/atlases/thalamus_200228_0.5mm_nike_cont/output/imageDump.mgz';
-% compressionLUTfileName='/autofs/space/panamint_005/users/iglesias/atlases/thalamus_200228_0.5mm_nike_cont/output/compressionLookupTable.txt';
-% K=0.05;
-% optimizerType='L-BFGS';
-% suffix='vTestNewAtlas200228';
-% FSpath='/usr/local/freesurfer/stable6_0_0/bin/';
-% useTwoComponents=1;
-% nargin=11;
-
-
-% clear
-% subjectName='subject1';
-% subjectDir='/autofs/space/panamint_005/users/iglesias/data/WinterburnHippocampalAtlas/FSdirConformed/';
-% resolution=0.5;
-% atlasMeshFileName='/autofs/space/panamint_005/users/iglesias/atlases/thalamus_180321_0.5mm/output/CurrentMeshCollection30.gz';
-% atlasDumpFileName='/autofs/space/panamint_005/users/iglesias/atlases/thalamus_180321_0.5mm/output/imageDump.mgz';
-% compressionLUTfileName='/autofs/homes/002/iglesias/matlab/code/THALAMODEL/FSversionGEMS2/compressionLookupTable.txt';
-% K=0.05;
-% optimizerType='L-BFGS';
-% suffix='vTest';
-% FSpath='/usr/local/freesurfer/dev/bin/';
-% useTwoComponents=1;
-% MRFconstant=0;
-% additionalVol='/autofs/space/panamint_005/users/iglesias/data/WinterburnHippocampalAtlas/subject1/T2.0.6.manuallyRotatedForTesting.nii.gz';
-% analysisID='T2';
-% doBFcorrection=1;
-% BBregisterMode='t2';
-% nargin=16;
-
 DEBUG=0;
 FAST=0; % set it to one to optimize just a bit (go through code fast)
 WRITE_POSTERIORS=0;
 WRITE_MESHES=0;
 SMOOTH_LABEL_RESAMPLE=0;
 THALAMUS_VERBOSE=0;
+
+% March 2022: fix to accommodate 'fs_run_from_mcr'
+FSpath = [FSpath '/fs_run_from_mcr ' FSpath '/'];
 
 aux=getenv('WRITE_POSTERIORS');
 if ~isempty(aux)
