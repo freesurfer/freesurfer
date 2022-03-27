@@ -493,13 +493,13 @@ def fsgen_segreg(mrisps_geom, mrisp_atlas, mrisps_annot, batch_size=8, use_rand=
 
     zero_warp = np.zeros((batch_size, *tuple(np.array(mrisp_shape)//warp_downsize), 2))
 
-    if use_logprob:  # expand annots to be [-100:100] instead of [0,1]
+    if use_logprob:  # expand annots to be [-10:10] instead of [0,1]
         mrisps_annot = copy.deepcopy(mrisps_annot)
         for mrisp in mrisps_annot:
             ind0 = np.nonzero(mrisp == 0)
             ind1 = np.nonzero(mrisp == 1)
-            mrisp[ind0] = -100
-            mrisp[ind1] = 0
+            mrisp[ind0] = -10
+            mrisp[ind1] = 10
 
     while True:
         for bno in range(batch_size):
@@ -516,9 +516,9 @@ def fsgen_segreg(mrisps_geom, mrisp_atlas, mrisps_annot, batch_size=8, use_rand=
         inputs = [batch_moving]
 
         if mean_stream:
-            outputs = [batch_moving, batch_atlas, zero_warp, zero_warp, batch_annot]
+            outputs = [batch_moving, batch_atlas, batch_annot, zero_warp, zero_warp]
         else:
-            outputs = [batch_moving, batch_atlas, zero_warp, batch_annot]
+            outputs = [batch_moving, batch_atlas, batch_annot, zero_warp]
         yield inputs, outputs
 
 
@@ -988,8 +988,8 @@ def fsgen_segreg(mrisps_geom, mrisp_atlas, mrisps_annot, batch_size=8, use_rand=
         for mrisp in mrisps_annot:
             ind0 = np.nonzero(mrisp == 0)
             ind1 = np.nonzero(mrisp == 1)
-            mrisp[ind0] = -100
-            mrisp[ind1] = 0
+            mrisp[ind0] = -10
+            mrisp[ind1] = 10
 
     while True:
         for bno in range(batch_size):
@@ -1006,9 +1006,9 @@ def fsgen_segreg(mrisps_geom, mrisp_atlas, mrisps_annot, batch_size=8, use_rand=
         inputs = [batch_moving]
 
         if mean_stream:
-            outputs = [batch_moving, batch_atlas, zero_warp, zero_warp, batch_annot]
+            outputs = [batch_moving, batch_atlas, batch_annot, zero_warp, zero_warp]
         else:
-            outputs = [batch_moving, batch_atlas, zero_warp, batch_annot]
+            outputs = [batch_moving, batch_atlas, batch_annot, zero_warp]
         yield inputs, outputs
 
 
