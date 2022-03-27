@@ -482,6 +482,7 @@ if(NOT MINIMAL)
     BrainstemSS
     diffusion_tool
     dummy
+    exvivo
     freeview
     fsfast
     fslutils

@@ -1,0 +1,130 @@
+#!/usr/bin/env python
+
+import os
+import numpy as np
+import freesurfer as fs
+
+
+# parse commandline args
+parser = fs.utils.ArgumentParser()
+parser.add_argument('-i', '--invol', required=True, help='input MRI volume')
+parser.add_argument('-o', '--outvol', required=True, help='output MRI volume')
+parser.add_argument('--hemi', required=True, help='hemi to process')
+parser.add_argument('--pred', help='write prediction volume')
+parser.add_argument('--norm', help='write normalized volume')
+parser.add_argument('--fv', help='bring up freeview to show results', action='store_true')
+parser.add_argument('--norm_mean', help='normalize output mean to match input mean', action='store_true')
+parser.add_argument('--write_rounds', help='write normalization results after each round', action='store_true')
+parser.add_argument('--uthresh', type=float, default=5000, help='specify threshold to erase above')
+parser.add_argument('--sigma', help='sigma to smooth bias field', default=.5, type=float)
+parser.add_argument('--nrounds', default=1, type=int, help='number of rounds of iterative normalization to apply')
+parser.add_argument('--multichannel', action='store_true', help='specify that data has multiple channels')
+parser.add_argument('--model', help='use alternative model file')
+parser.add_argument('--wts', help='alternative weights filename')
+parser.add_argument('--gpu', help='GPU number - if not supplied, CPU is used')
+args = parser.parse_args()
+
+# delay slow TF import after parsing cmd line
+import tensorflow as tf
+import neurite as ne
+
+# check hemi
+if args.hemi not in ('lh', 'rh'):
+    fs.fatal(f'Hemi specification must be either `lh` or `rh`. User provided `{args.hemi}`.')
+
+# read input volume and normalize input intensities
+mri_in = fs.Volume.read(args.invol)
+if args.uthresh:
+    mri_in.data[mri_in.data>args.uthresh] = 0
+
+in_data = (mri_in.data - mri_in.data.min()) 
+in_data = np.clip(in_data / np.percentile(in_data, 99), 0,2)
+mri_in.data = in_data
+
+if args.norm:
+    mri_in.write('norm.mgz')
+
+# device handling, model reading and prediction
+if args.gpu:
+    device, ngpus = ne.tf.utils.setup_device(args.gpu)
+else:
+    device = '/cpu:0'
+
+layer_dict = {
+    'Resize' : ne.layers.Resize,
+    'GaussianBlur' : ne.layers.GaussianBlur
+}
+
+# model weights
+if args.model is not None:
+    modelfile = args.model
+    print('Using custom model weights')
+else:
+    fshome = fs.fshome()
+    if fshome is None:
+        fs.fatal('FREESURFER_HOME env variable must be set! Make sure FreeSurfer is properly sourced.')
+    modelfile = os.path.join(fshome, 'models', f'exvivo.norm.{args.hemi}.h5')
+
+norm_list = []
+print(f'using device {device}')
+for round in range(args.nrounds):
+    print(f'Computing normalization for round {round}')
+    with tf.device(device):
+        if round == 0:
+            print(f'loading model from {modelfile}')
+            model_in = tf.keras.models.load_model(modelfile, compile=False, custom_objects=layer_dict)
+            model = tf.keras.Model(model_in.inputs, [model_in.layers[-2].output])
+            vol_shape = model.input.shape.as_list()[1:-1]
+            mri_conf = mri_in.conform().fit_to_shape(vol_shape)
+
+        if args.wts:
+            print(f'loading weights from {args.wts}')
+            model.load_weights(args.wts)
+
+        bias_field = model.predict(mri_conf.data[np.newaxis,...,np.newaxis])
+        pad = 64
+
+        # try to keep the means in brain about the same
+        mri_bias = mri_conf.copy(bias_field.squeeze())
+        mri_norm = mri_conf.copy(mri_conf.data * mri_bias.data)
+
+        # map estimated bias field back to unconformed space and apply it
+        mri_bias_noconf = mri_bias.resample_like(mri_in).gaussian_smooth(args.sigma)
+        corrected_data = mri_in.data * mri_bias_noconf.data
+        mri_out = mri_in.copy(corrected_data)
+        if args.norm_mean:
+            print('normalizing the output mean to match the input mean')
+            mri_out.data *= (mri_in.data.mean() / mri_out.data.mean())
+
+        norm_list.append(mri_out.copy())
+        if round < args.nrounds - 1:
+            mri_conf = mri_out.conform().fit_to_shape(vol_shape)
+            conf_data = (mri_conf.data - mri_conf.data.min()) 
+            conf_data = np.clip(conf_data / np.percentile(in_data, 99), 0,2)
+            mri_conf.data = conf_data
+
+            if args.write_rounds:
+                ext_ind = args.outvol.rfind('.mgz')
+                if ext_ind < 0:
+                    ext_ind = args.outvol.rfind('.nii.gz')
+
+                tmp_fname = args.outvol[:ext_ind] + f'{round+1}.mgz'
+                print(f'writing intermediate results to {tmp_fname}')
+                mri_out.write(tmp_fname)
+
+if args.pred:
+    mri_norm.write(args.pred)
+
+print(f'writing output volume to {args.outvol}')
+mri_out.write(args.outvol)
+
+if args.fv:
+    print(f'displaying results in fv')
+    fv = fs.Freeview()
+    fv.vol(mri_in, name='input:linked=1')
+    fv.vol(mri_conf, name='conf', opts=':linked=1:visible=0:locked=1')
+    fv.vol(mri_bias_noconf, name='bias', opts=':colormap=heat:heatscale=1,3:heatscale_offset=1:linked=1:visible=0:locked=1')
+    for ono, out_vol in enumerate(norm_list):
+        fv.vol(out_vol, name=f'out{ono}', opts=':heatscale=1,3:visible=1:linked=1')
+    fv.vol(mri_bias, name='bias_conf', opts=':colormap=heat:heatscale_offset=1:heatscale=0,.2:linked=1:visible=0:locked=1')
+    fv.show(title=modelfile)

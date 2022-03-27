@@ -33,14 +33,19 @@ set(CMAKE_CXX_FLAGS "-fPIC -fpermissive -msse2 -mfpmath=sse")
 
 add_compile_options(-Wno-inconsistent-missing-override -Wno-self-assign-field)
 
-if(GEMS_BUILD_EXECUTABLES OR GEMS_BUILD_GUI)
-  add_definitions(-DUSE_DYNAMIC_MESH)
-  message(WARNING "Since you're building executables to compute meshes, ITK dynamic meshes will"
-    "be used (internally using std::map instead of std::vector to store lists of points, cells, etc)."
-    "Everything will still work, but anything that only uses existing meshes will be"
-    "slower than it could be (up to 100% slower)"
-  )    
-endif()
+# PW 2022/02/25: No longer nessesary since we are now building 2 versions of 
+#                the library:
+#                  - kvlGEMSCommon
+#                  - kvlGEMSCommon_dynmesh
+#####
+#if(GEMS_BUILD_EXECUTABLES OR GEMS_BUILD_GUI)
+#  add_definitions(-DUSE_DYNAMIC_MESH)
+#  message(WARNING "Since you're building executables to compute meshes, ITK dynamic meshes will"
+#    "be used (internally using std::map instead of std::vector to store lists of points, cells, etc)."
+#    "Everything will still work, but anything that only uses existing meshes will be"
+#    "slower than it could be (up to 100% slower)"
+#  )    
+#endif()
 
 if(GEMS_BUILD_CUDA)
   find_package(CUDA REQUIRED)
@@ -91,9 +96,58 @@ set(SOURCES
   kvlAtlasMeshJacobianDeterminantDrawer.cxx
 )
 
+# PW this is strange..  I don't understand why `SOURCES_DYN` however when not included,
+# kvlBuildAtlasMesh does not behave as it should when `-DUSE_DYNAMIC_MESH` is defined
+set(SOURCES_DYN
+  gzstream.C
+  itkMGHImageIO.cxx
+  itkMGHImageIOFactory.cxx
+  kvlAtlasMeshAlphaDrawer.cxx
+  kvlAtlasMeshCollection.cxx
+  kvlAtlasMeshCollectionValidator.cxx
+  kvlAtlasMeshDeformationConjugateGradientOptimizer.cxx
+  kvlAtlasMeshDeformationFixedStepGradientDescentOptimizer.cxx
+  kvlAtlasMeshDeformationGradientDescentOptimizer.cxx
+  kvlAtlasMeshDeformationLBFGSOptimizer.cxx
+  kvlAtlasMeshDeformationOptimizer.cxx
+  kvlAtlasMeshLabelImageStatisticsCollector.cxx
+  kvlAtlasMeshMultiAlphaDrawer.cxx
+  kvlAtlasMeshPositionCostAndGradientCalculator.cxx
+  kvlAtlasMeshProbabilityImageStatisticsCollector.cxx
+  kvlAtlasMeshRasterizor.cxx
+  kvlAtlasMeshSmoother.cxx
+  kvlAtlasMeshStatisticsCollector.cxx
+  kvlAtlasMeshSummaryDrawer.cxx
+  kvlAtlasMeshToIntensityImageCostAndGradientCalculator.cxx
+  kvlAtlasMeshToLabelImageCostAndGradientCalculator.cxx
+  kvlAtlasMeshToPointSetCostAndGradientCalculator.cxx
+  kvlAtlasMeshVisitCounter.cxx
+  kvlAtlasMeshValueDrawer.cxx
+  kvlAtlasParameterEstimator.cxx
+  kvlAverageAtlasMeshPositionCostAndGradientCalculator.cxx
+  kvlCompressionLookupTable.cxx
+  kvlConditionalGaussianEntropyCostAndGradientCalculator.cxx
+  kvlCroppedImageReader.cxx
+  kvlHistogrammer.cxx
+  kvlMutualInformationCostAndGradientCalculator.cxx
+  kvlAtlasMeshJacobianDeterminantDrawer.cxx
+)
+
 # gems libary
 add_library(kvlGEMSCommon ${SOURCES})
 target_link_libraries(kvlGEMSCommon ${ITK_LIBRARIES} ${ZLIB_LIBRARIES})
+
+# gems library with dynamic meshes.  Needed for `kvlBuildAtlasMesh` but causes
+# samseg to run slower, so only link against `kvlGEMSCommon_dynmesh` when nessesary.
+add_library(kvlGEMSCommon_dynmesh ${SOURCES_DYN})
+target_compile_definitions(kvlGEMSCommon_dynmesh PRIVATE -DUSE_DYNAMIC_MESH)
+target_link_libraries(kvlGEMSCommon_dynmesh ${ITK_LIBRARIES} ${ZLIB_LIBRARIES})
+
+## !!!BAD!!! both `kvlGEMSCommon_dynmesh` `kvlGEMSCommon` will have the same md5sum
+## Useful for testing though
+#add_definitions(-DUSE_DYNAMIC_MESH)
+#add_library(kvlGEMSCommon_dynmesh ${SOURCES})
+#target_link_libraries(kvlGEMSCommon_dynmesh ${ITK_LIBRARIES} ${ZLIB_LIBRARIES})
 
 # build command line executables
 if(GEMS_BUILD_EXECUTABLES)

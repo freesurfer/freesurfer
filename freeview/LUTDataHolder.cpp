@@ -31,15 +31,22 @@ LUTDataHolder::LUTDataHolder()
 {
   ColorTableData ctd;
   QString fs_home = QProcessEnvironment::systemEnvironment().value( "FREESURFER_HOME" );
-  QFileInfo fi( fs_home + "/FreeSurferColorLUT.txt" );
-  if (fi.exists())
+  QDir dir(fs_home + "/luts");
+  QFileInfoList list = dir.entryInfoList(QDir::Files);
+  bool bStandardFound = QFile::exists(fs_home + "/FreeSurferColorLUT.txt");
+  if (bStandardFound)
+    list << QFileInfo(fs_home + "/FreeSurferColorLUT.txt");
+  foreach (QFileInfo fi, list)
   {
-    ctd.filename = fi.absoluteFilePath();
-    ctd.table = CTABreadASCII( ctd.filename.toLatin1().data() );
-    ctd.name = "FreeSurferColorLUT";
-    if ( ctd.table )
+    if (fi.exists())
     {
-      m_tables.push_back( ctd );
+      ctd.filename = fi.absoluteFilePath();
+      ctd.table = CTABreadASCII( ctd.filename.toLatin1().data() );
+      ctd.name = fi.baseName();
+      if ( ctd.table )
+      {
+        m_tables.push_back( ctd );
+      }
     }
   }
 
@@ -67,7 +74,7 @@ LUTDataHolder::LUTDataHolder()
   //    }
   //  }
 
-  if ( m_tables.isEmpty() )
+  if (!bStandardFound)
   {
     QFile file_in( ":/FreeSurferColorLUT.txt" );
     file_in.open(QIODevice::ReadOnly | QIODevice::Text);
@@ -88,7 +95,7 @@ LUTDataHolder::LUTDataHolder()
     {
       m_tables.push_back( ctd );
     }
-    else
+    else if (m_tables.isEmpty())
     {
       std::cerr << "Error: Did not find any look up table files.\n";
     }
