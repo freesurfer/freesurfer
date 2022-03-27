@@ -86,7 +86,7 @@
 #include "vtkImageMathematics.h"
 #include "Region3D.h"
 #include "LayerPointSet.h"
-
+#include <QTimer>
 
 #include "utils.h"
 #include "geos.h"
@@ -999,14 +999,22 @@ void LayerMRI::UpdateColorMap()
   m_actorContour->GetMapper()->SetLookupTable( GetProperty()->GetActiveLookupTable() );
   emit ActorUpdated();
   
-  if (this->m_nAvailableLabels.isEmpty())
+  if (this->m_nAvailableLabels.isEmpty() || m_listLabelCenters.isEmpty())
     UpdateLabelInformation();
 }
 
 void LayerMRI::UpdateLabelInformation()
 {
-  if (GetProperty()->GetColorMap() == LayerPropertyMRI::LUT && !m_worker->isRunning())
-    m_worker->start();
+  if (GetProperty()->GetColorMap() == LayerPropertyMRI::LUT)
+  {
+    if (m_worker->isRunning())
+    {
+      m_worker->Abort();
+      QTimer::singleShot(100, m_worker, SLOT(start()));
+    }
+    else
+      m_worker->start();
+  }
 }
 
 void LayerMRI::UpdateResliceInterpolation ()
@@ -1591,6 +1599,7 @@ void LayerMRI::SetActiveFrame( int nFrame )
   if ( nFrame != m_nActiveFrame && nFrame >= 0 && nFrame < this->GetNumberOfFrames() )
   {
     m_nActiveFrame = nFrame;
+    m_listLabelCenters.clear();
     GetProperty()->UpdateActiveFrame(nFrame);
     UpdateColorMap();
     emit ActiveFrameChanged( nFrame );

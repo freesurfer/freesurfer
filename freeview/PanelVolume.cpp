@@ -1587,6 +1587,8 @@ void PanelVolume::OnActiveFrameChanged(int nFrame)
   }
   else
   {
+    m_voxelList.clear();
+    m_nCurrentVoxelIndex = -1;
     LayerMRI* mri = qobject_cast<LayerMRI*>(sender());
     QList<LayerMRI*> linked_mri = qobject_cast<LayerTreeWidget*>(treeWidgetLayers)->GetLinkedVolumes();
     if (mri && linked_mri.contains(mri))
@@ -1972,7 +1974,7 @@ void PanelVolume::OnGoToFirstPoint()
 
 void PanelVolume::OnGoToNextPoint()
 {
-  if (m_nCurrentVoxelIndex < 0 || m_nCurrentVoxelIndex >= m_voxelList.size()/3)
+  if (m_nCurrentVoxelIndex < 0 || m_nCurrentVoxelIndex >= m_voxelList.size()/3 || m_voxelList.isEmpty())
   {
     OnGoToFirstPoint();
   }
