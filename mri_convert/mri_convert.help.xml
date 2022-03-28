@@ -170,6 +170,11 @@ The main and aux volumes should overlap very closely. If they do not, use tkregi
       <explanation>apply half-cosine bias field</explanation> 
       <argument>--fwhm fwhm </argument>
       <explanation>smooth input volume by fwhm mm</explanation>
+      <explanation>mutually exclusive with respect to --antialias</explanation>
+      <argument>--antialias</argument>
+      <explanation>apply Gaussian filter to smooth input volume</explanation>
+      <explanation>mutually exclusive with respect to --fwhm &lt;fwhm&gt;</explanation>
+      <explanation>use -vs, --voxsize &lt;size_x&gt; &lt;size_y&gt; &lt;size_z&gt; to specify the size (mm). fwhm is automatically calculated for each dimension based on the ratio of output and input volume resolutions.</explanation>
       <intro>SPECIFYING THE INPUT AND OUTPUT FILE TYPES</intro>
       <intro>Legal values for --in_type (-it) and --out_type (-ot) are: </intro>
       <argument>cor</argument>

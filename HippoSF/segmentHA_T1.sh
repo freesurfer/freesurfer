@@ -216,7 +216,7 @@ foreach hemi ($hippohemilist)
     |& tee -a $HSFLOG
 
   # command
-  set cmd="run_segmentSubjectT1_autoEstimateAlveusML.sh $RUNTIME $SUBJECTNAME $SUBJECTS_DIR $RESOLUTION $ATLASMESH $ATLASDUMP $LUT $K $hemi $OPTIMIZER $SUFFIX '${FREESURFER_HOME}/bin/fs_run_from_mcr ${FREESURFER_HOME}/bin/'  $MRFCONSTANT"
+  set cmd="run_segmentSubjectT1_autoEstimateAlveusML.sh $RUNTIME $SUBJECTNAME $SUBJECTS_DIR $RESOLUTION $ATLASMESH $ATLASDUMP $LUT $K $hemi $OPTIMIZER $SUFFIX ${FREESURFER_HOME}/bin/  $MRFCONSTANT"
 
   fs_time ls >& /dev/null
   if ($status) then

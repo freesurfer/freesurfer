@@ -1,5 +1,5 @@
 /**
- * @brief utilities for computing connected components
+ * @brief utilities for computing connected components. See also volcluster.cpp
  *
  */
 /*
@@ -40,6 +40,8 @@ void RemoveHoles(MRI *orivol)
   /* This function assumes the object is disconnected to the volume boundary.
      It first finds the bkground CC that connected with the volume boundary,
      then set all the voxels of the volume to object value(1) except for this CC.
+     See also MRIremoveSliceHoles(),  MRIremoveVolumeHoles(), MRIremoveVolumeIslands()
+     and other functions in volcluster.cpp.
    */
 
   MRI *tmpvol;
@@ -1331,3 +1333,5 @@ void myError(const char error_text[])
   fprintf(stderr, "Now exiting to system.\n");
   exit(1);
 }
+
+

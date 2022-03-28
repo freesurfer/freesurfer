@@ -33,6 +33,7 @@
 #include "proto.h"
 #include "mrisurf.h"
 
+#include "volcluster.h"
 #include "fio.h"
 #include "mri.h"
 #include "MRIio_old.h"
@@ -183,6 +184,8 @@ FOUND:
 int MRISprojectDist(MRIS *surf, const MRI *mridist);
 int MRISbrainSurfToSkull(MRIS *surf, const double *params, const MRI *vol);
 int MakeSkullSurface(char *subject, double *params, char *innername, char *outername);
+int rescale = 0;
+int FillHolesIslands = 0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -220,9 +223,10 @@ int main(int argc, char **argv) {
     exit(1);
   }
 
-  invol = MRIchangeType(invol_orig,MRI_UCHAR,0,255,1);
+  printf("Changing type, rescale = %d\n",rescale);
+  invol = MRIchangeType(invol_orig,MRI_UCHAR,0,255,!rescale);
   if (invol == NULL) {
-    printf("ERROR: bvolumeWrite: MRIchangeType\n");
+    printf("ERROR: MRIchangeType\n");
     return(1);
   }
 
@@ -360,6 +364,30 @@ int main(int argc, char **argv) {
                    (int)(mrgvol->height/2.0), (int)(mrgvol->depth/2.),
                    thresh2, fillval, -1);
 
+  if(FillHolesIslands){
+    MRI *tmpvol;
+    // Remove Volume Islands
+    tmpvol = MRIremoveVolumeIslands(outvol, 0.5, 1, NULL);
+    if(tmpvol == NULL) exit(1);
+    MRIfree(&outvol);
+    outvol = tmpvol;
+    // Remove Volume Holes
+    tmpvol = MRIremoveVolumeHoles(outvol, 0.5, 1, fillval, NULL);
+    if(tmpvol == NULL) exit(1);
+    MRIfree(&outvol);
+    outvol = tmpvol;
+    // Remove axial Slice Holes
+    tmpvol = MRIremoveSliceHoles(outvol, 6, NULL);
+    if(tmpvol == NULL) exit(1);
+    MRIfree(&outvol);
+    outvol = tmpvol;
+    // Remove sagittal Slice Holes
+    tmpvol = MRIremoveSliceHoles(outvol, 4, NULL);
+    if(tmpvol == NULL) exit(1);
+    MRIfree(&outvol);
+    outvol = tmpvol;
+  }
+
   printf("Counting\n");
   n = 0;
   double backnoise = 0.0;
@@ -431,6 +459,10 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--fillrows")) fillrows = 1;
     else if (!strcasecmp(option, "--fillcols")) fillcols = 1;
     else if (!strcasecmp(option, "--fillslices")) fillslices = 1;
+    else if (!strcasecmp(option, "--rescale")) rescale = 1;
+    else if (!strcasecmp(option, "--no-rescale")) rescale = 0;
+    else if (!strcasecmp(option, "--fill-holes-islands")) FillHolesIslands = 1;
+    else if (!strcasecmp(option, "--no-fill-holes-islands")) FillHolesIslands = 0;
     else if (!strcasecmp(option, "--get-signal-behind-head")) GetSignalBehindHead = 1;
 
     else if ( stringmatch(option, "--invol") ||
@@ -538,6 +570,8 @@ static void print_usage(void) {
   printf("   --nhitsmin  min number of consecutive hits (2) \n");
   printf("   --hvoldat   file : write head volume (mm3) to an ascii file \n");
   printf("   --get-signal-behind-head  \n");
+  printf("   --rescale : rescale input when converting to uchar (--no-rescale)  \n");
+  printf("   --fill-holes-islands : fill holes and remove islands  \n");
   printf("\n");
 }
 /* --------------------------------------------- */

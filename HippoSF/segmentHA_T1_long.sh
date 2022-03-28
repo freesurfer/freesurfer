@@ -242,7 +242,7 @@ foreach hemi ($hippohemilist)
     |& tee -a $HSFLOG
 
   # command
-  set cmd="run_SegmentSubfieldsT1Longitudinal.sh $RUNTIME $SUBJECTS_DIR $RESOLUTION $ATLASMESH $ATLASDUMP $LUT $K1 $K2 $hemi $OPTIMIZER $SUFFIX  '${FREESURFER_HOME}/bin/fs_run_from_mcr ${FREESURFER_HOME}/bin/'  $MRFCONSTANT $BASESUBJ"
+  set cmd="run_SegmentSubfieldsT1Longitudinal.sh $RUNTIME $SUBJECTS_DIR $RESOLUTION $ATLASMESH $ATLASDUMP $LUT $K1 $K2 $hemi $OPTIMIZER $SUFFIX  ${FREESURFER_HOME}/bin/  $MRFCONSTANT $BASESUBJ"
 
   foreach s ($SubjsList)
     set cmd="$cmd ${s}.long.$BASESUBJ"

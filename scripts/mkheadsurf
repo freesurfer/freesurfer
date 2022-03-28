@@ -40,10 +40,13 @@ set NSmooth = 10;
 set PrintHelp = 0;
 set DoInflate = 1;
 set ndilate = 0;
+set nerode = 0
 set InputVol = ()
 set OutputVol = ()
 set OutputSurf = ()
 set DoCurv = 1
+set Rescale = 0
+set FillHolesIslands = 0
 set LF = ()
 
 if($#argv == 0) goto usage_exit;
@@ -99,6 +102,10 @@ if(! $noseghead ) then
   set cmd = ($cmd --thresh1  $thresh1);
   set cmd = ($cmd --thresh2  $thresh2);
   set cmd = ($cmd --nhitsmin $nhitsmin);
+  if($Rescale) set cmd = ($cmd --rescale)
+  if(! $Rescale) set cmd = ($cmd --no-rescale)
+  if($FillHolesIslands) set cmd = ($cmd --fill-holes-islands)
+  if(! $FillHolesIslands) set cmd = ($cmd --no-fill-holes-islands)
   echo "--------------------------------" |& tee -a $LF
   date |& tee -a $LF
   pwd |& tee -a $LF
@@ -109,9 +116,11 @@ if(! $noseghead ) then
     echo "ERROR: mri_seghead" |& tee -a $LF
     exit 1;
   endif
-  if($ndilate != 0) then
+  if($ndilate != 0 || $nerode != 0) then
     set cmd = (mri_binarize --i $OutputVol --min 0.5 \
-      --dilate $ndilate --o $OutputVol --binval $fillval)
+      --o $OutputVol --binval $fillval)
+    if($dilate > 0) set cmd = ($cmd --dilate $ndilate)
+    if($nerode > 0) set cmd = ($cmd --erode $nerode)
     echo $cmd |& tee -a $LF
     $cmd |& tee -a $LF
     if($status) exit 1;
@@ -215,6 +224,11 @@ while( $#argv != 0 )
       set ndilate = $argv[1]; shift;
       breaksw
 
+    case "-nerode":
+      if ( $#argv == 0) goto arg1err;
+      set nerode = $argv[1]; shift;
+      breaksw
+
     case "-nsmooth":
       if ( $#argv == 0) goto arg1err;
       set NSmooth = $argv[1]; shift;
@@ -270,11 +284,28 @@ while( $#argv != 0 )
       set hemi = $argv[1]; shift;
       breaksw
 
+    case "-rescale":
+      set Rescale = 1
+      breaksw
+    case "-no-rescale":
+      set Rescale = 0
+      breaksw
+
+    case "-no-fill-holes-islands":
+      set FillHolesIslands = 0
+      breaksw
+    case "-fill-holes-islands":
+      set FillHolesIslands = 1
+      breaksw
+
     case "-sd":
       if ( $#argv == 0) goto arg1err;
       setenv SUBJECTS_DIR $argv[1]; shift;
       breaksw
 
+    case "-curv":
+      set DoCurv = 1
+      breaksw
     case "-nocurv":
     case "-no-curv":
       set DoCurv = 0
@@ -402,12 +433,16 @@ usage_exit:
   echo "Other Arguments (Optional)"
   echo "   -nsmooth N : number of smoothing iterations (def $NSmooth)"
   echo "   -noseghead : do not seg the head, just tess and smooth existing"
-  echo "   -inflate : inflate and compute sulc"
   echo "   -thresh1 threshold : default is $thresh1"
   echo "   -thresh2 threshold : default is $thresh2"
   echo "   -nhitsmin N        : default is $nhitsmin"
   echo "   -ndilate  N        : default is $ndilate"
+  echo "   -nerode   N        : default is $nerode"
   echo "   -fillval value     : default is $fillval"
+  echo "   -rescale           : rescale input when converting to uchar (-no-rescale)"
+  echo "   -fill-holes-islands : fill holes and remove islands"
+  echo "   -no-inflate : do not inflate and compute sulc"
+  echo "   -no-curv : do not compute curv with smoothing"
   echo "   -srcvol volid      : default is T1"
   echo "   -headvol volid     : default is seghead"
   echo "   -headsurf surfid   : default is seghead"

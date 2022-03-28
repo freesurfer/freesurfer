@@ -18,12 +18,12 @@ void LayerMRIWorkerThread::Abort()
 
 void LayerMRIWorkerThread::run()
 {
+  m_bAbort = false;
   LayerMRI* mri = qobject_cast<LayerMRI*>(parent());
   vtkImageData* image = mri->GetImageData();
   int* dim = image->GetDimensions();
   double* origin = image->GetOrigin();
   double* vs = image->GetSpacing();
-
   IntList vals;
   QMap<int, QList<double> > centers;
   QMap<int, int> counts;
@@ -36,7 +36,7 @@ void LayerMRIWorkerThread::run()
     {
       for (int k = 0; k < dim[2]; k++)
       {
-        int val = (int)MyVTKUtils::GetImageDataComponent(ptr, dim, n_frames, i, j, k, 0, scalar_type);
+        int val = (int)MyVTKUtils::GetImageDataComponent(ptr, dim, n_frames, i, j, k, mri->GetActiveFrame(), scalar_type);
         if (val != 0)
         {
           if (!vals.contains(val))
