@@ -124,6 +124,9 @@ if ~isempty(aux)
     end
 end
 
+% March 2021: fix to accommodate 'fs_run_from_mcr'
+FSpath = [FSpath '/fs_run_from_mcr ' FSpath '/'];
+
 % File name for temporary directory
 tempdir=[subjectDir '/' subjectBase '/tmp/hippoSF_T1_' suffix '_' side '/'];
 aux=getenv('USE_SCRATCH');
