@@ -313,8 +313,10 @@ class spherical_loss(object):
             ndims = len(y_pred.get_shape().as_list()) - 2
             vol_axes = list(range(1, ndims+1))
             
+            #top = 2 * tf.reduce_sum(de * y_true * y_pred, vol_axes)
+            # bottom = tf.reduce_sum(de * (y_true + y_pred), vol_axes)
             top = 2 * tf.reduce_sum(de * y_true * y_pred, vol_axes)
-            bottom = tf.reduce_sum(de * (y_true + y_pred), vol_axes)
+            bottom = tf.reduce_sum(de * y_true**2, vol_axes) + tf.reduce_sum(de*y_pred**2, vol_axes)
             dice = tf.reduce_mean(tf.math.divide_no_nan(top, bottom))
             return -weight * dice
         return loss
@@ -527,7 +529,7 @@ class spherical_loss(object):
 
         if image_sigma is not None:
             if self.pad > 0:
-                image_sigma = tf.squeeze(image_sigma[:,self.pad:-self.pad,self.pad:-self.pad,...])
+                image_sigma = tf.squeeze(image_sigma[self.pad:-self.pad,self.pad:-self.pad,...])
             image_sigma = tf.cast(image_sigma, tf.float32)
             image_sigma_sq = tf.clip_by_value(image_sigma*image_sigma, 1e-3, 1e4)
 
