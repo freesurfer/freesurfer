@@ -3566,3 +3566,213 @@ int MRISedgeWrite(char *filename, MRIS *surf)
   return(0);
 }
 
+
+/*!
+\fn MRIS *MRISupsampleCentroid(MRIS *insurf, int nupsamples)
+\brief Upsample the surface by putting new vertices at the centroid of
+each triangle. For one upsample, the new surface will have nvertices =
+insurf->nvertices + insurf->nfaces and nfaces = 3*insurf->nfaces. Only
+the minimal set of parameters are set in the new surface so functions
+like MRIScomputeMetricProperties() might not do the right thing if run
+directly on the output (though it is run at the end of the
+function). It would be nice to have a function that updates all the
+parameters given the minimum, but this does not appear to exist. But
+you can save it to file and read it back. This function tends to make
+long triangles (bad quality) with vertices non-uniformly distributed.
+Probably better to use MRISupsampleSplit().
+*/
+MRIS *MRISupsampleCentroid(MRIS *srcsurf, int nupsamples)
+{
+  if(srcsurf == NULL) return(NULL);
+  MRIS *upsurf;
+
+  if(nupsamples > 1){
+    upsurf=srcsurf;
+    for(int n=0; n < nupsamples; n++){
+      printf("MRISupsampleCentroid() upsample level = %d ======================\n",n);
+      MRIS *tmpsurf = MRISupsampleCentroid(upsurf, 1);
+      if(tmpsurf == NULL) {
+	printf("ERROR: MRISupsampleCentroid() return is NULL\n");
+	return(NULL);
+      }
+      if(n>0) MRISfree(&upsurf);
+      upsurf = tmpsurf;
+    }
+    return(upsurf);
+  }
+
+  int nvertices = srcsurf->nvertices + srcsurf->nfaces;
+  int nfaces = 3*srcsurf->nfaces;
+  upsurf = MRISclone(srcsurf);
+  if(upsurf == NULL) return(NULL);
+  MRISreallocVerticesAndFaces(upsurf,nvertices, nfaces);
+  printf("MRISupsampleCentroid(): source nvertices = %d nfaces = %d, new nv = %d nf = %d\n",
+	 srcsurf->nvertices,srcsurf->nfaces,upsurf->nvertices,upsurf->nfaces);fflush(stdout);
+
+  int nthface, newfaceno=srcsurf->nfaces;
+  for(nthface=0; nthface < srcsurf->nfaces; nthface++){
+    FACE *face = &(srcsurf->faces[nthface]); // can be source or up
+
+    // Put a new vertex at the centroid of this face
+    int upvtxno = srcsurf->nvertices+nthface; // index of new vertex
+    VERTEX *vup = &(upsurf->vertices[upvtxno]); // must be upsurf
+
+    // Compute the centroid
+    int k,nbrvtxno;
+    double xsum=0, ysum=0, zsum=0;
+    for(k=0; k < 3; k++){
+      nbrvtxno = face->v[k];
+      VERTEX *vk = &(srcsurf->vertices[nbrvtxno]); // up or source here
+      xsum += vk->x;
+      ysum += vk->y;
+      zsum += vk->z;
+    }
+    vup->x = xsum/3.0;
+    vup->y = ysum/3.0;
+    vup->z = zsum/3.0;
+
+    // Create new faces for the three new triangles. Note that the
+    // order of the vertices in the face is important as it determines
+    // whether the norm points in or out
+    FACE *newface;
+    // For the first face, replace the values in the already existing face
+    newface = &(upsurf->faces[nthface]); // nthface here
+    newface->v[0] = face->v[0];
+    newface->v[1] = face->v[1];
+    newface->v[2] = upvtxno;
+
+    newface = &(upsurf->faces[newfaceno]); // newfaceno here
+    newface->v[0] = face->v[1];
+    newface->v[1] = face->v[2];
+    newface->v[2] = upvtxno;
+    newfaceno++;
+
+    newface = &(upsurf->faces[newfaceno]); // newfaceno here
+    newface->v[0] = face->v[2];
+    newface->v[1] = face->v[0];
+    newface->v[2] = upvtxno;
+    newfaceno++;
+
+  }
+  MRIScomputeMetricProperties(upsurf); // not sure if this actually works
+  return(upsurf);
+}
+
+
+/*!
+\fn MRIS *MRISupsampleSplit(MRIS *insurf, int nupsamples)
+\brief Upsample the surface by splitting triangles along the longest
+edge.  For one upsample, the new surface will have nvertices =
+insurf->nvertices + insurf->nfaces and nfaces = 2*insurf->nfaces. Only
+the minimal set of parameters are set in the new surface so functions
+like MRIScomputeMetricProperties() might not do the right thing if run
+directly on the output (though it is run at the end of the
+function). It would be nice to have a function that updates all the
+parameters given the minimum, but this does not appear to exist. But
+you can save it to file and read it back.
+*/
+MRIS *MRISupsampleSplit(MRIS *srcsurf, int nupsamples)
+{
+  if(srcsurf == NULL) return(NULL);
+  MRIS *upsurf;
+
+  if(nupsamples > 1){
+    upsurf=srcsurf;
+    for(int n=0; n < nupsamples; n++){
+      printf("MRISupsampleSplit() upsample level = %d ======================\n",n);
+      MRIS *tmpsurf = MRISupsampleSplit(upsurf, 1);
+      if(tmpsurf == NULL) {
+	printf("ERROR: MRISupsampleSplit() return is NULL\n");
+	return(NULL);
+      }
+      if(n>0) MRISfree(&upsurf);
+      upsurf = tmpsurf;
+    }
+    return(upsurf);
+  }
+
+  int nvertices = srcsurf->nvertices + srcsurf->nfaces;
+  int nfaces = 2*srcsurf->nfaces;
+  upsurf = MRISclone(srcsurf);
+  if(upsurf == NULL) return(NULL);
+  MRISreallocVerticesAndFaces(upsurf,nvertices, nfaces);
+  printf("MRISupsampleSplit(): source nvertices = %d nfaces = %d, new nv = %d nf = %d\n",
+	 srcsurf->nvertices,srcsurf->nfaces,upsurf->nvertices,upsurf->nfaces);fflush(stdout);
+
+  int nthface, newfaceno=srcsurf->nfaces;
+  for(nthface=0; nthface < srcsurf->nfaces; nthface++){
+    FACE *face = &(srcsurf->faces[nthface]); // can be source or up
+
+    // Put a new vertex at the center of the longest edge
+    int upvtxno = srcsurf->nvertices+nthface; // index of new vertex
+    VERTEX *vup = &(upsurf->vertices[upvtxno]); // must be upsurf
+
+    // Compute the lengths of each edge
+    MATRIX *xyz[3];
+    int k,nbrvtxno;
+    for(k=0; k < 3; k++){
+      nbrvtxno = face->v[k];
+      VERTEX *vk = &(srcsurf->vertices[nbrvtxno]); // up or source here
+      xyz[k] = MatrixAlloc(3,1,MATRIX_REAL);
+      xyz[k]->rptr[1][1] = vk->x;
+      xyz[k]->rptr[2][1] = vk->y;
+      xyz[k]->rptr[3][1] = vk->z;
+    }
+    double d01 = VectorRMS(xyz[0],xyz[1]);
+    double d12 = VectorRMS(xyz[1],xyz[2]);
+    double d20 = VectorRMS(xyz[2],xyz[0]);
+
+    // Determine which edge will be split
+    int i1=0, i2=0, splitedgeno=0;
+    if(d01 > d12 && d01 > d20) {i1=0; i2=1;splitedgeno=0;}
+    if(d12 > d01 && d12 > d20) {i1=1; i2=2;splitedgeno=1;}
+    if(d20 > d01 && d20 > d12) {i1=2; i2=0;splitedgeno=2;}
+    // The new vertex goes at the midway point
+    vup->x = (xyz[i1]->rptr[1][1]+xyz[i2]->rptr[1][1])/2.0;
+    vup->y = (xyz[i1]->rptr[2][1]+xyz[i2]->rptr[2][1])/2.0;
+    vup->z = (xyz[i1]->rptr[3][1]+xyz[i2]->rptr[3][1])/2.0;
+    for(k=0; k < 3; k++) MatrixFree(&xyz[k]);
+
+    // Create new faces for the two new triangles. Note that the order
+    // of the vertices in the face is important as it determines
+    // whether the norm points in or out. For the first face, replace
+    // the values in the already existing face.
+    FACE *newface;
+    if(splitedgeno==0){// spliting 0-1
+      newface = &(upsurf->faces[nthface]); // nthface here
+      newface->v[0] = face->v[0];
+      newface->v[1] = upvtxno;
+      newface->v[2] = face->v[2];
+      newface = &(upsurf->faces[newfaceno]); // newfaceno here
+      newface->v[0] = upvtxno;
+      newface->v[1] = face->v[1];
+      newface->v[2] = face->v[2];
+      newfaceno++;
+    }
+    if(splitedgeno==1){// splitting 1-2
+      newface = &(upsurf->faces[nthface]); // nthface here
+      newface->v[0] = face->v[0];
+      newface->v[1] = face->v[1];
+      newface->v[2] = upvtxno;
+      newface = &(upsurf->faces[newfaceno]); // newfaceno here
+      newface->v[0] = upvtxno;
+      newface->v[1] = face->v[2];
+      newface->v[2] = face->v[0];
+      newfaceno++;
+    }
+    if(splitedgeno==2){// splitting 2-0
+      newface = &(upsurf->faces[nthface]); // nthface here
+      newface->v[0] = face->v[0];
+      newface->v[1] = face->v[1];
+      newface->v[2] = upvtxno;
+      newface = &(upsurf->faces[newfaceno]); // newfaceno here
+      newface->v[0] = face->v[1];
+      newface->v[1] = face->v[2];
+      newface->v[2] = upvtxno;
+      newfaceno++;
+    }
+
+  }
+  MRIScomputeMetricProperties(upsurf); // not sure if this actually works
+  return(upsurf);
+}
