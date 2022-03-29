@@ -98,6 +98,7 @@ typedef struct MRIS_HASH_TABLE MHT;
 
 typedef struct LABEL_VERTEX         LABEL_VERTEX,    LV  ;
 typedef struct LABEL                LABEL;
+// See mrisurf_FACE_VERTEX_MRIS_generated.h for FACE, VERTEX, and MRI_SURFACE/MRIS
 typedef struct face_type_           face_type, FACE;
 typedef struct face_topology_type_  FACE_TOPOLOGY;
 typedef struct vertex_type_         vertex_type, VERTEX;
