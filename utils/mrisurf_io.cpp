@@ -5702,24 +5702,23 @@ int MRISbuildFileName(MRI_SURFACE *mris, const char *sname, char *fname)
 	}
       }
     }
-    else /* no hemisphere specified */
-        if (getenv("FS_POSIX")) {
-      // PW 2017/05/15: If FS_POSIX is set, write to cwd (as per POSIX:4.11)
-	  int req = snprintf(fname, STRLEN,
-			     "./%s.%s",
-			     mris->hemisphere == LEFT_HEMISPHERE ? "lh" : mris->hemisphere == BOTH_HEMISPHERES ? "both" : "rh",
-			     sname);
-	  if( req >= STRLEN ) {
-	    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
-	  }
+    else {/* no hemisphere specified */
+      const char *hemistr;
+      if(mris->hemisphere == LEFT_HEMISPHERE)       hemistr = "lh.";
+      else if(mris->hemisphere == RIGHT_HEMISPHERE) hemistr = "rh.";
+      else if(mris->hemisphere == BOTH_HEMISPHERES)  hemistr = "both.";
+      else hemistr = "";
+      if (getenv("FS_POSIX")) {
+	// PW 2017/05/15: If FS_POSIX is set, write to cwd (as per POSIX:4.11)
+	int req = snprintf(fname, STRLEN,"./%s%s",hemistr,sname);
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
 	}
-	else {
-      // PW 2017/05/15: Legacy behaviour
-      sprintf(fname,
-              "%s/%s.%s",
-              path,
-              mris->hemisphere == LEFT_HEMISPHERE ? "lh" : mris->hemisphere == BOTH_HEMISPHERES ? "both" : "rh",
-              sname);
+      }
+      else {
+	// PW 2017/05/15: Legacy behaviour
+	sprintf(fname,"%s/%s%s",path,hemistr,sname);
+      }
     }
   }
   else {
