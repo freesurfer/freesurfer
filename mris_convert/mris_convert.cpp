@@ -128,7 +128,7 @@ static int ToTkr = 0;
 static int ToSurfCoords = 0;
 MRIS *SurfCoords = NULL;
 int WriteArea = 0;
-int nUpsample = 0;
+int nUpsample = 0,UpsampleSortType=0;
 int DeleteCommands = 0;
 int MRISwriteVertexNeighborsAscii(MRIS *mris, char *out_fname);
 
@@ -297,8 +297,8 @@ main(int argc, char *argv[])
     }
   }
   if(nUpsample > 0){
-    printf("Upsampling %d times\n",nUpsample);
-    MRIS *tmpmris = MRISupsampleSplit(mris,nUpsample);
+    printf("Upsampling %d times, SortType %d\n",nUpsample,UpsampleSortType);
+    MRIS *tmpmris = MRISupsampleSplit(mris,nUpsample,UpsampleSortType);
     MRISfree(&mris);
     mris = tmpmris;
   }
@@ -817,7 +817,8 @@ get_option(int argc, char *argv[])
   }
   else if (!stricmp(option, "-upsample")) {
     sscanf(argv[2],"%d",&nUpsample);
-    nargs = 1 ;
+    sscanf(argv[3],"%d",&UpsampleSortType);
+    nargs = 2 ;
   }
   else if (!stricmp(option, "-to-surf")) {
     ToSurfCoords = 1;
@@ -957,7 +958,8 @@ print_help(void)
   printf( "  --to-surf surfcoords : copy coordinates from surfcoords to output (good for patches)\n") ;
   printf( "  --to-scanner : convert coordinates from native FS (tkr) coords to scanner coords\n") ;
   printf( "  --to-tkr : convert coordinates from scanner coords to native FS (tkr) coords \n") ;
-  printf( "  --upsample N : upsample N times by spliting each face a the midpoint of the longest edge\n") ;
+  printf( "  --upsample N SortType: upsample N times by spliting edges/faces\n") ;
+  printf( "     SortType=1 starts with longest edges, SortType=3 starts with biggest triangles\n") ;
   printf( "  --volume ?h.white ?h.pial ?h.volume : compute vertex-wise volume, no other args needed (uses th3)\n") ;
   printf( "  --area surface area.mgz : compute vertex-wise area (no other args needed); rescales group if needed\n") ;
   printf( "  --angle surface angles.mgz : compute cortical orientation angles\n") ;
