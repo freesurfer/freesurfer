@@ -173,6 +173,7 @@ typedef struct edge_type_
   double angle; // angle (deg) of the adjacent face normals
   double J; // Angle Cost of this edge
   double u[3]; // unit vector pointing from v0 to v1
+  double area[2], maxarea; // area of the two faces and max of the two
   DMATRIX *gradU; // 1x3 grad of unit verctor wrt vertex 0
   DMATRIX *gradDot[4]; // 3x3 grad of dot product wrt 4 vertices
 } MRI_EDGE;
