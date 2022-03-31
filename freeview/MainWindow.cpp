@@ -3949,6 +3949,13 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
             sup_options["ignore_vg"] = true;
           }
         }
+        else if (subOption == "no_shading")
+        {
+          if ( subArgu.toLower() == "true" || subArgu.toLower() == "yes" || subArgu == "1")
+          {
+            sup_options["no_shading"] = true;
+          }
+        }
         else if ( !valid_overlay_options.contains(subOption) )
         {
           cerr << "Unrecognized sub-option flag '" << subOption.toLatin1().constData() << "'.\n";
@@ -6472,6 +6479,9 @@ void MainWindow::LoadSurfaceFile( const QString& filename, const QString& fn_pat
     args["ignore_vg"] = sup_options["ignore_vg"];
   if (sup_options.contains("affinexform_filename"))
     args["affinexform_filename"] = sup_options["affinexform_filename"];
+
+  if (sup_options["no_shading"].toBool())
+    layer->SetNoShading(true);
 
   m_threadIOWorker->LoadSurface( layer, args );
   m_statusBar->StartTimer();

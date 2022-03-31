@@ -458,6 +458,8 @@ public slots:
 
   bool SavePathAsControlPoints(const QString& fn, bool bMarks = false);
 
+  void SetNoShading(bool b);
+
 Q_SIGNALS:
   void SurfaceAnnotationAdded( SurfaceAnnotation* );
   void SurfaceLabelAdded( SurfaceLabel* );
