@@ -233,7 +233,8 @@ int main(int argc, char *argv[])
     "':vertexcolor=colorname' Set color of the vertices. Color can be a color name such as 'red' or 3 values as RGB components of the color, e.g., '255,0,0'.\n\n"
     "':goto=vertex_number' Move the cursor to the given vertex and center the view around it.\n\n"
     "':hide_in_3d=flag' Hide surface in 3D view. flag can be 'true', 'on' or '1'.\n\n"
-    "':all=flag' Indicate to load all available surfaces. flag can be 'true', 'yes' or '1'.\n", 1, 1000 ),
+    "':all=flag' Indicate to load all available surfaces. flag can be 'true', 'yes' or '1'.\n"
+    "':no_shading=flag' Indicate to set the ambient coefficient of the surface to full strenge so that there will be no shading effect rendered. flag can be 'true', 'yes' or '1'.\n", 1, 1000 ),
     CmdLineEntry( CMD_LINE_OPTION, "edgecolor", "edgecolor", "<color>", "Use the give color as the edge color for all the surfaces to be loaded after.", 1, 1 ),
     CmdLineEntry( CMD_LINE_OPTION, "l", "label", "<FILE>...", "Load one or multiple label(ROI) files. Available sub-options are:\n\n"
     "':ref=ref_volume' Enter the name of the reference volume for this label file. The volume is one of the volumes given by -v option. \n\n"
