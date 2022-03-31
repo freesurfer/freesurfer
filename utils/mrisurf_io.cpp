@@ -5669,21 +5669,43 @@ static MRI_SURFACE *mrisReadTriangleFile(const char *fname, double nVFMultiplier
 
   return (mris);
 }
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
+/*!
+\fn int MRISbuildFileName(MRI_SURFACE *mris, const char *sname, char *fname)
+\brief This function "builds" a file path (fname) for saving
+surface-based output based on a "desired" name (sname).  Until
+3/31/2022, the default behavior was horribly confusing.  It would look
+for a forward slash "/" in the sname. If one exists, then it copies
+sname to fname (ie, it just uses the path as specified). If a forward
+slash is not present, then it goes through a bunch of steps to create
+a new path. They are all too confusing to decifer. Sometimes it will
+put an lh or rh at the beginning of the file name. Sometimes it will
+put it in the path where the orginal file was read from. On 3/31/2022,
+DNG changed this to just return the file name/path passed. If you
+really want to recreate the old functionality, then 
+setenv FS_MRISbuildFileName_REVERT 1
+And don't complain to me when it puts your files in random locations
+with semi-random names.
+*/
 int MRISbuildFileName(MRI_SURFACE *mris, const char *sname, char *fname)
 {
   char path[STRLEN];
   const char *slash, *dot;
 
+  char *revert = getenv("FS_MRISbuildFileName_REVERT");
+  if(revert == NULL) {
+    strcpy(fname, sname); /* path specified explicitly */
+    return (NO_ERROR);
+  }
+  if(strcmp(revert,"1") != 0){
+    // revert is not-null but does not equal 1
+    strcpy(fname, sname); /* path specified explicitly */
+    return (NO_ERROR);
+  }
+
   slash = strchr(sname, '/');
-  if (!slash) /* no path - use same one as mris was read from */
-  {
+  if(!slash)   {
+    /* no path - use same one as mris was read from */
+    // This is so dumb -- it will spontaneously put your output in semi-random locations
     dot = strchr(sname, '.');
     FileNamePath(mris->fname, path);
     if (dot && (*(dot - 1) == 'h') && (*(dot - 2) == 'l' || *(dot - 2) == 'r')) {
