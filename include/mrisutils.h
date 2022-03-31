@@ -127,5 +127,5 @@ double *MRISedgeStats(MRIS *surf, int metricid, MRI *mask, double *stats);
 int MRISedgePrint(FILE *fp, MRIS *surf);
 int MRISedgeWrite(char *filename, MRIS *surf);
 MRIS *MRISupsampleCentroid(MRIS *srcsurf, int nupsamples);
-MRIS *MRISupsampleSplit(MRIS *srcsurf, int nupsamples);
+MRIS *MRISupsampleSplit(MRIS *srcsurf, int nupsamples, int SortType);
 #endif
