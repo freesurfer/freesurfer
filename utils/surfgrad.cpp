@@ -448,11 +448,83 @@ int MRISedgeMetricEdge(MRIS *surf, int edgeno, int DoGrad)
   // Note f->norm must have been computed with MRISfaceNormalGrad(), grad not needed
   f0 = &(surf->faces[e->faceno[0]]);
   f1 = &(surf->faces[e->faceno[1]]);
+  e->area[0] = f0->area;
+  e->area[1] = f1->area;
+  if(e->area[0] > e->area[1]) e->maxarea = e->area[0];
+  else                        e->maxarea = e->area[1];
   e->dot = DVectorDot(f0->norm,f1->norm);
   if(e->dot > 1.0)  e->dot = +1.0; // might be a slight overflow
   if(e->dot < -1.0) e->dot = -1.0; // might be a slight overflow
   e->angle = acos(e->dot)*180/M_PI;
   return(0);
+}
+/*!
+\fn int MRISedgeCompare(const void *a, const void *b, void *psorttype)
+\brief Compare two edges in a way suitable for qsort_r(). psorttype is an int with:
+  case 1: // Length then Max Area, Descending (high to low)
+  case 2: // Length then Max Area, Ascending  (low to high)
+  case 3: // Max Area then Length, Descending (high to low)
+  case 4: // Max Area then Length, Ascending  (low to high)
+ */
+int MRISedgeCompare(const void *a, const void *b, void *psorttype)
+{
+  MRI_EDGE *e1 = (MRI_EDGE*)a;
+  MRI_EDGE *e2 = (MRI_EDGE*)b;
+  int *SortType = (int*)psorttype;
+  switch(*SortType){
+  case 1: // Length then Max Area, Descending
+    if(e1->len > e2->len) return(-1);
+    if(e1->len < e2->len) return(+1);
+    if(e1->maxarea > e2->maxarea) return(-1);
+    if(e1->maxarea < e2->maxarea) return(+1);
+    break;
+  case 2: // Length then Max Area, Ascending
+    if(e1->len < e2->len) return(-1);
+    if(e1->len > e2->len) return(+1);
+    if(e1->maxarea < e2->maxarea) return(-1);
+    if(e1->maxarea > e2->maxarea) return(+1);
+    break;
+  case 3: // Max Area then Length, Descending
+    if(e1->maxarea > e2->maxarea) return(-1);
+    if(e1->maxarea < e2->maxarea) return(+1);
+    if(e1->len > e2->len) return(-1);
+    if(e1->len < e2->len) return(+1);
+    break;
+  case 4: // Max Area then Length, Ascending
+    if(e1->maxarea < e2->maxarea) return(-1);
+    if(e1->maxarea > e2->maxarea) return(+1);
+    if(e1->len < e2->len) return(-1);
+    if(e1->len > e2->len) return(+1);
+    break;
+  default:
+    printf("ERROR: MRISEdgeCompare() SorType = %d\n",*SortType);
+    fflush(stdout);
+    return(0);
+    break;
+  }
+  return(0); // should never get here
+}
+
+/*!
+\fn MRI_EDGE *MRISedgeSort(MRIS *surf, const int SortType, MRI_EDGE *edges)
+\brief Sort the edges in surf->edges (returns a new array). Could be done
+in place, but probably not a good idea.
+SortType is
+  case 1: // Length then Max Area, Descending (high to low)
+  case 2: // Length then Max Area, Ascending  (low to high)
+  case 3: // Max Area then Length, Descending (high to low)
+  case 4: // Max Area then Length, Ascending  (low to high)
+ */
+MRI_EDGE *MRISedgeSort(MRIS *surf, const int SortType, MRI_EDGE *edges)
+{
+  // Make sure the edges are built and metrics computed
+  MRISedges(surf);
+  MRISfaceMetric(surf,0);
+  MRISedgeMetric(surf,0);
+  if(edges == NULL) edges = (MRI_EDGE*)calloc(surf->nedges,sizeof(MRI_EDGE));
+  memcpy(edges,surf->edges,surf->nedges*sizeof(MRI_EDGE));
+  qsort_r(edges, surf->nedges, sizeof(MRI_EDGE), MRISedgeCompare, (void*)&SortType);
+  return(edges);
 }
 
 /*!
