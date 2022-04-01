@@ -584,6 +584,7 @@ int MRISwriteAreaError(MRI_SURFACE *mris, const char *name)
   FILE *fp;
   char fname[STRLEN];
 
+  // may need to setenv FS_MRISbuildFileName_REVERT 1
   MRISbuildFileName(mris, name, fname);
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) {
     fprintf(stdout, "writing area error file %s...", fname);
@@ -771,12 +772,6 @@ int MRISwriteValues(MRI_SURFACE *mris, const char *sname)
   int ftype, err;
   MRI *TempMRI;
 
-#if 1
-  MRISbuildFileName(mris, sname, fname);
-#else
-  strcpy(fname, sname);
-#endif
-
   // Try saving it in a "volume" format -- but not img or nifti
   // as they use shorts for the number of vertices. Should add
   // a reshape.
@@ -793,6 +788,9 @@ int MRISwriteValues(MRI_SURFACE *mris, const char *sname)
     err = MRIwrite(TempMRI, sname);
     return (err);
   }
+
+  // May need to setenv FS_MRISbuildFileName_REVERT 1
+  MRISbuildFileName(mris, sname, fname);
 
   cp = strrchr(fname, '.');
   if (!cp || *(cp + 1) != 'w') {
@@ -1006,6 +1004,8 @@ int MRISreadCanonicalCoordinates(MRI_SURFACE *mris, const char *sname)
 int MRISreadPatchNoRemove(MRI_SURFACE *mris, const char *pname)
 {
   char fname[STRLEN];
+
+  // may need to setenv FS_MRISbuildFileName_REVERT 1
   MRISbuildFileName(mris, pname, fname);
 
   int const type = MRISfileNameType(fname); /* using extension to get type */
@@ -2340,8 +2340,13 @@ int MRISreadVertexPositions(MRI_SURFACE *mris, const char *name)
   int vno, nvertices, nfaces, magic, version, tmp, ix, iy, iz, n, type;
   FILE *fp;
 
-  type = MRISfileNameType(name);
+  // set FS_MRISbuildFileName_REVERT to 1 here to read positions
+  char *revert = getenv("FS_MRISbuildFileName_REVERT");
+  setenv("FS_MRISbuildFileName_REVERT","1",1);
   MRISbuildFileName(mris, name, fname);
+  if(revert) setenv("FS_MRISbuildFileName_REVERT",revert,1);
+  else     unsetenv("FS_MRISbuildFileName_REVERT");
+  type = MRISfileNameType(name);
   if (type == MRIS_GEO_TRIANGLE_FILE) {
     return (mrisReadGeoFilePositions(mris, fname));
   }
@@ -4437,6 +4442,7 @@ static int MRISwrite_new(MRI_SURFACE *mris, const char *name)
   char fname[STRLEN];
 
   chklc();
+  // should not need to setenv FS_MRISbuildFileName_REVERT 1
   MRISbuildFileName(mris, name, fname);
   type = MRISfileNameType(fname);
   if (type == MRIS_ASCII_TRIANGLE_FILE) {
@@ -4563,6 +4569,7 @@ static int MRISwrite_old(MRI_SURFACE *mris, const char *name)
   char fname[STRLEN];
 
   chklc();
+  // should not need to setenv FS_MRISbuildFileName_REVERT 1
   MRISbuildFileName(mris, name, fname);
   type = MRISfileNameType(fname);
   if (type == MRIS_ASCII_TRIANGLE_FILE) {
