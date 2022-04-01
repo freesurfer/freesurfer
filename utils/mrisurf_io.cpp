@@ -585,6 +585,7 @@ int MRISwriteAreaError(MRI_SURFACE *mris, const char *name)
   char fname[STRLEN];
 
   // may need to setenv FS_MRISbuildFileName_REVERT 1
+  printf("MRISwriteAreaError(): running MRISbuildFileName()\n");fflush(stdout);
   MRISbuildFileName(mris, name, fname);
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) {
     fprintf(stdout, "writing area error file %s...", fname);
@@ -790,6 +791,7 @@ int MRISwriteValues(MRI_SURFACE *mris, const char *sname)
   }
 
   // May need to setenv FS_MRISbuildFileName_REVERT 1
+  printf("MRISwriteValues(): running MRISbuildFileName()\n");fflush(stdout);
   MRISbuildFileName(mris, sname, fname);
 
   cp = strrchr(fname, '.');
@@ -1006,6 +1008,7 @@ int MRISreadPatchNoRemove(MRI_SURFACE *mris, const char *pname)
   char fname[STRLEN];
 
   // may need to setenv FS_MRISbuildFileName_REVERT 1
+  printf("MRISreadPatchNoRemove(): running MRISbuildFileName()\n");fflush(stdout);
   MRISbuildFileName(mris, pname, fname);
 
   int const type = MRISfileNameType(fname); /* using extension to get type */
@@ -2341,6 +2344,7 @@ int MRISreadVertexPositions(MRI_SURFACE *mris, const char *name)
   FILE *fp;
 
   // set FS_MRISbuildFileName_REVERT to 1 here to read positions
+  printf("MRISreadVertexPositions(): running MRISbuildFileName() with reversion\n");fflush(stdout);
   char *revert = getenv("FS_MRISbuildFileName_REVERT");
   setenv("FS_MRISbuildFileName_REVERT","1",1);
   MRISbuildFileName(mris, name, fname);
@@ -4443,6 +4447,7 @@ static int MRISwrite_new(MRI_SURFACE *mris, const char *name)
 
   chklc();
   // should not need to setenv FS_MRISbuildFileName_REVERT 1
+  printf("MRISwrite_new(): running MRISbuildFileName()\n");fflush(stdout);
   MRISbuildFileName(mris, name, fname);
   type = MRISfileNameType(fname);
   if (type == MRIS_ASCII_TRIANGLE_FILE) {
@@ -4570,6 +4575,7 @@ static int MRISwrite_old(MRI_SURFACE *mris, const char *name)
 
   chklc();
   // should not need to setenv FS_MRISbuildFileName_REVERT 1
+  printf("MRISwrite_old(): running MRISbuildFileName()\n");fflush(stdout);
   MRISbuildFileName(mris, name, fname);
   type = MRISfileNameType(fname);
   if (type == MRIS_ASCII_TRIANGLE_FILE) {
