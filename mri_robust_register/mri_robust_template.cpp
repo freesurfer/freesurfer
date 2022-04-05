@@ -118,6 +118,7 @@ struct Parameters
   bool crascenter;
   int pairiterate;
   double pairepsit;
+  float  resthresh;
 };
 
 // Initializations:
@@ -125,7 +126,7 @@ static struct Parameters P =
 { vector<string>(0), vector<string>(0), "", vector<string>(0), vector<string>(0), vector<string>(
     0), vector<string>(0), false, false, false, false, false, false, false, false, false,
     5, -1.0, SAT, vector<string>(0), 0, 1, -1, false, false, SSAMPLE, false, false, "", false,
-    true, vector<string>(0), vector<string>(0), SAMPLE_CUBIC_BSPLINE, -1, 0 , false, 5, 0.01};
+    true, vector<string>(0), vector<string>(0), SAMPLE_CUBIC_BSPLINE, -1, 0 , false, 5, 0.01, 0.01};
 
 static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[], Parameters & P);
@@ -182,6 +183,7 @@ int main(int argc, char *argv[])
 
     // Timer
     Timer start;
+
     int msec, minutes, seconds;
     start.reset();
     ///////////////////////////////////////////////////////////////
@@ -219,6 +221,7 @@ int main(int argc, char *argv[])
     if (P.nweights.size() > 0)
       MR.setBackupWeights(true);
     MR.useCRAS(P.crascenter);
+    MR.setResthresh(P.resthresh);
     
     // init MultiRegistration and load movables
     //int nnin = (int) P.mov.size();
@@ -795,6 +798,12 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
   {
     printUsage();
     exit(0);
+  }
+  else if (!strcmp(option, "RES-THRESH"))
+  {
+    P.resthresh = atof(argv[1]);
+    nargs = 1;
+    cout << "--res-thresh: Voxsize threshold " << P.resthresh << endl;
   }
   else
   {
