@@ -1,0 +1,27 @@
+#ID   Label Name                            R   G   B   A
+
+0     Unknown                               0   0   0   0
+1     Left-Cerebral-White-Matter            245 245 245 0
+2     Left-Cerebral-Cortex                  205 62  78  0
+3     Left-Lateral-Ventricle                120 18  134 0
+4     Left-Inf-Lat-Ventricle                196 58  250 0
+5     Left-Thalamus                         0   118 14  0
+6     Left-Caudate                          122 186 220 0
+7     Left-Putamen                          236 13  176 0
+8     Left-Pallidum                         12  48  255 0
+9     3rd-Ventricle                         204 182 142 0
+10    Brain-Stem                            119 159 176 0
+11    Left-Hippocampus                      220 216 20  0
+12    Left-Ventral-DC                       165 42  42  0
+13    Left-Choroid-Plexus                   0   200 200 0
+14    Right-Cerebral-White-Matter           245 245 245 0
+15    Right-Cerebral-Cortex                 205 62  78  0
+16    Right-Lateral-Ventricle               120 18  134 0
+17    Right-Inf-Lat-Ventricle               196 58  250 0
+18    Right-Thalamus                        0   118 14  0
+19    Right-Caudate                         122 186 220 0
+20    Right-Putamen                         236 13  176 0
+21    Right-Pallidum                        12  48  255 0
+22    Right-Hippocampus                     220 216 20  0
+23    Right-Ventral-DC                      165 42  42  0
+24    Right-Choroid-Plexus                  0   200 200 0

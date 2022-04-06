@@ -10,7 +10,6 @@ from tqdm import tqdm
 import neurite_sandbox as nes
 import neurite as ne
 import voxelmorph as vxm
-import lookahead
 
 # freesurfer imports
 import freesurfer as fs
@@ -157,15 +156,8 @@ lr = 5e-4
 sphere_loss = fsd.losses.spherical_loss(mrisp_shape_nopad[0:2], pad=pad, threshold=0)
 dice_loss = sphere_loss.dice_loss(1)
 optimizer = tf.keras.optimizers.Adam(lr=lr)
-use_lookahead=False
-if use_lookahead:
-    lr = 1e-3
 
 nes.utils.check_and_compile(unet,gen=train_gen,optimizer=optimizer, loss=[dice_loss])
-if use_lookahead:
-    lookahead = lookahead.Lookahead(k=5, alpha=0.5) # Initialize Lookahead
-    lookahead.inject(unet)
-
 
 # callbacks and training
 reducelr = keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.75, patience=20, cooldown=1, min_lr=1e-7, verbose=1)

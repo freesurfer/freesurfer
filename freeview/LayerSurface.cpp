@@ -3230,3 +3230,10 @@ bool LayerSurface::SavePathAsControlPoints(const QString& fn, bool bMarks)
   else
     return false;
 }
+
+void LayerSurface::SetNoShading(bool b)
+{
+  m_mainActor->GetProperty()->SetAmbient(b?1:0);
+  m_mainActor->GetProperty()->SetDiffuse(b?0:1);
+  emit ActorUpdated();
+}

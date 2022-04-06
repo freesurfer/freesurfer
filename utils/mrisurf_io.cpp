@@ -584,6 +584,8 @@ int MRISwriteAreaError(MRI_SURFACE *mris, const char *name)
   FILE *fp;
   char fname[STRLEN];
 
+  // may need to setenv FS_MRISbuildFileName_REVERT 1
+  printf("MRISwriteAreaError(): running MRISbuildFileName()\n");fflush(stdout);
   MRISbuildFileName(mris, name, fname);
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) {
     fprintf(stdout, "writing area error file %s...", fname);
@@ -771,12 +773,6 @@ int MRISwriteValues(MRI_SURFACE *mris, const char *sname)
   int ftype, err;
   MRI *TempMRI;
 
-#if 1
-  MRISbuildFileName(mris, sname, fname);
-#else
-  strcpy(fname, sname);
-#endif
-
   // Try saving it in a "volume" format -- but not img or nifti
   // as they use shorts for the number of vertices. Should add
   // a reshape.
@@ -793,6 +789,10 @@ int MRISwriteValues(MRI_SURFACE *mris, const char *sname)
     err = MRIwrite(TempMRI, sname);
     return (err);
   }
+
+  // May need to setenv FS_MRISbuildFileName_REVERT 1
+  printf("MRISwriteValues(): running MRISbuildFileName()\n");fflush(stdout);
+  MRISbuildFileName(mris, sname, fname);
 
   cp = strrchr(fname, '.');
   if (!cp || *(cp + 1) != 'w') {
@@ -1006,6 +1006,9 @@ int MRISreadCanonicalCoordinates(MRI_SURFACE *mris, const char *sname)
 int MRISreadPatchNoRemove(MRI_SURFACE *mris, const char *pname)
 {
   char fname[STRLEN];
+
+  // may need to setenv FS_MRISbuildFileName_REVERT 1
+  printf("MRISreadPatchNoRemove(): running MRISbuildFileName()\n");fflush(stdout);
   MRISbuildFileName(mris, pname, fname);
 
   int const type = MRISfileNameType(fname); /* using extension to get type */
@@ -2340,8 +2343,14 @@ int MRISreadVertexPositions(MRI_SURFACE *mris, const char *name)
   int vno, nvertices, nfaces, magic, version, tmp, ix, iy, iz, n, type;
   FILE *fp;
 
-  type = MRISfileNameType(name);
+  // set FS_MRISbuildFileName_REVERT to 1 here to read positions
+  printf("MRISreadVertexPositions(): running MRISbuildFileName() with reversion\n");fflush(stdout);
+  char *revert = getenv("FS_MRISbuildFileName_REVERT");
+  setenv("FS_MRISbuildFileName_REVERT","1",1);
   MRISbuildFileName(mris, name, fname);
+  if(revert) setenv("FS_MRISbuildFileName_REVERT",revert,1);
+  else     unsetenv("FS_MRISbuildFileName_REVERT");
+  type = MRISfileNameType(name);
   if (type == MRIS_GEO_TRIANGLE_FILE) {
     return (mrisReadGeoFilePositions(mris, fname));
   }
@@ -4437,6 +4446,8 @@ static int MRISwrite_new(MRI_SURFACE *mris, const char *name)
   char fname[STRLEN];
 
   chklc();
+  // should not need to setenv FS_MRISbuildFileName_REVERT 1
+  printf("MRISwrite_new(): running MRISbuildFileName()\n");fflush(stdout);
   MRISbuildFileName(mris, name, fname);
   type = MRISfileNameType(fname);
   if (type == MRIS_ASCII_TRIANGLE_FILE) {
@@ -4563,6 +4574,8 @@ static int MRISwrite_old(MRI_SURFACE *mris, const char *name)
   char fname[STRLEN];
 
   chklc();
+  // should not need to setenv FS_MRISbuildFileName_REVERT 1
+  printf("MRISwrite_old(): running MRISbuildFileName()\n");fflush(stdout);
   MRISbuildFileName(mris, name, fname);
   type = MRISfileNameType(fname);
   if (type == MRIS_ASCII_TRIANGLE_FILE) {
@@ -5669,21 +5682,43 @@ static MRI_SURFACE *mrisReadTriangleFile(const char *fname, double nVFMultiplier
 
   return (mris);
 }
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
+/*!
+\fn int MRISbuildFileName(MRI_SURFACE *mris, const char *sname, char *fname)
+\brief This function "builds" a file path (fname) for saving
+surface-based output based on a "desired" name (sname).  Until
+3/31/2022, the default behavior was horribly confusing.  It would look
+for a forward slash "/" in the sname. If one exists, then it copies
+sname to fname (ie, it just uses the path as specified). If a forward
+slash is not present, then it goes through a bunch of steps to create
+a new path. They are all too confusing to decifer. Sometimes it will
+put an lh or rh at the beginning of the file name. Sometimes it will
+put it in the path where the orginal file was read from. On 3/31/2022,
+DNG changed this to just return the file name/path passed. If you
+really want to recreate the old functionality, then 
+setenv FS_MRISbuildFileName_REVERT 1
+And don't complain to me when it puts your files in random locations
+with semi-random names.
+*/
 int MRISbuildFileName(MRI_SURFACE *mris, const char *sname, char *fname)
 {
   char path[STRLEN];
   const char *slash, *dot;
 
+  char *revert = getenv("FS_MRISbuildFileName_REVERT");
+  if(revert == NULL) {
+    strcpy(fname, sname); /* path specified explicitly */
+    return (NO_ERROR);
+  }
+  if(strcmp(revert,"1") != 0){
+    // revert is not-null but does not equal 1
+    strcpy(fname, sname); /* path specified explicitly */
+    return (NO_ERROR);
+  }
+
   slash = strchr(sname, '/');
-  if (!slash) /* no path - use same one as mris was read from */
-  {
+  if(!slash)   {
+    /* no path - use same one as mris was read from */
+    // This is so dumb -- it will spontaneously put your output in semi-random locations
     dot = strchr(sname, '.');
     FileNamePath(mris->fname, path);
     if (dot && (*(dot - 1) == 'h') && (*(dot - 2) == 'l' || *(dot - 2) == 'r')) {
@@ -5702,24 +5737,23 @@ int MRISbuildFileName(MRI_SURFACE *mris, const char *sname, char *fname)
 	}
       }
     }
-    else /* no hemisphere specified */
-        if (getenv("FS_POSIX")) {
-      // PW 2017/05/15: If FS_POSIX is set, write to cwd (as per POSIX:4.11)
-	  int req = snprintf(fname, STRLEN,
-			     "./%s.%s",
-			     mris->hemisphere == LEFT_HEMISPHERE ? "lh" : mris->hemisphere == BOTH_HEMISPHERES ? "both" : "rh",
-			     sname);
-	  if( req >= STRLEN ) {
-	    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
-	  }
+    else {/* no hemisphere specified */
+      const char *hemistr;
+      if(mris->hemisphere == LEFT_HEMISPHERE)       hemistr = "lh.";
+      else if(mris->hemisphere == RIGHT_HEMISPHERE) hemistr = "rh.";
+      else if(mris->hemisphere == BOTH_HEMISPHERES)  hemistr = "both.";
+      else hemistr = "";
+      if (getenv("FS_POSIX")) {
+	// PW 2017/05/15: If FS_POSIX is set, write to cwd (as per POSIX:4.11)
+	int req = snprintf(fname, STRLEN,"./%s%s",hemistr,sname);
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
 	}
-	else {
-      // PW 2017/05/15: Legacy behaviour
-      sprintf(fname,
-              "%s/%s.%s",
-              path,
-              mris->hemisphere == LEFT_HEMISPHERE ? "lh" : mris->hemisphere == BOTH_HEMISPHERES ? "both" : "rh",
-              sname);
+      }
+      else {
+	// PW 2017/05/15: Legacy behaviour
+	sprintf(fname,"%s/%s%s",path,hemistr,sname);
+      }
     }
   }
   else {

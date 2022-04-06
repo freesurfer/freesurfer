@@ -139,7 +139,7 @@ if(NOT APPLE)
 endif()
 
 # -------- armadillo --------
-find_package(Armadillo)
+find_package(ARMADILLO)
 
 # -------- petsc --------
 find_package(PETSC)
@@ -597,6 +597,7 @@ if(NOT MINIMAL)
     mris_distance_transform
     mris_entropy
     mris_errors
+    mris_estimate_wm
     mris_expand
     mris_extract_patches
     mris_fill

@@ -679,6 +679,7 @@ int main(int argc, char *argv[]) {
     printf("Creating surface %s\n",SurfFile);
     MRIS *surf;
     surf = MRIStessellate(OutVol,BinVal,0);
+    surf->hemisphere = NO_HEMISPHERE;
     if(nsmoothsurf > 0) MRISaverageVertexPositions(surf, nsmoothsurf) ;
     if(ReverseFaceOrder){
       printf("Reversing face order\n");

@@ -114,5 +114,6 @@ int MRIScornerDotCostTest(MRIS *surf, const double delta, const double anglethre
 int MRIScornerPrint(FILE *fp, const MRIS *surf, const int cornerno);
 int MRISedgeGradU(MRIS *surf);
 double MRIScornerMetricCorner(MRIS *surf, const int cornerno, const int DoGrad);
-
+MRI_EDGE *MRISedgeSort(MRIS *surf, const int SortType, MRI_EDGE *edges);
+int MRISedgeCompare(const void *a, const void *b, void *psorttype);
 #endif

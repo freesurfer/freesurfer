@@ -38,16 +38,19 @@ set nhitsmin = 2;
 set fillval  = 1;
 set NSmooth = 10;
 set PrintHelp = 0;
-set DoInflate = 1;
 set ndilate = 0;
 set nerode = 0
 set InputVol = ()
 set OutputVol = ()
 set OutputSurf = ()
-set DoCurv = 1
-set Rescale = 0
-set FillHolesIslands = 0
 set LF = ()
+
+set DoInflate = 0;
+set DoCurv = 0
+set Rescale = 1
+set FillHolesIslands = 1
+set UseMRITess = 0
+set UseMarchingCubes = 1
 
 if($#argv == 0) goto usage_exit;
 
@@ -134,8 +137,15 @@ else
 endif
 
 #----- Tessellate Head ---------#
-set cmd = (mri_tessellate);
-set cmd = ($cmd $OutputVol $fillval $OutputSurf)
+# Get full path because surface writing may try to put lh/rh in front of the file name
+set OutputSurf = `getfullpath $OutputSurf`
+if($UseMRITess) then
+  set cmd = (mri_tessellate $OutputVol $fillval $OutputSurf)
+endif
+if($UseMarchingCubes) then
+  set cmd = (mri_mc $OutputVol $fillval $OutputSurf)
+endif
+
 echo "--------------------------------" |& tee -a $LF
 date |& tee -a $LF
 pwd |& tee -a $LF
@@ -315,6 +325,15 @@ while( $#argv != 0 )
       set noseghead = 1;
       breaksw
 
+    case "-tess":
+      set UseMRITess = 1
+      set UseMarchingCubes = 0
+      breaksw
+    case "-mc":
+      set UseMRITess = 0
+      set UseMarchingCubes = 1
+      breaksw
+
     case "-inflate":
       set DoInflate = 1;
       breaksw
@@ -439,10 +458,11 @@ usage_exit:
   echo "   -ndilate  N        : default is $ndilate"
   echo "   -nerode   N        : default is $nerode"
   echo "   -fillval value     : default is $fillval"
-  echo "   -rescale           : rescale input when converting to uchar (-no-rescale)"
-  echo "   -fill-holes-islands : fill holes and remove islands"
-  echo "   -no-inflate : do not inflate and compute sulc"
-  echo "   -no-curv : do not compute curv with smoothing"
+  echo "   -no-rescale        : do not  rescale input when converting to uchar (-no-rescale)"
+  echo "   -no-fill-holes-islands : do not fill holes and remove islands"
+  echo "   -tess/-mc : tessellation method using mri_tessellate or mri_mc (default is -mc)"
+  echo "   -inflate : inflate and compute sulc"
+  echo "   -curv : compute curv with smoothing"
   echo "   -srcvol volid      : default is T1"
   echo "   -headvol volid     : default is seghead"
   echo "   -headsurf surfid   : default is seghead"
