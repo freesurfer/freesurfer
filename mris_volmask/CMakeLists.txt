@@ -10,7 +10,7 @@ add_help(mris_volmask mris_volmask.help.xml)
 target_link_libraries(mris_volmask utils)
 install(TARGETS mris_volmask DESTINATION bin)
 
-add_test_script(NAME mris_volmask_test SCRIPT test.sh DEPENDS mris_volmask)
+add_test_script(NAME mris_volmask_test SCRIPT test.sh)
 
 add_executable(mris_volmask_novtk mris_volmask_old.cpp cmd_line_interface.cpp)
 target_compile_definitions(mris_volmask_novtk PRIVATE NO_VTK)

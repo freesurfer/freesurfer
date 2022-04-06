@@ -9,7 +9,7 @@ host_os()
 if(HOST_OS MATCHES "CentOS8")
    message(STATUS "mris_curvature_stats test will be skipped on ${HOST_OS}")
 else()
-   add_test_script(NAME mris_curvature_stats_test SCRIPT test.sh DEPENDS mris_curvature_stats)
+   add_test_script(NAME mris_curvature_stats_test SCRIPT test.sh)
 endif()
 
 install(TARGETS mris_curvature_stats DESTINATION bin)

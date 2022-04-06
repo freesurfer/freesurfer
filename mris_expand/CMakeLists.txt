@@ -5,6 +5,6 @@ include_directories(${FS_INCLUDE_DIRS})
 add_executable(mris_expand mris_expand.cpp)
 target_link_libraries(mris_expand utils)
 
-add_test_script(NAME mris_expand_test SCRIPT test.sh DEPENDS mris_expand)
+add_test_script(NAME mris_expand_test SCRIPT test.sh)
 
 install(TARGETS mris_expand DESTINATION bin)
