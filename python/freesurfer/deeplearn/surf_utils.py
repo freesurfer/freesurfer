@@ -746,14 +746,12 @@ def normCurvature(curvFileName, which_norm='Median', norm_percentile=97, std_thr
     return normed
 
 
-def loadSphere(surfName, curvFileName, padSize=8, which_norm='Median'):
+def loadSphere(surfName, curvFileName, padSize=8, which_norm='Median', interp='barycentric'):
 
         surf = fs.Surface.read(surfName)
         curv = normCurvature(curvFileName, which_norm)
 
-        mrisp = surf.parameterize(curv)
-        cols = mrisp.shape[0]
-        rows = mrisp.shape[1]
+        mrisp = surf.parameterize(curv, interp=interp)
 
         data = mrisp.squeeze().transpose()
 
@@ -1236,18 +1234,14 @@ def normCurvature(curvFileName, which_norm='Median', norm_percentile=97, std_thr
     return normed
 
 
-def loadSphere(surfName, curvFileName, padSize=8, which_norm='Median'):
+def loadSphere(surfName, curvFileName, padSize=8, which_norm='Median', interp='barycentric'):
 
         surf = fs.Surface.read(surfName)
         curv = normCurvature(curvFileName, which_norm)
 
-        mrisp = surf.parameterize(curv)
-        cols = mrisp.shape[0]
-        rows = mrisp.shape[1]
+        mrisp = surf.parameterize(curv, interp=interp)
 
         data = mrisp.squeeze().transpose()
-
-        #paddata = np.concatenate((data[rows-padSize:rows, :], data, data[0:padSize, :]), axis=0)
 
         paddata = np.pad(data, ((padSize,padSize), (0,0)), 'wrap')
         paddata = np.pad(paddata, ((0,0), (padSize,padSize)), 'reflect')
