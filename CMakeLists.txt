@@ -139,7 +139,7 @@ if(NOT APPLE)
 endif()
 
 # -------- armadillo --------
-find_package(Armadillo)
+find_package(ARMADILLO)
 
 # -------- petsc --------
 find_package(PETSC)
