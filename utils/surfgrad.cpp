@@ -466,7 +466,11 @@ int MRISedgeMetricEdge(MRIS *surf, int edgeno, int DoGrad)
   case 3: // Max Area then Length, Descending (high to low)
   case 4: // Max Area then Length, Ascending  (low to high)
  */
+#ifdef QSORT_R_THUNK_FIRST
+int MRISedgeCompare(void *psorttype, const void *a, const void *b)
+#else
 int MRISedgeCompare(const void *a, const void *b, void *psorttype)
+#endif
 {
   MRI_EDGE *e1 = (MRI_EDGE*)a;
   MRI_EDGE *e2 = (MRI_EDGE*)b;
@@ -523,7 +527,7 @@ MRI_EDGE *MRISedgeSort(MRIS *surf, const int SortType, MRI_EDGE *edges)
   MRISedgeMetric(surf,0);
   if(edges == NULL) edges = (MRI_EDGE*)calloc(surf->nedges,sizeof(MRI_EDGE));
   memcpy(edges,surf->edges,surf->nedges*sizeof(MRI_EDGE));
-  qsort_r(edges, surf->nedges, sizeof(MRI_EDGE), MRISedgeCompare, (void*)&SortType);
+  portable_qsort_r(edges, surf->nedges, sizeof(MRI_EDGE), MRISedgeCompare, (void*)&SortType);
   return(edges);
 }
 

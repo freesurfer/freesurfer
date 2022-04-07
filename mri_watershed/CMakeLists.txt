@@ -11,7 +11,7 @@ host_os()
 if(HOST_OS MATCHES "CentOS8")
    message(STATUS "mri_watershed test will be skipped on ${HOST_OS}")
 else()
-   add_test_script(NAME mri_watershed_test SCRIPT test.sh DEPENDS mri_watershed)
+   add_test_script(NAME mri_watershed_test SCRIPT test.sh)
 endif()
 
 add_executable(mri_validate_skull_stripped mri_validate_skull_stripped.cpp)
