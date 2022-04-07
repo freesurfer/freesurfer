@@ -197,7 +197,7 @@ endif()
 
 
 if(APPLE)
-    message("--   Adding Apple plist")
+    # message(STATUS "Adding Apple plist")
     # set_target_properties(dcm2niix PROPERTIES LINK_FLAGS "-Wl,-sectcreate,__TEXT,__info_plist,${CMAKE_SOURCE_DIR}/Info.plist")
     #Apple notarization requires a Info.plist
     # For .app bundles, the Info.plist is a separate file, for executables it is appended as a section

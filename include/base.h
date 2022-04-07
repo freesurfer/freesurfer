@@ -140,8 +140,6 @@ typedef struct FloatXYZ {
     float x,y,z;
 } FloatXYZ;
 
-
-
 template <typename T, size_t SIZE>
 struct FixedSizeArray {
     T&         operator[](size_t i)         { return v[i]; }
@@ -156,3 +154,25 @@ struct FixedSizeArray {
 private:
     T v[SIZE];
 };
+
+// Definition of a portable qsort_r, which is a non-standard function with
+// different argument orders depending on the platform. See:
+// https://stackoverflow.com/questions/39560773/different-declarations-of-qsort-r-on-mac-and-linux
+#if (defined __APPLE__ || \
+     defined __MACH__ || \
+     defined __DARWIN__ || \
+     defined __FreeBSD__ || \
+     defined __DragonFly__)
+#define QSORT_R_THUNK_FIRST
+#define portable_qsort_r(b, s, w, c, t) qsort_r(b, s, w, t, c)
+#elif (defined _GNU_SOURCE || \
+       defined __gnu_hurd__ || \
+       defined __GNU__ || \
+       defined __linux__ || \
+       defined __MINGW32__ || \
+       defined __GLIBC__)
+#undef QSORT_R_THUNK_FIRST
+#define portable_qsort_r(b, s, w, c, t) qsort_r(b, s, w, c, t)
+#else
+#error Cannot detect operating system
+#endif

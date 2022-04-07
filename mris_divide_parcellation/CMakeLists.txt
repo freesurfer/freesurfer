@@ -6,6 +6,6 @@ add_executable(mris_divide_parcellation mris_divide_parcellation.cpp)
 target_link_libraries(mris_divide_parcellation utils)
 
 # temporarily remove until fixed
-# add_test_script(NAME mris_divide_parcellation_test SCRIPT test.sh DEPENDS mris_divide_parcellation)
+# add_test_script(NAME mris_divide_parcellation_test SCRIPT test.sh)
 
 install(TARGETS mris_divide_parcellation DESTINATION bin)

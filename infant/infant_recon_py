@@ -189,6 +189,10 @@ else:
             pl.fatal(f'{input_t1} is not a valid input file.')
         pl.print(f'Input file: {input_t1}')
         pl.run(f'mri_convert {input_t1} {mprage}', inputs=input_t1, outputs=mprage)
+        if not input_t1.endswith('.nii.gz'):
+            pl.run(f'mri_convert {input_t1} {mprage}', inputs=input_t1, outputs=mprage)
+        else:
+            pl.run(f'cp {input_t1} {mprage}', inputs=input_t1, outputs=mprage)
     else:
         if not os.path.isfile(mprage):
             pl.fatal(f'{mprage} does not exist. Must provide input file.')
