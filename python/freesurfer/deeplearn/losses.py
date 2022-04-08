@@ -279,14 +279,19 @@ class spherical_loss(object):
         return
 
 
-    def atlas_likelihood(self, weight, atlas_mean, atlas_var):
+    def atlas_likelihood(self, weights):
         def loss(y_true, y_pred):
-            area_elts = tf.squeeze(self.area_elts)
-            warped_overlay = tf.squeeze(y_pred)
-            diff_sq = tf.math.squared_difference(atlas_mean, warped_overlay)
-            ll = tf.math.divide_no_nan(diff_sq, atlas_var)
-            mean_error = tf.reduce_mean(area_elts*ll)
-            return weight * mean_error
+            dist_elts = tf.squeeze(self.dist_elts)[tf.newaxis,...,tf.newaxis]
+            nchannels = y_pred.get_shape().as_list()[-1] // 3   # sub, atlas mean, atlas var
+            sub = y_pred[...,0:nchannels]
+            #atlas_mean = tf.repeat(y_pred[...,nchannels:2*nchannels], y_pred.get_shape().as_list()[0], axis=0)
+            #atlas_var = tf.repeat(y_pred[...,2*nchannels:], y_pred.get_shape().as_list()[0], axis=0)
+            atlas_mean = y_pred[...,nchannels:2*nchannels]
+            atlas_var = y_pred[...,2*nchannels:]
+            diff_sq = tf.math.squared_difference(atlas_mean, sub)
+            logl = tf.math.divide_no_nan(diff_sq, atlas_var)
+            mean_error = tf.reduce_mean(dist_elts*logl)
+            return weights * mean_error
         return loss
 
     def atlas_dice_loss(self, weight, warped_segs):
@@ -313,8 +318,10 @@ class spherical_loss(object):
             ndims = len(y_pred.get_shape().as_list()) - 2
             vol_axes = list(range(1, ndims+1))
             
+            #top = 2 * tf.reduce_sum(de * y_true * y_pred, vol_axes)
+            # bottom = tf.reduce_sum(de * (y_true + y_pred), vol_axes)
             top = 2 * tf.reduce_sum(de * y_true * y_pred, vol_axes)
-            bottom = tf.reduce_sum(de * (y_true + y_pred), vol_axes)
+            bottom = tf.reduce_sum(de * y_true**2, vol_axes) + tf.reduce_sum(de*y_pred**2, vol_axes)
             dice = tf.reduce_mean(tf.math.divide_no_nan(top, bottom))
             return -weight * dice
         return loss
@@ -527,7 +534,7 @@ class spherical_loss(object):
 
         if image_sigma is not None:
             if self.pad > 0:
-                image_sigma = tf.squeeze(image_sigma[:,self.pad:-self.pad,self.pad:-self.pad,...])
+                image_sigma = tf.squeeze(image_sigma[self.pad:-self.pad,self.pad:-self.pad,...])
             image_sigma = tf.cast(image_sigma, tf.float32)
             image_sigma_sq = tf.clip_by_value(image_sigma*image_sigma, 1e-3, 1e4)
 
