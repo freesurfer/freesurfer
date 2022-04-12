@@ -147,6 +147,7 @@ int QuadEulerCharChangeCheckReorder(MRI *mri, const char *testname, int decExpec
 
 MRI *MRIfindBrightNonWM(MRI *mri_T1, MRI *mri_wm);
 MRI *MRIzconcat(MRI *mri1, MRI *mri2, int nskip, MRI *out);
+int MRIfillTriangle(MRI *vol, double p1[3], double p2[3], double p3[3], double dL, double FillVal);
 
 /*!
   \fn class FixSubCortMassHA

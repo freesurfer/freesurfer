@@ -5988,3 +5988,33 @@ int FixSubCortMassHA::FixSCM(void)
   return(0);
 }
 
+
+/*!
+  \fn int MRIfillTriangle(MRI *vol, double p1[3], double p2[3], double p3[3], double dL, double FillVal)
+  \brief Fills the voxels that intersect with the give triangle. p?[3]
+  are the corners of the triangle where p?[0]=col, p?[1]=row, p?[2] =
+  slice. The triangle is subsampled in uniform barycentric coordinate
+  with spacing 0<dL<1. dL must be sufficiently small to assure that
+  all voxels that intersect with the triangle are filled. The volume
+  will be filled with FillVal.
+ */
+int MRIfillTriangle(MRI *vol, double p1[3], double p2[3], double p3[3], double dL, double FillVal)
+{
+  double l1, l2, l3;
+  double r[3];
+  int k,nhits=0;
+
+  for(l1=0; l1 < 1; l1 += dL){
+    for(l2=0; l2 < 1; l2 += dL){
+      l3 = 1.0 - (l1+l2);
+      if(l3 < 0.0 || l3 > 1.0) continue;
+      // location of barycentric point
+      for(k=0; k<3; k++) r[k] = l1*p1[k] + l2*p2[k] + l3*p3[k];
+      int OutOfBounds = MRIindexNotInVolume(vol,r[0],r[1],r[2]);
+      if(OutOfBounds) continue;
+      MRIsetVoxVal(vol,r[0],r[1],r[2],0,FillVal);
+      nhits ++;
+    }
+  }
+  return(nhits);
+}
