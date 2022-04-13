@@ -74,9 +74,11 @@ public:
   MRIS *minsurf=NULL,*maxsurf=NULL;
   int nface1vox=0,nface2vox=0;
   double gmean1=0, gstddev1=0,gmean2=0, gstddev2=0;
+  double min1=0, max1=0, min2=0, max2=0, mode2=0;
   double DistIn=0,DistOut=0,DeltaDist=-1,dL=-1;
   float *DistInList=NULL,*DistOutList=NULL;
   double DistInMax=100,DistOutMax=100; 
+  double DistInMin=2,DistOutMin=2;
   double DistInFrac=0.9, DistOutFrac=1.0;
   int cPad=5, rPad=5, sPad=5;
   int SegFace(void);
@@ -86,7 +88,81 @@ public:
   int Deface(void);
   int VoxOutOfBounds(int c, int r, int s);
   MRI *Surf2VolProjFill(MRI *vol, double Dist, double FillVal);
+  int PrintParams(FILE *fp);
+  int PrintStats(FILE *fp);
 };
+
+int FsDefacer::PrintParams(FILE *fp)
+{
+  fprintf(fp,"DistInMin   %g\n",DistInMin);
+  fprintf(fp,"DistInMax   %g\n",DistInMax);
+  fprintf(fp,"DistInFrac  %g\n",DistInFrac);
+  fprintf(fp,"DistOutMin  %g\n",DistOutMin);
+  fprintf(fp,"DistOutMax  %g\n",DistOutMax);
+  fprintf(fp,"DistOutFrac %g\n",DistOutFrac);
+  fprintf(fp,"DeltaDist   %g\n",DeltaDist);
+  fprintf(fp,"dL          %g\n",dL);
+  fprintf(fp,"Pad %d %d %d\n",cPad,rPad,sPad);
+  fflush(fp);
+  return(0);
+}
+int FsDefacer::PrintStats(FILE *fp)
+{
+  fprintf(fp,"DistIn     %g\n",DistIn);
+  fprintf(fp,"nface1vox  %d\n",nface1vox);
+  fprintf(fp,"gmean1     %g\n",gmean1);
+  fprintf(fp,"gstddev1   %g\n",gstddev1);
+  fprintf(fp,"min1       %g\n",min1);
+  fprintf(fp,"max1       %g\n",max1);
+  fprintf(fp,"DistOut    %g\n",DistOut);
+  fprintf(fp,"nface2vox  %d\n",nface2vox);
+  fprintf(fp,"gmean2     %g\n",gmean2);
+  fprintf(fp,"gstddev2   %g\n",gstddev2);
+  fprintf(fp,"mode2      %g\n",mode2);
+  fprintf(fp,"min2       %g\n",min2);
+  fprintf(fp,"max2       %g\n",max2);
+  fprintf(fp,"gmeanratio %g %g\n",gmean1/gmean2,gmean1/mode2);
+  fflush(fp);
+  return(0);
+}
+
+int FsDefacer::SegFace(void)
+{
+  printf("FsDefacer::SegFace()\n");
+
+  // First, fill the inner and outer face mask areas
+  faceseg = Surf2VolProjFill(faceseg, -DistIn,  1); // inside  template face
+  faceseg = Surf2VolProjFill(faceseg, +DistOut, 4); // outside template face
+
+  // Now change depending upon xmask and whether the head is there or not
+  int c;
+  for(c=0; c < invol->width; c++){
+    int r,s,m,xm,v;
+    for(r=0; r < invol->height; r++){
+      for(s=0; s < invol->depth; s++){
+	m = MRIgetVoxVal(faceseg,c,r,s,0);
+	if(m < 0.5) continue; // not in the face mask, skip
+	if(xmask){
+	  xm = MRIgetVoxVal(xmask,c,r,s,0);
+	  if(xm>0.5) {
+	    // this vox is in the exclusion mask so zero it
+	    MRIsetVoxVal(faceseg,c,r,s,0, 0); 
+	    continue;
+	  }
+	}
+	v = MRIgetVoxVal(headmask,c,r,s,0);
+	if(m == 1){ // inside template face
+	  if(!v) MRIsetVoxVal(faceseg,c,r,s,0, 2); // outside the head mask
+	}
+	if(m == 4){// outside template face
+	  if(v) MRIsetVoxVal(faceseg,c,r,s,0, 3); // inside the head mask
+	}
+      }
+    }
+  }
+
+  return(0);
+}
 
 /*!
   \fn MRI *FsDefacer::Surf2VolProjFill(MRI *vol, double Dist, double FillVal)
@@ -169,8 +245,9 @@ int FsDefacer::Deface(void)
 	  if(m == 0) v = MRIgetVoxVal(invol,c,r,s,0);// copy input
 	  else{
 	    if(m==1 || m==2) v = (drand48()-0.5)*gstddev1 + gmean1;
-	    if(m==3 || m==4) v = (drand48()-0.5)*gstddev2 + gmean2;
+	    if(m==3 || m==4) v = (drand48()-0.5)*gstddev2 + mode2;
 	  }
+	  v = fabs(v);
 	  MRIsetVoxVal(outvol,c,r,s,0,v);
 	}
       }
@@ -186,22 +263,32 @@ int FsDefacer::FaceIntensityStats(void)
 
   int c;
   double sum1=0, sumsq1=0, sum2=0, sumsq2=0;
+  min1=0;  max1=0;
+  min2=0;  max2=0;
+  nface1vox=0;
+  nface2vox=0;
   for(c=0; c < invol->width; c++){
     int r,s;
     for(r=0; r < invol->height; r++){
       for(s=0; s < invol->depth; s++){
 	int m = MRIgetVoxVal(faceseg,c,r,s,0);
-	if(m == 1){ // inside template surface and in the head mask
+	if(m == 1){ 
+	  // inside template surface and in the head mask (ie, in tissue)
 	  double v = MRIgetVoxVal(invol,c,r,s,0);
 	  sum1 += v;
 	  sumsq1 += (v * v);
 	  nface1vox++;
+	  if(min1 > v) min1 = v;
+	  if(max1 < v) max1 = v;
 	}
-	if(m == 4){// outside template surface and not in the head mask
+	if(m == 4){
+	  // outside template surface and not in the head mask (ie, in background)
 	  double v = MRIgetVoxVal(invol,c,r,s,0);
 	  sum2 += v;
 	  sumsq2 += (v * v);
 	  nface2vox++;
+	  if(min2 > v) min2 = v;
+	  if(max2 < v) max2 = v;
 	}
       }
     }
@@ -210,8 +297,43 @@ int FsDefacer::FaceIntensityStats(void)
   gstddev1 = sqrt(sumsq1 / nface1vox - (gmean1) * (gmean1));
   gmean2 = sum2 / nface2vox;
   gstddev2 = sqrt(sumsq2 / nface2vox - (gmean2) * (gmean2));
-  printf("nface1vox %d  gmean %g  gstddev %g\n",nface1vox,gmean1,gstddev1);
-  printf("nface2vox %d  gmean %g  gstddev %g\n",nface2vox,gmean2,gstddev2);
+
+  // Compute the mode of the outside voxels because there can 
+  // be a lot of crud out there.
+  HISTO *h2 = HISTOalloc((int)ceil(max2)+1) ;
+  HISTOinit(h2, h2->nbins, 0, ceil(max2)) ;
+  float bin_size = (h2->max - h2->min)/((float)h2->nbins - 1);
+  for(c=0; c < invol->width; c++){
+    int r,s;
+    for(r=0; r < invol->height; r++){
+      for(s=0; s < invol->depth; s++){
+	int m = MRIgetVoxVal(faceseg,c,r,s,0);
+	if(m == 4){
+	  // outside template surface and not in the head mask (in background)
+	  double v = MRIgetVoxVal(invol,c,r,s,0);
+	  int bn = nint((v - h2->min) / bin_size);
+	  h2->counts[bn]++;
+	  // Note: should use HISTOaddSample() but it appears to be broken when binsize=1
+	}
+      }
+    }
+  }
+  int max_count=0, b, bmax=0;
+  for (b=0; b < h2->nbins; b++) {
+    int center_val = h2->counts[b];
+    if(center_val > max_count) {
+      max_count = center_val;
+      bmax = b;
+    }
+  }
+  printf("Mode2 %d %g  %g\n",bmax,h2->bins[bmax],h2->counts[bmax]);
+  mode2 = h2->bins[bmax];
+  HISTOfree(&h2);
+  printf("nface1vox %d  gmean %g  gstddev %g  min %g max %g\n",nface1vox,gmean1,gstddev1,min1,max1);
+  printf("nface2vox %d  gmean %g  gstddev %g  min %g max %g mode %g\n",nface2vox,gmean2,gstddev2,min2,max2,mode2);
+  printf("gmeanratio %g %g\n",gmean1/gmean2,gmean1/mode2);
+
+  fflush(stdout);
   return(0);
 }
 
@@ -258,6 +380,7 @@ int FsDefacer::DistanceBounds(void)
 
   MRIS_SurfRAS2VoxelMap* sras2v_map = MRIS_makeRAS2VoxelMap(headmask, tempsurf);
 
+  // This will generate a memory leak with multiple labels
   DistInList  = (float *) calloc(templabel->n_points,sizeof(float));
   DistOutList = (float *) calloc(templabel->n_points,sizeof(float));
 
@@ -325,10 +448,19 @@ int FsDefacer::DistanceBounds(void)
   qsort(DistOutListSorted, templabel->n_points, sizeof(float), compare_floats);
   k = round((templabel->n_points-1)* DistOutFrac);
   DistOut = DistOutListSorted[k];
-
-  printf("DistIn = %g, DistOut = %g\n",DistIn,DistOut);
   free(DistInListSorted);
   free(DistOutListSorted);
+
+  printf("Raw DistIn = %g, DistOut = %g\n",DistIn,DistOut);
+  if(DistIn < DistInMin){
+    printf("DistIn=%g < DistInMin=%g, resetting\n",DistIn,DistInMin);
+    DistIn = DistInMin;
+  }
+  if(DistOut < DistOutMin){
+    printf("DistOut=%g < DistOutMin=%g, resetting\n",DistOut,DistOutMin);
+    DistOut = DistOutMin;
+  }
+  printf("PostMinCheck DistIn = %g, DistOut = %g\n",DistIn,DistOut);
 
   // Compute min and max surfaces 
   // Used only for display/qa/debug
@@ -362,54 +494,20 @@ int FsDefacer::DistanceBounds(void)
   return(0);
 }
 
-int FsDefacer::SegFace(void)
-{
-  printf("FsDefacer::SegFace()\n");
 
-  // First, fill the inner and outer face mask areas
-  faceseg = Surf2VolProjFill(faceseg, -DistIn,  1); // inside  template face
-  faceseg = Surf2VolProjFill(faceseg, +DistOut, 4); // outside template face
-
-  // Now change depending upon xmask and whether the head is there or not
-  int c;
-  for(c=0; c < invol->width; c++){
-    int r,s,m,xm,v;
-    for(r=0; r < invol->height; r++){
-      for(s=0; s < invol->depth; s++){
-	m = MRIgetVoxVal(faceseg,c,r,s,0);
-	if(m < 0.5) continue; // not in the face mask, skip
-	if(xmask){
-	  xm = MRIgetVoxVal(xmask,c,r,s,0);
-	  if(xm>0.5) {
-	    // this vox is in the exclusion mask so zero it
-	    MRIsetVoxVal(faceseg,c,r,s,0, 0); 
-	    continue;
-	  }
-	}
-	v = MRIgetVoxVal(headmask,c,r,s,0);
-	if(m == 1){ // inside template face
-	  if(!v) MRIsetVoxVal(faceseg,c,r,s,0, 2); // outside the head mask
-	}
-	if(m == 4){// outside template face
-	  if(v) MRIsetVoxVal(faceseg,c,r,s,0, 3); // inside the head mask
-	}
-      }
-    }
-  }
-
-  return(0);
-}
-
-char *involpath=NULL, *headmaskpath=NULL, *tempsurfpath=NULL, *templabelpath=NULL;
+char *involpath=NULL, *headmaskpath=NULL, *tempsurfpath=NULL;
 char *regpath=NULL,*xmaskpath=NULL;
+char *templabelpathlist[100];
+int ntemplabelpathlist=0;
 char *outvolpath=NULL, *facesegpath=NULL, *minsurfpath=NULL, *maxsurfpath=NULL;
-char *distdatpath=NULL;
+char *distdatpath=NULL, *statspath=NULL;
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) 
 {
   int nargs,err=0;
   FsDefacer defacer;
 
+  srand48(53);
   nargs = handleVersionOption(argc, argv, "mri_gtmpvc");
   if (nargs && argc - nargs == 1) exit (0);
   argc -= nargs;
@@ -450,22 +548,44 @@ int main(int argc, char *argv[])
     MRISsmoothSurfaceNormals(defacer.tempsurf,10);
   }
 
-  defacer.outvol = MRIallocSequence(defacer.invol->width, defacer.invol->height, defacer.invol->depth, defacer.invol->type, defacer.invol->nframes);
+  defacer.outvol = MRIallocSequence(defacer.invol->width, defacer.invol->height, 
+    defacer.invol->depth, defacer.invol->type, defacer.invol->nframes);
   MRIcopyHeader(defacer.invol, defacer.outvol);
   MRIcopyPulseParameters(defacer.invol, defacer.outvol);
   defacer.minsurf = MRISclone(defacer.tempsurf);
   defacer.maxsurf = MRISclone(defacer.tempsurf);
 
   defacer.SetDeltaDist();
+  defacer.PrintParams(stdout);
 
-  defacer.templabel = LabelRead("",templabelpath);
-  if(defacer.templabel==NULL) exit(1);
-
-  defacer.DistanceBounds();
-  defacer.SegFace();
+  printf("\n");
+  for(int n=0; n < ntemplabelpathlist; n++){
+    if(defacer.templabel) LabelFree(&defacer.templabel);
+    printf("===============================================\n");
+    printf("Label %d %s\n",n,templabelpathlist[n]);
+    defacer.templabel = LabelRead("",templabelpathlist[n]);
+    if(defacer.templabel==NULL) exit(1);
+    defacer.DistanceBounds();
+    defacer.SegFace();
+    printf("\n");
+    if(distdatpath){
+      char tmpstr[2000];
+      sprintf(tmpstr,"%s.label%02d.dat",distdatpath,n+1);
+      FILE *fp = fopen(tmpstr,"w");
+      for(int nthp=0; nthp < defacer.templabel->n_points; nthp++){
+	int vtxno = defacer.templabel->lv[nthp].vno;
+	fprintf(fp,"%4d %6d %g %g\n",nthp,vtxno,defacer.DistInList[nthp],defacer.DistOutList[nthp]);
+      }
+      fclose(fp);
+    }
+  }
   defacer.FaceIntensityStats();
   defacer.Deface();
-
+  if(statspath){
+    FILE *fp = fopen(statspath,"w");
+    defacer.PrintStats(fp);
+    fclose(fp);
+  }
 
   err = MRIwrite(defacer.outvol,outvolpath);
   if(err) exit(1);
@@ -481,14 +601,6 @@ int main(int argc, char *argv[])
   if(maxsurfpath){
     err = MRISwrite(defacer.maxsurf,maxsurfpath);
     if(err) exit(1);
-  }
-  if(distdatpath){
-    FILE *fp = fopen(distdatpath,"w");
-    for(int nthp=0; nthp < defacer.templabel->n_points; nthp++){
-      int vtxno = defacer.templabel->lv[nthp].vno;
-      fprintf(fp,"%4d %6d %g %g\n",nthp,vtxno,defacer.DistInList[nthp],defacer.DistOutList[nthp]);
-    }
-    fclose(fp);
   }
 
   return(0);
@@ -534,9 +646,10 @@ static int parse_commandline(int argc, char **argv) {
       tempsurfpath = pargv[0];
       nargsused = 1;
     }
-    else if(!strcasecmp(option, "--tl")){
+    else if(!strcasecmp(option, "--l")){
       if(nargc < 1) CMDargNErr(option,1);
-      templabelpath = pargv[0];
+      templabelpathlist[ntemplabelpathlist] = pargv[0];
+      ntemplabelpathlist++;
       nargsused = 1;
     }
     else if(!strcasecmp(option, "--reg")){
@@ -557,6 +670,11 @@ static int parse_commandline(int argc, char **argv) {
     else if(!strcasecmp(option, "--distdat")){
       if(nargc < 1) CMDargNErr(option,1);
       distdatpath = pargv[0];
+      nargsused = 1;
+    }
+    else if(!strcasecmp(option, "--stats")){
+      if(nargc < 1) CMDargNErr(option,1);
+      statspath = pargv[0];
       nargsused = 1;
     }
     else if(!strcasecmp(option, "--o")){
@@ -597,7 +715,7 @@ static void print_usage(void) {
   printf("   --i  inputvol \n");
   printf("   --hm headmask \n");
   printf("   --ts tempsurf \n");
-  printf("   --tl templabel \n");
+  printf("   --l templabel1 <--l templabel2> \n");
   printf("   --o  defacedvol \n");
   printf("   --m  facemask \n");
   printf("\n");
@@ -605,6 +723,7 @@ static void print_usage(void) {
   printf("   --min minsurfpath \n");
   printf("   --max maxsurfpath \n");
   printf("   --distdat distdatpath \n");
+  printf("   --stats statspath \n");
   printf("\n");
   printf("   --gdiag diagno : set diagnostic level\n");
   printf("   --debug     turn on debugging\n");
@@ -637,11 +756,11 @@ static void check_options(void)
     exit(1);
   }
   if(headmaskpath == NULL){
-    printf("ERROR: need template label --hm\n");
+    printf("ERROR: need headmask --hm\n");
     exit(1);
   }
-  if(templabelpath == NULL){
-    printf("ERROR: need template label --tl\n");
+  if(ntemplabelpathlist == 0){
+    printf("ERROR: need at least one template label --l\n");
     exit(1);
   }
   if(tempsurfpath == NULL){
