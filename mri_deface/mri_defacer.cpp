@@ -81,6 +81,7 @@ public:
   double DistInMin=2,DistOutMin=2;
   double DistInFrac=0.9, DistOutFrac=1.0;
   int cPad=5, rPad=5, sPad=5;
+  int nxmask = 0;
   int SegFace(void);
   int FaceIntensityStats(void);
   int SetDeltaDist(void);
@@ -122,6 +123,8 @@ int FsDefacer::PrintStats(FILE *fp)
   fprintf(fp,"min2       %g\n",min2);
   fprintf(fp,"max2       %g\n",max2);
   fprintf(fp,"gmeanratio %g %g\n",gmean1/gmean2,gmean1/mode2);
+  if(xmask) fprintf(fp,"nxmask     %d\n",nxmask);
+  else      fprintf(fp,"nxmask     %d\n",-1);
   fflush(fp);
   return(0);
 }
@@ -147,6 +150,7 @@ int FsDefacer::SegFace(void)
 	  if(xm>0.5) {
 	    // this vox is in the exclusion mask so zero it
 	    MRIsetVoxVal(faceseg,c,r,s,0, 0); 
+	    nxmask ++;
 	    continue;
 	  }
 	}
@@ -579,8 +583,11 @@ int main(int argc, char *argv[])
       fclose(fp);
     }
   }
+  printf("===============================================\n\n");
   defacer.FaceIntensityStats();
   defacer.Deface();
+
+  defacer.PrintStats(stdout);
   if(statspath){
     FILE *fp = fopen(statspath,"w");
     defacer.PrintStats(fp);
