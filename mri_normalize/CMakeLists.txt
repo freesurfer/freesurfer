@@ -11,7 +11,7 @@ host_os()
 if(HOST_OS MATCHES "CentOS8")
    message(STATUS "mri_normalize test will be skipped on ${HOST_OS}")
 else()
-   add_test_script(NAME mri_normalize_test SCRIPT test.sh DEPENDS mri_normalize)
+   add_test_script(NAME mri_normalize_test SCRIPT test.sh)
 endif()
 
 add_executable(mri_long_normalize mri_long_normalize.cpp)

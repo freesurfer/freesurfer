@@ -1,3 +1,3 @@
 add_executable(test_border_values EXCLUDE_FROM_ALL test_MRIScomputeBorderValues.cpp)
 target_link_libraries(test_border_values utils)
-add_test_script(NAME border_values_test SCRIPT test.sh DEPENDS test_border_values)
+add_test_script(NAME border_values_test SCRIPT test.sh)

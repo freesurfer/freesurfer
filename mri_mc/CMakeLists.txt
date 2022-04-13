@@ -6,7 +6,7 @@ add_executable(mri_mc mri_mc.cpp)
 target_link_libraries(mri_mc utils)
 install(TARGETS mri_mc DESTINATION bin)
 
-add_test_script(NAME mri_mc_test SCRIPT test.sh DEPENDS mri_mc)
+add_test_script(NAME mri_mc_test SCRIPT test.sh)
 
 add_executable(mri_pretess mri_pretess.cpp)
 add_help(mri_pretess mri_pretess.help.xml)

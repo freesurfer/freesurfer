@@ -50,7 +50,7 @@ public:
           satit(false), debug(0), iscale(false), iscaleonly(false),
           nomulti(false), subsamplesize(-1), highit(-1), fixvoxel(false),
           keeptype(false), average(1), doubleprec(false), backupweights(false),
-          sampletype(SAMPLE_CUBIC_BSPLINE), crascenter(false), mri_mean(NULL)
+	sampletype(SAMPLE_CUBIC_BSPLINE), crascenter(false), resthresh(0.01), mri_mean(NULL)
   {
   }
 
@@ -59,7 +59,7 @@ public:
           satit(false), debug(0), iscale(false), iscaleonly(false),
           nomulti(false), subsamplesize(-1), highit(-1), fixvoxel(false),
           keeptype(false), average(1), doubleprec(false), backupweights(false),
-          sampletype(SAMPLE_CUBIC_BSPLINE), crascenter(false), mri_mean(NULL)
+          sampletype(SAMPLE_CUBIC_BSPLINE), crascenter(false), resthresh(0.01), mri_mean(NULL)
   {
     loadMovables(mov);
   }
@@ -94,6 +94,7 @@ public:
     std::cout << " BackupWeights: " << backupweights << std::endl;
     std::cout << " SampleType:    " << sampletype<< std::endl;
     std::cout << " CRASCenter:    " << crascenter<< std::endl;
+    std::cout << " Resthresh:     " << resthresh << std::endl;
     std::cout << " Debug:         " << debug << std::endl;
     std::cout <<  std::noboolalpha << std::endl;
   
@@ -239,6 +240,12 @@ public:
     backupweights = b;
   }
 
+  //! Specify voxel threshold, default is 0.001
+  void setResthresh(float thresh)
+  {
+    resthresh = thresh;
+  }
+
   //! Sample type when creating averages
   void setSampleType(int st)
   {
@@ -316,6 +323,7 @@ private:
   bool backupweights;
   int sampletype;
   bool crascenter;
+  float resthresh;
 
   // DATA
   std::vector<MRI*> mri_mov;

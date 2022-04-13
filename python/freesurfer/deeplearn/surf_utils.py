@@ -446,82 +446,6 @@ def parc_gen(mrisps_geom, mrisps_annot, batch_size=8, use_rand=True):
         yield batch_inputs, batch_outputs
 
 
-def fsgen(mrisps_geom, mrisp_atlas, batch_size=8, use_rand=True, warp_downsize=1, mean_stream=True):
-    mrisp_shape = mrisps_geom[0].shape[0:2]
-
-    if len(mrisps_geom[0].shape) == 2:  # add feature axis
-        ngeom = 1
-        batch_atlas = np.repeat(mrisp_atlas[np.newaxis,...,np.newaxis], batch_size, axis=0)
-        batch_moving = np.zeros((batch_size, *mrisp_shape, ngeom))
-    else:
-        ngeom = mrisps_geom[0].shape[-1]
-        batch_atlas = np.repeat(mrisp_atlas[np.newaxis], batch_size, axis=0)
-        batch_moving = np.zeros((batch_size, *mrisp_shape, ngeom))
-
-    zero_warp = np.zeros((batch_size, *tuple(np.array(mrisp_shape)//warp_downsize), 2))
-
-    while True:
-        for bno in range(batch_size):
-            ind = np.random.randint(0, len(mrisps_geom))
-
-            if len(mrisps_geom[0].shape) == 2:  # add feature axis
-                batch_moving[bno, ...] = mrisps_geom[ind][...,np.newaxis]
-            else:
-                batch_moving[bno, ...] = mrisps_geom[ind]
-                
-
-        inputs = [batch_moving]
-        outputs = [batch_moving, batch_atlas, zero_warp]
-        if mean_stream:
-            outputs += [zero_warp]
-
-        yield inputs, outputs
-
-
-def fsgen_segreg(mrisps_geom, mrisp_atlas, mrisps_annot, batch_size=8, use_rand=True, warp_downsize=1, mean_stream=True, use_logprob=False):
-    mrisp_shape = mrisps_geom[0].shape[0:2]
-    nclasses = mrisps_annot[0].shape[-1]
-
-    if len(mrisps_geom[0].shape) == 2:  # add feature axis
-        ngeom = 1
-    else:
-        ngeom = mrisps_geom[0].shape[-1]
-
-    batch_moving = np.zeros((batch_size, *mrisp_shape, ngeom))
-    batch_annot = np.zeros((batch_size, *mrisp_shape, nclasses))
-    batch_atlas = np.repeat(mrisp_atlas[np.newaxis], batch_size, axis=0)
-
-    zero_warp = np.zeros((batch_size, *tuple(np.array(mrisp_shape)//warp_downsize), 2))
-
-    if use_logprob:  # expand annots to be [-100:100] instead of [0,1]
-        mrisps_annot = copy.deepcopy(mrisps_annot)
-        for mrisp in mrisps_annot:
-            ind0 = np.nonzero(mrisp == 0)
-            ind1 = np.nonzero(mrisp == 1)
-            mrisp[ind0] = -100
-            mrisp[ind1] = 0
-
-    while True:
-        for bno in range(batch_size):
-            ind = np.random.randint(0, len(mrisps_geom))
-
-            if len(mrisps_geom[0].shape) == 2:  # add feature axis
-                batch_moving[bno, ...] = mrisps_geom[ind][...,np.newaxis]
-            else:
-                batch_moving[bno, ...] = mrisps_geom[ind]
-
-            batch_annot[bno, ...] = mrisps_annot[ind]
-                
-
-        inputs = [batch_moving]
-
-        if mean_stream:
-            outputs = [batch_moving, batch_atlas, zero_warp, zero_warp, batch_annot]
-        else:
-            outputs = [batch_moving, batch_atlas, zero_warp, batch_annot]
-        yield inputs, outputs
-
-
 
 def fix_annot(annot):
     new_annot = copy.deepcopy(annot)
@@ -745,23 +669,6 @@ def normCurvature(curvFileName, which_norm='Median', norm_percentile=97, std_thr
 
     return normed
 
-
-def loadSphere(surfName, curvFileName, padSize=8, which_norm='Median'):
-
-        surf = fs.Surface.read(surfName)
-        curv = normCurvature(curvFileName, which_norm)
-
-        mrisp = surf.parameterize(curv)
-        cols = mrisp.shape[0]
-        rows = mrisp.shape[1]
-
-        data = mrisp.squeeze().transpose()
-
-        #paddata = np.concatenate((data[rows-padSize:rows, :], data, data[0:padSize, :]), axis=0)
-
-        paddata = np.pad(data, ((padSize,padSize), (0,0)), 'wrap')
-        paddata = np.pad(paddata, ((0,0), (padSize,padSize)), 'reflect')
-        return paddata
 
 def padSphere(mrisp, pad):
     if len(mrisp.shape) == 2:
@@ -968,7 +875,7 @@ def fsgen(mrisps_geom, mrisp_atlas, batch_size=8, use_rand=True, warp_downsize=1
         yield inputs, outputs
 
 
-def fsgen_segreg(mrisps_geom, mrisp_atlas, mrisps_annot, batch_size=8, use_rand=True, warp_downsize=1, mean_stream=True, use_logprob=False):
+def fsgen_segreg(mrisps_geom, mrisp_atlas, mrisps_annot, batch_size=8, use_rand=True, warp_downsize=1, mean_stream=True, use_logprob=False, log_target=10):
     mrisp_shape = mrisps_geom[0].shape[0:2]
     nclasses = mrisps_annot[0].shape[-1]
 
@@ -979,17 +886,18 @@ def fsgen_segreg(mrisps_geom, mrisp_atlas, mrisps_annot, batch_size=8, use_rand=
 
     batch_moving = np.zeros((batch_size, *mrisp_shape, ngeom))
     batch_annot = np.zeros((batch_size, *mrisp_shape, nclasses))
-    batch_atlas = np.repeat(mrisp_atlas[np.newaxis], batch_size, axis=0)
+    if mrisp_atlas is None:  # return will be ignored
+        batch_atlas = np.repeat(mrisps_geom[0][np.newaxis], batch_size, axis=0)
+    else:   # using a predefined atlas instead of learning one
+        batch_atlas = np.repeat(mrisp_atlas[np.newaxis], batch_size, axis=0)
 
     zero_warp = np.zeros((batch_size, *tuple(np.array(mrisp_shape)//warp_downsize), 2))
 
-    if use_logprob:  # expand annots to be [-100:100] instead of [0,1]
-        mrisps_annot = copy.deepcopy(mrisps_annot)
-        for mrisp in mrisps_annot:
-            ind0 = np.nonzero(mrisp == 0)
-            ind1 = np.nonzero(mrisp == 1)
-            mrisp[ind0] = -100
-            mrisp[ind1] = 0
+    if use_logprob:  # expand annots to be [-10:00] instead of [0,1]
+        mrisps_annot_log = np.ones((len(mrisps_annot),) + mrisps_annot[0].shape) * log_target
+        for mno, mrisp in enumerate(tqdm(mrisps_annot_log)):
+            ind0 = np.nonzero(mrisps_annot[mno] == 0)
+            mrisp[ind0] = -log_target
 
     while True:
         for bno in range(batch_size):
@@ -1006,9 +914,9 @@ def fsgen_segreg(mrisps_geom, mrisp_atlas, mrisps_annot, batch_size=8, use_rand=
         inputs = [batch_moving]
 
         if mean_stream:
-            outputs = [batch_moving, batch_atlas, zero_warp, zero_warp, batch_annot]
+            outputs = [batch_moving, batch_atlas, batch_annot, zero_warp, zero_warp]
         else:
-            outputs = [batch_moving, batch_atlas, zero_warp, batch_annot]
+            outputs = [batch_moving, batch_atlas, batch_annot, zero_warp]
         yield inputs, outputs
 
 
@@ -1236,22 +1144,20 @@ def normCurvature(curvFileName, which_norm='Median', norm_percentile=97, std_thr
     return normed
 
 
-def loadSphere(surfName, curvFileName, padSize=8, which_norm='Median'):
-
+def loadSphere(surfName, curvFileName, padSize=8, which_norm='Median', interp='barycentric'):
+    if type(surfName) is fs.Surface:
+        surf = surfName   # surface specified instead of a file name to load one from
+    else:
         surf = fs.Surface.read(surfName)
-        curv = normCurvature(curvFileName, which_norm)
-
-        mrisp = surf.parameterize(curv)
-        cols = mrisp.shape[0]
-        rows = mrisp.shape[1]
-
-        data = mrisp.squeeze().transpose()
-
-        #paddata = np.concatenate((data[rows-padSize:rows, :], data, data[0:padSize, :]), axis=0)
-
-        paddata = np.pad(data, ((padSize,padSize), (0,0)), 'wrap')
-        paddata = np.pad(paddata, ((0,0), (padSize,padSize)), 'reflect')
-        return paddata
+    curv = normCurvature(curvFileName, which_norm)
+    
+    mrisp = surf.parameterize(curv, interp=interp)
+    
+    data = mrisp.squeeze().transpose()
+    
+    paddata = np.pad(data, ((padSize,padSize), (0,0)), 'wrap')
+    paddata = np.pad(paddata, ((0,0), (padSize,padSize)), 'reflect')
+    return paddata
 
 def pad_2d_image_spherically(img, pad_size=16, mode=None, keep_batch_dim=False):
     """

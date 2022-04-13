@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 source "$(dirname $0)/../../test.sh"
 
+export PATH="$FSTEST_CWD:$PATH"
+
 test_command testcolortab ${FREESURFER_HOME}/FreeSurferColorLUT.txt
 test_command test_c_nr_wrapper
 test_command extest

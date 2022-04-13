@@ -255,7 +255,8 @@ int MultiRegistration::loadMovables(const std::vector<std::string>& pmov,const s
       }
 
     }
-    float EPS = 0.001;
+    // user can use setResthresh() to specify EPS. the default is 0.001
+    float EPS = resthresh;
     for (int i = 1; i < n; i++)
     {
       if (fabs(mri_mov[i]->xsize - mri_mov[0]->xsize) > EPS

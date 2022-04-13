@@ -1642,7 +1642,7 @@ if ($dointer && ! $dobase) then
     set cmd = ($cmd --dst    $intertrg)
     set cmd = ($cmd --mapmov $dwidir/brain_anat_orig_rob.nii.gz)
     set cmd = ($cmd --lta    $xfmdir/anatorig2rob.lta)
-    set cmd = ($cmd --affine --cost ROB --satit)
+    set cmd = ($cmd --affine --cost ROB --iscale --satit)
     echo $cmd |& tee -a $LF |& tee -a $CF
     if ($RunIt) then
       $cmd |& tee -a $LF
