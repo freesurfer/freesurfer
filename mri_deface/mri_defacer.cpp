@@ -79,7 +79,6 @@ public:
   double DistInMax=100,DistOutMax=100; 
   double DistInFrac=0.9, DistOutFrac=1.0;
   int cPad=5, rPad=5, sPad=5;
-  int StatsComputed=0;
   int SegFace(void);
   int FaceIntensityStats(void);
   int SetDeltaDist(void);
@@ -159,9 +158,6 @@ MRI *FsDefacer::Surf2VolProjFill(MRI *vol, double Dist, double FillVal)
 int FsDefacer::Deface(void)
 {
   printf("FsDefacer::Deface()\n");
-  outvol = MRIallocSequence(invol->width, invol->height, invol->depth, invol->type, invol->nframes);
-  MRIcopyHeader(invol, outvol);
-  MRIcopyPulseParameters(invol, outvol);
   int c;
   for(c=0; c < invol->width; c++){
     int r,s,f;
@@ -186,8 +182,7 @@ int FsDefacer::Deface(void)
 int FsDefacer::FaceIntensityStats(void)
 {
   if(faceseg == NULL) FsDefacer::SegFace();
-  printf("FsDefacer::FaceIntensityStats() StatsComputed=%d\n",StatsComputed);
-  if(StatsComputed) return(0);
+  printf("FsDefacer::FaceIntensityStats()\n");
 
   int c;
   double sum1=0, sumsq1=0, sum2=0, sumsq2=0;
@@ -217,7 +212,6 @@ int FsDefacer::FaceIntensityStats(void)
   gstddev2 = sqrt(sumsq2 / nface2vox - (gmean2) * (gmean2));
   printf("nface1vox %d  gmean %g  gstddev %g\n",nface1vox,gmean1,gstddev1);
   printf("nface2vox %d  gmean %g  gstddev %g\n",nface2vox,gmean2,gstddev2);
-  StatsComputed=1;
   return(0);
 }
 
@@ -339,8 +333,6 @@ int FsDefacer::DistanceBounds(void)
   // Compute min and max surfaces 
   // Used only for display/qa/debug
   // Don't have to do it here
-  minsurf = MRISclone(tempsurf);
-  maxsurf = MRISclone(tempsurf);
   for(nthp=0; nthp < templabel->n_points; nthp++){
     vtxno = templabel->lv[nthp].vno;
     VERTEX *v0 = &(tempsurf->vertices[vtxno]);
@@ -375,7 +367,7 @@ int FsDefacer::SegFace(void)
   printf("FsDefacer::SegFace()\n");
 
   // First, fill the inner and outer face mask areas
-  faceseg = Surf2VolProjFill(NULL,    -DistIn,  1); // inside  template face
+  faceseg = Surf2VolProjFill(faceseg, -DistIn,  1); // inside  template face
   faceseg = Surf2VolProjFill(faceseg, +DistOut, 4); // outside template face
 
   // Now change depending upon xmask and whether the head is there or not
@@ -441,8 +433,6 @@ int main(int argc, char *argv[])
   defacer.tempsurf = MRISread(tempsurfpath);
   if(defacer.tempsurf==NULL) exit(1);
   defacer.tempsurf->hemisphere = 3;
-  defacer.templabel = LabelRead("",templabelpath);
-  if(defacer.templabel==NULL) exit(1);
   defacer.headmask = MRIread(headmaskpath);
   if(defacer.headmask==NULL) exit(1);
   if(xmaskpath){
@@ -460,11 +450,23 @@ int main(int argc, char *argv[])
     MRISsmoothSurfaceNormals(defacer.tempsurf,10);
   }
 
+  defacer.outvol = MRIallocSequence(defacer.invol->width, defacer.invol->height, defacer.invol->depth, defacer.invol->type, defacer.invol->nframes);
+  MRIcopyHeader(defacer.invol, defacer.outvol);
+  MRIcopyPulseParameters(defacer.invol, defacer.outvol);
+  defacer.minsurf = MRISclone(defacer.tempsurf);
+  defacer.maxsurf = MRISclone(defacer.tempsurf);
+
   defacer.SetDeltaDist();
+
+  defacer.templabel = LabelRead("",templabelpath);
+  if(defacer.templabel==NULL) exit(1);
+
   defacer.DistanceBounds();
   defacer.SegFace();
   defacer.FaceIntensityStats();
   defacer.Deface();
+
+
   err = MRIwrite(defacer.outvol,outvolpath);
   if(err) exit(1);
 
