@@ -386,6 +386,11 @@ int main(int argc, char **argv) {
     if(tmpvol == NULL) exit(1);
     MRIfree(&outvol);
     outvol = tmpvol;
+    // Remove coronal Slice Holes (eg, mouth/dental sig loss)
+    tmpvol = MRIremoveSliceHoles(outvol, 2, NULL);
+    if(tmpvol == NULL) exit(1);
+    MRIfree(&outvol);
+    outvol = tmpvol;
   }
 
   printf("Counting\n");

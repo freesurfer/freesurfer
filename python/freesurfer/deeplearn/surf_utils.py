@@ -875,7 +875,7 @@ def fsgen(mrisps_geom, mrisp_atlas, batch_size=8, use_rand=True, warp_downsize=1
         yield inputs, outputs
 
 
-def fsgen_segreg(mrisps_geom, mrisp_atlas, mrisps_annot, batch_size=8, use_rand=True, warp_downsize=1, mean_stream=True, use_logprob=False):
+def fsgen_segreg(mrisps_geom, mrisp_atlas, mrisps_annot, batch_size=8, use_rand=True, warp_downsize=1, mean_stream=True, use_logprob=False, log_target=10):
     mrisp_shape = mrisps_geom[0].shape[0:2]
     nclasses = mrisps_annot[0].shape[-1]
 
@@ -893,13 +893,11 @@ def fsgen_segreg(mrisps_geom, mrisp_atlas, mrisps_annot, batch_size=8, use_rand=
 
     zero_warp = np.zeros((batch_size, *tuple(np.array(mrisp_shape)//warp_downsize), 2))
 
-    if use_logprob:  # expand annots to be [-100:100] instead of [0,1]
-        mrisps_annot = copy.deepcopy(mrisps_annot)
-        for mrisp in mrisps_annot:
-            ind0 = np.nonzero(mrisp == 0)
-            ind1 = np.nonzero(mrisp == 1)
-            mrisp[ind0] = -10
-            mrisp[ind1] = 10
+    if use_logprob:  # expand annots to be [-10:00] instead of [0,1]
+        mrisps_annot_log = np.ones((len(mrisps_annot),) + mrisps_annot[0].shape) * log_target
+        for mno, mrisp in enumerate(tqdm(mrisps_annot_log)):
+            ind0 = np.nonzero(mrisps_annot[mno] == 0)
+            mrisp[ind0] = -log_target
 
     while True:
         for bno in range(batch_size):

@@ -126,7 +126,7 @@ set intercost = ()
 set intertrg = ()
 set segname = aparc+aseg
 set gmgrow = ()
-set usethalnuc = 1
+set usethalnuc = ()
 set usemaskanat = 1
 set thrbet = 0.3
 set baselist = ()
@@ -148,7 +148,7 @@ set dopathsubdirs = 0
 set nstick = 2
 set fmin = 0.05
 set nburnin = 200
-set nsample = ()		# Default is set below
+set nsample = ()
 set nupdate = 0
 set nkeep = 5
 set doinitprop = 1
@@ -1611,7 +1611,7 @@ endsw
 if ($reg == flt) then			# Parameters for affine registration
   if ($doinfant) then
     if (! $#intradof) set intradof = 6
-    if (! $#intrarot) set intrarot = 3
+    if (! $#intrarot) set intrarot = 90
   else
     if (! $#intradof) set intradof = 12
     if (! $#intrarot) set intrarot = 90
@@ -1657,7 +1657,7 @@ endsw
 if (! $#intertrg) then			# Target for inter-subject registration
   if ($xspace == mni || $xspace == rob) then
     if ($doinfant) then
-      set intertrg = $FREESURFER_HOME/trctrain/inf/wustl_robtemplate_affine_mean.nii.gz
+      set intertrg = $FREESURFER_HOME/trctrain/inf/WUSTL_T1_infant_template.nii.gz
     else
       set intertrg = $FSLDIR/data/standard/MNI152_T1_1mm_brain.nii.gz
     endif
@@ -1693,11 +1693,13 @@ set_path_defaults:
 # Default settings for pathway reconstruction
 if ($doinfant) then
   if (! $#trainfile) set trainfile = $FREESURFER_HOME/trctrain/inf/trainlist.txt
-  if (! $#gmgrow)    set gmgrow = 1
-  if (! $#pmin)      set pmin = .1
+  if (! $#usethalnuc) set usethalnuc = 0
+  if (! $#gmgrow)     set gmgrow = 1
+  if (! $#pmin)       set pmin = .1
 else
   if (! $#trainfile) set trainfile = $FREESURFER_HOME/trctrain/hcp/trainlist.txt
-  if (! $#gmgrow)    set gmgrow = 2
+  if (! $#usethalnuc) set usethalnuc = 1
+  if (! $#gmgrow)     set gmgrow = 2
   if (! $#pmin && ! $#baselist) set pmin = .2
   if (! $#pmin &&   $#baselist) set pmin = .02
 endif
