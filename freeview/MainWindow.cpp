@@ -5191,7 +5191,7 @@ void MainWindow::SetCurrentFile( const QString &fileName, int type )
   }
 
   settings.setValue( key, files);
-  settings.sync();
+//  settings.sync();
 
   foreach (QWidget *widget, QApplication::topLevelWidgets())
   {
