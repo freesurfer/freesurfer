@@ -76,6 +76,7 @@ public:
   double gmean1=0, gstddev1=0,gmean2=0, gstddev2=0;
   double min1=0, max1=0, min2=0, max2=0, mode2=0;
   double DistIn=0,DistOut=0,DeltaDist=-1,dL=-1;
+  double DistInRaw=0,DistOutRaw=0;
   float *DistInList=NULL,*DistOutList=NULL;
   double DistInMax=100,DistOutMax=100; 
   double DistInMin=2,DistOutMin=2;
@@ -109,13 +110,11 @@ int FsDefacer::PrintParams(FILE *fp)
 }
 int FsDefacer::PrintStats(FILE *fp)
 {
-  fprintf(fp,"DistIn     %g\n",DistIn);
   fprintf(fp,"nface1vox  %d\n",nface1vox);
   fprintf(fp,"gmean1     %g\n",gmean1);
   fprintf(fp,"gstddev1   %g\n",gstddev1);
   fprintf(fp,"min1       %g\n",min1);
   fprintf(fp,"max1       %g\n",max1);
-  fprintf(fp,"DistOut    %g\n",DistOut);
   fprintf(fp,"nface2vox  %d\n",nface2vox);
   fprintf(fp,"gmean2     %g\n",gmean2);
   fprintf(fp,"gstddev2   %g\n",gstddev2);
@@ -455,6 +454,8 @@ int FsDefacer::DistanceBounds(void)
   free(DistInListSorted);
   free(DistOutListSorted);
 
+  DistInRaw  = DistIn;
+  DistOutRaw = DistOut;
   printf("Raw DistIn = %g, DistOut = %g\n",DistIn,DistOut);
   if(DistIn < DistInMin){
     printf("DistIn=%g < DistInMin=%g, resetting\n",DistIn,DistInMin);
@@ -504,7 +505,7 @@ char *regpath=NULL,*xmaskpath=NULL;
 char *templabelpathlist[100];
 int ntemplabelpathlist=0;
 char *outvolpath=NULL, *facesegpath=NULL, *minsurfpath=NULL, *maxsurfpath=NULL;
-char *distdatpath=NULL, *statspath=NULL;
+char *distdatpath=NULL, *distboundspath=NULL, *statspath=NULL;
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) 
 {
@@ -561,8 +562,11 @@ int main(int argc, char *argv[])
 
   defacer.SetDeltaDist();
   defacer.PrintParams(stdout);
-
   printf("\n");
+
+  FILE *fpDLP = NULL;
+  if(distboundspath) fpDLP = fopen(distboundspath,"w");
+
   for(int n=0; n < ntemplabelpathlist; n++){
     if(defacer.templabel) LabelFree(&defacer.templabel);
     printf("===============================================\n");
@@ -572,6 +576,11 @@ int main(int argc, char *argv[])
     defacer.DistanceBounds();
     defacer.SegFace();
     printf("\n");
+    if(distboundspath){
+      fprintf(fpDLP,"%2d %5d %6.4f %6.4f %6.4f %6.4f\n",n+1,defacer.templabel->n_points,
+	      defacer.DistInRaw,defacer.DistOutRaw,defacer.DistIn,defacer.DistOut);
+      fflush(fpDLP);
+    }
     if(distdatpath){
       char tmpstr[2000];
       sprintf(tmpstr,"%s.label%02d.dat",distdatpath,n+1);
@@ -583,6 +592,7 @@ int main(int argc, char *argv[])
       fclose(fp);
     }
   }
+  if(distboundspath) fclose(fpDLP);
   printf("===============================================\n\n");
   defacer.FaceIntensityStats();
   defacer.Deface();
@@ -674,6 +684,11 @@ static int parse_commandline(int argc, char **argv) {
       maxsurfpath = pargv[0];
       nargsused = 1;
     }
+    else if(!strcasecmp(option, "--distbounds")){
+      if(nargc < 1) CMDargNErr(option,1);
+      distboundspath = pargv[0];
+      nargsused = 1;
+    }
     else if(!strcasecmp(option, "--distdat")){
       if(nargc < 1) CMDargNErr(option,1);
       distdatpath = pargv[0];
@@ -730,6 +745,7 @@ static void print_usage(void) {
   printf("   --min minsurfpath \n");
   printf("   --max maxsurfpath \n");
   printf("   --distdat distdatpath \n");
+  printf("   --distbounds distboundspath \n");
   printf("   --stats statspath \n");
   printf("\n");
   printf("   --gdiag diagno : set diagnostic level\n");
