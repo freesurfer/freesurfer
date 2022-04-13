@@ -231,10 +231,12 @@ Blood::~Blood() {
   vector<MRI *>::iterator ivol;
 
   for (ivol = mRoi1.begin(); ivol != mRoi1.end(); ivol++)
-    MRIfree(&(*ivol));
+    if (*ivol)
+      MRIfree(&(*ivol));
 
   for (ivol = mRoi2.begin(); ivol != mRoi2.end(); ivol++)
-    MRIfree(&(*ivol));
+    if (*ivol)
+      MRIfree(&(*ivol));
 
   for (ivol = mAseg.begin(); ivol != mAseg.end(); ivol++)
     MRIfree(&(*ivol));
@@ -366,11 +368,13 @@ void Blood::ReadStreamlines(const string TrainListFile,
   mCurvatureByArcAll.clear();
 
   for (ivol = mRoi1.begin(); ivol != mRoi1.end(); ivol++)
-    MRIfree(&(*ivol));
+    if (*ivol)
+      MRIfree(&(*ivol));
   mRoi1.clear();
 
   for (ivol = mRoi2.begin(); ivol != mRoi2.end(); ivol++)
-    MRIfree(&(*ivol));
+    if (*ivol)
+      MRIfree(&(*ivol));
   mRoi2.clear();
 
   mVolume = 0;
@@ -386,6 +390,7 @@ void Blood::ReadStreamlines(const string TrainListFile,
   for (vector<string>::const_iterator idir = dirlist.begin();
                                       idir != dirlist.end(); idir++) {
     int npts, nlines = 0;
+    bool ismissing = false;
     CTrackReader trkreader;
     TRACK_HEADER trkheader;
     string fname;
@@ -395,8 +400,8 @@ void Blood::ReadStreamlines(const string TrainListFile,
       cout << "Loading streamline start ROI from " << fname << endl;
       mRoi1.push_back(MRIread(fname.c_str()));
       if (! *(mRoi1.end()-1)) {
-        cout << "ERROR: Could not read " << fname << endl;
-        exit(1);
+        ismissing = true;
+        cout << "WARN: Could not read " << fname << endl;
       }
     }
 
@@ -405,12 +410,24 @@ void Blood::ReadStreamlines(const string TrainListFile,
       cout << "Loading streamline end ROI from " << fname << endl;
       mRoi2.push_back(MRIread(fname.c_str()));
       if (! *(mRoi2.end()-1)) {
-        cout << "ERROR: Could not read " << fname << endl;
-        exit(1);
+        ismissing = true;
+        cout << "WARN: Could not read " << fname << endl;
       }
     }
 
-    if (mTestMask.empty()) {	// Get size of reference volume from ROIs
+    fname = *idir + TrainTrkFile;
+    if (!trkreader.Open(fname.c_str(), &trkheader)) {
+      ismissing = true;
+      cout << "WARN: Could not open " << fname << " for reading" << endl;
+      cout << "WARN: Error was: " << trkreader.GetLastErrorMessage() << endl;
+    }
+
+    if (ismissing) {
+      cout << "WARN: Skipping to next subject" << endl;
+      mNumLines.push_back(0);
+      continue;
+    }
+    else if (mTestMask.empty()) {	// Get size of reference volume from ROIs
       if (!mRoi1.empty()) {
         mNx = mRoi1[0]->width;
         mNy = mRoi1[0]->height;
@@ -421,15 +438,6 @@ void Blood::ReadStreamlines(const string TrainListFile,
         mNy = mRoi2[0]->height;
         mNz = mRoi2[0]->depth;
       }
-    }
-
-    fname = *idir + TrainTrkFile;
-    if (!trkreader.Open(fname.c_str(), &trkheader)) {
-      cout << "WARN: Could not open " << fname << " for reading" << endl;
-      cout << "WARN: Error was: " << trkreader.GetLastErrorMessage() << endl;
-      cout << "WARN: Skipping to next subject" << endl;
-      mNumLines.push_back(0);
-      continue;
     }
 
     cout << "Loading streamlines from " << fname << endl;
@@ -1732,6 +1740,9 @@ void Blood::MatchTruncatedStreamlines() {
   vector<bool>::iterator ivalid1 = mIsInEnd1.begin(),
                          ivalid2 = mIsInEnd2.begin();
   vector<int>::iterator itrlen;
+
+  if (mNumStr == 0)
+    return;
 
   mTruncatedLengths.resize(mLengths.size());
   fill(mTruncatedLengths.begin(), mTruncatedLengths.end(), 0);
