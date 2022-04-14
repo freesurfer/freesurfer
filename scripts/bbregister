@@ -773,7 +773,7 @@ while( $#argv != 0 )
       breaksw
 
     case "--no-brute2":
-      set Brute2 = 0;
+      set DoBrute2 = 0;
       breaksw
 
     case "--subsamp1":
