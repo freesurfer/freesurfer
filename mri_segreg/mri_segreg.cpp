@@ -665,10 +665,12 @@ int main(int argc, char **argv) {
     {
       PreOptMinTrans = PreOptMin ; PreOptMaxTrans = PreOptMax ; PreOptDeltaTrans = PreOptDelta ;
     }
-    if (UseLH && mask_label)
-      LabelRipRestOfSurface(mask_label, lhwm) ;
-    else if (UseRH && mask_label)
-      LabelRipRestOfSurface(mask_label, rhwm) ;
+    if(UseLH && mask_label){
+      //LabelRipRestOfSurface(mask_label, lhwm) ; // not sure this is needed, and why only during bute?
+    }
+    else if (UseRH && mask_label){
+      //LabelRipRestOfSurface(mask_label, rhwm) ;
+    }
     if(PreOptFile) fpPreOpt = fopen(PreOptFile,"w");
     for(tx = PreOptMinTrans; tx <= PreOptMaxTrans; tx += PreOptDeltaTrans){
       for(ty = PreOptMinTrans; ty <= PreOptMaxTrans; ty += PreOptDeltaTrans){
@@ -1109,6 +1111,7 @@ static int parse_commandline(int argc, char **argv) {
       mask_label = LabelRead(NULL, pargv[0]) ;
       if (mask_label == NULL)
         ErrorExit(ERROR_NOFILE, "%s: could not read label %s", Progname, pargv[0]) ;
+      UseLabel = 1;
       nargsused = 1;
     }
     else if (!strcasecmp(option, "--surf")) {
@@ -1894,23 +1897,21 @@ int MRISbbrSurfs(char *subject)
       VERTEX      *v ;
       MRI         *mri ;
 
-      if (UseRH)
-      {
+      if(UseRH) {
         mris = rhwm ;
         mri = rhlabel = MRIalloc(rhwm->nvertices,1,1,MRI_INT);
       }
-      else
-      {
+      else {
         mris = lhwm ;
-        mri = rhlabel = MRIalloc(rhwm->nvertices,1,1,MRI_INT);
+        mri = lhlabel = MRIalloc(lhwm->nvertices,1,1,MRI_INT);
       }
       
+      printf("Setting label mask %d\n",mask_label->n_points);
       MRISclearMarks(mris) ;
       LabelMark(mask_label, mris) ;
-      for (vno = 0 ; vno < mris->nvertices ; vno++)
-      {
+      for (vno = 0 ; vno < mris->nvertices ; vno++){
         v = &mris->vertices[vno] ;
-        MRIsetVoxVal(mri,n,0,0,0, v->marked);
+        MRIsetVoxVal(mri,vno,0,0,0, v->marked);
       }
     }
 
