@@ -70,6 +70,7 @@ set InitSurfCostOnly = 0;
 set WMProjAbs = 2;
 set GMProjFrac = 0.5;
 set GMProjAbs = ();
+set IncludeZeroVoxels = 0
 
 set nSubSamp = 1;
 set Interp = trilinear
@@ -326,6 +327,7 @@ if($DoPass1) then
   if($UseEPIMask) set cmd = ($cmd --mask);
   if(! $UseCortexLabel) set cmd = ($cmd --no-cortex-label);
   if($#VSM) set cmd = ($cmd --mask --vsm $VSM);
+  if($IncludeZeroVoxels) set cmd = ($cmd --include-zero-voxels)
   if($#RandInitMax) then
     # Only for testing
     set cmd = ($cmd --trans-rand $RandInitMax --rot-rand $RandInitMax);
@@ -374,6 +376,7 @@ if($#surfcon)   set cmd = ($cmd --surf-con  $surfcon);
 if($DoAbs) set cmd = ($cmd --penalty-abs)
 if($#InitCostFile) set cmd = ($cmd --initcost $InitCostFile);
 if($#RMSFile0) set cmd = ($cmd --rms $RMSFile0);
+if($IncludeZeroVoxels) set cmd = ($cmd --include-zero-voxels)
 
 echo $cmd | tee -a $LF
 $cmd |& tee -a $LF
@@ -801,6 +804,13 @@ while( $#argv != 0 )
     case "--surf-con":
       if ( $#argv < 1) goto arg1err;
       set surfcon = $argv[1]; shift;
+      breaksw
+
+    case "--include-zero-voxels":
+      set IncludeZeroVoxels = 1
+      breaksw
+    case "--no-include-zero-voxels":
+      set IncludeZeroVoxels = 1
       breaksw
 
     case "--tol":

@@ -55,6 +55,7 @@
   --gm-gt-wm slope : set cost slope, spec gray matter brighter than WM
   --wm-gt-gm slope : set cost slope, spec WM brighter than gray matter
   --penalty-abs : remove sign from contrast
+  --include-zero-voxels : include zero-valued voxels in cost (including any that are out of the FoV
   --cf cfile  : save cost function values (pct,cost)
 
   --mask : mask out expected B0 regions
@@ -337,6 +338,7 @@ int dof = 6;
 char *RelCostFile = NULL;
 char *ParamFile = NULL;
 int InitSurfCostOnly=0;
+int ExcludeZeroVoxels = 1; 
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -400,6 +402,7 @@ int main(int argc, char **argv) {
     printf("Computing abs\n");
     MRIabs(mov,mov);
   }
+  printf("ExcludeZeroVoxels %d\n",ExcludeZeroVoxels);
 
   // Load an anatomical for reference
   sprintf(tmpstr,"%s/%s/mri/orig.mgz",SUBJECTS_DIR,subject);
@@ -1080,6 +1083,8 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--mid-frame")) DoMidFrame = 1;
     else if (!strcasecmp(option, "--no-mask")) UseMask = 0;
     else if (!strcasecmp(option, "--mask"))    UseMask = 1;
+    else if (!strcasecmp(option, "--exclude-zero-voxels")) ExcludeZeroVoxels=1;
+    else if (!strcasecmp(option, "--include-zero-voxels")) ExcludeZeroVoxels=0;
     else if (!strcasecmp(option, "--lh-mask")){
       if(nargc < 1) argnerr(option,1);
       lhsegmask = MRIread(pargv[0]);
@@ -1548,94 +1553,28 @@ static void usage_exit(void) {
 static void print_usage(void) 
 {
 printf("\n");
-printf("  mri_segreg\n");
+printf("  FORMATS\n");
 printf("\n");
-printf("  --init-reg regfile\n");
-printf("  --regheader subject\n");
-printf("  --mov fvol\n");
-printf("  --out-reg outreg : reg at lowest cost\n");
+printf("  Data file format can be specified implicitly (through the path name)\n");
+printf("  or explicitly. All formats accepted by mri_convert can be used.\n");
 printf("\n");
-printf("  --cost costfile\n");
-printf("  --sum sumfile : default is outreg.sum\n");
-printf("    --cur-reg curregfile : reg at current optimum\n");
-printf("  --o out : save final output\n");
+printf("  BUGS\n");
 printf("\n");
-printf("  --brute_trans min max delta : brute force translation in all directions\n");
-printf("  --brute min max delta : brute force in all directions\n");
-printf("  --1dpreopt min max delta : brute force in PE direction\n");
+printf("  sinc interpolation is broken except for maybe COR to COR.\n");
 printf("\n");
-printf("  --fwhm fwhm : smooth input by fwhm mm\n");
-printf("  --abs       : compute abs of mov\n");
-printf("  --subsamp nsub : only sample every nsub vertices\n");
-printf("  --subsamp-brute nsub : only sample every nsub vertices during brute-force search (%d)\n",nsubsampbrute);
 printf("\n");
-printf("  --preopt-file file : save preopt results in file\n");
-printf("  --preopt-dim dim : 0-5 (def 2) (0=TrLR,1=TrSI,2=TrAP,3=RotLR,4=RotSI,5=RotAP)\n");
-printf("  --preopt-only : only preopt, so not optimize\n");
+printf("  BUG REPORTING\n");
 printf("\n");
-printf("  --T1, --t1         : assume T1 gray/white contrast\n");
-printf("  --T2, --t2, --bold : assume T2/BOLD gray/white contrast (default)\n");
-printf("  --slope slope    : set cost slope\n");
-printf("  --gm-gt-wm slope : set cost slope, spec gray matter brighter than WM\n");
-printf("  --wm-gt-gm slope : set cost slope, spec WM brighter than gray matter\n");
-printf("  --penalty-abs : remove sign from contrast\n");
-printf("  --c0 offset : cost offset (pct)\n");
-printf("  --cf cfile  : save cost function values (pct,cost)\n");
+printf("  Report bugs to analysis-bugs@nmr.mgh.harvard.edu. Include the following\n");
+printf("  formatted as a list as follows: (1) command-line, (2) directory where\n");
+printf("  the program was run (for those in the MGH-NMR Center), (3) version,\n");
+printf("  (4) text output, (5) description of the problem.\n");
 printf("\n");
-printf("  --label <label file> : only use the portion of the surface in the label (only for --?h-only\n");
+printf("  SEE ALSO\n");
 printf("\n");
-printf("  --mask : mask out expected B0 regions\n");
-printf("  --no-mask : do not mask out (default)\n");
-printf("  --no-cortex-label : do not use cortex label\n");
+printf("  mri_vol2vol mri_convert, tkregister2\n");
 printf("\n");
-printf("  --lh-only : only use left hemisphere\n");
-printf("  --rh-only : only use right hemisphere\n");
 printf("\n");
-printf("  --gm-proj-frac frac : fraction of cortical thickness (default, 0.5)\n");
-printf("  --gm-proj-abs  dist : absolute distance into cortex\n");
-printf("\n");
-printf("  --wm-proj-frac frac : fraction of cortical thickness\n");
-printf("  --wm-proj-abs  dist : absolute distance into WM (default 2mm)\n");
-printf("\n");
-printf("  --projabs : project -1mm and + 2mm\n");
-printf("  --proj-frac frac : projection fraction\n");
-printf("\n");
-printf("  --frame nthframe : use given frame in input (default = 0)\n");
-printf("  --mid-frame : use use middle frame\n");
-printf("\n");
-printf("  --trans Tx Ty Tz : translate input reg (mm)\n");
-printf("  --rot   Ax Ay Zz : rotate input reg (degrees)\n");
-printf("\n");
-printf("  --trans-rand Tmax : uniformly dist -Tmax to +Tmax (Tx,Ty,Tz)\n");
-printf("  --rot-rand   Amax : uniformly dist -Amax to +Amax (Ax,Ay,Az)\n");
-printf("\n");
-printf("  --interp interptype : interpolation trilinear or nearest (def is trilin)\n");
-printf("  --profile : print out info about exec time\n");
-printf("\n");
-printf("  --noise stddev : add noise with stddev to input for testing sensitivity\n");
-printf("  --seed randseed : for use with --noise\n");
-printf("\n");
-printf("  --aseg : use aseg instead of segreg.mgz\n");
-printf("\n");
-printf("  --nmax nmax   : max number of powell iterations (def 36)\n");
-printf("  --tol   tol   : powell inter-iteration tolerance on cost\n");
-printf("       This is the fraction of the cost that the difference in \n");
-printf("       successive costs must drop below to stop the optimization.  \n");
-printf("  --tol1d tol1d : tolerance on powell 1d minimizations\n");
-printf("\n");
-printf("  --1dmin : use brute force 1D minimizations instead of powell\n");
-printf("  --n1dmin n1dmin : number of 1d minimization (default = 3)\n");
-printf("\n");
-printf("  --mincost MinCostFile\n");
-printf("  --initcost InitCostFile\n");
-printf("  --param   ParamFile\n");
-printf("  --rms     RMSDiffFile : saves Tx Ty Tz Ax Ay Az RMSDiff MinCost \n");
-printf("              WMMean CtxMean PctContrast C0 Slope NSubSamp UseMask\n");
-printf("  --surf surfname : use ?h.surfname instead of lh.white\n");
-printf("  --surf-cost basename : saves final cost as basename.?h.mgh\n");
-printf("  --init-surf-cost basename0 : saves init cost as basename0.?h.mgh\n");
-printf("  --surf-cost-diff diffbase : saves final-init cost as diffbase.?h.mgh\n");
-printf("  --surf-con basename : saves final contrast as basename.?h.mgh\n");
 }
 /* --------------------------------------------- */
 static void print_help(void) {
@@ -2082,12 +2021,17 @@ int MRISbbrSurfs(char *subject)
   slope - cost function slope at center
   center - cost function center (percent contrast)
   sign - 0 (abs), +1 (gm>wm), -1 (gm<wm)
+  global ExcludeZeroVoxels. If 0, then zero-valued voxels will be
+  included in the cost, including those outside the FoV. This can
+  prevent BBR from changing params so that vertices are moved outside
+  of the FoV.
   --------------------------------------------------------*/
 double VertexCost(double vctx, double vwm, double slope, 
 		  double center, double sign, double *pct)
 {
-  double d,a=0,c;
-  d = 100*(vctx-vwm)/((vctx+vwm)/2.0); // percent contrast
+  double d,a=0,c,eps=0;
+  if(!ExcludeZeroVoxels) eps = FLT_EPSILON;
+  d = 100*(vctx-vwm)/((vctx+vwm)/2.0 + eps); // percent contrast
   if(sign ==  0) a = -fabs(slope*(d-center)); // not sure this is useful
   if(sign == -1) a = -(slope*(d-center));
   if(sign == +1) a = +(slope*(d-center));
@@ -2200,9 +2144,9 @@ double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
       if(UseMask && MRIgetVoxVal(lhsegmask,n,0,0,0) < 0.5) continue;
       if(UseLabel && MRIgetVoxVal(lhlabel,n,0,0,0) < 0.5) continue;
       vwm = MRIgetVoxVal(vlhwm,n,0,0,0);
-      if(vwm == 0.0) continue;
+      if(vwm == 0.0 && ExcludeZeroVoxels) continue;
       vctx = MRIgetVoxVal(vlhctx,n,0,0,0);
-      if(vctx == 0.0) continue;
+      if(vctx == 0.0 && ExcludeZeroVoxels) continue;
       nhits++;
       costs[1] += vwm;
       costs[2] += (vwm*vwm);
@@ -2232,9 +2176,9 @@ double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
       if(UseMask && MRIgetVoxVal(rhsegmask,n,0,0,0) < 0.5) continue;
       if(UseLabel && MRIgetVoxVal(rhlabel,n,0,0,0) < 0.5) continue;
       vwm = MRIgetVoxVal(vrhwm,n,0,0,0);
-      if(vwm == 0.0) continue;
+      if(vwm == 0.0 && ExcludeZeroVoxels) continue;
       vctx = MRIgetVoxVal(vrhctx,n,0,0,0);
-      if(vctx == 0.0) continue;
+      if(vctx == 0.0 && ExcludeZeroVoxels) continue;
       nhits++;
       costs[1] += vwm;
       costs[2] += (vwm*vwm);
