@@ -505,7 +505,7 @@ char *regpath=NULL,*xmaskpath=NULL;
 char *templabelpathlist[100];
 int ntemplabelpathlist=0;
 char *outvolpath=NULL, *facesegpath=NULL, *minsurfpath=NULL, *maxsurfpath=NULL;
-char *distdatpath=NULL, *distboundspath=NULL, *statspath=NULL;
+char *distdatpath=NULL, *distboundspath=NULL, *distoverlaypath=NULL, *statspath=NULL;
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) 
 {
@@ -604,6 +604,13 @@ int main(int argc, char *argv[])
     fclose(fp);
   }
 
+  if(distoverlaypath){
+    MRI *distoverlay = MRIcopyMRIS(NULL, defacer.tempsurf, 1, "valbak");
+    distoverlay = MRIcopyMRIS(distoverlay, defacer.tempsurf, 0, "val");
+    err = MRIwrite(distoverlay,distoverlaypath);
+    if(err) exit(1);
+  }
+
   err = MRIwrite(defacer.outvol,outvolpath);
   if(err) exit(1);
 
@@ -694,6 +701,11 @@ static int parse_commandline(int argc, char **argv) {
       distdatpath = pargv[0];
       nargsused = 1;
     }
+    else if(!strcasecmp(option, "--distoverlay")){
+      if(nargc < 1) CMDargNErr(option,1);
+      distoverlaypath = pargv[0];
+      nargsused = 1;
+    }
     else if(!strcasecmp(option, "--stats")){
       if(nargc < 1) CMDargNErr(option,1);
       statspath = pargv[0];
@@ -746,6 +758,7 @@ static void print_usage(void) {
   printf("   --max maxsurfpath \n");
   printf("   --distdat distdatpath \n");
   printf("   --distbounds distboundspath \n");
+  printf("   --distoverlay dist.overlay.mgz \n");
   printf("   --stats statspath \n");
   printf("\n");
   printf("   --gdiag diagno : set diagnostic level\n");
