@@ -81,6 +81,8 @@ public:
   double DistInMax=100,DistOutMax=100; 
   double DistInMin=2,DistOutMin=2;
   double DistInFrac=0.9, DistOutFrac=1.0;
+  int FillType=1;
+  double FillConstIn=0,FillConstOut=0;
   int cPad=5, rPad=5, sPad=5;
   int nxmask = 0;
   int SegFace(void);
@@ -105,6 +107,9 @@ int FsDefacer::PrintParams(FILE *fp)
   fprintf(fp,"DeltaDist   %g\n",DeltaDist);
   fprintf(fp,"dL          %g\n",dL);
   fprintf(fp,"Pad %d %d %d\n",cPad,rPad,sPad);
+  fprintf(fp,"FillType    %d\n",FillType);
+  fprintf(fp,"FillConstIn  %g\n",FillConstIn);
+  fprintf(fp,"FillConstOut %g\n",FillConstOut);
   fflush(fp);
   return(0);
 }
@@ -247,8 +252,14 @@ int FsDefacer::Deface(void)
 	  double v=0;
 	  if(m == 0) v = MRIgetVoxVal(invol,c,r,s,0);// copy input
 	  else{
-	    if(m==1 || m==2) v = (drand48()-0.5)*gstddev1 + gmean1;
-	    if(m==3 || m==4) v = (drand48()-0.5)*gstddev2 + mode2;
+	    if(FillType==1){
+	      if(m==1 || m==2) v = (drand48()-0.5)*gstddev1 + gmean1;
+	      if(m==3 || m==4) v = (drand48()-0.5)*gstddev2 + mode2;
+	    }
+	    if(FillType==2){
+	      if(m==1 || m==2) v = FillConstIn;
+	      if(m==3 || m==4) v = FillConstOut;
+	    }
 	  }
 	  v = fabs(v);
 	  MRIsetVoxVal(outvol,c,r,s,0,v);
@@ -506,11 +517,14 @@ char *templabelpathlist[100];
 int ntemplabelpathlist=0;
 char *outvolpath=NULL, *facesegpath=NULL, *minsurfpath=NULL, *maxsurfpath=NULL;
 char *distdatpath=NULL, *distboundspath=NULL, *distoverlaypath=NULL, *statspath=NULL;
+char *watermarkpath = NULL;
+double dwatermark = 1;
+FsDefacer defacer;
+
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) 
 {
   int nargs,err=0;
-  FsDefacer defacer;
 
   srand48(53);
   nargs = handleVersionOption(argc, argv, "mri_gtmpvc");
@@ -541,6 +555,19 @@ int main(int argc, char *argv[])
   if(xmaskpath){
     defacer.xmask = MRIread(xmaskpath);
     if(defacer.xmask==NULL) exit(1);
+  }
+
+  if(watermarkpath){
+    LABEL *watermark = LabelRead("",watermarkpath);
+    if(watermark == NULL) exit(1);
+    printf("Applying watermark %d\n",watermark->n_points);
+    for(int n=0; n < watermark->n_points; n++){
+      int vtxno = watermark->lv[n].vno;
+      VERTEX *v = &(defacer.tempsurf->vertices[vtxno]);
+      v->x += dwatermark*v->nx;
+      v->y += dwatermark*v->ny;
+      v->z += dwatermark*v->nz;
+    }
   }
 
   if(regpath){
@@ -676,6 +703,12 @@ static int parse_commandline(int argc, char **argv) {
       ntemplabelpathlist++;
       nargsused = 1;
     }
+    else if(!strcasecmp(option, "--w")){
+      if(nargc < 2) CMDargNErr(option,2);
+      watermarkpath = pargv[0];
+      sscanf(pargv[1],"%lf",&dwatermark);
+      nargsused = 2;
+    }
     else if(!strcasecmp(option, "--reg")){
       if(nargc < 1) CMDargNErr(option,1);
       regpath = pargv[0];
@@ -689,6 +722,43 @@ static int parse_commandline(int argc, char **argv) {
     else if(!strcasecmp(option, "--max")){
       if(nargc < 1) CMDargNErr(option,1);
       maxsurfpath = pargv[0];
+      nargsused = 1;
+    }
+    else if(!strcasecmp(option, "--fill-const")){
+      if(nargc < 2) CMDargNErr(option,2);
+      sscanf(pargv[0],"%lf",&defacer.FillConstIn);
+      sscanf(pargv[1],"%lf",&defacer.FillConstOut);
+      defacer.FillType=2;
+      nargsused = 2;
+    }
+    else if(!strcasecmp(option, "--dist-in-frac")){
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&defacer.DistInFrac);
+      nargsused = 1;
+    }
+    else if(!strcasecmp(option, "--dist-in-min")){
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&defacer.DistInMin);
+      nargsused = 1;
+    }
+    else if(!strcasecmp(option, "--dist-in-max")){
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&defacer.DistInMax);
+      nargsused = 1;
+    }
+    else if(!strcasecmp(option, "--dist-out-frac")){
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&defacer.DistOutFrac);
+      nargsused = 1;
+    }
+    else if(!strcasecmp(option, "--dist-out-min")){
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&defacer.DistOutMin);
+      nargsused = 1;
+    }
+    else if(!strcasecmp(option, "--dist-out-max")){
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&defacer.DistOutMax);
       nargsused = 1;
     }
     else if(!strcasecmp(option, "--distbounds")){
@@ -750,8 +820,10 @@ static void print_usage(void) {
   printf("   --hm headmask \n");
   printf("   --ts tempsurf \n");
   printf("   --l templabel1 <--l templabel2> \n");
+  printf("   --w watermark d \n");
   printf("   --o  defacedvol \n");
   printf("   --m  facemask \n");
+  printf("   --fill-const ConstIn ConstOut\n");
   printf("\n");
   printf("   --reg tempreg.lta \n");
   printf("   --min minsurfpath \n");
