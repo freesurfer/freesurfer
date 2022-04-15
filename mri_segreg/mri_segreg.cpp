@@ -339,6 +339,7 @@ char *RelCostFile = NULL;
 char *ParamFile = NULL;
 int InitSurfCostOnly=0;
 int ExcludeZeroVoxels = 1; 
+char *targvolpath=NULL;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -405,7 +406,11 @@ int main(int argc, char **argv) {
   printf("ExcludeZeroVoxels %d\n",ExcludeZeroVoxels);
 
   // Load an anatomical for reference
-  sprintf(tmpstr,"%s/%s/mri/orig.mgz",SUBJECTS_DIR,subject);
+  if(targvolpath==NULL)
+    sprintf(tmpstr,"%s/%s/mri/orig.mgz",SUBJECTS_DIR,subject);
+  else
+    sprintf(tmpstr,"%s",targvolpath);
+  printf("Reading in targ vol %s\n",tmpstr);
   anat = MRIread(tmpstr); // Just need a template
   if(anat == NULL) exit(1);
   mritmp = MRIchangeType(anat,MRI_FLOAT,0,0,0);
@@ -1471,9 +1476,11 @@ static int parse_commandline(int argc, char **argv) {
         naz++;
       }
       nargsused = 3;
-    } else if ( !strcmp(option, "--gdiagno") ) {
-      if (nargc < 1) argnerr(option,1);
-      sscanf(pargv[0],"%d",&gdiagno);
+    } 
+    else if ( !strcmp(option, "--target-volume") ) {
+      if(nargc < 1) argnerr(option,1);
+      // Instead of SUBJETS_DIR/mri/orig.mgz
+      targvolpath = pargv[0];
       nargsused = 1;
     } 
     else if (istringnmatch(option, "--cost",0)) {
@@ -1857,6 +1864,12 @@ int MRISbbrSurfs(char *subject)
     // Load the LH white surface, project it into WM and Ctx
     printf("Loading lh.%s surf\n",surfname);
     sprintf(tmpstr,"%s/%s/surf/lh.%s",SUBJECTS_DIR,subject,surfname);
+    if(!fio_FileExistsReadable(tmpstr)){
+      if(fio_FileExistsReadable(surfname)){
+	printf("INFO: cannot find %s but %s does exist so using that\n",tmpstr,surfname);
+	sprintf(tmpstr,"%s",surfname);	
+      }
+    }
     lhwm = MRISread(tmpstr); // starts as white, projected in
     if(lhwm == NULL) exit(1);
     lhctx = MRISread(tmpstr); // starts as white, projected out

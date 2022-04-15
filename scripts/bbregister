@@ -89,6 +89,7 @@ set surfname = "white";
 set MaskLabel = ();
 set lhmask = ();
 set rhmask = ();
+set TargetVol = (); # Full path, instead of SUBJETS_DIR/mri/orig.mgz
 
 set RandInitMax = ();
 
@@ -328,6 +329,7 @@ if($DoPass1) then
   if(! $UseCortexLabel) set cmd = ($cmd --no-cortex-label);
   if($#VSM) set cmd = ($cmd --mask --vsm $VSM);
   if($IncludeZeroVoxels) set cmd = ($cmd --include-zero-voxels)
+  if($#TargetVol) set cmd = ($cmd --target-volume $TargetVol)
   if($#RandInitMax) then
     # Only for testing
     set cmd = ($cmd --trans-rand $RandInitMax --rot-rand $RandInitMax);
@@ -377,7 +379,7 @@ if($DoAbs) set cmd = ($cmd --penalty-abs)
 if($#InitCostFile) set cmd = ($cmd --initcost $InitCostFile);
 if($#RMSFile0) set cmd = ($cmd --rms $RMSFile0);
 if($IncludeZeroVoxels) set cmd = ($cmd --include-zero-voxels)
-
+if($#TargetVol) set cmd = ($cmd --target-volume $TargetVol)
 echo $cmd | tee -a $LF
 $cmd |& tee -a $LF
 if($status) exit 1;
@@ -428,6 +430,7 @@ endif
 if($#outlta) then
   set cmd = (tkregister2_cmdl --mov $movvol --reg $outreg \
     --noedit --ltaout $outlta);
+  if($#TargetVol) set cmd = ($cmd --targ $TargetVol)
   echo $cmd | tee -a $LF
   $cmd | tee -a $LF
   if($status) exit 1;
@@ -735,11 +738,16 @@ while( $#argv != 0 )
 
     case "--frame":
       if ( $#argv < 1) goto arg1err;
-      set frame = $argv[1]; shift;
+      set frame = 
       breaksw
 
     case "--mid-frame":
       set midframe = 1;
+      breaksw
+
+    case "--target-volume"
+      # Full path, instead of SUBJETS_DIR/mri/orig.mgz
+      set TargetVol = $argv[1]; shift;
       breaksw
 
     case "--lh-only":
@@ -1050,7 +1058,8 @@ check_params:
     echo "ERROR: must spec a subject id"
     exit 1;
   endif
-  if(! -e $SUBJECTS_DIR/$subject) then
+  if(! -e $SUBJECTS_DIR/$subject && $#TargetVol == 0) then
+    # Adding this stuff about the TargetVol is a bit of a hack
     echo "ERROR: cannot find $subject in $SUBJECTS_DIR"
     exit 1;
   endif
