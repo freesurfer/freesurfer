@@ -200,7 +200,7 @@ get_option(int argc, char *argv[])
     use_thickness = 1 ;
     printf("using distance as a %% of thickness\n") ;
   }
-  if (!stricmp(option, "label"))
+  else if (!stricmp(option, "label"))
   {
     label = LabelRead(NULL,argv[2]);
     if(label==NULL) exit(1);
@@ -382,7 +382,7 @@ usage_exit(int code)
 {
   printf("Usage: %s [options] <input surface> <mm> <output surface>\n",
          Progname) ;
-  printf("  Example: mris_expand -thickness lh.thickness lh.white 0.5 lh.graymid\n");
+  printf("  Example: mris_expand -thickness lh.white 0.5 lh.graymid\n");
   printf("  Example: mris_expand -label labelfile lh.white 0.5 lh.graymid\n");
   exit(code) ;
 }
