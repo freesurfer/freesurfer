@@ -796,6 +796,31 @@ static int parse_commandline(int argc, char **argv) {
       facesegpath = pargv[0];
       nargsused = 1;
     }
+    else if(!strcasecmp(option, "--apply")){
+      // input facemask reg out
+      if(nargc < 4) CMDargNErr(option,4);
+      defacer.invol   = MRIread(pargv[0]);
+      defacer.faceseg = MRIread(pargv[1]);
+      LTA *reg=NULL;
+      if(strcmp(pargv[2],"regheader") != 0){
+	reg = LTAread(pargv[2]);
+	LTAchangeType(reg,LINEAR_VOX_TO_VOX);
+	MRI *mritmp = MRIcloneBySpace(defacer.invol,MRI_INT,1);
+	MRIvol2VolVSM(defacer.faceseg, mritmp, reg->xforms[0].m_L, SAMPLE_NEAREST, 0, NULL);
+	MRIfree(&defacer.faceseg);
+	defacer.faceseg = mritmp;
+      }
+      defacer.outvol = MRIallocSequence(defacer.invol->width, defacer.invol->height, 
+					defacer.invol->depth, defacer.invol->type, 
+					defacer.invol->nframes);
+      MRIcopyHeader(defacer.invol, defacer.outvol);
+      MRIcopyPulseParameters(defacer.invol, defacer.outvol);
+      defacer.FaceIntensityStats();
+      defacer.Deface();
+      int err = MRIwrite(defacer.outvol,pargv[3]);
+      exit(err);
+      nargsused = 4;
+    }
     else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if(CMDsingleDash(option))
@@ -832,6 +857,8 @@ static void print_usage(void) {
   printf("   --distbounds distboundspath \n");
   printf("   --distoverlay dist.overlay.mgz \n");
   printf("   --stats statspath \n");
+  printf("\n");
+  printf("   --apply vol facemask reg output\n");
   printf("\n");
   printf("   --gdiag diagno : set diagnostic level\n");
   printf("   --debug     turn on debugging\n");
