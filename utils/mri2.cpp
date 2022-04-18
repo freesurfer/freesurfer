@@ -724,10 +724,10 @@ MRI *MRIvol2VolLTA::vol2vol(MRI *outvol)
 
   // Could check destination against targ if targ != NULL 
 
-  // LTA needs to go from target to mov, so invert if needed
+  // LTA needs to go from target to mov, so invert if needed.
   VOL_GEOM movvg;
   getVolGeom(mov, &movvg);
-  if(!vg_isEqual(&ltacopy->xforms[0].dst, &movvg)){
+  if(vg_isEqual(&ltacopy->xforms[0].src, &movvg)){
     printf("MRIvol2VolLTA(): inverting LTA\n");
     LTAinvert(ltacopy,ltacopy);
   }
@@ -738,24 +738,14 @@ MRI *MRIvol2VolLTA::vol2vol(MRI *outvol)
     LTAchangeType(ltacopy, LINEAR_VOX_TO_VOX);
   }
 
-  VOL_GEOM *targvg = &(ltacopy->xforms[0].src);
+  VOL_GEOM *outvg = &(ltacopy->xforms[0].src);
   if(outvol==NULL){
-    // These two ways of creating the volume may yield slight
-    // differences in the output volume geometry because the LTA
-    // stores values in text instead of binary
-    if(targ){
-      printf("MRIvol2VolLTA(): constructing output volume from targ MRI\n");
-      outvol = MRIcloneBySpace(targ,mov->type,mov->nframes);
-    }
-    else {
-      printf("MRIvol2VolLTA(): constructing output volume from LTA volume geometry\n");
-      outvol = MRIallocFromVolGeom(targvg, mov->type, mov->nframes, 0);
-    }
+    outvol = MRIallocFromVolGeom(outvg, mov->type, mov->nframes, 0);
     if(outvol==NULL) return(NULL);
     MRIcopyPulseParameters(mov, outvol);
   }
-  if(outvol->width != targvg->width || outvol->height != targvg->height ||
-     outvol->depth != targvg->depth || outvol->nframes != mov->nframes){
+  if(outvol->width != outvg->width || outvol->height != outvg->height ||
+     outvol->depth != outvg->depth || outvol->nframes != mov->nframes){
     printf("ERROR: MRIvol2VolLTA(): dimension mismatch\n");
     return(NULL);
   }

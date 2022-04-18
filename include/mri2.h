@@ -29,15 +29,12 @@
   \class class MRIvol2VolLTA
   Manages converting one volume to another via an LTA. All it needs is
   the mov and the LTA (it computes the output geometry from that in
-  the LTA). Unfortunately, the LTA file format currently stores this
-  info in text, so it is every so slightly different than the
-  binary. Basic usage is to set the mov and set the LTA, then run
+  the LTA). Basic usage is to set the mov and set the LTA, then run
   vol2vol(); it will figure out the proper direction of the LTA.  If
   the LTA is not set but the target is, then uses a header
-  registration. Note that the final result might be slightly different
-  than mri_vol2vol because of the final vox2vox is based on the LTA
-  where as mri_vol2vol will use the target geom. Handles a voxel-shift
-  map (VSM).
+  registration. Handles a voxel-shift map (VSM). Note that the final
+  result might be slightly different than mri_vol2vol because
+  mri_vol2vol goes through several LTA type changes.
  */
 class MRIvol2VolLTA{
 public:
