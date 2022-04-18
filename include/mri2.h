@@ -25,6 +25,32 @@
 #include "mrisurf.h"
 #include "connectcomp.h"
 
+/*!
+  \class class MRIvol2VolLTA
+  Manages converting one volume to another via an LTA. All it needs is
+  the mov and the LTA (it computes the output geometry from that in
+  the LTA). Unfortunately, the LTA file format currently stores this
+  info in text, so it is every so slightly different than the
+  binary. Basic usage is to set the mov and set the LTA, then run
+  vol2vol(); it will figure out the proper direction of the LTA.  If
+  the LTA is not set but the target is, then uses a header
+  registration. Note that the final result might be slightly different
+  than mri_vol2vol because of the final vox2vox is based on the LTA
+  where as mri_vol2vol will use the target geom. Handles a voxel-shift
+  map (VSM).
+ */
+class MRIvol2VolLTA{
+public:
+  LTA *lta=NULL;
+  MRI *mov=NULL;
+  MRI *targ=NULL;// only used for headerreg
+  MRI *vsm=NULL;
+  int InterpCode=SAMPLE_TRILINEAR;
+  double sinchw=0;
+  MRI *vol2vol(MRI *outvol);
+  int ReadLTAorTarg(char *fname);
+};
+
 
 MRI *mri_load_bvolume(char *bfstem);
 int  mri_save_as_bvolume(MRI *vol, char *stem, int svendian, int svtype);
