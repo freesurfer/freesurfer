@@ -82,6 +82,7 @@ install_configured(
   fsr-getxopts
   fsr-import
   fsvglrun
+  fsxvfb
   fvcompare
   gca-apply
   gcainit
