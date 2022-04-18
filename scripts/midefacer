@@ -25,7 +25,7 @@ set FillConstIn = ()
 set FillConstOut = ()
 set DoEars = 1;
 set DoForehead = 0;
-set DoPics = 1
+set DoPics = 0
 set SubjCode = ()
 set PicAnnot = ()
 
@@ -592,10 +592,22 @@ arg2err:
 ############--------------##################
 usage_exit:
   echo ""
-  echo "midefacer"
+  echo "midefacer : minimally invasive defacing tool"
   echo " --i volume to deface"
   echo " --o defaced input"
   echo " --facemask facemask"
+  echo " --odir outputdir "
+  echo " --xmask xmask (exclusion mask)"
+  echo " --xmask-synthseg ndilations : segment input using synthseg"
+  echo " --threads nthreads"
+  echo " --fill-const constIn constOut"
+  echo " --fill-zero"
+  echo " --no-ears : do not include ears in the defacing"
+  echo " --forehead : include forehead in the defacing (risks removing brain)"
+  echo " --pics : do not take pics"
+  echo " --code codename : embed codename in pics"
+  echo " --force : force reprocessing (not applicable if --odir has not been used)"
+  echo " --no-post : do not make a head surface after defacing"
   echo ""
 
   if(! $PrintHelp) exit 1;
