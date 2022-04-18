@@ -44,7 +44,7 @@
 #include "mrisurf.h"
 #include "mrisutils.h"
 #include "cma.h"
-#include "mrishash.h"
+#include "mri_identify.h"
 
 #ifdef _OPENMP
 #include "romp_support.h"
@@ -78,8 +78,8 @@ public:
   double DistIn=0,DistOut=0,DeltaDist=-1,dL=-1;
   double DistInRaw=0,DistOutRaw=0;
   float *DistInList=NULL,*DistOutList=NULL;
-  double DistInMax=100,DistOutMax=100; 
-  double DistInMin=2,DistOutMin=2;
+  double DistInMin=2,DistInMax=100; // these will be set in the caller
+  double DistOutMin=2,DistOutMax=100; 
   double DistInFrac=0.9, DistOutFrac=1.0;
   int FillType=1;
   double FillConstIn=0,FillConstOut=0;
@@ -520,6 +520,7 @@ char *distdatpath=NULL, *distboundspath=NULL, *distoverlaypath=NULL, *statspath=
 char *watermarkpath = NULL;
 double dwatermark = 1;
 FsDefacer defacer;
+double DistInMinList[200],DistInMaxList[200],DistInMin=2,DistInMax=20;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) 
@@ -597,8 +598,10 @@ int main(int argc, char *argv[])
   for(int n=0; n < ntemplabelpathlist; n++){
     if(defacer.templabel) LabelFree(&defacer.templabel);
     printf("===============================================\n");
-    printf("Label %d %s\n",n,templabelpathlist[n]);
+    printf("Label %d %s %g %g\n",n,templabelpathlist[n],DistInMinList[n],DistInMaxList[n]);fflush(stdout);
     defacer.templabel = LabelRead("",templabelpathlist[n]);
+    defacer.DistInMin = DistInMinList[n];
+    defacer.DistInMax = DistInMaxList[n];
     if(defacer.templabel==NULL) exit(1);
     defacer.DistanceBounds();
     defacer.SegFace();
@@ -618,6 +621,7 @@ int main(int argc, char *argv[])
       }
       fclose(fp);
     }
+    fflush(stdout);
   }
   if(distboundspath) fclose(fpDLP);
   printf("===============================================\n\n");
@@ -700,8 +704,18 @@ static int parse_commandline(int argc, char **argv) {
     else if(!strcasecmp(option, "--l")){
       if(nargc < 1) CMDargNErr(option,1);
       templabelpathlist[ntemplabelpathlist] = pargv[0];
-      ntemplabelpathlist++;
+      DistInMinList[ntemplabelpathlist] = DistInMin;
+      DistInMaxList[ntemplabelpathlist] = DistInMax;
       nargsused = 1;
+      if(CMDnthIsArg(nargc, pargv, 1)) {
+        sscanf(pargv[1],"%lf",&DistInMinList[ntemplabelpathlist]);
+        nargsused ++;
+	if(CMDnthIsArg(nargc, pargv, 2)) {
+	  sscanf(pargv[2],"%lf",&DistInMaxList[ntemplabelpathlist]);
+	  nargsused ++;
+	} 
+      } 
+      ntemplabelpathlist++;
     }
     else if(!strcasecmp(option, "--w")){
       if(nargc < 2) CMDargNErr(option,2);
@@ -738,12 +752,12 @@ static int parse_commandline(int argc, char **argv) {
     }
     else if(!strcasecmp(option, "--dist-in-min")){
       if(nargc < 1) CMDargNErr(option,1);
-      sscanf(pargv[0],"%lf",&defacer.DistInMin);
+      sscanf(pargv[0],"%lf",&DistInMin);
       nargsused = 1;
     }
     else if(!strcasecmp(option, "--dist-in-max")){
       if(nargc < 1) CMDargNErr(option,1);
-      sscanf(pargv[0],"%lf",&defacer.DistInMax);
+      sscanf(pargv[0],"%lf",&DistInMax);
       nargsused = 1;
     }
     else if(!strcasecmp(option, "--dist-out-frac")){
@@ -801,12 +815,27 @@ static int parse_commandline(int argc, char **argv) {
       if(nargc < 4) CMDargNErr(option,4);
       defacer.invol   = MRIread(pargv[0]);
       defacer.faceseg = MRIread(pargv[1]);
-      LTA *reg=NULL;
+      int resampleneeded = 0;
+      MRIvol2VolLTA v2v;
       if(strcmp(pargv[2],"regheader") != 0){
-	reg = LTAread(pargv[2]);
-	LTAchangeType(reg,LINEAR_VOX_TO_VOX);
-	MRI *mritmp = MRIcloneBySpace(defacer.invol,MRI_INT,1);
-	MRIvol2VolVSM(defacer.faceseg, mritmp, reg->xforms[0].m_L, SAMPLE_NEAREST, 0, NULL);
+	v2v.lta = LTAread(pargv[2]);
+	if(v2v.lta==NULL) exit(1);
+	resampleneeded = 1;
+      } 
+      else { // regheader
+	v2v.targ = defacer.invol;
+	VOL_GEOM vginvol;
+	getVolGeom(defacer.invol, &vginvol);
+	VOL_GEOM vgfaceseg;
+	getVolGeom(defacer.faceseg, &vgfaceseg);
+	vg_isEqual_Threshold = 10e-4;
+	if(!vg_isEqual(&vginvol, &vgfaceseg)) resampleneeded = 1;
+      }
+      if(resampleneeded){
+	v2v.InterpCode = SAMPLE_NEAREST;
+	v2v.mov = defacer.faceseg;
+	MRI *mritmp = v2v.vol2vol(NULL);
+	if(mritmp==NULL) exit(1);
 	MRIfree(&defacer.faceseg);
 	defacer.faceseg = mritmp;
       }
