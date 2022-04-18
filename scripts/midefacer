@@ -1,0 +1,607 @@
+#!/bin/tcsh -f
+# midefacer - sources
+if(-e $FREESURFER_HOME/sources.csh) then
+  source $FREESURFER_HOME/sources.csh
+endif
+
+set VERSION = '$Id$';
+set scriptname = `basename $0`
+
+set invol = ();
+set outvol = ();
+set facemask = ()
+set ForceUpdate = 0
+set DoPostHeadSurf = 0
+set threads = 1
+set xmask = ()
+set DoSynthSeg = 0;
+set NSynthSegDil = 0;
+set DoBBR = 0
+set BBRDoF = 9
+set defacingsubject = defacing-atlas
+set outdir = ()
+set FillType = 1;
+set FillConstIn = ()
+set FillConstOut = ()
+set DoEars = 1;
+set DoForehead = 0;
+set DoPics = 1
+set SubjCode = ()
+set PicAnnot = ()
+
+#set atlasdir = /autofs/space/sulc_001/users/faceseg/atlas/subjects/defacing-atlas
+set atlasdir = $FREESURFER/average/mideface-atlas
+set ctab = $atlasdir/deface.ctab
+set templatesurf = $atlasdir/average.head.dec44.us7.remesh3.surf
+set templatevol = $atlasdir/average.head.mgz
+set atlas2samseglta = $atlasdir/reg.samseg-default.lta
+set templateface = $atlasdir/average.face.dec44.us7.remesh3.label
+set upperfacenoeyes = $atlasdir/average.face.upper.no-eyes.dec44.us7.remesh3.label
+set lowerface = $atlasdir/average.face.lower.dec44.us7.remesh3.label
+set watermark = $atlasdir/watermark.dec44.us7.remesh3.label
+set earleft  = $atlasdir/average.face.ear.left.dec44.us7.remesh3.label
+set earright = $atlasdir/average.face.ear.right.dec44.us7.remesh3.label
+set eyes  = $atlasdir/average.face.eyes.dec44.us7.remesh3.label
+set forehead  = $atlasdir/average.face.forehead.dec44.us7.remesh3.label
+set dwatermark = 3
+set bbrface = $atlasdir/average.face.upper.dec44.us7.remesh3.label
+
+set tmpdir = ();
+set cleanup = 1;
+set LF = ();
+
+set UseXvfb = 1
+which Xvfb > /dev/null
+if($status) set UseXvfb = 0
+
+set inputargs = ($argv);
+set PrintHelp = 0;
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+set labellist = ($lowerface $upperfacenoeyes $eyes)
+
+set StartTime = `date`;
+set tSecStart = `date '+%s'`;
+set year  = `date +%Y`
+set month = `date +%m`
+set day   = `date +%d`
+set hour   = `date +%H`
+set min    = `date +%M`
+
+if($#outdir == 0) set outdir = `dirname $outvol`
+mkdir -p $outdir
+pushd $outdir > /dev/null
+set outdir = `pwd`;
+popd > /dev/null
+
+if($#tmpdir == 0) then
+  if(-dw /scratch)   set tmpdir = /scratch/tmpdir.midefacer.$$
+  if(! -dw /scratch) set tmpdir = $outdir/tmpdir.midefacer.$$
+endif
+mkdir -p $tmpdir/log
+set invol  = `getfullpath $invol`
+set outvol = `getfullpath $outvol`
+set tmpdir = `getfullpath $tmpdir`
+
+# Set up log file
+set stem = `fname2stem $outvol`
+if($#LF == 0) set LF = $stem.midefacer.log
+if($LF != /dev/null) rm -f $LF
+echo "Log file for midefacer" >> $LF
+date  | tee -a $LF
+echo "" | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo "cd `pwd`"  | tee -a $LF
+echo $0 $inputargs | tee -a $LF
+ls -l $0  | tee -a $LF
+echo "" | tee -a $LF
+cat $FREESURFER_HOME/build-stamp.txt | tee -a $LF
+echo $VERSION | tee -a $LF
+uname -a  | tee -a $LF
+echo "pid $$" | tee -a $LF
+if($?PBS_JOBID) then
+  echo "pbsjob $PBS_JOBID"  >> $LF
+endif
+if($?SLURM_JOB_ID) then
+  echo SLURM_JOB_ID $SLURM_JOB_ID >> $LF
+endif
+
+echo "UseXvfb $UseXvfb" | tee -a $LF
+set runxvfb = fsxvfb
+if(! $UseXvfb) set runxvfb = ()
+
+#========================================================
+# Register to samseg atlas
+set samseglta = $tmpdir/samseg/template.lta
+set ud = (`UpdateNeeded $samseglta $invol`)
+if($ud || $ForceUpdate) then
+  set cmd = (run_samseg -i $invol -o $tmpdir/samseg --reg-only --threads $threads)
+  echo $cmd | tee -a $LF
+  fs_time $cmd |& tee -a $LF
+  if($status) goto error_exit
+endif
+
+# Compute reg from the defacing atlas to the subject
+set atlas2inputlta = $tmpdir/atlas2input.lta
+set ud = (`UpdateNeeded $atlas2inputlta $samseglta`)
+if($ud || $ForceUpdate) then
+  set cmd = (mri_concatenate_lta $atlas2samseglta $samseglta $atlas2inputlta)
+  echo $cmd | tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) goto error_exit
+endif
+
+# Compute the inverse
+set input2atlaslta = $tmpdir/input2atlas.lta
+set ud = (`UpdateNeeded $input2atlaslta $atlas2inputlta`)
+if($ud || $ForceUpdate) then
+  set cmd = (lta_convert --subject $defacingsubject --invert --inlta $atlas2inputlta --outlta $input2atlaslta)
+  echo $cmd | tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) goto error_exit
+endif
+
+if($DoBBR) then
+  # Run BBR to refine the registration to just the face
+  # Careful using here. Faces are highly variable and the surface can get mangled.
+  set bbrlta = $tmpdir/input2atlas.bbr.lta
+  set bbrinvlta = $tmpdir/atlas2input2.bbr.lta
+  set ud = (`UpdateNeeded $bbrlta $input2atlaslta`)
+  if($ud || $ForceUpdate) then
+    # Always use t1 since this is tissue vs background. Including zero
+    # voxels is important to keep it from changing the scale to push
+    # surface outside the FoV
+    set cmd = (bbregister --mov $invol --t1 --wm-proj-abs 2  --gm-proj-abs 2 \
+      --no-cortex-label --label $bbrface --init-reg $input2atlaslta --tolf 1e-5 \
+      --reg $bbrlta --no-pass1 --$BBRDoF --lh-only  --no-brute2 --include-zero-voxels \
+      --surf $templatesurf --target-volume $templatevol)
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) goto error_exit
+    set cmd = (lta_convert --subject $defacingsubject --invert --inlta $bbrlta --outlta $bbrinvlta)
+    echo $cmd | tee -a $LF
+    fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit
+  endif
+  set atlas2inputlta = $bbrinvlta
+endif
+
+# Map the atlas head/face surface to the subject
+set templatesurfsubj = $tmpdir/template.surf
+set ud = (`UpdateNeeded $templatesurfsubj $templatesurf $atlas2inputlta`)
+if($ud || $ForceUpdate) then
+  set cmd = (mris_apply_reg --lta $templatesurf $atlas2inputlta $templatesurfsubj)
+  echo $cmd | tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) goto error_exit
+endif
+
+# Create a head mask and surface of this subject
+set headsurf = $tmpdir/head.surf
+set headmask = $tmpdir/head.mgz
+set ud = (`UpdateNeeded $headsurf $invol`)
+if($ud || $ForceUpdate) then
+  set cmd = (mkheadsurf -i $invol -o $headmask -surf $headsurf \
+    -rescale -no-inflate -fill-holes-islands -mc -no-curv)
+  echo $cmd | tee -a $LF
+  fs_time $cmd |& tee -a $LF
+  if($status) goto error_exit
+endif
+
+# Segment using synthseg to create exclusion mask
+if($DoSynthSeg) then
+  set synthseg = $tmpdir/synthseg.mgz
+  set ud = (`UpdateNeeded $synthseg $invol`)
+  if($ud || $ForceUpdate) then
+    set cmd = (synthseg --i $invol --o $synthseg --threads $threads)
+    echo $cmd | tee -a $LF
+    fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit
+  endif
+  # Binarize, and maybe dilate, the synthseg output. A subset of cerebral segids
+  # are selected to assure that only cerebral structures are excluded. At 
+  # the titme of writing, synthseg only produces cerebral structes, so it is
+  # not an issue, but at some point it might start segmenting extracerebral.
+  # Probably the only important seg is cortex, maybe skull and eyes.
+  # Note: synthseg may need as much as 27GB of RAM and adds about 5min single-threaded
+  set synthsegdil = $tmpdir/synthseg.dil.mgz
+  set ud = (`UpdateNeeded $synthsegdil $synthseg`)
+  if($ud || $ForceUpdate) then
+    set segidlist = (2 3 7 8 16 41 42 46 47)
+    set cmd = (mri_binarize --i $synthseg --match $segidlist --o $synthsegdil)
+    if($NSynthSegDil > 0) set cmd = ($cmd  --dilate $NSynthSegDil)
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) goto error_exit
+  endif
+  set xmask = $synthsegdil
+endif
+
+# Finally, perform the defacing
+set minsurf = $tmpdir/min.surf
+set maxsurf = $tmpdir/max.surf
+set distdat = $tmpdir/dist.samples
+set distlab = $tmpdir/dist.bounds.dat
+set stats   = $tmpdir/stats.dat
+set facemask = $tmpdir/face.mask.mgz
+set ud = (`UpdateNeeded $outvol $templatesurfsubj $invol $headmask $xmask $labellist $watermark`)
+if($ud || $ForceUpdate) then
+  set cmd = (mri_defacer --i $invol --ts $templatesurfsubj \
+   --min $minsurf --max $maxsurf --m $facemask --o $outvol \
+   --hm $headmask --distdat $distdat --stats $stats \
+   --distbounds $distlab --w $watermark $dwatermark) 
+  if($FillType == 2) set cmd = ($cmd --fill-const $FillConstIn $FillConstOut)
+  foreach label ($labellist)
+    set cmd = ($cmd --l $label)
+  end
+  if($DoEars)     set cmd = ($cmd  --l $earleft  2 3 --l $earright 2 3)
+  if($DoForehead) set cmd = ($cmd  --l $forehead 2 3);
+
+  if($#xmask) set cmd = ($cmd --xmask $xmask)
+  echo $cmd | tee -a $LF
+  fs_time $cmd |& tee -a $LF
+  if($status) goto error_exit
+  # Add the color table
+  set cmd = (mri_convert --ctab $ctab $facemask $facemask)
+  echo $cmd | tee -a $LF
+  fs_time $cmd |& tee -a $LF
+  if($status) goto error_exit
+endif
+
+# For QA, map the facemask onto the head surf
+set fmoverlay = $tmpdir/facemask-on-headsurf.mgz
+set ud = (`UpdateNeeded $fmoverlay $facemask $headsurf`)
+if($ud || $ForceUpdate) then
+  set cmd = (mri_vol2surf --vol2surf $facemask $headsurf 0 0 0 regheader novsm 0 $fmoverlay)
+  echo $cmd | tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) goto error_exit
+endif
+
+# For QA, generate a head surface after defacing
+set posthead = $tmpdir/head.defaced.mgz
+set postheadsurf = $tmpdir/head.defaced.surf
+if($DoPostHeadSurf) then
+  set ud = (`UpdateNeeded $posthead $outvol`)
+  if($ud || $ForceUpdate) then
+    set cmd = (mkheadsurf -i $outvol -o $posthead -surf $postheadsurf -rescale -no-inflate -fill-holes-islands -mc -no-curv)
+    echo $cmd | tee -a $LF
+    fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit
+  endif
+endif
+
+# Take some pictures for QA
+set facepic = $tmpdir/face-before.png
+set postfacepic = $tmpdir/face-after.png
+if($DoPics) then
+  set ud = `UpdateNeeded $facepic $headsurf $fmoverlay`
+  if($ud || $ForceUpdate) then
+    set cmd = (freeview -f ${headsurf}:affinexfm=${input2atlaslta}:overlay=${fmoverlay}:"overlay_threshold=.01,.011,.5"\
+       --hide-3d-slices -viewport 3d -cam Azimuth -90 -ss $facepic --quit)
+    echo $cmd | tee -a $LF
+    $runxvfb $cmd |& tee -a $LF
+    if($status) goto error_exit
+    if(-e /usr/bin/convert) then
+      set cmd = (/usr/bin/convert -crop 398x557+224+38! $PicAnnot $facepic $facepic)
+      $cmd |& tee -a $LF
+      if($status) goto error_exit
+    endif
+  endif
+  if(-e $postheadsurf) then
+    set ud = `UpdateNeeded $postfacepic $postheadsurf`
+    if($ud || $ForceUpdate) then
+      set cmd = (freeview -f ${postheadsurf}:affinexfm=$input2atlaslta --hide-3d-slices \
+        -viewport 3d -cam Azimuth -90 -ss $postfacepic --quit)
+      echo $cmd | tee -a $LF
+      $runxvfb $cmd |& tee -a $LF
+      if($status) goto error_exit
+      if(-e /usr/bin/convert) then
+        set cmd = (/usr/bin/convert -crop 398x557+224+38! $postfacepic $PicAnnot $postfacepic)
+        $cmd |& tee -a $LF
+        if($status) goto error_exit
+      endif
+    endif
+  endif
+  if(-e $facepic && -e $postfacepic && -e /usr/bin/convert) then
+    # This is make an animation
+    set gif = $tmpdir/face-before+after.gif
+    set ud = `UpdateNeeded $gif $facepic $postfacepic`
+    if($ud || $ForceUpdate) then
+      set cmd = (/usr/bin/convert -loop 0 -delay 60 $facepic $postfacepic $gif)
+      echo $cmd | tee -a $LF
+      $cmd |& tee -a $LF
+      if($status) goto error_exit
+    endif
+  endif
+endif
+
+
+# Make a command line for viewing
+set cmd = (fsvglrun freeview $invol $outvol --hide-3d-slices -viewport 3d \
+  -f ${headsurf}:edgecolor=yellow \
+  -f ${templatesurfsubj}:edgecolor=magenta:visible=0:lock=1\
+  -f ${minsurf}:edgecolor=blue:visible=0:lock=1 ${maxsurf}:edgecolor=cyan:visible=0:lock=1)
+if($DoPostHeadSurf) set cmd = ($cmd -f ${postheadsurf}:edgecolor=red:visible=0)
+echo ""  |tee -a $LF
+echo $cmd  |tee -a $LF
+echo ""  |tee -a $LF
+echo $cmd > $tmpdir/viewcmd
+
+#========================================================
+
+# Cleanup
+if($cleanup) rm -rf $tmpdir
+
+# Done
+echo " " |& tee -a $LF
+set tSecEnd = `date '+%s'`;
+@ tSecRun = $tSecEnd - $tSecStart;
+set tRunMin = `echo $tSecRun/50|bc -l`
+set tRunMin = `printf %5.2f $tRunMin`
+set tRunHours = `echo $tSecRun/3600|bc -l`
+set tRunHours = `printf %5.2f $tRunHours`
+echo "Started at $StartTime " |& tee -a $LF
+echo "Ended   at `date`" |& tee -a $LF
+echo "Midefacer-Run-Time-Sec $tSecRun" |& tee -a $LF
+echo "Midefacer-Run-Time-Min $tRunMin" |& tee -a $LF
+echo "Midefacer-Run-Time-Hours $tRunHours" |& tee -a $LF
+echo " " |& tee -a $LF
+echo "midefacer Done" |& tee -a $LF
+exit 0
+
+###############################################
+
+############--------------##################
+error_exit:
+echo "ERROR:"
+
+exit 1;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--o":
+      if($#argv < 1) goto arg1err;
+      set outvol = $argv[1]; shift;
+      breaksw
+
+    case "--facemask":
+      if($#argv < 1) goto arg1err;
+      set facemask = $argv[1]; shift;
+      breaksw
+
+    case "--fill-const":
+      if($#argv < 2) goto arg2err;
+      set FillConstIn  = $argv[1]; shift;
+      set FillConstOut = $argv[1]; shift;
+      set FillType = 2
+      breaksw
+
+    case "--fill-zero":
+    case "--zero":
+      set FillConstIn  = 0;
+      set FillConstOut = 0;
+      set FillType = 2
+      breaksw
+
+    case "--odir":
+      if($#argv < 1) goto arg1err;
+      set outdir = $argv[1]; shift;
+      breaksw
+
+    case "--i":
+      if($#argv < 1) goto arg1err;
+      set invol = $argv[1]; shift;
+      breaksw
+
+    case "--threads":
+      if($#argv < 1) goto arg1err;
+      set threads = $argv[1]; shift;
+      breaksw
+
+    case "--xmask":
+      if($#argv < 1) goto arg1err;
+      set xmask = $argv[1]; shift;
+      breaksw
+
+    case "--synthseg":
+    case "--xmask-synthseg":
+      if($#argv < 1) goto arg1err;
+      set NSynthSegDil = $argv[1]; shift;
+      set DoSynthSeg = 1
+      breaksw
+
+    case "--force":
+     set ForceUpdate = 1
+     breaksw
+    case "--no-force":
+     set ForceUpdate = 0
+     breaksw
+
+    case "--post":
+     set DoPostHeadSurf = 1
+     breaksw
+    case "--no-post":
+     set DoPostHeadSurf = 0
+     breaksw
+
+    case "--ears":
+      set DoEars = 1
+      breaksw
+    case "--no-ears":
+      set DoEars = 0
+      breaksw
+
+    case "--forehead":
+      set DoForehead = 1
+      breaksw
+    case "--no-forehead":
+      set DoForehead = 0
+      breaksw
+
+    case "--pics":
+      set DoPics = 1
+      breaksw
+    case "--no-pics":
+      set DoPics = 0
+      breaksw
+
+    case "--bbr":
+      set DoBBR = 1
+      breaksw
+    case "--no-bbr":
+      set DoBBR = 0
+      breaksw
+    case "--bbr-dof-6":
+      set DoBBR = 1
+      set BBRDoF = 6
+      breaksw
+    case "--bbr-dof-9":
+      set DoBBR = 1
+      set BBRDoF = 9
+      breaksw
+    case "--bbr-dof-12":
+      set DoBBR = 1
+      set BBRDoF = 12
+      breaksw
+
+    case "--no-xvfb":
+      set UseXvfb = 0
+      breaksw
+
+    case "--code":
+      if($#argv < 1) goto arg1err;
+      set SubjCode = $argv[1]; shift;
+      set PicAnnot = ("-fill white -pointsize 15 -annotate +15+15 $SubjCode")
+      breaksw
+
+    case "--log":
+      if($#argv < 1) goto arg1err;
+      set LF = $argv[1]; shift;
+      breaksw
+
+    case "--nolog":
+    case "--no-log":
+      set LF = /dev/null
+      breaksw
+
+    case "--tmp":
+    case "--tmpdir":
+      if($#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "--nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "--cleanup":
+      set cleanup = 1;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#invol == 0) then
+  echo "ERROR: must spec input"
+  exit 1;
+endif
+if(! -e $invol) then
+  echo "ERROR: cannot find $invol"
+  exit 1;
+endif
+
+if($#outdir) then
+  if($#outvol == 0) set outvol = $outdir/defaced.mgz
+  if($#tmpdir == 0) set tmpdir = $outdir
+  if($#facemask == 0) set facemask = $outdir/face.mask.mgz
+  if($#LF == 0) then
+    set LF = $outdir/log/midefacer.log
+    if(-e $LF) mv $LF $outdir/log/midefacer.$$.log
+  endif
+  set DoPostHeadSurf = 1
+  set cleanup = 0
+endif
+
+if($#outvol == 0) then
+  echo "ERROR: must spec output"
+  exit 1;
+endif
+if($#facemask == 0) then
+  set facemask = $tmpdir/face.mask.mgz
+endif
+
+if($#xmask && $DoSynthSeg) then
+  echo "ERROR: cannot use --xmask and --synthseg"
+  exit 1
+endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "midefacer"
+  echo " --i volume to deface"
+  echo " --o defaced input"
+  echo " --facemask facemask"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
