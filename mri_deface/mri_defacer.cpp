@@ -528,7 +528,7 @@ int main(int argc, char *argv[])
   int nargs,err=0;
 
   srand48(53);
-  nargs = handleVersionOption(argc, argv, "mri_gtmpvc");
+  nargs = handleVersionOption(argc, argv, "mri_defacer");
   if (nargs && argc - nargs == 1) exit (0);
   argc -= nargs;
   cmdline = argv2cmdline(argc,argv);
@@ -658,6 +658,7 @@ int main(int argc, char *argv[])
     if(err) exit(1);
   }
 
+  printf("mri_defacer done\n");
   return(0);
   exit(0);
 } // end of main
@@ -879,15 +880,15 @@ static void print_usage(void) {
   printf("   --m  facemask \n");
   printf("   --fill-const ConstIn ConstOut\n");
   printf("\n");
-  printf("   --reg tempreg.lta \n");
-  printf("   --min minsurfpath \n");
-  printf("   --max maxsurfpath \n");
-  printf("   --distdat distdatpath \n");
-  printf("   --distbounds distboundspath \n");
-  printf("   --distoverlay dist.overlay.mgz \n");
-  printf("   --stats statspath \n");
+  printf("   --reg tempreg.lta : apply to surface\n");
+  printf("   --min minsurfpath : output 'minimum surface'\n");
+  printf("   --max maxsurfpath : output 'maximum surface'\n");
+  printf("   --distbounds distboundspath : text file with info about distance bounds for each label\n");
+  printf("   --distoverlay dist.overlay.mgz : overlay of distance for each vertex\n");
+  printf("   --distdat distdatpath : text file with distances for each vertex\n");
+  printf("   --stats statspath : has info about nxmask and means and modes\n");
   printf("\n");
-  printf("   --apply vol facemask reg output\n");
+  printf("   --apply vol facemask reg output : apply to another volume (use regheader if no reg needed)\n");
   printf("\n");
   printf("   --gdiag diagno : set diagnostic level\n");
   printf("   --debug     turn on debugging\n");
