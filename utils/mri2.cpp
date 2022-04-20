@@ -39,6 +39,7 @@
 #include "sig.h"
 #include "stats.h"
 #include "mrimorph.h"
+#include "mri_identify.h"
 #include "mri2.h"
 
 //#define MRI2_TIMERS
@@ -656,6 +657,112 @@ MRI *MRIreshape1d(MRI *src, MRI *trg)
   trg = mri_reshape(src, nvox, 1, 1, nframes);
   return (trg);
 }
+
+/*!
+  \fn int MRIvol2VolLTA::ReadLTAorTarg(char *fname)
+  \brief Reads in either the target volume or an LTA; it figures it
+  out for itself, which can be handy when running this class.
+ */
+int MRIvol2VolLTA::ReadLTAorTarg(char *fname)
+{
+  int mritype = mri_identify(fname);
+  if(mritype != MRI_VOLUME_TYPE_UNKNOWN){
+    printf("Reading %s as MRI\n",fname);
+    targ = MRIread(fname);
+    if(targ==NULL) return(1);
+    return(0);
+  }
+  printf("Reading %s as LTA\n",fname);
+  lta = LTAread(fname);
+  if(lta==NULL) return(1);
+  return(0);
+}
+
+/*!
+  \fn MRI *MRIvol2VolLTA::vol2vol(MRI *outvol)
+  \brief Converts one volume to another. See the notes for the class.
+ */
+MRI *MRIvol2VolLTA::vol2vol(MRI *outvol)
+{
+  extern double vg_isEqual_Threshold;
+  vg_isEqual_Threshold = 10e-4;
+
+  if(mov==NULL){
+    printf("ERROR: MRIvol2VolLTA(): mov volume is NULL\n");
+    return(NULL);
+  }
+  if(targ == NULL && lta == NULL){
+    printf("ERROR: MRIvol2VolLTA(): both lta and targ volume are NULL\n");
+    return(NULL);
+  }
+
+  LTA *ltacopy=NULL;
+  if(lta == NULL) ltacopy = TransformRegDat2LTA(targ, mov, NULL);
+  else            ltacopy = LTAcopy(lta,NULL);
+
+  // Check whether the source and dest VGs are the same. If they are,
+  // check if the registration is the identity. If not, print a warning
+  // that we can't tell which direction to go
+  if(vg_isEqual(&ltacopy->xforms[0].src, &ltacopy->xforms[0].dst)){
+    // If they are the same, check whether the registration is the identity
+    // in which case the direction is not important.
+    int c,r,IsIdentity=1;
+    double val;
+    for(r=1; r<=4; r++){
+      for(c=1; c<=4; c++){
+	val = ltacopy->xforms[0].m_L->rptr[r][c];
+	if(r==c && fabs(val-1.0) > 10e-4) IsIdentity = 0;
+	if(r!=c && fabs(val)     > 10e-4) IsIdentity = 0;
+      }
+    }
+    if(! IsIdentity){
+      // Only print out a warning if if they are the same and the reg is not identity.
+      printf("\nINFO: MRISvol2VolLTA(): LTA src and dst vg's are the same and reg is not identity.\n");
+      printf("  Make sure you have the direction correct!\n\n");
+    }
+  }
+
+  // Could check destination against targ if targ != NULL 
+
+  // LTA needs to go from target to mov, so invert if needed.
+  VOL_GEOM movvg;
+  getVolGeom(mov, &movvg);
+  if(vg_isEqual(&ltacopy->xforms[0].src, &movvg)){
+    printf("MRIvol2VolLTA(): inverting LTA\n");
+    LTAinvert(ltacopy,ltacopy);
+  }
+
+  // LTA must be in vox2vox space to use MRIvol2VolVSM()
+  if(ltacopy->type != LINEAR_VOX_TO_VOX){
+    printf("MRIvol2VolLTA(): changing type to LINEAR_VOX_TO_VOX\n");
+    LTAchangeType(ltacopy, LINEAR_VOX_TO_VOX);
+  }
+
+  VOL_GEOM *outvg = &(ltacopy->xforms[0].src);
+  if(outvol==NULL){
+    outvol = MRIallocFromVolGeom(outvg, mov->type, mov->nframes, 0);
+    if(outvol==NULL) return(NULL);
+    MRIcopyPulseParameters(mov, outvol);
+  }
+  if(outvol->width != outvg->width || outvol->height != outvg->height ||
+     outvol->depth != outvg->depth || outvol->nframes != mov->nframes){
+    printf("ERROR: MRIvol2VolLTA(): dimension mismatch\n");
+    return(NULL);
+  }
+
+  printf("MRIvol2VolLTA(): applying matrix %d %g\n",InterpCode, sinchw);
+  MatrixPrint(stdout,ltacopy->xforms[0].m_L);
+  int err = MRIvol2VolVSM(mov, outvol, ltacopy->xforms[0].m_L, InterpCode, sinchw, vsm);
+  fflush(stdout);
+  if(err){
+    MRIfree(&outvol);
+    return(NULL);
+  }
+  printf("MRIvol2VolLTA(): done\n");
+  return(outvol);
+}
+
+
 
 /*---------------------------------------------------------------
   MRIvol2Vol() - samples the values of one volume into that of
@@ -2894,6 +3001,8 @@ MRI *MRIhalfCosBias(MRI *in, double alpha, MRI *out)
 
   return (out);
 }
+
+
 
 int MRIvol2VolVSM(MRI *src, MRI *targ, MATRIX *Vt2s, int InterpCode, float param, MRI *vsm)
 {
@@ -5988,3 +6097,33 @@ int FixSubCortMassHA::FixSCM(void)
   return(0);
 }
 
+
+/*!
+  \fn int MRIfillTriangle(MRI *vol, double p1[3], double p2[3], double p3[3], double dL, double FillVal)
+  \brief Fills the voxels that intersect with the give triangle. p?[3]
+  are the corners of the triangle where p?[0]=col, p?[1]=row, p?[2] =
+  slice. The triangle is subsampled in uniform barycentric coordinate
+  with spacing 0<dL<1. dL must be sufficiently small to assure that
+  all voxels that intersect with the triangle are filled. The volume
+  will be filled with FillVal.
+ */
+int MRIfillTriangle(MRI *vol, double p1[3], double p2[3], double p3[3], double dL, double FillVal)
+{
+  double l1, l2, l3;
+  double r[3];
+  int k,nhits=0;
+
+  for(l1=0; l1 < 1; l1 += dL){
+    for(l2=0; l2 < 1; l2 += dL){
+      l3 = 1.0 - (l1+l2);
+      if(l3 < 0.0 || l3 > 1.0) continue;
+      // location of barycentric point
+      for(k=0; k<3; k++) r[k] = l1*p1[k] + l2*p2[k] + l3*p3[k];
+      int OutOfBounds = MRIindexNotInVolume(vol,r[0],r[1],r[2]);
+      if(OutOfBounds) continue;
+      MRIsetVoxVal(vol,r[0],r[1],r[2],0,FillVal);
+      nhits ++;
+    }
+  }
+  return(nhits);
+}
