@@ -584,9 +584,6 @@ int MRISwriteAreaError(MRI_SURFACE *mris, const char *name)
   FILE *fp;
   char fname[STRLEN];
 
-  // may need to setenv FS_MRISbuildFileName_REVERT 1
-  printf("MRISwriteAreaError(): running MRISbuildFileName()\n");fflush(stdout);
-  MRISbuildFileName(mris, name, fname);
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) {
     fprintf(stdout, "writing area error file %s...", fname);
   }
@@ -789,10 +786,6 @@ int MRISwriteValues(MRI_SURFACE *mris, const char *sname)
     err = MRIwrite(TempMRI, sname);
     return (err);
   }
-
-  // May need to setenv FS_MRISbuildFileName_REVERT 1
-  printf("MRISwriteValues(): running MRISbuildFileName()\n");fflush(stdout);
-  MRISbuildFileName(mris, sname, fname);
 
   cp = strrchr(fname, '.');
   if (!cp || *(cp + 1) != 'w') {
@@ -1007,9 +1000,7 @@ int MRISreadPatchNoRemove(MRI_SURFACE *mris, const char *pname)
 {
   char fname[STRLEN];
 
-  // may need to setenv FS_MRISbuildFileName_REVERT 1
-  printf("MRISreadPatchNoRemove(): running MRISbuildFileName()\n");fflush(stdout);
-  MRISbuildFileName(mris, pname, fname);
+  MRISbuildFileName_read(mris, pname, fname);
 
   int const type = MRISfileNameType(fname); /* using extension to get type */
 
@@ -1031,7 +1022,7 @@ int MRISreadPatchNoRemove(MRI_SURFACE *mris, const char *pname)
   else if (type == MRIS_ASCII_TRIANGLE_FILE) /* .ASC */
   {
     fp = fopen(fname, "r");
-    if (!fp) ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE, "MRISreadPatch(%s): could not open file", fname));
+    if (!fp) ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE, "MRISreadPatchNoRemove(%s): could not open file", fname));
     cp = fgetl(line, 256, fp);    // this would skip # lines
     sscanf(cp, "%d %*s", &npts);  // get points
     if (Gdiag & DIAG_SHOW)
@@ -1053,7 +1044,7 @@ int MRISreadPatchNoRemove(MRI_SURFACE *mris, const char *pname)
         sscanf(cp, "%d %*s", &i);
       }
       else
-        ErrorReturn(ERROR_BADPARM, (ERROR_BAD_PARM, "MRISreadPatch(%s): could not read line for point %d\n", fname, j));
+        ErrorReturn(ERROR_BADPARM, (ERROR_BAD_PARM, "MRISreadPatchNoRemove(%s): could not read line for point %d\n", fname, j));
 
       // if negative, flip it
       if (i < 0) {
@@ -1104,7 +1095,7 @@ int MRISreadPatchNoRemove(MRI_SURFACE *mris, const char *pname)
   /////////////////////////////////////////////////////////////////////////
   else {
     fp = fopen(fname, "rb");
-    if (!fp) ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE, "MRISreadPatch(%s): could not open file", fname));
+    if (!fp) ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE, "MRISreadPatchNoRemove(%s): could not open file", fname));
 
     // read number of vertices
     npts = freadInt(fp);
@@ -2343,13 +2334,8 @@ int MRISreadVertexPositions(MRI_SURFACE *mris, const char *name)
   int vno, nvertices, nfaces, magic, version, tmp, ix, iy, iz, n, type;
   FILE *fp;
 
-  // set FS_MRISbuildFileName_REVERT to 1 here to read positions
-  printf("MRISreadVertexPositions(): running MRISbuildFileName() with reversion\n");fflush(stdout);
-  char *revert = getenv("FS_MRISbuildFileName_REVERT");
-  setenv("FS_MRISbuildFileName_REVERT","1",1);
-  MRISbuildFileName(mris, name, fname);
-  if(revert) setenv("FS_MRISbuildFileName_REVERT",revert,1);
-  else     unsetenv("FS_MRISbuildFileName_REVERT");
+  MRISbuildFileName_read(mris, name, fname);
+
   type = MRISfileNameType(name);
   if (type == MRIS_GEO_TRIANGLE_FILE) {
     return (mrisReadGeoFilePositions(mris, fname));
@@ -4446,9 +4432,7 @@ static int MRISwrite_new(MRI_SURFACE *mris, const char *name)
   char fname[STRLEN];
 
   chklc();
-  // should not need to setenv FS_MRISbuildFileName_REVERT 1
-  printf("MRISwrite_new(): running MRISbuildFileName()\n");fflush(stdout);
-  MRISbuildFileName(mris, name, fname);
+
   type = MRISfileNameType(fname);
   if (type == MRIS_ASCII_TRIANGLE_FILE) {
     return (MRISwriteAscii(mris, fname));
@@ -4574,9 +4558,7 @@ static int MRISwrite_old(MRI_SURFACE *mris, const char *name)
   char fname[STRLEN];
 
   chklc();
-  // should not need to setenv FS_MRISbuildFileName_REVERT 1
-  printf("MRISwrite_old(): running MRISbuildFileName()\n");fflush(stdout);
-  MRISbuildFileName(mris, name, fname);
+
   type = MRISfileNameType(fname);
   if (type == MRIS_ASCII_TRIANGLE_FILE) {
     return (MRISwriteAscii(mris, fname));
@@ -5416,7 +5398,7 @@ int MRISwriteTriangularSurface(MRI_SURFACE *mris, const char *fname)
     fprintf(stdout, "writing surface file %s, created by %s on %s.\n", fname, user, cdt.c_str());
 
   FILE *fp = fopen(fname, "w");
-  if (fp == NULL) ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "MRISwrite(%s): can't create file\n", fname));
+  if (fp == NULL) ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "MRISwriteTriangularSurface(%s): can't create file\n", fname));
   
   fwrite3(TRIANGLE_FILE_MAGIC_NUMBER, fp);
   fprintf(fp, "created by %s on %s\n\n", user, cdt.c_str());
@@ -5683,42 +5665,25 @@ static MRI_SURFACE *mrisReadTriangleFile(const char *fname, double nVFMultiplier
   return (mris);
 }
 /*!
-\fn int MRISbuildFileName(MRI_SURFACE *mris, const char *sname, char *fname)
-\brief This function "builds" a file path (fname) for saving
-surface-based output based on a "desired" name (sname).  Until
-3/31/2022, the default behavior was horribly confusing.  It would look
-for a forward slash "/" in the sname. If one exists, then it copies
-sname to fname (ie, it just uses the path as specified). If a forward
-slash is not present, then it goes through a bunch of steps to create
-a new path. They are all too confusing to decifer. Sometimes it will
-put an lh or rh at the beginning of the file name. Sometimes it will
-put it in the path where the orginal file was read from. On 3/31/2022,
-DNG changed this to just return the file name/path passed. If you
-really want to recreate the old functionality, then 
-setenv FS_MRISbuildFileName_REVERT 1
-And don't complain to me when it puts your files in random locations
-with semi-random names.
+\fn int MRISbuildFileName_read(MRI_SURFACE *mris, const char *sname, char *fname)
+\brief This function "builds" a file path (fname) for reading a surface.
+\param mris  - input MRI_SURFACE struct
+\param sname - input surface name, it is in one of these three formats: <lh|rh.surfacename>, <surfacename>, or <full path to surfacename>
+\param fname - output surface name. 
+\description This function should be used to contruct surface read path only. 
+The surface read path is computed as following:
+1. If sname is <full path to surfacename> (determined by a forward slash "/" in sname), copy sname to fname, and return;
+2. if hemisphere part is missing in the surface name (sname is in <surfacename> format), the prefix is taken from mris->hemisphere;
+3. if environment variable FS_POSIX is set, use cwd as the path, otherwise, use where mris->fname is in.
 */
-int MRISbuildFileName(MRI_SURFACE *mris, const char *sname, char *fname)
+int MRISbuildFileName_read(MRI_SURFACE *mris, const char *sname, char *fname)
 {
   char path[STRLEN];
   const char *slash, *dot;
 
-  char *revert = getenv("FS_MRISbuildFileName_REVERT");
-  if(revert == NULL) {
-    strcpy(fname, sname); /* path specified explicitly */
-    return (NO_ERROR);
-  }
-  if(strcmp(revert,"1") != 0){
-    // revert is not-null but does not equal 1
-    strcpy(fname, sname); /* path specified explicitly */
-    return (NO_ERROR);
-  }
-
   slash = strchr(sname, '/');
   if(!slash)   {
     /* no path - use same one as mris was read from */
-    // This is so dumb -- it will spontaneously put your output in semi-random locations
     dot = strchr(sname, '.');
     FileNamePath(mris->fname, path);
     if (dot && (*(dot - 1) == 'h') && (*(dot - 2) == 'l' || *(dot - 2) == 'r')) {
