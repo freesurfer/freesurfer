@@ -1,5 +1,3 @@
-cmake_minimum_required(VERSION 2.8.11)
-
 project(dcm2niix)
 
 # Option Choose whether to use static runtime
