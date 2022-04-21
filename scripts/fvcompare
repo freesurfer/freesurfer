@@ -62,7 +62,7 @@ goto check_params;
 check_params_return:
 
 #========================================================
-set cmd = (freeview )
+set cmd = (freeview --hide-3d-slices --view coronal)
 if($#pointset) set cmd = ($cmd -c $pointset)
 foreach vol ($vollist)
   foreach s ($snolist)
