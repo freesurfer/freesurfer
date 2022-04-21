@@ -142,7 +142,7 @@ install_configured(
   map_to_base
   meanval
   mergeseg
-  midefacer
+  mideface
   minc2seqinfo
   mkheadsurf
   mkima_index.tcl
