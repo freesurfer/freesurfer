@@ -584,6 +584,8 @@ int MRISwriteAreaError(MRI_SURFACE *mris, const char *name)
   FILE *fp;
   char fname[STRLEN];
 
+  strcpy(fname, name);
+
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) {
     fprintf(stdout, "writing area error file %s...", fname);
   }
@@ -786,6 +788,8 @@ int MRISwriteValues(MRI_SURFACE *mris, const char *sname)
     err = MRIwrite(TempMRI, sname);
     return (err);
   }
+
+  strcpy(fname, sname);
 
   cp = strrchr(fname, '.');
   if (!cp || *(cp + 1) != 'w') {
@@ -4433,6 +4437,8 @@ static int MRISwrite_new(MRI_SURFACE *mris, const char *name)
 
   chklc();
 
+  strcpy(fname, name);
+
   type = MRISfileNameType(fname);
   if (type == MRIS_ASCII_TRIANGLE_FILE) {
     return (MRISwriteAscii(mris, fname));
@@ -4558,6 +4564,8 @@ static int MRISwrite_old(MRI_SURFACE *mris, const char *name)
   char fname[STRLEN];
 
   chklc();
+
+  strcpy(fname, name);
 
   type = MRISfileNameType(fname);
   if (type == MRIS_ASCII_TRIANGLE_FILE) {
