@@ -694,28 +694,33 @@ MRI *mri_read(const char *fname, int type, int volume_flag, int start_frame, int
       free(mrifsStruct->imgM);
       free(mrifsStruct->tdti);
     }
-    else if (!UseDICOMRead2)
+    else if (!UseDICOMRead2){
       DICOMRead(fname_copy, &mri, volume_flag);
-    else
+      printf("mriio.cpp: starting DICOMRead()\n");
+    }
+    else{
       mri = DICOMRead2(fname_copy, volume_flag);
+      printf("mriio.cpp: starting DICOMRead2()\n");
+    }
   }
   else if (type == SIEMENS_DICOM_FILE) {
     if (UseDICOMRead3) {
+      printf("mriio.cpp: starting DICOMRead3()\n");
       MRIFSSTRUCT *mrifsStruct = DICOMRead3(fname_copy, volume_flag);
       if (mrifsStruct == NULL) 
 	return NULL;
-
       mri = niiReadFromMriFsStruct(mrifsStruct);
-
       free(mrifsStruct->imgM);
       free(mrifsStruct->tdti);
-    } else {
-    // mri_convert -nth option sets start_frame = nth.  otherwise -1
-    mri = sdcmLoadVolume(fname_copy, volume_flag, start_frame);
-    start_frame = -1;
-    // in order to avoid the later processing on start_frame and end_frame
-    // read the comment later on
-    end_frame = 0;
+    } 
+    else {
+      printf("mriio.cpp: starting sdcmLoadVolume()\n");
+      // mri_convert -nth option sets start_frame = nth.  otherwise -1
+      mri = sdcmLoadVolume(fname_copy, volume_flag, start_frame);
+      start_frame = -1;
+      // in order to avoid the later processing on start_frame and end_frame
+      // read the comment later on
+      end_frame = 0;
     }
   }
   else if (type == BRUKER_FILE) {
@@ -1837,6 +1842,8 @@ static MRI *siemensRead(const char *fname, int read_volume_flag)
   /* ----- stop compiler complaints ----- */
   mri = NULL;
   mosaic_size = 0;
+
+  printf("Starting siemensRead()\n");
 
   /* Check whether it is really a dicom file with ima extension*/
   if (IsDICOM(fname)) {

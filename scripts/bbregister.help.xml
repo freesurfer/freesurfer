@@ -126,6 +126,8 @@
       <explanation>turn off pass 1</explanation>
       <argument>--no-brute2</argument>
       <explanation>turn off brute force search on pass 2</explanation>
+      <argument>--include-zero-voxels</argument>
+      <explanation>Included zero-valued voxels in cost, including those outside of the FoV. </explanation>
       <argument>--surf surfname</argument>
       <explanation>change surface to surfname from ?h.white </explanation>
       <argument>--surf-cost basename</argument>

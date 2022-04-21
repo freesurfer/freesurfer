@@ -652,6 +652,34 @@ int LabelRipRestOfSurface(LABEL *area, MRI_SURFACE *mris)
   MRISremoveRipped(mris);
   return (NO_ERROR);
 }
+
+/*!
+  \fn int LabelRip(MRI_SURFACE *mris, const LABEL *area, const int Outside)
+  Use label to rip vertices and faces. Outside should be 0 or 1.
+  If Outside=1, then vertices outside the label are ripped.
+  If Outside=0, then vertices inside the label are ripped.
+ */
+int LabelRip(MRI_SURFACE *mris, const LABEL *area, const int Outside)
+{
+  int vno, n;
+  VERTEX *v;
+
+  // Make sure ripflag is set to a known value for all vertices
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    v->ripflag = Outside;
+  }
+  // Rip or unrip vertices in the label
+  for (n = 0; n < area->n_points; n++) {
+    vno = area->lv[n].vno;
+    if(vno < 0 || vno >= mris->nvertices) continue;
+    v = &mris->vertices[vno];
+    v->ripflag = !Outside;
+  }
+  // Now ripped the faces
+  MRISsetRipInFacesWithRippedVertices(mris);
+  return (NO_ERROR);
+}
 /*-----------------------------------------------------
         Parameters:
 
