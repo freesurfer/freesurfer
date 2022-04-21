@@ -45,6 +45,7 @@
 #include "mrisutils.h"
 #include "cma.h"
 #include "mri_identify.h"
+#include "mris_sphshapepvf.h"
 
 #ifdef _OPENMP
 #include "romp_support.h"
@@ -64,6 +65,79 @@ char *cmdline, cwd[2000];
 int debug=0;
 int checkoptsonly=0;
 struct utsname uts;
+
+/*!
+  MRI *MRISpaintSphere(MRIS *surf, LABEL *label, MRI *img)
+  This function is not used in this binary, this is just an ok place
+  to park it until I get around to improving it.  The way it works is
+  that you pass it a sphere with a label on the sphere. It then
+  samples the img in the area of the label, scaling to fit.  It uses
+  the phi/theta coords as an approx to a uniform grid.  It uses the
+  tkreg xyz to compute phi/theta which makes it dependent upon the
+  slicing of the volume used to create the sphere. Eg, the label may
+  be at the pole, which would be bad. This was used to create the
+  MIDEFACE label used as a watermark.
+ */
+MRI *MRISpaintSphere(MRIS *surf, LABEL *label, MRI *img)
+{
+  BasicSpherePVF bsph;
+
+  double tmin=10e10, tmax=-10e10, pmin=10e10, pmax=-10e10;
+  std::array<double,3> rtp;  
+  for(int n=0; n < label->n_points; n++){
+    int vtxno = label->lv[n].vno;
+    VERTEX *v = &(surf->vertices[vtxno]);
+    std::array<double,3> xyz = {v->x,v->z,v->y};
+    rtp = bsph.XYZ2RTP(xyz);
+    if(tmin > rtp[1]) tmin = rtp[1];
+    if(tmax < rtp[1]) tmax = rtp[1];
+    if(pmin > rtp[2]) pmin = rtp[2];
+    if(pmax < rtp[2]) pmax = rtp[2];
+  }
+  printf("range %g %g  %g %g\n",tmin,tmax,pmin,pmax);
+  MATRIX *vox2ras = MatrixIdentity(3,NULL);
+  vox2ras->rptr[1][1] = (pmax-pmin)/img->width;
+  vox2ras->rptr[2][2] = (tmax-tmin)/img->height;
+  vox2ras->rptr[1][3] = pmin;
+  vox2ras->rptr[2][3] = tmin;
+  MatrixPrint(stdout,vox2ras);
+  MATRIX *ras2vox = MatrixInverse(vox2ras,NULL);
+
+  MATRIX *ras = MatrixAlloc(3,1,MATRIX_REAL);
+  MATRIX *vox = NULL;
+  ras->rptr[3][1] = 1;
+  MRI *overlay = MRIallocSequence(surf->nvertices,1,1,MRI_FLOAT,img->nframes);
+  int vtxnodb = -1;
+  for(int n=0; n < label->n_points; n++){
+    int vtxno = label->lv[n].vno;
+    VERTEX *v = &(surf->vertices[vtxno]);
+    std::array<double,3> xyz = {v->x,v->z,v->y};
+    rtp = bsph.XYZ2RTP(xyz);
+    ras->rptr[1][1] = rtp[2];
+    ras->rptr[2][1] = rtp[1];
+    vox = MatrixMultiply(ras2vox,ras,vox);
+    int c = nint(vox->rptr[1][1]);
+    int r = nint(vox->rptr[2][1]);
+    if(vtxno == vtxnodb){
+      printf("%d (%g,%g,%g) %g %g  %d %d\n",vtxno,v->x,v->y,v->z,rtp[2],rtp[1],c,r);
+      fflush(stdout);
+    }
+    if(c < 0 || c >= img->width || r < 0 || r >= img->height){
+      MRIsetVoxVal(overlay,vtxno,0,0,0,0);
+      continue;
+    }
+    for(int f=0; f < img->nframes; f++){
+      double val = MRIgetVoxVal(img,c,r,0,f);
+      if(vtxno == vtxnodb){
+	printf("%d %g %g  %d %d val=%g\n",vtxno,rtp[2],rtp[1],c,r,val);
+	fflush(stdout);
+      }
+      MRIsetVoxVal(overlay,vtxno,0,0,f,val);
+    }
+  }
+
+  return(overlay);
+}
 
 class FsDefacer {
 public:
@@ -85,6 +159,8 @@ public:
   double FillConstIn=0,FillConstOut=0;
   int cPad=5, rPad=5, sPad=5;
   int nxmask = 0;
+  int DoRipple=0,rippleaxis=1;
+  double *ripplecenter=NULL,rippleperiod=20,rippleamp=1;
   int SegFace(void);
   int FaceIntensityStats(void);
   int SetDeltaDist(void);
@@ -94,6 +170,8 @@ public:
   MRI *Surf2VolProjFill(MRI *vol, double Dist, double FillVal);
   int PrintParams(FILE *fp);
   int PrintStats(FILE *fp);
+  int ripple(LABEL *label);
+  int watermark(LABEL *watermark, double dwatermark);
 };
 
 int FsDefacer::PrintParams(FILE *fp)
@@ -110,6 +188,11 @@ int FsDefacer::PrintParams(FILE *fp)
   fprintf(fp,"FillType    %d\n",FillType);
   fprintf(fp,"FillConstIn  %g\n",FillConstIn);
   fprintf(fp,"FillConstOut %g\n",FillConstOut);
+  fprintf(fp,"DoRipple     %d\n",DoRipple);
+  if(DoRipple){
+    fprintf(fp,"RippleAmp    %g\n",rippleamp);
+    fprintf(fp,"RipplePeriod %g\n",rippleperiod);
+  }
   fflush(fp);
   return(0);
 }
@@ -509,7 +592,53 @@ int FsDefacer::DistanceBounds(void)
 
   return(0);
 }
+int FsDefacer::ripple(LABEL *label)
+{
+  BasicSpherePVF sph;
+  MRIS *surf = tempsurf;
+  int nmax = surf->nvertices;
+  if(label) nmax = label->n_points;
+  for(int n=0; n < nmax; n++){
+    int vtxno;
+    if(label) vtxno = label->lv[n].vno;
+    else      vtxno = n;
+    VERTEX *v = &(surf->vertices[vtxno]);
+    double dx = v->x;
+    double dy = v->y;
+    double dz = v->z;
+    if(ripplecenter){
+      dx -= ripplecenter[0];
+      dy -= ripplecenter[1];
+      dz -= ripplecenter[2];
+    }
+    std::array<double,3> xyz = {dx,dy,dz};
+    std::array<double,3> rtp = sph.XYZ2RTP(xyz);
+    rtp[0] = rtp[0] + rippleamp*sin(2*M_PI*rtp[0]*rtp[rippleaxis]/rippleperiod);
+    xyz = sph.RTP2XYZ(rtp);
+    v->x = xyz[0];
+    v->y = xyz[1];
+    v->z = xyz[2];
+    if(ripplecenter){
+      v->x += ripplecenter[0];
+      v->y += ripplecenter[1];
+      v->z += ripplecenter[2];
+    }
+  }
+  return(0);
+}
 
+int FsDefacer::watermark(LABEL *watermark, double dwatermark)
+{
+  printf("Applying watermark %d\n",watermark->n_points);
+  for(int n=0; n < watermark->n_points; n++){
+    int vtxno = watermark->lv[n].vno;
+    VERTEX *v = &(tempsurf->vertices[vtxno]);
+    v->x += dwatermark*v->nx;
+    v->y += dwatermark*v->ny;
+    v->z += dwatermark*v->nz;
+  }
+  return(0);
+}
 
 char *involpath=NULL, *headmaskpath=NULL, *tempsurfpath=NULL;
 char *regpath=NULL,*xmaskpath=NULL;
@@ -521,6 +650,7 @@ char *watermarkpath = NULL;
 double dwatermark = 1;
 FsDefacer defacer;
 double DistInMinList[200],DistInMaxList[200],DistInMin=2,DistInMax=20;
+double DistInList[200];
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) 
@@ -553,25 +683,32 @@ int main(int argc, char *argv[])
   defacer.tempsurf->hemisphere = 3;
   defacer.headmask = MRIread(headmaskpath);
   if(defacer.headmask==NULL) exit(1);
+  err = MRIdimMismatch(defacer.invol, defacer.headmask, 0);
+  if(err){
+    printf("ERROR: dimension mismatch with headmask\n");
+    exit(1);
+  }
   if(xmaskpath){
     defacer.xmask = MRIread(xmaskpath);
     if(defacer.xmask==NULL) exit(1);
-  }
-
-  if(watermarkpath){
-    LABEL *watermark = LabelRead("",watermarkpath);
-    if(watermark == NULL) exit(1);
-    printf("Applying watermark %d\n",watermark->n_points);
-    for(int n=0; n < watermark->n_points; n++){
-      int vtxno = watermark->lv[n].vno;
-      VERTEX *v = &(defacer.tempsurf->vertices[vtxno]);
-      v->x += dwatermark*v->nx;
-      v->y += dwatermark*v->ny;
-      v->z += dwatermark*v->nz;
+    err = MRIdimMismatch(defacer.invol, defacer.xmask, 0);
+    if(err){
+      printf("ERROR: dimension mismatch with xmask\n");
+      exit(1);
     }
   }
 
+  if(watermarkpath){
+    // Raise the template surface in the watermark
+    LABEL *watermark = LabelRead("",watermarkpath);
+    if(watermark == NULL) exit(1);
+    printf("Applying watermark d=%g\n",dwatermark);
+    defacer.watermark(watermark,dwatermark);
+    LabelFree(&watermark);
+  }
+
   if(regpath){
+    // Generally not used
     printf("Applying reg %s to the template surface\n",regpath);
     LTA *lta = LTAread(regpath);
     if(lta==NULL) exit(1);
@@ -581,10 +718,12 @@ int main(int argc, char *argv[])
     MRISsmoothSurfaceNormals(defacer.tempsurf,10);
   }
 
+  // Create the output volume
   defacer.outvol = MRIallocSequence(defacer.invol->width, defacer.invol->height, 
     defacer.invol->depth, defacer.invol->type, defacer.invol->nframes);
   MRIcopyHeader(defacer.invol, defacer.outvol);
   MRIcopyPulseParameters(defacer.invol, defacer.outvol);
+  // Allocate the min and max surfaces (only used for display)
   defacer.minsurf = MRISclone(defacer.tempsurf);
   defacer.maxsurf = MRISclone(defacer.tempsurf);
 
@@ -596,22 +735,31 @@ int main(int argc, char *argv[])
   if(distboundspath) fpDLP = fopen(distboundspath,"w");
 
   for(int n=0; n < ntemplabelpathlist; n++){
+    // Set the distance bounds for each label separately
+    // Labels should be mutally exclusive
     if(defacer.templabel) LabelFree(&defacer.templabel);
     printf("===============================================\n");
     printf("Label %d %s %g %g\n",n,templabelpathlist[n],DistInMinList[n],DistInMaxList[n]);fflush(stdout);
     defacer.templabel = LabelRead("",templabelpathlist[n]);
+    if(defacer.DoRipple) {
+      // Apply ripple to the template surface in this label
+      printf("Applying ripple %g %g\n",defacer.rippleamp,defacer.rippleperiod);
+      defacer.ripple(defacer.templabel);
+    }
     defacer.DistInMin = DistInMinList[n];
     defacer.DistInMax = DistInMaxList[n];
     if(defacer.templabel==NULL) exit(1);
     defacer.DistanceBounds();
-    defacer.SegFace();
+    DistInList[n] = defacer.DistIn;
     printf("\n");
     if(distboundspath){
+      // Write the bounds into a file
       fprintf(fpDLP,"%2d %5d %6.4f %6.4f %6.4f %6.4f\n",n+1,defacer.templabel->n_points,
 	      defacer.DistInRaw,defacer.DistOutRaw,defacer.DistIn,defacer.DistOut);
       fflush(fpDLP);
     }
     if(distdatpath){
+      // This saves the distance for each vertex in a text file, probably not useful
       char tmpstr[2000];
       sprintf(tmpstr,"%s.label%02d.dat",distdatpath,n+1);
       FILE *fp = fopen(tmpstr,"w");
@@ -621,20 +769,30 @@ int main(int argc, char *argv[])
       }
       fclose(fp);
     }
+    // Now segment the face mask for this label using the distance bounds found above
+    defacer.SegFace();
     fflush(stdout);
   }
   if(distboundspath) fclose(fpDLP);
   printf("===============================================\n\n");
+
+  // Compute stats in each compartment
   defacer.FaceIntensityStats();
+
+  // Deface by filling in the face mask segmentatoin
   defacer.Deface();
 
+  // Save some handy stats
   defacer.PrintStats(stdout);
   if(statspath){
     FILE *fp = fopen(statspath,"w");
     defacer.PrintStats(fp);
+    for(int n=0; n < ntemplabelpathlist; n++)
+      fprintf(fp,"DistIn.%d %g\n",n+1,DistInList[n]);
     fclose(fp);
   }
 
+  // Write out a surface overlay of the distance at each vertex
   if(distoverlaypath){
     MRI *distoverlay = MRIcopyMRIS(NULL, defacer.tempsurf, 1, "valbak");
     distoverlay = MRIcopyMRIS(distoverlay, defacer.tempsurf, 0, "val");
@@ -687,6 +845,14 @@ static int parse_commandline(int argc, char **argv) {
     else if(!strcasecmp(option, "--debug"))   debug = 1;
     else if(!strcasecmp(option, "--checkopts"))   checkoptsonly = 1;
     else if(!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
+    else if(!strcasecmp(option, "--no-ripple")) defacer.DoRipple = 0;
+    else if(!strcasecmp(option, "--ripple")){
+      if(nargc < 2) CMDargNErr(option,2);
+      defacer.DoRipple = 1;
+      sscanf(pargv[0],"%lf",&defacer.rippleamp);
+      sscanf(pargv[1],"%lf",&defacer.rippleperiod);
+      nargsused = 2;
+    }
     else if(!strcasecmp(option, "--i")){
       if(nargc < 1) CMDargNErr(option,1);
       involpath = pargv[0];
