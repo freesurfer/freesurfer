@@ -713,3 +713,12 @@ void RenderView::TrimImageFiles(const QStringList &files)
     image.save(fn);
   }
 }
+
+void RenderView::SetParallelProjection(bool bParallel)
+{
+  vtkCamera* cam = GetCamera();
+  cam->SetParallelProjection(bParallel?1:0);
+  if (cam->GetParallelScale() == 1)
+    cam->SetParallelScale( qMax( qMax(m_dWorldSize[0], m_dWorldSize[1]), m_dWorldSize[2])/2 );
+  Render();
+}

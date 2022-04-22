@@ -286,6 +286,7 @@ int main(int argc, char *argv[])
     "'Zoom' Same as 'Dolly'.\n\n"
     "Note that the order matters!\n\n"
     "For example: '-cam dolly 1.5 azimuth 30' will zoom in the camera by 1.5 times and then rotate it along the view up vector by 30 degrees.\n", 2, 1000 ),
+    CmdLineEntry( CMD_LINE_SWITCH, "orthographic", "orthographic", "", "Set orthographic projection for 3D view." ),
     CmdLineEntry( CMD_LINE_OPTION, "ras", "ras", "<X> <Y> <Z> [Option]", "Set cursor location at the given RAS coordinate. If option is given as 'tkreg', the entered coordinate is in tkreg coordinate.", 3, 4 ),
     CmdLineEntry( CMD_LINE_OPTION, "slice", "slice", "<X> <Y> <Z>", "Set cursor location at the given slice numbers of the first loaded volume.", 3, 3 ),
     CmdLineEntry( CMD_LINE_SWITCH, "cc", "center-at-cursor", "", "Center the view at cursor location." ),
