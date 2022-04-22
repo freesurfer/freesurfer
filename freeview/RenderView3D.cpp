@@ -1686,6 +1686,13 @@ void RenderView3D::TriggerContextMenu( QMouseEvent* event )
       menu->addAction(act);
     }
   }
+
+  act = new QAction("Orthographic View", this);
+  act->setCheckable(true);
+  act->setChecked(GetCamera()->GetParallelProjection());
+  connect(act, SIGNAL(toggled(bool)), SLOT(SetParallelProjection(bool)));
+  menu->addSeparator();
+  menu->addAction(act);
   menu->exec(event->globalPos());
 }
 
@@ -1759,7 +1766,7 @@ void RenderView3D::SetCamera(const QVariantMap &info)
   }
 }
 
-QVariantMap RenderView3D::GetCamera()
+QVariantMap RenderView3D::GetCameraInfo()
 {
   QVariantMap info;
   vtkCamera* cam = m_renderer->GetActiveCamera();
