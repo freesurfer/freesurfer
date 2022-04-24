@@ -321,6 +321,11 @@ void WidgetHistogram::paintEvent(QPaintEvent* event)
     for ( int i = 0; i < m_markers.size(); i++ )
     {
       LineMarker lm = m_markers[i];
+      if (m_bSymmetricMarkers && lm.position < 0)
+      {
+        lm.position = -lm.position;
+        m_markers[i] = lm;
+      }
       DrawMarker(&painter, lm);
       if ( m_bSymmetricMarkers )
       {
