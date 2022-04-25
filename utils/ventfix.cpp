@@ -263,19 +263,21 @@ MRI* VentFix::ExpandSegIndices(MRI *seg, int segid, MRI *ocn, int niters, int nm
 }
 
 /*!
-\fn MRI* relabelSegANeighboringSegB(MRI *asegVol, int segA, int topo, int segB, int newsegid, fsPointSet *centroid)
-\brief relabel clusters in aseg.presurf.mgz if any voxel has neighbors meeting the topology constraint
+\fn MRI* relabelSegANeighboringSegB(MRI *asegVol, int adjseg, int segA, int topo, int segB, int newsegid, fsPointSet *centroid)
+\brief relabel clusters in aseg.presurf.mgz that are adjacent to given segment and if any voxel has neighbors meeting the topology constraint
 \param asegVol    - input aseg.presurf.mgz
+\param adjseg     - input adjacent segment, if adjseg = -1, skip adjacent check
 \param segA       - input clusters that we are looking to replace their values
 \param topo       - input topology constraint, 1=face neighbors only, 2=face neighbors + edge neighbors only, 3=face neighbors + edge neighbors + corner neighbors
 \param segB       - input clusters that are neighboring segA with topo constraint 
 \param newsegid   - input new segid that will be used to relabel clusters segA if conditions are met
 \param centroid   - output point set of centroid for all the clusters changed
 */
-MRI* VentFix::relabelSegANeighboringSegB(MRI *asegVol, int segA, int topo, int segB, int newsegid, fsPointSet *centroid)
+MRI* VentFix::relabelSegANeighboringSegB(MRI *asegVol, int adjseg, int segA, int topo, int segB, int newsegid, fsPointSet *centroid)
 {
   // 1. create clusters for voxels with segA in asegVol
-  // 2. if the cluster has any voxel with a face neighboring voxel of a certain segid (eg, 2 = left cortex)
+  // 2a. if the cluster is adjacent to adjseg, check 2b
+  // 2b. if the cluster has any voxel with a face neighboring voxel of a certain segid (eg, 2 = left cortex)
   //      replace the value in such clusters with a given value (newsegid)
   // 3. create a point set of the centroid for all the clusters changed
 
@@ -300,6 +302,14 @@ MRI* VentFix::relabelSegANeighboringSegB(MRI *asegVol, int segA, int topo, int s
   for (nthvc = 0; nthvc < nClusters; nthvc++)
   {
     VOLCLUSTER *vc = ClusterList[nthvc];
+
+    if (adjseg > 0)
+    {
+      // neighboring adjseg with all three topology contraints
+      int adjCortex = hasneighbor(asegVol, vc, adjseg, 3);
+      if (!adjCortex)
+        continue;
+    }
 
     int hassegB = hasneighbor(asegVol, vc, segB, topo);
 

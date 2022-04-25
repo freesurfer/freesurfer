@@ -1085,6 +1085,8 @@ int DTIbvecChangeSpace(MRI *vol, int desired_bvec_space)
   int b, i, f;
   MATRIX *Mdc, *M, *bvec;
 
+  printf("DTIbvecChangeSpace(): %d %d\n",vol->bvec_space,desired_bvec_space);
+
   b = desired_bvec_space;
   if (vol->bvecs == NULL) {
     printf("ERROR: DTIbvecChangeSpace(): bvec is NULL\n");

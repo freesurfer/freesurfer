@@ -268,11 +268,11 @@ add_subdirectory(packages)
 option(DISTRIBUTE_FSPYTHON "Include the fspython distribution in the installation" OFF)
 
 if(DISTRIBUTE_FSPYTHON)
-  set(FSPYTHON_DIR ${FS_PACKAGES_DIR}/fspython/3.6)
+  set(FSPYTHON_DIR ${FS_PACKAGES_DIR}/fspython/3.8)
   if(EXISTS ${FSPYTHON_DIR}/bin/python3)
     # specify the python to use
     set(PYTHON_EXECUTABLE ${FSPYTHON_DIR}/bin/python3)
-    set(PYTHON_LIBRARY ${FSPYTHON_DIR}/lib/libpython3.6m)
+    set(PYTHON_LIBRARY ${FSPYTHON_DIR}/lib/libpython3.8m)
     # install the barebones python distribution
     INSTALL(DIRECTORY ${FSPYTHON_DIR}/bin ${FSPYTHON_DIR}/lib ${FSPYTHON_DIR}/include
       DESTINATION ${CMAKE_INSTALL_PREFIX}/python USE_SOURCE_PERMISSIONS
@@ -283,7 +283,7 @@ if(DISTRIBUTE_FSPYTHON)
 endif()
 
 # initialize pybind for python wrapping
-set(PYBIND11_PYTHON_VERSION 3.5)
+set(PYBIND11_PYTHON_VERSION 3.6)
 add_subdirectory(packages/pybind11)
 
 if(NOT DISTRIBUTE_FSPYTHON)

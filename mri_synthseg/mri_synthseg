@@ -196,8 +196,7 @@ def predict(path_images,
         except Exception as e:
             print('\nthe following problem occured when preprocessing image %s :' % path_image)
             print(e)
-            print('resuming program execution\n')
-            continue
+            sys.exit(1)
 
         # prediction
         try:
@@ -206,8 +205,7 @@ def predict(path_images,
         except Exception as e:
             print('\nthe following problem occured when predicting segmentation of image %s :' % path_image)
             print(e)
-            print('\nresuming program execution')
-            continue
+            sys.exit(1)
 
         # postprocessing
         try:
@@ -216,8 +214,7 @@ def predict(path_images,
         except Exception as e:
             print('\nthe following problem occured when postprocessing segmentation %s :' % path_segmentation)
             print(e)
-            print('\nresuming program execution')
-            continue
+            sys.exit(1)
 
         # write results to disk
         try:
@@ -227,8 +224,7 @@ def predict(path_images,
         except Exception as e:
             print('\nthe following problem occured when saving the results for image %s :' % path_image)
             print(e)
-            print('\nresuming program execution')
-            continue
+            sys.exit(1)
 
         # compute volumes
         try:
@@ -250,8 +246,7 @@ def predict(path_images,
             print('\nthe following problem occured when computing the volumes of '
                   'segmentation %s :' % path_segmentation)
             print(e)
-            print('\nresuming program execution')
-            continue
+            sys.exit(1)
 
     # print output info
     if unique_vol_file:
