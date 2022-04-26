@@ -431,7 +431,8 @@ int mriio_command_line(int argc, char *argv[])
   /* --- space for spaces and \0 --- */
   length += argc;
 
-  command_line = (char *)malloc(length);
+  /* command_line = (char *)malloc(length); */
+  command_line = (char *)malloc((unsigned int)length);
 
   c = command_line;
   for (i = 0; i < argc; i++) {
