@@ -1,7 +1,9 @@
 project(utils)
 
 # ATH: temporarily turning off this warning in mrisurf_defect.cpp
-add_compile_options(-Wno-for-loop-analysis)
+if(NOT HOST_OS MATCHES "Ubuntu20")
+   add_compile_options(-Wno-for-loop-analysis)
+endif()
 
 # configure cmake version macros
 file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/include)
