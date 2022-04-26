@@ -94,12 +94,12 @@ fsPointSet loadfsPointSet(std::string filename)
   return ps;
 }
 
-int fsPointSet::writeCentroidTable(std::string outfile,std::string ltafile)
+bool fsPointSet::writeCentroidTable(std::string outfile,std::string ltafile)
 {  
   std::ofstream tablefile(outfile);
   if (!tablefile.is_open()) {
     std::cerr << "could not open writable file at " << outfile << std::endl;
-    exit(1);
+    return(false);
   }
   std::cout << "writing results to " << outfile << std::endl;
 
@@ -151,5 +151,5 @@ int fsPointSet::writeCentroidTable(std::string outfile,std::string ltafile)
 
   tablefile.close();
 
-  return 0;
+  return true;
 }

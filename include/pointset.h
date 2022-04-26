@@ -102,7 +102,7 @@ public:
   void remove(int index) { points.erase(points.begin() + index); }
   Point& operator[](int index) { return points[index]; }
 
-  int writeCentroidTable(std::string outfile,std::string ltafile);
+  bool writeCentroidTable(std::string outfile,std::string ltafile);
 
   // let's support iteration as well
   typedef std::vector<Point>::iterator iterator;
