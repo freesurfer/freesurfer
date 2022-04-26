@@ -201,7 +201,7 @@ int main(int argc, char **argv) {
 
 
   std::map<int, Centroid> centroids;
-  int numids, label_chars, id_chars, valid_id;
+  int numids, label_chars, id_chars;
   char char_name[500];
   double x, y, z, wx, wy, wz, weight;
   float fx, fy, fz;
@@ -219,7 +219,7 @@ int main(int argc, char **argv) {
 
     // get label name from color table
     if (ctab) {
-      CTABisEntryValid(ctab, centroid.id, &valid_id);
+      bool valid_id = CTABhasEntry(ctab, centroid.id);
       if (!valid_id) {
         std::cerr << "WARNING: cannot find ID " << centroid.id
                   << " in " << input.ctabfile << "... ignoring this label\n";

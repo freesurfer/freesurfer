@@ -1268,6 +1268,18 @@ int CTABisEntryValid(COLOR_TABLE *ct, int index, int *valid)
 }
 
 /*-------------------------------------------------------------------
+This is a safer version of CTABisEntryValid that actually returns the
+correct answer. I'm not fixing CTABisEntryValid since it's used in a lot
+of places and I don't want to break any logic.
+  ----------------------------------------------------------------*/
+bool CTABhasEntry(COLOR_TABLE *ct, int index)
+{
+  if (NULL == ct) return false;
+  if (index < 0 || index >= ct->nentries) return false;
+  return (NULL != ct->entries[index]);
+}
+
+/*-------------------------------------------------------------------
   ----------------------------------------------------------------*/
 int CTABrgbAtIndexi(COLOR_TABLE *ct, int index, int *r, int *g, int *b)
 {
