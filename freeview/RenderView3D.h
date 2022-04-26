@@ -117,7 +117,7 @@ public:
 
   void ShowSlice(int nPlane, bool bshow);
 
-  QVariantMap GetCamera();
+  QVariantMap GetCameraInfo();
 
   void SetCamera(const QVariantMap& cam);
 

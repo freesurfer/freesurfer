@@ -1283,6 +1283,9 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
     this->AddScript( QStringList("view") << sa[0]);
   }
 
+  if ( parser->Found("orthographic"))
+    AddScript(QStringList("setorthographic"));
+
   if ( parser->Found( "zoom", &sa ) )
   {
     bool bOK;
@@ -1867,6 +1870,10 @@ void MainWindow::RunScript()
   else if ( cmd == "settrackrender")
   {
     CommandSetTrackRender( sa );
+  }
+  else if (cmd == "setorthographic")
+  {
+    m_views[3]->SetParallelProjection(true);
   }
   else if ( cmd == "screenshot" )
   {
@@ -8902,7 +8909,7 @@ void MainWindow::OnToolSaveCamera()
   QString fn = QFileDialog::getSaveFileName(this, "Save Camera", m_strLastDir, "All files (*)");
   if (!fn.isEmpty())
   {
-    QVariantMap cam = ui->view3D->GetCamera();
+    QVariantMap cam = ui->view3D->GetCameraInfo();
     QFile file(fn);
     if (file.open(QIODevice::WriteOnly))
     {
