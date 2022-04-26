@@ -31,12 +31,14 @@ bool fsPointSet::save(std::string filename)
     jsonfile << "                \"z\": " << point.z << "\n";
     jsonfile << "            },\n";
     jsonfile << "            \"legacy_stat\": 1\n";
+#if 0
+    // Currently, this breaks loading into freeview
     if(point.labelname.length()>0)
       jsonfile << "            \"labelname\": \"" << point.labelname << "\"\n";
     jsonfile << "            \"index\": " << point.index << "\n";
     jsonfile << "            \"value\": " << point.value << "\n";
     jsonfile << "            \"count\": " << point.count << "\n";
-    
+#endif    
     // the Qt json loader requires EXACT comma syntax
     if (&point == &points.back()) {
       jsonfile << "        }\n";
