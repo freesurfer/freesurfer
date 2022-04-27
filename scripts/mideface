@@ -25,32 +25,15 @@ set FillConstIn = ()
 set FillConstOut = ()
 set DoEars = 1;
 set DoForehead = 0;
+set DoBackOfHead = 1
 set DoPics = 0
 set SubjCode = ()
 set PicAnnot = ()
-set DoRipple = 1
+set DoRipple = 0
 set RippleAmp = 1.5
 set RipplePeriod = 30
-
-#set atlasdir = /autofs/space/sulc_001/users/faceseg/atlas/subjects/defacing-atlas
-set atlasdir = $FREESURFER/average/mideface-atlas
-set ctab = $atlasdir/deface.ctab
-set templatesurf = $atlasdir/average.head.dec44.us7.remesh3.surf
-set templatevol = $atlasdir/average.head.mgz
-set atlas2samseglta = $atlasdir/reg.samseg-default.lta
-set templateface = $atlasdir/average.face.dec44.us7.remesh3.label
-set upperfacenoeyes = $atlasdir/average.face.upper.no-eyes.dec44.us7.remesh3.label
-set upperfacenoeyesnose = $atlasdir/average.face.upper.no-eyes.no-nose.dec44.us7.remesh3.label
-set nose = $atlasdir/average.face.nose.dec44.us7.remesh3.label
-set lowerface = $atlasdir/average.face.lower.dec44.us7.remesh3.label
-set watermark = $atlasdir/watermark.dec44.us7.remesh3.label
-set watermark = $atlasdir/mideface.watermark.dec44.us7.remesh3.label
-set earleft  = $atlasdir/average.face.ear.left.dec44.us7.remesh3.label
-set earright = $atlasdir/average.face.ear.right.dec44.us7.remesh3.label
-set eyes  = $atlasdir/average.face.eyes.dec44.us7.remesh3.label
-set forehead  = $atlasdir/average.face.forehead.dec44.us7.remesh3.label
 set dwatermark = 5;
-set bbrface = $atlasdir/average.face.upper.dec44.us7.remesh3.label
+set atlasdir = ()
 
 set tmpdir = ();
 set cleanup = 1;
@@ -77,6 +60,25 @@ goto parse_args;
 parse_args_return:
 goto check_params;
 check_params_return:
+
+if($#atlasdir == 0) set atlasdir = $FREESURFER/average/mideface-atlas
+set ctab = $atlasdir/deface.ctab
+set templatesurf = $atlasdir/average.head.dec44.us7.remesh3.ripple.surf
+set templatevol = $atlasdir/average.head.mgz
+set atlas2samseglta = $atlasdir/reg.samseg-default.lta
+set templateface = $atlasdir/average.face.dec44.us7.remesh3.label
+set upperfacenoeyes = $atlasdir/average.face.upper.no-eyes.dec44.us7.remesh3.label
+set upperfacenoeyesnose = $atlasdir/average.face.upper.no-eyes.no-nose.dec44.us7.remesh3.label
+set nose = $atlasdir/average.face.nose.dec44.us7.remesh3.label
+set lowerface = $atlasdir/average.face.lower.dec44.us7.remesh3.label
+set watermark = $atlasdir/watermark.dec44.us7.remesh3.label
+set watermark = $atlasdir/mideface.watermark.dec44.us7.remesh3.label
+set earleft  = $atlasdir/average.face.ear.left.dec44.us7.remesh3.label
+set earright = $atlasdir/average.face.ear.right.dec44.us7.remesh3.label
+set eyes  = $atlasdir/average.face.eyes.dec44.us7.remesh3.label
+set forehead  = $atlasdir/average.face.forehead.dec44.us7.remesh3.label
+set backofhead  = $atlasdir/average.back-of-head.dec44.us7.remesh3.label
+set bbrface = $atlasdir/average.face.upper.dec44.us7.remesh3.label
 
 set labellist = ($lowerface $upperfacenoeyesnose $nose $eyes)
 
@@ -260,8 +262,9 @@ if($ud || $ForceUpdate) then
   foreach label ($labellist)
     set cmd = ($cmd --l $label)
   end
-  if($DoEars)     set cmd = ($cmd  --l $earleft  2 3 --l $earright 2 3)
-  if($DoForehead) set cmd = ($cmd  --l $forehead 2 3);
+  if($DoEars)       set cmd = ($cmd  --l $earleft  2 3 --l $earright 2 3)
+  if($DoForehead)   set cmd = ($cmd  --l $forehead 2 3);
+  if($DoBackOfHead) set cmd = ($cmd  --l $backofhead 2 3);
 
   if($#xmask) set cmd = ($cmd --xmask $xmask)
   echo $cmd | tee -a $LF
@@ -346,8 +349,8 @@ endif
 # Make a command line for viewing
 set cmd = (fsvglrun freeview $invol $outvol --hide-3d-slices -viewport 3d \
   -f ${headsurf}:edgecolor=yellow \
-  -f ${templatesurfsubj}:edgecolor=magenta:visible=0:lock=1\
-  -f ${minsurf}:edgecolor=blue:visible=0:lock=1 ${maxsurf}:edgecolor=cyan:visible=0:lock=1)
+  -f ${templatesurfsubj}:edgecolor=magenta:visible=0:lock=1)
+#  -f ${minsurf}:edgecolor=blue:visible=0:lock=1 ${maxsurf}:edgecolor=cyan:visible=0:lock=1
 if($DoPostHeadSurf) set cmd = ($cmd -f ${postheadsurf}:edgecolor=red:visible=0)
 echo ""  |tee -a $LF
 echo $cmd  |tee -a $LF
@@ -421,6 +424,7 @@ while( $#argv != 0 )
     case "--odir":
       if($#argv < 1) goto arg1err;
       set outdir = $argv[1]; shift;
+      set DoPostHeadSurf = 1
       breaksw
 
     case "--i":
@@ -443,6 +447,15 @@ while( $#argv != 0 )
       if($#argv < 1) goto arg1err;
       set NSynthSegDil = $argv[1]; shift;
       set DoSynthSeg = 1
+      breaksw
+
+    case "--atlas":
+      if($#argv < 1) goto arg1err;
+      set atlasdir = $argv[1]; shift;
+      if(! -e $atlasdir) then
+        echo "ERROR: cannot find $atlasdir"
+        exit 1;
+      endif
       breaksw
 
     case "--force":
@@ -471,6 +484,13 @@ while( $#argv != 0 )
       breaksw
     case "--no-forehead":
       set DoForehead = 0
+      breaksw
+
+    case "--back-of-head":
+      set DoBackOfHead = 1
+      breaksw
+    case "--no-back-of-head":
+      set DoBackOfHead = 0
       breaksw
 
     case "--pics":
@@ -582,7 +602,6 @@ if($#outdir) then
     set LF = $outdir/log/midefacer.log
     if(-e $LF) mv $LF $outdir/log/midefacer.$$.log
   endif
-  set DoPostHeadSurf = 1
   set cleanup = 0
 endif
 
@@ -619,18 +638,20 @@ usage_exit:
   echo " --i volume to deface"
   echo " --o defaced input"
   echo " --facemask facemask"
-  echo " --odir outputdir "
+  echo " --odir outputdir (turns on PostHeadSurf)"
   echo " --xmask xmask (exclusion mask)"
   echo " --xmask-synthseg ndilations : segment input using synthseg"
-  echo " --threads nthreads"
   echo " --fill-const constIn constOut"
   echo " --fill-zero"
   echo " --no-ears : do not include ears in the defacing"
+  echo " --no-back-of-head : do not include back of head in the defacing"
   echo " --forehead : include forehead in the defacing (risks removing brain)"
-  echo " --pics : do not take pics"
+  echo " --pics : take pics (--no-pics)"
   echo " --code codename : embed codename in pics"
-  echo " --force : force reprocessing (not applicable if --odir has not been used)"
   echo " --no-post : do not make a head surface after defacing"
+  echo " --atlas atlasdir"
+  echo " --threads nthreads"
+  echo " --force : force reprocessing (not applicable if --odir has not been used)"
   echo ""
 
   if(! $PrintHelp) exit 1;
