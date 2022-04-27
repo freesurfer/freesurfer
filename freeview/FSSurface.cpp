@@ -300,7 +300,7 @@ bool FSSurface::InitializeData(const QString &vector_filename,
   }
   else if ( !m_MRIS->useRealRAS && m_volumeRef )
   {
-    MATRIX* m = RASFromSurfaceRAS_( m_volumeRef->GetMRI());
+    MATRIX* m = RASFromSurfaceRAS_( m_volumeRef->GetMRI(),NULL);
     for ( int i = 0; i < 16; i++ )
     {
       m_SurfaceToRASMatrix[i] =

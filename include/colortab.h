@@ -115,6 +115,9 @@ int CTABgetNumberOfTotalEntries(COLOR_TABLE *ct, int *num);
 /* Returns whether or not an entry is valid. */
 int CTABisEntryValid(COLOR_TABLE *ct, int index, int *valid);
 
+/* Returns whether or not an entry is valid, but better than the above.*/
+bool CTABhasEntry(COLOR_TABLE *ct, int index);
+
 /* Returns the integer or floating point color values or color + alpha
    at a given index. Returns an error code if the index is out of
    bounds. */

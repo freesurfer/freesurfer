@@ -346,6 +346,8 @@ static int conformed = 0 ;
 static int old_type ;
 int CopyOnly = 0;
 char *rusage_file=NULL;
+double xthresh=0;
+int xthreshset=0;
 
 #ifndef __OPTIMIZE__
 // this routine is slow and should be used only for diagnostics
@@ -739,6 +741,13 @@ get_option(int argc, char *argv[],STRIP_PARMS *parms)
     parms->manual_TRANSITION_intensity=atoi(argv[3]);
     parms->manual_GM_intensity=atoi(argv[4]);
     nargs=3;
+  }
+  else if (!strcmp(option, "xthresh"))
+  {
+    sscanf(argv[2],"%lf",&xthresh);
+    fprintf(stdout,"Removing voxels above threshold of %g from final mask\n",xthresh) ;
+    xthreshset=1;
+    nargs=1;
   }
   else if (!strcmp(option, "keep"))
   {
@@ -1210,6 +1219,24 @@ int main(int argc, char *argv[])
   mri_mask = mri_without_skull ;
 
   //-------------------------------------------------------------------
+
+  if(xthreshset){
+    printf("Removing voxels over %g\n",xthresh);
+    int nremoved=0;
+    for(int c=0; c < mri_without_skull->width; c++){
+      int r,s;
+      for(r=0; r < mri_without_skull->height; r++){
+	for(s=0; s < mri_without_skull->depth; s++){
+	  double v = MRIgetVoxVal(mri_without_skull,c,r,s,0);
+	  if(v < xthresh) continue;
+	  MRIsetVoxVal(mri_without_skull,c,r,s,0,0);
+	  nremoved++;
+	}
+      }
+    }
+    printf("Removed %d voxels\n",nremoved);
+  }
+
   fprintf(stdout,"\n\n******************************\nSaving %s\n", out_fname);
   fflush(stdout);
 
@@ -1275,12 +1302,12 @@ int main(int argc, char *argv[])
 
   free(parms);
   // Print usage stats to the terminal (and a file is specified)
-  PrintRUsage(RUSAGE_SELF, "mri_watershed ", stdout);
+  //PrintRUsage(RUSAGE_SELF, "mri_watershed ", stdout);
   if(rusage_file) WriteRUsage(RUSAGE_SELF, "", rusage_file);
 
   printf("mri_watershed done\n");
   return 0;
-}
+} // done main
 
 
 /*-----------------------------------------------------
