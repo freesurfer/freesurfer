@@ -474,7 +474,19 @@ MATRIX *TkrRAS2VoxfromVolGeom(const VOL_GEOM *vg)
   mat = MatrixInverse(mat, mat);
   return (mat);
 }
-
+/*
+ \fn MATRIX *VGtkreg2RAS(VOL_GEOM *vg, MATRIX *tkreg2ras)
+ \brief Returns a matrix that converts from tkreg coords to ras
+*/
+MATRIX *VGtkreg2RAS(VOL_GEOM *vg, MATRIX *tkreg2ras)
+{
+  // Create a dummy MRI
+  MRI *mri = MRIallocFromVolGeom(vg, MRI_INT, 1, 1);
+  // Extract the matrix from the MRI
+  tkreg2ras = RASFromSurfaceRAS_(mri,tkreg2ras);
+  MRIfree(&mri);
+  return(tkreg2ras);
+}
 int vg_isEqual(const VOL_GEOM *vg1, const VOL_GEOM *vg2)
 {
   int rt;
