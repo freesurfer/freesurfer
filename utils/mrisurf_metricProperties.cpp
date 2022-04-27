@@ -2475,7 +2475,7 @@ int MRIStransform(MRIS *mris, MRI *mri, TRANSFORM *transform, MRI *mri_dst)
         surfaceRASFromSurfaceRAS = MatrixCopy(lta->xforms[0].m_L, NULL);
       }
       else {
-        RASFromSurfaceRAS = RASFromSurfaceRAS_(mri);      // needs only c_(ras) info
+        RASFromSurfaceRAS = RASFromSurfaceRAS_(mri,NULL);      // needs only c_(ras) info
         surfaceRASFromRAS = surfaceRASFromRAS_(mri_dst);  // need only c_(ras) info
         m = MatrixMultiply(lta->xforms[0].m_L, RASFromSurfaceRAS, NULL);
         surfaceRASFromSurfaceRAS = MatrixMultiply(surfaceRASFromRAS, m, NULL);

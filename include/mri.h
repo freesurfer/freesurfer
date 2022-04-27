@@ -910,9 +910,9 @@ MRI   *MRIresize(MRI *mri, double xsize, double ysize, double zsize, int nframes
 MATRIX *surfaceRASFromVoxel_(MRI *mri);
 MATRIX *voxelFromSurfaceRAS_(MRI *mri);
 MATRIX *surfaceRASFromRAS_(MRI const *mri);
-MATRIX *RASFromSurfaceRAS_(MRI const *mri);
+MATRIX *RASFromSurfaceRAS_(MRI const *mri, MATRIX *RASFromSRAS);
 
-  int MRIscannerRASToVoxel(MRI *mri, double xr, double yr, double zr, double *xv, double *yv, double *zv);
+int MRIscannerRASToVoxel(MRI *mri, double xr, double yr, double zr, double *xv, double *yv, double *zv);
 int MRIvoxelToSurfaceRAS(MRI *mri, double xv, double yv, double zv,
                          double *xs, double *ys, double *zs);
 int MRIsurfaceRASToVoxel(MRI *mri, double xr, double yr, double zr,
