@@ -474,7 +474,19 @@ MATRIX *TkrRAS2VoxfromVolGeom(const VOL_GEOM *vg)
   mat = MatrixInverse(mat, mat);
   return (mat);
 }
-
+/*
+ \fn MATRIX *VGtkreg2RAS(VOL_GEOM *vg, MATRIX *tkreg2ras)
+ \brief Returns a matrix that converts from tkreg coords to ras
+*/
+MATRIX *VGtkreg2RAS(VOL_GEOM *vg, MATRIX *tkreg2ras)
+{
+  // Create a dummy MRI
+  MRI *mri = MRIallocFromVolGeom(vg, MRI_INT, 1, 1);
+  // Extract the matrix from the MRI
+  tkreg2ras = RASFromSurfaceRAS_(mri,tkreg2ras);
+  MRIfree(&mri);
+  return(tkreg2ras);
+}
 int vg_isEqual(const VOL_GEOM *vg1, const VOL_GEOM *vg2)
 {
   int rt;
@@ -3899,7 +3911,7 @@ LTA *LTAchangeType(LTA *lta, int ltatype)
           m_L = lt->m_L;
           mri_tmp = MRIallocHeader(lt->dst.width, lt->dst.height, lt->dst.depth, MRI_UCHAR, 1);
           MRIcopyVolGeomToMRI(mri_tmp, &lt->dst);
-          m_sras2ras = RASFromSurfaceRAS_(mri_tmp);
+          m_sras2ras = RASFromSurfaceRAS_(mri_tmp,NULL);
           m_L = MatrixMultiply(m_sras2ras, m_L, m_L);
           MatrixFree(&m_sras2ras);
           MRIfree(&mri_tmp);
@@ -4003,7 +4015,7 @@ MATRIX *surfaceRASFromSurfaceRAS_(MRI *dst, MRI *src, LTA *lta)
     LTAchangeType(lta, LINEAR_RAS_TO_RAS);
   }
   if (lta->type == LINEAR_RAS_TO_RAS) {
-    surf2src = RASFromSurfaceRAS_(src);
+    surf2src = RASFromSurfaceRAS_(src,NULL);
     dst2surf = surfaceRASFromRAS_(dst);
   }
   else if (lta->type == LINEAR_VOX_TO_VOX) {
