@@ -269,10 +269,17 @@ MRI* VentFix::ExpandSegIndices(MRI *seg, int segid, MRI *ocn, int niters, int nm
 \param segA       - input clusters that we are looking to replace their values
 \param topo       - input topology constraint, 1=face neighbors only, 2=face neighbors + edge neighbors only, 3=face neighbors + edge neighbors + corner neighbors
 \param segB       - input clusters that are neighboring segA with topo constraint 
-\param newsegid   - input optional, new segids that will be used to relabel clusters segA if conditions are met; if newsegid == NULL, segB will be used
+\param newsegid   - input optional, ndwsegid needs to have the same size as segB, new segids that will be used to relabel clusters segA if conditions are met; 
+                    if newsegid == NULL, segB will be used
+\param numSegs    - input number of elements in segB and newsegid
 \param centroid   - output point set of centroid for all the clusters changed
+Example:
+  fsPointSet centroid;
+  int segB[2] = {3, 42};
+  int numSegs = 2;
+  MRI *newseg = VentFix::relabelSegANeighboringSegB(asegVol, segA, topo, segB, NULL, numSegs, &centroid);
 */
-MRI* VentFix::relabelSegANeighboringSegB(MRI *asegVol, int segA, int topo, int *segB, int *newsegid, fsPointSet *centroid)
+MRI* VentFix::relabelSegANeighboringSegB(MRI *asegVol, int segA, int topo, int *segB, int *newsegid, int numSegs, fsPointSet *centroid)
 {
   // 1. create clusters for voxels with segA in asegVol
   // 2. if the cluster has any voxel neighboring segB (eg, 3 = left cortex, 42 = right cortex) with topo constraint
@@ -301,7 +308,7 @@ MRI* VentFix::relabelSegANeighboringSegB(MRI *asegVol, int segA, int topo, int *
   {
     VOLCLUSTER *vc = ClusterList[nthvc];
 
-    int idx = hasneighbor(asegVol, vc, segB, topo);
+    int idx = hasneighbor(asegVol, vc, segB, numSegs, topo);
 
     if (idx >= 0)
     {
@@ -327,11 +334,11 @@ MRI* VentFix::relabelSegANeighboringSegB(MRI *asegVol, int segA, int topo, int *
 // check if any voxel in the given cluster has a neighbor with newsegid value and meets the topology constraint
 // return -1 if given cluster has no voxel neighboring segB;
 // otherwise, return the array index that meets the conditions 
-int VentFix::hasneighbor(MRI* asegps, VOLCLUSTER *vc, int *segB, int topo)
+int VentFix::hasneighbor(MRI* asegps, VOLCLUSTER *vc, int *segB, int numSegs, int topo)
 {
   int segIdx = -1;
 
-  int numSegs = sizeof(segB)/sizeof(int);
+  //int numSegs = sizeof(segB)/sizeof(int);
   //printf("no. segments: %d\n", numSegs);
   
   int n;
