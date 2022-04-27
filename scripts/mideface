@@ -589,6 +589,27 @@ while( $#argv != 0 )
       set RipplePeriod = $argv[1]; shift;
       breaksw
 
+    case "--apply":
+      if($#argv < 4) goto arg4err;
+      set vol = $argv[1]; shift;
+      set facemask = $argv[1]; shift;
+      set reg = $argv[1]; shift;
+      set output = $argv[1]; shift;
+      set udreg = $reg
+      if($reg == regheader) set udreg = ()
+      set ud = `UpdateNeeded $output $vol $facemask $udreg`
+      if($ud) then
+        set cmd = (mri_defacer --apply $vol $facemask $reg $output)
+        echo $cmd 
+        $cmd
+        exit $status
+      else
+        echo "$output does not need to be updated"
+        echo "If you want to force rerunning, then delete $output"
+        exit 0
+      endif
+      breaksw
+
     case "--no-ripple":
       set DoRipple = 0
       breaksw
@@ -687,6 +708,10 @@ arg2err:
   echo "ERROR: flag $flag requires two arguments"
   exit 1
 ############--------------##################
+arg4err:
+  echo "ERROR: flag $flag requires four arguments"
+  exit 1
+############--------------##################
 
 ############--------------##################
 usage_exit:
@@ -711,6 +736,7 @@ usage_exit:
   echo " --threads nthreads"
   echo " --force : force reprocessing (not applicable if --odir has not been used)"
   echo " --atlas atlasdir"
+  echo " --apply vol facemask reg output : apply to another volume (use regheader if no reg needed)"
   echo ""
 
   if(! $PrintHelp) exit 1;
