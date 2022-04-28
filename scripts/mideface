@@ -14,8 +14,10 @@ set ForceUpdate = 0
 set DoPostHeadSurf = 0
 set threads = 1
 set xmask = ()
-set DoSynthSeg = 0;
-set NSynthSegDil = 0;
+set DoSynthSegXMask = 0;
+set DoSamSegXMask = 0;
+set XEyeBalls = 1; #Samseg only
+set nSegDil = 0;
 set DoBBR = 0
 set BBRDoF = 9
 set defacingsubject = defacing-atlas
@@ -25,32 +27,16 @@ set FillConstIn = ()
 set FillConstOut = ()
 set DoEars = 1;
 set DoForehead = 0;
+set DoBackOfHead = 1
 set DoPics = 0
 set SubjCode = ()
 set PicAnnot = ()
-set DoRipple = 1
+set DoRipple = 0
 set RippleAmp = 1.5
 set RipplePeriod = 30
-
-#set atlasdir = /autofs/space/sulc_001/users/faceseg/atlas/subjects/defacing-atlas
-set atlasdir = $FREESURFER/average/mideface-atlas
-set ctab = $atlasdir/deface.ctab
-set templatesurf = $atlasdir/average.head.dec44.us7.remesh3.surf
-set templatevol = $atlasdir/average.head.mgz
-set atlas2samseglta = $atlasdir/reg.samseg-default.lta
-set templateface = $atlasdir/average.face.dec44.us7.remesh3.label
-set upperfacenoeyes = $atlasdir/average.face.upper.no-eyes.dec44.us7.remesh3.label
-set upperfacenoeyesnose = $atlasdir/average.face.upper.no-eyes.no-nose.dec44.us7.remesh3.label
-set nose = $atlasdir/average.face.nose.dec44.us7.remesh3.label
-set lowerface = $atlasdir/average.face.lower.dec44.us7.remesh3.label
-set watermark = $atlasdir/watermark.dec44.us7.remesh3.label
-set watermark = $atlasdir/mideface.watermark.dec44.us7.remesh3.label
-set earleft  = $atlasdir/average.face.ear.left.dec44.us7.remesh3.label
-set earright = $atlasdir/average.face.ear.right.dec44.us7.remesh3.label
-set eyes  = $atlasdir/average.face.eyes.dec44.us7.remesh3.label
-set forehead  = $atlasdir/average.face.forehead.dec44.us7.remesh3.label
 set dwatermark = 5;
-set bbrface = $atlasdir/average.face.upper.dec44.us7.remesh3.label
+set atlasdir = ()
+set imconvert = /usr/bin/convert
 
 set tmpdir = ();
 set cleanup = 1;
@@ -77,6 +63,25 @@ goto parse_args;
 parse_args_return:
 goto check_params;
 check_params_return:
+
+if($#atlasdir == 0) set atlasdir = $FREESURFER/average/mideface-atlas
+set ctab = $atlasdir/deface.ctab
+set templatesurf = $atlasdir/average.head.dec44.us7.remesh3.ripple.surf
+set templatevol = $atlasdir/average.head.mgz
+set atlas2samseglta = $atlasdir/reg.samseg-default.lta
+set templateface = $atlasdir/average.face.dec44.us7.remesh3.label
+set upperfacenoeyes = $atlasdir/average.face.upper.no-eyes.dec44.us7.remesh3.label
+set upperfacenoeyesnose = $atlasdir/average.face.upper.no-eyes.no-nose.dec44.us7.remesh3.label
+set nose = $atlasdir/average.face.nose.dec44.us7.remesh3.label
+set lowerface = $atlasdir/average.face.lower.dec44.us7.remesh3.label
+set watermark = $atlasdir/watermark.dec44.us7.remesh3.label
+set watermark = $atlasdir/mideface.watermark.dec44.us7.remesh3.label
+set earleft  = $atlasdir/average.face.ear.left.dec44.us7.remesh3.label
+set earright = $atlasdir/average.face.ear.right.dec44.us7.remesh3.label
+set eyes  = $atlasdir/average.face.eyes.dec44.us7.remesh3.label
+set forehead  = $atlasdir/average.face.forehead.dec44.us7.remesh3.label
+set backofhead  = $atlasdir/average.back-of-head.dec44.us7.remesh3.label
+set bbrface = $atlasdir/average.face.upper.dec44.us7.remesh3.label
 
 set labellist = ($lowerface $upperfacenoeyesnose $nose $eyes)
 
@@ -131,14 +136,70 @@ set runxvfb = fsxvfb
 if(! $UseXvfb) set runxvfb = ()
 
 #========================================================
-# Register to samseg atlas
-set samseglta = $tmpdir/samseg/template.lta
-set ud = (`UpdateNeeded $samseglta $invol`)
-if($ud || $ForceUpdate) then
-  set cmd = (run_samseg -i $invol -o $tmpdir/samseg --reg-only --threads $threads)
-  echo $cmd | tee -a $LF
-  fs_time $cmd |& tee -a $LF
-  if($status) goto error_exit
+# Register to samseg atlas, maybe run samseg for xmask
+set samsegdir = $tmpdir/samseg
+set samseglta = $samsegdir/template.lta
+if($DoSamSegXMask == 0) then
+  # Run samseg but only to get the reg
+  set ud = (`UpdateNeeded $samseglta $invol`)
+  if($ud || $ForceUpdate) then
+    set cmd = (run_samseg -i $invol -o $tmpdir/samseg --reg-only --threads $threads)
+    echo $cmd | tee -a $LF
+    fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit
+  endif
+else
+  # Running full samseg may require 14GB of mem and add ~20min to run time
+  # In theory, samseg could be used instead of seghead
+  set samseg = $samsegdir/seg.mgz
+  set ud = (`UpdateNeeded $samseg $invol`)
+  if($ud || $ForceUpdate) then
+    set cmd = (samseg --i $invol --o $samsegdir --threads $threads --block-coordinate-descent)
+    echo $cmd | tee -a $LF
+    fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit
+  endif
+  set seg = $samseg
+  set segidlist = (2 3 7 8 16 24 41 42 46 47 165) # 165=skull
+  if($XEyeBalls) set segidlist = ($segidlist  259) # these are the eyeballs
+endif
+
+if($DoSynthSegXMask) then
+  # Segment using synthseg to create exclusion mask
+  # Note: synthseg may need as much as 35GB of RAM and adds about 5min single-threaded
+  set synthseg = $tmpdir/synthseg.mgz
+  set ud = (`UpdateNeeded $synthseg $invol`)
+  if($ud || $ForceUpdate) then
+    set cmd = (synthseg --i $invol --o $synthseg --threads $threads)
+    echo $cmd | tee -a $LF
+    fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit
+    set cmd = (mri_vol2vol --mov $synthseg --targ $invol --regheader \
+     --interp nearest --o $synthseg)
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) goto error_exit
+  endif
+  set seg = $synthseg
+  set segidlist = (2 3 7 8 16 41 42 46 47)
+endif
+
+if($DoSynthSegXMask || $DoSamSegXMask) then
+  # Binarize, and maybe dilate, the synthseg output. A subset of cerebral segids
+  # are selected to assure that only cerebral structures are excluded. At 
+  # the titme of writing, synthseg only produces cerebral structures, so it is
+  # not an issue, but at some point it might start segmenting extracerebral.
+  # Probably the only important seg is cortex, maybe skull and eyes.
+  set segdil = $tmpdir/seg.bin.dil.mgz
+  set ud = (`UpdateNeeded $segdil $seg`)
+  if($ud || $ForceUpdate) then
+    set cmd = (mri_binarize --i $seg --match $segidlist --o $segdil)
+    if($nSegDil > 0) set cmd = ($cmd  --dilate $nSegDil)
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) goto error_exit
+  endif
+  set xmask = $segdil
 endif
 
 # Compute reg from the defacing atlas to the subject
@@ -151,11 +212,12 @@ if($ud || $ForceUpdate) then
   if($status) goto error_exit
 endif
 
-# Compute the inverse
+# Compute the inverse of the reg
 set input2atlaslta = $tmpdir/input2atlas.lta
 set ud = (`UpdateNeeded $input2atlaslta $atlas2inputlta`)
 if($ud || $ForceUpdate) then
-  set cmd = (lta_convert --subject $defacingsubject --invert --inlta $atlas2inputlta --outlta $input2atlaslta)
+  set cmd = (lta_convert --subject $defacingsubject --invert \
+    --inlta $atlas2inputlta --outlta $input2atlaslta)
   echo $cmd | tee -a $LF
   $cmd |& tee -a $LF
   if($status) goto error_exit
@@ -208,40 +270,6 @@ if($ud || $ForceUpdate) then
   if($status) goto error_exit
 endif
 
-# Segment using synthseg to create exclusion mask
-if($DoSynthSeg) then
-  set synthseg = $tmpdir/synthseg.mgz
-  set ud = (`UpdateNeeded $synthseg $invol`)
-  if($ud || $ForceUpdate) then
-    set cmd = (synthseg --i $invol --o $synthseg --threads $threads)
-    echo $cmd | tee -a $LF
-    fs_time $cmd |& tee -a $LF
-    if($status) goto error_exit
-    set cmd = (mri_vol2vol --mov $synthseg --targ $invol --regheader \
-     --interp nearest --o $synthseg)
-    echo $cmd | tee -a $LF
-    $cmd |& tee -a $LF
-    if($status) goto error_exit
-  endif
-  # Binarize, and maybe dilate, the synthseg output. A subset of cerebral segids
-  # are selected to assure that only cerebral structures are excluded. At 
-  # the titme of writing, synthseg only produces cerebral structes, so it is
-  # not an issue, but at some point it might start segmenting extracerebral.
-  # Probably the only important seg is cortex, maybe skull and eyes.
-  # Note: synthseg may need as much as 27GB of RAM and adds about 5min single-threaded
-  set synthsegdil = $tmpdir/synthseg.dil.mgz
-  set ud = (`UpdateNeeded $synthsegdil $synthseg`)
-  if($ud || $ForceUpdate) then
-    set segidlist = (2 3 7 8 16 41 42 46 47)
-    set cmd = (mri_binarize --i $synthseg --match $segidlist --o $synthsegdil)
-    if($NSynthSegDil > 0) set cmd = ($cmd  --dilate $NSynthSegDil)
-    echo $cmd | tee -a $LF
-    $cmd |& tee -a $LF
-    if($status) goto error_exit
-  endif
-  set xmask = $synthsegdil
-endif
-
 # Finally, perform the defacing
 set minsurf = $tmpdir/min.surf
 set maxsurf = $tmpdir/max.surf
@@ -260,8 +288,9 @@ if($ud || $ForceUpdate) then
   foreach label ($labellist)
     set cmd = ($cmd --l $label)
   end
-  if($DoEars)     set cmd = ($cmd  --l $earleft  2 3 --l $earright 2 3)
-  if($DoForehead) set cmd = ($cmd  --l $forehead 2 3);
+  if($DoEars)       set cmd = ($cmd  --l $earleft  2 3 --l $earright 2 3)
+  if($DoForehead)   set cmd = ($cmd  --l $forehead 2 3);
+  if($DoBackOfHead) set cmd = ($cmd  --l $backofhead 2 3);
 
   if($#xmask) set cmd = ($cmd --xmask $xmask)
   echo $cmd | tee -a $LF
@@ -308,8 +337,8 @@ if($DoPics) then
     echo $cmd | tee -a $LF
     $runxvfb $cmd |& tee -a $LF
     if($status) goto error_exit
-    if(-e /usr/bin/convert) then
-      set cmd = (/usr/bin/convert -crop 398x557+224+38! $PicAnnot $facepic $facepic)
+    if(-e $imconvert) then
+      set cmd = ($imconvert -crop 398x557+224+38! $PicAnnot $facepic $facepic)
       $cmd |& tee -a $LF
       if($status) goto error_exit
     endif
@@ -322,19 +351,19 @@ if($DoPics) then
       echo $cmd | tee -a $LF
       $runxvfb $cmd |& tee -a $LF
       if($status) goto error_exit
-      if(-e /usr/bin/convert) then
-        set cmd = (/usr/bin/convert -crop 398x557+224+38! $postfacepic $PicAnnot $postfacepic)
+      if(-e $imconvert) then
+        set cmd = ($imconvert -crop 398x557+224+38! $postfacepic $PicAnnot $postfacepic)
         $cmd |& tee -a $LF
         if($status) goto error_exit
       endif
     endif
   endif
-  if(-e $facepic && -e $postfacepic && -e /usr/bin/convert) then
+  if(-e $facepic && -e $postfacepic && -e $imconvert) then
     # This is make an animation
     set gif = $tmpdir/face-before+after.gif
     set ud = `UpdateNeeded $gif $facepic $postfacepic`
     if($ud || $ForceUpdate) then
-      set cmd = (/usr/bin/convert -loop 0 -delay 60 $facepic $postfacepic $gif)
+      set cmd = ($imconvert -loop 0 -delay 60 $facepic $postfacepic $gif)
       echo $cmd | tee -a $LF
       $cmd |& tee -a $LF
       if($status) goto error_exit
@@ -345,10 +374,14 @@ endif
 
 # Make a command line for viewing
 set cmd = (fsvglrun freeview $invol $outvol --hide-3d-slices -viewport 3d \
-  -f ${headsurf}:edgecolor=yellow \
-  -f ${templatesurfsubj}:edgecolor=magenta:visible=0:lock=1\
-  -f ${minsurf}:edgecolor=blue:visible=0:lock=1 ${maxsurf}:edgecolor=cyan:visible=0:lock=1)
-if($DoPostHeadSurf) set cmd = ($cmd -f ${postheadsurf}:edgecolor=red:visible=0)
+  -f ${headsurf}:edgecolor=yellow)
+#  -f ${minsurf}:edgecolor=blue:visible=0:lock=1 ${maxsurf}:edgecolor=cyan:visible=0:lock=1
+if($DoPostHeadSurf) then
+  set cmd = ($cmd -f ${postheadsurf}:edgecolor=red:visible=0)
+else
+  set cmd = ($cmd -f ${templatesurfsubj}:edgecolor=magenta:visible=0:lock=1)
+endif
+
 echo ""  |tee -a $LF
 echo $cmd  |tee -a $LF
 echo ""  |tee -a $LF
@@ -421,6 +454,7 @@ while( $#argv != 0 )
     case "--odir":
       if($#argv < 1) goto arg1err;
       set outdir = $argv[1]; shift;
+      set DoPostHeadSurf = 1
       breaksw
 
     case "--i":
@@ -433,6 +467,15 @@ while( $#argv != 0 )
       set threads = $argv[1]; shift;
       breaksw
 
+    case "--imconvert":
+      if($#argv < 1) goto arg1err;
+      set imconvert = $argv[1]; shift;
+      if(! -e $imconvert) then
+        echo "ERROR: cannot find $imconvert"
+        exit 1
+      endif
+      breaksw
+
     case "--xmask":
       if($#argv < 1) goto arg1err;
       set xmask = $argv[1]; shift;
@@ -441,8 +484,31 @@ while( $#argv != 0 )
     case "--synthseg":
     case "--xmask-synthseg":
       if($#argv < 1) goto arg1err;
-      set NSynthSegDil = $argv[1]; shift;
-      set DoSynthSeg = 1
+      set nSegDil = $argv[1]; shift;
+      set DoSynthSegXMask = 1
+      breaksw
+
+    case "--samseg":
+    case "--xmask-samseg":
+      if($#argv < 1) goto arg1err;
+      set nSegDil = $argv[1]; shift;
+      set DoSamSegXMask = 1
+      breaksw
+
+    case "--xmask-eyeballs":
+      set XEyeBalls = 1; #Samseg only
+      breaksw
+    case "--no-xmask-eyeballs":
+      set XEyeBalls = 0;
+      breaksw
+
+    case "--atlas":
+      if($#argv < 1) goto arg1err;
+      set atlasdir = $argv[1]; shift;
+      if(! -e $atlasdir) then
+        echo "ERROR: cannot find $atlasdir"
+        exit 1;
+      endif
       breaksw
 
     case "--force":
@@ -471,6 +537,13 @@ while( $#argv != 0 )
       breaksw
     case "--no-forehead":
       set DoForehead = 0
+      breaksw
+
+    case "--back-of-head":
+      set DoBackOfHead = 1
+      breaksw
+    case "--no-back-of-head":
+      set DoBackOfHead = 0
       breaksw
 
     case "--pics":
@@ -514,6 +587,27 @@ while( $#argv != 0 )
       set DoRipple = 1
       set RippleAmp = $argv[1]; shift;
       set RipplePeriod = $argv[1]; shift;
+      breaksw
+
+    case "--apply":
+      if($#argv < 4) goto arg4err;
+      set vol = $argv[1]; shift;
+      set facemask = $argv[1]; shift;
+      set reg = $argv[1]; shift;
+      set output = $argv[1]; shift;
+      set udreg = $reg
+      if($reg == regheader) set udreg = ()
+      set ud = `UpdateNeeded $output $vol $facemask $udreg`
+      if($ud) then
+        set cmd = (mri_defacer --apply $vol $facemask $reg $output)
+        echo $cmd 
+        $cmd
+        exit $status
+      else
+        echo "$output does not need to be updated"
+        echo "If you want to force rerunning, then delete $output"
+        exit 0
+      endif
       breaksw
 
     case "--no-ripple":
@@ -582,7 +676,6 @@ if($#outdir) then
     set LF = $outdir/log/midefacer.log
     if(-e $LF) mv $LF $outdir/log/midefacer.$$.log
   endif
-  set DoPostHeadSurf = 1
   set cleanup = 0
 endif
 
@@ -594,8 +687,12 @@ if($#facemask == 0) then
   set facemask = $tmpdir/face.mask.mgz
 endif
 
-if($#xmask && $DoSynthSeg) then
+if($#xmask && $DoSynthSegXMask) then
   echo "ERROR: cannot use --xmask and --synthseg"
+  exit 1
+endif
+if($DoSynthSegXMask && $DoSamSegXMask) then
+  echo "ERROR: cannot use both --xmask-synthseg and --xmask-samseg"
   exit 1
 endif
 
@@ -611,6 +708,10 @@ arg2err:
   echo "ERROR: flag $flag requires two arguments"
   exit 1
 ############--------------##################
+arg4err:
+  echo "ERROR: flag $flag requires four arguments"
+  exit 1
+############--------------##################
 
 ############--------------##################
 usage_exit:
@@ -619,18 +720,23 @@ usage_exit:
   echo " --i volume to deface"
   echo " --o defaced input"
   echo " --facemask facemask"
-  echo " --odir outputdir "
+  echo " --odir outputdir (turns on PostHeadSurf)"
   echo " --xmask xmask (exclusion mask)"
-  echo " --xmask-synthseg ndilations : segment input using synthseg"
-  echo " --threads nthreads"
+  echo " --xmask-samseg ndilations : segment input using samseg (14GB, +~20min)"
+  echo " --xmask-synthseg ndilations : segment input using synthseg (35GB, +~20min)"
   echo " --fill-const constIn constOut"
   echo " --fill-zero"
   echo " --no-ears : do not include ears in the defacing"
+  echo " --no-back-of-head : do not include back of head in the defacing"
   echo " --forehead : include forehead in the defacing (risks removing brain)"
-  echo " --pics : do not take pics"
+  echo " --pics : take pics (--no-pics)"
   echo " --code codename : embed codename in pics"
-  echo " --force : force reprocessing (not applicable if --odir has not been used)"
+  echo " --imconvert /path/to/convert : path to imagemagik convert binary (for pics)"
   echo " --no-post : do not make a head surface after defacing"
+  echo " --threads nthreads"
+  echo " --force : force reprocessing (not applicable if --odir has not been used)"
+  echo " --atlas atlasdir"
+  echo " --apply vol facemask reg output : apply to another volume (use regheader if no reg needed)"
   echo ""
 
   if(! $PrintHelp) exit 1;

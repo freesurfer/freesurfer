@@ -186,6 +186,8 @@ int MRISbrainSurfToSkull(MRIS *surf, const double *params, const MRI *vol);
 int MakeSkullSurface(char *subject, double *params, char *innername, char *outername);
 int rescale = 0;
 int FillHolesIslands = 0;
+int cseed = 0, rseed = 0, sseed = 0;
+int seedset = 0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -267,7 +269,7 @@ int main(int argc, char **argv) {
         else cmax = invol->width-1; 
 
         for (c = cmin; c <= cmax; c++) MRIseq_vox(cvol,c,r,s,0) = fillval;
-        //printf("%3d %3d  %3d %3d\n",r,s,cmin,cmax);
+        if(Gdiag_no > 1){printf("%3d %3d  %3d %3d\n",r,s,cmin,cmax);fflush(stdout);}
       }
     }
   }
@@ -303,7 +305,7 @@ int main(int argc, char **argv) {
         else rmax = invol->height-1; 
         
         for (r = rmin; r <= rmax; r++) MRIseq_vox(rvol,c,r,s,0) = fillval;
-        //printf("%3d %3d  %3d %3d\n",r,s,rmin,rmax);
+        if(Gdiag_no > 1){printf("%3d %3d  %3d %3d\n",c,s,rmin,rmax);fflush(stdout);}
       }
     }
   }
@@ -339,7 +341,7 @@ int main(int argc, char **argv) {
         else smax = invol->depth-1; 
         
         for (s = smin; s <= smax; s++) MRIseq_vox(svol,c,r,s,0) = fillval;
-        //printf("%3d %3d  %3d %3d\n",r,s,rmin,rmax);
+        if(Gdiag_no > 1){printf("%3d %3d  %3d %3d\n",c,r,smin,smax);fflush(stdout);}
       }
     }
   }
@@ -357,12 +359,19 @@ int main(int argc, char **argv) {
       }
     }
   }
-  
-  printf("Growing\n");
+
+  if(!seedset){
+    cseed = (int)(mrgvol->width/2.0);
+    rseed = (int)(mrgvol->height/2.0);
+    sseed = (int)(mrgvol->depth/2.0);
+  }
+  printf("Growing %d %d %d   %g\n",cseed,rseed,sseed,MRIgetVoxVal(mrgvol,cseed,rseed,sseed,0));
+  if(MRIgetVoxVal(mrgvol,cseed,rseed,sseed,0) > thresh2){
+    printf("ERROR: seed intensity is > thresh %d\n",thresh2);
+    exit(1);
+  }
   fflush(stdout);
-  outvol = MRIfill(mrgvol, NULL, (int)(mrgvol->width/2.0),
-                   (int)(mrgvol->height/2.0), (int)(mrgvol->depth/2.),
-                   thresh2, fillval, -1);
+  outvol = MRIfill(mrgvol, NULL, cseed,rseed,sseed,thresh2, fillval, -1);
 
   if(FillHolesIslands){
     MRI *tmpvol;
@@ -470,12 +479,26 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--no-fill-holes-islands")) FillHolesIslands = 0;
     else if (!strcasecmp(option, "--get-signal-behind-head")) GetSignalBehindHead = 1;
 
+    else if (stringmatch(option, "--gdiag")){
+      if(nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%d",&Gdiag_no);
+      nargsused = 1;
+    } 
+    else if (stringmatch(option, "--seed")){
+      if(nargc < 3) argnerr(option,3);
+      sscanf(pargv[0],"%d",&cseed);
+      sscanf(pargv[1],"%d",&rseed);
+      sscanf(pargv[2],"%d",&sseed);
+      seedset = 1;
+      nargsused = 3;
+    } 
     else if ( stringmatch(option, "--invol") ||
               stringmatch(option, "--i") ) {
       if (nargc < 1) argnerr(option,1);
       involid = pargv[0];
       nargsused = 1;
-    } else if (stringmatch(option, "--outvol") ||
+    } 
+    else if (stringmatch(option, "--outvol") ||
                stringmatch(option, "--o") ) {
       if (nargc < 1) argnerr(option,1);
       outvolid = pargv[0];
@@ -577,6 +600,8 @@ static void print_usage(void) {
   printf("   --get-signal-behind-head  \n");
   printf("   --rescale : rescale input when converting to uchar (--no-rescale)  \n");
   printf("   --fill-holes-islands : fill holes and remove islands  \n");
+  printf("   --seed col row slice (for filling)\n");
+  printf("   --gdiag diagno\n");
   printf("\n");
 }
 /* --------------------------------------------- */

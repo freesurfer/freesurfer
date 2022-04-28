@@ -3111,7 +3111,7 @@ int LabelSetVals(MRI_SURFACE *mris, LABEL *area, float fillval)
 LABEL *LabelToScannerRAS(LABEL *lsrc, MRI *mri, LABEL *ldst)
 {
   int i;
-  MATRIX *M_surface_to_RAS = RASFromSurfaceRAS_(mri);
+  MATRIX *M_surface_to_RAS = RASFromSurfaceRAS_(mri,NULL);
   VECTOR *v1, *v2;
 
   if (ldst != lsrc)
@@ -3122,7 +3122,7 @@ LABEL *LabelToScannerRAS(LABEL *lsrc, MRI *mri, LABEL *ldst)
   if (lsrc->coords == LABEL_COORDS_VOXEL)
     LabelToSurfaceRAS(lsrc, mri, ldst) ;
 
-  M_surface_to_RAS = RASFromSurfaceRAS_(mri);
+  M_surface_to_RAS = RASFromSurfaceRAS_(mri,NULL);
   v1 = VectorAlloc(4, MATRIX_REAL);
   v2 = VectorAlloc(4, MATRIX_REAL);
   VECTOR_ELT(v1, 4) = 1.0;
@@ -3150,7 +3150,7 @@ LABEL *LabelToScannerRAS(LABEL *lsrc, MRI *mri, LABEL *ldst)
 LABEL *LabelToSurfaceRAS(LABEL *lsrc, MRI *mri, LABEL *ldst)
 {
   int i;
-  MATRIX *M_surface_to_RAS = RASFromSurfaceRAS_(mri), *M_surface_from_RAS;
+  MATRIX *M_surface_to_RAS = RASFromSurfaceRAS_(mri,NULL), *M_surface_from_RAS;
   VECTOR *v1, *v2;
 
   if (ldst != lsrc)

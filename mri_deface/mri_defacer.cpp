@@ -160,7 +160,7 @@ public:
   int cPad=5, rPad=5, sPad=5;
   int nxmask = 0;
   int DoRipple=0,rippleaxis=1;
-  double *ripplecenter=NULL,rippleperiod=20,rippleamp=1;
+  double ripplecenter[3] = {0,0,0},rippleperiod=20,rippleamp=1;
   int SegFace(void);
   int FaceIntensityStats(void);
   int SetDeltaDist(void);
@@ -594,8 +594,19 @@ int FsDefacer::DistanceBounds(void)
 }
 int FsDefacer::ripple(LABEL *label)
 {
+  printf("ripple (%g,%g,%g) amp=%g period=%g\n",
+	 ripplecenter[0],ripplecenter[1],ripplecenter[2],
+	 rippleamp,rippleperiod);
+
   BasicSpherePVF sph;
   MRIS *surf = tempsurf;
+  MATRIX *M = VGtkreg2RAS(&(surf->vg),NULL);
+  MATRIX *invM = MatrixInverse(M,NULL);
+  MATRIX *tkras = MatrixAlloc(4,1,MATRIX_REAL);
+  tkras->rptr[4][1] = 1;
+  MATRIX *ras = MatrixAlloc(4,1,MATRIX_REAL);
+  ras->rptr[4][1] = 1;
+
   int nmax = surf->nvertices;
   if(label) nmax = label->n_points;
   for(int n=0; n < nmax; n++){
@@ -606,24 +617,36 @@ int FsDefacer::ripple(LABEL *label)
     double dx = v->x;
     double dy = v->y;
     double dz = v->z;
+    tkras->rptr[1][1] = dx;
+    tkras->rptr[2][1] = dy;
+    tkras->rptr[3][1] = dz;
+    ras = MatrixMultiplyD(M,tkras,ras);
     if(ripplecenter){
-      dx -= ripplecenter[0];
-      dy -= ripplecenter[1];
-      dz -= ripplecenter[2];
+      ras->rptr[1][1] -= ripplecenter[0];
+      ras->rptr[2][1] -= ripplecenter[1];
+      ras->rptr[3][1] -= ripplecenter[2];
     }
-    std::array<double,3> xyz = {dx,dy,dz};
+    std::array<double,3> xyz = {ras->rptr[1][1],ras->rptr[2][1],ras->rptr[3][1]};
     std::array<double,3> rtp = sph.XYZ2RTP(xyz);
     rtp[0] = rtp[0] + rippleamp*sin(2*M_PI*rtp[0]*rtp[rippleaxis]/rippleperiod);
     xyz = sph.RTP2XYZ(rtp);
-    v->x = xyz[0];
-    v->y = xyz[1];
-    v->z = xyz[2];
+    ras->rptr[1][1] = xyz[0];
+    ras->rptr[2][1] = xyz[1];
+    ras->rptr[3][1] = xyz[2];
     if(ripplecenter){
-      v->x += ripplecenter[0];
-      v->y += ripplecenter[1];
-      v->z += ripplecenter[2];
+      ras->rptr[1][1] += ripplecenter[0];
+      ras->rptr[2][1] += ripplecenter[1];
+      ras->rptr[3][1] += ripplecenter[2];
     }
+    tkras = MatrixMultiplyD(invM,ras,tkras);
+    v->x = tkras->rptr[1][1];
+    v->y = tkras->rptr[2][1];
+    v->z = tkras->rptr[3][1];
   }
+  MatrixFree(&M);
+  MatrixFree(&invM);
+  MatrixFree(&tkras);
+  MatrixFree(&ras);
   return(0);
 }
 
@@ -651,6 +674,7 @@ double dwatermark = 1;
 FsDefacer defacer;
 double DistInMinList[200],DistInMaxList[200],DistInMin=2,DistInMax=20;
 double DistInList[200];
+char *outtempsurfpath=NULL;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) 
@@ -815,6 +839,10 @@ int main(int argc, char *argv[])
     err = MRISwrite(defacer.maxsurf,maxsurfpath);
     if(err) exit(1);
   }
+  if(outtempsurfpath){
+    err = MRISwrite(defacer.tempsurf,outtempsurfpath);
+    if(err) exit(1);
+  }
 
   printf("mri_defacer done\n");
   return(0);
@@ -867,6 +895,31 @@ static int parse_commandline(int argc, char **argv) {
       if(nargc < 1) CMDargNErr(option,1);
       tempsurfpath = pargv[0];
       nargsused = 1;
+    }
+    else if(!strcasecmp(option, "--ots")){
+      if(nargc < 1) CMDargNErr(option,1);
+      outtempsurfpath = pargv[0];
+      nargsused = 1;
+    }
+    else if(!strcasecmp(option, "--ripple-center")){
+      if(nargc < 3) CMDargNErr(option,3);
+      for(int k=0; k<3;k++) sscanf(pargv[k],"%lf",&defacer.ripplecenter[k]);
+      nargsused = 3;
+    }
+    else if(!strcasecmp(option, "--apply-ripple")){
+      // stand-alone: surf axis amp period lable out
+      // Change the center using --rippple-center before --apply-ripple
+      // For atlas surf ripple, use center = (0,-50,-73),axis=1,rippleamp=2,rippleperiod=30
+      if(nargc < 6) CMDargNErr(option,6);
+      defacer.DoRipple = 1;
+      defacer.tempsurf = MRISread(pargv[0]);
+      sscanf(pargv[1],"%d",&defacer.rippleaxis);//1 or 2
+      sscanf(pargv[2],"%lf",&defacer.rippleamp);
+      sscanf(pargv[3],"%lf",&defacer.rippleperiod);
+      LABEL *label = LabelRead("",pargv[4]);
+      defacer.ripple(label);
+      MRISwrite(defacer.tempsurf,pargv[5]);
+      exit(0);
     }
     else if(!strcasecmp(option, "--l")){
       if(nargc < 1) CMDargNErr(option,1);
@@ -1053,8 +1106,11 @@ static void print_usage(void) {
   printf("   --distoverlay dist.overlay.mgz : overlay of distance for each vertex\n");
   printf("   --distdat distdatpath : text file with distances for each vertex\n");
   printf("   --stats statspath : has info about nxmask and means and modes\n");
+  printf("   --ots outputtempsurf : after any watermark and/or ripple\n");
   printf("\n");
   printf("   --apply vol facemask reg output : apply to another volume (use regheader if no reg needed)\n");
+  printf("   --ripple-center R A S\n");
+  printf("   --apply-ripple insurf axis amp period label outsurf\n");
   printf("\n");
   printf("   --gdiag diagno : set diagnostic level\n");
   printf("   --debug     turn on debugging\n");
@@ -1113,5 +1169,4 @@ static void dump_options(FILE *fp) {
   fprintf(fp,"user     %s\n",VERuser());
   return;
 }
-
 
