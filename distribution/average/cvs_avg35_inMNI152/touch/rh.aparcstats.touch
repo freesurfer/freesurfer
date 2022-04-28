@@ -1,0 +1,1 @@
+mris_anatomical_stats -mgz -cortex ../label/rh.cortex.label -f ../stats/rh.aparc.stats -b -a ../label/rh.aparc.annot -c ../label/aparc.annot.ctab cvs_avg35_inMNI152 rh white

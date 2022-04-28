@@ -1,0 +1,1 @@
+mris_make_surfaces -white NOWRITE -mgz -T1 brain.finalsurfs cvs_avg35_inMNI152 lh

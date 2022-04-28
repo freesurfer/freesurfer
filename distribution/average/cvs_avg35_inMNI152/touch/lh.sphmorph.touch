@@ -1,0 +1,1 @@
+mris_sphere -seed 1234 ../surf/lh.inflated ../surf/lh.sphere

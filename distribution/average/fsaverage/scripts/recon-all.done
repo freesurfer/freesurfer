@@ -1,0 +1,10 @@
+------------------------------
+SUBJECT fsaverage
+DATE Thu Dec 30 17:41:50 EST 2010
+USER nicks
+HOST terrier
+PROCESSOR x86_64
+OS Linux
+Linux terrier 2.6.18-194.8.1.el5 #1 SMP Thu Jul 1 19:04:48 EDT 2010 x86_64 x86_64 x86_64 GNU/Linux
+$Id: recon-all,v 1.313.2.32 2010/12/30 19:11:13 nicks Exp $
+/usr/local/freesurfer/stable5/bin/recon-all

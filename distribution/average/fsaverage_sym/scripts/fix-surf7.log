@@ -1,0 +1,60 @@
+Thu Jul 19 12:53:24 EDT 2018
+Thu Jul 19 12:53:24 EDT 2018
+Fixing vertex 40969 in lh.orig, if needed
+writing group avg surface area 813 cm^2 into surface file
+Thu Jul 19 12:53:26 EDT 2018
+Fixing vertex 40969 in lh.white, if needed
+writing group avg surface area 859 cm^2 into surface file
+Thu Jul 19 12:53:27 EDT 2018
+Fixing vertex 40969 in lh.pial, if needed
+writing group avg surface area 1037 cm^2 into surface file
+Thu Jul 19 12:53:29 EDT 2018
+Fixing vertex 40969 in lh.inflated, if needed
+INFO: MRISfixAverageSurf7(): this surface appears to have been fixed already
+ v0 (-6.1836,2.63996,56.7403) v40969 (-5.98125,2.67102,56.8831), d = 0.249602
+Not changing surface
+Thu Jul 19 12:53:30 EDT 2018
+Fixing vertex 40969 in lh.smoothwm, if needed
+INFO: MRISfixAverageSurf7(): this surface appears to have been fixed already
+ v0 (-37.9396,-18.0009,61.2854) v40969 (-37.7068,-17.8959,61.9902), d = 0.749568
+Not changing surface
+Thu Jul 19 12:53:32 EDT 2018
+Fixing vertex 40969 in lh.sphere, if needed
+INFO: MRISfixAverageSurf7(): this surface appears to have been fixed already
+ v0 (0,0,100) v40969 (0.86,0,100), d = 0.86
+Not changing surface
+Thu Jul 19 12:53:33 EDT 2018
+Fixing vertex 40969 in lh.sphere.reg, if needed
+INFO: MRISfixAverageSurf7(): this surface appears to have been fixed already
+ v0 (0,0,100) v40969 (0.86,0,100), d = 0.86
+Not changing surface
+Thu Jul 19 12:53:34 EDT 2018
+Fixing vertex 40969 in rh.orig, if needed
+writing group avg surface area 813 cm^2 into surface file
+Thu Jul 19 12:53:36 EDT 2018
+Fixing vertex 40969 in rh.white, if needed
+writing group avg surface area 859 cm^2 into surface file
+Thu Jul 19 12:53:37 EDT 2018
+Fixing vertex 40969 in rh.pial, if needed
+writing group avg surface area 1037 cm^2 into surface file
+Thu Jul 19 12:53:39 EDT 2018
+Fixing vertex 40969 in rh.inflated, if needed
+INFO: MRISfixAverageSurf7(): this surface appears to have been fixed already
+ v0 (-6.37974,11.0432,63.0052) v40969 (-6.1531,11.0237,62.8704), d = 0.264384
+Not changing surface
+Thu Jul 19 12:53:41 EDT 2018
+Fixing vertex 40969 in rh.smoothwm, if needed
+INFO: MRISfixAverageSurf7(): this surface appears to have been fixed already
+ v0 (25.688,-13.6638,60.0173) v40969 (26.3284,-13.6449,59.9144), d = 0.648928
+Not changing surface
+Thu Jul 19 12:53:42 EDT 2018
+Fixing vertex 40969 in rh.sphere, if needed
+INFO: MRISfixAverageSurf7(): this surface appears to have been fixed already
+ v0 (0,0,100) v40969 (0.86,0,100), d = 0.86
+Not changing surface
+Thu Jul 19 12:53:43 EDT 2018
+Fixing vertex 40969 in rh.sphere.reg, if needed
+INFO: MRISfixAverageSurf7(): this surface appears to have been fixed already
+ v0 (0,0,100) v40969 (0.86,0,100), d = 0.86
+Not changing surface
+Thu Jul 19 12:53:45 EDT 2018

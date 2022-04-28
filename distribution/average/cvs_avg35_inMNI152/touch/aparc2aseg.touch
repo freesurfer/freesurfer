@@ -1,0 +1,1 @@
+mri_aparc2aseg --s cvs_avg35_inMNI152 --volmask

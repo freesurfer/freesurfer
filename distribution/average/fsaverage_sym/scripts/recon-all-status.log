@@ -1,0 +1,19 @@
+status file for recon-all
+Thu Jan 12 13:10:10 EST 2012
+#@# AParc-to-ASeg Thu Jan 12 13:10:10 EST 2012
+Linux tanha 2.6.18-194.32.1.el5 #1 SMP Wed Jan 5 17:52:25 EST 2011 x86_64 x86_64 x86_64 GNU/Linux
+
+recon-all -s ni.sym.b40.i30 exited with ERRORS at Thu Jan 12 13:10:22 EST 2012
+
+
+
+
+New invocation of recon-all 
+
+
+
+status file for recon-all
+Thu Jan 12 13:10:41 EST 2012
+#@# Cortical ribbon mask Thu Jan 12 13:10:41 EST 2012
+#@# AParc-to-ASeg Thu Jan 12 13:15:04 EST 2012
+recon-all -s ni.sym.b40.i30 finished without error at Thu Jan 12 13:17:30 EST 2012

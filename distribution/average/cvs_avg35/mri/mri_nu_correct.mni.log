@@ -1,0 +1,156 @@
+/autofs/cluster/con_001/users/lilla/CVS_atlas/buckner35rerun/avg35rerun/mri
+/usr/local/freesurfer/dev/bin/mri_nu_correct.mni
+--i orig.mgz --o nu.mgz --n 2
+nIters 2
+$Id: mri_nu_correct.mni,v 1.12 2009/12/16 20:15:41 greve Exp $
+Linux compute-0-38.local 2.6.18-53.1.19.el5 #1 SMP Tue Apr 22 03:01:10 EDT 2008 x86_64 x86_64 x86_64 GNU/Linux
+Tue Apr 20 09:53:00 EDT 2010
+Program nu_correct, built from:
+Package MNI N3, version 1.10, compiled by nicks@minerva (x86_64-unknown-linux-gnu) on 2010-02-20 at 17:32:37
+tmpdir is ./tmp.mri_nu_correct.mni.7202
+/autofs/cluster/con_001/users/lilla/CVS_atlas/buckner35rerun/avg35rerun/mri
+mri_convert orig.mgz ./tmp.mri_nu_correct.mni.7202/nu0.mnc -odt float
+mri_convert orig.mgz ./tmp.mri_nu_correct.mni.7202/nu0.mnc -odt float 
+$Id: mri_convert.c,v 1.166 2010/04/15 19:03:33 nicks Exp $
+reading from orig.mgz...
+TR=0.00, TE=0.00, TI=0.00, flip angle=0.00
+i_ras = (-1, 0, 0)
+j_ras = (0, 0, -1)
+k_ras = (0, 1, 0)
+changing data type from uchar to float (noscale = 0)...
+writing to ./tmp.mri_nu_correct.mni.7202/nu0.mnc...
+ 
+--------------------------------------------------------
+Iteration 1 Tue Apr 20 09:53:05 EDT 2010
+nu_correct -clobber ./tmp.mri_nu_correct.mni.7202/nu0.mnc ./tmp.mri_nu_correct.mni.7202/nu1.mnc -tmpdir ./tmp.mri_nu_correct.mni.7202/0/
+[lzollei@compute-0-38.local:/autofs/cluster/con_001/users/lilla/CVS_atlas/buckner35rerun/avg35rerun/mri/] [2010-04-20 09:53:07] running:
+  /usr/local/freesurfer/dev/mni/bin/nu_estimate_np_and_em -parzen -log -sharpen 0.15 0.01 -iterations 50 -stop 0.001 -shrink 4 -auto_mask -nonotify -b_spline 1 -distance 200 -quiet -execute -clobber -nokeeptmp -tmpdir ./tmp.mri_nu_correct.mni.7202/0/ ./tmp.mri_nu_correct.mni.7202/nu0.mnc ./tmp.mri_nu_correct.mni.7202/nu1.imp
+
+Processing:.................................................................Done
+Processing:.................................................................Done
+Processing:.................................................................Done
+Processing:.................................................................Done
+Processing:.................................................................Done
+Processing:.................................................................Done
+Processing:.................................................................Done
+Processing:.................................................................Done
+Processing:.................................................................Done
+Processing:.................................................................Done
+Processing:.................................................................Done
+Processing:.................................................................Done
+Processing:.................................................................Done
+Processing:.................................................................Done
+Processing:.................................................................Done
+Processing:.................................................................Done
+Processing:.................................................................Done
+Processing:.................................................................Done
+Processing:.................................................................Done
+Number of iterations: 19 
+CV of field change: 0.000988959
+[lzollei@compute-0-38.local:/autofs/cluster/con_001/users/lilla/CVS_atlas/buckner35rerun/avg35rerun/mri/] [2010-04-20 09:53:43] running:
+  /usr/local/freesurfer/dev/mni/bin/make_template -quiet -shrink 3 ./tmp.mri_nu_correct.mni.7202/nu0.mnc ./tmp.mri_nu_correct.mni.7202/0//template.mnc
+
+Transforming slices:......................................................................................Done
+Transforming slices:................................................................................................................................................................................................................................................................Done
+ 
+ 
+--------------------------------------------------------
+Iteration 2 Tue Apr 20 09:53:51 EDT 2010
+nu_correct -clobber ./tmp.mri_nu_correct.mni.7202/nu1.mnc ./tmp.mri_nu_correct.mni.7202/nu2.mnc -tmpdir ./tmp.mri_nu_correct.mni.7202/1/
+[lzollei@compute-0-38.local:/autofs/cluster/con_001/users/lilla/CVS_atlas/buckner35rerun/avg35rerun/mri/] [2010-04-20 09:53:53] running:
+  /usr/local/freesurfer/dev/mni/bin/nu_estimate_np_and_em -parzen -log -sharpen 0.15 0.01 -iterations 50 -stop 0.001 -shrink 4 -auto_mask -nonotify -b_spline 1 -distance 200 -quiet -execute -clobber -nokeeptmp -tmpdir ./tmp.mri_nu_correct.mni.7202/1/ ./tmp.mri_nu_correct.mni.7202/nu1.mnc ./tmp.mri_nu_correct.mni.7202/nu2.imp
+
+Processing:.................................................................Done
+Processing:.................................................................Done
+Processing:.................................................................Done
+Processing:.................................................................Done
+Processing:.................................................................Done
+Processing:.................................................................Done
+Processing:.................................................................Done
+Processing:.................................................................Done
+Processing:.................................................................Done
+Processing:.................................................................Done
+Processing:.................................................................Done
+Processing:.................................................................Done
+Processing:.................................................................Done
+Number of iterations: 13 
+CV of field change: 0.000990828
+[lzollei@compute-0-38.local:/autofs/cluster/con_001/users/lilla/CVS_atlas/buckner35rerun/avg35rerun/mri/] [2010-04-20 09:54:19] running:
+  /usr/local/freesurfer/dev/mni/bin/make_template -quiet -shrink 3 ./tmp.mri_nu_correct.mni.7202/nu1.mnc ./tmp.mri_nu_correct.mni.7202/1//template.mnc
+
+Transforming slices:......................................................................................Done
+Transforming slices:................................................................................................................................................................................................................................................................Done
+ 
+ 
+ 
+mri_binarize --i ./tmp.mri_nu_correct.mni.7202/nu2.mnc --min -1 --o ./tmp.mri_nu_correct.mni.7202/ones.mgz
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/cluster/con_001/users/lilla/CVS_atlas/buckner35rerun/avg35rerun/mri
+cmdline mri_binarize --i ./tmp.mri_nu_correct.mni.7202/nu2.mnc --min -1 --o ./tmp.mri_nu_correct.mni.7202/ones.mgz 
+sysname  Linux
+hostname compute-0-38.local
+machine  x86_64
+user     lzollei
+
+input      ./tmp.mri_nu_correct.mni.7202/nu2.mnc
+frame      0
+nErode3d   0
+nErode2d   0
+output     ./tmp.mri_nu_correct.mni.7202/ones.mgz
+Binarizing based on threshold
+min        -1
+max        +infinity
+binval        1
+binvalnot     0
+Found 16777216 values in range
+Counting number of voxels
+Found 16777216 voxels in final mask
+mri_binarize done
+mri_segstats --id 1 --seg ./tmp.mri_nu_correct.mni.7202/ones.mgz --i orig.mgz --sum ./tmp.mri_nu_correct.mni.7202/sum.junk --avgwf ./tmp.mri_nu_correct.mni.7202/input.mean.dat
+Loading ./tmp.mri_nu_correct.mni.7202/ones.mgz
+Loading orig.mgz
+Voxel Volume is 1 mm^3
+Generating list of segmentation ids
+Found   1 segmentations
+Computing statistics for each segmentation
+  0     1   16777216  1.67772e+07
+
+Reporting on   1 segmentations
+SubCortGrayVol = 0
+Computing spatial average of each frame
+  0
+Writing to ./tmp.mri_nu_correct.mni.7202/input.mean.dat
+mri_segstats --id 1 --seg ./tmp.mri_nu_correct.mni.7202/ones.mgz --i ./tmp.mri_nu_correct.mni.7202/nu2.mnc --sum ./tmp.mri_nu_correct.mni.7202/sum.junk --avgwf ./tmp.mri_nu_correct.mni.7202/output.mean.dat
+Loading ./tmp.mri_nu_correct.mni.7202/ones.mgz
+Loading ./tmp.mri_nu_correct.mni.7202/nu2.mnc
+Voxel Volume is 1 mm^3
+Generating list of segmentation ids
+Found   1 segmentations
+Computing statistics for each segmentation
+  0     1   16777216  1.67772e+07
+
+Reporting on   1 segmentations
+SubCortGrayVol = 0
+Computing spatial average of each frame
+  0
+Writing to ./tmp.mri_nu_correct.mni.7202/output.mean.dat
+mris_calc -o ./tmp.mri_nu_correct.mni.7202/nu2.mnc ./tmp.mri_nu_correct.mni.7202/nu2.mnc mul .91014887551472917326
+mri_convert ./tmp.mri_nu_correct.mni.7202/nu2.mnc nu.mgz --like orig.mgz --conform
+mri_convert ./tmp.mri_nu_correct.mni.7202/nu2.mnc nu.mgz --like orig.mgz --conform 
+$Id: mri_convert.c,v 1.166 2010/04/15 19:03:33 nicks Exp $
+reading from ./tmp.mri_nu_correct.mni.7202/nu2.mnc...
+TR=0.00, TE=0.00, TI=0.00, flip angle=0.00
+i_ras = (-1, 0, 0)
+j_ras = (0, 0, -1)
+k_ras = (0, 1, 0)
+Original Data has (1, 1, 1) mm size and (256, 256, 256) voxels.
+Data is conformed to 1 mm size and 256 voxels for all directions
+INFO: transform src into the like-volume: orig.mgz
+changing data type from float to uchar (noscale = 0)...
+MRIchangeType: Building histogram 
+writing to nu.mgz...
+ 
+ 
+Tue Apr 20 09:55:27 EDT 2010
+mri_nu_correct.mni done

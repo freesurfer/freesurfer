@@ -1,0 +1,6 @@
+Unknown 2 Unknown Left-vessel Left-Cerebral-White-Matter Left-Cerebral-Cortex Left-VentralDC Left-Thalamus Left-Hippocampus Left-Amygdala Left-Caudate Left-Accumbens-area Left-Putamen Left-Pallidum Left-Cerebellum-White-Matter Left-Cerebellum-Cortex Left-Lateral-Ventricle Left-Inf-Lat-Vent Left-choroid-plexus Right-vessel 3rd-Ventricle 4th-Ventricle 5th-Ventricle Optic-Chiasm Skull Head-ExtraCerebral Soft_Nonbrain_Tissue Fluid_Inside_Eyes
+CSF 3 CSF Right-Lateral-Ventricle Right-Inf-Lat-Vent Right-choroid-plexus 
+GlobalWM 1 Right-Cerebral-White-Matter Right-VentralDC Right-Thalamus Right-Cerebellum-White-Matter Brain-Stem
+GlobalGM 1 Right-Cerebral-Cortex Right-Hippocampus Right-Amygdala Right-Caudate Right-Accumbens-area WM-hypointensities non-WM-hypointensities Right-Cerebellum-Cortex 
+Putamen 1 Right-Putamen
+Pallidum 1 Right-Pallidum

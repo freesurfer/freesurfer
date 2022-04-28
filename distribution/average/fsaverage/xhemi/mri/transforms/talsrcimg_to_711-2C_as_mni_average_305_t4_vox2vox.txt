@@ -1,0 +1,7 @@
+# AZS
+# compute_vox2vox talsrcimg talsrcimg_to_711-2C_as_mni_average_305_t4 /autofs/space/tanha_002/users/greve/fsdev.build/average/711-2C_as_mni_average_305
+# $Id: compute_vox2vox.c,v 1.3 2010/02/27 01:41:53 nicks Exp $
+  1.003124  0.017535 -0.000089   -2.7078
+ -0.015224  1.010075  0.002476    0.3987
+  0.017102  0.005867  1.011642   -4.3446
+  0.000000  0.000000  0.000000    1.0000

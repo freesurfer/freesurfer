@@ -1,0 +1,16 @@
+$FREESURFER_HOME/trctrain/hcp/mgh_1001
+$FREESURFER_HOME/trctrain/hcp/mgh_1006
+$FREESURFER_HOME/trctrain/hcp/mgh_1007
+$FREESURFER_HOME/trctrain/hcp/mgh_1008
+$FREESURFER_HOME/trctrain/hcp/mgh_1009
+$FREESURFER_HOME/trctrain/hcp/mgh_1010
+$FREESURFER_HOME/trctrain/hcp/mgh_1011
+$FREESURFER_HOME/trctrain/hcp/mgh_1012
+$FREESURFER_HOME/trctrain/hcp/mgh_1013
+$FREESURFER_HOME/trctrain/hcp/mgh_1015
+$FREESURFER_HOME/trctrain/hcp/mgh_1016
+$FREESURFER_HOME/trctrain/hcp/mgh_1017
+$FREESURFER_HOME/trctrain/hcp/mgh_1019
+$FREESURFER_HOME/trctrain/hcp/mgh_1021
+$FREESURFER_HOME/trctrain/hcp/mgh_1023
+$FREESURFER_HOME/trctrain/hcp/mgh_1024

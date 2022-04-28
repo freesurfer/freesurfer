@@ -1,0 +1,44 @@
+
+This describes the creation of the subcort.mask.1mm.mgz
+
+This volume is not conformed in that it is not 256^3 (which make it
+even huger than it is now). This volume matches the output geometry as
+when mri_vol2vol is run with --talres 1 and so is compatible with
+FSFAST. 
+
+These commands are similar to the ones used for creating the 
+mri.2mm/subcort.mask.mgz.
+
+The mask is created based on mri/subcort.prob.mgz which was created
+with make_average_subcort. subcort.prob.mgz is the raw probability of
+a voxel being in a subcortical gray matter structure based on the
+Buckner40. Inevitably, this mask will include more than just
+subcortial gray matter structures, but we would rather have the mask
+be too big than too small.
+
+# Resample into 1mm space
+mri_vol2vol --mov subcort.prob.mgz \
+  --s fsaverage --tal --talres 1 --o subcort.prob.1mm.mgz \
+  --no-save-reg
+
+Threshold at .05 (meaning that at least 5% of the subjects at 
+a voxel must have a subcortical label). Also dilate by 3 to
+expand the mask.
+
+mri_binarize --i subcort.prob.1mm.mgz --min .05 \
+  --dilate 2 --o subcort.mask.tmp.mgz
+
+Erode by 2. The net result of dilating by 3 then eroding
+by 2 is that holes are filled in and the edges are 
+a little smoother.
+
+mri_binarize --i subcort.mask.tmp.mgz --min .5 \
+  --erode 1 --o subcort.mask.1mm.mgz
+
+rm subcort.mask.tmp.mgz subcort.prob.1mm.mgz
+
+Check against 2mm version of mask
+tkregister2 --targ subcort.mask.1mm.mgz \
+  --mov ../mri.2mm/subcort.mask.mgz \
+  --regheader --reg junk.dat
+

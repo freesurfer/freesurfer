@@ -1,0 +1,59 @@
+These are files used to run Sequence Adaptive Multimodal Segmentation
+(SAMSEG). See Puonti, Iglesias, Van Leemput, 2016. "Fast and
+sequence-adaptive whole-brain segmentation using parametric Bayesian
+modeling" Neuroimage. https://doi.org/10.1016/j.neuroimage.2016.09.011 
+
+SAMSEG segments a brain image by maximizing the posterior probability
+based on prior probability of a label being at a particular place and
+an intensity likelihood based on a Gaussian mixture model (GMM); the
+parameters of the GMM are determined from each image. The prior
+probabilities are represented on a tetrahedral mesh. 
+
+atlasForAffineRegistration.txt.gz - mesh that only has 5 labels:
+Unknown, WM, GM, CSF, Skull. This is used for the initial affine
+registration. This registration may fail if the input image does not
+have extra cerebral-structures or only a single hemi.
+
+atlas_level1.txt.gz, atlas_level2.txt.gz - these are meshes used to do
+the actual segmentation.
+
+sharedGMMParameters.txt - SAMSEG only runs the full optimization on a
+small number of tissue types (eg, WM, GM, CSF, Skull, soft tissue,
+background). Other structures (eg, hippocampus) are assigned to a
+given superstructure. Each superstructure may be modeled by several
+Gaussians. This file dictates which structures go into which
+superstructure and how many Gaussians each superstructure gets. 
+
+compressionLookupTable.txt - maps the labels numbers (eg, 0-43) to
+FreeSurfer color table names and numbers. 
+
+modifiedFreeSurferColorLUT.txt - FreeSurfer-style color table
+
+template.nii - intensity image of the SAMSEG atlas. This is not
+actually used in the normal course of SAMSEG execution, but it helpful
+to have to evaluate registration.
+
+template.seg.mgz - SAMSEG segmentation of the template.nii. This
+more-or-less gives an indication of what the SAMSEG atlas priors look
+like. This is not actually used in the normal course of SAMSEG
+execution.
+
+The files below are useful for ex vivo segmentation on samples that
+only contain a hemisphere. There are two sets: (1) whole - samples
+that include cerebellum and brainstem and (2) suptent - samples that
+exclude those structures, ie, those that include only the
+supratentorial region.  The template images are included so that the
+initial affine registration can be run with mri_coreg because the
+default SAMSEG registration often fails on these cases. These may be
+deleted when the SAMSEG registration is improved.
+
+exvivo.lh.whole.sharedGMMParameters.txt
+exvivo.rh.whole.sharedGMMParameters.txt
+exvivo.template.lh.whole.nii
+exvivo.template.rh.whole.nii
+
+exvivo.lh.suptent.sharedGMMParameters.txt
+exvivo.rh.suptent.sharedGMMParameters.txt
+exvivo.template.lh.suptent.nii
+exvivo.template.rh.suptent.nii
+

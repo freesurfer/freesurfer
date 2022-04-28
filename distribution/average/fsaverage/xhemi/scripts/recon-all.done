@@ -1,0 +1,13 @@
+------------------------------
+SUBJECT fsaverage/xhemi
+START_TIME Fri Nov 13 11:35:23 EST 2015
+END_TIME Fri Nov 13 11:48:23 EST 2015
+RUNTIME_HOURS 0.217
+USER greve
+HOST compute-0-26
+PROCESSOR x86_64
+OS Linux
+UNAME Linux compute-0-26 2.6.32-573.7.1.el6.x86_64 #1 SMP Tue Sep 22 22:00:00 UTC 2015 x86_64 x86_64 x86_64 GNU/Linux
+VERSION $Id: recon-all,v 1.552 2015/11/06 19:32:20 ltirrell Exp $
+CMDPATH /autofs/space/tanha_002/users/greve/fsdev.build/bin/recon-all
+CMDARGS -sb fsaverage/xhemi -talairach

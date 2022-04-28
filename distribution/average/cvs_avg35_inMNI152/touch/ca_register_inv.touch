@@ -1,0 +1,1 @@
+mri_ca_register -invert-and-save transforms/talairach.m3z

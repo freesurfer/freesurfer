@@ -1,0 +1,1 @@
+mri_normalize -aseg aseg.mgz -mask brainmask.mgz norm.mgz brain.mgz

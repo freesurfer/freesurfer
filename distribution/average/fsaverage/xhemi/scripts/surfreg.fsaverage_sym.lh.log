@@ -1,0 +1,1114 @@
+Log file for surfreg
+Fri Nov 13 11:34:37 EST 2015
+
+setenv SUBJECTS_DIR /autofs/space/tanha_002/users/greve/fsdev.build/subjects
+cd /autofs/space/tanha_002/users/greve/fsdev.build/subjects
+/autofs/space/tanha_002/users/greve/fsdev.build/bin/surfreg --s fsaverage --t fsaverage_sym --lh --xhemi
+
+Linux compute-0-26 2.6.32-573.7.1.el6.x86_64 #1 SMP Tue Sep 22 22:00:00 UTC 2015 x86_64 x86_64 x86_64 GNU/Linux
+xhemireg --s fsaverage
+outdir is /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi
+Logfile is /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/xhemireg.lh.log
+/autofs/space/tanha_002/users/greve/fsdev.build/bin/xhemireg
+--s fsaverage
+$Id: xhemireg,v 1.25 2013/08/29 18:49:33 greve Exp $
+Fri Nov 13 11:34:37 EST 2015
+Linux compute-0-26 2.6.32-573.7.1.el6.x86_64 #1 SMP Tue Sep 22 22:00:00 UTC 2015 x86_64 x86_64 x86_64 GNU/Linux
+/autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage
+setenv SUBJECTS_DIR /autofs/space/tanha_002/users/greve/fsdev.build/subjects 
+Fri Nov 13 11:34:38 EST 2015
+Fri Nov 13 11:34:38 EST 2015
+vol orig --------------
+mri_vol2vol --mov mri/orig.mgz --targ mri/orig.mgz --reg /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/lrrev.register.dat --o /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri/orig.mgz --keep-precision --no-save-reg
+
+Matrix from regfile:
+-1.00000   0.00000   0.00000   1.00000;
+ 0.00000   1.00000   0.00000   0.00000;
+ 0.00000   0.00000   1.00000   0.00000;
+ 0.00000   0.00000   0.00000   1.00000;
+
+movvol mri/orig.mgz
+targvol mri/orig.mgz
+outvol /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri/orig.mgz
+regfile /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/lrrev.register.dat
+invert 0
+tal    0
+talres 2
+regheader 0
+noresample 0
+interp  trilinear (1)
+precision  uchar (0)
+Gdiag_no  -1
+Synth      0
+SynthSeed  1447948791
+
+Final tkRAS-to-tkRAS Matrix is:
+-1.00000   0.00000   0.00000   1.00000;
+ 0.00000   1.00000   0.00000   0.00000;
+ 0.00000   0.00000   1.00000   0.00000;
+ 0.00000   0.00000   0.00000   1.00000;
+
+
+Vox2Vox Matrix is:
+-1.00000   0.00000   0.00000   255.00000;
+ 0.00000   1.00000   0.00000   0.00000;
+ 0.00000   0.00000   1.00000   0.00000;
+ 0.00000   0.00000   0.00000   1.00000;
+
+Resampling
+Output registration matrix is identity
+
+mri_vol2vol done
+vol T1 --------------
+mri_vol2vol --mov mri/T1.mgz --targ mri/T1.mgz --reg /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/lrrev.register.dat --o /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri/T1.mgz --keep-precision --no-save-reg
+
+Matrix from regfile:
+-1.00000   0.00000   0.00000   1.00000;
+ 0.00000   1.00000   0.00000   0.00000;
+ 0.00000   0.00000   1.00000   0.00000;
+ 0.00000   0.00000   0.00000   1.00000;
+
+movvol mri/T1.mgz
+targvol mri/T1.mgz
+outvol /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri/T1.mgz
+regfile /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/lrrev.register.dat
+invert 0
+tal    0
+talres 2
+regheader 0
+noresample 0
+interp  trilinear (1)
+precision  uchar (0)
+Gdiag_no  -1
+Synth      0
+SynthSeed  1448051749
+
+Final tkRAS-to-tkRAS Matrix is:
+-1.00000   0.00000   0.00000   1.00000;
+ 0.00000   1.00000   0.00000   0.00000;
+ 0.00000   0.00000   1.00000   0.00000;
+ 0.00000   0.00000   0.00000   1.00000;
+
+
+Vox2Vox Matrix is:
+-1.00000   0.00000   0.00000   255.00000;
+ 0.00000   1.00000   0.00000   0.00000;
+ 0.00000   0.00000   1.00000   0.00000;
+ 0.00000   0.00000   0.00000   1.00000;
+
+Resampling
+Output registration matrix is identity
+
+mri_vol2vol done
+vol brain --------------
+mri_vol2vol --mov mri/brain.mgz --targ mri/brain.mgz --reg /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/lrrev.register.dat --o /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri/brain.mgz --keep-precision --no-save-reg
+
+Matrix from regfile:
+-1.00000   0.00000   0.00000   1.00000;
+ 0.00000   1.00000   0.00000   0.00000;
+ 0.00000   0.00000   1.00000   0.00000;
+ 0.00000   0.00000   0.00000   1.00000;
+
+movvol mri/brain.mgz
+targvol mri/brain.mgz
+outvol /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri/brain.mgz
+regfile /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/lrrev.register.dat
+invert 0
+tal    0
+talres 2
+regheader 0
+noresample 0
+interp  trilinear (1)
+precision  uchar (0)
+Gdiag_no  -1
+Synth      0
+SynthSeed  1447979700
+
+Final tkRAS-to-tkRAS Matrix is:
+-1.00000   0.00000   0.00000   1.00000;
+ 0.00000   1.00000   0.00000   0.00000;
+ 0.00000   0.00000   1.00000   0.00000;
+ 0.00000   0.00000   0.00000   1.00000;
+
+
+Vox2Vox Matrix is:
+-1.00000   0.00000   0.00000   255.00000;
+ 0.00000   1.00000   0.00000   0.00000;
+ 0.00000   0.00000   1.00000   0.00000;
+ 0.00000   0.00000   0.00000   1.00000;
+
+Resampling
+Output registration matrix is identity
+
+mri_vol2vol done
+vol brainmask --------------
+mri_vol2vol --mov mri/brainmask.mgz --targ mri/brainmask.mgz --reg /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/lrrev.register.dat --o /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri/brainmask.mgz --keep-precision --no-save-reg
+
+Matrix from regfile:
+-1.00000   0.00000   0.00000   1.00000;
+ 0.00000   1.00000   0.00000   0.00000;
+ 0.00000   0.00000   1.00000   0.00000;
+ 0.00000   0.00000   0.00000   1.00000;
+
+movvol mri/brainmask.mgz
+targvol mri/brainmask.mgz
+outvol /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri/brainmask.mgz
+regfile /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/lrrev.register.dat
+invert 0
+tal    0
+talres 2
+regheader 0
+noresample 0
+interp  trilinear (1)
+precision  uchar (0)
+Gdiag_no  -1
+Synth      0
+SynthSeed  1447708645
+
+Final tkRAS-to-tkRAS Matrix is:
+-1.00000   0.00000   0.00000   1.00000;
+ 0.00000   1.00000   0.00000   0.00000;
+ 0.00000   0.00000   1.00000   0.00000;
+ 0.00000   0.00000   0.00000   1.00000;
+
+
+Vox2Vox Matrix is:
+-1.00000   0.00000   0.00000   255.00000;
+ 0.00000   1.00000   0.00000   0.00000;
+ 0.00000   0.00000   1.00000   0.00000;
+ 0.00000   0.00000   0.00000   1.00000;
+
+Resampling
+Output registration matrix is identity
+
+mri_vol2vol done
+vol norm --------------
+WARNING: cannot find norm
+ ... skipping ... 
+vol aseg --------------
+mri_vol2vol --mov mri/aseg.mgz --targ mri/aseg.mgz --reg /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/lrrev.register.dat --o /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri/aseg.mgz --keep-precision --no-save-reg
+
+Matrix from regfile:
+-1.00000   0.00000   0.00000   1.00000;
+ 0.00000   1.00000   0.00000   0.00000;
+ 0.00000   0.00000   1.00000   0.00000;
+ 0.00000   0.00000   0.00000   1.00000;
+
+movvol mri/aseg.mgz
+targvol mri/aseg.mgz
+outvol /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri/aseg.mgz
+regfile /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/lrrev.register.dat
+invert 0
+tal    0
+talres 2
+regheader 0
+noresample 0
+interp  trilinear (1)
+precision  float (3)
+Gdiag_no  -1
+Synth      0
+SynthSeed  1447466280
+
+Final tkRAS-to-tkRAS Matrix is:
+-1.00000   0.00000   0.00000   1.00000;
+ 0.00000   1.00000   0.00000   0.00000;
+ 0.00000   0.00000   1.00000   0.00000;
+ 0.00000   0.00000   0.00000   1.00000;
+
+
+Vox2Vox Matrix is:
+-1.00000   0.00000   0.00000   255.00000;
+ 0.00000   1.00000   0.00000   0.00000;
+ 0.00000   0.00000   1.00000   0.00000;
+ 0.00000   0.00000   0.00000   1.00000;
+
+Resampling
+Output registration matrix is identity
+
+mri_vol2vol done
+mri_convert /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri/aseg.mgz /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri/aseg.mgz --left-right-swap-label
+mri_convert /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri/aseg.mgz /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri/aseg.mgz --left-right-swap-label 
+$Id: mri_convert.c,v 1.225 2015/10/19 18:48:26 fischl Exp $
+reading from /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri/aseg.mgz...
+Performing left-right swap of labels
+TR=0.00, TE=0.00, TI=0.00, flip angle=0.00
+i_ras = (-1, 0, 0)
+j_ras = (0, 0, -1)
+k_ras = (0, 1, 0)
+writing to /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri/aseg.mgz...
+vol aparc+aseg --------------
+mri_vol2vol --mov mri/aparc+aseg.mgz --targ mri/aparc+aseg.mgz --reg /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/lrrev.register.dat --o /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri/aparc+aseg.mgz --keep-precision --no-save-reg
+
+Matrix from regfile:
+-1.00000   0.00000   0.00000   1.00000;
+ 0.00000   1.00000   0.00000   0.00000;
+ 0.00000   0.00000   1.00000   0.00000;
+ 0.00000   0.00000   0.00000   1.00000;
+
+movvol mri/aparc+aseg.mgz
+targvol mri/aparc+aseg.mgz
+outvol /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri/aparc+aseg.mgz
+regfile /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/lrrev.register.dat
+invert 0
+tal    0
+talres 2
+regheader 0
+noresample 0
+interp  trilinear (1)
+precision  int (1)
+Gdiag_no  -1
+Synth      0
+SynthSeed  1448333940
+
+Final tkRAS-to-tkRAS Matrix is:
+-1.00000   0.00000   0.00000   1.00000;
+ 0.00000   1.00000   0.00000   0.00000;
+ 0.00000   0.00000   1.00000   0.00000;
+ 0.00000   0.00000   0.00000   1.00000;
+
+
+Vox2Vox Matrix is:
+-1.00000   0.00000   0.00000   255.00000;
+ 0.00000   1.00000   0.00000   0.00000;
+ 0.00000   0.00000   1.00000   0.00000;
+ 0.00000   0.00000   0.00000   1.00000;
+
+Resampling
+Output registration matrix is identity
+
+mri_vol2vol done
+mri_convert /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri/aparc+aseg.mgz /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri/aparc+aseg.mgz --left-right-swap-label
+mri_convert /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri/aparc+aseg.mgz /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri/aparc+aseg.mgz --left-right-swap-label 
+$Id: mri_convert.c,v 1.225 2015/10/19 18:48:26 fischl Exp $
+reading from /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri/aparc+aseg.mgz...
+Performing left-right swap of labels
+TR=0.00, TE=0.00, TI=0.00, flip angle=0.00
+i_ras = (-1, 0, 0)
+j_ras = (0, 0, -1)
+k_ras = (0, 1, 0)
+writing to /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri/aparc+aseg.mgz...
+vol nu --------------
+WARNING: cannot find nu
+ ... skipping ... 
+Fri Nov 13 11:35:23 EST 2015
+recon-all -sb fsaverage/xhemi -talairach
+Subject Stamp: freesurfer-x86_64-unknown-linux-gnu-dev5-20151109
+Current Stamp: freesurfer-x86_64-unknown-linux-gnu-dev5-20151109
+INFO: SUBJECTS_DIR is /autofs/space/tanha_002/users/greve/fsdev.build/subjects
+Actual FREESURFER_HOME /autofs/space/tanha_002/users/greve/fsdev.build
+Linux compute-0-26 2.6.32-573.7.1.el6.x86_64 #1 SMP Tue Sep 22 22:00:00 UTC 2015 x86_64 x86_64 x86_64 GNU/Linux
+`/autofs/space/tanha_002/users/greve/fsdev.build/bin/recon-all' -> `/autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/scripts/recon-all.local-copy'
+#--------------------------------------------
+#@# Talairach Fri Nov 13 11:35:32 EST 2015
+/autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri
+
+ mri_nu_correct.mni --no-rescale --i orig.mgz --o orig_nu.mgz --n 1 --proto-iters 1000 --distance 200 --stop 1e-4 --shrink 2 
+
+/autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri
+/autofs/space/tanha_002/users/greve/fsdev.build/bin/mri_nu_correct.mni
+--no-rescale --i orig.mgz --o orig_nu.mgz --n 1 --proto-iters 1000 --distance 200 --stop 1e-4 --shrink 2
+nIters 1
+$Id: mri_nu_correct.mni,v 1.23 2015/06/18 00:21:28 nicks Exp $
+Linux compute-0-26 2.6.32-573.7.1.el6.x86_64 #1 SMP Tue Sep 22 22:00:00 UTC 2015 x86_64 x86_64 x86_64 GNU/Linux
+Fri Nov 13 11:35:32 EST 2015
+Program nu_correct, built from:
+Package MNI N3, version 1.12.0, compiled by nicks@terrier (x86_64-unknown-linux-gnu) on 2015-06-19 at 01:25:34
+tmpdir is ./tmp.mri_nu_correct.mni.2535
+/autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri
+mri_convert orig.mgz ./tmp.mri_nu_correct.mni.2535/nu0.mnc -odt float
+mri_convert orig.mgz ./tmp.mri_nu_correct.mni.2535/nu0.mnc -odt float 
+$Id: mri_convert.c,v 1.225 2015/10/19 18:48:26 fischl Exp $
+reading from orig.mgz...
+TR=0.00, TE=0.00, TI=0.00, flip angle=0.00
+i_ras = (-1, 0, 0)
+j_ras = (0, 0, -1)
+k_ras = (0, 1, 0)
+changing data type from uchar to float (noscale = 0)...
+writing to ./tmp.mri_nu_correct.mni.2535/nu0.mnc...
+ 
+--------------------------------------------------------
+Iteration 1 Fri Nov 13 11:35:36 EST 2015
+nu_correct -clobber ./tmp.mri_nu_correct.mni.2535/nu0.mnc ./tmp.mri_nu_correct.mni.2535/nu1.mnc -tmpdir ./tmp.mri_nu_correct.mni.2535/0/ -iterations 1000 -stop 1e-4 -distance 200 -shrink 2
+[greve@compute-0-26:/autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri/] [2015-11-13 11:35:37] running:
+  /usr/pubsw/packages/mni/current/bin/nu_estimate_np_and_em -parzen -log -sharpen 0.15 0.01 -iterations 1000 -stop 1e-4 -shrink 2 -auto_mask -nonotify -b_spline 1.0e-7 -distance 200 -quiet -execute -clobber -nokeeptmp -tmpdir ./tmp.mri_nu_correct.mni.2535/0/ ./tmp.mri_nu_correct.mni.2535/nu0.mnc ./tmp.mri_nu_correct.mni.2535/nu1.imp
+
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Number of iterations: 132 
+CV of field change: 9.95676e-05
+ 
+ 
+ 
+mri_convert ./tmp.mri_nu_correct.mni.2535/nu1.mnc orig_nu.mgz --like orig.mgz --conform
+mri_convert ./tmp.mri_nu_correct.mni.2535/nu1.mnc orig_nu.mgz --like orig.mgz --conform 
+$Id: mri_convert.c,v 1.225 2015/10/19 18:48:26 fischl Exp $
+reading from ./tmp.mri_nu_correct.mni.2535/nu1.mnc...
+TR=0.00, TE=0.00, TI=0.00, flip angle=0.00
+i_ras = (-1, 0, 0)
+j_ras = (0, 0, -1)
+k_ras = (0, 1, 0)
+INFO: transform src into the like-volume: orig.mgz
+changing data type from float to uchar (noscale = 0)...
+MRIchangeType: Building histogram 
+writing to orig_nu.mgz...
+ 
+ 
+Fri Nov 13 11:47:07 EST 2015
+mri_nu_correct.mni done
+
+ talairach_avi --i orig_nu.mgz --xfm transforms/talairach.auto.xfm 
+
+talairach_avi log file is transforms/talairach_avi.log...
+
+ cp transforms/talairach.auto.xfm transforms/talairach.xfm 
+
+
+#------------------------------------------
+
+Started at Fri Nov 13 11:35:23 EST 2015 
+Ended   at Fri Nov 13 11:48:23 EST 2015
+#@#%# recon-all-run-time-hours 0.217
+recon-all -s fsaverage/xhemi finished without error at Fri Nov 13 11:48:23 EST 2015
+done
+Fri Nov 13 11:48:23 EST 2015
+mri_surf2surf --s fsaverage --sval-xyz orig --hemi lh --tval-xyz /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri/orig.mgz --tval /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/surf/rh.orig --reg /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/lrrev.register.dat
+
+$Id: mri_surf2surf.c,v 1.103 2015/11/05 22:07:33 greve Exp $
+
+setenv SUBJECTS_DIR /autofs/space/tanha_002/users/greve/fsdev.build/subjects
+cd /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage
+mri_surf2surf --s fsaverage --sval-xyz orig --hemi lh --tval-xyz /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri/orig.mgz --tval /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/surf/rh.orig --reg /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/lrrev.register.dat 
+
+sysname  Linux
+hostname compute-0-26
+machine  x86_64
+user     greve
+srcsubject = fsaverage
+srcval     = (null)
+srctype    = 
+trgsubject = fsaverage
+trgval     = /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/surf/rh.orig
+trgtype    = 
+srcsurfreg = sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/surf/lh.sphere.reg
+Loading source data
+Reading surface file /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/surf/lh.orig
+Applying linear registration transform
+-1.00000   0.00000   0.00000   1.00000;
+ 0.00000   1.00000   0.00000   0.00000;
+ 0.00000   0.00000   1.00000   0.00000;
+ 0.00000   0.00000   0.00000   1.00000;
+Determinant of linear transform is negative, so reversing face order
+INFO: trgsubject = srcsubject
+Saving target data
+Reversing Face Order
+Fri Nov 13 11:48:30 EST 2015
+mri_surf2surf --s fsaverage --sval-xyz white --hemi lh --tval-xyz /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri/orig.mgz --tval /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/surf/rh.white --reg /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/lrrev.register.dat
+
+$Id: mri_surf2surf.c,v 1.103 2015/11/05 22:07:33 greve Exp $
+
+setenv SUBJECTS_DIR /autofs/space/tanha_002/users/greve/fsdev.build/subjects
+cd /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage
+mri_surf2surf --s fsaverage --sval-xyz white --hemi lh --tval-xyz /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri/orig.mgz --tval /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/surf/rh.white --reg /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/lrrev.register.dat 
+
+sysname  Linux
+hostname compute-0-26
+machine  x86_64
+user     greve
+srcsubject = fsaverage
+srcval     = (null)
+srctype    = 
+trgsubject = fsaverage
+trgval     = /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/surf/rh.white
+trgtype    = 
+srcsurfreg = sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/surf/lh.sphere.reg
+Loading source data
+Reading surface file /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/surf/lh.white
+Applying linear registration transform
+-1.00000   0.00000   0.00000   1.00000;
+ 0.00000   1.00000   0.00000   0.00000;
+ 0.00000   0.00000   1.00000   0.00000;
+ 0.00000   0.00000   0.00000   1.00000;
+Determinant of linear transform is negative, so reversing face order
+INFO: trgsubject = srcsubject
+Saving target data
+Reversing Face Order
+Fri Nov 13 11:48:37 EST 2015
+mri_surf2surf --s fsaverage --sval-xyz pial --hemi lh --tval-xyz /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri/orig.mgz --tval /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/surf/rh.pial --reg /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/lrrev.register.dat
+
+$Id: mri_surf2surf.c,v 1.103 2015/11/05 22:07:33 greve Exp $
+
+setenv SUBJECTS_DIR /autofs/space/tanha_002/users/greve/fsdev.build/subjects
+cd /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage
+mri_surf2surf --s fsaverage --sval-xyz pial --hemi lh --tval-xyz /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri/orig.mgz --tval /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/surf/rh.pial --reg /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/lrrev.register.dat 
+
+sysname  Linux
+hostname compute-0-26
+machine  x86_64
+user     greve
+srcsubject = fsaverage
+srcval     = (null)
+srctype    = 
+trgsubject = fsaverage
+trgval     = /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/surf/rh.pial
+trgtype    = 
+srcsurfreg = sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/surf/lh.sphere.reg
+Loading source data
+Reading surface file /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/surf/lh.pial
+Applying linear registration transform
+-1.00000   0.00000   0.00000   1.00000;
+ 0.00000   1.00000   0.00000   0.00000;
+ 0.00000   0.00000   1.00000   0.00000;
+ 0.00000   0.00000   0.00000   1.00000;
+Determinant of linear transform is negative, so reversing face order
+INFO: trgsubject = srcsubject
+Saving target data
+Reversing Face Order
+Fri Nov 13 11:48:44 EST 2015
+mri_surf2surf --s fsaverage --sval-xyz smoothwm --hemi lh --tval-xyz /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri/orig.mgz --tval /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/surf/rh.smoothwm --reg /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/lrrev.register.dat
+
+$Id: mri_surf2surf.c,v 1.103 2015/11/05 22:07:33 greve Exp $
+
+setenv SUBJECTS_DIR /autofs/space/tanha_002/users/greve/fsdev.build/subjects
+cd /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage
+mri_surf2surf --s fsaverage --sval-xyz smoothwm --hemi lh --tval-xyz /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri/orig.mgz --tval /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/surf/rh.smoothwm --reg /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/lrrev.register.dat 
+
+sysname  Linux
+hostname compute-0-26
+machine  x86_64
+user     greve
+srcsubject = fsaverage
+srcval     = (null)
+srctype    = 
+trgsubject = fsaverage
+trgval     = /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/surf/rh.smoothwm
+trgtype    = 
+srcsurfreg = sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/surf/lh.sphere.reg
+Loading source data
+Reading surface file /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/surf/lh.smoothwm
+Applying linear registration transform
+-1.00000   0.00000   0.00000   1.00000;
+ 0.00000   1.00000   0.00000   0.00000;
+ 0.00000   0.00000   1.00000   0.00000;
+ 0.00000   0.00000   0.00000   1.00000;
+Determinant of linear transform is negative, so reversing face order
+INFO: trgsubject = srcsubject
+Saving target data
+Reversing Face Order
+Fri Nov 13 11:48:52 EST 2015
+mri_surf2surf --s fsaverage --sval-xyz sphere --hemi lh --tval-xyz /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri/orig.mgz --tval /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/surf/rh.sphere --reg /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/lrrev.pure.register.dat
+
+$Id: mri_surf2surf.c,v 1.103 2015/11/05 22:07:33 greve Exp $
+
+setenv SUBJECTS_DIR /autofs/space/tanha_002/users/greve/fsdev.build/subjects
+cd /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage
+mri_surf2surf --s fsaverage --sval-xyz sphere --hemi lh --tval-xyz /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri/orig.mgz --tval /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/surf/rh.sphere --reg /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/lrrev.pure.register.dat 
+
+sysname  Linux
+hostname compute-0-26
+machine  x86_64
+user     greve
+srcsubject = fsaverage
+srcval     = (null)
+srctype    = 
+trgsubject = fsaverage
+trgval     = /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/surf/rh.sphere
+trgtype    = 
+srcsurfreg = sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/surf/lh.sphere.reg
+Loading source data
+Reading surface file /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/surf/lh.sphere
+Applying linear registration transform
+-1.00000   0.00000   0.00000   0.00000;
+ 0.00000   1.00000   0.00000   0.00000;
+ 0.00000   0.00000   1.00000   0.00000;
+ 0.00000   0.00000   0.00000   1.00000;
+Determinant of linear transform is negative, so reversing face order
+INFO: trgsubject = srcsubject
+Saving target data
+Reversing Face Order
+Fri Nov 13 11:49:01 EST 2015
+mri_surf2surf --s fsaverage --sval-xyz inflated --hemi lh --tval-xyz /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri/orig.mgz --tval /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/surf/rh.inflated --reg /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/lrrev.pure.register.dat
+
+$Id: mri_surf2surf.c,v 1.103 2015/11/05 22:07:33 greve Exp $
+
+setenv SUBJECTS_DIR /autofs/space/tanha_002/users/greve/fsdev.build/subjects
+cd /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage
+mri_surf2surf --s fsaverage --sval-xyz inflated --hemi lh --tval-xyz /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri/orig.mgz --tval /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/surf/rh.inflated --reg /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/lrrev.pure.register.dat 
+
+sysname  Linux
+hostname compute-0-26
+machine  x86_64
+user     greve
+srcsubject = fsaverage
+srcval     = (null)
+srctype    = 
+trgsubject = fsaverage
+trgval     = /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/surf/rh.inflated
+trgtype    = 
+srcsurfreg = sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/surf/lh.sphere.reg
+Loading source data
+Reading surface file /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/surf/lh.inflated
+Applying linear registration transform
+-1.00000   0.00000   0.00000   0.00000;
+ 0.00000   1.00000   0.00000   0.00000;
+ 0.00000   0.00000   1.00000   0.00000;
+ 0.00000   0.00000   0.00000   1.00000;
+Determinant of linear transform is negative, so reversing face order
+INFO: trgsubject = srcsubject
+Saving target data
+Reversing Face Order
+cp label/lh.aparc.annot /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/label/rh.aparc.annot
+cp label/lh.aparc.a2009s.annot /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/label/rh.aparc.a2009s.annot
+done hemi lh
+Logfile is /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/xhemireg.rh.log
+/autofs/space/tanha_002/users/greve/fsdev.build/bin/xhemireg
+--s fsaverage
+$Id: xhemireg,v 1.25 2013/08/29 18:49:33 greve Exp $
+Fri Nov 13 11:49:07 EST 2015
+Linux compute-0-26 2.6.32-573.7.1.el6.x86_64 #1 SMP Tue Sep 22 22:00:00 UTC 2015 x86_64 x86_64 x86_64 GNU/Linux
+/autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage
+setenv SUBJECTS_DIR /autofs/space/tanha_002/users/greve/fsdev.build/subjects 
+Fri Nov 13 11:49:07 EST 2015
+mri_surf2surf --s fsaverage --sval-xyz orig --hemi rh --tval-xyz /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri/orig.mgz --tval /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/surf/lh.orig --reg /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/lrrev.register.dat
+
+$Id: mri_surf2surf.c,v 1.103 2015/11/05 22:07:33 greve Exp $
+
+setenv SUBJECTS_DIR /autofs/space/tanha_002/users/greve/fsdev.build/subjects
+cd /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage
+mri_surf2surf --s fsaverage --sval-xyz orig --hemi rh --tval-xyz /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri/orig.mgz --tval /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/surf/lh.orig --reg /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/lrrev.register.dat 
+
+sysname  Linux
+hostname compute-0-26
+machine  x86_64
+user     greve
+srcsubject = fsaverage
+srcval     = (null)
+srctype    = 
+trgsubject = fsaverage
+trgval     = /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/surf/lh.orig
+trgtype    = 
+srcsurfreg = sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = rh
+trghemi    = rh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/surf/rh.sphere.reg
+Loading source data
+Reading surface file /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/surf/rh.orig
+Applying linear registration transform
+-1.00000   0.00000   0.00000   1.00000;
+ 0.00000   1.00000   0.00000   0.00000;
+ 0.00000   0.00000   1.00000   0.00000;
+ 0.00000   0.00000   0.00000   1.00000;
+Determinant of linear transform is negative, so reversing face order
+INFO: trgsubject = srcsubject
+Saving target data
+Reversing Face Order
+Fri Nov 13 11:49:14 EST 2015
+mri_surf2surf --s fsaverage --sval-xyz white --hemi rh --tval-xyz /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri/orig.mgz --tval /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/surf/lh.white --reg /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/lrrev.register.dat
+
+$Id: mri_surf2surf.c,v 1.103 2015/11/05 22:07:33 greve Exp $
+
+setenv SUBJECTS_DIR /autofs/space/tanha_002/users/greve/fsdev.build/subjects
+cd /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage
+mri_surf2surf --s fsaverage --sval-xyz white --hemi rh --tval-xyz /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri/orig.mgz --tval /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/surf/lh.white --reg /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/lrrev.register.dat 
+
+sysname  Linux
+hostname compute-0-26
+machine  x86_64
+user     greve
+srcsubject = fsaverage
+srcval     = (null)
+srctype    = 
+trgsubject = fsaverage
+trgval     = /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/surf/lh.white
+trgtype    = 
+srcsurfreg = sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = rh
+trghemi    = rh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/surf/rh.sphere.reg
+Loading source data
+Reading surface file /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/surf/rh.white
+Applying linear registration transform
+-1.00000   0.00000   0.00000   1.00000;
+ 0.00000   1.00000   0.00000   0.00000;
+ 0.00000   0.00000   1.00000   0.00000;
+ 0.00000   0.00000   0.00000   1.00000;
+Determinant of linear transform is negative, so reversing face order
+INFO: trgsubject = srcsubject
+Saving target data
+Reversing Face Order
+Fri Nov 13 11:49:22 EST 2015
+mri_surf2surf --s fsaverage --sval-xyz pial --hemi rh --tval-xyz /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri/orig.mgz --tval /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/surf/lh.pial --reg /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/lrrev.register.dat
+
+$Id: mri_surf2surf.c,v 1.103 2015/11/05 22:07:33 greve Exp $
+
+setenv SUBJECTS_DIR /autofs/space/tanha_002/users/greve/fsdev.build/subjects
+cd /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage
+mri_surf2surf --s fsaverage --sval-xyz pial --hemi rh --tval-xyz /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri/orig.mgz --tval /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/surf/lh.pial --reg /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/lrrev.register.dat 
+
+sysname  Linux
+hostname compute-0-26
+machine  x86_64
+user     greve
+srcsubject = fsaverage
+srcval     = (null)
+srctype    = 
+trgsubject = fsaverage
+trgval     = /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/surf/lh.pial
+trgtype    = 
+srcsurfreg = sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = rh
+trghemi    = rh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/surf/rh.sphere.reg
+Loading source data
+Reading surface file /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/surf/rh.pial
+Applying linear registration transform
+-1.00000   0.00000   0.00000   1.00000;
+ 0.00000   1.00000   0.00000   0.00000;
+ 0.00000   0.00000   1.00000   0.00000;
+ 0.00000   0.00000   0.00000   1.00000;
+Determinant of linear transform is negative, so reversing face order
+INFO: trgsubject = srcsubject
+Saving target data
+Reversing Face Order
+Fri Nov 13 11:49:30 EST 2015
+mri_surf2surf --s fsaverage --sval-xyz smoothwm --hemi rh --tval-xyz /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri/orig.mgz --tval /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/surf/lh.smoothwm --reg /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/lrrev.register.dat
+
+$Id: mri_surf2surf.c,v 1.103 2015/11/05 22:07:33 greve Exp $
+
+setenv SUBJECTS_DIR /autofs/space/tanha_002/users/greve/fsdev.build/subjects
+cd /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage
+mri_surf2surf --s fsaverage --sval-xyz smoothwm --hemi rh --tval-xyz /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri/orig.mgz --tval /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/surf/lh.smoothwm --reg /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/lrrev.register.dat 
+
+sysname  Linux
+hostname compute-0-26
+machine  x86_64
+user     greve
+srcsubject = fsaverage
+srcval     = (null)
+srctype    = 
+trgsubject = fsaverage
+trgval     = /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/surf/lh.smoothwm
+trgtype    = 
+srcsurfreg = sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = rh
+trghemi    = rh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/surf/rh.sphere.reg
+Loading source data
+Reading surface file /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/surf/rh.smoothwm
+Applying linear registration transform
+-1.00000   0.00000   0.00000   1.00000;
+ 0.00000   1.00000   0.00000   0.00000;
+ 0.00000   0.00000   1.00000   0.00000;
+ 0.00000   0.00000   0.00000   1.00000;
+Determinant of linear transform is negative, so reversing face order
+INFO: trgsubject = srcsubject
+Saving target data
+Reversing Face Order
+Fri Nov 13 11:49:36 EST 2015
+mri_surf2surf --s fsaverage --sval-xyz sphere --hemi rh --tval-xyz /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri/orig.mgz --tval /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/surf/lh.sphere --reg /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/lrrev.pure.register.dat
+
+$Id: mri_surf2surf.c,v 1.103 2015/11/05 22:07:33 greve Exp $
+
+setenv SUBJECTS_DIR /autofs/space/tanha_002/users/greve/fsdev.build/subjects
+cd /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage
+mri_surf2surf --s fsaverage --sval-xyz sphere --hemi rh --tval-xyz /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri/orig.mgz --tval /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/surf/lh.sphere --reg /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/lrrev.pure.register.dat 
+
+sysname  Linux
+hostname compute-0-26
+machine  x86_64
+user     greve
+srcsubject = fsaverage
+srcval     = (null)
+srctype    = 
+trgsubject = fsaverage
+trgval     = /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/surf/lh.sphere
+trgtype    = 
+srcsurfreg = sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = rh
+trghemi    = rh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/surf/rh.sphere.reg
+Loading source data
+Reading surface file /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/surf/rh.sphere
+Applying linear registration transform
+-1.00000   0.00000   0.00000   0.00000;
+ 0.00000   1.00000   0.00000   0.00000;
+ 0.00000   0.00000   1.00000   0.00000;
+ 0.00000   0.00000   0.00000   1.00000;
+Determinant of linear transform is negative, so reversing face order
+INFO: trgsubject = srcsubject
+Saving target data
+Reversing Face Order
+Fri Nov 13 11:49:43 EST 2015
+mri_surf2surf --s fsaverage --sval-xyz inflated --hemi rh --tval-xyz /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri/orig.mgz --tval /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/surf/lh.inflated --reg /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/lrrev.pure.register.dat
+
+$Id: mri_surf2surf.c,v 1.103 2015/11/05 22:07:33 greve Exp $
+
+setenv SUBJECTS_DIR /autofs/space/tanha_002/users/greve/fsdev.build/subjects
+cd /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage
+mri_surf2surf --s fsaverage --sval-xyz inflated --hemi rh --tval-xyz /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri/orig.mgz --tval /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/surf/lh.inflated --reg /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/lrrev.pure.register.dat 
+
+sysname  Linux
+hostname compute-0-26
+machine  x86_64
+user     greve
+srcsubject = fsaverage
+srcval     = (null)
+srctype    = 
+trgsubject = fsaverage
+trgval     = /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/surf/lh.inflated
+trgtype    = 
+srcsurfreg = sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = rh
+trghemi    = rh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/surf/rh.sphere.reg
+Loading source data
+Reading surface file /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/surf/rh.inflated
+Applying linear registration transform
+-1.00000   0.00000   0.00000   0.00000;
+ 0.00000   1.00000   0.00000   0.00000;
+ 0.00000   0.00000   1.00000   0.00000;
+ 0.00000   0.00000   0.00000   1.00000;
+Determinant of linear transform is negative, so reversing face order
+INFO: trgsubject = srcsubject
+Saving target data
+Reversing Face Order
+cp label/rh.aparc.annot /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/label/lh.aparc.annot
+cp label/rh.aparc.a2009s.annot /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/label/lh.aparc.a2009s.annot
+done hemi rh
+
+Fri Nov 13 11:49:50 EST 2015
+xhemireg done
+#@# lh Fri Nov 13 11:49:50 EST 2015
+#CMD# mris_register -curv -annot aparc.annot /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/surf/lh.sphere /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage_sym/lh.reg.template.tif /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/surf/lh.fsaverage_sym.sphere.reg
+using smoothwm curvature for final alignment
+zeroing medial wall in aparc.annot
+
+cwd /autofs/space/tanha_002/users/greve/fsdev.build/subjects
+cmdline mris_register -curv -annot aparc.annot /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/surf/lh.sphere /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage_sym/lh.reg.template.tif /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/surf/lh.fsaverage_sym.sphere.reg 
+
+0 inflated.H
+1 sulc
+2 smoothwm (computed)
+$Id: mris_register.c,v 1.61 2013/01/15 17:19:03 greve Exp $
+  $Id: mrisurf.c,v 1.771 2015/11/06 16:00:41 fischl Exp $
+reading surface from /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/surf/lh.sphere...
+reading colortable from annotation file...
+colortable with 36 entries read (originally /autofs/space/terrier_001/users/nicks/freesurfer/average/colortable_desikan_killiany.txt)
+reading template parameterization from /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage_sym/lh.reg.template.tif...
+ripping medial wall...
+MRISregister() -------
+max_passes = 4 
+min_degrees = 0.500000 
+max_degrees = 64.000000 
+nangles = 8 
+tol=5.0e-01, sigma=0.0, host=compu, nav=1024, nbrs=1, l_extern=10000.000, l_parea=0.200, l_nlarea=1.000, l_corr=1.000, l_dist=5.000
+using quadratic fit line minimization
+complete_dist_mat 0
+rms 0
+smooth_averages 0
+remove_neg 0
+ico_order 0
+which_surface 0
+target_radius 0.000000
+nfields 0
+scale 0.000000
+desired_rms_height -1.000000
+momentum 0.950000
+nbhd_size -10
+max_nbrs 10
+niterations 25
+nsurfaces 0
+SURFACES 3
+flags 16 (10)
+use curv 16
+no sulc 0
+no rigid align 0
+mris->nsize 1
+mris->hemisphere 0
+randomSeed 0
+
+tol=5.0e-01, sigma=0.0, host=compu, nav=1024, nbrs=1, l_extern=10000.000, l_parea=0.200, l_nlarea=1.000, l_corr=1.000, l_dist=5.000
+using quadratic fit line minimization
+--------------------
+1 Reading lh.sulc
+curvature mean = -0.011, std = 0.591
+curvature mean = 0.077, std = 0.831
+curvature mean = 0.001, std = 0.924
+Starting MRISrigidBodyAlignGlobal()
+  d=64.00 min @ (0.00, -16.00, 0.00) sse = 310414.5, tmin=1.5284
+  d=32.00 min @ (8.00, 0.00, -8.00) sse = 197619.3, tmin=3.0829
+  d=16.00 min @ (0.00, 4.00, 0.00) sse = 158443.2, tmin=4.6582
+  d=8.00 min @ (2.00, 0.00, 0.00) sse = 147765.7, tmin=6.2413
+  d=4.00 min @ (-1.00, 0.00, 1.00) sse = 143231.0, tmin=7.8327
+  d=2.00 min @ (0.50, 0.00, 0.00) sse = 142567.0, tmin=9.5169
+  d=1.00 min @ (0.00, 0.25, 0.00) sse = 142530.7, tmin=11.1381
+  d=0.50 min @ (-0.12, -0.12, 0.12) sse = 142429.4, tmin=12.8779
+tol=1.0e+00, sigma=0.5, host=compu, nav=1024, nbrs=1, l_extern=10000.000, l_parea=0.200, l_nlarea=1.000, l_corr=0.050, l_spring=0.500, l_dist=5.000
+using quadratic fit line minimization
+MRISrigidBodyAlignGlobal() done  12.88 min
+curvature mean = 0.079, std = 0.874
+curvature mean = 0.002, std = 0.971
+curvature mean = 0.081, std = 0.890
+curvature mean = 0.001, std = 0.990
+curvature mean = 0.080, std = 0.894
+curvature mean = 0.000, std = 0.996
+2 Reading smoothwm
+curvature mean = -0.024, std = 0.168
+curvature mean = 0.042, std = 0.125
+curvature mean = 0.013, std = 0.608
+curvature mean = 0.041, std = 0.155
+curvature mean = 0.010, std = 0.781
+curvature mean = 0.041, std = 0.169
+curvature mean = 0.003, std = 0.891
+curvature mean = 0.041, std = 0.175
+curvature mean = 0.001, std = 0.947
+MRISregister() return, current seed 0
+writing registered surface to /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/surf/lh.fsaverage_sym.sphere.reg...
+-01: dt=0.0000, 0 negative triangles
+registration took 2.30 hours
+surfreg-Run-Time-Hours fsaverage lh 1 2.56
+Fri Nov 13 14:08:05 EST 2015
+surfreg done

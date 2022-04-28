@@ -1,0 +1,30 @@
+tkmedit started: Tue Nov 25 18:20:54 2014
+
+	/autofs/space/tanha_002/users/greve/fsdev.build/tktools/tkmedit.bin -f orig.mgz -seg aseg.mgz -ov subcort.mask.mgz -fminmax .1 1 
+
+$Id: tkmedit.c,v 1.348 2014/11/06 16:47:49 greve Exp $ $Name:  $
+Set user home dir to /autofs/space/tanha_002/users/greve/fsdev.build/subjects/cvs_avg35_inMNI152/mri.2mm
+Set subject home dir to orig.mgz
+mriFunctionalData:
+	msFileName=./subcort.mask.mgz
+	msRegistrationFileName=./
+	msSubjectName=
+	mpData->ps=2.000000
+	mpData->thick=2.000000
+	mpData->width=91
+	mpData->height=109
+	mpData->depth=91
+	mConvMethod=2
+	mNumTimePoints=1
+	mNumConditions=1
+	mbNullConditionPresent=0
+	mMaxValue=-10000.000000
+	mMinValue=10000.000000
+	mTimeResolution=1.000000
+	mNumPreStimTimePoints=0
+	mbErrorDataPresent=0
+	mNumBins=0
+
+Using interface file /autofs/space/tanha_002/users/greve/fsdev.build/tktools/tkmedit.tcl
+Tcl: Successfully parsed tkmedit.tcl
+Tcl: Successfully parsed tkm_functional.tcl

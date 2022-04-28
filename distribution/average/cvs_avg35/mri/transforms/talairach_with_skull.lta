@@ -1,0 +1,31 @@
+# transform file transforms/talairach_with_skull.lta
+# created by lzollei on Tue Apr 20 14:42:07 2010
+
+type      = 0
+nxforms   = 1
+mean      = 129.000 115.000 127.000
+sigma     = 10000.000
+1 4 4
++1.282177  -0.192597  -0.109662  -0.672191  
++0.125920  +1.227061  -0.375214  +3.417363  
++0.168159  +0.382183  +0.919682  -71.760162  
++0.000000  +0.000000  +0.000000  +1.000000  
+src volume info
+valid = 1  # volume info valid
+filename = /autofs/cluster/con_001/users/lilla/CVS_atlas/buckner35rerun/avg35rerun/mri/nu_noneck.mgz
+volume = 256 256 256
+voxelsize = 1.0000 1.0000 1.0000
+xras   = -1.0000 0.0000 0.0000
+yras   = 0.0000 0.0000 -1.0000
+zras   = 0.0000 1.0000 0.0000
+cras   = -2.7459 -6.8383 -23.1030
+dst volume info
+valid = 1  # volume info valid
+filename = /usr/local/freesurfer/dev/average/RB_all_withskull_2008-03-26.gca
+volume = 256 256 256
+voxelsize = 1.0000 1.0000 1.0000
+xras   = -1.0000 0.0000 0.0000
+yras   = 0.0000 0.0000 -1.0000
+zras   = 0.0000 1.0000 0.0000
+cras   = 0.0000 0.0000 0.0000
+fscale 0.150000

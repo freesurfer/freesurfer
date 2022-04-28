@@ -1,0 +1,3935 @@
+Log file for annot2std
+Thu Jan 12 00:17:35 EST 2012
+
+setenv SUBJECTS_DIR /cluster/con/9/users/greve/fsaverage_sym-data
+cd /autofs/cluster/con_009/users/greve/fsaverage_sym-data/ni.sym.b40.i30
+/usr/local/freesurfer/dev/bin/annot2std --o label/lh.aparc.a2009s.annot --lh --f /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/list.subjects.txt --t ni.sym.b40.i30 --a aparc.a2009s --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsurfreg sphere.reg --xhemi
+
+freesurfer-Linux-centos4_x86_64-dev-20120111
+$Id: annot2std,v 1.2 2012/01/05 18:41:21 greve Exp $
+Linux compute-0-8.local 2.6.18-53.1.19.el5 #1 SMP Tue Apr 22 03:01:10 EDT 2008 x86_64 x86_64 x86_64 GNU/Linux
+#@# 1/40 073 Thu Jan 12 00:17:35 EST 2012
+mri_annotation2label --subject 073 --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.1.073.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.1.073.ctab --annotation aparc.a2009s
+subject = 073
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.1.073.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/073/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/073/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --hemi lh --srcsubject 073 --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.1.073.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.1.073.std.mgh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 073
+srcval     = /scratch/tmpdir.annot2std.29678/seg.1.073.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.1.073.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/073/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 41051
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 97331, nSrcLost = 41051, nSrcMulti = 67537, MnSrcMultiHits = 0.984808
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.1.073.std.mgh
+mri_annotation2label --subject 073/xhemi --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.1.073.xhemi.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.1.073.xhemi.ctab --annotation aparc.a2009s
+subject = 073/xhemi
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.1.073.xhemi.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/073/xhemi/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/073/xhemi/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --srchemi lh --srcsubject 073/xhemi --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.1.073.xhemi.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.1.073.xhemi.std.mgh --trghemi lh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 073/xhemi
+srcval     = /scratch/tmpdir.annot2std.29678/seg.1.073.xhemi.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.1.073.xhemi.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/073/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 36601
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 95703, nSrcLost = 36601, nSrcMulti = 64172, MnSrcMultiHits = 1.06182
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.1.073.xhemi.std.mgh
+#@# 2/40 080 Thu Jan 12 00:18:00 EST 2012
+mri_annotation2label --subject 080 --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.2.080.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.2.080.ctab --annotation aparc.a2009s
+subject = 080
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.2.080.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/080/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/080/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --hemi lh --srcsubject 080 --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.2.080.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.2.080.std.mgh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 080
+srcval     = /scratch/tmpdir.annot2std.29678/seg.2.080.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.2.080.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/080/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 33170
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 90491, nSrcLost = 33170, nSrcMulti = 61535, MnSrcMultiHits = 1.19202
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.2.080.std.mgh
+mri_annotation2label --subject 080/xhemi --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.2.080.xhemi.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.2.080.xhemi.ctab --annotation aparc.a2009s
+subject = 080/xhemi
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.2.080.xhemi.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/080/xhemi/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/080/xhemi/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --srchemi lh --srcsubject 080/xhemi --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.2.080.xhemi.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.2.080.xhemi.std.mgh --trghemi lh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 080/xhemi
+srcval     = /scratch/tmpdir.annot2std.29678/seg.2.080.xhemi.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.2.080.xhemi.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/080/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 33466
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 89146, nSrcLost = 33466, nSrcMulti = 62751, MnSrcMultiHits = 1.19036
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.2.080.xhemi.std.mgh
+#@# 3/40 123 Thu Jan 12 00:18:23 EST 2012
+mri_annotation2label --subject 123 --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.3.123.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.3.123.ctab --annotation aparc.a2009s
+subject = 123
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.3.123.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/123/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/123/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --hemi lh --srcsubject 123 --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.3.123.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.3.123.std.mgh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 123
+srcval     = /scratch/tmpdir.annot2std.29678/seg.3.123.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.3.123.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/123/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 19193
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 73281, nSrcLost = 19193, nSrcMulti = 55185, MnSrcMultiHits = 1.64104
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.3.123.std.mgh
+mri_annotation2label --subject 123/xhemi --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.3.123.xhemi.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.3.123.xhemi.ctab --annotation aparc.a2009s
+subject = 123/xhemi
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.3.123.xhemi.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/123/xhemi/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/123/xhemi/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --srchemi lh --srcsubject 123/xhemi --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.3.123.xhemi.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.3.123.xhemi.std.mgh --trghemi lh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 123/xhemi
+srcval     = /scratch/tmpdir.annot2std.29678/seg.3.123.xhemi.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.3.123.xhemi.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/123/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 19325
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 73936, nSrcLost = 19325, nSrcMulti = 54879, MnSrcMultiHits = 1.63826
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.3.123.xhemi.std.mgh
+#@# 4/40 144 Thu Jan 12 00:18:42 EST 2012
+mri_annotation2label --subject 144 --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.4.144.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.4.144.ctab --annotation aparc.a2009s
+subject = 144
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.4.144.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/144/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/144/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --hemi lh --srcsubject 144 --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.4.144.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.4.144.std.mgh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 144
+srcval     = /scratch/tmpdir.annot2std.29678/seg.4.144.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.4.144.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/144/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 23000
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 76699, nSrcLost = 23000, nSrcMulti = 58091, MnSrcMultiHits = 1.50011
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.4.144.std.mgh
+mri_annotation2label --subject 144/xhemi --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.4.144.xhemi.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.4.144.xhemi.ctab --annotation aparc.a2009s
+subject = 144/xhemi
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.4.144.xhemi.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/144/xhemi/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/144/xhemi/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --srchemi lh --srcsubject 144/xhemi --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.4.144.xhemi.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.4.144.xhemi.std.mgh --trghemi lh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 144/xhemi
+srcval     = /scratch/tmpdir.annot2std.29678/seg.4.144.xhemi.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.4.144.xhemi.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/144/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 23413
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 76815, nSrcLost = 23413, nSrcMulti = 58721, MnSrcMultiHits = 1.48204
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.4.144.xhemi.std.mgh
+#@# 5/40 102 Thu Jan 12 00:19:01 EST 2012
+mri_annotation2label --subject 102 --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.5.102.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.5.102.ctab --annotation aparc.a2009s
+subject = 102
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.5.102.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/102/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/102/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --hemi lh --srcsubject 102 --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.5.102.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.5.102.std.mgh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 102
+srcval     = /scratch/tmpdir.annot2std.29678/seg.5.102.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.5.102.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/102/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 21705
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 76001, nSrcLost = 21705, nSrcMulti = 57133, MnSrcMultiHits = 1.53748
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.5.102.std.mgh
+mri_annotation2label --subject 102/xhemi --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.5.102.xhemi.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.5.102.xhemi.ctab --annotation aparc.a2009s
+subject = 102/xhemi
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.5.102.xhemi.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/102/xhemi/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/102/xhemi/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --srchemi lh --srcsubject 102/xhemi --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.5.102.xhemi.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.5.102.xhemi.std.mgh --trghemi lh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 102/xhemi
+srcval     = /scratch/tmpdir.annot2std.29678/seg.5.102.xhemi.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.5.102.xhemi.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/102/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 20776
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 75636, nSrcLost = 20776, nSrcMulti = 55878, MnSrcMultiHits = 1.57855
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.5.102.xhemi.std.mgh
+#@# 6/40 140 Thu Jan 12 00:19:20 EST 2012
+mri_annotation2label --subject 140 --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.6.140.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.6.140.ctab --annotation aparc.a2009s
+subject = 140
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.6.140.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/140/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/140/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --hemi lh --srcsubject 140 --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.6.140.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.6.140.std.mgh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 140
+srcval     = /scratch/tmpdir.annot2std.29678/seg.6.140.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.6.140.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/140/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 23010
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 80510, nSrcLost = 23010, nSrcMulti = 56198, MnSrcMultiHits = 1.48283
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.6.140.std.mgh
+mri_annotation2label --subject 140/xhemi --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.6.140.xhemi.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.6.140.xhemi.ctab --annotation aparc.a2009s
+subject = 140/xhemi
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.6.140.xhemi.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/140/xhemi/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/140/xhemi/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --srchemi lh --srcsubject 140/xhemi --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.6.140.xhemi.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.6.140.xhemi.std.mgh --trghemi lh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 140/xhemi
+srcval     = /scratch/tmpdir.annot2std.29678/seg.6.140.xhemi.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.6.140.xhemi.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/140/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 23714
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 80467, nSrcLost = 23714, nSrcMulti = 57405, MnSrcMultiHits = 1.4524
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.6.140.xhemi.std.mgh
+#@# 7/40 084 Thu Jan 12 00:19:39 EST 2012
+mri_annotation2label --subject 084 --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.7.084.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.7.084.ctab --annotation aparc.a2009s
+subject = 084
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.7.084.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/084/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/084/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --hemi lh --srcsubject 084 --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.7.084.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.7.084.std.mgh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 084
+srcval     = /scratch/tmpdir.annot2std.29678/seg.7.084.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.7.084.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/084/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 22972
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 78719, nSrcLost = 22972, nSrcMulti = 56680, MnSrcMultiHits = 1.50182
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.7.084.std.mgh
+mri_annotation2label --subject 084/xhemi --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.7.084.xhemi.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.7.084.xhemi.ctab --annotation aparc.a2009s
+subject = 084/xhemi
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.7.084.xhemi.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/084/xhemi/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/084/xhemi/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --srchemi lh --srcsubject 084/xhemi --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.7.084.xhemi.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.7.084.xhemi.std.mgh --trghemi lh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 084/xhemi
+srcval     = /scratch/tmpdir.annot2std.29678/seg.7.084.xhemi.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.7.084.xhemi.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/084/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 22336
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 77941, nSrcLost = 22336, nSrcMulti = 56275, MnSrcMultiHits = 1.52645
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.7.084.xhemi.std.mgh
+#@# 8/40 145 Thu Jan 12 00:19:58 EST 2012
+mri_annotation2label --subject 145 --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.8.145.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.8.145.ctab --annotation aparc.a2009s
+subject = 145
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.8.145.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/145/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/145/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --hemi lh --srcsubject 145 --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.8.145.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.8.145.std.mgh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 145
+srcval     = /scratch/tmpdir.annot2std.29678/seg.8.145.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.8.145.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/145/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 24448
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 78226, nSrcLost = 24448, nSrcMulti = 59388, MnSrcMultiHits = 1.44164
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.8.145.std.mgh
+mri_annotation2label --subject 145/xhemi --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.8.145.xhemi.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.8.145.xhemi.ctab --annotation aparc.a2009s
+subject = 145/xhemi
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.8.145.xhemi.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/145/xhemi/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/145/xhemi/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --srchemi lh --srcsubject 145/xhemi --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.8.145.xhemi.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.8.145.xhemi.std.mgh --trghemi lh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 145/xhemi
+srcval     = /scratch/tmpdir.annot2std.29678/seg.8.145.xhemi.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.8.145.xhemi.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/145/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 26557
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 78822, nSrcLost = 26557, nSrcMulti = 60812, MnSrcMultiHits = 1.39808
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.8.145.xhemi.std.mgh
+#@# 9/40 092 Thu Jan 12 00:20:18 EST 2012
+mri_annotation2label --subject 092 --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.9.092.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.9.092.ctab --annotation aparc.a2009s
+subject = 092
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.9.092.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/092/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/092/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --hemi lh --srcsubject 092 --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.9.092.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.9.092.std.mgh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 092
+srcval     = /scratch/tmpdir.annot2std.29678/seg.9.092.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.9.092.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/092/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 25105
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 83464, nSrcLost = 25105, nSrcMulti = 57120, MnSrcMultiHits = 1.40718
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.9.092.std.mgh
+mri_annotation2label --subject 092/xhemi --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.9.092.xhemi.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.9.092.xhemi.ctab --annotation aparc.a2009s
+subject = 092/xhemi
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.9.092.xhemi.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/092/xhemi/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/092/xhemi/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --srchemi lh --srcsubject 092/xhemi --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.9.092.xhemi.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.9.092.xhemi.std.mgh --trghemi lh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 092/xhemi
+srcval     = /scratch/tmpdir.annot2std.29678/seg.9.092.xhemi.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.9.092.xhemi.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/092/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 24789
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 82610, nSrcLost = 24789, nSrcMulti = 57130, MnSrcMultiHits = 1.42188
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.9.092.xhemi.std.mgh
+#@# 10/40 004 Thu Jan 12 00:20:39 EST 2012
+mri_annotation2label --subject 004 --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.10.004.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.10.004.ctab --annotation aparc.a2009s
+subject = 004
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.10.004.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/004/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/004/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --hemi lh --srcsubject 004 --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.10.004.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.10.004.std.mgh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 004
+srcval     = /scratch/tmpdir.annot2std.29678/seg.10.004.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.10.004.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/004/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 30351
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 88533, nSrcLost = 30351, nSrcMulti = 60921, MnSrcMultiHits = 1.23617
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.10.004.std.mgh
+mri_annotation2label --subject 004/xhemi --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.10.004.xhemi.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.10.004.xhemi.ctab --annotation aparc.a2009s
+subject = 004/xhemi
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.10.004.xhemi.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/004/xhemi/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/004/xhemi/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --srchemi lh --srcsubject 004/xhemi --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.10.004.xhemi.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.10.004.xhemi.std.mgh --trghemi lh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 004/xhemi
+srcval     = /scratch/tmpdir.annot2std.29678/seg.10.004.xhemi.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.10.004.xhemi.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/004/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 31218
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 87788, nSrcLost = 31218, nSrcMulti = 61588, MnSrcMultiHits = 1.23488
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.10.004.xhemi.std.mgh
+#@# 11/40 008 Thu Jan 12 00:21:01 EST 2012
+mri_annotation2label --subject 008 --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.11.008.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.11.008.ctab --annotation aparc.a2009s
+subject = 008
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.11.008.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/008/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/008/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --hemi lh --srcsubject 008 --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.11.008.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.11.008.std.mgh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 008
+srcval     = /scratch/tmpdir.annot2std.29678/seg.11.008.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.11.008.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/008/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 15540
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 62544, nSrcLost = 15540, nSrcMulti = 56195, MnSrcMultiHits = 1.80262
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.11.008.std.mgh
+mri_annotation2label --subject 008/xhemi --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.11.008.xhemi.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.11.008.xhemi.ctab --annotation aparc.a2009s
+subject = 008/xhemi
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.11.008.xhemi.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/008/xhemi/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/008/xhemi/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --srchemi lh --srcsubject 008/xhemi --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.11.008.xhemi.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.11.008.xhemi.std.mgh --trghemi lh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 008/xhemi
+srcval     = /scratch/tmpdir.annot2std.29678/seg.11.008.xhemi.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.11.008.xhemi.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/008/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 14456
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 60906, nSrcLost = 14456, nSrcMulti = 54889, MnSrcMultiHits = 1.87535
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.11.008.xhemi.std.mgh
+#@# 12/40 017 Thu Jan 12 00:21:19 EST 2012
+mri_annotation2label --subject 017 --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.12.017.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.12.017.ctab --annotation aparc.a2009s
+subject = 017
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.12.017.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/017/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/017/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --hemi lh --srcsubject 017 --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.12.017.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.12.017.std.mgh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 017
+srcval     = /scratch/tmpdir.annot2std.29678/seg.12.017.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.12.017.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/017/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 31464
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 89399, nSrcLost = 31464, nSrcMulti = 60359, MnSrcMultiHits = 1.23334
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.12.017.std.mgh
+mri_annotation2label --subject 017/xhemi --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.12.017.xhemi.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.12.017.xhemi.ctab --annotation aparc.a2009s
+subject = 017/xhemi
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.12.017.xhemi.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/017/xhemi/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/017/xhemi/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --srchemi lh --srcsubject 017/xhemi --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.12.017.xhemi.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.12.017.xhemi.std.mgh --trghemi lh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 017/xhemi
+srcval     = /scratch/tmpdir.annot2std.29678/seg.12.017.xhemi.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.12.017.xhemi.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/017/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 31620
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 88726, nSrcLost = 31620, nSrcMulti = 61029, MnSrcMultiHits = 1.23082
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.12.017.xhemi.std.mgh
+#@# 13/40 021 Thu Jan 12 00:21:42 EST 2012
+mri_annotation2label --subject 021 --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.13.021.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.13.021.ctab --annotation aparc.a2009s
+subject = 021
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.13.021.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/021/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/021/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --hemi lh --srcsubject 021 --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.13.021.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.13.021.std.mgh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 021
+srcval     = /scratch/tmpdir.annot2std.29678/seg.13.021.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.13.021.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/021/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 30020
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 87219, nSrcLost = 30020, nSrcMulti = 60969, MnSrcMultiHits = 1.25675
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.13.021.std.mgh
+mri_annotation2label --subject 021/xhemi --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.13.021.xhemi.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.13.021.xhemi.ctab --annotation aparc.a2009s
+subject = 021/xhemi
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.13.021.xhemi.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/021/xhemi/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/021/xhemi/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --srchemi lh --srcsubject 021/xhemi --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.13.021.xhemi.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.13.021.xhemi.std.mgh --trghemi lh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 021/xhemi
+srcval     = /scratch/tmpdir.annot2std.29678/seg.13.021.xhemi.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.13.021.xhemi.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/021/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 29071
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 86515, nSrcLost = 29071, nSrcMulti = 59748, MnSrcMultiHits = 1.29422
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.13.021.xhemi.std.mgh
+#@# 14/40 032 Thu Jan 12 00:22:04 EST 2012
+mri_annotation2label --subject 032 --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.14.032.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.14.032.ctab --annotation aparc.a2009s
+subject = 032
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.14.032.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/032/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/032/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --hemi lh --srcsubject 032 --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.14.032.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.14.032.std.mgh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 032
+srcval     = /scratch/tmpdir.annot2std.29678/seg.14.032.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.14.032.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/032/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 27105
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 81872, nSrcLost = 27105, nSrcMulti = 59931, MnSrcMultiHits = 1.36774
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.14.032.std.mgh
+mri_annotation2label --subject 032/xhemi --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.14.032.xhemi.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.14.032.xhemi.ctab --annotation aparc.a2009s
+subject = 032/xhemi
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.14.032.xhemi.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/032/xhemi/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/032/xhemi/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --srchemi lh --srcsubject 032/xhemi --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.14.032.xhemi.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.14.032.xhemi.std.mgh --trghemi lh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 032/xhemi
+srcval     = /scratch/tmpdir.annot2std.29678/seg.14.032.xhemi.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.14.032.xhemi.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/032/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 27952
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 84432, nSrcLost = 27952, nSrcMulti = 60063, MnSrcMultiHits = 1.32211
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.14.032.xhemi.std.mgh
+#@# 15/40 039 Thu Jan 12 00:22:24 EST 2012
+mri_annotation2label --subject 039 --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.15.039.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.15.039.ctab --annotation aparc.a2009s
+subject = 039
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.15.039.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/039/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/039/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --hemi lh --srcsubject 039 --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.15.039.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.15.039.std.mgh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 039
+srcval     = /scratch/tmpdir.annot2std.29678/seg.15.039.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.15.039.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/039/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 13522
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 60360, nSrcLost = 13522, nSrcMulti = 54172, MnSrcMultiHits = 1.91025
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.15.039.std.mgh
+mri_annotation2label --subject 039/xhemi --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.15.039.xhemi.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.15.039.xhemi.ctab --annotation aparc.a2009s
+subject = 039/xhemi
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.15.039.xhemi.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/039/xhemi/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/039/xhemi/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --srchemi lh --srcsubject 039/xhemi --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.15.039.xhemi.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.15.039.xhemi.std.mgh --trghemi lh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 039/xhemi
+srcval     = /scratch/tmpdir.annot2std.29678/seg.15.039.xhemi.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.15.039.xhemi.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/039/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 14697
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 59634, nSrcLost = 14697, nSrcMulti = 55031, MnSrcMultiHits = 1.89362
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.15.039.xhemi.std.mgh
+#@# 16/40 040 Thu Jan 12 00:22:42 EST 2012
+mri_annotation2label --subject 040 --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.16.040.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.16.040.ctab --annotation aparc.a2009s
+subject = 040
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.16.040.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/040/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/040/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --hemi lh --srcsubject 040 --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.16.040.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.16.040.std.mgh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 040
+srcval     = /scratch/tmpdir.annot2std.29678/seg.16.040.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.16.040.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/040/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 11544
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 55646, nSrcLost = 11544, nSrcMulti = 53622, MnSrcMultiHits = 2.01775
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.16.040.std.mgh
+mri_annotation2label --subject 040/xhemi --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.16.040.xhemi.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.16.040.xhemi.ctab --annotation aparc.a2009s
+subject = 040/xhemi
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.16.040.xhemi.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/040/xhemi/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/040/xhemi/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --srchemi lh --srcsubject 040/xhemi --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.16.040.xhemi.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.16.040.xhemi.std.mgh --trghemi lh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 040/xhemi
+srcval     = /scratch/tmpdir.annot2std.29678/seg.16.040.xhemi.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.16.040.xhemi.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/040/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 11891
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 54915, nSrcLost = 11891, nSrcMulti = 53615, MnSrcMultiHits = 2.03165
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.16.040.xhemi.std.mgh
+#@# 17/40 045 Thu Jan 12 00:23:01 EST 2012
+mri_annotation2label --subject 045 --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.17.045.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.17.045.ctab --annotation aparc.a2009s
+subject = 045
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.17.045.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/045/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/045/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --hemi lh --srcsubject 045 --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.17.045.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.17.045.std.mgh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 045
+srcval     = /scratch/tmpdir.annot2std.29678/seg.17.045.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.17.045.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/045/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 11733
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 55401, nSrcLost = 11733, nSrcMulti = 55033, MnSrcMultiHits = 1.97047
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.17.045.std.mgh
+mri_annotation2label --subject 045/xhemi --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.17.045.xhemi.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.17.045.xhemi.ctab --annotation aparc.a2009s
+subject = 045/xhemi
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.17.045.xhemi.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/045/xhemi/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/045/xhemi/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --srchemi lh --srcsubject 045/xhemi --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.17.045.xhemi.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.17.045.xhemi.std.mgh --trghemi lh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 045/xhemi
+srcval     = /scratch/tmpdir.annot2std.29678/seg.17.045.xhemi.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.17.045.xhemi.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/045/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 12238
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 55642, nSrcLost = 12238, nSrcMulti = 54807, MnSrcMultiHits = 1.9742
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.17.045.xhemi.std.mgh
+#@# 18/40 049 Thu Jan 12 00:23:19 EST 2012
+mri_annotation2label --subject 049 --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.18.049.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.18.049.ctab --annotation aparc.a2009s
+subject = 049
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.18.049.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/049/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/049/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --hemi lh --srcsubject 049 --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.18.049.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.18.049.std.mgh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 049
+srcval     = /scratch/tmpdir.annot2std.29678/seg.18.049.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.18.049.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/049/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 27968
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 85513, nSrcLost = 27968, nSrcMulti = 58528, MnSrcMultiHits = 1.33832
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.18.049.std.mgh
+mri_annotation2label --subject 049/xhemi --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.18.049.xhemi.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.18.049.xhemi.ctab --annotation aparc.a2009s
+subject = 049/xhemi
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.18.049.xhemi.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/049/xhemi/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/049/xhemi/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --srchemi lh --srcsubject 049/xhemi --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.18.049.xhemi.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.18.049.xhemi.std.mgh --trghemi lh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 049/xhemi
+srcval     = /scratch/tmpdir.annot2std.29678/seg.18.049.xhemi.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.18.049.xhemi.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/049/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 30216
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 80922, nSrcLost = 30216, nSrcMulti = 61690, MnSrcMultiHits = 1.34414
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.18.049.xhemi.std.mgh
+#@# 19/40 067 Thu Jan 12 00:23:44 EST 2012
+mri_annotation2label --subject 067 --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.19.067.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.19.067.ctab --annotation aparc.a2009s
+subject = 067
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.19.067.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/067/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/067/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --hemi lh --srcsubject 067 --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.19.067.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.19.067.std.mgh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 067
+srcval     = /scratch/tmpdir.annot2std.29678/seg.19.067.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.19.067.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/067/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 24569
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 79449, nSrcLost = 24569, nSrcMulti = 58408, MnSrcMultiHits = 1.44489
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.19.067.std.mgh
+mri_annotation2label --subject 067/xhemi --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.19.067.xhemi.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.19.067.xhemi.ctab --annotation aparc.a2009s
+subject = 067/xhemi
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.19.067.xhemi.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/067/xhemi/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/067/xhemi/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --srchemi lh --srcsubject 067/xhemi --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.19.067.xhemi.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.19.067.xhemi.std.mgh --trghemi lh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 067/xhemi
+srcval     = /scratch/tmpdir.annot2std.29678/seg.19.067.xhemi.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.19.067.xhemi.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/067/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 26000
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 75863, nSrcLost = 26000, nSrcMulti = 60782, MnSrcMultiHits = 1.44745
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.19.067.xhemi.std.mgh
+#@# 20/40 074 Thu Jan 12 00:24:03 EST 2012
+mri_annotation2label --subject 074 --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.20.074.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.20.074.ctab --annotation aparc.a2009s
+subject = 074
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.20.074.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/074/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/074/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --hemi lh --srcsubject 074 --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.20.074.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.20.074.std.mgh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 074
+srcval     = /scratch/tmpdir.annot2std.29678/seg.20.074.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.20.074.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/074/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 15175
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 64730, nSrcLost = 15175, nSrcMulti = 55480, MnSrcMultiHits = 1.78645
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.20.074.std.mgh
+mri_annotation2label --subject 074/xhemi --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.20.074.xhemi.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.20.074.xhemi.ctab --annotation aparc.a2009s
+subject = 074/xhemi
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.20.074.xhemi.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/074/xhemi/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/074/xhemi/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --srchemi lh --srcsubject 074/xhemi --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.20.074.xhemi.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.20.074.xhemi.std.mgh --trghemi lh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 074/xhemi
+srcval     = /scratch/tmpdir.annot2std.29678/seg.20.074.xhemi.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.20.074.xhemi.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/074/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 15551
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 63248, nSrcLost = 15551, nSrcMulti = 55842, MnSrcMultiHits = 1.8014
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.20.074.xhemi.std.mgh
+#@# 21/40 091 Thu Jan 12 00:24:23 EST 2012
+mri_annotation2label --subject 091 --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.21.091.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.21.091.ctab --annotation aparc.a2009s
+subject = 091
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.21.091.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/091/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/091/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --hemi lh --srcsubject 091 --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.21.091.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.21.091.std.mgh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 091
+srcval     = /scratch/tmpdir.annot2std.29678/seg.21.091.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.21.091.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/091/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 22565
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 77701, nSrcLost = 22565, nSrcMulti = 57171, MnSrcMultiHits = 1.50673
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.21.091.std.mgh
+mri_annotation2label --subject 091/xhemi --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.21.091.xhemi.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.21.091.xhemi.ctab --annotation aparc.a2009s
+subject = 091/xhemi
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.21.091.xhemi.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/091/xhemi/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/091/xhemi/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --srchemi lh --srcsubject 091/xhemi --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.21.091.xhemi.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.21.091.xhemi.std.mgh --trghemi lh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 091/xhemi
+srcval     = /scratch/tmpdir.annot2std.29678/seg.21.091.xhemi.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.21.091.xhemi.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/091/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 23601
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 75937, nSrcLost = 23601, nSrcMulti = 58420, MnSrcMultiHits = 1.50471
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.21.091.xhemi.std.mgh
+#@# 22/40 093 Thu Jan 12 00:24:43 EST 2012
+mri_annotation2label --subject 093 --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.22.093.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.22.093.ctab --annotation aparc.a2009s
+subject = 093
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.22.093.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/093/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/093/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --hemi lh --srcsubject 093 --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.22.093.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.22.093.std.mgh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 093
+srcval     = /scratch/tmpdir.annot2std.29678/seg.22.093.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.22.093.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/093/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 22823
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 76758, nSrcLost = 22823, nSrcMulti = 56892, MnSrcMultiHits = 1.53069
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.22.093.std.mgh
+mri_annotation2label --subject 093/xhemi --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.22.093.xhemi.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.22.093.xhemi.ctab --annotation aparc.a2009s
+subject = 093/xhemi
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.22.093.xhemi.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/093/xhemi/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/093/xhemi/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --srchemi lh --srcsubject 093/xhemi --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.22.093.xhemi.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.22.093.xhemi.std.mgh --trghemi lh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 093/xhemi
+srcval     = /scratch/tmpdir.annot2std.29678/seg.22.093.xhemi.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.22.093.xhemi.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/093/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 23277
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 78261, nSrcLost = 23277, nSrcMulti = 56704, MnSrcMultiHits = 1.50926
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.22.093.xhemi.std.mgh
+#@# 23/40 095 Thu Jan 12 00:25:02 EST 2012
+mri_annotation2label --subject 095 --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.23.095.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.23.095.ctab --annotation aparc.a2009s
+subject = 095
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.23.095.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/095/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/095/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --hemi lh --srcsubject 095 --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.23.095.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.23.095.std.mgh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 095
+srcval     = /scratch/tmpdir.annot2std.29678/seg.23.095.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.23.095.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/095/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 11762
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 53789, nSrcLost = 11762, nSrcMulti = 55015, MnSrcMultiHits = 2.00042
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.23.095.std.mgh
+mri_annotation2label --subject 095/xhemi --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.23.095.xhemi.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.23.095.xhemi.ctab --annotation aparc.a2009s
+subject = 095/xhemi
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.23.095.xhemi.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/095/xhemi/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/095/xhemi/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --srchemi lh --srcsubject 095/xhemi --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.23.095.xhemi.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.23.095.xhemi.std.mgh --trghemi lh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 095/xhemi
+srcval     = /scratch/tmpdir.annot2std.29678/seg.23.095.xhemi.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.23.095.xhemi.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/095/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 11244
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 54279, nSrcLost = 11244, nSrcMulti = 54054, MnSrcMultiHits = 2.02692
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.23.095.xhemi.std.mgh
+#@# 24/40 097 Thu Jan 12 00:25:18 EST 2012
+mri_annotation2label --subject 097 --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.24.097.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.24.097.ctab --annotation aparc.a2009s
+subject = 097
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.24.097.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/097/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/097/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --hemi lh --srcsubject 097 --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.24.097.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.24.097.std.mgh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 097
+srcval     = /scratch/tmpdir.annot2std.29678/seg.24.097.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.24.097.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/097/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 21066
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 75522, nSrcLost = 21066, nSrcMulti = 56893, MnSrcMultiHits = 1.55239
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.24.097.std.mgh
+mri_annotation2label --subject 097/xhemi --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.24.097.xhemi.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.24.097.xhemi.ctab --annotation aparc.a2009s
+subject = 097/xhemi
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.24.097.xhemi.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/097/xhemi/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/097/xhemi/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --srchemi lh --srcsubject 097/xhemi --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.24.097.xhemi.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.24.097.xhemi.std.mgh --trghemi lh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 097/xhemi
+srcval     = /scratch/tmpdir.annot2std.29678/seg.24.097.xhemi.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.24.097.xhemi.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/097/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 19564
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 72119, nSrcLost = 19564, nSrcMulti = 56223, MnSrcMultiHits = 1.63141
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.24.097.xhemi.std.mgh
+#@# 25/40 099 Thu Jan 12 00:25:39 EST 2012
+mri_annotation2label --subject 099 --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.25.099.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.25.099.ctab --annotation aparc.a2009s
+subject = 099
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.25.099.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/099/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/099/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --hemi lh --srcsubject 099 --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.25.099.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.25.099.std.mgh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 099
+srcval     = /scratch/tmpdir.annot2std.29678/seg.25.099.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.25.099.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/099/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 13463
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 56204, nSrcLost = 13463, nSrcMulti = 54972, MnSrcMultiHits = 1.95805
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.25.099.std.mgh
+mri_annotation2label --subject 099/xhemi --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.25.099.xhemi.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.25.099.xhemi.ctab --annotation aparc.a2009s
+subject = 099/xhemi
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.25.099.xhemi.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/099/xhemi/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/099/xhemi/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --srchemi lh --srcsubject 099/xhemi --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.25.099.xhemi.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.25.099.xhemi.std.mgh --trghemi lh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 099/xhemi
+srcval     = /scratch/tmpdir.annot2std.29678/seg.25.099.xhemi.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.25.099.xhemi.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/099/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 12412
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 56249, nSrcLost = 12412, nSrcMulti = 53797, MnSrcMultiHits = 1.99998
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.25.099.xhemi.std.mgh
+#@# 26/40 103 Thu Jan 12 00:25:55 EST 2012
+mri_annotation2label --subject 103 --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.26.103.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.26.103.ctab --annotation aparc.a2009s
+subject = 103
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.26.103.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/103/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/103/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --hemi lh --srcsubject 103 --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.26.103.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.26.103.std.mgh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 103
+srcval     = /scratch/tmpdir.annot2std.29678/seg.26.103.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.26.103.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/103/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 17344
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 69244, nSrcLost = 17344, nSrcMulti = 55378, MnSrcMultiHits = 1.70822
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.26.103.std.mgh
+mri_annotation2label --subject 103/xhemi --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.26.103.xhemi.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.26.103.xhemi.ctab --annotation aparc.a2009s
+subject = 103/xhemi
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.26.103.xhemi.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/103/xhemi/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/103/xhemi/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --srchemi lh --srcsubject 103/xhemi --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.26.103.xhemi.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.26.103.xhemi.std.mgh --trghemi lh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 103/xhemi
+srcval     = /scratch/tmpdir.annot2std.29678/seg.26.103.xhemi.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.26.103.xhemi.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/103/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 17649
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 71375, nSrcLost = 17649, nSrcMulti = 54819, MnSrcMultiHits = 1.68677
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.26.103.xhemi.std.mgh
+#@# 27/40 106 Thu Jan 12 00:26:15 EST 2012
+mri_annotation2label --subject 106 --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.27.106.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.27.106.ctab --annotation aparc.a2009s
+subject = 106
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.27.106.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/106/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/106/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --hemi lh --srcsubject 106 --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.27.106.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.27.106.std.mgh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 106
+srcval     = /scratch/tmpdir.annot2std.29678/seg.27.106.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.27.106.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/106/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 16182
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 67170, nSrcLost = 16182, nSrcMulti = 53570, MnSrcMultiHits = 1.80459
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.27.106.std.mgh
+mri_annotation2label --subject 106/xhemi --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.27.106.xhemi.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.27.106.xhemi.ctab --annotation aparc.a2009s
+subject = 106/xhemi
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.27.106.xhemi.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/106/xhemi/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/106/xhemi/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --srchemi lh --srcsubject 106/xhemi --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.27.106.xhemi.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.27.106.xhemi.std.mgh --trghemi lh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 106/xhemi
+srcval     = /scratch/tmpdir.annot2std.29678/seg.27.106.xhemi.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.27.106.xhemi.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/106/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 16829
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 67332, nSrcLost = 16829, nSrcMulti = 54372, MnSrcMultiHits = 1.77499
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.27.106.xhemi.std.mgh
+#@# 28/40 108 Thu Jan 12 00:26:34 EST 2012
+mri_annotation2label --subject 108 --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.28.108.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.28.108.ctab --annotation aparc.a2009s
+subject = 108
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.28.108.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/108/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/108/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --hemi lh --srcsubject 108 --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.28.108.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.28.108.std.mgh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 108
+srcval     = /scratch/tmpdir.annot2std.29678/seg.28.108.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.28.108.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/108/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 26074
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 82119, nSrcLost = 26074, nSrcMulti = 58391, MnSrcMultiHits = 1.39958
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.28.108.std.mgh
+mri_annotation2label --subject 108/xhemi --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.28.108.xhemi.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.28.108.xhemi.ctab --annotation aparc.a2009s
+subject = 108/xhemi
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.28.108.xhemi.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/108/xhemi/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/108/xhemi/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --srchemi lh --srcsubject 108/xhemi --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.28.108.xhemi.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.28.108.xhemi.std.mgh --trghemi lh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 108/xhemi
+srcval     = /scratch/tmpdir.annot2std.29678/seg.28.108.xhemi.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.28.108.xhemi.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/108/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 26722
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 81484, nSrcLost = 26722, nSrcMulti = 59185, MnSrcMultiHits = 1.39154
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.28.108.xhemi.std.mgh
+#@# 29/40 111 Thu Jan 12 00:26:54 EST 2012
+mri_annotation2label --subject 111 --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.29.111.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.29.111.ctab --annotation aparc.a2009s
+subject = 111
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.29.111.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/111/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/111/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --hemi lh --srcsubject 111 --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.29.111.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.29.111.std.mgh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 111
+srcval     = /scratch/tmpdir.annot2std.29678/seg.29.111.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.29.111.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/111/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 22119
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 76865, nSrcLost = 22119, nSrcMulti = 57223, MnSrcMultiHits = 1.51997
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.29.111.std.mgh
+mri_annotation2label --subject 111/xhemi --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.29.111.xhemi.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.29.111.xhemi.ctab --annotation aparc.a2009s
+subject = 111/xhemi
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.29.111.xhemi.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/111/xhemi/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/111/xhemi/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --srchemi lh --srcsubject 111/xhemi --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.29.111.xhemi.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.29.111.xhemi.std.mgh --trghemi lh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 111/xhemi
+srcval     = /scratch/tmpdir.annot2std.29678/seg.29.111.xhemi.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.29.111.xhemi.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/111/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 23480
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 76655, nSrcLost = 23480, nSrcMulti = 58049, MnSrcMultiHits = 1.50196
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.29.111.xhemi.std.mgh
+#@# 30/40 114 Thu Jan 12 00:27:13 EST 2012
+mri_annotation2label --subject 114 --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.30.114.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.30.114.ctab --annotation aparc.a2009s
+subject = 114
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.30.114.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/114/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/114/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --hemi lh --srcsubject 114 --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.30.114.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.30.114.std.mgh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 114
+srcval     = /scratch/tmpdir.annot2std.29678/seg.30.114.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.30.114.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/114/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 13458
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 55151, nSrcLost = 13458, nSrcMulti = 55835, MnSrcMultiHits = 1.94665
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.30.114.std.mgh
+mri_annotation2label --subject 114/xhemi --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.30.114.xhemi.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.30.114.xhemi.ctab --annotation aparc.a2009s
+subject = 114/xhemi
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.30.114.xhemi.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/114/xhemi/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/114/xhemi/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --srchemi lh --srcsubject 114/xhemi --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.30.114.xhemi.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.30.114.xhemi.std.mgh --trghemi lh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 114/xhemi
+srcval     = /scratch/tmpdir.annot2std.29678/seg.30.114.xhemi.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.30.114.xhemi.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/114/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 16016
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 53358, nSrcLost = 16016, nSrcMulti = 58052, MnSrcMultiHits = 1.90319
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.30.114.xhemi.std.mgh
+#@# 31/40 124 Thu Jan 12 00:27:30 EST 2012
+mri_annotation2label --subject 124 --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.31.124.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.31.124.ctab --annotation aparc.a2009s
+subject = 124
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.31.124.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/124/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/124/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --hemi lh --srcsubject 124 --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.31.124.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.31.124.std.mgh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 124
+srcval     = /scratch/tmpdir.annot2std.29678/seg.31.124.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.31.124.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/124/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 11657
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 54562, nSrcLost = 11657, nSrcMulti = 53841, MnSrcMultiHits = 2.02968
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.31.124.std.mgh
+mri_annotation2label --subject 124/xhemi --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.31.124.xhemi.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.31.124.xhemi.ctab --annotation aparc.a2009s
+subject = 124/xhemi
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.31.124.xhemi.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/124/xhemi/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/124/xhemi/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --srchemi lh --srcsubject 124/xhemi --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.31.124.xhemi.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.31.124.xhemi.std.mgh --trghemi lh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 124/xhemi
+srcval     = /scratch/tmpdir.annot2std.29678/seg.31.124.xhemi.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.31.124.xhemi.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/124/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 11168
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 53578, nSrcLost = 11168, nSrcMulti = 54486, MnSrcMultiHits = 2.02371
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.31.124.xhemi.std.mgh
+#@# 32/40 128 Thu Jan 12 00:27:46 EST 2012
+mri_annotation2label --subject 128 --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.32.128.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.32.128.ctab --annotation aparc.a2009s
+subject = 128
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.32.128.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/128/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/128/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --hemi lh --srcsubject 128 --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.32.128.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.32.128.std.mgh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 128
+srcval     = /scratch/tmpdir.annot2std.29678/seg.32.128.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.32.128.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/128/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 13661
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 56020, nSrcLost = 13661, nSrcMulti = 55259, MnSrcMultiHits = 1.95121
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.32.128.std.mgh
+mri_annotation2label --subject 128/xhemi --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.32.128.xhemi.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.32.128.xhemi.ctab --annotation aparc.a2009s
+subject = 128/xhemi
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.32.128.xhemi.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/128/xhemi/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/128/xhemi/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --srchemi lh --srcsubject 128/xhemi --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.32.128.xhemi.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.32.128.xhemi.std.mgh --trghemi lh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 128/xhemi
+srcval     = /scratch/tmpdir.annot2std.29678/seg.32.128.xhemi.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.32.128.xhemi.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/128/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 15839
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 61212, nSrcLost = 15839, nSrcMulti = 55581, MnSrcMultiHits = 1.84649
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.32.128.xhemi.std.mgh
+#@# 33/40 129 Thu Jan 12 00:28:03 EST 2012
+mri_annotation2label --subject 129 --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.33.129.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.33.129.ctab --annotation aparc.a2009s
+subject = 129
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.33.129.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/129/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/129/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --hemi lh --srcsubject 129 --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.33.129.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.33.129.std.mgh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 129
+srcval     = /scratch/tmpdir.annot2std.29678/seg.33.129.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.33.129.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/129/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 14486
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 59252, nSrcLost = 14486, nSrcMulti = 55477, MnSrcMultiHits = 1.88529
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.33.129.std.mgh
+mri_annotation2label --subject 129/xhemi --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.33.129.xhemi.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.33.129.xhemi.ctab --annotation aparc.a2009s
+subject = 129/xhemi
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.33.129.xhemi.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/129/xhemi/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/129/xhemi/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --srchemi lh --srcsubject 129/xhemi --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.33.129.xhemi.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.33.129.xhemi.std.mgh --trghemi lh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 129/xhemi
+srcval     = /scratch/tmpdir.annot2std.29678/seg.33.129.xhemi.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.33.129.xhemi.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/129/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 14767
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 59333, nSrcLost = 14767, nSrcMulti = 54509, MnSrcMultiHits = 1.91728
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.33.129.xhemi.std.mgh
+#@# 34/40 130 Thu Jan 12 00:28:22 EST 2012
+mri_annotation2label --subject 130 --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.34.130.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.34.130.ctab --annotation aparc.a2009s
+subject = 130
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.34.130.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/130/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/130/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --hemi lh --srcsubject 130 --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.34.130.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.34.130.std.mgh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 130
+srcval     = /scratch/tmpdir.annot2std.29678/seg.34.130.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.34.130.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/130/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 19896
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 73987, nSrcLost = 19896, nSrcMulti = 56042, MnSrcMultiHits = 1.60335
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.34.130.std.mgh
+mri_annotation2label --subject 130/xhemi --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.34.130.xhemi.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.34.130.xhemi.ctab --annotation aparc.a2009s
+subject = 130/xhemi
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.34.130.xhemi.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/130/xhemi/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/130/xhemi/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --srchemi lh --srcsubject 130/xhemi --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.34.130.xhemi.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.34.130.xhemi.std.mgh --trghemi lh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 130/xhemi
+srcval     = /scratch/tmpdir.annot2std.29678/seg.34.130.xhemi.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.34.130.xhemi.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/130/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 18848
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 72840, nSrcLost = 18848, nSrcMulti = 55581, MnSrcMultiHits = 1.63729
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.34.130.xhemi.std.mgh
+#@# 35/40 131 Thu Jan 12 00:28:40 EST 2012
+mri_annotation2label --subject 131 --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.35.131.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.35.131.ctab --annotation aparc.a2009s
+subject = 131
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.35.131.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/131/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/131/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --hemi lh --srcsubject 131 --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.35.131.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.35.131.std.mgh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 131
+srcval     = /scratch/tmpdir.annot2std.29678/seg.35.131.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.35.131.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/131/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 11928
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 54751, nSrcLost = 11928, nSrcMulti = 54580, MnSrcMultiHits = 1.99874
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.35.131.std.mgh
+mri_annotation2label --subject 131/xhemi --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.35.131.xhemi.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.35.131.xhemi.ctab --annotation aparc.a2009s
+subject = 131/xhemi
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.35.131.xhemi.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/131/xhemi/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/131/xhemi/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --srchemi lh --srcsubject 131/xhemi --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.35.131.xhemi.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.35.131.xhemi.std.mgh --trghemi lh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 131/xhemi
+srcval     = /scratch/tmpdir.annot2std.29678/seg.35.131.xhemi.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.35.131.xhemi.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/131/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 11540
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 53964, nSrcLost = 11540, nSrcMulti = 53880, MnSrcMultiHits = 2.03931
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.35.131.xhemi.std.mgh
+#@# 36/40 133 Thu Jan 12 00:28:57 EST 2012
+mri_annotation2label --subject 133 --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.36.133.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.36.133.ctab --annotation aparc.a2009s
+subject = 133
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.36.133.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/133/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/133/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --hemi lh --srcsubject 133 --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.36.133.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.36.133.std.mgh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 133
+srcval     = /scratch/tmpdir.annot2std.29678/seg.36.133.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.36.133.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/133/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 15344
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 62436, nSrcLost = 15344, nSrcMulti = 55906, MnSrcMultiHits = 1.81387
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.36.133.std.mgh
+mri_annotation2label --subject 133/xhemi --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.36.133.xhemi.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.36.133.xhemi.ctab --annotation aparc.a2009s
+subject = 133/xhemi
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.36.133.xhemi.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/133/xhemi/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/133/xhemi/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --srchemi lh --srcsubject 133/xhemi --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.36.133.xhemi.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.36.133.xhemi.std.mgh --trghemi lh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 133/xhemi
+srcval     = /scratch/tmpdir.annot2std.29678/seg.36.133.xhemi.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.36.133.xhemi.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/133/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 17697
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 64986, nSrcLost = 17697, nSrcMulti = 56878, MnSrcMultiHits = 1.73804
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.36.133.xhemi.std.mgh
+#@# 37/40 136 Thu Jan 12 00:29:16 EST 2012
+mri_annotation2label --subject 136 --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.37.136.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.37.136.ctab --annotation aparc.a2009s
+subject = 136
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.37.136.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/136/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/136/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --hemi lh --srcsubject 136 --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.37.136.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.37.136.std.mgh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 136
+srcval     = /scratch/tmpdir.annot2std.29678/seg.37.136.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.37.136.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/136/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 11564
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 52261, nSrcLost = 11564, nSrcMulti = 54961, MnSrcMultiHits = 2.03018
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.37.136.std.mgh
+mri_annotation2label --subject 136/xhemi --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.37.136.xhemi.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.37.136.xhemi.ctab --annotation aparc.a2009s
+subject = 136/xhemi
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.37.136.xhemi.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/136/xhemi/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/136/xhemi/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --srchemi lh --srcsubject 136/xhemi --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.37.136.xhemi.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.37.136.xhemi.std.mgh --trghemi lh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 136/xhemi
+srcval     = /scratch/tmpdir.annot2std.29678/seg.37.136.xhemi.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.37.136.xhemi.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/136/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 12314
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 52963, nSrcLost = 12314, nSrcMulti = 55364, MnSrcMultiHits = 2.00273
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.37.136.xhemi.std.mgh
+#@# 38/40 138 Thu Jan 12 00:29:33 EST 2012
+mri_annotation2label --subject 138 --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.38.138.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.38.138.ctab --annotation aparc.a2009s
+subject = 138
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.38.138.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/138/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/138/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --hemi lh --srcsubject 138 --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.38.138.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.38.138.std.mgh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 138
+srcval     = /scratch/tmpdir.annot2std.29678/seg.38.138.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.38.138.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/138/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 15930
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 64858, nSrcLost = 15930, nSrcMulti = 55078, MnSrcMultiHits = 1.79716
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.38.138.std.mgh
+mri_annotation2label --subject 138/xhemi --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.38.138.xhemi.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.38.138.xhemi.ctab --annotation aparc.a2009s
+subject = 138/xhemi
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.38.138.xhemi.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/138/xhemi/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/138/xhemi/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --srchemi lh --srcsubject 138/xhemi --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.38.138.xhemi.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.38.138.xhemi.std.mgh --trghemi lh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 138/xhemi
+srcval     = /scratch/tmpdir.annot2std.29678/seg.38.138.xhemi.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.38.138.xhemi.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/138/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 14532
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 62871, nSrcLost = 14532, nSrcMulti = 54135, MnSrcMultiHits = 1.86517
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.38.138.xhemi.std.mgh
+#@# 39/40 141 Thu Jan 12 00:29:52 EST 2012
+mri_annotation2label --subject 141 --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.39.141.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.39.141.ctab --annotation aparc.a2009s
+subject = 141
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.39.141.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/141/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/141/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --hemi lh --srcsubject 141 --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.39.141.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.39.141.std.mgh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 141
+srcval     = /scratch/tmpdir.annot2std.29678/seg.39.141.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.39.141.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/141/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 18116
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 71151, nSrcLost = 18116, nSrcMulti = 55103, MnSrcMultiHits = 1.68214
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.39.141.std.mgh
+mri_annotation2label --subject 141/xhemi --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.39.141.xhemi.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.39.141.xhemi.ctab --annotation aparc.a2009s
+subject = 141/xhemi
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.39.141.xhemi.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/141/xhemi/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/141/xhemi/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --srchemi lh --srcsubject 141/xhemi --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.39.141.xhemi.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.39.141.xhemi.std.mgh --trghemi lh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 141/xhemi
+srcval     = /scratch/tmpdir.annot2std.29678/seg.39.141.xhemi.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.39.141.xhemi.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/141/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 18457
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 69862, nSrcLost = 18457, nSrcMulti = 55096, MnSrcMultiHits = 1.70575
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.39.141.xhemi.std.mgh
+#@# 40/40 149 Thu Jan 12 00:30:10 EST 2012
+mri_annotation2label --subject 149 --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.40.149.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.40.149.ctab --annotation aparc.a2009s
+subject = 149
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.40.149.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/149/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/149/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --hemi lh --srcsubject 149 --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.40.149.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.40.149.std.mgh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 149
+srcval     = /scratch/tmpdir.annot2std.29678/seg.40.149.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.40.149.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/149/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 12004
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 52433, nSrcLost = 12004, nSrcMulti = 55154, MnSrcMultiHits = 2.01996
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.40.149.std.mgh
+mri_annotation2label --subject 149/xhemi --hemi lh --seg /scratch/tmpdir.annot2std.29678/seg.40.149.xhemi.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.40.149.xhemi.ctab --annotation aparc.a2009s
+subject = 149/xhemi
+annotation = aparc.a2009s
+hemi = lh
+segfile = /scratch/tmpdir.annot2std.29678/seg.40.149.xhemi.mgh
+surface   = white
+
+Reading surface 
+ /cluster/con/9/users/greve/fsaverage_sym-data/149/xhemi/surf/lh.white
+Loading annotations from /cluster/con/9/users/greve/fsaverage_sym-data/149/xhemi/label/lh.aparc.a2009s.annot
+Seg base 0
+Converting to a segmentation
+mri_surf2surf --mapmethod nnf --srchemi lh --srcsubject 149/xhemi --srcsurfreg ni.sym.b40.i29.sphere.reg --sval /scratch/tmpdir.annot2std.29678/seg.40.149.xhemi.mgh --trgsubject ni.sym.b40.i30 --trgsurfreg sphere.reg --tval /scratch/tmpdir.annot2std.29678/seg.40.149.xhemi.std.mgh --trghemi lh
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 149/xhemi
+srcval     = /scratch/tmpdir.annot2std.29678/seg.40.149.xhemi.mgh
+srctype    = 
+trgsubject = ni.sym.b40.i30
+trgval     = /scratch/tmpdir.annot2std.29678/seg.40.149.xhemi.std.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/149/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Converting source to float
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 11144
+nTrg121 = 163842, nTrgMulti =     0, MnTrgMultiHits = 0
+nSrc121 = 52338, nSrcLost = 11144, nSrcMulti = 54539, MnSrcMultiHits = 2.04448
+Saving target data
+Saving to /scratch/tmpdir.annot2std.29678/seg.40.149.xhemi.std.mgh
+mri_concat /scratch/tmpdir.annot2std.29678/seg.1.073.std.mgh /scratch/tmpdir.annot2std.29678/seg.1.073.xhemi.std.mgh /scratch/tmpdir.annot2std.29678/seg.2.080.std.mgh /scratch/tmpdir.annot2std.29678/seg.2.080.xhemi.std.mgh /scratch/tmpdir.annot2std.29678/seg.3.123.std.mgh /scratch/tmpdir.annot2std.29678/seg.3.123.xhemi.std.mgh /scratch/tmpdir.annot2std.29678/seg.4.144.std.mgh /scratch/tmpdir.annot2std.29678/seg.4.144.xhemi.std.mgh /scratch/tmpdir.annot2std.29678/seg.5.102.std.mgh /scratch/tmpdir.annot2std.29678/seg.5.102.xhemi.std.mgh /scratch/tmpdir.annot2std.29678/seg.6.140.std.mgh /scratch/tmpdir.annot2std.29678/seg.6.140.xhemi.std.mgh /scratch/tmpdir.annot2std.29678/seg.7.084.std.mgh /scratch/tmpdir.annot2std.29678/seg.7.084.xhemi.std.mgh /scratch/tmpdir.annot2std.29678/seg.8.145.std.mgh /scratch/tmpdir.annot2std.29678/seg.8.145.xhemi.std.mgh /scratch/tmpdir.annot2std.29678/seg.9.092.std.mgh /scratch/tmpdir.annot2std.29678/seg.9.092.xhemi.std.mgh /scratch/tmpdir.annot2std.29678/seg.10.004.std.mgh /scratch/tmpdir.annot2std.29678/seg.10.004.xhemi.std.mgh /scratch/tmpdir.annot2std.29678/seg.11.008.std.mgh /scratch/tmpdir.annot2std.29678/seg.11.008.xhemi.std.mgh /scratch/tmpdir.annot2std.29678/seg.12.017.std.mgh /scratch/tmpdir.annot2std.29678/seg.12.017.xhemi.std.mgh /scratch/tmpdir.annot2std.29678/seg.13.021.std.mgh /scratch/tmpdir.annot2std.29678/seg.13.021.xhemi.std.mgh /scratch/tmpdir.annot2std.29678/seg.14.032.std.mgh /scratch/tmpdir.annot2std.29678/seg.14.032.xhemi.std.mgh /scratch/tmpdir.annot2std.29678/seg.15.039.std.mgh /scratch/tmpdir.annot2std.29678/seg.15.039.xhemi.std.mgh /scratch/tmpdir.annot2std.29678/seg.16.040.std.mgh /scratch/tmpdir.annot2std.29678/seg.16.040.xhemi.std.mgh /scratch/tmpdir.annot2std.29678/seg.17.045.std.mgh /scratch/tmpdir.annot2std.29678/seg.17.045.xhemi.std.mgh /scratch/tmpdir.annot2std.29678/seg.18.049.std.mgh /scratch/tmpdir.annot2std.29678/seg.18.049.xhemi.std.mgh /scratch/tmpdir.annot2std.29678/seg.19.067.std.mgh /scratch/tmpdir.annot2std.29678/seg.19.067.xhemi.std.mgh /scratch/tmpdir.annot2std.29678/seg.20.074.std.mgh /scratch/tmpdir.annot2std.29678/seg.20.074.xhemi.std.mgh /scratch/tmpdir.annot2std.29678/seg.21.091.std.mgh /scratch/tmpdir.annot2std.29678/seg.21.091.xhemi.std.mgh /scratch/tmpdir.annot2std.29678/seg.22.093.std.mgh /scratch/tmpdir.annot2std.29678/seg.22.093.xhemi.std.mgh /scratch/tmpdir.annot2std.29678/seg.23.095.std.mgh /scratch/tmpdir.annot2std.29678/seg.23.095.xhemi.std.mgh /scratch/tmpdir.annot2std.29678/seg.24.097.std.mgh /scratch/tmpdir.annot2std.29678/seg.24.097.xhemi.std.mgh /scratch/tmpdir.annot2std.29678/seg.25.099.std.mgh /scratch/tmpdir.annot2std.29678/seg.25.099.xhemi.std.mgh /scratch/tmpdir.annot2std.29678/seg.26.103.std.mgh /scratch/tmpdir.annot2std.29678/seg.26.103.xhemi.std.mgh /scratch/tmpdir.annot2std.29678/seg.27.106.std.mgh /scratch/tmpdir.annot2std.29678/seg.27.106.xhemi.std.mgh /scratch/tmpdir.annot2std.29678/seg.28.108.std.mgh /scratch/tmpdir.annot2std.29678/seg.28.108.xhemi.std.mgh /scratch/tmpdir.annot2std.29678/seg.29.111.std.mgh /scratch/tmpdir.annot2std.29678/seg.29.111.xhemi.std.mgh /scratch/tmpdir.annot2std.29678/seg.30.114.std.mgh /scratch/tmpdir.annot2std.29678/seg.30.114.xhemi.std.mgh /scratch/tmpdir.annot2std.29678/seg.31.124.std.mgh /scratch/tmpdir.annot2std.29678/seg.31.124.xhemi.std.mgh /scratch/tmpdir.annot2std.29678/seg.32.128.std.mgh /scratch/tmpdir.annot2std.29678/seg.32.128.xhemi.std.mgh /scratch/tmpdir.annot2std.29678/seg.33.129.std.mgh /scratch/tmpdir.annot2std.29678/seg.33.129.xhemi.std.mgh /scratch/tmpdir.annot2std.29678/seg.34.130.std.mgh /scratch/tmpdir.annot2std.29678/seg.34.130.xhemi.std.mgh /scratch/tmpdir.annot2std.29678/seg.35.131.std.mgh /scratch/tmpdir.annot2std.29678/seg.35.131.xhemi.std.mgh /scratch/tmpdir.annot2std.29678/seg.36.133.std.mgh /scratch/tmpdir.annot2std.29678/seg.36.133.xhemi.std.mgh /scratch/tmpdir.annot2std.29678/seg.37.136.std.mgh /scratch/tmpdir.annot2std.29678/seg.37.136.xhemi.std.mgh /scratch/tmpdir.annot2std.29678/seg.38.138.std.mgh /scratch/tmpdir.annot2std.29678/seg.38.138.xhemi.std.mgh /scratch/tmpdir.annot2std.29678/seg.39.141.std.mgh /scratch/tmpdir.annot2std.29678/seg.39.141.xhemi.std.mgh /scratch/tmpdir.annot2std.29678/seg.40.149.std.mgh /scratch/tmpdir.annot2std.29678/seg.40.149.xhemi.std.mgh --vote --o /scratch/tmpdir.annot2std.29678/seg.vote.mgh
+ninputs = 80
+Checking inputs
+nframestot = 80
+Allocing output
+Done allocing
+nframes = 80
+Voting 
+MRIvote: sorting
+MRIvote: done sorting
+Writing to /scratch/tmpdir.annot2std.29678/seg.vote.mgh
+mri_convert --frame 1 /scratch/tmpdir.annot2std.29678/seg.vote.mgh /autofs/cluster/con_009/users/greve/fsaverage_sym-data/ni.sym.b40.i30/label/lh.aparc.a2009s.annot.p.mgh
+mri_convert --frame 1 /scratch/tmpdir.annot2std.29678/seg.vote.mgh /autofs/cluster/con_009/users/greve/fsaverage_sym-data/ni.sym.b40.i30/label/lh.aparc.a2009s.annot.p.mgh 
+$Id: mri_convert.c,v 1.188 2011/12/19 22:59:15 greve Exp $
+reading from /scratch/tmpdir.annot2std.29678/seg.vote.mgh...
+TR=0.00, TE=0.00, TI=0.00, flip angle=0.00
+i_ras = (-1, 0, 0)
+j_ras = (0, 0, -1)
+k_ras = (0, 1, 0)
+keeping frame 1
+writing to /autofs/cluster/con_009/users/greve/fsaverage_sym-data/ni.sym.b40.i30/label/lh.aparc.a2009s.annot.p.mgh...
+mris_seg2annot --seg /scratch/tmpdir.annot2std.29678/seg.vote.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.1.073.xhemi.ctab --s ni.sym.b40.i30 --hemi lh --o /autofs/cluster/con_009/users/greve/fsaverage_sym-data/ni.sym.b40.i30/label/lh.aparc.a2009s.annot
+
+$Id: mris_seg2annot.c,v 1.9 2011/03/02 00:04:34 nicks Exp $
+cwd /autofs/cluster/con_009/users/greve/fsaverage_sym-data/ni.sym.b40.i30
+cmdline mris_seg2annot --seg /scratch/tmpdir.annot2std.29678/seg.vote.mgh --ctab /scratch/tmpdir.annot2std.29678/seg.1.073.xhemi.ctab --s ni.sym.b40.i30 --hemi lh --o /autofs/cluster/con_009/users/greve/fsaverage_sym-data/ni.sym.b40.i30/label/lh.aparc.a2009s.annot 
+sysname  Linux
+hostname compute-0-8.local
+machine  x86_64
+user     greve
+subject   ni.sym.b40.i30
+hemi      lh
+surfseg   /scratch/tmpdir.annot2std.29678/seg.vote.mgh
+ctab      /scratch/tmpdir.annot2std.29678/seg.1.073.xhemi.ctab
+annotfile /autofs/cluster/con_009/users/greve/fsaverage_sym-data/ni.sym.b40.i30/label/lh.aparc.a2009s.annot
+Reading ctab /scratch/tmpdir.annot2std.29678/seg.1.073.xhemi.ctab
+Reading surface seg /scratch/tmpdir.annot2std.29678/seg.vote.mgh
+Reading surface /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.white
+Writing annot to /autofs/cluster/con_009/users/greve/fsaverage_sym-data/ni.sym.b40.i30/label/lh.aparc.a2009s.annot
+ 
+Started at Thu Jan 12 00:17:35 EST 2012 
+Ended   at Thu Jan 12 00:30:32 EST 2012
+Annot2std-Run-Time-Sec 777
+ 
+annot2std Done

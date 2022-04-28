@@ -1,0 +1,1 @@
+mri_cc -aseg aseg.auto_noCCseg.mgz -o aseg.auto.mgz -lta /autofs/space/erdos_003/users/lzollei/my_stuff/research/tests/CVSvsMNI/cvs_avg35_inMNI152/mri/transforms/cc_up.lta cvs_avg35_inMNI152

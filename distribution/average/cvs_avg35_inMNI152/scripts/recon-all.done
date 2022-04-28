@@ -1,0 +1,10 @@
+------------------------------
+SUBJECT cvs_avg35_inMNI152
+DATE Sat Mar 31 06:21:36 EDT 2012
+USER lzollei
+HOST compute-0-104.local
+PROCESSOR x86_64
+OS Linux
+Linux compute-0-104.local 2.6.18-308.1.1.el5 #1 SMP Wed Mar 7 04:16:51 EST 2012 x86_64 x86_64 x86_64 GNU/Linux
+$Id: recon-all,v 1.414 2012/03/21 20:43:24 mreuter Exp $
+/usr/local/freesurfer/dev/bin/recon-all

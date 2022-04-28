@@ -1,0 +1,1 @@
+mris_jacobian ../surf/rh.white ../surf/rh.sphere.reg ../surf/rh.jacobian_white

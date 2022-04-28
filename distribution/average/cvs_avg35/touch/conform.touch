@@ -1,0 +1,1 @@
+mri_convert /autofs/cluster/con_001/users/lilla/CVS_atlas/buckner35rerun/avg35rerun/mri/rawavg.mgz /autofs/cluster/con_001/users/lilla/CVS_atlas/buckner35rerun/avg35rerun/mri/orig.mgz --conform

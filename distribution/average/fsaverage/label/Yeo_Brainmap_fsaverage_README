@@ -1,0 +1,91 @@
+=====================
+Section 1: Background
+=====================
+This folder contains the estimated maps and results from Yeo et al. (in press) in fsaverage space. We estimated the distribution and degree of functional specialization within the association cortex based on a large-scale neuroimaging meta-analysis (N=10,449) and resting-state fMRI analyses (N=1000). By mathematically formalizing the notion that a task engages multiple cognitive components, which are each supported by multiple brain regions, we identified cognitive components that are shared across tasks. We derived quantitative functional specialization maps, revealing tesselated frontal and parietal regions ranging from highly specialized to highly flexible. Regions specialized for the same components were strongly coupled. Functionally flexible regions were functionally heterogeneous and exhibited connectivity patterns that may drive their selectivity for individual components. Our results suggest that heterogeneous networks of functionally specialized and functionally flexible association regions contribute to our capacity to execute multiple and varied tasks.
+
+
+=============================================
+Section 2: Files in Folder (Excluding README)
+=============================================
+1) ?h.Yeo_Brainmap_XXComp_PrActGivenComp.mgz
+2) ?h.Yeo_Brainmap_10to14Comp_Flexibility.mgz 
+3) ?h.Yeo_Brainmap_10to14Comp_Specialization.mgz
+4) ?h.Yeo_Brainmap_10to14Comp_SpecializationROI.mgz
+
+
+====================================================
+Section 3: Description of files
+====================================================
+1) ?h.Yeo_Brainmap_XXComp_PrActGivenComp.mgz is a surface file with XX frames showing Pr(vertex | component) for XX components. For example, lh.Yeo_Brainmap_12Comp_PrActGivenComp.mgz corresponding to the 12 components on the left hemisphere. The 0-th frame of lh.Yeo_Brainmap_12Comp_PrActGivenComp.mgz corresponds to Pr(vertex | component) for the 1st component of the 12-component estimate. Note that the probability distribution is over all the voxels in the volumetric brain mask. Given that there are about 280k voxels, the probability values are therefore quite small: in the order of 1/280k, which is about 3e-6. Because some image viewers do not handle these range of values very well, we have multipled all the values by 1e5. Therefore in the resulting data, value of 1 corresponds to probability of 1e-5.
+
+2) ?h.Yeo_Brainmap_10to14Comp_Flexibility.mgz is a surface file quantifying the flexibility of brain regions. There are 5 frames. The 0-th frame of ?h.Yeo_Brainmap_10to14Comp_Flexibility.mgz corresponds to 10-component estimate, the 1st frame of ?h.Yeo_Brainmap_10to14Comp_Flexibility.mgz corresponds to 11-component estimate, etc. The value at each vertex corresponds to the number of components that activates the vertex with probability at least 1e-5. Therefore a value of 2 means that a vertex has greater than 1e-5 probability of being activated by two components. In the paper, we consider such a vertex to be functionally flexible. Note that the flexibilty measures are not integer-valued because the original estimate was computed in the volume. The resulting projection to freesurfer space resulted in the non integer-values.
+
+3) ?h.Yeo_Brainmap_10to14Comp_Specialization.mgz is a surface file quantifying the specialization of brain regions. There are 5 frames. The 0-th frame of ?h.Yeo_Brainmap_10to14Comp_Specialization.mgz corresponds to 10-component estimate, the 1st frame of ?h.Yeo_Brainmap_10to14Comp_Specialization.mgz corresponds to 11-component estimate, etc. The number at each vertex corresponds to log2 of Pr(top component | vertex)/Pr(second top component | vertex). Therefore a value of 1 indicates functional specificity, because it means that if the vertex was observed to be activated, then the top component would be twice as likely as the second most likely component to be recruited.
+
+4) ?h.Yeo_Brainmap_10to14Comp_SpecializationROI.mgz corresponds to ROIs extracted from the specialization maps. There are 5 frames. The 0-th frame of ?h.Yeo_Brainmap_10to14Comp_Specialization.mgz corresponds to 10-component estimate, the 1st frame of ?h.Yeo_Brainmap_10to14Comp_Specialization.mgz corresponds to 11-component estimate, etc. All the values are integer values. Vertices with the same values correspond to a single ROI. The "background" corresponds to values = 0. These ROIs correspond to those used in the paper.
+
+5) ?h.Yeo_Brainmap_10to14Comp_TopSpecializationComp.csv corresponds to the top components of the functionally specialized ROIs. There are 10 columns corresponding to the ROI numbers (from ?h.Yeo_Brainmap_10to14Comp_SpecializationROI.mgz) and the top component for each ROI. For example, for 12 components right hemisphere, the ROI in the superior temporal lobe corresponds to ROI #2 and is specialized for component 3 (auditory). So the 3rd row, 5th column of the rh.Yeo_Brainmap_10to14Comp_TopSpecializationComp.csv corresponds to "2" and the 3rd row, 6th column of the csv file corresponds to "3". As another example, for 13 components left hemisphere, the ROI (roughly around MT+) corresponds to ROI #17 and is specialized for component 5 (dorsal visual stream). So the 18th row, 7th column of the lh.Yeo_Brainmap_10to14Comp_TopSpecializationComp.csv corresponds to "17" and the 18th row, 8th column of the csv file corresponds to "5". 
+
+*IMPORTANT*: Note that csv files containing Pr(component | task) are found in $FREESURFER_HOME/average/Yeo_Brainmap_MNI152/
+
+
+====================================================
+Section 4: Example Usage
+====================================================
+*IMPORTANT* The following example usages assume that the working (current) directory is in the same directory as this README.
+
+1) To overlay Pr(vertex | 5th component) for the 12-component estimate on the left hemisphere fsaverage template:
+a) In your shell, run "freeview -f $FREESURFER_HOME/subjects/fsaverage/surf/lh.inflated:overlay=lh.Yeo_Brainmap_12Comp_PrActGivenComp.mgz"
+b) Once freeview finishes loading, click on "Configure Overlay" under the "Surfaces" tab
+c) Set "Frame" to 4 (because numbering starts from 0)
+d) Set thresholds to be Min = 1 and Max = 5 
+e) Click Apply 
+
+The thresholds are set to be the same as the paper. Only vertices with values at least 1 (corresponding to probability of 1e-5) are colored.
+
+2) To overlay the 12-component flexibility maps on the left hemisphere fsaverage template:
+a) In your shell, run "freeview -f $FREESURFER_HOME/subjects/fsaverage/surf/lh.inflated:overlay=lh.Yeo_Brainmap_10to14Comp_Flexibility.mgz"
+b) Once freeview finishes loading, click on "Configure Overlay" under the "Surfaces" tab
+c) Set "Frame" to 2 (because frame 2 corresponds to 12-component estimate; frame 0 corresponds to 10-component estimate)
+d) Set thresholds to be Min = 2 and Max = 5.
+e) Click Apply
+
+The thresholds are set to be the same as the paper. In the paper, vertices with flexibility values at least 2 are considered flexible.
+
+3) To overlay the 12-component specialization maps on the left hemisphere fsaverage template
+a) In your shell, run "freeview -f $FREESURFER_HOME/subjects/fsaverage/surf/lh.inflated:overlay=lh.Yeo_Brainmap_10to14Comp_Specialization.mgz"
+b) Once freeview finishes loading, click on "Configure Overlay" under the "Surfaces" tab
+c) Set "Frame" to 2 (because frame 2 corresponds to 12-component estimate; frame 0 corresponds to 10-component estimate)
+d) Set thresholds to be Min = 1 and Max = 5
+e) Click Apply
+
+The thresholds are set to be the same as the paper. Only vertices with values of at least 1 (specificity values of 2) are colored. The colored vertices are considered specialized.
+
+4) To overlay ROIs derived from the 12-component specialization maps on the left hemisphere fsaverage template:
+a) In your shell, run "freeview -f $FREESURFER_HOME/subjects/fsaverage/surf/lh.inflated:overlay=lh.Yeo_Brainmap_10to14Comp_SpecializationROI.mgz"
+b) Once freeview finishes loading, click on "Configure Overlay" under the "Surfaces" tab
+c) Set "Frame" to 2 (because frame 2 corresponds to 12-component estimate)
+d) Set thresholds to be Min = 1
+e) Click Apply
+
+Note that each red island has its own unique value, though it may not seem so due to the color scale used. For example, for the 12-component estimate, if you click on the red blob in the dorsal portion of the central sulcus, the value would correspond to 1. If you click on the red blob in the ventral portion of the central sulcus, the value would correspond to 5. Note that if you use freeview version 5, these values might be obscured by the long filename "lh.Yeo_Brainmap_10to14Comp_SpecializationROI.mgz". In that case, you can increase the width of the freeview GUI for these values to appear. This problem is fixed in FreeSurfer 6. 
+
+5) Note that one can use mri_convert to extract a single frame from the above surface files. For example, to extract the 5-th component from the 12-component estimate and display it on the left hemisphere fsaverage template:
+a) In your shell, run "mri_convert -f 4 lh.Yeo_Brainmap_12Comp_PrActGivenComp.mgz lh.comp5.mgz"
+b) In your shell, run "freeview -f $FREESURFER_HOME/subjects/fsaverage/surf/lh.inflated:overlay=lh.comp5.mgz"
+c) Once freeview finishes loading, click on "Configure Overlay" under the "Surfaces" tab
+d) Set thresholds to be Min = 1 and Max = 5.
+e) Click Apply
+
+====================================================
+Section 5: Other downloads
+====================================================
+The maps are also available in MNI152 space (see $FREESURFER_HOME/average/Yeo_Brainmap_MNI152/)
+
+=====================
+Section 6: References
+=====================
+Yeo BT, Krienen FM, Eickhoff SB, Yaakub SN, Fox PT, Buckner RL, Asplund CL, Chee MWL. Functional Specialization and Flexibility in the Human Association Cortex, Cerebral Cortex
+
+Also see: https://surfer.nmr.mgh.harvard.edu/fswiki/BrainmapOntology_Yeo2015
+

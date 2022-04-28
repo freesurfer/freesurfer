@@ -1,0 +1,8 @@
+MNI Transform File
+% tkregister2
+
+Transform_Type = Linear;
+Linear_Transform =
+ 1 0 0 0
+ 0 1 0 0
+ 0 0 1 0 ;

@@ -1,0 +1,1 @@
+mris_make_surfaces -noaparc -whiteonly -mgz -T1 brain.finalsurfs cvs_avg35_inMNI152 rh

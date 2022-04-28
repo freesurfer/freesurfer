@@ -1,0 +1,140 @@
+
+fsaverage/mri.2mm
+
+These are volumes sampled into a 2mm space. The primary purpose of
+these is to support volume-based fMRI analysis as performed in
+FS-FAST. This 2mm space is the space that is used by default in
+FS-FAST to perform "talairach" group analysis (ie, in the mni305
+space). The raw functional data are sampled into this space when
+preproc-sess is run with the -mni305 flag. When a group analysis is
+done, the output space will be this 2mm space. It is possible to use a
+1mm space, but this can create huge files.
+
+These files can be used to render the statistical results on a volume
+(though this is not really necessary as they can be rendered directly
+on the 1mm volumes). Also, the aseg.mgz created can be used to
+generate labels/masks of subcortical structures directly in the group
+average space. These can be used with mri_volcluster.
+
+These files were created with the following commands:
+
+# Resample each of these volumes using trilin
+foreach vol (orig brain brainmask mni305.cor T1)
+  mri_vol2vol --mov ../mri/$vol.mgz --s fsaverage --tal \
+  --o $vol.mgz --no-save-reg
+end
+
+# Resample the aseg 
+mri_label2vol --seg ../mri/aseg.mgz --temp orig.mgz \
+  --regheader ../mri/orig.mgz --o aseg.mgz
+
+Note: we don't want to do aparc+aseg because the surface-based 
+labels should really be used in a surface-based analysis.
+
+# checks
+tkmedit -f T1.mgz -aux brain.mgz -seg ./aseg.mgz
+tkregister2 --mov ./orig.mgz --s fsaverage --regheader --reg junk
+
+#-----------------------------------------------------------
+
+Creation of subcortical mask. A challenge for doing analyses in three
+ROIs (left hemi, righ hemi, subcortical) is making the ROIs mutally
+exclusive while not excluding any voxels. This is particularly hard in
+this analysis because a cortical voxel in one subject can map to a
+subcortical voxel in another when using the transform to MNI305
+space. 
+
+A map of the subcortical structures for each of the buckner 40 where
+mapped into the mni305 2mm space. A probability map was then
+created. This was repeated for the cortical ribbon and for cerebellum
+by itself. 
+
+1. An initial mask was created taking voxels with any 
+subcortical origins in the native space as long as they had fewer than
+80% cortex. 
+
+2. Cerebellum is a special case because it is so close to fusiform
+that it is easy to get bleed over. For this case, a mask was made of
+any cerebellum voxels that had at least 20% cortex. Any voxels in this
+mask were then excluded from the mask from step 1 to create a new
+mask.
+
+3. Little islands were excluded by running connected components and
+taking the largest cluster. 
+
+4. This mask was then dialted by one voxel then eroded by one voxel to
+remove holes and make the final mask less jagged.
+
+
+# ----- Below For Version 5 --------------------#
+Everything above is for 5.1 and higher.
+
+The mask is created based on mri/subcort.prob.mgz which was created
+with make_average_subcort. subcort.prob.mgz is the raw probability of
+a voxel being in a subcortical gray matter structure based on the
+Buckner40. Inevitably, this mask will include more than just
+subcortial gray matter structures, but we would rather have the mask
+be too big than too small.
+
+# Resample into 2mm space
+mri_vol2vol --mov ../mri/subcort.prob.mgz \
+  --s fsaverage --tal --o subcort.prob.mgz \
+  --no-save-reg
+
+Threshold at .05 (meaning that at least 5% of the subjects at 
+a voxel must have a subcortical label). Also dilate by 2 to
+expand the mask.
+
+mri_binarize --i subcort.prob.mgz --min .05 \
+  --dilate 2 --o subcort.mask2.mgz
+
+Erode by 1. The net result of dilating by 2 then eroding
+by 1 is that holes are filled in and the edges are 
+a little smoother.
+
+mri_binarize --i subcort.mask2.mgz --min .5 \
+  --erode 1 --o subcort.mask.mgz
+
+rm subcort.mask2.mgz
+
+#-----------------------------------------------------------
+
+Creation of registration matrix between the 2mm fsaverage/mni305 space
+and the 2mm mni152 space. This can be used to convert data in the 2mm
+fsaverage/mni305 space into the mni152 2mm space.
+
+set d = $SUBJECTS_DIR/fsaverage
+
+# Create registration matrix between the full 256^3, 1mm3 
+# volume and the 2mm space (simple regheader)
+tkregister2 --mov $d/mri.2mm/brain.mgz --targ $d/mri/brain.mgz \
+  --regheader --reg $d/mri.2mm/reg.2mm.dat --noedit
+
+# Registration between the fsaverage/mni305 subject (full 256^3, 1mm3)
+# and the 2mm mni152 space.  This was created by hand.
+# $FREESURFER_HOME/average/mni152.register.dat 
+
+# Compute the registration between the 2mm fsaverage space and the
+# mni152 2mm space by concatenating the two matrices above.
+mri_matrix_multiply -im $d/mri.2mm/reg.2mm.dat \
+  -iim $FREESURFER_HOME/average/mni152.register.dat \
+  -om $d/mri.2mm/reg.2mm.mni152.dat
+
+# Check the registration
+tkregister2 --mov $d/mri.2mm/brain.mgz \
+  --targ $FSLDIR/data/standard/MNI152_T1_2mm.nii.gz \
+   --reg $d/mri.2mm/reg.2mm.mni152.dat
+
+# To view without reslicing
+tkmedit -f $FSLDIR/data/standard/MNI152_T1_2mm.nii.gz \
+  -overlay sig.nii -reg reg.2mm.mni152.dat
+
+# To do the conversion/reslicing, run something like
+mri_vol2vol --mov sig.nii --reg reg.2mm.mni152.dat \
+  --targ $FSLDIR/data/standard/MNI152_T1_2mm.nii.gz \
+  --o sig.mni152.nii
+
+# To view with reslicing
+tkmedit -f $FSLDIR/data/standard/MNI152_T1_2mm.nii.gz \
+  -overlay sig.mni152.nii
+

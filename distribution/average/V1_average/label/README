@@ -1,0 +1,61 @@
+# directions on using the V1 probabilistic atlas
+# Oliver Hinds <ohinds@mit.edu> 2007-06-15
+#
+# parameter sweeps of the surface registration parameters were
+# performed to determine the best parameters for V1 alignment. below
+# is a list of the parameter values for each hemisphere and template
+# followed by and an example call to mris_register.
+
+
+# the invivo atlas is made from the bukner40 template after
+# registration of 20 ex vivo hemispheres (10 of each hemisphere)
+
+# rh invivo atlas
+hemi=rh
+vivo=in
+dist=10.0 
+parea=0.4
+
+# lh invivo template
+hemi=lh
+vivo=in
+dist=10.0 
+parea=1.0
+
+# the exvivo atlas is made from averaging the ex vivo hemispheres
+# directly. 
+
+# rh exvivo template (level 3)
+hemi=rh
+vivo=ex
+dist=5.0 
+parea=1.0
+
+# lh exvivo template (level 3)
+hemi=lh
+vivo=ex
+dist=5.0 
+parea=0.1
+
+
+
+## command to use with each
+warp="-dist $dist -parea $parea"
+surf=$SUBJECTS_DIR/$subject/surf/"$hemi".sphere
+target=$SUBJECTS_DIR/V1_average/label/"$hemi".v1."$vivo"vivo.tif
+regfile=$SUBJECTS_DIR/$subject/surf/"$hemi".v1."$vivo"vivo.reg
+
+# generate curvature for inflated surface 
+if [ ! -f $SUBJECTS_DIR/$subject/surf/"$hemi".inflated ]; then
+  mris_curvature -n -a 5 -w -distances 10 10 $SUBJECTS_DIR/$subject/surf/"$hemi".inflated
+fi
+
+# register the subject to the template
+mris_register -inflated -a 4096 -w 0 $warp $surf $target $regfile
+
+# map the atlas to the subject
+atlas="$hemi".v1."$vivo"vivo.label
+reglabel=$SUBJECTS_DIR/$subject/label/"$hemi".v1."$vivo"vivo.label
+surf=v1."$vivo"vivo.reg
+mris_spherical_average -osurf $surf -n \
+	-o $subject label $atlas $hemi $surf V1_average $reglabel

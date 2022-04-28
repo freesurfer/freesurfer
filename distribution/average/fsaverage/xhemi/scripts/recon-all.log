@@ -1,0 +1,290 @@
+Fri Nov 13 11:35:23 EST 2015
+/autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi
+/autofs/space/tanha_002/users/greve/fsdev.build/bin/recon-all
+-sb fsaverage/xhemi -talairach
+subjid fsaverage/xhemi
+setenv SUBJECTS_DIR /autofs/space/tanha_002/users/greve/fsdev.build/subjects
+FREESURFER_HOME /autofs/space/tanha_002/users/greve/fsdev.build
+Actual FREESURFER_HOME /autofs/space/tanha_002/users/greve/fsdev.build
+build-stamp.txt: freesurfer-x86_64-unknown-linux-gnu-dev5-20151109
+Linux compute-0-26 2.6.32-573.7.1.el6.x86_64 #1 SMP Tue Sep 22 22:00:00 UTC 2015 x86_64 x86_64 x86_64 GNU/Linux
+cputime      unlimited
+filesize     unlimited
+datasize     unlimited
+stacksize    10240 kbytes
+coredumpsize 0 kbytes
+memoryuse    unlimited
+vmemoryuse   7340032 kbytes
+descriptors  32768 
+memorylocked unlimited
+maxproc      128305 
+
+             total       used       free     shared    buffers     cached
+Mem:      32877252   16407600   16469652          4       6016   14493352
+-/+ buffers/cache:    1908232   30969020 
+Swap:     67108860      88844   67020016 
+
+pbsjob 10465732.launchpad.nmr.mgh.harvard.edu
+########################################
+program versions used
+$Id: recon-all,v 1.552 2015/11/06 19:32:20 ltirrell Exp $
+$Id: mri_motion_correct.fsl,v 1.14 2011/03/02 20:16:39 nicks Exp $
+mri_convert -all-info 
+ProgramName: mri_convert  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2015/11/13-16:35:23-GMT  BuildTimeStamp: Nov  9 2015 14:23:32  CVS: $Id: mri_convert.c,v 1.225 2015/10/19 18:48:26 fischl Exp $  User: greve  Machine: compute-0-26  Platform: Linux  PlatformVersion: 2.6.32-573.7.1.el6.x86_64  CompilerName: GCC  CompilerVersion: 40400 
+FLIRT version 6.0
+$Id: talairach_avi,v 1.11 2015/01/13 20:22:51 nicks Exp $
+mri_convert --version 
+dev build (use --all-info flag for full version info)
+ProgramName: tkregister2_cmdl  ProgramArguments: --all-info  ProgramVersion: $Name:  $  TimeStamp: 2015/11/13-16:35:24-GMT  BuildTimeStamp: Nov  9 2015 14:23:32  CVS: $Id: tkregister2.c,v 1.129 2014/02/26 21:31:58 greve Exp $  User: greve  Machine: compute-0-26  Platform: Linux  PlatformVersion: 2.6.32-573.7.1.el6.x86_64  CompilerName: GCC  CompilerVersion: 40400 
+Program nu_correct, built from:
+Package MNI N3, version 1.12.0, compiled by nicks@terrier (x86_64-unknown-linux-gnu) on 2015-06-19 at 01:25:34
+ProgramName: mri_make_uchar  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2015/11/13-16:35:25-GMT  BuildTimeStamp: Nov  9 2015 14:23:32  CVS: $Id: mri_make_uchar.c,v 1.4 2011/03/02 00:04:14 nicks Exp $  User: greve  Machine: compute-0-26  Platform: Linux  PlatformVersion: 2.6.32-573.7.1.el6.x86_64  CompilerName: GCC  CompilerVersion: 40400 
+ProgramName: mri_normalize  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2015/11/13-16:35:25-GMT  BuildTimeStamp: Nov  9 2015 14:23:32  CVS: $Id: mri_normalize.c,v 1.85 2015/08/05 19:24:14 fischl Exp $  User: greve  Machine: compute-0-26  Platform: Linux  PlatformVersion: 2.6.32-573.7.1.el6.x86_64  CompilerName: GCC  CompilerVersion: 40400 
+ProgramName: mri_watershed  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2015/11/13-16:35:25-GMT  BuildTimeStamp: Nov  9 2015 14:23:32  CVS: $Id: mri_watershed.cpp,v 1.101 2015/07/10 18:57:33 greve Exp $  User: greve  Machine: compute-0-26  Platform: Linux  PlatformVersion: 2.6.32-573.7.1.el6.x86_64  CompilerName: GCC  CompilerVersion: 40400 
+ProgramName: mri_gcut  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2015/11/13-16:35:25-GMT  BuildTimeStamp: Nov  9 2015 14:23:32  CVS: $Id: mri_gcut.cpp,v 1.14 2011/03/02 00:04:16 nicks Exp $  User: greve  Machine: compute-0-26  Platform: Linux  PlatformVersion: 2.6.32-573.7.1.el6.x86_64  CompilerName: GCC  CompilerVersion: 40400 
+ProgramName: mri_segment  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2015/11/13-16:35:25-GMT  BuildTimeStamp: Nov  9 2015 14:23:32  CVS: $Id: mri_segment.c,v 1.43 2015/02/05 23:34:40 zkaufman Exp $  User: greve  Machine: compute-0-26  Platform: Linux  PlatformVersion: 2.6.32-573.7.1.el6.x86_64  CompilerName: GCC  CompilerVersion: 40400 
+ProgramName: mri_label2label  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2015/11/13-16:35:25-GMT  BuildTimeStamp: Nov  9 2015 14:23:32  CVS: $Id: mri_label2label.c,v 1.47 2014/12/22 19:59:18 greve Exp $  User: greve  Machine: compute-0-26  Platform: Linux  PlatformVersion: 2.6.32-573.7.1.el6.x86_64  CompilerName: GCC  CompilerVersion: 40400 
+ProgramName: mri_em_register  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2015/11/13-16:35:26-GMT  BuildTimeStamp: Nov  9 2015 14:23:32  CVS: $Id: mri_em_register.c,v 1.103 2015/08/26 16:51:09 fischl Exp $  User: greve  Machine: compute-0-26  Platform: Linux  PlatformVersion: 2.6.32-573.7.1.el6.x86_64  CompilerName: GCC  CompilerVersion: 40400 
+ProgramName: mri_ca_normalize  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2015/11/13-16:35:26-GMT  BuildTimeStamp: Nov  9 2015 14:23:32  CVS: $Id: mri_ca_normalize.c,v 1.65 2015/10/10 17:28:19 fischl Exp $  User: greve  Machine: compute-0-26  Platform: Linux  PlatformVersion: 2.6.32-573.7.1.el6.x86_64  CompilerName: GCC  CompilerVersion: 40400 
+ProgramName: mri_ca_register  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2015/11/13-16:35:26-GMT  BuildTimeStamp: Nov  9 2015 14:23:32  CVS: $Id: mri_ca_register.c,v 1.93 2015/06/24 16:03:22 fischl Exp $  User: greve  Machine: compute-0-26  Platform: Linux  PlatformVersion: 2.6.32-573.7.1.el6.x86_64  CompilerName: GCC  CompilerVersion: 40400 
+ProgramName: mri_ca_label  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2015/11/13-16:35:26-GMT  BuildTimeStamp: Nov  9 2015 14:23:32  CVS: $Id: mri_ca_label.c,v 1.109 2015/08/26 16:46:38 fischl Exp $  User: greve  Machine: compute-0-26  Platform: Linux  PlatformVersion: 2.6.32-573.7.1.el6.x86_64  CompilerName: GCC  CompilerVersion: 40400 
+ProgramName: mri_pretess  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2015/11/13-16:35:26-GMT  BuildTimeStamp: Nov  9 2015 14:23:32  CVS: $Id: mri_pretess.c,v 1.22 2013/08/30 18:12:25 mreuter Exp $  User: greve  Machine: compute-0-26  Platform: Linux  PlatformVersion: 2.6.32-573.7.1.el6.x86_64  CompilerName: GCC  CompilerVersion: 40400 
+ProgramName: mri_fill  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2015/11/13-16:35:27-GMT  BuildTimeStamp: Nov  9 2015 14:23:32  CVS: $Id: mri_fill.c,v 1.119 2011/10/25 14:09:58 fischl Exp $  User: greve  Machine: compute-0-26  Platform: Linux  PlatformVersion: 2.6.32-573.7.1.el6.x86_64  CompilerName: GCC  CompilerVersion: 40400 
+ProgramName: mri_tessellate  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2015/11/13-16:35:27-GMT  BuildTimeStamp: Nov  9 2015 14:23:32  CVS: $Id: mri_tessellate.c,v 1.38 2014/03/22 00:41:04 greve Exp $  User: greve  Machine: compute-0-26  Platform: Linux  PlatformVersion: 2.6.32-573.7.1.el6.x86_64  CompilerName: GCC  CompilerVersion: 40400 
+ProgramName: mri_concatenate_lta  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2015/11/13-16:35:27-GMT  BuildTimeStamp: Nov  9 2015 14:23:32  CVS: $Id: mri_concatenate_lta.c,v 1.15 2015/08/19 16:35:05 greve Exp $  User: greve  Machine: compute-0-26  Platform: Linux  PlatformVersion: 2.6.32-573.7.1.el6.x86_64  CompilerName: GCC  CompilerVersion: 40400 
+ProgramName: mri_normalize_tp2  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2015/11/13-16:35:27-GMT  BuildTimeStamp: Nov  9 2015 14:23:32  CVS: $Id: mri_normalize_tp2.c,v 1.8 2011/03/02 00:04:23 nicks Exp $  User: greve  Machine: compute-0-26  Platform: Linux  PlatformVersion: 2.6.32-573.7.1.el6.x86_64  CompilerName: GCC  CompilerVersion: 40400 
+ProgramName: mris_smooth  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2015/11/13-16:35:27-GMT  BuildTimeStamp: Nov  9 2015 14:23:32  CVS: $Id: mris_smooth.c,v 1.30 2014/01/21 18:48:21 fischl Exp $  User: greve  Machine: compute-0-26  Platform: Linux  PlatformVersion: 2.6.32-573.7.1.el6.x86_64  CompilerName: GCC  CompilerVersion: 40400 
+ProgramName: mris_inflate  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2015/11/13-16:35:27-GMT  BuildTimeStamp: Nov  9 2015 14:23:32  CVS: $Id: mris_inflate.c,v 1.44 2012/01/05 18:36:17 greve Exp $  User: greve  Machine: compute-0-26  Platform: Linux  PlatformVersion: 2.6.32-573.7.1.el6.x86_64  CompilerName: GCC  CompilerVersion: 40400 
+ProgramName: mris_curvature  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2015/11/13-16:35:28-GMT  BuildTimeStamp: Nov  9 2015 14:23:32  CVS: $Id: mris_curvature.c,v 1.31 2011/03/02 00:04:30 nicks Exp $  User: greve  Machine: compute-0-26  Platform: Linux  PlatformVersion: 2.6.32-573.7.1.el6.x86_64  CompilerName: GCC  CompilerVersion: 40400 
+ProgramName: mris_sphere  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2015/11/13-16:35:28-GMT  BuildTimeStamp: Nov  9 2015 14:23:32  CVS: $Id: mris_sphere.c,v 1.59 2014/11/06 01:38:58 nicks Exp $  User: greve  Machine: compute-0-26  Platform: Linux  PlatformVersion: 2.6.32-573.7.1.el6.x86_64  CompilerName: GCC  CompilerVersion: 40400 
+ProgramName: mris_fix_topology  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2015/11/13-16:35:28-GMT  BuildTimeStamp: Nov  9 2015 14:23:32  CVS: $Id: mris_fix_topology.c,v 1.48 2011/03/02 00:04:32 nicks Exp $  User: greve  Machine: compute-0-26  Platform: Linux  PlatformVersion: 2.6.32-573.7.1.el6.x86_64  CompilerName: GCC  CompilerVersion: 40400 
+ProgramName: mris_topo_fixer  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2015/11/13-16:35:28-GMT  BuildTimeStamp: Nov  9 2015 14:23:32  CVS: $Id: mris_topo_fixer.cpp,v 1.29 2011/03/02 00:04:34 nicks Exp $  User: greve  Machine: compute-0-26  Platform: Linux  PlatformVersion: 2.6.32-573.7.1.el6.x86_64  CompilerName: GCC  CompilerVersion: 40400 
+ProgramName: mris_ca_label  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2015/11/13-16:35:28-GMT  BuildTimeStamp: Nov  9 2015 14:23:32  CVS: $Id: mris_ca_label.c,v 1.37 2014/02/04 17:46:42 fischl Exp $  User: greve  Machine: compute-0-26  Platform: Linux  PlatformVersion: 2.6.32-573.7.1.el6.x86_64  CompilerName: GCC  CompilerVersion: 40400 
+ProgramName: mris_euler_number  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2015/11/13-16:35:29-GMT  BuildTimeStamp: Nov  9 2015 14:23:32  CVS: $Id: mris_euler_number.c,v 1.10 2013/01/14 22:39:14 greve Exp $  User: greve  Machine: compute-0-26  Platform: Linux  PlatformVersion: 2.6.32-573.7.1.el6.x86_64  CompilerName: GCC  CompilerVersion: 40400 
+ProgramName: mris_make_surfaces  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2015/11/13-16:35:29-GMT  BuildTimeStamp: Nov  9 2015 14:23:32  CVS: $Id: mris_make_surfaces.c,v 1.161 2015/11/06 16:00:27 fischl Exp $  User: greve  Machine: compute-0-26  Platform: Linux  PlatformVersion: 2.6.32-573.7.1.el6.x86_64  CompilerName: GCC  CompilerVersion: 40400 
+ProgramName: mris_register  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2015/11/13-16:35:29-GMT  BuildTimeStamp: Nov  9 2015 14:23:32  CVS: $Id: mris_register.c,v 1.61 2013/01/15 17:19:03 greve Exp $  User: greve  Machine: compute-0-26  Platform: Linux  PlatformVersion: 2.6.32-573.7.1.el6.x86_64  CompilerName: GCC  CompilerVersion: 40400 
+ProgramName: mris_volmask  ProgramArguments: --all-info  ProgramVersion: $Name:  $  TimeStamp: 2015/11/13-16:35:29-GMT  BuildTimeStamp: Nov  9 2015 14:23:32  CVS: $Id: mris_volmask.cpp,v 1.26 2014/11/06 03:40:22 nicks Exp $  User: greve  Machine: compute-0-26  Platform: Linux  PlatformVersion: 2.6.32-573.7.1.el6.x86_64  CompilerName: GCC  CompilerVersion: 40400 
+ProgramName: mris_anatomical_stats  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2015/11/13-16:35:29-GMT  BuildTimeStamp: Nov  9 2015 14:23:32  CVS: $Id: mris_anatomical_stats.c,v 1.78 2015/07/06 21:58:51 greve Exp $  User: greve  Machine: compute-0-26  Platform: Linux  PlatformVersion: 2.6.32-573.7.1.el6.x86_64  CompilerName: GCC  CompilerVersion: 40400 
+ProgramName: mrisp_paint  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2015/11/13-16:35:29-GMT  BuildTimeStamp: Nov  9 2015 14:23:32  CVS: $Id: mrisp_paint.c,v 1.11 2011/03/02 00:04:35 nicks Exp $  User: greve  Machine: compute-0-26  Platform: Linux  PlatformVersion: 2.6.32-573.7.1.el6.x86_64  CompilerName: GCC  CompilerVersion: 40400 
+ProgramName: mris_curvature_stats  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2015/11/13-16:35:30-GMT  BuildTimeStamp: Nov  9 2015 14:23:32  CVS: $Id: mris_curvature_stats.c,v 1.65 2015/06/04 20:50:51 nicks Exp $  User: greve  Machine: compute-0-26  Platform: Linux  PlatformVersion: 2.6.32-573.7.1.el6.x86_64  CompilerName: GCC  CompilerVersion: 40400 
+ProgramName: mris_calc  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2015/11/13-16:35:30-GMT  BuildTimeStamp: Nov  9 2015 14:23:32  CVS: $Id: mris_calc.c,v 1.53 2015/06/04 20:50:50 nicks Exp $  User: greve  Machine: compute-0-26  Platform: Linux  PlatformVersion: 2.6.32-573.7.1.el6.x86_64  CompilerName: GCC  CompilerVersion: 40400 
+$Id: mri_robust_register.cpp,v 1.76 2015/09/22 19:55:12 mreuter Exp $
+
+ProgramName: mri_robust_register  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2015/11/13-16:35:30-GMT  BuildTimeStamp: Nov  9 2015 14:23:32  CVS: $Id: mri_robust_register.cpp,v 1.76 2015/09/22 19:55:12 mreuter Exp $  User: greve  Machine: compute-0-26  Platform: Linux  PlatformVersion: 2.6.32-573.7.1.el6.x86_64  CompilerName: GCC  CompilerVersion: 40400 
+$Id: mri_robust_template.cpp,v 1.51 2015/09/22 20:57:47 mreuter Exp $
+
+ProgramName: mri_robust_template  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2015/11/13-16:35:30-GMT  BuildTimeStamp: Nov  9 2015 14:23:32  CVS: $Id: mri_robust_template.cpp,v 1.51 2015/09/22 20:57:47 mreuter Exp $  User: greve  Machine: compute-0-26  Platform: Linux  PlatformVersion: 2.6.32-573.7.1.el6.x86_64  CompilerName: GCC  CompilerVersion: 40400 
+ProgramName: mri_and  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2015/11/13-16:35:31-GMT  BuildTimeStamp: Nov  9 2015 14:23:32  CVS: $Id: mri_and.c,v 1.4 2011/03/02 00:04:13 nicks Exp $  User: greve  Machine: compute-0-26  Platform: Linux  PlatformVersion: 2.6.32-573.7.1.el6.x86_64  CompilerName: GCC  CompilerVersion: 40400 
+ProgramName: mri_or  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2015/11/13-16:35:31-GMT  BuildTimeStamp: Nov  9 2015 14:23:32  CVS: $Id: mri_or.c,v 1.5 2013/03/20 15:03:29 lzollei Exp $  User: greve  Machine: compute-0-26  Platform: Linux  PlatformVersion: 2.6.32-573.7.1.el6.x86_64  CompilerName: GCC  CompilerVersion: 40400 
+ProgramName: mri_fuse_segmentations  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2015/11/13-16:35:31-GMT  BuildTimeStamp: Nov  9 2015 14:23:32  CVS: $Id: mri_fuse_segmentations.c,v 1.8 2011/03/02 00:04:15 nicks Exp $  User: greve  Machine: compute-0-26  Platform: Linux  PlatformVersion: 2.6.32-573.7.1.el6.x86_64  CompilerName: GCC  CompilerVersion: 40400 
+ProgramName: mri_segstats  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2015/11/13-16:35:32-GMT  BuildTimeStamp: Nov  9 2015 14:23:32  CVS: $Id: mri_segstats.c,v 1.119 2015/10/06 18:46:12 greve Exp $  User: greve  Machine: compute-0-26  Platform: Linux  PlatformVersion: 2.6.32-573.7.1.el6.x86_64  CompilerName: GCC  CompilerVersion: 40400 
+ProgramName: mri_relabel_hypointensities  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2015/11/13-16:35:32-GMT  BuildTimeStamp: Nov  9 2015 14:23:32  CVS: $Id: mri_relabel_hypointensities.c,v 1.13 2015/05/15 18:44:10 nicks Exp $  User: greve  Machine: compute-0-26  Platform: Linux  PlatformVersion: 2.6.32-573.7.1.el6.x86_64  CompilerName: GCC  CompilerVersion: 40400 
+#######################################
+GCADIR /autofs/space/tanha_002/users/greve/fsdev.build/average
+GCA RB_all_2015-08-04.gca
+GCASkull RB_all_withskull_2014-08-21.gca
+AvgCurvTif average.curvature.filled.buckner40.tif
+GCSDIR /autofs/space/tanha_002/users/greve/fsdev.build/average
+GCS curvature.buckner40.filled.desikan_killiany.2010-03-25.gcs
+#######################################
+#--------------------------------------------
+#@# Talairach Fri Nov 13 11:35:32 EST 2015
+/autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri
+
+ mri_nu_correct.mni --no-rescale --i orig.mgz --o orig_nu.mgz --n 1 --proto-iters 1000 --distance 200 --stop 1e-4 --shrink 2 
+
+/autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri
+/autofs/space/tanha_002/users/greve/fsdev.build/bin/mri_nu_correct.mni
+--no-rescale --i orig.mgz --o orig_nu.mgz --n 1 --proto-iters 1000 --distance 200 --stop 1e-4 --shrink 2
+nIters 1
+$Id: mri_nu_correct.mni,v 1.23 2015/06/18 00:21:28 nicks Exp $
+Linux compute-0-26 2.6.32-573.7.1.el6.x86_64 #1 SMP Tue Sep 22 22:00:00 UTC 2015 x86_64 x86_64 x86_64 GNU/Linux
+Fri Nov 13 11:35:32 EST 2015
+Program nu_correct, built from:
+Package MNI N3, version 1.12.0, compiled by nicks@terrier (x86_64-unknown-linux-gnu) on 2015-06-19 at 01:25:34
+tmpdir is ./tmp.mri_nu_correct.mni.2535
+/autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri
+mri_convert orig.mgz ./tmp.mri_nu_correct.mni.2535/nu0.mnc -odt float
+mri_convert orig.mgz ./tmp.mri_nu_correct.mni.2535/nu0.mnc -odt float 
+$Id: mri_convert.c,v 1.225 2015/10/19 18:48:26 fischl Exp $
+reading from orig.mgz...
+TR=0.00, TE=0.00, TI=0.00, flip angle=0.00
+i_ras = (-1, 0, 0)
+j_ras = (0, 0, -1)
+k_ras = (0, 1, 0)
+changing data type from uchar to float (noscale = 0)...
+writing to ./tmp.mri_nu_correct.mni.2535/nu0.mnc...
+ 
+--------------------------------------------------------
+Iteration 1 Fri Nov 13 11:35:36 EST 2015
+nu_correct -clobber ./tmp.mri_nu_correct.mni.2535/nu0.mnc ./tmp.mri_nu_correct.mni.2535/nu1.mnc -tmpdir ./tmp.mri_nu_correct.mni.2535/0/ -iterations 1000 -stop 1e-4 -distance 200 -shrink 2
+[greve@compute-0-26:/autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri/] [2015-11-13 11:35:37] running:
+  /usr/pubsw/packages/mni/current/bin/nu_estimate_np_and_em -parzen -log -sharpen 0.15 0.01 -iterations 1000 -stop 1e-4 -shrink 2 -auto_mask -nonotify -b_spline 1.0e-7 -distance 200 -quiet -execute -clobber -nokeeptmp -tmpdir ./tmp.mri_nu_correct.mni.2535/0/ ./tmp.mri_nu_correct.mni.2535/nu0.mnc ./tmp.mri_nu_correct.mni.2535/nu1.imp
+
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Processing:.................................................................................................................................Done
+Number of iterations: 132 
+CV of field change: 9.95676e-05
+ 
+ 
+ 
+mri_convert ./tmp.mri_nu_correct.mni.2535/nu1.mnc orig_nu.mgz --like orig.mgz --conform
+mri_convert ./tmp.mri_nu_correct.mni.2535/nu1.mnc orig_nu.mgz --like orig.mgz --conform 
+$Id: mri_convert.c,v 1.225 2015/10/19 18:48:26 fischl Exp $
+reading from ./tmp.mri_nu_correct.mni.2535/nu1.mnc...
+TR=0.00, TE=0.00, TI=0.00, flip angle=0.00
+i_ras = (-1, 0, 0)
+j_ras = (0, 0, -1)
+k_ras = (0, 1, 0)
+INFO: transform src into the like-volume: orig.mgz
+changing data type from float to uchar (noscale = 0)...
+MRIchangeType: Building histogram 
+writing to orig_nu.mgz...
+ 
+ 
+Fri Nov 13 11:47:07 EST 2015
+mri_nu_correct.mni done
+
+ talairach_avi --i orig_nu.mgz --xfm transforms/talairach.auto.xfm 
+
+talairach_avi log file is transforms/talairach_avi.log...
+
+ cp transforms/talairach.auto.xfm transforms/talairach.xfm 
+
+
+#------------------------------------------
+
+Started at Fri Nov 13 11:35:23 EST 2015 
+Ended   at Fri Nov 13 11:48:23 EST 2015
+#@#%# recon-all-run-time-hours 0.217
+recon-all -s fsaverage/xhemi finished without error at Fri Nov 13 11:48:23 EST 2015

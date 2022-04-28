@@ -1,0 +1,3632 @@
+Thu Jan 12 01:32:04 EST 2012
+setenv SUBJECTS_DIR /cluster/con/9/users/greve/fsaverage_sym-data
+cd /autofs/cluster/con_009/users/greve/fsaverage_sym-data/ni.sym.b40.i30
+/usr/local/freesurfer/dev/bin/mris_preproc --out /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/stack.lh.inflated.H.mgh --f /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/list.subjects.txt --target ni.sym.b40.i30 --hemi lh --meas inflated.H --srcsurfreg ni.sym.b40.i29.sphere.reg --log /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/scripts/mris_preproc.lh.inflated.H.log --xhemi
+
+Linux compute-0-8.local 2.6.18-53.1.19.el5 #1 SMP Tue Apr 22 03:01:10 EDT 2008 x86_64 x86_64 x86_64 GNU/Linux
+$Id: mris_preproc,v 1.62 2011/08/26 20:13:47 greve Exp $
+freesurfer-Linux-centos4_x86_64-dev-20120111
+tmpdir is /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792
+Src lh ni.sym.b40.i29.sphere.reg
+Trg lh sphere.reg
+
+
+
+
+---------------------------------------------------
+#@# 1/80 073 Thu Jan 12 01:32:04 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 073 --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/073.1.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/073/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 073
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/073/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/073.1.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/073/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/073/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (164868)
+Reverse Loop had 41051 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 132214, nTrgMulti = 31628, MnTrgMultiHits = 2.29793
+nSrc121 = 138382, nSrcLost =     0, nSrcMulti = 26486, MnSrcMultiHits = 2.51118
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/073.1.mgh
+
+
+
+---------------------------------------------------
+#@# 2/80 073/xhemi Thu Jan 12 01:32:13 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 073/xhemi --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/073.xhemi.2.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/073/xhemi/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 073/xhemi
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/073/xhemi/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/073.xhemi.2.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/073/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/073/xhemi/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (159875)
+Reverse Loop had 36601 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 135002, nTrgMulti = 28840, MnTrgMultiHits = 2.26911
+nSrc121 = 132304, nSrcLost =     0, nSrcMulti = 27571, MnSrcMultiHits = 2.4714
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/073.xhemi.2.mgh
+
+
+
+---------------------------------------------------
+#@# 3/80 080 Thu Jan 12 01:32:22 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 080 --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/080.3.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/080/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 080
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/080/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/080.3.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/080/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/080/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (152026)
+Reverse Loop had 33170 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 137601, nTrgMulti = 26241, MnTrgMultiHits = 2.26405
+nSrc121 = 123661, nSrcLost =     0, nSrcMulti = 28365, MnSrcMultiHits = 2.58597
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/080.3.mgh
+
+
+
+---------------------------------------------------
+#@# 4/80 080/xhemi Thu Jan 12 01:32:31 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 080/xhemi --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/080.xhemi.4.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/080/xhemi/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 080/xhemi
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/080/xhemi/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/080.xhemi.4.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/080/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/080/xhemi/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (151897)
+Reverse Loop had 33466 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 137286, nTrgMulti = 26556, MnTrgMultiHits = 2.2602
+nSrc121 = 122612, nSrcLost =     0, nSrcMulti = 29285, MnSrcMultiHits = 2.55066
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/080.xhemi.4.mgh
+
+
+
+---------------------------------------------------
+#@# 5/80 123 Thu Jan 12 01:32:40 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 123 --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/123.5.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/123/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 123
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/123/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/123.5.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/123/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/123/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (128466)
+Reverse Loop had 19193 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 148188, nTrgMulti = 15654, MnTrgMultiHits = 2.22608
+nSrc121 = 92474, nSrcLost =     0, nSrcMulti = 35992, MnSrcMultiHits = 2.51614
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/123.5.mgh
+
+
+
+---------------------------------------------------
+#@# 6/80 123/xhemi Thu Jan 12 01:32:47 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 123/xhemi --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/123.xhemi.6.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/123/xhemi/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 123/xhemi
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/123/xhemi/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/123.xhemi.6.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/123/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/123/xhemi/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (128815)
+Reverse Loop had 19325 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 148039, nTrgMulti = 15803, MnTrgMultiHits = 2.22287
+nSrc121 = 93261, nSrcLost =     0, nSrcMulti = 35554, MnSrcMultiHits = 2.52872
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/123.xhemi.6.mgh
+
+
+
+---------------------------------------------------
+#@# 7/80 144 Thu Jan 12 01:32:55 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 144 --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/144.7.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/144/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 144
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/144/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/144.7.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/144/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/144/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (134790)
+Reverse Loop had 23000 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 145993, nTrgMulti = 17849, MnTrgMultiHits = 2.28859
+nSrc121 = 99699, nSrcLost =     0, nSrcMulti = 35091, MnSrcMultiHits = 2.48334
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/144.7.mgh
+
+
+
+---------------------------------------------------
+#@# 8/80 144/xhemi Thu Jan 12 01:33:03 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 144/xhemi --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/144.xhemi.8.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/144/xhemi/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 144/xhemi
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/144/xhemi/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/144.xhemi.8.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/144/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/144/xhemi/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (135536)
+Reverse Loop had 23413 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 145631, nTrgMulti = 18211, MnTrgMultiHits = 2.28565
+nSrc121 = 100228, nSrcLost =     0, nSrcMulti = 35308, MnSrcMultiHits = 2.4648
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/144.xhemi.8.mgh
+
+
+
+---------------------------------------------------
+#@# 9/80 102 Thu Jan 12 01:33:11 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 102 --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/102.9.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/102/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 102
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/102/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/102.9.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/102/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/102/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (133134)
+Reverse Loop had 21705 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 146482, nTrgMulti = 17360, MnTrgMultiHits = 2.25029
+nSrc121 = 97706, nSrcLost =     0, nSrcMulti = 35428, MnSrcMultiHits = 2.47942
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/102.9.mgh
+
+
+
+---------------------------------------------------
+#@# 10/80 102/xhemi Thu Jan 12 01:33:19 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 102/xhemi --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/102.xhemi.10.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/102/xhemi/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 102/xhemi
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/102/xhemi/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/102.xhemi.10.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/102/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/102/xhemi/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (131514)
+Reverse Loop had 20776 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 146992, nTrgMulti = 16850, MnTrgMultiHits = 2.233
+nSrc121 = 96412, nSrcLost =     0, nSrcMulti = 35102, MnSrcMultiHits = 2.51285
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/102.xhemi.10.mgh
+
+
+
+---------------------------------------------------
+#@# 11/80 140 Thu Jan 12 01:33:26 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 140 --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/140.11.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/140/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 140
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/140/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/140.11.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/140/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/140/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (136708)
+Reverse Loop had 23010 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 145244, nTrgMulti = 18598, MnTrgMultiHits = 2.23723
+nSrc121 = 103520, nSrcLost =     0, nSrcMulti = 33188, MnSrcMultiHits = 2.51091
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/140.11.mgh
+
+
+
+---------------------------------------------------
+#@# 12/80 140/xhemi Thu Jan 12 01:33:35 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 140/xhemi --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/140.xhemi.12.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/140/xhemi/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 140/xhemi
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/140/xhemi/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/140.xhemi.12.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/140/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/140/xhemi/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (137872)
+Reverse Loop had 23714 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 144776, nTrgMulti = 19066, MnTrgMultiHits = 2.24378
+nSrc121 = 104181, nSrcLost =     0, nSrcMulti = 33691, MnSrcMultiHits = 2.4747
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/140.xhemi.12.mgh
+
+
+
+---------------------------------------------------
+#@# 13/80 084 Thu Jan 12 01:33:43 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 084 --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/084.13.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/084/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 084
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/084/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/084.13.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/084/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/084/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (135399)
+Reverse Loop had 22972 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 145454, nTrgMulti = 18388, MnTrgMultiHits = 2.24929
+nSrc121 = 101691, nSrcLost =     0, nSrcMulti = 33708, MnSrcMultiHits = 2.52531
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/084.13.mgh
+
+
+
+---------------------------------------------------
+#@# 14/80 084/xhemi Thu Jan 12 01:33:51 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 084/xhemi --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/084.xhemi.14.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/084/xhemi/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 084/xhemi
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/084/xhemi/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/084.xhemi.14.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/084/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/084/xhemi/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (134216)
+Reverse Loop had 22336 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 145908, nTrgMulti = 17934, MnTrgMultiHits = 2.24546
+nSrc121 = 100277, nSrcLost =     0, nSrcMulti = 33939, MnSrcMultiHits = 2.53104
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/084.xhemi.14.mgh
+
+
+
+---------------------------------------------------
+#@# 15/80 145 Thu Jan 12 01:33:58 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 145 --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/145.15.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/145/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 145
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/145/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/145.15.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/145/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/145/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (137614)
+Reverse Loop had 24448 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 145051, nTrgMulti = 18791, MnTrgMultiHits = 2.30105
+nSrc121 = 102674, nSrcLost =     0, nSrcMulti = 34940, MnSrcMultiHits = 2.45037
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/145.15.mgh
+
+
+
+---------------------------------------------------
+#@# 16/80 145/xhemi Thu Jan 12 01:34:07 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 145/xhemi --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/145.xhemi.16.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/145/xhemi/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 145/xhemi
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/145/xhemi/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/145.xhemi.16.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/145/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/145/xhemi/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (139634)
+Reverse Loop had 26557 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 143415, nTrgMulti = 20427, MnTrgMultiHits = 2.30009
+nSrc121 = 105379, nSrcLost =     0, nSrcMulti = 34255, MnSrcMultiHits = 2.48197
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/145.xhemi.16.mgh
+
+
+
+---------------------------------------------------
+#@# 17/80 092 Thu Jan 12 01:34:15 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 092 --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/092.17.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/092/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 092
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/092/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/092.17.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/092/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/092/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (140584)
+Reverse Loop had 25105 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 143659, nTrgMulti = 20183, MnTrgMultiHits = 2.24387
+nSrc121 = 108569, nSrcLost =     0, nSrcMulti = 32015, MnSrcMultiHits = 2.51064
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/092.17.mgh
+
+
+
+---------------------------------------------------
+#@# 18/80 092/xhemi Thu Jan 12 01:34:23 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 092/xhemi --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/092.xhemi.18.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/092/xhemi/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 092/xhemi
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/092/xhemi/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/092.xhemi.18.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/092/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/092/xhemi/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (139740)
+Reverse Loop had 24789 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 143849, nTrgMulti = 19993, MnTrgMultiHits = 2.23988
+nSrc121 = 107399, nSrcLost =     0, nSrcMulti = 32341, MnSrcMultiHits = 2.51173
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/092.xhemi.18.mgh
+
+
+
+---------------------------------------------------
+#@# 19/80 004 Thu Jan 12 01:34:31 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 004 --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/004.19.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/004/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 004
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/004/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/004.19.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/004/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/004/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (149454)
+Reverse Loop had 30351 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 140399, nTrgMulti = 23443, MnTrgMultiHits = 2.29467
+nSrc121 = 118884, nSrcLost =     0, nSrcMulti = 30570, MnSrcMultiHits = 2.46349
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/004.19.mgh
+
+
+
+---------------------------------------------------
+#@# 20/80 004/xhemi Thu Jan 12 01:34:39 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 004/xhemi --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/004.xhemi.20.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/004/xhemi/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 004/xhemi
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/004/xhemi/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/004.xhemi.20.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/004/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/004/xhemi/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (149376)
+Reverse Loop had 31218 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 139613, nTrgMulti = 24229, MnTrgMultiHits = 2.28846
+nSrc121 = 119006, nSrcLost =     0, nSrcMulti = 30370, MnSrcMultiHits = 2.50425
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/004.xhemi.20.mgh
+
+
+
+---------------------------------------------------
+#@# 21/80 008 Thu Jan 12 01:34:48 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 008 --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/008.21.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/008/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 008
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/008/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/008.21.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/008/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/008/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (118739)
+Reverse Loop had 15540 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 151547, nTrgMulti = 12295, MnTrgMultiHits = 2.26393
+nSrc121 = 78084, nSrcLost =     0, nSrcMulti = 40655, MnSrcMultiHits = 2.49165
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/008.21.mgh
+
+
+
+---------------------------------------------------
+#@# 22/80 008/xhemi Thu Jan 12 01:34:56 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 008/xhemi --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/008.xhemi.22.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/008/xhemi/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 008/xhemi
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/008/xhemi/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/008.xhemi.22.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/008/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/008/xhemi/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (115795)
+Reverse Loop had 14456 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 152319, nTrgMulti = 11523, MnTrgMultiHits = 2.25453
+nSrc121 = 75362, nSrcLost =     0, nSrcMulti = 40433, MnSrcMultiHits = 2.54584
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/008.xhemi.22.mgh
+
+
+
+---------------------------------------------------
+#@# 23/80 017 Thu Jan 12 01:35:03 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 017 --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/017.23.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/017/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 017
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/017/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/017.23.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/017/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/017/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (149758)
+Reverse Loop had 31464 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 138854, nTrgMulti = 24988, MnTrgMultiHits = 2.25916
+nSrc121 = 120863, nSrcLost =     0, nSrcMulti = 28895, MnSrcMultiHits = 2.57633
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/017.23.mgh
+
+
+
+---------------------------------------------------
+#@# 24/80 017/xhemi Thu Jan 12 01:35:12 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 017/xhemi --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/017.xhemi.24.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/017/xhemi/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 017/xhemi
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/017/xhemi/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/017.xhemi.24.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/017/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/017/xhemi/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (149755)
+Reverse Loop had 31620 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 138853, nTrgMulti = 24989, MnTrgMultiHits = 2.26536
+nSrc121 = 120346, nSrcLost =     0, nSrcMulti = 29409, MnSrcMultiHits = 2.55418
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/017.xhemi.24.mgh
+
+
+
+---------------------------------------------------
+#@# 25/80 021 Thu Jan 12 01:35:20 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 021 --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/021.25.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/021/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 021
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/021/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/021.25.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/021/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/021/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (148188)
+Reverse Loop had 30020 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 140356, nTrgMulti = 23486, MnTrgMultiHits = 2.27821
+nSrc121 = 117239, nSrcLost =     0, nSrcMulti = 30949, MnSrcMultiHits = 2.47578
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/021.25.mgh
+
+
+
+---------------------------------------------------
+#@# 26/80 021/xhemi Thu Jan 12 01:35:28 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 021/xhemi --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/021.xhemi.26.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/021/xhemi/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 021/xhemi
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/021/xhemi/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/021.xhemi.26.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/021/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/021/xhemi/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (146263)
+Reverse Loop had 29071 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 141019, nTrgMulti = 22823, MnTrgMultiHits = 2.27376
+nSrc121 = 115586, nSrcLost =     0, nSrcMulti = 30677, MnSrcMultiHits = 2.52068
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/021.xhemi.26.mgh
+
+
+
+---------------------------------------------------
+#@# 27/80 032 Thu Jan 12 01:35:37 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 032 --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/032.27.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/032/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 032
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/032/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/032.27.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/032/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/032/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (141803)
+Reverse Loop had 27105 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 142631, nTrgMulti = 21211, MnTrgMultiHits = 2.27787
+nSrc121 = 108977, nSrcLost =     0, nSrcMulti = 32826, MnSrcMultiHits = 2.49711
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/032.27.mgh
+
+
+
+---------------------------------------------------
+#@# 28/80 032/xhemi Thu Jan 12 01:35:45 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 032/xhemi --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/032.xhemi.28.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/032/xhemi/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 032/xhemi
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/032/xhemi/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/032.xhemi.28.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/032/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/032/xhemi/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (144495)
+Reverse Loop had 27952 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 142231, nTrgMulti = 21611, MnTrgMultiHits = 2.29342
+nSrc121 = 112384, nSrcLost =     0, nSrcMulti = 32111, MnSrcMultiHits = 2.47298
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/032.xhemi.28.mgh
+
+
+
+---------------------------------------------------
+#@# 29/80 039 Thu Jan 12 01:35:54 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 039 --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/039.29.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/039/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 039
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/039/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/039.29.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/039/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/039/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (114532)
+Reverse Loop had 13522 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 152745, nTrgMulti = 11097, MnTrgMultiHits = 2.21853
+nSrc121 = 73882, nSrcLost =     0, nSrcMulti = 40650, MnSrcMultiHits = 2.54568
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/039.29.mgh
+
+
+
+---------------------------------------------------
+#@# 30/80 039/xhemi Thu Jan 12 01:36:01 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 039/xhemi --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/039.xhemi.30.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/039/xhemi/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 039/xhemi
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/039/xhemi/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/039.xhemi.30.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/039/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/039/xhemi/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (114665)
+Reverse Loop had 14697 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 151967, nTrgMulti = 11875, MnTrgMultiHits = 2.23764
+nSrc121 = 74331, nSrcLost =     0, nSrcMulti = 40334, MnSrcMultiHits = 2.58363
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/039.xhemi.30.mgh
+
+
+
+---------------------------------------------------
+#@# 31/80 040 Thu Jan 12 01:36:08 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 040 --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/040.31.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/040/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 040
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/040/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/040.31.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/040/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/040/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (109268)
+Reverse Loop had 11544 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 154246, nTrgMulti =  9596, MnTrgMultiHits = 2.203
+nSrc121 = 67190, nSrcLost =     0, nSrcMulti = 42078, MnSrcMultiHits = 2.57132
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/040.31.mgh
+
+
+
+---------------------------------------------------
+#@# 32/80 040/xhemi Thu Jan 12 01:36:15 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 040/xhemi --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/040.xhemi.32.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/040/xhemi/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 040/xhemi
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/040/xhemi/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/040.xhemi.32.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/040/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/040/xhemi/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (108530)
+Reverse Loop had 11891 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 153948, nTrgMulti =  9894, MnTrgMultiHits = 2.20184
+nSrc121 = 66806, nSrcLost =     0, nSrcMulti = 41724, MnSrcMultiHits = 2.61066
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/040.xhemi.32.mgh
+
+
+
+---------------------------------------------------
+#@# 33/80 045 Thu Jan 12 01:36:23 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 045 --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/045.33.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/045/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 045
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/045/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/045.33.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/045/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/045/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (110434)
+Reverse Loop had 11733 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 154498, nTrgMulti =  9344, MnTrgMultiHits = 2.25567
+nSrc121 = 67134, nSrcLost =     0, nSrcMulti = 43300, MnSrcMultiHits = 2.50441
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/045.33.mgh
+
+
+
+---------------------------------------------------
+#@# 34/80 045/xhemi Thu Jan 12 01:36:30 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 045/xhemi --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/045.xhemi.34.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/045/xhemi/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 045/xhemi
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/045/xhemi/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/045.xhemi.34.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/045/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/045/xhemi/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (110449)
+Reverse Loop had 12238 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 154061, nTrgMulti =  9781, MnTrgMultiHits = 2.2512
+nSrc121 = 67880, nSrcLost =     0, nSrcMulti = 42569, MnSrcMultiHits = 2.54176
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/045.xhemi.34.mgh
+
+
+
+---------------------------------------------------
+#@# 35/80 049 Thu Jan 12 01:36:37 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 049 --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/049.35.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/049/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 049
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/049/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/049.35.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/049/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/049/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (144041)
+Reverse Loop had 27968 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 141873, nTrgMulti = 21969, MnTrgMultiHits = 2.27307
+nSrc121 = 113481, nSrcLost =     0, nSrcMulti = 30560, MnSrcMultiHits = 2.56312
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/049.35.mgh
+
+
+
+---------------------------------------------------
+#@# 36/80 049/xhemi Thu Jan 12 01:36:45 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 049/xhemi --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/049.xhemi.36.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/049/xhemi/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 049/xhemi
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/049/xhemi/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/049.xhemi.36.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/049/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/049/xhemi/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (142612)
+Reverse Loop had 30216 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 140269, nTrgMulti = 23573, MnTrgMultiHits = 2.28181
+nSrc121 = 111138, nSrcLost =     0, nSrcMulti = 31474, MnSrcMultiHits = 2.63456
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/049.xhemi.36.mgh
+
+
+
+---------------------------------------------------
+#@# 37/80 067 Thu Jan 12 01:36:58 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 067 --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/067.37.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/067/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 067
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/067/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/067.37.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/067/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/067/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (137857)
+Reverse Loop had 24569 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 144463, nTrgMulti = 19379, MnTrgMultiHits = 2.26782
+nSrc121 = 104018, nSrcLost =     0, nSrcMulti = 33839, MnSrcMultiHits = 2.49396
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/067.37.mgh
+
+
+
+---------------------------------------------------
+#@# 38/80 067/xhemi Thu Jan 12 01:37:06 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 067/xhemi --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/067.xhemi.38.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/067/xhemi/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 067/xhemi
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/067/xhemi/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/067.xhemi.38.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/067/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/067/xhemi/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (136645)
+Reverse Loop had 26000 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 143791, nTrgMulti = 20051, MnTrgMultiHits = 2.29669
+nSrc121 = 101863, nSrcLost =     0, nSrcMulti = 34782, MnSrcMultiHits = 2.52944
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/067.xhemi.38.mgh
+
+
+
+---------------------------------------------------
+#@# 39/80 074 Thu Jan 12 01:37:14 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 074 --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/074.39.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/074/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 074
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/074/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/074.39.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/074/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/074/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (120210)
+Reverse Loop had 15175 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 151827, nTrgMulti = 12015, MnTrgMultiHits = 2.263
+nSrc121 = 79905, nSrcLost =     0, nSrcMulti = 40305, MnSrcMultiHits = 2.45905
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/074.39.mgh
+
+
+
+---------------------------------------------------
+#@# 40/80 074/xhemi Thu Jan 12 01:37:21 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 074/xhemi --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/074.xhemi.40.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/074/xhemi/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 074/xhemi
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/074/xhemi/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/074.xhemi.40.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/074/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/074/xhemi/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (119090)
+Reverse Loop had 15551 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 151550, nTrgMulti = 12292, MnTrgMultiHits = 2.26513
+nSrc121 = 78799, nSrcLost =     0, nSrcMulti = 40291, MnSrcMultiHits = 2.49669
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/074.xhemi.40.mgh
+
+
+
+---------------------------------------------------
+#@# 41/80 091 Thu Jan 12 01:37:29 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 091 --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/091.41.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/091/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 091
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/091/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/091.41.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/091/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/091/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (134872)
+Reverse Loop had 22565 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 145821, nTrgMulti = 18021, MnTrgMultiHits = 2.25215
+nSrc121 = 100266, nSrcLost =     0, nSrcMulti = 34606, MnSrcMultiHits = 2.48919
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/091.41.mgh
+
+
+
+---------------------------------------------------
+#@# 42/80 091/xhemi Thu Jan 12 01:37:37 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 091/xhemi --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/091.xhemi.42.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/091/xhemi/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 091/xhemi
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/091/xhemi/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/091.xhemi.42.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/091/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/091/xhemi/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (134357)
+Reverse Loop had 23601 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 145264, nTrgMulti = 18578, MnTrgMultiHits = 2.27037
+nSrc121 = 99538, nSrcLost =     0, nSrcMulti = 34819, MnSrcMultiHits = 2.52463
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/091.xhemi.42.mgh
+
+
+
+---------------------------------------------------
+#@# 43/80 093 Thu Jan 12 01:37:45 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 093 --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/093.43.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/093/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 093
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/093/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/093.43.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/093/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/093/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (133650)
+Reverse Loop had 22823 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 145338, nTrgMulti = 18504, MnTrgMultiHits = 2.23341
+nSrc121 = 99581, nSrcLost =     0, nSrcMulti = 34069, MnSrcMultiHits = 2.55611
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/093.43.mgh
+
+
+
+---------------------------------------------------
+#@# 44/80 093/xhemi Thu Jan 12 01:37:53 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 093/xhemi --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/093.xhemi.44.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/093/xhemi/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 093/xhemi
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/093/xhemi/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/093.xhemi.44.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/093/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/093/xhemi/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (134965)
+Reverse Loop had 23277 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 144964, nTrgMulti = 18878, MnTrgMultiHits = 2.23302
+nSrc121 = 101538, nSrcLost =     0, nSrcMulti = 33427, MnSrcMultiHits = 2.56024
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/093.xhemi.44.mgh
+
+
+
+---------------------------------------------------
+#@# 45/80 095 Thu Jan 12 01:38:01 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 095 --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/095.45.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/095/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 095
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/095/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/095.45.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/095/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/095/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (108804)
+Reverse Loop had 11762 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 154288, nTrgMulti =  9554, MnTrgMultiHits = 2.23111
+nSrc121 = 65551, nSrcLost =     0, nSrcMulti = 43253, MnSrcMultiHits = 2.5444
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/095.45.mgh
+
+
+
+---------------------------------------------------
+#@# 46/80 095/xhemi Thu Jan 12 01:38:07 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 095/xhemi --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/095.xhemi.46.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/095/xhemi/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 095/xhemi
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/095/xhemi/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/095.xhemi.46.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/095/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/095/xhemi/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (108333)
+Reverse Loop had 11244 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 154653, nTrgMulti =  9189, MnTrgMultiHits = 2.22364
+nSrc121 = 65523, nSrcLost =     0, nSrcMulti = 42810, MnSrcMultiHits = 2.55929
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/095.xhemi.46.mgh
+
+
+
+---------------------------------------------------
+#@# 47/80 097 Thu Jan 12 01:38:14 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 097 --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/097.47.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/097/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 097
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/097/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/097.47.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/097/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/097/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (132415)
+Reverse Loop had 21066 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 146940, nTrgMulti = 16902, MnTrgMultiHits = 2.24636
+nSrc121 = 96588, nSrcLost =     0, nSrcMulti = 35827, MnSrcMultiHits = 2.46518
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/097.47.mgh
+
+
+
+---------------------------------------------------
+#@# 48/80 097/xhemi Thu Jan 12 01:38:22 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 097/xhemi --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/097.xhemi.48.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/097/xhemi/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 097/xhemi
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/097/xhemi/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/097.xhemi.48.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/097/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/097/xhemi/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (128342)
+Reverse Loop had 19564 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 148239, nTrgMulti = 15603, MnTrgMultiHits = 2.25386
+nSrc121 = 91683, nSrcLost =     0, nSrcMulti = 36659, MnSrcMultiHits = 2.50206
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/097.xhemi.48.mgh
+
+
+
+---------------------------------------------------
+#@# 49/80 099 Thu Jan 12 01:38:30 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 099 --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/099.49.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/099/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 099
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/099/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/099.49.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/099/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/099/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (111176)
+Reverse Loop had 13463 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 153225, nTrgMulti = 10617, MnTrgMultiHits = 2.26806
+nSrc121 = 69667, nSrcLost =     0, nSrcMulti = 41509, MnSrcMultiHits = 2.59312
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/099.49.mgh
+
+
+
+---------------------------------------------------
+#@# 50/80 099/xhemi Thu Jan 12 01:38:37 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 099/xhemi --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/099.xhemi.50.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/099/xhemi/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 099/xhemi
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/099/xhemi/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/099.xhemi.50.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/099/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/099/xhemi/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (110046)
+Reverse Loop had 12412 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 153907, nTrgMulti =  9935, MnTrgMultiHits = 2.24932
+nSrc121 = 68661, nSrcLost =     0, nSrcMulti = 41385, MnSrcMultiHits = 2.59981
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/099.xhemi.50.mgh
+
+
+
+---------------------------------------------------
+#@# 51/80 103 Thu Jan 12 01:38:44 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 103 --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/103.51.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/103/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 103
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/103/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/103.51.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/103/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/103/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (124622)
+Reverse Loop had 17344 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 149754, nTrgMulti = 14088, MnTrgMultiHits = 2.23112
+nSrc121 = 86588, nSrcLost =     0, nSrcMulti = 38034, MnSrcMultiHits = 2.4872
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/103.51.mgh
+
+
+
+---------------------------------------------------
+#@# 52/80 103/xhemi Thu Jan 12 01:38:51 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 103/xhemi --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/103.xhemi.52.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/103/xhemi/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 103/xhemi
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/103/xhemi/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/103.xhemi.52.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/103/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/103/xhemi/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (126194)
+Reverse Loop had 17649 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 149444, nTrgMulti = 14398, MnTrgMultiHits = 2.2258
+nSrc121 = 89024, nSrcLost =     0, nSrcMulti = 37170, MnSrcMultiHits = 2.48768
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/103.xhemi.52.mgh
+
+
+
+---------------------------------------------------
+#@# 53/80 106 Thu Jan 12 01:38:59 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 106 --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/106.53.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/106/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 106
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/106/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/106.53.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/106/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/106/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (120740)
+Reverse Loop had 16182 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 150416, nTrgMulti = 13426, MnTrgMultiHits = 2.20527
+nSrc121 = 83352, nSrcLost =     0, nSrcMulti = 37388, MnSrcMultiHits = 2.58564
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/106.53.mgh
+
+
+
+---------------------------------------------------
+#@# 54/80 106/xhemi Thu Jan 12 01:39:06 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 106/xhemi --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/106.xhemi.54.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/106/xhemi/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 106/xhemi
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/106/xhemi/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/106.xhemi.54.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/106/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/106/xhemi/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (121704)
+Reverse Loop had 16829 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 149947, nTrgMulti = 13895, MnTrgMultiHits = 2.21116
+nSrc121 = 84161, nSrcLost =     0, nSrcMulti = 37543, MnSrcMultiHits = 2.57065
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/106.xhemi.54.mgh
+
+
+
+---------------------------------------------------
+#@# 55/80 108 Thu Jan 12 01:39:14 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 108 --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/108.55.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/108/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 108
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/108/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/108.55.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/108/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/108/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (140510)
+Reverse Loop had 26074 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 143110, nTrgMulti = 20732, MnTrgMultiHits = 2.25767
+nSrc121 = 108193, nSrcLost =     0, nSrcMulti = 32317, MnSrcMultiHits = 2.52879
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/108.55.mgh
+
+
+
+---------------------------------------------------
+#@# 56/80 108/xhemi Thu Jan 12 01:39:22 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 108/xhemi --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/108.xhemi.56.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/108/xhemi/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 108/xhemi
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/108/xhemi/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/108.xhemi.56.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/108/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/108/xhemi/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (140669)
+Reverse Loop had 26722 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 142607, nTrgMulti = 21235, MnTrgMultiHits = 2.25839
+nSrc121 = 108206, nSrcLost =     0, nSrcMulti = 32463, MnSrcMultiHits = 2.53698
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/108.xhemi.56.mgh
+
+
+
+---------------------------------------------------
+#@# 57/80 111 Thu Jan 12 01:39:30 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 111 --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/111.57.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/111/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 111
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/111/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/111.57.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/111/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/111/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (134088)
+Reverse Loop had 22119 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 146160, nTrgMulti = 17682, MnTrgMultiHits = 2.25093
+nSrc121 = 98984, nSrcLost =     0, nSrcMulti = 35104, MnSrcMultiHits = 2.47769
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/111.57.mgh
+
+
+
+---------------------------------------------------
+#@# 58/80 111/xhemi Thu Jan 12 01:39:38 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 111/xhemi --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/111.xhemi.58.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/111/xhemi/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 111/xhemi
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/111/xhemi/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/111.xhemi.58.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/111/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/111/xhemi/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (134704)
+Reverse Loop had 23480 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 145092, nTrgMulti = 18750, MnTrgMultiHits = 2.25227
+nSrc121 = 100135, nSrcLost =     0, nSrcMulti = 34569, MnSrcMultiHits = 2.52212
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/111.xhemi.58.mgh
+
+
+
+---------------------------------------------------
+#@# 59/80 114 Thu Jan 12 01:39:45 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 114 --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/114.59.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/114/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 114
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/114/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/114.59.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/114/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/114/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (110986)
+Reverse Loop had 13458 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 153578, nTrgMulti = 10264, MnTrgMultiHits = 2.31118
+nSrc121 = 68609, nSrcLost =     0, nSrcMulti = 42377, MnSrcMultiHits = 2.56486
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/114.59.mgh
+
+
+
+---------------------------------------------------
+#@# 60/80 114/xhemi Thu Jan 12 01:39:53 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 114/xhemi --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/114.xhemi.60.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/114/xhemi/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 114/xhemi
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/114/xhemi/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/114.xhemi.60.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/114/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/114/xhemi/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (111410)
+Reverse Loop had 16016 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 152243, nTrgMulti = 11599, MnTrgMultiHits = 2.38081
+nSrc121 = 69374, nSrcLost =     0, nSrcMulti = 42036, MnSrcMultiHits = 2.62832
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/114.xhemi.60.mgh
+
+
+
+---------------------------------------------------
+#@# 61/80 124 Thu Jan 12 01:40:00 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 124 --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/124.61.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/124/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 124
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/124/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/124.61.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/124/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/124/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (108403)
+Reverse Loop had 11657 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 154140, nTrgMulti =  9702, MnTrgMultiHits = 2.2015
+nSrc121 = 66219, nSrcLost =     0, nSrcMulti = 42184, MnSrcMultiHits = 2.59056
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/124.61.mgh
+
+
+
+---------------------------------------------------
+#@# 62/80 124/xhemi Thu Jan 12 01:40:07 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 124/xhemi --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/124.xhemi.62.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/124/xhemi/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 124/xhemi
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/124/xhemi/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/124.xhemi.62.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/124/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/124/xhemi/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (108064)
+Reverse Loop had 11168 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 154643, nTrgMulti =  9199, MnTrgMultiHits = 2.21405
+nSrc121 = 64746, nSrcLost =     0, nSrcMulti = 43318, MnSrcMultiHits = 2.54545
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/124.xhemi.62.mgh
+
+
+
+---------------------------------------------------
+#@# 63/80 128 Thu Jan 12 01:40:13 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 128 --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/128.63.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/128/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 128
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/128/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/128.63.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/128/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/128/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (111279)
+Reverse Loop had 13661 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 153156, nTrgMulti = 10686, MnTrgMultiHits = 2.2784
+nSrc121 = 69681, nSrcLost =     0, nSrcMulti = 41598, MnSrcMultiHits = 2.592
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/128.63.mgh
+
+
+
+---------------------------------------------------
+#@# 64/80 128/xhemi Thu Jan 12 01:40:20 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 128/xhemi --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/128.xhemi.64.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/128/xhemi/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 128/xhemi
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/128/xhemi/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/128.xhemi.64.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/128/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/128/xhemi/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (116793)
+Reverse Loop had 15839 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 151599, nTrgMulti = 12243, MnTrgMultiHits = 2.29372
+nSrc121 = 77051, nSrcLost =     0, nSrcMulti = 39742, MnSrcMultiHits = 2.58241
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/128.xhemi.64.mgh
+
+
+
+---------------------------------------------------
+#@# 65/80 129 Thu Jan 12 01:40:27 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 129 --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/129.65.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/129/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 129
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/129/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/129.65.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/129/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/129/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (114729)
+Reverse Loop had 14486 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 152330, nTrgMulti = 11512, MnTrgMultiHits = 2.25834
+nSrc121 = 73738, nSrcLost =     0, nSrcMulti = 40991, MnSrcMultiHits = 2.55154
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/129.65.mgh
+
+
+
+---------------------------------------------------
+#@# 66/80 129/xhemi Thu Jan 12 01:40:34 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 129/xhemi --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/129.xhemi.66.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/129/xhemi/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 129/xhemi
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/129/xhemi/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/129.xhemi.66.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/129/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/129/xhemi/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (113842)
+Reverse Loop had 14767 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 152000, nTrgMulti = 11842, MnTrgMultiHits = 2.247
+nSrc121 = 74100, nSrcLost =     0, nSrcMulti = 39742, MnSrcMultiHits = 2.62969
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/129.xhemi.66.mgh
+
+
+
+---------------------------------------------------
+#@# 67/80 130 Thu Jan 12 01:40:42 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 130 --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/130.67.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/130/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 130
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/130/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/130.67.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/130/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/130/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (130029)
+Reverse Loop had 19896 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 147729, nTrgMulti = 16113, MnTrgMultiHits = 2.23478
+nSrc121 = 93883, nSrcLost =     0, nSrcMulti = 36146, MnSrcMultiHits = 2.48589
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/130.67.mgh
+
+
+
+---------------------------------------------------
+#@# 68/80 130/xhemi Thu Jan 12 01:40:50 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 130/xhemi --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/130.xhemi.68.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/130/xhemi/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 130/xhemi
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/130/xhemi/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/130.xhemi.68.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/130/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/130/xhemi/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (128421)
+Reverse Loop had 18848 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 148263, nTrgMulti = 15579, MnTrgMultiHits = 2.20983
+nSrc121 = 91688, nSrcLost =     0, nSrcMulti = 36733, MnSrcMultiHits = 2.47739
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/130.xhemi.68.mgh
+
+
+
+---------------------------------------------------
+#@# 69/80 131 Thu Jan 12 01:40:57 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 131 --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/131.69.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/131/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 131
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/131/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/131.69.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/131/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/131/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (109331)
+Reverse Loop had 11928 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 154264, nTrgMulti =  9578, MnTrgMultiHits = 2.24535
+nSrc121 = 66679, nSrcLost =     0, nSrcMulti = 42652, MnSrcMultiHits = 2.5577
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/131.69.mgh
+
+
+
+---------------------------------------------------
+#@# 70/80 131/xhemi Thu Jan 12 01:41:04 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 131/xhemi --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/131.xhemi.70.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/131/xhemi/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 131/xhemi
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/131/xhemi/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/131.xhemi.70.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/131/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/131/xhemi/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (107844)
+Reverse Loop had 11540 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 154511, nTrgMulti =  9331, MnTrgMultiHits = 2.23674
+nSrc121 = 65504, nSrcLost =     0, nSrcMulti = 42340, MnSrcMultiHits = 2.59513
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/131.xhemi.70.mgh
+
+
+
+---------------------------------------------------
+#@# 71/80 133 Thu Jan 12 01:41:11 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 133 --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/133.71.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/133/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 133
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/133/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/133.71.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/133/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/133/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (118342)
+Reverse Loop had 15344 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 151583, nTrgMulti = 12259, MnTrgMultiHits = 2.25165
+nSrc121 = 77780, nSrcLost =     0, nSrcMulti = 40562, MnSrcMultiHits = 2.50002
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/133.71.mgh
+
+
+
+---------------------------------------------------
+#@# 72/80 133/xhemi Thu Jan 12 01:41:19 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 133/xhemi --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/133.xhemi.72.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/133/xhemi/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 133/xhemi
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/133/xhemi/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/133.xhemi.72.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/133/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/133/xhemi/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (121864)
+Reverse Loop had 17697 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 149979, nTrgMulti = 13863, MnTrgMultiHits = 2.27656
+nSrc121 = 82683, nSrcLost =     0, nSrcMulti = 39181, MnSrcMultiHits = 2.52306
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/133.xhemi.72.mgh
+
+
+
+---------------------------------------------------
+#@# 73/80 136 Thu Jan 12 01:41:26 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 136 --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/136.73.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/136/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 136
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/136/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/136.73.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/136/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/136/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (107222)
+Reverse Loop had 11564 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 154615, nTrgMulti =  9227, MnTrgMultiHits = 2.25328
+nSrc121 = 63825, nSrcLost =     0, nSrcMulti = 43397, MnSrcMultiHits = 2.57117
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/136.73.mgh
+
+
+
+---------------------------------------------------
+#@# 74/80 136/xhemi Thu Jan 12 01:41:33 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 136/xhemi --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/136.xhemi.74.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/136/xhemi/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 136/xhemi
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/136/xhemi/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/136.xhemi.74.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/136/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/136/xhemi/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (108327)
+Reverse Loop had 12314 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 154182, nTrgMulti =  9660, MnTrgMultiHits = 2.27474
+nSrc121 = 65277, nSrcLost =     0, nSrcMulti = 43050, MnSrcMultiHits = 2.57559
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/136.xhemi.74.mgh
+
+
+
+---------------------------------------------------
+#@# 75/80 138 Thu Jan 12 01:41:40 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 138 --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/138.75.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/138/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 138
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/138/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/138.75.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/138/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/138/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (119936)
+Reverse Loop had 15930 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 150884, nTrgMulti = 12958, MnTrgMultiHits = 2.22936
+nSrc121 = 80788, nSrcLost =     0, nSrcMulti = 39148, MnSrcMultiHits = 2.52846
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/138.75.mgh
+
+
+
+---------------------------------------------------
+#@# 76/80 138/xhemi Thu Jan 12 01:41:48 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 138/xhemi --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/138.xhemi.76.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/138/xhemi/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 138/xhemi
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/138/xhemi/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/138.xhemi.76.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/138/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/138/xhemi/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (117006)
+Reverse Loop had 14532 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 151981, nTrgMulti = 11861, MnTrgMultiHits = 2.22519
+nSrc121 = 77403, nSrcLost =     0, nSrcMulti = 39603, MnSrcMultiHits = 2.54958
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/138.xhemi.76.mgh
+
+
+
+---------------------------------------------------
+#@# 77/80 141 Thu Jan 12 01:41:55 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 141 --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/141.77.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/141/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 141
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/141/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/141.77.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/141/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/141/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (126254)
+Reverse Loop had 18116 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 149140, nTrgMulti = 14702, MnTrgMultiHits = 2.23221
+nSrc121 = 89267, nSrcLost =     0, nSrcMulti = 36987, MnSrcMultiHits = 2.50604
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/141.77.mgh
+
+
+
+---------------------------------------------------
+#@# 78/80 141/xhemi Thu Jan 12 01:42:02 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 141/xhemi --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/141.xhemi.78.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/141/xhemi/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 141/xhemi
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/141/xhemi/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/141.xhemi.78.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/141/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/141/xhemi/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (124958)
+Reverse Loop had 18457 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 148794, nTrgMulti = 15048, MnTrgMultiHits = 2.22654
+nSrc121 = 88319, nSrcLost =     0, nSrcMulti = 36639, MnSrcMultiHits = 2.56503
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/141.xhemi.78.mgh
+
+
+
+---------------------------------------------------
+#@# 79/80 149 Thu Jan 12 01:42:10 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 149 --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/149.79.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/149/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 149
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/149/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/149.79.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/149/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/149/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (107587)
+Reverse Loop had 12004 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 154474, nTrgMulti =  9368, MnTrgMultiHits = 2.28138
+nSrc121 = 64437, nSrcLost =     0, nSrcMulti = 43150, MnSrcMultiHits = 2.5819
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/149.79.mgh
+
+
+
+---------------------------------------------------
+#@# 80/80 149/xhemi Thu Jan 12 01:42:17 EST 2012 --------------
+-----------------------
+mri_surf2surf --srcsubject 149/xhemi --srchemi lh --srcsurfreg ni.sym.b40.i29.sphere.reg --trgsubject ni.sym.b40.i30 --trghemi lh --trgsurfreg sphere.reg --tval /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/149.xhemi.80.mgh --sval /cluster/con/9/users/greve/fsaverage_sym-data/149/xhemi/surf/lh.inflated.H --sfmt curv --noreshape --no-cortex
+Source registration surface changed to ni.sym.b40.i29.sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 149/xhemi
+srcval     = /cluster/con/9/users/greve/fsaverage_sym-data/149/xhemi/surf/lh.inflated.H
+srctype    = curv
+trgsubject = ni.sym.b40.i30
+trgval     = /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/149.xhemi.80.mgh
+trgtype    = 
+srcsurfreg = ni.sym.b40.i29.sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /cluster/con/9/users/greve/fsaverage_sym-data/149/xhemi/surf/lh.ni.sym.b40.i29.sphere.reg
+Loading source data
+Reading curvature file /cluster/con/9/users/greve/fsaverage_sym-data/149/xhemi/surf/lh.inflated.H
+Reading target surface reg /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.sphere.reg
+Done
+Using surf2surf_nnfr()
+Mapping Source Volume onto Source Subject Surface
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: Forward Loop (163842)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (106877)
+Reverse Loop had 11144 hits
+Surf2Surf: Dividing by number of hits (163842)
+INFO: nSrcLost = 0
+nTrg121 = 154987, nTrgMulti =  8855, MnTrgMultiHits = 2.2585
+nSrc121 = 63482, nSrcLost =     0, nSrcMulti = 43395, MnSrcMultiHits = 2.56951
+Saving target data
+Saving to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/149.xhemi.80.mgh
+
+
+
+-----------------------
+mri_concat /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/073.1.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/073.xhemi.2.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/080.3.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/080.xhemi.4.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/123.5.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/123.xhemi.6.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/144.7.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/144.xhemi.8.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/102.9.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/102.xhemi.10.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/140.11.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/140.xhemi.12.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/084.13.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/084.xhemi.14.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/145.15.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/145.xhemi.16.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/092.17.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/092.xhemi.18.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/004.19.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/004.xhemi.20.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/008.21.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/008.xhemi.22.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/017.23.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/017.xhemi.24.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/021.25.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/021.xhemi.26.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/032.27.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/032.xhemi.28.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/039.29.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/039.xhemi.30.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/040.31.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/040.xhemi.32.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/045.33.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/045.xhemi.34.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/049.35.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/049.xhemi.36.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/067.37.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/067.xhemi.38.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/074.39.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/074.xhemi.40.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/091.41.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/091.xhemi.42.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/093.43.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/093.xhemi.44.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/095.45.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/095.xhemi.46.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/097.47.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/097.xhemi.48.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/099.49.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/099.xhemi.50.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/103.51.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/103.xhemi.52.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/106.53.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/106.xhemi.54.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/108.55.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/108.xhemi.56.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/111.57.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/111.xhemi.58.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/114.59.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/114.xhemi.60.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/124.61.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/124.xhemi.62.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/128.63.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/128.xhemi.64.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/129.65.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/129.xhemi.66.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/130.67.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/130.xhemi.68.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/131.69.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/131.xhemi.70.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/133.71.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/133.xhemi.72.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/136.73.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/136.xhemi.74.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/138.75.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/138.xhemi.76.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/141.77.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/141.xhemi.78.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/149.79.mgh /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792/149.xhemi.80.mgh --o /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/stack.lh.inflated.H.mgh
+ninputs = 80
+Checking inputs
+nframestot = 80
+Allocing output
+Done allocing
+nframes = 80
+Writing to /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/stack.lh.inflated.H.mgh
+
+
+
+Cleaning up
+-----------------------
+rm -r /cluster/con/9/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/tmp.mris_preproc.9792
+Thu Jan 12 01:42:25 EST 2012
+mris_preproc done

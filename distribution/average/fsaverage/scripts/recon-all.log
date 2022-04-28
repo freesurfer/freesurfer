@@ -1,0 +1,798 @@
+Tue Apr 28 01:24:00 EDT 2009
+/autofs/space/minerva_001/users/nicks/dev/distribution/average/fsaverage
+/space/minerva/1/users/nicks/freesurfer/bin/recon-all
+-s fsaverage -cortparc
+subjid fsaverage
+setenv SUBJECTS_DIR /autofs/space/minerva_001/users/nicks/dev/distribution/average
+FREESURFER_HOME /space/minerva/1/users/nicks/freesurfer
+Actual FREESURFER_HOME /autofs/space/minerva_001/users/nicks/freesurfer
+build-stamp.txt: freesurfer-x86_64-redhat-linux-gnu-dev4-20090216
+Linux minerva 2.6.9-78.0.13.ELsmp #1 SMP Wed Jan 14 15:55:36 EST 2009 x86_64 x86_64 x86_64 GNU/Linux
+cputime      unlimited
+filesize     unlimited
+datasize     unlimited
+stacksize    10240 kbytes
+coredumpsize unlimited
+memoryuse    unlimited
+vmemoryuse   unlimited
+descriptors  1024 
+memorylocked 32 kbytes
+maxproc      65536 
+
+             total       used       free     shared    buffers     cached
+Mem:       7403128    6807536     595592          0     133040    6185568
+Swap:     16386292        224   16386068
+
+########################################
+program versions used
+$Id: recon-all,v 1.201 2009/04/22 22:24:48 nicks Exp $
+$Id: mri_motion_correct.fsl,v 1.8 2008/02/29 20:14:51 nicks Exp $
+mri_convert -all-info 
+ProgramName: mri_convert  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2009/04/28-05:24:00-GMT  BuildTimeStamp: Jan 14 2009 16:52:12  CVS: $Id: mri_convert.c,v 1.156 2009/01/28 20:04:23 fischl Exp $  User: nicks  Machine: minerva  Platform: Linux  PlatformVersion: 2.6.9-78.0.13.ELsmp  CompilerName: GCC  CompilerVersion: 30400 
+FLIRT version 5.4.2b
+$Id: talairach_avi,v 1.4 2007/05/29 23:24:27 nicks Exp $
+mri_convert --version 
+dev build (use --all-info flag for full version info)
+ProgramName: tkregister2_cmdl  ProgramArguments: --all-info  ProgramVersion: $Name:  $  TimeStamp: 2009/04/28-05:24:00-GMT  BuildTimeStamp: Jan 14 2009 16:52:12  CVS: $Id: tkregister2.c,v 1.104 2009/02/13 21:36:16 greve Exp $  User: nicks  Machine: minerva  Platform: Linux  PlatformVersion: 2.6.9-78.0.13.ELsmp  CompilerName: GCC  CompilerVersion: 30400 
+Program nu_correct, built from:
+Package MNI N3, version 1.10, compiled by nicks@minerva (x86_64-unknown-linux-gnu) on 2005-11-15 at 20:37:35
+ProgramName: mri_normalize  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2009/04/28-05:24:01-GMT  BuildTimeStamp: Jan 14 2009 16:52:12  CVS: $Id: mri_normalize.c,v 1.56 2008/12/06 18:22:09 fischl Exp $  User: nicks  Machine: minerva  Platform: Linux  PlatformVersion: 2.6.9-78.0.13.ELsmp  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mri_watershed  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2009/04/28-05:24:01-GMT  BuildTimeStamp: Jan 14 2009 16:52:12  CVS: $Id: mri_watershed.cpp,v 1.72 2007/11/18 22:40:49 nicks Exp $  User: nicks  Machine: minerva  Platform: Linux  PlatformVersion: 2.6.9-78.0.13.ELsmp  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mri_segment  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2009/04/28-05:24:02-GMT  BuildTimeStamp: Jan 14 2009 16:52:12  CVS: $Id: mri_segment.c,v 1.35 2007/11/21 04:38:06 nicks Exp $  User: nicks  Machine: minerva  Platform: Linux  PlatformVersion: 2.6.9-78.0.13.ELsmp  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mri_label2label  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2009/04/28-05:24:02-GMT  BuildTimeStamp: Jan 14 2009 16:52:12  CVS: $Id: mri_label2label.c,v 1.37 2008/12/01 20:02:01 greve Exp $  User: nicks  Machine: minerva  Platform: Linux  PlatformVersion: 2.6.9-78.0.13.ELsmp  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mri_em_register  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2009/04/28-05:24:02-GMT  BuildTimeStamp: Jan 14 2009 16:52:12  CVS: $Id: mri_em_register.c,v 1.63 2009/02/05 15:22:59 fischl Exp $  User: nicks  Machine: minerva  Platform: Linux  PlatformVersion: 2.6.9-78.0.13.ELsmp  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mri_ca_normalize  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2009/04/28-05:24:03-GMT  BuildTimeStamp: Jan 14 2009 16:52:12  CVS: $Id: mri_ca_normalize.c,v 1.43 2008/12/11 22:01:41 fischl Exp $  User: nicks  Machine: minerva  Platform: Linux  PlatformVersion: 2.6.9-78.0.13.ELsmp  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mri_ca_register  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2009/04/28-05:24:03-GMT  BuildTimeStamp: Jan 14 2009 16:52:12  CVS: $Id: mri_ca_register.c,v 1.65 2008/03/01 22:43:16 fischl Exp $  User: nicks  Machine: minerva  Platform: Linux  PlatformVersion: 2.6.9-78.0.13.ELsmp  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mri_ca_label  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2009/04/28-05:24:03-GMT  BuildTimeStamp: Jan 14 2009 16:52:12  CVS: $Id: mri_ca_label.c,v 1.87 2008/08/08 16:04:08 fischl Exp $  User: nicks  Machine: minerva  Platform: Linux  PlatformVersion: 2.6.9-78.0.13.ELsmp  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mri_pretess  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2009/04/28-05:24:04-GMT  BuildTimeStamp: Jan 14 2009 16:52:12  CVS: $Id: mri_pretess.c,v 1.16 2007/01/18 20:23:47 nicks Exp $  User: nicks  Machine: minerva  Platform: Linux  PlatformVersion: 2.6.9-78.0.13.ELsmp  CompilerName: GCC  CompilerVersion: 30400 
+unknown option -ALL-INFO
+ProgramName: mri_fill  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2009/04/28-05:24:04-GMT  BuildTimeStamp: Jan 14 2009 16:52:12  CVS: $Id: mri_fill.c,v 1.111 2007/07/19 20:16:38 fischl Exp $  User: nicks  Machine: minerva  Platform: Linux  PlatformVersion: 2.6.9-78.0.13.ELsmp  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mri_tessellate  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2009/04/28-05:24:05-GMT  BuildTimeStamp: Jan 14 2009 16:52:12  CVS: $Id: mri_tessellate.c,v 1.32 2007/04/26 21:44:21 fischl Exp $  User: nicks  Machine: minerva  Platform: Linux  PlatformVersion: 2.6.9-78.0.13.ELsmp  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mri_concatenate_lta  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2009/04/28-05:24:05-GMT  BuildTimeStamp: Jan 14 2009 16:52:12  CVS: $Id: mri_concatenate_lta.c,v 1.3 2007/05/17 19:56:59 nicks Exp $  User: nicks  Machine: minerva  Platform: Linux  PlatformVersion: 2.6.9-78.0.13.ELsmp  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mri_normalize_tp2  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2009/04/28-05:24:05-GMT  BuildTimeStamp: Jan 14 2009 16:52:12  CVS: $Id: mri_normalize_tp2.c,v 1.6 2007/01/08 18:10:12 nicks Exp $  User: nicks  Machine: minerva  Platform: Linux  PlatformVersion: 2.6.9-78.0.13.ELsmp  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mris_smooth  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2009/04/28-05:24:06-GMT  BuildTimeStamp: Jan 14 2009 16:52:12  CVS: $Id: mris_smooth.c,v 1.23 2007/11/23 20:39:13 nicks Exp $  User: nicks  Machine: minerva  Platform: Linux  PlatformVersion: 2.6.9-78.0.13.ELsmp  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mris_inflate  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2009/04/28-05:24:06-GMT  BuildTimeStamp: Jan 14 2009 16:52:12  CVS: $Id: mris_inflate.c,v 1.38 2008/04/22 19:45:50 nicks Exp $  User: nicks  Machine: minerva  Platform: Linux  PlatformVersion: 2.6.9-78.0.13.ELsmp  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mris_curvature  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2009/04/28-05:24:06-GMT  BuildTimeStamp: Jan 14 2009 16:52:12  CVS: $Id: mris_curvature.c,v 1.28 2008/11/13 18:49:41 fischl Exp $  User: nicks  Machine: minerva  Platform: Linux  PlatformVersion: 2.6.9-78.0.13.ELsmp  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mris_sphere  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2009/04/28-05:24:07-GMT  BuildTimeStamp: Jan 14 2009 16:52:12  CVS: $Id: mris_sphere.c,v 1.48 2008/03/01 01:45:18 fischl Exp $  User: nicks  Machine: minerva  Platform: Linux  PlatformVersion: 2.6.9-78.0.13.ELsmp  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mris_fix_topology  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2009/04/28-05:24:07-GMT  BuildTimeStamp: Jan 14 2009 16:52:12  CVS: $Id: mris_fix_topology.c,v 1.43 2007/01/05 16:57:16 nicks Exp $  User: nicks  Machine: minerva  Platform: Linux  PlatformVersion: 2.6.9-78.0.13.ELsmp  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mris_topo_fixer  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2009/04/28-05:24:08-GMT  BuildTimeStamp: Jan 14 2009 16:52:12  CVS: $Id: mris_topo_fixer.cpp,v 1.28 2007/11/27 18:37:19 nicks Exp $  User: nicks  Machine: minerva  Platform: Linux  PlatformVersion: 2.6.9-78.0.13.ELsmp  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mris_ca_label  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2009/04/28-05:24:08-GMT  BuildTimeStamp: Jan 14 2009 16:52:12  CVS: $Id: mris_ca_label.c,v 1.23 2007/03/23 20:00:07 fischl Exp $  User: nicks  Machine: minerva  Platform: Linux  PlatformVersion: 2.6.9-78.0.13.ELsmp  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mris_euler_number  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2009/04/28-05:24:08-GMT  BuildTimeStamp: Jan 14 2009 16:52:12  CVS: $Id: mris_euler_number.c,v 1.5 2006/12/29 02:09:10 nicks Exp $  User: nicks  Machine: minerva  Platform: Linux  PlatformVersion: 2.6.9-78.0.13.ELsmp  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mris_make_surfaces  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2009/04/28-05:24:09-GMT  BuildTimeStamp: Jan 14 2009 16:52:12  CVS: $Id: mris_make_surfaces.c,v 1.109 2009/02/05 13:46:04 fischl Exp $  User: nicks  Machine: minerva  Platform: Linux  PlatformVersion: 2.6.9-78.0.13.ELsmp  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mris_register  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2009/04/28-05:24:09-GMT  BuildTimeStamp: Jan 14 2009 16:52:12  CVS: $Id: mris_register.c,v 1.53 2008/07/30 16:44:17 fischl Exp $  User: nicks  Machine: minerva  Platform: Linux  PlatformVersion: 2.6.9-78.0.13.ELsmp  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mris_anatomical_stats  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2009/04/28-05:24:09-GMT  BuildTimeStamp: Jan 14 2009 16:52:12  CVS: $Id: mris_anatomical_stats.c,v 1.59 2009/01/15 01:36:06 greve Exp $  User: nicks  Machine: minerva  Platform: Linux  PlatformVersion: 2.6.9-78.0.13.ELsmp  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mrisp_paint  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2009/04/28-05:24:09-GMT  BuildTimeStamp: Jan 14 2009 16:52:12  CVS: $Id: mrisp_paint.c,v 1.8 2007/02/13 16:57:23 fischl Exp $  User: nicks  Machine: minerva  Platform: Linux  PlatformVersion: 2.6.9-78.0.13.ELsmp  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mris_curvature_stats  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2009/04/28-05:24:10-GMT  BuildTimeStamp: Jan 14 2009 16:52:12  CVS: $Id: mris_curvature_stats.c,v 1.57 2009/02/04 20:58:28 nicks Exp $  User: nicks  Machine: minerva  Platform: Linux  PlatformVersion: 2.6.9-78.0.13.ELsmp  CompilerName: GCC  CompilerVersion: 30400 
+#######################################
+GCA RB_all_2008-03-26.gca
+GCASkull RB_all_withskull_2008-03-26.gca
+AvgCurvTif average.curvature.filled.buckner40.tif
+GCS curvature.buckner40.filled.desikan_killiany.2009-03-04.gcs
+#######################################
+#-----------------------------------------
+#@# Cortical Parc lh Tue Apr 28 01:24:10 EDT 2009
+/autofs/space/minerva_001/users/nicks/dev/distribution/average/fsaverage/scripts
+
+ mris_ca_label -aseg ../mri/aseg.mgz fsaverage lh ../surf/lh.sphere.reg /space/minerva/1/users/nicks/freesurfer/average/lh.curvature.buckner40.filled.desikan_killiany.2009-03-04.gcs ../label/lh.aparc.annot 
+
+using ../mri/aseg.mgz aseg volume to correct midline
+$Id: mris_ca_label.c,v 1.23 2007/03/23 20:00:07 fischl Exp $
+  $Id: mrisurf.c,v 1.625 2009/02/05 13:45:01 fischl Exp $
+reading group avg surface area 822 cm^2 from file
+reading atlas from /space/minerva/1/users/nicks/freesurfer/average/lh.curvature.buckner40.filled.desikan_killiany.2009-03-04.gcs...
+reading color table from GCSA file....
+average std = 1.0   using min determinant for regularization = 0.011
+0 singular and 384 ill-conditioned covariance matrices regularized
+input 0: MEAN CURVATURE, flags 0, avgs 5, name mean_curvature
+labeling surface...
+1957 labels changed using aseg
+relabeling using gibbs priors...
+000:   3583 changed, 163842 examined...
+001:    843 changed, 15213 examined...
+002:    227 changed, 4631 examined...
+003:     63 changed, 1368 examined...
+004:     36 changed, 408 examined...
+005:     15 changed, 227 examined...
+006:      8 changed, 93 examined...
+007:      5 changed, 48 examined...
+008:      3 changed, 29 examined...
+009:      2 changed, 17 examined...
+010:      2 changed, 14 examined...
+011:      3 changed, 10 examined...
+012:      1 changed, 13 examined...
+013:      0 changed, 7 examined...
+353 labels changed using aseg
+000: 81 total segments, 45 labels (274 vertices) changed
+001: 37 total segments, 1 labels (1 vertices) changed
+002: 36 total segments, 0 labels (0 vertices) changed
+10 filter iterations complete (10 requested, 2 changed)
+writing output to ../label/lh.aparc.annot...
+writing colortable into annotation file...
+classification took 0 minutes and 53 seconds.
+#-----------------------------------------
+#@# Cortical Parc rh Tue Apr 28 01:25:03 EDT 2009
+/autofs/space/minerva_001/users/nicks/dev/distribution/average/fsaverage/scripts
+
+ mris_ca_label -aseg ../mri/aseg.mgz fsaverage rh ../surf/rh.sphere.reg /space/minerva/1/users/nicks/freesurfer/average/rh.curvature.buckner40.filled.desikan_killiany.2009-03-04.gcs ../label/rh.aparc.annot 
+
+using ../mri/aseg.mgz aseg volume to correct midline
+$Id: mris_ca_label.c,v 1.23 2007/03/23 20:00:07 fischl Exp $
+  $Id: mrisurf.c,v 1.625 2009/02/05 13:45:01 fischl Exp $
+reading group avg surface area 822 cm^2 from file
+reading atlas from /space/minerva/1/users/nicks/freesurfer/average/rh.curvature.buckner40.filled.desikan_killiany.2009-03-04.gcs...
+reading color table from GCSA file....
+average std = 0.7   using min determinant for regularization = 0.006
+0 singular and 311 ill-conditioned covariance matrices regularized
+input 0: MEAN CURVATURE, flags 0, avgs 5, name mean_curvature
+labeling surface...
+1704 labels changed using aseg
+relabeling using gibbs priors...
+000:   3393 changed, 163842 examined...
+001:    770 changed, 14537 examined...
+002:    189 changed, 4423 examined...
+003:     81 changed, 1161 examined...
+004:     34 changed, 507 examined...
+005:     14 changed, 217 examined...
+006:      5 changed, 80 examined...
+007:      1 changed, 30 examined...
+008:      1 changed, 7 examined...
+009:      0 changed, 7 examined...
+252 labels changed using aseg
+000: 90 total segments, 54 labels (309 vertices) changed
+001: 37 total segments, 1 labels (2 vertices) changed
+002: 36 total segments, 0 labels (0 vertices) changed
+10 filter iterations complete (10 requested, 5 changed)
+writing output to ../label/rh.aparc.annot...
+writing colortable into annotation file...
+classification took 0 minutes and 55 seconds.
+
+#------------------------------------------
+
+recon-all finished without error at Tue Apr 28 01:25:58 EDT 2009
+
+
+
+New invocation of recon-all 
+
+
+
+Fri Jan 15 15:27:24 EST 2010
+/autofs/space/tinia_001/users/nicks/subjects/fsaverage
+/autofs/space/terrier_001/users/nicks/freesurfer/bin/recon-all
+-s fsaverage -aparc2aseg -wmparc
+subjid fsaverage
+setenv SUBJECTS_DIR /autofs/space/tinia_001/users/nicks/subjects
+FREESURFER_HOME /autofs/space/terrier_001/users/nicks/freesurfer
+Actual FREESURFER_HOME /autofs/space/terrier_001/users/nicks/freesurfer
+build-stamp.txt: freesurfer-x86_64-redhat-linux-gnu-dev4-20100112
+Linux terrier 2.6.18-164.el5 #1 SMP Thu Sep 3 03:28:30 EDT 2009 x86_64 x86_64 x86_64 GNU/Linux
+cputime      unlimited
+filesize     unlimited
+datasize     unlimited
+stacksize    10240 kbytes
+coredumpsize unlimited
+memoryuse    unlimited
+vmemoryuse   unlimited
+descriptors  1024 
+memorylocked 32 kbytes
+maxproc      201728 
+
+             total       used       free     shared    buffers     cached
+Mem:      24688644   24564792     123852          0     346540   22936336
+-/+ buffers/cache:    1281916   23406728
+Swap:      8393920        284    8393636
+
+########################################
+program versions used
+$Id: recon-all,v 1.261 2010/01/12 20:14:27 nicks Exp $
+$Id: mri_motion_correct.fsl,v 1.9 2009/10/01 17:57:09 mreuter Exp $
+mri_convert -all-info 
+ProgramName: mri_convert  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2010/01/15-20:27:24-GMT  BuildTimeStamp: Jan 12 2010 17:35:29  CVS: $Id: mri_convert.c,v 1.164 2009/10/19 20:54:57 greve Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-164.el5  CompilerName: GCC  CompilerVersion: 40400 
+FLIRT version 5.5
+$Id: talairach_avi,v 1.6 2009/06/24 22:02:02 nicks Exp $
+mri_convert --version 
+dev build (use --all-info flag for full version info)
+ProgramName: tkregister2_cmdl  ProgramArguments: --all-info  ProgramVersion: $Name:  $  TimeStamp: 2010/01/15-20:27:24-GMT  BuildTimeStamp: Jan 12 2010 17:35:29  CVS: $Id: tkregister2.c,v 1.113 2010/01/04 18:44:42 fischl Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-164.el5  CompilerName: GCC  CompilerVersion: 40400 
+Program nu_correct, built from:
+Package MNI N3, version 1.10, compiled by nicks@minerva (x86_64-unknown-linux-gnu) on 2005-11-15 at 20:37:35
+ProgramName: mri_normalize  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2010/01/15-20:27:25-GMT  BuildTimeStamp: Jan 12 2010 17:35:29  CVS: $Id: mri_normalize.c,v 1.65 2010/01/11 17:15:27 fischl Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-164.el5  CompilerName: GCC  CompilerVersion: 40400 
+ProgramName: mri_watershed  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2010/01/15-20:27:25-GMT  BuildTimeStamp: Jan 12 2010 17:35:29  CVS: $Id: mri_watershed.cpp,v 1.77 2009/09/30 20:49:06 nicks Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-164.el5  CompilerName: GCC  CompilerVersion: 40400 
+ProgramName: mri_gcut  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2010/01/15-20:27:25-GMT  BuildTimeStamp: Jan 12 2010 17:35:29  CVS: $Id: mri_gcut.cpp,v 1.4 2009/09/14 18:31:27 nicks Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-164.el5  CompilerName: GCC  CompilerVersion: 40400 
+ProgramName: mri_segment  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2010/01/15-20:27:25-GMT  BuildTimeStamp: Jan 12 2010 17:35:29  CVS: $Id: mri_segment.c,v 1.35 2007/11/21 04:38:06 nicks Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-164.el5  CompilerName: GCC  CompilerVersion: 40400 
+ProgramName: mri_label2label  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2010/01/15-20:27:26-GMT  BuildTimeStamp: Jan 12 2010 17:35:29  CVS: $Id: mri_label2label.c,v 1.38 2009/11/13 18:42:10 greve Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-164.el5  CompilerName: GCC  CompilerVersion: 40400 
+ProgramName: mri_em_register  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2010/01/15-20:27:26-GMT  BuildTimeStamp: Jan 12 2010 17:35:29  CVS: $Id: mri_em_register.c,v 1.64 2010/01/05 19:22:59 nicks Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-164.el5  CompilerName: GCC  CompilerVersion: 40400 
+ProgramName: mri_ca_normalize  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2010/01/15-20:27:26-GMT  BuildTimeStamp: Jan 12 2010 17:35:29  CVS: $Id: mri_ca_normalize.c,v 1.47 2009/07/24 19:51:58 fischl Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-164.el5  CompilerName: GCC  CompilerVersion: 40400 
+ProgramName: mri_ca_register  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2010/01/15-20:27:27-GMT  BuildTimeStamp: Jan 12 2010 17:35:29  CVS: $Id: mri_ca_register.c,v 1.69 2010/01/05 18:32:47 rge21 Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-164.el5  CompilerName: GCC  CompilerVersion: 40400 
+ProgramName: mri_ca_label  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2010/01/15-20:27:27-GMT  BuildTimeStamp: Jan 12 2010 17:35:29  CVS: $Id: mri_ca_label.c,v 1.92 2009/11/19 18:04:13 fischl Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-164.el5  CompilerName: GCC  CompilerVersion: 40400 
+ProgramName: mri_pretess  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2010/01/15-20:27:27-GMT  BuildTimeStamp: Jan 12 2010 17:35:29  CVS: $Id: mri_pretess.c,v 1.16 2007/01/18 20:23:47 nicks Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-164.el5  CompilerName: GCC  CompilerVersion: 40400 
+unknown option -ALL-INFO
+ProgramName: mri_fill  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2010/01/15-20:27:27-GMT  BuildTimeStamp: Jan 12 2010 17:35:29  CVS: $Id: mri_fill.c,v 1.113 2009/11/19 19:07:00 fischl Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-164.el5  CompilerName: GCC  CompilerVersion: 40400 
+ProgramName: mri_tessellate  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2010/01/15-20:27:28-GMT  BuildTimeStamp: Jan 12 2010 17:35:29  CVS: $Id: mri_tessellate.c,v 1.32 2007/04/26 21:44:21 fischl Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-164.el5  CompilerName: GCC  CompilerVersion: 40400 
+ProgramName: mri_concatenate_lta  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2010/01/15-20:27:28-GMT  BuildTimeStamp: Jan 12 2010 17:35:29  CVS: $Id: mri_concatenate_lta.c,v 1.5 2009/05/06 23:01:36 mreuter Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-164.el5  CompilerName: GCC  CompilerVersion: 40400 
+ProgramName: mri_normalize_tp2  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2010/01/15-20:27:28-GMT  BuildTimeStamp: Jan 12 2010 17:35:29  CVS: $Id: mri_normalize_tp2.c,v 1.6 2007/01/08 18:10:12 nicks Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-164.el5  CompilerName: GCC  CompilerVersion: 40400 
+ProgramName: mris_smooth  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2010/01/15-20:27:28-GMT  BuildTimeStamp: Jan 12 2010 17:35:29  CVS: $Id: mris_smooth.c,v 1.23 2007/11/23 20:39:13 nicks Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-164.el5  CompilerName: GCC  CompilerVersion: 40400 
+ProgramName: mris_inflate  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2010/01/15-20:27:29-GMT  BuildTimeStamp: Jan 12 2010 17:35:29  CVS: $Id: mris_inflate.c,v 1.38 2008/04/22 19:45:50 nicks Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-164.el5  CompilerName: GCC  CompilerVersion: 40400 
+ProgramName: mris_curvature  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2010/01/15-20:27:29-GMT  BuildTimeStamp: Jan 12 2010 17:35:29  CVS: $Id: mris_curvature.c,v 1.28 2008/11/13 18:49:41 fischl Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-164.el5  CompilerName: GCC  CompilerVersion: 40400 
+ProgramName: mris_sphere  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2010/01/15-20:27:29-GMT  BuildTimeStamp: Jan 12 2010 17:35:29  CVS: $Id: mris_sphere.c,v 1.49 2009/11/19 19:04:20 fischl Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-164.el5  CompilerName: GCC  CompilerVersion: 40400 
+ProgramName: mris_fix_topology  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2010/01/15-20:27:29-GMT  BuildTimeStamp: Jan 12 2010 17:35:29  CVS: $Id: mris_fix_topology.c,v 1.43 2007/01/05 16:57:16 nicks Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-164.el5  CompilerName: GCC  CompilerVersion: 40400 
+ProgramName: mris_topo_fixer  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2010/01/15-20:27:30-GMT  BuildTimeStamp: Jan 12 2010 17:35:29  CVS: $Id: mris_topo_fixer.cpp,v 1.28 2007/11/27 18:37:19 nicks Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-164.el5  CompilerName: GCC  CompilerVersion: 40400 
+ProgramName: mris_ca_label  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2010/01/15-20:27:30-GMT  BuildTimeStamp: Jan 12 2010 17:35:29  CVS: $Id: mris_ca_label.c,v 1.23 2007/03/23 20:00:07 fischl Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-164.el5  CompilerName: GCC  CompilerVersion: 40400 
+ProgramName: mris_euler_number  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2010/01/15-20:27:30-GMT  BuildTimeStamp: Jan 12 2010 17:35:29  CVS: $Id: mris_euler_number.c,v 1.5 2006/12/29 02:09:10 nicks Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-164.el5  CompilerName: GCC  CompilerVersion: 40400 
+ProgramName: mris_make_surfaces  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2010/01/15-20:27:30-GMT  BuildTimeStamp: Jan 12 2010 17:35:29  CVS: $Id: mris_make_surfaces.c,v 1.111 2009/11/19 18:35:00 fischl Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-164.el5  CompilerName: GCC  CompilerVersion: 40400 
+ProgramName: mris_register  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2010/01/15-20:27:31-GMT  BuildTimeStamp: Jan 12 2010 17:35:29  CVS: $Id: mris_register.c,v 1.55 2009/11/13 19:21:43 fischl Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-164.el5  CompilerName: GCC  CompilerVersion: 40400 
+ProgramName: mris_anatomical_stats  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2010/01/15-20:27:31-GMT  BuildTimeStamp: Jan 12 2010 17:35:29  CVS: $Id: mris_anatomical_stats.c,v 1.62 2009/10/13 20:56:13 ohinds Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-164.el5  CompilerName: GCC  CompilerVersion: 40400 
+ProgramName: mrisp_paint  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2010/01/15-20:27:31-GMT  BuildTimeStamp: Jan 12 2010 17:35:29  CVS: $Id: mrisp_paint.c,v 1.8 2007/02/13 16:57:23 fischl Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-164.el5  CompilerName: GCC  CompilerVersion: 40400 
+ProgramName: mris_curvature_stats  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2010/01/15-20:27:31-GMT  BuildTimeStamp: Jan 12 2010 17:35:29  CVS: $Id: mris_curvature_stats.c,v 1.59 2009/08/06 16:09:49 rudolph Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-164.el5  CompilerName: GCC  CompilerVersion: 40400 
+$Id: mri_robust_register.cpp,v 1.25 2009/10/13 21:41:36 mreuter Exp $
+ProgramName: mri_robust_register  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2010/01/15-20:27:32-GMT  BuildTimeStamp: Jan 12 2010 17:35:29  CVS: $Id: mri_robust_register.cpp,v 1.25 2009/10/13 21:41:36 mreuter Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-164.el5  CompilerName: GCC  CompilerVersion: 40400 
+$Id: mri_robust_template.cpp,v 1.13 2009/10/13 21:41:36 mreuter Exp $
+ProgramName: mri_robust_template  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2010/01/15-20:27:32-GMT  BuildTimeStamp: Jan 12 2010 17:35:29  CVS: $Id: mri_robust_template.cpp,v 1.13 2009/10/13 21:41:36 mreuter Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-164.el5  CompilerName: GCC  CompilerVersion: 40400 
+ProgramName: mri_and  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2010/01/15-20:27:32-GMT  BuildTimeStamp: Jan 12 2010 17:35:29  CVS: $Id: mri_and.c,v 1.3 2009/06/09 19:32:31 nicks Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-164.el5  CompilerName: GCC  CompilerVersion: 40400 
+ProgramName: mri_or  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2010/01/15-20:27:32-GMT  BuildTimeStamp: Jan 12 2010 17:35:29  CVS: $Id: mri_or.c,v 1.1 2009/06/09 19:32:31 nicks Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-164.el5  CompilerName: GCC  CompilerVersion: 40400 
+ProgramName: mri_fuse_segmentations  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2010/01/15-20:27:33-GMT  BuildTimeStamp: Jan 12 2010 17:35:29  CVS: $Id: mri_fuse_segmentations.c,v 1.6 2009/06/10 18:59:24 fischl Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-164.el5  CompilerName: GCC  CompilerVersion: 40400 
+#######################################
+GCADIR /autofs/space/terrier_001/users/nicks/freesurfer/average
+GCA RB_all_2008-03-26.gca
+GCASkull RB_all_withskull_2008-03-26.gca
+AvgCurvTif average.curvature.filled.buckner40.tif
+GCSDIR /autofs/space/terrier_001/users/nicks/freesurfer/average
+GCS curvature.buckner40.filled.desikan_killiany.2009-03-04.gcs
+#######################################
+INFO: current FREESURFER_HOME does not match that of previous processing.
+    Current: /autofs/space/terrier_001/users/nicks/freesurfer
+    Previous: /space/minerva/1/users/nicks/freesurfer
+#-----------------------------------------
+#@# AParc-to-ASeg Fri Jan 15 15:27:34 EST 2010
+/autofs/space/tinia_001/users/nicks/subjects/fsaverage
+
+ mri_aparc2aseg --s fsaverage --volmask 
+
+Reading in average area /autofs/space/tinia_001/users/nicks/subjects/fsaverage/surf/lh.white.avg.area.mgh
+Reading in average area /autofs/space/tinia_001/users/nicks/subjects/fsaverage/surf/lh.pial.avg.area.mgh
+reading colortable from annotation file...
+colortable with 36 entries read (originally /autofs/space/amaebi_026/users/buckner_cortical_atlas/scripts/colortable_final.txt)
+Reading in average area /autofs/space/tinia_001/users/nicks/subjects/fsaverage/surf/rh.white.avg.area.mgh
+Reading in average area /autofs/space/tinia_001/users/nicks/subjects/fsaverage/surf/rh.pial.avg.area.mgh
+reading colortable from annotation file...
+colortable with 36 entries read (originally /autofs/space/amaebi_026/users/buckner_cortical_atlas/scripts/colortable_final.txt)
+SUBJECTS_DIR /autofs/space/tinia_001/users/nicks/subjects
+subject fsaverage
+outvol /autofs/space/tinia_001/users/nicks/subjects/fsaverage/mri/aparc+aseg.mgz
+useribbon 0
+baseoffset 0
+RipUnknown 0
+
+Reading lh white surface 
+ /autofs/space/tinia_001/users/nicks/subjects/fsaverage/surf/lh.white
+
+Reading lh pial surface 
+ /autofs/space/tinia_001/users/nicks/subjects/fsaverage/surf/lh.pial
+
+Loading lh annotations from /autofs/space/tinia_001/users/nicks/subjects/fsaverage/label/lh.aparc.annot
+
+Reading rh white surface 
+ /autofs/space/tinia_001/users/nicks/subjects/fsaverage/surf/rh.white
+
+Reading rh pial surface 
+ /autofs/space/tinia_001/users/nicks/subjects/fsaverage/surf/rh.pial
+
+Loading rh annotations from /autofs/space/tinia_001/users/nicks/subjects/fsaverage/label/rh.aparc.annot
+Have color table for lh white annotation
+Have color table for rh white annotation
+Loading ribbon segmentation from /autofs/space/tinia_001/users/nicks/subjects/fsaverage/mri/ribbon.mgz
+
+Building hash of lh white
+
+Building hash of lh pial
+
+Building hash of rh white
+
+Building hash of rh pial
+
+Loading aseg from /autofs/space/tinia_001/users/nicks/subjects/fsaverage/mri/aseg.mgz
+ASeg Vox2RAS: -----------
+-1.000   0.000   0.000   128.000;
+ 0.000   0.000   1.000  -128.000;
+ 0.000  -1.000   0.000   128.000;
+ 0.000   0.000   0.000   1.000;
+-------------------------
+
+Labeling Slice
+  0   1   2   3   4   5   6   7   8   9  10  11  12  13  14  15  16  17  18  19 
+ 20  21  22  23  24  25  26  27  28  29  30  31  32  33  34  35  36  37  38  39 
+ 40  41  42  43  44  45  46  47  48  49  50  51  52  53  54  55  56  57  58  59 
+ 60  61  62  63  64  65  66  67  68  69  70  71  72  73  74  75  76  77  78  79 
+ 80  81  82  83  84  85  86  87  88  89  90  91  92  93  94  95  96  97  98  99 
+100 101 102 103 104 105 106 107 108 109 110 111 112 113 114 115 116 117 118 119 
+120 121 122 123 124 125 126 127 128 129 130 131 132 133 134 135 136 137 138 139 
+140 141 142 143 144 145 146 147 148 149 150 151 152 153 154 155 156 157 158 159 
+160 161 162 163 164 165 166 167 168 169 170 171 172 173 174 175 176 177 178 179 
+180 181 182 183 184 185 186 187 188 189 190 191 192 193 194 195 196 197 198 199 
+200 201 202 203 204 205 206 207 208 209 210 211 212 213 214 215 216 217 218 219 
+220 221 222 223 224 225 226 227 228 229 230 231 232 233 234 235 236 237 238 239 
+240 241 242 243 244 245 246 247 248 249 250 251 252 253 254 255 nctx = 337762
+Used brute-force search on 0 voxels
+Writing output aseg to /autofs/space/tinia_001/users/nicks/subjects/fsaverage/mri/aparc+aseg.mgz
+/autofs/space/tinia_001/users/nicks/subjects/fsaverage
+
+ mri_aparc2aseg --s fsaverage --volmask --a2009s 
+
+Reading in average area /autofs/space/tinia_001/users/nicks/subjects/fsaverage/surf/lh.white.avg.area.mgh
+Reading in average area /autofs/space/tinia_001/users/nicks/subjects/fsaverage/surf/lh.pial.avg.area.mgh
+reading colortable from annotation file...
+colortable with 76 entries read (originally /autofs/space/birn_044/users/christophe_atlas_rebuild//scripts_2008/Simple_surface_labels2009.txt)
+Reading in average area /autofs/space/tinia_001/users/nicks/subjects/fsaverage/surf/rh.white.avg.area.mgh
+Reading in average area /autofs/space/tinia_001/users/nicks/subjects/fsaverage/surf/rh.pial.avg.area.mgh
+reading colortable from annotation file...
+colortable with 76 entries read (originally /autofs/space/birn_044/users/christophe_atlas_rebuild//scripts_2008/Simple_surface_labels2009.txt)
+SUBJECTS_DIR /autofs/space/tinia_001/users/nicks/subjects
+subject fsaverage
+outvol /autofs/space/tinia_001/users/nicks/subjects/fsaverage/mri/aparc.a2009s+aseg.mgz
+useribbon 0
+baseoffset 10100
+RipUnknown 0
+
+Reading lh white surface 
+ /autofs/space/tinia_001/users/nicks/subjects/fsaverage/surf/lh.white
+
+Reading lh pial surface 
+ /autofs/space/tinia_001/users/nicks/subjects/fsaverage/surf/lh.pial
+
+Loading lh annotations from /autofs/space/tinia_001/users/nicks/subjects/fsaverage/label/lh.aparc.a2009s.annot
+
+Reading rh white surface 
+ /autofs/space/tinia_001/users/nicks/subjects/fsaverage/surf/rh.white
+
+Reading rh pial surface 
+ /autofs/space/tinia_001/users/nicks/subjects/fsaverage/surf/rh.pial
+
+Loading rh annotations from /autofs/space/tinia_001/users/nicks/subjects/fsaverage/label/rh.aparc.a2009s.annot
+Have color table for lh white annotation
+Have color table for rh white annotation
+Loading ribbon segmentation from /autofs/space/tinia_001/users/nicks/subjects/fsaverage/mri/ribbon.mgz
+
+Building hash of lh white
+
+Building hash of lh pial
+
+Building hash of rh white
+
+Building hash of rh pial
+
+Loading aseg from /autofs/space/tinia_001/users/nicks/subjects/fsaverage/mri/aseg.mgz
+ASeg Vox2RAS: -----------
+-1.000   0.000   0.000   128.000;
+ 0.000   0.000   1.000  -128.000;
+ 0.000  -1.000   0.000   128.000;
+ 0.000   0.000   0.000   1.000;
+-------------------------
+
+Labeling Slice
+  0   1   2   3   4   5   6   7   8   9  10  11  12  13  14  15  16  17  18  19 
+ 20  21  22  23  24  25  26  27  28  29  30  31  32  33  34  35  36  37  38  39 
+ 40  41  42  43  44  45  46  47  48  49  50  51  52  53  54  55  56  57  58  59 
+ 60  61  62  63  64  65  66  67  68  69  70  71  72  73  74  75  76  77  78  79 
+ 80  81  82  83  84  85  86  87  88  89  90  91  92  93  94  95  96  97  98  99 
+100 101 102 103 104 105 106 107 108 109 110 111 112 113 114 115 116 117 118 119 
+120 121 122 123 124 125 126 127 128 129 130 131 132 133 134 135 136 137 138 139 
+140 141 142 143 144 145 146 147 148 149 150 151 152 153 154 155 156 157 158 159 
+160 161 162 163 164 165 166 167 168 169 170 171 172 173 174 175 176 177 178 179 
+180 181 182 183 184 185 186 187 188 189 190 191 192 193 194 195 196 197 198 199 
+200 201 202 203 204 205 206 207 208 209 210 211 212 213 214 215 216 217 218 219 
+220 221 222 223 224 225 226 227 228 229 230 231 232 233 234 235 236 237 238 239 
+240 241 242 243 244 245 246 247 248 249 250 251 252 253 254 255 nctx = 337762
+Used brute-force search on 0 voxels
+Writing output aseg to /autofs/space/tinia_001/users/nicks/subjects/fsaverage/mri/aparc.a2009s+aseg.mgz
+#-----------------------------------------
+#@# WMParc Fri Jan 15 15:30:10 EST 2010
+/autofs/space/tinia_001/users/nicks/subjects/fsaverage
+
+ mri_aparc2aseg --s fsaverage --labelwm --hypo-as-wm --rip-unknown --volmask --o mri/wmparc.mgz --ctxseg aparc+aseg.mgz 
+
+Reading in average area /autofs/space/tinia_001/users/nicks/subjects/fsaverage/surf/lh.white.avg.area.mgh
+Reading in average area /autofs/space/tinia_001/users/nicks/subjects/fsaverage/surf/lh.pial.avg.area.mgh
+reading colortable from annotation file...
+colortable with 36 entries read (originally /autofs/space/amaebi_026/users/buckner_cortical_atlas/scripts/colortable_final.txt)
+Reading in average area /autofs/space/tinia_001/users/nicks/subjects/fsaverage/surf/rh.white.avg.area.mgh
+Reading in average area /autofs/space/tinia_001/users/nicks/subjects/fsaverage/surf/rh.pial.avg.area.mgh
+reading colortable from annotation file...
+colortable with 36 entries read (originally /autofs/space/amaebi_026/users/buckner_cortical_atlas/scripts/colortable_final.txt)
+mghRead(/autofs/space/tinia_001/users/nicks/subjects/fsaverage/mri/filled.mgz, -1): could not open file
+SUBJECTS_DIR /autofs/space/tinia_001/users/nicks/subjects
+subject fsaverage
+outvol mri/wmparc.mgz
+useribbon 0
+baseoffset 0
+labeling wm
+labeling hypo-intensities as wm
+dmaxctx 5.000000
+RipUnknown 1
+CtxSeg /autofs/space/tinia_001/users/nicks/subjects/fsaverage/mri/aparc+aseg.mgz
+
+Reading lh white surface 
+ /autofs/space/tinia_001/users/nicks/subjects/fsaverage/surf/lh.white
+
+Reading lh pial surface 
+ /autofs/space/tinia_001/users/nicks/subjects/fsaverage/surf/lh.pial
+
+Loading lh annotations from /autofs/space/tinia_001/users/nicks/subjects/fsaverage/label/lh.aparc.annot
+
+Reading rh white surface 
+ /autofs/space/tinia_001/users/nicks/subjects/fsaverage/surf/rh.white
+
+Reading rh pial surface 
+ /autofs/space/tinia_001/users/nicks/subjects/fsaverage/surf/rh.pial
+
+Loading rh annotations from /autofs/space/tinia_001/users/nicks/subjects/fsaverage/label/rh.aparc.annot
+Have color table for lh white annotation
+Have color table for rh white annotation
+Loading ribbon segmentation from /autofs/space/tinia_001/users/nicks/subjects/fsaverage/mri/ribbon.mgz
+Loading filled from /autofs/space/tinia_001/users/nicks/subjects/fsaverage/mri/filled.mgz
+ERROR: loading filled /autofs/space/tinia_001/users/nicks/subjects/fsaverage/mri/filled.mgz
+Linux terrier 2.6.18-164.el5 #1 SMP Thu Sep 3 03:28:30 EDT 2009 x86_64 x86_64 x86_64 GNU/Linux
+
+recon-all exited with ERRORS at Fri Jan 15 15:30:21 EST 2010
+
+
+
+
+New invocation of recon-all 
+
+
+
+Thu Dec 30 17:34:43 EST 2010
+/autofs/cluster/freesurfer/subjects/fsaverage
+/usr/local/freesurfer/stable5/bin/recon-all
+-s fsaverage -cortparc
+subjid fsaverage
+setenv SUBJECTS_DIR /autofs/cluster/freesurfer/subjects
+FREESURFER_HOME /usr/local/freesurfer/stable5
+Actual FREESURFER_HOME /autofs/cluster/freesurfer/centos4.0_x86_64/stable5
+build-stamp.txt: freesurfer-Linux-centos4_x86_64-stable-v5.1.0-20101225
+Linux terrier 2.6.18-194.8.1.el5 #1 SMP Thu Jul 1 19:04:48 EDT 2010 x86_64 x86_64 x86_64 GNU/Linux
+cputime      unlimited
+filesize     unlimited
+datasize     unlimited
+stacksize    10240 kbytes
+coredumpsize 0 kbytes
+memoryuse    unlimited
+vmemoryuse   unlimited
+descriptors  1024 
+memorylocked 32 kbytes
+maxproc      201728 
+
+             total       used       free     shared    buffers     cached
+Mem:      24688596    1544140   23144456          0      91544     899412
+-/+ buffers/cache:     553184   24135412
+Swap:      8393920         16    8393904
+
+########################################
+program versions used
+$Id: recon-all,v 1.313.2.32 2010/12/30 19:11:13 nicks Exp $
+$Id: mri_motion_correct.fsl,v 1.10.2.1 2010/08/04 15:50:56 nicks Exp $
+mri_convert -all-info 
+ProgramName: mri_convert  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:34:43-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mri_convert.c,v 1.166.2.6 2010/11/24 15:19:30 nicks Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+FLIRT version 5.5
+$Id: talairach_avi,v 1.7 2010/02/07 22:50:52 nicks Exp $
+mri_convert --version 
+stable5
+ProgramName: tkregister2_cmdl  ProgramArguments: --all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:34:43-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: tkregister2.c,v 1.117.2.3 2010/11/22 22:57:46 greve Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+Program nu_correct, built from:
+Package MNI N3, version 1.10, compiled by nicks@minerva (x86_64-unknown-linux-gnu) on 2010-02-20 at 17:32:37
+ProgramName: mri_make_uchar  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:34:44-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mri_make_uchar.c,v 1.2.2.3 2010/12/09 21:16:54 nicks Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mri_normalize  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:34:44-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mri_normalize.c,v 1.65.2.1 2010/11/13 20:05:25 mreuter Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mri_watershed  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:34:44-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mri_watershed.cpp,v 1.81.2.2 2010/11/11 20:31:14 greve Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mri_gcut  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:34:44-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mri_gcut.cpp,v 1.7.2.2 2010/12/08 14:16:10 nicks Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mri_segment  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:34:44-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mri_segment.c,v 1.35 2007/11/21 04:38:06 nicks Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mri_label2label  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:34:45-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mri_label2label.c,v 1.39 2010/03/27 21:24:31 nicks Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mri_em_register  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:34:45-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mri_em_register.c,v 1.77.2.2 2010/08/26 04:12:35 nicks Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mri_ca_normalize  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:34:45-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mri_ca_normalize.c,v 1.49 2010/04/23 18:17:44 fischl Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mri_ca_register  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:34:45-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mri_ca_register.c,v 1.71 2010/06/14 21:28:03 mreuter Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mri_ca_label  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:34:46-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mri_ca_label.c,v 1.92 2009/11/19 18:04:13 fischl Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mri_pretess  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:34:46-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mri_pretess.c,v 1.16.4.1 2010/07/02 17:30:23 nicks Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mri_fill  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:34:46-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mri_fill.c,v 1.113 2009/11/19 19:07:00 fischl Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mri_tessellate  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:34:46-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mri_tessellate.c,v 1.33 2010/05/03 16:57:06 fischl Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mri_concatenate_lta  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:34:47-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mri_concatenate_lta.c,v 1.5.2.1 2010/11/11 21:06:39 mreuter Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mri_normalize_tp2  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:34:47-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mri_normalize_tp2.c,v 1.6.4.1 2010/11/11 21:22:33 mreuter Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mris_smooth  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:34:47-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mris_smooth.c,v 1.25 2010/03/04 15:40:29 fischl Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mris_inflate  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:34:47-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mris_inflate.c,v 1.40 2010/05/27 21:35:00 nicks Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mris_curvature  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:34:47-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mris_curvature.c,v 1.28 2008/11/13 18:49:41 fischl Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mris_sphere  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:34:48-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mris_sphere.c,v 1.54 2010/04/14 15:16:23 fischl Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mris_fix_topology  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:34:48-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mris_fix_topology.c,v 1.44 2010/05/27 23:37:16 nicks Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mris_topo_fixer  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:34:48-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mris_topo_fixer.cpp,v 1.28 2007/11/27 18:37:19 nicks Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mris_ca_label  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:34:48-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mris_ca_label.c,v 1.32 2010/03/27 00:59:09 nicks Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mris_euler_number  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:34:49-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mris_euler_number.c,v 1.5 2006/12/29 02:09:10 nicks Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mris_make_surfaces  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:34:49-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mris_make_surfaces.c,v 1.113.2.6 2010/12/13 20:42:42 nicks Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mris_register  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:34:49-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mris_register.c,v 1.56 2010/02/28 23:08:04 fischl Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mris_volmask  ProgramArguments: --all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:34:49-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mris_volmask.cpp,v 1.22 2010/02/17 22:51:19 krish Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mris_anatomical_stats  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:34:50-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mris_anatomical_stats.c,v 1.68 2010/05/28 20:36:45 nicks Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mrisp_paint  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:34:50-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mrisp_paint.c,v 1.8 2007/02/13 16:57:23 fischl Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mris_curvature_stats  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:34:50-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mris_curvature_stats.c,v 1.60.2.1 2010/12/10 03:14:32 nicks Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mris_calc  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:34:50-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mris_calc.c,v 1.28 2010/04/12 21:05:24 greve Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+$Id: mri_robust_register.cpp,v 1.31.2.4 2010/12/12 20:21:18 mreuter Exp $
+
+ProgramName: mri_robust_register  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:34:50-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mri_robust_register.cpp,v 1.31.2.4 2010/12/12 20:21:18 mreuter Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+$Id: mri_robust_template.cpp,v 1.18.2.7 2010/12/17 23:37:39 mreuter Exp $
+
+ProgramName: mri_robust_template  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:34:51-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mri_robust_template.cpp,v 1.18.2.7 2010/12/17 23:37:39 mreuter Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mri_and  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:34:51-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mri_and.c,v 1.3 2009/06/09 19:32:31 nicks Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mri_or  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:34:51-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mri_or.c,v 1.1 2009/06/09 19:32:31 nicks Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mri_fuse_segmentations  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:34:51-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mri_fuse_segmentations.c,v 1.6 2009/06/10 18:59:24 fischl Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mri_segstats  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:34:51-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mri_segstats.c,v 1.69.2.1 2010/07/26 16:19:29 greve Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+#######################################
+GCADIR /usr/local/freesurfer/stable5/average
+GCA RB_all_2008-03-26.gca
+GCASkull RB_all_withskull_2008-03-26.gca
+AvgCurvTif average.curvature.filled.buckner40.tif
+GCSDIR /usr/local/freesurfer/stable5/average
+GCS curvature.buckner40.filled.desikan_killiany.2010-03-25.gcs
+#######################################
+#-----------------------------------------
+#@# Cortical Parc lh Thu Dec 30 17:34:52 EST 2010
+/autofs/cluster/freesurfer/subjects/fsaverage/scripts
+
+ mris_ca_label -l ../label/lh.cortex.label -aseg ../mri/aseg.mgz -seed 1234 fsaverage lh ../surf/lh.sphere.reg /usr/local/freesurfer/stable5/average/lh.curvature.buckner40.filled.desikan_killiany.2010-03-25.gcs ../label/lh.aparc.annot 
+
+setting seed for random number generator to 1234
+using ../mri/aseg.mgz aseg volume to correct midline
+$Id: mris_ca_label.c,v 1.32 2010/03/27 00:59:09 nicks Exp $
+  $Id: mrisurf.c,v 1.678.2.2 2010/12/09 23:08:48 nicks Exp $
+reading atlas from /usr/local/freesurfer/stable5/average/lh.curvature.buckner40.filled.desikan_killiany.2010-03-25.gcs...
+reading color table from GCSA file....
+average std = 1.0   using min determinant for regularization = 0.011
+0 singular and 384 ill-conditioned covariance matrices regularized
+input 0: MEAN CURVATURE, flags 0, avgs 5, name mean_curvature
+labeling surface...
+1957 labels changed using aseg
+relabeling using gibbs priors...
+000:   3485 changed, 163842 examined...
+001:    767 changed, 15075 examined...
+002:    190 changed, 4410 examined...
+003:     72 changed, 1190 examined...
+004:     36 changed, 441 examined...
+005:     23 changed, 232 examined...
+006:      7 changed, 131 examined...
+007:      4 changed, 41 examined...
+008:      0 changed, 20 examined...
+336 labels changed using aseg
+000: 160 total segments, 113 labels (368 vertices) changed
+001: 52 total segments, 5 labels (9 vertices) changed
+002: 47 total segments, 0 labels (0 vertices) changed
+10 filter iterations complete (10 requested, 13 changed)
+rationalizing unknown annotations with cortex label
+relabeling unknown label...
+relabeling corpuscallosum label...
+1970 vertices marked for relabeling...
+1968 labels changed in reclassification.
+writing output to ../label/lh.aparc.annot...
+classification took 0 minutes and 47 seconds.
+#-----------------------------------------
+#@# Cortical Parc rh Thu Dec 30 17:35:38 EST 2010
+/autofs/cluster/freesurfer/subjects/fsaverage/scripts
+
+ mris_ca_label -l ../label/rh.cortex.label -aseg ../mri/aseg.mgz -seed 1234 fsaverage rh ../surf/rh.sphere.reg /usr/local/freesurfer/stable5/average/rh.curvature.buckner40.filled.desikan_killiany.2010-03-25.gcs ../label/rh.aparc.annot 
+
+setting seed for random number generator to 1234
+using ../mri/aseg.mgz aseg volume to correct midline
+$Id: mris_ca_label.c,v 1.32 2010/03/27 00:59:09 nicks Exp $
+  $Id: mrisurf.c,v 1.678.2.2 2010/12/09 23:08:48 nicks Exp $
+reading atlas from /usr/local/freesurfer/stable5/average/rh.curvature.buckner40.filled.desikan_killiany.2010-03-25.gcs...
+reading color table from GCSA file....
+average std = 0.7   using min determinant for regularization = 0.006
+0 singular and 311 ill-conditioned covariance matrices regularized
+input 0: MEAN CURVATURE, flags 0, avgs 5, name mean_curvature
+labeling surface...
+1704 labels changed using aseg
+relabeling using gibbs priors...
+000:   3389 changed, 163842 examined...
+001:    696 changed, 14493 examined...
+002:    164 changed, 4083 examined...
+003:     63 changed, 991 examined...
+004:     23 changed, 403 examined...
+005:      8 changed, 149 examined...
+006:      6 changed, 52 examined...
+007:      2 changed, 40 examined...
+008:      2 changed, 10 examined...
+009:      1 changed, 10 examined...
+010:      0 changed, 7 examined...
+209 labels changed using aseg
+000: 128 total segments, 89 labels (451 vertices) changed
+001: 42 total segments, 3 labels (4 vertices) changed
+002: 39 total segments, 0 labels (0 vertices) changed
+10 filter iterations complete (10 requested, 5 changed)
+rationalizing unknown annotations with cortex label
+relabeling unknown label...
+relabeling corpuscallosum label...
+1689 vertices marked for relabeling...
+1689 labels changed in reclassification.
+writing output to ../label/rh.aparc.annot...
+classification took 0 minutes and 47 seconds.
+
+#------------------------------------------
+
+recon-all -s fsaverage finished without error at Thu Dec 30 17:36:25 EST 2010
+
+
+
+New invocation of recon-all 
+
+
+
+Thu Dec 30 17:40:00 EST 2010
+/autofs/cluster/freesurfer/subjects/fsaverage
+/usr/local/freesurfer/stable5/bin/recon-all
+-s fsaverage -cortparc2
+subjid fsaverage
+setenv SUBJECTS_DIR /autofs/cluster/freesurfer/subjects
+FREESURFER_HOME /usr/local/freesurfer/stable5
+Actual FREESURFER_HOME /autofs/cluster/freesurfer/centos4.0_x86_64/stable5
+build-stamp.txt: freesurfer-Linux-centos4_x86_64-stable-v5.1.0-20101225
+Linux terrier 2.6.18-194.8.1.el5 #1 SMP Thu Jul 1 19:04:48 EDT 2010 x86_64 x86_64 x86_64 GNU/Linux
+cputime      unlimited
+filesize     unlimited
+datasize     unlimited
+stacksize    10240 kbytes
+coredumpsize 0 kbytes
+memoryuse    unlimited
+vmemoryuse   unlimited
+descriptors  1024 
+memorylocked 32 kbytes
+maxproc      201728 
+
+             total       used       free     shared    buffers     cached
+Mem:      24688596    1861720   22826876          0      91920    1214756
+-/+ buffers/cache:     555044   24133552
+Swap:      8393920         16    8393904
+
+########################################
+program versions used
+$Id: recon-all,v 1.313.2.32 2010/12/30 19:11:13 nicks Exp $
+$Id: mri_motion_correct.fsl,v 1.10.2.1 2010/08/04 15:50:56 nicks Exp $
+mri_convert -all-info 
+ProgramName: mri_convert  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:40:01-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mri_convert.c,v 1.166.2.6 2010/11/24 15:19:30 nicks Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+FLIRT version 5.5
+$Id: talairach_avi,v 1.7 2010/02/07 22:50:52 nicks Exp $
+mri_convert --version 
+stable5
+ProgramName: tkregister2_cmdl  ProgramArguments: --all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:40:01-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: tkregister2.c,v 1.117.2.3 2010/11/22 22:57:46 greve Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+Program nu_correct, built from:
+Package MNI N3, version 1.10, compiled by nicks@minerva (x86_64-unknown-linux-gnu) on 2010-02-20 at 17:32:37
+ProgramName: mri_make_uchar  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:40:01-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mri_make_uchar.c,v 1.2.2.3 2010/12/09 21:16:54 nicks Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mri_normalize  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:40:01-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mri_normalize.c,v 1.65.2.1 2010/11/13 20:05:25 mreuter Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mri_watershed  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:40:02-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mri_watershed.cpp,v 1.81.2.2 2010/11/11 20:31:14 greve Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mri_gcut  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:40:03-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mri_gcut.cpp,v 1.7.2.2 2010/12/08 14:16:10 nicks Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mri_segment  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:40:03-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mri_segment.c,v 1.35 2007/11/21 04:38:06 nicks Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mri_label2label  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:40:03-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mri_label2label.c,v 1.39 2010/03/27 21:24:31 nicks Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mri_em_register  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:40:04-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mri_em_register.c,v 1.77.2.2 2010/08/26 04:12:35 nicks Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mri_ca_normalize  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:40:04-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mri_ca_normalize.c,v 1.49 2010/04/23 18:17:44 fischl Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mri_ca_register  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:40:04-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mri_ca_register.c,v 1.71 2010/06/14 21:28:03 mreuter Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mri_ca_label  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:40:04-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mri_ca_label.c,v 1.92 2009/11/19 18:04:13 fischl Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mri_pretess  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:40:04-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mri_pretess.c,v 1.16.4.1 2010/07/02 17:30:23 nicks Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mri_fill  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:40:04-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mri_fill.c,v 1.113 2009/11/19 19:07:00 fischl Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mri_tessellate  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:40:04-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mri_tessellate.c,v 1.33 2010/05/03 16:57:06 fischl Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mri_concatenate_lta  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:40:05-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mri_concatenate_lta.c,v 1.5.2.1 2010/11/11 21:06:39 mreuter Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mri_normalize_tp2  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:40:05-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mri_normalize_tp2.c,v 1.6.4.1 2010/11/11 21:22:33 mreuter Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mris_smooth  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:40:05-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mris_smooth.c,v 1.25 2010/03/04 15:40:29 fischl Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mris_inflate  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:40:05-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mris_inflate.c,v 1.40 2010/05/27 21:35:00 nicks Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mris_curvature  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:40:05-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mris_curvature.c,v 1.28 2008/11/13 18:49:41 fischl Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mris_sphere  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:40:05-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mris_sphere.c,v 1.54 2010/04/14 15:16:23 fischl Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mris_fix_topology  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:40:05-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mris_fix_topology.c,v 1.44 2010/05/27 23:37:16 nicks Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mris_topo_fixer  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:40:05-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mris_topo_fixer.cpp,v 1.28 2007/11/27 18:37:19 nicks Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mris_ca_label  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:40:05-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mris_ca_label.c,v 1.32 2010/03/27 00:59:09 nicks Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mris_euler_number  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:40:05-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mris_euler_number.c,v 1.5 2006/12/29 02:09:10 nicks Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mris_make_surfaces  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:40:05-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mris_make_surfaces.c,v 1.113.2.6 2010/12/13 20:42:42 nicks Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mris_register  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:40:05-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mris_register.c,v 1.56 2010/02/28 23:08:04 fischl Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mris_volmask  ProgramArguments: --all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:40:05-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mris_volmask.cpp,v 1.22 2010/02/17 22:51:19 krish Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mris_anatomical_stats  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:40:05-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mris_anatomical_stats.c,v 1.68 2010/05/28 20:36:45 nicks Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mrisp_paint  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:40:05-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mrisp_paint.c,v 1.8 2007/02/13 16:57:23 fischl Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mris_curvature_stats  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:40:05-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mris_curvature_stats.c,v 1.60.2.1 2010/12/10 03:14:32 nicks Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mris_calc  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:40:05-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mris_calc.c,v 1.28 2010/04/12 21:05:24 greve Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+$Id: mri_robust_register.cpp,v 1.31.2.4 2010/12/12 20:21:18 mreuter Exp $
+
+ProgramName: mri_robust_register  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:40:05-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mri_robust_register.cpp,v 1.31.2.4 2010/12/12 20:21:18 mreuter Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+$Id: mri_robust_template.cpp,v 1.18.2.7 2010/12/17 23:37:39 mreuter Exp $
+
+ProgramName: mri_robust_template  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:40:05-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mri_robust_template.cpp,v 1.18.2.7 2010/12/17 23:37:39 mreuter Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mri_and  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:40:05-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mri_and.c,v 1.3 2009/06/09 19:32:31 nicks Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mri_or  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:40:05-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mri_or.c,v 1.1 2009/06/09 19:32:31 nicks Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mri_fuse_segmentations  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:40:05-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mri_fuse_segmentations.c,v 1.6 2009/06/10 18:59:24 fischl Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+ProgramName: mri_segstats  ProgramArguments: -all-info  ProgramVersion: $Name: stable5 $  TimeStamp: 2010/12/30-22:40:05-GMT  BuildTimeStamp: Dec 25 2010 11:43:50  CVS: $Id: mri_segstats.c,v 1.69.2.1 2010/07/26 16:19:29 greve Exp $  User: nicks  Machine: terrier  Platform: Linux  PlatformVersion: 2.6.18-194.8.1.el5  CompilerName: GCC  CompilerVersion: 30400 
+#######################################
+GCADIR /usr/local/freesurfer/stable5/average
+GCA RB_all_2008-03-26.gca
+GCASkull RB_all_withskull_2008-03-26.gca
+AvgCurvTif average.curvature.filled.buckner40.tif
+GCSDIR /usr/local/freesurfer/stable5/average
+GCS curvature.buckner40.filled.desikan_killiany.2010-03-25.gcs
+#######################################
+#-----------------------------------------
+#@# Cortical Parc 2 lh Thu Dec 30 17:40:05 EST 2010
+/autofs/cluster/freesurfer/subjects/fsaverage/scripts
+
+ mris_ca_label -l ../label/lh.cortex.label -aseg ../mri/aseg.mgz -seed 1234 fsaverage lh ../surf/lh.sphere.reg /usr/local/freesurfer/stable5/average/lh.destrieux.simple.2009-07-29.gcs ../label/lh.aparc.a2009s.annot 
+
+setting seed for random number generator to 1234
+using ../mri/aseg.mgz aseg volume to correct midline
+$Id: mris_ca_label.c,v 1.32 2010/03/27 00:59:09 nicks Exp $
+  $Id: mrisurf.c,v 1.678.2.2 2010/12/09 23:08:48 nicks Exp $
+reading atlas from /usr/local/freesurfer/stable5/average/lh.destrieux.simple.2009-07-29.gcs...
+reading color table from GCSA file....
+average std = 3.9 0.2   using min determinant for regularization = 0.000
+0 singular and 1066 ill-conditioned covariance matrices regularized
+input 1: CURVATURE FILE, flags 0, avgs 0, name sulc
+input 0: MEAN CURVATURE, flags 0, avgs 5, name mean_curvature
+labeling surface...
+137 labels changed using aseg
+relabeling using gibbs priors...
+000:   9948 changed, 163842 examined...
+001:   2209 changed, 38389 examined...
+002:    667 changed, 11662 examined...
+003:    251 changed, 3773 examined...
+004:    111 changed, 1490 examined...
+005:     54 changed, 678 examined...
+006:     30 changed, 315 examined...
+007:     22 changed, 172 examined...
+008:     13 changed, 116 examined...
+009:      4 changed, 65 examined...
+010:      3 changed, 26 examined...
+011:      2 changed, 21 examined...
+012:      1 changed, 10 examined...
+013:      1 changed, 7 examined...
+014:      1 changed, 7 examined...
+015:      0 changed, 7 examined...
+56 labels changed using aseg
+000: 263 total segments, 182 labels (1583 vertices) changed
+001: 88 total segments, 7 labels (47 vertices) changed
+002: 81 total segments, 0 labels (0 vertices) changed
+10 filter iterations complete (10 requested, 37 changed)
+rationalizing unknown annotations with cortex label
+relabeling Medial_wall label...
+285 vertices marked for relabeling...
+285 labels changed in reclassification.
+writing output to ../label/lh.aparc.a2009s.annot...
+classification took 0 minutes and 52 seconds.
+#-----------------------------------------
+#@# Cortical Parc 2 rh Thu Dec 30 17:40:58 EST 2010
+/autofs/cluster/freesurfer/subjects/fsaverage/scripts
+
+ mris_ca_label -l ../label/rh.cortex.label -aseg ../mri/aseg.mgz -seed 1234 fsaverage rh ../surf/rh.sphere.reg /usr/local/freesurfer/stable5/average/rh.destrieux.simple.2009-07-29.gcs ../label/rh.aparc.a2009s.annot 
+
+setting seed for random number generator to 1234
+using ../mri/aseg.mgz aseg volume to correct midline
+$Id: mris_ca_label.c,v 1.32 2010/03/27 00:59:09 nicks Exp $
+  $Id: mrisurf.c,v 1.678.2.2 2010/12/09 23:08:48 nicks Exp $
+reading atlas from /usr/local/freesurfer/stable5/average/rh.destrieux.simple.2009-07-29.gcs...
+reading color table from GCSA file....
+average std = 1.9 0.2   using min determinant for regularization = 0.000
+0 singular and 851 ill-conditioned covariance matrices regularized
+input 1: CURVATURE FILE, flags 0, avgs 0, name sulc
+input 0: MEAN CURVATURE, flags 0, avgs 5, name mean_curvature
+labeling surface...
+26 labels changed using aseg
+relabeling using gibbs priors...
+000:  10632 changed, 163842 examined...
+001:   2221 changed, 40264 examined...
+002:    659 changed, 11771 examined...
+003:    245 changed, 3831 examined...
+004:     97 changed, 1470 examined...
+005:     47 changed, 592 examined...
+006:     17 changed, 282 examined...
+007:      7 changed, 103 examined...
+008:      2 changed, 43 examined...
+009:      1 changed, 14 examined...
+010:      0 changed, 7 examined...
+23 labels changed using aseg
+000: 273 total segments, 194 labels (2011 vertices) changed
+001: 94 total segments, 14 labels (136 vertices) changed
+002: 80 total segments, 0 labels (0 vertices) changed
+10 filter iterations complete (10 requested, 59 changed)
+rationalizing unknown annotations with cortex label
+relabeling Medial_wall label...
+250 vertices marked for relabeling...
+250 labels changed in reclassification.
+writing output to ../label/rh.aparc.a2009s.annot...
+classification took 0 minutes and 52 seconds.
+
+#------------------------------------------
+
+recon-all -s fsaverage finished without error at Thu Dec 30 17:41:50 EST 2010
