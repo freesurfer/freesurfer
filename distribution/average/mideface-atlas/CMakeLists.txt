@@ -6,9 +6,14 @@ install_symlinks(
   average.head.dec44.surf
   average.head.dec44.us7.surf
   average.head.dec44.us7.remesh3.surf
+  average.head.dec44.us7.remesh3.ripple.surf
   average.head.dec44.us7.remesh3.sphere
   reg.samseg-default.lta
   deface.ctab
+  average.back-of-head.label
+  average.back-of-head.dec44.us7.remesh3.label
+  average.face.all.dec44.us7.remesh3.label 
+  average.face.all.label 
   average.face.ear.left.dec44.us7.remesh3.label
   average.face.ear.left.label
   average.face.ear.right.dec44.us7.remesh3.label
@@ -33,6 +38,7 @@ install_symlinks(
   average.face.upper.no-eyes.dec44.us7.remesh3.label
   average.face.upper.no-eyes.no-nose.dec44.us7.remesh3.label
   average.face.upper.no-eyes.label
+  average.face.upper+lower.dec44.us7.remesh3.label 
   mideface.watermark.dec44.us7.remesh3.label
   watermark.dec44.us7.remesh3.label
   watermark.label
