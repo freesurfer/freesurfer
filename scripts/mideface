@@ -14,10 +14,11 @@ set ForceUpdate = 0
 set DoPostHeadSurf = 0
 set threads = 1
 set xmask = ()
-set DoSynthSegXMask = 0;
-set DoSamSegXMask = 0;
+set DoSamsegXMask = 1;
+set nSegDil = 1;
+set SamsegFast = 1
 set XEyeBalls = 1; #Samseg only
-set nSegDil = 0;
+set DoSynthSegXMask = 0;
 set DoBBR = 0
 set BBRDoF = 9
 set defacingsubject = defacing-atlas
@@ -39,7 +40,6 @@ set atlasdir = ()
 set imconvert = /usr/bin/convert
 set XOptsFile = ()
 set SamsegJson = ()
-set SamsegFast = 0
 set UseOrMask = 0
 
 set tmpdir = ();
@@ -144,7 +144,7 @@ if($#XOptsFile) cp $XOptsFile $tmpdir
 # Register to samseg atlas, maybe run samseg for xmask
 set samsegdir = $tmpdir/samseg
 set samseglta = $samsegdir/template.lta
-if($DoSamSegXMask == 0) then
+if($DoSamsegXMask == 0) then
   # Run samseg but only to get the reg
   set ud = (`UpdateNeeded $samseglta $invol`)
   if($ud || $ForceUpdate) then
@@ -203,7 +203,7 @@ if($DoSynthSegXMask) then
   set segidlist = ($segidlist 43 44 49 50 51 52 53 54 58 60 62 63)
 endif
 
-if($DoSynthSegXMask || $DoSamSegXMask) then
+if($DoSynthSegXMask || $DoSamsegXMask) then
   set segdil = $tmpdir/seg.bin.dil.mgz
   # Binarize, and maybe dilate, the synthseg output. A subset of cerebral segids
   # are selected to assure that only cerebral structures are excluded. At 
@@ -288,7 +288,7 @@ if($ud || $ForceUpdate) then
     -rescale -no-inflate -fill-holes-islands -mc -no-curv)
   # Adding samseg here makes the whole thing much more robust
   # because samseg is bascially provides a head mask
-  if($UseOrMask && $DoSamSegXMask) set cmd = ($cmd -or-mask $samsegdir/seg.mgz)
+  if($UseOrMask && $DoSamsegXMask) set cmd = ($cmd -or-mask $samsegdir/seg.mgz)
   set xopts = `fsr-getxopts mkheadsurf $XOptsFile`;
   set cmd = ($cmd $xopts);
   echo $cmd | tee -a $LF
@@ -308,7 +308,7 @@ if($ud || $ForceUpdate) then
   set cmd = (mri_defacer --i $invol --ts $templatesurfsubj \
    --min $minsurf --max $maxsurf --m $facemask --o $outvol \
    --hm $headmask --distdat $distdat --stats $stats \
-   --distbounds $distlab --w $watermark $dwatermark) 
+   --w $watermark $dwatermark) # --distbounds $distlab 
   if($FillType == 2) set cmd = ($cmd --fill-const $FillConstIn $FillConstOut)
   if($DoRipple) set cmd = ($cmd --ripple $RippleAmp $RipplePeriod)
   foreach label ($labellist)
@@ -371,7 +371,8 @@ endif
 if($DoPics) then
   set ud = `UpdateNeeded $facepic $headsurf $fmoverlay`
   if($ud || $ForceUpdate) then
-    set cmd = (freeview -f ${headsurf}:affinexfm=${input2atlaslta}:overlay=${fmoverlay}:"overlay_threshold=.01,.011,.5"\
+    # :overlay=${fmoverlay}:"overlay_threshold=.01,.011,.5"
+    set cmd = (freeview -f ${headsurf}:affinexfm=${input2atlaslta}\
        --hide-3d-slices -viewport 3d -cam Azimuth -90 -ss $facepic --quit)
     set xopts = `fsr-getxopts freeview-before $XOptsFile`;
     set cmd = ($cmd $xopts);
@@ -533,7 +534,7 @@ while( $#argv != 0 )
     case "--xmask-samseg":
       if($#argv < 1) goto arg1err;
       set nSegDil = $argv[1]; shift;
-      set DoSamSegXMask = 1
+      set DoSamsegXMask = 1
       breaksw
 
     case "--xmask-eyeballs":
@@ -551,7 +552,7 @@ while( $#argv != 0 )
       set SamsegJson = ()
       breaksw
     case "--samseg-fast":
-      set DoSamSegXMask = 1
+      set DoSamsegXMask = 1
       set nSegDil = 1
       set SamsegFast = 1;
       breaksw
@@ -691,6 +692,11 @@ while( $#argv != 0 )
       set LF = $argv[1]; shift;
       breaksw
 
+    case "--display":
+      if($#argv < 1) goto arg1err;
+      setenv FSXVFB_START_D $argv[1]; shift;
+      breaksw
+
     case "--nolog":
     case "--no-log":
       set LF = /dev/null
@@ -769,7 +775,7 @@ if($#xmask && $DoSynthSegXMask) then
   echo "ERROR: cannot use --xmask and --synthseg"
   exit 1
 endif
-if($DoSynthSegXMask && $DoSamSegXMask) then
+if($DoSynthSegXMask && $DoSamsegXMask) then
   echo "ERROR: cannot use both --xmask-synthseg and --xmask-samseg"
   exit 1
 endif
@@ -808,7 +814,8 @@ usage_exit:
   echo " --xmask xmask (exclusion mask)"
   echo " --xmask-samseg ndilations : segment input using samseg (14GB, +~20-40min)"
   echo "   --samseg-json json: configure samseg"
-  echo " --samseg-fast : "
+  echo " --samseg-fast : configure samseg to run quickly; sets ndil=1 (default)"
+  echo " --no-samseg-fast : do NOT configure samseg to run quickly"
   echo " --xmask-synthseg ndilations : segment input using synthseg (35GB, +~20min)"
   echo " --fill-const constIn constOut"
   echo " --fill-zero"
@@ -823,6 +830,7 @@ usage_exit:
   echo " --force : force reprocessing (not applicable if --odir has not been used)"
   echo " --atlas atlasdir"
   echo " --expert xopts"
+  echo " --display DisplayNo : set Xvfb display no for taking pics"
   echo ""
   echo "To apply midfacer output to a second volume"
   echo " --apply vol facemask reg output : apply to another volume (use regheader if no reg needed)"
