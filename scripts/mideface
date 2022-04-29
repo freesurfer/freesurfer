@@ -42,7 +42,7 @@ set imconvert = /usr/bin/convert
 set XOptsFile = ()
 set SamsegJson = ()
 set UseOrMask = 0
-
+set InitReg = ()
 set tmpdir = ();
 set cleanup = 1;
 set LF = ();
@@ -140,6 +140,7 @@ set runxvfb = fsxvfb
 if(! $UseXvfb) set runxvfb = ()
 
 if($#XOptsFile) cp $XOptsFile $tmpdir
+if($#InitReg)   cp $InitReg   $tmpdir
 
 #========================================================
 # Register to samseg atlas, maybe run samseg for xmask
@@ -150,6 +151,7 @@ if($DoSamsegXMask == 0) then
   set ud = (`UpdateNeeded $samseglta $invol`)
   if($ud || $ForceUpdate) then
     set cmd = (run_samseg -i $invol -o $tmpdir/samseg --reg-only --threads $threads)
+    if($#InitReg) set cmd0 = ($cmd0 --init-reg $InitReg)
     set xopts = `fsr-getxopts run_samseg $XOptsFile`;
     set cmd = ($cmd $xopts);
     echo $cmd | tee -a $LF
@@ -165,6 +167,7 @@ else
   if($ud || $ForceUpdate) then
     set cmd = (samseg --i $invol --o $samsegdir --threads $threads --block-coordinate-descent)
     if($#SamsegJson) set cmd = ($cmd --options $SamsegJson)
+    if($#InitReg) set cmd = ($cmd --initlta $InitReg);
     set xopts = `fsr-getxopts samseg $XOptsFile`;
     set cmd = ($cmd $xopts);
     echo $cmd | tee -a $LF
@@ -657,6 +660,15 @@ while( $#argv != 0 )
       set RipplePeriod = $argv[1]; shift;
       breaksw
 
+    case "--init-reg":
+      if($#argv < 1) goto arg1err;
+      set InitReg = $argv[1]; shift;
+      if(! -e $InitReg) then
+        echo "ERROR: cannot find $InitReg"
+        exit 1
+      endif
+      breaksw
+
     case "--check":
       if($#argv < 1) goto arg1err;
       set vol = $argv[1]; shift;
@@ -849,6 +861,7 @@ usage_exit:
   echo "   --samseg-json json: configure samseg"
   echo " --samseg-fast : configure samseg to run quickly; sets ndil=1 (default)"
   echo " --no-samseg-fast : do NOT configure samseg to run quickly"
+  echo " --init-reg reg.lta : initialize samseg with reg (good in case samseg reg fails)"
   echo " --xmask-synthseg ndilations : segment input using synthseg (35GB, +~20min)"
   echo " --fill-const constIn constOut"
   echo " --fill-zero"
