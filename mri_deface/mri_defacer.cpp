@@ -139,7 +139,7 @@ MRI *MRISpaintSphere(MRIS *surf, LABEL *label, MRI *img)
   return(overlay);
 }
 
-class FsDefacer {
+class MiDeface {
 public:
   MRI *invol=NULL, *headmask=NULL, *xmask=NULL;
   MRIS *tempsurf=NULL;
@@ -174,7 +174,7 @@ public:
   int watermark(LABEL *watermark, double dwatermark);
 };
 
-int FsDefacer::PrintParams(FILE *fp)
+int MiDeface::PrintParams(FILE *fp)
 {
   fprintf(fp,"DistInMin   %g\n",DistInMin);
   fprintf(fp,"DistInMax   %g\n",DistInMax);
@@ -196,7 +196,7 @@ int FsDefacer::PrintParams(FILE *fp)
   fflush(fp);
   return(0);
 }
-int FsDefacer::PrintStats(FILE *fp)
+int MiDeface::PrintStats(FILE *fp)
 {
   fprintf(fp,"nface1vox  %d\n",nface1vox);
   fprintf(fp,"gmean1     %g\n",gmean1);
@@ -216,9 +216,9 @@ int FsDefacer::PrintStats(FILE *fp)
   return(0);
 }
 
-int FsDefacer::SegFace(void)
+int MiDeface::SegFace(void)
 {
-  printf("FsDefacer::SegFace()\n");
+  printf("MiDeface::SegFace()\n");
 
   // First, fill the inner and outer face mask areas
   faceseg = Surf2VolProjFill(faceseg, -DistIn,  1); // inside  template face
@@ -256,7 +256,7 @@ int FsDefacer::SegFace(void)
 }
 
 /*!
-  \fn MRI *FsDefacer::Surf2VolProjFill(MRI *vol, double Dist, double FillVal)
+  \fn MRI *MiDeface::Surf2VolProjFill(MRI *vol, double Dist, double FillVal)
   \brief This function fills in voxels within Dist of the template
   surface.  It goes through all the vertices in the template label,
   then fills the voxels intersecting with each neighboring face. This
@@ -270,7 +270,7 @@ int FsDefacer::SegFace(void)
   does not well because the projection often creates folds and
   intersections rendering the normal inaccurate.
  */
-MRI *FsDefacer::Surf2VolProjFill(MRI *vol, double Dist, double FillVal)
+MRI *MiDeface::Surf2VolProjFill(MRI *vol, double Dist, double FillVal)
 {
   if(vol == NULL) {
     vol = MRIcopy(invol,NULL);
@@ -322,9 +322,9 @@ MRI *FsDefacer::Surf2VolProjFill(MRI *vol, double Dist, double FillVal)
   return(vol);
 }
 
-int FsDefacer::Deface(void)
+int MiDeface::Deface(void)
 {
-  printf("FsDefacer::Deface()\n");
+  printf("MiDeface::Deface()\n");
   int c;
   for(c=0; c < invol->width; c++){
     int r,s,f;
@@ -353,10 +353,10 @@ int FsDefacer::Deface(void)
   return(0);
 }
 
-int FsDefacer::FaceIntensityStats(void)
+int MiDeface::FaceIntensityStats(void)
 {
-  if(faceseg == NULL) FsDefacer::SegFace();
-  printf("FsDefacer::FaceIntensityStats()\n");
+  if(faceseg == NULL) MiDeface::SegFace();
+  printf("MiDeface::FaceIntensityStats()\n");
 
   int c;
   double sum1=0, sumsq1=0, sum2=0, sumsq2=0;
@@ -434,7 +434,7 @@ int FsDefacer::FaceIntensityStats(void)
   return(0);
 }
 
-int FsDefacer::VoxOutOfBounds(int c, int r, int s)
+int MiDeface::VoxOutOfBounds(int c, int r, int s)
 {
   if(c < cPad) return(1);
   if(c >= invol->width - cPad) return(1);
@@ -445,7 +445,7 @@ int FsDefacer::VoxOutOfBounds(int c, int r, int s)
   return(0);
 }
 
-int FsDefacer::SetDeltaDist(void)
+int MiDeface::SetDeltaDist(void)
 {
   // DeltaDist and dL control how finely the surf2vol sampling is done.
   // It is probably ok if both are MinVoxSize/2
@@ -456,7 +456,7 @@ int FsDefacer::SetDeltaDist(void)
 }
 
 /*!
-  \fn int FsDefacer::DistanceBounds(void)
+  \fn int MiDeface::DistanceBounds(void)
   \brief Computes the min and max distance from template face needed
   to cover individual's face. At each face point, the headmask is
   sampled over a range of depths. When projecting inward, the distance
@@ -471,9 +471,9 @@ int FsDefacer::SetDeltaDist(void)
   low as the unmasked part will likely be behind some mask, and any
   problems are usually around the chin.
 */
-int FsDefacer::DistanceBounds(void)
+int MiDeface::DistanceBounds(void)
 {
-  printf("FsDefacer::DistanceBounds() DeltaDist=%g\n",DeltaDist);
+  printf("MiDeface::DistanceBounds() DeltaDist=%g\n",DeltaDist);
 
   MRIS_SurfRAS2VoxelMap* sras2v_map = MRIS_makeRAS2VoxelMap(headmask, tempsurf);
 
@@ -498,7 +498,7 @@ int FsDefacer::DistanceBounds(void)
       y = v->y - v->ny * d;
       z = v->z - v->nz * d;
       MRIS_useRAS2VoxelMap(sras2v_map, headmask, x, y, z, &c, &r, &s);
-      int OutOfBounds = FsDefacer::VoxOutOfBounds(c,r,s);
+      int OutOfBounds = MiDeface::VoxOutOfBounds(c,r,s);
       if(OutOfBounds) break;
       int ic=nint(c);
       int ir=nint(r);
@@ -519,7 +519,7 @@ int FsDefacer::DistanceBounds(void)
       y = v->y + v->ny * d;
       z = v->z + v->nz * d;
       MRIS_useRAS2VoxelMap(sras2v_map, headmask, x, y, z, &c, &r, &s);
-      int OutOfBounds = FsDefacer::VoxOutOfBounds(c,r,s);
+      int OutOfBounds = MiDeface::VoxOutOfBounds(c,r,s);
       if(OutOfBounds) break;
       int ic=nint(c);
       int ir=nint(r);
@@ -592,7 +592,7 @@ int FsDefacer::DistanceBounds(void)
 
   return(0);
 }
-int FsDefacer::ripple(LABEL *label)
+int MiDeface::ripple(LABEL *label)
 {
   printf("ripple (%g,%g,%g) amp=%g period=%g\n",
 	 ripplecenter[0],ripplecenter[1],ripplecenter[2],
@@ -650,7 +650,7 @@ int FsDefacer::ripple(LABEL *label)
   return(0);
 }
 
-int FsDefacer::watermark(LABEL *watermark, double dwatermark)
+int MiDeface::watermark(LABEL *watermark, double dwatermark)
 {
   printf("Applying watermark %d\n",watermark->n_points);
   for(int n=0; n < watermark->n_points; n++){
@@ -671,7 +671,7 @@ char *outvolpath=NULL, *facesegpath=NULL, *minsurfpath=NULL, *maxsurfpath=NULL;
 char *distdatpath=NULL, *distboundspath=NULL, *distoverlaypath=NULL, *statspath=NULL;
 char *watermarkpath = NULL;
 double dwatermark = 1;
-FsDefacer defacer;
+MiDeface defacer;
 double DistInMinList[200],DistInMaxList[200],DistInMin=2,DistInMax=20;
 double DistInList[200];
 char *outtempsurfpath=NULL;
