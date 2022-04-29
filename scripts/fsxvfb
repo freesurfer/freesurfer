@@ -39,8 +39,11 @@ if($status) then
   exit 1;
 endif
 
-# look for an open display
-@ D = 10
+# Look for an open display. Start looking at 50 with the hope
+# that is sufficiently large to miss likely displays that people
+# have open. Not sure what the max would be
+if($?FSXVFB_START_D == 0) setenv FSXVFB_START_D 50
+@ D = $FSXVFB_START_D
 set hit = 0;
 while ($D < 1000)
   set lockfile = /tmp/.X$D-lock
