@@ -7,6 +7,7 @@ endif
 set VERSION = '$Id$';
 set scriptname = `basename $0`
 
+set fmt = mgz
 set invol = ();
 set outvol = ();
 set facemask = ()
@@ -537,6 +538,11 @@ while( $#argv != 0 )
       set DoSamsegXMask = 1
       breaksw
 
+    case "--ndil":
+      if($#argv < 1) goto arg1err;
+      set nSegDil = $argv[1]; shift;
+      breaksw
+
     case "--xmask-eyeballs":
       set XEyeBalls = 1; #Samseg only
       breaksw
@@ -558,6 +564,10 @@ while( $#argv != 0 )
       breaksw
     case "--no-samseg-fast":
       set SamsegFast = 0;
+      breaksw
+    case "--no-samseg":
+      set SamsegFast = 0;
+      set DoSamsegXMask = 0
       breaksw
 
     case "--atlas":
@@ -687,14 +697,24 @@ while( $#argv != 0 )
       set UseOrMask = 0;
       breaksw
 
-    case "--log":
-      if($#argv < 1) goto arg1err;
-      set LF = $argv[1]; shift;
+    case "--mgz"
+      set fmt = mgz;
+      breaksw
+    case "--nii"
+      set fmt = nii
+      breaksw
+    case "--nii.gz"
+      set fmt = nii.gz
       breaksw
 
     case "--display":
       if($#argv < 1) goto arg1err;
       setenv FSXVFB_START_D $argv[1]; shift;
+      breaksw
+
+    case "--log":
+      if($#argv < 1) goto arg1err;
+      set LF = $argv[1]; shift;
       breaksw
 
     case "--nolog":
@@ -753,7 +773,7 @@ if(! -e $atlasdir) then
 endif
 
 if($#outdir) then
-  if($#outvol == 0) set outvol = $outdir/defaced.mgz
+  if($#outvol == 0) set outvol = $outdir/defaced.$fmt
   if($#tmpdir == 0) set tmpdir = $outdir
   if($#facemask == 0) set facemask = $outdir/face.mask.mgz
   if($#LF == 0) then
@@ -828,6 +848,9 @@ usage_exit:
   echo " --no-post : do not make a head surface after defacing"
   echo " --threads nthreads"
   echo " --force : force reprocessing (not applicable if --odir has not been used)"
+  echo " --nii : use nifti format as output (only when output files are not specified)"
+  echo " --nii.gz : use compressed nifti format as output (only when output files are not specified)"
+  echo " --mgz : use compressed mgh format as output (default)"
   echo " --atlas atlasdir"
   echo " --expert xopts"
   echo " --display DisplayNo : set Xvfb display no for taking pics"
