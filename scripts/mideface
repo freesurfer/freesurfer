@@ -657,6 +657,19 @@ while( $#argv != 0 )
       set RipplePeriod = $argv[1]; shift;
       breaksw
 
+    case "--check":
+      if($#argv < 1) goto arg1err;
+      set vol = $argv[1]; shift;
+      set outfile = ()
+      if($#argv) then 
+        set outfile = $argv[1]; shift;
+        rm -f $outfile
+      endif
+      set cmd = (mri_defacer --check-code $vol $outfile)
+      $cmd
+      exit $status
+      breaksw
+
     case "--apply":
       if($#argv < 4) goto arg4err;
       set vol = $argv[1]; shift;
@@ -855,8 +868,13 @@ usage_exit:
   echo " --expert xopts"
   echo " --display DisplayNo : set Xvfb display no for taking pics"
   echo ""
-  echo "To apply midfacer output to a second volume"
+  echo "To apply midface output to a second volume"
   echo " --apply vol facemask reg output : apply to another volume (use regheader if no reg needed)"
+  echo ""
+  echo "To check whther a volume has been defaced"
+  echo " --check vol <outfile>"
+  echo "  This will print a 1 to stdout if this is an output of mideface or a 0 otherwise"
+  echo "  outfile is an optional argument. If present, then the 0/1 will be printed in ascii to this file"
   echo ""
 
   if(! $PrintHelp) exit 1;
