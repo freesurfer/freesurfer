@@ -165,7 +165,8 @@ else
   set samseg = $samsegdir/seg.mgz
   set ud = (`UpdateNeeded $samseg $invol`)
   if($ud || $ForceUpdate) then
-    set cmd = (samseg --i $invol --o $samsegdir --threads $threads --block-coordinate-descent)
+    set cmd = (samseg --i $invol --o $samsegdir --threads $threads)
+    if($SamsegFast)  set cmd = ($cmd --block-coordinate-descent)
     if($#SamsegJson) set cmd = ($cmd --options $SamsegJson)
     if($#InitReg) set cmd = ($cmd --initlta $InitReg);
     set xopts = `fsr-getxopts samseg $XOptsFile`;
@@ -476,6 +477,20 @@ while( $#argv != 0 )
     case "--o":
       if($#argv < 1) goto arg1err;
       set outvol = $argv[1]; shift;
+      set stem = `fname2stem $outvol`
+      if($status) then
+        echo "$outvol is not a recognized format, treating as an output folder"
+        set outdir = $outvol;
+        set outvol = ()
+        set DoPostHeadSurf = 1
+        exit 1
+      endif
+      breaksw
+
+    case "--odir":
+      if($#argv < 1) goto arg1err;
+      set outdir = $argv[1]; shift;
+      set DoPostHeadSurf = 1
       breaksw
 
     case "--facemask":
@@ -495,12 +510,6 @@ while( $#argv != 0 )
       set FillConstIn  = 0;
       set FillConstOut = 0;
       set FillType = 2
-      breaksw
-
-    case "--odir":
-      if($#argv < 1) goto arg1err;
-      set outdir = $argv[1]; shift;
-      set DoPostHeadSurf = 1
       breaksw
 
     case "--i":
