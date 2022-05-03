@@ -2,6 +2,9 @@ project(fspython)
 
 add_subdirectories(bindings)
 
+# 
+add_custom_target(install-fspy COMMAND ${CMAKE_COMMAND} -D COMPONENT=fspy -P cmake_install.cmake)
+
 # run 'pip install' and direct package installs to freesurfer/python/packages
 install(CODE "
   message(STATUS \"Installing freesurfer python package\")
@@ -9,6 +12,7 @@ install(CODE "
   if(NOT \${retcode} STREQUAL 0)
     message(FATAL_ERROR \"Could not install freesurfer python module\")
   endif()"
+  COMPONENT fspy
 )
 
 # install the fspython script
