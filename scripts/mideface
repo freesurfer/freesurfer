@@ -148,7 +148,7 @@ set samsegdir = $tmpdir/samseg
 set samseglta = $samsegdir/template.lta
 if($DoSamsegXMask == 0) then
   # Run samseg but only to get the reg
-  set ud = (`UpdateNeeded $samseglta $invol`)
+  set ud = (`UpdateNeeded $samseglta $invol $InitReg`)
   if($ud || $ForceUpdate) then
     set cmd = (run_samseg -i $invol -o $tmpdir/samseg --reg-only --threads $threads)
     if($#InitReg) set cmd0 = ($cmd0 --init-reg $InitReg)
@@ -163,7 +163,7 @@ else
   # In theory, samseg could be used instead of seghead
   if($#SamsegJson) cp $SamsegJson $tmpdir
   set samseg = $samsegdir/seg.mgz
-  set ud = (`UpdateNeeded $samseg $invol`)
+  set ud = (`UpdateNeeded $samseg $invol $InitReg`)
   if($ud || $ForceUpdate) then
     set cmd = (samseg --i $invol --o $samsegdir --threads $threads)
     if($SamsegFast)  set cmd = ($cmd --block-coordinate-descent)
