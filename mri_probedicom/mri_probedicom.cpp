@@ -98,6 +98,7 @@ FILE *fp;
 int DisplayImage = 0;
 int DoPartialDump = 1;
 int DoTConvertSec = 0;
+int DoSiemensAscii = 1;
 
 //int AllocElement(DCM_ELEMENT *e);
 //int FreeElement(DCM_ELEMENT *e);
@@ -446,10 +447,20 @@ static int parse_commandline(int argc, char **argv) {
       DisplayImage = 1;
       DoPartialDump = 0;
       nargsused = 0;
-    } else if (!strcmp(option, "--partial")) {
+    } 
+    else if (!strcmp(option, "--partial")) {
       DoPartialDump = 1;
       nargsused = 0;
-    } else if (!strcmp(option, "--dictionary") ||
+    } 
+    else if (!strcmp(option, "--no-siemens-ascii")) {
+      DoSiemensAscii = 0;
+      nargsused = 0;
+    } 
+    else if (!strcmp(option, "--siemens-ascii")) {
+      DoSiemensAscii = 1;
+      nargsused = 0;
+    } 
+    else if (!strcmp(option, "--dictionary") ||
                !strcmp(option, "--dic")) {
       rt = system("dcm_print_dictionary");
       if (rt != 0) {
@@ -665,8 +676,10 @@ static void check_options(void) {
       exit(1);
     }
     PartialDump(dicomfile,stdout);
-    DumpSiemensASCII(dicomfile, stdout);
-    if(DoAltDump) DumpSiemensASCIIAlt(dicomfile, stdout);
+    if(DoSiemensAscii){
+      DumpSiemensASCII(dicomfile, stdout);
+      if(DoAltDump) DumpSiemensASCIIAlt(dicomfile, stdout);
+    }
     exit(0);
   }
 
@@ -1158,7 +1171,6 @@ int PartialDump(const char *dicomfile, FILE *fp)
     FreeElementData(e);
     free(e);
   }
-
   if(GetSiemensCrit){
     e = GetElementFromFile(dicomfile, 0x51, 0x1016);
     if (e != NULL) {
@@ -1185,7 +1197,7 @@ int DumpSiemensASCII(const char *dicomfile, FILE *fpout) {
 
   e = GetElementFromFile(dicomfile, 0x8, 0x70);
   if (e == NULL) {
-    printf("ERROR: reading dicom file %s\n",dicomfile);
+    printf("ERROR: reading dicom Siemens ASCII tag 0x8 0x70 from %s\n",dicomfile);
     exit(1);
   }
 
@@ -1277,7 +1289,7 @@ int DumpSiemensASCIIAlt(const char *dicomfile, FILE *fpout) {
 
   e = GetElementFromFile(dicomfile, 0x8, 0x70);
   if (e == NULL) {
-    printf("ERROR: reading dicom file %s\n",dicomfile);
+    printf("ERROR: reading dicom Siemens ASCII (Alt) tag 0x8 0x70 from %s\n",dicomfile);
     exit(1);
   }
 
