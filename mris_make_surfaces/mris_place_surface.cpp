@@ -1085,6 +1085,7 @@ static int parse_commandline(int argc, char **argv) {
     }
     // ======== Cost function weights ================
     else if (!stricmp(option, "--intensity")) {
+      if(nargc < 1) CMDargNErr(option,1);
       parms.l_intensity = atof(pargv[0]) ;
       printf("l_intensity = %2.3f\n", parms.l_intensity);
       nargsused = 1;
