@@ -8,7 +8,7 @@ target_link_libraries(mri_normalize utils)
 install(TARGETS mri_normalize DESTINATION bin)
 
 host_os()
-if(HOST_OS MATCHES "CentOS8")
+if( (HOST_OS MATCHES "CentOS8") OR (HOST_OS MATCHES "Ubuntu20") )
    message(STATUS "mri_normalize test will be skipped on ${HOST_OS}")
 else()
    add_test_script(NAME mri_normalize_test SCRIPT test.sh)
