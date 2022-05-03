@@ -861,6 +861,7 @@ arg4err:
 usage_exit:
   echo ""
   echo "midefacer : minimally invasive defacing tool"
+  echo ""
   echo " --i volume to deface"
   echo " --o defaced input"
   echo " --facemask facemask"
@@ -906,3 +907,5 @@ exit 1;
 
 #---- Everything below here is printed out as part of help -----#
 BEGINHELP
+
+See https://surfer.nmr.mgh.harvard.edu/fswiki/MiDeFace for more info
