@@ -483,7 +483,6 @@ while( $#argv != 0 )
         set outdir = $outvol;
         set outvol = ()
         set DoPostHeadSurf = 1
-        exit 1
       endif
       breaksw
 
