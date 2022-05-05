@@ -1930,7 +1930,7 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     else if (cost == "SAD")
       P.cost = Registration::SAD;
     else if (cost == "SB")
-      P.cost = Registration:SB;
+      P.cost = Registration::SB;
     else
     {
       cout << "ERROR: cost function " << cost << " unknown! " << endl;
