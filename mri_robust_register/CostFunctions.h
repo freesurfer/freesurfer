@@ -67,6 +67,8 @@ public:
   {
     return sqrt(var(i,frame));
   }
+  //! Get 2-norm of intensity values
+  static double norm(MRI * mri, int frame);
 
   //! Get median of intensity values
   static float median(MRI *i);
@@ -150,6 +152,9 @@ public:
     H.smooth(fwhm);
     return -H.computeNCC();
   }
+  
+  //! Segmentation Based Registration (http://doi.org/10.1109/LSP.2017.2754263)
+  static double SBCost(MRI * i1, MRI * i2);
 
 
   //! not implemented and not sure where they are from? Flirt?

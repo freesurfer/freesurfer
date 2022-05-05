@@ -58,7 +58,7 @@ public:
 //! The different cost functions
   enum Cost
   {
-    LS = 0, ROB, MI, NMI, ECC, NCC, SCR, TB, LNCC, SAD
+    LS = 0, ROB, MI, NMI, ECC, NCC, SCR, TB, LNCC, SAD, SB
   };
 
   //! Default constructor
