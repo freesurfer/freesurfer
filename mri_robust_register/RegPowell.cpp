@@ -132,7 +132,7 @@ double RegPowell::costFunction(const vnl_vector<double>& p)
 
   // special case for sum of squared differences:
   if (tocurrent->costfun == LS || tocurrent->costfun == TB || tocurrent->costfun==LNCC
-       || tocurrent->costfun==SAD || tocurrent->costfun==NCC )
+       || tocurrent->costfun==SAD || tocurrent->costfun==NCC || tocurrent->costfun==SB  )
   {
     // iscale should be taken care of here:
     double dd;
