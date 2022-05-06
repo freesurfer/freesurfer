@@ -1223,6 +1223,8 @@ double CostFunctions::SBCost(MRI * i1, MRI * i2)
         norm2 += f2*f2;
         counter++;
       }
+  norm1 = sqrt(norm1);
+  norm2 = sqrt(norm2);
       
   // normalize and compute sign
   double prod = 0.0;
