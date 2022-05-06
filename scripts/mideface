@@ -7,6 +7,7 @@ endif
 set VERSION = '$Id$';
 set scriptname = `basename $0`
 
+set fmt = mgz
 set invol = ();
 set outvol = ();
 set facemask = ()
@@ -14,10 +15,11 @@ set ForceUpdate = 0
 set DoPostHeadSurf = 0
 set threads = 1
 set xmask = ()
-set DoSynthSegXMask = 0;
-set DoSamSegXMask = 0;
+set DoSamsegXMask = 1;
+set nSegDil = 1;
+set SamsegFast = 1
 set XEyeBalls = 1; #Samseg only
-set nSegDil = 0;
+set DoSynthSegXMask = 0;
 set DoBBR = 0
 set BBRDoF = 9
 set defacingsubject = defacing-atlas
@@ -27,7 +29,7 @@ set FillConstIn = ()
 set FillConstOut = ()
 set DoEars = 1;
 set DoForehead = 0;
-set DoBackOfHead = 1
+set DoBackOfHead = 0
 set DoPics = 0
 set SubjCode = ()
 set PicAnnot = ()
@@ -37,7 +39,10 @@ set RipplePeriod = 30
 set dwatermark = 5;
 set atlasdir = ()
 set imconvert = /usr/bin/convert
-
+set XOptsFile = ()
+set SamsegJson = ()
+set UseOrMask = 0
+set InitReg = ()
 set tmpdir = ();
 set cleanup = 1;
 set LF = ();
@@ -64,7 +69,6 @@ parse_args_return:
 goto check_params;
 check_params_return:
 
-if($#atlasdir == 0) set atlasdir = $FREESURFER/average/mideface-atlas
 set ctab = $atlasdir/deface.ctab
 set templatesurf = $atlasdir/average.head.dec44.us7.remesh3.ripple.surf
 set templatevol = $atlasdir/average.head.mgz
@@ -135,15 +139,21 @@ echo "UseXvfb $UseXvfb" | tee -a $LF
 set runxvfb = fsxvfb
 if(! $UseXvfb) set runxvfb = ()
 
+if($#XOptsFile) cp $XOptsFile $tmpdir
+if($#InitReg)   cp $InitReg   $tmpdir
+
 #========================================================
 # Register to samseg atlas, maybe run samseg for xmask
 set samsegdir = $tmpdir/samseg
 set samseglta = $samsegdir/template.lta
-if($DoSamSegXMask == 0) then
+if($DoSamsegXMask == 0) then
   # Run samseg but only to get the reg
-  set ud = (`UpdateNeeded $samseglta $invol`)
+  set ud = (`UpdateNeeded $samseglta $invol $InitReg`)
   if($ud || $ForceUpdate) then
     set cmd = (run_samseg -i $invol -o $tmpdir/samseg --reg-only --threads $threads)
+    if($#InitReg) set cmd0 = ($cmd0 --init-reg $InitReg)
+    set xopts = `fsr-getxopts run_samseg $XOptsFile`;
+    set cmd = ($cmd $xopts);
     echo $cmd | tee -a $LF
     fs_time $cmd |& tee -a $LF
     if($status) goto error_exit
@@ -151,10 +161,16 @@ if($DoSamSegXMask == 0) then
 else
   # Running full samseg may require 14GB of mem and add ~20min to run time
   # In theory, samseg could be used instead of seghead
+  if($#SamsegJson) cp $SamsegJson $tmpdir
   set samseg = $samsegdir/seg.mgz
-  set ud = (`UpdateNeeded $samseg $invol`)
+  set ud = (`UpdateNeeded $samseg $invol $InitReg`)
   if($ud || $ForceUpdate) then
-    set cmd = (samseg --i $invol --o $samsegdir --threads $threads --block-coordinate-descent)
+    set cmd = (samseg --i $invol --o $samsegdir --threads $threads)
+    if($SamsegFast)  set cmd = ($cmd --block-coordinate-descent)
+    if($#SamsegJson) set cmd = ($cmd --options $SamsegJson)
+    if($#InitReg) set cmd = ($cmd --initlta $InitReg);
+    set xopts = `fsr-getxopts samseg $XOptsFile`;
+    set cmd = ($cmd $xopts);
     echo $cmd | tee -a $LF
     fs_time $cmd |& tee -a $LF
     if($status) goto error_exit
@@ -162,6 +178,9 @@ else
   set seg = $samseg
   set segidlist = (2 3 7 8 16 24 41 42 46 47 165) # 165=skull
   if($XEyeBalls) set segidlist = ($segidlist  259) # these are the eyeballs
+  # Add subcort because it can help in the 2nd mkheadsurf
+  set segidlist = ($segidlist  4  5 10 11 12 13 17 18 26 28 30 31 14 15 16 77 85)
+  set segidlist = ($segidlist 43 44 49 50 51 52 53 54 58 60 62 63)
 endif
 
 if($DoSynthSegXMask) then
@@ -171,6 +190,8 @@ if($DoSynthSegXMask) then
   set ud = (`UpdateNeeded $synthseg $invol`)
   if($ud || $ForceUpdate) then
     set cmd = (synthseg --i $invol --o $synthseg --threads $threads)
+    set xopts = `fsr-getxopts synthseg $XOptsFile`;
+    set cmd = ($cmd $xopts);
     echo $cmd | tee -a $LF
     fs_time $cmd |& tee -a $LF
     if($status) goto error_exit
@@ -182,15 +203,18 @@ if($DoSynthSegXMask) then
   endif
   set seg = $synthseg
   set segidlist = (2 3 7 8 16 41 42 46 47)
+  # Add subcort because it can help in the 2nd mkheadsurf
+  set segidlist = ($segidlist  4  5 10 11 12 13 17 18 26 28 30 31 14 15 16 77 85)
+  set segidlist = ($segidlist 43 44 49 50 51 52 53 54 58 60 62 63)
 endif
 
-if($DoSynthSegXMask || $DoSamSegXMask) then
+if($DoSynthSegXMask || $DoSamsegXMask) then
+  set segdil = $tmpdir/seg.bin.dil.mgz
   # Binarize, and maybe dilate, the synthseg output. A subset of cerebral segids
   # are selected to assure that only cerebral structures are excluded. At 
   # the titme of writing, synthseg only produces cerebral structures, so it is
   # not an issue, but at some point it might start segmenting extracerebral.
   # Probably the only important seg is cortex, maybe skull and eyes.
-  set segdil = $tmpdir/seg.bin.dil.mgz
   set ud = (`UpdateNeeded $segdil $seg`)
   if($ud || $ForceUpdate) then
     set cmd = (mri_binarize --i $seg --match $segidlist --o $segdil)
@@ -237,6 +261,8 @@ if($DoBBR) then
       --no-cortex-label --label $bbrface --init-reg $input2atlaslta --tolf 1e-5 \
       --reg $bbrlta --no-pass1 --$BBRDoF --lh-only  --no-brute2 --include-zero-voxels \
       --surf $templatesurf --target-volume $templatevol)
+    set xopts = `fsr-getxopts bbregister $XOptsFile`;
+    set cmd = ($cmd $xopts);
     echo $cmd | tee -a $LF
     $cmd |& tee -a $LF
     if($status) goto error_exit
@@ -265,6 +291,11 @@ set ud = (`UpdateNeeded $headsurf $invol`)
 if($ud || $ForceUpdate) then
   set cmd = (mkheadsurf -i $invol -o $headmask -surf $headsurf \
     -rescale -no-inflate -fill-holes-islands -mc -no-curv)
+  # Adding samseg here makes the whole thing much more robust
+  # because samseg is bascially provides a head mask
+  if($UseOrMask && $DoSamsegXMask) set cmd = ($cmd -or-mask $samsegdir/seg.mgz)
+  set xopts = `fsr-getxopts mkheadsurf $XOptsFile`;
+  set cmd = ($cmd $xopts);
   echo $cmd | tee -a $LF
   fs_time $cmd |& tee -a $LF
   if($status) goto error_exit
@@ -282,7 +313,7 @@ if($ud || $ForceUpdate) then
   set cmd = (mri_defacer --i $invol --ts $templatesurfsubj \
    --min $minsurf --max $maxsurf --m $facemask --o $outvol \
    --hm $headmask --distdat $distdat --stats $stats \
-   --distbounds $distlab --w $watermark $dwatermark) 
+   --w $watermark $dwatermark) # --distbounds $distlab 
   if($FillType == 2) set cmd = ($cmd --fill-const $FillConstIn $FillConstOut)
   if($DoRipple) set cmd = ($cmd --ripple $RippleAmp $RipplePeriod)
   foreach label ($labellist)
@@ -291,8 +322,9 @@ if($ud || $ForceUpdate) then
   if($DoEars)       set cmd = ($cmd  --l $earleft  2 3 --l $earright 2 3)
   if($DoForehead)   set cmd = ($cmd  --l $forehead 2 3);
   if($DoBackOfHead) set cmd = ($cmd  --l $backofhead 2 3);
-
   if($#xmask) set cmd = ($cmd --xmask $xmask)
+  set xopts = `fsr-getxopts mri_defacer $XOptsFile`;
+  set cmd = ($cmd $xopts);
   echo $cmd | tee -a $LF
   fs_time $cmd |& tee -a $LF
   if($status) goto error_exit
@@ -319,7 +351,11 @@ set postheadsurf = $tmpdir/head.defaced.surf
 if($DoPostHeadSurf) then
   set ud = (`UpdateNeeded $posthead $outvol`)
   if($ud || $ForceUpdate) then
-    set cmd = (mkheadsurf -i $outvol -o $posthead -surf $postheadsurf -rescale -no-inflate -fill-holes-islands -mc -no-curv)
+    set xopts = `fsr-getxopts mkheadsurf $XOptsFile`;
+    set cmd = (mkheadsurf -i $outvol -o $posthead -surf $postheadsurf \
+      -rescale -no-inflate -fill-holes-islands -mc -no-curv $xopts)
+    # can't do samseg here, duh, but can use xmask if there
+    if($UseOrMask && $#xmask) set cmd = ($cmd -or-mask $xmask)
     echo $cmd | tee -a $LF
     fs_time $cmd |& tee -a $LF
     if($status) goto error_exit
@@ -327,13 +363,24 @@ if($DoPostHeadSurf) then
 endif
 
 # Take some pictures for QA
-set facepic = $tmpdir/face-before.png
-set postfacepic = $tmpdir/face-after.png
+if($#SubjCode == 0) then
+  set facepic = $tmpdir/face-before.png
+  set postfacepic = $tmpdir/face-after.png
+  set gif = $tmpdir/face-before+after.gif
+else
+  # Putting SubjCode in the name makes it easier for a slide show
+  set facepic = $tmpdir/$SubjCode.face-before.png
+  set postfacepic = $tmpdir/$SubjCode.face-after.png
+  set gif = $tmpdir/$SubjCode.face-before+after.gif
+endif
 if($DoPics) then
   set ud = `UpdateNeeded $facepic $headsurf $fmoverlay`
   if($ud || $ForceUpdate) then
-    set cmd = (freeview -f ${headsurf}:affinexfm=${input2atlaslta}:overlay=${fmoverlay}:"overlay_threshold=.01,.011,.5"\
+    # :overlay=${fmoverlay}:"overlay_threshold=.01,.011,.5"
+    set cmd = (freeview -f ${headsurf}:affinexfm=${input2atlaslta}\
        --hide-3d-slices -viewport 3d -cam Azimuth -90 -ss $facepic --quit)
+    set xopts = `fsr-getxopts freeview-before $XOptsFile`;
+    set cmd = ($cmd $xopts);
     echo $cmd | tee -a $LF
     $runxvfb $cmd |& tee -a $LF
     if($status) goto error_exit
@@ -348,6 +395,8 @@ if($DoPics) then
     if($ud || $ForceUpdate) then
       set cmd = (freeview -f ${postheadsurf}:affinexfm=$input2atlaslta --hide-3d-slices \
         -viewport 3d -cam Azimuth -90 -ss $postfacepic --quit)
+      set xopts = `fsr-getxopts freeview-after $XOptsFile`;
+      set cmd = ($cmd $xopts);
       echo $cmd | tee -a $LF
       $runxvfb $cmd |& tee -a $LF
       if($status) goto error_exit
@@ -360,7 +409,6 @@ if($DoPics) then
   endif
   if(-e $facepic && -e $postfacepic && -e $imconvert) then
     # This is make an animation
-    set gif = $tmpdir/face-before+after.gif
     set ud = `UpdateNeeded $gif $facepic $postfacepic`
     if($ud || $ForceUpdate) then
       set cmd = ($imconvert -loop 0 -delay 60 $facepic $postfacepic $gif)
@@ -370,7 +418,6 @@ if($DoPics) then
     endif
   endif
 endif
-
 
 # Make a command line for viewing
 set cmd = (fsvglrun freeview $invol $outvol --hide-3d-slices -viewport 3d \
@@ -430,6 +477,19 @@ while( $#argv != 0 )
     case "--o":
       if($#argv < 1) goto arg1err;
       set outvol = $argv[1]; shift;
+      set stem = `fname2stem $outvol`
+      if($status) then
+        echo "$outvol is not a recognized format, treating as an output folder"
+        set outdir = $outvol;
+        set outvol = ()
+        set DoPostHeadSurf = 1
+      endif
+      breaksw
+
+    case "--odir":
+      if($#argv < 1) goto arg1err;
+      set outdir = $argv[1]; shift;
+      set DoPostHeadSurf = 1
       breaksw
 
     case "--facemask":
@@ -449,12 +509,6 @@ while( $#argv != 0 )
       set FillConstIn  = 0;
       set FillConstOut = 0;
       set FillType = 2
-      breaksw
-
-    case "--odir":
-      if($#argv < 1) goto arg1err;
-      set outdir = $argv[1]; shift;
-      set DoPostHeadSurf = 1
       breaksw
 
     case "--i":
@@ -492,7 +546,12 @@ while( $#argv != 0 )
     case "--xmask-samseg":
       if($#argv < 1) goto arg1err;
       set nSegDil = $argv[1]; shift;
-      set DoSamSegXMask = 1
+      set DoSamsegXMask = 1
+      breaksw
+
+    case "--ndil":
+      if($#argv < 1) goto arg1err;
+      set nSegDil = $argv[1]; shift;
       breaksw
 
     case "--xmask-eyeballs":
@@ -500,6 +559,26 @@ while( $#argv != 0 )
       breaksw
     case "--no-xmask-eyeballs":
       set XEyeBalls = 0;
+      breaksw
+
+    case "--samseg-json":
+      if( $#argv < 1) goto arg1err;
+      set SamsegJson = $argv[1]; shift;
+      breaksw
+    case "--no-samseg-json":
+      set SamsegJson = ()
+      breaksw
+    case "--samseg-fast":
+      set DoSamsegXMask = 1
+      set nSegDil = 1
+      set SamsegFast = 1;
+      breaksw
+    case "--no-samseg-fast":
+      set SamsegFast = 0;
+      breaksw
+    case "--no-samseg":
+      set SamsegFast = 0;
+      set DoSamsegXMask = 0
       breaksw
 
     case "--atlas":
@@ -589,6 +668,28 @@ while( $#argv != 0 )
       set RipplePeriod = $argv[1]; shift;
       breaksw
 
+    case "--init-reg":
+      if($#argv < 1) goto arg1err;
+      set InitReg = $argv[1]; shift;
+      if(! -e $InitReg) then
+        echo "ERROR: cannot find $InitReg"
+        exit 1
+      endif
+      breaksw
+
+    case "--check":
+      if($#argv < 1) goto arg1err;
+      set vol = $argv[1]; shift;
+      set outfile = ()
+      if($#argv) then 
+        set outfile = $argv[1]; shift;
+        rm -f $outfile
+      endif
+      set cmd = (mri_defacer --check-code $vol $outfile)
+      $cmd
+      exit $status
+      breaksw
+
     case "--apply":
       if($#argv < 4) goto arg4err;
       set vol = $argv[1]; shift;
@@ -612,6 +713,36 @@ while( $#argv != 0 )
 
     case "--no-ripple":
       set DoRipple = 0
+      breaksw
+
+    case "--expert":
+      if( $#argv < 1) goto arg1err;
+      set XOptsFile = $argv[1]; shift;
+      fsr-checkxopts $XOptsFile
+      if($status) goto error_exit;
+      set XOptsFile = `getfullpath $XOptsFile`
+      breaksw
+
+    case "--or-mask"
+      set UseOrMask = 1;
+      breaksw
+    case "--no-or-mask"
+      set UseOrMask = 0;
+      breaksw
+
+    case "--mgz"
+      set fmt = mgz;
+      breaksw
+    case "--nii"
+      set fmt = nii
+      breaksw
+    case "--nii.gz"
+      set fmt = nii.gz
+      breaksw
+
+    case "--display":
+      if($#argv < 1) goto arg1err;
+      setenv FSXVFB_START_D $argv[1]; shift;
       breaksw
 
     case "--log":
@@ -668,8 +799,14 @@ if(! -e $invol) then
   exit 1;
 endif
 
+if($#atlasdir == 0) set atlasdir = $FREESURFER/average/mideface-atlas
+if(! -e $atlasdir) then
+  echo "ERROR: cannot find atlasdir $atlasdir"
+  exit 1
+endif
+
 if($#outdir) then
-  if($#outvol == 0) set outvol = $outdir/defaced.mgz
+  if($#outvol == 0) set outvol = $outdir/defaced.$fmt
   if($#tmpdir == 0) set tmpdir = $outdir
   if($#facemask == 0) set facemask = $outdir/face.mask.mgz
   if($#LF == 0) then
@@ -691,10 +828,16 @@ if($#xmask && $DoSynthSegXMask) then
   echo "ERROR: cannot use --xmask and --synthseg"
   exit 1
 endif
-if($DoSynthSegXMask && $DoSamSegXMask) then
+if($DoSynthSegXMask && $DoSamsegXMask) then
   echo "ERROR: cannot use both --xmask-synthseg and --xmask-samseg"
   exit 1
 endif
+
+if($SamsegFast && $#SamsegJson) then
+  echo "ERROR: cannot spec --samseg-fast and --samseg-json"
+  exit 1
+endif
+if($SamsegFast) set SamsegJson = $atlasdir/samseg-options.json
 
 goto check_params_return;
 ############--------------##################
@@ -717,17 +860,22 @@ arg4err:
 usage_exit:
   echo ""
   echo "midefacer : minimally invasive defacing tool"
+  echo ""
   echo " --i volume to deface"
   echo " --o defaced input"
   echo " --facemask facemask"
   echo " --odir outputdir (turns on PostHeadSurf)"
   echo " --xmask xmask (exclusion mask)"
-  echo " --xmask-samseg ndilations : segment input using samseg (14GB, +~20min)"
+  echo " --xmask-samseg ndilations : segment input using samseg (14GB, +~20-40min)"
+  echo "   --samseg-json json: configure samseg"
+  echo " --samseg-fast : configure samseg to run quickly; sets ndil=1 (default)"
+  echo " --no-samseg-fast : do NOT configure samseg to run quickly"
+  echo " --init-reg reg.lta : initialize samseg with reg (good in case samseg reg fails)"
   echo " --xmask-synthseg ndilations : segment input using synthseg (35GB, +~20min)"
   echo " --fill-const constIn constOut"
   echo " --fill-zero"
   echo " --no-ears : do not include ears in the defacing"
-  echo " --no-back-of-head : do not include back of head in the defacing"
+  echo " --back-of-head : include back of head in the defacing"
   echo " --forehead : include forehead in the defacing (risks removing brain)"
   echo " --pics : take pics (--no-pics)"
   echo " --code codename : embed codename in pics"
@@ -735,8 +883,20 @@ usage_exit:
   echo " --no-post : do not make a head surface after defacing"
   echo " --threads nthreads"
   echo " --force : force reprocessing (not applicable if --odir has not been used)"
+  echo " --nii : use nifti format as output (only when output files are not specified)"
+  echo " --nii.gz : use compressed nifti format as output (only when output files are not specified)"
+  echo " --mgz : use compressed mgh format as output (default)"
   echo " --atlas atlasdir"
+  echo " --expert xopts"
+  echo " --display DisplayNo : set Xvfb display no for taking pics"
+  echo ""
+  echo "To apply midface output to a second volume"
   echo " --apply vol facemask reg output : apply to another volume (use regheader if no reg needed)"
+  echo ""
+  echo "To check whther a volume has been defaced"
+  echo " --check vol <outfile>"
+  echo "  This will print a 1 to stdout if this is an output of mideface or a 0 otherwise"
+  echo "  outfile is an optional argument. If present, then the 0/1 will be printed in ascii to this file"
   echo ""
 
   if(! $PrintHelp) exit 1;
@@ -746,3 +906,5 @@ exit 1;
 
 #---- Everything below here is printed out as part of help -----#
 BEGINHELP
+
+See https://surfer.nmr.mgh.harvard.edu/fswiki/MiDeFace for more info

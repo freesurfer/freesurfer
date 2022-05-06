@@ -115,6 +115,7 @@ add_library(utils STATIC
   matfile.cpp
   matrix.cpp
   mgh_filter.cpp
+  mideface.cpp
   min_heap.cpp
   morph.cpp
   mosaic.cpp

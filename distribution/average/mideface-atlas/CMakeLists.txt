@@ -1,5 +1,6 @@
 install_symlinks(
   README
+  samseg-options.json
   average.head.mgz
   average.headmask.mgz  
   average.head.surf

@@ -279,19 +279,29 @@ class spherical_loss(object):
         return
 
 
-    def atlas_likelihood(self, weights):
+    def atlas_likelihood(self, weights, use_variance=True):
         def loss(y_true, y_pred):
             dist_elts = tf.squeeze(self.dist_elts)[tf.newaxis,...,tf.newaxis]
-            nchannels = y_pred.get_shape().as_list()[-1] // 3   # sub, atlas mean, atlas var
-            sub = y_pred[...,0:nchannels]
-            #atlas_mean = tf.repeat(y_pred[...,nchannels:2*nchannels], y_pred.get_shape().as_list()[0], axis=0)
-            #atlas_var = tf.repeat(y_pred[...,2*nchannels:], y_pred.get_shape().as_list()[0], axis=0)
-            atlas_mean = y_pred[...,nchannels:2*nchannels]
-            atlas_var = y_pred[...,2*nchannels:]
-            diff_sq = tf.math.squared_difference(atlas_mean, sub)
-            logl = tf.math.divide_no_nan(diff_sq, atlas_var)
+            if use_variance:
+                nchannels = y_pred.get_shape().as_list()[-1] // 3   # sub, atlas mean, atlas var
+                sub = y_pred[...,0:nchannels]
+                atlas_mean = y_pred[...,nchannels:2*nchannels]
+                atlas_var = y_pred[...,2*nchannels:]
+                diff_sq = tf.math.squared_difference(atlas_mean, sub)
+                logl = tf.math.divide_no_nan(diff_sq, atlas_var)
+                eps = 1e-7
+                log_var = tf.math.log(tf.math.sqrt(var+eps))
+                logl = weights * (-log_var - logl)
+            else:
+                nchannels = y_pred.get_shape().as_list()[-1] // 2   # sub, atlas mean, atlas var
+                sub = y_pred[...,0:nchannels]
+                atlas_mean = y_pred[...,nchannels:2*nchannels]
+                diff_sq = tf.math.squared_difference(atlas_mean, sub)
+                logl = weights * diff_sq
+
             mean_error = tf.reduce_mean(dist_elts*logl)
-            return weights * mean_error
+            return mean_error
+
         return loss
 
     def atlas_dice_loss(self, weight, warped_segs):
@@ -304,6 +314,38 @@ class spherical_loss(object):
             return weight * total_loss
 
         dice_loss = self.dice_loss(1)
+        return loss
+
+    def masked_power_loss(self, mask=None, power=2, negate=False, thresh=None):
+        def loss(_, y_pred):
+            y_pred = y_pred[:, self.pad:-self.pad, self.pad:-self.pad]
+            if mask is not None:
+                y_pred = y_pred * mask
+            
+            if thresh is not None:
+                tmask = tf.cast(tf.math.abs(y_pred) >= thresh, y_pred.dtype)
+                y_pred *= tmask
+
+            yp = tf.reduce_mean(y_pred, axis=0)  # average across the batch
+            tpow = tf.math.pow(yp, power) ;
+            if negate:
+                tpow *= -1
+            return tf.reduce_mean(self.dist_elts_nopad[tf.newaxis, ..., tf.newaxis] * tpow)
+
+        return loss
+
+    def thresh_loss(self, thresh=.2, power=None, negate=False):
+        def loss(_, y_pred):
+            y_pred = y_pred[:, self.pad:-self.pad, self.pad:-self.pad]
+            mask = tf.cast(tf.math.abs(y_pred) >= thresh, y_pred.dtype)
+            if power is not None:
+                y_pred = tf.math.pow(y_pred, power)
+
+            sgn = -1 if negate else 1
+            y_pred = sgn * y_pred * mask
+
+            return tf.reduce_mean(self.dist_elts_nopad[tf.newaxis, ..., tf.newaxis] * y_pred)
+
         return loss
 
     def dice_loss(self, weight):
@@ -348,7 +390,8 @@ class spherical_loss(object):
 
             for ax in range(1, len(y_pred.shape)-1):
                 dx = (tf.roll(y_pred, 1, axis=ax) - tf.roll(y_pred, -1, axis=ax))
-                dx = tf.math.divide_no_nan(dx, de)
+                if ax == 1:
+                    dx = tf.math.divide_no_nan(dx, de)
                 if (penalty == 'l2'):
                     dx *= dx
                 else:
@@ -471,15 +514,76 @@ class spherical_loss(object):
         retval = tf.reduce_mean(cc*self.dist_elts_nopad[np.newaxis,...,np.newaxis])
         return retval
 
-    def NCC_loss(self, weight):
+    def ncc_signed(self, I, J):
+        """
+        local (over window) normalized cross correlation
+        """
+        # get dimension of volume
+        # assumes I, J are sized [batch_size, *vol_shape, nb_feats]
+        ndims = len(I.get_shape().as_list()) - 2
+        assert ndims in [1, 2, 3], "volumes should be 1 to 3 dimensions. found: %d" % ndims
+
+        nchannels = tf.cast(J.shape[ndims+1],tf.float32)
+        # set window size
+        if self.win is None:
+            self.win = [9] * ndims
+
+        # get convolution function
+        conv_fn = getattr(tf.nn, 'conv%dd' % ndims)
+
+        # compute CC squares
+        I2 = I*I
+        J2 = J*J
+        IJ = I*J
+
+        # compute filters
+        sum_filt = tf.ones([*self.win, nchannels, 1])
+        strides = 1
+        if ndims > 1:
+            strides = [1] * (ndims + 2)
+        padding = 'SAME'
+
+        # compute local sums via convolution
+        I_sum = conv_fn(I, sum_filt, strides, padding)
+        J_sum = conv_fn(J, sum_filt, strides, padding)
+        I2_sum = conv_fn(I2, sum_filt, strides, padding)
+        J2_sum = conv_fn(J2, sum_filt, strides, padding)
+        IJ_sum = conv_fn(IJ, sum_filt, strides, padding)
+
+        # compute cross correlation
+        win_size = np.prod(self.win) * nchannels
+        u_I = I_sum/win_size
+        u_J = J_sum/win_size
+
+        cross = IJ_sum - u_J*I_sum - u_I*J_sum + u_I*u_J*win_size
+        I_var = I2_sum - 2 * u_I * I_sum + u_I*u_I*win_size
+        J_var = J2_sum - 2 * u_J * J_sum + u_J*u_J*win_size
+
+        cc = cross / tf.sqrt(I_var*J_var + self.eps)
+
+        # return negative cc.
+        retval = tf.reduce_mean(cc*self.dist_elts_nopad[np.newaxis,...,np.newaxis])
+        return retval
+
+    def NCC_loss(self, win=None, weight=1):
         def loss(I,J):
             if self.pad > 0:
                 I = I[:,self.pad:-self.pad,self.pad:-self.pad,:]
                 J = J[:,self.pad:-self.pad,self.pad:-self.pad,:]
             return - weight * self.ncc(I, J)
             
+        self.win = win
         return loss
 
+    def NCC_signed_loss(self, win=None, weight=1):
+        def loss(I,J):
+            if self.pad > 0:
+                I = I[:,self.pad:-self.pad,self.pad:-self.pad,:]
+                J = J[:,self.pad:-self.pad,self.pad:-self.pad,:]
+            return - weight * self.ncc_signed(I, J)
+            
+        self.win = win
+        return loss
 
     def overlay_loss(self, y_true, y_pred):
         noverlays = len(self.overlay_list)
@@ -522,10 +626,10 @@ class spherical_loss(object):
 
                 if image_sigma is not None:
                     #gdb.set_trace()
-                    retval = weight*tf.sqrt(tf.reduce_mean(tf.math.divide_no_nan(0.5*y_tf,image_sigma_sq)))
+                    retval = weight* tf.reduce_mean(tf.math.divide_no_nan(0.5*y_tf,image_sigma_sq))
                     #retval = tf.debugging.assert_all_finite(retval, 'retval')
                 else:
-                    retval = weight*tf.sqrt(tf.reduce_mean(0.5*y_tf))
+                    retval = weight * tf.reduce_mean(0.5*y_tf)
             except:
                 retval = 100
                 gdb.set_trace()

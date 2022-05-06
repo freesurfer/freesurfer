@@ -107,6 +107,8 @@ You can use one of the first five flags to change these default parms.
       <explanation>labelize the output volume into scalp, skull, csf, gray and white</explanation> 
       <argument>-man [int_csf int_trn int_gray]</argument>
       <explanation>to change the different parameters csf_max, transition_intensity and GM_intensity</explanation> 
+      <argument>-xthresh xthresh</argument>
+      <explanation>Remove voxels whose intensity exceeds xthresh</explanation> 
       <argument>-mask</argument>
       <explanation>mask a volume with the brain mask</explanation> 
       <argument>--help</argument>

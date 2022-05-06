@@ -182,7 +182,7 @@ if($DoSkullStrip) then
   cd $subjdir/mri > /dev/null
   $PWD |& tee -a $LF
   if ($longitudinal) then
-    # longitudinal processing stream (copy from base):
+    # longitudinal processing stream (copy from base): Why not use brainmask.finalsurfs?
     set BM  = brainmask.mgz
     set bmbase = brainmask_${longbaseid}.mgz
     set ud = `UpdateNeeded ./${bmbase} ${longbasedir}/mri/${BM}`

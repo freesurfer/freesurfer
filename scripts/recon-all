@@ -2902,6 +2902,9 @@ endif
 ##---------------  -segmentation  -------------------#
 #----------------                 -------------------#
 if($DoSegmentation) then
+  # It would be nice not to do this for longitudinal, but wm.mgz is
+  # used in autodet gw stats and in mris_place_surfce to clip bright
+  # values in the T1
   echo "#--------------------------------------------" \
     |& tee -a $LF |& tee -a $CF
   echo "#@# WM Segmentation `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
@@ -3047,7 +3050,8 @@ endif
 #----------------        -------------------#
 ##---------------  -fill -------------------#
 #----------------        -------------------#
-if($DoFill) then
+if($DoFill && ! $longitudinal) then
+  # Dont do this if long
   echo "#--------------------------------------------" \
     |& tee -a $LF |& tee -a $CF
   echo "#@# Fill `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF

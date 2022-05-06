@@ -1,0 +1,20 @@
+{
+  "optimizationOptions": {
+    "maximumNumberOfDeformationIterations": 1,
+    "absoluteCostPerVoxelDecreaseStopCriterion": 0.01,
+    "verbose": false,
+    "maximalDeformationStopCriterion": 0.01,
+    "lineSearchMaximalDeformationIntervalStopCriterion": 0.01,
+    "maximalDeformationAppliedStopCriterion": 0.0,
+    "BFGSMaximumMemoryLength": 12,
+    "multiResolutionSpecification": [{
+      "targetDownsampledVoxelSpacing": 2.0,
+      "maximumNumberOfIterations": 50,
+      "estimateBiasField": true
+    }, {
+      "targetDownsampledVoxelSpacing": 1.0,
+      "maximumNumberOfIterations": 2,
+      "estimateBiasField": true
+    }]
+  }
+}

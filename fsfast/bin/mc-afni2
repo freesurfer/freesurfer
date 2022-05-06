@@ -26,6 +26,7 @@ set outvol = ();
 set tempvol = ();
 set frame = 0;
 set mcdat = ();
+set volreg = 3dvolreg.afni
 
 set nolog = 0;
 set tmpdir = ();
@@ -58,9 +59,9 @@ goto check_params;
 check_params_return:
 
 # Check that the AFNI 3dvolreg exists
-which 3dvolreg.afni > /dev/null
+which $volreg > /dev/null
 if($status) then
-  echo "ERROR: cannot find AFNI command 3dvolreg.afni"
+  echo "ERROR: cannot find AFNI command $volreg"
   exit 1;
 endif
 
@@ -116,7 +117,7 @@ date     >> $LF
 id       >> $LF
 hostname >> $LF
 uname -a >> $LF
-which 3dvolreg.afni >> $LF
+which $volreg >> $LF
 
 echo "mcdat file is $mcdat" |& tee -a $LF
 
@@ -150,14 +151,14 @@ if($status) exit 1;
 set newoutvol = $tmpdir/outvol.nii.gz
 
 # Now, finally, do the motion correction
-set cmd = (3dvolreg.afni -verbose -dfile $mcdat -1Dmatrix_save $matdat \
+set cmd = ($volreg -verbose -dfile $mcdat -1Dmatrix_save $matdat \
            -base $newtempvol -prefix $newoutvol $newinvol )
 echo "#@# --------------------------------" |& tee -a $LF
 pwd       |& tee -a $LF
 echo $cmd |& tee -a $LF
 $cmd      |& tee -a $LF
 if($status) then
-  echo "ERROR: 3dvolreg.afni" |& tee -a $LF
+  echo "ERROR: $volreg" |& tee -a $LF
   if($cleanup) then
     echo "... cleaning up ...."; |& tee -a $LF
     rm -r $tmpdir
@@ -236,6 +237,12 @@ while( $#argv != 0 )
     case "--tmp":
       if ( $#argv == 0) goto arg1err;
       set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "--volreg":
+      if ( $#argv == 0) goto arg1err;
+      set volreg = $argv[1]; shift;
       set cleanup = 0;
       breaksw
 

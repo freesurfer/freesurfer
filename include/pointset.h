@@ -34,6 +34,8 @@ public:
   // bool load(std::string filename);
   bool save_as_ctrlpoint(std::string filename);
 
+  int npoints(void) {return points.size();}
+
   int add(Point point) {
     points.push_back(point);
     return points.size() - 1;
