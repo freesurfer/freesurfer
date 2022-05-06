@@ -230,7 +230,7 @@ double CostFunctions::var(MRI *i, int frame)
 }
 
 
-double CostFunction::norm(MRI *mri, int frame)
+double CostFunctions::norm(MRI *mri, int frame)
 {
   double d = 0.0;
   int z;
@@ -1180,7 +1180,7 @@ double CostFunctions::normalizedCorrelation(MRI * i1, MRI * i2)
 }
 
 
-double CostFunction::RBCost(MRI * i1, MRI * i2)
+double CostFunctions::RBCost(MRI * i1, MRI * i2)
 {
 
 // matlab:
@@ -1202,8 +1202,8 @@ double CostFunction::RBCost(MRI * i1, MRI * i2)
   }
   
   // get means
-  double m1 = mean(i1);
-  double m2 = mean(i2);
+  double m1 = mean(i1,0);
+  double m2 = mean(i2,0);
   
   // convert to stl float vector, de-mean and compute norm
   unsigned int counter = 0;
@@ -1232,7 +1232,7 @@ double CostFunction::RBCost(MRI * i1, MRI * i2)
     iv2[i] /= norm2;
     prod += iv1[i] * iv2[i];    
   }
-  int sign = std::copysign(1,prod)
+  int sign = std::copysign(1,prod);
 
   // compute sorting vector (into iv1 to save space)
   for (unsigned int i = 0; i<n; i++)
