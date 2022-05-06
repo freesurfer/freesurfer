@@ -97,11 +97,12 @@ Use --noinit if center of mass is meaningless, e.g. when registering different r
       ROBENT (robust entropy) experimental, 
              for robust cross modal registration, can be slow.
              Also see --entradius, --entball, --entcorrection.
-      MI     (mutual information),
-      NMI    (normalized mutual information),
+      MI     (mutual information) (not robust).
+      NMI    (normalized mutual information)
              MI, NMI are also good for x-modal (not robust).
-      ECC    (entropy correlation coefficient) experimental,
-      NCC    (normalized cross corrrelation) experimental,
+      SB     (segmentation-based) Aganj paper.
+      ECC    (entropy correlation coefficient) experimental.
+      NCC    (normalized cross corrrelation) experimental.
       SCR    (symetrized correlation ratio) experimental.
 Note: most cost functions require the image backgrounds to be black! Also, only ROB and ROBENT use gradient decend, the others use a Powell optimizer.
 </explanation>
