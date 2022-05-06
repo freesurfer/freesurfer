@@ -1180,7 +1180,7 @@ double CostFunctions::normalizedCorrelation(MRI * i1, MRI * i2)
 }
 
 
-double CostFunctions::RBCost(MRI * i1, MRI * i2)
+double CostFunctions::SBCost(MRI * i1, MRI * i2)
 {
 
 // matlab:
