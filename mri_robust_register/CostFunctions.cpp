@@ -1197,7 +1197,7 @@ double CostFunctions::SBCost(MRI * i1, MRI * i2)
   unsigned int n2 =  i2->width * i2->height * i2->depth;
   if (n != n2)
   {
-    cerr << "CostFunctions::RBCost image dimensions differ!" << endl;
+    cerr << "CostFunctions::SBCost image dimensions differ!" << endl;
     exit(1);
   }
   
