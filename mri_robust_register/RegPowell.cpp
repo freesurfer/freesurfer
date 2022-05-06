@@ -167,6 +167,7 @@ double RegPowell::costFunction(const vnl_vector<double>& p)
       break;
       case SB:
         dd = CostFunctions::SBCost(scf,tcf); // subsample not yet implemented!
+      break;
       default:
         cout << " RegPowell::costFunction ERROR cannot deal with cost function "
              << tocurrent->costfun << " ! " << endl;
