@@ -1183,14 +1183,14 @@ double CostFunctions::normalizedCorrelation(MRI * i1, MRI * i2)
 double CostFunctions::SBCost(MRI * i1, MRI * i2)
 {
 
-// matlab:
-//N = length(vJ);
-//vI = vI - mean(vI); vI = vI / norm(vI);
-//vJ = vJ - mean(vJ); vJ = vJ / norm(vJ);
-//[~, ind] = sort(vI + sign(vI'*vJ)*vJ, 'descend');
-//Ic = cumsum(vI(ind));
-//Jc = cumsum(vJ(ind));
-//cf = -max( (Ic(1:end-1).^2 + Jc(1:end-1).^2) ./ ((1:(N-1)).*((N-1):-1:1))');
+  // matlab:
+  //N = length(vJ);
+  //vI = vI - mean(vI); vI = vI / norm(vI);
+  //vJ = vJ - mean(vJ); vJ = vJ / norm(vJ);
+  //[~, ind] = sort(vI + sign(vI'*vJ)*vJ, 'descend');
+  //Ic = cumsum(vI(ind));
+  //Jc = cumsum(vJ(ind));
+  //cf = -max( (Ic(1:end-1).^2 + Jc(1:end-1).^2) ./ ((1:(N-1)).*((N-1):-1:1))');
 
   // get total size
   unsigned int n  =  i1->width * i1->height * i1->depth;
@@ -1205,7 +1205,7 @@ double CostFunctions::SBCost(MRI * i1, MRI * i2)
   double m1 = mean(i1,0);
   double m2 = mean(i2,0);
   
-  // convert to stl float vector, de-mean and compute norm
+  // convert to stl vector, de-mean and compute norm
   unsigned int counter = 0;
   std::vector < double > iv1(n), iv2(n);
   double norm1 = 0.0;
@@ -1271,7 +1271,7 @@ double CostFunctions::SBCost(MRI * i1, MRI * i2)
     f1 = (c1[i]*c1[i] + c2[i]*c2[i]) / ((i+1.0) * (n-1.0-i));
     if (f1 > mm) mm = f1;
   }
-  return -mm;
+  return -10000*mm;
 }
 
 
