@@ -1180,7 +1180,7 @@ double CostFunctions::normalizedCorrelation(MRI * i1, MRI * i2)
 }
 
 
-double CostFunctions::SBCost(MRI * mriS, MRI * mriT
+double CostFunctions::SBCost(MRI * mriS, MRI * mriT,
     const vnl_matrix_fixed<double, 4, 4>& Msi,
     const vnl_matrix_fixed<double, 4, 4>& Mti,
     int d1, int d2, int d3)
