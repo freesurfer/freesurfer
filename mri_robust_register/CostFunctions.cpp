@@ -1180,7 +1180,10 @@ double CostFunctions::normalizedCorrelation(MRI * i1, MRI * i2)
 }
 
 
-double CostFunctions::SBCost(MRI * i1, MRI * i2)
+double CostFunctions::SBCost(MRI * mriS, MRI * mriT
+    const vnl_matrix_fixed<double, 4, 4>& Msi,
+    const vnl_matrix_fixed<double, 4, 4>& Mti,
+    int d1, int d2, int d3)
 {
 
   // matlab:
@@ -1192,18 +1195,30 @@ double CostFunctions::SBCost(MRI * i1, MRI * i2)
   //Jc = cumsum(vJ(ind));
   //cf = -max( (Ic(1:end-1).^2 + Jc(1:end-1).^2) ./ ((1:(N-1)).*((N-1):-1:1))');
 
-  // get total size
-  unsigned int n  =  i1->width * i1->height * i1->depth;
-  unsigned int n2 =  i2->width * i2->height * i2->depth;
-  if (n != n2)
+  // assert same sizes
+  if (mriS->width != mriT->width || mriS->height != mriT>height || mriS->depth != mriT->depth)
   {
     cerr << "CostFunctions::SBCost image dimensions differ!" << endl;
     exit(1);
   }
   
+  // currently works only on single frame
+  if (mriS->nframes >1 || mriT->nframes>1)
+  {
+    cerr << "CostFunctions::SBCost only works on single frame inputs!" << endl;
+    exit(1);
+  }
+  
+  // map and subsample
+  MRI * nmriS = mapMRI(mriS,Msi,d1,d2,d3);
+  MRI * nmriT = mapMRI(mriT,Mti,d1,d2,d3);
+
+  // get total size
+  unsigned int n  =  nmriS->width * nmriS->height * nmriS->depth;
+
   // get means
-  double m1 = mean(i1,0);
-  double m2 = mean(i2,0);
+  double m1 = mean(nmriS,0);
+  double m2 = mean(nmriT,0);
   
   // convert to stl vector, de-mean and compute norm
   unsigned int counter = 0;
@@ -1215,8 +1230,8 @@ double CostFunctions::SBCost(MRI * i1, MRI * i2)
     for (int y = 0; y < i1->height; y++)
       for (int x = 0; x < i1->width; x++)
       {
-        f1 = MRIgetVoxVal(i1, x, y, z, 0)-m1;
-        f2 = MRIgetVoxVal(i2, x, y, z, 0)-m2;
+        f1 = MRIgetVoxVal(nmriS, x, y, z, 0)-m1;
+        f2 = MRIgetVoxVal(nmriT, x, y, z, 0)-m2;
         iv1[counter] = f1;
         iv2[counter] = f2;
         norm1 += f1*f1;
@@ -1226,6 +1241,10 @@ double CostFunctions::SBCost(MRI * i1, MRI * i2)
   norm1 = sqrt(norm1);
   norm2 = sqrt(norm2);
       
+  // free mem (mapped images not needed as we have std::vector now)
+  MRIfree(&nmriS);
+  MRIfree(&nmriT);
+
   // normalize and compute sign
   double prod = 0.0;
   for (unsigned int i = 0; i<n; i++)

@@ -166,7 +166,7 @@ double RegPowell::costFunction(const vnl_vector<double>& p)
         dd = CostFunctions::absDiff(scf,tcf,msi,mti,tocurrent->subsamp,tocurrent->subsamp, tocurrent->subsamp,si,sii);
       break;
       case SB:
-        dd = CostFunctions::SBCost(scf,tcf); // subsample not yet implemented!
+        dd = CostFunctions::SBCost(scf,tcf,msi,mti,tocurrent->subsamp,tocurrent->subsamp,tocurrent->subsamp);
       break;
       default:
         cout << " RegPowell::costFunction ERROR cannot deal with cost function "

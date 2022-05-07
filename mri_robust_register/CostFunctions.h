@@ -154,7 +154,10 @@ public:
   }
   
   //! Segmentation Based Registration (http://doi.org/10.1109/LSP.2017.2754263)
-  static double SBCost(MRI * i1, MRI * i2);
+  static double SBCost(MRI * si, MRI * ti,
+    const vnl_matrix_fixed<double, 4, 4>& Msi,
+    const vnl_matrix_fixed<double, 4, 4>& Mti,
+    int d1, int d2, int d3);
 
 
   //! not implemented and not sure where they are from? Flirt?
