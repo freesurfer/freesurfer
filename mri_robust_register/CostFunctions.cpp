@@ -1226,9 +1226,9 @@ double CostFunctions::SBCost(MRI * mriS, MRI * mriT,
   double norm1 = 0.0;
   double norm2 = 0.0;
   double f1,f2 = 0;
-  for (int z = 0; z < i1->depth; z++)
-    for (int y = 0; y < i1->height; y++)
-      for (int x = 0; x < i1->width; x++)
+  for (int z = 0; z < nmriS->depth; z++)
+    for (int y = 0; y < nmriS->height; y++)
+      for (int x = 0; x < nmriS->width; x++)
       {
         f1 = MRIgetVoxVal(nmriS, x, y, z, 0)-m1;
         f2 = MRIgetVoxVal(nmriT, x, y, z, 0)-m2;
