@@ -1196,7 +1196,7 @@ double CostFunctions::SBCost(MRI * mriS, MRI * mriT,
   //cf = -max( (Ic(1:end-1).^2 + Jc(1:end-1).^2) ./ ((1:(N-1)).*((N-1):-1:1))');
 
   // assert same sizes
-  if (mriS->width != mriT->width || mriS->height != mriT>height || mriS->depth != mriT->depth)
+  if (mriS->width != mriT->width || mriS->height != mriT->height || mriS->depth != mriT->depth)
   {
     cerr << "CostFunctions::SBCost image dimensions differ!" << endl;
     exit(1);
