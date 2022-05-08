@@ -1290,7 +1290,7 @@ double CostFunctions::SBCost(MRI * mriS, MRI * mriT,
     f1 = (c1[i]*c1[i] + c2[i]*c2[i]) / ((i+1.0) * (n-1.0-i));
     if (f1 > mm) mm = f1;
   }
-  return -n*mm;
+  return -mm*n;
 }
 
 
