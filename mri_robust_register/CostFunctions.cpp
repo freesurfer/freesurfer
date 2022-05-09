@@ -1268,7 +1268,8 @@ double CostFunctions::SBCost(MRI * mriS, MRI * mriT,
   // sort indexes based on comparing values in iv1
   // using std::stable_sort to avoid index re-orderings
   // when v contains elements of equal values 
-  stable_sort(idx.begin(), idx.end(),
+  // stable_sort(idx.begin(), idx.end(),
+  sort(idx.begin(), idx.end(),
        [&iv1](size_t i1, size_t i2) {return iv1[i1] > iv1[i2];});
 
   // cumsums
