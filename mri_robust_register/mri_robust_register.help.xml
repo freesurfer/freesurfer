@@ -100,7 +100,7 @@ Use --noinit if center of mass is meaningless, e.g. when registering different r
       MI     (mutual information) (not robust).
       NMI    (normalized mutual information)
              MI, NMI are also good for x-modal (not robust).
-      SB     (segmentation-based) by Aganj, Fischl (IEEE SPL, 2017).
+      SB     (segmentation-based) Aganj,Fischl (IEEE SPL 2017).
       ECC    (entropy correlation coefficient) experimental.
       NCC    (normalized cross corrrelation) experimental.
       SCR    (symetrized correlation ratio) experimental.
