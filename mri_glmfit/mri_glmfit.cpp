@@ -574,6 +574,7 @@ char *wgFile=NULL,*wFile=NULL;
 char *eresSCMFile=NULL;
 char *condFile=NULL;
 char *GLMDir=NULL;
+char *simcontrastdir=NULL;
 char *pvrFiles[50];
 int yhatSave=0;
 int eresSave=0;
@@ -643,6 +644,7 @@ int PermForce = 0;
 int UseUniform = 0;
 double UniformMin = 0;
 double UniformMax = 0;
+int PermuteInput=0; // Permute the input data (not part of sim)
 
 SURFCLUSTERSUM *SurfClustList;
 int nClusters;
@@ -850,6 +852,7 @@ int main(int argc, char **argv) {
       fclose(fp);
     }
   }
+  if(simcontrastdir) mkdir(simcontrastdir,0777);
 
   mriglm->npvr     = npvr;
   mriglm->yhatsave = yhatSave;
@@ -1260,6 +1263,13 @@ int main(int argc, char **argv) {
         exit(1);
       }
     }
+  }
+
+  if(PermuteInput){
+    // This is for ease of testing, eg terBraak. Allows for getting
+    // all the output after a perm
+    printf("Permuting Input\n");
+    RandPermMatrixAndPVR(mriglm->Xg, mriglm->pvr, mriglm->npvr);
   }
 
   mriglm->mask = NULL;
@@ -1774,6 +1784,12 @@ int main(int argc, char **argv) {
 	    // MRISsmoothMRI(surf, fwhmmap, SmthLevel, mriglm->mask, fwhmmap)
 	  }
         }
+	if(simcontrastdir){
+	  for (n=0; n < mriglm->glm->ncontrasts; n++) {
+	    sprintf(tmpstr,"%s/%s.z.%05d.%s",simcontrastdir,mriglm->glm->Cname[n],nthsim,format);
+	    MRIwrite(mriglm->z[n],tmpstr);
+	  }
+	}
       }
 
       for(nthThresh = 0; nthThresh < nThreshList; nthThresh++){
@@ -2484,6 +2500,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--rm-spatial-mean")) RmSpatialMean = 1;
     else if (!strcasecmp(option, "--allow-zero-dof")) AllowZeroDOF = 1;
     else if (!strcasecmp(option, "--scale-by-etiv")) scale_stats_by_etiv = 1;
+    else if (!strcasecmp(option, "--permute-input")) PermuteInput = 1;
     else if (!strcasecmp(option, "--prune_thr")){
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%f",&prune_thr); 
@@ -2914,11 +2931,18 @@ static int parse_commandline(int argc, char **argv) {
       DoPCC = 0;
       npvr++;
       nargsused = 1;
-    } else if (!strcmp(option, "--glmdir") || !strcmp(option, "--o")) {
+    } 
+    else if (!strcmp(option, "--glmdir") || !strcmp(option, "--o")) {
       if (nargc < 1) CMDargNErr(option,1);
       GLMDir = pargv[0];
       nargsused = 1;
-    } else if (!strcmp(option, "--beta")) {
+    } 
+    else if (!strcmp(option, "--simcontrastdir")){
+      if (nargc < 1) CMDargNErr(option,1);
+      simcontrastdir = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcmp(option, "--beta")) {
       if (nargc < 1) CMDargNErr(option,1);
       betaFile = pargv[0];
       nargsused = 1;
@@ -3063,6 +3087,7 @@ printf("\n");
 printf("   --sim nulltype nsim thresh csdbasename : simulation perm, mc-full, mc-z\n");
 printf("   --sim-sign signstring : abs, pos, or neg. Default is abs.\n");
 printf("   --uniform min max : use uniform distribution instead of gaussian\n");
+printf("   --permute-input : good for testing (not related to sim)\n");
 printf("\n");
 printf("   --pca : perform pca/svd analysis on residual\n");
 printf("   --tar1 : compute and save temporal AR1 of residual\n");

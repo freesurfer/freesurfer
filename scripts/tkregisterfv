@@ -133,7 +133,7 @@ if(! $UseTkRegister) then
     cp $headerreg1 $headerreg2; # 2 newer than 1
     set reg = $headerreg1
   endif
-  set cmd = (freeview)
+  set cmd = (freeview --hide-3d-slices)
   if($ShowConfig)  set cmd = ($cmd -transform-volume)
   set cmd = ($cmd -viewport $Plane) # currently causes FV to crash
   set targname = `basename $targ`

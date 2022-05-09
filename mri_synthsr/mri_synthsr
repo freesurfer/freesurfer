@@ -301,7 +301,7 @@ def postprocess(pred, pad_idx, aff, disable_sharpening):
     amount_usm = 1.0
     sigma_usm = 1.5
     if (sigma_usm>0) and (amount_usm>0) and (disable_sharpening==False):
-        pred = pred + (pred - gaussian_filter(pred, sigma * np.ones(3))) * amount
+        pred = pred + (pred - gaussian_filter(pred, sigma_usm * np.ones(3))) * amount_usm
         
     # align prediction back to first orientation
     pred = align_volume_to_ref(pred, aff=np.eye(4), aff_ref=aff, n_dims=3)

@@ -21,6 +21,7 @@ set curv = curv
 set DoAllSurfs = 0;
 set altargs = ()
 set patch = ()
+set annotoutline = 1
 
 set tmpdir = ();
 set cleanup = 1;
@@ -66,7 +67,7 @@ if(! $UseTkSurfer) then
     foreach annot ($annotlist) 
       @ nthannot = $nthannot + 1
       set annotfile = $annotfilelist[$nthannot];
-      set surfarg = "$surfarg":"annot=$annotfile":"edgethickness=0:annot_outline=1"
+      set surfarg = "$surfarg":"annot=$annotfile":"edgethickness=0:annot_outline=$annotoutline"
     end
     foreach overlay ($overlaylist)
       # Change this when RP changes linear opaque in fv
@@ -223,6 +224,14 @@ while( $#argv != 0 )
       set DoAllSurfs = 0;
       breaksw
 
+    case "-outline":
+      set annotoutline = 1
+      breaksw
+    case "--no-outline":
+    case "-no-outline":
+      set annotoutline = 0
+      breaksw
+
     case "-tksurfer":
     case "-tkm":
       set UseTkSurfer = 1;
@@ -374,6 +383,7 @@ usage_exit:
   echo "-all : load white, pial, inflated"
   echo "-vgl : runs freeview with /usr/pubsw/bin/vglrun"
   echo "-no-vgl : does not run freeview with /usr/pubsw/bin/vglrun"
+  echo "-no-outline : do not show annots as outline"
   echo ""
   if(! $PrintHelp) exit 1;
   echo $VERSION

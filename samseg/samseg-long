@@ -17,6 +17,7 @@ set cleanup = 1;
 set LF = ();
 set SaveWarp = 1;
 set SavePosteriors = 0
+set SaveProbabilities = 0;
 set DoMRF = 0;
 set mrfgca = $FREESURFER_HOME/average/samseg/samseg.talairach.m3z.mrf.gca
 
@@ -229,8 +230,23 @@ while( $#argv != 0 )
       set SavePosteriors = 1;
       breaksw
 
+    case "--save-probabilities":
+      echo "--save-probabilities currently does not work"
+      exit 1
+      set SaveProbabilities = 1;
+      breaksw
+
     case "--force-update":
       set ForceUpdate = 1
+      breaksw
+
+    case "--atlas":
+      if($#argv < 1) goto arg1err;
+      setenv SAMSEG_DATA_DIR $argv[1]; shift;
+      if(! -e $SAMSEG_DATA_DIR) then
+        echo "ERROR: cannot find $SAMSEG_DATA_DIR"
+        exit 1
+      endif
       breaksw
 
     case "--log":

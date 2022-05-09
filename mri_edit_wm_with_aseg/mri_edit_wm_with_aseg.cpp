@@ -273,7 +273,7 @@ get_option(int argc, char *argv[])
   }
   else if (!stricmp(option, "fix-scm-ha-only"))
   {
-    // mri_edit_wm_with_aseg aseg.presurf.mgz SCM.mgz ndil out.mgz
+    // mri_edit_wm_with_aseg -fix-scm-ha-only aseg.presurf.mgz SCM.mgz ndil out.mgz
     // SCM = wm.seg.mgz, wm.mgz, filled.mgz, etc; ndil usually = 1
     FixSubCortMassHA fscmha;
     fscmha.aseg = MRIread(argv[2]);

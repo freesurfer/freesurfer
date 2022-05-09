@@ -298,10 +298,10 @@ public:
   std::vector<int> svtxno, tvtxno; // vertex numbers when reading STVP file
   int ReadCoords(void);
   int ReadSTVPairFile(std::string stvpairfile);
+  int ReadJsonPair(std::string jsonfile1,std::string jsonfile2);
   int PrintXYZ(FILE *fp, std::vector<std::vector<double>> xyz);
   MATRIX *ComputeReg(MATRIX *R);
   LTA *ComputeLTA(void);
 };
-
 
 #endif

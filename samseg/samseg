@@ -57,6 +57,7 @@ set ShowMovie = 0;
 set IgnoreUnkown = 0;
 set DoCharm = 0
 set WMCortexPriorsSigma = 0
+set stiffness = ()
 
 set inputargs = ($argv);
 set PrintHelp = 0;
@@ -196,6 +197,7 @@ if($ShowFigs) set cmd0 = ($cmd0 --showfigs)
 if($ShowMovie) set cmd0 = ($cmd0 --movie)
 if($IgnoreUnkown) set cmd0 = ($cmd0 --ignore-unknown)
 if($WMCortexPriorsSigma != 0) set cmd0 = ($cmd0 --smooth-wm-cortex-priors $WMCortexPriorsSigma)
+if($#stiffness) set cmd0 = ($cmd0 --mesh-stiffness $stiffness)
 
 # specify input list
 foreach input ($inputlist)
@@ -507,6 +509,11 @@ while( $#argv != 0 )
     case "--sd":
       if($#argv < 1) goto arg1err;
       setenv SUBJECTS_DIR $argv[1]; shift;
+      breaksw
+
+    case "--stiffness":
+      if($#argv < 1) goto arg1err;
+      set stiffness = $argv[1]; shift;
       breaksw
 
     case "--regonly":
