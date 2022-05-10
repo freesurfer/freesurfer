@@ -342,7 +342,8 @@ int GLMfree(GLMMAT **pglm)
   computes condition number of each C as well as it's PMF.  This
   includes the allocation of Ct[n] and PMF. It would be possible to do
   this within GLMtest(), but GLMtest() may be run many times whereas
-  Ct only needs to be computed once.
+  Ct only needs to be computed once. Note: depends on X, but only
+  for partial cor coef.
   ----------------------------------------------------------------*/
 int GLMcMatrices(GLMMAT *glm)
 {
@@ -442,7 +443,7 @@ int GLMxMatrices(GLMMAT *glm)
     // gamma = C*beta
     // gCVM  = rvar*J*C*inv(X'*X)*C'
     // F     = gamma' * inv(gCVM) * gamma;
-    glm->CiXtX[n] = MatrixMultiplyD(glm->C[n], glm->iXtX, glm->CiXtX[n]);
+    glm->CiXtX[n]   = MatrixMultiplyD(glm->C[n], glm->iXtX, glm->CiXtX[n]);
     glm->CiXtXCt[n] = MatrixMultiplyD(glm->CiXtX[n], glm->Ct[n], glm->CiXtXCt[n]);
   }
   return (0);
@@ -466,6 +467,11 @@ int GLMfit(GLMMAT *glm)
   // Now do the actual parameter (beta) estmation
   // beta = inv(X'*X)*X'*y
   glm->beta = MatrixMultiplyD(glm->iXtX, glm->Xty, glm->beta);
+  if(glm->debug){
+    printf("y = [");MatrixPrint(stdout,glm->y); printf("]\n");
+    printf("X = [");MatrixPrint(stdout,glm->X); printf("]\n");
+    printf("beta = [");MatrixPrint(stdout,glm->beta); printf("]\n");
+  }
 
   // If necessary, free vectors so that they can be realloced (FrameMask)
   if (glm->yhat && glm->yhat->rows != glm->X->rows) MatrixFree(&glm->yhat);
@@ -538,6 +544,9 @@ int GLMtest(GLMMAT *glm)
       glm->igCVM[n] = MatrixScalarMul(glm->igCVM[n], 1.0 / dtmp, glm->igCVM[n]);
       glm->gtigCVM[n] = MatrixMultiplyD(glm->gammat[n], glm->igCVM[n], glm->gtigCVM[n]);
       F = MatrixMultiplyD(glm->gtigCVM[n], glm->gamma[n], F);
+      if(glm->debug){
+	printf("g=%10.8f F=%6.4f  gtig %6.4f\n",glm->gamma[n]->rptr[1][1],F->rptr[1][1],glm->gtigCVM[n]->rptr[1][1]);
+      }
       if(F->rptr[1][1] >= 0){
 	glm->F[n] = F->rptr[1][1];
 	glm->p[n] = sc_cdf_fdist_Q(glm->F[n], glm->C[n]->rows, glm->dof);
