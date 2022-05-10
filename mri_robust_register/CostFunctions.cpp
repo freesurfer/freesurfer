@@ -1266,9 +1266,6 @@ double CostFunctions::SBCost(MRI * mriS, MRI * mriT,
   std::vector<size_t> idx(iv1.size());
   iota(idx.begin(), idx.end(), 0);
   // sort indexes based on comparing values in iv1
-  // using std::stable_sort to avoid index re-orderings
-  // when v contains elements of equal values 
-  // stable_sort(idx.begin(), idx.end(),
   sort(idx.begin(), idx.end(),
        [&iv1](size_t i1, size_t i2) {return iv1[i1] > iv1[i2];});
 
