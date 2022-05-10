@@ -198,7 +198,7 @@ class spherical_loss(object):
     def __init__(self, image_size, threshold=0, pad=8, image_sigma=1, overlay_list = None, curvature_list = None, model = None, radius=100, win=None, eps=1e-5):
         dist_elts = np.ones(image_size)
         for i in range(dist_elts.shape[1]):
-            dist_elts[:,i]=math.sin(i*math.pi/dist_elts.shape[1])
+            dist_elts[:,i]=math.sin((i+.5)*math.pi/dist_elts.shape[1])  # offset pole by 1/2 voxel to avoid 0 weights
         self.radius = radius
         self.dist_elts_nopad = tf.convert_to_tensor(dist_elts, tf.float32)
         area_elts = dist_elts**2
@@ -337,14 +337,15 @@ class spherical_loss(object):
     def thresh_loss(self, thresh=.2, power=None, negate=False):
         def loss(_, y_pred):
             y_pred = y_pred[:, self.pad:-self.pad, self.pad:-self.pad]
-            mask = tf.cast(tf.math.abs(y_pred) >= thresh, y_pred.dtype)
+            yp_mean = tf.reduce_mean(y_pred, axis=0)  # mean across batch
+            mask = tf.cast(tf.math.abs(yp_mean) >= thresh, yp_mean.dtype)
             if power is not None:
-                y_pred = tf.math.pow(y_pred, power)
+                yp_mean = tf.math.pow(yp_mean, power)
 
             sgn = -1 if negate else 1
-            y_pred = sgn * y_pred * mask
+            yp_out = sgn * yp_mean * mask
 
-            return tf.reduce_mean(self.dist_elts_nopad[tf.newaxis, ..., tf.newaxis] * y_pred)
+            return tf.reduce_mean(self.dist_elts_nopad[..., tf.newaxis] * yp_out)
 
         return loss
 
@@ -463,7 +464,7 @@ class spherical_loss(object):
 
         return loss
 
-    def ncc(self, I, J):
+    def ncc(self, I, J, name='ncc_unsigned'):
         """
         local (over window) normalized cross correlation
         """
@@ -514,7 +515,7 @@ class spherical_loss(object):
         retval = tf.reduce_mean(cc*self.dist_elts_nopad[np.newaxis,...,np.newaxis])
         return retval
 
-    def ncc_signed(self, I, J):
+    def ncc_signed(self, I, J, name='ncc_signed'):
         """
         local (over window) normalized cross correlation
         """
@@ -524,6 +525,7 @@ class spherical_loss(object):
         assert ndims in [1, 2, 3], "volumes should be 1 to 3 dimensions. found: %d" % ndims
 
         nchannels = tf.cast(J.shape[ndims+1],tf.float32)
+        nchannels = J.get_shape().as_list()[ndims+1]  # all of a sudden this is needed to prevent a tf error
         # set window size
         if self.win is None:
             self.win = [9] * ndims
@@ -562,27 +564,28 @@ class spherical_loss(object):
         cc = cross / tf.sqrt(I_var*J_var + self.eps)
 
         # return negative cc.
-        retval = tf.reduce_mean(cc*self.dist_elts_nopad[np.newaxis,...,np.newaxis])
+        retval = tf.reduce_mean(cc*self.dist_elts_nopad[np.newaxis,...,np.newaxis], name=name)
         return retval
 
-    def NCC_loss(self, win=None, weight=1):
+    def NCC_loss(self, win=None, weight=1, name='NCC_unsigned'):
         def loss(I,J):
             if self.pad > 0:
                 I = I[:,self.pad:-self.pad,self.pad:-self.pad,:]
                 J = J[:,self.pad:-self.pad,self.pad:-self.pad,:]
-            return - weight * self.ncc(I, J)
+            return - weight * self.ncc(I, J, name=name)
             
         self.win = win
         return loss
 
-    def NCC_signed_loss(self, win=None, weight=1):
+    def NCC_signed_loss(self, win=None, weight=1, name='NCC_signed'):
         def loss(I,J):
             if self.pad > 0:
                 I = I[:,self.pad:-self.pad,self.pad:-self.pad,:]
                 J = J[:,self.pad:-self.pad,self.pad:-self.pad,:]
-            return - weight * self.ncc_signed(I, J)
-            
-        self.win = win
+            return - weight * self.ncc_signed(I, J, name=name)
+
+        if win is not None:  # override init
+            self.win = win
         return loss
 
     def overlay_loss(self, y_true, y_pred):
