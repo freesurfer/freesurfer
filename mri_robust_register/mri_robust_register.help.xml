@@ -101,6 +101,8 @@ Use --noinit if center of mass is meaningless, e.g. when registering different r
       NMI    normalized mutual information,
              recommended for x-modal registration.
       SB     segmentation-based: Aganj, Fischl, IEEE SPL, 2017
+             for cross modal with large initial misalignment,
+             may need NMI to fine-tune, experimental
       ECC    entropy correlation coefficient, experimental
       NCC    normalized cross corrrelation, experimental
       SCR    symetrized correlation ratio, experimental
