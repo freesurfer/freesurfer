@@ -495,11 +495,9 @@ int MiDeface::ripple(LABEL *label)
     tkras->rptr[2][1] = dy;
     tkras->rptr[3][1] = dz;
     ras = MatrixMultiplyD(M,tkras,ras);
-    if(ripplecenter){
-      ras->rptr[1][1] -= ripplecenter[0];
-      ras->rptr[2][1] -= ripplecenter[1];
-      ras->rptr[3][1] -= ripplecenter[2];
-    }
+    ras->rptr[1][1] -= ripplecenter[0];
+    ras->rptr[2][1] -= ripplecenter[1];
+    ras->rptr[3][1] -= ripplecenter[2];
     std::array<double,3> xyz = {ras->rptr[1][1],ras->rptr[2][1],ras->rptr[3][1]};
     std::array<double,3> rtp = sph.XYZ2RTP(xyz);
     rtp[0] = rtp[0] + rippleamp*sin(2*M_PI*rtp[0]*rtp[rippleaxis]/rippleperiod);
@@ -507,11 +505,9 @@ int MiDeface::ripple(LABEL *label)
     ras->rptr[1][1] = xyz[0];
     ras->rptr[2][1] = xyz[1];
     ras->rptr[3][1] = xyz[2];
-    if(ripplecenter){
-      ras->rptr[1][1] += ripplecenter[0];
-      ras->rptr[2][1] += ripplecenter[1];
-      ras->rptr[3][1] += ripplecenter[2];
-    }
+    ras->rptr[1][1] += ripplecenter[0];
+    ras->rptr[2][1] += ripplecenter[1];
+    ras->rptr[3][1] += ripplecenter[2];
     tkras = MatrixMultiplyD(invM,ras,tkras);
     v->x = tkras->rptr[1][1];
     v->y = tkras->rptr[2][1];
