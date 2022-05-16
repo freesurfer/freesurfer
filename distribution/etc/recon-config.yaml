@@ -102,4 +102,7 @@ UseSynthSeg:
     action: enable
     descr: Run synthseg instead of ca_reg and ca_label (won't create m3z0
     
-    
+TopoFitLevel:
+    value: 0
+    flags: -topofit
+    descr: TopoFit Level
