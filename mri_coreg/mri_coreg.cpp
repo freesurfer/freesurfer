@@ -1009,6 +1009,9 @@ static void print_usage(void) {
   printf("      the subject in the output reg.lta can be set with --s before --par2mat\n");
   printf("   --lrrev reg.lta reg.lrrev.lta : approx reg if you were to left-right rev the pix of the input image\n");
   printf("   --landmarks sxyz txyz coords mov targ outlta : convert landmarks to a registration\n");
+  printf("      sxyz and txyz are source and target coordinates at matching landmarks\n");
+  printf("       STVP format is created with mris_apply_reg --stvp via MRISapplyReg() (call with sxyzfile stvp)\n");
+  printf("       For json pointset (eg, from mri_segcentroids) just make sure both have .json extenstion\n");
   printf("   --rms radius filename reg1 reg2 : compute RMS diff between two registrations using MJ's method (rad ~= 50mm)\n");
   printf("      The rms will be written to filename; if filename == nofile, then no file is created\n");
   printf("   --movout movout volume : save the mov after all preprocessing\n");

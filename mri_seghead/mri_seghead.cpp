@@ -36,6 +36,7 @@
 #include "volcluster.h"
 #include "fio.h"
 #include "mri.h"
+#include "mri2.h"
 #include "MRIio_old.h"
 #include "cmdargs.h"
 
@@ -163,7 +164,6 @@ FOUND:
     for (r = 0; r < mri_box->height; r++)
       for (c = 0; c < mri_box->width; c++)
       {
-        
         temp = MRIgetVoxVal(mri_box,c,r,s,0) - mean;
         var += temp*temp;
       }
@@ -186,6 +186,7 @@ int MRISbrainSurfToSkull(MRIS *surf, const double *params, const MRI *vol);
 int MakeSkullSurface(char *subject, double *params, char *innername, char *outername);
 int rescale = 0;
 int FillHolesIslands = 0;
+MRI *ormask=NULL;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -230,12 +231,25 @@ int main(int argc, char **argv) {
     return(1);
   }
 
+  if(ormask){
+    printf("Applying or-mask\n");
+    int err = MRIdimMismatch(invol, ormask, 0);
+    if(err){
+      printf("ERROR: dimension mimatch\n");
+      exit(1);
+    }
+  }
+
   cvol = MRIclone(invol,NULL);
   rvol = MRIclone(invol,NULL);
   svol = MRIclone(invol,NULL);
   mrgvol = MRIclone(invol,NULL);
   outvol = MRIclone(invol,NULL);
 
+  // The method here is to start from the edge and find the place where
+  // the input exceeds thresh1 for at least nhitsmin voxels. Everything
+  // insided of that is considered head. It's a little hacky, but this
+  // was one of the first programs I wrote in FS.
   if (fillcols) {
     printf("Filling Columns\n");
     fflush(stdout);
@@ -267,11 +281,10 @@ int main(int argc, char **argv) {
         else cmax = invol->width-1; 
 
         for (c = cmin; c <= cmax; c++) MRIseq_vox(cvol,c,r,s,0) = fillval;
-        //printf("%3d %3d  %3d %3d\n",r,s,cmin,cmax);
+        if(Gdiag_no > 1){printf("%3d %3d  %3d %3d\n",r,s,cmin,cmax);fflush(stdout);}
       }
     }
   }
-
   if (fillrows) {
     printf("Filling Rows\n");
     fflush(stdout);
@@ -303,11 +316,10 @@ int main(int argc, char **argv) {
         else rmax = invol->height-1; 
         
         for (r = rmin; r <= rmax; r++) MRIseq_vox(rvol,c,r,s,0) = fillval;
-        //printf("%3d %3d  %3d %3d\n",r,s,rmin,rmax);
+        if(Gdiag_no > 1){printf("%3d %3d  %3d %3d\n",c,s,rmin,rmax);fflush(stdout);}
       }
     }
   }
-
   if (fillslices) {
     printf("Filling Slices\n");
     fflush(stdout);
@@ -339,54 +351,67 @@ int main(int argc, char **argv) {
         else smax = invol->depth-1; 
         
         for (s = smin; s <= smax; s++) MRIseq_vox(svol,c,r,s,0) = fillval;
-        //printf("%3d %3d  %3d %3d\n",r,s,rmin,rmax);
+        if(Gdiag_no > 1){printf("%3d %3d  %3d %3d\n",c,r,smin,smax);fflush(stdout);}
       }
     }
   }
 
-  printf("Merging and Inverting\n");
+  // This create a binary mask of the head
+  printf("Merging\n");fflush(stdout);
+  nhits = 0;
   for (c=0; c < invol->width; c++) {
     for (r=0; r < invol->height; r++) {
       for (s=0; s < invol->depth; s++) {
-        if (MRIseq_vox(cvol,c,r,s,0) &&
-            MRIseq_vox(rvol,c,r,s,0) &&
-            MRIseq_vox(svol,c,r,s,0))
-          MRIseq_vox(mrgvol,c,r,s,0) = 0;
-        else
-          MRIseq_vox(mrgvol,c,r,s,0) = 255-MRIseq_vox(invol,c,r,s,0);
+	if(ormask) {
+	  // If vox is set in the ormask, set to 1 regardless
+	  double mhit = MRIgetVoxVal(ormask,c,r,s,0);
+	  if(mhit>0.5) {
+	    MRIsetVoxVal(mrgvol,c,r,s,0, 1);
+	    nhits++;
+	    continue;
+	  }
+	}
+	// If vox is set in all cvol,rvol, svol, then it must be inside
+	int chit = MRIgetVoxVal(cvol,c,r,s,0);
+	int rhit = MRIgetVoxVal(rvol,c,r,s,0);
+	int shit = MRIgetVoxVal(svol,c,r,s,0);
+	if(chit && rhit && shit){
+	  MRIsetVoxVal(mrgvol,c,r,s,0, 1);
+	  nhits++;
+	}
+	else MRIsetVoxVal(mrgvol,c,r,s,0, 0);
       }
     }
   }
+  printf("nhits = %d\n",nhits);
   
-  printf("Growing\n");
-  fflush(stdout);
-  outvol = MRIfill(mrgvol, NULL, (int)(mrgvol->width/2.0),
-                   (int)(mrgvol->height/2.0), (int)(mrgvol->depth/2.),
-                   thresh2, fillval, -1);
+  // This removes islands not connected to the head
+  printf("Removing islands\n");fflush(stdout);
+  outvol = MRIremoveVolumeIslands(mrgvol, 0.5, 1, NULL);
 
   if(FillHolesIslands){
     MRI *tmpvol;
-    // Remove Volume Islands
-    tmpvol = MRIremoveVolumeIslands(outvol, 0.5, 1, NULL);
-    if(tmpvol == NULL) exit(1);
-    MRIfree(&outvol);
-    outvol = tmpvol;
-    // Remove Volume Holes
+    // Remove Volume Islands - already done above
+    //tmpvol = MRIremoveVolumeIslands(outvol, 0.5, 1, NULL);
+    //if(tmpvol == NULL) exit(1);
+    //MRIfree(&outvol);
+    //outvol = tmpvol;
+    printf("Removing Volume Holes\n");fflush(stdout);
     tmpvol = MRIremoveVolumeHoles(outvol, 0.5, 1, fillval, NULL);
     if(tmpvol == NULL) exit(1);
     MRIfree(&outvol);
     outvol = tmpvol;
-    // Remove axial Slice Holes
+    printf("Filling axial Slice Holes\n");fflush(stdout);
     tmpvol = MRIremoveSliceHoles(outvol, 6, NULL);
     if(tmpvol == NULL) exit(1);
     MRIfree(&outvol);
     outvol = tmpvol;
-    // Remove sagittal Slice Holes
+    printf("Filling sag Slice Holes\n");fflush(stdout);
     tmpvol = MRIremoveSliceHoles(outvol, 4, NULL);
     if(tmpvol == NULL) exit(1);
     MRIfree(&outvol);
     outvol = tmpvol;
-    // Remove coronal Slice Holes (eg, mouth/dental sig loss)
+    printf("Filling cor Slice Holes\n");fflush(stdout);
     tmpvol = MRIremoveSliceHoles(outvol, 2, NULL);
     if(tmpvol == NULL) exit(1);
     MRIfree(&outvol);
@@ -470,17 +495,34 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--no-fill-holes-islands")) FillHolesIslands = 0;
     else if (!strcasecmp(option, "--get-signal-behind-head")) GetSignalBehindHead = 1;
 
+    else if (stringmatch(option, "--gdiag")){
+      if(nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%d",&Gdiag_no);
+      nargsused = 1;
+    } 
     else if ( stringmatch(option, "--invol") ||
               stringmatch(option, "--i") ) {
       if (nargc < 1) argnerr(option,1);
       involid = pargv[0];
       nargsused = 1;
-    } else if (stringmatch(option, "--outvol") ||
+    } 
+    else if (stringmatch(option, "--outvol") ||
                stringmatch(option, "--o") ) {
       if (nargc < 1) argnerr(option,1);
       outvolid = pargv[0];
       nargsused = 1;
-    } else if ( stringmatch(option, "--subject") ||
+    } 
+    else if(stringmatch(option, "--or-mask")){
+      if (nargc < 1) argnerr(option,1);
+      ormask = MRIread(pargv[0]);
+      if(ormask==NULL) exit(1);
+      nargsused = 1;
+    } 
+    else if(stringmatch(option, "--no-or-mask")){
+      if(ormask) MRIfree(&ormask);
+      ormask = NULL;
+    }
+    else if ( stringmatch(option, "--subject") ||
                 stringmatch(option, "--s") ) {
       if (nargc < 1) argnerr(option,1);
       subjid = pargv[0];
@@ -577,6 +619,9 @@ static void print_usage(void) {
   printf("   --get-signal-behind-head  \n");
   printf("   --rescale : rescale input when converting to uchar (--no-rescale)  \n");
   printf("   --fill-holes-islands : fill holes and remove islands  \n");
+  printf("   --seed col row slice (for filling)\n");
+  printf("   --or-mask ormask.mgz : include voxels in this mask regardless (--no-or-mask)\n");
+  printf("   --gdiag diagno\n");
   printf("\n");
 }
 /* --------------------------------------------- */

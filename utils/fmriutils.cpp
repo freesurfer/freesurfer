@@ -918,8 +918,6 @@ int MRIglmFitAndTest(MRIGLM *mriglm)
   mriglm->pervoxflag = 0;
   if (mriglm->w != NULL || mriglm->npvr != 0 || mriglm->FrameMask != NULL) mriglm->pervoxflag = 1;
 
-  GLMcMatrices(glm);
-
   if (mriglm->FrameMask == NULL) {
     GLMallocX(glm, nf, mriglm->nregtot);
     GLMallocY(glm);
@@ -927,10 +925,12 @@ int MRIglmFitAndTest(MRIGLM *mriglm)
   }
 
   if (!mriglm->pervoxflag) {
+    GLMcMatrices(glm);
     MatrixCopy(mriglm->Xg, glm->X);
     mriglm->XgLoaded = 1;
     GLMxMatrices(glm);
   }
+  else  mriglm->XgLoaded = 0;  // Make sure reset for sim with pvr
 
   // If beta has not been allocated, assume that no one has been alloced
   if (mriglm->beta == NULL) {
@@ -997,6 +997,8 @@ int MRIglmFitAndTest(MRIGLM *mriglm)
           }
           nthvox = 0;
         }
+	//glm->debug = 0;
+	//if(c==0 && r==0 && s==0) glm->debug = 1;
 
         // Check the mask -----------
         if (mriglm->mask != NULL) {
@@ -1008,7 +1010,8 @@ int MRIglmFitAndTest(MRIGLM *mriglm)
         MRIglmLoadVox(mriglm, c, r, s, 0, NULL);
 
         // Compute intermediate matrices
-        GLMxMatrices(glm);
+	if(mriglm->pervoxflag) GLMcMatrices(mriglm->glm);
+        GLMxMatrices(glm); // why have to be done if not pervox?
 
         // Compute condition
         if (mriglm->condsave) {
@@ -1081,13 +1084,13 @@ int MRIglmFit(MRIGLM *mriglm)
   else
     mriglm->pervoxflag = 0;
 
-  GLMcMatrices(mriglm->glm);
-
-  if (!mriglm->pervoxflag) {
+  if(!mriglm->pervoxflag) {
+    GLMcMatrices(mriglm->glm);
     MatrixCopy(mriglm->Xg, mriglm->glm->X);
     mriglm->XgLoaded = 1;
     GLMxMatrices(mriglm->glm);
   }
+  else  mriglm->XgLoaded = 0;  // Make sure reset for sim with pvr
 
   // If beta has not been allocated, assume that no one has been alloced
   if (mriglm->beta == NULL) {
@@ -1132,6 +1135,7 @@ int MRIglmFit(MRIGLM *mriglm)
         MRIglmLoadVox(mriglm, c, r, s, 0, NULL);
 
         // Compute intermediate matrices
+	if(mriglm->pervoxflag) GLMcMatrices(mriglm->glm);
         GLMxMatrices(mriglm->glm);
 
         // Compute condition
@@ -1323,7 +1327,7 @@ int MRIglmLoadVox(MRIGLM *mriglm, int c, int r, int s, int LoadBeta, GLMMAT *glm
       nthreg++;
     }
   }
-  mriglm->XgLoaded = 1;  // Set flag that Xg has been loaded
+  mriglm->XgLoaded = 1;  // Set flag that Xg has been loaded, can cause probs with pvr sim
 
   // Weight X and y, X = w.*X, y = w.*y
   if ((mriglm->w != NULL || mriglm->wg != NULL) && !mriglm->skipweight) {

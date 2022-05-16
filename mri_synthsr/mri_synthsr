@@ -37,6 +37,7 @@ def main():
                                     "Must be a folder if --i designates a folder.")
     parser.add_argument("--ct", action="store_true", help="(optional) Use this flag for CT scans in Hounsfield scale, "
                                                           "it clips intensities to [0,80].")
+    parser.add_argument("--disable_sharpening", action="store_true", help="(optional) Use this flag to disable unsharp masking.")
 
     # parameters
     parser.add_argument("--threads", type=int, default=1, help="(optional) Number of cores to be used. Default is 1.")
@@ -68,6 +69,7 @@ def main():
         path_predictions=args.o,
         path_model=path_model,
         ct_mode=args.ct,
+        disable_sharpening=args.disable_sharpening,
         threads=args.threads
     )
 
@@ -81,6 +83,7 @@ def predict(path_images,
             path_predictions,
             path_model,
             ct_mode,
+            disable_sharpening,
             threads=1):
     '''
     Prediction pipeline.
@@ -127,7 +130,7 @@ def predict(path_images,
 
         # postprocessing
         try:
-            pred = postprocess(pred, pad_idx, aff)
+            pred = postprocess(pred, pad_idx, aff, disable_sharpening)
         except Exception as e:
             print('\nthe following problem occured when postprocessing prediction for image %s :' % path_image)
             print(e)
@@ -288,12 +291,18 @@ def build_model(model_file):
     return net
 
 
-def postprocess(pred, pad_idx, aff):
+def postprocess(pred, pad_idx, aff, disable_sharpening):
 
     # rescale output between [0, 255]
     pred = np.clip(255 * pred, 0, 128)
     pred = crop_volume_with_idx(pred, pad_idx, n_dims=3)
 
+    # unsharp masking
+    amount_usm = 1.0
+    sigma_usm = 1.5
+    if (sigma_usm>0) and (amount_usm>0) and (disable_sharpening==False):
+        pred = pred + (pred - gaussian_filter(pred, sigma_usm * np.ones(3))) * amount_usm
+        
     # align prediction back to first orientation
     pred = align_volume_to_ref(pred, aff=np.eye(4), aff_ref=aff, n_dims=3)
 

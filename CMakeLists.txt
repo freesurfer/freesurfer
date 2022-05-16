@@ -302,6 +302,8 @@ if(NOT DISTRIBUTE_FSPYTHON)
   symlink(${PYTHON_EXECUTABLE} ${CMAKE_INSTALL_PREFIX}/python/bin/python3)
 endif()
 
+add_custom_target(install-fspy COMMAND ${CMAKE_COMMAND} -D COMPONENT=fspy -P cmake_install.cmake)
+
 # --------------------------------------------------
 #             freesurfer build settings
 # --------------------------------------------------

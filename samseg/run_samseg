@@ -117,6 +117,7 @@ if args.bias_field_smoothing_kernel is not None:
 
 if args.mesh_stiffness is not None:
     userModelSpecifications['K'] = args.mesh_stiffness
+    print("Mesh stiffness set to %g" % userModelSpecifications['K'])
 
 # ------ Run Samseg ------
 

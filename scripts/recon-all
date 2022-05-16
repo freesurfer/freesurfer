@@ -1529,7 +1529,7 @@ if($UseSamseg) then
   endif
   # Fix hypos and vents
   set xopts = `fsr-getxopts samseg2recon $XOptsFile`;
-  set cmd = (samseg2recon --s $subjid --samsegdir $samsegdir $xopts) # no update option
+  set cmd = (samseg2recon --s $subjid --samseg $samsegdir $xopts) # no update option
   echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
   if($RunIt) then
     $fs_time $cmd |& tee -a $LF
@@ -2902,6 +2902,9 @@ endif
 ##---------------  -segmentation  -------------------#
 #----------------                 -------------------#
 if($DoSegmentation) then
+  # It would be nice not to do this for longitudinal, but wm.mgz is
+  # used in autodet gw stats and in mris_place_surfce to clip bright
+  # values in the T1
   echo "#--------------------------------------------" \
     |& tee -a $LF |& tee -a $CF
   echo "#@# WM Segmentation `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
@@ -3047,7 +3050,8 @@ endif
 #----------------        -------------------#
 ##---------------  -fill -------------------#
 #----------------        -------------------#
-if($DoFill) then
+if($DoFill && ! $longitudinal) then
+  # Dont do this if long
   echo "#--------------------------------------------" \
     |& tee -a $LF |& tee -a $CF
   echo "#@# Fill `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
@@ -3118,6 +3122,29 @@ endif
 #       - check command return status and error-exit if error
 #     check error status of reconbatchjobs
 #
+
+if($TopoFitLevel > 0) then
+  foreach hemi ($hemilist)
+    set surf = $sdir/$hemi.white.topofit
+    set ud = `UpdateNeeded $surf $mdir/norm.mgz`
+    if($ud || $ForceUpdate) then
+      set cmd = (mris_estimate_wm -s $subjid --hemi $hemi)
+      echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+      if($RunIt) $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    endif
+    pushd $sdir  
+    if($TopoFitLevel >= 1) then
+      ln -sf $hemi.white.topofit $hemi.orig.premesh
+      ln -sf $hemi.white.topofit $hemi.orig #remeshing only done during topofix
+    endif
+    if($TopoFitLevel >= 2) ln -sf $hemi.white.topofit $hemi.white.preaparc
+    if($TopoFitLevel >= 3) ln -sf $FREESURFER/subjects/fsaverage/surf/$hemi.sphere $hemi.sphere
+    if($TopoFitLevel >= 4) ln -sf $FREESURFER/subjects/fsaverage/surf/$hemi.sphere $hemi.sphere.reg
+    if($TopoFitLevel >= 5) ln -sf $hemi.white.topofit $hemi.white
+    popd
+  end
+endif
 
 #----------------              -------------------#
 ##---------------  -tessellate -------------------#
@@ -4344,6 +4371,7 @@ if(1) then
     set white = ../surf/$hemi.white
     set pial  = ../surf/$hemi.pial
     if(-e $white && -e $pial) then
+      # Should add a check here to make sure that pial is up-to-date (needs autorecon3)
       echo "#@# thickness $hemi `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
       set thickness = ../surf/$hemi.thickness
       set cmd = (mris_place_surface --thickness $white $pial 20 5 $thickness)
@@ -6886,6 +6914,7 @@ while( $#argv != 0 )
     case "-autorecon2-perhemi":
     case "-autorecon2-surfonly":
     case "-autorecon2-surfsonly":
+    case "-autorecon2-surf":
       set DoTessellate     = 1;
       set DoSmooth1        = 1;
       set DoInflate1       = 1;
@@ -7809,6 +7838,21 @@ check_params:
       echo "ERROR: previous calls to recon-all included -conf2hires but this one does not."
       echo "If you want to run without conf2hires, delete file $fname"
       exit 1;
+    endif
+
+    if($TopoFitLevel >= 1) then
+      # set DoSegmentation = 1; # wm.mgz is still needed later, so don't unset
+      set DoFill           = 0;
+      set DoTessellate     = 0;
+      set DoSmooth1        = 0;
+      set DoInflate1       = 0;
+      set DoQSphere        = 0;
+      set DoFix            = 0;
+      # Level1=replace ?h.orig
+      if($TopoFitLevel >= 2) set DoWhitePreAparc  = 0; # Level2=replace ?h.white.preaparc
+      if($TopoFitLevel >= 3) set DoSphere  = 0;        # Level3=replace ?h.sphere
+      if($TopoFitLevel >= 4) set DoSurfReg = 0;        # Level4=replace ?h.sphere.reg
+      if($TopoFitLevel >= 5) set DoWhiteSurfs = 0;     # Level5=replace ?h.white
     endif
 
     if($UseSamseg && $UseSynthSeg) then

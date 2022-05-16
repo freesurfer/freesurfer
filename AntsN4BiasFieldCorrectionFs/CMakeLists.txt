@@ -5,7 +5,7 @@ include_directories(${FS_INCLUDE_DIRS})
 add_compile_options(-Wno-self-assign-field)
 
 host_os()
-if(HOST_OS MATCHES "Ubuntu18" OR HOST_OS MATCHES "CentOS8")
+if( (HOST_OS MATCHES "Ubuntu18") OR (HOST_OS MATCHES "CentOS8") OR (HOST_OS MATCHES "Ubuntu20") )
    message(STATUS "AntsN4BiasFieldCorrectionFs test will be skipped on ${HOST_OS}")
 else()
    add_test_script(NAME AntsN4BiasFieldCorrectionFs_test SCRIPT test.sh)

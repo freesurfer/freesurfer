@@ -43,6 +43,7 @@ set nerode = 0
 set InputVol = ()
 set OutputVol = ()
 set OutputSurf = ()
+set OrMask = ()
 set LF = ()
 
 set DoInflate = 0;
@@ -109,6 +110,7 @@ if(! $noseghead ) then
   if(! $Rescale) set cmd = ($cmd --no-rescale)
   if($FillHolesIslands) set cmd = ($cmd --fill-holes-islands)
   if(! $FillHolesIslands) set cmd = ($cmd --no-fill-holes-islands)
+  if($#OrMask) set cmd = ($cmd --or-mask $OrMask)
   echo "--------------------------------" |& tee -a $LF
   date |& tee -a $LF
   pwd |& tee -a $LF
@@ -222,6 +224,14 @@ while( $#argv != 0 )
     case "-o":
       if ( $#argv == 0) goto arg1err;
       set OutputVol = $argv[1]; shift;
+      breaksw
+
+    case "-or-mask":
+      if ( $#argv == 0) goto arg1err;
+      set OrMask = $argv[1]; shift;
+      breaksw
+    case "-no-or-mask":
+      set OrMask = ()
       breaksw
 
     case "-surf":
@@ -460,6 +470,7 @@ usage_exit:
   echo "   -fillval value     : default is $fillval"
   echo "   -no-rescale        : do not  rescale input when converting to uchar (-no-rescale)"
   echo "   -no-fill-holes-islands : do not fill holes and remove islands"
+  echo "   -or-mask ormask.mgz : include all voxels in ormask in the head seg (-no-or-mask)"
   echo "   -tess/-mc : tessellation method using mri_tessellate or mri_mc (default is -mc)"
   echo "   -inflate : inflate and compute sulc"
   echo "   -curv : compute curv with smoothing"

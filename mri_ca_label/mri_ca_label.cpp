@@ -123,6 +123,8 @@ static MRI *fix_putamen(GCA *gca,
                         MRI *mri_src_labeled,
                         MRI *mri_dst_labeled,
                         double prior_thresh)  ;
+MRI *insert_wm_bet_putctx(MRI *seg, int topo, const char *psfile, MRI *out);
+int insert_wm_bet_putctx_topo = 0;
 static MRI *gcaCheckForFCDs(MRI *mri_src, MRI *mri_dst, GCA *gca, TRANSFORM *transform, MRI *mri_inputs) ;
 #if 0
 static int load_val_vector(VECTOR *v_means,
@@ -1007,6 +1009,7 @@ int main(int argc, char *argv[])
           {
             MRIwrite(mri_imp, "gca_imp.mgz") ;
           }
+	  insert_wm_bet_putctx(mri_labeled, insert_wm_bet_putctx_topo, "nofile", mri_labeled);
           MRIfree(&mri_imp) ;
         }
       } // renormalize_align
@@ -1536,6 +1539,22 @@ get_option(int argc, char *argv[])
   {
     nowmsa = 1 ;
     printf("disabling WMSA labels\n") ;
+  }
+  else if (!stricmp(option, "insert-wm-bet-putctx")){
+    sscanf(argv[3],"%d",&insert_wm_bet_putctx_topo);
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "sa-insert-wm-bet-putctx")){
+    // stand-alone option to apply insert_wm_bet_putctx()
+    // 2=segvol 3=topo 4=outputsegvol 5=psfile
+    MRI *seg = MRIread(argv[2]);
+    if(seg==NULL) exit(1);
+    int topo;
+    sscanf(argv[3],"%d",&topo);
+    insert_wm_bet_putctx(seg,topo,argv[5],seg);
+    printf("Writing to %s\n",argv[4]);fflush(stdout);
+    int err = MRIwrite(seg,argv[4]);
+    exit(err);
   }
   else if (!stricmp(option, "fcd"))
   {
@@ -4763,6 +4782,7 @@ fix_putamen(GCA *gca,
   int gm, wm, iter, total_changed ;
   double     pwm, pgm ;
   GCA_PRIOR *gcap ;
+  // This was never tested
   // This function is called above with prior_thresh < 0, so never run
 
   if (mri_dst_labeled == NULL)
@@ -5257,4 +5277,86 @@ gcaCheckForFCDs(MRI *mri_src, MRI *mri_dst, GCA *gca, TRANSFORM *transform, MRI 
     printf("iter %d: %d changed\n", iter, nchanged) ;
   } while (nchanged > 0) ;
   return(mri_dst) ;
+}
+
+/*!
+  \fn MRI *insert_wm_bet_putctx(MRI *seg, int topo, char *psfile, MRI *out)
+  \brief Finds all putamen voxels with a bordering cortical voxel and
+  changes them to WM. The rational is that anatomically putamen and
+  cortex always have WM between them. Putamen is replaced with WM
+  because it is the one usually overlabed (usually claustrum gets
+  labeled as putamen). This is a quick fix as we should really be
+  labeling claustrum.
+*/
+MRI *insert_wm_bet_putctx(MRI *seg, int topo, const char *psfile, MRI *out)
+{
+  printf("insert_wm_bet_putctx() topo=%d\n",topo);  fflush(stdout);
+
+  if(out == NULL){
+    out = MRIalloc(seg->width,seg->height,seg->depth,seg->type);
+    if(out==NULL) return(NULL);
+  }
+  MRIcopyHeader(seg,out);
+  MRIcopyPulseParameters(seg,out);
+
+  MATRIX *vox2ras, *crs, *ras;
+  fsPointSet ps;
+  if(psfile != NULL && strcmp(psfile,"nofile")!=0){
+    vox2ras = MRIxfmCRS2XYZ(seg,0);
+    crs = MatrixAlloc(4,1,MATRIX_REAL);
+    crs->rptr[4][1] = 1;
+    ras = NULL;
+  }
+
+  int c, r, s, nchanged=0;
+  for(c = 0 ; c < seg->width ; c++) {
+    for(r = 0 ; r < seg->height ; r++){
+      for(s = 0 ; s < seg->depth ; s++) {
+	int label = MRIgetVoxVal(seg, c, r, s, 0) ;
+	if(!IS_PUTAMEN(label)) continue;
+	int hit = 0;
+	for(int dc = -1; dc < 2; dc++){
+	  for(int dr = -1; dr < 2; dr++){
+	    for(int ds = -1; ds < 2; ds++){
+	      int dsum = abs(dc)+abs(dr)+abs(ds);
+	      if(dsum > topo) continue;
+	      int adjlabel = MRIgetVoxVal(seg,c+dc,r+dr,s+ds,0);
+	      if(IS_CORTEX(adjlabel)) {
+		hit++;
+		if(c == Gx && r == Gy && s == Gz){
+		  printf("%3d %3d %3d %d %d  %d %d %d\n",c,r,s,label,hit,c+dc,r+dr,s+ds); 
+		  fflush(stdout);
+		}
+	      }
+	    }
+	  }
+	}
+	if(hit==0) continue; // cortex vox does not border putamen
+	int wmlabel;
+	if(label == Left_Putamen) wmlabel  = Left_Cerebral_White_Matter ;
+	else                      wmlabel  = Right_Cerebral_White_Matter ;
+	MRIsetVoxVal(out,c,r,s,0,wmlabel) ;
+	nchanged++;
+	if(psfile != NULL && strcmp(psfile,"nofile")!=0){
+	  // Make a point set of the putamen voxels that were changed
+	  crs->rptr[1][1] = c;
+	  crs->rptr[2][1] = r;
+	  crs->rptr[3][1] = s;
+	  ras = MatrixMultiplyD(vox2ras,crs,ras);
+	  ps.add((double)ras->rptr[1][1],(double)ras->rptr[2][1],(double)ras->rptr[3][1],0);
+	}
+      }//s
+    }//r
+  }//c
+
+  if(psfile != NULL && strcmp(psfile,"nofile")!=0){
+    ps.save(psfile);
+    MatrixFree(&vox2ras);
+    MatrixFree(&crs);
+    MatrixFree(&ras);
+  }
+
+  printf("#INSERT_WM_BET_PUTCTX %d putamen voxels changed to WM\n", nchanged);
+  fflush(stdout);
+  return(out);
 }

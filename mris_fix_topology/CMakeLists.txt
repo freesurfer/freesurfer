@@ -8,7 +8,7 @@ target_link_libraries(mris_fix_topology utils)
 install(TARGETS mris_fix_topology DESTINATION bin)
 
 host_os()
-if(HOST_OS MATCHES "CentOS8")
+if( (HOST_OS MATCHES "CentOS8") OR (HOST_OS MATCHES "Ubuntu20") )
    message(STATUS "mris_fix_topology test will be skipped on ${HOST_OS}")
 else()
    add_test_script(NAME mris_fix_topology_test SCRIPT test.sh)
