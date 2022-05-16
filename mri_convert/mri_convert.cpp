@@ -491,11 +491,14 @@ int main(int argc, char *argv[])
     {
       sphinx_flag = TRUE;
     }
+    /* This option is not needed. 
+       Rescale factors are automatically detected in sdcmLoadVolume() and DICOMRead2().
     else if (strcmp(argv[i], "--rescale-dicom") == 0 )
     {
       // DO  apply rescale intercept and slope based on (0028,1052) (0028,1053).
       setenv("FS_RESCALE_DICOM","1",1);
     }
+    */
     else if (strcmp(argv[i], "--no-rescale-dicom") == 0 )
     {
       // Do NOT apply rescale intercept and slope based on (0028,1052) (0028,1053).
@@ -3185,7 +3188,9 @@ int main(int argc, char *argv[])
                               tmp2,
                               NULL );
     // now get the values (tri-linear)
-    MRIlinearTransform(mri, mri_transformed, src2dst);
+    //MRIlinearTransform(mri, mri_transformed, src2dst);
+    // respect --resample_type <resample_type_val>
+    MRIlinearTransformInterp(mri, mri_transformed, src2dst, resample_type_val);
     MatrixFree(&src2dst);
     MatrixFree( &tmp2 );
     MRIfree(&mri);
