@@ -10,6 +10,8 @@
       <explanation>Corrected volume file.</explanation>
     </required-flagged>
     <optional-flagged>
+      <argument>-m, --mask FILE</argument>
+      <explanation>Use image mask during correction.</explanation>
       <argument>-s, --shrink INT</argument>
       <explanation>Resample factor to decrease computation time. Default is 4.</explanation>
       <argument>-t, --iters INT [INT...]</argument>
