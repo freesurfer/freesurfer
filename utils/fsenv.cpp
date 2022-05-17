@@ -50,10 +50,11 @@ FSENV *FSENVgetenv(void)
   pc = getenv("SUBJECTS_DIR");
   if (pc == NULL) {
     printf("SUBJECTS_DIR not defined\n");
-    return (NULL);
+    //return (NULL);
+  } else {
+    fsenv->SUBJECTS_DIR = strcpyalloc(pc);
+    fsenv->user = strcpyalloc(VERuser());
   }
-  fsenv->SUBJECTS_DIR = strcpyalloc(pc);
-  fsenv->user = strcpyalloc(VERuser());
 
   // Current working directory
   if (!getcwd(tmpstr, 2000)) {
