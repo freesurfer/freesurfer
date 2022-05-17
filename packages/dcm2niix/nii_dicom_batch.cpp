@@ -375,6 +375,10 @@ void siemensPhilipsCorrectBvecs(struct TDICOMdata *d, int sliceDir, struct TDTI 
 	} //https://github.com/rordenlab/dcm2niix/issues/225
 	if ((toupper(d->patientOrient[0]) == 'H') && (toupper(d->patientOrient[1]) == 'F') && (toupper(d->patientOrient[2]) == 'S'))
 		; //participant was head first supine
+#ifdef USING_DCM2NIIXFSWRAPPER
+                if (getenv("DCM2NIIXFSWRAPPER_DEBUG") != NULL && strcmp(getenv("DCM2NIIXFSWRAPPER_DEBUG"), "yes") == 0) 
+                  printMessage("Check Siemens/Philips bvecs: Patient Position (0018,5100) 'HFS'\n");
+#endif
 	else {
 		printMessage("Check Siemens/Philips bvecs: expected Patient Position (0018,5100) to be 'HFS' not '%s'\n", d->patientOrient);
 		//return; //see https://github.com/rordenlab/dcm2niix/issues/238
@@ -385,6 +389,16 @@ void siemensPhilipsCorrectBvecs(struct TDICOMdata *d, int sliceDir, struct TDTI 
 	read_vector = nifti_vect33_norm(read_vector);
 	phase_vector = nifti_vect33_norm(phase_vector);
 	slice_vector = nifti_vect33_norm(slice_vector);
+
+#ifdef USING_DCM2NIIXFSWRAPPER
+        if (getenv("DCM2NIIXFSWRAPPER_DEBUG") != NULL && strcmp(getenv("DCM2NIIXFSWRAPPER_DEBUG"), "yes") == 0)
+	{
+          printf("siemensPhilipsCorrectBvecs() read_vector  = %f (Vcx) %f (Vcy) %f (Vcz)\n", read_vector.v[0], read_vector.v[1], read_vector.v[2]); 
+          printf("siemensPhilipsCorrectBvecs() phase_vector = %f (Vrx) %f (Vry) %f (Vrz)\n", phase_vector.v[0], phase_vector.v[1], phase_vector.v[2]); 
+          printf("siemensPhilipsCorrectBvecs() slice_vector = %f (Vsx) %f (Vsy) %f (Vsz)\n", slice_vector.v[0], slice_vector.v[1], slice_vector.v[2]); 
+        }
+#endif
+
 	for (int i = 0; i < d->CSA.numDti; i++) {
 		float vLen = sqrt((vx[i].V[1] * vx[i].V[1]) + (vx[i].V[2] * vx[i].V[2]) + (vx[i].V[3] * vx[i].V[3]));
 		if ((vx[i].V[0] <= FLT_EPSILON) || (vLen <= FLT_EPSILON)) { //bvalue=0
@@ -398,8 +412,36 @@ void siemensPhilipsCorrectBvecs(struct TDICOMdata *d, int sliceDir, struct TDTI 
 		vx[i].V[1] = bvecs_new.v[0];
 		vx[i].V[2] = -bvecs_new.v[1];
 		vx[i].V[3] = bvecs_new.v[2];
+
+#ifdef USING_DCM2NIIXFSWRAPPER
+                if (getenv("DCM2NIIXFSWRAPPER_DEBUG") != NULL && strcmp(getenv("DCM2NIIXFSWRAPPER_DEBUG"), "yes") == 0)
+		{
+                  if (i < 6)
+		  {
+                    printf("siemensPhilipsCorrectBvecs() (BVECS_DEBUG) bvecs_old  = %f %f %f\n", bvecs_old.v[0], bvecs_old.v[1], bvecs_old.v[2]); 
+                    printf("siemensPhilipsCorrectBvecs() (BVECS_DEBUG) bvecs_new  = %f %f %f\n", bvecs_new.v[0], bvecs_new.v[1], bvecs_new.v[2]); 
+                    printf("siemensPhilipsCorrectBvecs() (BVECS_DEBUG) bvecs      = %f %f %f (column 2 flipped)\n", vx[i].V[1], vx[i].V[2], vx[i].V[3]);
+                  }
+	        }
+#endif
+
 		if (abs(sliceDir) == kSliceOrientMosaicNegativeDeterminant)
+                {
+#ifdef USING_DCM2NIIXFSWRAPPER
+                        float tmp = vx[i].V[2];
+#endif
+
 			vx[i].V[2] = -vx[i].V[2];
+
+#ifdef USING_DCM2NIIXFSWRAPPER
+                      if (getenv("DCM2NIIXFSWRAPPER_DEBUG") != NULL && strcmp(getenv("DCM2NIIXFSWRAPPER_DEBUG"), "yes") == 0)
+		      {
+			if (i < 6)
+                          printf("siemensPhilipsCorrectBvecs() (BVECS_DEBUG) kSliceOrientMosaicNegativeDeterminant, flip bvecs sign column 2: %f => %f\n", tmp, vx[i].V[2]);
+		      }
+#endif
+                }
+
 		for (int v = 0; v < 4; v++)
 			if (vx[i].V[v] == -0.0f)
 				vx[i].V[v] = 0.0f; //remove sign from values that are virtually zero
@@ -2381,14 +2423,117 @@ int *nii_saveDTI(char pathoutname[], int nConvert, struct TDCMsort dcmSort[], st
                 //the order of rows is flipped: flip the y-polarity
 		for (int i = 0; i < (numDti); i++) {
 			if (fabs(vx[i].V[2]) > FLT_EPSILON)
+			{
+#ifdef USING_DCM2NIIXFSWRAPPER
+		                float tmp = vx[i].V[2]; 
+#endif
+
 				vx[i].V[2] = -vx[i].V[2];
+
+#ifdef USING_DCM2NIIXFSWRAPPER
+                                if (getenv("DCM2NIIXFSWRAPPER_DEBUG") != NULL && strcmp(getenv("DCM2NIIXFSWRAPPER_DEBUG"), "yes") == 0)
+				{
+				  if (i < 6)
+				    printf("nii_saveDTI() (BVECS_DEBUG) (not isFlipY) flip bvecs sign column 2: %f => %f\n", tmp, vx[i].V[2]);
+			        }                     
+#endif
+			}
 		} //for each direction
 		//less intuitively: we have now flipped the determinant, so we must swap the x-polarity
 		for (int i = 0; i < (numDti); i++) {
 			if (fabs(vx[i].V[1]) > FLT_EPSILON)
+			{
+#ifdef USING_DCM2NIIXFSWRAPPER
+                                float tmp = vx[i].V[1];
+#endif
 				vx[i].V[1] = -vx[i].V[1];
+
+#ifdef USING_DCM2NIIXFSWRAPPER
+                                if (getenv("DCM2NIIXFSWRAPPER_DEBUG") != NULL && strcmp(getenv("DCM2NIIXFSWRAPPER_DEBUG"), "yes") == 0)
+				{
+                                  if (i < 6)
+				    printf("nii_saveDTI() (BVECS_DEBUG) (not isFlipY) flip bvecs sign column 1: %f => %f\n", tmp, vx[i].V[1]);
+                                }
+#endif
+                        }
 		} //for each direction
 	} //if not a mosaic
+
+#ifdef USING_DCM2NIIXFSWRAPPER
+        // make adjustments for MGH bvecs output
+        for (int i = 0; i < (numDti); i++) {
+	  if (sliceDir < 0)
+	  {
+            // at this point, bvecs output is calculated as not isFlipY, assuming isFlipZ, determinant is positive.
+            // So, bvecs first column is reversed for FSL.
+            // MGH conversion: not isFlipY, slice direction not flipped, determinant is negative, 
+            // 1. we need to reverse bvecs column 1 back, 
+            // 2. also need to reverse bvecs collumn 3
+            
+            float tmp = vx[i].V[1];
+            vx[i].V[1] = -vx[i].V[1];
+            if (getenv("DCM2NIIXFSWRAPPER_DEBUG") != NULL && strcmp(getenv("DCM2NIIXFSWRAPPER_DEBUG"), "yes") == 0)
+	    {
+              if (i < 6)
+	        printf("nii_saveDTI() (BVECS_DEBUG) (mgh adj. sliceDir < 0) flip bvecs sign column 1: %f => %f\n", tmp, vx[i].V[1]);
+            }
+
+            if (fabs(vx[i].V[3]) > FLT_EPSILON)
+	    {
+              tmp = vx[i].V[3];
+	      vx[i].V[3] = -vx[i].V[3];
+              if (getenv("DCM2NIIXFSWRAPPER_DEBUG") != NULL && strcmp(getenv("DCM2NIIXFSWRAPPER_DEBUG"), "yes") == 0)
+	      {
+                if (i < 6)
+		  printf("nii_saveDTI() (BVECS_DEBUG) (mgh adj. sliceDir < 0) flip bvecs sign column 3: %f => %f\n", tmp, vx[i].V[3]);
+              }
+	    }
+          }
+	  else if (abs(sliceDir) == kSliceOrientMosaicNegativeDeterminant)
+	  {
+            // swap signs for every column
+            for (int j = 1; j < 4; j++)
+	    {
+              if (fabs(vx[i].V[j]) > FLT_EPSILON)
+	      {
+                float tmp = vx[i].V[j];
+	        vx[i].V[j] = -vx[i].V[j];
+                if (getenv("DCM2NIIXFSWRAPPER_DEBUG") != NULL && strcmp(getenv("DCM2NIIXFSWRAPPER_DEBUG"), "yes") == 0)
+	        {
+                  if (i < 6)
+                    printf("nii_saveDTI() (BVECS_DEBUG) (mgh adj. abs(sliceDir) == kSliceOrientMosaicNegativeDeterminant) flip bvecs sign column j: %f => %f\n", tmp, vx[i].V[j]);
+                }
+	      }
+            }
+	  }
+          else  // sliceDir >= 0 && abs(sliceDir) != kSliceOrientMosaicNegativeDeterminant
+	  {	
+            // MGH conversion: not flip Y, image determinant is positive, bvecs first column is reversed for FSL.
+            // So, we need to flip bvecs first column.
+            if (fabs(vx[i].V[1]) > FLT_EPSILON)
+	    {
+              float tmp = vx[i].V[1];
+	      vx[i].V[1] = -vx[i].V[1];
+              if (getenv("DCM2NIIXFSWRAPPER_DEBUG") != NULL && strcmp(getenv("DCM2NIIXFSWRAPPER_DEBUG"), "yes") == 0)
+	      {
+                if (i < 6)
+		  printf("nii_saveDTI() (BVECS_DEBUG) (mgh adj. abs(sliceDir) != kSliceOrientMosaicNegativeDeterminant) flip bvecs sign column 1: %f => %f\n", tmp, vx[i].V[1]);
+              }
+	    }
+          }
+        } //for each direction
+
+        mrifsStruct.numDti = numDti;
+        mrifsStruct.tdti = (TDTI *)malloc(numDti * sizeof(TDTI));
+        for (int i = 0; i < numDti; i++)
+	{
+            mrifsStruct.tdti[i].V[0] = vx[i].V[0];
+            mrifsStruct.tdti[i].V[1] = vx[i].V[1];
+            mrifsStruct.tdti[i].V[2] = vx[i].V[2];
+            mrifsStruct.tdti[i].V[3] = vx[i].V[3];
+        }
+#endif
+
 	if (opts.isVerbose) {
 		for (int i = 0; i < (numDti); i++) {
 			printMessage("%d\tB=\t%g\tVec=\t%g\t%g\t%g\n", i, vx[i].V[0], vx[i].V[1], vx[i].V[2], vx[i].V[3]);
@@ -2414,12 +2559,7 @@ int *nii_saveDTI(char pathoutname[], int nConvert, struct TDCMsort dcmSort[], st
 				for (int v = 0; v < 4; v++) //for each vector+B-value
 					dti4D->S[i].V[v] = vx[i].V[v];
 		}
-#ifdef USING_DCM2NIIXFSWRAPPER
-		mrifsStruct.tdti = vx;
-		mrifsStruct.numDti = numDti;
-#else
 		free(vx);
-#endif
 		return volOrderIndex;
 	}
 
@@ -2444,12 +2584,7 @@ int *nii_saveDTI(char pathoutname[], int nConvert, struct TDCMsort dcmSort[], st
 	fclose(fp);
 #endif
 	if (isIsotropic) { //issue 405: ISOTROPIC images have bval but not bvec
-#ifdef USING_DCM2NIIXFSWRAPPER
-		mrifsStruct.tdti = vx;
-		mrifsStruct.numDti = numDti;
-#else
 		free(vx);
-#endif
 		return volOrderIndex;
 	}
 
@@ -2479,12 +2614,7 @@ int *nii_saveDTI(char pathoutname[], int nConvert, struct TDCMsort dcmSort[], st
 #endif
 #endif
 
-#ifdef USING_DCM2NIIXFSWRAPPER
-	mrifsStruct.tdti = vx;
-	mrifsStruct.numDti = numDti;
-#else
 	free(vx);
-#endif
 	return volOrderIndex;
 } // nii_saveDTI()
 
@@ -5728,6 +5858,11 @@ void oldSliceTimingGE(struct TDCMsort *dcmSort,struct TDICOMdata *dcmList, struc
 */
 
 int sliceTimingCore(struct TDCMsort *dcmSort, struct TDICOMdata *dcmList, struct nifti_1_header *hdr, int verbose, const char *filename, int nConvert, struct TDCMopts opts) {
+#ifdef USING_DCM2NIIXFSWRAPPER
+  if (getenv("DCM2NIIXFSWRAPPER_DEBUG") != NULL && strcmp(getenv("DCM2NIIXFSWRAPPER_DEBUG"), "yes") == 0) 
+    printf("sliceTimingCore() ...\n");
+#endif
+
 	int sliceDir = 0;
 	if (hdr->dim[3] < 2)
 		return sliceDir;
@@ -5766,6 +5901,12 @@ int sliceTimingCore(struct TDCMsort *dcmSort, struct TDICOMdata *dcmList, struct
 			allSame = false;
 	if (allSame)
 		d0->CSA.sliceTiming[0] = -1.0;
+
+#ifdef USING_DCM2NIIXFSWRAPPER
+        if (getenv("DCM2NIIXFSWRAPPER_DEBUG") != NULL && strcmp(getenv("DCM2NIIXFSWRAPPER_DEBUG"), "yes") == 0) 
+	  printf("sliceTimingCore() return sliceDir = %d\n", sliceDir);
+#endif
+
 	return sliceDir;
 } //sliceTiming()
 
@@ -6224,6 +6365,11 @@ int saveDcm2NiiCore(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata d
 			//if (isReorder) iStart = 0;
 			//for (int i = 1; i < nConvert; i++) { //<- works except where ensureSequentialSlicePositions() changes 1st slice
 			for (int i = 0; i < nConvert; i++) { //stack additional images
+#ifdef USING_DCM2NIIXFSWRAPPER
+			         //if (i == nConvert -1)
+                                 //  setenv("PRNBVECDEBUG", "yes", 1);
+#endif
+
 				indx = dcmSort[i].indx;
 				//double time2 = dcmList[dcmSort[i].indx].acquisitionTime;
 				//if (time != time2)
@@ -6253,6 +6399,11 @@ int saveDcm2NiiCore(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata d
 	} // end of if (nConvert > 1)
 	if (opts.isVerbose > 1)
 		reportProtocolBlockGE(&dcmList[indx0], nameList->str[dcmSort[0].indx]);
+
+#ifdef USING_DCM2NIIXFSWRAPPER
+        if (getenv("DCM2NIIXFSWRAPPER_DEBUG") != NULL && strcmp(getenv("DCM2NIIXFSWRAPPER_DEBUG"), "yes") == 0)
+          setenv("PRNBVECDEBUG", "yes", 1);
+#endif
 	int sliceDir = sliceTimingCore(dcmSort, dcmList, &hdr0, opts.isVerbose, nameList->str[dcmSort[0].indx], nConvert, opts);
 #ifdef myReportSliceFilenames
 	if (sliceDir < 0) {
@@ -6352,7 +6503,7 @@ int saveDcm2NiiCore(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata d
 	bool isFlipZ = false;
 	if (sliceDir < 0) {
 #ifdef USING_DCM2NIIXFSWRAPPER     // freesurfer fix dcm/261000-10-6?.dcm
-      printMessage("***USING_DCM2NIIXFSWRAPPER***: skip nii_flipZ() when sliceDir < 0 (%s:%s:%d)\n", __FILE__, __func__, __LINE__);
+                printMessage("***USING_DCM2NIIXFSWRAPPER***: skip nii_flipZ() when sliceDir < 0 (%s:%s:%d)\n", __FILE__, __func__, __LINE__);
 #else
 		isFlipZ = true;
 		imgM = nii_flipZ(imgM, &hdr0);
@@ -6410,12 +6561,24 @@ int saveDcm2NiiCore(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata d
 				}
 		}
 		if (isSliceEquidistant) {
+#ifdef USING_DCM2NIIXFSWRAPPER
+                        if (getenv("DCM2NIIXFSWRAPPER_DEBUG") != NULL && strcmp(getenv("DCM2NIIXFSWRAPPER_DEBUG"), "yes") == 0) 
+                          printMessage("****isSetOrtho = true****\n");
+#endif
 			imgM = nii_setOrtho(imgM, &hdr0);
 			isSetOrtho = true;
 		}
 	} else if (opts.isFlipY) { //(FLIP_Y) //(dcmList[indx0].CSA.mosaicSlices < 2) &&
+#ifdef USING_DCM2NIIXFSWRAPPER
+                if (getenv("DCM2NIIXFSWRAPPER_DEBUG") != NULL && strcmp(getenv("DCM2NIIXFSWRAPPER_DEBUG"), "yes") == 0) 
+	          printMessage("calling nii_flipY() ...\n");
+#endif
 		imgM = nii_flipY(imgM, &hdr0);
 		isFlipY = true;
+#ifdef USING_DCM2NIIXFSWRAPPER
+                if (getenv("DCM2NIIXFSWRAPPER_DEBUG") != NULL && strcmp(getenv("DCM2NIIXFSWRAPPER_DEBUG"), "yes") == 0) 
+                  printMessage("****Y flipped****\n");
+#endif
 	} else
 		printMessage("DICOM row order preserved: may appear upside down in tools that ignore spatial transforms\n");
 	if ((dcmList[dcmSort[0].indx].epiVersionGE == kGE_EPI_PEPOLAR_REV) || (dcmList[dcmSort[0].indx].epiVersionGE == kGE_EPI_PEPOLAR_FWD_REV_FLIP) || (dcmList[dcmSort[0].indx].epiVersionGE == kGE_EPI_PEPOLAR_REV_FWD_FLIP)) {
@@ -6591,7 +6754,7 @@ int saveDcm2Nii(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata dcmLi
     else
       printMessage("%d %ld %s %s (total %d)\n", dcmList[indx0].seriesUidCrc, dcmList[indx0].seriesNum, dcmList[indx0].protocolName, nameList->str[indx0], nConvert);
 
-#if 0
+#if 1
     for (int i = 0; i < nConvert; i++) {
       int indx = dcmSort[i].indx;
       if (opts.isIgnoreSeriesInstanceUID)
