@@ -1202,7 +1202,14 @@ int main(int argc, char *argv[])
         << endl;
     cout << " http://dx.doi.org/10.1016/j.neuroimage.2010.07.020" << endl;
     cout << " http://reuter.mit.edu/papers/reuter-robreg10.pdf" << endl << endl;
-    ;
+    
+    if (P.cost == Registration::SB) 
+    {
+      cout << " And for the segmentation based cost function:" << endl;
+      cout << " Multimodal image registration through simultaneous segmentation," << endl;
+      cout << " I. Aganj and B. Fischl. IEEE Signal Processing Letters 24(11):1661-1665, 2017." << endl;
+      cout << " https://doi.org/10.1109/LSP.2017.2754263" << endl << endl;
+    }
 
     //if (diag_fp) fclose(diag_fp) ;
   } // for valgrind, so that everything is free
@@ -1929,6 +1936,8 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
       P.cost = Registration::LNCC;
     else if (cost == "SAD")
       P.cost = Registration::SAD;
+    else if (cost == "SB")
+      P.cost = Registration::SB;
     else
     {
       cout << "ERROR: cost function " << cost << " unknown! " << endl;

@@ -7,7 +7,7 @@ compare_vol T1.mgz T1.ref.mgz
 
 # aseg
 test_command mri_normalize -aseg aseg.presurf.mgz norm.mgz brain.mgz
-compare_vol brain.mgz brain.ref.mgz
+compare_vol brain.mgz brain.ref${TESTDATA_SUFFIX}.mgz
 
 # gentle
 test_command mri_normalize -gentle nu.mgz gentle.mgz

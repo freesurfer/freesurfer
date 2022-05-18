@@ -132,7 +132,7 @@ double RegPowell::costFunction(const vnl_vector<double>& p)
 
   // special case for sum of squared differences:
   if (tocurrent->costfun == LS || tocurrent->costfun == TB || tocurrent->costfun==LNCC
-       || tocurrent->costfun==SAD || tocurrent->costfun==NCC )
+       || tocurrent->costfun==SAD || tocurrent->costfun==NCC || tocurrent->costfun==SB  )
   {
     // iscale should be taken care of here:
     double dd;
@@ -164,6 +164,9 @@ double RegPowell::costFunction(const vnl_vector<double>& p)
       break;
       case SAD:
         dd = CostFunctions::absDiff(scf,tcf,msi,mti,tocurrent->subsamp,tocurrent->subsamp, tocurrent->subsamp,si,sii);
+      break;
+      case SB:
+        dd = CostFunctions::SBCost(scf,tcf,msi,mti,tocurrent->subsamp,tocurrent->subsamp,tocurrent->subsamp);
       break;
       default:
         cout << " RegPowell::costFunction ERROR cannot deal with cost function "

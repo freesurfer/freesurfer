@@ -40,13 +40,16 @@ DEFAULT_PALETTE = [
     [0.6, 0.0, 0.0],     # luminosity=0.12756
     [0.7, 0.0, 0.75],    # luminosity=0.20297
 ]
+DEFAULT_PALETTE = ( np.array( DEFAULT_PALETTE ) * 255 ).round().astype( 'int' ).tolist()
+
 
 
 def import_graphical_libraries():
     try:
-        global pg, QtGui, view, HdavWindow
+        global pg, QApplication, view, HdavWindow
         import pyqtgraph as pg
-        from PyQt5 import QtGui
+        from PyQt5.QtWidgets import QApplication
+        
         from .hdav import view, HdavWindow
     except ImportError:
        return False
@@ -94,7 +97,7 @@ class ShowFigures:
             visualization += ' plots, and images'
         return visualization
 
-    def __init__(self, interactive=False, image_alpha=0.6, palette=None, show_flag=False, movie_flag=False):
+    def __init__(self, interactive=False, image_alpha=153, palette=None, show_flag=False, movie_flag=False):
         if palette is None:
             palette = DEFAULT_PALETTE
         self.palette = palette
@@ -125,7 +128,7 @@ class ShowFigures:
             probabilities = mesh.rasterize_atlas(shape[0:3])
         if probabilities is None:
             probability_layers = []
-            image_alpha = 1.0 if auto_scale else None
+            image_alpha = 255 if auto_scale else None
         else:
             probability_layers = self.probability_layers(probabilities, names)
             image_alpha = self.image_alpha
@@ -168,8 +171,8 @@ class ShowFigures:
             start = min([np.min(image) for image in image_list])
             stop = max([np.max(image) for image in image_list])
             cmap = transparency_color_map(
-                (1.0, 1.0, 1.0),  # white
-                bottom_rgb_color=(0., 0., 0.),
+                (255, 255, 255),  # white
+                bottom_rgb_color=(0, 0, 0),
                 start=start,
                 stop=stop,
                 bottom_alpha=alpha,
@@ -272,9 +275,9 @@ class ShowFigures:
                 self.plotWindows[ window_id ].setWindowTitle( title )
             self.plotWindows[ window_id ].show()
             if self.interactive:
-                QtGui.QApplication.processEvents()
+                QApplication.processEvents()
             else:
-                QtGui.QApplication.exec_()
+                QApplication.exec_()
 
 class LayerSequence:
     def __init__(self, title):
@@ -328,7 +331,7 @@ class LayerSequence:
         return self.current_frame
 
 
-def transparency_color_map(top_rgb_color, bottom_rgb_color=None, start=0, stop=65535, bottom_alpha=0.0, top_alpha=1.0):
+def transparency_color_map(top_rgb_color, bottom_rgb_color=None, start=0, stop=65535, bottom_alpha=0, top_alpha=255):
     if bottom_rgb_color is None:
         bottom_rgb_color = top_rgb_color
     positions = [start, stop]

@@ -44,6 +44,33 @@
 set -e
 set -o pipefail
 
+# get the os
+get_os()
+{
+   local version=""
+   local name=""
+   local host_os=""
+   local uname_linux=`uname -a | grep -i "^Linux"`
+   local uname_darwin=`uname -a | grep -i "^Darwin"`
+
+   if [ "$uname_linux" != "" ]; then
+      # For version and name, all values after the = sign, then remove double quotes.
+      # For name, use only 1st output field, remove point release info in version, change text to lowercase
+      # Starting with MacOS 11.X, Apple changed the name from MacOSX to macOS, so last step is remove x from macosx
+      version=`cat /etc/os-release | grep "^VERSION=" | sed 's;^.*=;;' | sed 's;";;g' | awk '{print $1}' | sed 's;\..*;;'`
+      name=`cat /etc/os-release | grep "^ID=" | sed 's;^.*=;;' | sed 's;";;g' | tr '[:upper:]' '[:lower:]' | sed 's;osx;os;'`
+   elif [ "$uname_darwin" != "" ]; then
+      # For version, print 2nd field and remove any point release info in the os revision.
+      # For name, print everything after colon, remove spaces, change text to lowercase
+      version=`sw_vers | grep "^ProductVersion" | awk '{print $2}' | sed 's;\..*;;'`
+      name=`sw_vers | grep "^ProductName" | sed 's/^.*://' | sed 's; ;;g' | tr '[:upper:]' '[:lower:]'`
+   fi
+
+   # example output: centos7 centos8 ubuntu18 ubuntu20 macos10 macos11
+   if [[ "$version" != "" ]] && [[ "$name" != "" ]]; then host_os=${name}${version}; fi
+   echo $host_os
+}
+
 # error_exit
 # simple error function
 function error_exit {
@@ -87,6 +114,17 @@ FSTEST_SCRIPT_DIR="$(realpath $(dirname $0))"
 
 # FSTEST_TESTDATA_TARBALL is the path to the testdata tarball associated with the current test script
 FSTEST_TESTDATA_TARBALL="${FSTEST_SCRIPT_DIR}/testdata.tar.gz"
+# For systems where we build with gcc 8.X, optionally use a testdata file whose reference output was
+# created with binaries compiled with gcc8.X - whose output differs compared to binaries created with gcc 4.X
+host_os=$(get_os)
+export TESTDATA_SUFFIX=""
+echo "12345 host_os = $host_os"
+# if [[ "$host_os" == "centos8" ]] || [[ "$host_os" == "ubuntu20" ]]; then
+if [ "$host_os" == "ubuntu20" ]; then
+   # FSTEST_TESTDATA_TARBALL="${FSTEST_SCRIPT_DIR}/testdata_gcc8.tar.gz"
+   export TESTDATA_SUFFIX=".gcc8"
+   echo "12345 FSTEST_TESTDATA_TARBALL = $FSTEST_TESTDATA_TARBALL"
+fi
 
 # if we're regenerating testdata, make a temporary 'testdata_regeneration' storage directory for
 # new reference data. After each comparison called in the test, the 'real' ouput will be copied into
@@ -97,6 +135,7 @@ if [ "$FSTEST_REGENERATE" = true ]; then
     # make the temporary dir and untar the original testdata into this directory
     FSTEST_REGENERATION_DIR="${FSTEST_CWD}/testdata_regeneration"
     rm -rf $FSTEST_REGENERATION_DIR && mkdir $FSTEST_REGENERATION_DIR
+    echo "12345 will do tar -xzvf $FSTEST_TESTDATA_TARBALL -C $FSTEST_REGENERATION_DIR"
     tar -xzvf "$FSTEST_TESTDATA_TARBALL" -C $FSTEST_REGENERATION_DIR
 fi
 
@@ -153,7 +192,7 @@ function cleanup {
         echo "$(tput setaf 1)error:$(tput sgr 0) test failed"
     fi
 }
-trap cleanup EXIT
+# trap cleanup EXIT
 
 # hook to catch if the script is killed
 function abort {
