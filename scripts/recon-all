@@ -1513,6 +1513,20 @@ if($DoMotionCor) then
 
 endif # Motion Correction
 
+set synthstrip = $mdir/synthstrip.mgz
+if($SynthStrip) then
+  set ud = `UpdateNeeded $synthstrip $origvol`
+  if($ud || $ForceUpdate) then
+    set xopts = `fsr-getxopts synthstrip $XOptsFile`;
+    set cmd = (mri_synthstrip -i $origvol -o $synthstrip $xopts)
+    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+    if($RunIt) then
+      $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    endif
+  endif
+endif
+
 if($UseSamseg) then
   # what to do if have T2, FLAIR, long, etc?
   set origvol = $subjdir/mri/orig.mgz
@@ -1520,16 +1534,18 @@ if($UseSamseg) then
   set ud = `UpdateNeeded $samsegdir/seg.mgz $origvol`
   if($ud || $ForceUpdate) then
     set xopts = `fsr-getxopts samseg $XOptsFile`;
-    set cmd = (samseg --t1w $origvol --refmode t1w --o $samsegdir --threads $OMP_NUM_THREADS $xopts)
+    set cmd = (samseg --t1w $origvol --refmode t1w --o $samsegdir \
+      --save-probabilities --threads $OMP_NUM_THREADS $xopts)
     echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
     if($RunIt) then
       $fs_time $cmd |& tee -a $LF
       if($status) goto error_exit;
     endif
   endif
-  # Fix hypos and vents
+  # Need to add fix for hypos and vents
+  set cmd = (samseg2recon --s $subjid --samseg $samsegdir) # no update option
   set xopts = `fsr-getxopts samseg2recon $XOptsFile`;
-  set cmd = (samseg2recon --s $subjid --samseg $samsegdir $xopts) # no update option
+  set cmd = ($cmd $xopts)
   echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
   if($RunIt) then
     $fs_time $cmd |& tee -a $LF
@@ -2406,6 +2422,20 @@ skullstrip:
     endif
   endif
 
+endif # Brainmask
+
+if($SynthStrip) then
+  set T1 = $mdir/T1.mgz
+  set BM = $mdir/brainmask.mgz
+  set ud = `UpdateNeeded $BM $T1 $synthstrip`
+  if($ud || $ForceUpdate) then
+    set cmd = (mri_mask $T1 $synthstrip $BM)
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) then
+      $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    endif
+  endif
 endif
 
 #-----------             -------------#
@@ -7879,6 +7909,14 @@ check_params:
       set DoCCSeg          = 0;
       set DoASegMerge      = 1;
       set DoSamsegReg      = 0;
+    endif
+
+    if($UseSynthSeg) then
+      if($UseSamseg) then
+        echo "ERROR: cannot specify -synthseg and -samseg or -samseg-synthseg"
+        exit 1
+      endif
+      set DoSkullStrip = 0;
     endif
 
     if($UseSynthSeg) then

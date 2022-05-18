@@ -100,9 +100,16 @@ UseSynthSeg:
     value: False
     flags: -synthseg
     action: enable
-    descr: Run synthseg instead of ca_reg and ca_label (won't create m3z0
+    descr: Run synthseg instead of ca_reg and ca_label (won't create m3z)
     
 TopoFitLevel:
     value: 0
     flags: -topofit
     descr: TopoFit Level
+
+SynthStrip:
+    value: False
+    flags: -synthstrip
+    action: enable
+    descr: Run synthstrip instead of mri_watershed
+
