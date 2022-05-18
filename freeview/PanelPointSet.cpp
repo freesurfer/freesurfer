@@ -205,8 +205,10 @@ void PanelPointSet::DoUpdateWidgets()
 
     if (!layer->GetEnhancedData("overall_score").isNull())
       ui->spinBoxOverallScore->setValue(layer->GetEnhancedData("overall_score").toInt());
-    if (!layer->GetEnhancedData("second_qa_score").isNull())
-      ui->spinBoxSecondQA->setValue(layer->GetEnhancedData("second_qa_score").toInt());
+
+    if (!layer->GetEnhancedData("qa_level").isNull())
+      ui->spinBoxSecondQA->setValue(layer->GetEnhancedData("qa_level").toInt());
+
     ui->textEditOverallQuality->setPlainText(layer->GetEnhancedData("overall_quality").toString());
   }
 
@@ -744,6 +746,6 @@ void PanelPointSet::OnSpinBoxSecondQA(int val)
 {
   LayerPointSet* layer = GetCurrentLayer<LayerPointSet*>();
   if (layer)
-    layer->SetEnhancedData("second_qa_score", val);
+    layer->SetEnhancedData("qa_level", val);
 }
 

@@ -464,7 +464,7 @@
         <item>
          <widget class="QLabel" name="label_3">
           <property name="text">
-           <string>Second QA</string>
+           <string>QA Level</string>
           </property>
          </widget>
         </item>
