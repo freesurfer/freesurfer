@@ -21,7 +21,6 @@
 6d0bc2d9-c184-445c-82d0-b5c56c5bf5d9 zkaufman@gust.nmr.mgh.harvard.edu:/autofs/space/sand_001/users/zkaufman/freesurfer_lion/trunk/dev timestamp=1444245498.013663s
 734e4b42-933d-4423-8a94-0eeb56bdd849 rd521@topaz.nmr.mgh.harvard.edu:/autofs/space/topaz_001/topaz_nightly_build/trunk/rd521-dev timestamp=1585540846.986789s
 739a31b2-febf-43ee-be59-713bdaa01a06 sand-sync timestamp=1446756737.806651s
-739a31b2-febf-43ee-be59-713bdaa01a06 zkaufman@sand:/autofs/space/sand_001/users/zkaufman/temp/trunk.sync/dev.git timestamp=1445369824.361155s
 73c2b24f-f12c-4f80-a46d-249fa6330dd8 nmrclass@nmrclass39:~/fsdev timestamp=1492011513.279031s
 75e0cb41-cf09-4057-82e2-1894298e4186 rd521@tanha.nmr.mgh.harvard.edu:/local_mount/space/tanha/1/vbox/rd521/freesurfer_src/git/freesurfer timestamp=1531176163.148445s
 77b904a8-4b1f-4734-9064-9d3c2e3a3e1a zkaufman@transfer:/autofs/cluster/pubftp/dist/freesurfer/repo/freesurfer.git timestamp=1444166341.990915s
@@ -41,6 +40,7 @@ bf5b776b-ca4b-404b-bb7f-e06f46f1b509 zkaufman@gate:/autofs/space/sand_001/users/
 c69fa1d4-9761-4bb7-a9ed-81c2da9ac538 fischl@serena.nmr.mgh.harvard.edu:/autofs/space/pac_001/tiamat_copy/3/users/git/freesurfer timestamp=1635873570.723727947s
 c8cdabf7-c040-4cc6-9651-e72b68ab0e64 rd521@garnet.nmr.mgh.harvard.edu:/local_mount/space/garnet/1/scratch/build/utility/build/freesurfer timestamp=1651102912.088226s
 c9b0b2a7-07ce-4dc3-85ab-b9647a7872de fischl@nicki.nmr.mgh.harvard.edu:/autofs/space/tiamat_003/users/git/freesurfer timestamp=1494361910.13086s
+c9f194ce-a277-44d5-801c-4d2d5fe2d0ed rd521@garnet2.nmr.mgh.harvard.edu:/autofs/space/garnet2_001/garnet/1/scratch/build/utility/build/freesurfer timestamp=1652864500.304831193s
 d018cb1b-c841-48b8-ba50-11b686a5c6ad  timestamp=1437423895.693463s
 d1295a6e-e89b-45b1-a3f8-ba3cb052e33d rd521@garnet.nmr.mgh.harvard.edu:/local_mount/space/garnet/1/scratch/freesurfer timestamp=1604703780.973037s
 d87eceb7-900b-41d2-8a6a-6d567bb205af rd521@tanha.nmr.mgh.harvard.edu:/autofs/cluster/freesurfer/build/garnet/freesurfer timestamp=1604018912.978563s
