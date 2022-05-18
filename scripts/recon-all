@@ -1390,12 +1390,12 @@ if($DoMotionCor) then
 
   # Only one run, copy to rawavg
   if($#RunList == 1) then
-    echo "Only one run found so motion"|& tee -a $LF
-    echo "correction will not be performed. I'll"|& tee -a $LF
-    echo "copy the run to rawavg and continue."|& tee -a $LF
-    sleep 2s;
     set ud = `UpdateNeeded $rawavg $RunList`
     if($ud || $ForceUpdate) then
+      echo "Only one run found so motion"|& tee -a $LF
+      echo "correction will not be performed. I'll"|& tee -a $LF
+      echo "copy the run to rawavg and continue."|& tee -a $LF
+      sleep 2s;
       set cmd = (cp $RunList $rawavg)
       echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
       if($RunIt) then
@@ -1421,30 +1421,35 @@ if($DoMotionCor) then
       set RunIscales=($RunIscales ${nthdir}/${nthname}-iscale.txt)
     end
 
-    if($DoRobustMotionCor) then
-      set cmd = (mri_robust_template)
-      set cmd = ($cmd --mov ${RunList})
-      set cmd = ($cmd --average 1)
-      set cmd = ($cmd --template ${rawavg})
-      set cmd = ($cmd --satit)
-      set cmd = ($cmd --inittp 1)
-      set cmd = ($cmd --fixtp)
-      set cmd = ($cmd --noit)
-      set cmd = ($cmd --iscale)
-      set cmd = ($cmd --iscaleout $RunIscales)
-      set cmd = ($cmd --subsample 200)
-      set cmd = ($cmd --lta $RunLtas)
+    set ud = `UpdateNeeded $rawavg $RunList`
+    if($ud || $ForceUpdate) then
+      if($DoRobustMotionCor) then
+        set cmd = (mri_robust_template)
+        set cmd = ($cmd --mov ${RunList})
+        set cmd = ($cmd --average 1)
+        set cmd = ($cmd --template ${rawavg})
+        set cmd = ($cmd --satit)
+        set cmd = ($cmd --inittp 1)
+        set cmd = ($cmd --fixtp)
+        set cmd = ($cmd --noit)
+        set cmd = ($cmd --iscale)
+        set cmd = ($cmd --iscaleout $RunIscales)
+        set cmd = ($cmd --subsample 200)
+        set cmd = ($cmd --lta $RunLtas)
+      else
+        # use FSL's flirt to do motion correction (averaging of runs)
+        set cmd = (mri_motion_correct.fsl -o $rawavg -wild $RunList)
+      endif
+      echo "#-----------------------------------------------"
+      $PWD |& tee -a $LF
+      echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+      if($RunIt) then
+        $fs_time $cmd |& tee -a $LF
+        if($status) goto error_exit;
+        echo $cmd > $touchdir/motion_correct.touch
+      endif
     else
-      # use FSL's flirt to do motion correction (averaging of runs)
-      set cmd = (mri_motion_correct.fsl -o $rawavg -wild $RunList)
-    endif
-    echo "#-----------------------------------------------"
-    $PWD |& tee -a $LF
-    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
-    if($RunIt) then
-      $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
-      echo $cmd > $touchdir/motion_correct.touch
+      echo "INFO: $rawavg does not need updating" | tee -a $LF
     endif
   endif
 
@@ -1559,7 +1564,7 @@ if($UseSynthSeg) then
   set cmd = (seg2recon --s $subjid --seg $synthseg --i $origvol --threads $OMP_NUM_THREADS)
   if(-e $synthstrip) set cmd =($cmd --m $synthstrip)
   set cmd = ($cmd $xopts)
-  if($#$XOptsFile) set cmd = ($cmd --expert $XOptsFile)
+  if($#XOptsFile) set cmd = ($cmd --expert $XOptsFile)
   echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
   if($RunIt) then
     $fs_time $cmd |& tee -a $LF
