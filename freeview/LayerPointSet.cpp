@@ -166,6 +166,16 @@ bool LayerPointSet::LoadFromJsonFile(const QString &filename)
     return false;
   }
 
+  if (!m_mapEnhancedData.contains("qa_level"))
+  {
+    if (m_mapEnhancedData.contains("second_qa_score"))
+      m_mapEnhancedData["qa_level"] = m_mapEnhancedData["second_qa_score"];
+    else if (m_mapEnhancedData.value("second_quality_check").toBool())
+      m_mapEnhancedData["qa_level"] = 4;
+    m_mapEnhancedData.remove("second_qa_score");
+    m_mapEnhancedData.remove("second_quality_check");
+  }
+
   QVariantList list = m_mapEnhancedData.value("points").toList();
   QString coord_strg = m_mapEnhancedData.value("vox2ras").toString();
   FSVolume* ref_vol = m_layerRef->GetSourceVolume();
