@@ -5,7 +5,7 @@
 # to samseg2recon but provides for bias field correction (which is
 # already done by samseg). 
 
-set VERSION = 'synthseg2recon @FS_VERSION@';
+set VERSION = 'seg2recon @FS_VERSION@';
 
 if(-e $FREESURFER_HOME/sources.csh) then
   source $FREESURFER_HOME/sources.csh
@@ -220,8 +220,16 @@ endif
 
 # link norm to brainmask; brain will be created by recon-all
 pushd $mdir
+if(! -e T1.mgz) then
+  set cmd = (ln -sf nu.mgz T1.mgz)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit;
+endif
 foreach v (brainmask.mgz)
-  if(! -e $v) set cmd = (ln -sf norm.mgz $v)
+  # This is redundant when synthstrip is used in recon-all
+  if(-e $v) continue
+  set cmd = (ln -sf norm.mgz $v)
   echo $cmd | tee -a $LF
   $cmd | tee -a $LF
   if($status) goto error_exit;
@@ -535,11 +543,11 @@ Creates and populates a subjects dir from an input image and seg in a
 way that recon-all can be run on it. It will propogate the seg to
 aseg.auto_noCCseg.mgz and will run mri_cc to add the corpus callosum
 to it to create aseg.auto.mgz as output. It fits and removes the bias
-field to create the nu.mgz. It creates a brain mask by binarizing and
-dilating the segmentation. The norm.mgz and brainmask.mgz are the
-nu.mgz masked by the brain mask. The bias is fit inside of a head mask.
-Computes talairach.xfm from the nu.mgz using talairach_avi. No
-talairach.m3z is created.
+field to create the nu.mgz (to which T1.mgz is linked). It creates a
+brain mask by binarizing and dilating the segmentation. The norm.mgz
+and brainmask.mgz are the nu.mgz masked by the brain mask. The bias is
+fit inside of a head mask.  Computes talairach.xfm from the nu.mgz
+using talairach_avi. No talairach.m3z is created.
 
 After completion, recon-all can be run something like
 recon-all -s subject -autorecon2-samseg -autorecon3 
