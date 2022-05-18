@@ -24,6 +24,10 @@
 #include <cassert>
 #include <fstream>
 #include <sstream>
+#include <vector>
+#include <numeric>      // std::iota
+#include <algorithm>    // std::sort, std::stable_sort
+
 #include "RobustGaussian.h"
 
 #include "error.h"
@@ -223,6 +227,30 @@ double CostFunctions::var(MRI *i, int frame)
     count++;
   }
   return  (d / count);
+}
+
+
+double CostFunctions::norm(MRI *mri, int frame)
+{
+  double d = 0.0;
+  int z;
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(static) reduction(+:d)  
+#endif
+  for (z = 0; z < mri->depth; z++)
+  {
+    int y,x;
+    double v;
+    for (y = 0; y < mri->height; y++)
+    {
+      for (x = 0; x < mri->width; x++)
+      {
+          v = MRIgetVoxVal(mri,x,y,z,frame);
+          d += v * v;  
+      }
+    }
+  }
+  return sqrt(d);
 }
 
 float CostFunctions::median(MRI *i)
@@ -1150,6 +1178,119 @@ double CostFunctions::normalizedCorrelation(MRI * i1, MRI * i2)
   }
   return (d / (sqrt(dd1) * sqrt(dd2)));
 }
+
+
+double CostFunctions::SBCost(MRI * mriS, MRI * mriT,
+    const vnl_matrix_fixed<double, 4, 4>& Msi,
+    const vnl_matrix_fixed<double, 4, 4>& Mti,
+    int d1, int d2, int d3)
+{
+
+  // matlab:
+  //N = length(vJ);
+  //vI = vI - mean(vI); vI = vI / norm(vI);
+  //vJ = vJ - mean(vJ); vJ = vJ / norm(vJ);
+  //[~, ind] = sort(vI + sign(vI'*vJ)*vJ, 'descend');
+  //Ic = cumsum(vI(ind));
+  //Jc = cumsum(vJ(ind));
+  //cf = -max( (Ic(1:end-1).^2 + Jc(1:end-1).^2) ./ ((1:(N-1)).*((N-1):-1:1))');
+
+  // assert same sizes
+  if (mriS->width != mriT->width || mriS->height != mriT->height || mriS->depth != mriT->depth)
+  {
+    cerr << "CostFunctions::SBCost image dimensions differ!" << endl;
+    exit(1);
+  }
+  
+  // currently works only on single frame
+  if (mriS->nframes >1 || mriT->nframes>1)
+  {
+    cerr << "CostFunctions::SBCost only works on single frame inputs!" << endl;
+    exit(1);
+  }
+  
+  // map and subsample
+  MRI * nmriS = mapMRI(mriS,Msi,d1,d2,d3);
+  MRI * nmriT = mapMRI(mriT,Mti,d1,d2,d3);
+
+  // get total size
+  unsigned int n  =  nmriS->width * nmriS->height * nmriS->depth;
+
+  // get means
+  double m1 = mean(nmriS,0);
+  double m2 = mean(nmriT,0);
+  
+  // convert to stl vector, de-mean and compute norm
+  unsigned int counter = 0;
+  std::vector < double > iv1(n), iv2(n);
+  double norm1 = 0.0;
+  double norm2 = 0.0;
+  double f1,f2 = 0;
+  for (int z = 0; z < nmriS->depth; z++)
+    for (int y = 0; y < nmriS->height; y++)
+      for (int x = 0; x < nmriS->width; x++)
+      {
+        f1 = MRIgetVoxVal(nmriS, x, y, z, 0)-m1;
+        f2 = MRIgetVoxVal(nmriT, x, y, z, 0)-m2;
+        iv1[counter] = f1;
+        iv2[counter] = f2;
+        norm1 += f1*f1;
+        norm2 += f2*f2;
+        counter++;
+      }
+  norm1 = sqrt(norm1);
+  norm2 = sqrt(norm2);
+      
+  // free mem (mapped images not needed as we have std::vector now)
+  MRIfree(&nmriS);
+  MRIfree(&nmriT);
+
+  // normalize and compute sign
+  double prod = 0.0;
+  for (unsigned int i = 0; i<n; i++)
+  {
+    iv1[i] /= norm1;
+    iv2[i] /= norm2;
+    prod += iv1[i] * iv2[i];    
+  }
+  int sign = std::copysign(1,prod);
+
+  // compute sorting vector (into iv1 to save space)
+  for (unsigned int i = 0; i<n; i++)
+  {
+    iv1[i] += sign * iv2[i];
+  }
+  
+  // sorting
+  // initialize original index locations
+  std::vector<size_t> idx(iv1.size());
+  iota(idx.begin(), idx.end(), 0);
+  // sort indexes based on comparing values in iv1
+  sort(idx.begin(), idx.end(),
+       [&iv1](size_t i1, size_t i2) {return iv1[i1] > iv1[i2];});
+
+  // cumsums
+  std::vector < double > c1(n), c2(n);
+  f1=0.0; 
+  f2=0.0;
+  for (unsigned int i = 0; i<n; i++)
+  {
+    f1 += iv1[idx[i]];
+    f2 += iv2[idx[i]];
+    c1[i] = f1;
+    c2[i] = f2;
+  }
+  
+  // max
+  double mm = 0.0; // max will be positive
+  for (unsigned int i = 0; i<n-1; i++)
+  {
+    f1 = (c1[i]*c1[i] + c2[i]*c2[i]) / ((i+1.0) * (n-1.0-i));
+    if (f1 > mm) mm = f1;
+  }
+  return -mm*n;
+}
+
 
 double CostFunctions::moment(MRI *i, int x, int y, int z)
 {

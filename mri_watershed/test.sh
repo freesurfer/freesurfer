@@ -7,4 +7,4 @@ if [ "$FSTEST_REGENERATE" != true ]; then
 fi
 
 test_command mri_watershed -T1 -brain_atlas ${FREESURFER_HOME}/average/RB_all_withskull_2016-05-10.vc700.gca talairach_with_skull.lta T1.mgz brainmask.mgz
-compare_vol brainmask.mgz brainmask.ref.mgz
+compare_vol brainmask.mgz brainmask.ref${TESTDATA_SUFFIX}.mgz

@@ -88,7 +88,7 @@ LayerPointSet::LayerPointSet( LayerMRI* ref, int nType, QObject* parent ) : Laye
   {
     GetProperty()->SetShowSpline( false );
     GetProperty()->SetRadius ( 0.5 );
-    GetProperty()->SetSnapToVoxelCenter( true );
+//    GetProperty()->SetSnapToVoxelCenter( true );
     GetProperty()->SetColor( 0, 1, 0 );
   }
 
