@@ -7893,6 +7893,14 @@ check_params:
       exit 1;
     endif
 
+    if($TopoFitLevel >= 1 || $UseSynthSeg || $SynthStrip) then
+      if($?FS_ALLOW_DEEP == 0) setenv FS_ALLOW_DEEP 0
+      if(! $FS_ALLOW_DEEP) then
+        echo "ERROR: cannot use ML routines"
+        exit 1;
+      endif
+    endif
+
     if($TopoFitLevel >= 1) then
       # set DoSegmentation = 1; # wm.mgz is still needed later, so don't unset
       set DoFill           = 0;
