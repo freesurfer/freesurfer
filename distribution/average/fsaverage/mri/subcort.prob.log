@@ -1,0 +1,3902 @@
+Log file for make_average_subcort
+Wed Jun 30 16:36:13 EDT 2010
+
+
+setenv SUBJECTS_DIR /autofs/cluster/con_002/users/fsaverage_subjs
+cd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+/space/crash/1/users/greve/dev-x86_64/scripts/make_average_subcort --o subcort.prob.mgz --subjects 004 008 017 021 032 039 040 045 049 067 073 074 080 084 091 092 093 095 097 099 102 103 106 108 111 114 123 124 128 129 130 131 133 136 138 140 141 144 145 149
+
+
+freesurfer-x86_64-redhat-linux-gnu-dev4-20100510
+Linux tanha 2.6.18-164.11.1.el5 #1 SMP Wed Jan 20 07:32:21 EST 2010 x86_64 x86_64 x86_64 GNU/Linux
+#@# 1/40 004 Wed Jun 30 16:36:13 EDT 2010
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/cluster/con_002/users/fsaverage_subjs/004/mri/aseg.mgz --inv --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --match 0 --match 3 --match 42 --match 4 --match 14 --match 15 --match 43 --match 44 --match 72 --match 75 --match 76 --match 2 --match 41 --match 7 --match 46 --match 251 --match 252 --match 253 --match 254 --match 255 --match 24 --match 31 --match 63 --match 77 --match 78 --match 79 --match 80 --match 81 --match 82 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/cluster/con_002/users/fsaverage_subjs/004/mri/aseg.mgz
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+Binarizing based on matching values
+nMatch 29
+ 0     0
+ 1     3
+ 2    42
+ 3     4
+ 4    14
+ 5    15
+ 6    43
+ 7    44
+ 8    72
+ 9    75
+10    76
+11     2
+12    41
+13     7
+14    46
+15   251
+16   252
+17   253
+18   254
+19   255
+20    24
+21    31
+22    63
+23    77
+24    78
+25    79
+26    80
+27    81
+28    82
+binval        0
+binvalnot     1
+Found 16588456 values in range
+Counting number of voxels
+Found 16588456 voxels in final mask
+mri_binarize done
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --min .0001 --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.004.mgh 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.004.mgh
+Binarizing based on threshold
+min        0.0001
+max        +infinity
+binval        1
+binvalnot     0
+Found 188760 values in range
+Counting number of voxels
+Found 188760 voxels in final mask
+mri_binarize done
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.004.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.004.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/004/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.004.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.004.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/004/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0 
+$Id: mri_convert.c,v 1.166 2010/04/15 19:03:33 nicks Exp $
+reading from /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.004.mgh...
+TR=0.00, TE=0.00, TI=0.00, flip angle=0.00
+i_ras = (-1, 0, 0)
+j_ras = (0, 0, -1)
+k_ras = (0, 1, 0)
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/004/mri/transforms/talairach.xfm...
+Reading transform with LTAreadEx()
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/004/mri/transforms/talairach.xfm...
+---------------------------------
+INFO: Transform Matrix (linear_ras_to_ras)
+ 1.064   0.021  -0.014   1.215;
+-0.039   0.957   0.179  -5.581;
+-0.013  -0.140   1.040  -7.811;
+ 0.000   0.000   0.000   1.000;
+INFO: Transform dst volume info is not used (valid flag = 0).
+INFO: assumes that the dst volume given is the same as the dst for the transform
+---------------------------------
+Applying LTAtransformInterp (resample_type 0)
+writing to /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.004.tal.mgh...
+#@# 2/40 008 Wed Jun 30 16:36:25 EDT 2010
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/cluster/con_002/users/fsaverage_subjs/008/mri/aseg.mgz --inv --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --match 0 --match 3 --match 42 --match 4 --match 14 --match 15 --match 43 --match 44 --match 72 --match 75 --match 76 --match 2 --match 41 --match 7 --match 46 --match 251 --match 252 --match 253 --match 254 --match 255 --match 24 --match 31 --match 63 --match 77 --match 78 --match 79 --match 80 --match 81 --match 82 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/cluster/con_002/users/fsaverage_subjs/008/mri/aseg.mgz
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+Binarizing based on matching values
+nMatch 29
+ 0     0
+ 1     3
+ 2    42
+ 3     4
+ 4    14
+ 5    15
+ 6    43
+ 7    44
+ 8    72
+ 9    75
+10    76
+11     2
+12    41
+13     7
+14    46
+15   251
+16   252
+17   253
+18   254
+19   255
+20    24
+21    31
+22    63
+23    77
+24    78
+25    79
+26    80
+27    81
+28    82
+binval        0
+binvalnot     1
+Found 16638933 values in range
+Counting number of voxels
+Found 16638933 voxels in final mask
+mri_binarize done
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --min .0001 --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.008.mgh 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.008.mgh
+Binarizing based on threshold
+min        0.0001
+max        +infinity
+binval        1
+binvalnot     0
+Found 138283 values in range
+Counting number of voxels
+Found 138283 voxels in final mask
+mri_binarize done
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.008.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.008.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/008/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.008.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.008.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/008/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0 
+$Id: mri_convert.c,v 1.166 2010/04/15 19:03:33 nicks Exp $
+reading from /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.008.mgh...
+TR=0.00, TE=0.00, TI=0.00, flip angle=0.00
+i_ras = (-1, 0, 0)
+j_ras = (0, 0, -1)
+k_ras = (0, 1, 0)
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/008/mri/transforms/talairach.xfm...
+Reading transform with LTAreadEx()
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/008/mri/transforms/talairach.xfm...
+---------------------------------
+INFO: Transform Matrix (linear_ras_to_ras)
+ 1.078   0.008  -0.065  -1.326;
+ 0.013   0.967   0.518  -2.880;
+ 0.078  -0.495   1.073  -4.148;
+ 0.000   0.000   0.000   1.000;
+INFO: Transform dst volume info is not used (valid flag = 0).
+INFO: assumes that the dst volume given is the same as the dst for the transform
+---------------------------------
+Applying LTAtransformInterp (resample_type 0)
+writing to /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.008.tal.mgh...
+#@# 3/40 017 Wed Jun 30 16:36:39 EDT 2010
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/cluster/con_002/users/fsaverage_subjs/017/mri/aseg.mgz --inv --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --match 0 --match 3 --match 42 --match 4 --match 14 --match 15 --match 43 --match 44 --match 72 --match 75 --match 76 --match 2 --match 41 --match 7 --match 46 --match 251 --match 252 --match 253 --match 254 --match 255 --match 24 --match 31 --match 63 --match 77 --match 78 --match 79 --match 80 --match 81 --match 82 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/cluster/con_002/users/fsaverage_subjs/017/mri/aseg.mgz
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+Binarizing based on matching values
+nMatch 29
+ 0     0
+ 1     3
+ 2    42
+ 3     4
+ 4    14
+ 5    15
+ 6    43
+ 7    44
+ 8    72
+ 9    75
+10    76
+11     2
+12    41
+13     7
+14    46
+15   251
+16   252
+17   253
+18   254
+19   255
+20    24
+21    31
+22    63
+23    77
+24    78
+25    79
+26    80
+27    81
+28    82
+binval        0
+binvalnot     1
+Found 16577837 values in range
+Counting number of voxels
+Found 16577837 voxels in final mask
+mri_binarize done
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --min .0001 --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.017.mgh 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.017.mgh
+Binarizing based on threshold
+min        0.0001
+max        +infinity
+binval        1
+binvalnot     0
+Found 199379 values in range
+Counting number of voxels
+Found 199379 voxels in final mask
+mri_binarize done
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.017.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.017.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/017/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.017.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.017.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/017/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0 
+$Id: mri_convert.c,v 1.166 2010/04/15 19:03:33 nicks Exp $
+reading from /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.017.mgh...
+TR=0.00, TE=0.00, TI=0.00, flip angle=0.00
+i_ras = (-1, 0, 0)
+j_ras = (0, 0, -1)
+k_ras = (0, 1, 0)
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/017/mri/transforms/talairach.xfm...
+Reading transform with LTAreadEx()
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/017/mri/transforms/talairach.xfm...
+---------------------------------
+INFO: Transform Matrix (linear_ras_to_ras)
+ 1.026   0.016  -0.014   0.744;
+-0.029   0.955   0.230  -6.057;
+-0.031  -0.176   1.081  -6.687;
+ 0.000   0.000   0.000   1.000;
+INFO: Transform dst volume info is not used (valid flag = 0).
+INFO: assumes that the dst volume given is the same as the dst for the transform
+---------------------------------
+Applying LTAtransformInterp (resample_type 0)
+writing to /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.017.tal.mgh...
+#@# 4/40 021 Wed Jun 30 16:36:53 EDT 2010
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/cluster/con_002/users/fsaverage_subjs/021/mri/aseg.mgz --inv --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --match 0 --match 3 --match 42 --match 4 --match 14 --match 15 --match 43 --match 44 --match 72 --match 75 --match 76 --match 2 --match 41 --match 7 --match 46 --match 251 --match 252 --match 253 --match 254 --match 255 --match 24 --match 31 --match 63 --match 77 --match 78 --match 79 --match 80 --match 81 --match 82 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/cluster/con_002/users/fsaverage_subjs/021/mri/aseg.mgz
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+Binarizing based on matching values
+nMatch 29
+ 0     0
+ 1     3
+ 2    42
+ 3     4
+ 4    14
+ 5    15
+ 6    43
+ 7    44
+ 8    72
+ 9    75
+10    76
+11     2
+12    41
+13     7
+14    46
+15   251
+16   252
+17   253
+18   254
+19   255
+20    24
+21    31
+22    63
+23    77
+24    78
+25    79
+26    80
+27    81
+28    82
+binval        0
+binvalnot     1
+Found 16581100 values in range
+Counting number of voxels
+Found 16581100 voxels in final mask
+mri_binarize done
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --min .0001 --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.021.mgh 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.021.mgh
+Binarizing based on threshold
+min        0.0001
+max        +infinity
+binval        1
+binvalnot     0
+Found 196116 values in range
+Counting number of voxels
+Found 196116 voxels in final mask
+mri_binarize done
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.021.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.021.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/021/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.021.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.021.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/021/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0 
+$Id: mri_convert.c,v 1.166 2010/04/15 19:03:33 nicks Exp $
+reading from /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.021.mgh...
+TR=0.00, TE=0.00, TI=0.00, flip angle=0.00
+i_ras = (-1, 0, 0)
+j_ras = (0, 0, -1)
+k_ras = (0, 1, 0)
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/021/mri/transforms/talairach.xfm...
+Reading transform with LTAreadEx()
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/021/mri/transforms/talairach.xfm...
+---------------------------------
+INFO: Transform Matrix (linear_ras_to_ras)
+ 1.035   0.018   0.022   0.680;
+-0.010   0.855   0.500  -1.836;
+-0.020  -0.566   0.998  -15.552;
+ 0.000   0.000   0.000   1.000;
+INFO: Transform dst volume info is not used (valid flag = 0).
+INFO: assumes that the dst volume given is the same as the dst for the transform
+---------------------------------
+Applying LTAtransformInterp (resample_type 0)
+writing to /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.021.tal.mgh...
+#@# 5/40 032 Wed Jun 30 16:37:05 EDT 2010
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/cluster/con_002/users/fsaverage_subjs/032/mri/aseg.mgz --inv --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --match 0 --match 3 --match 42 --match 4 --match 14 --match 15 --match 43 --match 44 --match 72 --match 75 --match 76 --match 2 --match 41 --match 7 --match 46 --match 251 --match 252 --match 253 --match 254 --match 255 --match 24 --match 31 --match 63 --match 77 --match 78 --match 79 --match 80 --match 81 --match 82 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/cluster/con_002/users/fsaverage_subjs/032/mri/aseg.mgz
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+Binarizing based on matching values
+nMatch 29
+ 0     0
+ 1     3
+ 2    42
+ 3     4
+ 4    14
+ 5    15
+ 6    43
+ 7    44
+ 8    72
+ 9    75
+10    76
+11     2
+12    41
+13     7
+14    46
+15   251
+16   252
+17   253
+18   254
+19   255
+20    24
+21    31
+22    63
+23    77
+24    78
+25    79
+26    80
+27    81
+28    82
+binval        0
+binvalnot     1
+Found 16608904 values in range
+Counting number of voxels
+Found 16608904 voxels in final mask
+mri_binarize done
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --min .0001 --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.032.mgh 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.032.mgh
+Binarizing based on threshold
+min        0.0001
+max        +infinity
+binval        1
+binvalnot     0
+Found 168312 values in range
+Counting number of voxels
+Found 168312 voxels in final mask
+mri_binarize done
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.032.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.032.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/032/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.032.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.032.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/032/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0 
+$Id: mri_convert.c,v 1.166 2010/04/15 19:03:33 nicks Exp $
+reading from /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.032.mgh...
+TR=0.00, TE=0.00, TI=0.00, flip angle=0.00
+i_ras = (-1, 0, 0)
+j_ras = (0, 0, -1)
+k_ras = (0, 1, 0)
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/032/mri/transforms/talairach.xfm...
+Reading transform with LTAreadEx()
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/032/mri/transforms/talairach.xfm...
+---------------------------------
+INFO: Transform Matrix (linear_ras_to_ras)
+ 1.037   0.019  -0.071   2.513;
+ 0.003   0.956   0.400  -7.195;
+ 0.070  -0.359   1.107  -14.245;
+ 0.000   0.000   0.000   1.000;
+INFO: Transform dst volume info is not used (valid flag = 0).
+INFO: assumes that the dst volume given is the same as the dst for the transform
+---------------------------------
+Applying LTAtransformInterp (resample_type 0)
+writing to /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.032.tal.mgh...
+#@# 6/40 039 Wed Jun 30 16:37:18 EDT 2010
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/cluster/con_002/users/fsaverage_subjs/039/mri/aseg.mgz --inv --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --match 0 --match 3 --match 42 --match 4 --match 14 --match 15 --match 43 --match 44 --match 72 --match 75 --match 76 --match 2 --match 41 --match 7 --match 46 --match 251 --match 252 --match 253 --match 254 --match 255 --match 24 --match 31 --match 63 --match 77 --match 78 --match 79 --match 80 --match 81 --match 82 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/cluster/con_002/users/fsaverage_subjs/039/mri/aseg.mgz
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+Binarizing based on matching values
+nMatch 29
+ 0     0
+ 1     3
+ 2    42
+ 3     4
+ 4    14
+ 5    15
+ 6    43
+ 7    44
+ 8    72
+ 9    75
+10    76
+11     2
+12    41
+13     7
+14    46
+15   251
+16   252
+17   253
+18   254
+19   255
+20    24
+21    31
+22    63
+23    77
+24    78
+25    79
+26    80
+27    81
+28    82
+binval        0
+binvalnot     1
+Found 16625560 values in range
+Counting number of voxels
+Found 16625560 voxels in final mask
+mri_binarize done
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --min .0001 --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.039.mgh 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.039.mgh
+Binarizing based on threshold
+min        0.0001
+max        +infinity
+binval        1
+binvalnot     0
+Found 151656 values in range
+Counting number of voxels
+Found 151656 voxels in final mask
+mri_binarize done
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.039.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.039.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/039/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.039.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.039.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/039/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0 
+$Id: mri_convert.c,v 1.166 2010/04/15 19:03:33 nicks Exp $
+reading from /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.039.mgh...
+TR=0.00, TE=0.00, TI=0.00, flip angle=0.00
+i_ras = (-1, 0, 0)
+j_ras = (0, 0, -1)
+k_ras = (0, 1, 0)
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/039/mri/transforms/talairach.xfm...
+Reading transform with LTAreadEx()
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/039/mri/transforms/talairach.xfm...
+---------------------------------
+INFO: Transform Matrix (linear_ras_to_ras)
+ 1.106   0.020  -0.033  -1.024;
+-0.029   1.011   0.407   10.473;
+ 0.033  -0.467   1.118   12.356;
+ 0.000   0.000   0.000   1.000;
+INFO: Transform dst volume info is not used (valid flag = 0).
+INFO: assumes that the dst volume given is the same as the dst for the transform
+---------------------------------
+Applying LTAtransformInterp (resample_type 0)
+writing to /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.039.tal.mgh...
+#@# 7/40 040 Wed Jun 30 16:37:31 EDT 2010
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/cluster/con_002/users/fsaverage_subjs/040/mri/aseg.mgz --inv --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --match 0 --match 3 --match 42 --match 4 --match 14 --match 15 --match 43 --match 44 --match 72 --match 75 --match 76 --match 2 --match 41 --match 7 --match 46 --match 251 --match 252 --match 253 --match 254 --match 255 --match 24 --match 31 --match 63 --match 77 --match 78 --match 79 --match 80 --match 81 --match 82 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/cluster/con_002/users/fsaverage_subjs/040/mri/aseg.mgz
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+Binarizing based on matching values
+nMatch 29
+ 0     0
+ 1     3
+ 2    42
+ 3     4
+ 4    14
+ 5    15
+ 6    43
+ 7    44
+ 8    72
+ 9    75
+10    76
+11     2
+12    41
+13     7
+14    46
+15   251
+16   252
+17   253
+18   254
+19   255
+20    24
+21    31
+22    63
+23    77
+24    78
+25    79
+26    80
+27    81
+28    82
+binval        0
+binvalnot     1
+Found 16610696 values in range
+Counting number of voxels
+Found 16610696 voxels in final mask
+mri_binarize done
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --min .0001 --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.040.mgh 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.040.mgh
+Binarizing based on threshold
+min        0.0001
+max        +infinity
+binval        1
+binvalnot     0
+Found 166520 values in range
+Counting number of voxels
+Found 166520 voxels in final mask
+mri_binarize done
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.040.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.040.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/040/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.040.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.040.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/040/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0 
+$Id: mri_convert.c,v 1.166 2010/04/15 19:03:33 nicks Exp $
+reading from /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.040.mgh...
+TR=0.00, TE=0.00, TI=0.00, flip angle=0.00
+i_ras = (-1, 0, 0)
+j_ras = (0, 0, -1)
+k_ras = (0, 1, 0)
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/040/mri/transforms/talairach.xfm...
+Reading transform with LTAreadEx()
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/040/mri/transforms/talairach.xfm...
+---------------------------------
+INFO: Transform Matrix (linear_ras_to_ras)
+ 1.153   0.053  -0.043   1.595;
+-0.034   0.999   0.426  -6.369;
+ 0.035  -0.381   1.182  -4.229;
+ 0.000   0.000   0.000   1.000;
+INFO: Transform dst volume info is not used (valid flag = 0).
+INFO: assumes that the dst volume given is the same as the dst for the transform
+---------------------------------
+Applying LTAtransformInterp (resample_type 0)
+writing to /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.040.tal.mgh...
+#@# 8/40 045 Wed Jun 30 16:37:43 EDT 2010
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/cluster/con_002/users/fsaverage_subjs/045/mri/aseg.mgz --inv --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --match 0 --match 3 --match 42 --match 4 --match 14 --match 15 --match 43 --match 44 --match 72 --match 75 --match 76 --match 2 --match 41 --match 7 --match 46 --match 251 --match 252 --match 253 --match 254 --match 255 --match 24 --match 31 --match 63 --match 77 --match 78 --match 79 --match 80 --match 81 --match 82 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/cluster/con_002/users/fsaverage_subjs/045/mri/aseg.mgz
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+Binarizing based on matching values
+nMatch 29
+ 0     0
+ 1     3
+ 2    42
+ 3     4
+ 4    14
+ 5    15
+ 6    43
+ 7    44
+ 8    72
+ 9    75
+10    76
+11     2
+12    41
+13     7
+14    46
+15   251
+16   252
+17   253
+18   254
+19   255
+20    24
+21    31
+22    63
+23    77
+24    78
+25    79
+26    80
+27    81
+28    82
+binval        0
+binvalnot     1
+Found 16622098 values in range
+Counting number of voxels
+Found 16622098 voxels in final mask
+mri_binarize done
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --min .0001 --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.045.mgh 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.045.mgh
+Binarizing based on threshold
+min        0.0001
+max        +infinity
+binval        1
+binvalnot     0
+Found 155118 values in range
+Counting number of voxels
+Found 155118 voxels in final mask
+mri_binarize done
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.045.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.045.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/045/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.045.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.045.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/045/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0 
+$Id: mri_convert.c,v 1.166 2010/04/15 19:03:33 nicks Exp $
+reading from /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.045.mgh...
+TR=0.00, TE=0.00, TI=0.00, flip angle=0.00
+i_ras = (-1, 0, 0)
+j_ras = (0, 0, -1)
+k_ras = (0, 1, 0)
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/045/mri/transforms/talairach.xfm...
+Reading transform with LTAreadEx()
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/045/mri/transforms/talairach.xfm...
+---------------------------------
+INFO: Transform Matrix (linear_ras_to_ras)
+ 1.108  -0.021  -0.042   2.730;
+-0.003   0.966   0.498  -0.153;
+-0.001  -0.508   1.020  -16.887;
+ 0.000   0.000   0.000   1.000;
+INFO: Transform dst volume info is not used (valid flag = 0).
+INFO: assumes that the dst volume given is the same as the dst for the transform
+---------------------------------
+Applying LTAtransformInterp (resample_type 0)
+writing to /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.045.tal.mgh...
+#@# 9/40 049 Wed Jun 30 16:37:57 EDT 2010
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/cluster/con_002/users/fsaverage_subjs/049/mri/aseg.mgz --inv --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --match 0 --match 3 --match 42 --match 4 --match 14 --match 15 --match 43 --match 44 --match 72 --match 75 --match 76 --match 2 --match 41 --match 7 --match 46 --match 251 --match 252 --match 253 --match 254 --match 255 --match 24 --match 31 --match 63 --match 77 --match 78 --match 79 --match 80 --match 81 --match 82 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/cluster/con_002/users/fsaverage_subjs/049/mri/aseg.mgz
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+Binarizing based on matching values
+nMatch 29
+ 0     0
+ 1     3
+ 2    42
+ 3     4
+ 4    14
+ 5    15
+ 6    43
+ 7    44
+ 8    72
+ 9    75
+10    76
+11     2
+12    41
+13     7
+14    46
+15   251
+16   252
+17   253
+18   254
+19   255
+20    24
+21    31
+22    63
+23    77
+24    78
+25    79
+26    80
+27    81
+28    82
+binval        0
+binvalnot     1
+Found 16597199 values in range
+Counting number of voxels
+Found 16597199 voxels in final mask
+mri_binarize done
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --min .0001 --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.049.mgh 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.049.mgh
+Binarizing based on threshold
+min        0.0001
+max        +infinity
+binval        1
+binvalnot     0
+Found 180017 values in range
+Counting number of voxels
+Found 180017 voxels in final mask
+mri_binarize done
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.049.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.049.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/049/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.049.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.049.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/049/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0 
+$Id: mri_convert.c,v 1.166 2010/04/15 19:03:33 nicks Exp $
+reading from /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.049.mgh...
+TR=0.00, TE=0.00, TI=0.00, flip angle=0.00
+i_ras = (-1, 0, 0)
+j_ras = (0, 0, -1)
+k_ras = (0, 1, 0)
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/049/mri/transforms/talairach.xfm...
+Reading transform with LTAreadEx()
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/049/mri/transforms/talairach.xfm...
+---------------------------------
+INFO: Transform Matrix (linear_ras_to_ras)
+ 1.054   0.038  -0.063   3.807;
+-0.018   0.996   0.261  -6.111;
+ 0.061  -0.182   1.110  -15.857;
+ 0.000   0.000   0.000   1.000;
+INFO: Transform dst volume info is not used (valid flag = 0).
+INFO: assumes that the dst volume given is the same as the dst for the transform
+---------------------------------
+Applying LTAtransformInterp (resample_type 0)
+writing to /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.049.tal.mgh...
+#@# 10/40 067 Wed Jun 30 16:38:14 EDT 2010
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/cluster/con_002/users/fsaverage_subjs/067/mri/aseg.mgz --inv --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --match 0 --match 3 --match 42 --match 4 --match 14 --match 15 --match 43 --match 44 --match 72 --match 75 --match 76 --match 2 --match 41 --match 7 --match 46 --match 251 --match 252 --match 253 --match 254 --match 255 --match 24 --match 31 --match 63 --match 77 --match 78 --match 79 --match 80 --match 81 --match 82 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/cluster/con_002/users/fsaverage_subjs/067/mri/aseg.mgz
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+Binarizing based on matching values
+nMatch 29
+ 0     0
+ 1     3
+ 2    42
+ 3     4
+ 4    14
+ 5    15
+ 6    43
+ 7    44
+ 8    72
+ 9    75
+10    76
+11     2
+12    41
+13     7
+14    46
+15   251
+16   252
+17   253
+18   254
+19   255
+20    24
+21    31
+22    63
+23    77
+24    78
+25    79
+26    80
+27    81
+28    82
+binval        0
+binvalnot     1
+Found 16592777 values in range
+Counting number of voxels
+Found 16592777 voxels in final mask
+mri_binarize done
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --min .0001 --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.067.mgh 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.067.mgh
+Binarizing based on threshold
+min        0.0001
+max        +infinity
+binval        1
+binvalnot     0
+Found 184439 values in range
+Counting number of voxels
+Found 184439 voxels in final mask
+mri_binarize done
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.067.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.067.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/067/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.067.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.067.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/067/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0 
+$Id: mri_convert.c,v 1.166 2010/04/15 19:03:33 nicks Exp $
+reading from /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.067.mgh...
+TR=0.00, TE=0.00, TI=0.00, flip angle=0.00
+i_ras = (-1, 0, 0)
+j_ras = (0, 0, -1)
+k_ras = (0, 1, 0)
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/067/mri/transforms/talairach.xfm...
+Reading transform with LTAreadEx()
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/067/mri/transforms/talairach.xfm...
+---------------------------------
+INFO: Transform Matrix (linear_ras_to_ras)
+ 1.039  -0.015  -0.043   1.396;
+ 0.007   0.863   0.463   7.329;
+ 0.053  -0.524   0.936  -8.426;
+ 0.000   0.000   0.000   1.000;
+INFO: Transform dst volume info is not used (valid flag = 0).
+INFO: assumes that the dst volume given is the same as the dst for the transform
+---------------------------------
+Applying LTAtransformInterp (resample_type 0)
+writing to /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.067.tal.mgh...
+#@# 11/40 073 Wed Jun 30 16:38:29 EDT 2010
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/cluster/con_002/users/fsaverage_subjs/073/mri/aseg.mgz --inv --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --match 0 --match 3 --match 42 --match 4 --match 14 --match 15 --match 43 --match 44 --match 72 --match 75 --match 76 --match 2 --match 41 --match 7 --match 46 --match 251 --match 252 --match 253 --match 254 --match 255 --match 24 --match 31 --match 63 --match 77 --match 78 --match 79 --match 80 --match 81 --match 82 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/cluster/con_002/users/fsaverage_subjs/073/mri/aseg.mgz
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+Binarizing based on matching values
+nMatch 29
+ 0     0
+ 1     3
+ 2    42
+ 3     4
+ 4    14
+ 5    15
+ 6    43
+ 7    44
+ 8    72
+ 9    75
+10    76
+11     2
+12    41
+13     7
+14    46
+15   251
+16   252
+17   253
+18   254
+19   255
+20    24
+21    31
+22    63
+23    77
+24    78
+25    79
+26    80
+27    81
+28    82
+binval        0
+binvalnot     1
+Found 16570987 values in range
+Counting number of voxels
+Found 16570987 voxels in final mask
+mri_binarize done
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --min .0001 --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.073.mgh 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.073.mgh
+Binarizing based on threshold
+min        0.0001
+max        +infinity
+binval        1
+binvalnot     0
+Found 206229 values in range
+Counting number of voxels
+Found 206229 voxels in final mask
+mri_binarize done
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.073.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.073.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/073/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.073.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.073.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/073/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0 
+$Id: mri_convert.c,v 1.166 2010/04/15 19:03:33 nicks Exp $
+reading from /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.073.mgh...
+TR=0.00, TE=0.00, TI=0.00, flip angle=0.00
+i_ras = (-1, 0, 0)
+j_ras = (0, 0, -1)
+k_ras = (0, 1, 0)
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/073/mri/transforms/talairach.xfm...
+Reading transform with LTAreadEx()
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/073/mri/transforms/talairach.xfm...
+---------------------------------
+INFO: Transform Matrix (linear_ras_to_ras)
+ 0.975  -0.013   0.012  -0.233;
+ 0.003   0.985   0.258  -2.522;
+ 0.001  -0.245   1.057  -1.905;
+ 0.000   0.000   0.000   1.000;
+INFO: Transform dst volume info is not used (valid flag = 0).
+INFO: assumes that the dst volume given is the same as the dst for the transform
+---------------------------------
+Applying LTAtransformInterp (resample_type 0)
+writing to /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.073.tal.mgh...
+#@# 12/40 074 Wed Jun 30 16:38:46 EDT 2010
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/cluster/con_002/users/fsaverage_subjs/074/mri/aseg.mgz --inv --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --match 0 --match 3 --match 42 --match 4 --match 14 --match 15 --match 43 --match 44 --match 72 --match 75 --match 76 --match 2 --match 41 --match 7 --match 46 --match 251 --match 252 --match 253 --match 254 --match 255 --match 24 --match 31 --match 63 --match 77 --match 78 --match 79 --match 80 --match 81 --match 82 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/cluster/con_002/users/fsaverage_subjs/074/mri/aseg.mgz
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+Binarizing based on matching values
+nMatch 29
+ 0     0
+ 1     3
+ 2    42
+ 3     4
+ 4    14
+ 5    15
+ 6    43
+ 7    44
+ 8    72
+ 9    75
+10    76
+11     2
+12    41
+13     7
+14    46
+15   251
+16   252
+17   253
+18   254
+19   255
+20    24
+21    31
+22    63
+23    77
+24    78
+25    79
+26    80
+27    81
+28    82
+binval        0
+binvalnot     1
+Found 16609864 values in range
+Counting number of voxels
+Found 16609864 voxels in final mask
+mri_binarize done
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --min .0001 --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.074.mgh 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.074.mgh
+Binarizing based on threshold
+min        0.0001
+max        +infinity
+binval        1
+binvalnot     0
+Found 167352 values in range
+Counting number of voxels
+Found 167352 voxels in final mask
+mri_binarize done
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.074.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.074.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/074/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.074.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.074.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/074/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0 
+$Id: mri_convert.c,v 1.166 2010/04/15 19:03:33 nicks Exp $
+reading from /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.074.mgh...
+TR=0.00, TE=0.00, TI=0.00, flip angle=0.00
+i_ras = (-1, 0, 0)
+j_ras = (0, 0, -1)
+k_ras = (0, 1, 0)
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/074/mri/transforms/talairach.xfm...
+Reading transform with LTAreadEx()
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/074/mri/transforms/talairach.xfm...
+---------------------------------
+INFO: Transform Matrix (linear_ras_to_ras)
+ 1.043   0.009  -0.019   1.838;
+ 0.012   0.953   0.438  -6.409;
+ 0.001  -0.525   1.025  -22.463;
+ 0.000   0.000   0.000   1.000;
+INFO: Transform dst volume info is not used (valid flag = 0).
+INFO: assumes that the dst volume given is the same as the dst for the transform
+---------------------------------
+Applying LTAtransformInterp (resample_type 0)
+writing to /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.074.tal.mgh...
+#@# 13/40 080 Wed Jun 30 16:39:03 EDT 2010
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/cluster/con_002/users/fsaverage_subjs/080/mri/aseg.mgz --inv --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --match 0 --match 3 --match 42 --match 4 --match 14 --match 15 --match 43 --match 44 --match 72 --match 75 --match 76 --match 2 --match 41 --match 7 --match 46 --match 251 --match 252 --match 253 --match 254 --match 255 --match 24 --match 31 --match 63 --match 77 --match 78 --match 79 --match 80 --match 81 --match 82 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/cluster/con_002/users/fsaverage_subjs/080/mri/aseg.mgz
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+Binarizing based on matching values
+nMatch 29
+ 0     0
+ 1     3
+ 2    42
+ 3     4
+ 4    14
+ 5    15
+ 6    43
+ 7    44
+ 8    72
+ 9    75
+10    76
+11     2
+12    41
+13     7
+14    46
+15   251
+16   252
+17   253
+18   254
+19   255
+20    24
+21    31
+22    63
+23    77
+24    78
+25    79
+26    80
+27    81
+28    82
+binval        0
+binvalnot     1
+Found 16555361 values in range
+Counting number of voxels
+Found 16555361 voxels in final mask
+mri_binarize done
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --min .0001 --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.080.mgh 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.080.mgh
+Binarizing based on threshold
+min        0.0001
+max        +infinity
+binval        1
+binvalnot     0
+Found 221855 values in range
+Counting number of voxels
+Found 221855 voxels in final mask
+mri_binarize done
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.080.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.080.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/080/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.080.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.080.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/080/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0 
+$Id: mri_convert.c,v 1.166 2010/04/15 19:03:33 nicks Exp $
+reading from /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.080.mgh...
+TR=0.00, TE=0.00, TI=0.00, flip angle=0.00
+i_ras = (-1, 0, 0)
+j_ras = (0, 0, -1)
+k_ras = (0, 1, 0)
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/080/mri/transforms/talairach.xfm...
+Reading transform with LTAreadEx()
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/080/mri/transforms/talairach.xfm...
+---------------------------------
+INFO: Transform Matrix (linear_ras_to_ras)
+ 1.026  -0.041  -0.050  -0.657;
+ 0.012   0.926   0.395   10.775;
+ 0.018  -0.412   0.979   17.387;
+ 0.000   0.000   0.000   1.000;
+INFO: Transform dst volume info is not used (valid flag = 0).
+INFO: assumes that the dst volume given is the same as the dst for the transform
+---------------------------------
+Applying LTAtransformInterp (resample_type 0)
+writing to /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.080.tal.mgh...
+#@# 14/40 084 Wed Jun 30 16:39:19 EDT 2010
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/cluster/con_002/users/fsaverage_subjs/084/mri/aseg.mgz --inv --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --match 0 --match 3 --match 42 --match 4 --match 14 --match 15 --match 43 --match 44 --match 72 --match 75 --match 76 --match 2 --match 41 --match 7 --match 46 --match 251 --match 252 --match 253 --match 254 --match 255 --match 24 --match 31 --match 63 --match 77 --match 78 --match 79 --match 80 --match 81 --match 82 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/cluster/con_002/users/fsaverage_subjs/084/mri/aseg.mgz
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+Binarizing based on matching values
+nMatch 29
+ 0     0
+ 1     3
+ 2    42
+ 3     4
+ 4    14
+ 5    15
+ 6    43
+ 7    44
+ 8    72
+ 9    75
+10    76
+11     2
+12    41
+13     7
+14    46
+15   251
+16   252
+17   253
+18   254
+19   255
+20    24
+21    31
+22    63
+23    77
+24    78
+25    79
+26    80
+27    81
+28    82
+binval        0
+binvalnot     1
+Found 16588697 values in range
+Counting number of voxels
+Found 16588697 voxels in final mask
+mri_binarize done
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --min .0001 --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.084.mgh 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.084.mgh
+Binarizing based on threshold
+min        0.0001
+max        +infinity
+binval        1
+binvalnot     0
+Found 188519 values in range
+Counting number of voxels
+Found 188519 voxels in final mask
+mri_binarize done
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.084.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.084.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/084/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.084.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.084.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/084/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0 
+$Id: mri_convert.c,v 1.166 2010/04/15 19:03:33 nicks Exp $
+reading from /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.084.mgh...
+TR=0.00, TE=0.00, TI=0.00, flip angle=0.00
+i_ras = (-1, 0, 0)
+j_ras = (0, 0, -1)
+k_ras = (0, 1, 0)
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/084/mri/transforms/talairach.xfm...
+Reading transform with LTAreadEx()
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/084/mri/transforms/talairach.xfm...
+---------------------------------
+INFO: Transform Matrix (linear_ras_to_ras)
+ 1.031   0.047  -0.041   0.560;
+-0.011   0.946   0.461  -0.365;
+ 0.053  -0.459   1.092  -3.968;
+ 0.000   0.000   0.000   1.000;
+INFO: Transform dst volume info is not used (valid flag = 0).
+INFO: assumes that the dst volume given is the same as the dst for the transform
+---------------------------------
+Applying LTAtransformInterp (resample_type 0)
+writing to /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.084.tal.mgh...
+#@# 15/40 091 Wed Jun 30 16:39:33 EDT 2010
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/cluster/con_002/users/fsaverage_subjs/091/mri/aseg.mgz --inv --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --match 0 --match 3 --match 42 --match 4 --match 14 --match 15 --match 43 --match 44 --match 72 --match 75 --match 76 --match 2 --match 41 --match 7 --match 46 --match 251 --match 252 --match 253 --match 254 --match 255 --match 24 --match 31 --match 63 --match 77 --match 78 --match 79 --match 80 --match 81 --match 82 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/cluster/con_002/users/fsaverage_subjs/091/mri/aseg.mgz
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+Binarizing based on matching values
+nMatch 29
+ 0     0
+ 1     3
+ 2    42
+ 3     4
+ 4    14
+ 5    15
+ 6    43
+ 7    44
+ 8    72
+ 9    75
+10    76
+11     2
+12    41
+13     7
+14    46
+15   251
+16   252
+17   253
+18   254
+19   255
+20    24
+21    31
+22    63
+23    77
+24    78
+25    79
+26    80
+27    81
+28    82
+binval        0
+binvalnot     1
+Found 16593724 values in range
+Counting number of voxels
+Found 16593724 voxels in final mask
+mri_binarize done
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --min .0001 --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.091.mgh 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.091.mgh
+Binarizing based on threshold
+min        0.0001
+max        +infinity
+binval        1
+binvalnot     0
+Found 183492 values in range
+Counting number of voxels
+Found 183492 voxels in final mask
+mri_binarize done
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.091.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.091.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/091/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.091.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.091.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/091/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0 
+$Id: mri_convert.c,v 1.166 2010/04/15 19:03:33 nicks Exp $
+reading from /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.091.mgh...
+TR=0.00, TE=0.00, TI=0.00, flip angle=0.00
+i_ras = (-1, 0, 0)
+j_ras = (0, 0, -1)
+k_ras = (0, 1, 0)
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/091/mri/transforms/talairach.xfm...
+Reading transform with LTAreadEx()
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/091/mri/transforms/talairach.xfm...
+---------------------------------
+INFO: Transform Matrix (linear_ras_to_ras)
+ 1.095  -0.033  -0.036   0.365;
+ 0.018   1.000   0.345  -0.684;
+ 0.018  -0.298   1.023  -3.019;
+ 0.000   0.000   0.000   1.000;
+INFO: Transform dst volume info is not used (valid flag = 0).
+INFO: assumes that the dst volume given is the same as the dst for the transform
+---------------------------------
+Applying LTAtransformInterp (resample_type 0)
+writing to /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.091.tal.mgh...
+#@# 16/40 092 Wed Jun 30 16:39:48 EDT 2010
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/cluster/con_002/users/fsaverage_subjs/092/mri/aseg.mgz --inv --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --match 0 --match 3 --match 42 --match 4 --match 14 --match 15 --match 43 --match 44 --match 72 --match 75 --match 76 --match 2 --match 41 --match 7 --match 46 --match 251 --match 252 --match 253 --match 254 --match 255 --match 24 --match 31 --match 63 --match 77 --match 78 --match 79 --match 80 --match 81 --match 82 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/cluster/con_002/users/fsaverage_subjs/092/mri/aseg.mgz
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+Binarizing based on matching values
+nMatch 29
+ 0     0
+ 1     3
+ 2    42
+ 3     4
+ 4    14
+ 5    15
+ 6    43
+ 7    44
+ 8    72
+ 9    75
+10    76
+11     2
+12    41
+13     7
+14    46
+15   251
+16   252
+17   253
+18   254
+19   255
+20    24
+21    31
+22    63
+23    77
+24    78
+25    79
+26    80
+27    81
+28    82
+binval        0
+binvalnot     1
+Found 16598875 values in range
+Counting number of voxels
+Found 16598875 voxels in final mask
+mri_binarize done
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --min .0001 --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.092.mgh 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.092.mgh
+Binarizing based on threshold
+min        0.0001
+max        +infinity
+binval        1
+binvalnot     0
+Found 178341 values in range
+Counting number of voxels
+Found 178341 voxels in final mask
+mri_binarize done
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.092.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.092.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/092/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.092.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.092.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/092/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0 
+$Id: mri_convert.c,v 1.166 2010/04/15 19:03:33 nicks Exp $
+reading from /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.092.mgh...
+TR=0.00, TE=0.00, TI=0.00, flip angle=0.00
+i_ras = (-1, 0, 0)
+j_ras = (0, 0, -1)
+k_ras = (0, 1, 0)
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/092/mri/transforms/talairach.xfm...
+Reading transform with LTAreadEx()
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/092/mri/transforms/talairach.xfm...
+---------------------------------
+INFO: Transform Matrix (linear_ras_to_ras)
+ 1.025   0.005   0.007  -1.994;
+ 0.049   1.070   0.253  -5.817;
+-0.045  -0.287   1.077  -4.128;
+ 0.000   0.000   0.000   1.000;
+INFO: Transform dst volume info is not used (valid flag = 0).
+INFO: assumes that the dst volume given is the same as the dst for the transform
+---------------------------------
+Applying LTAtransformInterp (resample_type 0)
+writing to /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.092.tal.mgh...
+#@# 17/40 093 Wed Jun 30 16:40:04 EDT 2010
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/cluster/con_002/users/fsaverage_subjs/093/mri/aseg.mgz --inv --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --match 0 --match 3 --match 42 --match 4 --match 14 --match 15 --match 43 --match 44 --match 72 --match 75 --match 76 --match 2 --match 41 --match 7 --match 46 --match 251 --match 252 --match 253 --match 254 --match 255 --match 24 --match 31 --match 63 --match 77 --match 78 --match 79 --match 80 --match 81 --match 82 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/cluster/con_002/users/fsaverage_subjs/093/mri/aseg.mgz
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+Binarizing based on matching values
+nMatch 29
+ 0     0
+ 1     3
+ 2    42
+ 3     4
+ 4    14
+ 5    15
+ 6    43
+ 7    44
+ 8    72
+ 9    75
+10    76
+11     2
+12    41
+13     7
+14    46
+15   251
+16   252
+17   253
+18   254
+19   255
+20    24
+21    31
+22    63
+23    77
+24    78
+25    79
+26    80
+27    81
+28    82
+binval        0
+binvalnot     1
+Found 16592918 values in range
+Counting number of voxels
+Found 16592918 voxels in final mask
+mri_binarize done
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --min .0001 --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.093.mgh 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.093.mgh
+Binarizing based on threshold
+min        0.0001
+max        +infinity
+binval        1
+binvalnot     0
+Found 184298 values in range
+Counting number of voxels
+Found 184298 voxels in final mask
+mri_binarize done
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.093.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.093.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/093/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.093.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.093.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/093/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0 
+$Id: mri_convert.c,v 1.166 2010/04/15 19:03:33 nicks Exp $
+reading from /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.093.mgh...
+TR=0.00, TE=0.00, TI=0.00, flip angle=0.00
+i_ras = (-1, 0, 0)
+j_ras = (0, 0, -1)
+k_ras = (0, 1, 0)
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/093/mri/transforms/talairach.xfm...
+Reading transform with LTAreadEx()
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/093/mri/transforms/talairach.xfm...
+---------------------------------
+INFO: Transform Matrix (linear_ras_to_ras)
+ 1.079   0.017   0.005  -0.148;
+-0.014   1.000   0.256  -3.052;
+-0.006  -0.227   1.112  -4.527;
+ 0.000   0.000   0.000   1.000;
+INFO: Transform dst volume info is not used (valid flag = 0).
+INFO: assumes that the dst volume given is the same as the dst for the transform
+---------------------------------
+Applying LTAtransformInterp (resample_type 0)
+writing to /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.093.tal.mgh...
+#@# 18/40 095 Wed Jun 30 16:40:20 EDT 2010
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/cluster/con_002/users/fsaverage_subjs/095/mri/aseg.mgz --inv --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --match 0 --match 3 --match 42 --match 4 --match 14 --match 15 --match 43 --match 44 --match 72 --match 75 --match 76 --match 2 --match 41 --match 7 --match 46 --match 251 --match 252 --match 253 --match 254 --match 255 --match 24 --match 31 --match 63 --match 77 --match 78 --match 79 --match 80 --match 81 --match 82 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/cluster/con_002/users/fsaverage_subjs/095/mri/aseg.mgz
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+Binarizing based on matching values
+nMatch 29
+ 0     0
+ 1     3
+ 2    42
+ 3     4
+ 4    14
+ 5    15
+ 6    43
+ 7    44
+ 8    72
+ 9    75
+10    76
+11     2
+12    41
+13     7
+14    46
+15   251
+16   252
+17   253
+18   254
+19   255
+20    24
+21    31
+22    63
+23    77
+24    78
+25    79
+26    80
+27    81
+28    82
+binval        0
+binvalnot     1
+Found 16616731 values in range
+Counting number of voxels
+Found 16616731 voxels in final mask
+mri_binarize done
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --min .0001 --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.095.mgh 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.095.mgh
+Binarizing based on threshold
+min        0.0001
+max        +infinity
+binval        1
+binvalnot     0
+Found 160485 values in range
+Counting number of voxels
+Found 160485 voxels in final mask
+mri_binarize done
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.095.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.095.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/095/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.095.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.095.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/095/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0 
+$Id: mri_convert.c,v 1.166 2010/04/15 19:03:33 nicks Exp $
+reading from /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.095.mgh...
+TR=0.00, TE=0.00, TI=0.00, flip angle=0.00
+i_ras = (-1, 0, 0)
+j_ras = (0, 0, -1)
+k_ras = (0, 1, 0)
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/095/mri/transforms/talairach.xfm...
+Reading transform with LTAreadEx()
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/095/mri/transforms/talairach.xfm...
+---------------------------------
+INFO: Transform Matrix (linear_ras_to_ras)
+ 1.152  -0.017  -0.050  -1.810;
+ 0.037   0.908   0.620   8.061;
+ 0.058  -0.669   1.011  -2.689;
+ 0.000   0.000   0.000   1.000;
+INFO: Transform dst volume info is not used (valid flag = 0).
+INFO: assumes that the dst volume given is the same as the dst for the transform
+---------------------------------
+Applying LTAtransformInterp (resample_type 0)
+writing to /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.095.tal.mgh...
+#@# 19/40 097 Wed Jun 30 16:40:36 EDT 2010
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/cluster/con_002/users/fsaverage_subjs/097/mri/aseg.mgz --inv --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --match 0 --match 3 --match 42 --match 4 --match 14 --match 15 --match 43 --match 44 --match 72 --match 75 --match 76 --match 2 --match 41 --match 7 --match 46 --match 251 --match 252 --match 253 --match 254 --match 255 --match 24 --match 31 --match 63 --match 77 --match 78 --match 79 --match 80 --match 81 --match 82 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/cluster/con_002/users/fsaverage_subjs/097/mri/aseg.mgz
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+Binarizing based on matching values
+nMatch 29
+ 0     0
+ 1     3
+ 2    42
+ 3     4
+ 4    14
+ 5    15
+ 6    43
+ 7    44
+ 8    72
+ 9    75
+10    76
+11     2
+12    41
+13     7
+14    46
+15   251
+16   252
+17   253
+18   254
+19   255
+20    24
+21    31
+22    63
+23    77
+24    78
+25    79
+26    80
+27    81
+28    82
+binval        0
+binvalnot     1
+Found 16602567 values in range
+Counting number of voxels
+Found 16602567 voxels in final mask
+mri_binarize done
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --min .0001 --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.097.mgh 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.097.mgh
+Binarizing based on threshold
+min        0.0001
+max        +infinity
+binval        1
+binvalnot     0
+Found 174649 values in range
+Counting number of voxels
+Found 174649 voxels in final mask
+mri_binarize done
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.097.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.097.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/097/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.097.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.097.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/097/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0 
+$Id: mri_convert.c,v 1.166 2010/04/15 19:03:33 nicks Exp $
+reading from /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.097.mgh...
+TR=0.00, TE=0.00, TI=0.00, flip angle=0.00
+i_ras = (-1, 0, 0)
+j_ras = (0, 0, -1)
+k_ras = (0, 1, 0)
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/097/mri/transforms/talairach.xfm...
+Reading transform with LTAreadEx()
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/097/mri/transforms/talairach.xfm...
+---------------------------------
+INFO: Transform Matrix (linear_ras_to_ras)
+ 1.063   0.052  -0.005   2.109;
+-0.037   0.952   0.341   2.250;
+ 0.010  -0.329   1.076   2.126;
+ 0.000   0.000   0.000   1.000;
+INFO: Transform dst volume info is not used (valid flag = 0).
+INFO: assumes that the dst volume given is the same as the dst for the transform
+---------------------------------
+Applying LTAtransformInterp (resample_type 0)
+writing to /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.097.tal.mgh...
+#@# 20/40 099 Wed Jun 30 16:40:53 EDT 2010
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/cluster/con_002/users/fsaverage_subjs/099/mri/aseg.mgz --inv --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --match 0 --match 3 --match 42 --match 4 --match 14 --match 15 --match 43 --match 44 --match 72 --match 75 --match 76 --match 2 --match 41 --match 7 --match 46 --match 251 --match 252 --match 253 --match 254 --match 255 --match 24 --match 31 --match 63 --match 77 --match 78 --match 79 --match 80 --match 81 --match 82 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/cluster/con_002/users/fsaverage_subjs/099/mri/aseg.mgz
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+Binarizing based on matching values
+nMatch 29
+ 0     0
+ 1     3
+ 2    42
+ 3     4
+ 4    14
+ 5    15
+ 6    43
+ 7    44
+ 8    72
+ 9    75
+10    76
+11     2
+12    41
+13     7
+14    46
+15   251
+16   252
+17   253
+18   254
+19   255
+20    24
+21    31
+22    63
+23    77
+24    78
+25    79
+26    80
+27    81
+28    82
+binval        0
+binvalnot     1
+Found 16631425 values in range
+Counting number of voxels
+Found 16631425 voxels in final mask
+mri_binarize done
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --min .0001 --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.099.mgh 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.099.mgh
+Binarizing based on threshold
+min        0.0001
+max        +infinity
+binval        1
+binvalnot     0
+Found 145791 values in range
+Counting number of voxels
+Found 145791 voxels in final mask
+mri_binarize done
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.099.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.099.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/099/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.099.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.099.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/099/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0 
+$Id: mri_convert.c,v 1.166 2010/04/15 19:03:33 nicks Exp $
+reading from /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.099.mgh...
+TR=0.00, TE=0.00, TI=0.00, flip angle=0.00
+i_ras = (-1, 0, 0)
+j_ras = (0, 0, -1)
+k_ras = (0, 1, 0)
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/099/mri/transforms/talairach.xfm...
+Reading transform with LTAreadEx()
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/099/mri/transforms/talairach.xfm...
+---------------------------------
+INFO: Transform Matrix (linear_ras_to_ras)
+ 1.067  -0.007   0.024  -2.347;
+ 0.087   1.126   0.336   7.607;
+-0.051  -0.323   1.215   0.393;
+ 0.000   0.000   0.000   1.000;
+INFO: Transform dst volume info is not used (valid flag = 0).
+INFO: assumes that the dst volume given is the same as the dst for the transform
+---------------------------------
+Applying LTAtransformInterp (resample_type 0)
+writing to /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.099.tal.mgh...
+#@# 21/40 102 Wed Jun 30 16:41:08 EDT 2010
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/cluster/con_002/users/fsaverage_subjs/102/mri/aseg.mgz --inv --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --match 0 --match 3 --match 42 --match 4 --match 14 --match 15 --match 43 --match 44 --match 72 --match 75 --match 76 --match 2 --match 41 --match 7 --match 46 --match 251 --match 252 --match 253 --match 254 --match 255 --match 24 --match 31 --match 63 --match 77 --match 78 --match 79 --match 80 --match 81 --match 82 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/cluster/con_002/users/fsaverage_subjs/102/mri/aseg.mgz
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+Binarizing based on matching values
+nMatch 29
+ 0     0
+ 1     3
+ 2    42
+ 3     4
+ 4    14
+ 5    15
+ 6    43
+ 7    44
+ 8    72
+ 9    75
+10    76
+11     2
+12    41
+13     7
+14    46
+15   251
+16   252
+17   253
+18   254
+19   255
+20    24
+21    31
+22    63
+23    77
+24    78
+25    79
+26    80
+27    81
+28    82
+binval        0
+binvalnot     1
+Found 16616414 values in range
+Counting number of voxels
+Found 16616414 voxels in final mask
+mri_binarize done
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --min .0001 --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.102.mgh 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.102.mgh
+Binarizing based on threshold
+min        0.0001
+max        +infinity
+binval        1
+binvalnot     0
+Found 160802 values in range
+Counting number of voxels
+Found 160802 voxels in final mask
+mri_binarize done
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.102.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.102.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/102/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.102.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.102.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/102/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0 
+$Id: mri_convert.c,v 1.166 2010/04/15 19:03:33 nicks Exp $
+reading from /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.102.mgh...
+TR=0.00, TE=0.00, TI=0.00, flip angle=0.00
+i_ras = (-1, 0, 0)
+j_ras = (0, 0, -1)
+k_ras = (0, 1, 0)
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/102/mri/transforms/talairach.xfm...
+Reading transform with LTAreadEx()
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/102/mri/transforms/talairach.xfm...
+---------------------------------
+INFO: Transform Matrix (linear_ras_to_ras)
+ 1.055  -0.014  -0.057   0.425;
+ 0.001   0.978   0.375  -5.599;
+ 0.031  -0.370   1.117  -22.018;
+ 0.000   0.000   0.000   1.000;
+INFO: Transform dst volume info is not used (valid flag = 0).
+INFO: assumes that the dst volume given is the same as the dst for the transform
+---------------------------------
+Applying LTAtransformInterp (resample_type 0)
+writing to /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.102.tal.mgh...
+#@# 22/40 103 Wed Jun 30 16:41:23 EDT 2010
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/cluster/con_002/users/fsaverage_subjs/103/mri/aseg.mgz --inv --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --match 0 --match 3 --match 42 --match 4 --match 14 --match 15 --match 43 --match 44 --match 72 --match 75 --match 76 --match 2 --match 41 --match 7 --match 46 --match 251 --match 252 --match 253 --match 254 --match 255 --match 24 --match 31 --match 63 --match 77 --match 78 --match 79 --match 80 --match 81 --match 82 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/cluster/con_002/users/fsaverage_subjs/103/mri/aseg.mgz
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+Binarizing based on matching values
+nMatch 29
+ 0     0
+ 1     3
+ 2    42
+ 3     4
+ 4    14
+ 5    15
+ 6    43
+ 7    44
+ 8    72
+ 9    75
+10    76
+11     2
+12    41
+13     7
+14    46
+15   251
+16   252
+17   253
+18   254
+19   255
+20    24
+21    31
+22    63
+23    77
+24    78
+25    79
+26    80
+27    81
+28    82
+binval        0
+binvalnot     1
+Found 16610662 values in range
+Counting number of voxels
+Found 16610662 voxels in final mask
+mri_binarize done
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --min .0001 --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.103.mgh 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.103.mgh
+Binarizing based on threshold
+min        0.0001
+max        +infinity
+binval        1
+binvalnot     0
+Found 166554 values in range
+Counting number of voxels
+Found 166554 voxels in final mask
+mri_binarize done
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.103.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.103.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/103/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.103.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.103.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/103/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0 
+$Id: mri_convert.c,v 1.166 2010/04/15 19:03:33 nicks Exp $
+reading from /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.103.mgh...
+TR=0.00, TE=0.00, TI=0.00, flip angle=0.00
+i_ras = (-1, 0, 0)
+j_ras = (0, 0, -1)
+k_ras = (0, 1, 0)
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/103/mri/transforms/talairach.xfm...
+Reading transform with LTAreadEx()
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/103/mri/transforms/talairach.xfm...
+---------------------------------
+INFO: Transform Matrix (linear_ras_to_ras)
+ 1.082   0.013  -0.013   0.415;
+-0.034   1.018   0.129  -12.480;
+ 0.007  -0.069   1.168  -15.080;
+ 0.000   0.000   0.000   1.000;
+INFO: Transform dst volume info is not used (valid flag = 0).
+INFO: assumes that the dst volume given is the same as the dst for the transform
+---------------------------------
+Applying LTAtransformInterp (resample_type 0)
+writing to /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.103.tal.mgh...
+#@# 23/40 106 Wed Jun 30 16:41:38 EDT 2010
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/cluster/con_002/users/fsaverage_subjs/106/mri/aseg.mgz --inv --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --match 0 --match 3 --match 42 --match 4 --match 14 --match 15 --match 43 --match 44 --match 72 --match 75 --match 76 --match 2 --match 41 --match 7 --match 46 --match 251 --match 252 --match 253 --match 254 --match 255 --match 24 --match 31 --match 63 --match 77 --match 78 --match 79 --match 80 --match 81 --match 82 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/cluster/con_002/users/fsaverage_subjs/106/mri/aseg.mgz
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+Binarizing based on matching values
+nMatch 29
+ 0     0
+ 1     3
+ 2    42
+ 3     4
+ 4    14
+ 5    15
+ 6    43
+ 7    44
+ 8    72
+ 9    75
+10    76
+11     2
+12    41
+13     7
+14    46
+15   251
+16   252
+17   253
+18   254
+19   255
+20    24
+21    31
+22    63
+23    77
+24    78
+25    79
+26    80
+27    81
+28    82
+binval        0
+binvalnot     1
+Found 16591098 values in range
+Counting number of voxels
+Found 16591098 voxels in final mask
+mri_binarize done
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --min .0001 --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.106.mgh 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.106.mgh
+Binarizing based on threshold
+min        0.0001
+max        +infinity
+binval        1
+binvalnot     0
+Found 186118 values in range
+Counting number of voxels
+Found 186118 voxels in final mask
+mri_binarize done
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.106.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.106.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/106/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.106.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.106.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/106/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0 
+$Id: mri_convert.c,v 1.166 2010/04/15 19:03:33 nicks Exp $
+reading from /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.106.mgh...
+TR=0.00, TE=0.00, TI=0.00, flip angle=0.00
+i_ras = (-1, 0, 0)
+j_ras = (0, 0, -1)
+k_ras = (0, 1, 0)
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/106/mri/transforms/talairach.xfm...
+Reading transform with LTAreadEx()
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/106/mri/transforms/talairach.xfm...
+---------------------------------
+INFO: Transform Matrix (linear_ras_to_ras)
+ 1.135  -0.006   0.020  -1.434;
+ 0.000   1.083   0.160  -6.217;
+ 0.005  -0.103   1.178  -8.462;
+ 0.000   0.000   0.000   1.000;
+INFO: Transform dst volume info is not used (valid flag = 0).
+INFO: assumes that the dst volume given is the same as the dst for the transform
+---------------------------------
+Applying LTAtransformInterp (resample_type 0)
+writing to /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.106.tal.mgh...
+#@# 24/40 108 Wed Jun 30 16:41:54 EDT 2010
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/cluster/con_002/users/fsaverage_subjs/108/mri/aseg.mgz --inv --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --match 0 --match 3 --match 42 --match 4 --match 14 --match 15 --match 43 --match 44 --match 72 --match 75 --match 76 --match 2 --match 41 --match 7 --match 46 --match 251 --match 252 --match 253 --match 254 --match 255 --match 24 --match 31 --match 63 --match 77 --match 78 --match 79 --match 80 --match 81 --match 82 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/cluster/con_002/users/fsaverage_subjs/108/mri/aseg.mgz
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+Binarizing based on matching values
+nMatch 29
+ 0     0
+ 1     3
+ 2    42
+ 3     4
+ 4    14
+ 5    15
+ 6    43
+ 7    44
+ 8    72
+ 9    75
+10    76
+11     2
+12    41
+13     7
+14    46
+15   251
+16   252
+17   253
+18   254
+19   255
+20    24
+21    31
+22    63
+23    77
+24    78
+25    79
+26    80
+27    81
+28    82
+binval        0
+binvalnot     1
+Found 16564809 values in range
+Counting number of voxels
+Found 16564809 voxels in final mask
+mri_binarize done
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --min .0001 --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.108.mgh 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.108.mgh
+Binarizing based on threshold
+min        0.0001
+max        +infinity
+binval        1
+binvalnot     0
+Found 212407 values in range
+Counting number of voxels
+Found 212407 voxels in final mask
+mri_binarize done
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.108.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.108.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/108/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.108.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.108.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/108/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0 
+$Id: mri_convert.c,v 1.166 2010/04/15 19:03:33 nicks Exp $
+reading from /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.108.mgh...
+TR=0.00, TE=0.00, TI=0.00, flip angle=0.00
+i_ras = (-1, 0, 0)
+j_ras = (0, 0, -1)
+k_ras = (0, 1, 0)
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/108/mri/transforms/talairach.xfm...
+Reading transform with LTAreadEx()
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/108/mri/transforms/talairach.xfm...
+---------------------------------
+INFO: Transform Matrix (linear_ras_to_ras)
+ 1.094  -0.012  -0.020   0.590;
+ 0.031   1.002   0.150  -8.276;
+ 0.013  -0.105   1.107  -4.787;
+ 0.000   0.000   0.000   1.000;
+INFO: Transform dst volume info is not used (valid flag = 0).
+INFO: assumes that the dst volume given is the same as the dst for the transform
+---------------------------------
+Applying LTAtransformInterp (resample_type 0)
+writing to /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.108.tal.mgh...
+#@# 25/40 111 Wed Jun 30 16:42:10 EDT 2010
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/cluster/con_002/users/fsaverage_subjs/111/mri/aseg.mgz --inv --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --match 0 --match 3 --match 42 --match 4 --match 14 --match 15 --match 43 --match 44 --match 72 --match 75 --match 76 --match 2 --match 41 --match 7 --match 46 --match 251 --match 252 --match 253 --match 254 --match 255 --match 24 --match 31 --match 63 --match 77 --match 78 --match 79 --match 80 --match 81 --match 82 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/cluster/con_002/users/fsaverage_subjs/111/mri/aseg.mgz
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+Binarizing based on matching values
+nMatch 29
+ 0     0
+ 1     3
+ 2    42
+ 3     4
+ 4    14
+ 5    15
+ 6    43
+ 7    44
+ 8    72
+ 9    75
+10    76
+11     2
+12    41
+13     7
+14    46
+15   251
+16   252
+17   253
+18   254
+19   255
+20    24
+21    31
+22    63
+23    77
+24    78
+25    79
+26    80
+27    81
+28    82
+binval        0
+binvalnot     1
+Found 16601310 values in range
+Counting number of voxels
+Found 16601310 voxels in final mask
+mri_binarize done
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --min .0001 --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.111.mgh 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.111.mgh
+Binarizing based on threshold
+min        0.0001
+max        +infinity
+binval        1
+binvalnot     0
+Found 175906 values in range
+Counting number of voxels
+Found 175906 voxels in final mask
+mri_binarize done
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.111.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.111.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/111/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.111.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.111.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/111/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0 
+$Id: mri_convert.c,v 1.166 2010/04/15 19:03:33 nicks Exp $
+reading from /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.111.mgh...
+TR=0.00, TE=0.00, TI=0.00, flip angle=0.00
+i_ras = (-1, 0, 0)
+j_ras = (0, 0, -1)
+k_ras = (0, 1, 0)
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/111/mri/transforms/talairach.xfm...
+Reading transform with LTAreadEx()
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/111/mri/transforms/talairach.xfm...
+---------------------------------
+INFO: Transform Matrix (linear_ras_to_ras)
+ 1.082  -0.014  -0.018   0.969;
+-0.019   0.974   0.286  -7.449;
+ 0.034  -0.297   1.100  -5.073;
+ 0.000   0.000   0.000   1.000;
+INFO: Transform dst volume info is not used (valid flag = 0).
+INFO: assumes that the dst volume given is the same as the dst for the transform
+---------------------------------
+Applying LTAtransformInterp (resample_type 0)
+writing to /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.111.tal.mgh...
+#@# 26/40 114 Wed Jun 30 16:42:27 EDT 2010
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/cluster/con_002/users/fsaverage_subjs/114/mri/aseg.mgz --inv --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --match 0 --match 3 --match 42 --match 4 --match 14 --match 15 --match 43 --match 44 --match 72 --match 75 --match 76 --match 2 --match 41 --match 7 --match 46 --match 251 --match 252 --match 253 --match 254 --match 255 --match 24 --match 31 --match 63 --match 77 --match 78 --match 79 --match 80 --match 81 --match 82 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/cluster/con_002/users/fsaverage_subjs/114/mri/aseg.mgz
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+Binarizing based on matching values
+nMatch 29
+ 0     0
+ 1     3
+ 2    42
+ 3     4
+ 4    14
+ 5    15
+ 6    43
+ 7    44
+ 8    72
+ 9    75
+10    76
+11     2
+12    41
+13     7
+14    46
+15   251
+16   252
+17   253
+18   254
+19   255
+20    24
+21    31
+22    63
+23    77
+24    78
+25    79
+26    80
+27    81
+28    82
+binval        0
+binvalnot     1
+Found 16622800 values in range
+Counting number of voxels
+Found 16622800 voxels in final mask
+mri_binarize done
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --min .0001 --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.114.mgh 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.114.mgh
+Binarizing based on threshold
+min        0.0001
+max        +infinity
+binval        1
+binvalnot     0
+Found 154416 values in range
+Counting number of voxels
+Found 154416 voxels in final mask
+mri_binarize done
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.114.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.114.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/114/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.114.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.114.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/114/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0 
+$Id: mri_convert.c,v 1.166 2010/04/15 19:03:33 nicks Exp $
+reading from /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.114.mgh...
+TR=0.00, TE=0.00, TI=0.00, flip angle=0.00
+i_ras = (-1, 0, 0)
+j_ras = (0, 0, -1)
+k_ras = (0, 1, 0)
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/114/mri/transforms/talairach.xfm...
+Reading transform with LTAreadEx()
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/114/mri/transforms/talairach.xfm...
+---------------------------------
+INFO: Transform Matrix (linear_ras_to_ras)
+ 1.094   0.020  -0.011   1.008;
+-0.022   1.016   0.521  -1.038;
+ 0.037  -0.673   1.129  -20.590;
+ 0.000   0.000   0.000   1.000;
+INFO: Transform dst volume info is not used (valid flag = 0).
+INFO: assumes that the dst volume given is the same as the dst for the transform
+---------------------------------
+Applying LTAtransformInterp (resample_type 0)
+writing to /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.114.tal.mgh...
+#@# 27/40 123 Wed Jun 30 16:42:42 EDT 2010
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/cluster/con_002/users/fsaverage_subjs/123/mri/aseg.mgz --inv --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --match 0 --match 3 --match 42 --match 4 --match 14 --match 15 --match 43 --match 44 --match 72 --match 75 --match 76 --match 2 --match 41 --match 7 --match 46 --match 251 --match 252 --match 253 --match 254 --match 255 --match 24 --match 31 --match 63 --match 77 --match 78 --match 79 --match 80 --match 81 --match 82 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/cluster/con_002/users/fsaverage_subjs/123/mri/aseg.mgz
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+Binarizing based on matching values
+nMatch 29
+ 0     0
+ 1     3
+ 2    42
+ 3     4
+ 4    14
+ 5    15
+ 6    43
+ 7    44
+ 8    72
+ 9    75
+10    76
+11     2
+12    41
+13     7
+14    46
+15   251
+16   252
+17   253
+18   254
+19   255
+20    24
+21    31
+22    63
+23    77
+24    78
+25    79
+26    80
+27    81
+28    82
+binval        0
+binvalnot     1
+Found 16620534 values in range
+Counting number of voxels
+Found 16620534 voxels in final mask
+mri_binarize done
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --min .0001 --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.123.mgh 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.123.mgh
+Binarizing based on threshold
+min        0.0001
+max        +infinity
+binval        1
+binvalnot     0
+Found 156682 values in range
+Counting number of voxels
+Found 156682 voxels in final mask
+mri_binarize done
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.123.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.123.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/123/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.123.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.123.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/123/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0 
+$Id: mri_convert.c,v 1.166 2010/04/15 19:03:33 nicks Exp $
+reading from /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.123.mgh...
+TR=0.00, TE=0.00, TI=0.00, flip angle=0.00
+i_ras = (-1, 0, 0)
+j_ras = (0, 0, -1)
+k_ras = (0, 1, 0)
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/123/mri/transforms/talairach.xfm...
+Reading transform with LTAreadEx()
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/123/mri/transforms/talairach.xfm...
+---------------------------------
+INFO: Transform Matrix (linear_ras_to_ras)
+ 1.126   0.017  -0.049  -2.084;
+ 0.026   1.109   0.260  -3.929;
+ 0.061  -0.047   1.153   1.415;
+ 0.000   0.000   0.000   1.000;
+INFO: Transform dst volume info is not used (valid flag = 0).
+INFO: assumes that the dst volume given is the same as the dst for the transform
+---------------------------------
+Applying LTAtransformInterp (resample_type 0)
+writing to /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.123.tal.mgh...
+#@# 28/40 124 Wed Jun 30 16:42:59 EDT 2010
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/cluster/con_002/users/fsaverage_subjs/124/mri/aseg.mgz --inv --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --match 0 --match 3 --match 42 --match 4 --match 14 --match 15 --match 43 --match 44 --match 72 --match 75 --match 76 --match 2 --match 41 --match 7 --match 46 --match 251 --match 252 --match 253 --match 254 --match 255 --match 24 --match 31 --match 63 --match 77 --match 78 --match 79 --match 80 --match 81 --match 82 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/cluster/con_002/users/fsaverage_subjs/124/mri/aseg.mgz
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+Binarizing based on matching values
+nMatch 29
+ 0     0
+ 1     3
+ 2    42
+ 3     4
+ 4    14
+ 5    15
+ 6    43
+ 7    44
+ 8    72
+ 9    75
+10    76
+11     2
+12    41
+13     7
+14    46
+15   251
+16   252
+17   253
+18   254
+19   255
+20    24
+21    31
+22    63
+23    77
+24    78
+25    79
+26    80
+27    81
+28    82
+binval        0
+binvalnot     1
+Found 16608148 values in range
+Counting number of voxels
+Found 16608148 voxels in final mask
+mri_binarize done
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --min .0001 --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.124.mgh 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.124.mgh
+Binarizing based on threshold
+min        0.0001
+max        +infinity
+binval        1
+binvalnot     0
+Found 169068 values in range
+Counting number of voxels
+Found 169068 voxels in final mask
+mri_binarize done
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.124.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.124.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/124/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.124.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.124.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/124/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0 
+$Id: mri_convert.c,v 1.166 2010/04/15 19:03:33 nicks Exp $
+reading from /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.124.mgh...
+TR=0.00, TE=0.00, TI=0.00, flip angle=0.00
+i_ras = (-1, 0, 0)
+j_ras = (0, 0, -1)
+k_ras = (0, 1, 0)
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/124/mri/transforms/talairach.xfm...
+Reading transform with LTAreadEx()
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/124/mri/transforms/talairach.xfm...
+---------------------------------
+INFO: Transform Matrix (linear_ras_to_ras)
+ 1.207  -0.053  -0.034   4.103;
+ 0.075   1.077   0.011  -8.889;
+-0.009  -0.017   1.171  -30.397;
+ 0.000   0.000   0.000   1.000;
+INFO: Transform dst volume info is not used (valid flag = 0).
+INFO: assumes that the dst volume given is the same as the dst for the transform
+---------------------------------
+Applying LTAtransformInterp (resample_type 0)
+writing to /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.124.tal.mgh...
+#@# 29/40 128 Wed Jun 30 16:43:16 EDT 2010
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/cluster/con_002/users/fsaverage_subjs/128/mri/aseg.mgz --inv --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --match 0 --match 3 --match 42 --match 4 --match 14 --match 15 --match 43 --match 44 --match 72 --match 75 --match 76 --match 2 --match 41 --match 7 --match 46 --match 251 --match 252 --match 253 --match 254 --match 255 --match 24 --match 31 --match 63 --match 77 --match 78 --match 79 --match 80 --match 81 --match 82 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/cluster/con_002/users/fsaverage_subjs/128/mri/aseg.mgz
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+Binarizing based on matching values
+nMatch 29
+ 0     0
+ 1     3
+ 2    42
+ 3     4
+ 4    14
+ 5    15
+ 6    43
+ 7    44
+ 8    72
+ 9    75
+10    76
+11     2
+12    41
+13     7
+14    46
+15   251
+16   252
+17   253
+18   254
+19   255
+20    24
+21    31
+22    63
+23    77
+24    78
+25    79
+26    80
+27    81
+28    82
+binval        0
+binvalnot     1
+Found 16659363 values in range
+Counting number of voxels
+Found 16659363 voxels in final mask
+mri_binarize done
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --min .0001 --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.128.mgh 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.128.mgh
+Binarizing based on threshold
+min        0.0001
+max        +infinity
+binval        1
+binvalnot     0
+Found 117853 values in range
+Counting number of voxels
+Found 117853 voxels in final mask
+mri_binarize done
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.128.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.128.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/128/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.128.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.128.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/128/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0 
+$Id: mri_convert.c,v 1.166 2010/04/15 19:03:33 nicks Exp $
+reading from /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.128.mgh...
+TR=0.00, TE=0.00, TI=0.00, flip angle=0.00
+i_ras = (-1, 0, 0)
+j_ras = (0, 0, -1)
+k_ras = (0, 1, 0)
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/128/mri/transforms/talairach.xfm...
+Reading transform with LTAreadEx()
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/128/mri/transforms/talairach.xfm...
+---------------------------------
+INFO: Transform Matrix (linear_ras_to_ras)
+ 1.051  -0.006  -0.029   1.658;
+ 0.049   1.055   0.478   4.115;
+-0.007  -0.563   1.112  -10.474;
+ 0.000   0.000   0.000   1.000;
+INFO: Transform dst volume info is not used (valid flag = 0).
+INFO: assumes that the dst volume given is the same as the dst for the transform
+---------------------------------
+Applying LTAtransformInterp (resample_type 0)
+writing to /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.128.tal.mgh...
+#@# 30/40 129 Wed Jun 30 16:43:31 EDT 2010
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/cluster/con_002/users/fsaverage_subjs/129/mri/aseg.mgz --inv --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --match 0 --match 3 --match 42 --match 4 --match 14 --match 15 --match 43 --match 44 --match 72 --match 75 --match 76 --match 2 --match 41 --match 7 --match 46 --match 251 --match 252 --match 253 --match 254 --match 255 --match 24 --match 31 --match 63 --match 77 --match 78 --match 79 --match 80 --match 81 --match 82 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/cluster/con_002/users/fsaverage_subjs/129/mri/aseg.mgz
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+Binarizing based on matching values
+nMatch 29
+ 0     0
+ 1     3
+ 2    42
+ 3     4
+ 4    14
+ 5    15
+ 6    43
+ 7    44
+ 8    72
+ 9    75
+10    76
+11     2
+12    41
+13     7
+14    46
+15   251
+16   252
+17   253
+18   254
+19   255
+20    24
+21    31
+22    63
+23    77
+24    78
+25    79
+26    80
+27    81
+28    82
+binval        0
+binvalnot     1
+Found 16626223 values in range
+Counting number of voxels
+Found 16626223 voxels in final mask
+mri_binarize done
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --min .0001 --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.129.mgh 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.129.mgh
+Binarizing based on threshold
+min        0.0001
+max        +infinity
+binval        1
+binvalnot     0
+Found 150993 values in range
+Counting number of voxels
+Found 150993 voxels in final mask
+mri_binarize done
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.129.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.129.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/129/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.129.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.129.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/129/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0 
+$Id: mri_convert.c,v 1.166 2010/04/15 19:03:33 nicks Exp $
+reading from /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.129.mgh...
+TR=0.00, TE=0.00, TI=0.00, flip angle=0.00
+i_ras = (-1, 0, 0)
+j_ras = (0, 0, -1)
+k_ras = (0, 1, 0)
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/129/mri/transforms/talairach.xfm...
+Reading transform with LTAreadEx()
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/129/mri/transforms/talairach.xfm...
+---------------------------------
+INFO: Transform Matrix (linear_ras_to_ras)
+ 1.067  -0.006  -0.149   7.899;
+ 0.063   1.091   0.318  -16.585;
+ 0.176  -0.307   1.153  -32.104;
+ 0.000   0.000   0.000   1.000;
+INFO: Transform dst volume info is not used (valid flag = 0).
+INFO: assumes that the dst volume given is the same as the dst for the transform
+---------------------------------
+Applying LTAtransformInterp (resample_type 0)
+writing to /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.129.tal.mgh...
+#@# 31/40 130 Wed Jun 30 16:43:47 EDT 2010
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/cluster/con_002/users/fsaverage_subjs/130/mri/aseg.mgz --inv --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --match 0 --match 3 --match 42 --match 4 --match 14 --match 15 --match 43 --match 44 --match 72 --match 75 --match 76 --match 2 --match 41 --match 7 --match 46 --match 251 --match 252 --match 253 --match 254 --match 255 --match 24 --match 31 --match 63 --match 77 --match 78 --match 79 --match 80 --match 81 --match 82 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/cluster/con_002/users/fsaverage_subjs/130/mri/aseg.mgz
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+Binarizing based on matching values
+nMatch 29
+ 0     0
+ 1     3
+ 2    42
+ 3     4
+ 4    14
+ 5    15
+ 6    43
+ 7    44
+ 8    72
+ 9    75
+10    76
+11     2
+12    41
+13     7
+14    46
+15   251
+16   252
+17   253
+18   254
+19   255
+20    24
+21    31
+22    63
+23    77
+24    78
+25    79
+26    80
+27    81
+28    82
+binval        0
+binvalnot     1
+Found 16593734 values in range
+Counting number of voxels
+Found 16593734 voxels in final mask
+mri_binarize done
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --min .0001 --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.130.mgh 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.130.mgh
+Binarizing based on threshold
+min        0.0001
+max        +infinity
+binval        1
+binvalnot     0
+Found 183482 values in range
+Counting number of voxels
+Found 183482 voxels in final mask
+mri_binarize done
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.130.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.130.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/130/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.130.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.130.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/130/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0 
+$Id: mri_convert.c,v 1.166 2010/04/15 19:03:33 nicks Exp $
+reading from /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.130.mgh...
+TR=0.00, TE=0.00, TI=0.00, flip angle=0.00
+i_ras = (-1, 0, 0)
+j_ras = (0, 0, -1)
+k_ras = (0, 1, 0)
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/130/mri/transforms/talairach.xfm...
+Reading transform with LTAreadEx()
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/130/mri/transforms/talairach.xfm...
+---------------------------------
+INFO: Transform Matrix (linear_ras_to_ras)
+ 1.058   0.030   0.001   2.317;
+-0.008   1.016   0.055  -10.263;
+-0.025  -0.032   1.212  -8.328;
+ 0.000   0.000   0.000   1.000;
+INFO: Transform dst volume info is not used (valid flag = 0).
+INFO: assumes that the dst volume given is the same as the dst for the transform
+---------------------------------
+Applying LTAtransformInterp (resample_type 0)
+writing to /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.130.tal.mgh...
+#@# 32/40 131 Wed Jun 30 16:44:03 EDT 2010
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/cluster/con_002/users/fsaverage_subjs/131/mri/aseg.mgz --inv --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --match 0 --match 3 --match 42 --match 4 --match 14 --match 15 --match 43 --match 44 --match 72 --match 75 --match 76 --match 2 --match 41 --match 7 --match 46 --match 251 --match 252 --match 253 --match 254 --match 255 --match 24 --match 31 --match 63 --match 77 --match 78 --match 79 --match 80 --match 81 --match 82 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/cluster/con_002/users/fsaverage_subjs/131/mri/aseg.mgz
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+Binarizing based on matching values
+nMatch 29
+ 0     0
+ 1     3
+ 2    42
+ 3     4
+ 4    14
+ 5    15
+ 6    43
+ 7    44
+ 8    72
+ 9    75
+10    76
+11     2
+12    41
+13     7
+14    46
+15   251
+16   252
+17   253
+18   254
+19   255
+20    24
+21    31
+22    63
+23    77
+24    78
+25    79
+26    80
+27    81
+28    82
+binval        0
+binvalnot     1
+Found 16628536 values in range
+Counting number of voxels
+Found 16628536 voxels in final mask
+mri_binarize done
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --min .0001 --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.131.mgh 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.131.mgh
+Binarizing based on threshold
+min        0.0001
+max        +infinity
+binval        1
+binvalnot     0
+Found 148680 values in range
+Counting number of voxels
+Found 148680 voxels in final mask
+mri_binarize done
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.131.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.131.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/131/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.131.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.131.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/131/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0 
+$Id: mri_convert.c,v 1.166 2010/04/15 19:03:33 nicks Exp $
+reading from /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.131.mgh...
+TR=0.00, TE=0.00, TI=0.00, flip angle=0.00
+i_ras = (-1, 0, 0)
+j_ras = (0, 0, -1)
+k_ras = (0, 1, 0)
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/131/mri/transforms/talairach.xfm...
+Reading transform with LTAreadEx()
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/131/mri/transforms/talairach.xfm...
+---------------------------------
+INFO: Transform Matrix (linear_ras_to_ras)
+ 1.120   0.013  -0.007   0.076;
+-0.051   1.076   0.268  -10.794;
+ 0.021  -0.348   1.135  -40.251;
+ 0.000   0.000   0.000   1.000;
+INFO: Transform dst volume info is not used (valid flag = 0).
+INFO: assumes that the dst volume given is the same as the dst for the transform
+---------------------------------
+Applying LTAtransformInterp (resample_type 0)
+writing to /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.131.tal.mgh...
+#@# 33/40 133 Wed Jun 30 16:44:19 EDT 2010
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/cluster/con_002/users/fsaverage_subjs/133/mri/aseg.mgz --inv --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --match 0 --match 3 --match 42 --match 4 --match 14 --match 15 --match 43 --match 44 --match 72 --match 75 --match 76 --match 2 --match 41 --match 7 --match 46 --match 251 --match 252 --match 253 --match 254 --match 255 --match 24 --match 31 --match 63 --match 77 --match 78 --match 79 --match 80 --match 81 --match 82 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/cluster/con_002/users/fsaverage_subjs/133/mri/aseg.mgz
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+Binarizing based on matching values
+nMatch 29
+ 0     0
+ 1     3
+ 2    42
+ 3     4
+ 4    14
+ 5    15
+ 6    43
+ 7    44
+ 8    72
+ 9    75
+10    76
+11     2
+12    41
+13     7
+14    46
+15   251
+16   252
+17   253
+18   254
+19   255
+20    24
+21    31
+22    63
+23    77
+24    78
+25    79
+26    80
+27    81
+28    82
+binval        0
+binvalnot     1
+Found 16607631 values in range
+Counting number of voxels
+Found 16607631 voxels in final mask
+mri_binarize done
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --min .0001 --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.133.mgh 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.133.mgh
+Binarizing based on threshold
+min        0.0001
+max        +infinity
+binval        1
+binvalnot     0
+Found 169585 values in range
+Counting number of voxels
+Found 169585 voxels in final mask
+mri_binarize done
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.133.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.133.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/133/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.133.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.133.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/133/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0 
+$Id: mri_convert.c,v 1.166 2010/04/15 19:03:33 nicks Exp $
+reading from /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.133.mgh...
+TR=0.00, TE=0.00, TI=0.00, flip angle=0.00
+i_ras = (-1, 0, 0)
+j_ras = (0, 0, -1)
+k_ras = (0, 1, 0)
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/133/mri/transforms/talairach.xfm...
+Reading transform with LTAreadEx()
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/133/mri/transforms/talairach.xfm...
+---------------------------------
+INFO: Transform Matrix (linear_ras_to_ras)
+ 1.093  -0.027   0.039  -3.127;
+ 0.043   1.034  -0.079  -2.014;
+-0.082   0.132   1.163  -34.705;
+ 0.000   0.000   0.000   1.000;
+INFO: Transform dst volume info is not used (valid flag = 0).
+INFO: assumes that the dst volume given is the same as the dst for the transform
+---------------------------------
+Applying LTAtransformInterp (resample_type 0)
+writing to /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.133.tal.mgh...
+#@# 34/40 136 Wed Jun 30 16:44:36 EDT 2010
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/cluster/con_002/users/fsaverage_subjs/136/mri/aseg.mgz --inv --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --match 0 --match 3 --match 42 --match 4 --match 14 --match 15 --match 43 --match 44 --match 72 --match 75 --match 76 --match 2 --match 41 --match 7 --match 46 --match 251 --match 252 --match 253 --match 254 --match 255 --match 24 --match 31 --match 63 --match 77 --match 78 --match 79 --match 80 --match 81 --match 82 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/cluster/con_002/users/fsaverage_subjs/136/mri/aseg.mgz
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+Binarizing based on matching values
+nMatch 29
+ 0     0
+ 1     3
+ 2    42
+ 3     4
+ 4    14
+ 5    15
+ 6    43
+ 7    44
+ 8    72
+ 9    75
+10    76
+11     2
+12    41
+13     7
+14    46
+15   251
+16   252
+17   253
+18   254
+19   255
+20    24
+21    31
+22    63
+23    77
+24    78
+25    79
+26    80
+27    81
+28    82
+binval        0
+binvalnot     1
+Found 16626117 values in range
+Counting number of voxels
+Found 16626117 voxels in final mask
+mri_binarize done
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --min .0001 --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.136.mgh 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.136.mgh
+Binarizing based on threshold
+min        0.0001
+max        +infinity
+binval        1
+binvalnot     0
+Found 151099 values in range
+Counting number of voxels
+Found 151099 voxels in final mask
+mri_binarize done
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.136.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.136.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/136/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.136.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.136.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/136/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0 
+$Id: mri_convert.c,v 1.166 2010/04/15 19:03:33 nicks Exp $
+reading from /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.136.mgh...
+TR=0.00, TE=0.00, TI=0.00, flip angle=0.00
+i_ras = (-1, 0, 0)
+j_ras = (0, 0, -1)
+k_ras = (0, 1, 0)
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/136/mri/transforms/talairach.xfm...
+Reading transform with LTAreadEx()
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/136/mri/transforms/talairach.xfm...
+---------------------------------
+INFO: Transform Matrix (linear_ras_to_ras)
+ 1.099   0.012  -0.067   2.615;
+-0.032   1.099   0.312  -1.111;
+ 0.080  -0.360   1.218  -25.416;
+ 0.000   0.000   0.000   1.000;
+INFO: Transform dst volume info is not used (valid flag = 0).
+INFO: assumes that the dst volume given is the same as the dst for the transform
+---------------------------------
+Applying LTAtransformInterp (resample_type 0)
+writing to /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.136.tal.mgh...
+#@# 35/40 138 Wed Jun 30 16:44:52 EDT 2010
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/cluster/con_002/users/fsaverage_subjs/138/mri/aseg.mgz --inv --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --match 0 --match 3 --match 42 --match 4 --match 14 --match 15 --match 43 --match 44 --match 72 --match 75 --match 76 --match 2 --match 41 --match 7 --match 46 --match 251 --match 252 --match 253 --match 254 --match 255 --match 24 --match 31 --match 63 --match 77 --match 78 --match 79 --match 80 --match 81 --match 82 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/cluster/con_002/users/fsaverage_subjs/138/mri/aseg.mgz
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+Binarizing based on matching values
+nMatch 29
+ 0     0
+ 1     3
+ 2    42
+ 3     4
+ 4    14
+ 5    15
+ 6    43
+ 7    44
+ 8    72
+ 9    75
+10    76
+11     2
+12    41
+13     7
+14    46
+15   251
+16   252
+17   253
+18   254
+19   255
+20    24
+21    31
+22    63
+23    77
+24    78
+25    79
+26    80
+27    81
+28    82
+binval        0
+binvalnot     1
+Found 16589171 values in range
+Counting number of voxels
+Found 16589171 voxels in final mask
+mri_binarize done
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --min .0001 --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.138.mgh 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.138.mgh
+Binarizing based on threshold
+min        0.0001
+max        +infinity
+binval        1
+binvalnot     0
+Found 188045 values in range
+Counting number of voxels
+Found 188045 voxels in final mask
+mri_binarize done
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.138.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.138.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/138/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.138.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.138.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/138/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0 
+$Id: mri_convert.c,v 1.166 2010/04/15 19:03:33 nicks Exp $
+reading from /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.138.mgh...
+TR=0.00, TE=0.00, TI=0.00, flip angle=0.00
+i_ras = (-1, 0, 0)
+j_ras = (0, 0, -1)
+k_ras = (0, 1, 0)
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/138/mri/transforms/talairach.xfm...
+Reading transform with LTAreadEx()
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/138/mri/transforms/talairach.xfm...
+---------------------------------
+INFO: Transform Matrix (linear_ras_to_ras)
+ 1.157   0.009   0.044  -0.137;
+-0.024   1.104   0.178  -3.370;
+-0.005  -0.105   1.162  -27.350;
+ 0.000   0.000   0.000   1.000;
+INFO: Transform dst volume info is not used (valid flag = 0).
+INFO: assumes that the dst volume given is the same as the dst for the transform
+---------------------------------
+Applying LTAtransformInterp (resample_type 0)
+writing to /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.138.tal.mgh...
+#@# 36/40 140 Wed Jun 30 16:45:08 EDT 2010
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/cluster/con_002/users/fsaverage_subjs/140/mri/aseg.mgz --inv --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --match 0 --match 3 --match 42 --match 4 --match 14 --match 15 --match 43 --match 44 --match 72 --match 75 --match 76 --match 2 --match 41 --match 7 --match 46 --match 251 --match 252 --match 253 --match 254 --match 255 --match 24 --match 31 --match 63 --match 77 --match 78 --match 79 --match 80 --match 81 --match 82 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/cluster/con_002/users/fsaverage_subjs/140/mri/aseg.mgz
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+Binarizing based on matching values
+nMatch 29
+ 0     0
+ 1     3
+ 2    42
+ 3     4
+ 4    14
+ 5    15
+ 6    43
+ 7    44
+ 8    72
+ 9    75
+10    76
+11     2
+12    41
+13     7
+14    46
+15   251
+16   252
+17   253
+18   254
+19   255
+20    24
+21    31
+22    63
+23    77
+24    78
+25    79
+26    80
+27    81
+28    82
+binval        0
+binvalnot     1
+Found 16583132 values in range
+Counting number of voxels
+Found 16583132 voxels in final mask
+mri_binarize done
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --min .0001 --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.140.mgh 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.140.mgh
+Binarizing based on threshold
+min        0.0001
+max        +infinity
+binval        1
+binvalnot     0
+Found 194084 values in range
+Counting number of voxels
+Found 194084 voxels in final mask
+mri_binarize done
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.140.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.140.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/140/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.140.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.140.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/140/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0 
+$Id: mri_convert.c,v 1.166 2010/04/15 19:03:33 nicks Exp $
+reading from /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.140.mgh...
+TR=0.00, TE=0.00, TI=0.00, flip angle=0.00
+i_ras = (-1, 0, 0)
+j_ras = (0, 0, -1)
+k_ras = (0, 1, 0)
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/140/mri/transforms/talairach.xfm...
+Reading transform with LTAreadEx()
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/140/mri/transforms/talairach.xfm...
+---------------------------------
+INFO: Transform Matrix (linear_ras_to_ras)
+ 1.088   0.017  -0.017   1.708;
+ 0.004   1.016   0.185  -15.780;
+-0.014  -0.125   1.109  -24.485;
+ 0.000   0.000   0.000   1.000;
+INFO: Transform dst volume info is not used (valid flag = 0).
+INFO: assumes that the dst volume given is the same as the dst for the transform
+---------------------------------
+Applying LTAtransformInterp (resample_type 0)
+writing to /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.140.tal.mgh...
+#@# 37/40 141 Wed Jun 30 16:45:25 EDT 2010
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/cluster/con_002/users/fsaverage_subjs/141/mri/aseg.mgz --inv --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --match 0 --match 3 --match 42 --match 4 --match 14 --match 15 --match 43 --match 44 --match 72 --match 75 --match 76 --match 2 --match 41 --match 7 --match 46 --match 251 --match 252 --match 253 --match 254 --match 255 --match 24 --match 31 --match 63 --match 77 --match 78 --match 79 --match 80 --match 81 --match 82 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/cluster/con_002/users/fsaverage_subjs/141/mri/aseg.mgz
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+Binarizing based on matching values
+nMatch 29
+ 0     0
+ 1     3
+ 2    42
+ 3     4
+ 4    14
+ 5    15
+ 6    43
+ 7    44
+ 8    72
+ 9    75
+10    76
+11     2
+12    41
+13     7
+14    46
+15   251
+16   252
+17   253
+18   254
+19   255
+20    24
+21    31
+22    63
+23    77
+24    78
+25    79
+26    80
+27    81
+28    82
+binval        0
+binvalnot     1
+Found 16590562 values in range
+Counting number of voxels
+Found 16590562 voxels in final mask
+mri_binarize done
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --min .0001 --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.141.mgh 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.141.mgh
+Binarizing based on threshold
+min        0.0001
+max        +infinity
+binval        1
+binvalnot     0
+Found 186654 values in range
+Counting number of voxels
+Found 186654 voxels in final mask
+mri_binarize done
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.141.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.141.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/141/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.141.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.141.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/141/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0 
+$Id: mri_convert.c,v 1.166 2010/04/15 19:03:33 nicks Exp $
+reading from /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.141.mgh...
+TR=0.00, TE=0.00, TI=0.00, flip angle=0.00
+i_ras = (-1, 0, 0)
+j_ras = (0, 0, -1)
+k_ras = (0, 1, 0)
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/141/mri/transforms/talairach.xfm...
+Reading transform with LTAreadEx()
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/141/mri/transforms/talairach.xfm...
+---------------------------------
+INFO: Transform Matrix (linear_ras_to_ras)
+ 1.179  -0.015  -0.003   2.031;
+ 0.017   1.035  -0.022  -6.320;
+ 0.008   0.066   1.138  -37.722;
+ 0.000   0.000   0.000   1.000;
+INFO: Transform dst volume info is not used (valid flag = 0).
+INFO: assumes that the dst volume given is the same as the dst for the transform
+---------------------------------
+Applying LTAtransformInterp (resample_type 0)
+writing to /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.141.tal.mgh...
+#@# 38/40 144 Wed Jun 30 16:45:42 EDT 2010
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/cluster/con_002/users/fsaverage_subjs/144/mri/aseg.mgz --inv --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --match 0 --match 3 --match 42 --match 4 --match 14 --match 15 --match 43 --match 44 --match 72 --match 75 --match 76 --match 2 --match 41 --match 7 --match 46 --match 251 --match 252 --match 253 --match 254 --match 255 --match 24 --match 31 --match 63 --match 77 --match 78 --match 79 --match 80 --match 81 --match 82 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/cluster/con_002/users/fsaverage_subjs/144/mri/aseg.mgz
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+Binarizing based on matching values
+nMatch 29
+ 0     0
+ 1     3
+ 2    42
+ 3     4
+ 4    14
+ 5    15
+ 6    43
+ 7    44
+ 8    72
+ 9    75
+10    76
+11     2
+12    41
+13     7
+14    46
+15   251
+16   252
+17   253
+18   254
+19   255
+20    24
+21    31
+22    63
+23    77
+24    78
+25    79
+26    80
+27    81
+28    82
+binval        0
+binvalnot     1
+Found 16593528 values in range
+Counting number of voxels
+Found 16593528 voxels in final mask
+mri_binarize done
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --min .0001 --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.144.mgh 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.144.mgh
+Binarizing based on threshold
+min        0.0001
+max        +infinity
+binval        1
+binvalnot     0
+Found 183688 values in range
+Counting number of voxels
+Found 183688 voxels in final mask
+mri_binarize done
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.144.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.144.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/144/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.144.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.144.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/144/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0 
+$Id: mri_convert.c,v 1.166 2010/04/15 19:03:33 nicks Exp $
+reading from /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.144.mgh...
+TR=0.00, TE=0.00, TI=0.00, flip angle=0.00
+i_ras = (-1, 0, 0)
+j_ras = (0, 0, -1)
+k_ras = (0, 1, 0)
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/144/mri/transforms/talairach.xfm...
+Reading transform with LTAreadEx()
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/144/mri/transforms/talairach.xfm...
+---------------------------------
+INFO: Transform Matrix (linear_ras_to_ras)
+ 1.010   0.040   0.048  -1.615;
+-0.094   0.830   0.601  -19.629;
+-0.049  -0.599   0.971  -13.235;
+ 0.000   0.000   0.000   1.000;
+INFO: Transform dst volume info is not used (valid flag = 0).
+INFO: assumes that the dst volume given is the same as the dst for the transform
+---------------------------------
+Applying LTAtransformInterp (resample_type 0)
+writing to /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.144.tal.mgh...
+#@# 39/40 145 Wed Jun 30 16:45:57 EDT 2010
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/cluster/con_002/users/fsaverage_subjs/145/mri/aseg.mgz --inv --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --match 0 --match 3 --match 42 --match 4 --match 14 --match 15 --match 43 --match 44 --match 72 --match 75 --match 76 --match 2 --match 41 --match 7 --match 46 --match 251 --match 252 --match 253 --match 254 --match 255 --match 24 --match 31 --match 63 --match 77 --match 78 --match 79 --match 80 --match 81 --match 82 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/cluster/con_002/users/fsaverage_subjs/145/mri/aseg.mgz
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+Binarizing based on matching values
+nMatch 29
+ 0     0
+ 1     3
+ 2    42
+ 3     4
+ 4    14
+ 5    15
+ 6    43
+ 7    44
+ 8    72
+ 9    75
+10    76
+11     2
+12    41
+13     7
+14    46
+15   251
+16   252
+17   253
+18   254
+19   255
+20    24
+21    31
+22    63
+23    77
+24    78
+25    79
+26    80
+27    81
+28    82
+binval        0
+binvalnot     1
+Found 16603759 values in range
+Counting number of voxels
+Found 16603759 voxels in final mask
+mri_binarize done
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --min .0001 --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.145.mgh 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.145.mgh
+Binarizing based on threshold
+min        0.0001
+max        +infinity
+binval        1
+binvalnot     0
+Found 173457 values in range
+Counting number of voxels
+Found 173457 voxels in final mask
+mri_binarize done
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.145.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.145.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/145/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.145.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.145.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/145/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0 
+$Id: mri_convert.c,v 1.166 2010/04/15 19:03:33 nicks Exp $
+reading from /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.145.mgh...
+TR=0.00, TE=0.00, TI=0.00, flip angle=0.00
+i_ras = (-1, 0, 0)
+j_ras = (0, 0, -1)
+k_ras = (0, 1, 0)
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/145/mri/transforms/talairach.xfm...
+Reading transform with LTAreadEx()
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/145/mri/transforms/talairach.xfm...
+---------------------------------
+INFO: Transform Matrix (linear_ras_to_ras)
+ 1.014  -0.034   0.017  -0.059;
+-0.001   0.962   0.384  -10.687;
+-0.035  -0.432   1.021  -16.439;
+ 0.000   0.000   0.000   1.000;
+INFO: Transform dst volume info is not used (valid flag = 0).
+INFO: assumes that the dst volume given is the same as the dst for the transform
+---------------------------------
+Applying LTAtransformInterp (resample_type 0)
+writing to /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.145.tal.mgh...
+#@# 40/40 149 Wed Jun 30 16:46:14 EDT 2010
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/cluster/con_002/users/fsaverage_subjs/149/mri/aseg.mgz --inv --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --match 0 --match 3 --match 42 --match 4 --match 14 --match 15 --match 43 --match 44 --match 72 --match 75 --match 76 --match 2 --match 41 --match 7 --match 46 --match 251 --match 252 --match 253 --match 254 --match 255 --match 24 --match 31 --match 63 --match 77 --match 78 --match 79 --match 80 --match 81 --match 82 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/cluster/con_002/users/fsaverage_subjs/149/mri/aseg.mgz
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+Binarizing based on matching values
+nMatch 29
+ 0     0
+ 1     3
+ 2    42
+ 3     4
+ 4    14
+ 5    15
+ 6    43
+ 7    44
+ 8    72
+ 9    75
+10    76
+11     2
+12    41
+13     7
+14    46
+15   251
+16   252
+17   253
+18   254
+19   255
+20    24
+21    31
+22    63
+23    77
+24    78
+25    79
+26    80
+27    81
+28    82
+binval        0
+binvalnot     1
+Found 16607515 values in range
+Counting number of voxels
+Found 16607515 voxels in final mask
+mri_binarize done
+
+$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+cwd /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri
+cmdline mri_binarize --i /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh --min .0001 --o /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.149.mgh 
+sysname  Linux
+hostname tanha
+machine  x86_64
+user     greve
+
+input      /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/junk.mgh
+frame      0
+nErode3d   0
+nErode2d   0
+output     /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.149.mgh
+Binarizing based on threshold
+min        0.0001
+max        +infinity
+binval        1
+binvalnot     0
+Found 169701 values in range
+Counting number of voxels
+Found 169701 voxels in final mask
+mri_binarize done
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.149.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.149.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/149/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0
+mri_convert /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.149.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.149.tal.mgh --apply_transform /autofs/cluster/con_002/users/fsaverage_subjs/149/mri/transforms/talairach.xfm --resample_type nearest -oc 0 0 0 
+$Id: mri_convert.c,v 1.166 2010/04/15 19:03:33 nicks Exp $
+reading from /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.149.mgh...
+TR=0.00, TE=0.00, TI=0.00, flip angle=0.00
+i_ras = (-1, 0, 0)
+j_ras = (0, 0, -1)
+k_ras = (0, 1, 0)
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/149/mri/transforms/talairach.xfm...
+Reading transform with LTAreadEx()
+INFO: Applying transformation from file /autofs/cluster/con_002/users/fsaverage_subjs/149/mri/transforms/talairach.xfm...
+---------------------------------
+INFO: Transform Matrix (linear_ras_to_ras)
+ 1.106  -0.018  -0.003   0.309;
+ 0.048   0.948   0.571  -0.368;
+-0.025  -0.633   1.059   13.632;
+ 0.000   0.000   0.000   1.000;
+INFO: Transform dst volume info is not used (valid flag = 0).
+INFO: assumes that the dst volume given is the same as the dst for the transform
+---------------------------------
+Applying LTAtransformInterp (resample_type 0)
+writing to /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.149.tal.mgh...
+mri_concat /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.004.tal.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.008.tal.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.017.tal.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.021.tal.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.032.tal.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.039.tal.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.040.tal.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.045.tal.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.049.tal.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.067.tal.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.073.tal.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.074.tal.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.080.tal.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.084.tal.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.091.tal.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.092.tal.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.093.tal.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.095.tal.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.097.tal.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.099.tal.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.102.tal.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.103.tal.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.106.tal.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.108.tal.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.111.tal.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.114.tal.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.123.tal.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.124.tal.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.128.tal.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.129.tal.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.130.tal.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.131.tal.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.133.tal.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.136.tal.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.138.tal.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.140.tal.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.141.tal.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.144.tal.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.145.tal.mgh /autofs/space/crash_001/users/greve/freesurferx86/subjects/fsaverage/mri/tmpdir.make_average_subcort/subcort.mask.149.tal.mgh --mean --o subcort.prob.mgz
+ninputs = 40
+Checking inputs
+nframestot = 40
+Allocing output
+Done allocing
+nframes = 40
+Computing mean across frames
+Writing to subcort.prob.mgz
+Wed Jun 30 16:49:03 EDT 2010
+make_average_subcort done

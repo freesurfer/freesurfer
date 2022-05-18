@@ -1,0 +1,72 @@
+
+These files in this directory can be used to perform correction for
+multiple comparisons on the surface on a cluster-wise or voxel-wise
+basis. They are provided so that users do not have to run the
+simulations themselves. 
+
+The files are the result of Monte Carlo simulations conducted by
+synthesizing white Gaussian noise on the surface, smoothing by a
+certain full-width/half-max (FWHM) within the given label, rescaling,
+thresholding at a certain voxel-wise threshold of a certain sign, then
+recording the maximum cluster size and maximum significance value.
+This constitutes an "mc-z" simulation in mri_glmfit.
+
+These simulations were done for each hemisphere. The directories
+are organized as follows:
+
+subject/hemi/label/fwhm/sign/thresh
+
+label is currently only cortex (?h.cortex.label). There are thirty
+FWHMs ranging from 1 to 30. The signs are abs (absolute, unsigned),
+pos (positive), and neg (negative). The voxel-wise thresholds are in
+"significance" format (ie, -log10(p)) and are 1.3 (p<.05), 2.0 (p<.01),
+2.3 (p<.005), 3.3 (p<.001), 3.3 (p<.0005), and 4.0 (p<.0001). The
+actual directory for the threshold is given by "thXX" where XX is 10
+times the significance level.
+
+There is also a mask.mgh file in subject/hemi/label that indicates
+the label/mask used during simulation. This must match that found in
+the mri_glmfit output directory.
+
+Each simulation was run with 10000 iterations using the following
+program:
+
+mri_mcsim --o subject/hemi/label --base mc-z \
+      --surf subject hemi --nreps 10000
+
+This will loop through all the FWHMs, signs, and thresholds in a
+efficient fashion. Note, however, that this may take weeks (yes, weeks)
+to complete. But it can be parallelized with something like:
+
+foreach job (1 2 3 4)
+  set cmd = (mri_mcsim --o subject/hemi/label --base mc-z.j00$job \
+      --surf subject hemi --nreps 2500)
+  # only save mask on 1st job
+  if($job != 1) set cmd = ($cmd --no-save-mask); 
+  $cmd
+end
+
+Then merge the 4 jobs into one file with:
+
+mri_surfcluster \
+   --csd-out subject/hemi/label/fwhm/sign/thresh/mc-z.csd \
+   --csdpdf subject/hemi/label/fwhm/sign/thresh/mc-z.cdf \
+   --csd subject/hemi/label/fwhm/sign/thresh/mc-z.j001.csd \ 
+   --csd subject/hemi/label/fwhm/sign/thresh/mc-z.j002.csd \ 
+   --csd subject/hemi/label/fwhm/sign/thresh/mc-z.j003.csd \ 
+   --csd subject/hemi/label/fwhm/sign/thresh/mc-z.j004.csd \  
+   --csdpdf-only
+
+The "mc-z.csd" file is the file that is used to correct for multiple
+comparisons in mri_surfcluster. The "CDF" is the cumulative
+distribution function which describes the statistics of the simulation
+results.
+
+
+
+
+
+
+
+
+

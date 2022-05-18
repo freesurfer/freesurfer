@@ -1,0 +1,30 @@
+# transform file /autofs/cluster/con_001/users/lilla/CVS_atlas/buckner35rerun/avg35rerun/mri/transforms/cc_up.lta
+# created by lzollei on Tue Apr 20 15:02:43 2010
+
+type      = 0
+nxforms   = 1
+mean      = 129.000 116.000 126.000
+sigma     = 10000.000
+1 4 4
++0.997568  -0.069560  -0.004376  +8.453867  
++0.069560  +0.997578  -0.000305  +20.423737  
++0.004386  -0.000000  +0.999990  +9.442942  
++0.000000  +0.000000  +0.000000  +1.000000  
+src volume info
+valid = 1  # volume info valid
+filename = /autofs/cluster/con_001/users/lilla/CVS_atlas/buckner35rerun/avg35rerun/mri/norm.mgz
+volume = 256 256 256
+voxelsize = 1.0000 1.0000 1.0000
+xras   = -1.0000 0.0000 0.0000
+yras   = 0.0000 0.0000 -1.0000
+zras   = 0.0000 1.0000 0.0000
+cras   = -2.7459 -6.8383 -23.1030
+dst volume info
+valid = 1  # volume info valid
+filename = /autofs/cluster/con_001/users/lilla/CVS_atlas/buckner35rerun/avg35rerun/mri/norm.mgz
+volume = 256 256 256
+voxelsize = 1.0000 1.0000 1.0000
+xras   = -1.0000 0.0000 0.0000
+yras   = 0.0000 0.0000 -1.0000
+zras   = 0.0000 1.0000 0.0000
+cras   = -2.7459 -6.8383 -23.1030

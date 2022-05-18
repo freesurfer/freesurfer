@@ -1,0 +1,9 @@
+Logfile for pctsurfcon
+Sat Mar 31 05:28:57 EDT 2012
+setenv SUBJECTS_DIR /autofs/space/erdos_003/users/lzollei/my_stuff/research/tests/CVSvsMNI
+cd /autofs/space/erdos_003/users/lzollei/my_stuff/research/tests/CVSvsMNI/cvs_avg35_inMNI152/scripts
+/usr/local/freesurfer/dev/bin/pctsurfcon
+$Id: pctsurfcon,v 1.13 2011/11/10 20:21:13 nicks Exp $
+Linux compute-0-104.local 2.6.18-308.1.1.el5 #1 SMP Wed Mar 7 04:16:51 EST 2012 x86_64 x86_64 x86_64 GNU/Linux
+FREESURFER_HOME /usr/local/freesurfer/dev
+Cleaning up

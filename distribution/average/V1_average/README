@@ -1,0 +1,47 @@
+# instructions for using the surface-based V1 probabilistic atlas
+#
+# Oliver Hinds <ohinds@mit.edu> 2007-11-24
+
+1) the directory containing this README (V1_average) should be linked
+into the SUBJECTS_DIR containing the subjects for which V1 is to be
+predicted.
+
+EXAMPLE:
+
+if the V1_average directory is 
+/usr/local/freesurfer/subjects/V1_average
+and the target subjects are in 
+/usr/local/data/subjects/v1_predict
+then link the V1_average directory using the command:
+$ ln -sf /usr/local/freesurfer/subjects/V1_average /usr/local/data/subjects/v1_predict/
+
+2) use the script predict_v1.sh (in the scripts directory) 
+
+EXAMPLE:
+
+to predict V1 location for subjects s1, s2, and s3 use the command:
+
+$ /usr/local/freesurfer/subjects/V1_average/scripts/predict_v1.sh s1 s2 s3
+
+
+
+#
+# History
+#
+V1_average.1.1.tgz - 11/10/2008 - v1.1, bug fix and method improvements:
+                                  bug fix: 
+                                    - the default warping parms were being 
+                                    used instead of the ones found to be 
+                                    best for V1
+                                  improvements: 
+                                    - the best probability threshold was 
+                                    changed from 0.5 (default guess) to 0.8 
+                                    (determined by finding the min error 
+                                    between the predicted to actual 
+                                    boundaries on the zilles brains)
+                                    - added the option of using a template 
+                                    different than the one created from the 
+                                    ex vivo recons.
+
+V1_average.1.0.tgz - 12/27/2007 - v1.0, first release
+

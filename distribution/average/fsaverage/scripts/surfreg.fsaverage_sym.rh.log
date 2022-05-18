@@ -1,0 +1,95 @@
+Log file for surfreg
+Fri Nov 13 11:34:51 EST 2015
+
+setenv SUBJECTS_DIR /autofs/space/tanha_002/users/greve/fsdev.build/subjects
+cd /autofs/space/tanha_002/users/greve/fsdev.build/subjects
+/autofs/space/tanha_002/users/greve/fsdev.build/bin/surfreg --s fsaverage --t fsaverage_sym --rh
+
+Linux compute-0-2 2.6.32-573.7.1.el6.x86_64 #1 SMP Tue Sep 22 22:00:00 UTC 2015 x86_64 x86_64 x86_64 GNU/Linux
+#@# rh Fri Nov 13 11:34:51 EST 2015
+#CMD# mris_register -curv -annot aparc.annot /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/surf/rh.sphere /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage_sym/rh.reg.template.tif /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/surf/rh.fsaverage_sym.sphere.reg
+using smoothwm curvature for final alignment
+zeroing medial wall in aparc.annot
+
+cwd /autofs/space/tanha_002/users/greve/fsdev.build/subjects
+cmdline mris_register -curv -annot aparc.annot /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/surf/rh.sphere /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage_sym/rh.reg.template.tif /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/surf/rh.fsaverage_sym.sphere.reg 
+
+0 inflated.H
+1 sulc
+2 smoothwm (computed)
+$Id: mris_register.c,v 1.61 2013/01/15 17:19:03 greve Exp $
+  $Id: mrisurf.c,v 1.771 2015/11/06 16:00:41 fischl Exp $
+reading surface from /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/surf/rh.sphere...
+reading colortable from annotation file...
+colortable with 36 entries read (originally /autofs/space/terrier_001/users/nicks/freesurfer/average/colortable_desikan_killiany.txt)
+reading template parameterization from /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage_sym/rh.reg.template.tif...
+ripping medial wall...
+MRISregister() -------
+max_passes = 4 
+min_degrees = 0.500000 
+max_degrees = 64.000000 
+nangles = 8 
+tol=5.0e-01, sigma=0.0, host=compu, nav=1024, nbrs=1, l_extern=10000.000, l_parea=0.200, l_nlarea=1.000, l_corr=1.000, l_dist=5.000
+using quadratic fit line minimization
+complete_dist_mat 0
+rms 0
+smooth_averages 0
+remove_neg 0
+ico_order 0
+which_surface 0
+target_radius 0.000000
+nfields 0
+scale 0.000000
+desired_rms_height -1.000000
+momentum 0.950000
+nbhd_size -10
+max_nbrs 10
+niterations 25
+nsurfaces 0
+SURFACES 3
+flags 16 (10)
+use curv 16
+no sulc 0
+no rigid align 0
+mris->nsize 1
+mris->hemisphere 1
+randomSeed 0
+
+tol=5.0e-01, sigma=0.0, host=compu, nav=1024, nbrs=1, l_extern=10000.000, l_parea=0.200, l_nlarea=1.000, l_corr=1.000, l_dist=5.000
+using quadratic fit line minimization
+--------------------
+1 Reading rh.sulc
+curvature mean = -0.011, std = 0.591
+curvature mean = 0.072, std = 0.826
+curvature mean = 0.001, std = 0.924
+Starting MRISrigidBodyAlignGlobal()
+  d=4.00 min @ (0.00, 0.00, -1.00) sse = 140013.3, tmin=8.3418
+  d=2.00 min @ (0.00, 0.00, 0.50) sse = 139025.7, tmin=9.9695
+  d=1.00 min @ (0.00, -0.25, 0.00) sse = 138749.9, tmin=11.6625
+  d=0.50 min @ (0.12, 0.00, 0.00) sse = 138724.7, tmin=13.2877
+tol=1.0e+00, sigma=0.5, host=compu, nav=1024, nbrs=1, l_extern=10000.000, l_parea=0.200, l_nlarea=1.000, l_corr=0.050, l_spring=0.500, l_dist=5.000
+using quadratic fit line minimization
+MRISrigidBodyAlignGlobal() done  13.29 min
+curvature mean = 0.077, std = 0.871
+curvature mean = 0.002, std = 0.971
+curvature mean = 0.079, std = 0.887
+curvature mean = 0.001, std = 0.990
+curvature mean = 0.080, std = 0.891
+curvature mean = -0.000, std = 0.996
+2 Reading smoothwm
+curvature mean = -0.024, std = 0.168
+curvature mean = 0.041, std = 0.125
+curvature mean = 0.014, std = 0.606
+curvature mean = 0.040, std = 0.155
+curvature mean = 0.010, std = 0.781
+curvature mean = 0.040, std = 0.169
+curvature mean = 0.003, std = 0.892
+curvature mean = 0.041, std = 0.175
+curvature mean = 0.001, std = 0.949
+MRISregister() return, current seed 0
+writing registered surface to /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/surf/rh.fsaverage_sym.sphere.reg...
+-01: dt=0.0000, 0 negative triangles
+registration took 1.90 hours
+surfreg-Run-Time-Hours fsaverage rh 0 1.91
+Fri Nov 13 13:29:10 EST 2015
+surfreg done

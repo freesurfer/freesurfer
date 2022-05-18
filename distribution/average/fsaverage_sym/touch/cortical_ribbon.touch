@@ -1,0 +1,1 @@
+mris_volmask --label_left_white 2 --label_left_ribbon 3 --label_right_white 41 --label_right_ribbon 42 --save_ribbon ni.sym.b40.i30

@@ -1,0 +1,1 @@
+mris_ca_label -l ../label/rh.cortex.label -aseg ../mri/aseg.mgz -seed 1234 avg35rerun rh ../surf/rh.sphere.reg /usr/local/freesurfer/dev/average/rh.destrieux.simple.2009-07-29.gcs ../label/rh.aparc.a2009s.annot

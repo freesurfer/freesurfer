@@ -1,0 +1,1 @@
+mri_aparc2aseg --s ni.sym.b40.i30 --volmask --a2009s

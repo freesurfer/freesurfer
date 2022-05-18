@@ -1,0 +1,24 @@
+Files in this directory
+----------------------------------------------------------------------
+widget			Demonstrates the widgets in Tix. This is not
+			intended to be an introductory sample program.
+			For sample programs, please see the files
+			under the samples/ directory.
+
+MkChoose.tcl		Part of the "widget" demo.
+MkDirLis.tcl		Part of the "widget" demo.
+MkManag.tcl		Part of the "widget" demo.
+MkSample.tcl		Part of the "widget" demo.
+MkScroll.tcl		Part of the "widget" demo.
+tclIndex		index file for the "widget" demo.
+bitmaps/		Contains bitmaps used by "widget".
+
+c-code/			Demonstrates how to link Tix with applications
+			written in C.
+
+et/			Currently empty.
+
+samples/		Sample Tix programs. 
+
+
+

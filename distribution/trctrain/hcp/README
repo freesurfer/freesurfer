@@ -1,0 +1,9 @@
+This directory contains the manually labeled white-matter
+pathways and FreeSurfer segmentations that are used as
+training data for TRACULA. The diffusion-weighted and
+T1-weighted image data were collected and shared by the
+MGH/USC Human Connectome Project, with funding from the
+NIH Blueprint for Neuroscience Research (U01-MH093765).
+For up-to-date information on how to acknowledge the
+creators of these files, if you use them in your
+research, see: https://dmri.mgh.harvard.edu/tract-atlas/

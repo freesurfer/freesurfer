@@ -1,0 +1,1 @@
+mris_smooth -n 3 -nw -seed 1234 ../surf/lh.white ../surf/lh.smoothwm

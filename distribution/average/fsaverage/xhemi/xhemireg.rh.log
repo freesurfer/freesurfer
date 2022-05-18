@@ -1,0 +1,271 @@
+/autofs/space/tanha_002/users/greve/fsdev.build/bin/xhemireg
+--s fsaverage
+$Id: xhemireg,v 1.25 2013/08/29 18:49:33 greve Exp $
+Fri Nov 13 11:49:07 EST 2015
+Linux compute-0-26 2.6.32-573.7.1.el6.x86_64 #1 SMP Tue Sep 22 22:00:00 UTC 2015 x86_64 x86_64 x86_64 GNU/Linux
+/autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage
+setenv SUBJECTS_DIR /autofs/space/tanha_002/users/greve/fsdev.build/subjects 
+Fri Nov 13 11:49:07 EST 2015
+mri_surf2surf --s fsaverage --sval-xyz orig --hemi rh --tval-xyz /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri/orig.mgz --tval /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/surf/lh.orig --reg /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/lrrev.register.dat
+
+$Id: mri_surf2surf.c,v 1.103 2015/11/05 22:07:33 greve Exp $
+
+setenv SUBJECTS_DIR /autofs/space/tanha_002/users/greve/fsdev.build/subjects
+cd /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage
+mri_surf2surf --s fsaverage --sval-xyz orig --hemi rh --tval-xyz /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri/orig.mgz --tval /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/surf/lh.orig --reg /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/lrrev.register.dat 
+
+sysname  Linux
+hostname compute-0-26
+machine  x86_64
+user     greve
+srcsubject = fsaverage
+srcval     = (null)
+srctype    = 
+trgsubject = fsaverage
+trgval     = /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/surf/lh.orig
+trgtype    = 
+srcsurfreg = sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = rh
+trghemi    = rh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/surf/rh.sphere.reg
+Loading source data
+Reading surface file /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/surf/rh.orig
+Applying linear registration transform
+-1.00000   0.00000   0.00000   1.00000;
+ 0.00000   1.00000   0.00000   0.00000;
+ 0.00000   0.00000   1.00000   0.00000;
+ 0.00000   0.00000   0.00000   1.00000;
+Determinant of linear transform is negative, so reversing face order
+INFO: trgsubject = srcsubject
+Saving target data
+Reversing Face Order
+Fri Nov 13 11:49:14 EST 2015
+mri_surf2surf --s fsaverage --sval-xyz white --hemi rh --tval-xyz /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri/orig.mgz --tval /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/surf/lh.white --reg /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/lrrev.register.dat
+
+$Id: mri_surf2surf.c,v 1.103 2015/11/05 22:07:33 greve Exp $
+
+setenv SUBJECTS_DIR /autofs/space/tanha_002/users/greve/fsdev.build/subjects
+cd /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage
+mri_surf2surf --s fsaverage --sval-xyz white --hemi rh --tval-xyz /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri/orig.mgz --tval /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/surf/lh.white --reg /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/lrrev.register.dat 
+
+sysname  Linux
+hostname compute-0-26
+machine  x86_64
+user     greve
+srcsubject = fsaverage
+srcval     = (null)
+srctype    = 
+trgsubject = fsaverage
+trgval     = /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/surf/lh.white
+trgtype    = 
+srcsurfreg = sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = rh
+trghemi    = rh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/surf/rh.sphere.reg
+Loading source data
+Reading surface file /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/surf/rh.white
+Applying linear registration transform
+-1.00000   0.00000   0.00000   1.00000;
+ 0.00000   1.00000   0.00000   0.00000;
+ 0.00000   0.00000   1.00000   0.00000;
+ 0.00000   0.00000   0.00000   1.00000;
+Determinant of linear transform is negative, so reversing face order
+INFO: trgsubject = srcsubject
+Saving target data
+Reversing Face Order
+Fri Nov 13 11:49:22 EST 2015
+mri_surf2surf --s fsaverage --sval-xyz pial --hemi rh --tval-xyz /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri/orig.mgz --tval /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/surf/lh.pial --reg /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/lrrev.register.dat
+
+$Id: mri_surf2surf.c,v 1.103 2015/11/05 22:07:33 greve Exp $
+
+setenv SUBJECTS_DIR /autofs/space/tanha_002/users/greve/fsdev.build/subjects
+cd /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage
+mri_surf2surf --s fsaverage --sval-xyz pial --hemi rh --tval-xyz /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri/orig.mgz --tval /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/surf/lh.pial --reg /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/lrrev.register.dat 
+
+sysname  Linux
+hostname compute-0-26
+machine  x86_64
+user     greve
+srcsubject = fsaverage
+srcval     = (null)
+srctype    = 
+trgsubject = fsaverage
+trgval     = /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/surf/lh.pial
+trgtype    = 
+srcsurfreg = sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = rh
+trghemi    = rh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/surf/rh.sphere.reg
+Loading source data
+Reading surface file /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/surf/rh.pial
+Applying linear registration transform
+-1.00000   0.00000   0.00000   1.00000;
+ 0.00000   1.00000   0.00000   0.00000;
+ 0.00000   0.00000   1.00000   0.00000;
+ 0.00000   0.00000   0.00000   1.00000;
+Determinant of linear transform is negative, so reversing face order
+INFO: trgsubject = srcsubject
+Saving target data
+Reversing Face Order
+Fri Nov 13 11:49:30 EST 2015
+mri_surf2surf --s fsaverage --sval-xyz smoothwm --hemi rh --tval-xyz /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri/orig.mgz --tval /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/surf/lh.smoothwm --reg /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/lrrev.register.dat
+
+$Id: mri_surf2surf.c,v 1.103 2015/11/05 22:07:33 greve Exp $
+
+setenv SUBJECTS_DIR /autofs/space/tanha_002/users/greve/fsdev.build/subjects
+cd /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage
+mri_surf2surf --s fsaverage --sval-xyz smoothwm --hemi rh --tval-xyz /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri/orig.mgz --tval /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/surf/lh.smoothwm --reg /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/lrrev.register.dat 
+
+sysname  Linux
+hostname compute-0-26
+machine  x86_64
+user     greve
+srcsubject = fsaverage
+srcval     = (null)
+srctype    = 
+trgsubject = fsaverage
+trgval     = /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/surf/lh.smoothwm
+trgtype    = 
+srcsurfreg = sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = rh
+trghemi    = rh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/surf/rh.sphere.reg
+Loading source data
+Reading surface file /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/surf/rh.smoothwm
+Applying linear registration transform
+-1.00000   0.00000   0.00000   1.00000;
+ 0.00000   1.00000   0.00000   0.00000;
+ 0.00000   0.00000   1.00000   0.00000;
+ 0.00000   0.00000   0.00000   1.00000;
+Determinant of linear transform is negative, so reversing face order
+INFO: trgsubject = srcsubject
+Saving target data
+Reversing Face Order
+Fri Nov 13 11:49:36 EST 2015
+mri_surf2surf --s fsaverage --sval-xyz sphere --hemi rh --tval-xyz /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri/orig.mgz --tval /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/surf/lh.sphere --reg /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/lrrev.pure.register.dat
+
+$Id: mri_surf2surf.c,v 1.103 2015/11/05 22:07:33 greve Exp $
+
+setenv SUBJECTS_DIR /autofs/space/tanha_002/users/greve/fsdev.build/subjects
+cd /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage
+mri_surf2surf --s fsaverage --sval-xyz sphere --hemi rh --tval-xyz /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri/orig.mgz --tval /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/surf/lh.sphere --reg /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/lrrev.pure.register.dat 
+
+sysname  Linux
+hostname compute-0-26
+machine  x86_64
+user     greve
+srcsubject = fsaverage
+srcval     = (null)
+srctype    = 
+trgsubject = fsaverage
+trgval     = /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/surf/lh.sphere
+trgtype    = 
+srcsurfreg = sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = rh
+trghemi    = rh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/surf/rh.sphere.reg
+Loading source data
+Reading surface file /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/surf/rh.sphere
+Applying linear registration transform
+-1.00000   0.00000   0.00000   0.00000;
+ 0.00000   1.00000   0.00000   0.00000;
+ 0.00000   0.00000   1.00000   0.00000;
+ 0.00000   0.00000   0.00000   1.00000;
+Determinant of linear transform is negative, so reversing face order
+INFO: trgsubject = srcsubject
+Saving target data
+Reversing Face Order
+Fri Nov 13 11:49:43 EST 2015
+mri_surf2surf --s fsaverage --sval-xyz inflated --hemi rh --tval-xyz /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri/orig.mgz --tval /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/surf/lh.inflated --reg /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/lrrev.pure.register.dat
+
+$Id: mri_surf2surf.c,v 1.103 2015/11/05 22:07:33 greve Exp $
+
+setenv SUBJECTS_DIR /autofs/space/tanha_002/users/greve/fsdev.build/subjects
+cd /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage
+mri_surf2surf --s fsaverage --sval-xyz inflated --hemi rh --tval-xyz /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/mri/orig.mgz --tval /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/surf/lh.inflated --reg /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/lrrev.pure.register.dat 
+
+sysname  Linux
+hostname compute-0-26
+machine  x86_64
+user     greve
+srcsubject = fsaverage
+srcval     = (null)
+srctype    = 
+trgsubject = fsaverage
+trgval     = /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/surf/lh.inflated
+trgtype    = 
+srcsurfreg = sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = rh
+trghemi    = rh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+UseDualHemi = 0
+Reading source surface reg /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/surf/rh.sphere.reg
+Loading source data
+Reading surface file /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/surf/rh.inflated
+Applying linear registration transform
+-1.00000   0.00000   0.00000   0.00000;
+ 0.00000   1.00000   0.00000   0.00000;
+ 0.00000   0.00000   1.00000   0.00000;
+ 0.00000   0.00000   0.00000   1.00000;
+Determinant of linear transform is negative, so reversing face order
+INFO: trgsubject = srcsubject
+Saving target data
+Reversing Face Order
+cp surf/rh.curv /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/surf/lh.curv
+cp surf/rh.sulc /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/surf/lh.sulc
+cp surf/rh.area /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/surf/lh.area
+cp surf/rh.thickness /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/surf/lh.thickness
+cp surf/rh.inflated.H /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/surf/lh.inflated.H
+cp surf/rh.inflated.K /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/surf/lh.inflated.K
+cp label/rh.aparc.annot /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/label/lh.aparc.annot
+cp label/rh.aparc.a2009s.annot /autofs/space/tanha_002/users/greve/fsdev.build/subjects/fsaverage/xhemi/label/lh.aparc.a2009s.annot
+done hemi rh
+
+Fri Nov 13 11:49:50 EST 2015
+xhemireg done

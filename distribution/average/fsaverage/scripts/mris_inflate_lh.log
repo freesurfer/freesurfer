@@ -1,0 +1,10 @@
+niterations = 15
+desired rms height = 0.000000010
+reading group avg surface area 822 cm^2 from file
+avg radius = 46.8 mm, total surface area = 62822 mm^2
+writing inflated surface to lh.inflated
+writing sulcal depths to ./lh.sulc
+step 000: RMS=0.054 (target=0.000)   step 005: RMS=0.043 (target=0.000)   step 010: RMS=0.034 (target=0.000)   step 015: RMS=0.028 (target=0.000)   step 020: RMS=0.024 (target=0.000)   step 025: RMS=0.020 (target=0.000)   step 030: RMS=0.018 (target=0.000)   step 035: RMS=0.015 (target=0.000)   step 040: RMS=0.014 (target=0.000)   step 045: RMS=0.012 (target=0.000)   step 050: RMS=0.011 (target=0.000)   step 055: RMS=0.010 (target=0.000)   step 060: RMS=0.010 (target=0.000)   step 065: RMS=0.009 (target=0.000)   step 070: RMS=0.009 (target=0.000)   step 075: RMS=0.008 (target=0.000)   step 080: RMS=0.008 (target=0.000)   step 085: RMS=0.008 (target=0.000)   step 090: RMS=0.008 (target=0.000)   
+inflation complete.
+writing group avg surface area 822 cm^2 into surface file
+inflation took 3.5 minutes

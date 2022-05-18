@@ -1,0 +1,1 @@
+mri_em_register -uns 3 -mask brainmask.mgz nu.mgz /usr/local/freesurfer/dev/average/RB_all_2008-03-26.gca transforms/talairach.lta

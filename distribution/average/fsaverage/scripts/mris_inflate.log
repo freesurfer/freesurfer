@@ -1,0 +1,18 @@
+The fsaverage ?h.inflated surfaces required a bit more inflation
+after they were created using the make_average_subject utility.
+The results of make_average_subject (actually make_average_surface)
+are found in surf/?h.inflated_pre (where ?h.inflated was renamed to
+?h.inflated_pre).
+
+The following was run to inflate:
+
+  mris_inflate -n 15 -f 1e-8 ./lh.smoothwm ./lh.inflated
+
+and
+
+  mris_inflate -n 15 -f 1e-8 ./rh.smoothwm ./rh.inflated
+
+
+nick, 15 aug 2007
+
+  

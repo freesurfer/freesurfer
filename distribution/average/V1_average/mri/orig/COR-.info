@@ -1,0 +1,24 @@
+imnr0 1
+imnr1 256
+ptype 2
+x 256
+y 256
+fov 0.256000
+thick 0.001000
+psiz 0.001000
+locatn 0.000000
+strtx -0.128000
+endx 0.128000
+strty -0.128000
+endy 0.128000
+strtz -0.128000
+endz 0.128000
+tr 20.000000
+te 1.850000
+ti 1.850000
+xform /autofs/space/rock_004/users/hires/recons/I17/mri/transforms/talairach.xfm
+ras_good_flag 1
+x_ras -1.000000 0.000000 -0.000000
+y_ras 0.000000 -0.000000 -1.000000
+z_ras 0.000000 1.000000 0.000000
+c_ras -1.070671 26.316010 3.367431

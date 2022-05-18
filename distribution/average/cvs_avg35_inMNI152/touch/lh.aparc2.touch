@@ -1,0 +1,1 @@
+mris_ca_label -l ../label/lh.cortex.label -aseg ../mri/aseg.mgz -seed 1234 cvs_avg35_inMNI152 lh ../surf/lh.sphere.reg /usr/local/freesurfer/dev/average/lh.destrieux.simple.2009-07-29.gcs ../label/lh.aparc.a2009s.annot

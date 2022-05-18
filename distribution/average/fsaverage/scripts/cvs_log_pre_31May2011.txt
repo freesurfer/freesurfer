@@ -1,0 +1,102 @@
+
+RCS file: /space/repo/1/dev/dev/distribution/average/fsaverage.tar.gz,v
+Working file: fsaverage.tar.gz
+head: 1.14
+branch:
+locks: strict
+access list:
+symbolic names:
+	release_5_1_0: 1.12.2.1
+	stable5: 1.12.0.2
+	stable5_0_0: 1.8.0.2
+	release_4_5_0: 1.1.2.2
+	release_4_4_0: 1.1.2.2
+	release_4_3_1: 1.1.2.1
+	stable4: 1.1.0.2
+keyword substitution: kv
+total revisions: 20;	selected revisions: 20
+description:
+----------------------------
+revision 1.14
+date: 2011/05/31 17:45:59;  author: nicks;  state: Exp;  lines: +434231 -423222
+ENH: y.thomas's new resting networks annotation and confidence files in fsaverage/label dir
+----------------------------
+revision 1.13
+date: 2011/03/22 14:07:40;  author: greve;  state: Exp;  lines: +413879 -414194
+Changed stuff in mri.2mm
+----------------------------
+revision 1.12
+date: 2010/12/30 22:48:15;  author: nicks;  state: Exp;  lines: +406793 -405783
+branches:  1.12.2;
+ENH: .annot and .annot.a2009s parcellations updated using mri_ca_label which reconciles the ?h.cortex.label with the medial wall/unknown/corpus callosum parcellations
+----------------------------
+revision 1.11
+date: 2010/12/01 22:39:27;  author: greve;  state: Exp;  lines: +403576 -404001
+Added stuff for reg to mni152
+----------------------------
+revision 1.10
+date: 2010/07/08 21:56:53;  author: greve;  state: Exp;  lines: +419420 -417678
+Added subcortical gray matter masks for anat and mni305.2mm
+----------------------------
+revision 1.9
+date: 2010/06/29 20:16:19;  author: greve;  state: Exp;  lines: +419653 -412977
+Added mri.2mm directory to support FSFAST volumetric group analysis
+----------------------------
+revision 1.8
+date: 2010/03/19 20:00:14;  author: nicks;  state: Exp;  lines: +368597 -352768
+branches:  1.8.2;
+ENH: added ?h.aparc.label for use as a cortex mask in qdec mri_glmfit so that parcellation labels overlap
+----------------------------
+revision 1.7
+date: 2010/03/11 04:50:57;  author: nicks;  state: Exp;  lines: +25407 -24543
+ENH: added ?h.PALS_B12.labels.gii
+----------------------------
+revision 1.6
+date: 2010/03/11 03:59:04;  author: nicks;  state: Exp;  lines: +396222 -394619
+ENH: added ?h.PALS_B12_?.annot annotations, originating from David Van Essen (and Caret): Brodmann, Lobes, OrbitoFrontal and Visuotopic
+----------------------------
+revision 1.5
+date: 2010/01/15 21:02:06;  author: nicks;  state: Exp;  lines: +393324 -393485
+created new aparc+aseg.mgz so that it includes insula label
+----------------------------
+revision 1.4
+date: 2009/12/10 00:15:34;  author: nicks;  state: Exp;  lines: +396344 -395300
+added ?h.aparc.a2009s.annot (Destrieux parcellations)
+----------------------------
+revision 1.3
+date: 2009/10/20 17:25:11;  author: greve;  state: Exp;  lines: +399696 -399718
+Added ribbon.mgz
+----------------------------
+revision 1.2
+date: 2009/05/19 17:51:17;  author: nicks;  state: Exp;  lines: +388423 -387862
+added ?h.entorhinal.label files
+----------------------------
+revision 1.1
+date: 2009/05/03 04:55:48;  author: nicks;  state: Exp;
+branches:  1.1.2;
+chgrp fsdev
+----------------------------
+revision 1.1.2.2
+date: 2009/05/19 17:58:17;  author: nicks;  state: Exp;  lines: +388474 -387913
+added ?h.entorhinal.label files
+----------------------------
+revision 1.1.2.1
+date: 2009/05/03 04:59:08;  author: nicks;  state: Exp;  lines: +0 -0
+chgrp fsdev
+----------------------------
+revision 1.8.2.3
+date: 2010/12/30 22:52:19;  author: nicks;  state: Exp;  lines: +413470 -412885
+ENH: .annot and .annot.a2009s parcellations updated using mri_ca_label which reconciles the ?h.cortex.label with the medial wall/unknown/corpus callosum parcellations
+----------------------------
+revision 1.8.2.2
+date: 2010/07/08 22:05:32;  author: greve;  state: Exp;  lines: +419225 -417483
+Added subcortical gray matter masks for anat and mni305.2mm. Copied from dev.
+----------------------------
+revision 1.8.2.1
+date: 2010/06/29 20:21:25;  author: greve;  state: Exp;  lines: +419643 -412967
+Added mri.2mm directory to support FSFAST volumetric group analysis. Copied from dev.
+----------------------------
+revision 1.12.2.1
+date: 2011/03/22 14:30:05;  author: greve;  state: Exp;  lines: +413934 -414249
+Copied from dev. Changed stuff in mri.2mm
+=============================================================================

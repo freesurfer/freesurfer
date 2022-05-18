@@ -1,0 +1,803 @@
+$Id: make_average_surface,v 1.45 2008/02/21 20:39:49 greve Exp $
+Tue Sep  9 09:30:06 EDT 2008
+/autofs/space/rock_004/users/hires/recons/scripts
+setenv SUBJECTS_DIR /space/rock/4/users/hires/recons
+output ddir is /space/rock/4/users/hires/recons
+uid=5499(fischl) gid=5499(fischl) groups=160(fsdev),1005(cma),1013(p41),1021(stroke),1031(daragp),1046(recon),1048(seq),1050(blackrgp),1055(cagn),1071(birn),1085(reconx),1098(retinopy),1102(ellengp),1446(nandgp),1467(cardstr),3048(acqp41),5499(fischl)
+====================
+make_average_surface
+====================
+Tue Sep  9 09:30:06 EDT 2008
+/autofs/space/rock_004/users/hires/recons/scripts
+/homes/4/fischl/dev/freesurfer/bin/make_average_surface
+--subjects I7_ras_recon I9_recon I14 I15 G1 I20_lh_recon I21_lh_recon I23_LH I25_lh_recon --out lh.EC_average --sdir /space/rock/4/users/hires/recons --surf-reg sphere.new.reg
+input subjects: I7_ras_recon I9_recon I14 I15 G1 I20_lh_recon I21_lh_recon I23_LH I25_lh_recon
+output subject: lh.EC_average
+mri_add_xform_to_header -c auto /space/rock/4/users/hires/recons/lh.EC_average/mri/mni305.cor.mgz /space/rock/4/users/hires/recons/lh.EC_average/mri/mni305.cor.mgz
+INFO: extension is mgz
+
+
+#@# Making lh registration template ---------
+/autofs/space/rock_004/users/hires/recons/lh.EC_average
+mris_make_template -norot -annot aparc lh sphere.new.reg I7_ras_recon I9_recon I14 I15 G1 I20_lh_recon I21_lh_recon I23_LH I25_lh_recon lh.reg.template.tif
+not aligning hemispheres before averaging.
+zeroing medial wall in aparc
+creating new parameterization...
+
+processing subject I7_ras_recon (1 of 9)
+reading spherical surface /space/rock/4/users/hires/recons/I7_ras_recon/surf/lh.sphere.new.reg...
+reading colortable from annotation file...
+colortable with 35 entries read (originally /autofs/space/birn_044/users/buckner_surf_atlas_rebuild/scripts/colortable_final.txt)
+ripping medial wall...
+computing parameterization for surface /space/rock/4/users/hires/recons/I7_ras_recon/surf/lh.inflated.H...
+curvature mean = -0.118, std = 0.848
+computing parameterization for surface /space/rock/4/users/hires/recons/I7_ras_recon/surf/lh.sulc...
+computing parameterization for surface /space/rock/4/users/hires/recons/I7_ras_recon/surf/lh.smoothwm...
+
+processing subject I9_recon (2 of 9)
+reading spherical surface /space/rock/4/users/hires/recons/I9_recon/surf/lh.sphere.new.reg...
+reading colortable from annotation file...
+colortable with 35 entries read (originally /autofs/space/birn_044/users/buckner_surf_atlas_rebuild/scripts/colortable_final.txt)
+curvature mean = -0.022, std = 0.551
+curvature mean = -0.140, std = 1.929
+ripping medial wall...
+computing parameterization for surface /space/rock/4/users/hires/recons/I9_recon/surf/lh.inflated.H...
+curvature mean = -0.083, std = 0.936
+computing parameterization for surface /space/rock/4/users/hires/recons/I9_recon/surf/lh.sulc...
+computing parameterization for surface /space/rock/4/users/hires/recons/I9_recon/surf/lh.smoothwm...
+
+processing subject I14 (3 of 9)
+reading spherical surface /space/rock/4/users/hires/recons/I14/surf/lh.sphere.new.reg...
+reading colortable from annotation file...
+colortable with 35 entries read (originally /autofs/space/birn_044/users/buckner_surf_atlas_rebuild/scripts/colortable_final.txt)
+curvature mean = -0.014, std = 0.562
+curvature mean = -0.158, std = 2.640
+ripping medial wall...
+computing parameterization for surface /space/rock/4/users/hires/recons/I14/surf/lh.inflated.H...
+curvature mean = -0.092, std = 0.906
+computing parameterization for surface /space/rock/4/users/hires/recons/I14/surf/lh.sulc...
+computing parameterization for surface /space/rock/4/users/hires/recons/I14/surf/lh.smoothwm...
+
+processing subject I15 (4 of 9)
+reading spherical surface /space/rock/4/users/hires/recons/I15/surf/lh.sphere.new.reg...
+reading colortable from annotation file...
+colortable with 35 entries read (originally /autofs/space/birn_044/users/buckner_surf_atlas_rebuild/scripts/colortable_final.txt)
+curvature mean = -0.016, std = 0.541
+curvature mean = -0.158, std = 2.105
+ripping medial wall...
+computing parameterization for surface /space/rock/4/users/hires/recons/I15/surf/lh.inflated.H...
+curvature mean = -0.096, std = 0.884
+computing parameterization for surface /space/rock/4/users/hires/recons/I15/surf/lh.sulc...
+computing parameterization for surface /space/rock/4/users/hires/recons/I15/surf/lh.smoothwm...
+
+processing subject G1 (5 of 9)
+reading spherical surface /space/rock/4/users/hires/recons/G1/surf/lh.sphere.new.reg...
+reading colortable from annotation file...
+colortable with 35 entries read (originally /autofs/space/birn_044/users/buckner_surf_atlas_rebuild/scripts/colortable_final.txt)
+curvature mean = -0.019, std = 0.560
+curvature mean = -0.151, std = 2.822
+ripping medial wall...
+computing parameterization for surface /space/rock/4/users/hires/recons/G1/surf/lh.inflated.H...
+curvature mean = -0.091, std = 0.919
+computing parameterization for surface /space/rock/4/users/hires/recons/G1/surf/lh.sulc...
+computing parameterization for surface /space/rock/4/users/hires/recons/G1/surf/lh.smoothwm...
+
+processing subject I20_lh_recon (6 of 9)
+reading spherical surface /space/rock/4/users/hires/recons/I20_lh_recon/surf/lh.sphere.new.reg...
+reading colortable from annotation file...
+colortable with 35 entries read (originally /autofs/space/birn_044/users/buckner_surf_atlas_rebuild/scripts/colortable_final.txt)
+curvature mean = -0.016, std = 0.520
+curvature mean = -0.106, std = 7.065
+ripping medial wall...
+computing parameterization for surface /space/rock/4/users/hires/recons/I20_lh_recon/surf/lh.inflated.H...
+curvature mean = -0.092, std = 0.883
+computing parameterization for surface /space/rock/4/users/hires/recons/I20_lh_recon/surf/lh.sulc...
+computing parameterization for surface /space/rock/4/users/hires/recons/I20_lh_recon/surf/lh.smoothwm...
+
+processing subject I21_lh_recon (7 of 9)
+reading spherical surface /space/rock/4/users/hires/recons/I21_lh_recon/surf/lh.sphere.new.reg...
+reading colortable from annotation file...
+colortable with 35 entries read (originally /autofs/space/birn_044/users/buckner_surf_atlas_rebuild/scripts/colortable_final.txt)
+curvature mean = -0.018, std = 0.543
+curvature mean = -0.166, std = 3.183
+ripping medial wall...
+computing parameterization for surface /space/rock/4/users/hires/recons/I21_lh_recon/surf/lh.inflated.H...
+curvature mean = -0.070, std = 0.918
+computing parameterization for surface /space/rock/4/users/hires/recons/I21_lh_recon/surf/lh.sulc...
+computing parameterization for surface /space/rock/4/users/hires/recons/I21_lh_recon/surf/lh.smoothwm...
+
+processing subject I23_LH (8 of 9)
+reading spherical surface /space/rock/4/users/hires/recons/I23_LH/surf/lh.sphere.new.reg...
+reading colortable from annotation file...
+colortable with 35 entries read (originally /autofs/space/birn_044/users/buckner_surf_atlas_rebuild/scripts/colortable_final.txt)
+curvature mean = -0.010, std = 0.571
+curvature mean = -0.026, std = 7.618
+ripping medial wall...
+computing parameterization for surface /space/rock/4/users/hires/recons/I23_LH/surf/lh.inflated.H...
+curvature mean = 0.004, std = 0.912
+computing parameterization for surface /space/rock/4/users/hires/recons/I23_LH/surf/lh.sulc...
+computing parameterization for surface /space/rock/4/users/hires/recons/I23_LH/surf/lh.smoothwm...
+
+processing subject I25_lh_recon (9 of 9)
+reading spherical surface /space/rock/4/users/hires/recons/I25_lh_recon/surf/lh.sphere.new.reg...
+reading colortable from annotation file...
+colortable with 35 entries read (originally /space/amaebi/26/users/buckner_cortical_atlas/scripts/colortable_final.txt)
+curvature mean = 0.014, std = 0.560
+curvature mean = -0.153, std = 3.106
+ripping medial wall...
+computing parameterization for surface /space/rock/4/users/hires/recons/I25_lh_recon/surf/lh.inflated.H...
+curvature mean = -0.063, std = 0.966
+computing parameterization for surface /space/rock/4/users/hires/recons/I25_lh_recon/surf/lh.sulc...
+computing parameterization for surface /space/rock/4/users/hires/recons/I25_lh_recon/surf/lh.smoothwm...
+writing updated template with 9 subjects to lh.reg.template.tif...
+curvature mean = -0.009, std = 0.556
+curvature mean = -0.087, std = 1.254
+#@# Making lh annotation ---------------------
+Tue Sep  9 09:32:11 EDT 2008
+mris_ca_label -ml-annot lh.curvature.buckner40.filled.desikan_killiany.2007-06-20.gcs 7 label/lh.aparc.annot
+/autofs/space/rock_004/users/hires/recons/lh.EC_average
+ML Label: lh.curvature.buckner40.filled.desikan_killiany.2007-06-20.gcs 7 label/lh.aparc.annot
+   Reading icosahedron /homes/4/fischl/dev/freesurfer/lib/bem/ic7.tri
+Reading gcsa from /homes/4/fischl/dev/freesurfer/average/lh.curvature.buckner40.filled.desikan_killiany.2007-06-20.gcs
+reading color table from GCSA file....
+average std = 2.1   using min determinant for regularization = 0.044
+0 singular and 372 ill-conditioned covariance matrices regularized
+Building most likely labels
+Filtering labels
+2 filter iterations complete (2 requested, 378 changed)
+writing colortable into annotation file...
+mris_ca_label -ml-annot lh.atlas2005_simple.gcs 7 label/lh.aparc.a2005s.annot
+/autofs/space/rock_004/users/hires/recons/lh.EC_average
+ML Label: lh.atlas2005_simple.gcs 7 label/lh.aparc.a2005s.annot
+   Reading icosahedron /homes/4/fischl/dev/freesurfer/lib/bem/ic7.tri
+Reading gcsa from /homes/4/fischl/dev/freesurfer/average/lh.atlas2005_simple.gcs
+reading color table from GCSA file....
+average std = 4.5 0.2   using min determinant for regularization = 0.000
+0 singular and 1215 ill-conditioned covariance matrices regularized
+Building most likely labels
+Filtering labels
+2 filter iterations complete (2 requested, 1804 changed)
+writing colortable into annotation file...
+#@# Making average lh.orig surface ---------------------
+Tue Sep  9 09:32:33 EDT 2008
+/autofs/space/rock_004/users/hires/recons/lh.EC_average
+mris_make_average_surface -i 7 -o orig -sdir-out /space/rock/4/users/hires/recons lh orig_avg sphere.new.reg lh.EC_average I7_ras_recon I9_recon I14 I15 G1 I20_lh_recon I21_lh_recon I23_LH I25_lh_recon
+reading vertex positions from orig...
+---------------------------------------------------
+hemi            = lh
+avg_surf_name   = orig_avg
+canon_surf_name = sphere.new.reg
+out_sname       = lh.EC_average
+xform           = talairach.xfm
+---------------------------------------------------
+
+
+
+---------------------------------------------------
+#@# processing subject 1/9 I7_ras_recon...
+  Reading /space/rock/4/users/hires/recons/I7_ras_recon/surf/lh.sphere.new.reg
+  Read /space/rock/4/users/hires/recons/I7_ras_recon/mri/T1.mgz
+  Surface area: 728.2 cm^2
+  Applying linear transform
+
+---------------------------------------------------
+#@# processing subject 2/9 I9_recon...
+  Reading /space/rock/4/users/hires/recons/I9_recon/surf/lh.sphere.new.reg
+  Read /space/rock/4/users/hires/recons/I9_recon/mri/T1
+  Surface area: 812.7 cm^2
+  Applying linear transform
+
+---------------------------------------------------
+#@# processing subject 3/9 I14...
+  Reading /space/rock/4/users/hires/recons/I14/surf/lh.sphere.new.reg
+  Read /space/rock/4/users/hires/recons/I14/mri/T1
+  Surface area: 759.9 cm^2
+  Applying linear transform
+
+---------------------------------------------------
+#@# processing subject 4/9 I15...
+  Reading /space/rock/4/users/hires/recons/I15/surf/lh.sphere.new.reg
+  Read /space/rock/4/users/hires/recons/I15/mri/T1.mgz
+  Surface area: 706.8 cm^2
+  Applying linear transform
+
+---------------------------------------------------
+#@# processing subject 5/9 G1...
+  Reading /space/rock/4/users/hires/recons/G1/surf/lh.sphere.new.reg
+  Read /space/rock/4/users/hires/recons/G1/mri/T1.mgz
+  Surface area: 914.5 cm^2
+  Applying linear transform
+
+---------------------------------------------------
+#@# processing subject 6/9 I20_lh_recon...
+  Reading /space/rock/4/users/hires/recons/I20_lh_recon/surf/lh.sphere.new.reg
+  Read /space/rock/4/users/hires/recons/I20_lh_recon/mri/T1.mgz
+  Surface area: 794.3 cm^2
+  Applying linear transform
+
+---------------------------------------------------
+#@# processing subject 7/9 I21_lh_recon...
+  Reading /space/rock/4/users/hires/recons/I21_lh_recon/surf/lh.sphere.new.reg
+  Read /space/rock/4/users/hires/recons/I21_lh_recon/mri/T1.mgz
+  Surface area: 1008.5 cm^2
+  Applying linear transform
+
+---------------------------------------------------
+#@# processing subject 8/9 I23_LH...
+  Reading /space/rock/4/users/hires/recons/I23_LH/surf/lh.sphere.new.reg
+  Read /space/rock/4/users/hires/recons/I23_LH/mri/T1.mgz
+  Surface area: 913.3 cm^2
+  Applying linear transform
+
+---------------------------------------------------
+#@# processing subject 9/9 I25_lh_recon...
+  Reading /space/rock/4/users/hires/recons/I25_lh_recon/surf/lh.sphere.new.reg
+  Read /space/rock/4/users/hires/recons/I25_lh_recon/mri/T1.mgz
+  Surface area: 942.6 cm^2
+  Applying linear transform
+Finished loading all data
+Avg surf area = 842.308 cm
+Reading icosahedron from /homes/4/fischl/dev/freesurfer/lib/bem/ic7.tri...
+writing average canonical surface to /space/rock/4/users/hires/recons/lh.EC_average/surf/lh.sphere.new.reg
+setting group surface area to be 842.3 cm^2 (scale=1.20)
+writing average orig_avg surface to /space/rock/4/users/hires/recons/lh.EC_average/surf/lh.orig_avg
+writing group avg surface area 842 cm^2 into surface file
+mris_make_average_surface done
+
+
+#@# Making average lh.white surface ---------------------
+Tue Sep  9 09:34:31 EDT 2008
+/autofs/space/rock_004/users/hires/recons/lh.EC_average
+mris_make_average_surface -i 7 -o white -sdir-out /space/rock/4/users/hires/recons lh white_avg sphere.new.reg lh.EC_average I7_ras_recon I9_recon I14 I15 G1 I20_lh_recon I21_lh_recon I23_LH I25_lh_recon
+reading vertex positions from white...
+---------------------------------------------------
+hemi            = lh
+avg_surf_name   = white_avg
+canon_surf_name = sphere.new.reg
+out_sname       = lh.EC_average
+xform           = talairach.xfm
+---------------------------------------------------
+
+
+
+---------------------------------------------------
+#@# processing subject 1/9 I7_ras_recon...
+  Reading /space/rock/4/users/hires/recons/I7_ras_recon/surf/lh.sphere.new.reg
+  Read /space/rock/4/users/hires/recons/I7_ras_recon/mri/T1.mgz
+  Surface area: 678.5 cm^2
+  Applying linear transform
+
+---------------------------------------------------
+#@# processing subject 2/9 I9_recon...
+  Reading /space/rock/4/users/hires/recons/I9_recon/surf/lh.sphere.new.reg
+  Read /space/rock/4/users/hires/recons/I9_recon/mri/T1
+  Surface area: 783.6 cm^2
+  Applying linear transform
+
+---------------------------------------------------
+#@# processing subject 3/9 I14...
+  Reading /space/rock/4/users/hires/recons/I14/surf/lh.sphere.new.reg
+  Read /space/rock/4/users/hires/recons/I14/mri/T1
+  Surface area: 759.9 cm^2
+  Applying linear transform
+
+---------------------------------------------------
+#@# processing subject 4/9 I15...
+  Reading /space/rock/4/users/hires/recons/I15/surf/lh.sphere.new.reg
+  Read /space/rock/4/users/hires/recons/I15/mri/T1.mgz
+  Surface area: 706.8 cm^2
+  Applying linear transform
+
+---------------------------------------------------
+#@# processing subject 5/9 G1...
+  Reading /space/rock/4/users/hires/recons/G1/surf/lh.sphere.new.reg
+  Read /space/rock/4/users/hires/recons/G1/mri/T1.mgz
+  Surface area: 914.5 cm^2
+  Applying linear transform
+
+---------------------------------------------------
+#@# processing subject 6/9 I20_lh_recon...
+  Reading /space/rock/4/users/hires/recons/I20_lh_recon/surf/lh.sphere.new.reg
+  Read /space/rock/4/users/hires/recons/I20_lh_recon/mri/T1.mgz
+  Surface area: 700.3 cm^2
+  Applying linear transform
+
+---------------------------------------------------
+#@# processing subject 7/9 I21_lh_recon...
+  Reading /space/rock/4/users/hires/recons/I21_lh_recon/surf/lh.sphere.new.reg
+  Read /space/rock/4/users/hires/recons/I21_lh_recon/mri/T1.mgz
+  Surface area: 869.5 cm^2
+  Applying linear transform
+
+---------------------------------------------------
+#@# processing subject 8/9 I23_LH...
+  Reading /space/rock/4/users/hires/recons/I23_LH/surf/lh.sphere.new.reg
+  Read /space/rock/4/users/hires/recons/I23_LH/mri/T1.mgz
+  Surface area: 774.1 cm^2
+  Applying linear transform
+
+---------------------------------------------------
+#@# processing subject 9/9 I25_lh_recon...
+  Reading /space/rock/4/users/hires/recons/I25_lh_recon/surf/lh.sphere.new.reg
+  Read /space/rock/4/users/hires/recons/I25_lh_recon/mri/T1.mgz
+  Surface area: 446.0 cm^2
+  Applying linear transform
+Finished loading all data
+Avg surf area = 737.013 cm
+Reading icosahedron from /homes/4/fischl/dev/freesurfer/lib/bem/ic7.tri...
+writing average canonical surface to /space/rock/4/users/hires/recons/lh.EC_average/surf/lh.sphere.new.reg
+setting group surface area to be 737.0 cm^2 (scale=1.16)
+writing average white_avg surface to /space/rock/4/users/hires/recons/lh.EC_average/surf/lh.white_avg
+writing group avg surface area 737 cm^2 into surface file
+mris_make_average_surface done
+
+
+#@# Making average lh.pial surface ---------------------
+Tue Sep  9 09:36:32 EDT 2008
+/autofs/space/rock_004/users/hires/recons/lh.EC_average
+mris_make_average_surface -i 7 -o pial -sdir-out /space/rock/4/users/hires/recons lh pial_avg sphere.new.reg lh.EC_average I7_ras_recon I9_recon I14 I15 G1 I20_lh_recon I21_lh_recon I23_LH I25_lh_recon
+reading vertex positions from pial...
+---------------------------------------------------
+hemi            = lh
+avg_surf_name   = pial_avg
+canon_surf_name = sphere.new.reg
+out_sname       = lh.EC_average
+xform           = talairach.xfm
+---------------------------------------------------
+
+
+
+---------------------------------------------------
+#@# processing subject 1/9 I7_ras_recon...
+  Reading /space/rock/4/users/hires/recons/I7_ras_recon/surf/lh.sphere.new.reg
+  Read /space/rock/4/users/hires/recons/I7_ras_recon/mri/T1.mgz
+  Surface area: 897.6 cm^2
+  Applying linear transform
+
+---------------------------------------------------
+#@# processing subject 2/9 I9_recon...
+  Reading /space/rock/4/users/hires/recons/I9_recon/surf/lh.sphere.new.reg
+  Read /space/rock/4/users/hires/recons/I9_recon/mri/T1
+  Surface area: 783.6 cm^2
+  Applying linear transform
+
+---------------------------------------------------
+#@# processing subject 3/9 I14...
+  Reading /space/rock/4/users/hires/recons/I14/surf/lh.sphere.new.reg
+  Read /space/rock/4/users/hires/recons/I14/mri/T1
+  Surface area: 722.6 cm^2
+  Applying linear transform
+
+---------------------------------------------------
+#@# processing subject 4/9 I15...
+  Reading /space/rock/4/users/hires/recons/I15/surf/lh.sphere.new.reg
+  Read /space/rock/4/users/hires/recons/I15/mri/T1.mgz
+  Surface area: 668.9 cm^2
+  Applying linear transform
+
+---------------------------------------------------
+#@# processing subject 5/9 G1...
+  Reading /space/rock/4/users/hires/recons/G1/surf/lh.sphere.new.reg
+  Read /space/rock/4/users/hires/recons/G1/mri/T1.mgz
+  Surface area: 735.3 cm^2
+  Applying linear transform
+
+---------------------------------------------------
+#@# processing subject 6/9 I20_lh_recon...
+  Reading /space/rock/4/users/hires/recons/I20_lh_recon/surf/lh.sphere.new.reg
+  Read /space/rock/4/users/hires/recons/I20_lh_recon/mri/T1.mgz
+  Surface area: 700.3 cm^2
+  Applying linear transform
+
+---------------------------------------------------
+#@# processing subject 7/9 I21_lh_recon...
+  Reading /space/rock/4/users/hires/recons/I21_lh_recon/surf/lh.sphere.new.reg
+  Read /space/rock/4/users/hires/recons/I21_lh_recon/mri/T1.mgz
+  Surface area: 869.5 cm^2
+  Applying linear transform
+
+---------------------------------------------------
+#@# processing subject 8/9 I23_LH...
+  Reading /space/rock/4/users/hires/recons/I23_LH/surf/lh.sphere.new.reg
+  Read /space/rock/4/users/hires/recons/I23_LH/mri/T1.mgz
+  Surface area: 774.1 cm^2
+  Applying linear transform
+
+---------------------------------------------------
+#@# processing subject 9/9 I25_lh_recon...
+  Reading /space/rock/4/users/hires/recons/I25_lh_recon/surf/lh.sphere.new.reg
+  Read /space/rock/4/users/hires/recons/I25_lh_recon/mri/T1.mgz
+  Surface area: 433.6 cm^2
+  Applying linear transform
+Finished loading all data
+Avg surf area = 731.7 cm
+Reading icosahedron from /homes/4/fischl/dev/freesurfer/lib/bem/ic7.tri...
+writing average canonical surface to /space/rock/4/users/hires/recons/lh.EC_average/surf/lh.sphere.new.reg
+setting group surface area to be 731.7 cm^2 (scale=1.16)
+writing average pial_avg surface to /space/rock/4/users/hires/recons/lh.EC_average/surf/lh.pial_avg
+writing group avg surface area 732 cm^2 into surface file
+mris_make_average_surface done
+
+
+#@# Making average lh.inflated surface ---------------------
+Tue Sep  9 09:38:37 EDT 2008
+/autofs/space/rock_004/users/hires/recons/lh.EC_average
+mris_make_average_surface -i 7 -o inflated -sdir-out /space/rock/4/users/hires/recons lh inflated_avg sphere.new.reg lh.EC_average I7_ras_recon I9_recon I14 I15 G1 I20_lh_recon I21_lh_recon I23_LH I25_lh_recon
+reading vertex positions from inflated...
+---------------------------------------------------
+hemi            = lh
+avg_surf_name   = inflated_avg
+canon_surf_name = sphere.new.reg
+out_sname       = lh.EC_average
+xform           = talairach.xfm
+---------------------------------------------------
+
+
+
+---------------------------------------------------
+#@# processing subject 1/9 I7_ras_recon...
+  Reading /space/rock/4/users/hires/recons/I7_ras_recon/surf/lh.sphere.new.reg
+  Read /space/rock/4/users/hires/recons/I7_ras_recon/mri/T1.mgz
+  Surface area: 580.0 cm^2
+  Applying linear transform
+
+---------------------------------------------------
+#@# processing subject 2/9 I9_recon...
+  Reading /space/rock/4/users/hires/recons/I9_recon/surf/lh.sphere.new.reg
+  Read /space/rock/4/users/hires/recons/I9_recon/mri/T1
+  Surface area: 653.2 cm^2
+  Applying linear transform
+
+---------------------------------------------------
+#@# processing subject 3/9 I14...
+  Reading /space/rock/4/users/hires/recons/I14/surf/lh.sphere.new.reg
+  Read /space/rock/4/users/hires/recons/I14/mri/T1
+  Surface area: 612.2 cm^2
+  Applying linear transform
+
+---------------------------------------------------
+#@# processing subject 4/9 I15...
+  Reading /space/rock/4/users/hires/recons/I15/surf/lh.sphere.new.reg
+  Read /space/rock/4/users/hires/recons/I15/mri/T1.mgz
+  Surface area: 564.3 cm^2
+  Applying linear transform
+
+---------------------------------------------------
+#@# processing subject 5/9 G1...
+  Reading /space/rock/4/users/hires/recons/G1/surf/lh.sphere.new.reg
+  Read /space/rock/4/users/hires/recons/G1/mri/T1.mgz
+  Surface area: 722.2 cm^2
+  Applying linear transform
+
+---------------------------------------------------
+#@# processing subject 6/9 I20_lh_recon...
+  Reading /space/rock/4/users/hires/recons/I20_lh_recon/surf/lh.sphere.new.reg
+  Read /space/rock/4/users/hires/recons/I20_lh_recon/mri/T1.mgz
+  Surface area: 630.5 cm^2
+  Applying linear transform
+
+---------------------------------------------------
+#@# processing subject 7/9 I21_lh_recon...
+  Reading /space/rock/4/users/hires/recons/I21_lh_recon/surf/lh.sphere.new.reg
+  Read /space/rock/4/users/hires/recons/I21_lh_recon/mri/T1.mgz
+  Surface area: 783.4 cm^2
+  Applying linear transform
+
+---------------------------------------------------
+#@# processing subject 8/9 I23_LH...
+  Reading /space/rock/4/users/hires/recons/I23_LH/surf/lh.sphere.new.reg
+  Read /space/rock/4/users/hires/recons/I23_LH/mri/T1.mgz
+  Surface area: 724.2 cm^2
+  Applying linear transform
+
+---------------------------------------------------
+#@# processing subject 9/9 I25_lh_recon...
+  Reading /space/rock/4/users/hires/recons/I25_lh_recon/surf/lh.sphere.new.reg
+  Read /space/rock/4/users/hires/recons/I25_lh_recon/mri/T1.mgz
+  Surface area: 760.6 cm^2
+  Applying linear transform
+Finished loading all data
+Avg surf area = 670.058 cm
+Reading icosahedron from /homes/4/fischl/dev/freesurfer/lib/bem/ic7.tri...
+writing average canonical surface to /space/rock/4/users/hires/recons/lh.EC_average/surf/lh.sphere.new.reg
+setting group surface area to be 670.1 cm^2 (scale=0.95)
+writing average inflated_avg surface to /space/rock/4/users/hires/recons/lh.EC_average/surf/lh.inflated_avg
+writing group avg surface area 670 cm^2 into surface file
+mris_make_average_surface done
+
+
+---------------------------------------------------
+
+
+
+#@# Making average lh.sulc ----------------------
+/autofs/space/rock_004/users/hires/recons/lh.EC_average
+mris_average_curvature -o lh.EC_average sulc lh sphere.new.reg I7_ras_recon I9_recon I14 I15 G1 I20_lh_recon I21_lh_recon I23_LH I25_lh_recon /space/rock/4/users/hires/recons/lh.EC_average/surf/lh.avg_sulc
+painting output onto subject lh.EC_average.
+processing subject I7_ras_recon...
+processing subject I9_recon...
+processing subject I14...
+processing subject I15...
+processing subject G1...
+processing subject I20_lh_recon...
+processing subject I21_lh_recon...
+processing subject I23_LH...
+processing subject I25_lh_recon...
+reading output surface /space/rock/4/users/hires/recons/lh.EC_average/surf/lh.sphere.new.reg...
+writing blurred pattern to surface to /space/rock/4/users/hires/recons/lh.EC_average/surf/lh.avg_sulc
+writing curvature file /space/rock/4/users/hires/recons/lh.EC_average/surf/lh.avg_sulc
+
+
+#@# Making average lh.curv ----------------------
+/autofs/space/rock_004/users/hires/recons/lh.EC_average
+mris_average_curvature -o lh.EC_average curv lh sphere.new.reg I7_ras_recon I9_recon I14 I15 G1 I20_lh_recon I21_lh_recon I23_LH I25_lh_recon /space/rock/4/users/hires/recons/lh.EC_average/surf/lh.avg_curv
+painting output onto subject lh.EC_average.
+processing subject I7_ras_recon...
+processing subject I9_recon...
+processing subject I14...
+processing subject I15...
+processing subject G1...
+processing subject I20_lh_recon...
+processing subject I21_lh_recon...
+processing subject I23_LH...
+processing subject I25_lh_recon...
+reading output surface /space/rock/4/users/hires/recons/lh.EC_average/surf/lh.sphere.new.reg...
+writing blurred pattern to surface to /space/rock/4/users/hires/recons/lh.EC_average/surf/lh.avg_curv
+writing curvature file /space/rock/4/users/hires/recons/lh.EC_average/surf/lh.avg_curv
+
+
+#@# Making average lh.thickness ----------------------
+/autofs/space/rock_004/users/hires/recons/lh.EC_average
+mris_average_curvature -o lh.EC_average thickness lh sphere.new.reg I7_ras_recon I9_recon I14 I15 G1 I20_lh_recon I21_lh_recon I23_LH I25_lh_recon /space/rock/4/users/hires/recons/lh.EC_average/surf/lh.avg_thickness
+painting output onto subject lh.EC_average.
+processing subject I7_ras_recon...
+processing subject I9_recon...
+processing subject I14...
+processing subject I15...
+processing subject G1...
+processing subject I20_lh_recon...
+processing subject I21_lh_recon...
+processing subject I23_LH...
+processing subject I25_lh_recon...
+reading output surface /space/rock/4/users/hires/recons/lh.EC_average/surf/lh.sphere.new.reg...
+writing blurred pattern to surface to /space/rock/4/users/hires/recons/lh.EC_average/surf/lh.avg_thickness
+writing curvature file /space/rock/4/users/hires/recons/lh.EC_average/surf/lh.avg_thickness
+
+
+---------------------------------------------------
+
+
+#@# Smoothing, inflating, etc lh ----------------
+
+/autofs/space/rock_004/users/hires/recons/lh.EC_average/surf
+mris_smooth
+smoothing for 5 iterations
+reading group avg surface area 737 cm^2 from file
+smoothing surface tessellation for 5 iterations...
+smoothing complete - recomputing first and second fundamental forms...
+writing smoothed curvature to ./lh.curv
+writing curvature file ./lh.curv
+writing smoothed area to ./lh.area
+writing curvature file ./lh.area
+writing smoothed surface to ./lh.smoothwm
+writing group avg surface area 737 cm^2 into surface file
+
+mris_inflate
+reading group avg surface area 737 cm^2 from file
+avg radius = 44.1 mm, total surface area = 52155 mm^2
+tol=1.0e-04, sigma=0.0, host=jupit, nav=16, nbrs=2, l_spring_norm=1.000, l_dist=0.100
+mom=0.90, dt=0.90
+desired rms height=0.015
+writing inflated surface to ./lh.inflated
+writing sulcal depths to ./lh.sulc
+000: dt: 0.0000, rms height=0.049, avgs=16
+005: dt: 0.9000, rms height=0.040, avgs=16, l_dist=0.40
+010: dt: 0.9000, rms height=0.032, avgs=16, l_dist=0.40
+015: dt: 0.9000, rms height=0.027, avgs=8, l_dist=0.28
+020: dt: 0.9000, rms height=0.023, avgs=8, l_dist=0.28
+025: dt: 0.9000, rms height=0.019, avgs=4, l_dist=0.20
+030: dt: 0.9000, rms height=0.017, avgs=4, l_dist=0.20
+035: dt: 0.9000, rms height=0.015, avgs=2, l_dist=0.14
+
+inflation complete.
+writing group avg surface area 737 cm^2 into surface file
+writing curvature file ./lh.sulc
+inflation took 2.4 minutes
+
+mris_curvature
+averaging curvature patterns 10 times.
+reading group avg surface area 737 cm^2 from file
+total integrated curvature = 40.384*4pi (507.479) --> -39 handles
+ICI = 151.0, FI = 1533.4, variation=23665.182
+writing Gaussian curvature to ./lh.white_avg.K...writing curvature file ./lh.white_avg.K
+done.
+writing mean curvature to ./lh.white_avg.H...writing curvature file ./lh.white_avg.H
+done.
+
+mri_annotation2label --subject lh.EC_average --hemi lh --outdir /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487 --annotation aparc.a2005s
+reading group avg surface area 737 cm^2 from file
+reading colortable from annotation file...
+colortable with 82 entries read (originally /autofs/space/birn_044/users/christophe_atlas_rebuild/Simple_surface_labels2005.txt)
+subject = lh.EC_average
+annotation = aparc.a2005s
+hemi = lh
+outdir = (null)
+surface   = white
+
+Reading surface 
+ /space/rock/4/users/hires/recons/lh.EC_average/surf/lh.white
+Loading annotations from /space/rock/4/users/hires/recons/lh.EC_average/label/lh.aparc.a2005s.annot
+max index = 81
+  3    395 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_cingulate-Isthmus.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_cingulate-Isthmus.label
+  4   2861 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_cingulate-Main_part.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_cingulate-Main_part.label
+  5   1479 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_cuneus.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_cuneus.label
+  6   1838 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_frontal_inf-Opercular_part.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_frontal_inf-Opercular_part.label
+  7    462 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_frontal_inf-Orbital_part.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_frontal_inf-Orbital_part.label
+  8   1048 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_frontal_inf-Triangular_part.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_frontal_inf-Triangular_part.label
+  9   3827 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_frontal_middle.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_frontal_middle.label
+ 10   8507 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_frontal_superior.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_frontal_superior.label
+ 11    342 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_frontomarginal.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_frontomarginal.label
+ 12    569 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_insular_long.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_insular_long.label
+ 13    949 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_insular_short.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_insular_short.label
+ 14   1373 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_and_S_occipital_inferior.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_and_S_occipital_inferior.label
+ 15   2060 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_occipital_middle.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_occipital_middle.label
+ 16   1316 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_occipital_superior.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_occipital_superior.label
+ 17   1745 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_occipit-temp_lat-Or_fusiform.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_occipit-temp_lat-Or_fusiform.label
+ 18   2469 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_occipit-temp_med-Lingual_part.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_occipit-temp_med-Lingual_part.label
+ 19   2288 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_occipit-temp_med-Parahippocampal_part.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_occipit-temp_med-Parahippocampal_part.label
+ 20   2488 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_orbital.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_orbital.label
+ 21   2208 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_paracentral.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_paracentral.label
+ 22   2982 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_parietal_inferior-Angular_part.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_parietal_inferior-Angular_part.label
+ 23   4614 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_parietal_inferior-Supramarginal_part.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_parietal_inferior-Supramarginal_part.label
+ 24   4105 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_parietal_superior.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_parietal_superior.label
+ 25   3571 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_postcentral.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_postcentral.label
+ 26   3992 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_precentral.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_precentral.label
+ 27   3558 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_precuneus.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_precuneus.label
+ 28   1106 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_rectus.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_rectus.label
+ 29    266 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_subcallosal.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_subcallosal.label
+ 30   1746 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_subcentral.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_subcentral.label
+ 31   2543 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_temporal_inferior.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_temporal_inferior.label
+ 32   2823 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_temporal_middle.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_temporal_middle.label
+ 33    749 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_temp_sup-G_temp_transv_and_interm_S.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_temp_sup-G_temp_transv_and_interm_S.label
+ 34   2656 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_temp_sup-Lateral_aspect.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_temp_sup-Lateral_aspect.label
+ 35    877 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_temp_sup-Planum_polare.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_temp_sup-Planum_polare.label
+ 36   1351 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_temp_sup-Planum_tempolare.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_temp_sup-Planum_tempolare.label
+ 37    730 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_and_S_transverse_frontopolar.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.G_and_S_transverse_frontopolar.label
+ 38    410 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.Lat_Fissure-ant_sgt-ramus_horizontal.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.Lat_Fissure-ant_sgt-ramus_horizontal.label
+ 39    413 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.Lat_Fissure-ant_sgt-ramus_vertical.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.Lat_Fissure-ant_sgt-ramus_vertical.label
+ 40   2050 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.Lat_Fissure-post_sgt.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.Lat_Fissure-post_sgt.label
+ 41  13887 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.Medial_wall.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.Medial_wall.label
+ 42   1795 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.Pole_occipital.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.Pole_occipital.label
+ 43   1674 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.Pole_temporal.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.Pole_temporal.label
+ 44   3122 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_calcarine.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_calcarine.label
+ 45   4802 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_central.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_central.label
+ 46    235 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_central_insula.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_central_insula.label
+ 47   5552 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_cingulate-Main_part_and_Intracingulate.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_cingulate-Main_part_and_Intracingulate.label
+ 48   1553 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_cingulate-Marginalis_part.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_cingulate-Marginalis_part.label
+ 49    843 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_circular_insula_anterior.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_circular_insula_anterior.label
+ 50   2214 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_circular_insula_inferior.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_circular_insula_inferior.label
+ 51   3081 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_circular_insula_superior.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_circular_insula_superior.label
+ 52    975 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_collateral_transverse_ant.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_collateral_transverse_ant.label
+ 53    339 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_collateral_transverse_post.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_collateral_transverse_post.label
+ 54   2266 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_frontal_inferior.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_frontal_inferior.label
+ 55   1421 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_frontal_middle.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_frontal_middle.label
+ 56   3034 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_frontal_superior.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_frontal_superior.label
+ 57    551 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_frontomarginal.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_frontomarginal.label
+ 58    495 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_intermedius_primus-Jensen.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_intermedius_primus-Jensen.label
+ 59   4390 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_intraparietal-and_Parietal_transverse.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_intraparietal-and_Parietal_transverse.label
+ 60    857 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_occipital_anterior.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_occipital_anterior.label
+ 61   1003 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_occipital_middle_and_Lunatus.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_occipital_middle_and_Lunatus.label
+ 62   1325 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_occipital_superior_and_transversalis.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_occipital_superior_and_transversalis.label
+ 63    946 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_occipito-temporal_lateral.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_occipito-temporal_lateral.label
+ 64   2543 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_occipito-temporal_medial_and_S_Lingual.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_occipito-temporal_medial_and_S_Lingual.label
+ 65   1215 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_orbital-H_shapped.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_orbital-H_shapped.label
+ 66    325 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_orbital_lateral.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_orbital_lateral.label
+ 67    806 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_orbital_medial-Or_olfactory.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_orbital_medial-Or_olfactory.label
+ 68    293 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_paracentral.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_paracentral.label
+ 69   2208 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_parieto_occipital.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_parieto_occipital.label
+ 70   2269 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_pericallosal.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_pericallosal.label
+ 71   4420 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_postcentral.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_postcentral.label
+ 72   1938 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_precentral-Inferior-part.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_precentral-Inferior-part.label
+ 73   1902 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_precentral-Superior-part.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_precentral-Superior-part.label
+ 74     71 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_subcentral_ant.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_subcentral_ant.label
+ 75    263 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_subcentral_post.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_subcentral_post.label
+ 76    493 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_suborbital.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_suborbital.label
+ 77   1446 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_subparietal.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_subparietal.label
+ 79   1304 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_temporal_inferior.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_temporal_inferior.label
+ 80   6746 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_temporal_superior.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_temporal_superior.label
+ 81    474 /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_temporal_transverse.label
+LabelWrite: saving to /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487/lh.S_temporal_transverse.label
+mri_mergelabels -o /space/rock/4/users/hires/recons/lh.EC_average/label/lh.cortex.label -d /space/rock/4/users/hires/recons/lh.EC_average/make_cortex_label.tmp.17487
+Done
+
+
+#@# Making rh registration template ---------
+/autofs/space/rock_004/users/hires/recons/lh.EC_average
+mris_make_template -norot -annot aparc rh sphere.new.reg I7_ras_recon I9_recon I14 I15 G1 I20_lh_recon I21_lh_recon I23_LH I25_lh_recon rh.reg.template.tif
+not aligning hemispheres before averaging.
+zeroing medial wall in aparc
+creating new parameterization...
+
+processing subject I7_ras_recon (1 of 9)
+reading spherical surface /space/rock/4/users/hires/recons/I7_ras_recon/surf/rh.sphere.new.reg...
+MRISread(/space/rock/4/users/hires/recons/I7_ras_recon/surf/rh.sphere.new.reg): could not open file
+No such file or directory
+mris_make_template: could not read surface file /space/rock/4/users/hires/recons/I7_ras_recon/surf/rh.sphere.new.reg
+No such file or directory

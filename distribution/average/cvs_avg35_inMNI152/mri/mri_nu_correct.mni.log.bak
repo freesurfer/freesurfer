@@ -1,0 +1,82 @@
+/autofs/space/erdos_003/users/lzollei/my_stuff/research/tests/CVSvsMNI/cvs_avg35_inMNI152/mri
+/usr/local/freesurfer/dev/bin/mri_nu_correct.mni
+--n 1 --proto-iters 1000 --distance 50 --no-rescale --i orig.mgz --o orig_nu.mgz
+nIters 1
+$Id: mri_nu_correct.mni,v 1.18 2011/03/02 20:16:39 nicks Exp $
+Linux compute-0-104.local 2.6.18-308.1.1.el5 #1 SMP Wed Mar 7 04:16:51 EST 2012 x86_64 x86_64 x86_64 GNU/Linux
+Fri Mar 30 18:25:44 EDT 2012
+Program nu_correct, built from:
+Package MNI N3, version 1.10, compiled by nicks@minerva (x86_64-unknown-linux-gnu) on 2010-02-20 at 17:32:37
+tmpdir is ./tmp.mri_nu_correct.mni.16568
+/autofs/space/erdos_003/users/lzollei/my_stuff/research/tests/CVSvsMNI/cvs_avg35_inMNI152/mri
+mri_convert orig.mgz ./tmp.mri_nu_correct.mni.16568/nu0.mnc -odt float
+mri_convert orig.mgz ./tmp.mri_nu_correct.mni.16568/nu0.mnc -odt float 
+$Id: mri_convert.c,v 1.192 2012/03/21 20:54:29 mreuter Exp $
+reading from orig.mgz...
+TR=0.00, TE=0.00, TI=0.00, flip angle=0.00
+i_ras = (-1, 0, 0)
+j_ras = (0, 0, -1)
+k_ras = (0, 1, 0)
+changing data type from uchar to float (noscale = 0)...
+writing to ./tmp.mri_nu_correct.mni.16568/nu0.mnc...
+ 
+--------------------------------------------------------
+Iteration 1 Fri Mar 30 18:25:54 EDT 2012
+nu_correct -clobber ./tmp.mri_nu_correct.mni.16568/nu0.mnc ./tmp.mri_nu_correct.mni.16568/nu1.mnc -tmpdir ./tmp.mri_nu_correct.mni.16568/0/ -iterations 1000 -distance 50
+[lzollei@compute-0-104.local:/autofs/space/erdos_003/users/lzollei/my_stuff/research/tests/CVSvsMNI/cvs_avg35_inMNI152/mri/] [2012-03-30 18:25:54] running:
+  /usr/local/freesurfer/dev/mni/bin/nu_estimate_np_and_em -parzen -log -sharpen 0.15 0.01 -iterations 1000 -stop 0.001 -shrink 4 -auto_mask -nonotify -b_spline 1 -distance 50 -quiet -execute -clobber -nokeeptmp -tmpdir ./tmp.mri_nu_correct.mni.16568/0/ ./tmp.mri_nu_correct.mni.16568/nu0.mnc ./tmp.mri_nu_correct.mni.16568/nu1.imp
+
+Processing:.................................................................Done
+Processing:.................................................................Done
+Processing:.................................................................Done
+Processing:.................................................................Done
+Processing:.................................................................Done
+Processing:.................................................................Done
+Processing:.................................................................Done
+Processing:.................................................................Done
+Processing:.................................................................Done
+Processing:.................................................................Done
+Processing:.................................................................Done
+Processing:.................................................................Done
+Processing:.................................................................Done
+Processing:.................................................................Done
+Processing:.................................................................Done
+Processing:.................................................................Done
+Processing:.................................................................Done
+Processing:.................................................................Done
+Processing:.................................................................Done
+Processing:.................................................................Done
+Processing:.................................................................Done
+Processing:.................................................................Done
+Processing:.................................................................Done
+Processing:.................................................................Done
+Processing:.................................................................Done
+Processing:.................................................................Done
+Number of iterations: 26 
+CV of field change: 0.000954739
+[lzollei@compute-0-104.local:/autofs/space/erdos_003/users/lzollei/my_stuff/research/tests/CVSvsMNI/cvs_avg35_inMNI152/mri/] [2012-03-30 18:26:44] running:
+  /usr/local/freesurfer/dev/mni/bin/make_template -quiet -shrink 3 ./tmp.mri_nu_correct.mni.16568/nu0.mnc ./tmp.mri_nu_correct.mni.16568/0//template.mnc
+
+Transforming slices:......................................................................................Done
+Transforming slices:................................................................................................................................................................................................................................................................Done
+ 
+ 
+ 
+mri_convert ./tmp.mri_nu_correct.mni.16568/nu1.mnc orig_nu.mgz --like orig.mgz --conform
+mri_convert ./tmp.mri_nu_correct.mni.16568/nu1.mnc orig_nu.mgz --like orig.mgz --conform 
+$Id: mri_convert.c,v 1.192 2012/03/21 20:54:29 mreuter Exp $
+reading from ./tmp.mri_nu_correct.mni.16568/nu1.mnc...
+TR=0.00, TE=0.00, TI=0.00, flip angle=0.00
+i_ras = (-1, 0, 0)
+j_ras = (0, 0, -1)
+k_ras = (0, 1, 0)
+Original Data has (1, 1, 1) mm size and (256, 256, 256) voxels.
+Data is conformed to 1 mm size and 256 voxels for all directions
+INFO: transform src into the like-volume: orig.mgz
+changing data type from float to uchar (noscale = 0)...
+MRIchangeType: Building histogram 
+writing to orig_nu.mgz...
+ 
+ 
+Fri Mar 30 18:27:15 EDT 2012
+mri_nu_correct.mni done
