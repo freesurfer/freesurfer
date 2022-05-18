@@ -1394,12 +1394,17 @@ if($DoMotionCor) then
     echo "correction will not be performed. I'll"|& tee -a $LF
     echo "copy the run to rawavg and continue."|& tee -a $LF
     sleep 2s;
-    set cmd = (cp $RunList $rawavg)
-    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
-    if($RunIt) then
-      sleep 1; # Sleep here to assure that they have diff time stamps
-      $cmd |& tee -a $LF
-      if($status) goto error_exit;
+    set ud = `UpdateNeeded $rawavg $RunList`
+    if($ud || $ForceUpdate) then
+      set cmd = (cp $RunList $rawavg)
+      echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+      if($RunIt) then
+        sleep 1; # Sleep here to assure that they have diff time stamps
+        $cmd |& tee -a $LF
+        if($status) goto error_exit;
+      endif
+    else
+      echo "INFO: $rawavg does not need updating" | tee -a $LF
     endif
   endif
 
@@ -1453,26 +1458,43 @@ if($DoMotionCor) then
   endif
 
   # At this point, rawavg.mgz exists. Use it to create orig.mgz,
-  # conform to COR FOV but keep mgz format.
-  set cmd = (mri_convert $rawavg $origvol)
-  if($UseCubic) set cmd = ($cmd -rt cubic)
-  if($ConformKeepDC) set cmd = ($cmd --conform-dc)
-  if($ConformMin) then
-    set cmd = ($cmd --conform_min)
-  else
-    set cmd = ($cmd --conform)
-    if($DoConformWidth256 || -e $subjdir/tmp/cw256) then
-      # force conform width to 256
-      set cmd = ($cmd --cw256)
-      # see note just below on when -cw256 is necessary (ie, when FOV > 256)
+  # conform to COR FOV but keep mgz format. Also add tal.xfm to header
+  # eventhough it does not exist yet. 
+  set ud = (`UpdateNeeded $origvol $rawavg`)
+  if($ud || $ForceUpdate) then
+    set cmd = (mri_convert $rawavg $origvol)
+    if($UseCubic) set cmd = ($cmd -rt cubic)
+    if($ConformKeepDC) set cmd = ($cmd --conform-dc)
+    if($ConformMin) then
+      set cmd = ($cmd --conform_min)
+    else
+      set cmd = ($cmd --conform)
+      if($DoConformWidth256 || -e $subjdir/tmp/cw256) then
+        # force conform width to 256
+        set cmd = ($cmd --cw256)
+        # see note just below on when -cw256 is necessary (ie, when FOV > 256)
+      endif
     endif
-  endif
-  $PWD |& tee -a $LF
-  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-  if($RunIt) then
-    $fs_time $cmd |& tee -a $LF
-    if($status) goto error_exit;
-    echo $cmd > $touchdir/conform.touch
+    $PWD |& tee -a $LF
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) then
+      $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+      echo $cmd > $touchdir/conform.touch
+    endif
+    # Add xfm to orig, even though it does not exist yet. This is a
+    # compromise to keep from having to change the time stamp of the
+    # orig volume after talairaching. DNG moved this here on 5/18/22.
+    set cmd = (mri_add_xform_to_header -c \
+               $subjdir/mri/transforms/talairach.xfm \
+               $origvol $origvol)
+    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+    if($RunIt) then
+      $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    endif
+  else
+    echo "INFO: $origvol does not need updating"  | tee -a $LF
   endif
 
   # output some basic info about orig.mgz
@@ -1499,18 +1521,6 @@ if($DoMotionCor) then
     goto error_exit;
   endif
 
-  # Add xfm to orig, even though it does not exist yet. This is a
-  # compromise to keep from having to change the time stamp of
-  # the orig volume after talairaching.
-  set cmd = (mri_add_xform_to_header -c \
-             $subjdir/mri/transforms/talairach.xfm \
-             $origvol $origvol)
-  echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
-  if($RunIt) then
-    $fs_time $cmd |& tee -a $LF
-    if($status) goto error_exit;
-  endif
-
 endif # Motion Correction
 
 set synthstrip = $mdir/synthstrip.mgz
@@ -1525,6 +1535,38 @@ if($SynthStrip) then
       if($status) goto error_exit;
     endif
   endif
+endif
+
+if($UseSynthSeg) then
+  # Note: no m3z will be produced
+  set origvol  = $subjdir/mri/orig.mgz
+  set synthseg = $subjdir/mri/synthseg.rca.mgz
+  set ud = `UpdateNeeded $synthseg $origvol`
+  if($ud || $ForceUpdate) then
+    set xopts = `fsr-getxopts synthseg $XOptsFile`;
+    set cmd = (synthseg --i $origvol --o $synthseg --cpu --threads $OMP_NUM_THREADS $xopts)
+    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+    if($RunIt) then
+      $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+      pushd $subjdir/mri 
+      rm -f aseg.auto_noCCseg.mgz
+      ln -sf synthseg.rca.mgz aseg.auto_noCCseg.mgz
+      popd
+    endif
+  endif
+  set xopts = `fsr-getxopts seg2recon $XOptsFile`;
+  set cmd = (seg2recon --s $subjid --seg $synthseg --i $origvol --threads $OMP_NUM_THREADS)
+  if(-e $synthstrip) set cmd =($cmd --m $synthstrip)
+  set cmd = ($cmd $xopts)
+  if($#$XOptsFile) set cmd = ($cmd --expert $XOptsFile)
+  echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+  if($RunIt) then
+    $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+  endif
+  # seg2recon will create a brainmask.mgz. Below, synthstrip will re-create it,
+  # but it should be identical.
 endif
 
 if($UseSamseg) then
@@ -1550,32 +1592,6 @@ if($UseSamseg) then
   if($RunIt) then
     $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
-  endif
-endif
-
-if($DoCAReg && $DoCALabel && $UseSynthSeg) then
-  # Note: no m3z will be produced
-  set origvol  = $subjdir/mri/orig.mgz
-  set synthseg = $subjdir/mri/synthseg.rca.mgz
-  set ud = `UpdateNeeded $synthseg $origvol`
-  if($ud || $ForceUpdate) then
-    set xopts = `fsr-getxopts synthseg $XOptsFile`;
-    set cmd = (synthseg --i $origvol --o $synthseg --cpu --threads $OMP_NUM_THREADS $xopts)
-    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
-    if($RunIt) then
-      $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
-      pushd $subjdir/mri 
-      rm -f aseg.auto_noCCseg.mgz
-      ln -sf synthseg.rca.mgz aseg.auto_noCCseg.mgz
-      popd
-    endif
-    set cmd = (mri_convert $synthseg $synthseg --ctab $FREESURFER_HOME/FreeSurferColorLUT.txt)
-    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
-    if($RunIt) then
-      $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
-    endif
   endif
 endif
 
@@ -2074,6 +2090,21 @@ endif
 #----------- Skull Stripping -----------#
 ##----------   -skullstrip   -----------#
 #-----------                 -----------#
+if($SynthStrip) then
+  # This will be redundant with seg2recon above (but identical)
+  set T1 = $mdir/T1.mgz
+  set BM = $mdir/brainmask.mgz
+  set ud = `UpdateNeeded $BM $T1 $synthstrip`
+  if($ud || $ForceUpdate) then
+    set cmd = (mri_mask $T1 $synthstrip $BM)
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) then
+      $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    endif
+  endif
+endif
+
 if($DoSkullStrip) then
 skullstrip:
   echo "#--------------------------------------------" \
@@ -2423,20 +2454,6 @@ skullstrip:
   endif
 
 endif # Brainmask
-
-if($SynthStrip) then
-  set T1 = $mdir/T1.mgz
-  set BM = $mdir/brainmask.mgz
-  set ud = `UpdateNeeded $BM $T1 $synthstrip`
-  if($ud || $ForceUpdate) then
-    set cmd = (mri_mask $T1 $synthstrip $BM)
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    if($RunIt) then
-      $cmd |& tee -a $LF
-      if($status) goto error_exit;
-    endif
-  endif
-endif
 
 #-----------             -------------#
 ##---------- AUTORECON 2 -------------#
@@ -6908,6 +6925,7 @@ while( $#argv != 0 )
       set DoCurvHK         = 1;
       breaksw
 
+    case "-autorecon2-synthseg":
     case "-autorecon2-samseg":
       set DoASegMerge = 1;
       set DoNormalization2 = 1;
@@ -7890,9 +7908,9 @@ check_params:
       exit 1
     endif
 
-    if($UseSamseg) then
+    if($UseSamseg || $UseSynthSeg) then
       if($longitudinal || $LongSamseg) then
-        echo "ERROR: cannot use -samseg with long or longsamseg"
+        echo "ERROR: cannot use -samseg or -synthseg with long or longsamseg"
         exit 1;
       endif
       set DoTalairach      = 0;
@@ -7909,24 +7927,6 @@ check_params:
       set DoCCSeg          = 0;
       set DoASegMerge      = 1;
       set DoSamsegReg      = 0;
-    endif
-
-    if($UseSynthSeg) then
-      if($UseSamseg) then
-        echo "ERROR: cannot specify -synthseg and -samseg or -samseg-synthseg"
-        exit 1
-      endif
-      set DoSkullStrip = 0;
-    endif
-
-    if($UseSynthSeg) then
-      if($longitudinal || $LongSamseg) then
-        echo "ERROR: cannot use -synthseg with long or longsamseg"
-        exit 1;
-      endif
-      set DoCCSeg     = 1;
-      set DoASegMerge = 1;
-      set DoSamsegReg = 1
     endif
 
     # If not using emreg, then use an lta created from the talairach.xfm, get matching GCA
