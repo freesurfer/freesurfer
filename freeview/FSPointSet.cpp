@@ -193,7 +193,6 @@ void FSPointSet::UpdateLabel( PointSet& points_in, FSVolume* ref_vol )
   {
     ref_vol->TargetToRAS( points_in[i].pt, pos );
     ref_vol->RASToNativeRAS( pos, pos );
-//    ref_vol->NativeRASToTkReg(pos, pos);
     values.push_back( pos[0] );
     values.push_back( pos[1] );
     values.push_back( pos[2] );
