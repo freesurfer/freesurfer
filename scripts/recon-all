@@ -7140,6 +7140,8 @@ while( $#argv != 0 )
       set DoWMParc         = 0;
       set DoSegStats       = 0;
       set DoBaLabels       = 1;
+      if($hemilist == lh) set LHonly = 1 
+      if($hemilist == rh) set RHonly = 1 
       breaksw
 
 #-------------------------------------------------#
