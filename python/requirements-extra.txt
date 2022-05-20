@@ -2,6 +2,7 @@
 tensorflow==2.4.1
 h5py==2.10
 torch==1.10.2
+packaging
 surfa
 
 # these are also required for FS DL utilities, but we need some features
