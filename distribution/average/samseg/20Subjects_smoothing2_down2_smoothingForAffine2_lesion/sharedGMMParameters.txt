@@ -1,0 +1,11 @@
+# The format is: mergedName numberOfComponents searchStrings
+
+Unknown 1 Unknown Skull undetermined
+GlobalWM 1 White Brain-Stem VentralDC Optic-Chiasm Thalamus
+GlobalGM 1 Cortex Caudate Hippocampus Amygdala Accumbens Thalamus
+GlobalCSF_messy 1 CSF vessel choroid-plexus Fluid
+GlobalCSF_clean 1 Ventricle Inf-Lat-Vent Fluid
+Putamen 1 Putamen
+Pallidum 1 Pallidum
+Lesions 1 Lesions
+Soft 3 Soft
