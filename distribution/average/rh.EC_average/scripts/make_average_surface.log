@@ -1,0 +1,32 @@
+$Id: make_average_surface,v 1.45 2008/02/21 20:39:49 greve Exp $
+Tue Sep  9 09:51:01 EDT 2008
+/autofs/space/rock_004/users/hires/recons/scripts
+setenv SUBJECTS_DIR /space/rock/4/users/hires/recons
+output ddir is /space/rock/4/users/hires/recons
+uid=5499(fischl) gid=5499(fischl) groups=160(fsdev),1005(cma),1013(p41),1021(stroke),1031(daragp),1046(recon),1048(seq),1050(blackrgp),1055(cagn),1071(birn),1085(reconx),1098(retinopy),1102(ellengp),1446(nandgp),1467(cardstr),3048(acqp41),5499(fischl)
+====================
+make_average_surface
+====================
+Tue Sep  9 09:51:01 EDT 2008
+/autofs/space/rock_004/users/hires/recons/scripts
+/homes/4/fischl/dev/freesurfer/bin/make_average_surface
+--subjects I_ellen I10_ras_recon I11 I16 G4_ras_recon I22_RH I24_Rh_recon I26RH_recon --out rh.EC_average --sdir /space/rock/4/users/hires/recons --surf-reg sphere.new.reg
+input subjects: I_ellen I10_ras_recon I11 I16 G4_ras_recon I22_RH I24_Rh_recon I26RH_recon
+output subject: rh.EC_average
+mri_add_xform_to_header -c auto /space/rock/4/users/hires/recons/rh.EC_average/mri/mni305.cor.mgz /space/rock/4/users/hires/recons/rh.EC_average/mri/mni305.cor.mgz
+INFO: extension is mgz
+
+
+#@# Making lh registration template ---------
+/autofs/space/rock_004/users/hires/recons/rh.EC_average
+mris_make_template -norot -annot aparc lh sphere.new.reg I_ellen I10_ras_recon I11 I16 G4_ras_recon I22_RH I24_Rh_recon I26RH_recon lh.reg.template.tif
+not aligning hemispheres before averaging.
+zeroing medial wall in aparc
+creating new parameterization...
+
+processing subject I_ellen (1 of 8)
+reading spherical surface /space/rock/4/users/hires/recons/I_ellen/surf/lh.sphere.new.reg...
+MRISread(/space/rock/4/users/hires/recons/I_ellen/surf/lh.sphere.new.reg): could not open file
+No such file or directory
+mris_make_template: could not read surface file /space/rock/4/users/hires/recons/I_ellen/surf/lh.sphere.new.reg
+No such file or directory
