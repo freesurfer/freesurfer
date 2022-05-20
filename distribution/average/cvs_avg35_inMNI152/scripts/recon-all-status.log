@@ -1,0 +1,69 @@
+status file for recon-all
+Fri Mar 30 18:25:33 EDT 2012
+#@# MotionCor Fri Mar 30 18:25:37 EDT 2012
+#@# Talairach Fri Mar 30 18:25:44 EDT 2012
+#@# Talairach Failure Detection Fri Mar 30 18:28:19 EDT 2012
+#@# Nu Intensity Correction Fri Mar 30 18:28:20 EDT 2012
+#@# Intensity Normalization Fri Mar 30 18:31:16 EDT 2012
+#@# Skull Stripping Fri Mar 30 18:33:35 EDT 2012
+#@# EM Registration Fri Mar 30 19:03:03 EDT 2012
+#@# CA Normalize Fri Mar 30 19:19:27 EDT 2012
+#@# CA Reg Fri Mar 30 19:21:16 EDT 2012
+#@# CA Reg Inv Fri Mar 30 23:18:07 EDT 2012
+#@# Remove Neck Fri Mar 30 23:19:30 EDT 2012
+#@# SkullLTA Fri Mar 30 23:20:42 EDT 2012
+#@# SubCort Seg Fri Mar 30 23:45:28 EDT 2012
+#@# Merge ASeg Sat Mar 31 00:06:43 EDT 2012
+#@# Intensity Normalization2 Sat Mar 31 00:06:44 EDT 2012
+#@# Mask BFS Sat Mar 31 00:10:29 EDT 2012
+#@# WM Segmentation Sat Mar 31 00:10:31 EDT 2012
+#@# Fill Sat Mar 31 00:13:10 EDT 2012
+#@# Tessellate lh Sat Mar 31 00:14:05 EDT 2012
+#@# Smooth1 lh Sat Mar 31 00:14:14 EDT 2012
+#@# Inflation1 lh Sat Mar 31 00:14:20 EDT 2012
+#@# QSphere lh Sat Mar 31 00:15:09 EDT 2012
+#@# Fix Topology lh Sat Mar 31 00:21:13 EDT 2012
+#@# Make White Surf lh Sat Mar 31 00:36:57 EDT 2012
+#@# Smooth2 lh Sat Mar 31 00:41:55 EDT 2012
+#@# Inflation2 lh Sat Mar 31 00:42:00 EDT 2012
+#@# Curvature Stats lh Sat Mar 31 00:44:23 EDT 2012
+#@# Sphere lh Sat Mar 31 00:44:31 EDT 2012
+#@# Surf Reg lh Sat Mar 31 01:34:08 EDT 2012
+#@# Jacobian white lh Sat Mar 31 02:41:52 EDT 2012
+#@# AvgCurv lh Sat Mar 31 02:41:55 EDT 2012
+#@# Cortical Parc lh Sat Mar 31 02:41:57 EDT 2012
+#@# Make Pial Surf lh Sat Mar 31 02:42:50 EDT 2012
+#@# Surf Volume lh Sat Mar 31 02:54:35 EDT 2012
+#@# WM/GM Contrast lh Sat Mar 31 02:54:36 EDT 2012
+#@# Parcellation Stats lh Sat Mar 31 02:54:45 EDT 2012
+#@# Cortical Parc 2 lh Sat Mar 31 02:55:01 EDT 2012
+#@# Parcellation Stats 2 lh Sat Mar 31 02:55:59 EDT 2012
+#@# Tessellate rh Sat Mar 31 02:56:17 EDT 2012
+#@# Smooth1 rh Sat Mar 31 02:56:27 EDT 2012
+#@# Inflation1 rh Sat Mar 31 02:56:32 EDT 2012
+#@# QSphere rh Sat Mar 31 02:57:18 EDT 2012
+#@# Fix Topology rh Sat Mar 31 03:03:42 EDT 2012
+#@# Make White Surf rh Sat Mar 31 03:09:07 EDT 2012
+#@# Smooth2 rh Sat Mar 31 03:14:05 EDT 2012
+#@# Inflation2 rh Sat Mar 31 03:14:10 EDT 2012
+#@# Curvature Stats rh Sat Mar 31 03:16:20 EDT 2012
+#@# Sphere rh Sat Mar 31 03:16:27 EDT 2012
+#@# Surf Reg rh Sat Mar 31 04:08:25 EDT 2012
+#@# Jacobian white rh Sat Mar 31 05:16:58 EDT 2012
+#@# AvgCurv rh Sat Mar 31 05:17:00 EDT 2012
+#@# Cortical Parc rh Sat Mar 31 05:17:03 EDT 2012
+#@# Make Pial Surf rh Sat Mar 31 05:17:53 EDT 2012
+#@# Surf Volume rh Sat Mar 31 05:28:56 EDT 2012
+#@# WM/GM Contrast rh Sat Mar 31 05:28:57 EDT 2012
+#@# Parcellation Stats rh Sat Mar 31 05:29:05 EDT 2012
+#@# Cortical Parc 2 rh Sat Mar 31 05:29:21 EDT 2012
+#@# Parcellation Stats 2 rh Sat Mar 31 05:30:16 EDT 2012
+#@# Cortical ribbon mask Sat Mar 31 05:30:33 EDT 2012
+#@# ASeg Stats Sat Mar 31 05:41:25 EDT 2012
+#@# AParc-to-ASeg Sat Mar 31 05:52:35 EDT 2012
+#@# WMParc Sat Mar 31 05:55:13 EDT 2012
+#@# BA Labels lh Sat Mar 31 06:16:30 EDT 2012
+#@# BA Labels rh Sat Mar 31 06:18:45 EDT 2012
+#@# Ex-vivo Entorhinal Cortex Label lh Sat Mar 31 06:20:56 EDT 2012
+#@# Ex-vivo Entorhinal Cortex Label rh Sat Mar 31 06:21:15 EDT 2012
+recon-all -s cvs_avg35_inMNI152 finished without error at Sat Mar 31 06:21:36 EDT 2012

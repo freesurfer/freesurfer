@@ -1,0 +1,75 @@
+
+
+2/10/2020 Changed creation of the mask to include VentralDC
+
+#------------------------------------------------------------------#
+
+cvs_age35_inMNI152/mri.2mm
+
+These are volumes sampled into the 2mm space of the MNI152. The
+primary purpose of these is to support volume-based fMRI analysis as
+performed in FS-FAST.
+
+These files can be used to render the statistical results on a volume
+(though this is not really necessary as they can be rendered directly
+on the 1mm volumes). Also, the aseg.mgz created can be used to
+generate labels/masks of subcortical structures directly in the group
+average space. These can be used with mri_volcluster.
+
+These files were created with the following commands:
+
+# Create a registration to the MNI152 2mm space
+
+tkregister2  --s cvs_avg35_inMNI152 --regheader --reg register.dat \
+  --ltaout register.lta --noedit \
+  --mov /usr/pubsw/packages/fsl/current/data/standard/MNI152_T1_2mm.nii.gz
+
+# Resample each of these volumes using trilin
+foreach vol (orig brain brainmask nu T1)
+  mri_vol2vol --targ ../mri/$vol.mgz --reg register.lta \
+   --mov /usr/pubsw/packages/fsl/current/data/standard/MNI152_T1_2mm.nii.gz \
+   --o $vol.mgz --inv
+end
+
+# Resample the aseg 
+mri_label2vol --seg ../mri/aseg.mgz --temp orig.mgz \
+  --regheader ../mri/orig.mgz --o aseg.mgz
+
+Note: we don't want to do aparc+aseg because the surface-based 
+labels should really be used in a surface-based analysis.
+
+# checks
+tkmedit -f T1.mgz -aux brain.mgz -seg ./aseg.mgz
+tkregister2 --mov ./orig.mgz --s fsaverage --regheader --reg junk
+
+#-----------------------------------------------------------
+
+Creation of subcortical mask. Since this is CVS space, we will
+asume that the subcortical structures in the ASEG are sufficient.
+Dilate by 1 to make sure.
+
+8   Left-Cerebellum-Cortex  
+10  Left-Thalamus
+11  Left-Caudate            
+12  Left-Putamen            
+13  Left-Pallidum           
+16  Brain-Stem              
+17  Left-Hippocampus        
+18  Left-Amygdala           
+26  Left-Accumbens-area     
+28  Left-VentralDC  
+
+47  Right-Cerebellum-Cortex 
+49  Right-Thalamus   
+50  Right-Caudate           
+51  Right-Putamen           
+52  Right-Pallidum          
+53  Right-Hippocampus       
+54  Right-Amygdala          
+58  Right-Accumbens-area    
+60  Right-VentralDC 
+
+
+mri_binarize --match 8 10 11 12 13 16 17 18 26 28 47 49 50 51 52 53 54 58 60 \
+  --i aseg.mgz  --dilate 1 --o subcort.mask.mgz
+

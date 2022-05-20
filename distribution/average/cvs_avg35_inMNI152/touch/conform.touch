@@ -1,0 +1,1 @@
+mri_convert /autofs/space/erdos_003/users/lzollei/my_stuff/research/tests/CVSvsMNI/cvs_avg35_inMNI152/mri/rawavg.mgz /autofs/space/erdos_003/users/lzollei/my_stuff/research/tests/CVSvsMNI/cvs_avg35_inMNI152/mri/orig.mgz -rt cubic --conform

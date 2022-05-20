@@ -1,0 +1,1 @@
+mris_calc -o rh.volume rh.area.mid mul rh.thickness
