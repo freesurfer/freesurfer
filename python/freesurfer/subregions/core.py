@@ -2,8 +2,8 @@ import os
 import shutil
 import tempfile
 import numpy as np
+import surfa as sf
 import scipy.ndimage
-import freesurfer as fs
 
 from freesurfer import samseg
 from freesurfer.subregions import utils
@@ -109,20 +109,20 @@ class MeshModel:
         # Sanity check on the optimizer type
         optimizerTypes = ['FixedStepGradientDescent', 'GradientDescent', 'ConjugateGradient', 'L-BFGS']
         if self.optimizerType not in optimizerTypes:
-            fs.fatal('Optimizer type must be one of: ' + ', '.join(optimizerTypes))
+            sf.system.fatal('Optimizer type must be one of: ' + ', '.join(optimizerTypes))
 
         # Sanity check on the registration mode for alternative images
         bbregisterModes = [None, 't1', 't2']
         if self.bbregisterMode not in bbregisterModes:
-            fs.fatal('BBregister mode must be one of: ' + ', '.join(bbregisterModes))
+            sf.system.fatal('BBregister mode must be one of: ' + ', '.join(bbregisterModes))
 
         # Make sure all the atlas files are there
         if not os.path.isfile(self.atlasMeshFileName):
-            fs.fatal(f'Provided atlas mesh file `{self.atlasMeshFileName}` does not exist.')
+            sf.system.fatal(f'Provided atlas mesh file `{self.atlasMeshFileName}` does not exist.')
         if not os.path.isfile(self.atlasDumpFileName):
-            fs.fatal(f'Provided atlas image `{self.atlasDumpFileName}` does not exist.')
+            sf.system.fatal(f'Provided atlas image `{self.atlasDumpFileName}` does not exist.')
         if not os.path.isfile(self.compressionLookupTableFileName):
-            fs.fatal(f'Provided compression LUT `{self.compressionLookupTableFileName}` does not exist.')
+            sf.system.fatal(f'Provided compression LUT `{self.compressionLookupTableFileName}` does not exist.')
 
         # Load compressed and FreeSurfer label mapping information
         self.labelMapping, self.names, self.FreeSurferLabels = utils.read_compression_lookup_table(self.compressionLookupTableFileName)
@@ -132,10 +132,10 @@ class MeshModel:
         self.warpedMeshNoAffineFileName = os.path.join(self.tempDir, 'warpedOriginalMeshNoAffine.txt')
 
         # Read the input volumes (images and reference segmentation)
-        self.inputSeg = fs.Volume.read(self.inputSegFileName)
-        self.inputImages = [fs.Volume.read(path) for path in self.inputImageFileNames]
+        self.inputSeg = sf.load_volume(self.inputSegFileName)
+        self.inputImages = [sf.load_volume(path) for path in self.inputImageFileNames]
         self.correctedImages = [img.copy() for img in self.inputImages]
-        self.highResImage = np.mean(self.inputImages[0].voxsize) < 0.99
+        self.highResImage = np.mean(self.inputImages[0].geom.voxsize) < 0.99
 
         # Now we define a set of volume members that must be properly computed during
         # the `preprocess_images` stage of all MeshModel subclasses. Further documentation below.
@@ -154,7 +154,7 @@ class MeshModel:
                                     mesh fitting. It is expected that this image has been properly resampled
                                     to the working target resolution.
 
-        It is expected that these are fs.Volume objects (soon to be surfa volumes) with proper geometry information.
+        It is expected that these are surfa.Volume objects with proper geometry information.
         """
         raise NotImplementedError('All subclasses of MeshModel must implement the preprocess_images() function!')
 
@@ -193,7 +193,7 @@ class MeshModel:
 
         # Make sure classes sum to one
         if np.max(np.abs(np.sum(reducedAlphas, -1) - 1)) > 1e-5:
-            fs.fatal('The vector of prior probabilities in the mesh nodes must always sum to one over all classes')
+            sf.system.fatal('The vector of prior probabilities in the mesh nodes must always sum to one over all classes')
 
         return (reducedAlphas, reducingLookupTable)
 
@@ -202,7 +202,7 @@ class MeshModel:
         Crop image to the aligned atlas image. Also construct a 3-D affine transformation that will later be used
         to transform the location of the atlas mesh's nodes into the coordinate system of the image.
         """
-        trf = fs.LinearTransform.matmul(image.ras2vox(), self.alignedAtlas.vox2ras())
+        trf = image.geom.world2vox @ self.alignedAtlas.geom.vox2world
         template_corners = np.mgrid[:2, :2, :2].T.reshape(-1, 3) * (np.array(self.alignedAtlas.shape[:3]) - 1)
         corners = trf.transform(template_corners)
         lower = corners.min(0).astype(int)
@@ -229,12 +229,12 @@ class MeshModel:
         # Make sure the subclass has computed the target mask
         mask = self.atlasAlignmentTarget.copy()
         if mask is None:
-            fs.fatal('All MeshModel subclasses must compute atlasAlignmentTarget during preprocessing!')
+            sf.system.fatal('All MeshModel subclasses must compute atlasAlignmentTarget during preprocessing!')
 
         # No need for a high-resolution alignment here
         mask.data = mask.data > 0
-        if np.mean(mask.voxsize) < 0.99:
-            mask = mask.reslice(1, interp='nearest')
+        if np.mean(mask.geom.voxsize) < 0.99:
+            mask = mask.resize(1, interp='nearest')
 
         # Crop mask to the label bounding box
         mask = mask.crop_to_bbox(margin=6)
@@ -249,24 +249,24 @@ class MeshModel:
             mask.data = scipy.ndimage.morphology.binary_erosion(mask.data, strel, border_value=1)
             mask.data = scipy.ndimage.morphology.binary_dilation(mask.data, strel)
         elif self.atlasTargetSmoothing is not None:
-            fs.fatal(f'Unknown atlasTargetSmoothing option `{self.atlasTargetSmoothing}`.')
+            sf.system.fatal(f'Unknown atlasTargetSmoothing option `{self.atlasTargetSmoothing}`.')
 
         # We're going to use mri_robust_register for this registration, so let's ensure the mask
         # value is 255 and we'll write to disk
         mask.data = mask.data.astype('float32') * 255
         targetMaskFile = os.path.join(self.tempDir, 'targetMask.mgz')
-        mask.write(targetMaskFile)
+        mask.save(targetMaskFile)
 
         # Write the atlas as well
         alignedAtlasFile = os.path.join(self.tempDir, 'alignedAtlasImage.mgz')
         # ATH TODO skipping this for now... we'll just copy instead
-        # self.atlasImage.write(alignedAtlasFile)
+        # self.atlasImage.save(alignedAtlasFile)
         shutil.copyfile(self.atlasDumpFileName, alignedAtlasFile)
 
         # Run the actual registration and load the result
         utils.run(f'mri_robust_register --mov {alignedAtlasFile} --dst {targetMaskFile} --lta {self.tempDir}/trash.lta --mapmovhdr {alignedAtlasFile} --sat 50 -verbose 0')
         utils.run(f'mri_robust_register --mov {alignedAtlasFile} --dst {targetMaskFile} --lta {self.tempDir}/trash.lta --mapmovhdr {alignedAtlasFile} --affine --sat 50 -verbose 0')
-        self.alignedAtlas = fs.Volume.read(alignedAtlasFile)
+        self.alignedAtlas = sf.load_volume(alignedAtlasFile)
 
     def prepare_for_seg_fitting(self):
         """
@@ -275,7 +275,7 @@ class MeshModel:
 
         # Make sure the subclass has computed the synthed target
         if self.synthImage is None:
-            fs.fatal('All MeshModel subclasses must compute synthImage during preprocessing!')
+            sf.system.fatal('All MeshModel subclasses must compute synthImage during preprocessing!')
 
         # Crop the synthesized image by the aligned atlas and compute the new mesh alignment
         self.workingImage, self.transform = self.crop_image_by_atlas(self.synthImage)
@@ -309,8 +309,8 @@ class MeshModel:
 
         # Write the inital and cropped/masked images for debugging purposes
         if self.debug:
-            self.synthImage.write(os.path.join(self.tempDir, 'synthImage.mgz'))
-            self.workingImage.write(os.path.join(self.tempDir, 'synthImageMasked.mgz'))
+            self.synthImage.save(os.path.join(self.tempDir, 'synthImage.mgz'))
+            self.workingImage.save(os.path.join(self.tempDir, 'synthImageMasked.mgz'))
 
     def fit_mesh_to_seg(self):
         """
@@ -403,7 +403,7 @@ class MeshModel:
 
         # Make sure the subclass has computed the target image
         if self.processedImage is None:
-            fs.fatal('All MeshModel subclasses must compute processedImage during preprocessing!')
+            sf.system.fatal('All MeshModel subclasses must compute processedImage during preprocessing!')
 
         # Crop the image by the aligned atlas and compute the new mesh alignment
         self.workingImage, self.transform = self.crop_image_by_atlas(self.processedImage)
@@ -433,15 +433,15 @@ class MeshModel:
         # Apply the mask to the image we're analyzing by setting the intensity of all voxels not belonging
         # to the brain mask to zero. This will automatically discard those voxels in subsequent C++ routines, as
         # voxels with intensity zero are simply skipped in the computations.
-        self.workingMask = self.workingImage.copy(mask)
+        self.workingMask = self.workingImage.new(mask)
         self.workingImage.data[mask == 0] = 0
         self.maskIndices = np.where(mask)
 
         # Write the initial and cropped/masked images for debugging purposes
         if self.debug:
-            self.processedImage.write(os.path.join(self.tempDir, 'processedImage.mgz'))
-            self.workingImage.write(os.path.join(self.tempDir, 'processedImageMasked.mgz'))
-            self.workingMask.write(os.path.join(self.tempDir, 'processedImageMask.mgz'))
+            self.processedImage.save(os.path.join(self.tempDir, 'processedImage.mgz'))
+            self.workingImage.save(os.path.join(self.tempDir, 'processedImageMasked.mgz'))
+            self.workingMask.save(os.path.join(self.tempDir, 'processedImageMask.mgz'))
 
         # Compute the Gaussian label groups
         labelGroups = self.get_label_groups()
@@ -572,7 +572,7 @@ class MeshModel:
                     posteriors /= normalizer[..., np.newaxis]
                     minLogLikelihood = minLogLikelihood - np.sum(np.log(normalizer))  # This is what we're optimizing with EM
                     if np.isnan(minLogLikelihood):
-                        fs.fatal('minLogLikelihood is NaN')
+                        sf.system.fatal('minLogLikelihood is NaN')
 
                     # Log some iteration information
                     iterationInfo = [
@@ -652,7 +652,7 @@ class MeshModel:
                     print('  '.join(iterationInfo))
 
                     if np.isnan(minLogLikelihoodTimesPrior):
-                        fs.error('minLogLikelihoodTimesPrior is NaN')
+                        print('error: minLogLikelihoodTimesPrior is NaN')
 
                     if maximalDeformation > 0:
                         haveMoved = True
@@ -728,12 +728,13 @@ class MeshModel:
             self.volumes[self.names[i]] = (self.resolution ** 3) * (post.sum() / 65535)
 
         # Compute all discrete labels and mask
-        self.discreteLabels = self.workingImage.copy(self.FreeSurferLabels[inds])
-        self.discreteLabels.data[self.workingMask.data == 0] = 0
-        self.discreteLabels.lut = fs.lookups.default()
+        self.discreteLabels = self.workingImage.new(self.FreeSurferLabels[inds])
+        self.discreteLabels[self.workingMask == 0] = 0
+        lut_filename = os.path.join(os.environ.get('FREESURFER_HOME'), 'FreeSurferColorLUT.txt')
+        self.discreteLabels.labels = sf.load_label_lookup(lut_filename)
 
         if self.debug:
-            self.discreteLabels.write(os.path.join(self.tempDir, 'discreteLabelsAll.mgz'))
+            self.discreteLabels.save(os.path.join(self.tempDir, 'discreteLabelsAll.mgz'))
 
     def write_volumes(self, filename, volumes=None):
         """

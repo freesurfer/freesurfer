@@ -20,6 +20,7 @@ import pandas as pd
 from freesurfer.samseg.io import kvlReadCompressionLookupTable, kvlReadSharedGMMParameters, GMMparameter
 from scipy.ndimage import map_coordinates
 import scipy
+import surfa as sf
 from shutil import copyfile
 import tensorflow as tf
 import tensorflow_probability as tfp
@@ -663,11 +664,10 @@ class SamsegTumor(Samseg):
 
     def writeDeformedImage(self, data, path, saveLabels=False):
         # Read source geometry
-        geom = fs.Volume.read(os.path.join(self.atlasDir, 'template.nii')).geometry()
-        # Uncrop image
-        volume = fs.Volume(data, affine=geom.affine, voxsize=geom.voxsize)
+        template = sf.load_volume(os.path.join(self.atlasDir, 'template.nii'))
+        volume = template.new(data)
         if saveLabels:
-            volume.lut = fs.LookupTable.read(os.path.join(self.atlasDir, 'modifiedFreeSurferColorLUT.txt'))
+            volume.labels = sf.load_label_lookup(os.path.join(self.atlasDir, 'modifiedFreeSurferColorLUT.txt'))
         volume.write(path)
 
     def computeFinalSegmentation(self):

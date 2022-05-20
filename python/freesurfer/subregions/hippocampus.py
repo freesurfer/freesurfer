@@ -3,7 +3,7 @@ import shutil
 import numpy as np
 import scipy.ndimage
 import scipy.stats
-import freesurfer as fs
+import surfa as sf
 
 from freesurfer import samseg
 from freesurfer.subregions import utils
@@ -14,7 +14,7 @@ class HippoAmygdalaSubfields(MeshModel):
 
     def __init__(self, side, wmParcFileName, resolution=0.33333, **kwargs):
 
-        atlasDir = os.path.join(fs.fshome(), 'average/HippoSF/atlas')
+        atlasDir = os.path.join(os.environ.get('FREESURFER_HOME'), 'average/HippoSF/atlas')
         super().__init__(atlasDir=atlasDir, resolution=resolution, **kwargs)
 
         # This is a hippocampus-specific setting to specify
@@ -36,7 +36,7 @@ class HippoAmygdalaSubfields(MeshModel):
         self.longMaxIterations = [[6, 3], [2, 1]]
 
         # Cache some useful info 
-        self.wmparc = fs.Volume.read(wmParcFileName)
+        self.wmparc = sf.load_volume(wmParcFileName)
 
         # When creating the smooth atlas alignment target, erode before dilating
         self.atlasTargetSmoothing = 'backward'
@@ -49,20 +49,22 @@ class HippoAmygdalaSubfields(MeshModel):
 
         # Check the hemi
         if self.side not in ('left', 'right'):
-            fs.fatal(f'Hemisphere must be either `left` or `right`, but got `{self.side}`')
+            sf.system.fatal(f'Hemisphere must be either `left` or `right`, but got `{self.side}`')
 
         # Flip hemi for alignment
         if self.side == 'right':
-            atlasImage = fs.Volume.read(self.atlasDumpFileName)
-            atlasImage.affine[0] *= -1
+            atlasImage = sf.load_volume(self.atlasDumpFileName)
+            affine = atlasImage.geom.vox2world.matrix.copy()
+            affine[0, :] *= -1
+            atlasImage.geom.vox2world = affine
             self.atlasDumpFileName = os.path.join(self.tempDir, 'flippedAtlasDump.mgz')
-            atlasImage.write(self.atlasDumpFileName)
+            atlasImage.save(self.atlasDumpFileName)
 
         # Atlas alignment target is a masked segmentation
         sideHippoLabel = self.HippoLabelLeft if self.side == 'left' else self.HippoLabelRight
         match_labels = [sideHippoLabel, sideHippoLabel + 1]
         mask = np.isin(self.inputSeg.data, match_labels).astype('float32') * 255
-        self.atlasAlignmentTarget = self.inputSeg.copy(mask)
+        self.atlasAlignmentTarget = self.inputSeg.new(mask)
 
         # Now, the idea is to refine the transform based on the thalamus + ventral DE
         # First, we prepare a modifided ASEG that we'll segment
@@ -117,29 +119,29 @@ class HippoAmygdalaSubfields(MeshModel):
         # And convert background to 1
         data[data == 0] = 1
 
-        segMerged = self.inputSeg.copy(data)
+        segMerged = self.inputSeg.new(data)
 
         # We now merge hippo, amygdala, and cortex. This will be the
         # synthetic image used for initial mesh fitting
         self.synthImage = segMerged.copy()
-        self.synthImage.data[self.synthImage.data == 17] = 3
-        self.synthImage.data[self.synthImage.data == 18] = 3
+        self.synthImage[self.synthImage == 17] = 3
+        self.synthImage[self.synthImage == 18] = 3
 
         # And also used for image cropping around the thalamus
-        fixedMargin = int(np.round(15 / np.mean(self.inputSeg.voxsize)))
-        imageCropping = segMerged.copy(self.inputSeg.data == sideHippoLabel).bbox(margin=fixedMargin)
+        fixedMargin = int(np.round(15 / np.mean(self.inputSeg.geom.voxsize)))
+        imageCropping = segMerged.new(self.inputSeg.data == sideHippoLabel).bbox(margin=fixedMargin)
 
         # Let's dilate this mask (ATH not totally sure why there are two masks here)
-        mask = scipy.ndimage.morphology.binary_dilation(segMerged.data > 1, structure=np.ones((3, 3, 3)), iterations=2)
-        mergedMaskDilated = segMerged.copy(mask)
+        mask = scipy.ndimage.morphology.binary_dilation(segMerged > 1, structure=np.ones((3, 3, 3)), iterations=2)
+        mergedMaskDilated = segMerged.new(mask)
 
         # Lastly, use it to make the image mask
-        mask = (segMerged.data > 16) & (segMerged.data < 19)
-        imageMask = self.synthImage.copy(mask)
+        mask = (segMerged > 16) & (segMerged < 19)
+        imageMask = self.synthImage.new(mask)
 
         # Dilate the mask
         dilatedMask = scipy.ndimage.morphology.binary_dilation(mask, structure=np.ones((3, 3, 3)), iterations=5)
-        self.maskDilated5mm = self.synthImage.copy(dilatedMask)
+        self.maskDilated5mm = self.synthImage.new(dilatedMask)
 
         # Mask and convert to the target resolution
         images = []
@@ -147,22 +149,22 @@ class HippoAmygdalaSubfields(MeshModel):
 
             # FS python library does not have cubic interpolation yet, so we'll use mri_convert
             tempFile = os.path.join(self.tempDir, 'tempImage.mgz')
-            image[imageCropping].write(tempFile)
+            image[imageCropping].save(tempFile)
             utils.run(f'mri_convert {tempFile} {tempFile} -odt float -rt cubic -vs {self.resolution} {self.resolution} {self.resolution}')
-            image = fs.Volume.read(tempFile)
+            image = sf.load_volume(tempFile)
 
             # Resample and apply the first mask in high-resolution target space
-            mask = mergedMaskDilated.resample_like(image, interp_method='linear').data >= 0.5
-            image.data[mask == 0] = 0
+            mask = mergedMaskDilated.resample_like(image, method='linear') >= 0.5
+            image[mask == 0] = 0
 
             # Resample and apply the second mask in high-resolution target space
-            mask = imageMask.resample_like(image, interp_method='linear').data >= 0.5
+            mask = imageMask.resample_like(image, method='linear').data >= 0.5
             mask = scipy.ndimage.morphology.binary_dilation(mask, structure=np.ones((3, 3, 3)), iterations=int(np.round(3 / self.resolution)))
-            image.data[mask == 0] = 0
+            image[mask == 0] = 0
             images.append(image.data)
 
         # Define the pre-processed target image
-        self.processedImage = image.copy(np.stack(images, axis=-1))
+        self.processedImage = image.new(np.stack(images, axis=-1))
 
     def postprocess_segmentation(self):
         """
@@ -171,13 +173,13 @@ class HippoAmygdalaSubfields(MeshModel):
         segFilePrefix = os.path.join(self.outDir, f'{self.side[0]}h.hippoAmygLabels{self.fileSuffix}')
 
         A = self.discreteLabels.copy()
-        A.data[A.data < 200] = 0
-        A.data[(A.data > 246) & (A.data < 7000)] = 0
-        A.data[A.data == 201] = 0
-        mask = utils.get_largest_cc(A.data > 0)
-        A.data[mask == 0] = 0
-        A.write(segFilePrefix + '.mgz')
-        A.resample_like(self.inputSeg, interp_method='nearest').write(segFilePrefix + '.FSvoxelSpace.mgz')
+        A[A < 200] = 0
+        A[(A > 246) & (A < 7000)] = 0
+        A[A == 201] = 0
+        mask = utils.get_largest_cc(A > 0)
+        A[mask == 0] = 0
+        A.save(segFilePrefix + '.mgz')
+        A.resample_like(self.inputSeg, method='nearest').save(segFilePrefix + '.FSvoxelSpace.mgz')
 
         # Write merged versions to disk as well
 
@@ -198,35 +200,35 @@ class HippoAmygdalaSubfields(MeshModel):
             name = name.lower().replace(' ', '')
 
             if name in HPbodyList:
-                B.data[B.data == self.FreeSurferLabels[c]] = HippoBodyLabel
+                B[B == self.FreeSurferLabels[c]] = HippoBodyLabel
 
             if name in HPheadList:
-                B.data[B.data == self.FreeSurferLabels[c]] = HippoHeadLabel
+                B[B == self.FreeSurferLabels[c]] = HippoHeadLabel
 
         # Kill the fissure
-        B.data[B.data == 215] = 0
-        B.write(segFilePrefix + '.HBT.mgz')
-        B.resample_like(self.inputSeg, interp_method='nearest').write(segFilePrefix + '.HBT.FSvoxelSpace.mgz')
+        B[B == 215] = 0
+        B.save(segFilePrefix + '.HBT.mgz')
+        B.resample_like(self.inputSeg, method='nearest').save(segFilePrefix + '.HBT.FSvoxelSpace.mgz')
 
         # Second: head and body of each subfield
         C = A.copy()
-        C.data[(A.data == 233) | (A.data == 234)] = 204  # presubiculum
-        C.data[(A.data == 235) | (A.data == 236)] = 205  # subiculum
-        C.data[(A.data == 237) | (A.data == 238)] = 206  # CA1
-        C.data[(A.data == 239) | (A.data == 240)] = 208  # CA3
-        C.data[(A.data == 241) | (A.data == 242)] = 209  # CA4
-        C.data[(A.data == 243) | (A.data == 244)] = 210  # GC-DG
-        C.data[(A.data == 245) | (A.data == 246)] = 214  # ML
-        C.write(segFilePrefix + '.FS60.mgz')
-        C.resample_like(self.inputSeg, interp_method='nearest').write(segFilePrefix + '.FS60.FSvoxelSpace.mgz')
+        C[(A == 233) | (A == 234)] = 204  # presubiculum
+        C[(A == 235) | (A == 236)] = 205  # subiculum
+        C[(A == 237) | (A == 238)] = 206  # CA1
+        C[(A == 239) | (A == 240)] = 208  # CA3
+        C[(A == 241) | (A == 242)] = 209  # CA4
+        C[(A == 243) | (A == 244)] = 210  # GC-DG
+        C[(A == 245) | (A == 246)] = 214  # ML
+        C.save(segFilePrefix + '.FS60.mgz')
+        C.resample_like(self.inputSeg, method='nearest').save(segFilePrefix + '.FS60.FSvoxelSpace.mgz')
 
         # Third: same as above, but we get rid of internal labels
         D = C.copy()
-        D.data[D.data == 210] = 209  # GC-DG -> CA4
+        D[D == 210] = 209  # GC-DG -> CA4
 
         # Molecular layer: replace by nearest label that is not background or fissure
-        cropping = D.copy(D.data == 214).bbox(margin=2)
-        V = D.data[cropping]
+        cropping = D.new(D == 214).bbox(margin=2)
+        V = D[cropping]
         labels = [l for l in np.unique(V) if l not in (0, 214, 215)]
         mask = V == 214
         for i, label in enumerate(labels):
@@ -240,9 +242,9 @@ class HippoAmygdalaSubfields(MeshModel):
                 mini[m] = dist[m]
                 seg[m] = label
         V[mask] = seg
-        D.data[cropping] = V
-        D.write(segFilePrefix + '.CA.mgz')
-        D.resample_like(self.inputSeg, interp_method='nearest').write(segFilePrefix + '.CA.FSvoxelSpace.mgz')
+        D[cropping] = V
+        D.save(segFilePrefix + '.CA.mgz')
+        D.resample_like(self.inputSeg, method='nearest').save(segFilePrefix + '.CA.FSvoxelSpace.mgz')
 
         # Extract hippocampal volumes
         validLabels = ['subiculum-body', 'subiculum-head', 'Hippocampal_tail', 'molecular_layer_HP-body', 'molecular_layer_HP-head', 'hippocampal-fissure',
@@ -370,8 +372,8 @@ class HippoAmygdalaSubfields(MeshModel):
         """
         DATA = self.inputImages[0]
         WMPARC = self.wmparc
-        mask = (WMPARC.data == 0) & (self.maskDilated5mm.data == 0)
-        WMPARC.data[mask] = -1
+        mask = (WMPARC == 0) & (self.maskDilated5mm == 0)
+        WMPARC[mask] = -1
 
         nHyper = np.zeros(len(sameGaussianParameters))
         meanHyper = np.zeros(len(sameGaussianParameters))
@@ -407,17 +409,17 @@ class HippoAmygdalaSubfields(MeshModel):
                 if isinstance(listMask, int):
                     listMask = [listMask]
 
-                MASK = np.zeros(DATA.data.shape, dtype='bool')
+                MASK = np.zeros(DATA.shape, dtype='bool')
                 for l in range(len(listMask)):
-                    MASK = MASK | (WMPARC.data == listMask[l])
+                    MASK = MASK | (WMPARC == listMask[l])
 
-                radius = np.round(1 / np.mean(DATA.voxsize))
+                radius = np.round(1 / np.mean(DATA.geom.voxsize))
                 MASK = scipy.ndimage.morphology.binary_erosion(MASK, utils.spherical_strel(radius), border_value=1)
-                total_mask = MASK & (DATA.data > 0)
-                data = DATA.data[total_mask]
+                total_mask = MASK & (DATA > 0)
+                data = DATA[total_mask]
 
                 meanHyper[g] = np.median(data)
-                nHyper[g] = 10 + len(data) * np.prod(DATA.voxsize) / (self.resolution ** 3)
+                nHyper[g] = 10 + len(data) * np.prod(DATA.geom.voxsize) / (self.resolution ** 3)
 
         # If any NaN, replace by background
         # ATH: I don't there would ever be NaNs here?
@@ -465,7 +467,7 @@ class HippoAmygdalaSubfields(MeshModel):
                 I[L == l] = meanHyper[l]
 
         I[maskPriors == 0] = 0
-        sigma = np.mean(DATA.voxsize) / (2.355 * self.resolution)
+        sigma = np.mean(DATA.geom.voxsize) / (2.355 * self.resolution)
         I_PV = scipy.ndimage.gaussian_filter(I, sigma)
 
         if ALind is not None:

@@ -20,11 +20,12 @@
 
 import os
 import numpy as np
-import freesurfer as fs
+import argparse
+import surfa as sf
 from scipy.ndimage import map_coordinates
 from freesurfer import samseg
 
-parser = fs.utils.ArgumentParser()
+parser = argparse.ArgumentParser()
 parser.add_argument('--subjects-dir', help='Directory with saved SAMSEG runs with --history flag.', required=True)
 parser.add_argument('--output-dir', help='Output directory.', required=True)
 parser.add_argument('--template', help='Template file name.', required=True)

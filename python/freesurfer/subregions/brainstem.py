@@ -2,7 +2,7 @@ import os
 import shutil
 import numpy as np
 import scipy.ndimage
-import freesurfer as fs
+import surfa as sf
 
 from freesurfer import samseg
 from freesurfer.subregions import utils
@@ -13,7 +13,7 @@ class BrainstemSubstructures(MeshModel):
 
     def __init__(self, **kwargs):
 
-        atlasDir = os.path.join(fs.fshome(), 'average/BrainstemSS/atlas')
+        atlasDir = os.path.join(os.environ.get('FREESURFER_HOME'), 'average/BrainstemSS/atlas')
         super().__init__(atlasDir=atlasDir, **kwargs)
 
         # Segmentation mesh-fitting parameters
@@ -46,21 +46,21 @@ class BrainstemSubstructures(MeshModel):
         self.DElabelRight = 60
 
         # Atlas alignment target is a masked segmentation
-        mask = (self.inputSeg.data == self.BRAINSTEM).astype('float32') * 255
-        self.atlasAlignmentTarget = self.inputSeg.copy(mask)
+        mask = (self.inputSeg == self.BRAINSTEM).astype('float32') * 255
+        self.atlasAlignmentTarget = self.inputSeg.new(mask)
 
         # This will be the synthetic image used for initial mesh fitting
         self.synthImage = self.inputSeg.copy()
         labels = [self.BRAINSTEM, 7, 8, 15, 28, 46, 47, 60]
-        mask = np.isin(self.synthImage.data, labels)
+        mask = np.isin(self.synthImage, labels)
         self.synthImage.data.fill(1)
-        self.synthImage.data[mask] = 255
-        self.synthImage.write(os.path.join(self.tempDir, 'synthImage.mgz'))
+        self.synthImage[mask] = 255
+        self.synthImage.save(os.path.join(self.tempDir, 'synthImage.mgz'))
 
         # And also used for image cropping around the brainstem
-        brainstemMask = (self.inputSeg.data == self.BRAINSTEM) | (self.inputSeg.data == self.DElabelLeft) | (self.inputSeg.data == self.DElabelRight)
-        fixedMargin = int(np.round(15 / np.mean(self.inputSeg.voxsize)))
-        imageCropping = self.inputSeg.copy(brainstemMask).bbox(margin=fixedMargin)
+        brainstemMask = (self.inputSeg == self.BRAINSTEM) | (self.inputSeg == self.DElabelLeft) | (self.inputSeg == self.DElabelRight)
+        fixedMargin = int(np.round(15 / np.mean(self.inputSeg.geom.voxsize)))
+        imageCropping = self.inputSeg.new(brainstemMask).bbox(margin=fixedMargin)
 
         # Mask and convert to the target resolution
         images = []
@@ -68,24 +68,24 @@ class BrainstemSubstructures(MeshModel):
 
             # FS python library does not have cubic interpolation yet, so we'll use mri_convert
             tempFile = os.path.join(self.tempDir, 'tempImage.mgz')
-            image[imageCropping].write(tempFile)
+            image[imageCropping].save(tempFile)
             utils.run(f'mri_convert {tempFile} {tempFile} -odt float -rt cubic -vs {self.resolution} {self.resolution} {self.resolution}')
-            image = fs.Volume.read(tempFile)
+            image = sf.load_volume(tempFile)
             images.append(image.data)
 
         # Define the pre-processed target image
-        self.processedImage = image.copy(np.stack(images, axis=-1))
+        self.processedImage = image.new(np.stack(images, axis=-1))
 
         # Resample and apply the seg mask in high-resolution target space
         croppedSeg = self.inputSeg[imageCropping].copy()
-        croppedSeg = croppedSeg.resample_like(self.processedImage, interp_method='nearest')
+        croppedSeg = croppedSeg.resample_like(self.processedImage, method='nearest')
 
         # Create mask and dilate substantially
         radius = int(np.round(5 / self.resolution))
-        mask = scipy.ndimage.morphology.binary_dilation(croppedSeg.data > 0, utils.spherical_strel(radius))
+        mask = scipy.ndimage.morphology.binary_dilation(croppedSeg > 0, utils.spherical_strel(radius))
 
         # Apply the mask
-        self.processedImage.data[mask == 0] = 0            
+        self.processedImage[mask == 0] = 0            
         
 
     def postprocess_segmentation(self):
@@ -96,11 +96,11 @@ class BrainstemSubstructures(MeshModel):
         
         # Recode segmentation
         A = self.discreteLabels.copy()
-        A.data[A.data < 170] = 0
-        mask = utils.get_largest_cc(A.data > 0)
-        A.data[mask == 0] = 0
-        A.write(segFilePrefix + '.mgz')
-        A.resample_like(self.inputSeg, interp_method='nearest').write(segFilePrefix + '.FSvoxelSpace.mgz')
+        A[A < 170] = 0
+        mask = utils.get_largest_cc(A > 0)
+        A[mask == 0] = 0
+        A.save(segFilePrefix + '.mgz')
+        A.resample_like(self.inputSeg, method='nearest').save(segFilePrefix + '.FSvoxelSpace.mgz')
 
         # Prune the volumes to what we care about
         validLabels = ['MAC_Medulla', 'MAC_Pons', 'MAC_Midbrain', 'MAC_Sup_Cerebellum_Ped', 'Medulla', 'Pons', 'Midbrain', 'SCP']
@@ -203,14 +203,14 @@ class BrainstemSubstructures(MeshModel):
                 listMask = []
 
             if len(listMask) > 0:
-                MASK = np.zeros(DATA.data.shape, dtype='bool')
+                MASK = np.zeros(DATA.shape, dtype='bool')
                 for l in range(len(listMask)):
-                    MASK = MASK | (self.inputSeg.data == listMask[l])
+                    MASK = MASK | (self.inputSeg == listMask[l])
                 MASK = scipy.ndimage.morphology.binary_erosion(MASK, utils.spherical_strel(1), border_value=1)
-                total_mask = MASK & (DATA.data > 0)
-                data = DATA.data[total_mask]
+                total_mask = MASK & (DATA > 0)
+                data = DATA[total_mask]
                 meanHyper[g] = np.median(data)
-                nHyper[g] = 10 + 0.1 * len(data) / np.prod(DATA.voxsize)
+                nHyper[g] = 10 + 0.1 * len(data) / np.prod(DATA.geom.voxsize)
 
         # If any NaN, replace by background
         # ATH: I don't there would ever be NaNs here?

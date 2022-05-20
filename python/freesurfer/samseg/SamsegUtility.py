@@ -1,7 +1,8 @@
 import os
 import numpy as np
 import itertools
-import freesurfer as fs
+import datetime as dt
+import surfa as sf
 
 from .utilities import icv
 from .io import kvlReadCompressionLookupTable, kvlReadSharedGMMParameters
@@ -23,7 +24,7 @@ def getModelSpecifications(atlasDir, userModelSpecifications={}, pallidumAsWM=Tr
         if not os.path.isfile(gmmFileName):
             gmmFileName = os.path.join(atlasDir, gmmFileName)
     if not os.path.isfile(gmmFileName):
-        fs.fatal('GMM parameter file does not exist at %s' % gmmFileName)
+        sf.system.fatal('GMM parameter file does not exist at %s' % gmmFileName)
 
     sharedGMMParameters = kvlReadSharedGMMParameters(gmmFileName)
 
@@ -114,17 +115,16 @@ def readCroppedImages(imageFileNames, templateFileName, imageToImageTransform):
     croppedImageBuffers = []
     for imageFileName in imageFileNames:
 
-        input_image = fs.Volume.read(imageFileName)
-        template_image = fs.Volume.read(templateFileName)
-
-        imageToImage = fs.LinearTransform(imageToImageTransform)
+        input_image = sf.load_volume(imageFileName)
+        template_image = sf.load_volume(templateFileName)
+        imageToImage = sf.Affine(imageToImageTransform)
 
         # Map each of the corners of the bounding box, and record minima and maxima
-        boundingLimit = np.array(template_image.shape[:3]) - 1
+        boundingLimit = np.array(template_image.baseshape) - 1
         corners = np.array(list(itertools.product(*zip((0, 0, 0), boundingLimit))))
         transformedCorners = imageToImage.transform(corners)
 
-        inputLimit = np.array(input_image.shape[:3]) - 1
+        inputLimit = np.array(input_image.baseshape) - 1
         minCoord = np.clip(transformedCorners.min(axis=0).astype(int),     (0, 0, 0), inputLimit)
         maxCoord = np.clip(transformedCorners.max(axis=0).astype(int) + 1, (0, 0, 0), inputLimit) + 1
 
@@ -369,3 +369,21 @@ def convertRASTransformToLPS(ras2ras):
 def convertLPSTransformToRAS(lps2lps):
     ras2lps = np.diag([-1, -1, 1, 1])
     return np.linalg.inv(ras2lps) @ lps2lps @ ras2lps
+
+
+class Timer:
+    """
+    A simple timer class to track process speed.
+    """
+
+    def __init__(self, message=None):
+        if message:
+            print(message)
+        self.start_time = dt.datetime.now()
+
+    @property
+    def elapsed(self):
+        return dt.datetime.now() - self.start_time
+
+    def mark(self, message):
+        print('%s: %s' % (message, str(self.elapsed)))
