@@ -1,0 +1,1708 @@
+Tue Sep 22 17:31:15 EDT 2009
+/autofs/space/crash_001/users/greve/subjects/fsaverage5/surf
+--out lh.white.avg.area.mgh --f /tmp/subjlist.24330 --target fsaverage5 --hemi lh --area white --mean --surfreg sphere.reg
+Linux compute-0-63.local 2.6.18-53.1.19.el5 #1 SMP Tue Apr 22 03:01:10 EDT 2008 x86_64 x86_64 x86_64 GNU/Linux
+setenv SUBJECTS_DIR /space/birn/45/users/BWH/buckner_data/group_study
+tmpdir is ./tmp.mris_preproc.30014
+Src lh sphere.reg
+Trg lh sphere.reg
+
+
+
+---------------------------------------------------
+#@# 1/40 004 Tue Sep 22 17:31:16 EDT 2009 --------------
+-----------------------
+mri_surf2surf --srcsubject 004 --srchemi lh --srcsurfreg sphere.reg --trgsubject fsaverage5 --trghemi lh --trgsurfreg sphere.reg --tval ./tmp.mris_preproc.30014/004.1.mgh --sval-area white --jac --noreshape --no-cortex
+Source registration surface changed to sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 004
+srcval     = (null)
+srctype    = 
+trgsubject = fsaverage5
+trgval     = ./tmp.mris_preproc.30014/004.1.mgh
+trgtype    = 
+srcsurfreg = sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+Reading source surface reg /space/birn/45/users/BWH/buckner_data/group_study/004/surf/lh.sphere.reg
+Loading source data
+Reading surface file /space/birn/45/users/BWH/buckner_data/group_study/004/surf/lh.white
+Reading target surface reg /space/birn/45/users/BWH/buckner_data/group_study/fsaverage5/surf/lh.sphere.reg
+Done
+Mapping Source Volume onto Source Subject Surface with Jacobian Correction
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: 1st Forward Loop (10242)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (151235)
+Reverse Loop had 140993 hits
+INFO: nSrcLost = 0
+nTrg121 =     2, nTrgMulti = 10240, MnTrgMultiHits = 14.7688
+nSrc121 = 151235, nSrcLost =     0, nSrcMulti =     0, MnSrcMultiHits = 0
+Saving target data
+Saving to ./tmp.mris_preproc.30014/004.1.mgh
+
+
+
+---------------------------------------------------
+#@# 2/40 008 Tue Sep 22 17:31:23 EDT 2009 --------------
+-----------------------
+mri_surf2surf --srcsubject 008 --srchemi lh --srcsurfreg sphere.reg --trgsubject fsaverage5 --trghemi lh --trgsurfreg sphere.reg --tval ./tmp.mris_preproc.30014/008.2.mgh --sval-area white --jac --noreshape --no-cortex
+Source registration surface changed to sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 008
+srcval     = (null)
+srctype    = 
+trgsubject = fsaverage5
+trgval     = ./tmp.mris_preproc.30014/008.2.mgh
+trgtype    = 
+srcsurfreg = sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+Reading source surface reg /space/birn/45/users/BWH/buckner_data/group_study/008/surf/lh.sphere.reg
+Loading source data
+Reading surface file /space/birn/45/users/BWH/buckner_data/group_study/008/surf/lh.white
+Reading target surface reg /space/birn/45/users/BWH/buckner_data/group_study/fsaverage5/surf/lh.sphere.reg
+Done
+Mapping Source Volume onto Source Subject Surface with Jacobian Correction
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: 1st Forward Loop (10242)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (118037)
+Reverse Loop had 107795 hits
+INFO: nSrcLost = 0
+nTrg121 =     3, nTrgMulti = 10239, MnTrgMultiHits = 11.5279
+nSrc121 = 118037, nSrcLost =     0, nSrcMulti =     0, MnSrcMultiHits = 0
+Saving target data
+Saving to ./tmp.mris_preproc.30014/008.2.mgh
+
+
+
+---------------------------------------------------
+#@# 3/40 017 Tue Sep 22 17:31:28 EDT 2009 --------------
+-----------------------
+mri_surf2surf --srcsubject 017 --srchemi lh --srcsurfreg sphere.reg --trgsubject fsaverage5 --trghemi lh --trgsurfreg sphere.reg --tval ./tmp.mris_preproc.30014/017.3.mgh --sval-area white --jac --noreshape --no-cortex
+Source registration surface changed to sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 017
+srcval     = (null)
+srctype    = 
+trgsubject = fsaverage5
+trgval     = ./tmp.mris_preproc.30014/017.3.mgh
+trgtype    = 
+srcsurfreg = sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+Reading source surface reg /space/birn/45/users/BWH/buckner_data/group_study/017/surf/lh.sphere.reg
+Loading source data
+Reading surface file /space/birn/45/users/BWH/buckner_data/group_study/017/surf/lh.white
+Reading target surface reg /space/birn/45/users/BWH/buckner_data/group_study/fsaverage5/surf/lh.sphere.reg
+Done
+Mapping Source Volume onto Source Subject Surface with Jacobian Correction
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: 1st Forward Loop (10242)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (149262)
+Reverse Loop had 139020 hits
+INFO: nSrcLost = 0
+nTrg121 =     2, nTrgMulti = 10240, MnTrgMultiHits = 14.5762
+nSrc121 = 149262, nSrcLost =     0, nSrcMulti =     0, MnSrcMultiHits = 0
+Saving target data
+Saving to ./tmp.mris_preproc.30014/017.3.mgh
+
+
+
+---------------------------------------------------
+#@# 4/40 021 Tue Sep 22 17:31:35 EDT 2009 --------------
+-----------------------
+mri_surf2surf --srcsubject 021 --srchemi lh --srcsurfreg sphere.reg --trgsubject fsaverage5 --trghemi lh --trgsurfreg sphere.reg --tval ./tmp.mris_preproc.30014/021.4.mgh --sval-area white --jac --noreshape --no-cortex
+Source registration surface changed to sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 021
+srcval     = (null)
+srctype    = 
+trgsubject = fsaverage5
+trgval     = ./tmp.mris_preproc.30014/021.4.mgh
+trgtype    = 
+srcsurfreg = sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+Reading source surface reg /space/birn/45/users/BWH/buckner_data/group_study/021/surf/lh.sphere.reg
+Loading source data
+Reading surface file /space/birn/45/users/BWH/buckner_data/group_study/021/surf/lh.white
+Reading target surface reg /space/birn/45/users/BWH/buckner_data/group_study/fsaverage5/surf/lh.sphere.reg
+Done
+Mapping Source Volume onto Source Subject Surface with Jacobian Correction
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: 1st Forward Loop (10242)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (146816)
+Reverse Loop had 136574 hits
+INFO: nSrcLost = 0
+nTrg121 =     2, nTrgMulti = 10240, MnTrgMultiHits = 14.3373
+nSrc121 = 146816, nSrcLost =     0, nSrcMulti =     0, MnSrcMultiHits = 0
+Saving target data
+Saving to ./tmp.mris_preproc.30014/021.4.mgh
+
+
+
+---------------------------------------------------
+#@# 5/40 032 Tue Sep 22 17:31:42 EDT 2009 --------------
+-----------------------
+mri_surf2surf --srcsubject 032 --srchemi lh --srcsurfreg sphere.reg --trgsubject fsaverage5 --trghemi lh --trgsurfreg sphere.reg --tval ./tmp.mris_preproc.30014/032.5.mgh --sval-area white --jac --noreshape --no-cortex
+Source registration surface changed to sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 032
+srcval     = (null)
+srctype    = 
+trgsubject = fsaverage5
+trgval     = ./tmp.mris_preproc.30014/032.5.mgh
+trgtype    = 
+srcsurfreg = sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+Reading source surface reg /space/birn/45/users/BWH/buckner_data/group_study/032/surf/lh.sphere.reg
+Loading source data
+Reading surface file /space/birn/45/users/BWH/buckner_data/group_study/032/surf/lh.white
+Reading target surface reg /space/birn/45/users/BWH/buckner_data/group_study/fsaverage5/surf/lh.sphere.reg
+Done
+Mapping Source Volume onto Source Subject Surface with Jacobian Correction
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: 1st Forward Loop (10242)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (139697)
+Reverse Loop had 129455 hits
+INFO: nSrcLost = 0
+nTrg121 =     5, nTrgMulti = 10237, MnTrgMultiHits = 13.6458
+nSrc121 = 139697, nSrcLost =     0, nSrcMulti =     0, MnSrcMultiHits = 0
+Saving target data
+Saving to ./tmp.mris_preproc.30014/032.5.mgh
+
+
+
+---------------------------------------------------
+#@# 6/40 039 Tue Sep 22 17:31:48 EDT 2009 --------------
+-----------------------
+mri_surf2surf --srcsubject 039 --srchemi lh --srcsurfreg sphere.reg --trgsubject fsaverage5 --trghemi lh --trgsurfreg sphere.reg --tval ./tmp.mris_preproc.30014/039.6.mgh --sval-area white --jac --noreshape --no-cortex
+Source registration surface changed to sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 039
+srcval     = (null)
+srctype    = 
+trgsubject = fsaverage5
+trgval     = ./tmp.mris_preproc.30014/039.6.mgh
+trgtype    = 
+srcsurfreg = sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+Reading source surface reg /space/birn/45/users/BWH/buckner_data/group_study/039/surf/lh.sphere.reg
+Loading source data
+Reading surface file /space/birn/45/users/BWH/buckner_data/group_study/039/surf/lh.white
+Reading target surface reg /space/birn/45/users/BWH/buckner_data/group_study/fsaverage5/surf/lh.sphere.reg
+Done
+Mapping Source Volume onto Source Subject Surface with Jacobian Correction
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: 1st Forward Loop (10242)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (116837)
+Reverse Loop had 106595 hits
+INFO: nSrcLost = 0
+nTrg121 =     3, nTrgMulti = 10239, MnTrgMultiHits = 11.4107
+nSrc121 = 116837, nSrcLost =     0, nSrcMulti =     0, MnSrcMultiHits = 0
+Saving target data
+Saving to ./tmp.mris_preproc.30014/039.6.mgh
+
+
+
+---------------------------------------------------
+#@# 7/40 040 Tue Sep 22 17:31:53 EDT 2009 --------------
+-----------------------
+mri_surf2surf --srcsubject 040 --srchemi lh --srcsurfreg sphere.reg --trgsubject fsaverage5 --trghemi lh --trgsurfreg sphere.reg --tval ./tmp.mris_preproc.30014/040.7.mgh --sval-area white --jac --noreshape --no-cortex
+Source registration surface changed to sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 040
+srcval     = (null)
+srctype    = 
+trgsubject = fsaverage5
+trgval     = ./tmp.mris_preproc.30014/040.7.mgh
+trgtype    = 
+srcsurfreg = sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+Reading source surface reg /space/birn/45/users/BWH/buckner_data/group_study/040/surf/lh.sphere.reg
+Loading source data
+Reading surface file /space/birn/45/users/BWH/buckner_data/group_study/040/surf/lh.white
+Reading target surface reg /space/birn/45/users/BWH/buckner_data/group_study/fsaverage5/surf/lh.sphere.reg
+Done
+Mapping Source Volume onto Source Subject Surface with Jacobian Correction
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: 1st Forward Loop (10242)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (109337)
+Reverse Loop had 99095 hits
+INFO: nSrcLost = 0
+nTrg121 =     6, nTrgMulti = 10236, MnTrgMultiHits = 10.681
+nSrc121 = 109337, nSrcLost =     0, nSrcMulti =     0, MnSrcMultiHits = 0
+Saving target data
+Saving to ./tmp.mris_preproc.30014/040.7.mgh
+
+
+
+---------------------------------------------------
+#@# 8/40 045 Tue Sep 22 17:31:59 EDT 2009 --------------
+-----------------------
+mri_surf2surf --srcsubject 045 --srchemi lh --srcsurfreg sphere.reg --trgsubject fsaverage5 --trghemi lh --trgsurfreg sphere.reg --tval ./tmp.mris_preproc.30014/045.8.mgh --sval-area white --jac --noreshape --no-cortex
+Source registration surface changed to sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 045
+srcval     = (null)
+srctype    = 
+trgsubject = fsaverage5
+trgval     = ./tmp.mris_preproc.30014/045.8.mgh
+trgtype    = 
+srcsurfreg = sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+Reading source surface reg /space/birn/45/users/BWH/buckner_data/group_study/045/surf/lh.sphere.reg
+Loading source data
+Reading surface file /space/birn/45/users/BWH/buckner_data/group_study/045/surf/lh.white
+Reading target surface reg /space/birn/45/users/BWH/buckner_data/group_study/fsaverage5/surf/lh.sphere.reg
+Done
+Mapping Source Volume onto Source Subject Surface with Jacobian Correction
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: 1st Forward Loop (10242)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (108532)
+Reverse Loop had 98290 hits
+INFO: nSrcLost = 0
+nTrg121 =     0, nTrgMulti = 10242, MnTrgMultiHits = 10.5968
+nSrc121 = 108532, nSrcLost =     0, nSrcMulti =     0, MnSrcMultiHits = 0
+Saving target data
+Saving to ./tmp.mris_preproc.30014/045.8.mgh
+
+
+
+---------------------------------------------------
+#@# 9/40 049 Tue Sep 22 17:32:04 EDT 2009 --------------
+-----------------------
+mri_surf2surf --srcsubject 049 --srchemi lh --srcsurfreg sphere.reg --trgsubject fsaverage5 --trghemi lh --trgsurfreg sphere.reg --tval ./tmp.mris_preproc.30014/049.9.mgh --sval-area white --jac --noreshape --no-cortex
+Source registration surface changed to sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 049
+srcval     = (null)
+srctype    = 
+trgsubject = fsaverage5
+trgval     = ./tmp.mris_preproc.30014/049.9.mgh
+trgtype    = 
+srcsurfreg = sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+Reading source surface reg /space/birn/45/users/BWH/buckner_data/group_study/049/surf/lh.sphere.reg
+Loading source data
+Reading surface file /space/birn/45/users/BWH/buckner_data/group_study/049/surf/lh.white
+Reading target surface reg /space/birn/45/users/BWH/buckner_data/group_study/fsaverage5/surf/lh.sphere.reg
+Done
+Mapping Source Volume onto Source Subject Surface with Jacobian Correction
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: 1st Forward Loop (10242)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (145922)
+Reverse Loop had 135680 hits
+INFO: nSrcLost = 0
+nTrg121 =     8, nTrgMulti = 10234, MnTrgMultiHits = 14.2578
+nSrc121 = 145922, nSrcLost =     0, nSrcMulti =     0, MnSrcMultiHits = 0
+Saving target data
+Saving to ./tmp.mris_preproc.30014/049.9.mgh
+
+
+
+---------------------------------------------------
+#@# 10/40 067 Tue Sep 22 17:32:10 EDT 2009 --------------
+-----------------------
+mri_surf2surf --srcsubject 067 --srchemi lh --srcsurfreg sphere.reg --trgsubject fsaverage5 --trghemi lh --trgsurfreg sphere.reg --tval ./tmp.mris_preproc.30014/067.10.mgh --sval-area white --jac --noreshape --no-cortex
+Source registration surface changed to sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 067
+srcval     = (null)
+srctype    = 
+trgsubject = fsaverage5
+trgval     = ./tmp.mris_preproc.30014/067.10.mgh
+trgtype    = 
+srcsurfreg = sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+Reading source surface reg /space/birn/45/users/BWH/buckner_data/group_study/067/surf/lh.sphere.reg
+Loading source data
+Reading surface file /space/birn/45/users/BWH/buckner_data/group_study/067/surf/lh.white
+Reading target surface reg /space/birn/45/users/BWH/buckner_data/group_study/fsaverage5/surf/lh.sphere.reg
+Done
+Mapping Source Volume onto Source Subject Surface with Jacobian Correction
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: 1st Forward Loop (10242)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (137112)
+Reverse Loop had 126870 hits
+INFO: nSrcLost = 0
+nTrg121 =     1, nTrgMulti = 10241, MnTrgMultiHits = 13.3884
+nSrc121 = 137112, nSrcLost =     0, nSrcMulti =     0, MnSrcMultiHits = 0
+Saving target data
+Saving to ./tmp.mris_preproc.30014/067.10.mgh
+
+
+
+---------------------------------------------------
+#@# 11/40 073 Tue Sep 22 17:32:16 EDT 2009 --------------
+-----------------------
+mri_surf2surf --srcsubject 073 --srchemi lh --srcsurfreg sphere.reg --trgsubject fsaverage5 --trghemi lh --trgsurfreg sphere.reg --tval ./tmp.mris_preproc.30014/073.11.mgh --sval-area white --jac --noreshape --no-cortex
+Source registration surface changed to sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 073
+srcval     = (null)
+srctype    = 
+trgsubject = fsaverage5
+trgval     = ./tmp.mris_preproc.30014/073.11.mgh
+trgtype    = 
+srcsurfreg = sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+Reading source surface reg /space/birn/45/users/BWH/buckner_data/group_study/073/surf/lh.sphere.reg
+Loading source data
+Reading surface file /space/birn/45/users/BWH/buckner_data/group_study/073/surf/lh.white
+Reading target surface reg /space/birn/45/users/BWH/buckner_data/group_study/fsaverage5/surf/lh.sphere.reg
+Done
+Mapping Source Volume onto Source Subject Surface with Jacobian Correction
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: 1st Forward Loop (10242)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (165043)
+Reverse Loop had 154801 hits
+INFO: nSrcLost = 0
+nTrg121 =     0, nTrgMulti = 10242, MnTrgMultiHits = 16.1143
+nSrc121 = 165043, nSrcLost =     0, nSrcMulti =     0, MnSrcMultiHits = 0
+Saving target data
+Saving to ./tmp.mris_preproc.30014/073.11.mgh
+
+
+
+---------------------------------------------------
+#@# 12/40 074 Tue Sep 22 17:32:24 EDT 2009 --------------
+-----------------------
+mri_surf2surf --srcsubject 074 --srchemi lh --srcsurfreg sphere.reg --trgsubject fsaverage5 --trghemi lh --trgsurfreg sphere.reg --tval ./tmp.mris_preproc.30014/074.12.mgh --sval-area white --jac --noreshape --no-cortex
+Source registration surface changed to sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 074
+srcval     = (null)
+srctype    = 
+trgsubject = fsaverage5
+trgval     = ./tmp.mris_preproc.30014/074.12.mgh
+trgtype    = 
+srcsurfreg = sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+Reading source surface reg /space/birn/45/users/BWH/buckner_data/group_study/074/surf/lh.sphere.reg
+Loading source data
+Reading surface file /space/birn/45/users/BWH/buckner_data/group_study/074/surf/lh.white
+Reading target surface reg /space/birn/45/users/BWH/buckner_data/group_study/fsaverage5/surf/lh.sphere.reg
+Done
+Mapping Source Volume onto Source Subject Surface with Jacobian Correction
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: 1st Forward Loop (10242)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (115457)
+Reverse Loop had 105215 hits
+INFO: nSrcLost = 0
+nTrg121 =     0, nTrgMulti = 10242, MnTrgMultiHits = 11.2729
+nSrc121 = 115457, nSrcLost =     0, nSrcMulti =     0, MnSrcMultiHits = 0
+Saving target data
+Saving to ./tmp.mris_preproc.30014/074.12.mgh
+
+
+
+---------------------------------------------------
+#@# 13/40 080 Tue Sep 22 17:32:29 EDT 2009 --------------
+-----------------------
+mri_surf2surf --srcsubject 080 --srchemi lh --srcsurfreg sphere.reg --trgsubject fsaverage5 --trghemi lh --trgsurfreg sphere.reg --tval ./tmp.mris_preproc.30014/080.13.mgh --sval-area white --jac --noreshape --no-cortex
+Source registration surface changed to sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 080
+srcval     = (null)
+srctype    = 
+trgsubject = fsaverage5
+trgval     = ./tmp.mris_preproc.30014/080.13.mgh
+trgtype    = 
+srcsurfreg = sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+Reading source surface reg /space/birn/45/users/BWH/buckner_data/group_study/080/surf/lh.sphere.reg
+Loading source data
+Reading surface file /space/birn/45/users/BWH/buckner_data/group_study/080/surf/lh.white
+Reading target surface reg /space/birn/45/users/BWH/buckner_data/group_study/fsaverage5/surf/lh.sphere.reg
+Done
+Mapping Source Volume onto Source Subject Surface with Jacobian Correction
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: 1st Forward Loop (10242)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (153617)
+Reverse Loop had 143375 hits
+INFO: nSrcLost = 0
+nTrg121 =     5, nTrgMulti = 10237, MnTrgMultiHits = 15.0056
+nSrc121 = 153617, nSrcLost =     0, nSrcMulti =     0, MnSrcMultiHits = 0
+Saving target data
+Saving to ./tmp.mris_preproc.30014/080.13.mgh
+
+
+
+---------------------------------------------------
+#@# 14/40 084 Tue Sep 22 17:32:36 EDT 2009 --------------
+-----------------------
+mri_surf2surf --srcsubject 084 --srchemi lh --srcsurfreg sphere.reg --trgsubject fsaverage5 --trghemi lh --trgsurfreg sphere.reg --tval ./tmp.mris_preproc.30014/084.14.mgh --sval-area white --jac --noreshape --no-cortex
+Source registration surface changed to sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 084
+srcval     = (null)
+srctype    = 
+trgsubject = fsaverage5
+trgval     = ./tmp.mris_preproc.30014/084.14.mgh
+trgtype    = 
+srcsurfreg = sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+Reading source surface reg /space/birn/45/users/BWH/buckner_data/group_study/084/surf/lh.sphere.reg
+Loading source data
+Reading surface file /space/birn/45/users/BWH/buckner_data/group_study/084/surf/lh.white
+Reading target surface reg /space/birn/45/users/BWH/buckner_data/group_study/fsaverage5/surf/lh.sphere.reg
+Done
+Mapping Source Volume onto Source Subject Surface with Jacobian Correction
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: 1st Forward Loop (10242)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (134673)
+Reverse Loop had 124431 hits
+INFO: nSrcLost = 0
+nTrg121 =     6, nTrgMulti = 10236, MnTrgMultiHits = 13.1562
+nSrc121 = 134673, nSrcLost =     0, nSrcMulti =     0, MnSrcMultiHits = 0
+Saving target data
+Saving to ./tmp.mris_preproc.30014/084.14.mgh
+
+
+
+---------------------------------------------------
+#@# 15/40 091 Tue Sep 22 17:32:42 EDT 2009 --------------
+-----------------------
+mri_surf2surf --srcsubject 091 --srchemi lh --srcsurfreg sphere.reg --trgsubject fsaverage5 --trghemi lh --trgsurfreg sphere.reg --tval ./tmp.mris_preproc.30014/091.15.mgh --sval-area white --jac --noreshape --no-cortex
+Source registration surface changed to sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 091
+srcval     = (null)
+srctype    = 
+trgsubject = fsaverage5
+trgval     = ./tmp.mris_preproc.30014/091.15.mgh
+trgtype    = 
+srcsurfreg = sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+Reading source surface reg /space/birn/45/users/BWH/buckner_data/group_study/091/surf/lh.sphere.reg
+Loading source data
+Reading surface file /space/birn/45/users/BWH/buckner_data/group_study/091/surf/lh.white
+Reading target surface reg /space/birn/45/users/BWH/buckner_data/group_study/fsaverage5/surf/lh.sphere.reg
+Done
+Mapping Source Volume onto Source Subject Surface with Jacobian Correction
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: 1st Forward Loop (10242)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (130607)
+Reverse Loop had 120365 hits
+INFO: nSrcLost = 0
+nTrg121 =     0, nTrgMulti = 10242, MnTrgMultiHits = 12.7521
+nSrc121 = 130607, nSrcLost =     0, nSrcMulti =     0, MnSrcMultiHits = 0
+Saving target data
+Saving to ./tmp.mris_preproc.30014/091.15.mgh
+
+
+
+---------------------------------------------------
+#@# 16/40 092 Tue Sep 22 17:32:48 EDT 2009 --------------
+-----------------------
+mri_surf2surf --srcsubject 092 --srchemi lh --srcsurfreg sphere.reg --trgsubject fsaverage5 --trghemi lh --trgsurfreg sphere.reg --tval ./tmp.mris_preproc.30014/092.16.mgh --sval-area white --jac --noreshape --no-cortex
+Source registration surface changed to sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 092
+srcval     = (null)
+srctype    = 
+trgsubject = fsaverage5
+trgval     = ./tmp.mris_preproc.30014/092.16.mgh
+trgtype    = 
+srcsurfreg = sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+Reading source surface reg /space/birn/45/users/BWH/buckner_data/group_study/092/surf/lh.sphere.reg
+Loading source data
+Reading surface file /space/birn/45/users/BWH/buckner_data/group_study/092/surf/lh.white
+Reading target surface reg /space/birn/45/users/BWH/buckner_data/group_study/fsaverage5/surf/lh.sphere.reg
+Done
+Mapping Source Volume onto Source Subject Surface with Jacobian Correction
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: 1st Forward Loop (10242)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (141478)
+Reverse Loop had 131236 hits
+INFO: nSrcLost = 0
+nTrg121 =     2, nTrgMulti = 10240, MnTrgMultiHits = 13.816
+nSrc121 = 141478, nSrcLost =     0, nSrcMulti =     0, MnSrcMultiHits = 0
+Saving target data
+Saving to ./tmp.mris_preproc.30014/092.16.mgh
+
+
+
+---------------------------------------------------
+#@# 17/40 093 Tue Sep 22 17:32:54 EDT 2009 --------------
+-----------------------
+mri_surf2surf --srcsubject 093 --srchemi lh --srcsurfreg sphere.reg --trgsubject fsaverage5 --trghemi lh --trgsurfreg sphere.reg --tval ./tmp.mris_preproc.30014/093.17.mgh --sval-area white --jac --noreshape --no-cortex
+Source registration surface changed to sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 093
+srcval     = (null)
+srctype    = 
+trgsubject = fsaverage5
+trgval     = ./tmp.mris_preproc.30014/093.17.mgh
+trgtype    = 
+srcsurfreg = sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+Reading source surface reg /space/birn/45/users/BWH/buckner_data/group_study/093/surf/lh.sphere.reg
+Loading source data
+Reading surface file /space/birn/45/users/BWH/buckner_data/group_study/093/surf/lh.white
+Reading target surface reg /space/birn/45/users/BWH/buckner_data/group_study/fsaverage5/surf/lh.sphere.reg
+Done
+Mapping Source Volume onto Source Subject Surface with Jacobian Correction
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: 1st Forward Loop (10242)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (135842)
+Reverse Loop had 125600 hits
+INFO: nSrcLost = 0
+nTrg121 =     0, nTrgMulti = 10242, MnTrgMultiHits = 13.2632
+nSrc121 = 135842, nSrcLost =     0, nSrcMulti =     0, MnSrcMultiHits = 0
+Saving target data
+Saving to ./tmp.mris_preproc.30014/093.17.mgh
+
+
+
+---------------------------------------------------
+#@# 18/40 095 Tue Sep 22 17:33:00 EDT 2009 --------------
+-----------------------
+mri_surf2surf --srcsubject 095 --srchemi lh --srcsurfreg sphere.reg --trgsubject fsaverage5 --trghemi lh --trgsurfreg sphere.reg --tval ./tmp.mris_preproc.30014/095.18.mgh --sval-area white --jac --noreshape --no-cortex
+Source registration surface changed to sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 095
+srcval     = (null)
+srctype    = 
+trgsubject = fsaverage5
+trgval     = ./tmp.mris_preproc.30014/095.18.mgh
+trgtype    = 
+srcsurfreg = sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+Reading source surface reg /space/birn/45/users/BWH/buckner_data/group_study/095/surf/lh.sphere.reg
+Loading source data
+Reading surface file /space/birn/45/users/BWH/buckner_data/group_study/095/surf/lh.white
+Reading target surface reg /space/birn/45/users/BWH/buckner_data/group_study/fsaverage5/surf/lh.sphere.reg
+Done
+Mapping Source Volume onto Source Subject Surface with Jacobian Correction
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: 1st Forward Loop (10242)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (112289)
+Reverse Loop had 102047 hits
+INFO: nSrcLost = 0
+nTrg121 =     3, nTrgMulti = 10239, MnTrgMultiHits = 10.9665
+nSrc121 = 112289, nSrcLost =     0, nSrcMulti =     0, MnSrcMultiHits = 0
+Saving target data
+Saving to ./tmp.mris_preproc.30014/095.18.mgh
+
+
+
+---------------------------------------------------
+#@# 19/40 097 Tue Sep 22 17:33:06 EDT 2009 --------------
+-----------------------
+mri_surf2surf --srcsubject 097 --srchemi lh --srcsurfreg sphere.reg --trgsubject fsaverage5 --trghemi lh --trgsurfreg sphere.reg --tval ./tmp.mris_preproc.30014/097.19.mgh --sval-area white --jac --noreshape --no-cortex
+Source registration surface changed to sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 097
+srcval     = (null)
+srctype    = 
+trgsubject = fsaverage5
+trgval     = ./tmp.mris_preproc.30014/097.19.mgh
+trgtype    = 
+srcsurfreg = sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+Reading source surface reg /space/birn/45/users/BWH/buckner_data/group_study/097/surf/lh.sphere.reg
+Loading source data
+Reading surface file /space/birn/45/users/BWH/buckner_data/group_study/097/surf/lh.white
+Reading target surface reg /space/birn/45/users/BWH/buckner_data/group_study/fsaverage5/surf/lh.sphere.reg
+Done
+Mapping Source Volume onto Source Subject Surface with Jacobian Correction
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: 1st Forward Loop (10242)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (126479)
+Reverse Loop had 116237 hits
+INFO: nSrcLost = 0
+nTrg121 =     0, nTrgMulti = 10242, MnTrgMultiHits = 12.3491
+nSrc121 = 126479, nSrcLost =     0, nSrcMulti =     0, MnSrcMultiHits = 0
+Saving target data
+Saving to ./tmp.mris_preproc.30014/097.19.mgh
+
+
+
+---------------------------------------------------
+#@# 20/40 099 Tue Sep 22 17:33:12 EDT 2009 --------------
+-----------------------
+mri_surf2surf --srcsubject 099 --srchemi lh --srcsurfreg sphere.reg --trgsubject fsaverage5 --trghemi lh --trgsurfreg sphere.reg --tval ./tmp.mris_preproc.30014/099.20.mgh --sval-area white --jac --noreshape --no-cortex
+Source registration surface changed to sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 099
+srcval     = (null)
+srctype    = 
+trgsubject = fsaverage5
+trgval     = ./tmp.mris_preproc.30014/099.20.mgh
+trgtype    = 
+srcsurfreg = sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+Reading source surface reg /space/birn/45/users/BWH/buckner_data/group_study/099/surf/lh.sphere.reg
+Loading source data
+Reading surface file /space/birn/45/users/BWH/buckner_data/group_study/099/surf/lh.white
+Reading target surface reg /space/birn/45/users/BWH/buckner_data/group_study/fsaverage5/surf/lh.sphere.reg
+Done
+Mapping Source Volume onto Source Subject Surface with Jacobian Correction
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: 1st Forward Loop (10242)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (109490)
+Reverse Loop had 99248 hits
+INFO: nSrcLost = 0
+nTrg121 =     1, nTrgMulti = 10241, MnTrgMultiHits = 10.6912
+nSrc121 = 109490, nSrcLost =     0, nSrcMulti =     0, MnSrcMultiHits = 0
+Saving target data
+Saving to ./tmp.mris_preproc.30014/099.20.mgh
+
+
+
+---------------------------------------------------
+#@# 21/40 102 Tue Sep 22 17:33:17 EDT 2009 --------------
+-----------------------
+mri_surf2surf --srcsubject 102 --srchemi lh --srcsurfreg sphere.reg --trgsubject fsaverage5 --trghemi lh --trgsurfreg sphere.reg --tval ./tmp.mris_preproc.30014/102.21.mgh --sval-area white --jac --noreshape --no-cortex
+Source registration surface changed to sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 102
+srcval     = (null)
+srctype    = 
+trgsubject = fsaverage5
+trgval     = ./tmp.mris_preproc.30014/102.21.mgh
+trgtype    = 
+srcsurfreg = sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+Reading source surface reg /space/birn/45/users/BWH/buckner_data/group_study/102/surf/lh.sphere.reg
+Loading source data
+Reading surface file /space/birn/45/users/BWH/buckner_data/group_study/102/surf/lh.white
+Reading target surface reg /space/birn/45/users/BWH/buckner_data/group_study/fsaverage5/surf/lh.sphere.reg
+Done
+Mapping Source Volume onto Source Subject Surface with Jacobian Correction
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: 1st Forward Loop (10242)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (134152)
+Reverse Loop had 123910 hits
+INFO: nSrcLost = 0
+nTrg121 =     0, nTrgMulti = 10242, MnTrgMultiHits = 13.0982
+nSrc121 = 134152, nSrcLost =     0, nSrcMulti =     0, MnSrcMultiHits = 0
+Saving target data
+Saving to ./tmp.mris_preproc.30014/102.21.mgh
+
+
+
+---------------------------------------------------
+#@# 22/40 103 Tue Sep 22 17:33:23 EDT 2009 --------------
+-----------------------
+mri_surf2surf --srcsubject 103 --srchemi lh --srcsurfreg sphere.reg --trgsubject fsaverage5 --trghemi lh --trgsurfreg sphere.reg --tval ./tmp.mris_preproc.30014/103.22.mgh --sval-area white --jac --noreshape --no-cortex
+Source registration surface changed to sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 103
+srcval     = (null)
+srctype    = 
+trgsubject = fsaverage5
+trgval     = ./tmp.mris_preproc.30014/103.22.mgh
+trgtype    = 
+srcsurfreg = sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+Reading source surface reg /space/birn/45/users/BWH/buckner_data/group_study/103/surf/lh.sphere.reg
+Loading source data
+Reading surface file /space/birn/45/users/BWH/buckner_data/group_study/103/surf/lh.white
+Reading target surface reg /space/birn/45/users/BWH/buckner_data/group_study/fsaverage5/surf/lh.sphere.reg
+Done
+Mapping Source Volume onto Source Subject Surface with Jacobian Correction
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: 1st Forward Loop (10242)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (124217)
+Reverse Loop had 113975 hits
+INFO: nSrcLost = 0
+nTrg121 =     0, nTrgMulti = 10242, MnTrgMultiHits = 12.1282
+nSrc121 = 124217, nSrcLost =     0, nSrcMulti =     0, MnSrcMultiHits = 0
+Saving target data
+Saving to ./tmp.mris_preproc.30014/103.22.mgh
+
+
+
+---------------------------------------------------
+#@# 23/40 106 Tue Sep 22 17:33:29 EDT 2009 --------------
+-----------------------
+mri_surf2surf --srcsubject 106 --srchemi lh --srcsurfreg sphere.reg --trgsubject fsaverage5 --trghemi lh --trgsurfreg sphere.reg --tval ./tmp.mris_preproc.30014/106.23.mgh --sval-area white --jac --noreshape --no-cortex
+Source registration surface changed to sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 106
+srcval     = (null)
+srctype    = 
+trgsubject = fsaverage5
+trgval     = ./tmp.mris_preproc.30014/106.23.mgh
+trgtype    = 
+srcsurfreg = sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+Reading source surface reg /space/birn/45/users/BWH/buckner_data/group_study/106/surf/lh.sphere.reg
+Loading source data
+Reading surface file /space/birn/45/users/BWH/buckner_data/group_study/106/surf/lh.white
+Reading target surface reg /space/birn/45/users/BWH/buckner_data/group_study/fsaverage5/surf/lh.sphere.reg
+Done
+Mapping Source Volume onto Source Subject Surface with Jacobian Correction
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: 1st Forward Loop (10242)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (121105)
+Reverse Loop had 110863 hits
+INFO: nSrcLost = 0
+nTrg121 =     0, nTrgMulti = 10242, MnTrgMultiHits = 11.8244
+nSrc121 = 121105, nSrcLost =     0, nSrcMulti =     0, MnSrcMultiHits = 0
+Saving target data
+Saving to ./tmp.mris_preproc.30014/106.23.mgh
+
+
+
+---------------------------------------------------
+#@# 24/40 108 Tue Sep 22 17:33:34 EDT 2009 --------------
+-----------------------
+mri_surf2surf --srcsubject 108 --srchemi lh --srcsurfreg sphere.reg --trgsubject fsaverage5 --trghemi lh --trgsurfreg sphere.reg --tval ./tmp.mris_preproc.30014/108.24.mgh --sval-area white --jac --noreshape --no-cortex
+Source registration surface changed to sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 108
+srcval     = (null)
+srctype    = 
+trgsubject = fsaverage5
+trgval     = ./tmp.mris_preproc.30014/108.24.mgh
+trgtype    = 
+srcsurfreg = sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+Reading source surface reg /space/birn/45/users/BWH/buckner_data/group_study/108/surf/lh.sphere.reg
+Loading source data
+Reading surface file /space/birn/45/users/BWH/buckner_data/group_study/108/surf/lh.white
+Reading target surface reg /space/birn/45/users/BWH/buckner_data/group_study/fsaverage5/surf/lh.sphere.reg
+Done
+Mapping Source Volume onto Source Subject Surface with Jacobian Correction
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: 1st Forward Loop (10242)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (140678)
+Reverse Loop had 130436 hits
+INFO: nSrcLost = 0
+nTrg121 =     0, nTrgMulti = 10242, MnTrgMultiHits = 13.7354
+nSrc121 = 140678, nSrcLost =     0, nSrcMulti =     0, MnSrcMultiHits = 0
+Saving target data
+Saving to ./tmp.mris_preproc.30014/108.24.mgh
+
+
+
+---------------------------------------------------
+#@# 25/40 111 Tue Sep 22 17:33:41 EDT 2009 --------------
+-----------------------
+mri_surf2surf --srcsubject 111 --srchemi lh --srcsurfreg sphere.reg --trgsubject fsaverage5 --trghemi lh --trgsurfreg sphere.reg --tval ./tmp.mris_preproc.30014/111.25.mgh --sval-area white --jac --noreshape --no-cortex
+Source registration surface changed to sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 111
+srcval     = (null)
+srctype    = 
+trgsubject = fsaverage5
+trgval     = ./tmp.mris_preproc.30014/111.25.mgh
+trgtype    = 
+srcsurfreg = sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+Reading source surface reg /space/birn/45/users/BWH/buckner_data/group_study/111/surf/lh.sphere.reg
+Loading source data
+Reading surface file /space/birn/45/users/BWH/buckner_data/group_study/111/surf/lh.white
+Reading target surface reg /space/birn/45/users/BWH/buckner_data/group_study/fsaverage5/surf/lh.sphere.reg
+Done
+Mapping Source Volume onto Source Subject Surface with Jacobian Correction
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: 1st Forward Loop (10242)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (132727)
+Reverse Loop had 122485 hits
+INFO: nSrcLost = 0
+nTrg121 =     1, nTrgMulti = 10241, MnTrgMultiHits = 12.9603
+nSrc121 = 132727, nSrcLost =     0, nSrcMulti =     0, MnSrcMultiHits = 0
+Saving target data
+Saving to ./tmp.mris_preproc.30014/111.25.mgh
+
+
+
+---------------------------------------------------
+#@# 26/40 114 Tue Sep 22 17:33:47 EDT 2009 --------------
+-----------------------
+mri_surf2surf --srcsubject 114 --srchemi lh --srcsurfreg sphere.reg --trgsubject fsaverage5 --trghemi lh --trgsurfreg sphere.reg --tval ./tmp.mris_preproc.30014/114.26.mgh --sval-area white --jac --noreshape --no-cortex
+Source registration surface changed to sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 114
+srcval     = (null)
+srctype    = 
+trgsubject = fsaverage5
+trgval     = ./tmp.mris_preproc.30014/114.26.mgh
+trgtype    = 
+srcsurfreg = sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+Reading source surface reg /space/birn/45/users/BWH/buckner_data/group_study/114/surf/lh.sphere.reg
+Loading source data
+Reading surface file /space/birn/45/users/BWH/buckner_data/group_study/114/surf/lh.white
+Reading target surface reg /space/birn/45/users/BWH/buckner_data/group_study/fsaverage5/surf/lh.sphere.reg
+Done
+Mapping Source Volume onto Source Subject Surface with Jacobian Correction
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: 1st Forward Loop (10242)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (98503)
+Reverse Loop had 88261 hits
+INFO: nSrcLost = 0
+nTrg121 =     0, nTrgMulti = 10242, MnTrgMultiHits = 9.61756
+nSrc121 = 98503, nSrcLost =     0, nSrcMulti =     0, MnSrcMultiHits = 0
+Saving target data
+Saving to ./tmp.mris_preproc.30014/114.26.mgh
+
+
+
+---------------------------------------------------
+#@# 27/40 123 Tue Sep 22 17:33:51 EDT 2009 --------------
+-----------------------
+mri_surf2surf --srcsubject 123 --srchemi lh --srcsurfreg sphere.reg --trgsubject fsaverage5 --trghemi lh --trgsurfreg sphere.reg --tval ./tmp.mris_preproc.30014/123.27.mgh --sval-area white --jac --noreshape --no-cortex
+Source registration surface changed to sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 123
+srcval     = (null)
+srctype    = 
+trgsubject = fsaverage5
+trgval     = ./tmp.mris_preproc.30014/123.27.mgh
+trgtype    = 
+srcsurfreg = sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+Reading source surface reg /space/birn/45/users/BWH/buckner_data/group_study/123/surf/lh.sphere.reg
+Loading source data
+Reading surface file /space/birn/45/users/BWH/buckner_data/group_study/123/surf/lh.white
+Reading target surface reg /space/birn/45/users/BWH/buckner_data/group_study/fsaverage5/surf/lh.sphere.reg
+Done
+Mapping Source Volume onto Source Subject Surface with Jacobian Correction
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: 1st Forward Loop (10242)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (128636)
+Reverse Loop had 118394 hits
+INFO: nSrcLost = 0
+nTrg121 =     1, nTrgMulti = 10241, MnTrgMultiHits = 12.5608
+nSrc121 = 128636, nSrcLost =     0, nSrcMulti =     0, MnSrcMultiHits = 0
+Saving target data
+Saving to ./tmp.mris_preproc.30014/123.27.mgh
+
+
+
+---------------------------------------------------
+#@# 28/40 124 Tue Sep 22 17:33:57 EDT 2009 --------------
+-----------------------
+mri_surf2surf --srcsubject 124 --srchemi lh --srcsurfreg sphere.reg --trgsubject fsaverage5 --trghemi lh --trgsurfreg sphere.reg --tval ./tmp.mris_preproc.30014/124.28.mgh --sval-area white --jac --noreshape --no-cortex
+Source registration surface changed to sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 124
+srcval     = (null)
+srctype    = 
+trgsubject = fsaverage5
+trgval     = ./tmp.mris_preproc.30014/124.28.mgh
+trgtype    = 
+srcsurfreg = sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+Reading source surface reg /space/birn/45/users/BWH/buckner_data/group_study/124/surf/lh.sphere.reg
+Loading source data
+Reading surface file /space/birn/45/users/BWH/buckner_data/group_study/124/surf/lh.white
+Reading target surface reg /space/birn/45/users/BWH/buckner_data/group_study/fsaverage5/surf/lh.sphere.reg
+Done
+Mapping Source Volume onto Source Subject Surface with Jacobian Correction
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: 1st Forward Loop (10242)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (108533)
+Reverse Loop had 98291 hits
+INFO: nSrcLost = 0
+nTrg121 =     3, nTrgMulti = 10239, MnTrgMultiHits = 10.5997
+nSrc121 = 108533, nSrcLost =     0, nSrcMulti =     0, MnSrcMultiHits = 0
+Saving target data
+Saving to ./tmp.mris_preproc.30014/124.28.mgh
+
+
+
+---------------------------------------------------
+#@# 29/40 128 Tue Sep 22 17:34:03 EDT 2009 --------------
+-----------------------
+mri_surf2surf --srcsubject 128 --srchemi lh --srcsurfreg sphere.reg --trgsubject fsaverage5 --trghemi lh --trgsurfreg sphere.reg --tval ./tmp.mris_preproc.30014/128.29.mgh --sval-area white --jac --noreshape --no-cortex
+Source registration surface changed to sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 128
+srcval     = (null)
+srctype    = 
+trgsubject = fsaverage5
+trgval     = ./tmp.mris_preproc.30014/128.29.mgh
+trgtype    = 
+srcsurfreg = sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+Reading source surface reg /space/birn/45/users/BWH/buckner_data/group_study/128/surf/lh.sphere.reg
+Loading source data
+Reading surface file /space/birn/45/users/BWH/buckner_data/group_study/128/surf/lh.white
+Reading target surface reg /space/birn/45/users/BWH/buckner_data/group_study/fsaverage5/surf/lh.sphere.reg
+Done
+Mapping Source Volume onto Source Subject Surface with Jacobian Correction
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: 1st Forward Loop (10242)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (106672)
+Reverse Loop had 96430 hits
+INFO: nSrcLost = 0
+nTrg121 =     1, nTrgMulti = 10241, MnTrgMultiHits = 10.4161
+nSrc121 = 106672, nSrcLost =     0, nSrcMulti =     0, MnSrcMultiHits = 0
+Saving target data
+Saving to ./tmp.mris_preproc.30014/128.29.mgh
+
+
+
+---------------------------------------------------
+#@# 30/40 129 Tue Sep 22 17:34:08 EDT 2009 --------------
+-----------------------
+mri_surf2surf --srcsubject 129 --srchemi lh --srcsurfreg sphere.reg --trgsubject fsaverage5 --trghemi lh --trgsurfreg sphere.reg --tval ./tmp.mris_preproc.30014/129.30.mgh --sval-area white --jac --noreshape --no-cortex
+Source registration surface changed to sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 129
+srcval     = (null)
+srctype    = 
+trgsubject = fsaverage5
+trgval     = ./tmp.mris_preproc.30014/129.30.mgh
+trgtype    = 
+srcsurfreg = sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+Reading source surface reg /space/birn/45/users/BWH/buckner_data/group_study/129/surf/lh.sphere.reg
+Loading source data
+Reading surface file /space/birn/45/users/BWH/buckner_data/group_study/129/surf/lh.white
+Reading target surface reg /space/birn/45/users/BWH/buckner_data/group_study/fsaverage5/surf/lh.sphere.reg
+Done
+Mapping Source Volume onto Source Subject Surface with Jacobian Correction
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: 1st Forward Loop (10242)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (115671)
+Reverse Loop had 105429 hits
+INFO: nSrcLost = 0
+nTrg121 =     0, nTrgMulti = 10242, MnTrgMultiHits = 11.2938
+nSrc121 = 115671, nSrcLost =     0, nSrcMulti =     0, MnSrcMultiHits = 0
+Saving target data
+Saving to ./tmp.mris_preproc.30014/129.30.mgh
+
+
+
+---------------------------------------------------
+#@# 31/40 130 Tue Sep 22 17:34:13 EDT 2009 --------------
+-----------------------
+mri_surf2surf --srcsubject 130 --srchemi lh --srcsurfreg sphere.reg --trgsubject fsaverage5 --trghemi lh --trgsurfreg sphere.reg --tval ./tmp.mris_preproc.30014/130.31.mgh --sval-area white --jac --noreshape --no-cortex
+Source registration surface changed to sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 130
+srcval     = (null)
+srctype    = 
+trgsubject = fsaverage5
+trgval     = ./tmp.mris_preproc.30014/130.31.mgh
+trgtype    = 
+srcsurfreg = sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+Reading source surface reg /space/birn/45/users/BWH/buckner_data/group_study/130/surf/lh.sphere.reg
+Loading source data
+Reading surface file /space/birn/45/users/BWH/buckner_data/group_study/130/surf/lh.white
+Reading target surface reg /space/birn/45/users/BWH/buckner_data/group_study/fsaverage5/surf/lh.sphere.reg
+Done
+Mapping Source Volume onto Source Subject Surface with Jacobian Correction
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: 1st Forward Loop (10242)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (129872)
+Reverse Loop had 119630 hits
+INFO: nSrcLost = 0
+nTrg121 =     0, nTrgMulti = 10242, MnTrgMultiHits = 12.6803
+nSrc121 = 129872, nSrcLost =     0, nSrcMulti =     0, MnSrcMultiHits = 0
+Saving target data
+Saving to ./tmp.mris_preproc.30014/130.31.mgh
+
+
+
+---------------------------------------------------
+#@# 32/40 131 Tue Sep 22 17:34:19 EDT 2009 --------------
+-----------------------
+mri_surf2surf --srcsubject 131 --srchemi lh --srcsurfreg sphere.reg --trgsubject fsaverage5 --trghemi lh --trgsurfreg sphere.reg --tval ./tmp.mris_preproc.30014/131.32.mgh --sval-area white --jac --noreshape --no-cortex
+Source registration surface changed to sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 131
+srcval     = (null)
+srctype    = 
+trgsubject = fsaverage5
+trgval     = ./tmp.mris_preproc.30014/131.32.mgh
+trgtype    = 
+srcsurfreg = sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+Reading source surface reg /space/birn/45/users/BWH/buckner_data/group_study/131/surf/lh.sphere.reg
+Loading source data
+Reading surface file /space/birn/45/users/BWH/buckner_data/group_study/131/surf/lh.white
+Reading target surface reg /space/birn/45/users/BWH/buckner_data/group_study/fsaverage5/surf/lh.sphere.reg
+Done
+Mapping Source Volume onto Source Subject Surface with Jacobian Correction
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: 1st Forward Loop (10242)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (111844)
+Reverse Loop had 101602 hits
+INFO: nSrcLost = 0
+nTrg121 =     0, nTrgMulti = 10242, MnTrgMultiHits = 10.9201
+nSrc121 = 111844, nSrcLost =     0, nSrcMulti =     0, MnSrcMultiHits = 0
+Saving target data
+Saving to ./tmp.mris_preproc.30014/131.32.mgh
+
+
+
+---------------------------------------------------
+#@# 33/40 133 Tue Sep 22 17:34:24 EDT 2009 --------------
+-----------------------
+mri_surf2surf --srcsubject 133 --srchemi lh --srcsurfreg sphere.reg --trgsubject fsaverage5 --trghemi lh --trgsurfreg sphere.reg --tval ./tmp.mris_preproc.30014/133.33.mgh --sval-area white --jac --noreshape --no-cortex
+Source registration surface changed to sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 133
+srcval     = (null)
+srctype    = 
+trgsubject = fsaverage5
+trgval     = ./tmp.mris_preproc.30014/133.33.mgh
+trgtype    = 
+srcsurfreg = sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+Reading source surface reg /space/birn/45/users/BWH/buckner_data/group_study/133/surf/lh.sphere.reg
+Loading source data
+Reading surface file /space/birn/45/users/BWH/buckner_data/group_study/133/surf/lh.white
+Reading target surface reg /space/birn/45/users/BWH/buckner_data/group_study/fsaverage5/surf/lh.sphere.reg
+Done
+Mapping Source Volume onto Source Subject Surface with Jacobian Correction
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: 1st Forward Loop (10242)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (118641)
+Reverse Loop had 108399 hits
+INFO: nSrcLost = 0
+nTrg121 =     0, nTrgMulti = 10242, MnTrgMultiHits = 11.5838
+nSrc121 = 118641, nSrcLost =     0, nSrcMulti =     0, MnSrcMultiHits = 0
+Saving target data
+Saving to ./tmp.mris_preproc.30014/133.33.mgh
+
+
+
+---------------------------------------------------
+#@# 34/40 136 Tue Sep 22 17:34:30 EDT 2009 --------------
+-----------------------
+mri_surf2surf --srcsubject 136 --srchemi lh --srcsurfreg sphere.reg --trgsubject fsaverage5 --trghemi lh --trgsurfreg sphere.reg --tval ./tmp.mris_preproc.30014/136.34.mgh --sval-area white --jac --noreshape --no-cortex
+Source registration surface changed to sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 136
+srcval     = (null)
+srctype    = 
+trgsubject = fsaverage5
+trgval     = ./tmp.mris_preproc.30014/136.34.mgh
+trgtype    = 
+srcsurfreg = sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+Reading source surface reg /space/birn/45/users/BWH/buckner_data/group_study/136/surf/lh.sphere.reg
+Loading source data
+Reading surface file /space/birn/45/users/BWH/buckner_data/group_study/136/surf/lh.white
+Reading target surface reg /space/birn/45/users/BWH/buckner_data/group_study/fsaverage5/surf/lh.sphere.reg
+Done
+Mapping Source Volume onto Source Subject Surface with Jacobian Correction
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: 1st Forward Loop (10242)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (108842)
+Reverse Loop had 98600 hits
+INFO: nSrcLost = 0
+nTrg121 =     1, nTrgMulti = 10241, MnTrgMultiHits = 10.628
+nSrc121 = 108842, nSrcLost =     0, nSrcMulti =     0, MnSrcMultiHits = 0
+Saving target data
+Saving to ./tmp.mris_preproc.30014/136.34.mgh
+
+
+
+---------------------------------------------------
+#@# 35/40 138 Tue Sep 22 17:34:35 EDT 2009 --------------
+-----------------------
+mri_surf2surf --srcsubject 138 --srchemi lh --srcsurfreg sphere.reg --trgsubject fsaverage5 --trghemi lh --trgsurfreg sphere.reg --tval ./tmp.mris_preproc.30014/138.35.mgh --sval-area white --jac --noreshape --no-cortex
+Source registration surface changed to sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 138
+srcval     = (null)
+srctype    = 
+trgsubject = fsaverage5
+trgval     = ./tmp.mris_preproc.30014/138.35.mgh
+trgtype    = 
+srcsurfreg = sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+Reading source surface reg /space/birn/45/users/BWH/buckner_data/group_study/138/surf/lh.sphere.reg
+Loading source data
+Reading surface file /space/birn/45/users/BWH/buckner_data/group_study/138/surf/lh.white
+Reading target surface reg /space/birn/45/users/BWH/buckner_data/group_study/fsaverage5/surf/lh.sphere.reg
+Done
+Mapping Source Volume onto Source Subject Surface with Jacobian Correction
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: 1st Forward Loop (10242)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (119418)
+Reverse Loop had 109177 hits
+INFO: nSrcLost = 0
+nTrg121 =     3, nTrgMulti = 10239, MnTrgMultiHits = 11.6629
+nSrc121 = 119417, nSrcLost =     0, nSrcMulti =     1, MnSrcMultiHits = 2
+Saving target data
+Saving to ./tmp.mris_preproc.30014/138.35.mgh
+
+
+
+---------------------------------------------------
+#@# 36/40 140 Tue Sep 22 17:34:41 EDT 2009 --------------
+-----------------------
+mri_surf2surf --srcsubject 140 --srchemi lh --srcsurfreg sphere.reg --trgsubject fsaverage5 --trghemi lh --trgsurfreg sphere.reg --tval ./tmp.mris_preproc.30014/140.36.mgh --sval-area white --jac --noreshape --no-cortex
+Source registration surface changed to sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 140
+srcval     = (null)
+srctype    = 
+trgsubject = fsaverage5
+trgval     = ./tmp.mris_preproc.30014/140.36.mgh
+trgtype    = 
+srcsurfreg = sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+Reading source surface reg /space/birn/45/users/BWH/buckner_data/group_study/140/surf/lh.sphere.reg
+Loading source data
+Reading surface file /space/birn/45/users/BWH/buckner_data/group_study/140/surf/lh.white
+Reading target surface reg /space/birn/45/users/BWH/buckner_data/group_study/fsaverage5/surf/lh.sphere.reg
+Done
+Mapping Source Volume onto Source Subject Surface with Jacobian Correction
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: 1st Forward Loop (10242)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (136629)
+Reverse Loop had 126387 hits
+INFO: nSrcLost = 0
+nTrg121 =     4, nTrgMulti = 10238, MnTrgMultiHits = 13.3449
+nSrc121 = 136629, nSrcLost =     0, nSrcMulti =     0, MnSrcMultiHits = 0
+Saving target data
+Saving to ./tmp.mris_preproc.30014/140.36.mgh
+
+
+
+---------------------------------------------------
+#@# 37/40 141 Tue Sep 22 17:34:47 EDT 2009 --------------
+-----------------------
+mri_surf2surf --srcsubject 141 --srchemi lh --srcsurfreg sphere.reg --trgsubject fsaverage5 --trghemi lh --trgsurfreg sphere.reg --tval ./tmp.mris_preproc.30014/141.37.mgh --sval-area white --jac --noreshape --no-cortex
+Source registration surface changed to sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 141
+srcval     = (null)
+srctype    = 
+trgsubject = fsaverage5
+trgval     = ./tmp.mris_preproc.30014/141.37.mgh
+trgtype    = 
+srcsurfreg = sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+Reading source surface reg /space/birn/45/users/BWH/buckner_data/group_study/141/surf/lh.sphere.reg
+Loading source data
+Reading surface file /space/birn/45/users/BWH/buckner_data/group_study/141/surf/lh.white
+Reading target surface reg /space/birn/45/users/BWH/buckner_data/group_study/fsaverage5/surf/lh.sphere.reg
+Done
+Mapping Source Volume onto Source Subject Surface with Jacobian Correction
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: 1st Forward Loop (10242)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (128318)
+Reverse Loop had 118076 hits
+INFO: nSrcLost = 0
+nTrg121 =     4, nTrgMulti = 10238, MnTrgMultiHits = 12.5331
+nSrc121 = 128318, nSrcLost =     0, nSrcMulti =     0, MnSrcMultiHits = 0
+Saving target data
+Saving to ./tmp.mris_preproc.30014/141.37.mgh
+
+
+
+---------------------------------------------------
+#@# 38/40 144 Tue Sep 22 17:34:53 EDT 2009 --------------
+-----------------------
+mri_surf2surf --srcsubject 144 --srchemi lh --srcsurfreg sphere.reg --trgsubject fsaverage5 --trghemi lh --trgsurfreg sphere.reg --tval ./tmp.mris_preproc.30014/144.38.mgh --sval-area white --jac --noreshape --no-cortex
+Source registration surface changed to sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 144
+srcval     = (null)
+srctype    = 
+trgsubject = fsaverage5
+trgval     = ./tmp.mris_preproc.30014/144.38.mgh
+trgtype    = 
+srcsurfreg = sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+Reading source surface reg /space/birn/45/users/BWH/buckner_data/group_study/144/surf/lh.sphere.reg
+Loading source data
+Reading surface file /space/birn/45/users/BWH/buckner_data/group_study/144/surf/lh.white
+Reading target surface reg /space/birn/45/users/BWH/buckner_data/group_study/fsaverage5/surf/lh.sphere.reg
+Done
+Mapping Source Volume onto Source Subject Surface with Jacobian Correction
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: 1st Forward Loop (10242)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (134905)
+Reverse Loop had 124663 hits
+INFO: nSrcLost = 0
+nTrg121 =     0, nTrgMulti = 10242, MnTrgMultiHits = 13.1717
+nSrc121 = 134905, nSrcLost =     0, nSrcMulti =     0, MnSrcMultiHits = 0
+Saving target data
+Saving to ./tmp.mris_preproc.30014/144.38.mgh
+
+
+
+---------------------------------------------------
+#@# 39/40 145 Tue Sep 22 17:34:59 EDT 2009 --------------
+-----------------------
+mri_surf2surf --srcsubject 145 --srchemi lh --srcsurfreg sphere.reg --trgsubject fsaverage5 --trghemi lh --trgsurfreg sphere.reg --tval ./tmp.mris_preproc.30014/145.39.mgh --sval-area white --jac --noreshape --no-cortex
+Source registration surface changed to sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 145
+srcval     = (null)
+srctype    = 
+trgsubject = fsaverage5
+trgval     = ./tmp.mris_preproc.30014/145.39.mgh
+trgtype    = 
+srcsurfreg = sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+Reading source surface reg /space/birn/45/users/BWH/buckner_data/group_study/145/surf/lh.sphere.reg
+Loading source data
+Reading surface file /space/birn/45/users/BWH/buckner_data/group_study/145/surf/lh.white
+Reading target surface reg /space/birn/45/users/BWH/buckner_data/group_study/fsaverage5/surf/lh.sphere.reg
+Done
+Mapping Source Volume onto Source Subject Surface with Jacobian Correction
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: 1st Forward Loop (10242)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (134357)
+Reverse Loop had 124115 hits
+INFO: nSrcLost = 0
+nTrg121 =     4, nTrgMulti = 10238, MnTrgMultiHits = 13.123
+nSrc121 = 134357, nSrcLost =     0, nSrcMulti =     0, MnSrcMultiHits = 0
+Saving target data
+Saving to ./tmp.mris_preproc.30014/145.39.mgh
+
+
+
+---------------------------------------------------
+#@# 40/40 149 Tue Sep 22 17:35:05 EDT 2009 --------------
+-----------------------
+mri_surf2surf --srcsubject 149 --srchemi lh --srcsurfreg sphere.reg --trgsubject fsaverage5 --trghemi lh --trgsurfreg sphere.reg --tval ./tmp.mris_preproc.30014/149.40.mgh --sval-area white --jac --noreshape --no-cortex
+Source registration surface changed to sphere.reg
+Target registration surface changed to sphere.reg
+srcsubject = 149
+srcval     = (null)
+srctype    = 
+trgsubject = fsaverage5
+trgval     = ./tmp.mris_preproc.30014/149.40.mgh
+trgtype    = 
+srcsurfreg = sphere.reg
+trgsurfreg = sphere.reg
+srchemi    = lh
+trghemi    = lh
+frame      = 0
+fwhm-in    = 0
+fwhm-out   = 0
+label-src  = (null)
+label-trg  = (null)
+OKToRevFaceOrder  = 1
+Reading source surface reg /space/birn/45/users/BWH/buckner_data/group_study/149/surf/lh.sphere.reg
+Loading source data
+Reading surface file /space/birn/45/users/BWH/buckner_data/group_study/149/surf/lh.white
+Reading target surface reg /space/birn/45/users/BWH/buckner_data/group_study/fsaverage5/surf/lh.sphere.reg
+Done
+Mapping Source Volume onto Source Subject Surface with Jacobian Correction
+surf2surf_nnfr: building source hash (res=16).
+Surf2Surf: 1st Forward Loop (10242)
+
+surf2surf_nnfr: building target hash (res=16).
+Surf2Surf: Reverse Loop (102891)
+Reverse Loop had 92649 hits
+INFO: nSrcLost = 0
+nTrg121 =     0, nTrgMulti = 10242, MnTrgMultiHits = 10.046
+nSrc121 = 102891, nSrcLost =     0, nSrcMulti =     0, MnSrcMultiHits = 0
+Saving target data
+Saving to ./tmp.mris_preproc.30014/149.40.mgh
+
+
+
+-----------------------
+mri_concat ./tmp.mris_preproc.30014/004.1.mgh ./tmp.mris_preproc.30014/008.2.mgh ./tmp.mris_preproc.30014/017.3.mgh ./tmp.mris_preproc.30014/021.4.mgh ./tmp.mris_preproc.30014/032.5.mgh ./tmp.mris_preproc.30014/039.6.mgh ./tmp.mris_preproc.30014/040.7.mgh ./tmp.mris_preproc.30014/045.8.mgh ./tmp.mris_preproc.30014/049.9.mgh ./tmp.mris_preproc.30014/067.10.mgh ./tmp.mris_preproc.30014/073.11.mgh ./tmp.mris_preproc.30014/074.12.mgh ./tmp.mris_preproc.30014/080.13.mgh ./tmp.mris_preproc.30014/084.14.mgh ./tmp.mris_preproc.30014/091.15.mgh ./tmp.mris_preproc.30014/092.16.mgh ./tmp.mris_preproc.30014/093.17.mgh ./tmp.mris_preproc.30014/095.18.mgh ./tmp.mris_preproc.30014/097.19.mgh ./tmp.mris_preproc.30014/099.20.mgh ./tmp.mris_preproc.30014/102.21.mgh ./tmp.mris_preproc.30014/103.22.mgh ./tmp.mris_preproc.30014/106.23.mgh ./tmp.mris_preproc.30014/108.24.mgh ./tmp.mris_preproc.30014/111.25.mgh ./tmp.mris_preproc.30014/114.26.mgh ./tmp.mris_preproc.30014/123.27.mgh ./tmp.mris_preproc.30014/124.28.mgh ./tmp.mris_preproc.30014/128.29.mgh ./tmp.mris_preproc.30014/129.30.mgh ./tmp.mris_preproc.30014/130.31.mgh ./tmp.mris_preproc.30014/131.32.mgh ./tmp.mris_preproc.30014/133.33.mgh ./tmp.mris_preproc.30014/136.34.mgh ./tmp.mris_preproc.30014/138.35.mgh ./tmp.mris_preproc.30014/140.36.mgh ./tmp.mris_preproc.30014/141.37.mgh ./tmp.mris_preproc.30014/144.38.mgh ./tmp.mris_preproc.30014/145.39.mgh ./tmp.mris_preproc.30014/149.40.mgh --o lh.white.avg.area.mgh --mean
+ninputs = 40
+Checking inputs
+nframestot = 40
+Allocing output
+nframes = 40
+Computing mean across frames
+Writing to lh.white.avg.area.mgh
+
+
+
+Cleaning up
+-----------------------
+rm -r ./tmp.mris_preproc.30014
+Tue Sep 22 17:35:12 EDT 2009
+mris_preproc done
