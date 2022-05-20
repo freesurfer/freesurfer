@@ -188,7 +188,7 @@ function cleanup {
         echo "$(tput setaf 1)error:$(tput sgr 0) test failed"
     fi
 }
-# trap cleanup EXIT
+trap cleanup EXIT
 
 # hook to catch if the script is killed
 function abort {
