@@ -1,0 +1,1 @@
+mris_ca_label -l ../label/rh.cortex.label -aseg ../mri/aseg.mgz -seed 1234 avg35rerun rh ../surf/rh.sphere.reg /usr/local/freesurfer/dev/average/rh.curvature.buckner40.filled.desikan_killiany.2010-03-25.gcs ../label/rh.aparc.annot

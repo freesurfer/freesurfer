@@ -1,0 +1,10 @@
+------------------------------
+SUBJECT avg35rerun
+DATE Tue Apr 20 21:41:54 EDT 2010
+USER lzollei
+HOST compute-0-38.local
+PROCESSOR x86_64
+OS Linux
+Linux compute-0-38.local 2.6.18-53.1.19.el5 #1 SMP Tue Apr 22 03:01:10 EDT 2008 x86_64 x86_64 x86_64 GNU/Linux
+$Id: recon-all,v 1.311 2010/04/15 15:34:44 nicks Exp $
+/usr/local/freesurfer/dev/bin/recon-all

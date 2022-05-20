@@ -1,0 +1,65 @@
+status file for recon-all
+Tue Apr 20 09:52:29 EDT 2010
+#@# MotionCor Tue Apr 20 09:52:46 EDT 2010
+#@# Nu Intensity Correction Tue Apr 20 09:52:59 EDT 2010
+#@# Talairach Tue Apr 20 09:55:27 EDT 2010
+#@# Talairach Failure Detection Tue Apr 20 09:56:19 EDT 2010
+#@# Intensity Normalization Tue Apr 20 09:56:20 EDT 2010
+#@# Skull Stripping Tue Apr 20 09:58:31 EDT 2010
+#@# EM Registration Tue Apr 20 10:17:14 EDT 2010
+#@# CA Normalize Tue Apr 20 10:44:28 EDT 2010
+#@# CA Reg Tue Apr 20 10:46:20 EDT 2010
+#@# CA Reg Inv Tue Apr 20 14:15:54 EDT 2010
+#@# Remove Neck Tue Apr 20 14:16:55 EDT 2010
+#@# SkullLTA Tue Apr 20 14:18:03 EDT 2010
+#@# SubCort Seg Tue Apr 20 14:42:07 EDT 2010
+#@# Merge ASeg Tue Apr 20 15:02:48 EDT 2010
+#@# Intensity Normalization2 Tue Apr 20 15:02:49 EDT 2010
+#@# Mask BFS Tue Apr 20 15:06:20 EDT 2010
+#@# WM Segmentation Tue Apr 20 15:06:22 EDT 2010
+#@# Fill Tue Apr 20 15:08:03 EDT 2010
+#@# Tessellate lh Tue Apr 20 15:08:59 EDT 2010
+#@# Smooth1 lh Tue Apr 20 15:09:09 EDT 2010
+#@# Inflation1 lh Tue Apr 20 15:09:14 EDT 2010
+#@# QSphere lh Tue Apr 20 15:10:13 EDT 2010
+#@# Fix Topology lh Tue Apr 20 15:17:06 EDT 2010
+#@# Make Final Surf lh Tue Apr 20 15:28:40 EDT 2010
+#@# Surf Volume lh Tue Apr 20 15:43:03 EDT 2010
+#@# Smooth2 lh Tue Apr 20 15:43:04 EDT 2010
+#@# Inflation2 lh Tue Apr 20 15:43:09 EDT 2010
+#@# Curvature Stats lh Tue Apr 20 15:45:35 EDT 2010
+#@# Sphere lh Tue Apr 20 15:45:42 EDT 2010
+#@# Surf Reg lh Tue Apr 20 17:12:59 EDT 2010
+#@# Jacobian white lh Tue Apr 20 18:04:26 EDT 2010
+#@# AvgCurv lh Tue Apr 20 18:04:29 EDT 2010
+#@# Cortical Parc lh Tue Apr 20 18:04:32 EDT 2010
+#@# Parcellation Stats lh Tue Apr 20 18:05:26 EDT 2010
+#@# Cortical Parc 2 lh Tue Apr 20 18:05:42 EDT 2010
+#@# Parcellation Stats 2 lh Tue Apr 20 18:06:43 EDT 2010
+#@# Tessellate rh Tue Apr 20 18:07:02 EDT 2010
+#@# Smooth1 rh Tue Apr 20 18:07:11 EDT 2010
+#@# Inflation1 rh Tue Apr 20 18:07:16 EDT 2010
+#@# QSphere rh Tue Apr 20 18:08:13 EDT 2010
+#@# Fix Topology rh Tue Apr 20 18:14:10 EDT 2010
+#@# Make Final Surf rh Tue Apr 20 18:26:12 EDT 2010
+#@# Surf Volume rh Tue Apr 20 18:40:24 EDT 2010
+#@# Smooth2 rh Tue Apr 20 18:40:25 EDT 2010
+#@# Inflation2 rh Tue Apr 20 18:40:30 EDT 2010
+#@# Curvature Stats rh Tue Apr 20 18:42:51 EDT 2010
+#@# Sphere rh Tue Apr 20 18:42:57 EDT 2010
+#@# Surf Reg rh Tue Apr 20 19:51:35 EDT 2010
+#@# Jacobian white rh Tue Apr 20 20:48:41 EDT 2010
+#@# AvgCurv rh Tue Apr 20 20:48:43 EDT 2010
+#@# Cortical Parc rh Tue Apr 20 20:48:46 EDT 2010
+#@# Parcellation Stats rh Tue Apr 20 20:49:39 EDT 2010
+#@# Cortical Parc 2 rh Tue Apr 20 20:49:54 EDT 2010
+#@# Parcellation Stats 2 rh Tue Apr 20 20:50:55 EDT 2010
+#@# Cortical ribbon mask Tue Apr 20 20:51:12 EDT 2010
+#@# ASeg Stats Tue Apr 20 21:05:30 EDT 2010
+#@# AParc-to-ASeg Tue Apr 20 21:15:27 EDT 2010
+#@# WMParc Tue Apr 20 21:18:04 EDT 2010
+#@# BA Labels lh Tue Apr 20 21:36:58 EDT 2010
+#@# BA Labels rh Tue Apr 20 21:39:09 EDT 2010
+#@# Ex-vivo Entorhinal Cortex Label lh Tue Apr 20 21:41:17 EDT 2010
+#@# Ex-vivo Entorhinal Cortex Label rh Tue Apr 20 21:41:35 EDT 2010
+recon-all -s avg35rerun finished without error at Tue Apr 20 21:41:54 EDT 2010

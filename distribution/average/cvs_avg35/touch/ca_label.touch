@@ -1,0 +1,1 @@
+mri_cc -aseg aseg.auto_noCCseg.mgz -o aseg.auto.mgz -lta /autofs/cluster/con_001/users/lilla/CVS_atlas/buckner35rerun/avg35rerun/mri/transforms/cc_up.lta avg35rerun
