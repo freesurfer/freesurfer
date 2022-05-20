@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
-import freesurfer as fs
+import argparse
+import surfa as sf
 from freesurfer.samseg import icv
 
 description = '''
@@ -10,7 +11,7 @@ a default list is used. Labelnames must be identical to those defined in the sam
 '''
 
 # parse command line args
-parser = fs.utils.ArgumentParser(description=description)
+parser = argparse.ArgumentParser(description=description)
 parser.add_argument('stats', metavar='FILE', help='Volume stats input file.')
 parser.add_argument('-o', '--out', metavar='FILE', help='Intracranial stats output file.')
 parser.add_argument('-l', '--labels', metavar="FILE", help='File containing a list of intracranial structure labelnames to include in the calculation.')

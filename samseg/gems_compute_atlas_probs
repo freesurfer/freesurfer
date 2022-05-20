@@ -16,11 +16,12 @@ import sys
 import os
 import numpy as np
 import nibabel as nib
-import freesurfer as fs
+import surfa as sf
 import time
+import argparse
 from freesurfer import samseg
 
-parser = fs.utils.ArgumentParser()
+parser = argparse.ArgumentParser()
 parser.add_argument('--subjects-dir', help='Directory with saved SAMSEG runs with --history flag.', required=True)
 parser.add_argument('--mesh-collections', nargs='+', help='Mesh collection file(s).', required=True)
 parser.add_argument('--out-dir', help='Output directory.', required=True)

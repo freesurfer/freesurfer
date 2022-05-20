@@ -1,19 +1,23 @@
 #!/usr/bin/env python
 
-description = """Merge/add prior spatial probabilities (alphas) with those of an existing
-SAMSEG mesh to create a new mesh/atlas. Should be run on the output of
-gems_compute_atlas_probs.  """
-
 import sys
 import os
 import numpy as np
-import freesurfer as fs
+import argparse
+import surfa as sf
 from freesurfer.samseg.io import kvlReadCompressionLookupTable
 from freesurfer import samseg
 
+
 eps = np.finfo(float).eps
 
-parser = fs.utils.ArgumentParser(description=description)
+description = """
+Merge/add prior spatial probabilities (alphas) with those of an existing
+SAMSEG mesh to create a new mesh/atlas. Should be run on the output of
+gems_compute_atlas_probs.
+"""
+
+parser = argparse.ArgumentParser(description=description)
 parser.add_argument('--out-dir', help='Output directory.', required=True)
 parser.add_argument('--estimated-alpha-dirs', nargs='+', help='Estimated alphas dirs', required=True)
 parser.add_argument('--samseg-atlas-dir', help='Samseg original directory; default in FS/average')
@@ -31,7 +35,7 @@ samseg_subjects = 20
 if (args.samseg_atlas_dir != None):
     samseg_atlas_dir = args.samseg_atlas_dir
 else:
-    fsh = os.environ['FREESURFER_HOME']
+    fsh = os.environ.get('FREESURFER_HOME')
     samseg_atlas_dir = fsh + "/average/samseg/20Subjects_smoothing2_down2_smoothingForAffine2"
 
 if args.levellist != None:

@@ -8,17 +8,14 @@ from sklearn.utils import class_weight
 from nibabel import processing as nip
 import numpy as np
 import scipy.ndimage.morphology as morph
-import freesurfer.deeplearn as fsd
-from freesurfer.deeplearn import utils, pprint
-import freesurfer as fs
+import surfa as sf
 import os,socket
 from netshape import *
 from dipy.align.reslice import reslice
 import neuron as ne
 import voxelmorph as vxm
 from netparms import *
-from freesurfer import deeplearn as fsd
-from freesurfer.deeplearn.utils import WeightsSaver, ModelSaver
+from freesurfer.deeplearn.utils import WeightsSaver, ModelSaver, utils, pprint
 import imageio, pydicom, gdcm, load_serial_cxr
 from load_serial_cxr import load_timepoints
 from neuron.utils import resize
@@ -176,9 +173,6 @@ def BatchGeneratorSurf(vol_list, seg_list, dtrans_list, npoints, nlabels, batch_
 
 train_affine = True
 scale=1
-print('running on host %s, GPU %d, train_affine %s' % (host, gpu_number, str(train_affine)))
-fsd.configure(gpu=gpu_number)
-
 
 
 batch_size=16
@@ -239,12 +233,12 @@ if 1:
     bg2 = BatchGeneratorSurf(vol_list, seg_list, dtrans_list, npoints, nlabels, batch_size=batch_size,return_warp=False, bidir=bidir)
     inb,outb = next(bg2)
     p = affine_model.predict(inb)
-    fv = fs.Freeview()
-    fv.vol(np.transpose(inb[0][...,0], (1,2,0)), name='src')
-    fv.vol(np.transpose(inb[1][...,0], (1,2,0)), name='trg')
+    fv = sf.vis.Freeview()
+    fv.add_image(np.transpose(inb[0][...,0], (1,2,0)), name='src')
+    fv.add_image(np.transpose(inb[1][...,0], (1,2,0)), name='trg')
     if isinstance(p, list):
         p = p[0]
-    fv.vol(np.transpose(p[...,0], (1,2,0)), name='p')
+    fv.add_image(np.transpose(p[...,0], (1,2,0)), name='p')
     fv.show()
     affine_pred_model = keras.models.Model(affine_model.inputs, affine_model.references.affines[0])
     affine = affine_pred_model.predict(inb)
@@ -292,15 +286,15 @@ if 1:
     affine_p = affine_model.predict(inb)
     if isinstance(affine_p, list):
         affine_p = affine_p[0]
-    fv = fs.Freeview()
-    fv.vol(np.transpose(src, (1,2,0,3)), name='src')
-    fv.vol(np.transpose(trg, (1,2,0,3)), name='trg')
+    fv = sf.vis.Freeview()
+    fv.add_image(np.transpose(src, (1,2,0,3)), name='src')
+    fv.add_image(np.transpose(trg, (1,2,0,3)), name='trg')
     if which_loss == 'tukey':
         name = 'pred.%s.%s.sym.%s.affine.%s' % (transform_type,str(which_loss)+str(tukey_c),str(symmetrize),str(train_affine))
     else:
         name = 'pred.%s.%s.sym.%s.affine.%s' % (transform_type,str(which_loss),str(symmetrize),str(train_affine))
-    fv.vol(np.transpose(affine_p, (1,2,0,3)), name='affine'+name)
-    fv.vol(np.transpose(nl_p, (1,2,0,3)), name='NL'+name)
+    fv.add_image(np.transpose(affine_p, (1,2,0,3)), name='affine'+name)
+    fv.add_image(np.transpose(nl_p, (1,2,0,3)), name='NL'+name)
     fv.show()
     affine_pred_model = affine_model.get_predictor_model()
     affine = affine_pred_model.predict(inb)

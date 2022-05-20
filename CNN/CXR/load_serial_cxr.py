@@ -4,12 +4,13 @@ import pydicom
 import gdcm
 import os
 import numpy as np
-import freesurfer as fs
+import surfa as sf
 import pdb as gdb
 import neuron as ne
 from scipy import ndimage
 from scipy.ndimage.interpolation import zoom
 import scipy.ndimage.morphology as morph
+
 
 def load_serial_cxr(base_path, subject_names='CVM*', study_names='CVA*'):
     subject_name_list = glob.glob(os.path.join(base_path, subject_names))
@@ -95,7 +96,7 @@ def load_timepoints(bdir, target_shape, tp_name='time??.mgz', dthresh=-1, ndilat
             for ino, im in enumerate(ilist2):
                 tokens = sl[sno][ind[ino]].split('/')
                 fname = '/'.join(tokens[0:-2]) + '/time%2.2d.mgz' % ino
-                vol = fs.Image.read(fname)
+                vol = sf.load_slice(fname)
                 zoomx = target_shape[0]/vol.shape[0]
                 zoomy = target_shape[1]/vol.shape[1]
                 vol.data = zoom(vol.data,(zoomx, zoomy),order=1)
@@ -108,7 +109,7 @@ def load_timepoints(bdir, target_shape, tp_name='time??.mgz', dthresh=-1, ndilat
                     svol = None
                     bad = True
                 else:
-                    svol = fs.Image.read(fname)
+                    svol = sf.load_slice(fname)
                     
                     svol.data = zoom(svol.data,(zoomx, zoomy),order=0)
                     u = np.unique(svol.data)
