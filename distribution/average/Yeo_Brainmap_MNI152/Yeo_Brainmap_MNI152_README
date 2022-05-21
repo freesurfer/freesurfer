@@ -1,0 +1,69 @@
+=====================
+Section 1: Background
+=====================
+This folder contains the estimated maps and results from Yeo et al. (in press) in MNI152 space. We estimated the distribution and degree of functional specialization within the association cortex based on a large-scale neuroimaging meta-analysis (N=10,449) and resting-state fMRI analyses (N=1000). By mathematically formalizing the notion that a task engages multiple cognitive components, which are each supported by multiple brain regions, we identified cognitive components that are shared across tasks. We derived quantitative functional specialization maps, revealing tesselated frontal and parietal regions ranging from highly specialized to highly flexible. Regions specialized for the same components were strongly coupled. Functionally flexible regions were functionally heterogeneous and exhibited connectivity patterns that may drive their selectivity for individual components. Our results suggest that heterogeneous networks of functionally specialized and functionally flexible association regions contribute to our capacity to execute multiple and varied tasks.
+
+
+=============================================
+Section 2: Files in Folder (Excluding README)
+=============================================
+1) FSL_MNI152_2mm.nii.gz
+2) Yeo_XXComp_PrCompGivenTasks.csv
+3) Yeo_XXComp_PrActGivenComp_FSL_MNI152_2mm.nii.gz
+4) Yeo_XXComp_Flexibility.nii.gz
+5) Yeo_XXComp_Specialization.nii.gz
+
+
+====================================================
+Section 3: Description of files
+====================================================
+1) FSL_MNI152_2mm.nii.gz corresponds to the MNI152 template released by FSL software. 
+
+2) Yeo_XXComp_PrCompGivenTasks.csv is a comma-separated-value file of Pr(component | task). The file can be opened in excel or other software that can read csv files. For example, Yeo_12Comp_PrCompGivenTasks.csv corresponds to 12 components shown in the paper. The first column corresponds to the 83 behavioral tasks (paradigm class) in BrainMap. The next 12 columns correspond to Pr(component | task) for each of the 12 components.
+
+3) Yeo_XXComp_PrActGivenComp_FSL_MNI152_2mm.nii.gz is a 4D volume showing Pr(voxel | component) for XX components. It has exactly the same resolution as FSL_MNI152_2mm.nii.gz. The 4-th dimension corresponds to the XX components. For example, Yeo_12Comp_PrActGivenComp_FSL_MNI152_2mm.nii.gz corresponds to 12 components shown in the paper. Note that the probability distribution is over all the voxels in the brain mask. Given that there are about 280k voxels, the probability values are therefore quite small: in the order of 1/280k, which is about 3e-6. Because some image viewers do not handle these range of values very well, we have multipled all the values by 1e5. Therefore in the resulting volumes, value of 1 corresponds to probability of 1e-5.
+
+4) Yeo_XXComp_Flexibility.nii.gz is a 3D volume quantifying flexible regions activated by multiple components. For example, Yeo_12Comp_Flexibility.nii.gz correspond to the number of components (out of 12 components) that activates a brain voxel with probability at least 1e-5. Therefore a value of 2 means that a voxel has greater than 1e-5 probability of being activated by two components. In the paper, we consider such a voxel to be functionally flexible. Note that the flexibilty measures are not integer-valued because the original estimate was computed in a volume (in the same space but different header information). The resulting linear interpolation into FSL MNI152 resulted in the non integer-values.
+
+5) Yeo_XXComp_Specialization.nii.gz is a 3D volume quantifying the specialization of brain regions. For example, Yeo_12Comp_Specialization.nii.gz correspond to the 12-component specialization map from the paper (although computed in the volume rather than the surface). The number corresponds to log2 of Pr(top component | voxel)/Pr(second top component | voxel). Therefore a value of 1 indicates functional specificity, because it means that if the voxel was observed to be activated, then the top component would be twice as likely as the second most likely component to be recruited.
+
+
+====================================================
+Section 4: Example Usage
+====================================================
+The following example usages assume that the working (current) directory is in the same directory as this README. 
+
+1) Except for the csv files (which can be opened with EXCEL), all the volumes are nifty volumes which can be read using any software like freeview (FreeSurfer), fslview (FSL), etc.
+
+2) To overlay the 12-component Pr(voxel | component) on the MNI template using freeview: 
+a) type: freeview -v FSL_MNI152_2mm.nii.gz -v Yeo_12Comp_PrActGivenComp_FSL_MNI152_2mm.nii.gz:colormap=heat:heatscale=1,3,5
+b) By default, the 1st component is shown. 
+c) In the freeview GUI, change "frame" to "4" to show the 5th component and so on. (Note that frame numbering for freeview 6 starts from 0, while previous versions start from 1)
+
+This is the colorscale and software used to produce volumetric figures for the paper. Only voxel with values at least 1 (corresponding to probability of 1e-5) are colored.  
+
+3) To overlay the 12-component Pr(voxel | component) on the MNI template using fslview:
+a) type: fslview FSL_MNI152_2mm.nii.gz Yeo_12Comp_PrActGivenComp_FSL_MNI152_2mm.nii.gz -l "Red-Yellow" -b 1,5
+b) Note that fslview's numbering starts at 0. In the fslview GUI, change "Volume" to "4" to show the 5th component and so on. Again, note that voxel with values at least 1 (corresponding to probability of 1e-5) are colored. Values of 5 correspond to probability of 5e-5, etc.
+
+4) To overlay the 12-component flexibility maps on the MNI template using freeview, type:
+freeview -v FSL_MNI152_2mm.nii.gz Yeo_12Comp_Flexibility.nii.gz:colormap=heat:heatscale=2,3,5
+
+5) To overlay the 12-component specialization maps on the MNI template using freeview, type:
+freeview -v FSL_MNI152_2mm.nii.gz Yeo_12Comp_Specialization.nii.gz:colormap=heat:heatscale=1,3,5
+
+Observe that there are some noisy clusters of "specific" voxels outside the MNI152 brain. The reason is that we have used a relatively loose brain mask in order to not miss anything. To remove these noisy clusters, one possibility is to mask the map using voxels of FSL_MNI152_2mm.nii.gz which are not equal 0 (voxels = 0 correspond to non-brain regions in MNI template).
+
+
+====================================================
+Section 5: Other downloads
+====================================================
+The maps are also available in fsaverage space (see $FREESURFER_HOME/subjects/fsaverage/)
+
+=====================
+Section 6: References
+=====================
+Yeo BT, Krienen FM, Eickhoff SB, Yaakub SN, Fox PT, Buckner RL, Asplund CL, Chee MWL. Functional Specialization and Flexibility in the Human Association Cortex, Cerebral Cortex
+
+Also see: https://surfer.nmr.mgh.harvard.edu/fswiki/BrainmapOntology_Yeo2015
+
