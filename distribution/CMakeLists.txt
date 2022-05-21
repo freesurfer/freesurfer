@@ -57,7 +57,14 @@ install_symlinks(
 if(NOT MINIMAL)
   add_subdirectory(diffusion)
   install(FILES sessions/README DESTINATION sessions)
-  install_tarball(trctrain.tar.gz DESTINATION .)
+  install_directories(
+
+    DESTINATION .
+    trctrain
+
+  )
+
+ 
 endif()
 
 # FSL commands

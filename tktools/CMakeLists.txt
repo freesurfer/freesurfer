@@ -33,6 +33,11 @@ if(NOT APPLE)
     DESTINATION tktools
   )
 
-  install_tarball(resources.tar.gz DESTINATION lib)
+  install_directories(
+
+    DESTINATION lib
+    resources
+
+  )
 
 endif()
