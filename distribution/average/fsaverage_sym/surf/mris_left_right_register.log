@@ -1,0 +1,891 @@
+$Id: mris_left_right_register.c,v 1.2 2011/12/16 20:49:37 greve Exp $
+  $Id: mrisurf.c,v 1.709 2011/12/19 04:36:20 greve Exp $
+reading lh surface from lh.sphere...
+reading rh surface from rh.sphere...
+curvature mean = 0.131, std = 0.868
+curvature mean = 0.036, std = 0.518
+curvature mean = 0.026, std = 0.177
+MRISregister() -------
+max_passes = 4 
+min_degrees = 0.500000 
+max_degrees = 64.000000 
+nangles = 8 
+tol=5.0e-01, sigma=0.0, host=tanha, nav=1024, nbrs=1, l_extern=10000.000, l_parea=0.100, l_nlarea=1.000, l_corr=1.000, l_dist=5.000
+using quadratic fit line minimization
+complete_dist_mat 0
+rms 0
+smooth_averages 0
+remove_neg 0
+ico_order 0
+which_surface 0
+target_radius 0.000000
+nfields 0
+scale 0.000000
+desired_rms_height -1.000000
+momentum 0.950000
+nbhd_size -10
+max_nbrs 10
+niterations 100
+nsurfaces 0
+SURFACES 3
+flags 16 (10)
+use curv 16
+no sulc 0
+no rigid align 0
+mris->nsize 1
+mris->hemisphere 0
+randomSeed 0
+
+tol=5.0e-01, sigma=0.0, host=tanha, nav=1024, nbrs=1, l_extern=10000.000, l_parea=0.100, l_nlarea=1.000, l_corr=1.000, l_dist=5.000
+using quadratic fit line minimization
+complete_dist_mat 0
+rms 0
+smooth_averages 0
+remove_neg 0
+ico_order 0
+which_surface 0
+target_radius 0.000000
+nfields 0
+scale 0.000000
+desired_rms_height -1.000000
+momentum 0.950000
+nbhd_size -10
+max_nbrs 10
+niterations 100
+nsurfaces 0
+SURFACES 3
+flags 16 (10)
+use curv 16
+no sulc 0
+no rigid align 0
+mris->nsize 1
+mris->hemisphere 0
+randomSeed 0
+
+--------------------
+1 Reading lh.sulc
+curvature mean = 0.030, std = 0.518
+curvature mean = 0.002, std = 0.930
+curvature mean = -0.000, std = 0.927
+v 0 curvature = -1.37352, position = (-21.114,-10.304,97.201)
+v 0, distance term: (0.008, 0.011, 0.003)
+l_corr(0): dx = (-0.00, -0.00, -0.00), vsmooth = 1.000
+before averaging dot = -0.00  after dot = 0.00 (-0.0, 0.0, 0.0)
+v 0 curvature = -1.37352, position = (-21.223,-10.245,97.203)
+v 0, distance term: (0.008, 0.011, 0.003)
+l_corr(0): dx = (-0.00, -0.00, -0.00), vsmooth = 1.000
+before averaging dot = -0.00  after dot = -0.00 (-0.0, 0.0, -0.0)
+v 0 curvature = -1.37352, position = (-21.298,-10.223,97.186)
+v 0, distance term: (0.008, 0.011, 0.003)
+l_corr(0): dx = (-0.00, -0.00, -0.00), vsmooth = 1.000
+before averaging dot = -0.00  after dot = -0.00 (-0.0, -0.0, -0.0)
+v 0, distance term: (0.008, 0.011, 0.003)
+l_corr(0): dx = (-0.00, -0.00, -0.00), vsmooth = 1.000
+before averaging dot = -0.00  after dot = -0.00 (0.0, 0.0, -0.0)
+v 0, distance term: (0.008, 0.011, 0.003)
+l_corr(0): dx = (-0.00, -0.00, -0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (0.0, 0.0, -0.0)
+v 0 curvature = -1.37352, position = (-21.701,-10.171,96.886)
+v 0, distance term: (0.008, 0.011, 0.003)
+l_corr(0): dx = (-0.00, -0.00, -0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (-0.0, -0.0, -0.0)
+v 0, distance term: (0.009, 0.010, 0.003)
+l_corr(0): dx = (-0.03, -0.01, -0.01), vsmooth = 1.000
+before averaging dot = -0.00  after dot = -0.00 (0.0, 0.0, 0.0)
+v 0, distance term: (0.008, 0.012, 0.003)
+l_corr(0): dx = (-0.00, -0.01, -0.00), vsmooth = 1.000
+before averaging dot = -0.00  after dot = -0.00 (-0.0, -0.0, -0.0)
+v 0, distance term: (0.008, 0.012, 0.003)
+l_corr(0): dx = (0.00, -0.04, -0.00), vsmooth = 1.000
+before averaging dot = -0.00  after dot = -0.00 (0.0, 0.0, 0.0)
+v 0 curvature = -1.37352, position = (-22.518,-10.447,96.279)
+v 0, distance term: (0.008, 0.012, 0.003)
+l_corr(0): dx = (-0.01, -0.00, -0.00), vsmooth = 1.000
+before averaging dot = -0.00  after dot = -0.00 (0.0, 0.0, 0.0)
+v 0, distance term: (0.008, 0.012, 0.003)
+l_corr(0): dx = (-0.00, -0.01, -0.00), vsmooth = 1.000
+before averaging dot = -0.00  after dot = -0.00 (-0.0, -0.0, -0.0)
+v 0, distance term: (0.007, 0.010, 0.003)
+l_corr(0): dx = (-0.01, -0.00, -0.00), vsmooth = 1.000
+before averaging dot = -0.00  after dot = -0.00 (0.0, 0.0, 0.0)
+v 0 curvature = -1.37352, position = (-22.329,-9.997,96.261)
+v 0, distance term: (0.007, 0.010, 0.003)
+l_corr(0): dx = (-0.01, -0.00, -0.00), vsmooth = 1.000
+before averaging dot = -0.00  after dot = -0.00 (0.0, 0.0, -0.0)
+v 0, distance term: (0.006, 0.009, 0.002)
+l_corr(0): dx = (-0.01, -0.00, -0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (0.0, 0.0, 0.0)
+v 0, distance term: (0.006, 0.008, 0.002)
+l_corr(0): dx = (-0.01, -0.00, -0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (0.0, 0.0, -0.0)
+v 0 curvature = -1.37352, position = (-22.258,-9.888,96.251)
+v 0, distance term: (0.006, 0.008, 0.002)
+l_corr(0): dx = (-0.01, -0.00, -0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (0.0, 0.0, 0.0)
+v 0, distance term: (0.003, 0.005, 0.001)
+l_corr(0): dx = (-0.00, -0.01, -0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (0.0, 0.0, 0.0)
+v 0, distance term: (0.002, 0.004, 0.001)
+l_corr(0): dx = (-0.00, -0.01, -0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (0.0, 0.0, 0.0)
+v 0, distance term: (0.001, 0.004, 0.001)
+l_corr(0): dx = (-0.00, -0.01, -0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (0.0, 0.0, -0.0)
+v 0, distance term: (0.001, 0.004, 0.001)
+l_corr(0): dx = (-0.00, -0.01, -0.00), vsmooth = 1.000
+before averaging dot = -0.00  after dot = -0.00 (0.0, 0.0, -0.0)
+v 0, distance term: (0.001, 0.004, 0.001)
+l_corr(0): dx = (-0.00, -0.01, -0.00), vsmooth = 1.000
+before averaging dot = -0.00  after dot = -0.00 (0.0, 0.0, -0.0)
+v 0 curvature = -1.37352, position = (-22.207,-9.808,96.260)
+v 0, distance term: (0.001, 0.004, 0.001)
+l_corr(0): dx = (-0.00, -0.01, -0.00), vsmooth = 1.000
+before averaging dot = -0.00  after dot = -0.00 (0.0, 0.0, 0.0)
+v 0 curvature = -1.37352, position = (-22.207,-9.808,96.260)
+v 0, distance term: (0.001, 0.004, 0.001)
+l_corr(0): dx = (-0.00, -0.01, -0.00), vsmooth = 1.000
+v 0, distance term: (0.001, 0.003, 0.000)
+l_corr(0): dx = (-0.00, -0.01, -0.00), vsmooth = 1.000
+v 0, distance term: (0.000, 0.002, 0.000)
+l_corr(0): dx = (-0.00, -0.01, -0.00), vsmooth = 1.000
+v 0, distance term: (0.000, 0.001, 0.000)
+l_corr(0): dx = (-0.00, -0.01, -0.00), vsmooth = 1.000
+v 0 curvature = -1.37352, position = (-22.202,-9.795,96.262)
+v 0, distance term: (-0.000, 0.000, -0.000)
+l_corr(0): dx = (-0.00, -0.01, -0.00), vsmooth = 1.000
+before averaging dot = -0.00  after dot = -0.00 (-0.0, -0.0, -0.0)
+v 0, distance term: (-0.002, 0.000, -0.000)
+l_corr(0): dx = (-0.04, -0.05, -0.02), vsmooth = 1.000
+before averaging dot = -0.00  after dot = -0.00 (0.0, 0.0, 0.0)
+v 0, distance term: (-0.002, -0.002, -0.001)
+l_corr(0): dx = (-0.00, -0.00, -0.00), vsmooth = 1.000
+before averaging dot = -0.00  after dot = -0.00 (-0.0, -0.0, -0.0)
+v 0 curvature = -1.37352, position = (-22.581,-7.656,91.456)
+v 0, distance term: (-0.002, -0.002, -0.001)
+l_corr(0): dx = (-0.00, -0.00, -0.00), vsmooth = 1.000
+before averaging dot = -0.00  after dot = -0.00 (-0.0, -0.0, -0.0)
+v 0 curvature = -1.37352, position = (-22.581,-7.656,91.456)
+v 0, distance term: (-0.002, -0.002, -0.001)
+l_corr(0): dx = (-0.00, -0.00, -0.00), vsmooth = 1.000
+before averaging dot = -0.00  after dot = -0.00 (-0.0, -0.0, -0.0)
+v 0 curvature = -1.37352, position = (-22.592,-7.685,91.448)
+v 0, distance term: (-0.002, -0.002, -0.001)
+l_corr(0): dx = (-0.00, -0.00, -0.00), vsmooth = 1.000
+before averaging dot = -0.00  after dot = -0.00 (-0.0, -0.0, -0.0)
+v 0 curvature = -1.37352, position = (-22.593,-7.688,91.447)
+v 0, distance term: (-0.002, -0.002, -0.001)
+l_corr(0): dx = (-0.00, -0.00, -0.00), vsmooth = 1.000
+before averaging dot = -0.00  after dot = -0.00 (-0.0, -0.0, -0.0)
+v 0 curvature = -1.37352, position = (-22.594,-7.690,91.447)
+v 0, distance term: (-0.002, -0.002, -0.001)
+l_corr(0): dx = (-0.00, -0.00, -0.00), vsmooth = 1.000
+before averaging dot = -0.00  after dot = -0.00 (-0.0, -0.0, -0.0)
+v 0 curvature = -1.37352, position = (-22.594,-7.690,91.447)
+v 0, distance term: (-0.002, -0.002, -0.001)
+l_corr(0): dx = (-0.00, -0.00, -0.00), vsmooth = 1.000
+curvature mean = 0.005, std = 0.984
+curvature mean = 0.000, std = 0.974
+v 0 curvature = -1.37352, position = (-22.595,-7.690,91.447)
+v 0, distance term: (-0.002, -0.002, -0.001)
+l_corr(0): dx = (0.02, -0.01, 0.00), vsmooth = 1.000
+before averaging dot = -0.00  after dot = -0.00 (0.0, -0.0, -0.0)
+v 0 curvature = -1.37352, position = (-22.595,-7.690,91.447)
+v 0, distance term: (-0.002, -0.002, -0.001)
+l_corr(0): dx = (0.02, -0.01, 0.00), vsmooth = 1.000
+before averaging dot = -0.00  after dot = -0.00 (0.0, -0.0, -0.0)
+v 0 curvature = -1.37352, position = (-22.595,-7.690,91.447)
+v 0, distance term: (-0.002, -0.002, -0.001)
+l_corr(0): dx = (0.02, -0.01, 0.00), vsmooth = 1.000
+before averaging dot = -0.00  after dot = -0.00 (0.0, -0.0, -0.0)
+v 0 curvature = -1.37352, position = (-22.595,-7.690,91.447)
+v 0, distance term: (-0.002, -0.002, -0.001)
+l_corr(0): dx = (0.02, -0.01, 0.00), vsmooth = 1.000
+before averaging dot = -0.00  after dot = -0.00 (-0.0, -0.0, -0.0)
+v 0 curvature = -1.37352, position = (-22.595,-7.690,91.447)
+v 0, distance term: (-0.002, -0.002, -0.001)
+l_corr(0): dx = (0.02, -0.01, 0.00), vsmooth = 1.000
+before averaging dot = -0.00  after dot = -0.00 (-0.0, -0.0, -0.0)
+v 0 curvature = -1.37352, position = (-22.595,-7.690,91.447)
+v 0, distance term: (-0.002, -0.002, -0.001)
+l_corr(0): dx = (0.02, -0.01, 0.00), vsmooth = 1.000
+before averaging dot = -0.00  after dot = -0.00 (-0.0, -0.0, -0.0)
+v 0 curvature = -1.37352, position = (-22.595,-7.690,91.447)
+v 0, distance term: (-0.002, -0.002, -0.001)
+l_corr(0): dx = (0.02, -0.01, 0.00), vsmooth = 1.000
+curvature mean = 0.005, std = 1.000
+curvature mean = 0.000, std = 0.990
+v 0 curvature = -1.37352, position = (-22.596,-7.690,91.446)
+v 0, distanctol=1.0e+00, sigma=0.5, host=tanha, nav=1024, nbrs=1, l_extern=10000.000, l_parea=0.100, l_nlarea=1.000, l_corr=0.050, l_spring=0.500, l_dist=5.000
+using quadratic fit line minimization
+complete_dist_mat 0
+rms 0
+smooth_averages 0
+remove_neg 0
+ico_order 0
+which_surface 0
+target_radius 0.000000
+nfields 0
+scale 0.000000
+desired_rms_height -1.000000
+momentum 0.950000
+nbhd_size -10
+max_nbrs 10
+niterations 100
+nsurfaces 0
+SURFACES 3
+flags 16 (10)
+use curv 16
+no sulc 0
+no rigid align 0
+mris->nsize 1
+mris->hemisphere 0
+randomSeed 0
+
+e term: (-0.002, -0.003, -0.001)
+l_corr(0): dx = (0.02, -0.01, 0.00), vsmooth = 1.000
+before averaging dot = -0.00  after dot = -0.00 (0.0, -0.0, -0.0)
+v 0 curvature = -1.37352, position = (-22.596,-7.690,91.446)
+v 0, distance term: (-0.002, -0.003, -0.001)
+l_corr(0): dx = (0.02, -0.01, 0.00), vsmooth = 1.000
+before averaging dot = -0.00  after dot = -0.00 (0.0, -0.0, -0.0)
+v 0 curvature = -1.37352, position = (-22.596,-7.690,91.446)
+v 0, distance term: (-0.002, -0.003, -0.001)
+l_corr(0): dx = (0.02, -0.01, 0.00), vsmooth = 1.000
+before averaging dot = -0.00  after dot = -0.00 (-0.0, -0.0, -0.0)
+v 0 curvature = -1.37352, position = (-22.596,-7.690,91.446)
+v 0, distance term: (-0.002, -0.003, -0.001)
+l_corr(0): dx = (0.02, -0.01, 0.00), vsmooth = 1.000
+before averaging dot = -0.00  after dot = -0.00 (-0.0, -0.0, -0.0)
+v 0 curvature = -1.37352, position = (-22.596,-7.690,91.446)
+v 0, distance term: (-0.002, -0.003, -0.001)
+l_corr(0): dx = (0.02, -0.01, 0.00), vsmooth = 1.000
+before averaging dot = -0.00  after dot = -0.00 (-0.0, -0.0, -0.0)
+v 0 curvature = -1.37352, position = (-22.596,-7.691,91.446)
+v 0, distance term: (-0.002, -0.003, -0.001)
+l_corr(0): dx = (0.02, -0.01, 0.00), vsmooth = 1.000
+before averaging dot = -0.00  after dot = -0.00 (-0.0, -0.0, -0.0)
+v 0 curvature = -1.37352, position = (-22.596,-7.691,91.446)
+v 0, distance term: (-0.002, -0.002, -0.001)
+l_corr(0): dx = (0.02, -0.01, 0.00), vsmooth = 1.000
+curvature mean = 0.004, std = 1.005
+curvature mean = 0.000, std = 0.996
+v 0 curvature = -1.37352, position = (-22.596,-7.691,91.446)
+v 0, distance term: (-0.002, -0.003, -0.001)
+l_corr(0): dx = (0.02, -0.01, 0.00), vsmooth = 1.000
+before averaging dot = -0.00  after dot = -0.00 (0.0, -0.0, -0.0)
+v 0 curvature = -1.37352, position = (-22.596,-7.691,91.446)
+v 0, distance term: (-0.002, -0.003, -0.001)
+l_corr(0): dx = (0.02, -0.01, 0.00), vsmooth = 1.000
+before averaging dot = -0.00  after dot = -0.00 (0.0, -0.0, -0.0)
+v 0 curvature = -1.37352, position = (-22.596,-7.691,91.446)
+v 0, distance term: (-0.002, -0.003, -0.001)
+l_corr(0): dx = (0.02, -0.01, 0.00), vsmooth = 1.000
+before averaging dot = -0.00  after dot = -0.00 (-0.0, -0.0, -0.0)
+v 0 curvature = -1.37352, position = (-22.596,-7.691,91.446)
+v 0, distance term: (-0.002, -0.003, -0.001)
+l_corr(0): dx = (0.02, -0.01, 0.00), vsmooth = 1.000
+before averaging dot = -0.00  after dot = -0.00 (-0.0, -0.0, -0.0)
+v 0 curvature = -1.37352, position = (-22.596,-7.691,91.446)
+v 0, distance term: (-0.002, -0.003, -0.001)
+l_corr(0): dx = (0.02, -0.01, 0.00), vsmooth = 1.000
+before averaging dot = -0.00  after dot = -0.00 (-0.0, -0.0, -0.0)
+v 0 curvature = -1.37352, position = (-22.596,-7.691,91.446)
+v 0, distance term: (-0.002, -0.003, -0.001)
+l_corr(0): dx = (0.02, -0.01, 0.00), vsmooth = 1.000
+before averaging dot = -0.00  after dot = -0.00 (-0.0, -0.0, -0.0)
+v 0 curvature = -1.37352, position = (-22.596,-7.691,91.446)
+v 0, distance term: (-0.002, -0.003, -0.001)
+l_corr(0): dx = (0.02, -0.01, 0.00), vsmooth = 1.000
+2 Reading smoothwm
+curvature mean = -0.023, std = 0.165
+curvature mean = 0.006, std = 0.619
+curvature mean = 0.014, std = 0.581
+v 0 curvature = -0.06319, position = (-22.597,-7.691,91.446)
+v 0, distance term: (-0.002, -0.003, -0.001)
+l_corr(0): dx = (0.01, 0.00, 0.00), vsmooth = 1.000
+before averaging dot = -0.00  after dot = -0.00 (0.0, 0.0, -0.0)
+v 0 spring term:         (-0.013, -0.016, -0.005)
+v 0 curvature = -0.06319, position = (-22.627,-7.727,91.432)
+v 0, distance term: (0.004, 0.006, 0.002)
+l_corr(0): dx = (0.00, 0.00, 0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (0.0, 0.0, -0.0)
+v 0 spring term:         (-0.004, -0.004, -0.005)
+v 0 curvature = -0.06319, position = (-22.636,-7.736,91.420)
+v 0, distance term: (0.004, 0.006, 0.002)
+l_corr(0): dx = (0.00, 0.00, 0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (-0.0, -0.0, -0.0)
+v 0 spring term:         (-0.006, -0.006, -0.002)
+v 0 curvature = -0.06319, position = (-22.648,-7.753,91.413)
+v 0, distance term: (0.005, 0.007, 0.002)
+l_corr(0): dx = (0.00, 0.00, 0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (-0.0, -0.0, -0.0)
+v 0 spring term:         (-0.003, -0.004, -0.004)
+v 0 curvature = -0.06319, position = (-22.650,-7.758,91.411)
+v 0, distance term: (0.005, 0.008, 0.002)
+l_corr(0): dx = (0.00, 0.00, 0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (-0.0, -0.0, -0.0)
+v 0 spring term:         (-0.003, -0.004, -0.003)
+v 0 curvature = -0.06319, position = (-22.650,-7.758,91.411)
+v 0, distance term: (0.005, 0.008, 0.002)
+l_corr(0): dx = (0.00, 0.00, 0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = 0.00 (0.0, -0.0, 0.0)
+v 0 spring term:         (-0.003, -0.004, -0.003)
+v 0 curvature = -0.06319, position = (-22.650,-7.758,91.411)
+v 0, distance term: (0.005, 0.008, 0.002)
+l_corr(0): dx = (0.00, 0.00, 0.00), vsmooth = 1.000
+v 0 spring term:         (-0.003, -0.004, -0.003)
+curvature mean = 0.009, std = 0.786
+curvature mean = 0.005, std = 0.749
+v 0 curvature = -0.06319, position = (-22.650,-7.758,91.411)
+v 0, distance term: (0.005, 0.008, 0.002)
+l_corr(0): dx = (0.01, 0.01, 0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (0.0, 0.0, -0.0)
+v 0 spring term:         (-0.003, -0.004, -0.003)
+v 0 curvature = -0.06319, position = (-22.655,-7.762,91.405)
+v 0, distance term: (0.006, 0.008, 0.002)
+l_corr(0): dx = (0.01, 0.01, 0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (0.0, 0.0, -0.0)
+v 0 spring term:         (-0.003, -0.004, -0.003)
+v 0 curvature = -0.06319, position = (-22.659,-7.769,91.399)
+v 0, distance term: (0.006, 0.008, 0.002)
+l_corr(0): dx = (0.01, 0.01, 0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (-0.0, -0.0, -0.0)
+v 0 spring term:         (-0.003, -0.003, -0.003)
+v 0 curvature = -0.06319, position = (-22.659,-7.770,91.398)
+v 0, distance term: (0.006, 0.008, 0.002)
+l_corr(0): dx = (0.01, 0.01, 0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (-0.0, -0.0, -0.0)
+v 0 spring term:         (-0.003, -0.003, -0.003)
+v 0 curvature = -0.06319, position = (-22.659,-7.770,91.398)
+v 0, distance term: (0.006, 0.008, 0.002)
+l_corr(0): dx = (0.01, 0.01, 0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (-0.0, -0.0, -0.0)
+v 0 spring term:         (-0.003, -0.003, -0.003)
+v 0 curvature = -0.06319, position = (-22.659,-7.770,91.398)
+v 0, distance term: (0.006, 0.008, 0.002)
+l_corr(0): dx = (0.01, 0.01, 0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = 0.00 (0.0, -0.0, 0.0)
+v 0 spring term:         (-0.003, -0.003, -0.003)
+v 0 curvature = -0.06319, position = (-22.659,-7.770,91.398)
+v 0, distance term: (0.006, 0.008, 0.002)
+l_corr(0): dx = (0.01, 0.01, 0.00), vsmooth = 1.000
+v 0 spring term:         (-0.003, -0.003, -0.003)
+curvature mean = 0.009, std = 0.896
+curvature mean = 0.002, std = 0.847
+v 0 curvature = -0.06319, position = (-22.659,-7.770,91.398)
+v 0, distance term: (0.006, 0.008, 0.002)
+l_corr(0): dx = (0.00, 0.01, 0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (0.0, 0.0, 0.0)
+v 0 spring term:         (-0.003, -0.003, -0.003)
+v 0 curvature = -0.06319, position = (-22.659,-7.770,91.398)
+v 0, distance term: (0.006, 0.008, 0.002)
+l_corr(0): dx = (0.00, 0.01, 0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (0.0, 0.0, -0.0)
+v 0 spring term:         (-0.003, -0.003, -0.003)
+v 0 curvature = -0.06319, position = (-22.663,-7.776,91.391)
+v 0, distance term: (0.006, 0.009, 0.003)
+l_corr(0): dx = (0.00, 0.01, 0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (-0.0, -0.0, -0.0)
+v 0 spring term:         (-0.003, -0.003, -0.003)
+v 0 curvature = -0.06319, position = (-22.666,-7.784,91.387)
+v 0, distance term: (0.006, 0.009, 0.003)
+l_corr(0): dx = (0.00, 0.01, 0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (-0.0, -0.0, -0.0)
+v 0 spring term:         (-0.002, -0.003, -0.003)
+v 0 curvature = -0.06319, position = (-22.666,-7.784,91.387)
+v 0, distance term: (0.006, 0.009, 0.003)
+l_corr(0): dx = (0.00, 0.01, 0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (-0.0, -0.0, -0.0)
+v 0 spring term:         (-0.002, -0.003, -0.003)
+v 0 curvature = -0.06319, position = (-22.667,-7.785,91.387)
+v 0, distance term: (0.006, 0.009, 0.003)
+l_corr(0): dx = (0.00, 0.01, 0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = 0.00 (0.0, -0.0, 0.0)
+v 0 spring term:         (-0.002, -0.003, -0.003)
+v 0 curvature = -0.06319, position = (-22.666,-7.785,91.387)
+v 0, distance term: (0.006, 0.009, 0.003)
+l_corr(0): dx = (0.00, 0.01, 0.00), vsmooth = 1.000
+v 0 spring term:         (-0.002, -0.003, -0.003)
+curvature mean = 0.006, std = 0.956
+curvature mean = 0.001, std = 0.907
+v 0 curvature = -0.06319, position = (-22.666,-7.785,91.387)
+v 0, distance term: (0.006, 0.009, 0.003)
+l_corr(0): dx = (0.00, 0.01, 0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (0.0, 0.0, 0.0)
+v 0 spring term:         (-0.002, -0.003, -0.003)
+v 0 curvature = -0.06319, position = (-22.667,-7.785,91.387)
+v 0, distance term: (0.006, 0.009, 0.003)
+l_corr(0): dx = (0.00, 0.01, 0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (0.0, 0.0, -0.0)
+v 0 spring term:         (-0.002, -0.003, -0.003)
+v 0 curvature = -0.06319, position = (-22.667,-7.785,91.386)
+v 0, distance term: (0.006, 0.009, 0.003)
+l_corr(0): dx = (0.00, 0.01, 0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (-0.0, -0.0, -0.0)
+v 0 spring term:         (-0.002, -0.003, -0.003)
+v 0 curvature = -0.06319, position = (-22.667,-7.786,91.386)
+v 0, distance term: (0.006, 0.009, 0.003)
+l_corr(0): dx = (0.00, 0.01, 0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (-0.0, -0.0, -0.0)
+v 0 spring term:         (-0.002, -0.003, -0.003)
+v 0 curvature = -0.06319, position = (-22.667,-7.786,91.386)
+v 0, distance term: (0.006, 0.009, 0.003)
+l_corr(0): dx = (0.00, 0.01, 0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (-0.0, -0.0, -0.0)
+v 0 spring term:         (-0.002, -0.003, -0.003)
+v 0 curvature = -0.06319, position = (-22.667,-7.787,91.386)
+v 0, distance term: (0.006, 0.009, 0.003)
+l_corr(0): dx = (0.00, 0.01, 0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = 0.00 (0.0, -0.0, 0.0)
+v 0 spring term:         (-0.002, -0.003, -0.003)
+v 0 curvature = -0.06319, position = (-22.667,-7.787,91.386)
+v 0, distance term: (0.006, 0.009, 0.003)
+l_corr(0): dx = (0.00, 0.01, 0.00), vsmooth = 1.000
+v 0 spring term:         (-0.002, -0.003, -0.003)
+MRISregister() return, current seed 0
+curvature mean = 0.125, std = 0.854
+curvature mean = 0.030, std = 0.518
+curvature mean = -0.026, std = 0.196
+MRISregister() -------
+max_passes = 4 
+min_degrees = 0.500000 
+max_degrees = 64.000000 
+nangles = 8 
+tol=5.0e-01, sigma=0.0, host=tanha, nav=1024, nbrs=1, l_extern=10000.000, l_parea=0.100, l_nlarea=1.000, l_corr=1.000, l_dist=5.000
+using quadratic fit line minimization
+complete_dist_mat 0
+rms 0
+smooth_averages 0
+remove_neg 0
+ico_order 0
+which_surface 0
+target_radius 0.000000
+nfields 0
+scale 0.000000
+desired_rms_height -1.000000
+momentum 0.950000
+nbhd_size -10
+max_nbrs 10
+niterations 100
+nsurfaces 0
+SURFACES 3
+flags 16 (10)
+use curv 16
+no sulc 0
+no rigid align 0
+mris->nsize 1
+mris->hemisphere 1
+randomSeed 0
+
+tol=5.0e-01, sigma=0.0, host=tanha, nav=1024, nbrs=1, l_extern=10000.000, l_parea=0.100, l_nlarea=1.000, l_corr=1.000, l_dist=5.000
+using quadratic fit line minimization
+complete_dist_mat 0
+rms 0
+smooth_averages 0
+remove_neg 0
+ico_order 0
+which_surface 0
+target_radius 0.000000
+nfields 0
+scale 0.000000
+desired_rms_height -1.000000
+momentum 0.950000
+nbhd_size -10
+max_nbrs 10
+niterations 100
+nsurfaces 0
+SURFACES 3
+flags 16 (10)
+use curv 16
+no sulc 0
+no rigid align 0
+mris->nsize 1
+mris->hemisphere 1
+randomSeed 0
+
+--------------------
+1 Reading rh.sulc
+curvature mean = 0.036, std = 0.518
+curvature mean = 0.007, std = 0.932
+curvature mean = 0.000, std = 0.927
+v 0 curvature = 0.46643, position = (22.692,6.006,97.206)
+v 0, distance term: (-0.009, -0.003, 0.002)
+l_corr(0): dx = (-0.00, -0.00, 0.00), vsmooth = 1.000
+before averaging dot = -0.00  after dot = -0.00 (0.0, -0.0, -0.0)
+v 0 curvature = 0.46643, position = (23.817,5.619,96.655)
+v 0, distance term: (-0.009, -0.003, 0.002)
+l_corr(0): dx = (-0.00, -0.00, 0.00), vsmooth = 1.000
+before averaging dot = -0.00  after dot = -0.00 (-0.0, 0.0, -0.0)
+v 0 curvature = 0.46643, position = (23.761,5.844,96.645)
+v 0, distance term: (-0.009, -0.003, 0.002)
+l_corr(0): dx = (0.00, 0.01, -0.00), vsmooth = 1.000
+before averaging dot = -0.00  after dot = -0.00 (0.0, 0.0, -0.0)
+v 0, distance term: (-0.009, -0.003, 0.002)
+l_corr(0): dx = (0.01, 0.02, -0.00), vsmooth = 1.000
+before averaging dot = -0.00  after dot = -0.00 (-0.0, -0.0, -0.0)
+v 0, distance term: (-0.010, -0.003, 0.002)
+l_corr(0): dx = (-0.00, -0.02, 0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = 0.00 (0.0, 0.0, -0.0)
+v 0 curvature = 0.46643, position = (23.767,5.399,96.334)
+v 0, distance term: (-0.010, -0.003, 0.002)
+l_corr(0): dx = (-0.00, -0.00, 0.00), vsmooth = 1.000
+before averaging dot = -0.00  after dot = -0.00 (0.0, 0.0, -0.0)
+v 0, distance term: (-0.010, -0.002, 0.002)
+l_corr(0): dx = (0.01, 0.03, -0.00), vsmooth = 1.000
+before averaging dot = -0.00  after dot = -0.00 (-0.0, -0.0, 0.0)
+v 0, distance term: (-0.011, -0.003, 0.003)
+l_corr(0): dx = (-0.00, -0.02, 0.00), vsmooth = 1.000
+before averaging dot = -0.00  after dot = 0.00 (0.0, 0.0, -0.0)
+v 0, distance term: (-0.010, -0.003, 0.003)
+l_corr(0): dx = (0.00, 0.01, -0.00), vsmooth = 1.000
+before averaging dot = -0.00  after dot = -0.00 (-0.0, -0.0, -0.0)
+v 0, distance term: (-0.011, -0.003, 0.003)
+l_corr(0): dx = (-0.00, -0.00, 0.00), vsmooth = 1.000
+before averaging dot = -0.00  after dot = -0.00 (0.0, 0.0, -0.0)
+v 0 curvature = 0.46643, position = (23.721,5.862,95.866)
+v 0, distance term: (-0.011, -0.003, 0.003)
+l_corr(0): dx = (0.00, 0.01, -0.00), vsmooth = 1.000
+before averaging dot = -0.00  after dot = -0.00 (-0.0, -0.0, -0.0)
+v 0, distance term: (-0.012, -0.003, 0.003)
+l_corr(0): dx = (-0.00, -0.00, 0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (0.0, 0.0, -0.0)
+v 0, distance term: (-0.012, -0.003, 0.003)
+l_corr(0): dx = (-0.00, -0.00, 0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (0.0, 0.0, -0.0)
+v 0, distance term: (-0.012, -0.004, 0.003)
+l_corr(0): dx = (0.00, 0.00, -0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (-0.0, -0.0, -0.0)
+v 0, distance term: (-0.012, -0.003, 0.003)
+l_corr(0): dx = (-0.00, -0.00, 0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (-0.0, 0.0, -0.0)
+v 0, distance term: (-0.012, -0.003, 0.003)
+l_corr(0): dx = (-0.00, -0.00, 0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (-0.0, -0.0, -0.0)
+v 0 curvature = 0.46643, position = (23.571,5.638,95.672)
+v 0, distance term: (-0.012, -0.003, 0.003)
+l_corr(0): dx = (-0.00, -0.00, 0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (-0.0, -0.0, -0.0)
+v 0, distance term: (-0.011, -0.002, 0.003)
+l_corr(0): dx = (-0.00, -0.00, 0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (-0.0, 0.0, -0.0)
+v 0, distance term: (-0.011, -0.003, 0.003)
+l_corr(0): dx = (-0.00, -0.00, 0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (-0.0, 0.0, -0.0)
+v 0, distance term: (-0.011, -0.003, 0.003)
+l_corr(0): dx = (-0.00, -0.00, 0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (-0.0, -0.0, -0.0)
+v 0 curvature = 0.46643, position = (23.516,5.613,95.633)
+v 0, distance term: (-0.011, -0.002, 0.003)
+l_corr(0): dx = (-0.00, -0.00, 0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (-0.0, -0.0, 0.0)
+v 0, distance term: (-0.009, -0.002, 0.002)
+l_corr(0): dx = (-0.00, -0.01, 0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (-0.0, -0.0, 0.0)
+v 0, distance term: (-0.008, -0.002, 0.002)
+l_corr(0): dx = (-0.00, -0.01, 0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (-0.0, 0.0, -0.0)
+v 0 curvature = 0.46643, position = (23.478,5.611,95.637)
+v 0, distance term: (-0.008, -0.002, 0.002)
+l_corr(0): dx = (-0.00, -0.01, 0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (-0.0, 0.0, 0.0)
+v 0 curvature = 0.46643, position = (23.474,5.612,95.637)
+v 0, distance term: (-0.007, -0.002, 0.002)
+l_corr(0): dx = (-0.00, -0.01, 0.00), vsmooth = 1.000
+v 0, distance term: (-0.008, -0.003, 0.002)
+l_corr(0): dx = (-0.00, -0.01, 0.00), vsmooth = 1.000
+v 0, distance term: (-0.008, -0.003, 0.002)
+l_corr(0): dx = (-0.00, -0.01, 0.00), vsmooth = 1.000
+v 0, distance term: (-0.007, -0.003, 0.002)
+l_corr(0): dx = (-0.00, -0.01, 0.00), vsmooth = 1.000
+v 0 curvature = 0.46643, position = (23.463,5.616,95.640)
+v 0, distance term: (-0.007, -0.004, 0.002)
+l_corr(0): dx = (-0.00, -0.01, 0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (-0.0, 0.0, -0.0)
+v 0, distance term: (-0.005, -0.003, 0.001)
+l_corr(0): dx = (0.00, 0.01, -0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (-0.0, -0.0, -0.0)
+v 0 curvature = 0.46643, position = (20.511,5.532,88.884)
+v 0, distance term: (-0.005, -0.003, 0.001)
+l_corr(0): dx = (-0.00, -0.00, 0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (-0.0, -0.0, -0.0)
+v 0 curvature = 0.46643, position = (20.511,5.532,88.884)
+v 0, distance term: (-0.005, -0.003, 0.001)
+l_corr(0): dx = (-0.00, -0.00, 0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (0.0, 0.0, -0.0)
+v 0 curvature = 0.46643, position = (20.511,5.532,88.884)
+v 0, distance term: (-0.005, -0.003, 0.001)
+l_corr(0): dx = (-0.00, -0.00, 0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (0.0, 0.0, -0.0)
+v 0 curvature = 0.46643, position = (20.511,5.532,88.884)
+v 0, distance term: (-0.005, -0.003, 0.001)
+l_corr(0): dx = (-0.00, -0.00, 0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (0.0, 0.0, -0.0)
+v 0 curvature = 0.46643, position = (20.511,5.533,88.884)
+v 0, distance term: (-0.005, -0.003, 0.001)
+l_corr(0): dx = (-0.00, -0.00, 0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (-0.0, 0.0, -0.0)
+v 0 curvature = 0.46643, position = (20.511,5.533,88.884)
+v 0, distance term: (-0.005, -0.003, 0.001)
+l_corr(0): dx = (-0.00, -0.00, 0.00), vsmooth = 1.000
+curvature mean = 0.007, std = 0.985
+curvature mean = 0.001, std = 0.974
+v 0 curvature = 0.46643, position = (20.511,5.533,88.884)
+v 0, distance term: (-0.005, -0.003, 0.001)
+l_corr(0): dx = (0.00, 0.00, -0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (0.0, -0.0, -0.0)
+v 0 curvature = 0.46643, position = (20.511,5.530,88.884)
+v 0, distance term: (-0.005, -0.003, 0.001)
+l_corr(0): dx = (0.00, 0.00, -0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (-0.0, -0.0, 0.0)
+v 0 curvature = 0.46643, position = (20.511,5.528,88.884)
+v 0, distance term: (-0.005, -0.003, 0.001)
+l_corr(0): dx = (0.00, 0.00, -0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (-0.0, -0.0, 0.0)
+v 0 curvature = 0.46643, position = (20.511,5.528,88.884)
+v 0, distance term: (-0.005, -0.003, 0.001)
+l_corr(0): dx = (0.00, 0.00, -0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (0.0, -0.0, -0.0)
+v 0 curvature = 0.46643, position = (20.511,5.528,88.884)
+v 0, distance term: (-0.005, -0.003, 0.001)
+l_corr(0): dx = (0.00, 0.00, -0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (-0.0, -0.0, 0.0)
+v 0 curvature = 0.46643, position = (20.511,5.528,88.884)
+v 0, distance term: (-0.005, -0.003, 0.001)
+l_corr(0): dx = (0.00, 0.00, -0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (-0.0, -0.0, 0.0)
+v 0 curvature = 0.46643, position = (20.511,5.528,88.884)
+v 0, distance term: (-0.005, -0.003, 0.001)
+l_corr(0): dx = (0.00, 0.00, -0.00), vsmooth = 1.000
+curvature mean = 0.007, std = 1.001
+curvature mean = 0.000, std = 0tol=1.0e+00, sigma=0.5, host=tanha, nav=1024, nbrs=1, l_extern=10000.000, l_parea=0.100, l_nlarea=1.000, l_corr=0.050, l_spring=0.500, l_dist=5.000
+using quadratic fit line minimization
+complete_dist_mat 0
+rms 0
+smooth_averages 0
+remove_neg 0
+ico_order 0
+which_surface 0
+target_radius 0.000000
+nfields 0
+scale 0.000000
+desired_rms_height -1.000000
+momentum 0.950000
+nbhd_size -10
+max_nbrs 10
+niterations 100
+nsurfaces 0
+SURFACES 3
+flags 16 (10)
+use curv 16
+no sulc 0
+no rigid align 0
+mris->nsize 1
+mris->hemisphere 1
+randomSeed 0
+
+.990
+v 0 curvature = 0.46643, position = (20.511,5.528,88.884)
+v 0, distance term: (-0.005, -0.003, 0.001)
+l_corr(0): dx = (0.00, 0.00, -0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (-0.0, -0.0, -0.0)
+v 0 curvature = 0.46643, position = (20.511,5.528,88.884)
+v 0, distance term: (-0.005, -0.003, 0.001)
+l_corr(0): dx = (0.00, 0.00, -0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (-0.0, -0.0, 0.0)
+v 0 curvature = 0.46643, position = (20.511,5.528,88.884)
+v 0, distance term: (-0.005, -0.003, 0.001)
+l_corr(0): dx = (0.00, 0.00, -0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (-0.0, -0.0, 0.0)
+v 0 curvature = 0.46643, position = (20.511,5.528,88.884)
+v 0, distance term: (-0.005, -0.003, 0.001)
+l_corr(0): dx = (0.00, 0.00, -0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (0.0, -0.0, 0.0)
+v 0 curvature = 0.46643, position = (20.511,5.528,88.884)
+v 0, distance term: (-0.005, -0.003, 0.001)
+l_corr(0): dx = (0.00, 0.00, -0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (-0.0, -0.0, 0.0)
+v 0 curvature = 0.46643, position = (20.511,5.528,88.884)
+v 0, distance term: (-0.005, -0.003, 0.001)
+l_corr(0): dx = (0.00, 0.00, -0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (-0.0, -0.0, 0.0)
+v 0 curvature = 0.46643, position = (20.511,5.528,88.884)
+v 0, distance term: (-0.005, -0.003, 0.001)
+l_corr(0): dx = (0.00, 0.00, -0.00), vsmooth = 1.000
+curvature mean = 0.006, std = 1.006
+curvature mean = 0.000, std = 0.996
+v 0 curvature = 0.46643, position = (20.510,5.528,88.884)
+v 0, distance term: (-0.005, -0.003, 0.001)
+l_corr(0): dx = (0.00, 0.00, -0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (-0.0, -0.0, -0.0)
+v 0 curvature = 0.46643, position = (20.509,5.526,88.883)
+v 0, distance term: (-0.005, -0.003, 0.001)
+l_corr(0): dx = (0.00, 0.00, -0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (-0.0, -0.0, 0.0)
+v 0 curvature = 0.46643, position = (20.509,5.525,88.883)
+v 0, distance term: (-0.005, -0.003, 0.001)
+l_corr(0): dx = (0.00, 0.00, -0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (-0.0, -0.0, 0.0)
+v 0 curvature = 0.46643, position = (20.509,5.525,88.883)
+v 0, distance term: (-0.005, -0.003, 0.001)
+l_corr(0): dx = (0.00, 0.00, -0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (0.0, -0.0, 0.0)
+v 0 curvature = 0.46643, position = (20.509,5.525,88.883)
+v 0, distance term: (-0.005, -0.003, 0.001)
+l_corr(0): dx = (0.00, 0.00, -0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (-0.0, -0.0, 0.0)
+v 0 curvature = 0.46643, position = (20.509,5.525,88.883)
+v 0, distance term: (-0.005, -0.003, 0.001)
+l_corr(0): dx = (0.00, 0.00, -0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (-0.0, -0.0, 0.0)
+v 0 curvature = 0.46643, position = (20.509,5.525,88.883)
+v 0, distance term: (-0.005, -0.003, 0.001)
+l_corr(0): dx = (0.00, 0.00, -0.00), vsmooth = 1.000
+2 Reading smoothwm
+curvature mean = 0.023, std = 0.162
+curvature mean = 0.006, std = 0.548
+curvature mean = -0.017, std = 0.592
+v 0 curvature = -0.05115, position = (20.509,5.525,88.883)
+v 0, distance term: (-0.005, -0.003, 0.001)
+l_corr(0): dx = (0.00, 0.00, -0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (0.0, 0.0, -0.0)
+v 0 spring term:         (0.014, -0.001, -0.003)
+v 0 curvature = -0.05115, position = (20.544,5.524,88.875)
+v 0, distance term: (-0.009, -0.001, 0.002)
+l_corr(0): dx = (0.00, 0.00, -0.00), vsmooth = 1.000
+before averaging dot = -0.00  after dot = -0.00 (0.0, -0.0, -0.0)
+v 0 spring term:         (0.005, 0.002, -0.004)
+v 0 curvature = -0.05115, position = (20.561,5.528,88.863)
+v 0, distance term: (-0.010, -0.002, 0.003)
+l_corr(0): dx = (0.00, 0.00, -0.00), vsmooth = 1.000
+before averaging dot = -0.00  after dot = -0.00 (0.0, -0.0, -0.0)
+v 0 spring term:         (0.006, 0.000, -0.000)
+v 0 curvature = -0.05115, position = (20.572,5.527,88.862)
+v 0, distance term: (-0.011, -0.002, 0.003)
+l_corr(0): dx = (0.00, 0.00, -0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (0.0, -0.0, -0.0)
+v 0 spring term:         (0.002, 0.001, -0.003)
+v 0 curvature = -0.05115, position = (20.572,5.527,88.861)
+v 0, distance term: (-0.011, -0.002, 0.003)
+l_corr(0): dx = (0.00, 0.00, -0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (-0.0, -0.0, 0.0)
+v 0 spring term:         (0.002, 0.001, -0.003)
+v 0 curvature = -0.05115, position = (20.572,5.526,88.861)
+v 0, distance term: (-0.011, -0.001, 0.003)
+l_corr(0): dx = (0.00, 0.00, -0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (-0.0, -0.0, 0.0)
+v 0 spring term:         (0.002, 0.001, -0.002)
+v 0 curvature = -0.05115, position = (20.572,5.526,88.861)
+v 0, distance term: (-0.011, -0.001, 0.003)
+l_corr(0): dx = (0.00, 0.00, -0.00), vsmooth = 1.000
+v 0 spring term:         (0.002, 0.001, -0.002)
+curvature mean = 0.005, std = 0.717
+curvature mean = -0.006, std = 0.759
+v 0 curvature = -0.05115, position = (20.572,5.526,88.861)
+v 0, distance term: (-0.011, -0.001, 0.003)
+l_corr(0): dx = (-0.00, -0.00, 0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (0.0, 0.0, -0.0)
+v 0 spring term:         (0.002, 0.001, -0.002)
+v 0 curvature = -0.05115, position = (20.577,5.529,88.856)
+v 0, distance term: (-0.011, -0.001, 0.003)
+l_corr(0): dx = (-0.00, -0.00, 0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (0.0, 0.0, -0.0)
+v 0 spring term:         (0.002, 0.001, -0.001)
+v 0 curvature = -0.05115, position = (20.584,5.532,88.852)
+v 0, distance term: (-0.011, -0.002, 0.003)
+l_corr(0): dx = (-0.00, -0.00, 0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (0.0, -0.0, -0.0)
+v 0 spring term:         (0.001, 0.001, -0.002)
+v 0 curvature = -0.05115, position = (20.587,5.532,88.849)
+v 0, distance term: (-0.012, -0.002, 0.003)
+l_corr(0): dx = (-0.00, -0.00, 0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (0.0, -0.0, -0.0)
+v 0 spring term:         (0.001, 0.001, -0.002)
+v 0 curvature = -0.05115, position = (20.587,5.532,88.849)
+v 0, distance term: (-0.012, -0.002, 0.003)
+l_corr(0): dx = (-0.00, -0.00, 0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (-0.0, -0.0, 0.0)
+v 0 spring term:         (0.001, 0.001, -0.002)
+v 0 curvature = -0.05115, position = (20.587,5.532,88.849)
+v 0, distance term: (-0.012, -0.002, 0.003)
+l_corr(0): dx = (-0.00, -0.00, 0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = 0.00 (-0.0, -0.0, 0.0)
+v 0 spring term:         (0.001, 0.001, -0.002)
+v 0 curvature = -0.05115, position = (20.587,5.532,88.849)
+v 0, distance term: (-0.011, -0.002, 0.003)
+l_corr(0): dx = (-0.00, -0.00, 0.00), vsmooth = 1.000
+v 0 spring term:         (0.001, 0.001, -0.002)
+curvature mean = 0.006, std = 0.825
+curvature mean = -0.001, std = 0.853
+v 0 curvature = -0.05115, position = (20.587,5.532,88.849)
+v 0, distance term: (-0.011, -0.002, 0.003)
+l_corr(0): dx = (-0.00, -0.00, 0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (0.0, 0.0, -0.0)
+v 0 spring term:         (0.002, 0.001, -0.002)
+v 0 curvature = -0.05115, position = (20.587,5.532,88.849)
+v 0, distance term: (-0.011, -0.002, 0.003)
+l_corr(0): dx = (-0.00, -0.00, 0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (0.0, 0.0, -0.0)
+v 0 spring term:         (0.002, 0.001, -0.002)
+v 0 curvature = -0.05115, position = (20.590,5.535,88.846)
+v 0, distance term: (-0.012, -0.002, 0.003)
+l_corr(0): dx = (-0.00, -0.00, 0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (0.0, -0.0, -0.0)
+v 0 spring term:         (0.001, 0.001, -0.002)
+v 0 curvature = -0.05115, position = (20.590,5.535,88.846)
+v 0, distance term: (-0.012, -0.002, 0.003)
+l_corr(0): dx = (-0.00, -0.00, 0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (0.0, -0.0, -0.0)
+v 0 spring term:         (0.001, 0.001, -0.002)
+v 0 curvature = -0.05115, position = (20.590,5.534,88.845)
+v 0, distance term: (-0.012, -0.002, 0.003)
+l_corr(0): dx = (-0.00, -0.00, 0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (-0.0, -0.0, 0.0)
+v 0 spring term:         (0.001, 0.001, -0.002)
+v 0 curvature = -0.05115, position = (20.590,5.534,88.845)
+v 0, distance term: (-0.012, -0.002, 0.003)
+l_corr(0): dx = (-0.00, -0.00, 0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = 0.00 (-0.0, -0.0, 0.0)
+v 0 spring term:         (0.001, 0.001, -0.002)
+v 0 curvature = -0.05115, position = (20.590,5.534,88.845)
+v 0, distance term: (-0.012, -0.002, 0.003)
+l_corr(0): dx = (-0.00, -0.00, 0.00), vsmooth = 1.000
+v 0 spring term:         (0.001, 0.001, -0.002)
+curvature mean = 0.008, std = 0.881
+curvature mean = -0.001, std = 0.905
+v 0 curvature = -0.05115, position = (20.590,5.534,88.845)
+v 0, distance term: (-0.012, -0.002, 0.003)
+l_corr(0): dx = (-0.00, -0.00, 0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (0.0, 0.0, -0.0)
+v 0 spring term:         (0.001, 0.001, -0.002)
+v 0 curvature = -0.05115, position = (20.591,5.535,88.845)
+v 0, distance term: (-0.012, -0.002, 0.003)
+l_corr(0): dx = (-0.00, -0.00, 0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (0.0, 0.0, -0.0)
+v 0 spring term:         (0.001, 0.001, -0.002)
+v 0 curvature = -0.05115, position = (20.591,5.535,88.845)
+v 0, distance term: (-0.012, -0.002, 0.003)
+l_corr(0): dx = (-0.00, -0.00, 0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (0.0, -0.0, -0.0)
+v 0 spring term:         (0.001, 0.001, -0.002)
+v 0 curvature = -0.05115, position = (20.591,5.535,88.845)
+v 0, distance term: (-0.012, -0.002, 0.003)
+l_corr(0): dx = (-0.00, -0.00, 0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (0.0, -0.0, -0.0)
+v 0 spring term:         (0.001, 0.001, -0.002)
+v 0 curvature = -0.05115, position = (20.591,5.535,88.845)
+v 0, distance term: (-0.012, -0.002, 0.003)
+l_corr(0): dx = (-0.00, -0.00, 0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = -0.00 (-0.0, -0.0, 0.0)
+v 0 spring term:         (0.001, 0.001, -0.002)
+v 0 curvature = -0.05115, position = (20.591,5.535,88.845)
+v 0, distance term: (-0.012, -0.002, 0.003)
+l_corr(0): dx = (-0.00, -0.00, 0.00), vsmooth = 1.000
+before averaging dot = 0.00  after dot = 0.00 (-0.0, -0.0, 0.0)
+v 0 spring term:         (0.001, 0.001, -0.002)
+v 0 curvature = -0.05115, position = (20.591,5.535,88.845)
+v 0, distance term: (-0.012, -0.002, 0.003)
+l_corr(0): dx = (-0.00, -0.00, 0.00), vsmooth = 1.000
+v 0 spring term:         (0.001, 0.001, -0.002)
+MRISregister() return, current seed 0
+writing left/right registered hemi to lh.sphere.left_right
+writing left/right registered hemi to rh.sphere.left_right

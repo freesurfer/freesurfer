@@ -1,0 +1,376 @@
+Thu Jan 12 13:10:07 EST 2012
+/autofs/cluster/con_009/users/greve/fsaverage_sym-data/ni.sym.b40.i30
+/space/crash/1/users/greve/freesurferx86/bin/recon-all
+-s ni.sym.b40.i30 -aparc2aseg
+subjid ni.sym.b40.i30
+setenv SUBJECTS_DIR /autofs/cluster/con_009/users/greve/fsaverage_sym-data
+FREESURFER_HOME /space/crash/1/users/greve/freesurferx86
+Actual FREESURFER_HOME /autofs/space/crash_001/users/greve/freesurferx86
+build-stamp.txt: freesurfer-x86_64-redhat-linux-gnu-dev5-20111219
+Linux tanha 2.6.18-194.32.1.el5 #1 SMP Wed Jan 5 17:52:25 EST 2011 x86_64 x86_64 x86_64 GNU/Linux
+cputime      unlimited
+filesize     unlimited
+datasize     unlimited
+stacksize    unlimited
+coredumpsize 0 kbytes
+memoryuse    unlimited
+vmemoryuse   unlimited
+descriptors  1024 
+memorylocked 32 kbytes
+maxproc      398336 
+
+             total       used       free     shared    buffers     cached
+Mem:      49461108   43603436    5857672          0     605284   35363024
+-/+ buffers/cache:    7635128   41825980
+Swap:     16787904     558392   16229512
+
+########################################
+program versions used
+$Id: recon-all,v 1.411 2011/12/12 17:05:06 nicks Exp $
+$Id: mri_motion_correct.fsl,v 1.14 2011/03/02 20:16:39 nicks Exp $
+mri_convert -all-info 
+ProgramName: mri_convert  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:07-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mri_convert.c,v 1.188 2011/12/19 22:59:15 greve Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+FLIRT version 5.5
+$Id: talairach_avi,v 1.9 2011/03/02 18:38:06 nicks Exp $
+mri_convert --version 
+dev build (use --all-info flag for full version info)
+ProgramName: tkregister2_cmdl  ProgramArguments: --all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:08-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: tkregister2.c,v 1.125 2011/10/14 22:56:05 greve Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+Program nu_correct, built from:
+Package MNI N3, version 1.10, compiled by nicks@minerva (x86_64-unknown-linux-gnu) on 2010-02-20 at 17:32:37
+ProgramName: mri_make_uchar  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:08-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mri_make_uchar.c,v 1.4 2011/03/02 00:04:14 nicks Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+ProgramName: mri_normalize  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:08-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mri_normalize.c,v 1.77 2011/12/07 23:18:28 fischl Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+ProgramName: mri_watershed  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:08-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mri_watershed.cpp,v 1.97 2011/11/08 22:17:40 nicks Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+ProgramName: mri_gcut  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:08-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mri_gcut.cpp,v 1.14 2011/03/02 00:04:16 nicks Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+ProgramName: mri_segment  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:08-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mri_segment.c,v 1.41 2011/08/04 19:39:41 fischl Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+ProgramName: mri_label2label  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:08-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mri_label2label.c,v 1.41 2011/05/19 17:21:43 greve Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+ProgramName: mri_em_register  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:08-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mri_em_register.c,v 1.94 2011/10/25 13:53:06 fischl Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+ProgramName: mri_ca_normalize  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:09-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mri_ca_normalize.c,v 1.60 2011/11/18 01:33:20 fischl Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+ProgramName: mri_ca_register  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:09-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mri_ca_register.c,v 1.79 2011/10/25 13:53:04 fischl Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+ProgramName: mri_ca_label  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:09-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mri_ca_label.c,v 1.97 2011/04/14 11:36:06 fischl Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+ProgramName: mri_pretess  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:09-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mri_pretess.c,v 1.21 2011/08/15 14:12:46 fischl Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+ProgramName: mri_fill  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:09-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mri_fill.c,v 1.119 2011/10/25 14:09:58 fischl Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+ProgramName: mri_tessellate  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:09-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mri_tessellate.c,v 1.36 2011/03/02 00:04:25 nicks Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+ProgramName: mri_concatenate_lta  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:09-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mri_concatenate_lta.c,v 1.10 2011/03/16 21:23:48 nicks Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+ProgramName: mri_normalize_tp2  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:09-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mri_normalize_tp2.c,v 1.8 2011/03/02 00:04:23 nicks Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+ProgramName: mris_smooth  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:09-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mris_smooth.c,v 1.28 2011/03/02 00:04:34 nicks Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+ProgramName: mris_inflate  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:09-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mris_inflate.c,v 1.43 2011/03/02 00:04:32 nicks Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+ProgramName: mris_curvature  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:09-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mris_curvature.c,v 1.31 2011/03/02 00:04:30 nicks Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+ProgramName: mris_sphere  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:09-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mris_sphere.c,v 1.57 2011/03/02 00:04:34 nicks Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+ProgramName: mris_fix_topology  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:09-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mris_fix_topology.c,v 1.48 2011/03/02 00:04:32 nicks Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+ProgramName: mris_topo_fixer  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:09-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mris_topo_fixer.cpp,v 1.29 2011/03/02 00:04:34 nicks Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+ProgramName: mris_ca_label  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:09-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mris_ca_label.c,v 1.35 2011/03/02 00:04:27 nicks Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+ProgramName: mris_euler_number  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:09-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mris_euler_number.c,v 1.8 2011/03/02 00:04:32 nicks Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+ProgramName: mris_make_surfaces  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:10-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mris_make_surfaces.c,v 1.130 2011/12/08 15:01:24 fischl Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+ProgramName: mris_register  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:10-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mris_register.c,v 1.60 2011/09/20 17:53:32 fischl Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+ProgramName: mris_volmask  ProgramArguments: --all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:10-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mris_volmask.cpp,v 1.25 2011/03/02 00:04:34 nicks Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+ProgramName: mris_anatomical_stats  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:10-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mris_anatomical_stats.c,v 1.72 2011/03/02 00:04:26 nicks Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+ProgramName: mrisp_paint  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:10-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mrisp_paint.c,v 1.11 2011/03/02 00:04:35 nicks Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+ProgramName: mris_curvature_stats  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:10-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mris_curvature_stats.c,v 1.64 2011/03/02 00:04:30 nicks Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+ProgramName: mris_calc  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:10-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mris_calc.c,v 1.47 2011/12/07 17:13:37 greve Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+$Id: mri_robust_register.cpp,v 1.60 2011/12/12 22:15:52 mreuter Exp $
+
+ProgramName: mri_robust_register  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:10-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mri_robust_register.cpp,v 1.60 2011/12/12 22:15:52 mreuter Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+$Id: mri_robust_template.cpp,v 1.40 2011/12/01 12:47:40 mreuter Exp $
+
+ProgramName: mri_robust_template  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:10-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mri_robust_template.cpp,v 1.40 2011/12/01 12:47:40 mreuter Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+ProgramName: mri_and  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:10-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mri_and.c,v 1.4 2011/03/02 00:04:13 nicks Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+ProgramName: mri_or  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:10-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mri_or.c,v 1.4 2011/10/06 21:08:23 lzollei Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+ProgramName: mri_fuse_segmentations  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:10-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mri_fuse_segmentations.c,v 1.8 2011/03/02 00:04:15 nicks Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+ProgramName: mri_segstats  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:10-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mri_segstats.c,v 1.80 2012/01/10 22:30:05 greve Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+#######################################
+GCADIR /space/crash/1/users/greve/freesurferx86/average
+GCA RB_all_2008-03-26.gca
+GCASkull RB_all_withskull_2008-03-26.gca
+AvgCurvTif average.curvature.filled.buckner40.tif
+GCSDIR /space/crash/1/users/greve/freesurferx86/average
+GCS curvature.buckner40.filled.desikan_killiany.2010-03-25.gcs
+#######################################
+#-----------------------------------------
+#@# AParc-to-ASeg Thu Jan 12 13:10:10 EST 2012
+/autofs/cluster/con_009/users/greve/fsaverage_sym-data/ni.sym.b40.i30
+
+ mri_aparc2aseg --s ni.sym.b40.i30 --volmask 
+
+SUBJECTS_DIR /autofs/cluster/con_009/users/greve/fsaverage_sym-data
+subject ni.sym.b40.i30
+outvol /autofs/cluster/con_009/users/greve/fsaverage_sym-data/ni.sym.b40.i30/mri/aparc+aseg.mgz
+useribbon 0
+baseoffset 0
+RipUnknown 0
+
+Reading lh white surface 
+ /autofs/cluster/con_009/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.white
+
+Reading lh pial surface 
+ /autofs/cluster/con_009/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.pial
+
+Loading lh annotations from /autofs/cluster/con_009/users/greve/fsaverage_sym-data/ni.sym.b40.i30/label/lh.aparc.annot
+reading colortable from annotation file...
+colortable with 1036 entries read (originally /scratch/tmpdir.annot2std.28231/seg.1.073.xhemi.ctab)
+
+Reading rh white surface 
+ /autofs/cluster/con_009/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/rh.white
+
+Reading rh pial surface 
+ /autofs/cluster/con_009/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/rh.pial
+
+Loading rh annotations from /autofs/cluster/con_009/users/greve/fsaverage_sym-data/ni.sym.b40.i30/label/rh.aparc.annot
+reading colortable from annotation file...
+colortable with 2036 entries read (originally /scratch/tmpdir.annot2std.12874/seg.1.073.xhemi.ctab)
+mghRead(/autofs/cluster/con_009/users/greve/fsaverage_sym-data/ni.sym.b40.i30/mri/ribbon.mgz, -1): could not open file
+Have color table for lh white annotation
+Have color table for rh white annotation
+Loading ribbon segmentation from /autofs/cluster/con_009/users/greve/fsaverage_sym-data/ni.sym.b40.i30/mri/ribbon.mgz
+ERROR: loading /autofs/cluster/con_009/users/greve/fsaverage_sym-data/ni.sym.b40.i30/mri/ribbon.mgz
+Linux tanha 2.6.18-194.32.1.el5 #1 SMP Wed Jan 5 17:52:25 EST 2011 x86_64 x86_64 x86_64 GNU/Linux
+
+recon-all -s ni.sym.b40.i30 exited with ERRORS at Thu Jan 12 13:10:22 EST 2012
+
+To report a problem, see http://surfer.nmr.mgh.harvard.edu/fswiki/BugReporting
+
+
+
+New invocation of recon-all 
+
+
+
+Thu Jan 12 13:10:40 EST 2012
+/autofs/cluster/con_009/users/greve/fsaverage_sym-data/ni.sym.b40.i30
+/space/crash/1/users/greve/freesurferx86/bin/recon-all
+-s ni.sym.b40.i30 -cortribbon -aparc2aseg
+subjid ni.sym.b40.i30
+setenv SUBJECTS_DIR /autofs/cluster/con_009/users/greve/fsaverage_sym-data
+FREESURFER_HOME /space/crash/1/users/greve/freesurferx86
+Actual FREESURFER_HOME /autofs/space/crash_001/users/greve/freesurferx86
+build-stamp.txt: freesurfer-x86_64-redhat-linux-gnu-dev5-20111219
+Linux tanha 2.6.18-194.32.1.el5 #1 SMP Wed Jan 5 17:52:25 EST 2011 x86_64 x86_64 x86_64 GNU/Linux
+cputime      unlimited
+filesize     unlimited
+datasize     unlimited
+stacksize    unlimited
+coredumpsize 0 kbytes
+memoryuse    unlimited
+vmemoryuse   unlimited
+descriptors  1024 
+memorylocked 32 kbytes
+maxproc      398336 
+
+             total       used       free     shared    buffers     cached
+Mem:      49461108   43751728    5709380          0     605288   35510860
+-/+ buffers/cache:    7635580   41825528
+Swap:     16787904     558392   16229512
+
+########################################
+program versions used
+$Id: recon-all,v 1.411 2011/12/12 17:05:06 nicks Exp $
+$Id: mri_motion_correct.fsl,v 1.14 2011/03/02 20:16:39 nicks Exp $
+mri_convert -all-info 
+ProgramName: mri_convert  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:40-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mri_convert.c,v 1.188 2011/12/19 22:59:15 greve Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+FLIRT version 5.5
+$Id: talairach_avi,v 1.9 2011/03/02 18:38:06 nicks Exp $
+mri_convert --version 
+dev build (use --all-info flag for full version info)
+ProgramName: tkregister2_cmdl  ProgramArguments: --all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:40-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: tkregister2.c,v 1.125 2011/10/14 22:56:05 greve Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+Program nu_correct, built from:
+Package MNI N3, version 1.10, compiled by nicks@minerva (x86_64-unknown-linux-gnu) on 2010-02-20 at 17:32:37
+ProgramName: mri_make_uchar  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:40-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mri_make_uchar.c,v 1.4 2011/03/02 00:04:14 nicks Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+ProgramName: mri_normalize  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:40-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mri_normalize.c,v 1.77 2011/12/07 23:18:28 fischl Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+ProgramName: mri_watershed  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:40-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mri_watershed.cpp,v 1.97 2011/11/08 22:17:40 nicks Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+ProgramName: mri_gcut  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:40-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mri_gcut.cpp,v 1.14 2011/03/02 00:04:16 nicks Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+ProgramName: mri_segment  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:40-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mri_segment.c,v 1.41 2011/08/04 19:39:41 fischl Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+ProgramName: mri_label2label  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:40-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mri_label2label.c,v 1.41 2011/05/19 17:21:43 greve Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+ProgramName: mri_em_register  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:40-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mri_em_register.c,v 1.94 2011/10/25 13:53:06 fischl Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+ProgramName: mri_ca_normalize  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:40-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mri_ca_normalize.c,v 1.60 2011/11/18 01:33:20 fischl Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+ProgramName: mri_ca_register  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:40-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mri_ca_register.c,v 1.79 2011/10/25 13:53:04 fischl Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+ProgramName: mri_ca_label  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:40-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mri_ca_label.c,v 1.97 2011/04/14 11:36:06 fischl Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+ProgramName: mri_pretess  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:40-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mri_pretess.c,v 1.21 2011/08/15 14:12:46 fischl Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+ProgramName: mri_fill  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:40-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mri_fill.c,v 1.119 2011/10/25 14:09:58 fischl Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+ProgramName: mri_tessellate  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:40-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mri_tessellate.c,v 1.36 2011/03/02 00:04:25 nicks Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+ProgramName: mri_concatenate_lta  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:40-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mri_concatenate_lta.c,v 1.10 2011/03/16 21:23:48 nicks Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+ProgramName: mri_normalize_tp2  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:40-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mri_normalize_tp2.c,v 1.8 2011/03/02 00:04:23 nicks Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+ProgramName: mris_smooth  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:40-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mris_smooth.c,v 1.28 2011/03/02 00:04:34 nicks Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+ProgramName: mris_inflate  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:40-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mris_inflate.c,v 1.43 2011/03/02 00:04:32 nicks Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+ProgramName: mris_curvature  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:40-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mris_curvature.c,v 1.31 2011/03/02 00:04:30 nicks Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+ProgramName: mris_sphere  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:40-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mris_sphere.c,v 1.57 2011/03/02 00:04:34 nicks Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+ProgramName: mris_fix_topology  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:40-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mris_fix_topology.c,v 1.48 2011/03/02 00:04:32 nicks Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+ProgramName: mris_topo_fixer  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:40-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mris_topo_fixer.cpp,v 1.29 2011/03/02 00:04:34 nicks Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+ProgramName: mris_ca_label  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:40-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mris_ca_label.c,v 1.35 2011/03/02 00:04:27 nicks Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+ProgramName: mris_euler_number  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:40-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mris_euler_number.c,v 1.8 2011/03/02 00:04:32 nicks Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+ProgramName: mris_make_surfaces  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:40-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mris_make_surfaces.c,v 1.130 2011/12/08 15:01:24 fischl Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+ProgramName: mris_register  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:40-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mris_register.c,v 1.60 2011/09/20 17:53:32 fischl Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+ProgramName: mris_volmask  ProgramArguments: --all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:40-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mris_volmask.cpp,v 1.25 2011/03/02 00:04:34 nicks Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+ProgramName: mris_anatomical_stats  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:40-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mris_anatomical_stats.c,v 1.72 2011/03/02 00:04:26 nicks Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+ProgramName: mrisp_paint  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:40-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mrisp_paint.c,v 1.11 2011/03/02 00:04:35 nicks Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+ProgramName: mris_curvature_stats  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:40-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mris_curvature_stats.c,v 1.64 2011/03/02 00:04:30 nicks Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+ProgramName: mris_calc  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:41-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mris_calc.c,v 1.47 2011/12/07 17:13:37 greve Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+$Id: mri_robust_register.cpp,v 1.60 2011/12/12 22:15:52 mreuter Exp $
+
+ProgramName: mri_robust_register  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:41-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mri_robust_register.cpp,v 1.60 2011/12/12 22:15:52 mreuter Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+$Id: mri_robust_template.cpp,v 1.40 2011/12/01 12:47:40 mreuter Exp $
+
+ProgramName: mri_robust_template  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:41-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mri_robust_template.cpp,v 1.40 2011/12/01 12:47:40 mreuter Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+ProgramName: mri_and  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:41-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mri_and.c,v 1.4 2011/03/02 00:04:13 nicks Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+ProgramName: mri_or  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:41-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mri_or.c,v 1.4 2011/10/06 21:08:23 lzollei Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+ProgramName: mri_fuse_segmentations  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:41-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mri_fuse_segmentations.c,v 1.8 2011/03/02 00:04:15 nicks Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+ProgramName: mri_segstats  ProgramArguments: -all-info  ProgramVersion: $Name:  $  TimeStamp: 2012/01/12-18:10:41-GMT  BuildTimeStamp: Dec 18 2011 23:45:15  CVS: $Id: mri_segstats.c,v 1.80 2012/01/10 22:30:05 greve Exp $  User: greve  Machine: tanha  Platform: Linux  PlatformVersion: 2.6.18-194.32.1.el5  CompilerName: GCC  CompilerVersion: 40100 
+#######################################
+GCADIR /space/crash/1/users/greve/freesurferx86/average
+GCA RB_all_2008-03-26.gca
+GCASkull RB_all_withskull_2008-03-26.gca
+AvgCurvTif average.curvature.filled.buckner40.tif
+GCSDIR /space/crash/1/users/greve/freesurferx86/average
+GCS curvature.buckner40.filled.desikan_killiany.2010-03-25.gcs
+#######################################
+#--------------------------------------------
+#@# Cortical ribbon mask Thu Jan 12 13:10:41 EST 2012
+/autofs/cluster/con_009/users/greve/fsaverage_sym-data/ni.sym.b40.i30/mri
+
+ mris_volmask --label_left_white 2 --label_left_ribbon 3 --label_right_white 41 --label_right_ribbon 42 --save_ribbon ni.sym.b40.i30 
+
+SUBJECTS_DIR is /autofs/cluster/con_009/users/greve/fsaverage_sym-data
+loading input data...
+computing distance to left white surface 
+computing distance to left pial surface 
+computing distance to right white surface 
+computing distance to right pial surface 
+ hemi masks overlap voxels = 0
+writing volume /autofs/cluster/con_009/users/greve/fsaverage_sym-data/ni.sym.b40.i30/mri/ribbon.mgz
+ writing ribbon files
+#-----------------------------------------
+#@# AParc-to-ASeg Thu Jan 12 13:15:04 EST 2012
+/autofs/cluster/con_009/users/greve/fsaverage_sym-data/ni.sym.b40.i30
+
+ mri_aparc2aseg --s ni.sym.b40.i30 --volmask 
+
+SUBJECTS_DIR /autofs/cluster/con_009/users/greve/fsaverage_sym-data
+subject ni.sym.b40.i30
+outvol /autofs/cluster/con_009/users/greve/fsaverage_sym-data/ni.sym.b40.i30/mri/aparc+aseg.mgz
+useribbon 0
+baseoffset 0
+RipUnknown 0
+
+Reading lh white surface 
+ /autofs/cluster/con_009/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.white
+
+Reading lh pial surface 
+ /autofs/cluster/con_009/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.pial
+
+Loading lh annotations from /autofs/cluster/con_009/users/greve/fsaverage_sym-data/ni.sym.b40.i30/label/lh.aparc.annot
+reading colortable from annotation file...
+colortable with 1036 entries read (originally /scratch/tmpdir.annot2std.28231/seg.1.073.xhemi.ctab)
+
+Reading rh white surface 
+ /autofs/cluster/con_009/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/rh.white
+
+Reading rh pial surface 
+ /autofs/cluster/con_009/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/rh.pial
+
+Loading rh annotations from /autofs/cluster/con_009/users/greve/fsaverage_sym-data/ni.sym.b40.i30/label/rh.aparc.annot
+reading colortable from annotation file...
+colortable with 2036 entries read (originally /scratch/tmpdir.annot2std.12874/seg.1.073.xhemi.ctab)
+Have color table for lh white annotation
+Have color table for rh white annotation
+Loading ribbon segmentation from /autofs/cluster/con_009/users/greve/fsaverage_sym-data/ni.sym.b40.i30/mri/ribbon.mgz
+
+Building hash of lh white
+
+Building hash of lh pial
+
+Building hash of rh white
+
+Building hash of rh pial
+
+Loading aseg from /autofs/cluster/con_009/users/greve/fsaverage_sym-data/ni.sym.b40.i30/mri/aseg.mgz
+ASeg Vox2RAS: -----------
+-1.000   0.000   0.000   128.000;
+ 0.000   0.000   1.000  -128.000;
+ 0.000  -1.000   0.000   128.000;
+ 0.000   0.000   0.000   1.000;
+-------------------------
+
+Labeling Slice
+  0   1   2   3   4   5   6   7   8   9  10  11  12  13  14  15  16  17  18  19 
+ 20  21  22  23  24  25  26  27  28  29  30  31  32  33  34  35  36  37  38  39 
+ 40  41  42  43  44  45  46  47  48  49  50  51  52  53  54  55  56  57  58  59 
+ 60  61  62  63  64  65  66  67  68  69  70  71  72  73  74  75  76  77  78  79 
+ 80  81  82  83  84  85  86  87  88  89  90  91  92  93  94  95  96  97  98  99 
+100 101 102 103 104 105 106 107 108 109 110 111 112 113 114 115 116 117 118 119 
+120 121 122 123 124 125 126 127 128 129 130 131 132 133 134 135 136 137 138 139 
+140 141 142 143 144 145 146 147 148 149 150 151 152 153 154 155 156 157 158 159 
+160 161 162 163 164 165 166 167 168 169 170 171 172 173 174 175 176 177 178 179 
+180 181 182 183 184 185 186 187 188 189 190 191 192 193 194 195 196 197 198 199 
+200 201 202 203 204 205 206 207 208 209 210 211 212 213 214 215 216 217 218 219 
+220 221 222 223 224 225 226 227 228 229 230 231 232 233 234 235 236 237 238 239 
+240 241 242 243 244 245 246 247 248 249 250 251 252 253 254 255 nctx = 309999
+Used brute-force search on 0 voxels
+Writing output aseg to /autofs/cluster/con_009/users/greve/fsaverage_sym-data/ni.sym.b40.i30/mri/aparc+aseg.mgz
+/autofs/cluster/con_009/users/greve/fsaverage_sym-data/ni.sym.b40.i30
+
+ mri_aparc2aseg --s ni.sym.b40.i30 --volmask --a2009s 
+
+SUBJECTS_DIR /autofs/cluster/con_009/users/greve/fsaverage_sym-data
+subject ni.sym.b40.i30
+outvol /autofs/cluster/con_009/users/greve/fsaverage_sym-data/ni.sym.b40.i30/mri/aparc.a2009s+aseg.mgz
+useribbon 0
+baseoffset 10100
+RipUnknown 0
+
+Reading lh white surface 
+ /autofs/cluster/con_009/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.white
+
+Reading lh pial surface 
+ /autofs/cluster/con_009/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/lh.pial
+
+Loading lh annotations from /autofs/cluster/con_009/users/greve/fsaverage_sym-data/ni.sym.b40.i30/label/lh.aparc.a2009s.annot
+reading colortable from annotation file...
+colortable with 76 entries read (originally /scratch/tmpdir.annot2std.29678/seg.1.073.xhemi.ctab)
+
+Reading rh white surface 
+ /autofs/cluster/con_009/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/rh.white
+
+Reading rh pial surface 
+ /autofs/cluster/con_009/users/greve/fsaverage_sym-data/ni.sym.b40.i30/surf/rh.pial
+
+Loading rh annotations from /autofs/cluster/con_009/users/greve/fsaverage_sym-data/ni.sym.b40.i30/label/rh.aparc.a2009s.annot
+reading colortable from annotation file...
+colortable with 76 entries read (originally /scratch/tmpdir.annot2std.17004/seg.1.073.xhemi.ctab)
+Have color table for lh white annotation
+Have color table for rh white annotation
+Loading ribbon segmentation from /autofs/cluster/con_009/users/greve/fsaverage_sym-data/ni.sym.b40.i30/mri/ribbon.mgz
+
+Building hash of lh white
+
+Building hash of lh pial
+
+Building hash of rh white
+
+Building hash of rh pial
+
+Loading aseg from /autofs/cluster/con_009/users/greve/fsaverage_sym-data/ni.sym.b40.i30/mri/aseg.mgz
+ASeg Vox2RAS: -----------
+-1.000   0.000   0.000   128.000;
+ 0.000   0.000   1.000  -128.000;
+ 0.000  -1.000   0.000   128.000;
+ 0.000   0.000   0.000   1.000;
+-------------------------
+
+Labeling Slice
+  0   1   2   3   4   5   6   7   8   9  10  11  12  13  14  15  16  17  18  19 
+ 20  21  22  23  24  25  26  27  28  29  30  31  32  33  34  35  36  37  38  39 
+ 40  41  42  43  44  45  46  47  48  49  50  51  52  53  54  55  56  57  58  59 
+ 60  61  62  63  64  65  66  67  68  69  70  71  72  73  74  75  76  77  78  79 
+ 80  81  82  83  84  85  86  87  88  89  90  91  92  93  94  95  96  97  98  99 
+100 101 102 103 104 105 106 107 108 109 110 111 112 113 114 115 116 117 118 119 
+120 121 122 123 124 125 126 127 128 129 130 131 132 133 134 135 136 137 138 139 
+140 141 142 143 144 145 146 147 148 149 150 151 152 153 154 155 156 157 158 159 
+160 161 162 163 164 165 166 167 168 169 170 171 172 173 174 175 176 177 178 179 
+180 181 182 183 184 185 186 187 188 189 190 191 192 193 194 195 196 197 198 199 
+200 201 202 203 204 205 206 207 208 209 210 211 212 213 214 215 216 217 218 219 
+220 221 222 223 224 225 226 227 228 229 230 231 232 233 234 235 236 237 238 239 
+240 241 242 243 244 245 246 247 248 249 250 251 252 253 254 255 nctx = 309999
+Used brute-force search on 0 voxels
+Writing output aseg to /autofs/cluster/con_009/users/greve/fsaverage_sym-data/ni.sym.b40.i30/mri/aparc.a2009s+aseg.mgz
+
+#------------------------------------------
+
+recon-all -s ni.sym.b40.i30 finished without error at Thu Jan 12 13:17:30 EST 2012

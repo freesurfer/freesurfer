@@ -1,0 +1,10 @@
+------------------------------
+SUBJECT ni.sym.b40.i30
+DATE Thu Jan 12 13:17:30 EST 2012
+USER greve
+HOST tanha
+PROCESSOR x86_64
+OS Linux
+Linux tanha 2.6.18-194.32.1.el5 #1 SMP Wed Jan 5 17:52:25 EST 2011 x86_64 x86_64 x86_64 GNU/Linux
+$Id: recon-all,v 1.411 2011/12/12 17:05:06 nicks Exp $
+/space/crash/1/users/greve/freesurferx86/bin/recon-all
