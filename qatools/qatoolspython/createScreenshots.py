@@ -104,7 +104,7 @@ def createScreenshots(SUBJECT, SUBJECTS_DIR, OUTFILE, INTERACTIVE = True, LAYOUT
     # import colortable, compute auxiliary variables, and transform to matplotlib
     # colortable
 
-    lut = pd.read_csv(os.path.join(os.environ['FREESURFER_HOME'],'FreeSurferColorLUT.txt'),
+    lut = pd.read_csv(os.path.join(os.environ.get('FREESURFER_HOME'),'FreeSurferColorLUT.txt'),
                       sep=' ',
                       comment='#',
                       header=None,

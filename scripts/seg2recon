@@ -1,0 +1,560 @@
+#!/bin/tcsh -f
+#
+# seg2recon - create and populate a subjects dir given the seg and
+# input vol in a way that recon-all can be run on it. This is similar
+# to samseg2recon but provides for bias field correction (which is
+# already done by samseg). 
+
+set VERSION = 'seg2recon @FS_VERSION@';
+
+if(-e $FREESURFER_HOME/sources.csh) then
+  source $FREESURFER_HOME/sources.csh
+endif
+
+set segvol = ();
+set subject = ();
+set input = ();
+set mask = ()
+set ctab = ();
+set ndilate = 2;
+set XOptsFiles = ();
+set ctabdefault = $FREESURFER/FreeSurferColorLUT.txt
+set DoCC = 1;    # Seg Corpus callosum
+set DoRCA = 0;
+set tmpdir = ()
+set LF = ()
+set cleanup = 1
+set ForceUpdate = 0; 
+# Extracerebral segs (samseg and charm)
+set xcersegs = (165 258 259 85 501 502 506 507 508 509 511 512 514 404 516 517 530)
+
+set inputargs = ($argv);
+set PrintHelp = 0;
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+set StartTime = `date`;
+set tSecStart = `date '+%s'`;
+set year  = `date +%Y`
+set month = `date +%m`
+set day   = `date +%d`
+set hour   = `date +%H`
+set min    = `date +%M`
+
+mkdir -p $SUBJECTS_DIR/$subject/scripts 
+mkdir -p $SUBJECTS_DIR/$subject/mri/transforms
+mkdir -p $SUBJECTS_DIR/$subject/mri/tmp
+
+if($#tmpdir == 0) then
+  if(-dw /scratch)   set tmpdir = /scratch/tmpdir.seg2recon.$$
+  if(! -dw /scratch) set tmpdir = $SUBJECTS_DIR/$subject/mri/tmp/tmpdir.seg2recon.$$
+endif
+mkdir -p $tmpdir
+
+# Set up log file
+if($#LF == 0) set LF = $SUBJECTS_DIR/$subject/scripts/seg2recon.log
+if($LF != /dev/null) rm -f $LF
+echo "Log file for seg2recon" >> $LF
+date  | tee -a $LF
+echo "" | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo "cd `pwd`"  | tee -a $LF
+echo $0 $inputargs | tee -a $LF
+echo "" | tee -a $LF
+cat $FREESURFER_HOME/build-stamp.txt | tee -a $LF
+echo $VERSION | tee -a $LF
+uname -a  | tee -a $LF
+if($?PBS_JOBID) then
+  echo "pbsjob $PBS_JOBID"  >> $LF
+endif
+
+#========================================================
+
+set mdir = $SUBJECTS_DIR/$subject/mri
+
+# If input volume is not isotropic, then there will be downstream failures.
+# Need to resolve the failures or conform-to-min from the start.
+# Copy the input. Eventually will probably want to have arbitrary
+# inputs and will have to conform it.
+set ud = `UpdateNeeded $mdir/orig.mgz $input`
+if($ud || $ForceUpdate) then
+  set cmd = (mri_convert $input $mdir/orig.mgz)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1;
+else
+  echo "$mdir/orig.mgz does not need updating"  | tee -a $LF
+endif
+
+# create a link from the orig.mgz to rawavg.mgz, needed for pctsurfcon
+if(! -e $mdir/rawavg.mgz) then
+  pushd $mdir
+  set cmd = (ln -sf orig.mgz rawavg.mgz)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit;
+  popd
+endif
+
+# Copy seg into aseg.auto_noCCseg.mgz 
+set ud = `UpdateNeeded $mdir/aseg.auto_noCCseg.mgz $segvol`
+if($ud || $ForceUpdate) then
+  # odt must be int because extracerebral seg ids are > 255
+  set cmd = (mri_convert $segvol $mdir/aseg.auto_noCCseg.mgz -odt int --no_scale 1)
+  if($#ctab) set cmd = ($cmd --ctab $ctab)
+  echo $cmd | tee -a $LF
+  fs_time $cmd | tee -a $LF
+  if($status) goto error_exit;
+else
+  echo "$mdir/aseg.auto_noCCseg.mgz does not need updating" | tee -a $LF
+endif
+
+# Create a head mask to speed bias fitting. Need whole head for
+# talairach reg which may later be used for ICV
+set headmask = ()
+if($#headmask == 0) then
+  set headmask = $mdir/head.mgz
+  set ud = `UpdateNeeded $headmask $segvol $input`
+  if($ud || $ForceUpdate) then
+    set xopts = `fsr-getxopts mri_seghead $XOptsFiles`
+    set cmd = (mri_seghead --invol $input --outvol $headmask \
+      --fill 1 --thresh1 20 --thresh2 20 --nhitsmin 2 --rescale \
+      --no-fill-holes-islands --or-mask $segvol)
+    echo $cmd | tee -a $LF
+    fs_time $cmd | tee -a $LF
+    if($status) goto error_exit;
+  else
+    echo "$headmask does not need updating" | tee -a $LF
+  endif
+endif
+
+# Fit the bias field and apply bias correction. This is one of the
+# main functions of this script since many of the segmentation
+# techniques (eg, synthseg, fastsurfer) do not provide bias field
+# correction. mri_fit_bias takes the log of the input, then fits a GLM
+# with DCT as regressors.
+set nu = $mdir/nu.mgz
+set biasfield = $mdir/biasfield.mgz
+set ud = `UpdateNeeded $nu $segvol $input $headmask`
+if($ud || $ForceUpdate) then
+  set xopts = `fsr-getxopts mri_fit_bias $XOptsFiles`
+  set cmd = (mri_fit_bias --i $input --seg $segvol --mask $headmask \
+    --bias $biasfield --threads $threads --o $nu $xopts)
+  echo $cmd | tee -a $LF
+  fs_time $cmd | tee -a $LF
+  if($status) goto error_exit;
+else
+  echo "$nu does not need updating" | tee -a $LF
+endif
+
+# Run tal registration. This could be done in recon-all, but recon-all
+# tal will run N4 to create orig_nu.mgz. Since we already have a
+# bf-corrected volume, we do it here. May need to refactor for edits.
+# Must use whole head here for ICV purposes.
+set xfma = $mdir/transforms/talairach.xfm
+set ud = `UpdateNeeded $xfma $nu`
+if($ud || $ForceUpdate) then
+  set xopts = `fsr-getxopts talairach_avi $XOptsFiles`;
+  # note: have to be in the same folder so just use nu.mgz, etc
+  pushd $mdir
+  set cmd = (talairach_avi --i nu.mgz --xfm transforms/talairach.xfm $xopts)
+  echo $cmd | tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) goto error_exit;
+  popd
+  # Not sure I should create this here in case of edits
+  set lta = $mdir/transforms/talairach.xfm.lta
+  set mni305 = $FREESURFER_HOME/average/mni305.cor.mgz
+  set cmd = (lta_convert --src $nu --trg $mni305 --inxfm $xfma \
+      --outlta $lta --subject fsaverage --ltavox2vox)
+  echo $cmd |& tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) goto error_exit;
+  pushd $mdir/transforms
+  if(! -e talairach.lta) ln -sf talairach.xfm.lta talairach.lta
+  popd
+endif
+
+if($#mask == 0) then # for brain masking
+  set mask = $mdir/seg.bin.dil$ndilate.mgz
+  #set cmd = (mri_binarize --i $segvol --min 0.5 --dilate $ndilate --o $mask) 
+  #Create mask by binarizing everything outside of the brain then
+  # inverting rather than simply thresholding what is in the
+  # seg. This allows for segmentations with extracerebral segs (like
+  # samseg and charm). But the extracerebral segs need to be within
+  # the xcercegs list. Need to make this configurable.
+  set cmd = (mri_binarize --i $segvol --match 0 $xcersegs --inv --dilate $ndilate --o $mask)
+  echo $cmd | tee -a $LF
+  set ud = `UpdateNeeded $mask $segvol`
+  if($ud || $ForceUpdate) then
+    fs_time $cmd | tee -a $LF
+    if($status) goto error_exit;
+  else
+    echo "$mask does not need updating" | tee -a $LF
+  endif
+endif
+
+# Create the norm simply by masking the bias field corrected nu
+set norm = $mdir/norm.mgz
+set ud = `UpdateNeeded $norm $nu $mask`
+if($ud || $ForceUpdate) then
+  set cmd = (mri_mask $nu $mask $norm)
+  fs_time $cmd | tee -a $LF
+  if($status) goto error_exit;
+else
+  echo "$nu does not need updating" | tee -a $LF
+endif
+
+# link norm to brainmask; brain will be created by recon-all
+pushd $mdir
+if(! -e T1.mgz) then
+  set cmd = (ln -sf nu.mgz T1.mgz)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit;
+endif
+foreach v (brainmask.mgz)
+  # This is redundant when synthstrip is used in recon-all
+  if(-e $v) continue
+  set cmd = (ln -sf norm.mgz $v)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit;
+end
+popd
+
+# Create aseg.auto.mgz (which has corpus callosum). This needs to be
+# run outside of recon-all because in recon-all it is done as part of
+# ca_label (should be refactored)
+pushd $mdir
+set ud = `UpdateNeeded aseg.auto.mgz aseg.auto_noCCseg.mgz`
+if($DoCC && $ud) then
+  set tmpfile = $tmpdir/isconformed
+  mri_info --o $tmpfile --conformed-to-min aseg.auto_noCCseg.mgz > /dev/null
+  set isconf = `cat $tmpfile | head -n 1`
+  echo IsConformed $isconf | tee -a $LF
+  if($isconf == yes) then
+    set cmd = (mri_cc -aseg aseg.auto_noCCseg.mgz -o aseg.auto.mgz -lta transforms/cc_up.lta $subject)
+    date | tee -a $LF
+    echo $cmd | tee -a $LF
+    fs_time $cmd | tee -a $LF
+    if($status) goto error_exit;
+    date | tee -a $LF
+  else
+    # If it is not conformed, have to go through some gymnastics because mri_cc
+    # needs things to be conformed
+    # Conform the norm and aseg
+    set cmd = (mri_convert norm.mgz norm.conf.mgz --conform_min)
+    echo $cmd | tee -a $LF
+    fs_time $cmd | tee -a $LF
+    if($status) goto error_exit;
+    set cmd = (mri_label2vol --seg aseg.auto_noCCseg.mgz --temp norm.conf.mgz --regheader --o aseg.auto_noCCseg.conf.mgz)
+    echo $cmd | tee -a $LF
+    fs_time $cmd | tee -a $LF
+    if($status) goto error_exit;
+    # Now run mri_cc. Not sure if cc_up.lta will be valid (or needed)
+    set cmd = (mri_cc -norm norm.conf.mgz -aseg aseg.auto_noCCseg.conf.mgz \
+      -o aseg.auto.conf.mgz -lta transforms/cc_up.lta $subject)
+    echo $cmd | tee -a $LF
+    fs_time $cmd | tee -a $LF
+    if($status) goto error_exit;
+    # Now map it back to the non-conformed space
+    set cmd = (mri_label2vol --seg aseg.auto.conf.mgz --temp norm.mgz --regheader --o aseg.auto.noconf.mgz)
+    echo $cmd | tee -a $LF
+    fs_time $cmd | tee -a $LF
+    if($status) goto error_exit;
+    # Merge the CC labels back into the original aseg. Do not use the non-conf volume above because
+    # moving into and out of 1mm space may create a problem
+    foreach segid (251 252 253 254 255)
+      set cmd = (mri_binarize --i aseg.auto.noconf.mgz --match $segid --o $tmpdir/ccbin.mgh)
+      echo $cmd | tee -a $LF
+      fs_time $cmd | tee -a $LF
+      if($status) goto error_exit;
+      if($segid == 251) then
+        set src = aseg.auto_noCCseg.mgz
+      else
+        set src = aseg.auto.mgz
+      endif
+      set cmd = (mergeseg --src $src --merge $tmpdir/ccbin.mgh --o aseg.auto.mgz --segid $segid)
+      set cmd = ($cmd --tmpdir $tmpdir/tmp.mergeseg --ctab $ctabdefault)
+      if($cleanup) set cmd = ($cmd --cleanup)
+      echo $cmd | tee -a $LF
+      fs_time $cmd | tee -a $LF
+      if($status) goto error_exit;
+    end
+  endif
+else
+  echo "Not segmenting CC" | tee -a $LF
+  # will the cc_up.lta be needed at some point?
+  set cmd = (cp aseg.auto_noCCseg.mgz aseg.auto.mgz)
+  date | tee -a $LF
+  echo $cmd | tee -a $LF
+  fs_time $cmd | tee -a $LF
+  if($status) goto error_exit;
+  date | tee -a $LF
+endif
+popd
+
+# Cleanup
+if($cleanup) rm -rf $tmpdir
+
+if($DoRCA) then
+  # added this for convenience in testing
+  date | tee -a $LF
+  echo "Running recon-all" | tee -a $LF
+  set cmd = (recon-all -s $subject -autorecon2-samseg -autorecon3 -threads $threads)
+  echo $cmd | tee -a $LF
+  fs_time $cmd | tee -a $LF
+  if($status) goto error_exit;
+endif
+
+# Done
+echo " " |& tee -a $LF
+set tSecEnd = `date '+%s'`;
+@ tSecRun = $tSecEnd - $tSecStart;
+set tRunHours = `echo $tSecRun/3600|bc -l`
+set tRunHours = `printf %5.2f $tRunHours`
+echo "Started at $StartTime " |& tee -a $LF
+echo "Ended   at `date`" |& tee -a $LF
+echo "Seg2recon-Run-Time-Sec $tSecRun" |& tee -a $LF
+echo "Seg2recon-Run-Time-Hours $tRunHours" |& tee -a $LF
+echo " " |& tee -a $LF
+echo "seg2recon Done" |& tee -a $LF
+exit 0
+
+###############################################
+
+############--------------##################
+error_exit:
+echo "ERROR: $cmd"
+exit 1;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--seg":
+      if($#argv < 1) goto arg1err;
+      set segvol = $argv[1]; shift;
+      breaksw
+
+    case "--s":
+      if($#argv < 1) goto arg1err;
+      set subject = $argv[1]; shift;
+      breaksw
+
+    case "--i":
+      if($#argv < 1) goto arg1err;
+      set input = $argv[1]; shift;
+      breaksw
+
+    case "--ctab":
+      if($#argv < 1) goto arg1err;
+      set ctab = $argv[1]; shift;
+      breaksw
+
+    case "--threads":
+      if($#argv < 1) goto arg1err;
+      set threads = $argv[1]; shift;
+      breaksw
+
+    case "--ndilate":
+      if($#argv < 1) goto arg1err;
+      set ndilate = $argv[1]; shift;
+      breaksw
+
+    case "--m":
+      if($#argv < 1) goto arg1err;
+      set mask = $argv[1]; shift;
+      if(! -e $mask) then
+        echo "ERROR: cannot find $mask"
+        exit 1;
+      endif
+      set mask = `getfullpath $mask`
+      breaksw
+
+    case "--expert":
+      if( $#argv < 1) goto arg1err;
+      set XOptsFile = $argv[1]; shift;
+      fsr-checkxopts $XOptsFile
+      if($status) goto error_exit;
+      set XOptsFiles = ($XOptsFiles `getfullpath $XOptsFile`)
+      breaksw
+
+    case "--cc":
+      set DoCC = 1;
+      breaksw
+    case "--no-cc":
+      set DoCC = 0;
+      breaksw
+
+    case "--rca":
+      set DoRCA = 1;
+      breaksw
+    case "--no-rca":
+      set DoRCA = 0;
+      breaksw
+
+    case "--log":
+      if($#argv < 1) goto arg1err;
+      set LF = $argv[1]; shift;
+      breaksw
+
+    case "--nolog":
+    case "--no-log":
+      set LF = /dev/null
+      breaksw
+
+    case "--no-force-update":
+      set ForceUpdate = 0;
+      breaksw
+    case "--force-update":
+      set ForceUpdate = 1;
+      breaksw
+
+    case "--tmp":
+    case "--tmpdir":
+      if($#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "--nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "--cleanup":
+      set cleanup = 1;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#subject == 0) then
+  echo "ERROR: must supply subject"
+  exit 1;
+endif
+if($#segvol == 0) then
+  echo "ERROR: must supply seg"
+  exit 1;
+endif
+if($#input == 0) then
+  echo "ERROR: must supply input"
+  exit 1;
+endif
+if($#ctab == 0) then
+  set cmd = (mri_info --ctab --o /tmp/seg2recon.ctab.$$ $segvol)
+  $cmd
+  if($status) exit 1
+  set n = `wc -l /tmp/seg2recon.ctab.$$`
+  if($n[1] == 0) then
+    echo "ctab not specified and no ctab in seg, so using $ctabdefault"
+    set ctab = $ctabdefault
+  endif
+  rm -f /tmp/seg2recon.ctab.$$
+endif
+foreach f ($input $segvol $ctab $mask)
+  if(! -e $f) then
+    echo "ERROR: cannot find $f"
+    exit 1;
+  endif
+end
+
+set input  = `getfullpath $input`
+set segvol = `getfullpath $segvol`
+if($#ctab) set ctab   = `getfullpath $ctab`
+if($#mask) set mask = `getfullpath $mask`
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "seg2recon"
+  echo "  --s subject : output"
+  echo "  --seg segvol : aseg-type volume, eg, from synthseg, fastsurfer, psacnn, samseg, or aseg"
+  echo "  --i inputvol : what you would pass to recon-all"
+  echo "  --ctab ctab  : ctab for the seg (will use embedded if there or FreeSurferColorLUT.txt if not spec)"
+  echo "  --ndilate  : dilate binarization of seg when creating brainmask ($ndilate)"
+  echo "  --threads nthreads"
+  echo "  --force-update : force regeneration of files whether needed or not (default is --no-force-update)"
+  echo "  --no-cc : do not seg corpus callosum (default is --cc)"
+  echo "  --m mask : use mask as brainmask instead of computing from seg"
+  echo "  --expert xoptsfile <--expert xoptsfile>"
+  echo "  --rca : run recon-all on the output (good for testing)"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Creates and populates a subjects dir from an input image and seg in a
+way that recon-all can be run on it. It will propogate the seg to
+aseg.auto_noCCseg.mgz and will run mri_cc to add the corpus callosum
+to it to create aseg.auto.mgz as output. It fits and removes the bias
+field to create the nu.mgz (to which T1.mgz is linked). It creates a
+brain mask by binarizing and dilating the segmentation. The norm.mgz
+and brainmask.mgz are the nu.mgz masked by the brain mask. The bias is
+fit inside of a head mask.  Computes talairach.xfm from the nu.mgz
+using talairach_avi. No talairach.m3z is created.
+
+After completion, recon-all can be run something like
+recon-all -s subject -autorecon2-samseg -autorecon3 
+
+
+
+
+
+
+

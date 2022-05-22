@@ -88,7 +88,7 @@ LayerPointSet::LayerPointSet( LayerMRI* ref, int nType, QObject* parent ) : Laye
   {
     GetProperty()->SetShowSpline( false );
     GetProperty()->SetRadius ( 0.5 );
-    GetProperty()->SetSnapToVoxelCenter( true );
+//    GetProperty()->SetSnapToVoxelCenter( true );
     GetProperty()->SetColor( 0, 1, 0 );
   }
 
@@ -164,6 +164,16 @@ bool LayerPointSet::LoadFromJsonFile(const QString &filename)
   {
     cerr << "Not a freesurfer pointset file\n";
     return false;
+  }
+
+  if (!m_mapEnhancedData.contains("qa_level"))
+  {
+    if (m_mapEnhancedData.contains("second_qa_score"))
+      m_mapEnhancedData["qa_level"] = m_mapEnhancedData["second_qa_score"];
+    else if (m_mapEnhancedData.value("second_quality_check").toBool())
+      m_mapEnhancedData["qa_level"] = 4;
+    m_mapEnhancedData.remove("second_qa_score");
+    m_mapEnhancedData.remove("second_quality_check");
   }
 
   QVariantList list = m_mapEnhancedData.value("points").toList();

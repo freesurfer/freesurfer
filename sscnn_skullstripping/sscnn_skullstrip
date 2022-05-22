@@ -8,7 +8,7 @@ import collections
 import psutil
 import traceback
 import skimage.measure
-import freesurfer as fs
+import surfa as sf
 
 from sscnn_skullstripping.deeplearn_utils import DeepImageSynth
 
@@ -27,12 +27,12 @@ os.makedirs(args.output_dir, exist_ok=True)
 # check input image
 input_file = os.path.abspath(args.input_file)
 if not os.path.isfile(input_file):
-    fs.fatal('input file %s does not exist' % input_file)
+    sf.system.fatal('input file %s does not exist' % input_file)
 
 # conform input image
 conformed_file = os.path.join(args.output_dir, 'conformed.nii.gz')
-if fs.run('mri_convert --conform %s %s' % (input_file, conformed_file)) != 0:
-    fs.fatal('could not conform input image')
+if sf.system.run('mri_convert --conform %s %s' % (input_file, conformed_file)) != 0:
+    sf.system.fatal('could not conform input image')
 
 # check for total available memory at the beginning, in case things
 # fail later (this script is extremely memory-intensive)
@@ -45,11 +45,11 @@ os.environ['CUDA_VISIBLE_DEVICES'] = str(args.gpu)
 # get model files
 model_dir = os.environ.get('SSCNN_MODEL_DIR')
 if model_dir is None:
-    model_dir = os.path.join(fs.fshome(), 'average', 'sscnn_skullstripping')
+    model_dir = os.path.join(os.environ.get('FREESURFER_HOME'), 'average', 'sscnn_skullstripping')
 if not os.path.exists(model_dir):
     model_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'model_files')
 if not os.path.exists(model_dir):
-    fs.fatal('cannot find model directory')
+    sf.system.fatal('cannot find model directory')
 
 # configure model parameters
 brain_labels = [0, 1]
@@ -90,9 +90,9 @@ except:
              f' of virtual memory, but only ~{avail_mem} GB of available memory was originally' \
               ' detected. If this estimate is correct, you should run this tool on a' \
               ' machine with more memory.'
-        fs.fatal(msg)
+        sf.system.fatal(msg)
     else:
-        fs.fatal('Could not run slice prediction.')
+        sf.system.fatal('Could not run slice prediction.')
 
 
 # convert prob segs to combined hard seg

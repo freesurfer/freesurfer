@@ -190,6 +190,11 @@ public:
   MRI *aseg=NULL;  // aseg.presurf
   MRI *mask=NULL;  // a temporary mask
   int nDilate = 1;
+  // These are the seg ids of structures outside the SCM, including cortex
+  std::vector<int> OutsideSCMIds{0,165,258,259,24,3,42,17,18,53,54,85,5,44,31,63,16,7,8,46,47,15};
+  int ExcludeOutsideSCM=0;
+  MRI *scminsidemask=NULL;
+  int nDilateInsideMask = 2;
   int FixSCM(void);
 };
 

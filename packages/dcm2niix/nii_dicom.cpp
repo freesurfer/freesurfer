@@ -298,6 +298,16 @@ void reportMat44(char *str, mat44 A) {
 
 int verify_slice_dir(struct TDICOMdata d, struct TDICOMdata d2, struct nifti_1_header *h, mat44 *R, int isVerbose) {
 //returns slice direction: 1=sag,2=coronal,3=axial, -= flipped
+
+#ifdef USING_DCM2NIIXFSWRAPPER
+  if (getenv("PRNBVECDEBUG") != NULL && strcmp(getenv("PRNBVECDEBUG"), "yes") == 0)
+  {
+    printf("verify_slice_dir() input mat44:\n");
+    for (int i = 0; i < 4; i++)
+      printf("\t%f %f %f %f\n", R->m[i][0], R->m[i][1], R->m[i][2], R->m[i][3]); 
+  }
+#endif
+
 	if (h->dim[3] < 2)
 		return 0; //don't care direction for single slice
 	int iSL = 1; //find Z-slice direction: row with highest magnitude of 3rd column
@@ -311,8 +321,16 @@ int verify_slice_dir(struct TDICOMdata d, struct TDICOMdata d2, struct nifti_1_h
 		if (isSameFloat(pos, d.patientPosition[iSL]))
 			pos = NAN;
 #ifdef MY_DEBUG
+                if (!isnan(pos))
+			printMessage("position determined using lastFile %f\n", pos);
+#endif
+
+#ifdef USING_DCM2NIIXFSWRAPPER
+             if (getenv("PRNBVECDEBUG") != NULL && strcmp(getenv("PRNBVECDEBUG"), "yes") == 0)
+             {
 		if (!isnan(pos))
 			printMessage("position determined using lastFile %f\n", pos);
+             }
 #endif
 	}
 	if (isnan(pos) && (!isnan(d.patientPositionLast[iSL]))) { //patient position fields exist
@@ -320,14 +338,34 @@ int verify_slice_dir(struct TDICOMdata d, struct TDICOMdata d2, struct nifti_1_h
 		if (isSameFloat(pos, d.patientPosition[iSL]))
 			pos = NAN;
 #ifdef MY_DEBUG
+  	        if (!isnan(pos))
+			printMessage("position determined using last (4d) %f\n", pos);
+#endif
+
+#ifdef USING_DCM2NIIXFSWRAPPER
+              if (getenv("PRNBVECDEBUG") != NULL && strcmp(getenv("PRNBVECDEBUG"), "yes") == 0)
+              {
 		if (!isnan(pos))
 			printMessage("position determined using last (4d) %f\n", pos);
+              }
 #endif
 	}
 	if (isnan(pos) && (!isnan(d.stackOffcentre[iSL])))
+	{
 		pos = d.stackOffcentre[iSL];
+#ifdef USING_DCM2NIIXFSWRAPPER
+                if (getenv("PRNBVECDEBUG") != NULL && strcmp(getenv("PRNBVECDEBUG"), "yes") == 0)
+                  printMessage("position determined using stackOffcentre %f\n", pos);
+#endif
+        }
 	if (isnan(pos) && (!isnan(d.lastScanLoc)))
+	{
 		pos = d.lastScanLoc;
+#ifdef USING_DCM2NIIXFSWRAPPER
+                if (getenv("PRNBVECDEBUG") != NULL && strcmp(getenv("PRNBVECDEBUG"), "yes") == 0)
+                  printMessage("position determined using lastScanLoc %f\n", pos);
+#endif
+        }
 	vec4 x;
 	x.v[0] = 0.0;
 	x.v[1] = 0.0;
@@ -337,7 +375,16 @@ int verify_slice_dir(struct TDICOMdata d, struct TDICOMdata d2, struct nifti_1_h
 	float pos1 = pos1v.v[iSL - 1]; //-1 as C indexed from 0
 	bool flip = false;
 	if (!isnan(pos)) // we have real SliceLocation for last slice or volume center
+	{
 		flip = (pos > R->m[iSL - 1][3]) != (pos1 > R->m[iSL - 1][3]); // same direction?, note C indices from 0
+#ifdef USING_DCM2NIIXFSWRAPPER
+                if (getenv("PRNBVECDEBUG") != NULL && strcmp(getenv("PRNBVECDEBUG"), "yes") == 0)
+                {
+                  printf("verify_slice_dir() pos=%f, R->m[%d][3]=%f, pos1=%f\n", pos, iSL-1, R->m[iSL - 1][3], pos1);
+                  printf("verify_slice_dir() flip = (pos > R->m[%d][3]) != (pos1 > R->m[%d][3]), flip = %s\n", iSL-1, iSL-1, (flip) ? "true" : "false");
+                }
+#endif
+        }
 	else { // we do some guess work and warn user
 		vec3 readV = setVec3(d.orient[1], d.orient[2], d.orient[3]);
 		vec3 phaseV = setVec3(d.orient[4], d.orient[5], d.orient[6]);
@@ -345,6 +392,22 @@ int verify_slice_dir(struct TDICOMdata d, struct TDICOMdata d2, struct nifti_1_h
 		//printMessage("ph %g %g %g\n",phaseV.v[0],phaseV.v[1],phaseV.v[2]);
 		vec3 sliceV = crossProduct(readV, phaseV); //order important: this is our hail mary
 		flip = ((sliceV.v[0] + sliceV.v[1] + sliceV.v[2]) < 0);
+
+#ifdef USING_DCM2NIIXFSWRAPPER
+                if (getenv("PRNBVECDEBUG") != NULL && strcmp(getenv("PRNBVECDEBUG"), "yes") == 0)
+                {
+                  printf("verify_slice_dir() readV  = %f (Vcx) %f (Vcy) %f (Vcz)\n", readV.v[0], readV.v[1], readV.v[2]); 
+                  printf("verify_slice_dir() phaseV = %f (Vrx) %f (Vry) %f (Vrz)\n", phaseV.v[0], phaseV.v[1], phaseV.v[2]); 
+                  printf("verify_slice_dir() sliceV = %f (Vsx) %f (Vsy) %f (Vsz)\n", sliceV.v[0], sliceV.v[1], sliceV.v[2]); 
+                  printf("verify_slice_dir() flip = ((sliceV.v[0] + sliceV.v[1] + sliceV.v[2]) < 0), flip = %s\n", (flip) ? "true" : "false");
+                }
+
+		if (!d.isDerived) { //do not warn user if image is derived
+		  printWarning("Unable to determine slice direction: please check whether slices are flipped\n");
+		} else {
+		  printWarning("Unable to determine slice direction: please check whether slices are flipped (derived image)\n");
+		}
+#endif
 		//printMessage("verify slice dir %g %g %g\n",sliceV.v[0],sliceV.v[1],sliceV.v[2]);
 		if (isVerbose) { //1st pass only
 			if (!d.isDerived) { //do not warn user if image is derived
@@ -357,9 +420,24 @@ int verify_slice_dir(struct TDICOMdata d, struct TDICOMdata d2, struct nifti_1_h
 	if (flip) {
 		for (int i = 0; i < 4; i++)
 			R->m[i][2] = -R->m[i][2];
+
+#ifdef USING_DCM2NIIXFSWRAPPER
+                if (getenv("PRNBVECDEBUG") != NULL && strcmp(getenv("PRNBVECDEBUG"), "yes") == 0)
+                {
+                  printf("verify_slice_dir() (MATRIX_DEBUG) flipped slice direction:\n");
+                  for (int i = 0; i < 4; i++)
+		    printf("\t%f %f %f %f\n", R->m[i][0], R->m[i][1], R->m[i][2], R->m[i][3]); 
+                }
+#endif
 	}
 	if (flip)
+	{
 		iSL = -iSL;
+#ifdef USING_DCM2NIIXFSWRAPPER
+                if (getenv("PRNBVECDEBUG") != NULL && strcmp(getenv("PRNBVECDEBUG"), "yes") == 0)
+                  printf("verify_slice_dir() sliceDir flipped: iSL = %d\n", iSL);
+#endif
+        }
 #ifdef MY_DEBUG
 	printMessage("verify slice dir %d %d %d\n", h->dim[1], h->dim[2], h->dim[3]);
 	//reportMat44((char*)"Rout",*R);
@@ -397,6 +475,15 @@ mat44 noNaN(mat44 Q44, bool isVerbose, bool *isBogus) //simplify any headers tha
 #define kSessionBadMatrix 1
 
 void setQSForm(struct nifti_1_header *h, mat44 Q44i, bool isVerbose) {
+#ifdef USING_DCM2NIIXFSWRAPPER
+        if (getenv("PRNBVECDEBUG") != NULL && strcmp(getenv("PRNBVECDEBUG"), "yes") == 0)
+        {
+          printf("setQSForm() input Q44 = \n");
+          for (int i = 0; i < 4; i++)
+            printf("\t%f %f %f %f\n", Q44i.m[i][0], Q44i.m[i][1], Q44i.m[i][2], Q44i.m[i][3]);
+        }
+#endif
+
 	bool isBogus = false;
 	mat44 Q44 = noNaN(Q44i, isVerbose, &isBogus);
 	if ((h->session_error == kSessionBadMatrix) || (isBogus)) {
@@ -416,6 +503,17 @@ void setQSForm(struct nifti_1_header *h, mat44 Q44i, bool isVerbose) {
 	h->srow_z[1] = Q44.m[2][1];
 	h->srow_z[2] = Q44.m[2][2];
 	h->srow_z[3] = Q44.m[2][3];
+
+#ifdef USING_DCM2NIIXFSWRAPPER
+        if (getenv("PRNBVECDEBUG") != NULL && strcmp(getenv("PRNBVECDEBUG"), "yes") == 0)
+        {
+          printf("setQSForm() srow_x: %f %f %f %f\n", h->srow_x[0], h->srow_x[1], h->srow_x[2], h->srow_x[3]);
+          printf("setQSForm() srow_y: %f %f %f %f\n", h->srow_y[0], h->srow_y[1], h->srow_y[2], h->srow_y[3]);
+          printf("setQSForm() srow_z: %f %f %f %f\n", h->srow_z[0], h->srow_z[1], h->srow_z[2], h->srow_z[3]);
+          printf("\n");
+        }
+#endif
+
 	float dumdx, dumdy, dumdz;
 	nifti_mat44_to_quatern(Q44, &h->quatern_b, &h->quatern_c, &h->quatern_d, &h->qoffset_x, &h->qoffset_y, &h->qoffset_z, &dumdx, &dumdy, &dumdz, &h->pixdim[0]);
 	h->qform_code = h->sform_code;
@@ -584,22 +682,76 @@ mat44 set_nii_header_x(struct TDICOMdata d, struct TDICOMdata d2, struct nifti_1
 		for (int c = 0; c < 2; c++)
 			for (int r = 0; r < 4; r++)
 				Q44.m[c][r] = -Q44.m[c][r];
+
+#ifdef USING_DCM2NIIXFSWRAPPER
+                if (getenv("PRNBVECDEBUG") != NULL && strcmp(getenv("PRNBVECDEBUG"), "yes") == 0)
+                {
+                  printf("set_nii_header_x() (mosaic) row direction cosine: %f %f %f\n", d.orient[1], d.orient[2], d.orient[3]);
+                  printf("set_nii_header_x() (mosaic) col direction cosine: %f %f %f\n", d.orient[4], d.orient[5], d.orient[6]);
+
+                  printf("set_nii_header_x() (mosaic) Q44.m[][3] re-calculated\n");
+                  printf("set_nii_header_x() (MATRIX_DEBUG) (mosaic) Q44 LPS => nifti RAS ...\n");
+	          for (int i = 0; i < 4; i++)
+                    printf("\t%f %f %f %f\n", Q44.m[i][0], Q44.m[i][1], Q44.m[i][2], Q44.m[i][3]);
+                }
+#endif
+
 		mat33 Q;
 		LOAD_MAT33(Q, d.orient[1], d.orient[4], d.CSA.sliceNormV[1],
 			d.orient[2], d.orient[5], d.CSA.sliceNormV[2],
 			d.orient[3], d.orient[6], d.CSA.sliceNormV[3]);
+
+#ifdef USING_DCM2NIIXFSWRAPPER
+                if (getenv("PRNBVECDEBUG") != NULL && strcmp(getenv("PRNBVECDEBUG"), "yes") == 0)
+                {
+                  printf("set_nii_header_x() (MATRIX_DEBUG) (mosaic) mat33 Q (slice direction is CSA.sliceNormV[]) ...\n");
+	          for (int i = 0; i < 3; i++)
+                    printf("\t%f %f %f\n", Q.m[i][0], Q.m[i][1], Q.m[i][2]);
+                }
+#endif
+
 		if (nifti_mat33_determ(Q) < 0) { //Siemens sagittal are R>>L, whereas NIfTI is L>>R, we retain Siemens order on disk so ascending is still ascending, but we need to have the spatial transform reflect this.
 			mat44 det;
 			*sliceDir = kSliceOrientMosaicNegativeDeterminant; //we need to handle DTI vectors accordingly
 			LOAD_MAT44(det, 1.0l, 0.0l, 0.0l, 0.0l, 0.0l, 1.0l, 0.0l, 0.0l, 0.0l, 0.0l, -1.0l, 0.0l);
 			//patient_to_tal.m[2][3] = 1-d.CSA.MosaicSlices;
 			Q44 = nifti_mat44_mul(Q44, det);
+
+#ifdef USING_DCM2NIIXFSWRAPPER
+                        if (getenv("PRNBVECDEBUG") != NULL && strcmp(getenv("PRNBVECDEBUG"), "yes") == 0)
+                        {
+                          printf("set_nii_header_x() (MATRIX_DEBUG) (mosaic) det(mat33 Q) < 0, "
+                                 "set sliceDir = kSliceOrientMosaicNegativeDeterminant, "
+                                 "flip slice direction:\n");
+	                  for (int i = 0; i < 4; i++)
+                            printf("\t%f %f %f %f\n", Q44.m[i][0], Q44.m[i][1], Q44.m[i][2], Q44.m[i][3]);
+                        }
+#endif
 		}
 	} else { //not a mosaic
 		*sliceDir = verify_slice_dir(d, d2, h, &Q44, isVerbose);
+
+#ifdef USING_DCM2NIIXFSWRAPPER
+                if (getenv("PRNBVECDEBUG") != NULL && strcmp(getenv("PRNBVECDEBUG"), "yes") == 0)
+                {
+                  printf("set_nii_header_x() Q44 after verify_slice_dir() ...\n");
+	          for (int i = 0; i < 4; i++)
+                    printf("\t%f %f %f %f\n", Q44.m[i][0], Q44.m[i][1], Q44.m[i][2], Q44.m[i][3]);
+                }
+#endif
+
 		for (int c = 0; c < 4; c++) // LPS to nifti RAS, xform matrix before reorient
 			for (int r = 0; r < 2; r++) //swap rows 1 & 2
 				Q44.m[r][c] = -Q44.m[r][c];
+
+#ifdef USING_DCM2NIIXFSWRAPPER
+                if (getenv("PRNBVECDEBUG") != NULL && strcmp(getenv("PRNBVECDEBUG"), "yes") == 0)
+                {
+                  printf("set_nii_header_x() (MATRIX_DEBUG) Q44 LPS => nifti RAS ...\n");
+	          for (int i = 0; i < 4; i++)
+                    printf("\t%f %f %f %f\n", Q44.m[i][0], Q44.m[i][1], Q44.m[i][2], Q44.m[i][3]);
+                }
+#endif
 	}
 #ifdef MY_DEBUG
 	reportMat44((char *)"Q44", Q44);
@@ -2713,6 +2865,16 @@ unsigned char *nii_flipZ(unsigned char *bImg, struct nifti_1_header *h) {
 	LOAD_MAT44(Q44, h->srow_x[0], h->srow_x[1], h->srow_x[2], h->srow_x[3],
 		h->srow_y[0], h->srow_y[1], h->srow_y[2], h->srow_y[3],
 		h->srow_z[0], h->srow_z[1], h->srow_z[2], h->srow_z[3]);
+
+#ifdef USING_DCM2NIIXFSWRAPPER
+        if (getenv("DCM2NIIXFSWRAPPER_DEBUG") != NULL && strcmp(getenv("DCM2NIIXFSWRAPPER_DEBUG"), "yes") == 0)
+	{
+          printf("nii_flipZ() Q44 before flipping ...\n");
+          for (int i = 0; i < 4; i++)
+            printf("\t%f %f %f %f\n", Q44.m[i][0], Q44.m[i][1], Q44.m[i][2], Q44.m[i][3]);
+	}
+#endif
+
 	vec4 v = setVec4(0.0f, 0.0f, (float)h->dim[3] - 1.0f);
 	v = nifti_vect44mat44_mul(v, Q44); //after flip this voxel will be the origin
 	mat33 mFlipZ;
@@ -2722,8 +2884,23 @@ unsigned char *nii_flipZ(unsigned char *bImg, struct nifti_1_header *h) {
 		s.m[1][0], s.m[1][1], s.m[1][2], v.v[1],
 		s.m[2][0], s.m[2][1], s.m[2][2], v.v[2]);
 	//printMessage(" ----------> %f %f %f\n",v.v[0],v.v[1],v.v[2]);
+
+#ifdef USING_DCM2NIIXFSWRAPPER
+        if (getenv("DCM2NIIXFSWRAPPER_DEBUG") != NULL && strcmp(getenv("DCM2NIIXFSWRAPPER_DEBUG"), "yes") == 0)
+	{
+          printf("nii_flipZ() (MATRIX_DEBUG) Q44 after flipping slice direction ...\n");
+          for (int i = 0; i < 4; i++)
+            printf("\t%f %f %f %f\n", Q44.m[i][0], Q44.m[i][1], Q44.m[i][2], Q44.m[i][3]);
+	}
+#endif
+
 	setQSForm(h, Q44, true);
 	//printMessage("nii_flipImgY dims %dx%dx%d %d \n",h->dim[1],h->dim[2], dim3to7,h->bitpix/8);
+
+#ifdef USING_DCM2NIIXFSWRAPPER
+        if (getenv("DCM2NIIXFSWRAPPER_DEBUG") != NULL && strcmp(getenv("DCM2NIIXFSWRAPPER_DEBUG"), "yes") == 0)
+          printf("nii_flipZ() flip image Z\n");
+#endif
 	return nii_flipImgZ(bImg, h);
 } // nii_flipZ()
 
@@ -2735,6 +2912,16 @@ unsigned char *nii_flipY(unsigned char *bImg, struct nifti_1_header *h) {
 	LOAD_MAT44(Q44, h->srow_x[0], h->srow_x[1], h->srow_x[2], h->srow_x[3],
 		h->srow_y[0], h->srow_y[1], h->srow_y[2], h->srow_y[3],
 		h->srow_z[0], h->srow_z[1], h->srow_z[2], h->srow_z[3]);
+
+#ifdef USING_DCM2NIIXFSWRAPPER
+        if (getenv("DCM2NIIXFSWRAPPER_DEBUG") != NULL && strcmp(getenv("DCM2NIIXFSWRAPPER_DEBUG"), "yes") == 0)
+	{
+          printf("nii_flipY() Q44 before flipping ...\n");
+	  for (int i = 0; i < 4; i++)
+            printf("\t%f %f %f %f\n", Q44.m[i][0], Q44.m[i][1], Q44.m[i][2], Q44.m[i][3]);
+	}
+#endif
+
 	vec4 v = setVec4(0, (float)h->dim[2] - 1, 0);
 	v = nifti_vect44mat44_mul(v, Q44); //after flip this voxel will be the origin
 	mat33 mFlipY;
@@ -2743,6 +2930,16 @@ unsigned char *nii_flipY(unsigned char *bImg, struct nifti_1_header *h) {
 	LOAD_MAT44(Q44, s.m[0][0], s.m[0][1], s.m[0][2], v.v[0],
 		s.m[1][0], s.m[1][1], s.m[1][2], v.v[1],
 		s.m[2][0], s.m[2][1], s.m[2][2], v.v[2]);
+
+#ifdef USING_DCM2NIIXFSWRAPPER
+        if (getenv("DCM2NIIXFSWRAPPER_DEBUG") != NULL && strcmp(getenv("DCM2NIIXFSWRAPPER_DEBUG"), "yes") == 0)
+	{
+          printf("nii_flipY() (MATRIX_DEBUG) Q44 after flipping row direction ...\n");
+	  for (int i = 0; i < 4; i++)
+            printf("\t%f %f %f %f\n", Q44.m[i][0], Q44.m[i][1], Q44.m[i][2], Q44.m[i][3]);
+	}
+#endif
+
 	setQSForm(h, Q44, true);
 	//printMessage("nii_flipImgY dims %dx%d %d \n",h->dim[1],h->dim[2], h->bitpix/8);
 	return nii_flipImgY(bImg, h);

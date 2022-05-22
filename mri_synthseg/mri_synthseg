@@ -7,7 +7,8 @@ import glob
 import time
 import numpy as np
 import nibabel as nib
-import freesurfer as fs
+import argparse
+import surfa as sf
 from datetime import timedelta
 from itertools import combinations
 from scipy.ndimage import label as scipy_label
@@ -33,7 +34,7 @@ backend.set_image_data_format('channels_last')
 def main():
 
     # parse arguments
-    parser = fs.utils.ArgumentParser(description="SynthSeg", epilog='\n')
+    parser = argparse.ArgumentParser(description="SynthSeg", epilog='\n')
 
     # input/outputs
     parser.add_argument("--i", help="Image(s) to segment. Can be a path to an image or to a folder.")
@@ -65,18 +66,18 @@ def main():
         os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
     # locate model weights
-    if not fs.fshome():
+    if not os.environ.get('FREESURFER_HOME'):
         path_model = group_labels = segmentation_labels = segmentation_label_names = topology_classes = None
-        fs.fatal('FREESURFER_HOME is not set. Please source freesurfer.')
+        sf.system.fatal('FREESURFER_HOME is not set. Please source freesurfer.')
     else:
-        group_labels = os.path.join(fs.fshome(), 'models', 'synthseg_group_labels.npy')
-        segmentation_labels = os.path.join(fs.fshome(), 'models', 'synthseg_segmentation_labels.npy')
-        segmentation_label_names = os.path.join(fs.fshome(), 'models', 'synthseg_segmentation_names.npy')
-        topology_classes = os.path.join(fs.fshome(), 'models', 'synthseg_topological_classes.npy')
+        group_labels = os.path.join(os.environ.get('FREESURFER_HOME'), 'models', 'synthseg_group_labels.npy')
+        segmentation_labels = os.path.join(os.environ.get('FREESURFER_HOME'), 'models', 'synthseg_segmentation_labels.npy')
+        segmentation_label_names = os.path.join(os.environ.get('FREESURFER_HOME'), 'models', 'synthseg_segmentation_names.npy')
+        topology_classes = os.path.join(os.environ.get('FREESURFER_HOME'), 'models', 'synthseg_topological_classes.npy')
         if args.robust:
-            path_model = os.path.join(fs.fshome(), 'models', 'synthseg_robust_1.0.h5')
+            path_model = os.path.join(os.environ.get('FREESURFER_HOME'), 'models', 'synthseg_robust_1.0.h5')
         else:
-            path_model = os.path.join(fs.fshome(), 'models', 'synthseg_1.0.h5')
+            path_model = os.path.join(os.environ.get('FREESURFER_HOME'), 'models', 'synthseg_1.0.h5')
 
     # run prediction
     predict(
@@ -121,7 +122,7 @@ def predict(path_images,
     '''
 
     if path_model is None:
-        fs.fatal("A model file is necessary")
+        sf.system.fatal("A model file is necessary")
 
     # prepare input/output filepaths
     path_images, path_segmentations, path_posteriors, path_resampled, path_volumes, unique_vol_file = \
@@ -282,9 +283,9 @@ def prepare_output_files(path_images, out_seg, out_posteriors, out_resampled, ou
 
     # check inputs
     if path_images is None:
-        fs.fatal('please specify an input file/folder (--i)')
+        sf.system.fatal('please specify an input file/folder (--i)')
     if out_seg is None:
-        fs.fatal('please specify an output file/folder (--o)')
+        sf.system.fatal('please specify an output file/folder (--o)')
 
     # convert path to absolute paths
     path_images = os.path.abspath(path_images)
@@ -304,14 +305,14 @@ def prepare_output_files(path_images, out_seg, out_posteriors, out_resampled, ou
 
         # segmentations
         if out_seg[-4:] != '.txt':
-            fs.fatal('if path_images given as text file, so must be the output segmentations')
+            sf.system.fatal('if path_images given as text file, so must be the output segmentations')
         with open(out_seg, 'r') as f:
             out_seg = [line.replace('\n', '') for line in f.readlines() if line != '\n']
 
         # volumes
         if out_volumes is not None:
             if out_volumes[-4:] != '.txt':
-                fs.fatal('if path_images given as text file, so must be the output volumes')
+                sf.system.fatal('if path_images given as text file, so must be the output volumes')
             with open(out_volumes, 'r') as f:
                 out_volumes = [line.replace('\n', '') for line in f.readlines() if line != '\n']
         else:
@@ -321,7 +322,7 @@ def prepare_output_files(path_images, out_seg, out_posteriors, out_resampled, ou
         # posteriors
         if out_posteriors is not None:
             if out_posteriors[-4:] != '.txt':
-                fs.fatal('if path_images given as text file, so must be the output posteriors')
+                sf.system.fatal('if path_images given as text file, so must be the output posteriors')
             with open(out_posteriors, 'r') as f:
                 out_posteriors = [line.replace('\n', '') for line in f.readlines() if line != '\n']
         else:
@@ -330,7 +331,7 @@ def prepare_output_files(path_images, out_seg, out_posteriors, out_resampled, ou
         # resampled
         if out_resampled is not None:
             if out_resampled[-4:] != '.txt':
-                fs.fatal('if path_images given as text file, so must be the output resampled')
+                sf.system.fatal('if path_images given as text file, so must be the output resampled')
             with open(out_resampled, 'r') as f:
                 out_resampled = [line.replace('\n', '') for line in f.readlines() if line != '\n']
         else:
@@ -341,14 +342,14 @@ def prepare_output_files(path_images, out_seg, out_posteriors, out_resampled, ou
 
         # input images
         if os.path.isfile(path_images):
-            fs.fatal('Extension not supported for %s, only use: .nii.gz, .nii, .mgz, or .npz' % path_images)
+            sf.system.fatal('Extension not supported for %s, only use: .nii.gz, .nii, .mgz, or .npz' % path_images)
         path_images = list_images_in_folder(path_images)
 
         # segmentations
         if out_seg[-4:] == '.txt':
-            fs.fatal('path_segmentations can only be given as text file when path_images is.')
+            sf.system.fatal('path_segmentations can only be given as text file when path_images is.')
         if (out_seg[-7:] == '.nii.gz') | (out_seg[-4:] == '.nii') | (out_seg[-4:] == '.mgz') | (out_seg[-4:] == '.npz'):
-            fs.fatal('Output folders cannot have extensions: .nii.gz, .nii, .mgz, or .npz, had %s' % out_seg)
+            sf.system.fatal('Output folders cannot have extensions: .nii.gz, .nii, .mgz, or .npz, had %s' % out_seg)
         mkdir(out_seg)
         out_seg = [os.path.join(out_seg, os.path.basename(image)).replace('.nii', '_synthseg.nii') for image in
                    path_images]
@@ -358,7 +359,7 @@ def prepare_output_files(path_images, out_seg, out_posteriors, out_resampled, ou
         # volumes
         if out_volumes is not None:
             if out_volumes[-4:] == '.txt':
-                fs.fatal('path_volumes can only be given as text file when path_images is.')
+                sf.system.fatal('path_volumes can only be given as text file when path_images is.')
             if out_volumes[-4:] != '.csv':
                 print('Path for volume outputs provided without csv extension. Adding csv extension.')
                 out_volumes += '.csv'
@@ -369,10 +370,10 @@ def prepare_output_files(path_images, out_seg, out_posteriors, out_resampled, ou
         # posteriors
         if out_posteriors is not None:
             if out_posteriors[-4:] == '.txt':
-                fs.fatal('path_posteriors can only be given as text file when path_images is.')
+                sf.system.fatal('path_posteriors can only be given as text file when path_images is.')
             if (out_posteriors[-7:] == '.nii.gz') | (out_posteriors[-4:] == '.nii') | \
                     (out_posteriors[-4:] == '.mgz') | (out_posteriors[-4:] == '.npz'):
-                fs.fatal('Output folders cannot have extensions: .nii.gz, .nii, .mgz, or .npz, had %s' % out_posteriors)
+                sf.system.fatal('Output folders cannot have extensions: .nii.gz, .nii, .mgz, or .npz, had %s' % out_posteriors)
             mkdir(out_posteriors)
             out_posteriors = [os.path.join(out_posteriors, os.path.basename(image)).replace('.nii',
                               '_posteriors.nii') for image in path_images]
@@ -384,10 +385,10 @@ def prepare_output_files(path_images, out_seg, out_posteriors, out_resampled, ou
         # resampled
         if out_resampled is not None:
             if out_resampled[-4:] == '.txt':
-                fs.fatal('path_resampled can only be given as text file when path_images is.')
+                sf.system.fatal('path_resampled can only be given as text file when path_images is.')
             if (out_resampled[-7:] == '.nii.gz') | (out_resampled[-4:] == '.nii') | \
                     (out_resampled[-4:] == '.mgz') | (out_resampled[-4:] == '.npz'):
-                fs.fatal('Output folders cannot have extensions: .nii.gz, .nii, .mgz, or .npz, had %s' % out_resampled)
+                sf.system.fatal('Output folders cannot have extensions: .nii.gz, .nii, .mgz, or .npz, had %s' % out_resampled)
             mkdir(out_resampled)
             out_resampled = [os.path.join(out_resampled, os.path.basename(image)).replace('.nii',
                              '_resampled.nii') for image in path_images]
@@ -401,12 +402,12 @@ def prepare_output_files(path_images, out_seg, out_posteriors, out_resampled, ou
 
         # input images
         if not os.path.isfile(path_images):
-            fs.fatal("file does not exist: %s \nplease make sure the path and the extension are correct" % path_images)
+            sf.system.fatal("file does not exist: %s \nplease make sure the path and the extension are correct" % path_images)
         path_images = [path_images]
 
         # segmentations
         if out_seg[-4:] == '.txt':
-            fs.fatal('path_segmentations can only be given as text file when path_images is.')
+            sf.system.fatal('path_segmentations can only be given as text file when path_images is.')
         if ('.nii.gz' not in out_seg) & ('.nii' not in out_seg) & ('.mgz' not in out_seg) & ('.npz' not in out_seg):
             mkdir(out_seg)
             filename = os.path.basename(path_images[0]).replace('.nii', '_synthseg.nii')
@@ -420,7 +421,7 @@ def prepare_output_files(path_images, out_seg, out_posteriors, out_resampled, ou
         # volumes
         if out_volumes is not None:
             if out_volumes[-4:] == '.txt':
-                fs.fatal('path_volumes can only be given as text file when path_images is.')
+                sf.system.fatal('path_volumes can only be given as text file when path_images is.')
             if out_volumes[-4:] != '.csv':
                 print('Path for volume outputs provided without csv extension. Adding csv extension.')
                 out_volumes += '.csv'
@@ -431,7 +432,7 @@ def prepare_output_files(path_images, out_seg, out_posteriors, out_resampled, ou
         # posteriors
         if out_posteriors is not None:
             if out_posteriors[-4:] == '.txt':
-                fs.fatal('path_posteriors can only be given as text file when path_images is.')
+                sf.system.fatal('path_posteriors can only be given as text file when path_images is.')
             if ('.nii.gz' not in out_posteriors) & ('.nii' not in out_posteriors) &\
                     ('.mgz' not in out_posteriors) & ('.npz' not in out_posteriors):
                 mkdir(out_posteriors)
@@ -446,7 +447,7 @@ def prepare_output_files(path_images, out_seg, out_posteriors, out_resampled, ou
         # resampled
         if out_resampled is not None:
             if out_resampled[-4:] == '.txt':
-                fs.fatal('path_resampled can only be given as text file when path_images is.')
+                sf.system.fatal('path_resampled can only be given as text file when path_images is.')
             if ('.nii.gz' not in out_resampled) & ('.nii' not in out_resampled) &\
                     ('.mgz' not in out_resampled) & ('.npz' not in out_resampled):
                 mkdir(out_resampled)
@@ -466,12 +467,12 @@ def preprocess(path_image, n_levels=5, crop=None, min_pad=None, path_resample=No
     # read image and corresponding info
     im, _, aff, n_dims, n_channels, h, im_res = get_volume_info(path_image, True)
     if n_dims < 3:
-        fs.fatal('input should have 3 dimensions, had %s' % n_dims)
+        sf.system.fatal('input should have 3 dimensions, had %s' % n_dims)
     elif n_dims == 4 and n_channels == 1:
         n_dims = 3
         im = im[..., 0]
     elif n_dims > 3:
-        fs.fatal('input should have 3 dimensions, had %s' % n_dims)
+        sf.system.fatal('input should have 3 dimensions, had %s' % n_dims)
     elif n_channels > 1:
         print('WARNING: detected more than 1 channel, only keeping the first channel.')
         im = im[..., 0]
@@ -520,7 +521,7 @@ def preprocess(path_image, n_levels=5, crop=None, min_pad=None, path_resample=No
 def build_model(model_file, n_lab, n_group, robust):
 
     if not os.path.isfile(model_file):
-        fs.fatal("The provided model path does not exist.")
+        sf.system.fatal("The provided model path does not exist.")
 
     if robust:
 
