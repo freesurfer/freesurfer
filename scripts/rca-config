@@ -48,6 +48,12 @@ if len(sys.argv) < 3 :
     print('USAGE: recon-config source-config updated-config unknown-args-file args...');
     sys.exit(1);
 
+# python argparse versions > 3.6 will try to extrapolate single-character options (e.g. `-s`)
+# even if allow_abbrev=False is set. we can avoid this by overriding the search function.
+class ReconArgumentParser(argparse.ArgumentParser):
+    def _get_option_tuples(self, option_string):
+        return []
+
 source_config_file = sys.argv[1]
 output_config_file = sys.argv[2]
 unknown_args_file  = sys.argv[3]
@@ -59,7 +65,7 @@ with open(source_config_file, 'r') as file:
 
 # setup a parser that maps all flags specified in the source config
 # to their corresponding parameter
-parser = argparse.ArgumentParser(allow_abbrev=False)
+parser = ReconArgumentParser(add_help=False, allow_abbrev=False)
 for var_name, var_config in config.items():
 
     # get list of flags for this parameter
@@ -94,7 +100,7 @@ for var_name, var_config in config.items():
         parser.add_argument(flag, dest=var_name, default=default, **options)
 
 # parse the arguments
-parsed, unknown = parser.parse_known_args(args_to_parse);
+parsed, unknown = parser.parse_known_args(args_to_parse)
 
 # update the config with what we found
 for var_name, value in vars(parsed).items():
