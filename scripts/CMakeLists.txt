@@ -215,6 +215,7 @@ install_configured(
   run-qdec-glm
   run_mris_preproc
   samseg2recon
+  seg2recon
   seg2filled
   segment_monkey
   segment_subject

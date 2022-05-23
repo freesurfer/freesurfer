@@ -4,11 +4,12 @@ import sys
 import os
 import collections
 import numpy as np
-import freesurfer as fs
+import argparse
+import surfa as sf
 
 
 # parse input
-parser = fs.utils.ArgumentParser(description='creates a table of the differences between two stats tables')
+parser = argparse.ArgumentParser(description='creates a table of the differences between two stats tables')
 parser.add_argument('--t1', required=True, help='input table 1 (output of asegstats2table or aparcstats2table)')
 parser.add_argument('--t2', required=True, help='input table 2 (output of asegstats2table or aparcstats2table)')
 parser.add_argument('--o', required=True, help='output file')
@@ -28,7 +29,7 @@ def read_table(tablefile,Replace53):
 
     # check if file exists
     if not os.path.isfile(tablefile):
-        fs.fatal('table file does not exist at %s' % tablefile)
+        sf.system.fatal('table file does not exist at %s' % tablefile)
 
     # read table data
     with open(tablefile, 'r') as file:
@@ -60,19 +61,19 @@ structlist2, values2, measure2 = read_table(args.t2,not args.noreplace53)
 
 # check if measures are the same
 if measure1 != measure2:
-    fs.fatal('table 1 measure (%s) does not match table 2 measure (%s)' % (measure1, measure2))
+    sf.system.fatal('table 1 measure (%s) does not match table 2 measure (%s)' % (measure1, measure2))
 
 # check for subject and structure differences
 def check_differences(a, b, dtype):
     common = [x for x in a if x in b]
     if not common:
-        fs.fatal('tables have no common %ss!' % dtype)
+        sf.system.fatal('tables have no common %ss!' % dtype)
     for tnum, lst in enumerate((a, b)):
         uniques = [x for x in lst if x not in common]
         for unique in uniques:
             print('info: table %d has unique %s %s' % (tnum + 1, dtype, unique))
         if uniques and not args.common:
-            fs.fatal('tables have differing %ss, to diff only on common data, use the --common flag' % dtype)
+            sf.system.fatal('tables have differing %ss, to diff only on common data, use the --common flag' % dtype)
     return common
 
 structures = check_differences(structlist1, structlist2, 'structure')
@@ -82,10 +83,10 @@ subs1 = [x for x in values1.keys()]
 subs2 = [x for x in values2.keys()]
 
 if not ((subs1 == subs2) or args.diff):
-    fs.fatal('subjects are not the same, to run on different subjects pass the --diff-subjs flag')
+    sf.system.fatal('subjects are not the same, to run on different subjects pass the --diff-subjs flag')
 
 if len(subs1) != len(subs2):
-    fs.fatal('tables have differing number of subjects, must have same number of subjects in both tables') 
+    sf.system.fatal('tables have differing number of subjects, must have same number of subjects in both tables') 
 
 # will be subject names in output table
 subjects = [str(x[0]) + ',' + str(x[1]) for x in zip(subs1,subs2)]

@@ -195,7 +195,8 @@ def kl_correlation_coefficient_loss(image_sigma, beta):
 
 class spherical_loss(object):
 
-    def __init__(self, image_size, threshold=0, pad=8, image_sigma=1, overlay_list = None, curvature_list = None, model = None, radius=100, win=None, eps=1e-5):
+    def __init__(self, image_size, threshold=0, pad=8, image_sigma=1, overlay_list=None, curvature_list=None, model=None, 
+                 radius=100, win=None, eps=1e-5):
         dist_elts = np.ones(image_size)
         for i in range(dist_elts.shape[1]):
             dist_elts[:,i]=math.sin((i+.5)*math.pi/dist_elts.shape[1])  # offset pole by 1/2 voxel to avoid 0 weights
@@ -293,7 +294,7 @@ class spherical_loss(object):
                 log_var = tf.math.log(tf.math.sqrt(var+eps))
                 logl = weights * (-log_var - logl)
             else:
-                nchannels = y_pred.get_shape().as_list()[-1] // 2   # sub, atlas mean, atlas var
+                nchannels = y_pred.get_shape().as_list()[-1] // 2   # sub, atlas mean
                 sub = y_pred[...,0:nchannels]
                 atlas_mean = y_pred[...,nchannels:2*nchannels]
                 diff_sq = tf.math.squared_difference(atlas_mean, sub)
@@ -515,7 +516,7 @@ class spherical_loss(object):
         retval = tf.reduce_mean(cc*self.dist_elts_nopad[np.newaxis,...,np.newaxis])
         return retval
 
-    def ncc_signed(self, I, J, name='ncc_signed'):
+    def ncc_signed(self, I, J, name='ncc_signed', weights=None):
         """
         local (over window) normalized cross correlation
         """
@@ -523,6 +524,9 @@ class spherical_loss(object):
         # assumes I, J are sized [batch_size, *vol_shape, nb_feats]
         ndims = len(I.get_shape().as_list()) - 2
         assert ndims in [1, 2, 3], "volumes should be 1 to 3 dimensions. found: %d" % ndims
+
+        if weights is not None:
+            weights = weights[self.pad:-self.pad,self.pad:-self.pad][np.newaxis, ..., np.newaxis]
 
         nchannels = tf.cast(J.shape[ndims+1],tf.float32)
         nchannels = J.get_shape().as_list()[ndims+1]  # all of a sudden this is needed to prevent a tf error
@@ -563,8 +567,12 @@ class spherical_loss(object):
 
         cc = cross / tf.sqrt(I_var*J_var + self.eps)
 
+        de = self.dist_elts_nopad[np.newaxis,...,np.newaxis]
+        if weights is not None:  # add spatial weighting if specified
+            de *= weights
+
         # return negative cc.
-        retval = tf.reduce_mean(cc*self.dist_elts_nopad[np.newaxis,...,np.newaxis], name=name)
+        retval = tf.reduce_mean(cc * de, name=name)
         return retval
 
     def NCC_loss(self, win=None, weight=1, name='NCC_unsigned'):
@@ -577,12 +585,12 @@ class spherical_loss(object):
         self.win = win
         return loss
 
-    def NCC_signed_loss(self, win=None, weight=1, name='NCC_signed'):
+    def NCC_signed_loss(self, win=None, weight=1, name='NCC_signed', weights=None):
         def loss(I,J):
             if self.pad > 0:
                 I = I[:,self.pad:-self.pad,self.pad:-self.pad,:]
                 J = J[:,self.pad:-self.pad,self.pad:-self.pad,:]
-            return - weight * self.ncc_signed(I, J, name=name)
+            return - weight * self.ncc_signed(I, J, name=name, weights=weights)
 
         if win is not None:  # override init
             self.win = win
@@ -611,7 +619,7 @@ class spherical_loss(object):
                 y_true = y_true[:,self.pad:-self.pad,self.pad:-self.pad,:]
                 y_pred = y_pred[:,self.pad:-self.pad,self.pad:-self.pad,:]
 
-            de = self.dist_elts_nopad
+            de = self.dist_elts_nopad[...,tf.newaxis]
             y_true = tf.debugging.assert_all_finite(y_true, 'y_true')
             y_pred = tf.debugging.assert_all_finite(y_pred, 'y_pred')
 
@@ -622,7 +630,8 @@ class spherical_loss(object):
                 y_pred = tf.multiply(y_pred, yp_mask)
 
             try:
-                y = tf.reduce_mean(tf.square(y_pred-y_true), axis=-1)
+                # y = tf.reduce_mean(tf.square(y_pred-y_true), axis=-1)
+                y = tf.square(y_pred-y_true)
                 #y = tf.debugging.assert_all_finite(y, 'y')
                 y_tf = tf.multiply(tf.cast(y, tf.float32), de)
                 #y_tf = tf.debugging.assert_all_finite(y_tf, 'y_tf')
@@ -641,7 +650,7 @@ class spherical_loss(object):
 
         if image_sigma is not None:
             if self.pad > 0:
-                image_sigma = tf.squeeze(image_sigma[self.pad:-self.pad,self.pad:-self.pad,...])
+                image_sigma = image_sigma[self.pad:-self.pad,self.pad:-self.pad,...]
             image_sigma = tf.cast(image_sigma, tf.float32)
             image_sigma_sq = tf.clip_by_value(image_sigma*image_sigma, 1e-3, 1e4)
 

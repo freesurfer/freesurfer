@@ -5,7 +5,8 @@ import yaml
 import heapq
 import shutil
 import glob
-import freesurfer as fs
+import argparse
+import surfa as sf
 import freesurfer_pipeline as fsp
 
 
@@ -20,11 +21,9 @@ extraction pipeline for T1-weighted neuroimaging data of
 infants 0-2 years. arXiv:2001.03091, 2020
 '''
 
-
 # ---- Parse Options ----
 
-
-parser = fs.utils.ArgumentParser(description=description)
+parser = argparse.ArgumentParser(description=description)
 
 # Input information
 parser.add_argument('-s', '--s', required=True, help='FreeSurfer subject name as found in $SUBJECTS_DIR. This' \
@@ -80,9 +79,9 @@ subjsdir = os.environ.get('SUBJECTS_DIR')
 outdir = os.path.abspath(args.outdir) if args.outdir else os.path.abspath(os.path.join(subjsdir, subj))
 
 # Check if FS is set
-fshome = fs.fshome()
+fshome = os.environ.get('FREESURFER_HOME')
 if not fshome:
-    fs.fatal('Must set FREESURFER_HOME before running.')
+    sf.system.fatal('Must set FREESURFER_HOME before running.')
 template_subjs_dir = os.path.join(fshome, 'average', 'CNYBCH')
 
 # Set a few parameters
@@ -115,35 +114,35 @@ if not args.keep_going and not args.force and os.path.exists(os.path.join(outdir
     message = f'Output already exists in {outdir}. To force overwrite, use the --force flag.' \
                ' To pick-up from where the pipeline was left off or last modified, use the --keep-going' \
                ' flag. Please make sure the original command line arguments are provided when this flag is used.'
-    fs.fatal(message)
+    sf.system.fatal(message)
 
 if not args.outdir and not subjsdir or not os.path.isdir(subjsdir):
-    fs.fatal('Must set SUBJECTS_DIR or use --outdir flag to indicate a valid data location.')
+    sf.system.fatal('Must set SUBJECTS_DIR or use --outdir flag to indicate a valid data location.')
 
 if not input_t1 and not input_masked:
     if not os.path.isfile(os.path.join(subjsdir, subj, 'mprage.nii.gz')):
-        fs.fatal('Must provide input T1 with --inputfile or --masked flag.')
+        sf.system.fatal('Must provide input T1 with --inputfile or --masked flag.')
 
 if input_masked and args.forceskullstrip:
-    fs.fatal('Cannot force skullstripping while providing skullstripped input.')
+    sf.system.fatal('Cannot force skullstripping while providing skullstripped input.')
 
 if args.t2 and not args.t2file:
-    fs.fatal('Must have a T2w file provided by --t2file when --t2 flag is used.')
+    sf.system.fatal('Must have a T2w file provided by --t2file when --t2 flag is used.')
 
 if input_seg and not input_masked and not args.forceskullstrip:
-    fs.fatal('Must have a masked mprage file specified with --masked if the segmentation file is provided.')
+    sf.system.fatal('Must have a masked mprage file specified with --masked if the segmentation file is provided.')
 
 if subj_group == 'default' and not subj_age and not input_seg:
-    fs.fatal('Must set the age (in months) for the subject to be analyzed.')
+    sf.system.fatal('Must set the age (in months) for the subject to be analyzed.')
 
 if args.newborn and args.oneyear:
-    fs.fatal('Cannot specify both --newborn and --oneyear.')
+    sf.system.fatal('Cannot specify both --newborn and --oneyear.')
 
 if input_masked and input_seg:
-    img_shape = fs.Volume.read(input_masked).shape[:3]
-    seg_shape = fs.Volume.read(input_seg).shape[:3]
+    img_shape = sf.load_volume(input_masked).baseshape
+    seg_shape = sf.load_volume(input_seg).baseshape
     if img_shape != seg_shape:
-        fs.fatal('The masked mprage and segmentation files have to have the same volume dimensions!')
+        sf.system.fatal('The masked mprage and segmentation files have to have the same volume dimensions!')
 
 
 # ---- Start pipeline ----
@@ -222,7 +221,7 @@ else:
     pl.run(commands, inputs=mprage, outputs=masked)
 
     if check_results:
-        fs.run(f'freeview -v {mprage} {masked}:colormap=heat')
+        sf.system.run(f'freeview -v {mprage} {masked}:colormap=heat')
 
 pl.print(f'Normalized and masked image: {masked}')
 
@@ -423,7 +422,7 @@ if args.ccseg:
 
 # Check for GM/WM in final segmentation
 if check_gm_wm:
-    seg = fs.Volume.read(aseg).data
+    seg = sf.load_volume(aseg).data
     if 2 not in seg and 41 not in seg:
         pl.print('Skipping surface creation as no GM/WM separation in the segmentation!')
         pl.done()

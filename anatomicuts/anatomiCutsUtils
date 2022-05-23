@@ -15,7 +15,7 @@ import matplotlib as mpl
 mpl.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
-import freesurfer as fs
+import surfa as sf
 import argparse
 import graph_tools as gt
 import math
@@ -51,7 +51,7 @@ def getCorrespondingClusters(correspondance,order=True):
 def thicknessPerStructure(classificationFile, classification_cols, target_subject, subjects_dir, groupA, groupB, length=45, std=5,clustersToAnalyze=[200], model="DTI", delimiter="," , groups=[0,1], thickness=False):
 	ac_folder=f"dmri.ac/{length}/{std}"
 	clusterNum=200
-	lut = fs.LookupTable.read("/usr/local/freesurfer/dev/FreeSurferColorLUT.txt")
+	lut = sf.load_label_lookup('/usr/local/freesurfer/dev/FreeSurferColorLUT.txt')
 	print(lut[28].name)
 
 	indeces=[]
@@ -180,7 +180,7 @@ def thicknessPerStructure(classificationFile, classification_cols, target_subjec
 def diffAlongTheLine(classificationFile, classification_cols, target_subject, subjects_dir, groupA, groupB, length=45, std=5,clustersToAnalyze=[200], model="DTI", delimiter="," , groups=[0,1], thickness=False):
 	ac_folder=f"dmri.ac/{length}/{std}"
 	clusterNum=200
-	lut = fs.LookupTable.read("/usr/local/freesurfer/dev/FreeSurferColorLUT.txt")
+	lut = sf.load_label_lookup('/usr/local/freesurfer/dev/FreeSurferColorLUT.txt')
 	print(lut[28].name)
 
 	indeces=[]
@@ -263,7 +263,7 @@ def connectivityGraph(classificationFile, classification_cols, target_subject, s
 
 	ac_folder=f"dmri.ac/{length}/{std}"
 	clusterNum=200
-	lut = fs.LookupTable.read("/usr/local/freesurfer/dev/FreeSurferColorLUT.txt")
+	lut = sf.load_label_lookup('/usr/local/freesurfer/dev/FreeSurferColorLUT.txt')
 	print(lut[28].name)
 
 	indeces=[]

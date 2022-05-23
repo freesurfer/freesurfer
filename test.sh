@@ -118,12 +118,9 @@ FSTEST_TESTDATA_TARBALL="${FSTEST_SCRIPT_DIR}/testdata.tar.gz"
 # created with binaries compiled with gcc8.X - whose output differs compared to binaries created with gcc 4.X
 host_os=$(get_os)
 export TESTDATA_SUFFIX=""
-echo "12345 host_os = $host_os"
-# if [[ "$host_os" == "centos8" ]] || [[ "$host_os" == "ubuntu20" ]]; then
-if [ "$host_os" == "ubuntu20" ]; then
+if [[ "$host_os" == "centos8" ]] || [[ "$host_os" == "ubuntu20" ]]; then
    # FSTEST_TESTDATA_TARBALL="${FSTEST_SCRIPT_DIR}/testdata_gcc8.tar.gz"
    export TESTDATA_SUFFIX=".gcc8"
-   echo "12345 FSTEST_TESTDATA_TARBALL = $FSTEST_TESTDATA_TARBALL"
 fi
 
 # if we're regenerating testdata, make a temporary 'testdata_regeneration' storage directory for
@@ -135,7 +132,6 @@ if [ "$FSTEST_REGENERATE" = true ]; then
     # make the temporary dir and untar the original testdata into this directory
     FSTEST_REGENERATION_DIR="${FSTEST_CWD}/testdata_regeneration"
     rm -rf $FSTEST_REGENERATION_DIR && mkdir $FSTEST_REGENERATION_DIR
-    echo "12345 will do tar -xzvf $FSTEST_TESTDATA_TARBALL -C $FSTEST_REGENERATION_DIR"
     tar -xzvf "$FSTEST_TESTDATA_TARBALL" -C $FSTEST_REGENERATION_DIR
 fi
 
@@ -192,7 +188,7 @@ function cleanup {
         echo "$(tput setaf 1)error:$(tput sgr 0) test failed"
     fi
 }
-# trap cleanup EXIT
+trap cleanup EXIT
 
 # hook to catch if the script is killed
 function abort {

@@ -4,7 +4,7 @@ import datetime
 import argparse
 import platform
 import getpass
-import freesurfer as fs
+import surfa as sf
 
 
 class CommandPipeline:
@@ -79,10 +79,7 @@ class CommandPipeline:
             with open(self.log, 'a') as file:
                 file.write(message + '\n')
 
-        # colorize when writing to console
-        if color is not None:
-            color_func = getattr(fs.utils.term, color)
-            message = color_func(message)
+        # NOTE: disabling color for now
         print(message)
 
     def info(self, message):
@@ -166,7 +163,7 @@ class CommandPipeline:
         # run commands and check for errors
         for cmd in commands:
             self._print_message('CMD', cmd, 'green')
-            retcode = fs.run(cmd, logfile=self.log)
+            retcode = sf.system.run(cmd, logfile=self.log)
             if retcode != 0:
                 self.fatal('Command "%s" failed with exit code %d' % (cmd, retcode), retcode)
 

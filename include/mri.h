@@ -168,10 +168,10 @@ typedef struct
   float         xsize = 1; // Added =1 because that is what MRI does
   float         ysize = 1;
   float         zsize = 1;
-  float         x_r, x_a, x_s;
-  float         y_r, y_a, y_s;
-  float         z_r, z_a, z_s;
-  float         c_r, c_a, c_s;
+  float x_r = -1, x_a = 0, x_s =  0;
+  float y_r =  0, y_a = 0, y_s = -1;
+  float z_r =  0, z_a = 1, z_s =  0;
+  float c_r =  0, c_a = 0, c_s =  0;
   char          fname[STRLEN];  // volume filename
 }
 VOL_GEOM, VG;

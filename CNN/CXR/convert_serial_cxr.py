@@ -8,9 +8,7 @@ from sklearn.utils import class_weight
 from nibabel import processing as nip
 import numpy as np
 import scipy.ndimage.morphology as morph
-import freesurfer.deeplearn as fsd
-from freesurfer.deeplearn import utils, pprint
-import freesurfer as fs
+import surfa as sf
 import os,socket
 from netshape import *
 from dipy.align.reslice import reslice
@@ -18,7 +16,7 @@ import neuron as ne
 import voxelmorph as vxm
 from netparms import *
 from freesurfer import deeplearn as fsd
-from freesurfer.deeplearn.utils import WeightsSaver, ModelSaver
+from freesurfer.deeplearn.utils import WeightsSaver, ModelSaver, utils, pprint
 import imageio, pydicom, gdcm, load_serial_cxr
 
 bdir = '/autofs/cluster/lcnextdata1/CCDS_CXR/CXR-Serial/def_20200413'
@@ -49,4 +47,4 @@ for sno, ilist in enumerate(il):
         for ino, im in enumerate(ilist2):
             tokens = sl[sno][ind[ino]].split('/')
             fname = '/'.join(tokens[0:-2]) + '/time%2.2d.mgz' % ino
-            fs.Volume(im.pixel_array.astype(np.float32)).write(fname)
+            sf.Volume(im.pixel_array.astype(np.float32)).save(fname)
