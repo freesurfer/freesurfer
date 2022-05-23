@@ -1592,6 +1592,7 @@ if($UseSamseg) then
   # Need to add fix for hypos and vents
   set cmd = (samseg2recon --s $subjid --samseg $samsegdir) # no update option
   set xopts = `fsr-getxopts samseg2recon $XOptsFile`;
+  if(-e $synthstrip) set cmd =($cmd --m $synthstrip)
   set cmd = ($cmd $xopts)
   echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
   if($RunIt) then
