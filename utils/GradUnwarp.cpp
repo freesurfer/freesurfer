@@ -358,8 +358,10 @@ void GradUnwarp::create_transtable(VOL_GEOM *vg, MATRIX *vox2ras, MATRIX *inv_vo
 
   gcam = GCAMalloc(vg->width, vg->height, vg->depth);
 
-  // save volgeom orig and target
   //GCAMinitVolGeom(gcam, origvol, origvol);
+  // update gcam->image, gcam->atlas  
+  copyVolGeom(vg, &gcam->image);
+  copyVolGeom(vg, &gcam->atlas);
 
 #ifdef HAVE_OPENMP
   printf("\nSet OPEN MP NUM threads to %d (create_transtable)\n", nthreads);
@@ -458,6 +460,12 @@ void GradUnwarp::load_transtable(const char* transfile)
 
 void GradUnwarp::save_transtable(const char* transfile)
 {
+  if (gcam == NULL)
+  {
+    printf("GCAM not initialized!\n");
+    return;
+  }
+
   printf("GradUnwarp::save_transtable(%s) ...\n", transfile);
   GCAMwrite(gcam, transfile);
 }
@@ -598,6 +606,12 @@ MRI *GradUnwarp::unwarp_volume_gradfile(MRI *warpedvol, MRI *unwarpedvol, MATRIX
 
 MRI *GradUnwarp::unwarp_volume(MRI *warpedvol, MRI *unwarpedvol, int interpcode, int sinchw)
 {
+  if (gcam == NULL)
+  {
+    printf("GCAM not initialized!\n");
+    return NULL;
+  }
+
   printf("GradUnwarp::unwarp_volume() ...\n");
 
   int (*nintfunc)( double );
@@ -914,12 +928,25 @@ MRIS* GradUnwarp::unwarp_surface(MRIS *warpedsurf, MRIS *unwarpedsurf)
   {
     VERTEX *v = &warpedsurf->vertices[n];
 
+    if (getenv("GRADUNWARP_PRN_DEBUG"))
+    {
+      printf("%d) \n", n);
+      printf("\ttkregRAS (v 0)   (x=%f, y=%f, z=%f)\n", v->x, v->y, v->z);
+    }
+
     // v->x, v->y, v->z // by default these are in the warped space
     MATRIX *tkregRAS = MatrixAlloc(4, 1, MATRIX_REAL);;
     tkregRAS->rptr[1][1] = v->x;
     tkregRAS->rptr[2][1] = v->y;
     tkregRAS->rptr[3][1] = v->z;
     tkregRAS->rptr[4][1] = 1;
+
+    if (getenv("GRADUNWARP_PRN_DEBUG"))
+    {
+      printf("%d) \n", n);
+      printf("\ttkregRAS         (x=%f, y=%f, z=%f)\n", tkregRAS->rptr[1][1],    tkregRAS->rptr[2][1], tkregRAS->rptr[3][1]); //v->x, v->y, v->z);
+      printf("\ttkregRAS (v 1)   (x=%f, y=%f, z=%f)\n", v->x, v->y, v->z);
+    }
 
     // Convert surface xyz coords from tkregister space to scanner space
     MATRIX *warpedRAS = MatrixMultiply(M, tkregRAS, NULL);
@@ -965,6 +992,7 @@ MRIS* GradUnwarp::unwarp_surface(MRIS *warpedsurf, MRIS *unwarpedsurf)
     {
       printf("%d) \n", n);
       printf("\ttkregRAS         (x=%f, y=%f, z=%f)\n", tkregRAS->rptr[1][1],    tkregRAS->rptr[2][1], tkregRAS->rptr[3][1]); //v->x, v->y, v->z);
+      printf("\ttkregRAS (v 2)   (x=%f, y=%f, z=%f)\n", v->x, v->y, v->z);
       printf("\twarpedRAS        (x=%f, y=%f, z=%f) (%f, %f, %f)\n", warpedRAS->rptr[1][1],   warpedRAS->rptr[2][1],   warpedRAS->rptr[3][1], c, r, s);
       printf("\tunwarpedRAS      (x=%f, y=%f, z=%f) (%f, %f, %f)\n", unwarpedRAS->rptr[1][1], unwarpedRAS->rptr[2][1], unwarpedRAS->rptr[3][1], fcs, frs, fss);
       //      printf("\tdeltaRAS    (x=%f, y=%f, z=%f)\n", Dx, Dy, Dz);
