@@ -15,6 +15,16 @@ parser = argparse.ArgumentParser()
 
 default_threads = int(os.environ.get('OMP_NUM_THREADS', 1))
 
+# Custom action to extend arguments into a list so that both of these are allowed:
+# command --input 1 2 3
+# command --input 1 --input 2 --input 3
+class ExtendAction(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        items = getattr(namespace, self.dest) or []
+        items.extend(values)
+        setattr(namespace, self.dest, items)
+parser.register('action', 'extend', ExtendAction)
+
 # required
 parser.add_argument('-o', '--output', metavar='DIR', dest='outputDirectory', help='Output directory.', required=True)
 parser.add_argument('-i', '--input', nargs='+', action='extend', metavar='FILE', dest='inputFileNames', help='Input image(s).', required=True)
