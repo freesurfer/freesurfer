@@ -11,82 +11,9 @@
 #include "cmdargs.h"
 #include "fio.h"
 #include "mri.h"
+#include "mri_identify.h"
 #include "mriBSpline.h"
 #include "GradUnwarp.h"
-
-/* examples:
- *
- * unwarp at given crs (debugging)
- * 1. mri_gradunwarp/mri_gradunwarp 
- *    --gradcoeff $FS_TEST/gradunwarp/example/coeff_Sonata.grad 
- *    --i $FS_TEST/gradunwarp/example/orig.mgz 
- *    --crs 0,0,0
- *
- * unwarp for given ras (debugging)
- * 2. mri_gradunwarp/mri_gradunwarp 
- *    --gradcoeff $FS_TEST/gradunwarp/example/coeff_Sonata.grad 
- *    --i $FS_TEST/gradunwarp/example/orig.mgz 
- *    --ras 0.1,0.2,0.3
- *
- * create gradient unwarp transformation table
- * 3. mri_gradunwarp/mri_gradunwarp 
- *    --gradcoeff $FS_TEST/gradunwarp/example/coeff_Sonata.grad 
- *    --i $FS_TEST/gradunwarp/example/orig.mgz 
- *    --save_transtbl gradunwarp.m3z
- *    --nthreads 10
- *
- * transform given volume, save gradient unwarp transformation table
- * 4. mri_gradunwarp/mri_gradunwarp 
- *    --gradcoeff $FS_TEST/gradunwarp/example/coeff_Sonata.grad 
- *    --i $FS_TEST/gradunwarp/example/orig.mgz 
- *    --o orig.unwarped.cubic.mgz --interp cubic --unwarpvol
- *    --save_transtbl gradunwarp.m3z
- *    --nthreads 10
- *
- * transform given volume using input gradient unwarp transformation table
- * 5. mri_gradunwarp/mri_gradunwarp 
- *    --load_transtbl $FS_TEST/gradunwarp/transtbl/savetbl/gradunwarp.m3z
- *    --i $FS_TEST/gradunwarp/example/orig.mgz 
- *    --o orig.unwarped.cubic.mgz --interp cubic --unwarpvol
- *    --nthreads 10
- *
- */
-/****** BIG PICTURES ******/
-/*
- * MATRIX *vox2ras = MRIxfmCRS2XYZ(const MRI *mri, 0)
- *
- * vol = MRIread('vol.mgz');
- * [Ax Ay Az Bx By Bz] = ReadYourCoef('a.coef');
- * for col = 0; col < vol->width; col++
- *   for row
- *     for slice
- *       RAS = vox2ras*[C R S 1]'
- *       DeltaRAS = YourFunction(Ax,Ay,Az,Bx,By,Bz,RAS,R0);
- *       DistortedRAS = RAS + DeltaRAS;
- *       DistortedCRS = inv(vox2ras)*DistortedRAS; // floating point
- *       NewVol(col,row,slice) =
- *           MRIsampleVol(vol,distcol,distrow,distslice, interpolationcode);
- *
- * MRIS *surf = MRISread('lh.white');
- * for n = 0:surf->nvertices-1
- *  VERTEX *v = surf->vertices[n]
- *     v->x, v->y, v->z // by default these are in the warped space
- *     tkRAS->rptr[1][1] = v->x;
- *     tkRAS->rptr[2][1] = v->y;
- *     tkRAS->rptr[3][1] = v->z;
- *     MATRIX *M = TkrRAS2VoxfromVolGeom(&surf->vg); // convert from tkreg space to voxel
- *     MATRIX *V = vg_getVoxelToRasXform(&surf->vg); // converts from voxel to RAS
- *     MATRIX *Q = MatrixMultiply(V,M,NULL); // convert from tkreg space to RAS
- *     DistortedRAS = MatrixMultiply(Q,tkRAS,DistortedCRS);
- *     spharm_evaluate(Distx, Disty, Distz, &Dx, &Dy, &Dz);
- *     v->x +/- Dx;
- *     v->y +/- Dy;
- *     v->z +/- Dz;
- *
- *  (include/transform.h:#define vg_getVoxelToRasXform vg_i_to_r)
- */
-
-static void dump_exit_codes(FILE *fp);
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -94,18 +21,18 @@ static void print_usage(void) ;
 static void usage_exit(void);
 static void print_help(void) ;
 static void print_version(void) ;
-static void dump_options(FILE *fp);
 static int isflag(char *flag);
 static int nth_is_arg(int nargc, char **argv, int nth);
 
-static void printVolInfo(MRI *vol, MATRIX *vox2ras_orig, MATRIX *inv_vox2ras_orig);
+static void printVolInfo(MRI *vol, const VOL_GEOM *vg, MATRIX *vox2ras_orig, MATRIX *inv_vox2ras_orig);
+static void printVolGeom(const VOL_GEOM *vg, MATRIX *vox2ras_orig, MATRIX *inv_vox2ras_orig);
 static void unwarpCRS(GradUnwarp *gradUnwarp, MATRIX *vox2ras, MATRIX *inv_vox2ras);
 
-int debug = 0, checkoptsonly = 0;
+int checkoptsonly = 0;
 const char *Progname = NULL;
-std::string gradfile_str, inf_str, outf_str, loadtrans_str, savetrans_str;
-const char *gradfile = NULL, *invol = NULL, *insurf = NULL, *inf = NULL, *outf = NULL, *loadtrans = NULL, *savetrans = NULL;
-int inputras = 0, inputcrs = 0, unwarpvol = 0, unwarpsurf = 0;
+std::string gradfile_str, inf_str, outf_str, loadtrans_str, outtrans_str;
+const char *gradfile = NULL, *inf = NULL, *outf = NULL, *loadtrans = NULL, *outtrans = NULL;
+int inputras = 0, inputcrs = 0, unwarp = 0, m3zonly = 0;
 double ras_x, ras_y, ras_z;
 int crs_c = 0, crs_r = 0, crs_s = 0;
 const char *interpmethod = "trilinear";
@@ -146,47 +73,59 @@ int main(int argc, char *argv[])
   printf("hostname %s\n",uts.nodename);
   printf("machine  %s\n",uts.machine);
 
-  dump_options(stdout);
-
   MRI *origvol = NULL;
   MRIS *origsurf = NULL;
   VOL_GEOM vg;
   MATRIX *vox2ras_orig = NULL;
   MATRIX *inv_vox2ras_orig = NULL;
-  if (invol != NULL)
+
+  int unwarpvol = 0, unwarpsurf = 0;
+  if (inf != NULL)
   {
-    origvol = MRIread(invol);
+    // determine if input is a volume or surface
+    unwarpvol = 1; unwarpsurf = 0;
+
+    int voltype = mri_identify(inf);
+    if (voltype == MRI_VOLUME_TYPE_UNKNOWN)
+    {
+      unwarpvol = 0; unwarpsurf = 1;
+    }
+  }
+
+  if (unwarpvol)
+  {
+    origvol = MRIread(inf);
     if (origvol == NULL)
     {
-      printf("ERROR: could not open volume %s\n", invol);
+      printf("ERROR: could not open volume %s\n", inf);
       exit(1);
     }
 
-    vox2ras_orig = extract_i_to_r(origvol);  //MRIxfmCRS2XYZ(origvol, 0);
-    inv_vox2ras_orig = MatrixInverse(vox2ras_orig, NULL);  //extract_r_to_i(origvol);
+    if (m3zonly)
+      unwarpvol = 0;
 
-    //vg.copyFromMRI(origvol);  // vol_geom.cpp
     getVolGeom(origvol, &vg);
-
-    printVolInfo(origvol, vox2ras_orig, inv_vox2ras_orig);
   }
-  else if (insurf != NULL)
+  else if (unwarpsurf)
   {
-    origsurf = MRISread(insurf);
+    origsurf = MRISread(inf);
     if (origsurf == NULL)
     {
-      printf("ERROR: could not open surface %s\n", insurf);
+      printf("ERROR: could not open surface %s\n", inf);
       exit(1);
     }
 
-    //vox2ras_orig     = origsurf->vg.getVox2RAS();
-    //inv_vox2ras_orig = origsurf->vg.getRAS2Vox();
-    //vg.copy(&origsurf->vg);  // vol_geom.cpp
+    if (m3zonly)
+      unwarpsurf = 0;
 
-    vox2ras_orig     = vg_i_to_r(&origsurf->vg);
-    inv_vox2ras_orig = vg_r_to_i(&origsurf->vg);
     copyVolGeom(&origsurf->vg, &vg);
-  }
+  }  
+
+  vox2ras_orig     = vg_i_to_r(&vg);
+  inv_vox2ras_orig = vg_r_to_i(&vg);
+
+  printVolGeom(&vg, vox2ras_orig, inv_vox2ras_orig); 
+
 
   GradUnwarp *gradUnwarp = new GradUnwarp(nthreads);
   if (gradfile != NULL)
@@ -248,12 +187,9 @@ int main(int argc, char *argv[])
     if (err) 
       printf("something went wrong\n");
 
-    printf("unwarpvol done\n");
     MRIfree(&unwarpedvol);
 
-    printf("free vox2ras_orig ...\n");
     MatrixFree(&vox2ras_orig);
-    printf("free inv_vox2ras_orig ...\n");
     MatrixFree(&inv_vox2ras_orig);
 
     MRIfree(&origvol);
@@ -279,11 +215,17 @@ int main(int argc, char *argv[])
 
     MRISfree(&origsurf);
   }
+  
+  if (outtrans != NULL)
+  {
+    // this also covers save_transtbl_only 
+    // if we used gradient file to unwarp, we need to create the m3z transform table now
+    if (getenv("GRADUNWARP_USE_GRADFILE"))
+      gradUnwarp->create_transtable(&vg, vox2ras_orig, inv_vox2ras_orig);
 
-  if (savetrans != NULL)
-    gradUnwarp->save_transtable(savetrans);
+    gradUnwarp->save_transtable(outtrans);
+  }
 
-  printf("deleting graunwarp ...\n");
   delete gradUnwarp;
 
   return 0;
@@ -374,7 +316,6 @@ static int parse_commandline(int argc, char **argv) {
   while (nargc > 0) {
 
     option = pargv[0];
-    if (debug) printf("%d %s\n",nargc,option);
     nargc -= 1;
     pargv += 1;
 
@@ -382,7 +323,6 @@ static int parse_commandline(int argc, char **argv) {
 
     if (!strcasecmp(option, "--help"))  print_help() ;
     else if (!strcasecmp(option, "--version")) print_version() ;
-    else if (!strcasecmp(option, "--debug"))   debug = 1;
     else if (!strcasecmp(option, "--checkopts"))   checkoptsonly = 1;
     else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
     /* these two options --ras, --crs are for debugging purposes only */
@@ -397,11 +337,7 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0], "%d,%d,%d", &crs_c, &crs_r, &crs_s);
       nargsused = 1;
     }
-    else if (!strcmp(option, "--unwarpvol")) {
-      unwarpvol = 1;
-    } else if (!strcmp(option, "--unwarpsurf")) {
-      unwarpsurf = 1;
-    } else if (!strcmp(option, "--gradcoeff")) {
+    else if (!strcmp(option, "--gradcoeff")) {
       if (nargc < 1) CMDargNErr(option,1);
 
       struct stat stat_buf;
@@ -445,22 +381,24 @@ static int parse_commandline(int argc, char **argv) {
       loadtrans_str = fio_fullpath(pargv[0]);
       loadtrans = loadtrans_str.c_str();
       nargsused = 1;
-    } else if (!strcmp(option, "--save_transtbl")) {
+    } else if (!strcmp(option, "--out_transtbl")) {
       if (nargc < 1) CMDargNErr(option,1);
-      savetrans_str = fio_fullpath(pargv[0]);
-      savetrans = savetrans_str.c_str();
+      outtrans_str = fio_fullpath(pargv[0]);
+      outtrans = outtrans_str.c_str();
       nargsused = 1;
+    } else if (!strcmp(option, "--save_transtbl_only")) {
+      m3zonly = 1; unwarp = 0;
     } else if (!strcmp(option, "--interp")) {
       if (nargc < 1) CMDargNErr(option, 1);
       interpmethod = pargv[0];
       interpcode = MRIinterpCode(interpmethod);
-      printf("!!! <interpmethod=%s, interpcode=%d> !!!\n", interpmethod, interpcode);
       nargsused = 1;
+      /*printf("!!! <interpmethod=%s, interpcode=%d> !!!\n", interpmethod, interpcode);
       if (!strcmp(interpmethod, "sinc") && nth_is_arg(nargc, pargv, 1)) {
         sscanf(pargv[1], "%d", &sinchw);
         printf("!!! <sinchw = %d> !!!\n", sinchw);
         nargsused ++;
-      }
+	}*/
     } else if(!strcasecmp(option, "--threads") || !strcasecmp(option, "--nthreads") ){
       if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d", &nthreads);
@@ -469,6 +407,7 @@ static int parse_commandline(int argc, char **argv) {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if (CMDsingleDash(option))
         fprintf(stderr,"       Did you really mean -%s ?\n",option);
+      print_help();
       exit(1);
     }
     nargc -= nargsused;
@@ -485,25 +424,25 @@ static void usage_exit(void) {
 
 /* --------------------------------------------- */
 static void print_usage(void) {
+  printf("\n");
   printf("USAGE: %s \n",Progname) ;
   printf("\n");
-  printf("   --gradcoeff | --load_transtbl  gradient coeff input, or load unwarp transform table in m3z format \n");
-  printf("   --i                            input volume, or surface \n");
-  printf("   --o                            unwarped output volume, or surface \n");
-  printf("   --unwarpvol | --unwarpsurf     unwarp volume, or surface\n");
-  printf("   --save_transtbl save unwarp transform table in m3z format \n");
+  printf("   --gradcoeff <gradient-file> | --load_transtbl <m3z-table>   gradient coeff input, or load unwarp transform table in m3z format \n");
+  printf("   --i <input-warped-file>                                     input volume, or surface \n");
+  printf("   --o <output-unwarped-file>                                  unwarped output volume, or surface \n");
+  printf("   --out_transtbl <output-m3z-table>                           save unwarp transform table in m3z format \n");
+  printf("   --save_transtbl_only                                        no unwarping volume/surface, just save unwarp transform table in m3z format, need --gradcoeff <> \n");
   printf("\n");
   //printf("   --ras       x,y,z\n");
   //printf("   --crs       c,r,s\n");
   //printf("\n"); 
-  printf("   --interp    interptype nearest | trilinear | sinc | cubic\n");
+  printf("   --interp <interptype>                                       interpolation method: nearest | trilinear | cubic (default is trilinear)\n");
   printf("\n"); 
-  printf("   --nthreads  nthreads : Set OPEN MP threads\n");
+  printf("   --nthreads <nthreads>                                       number of threads to run\n");
   printf("\n"); 
-  printf("   --debug     turn on debugging\n");
-  printf("   --checkopts don't run anything, just check options and exit\n");
-  printf("   --help      print out information on how to use this program\n");
-  printf("   --version   print out version and exit\n");
+  printf("   --checkopts                                                 don't run anything, just check options and exit\n");
+  printf("   --help                                                      print out information on how to use this program\n");
+  printf("   --version                                                   print out version and exit\n");
   printf("\n");
   std::cout << getVersion() << std::endl;
   printf("\n");
@@ -511,15 +450,51 @@ static void print_usage(void) {
 
 /* --------------------------------------------- */
 static void print_help(void) {
-  print_usage() ;
-  printf(
-    "program description\n"
-    "...\n"
-    "...\n");
+  print_usage();
 
+  printf("\n%s\n\n",getVersion().c_str());
   printf("\n");
-  dump_exit_codes(stdout);
+  printf("This program provides a tool to correct gradient non-linearity distortions in MRI images.\n");
   printf("\n");
+  printf("Examples:\n");
+  printf("\n");
+  printf("1. create gradient unwarp m3z transformation table only from a volume using gradient file:\n");
+  printf("  mri_gradunwarp \n"); 
+  printf("    --gradcoeff coeff_Sonata.grad \n");
+  printf("    --i invol.mgz \n");
+  printf("    --out_transtbl gradunwarp.m3z \n");
+  printf("    --save_transtbl_only \n");
+  printf("    --nthreads 10 \n");
+  printf("\n");
+  printf("2. unwarp given volume using gradient file, save gradient unwarp m3z transformation table:\n");
+  printf("  mri_gradunwarp \n");
+  printf("    --gradcoeff coeff_Sonata.grad \n");
+  printf("    --i invol.mgz \n");
+  printf("    --o invol.unwarped.cubic.mgz --interp cubic\n");
+  printf("    --out_transtbl gradunwarp.m3z \n");
+  printf("    --nthreads 10 \n");
+  printf("\n");
+  printf("3. unwarp given surface using gradient unwarp m3z transformation table:\n");
+  printf("  mri_gradunwarp \n");
+  printf("    --load_transtbl gradunwarp.m3z \n");
+  printf("    --i lh.white \n");
+  printf("    --o lh.unwarped.cubic.white --interp cubic\n");
+  printf("    --nthreads 10 \n");
+  printf("\n");
+
+#if 0
+  printf("* unwarp at given crs (debug only): \n");
+  printf("  mri_gradunwarp \n");
+  printf("    --gradcoeff coeff_Sonata.grad \n");
+  printf("    --i orig.mgz \n");
+  printf("    --crs 0,0,0 \n");
+  printf("\n");
+  printf("* unwarp for given ras (debug only): \n");
+  printf("  mri_gradunwarp \n");
+  printf("    --gradcoeff coeff_Sonata.grad \n");
+  printf("    --i orig.mgz \n");
+  printf("    --ras 0.1,0.2,0.3 \n");
+#endif
 
   exit(1) ;
 }
@@ -533,92 +508,77 @@ static void print_version(void) {
 /* --------------------------------------------- */
 static void check_options(void)
 {
+  // debug options --crs and --ras need --gradfile <> 
+  if ((m3zonly || inputcrs || inputras) && gradfile == NULL)
+  {
+    printf("Use --gradcoeff to specify gradient coeff file, \n");
+    print_usage();
+    exit(1);
+  }
+
+  if (getenv("GRADUNWARP_USE_GRADFILE") && gradfile == NULL)
+  {
+    printf("Environment variable GRADUNWARP_USE_GRADFILE is set.\n");
+    printf("Use --gradcoeff to specify gradient coeff file\n");
+    print_usage();
+    exit(1);
+  }
+
   if (gradfile == NULL && loadtrans == NULL)
   {
     printf("Use --gradcoeff to specify gradient coeff file, \n");
     printf(" or --load_transtbl to specify unwarp transformation table \n");
+    print_usage();
     exit(1); 
   }
-
+  
   if (gradfile != NULL && loadtrans != NULL)
   {
-    printf("--gradcoeff and --load_transtbl are mutually excluded. \n");
-    printf("Use --gradcoeff to specify gradient coeff file, \n");
-    printf(" or --load_transtbl to specify unwarp transformation table \n");
-    exit(1); 
-  }
+    if (m3zonly)
+      printf("--gradcoeff and --load_transtbl are mutually excluded. \n");
+    else
+    {
+      printf("--gradcoeff and --load_transtbl are mutually excluded. \n");
+      printf("Use --gradcoeff to specify gradient coeff file, \n");
+      printf(" or --load_transtbl to specify unwarp transformation table \n");
+    }
 
-  if (unwarpvol && unwarpsurf)
-  {
-    printf("--unwarpvol and --unwarpsurf are mutually excluded.\n");
-    printf("Use --unwarpvol   to unwarp a volume \n");
-    printf(" or --unwarpsurf  to unwarp a surface\n");
+    print_usage();
     exit(1); 
   }
 
   if (inf == NULL)
   {
     printf("Use --i to specify input volume or surface\n");
+    print_usage();
     exit(1);
   }
 
-  if ((inputcrs || inputras) && gradfile == NULL)
+  if (m3zonly && outtrans == NULL)
   {
-    printf("Use --gradcoeff to specify gradient coeff file, \n");
+    printf("Use --out_transtbl to specify output m3z table\n");
+    print_usage();
     exit(1);
   }
 
-  if (unwarpvol || unwarpsurf)
-  {
-    if (outf == NULL)
-    {
-      printf("Use --o to specify output unwarped %s\n", (unwarpvol) ? "volume" : "surface");
-      exit(1);
-    }   
-  }
+  if (!m3zonly && !inputcrs && !inputras)
+    unwarp = 1;
 
-  if (!unwarpvol && !unwarpsurf && !inputcrs && !inputras && savetrans == NULL)
+  // need unwarped output file
+  if (unwarp && outf == NULL)
   {
-    printf("Use --unwarpvol        to unwarp a volume \n");
-    printf(" or --unwarpsurf       to unwarp a surface\n");
-    printf(" or --save_transtbl    to create m3z table\n");
+    printf("Use --o to specify output unwarped output\n");
+    print_usage();
+    exit(1);
+  }   
+
+  if (interpcode != SAMPLE_NEAREST && interpcode != SAMPLE_TRILINEAR && interpcode != SAMPLE_CUBIC_BSPLINE) 
+  {
+    printf("ERROR: interpolation method %s unrecognized\n", interpmethod);
+    printf("       legal values are nearest, trilinear, and cubic\n");
+    print_usage();
     exit(1);
   }
-
-  if (unwarpvol || inputcrs || gradfile != NULL)
-    invol = inf;
-
-  if (unwarpsurf)
-  {
-    insurf = inf;
-    invol = NULL;
-  }
-
-  if (interpcode < 0) {
-    printf("ERROR: interpolation method %s unrecognized\n",interpmethod);
-    printf("       legal values are nearest, trilinear, sinc, and cubic\n");
-    exit(1);
-  }
-}
-
-/* --------------------------------------------- */
-static void dump_options(FILE *fp) {
-  /*fprintf(fp,"vol1    %s\n",vol1File.c_str());
-  fprintf(fp,"vol2    %s\n",vol2File.c_str());
-  fprintf(fp,"pix thresh  %g\n",pixdiff_thresh);
-  fprintf(fp,"vox2ras thresh %g\n",vox2ras_thresh);
-  return;
-  */
-}
-
-/* --------------------------------------------- */
-static void dump_exit_codes(FILE *fp) {
-  /*  fprintf(fp,"dimensions inconsistent   %d\n",DIMENSION_EC);
-  fprintf(fp,"precision  inconsistent   %d\n",PRECISION_EC);
-  fprintf(fp,"resolution inconsistent   %d\n",RESOLUTION_EC);
-  fprintf(fp,"vox2ras    inconsistent   %d\n",VOX2RAS_EC);
-  fprintf(fp,"pixel      inconsistent   %d\n",PIXEL_EC);
-  */
 }
 
 /*---------------------------------------------------------------*/
@@ -645,7 +605,7 @@ static int nth_is_arg(int nargc, char **argv, int nth) {
   return(1);
 }
 
-static void printVolInfo(MRI *vol, MATRIX *vox2ras_orig, MATRIX *inv_vox2ras_orig)
+static void printVolInfo(MRI *vol, const VOL_GEOM *vg, MATRIX *vox2ras_orig, MATRIX *inv_vox2ras_orig)
 {
   printf("\nVolume information for %s\n", inf);
   if (vol->nframes > 1)
@@ -662,6 +622,20 @@ static void printVolInfo(MRI *vol, MATRIX *vox2ras_orig, MATRIX *inv_vox2ras_ori
          vol->type == MRI_BITMAP  ? "BITMAP" :
          vol->type == MRI_TENSOR  ? "TENSOR" :
          vol->type == MRI_FLOAT   ? "FLOAT"  : "UNKNOWN", vol->type) ;
+
+  printVolGeom(vg, vox2ras_orig, inv_vox2ras_orig);
+}
+
+static void printVolGeom(const VOL_GEOM *vg, MATRIX *vox2ras_orig, MATRIX *inv_vox2ras_orig)
+{
+  printf("volume geometry:\n");
+  printf("extent  : (%d, %d, %d)\n", vg->width, vg->height, vg->depth);
+  printf("voxel   : (%7.9f, %7.9f, %7.9f)\n", vg->xsize, vg->ysize, vg->zsize);
+  printf("x_(ras) : (%7.9f, %7.9f, %7.9f)\n", vg->x_r, vg->x_a, vg->x_s);
+  printf("y_(ras) : (%7.9f, %7.9f, %7.9f)\n", vg->y_r, vg->y_a, vg->y_s);
+  printf("z_(ras) : (%7.9f, %7.9f, %7.9f)\n", vg->z_r, vg->z_a, vg->z_s);
+  printf("c_(ras) : (%7.9f, %7.9f, %7.9f)\n", vg->c_r, vg->c_a, vg->c_s);
+  printf("file    : %s\n", vg->fname);
 
   printf("\nvoxel to ras transform:\n"); 
   MatrixPrint(stdout, vox2ras_orig);
