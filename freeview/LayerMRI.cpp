@@ -1779,7 +1779,7 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
   
   int nCnt = 0;
   bool bNormalizeVector = GetProperty()->GetNormalizeVector();
-  int nFrames = GetNumberOfFrames();
+  int nFrames = imagedata->GetNumberOfScalarComponents();
   if (nFrames == 6)
     bNormalizeVector = false;
   double scale_overall = GetProperty()->GetVectorScale();
@@ -1871,6 +1871,7 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
   double dNormTh = GetProperty()->GetVectorNormThreshold();
   if (nFrames == 6)
     scale *= 2;
+
   switch ( nPlane )
   {
   case 0:
