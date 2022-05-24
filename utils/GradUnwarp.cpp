@@ -37,6 +37,7 @@ GradUnwarp::GradUnwarp(int nthreads0)
   gcam = NULL;
 }
 
+// destructor
 GradUnwarp::~GradUnwarp()
 {
   if (!Alpha_Beta_initialized)
@@ -76,6 +77,11 @@ GradUnwarp::~GradUnwarp()
   free(normfact);
 }
 
+/*!
+\fn void GradUnwarp::read_siemens_coeff(const char *gradfilename)
+\brief This method reads and parses the gradient coefficient file.
+\param gradfilename   - input gradient coefficient file
+*/
 void GradUnwarp::read_siemens_coeff(const char *gradfilename)
 {
   // check if gradfile has extension .grad
@@ -93,7 +99,6 @@ void GradUnwarp::read_siemens_coeff(const char *gradfilename)
   _skipCoeffComment();
 
   // hard-coded limits:
-  // number of coeff entries - 100
   // length of each entry    - 1024
   char coeffline[1024];
 
@@ -237,6 +242,10 @@ void GradUnwarp::read_siemens_coeff(const char *gradfilename)
   Alpha_Beta_initialized = true;
 }
 
+/*!
+\fn void GradUnwarp::initSiemensLegendreNormfact()
+\brief This method initializes and pre-calculates variables.
+*/
 void GradUnwarp::initSiemensLegendreNormfact()
 {
   // initialize variables to pre-calculate normfact for siemens_legendre()
@@ -275,6 +284,16 @@ void GradUnwarp::initSiemensLegendreNormfact()
   }
 }
 
+/*!
+\fn void GradUnwarp::spharm_evaluate(float X, float Y, float Z, float *Dx, float *Dy, float *Dz)
+\brief This method computes the displacements for given set of voxel positions (XYZ coordinates in LAI orientation)
+\param X    - input x-coordinate
+\param Y    - input y-coordinate
+\param Z    - input z-coordinate
+\param Dx   - input delta x
+\param Dy   - input delta y
+\param Dz   - input delta z
+*/
 void GradUnwarp::spharm_evaluate(float X, float Y, float Z, float *Dx, float *Dy, float *Dz)
 {
   if (!Alpha_Beta_initialized)
@@ -286,6 +305,7 @@ void GradUnwarp::spharm_evaluate(float X, float Y, float Z, float *Dx, float *Dy
 
   Siemens_B *siemens_B = new Siemens_B(coeffDim, nmax, R0, normfact, X, Y, Z);
 
+  // calculate displacement field from Siemens's coefficients
   float bx = siemens_B->siemens_B_x(Alpha_x, Beta_x);
   float by = siemens_B->siemens_B_y(Alpha_y, Beta_y);
   float bz = siemens_B->siemens_B_z(Alpha_z, Beta_z);
@@ -300,6 +320,10 @@ void GradUnwarp::spharm_evaluate(float X, float Y, float Z, float *Dx, float *Dy
   delete siemens_B;
 }
 
+/*!
+\fn void GradUnwarp::printCoeff()
+\brief This method prints gradient coefficient table.
+*/
 void GradUnwarp::printCoeff()
 {
   const char *arrs = "AxAyAzBxByBz";
@@ -350,8 +374,27 @@ void GradUnwarp::printCoeff()
   }
 }
 
+/*!
+\fn void GradUnwarp::create_transtable(VOL_GEOM *vg, MATRIX *vox2ras, MATRIX *inv_vox2ras)
+\brief This method creates GCAM (m3z transform table) for given VOL_GEOM using loaded gradient file.
+\param vg          - input VOL_GEOM struct
+\param vox2ras     - input vox2ras matrix
+\param inv_vox2ras - input inverse of vox2ras, ras2vox matrix
+*/
 void GradUnwarp::create_transtable(VOL_GEOM *vg, MATRIX *vox2ras, MATRIX *inv_vox2ras)
 {
+  // 1. create GCAM struct gcam, update gcam->image, gcam->atlas
+  // 2. for each unwarped crs
+  //      calculate unwarped ras
+  //      convert unwarped ras to unwarped from RAS to LAI
+  //      call spharm_evaluate() to calculate delta ras in LAI
+  //      warped ras = unwarped ras + delta ras
+  //      convert warped ras from LAI to RAS
+  //      calculate warped crs (fcs, frs, fss)
+  //      update GCAM nodes - gcam->nodes are indexed by unwarped (c, r, s), 
+  //                          (origx, origy, origz) is unwarped crs, 
+  //                          (x, y, z) is warped crs
+
   printf("GradUnwarp::create_transtable() ...\n");
   if (gcam != NULL)
     GCAMfree(&gcam);
@@ -444,6 +487,8 @@ void GradUnwarp::create_transtable(VOL_GEOM *vg, MATRIX *vox2ras, MATRIX *inv_vo
   }       // c
 }
 
+// private method
+// update GCAM node
 void GradUnwarp::_update_GCAMnode(int c, int r, int s, float fcs, float frs, float fss)
 {
   // gcam->nodes are indexed by unwarped (c, r, s)
@@ -452,12 +497,22 @@ void GradUnwarp::_update_GCAMnode(int c, int r, int s, float fcs, float frs, flo
   gcamn->x = fcs; gcamn->y = frs; gcamn->z = fss;
 }
 
+/*!
+\fn void GradUnwarp::load_transtable(const char* transfile)
+\brief This method reads m3z transform table into GCAM
+\param transfile   - input m3z transform table
+*/
 void GradUnwarp::load_transtable(const char* transfile)
 {
   printf("GradUnwarp::load_transtable(%s) ...\n", transfile);
   gcam = GCAMread(transfile);
 }
 
+/*!
+\fn void GradUnwarp::save_transtable(const char* transfile)
+\brief This method writes GCAM (m3z transform table) to file
+\param transfile   - output m3z transform table
+*/
 void GradUnwarp::save_transtable(const char* transfile)
 {
   if (gcam == NULL)
@@ -470,8 +525,32 @@ void GradUnwarp::save_transtable(const char* transfile)
   GCAMwrite(gcam, transfile);
 }
 
+/*!
+\fn MRI *GradUnwarp::unwarp_volume_gradfile(MRI *warpedvol, MRI *unwarpedvol, MATRIX *vox2ras, MATRIX *inv_vox2ras, int interpcode, int sinchw)
+\brief This method unwarps given volume using loaded gradient file.
+\param warpedvol   - input warped volume
+\param unwarpedvol - output unwarped volume
+\param vox2ras     - input vox2ras matrix
+\param inv_vox2ras - input inverse of vox2ras, ras2vox matrix
+\param interpcode  - input interpolation method
+\param sinchw      - input sinchw, for interpolation menthod sinc
+*/
 MRI *GradUnwarp::unwarp_volume_gradfile(MRI *warpedvol, MRI *unwarpedvol, MATRIX *vox2ras, MATRIX *inv_vox2ras, int interpcode, int sinchw)
 {
+  // this method follows the same logic as create_transtable().
+  // for each unwarped crs (c, r, s)
+  //   calculate unwarped ras
+  //   convert unwarped ras to unwarped from RAS to LAI
+  //   call spharm_evaluate() to calculate delta ras in LAI
+  //   warped ras = unwarped ras + delta ras
+  //   convert warped ras from LAI to RAS
+  //   calculate warped crs (fcs, frs, fss), ignore any out of range crs
+  //   sample warped volume at (fcs, frs, fss), update unwarped volume at (c, r, s)
+  //   ??? (create the table as well, so we don't have to go through the same volume twice) ???
+  //   ??? update GCAM nodes - gcam->nodes are indexed by unwarped (c, r, s), 
+  //   ???                    (origx, origy, origz) is unwarped crs, 
+  //   ???                    (x, y, z) is warped crs
+
   printf("GradUnwarp::unwarp_volume_gradfile() ...\n");
 
   int (*nintfunc)( double );
@@ -604,8 +683,21 @@ MRI *GradUnwarp::unwarp_volume_gradfile(MRI *warpedvol, MRI *unwarpedvol, MATRIX
   return unwarpedvol;
 }
 
+/*!
+\fn MRI *GradUnwarp::unwarp_volume(MRI *warpedvol, MRI *unwarpedvol, int interpcode, int sinchw)
+\brief This method unwarps given volume using loaded GCAM (m3z table).
+\param warpedvol   - input warped volume
+\param unwarpedvol - output unwarped volume
+\param interpcode  - input interpolation method
+\param sinchw      - input sinchw, for interpolation menthod sinc
+*/
 MRI *GradUnwarp::unwarp_volume(MRI *warpedvol, MRI *unwarpedvol, int interpcode, int sinchw)
 {
+  // for each unwarped crs (c, r, s)
+  //   call GCAMsampleMorph() to get its warped crs (fcs, frs, fss), 
+  //   (c, r, s) => (fcs, frs, fss), ignore any out of range (fcs, frs, fss)
+  //   sample warped volume at (fcs, frs, fss), update unwarped volume at (c, r, s)
+
   if (gcam == NULL)
   {
     printf("GCAM not initialized!\n");
@@ -695,6 +787,7 @@ MRI *GradUnwarp::unwarp_volume(MRI *warpedvol, MRI *unwarpedvol, int interpcode,
   return unwarpedvol;
 }
 
+// private method
 // (c, r, s) is in unwarped volume, (fcs, frs, fss) is in warped volume
 // find value at (fcs, frs, fss) in warped volume,
 // put it at (c, r, s) in unwarped volume
@@ -742,27 +835,24 @@ void GradUnwarp::_assignUnWarpedVolumeValues(MRI* warpedvol, MRI* unwarpedvol, M
   }
 }
 
-/*
- * MRIS *surf = MRISread('lh.white');
- * for n = 0:surf->nvertices-1
- *  VERTEX *v = surf->vertices[n]
- *     v->x, v->y, v->z // by default these are in the warped space
- *     tkRAS->rptr[1][1] = v->x;
- *     tkRAS->rptr[2][1] = v->y;
- *     tkRAS->rptr[3][1] = v->z;
- *     MATRIX *Tinv = TkrRAS2VoxfromVolGeom(&surf->vg); // convert from tkreg space to voxel
- *     MATRIX *S = vg_i_to_r(&surf->vg); // converts from voxel to RAS
- *     MATRIX *M = MatrixMultiply(S, Tinv, NULL); // convert from tkreg space to RAS
- *     DistortedRAS = MatrixMultiply(M, tkRAS, DistortedCRS);
- *     spharm_evaluate(Distx, Disty, Distz, &Dx, &Dy, &Dz);
- *     v->x +/- Dx;
- *     v->y +/- Dy;
- *     v->z +/- Dz;
- *
- *  (include/transform.h:#define vg_getVoxelToRasXform vg_i_to_r)
- */
+/*!
+\fn MRIS* GradUnwarp::unwarp_surface_gradfile(MRIS *warpedsurf, MRIS *unwarpedsurf)
+\brief This method unwarps given surface using loaded gradient file.
+\param warpedvol   - input warped surface
+\param unwarpedvol - output unwarped surface
+*/
 MRIS* GradUnwarp::unwarp_surface_gradfile(MRIS *warpedsurf, MRIS *unwarpedsurf)
 {
+  // 1. calculate various transform matrix
+  // 2. for each vertex in warped surface xyz
+  //      convert surface xyz coords from tkregister space to scanner space RAS
+  //      convert scanner space xyz from RAS to LAI
+  //      call spharm_evaluate() to calculate delta xyz in LAI
+  //      calculate unwarped scanner space xyz in LAI - unwarped = warped - delta
+  //      convert unwarped scanner space xyz from LAI to RAS
+  //      convert unwarped xyz from scanner space to tkregister space
+  //      set unwarped vertext xyz (tkregister space) in unwarped surface
+
   printf("GradUnwarp::unwarp_surface_gradfile() ...\n");
 
   if (unwarpedsurf == NULL)
@@ -858,7 +948,7 @@ MRIS* GradUnwarp::unwarp_surface_gradfile(MRIS *warpedsurf, MRIS *unwarpedsurf)
   }       // n
 
   // Copy the volume geometry
-  //copyVolGeom(&(warpedsurf->vg), &(unwarpedsurf->vg));
+  copyVolGeom(&(warpedsurf->vg), &(unwarpedsurf->vg));
 
   MatrixFree(&Q);
   MatrixFree(&M);
@@ -870,9 +960,24 @@ MRIS* GradUnwarp::unwarp_surface_gradfile(MRIS *warpedsurf, MRIS *unwarpedsurf)
   return unwarpedsurf;
 }
 
-// using m3z transform table
+/*!
+\fn MRIS* GradUnwarp::unwarp_surface(MRIS *warpedsurf, MRIS *unwarpedsurf)
+\brief This method unwarps given surface using GCAM (m3z transform table)
+\param warpedvol   - input warped surface
+\param unwarpedvol - output unwarped surface
+*/
 MRIS* GradUnwarp::unwarp_surface(MRIS *warpedsurf, MRIS *unwarpedsurf)
 {
+  // 1. create GCAM inverse - GCAMinvert()
+  // 2. calculate various transform matrix
+  // 3. for each vertex in warped surface xyz
+  //      convert surface xyz coords from tkregister space to scanner space RAS
+  //      calculate warped crs (c, r, s)
+  //      call GCAMsampleInverseMorph() to get unwarped crs (fcs, frs, fss), ignore any out of range crs
+  //      calculate unwarped crs to unwarped xyz in scanner space
+  //      convert unwarped xyz from scanner space to tkregister space
+  //      set unwarped vertext xyz (tkregister space) in unwarped surface
+
   if (gcam == NULL)
   {
     printf("GCAM not initialized!\n");
@@ -1008,7 +1113,7 @@ MRIS* GradUnwarp::unwarp_surface(MRIS *warpedsurf, MRIS *unwarpedsurf)
   }       // n
 
   // Copy the volume geometry
-  //copyVolGeom(&(warpedsurf->vg), &(unwarpedsurf->vg));
+  copyVolGeom(&(warpedsurf->vg), &(unwarpedsurf->vg));
 
   MatrixFree(&Q);
   MatrixFree(&M);
@@ -1020,6 +1125,7 @@ MRIS* GradUnwarp::unwarp_surface(MRIS *warpedsurf, MRIS *unwarpedsurf)
   return unwarpedsurf;
 }
 
+// private method
 void GradUnwarp::_printMatrix(MATRIX *matrix, const char *desc)
 {
   printf("\n%s\n", desc);
@@ -1027,6 +1133,8 @@ void GradUnwarp::_printMatrix(MATRIX *matrix, const char *desc)
   MatrixPrint(stdout, matrix);
 }
 
+// private method
+// skip comments in gradient file
 void GradUnwarp::_skipCoeffComment()
 {
   char line[1024];
@@ -1046,6 +1154,8 @@ void GradUnwarp::_skipCoeffComment()
   }
 }
 
+// private method
+// initialization for gradient file parsing
 void GradUnwarp::_initCoeff()
 {
   printf("nmax = %d, coeffDim = %d, coeffCount = %d\n", nmax, coeffDim, coeffCount);
@@ -1141,6 +1251,7 @@ Siemens_B::~Siemens_B()
   free(sinPhi);
 }
 
+// calculate displacement field from Siemens's coefficients
 float Siemens_B::siemens_B_x(float **Alpha_x, float **Beta_x)
 {
   return Siemens_B::siemens_B(Alpha_x, Beta_x);
@@ -1173,6 +1284,7 @@ float Siemens_B::siemens_B(float **Alpha, float **Beta)
   return B;
 }
 
+// normalize Legendre polynomial with Siemens's convention
 void Siemens_B::siemens_legendre(int n, double x)
 {
   int m;
