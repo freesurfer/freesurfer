@@ -75,6 +75,7 @@ protected:
   void InitializeDTIColorMap();
 
   virtual void UpdateVectorActor( int nPlane );
+  virtual void ReorderColorComponent(unsigned char* c);
 
   FSVolume*  m_vectorSource;
   QString  m_sVectorFileName;

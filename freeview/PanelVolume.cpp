@@ -629,6 +629,8 @@ void PanelVolume::DoUpdateWidgets()
                  (layer && layer->IsTypeOf("DTI") && !layer->GetProperty()->GetDisplayVector() && !bDisplayRGB) );
     ShowWidgets( m_widgetlistLUT, bNormalDisplay && nColorMap == LayerPropertyMRI::LUT );
     ShowWidgets( m_widgetlistDirectionCode, bNormalDisplay && nColorMap == LayerPropertyMRI::DirectionCoded );
+    if (layer && layer->IsTypeOf("DTI") && layer->GetProperty()->GetDisplayVector())
+      ShowWidgets( m_widgetlistDirectionCode, true);
     ShowWidgets( m_widgetlistEditable, bNormalDisplay && layer->IsEditable() );
     ShowWidgets( m_widgetlistFrame, layer &&
                  !layer->IsTypeOf( "DTI" ) &&
