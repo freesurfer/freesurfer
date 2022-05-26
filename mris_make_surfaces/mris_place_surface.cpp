@@ -218,7 +218,7 @@ MRIS *surf;
 char *ripflagout = NULL;
 RIP_MNGR ripmngr;
 LABEL *pinlabel = NULL;
-int DoIntensityProc = 1;
+int DoIntensityProc = 0;
 
 double shrinkThresh = -1;
 
@@ -882,6 +882,7 @@ static int parse_commandline(int argc, char **argv) {
     else if(!strcasecmp(option, "--wm")){
       if(nargc < 1) CMDargNErr(option,1);
       wmvolpath = pargv[0];
+      DoIntensityProc = 1;
       nargsused = 1;
     } 
     else if(!strcasecmp(option, "--invol")){
@@ -1437,7 +1438,9 @@ static void check_options(void) {
     segvolpath = strcpyalloc(tmpstr);
     sprintf(tmpstr,"%s/%s/mri/%s",SUBJECTS_DIR,subject,wmvolname);
     wmvolpath = strcpyalloc(tmpstr);
+    DoIntensityProc = 1;
   }
+ 
 
   if(mmvol){
     if(surftype != GRAY_CSF){
