@@ -1715,6 +1715,10 @@ void LayerMRI::UpdateVectorLineWidth(double val)
   }
 }
 
+void LayerMRI::ReorderColorComponent(unsigned char *c)
+{
+}
+
 void LayerMRI::UpdateVectorActor()
 {
   this->blockSignals( true );
@@ -1742,7 +1746,7 @@ void LayerMRI::UpdateVectorActor( int nPlane )
   UpdateVectorActor( nPlane, m_imageDataBackup.GetPointer()?m_imageDataBackup:m_imageData );
 }
 
-void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageData* scaledata )
+void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageData* scaledata, vtkImageData* brightnessData )
 {
   double* pos = GetSlicePosition();
   double* orig = imagedata->GetOrigin();
@@ -1854,6 +1858,18 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
     scale_dim = scaledata->GetDimensions();
     scale_scalar_type = scaledata->GetScalarType();
   }
+  char* brightness_ptr = NULL;
+  int brightness_scalar_type = 0;
+  int* brightness_dim = NULL;
+  int brightness_nframes = 1;
+  if (brightnessData)
+  {
+    brightness_ptr = (char*)brightnessData->GetScalarPointer();
+    brightness_dim = brightnessData->GetDimensions();
+    brightness_scalar_type = brightnessData->GetScalarType();
+    brightness_nframes = brightnessData->GetNumberOfScalarComponents();
+  }
+
   double actor_pos[3] = {0,0,0};
   actor_pos[nPlane] = voxel_size[nPlane]*(nPlane==2?-dim[nPlane]:dim[nPlane])/2;
   m_glyphActor2D[nPlane]->SetPosition(actor_pos);
@@ -1872,6 +1888,7 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
   if (nFrames == 6)
     scale *= 2;
 
+  double brightness = 1;
   switch ( nPlane )
   {
   case 0:
@@ -1889,6 +1906,8 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
         v[2] = MyVTKUtils::GetImageDataComponent(ptr, dim, nFrames, n[0], i, j, 2, scalar_type );
         if (scaledata)
           scale = MyVTKUtils::GetImageDataComponent(scale_ptr, scale_dim, 1, n[0], i, j, 0, scale_scalar_type ) * scale_overall;
+        if (brightnessData)
+          brightness = qMin(1.0, MyVTKUtils::GetImageDataComponent(brightness_ptr, brightness_dim, brightness_nframes, n[0], i, j, 0, brightness_scalar_type));
         if (nFrames == 6)
         {
           v2[0] = MyVTKUtils::GetImageDataComponent(ptr, dim, nFrames, n[0], i, j, 3, scalar_type );
@@ -1965,9 +1984,10 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
           {
             if (!bNormalizeVector)
               vtkMath::Normalize( v );  // normalize v for color computing
-            c[0] = (int)(fabs( v[0] *255 ) );
-            c[1] = (int)(fabs( v[1] *255 ) );
-            c[2] = (int)(fabs( v[2] *255 ) );
+            c[0] = (int)(fabs( v[0] *255*brightness ) );
+            c[1] = (int)(fabs( v[1] *255*brightness ) );
+            c[2] = (int)(fabs( v[2] *255*brightness ) );
+            ReorderColorComponent(c);
           }
 #if VTK_MAJOR_VERSION > 5
           scalars->InsertNextTypedTuple( c );
@@ -1995,6 +2015,8 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
         v[2] = MyVTKUtils::GetImageDataComponent(ptr, dim, nFrames, i, n[1], j, 2, scalar_type );
         if (scaledata)
           scale = MyVTKUtils::GetImageDataComponent(scale_ptr, scale_dim, 1, i, n[1], j, 0, scale_scalar_type ) * scale_overall;
+        if (brightnessData)
+          brightness = qMin(1.0, MyVTKUtils::GetImageDataComponent(brightness_ptr, brightness_dim, brightness_nframes, i, n[1], j, 0, brightness_scalar_type));
         if (nFrames == 6)
         {
           v2[0] = MyVTKUtils::GetImageDataComponent(ptr, dim, nFrames, i, n[1], j, 3, scalar_type );
@@ -2071,9 +2093,10 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
           {
             if (!bNormalizeVector)
               vtkMath::Normalize( v );  // normalize v for color computing
-            c[0] = (int)(fabs( v[0] *255 ) );
-            c[1] = (int)(fabs( v[1] *255 ) );
-            c[2] = (int)(fabs( v[2] *255 ) );
+            c[0] = (int)(fabs( v[0] *255*brightness ) );
+            c[1] = (int)(fabs( v[1] *255*brightness ) );
+            c[2] = (int)(fabs( v[2] *255*brightness ) );
+            ReorderColorComponent(c);
           }
 #if VTK_MAJOR_VERSION > 5
           scalars->InsertNextTypedTuple( c );
@@ -2101,6 +2124,8 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
         v[2] = MyVTKUtils::GetImageDataComponent(ptr, dim, nFrames, i, j, n[2], 2, scalar_type );
         if (scaledata)
           scale = MyVTKUtils::GetImageDataComponent(scale_ptr, scale_dim, 1, i, j, n[2], 0, scale_scalar_type) * scale_overall;
+        if (brightnessData)
+          brightness = qMin(1.0, MyVTKUtils::GetImageDataComponent(brightness_ptr, brightness_dim, brightness_nframes, i, j, n[2], 0, brightness_scalar_type));
         if (nFrames == 6)
         {
           v2[0] = MyVTKUtils::GetImageDataComponent(ptr, dim, nFrames, i, j, n[2], 3, scalar_type );
@@ -2177,9 +2202,10 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
           {
             if (!bNormalizeVector)
               vtkMath::Normalize( v );  // normalize v for color computing
-            c[0] = (int)(fabs( v[0] *255 ) );
-            c[1] = (int)(fabs( v[1] *255 ) );
-            c[2] = (int)(fabs( v[2] *255 ) );
+            c[0] = (int)(fabs( v[0] *255*brightness ) );
+            c[1] = (int)(fabs( v[1] *255*brightness ) );
+            c[2] = (int)(fabs( v[2] *255*brightness ) );
+            ReorderColorComponent(c);
           }
 #if VTK_MAJOR_VERSION > 5
           scalars->InsertNextTypedTuple( c );
