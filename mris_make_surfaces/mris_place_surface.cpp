@@ -246,6 +246,7 @@ MRI *mri_cover_seg = NULL;
 char *LocalMaxFoundFile = NULL;
 char *TargetSurfaceFile = NULL;
 int SmoothAfterRip = 0;
+int CBVzero=0;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) 
@@ -605,44 +606,47 @@ int main(int argc, char **argv)
 
     INTEGRATION_PARMS_copy(&old_parms, &parms) ;
     if(mmvol == NULL &&  mmvols.size()==0 && !UseMMRefine){
-      // Compute the target intensity value (l_intensity)
-      printf("Computing target border values \n");
-      // The outputs are set in each vertex structure:
-      //   v->val2 = current_sigma; // smoothing level along gradient used to find the target
-      //   v->val  = max_mag_val; // intensity at target location
-      //   v->d = max_mag_dist;   // dist to target along normal
-      //   v->mean = max_mag;     // derivative at target intensity
-      //   v->marked = 1;         // vertex has good data
-      //   v->targx = v->x + v->nx * v->d; // same for y and z
-      MRIScomputeBorderValues(surf, involCBV, NULL, inside_hi,border_hi,border_low,outside_low,outside_hi,
-			      current_sigma, 2*max_cbv_dist, parms.fp, surftype, NULL, 0, parms.flags,seg,-1,-1) ;
-      // Note: 3rd input (NULL) was "mri_smooth" in mris_make_surfaces, but
-      // this was always a copy of the input (mri_T1 or invol); it is not used in CBV
-      
-      if(seg && surftype == GRAY_WHITE){
-	printf("Finding expansion regions\n"); fflush(stdout);
-	// Masks out the v->curv field of vertices with long distances (v->d)
-	MRISfindExpansionRegions(surf) ;
+      if(!CBVzero){
+	// Compute the target intensity value (l_intensity)
+	printf("Computing target border values \n");
+	// The outputs are set in each vertex structure:
+	//   v->val2 = current_sigma; // smoothing level along gradient used to find the target
+	//   v->val  = max_mag_val; // intensity at target location
+	//   v->d = max_mag_dist;   // dist to target along normal
+	//   v->mean = max_mag;     // derivative at target intensity
+	//   v->marked = 1;         // vertex has good data
+	//   v->targx = v->x + v->nx * v->d; // same for y and z
+	MRIScomputeBorderValues(surf, involCBV, NULL, inside_hi,border_hi,border_low,outside_low,outside_hi,
+				current_sigma, 2*max_cbv_dist, parms.fp, surftype, NULL, 0, parms.flags,seg,-1,-1) ;
+	// Note: 3rd input (NULL) was "mri_smooth" in mris_make_surfaces, but
+	// this was always a copy of the input (mri_T1 or invol); it is not used in CBV
+	
+	if(seg && surftype == GRAY_WHITE){
+	  printf("Finding expansion regions\n"); fflush(stdout);
+	  // Masks out the v->curv field of vertices with long distances (v->d)
+	  MRISfindExpansionRegions(surf) ;
+	}
+	
+	if(vavgs > 0) {
+	  printf("Averaging target values for %d iterations...\n",vavgs) ;
+	  // MRIScomputeBorderValues() sets v->marked=1 for all unripped
+	  MRISaverageMarkedVals(surf, vavgs) ;
+	}
+	
+	/* BF's note from MMS: There are frequently regions of gray
+	   whose intensity is fairly flat. We want to make sure the
+	   surface settles at the innermost edge of this region, so on
+	   the first pass, set the target intensities artificially high
+	   so that the surface will move all the way to white matter
+	   before moving outwards to seek the border (I know it's a hack,
+	   but it improves the surface in a few areas. The alternative is
+	   to explicitly put a gradient-seeking term in the cost
+	   functional instead of just using one to find the target
+	   intensities). */
+	
       }
-
-      if(vavgs > 0) {
-	printf("Averaging target values for %d iterations...\n",vavgs) ;
-	// MRIScomputeBorderValues() sets v->marked=1 for all unripped
-	MRISaverageMarkedVals(surf, vavgs) ;
-      }
-
-      /* BF's note from MMS: There are frequently regions of gray
-	whose intensity is fairly flat. We want to make sure the
-	surface settles at the innermost edge of this region, so on
-	the first pass, set the target intensities artificially high
-	so that the surface will move all the way to white matter
-	before moving outwards to seek the border (I know it's a hack,
-	but it improves the surface in a few areas. The alternative is
-	to explicitly put a gradient-seeking term in the cost
-	functional instead of just using one to find the target
-	intensities). */
-      
-    } 
+      else printf("Forcing CBV to be 0\n");
+    }
     else {
       // Compute the target xyz coordinate (l_location)
       printf("Computing pial target locations using multimodal (%d)\n",mm_contrast_type); fflush(stdout);
@@ -836,6 +840,8 @@ static int parse_commandline(int argc, char **argv) {
     else if(!strcmp(option, "--no-first-peak-d1")) CBVfindFirstPeakD1 = 0;
     else if(!strcmp(option, "--first-peak-d2"))    CBVfindFirstPeakD2 = 1;
     else if(!strcmp(option, "--no-first-peak-d2")) CBVfindFirstPeakD2 = 0;
+    else if(!strcmp(option, "--cbv-zero"))    CBVzero=1;
+    else if(!strcmp(option, "--no-cbv-zero")) CBVzero=0;
     else if(!strcmp(option, "--lh"))  hemi = "lh";
     else if(!strcmp(option, "--rh"))  hemi = "rh";
     else if(!strcmp(option, "--smooth-after-rip"))  SmoothAfterRip = 1;

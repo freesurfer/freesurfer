@@ -135,10 +135,31 @@ void LayerDTI::InitializeDTIColorMap()
       }
     }
   }
+  QString orient = GetOrientationString();
+  int flag_assign[3] = { 0, 1, 2 };
+  int flag_sign[3] = {1, 1, 1};
+  QString default_orient = "RASLPI";
+  for (int i = 0; i < 3; i++)
+  {
+    for (int j = 0; j < 3; j++)
+    {
+      if (orient[i] == default_orient[j] || orient[i] == default_orient[j+3])
+      {
+        flag_assign[i] = j;
+        flag_sign[i] = (orient[i] == default_orient[j]?1:-1);
+      }
+    }
+  }
   float* ptr = (float*)m_imageData->GetScalarPointer();
+  double v_temp[3];
   for ( long long i = 0; i < nSize; i++ )
   {
     vectors->GetTuple( i, v );
+    memcpy(v_temp, v, sizeof(double)*3);
+    for (int k = 0; k < 3; k++)
+    {
+      v[flag_assign[k]] = v_temp[k]*flag_sign[k];
+    }
     rotation_mat->MultiplyPoint( v, v );
     vtkMath::Normalize( v );
     m_vectorData->SetTuple(i, v);
@@ -152,11 +173,6 @@ void LayerDTI::InitializeDTIColorMap()
       }
     }
     float scalar = c[0]*64*64 + c[1]*64 + c[2];
-    //    int x = i%dim[0];
-    //    int y = (i/dim[0])%dim[1];
-    //    int z = i/(dim[0]*dim[1]);
-    //    m_imageData->SetScalarComponentFromFloat( x, y, z, 0, fa );
-    //    m_imageData->SetScalarComponentFromFloat( x, y, z, 1, scalar );
     *(ptr+i*2) = fa;
     *(ptr+i*2+1) = scalar;
   }
@@ -266,6 +282,35 @@ void LayerDTI::DoRestore()
 
 void LayerDTI::UpdateVectorActor( int nPlane )
 {
-  LayerMRI::UpdateVectorActor( nPlane, m_vectorSource->GetImageOutput(),
-                               m_eigenvalueSource ? m_eigenvalueSource->GetImageOutput() : NULL );
+  vtkImageData* rasDTI = m_vectorSource->GetImageOutput();
+  vtkImageData* image = m_imageData;
+  LayerMRI::UpdateVectorActor( nPlane, rasDTI,
+                              m_eigenvalueSource ? m_eigenvalueSource->GetImageOutput() : NULL, image );
+}
+
+void LayerDTI::ReorderColorComponent(unsigned char *c)
+{
+  unsigned char ctemp;
+  switch ( GetProperty()->GetDirectionCode() )
+  {
+  case LayerPropertyDTI::RGB:
+    break;
+  case LayerPropertyDTI::RBG:
+    qSwap(c[1], c[2]);
+    break;
+  case LayerPropertyDTI::GRB:
+    qSwap(c[0], c[1]);
+    break;
+  case LayerPropertyDTI::GBR:
+    qSwap(c[0], c[2]);
+    qSwap(c[0], c[1]);
+    break;
+  case LayerPropertyDTI::BRG:
+    qSwap(c[0], c[2]);
+    qSwap(c[1], c[2]);
+    break;
+  case LayerPropertyDTI::BGR:
+    qSwap(c[0], c[2]);
+    break;
+  }
 }
