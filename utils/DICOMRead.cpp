@@ -7064,13 +7064,15 @@ int dcmGetDWIParamsGE(DCM_OBJECT *dcm, double *pbval, double *pxbvec, double *py
   to voxel coordinates. First, looks for bval tag 0x19 0x100c. If this
   exists, then gets bvec from 0x100e. If not, then uses an alternative
   method. The directions are transformed from Siemens-native LPS to
-  RAS. By default, it will return the gradients in ScannerSpace.  If
-  getenv("FS_dcmGetDWIParamsSiemens_VoxelSpace") is not null, then it
-  attemps to transform the gradients to voxel space. This was the
-  default behavior until April 2022. It is better to do this later
-  once the full vox2ras matrix is known. Here, the vox2ras matrix is
-  inferred as there is only a single slice. Returns 0 if everything
-  ok.
+  RAS. By default, it will return the gradients in RAS ScannerSpace.
+  If getenv("FS_dcmGetDWIParamsSiemens_VoxelSpace") is not null, then
+  it attemps to transform the gradients to voxel space, but the
+  vox2ras matrix has to be inferred from a cross product as there is
+  only a single slice; the cross product is not correct when the
+  vox2ras det<0 which will make the bvecs wrong.  This was the default
+  behavior until April 2022. It is better to do this conversion later
+  once the full vox2ras matrix is known; this is now the default
+  unless that env var is set. Returns 0 if everything ok.
  */
 int dcmGetDWIParamsSiemens(DCM_OBJECT *dcm, double *pbval, double *pxbvec, double *pybvec, double *pzbvec)
 {
