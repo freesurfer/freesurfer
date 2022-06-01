@@ -44,6 +44,7 @@ set fwhmmap = ()
 set DoSpatialSum = 0
 set Do1D = 0;
 set varfwhm = ()
+set PermPVROverride = 0;
 
 set nJobs = 1;
 set DoBackground = 0;
@@ -470,6 +471,7 @@ if($DoSim) then
       if($PermSignFlip == 1) set cmd = ($cmd --perm-1)
       if($PermNonStatCor) set cmd = ($cmd --perm-nonstatcor)
     endif
+    if($PermPVROverride)  set cmd = ($cmd --perm-pvr-override)
     if($UseTable)   set cmd = ($cmd --table $y)
     #if($#label) set cmd = ($cmd --label $label)
     if($PermForce) set cmd = ($cmd --perm-force)
@@ -581,6 +583,7 @@ if($DoPBSubmit) then
   set cmd = ($cmd --sim-sign $simsign --no-sim $csdbase --cwpvalthresh $cwpvalthresh)
   set cmd = ($cmd --log $LF)
   if($PermNonStatCor) set cmd = ($cmd --perm-nonstatcor)
+  if($PermPVROverride)  set cmd = ($cmd --perm-pvr-override)
   echo "------------------------------------------------" | tee -a $LF
   echo $cmd  | tee -a $LF
   pbsubmit $PBNodeType -c "$cmd"
@@ -914,6 +917,13 @@ while( $#argv != 0 )
     case "--no-perm-resid":
       set PermForce = 0;
       set PermResid = 0;
+      breaksw
+
+    case "--perm-pvr-override":
+      set PermPVROverride = 1;
+      breaksw
+    case "--no-perm-pvr-override":
+      set PermPVROverride = 0;
       breaksw
 
     case "--tmp":

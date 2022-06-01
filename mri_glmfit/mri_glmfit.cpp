@@ -602,6 +602,7 @@ double Xcond;
 
 int npvr=0;
 MRIGLM *mriglm=NULL, *mriglmtmp=NULL;
+int PermPVROverride = 0;
 
 double FWHM=0;
 double SmoothLevel=0;
@@ -645,6 +646,7 @@ int UseUniform = 0;
 double UniformMin = 0;
 double UniformMax = 0;
 int PermuteInput=0; // Permute the input data (not part of sim)
+char *PermuteOutputFile=0;
 
 SURFCLUSTERSUM *SurfClustList;
 int nClusters;
@@ -1269,6 +1271,8 @@ int main(int argc, char **argv) {
     // This is for ease of testing, eg terBraak. Allows for getting
     // all the output after a perm
     printf("Permuting Input\n");
+    sprintf(tmpstr,"%s/permute-order.dat",GLMDir);
+    PermuteOutputFile=tmpstr;
     RandPermMatrixAndPVR(mriglm->Xg, mriglm->pvr, mriglm->npvr);
   }
 
@@ -2500,6 +2504,8 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--rm-spatial-mean")) RmSpatialMean = 1;
     else if (!strcasecmp(option, "--allow-zero-dof")) AllowZeroDOF = 1;
     else if (!strcasecmp(option, "--scale-by-etiv")) scale_stats_by_etiv = 1;
+    else if (!strcasecmp(option, "--perm-pvr-override")) PermPVROverride = 1;
+    else if (!strcasecmp(option, "--no-perm-pvr-override")) PermPVROverride = 0;
     else if (!strcasecmp(option, "--permute-input")) PermuteInput = 1;
     else if (!strcasecmp(option, "--prune_thr")){
       if (nargc < 1) CMDargNErr(option,1);
@@ -3673,7 +3679,7 @@ static void check_options(void) {
     exit(1);
   }
 
-  if(0 && DoSim && !strcmp(csd->simtype,"perm") && npvr != 0){
+  if(!PermPVROverride && DoSim && !strcmp(csd->simtype,"perm") && npvr != 0){
     // Modified to allow for pvrs with sim
     printf("ERROR: PVR is not supported with permutation simulations\n");
     exit(1);
@@ -4181,6 +4187,7 @@ int RandPermMatrixAndPVR(MATRIX *X, MRI **pvrs, int npvrs)
 {
   int *NewRowOrder, r;
   MATRIX *X0;
+  extern char *PermuteOutputFile;
 
   NewRowOrder = RandPerm(X->rows, NULL);
   for (r = 0; r < X->rows; r++) {
@@ -4188,6 +4195,12 @@ int RandPermMatrixAndPVR(MATRIX *X, MRI **pvrs, int npvrs)
   }
   X0 = MatrixCopy(X, NULL);
   MatrixReorderRows(X0, NewRowOrder, X);
+
+  if(PermuteOutputFile){
+    FILE *fp = fopen(PermuteOutputFile,"w");
+    for (r = 0; r < X->rows; r++) fprintf(fp,"%3d\n",NewRowOrder[r]);
+    fclose(fp);
+  }
 
   int n;
   for(n=0; n < npvrs; n++){
