@@ -43,6 +43,7 @@ struct Parameters
   string fslout;
   string mniout;
   string regout;
+  string niftyregout;
   string itkout;
   string src;
   string trg;
@@ -54,7 +55,7 @@ struct Parameters
 };
 
 static struct Parameters P =
-{ "", "", "", "", "" ,"" ,"" ,"" , false , LINEAR_RAS_TO_RAS, false,"", intypes::UNKNOWN};
+{ "", "", "", "", "", "" ,"" ,"" ,"" , false , LINEAR_RAS_TO_RAS, false,"", intypes::UNKNOWN};
 
 static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[], Parameters & P);
@@ -569,6 +570,42 @@ void writeREG(const string& fname, const LTA * lta)
   return;
 }
 
+void writeNIFTYREG(const string& fname, const LTA * lta)
+{
+  // shallow copy
+  LTA * ltatmp = shallowCopyLTA(lta);
+  if (ltatmp->type != LINEAR_RAS_TO_RAS)
+    LTAchangeType(ltatmp, LINEAR_RAS_TO_RAS);
+
+  // already right-anterior-superior, invert
+  MATRIX* m_L = MatrixAlloc(4,4,MATRIX_REAL);
+  m_L = MatrixInverse( ltatmp->xforms[0].m_L , m_L);
+  LTAfree(&ltatmp);
+
+  std::ofstream transfile (fname.c_str());
+  if(transfile.is_open())
+  {
+    transfile.precision(7);
+    for (int row = 1; row <= 4; row++)
+    {
+      for (int col = 1; col <= 4; col++)
+      {
+        transfile << *MATRIX_RELT(m_L,row,col);
+        if (col < 4) transfile << " ";
+      }
+      transfile << std::endl;
+    }
+    transfile.close();
+  }
+  else
+  {
+    cerr << "writeNIFTYREG Error opening " << fname << endl;
+    exit(1);
+  }
+
+  MatrixFree(&m_L);
+  return;
+}
 void writeITK(const string& fname, const LTA * lta)
 {
   // shallow copy
@@ -741,6 +778,10 @@ int main(int argc, char *argv[])
   {
     writeREG(P.regout,lta);
   }
+  if (P.niftyregout!="")
+  {
+    writeNIFTYREG(P.niftyregout,lta);
+  }
   if (P.itkout!="")
   {
     writeITK(P.itkout,lta);
@@ -831,7 +872,7 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     P.transin = string(argv[1]);
     P.intype = intypes::NIFTYREG;
     nargs = 1;
-    cout << "--inniftyreg: " << P.transin << " input Nifty Reg transform." << endl;
+    cout << "--inniftyreg: " << P.transin << " input NiftyReg transform." << endl;
   }
   else if (!strcmp(option, "INITK"))
   {
@@ -863,6 +904,12 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     P.regout = string(argv[1]);
     nargs = 1;
     cout << "--outreg: " << P.regout << " output reg.dat matrix." << endl;
+  }
+  else if (!strcmp(option, "OUTNIFTYREG"))
+  {
+    P.niftyregout = string(argv[1]);
+    nargs = 1;
+    cout << "--outniftyreg: " << P.niftyregout << " output NiftyReg matrix." << endl;
   }
   else if (!strcmp(option, "OUTITK") )
   {
