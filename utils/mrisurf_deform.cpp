@@ -4805,7 +4805,7 @@ int MRISrigidBodyAlignGlobal(
 
   double new_mina = 666.0, new_minb = 666.0, new_ming = 666.0, new_sse = 666.0;
 
-  double const ext_sse = gMRISexternalSSE ? (*gMRISexternalSSE)(mris, parms) : 0.0;
+  //double const ext_sse = gMRISexternalSSE ? (*gMRISexternalSSE)(mris, parms) : 0.0;
 
   if (use_new) {
   
@@ -4862,7 +4862,7 @@ int MRISrigidBodyAlignGlobal(
           "scanning %2.2f degree nbhd of (%2.2f, %2.2f, %2.2f), min sse = %2.2f\n", 
           (float)DEGREES(radians),
           (float)DEGREES(center_a),  (float)DEGREES(center_b), (float)DEGREES(center_g),
-          center_sse_known ? (float)(center_sse + ext_sse) : -666.0);
+          center_sse_known ? (float)(center_sse) : -666.0);
       }
 
       double const delta = 2 * radians / (float)nangles;
@@ -4895,6 +4895,11 @@ int MRISrigidBodyAlignGlobal(
             }
             
             double sse = mrisComputeCorrelationError(mris, parms, 1);
+            if (gMRISexternalSSE)
+            {
+              double ext_sse = (*gMRISexternalSSE)(mris, parms) ;
+              sse += ext_sse ;
+            }
             if (trace) fprintf(stdout, "%s:%d sse:%g\n", __FILE__, __LINE__, sse);
             
             MRISrestoreVertexPositions(mris, TMP_VERTICES);
@@ -4912,15 +4917,15 @@ int MRISrigidBodyAlignGlobal(
             if (false && tracing) {
               fprintf(stdout, "\r  gamma "
                 "min @ (%2.2f, %2.2f, %2.2f) sse:%2.1f   try @ (%+2.2f, %+2.2f, %+2.2f) sse:%2.2f",
-                (float)DEGREES(mina),  (float)DEGREES(minb), (float)DEGREES(ming),   (float)(min_sse + ext_sse),
-                (float)DEGREES(alpha), (float)DEGREES(beta), (float)DEGREES(gamma),  (float)(    sse + ext_sse));
+                (float)DEGREES(mina),  (float)DEGREES(minb), (float)DEGREES(ming),   (float)(min_sse),
+                (float)DEGREES(alpha), (float)DEGREES(beta), (float)DEGREES(gamma),  (float)(    sse));
               fflush(stdout);
             }
           }  // gamma
           if (false && tracing) {
             fprintf(stdout, "\r  beta "
               "min @ (%2.2f, %2.2f, %2.2f) sse:%2.1f   try @ (%+2.2f, %+2.2f, *)",
-              (float)DEGREES(mina),  (float)DEGREES(minb), (float)DEGREES(ming),   (float)(min_sse + ext_sse),
+              (float)DEGREES(mina),  (float)DEGREES(minb), (float)DEGREES(ming),   (float)(min_sse),
               (float)DEGREES(alpha), (float)DEGREES(beta));
           }
         }    // beta
@@ -4930,9 +4935,9 @@ int MRISrigidBodyAlignGlobal(
       }      // alpha
     
       int msec = old_timer.milliseconds();
-      printf("  min @ (%2.2f, %2.2f, %2.2f) sse = %2.1f, elapsed since starting=%6.4f min\n",
-        (float)DEGREES(mina), (float)DEGREES(minb), (float)DEGREES(ming),
-        (float)(min_sse + ext_sse),
+      printf("  d=%4.2f min @ (%2.2f, %2.2f, %2.2f) sse = %2.1f, elapsed since starting=%6.4f min\n",
+        (float)DEGREES(radians), (float)DEGREES(mina), (float)DEGREES(minb), (float)DEGREES(ming),
+        (float)(min_sse),
         msec / (1000 * 60.0));
       fflush(stdout);
 
@@ -4980,7 +4985,7 @@ int MRISrigidBodyAlignGlobal(
       (float)DEGREES(new_mina),
       (float)DEGREES(new_minb),
       (float)DEGREES(new_ming),
-      (float)(new_sse + ext_sse));
+      (float)(new_sse));
   }
   if (tracingWithSnapshot) {
     fprintf(parms->fp,
@@ -4988,7 +4993,7 @@ int MRISrigidBodyAlignGlobal(
       (float)DEGREES(new_mina),
       (float)DEGREES(new_minb),
       (float)DEGREES(new_ming),
-      (float)(new_sse + ext_sse));
+      (float)(new_sse));
   }
   
   MRISrotate(mris, mris, new_mina, new_minb, new_ming);
