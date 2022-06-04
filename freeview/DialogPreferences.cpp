@@ -32,6 +32,7 @@ DialogPreferences::DialogPreferences(QWidget *parent) :
   ui->setupUi(this);
   ui->buttonBox->button(QDialogButtonBox::Close)->setDefault(true);
   ui->groupBoxCommandConsole->hide();
+  ui->groupBoxHeatmap->hide();
 
   MainWindow* mainwnd = MainWindow::GetMainWindow();
   ui->comboBoxShortcutCycleLayer->setProperty("action", QVariant::fromValue<QObject*>(mainwnd->ui->actionCycleLayer));
