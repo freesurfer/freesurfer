@@ -7327,6 +7327,7 @@ void MainWindow::SetVolumeColorMap( int nColorMap, int nColorMapScale, const QLi
         else if ( scales.size() == 2 )
         {
           p->SetHeatScaleAutoMid(true);
+          p->SetHeatScaleSetMidToMin(true);
           p->SetHeatScaleMinThreshold( scales[0]);
           p->SetHeatScaleMaxThreshold( scales[1]);
         }
