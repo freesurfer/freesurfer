@@ -33,7 +33,7 @@
 using namespace std;
 
 namespace intypes {
-enum InputType { UNKNOWN, LTA, REG, FSL, MNI, NIFTYREG, ITK };
+enum InputType { UNKNOWN, LTA, REG, FSL, MNI, NIFTYREG, ITK, VOX };
 }
 
 struct Parameters
@@ -45,6 +45,7 @@ struct Parameters
   string regout;
   string niftyregout;
   string itkout;
+  string voxout;
   string src;
   string trg;
   bool   invert;
@@ -54,8 +55,23 @@ struct Parameters
   intypes::InputType intype;
 };
 
-static struct Parameters P =
-{ "", "", "", "", "", "" ,"" ,"" ,"" , false , LINEAR_RAS_TO_RAS, false,"", intypes::UNKNOWN};
+static struct Parameters P = {
+  "",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "",
+  false,
+  LINEAR_RAS_TO_RAS,
+  false,
+  "",
+  intypes::UNKNOWN,
+};
 
 static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[], Parameters & P);
@@ -507,6 +523,72 @@ LTA * readITK(const string& xfname, const string& sname, const string& tname)
   return lta;
 }
 
+LTA * readVOX(const string& xfname, const string& sname, const string& tname)
+// read transform defined in source voxel space going from target to source
+// coordinates (i.e. "inverse transform" as NiftyReg, thinking of images)
+{
+  // src and target mri header
+  MRI* src = MRIreadHeader(sname.c_str(), MRI_VOLUME_TYPE_UNKNOWN);
+  if (src == NULL)
+  {
+    cerr << "ERROR readVOX: cannot read src MRI" << sname << endl;
+    exit(1);
+  }
+  MRI* trg = MRIreadHeader(tname.c_str(), MRI_VOLUME_TYPE_UNKNOWN);
+  if (trg == NULL)
+  {
+    cerr << "ERROR readVOX: cannot read trg MRI" << tname << endl;
+    exit(1);
+  }
+
+  // LTA
+  LTA* lta = LTAalloc(1, NULL);
+  LINEAR_TRANSFORM * lt = &lta->xforms[0];
+  lt->sigma = 1.0f;
+  lt->x0 = lt->y0 = lt->z0 = 0;
+  lta->type = LINEAR_RAS_TO_RAS;
+  getVolGeom(src, &lta->xforms[0].src);
+  getVolGeom(trg, &lta->xforms[0].dst);
+
+  // transform in source voxel space
+  std::ifstream transfile (xfname.c_str());
+  MATRIX* mat = MatrixAlloc(4, 4, MATRIX_REAL);
+  if (transfile.is_open())
+  {
+    int row = 1;
+    float v1, v2, v3, v4;
+    while (!transfile.eof())
+    {
+      transfile >> v1 >> v2 >> v3 >> v4;
+      *MATRIX_RELT(mat, row, 1) = v1;
+      *MATRIX_RELT(mat, row, 2) = v2;
+      *MATRIX_RELT(mat, row, 3) = v3;
+      *MATRIX_RELT(mat, row, 4) = v4;
+      if (++row > 4) break;
+    }
+    transfile.close();
+  }
+  else
+  {
+    cerr << "readVOX error opening " << xfname << endl;
+    exit(1);
+  }
+
+  // conversion to RAS-to-RAS
+  MATRIX* src_to_ras = MRIgetVoxelToRasXform(src);
+  MATRIX* ras_to_src = MatrixInverse(src_to_ras /*source*/, NULL /*target*/);
+  mat = MatrixMultiplyD(mat, ras_to_src, mat /*target*/);
+  mat = MatrixMultiplyD(src_to_ras, mat, mat /*target*/);
+  MatrixInverse(mat /*source*/, lt->m_L /*target*/);
+
+  // cleanup
+  MatrixFree(&src_to_ras);
+  MatrixFree(&ras_to_src);
+  MatrixFree(&mat);
+  MRIfree(&src);
+  MRIfree(&trg);
+  return lta;
+}
 
 void writeFSL(const string& fname, const LTA * lta)
 {
@@ -599,13 +681,14 @@ void writeNIFTYREG(const string& fname, const LTA * lta)
   }
   else
   {
-    cerr << "writeNIFTYREG Error opening " << fname << endl;
+    cerr << "writeNIFTYREG error opening " << fname << endl;
     exit(1);
   }
 
   MatrixFree(&m_L);
   return;
 }
+
 void writeITK(const string& fname, const LTA * lta)
 {
   // shallow copy
@@ -657,6 +740,53 @@ void writeITK(const string& fname, const LTA * lta)
 
 }
 
+void writeVOX(const string& fname, const LTA * lta)
+{
+  // shallow copy
+  LTA* ltatmp = shallowCopyLTA(lta);
+  if (ltatmp->type != LINEAR_RAS_TO_RAS)
+    LTAchangeType(ltatmp, LINEAR_RAS_TO_RAS);
+
+  // matrix is RAS-to-RAS from source to target coordinates; invert
+  MATRIX* mat = MatrixAlloc(4, 4, MATRIX_REAL);
+  mat = MatrixInverse(ltatmp->xforms[0].m_L /*source*/, mat /*target*/);
+  LTAfree(&ltatmp);
+
+  // conversion to source voxel space
+  MATRIX* src_to_ras = VGgetVoxelToRasXform(&lta->xforms[0].src, NULL, 0);
+  MATRIX* ras_to_src = VGgetRasToVoxelXform(&lta->xforms[0].src, NULL, 0);
+  mat = MatrixMultiplyD(mat, src_to_ras, mat /*target*/);
+  mat = MatrixMultiplyD(ras_to_src, mat, mat /*target*/);
+
+  // output
+  std::ofstream transfile (fname.c_str());
+  if (transfile.is_open())
+  {
+    transfile.precision(17);
+    for (int row = 1; row <= 4; row++)
+    {
+      for (int col = 1; col <= 4; col++)
+      {
+        transfile << *MATRIX_RELT(mat, row, col);
+        if (col < 4) transfile << " ";
+      }
+      transfile << std::endl;
+    }
+    transfile.close();
+  }
+  else
+  {
+    cerr << "writeVOX error opening " << fname << endl;
+    exit(1);
+  }
+
+  // cleanup
+  MatrixFree(&mat);
+  MatrixFree(&src_to_ras);
+  MatrixFree(&ras_to_src);
+  return;
+}
+
 int main(int argc, char *argv[])
 {
   cout << getVersion() << endl << endl;
@@ -694,6 +824,8 @@ int main(int argc, char *argv[])
     lta = readNIFTYREG(P.transin.c_str(),P.src,P.trg);
   else if (P.intype==intypes::ITK)
     lta = readITK(P.transin.c_str(),P.src,P.trg);
+  else if (P.intype==intypes::VOX)
+    lta = readVOX(P.transin.c_str(),P.src,P.trg);
   if (!lta)
   {
     ErrorExit(ERROR_BADFILE, "%s: can't read input file %s",Progname, P.transin.c_str());
@@ -785,6 +917,10 @@ int main(int argc, char *argv[])
   if (P.itkout!="")
   {
     writeITK(P.itkout,lta);
+  }
+  if (P.voxout!="")
+  {
+    writeVOX(P.voxout,lta);
   }
   
   LTAfree(&lta);
@@ -881,6 +1017,13 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     nargs = 1;
     cout << "--initk: " << P.transin << " input ITK txt transform." << endl;
   }
+  else if (!strcmp(option, "INVOX"))
+  {
+    P.transin = string(argv[1]);
+    P.intype = intypes::VOX;
+    nargs = 1;
+    cout << "--invox: " << P.transin << " input source voxel space transform." << endl;
+  }
   else if (!strcmp(option, "OUTLTA") )
   {
     P.ltaout = string(argv[1]);
@@ -916,6 +1059,12 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     P.itkout = string(argv[1]);
     nargs = 1;
     cout << "--outitk: " << P.itkout << " output ITK txt matrix." << endl;
+  }
+  else if (!strcmp(option, "OUTVOX") )
+  {
+    P.voxout = string(argv[1]);
+    nargs = 1;
+    cout << "--outvox: " << P.voxout << " output source voxel space matrix." << endl;
   }
   else if (!strcmp(option, "SRC") )
   {
