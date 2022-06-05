@@ -91,7 +91,8 @@ LayerSurface::LayerSurface( LayerMRI* ref, QObject* parent ) : LayerEditable( pa
   m_surfaceSphere2(NULL),
   m_nMouseVertex(-1),
   m_nActivePath(-1),
-  m_marks(NULL)
+  m_marks(NULL),
+  m_dTinyOffset(0.1)
 {
   m_strTypeNames.push_back( "Surface" );
   m_sPrimaryType = "Surface";
@@ -1024,7 +1025,12 @@ void LayerSurface::SetSlicePositionToWorldCenter()
   SetSlicePosition( pos );
 }
 
-void LayerSurface::OnSlicePositionChanged( int nPlane )
+void LayerSurface::OnSlicePositionChanged(int nPlane)
+{
+  DoSlicePositionChanged(nPlane);
+}
+
+void LayerSurface::DoSlicePositionChanged( int nPlane, bool bUpdatePosOnly )
 {
   if ( m_surfaceSource == NULL )
   {
@@ -1045,17 +1051,21 @@ void LayerSurface::OnSlicePositionChanged( int nPlane )
     break;
   case 1:
     mReslicePlane[1]->SetOrigin( 0, m_dSlicePosition[1]-pos[1], 0 );
-    m_sliceActor2D[1]->SetPosition( pos[0], 0.1, pos[2] );
-    m_vertexActor2D[1]->SetPosition( pos[0], dMinVS+0.1, pos[2] );
+    m_sliceActor2D[1]->SetPosition( pos[0], m_dTinyOffset, pos[2] );
+    m_vertexActor2D[1]->SetPosition( pos[0], dMinVS+m_dTinyOffset, pos[2] );
     m_vectorActor2D[1]->SetPosition( pos[0], 1.0, pos[2] );
     break;
   case 2:
     mReslicePlane[2]->SetOrigin( 0, 0, m_dSlicePosition[2]-pos[2]  );
-    m_sliceActor2D[2]->SetPosition( pos[0], pos[1], -0.1 );
-    m_vertexActor2D[2]->SetPosition( pos[0], pos[1], -0.1-dMinVS );
+    m_sliceActor2D[2]->SetPosition( pos[0], pos[1], -m_dTinyOffset );
+    m_vertexActor2D[2]->SetPosition( pos[0], pos[1], -m_dTinyOffset-dMinVS );
     m_vectorActor2D[2]->SetPosition( pos[0], pos[1], -1.0 );
     break;
   }
+
+  if (bUpdatePosOnly)
+    return;
+
   double dLen = m_surfaceSource->GetMaxSegmentLength();
   bounds[nPlane*2] = m_dSlicePosition[nPlane]-dLen/2;
   bounds[nPlane*2+1] = bounds[nPlane*2]+dLen/2;
@@ -3236,4 +3246,11 @@ void LayerSurface::SetNoShading(bool b)
   m_mainActor->GetProperty()->SetAmbient(b?1:0);
   m_mainActor->GetProperty()->SetDiffuse(b?0:1);
   emit ActorUpdated();
+}
+
+void LayerSurface::SetDisplayInNeurologicalView(bool b)
+{
+  m_dTinyOffset = b?-0.1:0.1;
+  DoSlicePositionChanged(1, true);
+  DoSlicePositionChanged(2, true);
 }

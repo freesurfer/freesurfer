@@ -1097,3 +1097,10 @@ bool LayerFCD::GoToContralateralPoint(double *pos, double *pos_out)
   oppo_surf->GetTargetAtVertex(nVertex, pos_out);
   return true;
 }
+
+void LayerFCD::SetDisplayInNeurologicalView(bool b)
+{
+  QList<LayerSurface*> layers = GetSurfaceLayers();
+  foreach (LayerSurface* layer, layers)
+    layer->SetDisplayInNeurologicalView(b);
+}

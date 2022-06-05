@@ -77,6 +77,7 @@ signals:
 public slots:
   void Recompute();
   void SaveFCDLabels(const QString &dir);
+  void SetDisplayInNeurologicalView(bool b);
 
 protected slots:
   void UpdateOpacity();
