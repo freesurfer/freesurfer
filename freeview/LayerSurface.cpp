@@ -57,6 +57,7 @@
 #include <QTextStream>
 #include <QFile>
 #include <QDebug>
+#include <QTimer>
 #include "SurfaceOverlayProperty.h"
 #include "MyUtils.h"
 #include "SurfaceOverlay.h"
@@ -414,9 +415,11 @@ bool LayerSurface::LoadCurvatureFromFile( const QString& filename )
 
   GetProperty()->RebuildCurvatureLUT();
   UpdateColorMap();
-  emit Modified();
   emit SurfaceCurvatureLoaded();
-  emit ActorUpdated();
+//  emit ActorUpdated();
+//  emit Modified();
+  GetProperty()->SetZOrderOverlay(GetProperty()->GetZOrderOverlay()+1);
+  GetProperty()->SetZOrderOverlay(GetProperty()->GetZOrderOverlay()-1);
 
   return true;
 }
