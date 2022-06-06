@@ -708,12 +708,13 @@ MRI *GradUnwarp::unwarp_volume(MRI *warpedvol, MRI *unwarpedvol, int interpcode,
     return NULL;
   }
 
-  if (warpedvol->width  != gcam->atlas.width  ||
+  /*if (warpedvol->width  != gcam->atlas.width  ||
       warpedvol->height != gcam->atlas.height ||
       warpedvol->depth  != gcam->atlas.depth) 
   {
+    printf("input: %d x %d x %d, atlas: %d x %d x %d\n", warpedvol->width, warpedvol->height, warpedvol->depth, gcam->atlas.width, gcam->atlas.height, gcam->atlas.depth);
     ErrorExit(ERROR_BADPARM, "input volume and m3z have different dimensions.");
-  }
+    }*/
 
   printf("GradUnwarp::unwarp_volume(): interpcode %d ...\n", interpcode);
 
@@ -1043,12 +1044,12 @@ MRIS* GradUnwarp::unwarp_surface(MRIS *warpedsurf, MRIS *unwarpedsurf)
     return NULL;
   }
 
-  if (warpedsurf->vg.width    != gcam->atlas.width  ||
+  /*if (warpedsurf->vg.width    != gcam->atlas.width  ||
       warpedsurf->vg.height != gcam->atlas.height ||
       warpedsurf->vg.depth  != gcam->atlas.depth) 
   {
     ErrorExit(ERROR_BADPARM, "input surface and m3z have different dimensions.");
-  }
+    }*/
 
   int (*nintfunc)( double );
   nintfunc = &nint;

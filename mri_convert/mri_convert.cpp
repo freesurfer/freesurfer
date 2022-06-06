@@ -3092,12 +3092,12 @@ int main(int argc, char *argv[])
 		  Progname, transform_fname) ;
       if (invert_transform_flag == 0)
       {
-        GCA_MORPH *gcam = (GCA_MORPH *)tran->xform ;
+        /*GCA_MORPH *gcam = (GCA_MORPH *)tran->xform ;
         if (mri->width  != gcam->atlas.width  ||
             mri->height != gcam->atlas.height ||
             mri->depth  != gcam->atlas.depth) {
           ErrorExit(ERROR_BADPARM, "input MRI sizes are different from m3z");
-        }
+	  }*/
  
         printf("morphing to atlas with resample type %d\n", resample_type_val) ;
         mri_transformed =
