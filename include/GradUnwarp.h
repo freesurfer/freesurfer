@@ -92,7 +92,7 @@ private:
   void _skipCoeffComment();
   void _initCoeff();
   void _update_GCAMnode(int c, int r, int s, float fcs, float frs, float fss);
-  void _assignUnWarpedVolumeValues(MRI* warpedvol, MRI* unwarpedvol, MRI_BSPLINE *bspline, int interpcode, int sinchw,
+  int _assignUnWarpedVolumeValues(MRI* warpedvol, MRI* unwarpedvol, MRI_BSPLINE *bspline, int interpcode, int sinchw,
                                    int c, int r, int s, float fcs, float frs, float fss);
   void _printMatrix(MATRIX *matrix, const char *desc);
 };
