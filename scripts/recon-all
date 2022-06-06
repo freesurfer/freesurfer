@@ -8142,17 +8142,19 @@ check_params:
   endif
 
   # Check that the current version is acceptable. See fs-check-version for rules
-  set checkfile = `fs_temp_file`
-  set cmd = (fs-check-version --s $subjid --o $checkfile)
-  echo $cmd
-  $cmd
-  set ok = `cat $checkfile`
-  rm -f $checkfile
-  if(! $ok) then
-    echo "recon-all: version check failed"
+  if($DoCreateBaseSubj == 0 || $DoCreateBaseSubj == 1 && -d $subjdir) then
+    set checkfile = `fs_temp_file`
+    set cmd = (fs-check-version --s $subjid --o $checkfile)
     echo $cmd
-    echo ""
-    exit 1
+    $cmd
+    set ok = `cat $checkfile`
+    rm -f $checkfile
+    if(! $ok) then
+      echo "recon-all: version check failed"
+      echo $cmd
+      echo ""
+      exit 1
+    endif
   endif
 
   if(! $?FREESURFER_HOME ) then
