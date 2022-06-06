@@ -460,6 +460,8 @@ public slots:
 
   void SetNoShading(bool b);
 
+  void SetDisplayInNeurologicalView(bool b);
+
 Q_SIGNALS:
   void SurfaceAnnotationAdded( SurfaceAnnotation* );
   void SurfaceLabelAdded( SurfaceLabel* );
@@ -492,7 +494,6 @@ protected slots:
   void OnSlicePositionChanged3D();
   void SetHighlightedLabelOnAnnotation(int n);
 
-
 protected:
   void InitializeData();
   void InitializeSurface();
@@ -501,6 +502,7 @@ protected:
   void MapLabels( unsigned char* data, int nVertexCount );
   void EditPathPoint(int vno, bool remove = false);
   void PushMarksToPath();
+  void DoSlicePositionChanged(int nPlane, bool bUpdatePosOnly = false);
 
   virtual void OnSlicePositionChanged( int nPlane );
 
@@ -571,6 +573,8 @@ protected:
   LayerSurface*     m_surfaceContralateral;
   LayerSurface*     m_surfaceSphere1;
   LayerSurface*     m_surfaceSphere2;
+
+  double        m_dTinyOffset;
 };
 
 #endif

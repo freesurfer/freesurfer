@@ -168,7 +168,7 @@ int main(int argc, char *argv[])
 
   if (unwarpvol)
   {
-    MRI *unwarpedvol = MRIallocSequence(origvol->width, origvol->height, origvol->depth, MRI_FLOAT, origvol->nframes);
+    MRI *unwarpedvol = MRIallocSequence(origvol->width, origvol->height, origvol->depth, origvol->type, origvol->nframes);
     MRIcopyHeader(origvol, unwarpedvol);
     MRIcopyPulseParameters(origvol, unwarpedvol);
 
@@ -470,7 +470,7 @@ static void print_help(void) {
   printf("  mri_gradunwarp \n");
   printf("    --gradcoeff coeff_Sonata.grad \n");
   printf("    --i invol.mgz \n");
-  printf("    --o invol.unwarped.cubic.mgz --interp cubic\n");
+  printf("    --o invol.unwarped.nearest.mgz --interp nearest\n");
   printf("    --out_transtbl gradunwarp.m3z \n");
   printf("    --nthreads 10 \n");
   printf("\n");
@@ -478,7 +478,7 @@ static void print_help(void) {
   printf("  mri_gradunwarp \n");
   printf("    --load_transtbl gradunwarp.m3z \n");
   printf("    --i lh.white \n");
-  printf("    --o lh.unwarped.cubic.white --interp cubic\n");
+  printf("    --o lh.unwarped.nearest.white --interp nearest\n");
   printf("    --nthreads 10 \n");
   printf("\n");
 
@@ -575,7 +575,7 @@ static void check_options(void)
   if (interpcode != SAMPLE_NEAREST && interpcode != SAMPLE_TRILINEAR && interpcode != SAMPLE_CUBIC_BSPLINE) 
   {
     printf("ERROR: interpolation method %s unrecognized\n", interpmethod);
-    printf("       legal values are nearest, trilinear, and cubic\n");
+    printf("       legal values are nearest, trilinear, and cubic.\n");
     print_usage();
     exit(1);
   }

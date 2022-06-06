@@ -119,6 +119,7 @@ PanelVolume::PanelVolume(QWidget *parent) :
                         << ui->checkBoxClearHigher
                         << ui->checkBoxTruncate
                         << ui->checkBoxSetMidToMin
+                        << ui->checkBoxAutoSetMid
                         << ui->checkBoxInvert
                         << ui->labelMid
                         << ui->labelOffset;
@@ -284,7 +285,8 @@ void PanelVolume::ConnectLayer( Layer* layer_in )
   connect( ui->comboBoxRenderObject, SIGNAL(currentIndexChanged(int)), p, SLOT(SetVectorRepresentation(int)) );
   connect( ui->comboBoxInversion, SIGNAL(currentIndexChanged(int)), p, SLOT(SetVectorInversion(int)) );
   connect( ui->comboBoxProjectionMapType, SIGNAL(currentIndexChanged(int)), this, SLOT(OnComboProjectionMapType(int)) );
-  connect( ui->checkBoxSetMidToMin, SIGNAL(toggled(bool)), this, SLOT(OnCheckBoxSetAutoMid(bool)));
+  connect( ui->checkBoxSetMidToMin, SIGNAL(toggled(bool)), this, SLOT(OnCheckBoxSetMidToMin(bool)));
+  connect( ui->checkBoxAutoSetMid, SIGNAL(toggled(bool)), SLOT(OnCheckBoxSetAutoMid(bool)));
   if ( layer->IsTypeOf( "DTI" ) )
     connect( ui->comboBoxDirectionCode, SIGNAL(currentIndexChanged(int)),
              qobject_cast<LayerDTI*>(layer)->GetProperty(), SLOT(SetDirectionCode(int)) );
@@ -457,7 +459,9 @@ void PanelVolume::DoUpdateWidgets()
     ui->checkBoxClearHigher->setChecked( layer->GetProperty()->GetHeatScaleClearHigh() );
     ui->checkBoxTruncate->setChecked( layer->GetProperty()->GetHeatScaleTruncate() );
     ui->checkBoxInvert->setChecked( layer->GetProperty()->GetHeatScaleInvert() );
-    ui->checkBoxSetMidToMin->setChecked( layer->GetProperty()->GetHeatScaleAutoMid());
+    ui->checkBoxAutoSetMid->setChecked( layer->GetProperty()->GetHeatScaleAutoMid());
+    ui->checkBoxSetMidToMin->setChecked( layer->GetProperty()->GetHeatScaleSetMidToMin());
+    ui->checkBoxSetMidToMin->setEnabled(ui->checkBoxAutoSetMid->isChecked());
 
     ui->comboBoxColorMap->clear();
     ui->comboBoxColorMap->addItem( "Grayscale", LayerPropertyMRI::Grayscale );
@@ -1164,7 +1168,6 @@ void PanelVolume::OnSliderMin( int nVal )
   double fMax = curLayer->GetProperty()->GetMaxValue();
   double fScaleMin = fMin - (fMax-fMin)/4;
   double fScaleMax = fMax + (fMax-fMin)/4;
-  bool bAutoMidToMin = MainWindow::GetMainWindow()->GetSetting("AutoSetMidToMin").toBool();
   foreach (LayerMRI* layer, layers)
   {
     switch ( layer->GetProperty()->GetColorMap() )
@@ -1178,11 +1181,10 @@ void PanelVolume::OnSliderMin( int nVal )
       break;
     case LayerPropertyMRI::Heat:
       if (layer->GetProperty()->GetUsePercentile())
-        layer->GetProperty()->SetHeatScaleMinThreshold(layer->GetHistoValueFromPercentile(nVal/100.0), bAutoMidToMin);
+        layer->GetProperty()->SetHeatScaleMinThreshold(layer->GetHistoValueFromPercentile(nVal/100.0));
       else
         layer->GetProperty()->SetHeatScaleMinThreshold( nVal /
-                                                        100.0 * ( fMax - fMin ) + fMin,
-                                                        bAutoMidToMin);
+                                                        100.0 * ( fMax - fMin ) + fMin);
       break;
     default:
       if (layer->GetProperty()->GetUsePercentile())
@@ -1222,7 +1224,6 @@ void PanelVolume::OnSliderMax( int nVal )
   double fMax = curLayer->GetProperty()->GetMaxValue();
   double fScaleMin = fMin - (fMax-fMin)/4;
   double fScaleMax = fMax + (fMax-fMin)/4;
-  bool bAutoMidToMin = MainWindow::GetMainWindow()->GetSetting("AutoSetMidToMin").toBool();
   foreach (LayerMRI* layer, layers)
   {
     switch ( layer->GetProperty()->GetColorMap() )
@@ -1236,11 +1237,10 @@ void PanelVolume::OnSliderMax( int nVal )
       break;
     case LayerPropertyMRI::Heat:
       if (layer->GetProperty()->GetUsePercentile())
-        layer->GetProperty()->SetHeatScaleMaxThreshold(layer->GetHistoValueFromPercentile(nVal/100.0), bAutoMidToMin);
+        layer->GetProperty()->SetHeatScaleMaxThreshold(layer->GetHistoValueFromPercentile(nVal/100.0));
       else
         layer->GetProperty()->SetHeatScaleMaxThreshold( nVal /
-                                                        100.0 * ( fMax - fMin ) + fMin,
-                                                        bAutoMidToMin);
+                                                        100.0 * ( fMax - fMin ) + fMin);
       break;
     default:
       if (layer->GetProperty()->GetUsePercentile())
@@ -1311,8 +1311,7 @@ void PanelVolume::OnLineEditMin( const QString& text )
         layer->GetProperty()->SetMinGrayscaleWindow( dVal );
         break;
       case LayerPropertyMRI::Heat:
-        layer->GetProperty()->SetHeatScaleMinThreshold( dVal,
-                                                        MainWindow::GetMainWindow()->GetSetting("AutoSetMidToMin").toBool() );
+        layer->GetProperty()->SetHeatScaleMinThreshold( dVal );
         break;
       default:
         layer->GetProperty()->SetMinGenericThreshold( dVal );
@@ -1355,8 +1354,7 @@ void PanelVolume::OnLineEditMax( const QString& text )
         layer->GetProperty()->SetMaxGrayscaleWindow( dVal );
         break;
       case LayerPropertyMRI::Heat:
-        layer->GetProperty()->SetHeatScaleMaxThreshold( dVal,
-                                                        MainWindow::GetMainWindow()->GetSetting("AutoSetMidToMin").toBool() );
+        layer->GetProperty()->SetHeatScaleMaxThreshold( dVal );
         break;
       default:
         layer->GetProperty()->SetMaxGenericThreshold( dVal );
@@ -1387,8 +1385,25 @@ void PanelVolume::OnCheckBoxSetAutoMid(bool b)
   {
     if ( layer && layer->GetProperty()->GetHeatScaleAutoMid() != b )
     {
-      layer->GetProperty()->SetHeatScaleAutoMid(b,
-                                                MainWindow::GetMainWindow()->GetSetting("AutoSetMidToMin").toBool());
+      layer->GetProperty()->SetHeatScaleAutoMid(b);
+    }
+  }
+  if (!b)
+  {
+    ui->checkBoxSetMidToMin->blockSignals(true);
+    ui->checkBoxSetMidToMin->setChecked(false);
+    ui->checkBoxSetMidToMin->blockSignals(false);
+  }
+}
+
+void PanelVolume::OnCheckBoxSetMidToMin(bool b)
+{
+  QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
+  foreach (LayerMRI* layer, layers)
+  {
+    if ( layer && layer->GetProperty()->GetHeatScaleSetMidToMin() != b )
+    {
+      layer->GetProperty()->SetHeatScaleSetMidToMin(b);
     }
   }
 }
