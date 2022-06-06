@@ -1064,7 +1064,7 @@ MRIS* GradUnwarp::unwarp_surface(MRIS *warpedsurf, MRIS *unwarpedsurf)
   printf("create GCAM inverse ...\n");
   gcam->spacing = 1;
   MRI *tempMri = MRIallocFromVolGeom(&warpedsurf->vg, MRI_VOLUME_TYPE_UNKNOWN, 1, 1);
-  GCAMinvert2(gcam, tempMri);
+  GCAMinvert(gcam, tempMri);
 
 #ifdef HAVE_OPENMP
   printf("\nSet OPEN MP NUM threads to %d (unwarp_surface)\n", nthreads);
