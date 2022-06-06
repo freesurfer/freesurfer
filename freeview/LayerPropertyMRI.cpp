@@ -93,6 +93,7 @@ LayerPropertyMRI::LayerPropertyMRI (QObject* parent) : LayerProperty( parent ),
   m_bNormalizeVector(true),
   m_dVectorDisplayScale(1.0),
   m_bHeatScaleAutoMid(true),
+  m_bHeatScaleSetMidToMin(false),
   m_nProjectionMapType(0),
   m_bDisplayRGB(false),
   m_dVectorLineWidth(1),
@@ -1120,14 +1121,16 @@ void LayerPropertyMRI::SetMaxGrayscaleWindow ( double iMax )
   }
 }
 
-void LayerPropertyMRI::SetHeatScaleAutoMid(bool bAutoMid, bool bAutoMidToMin)
+void LayerPropertyMRI::SetHeatScaleAutoMid(bool bAutoMid)
 {
   if (bAutoMid != m_bHeatScaleAutoMid)
   {
     m_bHeatScaleAutoMid = bAutoMid;
+    if (!bAutoMid)
+      m_bHeatScaleSetMidToMin = false;
     if (bAutoMid)
     {
-      if (bAutoMidToMin)
+      if (m_bHeatScaleSetMidToMin)
         mHeatScaleMidThreshold = mHeatScaleMinThreshold;
       else
         mHeatScaleMidThreshold = (mHeatScaleMinThreshold + mHeatScaleMaxThreshold)/2;
@@ -1136,7 +1139,17 @@ void LayerPropertyMRI::SetHeatScaleAutoMid(bool bAutoMid, bool bAutoMidToMin)
   }
 }
 
-void LayerPropertyMRI::SetHeatScaleMinThreshold ( double iValue, bool bMidToMin )
+void LayerPropertyMRI::SetHeatScaleSetMidToMin(bool bMidToMin)
+{
+  m_bHeatScaleSetMidToMin = bMidToMin;
+  if (bMidToMin)
+    mHeatScaleMidThreshold = mHeatScaleMinThreshold;
+  else if (m_bHeatScaleAutoMid)
+    mHeatScaleMidThreshold = (mHeatScaleMinThreshold + mHeatScaleMaxThreshold)/2;
+  this->OnColorMapChanged();
+}
+
+void LayerPropertyMRI::SetHeatScaleMinThreshold( double iValue)
 {
   double HeatScaleMinThreshold = mHeatScaleMinThreshold;
   QVariantMap map;
@@ -1160,7 +1173,7 @@ void LayerPropertyMRI::SetHeatScaleMinThreshold ( double iValue, bool bMidToMin 
   }
   if (m_bHeatScaleAutoMid)
   {
-    if (bMidToMin)
+    if (m_bHeatScaleSetMidToMin)
       mHeatScaleMidThreshold = mHeatScaleMinThreshold;
     else
       mHeatScaleMidThreshold = (mHeatScaleMinThreshold + mHeatScaleMaxThreshold)/2;
@@ -1215,7 +1228,7 @@ double LayerPropertyMRI::GetHeatScaleMidThreshold ()
   return mHeatScaleMidThreshold;
 }
 
-void LayerPropertyMRI::SetHeatScaleMaxThreshold ( double iValue, bool bMidToMin )
+void LayerPropertyMRI::SetHeatScaleMaxThreshold ( double iValue )
 {
   double HeatScaleMaxThreshold = mHeatScaleMaxThreshold;
   QVariantMap map;
@@ -1236,7 +1249,7 @@ void LayerPropertyMRI::SetHeatScaleMaxThreshold ( double iValue, bool bMidToMin 
     {
       mHeatScaleMaxThreshold = iValue;
     }
-    if (m_bHeatScaleAutoMid && !bMidToMin)
+    if (m_bHeatScaleAutoMid && !m_bHeatScaleSetMidToMin)
       mHeatScaleMidThreshold = (mHeatScaleMinThreshold + mHeatScaleMaxThreshold)/2;
     this->OnColorMapChanged();
   }

@@ -252,7 +252,7 @@ void WidgetHistogram::paintEvent(QPaintEvent* event)
     for ( int i = 0; i < m_nNumberOfBins; i++ )
     {
       painter.setPen( QPen( QColor( m_nColorTable[i*4],  m_nColorTable[i*4+1], m_nColorTable[i*4+2] ) ) );
-      painter.setBrush( QBrush( QColor( m_nColorTable[i*4],  m_nColorTable[i*4+1], m_nColorTable[i*4+2] ) ) );
+      painter.setBrush(QBrush( QColor( m_nColorTable[i*4],  m_nColorTable[i*4+1], m_nColorTable[i*4+2] ) ) );
       y = (int)( nOrigin[1] + nCavHeight * ( 1.0 - (double)m_nOutputData[i] / nMaxCnt ) );
       int h = (int)( (double)m_nOutputData[i] / nMaxCnt * nCavHeight );
       if ( y < nOrigin[1] )

@@ -208,11 +208,11 @@ void RenderView2D::UpdateViewByWorldCoordinate()
     cam->SetViewUp( 0, 0, 1 );
     break;
   case 1:
-    cam->SetPosition( wcenter[0], wcenter[1] + len, wcenter[2] );
+    cam->SetPosition( wcenter[0], m_bNeurologicalView? (wcenter[1] - len) : (wcenter[1] + len), wcenter[2] );
     cam->SetViewUp( 0, 0, 1 );
     break;
   case 2:
-    cam->SetPosition( wcenter[0], wcenter[1], wcenter[2] - len );
+    cam->SetPosition( wcenter[0], wcenter[1], m_bNeurologicalView? (wcenter[2] + len):(wcenter[2] - len) );
     break;
   }
   //  m_renderer->ResetCameraClippingRange();
@@ -921,4 +921,11 @@ void RenderView2D::OnMoveAllPointsToLocalMaximum()
     mri->LocateLocalMaximumAtRAS(ras, v[0], v[1], v[2], ras, sigma, dsize);
     wp->UpdatePoint(i, ras);
   }
+}
+
+void RenderView2D::SetNeurologicalView(bool b)
+{
+  m_bNeurologicalView = b;
+  Reset();
+  UpdateAnnotation();
 }

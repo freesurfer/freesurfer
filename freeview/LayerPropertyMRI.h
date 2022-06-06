@@ -154,11 +154,11 @@ public:
   // These determine the heatscale color map. The threshold is mirrored:
   // -> cyan -> blue -> trans_blue -> clear -> trans_orange -> orange -> red ->
   // -> -max -> -mid ->    -min    ->   0   ->     min      ->   mid  -> max ->
-  void    SetHeatScaleMinThreshold ( double iValue, bool bMidToMin = false );
+  void    SetHeatScaleMinThreshold ( double iValue);
   double  GetHeatScaleMinThreshold ();
-  void    SetHeatScaleMidThreshold ( double iValue );
+  void    SetHeatScaleMidThreshold ( double iValue);
   double  GetHeatScaleMidThreshold ();
-  void    SetHeatScaleMaxThreshold ( double iValue, bool bMidToMin = false );
+  void    SetHeatScaleMaxThreshold ( double iValue);
   double  GetHeatScaleMaxThreshold ();
   void    SetHeatScaleOffset ( double iValue );
   double  GetHeatScaleOffset ();
@@ -361,6 +361,11 @@ public:
     return m_bHeatScaleAutoMid;
   }
 
+  bool GetHeatScaleSetMidToMin()
+  {
+    return m_bHeatScaleSetMidToMin;
+  }
+
   int GetProjectionMapType()
   {
       return m_nProjectionMapType;
@@ -458,7 +463,8 @@ public slots:
   }
 
   void SetAutoAdjustFrameLevel(bool b);
-  void SetHeatScaleAutoMid(bool bAutoMid, bool bAutoMidToMin = false);
+  void SetHeatScaleAutoMid(bool bAutoMid);
+  void SetHeatScaleSetMidToMin(bool bMidToMin);
 
   void SetProjectionMapRange(int n, int start, int end);
   void SetSelectLabel(int nVal, bool bSelected);
@@ -536,6 +542,7 @@ private:
   bool    m_bHeatScaleTruncate;
   bool    m_bHeatScaleInvert;
   bool    m_bHeatScaleAutoMid;
+  bool    m_bHeatScaleSetMidToMin;
 
   double  mMinGenericThreshold;
   double  mMaxGenericThreshold;
