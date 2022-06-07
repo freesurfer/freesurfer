@@ -708,7 +708,8 @@ MRI *GradUnwarp::unwarp_volume(MRI *warpedvol, MRI *unwarpedvol, int interpcode,
     return NULL;
   }
 
-  /*if (warpedvol->width  != gcam->atlas.width  ||
+  /* ??? check unwarpedvol against gcam->atlas ???
+  if (warpedvol->width  != gcam->atlas.width  ||
       warpedvol->height != gcam->atlas.height ||
       warpedvol->depth  != gcam->atlas.depth) 
   {
@@ -723,8 +724,9 @@ MRI *GradUnwarp::unwarp_volume(MRI *warpedvol, MRI *unwarpedvol, int interpcode,
 
   if (unwarpedvol == NULL)
   {
-    unwarpedvol = MRIallocSequence(warpedvol->width, warpedvol->height, warpedvol->depth, warpedvol->type, warpedvol->nframes);
-    MRIcopyHeader(warpedvol, unwarpedvol);
+    // unwarpedvol will have same dimensions as gcam->atlas, same data type and nframes as warpedvol
+    unwarpedvol = MRIallocSequence(gcam->atlas.width, gcam->atlas.height, gcam->atlas.depth, warpedvol->type, warpedvol->nframes);
+    useVolGeomToMRI(&gcam->atlas, unwarpedvol);
     MRIcopyPulseParameters(warpedvol, unwarpedvol);
   }
 
@@ -1063,8 +1065,11 @@ MRIS* GradUnwarp::unwarp_surface(MRIS *warpedsurf, MRIS *unwarpedsurf)
 
   printf("create GCAM inverse ...\n");
   gcam->spacing = 1;
-  MRI *tempMri = MRIallocFromVolGeom(&warpedsurf->vg, MRI_VOLUME_TYPE_UNKNOWN, 1, 1);
+  // purpose of tempMri is just to pass image dimensions to GCAMinvert()
+  MRI *tempMri = MRIalloc(gcam->image.width, gcam->image.height, gcam->image.depth, MRI_FLOAT);
+  useVolGeomToMRI(&gcam->image, tempMri);
   GCAMinvert(gcam, tempMri);
+  MRIfree(&tempMri);
 
 #ifdef HAVE_OPENMP
   printf("\nSet OPEN MP NUM threads to %d (unwarp_surface)\n", nthreads);
