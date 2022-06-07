@@ -168,18 +168,21 @@ int main(int argc, char *argv[])
 
   if (unwarpvol)
   {
-    MRI *unwarpedvol = MRIallocSequence(origvol->width, origvol->height, origvol->depth, origvol->type, origvol->nframes);
-    MRIcopyHeader(origvol, unwarpedvol);
-    MRIcopyPulseParameters(origvol, unwarpedvol);
+    MRI *unwarpedvol= NULL;
 
     if (getenv("GRADUNWARP_USE_GRADFILE"))
     {
       printf("****** env GRADUNWARP_USE_GRADFILE set. ******\n");
+
+      unwarpedvol = MRIallocSequence(origvol->width, origvol->height, origvol->depth, origvol->type, origvol->nframes);
+      MRIcopyHeader(origvol, unwarpedvol);
+      MRIcopyPulseParameters(origvol, unwarpedvol);
+
       gradUnwarp->unwarp_volume_gradfile(origvol, unwarpedvol, vox2ras_orig, inv_vox2ras_orig, interpcode, sinchw);
     }
     else
     {
-      gradUnwarp->unwarp_volume(origvol, unwarpedvol, interpcode, sinchw);
+      unwarpedvol = gradUnwarp->unwarp_volume(origvol, NULL, interpcode, sinchw);
     }
 
     printf("Writing to %s\n", outf);
@@ -196,6 +199,7 @@ int main(int argc, char *argv[])
   }
   else if (unwarpsurf)
   {
+    // origsurf will be updated in unwarp_surface() and unwarp_surface_gradfile()
     if (getenv("GRADUNWARP_USE_GRADFILE"))
     {
       printf("****** env GRADUNWARP_USE_GRADFILE set. ******\n");

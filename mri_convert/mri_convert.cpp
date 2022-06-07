@@ -3101,7 +3101,7 @@ int main(int argc, char *argv[])
  
         printf("morphing to atlas with resample type %d\n", resample_type_val) ;
         mri_transformed =
-           GCAMmorphToAtlas(mri, (GCA_MORPH *)tran->xform, NULL, 0, resample_type_val) ;
+           GCAMmorphToAtlas(mri, (GCA_MORPH *)tran->xform, NULL, -1, resample_type_val) ;
 	useVolGeomToMRI(&((GCA_MORPH *)tran->xform)->atlas, mri_template) ;
       }
       else // invert
