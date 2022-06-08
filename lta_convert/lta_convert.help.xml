@@ -25,8 +25,10 @@
 
 <help>
   <name>lta_convert</name>
-  <synopsis>convert_convert [options]</synopsis>
-  <description>This program converts different transformation formats. Some formats may require you to pass an image if the geometry information is missing form the transform file format.</description>
+  <synopsis>lta_convert [options]</synopsis>
+  <description>This program converts between different linear transform formats. Some formats may require you to pass an image if the geometry information is missing from the transform file format.
+
+Formats called "inverse" below transform coordinates from the space of the target image to the space of the source image.</description>
   <arguments>
     <positional>
       <intro>None.</intro>
@@ -42,20 +44,26 @@
       <argument>--inreg &lt;inreg.dat&gt;</argument>
       <explanation>input transform of TK REG type (deprecated format)</explanation>
       <argument>--inniftyreg &lt;inniftyreg.dat&gt;</argument>
-      <explanation>input transform of Nifty Reg type (inverse RAS2RAS)</explanation>
+      <explanation>input transform of NiftyReg type (inverse RAS2RAS)</explanation>
       <argument>--initk &lt;initk.txt&gt;</argument>
       <explanation>input ITK transform (inverse LPS2LPS). Convert ANTS .mat binary to ITK format with ConvertTransformFile (in ANTS).</explanation>
+      <argument>--invox &lt;invox.txt&gt;</argument>
+      <explanation>input transform in source image space (inverse VOX2VOX)</explanation>
       <intro>At least one output is required:</intro>
       <argument>--outlta &lt;out.lta&gt;</argument>
-      <explanation>output linear transform (LTA Freesurfer format)</explanation>
+      <explanation>output linear transform (LTA FreeSurfer format)</explanation>
       <argument>--outfsl &lt;out.mat&gt;</argument>
       <explanation>output transform in FSL format (set FSLOUTPUTTYPE env var to, e.g., "NIFTI" or "ANALYZE" to determine type of flipping)</explanation>
       <argument>--outmni &lt;out.xfm&gt;</argument>
       <explanation>output transform in mni/xfm format</explanation>
       <argument>--outreg &lt;reg.dat&gt;</argument>
       <explanation>output transform in reg dat format</explanation>
+      <argument>--outniftyreg &lt;outniftyreg.txt&gt;</argument>
+      <explanation>output transform in NiftyReg format (inverse RAS2RAS)</explanation>
       <argument>--outitk &lt;outitk.txt&gt;</argument>
       <explanation>output transform in ITK txt format (inverse LPS2LPS)</explanation>
+      <argument>--outvox &lt;outvox.txt&gt;</argument>
+      <explanation>output transform in source image space (inverse VOX2VOX)</explanation>
     </required-flagged>
     <optional-flagged>      
       <argument>--invert</argument>
@@ -108,6 +116,8 @@ lta_convert --inlta identity.nofile --src src.nii --trg trg.nii --outlta out.lta
   
 Creates LTA from SRC and TRG header geometies, e.g. to convert SPM results to LTA (SPM stores its transforms in the header). Similarly you can create a lta for conform reslicing when specifying --trgconform instead of --trg trg.nii. </example>
   <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>
-  <see-also>mri_concatenate_lta (to concatenate or invert LTA transforms).
-or mri_convert -at or -ait to apply transforms to an image.</see-also>
+  <see-also>mri_warp_convert (similar functionality for warp fields)
+mri_concatenate_lta (concatenate or invert LTA transforms)
+mri_concatenate_gcam (concatenate or invert warp fields)
+mri_convert -at or -ait (apply transforms to an image)</see-also>
 </help>

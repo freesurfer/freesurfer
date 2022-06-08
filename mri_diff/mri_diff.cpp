@@ -1043,7 +1043,7 @@ static void diff_mgh_morph(const char *file1, const char *file2)
                    x, y, z, gcamn1->xn, gcamn1->yn, gcamn1->zn, gcamn2->xn, gcamn2->yn, gcamn2->zn);
         }
 
-        if (gcamn1->invalid != gcamn1->invalid)
+        if (gcamn1->invalid != gcamn2->invalid)
 	{
           ndiffinvalid++;
 
