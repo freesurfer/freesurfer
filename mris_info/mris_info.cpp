@@ -83,6 +83,7 @@ char *vmatlabfile=NULL;
 int  edgenox = -1;
 int CountIntersections = 0;
 char *patchname=NULL;
+const char *mtxfmt = NULL;
 
 int MRISsaveMarkedAsPointSet(char *fname, MRIS *surf);
 int MRISedgeVertices2Pointset(MRIS *surf, const MRI *mask, const int metricid, const double thresh, const char *fname);
@@ -345,6 +346,7 @@ int main(int argc, char *argv[]) {
   cout << "num faces   : " << mris->nfaces << endl;
   cout << "num strips  : " << mris->nstrips << endl;
   cout << "surface area: " << mris->total_area << endl;
+  cout << "vg.valid: "     << mris->vg.valid << endl;
   printf("AvgFaceArea      %lf\n",avgfacearea);
   printf("AvgVtxArea       %lf\n",avgvtxarea);
   printf("AvgVtxDist       %lf\n",InterVertexDistAvg);
@@ -370,10 +372,11 @@ int main(int argc, char *argv[]) {
   printf("Volume Geometry (vg)\n");
   vg_print(&mris->vg);
   printf("Volume Geometry vox2ras\n");
-  MatrixPrint(stdout,vg_i_to_r(&mris->vg));
+  if(mtxfmt==NULL) MatrixPrint(stdout,vg_i_to_r(&mris->vg));
+  else             MatrixPrintFmt(stdout, mtxfmt, vg_i_to_r(&mris->vg));
   printf("Volume Geometry vox2ras-tkr\n");
-  MatrixPrint(stdout,TkrVox2RASfromVolGeom(&mris->vg));
-
+  if(mtxfmt==NULL) MatrixPrint(stdout,TkrVox2RASfromVolGeom(&mris->vg));
+  else MatrixPrintFmt(stdout,mtxfmt,TkrVox2RASfromVolGeom(&mris->vg));
   {
     int i ;
     for (i = 0 ; i < mris->ncmds ; i++)
@@ -526,6 +529,10 @@ static int parse_commandline(int argc, char **argv) {
       if(mask == NULL) exit(1);
       nargsused = 1;
     } 
+    else if (!strcasecmp(option, "--mtx-fmt")) {
+      mtxfmt = pargv[0];
+      nargsused = 1;
+    }
     else if ( !strcmp(option, "--c") ) {
       if (nargc < 1) argnerr(option,1);
       curvfile = pargv[0];
@@ -592,6 +599,7 @@ static void print_usage(void) {
   printf("  --mask mask.mgz : only compute edge and area stats using vertices in mask\n");
   printf("  --label labelfile : only compute edge and area stats using vertices in label\n");
   printf("  --edge-file file : print edge info for all edges into file\n");
+  printf("  --mtx-fmt format : set format for matrix printing (eg, %%12.8f)\n");
   printf("\n");
   printf("  --version   : print version and exits\n");
   printf("  --help      : no clue what this does\n");

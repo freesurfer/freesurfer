@@ -419,7 +419,7 @@ void GradUnwarp::create_transtable(VOL_GEOM *vg, MATRIX *vox2ras, MATRIX *inv_vo
   {
     // You could make a vector of CRS nthreads long
     MATRIX *CRS = MatrixAlloc(4, 1, MATRIX_REAL);
-    MATRIX *RAS = MatrixAlloc(4, 1, MATRIX_REAL);;
+    MATRIX *RAS = MatrixAlloc(4, 1, MATRIX_REAL);
     MATRIX *DeltaRAS = MatrixAlloc(4, 1, MATRIX_REAL);
     MATRIX *DistortedRAS = MatrixAlloc(4, 1, MATRIX_REAL);
     MATRIX *DistortedCRS = MatrixAlloc(4, 1, MATRIX_REAL);
@@ -581,7 +581,7 @@ MRI *GradUnwarp::unwarp_volume_gradfile(MRI *warpedvol, MRI *unwarpedvol, MATRIX
   {
     // You could make a vector of CRS nthreads long
     MATRIX *unwarpedCRS = MatrixAlloc(4, 1, MATRIX_REAL);
-    MATRIX *unwarpedRAS = MatrixAlloc(4, 1, MATRIX_REAL);;
+    MATRIX *unwarpedRAS = MatrixAlloc(4, 1, MATRIX_REAL);
     MATRIX *DeltaRAS    = MatrixAlloc(4, 1, MATRIX_REAL);
     MATRIX *warpedRAS   = MatrixAlloc(4, 1, MATRIX_REAL);
     MATRIX *warpedCRS   = MatrixAlloc(4, 1, MATRIX_REAL);
@@ -822,7 +822,6 @@ int GradUnwarp::_assignUnWarpedVolumeValues(MRI* warpedvol, MRI* unwarpedvol, MR
   // notes:
   // 1. This function is adapted from GCAMmorphToAtlas().
   // 2. The default interpcode for mri_convert is trilinear.
-  //    mri_convert -at calls GCAMmorphToAtlas() with frame = 0. Only one frame is transformed?
   // 3. MRIsampleVolumeFrameType() only supports SAMPLE_NEAREST and SAMPLE_TRILINEAR.
   //    It doesn't always respect input interpcode. Internally, it sets interpcode to SAMPLE_NEAREST
   //    if (FEQUAL((int)x, x) && FEQUAL((int)y, y) && FEQUAL((int)z, z)).
@@ -1105,7 +1104,7 @@ MRIS* GradUnwarp::unwarp_surface(MRIS *warpedsurf, MRIS *unwarpedsurf)
     }
 
     // v->x, v->y, v->z // by default these are in the warped space
-    MATRIX *tkregRAS = MatrixAlloc(4, 1, MATRIX_REAL);;
+    MATRIX *tkregRAS = MatrixAlloc(4, 1, MATRIX_REAL);
     tkregRAS->rptr[1][1] = v->x;
     tkregRAS->rptr[2][1] = v->y;
     tkregRAS->rptr[3][1] = v->z;

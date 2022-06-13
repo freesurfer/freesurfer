@@ -1372,7 +1372,7 @@ gcsaSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     }
   }
 
-  printf("external SSE: %2.3f\n", sse) ;
+  //printf("external SSE: %2.3f\n", sse) ;
   return(sse) ;
 }
 
