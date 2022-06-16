@@ -7,7 +7,16 @@ if [ "$FSTEST_REGENERATE" != true ]; then
 fi
 
 test_command mris_fix_topology -mgz -sphere qsphere.nofix -ga -seed 1234 subj1 lh
-compare_surf subj1/surf/lh.orig subj1/surf/lh.orig.ref${TESTDATA_SUFFIX}
+if [[ "$TESTDATA_SUFFIX" != "" ]] && [[ "$host_os" == "ubuntu18" ]] || [[ "$host_os" == "ubuntu20" ]] || [[ "$host_os" == "centos8" ]] || [[ "$host_os" == "macos10" ]]; then
+   compare_surf subj1/surf/lh.orig subj1/surf/lh.orig.ref${TESTDATA_SUFFIX}
+else
+   compare_surf subj1/surf/lh.orig subj1/surf/lh.orig.ref
+fi
 
 test_command mris_fix_topology -mgz -sphere qsphere.nofix -inflated inflated.nofix -orig orig.nofix -out orig -ga -seed 1234 subj3 rh
-compare_surf subj3/surf/rh.orig subj3/surf/rh.orig.ref${TESTDATA_SUFFIX}
+if [[ "$TESTDATA_SUFFIX" != "" ]] && [[ "$host_os" == "ubuntu18" ]] || [[ "$host_os" == "ubuntu20" ]] || [[ "$host_os" == "centos8" ]] || [[ "$host_os" == "macos10" ]]; then
+   compare_surf subj3/surf/rh.orig subj3/surf/rh.orig.ref${TESTDATA_SUFFIX}
+else
+   compare_surf subj3/surf/rh.orig subj3/surf/rh.orig.ref
+fi
+

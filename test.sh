@@ -58,12 +58,12 @@ get_os()
       # For name, use only 1st output field, remove point release info in version, change text to lowercase
       # Starting with MacOS 11.X, Apple changed the name from MacOSX to macOS, so last step is remove x from macosx
       version=`cat /etc/os-release | grep "^VERSION=" | sed 's;^.*=;;' | sed 's;";;g' | awk '{print $1}' | sed 's;\..*;;'`
-      name=`cat /etc/os-release | grep "^ID=" | sed 's;^.*=;;' | sed 's;";;g' | tr '[:upper:]' '[:lower:]' | sed 's;osx;os;'`
+      name=`cat /etc/os-release | grep "^ID=" | sed 's;^.*=;;' | sed 's;";;g' | tr '[:upper:]' '[:lower:]'`
    elif [ "$uname_darwin" != "" ]; then
       # For version, print 2nd field and remove any point release info in the os revision.
       # For name, print everything after colon, remove spaces, change text to lowercase
       version=`sw_vers | grep "^ProductVersion" | awk '{print $2}' | sed 's;\..*;;'`
-      name=`sw_vers | grep "^ProductName" | sed 's/^.*://' | sed 's; ;;g' | tr '[:upper:]' '[:lower:]'`
+      name=`sw_vers | grep "^ProductName" | sed 's/^.*://' | sed 's; ;;g' | tr '[:upper:]' '[:lower:]' | sed 's;osx;os;'` 
    fi
 
    # example output: centos7 centos8 ubuntu18 ubuntu20 macos10 macos11
@@ -121,6 +121,8 @@ export TESTDATA_SUFFIX=""
 if [[ "$host_os" == "centos8" ]] || [[ "$host_os" == "ubuntu20" ]]; then
    # FSTEST_TESTDATA_TARBALL="${FSTEST_SCRIPT_DIR}/testdata_gcc8.tar.gz"
    export TESTDATA_SUFFIX=".gcc8"
+elif [ "$host_os" == "macos10" ]; then
+   export TESTDATA_SUFFIX=".clang12"
 fi
 
 # if we're regenerating testdata, make a temporary 'testdata_regeneration' storage directory for
