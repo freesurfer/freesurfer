@@ -114,12 +114,11 @@ FSTEST_SCRIPT_DIR="$(realpath $(dirname $0))"
 
 # FSTEST_TESTDATA_TARBALL is the path to the testdata tarball associated with the current test script
 FSTEST_TESTDATA_TARBALL="${FSTEST_SCRIPT_DIR}/testdata.tar.gz"
-# For systems where we build with gcc 8.X, optionally use a testdata file whose reference output was
-# created with binaries compiled with gcc8.X - whose output differs compared to binaries created with gcc 4.X
+# Match output from binaries compiles with gcc 8.X or clang12 to a similar test output file for tests
+# run on the target OS.
 host_os=$(get_os)
 export TESTDATA_SUFFIX=""
-if [[ "$host_os" == "centos8" ]] || [[ "$host_os" == "ubuntu20" ]]; then
-   # FSTEST_TESTDATA_TARBALL="${FSTEST_SCRIPT_DIR}/testdata_gcc8.tar.gz"
+if [[ "$host_os" == "centos8" ]] || [[ "$host_os" == "ubuntu18" ]] || [[ "$host_os" == "ubuntu20" ]]; then
    export TESTDATA_SUFFIX=".gcc8"
 elif [ "$host_os" == "macos10" ]; then
    export TESTDATA_SUFFIX=".clang12"
