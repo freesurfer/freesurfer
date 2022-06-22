@@ -230,7 +230,7 @@ sdt = conformed.new(sdt).resample_like(image, fill=100)
 components = scipy.ndimage.label(sdt.data < args.border)[0]
 bincount = np.bincount(components.flatten())[1:]
 mask = (components == (np.argmax(bincount) + 1))
-mask = scipy.ndimage.morphology.binary_fill_holes(mask)
+mask = scipy.ndimage.binary_fill_holes(mask)
 
 # write the masked output
 if args.out:

@@ -52,7 +52,9 @@ set GetMax = 0;
 set DoExtraInfo = 0;
 
 set siemensBVecsCross = 0;
-if($?FS_dcmGetDWIParamsSiemens_VoxelSpace) set siemensBVecsCross = $FS_dcmGetDWIParamsSiemens_VoxelSpace;
+if($?FS_dcmGetDWIParamsSiemens_VoxelSpace) then
+  set siemensBVecsCross = $FS_dcmGetDWIParamsSiemens_VoxelSpace;
+endif
 
 set inputargs = ("$argv");
 set PrintHelp = 0;

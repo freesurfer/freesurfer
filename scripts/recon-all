@@ -1549,7 +1549,7 @@ if($UseSynthSeg) then
   set ud = `UpdateNeeded $synthseg $origvol`
   if($ud || $ForceUpdate) then
     set xopts = `fsr-getxopts synthseg $XOptsFile`;
-    set cmd = (synthseg --i $origvol --o $synthseg --cpu --threads $OMP_NUM_THREADS $xopts)
+    set cmd = (mri_synthseg --i $origvol --o $synthseg --cpu --threads $OMP_NUM_THREADS $xopts)
     echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
     if($RunIt) then
       $fs_time $cmd |& tee -a $LF
