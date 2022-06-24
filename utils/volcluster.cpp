@@ -1734,32 +1734,61 @@ double CSDpvalClustSize(CLUSTER_SIM_DATA *csd, double ClusterSize, double ciPct,
   int nthrep, nover, k, nlow, nhi;
   double pval, psum, pcilow, pcihi;
 
-  // First, count the number of MaxClusters whose size is greater than
-  // the one under test
-  nover = 0;
-  for (nthrep = 0; nthrep < csd->nreps; nthrep++){
-    if(csd->MaxClusterSize[nthrep] >  ClusterSize) nover++;
-  }
+  printf("CSDpvalClustSize()\n");
 
-  // Use greter-than-or-equal-to in addition to greather-than.  This
-  // came up in a 1D application where the number of voxels in the
-  // cluster can be quite small making the inequality important. Using
-  // just > is too liberal. Using just >= is to conservative. This
-  // effectively averages them together; seems to work. Probably not
-  // important for 2D and 3D apps.
+  // Per Tom, this code has been changed in two ways (5/10/2022):
+  // 1. A CSD cluster need only be greater than OR equal to the cluster under test (used to be > only)
+  // 2. The pval is (nover+1)/(nreps+1) rather than just nover/nreps
+
+  // The >= change will probably have a very small effect for 2D and
+  // 3D apps because the = condition is extremely unlikely (but still
+  // possible); but it can be important in 1D apps where the clusters
+  // sizes are very small and the = condition is more likely. Before,
+  // I had it averaging the > and >= which gave some relief. The
+  // second change will probably have marginal effects in 2D and 3D
+  // apps, mostly in the low-pvalue range. It does have the potential
+  // to force eg .049 to .051.
+
   char *UseGTE = getenv("FS_CSDPVALCLUSTSIZE_GTE");
   if(UseGTE != NULL){
+    printf("Using GTE ===================================\n");
+    nover = 0;
+    for (nthrep = 0; nthrep < csd->nreps; nthrep++){
+      if(csd->MaxClusterSize[nthrep] >= ClusterSize) nover++;
+    }
+    pval = (double)(nover+1) / (csd->nreps+1);
+  }
+  else {
+    // This was the way it was done prior to May 10 2022
+    // First, count the number of MaxClusters whose size is greater than
+    // the one under test
+    nover = 0;
+    for (nthrep = 0; nthrep < csd->nreps; nthrep++){
+      if(csd->MaxClusterSize[nthrep] > ClusterSize) nover++;
+    }
+    // First, count the number of MaxClusters whose size is greater than
+    // the one under test
+    nover = 0;
+    for (nthrep = 0; nthrep < csd->nreps; nthrep++){
+      if(csd->MaxClusterSize[nthrep] >  ClusterSize) nover++;
+    }
+    // Use greter-than-or-equal-to in addition to greather-than.  This
+    // came up in a 1D application where the number of voxels in the
+    // cluster can be quite small making the inequality
+    // important. Using just > is too liberal. Using just >= is to
+    // conservative. This effectively averages them together; seems to
+    // work. But Tom's change above is better. Probably not important
+    // for 2D and 3D apps and should only change the pvalue in very
+    // rare circumstances.
     for (nthrep = 0; nthrep < csd->nreps; nthrep++){
       if(csd->MaxClusterSize[nthrep] >= ClusterSize) nover++;
     }
     nover /= 2.0;
+    // If none is over, then set nover = 1 so that things don't break
+    if (nover == 0) nover = 1;
+    // Compute the nomial pvalue
+    pval = (double)(nover) / (csd->nreps);
   }
-
-  // If none is over, then set nover = 1 so that things don't break
-  if (nover == 0) nover = 1;
-
-  // Compute the nomial pvalue
-  pval = (double)nover / csd->nreps;
 
   // Ranges for confidence interval
   pcihi = ciPct / 100;
