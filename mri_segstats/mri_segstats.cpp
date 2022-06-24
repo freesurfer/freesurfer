@@ -1406,9 +1406,11 @@ int main(int argc, char **argv)
       favg[n] = (double *) calloc(sizeof(double),invol->nframes);
     favgmn = (double *) calloc(sizeof(double *),nsegid);
     for (n=0; n < nsegid; n++) {
-      printf("%3d",n);
-      if (n%20 == 19) printf("\n");
-      fflush(stdout);
+      if(debug){
+	printf("%3d",n);
+	if (n%20 == 19) printf("\n");
+	fflush(stdout);
+      }
       nvox = MRIsegFrameAvg(seg, StatSumTable[n].id, invol, favg[n]);
       favgmn[n] = 0.0;
       for(f=0; f < invol->nframes; f++) {
