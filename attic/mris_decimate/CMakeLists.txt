@@ -10,6 +10,6 @@ if(NOT APPLE AND GTS_FOUND)
 
   install(TARGETS mris_decimate DESTINATION bin)
 
-  add_test_script(NAME mris_decimate_test SCRIPT test.sh DEPENDS mris_decimate)
+  add_test_script(NAME mris_decimate_test SCRIPT test.sh)
 
 endif()

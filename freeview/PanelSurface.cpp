@@ -761,7 +761,7 @@ void PanelSurface::OnLineEditMidPoint( const QString& text )
   {
     bool bOK;
     double dval = text.toDouble( &bOK );
-    if ( layer && dval && dval != layer->GetProperty()->GetThresholdMidPoint() )
+    if ( layer && dval != layer->GetProperty()->GetThresholdMidPoint() )
     {
       layer->GetProperty()->SetThresholdMidPoint( dval );
     }
@@ -775,7 +775,7 @@ void PanelSurface::OnLineEditSlope( const QString& text )
   {
     bool bOK;
     double dval = text.toDouble( &bOK );
-    if ( layer && dval && dval != layer->GetProperty()->GetThresholdSlope() )
+    if ( layer && dval != layer->GetProperty()->GetThresholdSlope() )
     {
       layer->GetProperty()->SetThresholdSlope( dval );
     }

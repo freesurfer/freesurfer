@@ -157,7 +157,10 @@ double round(double x);
 #include "surfcluster.h"
 #include "cma.h"
 
+#include "mri_identify.h"
+#include "gcamorph.h"
 
+static void diff_mgh_morph(const char *file1, const char *file2);
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
 static void print_usage(void) ;
@@ -245,6 +248,20 @@ int main(int argc, char *argv[]) {
       printf("ERROR: could not delete %s\n",DiffFile);
       exit(1);
     }
+  }
+
+  int fileType1 = mri_identify(InVol1File);
+  int fileType2 = mri_identify(InVol2File);
+  if (fileType1 != fileType2)
+  {
+    printf("Input files %s and %s are different types\n", InVol1File, InVol2File); 
+    exit(1);
+  }
+
+  if (fileType1 == MGH_MORPH)
+  {
+    diff_mgh_morph(InVol1File, InVol2File);
+    exit(ExitStatus);
   }
 
   InVol1 = MRIread(InVol1File);
@@ -956,4 +973,176 @@ static void print_help(void) {
   printf("\n");
 
   exit(1) ;
+}
+
+static void diff_mgh_morph(const char *file1, const char *file2)
+{
+  printf("Diff MGH_MORPH %s and %s using threshold = %.10f\n", file1, file2, geothresh);
+
+  GCAM *gcam1 = GCAMread(file1);
+  GCAM *gcam2 = GCAMread(file2);
+
+  if (gcam1->width  != gcam2->width  || 
+      gcam1->height != gcam2->height ||
+      gcam1->depth  != gcam2->depth)
+    printf("Dimensions differ: (%d x %d x %d) vs (%d x %d x %d)\n",
+           gcam1->width, gcam1->height, gcam1->depth, gcam2->width, gcam2->height, gcam2->depth);
+
+  if (gcam1->spacing != gcam2->spacing)
+    printf("Spacing differ: %d vs %d\n", gcam1->spacing, gcam2->spacing);
+
+  if (gcam1->exp_k != gcam2->exp_k)
+    printf("exp_k differ: %.2f vs %.2f\n", gcam1->exp_k, gcam2->exp_k);
+
+  int ndifforigx = 0, ndiffx = 0, ndiffxn = 0, ndiffinvalid = 0, ndifflabel = 0;
+
+  int width  = (gcam1->width  <= gcam2->width)  ? gcam1->width  : gcam2->width;
+  int height = (gcam1->height <= gcam2->height) ? gcam1->height : gcam2->height;
+  int depth  = (gcam1->depth  <= gcam2->depth)  ? gcam1->depth  : gcam2->depth;
+
+  GCA_MORPH_NODE *gcamn1, *gcamn2;
+  for (int x = 0; x < width; x++)
+  {
+    for (int y = 0; y < height; y++)
+    {
+      for (int z = 0; z < depth; z++)
+      {
+        gcamn1 = &gcam1->nodes[x][y][z];
+        gcamn2 = &gcam2->nodes[x][y][z];
+
+        if (gcamn1->origx != gcamn2->origx ||
+            gcamn1->origy != gcamn2->origy ||
+            gcamn1->origz != gcamn2->origz)
+	{
+          ndifforigx++;
+           
+          if (verbose)
+            printf("(origx, origy, origz) differ at (%03d,%03d,%03d): (%.6f %.6f %.6f) vs (%.6f %.6f %.6f)\n", 
+                   x, y, z, gcamn1->origx, gcamn1->origy, gcamn1->origz, gcamn2->origx, gcamn2->origy, gcamn2->origz);
+        }
+
+        if (fabs(gcamn1->x - gcamn2->x) > geothresh ||
+            fabs(gcamn1->y - gcamn2->y) > geothresh ||
+            fabs(gcamn1->z - gcamn2->z) > geothresh)
+	{
+          ndiffx++;
+
+          if (verbose)
+	    printf("(x, y, z) differ at (%03d,%03d,%03d): (%.6f %.6f %.6f) vs (%.6f %.6f %.6f)\n", 
+                   x, y, z, gcamn1->x, gcamn1->y, gcamn1->z, gcamn2->x, gcamn2->y, gcamn2->z);
+        }
+
+        if (gcamn1->xn != gcamn2->xn ||
+            gcamn1->yn != gcamn2->yn ||
+            gcamn1->zn != gcamn2->zn)
+	{
+          ndiffxn++;
+
+          if (verbose)
+            printf("(xn, yn, zn) differ at (%03d,%03d,%03d): (%d %d %d) vs (%d %d %d)\n", 
+                   x, y, z, gcamn1->xn, gcamn1->yn, gcamn1->zn, gcamn2->xn, gcamn2->yn, gcamn2->zn);
+        }
+
+        if (gcamn1->invalid != gcamn2->invalid)
+	{
+          ndiffinvalid++;
+
+          if (verbose)
+            printf("Invalid differ at (%03d,%03d,%03d): %c vs %c\n", 
+                   x, y, z, gcamn1->invalid, gcamn2->invalid);
+	}
+
+        if (gcamn1->label != gcamn2->label)
+	{
+          ndifflabel++;
+
+          if (verbose)
+            printf("Labels differ at (%03d,%03d,%03d): %d vs %d\n", 
+                   x, y, z, gcamn1->label, gcamn2->label);
+        }
+      }
+    }
+  }
+
+  if (ndifforigx || ndiffx || ndiffxn || ndiffinvalid || ndifflabel)
+  {
+    if (ndifforigx)
+      printf("(origx, origy, origz) diff counts = %d\n", ndifforigx);
+    if (ndiffx)
+      printf("(x, y, z)             diff counts = %d\n", ndiffx);
+    if (ndiffxn)
+      printf("(xn, yn, zn)          diff counts = %d\n", ndiffxn);
+    if (ndiffinvalid)
+      printf("invalid flag          diff counts = %d\n", ndiffinvalid);
+    if (ndifflabel)
+      printf("label flag            diff counts = %d\n", ndifflabel);
+
+    if (!verbose)
+      printf("use --verbose to print the details\n");
+  }
+
+  // TAG_GCAMORPH_LABELS
+  if (gcam1->status != gcam2->status)
+    printf("Status differ:  %d vs %d\n", gcam1->status, gcam2->status);
+
+  // TAG_GCAMORPH_GEOM
+  int same = vg_isEqual(&gcam1->image, &gcam2->image);
+  if (!same)
+  {
+    printf("image VOL_GEOMs differ:\n");
+    printf("%s geometry:\n", file1);
+    writeVolGeom(stdout, &gcam1->image);
+    printf("%s geometry:\n", file2);
+    writeVolGeom(stdout, &gcam2->image);
+  }
+  
+  same = vg_isEqual(&gcam1->atlas, &gcam2->atlas);
+  if (!same)
+  {
+    printf("atlas VOL_GEOMs differ:\n");
+    printf("%s geometry:\n", file1);
+    writeVolGeom(stdout, &gcam1->atlas);
+    printf("%s geometry:\n", file2);
+    writeVolGeom(stdout, &gcam2->atlas);
+  }
+
+  // TAG_GCAMORPH_TYPE
+  if (gcam1->type != gcam2->type)
+    printf("Types differ: %d vs %d\n", gcam1->type, gcam2->type);
+
+  // TAG_MGH_XFORM
+  if (gcam1->m_affine == NULL && gcam2->m_affine == NULL)
+    return;
+
+  if (gcam1->m_affine != NULL && gcam2->m_affine != NULL)
+  {
+    for (int r = 1; r <= 4; r++) {
+      for (int c = 1; c <= 4; c++) {
+        double val1 = gcam1->m_affine->rptr[r][c];
+        double val2 = gcam2->m_affine->rptr[r][c];
+        double diff = fabs(val1-val2);
+        if (diff > geothresh) 
+        {
+          printf("m_affine matrix differ in geometry row=%d col=%d diff=%lf (%g)\n",
+                 r, c, diff, diff);
+          
+          printf("v1 m_affine (det = %.3f) ----------\n", gcam1->det);
+          MatrixPrint(stdout, gcam1->m_affine);
+          printf("v2 m_affine (det = %.3f) ---------\n", gcam2->det);
+          MatrixPrint(stdout, gcam2->m_affine);
+
+          ExitStatus = 201;
+          if (ExitOnDiff) exit(ExitStatus);
+        }
+      } // c
+    } // r
+  }
+  else if (gcam1->m_affine == NULL)
+  {
+    printf("%s doesn't contain m_affine matrix\n", file1);
+  }
+  else if (gcam2->m_affine == NULL)
+  {
+    printf("%s doesn't contain m_affine matrix\n", file2);
+  }
 }

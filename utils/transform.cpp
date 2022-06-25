@@ -47,6 +47,7 @@
 #include "resample.h"
 #include "talairachex.h"
 #include "timer.h"
+#include "pointset.h"
 
 extern const char *Progname;
 
@@ -474,7 +475,19 @@ MATRIX *TkrRAS2VoxfromVolGeom(const VOL_GEOM *vg)
   mat = MatrixInverse(mat, mat);
   return (mat);
 }
-
+/*
+ \fn MATRIX *VGtkreg2RAS(VOL_GEOM *vg, MATRIX *tkreg2ras)
+ \brief Returns a matrix that converts from tkreg coords to ras
+*/
+MATRIX *VGtkreg2RAS(VOL_GEOM *vg, MATRIX *tkreg2ras)
+{
+  // Create a dummy MRI
+  MRI *mri = MRIallocFromVolGeom(vg, MRI_INT, 1, 1);
+  // Extract the matrix from the MRI
+  tkreg2ras = RASFromSurfaceRAS_(mri,tkreg2ras);
+  MRIfree(&mri);
+  return(tkreg2ras);
+}
 int vg_isEqual(const VOL_GEOM *vg1, const VOL_GEOM *vg2)
 {
   int rt;
@@ -3899,7 +3912,7 @@ LTA *LTAchangeType(LTA *lta, int ltatype)
           m_L = lt->m_L;
           mri_tmp = MRIallocHeader(lt->dst.width, lt->dst.height, lt->dst.depth, MRI_UCHAR, 1);
           MRIcopyVolGeomToMRI(mri_tmp, &lt->dst);
-          m_sras2ras = RASFromSurfaceRAS_(mri_tmp);
+          m_sras2ras = RASFromSurfaceRAS_(mri_tmp,NULL);
           m_L = MatrixMultiply(m_sras2ras, m_L, m_L);
           MatrixFree(&m_sras2ras);
           MRIfree(&mri_tmp);
@@ -4003,7 +4016,7 @@ MATRIX *surfaceRASFromSurfaceRAS_(MRI *dst, MRI *src, LTA *lta)
     LTAchangeType(lta, LINEAR_RAS_TO_RAS);
   }
   if (lta->type == LINEAR_RAS_TO_RAS) {
-    surf2src = RASFromSurfaceRAS_(src);
+    surf2src = RASFromSurfaceRAS_(src,NULL);
     dst2surf = surfaceRASFromRAS_(dst);
   }
   else if (lta->type == LINEAR_VOX_TO_VOX) {
@@ -5318,12 +5331,17 @@ double TransformAffineParamTest(int niters, double thresh)
 int RegLandmarks::ReadCoords(void)
 {
   // stvp is created by mris_apply_reg --stvp via MRISapplyReg() 
-  if(txyzfile.compare("stvp") != 0){
-    printf("ERROR: reglandmarks only accepts stvp files right now\n");
-    return(1);
+  if(txyzfile.compare("stvp") == 0){
+    int err = ReadSTVPairFile(sxyzfile);
+    return(err);
   }
-  int err = ReadSTVPairFile(sxyzfile);
-  return(err);
+  if(sxyzfile.find("json") > 0 && txyzfile.find("json") > 0){
+    int err = ReadJsonPair(sxyzfile,txyzfile);
+    return(err);
+  }
+
+  printf("ERROR: reglandmarks only accepts stvp files right now\n");
+  return(1);
 }
 LTA *RegLandmarks::ComputeLTA(void)
 {
@@ -5431,6 +5449,34 @@ int RegLandmarks::ReadSTVPairFile(std::string stvpairfile)
     vrow.push_back(tx);
     vrow.push_back(ty);
     vrow.push_back(tz);
+    txyz.push_back(vrow);
+  }
+  return(0);
+}
+int RegLandmarks::ReadJsonPair(std::string jsonfile1,std::string jsonfile2)
+{
+  fsPointSet ps1 = loadfsPointSet(jsonfile1);
+  fsPointSet ps2 = loadfsPointSet(jsonfile2);
+
+  if(ps1.npoints() != ps2.npoints()){
+    printf("ERROR: RegLandmarks::ReadJsonPair(): dim mismatch %d %d\n",ps1.npoints(),ps2.npoints());
+    return(1);
+  }
+
+  for(int n=0; n < ps1.npoints(); n++){
+    fsPointSet::Point p1 = ps1.get(n);
+    fsPointSet::Point p2 = ps2.get(n);
+    svtxno.push_back(n);
+    tvtxno.push_back(n);
+    std::vector<double> vrow;
+    vrow.push_back(p1.x);
+    vrow.push_back(p1.y);
+    vrow.push_back(p1.z);
+    sxyz.push_back(vrow);
+    vrow.clear();
+    vrow.push_back(p2.x);
+    vrow.push_back(p2.y);
+    vrow.push_back(p2.z);
     txyz.push_back(vrow);
   }
   return(0);

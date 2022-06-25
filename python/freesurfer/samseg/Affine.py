@@ -2,8 +2,8 @@ import os
 import scipy.io
 import scipy.ndimage
 import numpy as np
+import surfa as sf
 
-import freesurfer as fs
 from . import gems, convertLPSTransformToRAS
 from .ProbabilisticAtlas import ProbabilisticAtlas
 
@@ -141,27 +141,20 @@ class Affine:
                                 'cost': minLogLikelihoodTimesPriors[-1]}
         return imageToImageTransformMatrix, optimizationSummary
 
-
-
     def computeTalairach(self, imageToImageTransformMatrix ):
         # Load fsaverage orig.mgz -- this is the ultimate target/destination
-        fnamedst = os.path.join(fs.fshome(), 'subjects', 'fsaverage', 'mri', 'orig.mgz')
-        fsaorig = fs.Volume.read(fnamedst)
+        fnamedst = os.path.join(os.environ.get('FREESURFER_HOME'), 'subjects', 'fsaverage', 'mri', 'orig.mgz')
+        fsaorig = sf.load_volume(fnamedst)
 
         # Compute the vox2vox from the template to fsaverage assuming they share world RAS space
         RAS2LPS = np.diag([-1, -1, 1, 1])
-        M = np.linalg.inv(RAS2LPS @ fsaorig.affine) @ self.templateImageToWorldTransformMatrix
+        M = np.linalg.inv(RAS2LPS @ fsaorig.geom.vox2world) @ self.templateImageToWorldTransformMatrix
         # Compute the input to fsaverage vox2vox by combining the input-template vox2vox and the template-fsaverage vox2vox
         vox2vox = M @ np.linalg.inv(imageToImageTransformMatrix)
 
         # Now write out the LTA. This can be used as the talairach.lta in recon-all
-        xform = fs.LinearTransform(vox2vox)
-        xform.type = fs.LinearTransform.Type.vox
-        xform.source = fs.Volume.read( self.imageFileName ).geometry()
-        xform.target = fsaorig.geometry()
-        return xform
+        return sf.Affine(vox2vox, space='vox', source=sf.load_volume(self.imageFileName), target=fsaorig)
 
-    #
     def getTransformMatrix( self, 
                             pitchAngle=0.0, scale=1.0, horizontalTableShift=0.0, verticalTableShift=0.0,
                             initialTableShift=None ):
@@ -461,8 +454,7 @@ class Affine:
         return imageToImageTransformMatrix, worldToWorldTransformMatrix, optimizationSummary
       
       
-    def  saveResults( self, 
-                      savePath, worldToWorldTransformMatrix, imageToImageTransformMatrix ):
+    def saveResults(self, savePath, worldToWorldTransformMatrix, imageToImageTransformMatrix):
                 
         # Save the image-to-image and the world-to-world affine registration matrices
         scipy.io.savemat(os.path.join(savePath, 'template_transforms.mat'),
@@ -470,25 +462,25 @@ class Affine:
                           'worldToWorldTransformMatrix': worldToWorldTransformMatrix } )
 
         # Save the template transform
-        inputImage = fs.Volume.read(self.imageFileName)
-        templateImage = fs.Volume.read(self.templateFileName)
-        xform = fs.LinearTransform(convertLPSTransformToRAS(worldToWorldTransformMatrix))
-        xform.type = fs.LinearTransform.Type.ras
-        xform.source = templateImage.geometry()
-        xform.target = inputImage.geometry()
+        inputImage = sf.load_volume(self.imageFileName)
+        templateImage = sf.load_volume(self.templateFileName)
+        xform = sf.Affine(
+            convertLPSTransformToRAS(worldToWorldTransformMatrix),
+            space='world',
+            source=templateImage,
+            target=inputImage,
+        )
         ltaFileName = os.path.join(savePath, 'template.lta')
         print('writing template transform to %s' % ltaFileName)
-        xform.write(ltaFileName)
+        xform.save(ltaFileName)
 
         # Compute and save the talairach.xfm
         xform = self.computeTalairach( imageToImageTransformMatrix )
         ltaFileName = os.path.join(savePath, 'samseg.talairach.lta')
         print('writing talairach transform to %s' % ltaFileName)
-        xform.write(ltaFileName)
+        xform.save(ltaFileName)
 
         # Save the coregistered template
-        coregistered = fs.Volume(fs.geom.resample(templateImage.data, inputImage.shape[:3], np.linalg.inv(imageToImageTransformMatrix)))
-        coregistered.copy_geometry(inputImage)
-        coregistered.write(os.path.join(savePath, 'template_coregistered.mgz'))
-      
-      
+        xform = sf.Affine(imageToImageTransformMatrix, space='voxel', source=templateImage, target=inputImage)
+        coregistered = templateImage.transform(affine=xform)
+        coregistered.save(os.path.join(savePath, 'template_coregistered.mgz'))

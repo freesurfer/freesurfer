@@ -1,9 +1,10 @@
+import os
+import sys
 import logging
 import pickle
 import scipy.io
 from scipy.ndimage.morphology import binary_dilation as dilation
-import freesurfer as fs
-import sys
+import surfa as sf
 
 from .utilities import Specification
 from .BiasField import BiasField
@@ -71,22 +72,22 @@ class Samseg:
             if len(self.imageFileNames) > 1:
                 raise ValueError('In photo mode, you cannot provide more than one input image volume')
 
-            input_vol = fs.Volume.read(self.imageFileNames[0])
-            input_vol.write(self.savePath + '/original_input.mgz')
-            while len(input_vol.data.shape) > 3:
-                input_vol.data = np.mean(input_vol.data, axis=-1)
-            input_vol.write(self.savePath + '/grayscale_input.mgz')
+            input_vol = sf.load_volume(self.imageFileNames[0])
+            input_vol.save(self.savePath + '/original_input.mgz')
+            if input_vol.nframes > 1:
+                input_vol = input_vol.mean(frames=True)
+            input_vol.save(self.savePath + '/grayscale_input.mgz')
 
             # We also a small band of noise around the mask; otherwise the background/skull/etc may fit the cortex
             self.photo_mask = input_vol.data > 0
             mask_dilated = dilation(self.photo_mask, iterations=5)
-            ring = (mask_dilated==True) & (self.photo_mask == False)
-            max_noise = np.max(input_vol.data) / 50.0
+            ring = (mask_dilated == True) & (self.photo_mask == False)
+            max_noise = input_vol.max() / 50.0
             rng = np.random.default_rng(2021)
             input_vol.data[ring] = max_noise * rng.random(input_vol.data[ring].shape[0])
             self.imageFileNames = []
             self.imageFileNames.append(self.savePath + '/grayscale_input_with_ring.mgz')
-            input_vol.write(self.imageFileNames[0])
+            input_vol.save(self.imageFileNames[0])
 
 
         # Initialize some objects
@@ -106,7 +107,7 @@ class Samseg:
             elif dissectionPhoto == 'both':
                 gmmFileName = self.atlasDir + '/photo.both.sharedGMMParameters.txt'
             else:
-                fs.fatal('dissection photo mode must be left, right, or both')
+                sf.system.fatal('dissection photo mode must be left, right, or both')
         self.modelSpecifications = getModelSpecifications(
             atlasDir,
             userModelSpecifications,
@@ -182,14 +183,14 @@ class Samseg:
         # =======================================================================================
 
         # Load src (template) and trg (input) geometries (TODO these should really be cached)
-        src = fs.Volume.read(self.affine.templateFileName).geometry()
-        trg = fs.Volume.read(self.imageFileNames[0]).geometry()
+        src = sf.load_volume(self.affine.templateFileName).geom
+        trg = sf.load_volume(self.imageFileNames[0]).geom
 
         # Just assume things are okay if no geometries are provided
         if trf.source is None and trf.target is None:
             return trf
 
-        equal = lambda a, b: fs.Geometry.is_equal(a, b, thresh=1e-2, require_affine=False)
+        equal = lambda a, b: sf.transform.image_geometry_equal(a, b, tol=1e-2)
 
         # Make sure at least the source or target geometries match
         if (trf.source is None or equal(trf.source, src)) and (trf.target is None or equal(trf.target, trg)):
@@ -197,9 +198,9 @@ class Samseg:
 
         # The only remaining possibility is that the transform is inverted (input->template)
         if (trf.source is None or equal(trf.source, trg)) and (trf.target is None or equal(trf.target, src)):
-            return trf.inverse()
+            return trf.inv()
 
-        fs.fatal('provided transform does not match input or template geometries')
+        sf.system.fatal('provided transform does not match input or template geometries')
 
     def segment(self, costfile=None, timer=None, reg_only=False, transformFile=None, initTransformFile=None):
         # =======================================================================================
@@ -211,8 +212,8 @@ class Samseg:
         # Initialization transform for registration
         initTransform = None
         if initTransformFile:
-            trg = self.validateTransform(fs.LinearTransform.read(initTransformFile))
-            initTransform = convertRASTransformToLPS(trg.as_ras().matrix)
+            trg = self.validateTransform(sf.load_affine(initTransformFile))
+            initTransform = convertRASTransformToLPS(trg.convert(space='world').matrix)
 
         # Affine transform used to skip registration
         worldToWorldTransformMatrix = None
@@ -220,8 +221,8 @@ class Samseg:
             if transformFile.endswith('.mat'):
                 worldToWorldTransformMatrix = scipy.io.loadmat(transformFile).get('worldToWorldTransformMatrix')
             else:
-                trf = self.validateTransform(fs.LinearTransform.read(transformFile))
-                worldToWorldTransformMatrix = convertRASTransformToLPS(trf.as_ras().matrix)
+                trf = self.validateTransform(sf.load_affine(transformFile))
+                worldToWorldTransformMatrix = convertRASTransformToLPS(trf.convert(space='world').matrix)
 
         # Register to template, either with SAMSEG code, or externally with FreeSurfer tools (for photos)
         if self.imageToImageTransformMatrix is None:
@@ -235,14 +236,13 @@ class Samseg:
                 elif self.dissectionPhoto=='both':
                     moving = self.atlasDir + '/exvivo.template.suptent.nii'
                 else:
-                    fs.fatal('dissection photo mode must be left, right, or both')
+                    sf.system.fatal('dissection photo mode must be left, right, or both')
                 transformFile = self.savePath  + '/atlas2image.lta'
                 cmd = 'mri_coreg  --seed 2021 --mov ' + moving + ' --ref ' + reference + ' --reg ' + transformFile + \
                       ' --dof 12 --threads ' + str(self.nthreads)
                 os.system(cmd)
-                trf = fs.LinearTransform.read(transformFile)
-                trf_val = self.validateTransform(trf)
-                worldToWorldTransformMatrix = convertRASTransformToLPS(trf_val.as_ras().matrix)
+                trf_val = self.validateTransform(sf.load_affine(transformFile))
+                worldToWorldTransformMatrix = convertRASTransformToLPS(trf_val.convert(space='world').matrix)
 
             self.register(
                 costfile=costfile,
@@ -412,21 +412,17 @@ class Samseg:
 
     def writeImage(self, data, path, saveLabels=False):
         # Read source geometry
-        geom = fs.Volume.read(self.imageFileNames[0]).geometry()
+        target = sf.load_volume(self.imageFileNames[0])
 
         # Account for multi-frame volumes
-        if data.ndim == 4:
-            shape = (*geom.shape, data.shape[-1])
-        else:
-            shape = geom.shape
+        frames = data.shape[-1] if data.ndim == 4 else 1
 
         # Uncrop image
-        uncropped = np.zeros(shape, dtype=data.dtype, order='F')
+        uncropped = target.zeros(frames=frames, dtype=data.dtype, order='F')
         uncropped[self.cropping] = data
-        volume = fs.Volume(uncropped, affine=geom.affine, voxsize=geom.voxsize)
         if saveLabels:
-            volume.lut = fs.LookupTable.read(os.path.join(self.atlasDir, 'modifiedFreeSurferColorLUT.txt'))
-        volume.write(path)
+            uncropped.labels = sf.load_label_lookup(os.path.join(self.atlasDir, 'modifiedFreeSurferColorLUT.txt'))
+        uncropped.save(path)
 
     def writeResults(self, biasFields, posteriors):
 
@@ -483,13 +479,10 @@ class Samseg:
 
         else: # photos
             self.writeImage(expBiasFields[..., 0], self.savePath + '/illlumination_field.mgz')
-            original_vol = fs.Volume.read(self.originalImageFileNames[0])
-            bias_native = fs.Volume.read(self.savePath + '/illlumination_field.mgz')
-            if len(original_vol.data.shape) == 3:
-                original_vol.data = original_vol.data[..., np.newaxis]
-            original_vol.data = original_vol.data / (1e-6 + bias_native.data[..., np.newaxis])
-            original_vol.data = np.squeeze(original_vol.data)
-            original_vol.write(self.savePath + '/illlumination_corrected.mgz')
+            original_vol = sf.load_volume(self.originalImageFileNames[0])
+            bias_native = sf.load_volume(self.savePath + '/illlumination_field.mgz')
+            original_vol = original_vol / (1e-6 + bias_native)
+            original_vol.save(self.savePath + '/illlumination_corrected.mgz')
 
         if self.savePosteriors:
             posteriorPath = os.path.join(self.savePath, 'posteriors')
@@ -528,6 +521,10 @@ class Samseg:
             initialDeformation=self.deformation,
             initialDeformationMeshCollectionFileName=self.deformationAtlasFileName
         ).points
+
+        # still using the original freesurfer package here, just waiting to get
+        # m3z IO implemented in surfa...
+        import freesurfer as fs
 
         # extract geometries
         imageGeom = fs.Volume.read(self.imageFileNames[0]).geometry()
@@ -634,7 +631,7 @@ class Samseg:
                         mean = np.exp(log_mean) * scaling
                         std = np.sqrt(log_variance) * mean
 
-                        stats.append(f'{mean:.2f} ± {std:.2f}'.rjust(space))
+                        stats.append(f'{mean:.2f} +/- {std:.2f}'.rjust(space))
 
                     # Write class
                     fid.write(basename.ljust(maxNameSize) + ''.join(stats) + '\n')

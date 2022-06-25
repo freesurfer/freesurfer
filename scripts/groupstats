@@ -249,7 +249,7 @@ if($DoMaps) then
         endif
         # glm ------------------------
         set glmdir = $outdir/maps/glm.$meas.$hemi.sm$fwhmstr
-        set cmd = (mri_glmfit --surface fsaverage $hemi --y $smfile --fsgd $fsgd --glmdir $glmdir)
+        set cmd = (mri_glmfit --surface fsaverage $hemi --y $smfile --fsgd $fsgd --glmdir $glmdir --eres-save)
         echo "#C# $cmd"  | tee -a $LF
         $cmd | tee -a $LF
         if($status) exit 1;

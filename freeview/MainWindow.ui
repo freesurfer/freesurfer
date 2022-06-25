@@ -410,6 +410,8 @@
     <addaction name="actionRotateView90"/>
     <addaction name="actionSetCamera"/>
     <addaction name="separator"/>
+    <addaction name="actionNeurologicalView"/>
+    <addaction name="separator"/>
     <addaction name="actionShowCommandConsole"/>
     <addaction name="actionTimeCourse"/>
     <addaction name="separator"/>
@@ -1263,7 +1265,6 @@
    </property>
    <property name="font">
     <font>
-     <weight>75</weight>
      <bold>true</bold>
     </font>
    </property>
@@ -1277,7 +1278,6 @@
    </property>
    <property name="font">
     <font>
-     <weight>75</weight>
      <bold>true</bold>
     </font>
    </property>
@@ -1847,6 +1847,14 @@
    </property>
    <property name="shortcut">
     <string>Del</string>
+   </property>
+  </action>
+  <action name="actionNeurologicalView">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Neurological View</string>
    </property>
   </action>
  </widget>
@@ -3832,6 +3840,22 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>actionNeurologicalView</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>MainWindow</receiver>
+   <slot>SetNeurologicalView(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <signal>CycleOverlayRequested()</signal>
@@ -3948,5 +3972,6 @@
   <slot>OnCreateOptimalVolume()</slot>
   <slot>OnCopyView()</slot>
   <slot>OnDeleteLayer()</slot>
+  <slot>SetNeurologicalView(bool)</slot>
  </slots>
 </ui>

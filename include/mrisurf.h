@@ -1205,7 +1205,7 @@ int  MRISsetAllMarks(MRI_SURFACE *mris, int mark) ;
 int  MRISscaleCurvature(MRI_SURFACE *mris, float scale) ;
 int  MRISwriteTriangularSurface(MRI_SURFACE *mris,const char *fname) ;
 
-int  MRISbuildFileName(MRI_SURFACE *mris, const char *sname, char *fname) ;
+int  MRISbuildFileName_read(MRI_SURFACE *mris, const char *sname, char *fname) ;
 int  MRISsmoothSurfaceNormals(MRI_SURFACE *mris, int niter) ;
 int  MRISsoapBubbleD(MRI_SURFACE *mris, int niter) ;
 int  MRISsoapBubbleVals(MRI_SURFACE *mris, int niter) ;

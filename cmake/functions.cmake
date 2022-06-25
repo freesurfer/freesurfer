@@ -181,6 +181,22 @@ function(install_osx_app APP_PATH)
   )
 endfunction()
 
+# install_directories(<dir> DESTINATION <dir>)
+# Use this to recursively copy directories at install time.
+function(install_directories)
+  cmake_parse_arguments(INSTALL "" "DESTINATION" "" ${ARGN})
+  foreach(arg ${INSTALL_UNPARSED_ARGUMENTS})
+    get_filename_component(BASENAME ${arg} NAME)
+    get_filename_component(ABS_PATH ${arg} REALPATH)
+    install(CODE "
+      message(STATUS \"Installing directory (with rsync): ${CMAKE_INSTALL_PREFIX}/${INSTALL_DESTINATION}/${BASENAME}\")
+      execute_process(COMMAND bash -c \"mkdir -p ${INSTALL_DESTINATION} && rsync -rtL ${ABS_PATH} ${CMAKE_INSTALL_PREFIX}/${INSTALL_DESTINATION}/\" RESULT_VARIABLE retcode)
+      if(NOT \${retcode} STREQUAL 0)
+        message(FATAL_ERROR \"Could not install directory to ${TARGET}\")
+      endif()"
+    )
+  endforeach()
+endfunction()
 
 # symlink(<target> <linkname>)
 # Creates a symlink at install time
@@ -194,7 +210,6 @@ function(symlink TARGET LINKNAME)
   )
 endfunction()
 
-
 # add_test_script(NAME <testname> SCRIPT <testscript> DEPENDS <targets>)
 # Adds a script to the test framework. If the script calls a freesurfer binary, it
 # should be specified with DEPENDS to guarantee it gets built beforehand
@@ -203,6 +218,7 @@ function(add_test_script)
   foreach(TARGET ${TEST_DEPENDS})
     set(TEST_CMD "${TEST_CMD} ${CMAKE_COMMAND} --build ${CMAKE_CURRENT_BINARY_DIR} --target ${TARGET} &&")
   endforeach()
+  set(TEST_CMD "${TEST_CMD} ${CMAKE_COMMAND} --build ${CMAKE_CURRENT_BINARY_DIR} --target install &&")
   add_test(${TEST_NAME} bash -c "${TEST_CMD} ${CMAKE_CURRENT_SOURCE_DIR}/${TEST_SCRIPT}")
 endfunction()
 

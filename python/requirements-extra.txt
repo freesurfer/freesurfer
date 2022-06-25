@@ -1,4 +1,4 @@
-# extra packages required for FS DL utilities
+# extra packages required for FS utilities
 tensorflow==2.4.1
 h5py==2.10
 torch==1.10.2

@@ -100,9 +100,8 @@ int     LabelFromCanonical(LABEL *area, MRI_SURFACE *mris) ;
 int     LabelFromTalairach(LABEL *area, MRI_SURFACE *mris) ;
 int     LabelToFlat(LABEL *area, MRI_SURFACE *mris) ;
 int     LabelRipRestOfSurface(LABEL *area, MRI_SURFACE *mris) ;
-int     LabelRipRestOfSurfaceWithThreshold(LABEL *area,
-    MRI_SURFACE *mris,
-    float thresh) ;
+int     LabelRipRestOfSurfaceWithThreshold(LABEL *area, MRI_SURFACE *mris, float thresh) ;
+int     LabelRip(MRI_SURFACE *mris, const LABEL *area, const int Outside);
 int     LabelRemoveOverlap(LABEL *area1, LABEL *area2) ;
 int     LabelIntersect(LABEL *area1, LABEL *area2) ;
 LABEL  *LabelRemoveAlmostDuplicates(LABEL *area, double dist, LABEL *ldst);

@@ -125,21 +125,25 @@ add_definitions(-DHAVE_ZLIB)
 
 # -------- gfortran/blas/lapack --------
 if(NOT APPLE)
-  find_library(GFORTRAN_LIBRARIES
-    HINTS /usr/lib64 /usr/lib /usr/lib/gcc/*/*/
-    NAMES libgfortran.a gfortran)
-  find_library(BLAS_LIBRARIES NAMES libopenblas.a libblas.a)
-  find_library(LAPACK_LIBRARIES NAMES liblapack.a)
-  find_library(QUADMATH_LIBRARIES
-    HINTS /usr/lib64 /usr/lib /usr/lib/gcc/*/*/
-    NAMES libquadmath.a libquadmath.so libquadmath.so.0)
+  if(HOST_OS MATCHES "Ubuntu20")
+     # assume gcc8 tools distribution on Ubuntu 20 which contains its own libquadmath and libgfortran
+     find_library(GFORTRAN_LIBRARIES HINTS /usr/lib/gcc/x86_64-linux-gnu/8 NAMES libgfortran.a gfortran)
+     find_library(BLAS_LIBRARIES NAMES libopenblas.a libblas.a)
+     find_library(LAPACK_LIBRARIES NAMES liblapack.a)
+     find_library(QUADMATH_LIBRARIES HINTS /usr/lib/gcc/x86_64-linux-gnu/8 NAMES libquadmath.a libquadmath.so libquadmath.so.0)
+  else()
+     find_library(GFORTRAN_LIBRARIES HINTS /usr/lib64 /usr/lib /usr/lib/gcc/*/*/ NAMES libgfortran.a gfortran)
+     find_library(BLAS_LIBRARIES NAMES libopenblas.a libblas.a)
+     find_library(LAPACK_LIBRARIES NAMES liblapack.a)
+     find_library(QUADMATH_LIBRARIES HINTS /usr/lib64 /usr/lib /usr/lib/gcc/*/*/ NAMES libquadmath.a libquadmath.so libquadmath.so.0)
+  endif()
   if(NOT QUADMATH_LIBRARIES)
     set(QUADMATH_LIBRARIES "")
   endif()
 endif()
 
 # -------- armadillo --------
-find_package(Armadillo)
+find_package(ARMADILLO)
 
 # -------- petsc --------
 find_package(PETSC)
@@ -171,6 +175,13 @@ if(OPENMP_FOUND)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
   set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} ${OpenMP_Fortran_FLAGS}")
   set(OMP_CXX_LIBRARIES OpenMP::OpenMP_CXX)
+endif()
+
+# Avoid error from __powf_finite undefined.
+# The 2.31 version of the GNU C Library removed symbols from LLVM libc++ math.h including,
+# __powf_finite __asinf_finite U_atan2f_finite __exp2f_finite __exp2_finite __expf_finite __log2f_finite
+if(HOST_OS MATCHES "Ubuntu20")
+   set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -fno-builtin")
 endif()
 
 # -------- openCV --------
@@ -268,11 +279,11 @@ add_subdirectory(packages)
 option(DISTRIBUTE_FSPYTHON "Include the fspython distribution in the installation" OFF)
 
 if(DISTRIBUTE_FSPYTHON)
-  set(FSPYTHON_DIR ${FS_PACKAGES_DIR}/fspython/3.6)
+  set(FSPYTHON_DIR ${FS_PACKAGES_DIR}/fspython/3.8)
   if(EXISTS ${FSPYTHON_DIR}/bin/python3)
     # specify the python to use
     set(PYTHON_EXECUTABLE ${FSPYTHON_DIR}/bin/python3)
-    set(PYTHON_LIBRARY ${FSPYTHON_DIR}/lib/libpython3.6m)
+    set(PYTHON_LIBRARY ${FSPYTHON_DIR}/lib/libpython3.8m)
     # install the barebones python distribution
     INSTALL(DIRECTORY ${FSPYTHON_DIR}/bin ${FSPYTHON_DIR}/lib ${FSPYTHON_DIR}/include
       DESTINATION ${CMAKE_INSTALL_PREFIX}/python USE_SOURCE_PERMISSIONS
@@ -283,13 +294,15 @@ if(DISTRIBUTE_FSPYTHON)
 endif()
 
 # initialize pybind for python wrapping
-set(PYBIND11_PYTHON_VERSION 3.5)
+set(PYBIND11_PYTHON_VERSION 3)
 add_subdirectory(packages/pybind11)
 
 if(NOT DISTRIBUTE_FSPYTHON)
   # link to an external python binary if fspython won't be distributed
   symlink(${PYTHON_EXECUTABLE} ${CMAKE_INSTALL_PREFIX}/python/bin/python3)
 endif()
+
+add_custom_target(install-fspy COMMAND ${CMAKE_COMMAND} -D COMPONENT=fspy -P cmake_install.cmake)
 
 # --------------------------------------------------
 #             freesurfer build settings
@@ -305,6 +318,9 @@ if(NOT NO_CXX_WARN)
        # -Wno-restrict needed with gcc8 for ./freesurfer/mris_compute_acorr/mris_compute_acorr.cpp
        # -Wno-format-overflow needed with gcc8 for ./fresurfer/mris2rgb/mris2rgb.cpp
        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra ${WARN_AS_ERROR_FLAG} -Wno-cpp -Wno-restrict -Wno-format-overflow -Wno-sign-compare -Wno-unused-result -Wno-unused-parameter")
+    elseif(HOST_OS MATCHES "Ubuntu20")
+       # uses gcc8 as well
+       set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-builtin -Wall -Wextra ${WARN_AS_ERROR_FLAG} -Wno-cpp -Wno-restrict -Wno-format-overflow -Wno-sign-compare -Wno-unused-result -Wno-unused-parameter")
     else ()
        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra ${WARN_AS_ERROR_FLAG} -Wno-sign-compare -Wno-unused-result -Wno-unused-parameter")
     endif()
@@ -482,6 +498,7 @@ if(NOT MINIMAL)
     BrainstemSS
     diffusion_tool
     dummy
+    exvivo
     freeview
     fsfast
     fslutils
@@ -492,7 +509,6 @@ if(NOT MINIMAL)
     histo_compute_joint_density
     histo_register_block
     histo_synthesize
-    julia
     label2flat
     label2patch
     mkxsubjreg
@@ -597,6 +613,7 @@ if(NOT MINIMAL)
     mris_distance_transform
     mris_entropy
     mris_errors
+    mris_estimate_wm
     mris_expand
     mris_extract_patches
     mris_fill
@@ -702,6 +719,9 @@ if(EXISTS "./mri_make_bem_surfaces")
       add_subdirectories(mri_make_bem_surfaces)
       message(STATUS "Adding mri_make_bem_surfaces to build on ${HOST_OS}")
    elseif(HOST_OS MATCHES "CentOS8")
+      add_subdirectories(mri_make_bem_surfaces)
+      message(STATUS "Adding mri_make_bem_surfaces to build on ${HOST_OS}")
+   elseif(HOST_OS MATCHES "Ubuntu20")
       add_subdirectories(mri_make_bem_surfaces)
       message(STATUS "Adding mri_make_bem_surfaces to build on ${HOST_OS}")
    elseif(APPLE)

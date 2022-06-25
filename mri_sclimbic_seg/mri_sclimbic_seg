@@ -8,8 +8,9 @@ import glob
 import tempfile
 import shutil
 import platform
+import argparse
 import numpy as np
-import freesurfer as fs
+import surfa as sf
 import scipy.ndimage
 
 
@@ -50,7 +51,7 @@ and saved automatically.
 def main():
 
     # configure command-line
-    parser = fs.utils.ArgumentParser(description=description)
+    parser = argparse.ArgumentParser(description=description)
 
     # normal-mode options
     parser.add_argument('-i', '--i', help='T1-w image(s) to segment. Can be a path to a single image or a directory of images.')
@@ -95,11 +96,11 @@ def main():
 
     # a few sanity checks on the command-line inputs
     if args.i is None and args.s is None:
-        fs.fatal('Input image(s) or subject(s) to segment must be provided with the --i or --s flags.')
+        sf.system.fatal('Input image(s) or subject(s) to segment must be provided with the --i or --s flags.')
     if args.i is not None and args.s is not None:
-        fs.fatal('Cannot provide both input image (--i) and subject (--s) flags. Choose one input mode.')
+        sf.system.fatal('Cannot provide both input image (--i) and subject (--s) flags. Choose one input mode.')
     if args.i is not None and args.o is None:
-        fs.fatal('--o output flag must be provided if --i input is used.')
+        sf.system.fatal('--o output flag must be provided if --i input is used.')
 
     # Automatically exclude AntCom unless explicitly kept
     if not args.keep_ac: # not explicity being kept
@@ -112,8 +113,8 @@ def main():
     if args.tal is not None: args.etiv = 1
 
     # check for fs home
-    if not fs.fshome():
-        fs.fatal('FREESURFER_HOME is not set. Please source FreeSurfer.')
+    if not os.environ.get('FREESURFER_HOME'):
+        sf.system.fatal('FREESURFER_HOME is not set. Please source FreeSurfer.')
 
     # configure cuda device
     if args.cuda_device is not None:
@@ -144,23 +145,23 @@ def main():
         percentile = 99.9
 
     # load lookup table for segmentation
-    lut_file = args.ctab if args.ctab else os.path.join(fs.fshome(), 'models', 'sclimbic.ctab')
-    lut = fs.LookupTable.read(lut_file)
+    lut_file = args.ctab if args.ctab else os.path.join(os.environ.get('FREESURFER_HOME'), 'models', 'sclimbic.ctab')
+    labels = sf.load_label_lookup(lut_file)
     print('Loaded lookup table', lut_file)
 
     # load population stats for QA purposes
     if args.population_stats:
         pop_stats_file = args.population_stats
     else:
-        pop_stats_file = os.path.join(fs.fshome(), 'models', 'sclimbic.volstats.csv')
+        pop_stats_file = os.path.join(os.environ.get('FREESURFER_HOME'), 'models', 'sclimbic.volstats.csv')
     with open(pop_stats_file, 'r') as csvfile:
         population_stats = {row.pop('VolStat_mm3'): row for row in csv.DictReader(csvfile)}
     print('Loaded population stats', pop_stats_file)
 
     # load model weights and initialize segmenter
-    model_file = args.model if args.model else os.path.join(fs.fshome(), 'models', 'sclimbic.fsm+ad.t1.nstd00-50.nstd32-50.h5')
+    model_file = args.model if args.model else os.path.join(os.environ.get('FREESURFER_HOME'), 'models', 'sclimbic.fsm+ad.t1.nstd00-50.nstd32-50.h5')
     segmenter = LimbicSegmenter(model_file=model_file,
-                                lut=lut,
+                                labels=labels,
                                 population_stats=population_stats,
                                 conform=args.conform,
                                 store_etiv=args.etiv,
@@ -178,7 +179,7 @@ def main():
         # and use it as input
         sd = os.getenv('SUBJECTS_DIR') if args.sd is None else args.sd
         if sd is None:
-            fs.fatal('Must set subjects directory with --sd or SUBJECTS_DIR env variable.')
+            sf.system.fatal('Must set subjects directory with --sd or SUBJECTS_DIR env variable.')
         summary_file_prefix = os.path.join(sd, args.output_base + '_')
         print('Using subject directory', sd)
 
@@ -190,7 +191,7 @@ def main():
 
         # we still haven't found anything
         if len(subjects) == 0:
-            fs.fatal(f'Subjects directory {sd} does not contain any valid recon-all subjects.')
+            sf.system.fatal(f'Subjects directory {sd} does not contain any valid recon-all subjects.')
 
         # loop through subjects, set filenames, and segment
         for n, subj in enumerate(subjects):
@@ -198,7 +199,7 @@ def main():
             # sanity check the subject
             subjdir = os.path.join(sd, subj)
             if not os.path.isdir(subjdir):
-                fs.fatal(f'Recon-all subject {subj} does not exist in {sd}.')
+                sf.system.fatal(f'Recon-all subject {subj} does not exist in {sd}.')
 
             # set default IO parameters
             params = {
@@ -208,12 +209,12 @@ def main():
                 'case_name': subj,
             }
 
-            # estimate TIV from talairach xfm
+            # estimate TIV from talairach lta
             if args.tal:
-                xfm = os.path.join(subjdir, args.tal)
+                lta = os.path.join(subjdir, args.tal)
             else:
-                xfm = os.path.join(subjdir, 'mri', 'transforms', 'talairach.xfm')
-            params['etiv'] = compute_etiv_from_xfm(xfm)
+                lta = os.path.join(subjdir, 'mri', 'transforms', 'talairach.xfm.lta')
+            params['etiv'] = compute_etiv_from_lta(lta)
             print('Computed eTIV from talairach')
 
             # save posterior data to the mri subdir
@@ -242,12 +243,12 @@ def main():
             for ext in exts:
                 input_files += sorted(glob.glob(os.path.join(args.i, '*' + ext)))
             if len(input_files) == 0:
-                fs.fatal(f'Could not find any valid input images in {args.i}.')
+                sf.system.fatal(f'Could not find any valid input images in {args.i}.')
             os.makedirs(args.o, exist_ok=True)
             logfile = os.path.join(args.o,'mri_sclimbic.log');
         else:
             if not args.i.endswith(exts):
-                fs.fatal(f'{args.i} is an unsupported image file type.')
+                sf.system.fatal(f'{args.i} is an unsupported image file type.')
             input_files = [args.i]
             dirname = os.path.dirname(args.o)
             if dirname:
@@ -266,7 +267,7 @@ def main():
             for ext in exts:
                 if filename.endswith(ext):
                     return (filename[:-len(ext)], ext)
-            fs.fatal(f'{filename} is an unsupported image file type.')
+            sf.system.fatal(f'{filename} is an unsupported image file type.')
 
         # loop through the images and segment
         for n, input_file in enumerate(input_files):
@@ -298,7 +299,7 @@ def main():
                         xfm = os.path.join(args.i, true_basename + args.tal)
                     else:
                         xfm = args.tal
-                    params['etiv'] = compute_etiv_from_xfm(xfm)
+                    params['etiv'] = compute_etiv_from_lta(xfm)
                     print('Computed eTIV from talairach file')
                 else:
                     print("Computing etiv from scratch")
@@ -344,7 +345,7 @@ class LimbicSegmenter:
 
     def __init__(self,
                  model_file,
-                 lut,
+                 labels,
                  population_stats,
                  conform=True,
                  store_etiv=False,
@@ -354,9 +355,8 @@ class LimbicSegmenter:
                  percentile=None,
                  exclude=[]):
 
-        self.lut = lut
+        self.labels = labels
         self.population_stats = population_stats
-        self.labels = list(lut.keys())
         self.conform = conform
         self.inshape = (160, 160, 160)
         self.case_volumes = {}
@@ -372,8 +372,8 @@ class LimbicSegmenter:
         # build mask of labels to exclude in stats output files
         # always ignore unknown label
         self.exclude = [0] + exclude
-        self.exclude_mask = [sid not in self.exclude for sid in self.labels]
-        self.label_names = [label.name for i, label in zip(self.exclude_mask, self.lut.values()) if i]
+        self.exclude_mask = [sid not in self.exclude for sid in labels.keys()]
+        self.label_names = [label.name for i, label in zip(self.exclude_mask, self.labels.values()) if i]
 
         # build and load model
         self.model = unet(nb_features=24,
@@ -458,43 +458,30 @@ class LimbicSegmenter:
         """
         Preprocess an image by conforming it to the correct orientation, shape, and scale.
         """
-
-        # check shape
-        if image.basedims != 3:
-            fs.fatal(f'Input image must be 3D, but is {image.basedims}D.')
-
         # check resolution
-        if not np.allclose(image.voxsize, (1, 1, 1), rtol=0, atol=1e-2):
+        if not np.allclose(image.geom.voxsize, (1, 1, 1), rtol=0, atol=1e-2):
             if self.conform:
                 print('The input image has resolution (%4.2f,%4.2f,%4.2f) mm, but 1mm-isotropic input is required.\n'
-                      'However, --conform has been specified, so the volume will be resliced to 1mm iso.\n' % image.voxsize)
+                      'However, --conform has been specified, so the volume will be resliced to 1mm iso.\n' % image.geom.voxsize)
             else:
                 print('');
-                fs.fatal(f'The input image has resolution {image.voxsize}, but 1mm-isotropic input is required.\n'
+                sf.system.fatal(f'The input image has resolution {image.geom.voxsize}, but 1mm-isotropic input is required.\n'
                          'The volume can be resliced to 1mm-iso by specifying --conform (results may suffer).\n')
 
         # check channels
         if image.nframes > 1:
-            fs.fatal(f'Input image cannot have more than 1 channel, but got {image.nframes}.')
+            sf.system.fatal(f'Input image cannot have more than 1 channel, but got {image.nframes}.')
 
         # normalize image data
-        data = image.data
-        dmin = np.min(data)
-        if self.percentile is not None:
-            dmax = np.percentile(data[data != 0], self.percentile)
-        else:
-            dmax = np.max(data)
+        dmin = image.min()
+        dmax = image.max() if self.percentile is None else image.percentile(self.percentile, nonzero=True)
         if dmin == dmax:
-            fs.fatal('Input image is blank!')
-        data = (data.astype('float32') - dmin) / (dmax - dmin)
-        image.data = np.clip(data, 0, 1)
+            sf.system.fatal('Input image is blank!')
+        image = (image.astype(np.float32) - dmin) / (dmax - dmin)
+        image = image.clip(0, 1)
 
         # conform to RAS 1mm space
-        processed = image.conform(shape=self.inshape, voxsize=1.0, orientation='RAS', dtype='float32')
-
-        # ensure image data has a channel axis
-        if processed.data.ndim == 3:
-            processed.data = processed.data[..., np.newaxis]
+        processed = image.conform(shape=self.inshape, voxsize=1.0, orientation='RAS', dtype='float32', copy=False)
         return processed
 
     def segment(self, image):
@@ -507,17 +494,17 @@ class LimbicSegmenter:
 
         # posterior prediction
         self.reset_timer()
-        prediction = self.model.predict(conformed.data[np.newaxis]).squeeze()
+        prediction = self.model.predict(conformed.framed_data[np.newaxis]).squeeze()
         self.print_time('Prediction time')
         
         self.reset_timer()
 
         # let's clean up the posteriors a bit, but we'll do this in
         # a minimal cropped space to speed things up
-        seg = conformed.copy(data=prediction.argmax(-1))
+        seg = conformed.new(prediction.argmax(-1))
         bbox = seg.bbox(margin=2)
         cropped_seg = seg[bbox]
-        posteriors = conformed.copy(data=prediction)[bbox]
+        posteriors = conformed.new(prediction)[bbox]
 
         # mask the posteriors around each label
         dilate_struct = build_binary_structure(1, 3)
@@ -525,22 +512,22 @@ class LimbicSegmenter:
             cropped_pred_label = posteriors.data[..., label]
             label_mask = scipy.ndimage.binary_dilation(cropped_seg.data == label, dilate_struct)
             cropped_pred_label[np.logical_not(label_mask)] = 0
-            posteriors.data[..., label] = cropped_pred_label
+            posteriors[..., label] = cropped_pred_label
 
         # ensure that the posteriors sum to 1 in the cropped space
-        posteriors.data[..., 0] = 1.0 - np.sum(posteriors.data[..., 1:], axis=-1)
-        posteriors.data = np.clip(posteriors.data, 0, 1)
-        posteriors.data /= np.sum(posteriors.data, axis=-1, keepdims=True)
+        posteriors[..., 0] = 1.0 - np.sum(posteriors[..., 1:], axis=-1)
+        posteriors = posteriors.clip(0, 1)
+        posteriors /= np.sum(posteriors, axis=-1, keepdims=True)
 
         # resample cropped posteriors to original resolution
-        posteriors = posteriors.reslice(image.voxsize)
+        posteriors = posteriors.resize(image.geom.voxsize, copy=False)
 
         # compute the final hard segmentation and compute voxel counts while we're at it
         vox_counts = []
         mean_probs = []
         argmax = posteriors.data.argmax(axis=-1)
         segmap = np.zeros(argmax.shape, dtype='int32')
-        for n, nid in enumerate(self.lut.keys()):
+        for n, nid in enumerate(self.labels.keys()):
             label_mask = argmax == n
             segmap[label_mask] = nid
             vox_counts.append(np.count_nonzero(label_mask))
@@ -551,15 +538,15 @@ class LimbicSegmenter:
         mean_probs = np.array(mean_probs)
 
         # compute label volumes in original resolution
-        voxvol = np.prod(posteriors.voxsize)
+        voxvol = np.prod(posteriors.geom.voxsize)
         if self.volumes_from_vox_count:
             volumes = voxvol * np.array(vox_counts)
         else:
             volumes = voxvol * posteriors.data.reshape(-1, posteriors.shape[-1]).sum(0)
 
         # resample final hard segmentation to original space
-        segmentation = posteriors.copy(data=segmap).resample_like(image, interp_method='nearest')
-        segmentation.lut = self.lut
+        segmentation = posteriors.new(segmap).resample_like(image, method='nearest')
+        segmentation.labels = self.labels
 
         self.print_time('Postprocess time')
 
@@ -577,38 +564,37 @@ class LimbicSegmenter:
 
         # load image
         if not os.path.isfile(input_file):
-            fs.fatal(f'Input image {input_file} does not exist')
-        image = fs.Volume.read(input_file)
+            sf.system.fatal(f'Input image {input_file} does not exist')
+        image = sf.load_volume(input_file)
         print('Loaded input image from', input_file)
 
         # segment
         post, seg, vox_counts, volumes, mean_probs = self.segment(image)
 
         # write segmentation
-        seg.write(segmentation_path)
+        seg.save(segmentation_path)
         print('Wrote segmentation to', segmentation_path)
 
         # write posteriors
         if posteriors_path is not None:
-            post.write(posteriors_path)
+            post.save(posteriors_path)
             print('Wrote posteriors to', posteriors_path)
 
         # write volume stats in FS format
         if volumes_path is not None:
-            table = fs.utils.Table(precision=4)
-            table.header = [
-                'Subcortical Limbic Volumetric Stats',
-                'Created by mri_sclimbic_seg']
-            if etiv is not None:
-                table.header.append('Measure EstimatedTotalIntraCranialVol, eTIV, Estimated ' + \
-                                    'Total Intracranial Volume, %.6f, mm^3' % etiv)
-            table.columns = ['SegId', 'NVoxels', 'Volume_mm3', 'StructName']
-            vox_vol = np.prod(seg.voxsize)
-            for n, nid in enumerate(self.lut.keys()):
-                if nid in self.exclude:
-                    continue
-                table.add_row([nid, vox_counts[n], volumes[n], self.lut[nid].name])
-            table.write(volumes_path)
+            with open(volumes_path, 'w') as file:
+                file.write('# Subcortical Limbic Volumetric Stats\n')
+                file.write('# Created by mri_sclimbic_seg\n')
+                if etiv is not None:
+                    file.write('# Measure EstimatedTotalIntraCranialVol, eTIV, Estimated ' + \
+                              f'Total Intracranial Volume, {etiv:.6f}, mm^3\n')
+                label_matches = [(vid, nid) for (vid, nid) in enumerate(self.labels.keys()) if nid not in self.exclude]
+                file.write(f'# NRows {len(label_matches)}\n')
+                file.write('# NTableCols 5\n')
+                file.write('# ColHeaders Index SegId NVoxels Volume_mm3 StructName\n')
+                for n, (vid, nid) in enumerate(label_matches):
+                    file.write(f'{n+1: <4} {nid: >6}{vox_counts[vid]: >6}{volumes[vid]: >12.4f}    {self.labels[nid].name}\n')
+
             print('Wrote volume stats to', volumes_path)
 
         # store label volumes
@@ -626,13 +612,12 @@ class LimbicSegmenter:
 # ------------------------------------------------------------------------------------------------
 
 
-def compute_etiv_from_xfm(xfm):
+def compute_etiv_from_lta(lta):
     """
-    Compute eTIV by loading the image or subject's talairach xfm.
+    Compute eTIV by loading the image or subject's talairach lta.
     """
     scale_factor = 1948.106
-    trf = fs.LinearTransform.read(xfm)
-    etiv = 1e3 * scale_factor / np.linalg.det(trf.matrix)
+    etiv = 1e3 * scale_factor / sf.load_affine(lta).det()
     return etiv
 
 
@@ -646,24 +631,31 @@ def compute_etiv_from_scratch(image):
     tmpdir = tempfile.mkdtemp()
     norm = os.path.join(tmpdir, 'nu.mgz')
     xfm = os.path.join(tmpdir, 'talairach.xfm')
+    lta = os.path.join(tmpdir, 'talairach.xfm.lta')
 
     # conform the input image
-    ret = fs.run(f'mri_convert --conform {image} {norm}')
+    ret = sf.system.run(f'mri_convert --conform {image} {norm}')
     if ret != 0:
-        fs.fatal('mri_convert --conform failed!')
+        sf.system.fatal('mri_convert --conform failed!')
 
     # run intensity normalization
-    ret = fs.run(f'mri_nu_correct.mni --no-rescale --i {norm} --o {norm} --n 1 --proto-iters 1000 --distance 50 --ants-n4')
+    ret = sf.system.run(f'mri_nu_correct.mni --no-rescale --i {norm} --o {norm} --n 1 --proto-iters 1000 --distance 50 --ants-n4')
     if ret != 0:
-        fs.fatal('mri_nu_correct failed!')
+        sf.system.fatal('mri_nu_correct failed!')
 
     # run talairach registration
-    ret = fs.run(f'talairach_avi --i {norm} --xfm {xfm}')
+    ret = sf.system.run(f'talairach_avi --i {norm} --xfm {xfm}')
     if ret != 0:
-        fs.fatal('talairach_avi failed!')
+        sf.system.fatal('talairach_avi failed!')
+
+    # convert XFM to LTA
+    mni305 = os.path.join(os.environ.get('FREESURFER_HOME'), 'average', 'mni305.cor.mgz')
+    ret = sf.system.run(f'lta_convert --src {norm} --trg {mni305} --inxfm {xfm} --outlta {lta} --subject fsaverage --ltavox2vox')
+    if ret != 0:
+        sf.system.fatal('lta_convert failed!')
 
     # estimate TIV
-    etiv = compute_etiv_from_xfm(xfm)
+    etiv = compute_etiv_from_lta(lta)
     shutil.rmtree(tmpdir)
     return etiv
 

@@ -296,6 +296,7 @@ int main(int argc, char *argv[]) {
     }
   } else {
     printf("Synthesizing %d frames, Seed = %d\n",nframes,SynthSeed);
+    srand48(SynthSeed);
     InVals = MRIrandn(surf->nvertices, 1, 1, nframes,0, 1, NULL);
   }
 

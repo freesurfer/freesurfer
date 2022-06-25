@@ -11,6 +11,16 @@ install(FILES
   DESTINATION .
 )
 
+# also install lookup tables to the new `luts` subdirectory,
+# but we keep the above for backwards compatibility
+install(FILES
+  FreeSurferColorLUT.txt
+  luts/ReducedLabels24.txt
+  luts/ReducedLabels35.txt
+  luts/ReducedLabels4.txt
+  DESTINATION luts
+)
+
 install_configured(
   FreeSurferEnv.csh
   FreeSurferEnv.sh

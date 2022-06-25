@@ -59,7 +59,8 @@ set bstamp0 = `cat $bstampfile0`
 echo "Current FS Version $bstamp0"| tee -a $LF
 
 # Regardless of how the version is controlled, copy the current 
-# version into the subject if it does not exist
+# version into the subject if the subject version file does not exist
+set bstamp = ()
 if($#subject) then
   # copy bstamp into subject if needed
   mkdir -p $SUBJECTS_DIR/$subject/scripts
@@ -132,15 +133,29 @@ if("$REQUIRE_FS_MATCH" != 0 && "$REQUIRE_FS_MATCH" != 1 &&\
   # as a list of one or more acceptable versions separated by colons (:)
   # eg, freesurfer-local-build-20220204:freesurfer-linux-centos7_x86_64-dev-20220215-f9c46e6
   set verlist = (`echo $REQUIRE_FS_MATCH | sed 's/:/ /g'`)
+  set CurrentMatch = 0
+  set SubjectMatch = 0
   foreach ver ($verlist)
     if("$ver" == "$bstamp0") then
       echo "found a match with current FS version in REQUIRE_FS_MATCH" |& tee -a $LF
-      set match = 1;
-      goto done;
+      set CurrentMatch = 1
+    endif
+    if($#subject && "$ver" == "$bstamp") then
+      echo "found a match with subject version in REQUIRE_FS_MATCH" |& tee -a $LF
+      set SubjectMatch = 1
     endif
   end
+  if(($CurrentMatch && $SubjectMatch) || ($CurrentMatch && $#subject == 0)) then
+    set match = 1
+    echo "found a match with both current and subject" | tee -a $LF
+    goto done    
+  endif
+  if(! $CurrentMatch) echo "ERROR: could not find a match for current version in REQUIRE_FS_MATCH"|& tee -a $LF
+  if($#subject && ! $SubjectMatch) then
+     echo ss $#subject $subject $#bstamp $bstamp
+     echo "ERROR: ---could not find a match for $subject subject version $bstamp in REQUIRE_FS_MATCH"|& tee -a $LF
+  endif
   # default is match=0 above, so not match if it gets here
-  echo "ERROR: could not find a match with current FS version in REQUIRE_FS_MATCH"|& tee -a $LF
   echo "  Options are:"|& tee -a $LF
   foreach ver ($verlist)
     echo "   $ver $bstamp0"|& tee -a $LF
@@ -151,15 +166,26 @@ endif
 if(-e $fsav && ("$REQUIRE_FS_MATCH" == 2 || "$REQUIRE_FS_MATCH" == NotSet) ) then
   set verlist = (`cat $fsav`)
   echo FSAV $verlist | tee -a $LF
+  set CurrentMatch = 0
+  set SubjectMatch = 0
   foreach ver ($verlist)
     if("$ver" == "$bstamp0") then
-      echo "found a match with current FS version in $fsav"|& tee -a $LF
-      set match = 1;
-      goto done;
+      echo "found a match with current FS version in REQUIRE_FS_MATCH" |& tee -a $LF
+      set CurrentMatch = 1
+    endif
+    if($#subject && "$ver" == "$bstamp") then
+      echo "found a match with subject version in REQUIRE_FS_MATCH" |& tee -a $LF
+      set SubjectMatch = 1
     endif
   end
+  if(($CurrentMatch && $SubjectMatch) || ($CurrentMatch && $#subject == 0)) then
+    set match = 1
+    echo "found a match with both current and subject" | tee -a $LF
+    goto done    
+  endif
+  if(! $CurrentMatch) echo "ERROR: could not find a match for current version in fsav"|& tee -a $LF
+  if($#subject && ! $SubjectMatch) echo "ERROR: could not find a match for subject version in fsav"|& tee -a $LF
   # default is match=0 above, so not match if it gets here
-  echo "ERROR: could not find a match with current FS version in $fsav"|& tee -a $LF
   echo "  Options are:"|& tee -a $LF
   foreach ver ($verlist)
     echo "   $ver $bstamp0"|& tee -a $LF
@@ -250,24 +276,28 @@ while( $#argv != 0 )
         # mysubject = subject passed but no buildstamp file
         # mysubject-match = subject passed and has matching buildstamp file
         # mysubject-nomatch = subject passed and has buildstamp file but does not match
-        foreach req (0 1 2 3 4 5 6 7) 
+        foreach req (0 1 2 3 4 5 6 7 8) 
           # req=0 REQUIRE_FS_MATCH = 0
           # req=1 REQUIRE_FS_MATCH = 1
           # req=2 REQUIRE_FS_MATCH = 2
           # req=3 REQUIRE_FS_MATCH unset
-          # req=4 REQUIRE_FS_MATCH set to matching version
-          # req=5 REQUIRE_FS_MATCH set to non-matching version
+          # req=4 REQUIRE_FS_MATCH set to current version
+          # req=5 REQUIRE_FS_MATCH set to version that does not match current
           # req=6 REQUIRE_FS_MATCH unset and fs-allowed-versions.txt set to match
           # req=7 REQUIRE_FS_MATCH unset and fs-allowed-versions.txt set to non-match
+          # req=8 REQUIRE_FS_MATCH set to both current and ver-nomatch
           rm -rf $SUBJECTS_DIR/$subject
           rm -f $fsav      
           echo "\n\n"
           echo "s = $subject REQ = $req ==================================="
           setenv REQUIRE_FS_MATCH $req
-          set matchexp = 1
+          set matchexp = 1 # expect success
           if(($req == 1 || $req == 2) && $subject == mysubject-nomatch) set matchexp = 0
           if("$req" == "3") unsetenv REQUIRE_FS_MATCH
-          if("$req" == "4") setenv REQUIRE_FS_MATCH $bstamp0
+          if("$req" == "4") then
+            setenv REQUIRE_FS_MATCH $bstamp0
+            if($subject == mysubject-nomatch) set matchexp = 0
+          endif
           if("$req" == "5") then
             setenv REQUIRE_FS_MATCH ver-nomatch
             set matchexp = 0
@@ -276,11 +306,17 @@ while( $#argv != 0 )
             unsetenv REQUIRE_FS_MATCH 
             echo $bstamp0 > $fsav
             set matchexp = 1
+            if($subject == mysubject-nomatch) set matchexp = 0
           endif
           if("$req" == "7") then
             unsetenv REQUIRE_FS_MATCH 
             echo ver-nomatch > $fsav
             set matchexp = 0
+          endif
+          if("$req" == "8") then
+            setenv REQUIRE_FS_MATCH ${bstamp0}:ver-nomatch
+            echo ver-nomatch > $fsav
+            set matchexp = 1
           endif
           rm -f $checkfile
           set cmd = (fs-check-version --o $checkfile)
@@ -400,9 +436,22 @@ multiple version of FS will give the same answer. This can happen
 when you want to upgrade to a new version of FS because it has
 some new functionality.
 
-Version information can be found in $FREESURFER_HOME/build-stamp.txt
+Version information for the currently source FS can be found in
+$FREESURFER_HOME/build-stamp.txt
 
-The specification can take one of two forms:
+There will be the file $SUBJECTS_DIR/$subject/scripts/build-stamp.txt 
+with the version that the given subject was created with.
+
+In 7.3+ versions, if one wants to be able to analyze data using
+multiple versions of FS, then either create a
+$SUBJECTS_DIR/fs-allowed-versions.txt file with the list of allowed
+versions or set REQUIRE_FS_MATCH to a colon-separaeted list of allowed
+versions. A match will be declared if both the current version and the
+version in $SUBJECTS_DIR/$subject/scripts/build-stamp.txt are in the
+list.
+
+
+The version specification can take one of two forms:
 
 Setting environment variable REQUIRE_FS_MATCH and/or creating a file
 called $SUBJECTS_DIR/fs-allowed-versions.txt
@@ -412,13 +461,13 @@ fs-allowed-versions.txt is new to 7.3+.
 
 If REQUIRE_FS_MATCH is set to 0 or 1, then it defaults to the standard
 behavior of pre-7.3 versions, ie, if 0, then there are no constraints
-and the output file will contain 1. If 1, then this script checks the
+(the output file will contain 1). If 1, then this script checks the
 build stamp found in $SUBJECTS_DIR/$subject/scripts/build-stamp.txt.
 If it matches the current version, then the output file will contain
-1, otherwise 0. If that file does not exist, the current build stamp
-is copied into it (regardless of REQUIRE_FS_MATCH).  If a subject is
-not specified, then other criteria area used to determine whether
-there is match.
+1, otherwise 0. If the subject buildstamp file does not exist, the
+current FS build stamp is copied into it (regardless of
+REQUIRE_FS_MATCH).  If a subject is not specified, then other criteria
+area used to determine whether there is match.
 
 With 7.3+ versions, REQUIRE_FS_MATCH can be set to 2. If
 fs-allowed-versions.txt does not exist, then it has the same
@@ -426,15 +475,17 @@ behavior as if it were set to 1. This allows some slight backwards
 compatibility in that pre-7.3 versions will treat 2 the same as 1 (but 
 will not be aware of the fs-allowed-versions.txt file). 
 
-With 7.3+ versions, REQUIRE_FS_MATCH can be set to a colon separaeted
-list of allowable versions. If the current FS version must matche ones
+With 7.3+ versions, REQUIRE_FS_MATCH can be set to a colon-separaeted
+list of allowable versions. The current FS version must match one
 of them. This will not be compatable with pre-7.3 versions (recon-all
-will crash).
+will crash). If a subject is specified, the the subject build stamp
+must also match one of the versions.
 
 In 7.3+, if REQUIRE_FS_MATCH is not set or is set to 2 and
-fs-allowed-versions.txt exists, then a list of one or more
-versions is read from that file. The current FS version must match one
-of them.
+fs-allowed-versions.txt exists, then a list of one or more versions is
+read from that file. The current FS version must match one of them. If
+a subject is specified, the the subject build stamp must also match
+one of the versions.
 
 Below is some logic used to help program
 
@@ -457,22 +508,36 @@ REQ=0
 
 REQ=1 AND
   Subject=Speced 
-   - reverts to previous behavior regardless of FsVerFile
+   - reverts to previous behavior regardless of FsVerFile, ie,
+     subjectVer = currentVer
   Subject=UnSpeced 
    - no constraints regardless of FsVerFile (same as prev behav)
 
 REQ=VerList
-- requires match with VerList regardless of FsVerFile and Subject
+  - current FS version must be in the list
+  Subject=Speced 
+   - subject version must be in the list
+     Note: it is ok if current FS and subject may have different 
+     versions as long as they are both in the list
 
 REQ=2 AND
  FsVerFile=NotThere
   - reverts to previous behavior (like REQ=1)
-    - continues to behave in the same as REQ=1 in pre-7.3
+    - continues to behave in the same as REQ=1 in pre-7.3 FS versions
  FsVerFile=There
-  - requires a match with versions in the FsVerFile regardless of Subject
+  - current FS version must be in the list
+  Subject=Speced 
+   - subject version must be in the list
+     Note: it is ok if current FS and subject may have different 
+     versions as long as they are both in the list
 
 FsVerFile=There AND (REQ=NotSet OR REQ=2)
-  - requires a match with versions in the FsVerFile regardless of Subject
+  - current FS version must be in the list
+  Subject=Speced 
+   - subject version must be in the list
+     Note: it is ok if current FS and subject may have different 
+     versions as long as they are both in the list
+
 
 Outcomes:
 
@@ -484,10 +549,9 @@ VerList in REQ: (REQ!=0 AND REQ!=1 AND REQ!=2 AND AND REQ is set)
 
 FsVerFile: (REQ=NotSet OR REQ=2) AND FsVerFile=There
 
-
 Use cases:
 
-Have several studies which use different version. Have REQ=1 set in
+Have several studies which use different FS versions. Have REQ=1 set in
 cshrc file. This simply breaks any mixed version. Can change it to
 REQ=2 and it will behave the same in pre-7.3 versions but allows new
 behavior in 7.3+ versions.
@@ -497,6 +561,7 @@ Starting a new study in 7.3+. Can use REQ=1 or REQ=2 or REQ=ver or FsVerFile.
 Have data analyzed in 7.2 but using 7.3 too. Can set REQ=2 to have the same behavior
 in 7.2 but new behavior in 7.3. Howver, if analyzed a subject in 7.3, then it would 
 fail if tried to run in 7.2 regardless.
+
 
 
 

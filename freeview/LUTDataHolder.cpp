@@ -31,43 +31,30 @@ LUTDataHolder::LUTDataHolder()
 {
   ColorTableData ctd;
   QString fs_home = QProcessEnvironment::systemEnvironment().value( "FREESURFER_HOME" );
-  QFileInfo fi( fs_home + "/FreeSurferColorLUT.txt" );
-  if (fi.exists())
+  QDir dir(fs_home + "/luts");
+  QFileInfoList list = dir.entryInfoList(QDir::Files);
+  bool bStandardFound = false;
+  foreach (QFileInfo fi, list)
   {
-    ctd.filename = fi.absoluteFilePath();
-    ctd.table = CTABreadASCII( ctd.filename.toLatin1().data() );
-    ctd.name = "FreeSurferColorLUT";
-    if ( ctd.table )
+    if (fi.exists())
     {
-      m_tables.push_back( ctd );
+      ctd.filename = fi.absoluteFilePath();
+      ctd.table = CTABreadASCII( ctd.filename.toLatin1().data() );
+      ctd.name = fi.baseName();
+      if ( ctd.table )
+      {
+        if (ctd.name == "FreeSurferColorLUT")
+        {
+          m_tables.insert(0, ctd);
+          bStandardFound = true;
+        }
+        else
+          m_tables.push_back( ctd );
+      }
     }
   }
 
-  //  fi.setFile( fs_home + "/tkmeditParcColorsCMA" );
-  //  if (fi.exists())
-  //  {
-  //    ctd.filename = fi.absoluteFilePath();
-  //    ctd.table = CTABreadASCII( ctd.filename.toLatin1().data() );
-  //    ctd.name = "tkmeditParcColorsCMA";
-  //    if ( ctd.table )
-  //    {
-  //      m_tables.push_back( ctd );
-  //    }
-  //  }
-
-  //  fi.setFile( fs_home + "/Simple_surface_labels2009.txt" );
-  //  if (fi.exists())
-  //  {
-  //    ctd.filename = fi.absoluteFilePath();
-  //    ctd.table = CTABreadASCII( ctd.filename.toLatin1().data() );
-  //    ctd.name = "Simple_surface_labels2009";
-  //    if ( ctd.table )
-  //    {
-  //      m_tables.push_back( ctd );
-  //    }
-  //  }
-
-  if ( m_tables.isEmpty() )
+  if (!bStandardFound)
   {
     QFile file_in( ":/FreeSurferColorLUT.txt" );
     file_in.open(QIODevice::ReadOnly | QIODevice::Text);
@@ -86,11 +73,11 @@ LUTDataHolder::LUTDataHolder()
     ctd.name = "FreeSurferColorLUT";
     if ( ctd.table )
     {
-      m_tables.push_back( ctd );
+      m_tables.insert(0, ctd);
     }
-    else
+    else if (m_tables.isEmpty())
     {
-      std::cerr << "Error: Did not find any look up table files.\n";
+      std::cerr << "Error: Did not find the standard FS lookup table files.\n";
     }
   }
 }

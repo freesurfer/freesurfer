@@ -190,4 +190,9 @@ int CHTsetSignString(CHT *cht, char *ithr_sign);
 int CHTsignId(char *ithr_sign);
 int CSDwrite(char *fname, CSD *csd);
 
+MRI *MRIremoveVolumeIslands(MRI *mask, double thresh, int nKeep, MRI *outvol);
+MRI *MRIremoveVolumeHoles(MRI *mask, double thresh, int nKeep, double FillVal, MRI *outvol);
+MRI *MRIremoveSliceHoles(MRI *mask, int slicedir, MRI *outvol);
+
+
 #endif

@@ -45,6 +45,7 @@
 /* ----- determines tolerance of non-orthogonal basis vectors ----- */
 #define CLOSE_ENOUGH  (5e-3)
 
+void applyGaussianFilter(MRI *inVol, float *voxsize);
 void get_ints(int argc, char *argv[], int *pos, int *vals, int nvals);
 void get_floats(int argc, char *argv[], int *pos, float *vals, int nvals);
 void get_string(int argc, char *argv[], int *pos, char *val);
@@ -197,6 +198,7 @@ int main(int argc, char *argv[])
   int nthframe=-1;
   int reduce = 0 ;
   float fwhm, gstd;
+  int antialias_flag = FALSE;
   int sphinx_flag = FALSE;
   int LeftRightReverse = FALSE;
   int LeftRightReversePix = FALSE;
@@ -484,11 +486,14 @@ int main(int argc, char *argv[])
     {
       sphinx_flag = TRUE;
     }
+    /* This option is not needed. 
+       Rescale factors are automatically detected in sdcmLoadVolume() and DICOMRead2().
     else if (strcmp(argv[i], "--rescale-dicom") == 0 )
     {
       // DO  apply rescale intercept and slope based on (0028,1052) (0028,1053).
       setenv("FS_RESCALE_DICOM","1",1);
     }
+    */
     else if (strcmp(argv[i], "--no-rescale-dicom") == 0 )
     {
       // Do NOT apply rescale intercept and slope based on (0028,1052) (0028,1053).
@@ -1015,6 +1020,10 @@ int main(int argc, char *argv[])
       get_ints(argc, argv, &i, &in_n_k, 1);
       in_n_k_flag = TRUE;
     }
+    else if(strcmp(argv[i], "--antialias") == 0)
+    {
+      antialias_flag = TRUE;
+    }
     else if(strcmp(argv[i], "--fwhm") == 0)
     {
       get_floats(argc, argv, &i, &fwhm, 1);
@@ -1152,6 +1161,14 @@ int main(int argc, char *argv[])
     else if(strcmp(argv[i], "-dicomread0") == 0)
     {
       UseDICOMRead2 = 0;
+    }
+    else if(strcmp(argv[i], "-siemensBVecsCross") == 0)
+    {
+      setenv("FS_dcmGetDWIParamsSiemens_VoxelSpace","1",1);
+    }
+    else if(strcmp(argv[i], "-no-siemensBVecsCross") == 0)
+    {
+      unsetenv("FS_dcmGetDWIParamsSiemens_VoxelSpace");
     }
     else if(strcmp(argv[i], "-ot") == 0 ||
             strcmp(argv[i], "--out_type") == 0)
@@ -1513,6 +1530,20 @@ int main(int argc, char *argv[])
   }
   /**** Finished parsing command line ****/
   /* option inconsistency checks */
+  if (antialias_flag == TRUE && voxel_size_flag == FALSE)
+  {
+    fprintf(stderr, "ERROR: use --voxsize to specify voxel size for --antialias\n");
+    exit(1);
+  }
+
+  if (antialias_flag == TRUE && fwhm > 0)
+  {
+    fprintf(stderr, "ERROR: --antialias and --fwhm are mutually excluded!\n"
+                    "       use --antialias to automatically calculate FWHM, \n"
+	            "       or, --fwhm to specify desired FWHM\n");
+    exit(1);
+  }
+
   if (force_ras_good && (in_i_direction_flag || in_j_direction_flag ||
                          in_k_direction_flag))
   {
@@ -2299,7 +2330,9 @@ int main(int argc, char *argv[])
     }
   }
 
-  if(fwhm > 0)
+  if (antialias_flag == TRUE)
+    applyGaussianFilter(mri, voxel_size);
+  else if (fwhm > 0)
   {
     printf("Smoothing input at fwhm = %g, gstd = %g\n",fwhm,gstd);
     MRIgaussianSmooth(mri, gstd, 1, mri);
@@ -3059,9 +3092,16 @@ int main(int argc, char *argv[])
 		  Progname, transform_fname) ;
       if (invert_transform_flag == 0)
       {
+        /*GCA_MORPH *gcam = (GCA_MORPH *)tran->xform ;
+        if (mri->width  != gcam->atlas.width  ||
+            mri->height != gcam->atlas.height ||
+            mri->depth  != gcam->atlas.depth) {
+          ErrorExit(ERROR_BADPARM, "input MRI sizes are different from m3z");
+	  }*/
+ 
         printf("morphing to atlas with resample type %d\n", resample_type_val) ;
         mri_transformed =
-           GCAMmorphToAtlas(mri, (GCA_MORPH *)tran->xform, NULL, 0, resample_type_val) ;
+           GCAMmorphToAtlas(mri, (GCA_MORPH *)tran->xform, NULL, -1, resample_type_val) ;
 	useVolGeomToMRI(&((GCA_MORPH *)tran->xform)->atlas, mri_template) ;
       }
       else // invert
@@ -3150,7 +3190,9 @@ int main(int argc, char *argv[])
                               tmp2,
                               NULL );
     // now get the values (tri-linear)
-    MRIlinearTransform(mri, mri_transformed, src2dst);
+    //MRIlinearTransform(mri, mri_transformed, src2dst);
+    // respect --resample_type <resample_type_val>
+    MRIlinearTransformInterp(mri, mri_transformed, src2dst, resample_type_val);
     MatrixFree(&src2dst);
     MatrixFree( &tmp2 );
     MRIfree(&mri);
@@ -3638,6 +3680,44 @@ int main(int argc, char *argv[])
 
 } /* end main() */
 /*----------------------------------------------------------------------*/
+
+/*
+ * This function implements '--antialias --voxsize <>'.
+ *  Apply Gaussian filter to smooth input volume.
+ *  fwhm is automatically calculated for each dimension based on the ratio of output and input volume resolutions.
+ *        sigma = R * log(F) / pi
+ *        F = 5.0
+ *        fwhm = sigma * sqrt(8 * log(2));
+ */
+void applyGaussianFilter(MRI *inVol, float *voxsize)
+{
+    float std[3];
+
+    int n;
+    for (n = 0; n < 3; n++)
+    {
+      // sigma = R * log(F) / pi
+      float insize = inVol->xsize;
+      if ( n == 1)
+        insize = inVol->ysize;
+      else if (n == 2)
+        insize = inVol->zsize;
+
+      std[n] = 0;
+      if (voxsize[n] > insize)
+      {
+        float R = voxsize[n] / insize;
+        float F = 5.0;
+        float sigma = R*log(F)/M_PI;
+
+        float fwhm = sigma * sqrt(8 * log(2));
+        std[n] = fwhm/sqrt(log(256.0));
+        printf("dimension #%d: insize = %f, outsize = %f, sigma = %g, fwhm = %g, gstd = %g\n", n+1, insize, voxsize[n], sigma, fwhm, std[n]);
+      }
+    }
+
+    MRIgaussianSmoothNI(inVol, std[0], std[1], std[2], inVol);
+} /* end applyGaussianFilter() */
 
 void get_ints(int argc, char *argv[], int *pos, int *vals, int nvals)
 {

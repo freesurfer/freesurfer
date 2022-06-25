@@ -584,7 +584,8 @@ int MRISwriteAreaError(MRI_SURFACE *mris, const char *name)
   FILE *fp;
   char fname[STRLEN];
 
-  MRISbuildFileName(mris, name, fname);
+  strcpy(fname, name);
+
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) {
     fprintf(stdout, "writing area error file %s...", fname);
   }
@@ -771,12 +772,6 @@ int MRISwriteValues(MRI_SURFACE *mris, const char *sname)
   int ftype, err;
   MRI *TempMRI;
 
-#if 1
-  MRISbuildFileName(mris, sname, fname);
-#else
-  strcpy(fname, sname);
-#endif
-
   // Try saving it in a "volume" format -- but not img or nifti
   // as they use shorts for the number of vertices. Should add
   // a reshape.
@@ -793,6 +788,8 @@ int MRISwriteValues(MRI_SURFACE *mris, const char *sname)
     err = MRIwrite(TempMRI, sname);
     return (err);
   }
+
+  strcpy(fname, sname);
 
   cp = strrchr(fname, '.');
   if (!cp || *(cp + 1) != 'w') {
@@ -1006,7 +1003,8 @@ int MRISreadCanonicalCoordinates(MRI_SURFACE *mris, const char *sname)
 int MRISreadPatchNoRemove(MRI_SURFACE *mris, const char *pname)
 {
   char fname[STRLEN];
-  MRISbuildFileName(mris, pname, fname);
+
+  MRISbuildFileName_read(mris, pname, fname);
 
   int const type = MRISfileNameType(fname); /* using extension to get type */
 
@@ -1028,7 +1026,7 @@ int MRISreadPatchNoRemove(MRI_SURFACE *mris, const char *pname)
   else if (type == MRIS_ASCII_TRIANGLE_FILE) /* .ASC */
   {
     fp = fopen(fname, "r");
-    if (!fp) ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE, "MRISreadPatch(%s): could not open file", fname));
+    if (!fp) ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE, "MRISreadPatchNoRemove(%s): could not open file", fname));
     cp = fgetl(line, 256, fp);    // this would skip # lines
     sscanf(cp, "%d %*s", &npts);  // get points
     if (Gdiag & DIAG_SHOW)
@@ -1050,7 +1048,7 @@ int MRISreadPatchNoRemove(MRI_SURFACE *mris, const char *pname)
         sscanf(cp, "%d %*s", &i);
       }
       else
-        ErrorReturn(ERROR_BADPARM, (ERROR_BAD_PARM, "MRISreadPatch(%s): could not read line for point %d\n", fname, j));
+        ErrorReturn(ERROR_BADPARM, (ERROR_BAD_PARM, "MRISreadPatchNoRemove(%s): could not read line for point %d\n", fname, j));
 
       // if negative, flip it
       if (i < 0) {
@@ -1101,7 +1099,7 @@ int MRISreadPatchNoRemove(MRI_SURFACE *mris, const char *pname)
   /////////////////////////////////////////////////////////////////////////
   else {
     fp = fopen(fname, "rb");
-    if (!fp) ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE, "MRISreadPatch(%s): could not open file", fname));
+    if (!fp) ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE, "MRISreadPatchNoRemove(%s): could not open file", fname));
 
     // read number of vertices
     npts = freadInt(fp);
@@ -2340,8 +2338,9 @@ int MRISreadVertexPositions(MRI_SURFACE *mris, const char *name)
   int vno, nvertices, nfaces, magic, version, tmp, ix, iy, iz, n, type;
   FILE *fp;
 
+  MRISbuildFileName_read(mris, name, fname);
+
   type = MRISfileNameType(name);
-  MRISbuildFileName(mris, name, fname);
   if (type == MRIS_GEO_TRIANGLE_FILE) {
     return (mrisReadGeoFilePositions(mris, fname));
   }
@@ -4437,7 +4436,9 @@ static int MRISwrite_new(MRI_SURFACE *mris, const char *name)
   char fname[STRLEN];
 
   chklc();
-  MRISbuildFileName(mris, name, fname);
+
+  strcpy(fname, name);
+
   type = MRISfileNameType(fname);
   if (type == MRIS_ASCII_TRIANGLE_FILE) {
     return (MRISwriteAscii(mris, fname));
@@ -4563,7 +4564,9 @@ static int MRISwrite_old(MRI_SURFACE *mris, const char *name)
   char fname[STRLEN];
 
   chklc();
-  MRISbuildFileName(mris, name, fname);
+
+  strcpy(fname, name);
+
   type = MRISfileNameType(fname);
   if (type == MRIS_ASCII_TRIANGLE_FILE) {
     return (MRISwriteAscii(mris, fname));
@@ -5403,7 +5406,7 @@ int MRISwriteTriangularSurface(MRI_SURFACE *mris, const char *fname)
     fprintf(stdout, "writing surface file %s, created by %s on %s.\n", fname, user, cdt.c_str());
 
   FILE *fp = fopen(fname, "w");
-  if (fp == NULL) ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "MRISwrite(%s): can't create file\n", fname));
+  if (fp == NULL) ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "MRISwriteTriangularSurface(%s): can't create file\n", fname));
   
   fwrite3(TRIANGLE_FILE_MAGIC_NUMBER, fp);
   fprintf(fp, "created by %s on %s\n\n", user, cdt.c_str());
@@ -5669,21 +5672,26 @@ static MRI_SURFACE *mrisReadTriangleFile(const char *fname, double nVFMultiplier
 
   return (mris);
 }
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
-int MRISbuildFileName(MRI_SURFACE *mris, const char *sname, char *fname)
+/*!
+\fn int MRISbuildFileName_read(MRI_SURFACE *mris, const char *sname, char *fname)
+\brief This function "builds" a file path (fname) for reading a surface.
+\param mris  - input MRI_SURFACE struct
+\param sname - input surface name, it is in one of these three formats: <lh|rh.surfacename>, <surfacename>, or <full path to surfacename>
+\param fname - output surface name. 
+\description This function should be used to contruct surface read path only. 
+The surface read path is computed as following:
+1. If sname is <full path to surfacename> (determined by a forward slash "/" in sname), copy sname to fname, and return;
+2. if hemisphere part is missing in the surface name (sname is in <surfacename> format), the prefix is taken from mris->hemisphere;
+3. if environment variable FS_POSIX is set, use cwd as the path, otherwise, use where mris->fname is in.
+*/
+int MRISbuildFileName_read(MRI_SURFACE *mris, const char *sname, char *fname)
 {
   char path[STRLEN];
   const char *slash, *dot;
 
   slash = strchr(sname, '/');
-  if (!slash) /* no path - use same one as mris was read from */
-  {
+  if(!slash)   {
+    /* no path - use same one as mris was read from */
     dot = strchr(sname, '.');
     FileNamePath(mris->fname, path);
     if (dot && (*(dot - 1) == 'h') && (*(dot - 2) == 'l' || *(dot - 2) == 'r')) {
@@ -5702,24 +5710,23 @@ int MRISbuildFileName(MRI_SURFACE *mris, const char *sname, char *fname)
 	}
       }
     }
-    else /* no hemisphere specified */
-        if (getenv("FS_POSIX")) {
-      // PW 2017/05/15: If FS_POSIX is set, write to cwd (as per POSIX:4.11)
-	  int req = snprintf(fname, STRLEN,
-			     "./%s.%s",
-			     mris->hemisphere == LEFT_HEMISPHERE ? "lh" : mris->hemisphere == BOTH_HEMISPHERES ? "both" : "rh",
-			     sname);
-	  if( req >= STRLEN ) {
-	    std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
-	  }
+    else {/* no hemisphere specified */
+      const char *hemistr;
+      if(mris->hemisphere == LEFT_HEMISPHERE)       hemistr = "lh.";
+      else if(mris->hemisphere == RIGHT_HEMISPHERE) hemistr = "rh.";
+      else if(mris->hemisphere == BOTH_HEMISPHERES)  hemistr = "both.";
+      else hemistr = "";
+      if (getenv("FS_POSIX")) {
+	// PW 2017/05/15: If FS_POSIX is set, write to cwd (as per POSIX:4.11)
+	int req = snprintf(fname, STRLEN,"./%s%s",hemistr,sname);
+	if( req >= STRLEN ) {
+	  std::cerr << __FUNCTION__ << ": Truncation on line " << __LINE__ << std::endl;
 	}
-	else {
-      // PW 2017/05/15: Legacy behaviour
-      sprintf(fname,
-              "%s/%s.%s",
-              path,
-              mris->hemisphere == LEFT_HEMISPHERE ? "lh" : mris->hemisphere == BOTH_HEMISPHERES ? "both" : "rh",
-              sname);
+      }
+      else {
+	// PW 2017/05/15: Legacy behaviour
+	sprintf(fname,"%s/%s%s",path,hemistr,sname);
+      }
     }
   }
   else {

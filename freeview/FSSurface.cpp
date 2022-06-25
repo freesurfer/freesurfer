@@ -300,7 +300,7 @@ bool FSSurface::InitializeData(const QString &vector_filename,
   }
   else if ( !m_MRIS->useRealRAS && m_volumeRef )
   {
-    MATRIX* m = RASFromSurfaceRAS_( m_volumeRef->GetMRI());
+    MATRIX* m = RASFromSurfaceRAS_( m_volumeRef->GetMRI(),NULL);
     for ( int i = 0; i < 16; i++ )
     {
       m_SurfaceToRASMatrix[i] =
@@ -458,17 +458,29 @@ bool FSSurface::LoadCurvature( const QString& filename )
   {
     int cVertices = m_MRIS->nvertices;
 
-    vtkSmartPointer<vtkFloatArray> curvs = vtkSmartPointer<vtkFloatArray>::New();
-    curvs->Allocate( cVertices );
-    curvs->SetNumberOfComponents( 1 );
-    curvs->SetName( "Curvature" );
-
-    for ( int vno = 0; vno < cVertices; vno++ )
+    vtkSmartPointer<vtkFloatArray> curvs = vtkFloatArray::SafeDownCast( m_polydata->GetPointData()->GetArray( "Curvature" ) );
+    if (curvs.GetPointer() == NULL)
     {
-      curvs->InsertNextValue( m_MRIS->vertices[vno].curv );
+      curvs = vtkSmartPointer<vtkFloatArray>::New();
+      curvs->Allocate( cVertices );
+      curvs->SetNumberOfComponents( 1 );
+      curvs->SetName( "Curvature" );
+      m_polydata->GetPointData()->SetScalars( curvs );
+      m_polydataWireframes->GetPointData()->SetScalars( curvs );
+      for ( int vno = 0; vno < cVertices; vno++ )
+      {
+        curvs->InsertNextValue(m_MRIS->vertices[vno].curv);
+      }
     }
-    m_polydata->GetPointData()->SetScalars( curvs );
-    m_polydataWireframes->GetPointData()->SetScalars( curvs );
+    else
+    {
+      for ( int vno = 0; vno < cVertices; vno++ )
+      {
+        curvs->SetValue(vno, m_MRIS->vertices[vno].curv);
+      }
+    }
+
+
     m_bCurvatureLoaded = true;
 
     return true;

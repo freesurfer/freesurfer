@@ -19,26 +19,6 @@
 
 function segmentSubject(subjectName,subjectDir,resolution,atlasMeshFileName,atlasDumpFileName,compressionLUTfileName,K,optimizerType,suffix,FSdir,additionalFile)
 
-% segmentSubject('eugenio','/autofs/space/panamint_005/users/iglesias/myBrain/myBrain/subjectdir/',0.5,'/autofs/space/panamint_005/users/iglesias/atlases/brainstem_130522_continued/output/CurrentMeshCollection22.gzz','/autofs/space/panamint_005/users/iglesias/data/MAC_brainstem_data/simplifiedLabels/atlasBS.mgz','/autofs/space/panamint_005/users/iglesias/atlases/brainstem_130522/compressionLookupTable.txt',0.05,'ConjGrad')
-
-% /autofs/homes/002/iglesias/matlab/code/brainStemAtlas/run_segmentSubject.sh /autofs/cluster/matlab/8.0/ eugenio /autofs/space/panamint_005/users/iglesias/myBrain/myBrain/subjectdir/ 0.5 /autofs/space/panamint_005/users/iglesias/atlases/brainstem_130522_continued/output/CurrentMeshCollection22.gz /autofs/space/panamint_005/users/iglesias/data/MAC_brainstem_data/simplifiedLabels/atlasBS.mgz   /autofs/space/panamint_005/users/iglesias/atlases/brainstem_130522/compressionLookupTable.txt 0.05 ConjGrad
-
-
-% clear
-% subjectName='eugenio';
-% subjectDir='/autofs/space/panamint_005/users/iglesias/brains/myBrain/myBrain/subjectdir/';
-% resolution=0.5;
-% atlasMeshFileName='/usr/local/freesurfer/stable6_0_0/average/BrainstemSS/atlas//AtlasMesh.gz';
-% atlasDumpFileName='/usr/local/freesurfer/stable6_0_0/average/BrainstemSS/atlas//AtlasDump.mgz';
-% compressionLUTfileName='/usr/local/freesurfer/stable6_0_0/average/BrainstemSS/atlas//compressionLookupTable.txt';
-% K=0.05;
-% % optimizerType='LM';
-% optimizerType='L-BFGS';
-% suffix = 'testGEMS2';
-% FSdir='/usr/local/freesurfer/dev/bin/';
-% % additionalFile='/autofs/space/panamint_005/users/iglesias/data/IXI_full/FSdir/IXI055/mri/T2regBFcorr.mgz';
-
-
 % Eugenio November 2017: added option for smoother resampling
 DEBUG=0;
 FAST=0; % set it two one to optimize just a bit (go through code fast) or to 2 to make it super-fast
@@ -50,6 +30,9 @@ if ~isempty(aux)
         WRITE_POSTERIORS=1;
     end
 end
+
+% March 2021: fix to accommodate 'fs_run_from_mcr'
+FSdir = [FSdir '/fs_run_from_mcr ' FSdir '/'];
 
 
 % sanity check
@@ -236,7 +219,7 @@ for FreeSurferLabel = {'MAC_Medulla','MAC_Pons','MAC_Midbrain','Left-VentralDC',
     sameGaussianParameters{end} = [ sameGaussianParameters{end} FreeSurferLabels( find( strcmp( FreeSurferLabel, cellstr( names ) ) ) ) ];
 end
 sameGaussianParameters{end+1} = [];
-for FreeSurferLabel = {'Left-Caudate','Left-Accumbens-area','Left-Pallidum','3rd-Ventricle','Left-Putamen','Left-Thalamus','Left-Amygdala','Left-Lateral-Ventricle','Left-choroid-plexus','Left-Hippocampus','Left-Cerebral-White-Matter','Left-Cerebral-Cortex','Background-tissue','Background-CSF','Background'}
+for FreeSurferLabel = {'Left-Caudate','Left-Accumbens-area','Left-Pallidum','3rd-Ventricle','Left-Putamen','Left-Thalamus-Proper','Left-Amygdala','Left-Lateral-Ventricle','Left-choroid-plexus','Left-Hippocampus','Left-Cerebral-White-Matter','Left-Cerebral-Cortex','Background-tissue','Background-CSF','Background'}
     sameGaussianParameters{end} = [ sameGaussianParameters{end} FreeSurferLabels( find( strcmp( FreeSurferLabel, cellstr( names ) ) ) ) ];
 end
 cheatingMeans=[255;1];
@@ -651,7 +634,7 @@ for FreeSurferLabel = {'Left-Putamen'}
 end
 % Thalamus
 sameGaussianParameters{end+1} = [];
-for FreeSurferLabel = {'Left-Thalamus'}
+for FreeSurferLabel = {'Left-Thalamus-Proper'}
     sameGaussianParameters{end} = [ sameGaussianParameters{end} FreeSurferLabels( find( strcmp( FreeSurferLabel, cellstr( names ) ) ) ) ];
 end
 % Choroid plexus

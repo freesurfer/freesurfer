@@ -103,6 +103,7 @@ public slots:
   void CenterAtWorldPosition( double* pos );
   void AlignViewToNormal(double* v);
   virtual void UpdateScalarBar();
+  void SetParallelProjection(bool bParallel);
 
 protected:
   virtual void paintEvent(QPaintEvent *event);

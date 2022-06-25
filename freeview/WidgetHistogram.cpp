@@ -252,7 +252,7 @@ void WidgetHistogram::paintEvent(QPaintEvent* event)
     for ( int i = 0; i < m_nNumberOfBins; i++ )
     {
       painter.setPen( QPen( QColor( m_nColorTable[i*4],  m_nColorTable[i*4+1], m_nColorTable[i*4+2] ) ) );
-      painter.setBrush( QBrush( QColor( m_nColorTable[i*4],  m_nColorTable[i*4+1], m_nColorTable[i*4+2] ) ) );
+      painter.setBrush(QBrush( QColor( m_nColorTable[i*4],  m_nColorTable[i*4+1], m_nColorTable[i*4+2] ) ) );
       y = (int)( nOrigin[1] + nCavHeight * ( 1.0 - (double)m_nOutputData[i] / nMaxCnt ) );
       int h = (int)( (double)m_nOutputData[i] / nMaxCnt * nCavHeight );
       if ( y < nOrigin[1] )
@@ -321,6 +321,11 @@ void WidgetHistogram::paintEvent(QPaintEvent* event)
     for ( int i = 0; i < m_markers.size(); i++ )
     {
       LineMarker lm = m_markers[i];
+      if (m_bSymmetricMarkers && lm.position < 0)
+      {
+        lm.position = -lm.position;
+        m_markers[i] = lm;
+      }
       DrawMarker(&painter, lm);
       if ( m_bSymmetricMarkers )
       {

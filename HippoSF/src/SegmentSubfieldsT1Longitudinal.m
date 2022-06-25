@@ -54,27 +54,6 @@ for t=1:nTP
 end
 
 
-% clear
-% subjectBase='0535_base';
-% nTP=2;
-% subjectTPs=cell([1,nTP]);
-% subjectTPs{1}='0535.long.0535_base';
-% subjectTPs{2}='0535_m24.long.0535_base';
-% subjectDir='/autofs/space/panamint_005/users/iglesias/data/longTest/';
-% resolution=(1/3);
-% atlasMeshFileName='/autofs/space/panamint_005/users/iglesias/atlases/atlasHippoAmygBuckner_170621_CJ_GD_allBuckner_BodyHead/AtlasMesh_merged.gz';
-% atlasDumpFileName='/autofs/space/panamint_005/users/iglesias/atlases/atlasHippoAmygBuckner_170621_CJ_GD_allBuckner_BodyHead/imageDumpWithAmygdala.mgz';
-% compressionLUTfileName='/autofs/homes/002/iglesias/matlab/code/Atlas3dFreeSurferJuly2017newAtlas/code/compressionLookupTable.txt';
-% Katl=0.05;
-% Ktp=0.05;
-% side='right';
-% optimizerType='L-BFGS';
-% suffix='TestGEMS2';
-% FSpath='/usr/local/freesurfer/dev/bin/';
-% MRFconstant=0;
-
-
-
 % In case we compiled it...
 if isdeployed
     Katl=str2double(Katl);
@@ -145,6 +124,9 @@ if ~isempty(aux)
     end
 end
 
+% March 2021: fix to accommodate 'fs_run_from_mcr'
+FSpath = [FSpath '/fs_run_from_mcr ' FSpath '/'];
+
 % File name for temporary directory
 tempdir=[subjectDir '/' subjectBase '/tmp/hippoSF_T1_' suffix '_' side '/'];
 aux=getenv('USE_SCRATCH');
@@ -160,9 +142,6 @@ end
 if exist(tempdir,'dir')==0
     mkdir(tempdir);
 end
-
-tempdir=getFullPath(tempdir)
-
 cd(tempdir);
 
 % Produce error if resolutions are not all the same
@@ -397,7 +376,9 @@ for t=0:nTP
     ASEGcha=ASEG;
     ASEGcha.vol(ASEGcha.vol==17)=3;
     ASEGcha.vol(ASEGcha.vol==18)=3;
-    myMRIwrite(ASEG,['asegModCHA_tp_' num2str(t) '.mgz'],'float',tempdir);
+    % Eugenio, February 2022
+    % myMRIwrite(ASEG,['asegModCHA_tp_' num2str(t) '.mgz'],'float',tempdir);
+    myMRIwrite(ASEGcha,['asegModCHA_tp_' num2str(t) '.mgz'],'float',tempdir);
     
     
     % Read in modified aseg and also transform
@@ -445,7 +426,7 @@ for t=0:nTP
     FreeSurferLabelGroups{end+1}={'Left-VentralDC'};
     FreeSurferLabelGroups{end+1}={'Left-Putamen'};
     FreeSurferLabelGroups{end+1}={'Left-Pallidum'};
-    FreeSurferLabelGroups{end+1}={'Left-Thalamus'};
+    FreeSurferLabelGroups{end+1}={'Left-Thalamus-Proper'};
     FreeSurferLabelGroups{end+1}={'Left-Accumbens-area'};
     FreeSurferLabelGroups{end+1}={'Left-Caudate'};
     FreeSurferLabelGroups{end+1}={'SUSPICIOUS'};
@@ -461,12 +442,13 @@ for t=0:nTP
         end
     end
     
-    % Eugenio July 2017
+    % Eugenio July 2017 
+    % In February 2022, I added:  & labels~=215
     cheatingMeans=zeros(length( sameGaussianParameters),1);
     cheatingVariances=0.01*ones(length( sameGaussianParameters),1);
     for l=1:length(sameGaussianParameters)
         labels= sameGaussianParameters{l};
-        if any(labels>=200 & labels<=226),  cheatingMeans(l)=3; %  cheatingMeans(l)=17; % HIPPO SF -> HIPPO
+        if any(labels>=200 & labels<=226 & labels~=215),  cheatingMeans(l)=3; %  cheatingMeans(l)=17; % HIPPO SF -> HIPPO
         elseif any(labels>=7000),  cheatingMeans(l)=3;  % cheatingMeans(l)=18; % AMYGDALOID SUBNUCLEI -> AMYGDALA
         elseif any(labels==0), cheatingMeans(l)=1; % BACKGROUND is 1 instead of 0
         elseif any(labels==999), cheatingMeans(l)=55; cheatingVariances(l)=55^2; % This is the generic, "suspicious" label we use for cysts...
@@ -870,7 +852,7 @@ FreeSurferLabelGroups{end+1}={'hippocampal-fissure'};
 FreeSurferLabelGroups{end+1}={'Left-Pallidum'};
 FreeSurferLabelGroups{end+1}={'Left-Putamen'};
 FreeSurferLabelGroups{end+1}={'Left-Caudate'};
-FreeSurferLabelGroups{end+1}={'Left-Thalamus'};
+FreeSurferLabelGroups{end+1}={'Left-Thalamus-Proper'};
 FreeSurferLabelGroups{end+1}={'Left-choroid-plexus'};
 FreeSurferLabelGroups{end+1}={'Left-VentralDC'};
 FreeSurferLabelGroups{end+1}={'Left-Accumbens-area'};
@@ -1903,7 +1885,10 @@ for t=1:nTP
         end
         
         if foundHP(i)>0 || foundAM(i)>0
-            vol=resolution^3*(sum(double(post(:))/65535));
+            % Fix by Eugenio in February 2022
+            % vol=resolution^3*(sum(double(post(:))/65535));
+            vol=resolution^3*(sum(double(post(:))/65535)) / volumeFactors(t);
+            
             if foundHP(i)>0
                 str=strOfInterestHP{foundHP(i)};
                 fprintf(fidHP,'%s %f\n',str,vol);

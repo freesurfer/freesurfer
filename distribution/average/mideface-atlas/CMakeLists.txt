@@ -1,0 +1,48 @@
+install_symlinks(
+  README
+  samseg-options.json
+  average.head.mgz
+  average.headmask.mgz  
+  average.head.surf
+  average.head.dec44.surf
+  average.head.dec44.us7.surf
+  average.head.dec44.us7.remesh3.surf
+  average.head.dec44.us7.remesh3.ripple.surf
+  average.head.dec44.us7.remesh3.sphere
+  reg.samseg-default.lta
+  deface.ctab
+  average.back-of-head.label
+  average.back-of-head.dec44.us7.remesh3.label
+  average.face.all.dec44.us7.remesh3.label 
+  average.face.all.label 
+  average.face.ear.left.dec44.us7.remesh3.label
+  average.face.ear.left.label
+  average.face.ear.right.dec44.us7.remesh3.label
+  average.face.ear.right.label
+  average.face.ears.dec44.us7.remesh3.label
+  average.face.ears.label
+  average.face.eye.left.dec44.us7.remesh3.label
+  average.face.eye.left.label
+  average.face.eye.right.dec44.us7.remesh3.label
+  average.face.eye.right.label
+  average.face.eyes.dec44.us7.remesh3.label
+  average.face.eyes.label
+  average.face.eyemask.dec44.us7.remesh3.label
+  average.face.eyemask.label
+  average.face.forehead.dec44.us7.remesh3.label
+  average.face.forehead.label
+  average.face.lower.dec44.us7.remesh3.label
+  average.face.lower.label
+  average.face.nose.dec44.us7.remesh3.label
+  average.face.upper.dec44.us7.remesh3.label
+  average.face.upper.label
+  average.face.upper.no-eyes.dec44.us7.remesh3.label
+  average.face.upper.no-eyes.no-nose.dec44.us7.remesh3.label
+  average.face.upper.no-eyes.label
+  average.face.upper+lower.dec44.us7.remesh3.label 
+  mideface.watermark.dec44.us7.remesh3.label
+  watermark.dec44.us7.remesh3.label
+  watermark.label
+  TYPE files
+  DESTINATION average/mideface-atlas
+)

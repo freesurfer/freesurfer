@@ -7,3 +7,5 @@ install_pyscript(
   sbtiv
   gems_compute_atlas_probs
 )
+
+add_test_script(NAME samseg SCRIPT test.sh)

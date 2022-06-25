@@ -5,8 +5,9 @@ import sys
 import glob
 import time
 import numpy as np
+import argparse
 import nibabel as nib
-import freesurfer as fs
+import surfa as sf
 from datetime import timedelta
 from scipy.ndimage import gaussian_filter
 from scipy.interpolate import RegularGridInterpolator
@@ -28,7 +29,7 @@ backend.set_image_data_format('channels_last')
 def main():
 
     # parse arguments
-    parser = fs.utils.ArgumentParser(description="Implementation of SynthSR that generates a synthetic 1mm MP-RAGE "
+    parser = argparse.ArgumentParser(description="Implementation of SynthSR that generates a synthetic 1mm MP-RAGE "
                                                  "from a scan of any contrast and resolution ", epilog='\n')
 
     # input/outputs
@@ -37,6 +38,7 @@ def main():
                                     "Must be a folder if --i designates a folder.")
     parser.add_argument("--ct", action="store_true", help="(optional) Use this flag for CT scans in Hounsfield scale, "
                                                           "it clips intensities to [0,80].")
+    parser.add_argument("--disable_sharpening", action="store_true", help="(optional) Use this flag to disable unsharp masking.")
 
     # parameters
     parser.add_argument("--threads", type=int, default=1, help="(optional) Number of cores to be used. Default is 1.")
@@ -56,11 +58,11 @@ def main():
         os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
     # locate model weights
-    if not fs.fshome():
+    if not os.environ.get('FREESURFER_HOME'):
         path_model = None
-        fs.fatal('FREESURFER_HOME is not set. Please source freesurfer.')
+        sf.system.fatal('FREESURFER_HOME is not set. Please source freesurfer.')
     else:
-        path_model = os.path.join(fs.fshome(), 'models', 'synthsr_v10_210712.h5')
+        path_model = os.path.join(os.environ.get('FREESURFER_HOME'), 'models', 'synthsr_v10_210712.h5')
 
     # run prediction
     predict(
@@ -68,6 +70,7 @@ def main():
         path_predictions=args.o,
         path_model=path_model,
         ct_mode=args.ct,
+        disable_sharpening=args.disable_sharpening,
         threads=args.threads
     )
 
@@ -81,13 +84,14 @@ def predict(path_images,
             path_predictions,
             path_model,
             ct_mode,
+            disable_sharpening,
             threads=1):
     '''
     Prediction pipeline.
     '''
 
     if path_model is None:
-        fs.fatal("A model file is necessary")
+        sf.system.fatal("A model file is necessary")
 
     # prepare input/output filepaths
     path_images, path_predictions = prepare_output_files(path_images, path_predictions)
@@ -127,7 +131,7 @@ def predict(path_images,
 
         # postprocessing
         try:
-            pred = postprocess(pred, pad_idx, aff)
+            pred = postprocess(pred, pad_idx, aff, disable_sharpening)
         except Exception as e:
             print('\nthe following problem occured when postprocessing prediction for image %s :' % path_image)
             print(e)
@@ -164,9 +168,9 @@ def prepare_output_files(path_images, path_predictions):
 
     # check inputs
     if path_images is None:
-        fs.fatal('please specify an input file/folder (--i)')
+        sf.system.fatal('please specify an input file/folder (--i)')
     if path_predictions is None:
-        fs.fatal('please specify an output file/folder (--o)')
+        sf.system.fatal('please specify an output file/folder (--o)')
 
     # convert path to absolute paths
     path_images = os.path.abspath(path_images)
@@ -177,13 +181,13 @@ def prepare_output_files(path_images, path_predictions):
 
         # input images
         if not os.path.isfile(path_images):
-            fs.fatal('provided text file containing paths of input images does not exist' % path_images)
+            sf.system.fatal('provided text file containing paths of input images does not exist' % path_images)
         with open(path_images, 'r') as f:
             path_images = [line.replace('\n', '') for line in f.readlines() if line != '\n']
 
         # predictions
         if path_predictions[-4:] != '.txt':
-            fs.fatal('if path_images given as text file, so must be the output predictions')
+            sf.system.fatal('if path_images given as text file, so must be the output predictions')
         with open(path_predictions, 'r') as f:
             path_predictions = [line.replace('\n', '') for line in f.readlines() if line != '\n']
 
@@ -192,15 +196,15 @@ def prepare_output_files(path_images, path_predictions):
 
         # input images
         if os.path.isfile(path_images):
-            fs.fatal('Extension not supported for %s, only use: .nii.gz, .nii, .mgz, or .npz' % path_images)
+            sf.system.fatal('Extension not supported for %s, only use: .nii.gz, .nii, .mgz, or .npz' % path_images)
         path_images = list_images_in_folder(path_images)
 
         # predictions
         if path_predictions[-4:] == '.txt':
-            fs.fatal('path_predictions can only be given as text file when path_images is.')
+            sf.system.fatal('path_predictions can only be given as text file when path_images is.')
         if (path_predictions[-7:] == '.nii.gz') | (path_predictions[-4:] == '.nii') | \
                 (path_predictions[-4:] == '.mgz') | (path_predictions[-4:] == '.npz'):
-            fs.fatal('Output folders cannot have extensions: .nii.gz, .nii, .mgz, or .npz, had %s' % path_predictions)
+            sf.system.fatal('Output folders cannot have extensions: .nii.gz, .nii, .mgz, or .npz, had %s' % path_predictions)
         mkdir(path_predictions)
         path_predictions = [os.path.join(path_predictions, os.path.basename(image)).replace('.nii', '_synthsr.nii')
                             for image in path_images]
@@ -212,12 +216,12 @@ def prepare_output_files(path_images, path_predictions):
 
         # input images
         if not os.path.isfile(path_images):
-            fs.fatal("file does not exist: %s \nplease make sure the path and the extension are correct" % path_images)
+            sf.system.fatal("file does not exist: %s \nplease make sure the path and the extension are correct" % path_images)
         path_images = [path_images]
 
         # predictions
         if path_predictions[-4:] == '.txt':
-            fs.fatal('path_predictions can only be given as text file when path_images is.')
+            sf.system.fatal('path_predictions can only be given as text file when path_images is.')
         if ('.nii.gz' not in path_predictions) & ('.nii' not in path_predictions) & \
                 ('.mgz' not in path_predictions) & ('.npz' not in path_predictions):
             mkdir(path_predictions)
@@ -237,11 +241,11 @@ def preprocess(path_image, ct_mode, n_levels=5):
     # read image and corresponding info
     im, _, aff, n_dims, n_channels, h, _ = get_volume_info(path_image, True)
     if n_dims < 3:
-        fs.fatal('input should have 3 dimensions, had %s' % n_dims)
+        sf.system.fatal('input should have 3 dimensions, had %s' % n_dims)
     elif n_dims == 4 and n_channels == 1:
         im = im[..., 0]
     elif n_dims > 3:
-        fs.fatal('input should have 3 dimensions, had %s' % n_dims)
+        sf.system.fatal('input should have 3 dimensions, had %s' % n_dims)
     elif n_channels > 1:
         print('WARNING: detected more than 1 channel, only keeping the first channel.')
         im = im[..., 0]
@@ -271,7 +275,7 @@ def build_model(model_file):
     Builds keras unet model.
     '''
     if not os.path.isfile(model_file):
-        fs.fatal("The provided model path does not exist.")
+        sf.system.fatal("The provided model path does not exist.")
 
     # build UNet
     net = unet(nb_features=24,
@@ -288,12 +292,18 @@ def build_model(model_file):
     return net
 
 
-def postprocess(pred, pad_idx, aff):
+def postprocess(pred, pad_idx, aff, disable_sharpening):
 
     # rescale output between [0, 255]
     pred = np.clip(255 * pred, 0, 128)
     pred = crop_volume_with_idx(pred, pad_idx, n_dims=3)
 
+    # unsharp masking
+    amount_usm = 1.0
+    sigma_usm = 1.5
+    if (sigma_usm>0) and (amount_usm>0) and (disable_sharpening==False):
+        pred = pred + (pred - gaussian_filter(pred, sigma_usm * np.ones(3))) * amount_usm
+        
     # align prediction back to first orientation
     pred = align_volume_to_ref(pred, aff=np.eye(4), aff_ref=aff, n_dims=3)
 

@@ -411,7 +411,7 @@ protected slots:
   void ShowContour();
   void UpdateVolumeRendering();
   void UpdateVectorActor();
-  void UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageData* scaledata = NULL );
+  void UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageData* scaledata = NULL, vtkImageData* brightnessData = NULL );
   virtual void UpdateVectorActor( int nPlane );
 
   void ResetSurfaceRegionIds();
@@ -459,6 +459,7 @@ protected:
                          vtkUnsignedCharArray* scalars,
                          vtkPolyDataAlgorithm* a);
 
+  virtual void ReorderColorComponent(unsigned char* c);
 
   virtual void OnSlicePositionChanged( int nPlane );
 

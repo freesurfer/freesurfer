@@ -33,6 +33,7 @@ set ijd = ()
 set ikd = ()
 set DCR3 = 0
 set DoPhase = 0;
+set DoSiemensAscii = 1;
 
 set RunNos = ();
 set SubDirs = ();
@@ -49,6 +50,11 @@ set VisitNo = ();
 set RunPars = ();
 set GetMax = 0;
 set DoExtraInfo = 0;
+
+set siemensBVecsCross = 0;
+if($?FS_dcmGetDWIParamsSiemens_VoxelSpace) then
+  set siemensBVecsCross = $FS_dcmGetDWIParamsSiemens_VoxelSpace;
+endif
 
 set inputargs = ("$argv");
 set PrintHelp = 0;
@@ -181,7 +187,9 @@ foreach f ($flist)
   @ mth = $mth + 1;
   #echo "#@# $nth/$#flist `date`" >>& $LF
 
-  mri_probedicom --i $f >& $dumpfile
+  set cmd = (mri_probedicom --i $f)
+  if($DoSiemensAscii == 0) set cmd = ($cmd --no-siemens-ascii)
+  $cmd  >& $dumpfile
   if($status) then
     cat $dumpfile | tee -a $LF
     exit 1;
@@ -421,7 +429,9 @@ foreach run ($RunNos)
     if($#ijd) set cmd = ($cmd -ijd $ijd);
     if($#ikd) set cmd = ($cmd -ikd $ikd);
     if($DoFirstDicom) set cmd = ($cmd --first-dicom $outdir/log/$FName.first.dicom.path)
-    if($DCR3) set cmd = ($cmd -dicomread3)
+    if($DCR3) set cmd = ($cmd -dcm2niix)
+    if($siemensBVecsCross)   set cmd = ($cmd -siemensBVecsCross)
+    if(! $siemensBVecsCross) set cmd = ($cmd -no-siemensBVecsCross)
     echo $cmd |& tee -a $LF
     $cmd |& tee -a $LF
     if($status) then
@@ -460,7 +470,9 @@ foreach run ($RunNos)
   if($DoInfoDump) then
     set f = `cat $infofile | awk -v r=$run '{if($2 == r) print $11}' | head -n 1`
     set dumpfile = $outdir/log/$FName-infodump.dat
-    mri_probedicom --i $f > $dumpfile |& tee -a $LF
+    set cmd = (mri_probedicom --i $f)
+    if($DoSiemensAscii == 0) set cmd = ($cmd --no-siemens-ascii)
+    $cmd >& $dumpfile 
     if($status) cat $dumpfile | tee -a $LF
   endif
 
@@ -721,6 +733,14 @@ while( $#argv != 0 )
     case "-dcm2niix":
     case "-dcr3":
       set DCR3 = 1;
+      set DoSiemensAscii = 0; # Newer dicoms do not have ascii
+      breaksw
+
+    case "-siemensBVecsCross"
+      set siemensBVecsCross = 1;
+      breaksw
+    case "-no-siemensBVecsCross"
+      set siemensBVecsCross = 0;
       breaksw
 
     case "-phase":
@@ -728,6 +748,14 @@ while( $#argv != 0 )
       breaksw
     case "-no-phase":
       set DoPhase = 0;
+      breaksw
+
+    case "-siemens-ascii":
+      set DoSiemensAscii = 1;
+      breaksw
+    case "-no-siemens-ascii":
+      # Newer dicoms do not have ascii and cause mri_probedicom to fail
+      set DoSiemensAscii = 0;
       breaksw
 
     case "-max":
@@ -895,6 +923,24 @@ if($DoUnpack) then
 
 endif
 
+# This controls how the bvecs are computed. Previously, the function
+# called dcmGetDWIParamsSiemens() would attempt to convert the bvecs
+# to voxel space on a slice-by-slice basis; this was problematic
+# because the slice normal was not known so it was computed using a
+# cross product; but the cross product has a sign ambiguity that
+# turned out to be wrong when det<0. Now, by default, this function
+# will leave the bvecs in scanner space, then convert them to voxel
+# space once the final vox2ras is known. If one wants to override this
+# behavior and revert back to using the cross, then use
+# -siemensBVecsCross. Note that if
+# FS_dcmGetDWIParamsSiemens_VoxelSpace is already set,
+# siemensBVecsCross will be set to that value (which can then be
+# overridden with -siemensBVecsCross or -no-siemensBVecsCross)
+if($siemensBVecsCross) then
+  setenv FS_dcmGetDWIParamsSiemens_VoxelSpace 1;
+else
+  unsetenv FS_dcmGetDWIParamsSiemens_VoxelSpace
+endif
 
 goto check_params_return;
 ############--------------##################

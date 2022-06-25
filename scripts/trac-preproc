@@ -323,7 +323,7 @@ if ($docorr && ! $dobase) then
   end					# For each input DWI run
 
   if ($novecs) then
-    echo "ERROR: No gradient tables or b-value tables found"
+    echo "ERROR: No gradient tables or b-value tables found" |& tee -a $LF
     goto error_exit
   endif
 
@@ -340,7 +340,7 @@ if ($docorr && ! $dobase) then
     set nval = `wc -w $dwibase.bvals | awk '{print $1}'`
 
     if ($nval != $nvec) then
-      echo "ERROR: Found $nval b-values but $nvec gradient vectors for $dwibase"
+      echo "ERROR: Found $nval b-values but $nvec gradient vectors for $dwibase" |& tee -a $LF
       goto error_exit
     endif
 
@@ -350,7 +350,7 @@ if ($docorr && ! $dobase) then
     else if (`awk '{print $1}' $dwibase.bvecs | wc -w` == 3) then
       set vectype = rows
     else
-      echo "ERROR: Gradient vectors must be 3 rows or 3 columns of coordinates"
+      echo "ERROR: Gradient vectors must be 3 rows or 3 columns of coordinates" |& tee -a $LF
       goto error_exit
     endif
 
@@ -456,8 +456,8 @@ if ($docorr && ! $dobase) then
   if ($dob0 > 1) then			# B0 inhomogeneities: with topup
     if ( `printf '%s\n' $pedir       | sort --unique | wc -w` < 2 && \
          `printf '%s\n' $echospacing | sort --unique | wc -w` < 2 ) then
-      echo "ERROR: All input scans have the same PE direction and echo-spacing"
-      echo "ERROR: Cannot correct B0 distortions with topup"
+      echo "ERROR: All input scans have the same PE direction and echo-spacing" |& tee -a $LF
+      echo "ERROR: Cannot correct B0 distortions with topup" |& tee -a $LF
       goto error_exit
     endif
 
@@ -962,7 +962,7 @@ if ($docorr && ! $dobase) then
       endif
 
       if ($#dTE == 0) then
-        echo "ERROR: Need dTE for field map $infile"
+        echo "ERROR: Need dTE for field map $infile" |& tee -a $LF
         goto error_exit
       endif
 
@@ -985,7 +985,7 @@ if ($docorr && ! $dobase) then
       else if (`mri_info --nframes $phabase.nii.gz` == 1) then
         set cmd = ($cmd --dph $phabase.nii.gz)	# Phase difference map
       else
-        echo "ERROR: Unrecognized format of phase map $phabase.nii.gz"
+        echo "ERROR: Unrecognized format of phase map $phabase.nii.gz" |& tee -a $LF
         goto error_exit
       endif
       set cmd = ($cmd --exf $dwidir/lowb.nii.gz)
@@ -1057,7 +1057,7 @@ if ($docorr && ! $dobase) then
   endif
 
   if (! $#lowblist) then
-    echo "ERROR: Cannot detect low-b volumes"
+    echo "ERROR: Cannot detect low-b volumes" |& tee -a $LF
     goto error_exit
   endif
 
@@ -1100,7 +1100,7 @@ if ($docorr && ! $dobase) then
 endif
 
 if ($docorr && $dobase) then
-  echo "ERROR: Image correction step not available for base template"
+  echo "ERROR: Image correction step not available for base template" |& tee -a $LF
   goto error_exit
 endif
 
@@ -1179,13 +1179,13 @@ if ($doqa && ! $dobase) then
   if ($doeddy > 1) then
     set parfile = $dwidir/dwi.eddy_parameters
     if (! -e $parfile) then
-      echo "ERROR: Missing eddy output; need to run trac-all -corr"
+      echo "ERROR: Missing eddy output; need to run trac-all -corr" |& tee -a $LF
       goto error_exit
     endif
   else if ($doeddy == 1) then
     set parfile = $dwidir/dwi.ecclog
     if (! -e $parfile) then
-      echo "ERROR: Missing eddy_correct output; need to run trac-all -corr"
+      echo "ERROR: Missing eddy_correct output; need to run trac-all -corr" |& tee -a $LF
       goto error_exit
     endif
   endif
@@ -1261,7 +1261,7 @@ if ($doqa && ! $dobase) then
 endif
 
 if ($doqa && $dobase) then
-  echo "ERROR: Image quality assessment step not available for base template"
+  echo "ERROR: Image quality assessment step not available for base template" |& tee -a $LF
   goto error_exit
 endif
 
@@ -1340,10 +1340,10 @@ if ($dointra && ! $dobase && -e $fsdir/mri/brain.mgz) then
     set thalseg = ThalamicNuclei.v12.T1.FSvoxelSpace
 
     if (! -e $fsdir/mri/$thalseg.mgz) then
-      echo "ERROR: Could not find $fsdir/mri/$thalseg.mgz"
-      echo "ERROR: Thalamic nuclei segmentation is strongly recommended to use"
-      echo "ERROR: for tracts that terminate in or travel near the thalamus"
-      echo "ERROR: If there is good reason not to use it, set usethalnuc = 0"
+      echo "ERROR: Could not find $fsdir/mri/$thalseg.mgz" |& tee -a $LF
+      echo "ERROR: Thalamic nuclei segmentation is strongly recommended to use" |& tee -a $LF
+      echo "ERROR: for tracts that terminate in or travel near the thalamus" |& tee -a $LF
+      echo "ERROR: If there is good reason not to use it, set usethalnuc = 0" |& tee -a $LF
       goto error_exit
     endif
 
@@ -1507,7 +1507,7 @@ if ($dotensor && ! $dobase) then
 endif
 
 if ($dotensor && $dobase) then
-  echo "ERROR: Tensor-fit step not available for base template"
+  echo "ERROR: Tensor-fit step not available for base template" |& tee -a $LF
   goto error_exit
 endif
 
@@ -1519,7 +1519,7 @@ if ($dointer && ! $dobase) then
 
   if ($xspace != syn && $xspace != fnt) then	# Check if individual T1 exists
     if (! -e $fsdir/mri/brain.mgz) then
-      echo "ERROR: Could not find $fsdir/mri/brain.mgz"
+      echo "ERROR: Could not find $fsdir/mri/brain.mgz" |& tee -a $LF
       goto error_exit
     endif
   endif
@@ -1642,7 +1642,7 @@ if ($dointer && ! $dobase) then
     set cmd = ($cmd --dst    $intertrg)
     set cmd = ($cmd --mapmov $dwidir/brain_anat_orig_rob.nii.gz)
     set cmd = ($cmd --lta    $xfmdir/anatorig2rob.lta)
-    set cmd = ($cmd --affine --cost ROB --satit)
+    set cmd = ($cmd --affine --cost ROB --iscale --satit)
     echo $cmd |& tee -a $LF |& tee -a $CF
     if ($RunIt) then
       $cmd |& tee -a $LF
@@ -1722,7 +1722,7 @@ if ($dointer && ! $dobase) then
         else
           if (! -e $SUBJECTS_DIR/$cvstemp) then
             if (! -e $cvstempdir/$cvstemp) then
-              echo "ERROR: Could not find CVS template $cvstempdir/$cvstemp"
+              echo "ERROR: Could not find CVS template $cvstempdir/$cvstemp" |& tee -a $LF
               goto error_exit
             endif
 
@@ -1779,8 +1779,8 @@ if ($dointer && ! $dobase) then
     endif
   else if ($xspace == syn) then
     if (! $?ANTSPATH) then
-      echo "ERROR: must set ANTSPATH environment variable to use ANTs"
-      exit 1
+      echo "ERROR: must set ANTSPATH environment variable to use ANTs" |& tee -a $LF
+      goto error_exit
     endif
 
     # Register FA nonlinearly to FA template with SyN
@@ -1796,7 +1796,7 @@ if ($dointer && ! $dobase) then
     endif
 
     # Convert affine transform to .lta
-    set cmd = ConvertTransformFile
+    set cmd = $ANTSPATH/ConvertTransformFile
     set cmd = ($cmd 3 $xfmdir/diff2syn0GenericAffine.mat)
     set cmd = ($cmd   $xfmdir/diff2syn0GenericAffine.txt)
     set cmd = ($cmd --hm --ras)

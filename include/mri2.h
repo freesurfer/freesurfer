@@ -25,6 +25,29 @@
 #include "mrisurf.h"
 #include "connectcomp.h"
 
+/*!
+  \class class MRIvol2VolLTA
+  Manages converting one volume to another via an LTA. All it needs is
+  the mov and the LTA (it computes the output geometry from that in
+  the LTA). Basic usage is to set the mov and set the LTA, then run
+  vol2vol(); it will figure out the proper direction of the LTA.  If
+  the LTA is not set but the target is, then uses a header
+  registration. Handles a voxel-shift map (VSM). Note that the final
+  result might be slightly different than mri_vol2vol because
+  mri_vol2vol goes through several LTA type changes.
+ */
+class MRIvol2VolLTA{
+public:
+  LTA *lta=NULL;
+  MRI *mov=NULL;
+  MRI *targ=NULL;// only used for headerreg
+  MRI *vsm=NULL;
+  int InterpCode=SAMPLE_TRILINEAR;
+  double sinchw=0;
+  MRI *vol2vol(MRI *outvol);
+  int ReadLTAorTarg(char *fname);
+};
+
 
 MRI *mri_load_bvolume(char *bfstem);
 int  mri_save_as_bvolume(MRI *vol, char *stem, int svendian, int svtype);
@@ -147,6 +170,7 @@ int QuadEulerCharChangeCheckReorder(MRI *mri, const char *testname, int decExpec
 
 MRI *MRIfindBrightNonWM(MRI *mri_T1, MRI *mri_wm);
 MRI *MRIzconcat(MRI *mri1, MRI *mri2, int nskip, MRI *out);
+int MRIfillTriangle(MRI *vol, double p1[3], double p2[3], double p3[3], double dL, double FillVal);
 
 /*!
   \fn class FixSubCortMassHA
@@ -166,6 +190,11 @@ public:
   MRI *aseg=NULL;  // aseg.presurf
   MRI *mask=NULL;  // a temporary mask
   int nDilate = 1;
+  // These are the seg ids of structures outside the SCM, including cortex
+  std::vector<int> OutsideSCMIds{0,165,258,259,24,3,42,17,18,53,54,85,5,44,31,63,16,7,8,46,47,15};
+  int ExcludeOutsideSCM=0;
+  MRI *scminsidemask=NULL;
+  int nDilateInsideMask = 2;
   int FixSCM(void);
 };
 

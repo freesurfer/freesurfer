@@ -7,7 +7,8 @@ import glob
 import time
 import numpy as np
 import nibabel as nib
-import freesurfer as fs
+import argparse
+import surfa as sf
 from datetime import timedelta
 from scipy.ndimage import label as scipy_label
 from scipy.interpolate import RegularGridInterpolator
@@ -30,7 +31,7 @@ backend.set_image_data_format('channels_last')
 def main():
 
     # configure commandline
-    parser = fs.utils.ArgumentParser(description="This module can be run in two modes: a) on FreeSurfer subjects, and "
+    parser = argparse.ArgumentParser(description="This module can be run in two modes: a) on FreeSurfer subjects, and "
                                                  "b) on any T1-weighted scan(s) of approximatively 1mm resolution. ",
                                      epilog='\n')
 
@@ -81,11 +82,11 @@ def main():
         os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
     # locate model weights
-    if not fs.fshome():
+    if not os.environ.get('FREESURFER_HOME'):
         model = None
-        fs.fatal('FREESURFER_HOME is not set. Please source freesurfer.')
+        sf.system.fatal('FREESURFER_HOME is not set. Please source freesurfer.')
     else:
-        model = os.path.join(fs.fshome(), 'models', 'hypothalamic_subunits.h5')
+        model = os.path.join(os.environ.get('FREESURFER_HOME'), 'models', 'hypothalamic_subunits.h5')
 
     # run prediction
     predict(
@@ -124,7 +125,7 @@ def predict(name_subjects=None,
     '''
 
     if path_model is None:
-        fs.fatal("A model file is necessary")
+        sf.system.fatal("A model file is necessary")
 
     # prepare input/output filepaths
     path_images, path_segmentations, path_posteriors, path_resampled, path_volumes, path_main_volumes, path_stats = \
@@ -271,9 +272,9 @@ def prepare_output_files(name_subjects, subjects_dir, write_posteriors_FS, path_
 
         # check other inputs
         if out_seg is None:
-            fs.fatal('please specify an output file/folder (--o) when using flag --i')
+            sf.system.fatal('please specify an output file/folder (--o) when using flag --i')
         if name_subjects is not None:
-            fs.fatal('please choose between flags --i and --s, they cannot be used at the same time')
+            sf.system.fatal('please choose between flags --i and --s, they cannot be used at the same time')
         if subjects_dir is not None:
             print('WARNING: $SUBJECT_DIR not used when flags --i and --o are specified, ignoring value of flag --sd')
         if write_posteriors_FS:
@@ -294,13 +295,13 @@ def prepare_output_files(name_subjects, subjects_dir, write_posteriors_FS, path_
 
             # input images
             if os.path.isfile(path_images):
-                fs.fatal('Extension not supported for %s, only use: .nii.gz, .nii, .mgz, or .npz' % path_images)
+                sf.system.fatal('Extension not supported for %s, only use: .nii.gz, .nii, .mgz, or .npz' % path_images)
             path_images = list_images_in_folder(path_images)
 
             # segmentations
             if (out_seg[-7:] == '.nii.gz') | (out_seg[-4:] == '.nii') | \
                     (out_seg[-4:] == '.mgz') | (out_seg[-4:] == '.npz'):
-                fs.fatal('Output folders cannot have extensions: .nii.gz, .nii, .mgz, or .npz, had %s' % out_seg)
+                sf.system.fatal('Output folders cannot have extensions: .nii.gz, .nii, .mgz, or .npz, had %s' % out_seg)
             mkdir(out_seg)
             out_seg = [os.path.join(out_seg, os.path.basename(image)).replace('.nii', '_hypo_seg.nii') for image in
                        path_images]
@@ -311,7 +312,7 @@ def prepare_output_files(name_subjects, subjects_dir, write_posteriors_FS, path_
             if out_posteriors is not None:
                 if (out_posteriors[-7:] == '.nii.gz') | (out_posteriors[-4:] == '.nii') | \
                         (out_posteriors[-4:] == '.mgz') | (out_posteriors[-4:] == '.npz'):
-                    fs.fatal('Output folders cannot have extensions: '
+                    sf.system.fatal('Output folders cannot have extensions: '
                              '.nii.gz, .nii, .mgz, or .npz, had %s' % out_posteriors)
                 mkdir(out_posteriors)
                 out_posteriors = [os.path.join(out_posteriors, os.path.basename(image)).replace('.nii',
@@ -327,7 +328,7 @@ def prepare_output_files(name_subjects, subjects_dir, write_posteriors_FS, path_
             if out_resampled is not None:
                 if (out_resampled[-7:] == '.nii.gz') | (out_resampled[-4:] == '.nii') | \
                         (out_resampled[-4:] == '.mgz') | (out_resampled[-4:] == '.npz'):
-                    fs.fatal('Output folders cannot have extensions: '
+                    sf.system.fatal('Output folders cannot have extensions: '
                              '.nii.gz, .nii, .mgz, or .npz, had %s' % out_resampled)
                 mkdir(out_resampled)
                 out_resampled = [os.path.join(out_resampled, os.path.basename(image)).replace('.nii',
@@ -342,7 +343,7 @@ def prepare_output_files(name_subjects, subjects_dir, write_posteriors_FS, path_
 
             # input images
             if not os.path.isfile(path_images):
-                fs.fatal("file does not exist: %s \n"
+                sf.system.fatal("file does not exist: %s \n"
                          "please make sure the path and the extension are correct" % path_images)
             path_images = [path_images]
 
@@ -417,7 +418,7 @@ def prepare_output_files(name_subjects, subjects_dir, write_posteriors_FS, path_
         if subjects_dir is not None:
             subjects_dir = os.path.abspath(subjects_dir)
             if not os.path.isdir(subjects_dir):
-                fs.fatal("Could not find " + subjects_dir)
+                sf.system.fatal("Could not find " + subjects_dir)
             os.environ['SUBJECTS_DIR'] = subjects_dir
         else:
             subjects_dir = os.environ['SUBJECTS_DIR']
@@ -437,7 +438,7 @@ def prepare_output_files(name_subjects, subjects_dir, write_posteriors_FS, path_
             # check that provided subject dir
             subject_dir = os.path.join(subjects_dir, name)
             if not os.path.isdir(subject_dir):
-                fs.fatal("Could not find subject dir " + subject_dir)
+                sf.system.fatal("Could not find subject dir " + subject_dir)
             path_image = os.path.join(subject_dir, 'mri', 'nu.mgz')
 
             # build paths if input image exists
@@ -456,7 +457,7 @@ def prepare_output_files(name_subjects, subjects_dir, write_posteriors_FS, path_
 
         # check that we have a least one valid image
         if len(path_images) == 0:
-            fs.fatal("Could not find any image to segment")
+            sf.system.fatal("Could not find any image to segment")
 
         # if several subjects are run, all volumes are regrouped in a single file
         if len(path_images) > 1:
@@ -465,7 +466,7 @@ def prepare_output_files(name_subjects, subjects_dir, write_posteriors_FS, path_
             main_volumes = None
 
     else:
-        fs.fatal('please provide an input image/directory (--i), or a specific FreeSurfer subject directory (--s), '
+        sf.system.fatal('please provide an input image/directory (--i), or a specific FreeSurfer subject directory (--s), '
                  'or the FreeSurfer $SUBJECT_DIR (--sd)')
         path_images = out_volumes = out_stats = None
 
@@ -545,12 +546,12 @@ def preprocess(path_image, crop=184, n_levels=3, path_resample=None):
     # read image and corresponding info
     im, shape, aff, n_dims, n_channels, h, im_res = get_volume_info(path_image, True)
     if n_dims < 3:
-        fs.fatal('input should have 3 dimensions, had %s' % n_dims)
+        sf.system.fatal('input should have 3 dimensions, had %s' % n_dims)
     elif n_dims == 4 and n_channels == 1:
         n_dims = 3
         im = im[..., 0]
     elif n_dims > 3:
-        fs.fatal('input should have 3 dimensions, had %s' % n_dims)
+        sf.system.fatal('input should have 3 dimensions, had %s' % n_dims)
     elif n_channels > 1:
         print('WARNING: detected more than 1 channel, only keeping the first channel.')
         im = im[..., 0]
@@ -590,7 +591,7 @@ def build_model(model_file, input_shape, n_lab):
     Builds keras unet model.
     '''
     if not os.path.isfile(model_file):
-        fs.fatal("The provided model path does not exist.")
+        sf.system.fatal("The provided model path does not exist.")
 
     # build UNet
     net = unet(nb_features=24,

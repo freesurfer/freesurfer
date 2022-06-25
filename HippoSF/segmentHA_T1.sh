@@ -174,7 +174,7 @@ if($?PBS_JOBID) then
 endif
 
 # Parameters
-set RUNTIME="$FREESURFER_HOME/MCRv84/";
+set RUNTIME="$FREESURFER_HOME/MCRv97/";
 set RESOLUTION="0.333333333333333333333333333333333333";
 set ATLASMESH="$FREESURFER_HOME/average/HippoSF/atlas/AtlasMesh.gz";
 set ATLASDUMP="$FREESURFER_HOME/average/HippoSF/atlas/AtlasDump.mgz";
@@ -182,7 +182,7 @@ set LUT="$FREESURFER_HOME/average/HippoSF/atlas/compressionLookupTable.txt";
 set K="0.05";
 set OPTIMIZER="L-BFGS";
 set MRFCONSTANT="0";
-set SUFFIX="v21";
+set SUFFIX="v22";
 
 # Now the real job
 set hippohemilist=(left right)
@@ -216,7 +216,7 @@ foreach hemi ($hippohemilist)
     |& tee -a $HSFLOG
 
   # command
-  set cmd="run_segmentSubjectT1_autoEstimateAlveusML.sh $RUNTIME $SUBJECTNAME $SUBJECTS_DIR $RESOLUTION $ATLASMESH $ATLASDUMP $LUT $K $hemi $OPTIMIZER $SUFFIX '${FREESURFER_HOME}/bin/fs_run_from_mcr ${FREESURFER_HOME}/bin/'  $MRFCONSTANT"
+  set cmd="run_segmentSubjectT1_autoEstimateAlveusML.sh $RUNTIME $SUBJECTNAME $SUBJECTS_DIR $RESOLUTION $ATLASMESH $ATLASDUMP $LUT $K $hemi $OPTIMIZER $SUFFIX ${FREESURFER_HOME}/bin/  $MRFCONSTANT"
 
   fs_time ls >& /dev/null
   if ($status) then

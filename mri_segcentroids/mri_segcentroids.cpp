@@ -8,6 +8,7 @@
 
 #include "mri.h"
 #include "mri2.h"
+#include "pointset.h"
 
 
 #include "mri_segcentroids.help.xml.h"
@@ -18,12 +19,7 @@ static void printHelp(int exit_val) {
 
 
 // structure to represent the centroid of each label
-struct Centroid {
-  int id;
-  std::string labelname;
-  float mass, x, y, z;
-};
-
+typedef fsPointSet::Point Centroid ;
 
 // command line inpute parser
 class InputParser {
@@ -145,7 +141,6 @@ public:
   }
 };
 
-
 int main(int argc, char **argv) {
 
   InputParser input(argc, argv);
@@ -201,7 +196,7 @@ int main(int argc, char **argv) {
 
 
   std::map<int, Centroid> centroids;
-  int numids, label_chars, id_chars, valid_id;
+  int numids, label_chars, id_chars;
   char char_name[500];
   double x, y, z, wx, wy, wz, weight;
   float fx, fy, fz;
@@ -213,19 +208,19 @@ int main(int argc, char **argv) {
   for (int i = 0 ; i < numids; i++) {
     // create centroid for each label
     Centroid centroid = Centroid();
-    centroid.id = ids[i];
+    centroid.index = ids[i];
 
-    if ((!input.include_zero) && (centroid.id == 0)) continue;
+    if ((!input.include_zero) && (centroid.index == 0)) continue;
 
     // get label name from color table
     if (ctab) {
-      CTABisEntryValid(ctab, centroid.id, &valid_id);
+      bool valid_id = CTABhasEntry(ctab, centroid.index);
       if (!valid_id) {
-        std::cerr << "WARNING: cannot find ID " << centroid.id
+        std::cerr << "WARNING: cannot find ID " << centroid.index
                   << " in " << input.ctabfile << "... ignoring this label\n";
         continue;
       }
-      CTABcopyName(ctab, centroid.id, char_name, sizeof(char_name));
+      CTABcopyName(ctab, centroid.index, char_name, sizeof(char_name));
       centroid.labelname = char_name;
       // this is for table column formatting
       label_chars = centroid.labelname.length();
@@ -234,14 +229,14 @@ int main(int argc, char **argv) {
 
     // this is also for table column formatting
     std::ostringstream ss;
-    ss << centroid.id;
+    ss << centroid.index;
     id_chars = ss.str().length();
     // the line below is only c++11 compatible :(
-    // id_chars = (std::to_string(centroid.id).length());
+    // id_chars = (std::to_string(centroid.index).length());
     if (id_chars > max_id_chars) max_id_chars = id_chars;
 
-    centroid.mass = 0;
-    centroids[centroid.id] = centroid;
+    centroid.value = 0;
+    centroids[centroid.index] = centroid;
   }
 
   std::cout << "computing centers of mass for " << centroids.size() << " structures\n";
@@ -270,7 +265,7 @@ int main(int argc, char **argv) {
           centroids[voxid].x += x * weight;
           centroids[voxid].y += y * weight;
           centroids[voxid].z += z * weight;
-          centroids[voxid].mass += weight;
+          centroids[voxid].value += weight;
         }
       }
     }
@@ -280,81 +275,23 @@ int main(int argc, char **argv) {
   if (lta) LTAfree(&lta);
 
   // compute centers of mass
+  fsPointSet ps;
   std::map<int, Centroid>::iterator it;
   for (it = centroids.begin(); it != centroids.end(); it++) {
     Centroid *c = &it->second;
-    c->x /= c->mass;
-    c->y /= c->mass;
-    c->z /= c->mass;
+    c->x /= c->value;
+    c->y /= c->value;
+    c->z /= c->value;
+    ps.add(*c);
   }
-
 
   // -------------------- write table --------------------
-
-
-  std::ofstream tablefile(input.outfile);
-  if (!tablefile.is_open()) {
-    std::cerr << "could not open writable file at " << input.outfile << std::endl;
-    exit(1);
+  bool ok = ps.writeCentroidTable(input.outfile,input.ltafile);
+  if(!ok) exit(1);
+  if(!input.pointset.empty()){
+    ok = ps.save(input.pointset);
+  if(!ok) exit(1);
   }
 
-  std::cout << "writing results to " << input.outfile << std::endl;
-
-  int precision = 4;
-  int cwidth = precision + 8;
-
-  // table header
-
-  if(input.ltafile.length()) tablefile << "# Reg " << input.ltafile << std::endl;
-  tablefile << std::setw(max_id_chars) << "# ID";
-  if (ctab) {
-    tablefile << std::left << "    " << std::setw(max_label_chars)
-              << "StructName" << std::right;
-  }
-  tablefile << " " << std::setw(cwidth) << "R" + std::string(precision, ' ')
-            << " " << std::setw(cwidth) << "A" + std::string(precision, ' ')
-            << " " << std::setw(cwidth) << "S" + std::string(precision, ' ')
-            << std::endl;
-
-  int table_width = max_id_chars + (cwidth * 3) + 3;
-  if (ctab) table_width += max_label_chars + 4;
-  tablefile << "# ";
-  tablefile << std::string(table_width, '-') << std::endl;
-
-  // table body
-
-  tablefile << std::fixed << std::setprecision(precision);
-  for (it = centroids.begin(); it != centroids.end(); it++) {
-    Centroid c = it->second;
-
-    tablefile << std::setw(max_id_chars) << c.id;
-    if (ctab) {
-      tablefile << std::left << "    " << std::setw(max_label_chars) 
-                << c.labelname << std::right;
-    }
-    tablefile << " " << std::setw(cwidth) << c.x
-              << " " << std::setw(cwidth) << c.y
-              << " " << std::setw(cwidth) << c.z
-              << std::endl;
-  }
-
-  tablefile.close();
-
-  // pointset
-  if(!input.pointset.empty()) {
-    FILE *fp = fopen(input.pointset.c_str(),"w");
-    for (it = centroids.begin(); it != centroids.end(); it++) {
-      Centroid c = it->second;
-      fprintf(fp,"%7.4f %7.4f %7.4f\n",c.x,c.y,c.z);
-    }
-    fprintf(fp,"info\n");
-    fprintf(fp,"numpoints %d\n",(int)centroids.size());
-    fprintf(fp,"UseRealRAS 1\n");
-    fclose(fp);
-  }
-
-
-  std::cout << "mri_segcentroids done" << std::endl;
-
-  return 0;
 }
+

@@ -89,6 +89,7 @@ protected slots:
   void OnActiveOverlayChanged();
   void OnButtonLoadCustom();
   void OnButtonSaveCustom();
+  void OnCheckSetMidToMin(bool bChecked);
 
 private:
   Ui::WindowConfigureOverlay *ui;

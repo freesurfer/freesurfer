@@ -1,7 +1,7 @@
 import os
 import numpy as np
 import scipy.ndimage
-import freesurfer as fs
+import surfa as sf
 
 from freesurfer.samseg import gems
 from freesurfer.samseg.warp_mesh import kvlWarpMesh

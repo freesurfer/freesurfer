@@ -92,17 +92,20 @@ Use --noinit if center of mass is meaningless, e.g. when registering different r
       <explanation>output VOX2VOX lta file (default is RAS2RAS)</explanation>
       <argument>--cost &lt;str&gt;</argument>
       <explanation>Cost function:
-      ROB    (robust) &lt;- default,
+      ROB    robust &lt;- default, recommended
              for robust same modality registration.
-      ROBENT (robust entropy) experimental, 
-             for robust cross modal registration, can be slow.
-             Also see --entradius, --entball, --entcorrection.
-      MI     (mutual information),
-      NMI    (normalized mutual information),
-             MI, NMI are also good for x-modal (not robust).
-      ECC    (entropy correlation coefficient) experimental,
-      NCC    (normalized cross corrrelation) experimental,
-      SCR    (symetrized correlation ratio) experimental.
+      ROBENT robust entropy, experimental, 
+             for robust cross modal registration, can be slow
+             also see --entradius, --entball, --entcorrection
+      MI     mutual information 
+      NMI    normalized mutual information,
+             recommended for x-modal registration.
+      SB     segmentation-based: Aganj, Fischl, IEEE SPL, 2017
+             for cross modal with large initial misalignment,
+             may need NMI to fine-tune, experimental
+      ECC    entropy correlation coefficient, experimental
+      NCC    normalized cross corrrelation, experimental
+      SCR    symetrized correlation ratio, experimental
 Note: most cost functions require the image backgrounds to be black! Also, only ROB and ROBENT use gradient decend, the others use a Powell optimizer.
 </explanation>
      <argument>--entradius</argument>

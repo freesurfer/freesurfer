@@ -23,6 +23,7 @@
 #include "diag.h"
 #include "matrix.h"
 #include "mri.h"
+#include "mri2.h"
 #include "randomfields.h"
 #include "resample.h"
 #include "transform.h"
@@ -1733,32 +1734,61 @@ double CSDpvalClustSize(CLUSTER_SIM_DATA *csd, double ClusterSize, double ciPct,
   int nthrep, nover, k, nlow, nhi;
   double pval, psum, pcilow, pcihi;
 
-  // First, count the number of MaxClusters whose size is greater than
-  // the one under test
-  nover = 0;
-  for (nthrep = 0; nthrep < csd->nreps; nthrep++){
-    if(csd->MaxClusterSize[nthrep] >  ClusterSize) nover++;
-  }
+  printf("CSDpvalClustSize()\n");
 
-  // Use greter-than-or-equal-to in addition to greather-than.  This
-  // came up in a 1D application where the number of voxels in the
-  // cluster can be quite small making the inequality important. Using
-  // just > is too liberal. Using just >= is to conservative. This
-  // effectively averages them together; seems to work. Probably not
-  // important for 2D and 3D apps.
+  // Per Tom, this code has been changed in two ways (5/10/2022):
+  // 1. A CSD cluster need only be greater than OR equal to the cluster under test (used to be > only)
+  // 2. The pval is (nover+1)/(nreps+1) rather than just nover/nreps
+
+  // The >= change will probably have a very small effect for 2D and
+  // 3D apps because the = condition is extremely unlikely (but still
+  // possible); but it can be important in 1D apps where the clusters
+  // sizes are very small and the = condition is more likely. Before,
+  // I had it averaging the > and >= which gave some relief. The
+  // second change will probably have marginal effects in 2D and 3D
+  // apps, mostly in the low-pvalue range. It does have the potential
+  // to force eg .049 to .051.
+
   char *UseGTE = getenv("FS_CSDPVALCLUSTSIZE_GTE");
   if(UseGTE != NULL){
+    printf("Using GTE ===================================\n");
+    nover = 0;
+    for (nthrep = 0; nthrep < csd->nreps; nthrep++){
+      if(csd->MaxClusterSize[nthrep] >= ClusterSize) nover++;
+    }
+    pval = (double)(nover+1) / (csd->nreps+1);
+  }
+  else {
+    // This was the way it was done prior to May 10 2022
+    // First, count the number of MaxClusters whose size is greater than
+    // the one under test
+    nover = 0;
+    for (nthrep = 0; nthrep < csd->nreps; nthrep++){
+      if(csd->MaxClusterSize[nthrep] > ClusterSize) nover++;
+    }
+    // First, count the number of MaxClusters whose size is greater than
+    // the one under test
+    nover = 0;
+    for (nthrep = 0; nthrep < csd->nreps; nthrep++){
+      if(csd->MaxClusterSize[nthrep] >  ClusterSize) nover++;
+    }
+    // Use greter-than-or-equal-to in addition to greather-than.  This
+    // came up in a 1D application where the number of voxels in the
+    // cluster can be quite small making the inequality
+    // important. Using just > is too liberal. Using just >= is to
+    // conservative. This effectively averages them together; seems to
+    // work. But Tom's change above is better. Probably not important
+    // for 2D and 3D apps and should only change the pvalue in very
+    // rare circumstances.
     for (nthrep = 0; nthrep < csd->nreps; nthrep++){
       if(csd->MaxClusterSize[nthrep] >= ClusterSize) nover++;
     }
     nover /= 2.0;
+    // If none is over, then set nover = 1 so that things don't break
+    if (nover == 0) nover = 1;
+    // Compute the nomial pvalue
+    pval = (double)(nover) / (csd->nreps);
   }
-
-  // If none is over, then set nover = 1 so that things don't break
-  if (nover == 0) nover = 1;
-
-  // Compute the nomial pvalue
-  pval = (double)nover / csd->nreps;
 
   // Ranges for confidence interval
   pcihi = ciPct / 100;
@@ -2012,4 +2042,251 @@ int CSDwrite(char *fname, CSD *csd)
   }
   CSDprint(fp, csd);
   return (0);
+}
+
+/*!
+  \fn MRI *MRIremoveVolumeIslands(MRI *mask, double thresh, int nKeep, MRI *outvol)
+  \brief Removes islands (disconnected components) from mask. Binarizes mask>thresh,
+  then keeps nKeep largest islands. The values in the mask voxels will stay the same
+  except for the islands that are removed which are set to 0. Should probably be 
+  ok to do in place.
+ */
+MRI *MRIremoveVolumeIslands(MRI *mask, double thresh, int nKeep, MRI *outvol)
+{
+  if(mask == NULL){
+    printf("ERROR: MRIremoveVolumeIslands(): mask is null\n");
+    return(NULL);
+  }
+  if(nKeep == 0){
+    printf("ERROR: MRIremoveVolumeIslands(): nKeep==0\n");
+    return(NULL);
+  }
+  if(outvol == NULL){
+    outvol = MRIallocSequence(mask->width, mask->height, mask->depth, mask->type, 1);
+    MRIcopyHeader(mask, outvol);
+    MRIcopyPulseParameters(mask, outvol);
+  }
+  int err = MRIdimMismatch(mask,outvol,0);
+  if(err){
+    printf("ERROR: MRIremoveVolumeIslands(): dimension mismatch\n");
+    return(NULL);
+  }
+
+  // Don't have to zero outvol because all voxels will be replaced below
+
+  int nClusters;
+  VOLCLUSTER **ClusterList = clustGetClusters(mask, 0, thresh, 0, 0, 0, NULL, &nClusters, NULL);
+  MRI *ocn = clustClusterList2Vol(ClusterList, nClusters, mask, 0, 0);
+
+  printf("MRIremoveVolumeIslands() thresh=%g, nKeep=%d, nclusters = %d\n",thresh,nKeep,nClusters);
+
+  int c,r,s;
+  for(c=0; c < mask->width; c++){
+    for(r=0; r < mask->height; r++){
+      for(s=0; s < mask->depth; s++){
+	double v  = MRIgetVoxVal(ocn,c,r,s,0);
+	if(v <= nKeep) {
+	  double v0 = MRIgetVoxVal(mask,c,r,s,0);
+	  MRIsetVoxVal(outvol,c,r,s,0, v0);
+	}
+	else MRIsetVoxVal(outvol,c,r,s,0,  0);         
+      }
+    }
+  }
+
+  clustFreeClusterList(&ClusterList, nClusters);
+  MRIfree(&ocn);
+
+  return(outvol);
+}
+
+
+/*!
+  \fn MRI *MRIremoveVolumeHoles(MRI *mask, double thresh, int nKeep, double FillVal, MRI *outvol)
+  \brief Removes holes from mask. Binarizes mask<thresh, then keeps
+  nKeep largest islands. The values in the mask voxels will stay the
+  same except for the holes that are removed which are set to
+  FillVal. Should probably be ok to do in place.
+  See also RemoveHoles(MRI *orivol) in connectcomp.cpp
+ */
+MRI *MRIremoveVolumeHoles(MRI *mask, double thresh, int nKeep, double FillVal, MRI *outvol)
+{
+  printf("MRIremoveVolumeHoles() thresh=%g, nKeep=%d\n",thresh,nKeep);
+  if(mask == NULL){
+    printf("ERROR: MRIremoveVolumeHoles(): mask is null\n");
+    return(NULL);
+  }
+  if(nKeep == 0){
+    printf("ERROR: MRIremoveVolumeHoles(): nKeep==0\n");
+    return(NULL);
+  }
+  if(outvol == NULL){
+    outvol = MRIallocSequence(mask->width, mask->height, mask->depth, mask->type, 1);
+    MRIcopyHeader(mask, outvol);
+    MRIcopyPulseParameters(mask, outvol);
+  }
+  // Don't have to 0 outvol because all voxels will be set below
+  int err = MRIdimMismatch(mask,outvol,0);
+  if(err){
+    printf("ERROR: MRIremoveVolumeHoles(): dimension mismatch\n");
+    return(NULL);
+  }
+
+  // First, invert the mask
+  MRI *invmask = MRIallocSequence(mask->width, mask->height, mask->depth, MRI_INT, 1);
+  MRIcopyHeader(mask, invmask);
+  MRIcopyPulseParameters(mask, invmask);
+  int c,r,s;
+  for(c=0; c < invmask->width; c++){
+    for(r=0; r < invmask->height; r++){
+      for(s=0; s < invmask->depth; s++){
+	double v = MRIgetVoxVal(mask,c,r,s,0);
+	if(v > thresh) v = 0; // invert
+	else           v = 1;
+	MRIsetVoxVal(invmask,c,r,s,0, v);
+      }
+    }
+  }
+  // Remove islands from the inverted mask. Note: thresh=0.5 here because binarized above
+  MRI *newmask = MRIremoveVolumeIslands(invmask, 0.5, nKeep, NULL);
+
+  // Now fill in the holes
+  for(c=0; c < invmask->width; c++){
+    for(r=0; r < invmask->height; r++){
+      for(s=0; s < invmask->depth; s++){
+	double v = MRIgetVoxVal(newmask,c,r,s,0);
+	if(v == 0) {
+	  // If this was not a hole, fill in with the value from the
+	  // input mask, otherwise use FillVal
+	  double v0 = MRIgetVoxVal(mask,c,r,s,0);
+	  if(v0 > thresh) MRIsetVoxVal(outvol,c,r,s,0, v0);
+	  else            MRIsetVoxVal(outvol,c,r,s,0, FillVal);
+	}
+	else MRIsetVoxVal(outvol,c,r,s,0, 0);
+      }
+    }
+  }
+  MRIfree(&invmask);
+  MRIfree(&newmask);
+
+  return(outvol);
+}
+
+/*!
+  \fn MRI *MRIremoveSliceHoles(MRI *mask, int slicedir, MRI *outvol)
+  \brief Removes holes from all slices in a given direction. The original
+  application was for creating a head mask by thresholding intensities. 
+  The thresholding left voids at the bottom of the neck that were not
+  holes in 3D but were in 2D (use slicedir=6 for this). Sometimes there
+  are big holes in the ears (use slicedir=4)
+  slicedir = 1,2,3 - take slices as the 1st, 2nd, or 3rd dimension
+  slicedir = 4,5,6 - take slices as RL, AP, or SI
+ */
+MRI *MRIremoveSliceHoles(MRI *mask, int slicedir, MRI *outvol)
+{
+  if(outvol == NULL){
+    outvol = MRIallocSequence(mask->width, mask->height, mask->depth, mask->type, 1);
+    MRIcopyHeader(mask, outvol);
+    MRIcopyPulseParameters(mask, outvol);
+  }
+  // Don't have to 0 outvol because all voxels will be set below
+  int err = MRIdimMismatch(mask,outvol,0);
+  if(err){
+    printf("ERROR: MRIremoveSliceHoles(): dimension mismatch\n");
+    return(NULL);
+  }
+
+  // Determine the slice
+  int slicediruse;
+  if(slicedir <= 3) slicediruse = slicedir;
+  else{
+    char ostr[5];
+    int k=0;
+    ostr[4] = '\0';
+    MRIdircosToOrientationString(mask,ostr);
+    printf("ostr %s\n",ostr);
+    if(slicedir == 4) for(k=0;k<3;k++) if(ostr[k] == 'R' || ostr[k] == 'L') break;
+    if(slicedir == 5) for(k=0;k<3;k++) if(ostr[k] == 'A' || ostr[k] == 'P') break;
+    if(slicedir == 6) for(k=0;k<3;k++) if(ostr[k] == 'S' || ostr[k] == 'I') break;
+    slicediruse = k+1;
+  }
+  printf("slicedir %d slicediruse %d\n",slicedir,slicediruse);
+
+  // Make things easy by using an array
+  int voldim[3],slicedim[3];
+  voldim[0] =  mask->width;
+  voldim[1] =  mask->height;
+  voldim[2] =  mask->depth;
+  for(int k=0;k<3;k++) slicedim[k]=voldim[k];
+  slicedim[slicediruse-1] = 1;
+  printf("slicedim %d %d %d\n",slicedim[0],slicedim[1],slicedim[2]);
+
+  // Go through each slice
+  int nthslice,naddedtot=0;
+  for(nthslice=0; nthslice < voldim[slicediruse-1]; nthslice++){
+    // Pack the slice into its own MRI struct (invert it along the way)
+    MRI *slice = MRIallocSequence(slicedim[0],slicedim[1],slicedim[2], MRI_INT, 1);
+    int c,r,s,nhits=0;
+    for(c=0; c < slice->width; c++){
+      for(r=0; r < slice->height; r++){
+	for(s=0; s < slice->depth; s++){
+	  int vc=c, vr=r, vs=s;
+	  if(slicediruse==1) vc = nthslice;
+	  if(slicediruse==2) vr = nthslice;
+	  if(slicediruse==3) vs = nthslice;
+	  double v = MRIgetVoxVal(mask,vc,vr,vs,0);
+	  if(v > 0.5) v = 0; // invert
+	  else        v = 1;
+	  MRIsetVoxVal(slice,c,r,s,0, v);
+	  if(v>0) nhits++;
+	}
+      }
+    }
+
+    // Do clustering. Clusters or sorted by size. Because of the inversion above, 
+    // the largest cluster will be the background. 0.5=thresh
+    int nClusters;
+    VOLCLUSTER **ClusterList = clustGetClusters(slice, 0, 0.5, 0, 0, 0, NULL, &nClusters, NULL);
+    MRI *ocn = clustClusterList2Vol(ClusterList, nClusters, slice, 0, 0);
+
+    // Now put the slice into the output volume keeping everything
+    // except the largest cluster (which is the background)
+    int nadded = 0, nhits2=0;
+    for(c=0; c < slice->width; c++){
+      for(r=0; r < slice->height; r++){
+	for(s=0; s < slice->depth; s++){
+	  int vc=c, vr=r, vs=s;
+	  if(slicediruse==1) vc = nthslice;
+	  if(slicediruse==2) vr = nthslice;
+	  if(slicediruse==3) vs = nthslice;
+	  double v0 = MRIgetVoxVal(mask,vc,vr,vs,0);
+	  double v = MRIgetVoxVal(ocn,c,r,s,0);
+	  if(v != 1) v = 1; // first ocn is background
+	  else       v = 0;
+	  MRIsetVoxVal(outvol,vc,vr,vs,0, v);
+	  if(v>0) nhits2++;
+	  if(v > 0.5 && v0 < 0.5) nadded++;
+	}
+      }
+    }
+    
+    naddedtot += nadded;
+
+    //printf("%d %d %d %d %d\n",nthslice,nhits,nClusters,nadded,nhits2);
+    if(0 && nthslice == 250){
+      char tmpstr[200];
+      sprintf(tmpstr,"tmp.%03d.mgh",nthslice);
+      MRIwrite(slice,tmpstr);
+      sprintf(tmpstr,"ocn.%03d.mgh",nthslice);
+      MRIwrite(ocn,tmpstr);
+    }
+
+    clustFreeClusterList(&ClusterList, nClusters);
+    MRIfree(&slice);
+    MRIfree(&ocn);
+  }
+
+  printf("MRIremoveSliceHodes() removed %d voxels\n",naddedtot);
+
+  return(outvol);
 }

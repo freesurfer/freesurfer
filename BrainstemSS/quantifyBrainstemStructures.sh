@@ -51,7 +51,7 @@ for i in `eval echo {1..$numberOfSubjects}`; do
   subjectName=`echo "${subjectName//\/}"` # strips the /
 
   # File with volumes
-  volFile="$resultsDirectory/$subjectName/mri/brainstemSsVolumes.v12.txt"
+  volFile="$resultsDirectory/$subjectName/mri/brainstemSsVolumes.v13.txt"
 
   # If the file exists, collect data
   if [ -f $volFile ]; then

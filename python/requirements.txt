@@ -3,3 +3,4 @@ nibabel
 numpy
 scipy
 pyyaml
+surfa==0.0.11

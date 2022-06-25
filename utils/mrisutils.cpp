@@ -3566,3 +3566,257 @@ int MRISedgeWrite(char *filename, MRIS *surf)
   return(0);
 }
 
+
+/*!
+\fn MRIS *MRISupsampleCentroid(MRIS *insurf, int nupsamples)
+\brief Upsample the surface by putting new vertices at the centroid of
+each triangle. For one upsample, the new surface will have nvertices =
+insurf->nvertices + insurf->nfaces and nfaces = 3*insurf->nfaces. Only
+the minimal set of parameters are set in the new surface so functions
+like MRIScomputeMetricProperties() might not do the right thing if run
+directly on the output (though it is run at the end of the
+function). It would be nice to have a function that updates all the
+parameters given the minimum, but this does not appear to exist. But
+you can save it to file and read it back. This function tends to make
+long triangles (bad quality) with vertices non-uniformly distributed.
+Probably better to use MRISupsampleSplit().
+*/
+MRIS *MRISupsampleCentroid(MRIS *srcsurf, int nupsamples)
+{
+  if(srcsurf == NULL) return(NULL);
+  MRIS *upsurf;
+
+  if(nupsamples > 1){
+    upsurf=srcsurf;
+    for(int n=0; n < nupsamples; n++){
+      printf("MRISupsampleCentroid() upsample level = %d ======================\n",n);
+      MRIS *tmpsurf = MRISupsampleCentroid(upsurf, 1);
+      if(tmpsurf == NULL) {
+	printf("ERROR: MRISupsampleCentroid() return is NULL\n");
+	return(NULL);
+      }
+      if(n>0) MRISfree(&upsurf);
+      upsurf = tmpsurf;
+    }
+    return(upsurf);
+  }
+
+  int nvertices = srcsurf->nvertices + srcsurf->nfaces;
+  int nfaces = 3*srcsurf->nfaces;
+  upsurf = MRISclone(srcsurf);
+  if(upsurf == NULL) return(NULL);
+  MRISreallocVerticesAndFaces(upsurf,nvertices, nfaces);
+  printf("MRISupsampleCentroid(): source nvertices = %d nfaces = %d, new nv = %d nf = %d\n",
+	 srcsurf->nvertices,srcsurf->nfaces,upsurf->nvertices,upsurf->nfaces);fflush(stdout);
+
+  int nthface, newfaceno=srcsurf->nfaces;
+  for(nthface=0; nthface < srcsurf->nfaces; nthface++){
+    FACE *face = &(srcsurf->faces[nthface]); // can be source or up
+
+    // Put a new vertex at the centroid of this face
+    int upvtxno = srcsurf->nvertices+nthface; // index of new vertex
+    VERTEX *vup = &(upsurf->vertices[upvtxno]); // must be upsurf
+
+    // Compute the centroid
+    int k,nbrvtxno;
+    double xsum=0, ysum=0, zsum=0;
+    for(k=0; k < 3; k++){
+      nbrvtxno = face->v[k];
+      VERTEX *vk = &(srcsurf->vertices[nbrvtxno]); // up or source here
+      xsum += vk->x;
+      ysum += vk->y;
+      zsum += vk->z;
+    }
+    vup->x = xsum/3.0;
+    vup->y = ysum/3.0;
+    vup->z = zsum/3.0;
+
+    // Create new faces for the three new triangles. Note that the
+    // order of the vertices in the face is important as it determines
+    // whether the norm points in or out
+    FACE *newface;
+    // For the first face, replace the values in the already existing face
+    newface = &(upsurf->faces[nthface]); // nthface here
+    newface->v[0] = face->v[0];
+    newface->v[1] = face->v[1];
+    newface->v[2] = upvtxno;
+
+    newface = &(upsurf->faces[newfaceno]); // newfaceno here
+    newface->v[0] = face->v[1];
+    newface->v[1] = face->v[2];
+    newface->v[2] = upvtxno;
+    newfaceno++;
+
+    newface = &(upsurf->faces[newfaceno]); // newfaceno here
+    newface->v[0] = face->v[2];
+    newface->v[1] = face->v[0];
+    newface->v[2] = upvtxno;
+    newfaceno++;
+
+  }
+  MRIScomputeMetricProperties(upsurf); // not sure if this actually works
+  return(upsurf);
+}
+
+/*!
+\fn MRIS *MRISupsampleSplit(MRIS *srcsurf, int nupsamples, int SortType)
+\brief Upsample the surface by adding a vertex at the middle of an edge.
+This splits the adjacent triangles. Not every edge will be split, because,
+once a triangle is split, none of the adjacent edges can be used for spliting. 
+For this reason, the order of splitting matters. The order can be controlled
+with SortType where the edges are ordered by length and/or the size
+of an adjoining triangle:
+  case 0: Not sorting
+  case 1: Length then Max Area, Descending (high to low)
+  case 2: Length then Max Area, Ascending  (low to high)
+  case 3: Max Area then Length, Descending (high to low)
+  case 4: Max Area then Length, Ascending  (low to high)
+Eg, use SortType=1 so split the largest edges first.
+
+For one upsample, the new surface will have a maximum nvertices =
+srcsurf->nvertices + srcsurf->nedges and nfaces = 2*srcsurf->nfaces.
+The function does not set all the parameters in MRI_SURFACE structure,
+so it writes the surface to a temporary file and then reads it back
+in. Yes, silly. The temp file will have a name like
+MRISupsample.tmpsurf.XXXXXX and will be in FREESURFER_TMP_DIR is set
+or /tmp otherwise.
+*/
+MRIS *MRISupsampleSplit(MRIS *srcsurf, int nupsamples, int SortType)
+{
+  if(srcsurf == NULL) return(NULL);
+  MRIS *upsurf;
+
+  MRISedges(srcsurf);
+  MRISfaceMetric(srcsurf,0);
+  MRISedgeMetric(srcsurf,0);
+
+  MRI_EDGE *edges;
+  if(SortType == 0) edges = srcsurf->edges;
+  else              edges = MRISedgeSort(srcsurf, SortType, NULL);
+
+  if(nupsamples > 1){
+    upsurf=srcsurf;
+    for(int n=0; n < nupsamples; n++){
+      printf("MRISupsampleSplit() upsample level = %d SortType=%d ======================\n",n,SortType);
+      MRIS *tmpsurf = MRISupsampleSplit(upsurf, 1, SortType);
+      if(tmpsurf == NULL) {
+	printf("ERROR: MRISupsampleSplit() return is NULL\n");
+	return(NULL);
+      }
+      if(n>0) MRISfree(&upsurf);
+      upsurf = tmpsurf;
+    }
+    return(upsurf);
+  }
+
+  int nvertices = srcsurf->nvertices + srcsurf->nedges; // max number
+  int nfaces = 2*srcsurf->nfaces; // max
+  upsurf = MRISclone(srcsurf);
+  if(upsurf == NULL) return(NULL);
+  MRISreallocVerticesAndFaces(upsurf,nvertices, nfaces);
+  printf("MRISupsampleSplit(): source nvertices = %d nfaces = %d, nedges=%d new nv = %d nf = %d\n",
+	 srcsurf->nvertices,srcsurf->nfaces,srcsurf->nedges,upsurf->nvertices,upsurf->nfaces);fflush(stdout);
+
+  int *FaceNotSplitable = (int*) calloc(srcsurf->nfaces,sizeof(int));
+  int nthedge, upvtxno = srcsurf->nvertices, upfaceno=srcsurf->nfaces, db=0;
+  for(nthedge = 0; nthedge < srcsurf->nedges; nthedge++){
+    MRI_EDGE *e = &(edges[nthedge]);
+    if(db) printf("nthedge = %d eno=%d len=%6.2f maxarea=%6.1f v=(%d,%d) f=(%d,%d) upv=%d upf=%d=========================\n",
+		  nthedge,e->edgeno,e->len,e->maxarea,e->vtxno[0],e->vtxno[1],e->faceno[0],e->faceno[1],upvtxno,upfaceno);
+    if(FaceNotSplitable[e->faceno[0]] || FaceNotSplitable[e->faceno[1]]) continue;
+
+    VERTEX *vsrc0 = &(srcsurf->vertices[e->vtxno[0]]);
+    VERTEX *vsrc1 = &(srcsurf->vertices[e->vtxno[1]]);
+    VERTEX *vup = &(upsurf->vertices[upvtxno]);
+    vup->x = (vsrc0->x+vsrc1->x)/2.0;
+    vup->y = (vsrc0->y+vsrc1->y)/2.0;
+    vup->z = (vsrc0->z+vsrc1->z)/2.0;
+
+    // Create new faces for the two new triangles. Note that the order
+    // of the vertices in the face is important as it determines
+    // whether the norm points in or out. For the first face, replace
+    // the values in the already existing face.
+    for(int k=0; k<2; k++){
+      FACE *face = &(srcsurf->faces[e->faceno[k]]);
+      int splitedgeno;
+      for(splitedgeno=0; splitedgeno < 3; splitedgeno++){
+	int m = splitedgeno + 1;
+	if(m==3) m=0;
+	if( (face->v[splitedgeno] == e->vtxno[0] && face->v[m] == e->vtxno[1]) ||
+	    (face->v[splitedgeno] == e->vtxno[1] && face->v[m] == e->vtxno[0]) ){
+	  break;
+	}
+      }
+      if(db)printf("  Spliting %dth faceno %d along edge %d\n",k,e->faceno[k],splitedgeno);
+      FACE *newface;
+      if(splitedgeno==0){// spliting 0-1
+	newface = &(upsurf->faces[e->faceno[k]]); // e->faceno[k] here
+	newface->v[0] = face->v[0];
+	newface->v[1] = upvtxno;
+	newface->v[2] = face->v[2];
+	if(db){printf("    edge %d  (%d,%d,%d)\n",nthedge,newface->v[0],newface->v[1],newface->v[2]); fflush(stdout);}
+	newface = &(upsurf->faces[upfaceno]); // upfaceno here
+	newface->v[0] = upvtxno;
+	newface->v[1] = face->v[1];
+	newface->v[2] = face->v[2];
+	if(db){printf("    newface %d  (%d,%d,%d)\n",upfaceno,newface->v[0],newface->v[1],newface->v[2]); fflush(stdout);}
+      }
+      if(splitedgeno==1){// splitting 1-2
+	newface = &(upsurf->faces[e->faceno[k]]); // e->faceno[k] here
+	newface->v[0] = face->v[0];
+	newface->v[1] = face->v[1];
+	newface->v[2] = upvtxno;
+	if(db){printf("    edge %d  (%d,%d,%d)\n",nthedge,newface->v[0],newface->v[1],newface->v[2]); fflush(stdout);}
+	newface = &(upsurf->faces[upfaceno]); // upfaceno here
+	newface->v[0] = upvtxno;
+	newface->v[1] = face->v[2];
+	newface->v[2] = face->v[0];
+	if(db){printf("    newface %d  (%d,%d,%d)\n",upfaceno,newface->v[0],newface->v[1],newface->v[2]); fflush(stdout);}
+      }
+      if(splitedgeno==2){// splitting 2-0
+	newface = &(upsurf->faces[e->faceno[k]]); // e->faceno[k] here
+	newface->v[0] = face->v[0];
+	newface->v[1] = face->v[1];
+	newface->v[2] = upvtxno;
+	if(db){printf("    edge %d  (%d,%d,%d)\n",nthedge,newface->v[0],newface->v[1],newface->v[2]); fflush(stdout);}
+	newface = &(upsurf->faces[upfaceno]); // upfaceno here
+	newface->v[0] = face->v[1];
+	newface->v[1] = face->v[2];
+	newface->v[2] = upvtxno;
+	if(db){printf("    newface %d  (%d,%d,%d)\n",upfaceno,newface->v[0],newface->v[1],newface->v[2]); fflush(stdout);}
+      }
+      upfaceno++;
+      FaceNotSplitable[e->faceno[k]]=1;
+    }// kth face in edge
+    upvtxno++; // only one vertex added per edge
+  }// nthedge
+  upsurf->nvertices = upvtxno;
+  upsurf->nfaces = upfaceno;
+  printf("new surf nv = %d nf = %d\n",upsurf->nvertices,upsurf->nfaces);
+  free(FaceNotSplitable);
+  if(SortType != 0) free(edges);
+
+  // OK, this is a little crazy, but save it and read it back in so that
+  // everything that should be set gets set
+  char tmpfile[2000];
+  char *tmpdir = getenv("FREESURFER_TMP_DIR");
+  if(tmpdir==NULL) sprintf(tmpfile,"/tmp/MRISupsample.tmpsurf.XXXXXX");
+  else             sprintf(tmpfile,  "%s/MRISupsample.tmpsurf.XXXXXX",tmpdir);
+  mkstemp(tmpfile);
+  printf("MRISupsampleSplit(): writing/reading temporary surf to %s\n",tmpfile);
+  int err = 0;
+  err = MRISwrite(upsurf,tmpfile);
+  if(err) {
+    printf("MRISupsampleSplit(): could not save temp surf to %s\n",tmpfile);
+    return(NULL);
+  }
+  MRISfree(&upsurf);
+  upsurf = MRISread(tmpfile);
+  if(upsurf==NULL){
+    printf("MRISupsampleSplit(): could not read temp surf from %s\n",tmpfile);
+    return(NULL);
+  }
+  unlink(tmpfile);
+
+  return(upsurf);
+}

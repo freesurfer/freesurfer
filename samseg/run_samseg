@@ -4,15 +4,26 @@ import os
 import sys
 import json
 import scipy.io
-import freesurfer as fs
+import argparse
+import surfa as sf
 import freesurfer.samseg as samseg
 
 
 # ------ Parse Command Line Arguments ------
 
-parser = fs.utils.ArgumentParser()
+parser = argparse.ArgumentParser()
 
 default_threads = int(os.environ.get('OMP_NUM_THREADS', 1))
+
+# Custom action to extend arguments into a list so that both of these are allowed:
+# command --input 1 2 3
+# command --input 1 --input 2 --input 3
+class ExtendAction(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        items = getattr(namespace, self.dest) or []
+        items.extend(values)
+        setattr(namespace, self.dest, items)
+parser.register('action', 'extend', ExtendAction)
 
 # required
 parser.add_argument('-o', '--output', metavar='DIR', dest='outputDirectory', help='Output directory.', required=True)
@@ -58,11 +69,11 @@ args = parser.parse_args()
 # ------ Initial Setup ------
 
 # Make sure freesurfer has been sourced
-if not fs.fshome():
-    fs.fatal('FREESURFER_HOME must be set')
+if not os.environ.get('FREESURFER_HOME'):
+    sf.system.fatal('FREESURFER_HOME must be set')
 
 # Start the process timer
-timer = fs.utils.Timer()
+timer = samseg.Timer()
 
 # Create the output folder
 os.makedirs(args.outputDirectory, exist_ok=True)
@@ -85,7 +96,7 @@ if not atlasDir:
         defaultAtlas = '20Subjects_smoothing2_down2_smoothingForAffine2_lesion'
     else:
         defaultAtlas = '20Subjects_smoothing2_down2_smoothingForAffine2'
-    atlasDir = os.path.join(fs.fshome(), 'average', 'samseg', defaultAtlas)
+    atlasDir = os.path.join(os.environ.get('FREESURFER_HOME'), 'average', 'samseg', defaultAtlas)
 
 # Setup the visualization tool
 visualizer = samseg.initVisualizer(args.showfigs, args.movie)
@@ -117,6 +128,7 @@ if args.bias_field_smoothing_kernel is not None:
 
 if args.mesh_stiffness is not None:
     userModelSpecifications['K'] = args.mesh_stiffness
+    print("Mesh stiffness set to %g" % userModelSpecifications['K'])
 
 # ------ Run Samseg ------
 

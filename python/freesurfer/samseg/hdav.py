@@ -31,9 +31,9 @@ def view(layers, window_id=0, interactive=False, user_keys_callback=None, title=
     windows[window_id].show()
     if handle_events:
         if interactive:
-            QtGui.QApplication.processEvents()
+            QApplication.processEvents()
         else:
-            QtGui.QApplication.exec_()
+            QApplication.exec_()
 
 class HdavWindow(QWidget):
     OVERLAY_KEYS = [

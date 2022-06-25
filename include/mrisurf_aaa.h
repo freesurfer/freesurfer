@@ -98,6 +98,7 @@ typedef struct MRIS_HASH_TABLE MHT;
 
 typedef struct LABEL_VERTEX         LABEL_VERTEX,    LV  ;
 typedef struct LABEL                LABEL;
+// See mrisurf_FACE_VERTEX_MRIS_generated.h for FACE, VERTEX, and MRI_SURFACE/MRIS
 typedef struct face_type_           face_type, FACE;
 typedef struct face_topology_type_  FACE_TOPOLOGY;
 typedef struct vertex_type_         vertex_type, VERTEX;
@@ -172,6 +173,7 @@ typedef struct edge_type_
   double angle; // angle (deg) of the adjacent face normals
   double J; // Angle Cost of this edge
   double u[3]; // unit vector pointing from v0 to v1
+  double area[2], maxarea; // area of the two faces and max of the two
   DMATRIX *gradU; // 1x3 grad of unit verctor wrt vertex 0
   DMATRIX *gradDot[4]; // 3x3 grad of dot product wrt 4 vertices
 } MRI_EDGE;

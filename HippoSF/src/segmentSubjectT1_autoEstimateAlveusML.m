@@ -1,3 +1,4 @@
+
 % Segments the subfields from the original MPRAGE
 
 % function put together by Eugenio to segment the subfields from the MPRAGE. It is based on
@@ -23,23 +24,6 @@
 
 function segmentSubjectT1_autoEstimateAlveusML(subjectName,subjectDir,resolution,atlasMeshFileName,atlasDumpFileName,compressionLUTfileName,K,side,optimizerType,suffix,FSpath,MRFconstant)
 
-% clear
-% subjectName='eugenio';
-% % subjectName='0003';
-% subjectDir='/autofs/space/panamint_005/users/iglesias/brains/myBrain/myBrain/subjectdir/';
-% % subjectDir='/autofs/space/panamint_005/users/iglesias/data/ADNI_SF_130607/';
-% resolution=(1/3);
-% atlasMeshFileName='/autofs/space/panamint_005/users/iglesias/atlases/atlasHippoAmygBuckner_170621_CJ_GD_allBuckner_BodyHead/AtlasMesh_merged.gz';
-% atlasDumpFileName='/autofs/space/panamint_005/users/iglesias/atlases/atlasHippoAmygBuckner_170621_CJ_GD_allBuckner_BodyHead/imageDumpWithAmygdala.mgz';
-% compressionLUTfileName='/autofs/homes/002/iglesias/matlab/code/Atlas3dFreeSurferJuly2017newAtlas/code/compressionLookupTable.txt';
-% K=0.05;
-% side='right';
-% optimizerType='L-BFGS';
-% % optimizerType='ConjugateGradient';
-% suffix='GEMS2-dev-mac';
-% FSpath='/usr/local/freesurfer/dev/bin/';
-% MRFconstant=0;
-% nargin=9;
 
 % Eugenio November 2017: added option to write meshes and smoother resampling
 DEBUG=0;
@@ -60,6 +44,8 @@ if ~isempty(aux)
     end
 end
 
+% March 2021: fix to accommodate 'fs_run_from_mcr'
+FSpath = [FSpath '/fs_run_from_mcr ' FSpath '/'];
 
 % sanity check
 if exist('MRFconstant','var')==0
@@ -131,8 +117,6 @@ end
 if exist(tempdir,'dir')==0
     mkdir(tempdir);
 end
-
-tempdir=getFullPath(tempdir)
 
 cd(tempdir);
 
@@ -332,7 +316,7 @@ FreeSurferLabelGroups{end+1}={'Background','hippocampal-fissure','Background-CSF
 FreeSurferLabelGroups{end+1}={'Left-VentralDC'};
 FreeSurferLabelGroups{end+1}={'Left-Putamen'};
 FreeSurferLabelGroups{end+1}={'Left-Pallidum'};
-FreeSurferLabelGroups{end+1}={'Left-Thalamus'};
+FreeSurferLabelGroups{end+1}={'Left-Thalamus-Proper'};
 FreeSurferLabelGroups{end+1}={'Left-Accumbens-area'};
 FreeSurferLabelGroups{end+1}={'Left-Caudate'};
 FreeSurferLabelGroups{end+1}={'SUSPICIOUS'};
@@ -353,7 +337,7 @@ cheatingMeans=zeros(length( sameGaussianParameters),1);
 cheatingVariances=0.01*ones(length( sameGaussianParameters),1);
 for l=1:length(sameGaussianParameters)
     labels= sameGaussianParameters{l};
-    if any(labels>=200 & labels<=226),  cheatingMeans(l)=3; %  cheatingMeans(l)=17; % HIPPO SF -> HIPPO
+    if any(labels>=200 & labels<=226 & labels~=215),  cheatingMeans(l)=3; %  cheatingMeans(l)=17; % HIPPO SF -> HIPPO
     elseif any(labels>=7000),  cheatingMeans(l)=3;  % cheatingMeans(l)=18; % AMYGDALOID SUBNUCLEI -> AMYGDALA
     elseif any(labels==0), cheatingMeans(l)=1; % BACKGROUND is 1 instead of 0
     elseif any(labels==999), cheatingMeans(l)=55; cheatingVariances(l)=55^2; % This is the generic, "suspicious" label we use for cysts...
@@ -775,7 +759,7 @@ FreeSurferLabelGroups{end+1}={'hippocampal-fissure'};
 FreeSurferLabelGroups{end+1}={'Left-Pallidum'};
 FreeSurferLabelGroups{end+1}={'Left-Putamen'};
 FreeSurferLabelGroups{end+1}={'Left-Caudate'};
-FreeSurferLabelGroups{end+1}={'Left-Thalamus'};
+FreeSurferLabelGroups{end+1}={'Left-Thalamus-Proper'};
 FreeSurferLabelGroups{end+1}={'Left-choroid-plexus'};
 FreeSurferLabelGroups{end+1}={'Left-VentralDC'};
 FreeSurferLabelGroups{end+1}={'Left-Accumbens-area'};

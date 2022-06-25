@@ -152,9 +152,9 @@ def sample_patch(mri, point, nx, ny, nz, wsize):
                 patch[xk+whalf,yk+whalf,zk+whalf,:] = val
     return patch
 
-@deprecated('use fs.utils.ArgumentParser instead')
+@deprecated('use argparse.ArgumentParser instead')
 def ArgParser(*args, **kwargs):
-    return fs.utils.ArgumentParser(*args, **kwargs)
+    return argparse.ArgumentParser(*args, **kwargs)
 
 def source(filename):
     raise DeprecationWarning('sourcing from python is no longer supported as it is quite dangerous')

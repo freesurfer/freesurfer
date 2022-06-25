@@ -165,7 +165,7 @@ if($?PBS_JOBID) then
 endif
 
 # Parameters
-set RUNTIME="$FREESURFER_HOME/MCRv84/";
+set RUNTIME="$FREESURFER_HOME/MCRv97/";
 set RESOLUTION="0.5";
 set ATLASMESH="$FREESURFER_HOME/average/BrainstemSS/atlas/AtlasMesh.gz";
 set ATLASDUMP="$FREESURFER_HOME/average/BrainstemSS/atlas/AtlasDump.mgz";
@@ -173,7 +173,7 @@ set LUT="$FREESURFER_HOME/average/BrainstemSS/atlas/compressionLookupTable.txt";
 set K="0.05";
 set OPTIMIZER="L-BFGS";
 set MRFCONSTANT="0";
-set SUFFIX="v12";
+set SUFFIX="v13";
 
 
 # Now the real job
@@ -206,7 +206,7 @@ echo "#@# Brainstem Substructures processing `date`" \
   |& tee -a $BSSLOG
 
 # command
-set cmd="run_SegmentSubject.sh $RUNTIME $SUBJECTNAME $SUBJECTS_DIR $RESOLUTION $ATLASMESH $ATLASDUMP $LUT $K $OPTIMIZER $SUFFIX '${FREESURFER_HOME}/bin/fs_run_from_mcr ${FREESURFER_HOME}/bin/'"
+set cmd="run_SegmentSubject.sh $RUNTIME $SUBJECTNAME $SUBJECTS_DIR $RESOLUTION $ATLASMESH $ATLASDUMP $LUT $K $OPTIMIZER $SUFFIX ${FREESURFER_HOME}/bin/"
 
 fs_time ls >& /dev/null
 if ($status) then

@@ -158,7 +158,25 @@ typedef struct
 MRI_REGION ;
 
 
-class MRI
+typedef struct
+{
+  // NOTE: VOL_GEOM is subclassed by MRI, so take that into account when changing
+  int           valid;   /* whether this is a valid info or not (1 valid, 0 not valid) */
+  int           width ;
+  int           height ;
+  int           depth ;
+  float         xsize = 1; // Added =1 because that is what MRI does
+  float         ysize = 1;
+  float         zsize = 1;
+  float x_r = -1, x_a = 0, x_s =  0;
+  float y_r =  0, y_a = 0, y_s = -1;
+  float z_r =  0, z_a = 1, z_s =  0;
+  float c_r =  0, c_a = 0, c_s =  0;
+  char          fname[STRLEN];  // volume filename
+}
+VOL_GEOM, VG;
+
+class MRI : public VOL_GEOM
 {
 public:
 
@@ -191,9 +209,9 @@ public:
   void loadITKImage(ITKImageType::Pointer image, int frame = 0);
 
   // ---- image geometry ----
-  int width;        // number of columns
-  int height;       // number of rows
-  int depth;        // number of slices
+  //int width;        // number of columns // Now inherited from VOL_GEOM
+  //int height;       // number of rows    // Now inherited from VOL_GEOM
+  //int depth;        // number of slices  // Now inherited from VOL_GEOM
   int nframes;      // number of frames
   Shape shape;      // volume shape
   int imnr0;        // starting image number
@@ -204,9 +222,9 @@ public:
   float xend;       // ending x (in xsize units)
   float yend;       // ending y (in ysize units)
   float zend;       // ending z (in zsize units)
-  float xsize = 1;  // size of a voxel in the x direction
-  float ysize = 1;  // size of a voxel in the y direction
-  float zsize = 1;  // size of a voxel in the z direction
+  //float xsize = 1;  // size of a voxel in the x direction // Now inherited from VOL_GEOM
+  //float ysize = 1;  // size of a voxel in the y direction // Now inherited from VOL_GEOM
+  //float zsize = 1;  // size of a voxel in the z direction // Now inherited from VOL_GEOM
   float thick = 1;
   int scale = 1;
   float ps = 1;
@@ -217,11 +235,11 @@ public:
   int *yi = nullptr;
   int *zi = nullptr;
 
-  // ---- RAS distances ----
-  float x_r = -1, x_a = 0, x_s =  0;
-  float y_r =  0, y_a = 0, y_s = -1;
-  float z_r =  0, z_a = 1, z_s =  0;
-  float c_r =  0, c_a = 0, c_s =  0;
+  // ---- RAS distances ---- // Now inherited from VOL_GEOM
+  //float x_r = -1, x_a = 0, x_s =  0;
+  //float y_r =  0, y_a = 0, y_s = -1;
+  //float z_r =  0, z_a = 1, z_s =  0;
+  //float c_r =  0, c_a = 0, c_s =  0;
   int ras_good_flag = 0;  // indicates whether the RAS coordinates are accurate
   
   // ---- transforms ----
@@ -261,7 +279,7 @@ public:
   MATRIX *bvecs = nullptr;
 
   // ---- file metadata ----
-  char fname[STRLEN];           // filename
+  //char fname[STRLEN];           // filename // Now inherited from VOL_GEOM
   char fname_format[STRLEN];    // file extension
   char subject_name[STRLEN];    // fs subject name
   char path_to_t1[STRLEN];      // NOT USED
@@ -910,9 +928,9 @@ MRI   *MRIresize(MRI *mri, double xsize, double ysize, double zsize, int nframes
 MATRIX *surfaceRASFromVoxel_(MRI *mri);
 MATRIX *voxelFromSurfaceRAS_(MRI *mri);
 MATRIX *surfaceRASFromRAS_(MRI const *mri);
-MATRIX *RASFromSurfaceRAS_(MRI const *mri);
+MATRIX *RASFromSurfaceRAS_(MRI const *mri, MATRIX *RASFromSRAS);
 
-  int MRIscannerRASToVoxel(MRI *mri, double xr, double yr, double zr, double *xv, double *yv, double *zv);
+int MRIscannerRASToVoxel(MRI *mri, double xr, double yr, double zr, double *xv, double *yv, double *zv);
 int MRIvoxelToSurfaceRAS(MRI *mri, double xv, double yv, double zv,
                          double *xs, double *ys, double *zs);
 int MRIsurfaceRASToVoxel(MRI *mri, double xr, double yr, double zr,

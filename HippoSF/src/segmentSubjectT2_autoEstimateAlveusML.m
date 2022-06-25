@@ -24,45 +24,6 @@
 function segmentSubjectT2_autoEstimateAlveusML(subjectName,subjectDir,T2volumeFileName,resolution,atlasMeshFileName,atlasDumpFileName,compressionLUTfileName,K,side,optimizerType,suffix,suffixUser,FSpath,MRFconstant,ByPassBF,UseWholeBrainInHyperPar)
 
 
-% clear
-% subjectName='bif';
-% subjectDir='~/Downloads/';
-% T2volumeFileName='~/Downloads/bif/mri/anisotropicT2_reoriented.nii.gz';
-% resolution=0.3;
-% atlasMeshFileName='/autofs/space/panamint_005/users/iglesias/atlases/atlasHippoAmygBuckner_170621_CJ_GD_allBuckner_BodyHead/AtlasMesh_merged.gz';
-% atlasDumpFileName='/autofs/space/panamint_005/users/iglesias/atlases/atlasHippoAmygBuckner_170621_CJ_GD_allBuckner_BodyHead/imageDumpWithAmygdala.mgz';
-% compressionLUTfileName='/autofs/homes/002/iglesias/matlab/code/Atlas3dFreeSurferJuly2017newAtlas/code/compressionLookupTable.txt';
-% K=0.005;
-% side='right';
-% optimizerType='L_BFGS';
-% suffix='T2';
-% suffixUser='GEMS2_lowerK_doBF';
-% FSpath='/usr/local/freesurfer/dev/bin/';
-% MRFconstant=0;
-% ByPassBF=0;
-% UseWholeBrainInHyperPar=0;
-
-% clear
-% subjectName='ADNI2_009_S_1030v51_i399379';
-% subjectDir='/autofs/space/panamint_005/users/iglesias/data/ADNI_Feb2016/';
-% T2volumeFileName='/autofs/space/panamint_005/users/iglesias/data/ADNI_Feb2016/ADNI2_009_S_1030v51_i399379/mri/T2.mgz';
-% resolution=0.4;
-% atlasMeshFileName='/autofs/space/panamint_005/users/iglesias/atlases/atlasHippoAmygBuckner_170621_CJ_GD_allBuckner_BodyHead/AtlasMesh_merged.gz';
-% atlasDumpFileName='/autofs/space/panamint_005/users/iglesias/atlases/atlasHippoAmygBuckner_170621_CJ_GD_allBuckner_BodyHead/imageDumpWithAmygdala.mgz';
-% compressionLUTfileName='/autofs/homes/002/iglesias/matlab/code/Atlas3dFreeSurferJuly2017newAtlas/code/compressionLookupTable.txt';
-% K=0.05;
-% side='left';
-% optimizerType='L_BFGS';
-% suffix='T2';
-% suffixUser='GEMS2';
-% FSpath='/usr/local/freesurfer/dev/bin/';
-% MRFconstant=0;
-% ByPassBF=1;
-% UseWholeBrainInHyperPar=0;
-
-
-
-
 % Eugenio November 2017: added option to write meshes and smoother resampling
 DEBUG=0;
 FAST=0; % set it to one to optimize just a bit (go through code fast)
@@ -81,6 +42,9 @@ if ~isempty(aux)
         WRITE_MESHES=1;
     end
 end
+
+% March 2021: fix to accommodate 'fs_run_from_mcr'
+FSpath = [FSpath '/fs_run_from_mcr ' FSpath '/'];
 
 
 % sanity check
@@ -177,7 +141,6 @@ if exist(tempdir,'dir')==0
 end
 
 T2volumeFileName=getFullPath(T2volumeFileName); % Eugenio November 2017: before we cd
-tempdir=getFullPath(tempdir)
 
 cd(tempdir);
 
@@ -483,7 +446,7 @@ FreeSurferLabelGroups{end+1}={'Background','hippocampal-fissure','Background-CSF
 FreeSurferLabelGroups{end+1}={'Left-VentralDC'};
 FreeSurferLabelGroups{end+1}={'Left-Putamen'};
 FreeSurferLabelGroups{end+1}={'Left-Pallidum'};
-FreeSurferLabelGroups{end+1}={'Left-Thalamus'};
+FreeSurferLabelGroups{end+1}={'Left-Thalamus-Proper'};
 FreeSurferLabelGroups{end+1}={'Left-Accumbens-area'};
 FreeSurferLabelGroups{end+1}={'Left-Caudate'};
 FreeSurferLabelGroups{end+1}={'SUSPICIOUS'};
@@ -506,7 +469,7 @@ cheatingMeans=zeros(length( sameGaussianParameters),1);
 cheatingVariances=0.01*ones(length( sameGaussianParameters),1);
 for l=1:length(sameGaussianParameters)
     labels= sameGaussianParameters{l};
-    if any(labels>=200 & labels<=226),  cheatingMeans(l)=3; %  cheatingMeans(l)=17; % HIPPO SF -> HIPPO
+    if any(labels>=200 & labels<=226 & labels~=215),  cheatingMeans(l)=3; %  cheatingMeans(l)=17; % HIPPO SF -> HIPPO
     elseif any(labels>=7000),  cheatingMeans(l)=3;  % cheatingMeans(l)=18; % AMYGDALOID SUBNUCLEI -> AMYGDALA
     elseif any(labels==0), cheatingMeans(l)=1; % BACKGROUND is 1 instead of 0
     elseif any(labels==999), cheatingMeans(l)=55; cheatingVariances(l)=55^2; % This is the generic, "suspicious" label we use for cysts...
@@ -1055,7 +1018,7 @@ FreeSurferLabelGroups{end+1}={'hippocampal-fissure'};
 FreeSurferLabelGroups{end+1}={'Left-Pallidum'};
 FreeSurferLabelGroups{end+1}={'Left-Putamen'};
 FreeSurferLabelGroups{end+1}={'Left-Caudate'};
-FreeSurferLabelGroups{end+1}={'Left-Thalamus'};
+FreeSurferLabelGroups{end+1}={'Left-Thalamus-Proper'};
 FreeSurferLabelGroups{end+1}={'Left-choroid-plexus'};
 FreeSurferLabelGroups{end+1}={'Left-VentralDC'};
 FreeSurferLabelGroups{end+1}={'Left-Accumbens-area'};

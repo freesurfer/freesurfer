@@ -86,6 +86,7 @@ typedef struct {
   MATRIX *Xcdyhatd[GLMMAT_NCONTRASTS_MAX]; // Xcd*yhatd
   MATRIX *sumyhatd[GLMMAT_NCONTRASTS_MAX]; // sum(yhatd)
   MATRIX *sumyhatd2[GLMMAT_NCONTRASTS_MAX]; // sum(yhatd.^2)
+  int debug=0;
 }
 GLMMAT;
 

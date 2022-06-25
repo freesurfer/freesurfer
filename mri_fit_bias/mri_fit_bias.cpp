@@ -82,6 +82,7 @@ typedef struct {
   int *ctxsegs, nctxsegs;
   DCT_FIELD_SPEC *dct;
   double wmmean;
+  double thresh = 0;
 } MRI_BIAS_FIELD, MRIBF;
 
 
@@ -106,6 +107,7 @@ char *maskfile = NULL, *segfile = NULL;
 MRI *src, *seg, *mask, *out;
 int nthreads=0;
 double lpfcutoffmm = 23;
+double thresh = 0;
 char *Xfile=NULL, *yfile=NULL, *dctfile=NULL,*betafile=NULL;
 char *yhatfile=NULL, *resfile=NULL;
 char *SUBJECTS_DIR;
@@ -119,7 +121,7 @@ int MRIbiasFieldCorLog(MRIBF *bf);
 int DCTfield(DCTFS *dct);
 int DCTspecLPF(DCTFS *dct);
 DCTFS *DCTalloc(void);
-MRI *MRIapplyBiasField(MRI *input, MRI *bf, MRI *seg, MRI *mask, double targwmval, MRI *bc);
+MRI *MRIapplyBiasField(MRI *input, MRI *bf, MRI *seg, MRI *mask, double targwmval, double thresh, MRI *bc);
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) 
@@ -179,6 +181,7 @@ int main(int argc, char *argv[])
   bf->nerode = 1;
   bf->logflag = 1;
   bf->ubermask = mask;
+  bf->thresh = thresh;
   bf->dct = DCTalloc();
   bf->dct->mri_template = src;
   bf->dct->lpcutoff = lpfcutoffmm;
@@ -188,7 +191,7 @@ int main(int argc, char *argv[])
   // WM is 110. It also changes the values in the biasfield to account for the
   // rescaling so that bcoutput = input/biasfield, though I think the unrescaled
   // bias field is probably more informative (or scaling it so that wm = 1)
-  MRI *bc=MRIapplyBiasField(bf->input, bf->biasfield, bf->segerode, bf->ubermask, 110, NULL);
+  MRI *bc=MRIapplyBiasField(bf->input, bf->biasfield, bf->segerode, bf->ubermask, 110, thresh, NULL);
   printf("Writing output to %s\n",outfile);fflush(stdout);
   MRIwrite(bc,outfile);
   MRIfree(&bc);
@@ -287,6 +290,11 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%lf",&lpfcutoffmm);
       nargsused = 1;
     } 
+    else if (!strcasecmp(option, "--thresh")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&thresh);
+      nargsused = 1;
+    } 
     else if(!strcasecmp(option, "--threads") || !strcasecmp(option, "--nthreads") ){
       if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&nthreads);
@@ -332,6 +340,7 @@ static void print_usage(void) {
   printf("   --o outvol : bias corrected output\n");
   printf("   --bias biasfield  : output bias field\n");
   printf("   --dct dctvol : DCT fields file (debugging)\n");
+  printf("   --thresh thresh : mask out anything <= thresh\n");
   printf("\n");
   printf("   --threads nthreads\n");
   printf("   --debug     turn on debugging\n");
@@ -835,7 +844,7 @@ int MRIbiasFieldCorLog(MRIBF *bf)
   MATRIX *bffit;
   double wmsum;
 
-  printf("MRIbiasFieldCorLog()\n");fflush(stdout);
+  printf("MRIbiasFieldCorLog() thresh = %g\n",bf->thresh);fflush(stdout);
   printf("VmPeak  %d\n",GetVmPeak());
 
   bf->seg = MRIcopy(bf->srcseg,NULL); 
@@ -853,7 +862,7 @@ int MRIbiasFieldCorLog(MRIBF *bf)
     for(r=0; r < bf->seg->height; r++){
       for(s=0; s < bf->seg->depth; s++){
         val = MRIgetVoxVal(bf->input,c,r,s,0);
-	if(val <= 0){
+	if(val <= bf->thresh){
           // Exclude voxels that have a value of <=0 
           MRIsetVoxVal(bf->seg,c,r,s,0,0);
           continue;
@@ -1130,7 +1139,7 @@ DCTFS *DCTalloc(void)
   return(dct);
 }
 
-MRI *MRIapplyBiasField(MRI *input, MRI *bf, MRI *seg, MRI *mask, double targwmval, MRI *bc)
+MRI *MRIapplyBiasField(MRI *input, MRI *bf, MRI *seg, MRI *mask, double targwmval, double thresh, MRI *bc)
 {
   int nwm,c;
   double wmsum, wmmean, wmscale;
@@ -1152,12 +1161,12 @@ MRI *MRIapplyBiasField(MRI *input, MRI *bf, MRI *seg, MRI *mask, double targwmva
     double val, b;
     for(r=0; r < input->height; r++){
       for(s=0; s < input->depth; s++){
-        if(mask && MRIgetVoxVal(mask,c,r,s,0) <0.5){
-          MRIsetVoxVal(bc,c,r,s,0,0);
-	  continue;
-        }
+	MRIsetVoxVal(bc,c,r,s,0,0);
+        if(mask && MRIgetVoxVal(mask,c,r,s,0) <0.5)continue;
         b = MRIgetVoxVal(bf,c,r,s,0);
+	if(b==0) continue;
         val = MRIgetVoxVal(input,c,r,s,0);
+	if(val <= thresh) continue; // matches MRIbiasFieldCorLog()
         val = val/(b+FLT_MIN);
         MRIsetVoxVal(bc,c,r,s,0,val);
 	if(seg){

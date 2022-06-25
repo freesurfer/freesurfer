@@ -1,3 +1,3 @@
 add_executable(test_voronoi EXCLUDE_FROM_ALL test_mriBuildVoronoiDiagramFloat.cpp)
 target_link_libraries(test_voronoi utils)
-add_test_script(NAME voronoi_test SCRIPT test.sh DEPENDS test_voronoi)
+add_test_script(NAME voronoi_test SCRIPT test.sh)

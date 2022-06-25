@@ -33,78 +33,16 @@ function SegmentThalamicNuclei(subjectName,subjectDir,resolution,atlasMeshFileNa
     atlasDumpFileName,compressionLUTfileName,K,optimizerType,suffix,FSpath,...
     useTwoComponents,MRFconstant,additionalVol,analysisID,doBFcorrection,BBregisterMode)
 
-% clear
-% subjectName='testSubject';
-% subjectDir='/autofs/space/panamint_005/users/iglesias/data/FGATIR/FSdir/';
-% resolution=0.5;
-% atlasMeshFileName='/autofs/space/panamint_005/users/iglesias/atlases/thalamus_180321_0.5mm/output/CurrentMeshCollection30.gz';
-% atlasDumpFileName='/autofs/space/panamint_005/users/iglesias/atlases/thalamus_180321_0.5mm/output/imageDump.mgz';
-% compressionLUTfileName='/autofs/homes/002/iglesias/matlab/code/THALAMODEL/FSversionGEMS2/compressionLookupTable.txt';
-% K=0.05;
-% optimizerType='L-BFGS';
-% suffix='vTest';
-% FSpath='/usr/local/freesurfer/dev/bin/';
-% useTwoComponents=1;
-% MRFconstant=0;
-% additionalVol='/autofs/space/panamint_005/users/iglesias/data/FGATIR/20170816_135213FGATIRs059a1001.nii.gz';
-% analysisID='FGATIR';
-% doBFcorrection=1;
-% BBregisterMode='t2';
-% nargin=16;
-
-% clear
-% subjectName='testSubject';
-% subjectDir='/autofs/space/panamint_005/users/iglesias/data/FGATIR/FSdir/';
-% resolution=0.5;
-% atlasMeshFileName='/autofs/space/panamint_005/users/iglesias/atlases/thalamus_180321_0.5mm/output/CurrentMeshCollection30.gz';
-% atlasDumpFileName='/autofs/space/panamint_005/users/iglesias/atlases/thalamus_180321_0.5mm/output/imageDump.mgz';
-% compressionLUTfileName='/autofs/homes/002/iglesias/matlab/code/THALAMODEL/FSversionGEMS2/compressionLookupTable.txt';
-% K=0.05;
-% optimizerType='L-BFGS';
-% suffix='vTest';
-% FSpath='/usr/local/freesurfer/dev/bin/';
-% useTwoComponents=1;
-% nargin=11;
-
-
-% clear
-% subjectName='subject1';
-% subjectDir='/autofs/space/panamint_005/users/iglesias/data/WinterburnHippocampalAtlas/FSdirConformed/';
-% resolution=0.5;
-% atlasMeshFileName='/autofs/space/panamint_005/users/iglesias/atlases/thalamus_180321_0.5mm/output/CurrentMeshCollection30.gz';
-% atlasDumpFileName='/autofs/space/panamint_005/users/iglesias/atlases/thalamus_180321_0.5mm/output/imageDump.mgz';
-% compressionLUTfileName='/autofs/homes/002/iglesias/matlab/code/THALAMODEL/FSversionGEMS2/compressionLookupTable.txt';
-% K=0.05;
-% optimizerType='L-BFGS';
-% suffix='vTest';
-% FSpath='/usr/local/freesurfer/dev/bin/';
-% useTwoComponents=1;
-% nargin=11;
-
-% clear
-% subjectName='subject1';
-% subjectDir='/autofs/space/panamint_005/users/iglesias/data/WinterburnHippocampalAtlas/FSdirConformed/';
-% resolution=0.5;
-% atlasMeshFileName='/autofs/space/panamint_005/users/iglesias/atlases/thalamus_180321_0.5mm/output/CurrentMeshCollection30.gz';
-% atlasDumpFileName='/autofs/space/panamint_005/users/iglesias/atlases/thalamus_180321_0.5mm/output/imageDump.mgz';
-% compressionLUTfileName='/autofs/homes/002/iglesias/matlab/code/THALAMODEL/FSversionGEMS2/compressionLookupTable.txt';
-% K=0.05;
-% optimizerType='L-BFGS';
-% suffix='vTest';
-% FSpath='/usr/local/freesurfer/dev/bin/';
-% useTwoComponents=1;
-% MRFconstant=0;
-% additionalVol='/autofs/space/panamint_005/users/iglesias/data/WinterburnHippocampalAtlas/subject1/T2.0.6.manuallyRotatedForTesting.nii.gz';
-% analysisID='T2';
-% doBFcorrection=1;
-% BBregisterMode='t2';
-% nargin=16;
-
 DEBUG=0;
 FAST=0; % set it to one to optimize just a bit (go through code fast)
 WRITE_POSTERIORS=0;
 WRITE_MESHES=0;
 SMOOTH_LABEL_RESAMPLE=0;
+THALAMUS_VERBOSE=0;
+
+% March 2022: fix to accommodate 'fs_run_from_mcr'
+FSpath = [FSpath '/fs_run_from_mcr ' FSpath '/'];
+
 aux=getenv('WRITE_POSTERIORS');
 if ~isempty(aux)
     if str2double(aux)>0
@@ -117,7 +55,12 @@ if ~isempty(aux)
         WRITE_MESHES=1;
     end
 end
-
+aux=getenv('THALAMUS_VERBOSE');
+if ~isempty(aux)
+    if str2double(aux)>0
+        THALAMUS_VERBOSE=1;
+    end
+end
 
 % sanity check
 if exist('MRFconstant','var')==0
@@ -228,8 +171,29 @@ if ~isempty(additionalVol)
     else
         disp('Registering additional volume');
         setenv('SUBJECTS_DIR',subjectDir);
-        system([FSpath '/bbregister --s ' subjectName  '  --mov ' mov  ...
-            '  --reg ' lta ' --init-header --o ' registeredAddVol ' --' BBregisterMode]);
+        cmd=[FSpath '/bbregister --s ' subjectName  '  --mov ' mov  ...
+            '  --reg ' lta ' --init-header --o ' registeredAddVol ' --' BBregisterMode];
+        
+        if THALAMUS_VERBOSE, system(cmd); else, system([cmd '  >/dev/null']);  end
+        
+        % Create animated gif for QC of registration
+        auxT1=myMRIread([subjectDir '/' subjectName '/mri/nu.mgz'],0,tempdir);
+        auxSEG=myMRIread([subjectDir '/' subjectName '/mri/aseg.mgz'],0,tempdir);
+        auxADD=myMRIread(registeredAddVol,0,tempdir);
+        [~,~,auxSl]=ind2sub(size(auxSEG.vol),find(auxSEG.vol==THlabelLeft | auxSEG.vol==THlabelRight));
+        Sl=round(mean(auxSl));
+        IT1=auxT1.vol(:,:,Sl); IT1=IT1/max(IT1(:))*255; IT1=uint8(IT1);
+        ITadd=auxADD.vol(:,:,Sl); ITadd=ITadd/max(ITadd(:))*255; ITadd=uint8(ITadd);
+        
+        flipFile=[subjectDir '/' subjectName '/mri/transforms/T1-' analysisID '.' suffix '.QC.gif'];
+        if exist(flipFile,'file')>0, delete(flipFile); end;
+        [imind,cm] = gray2ind(IT1,256);
+        imwrite(imind,cm,flipFile,'gif', 'Loopcount',inf);
+        [imind,cm] = gray2ind(ITadd,256);
+        imwrite(imind,cm,flipFile,'gif','WriteMode','append');
+    
+        system(['mv ' lta ' ' subjectDir '/' subjectName '/mri/transforms/' analysisID '.' suffix '.lta']);
+        
         disp('Registration done!');
     end
 end
@@ -281,15 +245,13 @@ end
 % Registration
 cmd=[FSpath '/mri_robust_register --mov imageDump.mgz  --dst ' targetRegFileNameCropped ...
     ' -lta trash.lta --mapmovhdr imageDump_coregistered.mgz  --sat 50'];
-status=system(cmd);
-% status=system([cmd ' >/dev/null']);
+if THALAMUS_VERBOSE, status=system(cmd); else, status=system([cmd '  >/dev/null']);  end
 if status~=0, error('Problem with mri_robust_register'); end
 system('mv imageDump_coregistered.mgz imageDump.mgz' );
 
 cmd=[FSpath '/mri_robust_register --mov imageDump.mgz  --dst ' targetRegFileNameCropped ...
     ' -lta trash.lta --mapmovhdr imageDump_coregistered.mgz --affine --sat 50'];
-status=system(cmd);
-% status=system([cmd ' >/dev/null']);
+if THALAMUS_VERBOSE, status=system(cmd); else, status=system([cmd '  >/dev/null']);  end
 if status~=0, error('Problem with mri_robust_register'); end
 system('mv imageDump_coregistered.mgz imageDump.mgz' );
 
@@ -573,7 +535,9 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
     
     
     for positionUpdatingIterationNumber = 1 : maxpuin
-        disp(['Resolution ' num2str(multiResolutionLevel) ', iteration ' num2str(positionUpdatingIterationNumber)]);
+        if THALAMUS_VERBOSE>0 || mod(positionUpdatingIterationNumber,10)==1
+            disp(['Resolution ' num2str(multiResolutionLevel) ', iteration ' num2str(positionUpdatingIterationNumber)]);
+        end
         % Calculate a good step. The first one is very slow because of various set-up issues % Eugenio May2018
         maximalDeformation=0;
         try
@@ -581,8 +545,10 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
             % Eugenio November 2017: GEMS2
             [ minLogLikelihoodTimesPrior, maximalDeformation ] = kvlStepOptimizer( cheatingOptimizer );
             elapsedTime = toc;
-            disp( [ 'Did one deformation step of max. ' num2str( maximalDeformation )  ' voxels in ' num2str( elapsedTime ) ' seconds' ] )
-            minLogLikelihoodTimesPrior
+            if THALAMUS_VERBOSE
+                disp( [ 'Did one deformation step of max. ' num2str( maximalDeformation )  ' voxels in ' num2str( elapsedTime ) ' seconds' ] )
+                minLogLikelihoodTimesPrior
+            end
         end
         if isnan(minLogLikelihoodTimesPrior)
             error('lhood is nan');
@@ -771,6 +737,7 @@ else
             end
             
             maxdif=max([max(abs(means-means_old)) sqrt(max(abs(vars-vars_old)))]);
+
             disp(['Bias field correction iteration ' num2str(its) ', maximal difference in parameters ' num2str(maxdif)]);
             
             if maxdif<1e-6 || its>10
@@ -1239,6 +1206,7 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
         imwrite( tmp.cdata, fileName );
     end
     
+    disp(['Resolution level: ' num2str(multiResolutionLevel) ' of ' num2str(numberOfMultiResolutionLevels)]);
     
     for iterationNumber = 1 : maximumNumberOfIterations
         disp(['Iteration ' num2str(iterationNumber) ' of ' num2str(maximumNumberOfIterations)]);
@@ -1323,7 +1291,11 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
             % posteriors = posteriors ./ repmat( normalizer, [ 1 numberOfClasses ] );
             posteriors = bsxfun(@rdivide,posteriors, normalizer);
             
-            minLogLikelihood =  minLogLikelihood - sum( log( normalizer ) ) % This is what we're optimizing with EM
+            minLogLikelihood =  minLogLikelihood - sum( log( normalizer ) ); % This is what we're optimizing with EM
+            if THALAMUS_VERBOSE
+                minLogLikelihood
+            end
+            
             if isnan(minLogLikelihood)
                 error('lhood is nan');
             end
@@ -1396,8 +1368,10 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
             
             
         end % End EM iterations
-        means'
-        (variances').^2
+        if THALAMUS_VERBOSE
+            means'
+            (variances').^2
+        end
         
         %
         % Part II: update the position of the mesh nodes for the current set of Gaussian parameters
@@ -1467,7 +1441,9 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
         
         for positionUpdatingIterationNumber = 1 : positionUpdatingMaximumNumberOfIterations
             % Calculate a good step. The first one is very slow because of various set-up issues
-            disp(['Resolution level ' num2str(multiResolutionLevel) ' iteration ' num2str(iterationNumber) ' deformation iterations ' num2str(positionUpdatingIterationNumber)]);
+            if THALAMUS_VERBOSE>0 || mod(positionUpdatingIterationNumber,10)==1
+                disp(['Resolution level ' num2str(multiResolutionLevel) ' iteration ' num2str(iterationNumber) ' deformation iterations ' num2str(positionUpdatingIterationNumber)]);
+            end
             % Eugenio May2018
             maximalDeformation=0;
             try
@@ -1475,8 +1451,10 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
                 % Eugenio November 2017: GEMS2
                 [ minLogLikelihoodTimesPrior, maximalDeformation ] = kvlStepOptimizer( optimizer );
                 elapsedTime = toc;
-                disp( [ 'Did one deformation step of max. ' num2str( maximalDeformation )  ' voxels in ' num2str( elapsedTime ) ' seconds' ] )
-                minLogLikelihoodTimesPrior
+                if THALAMUS_VERBOSE
+                    disp( [ 'Did one deformation step of max. ' num2str( maximalDeformation )  ' voxels in ' num2str( elapsedTime ) ' seconds' ] )
+                    minLogLikelihoodTimesPrior
+                end
             end
             if isnan(minLogLikelihoodTimesPrior)
                 error('lhood is nan');
@@ -1536,7 +1514,7 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
     
 end % End loop over multiresolution levels
 
-disp(['Fitting mesh to image data mask took ' num2str(etime(clock,time_ref_optimization)) ' seconds']);
+disp(['Fitting mesh to image took ' num2str(etime(clock,time_ref_optimization)) ' seconds']);
 
 % Restore original image buffer
 kvlSetImageBuffer(image,imageBufferOrig);
@@ -1998,7 +1976,7 @@ if SMOOTH_LABEL_RESAMPLE>0
     applyLTAsmoothLabels('discreteLabels.mgz',[],'discreteLabelsResampledT1.mgz',refFile,0,FSpath,tempdir);
 else
     system([FSpath '/mri_convert  discreteLabels.mgz  discreteLabelsResampledT1.mgz -rt nearest -odt float ' ...
-    ' -rl ' subjectDir '/' subjectName '/mri/norm.mgz']);
+    ' -rl ' subjectDir '/' subjectName '/mri/norm.mgz >/dev/null']);
 end
 
 
