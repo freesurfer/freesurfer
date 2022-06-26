@@ -1734,8 +1734,6 @@ double CSDpvalClustSize(CLUSTER_SIM_DATA *csd, double ClusterSize, double ciPct,
   int nthrep, nover, k, nlow, nhi;
   double pval, psum, pcilow, pcihi;
 
-  printf("CSDpvalClustSize()\n");
-
   // Per Tom, this code has been changed in two ways (5/10/2022):
   // 1. A CSD cluster need only be greater than OR equal to the cluster under test (used to be > only)
   // 2. The pval is (nover+1)/(nreps+1) rather than just nover/nreps
