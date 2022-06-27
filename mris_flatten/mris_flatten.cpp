@@ -48,7 +48,6 @@ static int  get_option(int argc, char *argv[]) ;
 static void print_usage(void) ;
 static void print_help(void) ;
 static void print_version(void) ;
-int MRISscaleUp(MRI_SURFACE *mris) ;
 MRIS *SurfCopyCoords = NULL;
 
 const char *Progname ;
@@ -1044,52 +1043,3 @@ print_version(void)
   exit(1) ;
 }
 
-int
-MRISscaleUp(MRI_SURFACE *mris)
-{
-  int     vno, n, max_v, max_n ;
-  float   ratio, max_ratio ;
-
-  max_ratio = 0.0f ;
-  max_v = max_n = 0 ;
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
-  {
-    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
-    VERTEX          const * const v  = &mris->vertices         [vno];
-    if (v->ripflag)
-      continue ;
-    if (vno == Gdiag_no)
-      DiagBreak() ;
-    for (n = 0 ; n < vt->vnum ; n++)
-    {
-      if (FZERO(v->dist[n]))   /* would require infinite scaling */
-        continue ;
-      ratio = v->dist_orig[n] / v->dist[n] ;
-      if (ratio > max_ratio)
-      {
-        max_v = vno ;
-        max_n = n ;
-        max_ratio = ratio ;
-      }
-    }
-  }
-
-  fprintf(stderr, "max @ (%d, %d), scaling brain by %2.3f\n",
-          max_v, max_n, max_ratio) ;
-#if 0
-  MRISscaleBrain(mris, mris, max_ratio) ;
-#else
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
-  {
-    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
-    VERTEX                * const v  = &mris->vertices         [vno];
-    if (v->ripflag)
-      continue ;
-    if (vno == Gdiag_no)
-      DiagBreak() ;
-    for (n = 0 ; n < vt->vnum ; n++)
-      v->dist_orig[n] /= max_ratio ;
-  }
-#endif
-  return(NO_ERROR) ;
-}
