@@ -25,6 +25,8 @@ parser.add_argument('--lesion-mask-pattern', type=int, nargs='+', help='Lesion m
 # optional processing options
 parser.add_argument('-m', '--mode', nargs='+', help='Output basenames for the input image mode.')
 parser.add_argument('-a', '--atlas', metavar='DIR', help='Point to an alternative atlas directory.')
+parser.add_argument('--deformation-hyperprior', type=float, default=20.0, help='Strenght of the latent deformation hyperprior.')
+parser.add_argument('--gmm-hyperprior', type=float, default=0.5, help='Strenght of the latent GMM hyperprior.')
 parser.add_argument('--save-warp', action='store_true', help='Save the image->template warp fields.')
 parser.add_argument('--save-mesh', action='store_true', help='Save the final mesh of each timepoint in template space.')
 parser.add_argument('--save-posteriors', nargs='*', help='Save posterior volumes to the "posteriors" subdirectory.')
@@ -87,6 +89,8 @@ samseg_kwargs = dict(
     targetSearchStrings=['Cerebral-White-Matter'],
     modeNames=args.mode,
     pallidumAsWM=(not args.pallidum_separate),
+    strengthOfLatentDeformationHyperprior=args.deformation_hyperprior,
+    strengthOfLatentGMMHyperprior=args.gmm_hyperprior,
     savePosteriors=savePosteriors,
     saveMesh=args.save_mesh,
     saveHistory=args.history,
