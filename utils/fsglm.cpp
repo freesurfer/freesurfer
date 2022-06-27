@@ -343,27 +343,31 @@ int GLMfree(GLMMAT **pglm)
   includes the allocation of Ct[n] and PMF. It would be possible to do
   this within GLMtest(), but GLMtest() may be run many times whereas
   Ct only needs to be computed once. Note: depends on X, but only
-  for partial cor coef.
+  for partial cor coef. 5/10/22 - DNG made changes to use already
+  alloced matrices so no memory leak so accomodate per-voxel
+  apps, but I did not look into moving this into GLMtest.
   ----------------------------------------------------------------*/
 int GLMcMatrices(GLMMAT *glm)
 {
   int n, err;
 
   for (n = 0; n < glm->ncontrasts; n++) {
-    glm->Ct[n] = MatrixTranspose(glm->C[n], NULL);
-    glm->Mpmf[n] = GLMpmfMatrix(glm->C[n], &glm->Ccond[n], NULL);
+    glm->Ct[n] = MatrixTranspose(glm->C[n], glm->Ct[n]);
+    glm->Mpmf[n] = GLMpmfMatrix(glm->C[n], &glm->Ccond[n], glm->Mpmf[n]);
 
     if (glm->C[n]->rows == 1 && glm->DoPCC) {
       // These are for the computation of partial correlation coef
       // null space of contrast space
-      glm->Dt[n] = MatrixColNullSpace(glm->Ct[n], &err);
+      MATRIX *D = MatrixColNullSpace(glm->Ct[n], &err);
       if (glm->Dt[n] == NULL) continue;
+      glm->Dt[n] = MatrixCopy(D,glm->Dt[n]);
+      MatrixFree(&D);
       // design matrix projected onto contrast space
-      glm->XCt[n] = MatrixMultiplyD(glm->X, glm->Ct[n], NULL);
+      glm->XCt[n] = MatrixMultiplyD(glm->X, glm->Ct[n], glm->XCt[n]);
       // design matrix projected onto contrast null space (nuisance reg space)
-      glm->XDt[n] = MatrixMultiplyD(glm->X, glm->Dt[n], NULL);
-      glm->RD[n] = MatrixResidualForming(glm->XDt[n], NULL);
-      if (glm->RD[n] == NULL) {
+      glm->XDt[n] = MatrixMultiplyD(glm->X, glm->Dt[n], glm->XDt[n]);
+      glm->RD[n] = MatrixResidualForming(glm->XDt[n], glm->RD[n]);
+      if(glm->RD[n] == NULL) {
         printf("RD is not invertable n = %d\n", n);
         MatrixWriteTxt("X.mtx", glm->X);
         MatrixWriteTxt("C.mtx", glm->C[n]);
@@ -372,10 +376,10 @@ int GLMcMatrices(GLMMAT *glm)
         exit(1);
       }
       // Orthogonalize Xc wrt the nuisance regressors (yhat too, but later)
-      glm->Xcd[n] = MatrixMultiplyD(glm->RD[n], glm->XCt[n], NULL);
-      glm->Xcdt[n] = MatrixTranspose(glm->Xcd[n], NULL);
-      glm->sumXcd[n] = MatrixSum(glm->Xcd[n], 1, NULL);
-      glm->sumXcd2[n] = MatrixSumSquare(glm->Xcd[n], 1, NULL);
+      glm->Xcd[n] = MatrixMultiplyD(glm->RD[n], glm->XCt[n], glm->Xcd[n]);
+      glm->Xcdt[n] = MatrixTranspose(glm->Xcd[n], glm->Xcdt[n]);
+      glm->sumXcd[n] = MatrixSum(glm->Xcd[n], 1, glm->sumXcd[n]);
+      glm->sumXcd2[n] = MatrixSumSquare(glm->Xcd[n], 1, glm->sumXcd2[n]);
     }
     else
       glm->Dt[n] = NULL;  // make sure

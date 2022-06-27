@@ -15,6 +15,7 @@ set segvol = ();
 set subject = ();
 set input = ();
 set mask = ()
+set headmask = ()
 set ctab = ();
 set ndilate = 2;
 set XOptsFiles = ();
@@ -25,6 +26,7 @@ set tmpdir = ()
 set LF = ()
 set cleanup = 1
 set ForceUpdate = 0; 
+set thresh = 1.2;
 # Extracerebral segs (samseg and charm)
 set xcersegs = (165 258 259 85 501 502 506 507 508 509 511 512 514 404 516 517 530)
 
@@ -124,7 +126,6 @@ endif
 
 # Create a head mask to speed bias fitting. Need whole head for
 # talairach reg which may later be used for ICV
-set headmask = ()
 if($#headmask == 0) then
   set headmask = $mdir/head.mgz
   set ud = `UpdateNeeded $headmask $segvol $input`
@@ -152,7 +153,7 @@ set ud = `UpdateNeeded $nu $segvol $input $headmask`
 if($ud || $ForceUpdate) then
   set xopts = `fsr-getxopts mri_fit_bias $XOptsFiles`
   set cmd = (mri_fit_bias --i $input --seg $segvol --mask $headmask \
-    --bias $biasfield --threads $threads --o $nu $xopts)
+    --bias $biasfield --threads $threads --o $nu --thresh $thresh $xopts)
   echo $cmd | tee -a $LF
   fs_time $cmd | tee -a $LF
   if($status) goto error_exit;
@@ -392,6 +393,21 @@ while( $#argv != 0 )
       set mask = `getfullpath $mask`
       breaksw
 
+    case "--h":
+      if($#argv < 1) goto arg1err;
+      set headmask = $argv[1]; shift;
+      if(! -e $headmask) then
+        echo "ERROR: cannot find $headmask"
+        exit 1;
+      endif
+      set headmask = `getfullpath $headmask`
+      breaksw
+
+    case "--thresh":
+      if($#argv < 1) goto arg1err;
+      set thresh = $argv[1]; shift;
+      breaksw
+
     case "--expert":
       if( $#argv < 1) goto arg1err;
       set XOptsFile = $argv[1]; shift;
@@ -527,6 +543,8 @@ usage_exit:
   echo "  --force-update : force regeneration of files whether needed or not (default is --no-force-update)"
   echo "  --no-cc : do not seg corpus callosum (default is --cc)"
   echo "  --m mask : use mask as brainmask instead of computing from seg"
+  echo "  --h headmask : use headmask instead of running mri_seghead"
+  echo "  --thresh thresh : threshold for bias field estimation"
   echo "  --expert xoptsfile <--expert xoptsfile>"
   echo "  --rca : run recon-all on the output (good for testing)"
   echo ""
