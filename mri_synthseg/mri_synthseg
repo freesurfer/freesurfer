@@ -201,10 +201,11 @@ def predict(path_images,
         labels_parcellation, unique_i_parc = np.unique(get_list_labels(labels_parcellation)[0], return_index=True)
         names_parcellation = load_array_if_path(names_parcellation)[unique_i_parc]
         labels_volumes = np.concatenate([labels_segmentation, labels_parcellation[1:]])
-        names_volumes = np.concatenate([names_segmentation, names_parcellation[1:]])
+        labels_volumes = np.concatenate([labels_volumes, np.array([np.max(labels_volumes + 1)])])
+        names_volumes = np.concatenate([names_segmentation, names_parcellation[1:], np.array(['total intracranial'])])
     else:
-        labels_volumes = labels_segmentation
-        names_volumes = names_segmentation
+        labels_volumes = np.concatenate([labels_segmentation, np.array([np.max(labels_segmentation + 1)])])
+        names_volumes = np.concatenate([names_segmentation, np.array(['total intracranial'])])
     do_qc = True if path_qc_scores[0] is not None else False
     if do_qc:
         labels_qc = get_list_labels(labels_qc)[0][unique_idx]
@@ -219,9 +220,9 @@ def predict(path_images,
 
     # prepare volume/QC files if necessary
     if unique_vol_file & (path_volumes[0] is not None):
-        write_csv(path_volumes[0], None, True, labels_volumes, names=names_volumes)
+        write_csv(path_volumes[0], None, True, labels_volumes, names=names_volumes, last_first=True)
     if unique_qc_file & do_qc:
-        write_csv(path_qc_scores[0], None, True, labels_qc, skip_first=False, names=names_qc)
+        write_csv(path_qc_scores[0], None, True, labels_qc, names=names_qc)
 
     # build network
     net = build_model(model_file_segmentation=path_model_segmentation,
@@ -289,13 +290,13 @@ def predict(path_images,
             # write volumes to disc if necessary
             if path_volumes[i] is not None:
                 row = [os.path.basename(path_images[i]).replace('.nii.gz', '')] + [str(vol) for vol in volumes]
-                write_csv(path_volumes[i], row, unique_vol_file, labels_volumes, names=names_volumes)
+                write_csv(path_volumes[i], row, unique_vol_file, labels_volumes, names=names_volumes, last_first=True)
 
             # write QC scores to disc if necessary
             if path_qc_scores[i] is not None:
-                qc_score = np.around(np.clip(np.squeeze(qc_score), 0, 1), 4)
+                qc_score = np.around(np.clip(np.squeeze(qc_score)[1:], 0, 1), 4)
                 row = [os.path.basename(path_images[i]).replace('.nii.gz', '')] + ['%.4f' % q for q in qc_score]
-                write_csv(path_qc_scores[i], row, unique_qc_file, labels_qc, False, names=names_qc)
+                write_csv(path_qc_scores[i], row, unique_qc_file, labels_qc, names=names_qc)
 
         except Exception as e:
             list_errors.append(path_images[i])
@@ -794,6 +795,7 @@ def postprocess(post_patch_seg, post_patch_parc, shape, pad_idx, crop_idx,
 
     # compute volumes
     volumes = np.sum(posteriors[..., 1:], axis=tuple(range(0, len(posteriors.shape) - 1)))
+    volumes = np.concatenate([np.array([np.sum(volumes)]), volumes])
     if post_patch_parc is not None:
         volumes_parc = np.sum(post_patch_parc[..., 1:], axis=tuple(range(0, len(posteriors.shape) - 1)))
         total_volume_cortex = np.sum(volumes[np.where((labels_segmentation == 3) | (labels_segmentation == 42))[0] - 1])
@@ -897,7 +899,7 @@ def get_flip_indices(labels_segmentation, n_neutral_labels):
     return labels_segmentation, flip_indices, unique_idx
 
 
-def write_csv(path_csv, data, unique_file, labels, skip_first=True, names=None):
+def write_csv(path_csv, data, unique_file, labels, skip_first=True, last_first=False, names=None):
 
     # initialisation
     mkdir(os.path.dirname(path_csv))
@@ -911,6 +913,8 @@ def write_csv(path_csv, data, unique_file, labels, skip_first=True, names=None):
         header = names
     else:
         header = [str(lab) for lab in labels]
+    if last_first:
+        header = [header[-1]] + header[:-1]
     if (not unique_file) & (data is None):
         raise ValueError('data can only be None when initialising a unique volume file')
 
