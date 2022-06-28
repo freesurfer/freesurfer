@@ -49,7 +49,7 @@ def main():
     parser.add_argument("--parc", action="store_true", help="(optional) Whether to perform cortex parcellation.")
     parser.add_argument("--robust", action="store_true", help="(optional) Whether to use robust predictions (slower).")
     parser.add_argument("--fast", action="store_true", help="(optional) Bypass some processing for faster prediction.")
-    parser.add_argument("--previous", action="store_true", help="(optional) Use SynthSeg 1.0 (updated 25/06/22).")
+    parser.add_argument("--v1", action="store_true", help="(optional) Use SynthSeg 1.0 (updated 25/06/22).")
     parser.add_argument("--crop", nargs='+', type=int, help="(optional) Only analyse an image patch of the given size.")
     parser.add_argument("--threads", type=int, default=1, help="(optional) Number of cores to be used. Default is 1.")
     parser.add_argument("--cpu", action="store_true", help="(optional) Enforce running with CPU rather than GPU.")
@@ -61,6 +61,18 @@ def main():
 
     # parse commandline
     args = parser.parse_args()
+
+    # print SynthSeg version and checks boolean params for SynthSeg-robust
+    if args.robust:
+        args.fast = True
+        if args.v1:
+            sf.system.fatal('The flag --v1 cannot be used with --robust since SynthSeg-robust only came out with 2.0.')
+        version = 'SynthSeg-robust 2.0'
+    else:
+        version = 'SynthSeg 1.0' if args.v1 else 'SynthSeg 2.0'
+        if args.fast:
+            version += ' (fast)'
+    print(version)
 
     # enforce CPU processing if necessary
     if args.cpu:
@@ -79,12 +91,6 @@ def main():
     if not os.environ.get('FREESURFER_HOME'):
         sf.system.fatal('FREESURFER_HOME is not set. Please source freesurfer.')
     synthseg_home = os.environ.get('FREESURFER_HOME')
-
-    # set of simple rules to exclude parameters combinations.
-    if args.robust:
-        args.fast = True
-        if args.previous:
-            sf.system.fatal('The flag --previous cannot be used with --robust.')
 
     # path models
     if args.robust:
@@ -105,8 +111,8 @@ def main():
     topology_classes = os.path.join(synthseg_home, 'models', 'synthseg_topological_classes_2.0.npy')
     n_neutral_labels = 19
 
-    # use previous model if needed
-    if args.previous:
+    # use v1 model if needed
+    if args.v1:
         path_model_segmentation = os.path.join(synthseg_home, 'models', 'synthseg_1.0.h5')  # to modify
         labels_segmentation = labels_segmentation.replace('_2.0.npy', '.npy')
         labels_qc = labels_qc.replace('_2.0.npy', '.npy')
