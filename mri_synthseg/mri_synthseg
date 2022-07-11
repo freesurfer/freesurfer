@@ -40,19 +40,17 @@ def main():
     # input/outputs
     parser.add_argument("--i", help="Image(s) to segment. Can be a path to an image or to a folder.")
     parser.add_argument("--o", help="Segmentation output(s). Must be a folder if --i designates a folder.")
-    parser.add_argument("--post", help="(optional) Posteriors output(s). Must be a folder if --i designates a folder.")
-    parser.add_argument("--resample", help="(optional) Resampled image(s). Must be a folder if --i is a folder.")
-    parser.add_argument("--vol", help="(optional) Output CSV file with volumes for all structures and subjects.")
-    parser.add_argument("--qc", help="(optional) Output CSV file with qc scores for all subjects.")
-
-    # parameters
     parser.add_argument("--parc", action="store_true", help="(optional) Whether to perform cortex parcellation.")
     parser.add_argument("--robust", action="store_true", help="(optional) Whether to use robust predictions (slower).")
     parser.add_argument("--fast", action="store_true", help="(optional) Bypass some processing for faster prediction.")
-    parser.add_argument("--v1", action="store_true", help="(optional) Use SynthSeg 1.0 (updated 25/06/22).")
+    parser.add_argument("--vol", help="(optional) Output CSV file with volumes for all structures and subjects.")
+    parser.add_argument("--qc", help="(optional) Output CSV file with qc scores for all subjects.")
+    parser.add_argument("--post", help="(optional) Posteriors output(s). Must be a folder if --i designates a folder.")
+    parser.add_argument("--resample", help="(optional) Resampled image(s). Must be a folder if --i is a folder.")
     parser.add_argument("--crop", nargs='+', type=int, help="(optional) Only analyse an image patch of the given size.")
     parser.add_argument("--threads", type=int, default=1, help="(optional) Number of cores to be used. Default is 1.")
     parser.add_argument("--cpu", action="store_true", help="(optional) Enforce running with CPU rather than GPU.")
+    parser.add_argument("--v1", action="store_true", help="(optional) Use SynthSeg 1.0 (updated 25/06/22).")
 
     # check for no arguments
     if len(sys.argv) < 2:
@@ -129,6 +127,7 @@ def main():
         labels_segmentation=labels_segmentation,
         robust=args.robust,
         fast=args.fast,
+        v1=args.v1,
         do_parcellation=args.parc,
         n_neutral_labels=n_neutral_labels,
         names_segmentation=names_segmentation_labels,
@@ -159,6 +158,7 @@ def predict(path_images,
             labels_segmentation,
             robust,
             fast,
+            v1,
             n_neutral_labels,
             names_segmentation,
             labels_denoiser,
@@ -205,13 +205,15 @@ def predict(path_images,
     labels_denoiser = np.unique(get_list_labels(labels_denoiser)[0])
     if do_parcellation:
         labels_parcellation, unique_i_parc = np.unique(get_list_labels(labels_parcellation)[0], return_index=True)
-        names_parcellation = load_array_if_path(names_parcellation)[unique_i_parc]
         labels_volumes = np.concatenate([labels_segmentation, labels_parcellation[1:]])
-        labels_volumes = np.concatenate([labels_volumes, np.array([np.max(labels_volumes + 1)])])
-        names_volumes = np.concatenate([names_segmentation, names_parcellation[1:], np.array(['total intracranial'])])
+        names_parcellation = load_array_if_path(names_parcellation)[unique_i_parc][1:]
+        names_volumes = np.concatenate([names_segmentation, names_parcellation])
     else:
-        labels_volumes = np.concatenate([labels_segmentation, np.array([np.max(labels_segmentation + 1)])])
-        names_volumes = np.concatenate([names_segmentation, np.array(['total intracranial'])])
+        labels_volumes = labels_segmentation
+        names_volumes = names_segmentation
+    if not v1:
+        labels_volumes = np.concatenate([labels_volumes, np.array([np.max(labels_volumes + 1)])])
+        names_volumes = np.concatenate([names_volumes, np.array(['total intracranial'])])
     do_qc = True if path_qc_scores[0] is not None else False
     if do_qc:
         labels_qc = get_list_labels(labels_qc)[0][unique_idx]
@@ -222,13 +224,13 @@ def predict(path_images,
         cropping = reformat_to_list(cropping, length=3, dtype='int')
         min_pad = cropping
     else:
-        min_pad = 160
+        min_pad = 128
 
     # prepare volume/QC files if necessary
     if unique_vol_file & (path_volumes[0] is not None):
-        write_csv(path_volumes[0], None, True, labels_volumes, names=names_volumes, last_first=True)
+        write_csv(path_volumes[0], None, True, labels_volumes, names_volumes, last_first=(not v1))
     if unique_qc_file & do_qc:
-        write_csv(path_qc_scores[0], None, True, labels_qc, names=names_qc)
+        write_csv(path_qc_scores[0], None, True, labels_qc, names_qc)
 
     # build network
     net = build_model(model_file_segmentation=path_model_segmentation,
@@ -248,7 +250,6 @@ def predict(path_images,
         loop_info = LoopInfo(len(path_images), 1, 'predicting', True)
     else:
         loop_info = LoopInfo(len(path_images), 10, 'predicting', True)
-
     list_errors = list()
     for i in range(len(path_images)):
         loop_info.update(i)
@@ -286,9 +287,10 @@ def predict(path_images,
                                                    aff=aff,
                                                    im_res=im_res,
                                                    fast=fast,
-                                                   topology_classes=topology_classes)
+                                                   topology_classes=topology_classes,
+                                                   v1=v1)
 
-            # write predictions to disk
+            # write predictions to disc
             save_volume(seg, aff, h, path_segmentations[i], dtype='int32')
             if path_posteriors[i] is not None:
                 save_volume(posteriors, aff, h, path_posteriors[i], dtype='float32')
@@ -296,13 +298,13 @@ def predict(path_images,
             # write volumes to disc if necessary
             if path_volumes[i] is not None:
                 row = [os.path.basename(path_images[i]).replace('.nii.gz', '')] + [str(vol) for vol in volumes]
-                write_csv(path_volumes[i], row, unique_vol_file, labels_volumes, names=names_volumes, last_first=True)
+                write_csv(path_volumes[i], row, unique_vol_file, labels_volumes, names_volumes, last_first=(not v1))
 
             # write QC scores to disc if necessary
             if path_qc_scores[i] is not None:
                 qc_score = np.around(np.clip(np.squeeze(qc_score)[1:], 0, 1), 4)
                 row = [os.path.basename(path_images[i]).replace('.nii.gz', '')] + ['%.4f' % q for q in qc_score]
-                write_csv(path_qc_scores[i], row, unique_qc_file, labels_qc, names=names_qc)
+                write_csv(path_qc_scores[i], row, unique_qc_file, labels_qc, names_qc)
 
         except Exception as e:
             list_errors.append(path_images[i])
@@ -527,10 +529,9 @@ def preprocess(path_image, n_levels=5, crop=None, min_pad=None, path_resample=No
     # pad image
     input_shape = im.shape[:n_dims]
     pad_shape = [find_closest_number_divisible_by_m(s, 2 ** n_levels, 'higher') for s in input_shape]
-    if min_pad is not None:
-        min_pad = reformat_to_list(min_pad, length=n_dims, dtype='int')
-        min_pad = [find_closest_number_divisible_by_m(s, 2 ** n_levels, 'higher') for s in min_pad]
-        pad_shape = np.maximum(pad_shape, min_pad)
+    min_pad = reformat_to_list(min_pad, length=n_dims, dtype='int')
+    min_pad = [find_closest_number_divisible_by_m(s, 2 ** n_levels, 'higher') for s in min_pad]
+    pad_shape = np.maximum(pad_shape, min_pad)
     im, pad_idx = pad_volume(im, padding_shape=pad_shape, return_pad_idx=True)
 
     # add batch and channel axes
@@ -739,7 +740,7 @@ def build_model(model_file_segmentation,
 
 
 def postprocess(post_patch_seg, post_patch_parc, shape, pad_idx, crop_idx,
-                labels_segmentation, labels_parcellation, aff, im_res, fast, topology_classes):
+                labels_segmentation, labels_parcellation, aff, im_res, fast, topology_classes, v1):
 
     # get posteriors
     post_patch_seg = np.squeeze(post_patch_seg)
@@ -801,7 +802,8 @@ def postprocess(post_patch_seg, post_patch_parc, shape, pad_idx, crop_idx,
 
     # compute volumes
     volumes = np.sum(posteriors[..., 1:], axis=tuple(range(0, len(posteriors.shape) - 1)))
-    volumes = np.concatenate([np.array([np.sum(volumes)]), volumes])
+    if not v1:
+        volumes = np.concatenate([np.array([np.sum(volumes)]), volumes])
     if post_patch_parc is not None:
         volumes_parc = np.sum(post_patch_parc[..., 1:], axis=tuple(range(0, len(posteriors.shape) - 1)))
         total_volume_cortex = np.sum(volumes[np.where((labels_segmentation == 3) | (labels_segmentation == 42))[0] - 1])
@@ -905,7 +907,7 @@ def get_flip_indices(labels_segmentation, n_neutral_labels):
     return labels_segmentation, flip_indices, unique_idx
 
 
-def write_csv(path_csv, data, unique_file, labels, skip_first=True, last_first=False, names=None):
+def write_csv(path_csv, data, unique_file, labels, names, skip_first=True, last_first=False):
 
     # initialisation
     mkdir(os.path.dirname(path_csv))
