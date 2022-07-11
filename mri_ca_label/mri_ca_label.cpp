@@ -1541,7 +1541,7 @@ get_option(int argc, char *argv[])
     printf("disabling WMSA labels\n") ;
   }
   else if (!stricmp(option, "insert-wm-bet-putctx")){
-    sscanf(argv[3],"%d",&insert_wm_bet_putctx_topo);
+    sscanf(argv[2],"%d",&insert_wm_bet_putctx_topo);
     nargs = 1 ;
   }
   else if (!stricmp(option, "sa-insert-wm-bet-putctx")){
