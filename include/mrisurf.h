@@ -1565,6 +1565,9 @@ int  MRISreadDecimation(MRI_SURFACE *mris, char *fname) ;
 #define VERTEX_MARKS       11
 
 
+// consolidated from two identical copies in mris_flatten and mris_sphere
+int MRISscaleUp(MRI_SURFACE *mris) ;
+
 int MRISclearOrigArea(MRIS *mris) ;
 void MRISclearOrigAreaAndVal2(MRIS *mris);
 int MRISclearOrigDistances(MRIS *mris) ;

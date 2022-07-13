@@ -1009,7 +1009,8 @@ int main(int argc, char *argv[])
           {
             MRIwrite(mri_imp, "gca_imp.mgz") ;
           }
-	  insert_wm_bet_putctx(mri_labeled, insert_wm_bet_putctx_topo, "nofile", mri_labeled);
+	  // Do this after Gibbs
+	  //insert_wm_bet_putctx(mri_labeled, insert_wm_bet_putctx_topo, "nofile", mri_labeled);
           MRIfree(&mri_imp) ;
         }
       } // renormalize_align
@@ -1399,6 +1400,11 @@ int main(int argc, char *argv[])
   if (fcd)
     gcaCheckForFCDs(mri_labeled, mri_labeled, gca, transform, mri_inputs) ;
 
+  if(insert_wm_bet_putctx_topo>0){
+    printf("Inserting WM between putamen and cortex topo=%d\n",insert_wm_bet_putctx_topo);
+    insert_wm_bet_putctx(mri_labeled, insert_wm_bet_putctx_topo, "nofile", mri_labeled);
+  }
+
   if(FixVents){
     printf("Fixing vents  niters = %d  nmax = %d topo = %d\n", nitersFixVents, nmaxFixVents, topoFixVents);
     char segids[5] = "4,43";
@@ -1541,7 +1547,7 @@ get_option(int argc, char *argv[])
     printf("disabling WMSA labels\n") ;
   }
   else if (!stricmp(option, "insert-wm-bet-putctx")){
-    sscanf(argv[3],"%d",&insert_wm_bet_putctx_topo);
+    sscanf(argv[2],"%d",&insert_wm_bet_putctx_topo);
     nargs = 1 ;
   }
   else if (!stricmp(option, "sa-insert-wm-bet-putctx")){
@@ -1733,6 +1739,22 @@ get_option(int argc, char *argv[])
     nmaxFixVents = atoi(argv[3]) ; // 7000
     topoFixVents = atoi(argv[4]) ; // 1
     nargs = 3 ;
+  }
+  else if (!stricmp(option, "SA-VENT-FIX"))
+  {
+    // -sa-vent-fix niters nmax topo inseg brainmask outseg
+    nitersFixVents = atoi(argv[2]) ; // -1
+    nmaxFixVents = atoi(argv[3]) ; // 7000
+    topoFixVents = atoi(argv[4]) ; // 1
+    MRI *inseg = MRIread(argv[5]); 
+    if(inseg == NULL) exit(1);
+    MRI *brainmask = MRIread(argv[6]); 
+    if(brainmask == NULL) exit(1);
+    printf("Fixing vents  niters = %d  nmax = %d topo = %d\n", nitersFixVents, nmaxFixVents, topoFixVents);
+    char segids[5] = "4,43";
+    MRI *newseg = VentFix::fixasegps(inseg, brainmask, &(segids[0]), 0.5, nitersFixVents, nmaxFixVents, topoFixVents);
+    int err = MRIwrite(newseg,argv[7]);
+    exit(err);
   }
   else if (!stricmp(option, "DEBUG_LABEL"))
   {
