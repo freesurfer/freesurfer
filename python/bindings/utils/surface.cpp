@@ -213,11 +213,16 @@ py::object surfaceDistance(Bridge surf1, Bridge surf2)
  *
  * example:
  * >>> import freesurfer
- * >>> freesurfer.bindings.surf.mris_qsphere(6, 128, 1234, "lh.inflated.nofix", "lh.qsphere.nofix")
+ * >>> inSurf  = freesurfer.bindings.surf.read("./surf/lh.inflated.nofix")
+ * >>> outSurf = freesurfer.bindings.surf.qspherical_inflate(inSurf, 6, 128, 1234)
+ * >>> freesurfer.bindings.surf.write(outSurf, "./surf/lh.qsphere.nofix")
  */
-void mrisQuickSphere(int max_passes, int n_averages, long seed, const std::string inSurf, const std::string outSurf)
+py::object quickSphericalInflate(Bridge inSurf, int max_passes, int n_averages, long seed)
 {
-  MRISQuickSphere(max_passes, n_averages, seed, inSurf.c_str(), outSurf.c_str());
+  // output is updated in the input inSurf
+  MRISQuickSphericalInflate(max_passes, n_averages, seed, inSurf, NULL);
+  inSurf.updateSource();
+  return inSurf;
 }
 
 /*

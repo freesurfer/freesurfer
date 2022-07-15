@@ -62,6 +62,8 @@
 
 #include "annotation.h"
 
+#include "version.h"
+
 ///////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////
@@ -3876,7 +3878,7 @@ MRIS *MRISupsampleSplit(MRIS *srcsurf, int nupsamples, int SortType)
  * static int remove_negative = 1 ;
  * char *rusage_file=NULL;
  */
-void MRISQuickSphere(int max_passes, int n_averages, long seed, const char *inSurf, const char *outSurf)
+MRIS *MRISQuickSphericalInflate(int max_passes, int n_averages, long seed, MRIS *inSurf, const char *outSurf)
 {
   double target_radius = DEFAULT_RADIUS ;  // include/mrisurf.h:#define DEFAULT_RADIUS  100.0f
   float base_dt_scale = 1.0;
@@ -3904,8 +3906,10 @@ void MRISQuickSphere(int max_passes, int n_averages, long seed, const char *inSu
   //int max_passes = 3;
   int nbrs = 1;
 
-
+  Timer then ;
   INTEGRATION_PARMS  parms;
+
+  then.reset();
 
   // default settings
   parms.dt = .05 ;
@@ -3956,11 +3960,13 @@ void MRISQuickSphere(int max_passes, int n_averages, long seed, const char *inSu
   parms.scale = scale ;
   parms.base_dt = base_dt_scale * parms.dt ;
 
+  std::cout << "version: " << getVersion() << std::endl;
+
 #ifdef HAVE_OPENMP
   std::cout << "available threads: " << omp_get_max_threads() << std::endl;
 #endif
 
-  if (parms.base_name[0] == 0)
+  if (parms.base_name[0] == 0 && outSurf != NULL)
   {
     char fname[STRLEN];
     FileNameOnly(outSurf, fname) ;
@@ -3975,21 +3981,14 @@ void MRISQuickSphere(int max_passes, int n_averages, long seed, const char *inSu
     }
   }
 
-  MRI_SURFACE *mris = MRISread(inSurf) ;
-  if (!mris)
-    ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
-              Progname, inSurf) ;
-
-  //MRISaddCommandLine(mris, cmdline) ;
-
-  float max_dim = MAX(abs(mris->xhi-mris->xlo), abs(mris->yhi-mris->ylo)) ;
-  max_dim = MAX(max_dim,abs(mris->zhi-mris->zlo)) ;
+  float max_dim = MAX(abs(inSurf->xhi-inSurf->xlo), abs(inSurf->yhi-inSurf->ylo)) ;
+  max_dim = MAX(max_dim,abs(inSurf->zhi-inSurf->zlo)) ;
 
   if (max_dim > .75*DEFAULT_RADIUS)
   {
     float ratio = .75*DEFAULT_RADIUS / (max_dim) ;
     printf("scaling brain by %2.3f...\n", ratio) ;
-    MRISscaleBrain(mris, mris, ratio) ;
+    MRISscaleBrain(inSurf, inSurf, ratio) ;
   }
 
     fflush(stdout); fflush(stderr);
@@ -4000,7 +3999,7 @@ void MRISQuickSphere(int max_passes, int n_averages, long seed, const char *inSu
   {
     INTEGRATION_PARMS inflation_parms ;
 
-    MRIScenter(mris, mris) ;
+    MRIScenter(inSurf, inSurf) ;
     strcpy(inflation_parms.base_name, parms.base_name) ;
     inflation_parms.write_iterations = parms.write_iterations ;
     inflation_parms.niterations = inflate_iterations ;
@@ -4024,57 +4023,73 @@ void MRISQuickSphere(int max_passes, int n_averages, long seed, const char *inSu
       be used in the repulsive term.
     */
     /*    inflation_parms.l_repulse_ratio = .1 ;*/
-    MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
+    MRISsaveVertexPositions(inSurf, CANONICAL_VERTICES) ;
     if (l_expand > 0)
     {
-      MRISexpandSurface(mris, target_radius/2, &inflation_parms, 0, 1) ;
+      MRISexpandSurface(inSurf, target_radius/2, &inflation_parms, 0, 1) ;
       l_expand = parms.l_expand = 0 ;
     }
-    MRIScenter(mris, mris) ;
-    mris->x0 = mris->xctr ;
-    mris->y0 = mris->yctr ;
-    mris->z0 = mris->zctr ;
-    MRISinflateToSphere(mris, &inflation_parms) ;
+    MRIScenter(inSurf, inSurf) ;
+    inSurf->x0 = inSurf->xctr ;
+    inSurf->y0 = inSurf->yctr ;
+    inSurf->z0 = inSurf->zctr ;
+    MRISinflateToSphere(inSurf, &inflation_parms) ;
     if (inflation_parms.l_expand > 0)
     {
       inflation_parms.l_expand = 0 ;
       inflation_parms.niterations += (inflate_iterations*.1) ;
-      MRISinflateToSphere(mris, &inflation_parms) ;
+      MRISinflateToSphere(inSurf, &inflation_parms) ;
     }
-    MRISscaleBrain(mris, mris, target_radius/(DEFAULT_RADIUS*SCALE_UP)) ;
+    MRISscaleBrain(inSurf, inSurf, target_radius/(DEFAULT_RADIUS*SCALE_UP)) ;
     parms.start_t = inflation_parms.start_t ;
-    MRISresetNeighborhoodSize(mris, nbrs) ;
+    MRISresetNeighborhoodSize(inSurf, nbrs) ;
   }
 
   fs::debug() << "should but doesn't set orig xyz here";
 
   fprintf(stderr, "projecting onto sphere...\n");
-  MRISprojectOntoSphere(mris, mris, target_radius) ;
+  MRISprojectOntoSphere(inSurf, inSurf, target_radius) ;
 
   fprintf(stderr,"surface projected - minimizing metric distortion...\n");
-  MRISsetNeighborhoodSize(mris, nbrs) ;
+  MRISsetNeighborhoodSize(inSurf, nbrs) ;
 
-  int const countNegativeFaces   = MRIScountNegativeFaces(mris);
-  int const allowedNegativeFaces = nint(.8*mris->nfaces);
+  int const countNegativeFaces   = MRIScountNegativeFaces(inSurf);
+  int const allowedNegativeFaces = nint(.8*inSurf->nfaces);
   if (countNegativeFaces > allowedNegativeFaces)
   {
     printf("!!!!!!!!!  everted surface detected (countNegativeFaces:%d > allowedNegativeFaces:%d) - correcting !!!!!!!!!!!!!!\n", countNegativeFaces, allowedNegativeFaces) ;
-    MRISevertSurface(mris) ;
+    MRISevertSurface(inSurf) ;
   }
 
-  MRISprintTessellationStats(mris, stderr) ;
-  MRISquickSphere(mris, &parms, max_passes) ;
+  MRISprintTessellationStats(inSurf, stderr) ;
+  MRISquickSphere(inSurf, &parms, max_passes) ;
 
   // if (!load)
+  if (outSurf != NULL)
   {
     fflush(stdout); fflush(stderr);
     fprintf(stderr, "writing spherical brain to %s\n", outSurf) ;
     fflush(stdout); fflush(stderr);
-    MRISwrite(mris, outSurf) ;
+    MRISwrite(inSurf, outSurf) ;
   }
 
   fflush(stdout); fflush(stderr);
 
+  int msec = then.milliseconds() ;
+  fflush(stdout); fflush(stderr);
+  fprintf(stderr, "spherical transformation took %2.4f hours\n",
+          (float)msec/(1000.0f*60.0f*60.0f));
+  fflush(stdout); fflush(stderr);
+
+  // Output formatted so it can be easily grepped
+#ifdef HAVE_OPENMP
+  int n_omp_threads = omp_get_max_threads();
+  printf("FSRUNTIME@ mris_sphere %7.4f hours %d threads\n",msec/(1000.0*60.0*60.0),n_omp_threads);
+#else
+  printf("FSRUNTIME@ mris_sphere %7.4f hours %d threads\n",msec/(1000.0*60.0*60.0),1);
+#endif
   printf("#VMPC# mris_sphere VmPeak  %d\n",GetVmPeak());
-  printf("MRISQuickSphere done\n");
+  printf("MRISQuickSphericalInflate done\n");
+
+  return inSurf;
 }
