@@ -3,7 +3,7 @@
 import os
 import argparse
 import surfa as sf
-from freesurfer import subregions
+from gems import subregions
 
 
 description = f'''
@@ -17,7 +17,7 @@ Similarly, for a longitudinal analysis, run:
 
     segment_subregions thalamus --long-base base
 
-Timepoints are extracted from the base-tps file in the `base`
+Timepoints are extracted from the `base-tps` file in the `base`
 subject. Output segmentations and computed structure volumes
 will be saved to the subject's `mri` subdirectory.
 '''
