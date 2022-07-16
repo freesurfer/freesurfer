@@ -1,6 +1,8 @@
 project(fspython)
 
-add_subdirectories(bindings)
+# build the cxx/python bindings for the below modules
+add_subdirectories(fsbindings/cxx)
+add_subdirectories(gems/cxx)
 
 # run 'pip install' and direct package installs to freesurfer/python/packages
 install(CODE "
