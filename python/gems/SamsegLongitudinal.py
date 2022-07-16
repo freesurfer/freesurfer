@@ -2,13 +2,13 @@ import os
 import numpy as np
 import pickle
 
-from .SamsegUtility import *
-from .utilities import requireNumpyArray
-from .figures import initVisualizer
-from .Affine import Affine
-from .ProbabilisticAtlas import ProbabilisticAtlas
-from .Samseg import Samseg
-from . import gems
+import gems
+from gems.SamsegUtility import *
+from gems.utilities import requireNumpyArray
+from gems.figures import initVisualizer
+from gems.Affine import Affine
+from gems.ProbabilisticAtlas import ProbabilisticAtlas
+from gems.Samseg import Samseg
 
 
 """

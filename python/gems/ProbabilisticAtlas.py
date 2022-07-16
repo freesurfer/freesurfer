@@ -3,9 +3,9 @@ import numpy as np
 import scipy.ndimage
 import surfa as sf
 
-from freesurfer.samseg import gems
-from freesurfer.samseg.warp_mesh import kvlWarpMesh
-from freesurfer.samseg.utilities import requireNumpyArray
+import gems
+from gems.warp_mesh import kvlWarpMesh
+from gems.utilities import requireNumpyArray
 
 
 class ProbabilisticAtlas:

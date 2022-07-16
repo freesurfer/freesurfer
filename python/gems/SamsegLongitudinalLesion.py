@@ -1,6 +1,6 @@
 import os
-from freesurfer.samseg.SamsegLesion import SamsegLesion
-from freesurfer.samseg.SamsegLongitudinal import SamsegLongitudinal
+from gems.SamsegLesion import SamsegLesion
+from gems.SamsegLongitudinal import SamsegLongitudinal
 from .SamsegUtility import *
 
 

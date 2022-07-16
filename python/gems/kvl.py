@@ -1,6 +1,7 @@
 import logging
 import numpy as np
-from . import gems
+import gems
+
 
 logger = logging.getLogger(__name__)
 

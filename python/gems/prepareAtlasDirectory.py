@@ -1,16 +1,23 @@
 #!/usr/bin/env python3
 
-from freesurfer.samseg import initVisualizer, requireNumpyArray, gems
-from freesurfer.samseg.io import GMMparameter, kvlReadCompressionLookupTable, \
-                                 kvlWriteCompressionLookupTable, kvlWriteSharedGMMParameters, \
-                                 kvlReadSharedGMMParameters
-from freesurfer.samseg.merge_alphas import kvlGetMergingFractionsTable, kvlMergeAlphas
-import numpy as np
-from scipy import ndimage
-import matplotlib.pyplot as plt
-import os, shutil
+import os
 import sys
+import shutil
 import argparse
+import matplotlib.pyplot as plt
+from scipy import ndimage
+
+import gems
+from gems import initVisualizer
+from gems import requireNumpyArray
+from gems.io import GMMparameter
+from gems.io import kvlReadCompressionLookupTable
+from gems.io import kvlWriteCompressionLookupTable
+from gems.io import kvlWriteSharedGMMParameters
+from gems.io import kvlReadSharedGMMParameters
+from gems.io import kvlMergeAlphas
+from gems.merge_alphas import kvlGetMergingFractionsTable
+
 
 def readAndSimplifyCompressionLookupTable( compressionLookupTableFileName, 
                                            uninterestingStructureSearchStrings=None ):

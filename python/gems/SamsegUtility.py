@@ -4,11 +4,11 @@ import itertools
 import datetime as dt
 import surfa as sf
 
-from .utilities import icv
-from .io import kvlReadCompressionLookupTable, kvlReadSharedGMMParameters
-from .figures import initVisualizer
-from .utilities import requireNumpyArray
-from . import gemsbindings as gems
+import gems
+from gems.utilities import icv
+from gems.io import kvlReadCompressionLookupTable, kvlReadSharedGMMParameters
+from gems.figures import initVisualizer
+from gems.utilities import requireNumpyArray
 
 
 def getModelSpecifications(atlasDir, userModelSpecifications={}, pallidumAsWM=True, gmmFileName=None):

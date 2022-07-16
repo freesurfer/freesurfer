@@ -3,17 +3,18 @@ import sys
 import logging
 import pickle
 import scipy.io
-from scipy.ndimage.morphology import binary_dilation as dilation
 import surfa as sf
+from scipy.ndimage.morphology import binary_dilation as dilation
 
-from .utilities import Specification
-from .BiasField import BiasField
-from .ProbabilisticAtlas import ProbabilisticAtlas
-from .GMM import GMM
-from .Affine import Affine
-from .SamsegUtility import *
-from .merge_alphas import kvlMergeAlphas, kvlGetMergingFractionsTable
-from . import gems
+import gems
+from gems.utilities import Specification
+from gems.BiasField import BiasField
+from gems.ProbabilisticAtlas import ProbabilisticAtlas
+from gems.GMM import GMM
+from gems.Affine import Affine
+from gems.SamsegUtility import *
+from gems.merge_alphas import kvlMergeAlphas, kvlGetMergingFractionsTable
+
 
 eps = np.finfo(float).eps
 
@@ -522,13 +523,9 @@ class Samseg:
             initialDeformationMeshCollectionFileName=self.deformationAtlasFileName
         ).points
 
-        # still using the original freesurfer package here, just waiting to get
-        # m3z IO implemented in surfa...
-        import freesurfer as fs
-
         # extract geometries
-        imageGeom = fs.Volume.read(self.imageFileNames[0]).geometry()
-        templateGeom = fs.Volume.read(os.path.join(self.atlasDir, 'template.nii')).geometry()
+        source = sf.load_volume(self.imageFileNames[0]).geom
+        target = sf.load_volume(os.path.join(self.atlasDir, 'template.nii')).geom
 
         # extract vox-to-vox template transform
         # TODO: Grabbing the transform from the saved .mat file in either the cross or base
@@ -544,7 +541,7 @@ class Samseg:
 
         # rasterize the final node coordinates (in image space) using the initial template mesh
         mesh = self.getMesh(self.modelSpecifications.atlasFileName)
-        coordmap = mesh.rasterize_values(templateGeom.shape, nodePositions)
+        coordmap = mesh.rasterize_values(target.shape, nodePositions)
 
         # the rasterization is a bit buggy and some voxels are not filled - mark these as invalid
         invalid = np.any(coordmap == 0, axis=-1)
@@ -552,9 +549,16 @@ class Samseg:
 
         # adjust for the offset introduced by volume cropping
         coordmap[~invalid, :] += [slc.start for slc in self.cropping]
+        
+        # writing a GCA morph requires the fsbindings to be built - this is usually only the case
+        # for complete development builds or in distributed freesurfer releases
+        try:
+            import fsbindings
+        except ImportError:
+            raise ImportError('the fsbindings package is required to save a GCA morph, but it is not available')
 
-        # write the warp file
-        fs.Warp(coordmap, source=imageGeom, target=templateGeom, affine=matrix).write(filename)
+        # write the morph
+        fsbindings.write_gca_morph(coordmap, matrix, source, target, filename)
 
     def saveGaussianProbabilities(self, probabilitiesPath):
         # Make output directory

@@ -4,12 +4,11 @@ import scipy.ndimage
 import numpy as np
 import surfa as sf
 
-from . import gems, convertLPSTransformToRAS
-from .ProbabilisticAtlas import ProbabilisticAtlas
-
-from .utilities import requireNumpyArray
-from .figures import initVisualizer
-import scipy.ndimage # For center-of-mass calculation
+import gems
+from gems import convertLPSTransformToRAS
+from gems.ProbabilisticAtlas import ProbabilisticAtlas
+from gems.utilities import requireNumpyArray
+from gems.figures import initVisualizer
 
 
 class initializationOptions:

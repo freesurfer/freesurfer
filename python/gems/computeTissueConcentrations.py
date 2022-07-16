@@ -23,7 +23,8 @@ import numpy as np
 import argparse
 import surfa as sf
 from scipy.ndimage import map_coordinates
-from freesurfer import samseg
+import gems
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--subjects-dir', help='Directory with saved SAMSEG runs with --history flag.', required=True)
@@ -43,16 +44,16 @@ args = parser.parse_args()
 os.makedirs(args.output_dir, exist_ok=True)
 
 if args.show_figs:
-    visualizer = samseg.initVisualizer(True, True)
+    visualizer = gems.initVisualizer(True, True)
 else:
-    visualizer = samseg.initVisualizer(False, False)
+    visualizer = gems.initVisualizer(False, False)
 
 if args.save_figs:
     import nibabel as nib
 
 # We need an init of the probabilistic segmentation class
 # to call instance methods
-atlas = samseg.ProbabilisticAtlas()
+atlas = gems.ProbabilisticAtlas()
 
 subjectList = [pathname for pathname in os.listdir(args.subjects_dir) if os.path.isdir(os.path.join(args.subjects_dir, pathname))]
 subjectList.sort()
@@ -67,7 +68,7 @@ templateTransformMatrix = template.affine
 
 # Same for mesh collection with reference mesh
 mesh_collection_file = args.mesh_collection_file
-meshCollection = samseg.gems.KvlMeshCollection()
+meshCollection = gems.KvlMeshCollection()
 meshCollection.read(mesh_collection_file)
 referenceMesh = meshCollection.reference_mesh
 referencePositions = referenceMesh.points.copy()
@@ -114,7 +115,7 @@ for structure in args.structures:
             history = np.load(historyPath, allow_pickle=True)
             model_specifications = history['input']['modelSpecifications']
             transform_matrix = history['transform']
-            transform = samseg.gems.KvlTransform(samseg.requireNumpyArray(transform_matrix))
+            transform = gems.KvlTransform(gems.requireNumpyArray(transform_matrix))
             if not args.longitudinal:
                 deformation = history['historyWithinEachMultiResolutionLevel'][1]['deformation']
             else:
@@ -212,13 +213,13 @@ for structure in args.structures:
                         for tp in range(len(concentrationMaps[subjectNumber]))]
 
                 for tmp in tmps:
-                    smoothedConcentrationMap = samseg.gems.KvlImage.smooth_image_buffer(tmp, smoothingSigmas)
+                    smoothedConcentrationMap = gems.KvlImage.smooth_image_buffer(tmp, smoothingSigmas)
                     downsampledConcentrationMap = smoothedConcentrationMap[::downSamplingFactor, ::downSamplingFactor, ::downSamplingFactor]
                     downsampledConcentrationMapsSubject.append(downsampledConcentrationMap)
 
                 downsampledConcentrationMaps.append(downsampledConcentrationMapsSubject)
 
-            smoothedTemplateBuffer = samseg.gems.KvlImage.smooth_image_buffer(templateBuffer, smoothingSigmas)
+            smoothedTemplateBuffer = gems.KvlImage.smooth_image_buffer(templateBuffer, smoothingSigmas)
             downsampledTemplateBuffer = smoothedTemplateBuffer[::downSamplingFactor, ::downSamplingFactor, ::downSamplingFactor]
         else:
             # Use Block smoothing
@@ -299,7 +300,7 @@ for structure in args.structures:
 # Code for using --save-mesh instead of --save-history
 # There is something off however, probably due to different saved positions(?) -- is this a bug of --save-mesh?
 # Load SAMSEG original mesh
-#meshCollection = samseg.gems.KvlMeshCollection()
+#meshCollection = gems.KvlMeshCollection()
 #meshCollection.read(os.path.join(args.subjects_dir, subjectDir, "mesh.txt.gz"))
 #referenceMesh = meshCollection.reference_mesh
 #referencePositions = referenceMesh.points.copy()

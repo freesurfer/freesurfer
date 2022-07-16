@@ -1,13 +1,13 @@
 import numpy as np
 import os
 
-from freesurfer.samseg.Samseg import Samseg
-from freesurfer.samseg.utilities import Specification
-from freesurfer.samseg.SamsegUtility import *
-from freesurfer.samseg.io import kvlReadSharedGMMParameters
-from freesurfer.samseg.VAE import VAE
-from freesurfer.samseg.merge_alphas import kvlGetMergingFractionsTable
-from . import gems
+import gems
+from gems.Samseg import Samseg
+from gems.utilities import Specification
+from gems.SamsegUtility import *
+from gems.io import kvlReadSharedGMMParameters
+from gems.VAE import VAE
+from gems.merge_alphas import kvlGetMergingFractionsTable
 
 eps = np.finfo(float).eps
 
