@@ -1,27 +1,16 @@
 #pragma once
 
-#include "numpy.h"
 #include "transform.h"
 #include "log.h"
 
-namespace transform {
+#include "bindings_numpy.h"
 
 
-LTA* pythonToLTA(py::object transform);
-
-void pythonToVolGeom(py::object geometry, VOL_GEOM* vg);
-py::object volGeomToPython(VOL_GEOM* vg);
-
+void VOLGEOMfromSurfaImageGeometry(py::object geometry, VOL_GEOM* vg);
+py::object VOLGEOMtoSurfaImageGeometry(VOL_GEOM* vg);
+LTA* LTAfromSurfaAffine(py::object affine);
+py::object LTAtoSurfaAffine(const LTA* lta);
 py::object readLTA(const std::string& filename);
 void writeLTA(py::object transform, const std::string& filename);
-
-
-// transform submodule binding
-inline void bind(py::module &m)
-{
-  m.def("read_lta", &readLTA);
-  m.def("write_lta", &writeLTA);
-}
-
-
-}  // end namespace transform
+void writeGCAMORPHfromPython(py::object warp, py::object affine, py::object source,
+                             py::object target, const std::string& filename);

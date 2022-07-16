@@ -1,6 +1,6 @@
 #include <sstream>
 
-#include "numpy.h"
+#include "bindings_numpy.h"
 
 
 /*
