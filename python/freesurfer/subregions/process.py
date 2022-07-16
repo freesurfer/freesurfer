@@ -91,8 +91,12 @@ def run_longitudinal(structure, baseParameters, tpParameters):
     # Preprocess inputs
     last_time = dt.datetime.now()
     print(f'Step 1: preprocessing all inputs for {structure} segmentation')
+    baseModel.isLong = True
+    baseModel.fileSuffix = '.long' + baseModel.fileSuffix
     baseModel.initialize()
     for tpModel in tpModels:
+        tpModel.isLong = True
+        tpModel.fileSuffix = '.long' + tpModel.fileSuffix
         tpModel.initialize()
     elapsed = dt.datetime.now() - last_time
     print(f'Preprocessing took {elapsed.seconds} seconds\n')
@@ -111,8 +115,7 @@ def run_longitudinal(structure, baseParameters, tpParameters):
     print('Step 3: aligning timepoint segmentations to base')
 
     # First save the cropped base masks
-    mask = baseModel.atlasAlignmentTarget.crop_to_bbox(margin=6)
-    mask.data = mask.data.astype('float32') * 255
+    mask = baseModel.atlasAlignmentTarget.crop_to_bbox(margin=6).astype('float32')
     baseMaskFile = os.path.join(baseModel.tempDir, 'binaryMaskCropped.mgz')
     mask.save(baseMaskFile)
 
@@ -124,8 +127,7 @@ def run_longitudinal(structure, baseParameters, tpParameters):
     baseTransforms = []
     for tpModel in tpModels:
         # Save the cropped timepoint masks
-        mask = tpModel.atlasAlignmentTarget.crop_to_bbox(margin=6)
-        mask.data = mask.data.astype('float32') * 255
+        mask = tpModel.atlasAlignmentTarget.crop_to_bbox(margin=6).astype('float32')
         maskFile = os.path.join(tpModel.tempDir, 'binaryMaskCropped.mgz')
         mask.save(maskFile)
         
@@ -137,11 +139,11 @@ def run_longitudinal(structure, baseParameters, tpParameters):
 
         # Resample the inputs in processed base space
         # Again, since we don't have cubic interpolation yet in the python utils, let's just use mri_convert
-        correctedImageFile = os.path.join(tpModel.tempDir, 'correctedImage.mgz')
         resampledFile = os.path.join(tpModel.tempDir, 'resampledImage.mgz')
-        tpModel.correctedImages[0].save(correctedImageFile)  # ATH this will need to be adapted for multi-image inputs
-        utils.run(f'mri_convert {correctedImageFile} {resampledFile} -odt float -rl {baseProcessedFile} -rt cubic -at {transformFile}')
+        # ATH this will need to be adapted for multi-image inputs...
+        utils.run(f'mri_convert {tpModel.inputImageFileNames[0]} {resampledFile} -odt float -rl {baseProcessedFile} -rt cubic -at {transformFile}')
         tpModel.processedImage = sf.load_volume(resampledFile)
+        tpModel.processedImage[baseModel.longMask == 0] = 0
 
         # Since we're now working in base-space, we can reuse the base-aligned atlas for every timepoint
         tpModel.alignedAtlas = baseModel.alignedAtlas
@@ -154,6 +156,14 @@ def run_longitudinal(structure, baseParameters, tpParameters):
     print('Step 4: fitting mesh to base segmentation')
     baseModel.prepare_for_seg_fitting()
     baseModel.fit_mesh_to_seg()
+
+    # This doesn't actually do anything but it's useful for mimicking the matlab code
+    for n, tpModel in enumerate(tpModels):
+        tpModel.atlasMeshFileName = baseModel.warpedMeshFileName
+        tpModel.cheatingMeshSmoothingSigmas = []
+        tpModel.prepare_for_seg_fitting()
+        tpModel.fit_mesh_to_seg()
+
     elapsed = dt.datetime.now() - last_time
     print(f'Initial mesh fitting took {elapsed.seconds} seconds\n')
 
@@ -162,21 +172,25 @@ def run_longitudinal(structure, baseParameters, tpParameters):
     print('Step 5: global mesh fitting')
 
     # Prepare the base for image fitting so that we can extract some mesh information
-    baseModel.prepare_for_image_fitting()
+    baseModel.prepare_for_image_fitting(compute_hyps=False)
     atlasPositions = baseModel.meshCollection.get_mesh(-1).points
     subjectAtlasPositions = baseModel.mesh.points
 
     # Now that we've the mesh to the base segmentation mask, we
     # should use this mesh collection in the timepoint models
-    for tpModel in tpModels:
-        tpModel.warpedMeshFileName = baseModel.warpedMeshFileName
+    for n, tpModel in enumerate(tpModels):
+
         tpModel.originalAlphas = baseModel.originalAlphas
-        tpModel.prepare_for_image_fitting()
+        tpModel.prepare_for_image_fitting(compute_hyps=False)
 
         # We should keep the masking consistent across timepoints
         tpModel.workingMask = baseModel.workingMask
         tpModel.maskIndices = baseModel.maskIndices
         tpModel.workingImage.data[tpModel.workingMask.data == 0] = 0
+
+        # compute hyperparameters with base mesh
+        tpModel.reducedAlphas = baseModel.reducedAlphas
+        tpModel.meanHyper, tpModel.nHyper = tpModel.get_gaussian_hyps(baseModel.sameGaussianParameters, baseModel.mesh)
 
     # Gather initial subject timepoint mesh positions
     subjectTPpositions = [tpModel.mesh.points for tpModel in tpModels]
@@ -190,8 +204,7 @@ def run_longitudinal(structure, baseParameters, tpParameters):
     mesh.alphas = baseModel.reducedAlphas
 
     # Start the global iterations
-    maxGlobalLongIterations = 5
-    for globalIteration in range(maxGlobalLongIterations):
+    for globalIteration in range(baseModel.maxGlobalLongIterations):
 
         print(f'\nGlobal iteration {globalIteration + 1}: estimating subject-specific atlas\n')
 
@@ -237,8 +250,10 @@ def run_longitudinal(structure, baseParameters, tpParameters):
         # Update positions
         subjectAtlasPositions = meshSA.points
         baseModel.meshCollection.set_positions(atlasPositions, [subjectAtlasPositions])
+        baseModel.meshCollection.k = baseModel.meshStiffness
         for t, tpModel in enumerate(tpModels):
             tpModel.meshCollection.set_positions(subjectAtlasPositions, [subjectTPpositions[t]])
+            tpModel.meshCollection.k = tpModel.meshStiffness
     
         # Now let's fit each timepoint
         for t, tpModel in enumerate(tpModels):
@@ -254,7 +269,7 @@ def run_longitudinal(structure, baseParameters, tpParameters):
             tpModel.fit_mesh_to_image()
 
         # Get updated positions
-        subjectTPpositions = [tpModel.mesh.points for tpModel in tpModels]
+        subjectTPpositions = [tpModel.meshCollection.get_mesh(0).points for tpModel in tpModels]
 
     elapsed = dt.datetime.now() - last_time
     print(f'Global mesh fitting took {elapsed.seconds} seconds\n')
@@ -264,9 +279,16 @@ def run_longitudinal(structure, baseParameters, tpParameters):
         tpModel.extract_segmentation()
         # Let's transform (just the header) the output segmentations back to original timepoint space
         trf = baseTransforms[t]
-        tpModel.discreteLabels.geom.vox2world = trf.inv() @ tpModel.discreteLabels.geom.vox2world
+        vox2world = tpModel.inputImages[0].geom.vox2world @ trf.convert(
+                        space='vox',
+                        source=tpModel.inputImages[0],
+                        target=tpModel.discreteLabels).inv()
+        rotation = vox2world.matrix[:3, :3] / tpModel.discreteLabels.geom.voxsize
+        center = np.matmul(vox2world.matrix, np.append(np.asarray(tpModel.discreteLabels.baseshape) / 2, 1))[:3]
+        tpModel.discreteLabels.geom.update(center=center, rotation=rotation)
         # Also, scale the volumes by the determinant of the transform
         det = np.linalg.det(trf.matrix[:3, :3])
+        print(f'Timepoint {t + 1} volume scaling factor: {det}')
         tpModel.volumes = {key: vol / det for key, vol in tpModel.volumes.items()}
         # Do the subclass-defined postprocessing and cleanup
         tpModel.postprocess_segmentation()

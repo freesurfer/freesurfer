@@ -70,9 +70,12 @@ class MeshModel:
         self.imageSmoothingSigmas = [0, 0, 0]
         self.maxIterations = [7, 5, 3]
 
+        self.isLong = False
         self.longMeshSmoothingSigmas = [[1.5, 0.75], [0.75, 0]]
         self.longImageSmoothingSigmas = [[0, 0], [0, 0]]
         self.longMaxIterations = [[6, 3], [2, 1]]
+        self.maxGlobalLongIterations = 2
+        self.longMask = None
 
         # Here are some options that control how to much to dilate masks throughout different
         # stages. Might be necessary to tune depending on the geometry of the ROI (like brainstem).
@@ -176,7 +179,7 @@ class MeshModel:
             alphas = self.originalAlphas
 
         numberOfReducedLabels = len(sameGaussianParameters)
-        # ATH: Are alphas always 32-bit floats?
+        # ATH: are alphas always 32-bit floats?
         reducedAlphas = np.zeros((alphas.shape[0], numberOfReducedLabels), dtype='float32')
         reducingLookupTable = np.zeros(alphas.shape[1], dtype='int32')
 
@@ -259,7 +262,7 @@ class MeshModel:
 
         # Write the atlas as well
         alignedAtlasFile = os.path.join(self.tempDir, 'alignedAtlasImage.mgz')
-        # ATH TODO skipping this for now... we'll just copy instead
+        # ATH skipping this for now... we'll just copy instead
         # self.atlasImage.save(alignedAtlasFile)
         shutil.copyfile(self.atlasDumpFileName, alignedAtlasFile)
 
@@ -396,7 +399,7 @@ class MeshModel:
         self.meshCollection.transform(inverseTransform)
         self.meshCollection.write(self.warpedMeshFileName)
 
-    def prepare_for_image_fitting(self):
+    def prepare_for_image_fitting(self, compute_hyps=True):
         """
         Prepare the mesh collection, preprocessed image, reduced alphas, and estimated hyperparameters.
         """
@@ -435,7 +438,8 @@ class MeshModel:
         # voxels with intensity zero are simply skipped in the computations.
         self.workingMask = self.workingImage.new(mask)
         self.workingImage.data[mask == 0] = 0
-        self.maskIndices = np.where(mask)
+        # Let's do this to make results more similar to the matlab version
+        self.maskIndices = np.unravel_index(np.where(mask.flatten(order='F')), self.workingImageShape, order='F')
 
         # Write the initial and cropped/masked images for debugging purposes
         if self.debug:
@@ -451,8 +455,9 @@ class MeshModel:
         self.reducedAlphas, self.reducingLookupTable = self.reduce_alphas(self.sameGaussianParameters)
         self.mesh.alphas = self.reducedAlphas
 
-        # Compute the hyperparameters
-        self.meanHyper, self.nHyper = self.get_gaussian_hyps(self.sameGaussianParameters, self.mesh)
+        if compute_hyps:
+            # Compute the hyperparameters
+            self.meanHyper, self.nHyper = self.get_gaussian_hyps(self.sameGaussianParameters, self.mesh)
 
         # Init empty means and variances
         self.means = None
@@ -466,16 +471,20 @@ class MeshModel:
         # Just get the original image buffer (array) and convert to a Kvl image object
         imageBuffer = self.workingImage.data.copy(order='K')
         image = samseg.gems.KvlImage(samseg.utilities.requireNumpyArray(imageBuffer))
-        
+
         # Useful to have cached
-        numMaskIndices = len(self.maskIndices[0])
+        numMaskIndices = self.maskIndices[0].shape[-1]
         numberOfClasses = len(self.sameGaussianParameters)
 
         # Multi-resolution loop
         numberOfMultiResolutionLevels = len(self.meshSmoothingSigmas)
         for multiResolutionLevel in range(numberOfMultiResolutionLevels):
 
+            if self.isLong:
+                self.mesh = self.meshCollection.get_mesh(0)
+
             # Special case when we want to recompute reduced alphas for a second-component
+            # Note: how should we deal with more than one component during longitudinal global iterations?
             if self.useTwoComponents and multiResolutionLevel == 1:
                 # Get second component label groups
                 labelGroups = self.get_second_label_groups()
@@ -522,10 +531,10 @@ class MeshModel:
                 print(f'Iteration {iterationNumber + 1} of {maximumNumberOfIterations}')
 
                 # Part I: estimate Gaussian mean and variances using EM
-                
+
                 # Get the priors as dictated by the current mesh position as well as the image intensities
                 data = imageBuffer[self.maskIndices]
-                
+
                 # Avoid spike in memory during the posterior computation
                 priors = np.zeros((numMaskIndices, numberOfClasses), dtype='uint16')
                 for l in range(numberOfClasses):
@@ -612,6 +621,9 @@ class MeshModel:
 
                 # Part II: update the position of the mesh nodes for the current set of Gaussian parameters
 
+                if self.isLong:
+                    self.mesh = self.meshCollection.get_mesh(0)
+
                 # Keep track if the mesh has moved or not
                 haveMoved = False
 
@@ -656,7 +668,7 @@ class MeshModel:
 
                     if maximalDeformation > 0:
                         haveMoved = True
-                    
+
                     # Check if we need to stop
                     if maximalDeformation <= maximalDeformationStopCriterion:
                         print('maximalDeformation is too small - stopping')
@@ -678,7 +690,7 @@ class MeshModel:
         # First, undo the collapsing of several structures into super-structures
         self.mesh.alphas = self.originalAlphas
         numberOfClasses = self.originalAlphas.shape[-1]
-        numMaskIndices = len(self.maskIndices[0])
+        numMaskIndices = self.maskIndices[0].shape[-1]
 
         # Compute normalized posteriors
         imgdata = self.workingImage.data[self.maskIndices]
