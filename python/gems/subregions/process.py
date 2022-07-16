@@ -3,11 +3,11 @@ import numpy as np
 import datetime as dt
 import surfa as sf
 
-from freesurfer import samseg
-from freesurfer.subregions import utils
-from freesurfer.subregions.thalamus import ThalamicNuclei
-from freesurfer.subregions.brainstem import BrainstemSubstructures
-from freesurfer.subregions.hippocampus import HippoAmygdalaSubfields
+import gems
+from gems.subregions import utils
+from gems.subregions.thalamus import ThalamicNuclei
+from gems.subregions.brainstem import BrainstemSubstructures
+from gems.subregions.hippocampus import HippoAmygdalaSubfields
 
 
 model_lookup = {
@@ -196,7 +196,7 @@ def run_longitudinal(structure, baseParameters, tpParameters):
     subjectTPpositions = [tpModel.mesh.points for tpModel in tpModels]
 
     # This will be the mesh collection we'll use for temporary data
-    meshCollection = samseg.gems.KvlMeshCollection()
+    meshCollection = gems.KvlMeshCollection()
     meshCollection.read(baseModel.warpedMeshFileName)
     meshCollection.transform(baseModel.transform)
     meshCollection.k = baseModel.meshStiffness
@@ -214,7 +214,7 @@ def run_longitudinal(structure, baseParameters, tpParameters):
         meshCollection.set_positions(atlasPositions, subjectTPpositions)
 
         # Get optimizer and plug calculator into it
-        calculator = samseg.gems.KvlCostAndGradientCalculator(meshCollection, baseModel.meshStiffness, baseModel.meshStiffness, baseModel.transform)
+        calculator = gems.KvlCostAndGradientCalculator(meshCollection, baseModel.meshStiffness, baseModel.meshStiffness, baseModel.transform)
         maximalDeformationStopCriterion = 1e-10
         optimizationParameters = {
             'Verbose': 0,
@@ -223,7 +223,7 @@ def run_longitudinal(structure, baseParameters, tpParameters):
             'MaximumNumberOfIterations': 1000,
             'BFGS-MaximumMemoryLength': 12
         }
-        optimizer = samseg.gems.KvlOptimizer(baseModel.optimizerType, meshSA, calculator, optimizationParameters)
+        optimizer = gems.KvlOptimizer(baseModel.optimizerType, meshSA, calculator, optimizationParameters)
 
         for positionUpdatingIterationNumber in range(400):
 

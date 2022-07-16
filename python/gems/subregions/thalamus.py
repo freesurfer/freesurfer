@@ -4,9 +4,8 @@ import numpy as np
 import scipy.ndimage
 import surfa as sf
 
-from freesurfer import samseg
-from freesurfer.subregions import utils
-from freesurfer.subregions.core import MeshModel
+from gems.subregions import utils
+from gems.subregions.core import MeshModel
 
 
 class ThalamicNuclei(MeshModel):

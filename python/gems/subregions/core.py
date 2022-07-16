@@ -5,8 +5,8 @@ import numpy as np
 import surfa as sf
 import scipy.ndimage
 
-from freesurfer import samseg
-from freesurfer.subregions import utils
+import gems
+from gems.subregions import utils
 
 
 class MeshModel:
@@ -218,7 +218,7 @@ class MeshModel:
         trf.matrix[:3, -1] -= lower
         cropping = tuple([slice(l, u + 1) for l, u in zip(lower, upper)])
 
-        transform = samseg.gems.KvlTransform(np.asfortranarray(trf.matrix))
+        transform = gems.KvlTransform(np.asfortranarray(trf.matrix))
         return (image[cropping].copy(), transform)
 
     def align_atlas_to_seg(self):
@@ -285,7 +285,7 @@ class MeshModel:
         self.workingImageShape = self.workingImage.shape[:3]
 
         # Read in collection, set stiffness, and apply transform
-        self.meshCollection = samseg.gems.KvlMeshCollection()
+        self.meshCollection = gems.KvlMeshCollection()
         self.meshCollection.read(self.atlasMeshFileName)
         self.meshCollection.transform(self.transform)
         self.meshCollection.k = self.meshStiffness
@@ -324,7 +324,7 @@ class MeshModel:
 
         # Just get the image buffer (array) and convert to a Kvl image object
         imageBuffer = self.workingImage.data.copy(order='K')
-        image = samseg.gems.KvlImage(samseg.utilities.requireNumpyArray(imageBuffer))
+        image = gems.KvlImage(gems.utilities.requireNumpyArray(imageBuffer))
 
         # Use a multi-resolution approach
         for multiResolutionLevel, meshSmoothingSigma in enumerate(self.cheatingMeshSmoothingSigmas):
@@ -338,7 +338,7 @@ class MeshModel:
                 self.meshCollection.smooth(meshSmoothingSigma)
 
             # Note that it uses variances instead of precisions
-            calculator = samseg.gems.KvlCostAndGradientCalculator(
+            calculator = gems.KvlCostAndGradientCalculator(
                 typeName='AtlasMeshToIntensityImage',
                 images=[image],
                 boundaryCondition='Sliding',
@@ -360,7 +360,7 @@ class MeshModel:
                 'MaximumNumberOfIterations': 1000,
                 'BFGS-MaximumMemoryLength': 12
             }
-            optimizer = samseg.gems.KvlOptimizer(self.optimizerType, self.mesh, calculator, optimizationParams)
+            optimizer = gems.KvlOptimizer(self.optimizerType, self.mesh, calculator, optimizationParams)
 
             # Run the optimizations
             history = []
@@ -395,7 +395,7 @@ class MeshModel:
         # Write the resulting atlas mesh to file in native atlas space.
         # This is nice because all we need to do is to modify imageDump_coregistered
         # with the T1-to-T2 transform to have the warped mesh in T2 space
-        inverseTransform = samseg.gems.KvlTransform(np.asfortranarray(np.linalg.inv(self.transform.as_numpy_array)))
+        inverseTransform = gems.KvlTransform(np.asfortranarray(np.linalg.inv(self.transform.as_numpy_array)))
         self.meshCollection.transform(inverseTransform)
         self.meshCollection.write(self.warpedMeshFileName)
 
@@ -418,7 +418,7 @@ class MeshModel:
 
         # Read the atlas mesh from file, and apply the previously determined transform to the location of its nodes
         # ATH does this have to be re-read?
-        self.meshCollection = samseg.gems.KvlMeshCollection()
+        self.meshCollection = gems.KvlMeshCollection()
         self.meshCollection.read(self.warpedMeshFileName)
         self.meshCollection.transform(self.transform)
         self.meshCollection.k = self.meshStiffness
@@ -470,7 +470,7 @@ class MeshModel:
 
         # Just get the original image buffer (array) and convert to a Kvl image object
         imageBuffer = self.workingImage.data.copy(order='K')
-        image = samseg.gems.KvlImage(samseg.utilities.requireNumpyArray(imageBuffer))
+        image = gems.KvlImage(gems.utilities.requireNumpyArray(imageBuffer))
 
         # Useful to have cached
         numMaskIndices = self.maskIndices[0].shape[-1]
@@ -515,7 +515,7 @@ class MeshModel:
 
             # ATH this is in case the above smoothing only sets the buffer, but this should be removed
             # really since it's not necessary if things are correctly implemented
-            image = samseg.gems.KvlImage(samseg.utilities.requireNumpyArray(imageBuffer))
+            image = gems.KvlImage(gems.utilities.requireNumpyArray(imageBuffer))
             
             # Now with this smoothed atlas, we're ready for the real work. There are essentially two sets of parameters
             # to estimate in our generative model: (1) the mesh node locations (parameters of the prior), and (2) the
@@ -628,7 +628,7 @@ class MeshModel:
                 haveMoved = False
 
                 # Note that it uses variances instead of precisions
-                calculator = samseg.gems.KvlCostAndGradientCalculator(
+                calculator = gems.KvlCostAndGradientCalculator(
                     typeName='AtlasMeshToIntensityImage',
                     images=[image],
                     boundaryCondition='Sliding',
@@ -647,7 +647,7 @@ class MeshModel:
                     'MaximumNumberOfIterations': 1000,
                     'BFGS-MaximumMemoryLength': 12
                 }
-                optimizer = samseg.gems.KvlOptimizer(self.optimizerType, self.mesh, calculator, optimizationParameters)
+                optimizer = gems.KvlOptimizer(self.optimizerType, self.mesh, calculator, optimizationParameters)
 
                 for positionUpdatingIterationNumber in range(positionUpdatingMaximumNumberOfIterations):
 
@@ -708,7 +708,7 @@ class MeshModel:
             # Write the resulting atlas mesh to file for future reference
             self.meshCollection.write(os.path.join(self.tempDir, 'finalWarpedMesh.txt'))
             # Also write the warped mesh in atlas space
-            inverseTransform = samseg.gems.KvlTransform(np.asfortranarray(np.linalg.inv(self.transform.as_numpy_array)))
+            inverseTransform = gems.KvlTransform(np.asfortranarray(np.linalg.inv(self.transform.as_numpy_array)))
             self.meshCollection.transform(inverseTransform)
             self.meshCollection.write(os.path.join(self.tempDir, 'finalWarpedMeshNoAffine.txt'))
 

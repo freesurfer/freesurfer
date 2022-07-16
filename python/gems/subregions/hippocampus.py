@@ -5,9 +5,8 @@ import scipy.ndimage
 import scipy.stats
 import surfa as sf
 
-from freesurfer import samseg
-from freesurfer.subregions import utils
-from freesurfer.subregions.core import MeshModel
+from gems.subregions import utils
+from gems.subregions.core import MeshModel
 
 
 class HippoAmygdalaSubfields(MeshModel):
