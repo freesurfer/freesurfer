@@ -15,6 +15,11 @@ void VOLGEOMfromSurfaImageGeometry(py::object geometry, VOL_GEOM* vg)
   if (geometry.is(py::none())) {
     // if the python objects is None, just make it an invalid geometry
     vg->valid = 0;
+  
+  } else if (!py::isinstance(geometry, py::module::import("surfa").attr("ImageGeometry"))) {
+    // type checking
+    throw py::value_error("VOLGEOMfromSurfaImageGeometry: cannot convert to VOL_GEOM - input is not a surfa ImageGeometry");
+  
   } else {
     // extract shape
     std::vector<int> shape = geometry.attr("shape").cast<std::vector<int>>();
@@ -50,6 +55,8 @@ void VOLGEOMfromSurfaImageGeometry(py::object geometry, VOL_GEOM* vg)
 */ 
 py::object VOLGEOMtoSurfaImageGeometry(VOL_GEOM* vg)
 {
+  if (vg == nullptr) throw py::value_error("VOLGEOMtoSurfaImageGeometry: cannot convert to surfa ImageGeometry - VOL_GEOM input is null");
+
   // return None object is geom is invalid
   if (!vg->valid) return py::none();
 
@@ -88,6 +95,10 @@ py::object VOLGEOMtoSurfaImageGeometry(VOL_GEOM* vg)
 */ 
 LTA* LTAfromSurfaAffine(py::object affine)
 {
+  // type checking
+  py::object affineclass = py::module::import("surfa").attr("Affine");
+  if (!py::isinstance(affine, affineclass)) throw py::value_error("LTAfromSurfaAffine: cannot convert to LTA - input is not a surfa Affine");
+
   // allocate an empty LTA
   LTA* lta = LTAalloc(1, nullptr);
   LINEAR_TRANSFORM *lt = &lta->xforms[0];
@@ -118,6 +129,8 @@ LTA* LTAfromSurfaAffine(py::object affine)
 */ 
 py::object LTAtoSurfaAffine(const LTA* lta)
 {
+  if (lta == nullptr) throw py::value_error("LTAtoSurfaAffine: cannot convert to surfa Affine - LTA input is null");
+
   // copy matrix data
   LINEAR_TRANSFORM *lt = &lta->xforms[0];
   py::array matrix = copyArray({4, 4}, MemoryOrder::C, lt->m_L->data);

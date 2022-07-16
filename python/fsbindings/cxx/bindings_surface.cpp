@@ -7,48 +7,49 @@
 #include "bindings_transform.h"
 
 
+
 /*
-  Build a surfa Mesh object from the stored MRIS instance.
+  Convert an MRIS structure to a surfa Mesh. All data is copied between python and cxx, so any
+  allocated MRIS pointers will need to be freed, even after convert to python. However, if
+  `release` is `true`, this function will free the MRIS after converting.
 */
-py::object MRISBridge::toPython()
+py::object MRIStoSurfaMesh(MRIS *mris, bool release)
 {
-  // sanity check on the MRIS instance
-  if (!p_mris) throw std::runtime_error("cannot bridge to python as MRIS instance is null");
+  if (mris == nullptr) throw py::value_error("MRIStoSurfaMesh: cannot convert to surfa Mesh - MRIS input is null");
 
   // extract the vertex and face arrays in order to construct the surface object
-  py::array vertices = makeArray({p_mris->nvertices, 3}, MemoryOrder::C, MRISgetVertexArray(p_mris.get()));
-  py::array faces = makeArray({p_mris->nfaces, 3}, MemoryOrder::C, MRISgetFaceArray(p_mris.get()));
-  py::object surf = py::module::import("surfa").attr("Mesh")(vertices, faces);
+  py::array vertices = makeArray({mris->nvertices, 3}, MemoryOrder::C, MRISgetVertexArray(mris));
+  py::array faces = makeArray({mris->nfaces, 3}, MemoryOrder::C, MRISgetFaceArray(mris));
+  py::object surface = py::module::import("surfa").attr("Mesh")(vertices, faces);
 
   // transfer source volume geometry
-  surf.attr("geom") = VOLGEOMtoSurfaImageGeometry(&p_mris->vg);
-  surf.attr("space") = "surface";
-  return surf;
+  surface.attr("geom") = VOLGEOMtoSurfaImageGeometry(&mris->vg);
+  surface.attr("space") = "surface";
+
+  if (release) MRISfree(&mris);
+
+  return surface;
 }
 
 
 /*
-  Return the stored MRIS instance. If one does not exist, it will be created
-  from the cached surfa Mesh (assuming it exists).
+  Convert a surfa Mesh to an MRIS structure. All data is copied between python and cxx, so the
+  returned MRIS pointer will need to be freed manually once it's done with.
 */
-MRIS* MRISBridge::toMRIS()
+MRIS* MRISfromSurfaMesh(py::object mesh)
 {
-  // return if the MRI instance has already been set or created
-  if (p_mris) return p_mris.get();
-
-  // make sure the source python object has been provided
-  if (source.is(py::none())) throw py::value_error("cannot generate MRIS instance without source object");
+  // type checking
+  py::object meshclass = py::module::import("surfa").attr("Mesh");
+  if (!py::isinstance(mesh, meshclass)) throw py::value_error("MRISfromSurfaMesh: cannot convert to MRIS - input is not a surfa Mesh");
 
   // construct the MRIS from vertex and face arrays
-  arrayc<float> vertices = source.attr("vertices").cast<arrayc<float>>();
-  arrayc<int> faces = source.attr("faces").cast<arrayc<int>>();
+  arrayc<float> vertices = mesh.attr("vertices").cast<arrayc<float>>();
+  arrayc<int> faces = mesh.attr("faces").cast<arrayc<int>>();
   MRIS *mris = MRISfromVerticesAndFaces(vertices.data(), vertices.shape(0), faces.data(), faces.shape(0));
 
   // transfer vol geometry info
-  VOLGEOMfromSurfaImageGeometry(source.attr("geom"), &mris->vg);
+  VOLGEOMfromSurfaImageGeometry(mesh.attr("geom"), &mris->vg);
 
-  // make sure to register the new MRIS instance in the bridge
-  setMRIS(mris);
   return mris;
 }
 
@@ -59,7 +60,7 @@ MRIS* MRISBridge::toMRIS()
 */
 py::object readSurface(const std::string& filename)
 {
-  return MRISBridge(MRISread(filename.c_str()));
+  return MRIStoSurfaMesh(MRISread(filename.c_str()), true);
 }
 
 
@@ -67,9 +68,11 @@ py::object readSurface(const std::string& filename)
   Write a surfa Mesh using the FS code. Surfa already covers surface IO, so this
   is probably unnecessary, but might be useful at some point.
 */
-void writeSurface(MRISBridge surf, const std::string& filename)
+void writeSurface(py::object surf, const std::string& filename)
 {
-  MRISwrite(surf, filename.c_str());
+  MRIS *mris = MRISfromSurfaMesh(surf);
+  MRISwrite(mris, filename.c_str());
+  MRISfree(&mris);
 }
 
 
@@ -77,12 +80,12 @@ void writeSurface(MRISBridge surf, const std::string& filename)
   Run MRIScomputeSecondFundamentalForm() to compute vertex tangents along the primary
   curvature directions. Returns a tuple of two arrays, for both tangent directions.
 */
-py::object computeTangents(MRISBridge surf)
+py::object computeTangents(py::object surf)
 {
-  MRIScomputeSecondFundamentalForm(surf);
+  MRIS *mris = MRISfromSurfaMesh(surf);
+  MRIScomputeSecondFundamentalForm(mris);
 
   // pass along tangent vectors
-  MRIS *mris = surf;
   float * const e1_buffer = new float[mris->nvertices * 3];
   float * const e2_buffer = new float[mris->nvertices * 3];
   float * e1_ptr = e1_buffer;
@@ -98,6 +101,7 @@ py::object computeTangents(MRISBridge surf)
   }
   py::object tangent1 = makeArray({mris->nvertices, 3}, MemoryOrder::C, e1_buffer);
   py::object tangent2 = makeArray({mris->nvertices, 3}, MemoryOrder::C, e2_buffer);
+  MRISfree(&mris);
   return py::make_tuple(tangent1, tangent2);
 }
 
@@ -105,24 +109,28 @@ py::object computeTangents(MRISBridge surf)
 /*
   Compute the surfa Mesh euler number.
 */
-int computeEulerNumber(MRISBridge surf)
+int computeEulerNumber(py::object surf)
 {
+  MRIS *mris = MRISfromSurfaMesh(surf);
   int unused;
-  return MRIScomputeEulerNumber(surf, &unused, &unused, &unused);
+  int e = MRIScomputeEulerNumber(mris, &unused, &unused, &unused);
+  MRISfree(&mris);
+  return e;
 }
 
 
 /*
   Count number of surfa Mesh face intersections.
 */
-int countIntersections(MRISBridge surf)
+int countIntersections(py::object surf)
 {
-  MRIS *mris = surf;
+  MRIS *mris = MRISfromSurfaMesh(surf);
   mrisMarkIntersections(mris);
   int nintersections = 0;
   for(int n = 0; n < mris->nvertices; n++) {
     if (mris->vertices[n].marked) nintersections++;
   }
+  MRISfree(&mris);
   return nintersections;
 }
 
@@ -130,31 +138,39 @@ int countIntersections(MRISBridge surf)
 /*
   Smooth a surfa Overlay along a Mesh topology.
 */
-py::object smoothOverlay(MRISBridge surf, MRIBridge overlay, int steps)
+py::object smoothOverlay(py::object surf, py::object overlay, int steps)
 {
-  return MRIBridge(MRISsmoothMRIFast(surf, overlay, steps, nullptr, nullptr));
+  MRIS *mris = MRISfromSurfaMesh(surf);
+  MRI *mri_overlay = MRIfromSurfaArray(overlay);
+  MRI *mri_smoothed = MRISsmoothMRIFast(mris, mri_overlay, steps, nullptr, nullptr);
+  MRISfree(&mris);
+  MRIfree(&mri_overlay);
+  return MRItoSurfaArray(mri_smoothed, true);
 }
 
 
 /*
   Compute surface distance between two surfa Mesh objects. Returns a surfa Overlay.
 */
-py::object surfaceDistance(MRISBridge surf1, MRISBridge surf2)
+py::object surfaceDistance(py::object surf1, py::object surf2)
 {
-  MRISdistanceBetweenSurfacesExact(surf2, surf1);
-  return MRIBridge(MRIcopyMRIS(NULL, surf2, 0, "curv"));
+  MRIS *mris1 = MRISfromSurfaMesh(surf1);
+  MRIS *mris2 = MRISfromSurfaMesh(surf2);
+  MRISdistanceBetweenSurfacesExact(mris2, mris1);
+  MRISfree(&mris1);
+  MRISfree(&mris2);
+  return MRItoSurfaArray(MRIcopyMRIS(NULL, mris2, 0, "curv"), true);
 }
 
 
 /* 
   Inflate surface with spherical unfolding. Returns a surfa Overlay.
 */
-py::object quickSphericalInflate(Bridge inSurf, int max_passes, int n_averages, long seed)
+py::object quickSphericalInflate(py::object surf, int max_passes, int n_averages, long seed)
 {
-  // output is updated in the input inSurf
-  MRISQuickSphericalInflate(max_passes, n_averages, seed, inSurf, NULL);
-  inSurf.updateSource();
-  return inSurf;
+  MRIS *mris = MRISfromSurfaMesh(surf);
+  MRISQuickSphericalInflate(max_passes, n_averages, seed, mris, NULL);
+  return MRIStoSurfaMesh(mris, true);
 }
 
 
@@ -162,14 +178,14 @@ py::object quickSphericalInflate(Bridge inSurf, int max_passes, int n_averages, 
   Parameterize an Overlay to an image Slice. Assumes input surface is a sphere.
   Interp methods can be 'nearest' or 'barycentric'.
 */
-py::object parameterize(MRISBridge surf, py::object overlay, int scale, std::string interp)
+py::object parameterize(py::object surf, py::object overlay, int scale, std::string interp)
 {
   // get frames and allocate mrisp
   int nframes = overlay.attr("nframes").cast<int>();
   MRI_SP *mrisp = MRISPalloc(scale, nframes);
 
   // configure projector
-  MRIS *mris = surf;
+  MRIS *mris = MRISfromSurfaMesh(surf);
   SphericalProjector projector = SphericalProjector(mris, mrisp);
   SphericalProjector::InterpMethod interpmethod;
   if (interp == "nearest") {
@@ -200,6 +216,7 @@ py::object parameterize(MRISBridge surf, py::object overlay, int scale, std::str
     }
   }
   MRISPfree(&mrisp);
+  MRISfree(&mris);
 
   py::array result = makeArray({udim, vdim, nframes}, MemoryOrder::Fortran, buffer);
   return py::module::import("surfa").attr("Slice")(result);
@@ -210,7 +227,7 @@ py::object parameterize(MRISBridge surf, py::object overlay, int scale, std::str
   Sample a parameterization into an Overlay. Assumes input surface is a sphere.
   Interp methods can be 'nearest' or 'barycentric'.
 */
-py::object sampleParameterization(MRISBridge surf, py::object image, std::string interp)
+py::object sampleParameterization(py::object surf, py::object image, std::string interp)
 {
   // extract number of frames
   int nframes = image.attr("nframes").cast<int>();
@@ -234,7 +251,7 @@ py::object sampleParameterization(MRISBridge surf, py::object image, std::string
   }
 
   // init spherical projector
-  MRIS *mris = surf;
+  MRIS *mris = MRISfromSurfaMesh(surf);
   SphericalProjector projector = SphericalProjector(mris, mrisp);
   SphericalProjector::InterpMethod interpmethod;
   if (interp == "nearest") {
@@ -252,6 +269,8 @@ py::object sampleParameterization(MRISBridge surf, py::object image, std::string
     projector.sampleParameterization(vptr, frame, interpmethod);
     vptr += mris->nvertices;
   }
+
+  MRISfree(&mris);
 
   py::array result = makeArray({mris->nvertices, nframes}, MemoryOrder::Fortran, buffer);
   return py::module::import("surfa").attr("Overlay")(result);

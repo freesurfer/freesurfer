@@ -1,23 +1,31 @@
 #include <pybind11/pybind11.h>
 
-#include "volume.h"
-#include "surface.h"
-#include "xform.h"
-#include "morph.h"
+#include "bindings_mri.h"
+#include "bindings_surface.h"
+#include "bindings_transform.h"
 
 
-PYBIND11_MODULE(bindings, m) {
+PYBIND11_MODULE(fsbindings, m) {
   throwExceptions(true);
 
-  py::module mvol = m.def_submodule("vol");
-  vol::bind(mvol);
+  // mri function bindings
+  m.def("read_mri", &readMRI);
+  m.def("write_mri", &writeMRI);
 
-  py::module msurf = m.def_submodule("surf");
-  surf::bind(msurf);
+  // surface function bindings
+  m.def("read_surf", &readSurface);
+  m.def("write_surf", &writeSurface);
+  m.def("compute_tangents", &computeTangents);
+  m.def("compute_euler", &computeEulerNumber);
+  m.def("count_intersections", &countIntersections);
+  m.def("parameterize_sphere", &parameterize);
+  m.def("sample_parameterization", &sampleParameterization);
+  m.def("smooth_overlay", &smoothOverlay);
+  m.def("surface_distance", &surfaceDistance);
+  m.def("quick_spherical_inflate", &quickSphericalInflate);
 
-  py::module mtransform = m.def_submodule("transform");
-  transform::bind(mtransform);
-
-  py::module mmorph = m.def_submodule("morph");
-  morph::bind(mmorph);
+  // transform function bindings
+  m.def("read_lta", &readLTA);
+  m.def("write_lta", &writeLTA);
+  m.def("write_gca_morph", &writeGCAMORPHfromPython);
 }

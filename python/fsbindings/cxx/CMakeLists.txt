@@ -1,4 +1,4 @@
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${FS_INCLUDE_DIRS})
 
 # temporary fix so that -g doesn't produce linker errors when binding cxx/python code
 set(CMAKE_CXX_FLAGS_DEBUG "")

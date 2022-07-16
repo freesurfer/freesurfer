@@ -9,7 +9,7 @@ set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "")
 add_compile_options(-Wno-inconsistent-missing-override -Wno-self-assign-field)
 
 pybind11_add_module(gemsbindings
-  python.cxx
+  module.cxx
   pyKvlCalculator.cxx
   pyKvlImage.cxx
   pyKvlMesh.cxx

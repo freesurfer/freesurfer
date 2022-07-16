@@ -9,35 +9,18 @@
 using namespace pybind11::literals;
 
 
-// Bridge allows for easy conversion between MRIS objects
-// and python Surface objects when writing c-bindings.
-class MRISBridge
-{
-public:
-  // MRIS instance conversions
-  MRISBridge(MRIS* mris) { setMRIS(mris); }
-  operator MRIS*() { return toMRIS(); }
-  MRIS* toMRIS();
+// conversion between MRIS cxx objects and surfa Mesh python objects
+py::object MRIStoSurfaMesh(MRIS *mris, bool release);
+MRIS* MRISfromSurfaMesh(py::object surface);
 
-  // python object Surface conversions
-  MRISBridge(py::object mesh) { source = mesh.attr("convert")("space"_a="surface"); }
-  operator py::object() { return toPython(); }
-  py::object source = py::none();
-
-private:
-  void setMRIS(MRIS* m) { p_mris = std::shared_ptr<MRIS>(m, [](MRIS* ptr) { MRISfree(&ptr); }); }
-  py::object toPython();
-
-  std::shared_ptr<MRIS> p_mris;
-};
-
+// wrapped functions
 py::object readSurface(const std::string& filename);
-void writeSurface(MRISBridge surf, const std::string& filename);
-py::object computeTangents(MRISBridge surf);
-int computeEulerNumber(MRISBridge surf);
-int countIntersections(MRISBridge surf);
-py::object surfaceDistance(MRISBridge surf1, MRISBridge surf2);
-py::object parameterize(MRISBridge surf, py::object overlay, int scale, std::string interp);
-py::object sampleParameterization(MRISBridge surf, py::object image, std::string interp);
-py::object smoothOverlay(MRISBridge surf, MRIBridge overlay, int steps);
-py::object quickSphericalInflate(Bridge inSurf, int max_passes, int n_averages, long seed);
+void writeSurface(py::object surf, const std::string& filename);
+py::object computeTangents(py::object surf);
+int computeEulerNumber(py::object surf);
+int countIntersections(py::object surf);
+py::object surfaceDistance(py::object surf1, py::object surf2);
+py::object parameterize(py::object surf, py::object overlay, int scale, std::string interp);
+py::object sampleParameterization(py::object surf, py::object image, std::string interp);
+py::object smoothOverlay(py::object surf, py::object overlay, int steps);
+py::object quickSphericalInflate(py::object surf, int max_passes, int n_averages, long seed);
