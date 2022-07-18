@@ -67,6 +67,8 @@ public:
 
   bool MRISReadVectors( const QString& filename );
 
+  MRI* GetInternalMRI();
+
   void GetBounds ( float oRASBounds[6] );
 
   void ConvertSurfaceToRAS ( float iSurfX, float iSurfY, float iSurfZ,
@@ -84,6 +86,8 @@ public:
 
   void ConvertTargetToRAS( double const iTarget[3], double oRAS[3]) const;
   void ConvertRASToTarget( double const iRAS[3], double oTarget[3]) const;
+  void ConvertTkregToRAS( double const iRAS[3], double oTarget[3]) const;
+  void ConvertVoxelToRAS( double const iRAS[3], double oTarget[3]) const;
 
   // Description:
   // Get the vertex number from a RAS or surface RAS point. This uses
@@ -290,6 +294,9 @@ protected:
 
   double  m_targetToRasMatrix[16];
   vtkSmartPointer<vtkTransform> m_targetToRasTransform;
+
+  double m_RASToTkRegMatrix[16];
+  double m_VoxelToRASMatrix[16];
 
   // RAS bounds.
   bool    m_bBoundsCacheDirty;
