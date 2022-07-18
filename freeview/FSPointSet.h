@@ -27,13 +27,10 @@
 #include <QList>
 #include <QVariantMap>
 
-
-
 #include "label.h"
 
-
-
 class FSVolume;
+class FSSurface;
 
 struct ControlPoint
 {
@@ -60,10 +57,14 @@ public:
   void UpdateLabel( PointSet& points_in, FSVolume* vol_ref );
   void LabelToPointSet( PointSet& points_out, FSVolume* vol_ref );
 
+  void UpdateLabel( PointSet& points_in, FSSurface* surf_ref );
+  void LabelToPointSet( PointSet& points_out, FSSurface* surf_ref );
+
   bool ReadFromStringAsControlPoints(const QString& content);
   QString WriteAsControlPointsToString();
 
   bool GetCentroidRASPosition(double* pos, FSVolume* ref_vol);
+  bool GetCentroidRASPosition(double* pos, FSSurface* ref_surf);
 
   double GetMinStat()
   {
