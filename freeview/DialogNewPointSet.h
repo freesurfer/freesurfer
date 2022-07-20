@@ -23,6 +23,7 @@ class DialogNewPointSet;
 }
 
 class LayerMRI;
+class LayerSurface;
 
 class DialogNewPointSet : public QDialog
 {
@@ -36,6 +37,7 @@ public:
   void SetPointSetName( const QString& name );
 
   LayerMRI* GetTemplate();
+  LayerSurface* GetTemplateSurface();
 
   int GetType();
 

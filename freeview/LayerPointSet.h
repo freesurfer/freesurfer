@@ -33,12 +33,14 @@ class LayerPropertyPointSet;
 class wxWindow;
 class wxCommandEvent;
 class vtkPoints;
+class LayerSurface;
 
 class LayerPointSet : public LayerEditable
 {
   Q_OBJECT
 public:
   LayerPointSet( LayerMRI* mri, int type = 0, QObject* parent = NULL );
+  LayerPointSet( LayerSurface* surf, int type = 0, QObject* parent = NULL );
   virtual ~LayerPointSet();
 
   bool LoadFromFile( const QString& filename );
@@ -80,6 +82,11 @@ public:
   LayerMRI* GetReferenceVolume()
   {
     return m_layerRef;
+  }
+
+  LayerSurface* GetReferenceSurface()
+  {
+    return m_surfaceRef;
   }
 
   inline LayerPropertyPointSet* GetProperty()
@@ -130,6 +137,7 @@ signals:
 
 protected:
   virtual void OnSlicePositionChanged( int nPlane );
+  void Initialize(int nType);
 
   PointSet m_points;
   vtkActor*    m_actorBalls;
@@ -140,6 +148,7 @@ protected:
   vtkSmartPointer<vtkPolyDataMapper>  m_mapper;
 
   LayerMRI*    m_layerRef;
+  LayerSurface*   m_surfaceRef;
   QList< PointSet > m_bufferUndo;
   QList< PointSet > m_bufferRedo;
 

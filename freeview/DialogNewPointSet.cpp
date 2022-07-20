@@ -15,6 +15,7 @@
 #include "DialogNewPointSet.h"
 #include "ui_DialogNewPointSet.h"
 #include "LayerMRI.h"
+#include "LayerSurface.h"
 #include "LayerCollection.h"
 #include "MainWindow.h"
 #include "LayerPropertyPointSet.h"
@@ -27,6 +28,11 @@ DialogNewPointSet::DialogNewPointSet(QWidget *parent) :
   ui->setupUi(this);
   LayerCollection* col_mri = MainWindow::GetMainWindow()->GetLayerCollection("MRI");
   QList<Layer*> layers = col_mri->GetLayers();
+  if (layers.isEmpty())
+  {
+    layers = MainWindow::GetMainWindow()->GetLayers("Surface");
+    ui->labelSelect->setText("Select template surface");
+  }
   int nSel = 0;
   for ( int i = 0; i < layers.size(); i++ )
   {
@@ -60,6 +66,13 @@ LayerMRI* DialogNewPointSet::GetTemplate()
   return qobject_cast<LayerMRI*>(
         ui->comboBoxTemplate->itemData(ui->comboBoxTemplate->currentIndex()).value<QObject*>());
 }
+
+LayerSurface* DialogNewPointSet::GetTemplateSurface()
+{
+  return qobject_cast<LayerSurface*>(
+        ui->comboBoxTemplate->itemData(ui->comboBoxTemplate->currentIndex()).value<QObject*>());
+}
+
 
 void DialogNewPointSet::OnOK()
 {

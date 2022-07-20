@@ -154,13 +154,22 @@ class HippoAmygdalaSubfields(MeshModel):
             image = sf.load_volume(tempFile)
 
             # Resample and apply the first mask in high-resolution target space
-            mask = mergedMaskDilated.resample_like(image, method='linear') >= 0.5
+            maskTempFile = os.path.join(self.tempDir, 'asegModBinDilatedResampled.mgz')
+            mergedMaskDilated.save(maskTempFile)
+            utils.run(f'mri_convert {maskTempFile} {maskTempFile} -odt float -rt nearest -rl {tempFile}')
+            mask = sf.load_volume(maskTempFile)
+
             image[mask == 0] = 0
 
             # Resample and apply the second mask in high-resolution target space
-            mask = imageMask.resample_like(image, method='linear').data >= 0.5
+            maskTempFile = os.path.join(self.tempDir, 'hippoMaskResampled.mgz')
+            imageMask.save(maskTempFile)
+            utils.run(f'mri_convert {maskTempFile} {maskTempFile} -odt float -rt interpolate -rl {tempFile}')
+            mask = sf.load_volume(maskTempFile) >= 0.5
             mask = scipy.ndimage.morphology.binary_dilation(mask, structure=np.ones((3, 3, 3)), iterations=int(np.round(3 / self.resolution)))
             image[mask == 0] = 0
+            self.longMask = mask
+
             images.append(image.data)
 
         # Define the pre-processed target image
@@ -486,5 +495,5 @@ class HippoAmygdalaSubfields(MeshModel):
         if FISSind is not None:
             meanHyper[FISSind] = np.median(I_PV[L == FISSind])
             nHyper[FISSind] = (nHyper[CSFind] + nHyper[GMind]) / 2
-    
+
         return (meanHyper, nHyper)
