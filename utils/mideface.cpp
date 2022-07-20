@@ -207,7 +207,7 @@ int MiDeface::Deface(void)
 	int m = MRIgetVoxVal(faceseg,c,r,s,0);
 	for(f=0; f < invol->nframes; f++){
 	  double v=0;
-	  if(m == 0) v = MRIgetVoxVal(invol,c,r,s,0);// copy input
+	  if(m == 0) v = MRIgetVoxVal(invol,c,r,s,f);// copy input
 	  else{
 	    if(FillType==1){
 	      if(m==1 || m==2) v = (drand48()-0.5)*gstddev1 + gmean1;
@@ -219,7 +219,7 @@ int MiDeface::Deface(void)
 	    }
 	  }
 	  v = fabs(v);
-	  MRIsetVoxVal(outvol,c,r,s,0,v);
+	  MRIsetVoxVal(outvol,c,r,s,f,v);
 	}
       }
     }
