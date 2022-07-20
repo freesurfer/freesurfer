@@ -13,9 +13,9 @@ import voxelmorph as vxm
 
 # freesurfer imports
 import freesurfer as fs
-from freesurfer import deeplearn as fsd
-from freesurfer.deeplearn.surf_utils import loadSphere
-from freesurfer.deeplearn.utils import rebase_labels
+import fsdeeplearn as fsd
+from fsdeeplearn.surf_utils import loadSphere
+from fsdeeplearn.utils import rebase_labels
 
 pad = 16
 

@@ -669,7 +669,7 @@ class SamsegTumor(Samseg):
         volume = template.new(data)
         if saveLabels:
             volume.labels = sf.load_label_lookup(os.path.join(self.atlasDir, 'modifiedFreeSurferColorLUT.txt'))
-        volume.write(path)
+        volume.save(path)
 
     def computeFinalSegmentation(self):
         # Get the final mesh

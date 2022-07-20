@@ -13,10 +13,6 @@ packages = [
     'fsbindings',
     'gems',
     'gems.subregions',
-    # thee below packages are deprecated, but we'll keep them for now
-    'freesurfer',
-    'freesurfer.utils',
-    'freesurfer.deeplearn',
 ]
 
 # get required dependencies from requirements.txt
@@ -50,9 +46,8 @@ setup(
     author='Laboratory for Computational Neuroimaging',
     packages=packages,
     package_data={
-        'fsbindings': find_libs('fsbindings'),
+        'fsbindings': find_libs('fsbindings') + find_libs('labelfusion', required=False),
         'gems': find_libs('gemsbindings'),
-        'freesurfer': find_libs('labelfusion', required=False),
     },
     install_requires=requirements,
     include_package_data=True

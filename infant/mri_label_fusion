@@ -9,7 +9,7 @@ import argparse
 
 from scipy import ndimage
 from scipy.optimize import minimize
-from freesurfer.labelfusion import maxflow, performFrontPropagation3D
+from fsbindings.labelfusion import maxflow, performFrontPropagation3D
 
 
 # ------ Utility Functions ------

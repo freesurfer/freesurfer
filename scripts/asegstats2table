@@ -9,8 +9,8 @@ import optparse
 import logging
 import csv
 
-import freesurfer.utils.legacy as fsutils
-from freesurfer.utils.legacy import AsegStatsParser, BadFileError, aseglogger
+import fsbindings.legacy as fsutils
+from fsbindings.legacy import AsegStatsParser, BadFileError, aseglogger
 
 # Original Version - Douglas Greve, MGH
 # Rewrite - Krish Subramaniam, MGH

@@ -11,7 +11,7 @@ import tensorflow as tf
 from tqdm import tqdm
 
 import freesurfer as fs
-from freesurfer import deeplearn as fsd
+import fsdeeplearn as fsd
 import tensorflow as tf
 import neurite_sandbox as nes
 import voxelmorph as vxm

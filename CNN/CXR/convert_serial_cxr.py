@@ -15,8 +15,8 @@ from dipy.align.reslice import reslice
 import neuron as ne
 import voxelmorph as vxm
 from netparms import *
-from freesurfer import deeplearn as fsd
-from freesurfer.deeplearn.utils import WeightsSaver, ModelSaver, utils, pprint
+import fsdeeplearn as fsd
+from fsdeeplearn.utils import WeightsSaver, ModelSaver, utils, pprint
 import imageio, pydicom, gdcm, load_serial_cxr
 
 bdir = '/autofs/cluster/lcnextdata1/CCDS_CXR/CXR-Serial/def_20200413'
