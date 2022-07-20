@@ -14,9 +14,9 @@ import voxelmorph as vxm
 import neurite_sandbox as nes
 import voxelmorph_sandbox as vxms
 
-import freesurfer as fs
-from freesurfer import deeplearn as fsd
-from freesurfer.deeplearn import surf_utils, prep
+import surfa as sf
+import fsdeeplearn as fsd
+from fsdeeplearn import surf_utils, prep
 #from cnn_sphere_register import losspad, prep
 
 # small ones
@@ -124,11 +124,11 @@ if 'fs_atlas' not in locals() and 'fs_atlas' not in globals():
     subjects = fp.read().split('\n')[:-1]
     fp.close()
 
-    fs_atlas = fs.Image.read(fs_atlas_fname)
+    fs_atlas = sf.load_slice(fs_atlas_fname)
 
     fsdir = os.path.join(os.getenv('FREESURFER_HOME'), 'subjects')
-    fsa_surf = fs.Surface.read(os.path.join(fsdir, 'fsaverage', 'surf', hemi+'.sphere'))
-    fsa_inf = fs.Surface.read(os.path.join(fsdir, 'fsaverage', 'surf', hemi+'.inflated'))
+    fsa_surf = sf.load_mesh(os.path.join(fsdir, 'fsaverage', 'surf', hemi+'.sphere'))
+    fsa_inf = sf.load_mesh(os.path.join(fsdir, 'fsaverage', 'surf', hemi+'.inflated'))
 
 
     mrisps_geom = []
@@ -206,16 +206,16 @@ if read_hemi is not hemi or ('dkt_mrisps_onehot' not in locals() and 'dkt_mrisps
     dkt_subjects = [parc_fname.split('/')[-3] for parc_fname in parc_fnames]
     dkt_sphere_fnames = [os.path.join(dkt_dir, subject, 'surf', hemi+'.'+sphere_name) for subject in dkt_subjects]
 
-    parcs = [fs.Overlay.read(parc_fname) for parc_fname in tqdm(parc_fnames)]
-    dkt_spheres = [fs.Surface.read(sphere_fname) for sphere_fname in tqdm(dkt_sphere_fnames)]
+    parcs = [sf.load_overlay(parc_fname) for parc_fname in tqdm(parc_fnames)]
+    dkt_spheres = [sf.load_mesh(sphere_fname) for sphere_fname in tqdm(dkt_sphere_fnames)]
 
     # load the entire dataset to determine labels that exist and compact them
-    parcs_all = [fs.Overlay.read(parc_fname) for parc_fname in tqdm(parc_fnames_all)]
-    all_labels = nes.py.utils.flatten_lists([list(np.where(parc.data<0, 0, parc.data)) for parc in parcs_all])
+    parcs_all = [sf.load_overlay(parc_fname) for parc_fname in tqdm(parc_fnames_all)]
+    all_labels = nes.py.utils.flatten_lists([list(np.where(parc.data < 0, 0, parc.data)) for parc in parcs_all])
     al = [l if l >= 0 else 0 for l in all_labels]
     lab_to_ind, ind_to_lab = fsd.utils.rebase_labels(al) 
 
-    parcs_training = [lab_to_ind[np.where(parc.data<0, 0, parc.data)] for parc in parcs]
+    parcs_training = [lab_to_ind[np.where(parc.data < 0, 0, parc.data)] for parc in parcs]
 
     # read in and spherically parameterize the geometry and parcellations
     dkt_mrisps_geom = []
@@ -230,7 +230,7 @@ if read_hemi is not hemi or ('dkt_mrisps_onehot' not in locals() and 'dkt_mrisps
             else:
                 mrisp = np.concatenate((mrisp, mrisp_tmp[...,np.newaxis]), axis=-1)
         dkt_mrisps_geom.append(mrisp)
-        mrisp_annot = np.transpose(dkt_spheres[sno].parameterize(parcs_training[sno], interp='nearest'),(1,0))
+        mrisp_annot = np.transpose(sf.sphere.SphericalMapNearest(dkt_spheres[sno]).parameterize(parcs_training[sno]),(1,0)).data
         if pad > 0:
             mrisp_annot = np.pad(mrisp_annot, ((pad,pad),(0,0)),'wrap')
             mrisp_annot = np.pad(mrisp_annot, ((0,0),(pad,pad)),'reflect')
@@ -340,7 +340,7 @@ y_img = vxm.layers.SpatialTransformer(interp_method='linear', fill_value=None)([
 xform_model = tf.keras.Model(warp_model.inputs + [img_input], y_img)
 inputs = [np.array(dkt_mrisps_geom), np.array(dkt_mrisps_onehot)]
 prior_atlas = xform_model.predict(inputs)
-fs.Image(np.array(prior_atlas).mean(axis=0)).write(hemi+'.'+'DKTatlas.priors.mgz')
+sf.Slice(np.array(prior_atlas).mean(axis=0)).save(hemi + '.' + 'DKTatlas.priors.mgz')
 
 if fit3:
     fh = fhist3
@@ -354,5 +354,3 @@ plt.plot(fh.history['val_vxm_dense_transformer_loss'])
 plt.legend(['loss', 'seg loss', 'xform loss'])
 plt.grid()
 plt.show(block=False)
-
-

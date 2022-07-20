@@ -2,7 +2,8 @@ import os
 import pdb as gdb
 import nibabel as nib
 import numpy as np
-import freesurfer as fs
+import surfa as sf
+import pickle
 import tensorflow as tf
 from tensorflow.python.eager.context import context, EAGER_MODE, GRAPH_MODE
 from tensorflow.keras.callbacks import Callback
@@ -65,7 +66,9 @@ class LoopingIterator:
 def pickle_generator(filenames):
     filenames = LoopingIterator(filenames)
     while True:
-        yield fs.read_pickle(next(filenames))
+        with open(next(filenames), 'rb') as file:
+            item = pickle.load(file)
+        yield item
 
 
 def segment_image2D(net, im_intensity, wsize, box, nlabels=3,batch_size=256,stride=4):
@@ -621,10 +624,10 @@ def compute_intensity_stats(paths, vname_list, method='mean', ranges=None, vol_l
             fname = os.path.join(path, vname)
             if (vol_list == None):
                 print('%d of %d: file %s' % (pno, len(paths), fname))
-                mri = fs.Volume(fname)
+                mri = sf.load_volume(fname)
             else:
                 mri = vol_list[pno][vno]
-            im = mri.image.astype('float64')
+            im = mri.astype('float64').data
             if (method == 'mean'):
                 val = im.mean()
             elif method == 'histo':
@@ -639,7 +642,7 @@ def compute_intensity_stats(paths, vname_list, method='mean', ranges=None, vol_l
                     
                 val = edges[hist.argmax()]
                 del edges, hist
-            shape = mri.image.shape
+            shape = mri.shape
             if (vol_list == None):
                 del mri
             means[vno] += val

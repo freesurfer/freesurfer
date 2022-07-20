@@ -14,7 +14,7 @@ import tensorflow as tf
 from tensorflow.keras.models import load_model
 from tensorflow.keras.callbacks import ReduceLROnPlateau, TensorBoard, ModelCheckpoint
 from tensorflow.keras import backend
-from .. import wm_peak_normalize, robust_normalize, wm_peak_normalize_t2w
+from . import wm_peak_normalize, robust_normalize, wm_peak_normalize_t2w
 from . import *
 
 

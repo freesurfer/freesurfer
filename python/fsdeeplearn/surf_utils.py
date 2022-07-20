@@ -1,4 +1,4 @@
-import freesurfer as fs
+import surfa as sf
 import numpy as np
 import sys,os
 import voxelmorph_sandbox as vxms
@@ -136,14 +136,14 @@ def warp_all_inputs(model_semi, train_sphere_gen, atlas_target_mrisp_mean, pad=8
     return features_warped, overlays_warped
 
 def load_atlas(nfeats, hemi='lh', overlay_name = None, atlas_surf = None, pad=8):
-    atlas_target_mrisp_mean_ov = fs.Overlay.read('%s.atlas_means.mrisp.nfeats%d.mgz' % (hemi, nfeats))
-    atlas_target_mrisp_std_ov = fs.Overlay.read('%s.atlas_stds.mrisp.nfeats%d.mgz' % (hemi, nfeats))
+    atlas_target_mrisp_mean_ov = sf.load_overlay('%s.atlas_means.mrisp.nfeats%d.mgz' % (hemi, nfeats))
+    atlas_target_mrisp_std_ov = sf.load_overlay('%s.atlas_stds.mrisp.nfeats%d.mgz' % (hemi, nfeats))
     atlas_target_mrisp_mean = atlas_target_mrisp_mean_ov.data
     atlas_target_mrisp_std = atlas_target_mrisp_std_ov.data
 
     if (overlay_name is not None):
-        atlas_overlay = fs.Overlay.read(overlay_name)
-        atlas_overlay_mrisp = np.pad(atlas_surf.parameterize(atlas_overlay).transpose(), ((pad,pad),(0,0)),'wrap')[np.newaxis,...,np.newaxis]
+        atlas_overlay = sf.load_overlay(overlay_name)
+        atlas_overlay_mrisp = np.pad(atlas_surf.parameterize(atlas_overlay).data.transpose(), ((pad,pad),(0,0)),'wrap')[np.newaxis,...,np.newaxis]
     else:
         atlas_overlay_mrisp = None
 
@@ -242,7 +242,7 @@ def load_func_and_spheres(spaths, base_dir, func_dir, sdir1, sphere_name, hemi, 
         sdir = os.path.join(spath, 'surf')
         fdir = os.path.join(base_dir, sdir1, sname)
         sphere_fname = os.path.join(sdir, sphere_name)
-        sphere = fs.Surface.read(sphere_fname)
+        sphere = sf.load_mesh(sphere_fname)
         geoms = []
         for geom_name in geom_names:
             geom_fname = os.path.join(sdir, hemi + '.' + geom_name)
@@ -250,26 +250,27 @@ def load_func_and_spheres(spaths, base_dir, func_dir, sdir1, sphere_name, hemi, 
             geoms.append(geom)
 
         spheres.append(sphere)
-        func = fs.Overlay.read(os.path.join(fdir, func_dir))
+        func = sf.load_overlay(os.path.join(fdir, func_dir))
 #        funcs.append(func)
-        if ((sphere.get_vertex_positions().shape[0] != geoms[0].shape[0]) or
+        if ((sphere.nvertices != geoms[0].shape[0]) or
             (geoms[0].shape[0] != func.shape[0])):
             print('%s sphere (%d) does not match geom (%d) or func (%d)' % \
-                  (sphere.get_vertex_positions().shape[0], geoms[0].shape[0], func.image.shape[0]))
+                  (sphere.nvertices, geoms[0].shape[0], func.shape[0]))
             continue
 
         if smooth_steps is not None:
-            func = sphere.smooth_overlay(func, smooth_steps)
+            func = sphere.smooth_overlay(func, smooth_steps, 0.8)
 
-        mrisp_geom = sphere.parameterize(np.transpose(np.array(geoms)))
-        mrisp_geom = (mrisp_geom - mrisp_geom.mean()) / mrisp_geom.std()
-        mrisp_func = sphere.parameterize(func)
+        smap = sf.sphere.SphericalMapBarycentric(sphere)
+        mrisp_geom = smap.parameterize(np.transpose(np.array(geoms)))
+        mrisp_geom = (mrisp_geom - mrisp_geom.mean()) / np.std(mrisp_geom)
+        mrisp_func = smap.parameterize(func)
 
         if pad > 0:
             #mrisp_geom = padSphere(mrisp_geom, pad)
             #mrisp_func = padSphere(mrisp_func, pad)
-            mrisp_geom = pad_2d_image_spherically(mrisp_geom[np.newaxis,...], pad_size=pad)[0,...]
-            mrisp_func = pad_2d_image_spherically(mrisp_func[np.newaxis,...], pad_size=pad)[0,...]
+            mrisp_geom = pad_2d_image_spherically(mrisp_geom.data[np.newaxis,...], pad_size=pad)[0,...]
+            mrisp_func = pad_2d_image_spherically(mrisp_func.data[np.newaxis,...], pad_size=pad)[0,...]
 
         if len(mrisp_func.shape) == 2:
             mrisp_func = mrisp_func[...,np.newaxis] # add a channels dimension
@@ -522,7 +523,7 @@ class PatchModel2D(LoadableModel):
 def normCurvature(curvFileName, which_norm='Median', norm_percentile=97, std_thresh=3):
 
     if isinstance(curvFileName, str):
-        curv = fs.Overlay.read(curvFileName).data
+        curv = sf.load_overlay(curvFileName).data
     else:  # if not a string assume it is the curvature vector itself
         curv = curvFileName
         
@@ -1015,7 +1016,7 @@ class PatchModel2D(LoadableModel):
 def normCurvature(curvFileName, which_norm='Median', norm_percentile=97, std_thresh=3):
 
     if isinstance(curvFileName, str):
-        curv = fs.Overlay.read(curvFileName).data
+        curv = sf.load_overlay(curvFileName).data
     else:  # if not a string assume it is the curvature vector itself
         curv = curvFileName
         
@@ -1033,15 +1034,21 @@ def normCurvature(curvFileName, which_norm='Median', norm_percentile=97, std_thr
 
 
 def loadSphere(surfName, curvFileName, padSize=8, which_norm='Median', interp='barycentric'):
-    if type(surfName) is fs.Surface:
+    if isinstance(surfName, sf.Mesh):
         surf = surfName   # surface specified instead of a file name to load one from
     else:
-        surf = fs.Surface.read(surfName)
+        surf = sf.load_mesh(surfName)
     curv = normCurvature(curvFileName, which_norm)
     
-    mrisp = surf.parameterize(curv, interp=interp)
-    
-    data = mrisp.squeeze().transpose()
+    if interp == 'barycentric':
+        smap = sf.sphere.SphericalMapBarycentric(surf)
+    elif interp == 'nearest':
+        smap = sf.sphere.SphericalMapNearest(surf)
+    else:
+        raise ValueError(f'unknown spherical interp type {interp}')
+
+    mrisp = smap.parameterize(curv)
+    data = mrisp.data.squeeze().transpose()
     
     paddata = np.pad(data, ((padSize,padSize), (0,0)), 'wrap')
     paddata = np.pad(paddata, ((0,0), (padSize,padSize)), 'reflect')

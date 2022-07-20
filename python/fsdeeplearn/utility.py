@@ -5,7 +5,7 @@ import tensorflow.keras.backend as K
 from tensorflow.keras.losses import mean_squared_error as mse
 import tensorflow as tf
 
-from .. import wm_peak_normalize
+from . import wm_peak_normalize
 
 
 def dice_coef_loss2(y_true, y_pred):
