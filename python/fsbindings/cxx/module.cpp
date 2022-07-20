@@ -18,10 +18,7 @@ PYBIND11_MODULE(fsbindings, m) {
   m.def("compute_tangents", &computeTangents);
   m.def("compute_euler", &computeEulerNumber);
   m.def("count_intersections", &countIntersections);
-  m.def("parameterize_sphere", &parameterize);
-  m.def("sample_parameterization", &sampleParameterization);
   m.def("smooth_overlay", &smoothOverlay);
-  m.def("surface_distance", &surfaceDistance);
   m.def("quick_spherical_inflate", &quickSphericalInflate);
 
   // transform function bindings

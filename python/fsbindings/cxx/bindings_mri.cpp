@@ -97,6 +97,8 @@ py::object MRItoSurfaArray(MRI* mri, bool release)
   }
 
   if (release) MRIfree(&mri);
+
+  return arr;
 }
 
 
@@ -146,6 +148,7 @@ MRI* MRIfromSurfaArray(py::object arr)
   MRI *mri = new MRI(expanded, dtype, false);
 
   // copy buffer data into MRI chunk
+  mri->chunk = malloc(mri->bytes_total);
   memcpy(mri->chunk, mri_buffer.mutable_data(), mri->bytes_total);
   mri->ischunked = true;
   mri->initSlices();
@@ -167,8 +170,10 @@ MRI* MRIfromSurfaArray(py::object arr)
   }
 
   // transfer lookup table if it exists... pretty crazy that it requires this much code
-  py::dict labels = arr.attr("labels");
-  if (!labels.is(py::none())) {
+  py::object labels_obj = arr.attr("labels");
+  if (!labels_obj.is(py::none())) {
+    // cast as dictionary
+    py::dict labels = labels_obj;
     COLOR_TABLE *ctab = (COLOR_TABLE *)calloc(1, sizeof(COLOR_TABLE));
     int maxidx = 0;
     for (auto item : labels) {
