@@ -186,7 +186,7 @@ def run_longitudinal(structure, baseParameters, tpParameters):
         # We should keep the masking consistent across timepoints
         tpModel.workingMask = baseModel.workingMask
         tpModel.maskIndices = baseModel.maskIndices
-        tpModel.workingImage.data[tpModel.workingMask.data == 0] = 0
+        tpModel.workingImage[tpModel.workingMask == 0] = 0
 
         # compute hyperparameters with base mesh
         tpModel.reducedAlphas = baseModel.reducedAlphas

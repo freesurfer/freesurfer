@@ -235,7 +235,7 @@ class MeshModel:
             sf.system.fatal('All MeshModel subclasses must compute atlasAlignmentTarget during preprocessing!')
 
         # No need for a high-resolution alignment here
-        mask.data = mask.data > 0
+        mask = mask > 0
         if np.mean(mask.geom.voxsize) < 0.99:
             mask = mask.resize(1, interp='nearest')
 
@@ -305,7 +305,7 @@ class MeshModel:
         mask = (self.mesh.rasterize(self.workingImageShape).sum(-1) / 65535) > 0.99
         if self.cheatingAlphaMaskStrel > 0:
             mask = scipy.ndimage.morphology.binary_erosion(mask, utils.spherical_strel(self.cheatingAlphaMaskStrel), border_value=1)
-        self.workingImage.data[mask == 0] = 0
+        self.workingImage[mask == 0] = 0
 
         # Get the inital Gaussian parameters
         self.means, self.variances = self.get_cheating_gaussians(self.sameGaussianParameters)
@@ -437,7 +437,7 @@ class MeshModel:
         # to the brain mask to zero. This will automatically discard those voxels in subsequent C++ routines, as
         # voxels with intensity zero are simply skipped in the computations.
         self.workingMask = self.workingImage.new(mask)
-        self.workingImage.data[mask == 0] = 0
+        self.workingImage[mask == 0] = 0
         # Let's do this to make results more similar to the matlab version
         self.maskIndices = np.unravel_index(np.where(mask.flatten(order='F')), self.workingImageShape, order='F')
 
@@ -693,7 +693,7 @@ class MeshModel:
         numMaskIndices = self.maskIndices[0].shape[-1]
 
         # Compute normalized posteriors
-        imgdata = self.workingImage.data[self.maskIndices]
+        imgdata = self.workingImage[self.maskIndices]
         posteriors = np.zeros((numMaskIndices, numberOfClasses), dtype='float32')
         for classNumber in range(numberOfClasses):
             prior = self.mesh.rasterize(self.workingImageShape, classNumber)

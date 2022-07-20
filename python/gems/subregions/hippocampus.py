@@ -128,7 +128,7 @@ class HippoAmygdalaSubfields(MeshModel):
 
         # And also used for image cropping around the thalamus
         fixedMargin = int(np.round(15 / np.mean(self.inputSeg.geom.voxsize)))
-        imageCropping = segMerged.new(self.inputSeg.data == sideHippoLabel).bbox(margin=fixedMargin)
+        imageCropping = segMerged.new(self.inputSeg == sideHippoLabel).bbox(margin=fixedMargin)
 
         # Let's dilate this mask (ATH not totally sure why there are two masks here)
         mask = scipy.ndimage.morphology.binary_dilation(segMerged > 1, structure=np.ones((3, 3, 3)), iterations=2)
