@@ -261,10 +261,13 @@ bool LayerPointSet::SaveAsJson(const QString& filename)
   foreach (ControlPoint p, m_points)
   {
     QVariantMap map = p.info;
-    // convert to tkreg coords
-    ref_vol->TargetToRAS( p.pt, pos );
-    ref_vol->RASToNativeRAS( pos, pos );
-//    ref_vol->NativeRASToTkReg(pos, pos);
+    if (ref_surf)
+      ref_surf->ConvertTargetToRAS( p.pt, pos );
+    else if (ref_vol)
+    {
+      ref_vol->TargetToRAS( p.pt, pos );
+      ref_vol->RASToNativeRAS( pos, pos );
+    }
     QVariantMap coords;
     coords["x"] = pos[0];
     coords["y"] = pos[1];
