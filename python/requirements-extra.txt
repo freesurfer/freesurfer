@@ -11,11 +11,7 @@ git+https://github.com/adalca/neurite.git@ac74518f367113ddadca90b70acf12f6a85268
 git+https://github.com/voxelmorph/voxelmorph.git@80d0c489febfb4fa32b4a247629e79720fbb4c14
 
 # extra packages required for QA tools
-pandas==1.4.3
-matplotlib==3.5.2
+pandas==1.1.5
+matplotlib==3.3.4
 transforms3d==0.3.1
 scikit-image==0.16.2
-
-# samseg vis (ATH: I think these should be removed... unnecessary amount of space)
-pyqtgraph==0.12.4
-PyQt5==5.15.7
