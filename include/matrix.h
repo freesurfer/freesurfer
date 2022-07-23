@@ -348,5 +348,6 @@ double MatrixMaxAbsDiff(MATRIX *m1, MATRIX *m2, double dthresh);
 MATRIX *MatrixColNullSpace(MATRIX *M, int *err);
 MATRIX *MatrixResidualForming(MATRIX *X, MATRIX *R);
 MATRIX *MatrixGlmFit(MATRIX *y, MATRIX *X, double *pRVar, MATRIX *beta);
+MATRIX *MatrixACF2Kernel(MATRIX *acf, MATRIX *k, MATRIX *F);
 
 #endif

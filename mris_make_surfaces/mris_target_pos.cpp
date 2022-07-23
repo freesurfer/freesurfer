@@ -43,6 +43,7 @@ double round(double x);
 #include "cma.h"
 #include "romp_support.h"
 #include "version.h"
+#include "fio.h"
 
 #undef private
 int main(int argc, char *argv[]) ;
@@ -56,7 +57,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int debug = 0, checkoptsonly = 0;
 
-// A Simple class to sort floats and keep an index
+// A Simple class to sort floats and keep an index of the order
 class FloatInt {
 public:
   float f;
@@ -71,7 +72,7 @@ public:
     return(0);  // equal
   }
   int sort(float *flist, int *ilist, int nlist)
-  {
+  { // has not been tested yet
     FloatInt *filist = (FloatInt*)calloc(sizeof(FloatInt),nlist);
     int n;
     for(n=0; n < nlist; n++) {
@@ -409,6 +410,9 @@ const char *riplabelfile=NULL;
 int nthreads = 1;
 int SavePointSet(const char *fname, MRIS *surf, int npoints);
 int npointset=50;
+double border_hi = -1;
+double outside_low = -1;
+int surftype = GRAY_WHITE;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -461,8 +465,6 @@ int main(int argc, char **argv) {
   MRISclearMarks(mtp.surf); /* for soap bubble smoothing later */
 
   MRIS* surftarget = MRISclone(mtp.surf);
-  double border_hi = mtp.adgws.white_border_hi;
-  double outside_low = mtp.adgws.white_outside_low;
 
   MRISclearMarks(mtp.surf); /* for soap bubble smoothing later */
 
@@ -513,14 +515,13 @@ int main(int argc, char **argv) {
       nnotrip ++;
     }
   }
-  MRISwrite(surftarget,outsurfname);
   drms = sqrt(drms)/nnotrip;
   dmean = dmean/nnotrip;
   dl1 = dl1/nnotrip;
   printf("RMS %g  L1 %g Mean %g Max %g %d n=%d\n",drms,dl1,dmean,dmax,ndmax,nnotrip);
 
   if(dumpdir){
-    int err = mkdir(dumpdir,0777);
+    int err = fio_mkdirp(dumpdir,0777);
     if(err != 0 && errno != EEXIST) {
       printf("ERROR: creating directory %s\n",dumpdir);
       perror(NULL);
@@ -542,6 +543,12 @@ int main(int argc, char **argv) {
     fclose(fp);
     sprintf(tmpstr,"%s/dist.ps",dumpdir);
     SavePointSet(tmpstr, mtp.surf, npointset);
+    if(Gdiag_no >= 0){
+      sprintf(tmpstr,"%s/v%d.ps",dumpdir,Gdiag_no);
+      FILE *fp = fopen(tmpstr,"w");
+      MRISnorm2Pointset(mtp.surf, Gdiag_no, mtp.MinSampleDist, mtp.MaxSampleDist, mtp.DeltaSampleDist,fp);
+      fclose(fp);
+    }
     if(DoCBV == 0){
       sprintf(tmpstr,"%s/thresh.dat",dumpdir);
       fp = fopen(tmpstr,"w");
@@ -566,6 +573,9 @@ int main(int argc, char **argv) {
       }
     }
   }
+
+  printf("Writing target to %s\n",outsurfname);
+  MRISwrite(surftarget,outsurfname);
 
   printf("mris_target_pos done\n");
   return(0);
@@ -602,6 +612,8 @@ static int parse_commandline(int argc, char **argv) {
     else if (CMDstringMatch(option, "--checkopts"))   checkoptsonly = 1;
     else if (CMDstringMatch(option, "--cbv"))    DoCBV = 1;
     else if (CMDstringMatch(option, "--no-cbv")) DoCBV = 0;
+    else if(!strcmp(option, "--white")) surftype = GRAY_WHITE;
+    else if(!strcmp(option, "--pial"))  surftype = GRAY_CSF;
 
     else if (CMDstringMatch(option, "--dump")) {
       if (nargc < 1) CMDargNErr(option,1);
@@ -642,6 +654,26 @@ static int parse_commandline(int argc, char **argv) {
 	exit(1);
       }
       nargsused = 1;
+    } 
+    else if(CMDstringMatch(option, "--sample-dist")){
+      if(nargc < 3) CMDargNErr(option,3);
+      sscanf(pargv[0],"%lf",&mtp.MinSampleDist);
+      sscanf(pargv[1],"%lf",&mtp.MaxSampleDist);
+      sscanf(pargv[2],"%lf",&mtp.DeltaSampleDist);
+      nargsused = 3;
+    } 
+    else if(CMDstringMatch(option, "--search-dist")){
+      if(nargc < 2) CMDargNErr(option,2);
+      sscanf(pargv[0],"%lf",&mtp.MinSearchDist);
+      sscanf(pargv[1],"%lf",&mtp.MaxSearchDist);
+      nargsused = 2;
+    } 
+    else if(CMDstringMatch(option, "--thresh")){
+      if(nargc < 2) CMDargNErr(option,2);
+      sscanf(pargv[0],"%lf",&border_hi);
+      sscanf(pargv[1],"%lf",&outside_low);
+      printf("###border_hi = %lf, outside_low = %lf\n",border_hi,outside_low);
+      nargsused = 2;
     } 
     else if (CMDstringMatch(option, "--sigma")) {
       if (nargc < 1) CMDargNErr(option,1);
@@ -706,6 +738,7 @@ static void print_usage(void)
   printf("   --i inputsurf\n");
   printf("   --o outputsurf\n");
   printf("   --adgws adgwsfile\n");
+  printf("   --thresh InwardThresh (border_hi) OutwardThresh (outside_low)\n");
   printf("   --l label\n");
   printf("   --interp interpname\n");
   printf("   --debug-vertex vtxno\n");
@@ -733,8 +766,26 @@ static void check_options(void) {
     printf("ERROR: must specify an input volume\n");
     exit(1);
   }
-  if(adgwsinfile == NULL){
-    printf("ERROR: must specify an input adgws with --adgws\n");
+
+  if(border_hi < 0){
+    if(adgwsinfile){
+      if(surftype == GRAY_WHITE){
+	border_hi   = mtp.adgws.white_border_hi;
+	outside_low = mtp.adgws.white_outside_low;
+      }
+      else {
+	border_hi   = mtp.adgws.pial_border_hi;
+	outside_low = mtp.adgws.pial_outside_low;
+      }
+    }
+    else {
+      printf("ERROR: must spec either --adgws or --thresh\n");
+      printf("border_hi = %lf, outside_low = %lf\n",border_hi,outside_low);
+      exit(1);
+    }
+  }
+  if(DoCBV && adgwsinfile == NULL){
+    printf("ERROR: must specify an input adgws with --adgws with --cbv\n");
     exit(1);
   }
   mtp.interptype = MRIinterpCode(interpmethod);
@@ -758,7 +809,8 @@ static void dump_options(FILE *fp) {
   fprintf(fp,"inputsurf %s\n",insurfname);
   fprintf(fp,"outputsurf %s\n",outsurfname);
   fprintf(fp,"interp %s\n",interpmethod);
-
+  if(surftype == GRAY_WHITE) fprintf(fp,"surftype white\n");
+  if(surftype == GRAY_CSF)   fprintf(fp,"surftype pial\n");
   return;
 }
 /* --------------------------------------------- */

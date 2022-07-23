@@ -373,7 +373,7 @@ def _check_arguments(subjects_dir, output_dir, subjects, shape, screenshots, for
         sys.exit(1)
 
     if screenshots is True:
-        path_check = os.path.join(os.environ['FREESURFER_HOME'], 'FreeSurferColorLUT.txt')
+        path_check = os.path.join(os.environ.get('FREESURFER_HOME'), 'FreeSurferColorLUT.txt')
         if not os.path.isfile(path_check):
             print('\nERROR: the \'FreeSurferColorLUT.txt\' file needs to be present in the FREESURFER_HOME directory.\n')
             sys.exit(1)

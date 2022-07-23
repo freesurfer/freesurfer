@@ -65,6 +65,7 @@ if(NOT MINIMAL)
     Yeo_JNeurophysiol11_MNI152
     Buckner_JNeurophysiol11_MNI152
     Choi_JNeurophysiol12_MNI152
+    mideface-atlas
   )
 
   install_symlinks(

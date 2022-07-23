@@ -48,11 +48,23 @@
 #include <QJsonDocument>
 #include "MyUtils.h"
 #include "vtkContourTriangulator.h"
+#include "LayerSurface.h"
+#include "FSSurface.h"
 
 #define NUM_OF_SIDES  10  // must be even number!
 #define POINTSET_VERSION  1
 
-LayerPointSet::LayerPointSet( LayerMRI* ref, int nType, QObject* parent ) : LayerEditable( parent )
+LayerPointSet::LayerPointSet( LayerMRI* ref, int nType, QObject* parent ) : LayerEditable( parent ), m_layerRef(ref), m_surfaceRef(NULL)
+{
+  Initialize(nType);
+}
+
+LayerPointSet::LayerPointSet(LayerSurface *surf, int nType, QObject *parent) : LayerEditable( parent ), m_layerRef(NULL), m_surfaceRef(surf)
+{
+  Initialize(nType);
+}
+
+void LayerPointSet::Initialize(int nType)
 {
   m_strTypeNames.push_back( "PointSet" );
   m_sPrimaryType = "PointSet";
@@ -74,7 +86,6 @@ LayerPointSet::LayerPointSet( LayerMRI* ref, int nType, QObject* parent ) : Laye
       pos[i] = -pos[i];
     m_actorSplineSlice[i]->SetPosition(pos);
   }
-  m_layerRef = ref;
   m_pointSetSource = new FSPointSet();
 
   m_splinedPoints = vtkSmartPointer<vtkPoints>::New();
@@ -88,7 +99,7 @@ LayerPointSet::LayerPointSet( LayerMRI* ref, int nType, QObject* parent ) : Laye
   {
     GetProperty()->SetShowSpline( false );
     GetProperty()->SetRadius ( 0.5 );
-    GetProperty()->SetSnapToVoxelCenter( true );
+//    GetProperty()->SetSnapToVoxelCenter( true );
     GetProperty()->SetColor( 0, 1, 0 );
   }
 
@@ -140,7 +151,10 @@ bool LayerPointSet::LoadFromFile( const QString& filename )
 
     GetProperty()->SetStatRange(m_pointSetSource->GetMinStat(), m_pointSetSource->GetMaxStat());
     m_points.clear();
-    m_pointSetSource->LabelToPointSet( m_points, m_layerRef->GetSourceVolume() );
+    if (m_layerRef)
+      m_pointSetSource->LabelToPointSet( m_points, m_layerRef->GetSourceVolume() );
+    else if (m_surfaceRef)
+      m_pointSetSource->LabelToPointSet( m_points, m_surfaceRef->GetSourceSurface() );
   }
   SetFileName( filename );
   RebuildActors();
@@ -166,9 +180,24 @@ bool LayerPointSet::LoadFromJsonFile(const QString &filename)
     return false;
   }
 
+  if (!m_mapEnhancedData.contains("qa_level"))
+  {
+    if (m_mapEnhancedData.contains("second_qa_score"))
+      m_mapEnhancedData["qa_level"] = m_mapEnhancedData["second_qa_score"];
+    else if (m_mapEnhancedData.value("second_quality_check").toBool())
+      m_mapEnhancedData["qa_level"] = 4;
+    m_mapEnhancedData.remove("second_qa_score");
+    m_mapEnhancedData.remove("second_quality_check");
+  }
+
   QVariantList list = m_mapEnhancedData.value("points").toList();
   QString coord_strg = m_mapEnhancedData.value("vox2ras").toString();
-  FSVolume* ref_vol = m_layerRef->GetSourceVolume();
+  FSVolume* ref_vol = NULL;
+  FSSurface* ref_surf = NULL;
+  if (m_layerRef)
+    ref_vol = m_layerRef->GetSourceVolume();
+  else if (m_surfaceRef)
+    ref_surf = m_surfaceRef->GetSourceSurface();
   m_points.clear();
   foreach (QVariant v, list)
   {
@@ -182,14 +211,23 @@ bool LayerPointSet::LoadFromJsonFile(const QString &filename)
     wp.info = map;
     if ( coord_strg == "tkreg" )
     {
-      ref_vol->TkRegToNativeRAS( wp.pt, wp.pt );
+      if (ref_vol)
+        ref_vol->TkRegToNativeRAS( wp.pt, wp.pt );
+      else
+        ref_surf->ConvertTkregToRAS(wp.pt, wp.pt);
     }
     else if (coord_strg == "voxel")
     {
-      MRIvoxelToWorld(ref_vol->GetMRI(), wp.pt[0], wp.pt[1], wp.pt[2], wp.pt, wp.pt+1, wp.pt+2);
+      if (ref_vol)
+        MRIvoxelToWorld(ref_vol->GetMRI(), wp.pt[0], wp.pt[1], wp.pt[2], wp.pt, wp.pt+1, wp.pt+2);
+      else
+        ref_surf->ConvertVoxelToRAS(wp.pt, wp.pt);
     }
-    ref_vol->NativeRASToRAS( wp.pt, wp.pt );
-    ref_vol->RASToTarget( wp.pt, wp.pt );
+    if (ref_vol)
+    {
+      ref_vol->NativeRASToRAS( wp.pt, wp.pt );
+      ref_vol->RASToTarget( wp.pt, wp.pt );
+    }
     m_points << wp;
   }
   GetProperty()->SetType(LayerPropertyPointSet::Enhanced);
@@ -212,7 +250,10 @@ bool LayerPointSet::LoadFromString(const QString &content)
     return false;
 
   m_points.clear();
-  m_pointSetSource->LabelToPointSet( m_points, m_layerRef->GetSourceVolume() );
+  if (m_layerRef)
+    m_pointSetSource->LabelToPointSet( m_points, m_layerRef->GetSourceVolume() );
+  else
+    m_pointSetSource->LabelToPointSet( m_points, m_surfaceRef->GetSourceSurface() );
   RebuildActors();
 
   return true;
@@ -220,12 +261,15 @@ bool LayerPointSet::LoadFromString(const QString &content)
 
 bool LayerPointSet::Save()
 {
-  if ( m_sFilename.size() == 0 || m_layerRef == NULL )
+  if ( m_sFilename.size() == 0)
   {
     return false;
   }
 
-  m_pointSetSource->UpdateLabel( m_points, m_layerRef->GetSourceVolume() );
+  if (m_layerRef)
+    m_pointSetSource->UpdateLabel( m_points, m_layerRef->GetSourceVolume() );
+  else
+    m_pointSetSource->UpdateLabel( m_points,  m_surfaceRef->GetSourceSurface() );
 
   bool bSaved = false;
   if ( GetProperty()->GetType() == LayerPropertyPointSet::ControlPoint )
@@ -246,15 +290,23 @@ bool LayerPointSet::Save()
 bool LayerPointSet::SaveAsJson(const QString& filename)
 {
   QVariantList list;
-  FSVolume* ref_vol = m_layerRef->GetSourceVolume();
+  FSVolume* ref_vol = NULL;
+  FSSurface* ref_surf = NULL;
+  if (m_layerRef)
+    ref_vol = m_layerRef->GetSourceVolume();
+  else if (m_surfaceRef)
+    ref_surf = m_surfaceRef->GetSourceSurface();
   double pos[3];
   foreach (ControlPoint p, m_points)
   {
     QVariantMap map = p.info;
-    // convert to tkreg coords
-    ref_vol->TargetToRAS( p.pt, pos );
-    ref_vol->RASToNativeRAS( pos, pos );
-//    ref_vol->NativeRASToTkReg(pos, pos);
+    if (ref_surf)
+      ref_surf->ConvertTargetToRAS( p.pt, pos );
+    else if (ref_vol)
+    {
+      ref_vol->TargetToRAS( p.pt, pos );
+      ref_vol->RASToNativeRAS( pos, pos );
+    }
     QVariantMap coords;
     coords["x"] = pos[0];
     coords["y"] = pos[1];
@@ -292,7 +344,10 @@ bool LayerPointSet::SaveAsJson(const QString& filename)
 
 void LayerPointSet::UpdateLabelData()
 {
-  m_pointSetSource->UpdateLabel( m_points, m_layerRef->GetSourceVolume() );
+  if (m_layerRef)
+    m_pointSetSource->UpdateLabel(m_points, m_layerRef->GetSourceVolume());
+  else
+    m_pointSetSource->UpdateLabel(m_points, m_surfaceRef->GetSourceSurface());
 }
 
 bool LayerPointSet::HasUndo()
@@ -397,7 +452,7 @@ void LayerPointSet::OnSlicePositionChanged( int nPlane )
 
 void LayerPointSet::RebuildActors( bool bRebuild3D )
 {
-  if ( !m_layerRef )
+  if ( !m_layerRef && !m_surfaceRef)
   {
     return;
   }
@@ -405,9 +460,14 @@ void LayerPointSet::RebuildActors( bool bRebuild3D )
   blockSignals( true );
 
   // 3D
-  MRI* mri = m_layerRef->GetSourceVolume()->GetMRITarget();
-  double voxel_size[3] = { mri->xsize, mri->ysize, mri->zsize };
-  // double* origin = m_layerRef->GetWorldOrigin();
+  double voxel_size[3] = {1,1,1};
+  if (m_layerRef)
+  {
+    MRI* mri = m_layerRef->GetSourceVolume()->GetMRITarget();
+    voxel_size[0] = mri->xsize;
+    voxel_size[1] = mri->ysize;
+    voxel_size[2] = mri->zsize;
+  }
   double scale = qMin( voxel_size[0], qMin( voxel_size[1], voxel_size[2] ) );
   double radius = GetProperty()->GetRadius();
   bool bClosed = GetProperty()->GetClosedSpline();
@@ -656,7 +716,11 @@ int LayerPointSet::FindPoint( double* ras, double tolerance )
   double dt = tolerance;
   if ( dt < 0 )
   {
-    double* voxel_size = m_layerRef->GetWorldVoxelSize();
+    double* voxel_size;
+    if (m_layerRef)
+      voxel_size = m_layerRef->GetWorldVoxelSize();
+    else
+      voxel_size = m_surfaceRef->GetWorldVoxelSize();
     dt = GetProperty()->GetRadius() * qMin( voxel_size[0], qMin( voxel_size[1], voxel_size[2] ) );
     dt = dt * dt;
   }
@@ -675,11 +739,15 @@ int LayerPointSet::AddPoint( double* ras_in, double value, bool bNotToVoxelCente
 {
   int nRet;
   int dim[3];
-  double ras[3], vs[3];
-  m_layerRef->GetVolumeInfo(dim, vs);
+  double ras[3];
+  double* vs;
+  if (m_layerRef)
+    vs = m_layerRef->GetWorldVoxelSize();
+  else
+    vs = m_surfaceRef->GetWorldVoxelSize();
   double min_tor2 = qMin(vs[0], qMin(vs[1], vs[2]))*3;
   min_tor2 *= min_tor2;
-  if ( !bNotToVoxelCenter && GetProperty()->GetSnapToVoxelCenter() )
+  if ( !bNotToVoxelCenter && GetProperty()->GetSnapToVoxelCenter() && m_layerRef )
   {
     m_layerRef->SnapToVoxelCenter( ras_in, ras );
   }
@@ -818,7 +886,7 @@ void LayerPointSet::UpdatePoint( int nIndex, double* ras, bool rebuildActor )
   if (m_points.size() <= nIndex)
     return;
 
-  if ( GetProperty()->GetSnapToVoxelCenter() )
+  if ( GetProperty()->GetSnapToVoxelCenter() && m_layerRef )
   {
     m_layerRef->SnapToVoxelCenter( ras, m_points[nIndex].pt );
   }
@@ -915,7 +983,8 @@ bool LayerPointSet::Rotate( std::vector<RotationElement>& rotations, wxWindow* w
   Q_UNUSED(wnd);
   Q_UNUSED(event);
   m_points.clear();
-  m_pointSetSource->LabelToPointSet( m_points, m_layerRef->GetSourceVolume() );
+  if (m_layerRef)
+    m_pointSetSource->LabelToPointSet( m_points, m_layerRef->GetSourceVolume() );
   RebuildActors();
 
   return true;
@@ -994,7 +1063,11 @@ void LayerPointSet::GetNormalAtPoint(int nIndex, double *vnorm, int nPlane)
   double pt[3], pt0[3], pt1[3];
   GetPoint(nIndex, pt);
   int n = 0, n0, n1;
-  double* vs = m_layerRef->GetWorldVoxelSize();
+  double* vs;
+  if (m_layerRef)
+    vs = m_layerRef->GetWorldVoxelSize();
+  else
+    vs = m_surfaceRef->GetWorldVoxelSize();
   double dTor2 = qMin(vs[0], qMin(vs[1], vs[2]))*0.02;
   dTor2 *= dTor2;
   double dMinDist2 = 1e8;

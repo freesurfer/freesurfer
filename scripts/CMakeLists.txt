@@ -82,6 +82,7 @@ install_configured(
   fsr-getxopts
   fsr-import
   fsvglrun
+  fsxvfb
   fvcompare
   gca-apply
   gcainit
@@ -141,6 +142,7 @@ install_configured(
   map_to_base
   meanval
   mergeseg
+  mideface
   minc2seqinfo
   mkheadsurf
   mkima_index.tcl
@@ -213,6 +215,7 @@ install_configured(
   run-qdec-glm
   run_mris_preproc
   samseg2recon
+  seg2recon
   seg2filled
   segment_monkey
   segment_subject

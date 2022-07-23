@@ -432,6 +432,16 @@ static void usage(int exit_val)
 {
   outputHelpXml(mri_compute_seg_overlap_help_xml,
                 mri_compute_seg_overlap_help_xml_len);
+  printf("In the table, the rows are:\n");
+  printf("1. Segmentation Index\n");
+  printf("2. Segmentation Name (if avail)\n");
+  printf("3. Not sure\n");
+  printf("4. Dice\n");
+  printf("5. nvoxels in vol 1\n");
+  printf("6. nvoxels in vol 2\n");
+  printf("7. nvoxels in intersection\n");
+  printf("8. Percentage volume diff\n");
+
   exit(exit_val);
 }  /*  end usage()  */
 

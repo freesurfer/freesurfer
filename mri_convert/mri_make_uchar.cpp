@@ -240,7 +240,7 @@ MRIconvertToUchar(MRI *mri_in, LTA *tal_xform, MRI *mri_out)
   HISTOmakePDF(h, h) ;
   hcum = HISTOmakeCDF(h, NULL) ;
 
-  HISTOwriteTxt(h, "makeuchar.histo.txt") ;
+  //HISTOwriteTxt(h, "makeuchar.histo.txt") ;
   if(hcumfile) HISTOwriteTxt(hcum, hcumfile);
 
   bin_size = h->bins[2] - h->bins[1] ;

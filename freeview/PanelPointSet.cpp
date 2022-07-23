@@ -74,8 +74,6 @@ PanelPointSet::PanelPointSet(QWidget *parent) :
                      << ui->labelSplineRadius
                      << ui->checkBoxClosedSpline;
 
-  connect(ui->checkBoxSecond, SIGNAL(toggled(bool)), this, SLOT(OnCheckBoxSecondToggled(bool)));
-
   m_self = qgetenv("USER");
   if (m_self.isEmpty())
     m_self = qgetenv("USERNAME");
@@ -89,13 +87,6 @@ PanelPointSet::PanelPointSet(QWidget *parent) :
 PanelPointSet::~PanelPointSet()
 {
   delete ui;
-}
-
-void PanelPointSet::OnCheckBoxSecondToggled(bool checked)
-{
-  LayerPointSet* layer = GetCurrentLayer<LayerPointSet*>();
-  if (layer)
-    layer->SetEnhancedData("second_quality_check", checked);
 }
 
 void PanelPointSet::ConnectLayer( Layer* layer_in )
@@ -122,6 +113,7 @@ void PanelPointSet::ConnectLayer( Layer* layer_in )
   connect( ui->comboBoxSplineColor, SIGNAL(currentIndexChanged(int)), p, SLOT(SetColorMap(int)));
   connect( ui->checkBoxClosedSpline, SIGNAL(toggled(bool)), p, SLOT(SetClosedSpline(bool)));
   connect( ui->spinBoxOverallScore, SIGNAL(valueChanged(int)), this, SLOT(OnSpinBoxOverallScore(int)));
+  connect( ui->spinBoxSecondQA, SIGNAL(valueChanged(int)), this, SLOT(OnSpinBoxSecondQA(int)));
   connect( ui->textEditOverallQuality, SIGNAL(textChanged()), this, SLOT(OnTextOverallQualityChanged()));
 }
 
@@ -211,9 +203,13 @@ void PanelPointSet::DoUpdateWidgets()
     ui->labelEndPointDistance->setText(QString("%1 mm").arg(layer->GetEndPointDistance(), 0, 'f', 3));
     ui->checkBoxClosedSpline->setChecked(layer->GetProperty()->GetClosedSpline());
 
-    ui->spinBoxOverallScore->setValue(layer->GetEnhancedData("overall_score").toInt());
+    if (!layer->GetEnhancedData("overall_score").isNull())
+      ui->spinBoxOverallScore->setValue(layer->GetEnhancedData("overall_score").toInt());
+
+    if (!layer->GetEnhancedData("qa_level").isNull())
+      ui->spinBoxSecondQA->setValue(layer->GetEnhancedData("qa_level").toInt());
+
     ui->textEditOverallQuality->setPlainText(layer->GetEnhancedData("overall_quality").toString());
-    ui->checkBoxSecond->setChecked(layer->GetEnhancedData("second_quality_check").toBool());
   }
 
   // MainWindow* mainWnd = MainWindow::GetMainWindowPointer();
@@ -745,3 +741,11 @@ void PanelPointSet::OnSpinBoxOverallScore(int val)
   if (layer)
     layer->SetEnhancedData("overall_score", val);
 }
+
+void PanelPointSet::OnSpinBoxSecondQA(int val)
+{
+  LayerPointSet* layer = GetCurrentLayer<LayerPointSet*>();
+  if (layer)
+    layer->SetEnhancedData("qa_level", val);
+}
+

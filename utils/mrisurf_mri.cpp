@@ -628,13 +628,12 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
     }
     if(parms->l_spring_nzr > 0){
       double springcost = MRISedgeLengthCost(mris, parms->l_spring_nzr_len, parms->l_spring_nzr, 1);
-      printf("#@%% spring_nzr cost L0=%g, weight=%g, cost = %g\n",parms->l_spring_nzr_len,parms->l_spring_nzr,springcost);
+      printf("#@%% %2d spring_nzr cost L0=%g, weight=%g, cost = %14.12lf\n",n,parms->l_spring_nzr_len,parms->l_spring_nzr,springcost);
       fflush(stdout);
     }
     if(parms->l_hinge > 0){
       double hingecost = MRISedgeAngleCost(mris,parms->l_hinge, 1);
-      printf("#@%% hinge cost weight=%g, cost = %g\n",parms->l_hinge,hingecost);
-
+      printf("#@%% %2d hinge cost weight=%g, cost = %14.12lf\n",n,parms->l_hinge,hingecost);
     }
     mrisComputeNormalizedSpringTerm(mris, parms->l_spring_norm);
     mrisComputeRepulsiveTerm(mris, parms->l_repulse, mht_v_current, mht_f_current);
@@ -731,6 +730,7 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
       else if (!FZERO(parms->l_location)) {
 	// Computes the RMS of the distance error (v->{xyz} - v->targ{xyz})
         rms = mrisComputeRmsDistanceError(mris);
+	printf("#@%% %2d loc cost weight=%g, cost = %14.12lf\n",n,parms->l_location,rms);
       }
       else if (DZERO(parms->l_intensity) && gMRISexternalRMS != NULL && parms->l_external > 0) {
         rms = (*gMRISexternalRMS)(mris, parms);
@@ -2231,6 +2231,8 @@ static int MRIScomputeBorderValues_new(
     if (vno == Gdiag_no) {
       fclose(fp);
       fp = NULL;
+      printf("max_mag_dist %g, max_mag = %g\n",max_mag_dist,max_mag);
+      fflush(stdout);
     }
 
     /* The code below was developed at the request of the HCP for
@@ -5161,6 +5163,12 @@ MRI *MRIcopyMRIS(MRI *mri, MRIS *surf, int Frame, const char *Field)
         else if (!strcmp(Field, "marked")) {
           val = surf->vertices[vtx].marked;
         }
+        else if (!strcmp(Field, "marked2")) {
+          val = surf->vertices[vtx].marked2;
+        }
+        else if (!strcmp(Field, "marked3")) {
+          val = surf->vertices[vtx].marked3;
+        }
         else if (!strcmp(Field, "annotation")) {
           val = surf->vertices[vtx].annotation;
         }
@@ -5218,8 +5226,14 @@ MRI *MRIcopyMRIS(MRI *mri, MRIS *surf, int Frame, const char *Field)
         else if (!strcmp(Field, "dz")) {
           val = surf->vertices[vtx].dz;
         }
+        else if (!strcmp(Field, "mean")) {
+          val = surf->vertices[vtx].mean;
+        }
+        else if (!strcmp(Field, "d")) {
+          val = surf->vertices[vtx].d;
+        }
         else {
-          printf("ERROR: MRIScopyMRI(): Field %s not supported\n", Field);
+          printf("ERROR: MRIcopyMRIS(): field %s not supported\n", Field);
           return (NULL);
         }
         MRIsetVoxVal(mri, c, r, s, Frame, val);
@@ -6286,7 +6300,7 @@ MATRIX *surfaceRASToSurfaceRAS_(MRI *src, MRI *dst, LTA *lta)
   MATRIX *res = 0;
   MATRIX *RASToRAS = 0;
 
-  sRASToRAS = RASFromSurfaceRAS_(src);
+  sRASToRAS = RASFromSurfaceRAS_(src,NULL);
   RASToSRAS = surfaceRASFromRAS_(dst);
 
   if (lta->type == LINEAR_RAS_TO_RAS) {
@@ -7164,12 +7178,12 @@ int MRISsurfaceRASToVoxel(MRI_SURFACE *mris, MRI *mri, double r, double a, doubl
   if (mris->vg.valid) {
     mri_tmp = MRIallocHeader(mris->vg.width, mris->vg.height, mris->vg.depth, MRI_UCHAR, 1);
     MRIcopyVolGeomToMRI(mri_tmp, &mris->vg);
-    m_sras2ras = RASFromSurfaceRAS_(mri_tmp);
+    m_sras2ras = RASFromSurfaceRAS_(mri_tmp,NULL);
     MRIfree(&mri_tmp);
   }
   else  // no valid geom - assume it came from provided volume
   {
-    m_sras2ras = RASFromSurfaceRAS_(mri);
+    m_sras2ras = RASFromSurfaceRAS_(mri,NULL);
   }
 
   m_ras2vox = MRIgetRasToVoxelXform(mri);
@@ -7204,17 +7218,17 @@ void MRIS_loadRAS2VoxelMap(MRIS_SurfRAS2VoxelMap* cache, MRI const * const mri, 
         //
         MATRIX* surfRas2scannerRas;
         if (mris->vg.valid) {
-            // Use VOL_GEOM struct (MRI) that is internal to MRIS if valid
-            // (this is usually that of orig.mgz) Good for freeview, but for
-            // this to work, the passed mri must share a scanner RAS with mris->vg.
-            MRI* mri_tmp = MRIallocHeader(mris->vg.width, mris->vg.height, mris->vg.depth, MRI_UCHAR, 1);
-            MRIcopyVolGeomToMRI(mri_tmp, &mris->vg);
-            surfRas2scannerRas = RASFromSurfaceRAS_(mri_tmp);
-            MRIfree(&mri_tmp);
+	  // Use VOL_GEOM struct (MRI) that is internal to MRIS if valid
+	  // (this is usually that of orig.mgz) Good for freeview, but for
+	  // this to work, the passed mri must share a scanner RAS with mris->vg.
+	  MRI* mri_tmp = MRIallocHeader(mris->vg.width, mris->vg.height, mris->vg.depth, MRI_UCHAR, 1);
+	  MRIcopyVolGeomToMRI(mri_tmp, &mris->vg);
+	  surfRas2scannerRas = RASFromSurfaceRAS_(mri_tmp,NULL);
+	  MRIfree(&mri_tmp);
         } else {
-            // Use geometry from MRI struct passed with function
-            // Function should reduce to inv(Vox2TkRegRAS)*SurfRAS
-            surfRas2scannerRas = RASFromSurfaceRAS_(mri);
+	  // Use geometry from MRI struct passed with function
+	  // Function should reduce to inv(Vox2TkRegRAS)*SurfRAS
+	  surfRas2scannerRas = RASFromSurfaceRAS_(mri,NULL);
         }
         // Scanner RAS to Vox for passed MRI
         MATRIX* scannerRas2vox = MRIgetRasToVoxelXform(mri);
@@ -7384,13 +7398,13 @@ static int MRISsurfaceRASToVoxelCached_old(
       // mris->vg.
       mri_tmp = MRIallocHeader(mris->vg.width, mris->vg.height, mris->vg.depth, MRI_UCHAR, 1);
       MRIcopyVolGeomToMRI(mri_tmp, &mris->vg);
-      m_sras2ras = RASFromSurfaceRAS_(mri_tmp);
+      m_sras2ras = RASFromSurfaceRAS_(mri_tmp,NULL);
       MRIfree(&mri_tmp);
     }
     else {
       // Use geometry from MRI struct passed with function
       // Function should reduce to inv(Vox2TkRegRAS)*SurfRAS
-      m_sras2ras = RASFromSurfaceRAS_(mri);
+      m_sras2ras = RASFromSurfaceRAS_(mri,NULL);
     }
     // Scanner RAS to Vox for passed MRI
     m_ras2vox = MRIgetRasToVoxelXform(mri);
@@ -7439,12 +7453,12 @@ int MRISsurfaceRASFromVoxel(
   if (mris->vg.valid) {
     mri_tmp = MRIallocHeader(mris->vg.width, mris->vg.height, mris->vg.depth, MRI_UCHAR, 1);
     MRIcopyVolGeomToMRI(mri_tmp, &mris->vg);
-    m_sras2ras = RASFromSurfaceRAS_(mri_tmp);
+    m_sras2ras = RASFromSurfaceRAS_(mri_tmp,NULL);
     MRIfree(&mri_tmp);
   }
   else  // no valid geom - assume it came from provided volume
   {
-    m_sras2ras = RASFromSurfaceRAS_(mri);
+    m_sras2ras = RASFromSurfaceRAS_(mri,NULL);
   }
 
   m_ras2vox = MRIgetRasToVoxelXform(mri);
@@ -7488,11 +7502,11 @@ int MRISsurfaceRASFromVoxelCached(
     if (mris->vg.valid) {
       mri_tmp = MRIallocHeader(mris->vg.width, mris->vg.height, mris->vg.depth, MRI_UCHAR, 1);
       MRIcopyVolGeomToMRI(mri_tmp, &mris->vg);
-      m_sras2ras = RASFromSurfaceRAS_(mri_tmp);
+      m_sras2ras = RASFromSurfaceRAS_(mri_tmp,NULL);
       MRIfree(&mri_tmp);
     }
     else {
-      m_sras2ras = RASFromSurfaceRAS_(mri);
+      m_sras2ras = RASFromSurfaceRAS_(mri,NULL);
     }
 
     m_ras2vox = MRIgetRasToVoxelXform(mri);
@@ -7616,23 +7630,24 @@ double MRISsampleValue(MRI_SURFACE *mris, FACE *f, double xp, double yp, double 
 */
 MRI *MRISsampleProfile(MRIS *mris, MRI *mri, double dstart, double dend, double dstep, double sigma, int interptype, MRI *profile)
 {
-  int vno,frame,nframes;
-  double val, x, y, z, c,r,s;
-  VERTEX *v;
-  double d;
-
-  printf("MRISsampleProfile(): %g %g %g %g %d\n",dstart,dend,dstep,sigma,interptype);
+  int vno, nframes;
 
   MRIS_SurfRAS2VoxelMap* sras2v_map = MRIS_makeRAS2VoxelMap(mri, mris);
 
   nframes = 0;
-  for(d=dstart; d<=dend; d += dstep) nframes++;
+  for(double d=dstart; d<=dend; d += dstep) nframes++;
+  printf("MRISsampleProfile(): %g %g %g %g %d %d\n",dstart,dend,dstep,sigma,interptype,nframes);
 
   if(profile == NULL)
     profile = MRIallocSequence(mris->nvertices,1,1,MRI_FLOAT,nframes);
 
+  #ifdef HAVE_OPENMP
+  #pragma omp parallel for
+  #endif
   for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX *v = &mris->vertices[vno];
+    double val, x, y, z, c,r,s, d;
+    int frame;
     if (v->ripflag || v->val < 0) continue;
     frame = 0;
     for(d=dstart; d<=dend; d += dstep){
@@ -7642,6 +7657,10 @@ MRI *MRISsampleProfile(MRIS *mris, MRI *mri, double dstart, double dend, double 
       MRIS_useRAS2VoxelMap(sras2v_map, mri,x, y, z, &c, &r, &s);
       if(sigma < 0){
 	MRIsampleVolumeType(mri, c, r, s, &val, interptype);
+	if(vno == Gdiag_no) {
+	  printf("#P# %6.2f %6.2f %6.2f %6.2f %9.7f \n",d,c,r,s,val);
+	  fflush(stdout);
+	}
       }
       else {
 	double c2,r2,s2,dc,dr,ds,mag;
@@ -7660,9 +7679,7 @@ MRI *MRISsampleProfile(MRIS *mris, MRI *mri, double dstart, double dend, double 
       frame++;
     }
   }
-
   MRIS_freeRAS2VoxelMap(&sras2v_map);
-
   return(profile);
 }
 
@@ -8233,15 +8250,15 @@ int MRIScomputePialTargetLocationsMultiModal(MRI_SURFACE *mris,
       /* need to worry about dark intensities in the interior of the ribbon in FLAIR, so find the first dark value (leftwards
 	 from the peak) that is unlikely to be GM, and don't allow it to be in the interior of the ribbon.   */
       thresh = hs->counts[peak] * left_inside_peak_pct ;
-      for (bin = peak -1 ; bin >= 0 ; bin--)
+      for (bin = peak-1 ; bin >= 0 ; bin--)
 	if (hs->counts[bin] < thresh)
 	  break ;
-      if (bin >= 0)
-      {
+      if (bin >= 0) {
 	min_gray_inside = hs->bins[bin] ;
 	min_gray_inside = MAX(min_gray_inside, T2_min_inside+near_cerebellum*CEREBELLUM_OFFSET) ;
 	if (vno == Gdiag_no)
-	  printf("resetting min gray inside to be %2.3f (peak was at %2.1f)\n", min_gray_inside, hs->bins[peak]) ;
+	  printf("vno %d, ipeak=%d, vpeak=%g, thresh=%g,  bin=%d resetting min gray inside to be %2.3f (peak was at %2.1f)\n", 
+		 vno,peak,hs->counts[peak],thresh,bin,min_gray_inside, hs->bins[bin]) ;
       }
       else
 	min_gray_inside = T2_min_inside+near_cerebellum*CEREBELLUM_OFFSET ;
@@ -8257,11 +8274,20 @@ int MRIScomputePialTargetLocationsMultiModal(MRI_SURFACE *mris,
       {
 	min_gray_outside = hs->bins[bin] ;
 	min_gray_outside = MAX(min_gray_outside, T2_min_outside+near_cerebellum*CEREBELLUM_OFFSET) ;
-	if (vno == Gdiag_no)
-	  printf("resetting min gray outside to be %2.3f (peak was at %2.1f)\n", min_gray_outside, hs->bins[peak]) ;
+	if (vno == Gdiag_no){
+	  printf("vno %d, ipeak=%d, vpeak=%g, thresh=%g,  bin=%d resetting min gray outside to be %2.3f (peak was at %2.1f)\n", 
+		 vno,peak,hs->counts[peak],thresh,bin,min_gray_outside, hs->bins[bin]) ;
+	  printf("T2mo = %g, left_outside_peak_pct %g\n",T2_min_outside,left_outside_peak_pct );
+	  exit(1);
+	}
       }
       else
 	min_gray_outside = T2_min_outside+near_cerebellum*CEREBELLUM_OFFSET ;
+
+      if (vno == Gdiag_no){
+	HISTOwriteTxt(hs,  (char*)"histo.cortex.dat");
+	HISTOwriteTxt(hwms,(char*)"histo.wm.dat");
+      }
 
     } // END FLAIR
     else if (contrast_type == CONTRAST_T2)
@@ -8311,9 +8337,6 @@ int MRIScomputePialTargetLocationsMultiModal(MRI_SURFACE *mris,
 	  DiagBreak() ;
 	}
 	min_gray_inside = MAX(min_gray_inside, T2_min_inside) ;
-#if 0
-	min_gray_inside = MAX(min_gray_inside, (wm_weight*mean_wm+mean)/(wm_weight+1)); //??
-#endif
 	if (vno == Gdiag_no)
 	  printf("resetting min gray inside to be %2.3f (peak was at %2.1f)\n", min_gray_inside, hs->bins[peak]) ;
       }
@@ -8409,8 +8432,10 @@ int MRIScomputePialTargetLocationsMultiModal(MRI_SURFACE *mris,
       if (dist_to_white <= 1.0)
 	continue ;  // too close to wm, avoid partial voluming
 
-      if (val < min_gray_inside && (val > nint(min_gray_outside*.75)) && !outside_of_white)
+      if (val < min_gray_inside && (val > nint(min_gray_outside*.75)) && !outside_of_white){
+	if (vno == Gdiag_no) printf("here not sure\n");
 	continue ;   // all dark intensities - white boundary probably in wrong place
+      }
 
       // If T2/FLAIR value is above the minimum, then assume that we've
       // projected beyond white surf and into the ribbon. This will apply
@@ -8446,7 +8471,6 @@ int MRIScomputePialTargetLocationsMultiModal(MRI_SURFACE *mris,
 	}
       }
 
-#if 1
       // for T2 images intensity should increase monotonically. If it starts to go
       // down we are probably at borders of skull stripping or into dura. 
       // Checking val<mn-2*sigma
@@ -8477,14 +8501,15 @@ int MRIScomputePialTargetLocationsMultiModal(MRI_SURFACE *mris,
 	}
       }
 
-#endif
       previous_val = val ;
 
       // Check whether the intensity is outside the expected range
       if (val < min_gray_inside || val > max_gray_inside)
       {
-	if (vno == Gdiag_no)
-	  printf("illegal intensity %2.1f found at d=%2.2f, vox=(%2.1f, %2.1f, %2.1f)\n", val, d,xv,yv,zv) ;
+	if (vno == Gdiag_no){
+	  printf("vno = %d illegal intensity %2.1f found at d=%2.2f, vox=(%2.1f, %2.1f, %2.1f)\n", vno,val, d,xv,yv,zv) ;
+	  printf("   min_gray_inside = %g, max_gray_inside = %g\n",min_gray_inside, max_gray_inside);
+	}
         found_bad_intensity = 1 ;
         break ; // from loop over the ribbon 
       }
@@ -8496,8 +8521,8 @@ int MRIScomputePialTargetLocationsMultiModal(MRI_SURFACE *mris,
     if (found_bad_intensity)    {
       num_in++ ;
       // Set the target point so that interior is good value and exterior is bad gm value
-      // DNG: not sure what is happening here
-      v->targx = xs - (sample_dist/2*nx) ; v->targy = ys - (sample_dist/2*ny) ; v->targz = zs - (sample_dist/2*nz) ;
+      // Take a step backwards by half a step
+      v->targx = xs - (nx*sample_dist/2) ; v->targy = ys - (ny*sample_dist/2) ; v->targz = zs - (nz*sample_dist/2) ;
       MRISsurfaceRASToVoxelCached(mris, mri_T2, v->targx, v->targy, v->targz,&xv, &yv, &zv);
       MRIsampleVolumeType(mri_T2, xv, yv, zv, &val, SAMPLE_TRILINEAR) ;
       v->val = val ; v->marked = 1 ; v->marked2++ ;  // marked2 will keep track of how many times pial surface was found

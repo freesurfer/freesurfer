@@ -50,6 +50,7 @@ static const char *pial_name = "pial" ;
 static int nbrs = 2 ;
 
 static char *orig_name = NULL ;
+LABEL *label=NULL;
 
 int
 main(int argc, char *argv[])
@@ -127,6 +128,9 @@ main(int argc, char *argv[])
   mris = MRISread(in_fname) ;
   if (!mris)
     ErrorExit(ERROR_NOFILE, "%s: MRISread(%s) failed", Progname, in_fname);
+
+  if(label)
+    LabelRip(mris,label,1);
   
   if (nbrs > 1)
   {
@@ -195,6 +199,13 @@ get_option(int argc, char *argv[])
   {
     use_thickness = 1 ;
     printf("using distance as a %% of thickness\n") ;
+  }
+  else if (!stricmp(option, "label"))
+  {
+    label = LabelRead(NULL,argv[2]);
+    if(label==NULL) exit(1);
+    printf("Ripping vertices outside of label %s\n",argv[2]);
+    nargs = 1;
   }
   else if (!stricmp(option, "convex"))
   {
@@ -371,6 +382,7 @@ usage_exit(int code)
 {
   printf("Usage: %s [options] <input surface> <mm> <output surface>\n",
          Progname) ;
-  printf("Example: mris_expand -thickness lh.white 0.5 lh.graymid\n");
+  printf("  Example: mris_expand -thickness lh.white 0.5 lh.graymid\n");
+  printf("  Example: mris_expand -label labelfile lh.white 0.5 lh.graymid\n");
   exit(code) ;
 }

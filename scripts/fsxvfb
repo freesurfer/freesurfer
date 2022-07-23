@@ -1,0 +1,79 @@
+#!/bin/tcsh -f
+
+# fsxvfb - a simple application of the virtual frame buffer (vrb) for
+# X This can run graphical commands in a "headless" way, ie, without
+# needing to create a window. This can be handy when you want to, eg,
+# create images using freeview but you don't want windows continuously
+# popping up. Just run something like:
+
+# "fsxvrb freeview -v orig.mgz -viewport x -ss pic1.jpg"
+
+# This script has a procedure for looking for an open display port
+# starting at 10. The port is relinquished after the command
+# finishes. Ports are locked if the file /tmp/.X$D-lock (where $D is
+# the display) exists or a previous Xvfb launched with the port is
+# still running. If this file exists, then that display cannot be
+# used. This can happen if the command does not return and you kill it
+# (it should handle control-c ok).  You can always delete the lock
+# file and kill the Xvfb by hand.  Rebooting will also clean things
+# up.
+
+# Note: there is a command called xvfb-run which is supposed to do
+# this, but I could never get it working.
+
+if(-e $FREESURFER_HOME/sources.csh) then
+  source $FREESURFER_HOME/sources.csh
+endif
+
+set VERSION = '$Id$';
+set scriptname = `basename $0`
+
+if($#argv == 0) then
+  echo "fsxvfb command"
+  exit 1
+endif
+
+which Xvfb >& /dev/null
+if($status) then
+  echo "ERROR: fsxvb: cannot find the Xvrb command"
+  exit 1;
+endif
+
+# Look for an open display. Start looking at 50 with the hope
+# that is sufficiently large to miss likely displays that people
+# have open. Not sure what the max would be
+if($?FSXVFB_START_D == 0) setenv FSXVFB_START_D 50
+@ D = $FSXVFB_START_D
+set hit = 0;
+while ($D < 1000)
+  set lockfile = /tmp/.X$D-lock
+  if(! -e $lockfile) then
+    set hit = 1
+    break;
+  endif
+  @ D = $D + 1
+end
+
+echo this pid $$
+echo setting display to $D
+
+Xvfb :$D& # start the vitual X server
+set pid = $! # get the pid so it can be killed later
+echo pid $pid
+setenv DISPLAY :$D
+set st = 1
+set normalexit = 0
+echo Starting command $argv
+onintr myint # Catches ctrl-c so can shut down things
+$argv # run the passed command
+set st = $status
+echo "Program exited normally"
+set normalexit = 1
+myint:
+if(! $normalexit) echo "Program was interrupted, cleaning up"
+kill $pid
+unsetenv DISPLAY 
+rm -f $lockfile 
+
+exit $st
+

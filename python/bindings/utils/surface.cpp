@@ -2,6 +2,7 @@
 #include "surface.h"
 #include "xform.h"
 #include "mrisurf_metricProperties.h"
+#include "mrisutils.h"
 
 
 namespace surf {
@@ -204,6 +205,25 @@ py::object surfaceDistance(Bridge surf1, Bridge surf2)
   return vol::Bridge(MRIcopyMRIS(NULL, surf2, 0, "curv"));
 }
 
+
+/* This function only supports mris_sphere options -Q, -P, -A, -seed.
+ * mris_sphere calls in recon-all
+ * mris_sphere -q -p 6 -a 128 -seed 1234 ../surf/lh.inflated.nofix ../surf/lh.qsphere.nofix 
+ * mris_sphere -q -p 6 -a 128 -seed 1234 ../surf/rh.inflated.nofix ../surf/rh.qsphere.nofix 
+ *
+ * example:
+ * >>> import freesurfer
+ * >>> inSurf  = freesurfer.bindings.surf.read("./surf/lh.inflated.nofix")
+ * >>> outSurf = freesurfer.bindings.surf.qspherical_inflate(inSurf, 6, 128, 1234)
+ * >>> freesurfer.bindings.surf.write(outSurf, "./surf/lh.qsphere.nofix")
+ */
+py::object quickSphericalInflate(Bridge inSurf, int max_passes, int n_averages, long seed)
+{
+  // output is updated in the input inSurf
+  MRISQuickSphericalInflate(max_passes, n_averages, seed, inSurf, NULL);
+  inSurf.updateSource();
+  return inSurf;
+}
 
 /*
 

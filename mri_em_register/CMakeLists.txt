@@ -8,7 +8,7 @@ set(SOURCES
   emregisterutils.cpp
 )
 
-add_test_script(NAME mri_em_register_test SCRIPT test.sh DEPENDS mri_em_register)
+add_test_script(NAME mri_em_register_test SCRIPT test.sh)
 
 add_executable(mri_em_register ${SOURCES})
 add_help(mri_em_register mri_em_register.help.xml)

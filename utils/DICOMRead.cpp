@@ -110,6 +110,7 @@ MRI *sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
   std::string tmpfilestdout, cmd, tmpfile, FileNameUse;
   int IsCompressed, IsDWI;
   extern int sliceDirCosPresent;  // set when no ascii header
+  printf("Starting sdcmLoadVolume()\n");
 
   xs = ys = zs = xe = ye = ze = d = 0.; /* to avoid compiler warnings */
   slice = 0;
@@ -397,6 +398,7 @@ MRI *sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
     vol->bvals = MatrixAlloc(nframes, 1, MATRIX_REAL);
     vol->bvecs = MatrixAlloc(nframes, 3, MATRIX_REAL);
     vol->bvec_space = BVEC_SPACE_VOXEL;
+    if(getenv("FS_dcmGetDWIParamsSiemens_VoxelSpace")==NULL) vol->bvec_space = BVEC_SPACE_SCANNER;
   }
 
   env = FSENVgetenv();
@@ -572,12 +574,8 @@ MRI *sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
   else
     printf("INFO: no Siemens slice order reversal detected (good!). \n");
 
-  if (IsDWI) {
-    if (env->desired_bvec_space == BVEC_SPACE_SCANNER) {
-      printf("Converting bvec to scanner space\n");
-      DTIbvecChangeSpace(vol, BVEC_SPACE_SCANNER);
-    }
-  }
+  if (IsDWI) 
+    DTIbvecChangeSpace(vol, env->desired_bvec_space);
 
   while (nlist--) {
     // free strings
@@ -5743,7 +5741,7 @@ MRI *DICOMRead2(const char *dcmfile, int LoadVolume)
     mri->bvals = MatrixAlloc(nframes, 1, MATRIX_REAL);
     mri->bvecs = MatrixAlloc(nframes, 3, MATRIX_REAL);
     mri->bvec_space = BVEC_SPACE_VOXEL;
-    if (IsPhilipsDWI) mri->bvec_space = BVEC_SPACE_SCANNER;
+    if(IsPhilipsDWI || getenv("FS_dcmGetDWIParamsSiemens_VoxelSpace")==NULL) mri->bvec_space = BVEC_SPACE_SCANNER;
   }
 
   if (getenv("FS_FIX_DICOMS")) {
@@ -5921,7 +5919,9 @@ MRI *DICOMRead2(const char *dcmfile, int LoadVolume)
   for (nthfile = 0; nthfile < ndcmfiles; nthfile++) free(dcminfo[nthfile]);
   free(dcminfo);
 
-  if (IsDWI) DTIbvecChangeSpace(mri, env->desired_bvec_space);
+  printf("IsDWI %d ===\n",IsDWI);
+  if(IsDWI)
+    DTIbvecChangeSpace(mri, env->desired_bvec_space);
 
   FSENVfree(&env);
 
@@ -7063,7 +7063,16 @@ int dcmGetDWIParamsGE(DCM_OBJECT *dcm, double *pbval, double *pxbvec, double *py
   \brief Extracts DWI info from a Siemens file, transforms gradients
   to voxel coordinates. First, looks for bval tag 0x19 0x100c. If this
   exists, then gets bvec from 0x100e. If not, then uses an alternative
-  method. Returns 0 if everything ok. Gradients transformed to RAS.
+  method. The directions are transformed from Siemens-native LPS to
+  RAS. By default, it will return the gradients in RAS ScannerSpace.
+  If getenv("FS_dcmGetDWIParamsSiemens_VoxelSpace") is not null, then
+  it attemps to transform the gradients to voxel space, but the
+  vox2ras matrix has to be inferred from a cross product as there is
+  only a single slice; the cross product is not correct when the
+  vox2ras det<0 which will make the bvecs wrong.  This was the default
+  behavior until April 2022. It is better to do this conversion later
+  once the full vox2ras matrix is known; this is now the default
+  unless that env var is set. Returns 0 if everything ok.
  */
 int dcmGetDWIParamsSiemens(DCM_OBJECT *dcm, double *pbval, double *pxbvec, double *pybvec, double *pzbvec)
 {
@@ -7090,6 +7099,7 @@ int dcmGetDWIParamsSiemens(DCM_OBJECT *dcm, double *pbval, double *pxbvec, doubl
   cond = DCM_GetElement(&dcm, tag, e);
   if (cond != DCM_NORMAL) {
     // The bvalue tag does not exist, try alternative method
+    // Note: this is only allowed if FS_ALLOW_DWI_SIEMENS_ALT is set, which is not by default
     if (Gdiag_no > 0) printf("  bval 0x19,0x100c does not exist, try alternative method\n");
     err = dcmGetDWIParamsSiemensAlt(dcm, pbval, pxbvec, pybvec, pzbvec);
     if (err) return (err);
@@ -7126,11 +7136,25 @@ int dcmGetDWIParamsSiemens(DCM_OBJECT *dcm, double *pbval, double *pxbvec, doubl
       *pxbvec = e->d.fd[0];
       *pybvec = e->d.fd[1];
       *pzbvec = e->d.fd[2];
+      if(Gdiag_no > 0) {
+	printf("LPS (RAW Siemens) Scanner Space Gradient: %lf %lf %lf\n",  *pxbvec, *pybvec, *pzbvec);
+	fflush(stdout);
+      }
+
       (*pxbvec) *= -1;  // convert from LPS to RAS
       (*pybvec) *= -1;  // convert from LPS to RAS
       free(e);
     }
   }
+
+  if(Gdiag_no > 0) {
+    printf("RAS Scanner Space Gradient: %lf %lf %lf\n",  *pxbvec, *pybvec, *pzbvec);
+    fflush(stdout);
+  }
+
+  char *VoxelSpace = getenv("FS_dcmGetDWIParamsSiemens_VoxelSpace");
+  if(VoxelSpace == NULL) return(0);
+  printf("dcmGetDWIParamsSiemens() attempting to convert to VoxelSpace\n");fflush(stdout);
 
   err = dcmImageDirCosObject(dcm, &Vcx, &Vcy, &Vcz, &Vrx, &Vry, &Vrz);
   if (err) return (9);
@@ -7141,10 +7165,14 @@ int dcmGetDWIParamsSiemens(DCM_OBJECT *dcm, double *pbval, double *pxbvec, doubl
     *pzbvec = 0;
   }
 
-  /* Mdc maps from vox coords to scanner coords.
-     ImageDirCos2Slice() just computes the slice DC using a cross
-     product of the in-plane DC. This makes the sign of slice DC is
-     arbitrary, but it should not matter (?)*/
+  /* Mdc maps from vox coords to scanner coords.  ImageDirCos2Slice()
+     just computes the slice DC using a cross product of the in-plane
+     DC. This makes the sign of slice DC is arbitrary. This will not
+     matter for fractional isotropy, but it will for the eigen
+     vectors. Best not to use this. To avoid using this setenv
+     FS_dcmGetDWIParamsSiemens_VoxelSpace 1. The functions  that
+     call this function will the wait until the full volume is created
+     with correct vox2ras matrix, then rotate the vectors. */
   Mdc = ImageDirCos2Slice(Vcx, Vcy, Vcz, Vrx, Vry, Vrz, &Vsx, &Vsy, &Vsz);
   iMdc = MatrixInverse(Mdc, NULL);  // iMdc maps from scanner coords to vox coords
   G = MatrixAlloc(3, 1, MATRIX_REAL);
@@ -7155,9 +7183,12 @@ int dcmGetDWIParamsSiemens(DCM_OBJECT *dcm, double *pbval, double *pxbvec, doubl
   if (Gdiag_no > 0) {
     printf("Transforming gradient directions into voxel coordinates\n");
     printf("DC: %f %f %f \n%f %f %f\n%f %f %f\n", Vcx, Vcy, Vcz, Vrx, Vry, Vrz, Vsx, Vsy, Vsz);
+    printf("Mdc = \n");
+    MatrixPrint(stdout, Mdc);
     printf("iMdc = \n");
     MatrixPrint(stdout, iMdc);
     printf("Before: %lf %lf %lf %lf\n", *pbval, *pxbvec, *pybvec, *pzbvec);
+    fflush(stdout);
   }
   *pxbvec = G2->rptr[1][1];
   *pybvec = G2->rptr[2][1];
@@ -7367,6 +7398,8 @@ int dcmImageDirCosObject(DCM_OBJECT *dcm, double *Vcx, double *Vcy, double *Vcz,
 
   sscanf(s, "%lf %lf %lf %lf %lf %lf ", Vcx, Vcy, Vcz, Vrx, Vry, Vrz);
 
+  printf("RAW: %lf %lf %lf : %lf %lf %lf\n", *Vcx, *Vcy, *Vcz, *Vrx, *Vry, *Vrz);
+
   /* Convert Vc from LPS to RAS and Normalize */
   rms = sqrt((*Vcx) * (*Vcx) + (*Vcy) * (*Vcy) + (*Vcz) * (*Vcz));
   (*Vcx) /= -rms;
@@ -7379,6 +7412,8 @@ int dcmImageDirCosObject(DCM_OBJECT *dcm, double *Vcx, double *Vcy, double *Vcz,
   (*Vry) /= -rms;
   (*Vrz) /= +rms;
 
+  printf("CON: %lf %lf %lf : %lf %lf %lf\n", *Vcx, *Vcy, *Vcz, *Vrx, *Vry, *Vrz);
+
   FreeElementData(e);
   free(e);
 
@@ -7389,7 +7424,8 @@ int dcmImageDirCosObject(DCM_OBJECT *dcm, double *Vcx, double *Vcy, double *Vcz,
   \fn MATRIX *ImageDirCos2Slice()
   \brief Computes the slice direction cosine given the image direction
   cosine. Uses a cross-product. The sign of the slice direction cosine
-  will be arbitrary.
+  will be arbitrary (probably not a good idea -- better to get the vox2ras
+  matrix from the full volume instead of a slice.
  */
 MATRIX *ImageDirCos2Slice(
     double Vcx, double Vcy, double Vcz, double Vrx, double Vry, double Vrz, double *Vsx, double *Vsy, double *Vsz)

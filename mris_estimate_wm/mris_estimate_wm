@@ -3,16 +3,18 @@
 import os
 import sys
 import numpy as np
-import freesurfer as fs
+import argparse
+import surfa as sf
 
 # parse args
-parser = fs.utils.ArgumentParser()
+parser = argparse.ArgumentParser()
 parser.add_argument('-s', '--subjs', nargs='*', required=True, help='List of subjects to process.')
 parser.add_argument('--hemi', required=True, help='Hemisphere to reconstruct (lh or rh).')
 parser.add_argument('-d', '--sdir', help='Override SUBJECTS_DIR.')
 parser.add_argument('-m', '--model', help='Override default model.')
 parser.add_argument('-x', '--suffix', default='topofit', help='Suffix of output surface (default is \'topofit\').')
 parser.add_argument('-g', '--gpu', action='store_true', help='Use the GPU.')
+parser.add_argument('--vol', default='norm.mgz', help='Subject volume to use as input.')
 args = parser.parse_args()
 
 # import torch
@@ -47,12 +49,12 @@ else:
 
 # sanity check on inputs
 if args.hemi not in ('lh', 'rh'):
-    fs.fatal("Hemi must be 'lh' or 'rh'.")
+    sf.system.fatal("Hemi must be 'lh' or 'rh'.")
 
 # check FS home
-fshome = fs.fshome()
+fshome = os.environ.get('FREESURFER_HOME')
 if fshome is None:
-    fs.fatal('FREESURFER_HOME env variable must be set! Make sure FreeSurfer is properly sourced.')
+    sf.system.fatal('FREESURFER_HOME env variable must be set! Make sure FreeSurfer is properly sourced.')
 basedir = os.path.join(fshome, 'models', 'topofit')
 
 # model file
@@ -455,7 +457,7 @@ def gather_vertex_features(features, size, sources, targets, emg):
     nb_features = features.shape[-1]
     gathered_features = features[sources]
     if have_torch_scatter:
-        out = torch.zeros((size, nb_features), dtype=torch.float32, device=get_device()) - 1000
+        out = torch.zeros((size, nb_features), dtype=torch.float32, device=device) - 1000
         out, _ = scatter_max(gathered_features, targets, -2, out=out)
     else:
         out = gathered_features[emg].max(-2)[0]
@@ -529,48 +531,51 @@ with torch.no_grad():
 insize = (96, 144, 208)
 target_faces = np.load(icofile)[f'ico-7-faces']
 source_mapping = np.load(mappingfile, allow_pickle=True)[f'mapping-6-to-1']
-template = fs.Surface.read(avgfile)
-template_vertices = template.geom.surf2vox().transform(template.vertices)
+
+template = sf.load_mesh(avgfile)
+template_vertices = template.convert(space='vox').vertices
 template_midpoint = np.mean([template_vertices.min(0), template_vertices.max(0)], 0)
 template_vertices = template_vertices[source_mapping]
 
 subjectsdir = args.sdir if args.sdir is not None else os.environ.get('SUBJECTS_DIR')
 if subjectsdir is None:
-    fs.fatal('Must set SUBJECTS_DIR or use --sdir flag.')
+    sf.system.fatal('Must set SUBJECTS_DIR or use --sdir flag.')
+
+print(f'Using subject volume {args.vol}')
 
 for subj in args.subjs:
 
     # load norm and talairach transform
-    norm = fs.Volume.read(os.path.join(subjectsdir, subj, 'mri/norm.mgz'))
-    trf = fs.LinearTransform.read(os.path.join(subjectsdir, subj, 'mri/transforms/talairach.lta'))
+    print(os.path.join(subjectsdir, subj, 'mri', args.vol))
+    norm = sf.load_volume(os.path.join(subjectsdir, subj, 'mri', args.vol))
+    trf = sf.load_affine(os.path.join(subjectsdir, subj, 'mri/transforms/talairach.lta'))
 
     # align template and build cropping
-    corner = np.floor(trf.inverse().transform(template_midpoint) - (np.array(insize) / 2)).astype('int')
+    corner = np.floor(trf.inv().transform(template_midpoint) - (np.array(insize) / 2)).astype('int')
     corner = np.clip(corner, 0, None)
-    in_surf = (trf.inverse().transform(template_vertices) - corner)[np.newaxis]
+    in_surf = (trf.inv().transform(template_vertices) - corner)[np.newaxis]
     cropping = tuple([slice(a, o) for a, o in zip(corner, corner + insize)])
 
     # prepare image
-    cropped = np.clip(norm.data[cropping].astype('float32') / 180.0, 0, 1)
-    if np.array_equal(cropped.shape, insize):
+    cropped = (norm[cropping].astype(np.float32) / 180.0).clip(0, 1)
+    if np.array_equal(cropped.baseshape, insize):
         in_image = cropped
     else:
-        window = tuple([slice(0, s) for s in cropped.shape])
+        window = tuple([slice(0, s) for s in cropped.baseshape])
         in_image = np.zeros(insize, dtype='float32')
-        in_image[window] = cropped
+        in_image[window] = cropped.data
     in_image = in_image[np.newaxis, np.newaxis, ...]
 
     # predict
     with torch.no_grad():
-        in_image = torch.Tensor(in_image)
-        in_surf = torch.Tensor(in_surf)
+        in_image = torch.from_numpy(in_image.astype(np.float32, copy=False))
+        in_surf = torch.from_numpy(in_surf.astype(np.float32, copy=False))
         vertices = model(in_image, in_surf).numpy().squeeze()
 
     # transform back to image space
-    vertices = norm.vox2surf().transform(vertices + corner)
-    surf = fs.Surface(vertices, target_faces, geom=norm.geometry())
+    surf = sf.Mesh(vertices, target_faces, space='vox', geometry=cropped).convert(space='surf', geometry=norm)
 
     # write file
     outfile = os.path.join(subjectsdir, subj, f'surf/{args.hemi}.white.{args.suffix}')
-    surf.write(outfile)
+    surf.save(outfile)
     print(f'Wrote surface to: {outfile}')

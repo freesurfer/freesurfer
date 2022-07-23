@@ -33,6 +33,8 @@ set ijd = ()
 set ikd = ()
 set DCR3 = 0
 set DoPhase = 0;
+set DoSiemensAscii = 1;
+set ForceUpdate = 0;
 
 set RunNos = ();
 set SubDirs = ();
@@ -49,6 +51,11 @@ set VisitNo = ();
 set RunPars = ();
 set GetMax = 0;
 set DoExtraInfo = 0;
+
+set siemensBVecsCross = 0;
+if($?FS_dcmGetDWIParamsSiemens_VoxelSpace) then
+  set siemensBVecsCross = $FS_dcmGetDWIParamsSiemens_VoxelSpace;
+endif
 
 set inputargs = ("$argv");
 set PrintHelp = 0;
@@ -82,7 +89,7 @@ if($#TargetDir) mkdir -p $TargetDir/log
 if($#LF == 0) then
   if($#TargetDir) then
     set LF = $TargetDir/log/dcmunpack.log
-    rm -f $LF
+    if(-e $LF) mv $LF $TargetDir/log/dcmunpack.$$.log
   else
     set LF = /dev/null
   endif
@@ -155,6 +162,9 @@ endif
 if($#infofile == 0) then
   if($#TargetDir) then
     set infofile = $TargetDir/log/imagelist.dat
+    if($SrcInfo != $infofile) then
+      if(-e $infofile) mv $infofile $TargetDir/log/imagelist.$$.dat
+    endif
   else
     set infofile = `fs_temp_file`
   endif
@@ -181,7 +191,9 @@ foreach f ($flist)
   @ mth = $mth + 1;
   #echo "#@# $nth/$#flist `date`" >>& $LF
 
-  mri_probedicom --i $f >& $dumpfile
+  set cmd = (mri_probedicom --i $f)
+  if($DoSiemensAscii == 0) set cmd = ($cmd --no-siemens-ascii)
+  $cmd  >& $dumpfile
   if($status) then
     cat $dumpfile | tee -a $LF
     exit 1;
@@ -284,6 +296,7 @@ set AutoNDrops = ()
 if($#SeriesInfo == 0) then
   if($#TargetDir) then
     set SeriesInfo = $TargetDir/log/series-info.dat
+    if(-e $SeriesInfo) mv $SeriesInfo $TargetDir/log/series-info.$$.dat
   else
     set SeriesInfo = `fs_temp_file --suffix .dat`
   endif
@@ -416,22 +429,29 @@ foreach run ($RunNos)
     set outfname = $outdir/$FName$PhaseStr.$Format
     echo "" |& tee -a $LF
     echo "#@# Run $run `date` ==================================" |& tee -a $LF
-    set cmd = (mri_convert $f $outfname --nskip $NSkip --ndrop $NDrop $itdicom)
-    if($#iid) set cmd = ($cmd -iid $iid);
-    if($#ijd) set cmd = ($cmd -ijd $ijd);
-    if($#ikd) set cmd = ($cmd -ikd $ikd);
-    if($DoFirstDicom) set cmd = ($cmd --first-dicom $outdir/log/$FName.first.dicom.path)
-    if($DCR3) set cmd = ($cmd -dicomread3)
-    echo $cmd |& tee -a $LF
-    $cmd |& tee -a $LF
-    if($status) then
-      if($ExitOnError) then
-        echo "ERROR: a conversion error was detected in Run $run" |& tee -a $LF
-        echo "Either find out why, exclude this run, or run with -no-exit-on-error to continue with other runs" |& tee -a $LF
-        exit 1;
+    set ud = (`UpdateNeeded $outfname $f`)
+    if($ud || $ForceUpdate) then
+      set cmd = (mri_convert $f $outfname --nskip $NSkip --ndrop $NDrop $itdicom)
+      if($#iid) set cmd = ($cmd -iid $iid);
+      if($#ijd) set cmd = ($cmd -ijd $ijd);
+      if($#ikd) set cmd = ($cmd -ikd $ikd);
+      if($DoFirstDicom) set cmd = ($cmd --first-dicom $outdir/log/$FName.first.dicom.path)
+      if($DCR3) set cmd = ($cmd -dcm2niix)
+      if($siemensBVecsCross)   set cmd = ($cmd -siemensBVecsCross)
+      if(! $siemensBVecsCross) set cmd = ($cmd -no-siemensBVecsCross)
+      echo $cmd |& tee -a $LF
+      $cmd |& tee -a $LF
+      if($status) then
+        if($ExitOnError) then
+          echo "ERROR: a conversion error was detected in Run $run" |& tee -a $LF
+          echo "Either find out why, exclude this run, or run with -no-exit-on-error to continue with other runs" |& tee -a $LF
+          exit 1;
+        endif
+        echo "ERROR: a conversion error was detected in Run $run, but ExitOnError=1 so continuing to next run" |& tee -a $LF
+        @ ErrorsFound = $ErrorsFound + 1;
       endif
-      echo "ERROR: a conversion error was detected in Run $run, but ExitOnError=1 so continuing to next run" |& tee -a $LF
-      @ ErrorsFound = $ErrorsFound + 1;
+    else
+      echo "$outfname does not need updating" | tee -a $LF
     endif
     if($DoFirstDicom) then
       set cmd = (cp `cat $outdir/log/$FName.first.dicom.path` $outdir/$FName.first.dcm)
@@ -460,8 +480,15 @@ foreach run ($RunNos)
   if($DoInfoDump) then
     set f = `cat $infofile | awk -v r=$run '{if($2 == r) print $11}' | head -n 1`
     set dumpfile = $outdir/log/$FName-infodump.dat
-    mri_probedicom --i $f > $dumpfile |& tee -a $LF
-    if($status) cat $dumpfile | tee -a $LF
+    set ud = (`UpdateNeeded $dumpfile $f`)
+    if($ud || $ForceUpdate) then
+      set cmd = (mri_probedicom --i $f)
+      if($DoSiemensAscii == 0) set cmd = ($cmd --no-siemens-ascii)
+      $cmd >& $dumpfile 
+      if($status) cat $dumpfile | tee -a $LF
+    else
+      echo "$dumpfile does not need updating" | tee -a $LF
+    endif
   endif
 
   if($DoFIPS) then
@@ -721,6 +748,14 @@ while( $#argv != 0 )
     case "-dcm2niix":
     case "-dcr3":
       set DCR3 = 1;
+      set DoSiemensAscii = 0; # Newer dicoms do not have ascii
+      breaksw
+
+    case "-siemensBVecsCross"
+      set siemensBVecsCross = 1;
+      breaksw
+    case "-no-siemensBVecsCross"
+      set siemensBVecsCross = 0;
       breaksw
 
     case "-phase":
@@ -728,6 +763,14 @@ while( $#argv != 0 )
       breaksw
     case "-no-phase":
       set DoPhase = 0;
+      breaksw
+
+    case "-siemens-ascii":
+      set DoSiemensAscii = 1;
+      breaksw
+    case "-no-siemens-ascii":
+      # Newer dicoms do not have ascii and cause mri_probedicom to fail
+      set DoSiemensAscii = 0;
       breaksw
 
     case "-max":
@@ -789,6 +832,14 @@ while( $#argv != 0 )
     case "-no-exit-on-error":
       # continue to unpack data even if there is an error in coversion
       set ExitOnError = 0;
+      breaksw
+
+    case "-force-update":
+      set ForceUpdate = 1
+      breaksw
+
+    case "-no-force-update":
+      set ForceUpdate = 0
       breaksw
 
     case "-run-skip":
@@ -895,6 +946,24 @@ if($DoUnpack) then
 
 endif
 
+# This controls how the bvecs are computed. Previously, the function
+# called dcmGetDWIParamsSiemens() would attempt to convert the bvecs
+# to voxel space on a slice-by-slice basis; this was problematic
+# because the slice normal was not known so it was computed using a
+# cross product; but the cross product has a sign ambiguity that
+# turned out to be wrong when det<0. Now, by default, this function
+# will leave the bvecs in scanner space, then convert them to voxel
+# space once the final vox2ras is known. If one wants to override this
+# behavior and revert back to using the cross, then use
+# -siemensBVecsCross. Note that if
+# FS_dcmGetDWIParamsSiemens_VoxelSpace is already set,
+# siemensBVecsCross will be set to that value (which can then be
+# overridden with -siemensBVecsCross or -no-siemensBVecsCross)
+if($siemensBVecsCross) then
+  setenv FS_dcmGetDWIParamsSiemens_VoxelSpace 1;
+else
+  unsetenv FS_dcmGetDWIParamsSiemens_VoxelSpace
+endif
 
 goto check_params_return;
 ############--------------##################
@@ -939,10 +1008,12 @@ usage_exit:
   echo "   -generic : do not use fs-fast hierarchy"
   echo "   -copy-only"
   echo "   -no-convert : do not convert to output format"
+  echo "   -force-update : convert even if output is newer than the input dicom"
   echo "   -max : print out max in given dicom file"
   echo "   -base : report filename without path"
   echo "   -key keystring : put keystring before each run line (good for searching)"
   echo "   -index-out index.out.dat : save index of files to index.out.dat (for re-use)"
+  echo "     this file will also be stored in targetdir/log/imagelist.dat"
   echo "   -index-in  index.dat : read index of files (can make things much faster on 2nd run) "
   echo "   -itdicom : add -it dicom to mri_convert cmd line"
   echo "   -no-exit-on-error : continue to unpack data even if there is an error in coversion"

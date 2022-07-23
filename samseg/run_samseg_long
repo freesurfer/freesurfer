@@ -1,13 +1,14 @@
 #!/usr/bin/env python
 
 import os
-import freesurfer as fs
+import argparse
+import surfa as sf
 import freesurfer.samseg as samseg
 
 
 # ------ Parse Command Line Arguments ------
 
-parser = fs.utils.ArgumentParser()
+parser = argparse.ArgumentParser()
 
 default_threads = int(os.environ.get('OMP_NUM_THREADS', 1))
 
@@ -24,6 +25,8 @@ parser.add_argument('--lesion-mask-pattern', type=int, nargs='+', help='Lesion m
 # optional processing options
 parser.add_argument('-m', '--mode', nargs='+', help='Output basenames for the input image mode.')
 parser.add_argument('-a', '--atlas', metavar='DIR', help='Point to an alternative atlas directory.')
+parser.add_argument('--deformation-hyperprior', type=float, default=20.0, help='Strength of the latent deformation hyperprior.')
+parser.add_argument('--gmm-hyperprior', type=float, default=0.5, help='Strength of the latent GMM hyperprior.')
 parser.add_argument('--save-warp', action='store_true', help='Save the image->template warp fields.')
 parser.add_argument('--save-mesh', action='store_true', help='Save the final mesh of each timepoint in template space.')
 parser.add_argument('--save-posteriors', nargs='*', help='Save posterior volumes to the "posteriors" subdirectory.')
@@ -40,11 +43,11 @@ args = parser.parse_args()
 
 # Make sure more than 1 timepoint was specified
 if len(args.timepoint) == 1:
-    fs.fatal('must provide more than 1 timepoint')
+    sf.system.fatal('must provide more than 1 timepoint')
 
 # Make sure freesurfer has been sourced
-if not fs.fshome():
-    fs.fatal('FREESURFER_HOME must be set')
+if not os.environ.get('FREESURFER_HOME'):
+    sf.system.fatal('FREESURFER_HOME must be set')
 
 # Create the output folder
 os.makedirs(args.output, exist_ok=True)
@@ -62,13 +65,13 @@ if not atlasDir:
         defaultAtlas = '20Subjects_smoothing2_down2_smoothingForAffine2_lesion'
     else:
         defaultAtlas = '20Subjects_smoothing2_down2_smoothingForAffine2'
-    atlasDir = os.path.join(fs.fshome(), 'average', 'samseg', defaultAtlas)
+    atlasDir = os.path.join(os.environ.get('FREESURFER_HOME'), 'average', 'samseg', defaultAtlas)
 
 # Setup the visualization tool
 visualizer = samseg.initVisualizer(args.showfigs, args.movie)
 
 # Start the process timer
-timer = fs.utils.Timer()
+timer = samseg.Timer()
 
 # Check if --save-posteriors was specified without any structure search string
 if args.save_posteriors is not None and len(args.save_posteriors) == 0:
@@ -86,6 +89,8 @@ samseg_kwargs = dict(
     targetSearchStrings=['Cerebral-White-Matter'],
     modeNames=args.mode,
     pallidumAsWM=(not args.pallidum_separate),
+    strengthOfLatentDeformationHyperprior=args.deformation_hyperprior,
+    strengthOfLatentGMMHyperprior=args.gmm_hyperprior,
     savePosteriors=savePosteriors,
     saveMesh=args.save_mesh,
     saveHistory=args.history,

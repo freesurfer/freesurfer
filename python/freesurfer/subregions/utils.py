@@ -1,7 +1,7 @@
 import os
 import scipy.ndimage
 import numpy as np
-import freesurfer as fs
+import surfa as sf
 
 from freesurfer import samseg
 
@@ -11,10 +11,10 @@ def run(cmd):
     Run a command in a bash shell. Output is silenced, but is printed if an error occurs.
     """
     print(f'Running command: {cmd}')
-    output, ret = fs.utils.collect_output(cmd)
+    output, ret = sf.system.collect_output(cmd)
     if ret != 0:
         print(output)
-        fs.fatal('Command failed')
+        sf.system.fatal('Command failed')
 
 
 def spherical_strel(radius, pixsize=1.0):
@@ -36,11 +36,11 @@ def read_compression_lookup_table(filename):
     in a tuple, although we can probably re-extract this info from the labelMapping
     object down the road.
     """
-    labelMapping = fs.LookupTable()
+    labelMapping = sf.LabelLookup()
     labels, names, colors = samseg.kvlReadCompressionLookupTable(filename)
     labels = np.array(labels)
     for label, name, color in zip(labels, names, colors):
-        labelMapping.add(label, name, color)
+        labelMapping[label] = (name, color)
     return (labelMapping, names, labels)
 
 

@@ -2,7 +2,7 @@ import os
 import shutil
 import numpy as np
 import scipy.ndimage
-import freesurfer as fs
+import surfa as sf
 
 from freesurfer import samseg
 from freesurfer.subregions import utils
@@ -12,7 +12,7 @@ from freesurfer.subregions.core import MeshModel
 class ThalamicNuclei(MeshModel):
 
     def __init__(self, **kwargs):
-        atlasDir = os.path.join(fs.fshome(), 'average/ThalamicNuclei/atlas')
+        atlasDir = os.path.join(os.environ.get('FREESURFER_HOME'), 'average/ThalamicNuclei/atlas')
         super().__init__(atlasDir=atlasDir, **kwargs)
 
         # Model thalamus with two components
@@ -49,7 +49,7 @@ class ThalamicNuclei(MeshModel):
         # Atlas alignment target is a masked segmentation
         match_labels = [self.THlabelLeft, self.THlabelRight, self.DElabelLeft, self.DElabelRight]
         mask = np.isin(self.inputSeg.data, match_labels).astype('float32') * 255
-        self.atlasAlignmentTarget = self.inputSeg.copy(mask)
+        self.atlasAlignmentTarget = self.inputSeg.new(mask)
 
         # Now, the idea is to refine the transform based on the thalamus + ventral DE
         # First, we prepare a modifided SEG that we'll segment
@@ -96,19 +96,19 @@ class ThalamicNuclei(MeshModel):
         # Now, create a mask with DE merged into thalamus. This will be the
         # synthetic image used for initial mesh fitting
         segMerged = self.inputSeg.copy()
-        segMerged.data[segMerged.data == self.DElabelLeft] = self.THlabelLeft
-        segMerged.data[segMerged.data == self.DElabelRight] = self.THlabelRight
+        segMerged[segMerged == self.DElabelLeft] = self.THlabelLeft
+        segMerged[segMerged == self.DElabelRight] = self.THlabelRight
         self.synthImage = segMerged
 
         # And also used for image cropping around the thalamus
-        thalamicMask = (segMerged.data == self.THlabelLeft) | (segMerged.data == self.THlabelRight)
-        fixedMargin = int(np.round(15 / np.mean(self.inputSeg.voxsize)))
-        imageCropping = segMerged.copy(thalamicMask).bbox(margin=fixedMargin)
+        thalamicMask = (segMerged == self.THlabelLeft) | (segMerged == self.THlabelRight)
+        fixedMargin = int(np.round(15 / np.mean(self.inputSeg.geom.voxsize)))
+        imageCropping = segMerged.new(thalamicMask).bbox(margin=fixedMargin)
 
         # Lastly, use it to make the image mask
         struct = np.ones((3, 3, 3))
-        mask = scipy.ndimage.morphology.binary_dilation(self.synthImage.data > 1, structure=struct, iterations=2)
-        imageMask = self.synthImage.copy(mask)
+        mask = scipy.ndimage.morphology.binary_dilation(self.synthImage > 1, structure=struct, iterations=2)
+        imageMask = self.synthImage.new(mask)
 
         # Mask and convert to the target resolution
         images = []
@@ -116,17 +116,18 @@ class ThalamicNuclei(MeshModel):
 
             # FS python library does not have cubic interpolation yet, so we'll use mri_convert
             tempFile = os.path.join(self.tempDir, 'tempImage.mgz')
-            image[imageCropping].write(tempFile)
+            image[imageCropping].save(tempFile)
             utils.run(f'mri_convert {tempFile} {tempFile} -odt float -rt cubic -vs {self.resolution} {self.resolution} {self.resolution}')
-            image = fs.Volume.read(tempFile)
+            image = sf.load_volume(tempFile)
             
             # Resample and apply the image mask in high-resolution target space
-            imageMask = imageMask.resample_like(image, interp_method='nearest')
-            image.data[imageMask.data == 0] = 0            
+            imageMask = imageMask.resample_like(image, method='nearest')
+            image[imageMask == 0] = 0            
             images.append(image.data)
+            self.longMask = imageMask
 
         # Define the pre-processed target image
-        self.processedImage = image.copy(np.stack(images, axis=-1))
+        self.processedImage = image.new(np.stack(images, axis=-1))
 
     def postprocess_segmentation(self):
         """
@@ -135,23 +136,23 @@ class ThalamicNuclei(MeshModel):
 
         # Recode segmentation
         A = self.discreteLabels.copy()
-        A.data[(A.data < 100) & (A.data != 10) & (A.data != 49) ] = 0
+        A[(A < 100) & (A != 10) & (A != 49) ] = 0
 
         # Kill reticular labels
         leftReticular = self.labelMapping.search('Left-R', exact=True)
         rightReticular = self.labelMapping.search('Right-R', exact=True)
-        A.data[A.data == leftReticular] = 0
-        A.data[A.data == rightReticular] = 0
+        A[A == leftReticular] = 0
+        A[A == rightReticular] = 0
 
         # Get only connected components (sometimes the two thalami are not connected)
-        left = utils.get_largest_cc((A.data < 8200) & ((A.data > 100) | (A.data == self.THlabelLeft)))
-        right = utils.get_largest_cc((A.data > 8200) | (A.data == self.THlabelRight))
+        left = utils.get_largest_cc((A < 8200) & ((A > 100) | (A == self.THlabelLeft)))
+        right = utils.get_largest_cc((A > 8200) | (A == self.THlabelRight))
         cc_mask = left | right
-        A.data[cc_mask == 0] = 0
+        A[cc_mask == 0] = 0
 
         segFilePrefix = os.path.join(self.outDir, f'ThalamicNuclei{self.fileSuffix}')
-        A.write(segFilePrefix + '.mgz')
-        A.resample_like(self.inputSeg, interp_method='nearest').write(segFilePrefix + '.FSvoxelSpace.mgz')
+        A.save(segFilePrefix + '.mgz')
+        A.resample_like(self.inputSeg, method='nearest').save(segFilePrefix + '.FSvoxelSpace.mgz')
 
         # Prune the volumes to what we care about (also let's leave reticular 'R' out)
         validLabels = ['L-Sg', 'LGN', 'MGN', 'PuI', 'PuM', 'H', 'PuL',
@@ -269,20 +270,20 @@ class ThalamicNuclei(MeshModel):
                 listMask = labels
             
             if len(listMask) > 0:
-                MASK = np.zeros(DATA.data.shape, dtype='bool')
+                MASK = np.zeros(DATA.shape, dtype='bool')
                 for l in range(len(listMask)):
                     # Ensure that this uses a modified segmentation
-                    MASK = MASK | (self.inputSeg.data == listMask[l])
-                radius = np.round(1 / np.mean(DATA.voxsize))
+                    MASK = MASK | (self.inputSeg == listMask[l])
+                radius = np.round(1 / np.mean(DATA.geom.voxsize))
                 MASK = scipy.ndimage.morphology.binary_erosion(MASK, utils.spherical_strel(radius), border_value=1)
-                total_mask = MASK & (DATA.data > 0)
-                data = DATA.data[total_mask]
+                total_mask = MASK & (DATA > 0)
+                data = DATA[total_mask]
                 meanHyper[g] = np.median(data)
                 if any(labels == 28):
                     # Special case: VDE is kind of bimodal in FreeSurfer
                     nHyper[g] = 10
                 else:
-                    nHyper[g] = 10 + len(data) * np.prod(DATA.voxsize) / (self.resolution ** 3)
+                    nHyper[g] = 10 + len(data) * np.prod(DATA.geom.voxsize) / (self.resolution ** 3)
 
         # If any NaN, replace by background
         # ATH: I don't there would ever be NaNs here?

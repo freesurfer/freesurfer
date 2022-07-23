@@ -1095,6 +1095,20 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = 6;
       exit(0);
     } 
+    else if (!strcmp(option, "--fill")) {
+      // Remove islands and holes. Voxels not removed or filled are unchanged
+      // --fill invol outvol matchval
+      if(nargc < 3) argnerr(option,3);
+      MRI *mri = MRIread(pargv[0]);
+      int matchval;
+      sscanf(pargv[2],"%d",&matchval);
+      MRI *tmpvol = MRIremoveVolumeIslands(mri, matchval-0.5, matchval+0.5, NULL);
+      MRI *outvol = MRIremoveVolumeHoles(tmpvol, 0.5, 1, matchval, NULL);
+      MRIfree(&tmpvol);
+      int err = MRIwrite(outvol,pargv[1]);
+      MRIfree(&outvol);
+      exit(err);
+    } 
     else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if (singledash(option))
@@ -1173,6 +1187,7 @@ static void print_usage(void) {
   printf("\n");
   printf("   --synth   synthfunc (uniform,loguniform,gaussian)\n");
   printf("   --diag diagno : set diagnostic level\n");
+  printf("   --fill invol outvol matchval (stand-alone to remove islands and holes)\n");
   printf("   --help    : how to use this program \n");
   printf("\n");
 }

@@ -150,7 +150,7 @@ static fsPointSet::Point sras2ras(MRIS* surf, fsPointSet::Point point)
     // quick way to get the sras2ras matrix by using RASFromSurfaceRAS_ with a tmp volume
     MRI* tmp = MRIallocHeader(surf->vg.width, surf->vg.height, surf->vg.depth, MRI_UCHAR, 1);
     MRIcopyVolGeomToMRI(tmp, &surf->vg);
-    sras2ras_matrix = RASFromSurfaceRAS_(tmp);
+    sras2ras_matrix = RASFromSurfaceRAS_(tmp,NULL);
     MRIfree(&tmp);
     // allocate input and output vectors
     v1 = VectorAlloc(4, MATRIX_REAL);

@@ -1283,6 +1283,9 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
     this->AddScript( QStringList("view") << sa[0]);
   }
 
+  if ( parser->Found("orthographic"))
+    AddScript(QStringList("setorthographic"));
+
   if ( parser->Found( "zoom", &sa ) )
   {
     bool bOK;
@@ -1582,14 +1585,14 @@ void MainWindow::OnIdle()
   ui->actionLoadDTIVolumes  ->setEnabled( !bBusy );
   ui->actionLoadVolume      ->setEnabled( !bBusy );
   ui->actionLoadROI         ->setEnabled( !bBusy && layerVolume );
-  ui->actionLoadPointSet    ->setEnabled( !bBusy && layerVolume );
+  ui->actionLoadPointSet    ->setEnabled( !bBusy && (layerVolume  || layerSurface));
   ui->actionLoadSurface     ->setEnabled( !bBusy );
   ui->actionLoadTrackVolume ->setEnabled( !bBusy );
   ui->actionLoadTrack       ->setEnabled( !bBusy );
   ui->actionLoadTractCluster->setEnabled( !bBusy );
   ui->actionNewVolume       ->setEnabled( layerVolume );
   ui->actionNewROI          ->setEnabled( layerVolume );
-  ui->actionNewPointSet     ->setEnabled( layerVolume );
+  ui->actionNewPointSet     ->setEnabled( layerVolume || layerSurface );
   ui->actionRepositionSurface->setEnabled( layerSurface );
   ui->actionSmoothSurface   ->setEnabled( layerSurface );
   ui->actionRemoveIntersectionsSurface->setEnabled(layerSurface);
@@ -1867,6 +1870,10 @@ void MainWindow::RunScript()
   else if ( cmd == "settrackrender")
   {
     CommandSetTrackRender( sa );
+  }
+  else if (cmd == "setorthographic")
+  {
+    m_views[3]->SetParallelProjection(true);
   }
   else if ( cmd == "screenshot" )
   {
@@ -3667,9 +3674,9 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
         }
         else if ( subOption == "affinexfm")
         {
-	  // The LTA can point in either direction as MRISltaMultiply() 
-	  // will determine the right direction if it can
-	  sup_options["affinexform_filename"] = subArgu;
+          // The LTA can point in either direction as MRISltaMultiply()
+          // will determine the right direction if it can
+          sup_options["affinexform_filename"] = subArgu;
         }
         else if ( subOption == "edgethickness"|| subOption == "edge_thickness" )
         {
@@ -5191,7 +5198,7 @@ void MainWindow::SetCurrentFile( const QString &fileName, int type )
   }
 
   settings.setValue( key, files);
-  settings.sync();
+  //  settings.sync();
 
   foreach (QWidget *widget, QApplication::topLevelWidgets())
   {
@@ -6169,7 +6176,7 @@ void MainWindow::OnNewPointSet(bool bSilent)
 {
   LayerCollection* col_mri = GetLayerCollection( "MRI" );
   LayerMRI* layer_mri = ( LayerMRI* )col_mri->GetActiveLayer();
-  if ( !layer_mri)
+  if (!layer_mri && !GetActiveLayer("Surface"))
   {
     QMessageBox::warning( this, "Error", "Can not create new ROI without volume template.");
     return;
@@ -6188,8 +6195,22 @@ void MainWindow::OnNewPointSet(bool bSilent)
       col_wp->SetWorldVoxelSize( col_mri->GetWorldVoxelSize() );
       col_wp->SetSlicePosition( col_mri->GetSlicePosition() );
     }
-    LayerPointSet* layer_wp = new LayerPointSet( bSilent? ((LayerMRI*)GetActiveLayer("MRI")) : dlg.GetTemplate(),
-                                                 bSilent? LayerPropertyPointSet::Enhanced : dlg.GetType() );
+    LayerPointSet* layer_wp;
+    if (bSilent)
+    {
+      if (layer_mri)
+        layer_wp = new LayerPointSet( layer_mri, LayerPropertyPointSet::Enhanced);
+      else
+        layer_wp = new LayerPointSet( (LayerSurface*)GetActiveLayer("Surface"), LayerPropertyPointSet::Enhanced);
+    }
+    else
+    {
+      LayerMRI* mri = dlg.GetTemplate();
+      if (mri)
+        layer_wp = new LayerPointSet( dlg.GetTemplate(), dlg.GetType() );
+      else
+        layer_wp = new LayerPointSet(dlg.GetTemplateSurface(), dlg.GetType());
+    }
     if (!bSilent)
       layer_wp->SetName( dlg.GetPointSetName() );
     col_wp->AddLayer( layer_wp );
@@ -6212,7 +6233,12 @@ void MainWindow::LoadPointSetFile( const QString& fn, int type, const QVariantMa
 {
   LayerCollection* col_mri = GetLayerCollection( "MRI" );
   LayerMRI* mri = ( LayerMRI* )col_mri->GetActiveLayer();
-  LayerPointSet * wp = new LayerPointSet( mri, type );
+  LayerSurface* surf = (LayerSurface*)GetActiveLayer("Surface");
+  LayerPointSet * wp;
+  if (mri)
+    wp = new LayerPointSet( mri, type );
+  else
+    wp = new LayerPointSet(surf, type);
   wp->SetName( QFileInfo( fn ).fileName() );
   if ( wp->LoadFromFile( fn ) )
   {
@@ -6419,6 +6445,7 @@ void MainWindow::LoadSurfaceFile( const QString& filename, const QString& fn_pat
   QFileInfo fi( filename );
   m_strLastDir = fi.absolutePath();
   LayerSurface* layer = new LayerSurface( m_layerVolumeRef );
+  layer->SetDisplayInNeurologicalView(((RenderView2D*)m_views[0])->GetNeurologicalView());
   connect(layer, SIGNAL(CurrentVertexChanged(int)), m_wndGroupPlot, SLOT(SetCurrentVertex(int)), Qt::UniqueConnection);
   connect(ui->treeWidgetCursorInfo, SIGNAL(VertexChangeTriggered(int)), m_wndGroupPlot, SLOT(SetCurrentVertex(int)), Qt::UniqueConnection);
   connect(layer, SIGNAL(SurfaceOverlyDataUpdated()), ui->treeWidgetCursorInfo, SLOT(UpdateAll()), Qt::UniqueConnection);
@@ -7289,7 +7316,6 @@ void MainWindow::SetVolumeColorMap( int nColorMap, int nColorMapScale, const QLi
   {
     LayerPropertyMRI* p = layer->GetProperty();
     p->SetColorMap( (LayerPropertyMRI::ColorMapType) nColorMap );
-    bool bMidToMin = m_settings["AutoSetMidToMin"].toBool();
     if (!scales_in.isEmpty())
     {
       QList<double> scales = scales_in;
@@ -7320,9 +7346,10 @@ void MainWindow::SetVolumeColorMap( int nColorMap, int nColorMapScale, const QLi
         }
         else if ( scales.size() == 2 )
         {
-          p->SetHeatScaleAutoMid(true, bMidToMin);
-          p->SetHeatScaleMinThreshold( scales[0], bMidToMin );
-          p->SetHeatScaleMaxThreshold( scales[1], bMidToMin );
+          p->SetHeatScaleAutoMid(true);
+          p->SetHeatScaleSetMidToMin(true);
+          p->SetHeatScaleMinThreshold( scales[0]);
+          p->SetHeatScaleMaxThreshold( scales[1]);
         }
         else if ( !scales.empty() )
         {
@@ -8662,6 +8689,7 @@ void MainWindow::CommandLoadFCD(const QStringList& cmd )
 void MainWindow::LoadFCD(const QString &subdir, const QString &subject, const QString& suffix)
 {
   LayerFCD* layer = new LayerFCD(m_layerVolumeRef);
+  layer->SetDisplayInNeurologicalView(((RenderView2D*)m_views[0])->GetNeurologicalView());
   connect( layer->GetWorkerThread(), SIGNAL(Progress(int)), m_statusBar, SLOT(SetProgress(int)));
   connect( layer->GetWorkerThread(), SIGNAL(started()), m_statusBar, SLOT(ShowProgress()));
   connect( layer->GetWorkerThread(), SIGNAL(finished()), m_statusBar, SLOT(HideProgress()));
@@ -8722,23 +8750,23 @@ void MainWindow::UpdateSettings()
     foreach (QString key, keys)
       m_settings[key] = map[key];
 
-    if (old["AutoSetMidToMin"].toBool() != m_settings["AutoSetMidToMin"].toBool())
-    {
-      QList<Layer*> layers = GetLayers("MRI");
-      foreach (Layer* l, layers)
-      {
-        LayerMRI* mri = (LayerMRI*)l;
-        if (mri->GetProperty()->GetHeatScaleAutoMid())
-        {
-          double dMin = mri->GetProperty()->GetHeatScaleMinThreshold();
-          double dMax = mri->GetProperty()->GetHeatScaleMaxThreshold();
-          if (m_settings["AutoSetMidToMin"].toBool())
-            mri->GetProperty()->SetHeatScaleMidThreshold(dMin);
-          else
-            mri->GetProperty()->SetHeatScaleMidThreshold((dMin+dMax)/2);
-        }
-      }
-    }
+    //    if (old["AutoSetMidToMin"].toBool() != m_settings["AutoSetMidToMin"].toBool())
+    //    {
+    //      QList<Layer*> layers = GetLayers("MRI");
+    //      foreach (Layer* l, layers)
+    //      {
+    //        LayerMRI* mri = (LayerMRI*)l;
+    //        if (mri->GetProperty()->GetHeatScaleAutoMid())
+    //        {
+    //          double dMin = mri->GetProperty()->GetHeatScaleMinThreshold();
+    //          double dMax = mri->GetProperty()->GetHeatScaleMaxThreshold();
+    //          if (m_settings["AutoSetMidToMin"].toBool())
+    //            mri->GetProperty()->SetHeatScaleMidThreshold(dMin);
+    //          else
+    //            mri->GetProperty()->SetHeatScaleMidThreshold((dMin+dMax)/2);
+    //        }
+    //      }
+    //    }
 
     ui->actionDeleteLayer->setVisible(m_settings["AllowDeleteKey"].toBool());
   }
@@ -8902,7 +8930,7 @@ void MainWindow::OnToolSaveCamera()
   QString fn = QFileDialog::getSaveFileName(this, "Save Camera", m_strLastDir, "All files (*)");
   if (!fn.isEmpty())
   {
-    QVariantMap cam = ui->view3D->GetCamera();
+    QVariantMap cam = ui->view3D->GetCameraInfo();
     QFile file(fn);
     if (file.open(QIODevice::WriteOnly))
     {
@@ -9081,6 +9109,7 @@ void MainWindow::LoadSphereLeftRightIfNeeded(LayerSurface *sf)
   if (QFile::exists(fullpath))
   {
     LayerSurface* layer = new LayerSurface( m_layerVolumeRef );
+    layer->SetDisplayInNeurologicalView(((RenderView2D*)m_views[0])->GetNeurologicalView());
     layer->SetFileName( fullpath );
     QVariantMap args;
     args["hidden"] = true;
@@ -9723,8 +9752,8 @@ void MainWindow::OnSaveLabelAsVolume()
 
   int nVal = sender()->property("label_value").toInt();
   QString fn = QFileDialog::getSaveFileName( this, "Save volume",
-                                       QFileInfo( layer_mri->GetFileName() ).absolutePath(),
-                                       "Volume files (*.mgz *.mgh *.nii *.nii.gz *.img *.mnc);;All files (*)");
+                                             QFileInfo( layer_mri->GetFileName() ).absolutePath(),
+                                             "Volume files (*.mgz *.mgh *.nii *.nii.gz *.img *.mnc);;All files (*)");
   if ( !fn.isEmpty() )
   {
     layer_mri->setProperty("label_value", nVal);
@@ -9810,4 +9839,23 @@ void MainWindow::OnDeleteLayer()
     OnCloseROI();
   else if (type == "PointSet")
     OnClosePointSet();
+}
+
+void MainWindow::SetNeurologicalView(bool b)
+{
+  QList<Layer*> layers = GetLayers("Surface");
+  foreach (Layer* layer, layers)
+  {
+    ((LayerSurface*)layer)->SetDisplayInNeurologicalView(b);
+  }
+  layers = GetLayers("FCD");
+  foreach (Layer* layer, layers)
+  {
+    ((LayerFCD*)layer)->SetDisplayInNeurologicalView(b);
+  }
+
+  for (int i = 0; i < 3; i++)
+  {
+    ((RenderView2D*)m_views[i])->SetNeurologicalView(b);
+  }
 }

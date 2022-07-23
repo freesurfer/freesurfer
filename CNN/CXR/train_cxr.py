@@ -8,9 +8,7 @@ from sklearn.utils import class_weight
 from nibabel import processing as nip
 import numpy as np
 import scipy.ndimage.morphology as morph
-import freesurfer.deeplearn as fsd
-from freesurfer.deeplearn import utils, pprint
-import freesurfer as fs
+import surfa as sf
 import os,socket
 from netshape import *
 from dipy.align.reslice import reslice
@@ -18,7 +16,7 @@ import neuron as ne
 import voxelmorph as vxm
 from netparms import *
 from freesurfer import deeplearn as fsd
-from freesurfer.deeplearn.utils import WeightsSaver, ModelSaver
+from freesurfer.deeplearn.utils import WeightsSaver, ModelSaver, utils, pprint
 import imageio
 
 cwd = os.getcwd()
@@ -124,12 +122,12 @@ if 0:
     bg2 = BatchGenerator(os.path.join(idir, 'images'),images, batch_size=batch_size,return_warp=False, bidir=bidir)
     inb,outb = next(bg2)
     p = affine_model.predict(inb)
-    fv = fs.Freeview()
-    fv.vol(np.transpose(inb[0][...,0], (1,2,0)), name='src')
-    fv.vol(np.transpose(inb[1][...,0], (1,2,0)), name='trg')
+    fv = sf.vis.Freeview()
+    fv.add_image(np.transpose(inb[0][...,0], (1,2,0)), name='src')
+    fv.add_image(np.transpose(inb[1][...,0], (1,2,0)), name='trg')
     if isinstance(p, list):
         p = p[0]
-    fv.vol(np.transpose(p[...,0], (1,2,0)), name='p')
+    fv.add_image(np.transpose(p[...,0], (1,2,0)), name='p')
     fv.show()
     affine_pred_model = affine_model.get_predictor_model()
     affine = affine_pred_model.predict(inb)
@@ -177,15 +175,15 @@ if 1:
     affine_p = affine_model.predict(inb)
     if isinstance(affine_p, list):
         affine_p = affine_p[0]
-    fv = fs.Freeview()
-    fv.vol(np.transpose(src, (1,2,0,3)), name='src')
-    fv.vol(np.transpose(trg, (1,2,0,3)), name='trg')
+    fv = sf.vis.Freeview()
+    fv.add_image(np.transpose(src, (1,2,0,3)), name='src')
+    fv.add_image(np.transpose(trg, (1,2,0,3)), name='trg')
     if which_loss == 'tukey':
         name = 'pred.rigid.%s.%s.sym.%s.affine.%s' % (str(rigid),str(which_loss)+str(tukey_c),str(symmetrize),str(train_affine))
     else:
         name = 'pred.rigid.%s.%s.sym.%s.affine.%s' % (str(rigid),str(which_loss),str(symmetrize),str(train_affine))
-    fv.vol(np.transpose(affine_p, (1,2,0,3)), name='affine'+name)
-    fv.vol(np.transpose(nl_p, (1,2,0,3)), name='NL'+name)
+    fv.add_image(np.transpose(affine_p, (1,2,0,3)), name='affine'+name)
+    fv.add_image(np.transpose(nl_p, (1,2,0,3)), name='NL'+name)
     fv.show()
     affine_pred_model = affine_model.get_predictor_model()
     affine = affine_pred_model.predict(inb)

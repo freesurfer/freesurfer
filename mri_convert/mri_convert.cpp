@@ -486,11 +486,14 @@ int main(int argc, char *argv[])
     {
       sphinx_flag = TRUE;
     }
+    /* This option is not needed. 
+       Rescale factors are automatically detected in sdcmLoadVolume() and DICOMRead2().
     else if (strcmp(argv[i], "--rescale-dicom") == 0 )
     {
       // DO  apply rescale intercept and slope based on (0028,1052) (0028,1053).
       setenv("FS_RESCALE_DICOM","1",1);
     }
+    */
     else if (strcmp(argv[i], "--no-rescale-dicom") == 0 )
     {
       // Do NOT apply rescale intercept and slope based on (0028,1052) (0028,1053).
@@ -1158,6 +1161,14 @@ int main(int argc, char *argv[])
     else if(strcmp(argv[i], "-dicomread0") == 0)
     {
       UseDICOMRead2 = 0;
+    }
+    else if(strcmp(argv[i], "-siemensBVecsCross") == 0)
+    {
+      setenv("FS_dcmGetDWIParamsSiemens_VoxelSpace","1",1);
+    }
+    else if(strcmp(argv[i], "-no-siemensBVecsCross") == 0)
+    {
+      unsetenv("FS_dcmGetDWIParamsSiemens_VoxelSpace");
     }
     else if(strcmp(argv[i], "-ot") == 0 ||
             strcmp(argv[i], "--out_type") == 0)
@@ -3081,9 +3092,16 @@ int main(int argc, char *argv[])
 		  Progname, transform_fname) ;
       if (invert_transform_flag == 0)
       {
+        /*GCA_MORPH *gcam = (GCA_MORPH *)tran->xform ;
+        if (mri->width  != gcam->atlas.width  ||
+            mri->height != gcam->atlas.height ||
+            mri->depth  != gcam->atlas.depth) {
+          ErrorExit(ERROR_BADPARM, "input MRI sizes are different from m3z");
+	  }*/
+ 
         printf("morphing to atlas with resample type %d\n", resample_type_val) ;
         mri_transformed =
-           GCAMmorphToAtlas(mri, (GCA_MORPH *)tran->xform, NULL, 0, resample_type_val) ;
+           GCAMmorphToAtlas(mri, (GCA_MORPH *)tran->xform, NULL, -1, resample_type_val) ;
 	useVolGeomToMRI(&((GCA_MORPH *)tran->xform)->atlas, mri_template) ;
       }
       else // invert
@@ -3172,7 +3190,9 @@ int main(int argc, char *argv[])
                               tmp2,
                               NULL );
     // now get the values (tri-linear)
-    MRIlinearTransform(mri, mri_transformed, src2dst);
+    //MRIlinearTransform(mri, mri_transformed, src2dst);
+    // respect --resample_type <resample_type_val>
+    MRIlinearTransformInterp(mri, mri_transformed, src2dst, resample_type_val);
     MatrixFree(&src2dst);
     MatrixFree( &tmp2 );
     MRIfree(&mri);

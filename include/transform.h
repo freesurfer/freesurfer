@@ -23,26 +23,9 @@
 #include "matrix.h"
 #include "const.h"
 #include "float.h"
+#include "mri.h"
 
 typedef enum { MINC, TKREG, GENERIC, UNKNOWN=-1 } TransformType;
-
-typedef struct
-{
-  int           valid;   /* whether this is a
-                                    valid info or not (1 valid, 0 not valid) */
-  int           width ;
-  int           height ;
-  int           depth ;
-  float         xsize ;
-  float         ysize ;
-  float         zsize ;
-  float         x_r, x_a, x_s;
-  float         y_r, y_a, y_s;
-  float         z_r, z_a, z_s;
-  float         c_r, c_a, c_s;
-  char          fname[STRLEN];  // volume filename
-}
-VOL_GEOM, VG;
 
 typedef struct
 {
@@ -70,7 +53,6 @@ typedef struct
   char              subject[STRLEN];// for tkregister2
 } LINEAR_TRANSFORM_ARRAY, LTA ;
 
-#include "mri.h"
 typedef struct
 {
   int        type ;
@@ -228,6 +210,7 @@ MATRIX *vg_r_to_i(const VOL_GEOM *vg);
 #define vg_getVoxelToRasXform vg_i_to_r
 MATRIX *TkrVox2RASfromVolGeom(const VOL_GEOM *vg);
 MATRIX *TkrRAS2VoxfromVolGeom(const VOL_GEOM *vg);
+MATRIX *VGtkreg2RAS(VOL_GEOM *vg, MATRIX *tkreg2ras);
 
 int TransformCopyVolGeomToMRI(TRANSFORM *transform, MRI *mri);
 
@@ -297,10 +280,10 @@ public:
   std::vector<int> svtxno, tvtxno; // vertex numbers when reading STVP file
   int ReadCoords(void);
   int ReadSTVPairFile(std::string stvpairfile);
+  int ReadJsonPair(std::string jsonfile1,std::string jsonfile2);
   int PrintXYZ(FILE *fp, std::vector<std::vector<double>> xyz);
   MATRIX *ComputeReg(MATRIX *R);
   LTA *ComputeLTA(void);
 };
-
 
 #endif

@@ -131,6 +131,13 @@ public:
     m_bIgnoreZeros = b;
   }
 
+  bool GetAutoMidToMin()
+  {
+    return m_bAutoMidToMin;
+  }
+
+  void SetAutoMidToMin(bool b);
+
 //  void MapOverlayColor( unsigned char* colordata, int nPoints );
   void MapOverlayColor( float* data, unsigned char* colordata, int nPoints );
   void MapOverlayColorSymmetric( float* data, unsigned char* colordata, int nPoints );
@@ -197,6 +204,7 @@ private:
   int         m_nSmoothSteps;
   bool        m_bUsePercentile;
   bool        m_bIgnoreZeros;
+  bool        m_bAutoMidToMin;
 
   SurfaceLabel* m_mask;
   unsigned char* m_maskData;

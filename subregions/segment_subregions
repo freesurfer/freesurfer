@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
 import os
-import freesurfer as fs
+import argparse
+import surfa as sf
 from freesurfer import subregions
 
 
@@ -14,19 +15,17 @@ the thalamic nuclei, for example, in a cross-sectional analysis:
 
 Similarly, for a longitudinal analysis, run:
 
-    segment_subregions thalamus --long-base base \\ 
-                        --long-tps m00.long.base m24.long.base
+    segment_subregions thalamus --long-base base
 
-where each argument to --long-tps represents a subject timepoint.
-Output segmentations and computed structure volumes will be
-saved to the subject's `mri` subdirectory.
+Timepoints are extracted from the base-tps file in the `base`
+subject. Output segmentations and computed structure volumes
+will be saved to the subject's `mri` subdirectory.
 '''
 
-parser = fs.utils.ArgumentParser(description=description)
+parser = argparse.ArgumentParser(description=description)
 parser.add_argument('structure', help=f'Structure to segment. Options are: {", ".join(subregions.structure_names)}.')
 parser.add_argument('--cross', help='Subject to segment in cross-sectional analysis.')
-parser.add_argument('--long-tps', nargs='+', help='Subject timepoints to segment in longitudinal analysis.')
-parser.add_argument('--long-base', help='Base subject for longitudinal analysis.')
+parser.add_argument('--long-base', help='Base subject for longitudinal analysis. Timepoints are extracted from the base-tps file.')
 parser.add_argument('--sd', help='Specify subjects directory (will override SUBJECTS_DIR env variable).')
 parser.add_argument('--suffix', default='', help='Optional output file suffix.')
 parser.add_argument('--temp-dir', help='Use alternative temporary directory. This will get deleted unless --debug is enabled.')
@@ -36,24 +35,22 @@ parser.add_argument('--threads', type=int, default=1, help='Number of threads to
 args = parser.parse_args()
 
 # Make sure freesurfer has been sourced
-if not fs.fshome():
-    fs.fatal('FREESURFER_HOME must be set!')
+if not os.environ.get('FREESURFER_HOME'):
+    sf.system.fatal('FREESURFER_HOME must be set!')
 
 # Specify the maximum number of threads the GEMS code will use
 subregions.set_thread_count(args.threads)
 
 # Sanity check on process type
-if args.cross and (args.long_base or args.long_tps):
-    fs.fatal('Cannot specify arguments for both cross-sectional and longitudinal processing')
-if not args.cross and not args.long_base and not args.long_tps:
-    fs.fatal('Must specify inputs for either cross-sectional or longitudinal processing')
-if (args.long_base or args.long_tps) and not (args.long_base and args.long_tps):
-    fs.fatal('Must provide both --long-tps and --long-base arguments for longitudinal processing')
+if args.cross and args.long_base:
+    sf.system.fatal('Cannot specify arguments for both cross-sectional and longitudinal processing')
+if not args.cross and not args.long_base:
+    sf.system.fatal('Must specify inputs for either cross-sectional or longitudinal processing')
 
 # Get the subjects directory
 subjects_dir = args.sd if args.sd is not None else os.environ.get('SUBJECTS_DIR')
 if subjects_dir is None:
-    fs.fatal('Subjects directory must be set by --sd or the SUBJECTS_DIR env var')
+    sf.system.fatal('Subjects directory must be set by --sd or the SUBJECTS_DIR env var')
     
 # Input volumes types. This should be extended later on to accept multiple and variable inputs images
 input_image_types = ['norm.mgz']
@@ -89,7 +86,7 @@ for side in sides:
             'inputImageFileNames': [os.path.join(subjdir, 'mri', i) for i in input_image_types],
             'inputSegFileName': os.path.join(subjdir, 'mri', input_seg_type),
             'outDir': out_dir if out_dir else os.path.join(subjdir, 'mri'),
-            'tempDir': args.temp_dir,
+            'tempDir': temp_dir,
         })
         if args.structure == 'hippo-amygdala':
             # Provide some extra data for hippocampal subregions
@@ -103,5 +100,8 @@ for side in sides:
     else:
         # Longitudinal analysis
         baseParameters = config_subj_params(args.long_base, temp_subdir=f'base')
-        tpParameters = [config_subj_params(subj, temp_subdir=f'tp{t:02d}') for t, subj in enumerate(args.long_tps)]
+        with open(os.path.join(subjects_dir, args.long_base, 'base-tps'), 'r') as file:
+            long_tps = [f'{tp}.long.{args.long_base}' for tp in file.read().splitlines() if tp]
+        print('Using longitudinal timepoints:', ' '.join(long_tps), '\n')
+        tpParameters = [config_subj_params(subj, temp_subdir=f'tp{t:02d}') for t, subj in enumerate(long_tps)]
         subregions.run_longitudinal(args.structure, baseParameters, tpParameters)

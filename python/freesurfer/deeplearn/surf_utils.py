@@ -268,8 +268,8 @@ def load_func_and_spheres(spaths, base_dir, func_dir, sdir1, sphere_name, hemi, 
         if pad > 0:
             #mrisp_geom = padSphere(mrisp_geom, pad)
             #mrisp_func = padSphere(mrisp_func, pad)
-            mrisp_geom = pad_2d_image_spherically(mrisp_geom, pad_size=pad)
-            mrisp_func = pad_2d_image_spherically(mrisp_func, pad_size=pad)
+            mrisp_geom = pad_2d_image_spherically(mrisp_geom[np.newaxis,...], pad_size=pad)[0,...]
+            mrisp_func = pad_2d_image_spherically(mrisp_func[np.newaxis,...], pad_size=pad)[0,...]
 
         if len(mrisp_func.shape) == 2:
             mrisp_func = mrisp_func[...,np.newaxis] # add a channels dimension
@@ -280,137 +280,6 @@ def load_func_and_spheres(spaths, base_dir, func_dir, sdir1, sphere_name, hemi, 
         mrisps_func.append(mrisp_func)
 
     return([mrisps_geom, mrisps_func, spheres, snames])
-
-
-def mrisp_semi_gen(mrisps_geom, mrisps_func, batch_size=4, use_rand=True, func_thresh=0, warp_downsize=1):
-    ndata = len(mrisps_geom)
-    mrisp_shape = mrisps_geom[0].shape[0:2]
-    ngeom = mrisps_geom[0].shape[-1]
-    nfunc = mrisps_func[0].shape[-1]
-    batch_moving = np.zeros((batch_size, *mrisp_shape, ngeom))
-    batch_fixed = np.zeros((batch_size, *mrisp_shape, ngeom))
-    batch_moving_func = np.zeros((batch_size, *mrisp_shape, nfunc))
-    batch_fixed_func = np.zeros((batch_size, *mrisp_shape, nfunc))
-    zero_warp = np.zeros((batch_size, *tuple(np.array(mrisp_shape)//warp_downsize), 2))
-    if use_rand == False:
-        ind_moving = 0
-        ind_fixed = ndata-1
-
-    while True:
-        for bno in range(batch_size):
-            if use_rand:
-                ind_moving = np.random.randint(0, ndata)
-                ind_fixed = np.random.randint(0, ndata)
-            else:
-                ind_moving = np.mod(ind_moving+1, ndata)
-                ind_fixed = np.mod(ind_fixed-1, ndata)
-
-            batch_fixed[bno, ...] = mrisps_geom[ind_fixed]
-            batch_moving[bno, ...] = mrisps_geom[ind_moving]
-            batch_fixed_func[bno, ...] = mrisps_func[ind_fixed]
-            batch_moving_func[bno, ...] = mrisps_func[ind_moving]
-        
-        inputs = [batch_moving, batch_fixed, batch_moving_func]
-        outputs = [batch_fixed, zero_warp, batch_fixed_func]
-        yield inputs, outputs
-
-def mrisp_stacked_gen(mrisps_geom, mrisps_func, batch_size=4, use_rand=True, func_thresh=0, warp_downsize=1, bidir=False):
-    ndata = len(mrisps_geom)
-    mrisp_shape = mrisps_geom[0].shape[0:2]
-    ngeom = mrisps_geom[0].shape[-1]
-    nfunc = mrisps_geom[0].shape[-1]
-    nfunc = mrisps_func[0].shape[-1]
-    batch_moving = np.zeros((batch_size, *mrisp_shape, ngeom+nfunc))
-    batch_fixed = np.zeros((batch_size, *mrisp_shape, ngeom+nfunc))
-    zero_warp = np.zeros((batch_size, *tuple(np.array(mrisp_shape)//warp_downsize), 2))
-    if use_rand == False:
-        ind_moving = 0
-        ind_fixed = ndata-1
-
-    while True:
-        for bno in range(batch_size):
-            if use_rand:
-                ind_moving = np.random.randint(0, ndata)
-                ind_fixed = np.random.randint(0, ndata)
-            else:
-                ind_moving = np.mod(ind_moving+1, ndata)
-                ind_fixed = np.mod(ind_fixed-1, ndata)
-
-            batch_fixed[bno, ..., 0:ngeom] = mrisps_geom[ind_fixed]
-            batch_fixed[bno, ..., ngeom:] = mrisps_func[ind_fixed]
-            batch_moving[bno, ..., 0:ngeom] = mrisps_geom[ind_moving]
-            batch_moving[bno, ..., ngeom:] = mrisps_func[ind_moving]
-        
-        inputs = [batch_moving, batch_fixed]
-        outputs = [batch_fixed, zero_warp]
-        if bidir:
-            outputs += [batch_moving]
-        yield inputs, outputs
-
-def mrisp_stacked_atlas_gen(mrisps_geom, mrisps_func, mrisp_geom_mean, mrisp_func_mean, batch_size=4, use_rand=True, func_thresh=0, warp_downsize=1, bidir=False):
-    ndata = len(mrisps_geom)
-    mrisp_shape = mrisps_geom[0].shape[0:2]
-    ngeom = mrisps_geom[0].shape[-1]
-    nfunc = mrisps_func[0].shape[-1]
-    batch_moving = np.zeros((batch_size, *mrisp_shape, ngeom+nfunc))
-    zero_warp = np.zeros((batch_size, *tuple(np.array(mrisp_shape)//warp_downsize), 2))
-    batch_atlas_geom = np.repeat(mrisp_geom_mean[np.newaxis], batch_size, axis=0)
-    batch_atlas_func = np.repeat(mrisp_func_mean[np.newaxis], batch_size, axis=0)
-    batch_atlas = np.zeros((batch_size, *mrisp_shape, ngeom+nfunc))
-    batch_atlas[...,0:ngeom] = batch_atlas_geom
-    batch_atlas[...,ngeom:] = batch_atlas_func
-
-    if use_rand == False:
-        ind_moving = 0
-        ind_fixed = ndata-1
-
-    while True:
-        for bno in range(batch_size):
-            if use_rand:
-                ind_moving = np.random.randint(0, ndata)
-            else:
-                ind_moving = np.mod(ind_moving+1, ndata)
-
-            batch_moving[bno, ..., 0:ngeom] = mrisps_geom[ind_moving]
-            batch_moving[bno, ..., ngeom:] = mrisps_func[ind_moving]
-        
-        inputs = [batch_moving, batch_atlas]
-        outputs = [batch_atlas, zero_warp]
-        if bidir:
-            outputs += [batch_moving]
-        yield inputs, outputs
-
-def mrisp_semi_atlas_gen(mrisps_geom, mrisps_func, mrisp_geom_mean, mrisp_func_mean, batch_size=4, use_rand=True, func_thresh=0, warp_downsize=1):
-    ndata = len(mrisps_geom)
-    mrisp_shape = mrisps_geom[0].shape[0:2]
-    ngeom = mrisps_geom[0].shape[-1]
-    nfunc = mrisps_func[0].shape[-1]
-
-    batch_moving = np.zeros((batch_size, *mrisp_shape, ngeom))
-    batch_moving_func = np.zeros((batch_size, *mrisp_shape, nfunc))
-
-    batch_atlas_geom = np.repeat(mrisp_geom_mean[np.newaxis], batch_size, axis=0)
-    batch_atlas_func = np.repeat(mrisp_func_mean[np.newaxis], batch_size, axis=0)
-
-    zero_warp = np.zeros((batch_size, *tuple(np.array(mrisp_shape)//warp_downsize), 2))
-    
-    if use_rand == False:
-        ind_moving = 0
-        ind_fixed = ndata-1
-
-    while True:
-        for bno in range(batch_size):
-            if use_rand:
-                ind = np.random.randint(0, ndata)
-            else:
-                ind = np.mod(ind_moving+1, ndata)
-
-            batch_moving[bno, ...] = mrisps_geom[ind]
-            batch_moving_func[bno, ...] = mrisps_func[ind]
-        
-        inputs = [batch_moving, batch_atlas_geom, batch_moving_func]
-        outputs = [batch_atlas_geom, zero_warp, batch_atlas_func]
-        yield inputs, outputs
 
 
     
@@ -702,10 +571,10 @@ def mrisp_semi_gen(mrisps_geom, mrisps_func, batch_size=4, use_rand=True, func_t
                 ind_moving = np.mod(ind_moving+1, ndata)
                 ind_fixed = np.mod(ind_fixed-1, ndata)
 
-            batch_fixed[bno, ...] = mrisps_geom[ind_fixed]
             batch_moving[bno, ...] = mrisps_geom[ind_moving]
-            batch_fixed_func[bno, ...] = mrisps_func[ind_fixed]
             batch_moving_func[bno, ...] = mrisps_func[ind_moving]
+            batch_fixed[bno, ...] = mrisps_geom[ind_fixed]
+            batch_fixed_func[bno, ...] = mrisps_func[ind_fixed]
         
         inputs = [batch_moving, batch_fixed, batch_moving_func]
         outputs = [batch_fixed, zero_warp, batch_fixed_func]
@@ -777,9 +646,13 @@ def mrisp_stacked_atlas_gen(mrisps_geom, mrisps_func, mrisp_geom_mean, mrisp_fun
             outputs += [batch_moving]
         yield inputs, outputs
 
-def mrisp_semi_atlas_gen(mrisps_geom, mrisps_func, mrisp_geom_mean, mrisp_func_mean, batch_size=4, use_rand=True, func_thresh=0, warp_downsize=1):
+def mrisp_semi_atlas_gen(mrisps_geom, mrisps_func, mrisp_geom_mean, mrisp_func_mean, batch_size=4, use_rand=True, func_thresh=0, 
+                         warp_downsize=1, aug_types=[], noise_max=.4, fmri_noise=None):
     ndata = len(mrisps_geom)
     mrisp_shape = mrisps_geom[0].shape[0:2]
+    mrisp_shape_nopad = np.array([2,2])**np.log2(mrisp_shape).astype(int)
+    pads = (mrisp_shape - mrisp_shape_nopad) // 2
+    pad = pads[0]
     ngeom = mrisps_geom[0].shape[-1]
     nfunc = mrisps_func[0].shape[-1]
 
@@ -802,8 +675,23 @@ def mrisp_semi_atlas_gen(mrisps_geom, mrisps_func, mrisp_geom_mean, mrisp_func_m
             else:
                 ind = np.mod(ind_moving+1, ndata)
 
-            batch_moving[bno, ...] = mrisps_geom[ind]
-            batch_moving_func[bno, ...] = mrisps_func[ind]
+            mrisp_func = mrisps_func[ind]
+            mrisp = mrisps_geom[ind]
+            if len(aug_types) > 0:
+                mrisp_func = mrisp_func[pad:-pad, pad:-pad, :]
+                mrisp = mrisp[pads[0]:-pads[0], pads[1]:-pads[1], :]
+                mrisp, mrisp_func = nes.py.utils.augment_image(mrisp, types=aug_types, noise_max=noise_max, aux_ims=mrisp_func,
+                                                               trans_fov_div=mrisp_shape_nopad[0]//2, channels=1, spherical=True)
+                mrisp = padSphere(mrisp, pad)
+                mrisp_func = padSphere(mrisp_func, pad)
+                
+            if fmri_noise is not None:
+                mrisp_func = nes.py.utils.augment_image(mrisp_func, types=['noise'], noise_max=fmri_noise,
+                                                        channels=1, spherical=True)
+
+
+            batch_moving[bno, ...] = mrisp
+            batch_moving_func[bno, ...] = mrisp_func
         
         inputs = [batch_moving, batch_atlas_geom, batch_moving_func]
         outputs = [batch_atlas_geom, zero_warp, batch_atlas_func]
@@ -875,7 +763,7 @@ def fsgen(mrisps_geom, mrisp_atlas, batch_size=8, use_rand=True, warp_downsize=1
         yield inputs, outputs
 
 
-def fsgen_segreg(mrisps_geom, mrisp_atlas, mrisps_annot, batch_size=8, use_rand=True, warp_downsize=1, mean_stream=True, use_logprob=False):
+def fsgen_segreg(mrisps_geom, mrisp_atlas, mrisps_annot, batch_size=8, use_rand=True, warp_downsize=1, mean_stream=True, use_logprob=False, log_target=10):
     mrisp_shape = mrisps_geom[0].shape[0:2]
     nclasses = mrisps_annot[0].shape[-1]
 
@@ -893,13 +781,11 @@ def fsgen_segreg(mrisps_geom, mrisp_atlas, mrisps_annot, batch_size=8, use_rand=
 
     zero_warp = np.zeros((batch_size, *tuple(np.array(mrisp_shape)//warp_downsize), 2))
 
-    if use_logprob:  # expand annots to be [-100:100] instead of [0,1]
-        mrisps_annot = copy.deepcopy(mrisps_annot)
-        for mrisp in mrisps_annot:
-            ind0 = np.nonzero(mrisp == 0)
-            ind1 = np.nonzero(mrisp == 1)
-            mrisp[ind0] = -10
-            mrisp[ind1] = 10
+    if use_logprob:  # expand annots to be [-10:00] instead of [0,1]
+        mrisps_annot_log = np.ones((len(mrisps_annot),) + mrisps_annot[0].shape) * log_target
+        for mno, mrisp in enumerate(tqdm(mrisps_annot_log)):
+            ind0 = np.nonzero(mrisps_annot[mno] == 0)
+            mrisp[ind0] = -log_target
 
     while True:
         for bno in range(batch_size):

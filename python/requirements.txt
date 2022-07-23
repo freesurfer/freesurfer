@@ -1,5 +1,6 @@
-six
-nibabel
-numpy
-scipy
-pyyaml
+six==1.15.0
+nibabel==3.2.2
+numpy==1.19.5
+scipy==1.5.4
+pyyaml==6.0
+surfa==0.1.0

@@ -1,6 +1,7 @@
 import os
 import numpy as np
-import freesurfer as fs
+import datetime as dt
+import surfa as sf
 
 from freesurfer import samseg
 from freesurfer.subregions import utils
@@ -25,7 +26,7 @@ def get_model_class(structure):
     model_class = model_lookup.get(structure)
     if model_class is None:
         options = ', '.join(model_lookup.keys())
-        fs.fatal(f'Unknown structure type `{structure}`. Available options are: {options}.')
+        sf.system.fatal(f'Unknown structure type `{structure}`. Available options are: {options}.')
     return model_class
 
 
@@ -33,49 +34,54 @@ def run_cross_sectional(structure, parameters):
     """
     Run full cross-sectional processing
     """
-    total_timer = fs.utils.Timer()
+    start_time = dt.datetime.now()
 
     # Construct model
     model = get_model_class(structure)(**parameters)
 
     # Preprocess
-    timer = fs.utils.Timer()
+    last_time = dt.datetime.now()
     print(f'Step 1: preprocessing inputs for {structure} segmentation')
     model.initialize()
-    print(f'Preprocessing took {timer.elapsed.seconds} seconds\n')
+    elapsed = dt.datetime.now() - last_time
+    print(f'Preprocessing took {elapsed.seconds} seconds\n')
 
     # Atlas alignment
-    timer = fs.utils.Timer()
+    last_time = dt.datetime.now()
     print('Step 2: aligning atlas to reference segmentation')
     model.align_atlas_to_seg()
-    print(f'Initial atlas alignment took {timer.elapsed.seconds} seconds\n')
+    elapsed = dt.datetime.now() - last_time
+    print(f'Initial atlas alignment took {elapsed.seconds} seconds\n')
 
     # Fit to seg
-    timer = fs.utils.Timer()
+    last_time = dt.datetime.now()
     print('Step 3: fitting mesh to reference segmentation')
     model.prepare_for_seg_fitting()
     model.fit_mesh_to_seg()
-    print(f'Initial mesh fitting took {timer.elapsed.seconds} seconds\n')
+    elapsed = dt.datetime.now() - last_time
+    print(f'Initial mesh fitting took {elapsed.seconds} seconds\n')
 
     # Fit to image
-    timer = fs.utils.Timer()
+    last_time = dt.datetime.now()
     print('Step 4: fitting mesh to image')
     model.prepare_for_image_fitting()
     model.fit_mesh_to_image()
-    print(f'Mesh fitting took {timer.elapsed.seconds} seconds\n')
+    elapsed = dt.datetime.now() - last_time
+    print(f'Mesh fitting took {elapsed.seconds} seconds\n')
 
     # Finalize
     model.extract_segmentation()
     model.postprocess_segmentation()
     model.cleanup()
-    print(f'\nSegmentation complete! Process took {total_timer.elapsed.seconds / 60:.2f} minutes')
+    elapsed = dt.datetime.now() - start_time
+    print(f'\nSegmentation complete! Process took {elapsed.seconds / 60:.2f} minutes')
 
 
 def run_longitudinal(structure, baseParameters, tpParameters):
     """
     Run full longitudinal processing
     """
-    total_timer = fs.utils.Timer()
+    start_time = dt.datetime.now()
 
     # Construct base and timepoint models
     modelClass = get_model_class(structure)
@@ -83,90 +89,108 @@ def run_longitudinal(structure, baseParameters, tpParameters):
     tpModels = [modelClass(**params) for params in tpParameters]
 
     # Preprocess inputs
-    timer = fs.utils.Timer()
+    last_time = dt.datetime.now()
     print(f'Step 1: preprocessing all inputs for {structure} segmentation')
+    baseModel.isLong = True
+    baseModel.fileSuffix = '.long' + baseModel.fileSuffix
     baseModel.initialize()
     for tpModel in tpModels:
+        tpModel.isLong = True
+        tpModel.fileSuffix = '.long' + tpModel.fileSuffix
         tpModel.initialize()
-    print(f'Preprocessing took {timer.elapsed.seconds} seconds\n')
+    elapsed = dt.datetime.now() - last_time
+    print(f'Preprocessing took {elapsed.seconds} seconds\n')
 
     # Atlas alignment
-    timer = fs.utils.Timer()
+    last_time = dt.datetime.now()
     print('Step 2: aligning atlas to base reference segmentation')
     baseModel.align_atlas_to_seg()
-    print(f'Initial base atlas alignment took {timer.elapsed.seconds} seconds\n')
+    elapsed = dt.datetime.now() - last_time
+    print(f'Initial base atlas alignment took {elapsed.seconds} seconds\n')
 
     # Here we compute an affine aligment of the time points to the base based
     # solely on the segmentation. We need to remember the determinant of the
     # transform - we'll need to divide the final volume estimates by it.
-    timer = fs.utils.Timer()
+    last_time = dt.datetime.now()
     print('Step 3: aligning timepoint segmentations to base')
 
     # First save the cropped base masks
-    mask = baseModel.atlasAlignmentTarget.crop_to_bbox(margin=6)
-    mask.data = mask.data.astype('float32') * 255
+    mask = baseModel.atlasAlignmentTarget.crop_to_bbox(margin=6).astype('float32')
     baseMaskFile = os.path.join(baseModel.tempDir, 'binaryMaskCropped.mgz')
-    mask.write(baseMaskFile)
+    mask.save(baseMaskFile)
 
     # This is our target resampled image that all timepoints should be resampled to
     baseProcessedFile = os.path.join(baseModel.tempDir, 'processedImage.mgz')
-    baseModel.processedImage.write(baseProcessedFile)
+    baseModel.processedImage.save(baseProcessedFile)
 
     # Now align each TP to the base
     baseTransforms = []
     for tpModel in tpModels:
         # Save the cropped timepoint masks
-        mask = tpModel.atlasAlignmentTarget.crop_to_bbox(margin=6)
-        mask.data = mask.data.astype('float32') * 255
+        mask = tpModel.atlasAlignmentTarget.crop_to_bbox(margin=6).astype('float32')
         maskFile = os.path.join(tpModel.tempDir, 'binaryMaskCropped.mgz')
-        mask.write(maskFile)
+        mask.save(maskFile)
         
         # Run the actual registration and load the transform
         transformFile = os.path.join(tpModel.tempDir, 'toBase.lta')
         movedFile = os.path.join(tpModel.tempDir, 'alignedToBase.mgz')
         utils.run(f'mri_robust_register --mov {maskFile} --dst {baseMaskFile} --lta {transformFile} --mapmovhdr {movedFile} --affine --sat 50 -verbose 0')
-        baseTransforms.append(fs.LinearTransform.read(transformFile))
+        baseTransforms.append(sf.load_affine(transformFile))
 
         # Resample the inputs in processed base space
         # Again, since we don't have cubic interpolation yet in the python utils, let's just use mri_convert
-        correctedImageFile = os.path.join(tpModel.tempDir, 'correctedImage.mgz')
         resampledFile = os.path.join(tpModel.tempDir, 'resampledImage.mgz')
-        tpModel.correctedImages[0].write(correctedImageFile)  # ATH this will need to be adapted for multi-image inputs
-        utils.run(f'mri_convert {correctedImageFile} {resampledFile} -odt float -rl {baseProcessedFile} -rt cubic -at {transformFile}')
-        tpModel.processedImage = fs.Volume.read(resampledFile)
+        # ATH this will need to be adapted for multi-image inputs...
+        utils.run(f'mri_convert {tpModel.inputImageFileNames[0]} {resampledFile} -odt float -rl {baseProcessedFile} -rt cubic -at {transformFile}')
+        tpModel.processedImage = sf.load_volume(resampledFile)
+        tpModel.processedImage[baseModel.longMask == 0] = 0
 
         # Since we're now working in base-space, we can reuse the base-aligned atlas for every timepoint
         tpModel.alignedAtlas = baseModel.alignedAtlas
 
-    print(f'Timepoint alignment took {timer.elapsed.seconds} seconds\n')
+    elapsed = dt.datetime.now() - last_time
+    print(f'Timepoint alignment took {elapsed.seconds} seconds\n')
 
     # Okay, now we fit the mesh to the base segmentation
-    timer = fs.utils.Timer()
+    last_time = dt.datetime.now()
     print('Step 4: fitting mesh to base segmentation')
     baseModel.prepare_for_seg_fitting()
     baseModel.fit_mesh_to_seg()
-    print(f'Initial mesh fitting took {timer.elapsed.seconds} seconds\n')
+
+    # This doesn't actually do anything but it's useful for mimicking the matlab code
+    for n, tpModel in enumerate(tpModels):
+        tpModel.atlasMeshFileName = baseModel.warpedMeshFileName
+        tpModel.cheatingMeshSmoothingSigmas = []
+        tpModel.prepare_for_seg_fitting()
+        tpModel.fit_mesh_to_seg()
+
+    elapsed = dt.datetime.now() - last_time
+    print(f'Initial mesh fitting took {elapsed.seconds} seconds\n')
 
     # Global loop: atlas estimation
-    timer = fs.utils.Timer()
+    last_time = dt.datetime.now()
     print('Step 5: global mesh fitting')
 
     # Prepare the base for image fitting so that we can extract some mesh information
-    baseModel.prepare_for_image_fitting()
+    baseModel.prepare_for_image_fitting(compute_hyps=False)
     atlasPositions = baseModel.meshCollection.get_mesh(-1).points
     subjectAtlasPositions = baseModel.mesh.points
 
     # Now that we've the mesh to the base segmentation mask, we
     # should use this mesh collection in the timepoint models
-    for tpModel in tpModels:
-        tpModel.warpedMeshFileName = baseModel.warpedMeshFileName
+    for n, tpModel in enumerate(tpModels):
+
         tpModel.originalAlphas = baseModel.originalAlphas
-        tpModel.prepare_for_image_fitting()
+        tpModel.prepare_for_image_fitting(compute_hyps=False)
 
         # We should keep the masking consistent across timepoints
         tpModel.workingMask = baseModel.workingMask
         tpModel.maskIndices = baseModel.maskIndices
         tpModel.workingImage.data[tpModel.workingMask.data == 0] = 0
+
+        # compute hyperparameters with base mesh
+        tpModel.reducedAlphas = baseModel.reducedAlphas
+        tpModel.meanHyper, tpModel.nHyper = tpModel.get_gaussian_hyps(baseModel.sameGaussianParameters, baseModel.mesh)
 
     # Gather initial subject timepoint mesh positions
     subjectTPpositions = [tpModel.mesh.points for tpModel in tpModels]
@@ -180,8 +204,7 @@ def run_longitudinal(structure, baseParameters, tpParameters):
     mesh.alphas = baseModel.reducedAlphas
 
     # Start the global iterations
-    maxGlobalLongIterations = 5
-    for globalIteration in range(maxGlobalLongIterations):
+    for globalIteration in range(baseModel.maxGlobalLongIterations):
 
         print(f'\nGlobal iteration {globalIteration + 1}: estimating subject-specific atlas\n')
 
@@ -217,7 +240,7 @@ def run_longitudinal(structure, baseParameters, tpParameters):
             print('  '.join(iteration_info))
 
             if np.isnan(minLogLikelihoodTimesPrior):
-                fs.error('minLogLikelihoodTimesPrior is NaN')
+                print('error: minLogLikelihoodTimesPrior is NaN')
 
             # Check if we need to stop
             if maximalDeformation <= maximalDeformationStopCriterion:
@@ -227,8 +250,10 @@ def run_longitudinal(structure, baseParameters, tpParameters):
         # Update positions
         subjectAtlasPositions = meshSA.points
         baseModel.meshCollection.set_positions(atlasPositions, [subjectAtlasPositions])
+        baseModel.meshCollection.k = baseModel.meshStiffness
         for t, tpModel in enumerate(tpModels):
             tpModel.meshCollection.set_positions(subjectAtlasPositions, [subjectTPpositions[t]])
+            tpModel.meshCollection.k = tpModel.meshStiffness
     
         # Now let's fit each timepoint
         for t, tpModel in enumerate(tpModels):
@@ -244,18 +269,26 @@ def run_longitudinal(structure, baseParameters, tpParameters):
             tpModel.fit_mesh_to_image()
 
         # Get updated positions
-        subjectTPpositions = [tpModel.mesh.points for tpModel in tpModels]
+        subjectTPpositions = [tpModel.meshCollection.get_mesh(0).points for tpModel in tpModels]
 
-    print(f'Global mesh fitting took {timer.elapsed.seconds} seconds\n')
+    elapsed = dt.datetime.now() - last_time
+    print(f'Global mesh fitting took {elapsed.seconds} seconds\n')
 
     # Finalize results
     for t, tpModel in enumerate(tpModels):
         tpModel.extract_segmentation()
         # Let's transform (just the header) the output segmentations back to original timepoint space
         trf = baseTransforms[t]
-        tpModel.discreteLabels.affine = trf.inverse().matrix @ tpModel.discreteLabels.affine
+        vox2world = tpModel.inputImages[0].geom.vox2world @ trf.convert(
+                        space='vox',
+                        source=tpModel.inputImages[0],
+                        target=tpModel.discreteLabels).inv()
+        rotation = vox2world.matrix[:3, :3] / tpModel.discreteLabels.geom.voxsize
+        center = np.matmul(vox2world.matrix, np.append(np.asarray(tpModel.discreteLabels.baseshape) / 2, 1))[:3]
+        tpModel.discreteLabels.geom.update(center=center, rotation=rotation)
         # Also, scale the volumes by the determinant of the transform
         det = np.linalg.det(trf.matrix[:3, :3])
+        print(f'Timepoint {t + 1} volume scaling factor: {det}')
         tpModel.volumes = {key: vol / det for key, vol in tpModel.volumes.items()}
         # Do the subclass-defined postprocessing and cleanup
         tpModel.postprocess_segmentation()
@@ -263,4 +296,5 @@ def run_longitudinal(structure, baseParameters, tpParameters):
 
     # Cleanup the base as well
     baseModel.cleanup()
-    print(f'\nSegmentation complete! Process took {total_timer.elapsed.seconds / 60:.2f} minutes')
+    elapsed = dt.datetime.now() - start_time
+    print(f'\nSegmentation complete! Process took {elapsed.seconds / 60:.2f} minutes')

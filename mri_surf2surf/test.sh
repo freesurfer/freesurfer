@@ -11,3 +11,4 @@ test_command mri_surf2surf \
     --trgsurfval bert/surf/lh.thickness
 
 compare_vol bert/surf/lh.thickness bert/surf/lh.ref_thickness
+

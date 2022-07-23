@@ -35,6 +35,7 @@
 #include "mrisurf.h"
 #include "mrisurf_sseTerms.h"
 #include "mrisurf_vals.h"
+#include "mrisurf_project.h"
 
 #include "chklc.h"
 #include "cma.h"
@@ -60,6 +61,8 @@
 #include "mri2.h"
 
 #include "annotation.h"
+
+#include "version.h"
 
 ///////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////
@@ -3819,4 +3822,274 @@ MRIS *MRISupsampleSplit(MRIS *srcsurf, int nupsamples, int SortType)
   unlink(tmpfile);
 
   return(upsurf);
+}
+
+/* This function only supports mris_sphere options -Q, -P, -A, -seed.
+ * mris_sphere calls in recon-all:
+ * mris_sphere -q -p 6 -a 128 -seed 1234 ../surf/lh.inflated.nofix ../surf/lh.qsphere.nofix 
+ * mris_sphere -q -p 6 -a 128 -seed 1234 ../surf/rh.inflated.nofix ../surf/rh.qsphere.nofix
+ *
+ * These static variables are defined in mris_sphere.cpp:
+ *
+ * #define BASE_DT_SCALE     1.0
+ * static float base_dt_scale = BASE_DT_SCALE ;
+ * static int nbrs = 2 ;
+ * static int do_inflate = 0 ;
+ * static double disturb = 0 ;
+ * static int   max_passes = 1 ;
+ * static int   randomly_project = 0 ;
+ * static int   talairach = 0 ;
+ * static float scale = 1.0 ;
+ * static int quick = 0 ;
+ * static int load = 0 ;
+ * static float inflate_area  = 0.0f ;
+ * static float inflate_dt = 0.9 ;
+ * static float inflate_tol  = 1.0f ;
+ * static float inflate_nlarea  = 0.0f ;
+ * static float inflate_spring  = 0.0f ;
+ * static float inflate_tspring = 0 ;
+ * 
+ * static float ralpha = 0.0 ;
+ * static float rbeta = 0.0 ;
+ * static float rgamma = 0.0 ;
+ * 
+ * static double target_radius = DEFAULT_RADIUS ;
+ * #if 0
+ * static int   inflate_avgs = 64 ;
+ * static int   inflate_iterations = 50 ;
+ * static float l_convex = 1.0 ;
+ * static float l_spring_norm = .1 ;
+ * static float l_sphere = 0.25 ;
+ * #else
+ * static int   inflate_avgs = 0 ;
+ * static int   inflate_iterations = 1000 ;
+ * static float l_convex = 1.0 ;
+ * static float l_expand = 0.0 ;
+ * static float l_spring_norm = 1.0 ;
+ * static float l_sphere = 0.025 ;
+ * #endif
+ * 
+ * static const char *orig_name = "smoothwm" ;
+ * static int smooth_avgs = 0 ;
+ * 
+ * static char *xform_fname = NULL ;
+ * static char *vol_fname = NULL ;
+ * 
+ * static int remove_negative = 1 ;
+ * char *rusage_file=NULL;
+ */
+MRIS *MRISQuickSphericalInflate(int max_passes, int n_averages, long seed, MRIS *inSurf, const char *outSurf)
+{
+  double target_radius = DEFAULT_RADIUS ;  // include/mrisurf.h:#define DEFAULT_RADIUS  100.0f
+  float base_dt_scale = 1.0;
+  float scale = 1.0;
+
+  float inflate_area  = 0.0f ;
+  float inflate_dt = 0.9 ;
+  float inflate_tol  = 1.0f ;
+  float inflate_nlarea  = 0.0f ;
+  float inflate_spring  = 0.0f ;
+  float inflate_tspring = 0 ;
+
+  int   inflate_avgs = 0 ;
+  //int   inflate_iterations = 1000 ;
+  float l_convex = 1.0 ;
+  float l_expand = 0.0 ;
+  float l_spring_norm = 1.0 ;
+  float l_sphere = 0.025 ;
+
+  // these are the settings for -Q
+  //int remove_negative = 0;
+  //int quick = 1;
+  //int do_inflate = 1;
+  int inflate_iterations = 300;
+  //int max_passes = 3;
+  int nbrs = 1;
+
+  Timer then ;
+  INTEGRATION_PARMS  parms;
+
+  then.reset();
+
+  // default settings
+  parms.dt = .05 ;
+  parms.projection = PROJECT_ELLIPSOID ;
+  parms.tol = .5 /*1e-1*/ ;
+  parms.n_averages = 1024 ;
+  parms.min_averages = 0 ;
+  parms.l_angle = 0.0 /* L_ANGLE */ ;
+  parms.l_area = 0.0 /* L_AREA */ ;
+  parms.l_neg = 0.0 ;
+  parms.l_dist = 1.0 ;
+  parms.l_spring = 0.0 ;
+  parms.l_area = 1.0 ;
+  parms.l_boundary = 0.0 ;
+  parms.l_curv = 0.0 ;
+  parms.niterations = 25 ;
+  parms.write_iterations = 1000 ;
+  parms.a = parms.b = parms.c = 0.0f ;  /* ellipsoid parameters */
+  parms.dt_increase = 1.01 /* DT_INCREASE */;
+  parms.dt_decrease = 0.99 /* DT_DECREASE*/ ;
+  parms.error_ratio = 1.03 /*ERROR_RATIO */;
+  parms.integration_type = INTEGRATE_LINE_MINIMIZE ;
+  parms.momentum = 0.9 ;
+  parms.desired_rms_height = -1.0 ;
+  parms.base_name[0] = 0 ;
+  parms.Hdesired = 0.0 ;   /* a flat surface */
+  parms.nbhd_size = 7 ;
+  parms.max_nbrs = 8 ;
+
+  // setting for quick spherical unfolding: mris_sphere -Q option
+  fprintf(stderr, "doing quick spherical unfolding.\n");
+  parms.l_spring = parms.l_dist = parms.l_parea = parms.l_area = 0.0 ;
+  parms.l_nlarea = 1.0 ;
+  parms.tol = 1e-1 ;
+  parms.n_averages = 32 ;
+
+  // mris_sphere -P 
+  fprintf(stderr, "limitting unfolding to %d passes\n", max_passes);
+
+  // mris_sphere -A
+  fprintf(stderr, "using n_averages = %d\n", n_averages) ;
+  parms.n_averages = n_averages;
+
+  // mris_sphere -seed
+  setRandomSeed(seed) ;
+  fprintf(stderr,"setting seed for random number genererator to %ld\n", seed) ;
+
+  parms.scale = scale ;
+  parms.base_dt = base_dt_scale * parms.dt ;
+
+  std::cout << "version: " << getVersion() << std::endl;
+
+#ifdef HAVE_OPENMP
+  std::cout << "available threads: " << omp_get_max_threads() << std::endl;
+#endif
+
+  if (parms.base_name[0] == 0 && outSurf != NULL)
+  {
+    char fname[STRLEN];
+    FileNameOnly(outSurf, fname) ;
+    char *cp = strchr(fname, '.') ;
+    if (cp)
+    {
+      strcpy(parms.base_name, cp+1) ;
+    }
+    else
+    {
+      strcpy(parms.base_name, "sphere") ;
+    }
+  }
+
+  float max_dim = MAX(abs(inSurf->xhi-inSurf->xlo), abs(inSurf->yhi-inSurf->ylo)) ;
+  max_dim = MAX(max_dim,abs(inSurf->zhi-inSurf->zlo)) ;
+
+  if (max_dim > .75*DEFAULT_RADIUS)
+  {
+    float ratio = .75*DEFAULT_RADIUS / (max_dim) ;
+    printf("scaling brain by %2.3f...\n", ratio) ;
+    MRISscaleBrain(inSurf, inSurf, ratio) ;
+  }
+
+    fflush(stdout); fflush(stderr);
+    fprintf(stderr, "inflating...\n");
+    fflush(stdout); fflush(stderr);
+
+  // if (!load && do_inflate) 
+  {
+    INTEGRATION_PARMS inflation_parms ;
+
+    MRIScenter(inSurf, inSurf) ;
+    strcpy(inflation_parms.base_name, parms.base_name) ;
+    inflation_parms.write_iterations = parms.write_iterations ;
+    inflation_parms.niterations = inflate_iterations ;
+    inflation_parms.l_spring_norm = l_spring_norm ;
+    inflation_parms.l_spring = inflate_spring ;
+    inflation_parms.l_nlarea = inflate_nlarea ;
+    inflation_parms.l_area = inflate_area ;
+    inflation_parms.n_averages = inflate_avgs ;
+    inflation_parms.l_expand = l_expand ;
+    inflation_parms.l_tspring = inflate_tspring ;
+    inflation_parms.l_sphere = l_sphere ;
+    inflation_parms.l_convex = l_convex ;
+#define SCALE_UP 2
+    inflation_parms.a = SCALE_UP*DEFAULT_RADIUS ;
+    inflation_parms.tol = inflate_tol ;
+    inflation_parms.integration_type = INTEGRATE_MOMENTUM ;
+    inflation_parms.momentum = 0.9 ;
+    inflation_parms.dt = inflate_dt ;
+
+    /* store the inflated positions in the v->c? field so that they can
+      be used in the repulsive term.
+    */
+    /*    inflation_parms.l_repulse_ratio = .1 ;*/
+    MRISsaveVertexPositions(inSurf, CANONICAL_VERTICES) ;
+    if (l_expand > 0)
+    {
+      MRISexpandSurface(inSurf, target_radius/2, &inflation_parms, 0, 1) ;
+      l_expand = parms.l_expand = 0 ;
+    }
+    MRIScenter(inSurf, inSurf) ;
+    inSurf->x0 = inSurf->xctr ;
+    inSurf->y0 = inSurf->yctr ;
+    inSurf->z0 = inSurf->zctr ;
+    MRISinflateToSphere(inSurf, &inflation_parms) ;
+    if (inflation_parms.l_expand > 0)
+    {
+      inflation_parms.l_expand = 0 ;
+      inflation_parms.niterations += (inflate_iterations*.1) ;
+      MRISinflateToSphere(inSurf, &inflation_parms) ;
+    }
+    MRISscaleBrain(inSurf, inSurf, target_radius/(DEFAULT_RADIUS*SCALE_UP)) ;
+    parms.start_t = inflation_parms.start_t ;
+    MRISresetNeighborhoodSize(inSurf, nbrs) ;
+  }
+
+  fs::debug() << "should but doesn't set orig xyz here";
+
+  fprintf(stderr, "projecting onto sphere...\n");
+  MRISprojectOntoSphere(inSurf, inSurf, target_radius) ;
+
+  fprintf(stderr,"surface projected - minimizing metric distortion...\n");
+  MRISsetNeighborhoodSize(inSurf, nbrs) ;
+
+  int const countNegativeFaces   = MRIScountNegativeFaces(inSurf);
+  int const allowedNegativeFaces = nint(.8*inSurf->nfaces);
+  if (countNegativeFaces > allowedNegativeFaces)
+  {
+    printf("!!!!!!!!!  everted surface detected (countNegativeFaces:%d > allowedNegativeFaces:%d) - correcting !!!!!!!!!!!!!!\n", countNegativeFaces, allowedNegativeFaces) ;
+    MRISevertSurface(inSurf) ;
+  }
+
+  MRISprintTessellationStats(inSurf, stderr) ;
+  MRISquickSphere(inSurf, &parms, max_passes) ;
+
+  // if (!load)
+  if (outSurf != NULL)
+  {
+    fflush(stdout); fflush(stderr);
+    fprintf(stderr, "writing spherical brain to %s\n", outSurf) ;
+    fflush(stdout); fflush(stderr);
+    MRISwrite(inSurf, outSurf) ;
+  }
+
+  fflush(stdout); fflush(stderr);
+
+  int msec = then.milliseconds() ;
+  fflush(stdout); fflush(stderr);
+  fprintf(stderr, "spherical transformation took %2.4f hours\n",
+          (float)msec/(1000.0f*60.0f*60.0f));
+  fflush(stdout); fflush(stderr);
+
+  // Output formatted so it can be easily grepped
+#ifdef HAVE_OPENMP
+  int n_omp_threads = omp_get_max_threads();
+  printf("FSRUNTIME@ mris_sphere %7.4f hours %d threads\n",msec/(1000.0*60.0*60.0),n_omp_threads);
+#else
+  printf("FSRUNTIME@ mris_sphere %7.4f hours %d threads\n",msec/(1000.0*60.0*60.0),1);
+#endif
+  printf("#VMPC# mris_sphere VmPeak  %d\n",GetVmPeak());
+  printf("MRISQuickSphericalInflate done\n");
+
+  return inSurf;
 }

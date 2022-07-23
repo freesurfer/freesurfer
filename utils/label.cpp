@@ -652,6 +652,34 @@ int LabelRipRestOfSurface(LABEL *area, MRI_SURFACE *mris)
   MRISremoveRipped(mris);
   return (NO_ERROR);
 }
+
+/*!
+  \fn int LabelRip(MRI_SURFACE *mris, const LABEL *area, const int Outside)
+  Use label to rip vertices and faces. Outside should be 0 or 1.
+  If Outside=1, then vertices outside the label are ripped.
+  If Outside=0, then vertices inside the label are ripped.
+ */
+int LabelRip(MRI_SURFACE *mris, const LABEL *area, const int Outside)
+{
+  int vno, n;
+  VERTEX *v;
+
+  // Make sure ripflag is set to a known value for all vertices
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    v->ripflag = Outside;
+  }
+  // Rip or unrip vertices in the label
+  for (n = 0; n < area->n_points; n++) {
+    vno = area->lv[n].vno;
+    if(vno < 0 || vno >= mris->nvertices) continue;
+    v = &mris->vertices[vno];
+    v->ripflag = !Outside;
+  }
+  // Now ripped the faces
+  MRISsetRipInFacesWithRippedVertices(mris);
+  return (NO_ERROR);
+}
 /*-----------------------------------------------------
         Parameters:
 
@@ -3083,7 +3111,7 @@ int LabelSetVals(MRI_SURFACE *mris, LABEL *area, float fillval)
 LABEL *LabelToScannerRAS(LABEL *lsrc, MRI *mri, LABEL *ldst)
 {
   int i;
-  MATRIX *M_surface_to_RAS = RASFromSurfaceRAS_(mri);
+  MATRIX *M_surface_to_RAS = RASFromSurfaceRAS_(mri,NULL);
   VECTOR *v1, *v2;
 
   if (ldst != lsrc)
@@ -3094,7 +3122,7 @@ LABEL *LabelToScannerRAS(LABEL *lsrc, MRI *mri, LABEL *ldst)
   if (lsrc->coords == LABEL_COORDS_VOXEL)
     LabelToSurfaceRAS(lsrc, mri, ldst) ;
 
-  M_surface_to_RAS = RASFromSurfaceRAS_(mri);
+  M_surface_to_RAS = RASFromSurfaceRAS_(mri,NULL);
   v1 = VectorAlloc(4, MATRIX_REAL);
   v2 = VectorAlloc(4, MATRIX_REAL);
   VECTOR_ELT(v1, 4) = 1.0;
@@ -3122,7 +3150,7 @@ LABEL *LabelToScannerRAS(LABEL *lsrc, MRI *mri, LABEL *ldst)
 LABEL *LabelToSurfaceRAS(LABEL *lsrc, MRI *mri, LABEL *ldst)
 {
   int i;
-  MATRIX *M_surface_to_RAS = RASFromSurfaceRAS_(mri), *M_surface_from_RAS;
+  MATRIX *M_surface_to_RAS = RASFromSurfaceRAS_(mri,NULL), *M_surface_from_RAS;
   VECTOR *v1, *v2;
 
   if (ldst != lsrc)

@@ -168,7 +168,7 @@ if(! $UseTkMedit) then
   if($#CursorCRS) set cmd = ($cmd -slice $CursorCRS)
   if($CenterCursor) set cmd = ($cmd -cc)
   if($#Zoom) set cmd = ($cmd -zoom $Zoom)
-  set cmd = ($cmd $altargs --hide-3d-slices)
+  set cmd = ($cmd $altargs --hide-3d-slices --view coronal)
 else
   ### tkmedit ####----------------------------------------------
   set cmd = tkmedit

@@ -99,11 +99,15 @@ extern int errno;
 MRI::Shape::Shape(const std::vector<int>& shape) {
   // validate dimensions
   int dims = shape.size();
-  if ((dims != 3) && (dims != 4)) fs::fatal() << "volume must be 3D or 4D (provided shape has " << dims << " dimensions)";
+  if ((dims != 3) && (dims != 4)) {
+    fs::fatal() << "MRI::Shape::Shape(): volume must be 3D or 4D (provided shape has " << dims << " dimensions)";
+  }
 
   // validate size
   for (auto const & len : shape) {
-    if (len <= 0) fs::fatal() << "volume size must be greater than 0 in every dimension";
+    if(len <= 0) {
+      fs::fatal() << "MRI::Shape::Shape(): volume size must be greater than 0 in every dimension";
+    }
   }
 
   width = shape[0];
@@ -1688,20 +1692,20 @@ int MRIsetVoxVal2(MRI *mri, int c, int r, int s, int f, float voxval)
 
   switch (mri->type) {
   case MRI_UCHAR:
-    MRIseq_vox(mri, c, r, s, f) = voxval;
+    MRIseq_vox(mri, c, r, s, f) = nint(voxval);
     break;
   case MRI_SHORT:
-    MRISseq_vox(mri, c, r, s, f) = voxval;
+    MRISseq_vox(mri, c, r, s, f) = nint(voxval);
     break;
   case MRI_USHRT:
-    MRIUSseq_vox(mri, c, r, s, f) = voxval;
+    MRIUSseq_vox(mri, c, r, s, f) = nint(voxval);
     break;
   case MRI_RGB:
   case MRI_INT:
-    MRIIseq_vox(mri, c, r, s, f) = voxval;
+    MRIIseq_vox(mri, c, r, s, f) = nint(voxval);
     break;
   case MRI_LONG:
-    MRILseq_vox(mri, c, r, s, f) = voxval;
+    MRILseq_vox(mri, c, r, s, f) = nint(voxval);
     break;
   case MRI_FLOAT:
     MRIFseq_vox(mri, c, r, s, f) = voxval;
@@ -3464,22 +3468,20 @@ MATRIX *surfaceRASFromRAS_(MRI const *mri)
   RASFromSurfaceRAS_(MRI *mri): creates a matrix that converts from
   TkRAS to Scanner RAS (what Tosa called "surface"  RAS). Note:
   intermediate matrices are alloced, inverted, and dealloced, so
-  it might not be a good thing to have inside a loop.
+  it might not be a good thing to have inside a loop. Another name
+  for this might have been MRItkreg2RAS().
   --------------------------------------------------------------*/
-MATRIX *RASFromSurfaceRAS_(MRI const *mri)
+MATRIX *RASFromSurfaceRAS_(MRI const *mri, MATRIX *RASFromSRAS)
 {
-  MATRIX *RASFromSRAS;
-
   MATRIX *Vox2TkRAS, *Vox2RAS;
-
   Vox2RAS   = MRIxfmCRS2XYZ(mri, 0);      // scanner vox2ras
   Vox2TkRAS = MRIxfmCRS2XYZtkreg(mri);  // tkreg vox2ras
   // RASFromSRAS = Vox2RAS * inv(Vox2TkRAS)
-  RASFromSRAS = MatrixInverse(Vox2TkRAS, NULL);
+  RASFromSRAS = MatrixInverse(Vox2TkRAS, RASFromSRAS);
   RASFromSRAS = MatrixMultiply(Vox2RAS, RASFromSRAS, RASFromSRAS);
   MatrixFree(&Vox2RAS);
   MatrixFree(&Vox2TkRAS);
-  return (RASFromSRAS);
+  return(RASFromSRAS);
   /*-----------------------------------------
   // Tosa's code: only works for conformed vols
   RASFromSRAS = MatrixAlloc(4, 4, MATRIX_REAL);
@@ -3523,7 +3525,7 @@ int MRIsurfaceRASToRAS(MRI *mri, double xsr, double ysr, double zsr, double *xr,
   VECTOR *v, *r;
   v = VectorAlloc(4, MATRIX_REAL);
   V4_LOAD(v, xsr, ysr, zsr, 1.);
-  RASFromSurfaceRAS = RASFromSurfaceRAS_(mri);
+  RASFromSurfaceRAS = RASFromSurfaceRAS_(mri,NULL);
   r = MatrixMultiply(RASFromSurfaceRAS, v, NULL);
   *xr = V3_X(r);
   *yr = V3_Y(r);

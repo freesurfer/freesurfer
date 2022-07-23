@@ -94,9 +94,9 @@ class SamsegLesion(Samseg):
 
         structureNumbers = np.flatnonzero(classFractions[classNumber, :] == 1)
         gaussianNumbers = [sum(numberOfGaussiansPerClass[0: classNumber])]
-        if checkStructureOwnClass and structureNumbers.size is not 1:
+        if checkStructureOwnClass and structureNumbers.size != 1:
             raise Exception('Structure of interest should correspond to exactly one class (mixture model) and vice versa')
-        if len(gaussianNumbers) is not 1:
+        if len(gaussianNumbers) != 1:
             raise Exception('Structure of interest should have a mixture model with only a single component')
 
         return structureNumbers[0], classNumber, gaussianNumbers[0]

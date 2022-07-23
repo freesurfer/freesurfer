@@ -1,16 +1,16 @@
 /*
-  This program wraps utilities developed within the ANTs toolbox.
+This program wraps utilities developed within the ANTs toolbox.
 
-        https://github.com/ANTsX/ANTs
+  https://github.com/ANTsX/ANTs
 
-  The itkN4BiasFieldCorrectionImageFilter class implements an nonuniform
-  normalization algorithm described in the following paper.
-  ITK-based spatially-adaptive filter described in the following paper.
+The itkN4BiasFieldCorrectionImageFilter class implements an nonuniform
+normalization algorithm described in the following paper.
+ITK-based spatially-adaptive filter described in the following paper.
 
-        N. Tustison et al., N4ITK:  Improved N3 Bias Correction,
-        IEEE Transactions on Medical Imaging, 29(6):1310-1320, June 2010.
+  N. Tustison et al., N4ITK:  Improved N3 Bias Correction,
+  IEEE Transactions on Medical Imaging, 29(6):1310-1320, June 2010.
 
-  For ANTs license information, see distribution/docs/license.ants.txt
+For ANTs license information, see distribution/docs/license.ants.txt
 */
 
 #include "itkBSplineControlPointImageFilter.h"
@@ -35,6 +35,7 @@ int main(int argc, char **argv)
   parser.addHelp(AntsN4BiasFieldCorrectionFs_help_xml, AntsN4BiasFieldCorrectionFs_help_xml_len);
   parser.addArgument("-i", "--input",  1, String, true);
   parser.addArgument("-o", "--output", 1, String, true);
+  parser.addArgument("-m", "--mask", 1, String, false);
   parser.addArgument("-s", "--shrink", 1, Int, false);
   parser.addArgument("-t", "--iters", '+', Int, false);
   parser.addArgument("-d", "--dtype", 1, String, false);
@@ -109,12 +110,31 @@ int main(int argc, char **argv)
   // set itk threads to 1
   itk::MultiThreader::SetGlobalDefaultNumberOfThreads(threads);
 
-  // create a "mask" that just covers the whole image
-  ITKImageType::Pointer maskImage = ITKImageType::New();
-  maskImage->CopyInformation(inputImage);
-  maskImage->SetRegions(inputImage->GetRequestedRegion());
-  maskImage->Allocate(false);
-  maskImage->FillBuffer(itk::NumericTraits<ITKImageType::PixelType>::OneValue());
+  // image mask
+  ITKImageType::Pointer maskImage;
+  if (parser.exists("mask")) { 
+    // use mask if provided
+    std::string mask_filename = parser.retrieve<std::string>("mask");
+    MRI* mri_mask = MRIread(mask_filename.c_str());
+    for (int z = 0 ; z <mri_mask->depth ; z++) {
+      for (int y = 0 ; y < mri_mask->height ; y++) {
+        for (int x = 0 ; x < mri_mask->width ; x++) {
+          // binarize mask
+          float value = MRIgetVoxVal(mri_mask, x, y, z, 0);
+          int target = (value > 0) ? 1 : 0;
+          MRIsetVoxVal(mri_mask, x, y, z, 0, target);
+        }
+      }
+    }
+    maskImage = mri_mask->toITKImage();
+  } else {
+    // otherwise, create a "mask" that just covers the whole image
+    maskImage  = ITKImageType::New();
+    maskImage->CopyInformation(inputImage);
+    maskImage->SetRegions(inputImage->GetRequestedRegion());
+    maskImage->Allocate(false);
+    maskImage->FillBuffer(itk::NumericTraits<ITKImageType::PixelType>::OneValue());
+  }
 
   // init the bias field correcter
   typedef itk::N4BiasFieldCorrectionImageFilter<ITKImageType, ITKImageType, ITKImageType> CorrecterType;

@@ -195,7 +195,9 @@ endif
 
 # Map the various lowres volumes that mris_make_surfaces needs into the hires coords
 # nearest needed for aseg, but not sure whether it matters for others
-foreach v (wm.mgz filled.mgz aseg.presurf.mgz)
+set vlist = (wm.mgz aseg.presurf.mgz)
+if(! $longitudinal) set vlist = ($vlist filled.mgz)
+foreach v ($vlist)
   set cmd = (mri_vol2vol --mov $v --targ rawavg.cmdc.mgz --interp nearest --o rawavg.$v --regheader)
   echo "\n#===============================" | tee -a $LF
   echo "Creating rawavg.$v"| tee -a $LF
