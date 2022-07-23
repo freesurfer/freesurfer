@@ -50,6 +50,9 @@ py::array parameterize(Bridge surf, const arrayf<float>& overlay, int scale, std
 py::array sampleParameterization(Bridge surf, const arrayf<float>& image, std::string interp);
 py::object smoothOverlay(Bridge surf, vol::Bridge overlay, int steps);
 
+// quick spherical unfolding
+py::object quickSphericalInflate(Bridge inSurf, int max_passes, int n_averages, long seed);
+
 // surface submodule binding
 inline void bind(py::module &m)
 {
@@ -66,6 +69,7 @@ inline void bind(py::module &m)
   m.def("sample_parameterization", &sampleParameterization);
   m.def("smooth_overlay", &smoothOverlay);
   m.def("distance", &surfaceDistance);
+  m.def("qspherical_inflate", &quickSphericalInflate);
   // m.def("read_directly", &read_directly);
 }
 

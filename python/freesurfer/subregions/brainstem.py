@@ -83,6 +83,7 @@ class BrainstemSubstructures(MeshModel):
         # Create mask and dilate substantially
         radius = int(np.round(5 / self.resolution))
         mask = scipy.ndimage.morphology.binary_dilation(croppedSeg > 0, utils.spherical_strel(radius))
+        self.longMask = mask
 
         # Apply the mask
         self.processedImage[mask == 0] = 0            

@@ -128,4 +128,5 @@ int MRISedgePrint(FILE *fp, MRIS *surf);
 int MRISedgeWrite(char *filename, MRIS *surf);
 MRIS *MRISupsampleCentroid(MRIS *srcsurf, int nupsamples);
 MRIS *MRISupsampleSplit(MRIS *srcsurf, int nupsamples, int SortType);
+MRIS *MRISQuickSphericalInflate(int max_passes, int n_averages, long seed, MRIS *inSurf, const char *outSurf);
 #endif

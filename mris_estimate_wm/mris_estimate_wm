@@ -14,6 +14,7 @@ parser.add_argument('-d', '--sdir', help='Override SUBJECTS_DIR.')
 parser.add_argument('-m', '--model', help='Override default model.')
 parser.add_argument('-x', '--suffix', default='topofit', help='Suffix of output surface (default is \'topofit\').')
 parser.add_argument('-g', '--gpu', action='store_true', help='Use the GPU.')
+parser.add_argument('--vol', default='norm.mgz', help='Subject volume to use as input.')
 args = parser.parse_args()
 
 # import torch
@@ -540,10 +541,13 @@ subjectsdir = args.sdir if args.sdir is not None else os.environ.get('SUBJECTS_D
 if subjectsdir is None:
     sf.system.fatal('Must set SUBJECTS_DIR or use --sdir flag.')
 
+print(f'Using subject volume {args.vol}')
+
 for subj in args.subjs:
 
     # load norm and talairach transform
-    norm = sf.load_volume(os.path.join(subjectsdir, subj, 'mri/norm.mgz'))
+    print(os.path.join(subjectsdir, subj, 'mri', args.vol))
+    norm = sf.load_volume(os.path.join(subjectsdir, subj, 'mri', args.vol))
     trf = sf.load_affine(os.path.join(subjectsdir, subj, 'mri/transforms/talairach.lta'))
 
     # align template and build cropping

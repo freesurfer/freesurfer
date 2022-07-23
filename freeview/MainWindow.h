@@ -317,6 +317,8 @@ public slots:
     return m_dlgMovePoint;
   }
 
+  void SetNeurologicalView(bool b);
+
 protected:
   void closeEvent   ( QCloseEvent * event );
   void resizeEvent  (QResizeEvent * event);

@@ -7630,23 +7630,24 @@ double MRISsampleValue(MRI_SURFACE *mris, FACE *f, double xp, double yp, double 
 */
 MRI *MRISsampleProfile(MRIS *mris, MRI *mri, double dstart, double dend, double dstep, double sigma, int interptype, MRI *profile)
 {
-  int vno,frame,nframes;
-  double val, x, y, z, c,r,s;
-  VERTEX *v;
-  double d;
-
-  printf("MRISsampleProfile(): %g %g %g %g %d\n",dstart,dend,dstep,sigma,interptype);
+  int vno, nframes;
 
   MRIS_SurfRAS2VoxelMap* sras2v_map = MRIS_makeRAS2VoxelMap(mri, mris);
 
   nframes = 0;
-  for(d=dstart; d<=dend; d += dstep) nframes++;
+  for(double d=dstart; d<=dend; d += dstep) nframes++;
+  printf("MRISsampleProfile(): %g %g %g %g %d %d\n",dstart,dend,dstep,sigma,interptype,nframes);
 
   if(profile == NULL)
     profile = MRIallocSequence(mris->nvertices,1,1,MRI_FLOAT,nframes);
 
+  #ifdef HAVE_OPENMP
+  #pragma omp parallel for
+  #endif
   for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX *v = &mris->vertices[vno];
+    double val, x, y, z, c,r,s, d;
+    int frame;
     if (v->ripflag || v->val < 0) continue;
     frame = 0;
     for(d=dstart; d<=dend; d += dstep){
@@ -7656,6 +7657,10 @@ MRI *MRISsampleProfile(MRIS *mris, MRI *mri, double dstart, double dend, double 
       MRIS_useRAS2VoxelMap(sras2v_map, mri,x, y, z, &c, &r, &s);
       if(sigma < 0){
 	MRIsampleVolumeType(mri, c, r, s, &val, interptype);
+	if(vno == Gdiag_no) {
+	  printf("#P# %6.2f %6.2f %6.2f %6.2f %9.7f \n",d,c,r,s,val);
+	  fflush(stdout);
+	}
       }
       else {
 	double c2,r2,s2,dc,dr,ds,mag;
@@ -7674,9 +7679,7 @@ MRI *MRISsampleProfile(MRIS *mris, MRI *mri, double dstart, double dend, double 
       frame++;
     }
   }
-
   MRIS_freeRAS2VoxelMap(&sras2v_map);
-
   return(profile);
 }
 

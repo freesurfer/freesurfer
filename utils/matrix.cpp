@@ -4714,3 +4714,133 @@ MATRIX *MatrixGlmFit(MATRIX *y, MATRIX *X, double *pRVar, MATRIX *beta)
   return(beta);
 }
 
+/*!
+\fn MATRIX *MatrixACF2Kernel(MATRIX *acf, MATRIX *k)
+\brief Computes a FIR kernel from an autocorrelation function (ACF)
+that, when applied to data, will induce the given ACF. The ACF should
+be an Nx1 matrix where acf[1]=1, acf[2]=fistlag, etc. The returned Nx1
+kernel can then be convolved with the data to realize the ACF. The
+method coputes the SVD of the toeplitzized ACF, then F =
+U*sqrt(S2)*U', and the kernel is extracted from F. sum(kernel) = 1;
+*/
+MATRIX *MatrixACF2Kernel(MATRIX *acf, MATRIX *k, MATRIX *F)
+{
+  // Error checking
+  if(acf == NULL){
+    printf("ERROR: MatrixACF2Kernel() acf is NULL\n");
+    return(NULL);
+  }
+  if(acf->rows < 2){
+    printf("ERROR: MatrixACF2Kernel() acf rows < 2\n");
+    return(NULL);
+  }
+  if(k==NULL)  k = MatrixAlloc(acf->rows,1,MATRIX_REAL);
+  if(acf->rows != k->rows){
+    printf("ERROR: MatrixACF2Kernel() acf rows = %d, krows = %d\n",acf->rows,k->rows);
+    return(NULL);
+  }
+  if(k->cols != 1){
+    printf("ERROR: MatrixACF2Kernel() kernel cols = %d, shoudl be 1\n",k->cols);
+    return(NULL);
+  }
+  if(F){
+    if(acf->rows != F->rows){
+      printf("ERROR: MatrixACF2Kernel() acf rows = %d, Frows = %d\n",acf->rows,F->rows);
+      return(NULL);
+    }
+    if(acf->rows != F->cols){
+      printf("ERROR: MatrixACF2Kernel() acf rows = %d, Fcols = %d\n",acf->rows,F->cols);
+      return(NULL);
+    }
+  }
+
+  // Create a symmetric toeplitz matrix from the ACF
+  MATRIX *T = MatrixToeplitz(acf, NULL, MATRIX_SYM);
+
+  // Compute the SVD of the toeplitz
+  MATRIX *S2 = RVectorAlloc(acf->rows, MATRIX_REAL);
+  MATRIX *U  = MatrixCopy(T, NULL);      // It's done in-place so make a copy
+  MATRIX *V  = MatrixSVD(U, S2, NULL);  // T = U*S2*V'; U=V because sym
+  if(V==NULL){
+    MatrixFree(&T);
+    MatrixFree(&U);
+    MatrixFree(&S2);
+    printf("ERROR: MatrixACF2Kernel() SVD failed\n");
+    return(NULL);
+  }
+
+  // Below computes the kernel based on F=U*sqrt(S2)*U' where F is the
+  // NxN filter that will impose the ACF on the data. The full matrix
+  // implementation (below) is clearer, but this implementation is
+  // much faster
+  int nmid = round(acf->rows/2.0);
+  int m,nhits=0;
+  double ksum=0;
+  for(m=1; m <= acf->rows; m++){
+    if(S2->rptr[1][m] <= 0) continue;
+    nhits ++;
+    double s = sqrt(S2->rptr[1][m]);
+    double v0 = U->rptr[nmid][m];
+    for(int n=nmid; n <= acf->rows; n++){
+      double v = U->rptr[n][m] * v0 * s;
+      k->rptr[n-nmid+1][1] += v;
+      ksum += v;
+    }
+  }
+  if(nhits == 0){
+    MatrixFree(&T);
+    MatrixFree(&U);
+    MatrixFree(&S2);
+    MatrixFree(&V);
+    printf("ERROR: MatrixACF2Kernel() no values > 0\n");
+    return(NULL);
+  }
+  // Normalize so that sum(k)=1; calling app may have to do this again, eg,
+  // if using in 2D or 3D context.
+  for(m=1; m <= acf->rows; m++) k->rptr[m][1] /= ksum;
+
+  //printf("acf = [");  MatrixPrint(stdout,acf); printf("];\n");
+  //printf("T = [");  MatrixPrint(stdout,T); printf("];\n");
+  //printf("U = [");  MatrixPrint(stdout,U); printf("];\n");
+  //printf("S2 = [");  MatrixPrint(stdout,S2); printf("];\n");
+  //printf("V = [");  MatrixPrint(stdout,V); printf("];\n");
+  //printf("k = [");  MatrixPrint(stdout,k); printf("];\n");
+
+  if(F){
+    // This is an alternative way to compute the kernel using full
+    // matrix operations. It is clearer than above but more
+    // computationally expensive
+    for(m=0; m < acf->rows; m++){
+      if(S2->rptr[1][m+1] <= 0) S2->rptr[1][m+1]=0;
+      else S2->rptr[1][m+1] = sqrt(S2->rptr[1][m+1]);
+    }
+    MATRIX *S = MatrixDiag(S2, NULL);
+    MATRIX *Vt = MatrixTranspose(V, NULL);
+    
+    // This is a filter matrix which could be applied to 1D data 
+    // F = U*S*V' = U*S*U';
+    F = MatrixMultiplyD(U,S,F);
+    F = MatrixMultiplyD(F,Vt,F);
+    //printf("F = [");  MatrixPrint(stdout,F); printf("];\n");
+
+    #if 0
+    // Extract kernel from F. Should yield same result as above
+    int n;
+    ksum=0;
+    for(n=nmid; n < acf->rows; n++){
+      k->rptr[n-nmid+1][1] = F->rptr[n][nmid];
+      ksum += k->rptr[n-nmid+1][1];
+    }
+    for(n=nmid; n < acf->rows; n++) k->rptr[n-nmid+1][1] /= ksum;
+    printf("k2 = [");  MatrixPrint(stdout,k); printf("];\n");
+    MatrixFree(&k2);
+    #endif
+  }
+
+  MatrixFree(&T);
+  MatrixFree(&U);
+  MatrixFree(&S2);
+  MatrixFree(&V);
+
+  return(k);
+}

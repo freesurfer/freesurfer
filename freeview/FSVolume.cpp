@@ -251,8 +251,6 @@ bool FSVolume::MRIRead( const QString& filename, const QString& reg_filename )
 #endif
   int max_percent = 50;
   ::SetProgressCallback(ProgressCallback, 0, max_percent);
-//  QElapsedTimer timer;
-//  timer.start();
   if ( LoadMRI( filename, reg_filename ) )
   {
     this->CopyMatricesFromMRI();
@@ -267,17 +265,6 @@ bool FSVolume::MRIRead( const QString& filename, const QString& reg_filename )
     {
       m_MRIOrigTarget = CreateTargetMRI( m_MRI, m_volumeRef->m_MRIOrigTarget, false, m_bConform );
     }
-
-    // free MRI pixel space
-    /*
-    MRI* mri = MRIallocHeader( m_MRI->width,
-                              m_MRI->height,
-                              m_MRI->depth,
-                              m_MRI->type );
-    MRIcopyHeader( m_MRI, mri );
-    MRIfree( &m_MRI );
-    m_MRI = mri;
-    */
 
     return true;
   }

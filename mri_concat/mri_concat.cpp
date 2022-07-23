@@ -108,6 +108,7 @@ int DoNeg = 0;
 
 char *matfile = NULL;
 MATRIX *M = NULL;
+MATRIX *FrameWeight = NULL;
 int ngroups = 0;
 MATRIX *GroupedMeanMatrix(int ngroups, int ntotal);
 char tmpstr[2000];
@@ -128,6 +129,7 @@ int DoCumSum = 0;
 int DoFNorm = 0;
 char *rusage_file=NULL;
 //MRI *MRIzconcat(MRI *mri1, MRI *mri2, int nskip, MRI *out);
+
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv)
@@ -256,12 +258,9 @@ int main(int argc, char **argv)
     }
   }
 
-  if(M != NULL)
-  {
-    if(nframestot != M->cols)
-    {
-      printf("ERROR: dimension mismatch between inputs (%d) and matrix (%d)\n",
-             nframestot,M->rows);
+  if(M != NULL) {
+    if(nframestot != M->cols){
+      printf("ERROR: dimension mismatch between inputs (%d) and matrix (%d)\n",nframestot,M->rows);
       exit(1);
     }
   }
@@ -272,6 +271,13 @@ int main(int argc, char **argv)
     {
       printf("ERROR: --paired-xxx specified but there are an "
              "odd number of frames\n");
+      exit(1);
+    }
+  }
+
+  if(FrameWeight != NULL) {
+    if(nframestot != FrameWeight->rows){
+      printf("ERROR: dimension mismatch between inputs (%d) and FrameWeight (%d)\n",nframestot,FrameWeight->rows);
       exit(1);
     }
   }
@@ -343,15 +349,12 @@ int main(int argc, char **argv)
       }
       MRIneg(mritmp,mritmp);
     }
-    for(f=0; f < mritmp->nframes; f++)
-    {
-      for(c=0; c < nc; c++)
-      {
-        for(r=0; r < nr; r++)
-        {
-          for(s=0; s < ns; s++)
-          {
+    for(f=0; f < mritmp->nframes; f++) {
+      for(c=0; c < nc; c++)      {
+        for(r=0; r < nr; r++)        {
+          for(s=0; s < ns; s++)          {
             v = MRIgetVoxVal(mritmp,c,r,s,f);
+	    if(FrameWeight != NULL) v *= FrameWeight->rptr[fout+1][1];
             MRIsetVoxVal(mriout,c,r,s,fout,v);
           }
         }
@@ -420,17 +423,14 @@ int main(int argc, char **argv)
     M = ASLinterpMatrix(mriout->nframes);
   }
 
-  if(M != NULL)
-  {
+  if(M != NULL) {
     printf("Multiplying by matrix\n");
     mritmp = fMRImatrixMultiply(mriout, M, NULL);
-    if(mritmp == NULL)
-    {
-      exit(1);
-    }
+    if(mritmp == NULL) exit(1);
     MRIfree(&mriout);
     mriout = mritmp;
   }
+
 
   if(DoPaired)
   {
@@ -992,6 +992,24 @@ static int parse_commandline(int argc, char **argv)
       }
       nargsused = 1;
     }
+    else if( !strcmp(option, "--w") || !strcmp(option, "--wn") )
+    {
+      // Frame weight
+      if(nargc < 1) argnerr(option,1);
+      matfile = pargv[0];
+      FrameWeight = MatrixReadTxt(matfile, NULL);
+      if(FrameWeight==NULL){
+        printf("ERROR: reading %s\n",matfile);
+        exit(1);
+      }
+      if(!strcmp(option, "--wn")){
+	printf("Normalizing frame weights to sum to 1\n");
+	double sum=0;
+	for(int n=1; n <= FrameWeight->rows; n++) sum += FrameWeight->rptr[n][1];
+	for(int n=1; n <= FrameWeight->rows; n++) FrameWeight->rptr[n][1] /= sum;
+      }
+      nargsused = 1;
+    }
     else if ( !strcmp(option, "--gmean") )
     {
       if (nargc < 1)
@@ -1152,6 +1170,8 @@ static void print_usage(void)
   printf("   --norm-mean         : normalize frames by mean of all TP\n");
   printf("   --norm1             : normalize frames by TP1 \n");
   printf("   --mtx matrix.asc    : multiply by matrix in ascii file\n");
+  printf("   --w frameweight.asc : weight each frame by values in ascii file (one val for each frame)\n");
+  printf("   --wn frameweight.asc : same as --w but normalizes the frames to sum to 1\n");
   printf("   --gmean Ng          : create matrix to average Ng groups, Nper=Ntot/Ng\n");
   printf("\n");
   printf("   --combine : average frames from non-zero voxels\n");

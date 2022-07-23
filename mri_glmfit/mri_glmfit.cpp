@@ -602,6 +602,7 @@ double Xcond;
 
 int npvr=0;
 MRIGLM *mriglm=NULL, *mriglmtmp=NULL;
+int PermPVROverride = 0;
 
 double FWHM=0;
 double SmoothLevel=0;
@@ -645,6 +646,7 @@ int UseUniform = 0;
 double UniformMin = 0;
 double UniformMax = 0;
 int PermuteInput=0; // Permute the input data (not part of sim)
+char *PermuteOutputFile=0;
 
 SURFCLUSTERSUM *SurfClustList;
 int nClusters;
@@ -736,6 +738,8 @@ int DoMRTM2=0;
 int DoLogan=0;
 double MRTM2_k2p=0, Logan_Tstar=0;
 MATRIX *MRTM2_x1;
+int BPClipNeg=0;
+double BPClipMax=-1;
 
 int nRandExclude=0,  *ExcludeFrames=NULL, nExclude=0;
 char *ExcludeFrameFile=NULL;
@@ -758,6 +762,7 @@ MRI *fMRIskew(MRI *y, MRI *mask);
 MRI *MRIpskew(MRI *kvals, int dof, MRI *mask, int nsamples);
 MRI *MRIremoveSpatialMean(MRI *vol, MRI *mask, MRI *out);
 int MRIloganize(MATRIX **X, MRI **Ct, MRI **intCt, const MATRIX *t, const double tstar);
+MRI *MRIclip(MRI *invol, double thresh, int ClipType, MRI *mask, MRI *outvol);
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -1269,6 +1274,8 @@ int main(int argc, char **argv) {
     // This is for ease of testing, eg terBraak. Allows for getting
     // all the output after a perm
     printf("Permuting Input\n");
+    sprintf(tmpstr,"%s/permute-order.dat",GLMDir);
+    PermuteOutputFile=tmpstr;
     RandPermMatrixAndPVR(mriglm->Xg, mriglm->pvr, mriglm->npvr);
   }
 
@@ -2265,8 +2272,18 @@ int main(int argc, char **argv) {
 
   if(DoMRTM1){
     MRI *sig1, *sig2, *sig3, *c123;
-    printf("Computing binding potentials\n");
+    printf("Computing binding potentials %d\n",BPClipNeg);
     mritmp = BindingPotential(mriglm->gamma[1],mriglm->gamma[2], mriglm->mask, NULL);
+    if(BPClipNeg){
+      printf("Clipping negative BPs to 0\n");
+      mritmp = MRIclip(mritmp, 0, 2, mriglm->mask, mritmp);
+      if(mritmp==NULL) exit(1);
+    }
+    if(BPClipMax > 0){
+      printf("Clipping BPs above %g\n",BPClipMax);
+      mritmp = MRIclip(mritmp, BPClipMax, 1, mriglm->mask, mritmp);
+      if(mritmp==NULL) exit(1);
+    }
     sprintf(tmpstr,"%s/bp.%s",GLMDir,format);
     err = MRIwrite(mritmp,tmpstr);
     if(err) exit(1);
@@ -2305,6 +2322,16 @@ int main(int argc, char **argv) {
   if(DoMRTM2){
     printf("Computing binding potentials\n");
     mritmp = BindingPotential(mriglm->gamma[0],mriglm->gamma[1], mriglm->mask, NULL);
+    if(BPClipNeg){
+      printf("Clipping negative BPs to 0\n");
+      mritmp = MRIclip(mritmp, 0, 2, mriglm->mask, mritmp);
+      if(mritmp==NULL) exit(1);
+    }
+    if(BPClipMax > 0){
+      printf("Clipping BPs above %g\n",BPClipMax);
+      mritmp = MRIclip(mritmp, BPClipMax, 1, mriglm->mask, mritmp);
+      if(mritmp==NULL) exit(1);
+    }
     sprintf(tmpstr,"%s/bp.%s",GLMDir,format);
     err = MRIwrite(mritmp,tmpstr);
     if(err) exit(1);
@@ -2313,6 +2340,16 @@ int main(int argc, char **argv) {
   if(DoLogan){
     printf("Computing binding potentials\n");
     mritmp = MRIcloneBySpace(mriglm->y,MRI_FLOAT,1);
+    if(BPClipNeg){
+      printf("Clipping negative BPs to 0\n");
+      mritmp = MRIclip(mritmp, 0, 2, mriglm->mask, mritmp);
+      if(mritmp==NULL) exit(1);
+    }
+    if(BPClipMax > 0){
+      printf("Clipping BPs above %g\n",BPClipMax);
+      mritmp = MRIclip(mritmp, BPClipMax, 1, mriglm->mask, mritmp);
+      if(mritmp==NULL) exit(1);
+    }
     for(c=0; c < mriglm->y->width; c++) {
       for(r=0; r < mriglm->y->height; r++) {
 	for(s=0; s < mriglm->y->depth; s++) {
@@ -2500,6 +2537,8 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--rm-spatial-mean")) RmSpatialMean = 1;
     else if (!strcasecmp(option, "--allow-zero-dof")) AllowZeroDOF = 1;
     else if (!strcasecmp(option, "--scale-by-etiv")) scale_stats_by_etiv = 1;
+    else if (!strcasecmp(option, "--perm-pvr-override")) PermPVROverride = 1;
+    else if (!strcasecmp(option, "--no-perm-pvr-override")) PermPVROverride = 0;
     else if (!strcasecmp(option, "--permute-input")) PermuteInput = 1;
     else if (!strcasecmp(option, "--prune_thr")){
       if (nargc < 1) CMDargNErr(option,1);
@@ -2529,6 +2568,12 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--distance")) DoDistance = 1;
     else if (!strcasecmp(option, "--illcond")) IllCondOK = 1;
     else if (!strcasecmp(option, "--no-illcond")) IllCondOK = 0;
+    else if (!strcasecmp(option, "--bp-clip-neg")) BPClipNeg=1;
+    else if (!strcasecmp(option, "--bp-clip-max")){
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&BPClipMax);
+      nargsused = 1;
+    }
     else if (!strcasecmp(option, "--asl")) useasl = 1;
     else if (!strcasecmp(option, "--asl-rev")){
       useasl = 1;
@@ -3104,6 +3149,8 @@ printf("\n");
 printf("   --mrtm1 RefTac TimeSec : perform MRTM1 kinetic modeling\n");
 printf("   --mrtm2 RefTac TimeSec k2prime : perform MRTM2 kinetic modeling\n");
 printf("   --logan RefTac TimeSec tstar   : perform Logan kinetic modeling\n");
+printf("   --bp-clip-neg : set negative BP voxels to 0\n");
+printf("   --bp-clip-max maxval : set BP voxels above max to max\n");
 printf("\n");
 printf("   --perm-force : force perumtation test, even when design matrix is not orthog\n");
 printf("   --diag Gdiag_no : set diagnositc level\n");
@@ -3673,7 +3720,7 @@ static void check_options(void) {
     exit(1);
   }
 
-  if(0 && DoSim && !strcmp(csd->simtype,"perm") && npvr != 0){
+  if(!PermPVROverride && DoSim && !strcmp(csd->simtype,"perm") && npvr != 0){
     // Modified to allow for pvrs with sim
     printf("ERROR: PVR is not supported with permutation simulations\n");
     exit(1);
@@ -4181,6 +4228,7 @@ int RandPermMatrixAndPVR(MATRIX *X, MRI **pvrs, int npvrs)
 {
   int *NewRowOrder, r;
   MATRIX *X0;
+  extern char *PermuteOutputFile;
 
   NewRowOrder = RandPerm(X->rows, NULL);
   for (r = 0; r < X->rows; r++) {
@@ -4188,6 +4236,12 @@ int RandPermMatrixAndPVR(MATRIX *X, MRI **pvrs, int npvrs)
   }
   X0 = MatrixCopy(X, NULL);
   MatrixReorderRows(X0, NewRowOrder, X);
+
+  if(PermuteOutputFile){
+    FILE *fp = fopen(PermuteOutputFile,"w");
+    for (r = 0; r < X->rows; r++) fprintf(fp,"%3d\n",NewRowOrder[r]);
+    fclose(fp);
+  }
 
   int n;
   for(n=0; n < npvrs; n++){
@@ -4211,6 +4265,56 @@ int RandPermMatrixAndPVR(MATRIX *X, MRI **pvrs, int npvrs)
   free(NewRowOrder);
   return (0);
 }
+
+MRI *MRIclip(MRI *invol, double thresh, int ClipType, MRI *mask, MRI *outvol)
+{
+  if(invol == NULL){
+    printf("MRIclip(): ERROR: input is NULL\n");
+    return(NULL);
+  }
+  if(ClipType != 1 && ClipType != 2){
+    printf("MRIclip(): ERROR: ClipType %d unrecognized\n",ClipType);
+    return(NULL);
+  }
+  if(outvol == NULL){
+    outvol = MRIallocSequence(invol->width,invol->height,invol->depth,invol->type,invol->nframes);
+    MRIcopyHeader(invol,outvol);
+    MRIcopyPulseParameters(invol,outvol);
+  }
+  int err = MRIdimMismatch(invol,outvol,1);
+  if(err){
+    printf("MRIclip(): ERROR: dimension mismatch\n");
+    return(NULL);
+  }
+  if(mask){
+    err = MRIdimMismatch(invol,mask,0);
+    if(err){
+      printf("MRIclip(): ERROR: dimension mismatch with mask\n");
+      return(NULL);
+    }
+  }
+
+#ifdef HAVE_OPENMP
+  #pragma omp parallel for 
+#endif
+  for(int c=0; c < invol->width; c++){
+    int r,s,f;
+    for(r=0; r < invol->height; r++){
+      for(s=0; s < invol->depth; s++){
+	if(mask && MRIgetVoxVal(mask,c,r,s,0) < 0.5) continue;
+	for(f=0; f < invol->nframes; f++){
+	  double v = MRIgetVoxVal(invol,c,r,s,f);
+	  double v2=v;
+	  if((ClipType == 1 && v > thresh) || (ClipType == 2 && v < thresh)) v2=thresh;
+	  MRIsetVoxVal(outvol,c,r,s,f,v2);
+	}
+      }
+    }
+  }
+
+  return(outvol);
+}
+
 
 
 

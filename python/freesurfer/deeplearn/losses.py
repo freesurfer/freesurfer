@@ -280,6 +280,19 @@ class spherical_loss(object):
         return
 
 
+<<<<<<< HEAD
+    def atlas_likelihood(self, weights):
+        def loss(y_true, y_pred):
+            dist_elts = tf.squeeze(self.dist_elts)
+            nchannels = y_pred.get_shape().as_list()[-1] // 3   # sub, atlas mean, atlas var
+            sub = y_pred[...,0:nchannels]
+            atlas_mean = y_pred[...,nchannels:2*nchannels]
+            atlas_var = y_pred[...,2*nchannels:]
+            diff_sq = tf.math.squared_difference(atlas_mean, sub)
+            ll = tf.math.divide_no_nan(diff_sq, atlas_var)
+            mean_error = tf.reduce_mean(dist_elts*ll)
+            return weights * mean_error
+=======
     def atlas_likelihood(self, weights, use_variance=True):
         def loss(y_true, y_pred):
             dist_elts = tf.squeeze(self.dist_elts)[tf.newaxis,...,tf.newaxis]
@@ -303,6 +316,7 @@ class spherical_loss(object):
             mean_error = tf.reduce_mean(dist_elts*logl)
             return mean_error
 
+>>>>>>> 7042a445d42d0c5baa68f1d3604a750b93594c08
         return loss
 
     def atlas_dice_loss(self, weight, warped_segs):
@@ -650,7 +664,11 @@ class spherical_loss(object):
 
         if image_sigma is not None:
             if self.pad > 0:
+<<<<<<< HEAD
+                image_sigma = tf.squeeze(image_sigma[self.pad:-self.pad,self.pad:-self.pad,...])
+=======
                 image_sigma = image_sigma[self.pad:-self.pad,self.pad:-self.pad,...]
+>>>>>>> 7042a445d42d0c5baa68f1d3604a750b93594c08
             image_sigma = tf.cast(image_sigma, tf.float32)
             image_sigma_sq = tf.clip_by_value(image_sigma*image_sigma, 1e-3, 1e4)
 

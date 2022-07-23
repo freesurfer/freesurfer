@@ -61,6 +61,7 @@ WindowConfigureOverlay::WindowConfigureOverlay(QWidget *parent) :
   connect(ui->checkBoxFixedYAxis, SIGNAL(toggled(bool)), SLOT(OnCheckFixedAxes()));
   connect(ui->pushButtonLoadCustom, SIGNAL(clicked(bool)), SLOT(OnButtonLoadCustom()));
   connect(ui->pushButtonSaveCustom, SIGNAL(clicked(bool)), SLOT(OnButtonSaveCustom()));
+  connect(ui->checkBoxMidToMin, SIGNAL(toggled(bool)), SLOT(OnCheckSetMidToMin(bool)));
 
   m_layerSurface = NULL;
   QSettings settings;
@@ -240,6 +241,8 @@ void WindowConfigureOverlay::UpdateUI()
 
     ui->labelMid->setEnabled( ui->radioButtonPiecewise->isChecked() );
     ui->lineEditMid->setEnabled( ui->radioButtonPiecewise->isChecked() );
+    ui->checkBoxMidToMin->setVisible(!ui->radioButtonPiecewise->isChecked());
+    ui->checkBoxMidToMin->setChecked(p->GetAutoMidToMin());
 
     ui->checkBoxEnableSmooth->setChecked(p->GetSmooth());
     ui->spinBoxSmoothSteps->setValue(p->GetSmoothSteps());
@@ -378,6 +381,7 @@ bool WindowConfigureOverlay::UpdateOverlayProperty( SurfaceOverlayProperty* p )
   p->SetOpacity( ui->doubleSpinBoxOpacity->value() );
   p->SetUsePercentile(ui->checkBoxUsePercentile->isChecked());
   p->SetIgnoreZeros(ui->checkBoxUseNonZeroVertices->isChecked());
+  p->SetAutoMidToMin(ui->checkBoxMidToMin->isChecked());
 
   bool bOK;
   double dValue = ui->lineEditMin->text().toDouble(&bOK);
@@ -590,7 +594,7 @@ void WindowConfigureOverlay::UpdateThresholdChanges()
     if ( bOK )
     {
       ui->lineEditMid->blockSignals(true);
-      ChangeLineEditNumber(ui->lineEditMid, ( dmax + dmin ) / 2 );
+      ChangeLineEditNumber(ui->lineEditMid, ui->checkBoxMidToMin->isChecked()? dmin: ((dmax + dmin ) / 2));
       ui->lineEditMid->blockSignals(false);
     }
   }
@@ -724,13 +728,25 @@ void WindowConfigureOverlay::OnSmoothChanged()
   }
 }
 
+void WindowConfigureOverlay::OnCheckSetMidToMin(bool bChecked)
+{
+  if (!m_layerSurface || !m_layerSurface->GetActiveOverlay())
+    return;
+
+  SurfaceOverlay* overlay = m_layerSurface->GetActiveOverlay();
+  overlay->GetProperty()->SetAutoMidToMin(bChecked);
+  ui->lineEditMid->blockSignals(true);
+  ChangeLineEditNumber( ui->lineEditMid, overlay->GetProperty()->GetMidPoint());
+  ui->lineEditMid->blockSignals(false);
+  OnTextThresholdChanged(ui->lineEditMax->text());
+}
+
 void WindowConfigureOverlay::OnTextThresholdChanged(const QString &strg)
 {
   if (!m_layerSurface || !m_layerSurface->GetActiveOverlay())
     return;
 
   SurfaceOverlay* overlay = m_layerSurface->GetActiveOverlay();
-
   bool ok;
   double val = strg.toDouble(&ok);
   if (!ok)
@@ -745,6 +761,7 @@ void WindowConfigureOverlay::OnTextThresholdChanged(const QString &strg)
   if (markers.isEmpty())
     return;
 
+  bool bMidToMin = ui->checkBoxMidToMin->isChecked();
   if (sender() == ui->lineEditMax || sender() == NULL)
   {
     LineMarker marker = markers.last();
@@ -756,7 +773,7 @@ void WindowConfigureOverlay::OnTextThresholdChanged(const QString &strg)
     double val2 = ui->lineEditMin->text().toDouble(&ok);
     if (markers.size() == 2 && ok)
     {
-      this->ChangeLineEditNumber(ui->lineEditMid, (val+val2)/2);
+      this->ChangeLineEditNumber(ui->lineEditMid, bMidToMin?val2:((val+val2)/2));
     }
   }
   else if (sender() == ui->lineEditMin)
@@ -770,7 +787,7 @@ void WindowConfigureOverlay::OnTextThresholdChanged(const QString &strg)
     double val2 = ui->lineEditMax->text().toDouble(&ok);
     if (markers.size() == 2 && ok)
     {
-      this->ChangeLineEditNumber(ui->lineEditMid, (val+val2)/2);
+      this->ChangeLineEditNumber(ui->lineEditMid, bMidToMin?val:((val+val2)/2));
     }
   }
   else if (sender() == ui->lineEditOffset)

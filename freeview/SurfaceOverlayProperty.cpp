@@ -51,6 +51,7 @@ SurfaceOverlayProperty::SurfaceOverlayProperty ( SurfaceOverlay* overlay) :
   m_maskData(NULL),
   m_bInverseMask(false),
   m_bIgnoreZeros(false),
+  m_bAutoMidToMin(false),
   m_nColorScale(CS_Heat),
   m_nColorMethod(CM_LinearOpaque)
 {
@@ -79,6 +80,7 @@ void SurfaceOverlayProperty::Copy(SurfaceOverlayProperty *p)
   m_dOffset = p->m_dOffset;
   m_nColorScale = p->m_nColorScale;
   m_nColorMethod = p->m_nColorMethod;
+  m_bAutoMidToMin = p->m_bAutoMidToMin;
   if (m_bUsePercentile)
   {
     m_dMinPoint = m_overlay->PercentileToPosition(p->m_overlay->PositionToPercentile(p->m_dMinPoint));
@@ -119,6 +121,7 @@ void SurfaceOverlayProperty::Reset()
     m_dMaxPoint = m_overlay->PercentileToPosition(99);
     if (m_dMinPoint < 0 && m_dMaxPoint > fabs(m_dMinPoint))
       m_dMinPoint = fabs(m_dMinPoint);
+    m_bAutoMidToMin = false;
     m_dMidPoint = ( m_dMinPoint + m_dMaxPoint ) / 2;
     m_dOffset = 0;
     m_customScale.clear();
@@ -311,6 +314,20 @@ void SurfaceOverlayProperty::SetMinPoint( double dValue )
   if ( dValue != m_dMinPoint )
   {
     m_dMinPoint = dValue;
+
+    SetColorScale(m_nColorScale);
+  }
+}
+
+void SurfaceOverlayProperty::SetAutoMidToMin(bool b)
+{
+  if (true)
+  {
+    m_bAutoMidToMin = b;
+    if (b)
+      m_dMidPoint = m_dMinPoint;
+    else
+      m_dMidPoint = (m_dMinPoint+m_dMaxPoint)/2;
     SetColorScale(m_nColorScale);
   }
 }
@@ -403,8 +420,13 @@ void SurfaceOverlayProperty::MapOverlayColorSymmetric( float* data, unsigned cha
   double c[3];
   double dMidPoint = m_dMidPoint;
   if (m_nColorMethod != CM_Piecewise)
-    dMidPoint = (m_dMaxPoint + m_dMinPoint)/2.0;
-  if ( m_nColorMethod== CM_LinearOpaque )
+  {
+    if (m_bAutoMidToMin)
+      dMidPoint = m_dMinPoint;
+    else
+      dMidPoint = (m_dMaxPoint + m_dMinPoint)/2.0;
+  }
+  if ( m_nColorMethod == CM_LinearOpaque )
   {
     for ( int i = 0; i < nPoints; i++ )
     {

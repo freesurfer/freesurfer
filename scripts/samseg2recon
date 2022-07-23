@@ -25,8 +25,8 @@ set LongTP = ();
 set DoLongBase = 0;
 set LongUseMC = 1;
 set cleanup = 1
-# set this to 1 until can make all commands respect updates
-set ForceUpdate = 1; 
+set ForceUpdate = 0; 
+set mask = ()
 
 set inputargs = ($argv);
 set PrintHelp = 0;
@@ -214,35 +214,45 @@ else
   echo "$nu does not need updating" | tee -a $LF
 endif
 
-# Remove extracerebral stuff
-# Could just use aseg created above
-set mask = $tmpdir/mask.mgh
-set cmd = (mri_binarize --i $segvol --match 0 165 258 259 --inv --o $mask)
-echo $cmd | tee -a $LF
-set ud = `UpdateNeeded $mask $segvol`
-if($ud || $ForceUpdate) then
-  fs_time $cmd | tee -a $LF
-  if($status) goto error_exit;
-else
-  echo "$mask does not need updating" | tee -a $LF
+# Create a brain mask
+if($#mask == 0) then
+  set mask = $tmpdir/mask.mgh
+  set cmd = (mri_binarize --i $segvol --match 0 165 258 259 --inv --o $mask)
+  echo $cmd | tee -a $LF
+  set ud = `UpdateNeeded $mask $segvol`
+  if($ud || $ForceUpdate) then
+    fs_time $cmd | tee -a $LF
+    if($status) goto error_exit;
+  else
+    echo "$mask does not need updating" | tee -a $LF
+  endif
 endif
 
 # Create the norm by just masking nu with the aseg
-set cmd = (mri_mask $nu $mask $mdir/norm.mgz)
-echo $cmd | tee -a $LF
 set ud = `UpdateNeeded $mdir/norm.mgz $nu $mask`
 if($ud || $ForceUpdate) then
+  set cmd = (mri_mask $nu $mask $mdir/norm.mgz)
+  echo $cmd | tee -a $LF
   fs_time $cmd | tee -a $LF
   if($status) goto error_exit;
 else
   echo "$mdir/norm.mgz does not need updating" | tee -a $LF
 endif
+
 # link norm to brainmask
 pushd $mdir
-set cmd = (ln -sf norm.mgz brainmask.mgz)
-echo $cmd | tee -a $LF
-$cmd | tee -a $LF
-if($status) goto error_exit;
+if(! -e T1.mgz) then
+  set cmd = (ln -sf nu.mgz T1.mgz)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit;
+endif
+if(! -e brainmask.mgz) then
+  set cmd = (ln -sf norm.mgz brainmask.mgz)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit;
+endif
 popd
 
 echo $modenamelist | tee -a $LF
@@ -255,31 +265,34 @@ foreach mode ($modenamelist)
   set modebase = $mode
   if($mode == t2w)   set modebase = T2
   if($mode == flair) set modebase = FLAIR
-  set cmd = (mri_convert $coregdir/$mode/$mode.mgz $mdir/$modebase.prenorm.mgz)
-  echo $cmd | tee -a $LF
-  fs_time $cmd | tee -a $LF
-  if($status) goto error_exit;
-  # Compute mean $modebase in the eroded WM mask
-  set bc = $samsegdir/mode$nthmodestr"_bias_corrected".mgz
-  set wmmeanfile = $tmpdir/wm.mask.mean.$modebase.dat
-  set cmd = (mri_segstats --id 1 --i $bc --seg $wm --avgwf $wmmeanfile)
-  echo $cmd | tee -a $LF
-  fs_time $cmd | tee -a $LF
-  if($status) goto error_exit;
-  set wmmean = `cat $wmmeanfile`
-  set scale = `echo 110/$wmmean | bc -l`
-  echo $modebase wmmean $wmmean | tee -a $LF
-  echo $modebase scale $scale | tee -a $LF
-  # Now rescale the BC so that WM is 110, 
-  set cmd = (mri_concat $bc --mul $scale --o $mdir/$modebase.norm.mgz)
-  echo $cmd | tee -a $LF
-  fs_time $cmd | tee -a $LF
-  if($status) goto error_exit;
-  # Now mask 
-  set cmd = (mri_mask $mdir/$modebase.norm.mgz $mask $mdir/$modebase.mgz)
-  echo $cmd | tee -a $LF
-  fs_time $cmd | tee -a $LF
-  if($status) goto error_exit;
+  set ud = `UpdateNeeded $mdir/$modebase.mgz $coregdir/$mode/$mode.mgz $bc $wm`
+  if($ud || $ForceUpdate) then
+    set cmd = (mri_convert $coregdir/$mode/$mode.mgz $mdir/$modebase.prenorm.mgz)
+    echo $cmd | tee -a $LF
+    fs_time $cmd | tee -a $LF
+    if($status) goto error_exit;
+    # Compute mean $modebase in the eroded WM mask
+    set bc = $samsegdir/mode$nthmodestr"_bias_corrected".mgz
+    set wmmeanfile = $tmpdir/wm.mask.mean.$modebase.dat
+    set cmd = (mri_segstats --id 1 --i $bc --seg $wm --avgwf $wmmeanfile)
+    echo $cmd | tee -a $LF
+    fs_time $cmd | tee -a $LF
+    if($status) goto error_exit;
+    set wmmean = `cat $wmmeanfile`
+    set scale = `echo 110/$wmmean | bc -l`
+    echo $modebase wmmean $wmmean | tee -a $LF
+    echo $modebase scale $scale | tee -a $LF
+    # Now rescale the BC so that WM is 110, 
+    set cmd = (mri_concat $bc --mul $scale --o $mdir/$modebase.norm.mgz)
+    echo $cmd | tee -a $LF
+    fs_time $cmd | tee -a $LF
+    if($status) goto error_exit;
+    # Now mask 
+    set cmd = (mri_mask $mdir/$modebase.norm.mgz $mask $mdir/$modebase.mgz)
+    echo $cmd | tee -a $LF
+    fs_time $cmd | tee -a $LF
+    if($status) goto error_exit;
+  endif
 end
 
 # T2/FLAIR
@@ -308,7 +321,8 @@ end
 # Create aseg.auto.mgz This needs to be run separately, outside of
 # recon-all, because in recon-all it is done as part of ca_label
 pushd $mdir
-if($DoCC) then
+set ud = `UpdateNeeded aseg.auto.mgz aseg.auto_noCCseg.mgz`
+if($DoCC && $ud) then
   set tmpfile = $tmpdir/isconformed
   mri_info --o $tmpfile --conformed-to-min aseg.auto_noCCseg.mgz > /dev/null
   set isconf = `cat $tmpfile | head -n 1`
@@ -458,6 +472,16 @@ while( $#argv != 0 )
     case "--i":
       if($#argv < 1) goto arg1err;
       set input = $argv[1]; shift;
+      breaksw
+
+    case "--m":
+      if($#argv < 1) goto arg1err;
+      set mask = $argv[1]; shift;
+      if(! -e $mask) then
+        echo "ERROR: cannot find $mask"
+        exit 1;
+      endif
+      set mask = `getfullpath $mask`
       breaksw
 
     case "--long":
@@ -649,7 +673,7 @@ usage_exit:
   echo ""
   echo "samseg2recon"
   echo "  --s subject"
-  echo "  --samseg samsegdir : ouput dir when samseg or samseg-long was run"
+  echo "  --samseg samsegdir : output dir when samseg or samseg-long was run"
   echo "      if not supplied, then assumes subject/mri/samseg"
   echo "  --no-cc : do not do corpus callosum segmentation"
   echo "  --fill : use samseg to create the filled.mgz used for tessellation (--no-fill)"
@@ -658,6 +682,8 @@ usage_exit:
   echo "  --no-keep-exc : do not keep extracerebral segmentations"
   echo "  --long tpNumber : process TP, will find folder called tpXXX in samsegdir"
   echo "  --base : process base, will find folder called base in samsegdir"
+  echo "  --m mask : use mask as brainmask instead of computing from seg"
+  echo "  --force-update"
   echo ""
 
   if(! $PrintHelp) exit 1;

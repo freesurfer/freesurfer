@@ -127,6 +127,11 @@ public:
     return m_regions;
   }
 
+  bool GetNeurologicalView()
+  {
+    return m_bNeurologicalView;
+  }
+
 public slots:
   void RefreshAllActors(bool bForScreenShot = false);
   void StopSelection();
@@ -139,6 +144,7 @@ public slots:
   void OnMovePointToLocalMaximum(bool bUseLast = false);
   void OnMovePointToLocalMaximumDefault();
   void OnMoveAllPointsToLocalMaximum();
+  void SetNeurologicalView(bool b);
 
 signals:
   void RegionSelected( Region2D* );
@@ -177,6 +183,7 @@ private:
   Interactor2DPointSetEdit*   m_interactorPointSetEdit;
   Interactor2DVolumeCrop* m_interactorVolumeCrop;
 
+  bool      m_bNeurologicalView;
   bool      m_bAutoScaleText;
   int       m_nTextSize;
 };

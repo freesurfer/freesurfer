@@ -3,6 +3,7 @@
 #include <string.h>
 #include <vector>
 #include <array>
+#include <queue>
 
 #include "ventfix.h"
 #include "colortab.h"
@@ -263,29 +264,45 @@ MRI* VentFix::ExpandSegIndices(MRI *seg, int segid, MRI *ocn, int niters, int nm
 }
 
 /*!
-\fn MRI* relabelSegANeighboringSegB(MRI *asegVol, int adjseg, int segA, int topo, int segB, int newsegid, fsPointSet *centroid)
-\brief relabel clusters in aseg.presurf.mgz that are adjacent to given segments with the topology constraint
+\fn MRI* relabelSegANeighboringSegB(MRI *asegVol, int adjseg, RELABELCRITERIA *criteria, fsPointSet *centroid)
+\brief relabel cluster voxels in aseg.presurf.mgz that meet the relabel criteria
 \param asegVol    - input aseg.presurf.mgz
-\param segA       - input clusters that we are looking to replace their values
-\param topo       - input topology constraint, 1=face neighbors only, 2=face neighbors + edge neighbors only, 3=face neighbors + edge neighbors + corner neighbors
-\param segB       - input clusters that are neighboring segA with topo constraint 
-\param newsegid   - input optional, ndwsegid needs to have the same size as segB, new segids that will be used to relabel clusters segA if conditions are met; 
-                    if newsegid == NULL, segB will be used
-\param numSegs    - input number of elements in segB and newsegid
+\param criteria   - input relabel criteria
 \param centroid   - output point set of centroid for all the clusters changed
 Example:
   fsPointSet centroid;
-  int segB[2] = {3, 42};
-  int numSegs = 2;
-  MRI *newseg = VentFix::relabelSegANeighboringSegB(asegVol, segA, topo, segB, NULL, numSegs, &centroid);
-*/
-MRI* VentFix::relabelSegANeighboringSegB(MRI *asegVol, int segA, int topo, int *segB, int *newsegid, int numSegs, fsPointSet *centroid)
-{
-  // 1. create clusters for voxels with segA in asegVol
-  // 2. if the cluster has any voxel neighboring segB (eg, 3 = left cortex, 42 = right cortex) with topo constraint
-  //      replace the value in such clusters with a given value (newsegid)
-  // 3. create a point set of the centroid for all the clusters changed
 
+  int adjSegs[2]   = {3, 42};                                                                                            
+  int  exclSegs[1] = {4};
+
+  VentFix::RELABELCRITERIA criteria;
+  criteria.segA = 77;
+  criteria.adjSegs = adjSegs;
+  criteria.nAdjSegs = 2;
+  criteria.topo = 1;
+  criteria.newsegids = NULL;
+  criteria.exclSegs = exclSegs;
+  criteria.nExclSegs = 1;
+  criteria.nIters = 2;
+
+  MRI *newseg = VentFix::relabelSegANeighboringSegB(asegVol2, &criteria, &centroid);
+*/
+MRI* VentFix::relabelSegANeighboringSegB(MRI *asegVol, RELABELCRITERIA *criteria, fsPointSet *centroid)
+{
+  // the relabel criteria is defined in struct criteria.
+  // 1. create clusters for voxels with segA in asegVol
+  // 2. find first voxel (c0, r0, s0) meets relabel criteria:
+  //      neighboring adjSegs (eg, 3 = left cortex, 42 = right cortex) with topo constraint and 
+  //      not neighboring exclSegs (eg, 4 lateral ventricle)
+  // 3. using (c0, r0, s0) as seed to find voxels in the such clusters for niters, 
+  //    and replace these voxel values with given newsegids
+  // 4. create a point set of the centroid for all the clusters changed
+
+  int segA       = criteria->segA;
+  int *adjSegs   = criteria->adjSegs;
+  int *newsegids = criteria->newsegids;
+  int nIters     = criteria->nIters;
+  
   if (asegVol == NULL) 
     return NULL;
 
@@ -302,24 +319,32 @@ MRI* VentFix::relabelSegANeighboringSegB(MRI *asegVol, int segA, int topo, int *
 
   MATRIX *vox2ras = MRIxfmCRS2XYZ(asegVol, 0);
 
-  // Go thru each cluster, determine if a voxel in the cluster is neighboring segB with topo constraint
+  // Go thru each cluster, determine if a voxel in the cluster is neighboring adjSegs with topo constraint
   int nthvc;
   for (nthvc = 0; nthvc < nClusters; nthvc++)
   {
     VOLCLUSTER *vc = ClusterList[nthvc];
 
-    int idx = hasneighbor(asegVol, vc, segB, numSegs, topo);
+    int col, row, slc;
+    int idx = hasneighbor(asegVol, vc, criteria, &col, &row, &slc);
 
     if (idx >= 0)
     {
-      printf("\n****** topo = %d neighbor (segid=%d) found in cluster #%d ...\n", topo, segB[idx], nthvc);
-      printf("****** replacing %d cluster members in cluster #%d ...\n", vc->nmembers, nthvc);
+      int newlabel = adjSegs[idx];
+      if (newsegids != NULL)
+        newlabel = newsegids[idx];
 
-      int newlabel = segB[idx];
-      if (newsegid != NULL)
-        newlabel = newsegid[idx];
+#if 0
+      //printf("\n****** topo = %d neighbor (segid=%d) found in cluster #%d ...\n", topo, inclSegs[idx], nthvc);
+      printf("****** relabeled %d cluster members in cluster #%d (%d => %d) ...\n", vc->nmembers, nthvc, segA, newlabel);
 
       relabelCluster(newseg, vc, newlabel, vox2ras, centroid);
+#else
+      printf("[DEBUG] relabel cluster for %d iterations ...\n", nIters);
+      int allowdiag = 0;
+      int nRelabeled = relabelClusterNiters(col, row, slc, newseg, segA, allowdiag, newlabel, nIters, vox2ras, centroid);
+      printf("****** relabeled %d cluster members in cluster #%d (%d => %d) ...\n", nRelabeled, nthvc, segA, newlabel);
+#endif
     }
   }
 
@@ -331,16 +356,21 @@ MRI* VentFix::relabelSegANeighboringSegB(MRI *asegVol, int segA, int topo, int *
 
 //-----------------------------------------------------
 // private function
-// check if any voxel in the given cluster has a neighbor with newsegid value and meets the topology constraint
-// return -1 if given cluster has no voxel neighboring segB;
-// otherwise, return the array index that meets the conditions 
-int VentFix::hasneighbor(MRI* asegps, VOLCLUSTER *vc, int *segB, int numSegs, int topo)
+// check if the given cluster is neighboring any segments in adjSegs, but not neighboring segments in exclSegs with same topology constraint.
+// set (col, row, slc) to first voxel crs found adjacent to adjSegs
+// return the array index of adjSegs if conditions are met;
+// otherwise, return -1
+int VentFix::hasneighbor(MRI* asegps, VOLCLUSTER *vc, RELABELCRITERIA *criteria, int *col, int *row, int *slc)
 {
+  int *adjSegs   = criteria->adjSegs;
+  int nAdjSegs   = criteria->nAdjSegs;
+  int topo       = criteria->topo;
+  int *exclSegs  = criteria->exclSegs;
+  int nExclSegs  = criteria->nExclSegs;
+
+
   int segIdx = -1;
 
-  //int numSegs = sizeof(segB)/sizeof(int);
-  //printf("no. segments: %d\n", numSegs);
-  
   int n;
   for (n = 0; n < vc->nmembers; n++)
   {
@@ -380,19 +410,32 @@ int VentFix::hasneighbor(MRI* asegps, VOLCLUSTER *vc, int *segB, int numSegs, in
 	  }
 
           float segid = MRIgetVoxVal(asegps, c, r, s, 0);
-          int idx;
-          for ( idx = 0; idx < numSegs; idx++)
+
+          // check if the voxel is in exclSegs
+          for (int idx0 = 0; idx0 < nExclSegs; idx0++)
 	  {
-            if (segid == segB[idx])
+            if (segid == exclSegs[idx0])
+              return -1;
+          }
+
+
+          if (segIdx >= 0)  // we already found a voxel adjacent to adjSegs
+            continue;
+
+          // check if the voxel is in adjSegs
+          for (int idx = 0; idx < nAdjSegs; idx++)
+	  {
+            if (segid == adjSegs[idx])
 	    {
               segIdx = idx;
-              return segIdx;
+              *col = c0; *row = r0; *slc = s0;
+              break;
             }
           }
-        }
-      }
-    }
-  }
+        }  // ds
+      }  // dr
+    }  // dc
+  }  // n
 
   return segIdx;
 }
@@ -414,9 +457,9 @@ void VentFix::relabelCluster(MRI *newseg, VOLCLUSTER *vc, int newsegid, MATRIX *
 
     csum += c; rsum += r; ssum += s;
 
-    float segid = MRIgetVoxVal(newseg, c, r, s, 0);
+    //float segid = MRIgetVoxVal(newseg, c, r, s, 0);
     MRIsetVoxVal(newseg, c, r, s, 0, newsegid);
-    printf("#@# (%d, %d, %d) %f => %f\n", c, r, s, segid, (float)newsegid);
+    //printf("#@# (%d, %d, %d) %f => %f\n", c, r, s, segid, (float)newsegid);
   }
 
   csum /= vc->nmembers; rsum /= vc->nmembers; ssum /= vc->nmembers;
@@ -443,4 +486,115 @@ void VentFix::relabelCluster(MRI *newseg, VOLCLUSTER *vc, int newsegid, MATRIX *
     
   MatrixFree(&crs);
   MatrixFree(&ras);
+}
+
+// private function
+// look for given cluster members for nIters, and relabel these voxels with a new value (newsegid);
+// if it is requested, output point set of centroid for all the clusters changed
+int VentFix::relabelClusterNiters(int c0, int r0, int s0, MRI *asegVol, int clustid, int allowdiag, int newsegid, int nIters, MATRIX *vox2ras, fsPointSet *centroid)
+{
+  std::queue<std::array<int,3>> Qcrs;
+  Qcrs.push({c0, r0, s0});
+ 
+  double csum = 0, rsum = 0, ssum = 0;
+
+  int npass = 0, nVoxel = 0;
+  while (Qcrs.size() > 0)
+  {
+    std::array<int,3> crs0 = Qcrs.front();
+    Qcrs.pop();
+
+    int c0 = crs0[0];
+    int r0 = crs0[1];
+    int s0 = crs0[2];
+
+    if (npass == 0)
+    {
+      printf("[DEBUG] pass #%d, add %3d %3d %3d\n", npass+1, c0, r0, s0);
+
+      csum += c0; rsum += r0; ssum += s0;
+      MRIsetVoxVal(asegVol, c0, r0, s0, 0, newsegid);
+      npass++; nVoxel++;
+    }
+
+    if (nIters > 0 && npass >= nIters)
+    {
+      printf("[DEBUG] stopped at pass #%d\n", npass);
+      break;
+    }
+
+    // Go through the nearest neighbors
+    int dc, dr, ds;
+    for (dc = -1; dc <= 1; dc++)
+    {
+      int c = c0 + dc;
+      if (c < 0 || c >= asegVol->width)
+        continue;
+
+      for (dr = -1; dr <= 1; dr++)
+      {
+        int r = r0 + dr;
+	if (r < 0 || r >= asegVol->height)
+          continue;
+
+	for (ds = -1; ds <= 1; ds++)
+        {
+	  int s = s0 + ds;
+	  if (s < 0 || s >= asegVol->depth)
+            continue;
+
+	  // proceed or not if this voxel is in the topology constraint
+	  // topo = 1 = face neighbors only
+	  // topo = 2 = face neighbors + edge neighbors only
+	  // topo = 3 = face neighbors + edge neighbors + corner neighbors
+	  //if ((abs(dc)+abs(dr)+abs(ds)) > topo) 
+          if (!allowdiag && (abs(dc)+abs(dr)+abs(ds)) != 1)  // same condition as clustGrowOneVoxel()   
+          {
+	    //printf("#@# %d %d %d topo skip (%d %d %d)\n", c, r, s, c0, r0, s0);
+	    //fflush(stdout);
+	    continue; 
+	  }
+
+          float segid = MRIgetVoxVal(asegVol, c, r, s, 0);
+          if (segid == clustid)
+	  {
+            csum += c; rsum += r; ssum += s;
+            MRIsetVoxVal(asegVol, c, r, s, 0, newsegid);
+            nVoxel++;
+            printf("[DEBUG] pass #%d, add %3d %3d %3d\n", npass+1, c, r, s);
+            Qcrs.push({c, r, s});
+          }
+        }  // ds
+      }  // dr
+    }  // dc
+
+    npass++;
+  }  // Qcrs.size() > 0
+
+  csum /= nVoxel; rsum /= nVoxel; ssum /= nVoxel;
+
+  MATRIX *crs = MatrixAlloc(4, 1, MATRIX_REAL);
+  crs->rptr[1][1] = csum;
+  crs->rptr[2][1] = rsum;
+  crs->rptr[3][1] = ssum;
+  crs->rptr[4][1] = 1;
+ 
+  MATRIX *ras = MatrixMultiply(vox2ras, crs, NULL);
+  //printf("Centriod CRS %6.4lf %6.4lf %6.4lf\n",csum,rsum,ssum);
+  //printf("Centriod RAS %6.4lf %6.4lf %6.4lf\n",
+  //       ras->rptr[1][1],ras->rptr[2][1],ras->rptr[3][1]);
+    
+  if (centroid != NULL)
+  {
+    fsPointSet::Point centroidp;
+    centroidp.x = ras->rptr[1][1];
+    centroidp.y = ras->rptr[2][1];
+    centroidp.z = ras->rptr[3][1];
+    centroid->add(centroidp);
+  }
+    
+  MatrixFree(&crs);
+  MatrixFree(&ras);
+
+  return  nVoxel;
 }

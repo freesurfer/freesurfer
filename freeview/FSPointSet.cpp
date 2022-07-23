@@ -21,6 +21,7 @@
 
 #include "FSPointSet.h"
 #include "FSVolume.h"
+#include "FSSurface.h"
 #include "vtkImageData.h"
 #include "MyUtils.h"
 #include <QFile>
@@ -216,6 +217,47 @@ void FSPointSet::UpdateLabel( PointSet& points_in, FSVolume* ref_vol )
   }
 }
 
+void FSPointSet::UpdateLabel( PointSet& points_in, FSSurface* ref_surf)
+{
+  if ( m_label )
+  {
+    ::LabelFree( &m_label );
+  }
+
+  int nCount = 0;
+  double pos[3];
+  QList<float> values;
+  for ( int i = 0; i < points_in.size(); i++ )
+  {
+    ref_surf->ConvertTargetToRAS(points_in[i].pt, pos);
+    values.push_back( pos[0] );
+    values.push_back( pos[1] );
+    values.push_back( pos[2] );
+    values.push_back( points_in[i].value );
+    nCount ++;
+  }
+
+  m_label = ::LabelAlloc( nCount, NULL, (char*)"" );
+  MRI* mri = ref_surf->GetInternalMRI();
+  if (mri)
+  {
+    ::LabelInit(m_label, mri, NULL, 0);
+    ::LabelToScannerRAS(m_label, mri, m_label);
+    MRIfree(&mri);
+  }
+
+  m_label->n_points = nCount;
+  for ( int i = 0; i < nCount; i++ )
+  {
+    m_label->lv[i].x = values[i*4];
+    m_label->lv[i].y = values[i*4+1];
+    m_label->lv[i].z = values[i*4+2];
+    m_label->lv[i].vno = -1;
+    m_label->lv[i].deleted = false;
+    m_label->lv[i].stat = values[i*4+3];
+  }
+}
+
 void FSPointSet::LabelToPointSet( PointSet& points_out, FSVolume* ref_vol )
 {
   if ( !m_label )
@@ -245,6 +287,30 @@ void FSPointSet::LabelToPointSet( PointSet& points_out, FSVolume* ref_vol )
   }
 }
 
+void FSPointSet::LabelToPointSet(PointSet &points_out, FSSurface *surf_ref)
+{
+  if ( !m_label )
+    return;
+
+  ControlPoint wp;
+  for ( int i = 0; i < m_label->n_points; i++ )
+  {
+    wp.pt[0] = m_label->lv[i].x;
+    wp.pt[1] = m_label->lv[i].y;
+    wp.pt[2] = m_label->lv[i].z;
+    wp.value = m_label->lv[i].stat;
+    if ( m_label->coords == LABEL_COORDS_TKREG_RAS )
+    {
+      surf_ref->ConvertTkregToRAS( wp.pt, wp.pt );
+    }
+    else if (m_label->coords == LABEL_COORDS_VOXEL)
+    {
+      surf_ref->ConvertVoxelToRAS( wp.pt, wp.pt );
+    }
+    points_out.push_back( wp );
+  }
+}
+
 bool FSPointSet::GetCentroidRASPosition(double* pos, FSVolume* ref_vol)
 {
   if (m_label && m_label->n_points > 0)
@@ -269,6 +335,36 @@ bool FSPointSet::GetCentroidRASPosition(double* pos, FSVolume* ref_vol)
       ref_vol->TkRegToNativeRAS( pos, pos );
     }
     ref_vol->NativeRASToRAS( pos, pos );
+    return true;
+  }
+  else
+    return false;
+}
+
+bool FSPointSet::GetCentroidRASPosition(double* pos, FSSurface* ref_surf)
+{
+  if (m_label && m_label->n_points > 0)
+  {
+    double x = 0, y = 0, z = 0;
+    for ( int i = 0; i < m_label->n_points; i++ )
+    {
+      x += m_label->lv[i].x;
+      y += m_label->lv[i].y;
+      z += m_label->lv[i].z;
+    }
+    pos[0] = x / m_label->n_points;
+    pos[1] = y / m_label->n_points;
+    pos[2] = z / m_label->n_points;
+
+    if ( m_label->coords == LABEL_COORDS_VOXEL )
+    {
+      ref_surf->ConvertVoxelToRAS(pos, pos);
+    }
+    else if (m_label->coords == LABEL_COORDS_TKREG_RAS)
+    {
+      ref_surf->ConvertTkregToRAS(pos, pos);
+    }
+    ref_surf->ConvertRASToTarget(pos, pos);
     return true;
   }
   else

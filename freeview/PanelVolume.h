@@ -148,6 +148,8 @@ protected slots:
 
   void OnCheckBoxSetAutoMid(bool b);
 
+  void OnCheckBoxSetMidToMin(bool b);
+
   void UpdateOpacity(double val);
 
   void OnLineEditClearBackgroundValue(const QString& text);

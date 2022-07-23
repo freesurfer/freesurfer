@@ -1692,20 +1692,20 @@ int MRIsetVoxVal2(MRI *mri, int c, int r, int s, int f, float voxval)
 
   switch (mri->type) {
   case MRI_UCHAR:
-    MRIseq_vox(mri, c, r, s, f) = voxval;
+    MRIseq_vox(mri, c, r, s, f) = nint(voxval);
     break;
   case MRI_SHORT:
-    MRISseq_vox(mri, c, r, s, f) = voxval;
+    MRISseq_vox(mri, c, r, s, f) = nint(voxval);
     break;
   case MRI_USHRT:
-    MRIUSseq_vox(mri, c, r, s, f) = voxval;
+    MRIUSseq_vox(mri, c, r, s, f) = nint(voxval);
     break;
   case MRI_RGB:
   case MRI_INT:
-    MRIIseq_vox(mri, c, r, s, f) = voxval;
+    MRIIseq_vox(mri, c, r, s, f) = nint(voxval);
     break;
   case MRI_LONG:
-    MRILseq_vox(mri, c, r, s, f) = voxval;
+    MRILseq_vox(mri, c, r, s, f) = nint(voxval);
     break;
   case MRI_FLOAT:
     MRIFseq_vox(mri, c, r, s, f) = voxval;

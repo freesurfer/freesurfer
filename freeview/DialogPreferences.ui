@@ -619,7 +619,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QGroupBox" name="groupBox_6">
+        <widget class="QGroupBox" name="groupBoxHeatmap">
          <property name="title">
           <string>Heat Map</string>
          </property>

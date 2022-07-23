@@ -71,7 +71,7 @@ mounts = ' '.join(['-B %s:%s' % (p, p) for p in mounts])
 print('Running SynthStrip from Singularity')
 
 # Go ahead and run the entry point
-command = 'singularity run %s %s %s' % (mounts, image_path, args)
+command = 'singularity run -e --nv %s %s %s' % (mounts, image_path, args)
 proc = subprocess.Popen(command, shell=True)
 proc.communicate()
 if proc.returncode != 0:

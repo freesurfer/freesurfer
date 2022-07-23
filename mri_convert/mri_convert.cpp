@@ -224,11 +224,6 @@ int main(int argc, char *argv[])
 
   std::string cmdline = getAllInfo(argc, argv, "mri_convert");
 
-  // This will turn on the "old", probably wrong, way to compute bvecs
-  // by default until I have time to make sure the new way is right.
-  printf("setting env variable FS_dcmGetDWIParamsSiemens_VoxelSpace=1\n");
-  setenv("FS_dcmGetDWIParamsSiemens_VoxelSpace","1",1);
-
   for(i=0; i<argc; i++)
   {
     printf("%s ",argv[i]);
@@ -1167,11 +1162,11 @@ int main(int argc, char *argv[])
     {
       UseDICOMRead2 = 0;
     }
-    else if(strcmp(argv[i], "-FS_dcmGetDWIParamsSiemens_VoxelSpace") == 0)
+    else if(strcmp(argv[i], "-siemensBVecsCross") == 0)
     {
       setenv("FS_dcmGetDWIParamsSiemens_VoxelSpace","1",1);
     }
-    else if(strcmp(argv[i], "-no-FS_dcmGetDWIParamsSiemens_VoxelSpace") == 0)
+    else if(strcmp(argv[i], "-no-siemensBVecsCross") == 0)
     {
       unsetenv("FS_dcmGetDWIParamsSiemens_VoxelSpace");
     }
@@ -3097,9 +3092,16 @@ int main(int argc, char *argv[])
 		  Progname, transform_fname) ;
       if (invert_transform_flag == 0)
       {
+        /*GCA_MORPH *gcam = (GCA_MORPH *)tran->xform ;
+        if (mri->width  != gcam->atlas.width  ||
+            mri->height != gcam->atlas.height ||
+            mri->depth  != gcam->atlas.depth) {
+          ErrorExit(ERROR_BADPARM, "input MRI sizes are different from m3z");
+	  }*/
+ 
         printf("morphing to atlas with resample type %d\n", resample_type_val) ;
         mri_transformed =
-           GCAMmorphToAtlas(mri, (GCA_MORPH *)tran->xform, NULL, 0, resample_type_val) ;
+           GCAMmorphToAtlas(mri, (GCA_MORPH *)tran->xform, NULL, -1, resample_type_val) ;
 	useVolGeomToMRI(&((GCA_MORPH *)tran->xform)->atlas, mri_template) ;
       }
       else // invert

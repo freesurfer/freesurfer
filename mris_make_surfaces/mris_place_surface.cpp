@@ -218,7 +218,7 @@ MRIS *surf;
 char *ripflagout = NULL;
 RIP_MNGR ripmngr;
 LABEL *pinlabel = NULL;
-int DoIntensityProc = 1;
+int DoIntensityProc = 0;
 
 double shrinkThresh = -1;
 
@@ -246,6 +246,8 @@ MRI *mri_cover_seg = NULL;
 char *LocalMaxFoundFile = NULL;
 char *TargetSurfaceFile = NULL;
 int SmoothAfterRip = 0;
+int CBVzero=0;
+int CBVplaceConst(MRI *vol, MRIS *surf, double dmin, double dmax, double dstep, double targetval);
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) 
@@ -605,44 +607,57 @@ int main(int argc, char **argv)
 
     INTEGRATION_PARMS_copy(&old_parms, &parms) ;
     if(mmvol == NULL &&  mmvols.size()==0 && !UseMMRefine){
-      // Compute the target intensity value (l_intensity)
-      printf("Computing target border values \n");
-      // The outputs are set in each vertex structure:
-      //   v->val2 = current_sigma; // smoothing level along gradient used to find the target
-      //   v->val  = max_mag_val; // intensity at target location
-      //   v->d = max_mag_dist;   // dist to target along normal
-      //   v->mean = max_mag;     // derivative at target intensity
-      //   v->marked = 1;         // vertex has good data
-      //   v->targx = v->x + v->nx * v->d; // same for y and z
-      MRIScomputeBorderValues(surf, involCBV, NULL, inside_hi,border_hi,border_low,outside_low,outside_hi,
-			      current_sigma, 2*max_cbv_dist, parms.fp, surftype, NULL, 0, parms.flags,seg,-1,-1) ;
-      // Note: 3rd input (NULL) was "mri_smooth" in mris_make_surfaces, but
-      // this was always a copy of the input (mri_T1 or invol); it is not used in CBV
-      
-      if(seg && surftype == GRAY_WHITE){
-	printf("Finding expansion regions\n"); fflush(stdout);
-	// Masks out the v->curv field of vertices with long distances (v->d)
-	MRISfindExpansionRegions(surf) ;
+      if(!CBVzero){
+	// Compute the target intensity value (l_intensity)
+	printf("Computing target border values \n");
+	// The outputs are set in each vertex structure:
+	//   v->val2 = current_sigma; // smoothing level along gradient used to find the target
+	//   v->val  = max_mag_val; // intensity at target location
+	//   v->d = max_mag_dist;   // dist to target along normal
+	//   v->mean = max_mag;     // derivative at target intensity
+	//   v->marked = 1;         // vertex has good data
+	//   v->targx = v->x + v->nx * v->d; // same for y and z
+	MRIScomputeBorderValues(surf, involCBV, NULL, inside_hi,border_hi,border_low,outside_low,outside_hi,
+				current_sigma, 2*max_cbv_dist, parms.fp, surftype, NULL, 0, parms.flags,seg,-1,-1) ;
+	// Note: 3rd input (NULL) was "mri_smooth" in mris_make_surfaces, but
+	// this was always a copy of the input (mri_T1 or invol); it is not used in CBV
+	
+	if(seg && surftype == GRAY_WHITE){
+	  printf("Finding expansion regions\n"); fflush(stdout);
+	  // Masks out the v->curv field of vertices with long distances (v->d)
+	  MRISfindExpansionRegions(surf) ;
+	}
+	
+	if(vavgs > 0) {
+	  printf("Averaging target values for %d iterations...\n",vavgs) ;
+	  // MRIScomputeBorderValues() sets v->marked=1 for all unripped
+	  MRISaverageMarkedVals(surf, vavgs) ;
+	}
+	
+	/* BF's note from MMS: There are frequently regions of gray
+	   whose intensity is fairly flat. We want to make sure the
+	   surface settles at the innermost edge of this region, so on
+	   the first pass, set the target intensities artificially high
+	   so that the surface will move all the way to white matter
+	   before moving outwards to seek the border (I know it's a hack,
+	   but it improves the surface in a few areas. The alternative is
+	   to explicitly put a gradient-seeking term in the cost
+	   functional instead of just using one to find the target
+	   intensities). */
+	
       }
-
-      if(vavgs > 0) {
-	printf("Averaging target values for %d iterations...\n",vavgs) ;
-	// MRIScomputeBorderValues() sets v->marked=1 for all unripped
-	MRISaverageMarkedVals(surf, vavgs) ;
+      else {
+	printf("Forcing CBV to be 0\n");
+	for(int k=0; k < surf->nvertices; k++) {
+	  surf->vertices[k].val = 0;
+	  surf->vertices[k].marked = 1;
+	  surf->vertices[k].ripflag = 0;
+	}
+	// Don't have to run this function, but it will give a target
+	// distance and it does not take that long
+	CBVplaceConst(involCBV, surf, -2, 5, -1, 0);
       }
-
-      /* BF's note from MMS: There are frequently regions of gray
-	whose intensity is fairly flat. We want to make sure the
-	surface settles at the innermost edge of this region, so on
-	the first pass, set the target intensities artificially high
-	so that the surface will move all the way to white matter
-	before moving outwards to seek the border (I know it's a hack,
-	but it improves the surface in a few areas. The alternative is
-	to explicitly put a gradient-seeking term in the cost
-	functional instead of just using one to find the target
-	intensities). */
-      
-    } 
+    }
     else {
       // Compute the target xyz coordinate (l_location)
       printf("Computing pial target locations using multimodal (%d)\n",mm_contrast_type); fflush(stdout);
@@ -836,6 +851,8 @@ static int parse_commandline(int argc, char **argv) {
     else if(!strcmp(option, "--no-first-peak-d1")) CBVfindFirstPeakD1 = 0;
     else if(!strcmp(option, "--first-peak-d2"))    CBVfindFirstPeakD2 = 1;
     else if(!strcmp(option, "--no-first-peak-d2")) CBVfindFirstPeakD2 = 0;
+    else if(!strcmp(option, "--cbv-zero"))    CBVzero=1;
+    else if(!strcmp(option, "--no-cbv-zero")) CBVzero=0;
     else if(!strcmp(option, "--lh"))  hemi = "lh";
     else if(!strcmp(option, "--rh"))  hemi = "rh";
     else if(!strcmp(option, "--smooth-after-rip"))  SmoothAfterRip = 1;
@@ -865,6 +882,7 @@ static int parse_commandline(int argc, char **argv) {
     else if(!strcasecmp(option, "--wm")){
       if(nargc < 1) CMDargNErr(option,1);
       wmvolpath = pargv[0];
+      DoIntensityProc = 1;
       nargsused = 1;
     } 
     else if(!strcasecmp(option, "--invol")){
@@ -1420,7 +1438,9 @@ static void check_options(void) {
     segvolpath = strcpyalloc(tmpstr);
     sprintf(tmpstr,"%s/%s/mri/%s",SUBJECTS_DIR,subject,wmvolname);
     wmvolpath = strcpyalloc(tmpstr);
+    DoIntensityProc = 1;
   }
+ 
 
   if(mmvol){
     if(surftype != GRAY_CSF){
@@ -1447,7 +1467,7 @@ static void check_options(void) {
     mri_cover_seg = MRIread(coversegpath);
     if(!mri_cover_seg) exit(1);
   }
-
+  if(CBVzero) DoIntensityProc=0;
   return;
 }
 
@@ -1737,6 +1757,63 @@ int MRISpinMedialWallToWhite(MRIS *surf, const LABEL *cortex)
   }
 
   free(InLabel);
+  return(0);
+}
+
+/*!
+\fn int CBVplaceConst(MRI *vol, MRIS *surf, double dmin, double dmax, double dstep, double targetval)
+\brief This is a function that will find the point along the profile
+  where the intensity is closest to the target value starting at dmin
+  going to dmax with dstep stepsize. It performs a similar function to
+  ComputeBorderValues (thus named CBV). The orginal use of this was to
+  help place a surface on a distance map where the voxel intensity is the
+  distance to the surface;  the target value would be 0 in this case. 
+*/
+int CBVplaceConst(MRI *vol, MRIS *surf, double dmin, double dmax, double dstep, double targetval)
+{
+  if(dstep <= 0) dstep = vol->xsize/2.0;
+  int interpcode = SAMPLE_TRILINEAR;
+  printf("CBVplaceConst(): dmin %g dmax %g dstep %g\n",dmin,dmax,dstep);
+  MRI *mri2 = MRISsampleProfile(surf, vol, dmin, dmax, dstep, -1, interpcode, NULL);
+  if(mri2==NULL) return(1);
+  mri2->tr = dstep;
+
+#ifdef HAVE_OPENMP
+  #pragma omp parallel for 
+#endif
+  for(int vno=0; vno < surf->nvertices; vno++){
+    VERTEX *v = &(surf->vertices[vno]);
+    double e, eopt=10e10, valopt=0;
+    int n, nopt=0;
+    for(n=0; n < mri2->nframes; n++){
+      double val = MRIgetVoxVal(mri2,vno,0,0,n);
+      e = fabs(targetval-val);
+      if(eopt > e){
+	eopt = e;
+	nopt = n;
+	valopt = val;
+      }
+      if(vno == Gdiag_no) {
+	printf("%2d %6.2f %6.2f %6.2f %6.2f %2d %9.5f \n",n,dmin+n*dstep,val,e,eopt,nopt,valopt);
+	fflush(stdout);
+      }
+
+    }
+    double dopt = dmin + nopt*dstep;
+    v->val = targetval;
+    v->d = dopt;
+    v->targx = v->x + dopt*v->nx;
+    v->targy = v->y + dopt*v->ny;
+    v->targz = v->z + dopt*v->nz;
+    v->marked = 1;
+    if(vno == Gdiag_no) {
+      printf("CBVplaceConst: vno=%5d  nopt=%d   dopt=%g  valopt=%g\n",vno,nopt,dopt,valopt);
+      fflush(stdout);
+    }
+
+  }
+  MRIfree(&mri2);
+
   return(0);
 }
 
