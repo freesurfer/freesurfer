@@ -1730,7 +1730,7 @@ def tissue_type():
     return lut
 
 
-def tissue_type_no_skull():
+def tissue_type_no_skull(include_lesions=False):
     """
     """
     lut = LookupTable()
@@ -1739,8 +1739,10 @@ def tissue_type_no_skull():
     lut.add(2, 'Subcortical-Gray-Matter',  [230, 148, 34])
     lut.add(3, 'White-Matter',             [245, 245, 245])
     lut.add(4, 'CSF',                      [120, 18,  134])
-    return lut
+    if include_lesions:
+        lut.add(5, 'Lesion',                   [255, 165,  0])
 
+    return lut
 
 def tissue_type_recoder():
     """
@@ -1879,7 +1881,7 @@ def tissue_type_recoder():
     }
     return rlut
 
-def tissue_type_recoder_no_skull():
+def tissue_type_recoder_no_skull(include_lesions=False):
     """
     Returns a recoding table that converts default brain labels to the
     corresponding tissue-type.
@@ -1888,7 +1890,7 @@ def tissue_type_recoder_no_skull():
         RecodingLookupTable: .
     """
     rlut = RecodingLookupTable()
-    rlut.target_lut = tissue_type_no_skull()
+    rlut.target_lut = tissue_type_no_skull(include_lesions)
     rlut.mapping = {
         0:    0,  # Unknown
         2:    3,  # Left-Cerebral-White-Matter
@@ -1907,6 +1909,7 @@ def tissue_type_recoder_no_skull():
         17:   2,  # Left-Hippocampus
         18:   2,  # Left-Amygdala
         24:   4,  # CSF
+        25:   5 if include_lesions else 2 # Left-Lesion
         26:   2,  # Left-Accumbens-Area
         28:   3,  # Left-VentralDC
         30:   4,  # Left-Vessel
@@ -1923,17 +1926,20 @@ def tissue_type_recoder_no_skull():
         52:   2,  # Right-Pallidum
         53:   2,  # Right-Hippocampus
         54:   2,  # Right-Amygdala
+        57:   5 if include_lesions else 2 # Right-Lesion
         58:   2,  # Right-Accumbens-Area
         60:   3,  # Right-VentralDC
         62:   4,  # Right-Vessel
         63:   4,  # Right-Choroid-Plexus
-        77:   3,  # WM-Hypointensities
+        77:   5 if include_lesions else 3 # WM-Hypointensities
+#        77:   3,  # WM-Hypointensities
         78:   3,  # Left-WM-Hypointensities
         79:   3,  # Right-WM-Hypointensities
         80:   2,  # Non-WM-Hypointensities
         81:   2,  # Left-Non-WM-Hypointensities
         82:   2,  # Right-Non-WM-Hypointensities
         85:   3,  # Optic-Chiasm
+        99:   5 if include_lesions else 2 # Lesion
         130:  0,  # Air
         165:  0,  # Skull
         172:  2,  # Vermis
