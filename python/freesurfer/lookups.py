@@ -1909,7 +1909,7 @@ def tissue_type_recoder_no_skull(include_lesions=False):
         17:   2,  # Left-Hippocampus
         18:   2,  # Left-Amygdala
         24:   4,  # CSF
-        25:   5 if include_lesions else 2 # Left-Lesion
+        25:   5 if include_lesions else 2, # Left-Lesion
         26:   2,  # Left-Accumbens-Area
         28:   3,  # Left-VentralDC
         30:   4,  # Left-Vessel
@@ -1926,12 +1926,12 @@ def tissue_type_recoder_no_skull(include_lesions=False):
         52:   2,  # Right-Pallidum
         53:   2,  # Right-Hippocampus
         54:   2,  # Right-Amygdala
-        57:   5 if include_lesions else 2 # Right-Lesion
+        57:   5 if include_lesions else 2, # Right-Lesion
         58:   2,  # Right-Accumbens-Area
         60:   3,  # Right-VentralDC
         62:   4,  # Right-Vessel
         63:   4,  # Right-Choroid-Plexus
-        77:   5 if include_lesions else 3 # WM-Hypointensities
+        77:   5 if include_lesions else 3, # WM-Hypointensities
 #        77:   3,  # WM-Hypointensities
         78:   3,  # Left-WM-Hypointensities
         79:   3,  # Right-WM-Hypointensities
@@ -1939,7 +1939,7 @@ def tissue_type_recoder_no_skull(include_lesions=False):
         81:   2,  # Left-Non-WM-Hypointensities
         82:   2,  # Right-Non-WM-Hypointensities
         85:   3,  # Optic-Chiasm
-        99:   5 if include_lesions else 2 # Lesion
+        99:   5 if include_lesions else 2, # Lesion
         130:  0,  # Air
         165:  0,  # Skull
         172:  2,  # Vermis
