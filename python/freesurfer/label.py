@@ -32,7 +32,7 @@ def recode(seg, mapping):
         raise ValueError('Label recoding list must be 1D, but got %dD array.' % mapping.ndim)
     elif isinstance(mapping, (list, tuple, np.ndarray)):
         mapping = {l: i + 1 for i, l in enumerate(mapping)}
-    elif isinstance(mapping, RecodingLookupTable):
+    elif isinstance(mapping, RecodingLookupTable) or str(type(mapping)).find('RecodingLookupTable') > 0:
         recoded_lut = mapping.target_lut
         mapping = mapping.mapping
     elif not isinstance(mapping, dict):
