@@ -124,6 +124,7 @@ class ThalamicNuclei(MeshModel):
             imageMask = imageMask.resample_like(image, method='nearest')
             image[imageMask == 0] = 0            
             images.append(image.data)
+            self.longMask = imageMask
 
         # Define the pre-processed target image
         self.processedImage = image.new(np.stack(images, axis=-1))

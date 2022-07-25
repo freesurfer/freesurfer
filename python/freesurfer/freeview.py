@@ -3,6 +3,7 @@ import tempfile
 import numpy as np
 
 from . import error, run, Image, Overlay, Volume, Surface, Geometry, collect_output
+from .deprecations import deprecate, replace, unsure, notneeded, notimplemented
 
 
 class Freeview:
@@ -22,6 +23,7 @@ class Freeview:
 
     class OverlayTag:
         '''Configuration for overlay tags. See surf() for usage.'''
+        @replace('sf.vis.FreeviewOverlay() class')
         def __init__(self, data, name=None, threshold=None, opacity=None):
             self.data = data
             self.name = name
@@ -30,6 +32,7 @@ class Freeview:
 
     class AnnotTag:
         '''Configuration for annotation tags. See surf() for usage.'''
+        @replace('sf.vis.FreeviewAnnot() class')
         def __init__(self, data, lut=None, name=None):
             self.data = Overlay(data.squeeze()) if isinstance(data, np.ndarray) else data
             if lut is not None:
@@ -38,10 +41,12 @@ class Freeview:
 
     class MRISPTag:
         '''Configuration for mrisp tags. See surf() for usage.'''
+        @notimplemented
         def __init__(self, data, name=None):
             self.data = data
             self.name = name
 
+    @replace('sf.vis.Freeview() class')
     def __init__(self, swap_batch_dim=False, geom=None):
         '''
         Args:
@@ -60,6 +65,7 @@ class Freeview:
             raise ValueError('Unsupported geometry type "%s"' % geom.__class__.__name__)
         self.geom = geom
 
+    @notimplemented
     def copy(self):
         '''
         Returns a copy of the current freeview configuration. This allows for multiple
@@ -70,6 +76,7 @@ class Freeview:
         copied.tempdir = self.tempdir
         return copied
 
+    @replace('fv.add_image(img)')
     def vol(self, volume, swap_batch_dim=False, lut=None, **kwargs):
         '''
         Loads a volume in the sessions. If the volume provided is not a filepath,
@@ -91,6 +98,7 @@ class Freeview:
         flag = '-v ' + filename + self._kwargs_to_tags(kwargs)
         self.add_flag(flag)
 
+    @replace('fv.add_mesh(mesh)')
     def surf(self, surface, overlay=None, annot=None, mrisp=None, sphere=None, curvature=None, **kwargs):
         '''
         Loads a surface in the freeview session. If the surface provided is not
@@ -399,6 +407,7 @@ class Freeview:
         return ''
 
 
+@replace('sf.vis.fv()')
 def fv(*args, **kwargs):
     '''
     Freeview wrapper to quickly load an arbitray number of volumes and surfaces. Inputs
@@ -447,6 +456,7 @@ def fv(*args, **kwargs):
     fv.show(background=background, opts=opts, **kwargs)
 
 
+@notimplemented
 def fvoverlay(surface, overlay, background=True, opts='', verbose=False, **kwargs):
     '''Freeview wrapper to quickly load an overlay onto a surface.
 

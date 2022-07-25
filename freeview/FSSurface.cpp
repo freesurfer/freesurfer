@@ -85,22 +85,10 @@ FSSurface::FSSurface( FSVolume* ref, QObject* parent ) : QObject( parent ),
   }
   m_fSmoothedNormal = NULL;
 
-  m_targetToRasMatrix[0] = 1;
-  m_targetToRasMatrix[1] = 0;
-  m_targetToRasMatrix[2] = 0;
-  m_targetToRasMatrix[3] = 0;
-  m_targetToRasMatrix[4] = 0;
-  m_targetToRasMatrix[5] = 1;
-  m_targetToRasMatrix[6] = 0;
-  m_targetToRasMatrix[7] = 0;
-  m_targetToRasMatrix[8] = 0;
-  m_targetToRasMatrix[9] = 0;
-  m_targetToRasMatrix[10] = 1;
-  m_targetToRasMatrix[11] = 0;
-  m_targetToRasMatrix[12] = 0;
-  m_targetToRasMatrix[13] = 0;
-  m_targetToRasMatrix[14] = 0;
-  m_targetToRasMatrix[15] = 1;
+  vtkMatrix4x4::Identity(m_RASToTkRegMatrix);
+  vtkMatrix4x4::Identity(m_targetToRasMatrix);
+  vtkMatrix4x4::Identity(m_VoxelToRASMatrix);
+
   if (ref)
   {
     MATRIX* mat = ref->GetTargetToRASMatrix();
@@ -228,6 +216,17 @@ bool FSSurface::LoadPatch(const QString &filename)
     return false;
 }
 
+MRI* FSSurface::GetInternalMRI()
+{
+  MRI* mri = NULL;
+  if ( m_MRIS->vg.valid && !m_bIgnoreVG )
+  {
+    mri = MRIallocHeader(m_MRIS->vg.width, m_MRIS->vg.height, m_MRIS->vg.depth, MRI_UCHAR, 1);
+    useVolGeomToMRI(&m_MRIS->vg, mri);
+  }
+  return mri;
+}
+
 bool FSSurface::InitializeData(const QString &vector_filename,
                                const QString &patch_filename,
                                const QString &target_filename,
@@ -251,22 +250,8 @@ bool FSSurface::InitializeData(const QString &vector_filename,
   // surfaces. Or it can come from the source information in the
   // transform. We use it to get the RAS center offset for the
   // surface->RAS transform.
-  m_SurfaceToRASMatrix[0] = 1;
-  m_SurfaceToRASMatrix[1] = 0;
-  m_SurfaceToRASMatrix[2] = 0;
-  m_SurfaceToRASMatrix[3] = 0;
-  m_SurfaceToRASMatrix[4] = 0;
-  m_SurfaceToRASMatrix[5] = 1;
-  m_SurfaceToRASMatrix[6] = 0;
-  m_SurfaceToRASMatrix[7] = 0;
-  m_SurfaceToRASMatrix[8] = 0;
-  m_SurfaceToRASMatrix[9] = 0;
-  m_SurfaceToRASMatrix[10] = 1;
-  m_SurfaceToRASMatrix[11] = 0;
-  m_SurfaceToRASMatrix[12] = 0;
-  m_SurfaceToRASMatrix[13] = 0;
-  m_SurfaceToRASMatrix[14] = 0;
-  m_SurfaceToRASMatrix[15] = 1;
+
+  vtkMatrix4x4::Identity(m_SurfaceToRASMatrix);
 
   m_bValidVolumeGeometry = false;
   if ( m_MRIS->vg.valid && !m_bIgnoreVG )
@@ -288,6 +273,25 @@ bool FSSurface::InitializeData(const QString &vector_filename,
         }
         MatrixFree( &vox2rasTkReg_inv );
         MatrixFree( &M );
+
+        M = MRIgetVoxelToRasXform(tmp);
+        for ( int i = 0; i < 16; i++ )
+        {
+          m_VoxelToRASMatrix[i] =
+              (double) *MATRIX_RELT( M, (i/4)+1, (i%4)+1 );
+        }
+        MatrixFree( &M );
+
+        // update ras2tkreg
+        M = MRIgetRasToVoxelXform( tmp );
+        MATRIX* m1 = MatrixMultiply( vo2rasTkReg, M, NULL );
+        for ( int i = 0; i < 16; i++ )
+        {
+          m_RASToTkRegMatrix[i] = (double) *MATRIX_RELT((m1),(i/4)+1,(i%4)+1);
+        }
+        MatrixFree( &M );
+        MatrixFree( &m1 );
+
         m_bValidVolumeGeometry = true;
       }
       else
@@ -2419,4 +2423,26 @@ bool FSSurface::SaveTransform(vtkTransform *t_in, const QString &filename)
 
   LTAfree(&lta);
   return ret;
+}
+
+void FSSurface::ConvertTkregToRAS( double const pos_in[3], double pos_out[3]) const
+{
+  double p[4] = { pos_in[0], pos_in[1], pos_in[2], 1 };
+  double m[16];
+  vtkMatrix4x4::Invert( m_RASToTkRegMatrix, m );
+  vtkMatrix4x4::MultiplyPoint( m, p, p );
+  pos_out[0] = p[0];
+  pos_out[1] = p[1];
+  pos_out[2] = p[2];
+}
+
+void FSSurface::ConvertVoxelToRAS(const double pos_in[], double pos_out[]) const
+{
+  double p[4] = { pos_in[0], pos_in[1], pos_in[2], 1 };
+  double m[16];
+  vtkMatrix4x4::Invert( m_VoxelToRASMatrix, m );
+  vtkMatrix4x4::MultiplyPoint( m, p, p );
+  pos_out[0] = p[0];
+  pos_out[1] = p[1];
+  pos_out[2] = p[2];
 }
