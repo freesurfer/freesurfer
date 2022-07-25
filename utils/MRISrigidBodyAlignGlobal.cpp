@@ -150,6 +150,7 @@ void MRISrigidBodyAlignGlobal_findMinSSE(
   #define centersCapacity 1
   typedef struct Center Centers[centersCapacity];
 
+  // outCenters has array size 1
   Centers outCenters;
   outCenters[0].center_ai = gridSize/2;
   outCenters[0].center_bi = gridSize/2;
@@ -240,6 +241,10 @@ void MRISrigidBodyAlignGlobal_findMinSSE(
 
           // select those not already done
           //
+          // find out how many angles need to be rotated for alpha, info is saved in ajsForAlphas & alphasForAlphas
+          // ajsForAlphas[]    - angle index:  0 .. nangles
+          // alphasForAlphas[] - alpha to rotate around z axis
+          // 0 <= ajsSize <= nangles+1
           size_t ajsSize = 0;
 
           int aj;
@@ -258,8 +263,28 @@ void MRISrigidBodyAlignGlobal_findMinSSE(
               ajsForAlphas   [ajsSize  ] = aj;
               alphasForAlphas[ajsSize++] = alpha;
             }
-          }
+          } // aj
               
+          //
+          // nangles = 8; forAlphasCapacity = nangles + 1 = 9; numberOfVerticesPartitions = 16
+          //
+          // partition vertices across threads
+          // for each partition (thread),
+          //   call MRISPfunctionVal_radiusR() for every vertex, the calculation is done for ajsSize alpha rotates
+          //       (0 <= ajsSize <= nangles+1, MRISPfunctionVal_radiusR() rotates IMAGE mrisp->Ip->cols, mrisp->Ip->rows)
+          //   update ssesForAlphasForPartitions[] for this partition (thread)
+          //  
+          //  partition  ssesForAlphasForPartitions  ssesForAlphasForPartitions  ...  ssesForAlphasForPartitions
+          //      0                    0                           1             ...                8
+          //      1                    9                          10             ...               17
+          //      2                   18                          19             ...               26
+          //     ...                 ...                         ...             ...              ...
+          //     15                  135                         136             ...              143
+          //
+          //  after all threads are done, Combine all the partitions sses into the 0'th:
+          //  ssesForAlphasForPartitions[0], ssesForAlphasForPartitions[1], ..., ssesForAlphasForPartitions[8]
+          //
+
           // Partition the vertices so can spread across any threads in a deterministic manner
           //
           int const verticesPerPartition = (verticesSize + numberOfVerticesPartitions - 1)/numberOfVerticesPartitions;
@@ -309,6 +334,7 @@ void MRISrigidBodyAlignGlobal_findMinSSE(
                 double const target = fvsForAlphas[ajsI].curr;
                 double const std    = fvsForAlphas[ajsI].next;
                 
+#if 0                
                 int    const ai     = center_ai + gridStride*(aj - nangles/2);
                 float  const alpha  = iToRadians(ai);
 
@@ -345,6 +371,7 @@ void MRISrigidBodyAlignGlobal_findMinSSE(
                         std,    targetAndStd.next);
                   }
                 }
+#endif
 
                 double sqrt_std = sqrt(std);
                 if (FZERO(sqrt_std)) {
@@ -364,8 +391,8 @@ void MRISrigidBodyAlignGlobal_findMinSSE(
                   ssesForAlphas[aj] += delta * delta;
                 }
 
-              }     // alpha
-            }       // vertices
+              }     // alpha  ajsI
+            }       // vertices    vi
 
             ROMP_PFLB_end
           }         // partitions
@@ -388,15 +415,31 @@ void MRISrigidBodyAlignGlobal_findMinSSE(
 
           // Add to the output centers
           //
+          // save surface vertices
+          MRISsaveVertexPositions(mris, TMP_VERTICES);
           for (unsigned int ajsI = 0; ajsI < ajsSize ; ajsI++) {
             int const aj = ajsForAlphas[ajsI];
             int const ai = center_ai + gridStride*(aj - nangles/2);
 
-            double const sse = ssesForAlphasForPartitions[aj];
+            double sse = ssesForAlphasForPartitions[aj];
+
+            float  const alpha = iToRadians(ai);
+	    if (gMRISexternalSSE)
+            {
+              // recompute ext_sse here
+              // rotate surface vertices by alpha, beta, gamma
+              MRISrotate(mris, mris, alpha, beta, gamma);
+
+	      double ext_sse = (*gMRISexternalSSE)(mris, parms) ;
+              sse += ext_sse ;
+
+              // restore surface vertices
+              MRISrestoreVertexPositions(mris, TMP_VERTICES);
+            }
 
             if (spreadsheet) {
-              int    const ai    = center_ai + gridStride*(aj - nangles/2);
-              float  const alpha = iToRadians(ai);
+              //int    const ai    = center_ai + gridStride*(aj - nangles/2);
+              //float  const alpha = iToRadians(ai);
               // format suitable for spreadsheet
               fprintf(stdout, "abgi, %d,%d,%d,  abg, %g,%g,%g, sse,%g\n", ai,bi,gi, alpha,beta,gamma, sse); 
             }
@@ -422,10 +465,12 @@ void MRISrigidBodyAlignGlobal_findMinSSE(
                 }
                 break;                                      // Was nearBy one,so don't look further
               }
-            }
+	    } // oci
+
             if (oci == centersCapacity) {                   // A distant local minimum, and centers is full
               oci = 0;                                      // Select the largest existing minimum to be replaced
               int i;
+              // ??? will it ever go into this loop ???
               for (i = 1; i < outCentersSize; i++) {
                 if (outCenters[oci].center_sse < outCenters[i].center_sse) oci = i;
               }
@@ -480,6 +525,7 @@ void MRISrigidBodyAlignGlobal_findMinSSE(
   //
   { int oci = 0;
     int i;
+    // ??? will it ever go into this loop ??? 
     for (i = 1; i < outCentersSize; i++) {
       if (outCenters[oci].center_sse > outCenters[i].center_sse) oci = i;
     }
