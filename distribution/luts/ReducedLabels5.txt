@@ -1,0 +1,8 @@
+#ID   Label Name                            R   G   B   A
+
+0     Unknown                               0   0   0   0
+1     Cortex                                205 62  78  0
+2     Subcortical-Gray-Matter               119 159 176 0
+3     White-Matter                          245 245 245 0
+4     CSF                                   120 18  134 0
+5     Lesion                                255 165 0   0
