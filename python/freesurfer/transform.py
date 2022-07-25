@@ -2,6 +2,8 @@ import os
 import numpy as np
 from . import bindings
 
+from .deprecations import deprecate, replace, unsure, notneeded
+
 
 class LinearTransform:
     '''Linear transformer that wraps an affine matrix.'''
@@ -11,6 +13,7 @@ class LinearTransform:
         ras = 1
         physvox = 2
 
+    @replace('sf.Affine() class')
     def __init__(self, matrix=None, source=None, target=None, type=None):
         '''
         Constructs a linear transform from a 4x4 affine matrix. If
@@ -31,6 +34,7 @@ class LinearTransform:
             raise ValueError('linear transform must be a 4x4 matrix')
 
     @staticmethod
+    @replace('sf.transform.cast_affine')
     def ensure(unknown):
         '''Ensures that the unknown input is (or gets converted to) a LinearTransform'''
         if isinstance(unknown, LinearTransform):
@@ -40,6 +44,7 @@ class LinearTransform:
         raise ValueError('Cannot convert object of type %s to LinearTransform' % type(unknown).__name__)
 
     @staticmethod
+    @replace("@ symbol (i.e. aff1 @ aff2)")
     def matmul(a, b):
         '''
         Matrix multiplication to join two transforms. Input can be numpy
@@ -57,10 +62,12 @@ class LinearTransform:
         pts = np.c_[pts, np.ones(pts.shape[0])].T
         return np.ascontiguousarray(np.dot(self.matrix, pts).T.squeeze()[..., :-1])
 
+    @replace('affine = affine.inv()')
     def inverse(self):
         '''Computes the inverse linear transform.'''
         return LinearTransform(np.linalg.inv(self.matrix), source=self.target, target=self.source, type=self.type)
 
+    @replace("affine = affine.convert(space='world')")
     def as_ras(self):
         '''Converts affine matrix to a RAS to RAS transform.'''
         if self.type is None:
@@ -72,6 +79,7 @@ class LinearTransform:
         matrix = self.target.affine @ self.matrix @ np.linalg.inv(self.source.affine)
         return LinearTransform(matrix, source=self.source, target=self.target, type=LinearTransform.Type.ras)
 
+    @replace("affine = affine.convert(space='vox')")
     def as_vox(self):
         '''Converts affine matrix to a VOX to VOX transform.'''
         if self.type is None:
@@ -83,11 +91,13 @@ class LinearTransform:
         matrix = np.linalg.inv(self.target.affine) @ self.matrix @ self.source.affine
         return LinearTransform(matrix, source=self.source, target=self.target, type=LinearTransform.Type.vox)
 
+    @replace("affine.save(filename)")
     def write(self, filename):
         '''Writes the transform to an LTA file.'''
         bindings.transform.write_lta(self, filename)
 
     @classmethod
+    @replace("sf.load_affine(filename)")
     def read(cls, filename):
         '''Reads a transform from an LTA file.'''
         if not os.path.isfile(filename):
@@ -95,6 +105,7 @@ class LinearTransform:
         return bindings.transform.read_lta(filename)
 
 
+@notneeded
 def LIA(shape=None, voxsize=(1, 1, 1)):
     '''Affine matrix representing LIA voxel coordinate relationship (also known as RSP).'''
     matrix = np.array([[-1,  0,  0,  0],
@@ -111,11 +122,13 @@ def LIA(shape=None, voxsize=(1, 1, 1)):
 class Geometry:
     '''Representation of volume geometry in RAS space.'''
 
+    @replace('sf.ImageGeometry() class')
     def __init__(self, shape, voxsize=(1, 1, 1), affine=None):
         self.shape = shape
         self.voxsize = voxsize
         self.affine = affine
 
+    @replace('sf.transform.image_geometry_equal(a, b)')
     def __eq__(self, other):
         '''Check for equality.'''
         equal = self.shape == other.shape and \
@@ -124,6 +137,7 @@ class Geometry:
         return equal
 
     @staticmethod
+    @replace('sf.transform.image_geometry_equal(a, b)')
     def is_equal(a, b, thresh=1e-3, require_affine=True):
         '''Compare geometries within some threshold.'''
 
@@ -143,26 +157,32 @@ class Geometry:
 
         return True
 
+    @replace('geom.vox2world (not a function)')
     def vox2ras(self):
         '''LinearTransform that maps voxel crs coordinates to ras xyz coordinates.'''
         return LinearTransform(self.affine)
 
+    @replace('geom.world2vox (not a function)')
     def ras2vox(self):
         '''LinearTransform that maps ras xyz coordinates to voxel crs coordinates.'''
         return self.vox2ras().inverse()
 
+    @replace('geom.vox2surf (not a function)')
     def vox2surf(self):
         '''LinearTransform that maps voxel crs coordinates to surface coordinates.'''
         return LinearTransform(LIA(self.shape, self.voxsize))
 
+    @replace('geom.surf2vox (not a function)')
     def surf2vox(self):
         '''LinearTransform that maps surface coordinates to crs coordinates.'''
         return self.vox2surf().inverse()
 
+    @replace('geom.surf2world (not a function)')
     def surf2ras(self):
         '''LinearTransform that maps surface coordinates to ras xyz coordinates.'''
         return LinearTransform.matmul(self.affine, self.surf2vox())
 
+    @replace('geom.world2surf (not a function)')
     def ras2surf(self):
         '''LinearTransform that maps ras xyz coordinates to surface coordinates.'''
         return LinearTransform.matmul(self.vox2surf(), self.ras2vox())
@@ -180,44 +200,53 @@ class Transformable:
     defined here. This is rather cyclical though.
     '''
 
+    @replace('obj.geom (not a function)')
     def geometry(self):
         '''Returns the geometry associated with the object.'''
         raise NotImplementedError('a class that inherits from Transformable must override geometry()')
 
+    @replace('obj.geom.vox2world (not a function)')
     def vox2ras(self):
         return self.geometry().vox2ras()
 
+    @replace('obj.geom.world2vox (not a function)')
     def ras2vox(self):
         return self.geometry().ras2vox()
 
+    @replace('obj.geom.vox2surf (not a function)')
     def vox2surf(self):
         return self.geometry().vox2surf()
 
+    @replace('obj.geom.surf2vox (not a function)')
     def surf2vox(self):
         return self.geometry().surf2vox()
 
+    @replace('obj.geom.surf2world (not a function)')
     def surf2ras(self):
         return self.geometry().surf2ras()
 
+    @replace('obj.geom.world2surf (not a function)')
     def ras2surf(self):
         return self.geometry().ras2surf()
 
 
 class Warp:
     '''
-    TODOC
     '''
 
+    @deprecate('use the fsbindings for writing M3Zs')
     def __init__(self, warp, source=None, target=None, affine=None):
         self.data = warp
         self.source = source
         self.target = target
         self.affine = affine
 
+    @deprecate('use the fsbindings for writing M3Zs')
     def write(self, filename):
         bindings.morph.write_gcam(self, filename)
 
 
+@unsure
 def transform_to_midspace(a, b, transform=None, resample=True, interp_method='linear', target=None):
     """
     Transform volumes to midspace.

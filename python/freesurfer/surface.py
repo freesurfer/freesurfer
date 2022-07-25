@@ -4,11 +4,13 @@ import numpy as np
 
 from . import bindings, warning, Image, Overlay
 from .transform import Transformable, LinearTransform
+from .deprecations import deprecate, replace, unsure, notneeded, notimplemented
 
 
 class Surface(Transformable):
     '''Triangular mesh topology represented by arrays of vertices and faces.'''
 
+    @replace('sf.Mesh class')
     def __init__(self, vertices, faces=None, hemi=None, geom=None):
 
         # make sure a string isn't being provided
@@ -27,6 +29,7 @@ class Surface(Transformable):
         # compute face and vertex normals
         self.compute_normals()
 
+    @notimplemented
     def __eq__(self, other):
         '''Check for equality.'''
         equal = np.array_equal(self.vertices, other.vertices) and \
@@ -38,12 +41,14 @@ class Surface(Transformable):
     # ---- utility ----
 
     @classmethod
+    @replace('sf.load_mesh(filename)')
     def read(cls, filename):
         '''Loads surface from file.'''
         if not os.path.isfile(filename):
             raise ValueError('surface file %s does not exist' % filename)
         return bindings.surf.read(os.path.abspath(filename))
 
+    @replace('surf.save(filename)')
     def write(self, filename):
         '''Writes surface to file.'''
         bindings.surf.write(self, os.path.abspath(filename))
@@ -64,6 +69,7 @@ class Surface(Transformable):
         '''Total number of faces in the mesh.'''
         return len(self.faces)
 
+    @deprecate('mesh normals are now auto-computed')
     def compute_normals(self):
         '''Compute and cache face and vertex normals.'''
         bindings.surf.compute_normals(self)
@@ -71,22 +77,27 @@ class Surface(Transformable):
         self.vertex_tangents_1 = None
         self.vertex_tangents_2 = None
 
+    @notimplemented
     def compute_tangents(self):
         '''Compute and cache vertex tangents along primary curvature direction.'''
         bindings.surf.compute_tangents(self)
 
+    @replace('mesh.euler')
     def compute_euler(self):
         '''Computes euler number of the mesh.'''
         return bindings.surf.compute_euler(self)
 
+    @replace('fsbindings.count_intersections')  # ATH
     def count_intersections(self):
         '''Counts the number of face intersection in the mesh.'''
         return bindings.surf.count_intersections(self)
 
+    @deprecate('neighbors are now computed using a sparse matrix, and the best approach be task-dependent. if you need this, ask andrew.')
     def neighboring_faces(self, vertex):
         '''List of face indices that neighbor a vertex.'''
         return np.where(self.faces == vertex)[0]
 
+    @deprecate('neighbors are now computed using a sparse matrix, and the best approach be task-dependent. if you need this, ask andrew.')
     def neighboring_vertices(self, vertex):
         '''List of vertices that immediately neighbor a vertex.'''
         neighbors = np.unique([self.faces[fno] for fno in self.neighboring_faces(vertex)])
@@ -98,10 +109,12 @@ class Surface(Transformable):
         '''Returns the (min, max) coordinates that define the surface's bounding box.'''
         return self.vertices.min(axis=0), self.vertices.max(axis=0)
 
+    @replace('surf.geom')
     def geometry(self):
         '''Returns the geometry associated with the source volume.'''
         return self.geom
 
+    @notimplemented
     def transform(self, lt):
         '''
         Returns a realigned surface in a coordinate space defined by
@@ -140,6 +153,7 @@ class Surface(Transformable):
 
     # ---- overlay utils ----
 
+    @replace('`smap = sf.sphere.SphericalMapBarycentric(surf)` or `smap = SphericalMapNearest(surf)`, then run `smap.parameterize(overlay)`')
     def parameterize(self, overlay, scale=1, interp='barycentric'):
         '''
         Parameterizes an nvertices-length overlay to an image. Interpolation method can be
@@ -159,6 +173,7 @@ class Surface(Transformable):
             param = param.astype(data.dtype)
         return param
 
+    @replace('`smap = sf.sphere.SphericalMapBarycentric(surf)` or `smap = SphericalMapNearest(surf)`, then run `smap.sample(image)`')
     def sample_parameterization(self, image, interp='barycentric'):
         '''
         Samples a parameterized image into an nvertices-length array. Sampling method can be
@@ -175,6 +190,7 @@ class Surface(Transformable):
             overlay = overlay.astype(data.dtype)
         return overlay
 
+    @replace('same function, but now has more options (laplacian-smoothing weight options, etc..)')
     def smooth_overlay(self, overlay, steps):
         '''Smooths an overlay along the mesh vertices.'''
         overlay = Overlay.ensure(overlay)
@@ -186,9 +202,9 @@ class Surface(Transformable):
         '''Deprecated! '''
         raise DeprecationWarning('parameterization_map() has been removed! Email andrew!') 
 
-    def copy_geometry(self, vol):  # TODEP
+    @replace('surf.geom = source.geom')
+    def copy_geometry(self, vol):
         '''Deprecated! '''
-        warning('copy_geometry(vol) has been removed! Just use: surf.geom = vol.geometry()')
         self.geom = vol.geometry()
 
     def isSelfIntersecting(self):  # TODEP
@@ -199,22 +215,24 @@ class Surface(Transformable):
         '''Deprecated!'''
         raise DeprecationWarning('fillInterior has been removed! Email andrew if you get this!!')
 
+    @replace('surf.vertices')
     def get_vertex_positions(self):  # TODEP
         '''Deprecated - use Surface.vertices directly'''
         return self.vertices
 
+    @replace('surf.vertices = vertices')
     def set_vertex_positions(self, vertices):  # TODEP
         '''Deprecated - use Surface.vertices directly'''
         self.vertices = vertices
 
+    @replace('surf.faces')
     def get_face_vertices(self):  # TODEP
         '''Deprecated - use Surface.faces directly'''
-        warning('"Surface.get_face_vertices()" is deprecated - use "Surface.faces" directly. Sorry for the back and forth...')
         return self.faces
 
+    @replace('surf.vertex_normals')
     def get_vertex_normals(self):  # TODEP
         '''Deprecated - use Surface.vertex_normals directly'''
-        warning('"Surface.get_vertex_normals()"" is deprecated - use "Surface.vertex_normals" directly. Sorry for the back and forth...')
         return self.vertex_normals
 
     def get_vertex_faces(self):  # TODEP
@@ -222,10 +240,12 @@ class Surface(Transformable):
         raise DeprecationWarning('get_vertex_faces has been removed! Use Surface.neighboring_faces or email andrew if you get this!!!!')
 
 
+@unsure
 def distance(a, b):
     return bindings.surf.distance(a, b)
 
 
+@replace('sf.io.fsio.load_surface_label(filename) - note this returns a list of vertices and not an overlay')
 def read_label(filename, nvertices):
     mask = np.zeros(nvertices, dtype=bool)
     with open(filename) as f:

@@ -4,8 +4,10 @@ from . import lookups
 from .lookups import LookupTable
 from .lookups import RecodingLookupTable
 from .ndarray import ArrayContainerTemplate
+from .deprecations import deprecate, replace, unsure, notneeded
 
 
+@replace('sf.labels.recode')
 def recode(seg, mapping):
     """
     Recodes a hard segmentation via a label mapping.
@@ -53,6 +55,7 @@ def recode(seg, mapping):
     return recoded
 
 
+@replace('seg.onehot()')
 def hard_to_prob(seg, labels, dtype='float32'):
     """
     Converts a hard segmentation to a probabilistic segmentation.
@@ -76,6 +79,7 @@ def hard_to_prob(seg, labels, dtype='float32'):
     return prob
 
 
+@replace('seg.collapse()')
 def prob_to_hard(seg, labels=None):
     """
     Converts a probabilistic segmentation to a hard segmentation.
@@ -99,6 +103,7 @@ def prob_to_hard(seg, labels=None):
     return hard
 
 
+@replace('sf.labels.dice')
 def dice(a, b, labels=None):
     '''
     Computes dice coefficients for each label between two hard segmentations,
@@ -124,6 +129,7 @@ def dice(a, b, labels=None):
     return result
 
 
+@replace('sf.labels.jaccard')
 def jaccard(a, b, labels=None):
     '''
     Computes jaccard coefficients for each label between two hard segmentations,

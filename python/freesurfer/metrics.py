@@ -2,7 +2,10 @@ import numpy as np
 from scipy.ndimage.morphology import binary_erosion
 from scipy.spatial.distance import cdist
 
+from .deprecations import deprecate, replace, unsure, notneeded, notimplemented
 
+
+@replace('sf.labels.dice')
 def dice(a, b, labels=None):
     '''
     Computes dice coefficients for each label between two hard segmentations.
@@ -27,6 +30,7 @@ def dice(a, b, labels=None):
     return result
 
 
+@replace('sf.labels.jaccard')
 def jaccard(a, b, labels=None):
     '''
     Computes jaccard coefficients for each label between two hard segmentations.
@@ -51,6 +55,7 @@ def jaccard(a, b, labels=None):
     return result
 
 
+@notimplemented
 def hausdorff(a, b, thresh=0.01, measure=np.max):
     '''
     Hausdorff distance between two volumes. Computes the max of
