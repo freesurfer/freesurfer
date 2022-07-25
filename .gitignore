@@ -29,6 +29,8 @@ moc_*.*
 # python cache
 __pycache__
 *.pyc
+*.egg-info
+python/build
 
 # in-source cpython library builds
 *cpython*.so
