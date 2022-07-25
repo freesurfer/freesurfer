@@ -77,7 +77,7 @@ class Surface(Transformable):
         self.vertex_tangents_1 = None
         self.vertex_tangents_2 = None
 
-    @notimplemented
+    @replace('fsbindings.compute_tangents')
     def compute_tangents(self):
         '''Compute and cache vertex tangents along primary curvature direction.'''
         bindings.surf.compute_tangents(self)
@@ -87,7 +87,7 @@ class Surface(Transformable):
         '''Computes euler number of the mesh.'''
         return bindings.surf.compute_euler(self)
 
-    @replace('fsbindings.count_intersections')  # ATH
+    @replace('fsbindings.count_intersections')
     def count_intersections(self):
         '''Counts the number of face intersection in the mesh.'''
         return bindings.surf.count_intersections(self)
