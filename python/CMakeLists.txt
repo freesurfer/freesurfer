@@ -9,7 +9,7 @@ install(CODE "
   message(STATUS \"Installing python packages\")
   execute_process(COMMAND bash -c \"${PYTHON_EXECUTABLE} -m pip install ${CMAKE_CURRENT_SOURCE_DIR} --no-dependencies --upgrade --target=${CMAKE_INSTALL_PREFIX}/python/packages\" RESULT_VARIABLE retcode)
   if(NOT \${retcode} STREQUAL 0)
-    message(FATAL_ERROR \"Could not install freesurfer python module\")
+    message(FATAL_ERROR \"Could not install python modules\")
   endif()"
   COMPONENT fspy
 )
