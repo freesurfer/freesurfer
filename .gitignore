@@ -31,6 +31,7 @@ __pycache__
 *.pyc
 *.egg-info
 python/build
+qatools/build
 
 # in-source cpython library builds
 *cpython*.so
