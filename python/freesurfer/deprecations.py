@@ -3,64 +3,199 @@ Functions and classes to be deprecated soon. Some of these routines
 will raise exceptions, while others will just dispay warnings.
 '''
 
+import os
 import warnings
 import functools
 import numpy as np
+import argparse
+import traceback
 
 import freesurfer as fs
 
 
-def deprecated(message):
-    '''
-    This is a decorator factory used to mark functions as deprecated.
-    It emits a warning when the function is called.
-    '''
+
+show_deps = True
+
+
+def replace(replacement):
     def decorator(function):
         @functools.wraps(function)
         def wrapped(*args, **kwargs):
-            detailed = '%s is deprecated: %s' % (function.__name__, message)
-            warnings.simplefilter('always', DeprecationWarning)  # turn off filter
-            warnings.warn(detailed, category=DeprecationWarning, stacklevel=2)
-            warnings.simplefilter('default', DeprecationWarning)  # reset filter
-            return function(*args, **kwargs)
+            
+            global show_deps
+            showing = show_deps and os.environ.get('FS_SURFA_PORT') is not None
+            if showing:
+                stack = traceback.extract_stack()[0]
+                preface = ''
+                if stack.filename != '<stdin>':
+                    preface = fs.utils.term.dim(f'{stack.filename}  L{stack.lineno}: ')
+                name = function.__name__
+                if name == '__init__':
+                    name = args[0].__class__.__name__
+                old = fs.utils.term.blue(name + '()')
+                new = fs.utils.term.blue(replacement)
+                print(f'{preface}replace {old} with {new}')
+                show_deps = False
+
+            result = function(*args, **kwargs)
+
+            if showing:
+                show_deps = True
+
+            return result
         return wrapped
     return decorator
 
 
+def deprecate(message):
+    def decorator(function):
+        @functools.wraps(function)
+        def wrapped(*args, **kwargs):
+            
+            global show_deps
+            showing = show_deps and os.environ.get('FS_SURFA_PORT') is not None
+            if showing:
+                stack = traceback.extract_stack()[0]
+                preface = ''
+                if stack.filename != '<stdin>':
+                    preface = fs.utils.term.dim(f'{stack.filename}  L{stack.lineno}: ')
+                name = function.__name__
+                if name == '__init__':
+                    name = args[0].__class__.__name__
+                old = fs.utils.term.blue(name + '()')
+                print(f'{preface}{old} is deprecated: {message}')
+                show_deps = False
+
+            result = function(*args, **kwargs)
+
+            if showing:
+                show_deps = True
+
+            return result
+        return wrapped
+    return decorator
+
+
+def notneeded(function):
+    @functools.wraps(function)
+    def wrapped(*args, **kwargs):
+        
+        # export SUGGEST_SURFA_PORT=1
+        global show_deps
+        showing = show_deps and os.environ.get('FS_SURFA_PORT') is not None
+        if showing:
+            stack = traceback.extract_stack()[0]
+            preface = ''
+            if stack.filename != '<stdin>':
+                preface = fs.utils.term.dim(f'{stack.filename}  L{stack.lineno}: ')
+            name = function.__name__
+            if name == '__init__':
+                name = args[0].__class__.__name__
+            old = fs.utils.term.blue(name + '()')
+            print(f'{preface}{old} is no longer needed')
+            show_deps = False
+
+        result = function(*args, **kwargs)
+
+        if showing:
+            show_deps = True
+
+        return result
+    return wrapped
+
+
+def notimplemented(function):
+    @functools.wraps(function)
+    def wrapped(*args, **kwargs):
+        
+        # export SUGGEST_SURFA_PORT=1
+        global show_deps
+        showing = show_deps and os.environ.get('FS_SURFA_PORT') is not None
+        if showing:
+            stack = traceback.extract_stack()[0]
+            preface = ''
+            if stack.filename != '<stdin>':
+                preface = fs.utils.term.dim(f'{stack.filename}  L{stack.lineno}: ')
+            name = function.__name__
+            if name == '__init__':
+                name = args[0].__class__.__name__
+            old = fs.utils.term.blue(name + '()')
+            print(f'{preface}{old} has no direct port to surfa: message andrew if you need this')
+            show_deps = False
+
+        result = function(*args, **kwargs)
+
+        if showing:
+            show_deps = True
+
+        return result
+    return wrapped
+
+
+def unsure(function):
+    @functools.wraps(function)
+    def wrapped(*args, **kwargs):
+        
+        # export SUGGEST_SURFA_PORT=1
+        global show_deps
+        showing = show_deps and os.environ.get('FS_SURFA_PORT') is not None
+        if showing:
+            stack = traceback.extract_stack()[0]
+            preface = ''
+            if stack.filename != '<stdin>':
+                preface = fs.utils.term.dim(f'{stack.filename}  L{stack.lineno}: ')
+            name = function.__name__
+            if name == '__init__':
+                name = args[0].__class__.__name__
+            old = fs.utils.term.blue(name + '()')
+            print(f'{preface}unsure of the best way to port {old}: message andrew if you need thigs')
+            show_deps = False
+
+        result = function(*args, **kwargs)
+
+        if showing:
+            show_deps = True
+
+        return result
+    return wrapped
+
+
 # ---- parameterization ----
 
-@deprecated('use Surface.parameterize member function to generate an MRISP')
+@replace('sf.sphere.SphericalMapBarycentric(surf).parameterize(overlay)')
 def MRISP(scale, nfuncs):
     if scale == 0: scale = 1
     cols = int(round(scale * 256))
     rows = 2 * cols
     return np.zeros((cols, rows, nfuncs))
 
-@deprecated('use Surface.parameterize member function instead')
+@replace('sf.sphere.SphericalMapBarycentric(surf).parameterize(overlay)')
 def parameterizeSurface(surf, overlay, fno=0, mrisp=None, scale=1.0):
     return surf.parameterize(overlay)
 
 # ---- surface geometry ----
 
+@notneeded
 def createFaceArrays(surf):
     raise DeprecationWarning('createFaceArrays is no longer - use Surface.neighboring_faces instead')
 
-@deprecated('no longer needed to be called')
+@notneeded
 def initSurface(surf):
     pass
 
-@deprecated('use Surface.compute_normals member function instead')
+@deprecate('face normals are now auto-computed: `mesh.face_normals`')
 def computeFaceNormals(surf):
     surf.compute_normals()
     return surf.face_normals
 
-@deprecated('use Surface.compute_normals member function instead')
+@deprecate('vertex normals are now auto-computed: `mesh.vertex_normals`')
 def computeVertexNormals(surf):
     surf.compute_normals()
     return surf.vertex_normals
 
 # ---- surface coordinate conversions ----
 
+@unsure
 def MRISsampleVertexPatch(mris, mri_normals, mri, vno, wsize):
     import nibabel as nib
     if isinstance(mri_normals, nib.freesurfer.mghformat.MGHImage) == True:
@@ -78,9 +213,11 @@ def MRISsampleVertexPatch(mris, mri_normals, mri, vno, wsize):
     ny /= np.linalg.norm(ny)
     return sample_patch(mri, mris[vno]+(nz), nx, ny, nz, wsize)
 
+@deprecate("just use voxsurf = surf.convert(space='vox')")
 def computeVoxelCoords(surf, vol):
     return surf.surf2vox().transform(surf.vertices)
 
+@deprecate("just use voxsurf = surf.convert(space='vox')")
 def MRIStoVoxel(mris, mri):
     vox2ras = mri.get_header().get_vox2ras_tkr()
     ras2vox = npl.inv(vox2ras)
@@ -91,6 +228,7 @@ def MRIStoVoxel(mris, mri):
         mris[0][vno] = np.reshape(vox[:3],mris[0][vno].shape)
     return mris
 
+@deprecate("just use surf.convert(space='vox').vertex_normals")
 def MRISnormalsToVoxel(mris, mri_normals, mri):
     import nibabel as nib
     if isinstance(mri_normals, nib.freesurfer.mghformat.MGHImage):
@@ -110,6 +248,7 @@ def MRISnormalsToVoxel(mris, mri_normals, mri):
         normals[vno,:] -= np.reshape(vox[0:3], normals[vno,:].shape)
     return normals
 
+@unsure
 def computeVolumeValsInNormalDirection(surf, vol, dist):
     vertex_normals = surf.vertex_normals
     voxels = surf.surf2vox().transform(surf.vertices + vertex_normals * dist)
@@ -118,13 +257,13 @@ def computeVolumeValsInNormalDirection(surf, vol, dist):
 
 # ---- metrics ----
 
-@deprecated('use fs.metrics.hausdorff instead')
+@deprecate('use fs.metrics.hausdorff instead')  # ATH
 def hausdorffDistance(*args, **kwargs):
     return fs.metrics.hausdorff(*args, **kwargs)
 
 # ---- utils ----
 
-@deprecated('use fs.geom.bbox instead')
+@replace('image.bbox()')
 def bbox2_3D(img):
     r = np.any(img, axis=(1, 2))
     c = np.any(img, axis=(0, 2))
@@ -134,7 +273,7 @@ def bbox2_3D(img):
     zmin, zmax = np.where(z)[0][[0, -1]]
     return rmin, rmax, cmin, cmax, zmin, zmax
 
-@deprecated('use fs.geom.Slicing instead. email Andrw with questions')
+@unsure
 def sample_patch(mri, point, nx, ny, nz, wsize):
     whalf = wsize/2
     patch = np.zeros((wsize,wsize,wsize, mri.shape[3]))
@@ -152,19 +291,21 @@ def sample_patch(mri, point, nx, ny, nz, wsize):
                 patch[xk+whalf,yk+whalf,zk+whalf,:] = val
     return patch
 
-@deprecated('use argparse.ArgumentParser instead')
+@deprecate('use argparse.ArgumentParser instead')
 def ArgParser(*args, **kwargs):
     return argparse.ArgumentParser(*args, **kwargs)
 
 def source(filename):
     raise DeprecationWarning('sourcing from python is no longer supported as it is quite dangerous')
 
-@deprecated('use fs.utils.collect_output instead')
+@replace('sf.system.collect_output')
 def collectOutput(command, executable='/bin/bash'):
     return fs.utils.collect_output(command, executable=executable)
 
+@replace('sf.load_overlay(filename)')
 def read_annotation(*args, **kwargs):
-    raise DeprecationWarning('read_annotation is deprecated for now. email Andrew if you get this')
+    pass
 
+@notneeded
 def slicing_origin(slices):
     return tuple([slc.start for slc in slices])
