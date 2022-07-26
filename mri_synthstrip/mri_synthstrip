@@ -16,6 +16,8 @@ type. If you use SynthStrip in your analysis, please cite:
 
 SynthStrip: Skull-Stripping for Any Brain Image.
 A Hoopes, JS Mora, AV Dalca, B Fischl, M Hoffmann.
+NeuroImage 206 (2022), 119474.
+https://doi.org/10.1016/j.neuroimage.2022.119474 
 '''
 
 # parse command line
