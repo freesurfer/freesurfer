@@ -1600,6 +1600,7 @@ def default():
     return lut
 
 
+@replace('sf.freesurfer.destrieux()')
 def destrieux():
     """
     """
@@ -1683,6 +1684,7 @@ def destrieux():
     return lut
 
 
+@replace('sf.freesurfer.dkt()')
 def dkt():
     """
     """
@@ -1726,6 +1728,7 @@ def dkt():
     return lut
 
 
+@replace('sf.freesurfer.tissue_types()')
 def tissue_type():
     """
     """
@@ -1739,6 +1742,7 @@ def tissue_type():
     return lut
 
 
+@replace("sf.freesurfer.tissue_types() - NOTE: 'Lesion' is 6 and 'Head' is 5")
 def tissue_type_no_skull(include_lesions=False):
     """
     """
@@ -1753,6 +1757,8 @@ def tissue_type_no_skull(include_lesions=False):
 
     return lut
 
+
+@replace("sf.freesurfer.tissue_type_recoder(extra=bool, lesions=bool) - NOTE: 'Lesion' is 6 and 'Head' is 5")
 def tissue_type_recoder():
     """
     Returns a recoding table that converts default brain labels to the
@@ -1890,6 +1896,8 @@ def tissue_type_recoder():
     }
     return rlut
 
+
+@replace("sf.freesurfer.tissue_type_recoder(extra=bool, lesions=bool) - NOTE: 'Lesion' is 6 and 'Head' is 5")
 def tissue_type_recoder_no_skull(include_lesions=False):
     """
     Returns a recoding table that converts default brain labels to the
