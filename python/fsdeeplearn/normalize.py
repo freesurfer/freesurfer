@@ -6,10 +6,7 @@ make sense to develop some more universal normalization utility functions.
 
 import numpy as np
 
-from .deprecations import deprecate, replace, unsure, notneeded
 
-
-@replace('fsdeeplearn.normalize.piecewise_linear_normalize()')
 def piecewise_linear_normalize(in_img_data, ref_img_data):
     '''Function to piecewise linearly scale image intensities to training data landmarks.'''
     import sklearn.mixture
@@ -47,7 +44,7 @@ def piecewise_linear_normalize(in_img_data, ref_img_data):
     return out_img_data
 
 
-@replace('fsdeeplearn.normalize.wm_peak_normalize()')
+
 def wm_peak_normalize(in_img_data):
     '''Function to scale image intensities by setting wm peak to 200.'''
     import sklearn.mixture
@@ -64,7 +61,6 @@ def wm_peak_normalize(in_img_data):
     return out_img_data
 
 
-@replace('fsdeeplearn.normalize.robust_normalize()')
 def robust_normalize(in_img_data):
     in_img_flat = np.ravel(in_img_data, 'C')
     in_img_fg = in_img_flat[in_img_flat > 0].reshape(-1, 1)
@@ -77,7 +73,6 @@ def robust_normalize(in_img_data):
     return out_img_data
 
 
-@replace('fsdeeplearn.normalize.wm_peak_normalize_t2w()')
 def wm_peak_normalize_t2w(in_img_data):
     '''Function to scale image intensities by setting wm peak to 200.'''
     import sklearn.mixture
@@ -110,7 +105,6 @@ def wm_peak_normalize_t2w(in_img_data):
     return out_img_data
 
 
-@replace('fsdeeplearn.normalize.wm_peak_normalize_t2w()')
 def wm_peak_normalize_t2w(in_img_data):
     """Function to scale image intensities by setting wm peak to 200"""
     import sklearn.mixture
@@ -145,7 +139,6 @@ def wm_peak_normalize_t2w(in_img_data):
     return out_img_data
 
 
-@replace('fsdeeplearn.normalize.max_normalize()')
 def max_normalize(in_img_data):
     in_img_flat = np.ravel(in_img_data, 'C')
     in_img_fg = in_img_flat[in_img_flat > 0].reshape(-1, 1)
@@ -158,7 +151,6 @@ def max_normalize(in_img_data):
     return out_img_data
 
 
-@replace('fsdeeplearn.normalize.histmatch()')
 def histmatch(in_img_data, ref_img_data):
     # in_img_data = wm_peak_normalize(in_img_data)
     # ref_img_data = wm_peak_normalize(ref_img_data)
