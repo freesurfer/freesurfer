@@ -15,5 +15,3 @@ import warnings
 def formatwarning(message, category, filename, lineno, line=None):
     return f'{category.__name__}: {message}\n'
 warnings.formatwarning = formatwarning
-
-warnings.warn('the freesurfer package has been deprecated in favor of surfa, but loading the archived version')
