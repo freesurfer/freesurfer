@@ -8,12 +8,14 @@ WORKDIR /freesurfer
 
 # install utils
 RUN yum -y update
-RUN yum -y install libgomp python3
+RUN yum -y install libgomp gcc python3 python3-devel
 RUN yum clean all
 
 # python packages
-RUN pip3 install scipy torch==1.10.2
-RUN pip3 install /external/fsmodule
+RUN python3 -m pip install -U pip
+RUN python3 -m pip install scipy torch==1.10.2
+RUN python3 -m pip install surfa
+RUN python3 -m pip install cache purge
 
 # install synthstrip
 RUN cp /external/mri_synthstrip /freesurfer/
@@ -22,10 +24,6 @@ RUN cp /external/mri_synthstrip /freesurfer/
 ENV FREESURFER_HOME /freesurfer
 RUN mkdir -p /freesurfer/models
 RUN cp /external/synthstrip.1.pt /freesurfer/models/
-
-# setup rest of the env
-ENV OS Linux
-ENV FSF_OUTPUT_FORMAT nii.gz
 
 # clean up
 RUN rm -rf /external /root/.cache/pip
