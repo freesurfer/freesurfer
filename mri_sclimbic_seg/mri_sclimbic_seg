@@ -82,6 +82,8 @@ def main():
     parser.add_argument('--percentile', type=float, help='Use intensity percentile threshold for normalization.')
     parser.add_argument('--cuda-device', help='Cuda device for GPU support.')
     parser.add_argument('--output-base', default='sclimbic',help='String to use in output file name; default is sclimbic')
+    # Ideally, we would get this from the model
+    parser.add_argument('--nchannels', type=int, default=1,help='Number of channels')
 
     # check for no arguments
     if len(sys.argv) < 2:
@@ -169,7 +171,8 @@ def main():
                                 debug=args.debug,
                                 volumes_from_vox_count=args.vox_count_volumes,
                                 percentile=percentile,
-                                exclude=args.exclude)
+                                exclude=args.exclude,
+                                nchannels=args.nchannels);
     print('Loaded model weights', model_file) 
 
     # loop through each image and segment
@@ -353,7 +356,8 @@ class LimbicSegmenter:
                  debug=False,
                  volumes_from_vox_count=False,
                  percentile=None,
-                 exclude=[]):
+                 exclude=[],
+                 nchannels=1):
 
         self.labels = labels
         self.population_stats = population_stats
@@ -368,16 +372,17 @@ class LimbicSegmenter:
         self.debug = debug
         self.volumes_from_vox_count = volumes_from_vox_count
         self.percentile = percentile
+        self.nchannels = nchannels;
 
         # build mask of labels to exclude in stats output files
         # always ignore unknown label
         self.exclude = [0] + exclude
         self.exclude_mask = [sid not in self.exclude for sid in labels.keys()]
         self.label_names = [label.name for i, label in zip(self.exclude_mask, self.labels.values()) if i]
-
+        print(f'nb_labels {len(self.labels)}');
         # build and load model
         self.model = unet(nb_features=24,
-                          input_shape=(*self.inshape, 1),
+                          input_shape=(*self.inshape, self.nchannels),
                           nb_levels=3,
                           conv_size=3,
                           nb_labels=len(self.labels),
@@ -469,8 +474,8 @@ class LimbicSegmenter:
                          'The volume can be resliced to 1mm-iso by specifying --conform (results may suffer).\n')
 
         # check channels
-        if image.nframes > 1:
-            sf.system.fatal(f'Input image cannot have more than 1 channel, but got {image.nframes}.')
+        if image.nframes != self.nchannels:
+            sf.system.fatal(f'Input image has {image.nframes}, expecting {self.nchannels}.')
 
         # normalize image data
         dmin = image.min()
@@ -481,7 +486,7 @@ class LimbicSegmenter:
         image = image.clip(0, 1)
 
         # conform to RAS 1mm space
-        processed = image.conform(shape=self.inshape, voxsize=1.0, orientation='RAS', dtype='float32', copy=False)
+        processed = image.conform(shape=(*self.inshape, self.nchannels), voxsize=1.0, orientation='RAS', dtype='float32', copy=False)
         return processed
 
     def segment(self, image):
