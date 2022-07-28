@@ -568,6 +568,8 @@ def preprocess(path_image, crop=184, n_levels=3, path_resample=None):
     shape = list(im.shape[:n_dims])
 
     # check that shape is divisible by 2**n_levels
+    if crop is None:
+        crop = shape.copy()
     crop = reformat_to_list(crop, length=n_dims, dtype='int')
     if not all([shape[i] >= crop[i] for i in range(n_dims)]):
         crop = [min(shape[i], crop[i]) for i in range(n_dims)]
