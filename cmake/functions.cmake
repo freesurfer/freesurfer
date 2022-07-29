@@ -24,6 +24,8 @@ function(host_os)
          set(HOST_OS Ubuntu18)
       elseif(OS_IDENT MATCHES "Ubuntu 20")
          set(HOST_OS Ubuntu20)
+      elseif(OS_IDENT MATCHES "Ubuntu 22")
+         set(HOST_OS Ubuntu22)
       endif()
    # CentOS6 too old to use os-release
    elseif(EXISTS "/etc/redhat-release")

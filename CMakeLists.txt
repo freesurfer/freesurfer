@@ -125,7 +125,7 @@ add_definitions(-DHAVE_ZLIB)
 
 # -------- gfortran/blas/lapack --------
 if(NOT APPLE)
-  if(HOST_OS MATCHES "Ubuntu20")
+  if(HOST_OS MATCHES "Ubuntu20" OR HOST_OS MATCHES "Ubuntu222")
      # assume gcc8 tools distribution on Ubuntu 20 which contains its own libquadmath and libgfortran
      find_library(GFORTRAN_LIBRARIES HINTS /usr/lib/gcc/x86_64-linux-gnu/8 NAMES libgfortran.a gfortran)
      find_library(BLAS_LIBRARIES NAMES libopenblas.a libblas.a)
@@ -180,7 +180,7 @@ endif()
 # Avoid error from __powf_finite undefined.
 # The 2.31 version of the GNU C Library removed symbols from LLVM libc++ math.h including,
 # __powf_finite __asinf_finite U_atan2f_finite __exp2f_finite __exp2_finite __expf_finite __log2f_finite
-if(HOST_OS MATCHES "Ubuntu20")
+if(HOST_OS MATCHES "Ubuntu20" OR HOST_OS MATCHES "Ubuntu22")
    set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -fno-builtin")
 endif()
 
@@ -318,7 +318,7 @@ if(NOT NO_CXX_WARN)
        # -Wno-restrict needed with gcc8 for ./freesurfer/mris_compute_acorr/mris_compute_acorr.cpp
        # -Wno-format-overflow needed with gcc8 for ./fresurfer/mris2rgb/mris2rgb.cpp
        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra ${WARN_AS_ERROR_FLAG} -Wno-cpp -Wno-restrict -Wno-format-overflow -Wno-sign-compare -Wno-unused-result -Wno-unused-parameter")
-    elseif(HOST_OS MATCHES "Ubuntu20")
+    elseif(HOST_OS MATCHES "Ubuntu20" OR HOST_OS MATCHES "Ubuntu22")
        # uses gcc8 as well
        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-builtin -Wall -Wextra ${WARN_AS_ERROR_FLAG} -Wno-cpp -Wno-restrict -Wno-format-overflow -Wno-sign-compare -Wno-unused-result -Wno-unused-parameter")
     else ()
@@ -721,7 +721,7 @@ if(EXISTS "./mri_make_bem_surfaces")
    elseif(HOST_OS MATCHES "CentOS8")
       add_subdirectories(mri_make_bem_surfaces)
       message(STATUS "Adding mri_make_bem_surfaces to build on ${HOST_OS}")
-   elseif(HOST_OS MATCHES "Ubuntu20")
+   elseif(HOST_OS MATCHES "Ubuntu20" OR HOST_OS MATCHES "Ubuntu22")
       add_subdirectories(mri_make_bem_surfaces)
       message(STATUS "Adding mri_make_bem_surfaces to build on ${HOST_OS}")
    elseif(APPLE)
