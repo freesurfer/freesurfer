@@ -24,7 +24,6 @@ umask 002
 set VERSION = 'trac-preproc @FS_VERSION@';
 set ProgName = `basename $0`
 set inputargs = ($argv)
-set thalseg = ThalamicNuclei.v13.T1.FSvoxelSpace
 
 #------------ Set default options -----------------------------------------#
 
@@ -1338,9 +1337,17 @@ if ($dointra && ! $dobase && -e $fsdir/mri/brain.mgz) then
   endif
 
   if ($usethalnuc) then
+    set thalseg = ()
 
-    if (! -e $fsdir/mri/$thalseg.mgz) then
-      echo "ERROR: Could not find $fsdir/mri/$thalseg.mgz" |& tee -a $LF
+    foreach thalver (v13 v12)
+      if (-e $fsdir/mri/ThalamicNuclei.$thalver.T1.FSvoxelSpace.mgz) then
+        set thalseg = ThalamicNuclei.$thalver.T1.FSvoxelSpace
+        break
+      endif
+    end
+
+    if ($#thalseg == 0) then
+      echo "ERROR: Could not find thalamic nuclei segmentation in $fsdir/mri/" |& tee -a $LF
       echo "ERROR: Thalamic nuclei segmentation is strongly recommended to use" |& tee -a $LF
       echo "ERROR: for tracts that terminate in or travel near the thalamus" |& tee -a $LF
       echo "ERROR: If there is good reason not to use it, set usethalnuc = 0" |& tee -a $LF
@@ -2356,11 +2363,6 @@ while( $#argv != 0 )
       set DoTime = 0
       breaksw
 
-    case "-thalseg":
-      if ( $#argv < 1) goto arg1err;
-      set thalseg = $argv[1]; shift;
-      breaksw
-
     case "-log":
       if ( $#argv < 1) goto arg1err;
       set LF = $argv[1]; shift;
@@ -2450,7 +2452,6 @@ usage_exit:
   echo "  -c <file>      : dmrirc file (see dmrirc.example)"
   echo ""
   echo "Other arguments:"
-  echo "  -thalseg thalseg : set thalamus segmentation (default is $thalseg)"
   echo "  -log <file>    : default is trac-all.log in the same dir as dmrirc"
   echo "  -nolog         : do not save a log file"
   echo "  -cmd <file>    : default is trac-all.cmd in the same dir as dmrirc"
