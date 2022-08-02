@@ -30,7 +30,7 @@ import logging
 import subprocess
 import tempfile
 import shutil
-import freesurfer.utils.legacy as fsutils
+import fsbindings.legacy as fsutils
 
 
 # logging 

@@ -32,7 +32,7 @@ import subprocess
 import tempfile
 import shutil
 from sys import platform as _platform
-from freesurfer.utils.legacy import LongQdecTable, BadFileError
+from fsbindings.legacy import LongQdecTable, BadFileError
 
 
 # logging 

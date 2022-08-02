@@ -9,8 +9,8 @@ import optparse
 import logging
 import csv
 
-import freesurfer.utils.legacy as fsutils
-from freesurfer.utils.legacy import TractOverallStatsParser, TractByvoxelStatsParser, BadFileError, tractlogger
+import fsbindings.legacy as fsutils
+from fsbindings.legacy import TractOverallStatsParser, TractByvoxelStatsParser, BadFileError, tractlogger
 
 # Original Version - Krish Subramaniam, MGH
 

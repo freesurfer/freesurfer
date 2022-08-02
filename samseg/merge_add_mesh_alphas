@@ -5,8 +5,9 @@ import os
 import numpy as np
 import argparse
 import surfa as sf
-from freesurfer.samseg.io import kvlReadCompressionLookupTable
-from freesurfer import samseg
+import gems
+
+from gems.io import kvlReadCompressionLookupTable
 
 
 eps = np.finfo(float).eps
@@ -83,7 +84,7 @@ for level in levellist:
 
     # Read mesh collection
     print("Loading mesh collection at: " + str(mesh_collection_path))
-    mesh_collection = samseg.gems.KvlMeshCollection()
+    mesh_collection = gems.KvlMeshCollection()
     mesh_collection.read(mesh_collection_path)
 
     # Load reference mesh

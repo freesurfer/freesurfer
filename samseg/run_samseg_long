@@ -3,7 +3,7 @@
 import os
 import argparse
 import surfa as sf
-import freesurfer.samseg as samseg
+import gems
 
 
 # ------ Parse Command Line Arguments ------
@@ -53,7 +53,7 @@ if not os.environ.get('FREESURFER_HOME'):
 os.makedirs(args.output, exist_ok=True)
 
 # Specify the maximum number of threads the GEMS code will use
-samseg.setGlobalDefaultNumberOfThreads(args.threads)
+gems.setGlobalDefaultNumberOfThreads(args.threads)
 
 # Get the atlas directory
 atlasDir = os.environ.get('SAMSEG_DATA_DIR')
@@ -68,10 +68,10 @@ if not atlasDir:
     atlasDir = os.path.join(os.environ.get('FREESURFER_HOME'), 'average', 'samseg', defaultAtlas)
 
 # Setup the visualization tool
-visualizer = samseg.initVisualizer(args.showfigs, args.movie)
+visualizer = gems.initVisualizer(args.showfigs, args.movie)
 
 # Start the process timer
-timer = samseg.Timer()
+timer = gems.Timer()
 
 # Check if --save-posteriors was specified without any structure search string
 if args.save_posteriors is not None and len(args.save_posteriors) == 0:
@@ -106,7 +106,7 @@ if args.lesion:
         print('Defaulting lesion mask pattern to %s' % str(lesion_mask_pattern))
 
     # Delay import until here so that tensorflow doesn't get loaded unless needed
-    from freesurfer.samseg.SamsegLongitudinalLesion import SamsegLongitudinalLesion
+    from gems.SamsegLongitudinalLesion import SamsegLongitudinalLesion
     samsegLongitudinal = SamsegLongitudinalLesion(**samseg_kwargs,
         intensityMaskingSearchString=args.lesion_mask_structure,
         intensityMaskingPattern=lesion_mask_pattern,
@@ -116,7 +116,7 @@ if args.lesion:
     )
 
 else:
-    samsegLongitudinal = samseg.SamsegLongitudinal(**samseg_kwargs)
+    samsegLongitudinal = gems.SamsegLongitudinal(**samseg_kwargs)
 
 samsegLongitudinal.segment(saveWarp=args.save_warp)
 
