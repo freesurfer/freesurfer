@@ -3,6 +3,7 @@ import collections
 import numpy as np
 
 from . import fshome
+from .deprecations import deprecate, replace, unsure, notneeded, notimplemented
 
 
 class LookupTable(collections.OrderedDict):
@@ -30,6 +31,7 @@ class LookupTable(collections.OrderedDict):
             lines.append(str(idx).ljust(col1) + elt.name.ljust(col2) + colorstr)
         return '\n'.join(lines)
 
+    @replace('`lut[index] = name` or `lut[index] = (name, rgba)`')
     def add(self, index, name, color=None):
         self[index] = LookupTable.Element(name, color)
 
@@ -41,6 +43,7 @@ class LookupTable(collections.OrderedDict):
             return [idx for idx, elt in self.items() if allcaps in elt.name.upper()]
 
     @classmethod
+    @replace('sf.load_label_lookup(filename)')
     def read(cls, filename):
         lut = cls()
         with open(filename, 'r') as file:
@@ -58,9 +61,11 @@ class LookupTable(collections.OrderedDict):
         return lut
 
     @classmethod
+    @replace('sf.freesurfer.labels()')
     def read_default(cls):
         return cls.read(os.path.join(fshome(), 'FreeSurferColorLUT.txt'))
 
+    @replace('labels.save(filename)')
     def write(self, filename):
         col1 = len(str(max(self.keys()))) + 1  # find largest index
         col2 = max([len(elt.name) for elt in self.values()]) + 2  # find longest name
@@ -108,15 +113,18 @@ class RecodingLookupTable(dict):
     TODOC
     """
 
+    @replace('sf.LabelRecoder() class')
     def __init__(self):
         self.mapping = {}
         self.target_lut = LookupTable()
         super().__init__()
 
+    @replace('recoder.target[index] = label')
     def add_target(self, index, name=None, color=None):
         self.target_lut.add(index, name, color)
 
     @classmethod
+    @notimplemented
     def read(cls, filename):
         rlut = cls()
         with open(filename, 'r') as file:
@@ -139,6 +147,7 @@ class RecodingLookupTable(dict):
         return rlut
 
 
+replace('sf.freesurfer.labels()')
 def default():
     """
     Returns the default freesurfer label lookup table.
@@ -1591,6 +1600,7 @@ def default():
     return lut
 
 
+@replace('sf.freesurfer.destrieux()')
 def destrieux():
     """
     """
@@ -1674,6 +1684,7 @@ def destrieux():
     return lut
 
 
+@replace('sf.freesurfer.dkt()')
 def dkt():
     """
     """
@@ -1717,6 +1728,7 @@ def dkt():
     return lut
 
 
+@replace('sf.freesurfer.tissue_types()')
 def tissue_type():
     """
     """
@@ -1730,6 +1742,7 @@ def tissue_type():
     return lut
 
 
+@replace("sf.freesurfer.tissue_types() - NOTE: 'Lesion' is 6 and 'Head' is 5")
 def tissue_type_no_skull(include_lesions=False):
     """
     """
@@ -1744,6 +1757,8 @@ def tissue_type_no_skull(include_lesions=False):
 
     return lut
 
+
+@replace("sf.freesurfer.tissue_type_recoder(extra=bool, lesions=bool) - NOTE: 'Lesion' is 6 and 'Head' is 5")
 def tissue_type_recoder():
     """
     Returns a recoding table that converts default brain labels to the
@@ -1881,6 +1896,7 @@ def tissue_type_recoder():
     }
     return rlut
 
+
 def nonlateral_aseg_recoder(include_lesions=False):
     """
     Returns a recoding table that converts default brain labels to the
@@ -1950,6 +1966,8 @@ def nonlateral_aseg_recoder(include_lesions=False):
 
     return rlut
 
+
+@replace("sf.freesurfer.tissue_type_recoder(extra=bool, lesions=bool) - NOTE: 'Lesion' is 6 and 'Head' is 5")
 def tissue_type_recoder_no_skull(include_lesions=False):
     """
     Returns a recoding table that converts default brain labels to the

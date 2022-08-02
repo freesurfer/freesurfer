@@ -16,6 +16,8 @@ type. If you use SynthStrip in your analysis, please cite:
 
 SynthStrip: Skull-Stripping for Any Brain Image.
 A Hoopes, JS Mora, AV Dalca, B Fischl, M Hoffmann.
+NeuroImage 206 (2022), 119474.
+https://doi.org/10.1016/j.neuroimage.2022.119474 
 '''
 
 # parse command line
@@ -25,6 +27,7 @@ parser.add_argument('-o', '--out', metavar='file', help='Save stripped image to 
 parser.add_argument('-m', '--mask', metavar='file', help='Save binary brain mask to path.')
 parser.add_argument('-g', '--gpu', action='store_true', help='Use the GPU.')
 parser.add_argument('-b', '--border', default=1, type=int, help='Mask border threshold in mm. Default is 1.')
+parser.add_argument('--no-csf', action='store_true', help='Exclude CSF from brain border.')
 parser.add_argument('--model', metavar='file', help='Alternative model weights.')
 if len(sys.argv) == 1:
     parser.print_help()
@@ -197,7 +200,11 @@ else:
     fshome = os.environ.get('FREESURFER_HOME')
     if fshome is None:
         sf.system.fatal('FREESURFER_HOME env variable must be set! Make sure FreeSurfer is properly sourced.')
-    modelfile = os.path.join(fshome, 'models', f'synthstrip.{version}.pt')
+    if args.no_csf:
+        print('Excluding CSF from brain boundary')
+        modelfile = os.path.join(fshome, 'models', f'synthstrip.nocsf.{version}.pt')
+    else:
+        modelfile = os.path.join(fshome, 'models', f'synthstrip.{version}.pt')
 checkpoint = torch.load(modelfile, map_location=device)
 model.load_state_dict(checkpoint['model_state_dict'])
 
@@ -247,3 +254,4 @@ print('If you use SynthStrip in your analysis, please cite:')
 print('----------------------------------------------------')
 print('SynthStrip: Skull-Stripping for Any Brain Image.')
 print('A Hoopes, JS Mora, AV Dalca, B Fischl, M Hoffmann.')
+print('NeuroImage 206 (2022), 119474.')
