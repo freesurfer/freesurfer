@@ -10,11 +10,9 @@ from setuptools import setup, find_packages, Distribution
 
 # the freesurfer python packages
 packages = [
-    'freesurfer',
-    'freesurfer.utils',
-    'freesurfer.samseg',
-    'freesurfer.deeplearn',
-    'freesurfer.subregions',
+    'fsbindings',
+    'gems',
+    'gems.subregions',
 ]
 
 # get required dependencies from requirements.txt
@@ -33,7 +31,9 @@ class BinaryDistribution(Distribution):
 
 # locates cpython libraries compiled with pybind
 def find_libs(libname, required=True):
-    libraries = glob.glob('**/%s.*%s*.so' % (libname, platform.system().lower()), recursive=True)
+    libraries = glob.glob('%s.*%s*.so' % (libname, platform.system().lower()), recursive=True)
+    if not libraries:
+        libraries = glob.glob('**/%s.*%s*.so' % (libname, platform.system().lower()), recursive=True)
     if required and not libraries:
         print('error: could not find %s library that matches the current python version' % libname)
         sys.exit(1)
@@ -41,19 +41,13 @@ def find_libs(libname, required=True):
 
 setup(
     distclass=BinaryDistribution,
-    name='freesurfer',
-    version='0.0.1',
-    description='Python package for FreeSurfer neuroimaging software',
+    name='pyfs',
+    description='A set of python packages to facilitate tools in the FreeSurfer neuroimaging software',
     author='Laboratory for Computational Neuroimaging',
-    author_email='freesurfer@nmr.mgh.harvard.edu',
-    url='https://github.com/freesurfer/freesurfer',
-    packages=find_packages(include=packages),
+    packages=packages,
     package_data={
-        'freesurfer': operator.add(
-            find_libs('bindings'),
-            find_libs('labelfusion', required=False)),
-        'freesurfer.samseg':
-            find_libs('gemsbindings')
+        'fsbindings': find_libs('fsbindings') + find_libs('labelfusion', required=False),
+        'gems': find_libs('gemsbindings'),
     },
     install_requires=requirements,
     include_package_data=True

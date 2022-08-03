@@ -19,7 +19,7 @@ import nibabel as nib
 import surfa as sf
 import time
 import argparse
-from freesurfer import samseg
+import gems
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--subjects-dir', help='Directory with saved SAMSEG runs with --history flag.', required=True)
@@ -43,9 +43,9 @@ if not os.path.exists(args.out_dir):
     os.makedirs(args.out_dir)
 
 if args.show_figs:
-    visualizer = samseg.initVisualizer(True, True)
+    visualizer = gems.initVisualizer(True, True)
 else:
-    visualizer = samseg.initVisualizer(False, False)
+    visualizer = gems.initVisualizer(False, False)
 
 if args.save_figs:
     import nibabel as nib
@@ -97,7 +97,7 @@ else:
 
 # We need an init of the probabilistic segmentation class
 # to call instance methods
-atlas = samseg.ProbabilisticAtlas()
+atlas = gems.ProbabilisticAtlas()
 
 t0 = time.time();
 for level, mesh_collection_file in enumerate(args.mesh_collections):
@@ -106,7 +106,7 @@ for level, mesh_collection_file in enumerate(args.mesh_collections):
 
     # Read mesh collection
     print("Loading mesh collection at: " + str(mesh_collection_file))
-    mesh_collection = samseg.gems.KvlMeshCollection()
+    mesh_collection = gems.KvlMeshCollection()
     mesh_collection.read(mesh_collection_file)
 
     # We are interested only on the reference mesh
@@ -149,7 +149,7 @@ for level, mesh_collection_file in enumerate(args.mesh_collections):
         # Get the node positions in image voxels
         model_specifications = history['input']['modelSpecifications']
         transform_matrix = history['transform']
-        transform = samseg.gems.KvlTransform(samseg.requireNumpyArray(transform_matrix))
+        transform = gems.KvlTransform(gems.requireNumpyArray(transform_matrix))
         deformations = history['historyWithinEachMultiResolutionLevel'][level]['deformation']
         node_positions = atlas.getMesh(
             mesh_collection_file,

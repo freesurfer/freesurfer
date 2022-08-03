@@ -32,7 +32,7 @@ def replace(replacement):
                 name = function.__name__
                 if name == '__init__':
                     name = args[0].__class__.__name__
-                old = fs.utils.term.blue(name)
+                old = fs.utils.term.blue(name + '()')
                 new = fs.utils.term.blue(replacement)
                 print(f'{preface}replace {old} with {new}')
                 show_deps = False
@@ -62,7 +62,7 @@ def deprecate(message):
                 name = function.__name__
                 if name == '__init__':
                     name = args[0].__class__.__name__
-                old = fs.utils.term.blue(name)
+                old = fs.utils.term.blue(name + '()')
                 print(f'{preface}{old} is deprecated: {message}')
                 show_deps = False
 
@@ -91,7 +91,7 @@ def notneeded(function):
             name = function.__name__
             if name == '__init__':
                 name = args[0].__class__.__name__
-            old = fs.utils.term.blue(name)
+            old = fs.utils.term.blue(name + '()')
             print(f'{preface}{old} is no longer needed')
             show_deps = False
 
@@ -119,7 +119,7 @@ def notimplemented(function):
             name = function.__name__
             if name == '__init__':
                 name = args[0].__class__.__name__
-            old = fs.utils.term.blue(name)
+            old = fs.utils.term.blue(name + '()')
             print(f'{preface}{old} has no direct port to surfa: message andrew if you need this')
             show_deps = False
 
@@ -147,7 +147,7 @@ def unsure(function):
             name = function.__name__
             if name == '__init__':
                 name = args[0].__class__.__name__
-            old = fs.utils.term.blue(name)
+            old = fs.utils.term.blue(name + '()')
             print(f'{preface}unsure of the best way to port {old}: message andrew if you need thigs')
             show_deps = False
 

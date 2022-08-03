@@ -15,7 +15,7 @@ from dipy.align.reslice import reslice
 import neuron as ne
 import voxelmorph as vxm
 from netparms import *
-from freesurfer.deeplearn.utils import WeightsSaver, ModelSaver, utils, pprint
+from fsdeeplearn.utils import WeightsSaver, ModelSaver, utils, pprint
 import imageio, pydicom, gdcm, load_serial_cxr
 from load_serial_cxr import load_timepoints
 from neuron.utils import resize

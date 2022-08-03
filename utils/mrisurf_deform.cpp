@@ -4814,7 +4814,8 @@ int MRISrigidBodyAlignGlobal(
     
     // This does not modify either mris or params until after the old code has executed
     //
-    double ext_sse = (gMRISexternalSSE) ? (*gMRISexternalSSE)(mris, parms) : 0.0;
+    double ext_sse = 0.0;  
+    //double ext_sse = (gMRISexternalSSE) ? (*gMRISexternalSSE)(mris, parms) : 0.0;
     MRISrigidBodyAlignGlobal_findMinSSE(
         &new_mina, &new_minb, &new_ming, &new_sse,
         mris,
@@ -4921,7 +4922,7 @@ int MRISrigidBodyAlignGlobal(
                 (float)DEGREES(alpha), (float)DEGREES(beta), (float)DEGREES(gamma),  (float)(    sse));
               fflush(stdout);
             }
-          }  // gamma
+          }  // alpha
           if (false && tracing) {
             fprintf(stdout, "\r  beta "
               "min @ (%2.2f, %2.2f, %2.2f) sse:%2.1f   try @ (%+2.2f, %+2.2f, *)",
@@ -4932,7 +4933,7 @@ int MRISrigidBodyAlignGlobal(
         if (false && tracing) {
           fprintf(stdout, "\n");
         }
-      }      // alpha
+      }      // gamma
     
       int msec = old_timer.milliseconds();
       printf("  d=%4.2f min @ (%2.2f, %2.2f, %2.2f) sse = %2.1f, elapsed since starting=%6.4f min\n",
