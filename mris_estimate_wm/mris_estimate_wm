@@ -14,6 +14,8 @@ parser.add_argument('-d', '--sdir', help='Override SUBJECTS_DIR.')
 parser.add_argument('-m', '--model', help='Override default model.')
 parser.add_argument('-x', '--suffix', default='topofit', help='Suffix of output surface (default is \'topofit\').')
 parser.add_argument('-g', '--gpu', action='store_true', help='Use the GPU.')
+parser.add_argument('--rsi', action='store_true', help='Remove self-intersecting faces during the deformation.')
+parser.add_argument('--single-iter', action='store_true', help='Prevent deformation steps from running more than once.')
 parser.add_argument('--vol', default='norm.mgz', help='Subject volume to use as input.')
 args = parser.parse_args()
 
@@ -249,7 +251,8 @@ class DeformationBlock(torch.nn.Module):
                  train_iters=1,
                  infer_iters=1,
                  unet_levels=1,
-                 convs_per_unet_level=4):
+                 convs_per_unet_level=4,
+                 remove_intersections=False):
 
         super().__init__()
 
@@ -257,6 +260,7 @@ class DeformationBlock(torch.nn.Module):
         self.mesh_collection = mesh_collection
         self.train_iters = train_iters
         self.infer_iters = infer_iters
+        self.remove_intersections = remove_intersections
 
         # configure encoder (down-sampling path)
         curr_level = mesh_level
@@ -385,6 +389,13 @@ class SurfNet(nn.Module):
 
                 coords = coords + deformation
 
+                # remove intersections for the final deformation blocks
+                if args.rsi and block.remove_intersections:
+                    faces = self.mesh_collection[block.mesh_level]['faces'].cpu().numpy().copy()
+                    mesh = sf.Mesh(coords.cpu().numpy(), faces)
+                    mesh = sf.mesh.remove_self_intersections(mesh, max_attempts=20)
+                    coords = torch.from_numpy(mesh.vertices).type(torch.float32).to(self.device)
+
                 previous_mesh_level = block.mesh_level
 
         return coords
@@ -468,6 +479,8 @@ def get_network_config(name=None):
 
     if name is None:
 
+        i = 1 if args.single_iter else 2
+
         config = {
             'unet_features': [
                 [16, 32, 32, 64],
@@ -479,9 +492,9 @@ def get_network_config(name=None):
                 {'mesh_level': 3, 'train_iters': 1, 'infer_iters': 1, 'unet_levels': 3, 'convs_per_unet_level': 2},
                 {'mesh_level': 4, 'train_iters': 1, 'infer_iters': 1, 'unet_levels': 3, 'convs_per_unet_level': 2},
                 {'mesh_level': 5, 'train_iters': 1, 'infer_iters': 1, 'unet_levels': 3, 'convs_per_unet_level': 2},
-                {'mesh_level': 6, 'train_iters': 1, 'infer_iters': 1, 'unet_levels': 3, 'convs_per_unet_level': 2},
-                {'mesh_level': 6, 'train_iters': 1, 'infer_iters': 1, 'unet_levels': 3, 'convs_per_unet_level': 2},
-                {'mesh_level': 7, 'train_iters': 1, 'infer_iters': 2, 'unet_levels': 3, 'convs_per_unet_level': 2},
+                {'mesh_level': 6, 'train_iters': 1, 'infer_iters': 1, 'unet_levels': 3, 'convs_per_unet_level': 2, 'remove_intersections': True},
+                {'mesh_level': 6, 'train_iters': 1, 'infer_iters': 1, 'unet_levels': 3, 'convs_per_unet_level': 2, 'remove_intersections': True},
+                {'mesh_level': 7, 'train_iters': 1, 'infer_iters': i, 'unet_levels': 3, 'convs_per_unet_level': 2, 'remove_intersections': True},
             ],
         }
 
@@ -570,7 +583,7 @@ for subj in args.subjs:
     with torch.no_grad():
         in_image = torch.from_numpy(in_image.astype(np.float32, copy=False))
         in_surf = torch.from_numpy(in_surf.astype(np.float32, copy=False))
-        vertices = model(in_image, in_surf).numpy().squeeze()
+        vertices = model(in_image, in_surf).cpu().numpy().squeeze()
 
     # transform back to image space
     surf = sf.Mesh(vertices, target_faces, space='vox', geometry=cropped).convert(space='surf', geometry=norm)
