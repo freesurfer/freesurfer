@@ -111,6 +111,7 @@ double thresh = 0;
 char *Xfile=NULL, *yfile=NULL, *dctfile=NULL,*betafile=NULL;
 char *yhatfile=NULL, *resfile=NULL;
 char *SUBJECTS_DIR;
+int nerode = 1;
 
 MATRIX *MRIbiasPolyReg(int order, MRI *mask);
 MATRIX *MRIbiasXsegs(MRI *seg);
@@ -174,18 +175,31 @@ int main(int argc, char *argv[])
   mask = MRIread(maskfile);
   if(mask==NULL) exit(1);
 
+  int err = 0;
+  err = MRIdimMismatch(src, seg, 1);
+  if(err){
+    printf("ERROR: dimension mismatch between input and seg\n");
+    exit(1);
+  }
+  err = MRIdimMismatch(src, mask, 1);
+  if(err){
+    printf("ERROR: dimension mismatch between input and mask\n");
+    exit(1);
+  }
+
   MRIBF *bf;
   bf = (MRIBF *)calloc(sizeof(MRIBF),1);
   bf->input = src;
   bf->srcseg = seg;
-  bf->nerode = 1;
+  bf->nerode = nerode;
   bf->logflag = 1;
   bf->ubermask = mask;
   bf->thresh = thresh;
   bf->dct = DCTalloc();
   bf->dct->mri_template = src;
   bf->dct->lpcutoff = lpfcutoffmm;
-  MRIbiasFieldCorLog(bf);
+  err = MRIbiasFieldCorLog(bf);
+  if(err) exit(1);
 
   // Apply the bias field. This also rescales so that the mean in the eroded
   // WM is 110. It also changes the values in the biasfield to account for the
@@ -290,6 +304,11 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%lf",&lpfcutoffmm);
       nargsused = 1;
     } 
+    else if (!strcasecmp(option, "--erode")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%d",&nerode);
+      nargsused = 1;
+    } 
     else if (!strcasecmp(option, "--thresh")) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%lf",&thresh);
@@ -341,6 +360,7 @@ static void print_usage(void) {
   printf("   --bias biasfield  : output bias field\n");
   printf("   --dct dctvol : DCT fields file (debugging)\n");
   printf("   --thresh thresh : mask out anything <= thresh\n");
+  printf("   --erode nerode : 3D erode seg by nerode steps (default is %d)",nerode);
   printf("\n");
   printf("   --threads nthreads\n");
   printf("   --debug     turn on debugging\n");
@@ -909,10 +929,16 @@ int MRIbiasFieldCorLog(MRIBF *bf)
       }
     }
   }
+  if(nwm == 0){
+    printf("ERROR: could not find any WM voxels\n");
+    return(1);
+  }
+
   bf->wmmean = wmsum/nwm;
   printf("nwm = %d, wmsum = %g, wmmean = %g\n",nwm,wmsum,bf->wmmean);
 
   // Erode the segmentation
+  printf("Eroding segmentation by %d\n",bf->nerode);
   bf->segerode = MRIerodeSegmentation(bf->seg, NULL, bf->nerode, 0);
   //MRIwrite(bf->segerode,"segerode.mgz");
 
