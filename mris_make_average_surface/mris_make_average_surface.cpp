@@ -198,6 +198,10 @@ main(int argc, char *argv[]) {
     exit(1);
   }
 
+  sprintf(fname, "%s/average/mni305.cor.mgz", mdir);
+  printf("Adding volume geometry from %s\n",fname);
+  mritemplate = MRIread(fname);
+
   if(UseSurf2Surf){
     printf("Using surf2surf instead of parametric surface.\n");
     printf(" To use the old method include -no-surf2surf\n");
@@ -216,6 +220,10 @@ main(int argc, char *argv[]) {
     }
     surf = MakeAverageSurf(asp);
     MRISaverageSurfaceParamFree(&asp);
+
+    initVolGeom(&surf->vg);
+    getVolGeom(mritemplate, &surf->vg);
+    MRIfree(&mritemplate);
     
     sprintf(fname, "%s/%s/surf/%s.%s", sdirout,out_sname, hemi, avg_surf_name) ;
     printf("writing average %s surface to %s\n", avg_surf_name, fname);
@@ -398,9 +406,6 @@ main(int argc, char *argv[]) {
     MRIScomputeMetricProperties(mris_ico) ; // surely this is unnecessary
   }
 
-  sprintf(fname, "%s/average/mni305.cor.mgz", mdir);
-  printf("Adding volume geometry from %s\n",fname);
-  mritemplate = MRIread(fname);
   initVolGeom(&mris_ico->vg);
   getVolGeom(mritemplate, &mris_ico->vg);
   MRIfree(&mritemplate);
