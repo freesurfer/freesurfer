@@ -27,6 +27,7 @@
 #include "face_barycentric_coords.h"
 #include "mrisutils.h"
 #include "surfgrad.h"
+#include "surfcluster.h"
 
 #include "mrisurf_base.h"
 
@@ -12831,7 +12832,7 @@ int MRISextendedNeighbors(MRIS *SphSurf,
 }
 
 
-int mrisMarkIntersections(MRIS *mris)
+int mrisMarkIntersections(MRIS *mris, int FillHoles)
 {
   MRIS_HASH_TABLE *mht;
   FACE *f;
@@ -12848,6 +12849,22 @@ int mrisMarkIntersections(MRIS *mris)
         mris->vertices[f->v[n]].marked = 1;
       }
     }
+  }
+  if(FillHoles){
+    printf("mrisMarkIntersections(): Filling any holes\n");
+    for(n=0; n < mris->nvertices; n++){
+      mris->vertices[n].val = !mris->vertices[n].marked; // invert
+    }
+    SURFCLUSTERSUM *SurfClustList;
+    int nClusters;
+    SurfClustList = sclustMapSurfClusters(mris,0.5,-1,1,0,&nClusters,NULL,NULL);
+    printf("  Found %d holes\n",nClusters);
+    if(nClusters > 0){
+      for(n=0; n < mris->nvertices; n++){
+	if(mris->vertices[n].undefval > 1) mris->vertices[n].marked = 1;
+      }
+    }
+    free(SurfClustList);
   }
 
   MHTfree(&mht);
@@ -13286,7 +13303,7 @@ int MRISprettyPrintSurfQualityStats(FILE *fp, MRIS *surf)
   fprintf(fp,"Hinge  %7d %8.5f %8.5f %8.6f %8.4f\n",(int)hstats[0],hstats[1],hstats[2],hstats[3],hstats[4]);
   if(0){
     // Number of vertices that belong to a face that intersects another face
-    mrisMarkIntersections(surf);
+    mrisMarkIntersections(surf,0);
     int n, nintersections=0;
     for(n=0; n < surf->nvertices; n++){
       if(surf->vertices[n].marked) nintersections++;

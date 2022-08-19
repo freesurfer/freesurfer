@@ -32,6 +32,10 @@
       <argument>&lt;corrected surface out-file&gt;</argument>
     </positional>
     <optional-flagged>
+      <argument>-fill-holes</argument>
+      <explanation>Fill any holes in the intersection mark map (and include them in the fix); also applies to -map.</explanation>
+    </optional-flagged>
+    <optional-flagged>
       <argument>-map surface mapfile.mgz</argument>
       <explanation>Stand-alone flag to create a binary map of intersections</explanation>
     </optional-flagged>

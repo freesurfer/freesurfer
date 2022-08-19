@@ -4003,20 +4003,20 @@ int MRISupsampleIco(MRI_SURFACE *mris, MRI_SURFACE *mris_new)
 }
 
 #define MAX_INT_REMOVAL_NEIGHBORS 5
-int MRISremoveIntersections(MRI_SURFACE *mris)
+int MRISremoveIntersections(MRI_SURFACE *mris, int FillHoles)
 {
   int n, num, writeit = 0, old_num, nbrs, min_int, no_progress = 0;
 
   n = 0;
 
-  num = mrisMarkIntersections(mris);
+  num = mrisMarkIntersections(mris,FillHoles);
   if (num == 0) return (NO_ERROR);
   printf("removing intersecting faces\n");
   min_int = old_num = mris->nvertices;
   MRISsaveVertexPositions(mris, TMP2_VERTICES);
   nbrs = 0;
   MRISclearMarks(mris);
-  num = mrisMarkIntersections(mris);
+  num = mrisMarkIntersections(mris,FillHoles);
   while (num > 0) {
     if ((num > old_num) || ((num == old_num) && (no_progress >= nbrs)))  // couldn't remove any
     {
@@ -4066,12 +4066,12 @@ int MRISremoveIntersections(MRI_SURFACE *mris)
       break;
 
     MRISclearMarks(mris);
-    num = mrisMarkIntersections(mris);
+    num = mrisMarkIntersections(mris,FillHoles);
   }
 
   if (num > min_int) {
     MRISrestoreVertexPositions(mris, TMP2_VERTICES);  // the least number of negative vertices
-    num = mrisMarkIntersections(mris);
+    num = mrisMarkIntersections(mris,0);
   }
   printf("terminating search with %d intersecting\n", num);
   return (NO_ERROR);

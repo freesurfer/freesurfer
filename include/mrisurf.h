@@ -1654,7 +1654,7 @@ int MRIScopyVolGeomFromMRI(MRI_SURFACE *mris, MRI *mri) ;
 void MRISsetVolumeForSurface(MRI_SURFACE *mris, MRI *srcMri);
 
 MRI *MRISremoveRippedFromMask(MRIS *surf, MRI *mask, MRI *outmask);
-int MRISremoveIntersections(MRI_SURFACE *mris) ;
+int MRISremoveIntersections(MRI_SURFACE *mris, int FillHoles) ;
 int MRIScopyMarkedToMarked2(MRI_SURFACE *mris) ;
 int MRIScopyMarked2ToMarked(MRI_SURFACE *mris) ;
 int MRIScopyMarkedToMarked3(MRI_SURFACE *mris) ;
@@ -2086,6 +2086,7 @@ int MRIScorners(MRIS *surf);
 MRIS *MRIScopyMetadata(MRIS const * source, MRIS * target);
 int MRISfixAverageSurf7(MRIS *surf7);
 double mrisRmsValError(MRI_SURFACE *mris, MRI *mri);
+void MRIScalculateCenterCOG2(MRIS *mris, double *xCOG, double *yCOG, double *zCOG);
 
 // for sorting vertices using qsort
 typedef struct{
