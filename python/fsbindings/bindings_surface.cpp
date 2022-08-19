@@ -125,7 +125,7 @@ int computeEulerNumber(py::object surf)
 int countIntersections(py::object surf)
 {
   MRIS *mris = MRISfromSurfaMesh(surf);
-  mrisMarkIntersections(mris);
+  mrisMarkIntersections(mris,0);
   int nintersections = 0;
   for(int n = 0; n < mris->nvertices; n++) {
     if (mris->vertices[n].marked) nintersections++;
