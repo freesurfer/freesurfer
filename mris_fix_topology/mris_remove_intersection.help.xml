@@ -31,6 +31,10 @@
       <argument>&lt;surface in-file&gt;</argument>
       <argument>&lt;corrected surface out-file&gt;</argument>
     </positional>
-  </arguments>
+    <optional-flagged>
+      <argument>-map surface mapfile.mgz</argument>
+      <explanation>Stand-alone flag to create a binary map of intersections</explanation>
+    </optional-flagged>
+</arguments>
   <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>
 </help>
