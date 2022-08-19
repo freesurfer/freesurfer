@@ -596,7 +596,7 @@ if ($#baselist == 0) then	#--->>> A single time point for each subject
 
       if (! $onpbs) then
         if ($#submitfile) then
-          set cmd =  (bedpostx_preproc.sh $dtdir/dmri)
+          set cmd =  (bedpostx_preproc.sh $dtdir/dmri 0)
           echo $cmd >> $presubmitfile
           set nslice = `mri_info --nslices $dtdir/dmri/lowb.nii.gz`
           @ islice = 0
@@ -1072,7 +1072,7 @@ else				#--->>> Multiple time points for each subject
 
         if (! $onpbs) then
           if ($#submitfile) then
-            set cmd =  (bedpostx_preproc.sh $dtroot/$proclist[$iproc]/dmri)
+            set cmd =  (bedpostx_preproc.sh $dtroot/$proclist[$iproc]/dmri 0)
             echo $cmd >> $presubmitfile
             set nslice = `mri_info --nslices \
                           $dtroot/$proclist[$iproc]/dmri/lowb.nii.gz`

@@ -3,6 +3,8 @@ project(utils)
 # ATH: temporarily turning off this warning in mrisurf_defect.cpp
 if(NOT HOST_OS MATCHES "Ubuntu20")
    add_compile_options(-Wno-for-loop-analysis)
+elseif(NOT HOST_OS MATCHES "Ubuntu22")
+   add_compile_options(-Wno-for-loop-analysis)
 endif()
 
 # configure cmake version macros

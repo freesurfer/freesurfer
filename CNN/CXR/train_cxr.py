@@ -15,8 +15,8 @@ from dipy.align.reslice import reslice
 import neuron as ne
 import voxelmorph as vxm
 from netparms import *
-from freesurfer import deeplearn as fsd
-from freesurfer.deeplearn.utils import WeightsSaver, ModelSaver, utils, pprint
+import fsdeeplearn as fsd
+from fsdeeplearn.utils import WeightsSaver, ModelSaver, utils, pprint
 import imageio
 
 cwd = os.getcwd()

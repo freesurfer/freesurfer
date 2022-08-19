@@ -1,12 +1,56 @@
 #!/usr/bin/env python
 
+description = """Merge prior spatial probabilties (alphas) with those of an existing
+SAMSEG mesh to create a new mesh/atlas. Should be run on the output of
+gems_compute_atlas_probs.  
+
+An example of use is the following:
+fspython merge_add_mesh_alphas [...] --merge-labels 2 3 --add-indexes 3
+
+Here we merge labels 2 and 3 and then add the third index of
+estimated_alphas.npy to the mesh. For example, in case we used
+gems_compute_alphas with --labels 2 3 99, we are adding label 99 to
+the mesh. Indexes start from 1 since 0 is reserved for the background
+class.
+
+I also add a --merge-indexes flag in case the merge and add indexes
+are mixed. If None the first indexes are used for merging. For
+example: gems_compute_alphas --labels 2 99 3, I can do --merge-labels
+2 3 --merge-indexes 1 3 --add-indexes 2.
+
+Few things to consider:
+
+- First merging and then add != first add and then merging. I
+  implemented the former, but maybe it's better to implement both and
+  leave the choice to the user. Not sure what the default should be
+  though.
+
+- How we add the extra class(es) can be done in different ways. For
+  one class I did the following (same thing I did for MS lesion): add
+  the new alphas and rescale everything else with (1-newalpha). For
+  more than one class, the new alphas are just added and then the
+  alphas are re-normalized. Again, maybe it's better to expose this to
+  the user.
+
+- You still need to manually modify the compressionLookupTable.txt
+  file right now (i.e., adding extra entries at the end of the
+  file). Might be worth considering doing this automatically in the
+  script.
+
+- Last functionality to add would be to remove some structures from
+  the mesh, and automatically update the compressionLookupTable.txt
+  file.
+
+"""
+
 import sys
 import os
 import numpy as np
 import argparse
 import surfa as sf
-from freesurfer.samseg.io import kvlReadCompressionLookupTable
-from freesurfer import samseg
+import gems
+
+from gems.io import kvlReadCompressionLookupTable
 
 
 eps = np.finfo(float).eps
@@ -83,7 +127,7 @@ for level in levellist:
 
     # Read mesh collection
     print("Loading mesh collection at: " + str(mesh_collection_path))
-    mesh_collection = samseg.gems.KvlMeshCollection()
+    mesh_collection = gems.KvlMeshCollection()
     mesh_collection.read(mesh_collection_path)
 
     # Load reference mesh

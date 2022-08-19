@@ -77,16 +77,14 @@ if args.pred:
     mri_mask.save(args.pred)
 
 mri_out = mri_mask.resample_like(mri_in)
-
-mri_interior = mri_out.copy()
-mri_interior.data = np.where(mri_out.data <= args.border, 1, 0)
+mri_interior = mri_out.new(np.where(mri_out <= args.border, 1, 0))
 
 # find largest connected component and use it as the mask
 from skimage import measure
 cc = measure.label(mri_interior.data, background=0)
 cc_areas = [(cc == label).sum() for label in range(1,cc.max()+1)]
 max_label = np.argmax(np.array(cc_areas))+1
-mri_out.data = mri_in.data * (cc == max_label)
+mri_out = mri_out.new(mri_in * (cc == max_label))
 
 mri_out.save(args.outvol)
 

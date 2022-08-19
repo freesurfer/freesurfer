@@ -10,6 +10,8 @@ from .geom import resample, apply_warp
 from .transform import Transformable, LinearTransform, Geometry, LIA
 from . import orientation as otn
 
+from .deprecations import deprecate, replace, unsure, notneeded, notimplemented
+
 
 class ArrayContainerTemplate:
     '''
@@ -76,6 +78,7 @@ class ArrayContainerTemplate:
             data: Replace internal data array. Default is None.
         '''
         if data is not None:
+            print('SURFA NOTE: replace arr.copy(data) with arr.new(data)')
             # to save memory if we're replacing the data, make sure not to create
             # a duplicate instance of the original data before replacing it
             shallow = copy.copy(self)
@@ -96,6 +99,7 @@ class ArrayContainerTemplate:
         raise ValueError('Cannot convert object of type %s to %s' % (type(unknown).__name__, cls.__name__))
 
     @classmethod
+    @replace('sf.load_overlay(), sf.load_slice(), or sf.load_volume()')
     def read(cls, filename):
         '''Reads in array and metadata from volume file.'''
         if not os.path.isfile(filename):
@@ -108,11 +112,13 @@ class ArrayContainerTemplate:
             warning('reading file "%s" as a %s - not a %s' % (filename, result.__class__.__name__, cls.__name__))
         return result
 
+    @replace('arr.save(filename)')
     def write(self, filename):
         '''Writes array and metadata to a volume file.'''
         bindings.vol.write(self, filename)
 
     @classmethod
+    @notimplemented
     def empty(cls, shape, dtype):
         '''Generates an empty array of given shape and datatype.'''
         return cls(np.zeros(shape, dtype, order='F'))
@@ -132,6 +138,7 @@ class Image(ArrayContainerTemplate, Transformable):
     '''2D image with specific geometry.'''
     basedims = 2
 
+    @replace('sf.Slice() class')
     def __init__(self, data, affine=None, pixsize=None, lut=None, **kwargs):
         '''Contructs an image from a 2D or 3D data array. The 3rd dimension is
         always assumed to be the number of frames.'''
@@ -139,15 +146,18 @@ class Image(ArrayContainerTemplate, Transformable):
         self.affine = affine
         self.pixsize = pixsize if pixsize is not None else (1.0, 1.0)
 
+    @replace('image.geom member parameter')
     def geometry(self):
         '''Returns volume geometry as a `Geometry` instance.'''
         return Geometry(self.shape, self.pixsize, self.affine)
 
+    @replace('image.geom.copy()')
     def copy_geometry(self, image):
         '''Copies pixsize and affine information from another image.'''
         self.affine = image.affine
         self.pixsize = image.pixsize
 
+    @replace('image.resize()')
     def reslice(self, pixsize, interp_method='linear', smooth_sigma=0):
         '''
         Returns the resampled image with a given resolution determined by pixel size in mm.
@@ -227,10 +237,12 @@ class Volume(ArrayContainerTemplate, Transformable):
         '''Returns the cropped volume with a recomputed affine matrix.'''
         return self.crop(idx)
 
+    @replace('vol.geom member parameter')
     def geometry(self):
         '''Returns volume geometry as a `Geometry` instance.'''
         return Geometry(self.shape, self.voxsize, self.affine)
 
+    @replace('vol1.metadata = vol2.metadata')
     def copy_metadata(self, vol):
         '''Copies metadata from another volume.'''
         self.lut = vol.lut
@@ -239,11 +251,13 @@ class Volume(ArrayContainerTemplate, Transformable):
         self.ti = vol.ti
         self.flip_angle = vol.flip_angle
 
+    @replace('vol.geom.copy()')
     def copy_geometry(self, vol):
         '''Copies voxsize and affine information from another volume.'''
         self.affine = vol.affine
         self.voxsize = vol.voxsize
 
+    @replace('vol.smooth()')
     def gaussian_smooth(self, smooth_sigma, order=0):
         '''smooths the input image with a gaussian kernel and returns a new fs.Volume '''
         sigmas = (smooth_sigma, smooth_sigma, smooth_sigma)
@@ -254,7 +268,7 @@ class Volume(ArrayContainerTemplate, Transformable):
         smoothed_vol.data = smoothed_data
         return smoothed_vol
 
-        
+    @replace('vol.resize()')
     def reslice(self, voxsize, interp_method='linear', smooth_sigma=0):
         '''
         Returns the resampled volume with a given resolution determined by voxel
@@ -300,6 +314,7 @@ class Volume(ArrayContainerTemplate, Transformable):
         resliced_vol.copy_metadata(self)
         return resliced_vol
 
+    @replace('numpy-style indexing')
     def crop(self, cropping):
         '''
         Returns the cropped volume with a recomputed affine matrix.
@@ -372,6 +387,7 @@ class Volume(ArrayContainerTemplate, Transformable):
         cropping = self.bbox(thresh=thresh, margin=margin)
         return self[cropping]
 
+    @replace('vol.reshape()')
     def fit_to_shape(self, shape, center='image'):
         '''
         Returns a volume fit to a given shape. Image will be
@@ -534,9 +550,11 @@ class Volume(ArrayContainerTemplate, Transformable):
     @property
     def image(self):
         '''Internal data array. This will be deprecated - just used the Volume.data member.'''
+        print('SURFA NOTE: dont use vol.image - its been deprecated for a while now')
         return self.data  # TODEP
 
     @image.setter
     def image(self, array):
         '''Internal data array. This will be deprecated - just used the Volume.data member.'''
+        print('SURFA NOTE: dont use vol.image - its been deprecated for a while now')
         self.data = array  # TODEP
