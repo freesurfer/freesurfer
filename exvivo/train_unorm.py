@@ -22,10 +22,7 @@ import tensorflow_probability as tfp
 from tensorflow.keras import backend as K
 
 import freesurfer as fs
-<<<<<<< HEAD
 #from freesurfer import deeplearn as fsd
-=======
->>>>>>> 9c85a488700f49f11750ce307007511a5b8387d3
 
 import neurite as ne
 import neurite_sandbox as nes
