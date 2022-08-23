@@ -4093,3 +4093,48 @@ MRIS *MRISQuickSphericalInflate(int max_passes, int n_averages, long seed, MRIS 
 
   return inSurf;
 }
+
+/*!
+  \fn MRIS *MRISaverageSurfaces(std::vector<MRIS*> surfs, MRIS *avgsurf)
+  \brief Compute the average coordinates of the given surfaces
+ */
+MRIS *MRISaverageSurfaces(std::vector<MRIS*> surfs, MRIS *avgsurf)
+{
+  if(avgsurf == NULL) avgsurf = MRISclone(surfs[0]);
+  else {
+    MRIS *surf = surfs[0];
+    if(avgsurf->nvertices != surf->nvertices){
+      printf("ERROR: MRISaverageSurfaces(): surface 0 nvertices mismatch %d %d\n",avgsurf->nvertices,surf->nvertices);
+      return(NULL);
+    }
+    for(int vno=0; vno < avgsurf->nvertices; vno++){
+      VERTEX *va = &(avgsurf->vertices[vno]);
+      VERTEX *vn = &(surf->vertices[vno]);
+      va->x = vn->x;
+      va->y = vn->y;
+      va->z = vn->z;
+    }
+  }
+  for(int n=1; n < surfs.size(); n++){
+    MRIS *surf = surfs[n];
+    if(avgsurf->nvertices != surf->nvertices){
+      printf("ERROR: MRISaverageSurfaces(): surface %d nvertices mismatch %d %d\n",n,avgsurf->nvertices,surf->nvertices);
+      return(NULL);
+    }
+    for(int vno=0; vno < avgsurf->nvertices; vno++){
+      VERTEX *va = &(avgsurf->vertices[vno]);
+      VERTEX *vn = &(surf->vertices[vno]);
+      va->x += vn->x;
+      va->y += vn->y;
+      va->z += vn->z;
+    }
+  }
+  for(int vno=0; vno < avgsurf->nvertices; vno++){
+    VERTEX *va = &(avgsurf->vertices[vno]);
+    va->x /= surfs.size();
+    va->y /= surfs.size();
+    va->z /= surfs.size();
+  }
+
+  return(avgsurf);
+}

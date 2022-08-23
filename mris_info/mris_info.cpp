@@ -193,7 +193,7 @@ int main(int argc, char *argv[]) {
   }
 
   if(CountIntersections){
-    mrisMarkIntersections(mris);
+    mrisMarkIntersections(mris,0);
     int n, nintersections=0;
     for(n=0; n < mris->nvertices; n++){
       if(mris->vertices[n].marked) nintersections++;
@@ -425,7 +425,7 @@ int main(int argc, char *argv[]) {
   fprintf(fp,"stdvtxdist  %lf\n",InterVertexDistStdDev);
   fprintf(fp,"vtx0xyz   %f %f %f\n",mris->vertices[0].x,mris->vertices[0].y,
           mris->vertices[0].z);
-  fprintf(fp,"num_intersecting_faces %d\n",mrisMarkIntersections(mris));
+  fprintf(fp,"num_intersecting_faces %d\n",mrisMarkIntersections(mris,0));
 
   if (outfile != NULL) fclose(fp);
 
@@ -537,11 +537,41 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       curvfile = pargv[0];
       nargsused = 1;
-    } else if ( !strcmp(option, "--a") ) {
+    } 
+    else if ( !strcmp(option, "--a") ) {
       if (nargc < 1) argnerr(option,1);
       annotfile = pargv[0];
       nargsused = 1;
-    } else if ( !strcmp(option, "--s") ) {
+    } 
+    else if ( !strcmp(option, "--cog") ) {
+      if(nargc < 2) argnerr(option,2);
+      MRIS *surftmp = MRISread(pargv[0]);
+      if(surftmp == NULL) exit(1);
+      double xCOG, yCOG, zCOG;
+      MRIScalculateCenterCOG2(surftmp, &xCOG, &yCOG, &zCOG);
+      FILE *fp=stdout;
+      if(strcmp(pargv[1],"nofile")!=0) fp = fopen(pargv[2],"w");
+      fprintf(fp,"%9.6f %9.6f %9.6f\n",xCOG, yCOG, zCOG);
+      if(fp != stdout) fclose(fp);
+      exit(0);
+    } 
+    else if ( !strcmp(option, "--cog-zero") ) {
+      if(nargc < 2) argnerr(option,2);
+      MRIS *surftmp = MRISread(pargv[0]);
+      if(surftmp == NULL) exit(1);
+      double xCOG, yCOG, zCOG;
+      MRIScalculateCenterCOG2(surftmp, &xCOG, &yCOG, &zCOG);
+      fprintf(stdout,"%9.6f %9.6f %9.6f\n",xCOG, yCOG, zCOG);
+      for(int vno=0; vno < surftmp->nvertices; vno++){
+	VERTEX *v = &(surftmp->vertices[vno]);
+	v->x -= xCOG;
+	v->y -= yCOG;
+	v->z -= zCOG;
+      }
+      int err = MRISwrite(surftmp,pargv[1]);
+      exit(err);
+    } 
+    else if ( !strcmp(option, "--s") ) {
       if (nargc < 3) argnerr(option,3);
       subject  = pargv[0];
       hemi     = pargv[1];

@@ -1920,7 +1920,7 @@ bool FSSurface::Smooth(int nMethod, int niters, double lambda, double K_bp)
 
 void FSSurface::RemoveIntersections()
 {
-  MRISremoveIntersections(m_MRIS);
+  MRISremoveIntersections(m_MRIS,0);
   PostEditProcess();
 }
 

@@ -277,7 +277,7 @@ main(int argc, char *argv[])
     exit(0) ;
 
   if (noint)
-    MRISremoveIntersections(mris_corrected) ;
+    MRISremoveIntersections(mris_corrected,0) ;
 
   eno = MRIScomputeEulerNumber(mris_corrected, &nvert, &nfaces, &nedges) ;
   fprintf(stderr, "after topology correction, eno=%d (nv=%d, nf=%d, ne=%d,"
