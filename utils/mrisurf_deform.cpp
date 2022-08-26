@@ -4003,20 +4003,20 @@ int MRISupsampleIco(MRI_SURFACE *mris, MRI_SURFACE *mris_new)
 }
 
 #define MAX_INT_REMOVAL_NEIGHBORS 5
-int MRISremoveIntersections(MRI_SURFACE *mris)
+int MRISremoveIntersections(MRI_SURFACE *mris, int FillHoles)
 {
   int n, num, writeit = 0, old_num, nbrs, min_int, no_progress = 0;
 
   n = 0;
 
-  num = mrisMarkIntersections(mris);
+  num = mrisMarkIntersections(mris,FillHoles);
   if (num == 0) return (NO_ERROR);
   printf("removing intersecting faces\n");
   min_int = old_num = mris->nvertices;
   MRISsaveVertexPositions(mris, TMP2_VERTICES);
   nbrs = 0;
   MRISclearMarks(mris);
-  num = mrisMarkIntersections(mris);
+  num = mrisMarkIntersections(mris,FillHoles);
   while (num > 0) {
     if ((num > old_num) || ((num == old_num) && (no_progress >= nbrs)))  // couldn't remove any
     {
@@ -4066,12 +4066,12 @@ int MRISremoveIntersections(MRI_SURFACE *mris)
       break;
 
     MRISclearMarks(mris);
-    num = mrisMarkIntersections(mris);
+    num = mrisMarkIntersections(mris,FillHoles);
   }
 
   if (num > min_int) {
     MRISrestoreVertexPositions(mris, TMP2_VERTICES);  // the least number of negative vertices
-    num = mrisMarkIntersections(mris);
+    num = mrisMarkIntersections(mris,0);
   }
   printf("terminating search with %d intersecting\n", num);
   return (NO_ERROR);
@@ -4814,7 +4814,8 @@ int MRISrigidBodyAlignGlobal(
     
     // This does not modify either mris or params until after the old code has executed
     //
-    double ext_sse = (gMRISexternalSSE) ? (*gMRISexternalSSE)(mris, parms) : 0.0;
+    double ext_sse = 0.0;  
+    //double ext_sse = (gMRISexternalSSE) ? (*gMRISexternalSSE)(mris, parms) : 0.0;
     MRISrigidBodyAlignGlobal_findMinSSE(
         &new_mina, &new_minb, &new_ming, &new_sse,
         mris,
@@ -4921,7 +4922,7 @@ int MRISrigidBodyAlignGlobal(
                 (float)DEGREES(alpha), (float)DEGREES(beta), (float)DEGREES(gamma),  (float)(    sse));
               fflush(stdout);
             }
-          }  // gamma
+          }  // alpha
           if (false && tracing) {
             fprintf(stdout, "\r  beta "
               "min @ (%2.2f, %2.2f, %2.2f) sse:%2.1f   try @ (%+2.2f, %+2.2f, *)",
@@ -4932,7 +4933,7 @@ int MRISrigidBodyAlignGlobal(
         if (false && tracing) {
           fprintf(stdout, "\n");
         }
-      }      // alpha
+      }      // gamma
     
       int msec = old_timer.milliseconds();
       printf("  d=%4.2f min @ (%2.2f, %2.2f, %2.2f) sse = %2.1f, elapsed since starting=%6.4f min\n",

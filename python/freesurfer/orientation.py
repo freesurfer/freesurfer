@@ -1,6 +1,9 @@
 import numpy as np
 
+from .deprecations import deprecate, replace, unsure, notneeded
 
+
+@deprecate('Im guessing no one uses this directly, but if you do check out sf.transform.orientation')
 def build_matrix(matrix, shape=(256, 256, 256), voxsize=(1, 1, 1)):
     matrix[:3, :3] *= voxsize  # TODO this needs to be copied
     if shape is not None:
@@ -9,6 +12,7 @@ def build_matrix(matrix, shape=(256, 256, 256), voxsize=(1, 1, 1)):
     return matrix
 
 
+@deprecate('Im guessing no one uses this directly, but if you do check out sf.transform.orientation')
 def orientation_from_matrix(matrix):
     """
     Examines a 4x4 direction cosine matrix and determines the corresponding orientation
@@ -29,6 +33,7 @@ def orientation_from_matrix(matrix):
     return orientation
 
 
+@deprecate('Im guessing no one uses this directly, but if you do check out sf.transform.orientation')
 def matrix_from_orientation(orientation):
     """
     Computes the 4x4 direction cosine matrix corresponding to an orientation string.
@@ -44,6 +49,7 @@ def matrix_from_orientation(orientation):
     return matrix
 
 
+@deprecate('Im guessing no one uses this directly, but if you do check out sf.transform.orientation')
 def check_orientation(orientation):
     """
     Checks an orientation string to ensure it is valid, meaning that all axes are represented
@@ -70,6 +76,7 @@ def check_orientation(orientation):
             raise ValueError('Bad orientation: %s axis not represented.' % axes[i])
 
 
+@deprecate('Im guessing no one uses this directly, but if you do check out sf.transform.orientation')
 def slice_direction(orientation):
     """
     Determines the primary slice plane from an orientation string.

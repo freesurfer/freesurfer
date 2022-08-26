@@ -1,13 +1,15 @@
 project(fspython)
 
-add_subdirectories(bindings)
+# build the cxx/python bindings for the below modules
+add_subdirectories(fsbindings)
+add_subdirectories(gems/cxx)
 
 # run 'pip install' and direct package installs to freesurfer/python/packages
 install(CODE "
-  message(STATUS \"Installing freesurfer python package\")
+  message(STATUS \"Installing python packages\")
   execute_process(COMMAND bash -c \"${PYTHON_EXECUTABLE} -m pip install ${CMAKE_CURRENT_SOURCE_DIR} --no-dependencies --upgrade --target=${CMAKE_INSTALL_PREFIX}/python/packages\" RESULT_VARIABLE retcode)
   if(NOT \${retcode} STREQUAL 0)
-    message(FATAL_ERROR \"Could not install freesurfer python module\")
+    message(FATAL_ERROR \"Could not install python modules\")
   endif()"
   COMPONENT fspy
 )
@@ -23,10 +25,10 @@ if(INSTALL_PYTHON_DEPENDENCIES)
   endif()
 
   install(CODE "
-    message(STATUS \"Installing freesurfer python package dependencies\")
+    message(STATUS \"Installing python package dependencies\")
     execute_process(COMMAND bash -c \"${CMAKE_INSTALL_PREFIX}/python/bin/python3 -m pip install --upgrade --disable-pip-version-check ${EXTRA_PACKAGES} -r ${CMAKE_CURRENT_SOURCE_DIR}/requirements.txt -r ${CMAKE_CURRENT_SOURCE_DIR}/requirements-extra.txt ${PKG_TARGET}\" RESULT_VARIABLE retcode)
     if(NOT \${retcode} STREQUAL 0)
-      message(FATAL_ERROR \"Could not install freesurfer python dependencies\")
+      message(FATAL_ERROR \"Could not install python dependencies\")
     endif()
     execute_process(COMMAND bash -c \"find ${CMAKE_INSTALL_PREFIX}/python/bin ! -name 'python3*' -type f -exec rm -f {} +\" RESULT_VARIABLE retcode)
     if(NOT \${retcode} STREQUAL 0)

@@ -12,10 +12,10 @@ from __future__ import print_function
 # Before the first use, the appropriate Singularity image must be pulled from
 # DockerHub, using the following command:
 
-# singularity pull synthstrip.1.0.sif docker://freesurfer/synthstrip:1.0
+# singularity pull synthstrip.1.2.sif docker://freesurfer/synthstrip:1.2
 
 # Once this command has been run, set the below `image_path` variable to the
-# absolute path pointing to the downloaded synthstrip.1.0.sif file. Once this
+# absolute path pointing to the downloaded synthstrip.1.2.sif file. Once this
 # is run once, it does not need to be run again.
 
 image_path = ''

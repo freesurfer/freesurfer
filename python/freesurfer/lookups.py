@@ -3,6 +3,7 @@ import collections
 import numpy as np
 
 from . import fshome
+from .deprecations import deprecate, replace, unsure, notneeded, notimplemented
 
 
 class LookupTable(collections.OrderedDict):
@@ -30,6 +31,7 @@ class LookupTable(collections.OrderedDict):
             lines.append(str(idx).ljust(col1) + elt.name.ljust(col2) + colorstr)
         return '\n'.join(lines)
 
+    @replace('`lut[index] = name` or `lut[index] = (name, rgba)`')
     def add(self, index, name, color=None):
         self[index] = LookupTable.Element(name, color)
 
@@ -41,6 +43,7 @@ class LookupTable(collections.OrderedDict):
             return [idx for idx, elt in self.items() if allcaps in elt.name.upper()]
 
     @classmethod
+    @replace('sf.load_label_lookup(filename)')
     def read(cls, filename):
         lut = cls()
         with open(filename, 'r') as file:
@@ -58,9 +61,11 @@ class LookupTable(collections.OrderedDict):
         return lut
 
     @classmethod
+    @replace('sf.freesurfer.labels()')
     def read_default(cls):
         return cls.read(os.path.join(fshome(), 'FreeSurferColorLUT.txt'))
 
+    @replace('labels.save(filename)')
     def write(self, filename):
         col1 = len(str(max(self.keys()))) + 1  # find largest index
         col2 = max([len(elt.name) for elt in self.values()]) + 2  # find longest name
@@ -108,15 +113,18 @@ class RecodingLookupTable(dict):
     TODOC
     """
 
+    @replace('sf.LabelRecoder() class')
     def __init__(self):
         self.mapping = {}
         self.target_lut = LookupTable()
         super().__init__()
 
+    @replace('recoder.target[index] = label')
     def add_target(self, index, name=None, color=None):
         self.target_lut.add(index, name, color)
 
     @classmethod
+    @notimplemented
     def read(cls, filename):
         rlut = cls()
         with open(filename, 'r') as file:
@@ -139,6 +147,7 @@ class RecodingLookupTable(dict):
         return rlut
 
 
+replace('sf.freesurfer.labels()')
 def default():
     """
     Returns the default freesurfer label lookup table.
@@ -1591,6 +1600,7 @@ def default():
     return lut
 
 
+@replace('sf.freesurfer.destrieux()')
 def destrieux():
     """
     """
@@ -1674,6 +1684,7 @@ def destrieux():
     return lut
 
 
+@replace('sf.freesurfer.dkt()')
 def dkt():
     """
     """
@@ -1717,6 +1728,7 @@ def dkt():
     return lut
 
 
+@replace('sf.freesurfer.tissue_types()')
 def tissue_type():
     """
     """
@@ -1730,7 +1742,8 @@ def tissue_type():
     return lut
 
 
-def tissue_type_no_skull():
+@replace("sf.freesurfer.tissue_types() - NOTE: 'Lesion' is 6 and 'Head' is 5")
+def tissue_type_no_skull(include_lesions=False):
     """
     """
     lut = LookupTable()
@@ -1739,9 +1752,13 @@ def tissue_type_no_skull():
     lut.add(2, 'Subcortical-Gray-Matter',  [230, 148, 34])
     lut.add(3, 'White-Matter',             [245, 245, 245])
     lut.add(4, 'CSF',                      [120, 18,  134])
+    if include_lesions:
+        lut.add(5, 'Lesion',                   [255, 165,  0])
+
     return lut
 
 
+@replace("sf.freesurfer.tissue_type_recoder(extra=bool, lesions=bool) - NOTE: 'Lesion' is 6 and 'Head' is 5")
 def tissue_type_recoder():
     """
     Returns a recoding table that converts default brain labels to the
@@ -1879,7 +1896,79 @@ def tissue_type_recoder():
     }
     return rlut
 
-def tissue_type_recoder_no_skull():
+
+def nonlateral_aseg_recoder(include_lesions=False):
+    """
+    Returns a recoding table that converts default brain labels to the
+    corresponding tissue-type.
+
+    Returns:
+        RecodingLookupTable: .
+    """
+    include_list = [
+        "Unknown",
+        "Left-Cerebral-White-Matter",
+        "Left-Cerebral-Cortex",
+        "Left-Cerebellum-White-Matter",           
+        "Left-Cerebellum-Cortex",
+        "Left-Thalamus",
+        "Left-Caudate",
+        "Left-Putamen",
+        "Left-Pallidum",
+        "3rd-Ventricle",                           
+        "4th-Ventricle",
+        "Brain-Stem",                            
+        "Left-Hippocampus",
+        "Left-Amygdala",                        
+        "CSF",
+        "Left-Lesion",
+        "Left-Accumbens-area",
+        "Left-VentralDC"
+    ]        
+    rlut = RecodingLookupTable()
+    source_lut = default()
+    rlut.target_lut = LookupTable()
+    rlut.source_lut = source_lut
+    for key in source_lut.keys():
+        if key >= 1000 and key < 3000:
+            name = 'Left-Cerebral-Cortex'
+        elif (key >= 3000 and key < 5000) or (key >= 13000 and key < 15000) or (key >= 250 and key <= 255):
+            name = 'Left-Cerebral-White-Matter'
+        elif (key >= 7000 and key <= 7020):
+            name = 'Left-Amygdala'
+        elif (key >= 8000 and key < 9000):
+            name = 'Left-Thalamus'
+        elif key < 100:
+            name = source_lut[key].name
+            if name.startswith('Right-'):
+                name = name.replace('Right-', 'Left-')
+            if (name.find('Vent') >= 0 and name.find('entral') < 0) or name.find('horoid') >= 0:
+                name = 'CSF'
+            if name.find('ypoint') >= 0 or name.find('esion') >= 0 or \
+               name.find('wmsa') >= 0:
+                name = 'Left-Lesion'
+        else:
+            continue ;
+
+        if name not in include_list:
+            continue
+
+        source_key = key
+        target_list = rlut.target_lut.search(name)
+        if len(target_list) == 0:  # not already
+            target_key = len(rlut.target_lut)
+            rlut.target_lut.add(target_key, name, source_lut[key].color)
+            # print(f'adding key {target_key} : {name}, len now {len(rlut.target_lut)}')
+        else:
+            target_key = target_list[0]
+
+        rlut.mapping[source_key] = target_key
+
+    return rlut
+
+
+@replace("sf.freesurfer.tissue_type_recoder(extra=bool, lesions=bool) - NOTE: 'Lesion' is 6 and 'Head' is 5")
+def tissue_type_recoder_no_skull(include_lesions=False):
     """
     Returns a recoding table that converts default brain labels to the
     corresponding tissue-type.
@@ -1888,7 +1977,7 @@ def tissue_type_recoder_no_skull():
         RecodingLookupTable: .
     """
     rlut = RecodingLookupTable()
-    rlut.target_lut = tissue_type_no_skull()
+    rlut.target_lut = tissue_type_no_skull(include_lesions)
     rlut.mapping = {
         0:    0,  # Unknown
         2:    3,  # Left-Cerebral-White-Matter
@@ -1907,6 +1996,7 @@ def tissue_type_recoder_no_skull():
         17:   2,  # Left-Hippocampus
         18:   2,  # Left-Amygdala
         24:   4,  # CSF
+        25:   5 if include_lesions else 2, # Left-Lesion
         26:   2,  # Left-Accumbens-Area
         28:   3,  # Left-VentralDC
         30:   4,  # Left-Vessel
@@ -1923,17 +2013,20 @@ def tissue_type_recoder_no_skull():
         52:   2,  # Right-Pallidum
         53:   2,  # Right-Hippocampus
         54:   2,  # Right-Amygdala
+        57:   5 if include_lesions else 2, # Right-Lesion
         58:   2,  # Right-Accumbens-Area
         60:   3,  # Right-VentralDC
         62:   4,  # Right-Vessel
         63:   4,  # Right-Choroid-Plexus
-        77:   3,  # WM-Hypointensities
+        77:   5 if include_lesions else 3, # WM-Hypointensities
+#        77:   3,  # WM-Hypointensities
         78:   3,  # Left-WM-Hypointensities
         79:   3,  # Right-WM-Hypointensities
         80:   2,  # Non-WM-Hypointensities
         81:   2,  # Left-Non-WM-Hypointensities
         82:   2,  # Right-Non-WM-Hypointensities
         85:   3,  # Optic-Chiasm
+        99:   5 if include_lesions else 2, # Lesion
         130:  0,  # Air
         165:  0,  # Skull
         172:  2,  # Vermis

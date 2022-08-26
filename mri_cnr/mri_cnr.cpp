@@ -357,7 +357,7 @@ compute_volume_cnr(MRI_SURFACE *mris, MRI *mri, char *log_fname) {
       ErrorExit(ERROR_NOFILE, "%s: could not open file %s", Progname, log_fname) ;
     fprintf(fp, "%f %f %f %f %f %f %f %f\n", gray_white_cnr, gray_csf_cnr, white_mean, gray_mean, csf_mean,
             sqrt(white_var), sqrt(gray_var), sqrt(csf_var)) ;
-
+    fclose(fp);
   }
   MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
   MRIScomputeMetricProperties(mris) ;

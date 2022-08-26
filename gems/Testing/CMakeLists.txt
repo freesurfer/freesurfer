@@ -8,6 +8,11 @@ endif()
 add_executable(kvlAtlasMeshRasterizorTestGPU kvlAtlasMeshRasterizorTestGPU.cxx)
 target_link_libraries(kvlAtlasMeshRasterizorTestGPU kvlGEMSCommon)
 
+#
+add_executable(testdeformMeshPython testdeformMeshPython.cxx)
+add_definitions(-DUSE_DYNAMIC_MESH)
+target_link_libraries(testdeformMeshPython kvlGEMSCommon_dynmesh)
+
 # boost tests
 if(Boost_FOUND)
   set(GEMS2libs kvlGEMSCommon )
@@ -39,3 +44,6 @@ endif()
 # copy some files
 configure_file(test.nii ${GEMS_RUNTIME_PATH}/test.nii COPYONLY)
 configure_file(test.txt.gz ${GEMS_RUNTIME_PATH}/test.txt.gz COPYONLY)
+
+configure_file(inp_image_deformmesh.mgz ${GEMS_RUNTIME_PATH}/inp_image_deformmesh.mgz COPYONLY)
+configure_file(atlas_level1_deformmesh.txt.gz ${GEMS_RUNTIME_PATH}/atlas_level1_deformmesh.txt.gz COPYONLY)

@@ -9,8 +9,8 @@ import optparse
 import logging
 import csv
 
-import freesurfer.utils.legacy as fsutils
-from freesurfer.utils.legacy import AparcStatsParser, BadFileError, aparclogger
+import fsbindings.legacy as fsutils
+from fsbindings.legacy import AparcStatsParser, BadFileError, aparclogger
 
 # Original Version - Douglas Greve, MGH
 # Rewrite - Krish Subramaniam, MGH

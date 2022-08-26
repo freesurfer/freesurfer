@@ -1,7 +1,7 @@
 # extra packages required for FS utilities
-tensorflow==2.4.1
-h5py==2.10
-torch==1.10.2
+tensorflow
+h5py
+torch
 
 # these are also required for FS DL utilities, but we need some features
 # that haven't quite made it into the stable releases yet - this should be
@@ -11,13 +11,7 @@ git+https://github.com/adalca/neurite.git@ac74518f367113ddadca90b70acf12f6a85268
 git+https://github.com/voxelmorph/voxelmorph.git@80d0c489febfb4fa32b4a247629e79720fbb4c14
 
 # extra packages required for QA tools
-numpy
-scipy
 pandas
 matplotlib
 transforms3d
-scikit-image==0.16.2
-
-## Samseg vis
-pyqtgraph
-PyQt5
+scikit-image

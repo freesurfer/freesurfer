@@ -1585,14 +1585,14 @@ void MainWindow::OnIdle()
   ui->actionLoadDTIVolumes  ->setEnabled( !bBusy );
   ui->actionLoadVolume      ->setEnabled( !bBusy );
   ui->actionLoadROI         ->setEnabled( !bBusy && layerVolume );
-  ui->actionLoadPointSet    ->setEnabled( !bBusy && layerVolume );
+  ui->actionLoadPointSet    ->setEnabled( !bBusy && (layerVolume  || layerSurface));
   ui->actionLoadSurface     ->setEnabled( !bBusy );
   ui->actionLoadTrackVolume ->setEnabled( !bBusy );
   ui->actionLoadTrack       ->setEnabled( !bBusy );
   ui->actionLoadTractCluster->setEnabled( !bBusy );
   ui->actionNewVolume       ->setEnabled( layerVolume );
   ui->actionNewROI          ->setEnabled( layerVolume );
-  ui->actionNewPointSet     ->setEnabled( layerVolume );
+  ui->actionNewPointSet     ->setEnabled( layerVolume || layerSurface );
   ui->actionRepositionSurface->setEnabled( layerSurface );
   ui->actionSmoothSurface   ->setEnabled( layerSurface );
   ui->actionRemoveIntersectionsSurface->setEnabled(layerSurface);
@@ -6176,7 +6176,7 @@ void MainWindow::OnNewPointSet(bool bSilent)
 {
   LayerCollection* col_mri = GetLayerCollection( "MRI" );
   LayerMRI* layer_mri = ( LayerMRI* )col_mri->GetActiveLayer();
-  if ( !layer_mri)
+  if (!layer_mri && !GetActiveLayer("Surface"))
   {
     QMessageBox::warning( this, "Error", "Can not create new ROI without volume template.");
     return;
@@ -6195,8 +6195,22 @@ void MainWindow::OnNewPointSet(bool bSilent)
       col_wp->SetWorldVoxelSize( col_mri->GetWorldVoxelSize() );
       col_wp->SetSlicePosition( col_mri->GetSlicePosition() );
     }
-    LayerPointSet* layer_wp = new LayerPointSet( bSilent? ((LayerMRI*)GetActiveLayer("MRI")) : dlg.GetTemplate(),
-                                                 bSilent? LayerPropertyPointSet::Enhanced : dlg.GetType() );
+    LayerPointSet* layer_wp;
+    if (bSilent)
+    {
+      if (layer_mri)
+        layer_wp = new LayerPointSet( layer_mri, LayerPropertyPointSet::Enhanced);
+      else
+        layer_wp = new LayerPointSet( (LayerSurface*)GetActiveLayer("Surface"), LayerPropertyPointSet::Enhanced);
+    }
+    else
+    {
+      LayerMRI* mri = dlg.GetTemplate();
+      if (mri)
+        layer_wp = new LayerPointSet( dlg.GetTemplate(), dlg.GetType() );
+      else
+        layer_wp = new LayerPointSet(dlg.GetTemplateSurface(), dlg.GetType());
+    }
     if (!bSilent)
       layer_wp->SetName( dlg.GetPointSetName() );
     col_wp->AddLayer( layer_wp );
@@ -6219,7 +6233,12 @@ void MainWindow::LoadPointSetFile( const QString& fn, int type, const QVariantMa
 {
   LayerCollection* col_mri = GetLayerCollection( "MRI" );
   LayerMRI* mri = ( LayerMRI* )col_mri->GetActiveLayer();
-  LayerPointSet * wp = new LayerPointSet( mri, type );
+  LayerSurface* surf = (LayerSurface*)GetActiveLayer("Surface");
+  LayerPointSet * wp;
+  if (mri)
+    wp = new LayerPointSet( mri, type );
+  else
+    wp = new LayerPointSet(surf, type);
   wp->SetName( QFileInfo( fn ).fileName() );
   if ( wp->LoadFromFile( fn ) )
   {

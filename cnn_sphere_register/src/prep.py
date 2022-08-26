@@ -1,24 +1,21 @@
 import os
 import numpy as np
 import math
-
-import freesurfer as fs
+import surfa as sf
 
 
 def normCurvature(curvFileName, which_norm='Median'):
-
-        curv = fs.Overlay.read(curvFileName).data
+        curv = sf.load_overlay(curvFileName).data
         normed = (curv - np.median(curv))/np.std(curv)
-
         return normed
 
 
 def spherePad(surfName, curvFileName, padSize=8, which_norm='Median'):
 
-        surf = fs.Surface.read(surfName)
+        surf = sf.load_mesh(surfName)
         curv = normCurvature(curvFileName, which_norm)
 
-        mrisp = surf.parameterize(curv)  # TODO this might be incorrect now
+        mrisp = sf.sphere.SphericalMapBarycentric(surf).parameterize(curv).data
         cols = mrisp.shape[0]
         rows = mrisp.shape[1]
 

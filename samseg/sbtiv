@@ -2,7 +2,7 @@
 
 import argparse
 import surfa as sf
-from freesurfer.samseg import icv
+from gems import icv
 
 description = '''
 Calculates the total intracranial volume of a subject by summing individual volumes computed by samseg. \

@@ -5,28 +5,34 @@ from scipy.interpolate import interpn
 
 from . import bindings
 from .transform import LinearTransform
+from .deprecations import deprecate, replace, unsure, notneeded, notimplemented
 
 
 class Slicing(tuple):
     '''Slice tuple used for indexing subregions of a numpy array.'''
 
+    @notimplemented
     def __new__(cls, start, stop):
         if len(start) != len(stop):
             raise ValueError('start coord (%dD) does not match stop coord (%dD))' % (len(start), len(stop)))
         return super(Slicing, cls).__new__(cls, [slice(s, t) for s, t in zip(start, stop)])
 
+    @notimplemented
     @property
     def start(self):
         return tuple([s.start for s in self])
 
+    @notimplemented
     @property
     def stop(self):
         return tuple([s.stop for s in self])
 
+    @notimplemented
     @property
     def shape(self):
         return tuple([s.stop - s.start for s in self])
 
+    @notimplemented
     def grow(self, dist):
         if not isinstance(dist, Iterable):
             dist = [dist] * len(self)
@@ -34,12 +40,14 @@ class Slicing(tuple):
         stop  = [s.stop  + int(d) for s, d in zip(self, dist)]
         return Slicing(start, stop)
 
+    @notimplemented
     def shrink(self, dist):
         if isinstance(dist, Iterable):
             dist = np.array(dist)
         return self.grow(dist * -1)
 
 
+@replace('use the bbox() member function of a Volume or Slice object')
 def bbox(mask, margin=0):
     '''Bounding box around the object in a binary image.'''
     if not np.any(mask):
@@ -53,11 +61,13 @@ def bbox(mask, margin=0):
     return bbox
 
 
+@replace('scipy.ndimage.center_of_mass(image)')
 def cmass(image):
     '''Center of mass of an image.'''
     return scipy.ndimage.center_of_mass(image)
 
 
+@replace('use the transform() member function of a Volume or Slice object')
 def resample(source, target_shape, trg2src, interp_method='linear', fill=0, smooth_sigma=0):
     '''
     Resamples a volume array from one space to another given
@@ -106,6 +116,8 @@ def resample(source, target_shape, trg2src, interp_method='linear', fill=0, smoo
     else:
         raise ValueError('invalid resample interpolation method "%s"' % interp_method)
 
+
+@replace('use the sample() member function of a Volume or Slice object')
 def sample_volume(volume, points, interp_method='linear', fill_value=0):
     '''
     Parameters:
@@ -131,6 +143,7 @@ def sample_volume(volume, points, interp_method='linear', fill_value=0):
     return np.stack([sampler(f) for f in range(volume.shape[-1])], axis=-1).squeeze()
 
 
+@notimplemented
 def sample_into_volume(volume, weights, coords, values):
     '''
       Interpolates and adds values at given coordinates into a volume and corresponding
@@ -150,6 +163,7 @@ def sample_into_volume(volume, weights, coords, values):
     bindings.vol.sample_into_volume(volume, weights, coords, values)
 
 
+@replace('use the transform() member function of a Volume or Slice object')
 def apply_warp(source, flow, interp_method='linear', indexing='ij'):
     """
     Warps a source image given a flow field. Source and flow volume sizes must match.

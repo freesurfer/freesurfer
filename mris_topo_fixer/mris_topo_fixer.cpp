@@ -446,7 +446,7 @@ int main(int argc, char *argv[]) {
     int self_intersect =  IsMRISselfIntersecting(mris_corrected);
     if (self_intersect) {
       fprintf(stderr,"\nThe final surface self-intersects !\n");
-      if (noint) MRISremoveIntersections(mris_corrected) ;
+      if (noint) MRISremoveIntersections(mris_corrected,0) ;
     } else
       fprintf(stderr,"\nThe final surface does not self-intersect !\n");
   }

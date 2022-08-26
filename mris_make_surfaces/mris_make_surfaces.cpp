@@ -729,7 +729,7 @@ int main(int argc, char *argv[])
   if(mris->ct == NULL && ctab)  
     mris->ct = ctab ;  // add user-specified color table to structure
 
-  MRISremoveIntersections(mris) ;
+  MRISremoveIntersections(mris,0) ;
   
   if (pial_nbrs > 2)
     MRISsetNeighborhoodSizeAndDist(mris, pial_nbrs) ;
@@ -862,7 +862,7 @@ int main(int argc, char *argv[])
     printf("reading initial white vertex positions from %s...\n",orig_white) ;
     if (MRISreadVertexPositions(mris, orig_white) != NO_ERROR)
       ErrorExit(Gerror, "reading of orig white failed...");
-    MRISremoveIntersections(mris) ;
+    MRISremoveIntersections(mris,0) ;
   }
   MRIScomputeMetricProperties(mris) ;    /* recompute surface normals */
   MRISstoreMetricProperties(mris) ;
@@ -1020,7 +1020,7 @@ int main(int argc, char *argv[])
 
       if (MRISreadPialCoordinates(mris, fname) != NO_ERROR)
 	ErrorExit(Gerror, "reading orig pial positions failed") ;
-      MRISremoveIntersections(mris) ;
+      MRISremoveIntersections(mris,0) ;
       
       strcpy(fname, flair_or_T2_name) ;
       if (MGZ)
@@ -1040,7 +1040,7 @@ int main(int argc, char *argv[])
 	  printf("reading initial white vertex positions from %s...\n",orig_white) ;
 	  if (MRISreadVertexPositions(mris, orig_white) != NO_ERROR)
 	    ErrorExit(Gerror, "reading of orig white failed...");
-	  MRISremoveIntersections(mris) ;
+	  MRISremoveIntersections(mris,0) ;
 	}
       }
 
@@ -1194,7 +1194,7 @@ int main(int argc, char *argv[])
       printf("reading white vertex positions from %s...\n",orig_white) ;
       if (MRISreadVertexPositions(mris, fname) != NO_ERROR)
         ErrorExit(Gerror, "%s: could not read white matter surface.",Progname) ;
-      MRISremoveIntersections(mris) ;
+      MRISremoveIntersections(mris,0) ;
     }
     else // read default white (something needs to be read if nowhite was created)
     {
@@ -1276,7 +1276,7 @@ int main(int argc, char *argv[])
       MRISwrite(mristarget, fname) ;
     }
 
-    MRISremoveIntersections(mris) ;
+    MRISremoveIntersections(mris,0) ;
     if(smoothwm > 0){
       printf("Averaging white surface by %d iterations\n",smoothwm);
       MRISaverageVertexPositions(mris, smoothwm); // "smoothwm" is a bad name
@@ -1425,7 +1425,7 @@ int main(int argc, char *argv[])
       MRISaverageVertexPositions(mris, smooth_pial) ;
     }
 
-    MRISremoveIntersections(mris) ;
+    MRISremoveIntersections(mris,0) ;
     MRISsaveVertexPositions(mris, PIAL_VERTICES) ;
 
     if (longitudinal) {
@@ -1619,7 +1619,7 @@ int main(int argc, char *argv[])
             MRISwrite(mris, "after_soap") ;
 
             MRISunrip(mris) ;
-            MRISremoveIntersections(mris) ;
+            MRISremoveIntersections(mris,0) ;
           }
 
           MRISwriteMarked(mris, "distant.mgz") ;
@@ -1628,7 +1628,7 @@ int main(int argc, char *argv[])
         else
           nlabels = 0 ;
 
-	MRISremoveIntersections(mris) ;
+	MRISremoveIntersections(mris,0) ;
 	
 	GetMemUsage(memusage);  printf("Pre Pial Targ Loc VmPeak %d\n",memusage[1]);fflush(stdout);
 
@@ -1765,7 +1765,7 @@ int main(int argc, char *argv[])
             MRISwrite(mris, "after_soap") ;
 
             MRISunrip(mris) ;
-            MRISremoveIntersections(mris) ;
+            MRISremoveIntersections(mris,0) ;
           }
 
           MRISwriteMarked(mris, "distant.mgz") ;
@@ -2041,7 +2041,7 @@ int main(int argc, char *argv[])
     } // end loop over number of averages 
   } // end loop over j (only 1 for now)
 
-  MRISremoveIntersections(mris) ;
+  MRISremoveIntersections(mris,0) ;
   if (getenv("FS_POSIX")) {
     int req = snprintf(fname, STRLEN, "./%s.%s%s%s", hemi, pial_name, output_suffix, suffix);
     if( req >= STRLEN ) {
@@ -2245,7 +2245,7 @@ int main(int argc, char *argv[])
     }
     MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ; /* gray/white surface */
     MRISrestoreVertexPositions(mris, TMP_VERTICES) ;  /* pial surface */
-    MRISremoveIntersections(mris) ;
+    MRISremoveIntersections(mris,0) ;
     req = snprintf(fname, STRLEN, "%s/%s/surf/%s.%s2%s", 
 		   sdir, sname,hemi,white_matter_name,
 		   suffix);
@@ -5097,7 +5097,7 @@ MRISremoveSelfIntersections(MRI_SURFACE *mris)
   VERTEX           *v ;
 
 //  return(NO_ERROR) ;
-  MRISremoveIntersections(mris);
+  MRISremoveIntersections(mris,0);
 
   return(NO_ERROR) ;
 

@@ -198,6 +198,10 @@ main(int argc, char *argv[]) {
     exit(1);
   }
 
+  sprintf(fname, "%s/average/mni305.cor.mgz", mdir);
+  printf("Adding volume geometry from %s\n",fname);
+  mritemplate = MRIread(fname);
+
   if(UseSurf2Surf){
     printf("Using surf2surf instead of parametric surface.\n");
     printf(" To use the old method include -no-surf2surf\n");
@@ -216,6 +220,10 @@ main(int argc, char *argv[]) {
     }
     surf = MakeAverageSurf(asp);
     MRISaverageSurfaceParamFree(&asp);
+
+    initVolGeom(&surf->vg);
+    getVolGeom(mritemplate, &surf->vg);
+    MRIfree(&mritemplate);
     
     sprintf(fname, "%s/%s/surf/%s.%s", sdirout,out_sname, hemi, avg_surf_name) ;
     printf("writing average %s surface to %s\n", avg_surf_name, fname);
@@ -398,9 +406,6 @@ main(int argc, char *argv[]) {
     MRIScomputeMetricProperties(mris_ico) ; // surely this is unnecessary
   }
 
-  sprintf(fname, "%s/average/mni305.cor.mgz", mdir);
-  printf("Adding volume geometry from %s\n",fname);
-  mritemplate = MRIread(fname);
   initVolGeom(&mris_ico->vg);
   getVolGeom(mritemplate, &mris_ico->vg);
   MRIfree(&mritemplate);
@@ -468,6 +473,25 @@ get_option(int argc, char *argv[]) {
   } 
   else if (!stricmp(option, "no-surf2surf")) {
     UseSurf2Surf = 0;
+  } 
+  else if (!stricmp(option, "simple")) {
+    // Stand-alone function to compute an average of surfaces
+    // -simple averagesurf surf1 surf2 ...
+    if(argc < 4){
+      printf("ERROR: -simple averagesurf surf1 surf2 ...\n");
+      exit(1);
+    }
+    std::vector<MRIS*> surfs;
+    for(int n = 3; n < argc; n++){
+      printf("Reading surf %s\n",argv[n]);
+      MRIS *surf = MRISread(argv[n]);
+      if(surf==NULL) exit(1);
+      surfs.push_back(surf);
+    }
+    MRIS *avgsurf = MRISaverageSurfaces(surfs, NULL);
+    if(avgsurf==NULL) exit(1);
+    int err = MRISwrite(avgsurf,argv[2]);
+    exit(err);
   } 
   else switch (toupper(*option)) {
     case 'I':
@@ -583,6 +607,10 @@ print_help(void) {
   printf("-surf2surf, -no-surf2surf\n");
   printf("  Use (don't use) surf2surf transform instead of parametric surface.\n");
   printf("  The parametric surface often creates large faces near the poles.\n");
+  printf("\n");
+  printf("-simple avgsurf surf1 surf2 ...\n");
+  printf("  Stand-alone option to compute an average surface from the list.\n");
+  printf("  All surfaces must have same number of vertices \n");
   printf("\n");
   printf("  -v diagno\n");
   printf("\n");

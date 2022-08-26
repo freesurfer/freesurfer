@@ -3,13 +3,14 @@
 import os
 import sys
 import csv
+import argparse
 import numpy as np
-import freesurfer as fs
+import surfa as sf
 
 
 # parse command line
 
-parser = fs.utils.ArgumentParser()
+parser = argparse.ArgumentParser()
 parser.add_argument('-t', '--table', metavar='FILE', help='Input table.', required=True)
 parser.add_argument('-o', '--out', metavar='FILE', help='Output map.', required=True)
 parser.add_argument('-s', '--seg', metavar='FILE', help='Segmentation to map to.')
@@ -20,10 +21,10 @@ args = parser.parse_args()
 
 # sanity checks on the inputs
 if args.seg and args.parc:
-    fs.fatal('Must provide only one of --seg or --parc input.')
+    sf.system.fatal('Must provide only one of --seg or --parc input.')
 
 if args.seg is None and args.parc is None:
-    fs.fatal('Must provide either --seg or --parc input.')
+    sf.system.fatal('Must provide either --seg or --parc input.')
 
 # columns to extract
 columns = args.columns
@@ -40,7 +41,7 @@ with open(args.table, 'r') as file:
     else:
         for col in columns:
             if col not in header:
-                fs.fatal(f'Column "{col}" is not in table.')
+                sf.system.fatal(f'Column "{col}" is not in table.')
     column_mapping = [header.index(col) for col in columns]
 
     # pull the data
@@ -56,10 +57,10 @@ table.pop('BrainSegVolNotVent', None)
 
 
 # function for extracting a label index by name
-def find_label_index(lut, label):
+def find_label_index(labels, label):
 
     # simple search - this will likely fail for any surface-based labels
-    index = lut.search(label, exact=True)
+    index = labels.search(label, exact=True)
     if index is not None:
         return index
 
@@ -71,7 +72,7 @@ def find_label_index(lut, label):
     for key in prune_list:
         pruned_label = pruned_label.replace(key, '')
 
-    index = lut.search(pruned_label, exact=True)
+    index = labels.search(pruned_label, exact=True)
     if index is not None:
         return index
 
@@ -81,12 +82,12 @@ def find_label_index(lut, label):
 
         for mod in ('_', '-'):
             cortex_label = pruned_label.replace(f'{key}_', f'ctx{mod}{key}{mod}')
-            index = lut.search(cortex_label, exact=True)
+            index = labels.search(cortex_label, exact=True)
             if index is not None:
                 return index
 
         cortex_label = pruned_label.replace(f'{key}_', '')
-        index = lut.search(cortex_label, exact=True)
+        index = labels.search(cortex_label, exact=True)
         if index is not None:
             return index
 
@@ -95,19 +96,20 @@ def find_label_index(lut, label):
 
 # load the inputs and prepare output map
 if args.seg:
-    input_seg = fs.Volume.read(args.seg)
-    map_image = input_seg.copy(np.zeros((*input_seg.shape, len(columns))))
+    input_seg = sf.load_volume(args.seg)
+    map_image = input_seg.new(np.zeros((*input_seg.shape, len(columns))))
 else:
-    input_seg = fs.Overlay.read(args.parc)
-    map_image = input_seg.copy(np.zeros((input_seg.shape[0], len(columns))))
+    input_seg = sf.load_overlay(args.parc)
+    map_image = input_seg.new(np.zeros((input_seg.shape[0], len(columns))))
 
 # load the appropriate lookup table
 if args.lut:
-    lut = fs.LookupTable.read(args.lut)
+    labels = sf.load_label_lookup(args.lut)
 elif args.seg:
-    lut = fs.LookupTable.read_default()
+    default = os.path.join(os.environ['FREESURFER_HOME'], 'FreeSurferColorLUT.txt')
+    labels = sf.load_label_lookup(default)
 else:
-    lut = input_seg.lut
+    labels = input_seg.labels
 
 # match up each label name with an index and rasterize the mapping
 for label, values in table.items():
@@ -116,12 +118,11 @@ for label, values in table.items():
     if 'SurfArea' in label:
         continue
 
-    index = find_label_index(lut, label)
-    # print(f'{label}: {index}')
+    index = find_label_index(labels, label)
     if index is None:
-        fs.warning(f'{label} does not exist in lookup table.')
+        print(f'warning: {label} does not exist in lookup table.')
         continue
 
-    map_image.data[input_seg.data == index] = values
+    map_image[input_seg == index] = values
 
-map_image.write(args.out)
+map_image.save(args.out)
