@@ -5,10 +5,11 @@ import sys
 import csv
 import glob
 import time
+import argparse
+import traceback
+import surfa as sf
 import numpy as np
 import nibabel as nib
-import argparse
-import surfa as sf
 from datetime import timedelta
 from scipy.ndimage import label as scipy_label
 from scipy.interpolate import RegularGridInterpolator
@@ -30,7 +31,7 @@ backend.set_image_data_format('channels_last')
 
 def main():
 
-    # configure commandline
+    # parse arguments
     parser = argparse.ArgumentParser(description="This module can be run in two modes: a) on FreeSurfer subjects, and "
                                                  "b) on any T1-weighted scan(s) of approximatively 1mm resolution. ",
                                      epilog='\n')
@@ -81,12 +82,21 @@ def main():
         print('using CPU, hiding all CUDA_VISIBLE_DEVICES')
         os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
-    # locate model weights
-    if not os.environ.get('FREESURFER_HOME'):
-        model = None
-        sf.system.fatal('FREESURFER_HOME is not set. Please source freesurfer.')
+    # limit the number of threads to be used if running on CPU
+    if args.threads == 1:
+        print('using 1 thread')
     else:
-        model = os.path.join(os.environ.get('FREESURFER_HOME'), 'models', 'hypothalamic_subunits.h5')
+        print('using %s threads' % args.threads)
+    tf.config.threading.set_inter_op_parallelism_threads(args.threads)
+    tf.config.threading.set_intra_op_parallelism_threads(args.threads)
+
+    # check that freesurfer has been sourced
+    if not os.environ.get('FREESURFER_HOME'):
+        sf.system.fatal('FREESURFER_HOME is not set. Please source freesurfer.')
+    synthseg_home = os.environ.get('FREESURFER_HOME')
+
+    # path model
+    model = os.path.join(synthseg_home, 'models', 'hypothalamic_subunits.h5')
 
     # run prediction
     predict(
@@ -99,7 +109,6 @@ def main():
         path_posteriors=args.post,
         path_resampled=args.resample,
         path_volumes=args.vol,
-        threads=args.threads,
         crop=args.crop,
     )
 
@@ -118,8 +127,7 @@ def predict(name_subjects=None,
             path_posteriors=None,
             path_resampled=None,
             path_volumes=None,
-            crop=184,
-            threads=1):
+            crop=184):
     '''
     Prediction pipeline.
     '''
@@ -128,106 +136,80 @@ def predict(name_subjects=None,
         sf.system.fatal("A model file is necessary")
 
     # prepare input/output filepaths
-    path_images, path_segmentations, path_posteriors, path_resampled, path_volumes, path_main_volumes, path_stats = \
-        prepare_output_files(name_subjects,
-                             path_subjects_dir,
-                             write_posteriors_FS,
-                             path_images,
-                             path_segmentations,
-                             path_posteriors,
-                             path_resampled,
-                             path_volumes)
+    outputs = prepare_output_files(name_subjects, path_subjects_dir, write_posteriors_FS, path_images,
+                                   path_segmentations, path_posteriors, path_resampled, path_volumes)
+    path_images = outputs[0]
+    path_segmentations = outputs[1]
+    path_posteriors = outputs[2]
+    path_resampled = outputs[3]
+    path_volumes = outputs[4]
+    path_main_volumes = outputs[5]
+    path_stats = outputs[6]
 
-    # get label and classes lists
-    segmentation_labels = np.concatenate([np.zeros(1, dtype='int32'), np.arange(801, 811)])
+    # get label lists
+    labels_segmentation = np.concatenate([np.zeros(1, dtype='int32'), np.arange(801, 811, dtype='int32')])
 
     # prepare volume file if needed
     if path_main_volumes is not None:
         write_csv_file(volumes=None, filename=path_main_volumes, subject=None, write_header=True, open_type='w')
 
-    if threads == 1:
-        print('using 1 thread')
-    else:
-        print('using %s threads' % threads)
-    tf.config.threading.set_inter_op_parallelism_threads(threads)
-    tf.config.threading.set_intra_op_parallelism_threads(threads)
-
     # build network
     _, _, n_dims, n_channels, _, _ = get_volume_info(path_images[0])
     model_input_shape = [None] * n_dims + [n_channels]
-    net = build_model(path_model, model_input_shape, len(segmentation_labels))
+    net = build_model(path_model, model_input_shape, len(labels_segmentation))
 
     # perform segmentation
-    loop_info = LoopInfo(len(path_images), 10, 'predicting', True)
-    for idx, (path_image, path_segmentation, path_posterior, path_resample, path_volume, path_stat) in \
-            enumerate(zip(path_images, path_segmentations, path_posteriors, path_resampled, path_volumes, path_stats)):
-        loop_info.update(idx)
+    if len(path_images) <= 10:
+        loop_info = LoopInfo(len(path_images), 1, 'predicting', True)
+    else:
+        loop_info = LoopInfo(len(path_images), 10, 'predicting', True)
+    list_errors = list()
+    for i in range(len(path_images)):
+        loop_info.update(i)
 
-        # preprocessing
         try:
-            image, aff, h, im_res, shape, crop_idx = preprocess(path_image, crop, path_resample=path_resample)
-        except Exception as e:
-            print('\nthe following problem occured when preprocessing image %s :' % path_image)
-            print(e)
-            print('resuming program execution\n')
-            continue
 
-        # prediction
-        try:
+            # preprocessing
+            image, aff, h, im_res, shape, crop_idx = preprocess(path_images[i], crop, path_resample=path_resampled[i])
+
+            # prediction
             prediction_patch = net.predict(image)
-        except Exception as e:
-            print('\nthe following problem occured when predicting segmentation of image %s :' % path_image)
-            print(e)
-            print('\nresuming program execution')
-            continue
 
-        # postprocessing
-        try:
-            seg, posteriors = postprocess(prediction_patch, shape, crop_idx, segmentation_labels, aff)
-        except Exception as e:
-            print('\nthe following problem occured when postprocessing segmentation %s :' % path_segmentation)
-            print(e)
-            print('\nresuming program execution')
-            continue
+            # postprocessing
+            seg, posteriors = postprocess(prediction_patch, shape, crop_idx, labels_segmentation, aff)
 
-        # write results to disk
-        try:
-            save_volume(seg, aff, h, path_segmentation, dtype='int32')
-            if path_posterior is not None:
-                save_volume(posteriors, aff, h, path_posterior, dtype='float32')
-        except Exception as e:
-            print('\nthe following problem occured when saving the results for image %s :' % path_image)
-            print(e)
-            print('\nresuming program execution')
-            continue
+            # write predictions to disc
+            save_volume(seg, aff, h, path_segmentations[i], dtype='int32')
+            if path_posteriors[i] is not None:
+                save_volume(posteriors, aff, h, path_posteriors[i], dtype='float32')
 
-        # compute volumes
-        try:
-            if (path_main_volumes is not None) | (path_volume is not None):  # compute volumes only if necessary
+            # write volumes to disc if necessary
+            if (path_main_volumes is not None) | (path_volumes[i] is not None):  # compute volumes only if necessary
                 volumes = np.sum(posteriors[..., 1:], axis=tuple(range(0, len(posteriors.shape) - 1)))
                 volumes = np.around(volumes * np.prod(im_res), 3)
                 volumes_whole = np.array([np.sum(volumes[:int(len(volumes) / 2)]),
                                           np.sum(volumes[int(len(volumes) / 2):])])
                 volumes = np.concatenate([volumes, volumes_whole])
                 if name_subjects is None:  # any T1 mode
-                    subject_name = os.path.basename(path_image).replace('.nii.gz', '')
+                    subject_name = os.path.basename(path_images[i]).replace('.nii.gz', '')
                 else:  # FS mode
-                    subject_name = os.path.basename(os.path.dirname(os.path.dirname(path_image)))
+                    subject_name = os.path.basename(os.path.dirname(os.path.dirname(path_images[i])))
                 if path_main_volumes is not None:  # append volumes to main file (regrouping all subjects)
                     write_csv_file(volumes, path_main_volumes, subject_name, write_header=False, open_type='a')
-                if path_volume is not None:  # create individual volume file in each subject subdirectory (FS mode)
-                    write_csv_file(volumes, path_volume, subject_name, write_header=True, open_type='w')
-                if path_stat is not None:  # create individual stats file in each subject subdirectory (FS mode)
-                    write_fs_stats_file(volumes, path_stat)
+                if path_volumes[i] is not None:  # create individual volume file in each subject subdirectory (FS mode)
+                    write_csv_file(volumes, path_volumes[i], subject_name, write_header=True, open_type='w')
+                if path_stats[i] is not None:  # create individual stats file in each subject subdirectory (FS mode)
+                    write_fs_stats_file(volumes, path_stats[i])
+
         except Exception as e:
-            print('\nthe following problem occured when computing the volumes of '
-                  'segmentation %s :' % path_segmentation)
-            print(e)
-            print('\nresuming program execution')
+            list_errors.append(path_images[i])
+            print('\nthe following problem occured with image %s :' % path_images[i])
+            print(traceback.format_exc())
+            print('resuming program execution\n')
             continue
 
     # print output info
-    if len(path_segmentations) == 1:  # either one image or one subject
+    if (len(path_segmentations) == 1) & (len(list_errors) == 0):  # only one image is processed with no error
         print('\nsegmentation  saved in:    ' + path_segmentations[0])
         if path_posteriors[0] is not None:
             print('posteriors saved in:       ' + path_posteriors[0])
@@ -237,7 +219,7 @@ def predict(name_subjects=None,
             print('resampled images saved in: ' + path_resampled[0])
         if path_main_volumes is not None:  # for single image
             print('volumes saved in:          ' + path_main_volumes)
-    else:
+    elif (len(path_segmentations) > 1) & (len(list_errors) < len(path_segmentations)):  # at least 1 image with no error
         if name_subjects is None:  # images in folder
             print('\nsegmentations saved in:    ' + os.path.dirname(path_segmentations[0]))
             if path_posteriors[0] is not None:
@@ -258,7 +240,13 @@ def predict(name_subjects=None,
     print('\nIf you use this tool in a publication, please cite:')
     print('Automated segmentation of the hypothalamus and associated subunits in brain MRI')
     print('B. Billot, M. Bocchetta, E. Todd, A. V. Dalca, J. D. Rohrer, J. E. Iglesias')
-    print('NeuroImage 2020\n')
+    print('NeuroImage 2020')
+
+    if len(list_errors) > 0:
+        print('\nERROR: some problems occured for the following inputs (see corresponding errors above):')
+        for path_error_image in list_errors:
+            print(path_error_image)
+        sys.exit(1)
 
 
 def prepare_output_files(name_subjects, subjects_dir, write_posteriors_FS, path_images, out_seg, out_posteriors,
@@ -313,7 +301,7 @@ def prepare_output_files(name_subjects, subjects_dir, write_posteriors_FS, path_
                 if (out_posteriors[-7:] == '.nii.gz') | (out_posteriors[-4:] == '.nii') | \
                         (out_posteriors[-4:] == '.mgz') | (out_posteriors[-4:] == '.npz'):
                     sf.system.fatal('Output folders cannot have extensions: '
-                             '.nii.gz, .nii, .mgz, or .npz, had %s' % out_posteriors)
+                                    '.nii.gz, .nii, .mgz, or .npz, had %s' % out_posteriors)
                 mkdir(out_posteriors)
                 out_posteriors = [os.path.join(out_posteriors, os.path.basename(image)).replace('.nii',
                                   '_posteriors.nii') for image in path_images]
@@ -329,7 +317,7 @@ def prepare_output_files(name_subjects, subjects_dir, write_posteriors_FS, path_
                 if (out_resampled[-7:] == '.nii.gz') | (out_resampled[-4:] == '.nii') | \
                         (out_resampled[-4:] == '.mgz') | (out_resampled[-4:] == '.npz'):
                     sf.system.fatal('Output folders cannot have extensions: '
-                             '.nii.gz, .nii, .mgz, or .npz, had %s' % out_resampled)
+                                    '.nii.gz, .nii, .mgz, or .npz, had %s' % out_resampled)
                 mkdir(out_resampled)
                 out_resampled = [os.path.join(out_resampled, os.path.basename(image)).replace('.nii',
                                  '_resampled.nii') for image in path_images]
@@ -344,7 +332,7 @@ def prepare_output_files(name_subjects, subjects_dir, write_posteriors_FS, path_
             # input images
             if not os.path.isfile(path_images):
                 sf.system.fatal("file does not exist: %s \n"
-                         "please make sure the path and the extension are correct" % path_images)
+                                "please make sure the path and the extension are correct" % path_images)
             path_images = [path_images]
 
             # segmentations
@@ -466,11 +454,114 @@ def prepare_output_files(name_subjects, subjects_dir, write_posteriors_FS, path_
             main_volumes = None
 
     else:
-        sf.system.fatal('please provide an input image/directory (--i), or a specific FreeSurfer subject directory (--s), '
-                 'or the FreeSurfer $SUBJECT_DIR (--sd)')
+        sf.system.fatal('please provide an input image/directory (--i), '
+                        'or a specific FreeSurfer subject directory (--s), '
+                        'or the FreeSurfer $SUBJECT_DIR (--sd)')
         path_images = out_volumes = out_stats = None
 
     return path_images, out_seg, out_posteriors, out_resampled, out_volumes, main_volumes, out_stats
+
+
+def preprocess(path_image, crop=None, n_levels=3, path_resample=None):
+
+    # read image and corresponding info
+    im, shape, aff, n_dims, n_channels, h, im_res = get_volume_info(path_image, True)
+    if n_dims < 3:
+        sf.system.fatal('input should have 3 dimensions, had %s' % n_dims)
+    elif n_dims == 4 and n_channels == 1:
+        n_dims = 3
+        im = im[..., 0]
+    elif n_dims > 3:
+        sf.system.fatal('input should have 3 dimensions, had %s' % n_dims)
+    elif n_channels > 1:
+        print('WARNING: detected more than 1 channel, only keeping the first channel.')
+        im = im[..., 0]
+
+    # resample image if necessary
+    if np.any((im_res > np.array([1.15]*3)) | (im_res < np.array([0.95]*3))):
+        im_res = np.array([1.]*3)
+        im, aff = resample_volume(im, aff, im_res)
+        if path_resample is not None:
+            save_volume(im, aff, h, path_resample)
+
+    # align image
+    im = align_volume_to_ref(im, aff, aff_ref=np.eye(4), n_dims=n_dims, return_copy=False)
+    shape = list(im.shape[:n_dims])
+
+    # check that shape is divisible by 2**n_levels
+    if crop is None:
+        crop = shape.copy()
+    crop = reformat_to_list(crop, length=n_dims, dtype='int')
+    if not all([shape[i] >= crop[i] for i in range(n_dims)]):
+        crop = [min(shape[i], crop[i]) for i in range(n_dims)]
+    if not all([size % (2**n_levels) == 0 for size in crop]):
+        crop = [find_closest_number_divisible_by_m(size, 2 ** n_levels) for size in crop]
+
+    # crop image
+    im, crop_idx = crop_volume(im, cropping_shape=crop, return_crop_idx=True)
+
+    # normalise image
+    im = rescale_volume(im, new_min=0, new_max=1, min_percentile=0.5, max_percentile=99.5)
+
+    # add batch and channel axes
+    im = add_axis(im, axis=[0, -1])
+
+    return im, aff, h, im_res, shape, crop_idx
+
+
+def build_model(model_file, input_shape, n_lab):
+
+    net = unet(nb_features=24,
+               input_shape=input_shape,
+               nb_levels=3,
+               conv_size=3,
+               nb_labels=n_lab,
+               feat_mult=2,
+               nb_conv_per_level=2,
+               batch_norm=-1)
+    net.load_weights(model_file, by_name=True)
+
+    return net
+
+
+def postprocess(prediction, im_shape, crop_idx, labels, aff):
+
+    # get posteriors and segmentation
+    post_patch = np.squeeze(prediction)
+    seg_patch = post_patch.argmax(-1)
+
+    # further crop the seg_patch around predicted values
+    seg_patch_cropped, patch_crop = crop_volume_around_region(seg_patch, threshold=0, margin=2)
+    post_patch_cropped = crop_volume_with_idx(post_patch, patch_crop, n_dims=3)
+
+    # keep biggest connected component
+    left_mask = get_largest_connected_component((seg_patch_cropped > 0) & (seg_patch_cropped < 6))
+    right_mask = get_largest_connected_component(seg_patch_cropped > 5)
+    seg_patch_cropped *= (left_mask | right_mask)
+
+    # mask posteriors of each label
+    dilate_struct = build_binary_structure(1, 3)
+    for i in range(1, len(labels)):
+        tmp_post_patch_cropped = post_patch_cropped[..., i]
+        tmp_mask = binary_dilation(seg_patch_cropped == i, dilate_struct)
+        tmp_post_patch_cropped[np.logical_not(tmp_mask)] = 0
+        post_patch_cropped[..., i] = tmp_post_patch_cropped
+    post_patch_cropped[..., 0] = 1 - np.sum(post_patch_cropped[..., 1:], axis=-1)  # renormalise
+
+    # paste patches back to matrices of original image size
+    seg = np.zeros(shape=im_shape, dtype='int32')
+    posteriors = np.zeros(shape=[*im_shape, labels.shape[0]])
+    posteriors[..., 0] = np.ones(im_shape)  # set background posteriors to 1
+    crop_idx = patch_crop + np.tile(crop_idx[:int(np.array(crop_idx).shape[0] / 2)], 2)
+    seg[crop_idx[0]:crop_idx[3], crop_idx[1]:crop_idx[4], crop_idx[2]:crop_idx[5]] = seg_patch_cropped
+    posteriors[crop_idx[0]:crop_idx[3], crop_idx[1]:crop_idx[4], crop_idx[2]:crop_idx[5], :] = post_patch_cropped
+    seg = labels[seg.astype('int32')].astype('int32')
+
+    # align prediction back to first orientation
+    seg = align_volume_to_ref(seg, aff=np.eye(4), aff_ref=aff, n_dims=3, return_copy=False)
+    posteriors = align_volume_to_ref(posteriors, np.eye(4), aff_ref=aff, n_dims=3, return_copy=False)
+
+    return seg, posteriors
 
 
 def write_csv_file(volumes, filename, subject, write_header, open_type):
@@ -536,120 +627,6 @@ def write_fs_stats_file(volumes, filename):
                 vol.rjust(volwidth),
                 segnames[i],
             ))
-
-
-def preprocess(path_image, crop=184, n_levels=3, path_resample=None):
-    '''
-    Input image pre-processing.
-    '''
-
-    # read image and corresponding info
-    im, shape, aff, n_dims, n_channels, h, im_res = get_volume_info(path_image, True)
-    if n_dims < 3:
-        sf.system.fatal('input should have 3 dimensions, had %s' % n_dims)
-    elif n_dims == 4 and n_channels == 1:
-        n_dims = 3
-        im = im[..., 0]
-    elif n_dims > 3:
-        sf.system.fatal('input should have 3 dimensions, had %s' % n_dims)
-    elif n_channels > 1:
-        print('WARNING: detected more than 1 channel, only keeping the first channel.')
-        im = im[..., 0]
-
-    # resample image if necessary
-    if np.any((im_res > np.array([1.15]*3)) | (im_res < np.array([0.95]*3))):
-        im_res = np.array([1.]*3)
-        im, aff = resample_volume(im, aff, im_res)
-        if path_resample is not None:
-            save_volume(im, aff, h, path_resample)
-
-    # align image
-    im = align_volume_to_ref(im, aff, aff_ref=np.eye(4), n_dims=n_dims, return_copy=False)
-    shape = list(im.shape[:n_dims])
-
-    # check that shape is divisible by 2**n_levels
-    if crop is None:
-        crop = shape.copy()
-    crop = reformat_to_list(crop, length=n_dims, dtype='int')
-    if not all([shape[i] >= crop[i] for i in range(n_dims)]):
-        crop = [min(shape[i], crop[i]) for i in range(n_dims)]
-    if not all([size % (2**n_levels) == 0 for size in crop]):
-        crop = [find_closest_number_divisible_by_m(size, 2 ** n_levels) for size in crop]
-
-    # crop image
-    im, crop_idx = crop_volume(im, cropping_shape=crop, return_crop_idx=True)
-
-    # normalise image
-    im = rescale_volume(im, new_min=0, new_max=1, min_percentile=0.5, max_percentile=99.5)
-
-    # add batch and channel axes
-    im = add_axis(im, axis=[0, -1])
-
-    return im, aff, h, im_res, shape, crop_idx
-
-
-def build_model(model_file, input_shape, n_lab):
-    '''
-    Builds keras unet model.
-    '''
-    if not os.path.isfile(model_file):
-        sf.system.fatal("The provided model path does not exist.")
-
-    # build UNet
-    net = unet(nb_features=24,
-               input_shape=input_shape,
-               nb_levels=3,
-               conv_size=3,
-               nb_labels=n_lab,
-               feat_mult=2,
-               nb_conv_per_level=2,
-               batch_norm=-1)
-    net.load_weights(model_file, by_name=True)
-
-    return net
-
-
-def postprocess(prediction, im_shape, crop_idx, labels, aff):
-    '''
-    Prediction post-processing.
-    '''
-
-    # get posteriors and segmentation
-    post_patch = np.squeeze(prediction)
-    seg_patch = post_patch.argmax(-1)
-
-    # further crop the seg_patch around predicted values
-    seg_patch_cropped, patch_crop = crop_volume_around_region(seg_patch, threshold=0, margin=2)
-    post_patch_cropped = crop_volume_with_idx(post_patch, patch_crop, n_dims=3)
-
-    # keep biggest connected component
-    left_mask = get_largest_connected_component((seg_patch_cropped > 0) & (seg_patch_cropped < 6))
-    right_mask = get_largest_connected_component(seg_patch_cropped > 5)
-    seg_patch_cropped *= (left_mask | right_mask)
-
-    # mask posteriors of each label
-    dilate_struct = build_binary_structure(1, 3)
-    for i in range(1, len(labels)):
-        tmp_post_patch_cropped = post_patch_cropped[..., i]
-        tmp_mask = binary_dilation(seg_patch_cropped == i, dilate_struct)
-        tmp_post_patch_cropped[np.logical_not(tmp_mask)] = 0
-        post_patch_cropped[..., i] = tmp_post_patch_cropped
-    post_patch_cropped[..., 0] = 1 - np.sum(post_patch_cropped[..., 1:], axis=-1)  # renormalise
-
-    # paste patches back to matrices of original image size
-    seg = np.zeros(shape=im_shape, dtype='int32')
-    posteriors = np.zeros(shape=[*im_shape, labels.shape[0]])
-    posteriors[..., 0] = np.ones(im_shape)  # set background posteriors to 1
-    crop_idx = patch_crop + np.tile(crop_idx[:int(np.array(crop_idx).shape[0] / 2)], 2)
-    seg[crop_idx[0]:crop_idx[3], crop_idx[1]:crop_idx[4], crop_idx[2]:crop_idx[5]] = seg_patch_cropped
-    posteriors[crop_idx[0]:crop_idx[3], crop_idx[1]:crop_idx[4], crop_idx[2]:crop_idx[5], :] = post_patch_cropped
-    seg = labels[seg.astype('int')].astype('int')
-
-    # align prediction back to first orientation
-    seg = align_volume_to_ref(seg, np.eye(4), aff_ref=aff, n_dims=3, return_copy=False)
-    posteriors = align_volume_to_ref(posteriors, np.eye(4), aff_ref=aff, n_dims=3, return_copy=False)
-
-    return seg, posteriors
 
 
 # ================================================================================================
@@ -758,7 +735,7 @@ def conv_enc(nb_features,
              batch_norm=None,
              input_model=None):
     """
-    Fully Convolutional Encoder
+    Fully Convolutional Encoder. Copied with permission from github.com/adalca/neurite.
     """
 
     # naming
@@ -871,7 +848,7 @@ def conv_dec(nb_features,
              conv_dropout=0,
              input_model=None):
     """
-    Fully Convolutional Decoder
+    Fully Convolutional Decoder. Copied with permission from github.com/adalca/neurite.
 
     Parameters:
         ...
@@ -1022,9 +999,9 @@ def load_volume(path_volume, im_only=True, squeeze=True, dtype=None, aff_ref=Non
     if path_volume.endswith(('.nii', '.nii.gz', '.mgz')):
         x = nib.load(path_volume)
         if squeeze:
-            volume = np.squeeze(x.get_data())
+            volume = np.squeeze(x.get_fdata())
         else:
-            volume = x.get_data()
+            volume = x.get_fdata()
         aff = x.affine
         header = x.header
     else:  # npz
@@ -1395,7 +1372,7 @@ def build_binary_structure(connectivity, n_dims, shape=None):
 
 # ---------------------------------------------------- edit volume -----------------------------------------------------
 
-def rescale_volume(volume, new_min=0, new_max=255, min_percentile=2, max_percentile=98, use_positive_only=False):
+def rescale_volume(volume, new_min=0, new_max=255, min_percentile=2., max_percentile=98., use_positive_only=False):
     """This function linearly rescales a volume between new_min and new_max.
     :param volume: a numpy array
     :param new_min: (optional) minimum value for the rescaled image.
