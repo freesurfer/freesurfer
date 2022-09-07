@@ -1424,6 +1424,8 @@ double LayerMRI::GetVoxelValue( double* pos )
   {
     if (GetCorrelationSurface())
       return m_imageRawDisplay->GetScalarComponentAsDouble( n[0], n[1], n[2], 0 );
+    else if (m_layerMask)
+      return m_imageDataBackup->GetScalarComponentAsDouble( n[0], n[1], n[2], m_nActiveFrame );
     else
       return m_imageData->GetScalarComponentAsDouble( n[0], n[1], n[2], m_nActiveFrame );
   }
@@ -3753,7 +3755,7 @@ void LayerMRI::SetMaskLayer(LayerMRI *layer_mask)
     */
     
     vtkSmartPointer<vtkImageReslice> resampler = vtkSmartPointer<vtkImageReslice>::New();
-    vtkSmartPointer<vtkImageMathematics> mask_filter = vtkSmartPointer<vtkImageMathematics>::New();
+    vtkSmartPointer<vtkImageMask> mask_filter = vtkSmartPointer<vtkImageMask>::New();
     vtkSmartPointer<vtkImageThreshold> threshold = vtkSmartPointer<vtkImageThreshold>::New();
     double range[2];
     mask->GetScalarRange(range);
@@ -3783,19 +3785,29 @@ void LayerMRI::SetMaskLayer(LayerMRI *layer_mask)
     threshold->ReplaceOutOn();
     threshold->SetInValue(1);
     threshold->SetOutValue(0);
-    threshold->SetOutputScalarType(m_imageDataBackup->GetScalarType());
+    threshold->SetOutputScalarType(VTK_UNSIGNED_CHAR);
     threshold->Update();
 #if VTK_MAJOR_VERSION > 5
-    mask_filter->SetInput1Data(m_imageDataBackup);
-    mask_filter->SetInput2Data(threshold->GetOutput());
+    if (m_imageDataBackup->GetScalarType() == VTK_UNSIGNED_CHAR)
+    {
+      vtkSmartPointer<vtkImageCast> cast = vtkSmartPointer<vtkImageCast>::New();
+      cast->SetOutputScalarType(VTK_SHORT);
+      cast->SetInputData(m_imageDataBackup);
+      cast->Update();
+      mask_filter->SetImageInputData(cast->GetOutput());
+    }
+    else
+      mask_filter->SetImageInputData(m_imageDataBackup);
+    mask_filter->SetMaskInputData(threshold->GetOutput());
 #else
-    mask_filter->SetInput1(m_imageDataBackup);
-    mask_filter->SetInput2(threshold->GetOutput());
+    mask_filter->SetImageInputData(m_imageDataBackup);
+    mask_filter->SetMaskInputData(threshold->GetOutput());
 #endif
-    mask_filter->SetOperationToMultiply();
+    mask_filter->SetMaskedOutputValue(VTK_SHORT_MIN);
     mask_filter->Update();
     source->DeepCopy(mask_filter->GetOutput());
   }
+  GetProperty()->OnColorMapChanged();
   emit ActorUpdated();
   GetProperty()->EmitChangeSignal();
 }

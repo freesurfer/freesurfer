@@ -649,6 +649,7 @@ void LayerPropertyMRI::OnColorMapChanged ()
   }
 
   double tiny_fraction = ( mMaxVoxelValue - mMinVoxelValue ) * 1e-12;
+  bool has_mask = (((LayerMRI*)parent())->GetMaskLayer());
   switch ( mColorMapType )
   {
   case NoColorMap:
@@ -669,7 +670,7 @@ void LayerPropertyMRI::OnColorMapChanged ()
     // Build our lookup table.
     assert( mGrayScaleTable.GetPointer() );
     mGrayScaleTable->RemoveAllPoints();
-    if ( mbClearBackground )
+    if ( mbClearBackground || has_mask )
     {
       if (mClearBackgroundValue < MinGrayscaleWindow)
       {
@@ -702,7 +703,7 @@ void LayerPropertyMRI::OnColorMapChanged ()
     mHeatScaleTable->RemoveAllPoints();
     if ( m_bHeatScaleTruncate && m_bHeatScaleInvert )
     {
-      if ( m_bHeatScaleClearHigh )
+      if ( m_bHeatScaleClearHigh || has_mask )
       {
         mHeatScaleTable->AddRGBAPoint( -HeatScaleMaxThreshold + HeatScaleOffset - tiny_fraction, 1, 1, 0, 0 );
       }
@@ -738,6 +739,10 @@ void LayerPropertyMRI::OnColorMapChanged ()
     }
     else
     {
+      if ( has_mask )
+      {
+        mHeatScaleTable->AddRGBAPoint( -HeatScaleMaxThreshold + HeatScaleOffset - tiny_fraction, 0, 0, 0, 0 );
+      }
       mHeatScaleTable->AddRGBAPoint( -HeatScaleMaxThreshold + HeatScaleOffset, 0, 1, 1, 1 );
       mHeatScaleTable->AddRGBAPoint( -HeatScaleMidThreshold + HeatScaleOffset, 0, 0, 1, 1 );
       mHeatScaleTable->AddRGBAPoint( -HeatScaleMinThreshold + HeatScaleOffset, 0, 0, 1, 0 );
@@ -755,7 +760,8 @@ void LayerPropertyMRI::OnColorMapChanged ()
 
   case Jet:
     mColorMapTable->RemoveAllPoints();
-    mColorMapTable->AddRGBAPoint( qMin( 0.0, MinGenericThreshold), 0, 0, 0, 0 );
+//    qDebug() << qMin( 0.0, MinGenericThreshold) - tiny_fraction;
+    mColorMapTable->AddRGBAPoint( qMin( 0.0, MinGenericThreshold) - tiny_fraction, 0, 0, 0, 0 );
     mColorMapTable->AddRGBAPoint( MinGenericThreshold, 0, 0, 1, 1 );
     mColorMapTable->AddRGBAPoint( MinGenericThreshold + (MaxGenericThreshold - MinGenericThreshold) / 4, 0, 1, 1, 1 );
     mColorMapTable->AddRGBAPoint( (MinGenericThreshold + MaxGenericThreshold) / 2, 0, 1, 0, 1 );
