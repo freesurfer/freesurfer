@@ -4703,7 +4703,7 @@ endif
 # Cache global brain volume stats (needs aseg.mgz above). WMParc because it computes stats
 if(($DoSegStats || $DoParcStats || $DoParcStats2 || $DoParcStats3 || $DoWMParc) && \
   ! $LHonly && ! $RHonly) then
-  set cmd = (mri_brainvol_stats $subjid)
+  set cmd = (mri_brainvol_stats --subject $subjid)
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $fs_time $cmd |& tee -a $LF
   if($status) goto error_exit;

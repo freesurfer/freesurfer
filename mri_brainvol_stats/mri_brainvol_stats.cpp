@@ -14,12 +14,15 @@ int main(int argc, char **argv)
 {
   // parse arguments
   ArgumentParser parser;
-  parser.addArgument("subject");
+  parser.addArgument("-s", "--subject",  1, String, true);
+  //parser.addArgument("subject");
   parser.addArgument("--sd", 1);
   parser.parse(argc, argv);
 
-  std::string subject = parser.retrieve<std::string>("subject");
+  //std::string subject = parser.retrieve<std::string>("subject");
   std::string subjdir = parser.retrieve<std::string>("sd");
+  std::string subject = parser.retrieve<std::string>("subject");
+
 
   // get subjects directory from flag or env var
   if (subjdir.empty()) {
