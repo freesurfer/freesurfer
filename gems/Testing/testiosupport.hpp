@@ -3,10 +3,13 @@
 #include <iostream>
 #include <iomanip>
 
+#ifdef CUDA_FOUND
 #include "dimensioncuda.hpp"
+#endif
 #include "stopwatch.hpp"
 
 namespace std {
+#ifdef CUDA_FOUND
   template<unsigned char nDims, typename IndexType>
   ostream& operator<<(ostream& os,
 		      const kvl::cuda::Dimension<nDims,IndexType> d) {
@@ -20,6 +23,7 @@ namespace std {
     os << " )";
     return os;
   }
+#endif
 
   static ostream& operator<<(ostream& os,
 			     const kvl::Stopwatch s) {
