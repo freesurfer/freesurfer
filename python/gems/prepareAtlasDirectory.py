@@ -7,6 +7,7 @@ import argparse
 import matplotlib.pyplot as plt
 from scipy import ndimage
 
+import numpy as np
 import gems
 from gems import initVisualizer
 from gems import requireNumpyArray
@@ -15,7 +16,7 @@ from gems.io import kvlReadCompressionLookupTable
 from gems.io import kvlWriteCompressionLookupTable
 from gems.io import kvlWriteSharedGMMParameters
 from gems.io import kvlReadSharedGMMParameters
-from gems.io import kvlMergeAlphas
+from gems.merge_alphas import kvlMergeAlphas
 from gems.merge_alphas import kvlGetMergingFractionsTable
 
 
