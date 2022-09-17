@@ -1636,7 +1636,7 @@ int PrintSegStat(FILE *fp, SEGSTAT *segstat)
     c++;
 
     fprintf(fp, "# TableCol %2d ColHeader %sStdDev\n", c, segstat->InIntensityName);
-    fprintf(fp, "# TableCol %2d FieldName Itensity %sStdDev\n", c, segstat->InIntensityName);
+    fprintf(fp, "# TableCol %2d FieldName Intensity %sStdDev\n", c, segstat->InIntensityName);
     fprintf(fp, "# TableCol %2d Units     %s\n", c, segstat->InIntensityUnits);
     sprintf(tmpstr, "%sStdDev", segstat->InIntensityName);
     segstat->ColHeaders[c - 1] = strcpyalloc(tmpstr);

@@ -1308,7 +1308,7 @@ int main(int argc, char **argv)
       n++;
 
       fprintf(fp,"# TableCol %2d ColHeader %sStdDev\n",n,InIntensityName);
-      fprintf(fp,"# TableCol %2d FieldName Itensity %sStdDev\n",
+      fprintf(fp,"# TableCol %2d FieldName Intensity %sStdDev\n",
               n,InIntensityName);
       fprintf(fp,"# TableCol %2d Units     %s\n",n,InIntensityUnits);
       n++;
