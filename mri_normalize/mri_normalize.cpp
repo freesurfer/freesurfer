@@ -432,9 +432,12 @@ main(int argc, char *argv[])
         ErrorExit(ERROR_NOFILE,
                   "%s: could not load aseg from %s", Progname, aseg_fname) ;
       }
+      printf("aseg read with width %d (src width %d)\n", mri_aseg->width, mri_src->width);
+
       if (!MRImatch(mri_aseg, mri_ctrl))
       {
 	MRI *mri_tmp ;
+	printf("resampling aseg...\n") ;
 	mri_tmp = MRIresample(mri_aseg, mri_ctrl, SAMPLE_NEAREST) ;
 	MRIfree(&mri_aseg) ;
 	mri_aseg = mri_tmp ;
@@ -660,6 +663,15 @@ main(int argc, char *argv[])
     {
       ErrorExit(ERROR_UNSUPPORTED, "%s: aseg volume %s must be conformed",
                 Progname, aseg_fname) ;
+    }
+    printf("aseg read with width %d (src width %d)\n", mri_aseg->width, mri_src->width);
+    if (!MRImatch(mri_aseg, mri_src))
+    {
+      MRI *mri_tmp ;
+      printf("************** resampling aseg to account for mismatch with source image ***************\n") ;
+      mri_tmp = MRIresample(mri_aseg, mri_src, SAMPLE_NEAREST) ;
+      MRIfree(&mri_aseg) ;
+      mri_aseg = mri_tmp ;
     }
   }
   else
