@@ -7,6 +7,8 @@ set outseg = ();
 set mergeseg = ();
 set srcseg = ();
 set segid = ()
+set segidonly = 0
+set segiderode = 0;
 set ctab = ()
 
 set tmpdir = ();
@@ -69,7 +71,14 @@ uname -a  | tee -a $LF
 
 #========================================================
 set notmergeseg = $tmpdir/not.mergeseg.mgh
-set cmd = (mri_binarize --min 0.5 --i $mergeseg --inv --o $notmergeseg)
+set cmd = (mri_binarize --i $mergeseg --inv --o $notmergeseg)
+if($segidonly) then
+  set cmd = ($cmd --match $segid)
+  if($segiderode > 0) set cmd = ($cmd --erode $segiderode)
+else
+  set cmd = ($cmd --min 0.5)
+endif
+
 echo $cmd | tee -a $LF
 $cmd | tee -a $LF
 if($status) goto error_exit;
@@ -83,7 +92,13 @@ if($cleanup) rm $notmergeseg
 
 if($#segid) then
   set mergeseg2 = $tmpdir/mergeseg.mgh
-  set cmd = (mri_binarize --i $mergeseg --min 0.5 --o $mergeseg2 --binval $segid)
+  set cmd = (mri_binarize --i $mergeseg --o $mergeseg2 --binval $segid)
+  if($segidonly) then
+    set cmd = ($cmd --match $segid)
+    if($segiderode > 0) set cmd = ($cmd --erode $segiderode)
+  else
+    set cmd = ($cmd --min 0.5)
+  endif
   echo $cmd | tee -a $LF
   $cmd | tee -a $LF
   if($status) goto error_exit;
@@ -170,6 +185,18 @@ while( $#argv != 0 )
       set segid = $argv[1]; shift;
       breaksw
 
+    case "--segid-only":
+      if($#argv < 1) goto arg1err;
+      set segidonly = 1
+      set segid = $argv[1]; shift;
+      breaksw
+
+    case "--segid-erode":
+      # Only applies to --segid-only
+      if($#argv < 1) goto arg1err;
+      set segiderode = $argv[1]; shift;
+      breaksw
+
     case "--ctab":
       if($#argv < 1) goto arg1err;
       set ctab = $argv[1]; shift;
@@ -254,6 +281,8 @@ usage_exit:
   echo " --merge merge seg volume "
   echo " --o outseg"
   echo " --segid segindex (optional)"
+  echo " --segid-only segindex : only take segindex from merge"
+  echo " --segid-erode Nerode : erode seg-only segindex before merge"
   echo " --ctab ctab : color table to embed in the output"
   echo ""
 
