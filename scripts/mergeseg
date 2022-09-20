@@ -102,7 +102,7 @@ if($#segid) then
   echo $cmd | tee -a $LF
   $cmd | tee -a $LF
   if($status) goto error_exit;
-  if($cleanup) rm $mergeseg
+  if($cleanup) rm $mergeseg2
 else
   set mergeseg2 = $mergeseg
 endif
