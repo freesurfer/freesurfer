@@ -2,6 +2,7 @@
 #define kvlGMMLikelihoodImageFilter_h
 
 #include "itkImageToImageFilter.h"
+#include "kvlLikelihoodImageFilterBase.h"
 #include "itkArray.h"
 #include <vector>
 
@@ -23,9 +24,7 @@ namespace kvl
 
 template< typename TInputImage > 
 class GMMLikelihoodImageFilter:
-  public itk::ImageToImageFilter< TInputImage,  
-                                  itk::Image< itk::Array< typename TInputImage::PixelType >,       
-                                              TInputImage::ImageDimension > >
+  public LikelihoodImageFilterBase< TInputImage >
 {
 public:
 
@@ -34,7 +33,7 @@ public:
   typedef itk::SmartPointer< const Self >  ConstPointer;
   itkNewMacro(Self);
 
-  itkTypeMacro(GMMLikelihoodImageFilter, itk::ImageToImageFilter);
+  itkTypeMacro(GMMLikelihoodImageFilter, LikelihoodImageFilterBase);
 
   itkStaticConstMacro(Dimension, unsigned int, TInputImage::ImageDimension);
 
@@ -44,7 +43,7 @@ public:
   typedef typename OutputImageType::PixelType  OutputPixelType;
   typedef typename itk::NumericTraits< OutputPixelType >::ValueType  OutputPixelValueType;
   typedef typename InputImageType::RegionType  RegionType;
-  typedef itk::ImageToImageFilter< InputImageType, OutputImageType >  Superclass;
+  typedef LikelihoodImageFilterBase< InputImageType >  Superclass;
 
   /** */
   void SetParameters( const std::vector< vnl_vector< double > >& means, 
@@ -56,6 +55,7 @@ protected:
   GMMLikelihoodImageFilter();
 
   virtual void BeforeThreadedGenerateData();
+  virtual void BeforeThreadedGenerateData(const RegionType region);
 
   virtual void ThreadedGenerateData(const RegionType & outputRegionForThread, itk::ThreadIdType);
 
