@@ -196,6 +196,7 @@ int CheckPixVals=1;
 int CheckGeo=1;
 int CheckOrientation=1;
 int CheckPrecision=1;
+int CheckType=1;
 int SegDiff = -2;
 char *SegDiffFile=NULL;
 MATRIX *vox2ras1,*vox2ras2;
@@ -252,7 +253,7 @@ int main(int argc, char *argv[]) {
 
   int fileType1 = mri_identify(InVol1File);
   int fileType2 = mri_identify(InVol2File);
-  if (fileType1 != fileType2)
+  if (CheckType && fileType1 != fileType2)
   {
     printf("Input files %s and %s are different types\n", InVol1File, InVol2File); 
     exit(1);
@@ -675,6 +676,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--notallow-acq"))  CheckAcqParams = 0;
     else if (!strcasecmp(option, "--notallow-geo"))  CheckGeo = 0;
     else if (!strcasecmp(option, "--notallow-prec")) CheckPrecision = 0;
+    else if (!strcasecmp(option, "--notallow-type")) CheckType = 0;
     else if (!strcasecmp(option, "--notallow-pix"))  CheckPixVals = 0;
     else if (!strcasecmp(option, "--notallow-ori"))  CheckOrientation = 0;
     else if (!strcasecmp(option, "--no-absdiff"))  AbsDiff = 0;
@@ -835,6 +837,7 @@ static void print_usage(void) {
   printf("   --notallow-prec : do not check for precision diffs\n");
   printf("   --notallow-pix  : do not check for pixel diffs\n");
   printf("   --notallow-ori  : do not check for orientation diffs\n");
+  printf("   --notallow-type  : do not check for file type diffs\n");
   printf("   --no-exit-on-diff : do not exit on diff "
          "(runs thru everything)\n");
   printf("\n");

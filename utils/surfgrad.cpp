@@ -1470,7 +1470,7 @@ long double MRISedgeLengthCostEdge(MRIS *surf, int edgeno, double L0, DMATRIX **
   stored in v->t{xyz}. If weight>=0, then the total cost and gradients
   are multiplied by weight and the gradients are stored in
   v->d{xyz}. The total cost and gradients are normalized by the number
-  of edges.
+  of edges. Skips edges where both vertices are ripped.
 */
 double MRISedgeLengthCost(MRIS *surf, double L0, double weight, int DoGrad)
 {
@@ -1496,11 +1496,11 @@ double MRISedgeLengthCost(MRIS *surf, double L0, double weight, int DoGrad)
   nhits = 0;
   for(eno = 0; eno < surf->nedges; eno++){
     e = &(surf->edges[eno]);
-    // Skip this edge if either vertex is ripped
-    v = &(surf->vertices[e->vtxno[0]]);
-    if (v->ripflag)  continue;
-    v = &(surf->vertices[e->vtxno[1]]);
-    if (v->ripflag)  continue;
+    // Skip this edge if both vertices are ripped
+    // Allowing one to be ripped makes a "soap bubble" possible
+    VERTEX *v0 = &(surf->vertices[e->vtxno[0]]);
+    VERTEX *v1 = &(surf->vertices[e->vtxno[1]]);
+    if(v0->ripflag && v1->ripflag)  continue;
 
     nhits++;
     ecost = MRISedgeLengthCostEdge(surf, eno, L0, &gradv0, &gradv1);

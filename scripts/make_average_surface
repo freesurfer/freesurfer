@@ -32,6 +32,7 @@ set UseSymLink = 1;
 set sdout = ();
 set inputargs = ($argv);
 set surflist = (white pial orig)
+set ForceUpdate = 0
 
 if ( $?SUBJECTS) then
   set SUBJECTS=($SUBJECTS)
@@ -50,6 +51,7 @@ set DoTemplateOnly = 0;
 set hemilist = ();
 set measlist = ()
 set UseAnnot = 1;
+set UseAnnotTemplate = 0;
 set annotlist = ()
 set DoCortexLabel = 1;
 set NoSurf2Surf = "";
@@ -173,7 +175,7 @@ foreach hemi ($hemilist)
   echo "#@# Making $hemi registration template ---------"  | tee -a $LF
   set atlas = $hemi.reg.template.tif
   set cmd = (mris_make_template -norot)
-  if($UseAnnot) set cmd = ($cmd -annot aparc)
+  if($UseAnnotTemplate) set cmd = ($cmd -annot aparc)
   set cmd = ($cmd $hemi $sphere_reg $SUBJECTS $atlas)
   pwd | tee -a $LF
   echo $cmd | tee -a $LF
@@ -221,7 +223,18 @@ foreach hemi ($hemilist)
   else
     set icoreg = ${FREESURFER_HOME}/average/surf/${hemi}.sphere.ico$ico_no.reg 
   endif
-  cp $icoreg surf/$hemi.sphere
+  set mni305 = $FREESURFER/average/mni305.cor.mgz
+  set ud = (`UpdateNeeded surf/$hemi.sphere $mni305 $icoreg`)
+  if($ud || $ForceUpdate) then
+    set cmd = (mris_convert --vol-geom $mni305 $icoreg surf/$hemi.sphere)
+    echo $cmd  | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) then
+      echo "mris_convert failed"  | tee -a $LF
+      exit 1;
+    endif
+  endif
+
   # Create a link to sphere.reg (want to do this? or reg to fsaverage?)
   if($UseSymLink) then
     cd surf
@@ -320,7 +333,7 @@ foreach hemi ($hemilist)
     set cmd = (mris_preproc --out $measout  --f $subjlistfile \
       --target $average_subject --hemi $hemi --meas $meas \
       --srcsurfreg $sphere_reg --log $ddir/scripts/mris_preproc.$hemi.$meas.log)
-    if($DoCortexLabel == 0) set cmd = ($cmd --no-cortex-only)
+    if($DoCortexLabel == 0 || $meas == sulc || $meas == curv) set cmd = ($cmd --no-cortex-only)
     if($DoXHemi) set cmd = ($cmd --xhemi)
     echo $cmd | tee -a $LF
     $cmd |& tee -a $LF
@@ -543,6 +556,25 @@ while( $#argv != 0 )
         # got em all, from --subjects variable arg loop
       endif
       set UseAnnot = 0;
+      set UseAnnotTemplate = 0
+      breaksw
+
+    case "--annot-template"
+      if ( $getting_subjects ) then
+        # got em all, from --subjects variable arg loop
+        set getting_subjects = 0;
+        shift;
+      endif
+      set UseAnnotTemplate = 1
+      breaksw
+
+    case "--no-annot-template"
+      if ( $getting_subjects ) then
+        # got em all, from --subjects variable arg loop
+        set getting_subjects = 0;
+        shift;
+      endif
+      set UseAnnotTemplate = 0
       breaksw
 
     case "--no-cortex-label":
@@ -747,7 +779,8 @@ usage_exit:
   echo "   --rh : only do right hemi (default is to do both)"
   echo "                                 default: sphere.reg"
   echo "   --force   : overwrite existing average subject data"
-  echo "   --no-annot : do not use annotation when making template tif"
+  echo "   --no-annot : do not use annotation at all"
+  echo "   --annot-template : use annotation when making tif"
   echo "   --template-only : useful when creating iterative atlases"
   echo "   --no-template-only : turns off --template-only"
   echo "   --no-cortex-label : do not create ?h.cortex.label"

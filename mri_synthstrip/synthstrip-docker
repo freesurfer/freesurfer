@@ -11,7 +11,7 @@ from __future__ import print_function
 # default FreeSurfer `mri_synthstrip` command (use the --help flag for more info).
 # Upon first use, the relevant docker image will be automatically pulled from
 # DockerHub. To use a different SynthStrip version, update the variable below.
-version = '1.1'
+version = '1.2'
 
 # ----------------------------------------------------------------------------
 

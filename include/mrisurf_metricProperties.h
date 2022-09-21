@@ -93,7 +93,7 @@ void mrisurf_deferSetFaceNorms  (MRIS* mris);
 void mrisurf_recomputeFaceNorms (MRIS* mris);
 void mrisurf_undeferSetFaceNorms(MRIS* mris);
 
-int mrisMarkIntersections(MRIS *mris);
+int mrisMarkIntersections(MRIS *mris, int FillHoles);
 
 #define OUTSIDE_VERTEX 0
 #define INSIDE_VERTEX 1               /* not yet used */

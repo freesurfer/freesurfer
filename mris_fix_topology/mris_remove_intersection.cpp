@@ -34,6 +34,8 @@
 #include "utils.h"
 #include "timer.h"
 #include "version.h"
+#include "surfcluster.h"
+#include "mrisurf_metricProperties.h"
 
 
 int main(int argc, char *argv[]) ;
@@ -45,6 +47,7 @@ static void print_help(void) ;
 static void print_version(void) ;
 
 const char *Progname ;
+int FillHoles = 0;
 
 int main(int argc, char *argv[])
 {
@@ -94,8 +97,13 @@ int main(int argc, char *argv[])
 
   MRISaddCommandLine(mris, cmdline) ;
 
+  mrisMarkIntersections(mris,FillHoles);
+  int n, nintersections=0;
+  for(n=0; n < mris->nvertices; n++) if(mris->vertices[n].marked) nintersections++;
+  printf("Found %d intersections\n",nintersections);
+
   // MRISsetNeighborhoodSizeAndDist(mris, 2) ;
-  MRISremoveIntersections(mris) ;
+  MRISremoveIntersections(mris,FillHoles) ;
 
   printf("writing corrected surface to %s\n", out_fname) ;
   MRISwrite(mris, out_fname) ;
@@ -120,13 +128,33 @@ get_option(int argc, char *argv[])
   char *option ;
 
   option = argv[1] + 1 ;            /* past '-' */
-  if (!stricmp(option, "-help")||!stricmp(option, "-usage"))
+  if (!stricmp(option, "-help")||!stricmp(option, "-usage")) print_help() ;
+  else if (!stricmp(option, "-version")) print_version() ;
+  else if (!stricmp(option, "fill-holes"))  FillHoles = 1;
+  else if (!stricmp(option, "no-fill-holes"))  FillHoles = 0;
+  else if (!stricmp(option, "map"))
   {
-    print_help() ;
-  }
-  else if (!stricmp(option, "-version"))
-  {
-    print_version() ;
+    MRIS *surf = MRISread(argv[2]);
+    if(surf==NULL) exit(1);
+    mrisMarkIntersections(surf,FillHoles);
+    int n, nintersections=0;
+    for(n=0; n < surf->nvertices; n++){
+      if(surf->vertices[n].marked) nintersections++;
+    }
+    printf("Found %d intersections\n",nintersections);
+    #if 0
+    printf("Filling any holes\n");
+    SURFCLUSTERSUM *SurfClustList;
+    int nClusters;
+    SurfClustList = sclustMapSurfClusters(surf,0.5,-1,1,0,&nClusters,NULL,NULL);
+    printf("Found %d clusters\n",nClusters);
+    for(n=0; n < surf->nvertices; n++){
+      if(surf->vertices[n].undefval > 1) surf->vertices[n].marked = 1;
+    }
+    #endif
+    MRI *mri = MRIcopyMRIS(NULL,surf,0,"marked");
+    int err = MRIwrite(mri,argv[3]);
+    exit(err);
   }
   else switch (toupper(*option))
     {
@@ -160,8 +188,7 @@ usage_exit(void)
 static void
 print_usage(void)
 {
-  outputHelpXml(mris_remove_intersection_help_xml,
-                mris_remove_intersection_help_xml_len);
+  outputHelpXml(mris_remove_intersection_help_xml,mris_remove_intersection_help_xml_len);
 }
 
 static void

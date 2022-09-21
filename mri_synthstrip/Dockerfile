@@ -23,7 +23,7 @@ RUN cp /external/mri_synthstrip /freesurfer/
 # configure model
 ENV FREESURFER_HOME /freesurfer
 RUN mkdir -p /freesurfer/models
-RUN cp /external/synthstrip.1.pt /freesurfer/models/
+RUN cp /external/synthstrip.*.pt /freesurfer/models/
 
 # clean up
 RUN rm -rf /external /root/.cache/pip

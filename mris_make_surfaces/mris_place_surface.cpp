@@ -373,7 +373,7 @@ int main(int argc, char **argv)
 
   MRIScomputeMetricProperties(surf);
   MRISstoreMetricProperties(surf) ;
-  MRISremoveIntersections(surf); // done in mris_make_surfaces
+  MRISremoveIntersections(surf,0); // done in mris_make_surfaces
   MRISsetVals(surf,-1) ;  /* clear white matter intensities */
   MRISsetVal2(surf, 0) ;   // will be marked for vertices near lesions
   MRISclearMark2s(surf) ;  
@@ -769,7 +769,7 @@ int main(int argc, char **argv)
   }
 
   // This can move things around, even for ripped vertices
-  MRISremoveIntersections(surf); //matches mris_make_surface
+  MRISremoveIntersections(surf,0); //matches mris_make_surface
 
   printf("\n\n");
   printf("Writing output to %s\n",outsurfpath);

@@ -81,7 +81,7 @@ int main(int argc, char **argv)
 
   // remove the sea of intersections
   std::cout << "Removing intersections" << std::endl;
-  MRISremoveIntersections(remeshed);
+  MRISremoveIntersections(remeshed,0);
 
   // print stats
   double diff = (double)remeshed->nvertices / (double)surf->nvertices;

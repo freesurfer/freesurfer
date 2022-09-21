@@ -104,7 +104,7 @@ Supply the orientation information in the form of an orientation string  (ostrin
       <argument>--out_stats_table</argument>
       <explanation>output data is a stats table (use --like to pass template table for measure, columns and rows header)</explanation>
       <argument>-rt, --resample_type &lt;interpolate|weighted|nearest|cubic&gt;</argument>
-      <explanation>default is interpolate</explanation>
+      <explanation>default is interpolate (trilinear interpolation)</explanation>
       <argument>-nth</argument>
       <explanation>specify frame number</explanation>
       <argument>--no_scale flag &lt;-ns&gt;</argument>

@@ -58,6 +58,7 @@ set IgnoreUnkown = 0;
 set DoCharm = 0
 set WMCortexPriorsSigma = 0
 set stiffness = ()
+set Profile = ()
 
 set inputargs = ($argv);
 set PrintHelp = 0;
@@ -177,7 +178,12 @@ if($DoImport) then
 endif
 
 #========================================================
-set cmd0 = (run_samseg -o $outdir --threads $threads)
+if($#Profile == 0) then
+  set cmd0 = (run_samseg)
+else
+  set cmd0 = ($FREESURFER_HOME/python/scripts/run_samseg)
+endif
+set cmd0 = ($cmd0  -o $outdir --threads $threads)
 if($SaveMesh) set cmd0 = ($cmd0 --save-mesh)
 if($#regmat)  set cmd0 = ($cmd0 --reg $regmat)
 if($#initlta) set cmd0 = ($cmd0 --init-reg $initlta)
@@ -203,13 +209,16 @@ if($#stiffness) set cmd0 = ($cmd0 --mesh-stiffness $stiffness)
 foreach input ($inputlist)
   set cmd0 = ($cmd0 -i $input)
 end
-if($DoValGrind == 0) then
-  set cmd = (fs_time $cmd0)
-else
+set cmd = ($cmd0);
+if($DoValGrind) then
   set cmd = ($vg $cmd0)
 endif
 echo $cmd | tee -a $LF
-$cmd |& tee -a $LF
+if($#Profile == 0) then
+  fs_time $cmd |& tee -a $LF
+else
+  $FREESURFER_HOME/bin/fspython -m cProfile -o $Profile $cmd |& tee -a $LF
+endif
 if($status) goto error_exit;
 echo "run_samseg complete" | tee -a $LF
 
@@ -624,6 +633,14 @@ while( $#argv != 0 )
       set SaveWarp = 0;
       breaksw
 
+    case "--profile":
+      if($#argv < 1) goto arg1err;
+      set Profile = $argv[1]; shift
+      breaksw
+    case "--no-profile":
+      set Profile = ()
+      breaksw
+
     case "--log":
       if($#argv < 1) goto arg1err;
       set LF = $argv[1]; shift;
@@ -872,6 +889,7 @@ usage_exit:
   echo " --dice seg.mgz"
   echo " --ignore-unknown"
   echo " --smooth-wm-cortex sigma : smooth wm and cortex priors"
+  echo " --profile file.prof : run run_samseg inside the cProfile python profiler"
   echo ""
 
   if(! $PrintHelp) exit 1;
