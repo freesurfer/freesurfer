@@ -20,7 +20,7 @@
  *
  */
 
-
+/* To find the VERTEX and FACE classes, see mrisurf_FACE_VERTEX_MRIS_generated.h*/
 
 #include "mrisurf_aaa.h"
 
