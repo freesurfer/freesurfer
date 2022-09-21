@@ -36,7 +36,7 @@ AtlasMeshToIntensityImageCostAndGradientCalculatorBase
 ::SetImages( const std::vector< ImageType::ConstPointer >& images )
 {
   //
-  for ( unsigned int contrastNumber = 0; contrastNumber < images.size(); contrastNumber++ )
+  for ( int contrastNumber = 0; contrastNumber < images.size(); contrastNumber++ )
     {
     m_LikelihoodFilter->SetInput( contrastNumber, images[ contrastNumber ] );
     }
@@ -78,15 +78,15 @@ AtlasMeshToIntensityImageCostAndGradientCalculatorBase
                                     const AtlasAlphasType&  alphasInVertex1,
                                     const AtlasAlphasType&  alphasInVertex2,
                                     const AtlasAlphasType&  alphasInVertex3,
-                                    double&  priorPlusDataCost,
-                                    AtlasPositionGradientType&  gradientInVertex0,
-                                    AtlasPositionGradientType&  gradientInVertex1,
-                                    AtlasPositionGradientType&  gradientInVertex2,
-                                    AtlasPositionGradientType&  gradientInVertex3 )
+                                    ThreadAccumDataType&  priorPlusDataCost,
+                                    AtlasPositionGradientThreadAccumType&  gradientInVertex0,
+                                    AtlasPositionGradientThreadAccumType&  gradientInVertex1,
+                                    AtlasPositionGradientThreadAccumType&  gradientInVertex2,
+                                    AtlasPositionGradientThreadAccumType&  gradientInVertex3 )
 {
 
   // Loop over all voxels within the tetrahedron and do The Right Thing
-  const unsigned long  numberOfClasses = alphasInVertex0.Size();
+  const int numberOfClasses = alphasInVertex0.Size();
   TetrahedronInteriorConstIterator< LikelihoodFilterType::OutputPixelType >  it( m_LikelihoodFilter->GetOutput(), p0, p1, p2, p3 );
   for ( unsigned int classNumber = 0; classNumber < numberOfClasses; classNumber++ )
     {
@@ -106,15 +106,11 @@ AtlasMeshToIntensityImageCostAndGradientCalculatorBase
       }
 
     //
-    //double likelihood = 0.0;
     double likelihoodAgregate = 0.0;
     double  maxExponent = -1000.0;
     double  xGradientBasis = 0.0;
     double  yGradientBasis = 0.0;
     double  zGradientBasis = 0.0;
-    //double  xGradientBasisAgregate = 0.0;
-    //double  yGradientBasisAgregate = 0.0;
-    //double  zGradientBasisAgregate = 0.0;
     for ( unsigned int classNumber = 0; classNumber < numberOfClasses; classNumber++ )
       {
       // Get the Gaussian mixture model likelihood of this class at the intensity of this pixel

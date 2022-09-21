@@ -7,6 +7,21 @@
 
 namespace kvl
 {
+/** 
+ * 
+ * Input is one or more intensity images. Based on bunch of means and covariances, computes
+ * likelihoods for each class as output.
+ * 
+ * Design is taken from itkComposeImageFilter. I'm forcing the output to be of the form 
+ * itk::Image< itk::Array<xxx>, yyy> instead of the more general outputs that itkComposeImageFilter
+ * can handle (such as itkVectorImage), because I known in advance most of pixels will be background
+ * which I can then encode by assigning an itkArray of size 0 there (saving both memory and the need
+ * for some other signal that no information was present to compute the class likelihoods in specific
+ * voxels)
+ * 
+ * See https://itk.org/Doxygen/html/classitk_1_1ImageToImageFilter.html for itk::ImageToImageFilter 
+ * implementation, and explanation on BeforeThreadedGenerateData() and ThreadedGenerateData().
+ */
 
 template< typename TInputImage >
 class LikelihoodImageFilterBase:
