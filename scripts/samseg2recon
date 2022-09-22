@@ -27,6 +27,7 @@ set LongUseMC = 1;
 set cleanup = 1
 set ForceUpdate = 0; 
 set mask = ()
+set FromRCA = 0
 
 set inputargs = ($argv);
 set PrintHelp = 0;
@@ -88,26 +89,29 @@ endif
 
 set mdir = $SUBJECTS_DIR/$subject/mri
 
-# Copy the first input. As it is set up now, the input to samseg
-# as been the orig.mgz (ie, it has been conformed). Eventually will
-# probably want to have arbitrary inputs and will have to conform it.
-set cmd = (mri_convert $input $mdir/orig.mgz)
-echo $cmd | tee -a $LF
-set ud = `UpdateNeeded $mdir/orig.mgz $input`
-if($ud || $ForceUpdate) then
-  $cmd | tee -a $LF
-  if($status) exit 1;
-else
-  echo "$mdir/orig.mgz does not need updating"  | tee -a $LF
-endif
+if($FromRCA == 0) then
+  # Copy the first input. As it is set up now, the input to samseg
+  # as been the orig.mgz (ie, it has been conformed). Eventually will
+  # probably want to have arbitrary inputs and will have to conform it.
+  set cmd = (mri_convert $input $mdir/orig.mgz)
+  echo $cmd | tee -a $LF
+  set ud = `UpdateNeeded $mdir/orig.mgz $input`
+  if($ud || $ForceUpdate) then
+    $cmd | tee -a $LF
+    if($status) exit 1;
+  else
+    echo "$mdir/orig.mgz does not need updating"  | tee -a $LF
+  endif
 
-# create a link from the orig.mgz to rawavg.mgz, needed for pctsurfcon
-pushd $mdir
-set cmd = (ln -sf orig.mgz rawavg.mgz)
-echo $cmd | tee -a $LF
-$cmd | tee -a $LF
-if($status) goto error_exit;
-popd
+  # create a link from the orig.mgz to rawavg.mgz, needed for pctsurfcon
+  # recon-all may put rawavg.mgz already
+  pushd $mdir
+  set cmd = (ln -sf orig.mgz rawavg.mgz)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit;
+  popd
+endif
 
 #set segvol = `find "$samsegdir" -iname "*crispSegmentation.nii" -print`
 set segvol = $samsegdir/seg.mgz
@@ -517,6 +521,13 @@ while( $#argv != 0 )
       set DoFill = 0;
       breaksw
 
+    case "--from-recon-all":
+      set FromRCA = 1;
+      breaksw
+    case "--no-from-recon-all":
+      set FromRCA = 0;
+      breaksw
+
     case "--normalization2":
       set DoNormalization2 = 1;
       breaksw
@@ -683,6 +694,8 @@ usage_exit:
   echo "  --long tpNumber : process TP, will find folder called tpXXX in samsegdir"
   echo "  --base : process base, will find folder called base in samsegdir"
   echo "  --m mask : use mask as brainmask instead of computing from seg"
+  echo "  --from-recon-all : samseg2recon is being executed from recon-all"
+  echo "    this stops it from overwriting the rawavg.mgz and orig.mgz files created by recon-all"
   echo "  --force-update"
   echo ""
 
