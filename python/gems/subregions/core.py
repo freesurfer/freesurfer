@@ -237,7 +237,7 @@ class MeshModel:
         # No need for a high-resolution alignment here
         mask = mask > 0
         if np.mean(mask.geom.voxsize) < 0.99:
-            mask = mask.resize(1, interp='nearest')
+            mask = mask.resize(1, method='nearest')
 
         # Crop mask to the label bounding box
         mask = mask.crop_to_bbox(margin=6)
