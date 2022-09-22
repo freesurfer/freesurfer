@@ -22,6 +22,8 @@
 //
 #include "mrisurf_metricProperties.h"
 #include "voxlist.h"
+#include "json.h"
+using json = nlohmann::json;
 
 // misc
 //
@@ -73,6 +75,7 @@ int mrisComputeIntensityTerm_mef                (MRI_SURFACE *mris,
                                                                     float weight30,
                                                                     float weight5,
                                                                     INTEGRATION_PARMS *parms);
+double MRISpointSetLocationError(MRIS *surf, double weight, json *pPointSet, int ComputeGradient);
 
 // energy measurements
 //      the selector parameter lets the caller compute the term on the specified vertex or face rather than summing all of them
@@ -107,6 +110,7 @@ int mrisComputeIntensityTerm_mef                (MRI_SURFACE *mris,
     ELT(DuraError                     , (MRIS_PARAMETER_COMMA                            INTEGRATION_PARMS *parms                           COMMA_SELECTOR), (parms)) SEP \
     ELT(IntensityError                , (MRIS_PARAMETER_COMMA                            INTEGRATION_PARMS *parms                           COMMA_SELECTOR), (parms)) SEP \
     ELT(TargetLocationError           , (MRIS_PARAMETER_COMMA                            INTEGRATION_PARMS *parms                           COMMA_SELECTOR), (parms)) SEP \
+    ELT(TargetPointSetError           , (MRIS_PARAMETER_COMMA                            INTEGRATION_PARMS *parms                           COMMA_SELECTOR), (parms)) SEP \
     ELT(IntensityGradientError        , (MRIS_PARAMETER_COMMA                            INTEGRATION_PARMS *parms                           COMMA_SELECTOR), (parms)) SEP \
     ELT(VectorCorrelationError        , (MRIS_PARAMETER_COMMA                            INTEGRATION_PARMS *parms, int use_stds             COMMA_SELECTOR), (parms,use_stds)) SEP \
     ELT(ExpandwrapError               , (MRIS_PARAMETER_COMMA                     MRI *mri_brain, double l_expandwrap, double target_radius COMMA_SELECTOR), (mri_brain,l_expandwrap,target_radius)) SEP \
