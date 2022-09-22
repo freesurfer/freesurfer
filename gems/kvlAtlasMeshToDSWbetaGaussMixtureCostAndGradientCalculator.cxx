@@ -138,11 +138,11 @@ AtlasMeshToDSWbetaGaussMixtureCostAndGradientCalculator
                                     const AtlasAlphasType&  alphasInVertex1,
                                     const AtlasAlphasType&  alphasInVertex2,
                                     const AtlasAlphasType&  alphasInVertex3,
-                                    double&  priorPlusDataCost,
-                                    AtlasPositionGradientType&  gradientInVertex0,
-                                    AtlasPositionGradientType&  gradientInVertex1,
-                                    AtlasPositionGradientType&  gradientInVertex2,
-                                    AtlasPositionGradientType&  gradientInVertex3 )
+                                    ThreadAccumDataType&  priorPlusDataCost,
+                                    AtlasPositionGradientThreadAccumType&  gradientInVertex0,
+                                    AtlasPositionGradientThreadAccumType&  gradientInVertex1,
+                                    AtlasPositionGradientThreadAccumType&  gradientInVertex2,
+                                    AtlasPositionGradientThreadAccumType&  gradientInVertex3 )
 {
 
   // Loop over all voxels within the tetrahedron and do The Right Thing
