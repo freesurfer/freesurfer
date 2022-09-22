@@ -46,7 +46,7 @@ private:
   void operator=(const Self&); //purposely not implemented
   
   //
-  typedef GMMLikelihoodImageFilter< ImageType >  LikelihoodFilterType;
+  typedef GMMLikelihoodImageFilter< ImageType >  GMMLikelihoodFilterType;
   
 };
 

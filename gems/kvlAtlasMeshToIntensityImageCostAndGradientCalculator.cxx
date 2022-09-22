@@ -15,9 +15,13 @@ namespace kvl
 AtlasMeshToIntensityImageCostAndGradientCalculator
 ::AtlasMeshToIntensityImageCostAndGradientCalculator()
 {
+  /* 
+   * 1. m_LikelihoodFilter is declared as LikelihoodImageFilterBase
+   * 2. m_LikelihoodFilter is holding a GMMLikelihoodImageFilter object
+   */ 
 
-  m_LikelihoodFilter = LikelihoodFilterType::New();
-  
+  m_LikelihoodFilter = GMMLikelihoodFilterType::New();
+
 }
 
 
@@ -40,7 +44,12 @@ AtlasMeshToIntensityImageCostAndGradientCalculator
                  const std::vector< double >&  mixtureWeights,
                  const std::vector< int >&  numberOfGaussiansPerClass )
 {
-    dynamic_cast<LikelihoodFilterType*>(m_LikelihoodFilter.GetPointer())
+   /* 
+    * 1. m_LikelihoodFilter is declared as LikelihoodImageFilterBase
+    * 2. m_LikelihoodFilter is holding a GMMLikelihoodImageFilter object
+    * 3. dynamic_case m_LikelihoodFilter to GMMLikelihoodImageFilter, so it can call derived class method SetParameters()
+    */ 
+    dynamic_cast<GMMLikelihoodFilterType*>(m_LikelihoodFilter.GetPointer())
             ->SetParameters( means,
                              variances,
                              mixtureWeights,
