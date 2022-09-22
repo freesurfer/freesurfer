@@ -40,8 +40,7 @@ AtlasMeshToDSWbetaGaussMixtureCostAndGradientCalculator
     //
     for ( unsigned int contrastNumber = 0; contrastNumber < images.size(); contrastNumber++ )
     {
-        dynamic_cast<gmmLikelihoodFilterType*>(m_LikelihoodFilter.GetPointer())
-                ->SetInput( contrastNumber, images[ contrastNumber ]);
+        m_LikelihoodFilter->SetInput( contrastNumber, images[ contrastNumber ]);
     }
 
     m_DSWbetaMMLikelihoodFilter -> SetGaussianImages(images);
@@ -57,6 +56,7 @@ AtlasMeshToDSWbetaGaussMixtureCostAndGradientCalculator
     //
     for ( unsigned int contrastNumber = 0; contrastNumber < images.size(); contrastNumber++ )
     {
+        // call SetInput() method from itk::ImageToImageFilter
         m_DSWbetaMMLikelihoodFilter->SetInput( contrastNumber, images[ contrastNumber ]);
     }
 

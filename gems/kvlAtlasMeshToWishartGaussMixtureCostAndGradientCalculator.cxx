@@ -40,8 +40,8 @@ AtlasMeshToWishartGaussMixtureCostAndGradientCalculator
     //
     for ( unsigned int contrastNumber = 0; contrastNumber < images.size(); contrastNumber++ )
     {
-        dynamic_cast<gmmLikelihoodFilterType*>(m_LikelihoodFilter.GetPointer())
-                ->SetInput( contrastNumber, images[ contrastNumber ]);
+        // call SetInput() method from itk::ImageToImageFilter
+        m_LikelihoodFilter->SetInput( contrastNumber, images[ contrastNumber ]);
     }
 
     m_WMMLikelihoodFilter -> SetGaussianImages(images);
