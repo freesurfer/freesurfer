@@ -20,13 +20,15 @@
  *
  */
 
-
+/* To find the VERTEX and FACE classes, see mrisurf_FACE_VERTEX_MRIS_generated.h*/
 
 #include "mrisurf_aaa.h"
 
 #include "minc_volume_io.h"
 #include "label.h"
 #include "mrishash.h"
+#include "json.h"
+using json = nlohmann::json;
 
 #define CONTRAST_T1    0
 #define CONTRAST_T2    1
@@ -293,6 +295,7 @@ class INTEGRATION_PARMS {
   float   l_boundary ;        /* coefficient of boundary term */
   float   l_dist ;            /* coefficient of distance term */
   float   l_location ;        // target location term
+  float   l_targetpointset ;  // target pointset location term
   float   l_neg ;
   float   l_intensity ;       /* for settling surface at a specified val */
   float   l_sphere ;          /* for expanding the surface to a sphere */
@@ -444,6 +447,7 @@ class INTEGRATION_PARMS {
   double       target_intensity ;
   double       stressthresh ;
   int          explode_flag ;
+  json         *TargetPointSet;
   
   /*
     Introduce all initializers in an effort to avoid some memset() calls
@@ -460,7 +464,7 @@ class INTEGRATION_PARMS {
       l_link(0), l_spring(0), l_nlspring(0), l_max_spring(0),
       l_spring_norm(0), l_tspring(0), l_nltspring(0), l_nspring(0),
       l_spring_nzr(0), l_spring_nzr_len(0), l_hinge(0), l_repulse(0),
-      l_repulse_ratio(0), l_boundary(0), l_dist(0), l_location(0),
+      l_repulse_ratio(0), l_boundary(0), l_dist(0), l_location(0), l_targetpointset(0),
       l_neg(0), l_intensity(0), l_sphere(0), l_expand(0), l_grad(0),
       l_convex(0), l_tsmooth(0), l_surf_repulse(0), l_osurf_repulse(0),
       l_external(0), l_thick_parallel(0), l_thick_min(0), l_shrinkwrap(0),
