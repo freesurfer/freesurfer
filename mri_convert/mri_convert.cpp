@@ -3691,10 +3691,11 @@ int main(int argc, char *argv[])
  */
 void applyGaussianFilter(MRI *inVol, float *voxsize)
 {
+    printf("Applying Gaussian Filter ...\n");
+
     float std[3];
 
-    int n;
-    for (n = 0; n < 3; n++)
+    for (int n = 0; n < 3; n++)
     {
       // sigma = R * log(F) / pi
       float insize = inVol->xsize;
@@ -3706,7 +3707,7 @@ void applyGaussianFilter(MRI *inVol, float *voxsize)
       std[n] = 0;
       if (voxsize[n] > insize)
       {
-        float R = voxsize[n] / insize;
+        float R = voxsize[n];  // sigma will be in pixel
         float F = 5.0;
         float sigma = R*log(F)/M_PI;
 
