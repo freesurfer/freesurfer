@@ -177,6 +177,7 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   ui->setupUi(this);
   addAction(ui->actionReloadROI);
   addAction(ui->actionReloadPointSet);
+  addAction(ui->actionLockOthers);
 
   ui->treeWidgetCursorInfo->SetForCursor(true);
 

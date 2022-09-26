@@ -2,6 +2,7 @@
 #include "ui_PanelAllLayers.h"
 #include "Layer.h"
 #include "MainWindow.h"
+#include "ui_MainWindow.h"
 #include "LayerCollection.h"
 #include "LayerSurface.h"
 #include "LayerPropertySurface.h"
@@ -35,6 +36,7 @@ PanelAllLayers::PanelAllLayers(QWidget *parent) :
   ui->stackedWidget->hide();
   connect(ui->treeWidgetLayers, SIGNAL(ToReorderLayers(QList<Layer*>)), this, SIGNAL(ToReorderLayers(QList<Layer*>)));
   connect(wnd, SIGNAL(LinkVolumeRequested(LayerMRI*)), ui->treeWidgetLayers, SLOT(LinkVolume(LayerMRI*)));
+  connect(wnd->ui->actionLockOthers, SIGNAL(triggered()), ui->treeWidgetLayers, SLOT(OnLockOthers()));
 
   for (int i = 0; i < ui->stackedWidget->count(); i++)
   {
