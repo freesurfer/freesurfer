@@ -569,6 +569,7 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
     last_rms = rms = (*gMRISexternalRMS)(mris, parms);
   }
   
+
   showDtSSeRms(parms->fp, -1, 0.0, sse, rms, -1.0, __LINE__);
 
   // Loop over iterations ==========================================
@@ -603,6 +604,7 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
     mrisComputeHistoTerm(mris, parms);
     mrisComputePosteriorTerm(mris, parms);
     mrisComputePosterior2DTerm(mris, parms);
+    MRISpointSetLocationError(mris, parms->l_targetpointset, parms->TargetPointSet,1);
     if (parms->l_osurf_repulse > 0)
       mrisComputeWhichSurfaceRepulsionTerm(mris, -parms->l_osurf_repulse, mht_pial, PIAL_VERTICES, .1);
     if (gMRISexternalGradient) {

@@ -126,6 +126,11 @@ double round(double x);
 #include "romp_support.h"
 #include "mris_multimodal_refinement.h"
 #include "mrisurf_compute_dxyz.h"
+#include <string>
+#include <iostream>
+#include <fstream>
+#include "json.h"
+using json = nlohmann::json;
 
 extern int CBVfindFirstPeakD1;
 extern int CBVfindFirstPeakD2;
@@ -248,7 +253,7 @@ char *TargetSurfaceFile = NULL;
 int SmoothAfterRip = 0;
 int CBVzero=0;
 int CBVplaceConst(MRI *vol, MRIS *surf, double dmin, double dmax, double dstep, double targetval);
-
+json TargetPointSet;
 /*--------------------------------------------------*/
 int main(int argc, char **argv) 
 {
@@ -723,7 +728,6 @@ int main(int argc, char **argv)
 	 }		
     }
 
-
     // This appears to adjust the cost weights based on the iteration but in
     // practice, they never change because spring scale is 1
     parms.l_nspring *= spring_scale ; 
@@ -745,11 +749,11 @@ int main(int argc, char **argv)
     printf("l_repulse = %g, l_surf_repulse = %g, checktol = %d\n",parms.l_repulse,
 	   parms.l_surf_repulse,parms.check_tol);fflush(stdout);
 
-    printf("Positioning pial surface\n");fflush(stdout);
+    printf("Positioning surface\n");fflush(stdout);
     // Note: 3rd input (invol) was "mri_smooth" in mris_make_surfaces, but
     // this was always a copy of the input (mri_T1 or invol)
     MRISpositionSurface(surf, involPS, involPS, &parms);
-
+    printf("  done positioning surface\n");fflush(stdout);
     //sprintf(tmpstr,"lh.place.postpos%02d",i);
     //MRISwrite(surf, tmpstr);
 
@@ -769,6 +773,7 @@ int main(int argc, char **argv)
   }
 
   // This can move things around, even for ripped vertices
+  printf("Removing intersections\n");fflush(stdout);    
   MRISremoveIntersections(surf,0); //matches mris_make_surface
 
   printf("\n\n");
@@ -1152,6 +1157,19 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%f",&parms.l_location);
       printf("l_location = %2.3f\n", parms.l_location) ;
       nargsused = 1;
+    }
+    else if (!stricmp(option, "--ps")){
+      if(nargc < 2) CMDargNErr(option,2);
+      std::ifstream istream(pargv[0]);
+      istream >> TargetPointSet;
+      // have to do it with a pointer because of INTEGRATIONPARMS_copy()
+      parms.TargetPointSet = &(TargetPointSet);
+      int npoints = (int)TargetPointSet["points"].size();
+      if(npoints < 1) fs::fatal() << "could not read point set";
+      printf("point set has %d points\n",npoints);
+      sscanf(pargv[1],"%f",&parms.l_targetpointset);
+      printf("l_targetpointset = %2.3f\n", parms.l_targetpointset);
+      nargsused = 2;
     }
     // ======== End Cost function weights ================
     else if (!stricmp(option, "--location-mov-len")){

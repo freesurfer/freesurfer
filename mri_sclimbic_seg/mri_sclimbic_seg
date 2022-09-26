@@ -462,15 +462,16 @@ class LimbicSegmenter:
     def preprocess(self, image):
         """
         Preprocess an image by conforming it to the correct orientation, shape, and scale.
-        """
+        """        
         # check resolution
         if not np.allclose(image.geom.voxsize, (1, 1, 1), rtol=0, atol=1e-2):
+            image_geom_voxsize = [f'{x:4.2f}' for x in image.geom.voxsize]
             if self.conform:
-                print('The input image has resolution (%4.2f,%4.2f,%4.2f) mm, but 1mm-isotropic input is required.\n'
-                      'However, --conform has been specified, so the volume will be resliced to 1mm iso.\n' % image.geom.voxsize)
+                print(f'The input image has resolution {image_geom_voxsize} mm, but 1mm-isotropic input is required.\n'
+                    'However, --conform has been specified, so the volume will be resliced to 1mm iso.\n')
             else:
-                print('');
-                sf.system.fatal(f'The input image has resolution {image.geom.voxsize}, but 1mm-isotropic input is required.\n'
+                print('')
+                sf.system.fatal(f'The input image has resolution {image_geom_voxsize}, but 1mm-isotropic input is required.\n'
                          'The volume can be resliced to 1mm-iso by specifying --conform (results may suffer).\n')
 
         # check channels

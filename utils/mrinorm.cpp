@@ -3019,11 +3019,19 @@ int MRInormAddFileControlPoints(MRI *mri_ctrl, int value, MRI *mri)
       MRIvox(mri_ctrl, x, y, z) = value;
     }
     else {
+      printf(
+	"control point %d @ (%d, %d, %d) not in volume, skipping!!!!!\n", i, x, y, z);
       bad++;
     }
   }
   if (bad > 0) {
+    static int first = 1 ;
     ErrorPrintf(ERROR_BADFILE, "!!!!! %ld control points rejected for being out of bounds !!!!!!\n");
+    if (first)
+    {
+      ErrorPrintf(ERROR_BADFILE, "volume size (%d, %d, %d)\n", mri_ctrl->width, mri_ctrl->height, mri_ctrl->depth) ;
+      first = 0 ;
+    }
   }
   return (nctrl);
 }
