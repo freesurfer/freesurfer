@@ -30,6 +30,8 @@ AtlasMeshToDSWbetaGaussMixtureCostAndGradientCalculator
 }
 
 
+#if 0
+// Same functionality can be achieved using SetImages() from its base class.
 //
 //
 //
@@ -46,6 +48,7 @@ AtlasMeshToDSWbetaGaussMixtureCostAndGradientCalculator
     // this call won't update m_DSWbetaMMLikelihoodFilter images because it is operating on a different object
     //m_DSWbetaMMLikelihoodFilter -> SetGaussianImages(images);
 }
+#endif
 
 //
 //

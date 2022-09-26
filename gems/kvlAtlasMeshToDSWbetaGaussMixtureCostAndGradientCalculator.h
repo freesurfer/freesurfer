@@ -47,7 +47,7 @@ public:
                         const std::vector< int >&  numberOfDSWbetaePerClass,
                         const double& voxratio);
 
-    void SetGaussianImages( const std::vector<ImageType::ConstPointer>& images);
+    //void SetGaussianImages( const std::vector<ImageType::ConstPointer>& images);
 
     void SetDSWbetaImages( const std::vector<ImageType::ConstPointer>& images);
 

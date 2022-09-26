@@ -30,6 +30,8 @@ AtlasMeshToFrobeniusGaussMixtureCostAndGradientCalculator
 }
 
 
+#if 0
+// Same functionality can be achieved using SetImages() from its base class.
 //
 //
 //
@@ -62,6 +64,7 @@ AtlasMeshToFrobeniusGaussMixtureCostAndGradientCalculator
     }
 
 }
+#endif
 
 
 //

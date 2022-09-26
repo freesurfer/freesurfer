@@ -20,7 +20,7 @@ AtlasMeshToIntensityImageCostAndGradientCalculator
    * 2. m_LikelihoodFilter is holding a GMMLikelihoodImageFilter object
    */ 
 
-  m_LikelihoodFilter = GMMLikelihoodFilterType::New();
+  m_LikelihoodFilter = gmmLikelihoodFilterType::New();
 
 }
 
@@ -49,7 +49,7 @@ AtlasMeshToIntensityImageCostAndGradientCalculator
     * 2. m_LikelihoodFilter is holding a GMMLikelihoodImageFilter object
     * 3. dynamic_case m_LikelihoodFilter to GMMLikelihoodImageFilter, so it can call derived class method SetParameters()
     */ 
-    dynamic_cast<GMMLikelihoodFilterType*>(m_LikelihoodFilter.GetPointer())
+    dynamic_cast<gmmLikelihoodFilterType*>(m_LikelihoodFilter.GetPointer())
             ->SetParameters( means,
                              variances,
                              mixtureWeights,

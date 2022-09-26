@@ -43,7 +43,7 @@ public:
                         const std::vector< int >&  numberOfFrobeniusPerClass,
                         const double& voxratio);
 
-    void SetGaussianImages( const std::vector<ImageType::ConstPointer>& images);
+    //void SetGaussianImages( const std::vector<ImageType::ConstPointer>& images);
 
     void SetFrobeniusImages( const std::vector<ImageType::ConstPointer>& images);
 

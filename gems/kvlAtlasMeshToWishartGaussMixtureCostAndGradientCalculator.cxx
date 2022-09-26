@@ -30,6 +30,8 @@ AtlasMeshToWishartGaussMixtureCostAndGradientCalculator
 }
 
 
+#if 0
+// Same functionality can be achieved using SetImages() from its base class.
 //
 //
 //
@@ -47,6 +49,7 @@ AtlasMeshToWishartGaussMixtureCostAndGradientCalculator
     // this call won't update m_DSWbetaMMLikelihoodFilter images because it is operating on a different object
     //m_WMMLikelihoodFilter -> SetGaussianImages(images);
 }
+#endif
 
 //
 //

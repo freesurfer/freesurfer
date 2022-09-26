@@ -43,7 +43,7 @@ public:
                         const std::vector< int >&  numberOfWishartsPerClass,
                         const double& voxratio);
 
-    void SetGaussianImages( const std::vector<ImageType::ConstPointer>& images);
+    //void SetGaussianImages( const std::vector<ImageType::ConstPointer>& images);
 
     void SetWishartImages( const std::vector<ImageType::ConstPointer>& images);
 
