@@ -28,6 +28,7 @@ void
 FrobMMLikelihoodImageFilter< TInputImage >
 ::SetGaussianImages( const std::vector< ImageType::ConstPointer >& images )
 {
+  // it is operating on a different object. The method can be removed???
   //
   for ( unsigned int contrastNumber = 0; contrastNumber < images.size(); contrastNumber++ )
     {
@@ -55,10 +56,16 @@ FrobMMLikelihoodImageFilter< TInputImage >
 {
 
 
-    m_likelihoodFilter->SetParameters(means,
-                                      variances,
-                                      mixtureWeights,
-                                      numberOfGaussiansPerClass);
+   /* 1. m_likelihoodFilter->SetParameters() is updating private variables of a different object
+    *      m_Means, m_Precisions, m_piTermMultiv, m_OneOverSqrtDetCov, m_MixtureWeights, m_NumberOfGaussiansPerClass
+    * 2. variances, mixtureWeights, numberOfGaussiansPerClass are not used at all other than passed to m_likelihoodFilter->SetParameters()
+    *    means is used to get numberOfContrasts
+    * 3. m_likelihoodFilter->SetParameters() is not necessary     
+    */
+    //m_likelihoodFilter->SetParameters(means,
+    //                                  variances,
+    //                                  mixtureWeights,
+    //                                  numberOfGaussiansPerClass);
 
 
   // Sanity check on the input parameters

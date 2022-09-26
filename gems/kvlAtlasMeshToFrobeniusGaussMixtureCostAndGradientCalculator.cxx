@@ -44,7 +44,8 @@ AtlasMeshToFrobeniusGaussMixtureCostAndGradientCalculator
         m_LikelihoodFilter->SetInput( contrastNumber, images[ contrastNumber ]);
     }
 
-    m_FrobMMLikelihoodFilter -> SetGaussianImages(images);
+    // this call won't update m_DSWbetaMMLikelihoodFilter images because it is operating on a different object
+    //m_FrobMMLikelihoodFilter -> SetGaussianImages(images);
 }
 
 //
