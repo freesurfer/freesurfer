@@ -66,7 +66,7 @@ public:
                         const std::vector< int >&  numberOfWishartsPerClass,
                         const double& voxratio);
 
-    void SetGaussianImages( const std::vector<ImageType::ConstPointer>& images);
+    //void SetGaussianImages( const std::vector<ImageType::ConstPointer>& images);
 
 protected:
     WMMLikelihoodImageFilter();
@@ -86,8 +86,8 @@ private:
     std::vector< int >  m_NumberOfWishartsPerClass;
     double m_voxratio;
 
-    typedef GMMLikelihoodImageFilter< InputImageType >  GMMLikelihoodFilterType;
-    typename GMMLikelihoodFilterType::Pointer  m_likelihoodFilter;
+    //typedef GMMLikelihoodImageFilter< InputImageType >  GMMLikelihoodFilterType;
+    //typename GMMLikelihoodFilterType::Pointer  m_likelihoodFilter;
 
 };
 

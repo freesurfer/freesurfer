@@ -66,7 +66,7 @@ public:
                         const std::vector< int >&  numberOfFrobeniusPerClass,
                         const double voxratio);
 
-    void SetGaussianImages( const std::vector<ImageType::ConstPointer>& images);
+    //void SetGaussianImages( const std::vector<ImageType::ConstPointer>& images);
 
 protected:
     FrobMMLikelihoodImageFilter();
@@ -86,8 +86,8 @@ private:
     std::vector< int >  m_NumberOfFrobeniusPerClass;
     double m_voxratio;
 
-    typedef GMMLikelihoodImageFilter< InputImageType >  GMMLikelihoodFilterType;
-    typename GMMLikelihoodFilterType::Pointer  m_likelihoodFilter;
+    //typedef GMMLikelihoodImageFilter< InputImageType >  GMMLikelihoodFilterType;
+    //typename GMMLikelihoodFilterType::Pointer  m_likelihoodFilter;
 
 };
 

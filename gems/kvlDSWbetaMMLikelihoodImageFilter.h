@@ -69,7 +69,7 @@ public:
                         const std::vector< int >&  numberOfDSWbetaeniusPerClass,
                         const double& voxratio);
 
-    void SetGaussianImages( const std::vector<ImageType::ConstPointer>& images);
+    //void SetGaussianImages( const std::vector<ImageType::ConstPointer>& images);
 
 protected:
     DSWbetaMMLikelihoodImageFilter();
@@ -93,8 +93,8 @@ private:
     std::vector< int >  m_NumberOfDSWbetaPerClass;
     double m_voxratio;
 
-    typedef GMMLikelihoodImageFilter< InputImageType >  GMMLikelihoodFilterType;
-    typename GMMLikelihoodFilterType::Pointer  m_likelihoodFilter;
+    //typedef GMMLikelihoodImageFilter< InputImageType >  GMMLikelihoodFilterType;
+    //typename GMMLikelihoodFilterType::Pointer  m_likelihoodFilter;
 
 };
 

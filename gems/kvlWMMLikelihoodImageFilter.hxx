@@ -15,11 +15,12 @@ template< typename TInputImage >
 WMMLikelihoodImageFilter< TInputImage >
 ::WMMLikelihoodImageFilter()
 {
-    m_likelihoodFilter = GMMLikelihoodFilterType::New();
+    //m_likelihoodFilter = GMMLikelihoodFilterType::New();
 }
 
 
 
+#if 0
 //
 //
 //
@@ -36,6 +37,7 @@ WMMLikelihoodImageFilter< TInputImage >
     }
 
 }
+#endif
 
 
 //

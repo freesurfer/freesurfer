@@ -15,11 +15,12 @@ template< typename TInputImage >
 DSWbetaMMLikelihoodImageFilter< TInputImage >
 ::DSWbetaMMLikelihoodImageFilter()
 {
-    m_likelihoodFilter = GMMLikelihoodFilterType::New();
+    //m_likelihoodFilter = GMMLikelihoodFilterType::New();
 }
 
 
 
+#if 0
 //
 //
 //
@@ -36,6 +37,7 @@ DSWbetaMMLikelihoodImageFilter< TInputImage >
     }
 
 }
+#endif
 
 
 //
