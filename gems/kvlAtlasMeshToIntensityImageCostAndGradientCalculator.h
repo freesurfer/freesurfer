@@ -40,6 +40,20 @@ public :
 protected:
   AtlasMeshToIntensityImageCostAndGradientCalculator();
   virtual ~AtlasMeshToIntensityImageCostAndGradientCalculator();
+
+  void AddDataContributionOfTetrahedron( const AtlasMesh::PointType& p0,
+                                         const AtlasMesh::PointType& p1,
+                                         const AtlasMesh::PointType& p2,
+                                         const AtlasMesh::PointType& p3,
+                                         const AtlasAlphasType&  alphasInVertex0,
+                                         const AtlasAlphasType&  alphasInVertex1,
+                                         const AtlasAlphasType&  alphasInVertex2,
+                                         const AtlasAlphasType&  alphasInVertex3,
+                                         ThreadAccumDataType&  priorPlusDataCost,
+                                         AtlasPositionGradientThreadAccumType&  gradientInVertex0,
+                                         AtlasPositionGradientThreadAccumType&  gradientInVertex1,
+                                         AtlasPositionGradientThreadAccumType&  gradientInVertex2,
+                                         AtlasPositionGradientThreadAccumType&  gradientInVertex3 ) override;
   
 private:
   AtlasMeshToIntensityImageCostAndGradientCalculator(const Self&); //purposely not implemented

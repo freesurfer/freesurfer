@@ -40,6 +40,7 @@ protected:
     AtlasMeshToIntensityImageCostAndGradientCalculatorBase();
     virtual ~AtlasMeshToIntensityImageCostAndGradientCalculatorBase();
 
+#if 0
     void AddDataContributionOfTetrahedron( const AtlasMesh::PointType& p0,
                                            const AtlasMesh::PointType& p1,
                                            const AtlasMesh::PointType& p2,
@@ -53,6 +54,7 @@ protected:
                                            AtlasPositionGradientThreadAccumType&  gradientInVertex1,
                                            AtlasPositionGradientThreadAccumType&  gradientInVertex2,
                                            AtlasPositionGradientThreadAccumType&  gradientInVertex3 ) override;
+#endif
 
     //
     typedef LikelihoodImageFilterBase< ImageType >  LikelihoodFilterType;

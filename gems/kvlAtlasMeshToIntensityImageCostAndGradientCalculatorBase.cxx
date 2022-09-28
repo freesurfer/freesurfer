@@ -65,6 +65,10 @@ AtlasMeshToIntensityImageCostAndGradientCalculatorBase
 
 
 
+#if 0
+// The implementation is causing slightly difference in deformed mesh point coordinates. 
+// Discussed with Henry, we will use current version in freesurfer. 
+// AddDataContributionOfTetrahedron() is restored in AtlasMeshToIntensityImageCostAndGradientCalculator.
 //
 //
 //
@@ -226,6 +230,7 @@ AtlasMeshToIntensityImageCostAndGradientCalculatorBase
 
 
 }
+#endif
 
 
 
