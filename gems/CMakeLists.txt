@@ -81,7 +81,11 @@ set(SOURCES
   kvlAtlasMeshSmoother.cxx
   kvlAtlasMeshStatisticsCollector.cxx
   kvlAtlasMeshSummaryDrawer.cxx
+  kvlAtlasMeshToIntensityImageCostAndGradientCalculatorBase.cxx
   kvlAtlasMeshToIntensityImageCostAndGradientCalculator.cxx
+  kvlAtlasMeshToWishartGaussMixtureCostAndGradientCalculator.cxx
+  kvlAtlasMeshToFrobeniusGaussMixtureCostAndGradientCalculator.cxx
+  kvlAtlasMeshToDSWbetaGaussMixtureCostAndGradientCalculator.cxx
   kvlAtlasMeshToLabelImageCostAndGradientCalculator.cxx
   kvlAtlasMeshToPointSetCostAndGradientCalculator.cxx
   kvlAtlasMeshVisitCounter.cxx
@@ -118,6 +122,10 @@ set(SOURCES_DYN
   kvlAtlasMeshSmoother.cxx
   kvlAtlasMeshStatisticsCollector.cxx
   kvlAtlasMeshSummaryDrawer.cxx
+  kvlAtlasMeshToIntensityImageCostAndGradientCalculatorBase.cxx
+  kvlAtlasMeshToWishartGaussMixtureCostAndGradientCalculator.cxx
+  kvlAtlasMeshToFrobeniusGaussMixtureCostAndGradientCalculator.cxx
+  kvlAtlasMeshToDSWbetaGaussMixtureCostAndGradientCalculator.cxx
   kvlAtlasMeshToIntensityImageCostAndGradientCalculator.cxx
   kvlAtlasMeshToLabelImageCostAndGradientCalculator.cxx
   kvlAtlasMeshToPointSetCostAndGradientCalculator.cxx
