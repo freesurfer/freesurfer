@@ -6549,8 +6549,8 @@ MRI *MRIgaussianSmoothNI(MRI *src, double cstd, double rstd, double sstd, MRI *t
   }
 
 #ifdef HAVE_OPENMP
-  if (Gdiag_no > 0)
-    printf("MRIgaussianSmoothNI(): %d avail.processors, using %d\n", omp_get_num_procs(), omp_get_max_threads());
+  //if (Gdiag_no > 0)
+    printf("MRIgaussianSmoothNI(): %d avail. processors, running in %d threads\n", omp_get_num_procs(), omp_get_max_threads());
 #endif
 
   /* -----------------Smooth the columns -----------------------------*/
@@ -6558,7 +6558,7 @@ MRI *MRIgaussianSmoothNI(MRI *src, double cstd, double rstd, double sstd, MRI *t
     G = GaussianMatrix(src->width, cstd / src->xsize, 1, NULL);
     ROMP_PF_begin
 #ifdef HAVE_OPENMP
-    #pragma omp parallel for if_ROMP(experimental)
+    #pragma omp parallel for
 #endif
     for (r = 0; r < src->height; r++) {
       ROMP_PFLB_begin
@@ -6597,7 +6597,7 @@ MRI *MRIgaussianSmoothNI(MRI *src, double cstd, double rstd, double sstd, MRI *t
     G = GaussianMatrix(src->height, (double)rstd / src->ysize, 1, NULL);
     ROMP_PF_begin
 #ifdef HAVE_OPENMP
-    #pragma omp parallel for if_ROMP(experimental)
+    #pragma omp parallel for
 #endif
     for (c = 0; c < src->width; c++) {
       ROMP_PFLB_begin
@@ -6640,7 +6640,7 @@ MRI *MRIgaussianSmoothNI(MRI *src, double cstd, double rstd, double sstd, MRI *t
     G = GaussianMatrix(src->depth, sstd / src->zsize, 1, NULL);
     ROMP_PF_begin
 #ifdef HAVE_OPENMP
-    #pragma omp parallel for if_ROMP(experimental)
+    #pragma omp parallel for
 #endif
     for (c = 0; c < src->width; c++) {
       ROMP_PFLB_begin
@@ -6695,7 +6695,7 @@ MRI *MRIgaussianSmoothNI(MRI *src, double cstd, double rstd, double sstd, MRI *t
 
   ROMP_PF_begin
 #ifdef HAVE_OPENMP
-  #pragma omp parallel for if_ROMP(experimental) reduction(+ : scale, vmf)
+  #pragma omp parallel for reduction(+ : scale, vmf)
 #endif
   for (c = 0; c < cstop; c++) {
     ROMP_PFLB_begin
@@ -6724,7 +6724,7 @@ MRI *MRIgaussianSmoothNI(MRI *src, double cstd, double rstd, double sstd, MRI *t
 // will sum to one and so that a constant input yields const output.
   ROMP_PF_begin
 #ifdef HAVE_OPENMP
-  #pragma omp parallel for if_ROMP(experimental)
+  #pragma omp parallel for
 #endif
   for (c = 0; c < src->width; c++) {
     ROMP_PFLB_begin

@@ -42,10 +42,12 @@
 #include "fio.h"
 #include "mri_conform.h"
 
+#include "romp_support.h"
+
 /* ----- determines tolerance of non-orthogonal basis vectors ----- */
 #define CLOSE_ENOUGH  (5e-3)
 
-void applyGaussianFilter(MRI *inVol, float *voxsize);
+void applyGaussianFilter(MRI *inVol, float *voxsize, int nthreads);
 void get_ints(int argc, char *argv[], int *pos, int *vals, int nvals);
 void get_floats(int argc, char *argv[], int *pos, float *vals, int nvals);
 void get_string(int argc, char *argv[], int *pos, char *val);
@@ -199,6 +201,7 @@ int main(int argc, char *argv[])
   int reduce = 0 ;
   float fwhm, gstd;
   int antialias_flag = FALSE;
+  int nthreads = 1;
   int sphinx_flag = FALSE;
   int LeftRightReverse = FALSE;
   int LeftRightReversePix = FALSE;
@@ -1023,6 +1026,10 @@ int main(int argc, char *argv[])
     else if(strcmp(argv[i], "--antialias") == 0)
     {
       antialias_flag = TRUE;
+    }
+    else if (strcmp(argv[i], "--nthreads") == 0)
+    {
+      get_ints(argc, argv, &i, &nthreads, 1);
     }
     else if(strcmp(argv[i], "--fwhm") == 0)
     {
@@ -2330,12 +2337,24 @@ int main(int argc, char *argv[])
     }
   }
 
-  if (antialias_flag == TRUE)
-    applyGaussianFilter(mri, voxel_size);
-  else if (fwhm > 0)
+  if (antialias_flag == TRUE || fwhm > 0)
   {
-    printf("Smoothing input at fwhm = %g, gstd = %g\n",fwhm,gstd);
-    MRIgaussianSmooth(mri, gstd, 1, mri);
+#ifdef HAVE_OPENMP
+    printf("\nSet OPEN MP NUM threads to %d\n", nthreads);
+    if (nthreads == 1)
+      printf("(%d avail. processors. Use --nthreads <> to set number of threads.)\n", omp_get_num_procs());
+    printf("\n");
+
+    omp_set_num_threads(nthreads);
+#endif
+
+    if (antialias_flag == TRUE)
+      applyGaussianFilter(mri, voxel_size, nthreads);
+    else if (fwhm > 0)
+    {
+      printf("Smoothing input at fwhm = %g, gstd = %g\n",fwhm,gstd);
+      MRIgaussianSmooth(mri, gstd, 1, mri);
+    }
   }
 
   if (!FEQUAL(rescale_factor,1.0)){
@@ -3689,7 +3708,7 @@ int main(int argc, char *argv[])
  *        F = 5.0
  *        fwhm = sigma * sqrt(8 * log(2));
  */
-void applyGaussianFilter(MRI *inVol, float *voxsize)
+void applyGaussianFilter(MRI *inVol, float *voxsize, int nthreads)
 {
     printf("Applying Gaussian Filter ...\n");
 
