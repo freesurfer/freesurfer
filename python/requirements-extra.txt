@@ -2,6 +2,7 @@
 tensorflow
 h5py
 torch
+opencv-python
 
 # these are also required for FS DL utilities, but we need some features
 # that haven't quite made it into the stable releases yet - this should be

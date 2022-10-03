@@ -10,9 +10,9 @@
 #include "kvlCroppedImageReader.h"
 
 // Usage: 
-//   deformMesh <maxIter> <numThreads> <input-mesh-collection> <input-mgz>
+//   testdeformMeshPython <maxIter> <numThreads> <input-mesh-collection>  <output-deformed-mesh-collection> <input-mgz>
 // examples:
-//   deformMesh 30 1 atlas_level1_deformmesh.txt.gz inp_image_deformmesh.mgz
+//   testdeformMeshPython 30 1 atlas_level1_deformmesh.txt.gz  deformedmesh_out.txt.gz inp_image_deformmesh.mgz
 int main( int argc, char** argv )
 {
   // Add support for MGH file format to ITK. An alternative way to add this by default would be
@@ -21,7 +21,7 @@ int main( int argc, char** argv )
 
   // Retrieve the input parameters
   std::ostringstream  inputParserStream;
-  for ( int argumentNumber = 1; argumentNumber < 4; argumentNumber++ ) 
+  for ( int argumentNumber = 1; argumentNumber < 5; argumentNumber++ ) 
     {
     inputParserStream << argv[ argumentNumber ] << " ";
     }
@@ -29,12 +29,14 @@ int main( int argc, char** argv )
   int maxIteration;
   int numThreads;
   std::string  meshCollectionFile;
-  inputStream >> maxIteration >> numThreads >> meshCollectionFile;
+  std::string  deformedMeshCollectionFile;
+  inputStream >> maxIteration >> numThreads >> meshCollectionFile >> deformedMeshCollectionFile;
 
   std::cout << "deformMesh Command line params:" << std::endl;
   std::cout << "  maxIteration:                         " << maxIteration << std::endl;
   std::cout << "  numThreads:                           " << numThreads   << std::endl;
   std::cout << "  meshCollectionFile:                   " << meshCollectionFile << std::endl;
+  std::cout << "  output deformedMeshCollectionFile:    " << deformedMeshCollectionFile << std::endl;
 
   // set ITK number of threads  
   std::cout << "[DEBUG] itk::MultiThreader::SetGlobalDefaultNumberOfThreads(" << numThreads << ")" << std::endl;
@@ -67,7 +69,7 @@ int main( int argc, char** argv )
   //typedef kvl::CompressionLookupTable::ImageType  LabelImageType;     // typedef itk::Image< unsigned short, 3 >  ImageType;
   typedef itk::Image< float, 3 > ImageType;
   std::vector< ImageType::ConstPointer >  images;
-  for ( int argumentNumber = 4; argumentNumber < argc; argumentNumber++ )
+  for ( int argumentNumber = 5; argumentNumber < argc; argumentNumber++ )
   {
     std::string imageFileName = argv[ argumentNumber ];
 
@@ -259,7 +261,12 @@ int main( int argc, char** argv )
 
     count++;
   }
-  
+
+  // output the deformed mesh 
+  kvl::AtlasMeshCollection::Pointer  deformedMeshCollection = kvl::AtlasMeshCollection::New();
+  deformedMeshCollection->GenerateFromSingleMesh(mutableMesh, 1, 0.1);
+  deformedMeshCollection->Write(deformedMeshCollectionFile.c_str());
+
   return 0;
 };
 

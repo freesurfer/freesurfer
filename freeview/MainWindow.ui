@@ -1857,6 +1857,14 @@
     <string>Neurological View</string>
    </property>
   </action>
+  <action name="actionLockOthers">
+   <property name="text">
+    <string>Lock Others</string>
+   </property>
+   <property name="shortcut">
+    <string>Alt+O</string>
+   </property>
+  </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>
