@@ -837,7 +837,7 @@ MRI *mri_read(const char *fname, int type, int volume_flag, int start_frame, int
   mri2->imnr0 = 1;
   mri2->imnr0 = mri2->nframes;
 
-  if (0)   // disable it for now, don't know a case to execute this code path // (getenv("FS_MGZIO_USEVOXELBUF"))
+  if (0)   // disable it for now, don't know a case to execute this code path // (getenv("FS_MGZIO_USEVOXELBUFREAD"))
   {
     printf("mri_read(): copy voxel by row ...\n");
     for (t = 0; t < mri2->nframes; t++)
@@ -10875,20 +10875,59 @@ static MRI *mghRead(const char *fname, int read_volume, int frame)
     }
 
     int USEVOXELBUF = 0;
-    if (mri->ischunked && getenv("FS_MGZIO_USEVOXELBUF"))
+    if (mri->ischunked && getenv("FS_MGZIO_USEVOXELBUFREAD"))
     {
       USEVOXELBUF = 1;
-      printf("INFO: Environment variable FS_MGZIO_USEVOXELBUF set\n");
+      printf("INFO: Environment variable FS_MGZIO_USEVOXELBUFREAD set\n");
       printf("mghRead(): read voxel buffer ...\n");
       if (buf) free(buf);
 
-      int bytes_to_read = bytes * depth * (end_frame-start_frame+1);
-      //BUFTYPE *bufsrc = (BUFTYPE*)calloc(bytes_to_read, sizeof(BUFTYPE));
-      BUFTYPE *bufsrc = &MRIseq_vox(mri, 0, 0, 0, start_frame);
-      if ((int)znzread(bufsrc, sizeof(BUFTYPE), bytes_to_read, fp) != bytes_to_read) {
+      size_t bytes_to_read = (size_t)bytes * depth * (end_frame-start_frame+1);
+
+#if 1  // handle volumes larger than 98455280, read one slice at a time until we read all the bytes
+      size_t bytes_per_slice = bytes;
+      BUFTYPE *bufsrc = &MRIseq_vox(mri, 0, 0, 0, start_frame);   // user can select frames to output; MRIseq_vox(mri, 0, 0, 0, 0) = (BUFTYPE*)mri->chunk;
+
+      size_t bytes_left_toread = bytes_to_read;
+      while (bytes_left_toread > 0)
+      {
+        //printf("[DEBUG] FS_MGZIO_USEVOXELBUFREAD: bufsrc=%p\n", bufsrc);
+ 
+        // It seems that the maximum bytes znzread() can read in at a time is 98455280.
+        size_t bytes_read = znzread(bufsrc, sizeof(BUFTYPE), bytes_per_slice, fp);
+        if (bytes_read != bytes_per_slice)
+        {
+          znzclose(fp);
+          ErrorReturn(NULL, (ERROR_BADFILE, "mghRead (FS_MGZIO_USEVOXELBUFREAD): could not read %lu bytes per slice, read only %lu bytes\n", bytes_per_slice, bytes_read));
+        }
+
+#if (BYTE_ORDER == LITTLE_ENDIAN)
+        if (bpv == 2) byteswapbufshort(bufsrc, bytes_per_slice);
+        if (bpv == 4) byteswapbuffloat(bufsrc, bytes_per_slice);
+        if (bpv == 8) byteswapbuffloat(bufsrc, bytes_per_slice);
+#endif
+
+        // adjust buffer pointer, and left bytes to be read
+        bytes_left_toread -= bytes_read;
+        bufsrc += bytes_read;
+        //printf("[DEBUG] FS_MGZIO_USEVOXELBUFREAD: read %lu bytes, %lu bytes left to be read\n", bytes_read, bytes_left_toread);
+      }
+
+      if (bytes_left_toread != 0)
+      {
         znzclose(fp);
-        free(bufsrc);
-        ErrorReturn(NULL, (ERROR_BADFILE, "mghRead (read voxel buffer): could not read %d bytes", bytes_to_read));
+        ErrorReturn(NULL, (ERROR_BADFILE, "mghRead (FS_MGZIO_USEVOXELBUFREAD): could not read %lu bytes, read only %lu bytes\n", bytes_to_read, (bytes_to_read-bytes_left_toread)));
+      }        
+#else  // volume cannot be larger than 98455280
+      BUFTYPE *bufsrc = &MRIseq_vox(mri, 0, 0, 0, start_frame);
+      size_t bytes_read = znzread(bufsrc, sizeof(BUFTYPE), bytes_to_read, fp);
+      //printf("[DEBUG] FS_MGZIO_USEVOXELBUFREAD: read %lu bytes, (%lu to read)\n", bytes_read, bytes_to_read);
+      if (bytes_read != bytes_to_read)
+      {
+        // It seems that the maximum bytes znzread() can read in at a time is 98455280.
+        znzclose(fp);
+        //free(bufsrc);
+        ErrorReturn(NULL, (ERROR_BADFILE, "mghRead (read voxel buffer): could not read %lu bytes, read only %lu bytes\n", bytes_to_read, bytes_read));
       }
 
 #if (BYTE_ORDER == LITTLE_ENDIAN)
@@ -10896,11 +10935,7 @@ static MRI *mghRead(const char *fname, int read_volume, int frame)
       if (bpv == 4) byteswapbuffloat(bufsrc, bytes_to_read);
       if (bpv == 8) byteswapbuffloat(bufsrc, bytes_to_read);
 #endif
-
-      //void *voxelbuf = &MRIseq_vox(mri, 0, 0, 0, start_frame);
-      //memcpy(voxelbuf, bufsrc, bytes_to_read);
-
-      //if (bufsrc) free(bufsrc);
+#endif
     }
     else  // copy voxel point by point
     {
@@ -11222,21 +11257,51 @@ static int mghWrite(MRI *mri, const char *fname, int frame)
   }
 
   int USEVOXELBUF = 0;
-  if (mri->ischunked && getenv("FS_MGZIO_USEVOXELBUF"))
+  if (mri->ischunked && getenv("FS_MGZIO_USEVOXELBUFWRITE"))
   {
     USEVOXELBUF = 1;
-    printf("INFO: Environment variable FS_MGZIO_USEVOXELBUF set\n");
+    printf("INFO: Environment variable FS_MGZIO_USEVOXELBUFWRITE set\n");
     printf("mghWrite(): output voxel bufer ...\n");
     int bytes_per_voxel = MRIsizeof(mri->type);
-    BUFTYPE *voxelbuf = &MRIseq_vox(mri, 0, 0, 0, start_frame);
-    int bytes_to_write = bytes_per_voxel * width * height * depth * (end_frame-start_frame+1);
 
-#if 0
-    printf("<DEBUG> voxelbuf = %p - %p (%p - %p) %d (frame=%d, depth=%d, height=%d) (%d %d)\n", 
-           voxelbuf, voxelbuf+(MRIsizeof(mri->type)*(width-1)), 
-	   &MRISseq_vox(mri, 0, y, z, frame), &MRISseq_vox(mri, width-1, z, y, frame),
-	   bytes_to_write, frame, y, z, (int)mri->bytes_per_vox, width);
+#if 1  // handle volumes larger than 98455280. write one slice at a time
+    size_t bytes_per_slice = bytes_per_voxel * width * height;
+    size_t bytes_to_write = (size_t)bytes_per_voxel * width * height * depth * (end_frame-start_frame+1);
+    BUFTYPE *voxelbuf = &MRIseq_vox(mri, 0, 0, 0, start_frame);   // user can select frames to output; MRIseq_vox(mri, 0, 0, 0, 0) = (BUFTYPE*)mri->chunk
+
+    size_t bytes_left_towrite = bytes_to_write;
+    while (bytes_left_towrite > 0)
+    {
+      //printf("[DEBUG] FS_MGZIO_USEVOXELBUFWRITE: voxelbuf=%p\n", voxelbuf);
+
+#if (BYTE_ORDER == LITTLE_ENDIAN)
+      if (bytes_per_voxel == 2) byteswapbufshort(voxelbuf, bytes_per_slice);
+      if (bytes_per_voxel == 4) byteswapbuffloat(voxelbuf, bytes_per_slice);
+      if (bytes_per_voxel == 8) byteswapbuffloat(voxelbuf, bytes_per_slice);
 #endif
+
+      // It seems that the maximum bytes znzwrite() can write in at a time is 98455280.
+      size_t bytes_wrote = znzwrite(voxelbuf, sizeof(BUFTYPE), bytes_per_slice, fp);
+      if (bytes_wrote != bytes_per_slice)
+      {
+        znzclose(fp);
+        ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "mghWrite: (FS_MGZIO_USEVOXELBUFWRITE) could not write %lu bytes, wrote only %lu bytes", bytes_per_slice, bytes_wrote));
+      }
+
+      // adjust buffer pointer, and left bytes to be written
+      bytes_left_towrite -= bytes_wrote;
+      voxelbuf += bytes_wrote;
+      //printf("[DEBUG] FS_MGZIO_USEVOXELBUFWRITE: wrote %lu bytes, %lu bytes left to be written\n", bytes_wrote, bytes_left_towrite);
+    }
+
+    if (bytes_left_towrite != 0)
+    {
+      znzclose(fp);
+      ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "mghWrite: (FS_MGZIO_USEVOXELBUFWRITE) could not write %lu bytes, wrote only %lu bytes\n", bytes_to_write, (bytes_to_write-bytes_left_towrite)));
+    }        
+#else  // volume cannot be larger than 98455280
+    BUFTYPE *voxelbuf = &MRIseq_vox(mri, 0, 0, 0, start_frame);
+    size_t bytes_to_write = (size_t)bytes_per_voxel * width * height * depth * (end_frame-start_frame+1);
 
 #if (BYTE_ORDER == LITTLE_ENDIAN)
     if (bytes_per_voxel == 2) byteswapbufshort(voxelbuf, bytes_to_write);
@@ -11244,11 +11309,15 @@ static int mghWrite(MRI *mri, const char *fname, int frame)
     if (bytes_per_voxel == 8) byteswapbuffloat(voxelbuf, bytes_to_write);
 #endif
 
-    if ((int)znzwrite(voxelbuf, sizeof(BUFTYPE), bytes_to_write, fp) != bytes_to_write) 
+    // It seems that the maximum bytes znzwrite() can write in at a time is 98455280.
+    size_t bytes_wrote = znzwrite(voxelbuf, sizeof(BUFTYPE), bytes_to_write, fp);
+    //printf("[DEBUG] FS_MGZIO_USEVOXELBUFWRITE: wrote %lu bytes, (%lu to write)\n", bytes_wrote, bytes_to_write);
+    if (bytes_wrote != bytes_to_write) 
     {
       errno = 0;
-      ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "mghWrite: (output voxel buffer) could not write %d bytes", bytes_to_write));
+      ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "mghWrite: (output voxel buffer) could not write %lu bytes, wrote only %lu bytes", bytes_to_write, bytes_wrote));
     }
+#endif
   }
   else
   {
