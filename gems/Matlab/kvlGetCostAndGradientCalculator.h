@@ -889,8 +889,10 @@ public:
         std::cout << "WishartMixtureToAtlasMesh" << std::endl;
         AtlasMeshToWishartGaussMixtureCostAndGradientCalculator::Pointer  myCalculator
                           = AtlasMeshToWishartGaussMixtureCostAndGradientCalculator::New();
-        myCalculator->SetGaussianImages( images );
-        myCalculator->SetWishartImages( DTIimages );
+        //myCalculator->SetGaussianImages( images );
+        myCalculator->SetImages( images );
+        //myCalculator->SetWishartImages( DTIimages );
+        myCalculator->SetDiffusionImages( DTIimages );
         myCalculator->SetParameters( means, variances, mixtureWeights, numberOfGaussiansPerClass,
                                      degreesOfFreedom, scaleMatrices, wmmMixtureWeights, numberOfWishartsPerClass,
                                      voxratio);
@@ -902,8 +904,10 @@ public:
         std::cout << "FrobeniusMixtureToAtlasMesh" << std::endl;
         AtlasMeshToFrobeniusGaussMixtureCostAndGradientCalculator::Pointer  myCalculator
                           = AtlasMeshToFrobeniusGaussMixtureCostAndGradientCalculator::New();
-        myCalculator->SetGaussianImages( images );
-        myCalculator->SetFrobeniusImages( DTIimages );
+        //myCalculator->SetGaussianImages( images );
+        myCalculator->SetImages( images );
+        //myCalculator->SetFrobeniusImages( DTIimages );
+        myCalculator->SetDiffusionImages( DTIimages );
         myCalculator->SetParameters( means, variances, mixtureWeights, numberOfGaussiansPerClass,
                                      frobVariance, frobMeans, wmmMixtureWeights, numberOfWishartsPerClass,
                                      voxratio);
@@ -918,8 +922,10 @@ public:
         std::cout << "DSWbetaMixtureToAtlasMesh" << std::endl;
         AtlasMeshToDSWbetaGaussMixtureCostAndGradientCalculator::Pointer  myCalculator
                         = AtlasMeshToDSWbetaGaussMixtureCostAndGradientCalculator::New();
-        myCalculator->SetGaussianImages( images );
-        myCalculator->SetDSWbetaImages( DTIimages );
+        //myCalculator->SetGaussianImages( images );
+        myCalculator->SetImages( images );
+        //myCalculator->SetDSWbetaImages( DTIimages );
+        myCalculator->SetDiffusionImages( DTIimages );
         myCalculator->SetParameters( means, variances, mixtureWeights, numberOfGaussiansPerClass,
                                      DSWbetaAlpha, DSWbetaBeta, DSWbetaConcentration, DSWbetaMeans,
                                      logKummerSamples, negLogKummerIncrement, wmmMixtureWeights,

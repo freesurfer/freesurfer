@@ -16,7 +16,7 @@ AtlasMeshToDSWbetaGaussMixtureCostAndGradientCalculator
 {
 
     m_LikelihoodFilter = gmmLikelihoodFilterType::New();
-    m_DSWbetaMMLikelihoodFilter = dswbetammLikelihoodFilterType::New();
+    m_DiffusionLikelihoodFilter = dswbetammLikelihoodFilterType::New();
 
 }
 
@@ -50,7 +50,8 @@ AtlasMeshToDSWbetaGaussMixtureCostAndGradientCalculator
 }
 #endif
 
-//
+#if 0
+// moved to base class SetDiffusionImages()
 //
 //
 void
@@ -83,6 +84,7 @@ AtlasMeshToDSWbetaGaussMixtureCostAndGradientCalculator
   Superclass::Rasterize( mesh );
 
 }
+#endif
 
 
 
@@ -112,7 +114,8 @@ AtlasMeshToDSWbetaGaussMixtureCostAndGradientCalculator
                              numberOfGaussiansPerClass);
 
 
-    m_DSWbetaMMLikelihoodFilter ->SetParameters( means,
+    dynamic_cast<dswbetammLikelihoodFilterType*>(m_DiffusionLikelihoodFilter.GetPointer())
+            ->SetParameters( means,
                              variances,
                              mixtureWeights,
                              numberOfGaussiansPerClass,
@@ -152,7 +155,7 @@ AtlasMeshToDSWbetaGaussMixtureCostAndGradientCalculator
   // Loop over all voxels within the tetrahedron and do The Right Thing
   const unsigned long  numberOfClasses = alphasInVertex0.Size();
   TetrahedronInteriorConstIterator< LikelihoodFilterType::OutputPixelType >  gmm_it( m_LikelihoodFilter->GetOutput(), p0, p1, p2, p3 );
-  TetrahedronInteriorConstIterator< LikelihoodFilterType::OutputPixelType >  fmm_it( m_DSWbetaMMLikelihoodFilter->GetOutput(), p0, p1, p2, p3 );
+  TetrahedronInteriorConstIterator< LikelihoodFilterType::OutputPixelType >  fmm_it( m_DiffusionLikelihoodFilter->GetOutput(), p0, p1, p2, p3 );
   for ( unsigned int classNumber = 0; classNumber < numberOfClasses; classNumber++ )
     {
       gmm_it.AddExtraLoading( alphasInVertex0[ classNumber ],

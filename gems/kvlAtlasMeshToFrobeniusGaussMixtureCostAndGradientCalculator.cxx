@@ -16,7 +16,7 @@ AtlasMeshToFrobeniusGaussMixtureCostAndGradientCalculator
 {
 
     m_LikelihoodFilter = gmmLikelihoodFilterType::New();
-    m_FrobMMLikelihoodFilter = frobmmLikelihoodFilterType::New();
+    m_DiffusionLikelihoodFilter = frobmmLikelihoodFilterType::New();
 
 }
 
@@ -49,8 +49,10 @@ AtlasMeshToFrobeniusGaussMixtureCostAndGradientCalculator
     // this call won't update m_DSWbetaMMLikelihoodFilter images because it is operating on a different object
     //m_FrobMMLikelihoodFilter -> SetGaussianImages(images);
 }
+#endif
 
-//
+#if 0
+// moved to base class SetDiffusionImages()
 //
 //
 void
@@ -64,7 +66,6 @@ AtlasMeshToFrobeniusGaussMixtureCostAndGradientCalculator
     }
 
 }
-#endif
 
 
 //
@@ -83,6 +84,7 @@ AtlasMeshToFrobeniusGaussMixtureCostAndGradientCalculator
   Superclass::Rasterize( mesh );
 
 }
+#endif
 
 
 
@@ -108,7 +110,8 @@ AtlasMeshToFrobeniusGaussMixtureCostAndGradientCalculator
                              mixtureWeights,
                              numberOfGaussiansPerClass);
 
-    m_FrobMMLikelihoodFilter ->SetParameters( means,
+    dynamic_cast<frobmmLikelihoodFilterType*>(m_DiffusionLikelihoodFilter.GetPointer())
+            ->SetParameters( means,
                              variances,
                              mixtureWeights,
                              numberOfGaussiansPerClass,
@@ -144,7 +147,7 @@ AtlasMeshToFrobeniusGaussMixtureCostAndGradientCalculator
   // Loop over all voxels within the tetrahedron and do The Right Thing
   const unsigned long  numberOfClasses = alphasInVertex0.Size();
   TetrahedronInteriorConstIterator< LikelihoodFilterType::OutputPixelType >  gmm_it( m_LikelihoodFilter->GetOutput(), p0, p1, p2, p3 );
-  TetrahedronInteriorConstIterator< LikelihoodFilterType::OutputPixelType >  fmm_it( m_FrobMMLikelihoodFilter->GetOutput(), p0, p1, p2, p3 );
+  TetrahedronInteriorConstIterator< LikelihoodFilterType::OutputPixelType >  fmm_it( m_DiffusionLikelihoodFilter->GetOutput(), p0, p1, p2, p3 );
   for ( unsigned int classNumber = 0; classNumber < numberOfClasses; classNumber++ )
     {
       gmm_it.AddExtraLoading( alphasInVertex0[ classNumber ],

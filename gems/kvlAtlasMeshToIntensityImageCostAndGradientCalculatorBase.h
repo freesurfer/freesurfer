@@ -32,6 +32,7 @@ public:
 
     /** */
     void SetImages( const std::vector< ImageType::ConstPointer >& images );
+    void SetDiffusionImages( const std::vector< ImageType::ConstPointer >& images );
 
     /** */
     void Rasterize( const AtlasMesh* mesh );
@@ -59,6 +60,7 @@ protected:
     //
     typedef LikelihoodImageFilterBase< ImageType >  LikelihoodFilterType;
     LikelihoodFilterType::Pointer  m_LikelihoodFilter;
+    LikelihoodFilterType::Pointer  m_DiffusionLikelihoodFilter;
 
 private:
     AtlasMeshToIntensityImageCostAndGradientCalculatorBase(const Self&); //purposely not implemented

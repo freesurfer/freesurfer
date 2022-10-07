@@ -45,10 +45,10 @@ public:
 
     //void SetGaussianImages( const std::vector<ImageType::ConstPointer>& images);
 
-    void SetWishartImages( const std::vector<ImageType::ConstPointer>& images);
+    //void SetWishartImages( const std::vector<ImageType::ConstPointer>& images);
 
     /** */
-    void Rasterize( const AtlasMesh* mesh ) override;
+    //void Rasterize( const AtlasMesh* mesh ) override;
 
 protected:
     AtlasMeshToWishartGaussMixtureCostAndGradientCalculator();
@@ -75,7 +75,7 @@ private:
   //
   typedef GMMLikelihoodImageFilter< ImageType >  gmmLikelihoodFilterType;
   typedef WMMLikelihoodImageFilter< ImageType >  wmmLikelihoodFilterType;
-  wmmLikelihoodFilterType::Pointer  m_WMMLikelihoodFilter;
+  //wmmLikelihoodFilterType::Pointer  m_WMMLikelihoodFilter;
 };
 
 

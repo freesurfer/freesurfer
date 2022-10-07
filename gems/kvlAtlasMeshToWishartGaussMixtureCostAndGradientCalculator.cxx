@@ -16,7 +16,7 @@ AtlasMeshToWishartGaussMixtureCostAndGradientCalculator
 {
 
     m_LikelihoodFilter = gmmLikelihoodFilterType::New();
-    m_WMMLikelihoodFilter = wmmLikelihoodFilterType::New();
+    m_DiffusionLikelihoodFilter = wmmLikelihoodFilterType::New();
 
 }
 
@@ -51,7 +51,8 @@ AtlasMeshToWishartGaussMixtureCostAndGradientCalculator
 }
 #endif
 
-//
+#if 0
+// moved to base class - SetDiffusionImages()
 //
 //
 void
@@ -83,6 +84,7 @@ AtlasMeshToWishartGaussMixtureCostAndGradientCalculator
   Superclass::Rasterize( mesh );
 
 }
+#endif
 
 
 
@@ -107,7 +109,8 @@ AtlasMeshToWishartGaussMixtureCostAndGradientCalculator
                              mixtureWeights,
                              numberOfGaussiansPerClass);
 
-    m_WMMLikelihoodFilter ->SetParameters( means,
+    dynamic_cast<wmmLikelihoodFilterType*>(m_DiffusionLikelihoodFilter.GetPointer())
+            ->SetParameters( means,
                              variances,
                              mixtureWeights,
                              numberOfGaussiansPerClass,
@@ -143,7 +146,7 @@ AtlasMeshToWishartGaussMixtureCostAndGradientCalculator
   // Loop over all voxels within the tetrahedron and do The Right Thing
   const unsigned long  numberOfClasses = alphasInVertex0.Size();
   TetrahedronInteriorConstIterator< LikelihoodFilterType::OutputPixelType >  gmm_it( m_LikelihoodFilter->GetOutput(), p0, p1, p2, p3 );
-  TetrahedronInteriorConstIterator< LikelihoodFilterType::OutputPixelType >  wmm_it( m_WMMLikelihoodFilter->GetOutput(), p0, p1, p2, p3 );
+  TetrahedronInteriorConstIterator< LikelihoodFilterType::OutputPixelType >  wmm_it( m_DiffusionLikelihoodFilter->GetOutput(), p0, p1, p2, p3 );
   for ( unsigned int classNumber = 0; classNumber < numberOfClasses; classNumber++ )
     {
       gmm_it.AddExtraLoading( alphasInVertex0[ classNumber ],

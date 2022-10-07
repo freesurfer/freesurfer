@@ -49,10 +49,10 @@ public:
 
     //void SetGaussianImages( const std::vector<ImageType::ConstPointer>& images);
 
-    void SetDSWbetaImages( const std::vector<ImageType::ConstPointer>& images);
+    //void SetDSWbetaImages( const std::vector<ImageType::ConstPointer>& images);
 
     /** */
-    void Rasterize( const AtlasMesh* mesh ) override;
+    //void Rasterize( const AtlasMesh* mesh ) override;
 
 protected:
     AtlasMeshToDSWbetaGaussMixtureCostAndGradientCalculator();
@@ -79,7 +79,7 @@ private:
   //
   typedef GMMLikelihoodImageFilter< ImageType >  gmmLikelihoodFilterType;
   typedef DSWbetaMMLikelihoodImageFilter< ImageType >  dswbetammLikelihoodFilterType;
-  dswbetammLikelihoodFilterType::Pointer  m_DSWbetaMMLikelihoodFilter;
+  //dswbetammLikelihoodFilterType::Pointer  m_DSWbetaMMLikelihoodFilter;
 };
 
 

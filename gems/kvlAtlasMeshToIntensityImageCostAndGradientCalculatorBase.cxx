@@ -15,6 +15,7 @@ AtlasMeshToIntensityImageCostAndGradientCalculatorBase
 {
 
     m_LikelihoodFilter = 0;
+    m_DiffusionLikelihoodFilter = 0;
 
 }
 
@@ -49,12 +50,34 @@ AtlasMeshToIntensityImageCostAndGradientCalculatorBase
 //
 void
 AtlasMeshToIntensityImageCostAndGradientCalculatorBase
+::SetDiffusionImages( const std::vector< ImageType::ConstPointer >& images )
+{
+    if (!m_DiffusionLikelihoodFilter)
+      return;
+
+    //
+    for ( unsigned int contrastNumber = 0; contrastNumber < images.size(); contrastNumber++ )
+    {
+        m_DiffusionLikelihoodFilter->SetInput( contrastNumber, images[ contrastNumber ]);
+    }
+
+}
+
+
+//
+//
+//
+void
+AtlasMeshToIntensityImageCostAndGradientCalculatorBase
 ::Rasterize( const AtlasMesh* mesh )
 {
 
   // Make sure the likelihoods are up-to-date
   //m_LikelihoodFilter->SetNumberOfThreads( 1 );
   m_LikelihoodFilter->Update();
+
+  if (m_DiffusionLikelihoodFilter)
+    m_DiffusionLikelihoodFilter->Update();
 
   // Now rasterize
   Superclass::Rasterize( mesh );

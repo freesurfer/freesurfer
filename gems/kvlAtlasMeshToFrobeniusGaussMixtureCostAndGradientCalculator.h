@@ -45,10 +45,10 @@ public:
 
     //void SetGaussianImages( const std::vector<ImageType::ConstPointer>& images);
 
-    void SetFrobeniusImages( const std::vector<ImageType::ConstPointer>& images);
+    //void SetFrobeniusImages( const std::vector<ImageType::ConstPointer>& images);
 
     /** */
-    void Rasterize( const AtlasMesh* mesh ) override;
+    //void Rasterize( const AtlasMesh* mesh ) override;
 
 protected:
     AtlasMeshToFrobeniusGaussMixtureCostAndGradientCalculator();
@@ -75,7 +75,7 @@ private:
   //
   typedef GMMLikelihoodImageFilter< ImageType >  gmmLikelihoodFilterType;
   typedef FrobMMLikelihoodImageFilter< ImageType >  frobmmLikelihoodFilterType;
-  frobmmLikelihoodFilterType::Pointer  m_FrobMMLikelihoodFilter;
+  //frobmmLikelihoodFilterType::Pointer  m_FrobMMLikelihoodFilter;
 };
 
 
