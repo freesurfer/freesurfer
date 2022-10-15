@@ -5390,6 +5390,10 @@ MATRIX *RegLandmarks::ComputeReg(MATRIX *R)
       y->rptr[r+1][c+1] = txyz[r][c];
     }
   }
+  MATRIX *Xnorm = MatrixNormalizeCol(X,NULL,NULL);
+  double Xcond = MatrixNSConditionNumber(Xnorm);
+  MatrixFree(&Xnorm);
+  printf("normalized condition = %g\n",Xcond);
   MATRIX *Xt = MatrixTranspose(X,NULL);
   MATRIX *XtX = MatrixMultiply(Xt,X,NULL);
   MATRIX *iXtX = MatrixInverse(XtX,NULL);
@@ -5480,4 +5484,42 @@ int RegLandmarks::ReadJsonPair(std::string jsonfile1,std::string jsonfile2)
     txyz.push_back(vrow);
   }
   return(0);
+}
+
+int RegLandmarks::WriteCoords(const char *fname, const LTA *lta)
+{
+  FILE *fp = fopen(fname,"w");
+  if(fp==NULL) return(1);
+  for(int n=0; n < sxyz.size(); n++){
+    fprintf(fp,"%9.4lf %9.4lf %9.4lf %9.4lf %9.4lf %9.4lf",
+	    sxyz[n][0],sxyz[n][1],sxyz[n][2],txyz[n][0],txyz[n][1],txyz[n][2]);
+    if(lta == NULL){
+      fprintf(fp,"\n");
+      continue;
+    }
+    MATRIX *ras = MatrixAlloc(4,1,MATRIX_REAL); ras->rptr[4][1] = 1;
+    for(int k=0; k < 3; k++) ras->rptr[k+1][1] = sxyz[n][k];
+    MATRIX *newras = MatrixMultiplyD(lta->xforms[0].m_L,ras,NULL);
+    fprintf(fp," %9.4lf %9.4lf %9.4lf\n",newras->rptr[1][1],newras->rptr[2][1],newras->rptr[3][1]);
+    MatrixFree(&ras);
+    MatrixFree(&newras);
+  }
+  return(0);
+}
+fsPointSet RegLandmarks::Coords2PointSet(const LTA *lta)
+{
+  fsPointSet ps;
+  for(int n=0; n < sxyz.size(); n++){
+    MATRIX *ras = MatrixAlloc(4,1,MATRIX_REAL); ras->rptr[4][1] = 1;
+    for(int k=0; k < 3; k++) ras->rptr[k+1][1] = sxyz[n][k];
+    MATRIX *newras = MatrixMultiplyD(lta->xforms[0].m_L,ras,NULL);
+    fsPointSet::Point p;
+    p.x = newras->rptr[1][1];
+    p.y = newras->rptr[2][1];
+    p.z = newras->rptr[3][1];
+    ps.add(p);
+    MatrixFree(&ras);
+    MatrixFree(&newras);
+  }
+  return(ps);
 }
