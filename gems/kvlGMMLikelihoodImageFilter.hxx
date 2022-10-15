@@ -205,6 +205,40 @@ GMMLikelihoodImageFilter< TInputImage >
   
 }
 
+
+//----------------------------------------------------------------------------
+template< typename TInputImage >
+void
+GMMLikelihoodImageFilter< TInputImage >
+::BeforeThreadedGenerateData(const RegionType region)
+{
+  // Check to verify all inputs are specified and have the same metadata,
+  // spacing etc...
+  const unsigned int numberOfInputs = this->GetNumberOfIndexedInputs();
+
+  for ( unsigned int i = 0; i < numberOfInputs; i++ )
+    {
+    InputImageType *input = itkDynamicCastInDebugMode< InputImageType * >
+      (this->itk::ProcessObject::GetInput(i) );
+    if ( !input )
+      {
+      itkExceptionMacro(<< "Input " << i << " not set!");
+      }
+    else if ( input->GetLargestPossibleRegion() != region )
+      {
+      itkExceptionMacro(<< "All Inputs must have the same dimensions.");
+      }
+    }
+
+  // Also check that the parameters match the data
+  if ( m_Means[0].size() != numberOfInputs )
+    {
+    itkExceptionMacro(<< "Parameters don't match number of input channels" )
+    }
+
+
+}
+
 //----------------------------------------------------------------------------
 template< typename TInputImage >
 void

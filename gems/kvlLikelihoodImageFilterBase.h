@@ -1,8 +1,7 @@
-#ifndef kvlGMMLikelihoodImageFilter_h
-#define kvlGMMLikelihoodImageFilter_h
+#ifndef kvlLikelihoodImageFilterBase_h
+#define kvlLikelihoodImageFilterBase_h
 
 #include "itkImageToImageFilter.h"
-#include "kvlLikelihoodImageFilterBase.h"
 #include "itkArray.h"
 #include <vector>
 
@@ -20,20 +19,24 @@ namespace kvl
  * for some other signal that no information was present to compute the class likelihoods in specific
  * voxels)
  * 
+ * See https://itk.org/Doxygen/html/classitk_1_1ImageToImageFilter.html for itk::ImageToImageFilter 
+ * implementation, and explanation on BeforeThreadedGenerateData() and ThreadedGenerateData().
  */
 
-template< typename TInputImage > 
-class GMMLikelihoodImageFilter:
-  public LikelihoodImageFilterBase< TInputImage >
+template< typename TInputImage >
+class LikelihoodImageFilterBase:
+  public itk::ImageToImageFilter< TInputImage,
+                                  itk::Image< itk::Array< typename TInputImage::PixelType >,
+                                              TInputImage::ImageDimension > >
 {
 public:
 
-  typedef GMMLikelihoodImageFilter    Self;
+  typedef LikelihoodImageFilterBase    Self;
   typedef itk::SmartPointer< Self >        Pointer;
   typedef itk::SmartPointer< const Self >  ConstPointer;
   itkNewMacro(Self);
 
-  itkTypeMacro(GMMLikelihoodImageFilter, LikelihoodImageFilterBase);
+  itkTypeMacro(LikelihoodImageFilterBase, itk::ImageToImageFilter);
 
   itkStaticConstMacro(Dimension, unsigned int, TInputImage::ImageDimension);
 
@@ -43,39 +46,21 @@ public:
   typedef typename OutputImageType::PixelType  OutputPixelType;
   typedef typename itk::NumericTraits< OutputPixelType >::ValueType  OutputPixelValueType;
   typedef typename InputImageType::RegionType  RegionType;
-  typedef LikelihoodImageFilterBase< InputImageType >  Superclass;
-
-  /** */
-  void SetParameters( const std::vector< vnl_vector< double > >& means, 
-                      const std::vector< vnl_matrix< double > >& variances,
-                      const std::vector< double >&  mixtureWeights,
-                      const std::vector< int >&  numberOfGaussiansPerClass );
+  typedef itk::ImageToImageFilter< InputImageType, OutputImageType >  Superclass;
 
 protected:
-  GMMLikelihoodImageFilter();
-
-  virtual void BeforeThreadedGenerateData();
-  virtual void BeforeThreadedGenerateData(const RegionType region);
-
-  virtual void ThreadedGenerateData(const RegionType & outputRegionForThread, itk::ThreadIdType);
+  LikelihoodImageFilterBase();
+  virtual ~LikelihoodImageFilterBase();
 
 private:
-  GMMLikelihoodImageFilter(const Self &);
+  LikelihoodImageFilterBase(const Self &);
   void operator=(const Self &);
 
-  std::vector< vnl_vector< double > >  m_Means;
-  std::vector< std::vector< vnl_matrix< double > > >  m_Precisions;
-  std::vector< double > m_piTermMultiv;
-  std::vector< std::vector< double > >  m_OneOverSqrtDetCov;
-  std::vector< double >  m_MixtureWeights;
-  std::vector< int >  m_NumberOfGaussiansPerClass;
-  
 };
 
-  
+
 }
 
+#include "kvlLikelihoodImageFilterBase.hxx"
 
-#include "kvlGMMLikelihoodImageFilter.hxx"
-
-#endif
+#endif // kvlLikelihoodImageFilterBase_h
