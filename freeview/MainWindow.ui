@@ -1862,7 +1862,7 @@
     <string>Lock Others</string>
    </property>
    <property name="shortcut">
-    <string>Ctrl+Shift+L</string>
+    <string>Alt+O</string>
    </property>
   </action>
  </widget>

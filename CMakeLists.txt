@@ -119,13 +119,16 @@ endif()
 # all custom find-modules are stored in the cmake subdir
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
+# Use host_os() to get HOST_OS to reference the correct 3rd party package build
+host_os()
+
 # -------- zlib --------
 find_package(ZLIB REQUIRED)
 add_definitions(-DHAVE_ZLIB)
 
 # -------- gfortran/blas/lapack --------
 if(NOT APPLE)
-  if(HOST_OS MATCHES "Ubuntu20" OR HOST_OS MATCHES "Ubuntu222")
+  if(HOST_OS MATCHES "Ubuntu20" OR HOST_OS MATCHES "Ubuntu22")
      # assume gcc8 tools distribution on Ubuntu 20 which contains its own libquadmath and libgfortran
      find_library(GFORTRAN_LIBRARIES HINTS /usr/lib/gcc/x86_64-linux-gnu/8 NAMES libgfortran.a gfortran)
      find_library(BLAS_LIBRARIES NAMES libopenblas.a libblas.a)
@@ -142,15 +145,27 @@ if(NOT APPLE)
   endif()
 endif()
 
+# commented out on 10/2022
 # -------- armadillo --------
-find_package(ARMADILLO)
+# find_package(ARMADILLO)
 
 # -------- petsc --------
 find_package(PETSC)
 
 # -------- itk --------
-set(ITK_DIR ${FS_PACKAGES_DIR}/itk/4.13.0 CACHE PATH "ITK install directory")
+if(NOT ITK_DIR)
+   if(HOST_OS MATCHES "CentOS8" OR HOST_OS MATCHES "CentOS8stream")
+      set(ITK_DIR ${FS_PACKAGES_DIR}/itk/4.13.0_centos8_stream CACHE PATH "ITK install directory")
+   elseif(HOST_OS MATCHES "Ubuntu20" OR HOST_OS MATCHES "Ubuntu22")
+      set(ITK_DIR ${FS_PACKAGES_DIR}/itk/4.13.0_ubuntu20 CACHE PATH "ITK install directory")
+   else()
+      # default for CentOS7, ubuntu18
+      set(ITK_DIR ${FS_PACKAGES_DIR}/itk/4.13.0 CACHE PATH "ITK install directory")
+   endif()
+endif()
+
 find_package(ITK HINTS ${ITK_DIR} REQUIRED)
+message(STATUS "For HOST_OS=${HOST_OS} ITK_DIR=${ITK_DIR}")
 
 # -------- ann --------
 # ANN is only used by mris_resample
@@ -201,19 +216,51 @@ if(BUILD_GUIS)
     # in the nvidia drivers, so as a temporary fix, link directly to the nvidia GL library
     list(APPEND CMAKE_PREFIX_PATH "/usr/lib64/nvidia")
   endif()
+
+  # Output from ...
+  # $ cmake --help-policy CMP0072
+  # 
+  # CMake 3.11 and above prefer to choose GLVND libraries.  This policy provides
+  # compatibility with projects that expect the legacy GL library to be used.
+  # The ``OLD`` behavior for this policy is to set ``OpenGL_GL_PREFERENCE`` to
+  # ``LEGACY``.  The ``NEW`` behavior for this policy is to set
+  # ``OpenGL_GL_PREFERENCE`` to ``GLVND``.
+
+  set(OpenGL_GL_PREFERENCE "LEGACY")
+  # set(OpenGL_GL_PREFERENCE "GLVND")
+
   find_package(OpenGL)
   if(OPENGL_FOUND)
     add_definitions(-DHAVE_OPENGL)
   endif()
 
   # -------- qt --------
+
+  if(NOT Qt5_DIR)
+     if(HOST_OS MATCHES "CentOS7" OR HOST_OS MATCHES "CentOS8" OR HOST_OS MATCHES "CentOS8stream")
+        set(Qt5_DIR ${FS_PACKAGES_DIR}/qt/5.12.11_LTS_cos7/lib/cmake/Qt5 CACHE PATH "Qt5 install directory")
+     elseif(HOST_OS MATCHES "Ubuntu18" OR HOST_OS MATCHES "Ubuntu20" OR HOST_OS MATCHES "Ubuntu22")
+        set(Qt5_DIR ${FS_PACKAGES_DIR}/qt/5.12.11_LTS_ub18/lib/cmake/Qt5 CACHE PATH "Qt5 install directory")
+     else()
+        # default
+        set(Qt5_DIR ${FS_PACKAGES_DIR}/qt/5.12.11_LTS_cos7/lib/cmake/Qt5 CACHE PATH "Qt5 install directory")
+     endif()
+  endif()
+
   find_package(QT)
+  message(STATUS "For HOST_OS=${HOST_OS} Qt5_DIR=${Qt5_DIR}")
 
 endif()
 
 # -------- vtk --------
-set(VTK_DIR ${FS_PACKAGES_DIR}/vtk/7.1 CACHE PATH "VTK install directory")
+
+if(NOT VTK_DIR)
+   set(VTK_DIR ${FS_PACKAGES_DIR}/vtk/7.1 CACHE PATH "VTK install directory")
+endif()
+
 find_package(VTK HINTS ${VTK_DIR})
+message(STATUS "For HOST_OS=${HOST_OS} VTK_DIR=${VTK_DIR}")
+
 if(VTK_FOUND AND VTK_BUILD_SHARED_LIBS)
   # locate all shared vtk libraries
   if(${VTK_VERSION} LESS 7)
@@ -308,12 +355,11 @@ add_custom_target(install-fspy COMMAND ${CMAKE_COMMAND} -D COMPONENT=fspy -P cma
 #             freesurfer build settings
 # --------------------------------------------------
 
-host_os()
 # warnings
 if(NOT NO_CXX_WARN)
   if(WARNING_AS_ERROR)
     set(WARN_AS_ERROR_FLAG "-Werror")
-    if(HOST_OS MATCHES "CentOS8")
+    if(HOST_OS MATCHES "CentOS8" OR HOST_OS MATCHES "CentOS8stream")
        # -Wno-cpp needed with gcc8 for /usr/pubse/packages/vtk 7.1 compiled with older compilers
        # -Wno-restrict needed with gcc8 for ./freesurfer/mris_compute_acorr/mris_compute_acorr.cpp
        # -Wno-format-overflow needed with gcc8 for ./fresurfer/mris2rgb/mris2rgb.cpp
@@ -328,6 +374,7 @@ if(NOT NO_CXX_WARN)
 else ()
    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error -Wno-deprecated-declarations -fpermissive") 
 endif()
+message(STATUS "For HOST_OS=${HOST_OS} CMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}")
 
 # clang complains about -Wno-unused-but-set-variable and says to use -Wno-unused-const-variable
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -707,10 +754,6 @@ endif()
 #       endif()
 #    endif()
 # endif()
-
-# host_os()
-# message(STATUS "FROM top level CMakeLists.txt HOST_OS=${HOST_OS}")
-message(STATUS "Building on host OS ${HOST_OS}")
 
 # Only build some old subdirectories if they exist
 # AND the build host is a certain version of Cent/Redhat OS

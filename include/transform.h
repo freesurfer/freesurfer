@@ -24,6 +24,7 @@
 #include "const.h"
 #include "float.h"
 #include "mri.h"
+#include "pointset.h"
 
 typedef enum { MINC, TKREG, GENERIC, UNKNOWN=-1 } TransformType;
 
@@ -282,6 +283,8 @@ public:
   int ReadSTVPairFile(std::string stvpairfile);
   int ReadJsonPair(std::string jsonfile1,std::string jsonfile2);
   int PrintXYZ(FILE *fp, std::vector<std::vector<double>> xyz);
+  int WriteCoords(const char *fname, const LTA *lta);
+  fsPointSet Coords2PointSet(const LTA *lta);
   MATRIX *ComputeReg(MATRIX *R);
   LTA *ComputeLTA(void);
 };

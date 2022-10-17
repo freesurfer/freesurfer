@@ -15,9 +15,13 @@ namespace kvl
 AtlasMeshToIntensityImageCostAndGradientCalculator
 ::AtlasMeshToIntensityImageCostAndGradientCalculator()
 {
+  /* 
+   * 1. m_LikelihoodFilter is declared as LikelihoodImageFilterBase
+   * 2. m_LikelihoodFilter is holding a GMMLikelihoodImageFilter object
+   */ 
 
-  m_LikelihoodFilter = LikelihoodFilterType::New();  
-  
+  m_LikelihoodFilter = gmmLikelihoodFilterType::New();
+
 }
 
 
@@ -27,23 +31,6 @@ AtlasMeshToIntensityImageCostAndGradientCalculator
 AtlasMeshToIntensityImageCostAndGradientCalculator
 ::~AtlasMeshToIntensityImageCostAndGradientCalculator()
 {
-}
-
-
-
-//
-//
-//
-void 
-AtlasMeshToIntensityImageCostAndGradientCalculator
-::SetImages( const std::vector< ImageType::ConstPointer >& images )
-{
-  // 
-  for ( int contrastNumber = 0; contrastNumber < images.size(); contrastNumber++ )
-    {
-    m_LikelihoodFilter->SetInput( contrastNumber, images[ contrastNumber ] );
-    }
-
 }
 
 
@@ -57,30 +44,18 @@ AtlasMeshToIntensityImageCostAndGradientCalculator
                  const std::vector< double >&  mixtureWeights,
                  const std::vector< int >&  numberOfGaussiansPerClass )
 {
-  m_LikelihoodFilter->SetParameters( means, variances, mixtureWeights, numberOfGaussiansPerClass );
+   /* 
+    * 1. m_LikelihoodFilter is declared as LikelihoodImageFilterBase
+    * 2. m_LikelihoodFilter is holding a GMMLikelihoodImageFilter object
+    * 3. dynamic_case m_LikelihoodFilter to GMMLikelihoodImageFilter, so it can call derived class method SetParameters()
+    */ 
+    dynamic_cast<gmmLikelihoodFilterType*>(m_LikelihoodFilter.GetPointer())
+            ->SetParameters( means,
+                             variances,
+                             mixtureWeights,
+                             numberOfGaussiansPerClass );
 }
 
-
-//
-//
-//
-void
-AtlasMeshToIntensityImageCostAndGradientCalculator
-::Rasterize( const AtlasMesh* mesh )
-{
-
-  // Make sure the likelihoods are up-to-date
-  //m_LikelihoodFilter->SetNumberOfThreads( 1 );
-  m_LikelihoodFilter->Update();
-  
-  // Now rasterize
-  Superclass::Rasterize( mesh );
-  
-}    
-  
-    
-  
- 
 
 //
 //
@@ -177,7 +152,5 @@ AtlasMeshToIntensityImageCostAndGradientCalculator
 
   
 }
-
-
 
 } // end namespace kvl
