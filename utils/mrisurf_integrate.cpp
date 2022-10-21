@@ -166,6 +166,9 @@ int mrisLogIntegrationParms(FILE *fp, MRI_SURFACE *mris, INTEGRATION_PARMS *parm
   if (!FZERO(parms->l_thick_spring)) {
     fprintf(fp, ", l_thick_spring=%2.3f", parms->l_thick_spring);
   }
+  if (!FZERO(parms->l_targetpointset)) {
+    fprintf(fp, ", l_targetpointset=%2.3f", parms->l_targetpointset);
+  }
   fprintf(fp, "\n");
   switch (parms->integration_type) {
     case INTEGRATE_LM_SEARCH:

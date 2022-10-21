@@ -17,7 +17,8 @@
  */
 
 #undef X
-#include "targetpointset.h"
+#include "mrisurf.h"
+#include "surfcluster.h"
 
 int SurfacePointSet::PruneByAngle(void)
 {
@@ -25,8 +26,9 @@ int SurfacePointSet::PruneByAngle(void)
   std::vector<int> npervtxlist2; // number of target points that map to each vertex
   std::vector<std::vector<double>> txyzlist2; // target coords for all vertices
   std::vector<std::vector<double>> dxyz2; // delta from vertex to target
+  std::vector<double> dist2; // angle between surface normal and vector to target
   std::vector<double> angle2; // angle between surface normal and vector to target
-  if(m_debug) fprintf(m_debug_fp,"Prune before n = %d\n",(int)vtxlist.size());
+  if(m_debug) fprintf(m_debug_fp,"Prune Angle before n = %d\n",(int)vtxlist.size());
   for(int n=0; n < vtxlist.size(); n++){
     double a = angle[n];
     if((a < 90 && a > AngleDegThresh) || (a > 90 && (180-a) > AngleDegThresh)) continue;
@@ -35,13 +37,44 @@ int SurfacePointSet::PruneByAngle(void)
     txyzlist2.push_back(txyzlist[n]);
     dxyz2.push_back(dxyz[n]);
     angle2.push_back(angle[n]);
+    dist2.push_back(dist[n]);
   }
   vtxlist = vtxlist2;
   npervtxlist = npervtxlist2;
   txyzlist = txyzlist2;
   dxyz = dxyz2;
   angle = angle2;
-  if(m_debug) fprintf(m_debug_fp,"Prune before n = %d\n",(int)vtxlist.size());
+  dist = dist2;
+  if(m_debug) fprintf(m_debug_fp,"Prune Angle before n = %d\n",(int)vtxlist.size());
+  fflush(m_debug_fp);
+  return(0);
+}
+
+int SurfacePointSet::PruneByDistance(void)
+{
+  std::vector<int> vtxlist2; // all vertices
+  std::vector<int> npervtxlist2; // number of target points that map to each vertex
+  std::vector<std::vector<double>> txyzlist2; // target coords for all vertices
+  std::vector<std::vector<double>> dxyz2; // delta from vertex to target
+  std::vector<double> dist2; // angle between surface normal and vector to target
+  std::vector<double> angle2; // angle between surface normal and vector to target
+  if(m_debug) fprintf(m_debug_fp,"Prune Dist before n = %d\n",(int)vtxlist.size());
+  for(int n=0; n < vtxlist.size(); n++){
+    if(dist[n] < DistMmThresh) continue;
+    vtxlist2.push_back(vtxlist[n]);
+    npervtxlist2.push_back(npervtxlist[n]);
+    txyzlist2.push_back(txyzlist[n]);
+    dxyz2.push_back(dxyz[n]);
+    angle2.push_back(angle[n]);
+    dist2.push_back(dist[n]);
+  }
+  vtxlist = vtxlist2;
+  npervtxlist = npervtxlist2;
+  txyzlist = txyzlist2;
+  dxyz = dxyz2;
+  angle = angle2;
+  dist = dist2;
+  if(m_debug) fprintf(m_debug_fp,"Prune Dist before n = %d\n",(int)vtxlist.size());
   fflush(m_debug_fp);
   return(0);
 }
@@ -145,6 +178,7 @@ MRI *SurfacePointSet::MakeMask(void)
 double SurfacePointSet::CostAndGrad(double weight, int ComputeGradient)
 {
   if(weight==0) return(0);
+  this->MapPointSet(); // inefficient because computed twice (with and without grad)
   double sse = 0;
   for(int n=0; n < vtxlist.size(); n++){
     int vno = vtxlist[n];
@@ -160,6 +194,7 @@ double SurfacePointSet::CostAndGrad(double weight, int ComputeGradient)
     //printf("%3d %6d (%6.3f %6.3f %6.3f) (%6.3f %6.3f %6.3f) %6.4lf %6.4lf\n",
     //	   i,vno,x,y,z,v->x,v->y,v->z,mag,sse);
   }
+  if(m_debug) fprintf(m_debug_fp,"  targetpointset C&G w=%g sse = %g\n",weight,sse);
   return(sse);
 }
 
@@ -414,8 +449,15 @@ int SurfacePointSet::MapPointSet(void)
   // the surface normal. This may or may not be a good idea given that
   // the surface may be twisted in the area.
   if(m_prune_by_angle) this->PruneByAngle();
+  if(m_prune_by_dist)  this->PruneByDistance();
 
   fflush(m_debug_fp);
 
   return(0);
 }
+SurfacePointSet::~SurfacePointSet(){
+    printf("SurfacePointSet::Destructor\n");
+    if(mri) MRIfree(&mri);
+    if(m_debug_fp != stdout && m_debug_fp != stderr) fclose(m_debug_fp);
+    for(int n=0; n < m_shl.size(); n++) SurfHopListFree(&m_shl[n]);
+  }

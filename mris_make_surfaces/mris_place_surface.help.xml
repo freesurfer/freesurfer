@@ -152,8 +152,8 @@
       <argument>--shrink factor</argument>
       <argument>--repluse weight</argument>
       <argument>--surf-repluse weight</argument>
-      <argument>--ps pointset.json weight</argument>
-      <explanation> For pushing the suface away from the repulse-surf (eg, to move pial away from white)</explanation>
+      <argument>--ps weight pointset nhops fill01 angleprune01 AngleDegThresh distprune01 DistMmThresh debug01</argument>
+      <explanation> Target points to locally influence where surface goes</explanation>
       <argument>--location-mov-len LOCATION_MOVE_LEN</argument>
       <explanation> Used in mrisComputeTargetLocationTerm() </explanation>
     </cost-function>

@@ -604,7 +604,8 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
     mrisComputeHistoTerm(mris, parms);
     mrisComputePosteriorTerm(mris, parms);
     mrisComputePosterior2DTerm(mris, parms);
-    MRISpointSetLocationError(mris, parms->l_targetpointset, parms->TargetPointSet,1);
+    parms->TargetPointSet->CostAndGrad(parms->l_targetpointset,1);
+    //MRISpointSetLocationError(mris, parms->l_targetpointset, parms->TargetPointSet,1);
     if (parms->l_osurf_repulse > 0)
       mrisComputeWhichSurfaceRepulsionTerm(mris, -parms->l_osurf_repulse, mht_pial, PIAL_VERTICES, .1);
     if (gMRISexternalGradient) {
