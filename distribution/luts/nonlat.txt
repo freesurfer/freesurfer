@@ -1,0 +1,20 @@
+#  Label Name                    R   G   B   A
+
+0  Unknown                       0   0   0   0  
+1  Left-Cerebral-White-Matter    245 245 245 0  
+2  Left-Cerebral-Cortex          205 62  78  0  
+3  CSF                           120 18  134 0  
+4  Left-Cerebellum-White-Matter  220 248 164 0  
+5  Left-Cerebellum-Cortex        230 148 34  0  
+6  Left-Thalamus                 0   118 14  0  
+7  Left-Caudate                  122 186 220 0  
+8  Left-Putamen                  236 13  176 0  
+9  Left-Pallidum                 12  48  255 0  
+10 Brain-Stem                    119 159 176 0  
+11 Left-Hippocampus              220 216 20  0  
+12 Left-Amygdala                 103 255 255 0  
+13 Left-Lesion                   255 165 0   0  
+14 Left-Accumbens-area           255 165 0   0  
+15 Left-VentralDC                165 42  42  0  
+16 Left-choroid-plexus            0   200 200 0
+
