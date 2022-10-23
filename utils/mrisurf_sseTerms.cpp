@@ -1980,7 +1980,8 @@ double MRISpointSetLocationError(MRIS *surf, double weight, json *pPointSet, int
 double SseTerms_MRIS::TargetPointSetError( INTEGRATION_PARMS *parms)
 {
   if(FZERO(parms->l_targetpointset)) return (0.0f);
-  double sse = MRISpointSetLocationError(mris, parms->l_targetpointset, parms->TargetPointSet, 0);
+  //double sse = MRISpointSetLocationError(mris, parms->l_targetpointset, parms->TargetPointSet, 0);
+  double sse = parms->TargetPointSet->CostAndGrad(parms->l_targetpointset,0);
   return(sse);
 }
 
@@ -2790,7 +2791,7 @@ double vlst_loglikelihood2D(MRIS *mris, MRI *mri, int vno, double displacement, 
       ELTM(sse_corr                  , l_corr,                 !DZERO(l_corr),             mrisComputeCorrelationError(mris, parms, 1)                                     ) \
       ELTM(sse_val                   , parms->l_intensity,     !DZERO(parms->l_intensity), mrisComputeIntensityError(mris, parms)                                          ) \
       ELTM(sse_loc                   , parms->l_location,      !DZERO(parms->l_location),  mrisComputeTargetLocationError(mris, parms)                                     ) \
-      ELTM(sse_tps                   , parms->l_targetpointset,!DZERO(parms->l_targetpointset),  MRISpointSetLocationError(mris, parms->l_targetpointset, parms->TargetPointSet, 0)       ) \
+      ELTM(sse_tps                   , parms->l_targetpointset,!DZERO(parms->l_targetpointset),  parms->TargetPointSet->CostAndGrad(parms->l_targetpointset, 0)            ) \
       ELTM(sse_dura                  , parms->l_dura,          !DZERO(parms->l_dura),      mrisComputeDuraError(mris, parms)                                               ) \
       ELTM(sse_histo                 , parms->l_histo,         !DZERO(parms->l_histo),     mrisComputeHistoNegativeLikelihood(mris, parms)                                 ) \
       ELTM(sse_map                   , parms->l_map,           !DZERO(parms->l_map),       mrisComputeNegativeLogPosterior(mris, parms, NULL)                              ) \

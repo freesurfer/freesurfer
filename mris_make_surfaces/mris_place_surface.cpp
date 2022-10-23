@@ -253,7 +253,8 @@ char *TargetSurfaceFile = NULL;
 int SmoothAfterRip = 0;
 int CBVzero=0;
 int CBVplaceConst(MRI *vol, MRIS *surf, double dmin, double dmax, double dstep, double targetval);
-json TargetPointSet;
+SurfacePointSet TargetPointSet;
+json jsonTargetPointSet;
 /*--------------------------------------------------*/
 int main(int argc, char **argv) 
 {
@@ -576,6 +577,8 @@ int main(int argc, char **argv)
     if(CBVO.ReadAltBorderLowLabel()) exit(1);
     printf("AltBorderLowFactor = %g, AltBorderLow = %g\n",CBVO.AltBorderLowFactor,CBVO.AltBorderLow);
   }
+
+  if(parms.l_targetpointset > 0) TargetPointSet.surf = surf;
 
   timer.reset() ;
   printf("n_averages %d\n",n_averages);
@@ -1158,18 +1161,34 @@ static int parse_commandline(int argc, char **argv) {
       printf("l_location = %2.3f\n", parms.l_location) ;
       nargsused = 1;
     }
-    else if (!stricmp(option, "--ps")){
-      if(nargc < 2) CMDargNErr(option,2);
-      std::ifstream istream(pargv[0]);
-      istream >> TargetPointSet;
+    else if (!stricmp(option, "--tps")){
+      // --tps weight pointset nhops fill01 angleprune01 AngleDegThresh distprune01 DistMmThresh debug01
+      if(nargc < 9) {
+	printf("--tps weight pointset nhops fill01 angleprune01 AngleDegThresh debug01\n");
+	CMDargNErr(option,9);
+      }
+      sscanf(pargv[0],"%f",&parms.l_targetpointset);
+      printf("loading point set %s\n",pargv[1]);
+      std::ifstream istream(pargv[1]);
+      istream >> jsonTargetPointSet;
+      int npoints = (int)jsonTargetPointSet["points"].size();
+      if(npoints < 1) fs::fatal() << "could not read point set";
+      TargetPointSet.pPointSet = &(jsonTargetPointSet);
+      sscanf(pargv[2],"%d",&(TargetPointSet.m_nhops));
+      sscanf(pargv[3],"%d",&(TargetPointSet.m_fill_holes));
+      sscanf(pargv[4],"%d",&(TargetPointSet.m_prune_by_angle));
+      sscanf(pargv[5],"%lf",&(TargetPointSet.AngleDegThresh));
+      sscanf(pargv[6],"%d",&(TargetPointSet.m_prune_by_dist));
+      sscanf(pargv[7],"%lf",&(TargetPointSet.DistMmThresh));
+      sscanf(pargv[8],"%d",&(TargetPointSet.m_debug));
       // have to do it with a pointer because of INTEGRATIONPARMS_copy()
       parms.TargetPointSet = &(TargetPointSet);
-      int npoints = (int)TargetPointSet["points"].size();
-      if(npoints < 1) fs::fatal() << "could not read point set";
-      printf("point set has %d points\n",npoints);
-      sscanf(pargv[1],"%f",&parms.l_targetpointset);
-      printf("l_targetpointset = %2.3f\n", parms.l_targetpointset);
-      nargsused = 2;
+      printf("TargetPointSet w=%g, npoints=%d, nhops=%d, fill=%d angle=%d angleth=%lf dist=%d distth=%lf db=%d\n",
+	     parms.l_targetpointset,npoints,TargetPointSet.m_nhops,TargetPointSet.m_fill_holes,
+	     TargetPointSet.m_prune_by_angle,TargetPointSet.AngleDegThresh,
+	     TargetPointSet.m_prune_by_dist,TargetPointSet.DistMmThresh,
+	     TargetPointSet.m_debug);
+      nargsused = 9;
     }
     // ======== End Cost function weights ================
     else if (!stricmp(option, "--location-mov-len")){

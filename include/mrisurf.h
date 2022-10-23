@@ -257,6 +257,43 @@ MRI_SURFACE_PARAMETERIZATION, MRI_SP ;
 /* VECTORIAL_REGISTRATION */
 #include "field_code.h"
 
+
+#include "dtk.fs.h"
+class SurfacePointSet {
+public:
+  MRIS *surf;
+  json *pPointSet;
+  int m_nhops=2;
+  int m_fill_holes = 1;
+  int m_prune_by_angle = 1;
+  double AngleDegThresh = 60; // prune points where vector relative to normal is more than this (abs)
+  int m_prune_by_dist = 1;
+  double DistMmThresh = 1; // prune points when vertex is within this dist of the target
+  int m_debug = 0;
+  FILE *m_debug_fp = stdout;
+  MRI *mri = NULL; // template from surf
+  std::vector<SURFHOPLIST *> m_shl;
+  std::vector<int> m_shl_vtxlist;
+  std::vector<int> psvtxlist; // vertices that map from the point set
+  std::vector<int> vtxlist; // all vertices
+  std::vector<int> npervtxlist; // number of target points that map to each vertex
+  std::vector<std::vector<double>> txyzlist; // target coords for all vertices
+  std::vector<std::vector<double>> dxyz; // delta from vertex to target
+  std::vector<double> angle; // angle between surface normal and vector to target
+  std::vector<double> dist; // dist from vertex to its target
+  int MapPointSet(void);
+  fsPointSet ConvertToPointSet(void); // for debugging, per-vertex, tkreg
+  fsPointSet VerticesToPointSet(void); // for debugging, per-vertex, tkreg
+  int Print(FILE *fp);
+  MRI *MakeMask(void);
+  double CostAndGrad(double weight, int ComputeGradient);
+  DTK_TRACK_SET *ConvertToTrack(int nsteps);
+  int WriteAsPatch(const char *fname,int ndil);
+  int PruneByAngle(void);
+  int PruneByDistance(void);
+  ~SurfacePointSet();
+};
+
 class INTEGRATION_PARMS {
  public:
   double  tol ;               /* tolerance for terminating a step */
@@ -447,7 +484,7 @@ class INTEGRATION_PARMS {
   double       target_intensity ;
   double       stressthresh ;
   int          explode_flag ;
-  json         *TargetPointSet;
+  SurfacePointSet  *TargetPointSet;
   
   /*
     Introduce all initializers in an effort to avoid some memset() calls
@@ -2543,3 +2580,4 @@ public:
   int Read(char *fname); // from file name
   int ReadStream(FILE *fp); // read from stream
 };
+
