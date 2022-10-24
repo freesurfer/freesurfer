@@ -253,8 +253,14 @@ char *TargetSurfaceFile = NULL;
 int SmoothAfterRip = 0;
 int CBVzero=0;
 int CBVplaceConst(MRI *vol, MRIS *surf, double dmin, double dmax, double dstep, double targetval);
+int TargetPointSetFlag = 0;
 SurfacePointSet TargetPointSet;
 json jsonTargetPointSet;
+char *tps_targetpointsetfile = NULL;
+char *tps_vertexpointsetfile = NULL;
+char *tps_maskfile = NULL;
+char *tps_vectorfile = NULL;
+char *tps_patchfile = NULL;
 /*--------------------------------------------------*/
 int main(int argc, char **argv) 
 {
@@ -779,6 +785,9 @@ int main(int argc, char **argv)
   printf("Removing intersections\n");fflush(stdout);    
   MRISremoveIntersections(surf,0); //matches mris_make_surface
 
+  msec = timer.milliseconds() ;
+  printf("#ET# mris_place_surface %5.2f minutes\n", (float)msec/(60*1000.0f));
+
   printf("\n\n");
   printf("Writing output to %s\n",outsurfpath);
   err = MRISwrite(surf,outsurfpath);
@@ -804,8 +813,28 @@ int main(int argc, char **argv)
     MRISrestoreVertexPositions(surf, TMP_VERTICES) ;
   }
 
-  msec = timer.milliseconds() ;
-  printf("#ET# mris_place_surface %5.2f minutes\n", (float)msec/(60*1000.0f));
+  if(tps_targetpointsetfile && TargetPointSetFlag){
+    fsPointSet ps = TargetPointSet.ConvertToPointSet();
+    ps.save(tps_targetpointsetfile);
+  }
+  if(tps_vertexpointsetfile && TargetPointSetFlag){
+    fsPointSet vps = TargetPointSet.VerticesToPointSet();
+    vps.save(tps_vertexpointsetfile);
+  }
+  if(tps_maskfile && TargetPointSetFlag){
+    MRI *tpsmask = TargetPointSet.MakeMask();
+    MRIwrite(tpsmask,tps_maskfile);
+    MRIfree(&tpsmask);
+  }
+  if(tps_vectorfile && TargetPointSetFlag){
+    DTK_TRACK_SET *dtkset = TargetPointSet.ConvertToTrack(10); //10=?
+    DTKwriteTrackSet(tps_vectorfile, dtkset);
+    // Free?
+  }
+  if(tps_patchfile && TargetPointSetFlag){
+    TargetPointSet.WriteAsPatch(tps_patchfile,3); // 3=?
+  }
+
   printf("#VMPC# mris_place_surfaces VmPeak  %d\n",GetVmPeak());
   printf("mris_place_surface done\n");
 
@@ -1117,56 +1146,67 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = 1;
     }
     else if (!stricmp(option, "--hinge")) {
+      if(nargc < 1) CMDargNErr(option,1);
       parms.l_hinge = atof(pargv[0]) ;
       printf("l_hinge = %2.3f\n", parms.l_hinge);
       nargsused = 1;
     }
     else if (!stricmp(option, "--spring_nzr")) {
+      if(nargc < 1) CMDargNErr(option,1);
       parms.l_spring_nzr = atof(pargv[0]) ;
       printf("l_spring_nzr = %2.3f\n", parms.l_spring_nzr) ;
       nargsused = 1;
     }
     else if (!stricmp(option, "--spring")) {
+      if(nargc < 1) CMDargNErr(option,1);
       parms.l_spring = atof(pargv[0]) ;
       printf("l_spring = %2.3f\n", parms.l_spring) ;
       nargsused = 1;
     }
     else if (!stricmp(option, "--tspring")) {
+      if(nargc < 1) CMDargNErr(option,1);
       parms.l_tspring = atof(pargv[0]) ;
       printf("l_tspring = %2.3f\n", parms.l_tspring) ;
       nargsused = 1;
     }
     else if (!stricmp(option, "--nspring")) {
+      if(nargc < 1) CMDargNErr(option,1);
       parms.l_nspring = atof(pargv[0]) ;
       printf("l_nspring = %2.3f\n", parms.l_nspring) ;
       nargsused = 1;
     }
     else if (!stricmp(option, "--curv")){
+      if(nargc < 1) CMDargNErr(option,1);
       parms.l_curv = atof(pargv[0]) ;
       printf("l_curv = %2.3f\n", parms.l_curv) ;
       nargsused = 1;
     }
     else if (!stricmp(option, "--surf-repulse")){
+      if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%f",&parms.l_surf_repulse);
       printf("l_surf_repulse = %2.3f\n", parms.l_surf_repulse);
       nargsused = 1;
     }
     else if (!stricmp(option, "--repulse")){
+      if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%f",&parms.l_repulse);
       printf("l_repulse = %2.3f\n", parms.l_repulse) ;
       nargsused = 1;
     }
     else if (!stricmp(option, "--location")){
+      if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%f",&parms.l_location);
       printf("l_location = %2.3f\n", parms.l_location) ;
       nargsused = 1;
     }
     else if (!stricmp(option, "--tps")){
-      // --tps weight pointset nhops fill01 angleprune01 AngleDegThresh distprune01 DistMmThresh debug01
-      if(nargc < 9) {
-	printf("--tps weight pointset nhops fill01 angleprune01 AngleDegThresh debug01\n");
-	CMDargNErr(option,9);
+      // --tps weight pointset nhops fill01 angleprune01 AngleDegThresh distprune01 DistMmThresh 
+      if(nargc < 8) {
+	printf("--tps weight pointset nhops fill01 angleprune01 AngleDegThresh distprune01 DistMmThresh\n");
+	printf("  also --tps-debug --tps-targetpoinset --tps-vertexpointset --tps-mask --tps-vector --tps-patch\n");
+	CMDargNErr(option,8);
       }
+      TargetPointSetFlag = 1;
       sscanf(pargv[0],"%f",&parms.l_targetpointset);
       printf("loading point set %s\n",pargv[1]);
       std::ifstream istream(pargv[1]);
@@ -1180,15 +1220,39 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[5],"%lf",&(TargetPointSet.AngleDegThresh));
       sscanf(pargv[6],"%d",&(TargetPointSet.m_prune_by_dist));
       sscanf(pargv[7],"%lf",&(TargetPointSet.DistMmThresh));
-      sscanf(pargv[8],"%d",&(TargetPointSet.m_debug));
       // have to do it with a pointer because of INTEGRATIONPARMS_copy()
       parms.TargetPointSet = &(TargetPointSet);
-      printf("TargetPointSet w=%g, npoints=%d, nhops=%d, fill=%d angle=%d angleth=%lf dist=%d distth=%lf db=%d\n",
+      printf("TargetPointSet w=%g, npoints=%d, nhops=%d, fill=%d angle=%d angleth=%lf dist=%d distth=%lf\n",
 	     parms.l_targetpointset,npoints,TargetPointSet.m_nhops,TargetPointSet.m_fill_holes,
 	     TargetPointSet.m_prune_by_angle,TargetPointSet.AngleDegThresh,
-	     TargetPointSet.m_prune_by_dist,TargetPointSet.DistMmThresh,
-	     TargetPointSet.m_debug);
-      nargsused = 9;
+	     TargetPointSet.m_prune_by_dist,TargetPointSet.DistMmThresh);
+      nargsused = 8;
+    }
+    else if (!stricmp(option, "--tps-debug")) TargetPointSet.m_debug = 1;
+    else if (!stricmp(option, "--tps-targetpointset")){
+      if(nargc < 1) CMDargNErr(option,1);
+      tps_targetpointsetfile = pargv[0];
+      nargsused=1;
+    }
+    else if (!stricmp(option, "--tps-vertexpointset")){
+      if(nargc < 1) CMDargNErr(option,1);
+      tps_vertexpointsetfile = pargv[0];
+      nargsused=1;
+    }
+    else if (!stricmp(option, "--tps-mask")){
+      if(nargc < 1) CMDargNErr(option,1);
+      tps_maskfile = pargv[0];
+      nargsused=1;
+    }
+    else if (!stricmp(option, "--tps-vector")){
+      if(nargc < 1) CMDargNErr(option,1);
+      tps_vectorfile = pargv[0];
+      nargsused=1;
+    }
+    else if (!stricmp(option, "--tps-patch")){
+      if(nargc < 1) CMDargNErr(option,1);
+      tps_patchfile = pargv[0];
+      nargsused=1;
     }
     // ======== End Cost function weights ================
     else if (!stricmp(option, "--location-mov-len")){

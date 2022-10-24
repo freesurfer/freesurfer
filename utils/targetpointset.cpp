@@ -456,8 +456,9 @@ int SurfacePointSet::MapPointSet(void)
   return(0);
 }
 SurfacePointSet::~SurfacePointSet(){
-    printf("SurfacePointSet::Destructor\n");
-    if(mri) MRIfree(&mri);
-    if(m_debug_fp != stdout && m_debug_fp != stderr) fclose(m_debug_fp);
-    for(int n=0; n < m_shl.size(); n++) SurfHopListFree(&m_shl[n]);
-  }
+  if(m_debug) printf("SurfacePointSet::Destructor\n");
+  if(mri) MRIfree(&mri);
+  if(m_debug_fp != stdout && m_debug_fp != stderr) fclose(m_debug_fp);
+  for(int n=0; n < m_shl.size(); n++) SurfHopListFree(&m_shl[n]);
+  if(m_debug) printf("SurfacePointSet::Destructor done\n");
+}
