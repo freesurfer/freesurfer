@@ -1065,7 +1065,7 @@
     <string>Show Cursor</string>
    </property>
    <property name="shortcut">
-    <string>Alt+U</string>
+    <string>Alt+Q</string>
    </property>
   </action>
   <action name="actionToggleVoxelCoordinateDisplay">
@@ -1265,6 +1265,7 @@
    </property>
    <property name="font">
     <font>
+     <weight>75</weight>
      <bold>true</bold>
     </font>
    </property>
@@ -1278,6 +1279,7 @@
    </property>
    <property name="font">
     <font>
+     <weight>75</weight>
      <bold>true</bold>
     </font>
    </property>
