@@ -26,9 +26,9 @@
    <property name="geometry">
     <rect>
      <x>0</x>
-     <y>0</y>
-     <width>360</width>
-     <height>1913</height>
+     <y>-86</y>
+     <width>352</width>
+     <height>1985</height>
     </rect>
    </property>
    <layout class="QVBoxLayout" name="verticalLayout">
@@ -651,7 +651,7 @@ of each frame</string>
           <item>
            <widget class="QCheckBox" name="checkBoxSetMidToMin">
             <property name="enabled">
-             <bool>false</bool>
+             <bool>true</bool>
             </property>
             <property name="text">
              <string>Set Mid to Min</string>
@@ -2622,22 +2622,6 @@ of each frame</string>
     <hint type="destinationlabel">
      <x>350</x>
      <y>1747</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>checkBoxAutoSetMid</sender>
-   <signal>toggled(bool)</signal>
-   <receiver>checkBoxSetMidToMin</receiver>
-   <slot>setEnabled(bool)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>170</x>
-     <y>966</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>225</x>
-     <y>967</y>
     </hint>
    </hints>
   </connection>

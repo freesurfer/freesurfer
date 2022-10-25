@@ -1132,8 +1132,8 @@ void LayerPropertyMRI::SetHeatScaleAutoMid(bool bAutoMid)
   if (bAutoMid != m_bHeatScaleAutoMid)
   {
     m_bHeatScaleAutoMid = bAutoMid;
-    if (!bAutoMid)
-      m_bHeatScaleSetMidToMin = false;
+//    if (!bAutoMid)
+//      m_bHeatScaleSetMidToMin = false;
     if (bAutoMid)
     {
       if (m_bHeatScaleSetMidToMin)
@@ -1177,13 +1177,10 @@ void LayerPropertyMRI::SetHeatScaleMinThreshold( double iValue)
       mHeatScaleMinThreshold = iValue;
     }
   }
-  if (m_bHeatScaleAutoMid)
-  {
-    if (m_bHeatScaleSetMidToMin)
+  if (m_bHeatScaleSetMidToMin)
       mHeatScaleMidThreshold = mHeatScaleMinThreshold;
-    else
+  else if (m_bHeatScaleAutoMid)
       mHeatScaleMidThreshold = (mHeatScaleMinThreshold + mHeatScaleMaxThreshold)/2;
-  }
   this->OnColorMapChanged();
 }
 

@@ -461,7 +461,7 @@ void PanelVolume::DoUpdateWidgets()
     ui->checkBoxInvert->setChecked( layer->GetProperty()->GetHeatScaleInvert() );
     ui->checkBoxAutoSetMid->setChecked( layer->GetProperty()->GetHeatScaleAutoMid());
     ui->checkBoxSetMidToMin->setChecked( layer->GetProperty()->GetHeatScaleSetMidToMin());
-    ui->checkBoxSetMidToMin->setEnabled(ui->checkBoxAutoSetMid->isChecked());
+//    ui->checkBoxSetMidToMin->setEnabled(ui->checkBoxAutoSetMid->isChecked());
 
     ui->comboBoxColorMap->clear();
     ui->comboBoxColorMap->addItem( "Grayscale", LayerPropertyMRI::Grayscale );
@@ -1387,12 +1387,6 @@ void PanelVolume::OnCheckBoxSetAutoMid(bool b)
     {
       layer->GetProperty()->SetHeatScaleAutoMid(b);
     }
-  }
-  if (!b)
-  {
-    ui->checkBoxSetMidToMin->blockSignals(true);
-    ui->checkBoxSetMidToMin->setChecked(false);
-    ui->checkBoxSetMidToMin->blockSignals(false);
   }
 }
 

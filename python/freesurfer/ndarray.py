@@ -78,7 +78,7 @@ class ArrayContainerTemplate:
             data: Replace internal data array. Default is None.
         '''
         if data is not None:
-            print('SURFA NOTE: replace arr.copy(data) with arr.new(data)')
+            # print('SURFA NOTE: replace arr.copy(data) with arr.new(data)')
             # to save memory if we're replacing the data, make sure not to create
             # a duplicate instance of the original data before replacing it
             shallow = copy.copy(self)
