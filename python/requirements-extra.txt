@@ -4,6 +4,9 @@ h5py
 torch
 opencv-python
 trimesh
+neurite
+pystrum
+voxelmorph
 
 # these are also required for FS DL utilities, but we need some features
 # that haven't quite made it into the stable releases yet - this should be
