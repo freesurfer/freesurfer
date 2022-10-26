@@ -883,6 +883,13 @@ static int parse_commandline(int argc, char **argv) {
     else if(!strcmp(option, "--no-rip-bg"))       ripmngr.RipBG = 0;
     else if(!strcmp(option, "--rip-midline"))     ripmngr.RipMidline = 1;
     else if(!strcmp(option, "--no-rip-midline"))  ripmngr.RipMidline = 0;
+    else if(!strcmp(option, "--no-rip")){
+      ripmngr.RipWMSA = 0;
+      ripmngr.RipFreeze = 0;
+      ripmngr.RipLesion = 0;
+      ripmngr.RipBG = 0;
+      ripmngr.RipMidline = 0;
+    }
     else if(!strcmp(option, "--no-intensity-proc"))  DoIntensityProc = 0;
     else if(!strcmp(option, "--first-peak-d1"))    CBVfindFirstPeakD1 = 1;
     else if(!strcmp(option, "--no-first-peak-d1")) CBVfindFirstPeakD1 = 0;
@@ -1209,6 +1216,10 @@ static int parse_commandline(int argc, char **argv) {
       TargetPointSetFlag = 1;
       sscanf(pargv[0],"%f",&parms.l_targetpointset);
       printf("loading point set %s\n",pargv[1]);
+      if(!fio_FileExistsReadable(pargv[1])){
+	printf("ERROR: %s does not exist or is not readable\n",pargv[1]);
+	exit(1);
+      }
       std::ifstream istream(pargv[1]);
       istream >> jsonTargetPointSet;
       int npoints = (int)jsonTargetPointSet["points"].size();
