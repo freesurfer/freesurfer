@@ -741,7 +741,7 @@ void LayerPropertyMRI::OnColorMapChanged ()
     {
       if ( has_mask )
       {
-        mHeatScaleTable->AddRGBAPoint( -HeatScaleMaxThreshold + HeatScaleOffset - tiny_fraction, 0, 0, 0, 0 );
+        mHeatScaleTable->AddRGBAPoint( -HeatScaleMaxThreshold - qAbs(HeatScaleOffset) - tiny_fraction, 0, 0, 0, 0 );
       }
       mHeatScaleTable->AddRGBAPoint( -HeatScaleMaxThreshold + HeatScaleOffset, 0, 1, 1, 1 );
       mHeatScaleTable->AddRGBAPoint( -HeatScaleMidThreshold + HeatScaleOffset, 0, 0, 1, 1 );
