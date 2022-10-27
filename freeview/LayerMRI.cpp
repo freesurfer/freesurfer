@@ -3774,7 +3774,7 @@ void LayerMRI::SetMaskLayer(LayerMRI *layer_mask)
         resampler->SetInputConnection(extractor->GetOutputPort());
         resampler->SetOutputSpacing(s1);
         resampler->SetInterpolationModeToNearestNeighbor();
-        threshold->ThresholdByUpper(m_dMaskThreshold);
+        threshold->ThresholdByUpper(m_dMaskThreshold+1e-12);
         threshold->SetInputConnection(resampler->GetOutputPort());
         threshold->ReplaceInOn();
         threshold->ReplaceOutOn();
