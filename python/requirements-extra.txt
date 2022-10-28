@@ -8,12 +8,17 @@ neurite
 pystrum
 voxelmorph
 
+# As of 10/2022, pystrum, neurite and voxelmorph are at versions
+# 0.2, 0.1 and 0.1 respectively (with git tags v0.2, v0.1, v0.1)
+# so commenting out hardcoding what to clone below.
+#
 # these are also required for FS DL utilities, but we need some features
 # that haven't quite made it into the stable releases yet - this should be
 # updated once they do
-git+https://github.com/adalca/pystrum.git@3befbd1166595476e8315fef99bea373bfdc302c
-git+https://github.com/adalca/neurite.git@ac74518f367113ddadca90b70acf12f6a8526839
-git+https://github.com/voxelmorph/voxelmorph.git@80d0c489febfb4fa32b4a247629e79720fbb4c14
+#
+# git+https://github.com/adalca/pystrum.git@3befbd1166595476e8315fef99bea373bfdc302c
+# git+https://github.com/adalca/neurite.git@ac74518f367113ddadca90b70acf12f6a8526839
+# git+https://github.com/voxelmorph/voxelmorph.git@80d0c489febfb4fa32b4a247629e79720fbb4c14
 
 # extra packages required for QA tools
 pandas
