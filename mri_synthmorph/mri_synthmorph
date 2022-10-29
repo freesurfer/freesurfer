@@ -13,14 +13,24 @@ import tensorflow as tf
 import neurite as ne
 import voxelmorph as vxm
 
-
 # Defaults.
 in_shape = (256, 256, 256)
-weights = {
-    'rigid': './testdata/mu40-crazy/models/seg_feat_neck_rigid_3d_256f/10000.h5',
-    'affine': './testdata/mu40-crazy/models/seg_feat_neck_noise_3_3d_256f/10000.h5',
-    'deform': './testdata/mu40-crazy/weights_def_half.h5',
-}
+
+if os.getenv("FREESURFER_HOME") is not None:
+   # use freesurfer install paths
+   base_path = os.environ['FREESURFER_HOME'] + '/' + 'models'
+   weights = {
+       'rigid': base_path + '/' + 'mu40-crazy/seg_feat_neck_rigid_3d_256f/10000.h5',
+       'affine': base_path + '/' + 'mu40-crazy/seg_feat_neck_noise_3_3d_256f/10000.h5',
+       'deform': base_path + '/' + 'mu40-crazy/weights_def_half.h5',
+   }
+else:
+   # use your own local paths
+   weights = {
+       'rigid': '/autofs/cluster/fssubjects/test/mu40-crazy/models/seg_feat_neck_rigid_3d_256f/10000.h5',
+       'affine': '/autofs/cluster/fssubjects/test/mu40-crazy/models/seg_feat_neck_noise_3_3d_256f/10000.h5',
+       'deform': '/autofs/cluster/fssubjects/test/mu40-crazy/weights_def_half.h5',
+   }
 
 
 # References.
