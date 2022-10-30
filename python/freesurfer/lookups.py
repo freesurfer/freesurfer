@@ -1951,22 +1951,15 @@ def nonlateral_aseg_recoder(include_lesions=False):
         else:
             continue ;
 
-        if key == 31 or key == 63:
-            print(f'key {key}, name {name}')
-
         if name not in include_list:
             continue
 
         source_key = key
         target_list = rlut.target_lut.search(name)
-        if key == 31 or key == 63 or 0:
-            print(f'target_list {target_list}')
 
         if len(target_list) == 0:  # not already
             target_key = len(rlut.target_lut)
             rlut.target_lut.add(target_key, name, source_lut[key].color)
-            if key == 31 or key == 63 or 0:  # disabled
-                print(f'adding key {target_key} : {name}, len now {len(rlut.target_lut)}')
         else:
             target_key = target_list[0]
 
