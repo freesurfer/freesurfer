@@ -1190,8 +1190,8 @@ int main(int argc, char **argv) {
     printf("done.\n"); fflush(stdout);
     printf("Loganizing\n"); fflush(stdout);
     MRIloganize(&(mriglm->Xg), &(mriglm->y), &(mriglm->pvr[0]),RTM_TimeMin,Logan_Tstar/60);
-    MRIwrite(mriglm->y,"tmp.y.mgh");
-    MRIwrite(mriglm->pvr[0],"tmp.pvr.mgh");
+    //MRIwrite(mriglm->y,"tmp.y.mgh");
+    //MRIwrite(mriglm->pvr[0],"tmp.pvr.mgh");
     nContrasts = 1;
     mriglm->glm->ncontrasts = nContrasts;
     //------------------------------------------
