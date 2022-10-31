@@ -6550,7 +6550,7 @@ MRI *MRIgaussianSmoothNI(MRI *src, double cstd, double rstd, double sstd, MRI *t
 
 #ifdef HAVE_OPENMP
   //if (Gdiag_no > 0)
-    printf("MRIgaussianSmoothNI(): %d avail. processors, running in %d threads\n", omp_get_num_procs(), omp_get_max_threads());
+  //printf("MRIgaussianSmoothNI(): %d avail. processors, running in %d threads\n", omp_get_num_procs(), omp_get_max_threads());
 #endif
 
   /* -----------------Smooth the columns -----------------------------*/
