@@ -11,7 +11,8 @@ target_dir=$1
 # arch_prefix="mu40-crazy"
 arch_prefix=$2
 
-# (cd $target_dir && git annex unlock ${arch_prefix}.tgz)
 (cd $target_dir && git annex unlock ${arch_prefix}.tgz > /dev/null 2>&1)
 (cd $target_dir && rm -rf $arch_prefix && tar zxpf ${arch_prefix}.tgz)
-(cd $target_dir && ls $arch_prefix > /dev/null 2>&1)
+(cd $target_dir && rm -f ${arch_prefix}.tgz > /dev/null 2>&1)
+(cd $target_dir && git checkout ${arch_prefix}.tgz > /dev/null 2>&1)
+
