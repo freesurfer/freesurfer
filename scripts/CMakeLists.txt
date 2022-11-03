@@ -182,6 +182,7 @@ install_configured(
   pctsurfcon
   plot_structure_stats.tcl
   polyorder
+  post-recon-all
   print_unique_labels.csh
   progressbar.tcl
   qdec
