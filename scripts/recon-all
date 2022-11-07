@@ -2915,8 +2915,8 @@ endif
 ##-------------         -maskbfs       ---------------#
 #--------------                        ---------------#
 if($DoMaskBFS) then
-  echo "#--------------------------------------------" \
-    |& tee -a $LF  |& tee -a $CF
+  # This logic has become a mess
+  echo "#--------------------------------------------" |& tee -a $LF  |& tee -a $CF
   echo "#@# Mask BFS `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
   cd $subjdir/mri > /dev/null
   set xopts = `fsr-getxopts mri_mask $XOptsFile $GlobXOptsFile`;
@@ -2926,24 +2926,32 @@ if($DoMaskBFS) then
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $fs_time $cmd |& tee -a $LF
   if($status) goto error_exit;
-  # if they exist, transfer finalsurfs edits (voxels=255 and voxels=1)
+  # If edits exist in local folder, transfer finalsurfs edits (voxels=255 and voxels=1).
+  # Note that if cross or base edits exist, they should be transferred on the first 
+  # round. If a manedit in long is created later, that will be incorporated on top
+  # of the existing man edits from cross/base; the manedit from cross/base will no
+  # longer be consdidered (but that's ok because the edits were already incorporated;
+  # in theory, one should not change the manedit from cross or base once the long
+  # is created).
   if( -e brain.finalsurfs.manedit.mgz ) then
     set cmd = (mri_mask -transfer 255)
     set cmd = ($cmd -keep_mask_deletion_edits)
-    set cmd = ($cmd brain.finalsurfs.mgz brain.finalsurfs.manedit.mgz \
-        brain.finalsurfs.mgz)
+    set cmd = ($cmd brain.finalsurfs.mgz brain.finalsurfs.manedit.mgz brain.finalsurfs.mgz)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
   else
     set bfmanedit = ${SUBJECTS_DIR}/${tpNid}/mri/brain.finalsurfs.manedit.mgz
+    if($longitudinal && $LongTransferBaseBFS) then
+      set bfmanedit = ${SUBJECTS_DIR}/${longbaseid}/mri/brain.finalsurfs.manedit.mgz
+    endif
     if ( $longitudinal && -e $bfmanedit && ! $LongSamseg) then
       # transfer edits from cross
       set cmd = (mri_mask -transfer 255)
       set cmd = ($cmd -keep_mask_deletion_edits)
-      set cmd = ($cmd -xform $tpNtobase_regfile)
+      if(! $LongTransferBaseBFS) set cmd = ($cmd -xform $tpNtobase_regfile)
       set cmd = ($cmd brain.finalsurfs.mgz)
-      set cmd = ($cmd ${SUBJECTS_DIR}/${tpNid}/mri/brain.finalsurfs.manedit.mgz)
+      set cmd = ($cmd $bfmanedit)
       set cmd = ($cmd brain.finalsurfs.mgz)
       echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
       if($RunIt) $fs_time $cmd |& tee -a $LF
