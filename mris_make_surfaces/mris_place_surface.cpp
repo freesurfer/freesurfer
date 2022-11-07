@@ -161,6 +161,8 @@ public:
 int MRISripBasalGanglia(MRIS *surf, MRI *seg, const int RequireAnnot, const double dmin, const double dmax, const double dstep);
 int MRISripSegs(MRIS *surf, MRI *seg, const double dmin, const double dmax, const double dstep);
 int MRISpinMedialWallToWhite(MRIS *surf, const LABEL *cortex);
+int MRIsetCRS(MRI *invol, std::vector<std::vector<int>> crslist, int frame, double val);
+std::vector<std::vector<int>> MRItrack255(MRI *invol);
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -261,6 +263,10 @@ char *tps_vertexpointsetfile = NULL;
 char *tps_maskfile = NULL;
 char *tps_vectorfile = NULL;
 char *tps_patchfile = NULL;
+char *outvolpath=NULL; // save preprocessed volume
+int Restore255=0;
+int outvolonly = 0;
+
 /*--------------------------------------------------*/
 int main(int argc, char **argv) 
 {
@@ -439,8 +445,19 @@ int main(int argc, char **argv)
     printf("Reading in wm volume %s\n",wmvolpath);
     wm = MRIread(wmvolpath);
     if(wm==NULL) exit(1);
+
+    // Special for when invol=255. 255 means that someone edited the
+    // brain.finalsurfs. Clipping will set them to 110, and then, if
+    // the 255 (now 110) are outside of the wm.mgz mask and
+    // surf=white, they will be set to 0, which is not what we want
+    // because someone specifically edited them to be in the SCM. So
+    // this keeps track of which voxels are 255 so that they can be
+    // restored to 110 below.
+    std::vector<std::vector<int>> crs255;
+    if(surftype == GRAY_WHITE && Restore255) crs255 = MRItrack255(invol);
+      
     // Clip invol invol voxel intensity to 110 (if it is in the wmmask)
-    MRIclipBrightWM(invol, wm) ;
+    MRIclipBrightWM(invol, wm);
     
     MRI *mri_labeled = MRIfindBrightNonWM(invol, wm) ;
     MRIfree(&wm);
@@ -450,6 +467,10 @@ int main(int argc, char **argv)
       // Can this be done for pial as well?
       MRImask(invol, mri_labeled, invol, BRIGHT_LABEL, 0) ;
       MRImask(invol, mri_labeled, invol, BRIGHT_BORDER_LABEL, 0) ;
+      if(Restore255) {
+	printf("Restoring 255->110 %d\n",(int)crs255.size());
+	MRIsetCRS(invol, crs255, 0, 110);
+      }
     }
     
     if(surftype == GRAY_CSF){
@@ -482,6 +503,14 @@ int main(int argc, char **argv)
       involPS  = invol;
     }
     MRIfree(&mri_labeled);
+    if(outvolpath) {
+      err = MRIwrite(invol,outvolpath);
+      if(err) exit(err);
+      if(outvolonly){
+	printf("output volume only requested so exiting now\n");
+	exit(0);
+      }
+    }
     // ========= End intensity volume preproc ===================
   }
   else {
@@ -900,7 +929,7 @@ static int parse_commandline(int argc, char **argv) {
     else if(!strcmp(option, "--lh"))  hemi = "lh";
     else if(!strcmp(option, "--rh"))  hemi = "rh";
     else if(!strcmp(option, "--smooth-after-rip"))  SmoothAfterRip = 1;
-
+    else if(!strcmp(option, "--restore-255"))  Restore255=1;
     else if(!strcmp(option, "--rip-projection")){
       if(nargc < 3) CMDargNErr(option,3);
       sscanf(pargv[0],"%lf",&ripmngr.dmin);
@@ -987,11 +1016,23 @@ static int parse_commandline(int argc, char **argv) {
       surftype = GRAY_CSF;
       nargsused = numImages*2+1;
 
-    }else if(!strcmp(option, "--i")){
+    }
+    else if(!strcmp(option, "--i")){
       if(nargc < 1) CMDargNErr(option,1);
       insurfpath = pargv[0];
       parms.l_tspring = 0.3;
       parms.l_nspring = 0.3;
+      nargsused = 1;
+    }
+    else if(!strcmp(option, "--outvol")){
+      if(nargc < 1) CMDargNErr(option,1);
+      outvolpath = pargv[0];
+      nargsused = 1;
+    }
+    else if(!strcmp(option, "--outvol-only")){
+      if(nargc < 1) CMDargNErr(option,1);
+      outvolpath = pargv[0];
+      outvolonly = 1;
       nargsused = 1;
     }
     else if(!strcmp(option, "--blend-surf")){
@@ -1926,6 +1967,36 @@ int CBVplaceConst(MRI *vol, MRIS *surf, double dmin, double dmax, double dstep, 
   }
   MRIfree(&mri2);
 
+  return(0);
+}
+
+std::vector<std::vector<int>> MRItrack255(MRI *invol)
+{
+  std::vector<std::vector<int>> crs255;
+
+  for(int c=0; c < invol->width; c++){
+    for(int r=0; r < invol->height; r++){
+      for(int s=0; s < invol->depth; s++){
+	double val = MRIgetVoxVal(invol,c,r,s,0);
+	if(val != 255) continue;
+	std::vector<int> crs = {c,r,s};
+	crs255.push_back(crs);
+      }
+    }
+  }
+  printf("MRItrack255() nhits = %d\n",(int)crs255.size());
+  return(crs255);
+}
+
+int MRIsetCRS(MRI *invol, std::vector<std::vector<int>> crslist, int frame, double val)
+{
+  for(int n=0; n < crslist.size(); n++){
+    int c = crslist[n][0];
+    int r = crslist[n][1];
+    int s = crslist[n][2];
+    // should check if out of bounds
+    MRIsetVoxVal(invol,c,r,s,frame,val);
+  }
   return(0);
 }
 
