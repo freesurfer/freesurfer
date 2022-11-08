@@ -112,6 +112,8 @@ typedef struct {
   int optschema;
   int seed=53;
   char *movoutfile=NULL;
+  char *InitRegSave=NULL;
+  int InitRegSaveOnly = 0;
 } CMDARGS;
 CMDARGS *cmdargs;
 
@@ -381,6 +383,38 @@ int main(int argc, char *argv[]) {
   coreg->optschema = cmdargs->optschema;
   coreg->debug = debug;
 
+  // Initial parameters
+  printf("Init matrix params ");
+  for(n=0; n < 12; n++){
+    printf("%7.4lf ",cmdargs->params[n]);
+    coreg->mparams[n] = cmdargs->params[n];
+  }
+  printf("\n");
+
+  {
+    // Get the initial reg
+    MATRIX *T = TranformAffineParams2Matrix(cmdargs->params, NULL);
+    MatrixInverse(T,T);
+    LTA *lta = LTAcreate(coreg->mov, coreg->ref, T, LINEAR_RAS_TO_RAS);
+    if(cmdargs->subject)  strncpy(lta->subject,cmdargs->subject,sizeof(lta->subject)-1);
+    else                  strncpy(lta->subject,"unknown",       sizeof(lta->subject)-1);
+    printf("Initial Matrix (RAS2RAS)\n");
+    MatrixPrint(stdout,T);
+    if(cmdargs->InitRegSave){
+      int err = LTAwrite(lta,cmdargs->InitRegSave);
+      if(err) exit(err);
+      if(cmdargs->InitRegSaveOnly){
+	printf("--init-reg-save-only requested so exiting now\n");
+	exit(0);
+      }
+    }
+  }
+
+  COREGmatrixPar2OptSchema(coreg, cmdargs->params);
+  printf("Initial parameters to be opt ");
+  for(n=0; n < cmdargs->dof; n++) printf("%7.4lf ",coreg->params[n]);
+  printf("\n");
+
   if(coreg->DoCoordDither){
     // Creating a dither volume is needed for thread safety
     printf("Creating random numbers for coordinate dithering\n");
@@ -410,18 +444,6 @@ int main(int argc, char *argv[]) {
   } 
   else printf("NOT Performing intensity dithering\n");
   fflush(stdout);
-
-  // Initial parameters
-  printf("Init matrix params ");
-  for(n=0; n < 12; n++){
-    printf("%7.4lf ",cmdargs->params[n]);
-    coreg->mparams[n] = cmdargs->params[n];
-  }
-  printf("\n");
-  COREGmatrixPar2OptSchema(coreg, cmdargs->params);
-  printf("Initial parameters to be opt ");
-  for(n=0; n < cmdargs->dof; n++) printf("%7.4lf ",coreg->params[n]);
-  printf("\n");
 
   coreg->nsep = cmdargs->nsep;
   coreg->sepmin = 100;
@@ -922,6 +944,17 @@ static int parse_commandline(int argc, char **argv) {
       cmdargs->cras0 = 0;
       nargsused = 1;
     }
+    else if (!strcasecmp(option, "--init-reg-save")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      cmdargs->InitRegSave = pargv[0]; 
+      nargsused = 1;
+    }
+    else if (!strcasecmp(option, "--init-reg-save-only")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      cmdargs->InitRegSave = pargv[0]; 
+      cmdargs->InitRegSaveOnly = 1;
+      nargsused = 1;
+    }
     else if(!strcmp(option, "--no-coord-dither")) cmdargs->DoCoordDither = 0;  
     else if(!strcmp(option, "--no-intensity-dither"))   cmdargs->DoIntensityDither = 0;
     else if(!strcmp(option, "--no-dither")){
@@ -1006,6 +1039,8 @@ static void print_usage(void) {
   printf("   --ref-fwhm fwhm : apply smoothing to ref\n");
   printf("   --mov-oob : count mov voxels that are out-of-bounds as 0\n");
   printf("   --no-mov-oob : do not count mov voxels that are out-of-bounds as 0 (default)\n");
+  printf("   --init-reg-save initreg.lta : save initial registration\n");
+  printf("   --init-reg-save-only initreg.lta : save initial registration and exit\n");
   printf("   --mat2par reg.lta : extract parameters out of registration\n");
   printf("   --mat2rot reg.lta rotreg.lta: convert registration to a pure rotation\n");
   printf("   --par2mat par1-par12 srcvol trgvol reg.lta : convert parameters to a  registration\n");
