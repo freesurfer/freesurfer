@@ -6127,3 +6127,140 @@ int MRIfillTriangle(MRI *vol, double p1[3], double p2[3], double p3[3], double d
   }
   return(nhits);
 }
+
+int BinarizeMRI::dump(MRI *invol, const MRI *mask, MRI *outvol)
+{
+  fprintf(m_debugfp,"BinarizeMRI: ");
+  fprintf(m_debugfp,"BinType=%d ",BinType);
+  if(BinType == 1) fprintf(m_debugfp," thmin=%g thmax=%g ",thmin,thmax);
+  if(BinType == 2) {
+    fprintf(m_debugfp,"match N=%d ",(int)matchlist.size());
+    for(int n=0; n < matchlist.size(); n++) fprintf(m_debugfp,"%d ",matchlist[n]);
+  }
+  if(mask) fprintf(m_debugfp,"maskthmin=%g maskthmax=%g ",maskthmin,maskthmax);
+  fprintf(m_debugfp,"zce=%d zre=%d zse=%d ",ZeroColEdges,ZeroRowEdges,ZeroSliceEdges);
+  fprintf(m_debugfp,"on=%g off=%g ",OnVal,OffVal);
+  fprintf(m_debugfp,"fstart=%d fend=%d ",fstart,fend);
+  fprintf(m_debugfp,"invert=%d ",invert);
+  fprintf(m_debugfp,"DoAbs=%d ",DoAbs);
+  fprintf(m_debugfp,"mritype=%d ",mritype);
+  fprintf(m_debugfp,"\n");
+  if(BinType == 1 && matchlist.size() > 0){
+    fprintf(m_debugfp,"WARNING: BinType=1 but matchlist not empty N=%d\n",(int)matchlist.size());
+  }
+  fflush(m_debugfp);
+  return(0);
+}
+MRI *BinarizeMRI::binarize(MRI *invol, const MRI *mask, MRI *outvol)
+{
+  if(m_debug) dump(invol, mask, outvol);
+
+  if(invol == NULL) {
+    printf("ERROR: BinarizeMRI::binarize(): input is NULL\n");
+    return(NULL);
+  }
+  if(BinType == 1 && matchlist.size() > 0){
+    printf("WARNING: BinarizeMRI::binarize(): BinType=1 but matchlist not empty N=%d\n",(int)matchlist.size());
+    dump(invol, mask, outvol);
+    fflush(stdout);
+  }
+  if(fstart < 0) fstart = 0;
+  if(fend < 0)   fend = invol->nframes;
+  if(fend > invol->nframes){
+    printf("ERROR: BinarizeMRI::binarize(): fend=%d >= nframes=%d\n",fend,invol->nframes);
+    dump(invol, mask, outvol);
+    return (NULL);
+  }
+  if(mask){
+    if(MRIdimMismatch(invol, mask, 0)) {
+      printf("ERROR: BinarizeMRI::binarize(): input/mask dim mismatch\n");
+      return (NULL);
+    }
+  }
+  if(outvol == NULL) {
+    int mritypetmp = mritype;
+    if(mritype < 0) mritypetmp = MRI_FLOAT;
+    outvol = MRIallocSequence(invol->width, invol->height, invol->depth, mritypetmp, fend-fstart);
+    if(outvol == NULL) {
+      printf("ERROR: BinarizeMRI::binarize(): could not alloc with type %d\n",mritypetmp);
+      dump(invol, mask, outvol);
+      return(NULL);
+    }
+    MRIcopyHeader(invol, outvol);
+    MRIcopyPulseParameters(invol, outvol);
+  } 
+  else {
+    if(MRIdimMismatch(invol, outvol, 0)) {
+      printf("ERROR: BinarizeMRI::binarize(): input/output dim mismatch\n");
+      dump(invol, mask, outvol);
+      return (NULL);
+    }
+  }
+  // could check output type against On and Off values
+
+  // Swap on and off if inverting (restored below)
+  double OnValtmp=OnVal,OffValtmp=OffVal;
+  if(invert){
+    OnVal = OffValtmp;
+    OffVal = OnValtmp;
+  }
+  if(m_debug) dump(invol, mask, outvol);
+
+  int nhitslocal = 0;
+  #ifdef HAVE_OPENMP
+  #pragma omp parallel for reduction(+ : nhitslocal)
+  #endif
+  for(int c=0; c < invol->width; c++){
+    for(int r=0; r < invol->height; r++){
+      for(int s=0; s < invol->depth; s++){
+	if(mask){
+	  // Skip all frames if not in the mask
+	  double mval = MRIgetVoxVal(mask,c,r,s,0);
+	  if(mval < maskthmin || mval > maskthmax) {
+	    for(int f=fstart; f < fend; f++) MRIsetVoxVal(outvol,c,r,s,0,OffVal);
+	    continue;
+	  }
+	}
+	if((ZeroColEdges   && (c == 0 || c == invol->width-1))  ||
+	   (ZeroRowEdges   && (r == 0 || r == invol->height-1)) ||
+	   (ZeroSliceEdges && (s == 0 || s == invol->depth-1)) ){
+	  // Skip all frames if zeroing edges
+	    for(int f=fstart; f < fend; f++) MRIsetVoxVal(outvol,c,r,s,0,OffVal);
+	    continue;
+	}
+	for(int f=fstart; f < fend; f++){
+	  double sval = MRIgetVoxVal(invol,c,r,s,f);
+	  if(DoAbs) sval = fabs(sval);
+	  double valset = OnVal;
+	  if(BinType == 1){
+	    if(sval < thmin || sval > thmax) valset = OffVal;
+	    else nhitslocal++;
+	  }
+	  else {
+	    valset = OffVal;
+	    for(int n=0; n < matchlist.size(); n++){
+	      if(sval == matchlist[n]){
+		valset = OnVal;
+		nhitslocal++;
+		break;
+	      }
+	    }
+	  }
+	  MRIsetVoxVal(outvol,c,r,s,f,valset);
+	}
+      }
+    }
+  }
+  if(invert){ // restore values
+    OnVal = OnValtmp;
+    OffVal = OffValtmp;
+    nhitslocal = invol->width*invol->height*invol->depth*(fend-fstart)-nhitslocal;
+  }
+
+  nhits = nhitslocal;
+  if(m_debug){
+    fprintf(m_debugfp,"BinarizeMRI: nhits = %d\n",nhits);
+    fflush(m_debugfp);
+  }
+  return(outvol);
+}

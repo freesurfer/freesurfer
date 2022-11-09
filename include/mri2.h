@@ -198,4 +198,37 @@ public:
   int FixSCM(void);
 };
 
+/*!
+  \fn class BinarizeMRI
+  \breif This class is used to help binarize MRIs. This can be done by
+  simple thresholding or by matching values from a list. There are
+  many bells and whistles, eg, inverting, applying to only certain
+  frames, taking abs of the input before thesholding, constraining to
+  a mask, allways zeroing edges.  A Voxel value must be
+  thmin<=val<=thmax to be set; if invert=1, then thmin>val and
+  val>thmax.
+ */
+class BinarizeMRI
+{
+public:
+  int BinType=1; // 1=threshold, 2=match
+  double thmin=0.5, thmax=INFINITY;
+  std::vector<int> matchlist;
+  double maskthmin = 0.5, maskthmax=INFINITY;
+  int ZeroColEdges = 0;
+  int ZeroRowEdges = 0;
+  int ZeroSliceEdges = 0;
+  double OnVal=1, OffVal=0;
+  int fstart=-1, fend=-1;
+  int invert=0;
+  int nhits=0; // total number set to OnVal
+  int mritype=-1; // default will be MRI_FLOAT
+  int DoAbs=0;
+  int m_debug=0;
+  FILE *m_debugfp=stdout;
+  MRI *binarize(MRI *invol, const MRI *mask, MRI *outvol);
+  int dump(MRI *invol, const MRI *mask, MRI *outvol);
+  // add: fdr, match-from-{ctab,ctx,gm,wm,subctx}, bincol, frame ops (sum,min,max,and,or)
+};
+
 #endif
