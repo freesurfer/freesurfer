@@ -10,13 +10,13 @@ from gems.utilities import requireNumpyArray
 
 class ProbabilisticAtlas:
     def __init__(self):
-        self.useWarmDeformationOptimizers = False
-        self.useBlocksForDeformation = False # Use "grouped coordinate-descent (GCD)" 
+        self.useWarmDeformationOptimizers = True
+        self.useBlocksForDeformation = True  # Use "grouped coordinate-descent (GCD)" 
                                              # aka "block coordinate-descent" (Fessler)
 
-        if os.environ.get('SAMSEG_EXPERIMENTAL_BLOCK_COORDINATE_DESCENT') is not None: 
-            self.useWarmDeformationOptimizers = True
-            self.useBlocksForDeformation = True
+        if os.environ.get('SAMSEG_DONT_USE_BLOCK_COORDINATE_DESCENT') is not None: 
+            self.useWarmDeformationOptimizers = False
+            self.useBlocksForDeformation = False
 
         self.previousDeformationMesh = None
 
