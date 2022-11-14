@@ -20,6 +20,7 @@ dir=$1
 
 list_1=( $(find $dir -name "build.make") )
 list_2=( $(find $dir -name "link.txt") )
+list_3=( $(find $dir -name "*.pro") )
 
 for file in ${list_1[@]}
 do
@@ -44,4 +45,12 @@ do
    fi
 done
 
+for file in ${list_3[@]}
+do
+   grep " \-lm" $file > /dev/null 2>&1
+   if [ $? -eq 0 ]; then
+       perl -i -pe's; \-lm;;g' $file 
+       # echo "REMOVED: -lm from $file"
+   fi
+done
 
