@@ -6518,7 +6518,7 @@ MRI *MRIgaussianSmoothNI(MRI *src, double cstd, double rstd, double sstd, MRI *t
   int c, r, s, cstop, rstop, sstop;
   MATRIX *G;
   MATRIX *vr = NULL, *vc = NULL, *vs = NULL;
-  double scale, vmf;
+  long double scale, vmf;
 
   if (targ == NULL) {
     targ = MRIallocSequence(src->width, src->height, src->depth, MRI_FLOAT, src->nframes);
@@ -6549,8 +6549,8 @@ MRI *MRIgaussianSmoothNI(MRI *src, double cstd, double rstd, double sstd, MRI *t
   }
 
 #ifdef HAVE_OPENMP
-  //if (Gdiag_no > 0)
-  //printf("MRIgaussianSmoothNI(): %d avail. processors, running in %d threads\n", omp_get_num_procs(), omp_get_max_threads());
+  if (Gdiag_no > 0)
+    printf("MRIgaussianSmoothNI(): %d avail. processors, running in %d threads\n", omp_get_num_procs(), omp_get_max_threads());
 #endif
 
   /* -----------------Smooth the columns -----------------------------*/
@@ -6716,10 +6716,14 @@ MRI *MRIgaussianSmoothNI(MRI *src, double cstd, double rstd, double sstd, MRI *t
   ROMP_PF_end
   
   if (Gdiag_no > 0) {
-    printf("MRIguassianSmoothNI(): scale = %g\n", scale);
-    printf("MRIguassianSmoothNI(): VMF = %g, VRF = %g\n", vmf, 1.0 / vmf);
+    printf("MRIguassianSmoothNI(): scale = %Lg\n", scale);
+    printf("MRIguassianSmoothNI(): VMF = %Lg, VRF = %Lg\n", vmf, 1.0 / vmf);
   }
 
+/* With 'double scale, vmf', the following section of multi-threaded codes will cause small differences in voxel values 
+ * when smoothing large images with fwhm >= 6 across different number of threads.
+ * Changing 'double scale, vmf' to 'long double' resolves the differences.
+ */
 // Divide by the sum of the kernel so that a smoothed delta function
 // will sum to one and so that a constant input yields const output.
   ROMP_PF_begin
