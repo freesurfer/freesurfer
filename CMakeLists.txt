@@ -32,6 +32,8 @@ option(BUILD_DNG "Build Doug's testing tools" OFF)
 option(FREEVIEW_LINEPROF "Build FreeView with lineprof enabled" OFF)
 option(PROFILING "Complile binaries for profiling with gprof" OFF)
 option(INSTALL_PYTHON_DEPENDENCIES "Install python package dependencies" ON)
+option(BUILD_FORTRAN "Build subdirs with source using gfortran" ON)
+
 #  Modern compilers on new platforms often provide many more warnings than older compilers
 #  for example the gcc 7.5.0 compiler warnings about falling through switch statements
 #  without explicit breaks on every case.  This desired fallthrough behavior causes false
@@ -180,6 +182,14 @@ if(APPLE)
   set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
   find_package(OpenMP)
   set(CMAKE_FIND_LIBRARY_SUFFIXES ${ORIG_LIBRARY_SUFFIXES})
+
+  # With added security in MacOS 12.X (Monterey)
+  # and 13.X (Ventura), permissions may be broken under
+  # /usr/local for accessing gfortran/libs via Homebrew. So for
+  # now, turn off build/install of subdirs using gfortran.
+  if(HOST_OS MATCHES "MacOS-12" OR HOST_OS MATCHES "MacOS-13")
+     set(BUILD_FORTRAN OFF)
+  endif()
 else()
   find_package(OpenMP)
 endif()
@@ -351,6 +361,13 @@ endif()
 
 add_custom_target(install-fspy COMMAND ${CMAKE_COMMAND} -D COMPONENT=fspy -P cmake_install.cmake)
 
+# cmake apparently generates incorrect dependencies/paths
+if(APPLE)
+   if(HOST_OS MATCHES "MacOS-12" OR HOST_OS MATCHES "MacOS-13")
+      add_custom_target(check_macos_depends ALL COMMAND bash ${CMAKE_SOURCE_DIR}/cmake/macos_depends.sh ${CMAKE_SOURCE_DIR})
+   endif()
+endif()
+
 # --------------------------------------------------
 #             freesurfer build settings
 # --------------------------------------------------
@@ -367,6 +384,8 @@ if(NOT NO_CXX_WARN)
     elseif(HOST_OS MATCHES "Ubuntu20" OR HOST_OS MATCHES "Ubuntu22")
        # uses gcc8 as well
        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-builtin -Wall -Wextra ${WARN_AS_ERROR_FLAG} -Wno-cpp -Wno-restrict -Wno-format-overflow -Wno-sign-compare -Wno-unused-result -Wno-unused-parameter")
+    elseif(HOST_OS MATCHES "MacOS-12" OR HOST_OS MATCHES "MacOS-13")
+       set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-non-c-typedef-for-linkage")
     else ()
        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra ${WARN_AS_ERROR_FLAG} -Wno-sign-compare -Wno-unused-result -Wno-unused-parameter")
     endif()
@@ -532,11 +551,17 @@ add_subdirectories(
   mrisp_paint
   python
   samseg
-  scripts
   talairach_afd
-  talairach_avi
+  scripts
   tkregister2
 )
+if(BUILD_FORTRAN)
+  add_subdirectories(
+    talairach_avi
+  )
+else()
+  message(STATUS "For HOST_OS=${HOST_OS} NOT BUILDING talairach subdirs requiring gfortran.")
+endif()
 
 # the following program subdirectories aren't required in the standard recon-all stream.
 # they will be built by default, but not if a minimal build is configured
@@ -798,3 +823,4 @@ endif()
 if(BUILD_DNG)
   add_subdirectory(dngtester)
 endif()
+
