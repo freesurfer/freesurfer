@@ -6298,3 +6298,178 @@ MRI *BinarizeMRI::binarize(MRI *invol, const MRI *mask, MRI *outvol)
   }
   return(outvol);
 }
+
+
+
+
+MRI *DEMorphBinVol::morph(MRI *binvol)
+{
+  check(binvol,NULL,NULL);
+  if(mm_debug) dump(binvol);
+  MRI *outvol = copyFrame(binvol,frame);
+  if(outvol==NULL) return(NULL);
+
+  nchangestot=0;
+  for(int nthmorph=0; nthmorph < nmorph; nthmorph++){
+    int nchanges=0;
+    MRI *binvol0 = copyFrame(outvol,0);
+    #ifdef HAVE_OPENMP
+    #pragma omp parallel for reduction(+:nchanges)
+    #endif
+    for(int c=1; c < binvol->width-1; c++){
+      for(int r=1; r < binvol->height-1; r++){
+	for(int s=1; s < binvol->depth-1; s++){
+	  int binval = MRIgetVoxVal(binvol0,c,r,s,frame);
+	  // For dil, look at unhit voxels to determine whether to hit them
+	  // For ero, look at hit voxels to determine whether to erase them
+	  if((morphtype==1 && binval > 0.5) || (morphtype==2 && binval < 0.5)) continue; 
+	  // Count the number of neighbors that are hit (dil) or unhit (ero)
+	  int nnbrs = 0;
+	  for(int dc=-1; dc <= 1; dc++){
+	    for(int dr=-1; dr <= 1; dr++){
+	      for(int ds=-1; ds <= 1; ds++){
+		if((abs(dc)+abs(dr)+abs(ds))>topo) continue;
+		binval = MRIgetVoxVal(binvol0,c+dc,r+dr,s+ds,0);
+		if((morphtype==1 && binval > 0.5) || (morphtype==2 && binval < 0.5)) nnbrs++;
+		if(nnbrs > nnbrsthresh) break;
+	      }//dslice
+	      if(nnbrs > nnbrsthresh) break;
+	    }//drow
+	    if(nnbrs > nnbrsthresh) break;
+	  }//dcol
+	  if(nnbrs > nnbrsthresh){
+	    // If the number of tagged neighbors is greater than thresh, then hit/erase this voxel
+	    if(morphtype == 1) MRIsetVoxVal(outvol,c,r,s,0,1);
+	    else               MRIsetVoxVal(outvol,c,r,s,0,0);
+	    nchanges++;
+	  }
+	} // slice
+      } // row
+    } // col
+    MRIfree(&binvol0);
+    nchangestot += nchanges;
+    if(mm_debug) printf("DEMorphBinVol::morph(): pass=%d/%d, nchanges = %d, tot = %d\n",nthmorph+1,nmorph,nchanges,nchangestot);
+  }// nthmorph
+
+  return(outvol);
+}
+
+MRI *DEMorphBinVol::morph(MRI *invol, double thmin, double thmax, MRI *mask, MRI *outvol)
+{
+  int err = check(invol, mask, outvol);
+  if(err) return(NULL);
+  MRI *involuse = invol;
+  int free_involuse=0;
+  if(invol->nframes > 1){
+    involuse = copyFrame(invol,frame);
+    free_involuse=1;
+  }
+  BinarizeMRI bm;
+  bm.BinType = 1;
+  bm.thmin = thmin;
+  bm.thmax = thmax;
+  bm.m_debug = mm_debug;
+  bm.m_debugfp = mm_debugfp;
+  MRI *binvol = bm.binarize(involuse, mask, NULL);
+  if(binvol == NULL) return(NULL);
+  outvol = morph(binvol);
+  MRIfree(&binvol);
+  return(outvol);
+}
+MRI *DEMorphBinVol::morph(MRI *invol, std::vector<int> matchlist, MRI *mask, MRI *outvol)
+{
+  int err = check(invol, mask, outvol);
+  if(err) return(NULL);
+  MRI *involuse = invol;
+  int free_involuse=0;
+  if(invol->nframes > 1){
+    involuse = copyFrame(invol,frame);
+    free_involuse=1;
+  }
+  BinarizeMRI bm;
+  bm.BinType = 2;
+  bm.matchlist = matchlist;
+  bm.m_debug = mm_debug;
+  bm.m_debugfp = mm_debugfp;
+  MRI *binvol = bm.binarize(involuse, mask, NULL);
+  if(binvol == NULL) return(NULL);
+  outvol = morph(binvol);
+  MRIfree(&binvol);
+  return(outvol);
+}
+
+int DEMorphBinVol::check(MRI *invol, MRI *ubermask, MRI *outvol)
+{
+  if(invol == NULL) {
+    printf("ERROR: DEMorphBinVol::check(): input is NULL\n");
+    return(1);
+  }
+  if(ubermask){
+    if(MRIdimMismatch(invol, ubermask, 0)) {
+      printf("ERROR: DEMorphBinVol(): input/ubermask dim mismatch\n");
+      return(1);
+    }
+  }
+  if(outvol){
+    if(MRIdimMismatch(invol, outvol, 0)) {
+      printf("ERROR: DEMorphBinVol::check(): input/output dim mismatch\n");
+      return(1);
+    }
+  }
+  if(frame < 0 || frame > invol->nframes){
+    printf("ERROR: DEMorphBinVol::check(): frame=%d, out of range %d\n",frame,invol->nframes);
+    //dump(invol, mask, outvol);
+    return(1);
+  }
+  if(topo < 1 || topo > 3){
+    printf("ERROR: DEMorphBinVol::check(): topo=%d, must be 1, 2, or 3\n",topo);
+    return(1);
+  }
+  if(morphtype != 1 && morphtype != 2){
+    printf("ERROR: DEMorphBinVol::check(): morphtype=%d, must be 1 or 2\n",morphtype);
+    return(1);
+  }
+  return(0);
+}
+int DEMorphBinVol::dump(MRI *binvol)
+{
+  fprintf(mm_debugfp,"DEMorphBinVol: ");
+  fprintf(mm_debugfp,"topo=%d ",topo);
+  fprintf(mm_debugfp,"morphtype=%d ",morphtype);
+  fprintf(mm_debugfp,"nnbrsthresh=%d ",nnbrsthresh);
+  fprintf(mm_debugfp,"frame=%d ",frame);
+  fprintf(mm_debugfp,"nmorph=%d ",nmorph);
+  fprintf(mm_debugfp,"mritype=%d ",mm_mritype);
+  fprintf(mm_debugfp,"\n");
+  fflush(mm_debugfp);
+  return(0);
+}
+
+MRI *DEMorphBinVol::copyFrame(MRI *invol, int frameno)
+{
+  if(frameno < 0 || frameno > invol->nframes){
+    printf("ERROR: DEMorphBinVol::copyFrame(): frameno=%d, out of range %d\n",frameno,invol->nframes);
+    return(NULL);
+  }
+  int mritypetmp = mm_mritype;
+  if(mm_mritype < 0) mritypetmp = MRI_UCHAR;
+  MRI *involfr = MRIallocSequence(invol->width, invol->height, invol->depth, mritypetmp, 1);
+  if(involfr == NULL) {
+    printf("ERROR: DEMorphBinVol::copyFrame(): could not alloc\n");
+    return(NULL);
+  }
+  MRIcopyHeader(invol, involfr);
+  MRIcopyPulseParameters(invol, involfr);
+  #ifdef HAVE_OPENMP
+  #pragma omp parallel for 
+  #endif
+  for(int c=0; c < invol->width; c++){
+    for(int r=0; r < invol->height; r++){
+      for(int s=0; s < invol->depth; s++){
+	double inval = MRIgetVoxVal(invol,c,r,s,frameno);
+	MRIsetVoxVal(involfr,c,r,s,0,inval);
+      }
+    }
+  }
+  return(involfr);
+}

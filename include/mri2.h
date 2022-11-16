@@ -232,4 +232,35 @@ public:
   // add: fdr, match-from-{ctab,ctx,gm,wm,subctx}, bincol, frame ops (sum,min,max,and,or)
 };
 
+/*!
+  \fn class DEMorphBinVol
+  \brief Performs dilation (morphtype=1) and erosion (morphtype=2)
+  type morphological operations on binary MRI volumes. Combining topo
+  with min number of neighbors can allow the extent of
+  dilation/erosion to be controlled better. See class BinarizeMRI 
+  for many options for binarizing before calling these methods.
+ */
+class DEMorphBinVol
+{
+public:
+  int morphtype=1; //1=dil, 2=erode
+  int topo=1; // 1=face neighors, 2=face+edges neighbors, 3=face+edge+corner neighbors
+  int nnbrsthresh=0; // min number of tagged neighbors must exceed this number
+  int nmorph=0; //number of iterations, 0=do nothing
+  int frame=0; // use this frame from the input
+  int nchangestot=0; // set to the number of voxels changed during morph
+  int mm_mritype=-1; // -1 = make output same type as input
+  int mm_debug=1;
+  FILE *mm_debugfp=stdout;
+  int check(MRI *invol, MRI *mask, MRI *outvol);
+  int dump(MRI *binvol);
+  MRI *copyFrame(MRI *invol, int frameno);
+  MRI *morph(MRI *binvol); // basic morph of a binary volumes
+  // These two will binarize for you, then run the morph
+  MRI *morph(MRI *invol, std::vector<int> matchlist, MRI *mask, MRI *outvol);
+  MRI *morph(MRI *invol, double thmin, double thmax, MRI *mask, MRI *outvol);
+};
+
+
+
 #endif
