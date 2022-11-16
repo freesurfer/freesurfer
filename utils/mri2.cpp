@@ -6151,6 +6151,55 @@ int BinarizeMRI::dump(MRI *invol, const MRI *mask, MRI *outvol)
   fflush(m_debugfp);
   return(0);
 }
+
+
+/*!
+  \fn int BinarizeMRI::qualifies(const MRI *invol, const MRI *mask,  int c,  int r,  int s,  int f)
+  \brief Tests whether a given voxel "qualifies", ie, it meets the
+  threshold criteria and (1) is in the mask (if mask is passed), (2)
+  is not on an edge (if edges are being zeroed). If you just want to
+  test for the mask or edge, then you can pass f = -1.
+ */
+int BinarizeMRI::qualifies(const MRI *invol, const MRI *mask,  int c,  int r,  int s,  int f)
+{
+  int qdebug=0;
+  //if(c==4 && r==4 && s==6) qdebug=1;
+  if(mask){
+    double mval = MRIgetVoxVal(mask,c,r,s,0);
+    if(mval < maskthmin || mval > maskthmax){
+      if(qdebug) printf("q: f=%d mval=%g\n",f,mval);
+      return(0);
+    }
+  }
+  if((ZeroColEdges   && (c == 0 || c == invol->width-1))  ||
+     (ZeroRowEdges   && (r == 0 || r == invol->height-1)) ||
+     (ZeroSliceEdges && (s == 0 || s == invol->depth-1)) ) {
+    if(qdebug) printf("q: f=%d edge\n",f);
+    return(0);
+  }
+  if(qdebug) printf("q: f=%d\n",f);
+  if(f < 0) return(1); // just checking edge or mask conditions
+  double sval = MRIgetVoxVal(invol,c,r,s,f);
+  if(DoAbs) sval = fabs(sval);
+  int Q = 1;
+  if(BinType == 1){
+    if(sval < thmin || sval > thmax) Q = 0;
+  }
+  else {
+    Q = 0;
+    for(int n=0; n < matchlist.size(); n++){
+      if(sval == matchlist[n]){
+	Q = 1;
+	break;
+      }
+    }
+  }
+  if(qdebug){
+    printf("  q: sval=%g Q=%d\n",sval,Q);
+    fflush(stdout);
+  }
+  return(Q);
+}
 MRI *BinarizeMRI::binarize(MRI *invol, const MRI *mask, MRI *outvol)
 {
   if(m_debug) dump(invol, mask, outvol);
@@ -6164,6 +6213,7 @@ MRI *BinarizeMRI::binarize(MRI *invol, const MRI *mask, MRI *outvol)
     dump(invol, mask, outvol);
     fflush(stdout);
   }
+  // Compute the limits of the frames
   if(fstart < 0) fstart = 0;
   if(fend < 0)   fend = invol->nframes;
   if(fend > invol->nframes){
@@ -6213,40 +6263,23 @@ MRI *BinarizeMRI::binarize(MRI *invol, const MRI *mask, MRI *outvol)
   for(int c=0; c < invol->width; c++){
     for(int r=0; r < invol->height; r++){
       for(int s=0; s < invol->depth; s++){
-	if(mask){
-	  // Skip all frames if not in the mask
-	  double mval = MRIgetVoxVal(mask,c,r,s,0);
-	  if(mval < maskthmin || mval > maskthmax) {
-	    for(int f=fstart; f < fend; f++) MRIsetVoxVal(outvol,c,r,s,0,OffVal);
-	    continue;
-	  }
-	}
-	if((ZeroColEdges   && (c == 0 || c == invol->width-1))  ||
-	   (ZeroRowEdges   && (r == 0 || r == invol->height-1)) ||
-	   (ZeroSliceEdges && (s == 0 || s == invol->depth-1)) ){
-	  // Skip all frames if zeroing edges
-	    for(int f=fstart; f < fend; f++) MRIsetVoxVal(outvol,c,r,s,0,OffVal);
-	    continue;
+	if(! qualifies(invol,mask,c,r,s,-1)){
+	  // Skip all frames if:
+	  // (1) a mask is specified and vox is not in the mask or 
+	  // (2) edges are being zeroed and vox is on the edge
+	  for(int f=fstart; f < fend; f++) MRIsetVoxVal(outvol,c,r,s,f,OffVal);
+	  continue;
 	}
 	for(int f=fstart; f < fend; f++){
-	  double sval = MRIgetVoxVal(invol,c,r,s,f);
-	  if(DoAbs) sval = fabs(sval);
-	  double valset = OnVal;
-	  if(BinType == 1){
-	    if(sval < thmin || sval > thmax) valset = OffVal;
-	    else nhitslocal++;
+	  double valset;
+	  if(qualifies(invol,NULL,c,r,s,f)) {
+	    // can pass NULL as mask above because we already know
+	    // about mask at this voxel from above
+	    valset = OnVal;
+	    nhitslocal++;
 	  }
-	  else {
-	    valset = OffVal;
-	    for(int n=0; n < matchlist.size(); n++){
-	      if(sval == matchlist[n]){
-		valset = OnVal;
-		nhitslocal++;
-		break;
-	      }
-	    }
-	  }
-	  MRIsetVoxVal(outvol,c,r,s,f,valset);
+	  else valset = OffVal;
+	  MRIsetVoxVal(outvol,c,r,s,f-fstart,valset);
 	}
       }
     }
@@ -6257,6 +6290,7 @@ MRI *BinarizeMRI::binarize(MRI *invol, const MRI *mask, MRI *outvol)
     nhitslocal = invol->width*invol->height*invol->depth*(fend-fstart)-nhitslocal;
   }
 
+  // This will be the final number of activated voxels in the output
   nhits = nhitslocal;
   if(m_debug){
     fprintf(m_debugfp,"BinarizeMRI: nhits = %d\n",nhits);

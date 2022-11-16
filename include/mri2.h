@@ -213,7 +213,7 @@ class BinarizeMRI
 public:
   int BinType=1; // 1=threshold, 2=match
   double thmin=0.5, thmax=INFINITY;
-  std::vector<int> matchlist;
+  std::vector<int> matchlist; // list of ints for when BinType=2
   double maskthmin = 0.5, maskthmax=INFINITY;
   int ZeroColEdges = 0;
   int ZeroRowEdges = 0;
@@ -226,6 +226,7 @@ public:
   int DoAbs=0;
   int m_debug=0;
   FILE *m_debugfp=stdout;
+  int qualifies(const MRI *invol, const MRI *mask,  int c,  int r,  int s,  int f);
   MRI *binarize(MRI *invol, const MRI *mask, MRI *outvol);
   int dump(MRI *invol, const MRI *mask, MRI *outvol);
   // add: fdr, match-from-{ctab,ctx,gm,wm,subctx}, bincol, frame ops (sum,min,max,and,or)
