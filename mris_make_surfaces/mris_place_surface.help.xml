@@ -151,6 +151,9 @@
       <argument>--white_border_low_factor f</argument>
       <explanation>white_border_low = f*adgws.gray_mean + (1-f)*adgws.white_mean;</explanation>
 
+      <argument>--fill-lat-vents DillMM Topo Nnbrs</argument>
+      <explanation>Fill lateral ventricles with 110</explanation>
+
     </optional>
     <cost-function>
       <argument>--intensity weight</argument>
