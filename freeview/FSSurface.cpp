@@ -940,8 +940,11 @@ void FSSurface::UpdatePolyData( MRIS* mris,
         dz = qMax(dz, qAbs(mris->vertices[face[1]].z - mris->vertices[face[2]].z));
         dz = qMax(dz, qAbs(mris->vertices[face[0]].z - mris->vertices[face[2]].z));
       }
-      for (int i = 0; i < 3; i++)
-        vert_mask[face[i]] = 1;
+      if (polydata_verts)
+      {
+        for (int i = 0; i < 3; i++)
+          vert_mask[face[i]] = 1;
+      }
     }
   }
   if ( polydata_verts )
