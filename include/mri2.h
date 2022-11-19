@@ -261,6 +261,43 @@ public:
   MRI *morph(MRI *invol, double thmin, double thmax, MRI *mask, MRI *outvol);
 };
 
+/*!
+  \fn class SCMstopMask
+  \brief This class supplies methods to create a "stop mask" for white
+  surface placement. The stopmask is used when CBV is searching for
+  peaks in the gradient. By stopping the search, problematic voxels
+  are avoided (eg, the occip horn of the LVs) and the surface does not
+  wander out into silly areas. The mask can be created based on
+  several criteria: (1) Lateral ventricles/choroid plexus (needs
+  aseg.presurf), (2) WMSAs (77,78,79, needs aseg.presurf); WMSAs can
+  be tricky because cortex is sometimes mislabled as WMSA; therefore,
+  the ability to exclude WMSA voxels near cortex has been included (it
+  is a bit of a hack). (3) An active edit to the filled (needs
+  filled.auto.mgz and filled.mgz). (4) an active edit to the wm.mgz
+  (5) an active edit to the brain.finalsurfs. Ideally, one would only
+  be editing the filled.mgz; the others are there for backwards
+  compatibility and because the long does not currently propagate the
+  filled. The output is actually a segmentation with colortable; the
+  segid indicates which criterion was used to set the voxel.
+ */
+class SCMstopMask {
+public:
+  MRI *bfs=NULL; // brain.finalsurfs.mgz
+  MRI *aseg=NULL; // aseg.presurf.mgz
+  MRI *wm=NULL; // wm.mgz
+  MRI *filledauto=NULL, *filled=NULL; // filled.auto.mgz and filled.mgz
+  int DoBFS255 = 1; // add voxels in BFS=255 (these have been manually edited)
+  int DoFilled=1; // add filled voxels that are > 0 and have been edited
+  int DoLV=1; // add lateral ventricle and choroid plexus voxels (add ILV too?)
+  int DoWM255=1; // add edited WM voxels=255
+  int DoWMSA=1; // add wm hypointensites (77,78,79)
+  double WMSAErodeMM=1; // erode any WMSAs that are adjacent to cortex by this amount in mm
+  int nWMSAErode; // number of voxels to erode WMSAs, computed later
+  // Add putamen?
+  // Could find places in aseg that have been edited to be part of the SCM and then force
+  // them into the stopmask
+  MRI *getmask(void);
+};
 
 
 #endif

@@ -6473,3 +6473,180 @@ MRI *DEMorphBinVol::copyFrame(MRI *invol, int frameno)
   }
   return(involfr);
 }
+
+
+MRI *SCMstopMask::getmask(void)
+{
+  // See the class definition for documentation
+  printf("SCMstopMask: DoBFS255=%d, DoFilled=%d, DoLV=%d, DoWM255=%d DoWMSA=%d WMSAErodeMM=%g\n",
+    DoBFS255,DoFilled,DoLV,DoWM255,DoWMSA,WMSAErodeMM);
+  if(!DoBFS255 && !DoFilled && !DoLV && !DoWM255&& !DoWMSA){
+    printf("ERROR: SCMstopMask::getmask(): nothing to do\n");
+    return(NULL);
+  }
+  if(!bfs && DoBFS255){
+    printf("ERROR: SCMstopMask::getmask(): bfs is NULL\n");
+    return(NULL);
+  }
+  if(!aseg && (DoLV || DoWMSA)){
+    printf("ERROR: SCMstopMask::getmask(): aseg is NULL\n");
+    return(NULL);
+  }
+  if(!filledauto && DoFilled){
+    printf("ERROR: SCMstopMask::getmask(): filledauto is NULL\n");
+    return(NULL);
+  }
+  if(!filled && DoFilled){
+    printf("ERROR: SCMstopMask::getmask(): filled is NULL\n");
+    return(NULL);
+  }
+  if(!wm && DoWM255){
+    printf("ERROR: SCMstopMask::getmask(): wm is NULL\n");
+    return(NULL);
+  }
+
+  MRI *ref=NULL;
+  if(aseg) ref = aseg;
+  else if(filled) ref=filled;
+  else if(wm) ref=wm;
+  else if(bfs) ref=bfs;
+  if(aseg && MRIdimMismatch(ref, aseg, 0)) {
+    printf("ERROR: SCMstopMask::getmask(): aseg dim mismatch\n");
+    return(NULL);
+  }
+  if(filledauto && MRIdimMismatch(ref, filledauto, 0)) {
+    printf("ERROR: SCMstopMask::getmask(): filledauto dim mismatch\n");
+    return(NULL);
+  }
+  if(filled && MRIdimMismatch(ref, filled, 0)) {
+    printf("ERROR: SCMstopMask::getmask(): filled dim mismatch\n");
+    return(NULL);
+  }
+  if(wm && MRIdimMismatch(ref, wm, 0)) {
+    printf("ERROR: SCMstopMask::getmask(): wm dim mismatch\n");
+    return(NULL);
+  }
+  if(bfs && MRIdimMismatch(ref, bfs, 0)) {
+    printf("ERROR: SCMstopMask::getmask(): bfs dim mismatch\n");
+    return(NULL);
+  }
+
+  MRI *bin = MRIallocSequence(ref->width, ref->height, ref->depth, MRI_UCHAR, 1);
+  if(bin == NULL) {
+    printf("ERROR: SCMstopMask::getmask(): could not alloc\n");
+    return(NULL);
+  }
+  MRIcopyHeader(ref, bin);
+  MRIcopyPulseParameters(ref, bin);
+
+  // Create a color table for the bin
+  bin->ct = CTABalloc(7);
+  CTE *cte;
+  cte = (bin->ct->entries[0]);
+  sprintf(cte->name,"Background"); cte->ri = 0; cte->gi = 0;cte->bi = 0;
+  cte = (bin->ct->entries[1]); 
+  sprintf(cte->name,"WMEdits"); cte->ri = 255; cte->gi = 0; cte->bi = 0;
+  cte = (bin->ct->entries[2]); 
+  sprintf(cte->name,"FilledEdits"); cte->ri = 0;cte->gi = 255;cte->bi = 0;
+  cte = (bin->ct->entries[3]); 
+  sprintf(cte->name,"BFSEdits"); cte->ri = 0;cte->gi = 0;cte->bi = 255;
+  cte = (bin->ct->entries[4]); 
+  sprintf(cte->name,"LatVent"); cte->ri = 0;cte->gi = 255;cte->bi = 255;
+  cte = (bin->ct->entries[5]); 
+  sprintf(cte->name,"WMSA"); cte->ri = 255; cte->gi = 0; cte->bi = 255;
+
+  // Handle WMSA exclusion mask
+  MRI *WMSAexclusionMask=NULL;
+  if(DoWMSA){
+    nWMSAErode = round(WMSAErodeMM/((bfs->xsize+bfs->ysize+bfs->zsize)/3));
+    printf("nWMSAErode = %d\n",nWMSAErode);
+    if(nWMSAErode>0){
+      // To create the exclusion mask, dilate the cortex label by
+      // nWMSAErode.  If a WMSA voxel falls into this mask, then
+      // ignore it. This is needed because cortex is sometimes
+      // incorrectly labeled as WMSAs
+      DEMorphBinVol mbv;
+      mbv.morphtype = 1;
+      mbv.nmorph = nWMSAErode;
+      mbv.topo = 1;
+      mbv.mm_mritype = MRI_UCHAR;
+      std::vector<int> matchlist = {Left_Cerebral_Cortex,Right_Cerebral_Cortex}; //3,42
+      WMSAexclusionMask = mbv.morph(aseg, matchlist, NULL,NULL);
+    }
+  }
+
+  // these have to be local for reduction
+  int nbfsedits=0;
+  int nfedits=0;
+  int nlv=0;
+  int nwmedits=0;
+  int nwmsa=0;
+  int nwmsaexcluded=0;
+  int nhits = 0;
+  #ifdef HAVE_OPENMP
+  #pragma omp parallel for reduction(+ : nhits,nbfsedits,nfedits,nlv,nwmedits,nwmsaexcluded,nwmsa)
+  #endif
+  for(int c=0; c < bin->width; c++){
+    for(int r=0; r < bin->height; r++){
+      for(int s=0; s < bin->depth; s++){
+	int hit = 0;
+	if(DoWM255){
+	  double wmval = MRIgetVoxVal(wm,c,r,s,0);
+	  if(wmval == 255){
+	    MRIsetVoxVal(bin,c,r,s,0,1);
+	    hit = 1;
+	    nwmedits++;
+	  }
+	}
+	if(!hit && filledauto && filled){
+	  int fa = MRIgetVoxVal(filledauto,c,r,s,0);
+	  int f  = MRIgetVoxVal(filled,c,r,s,0);
+	  if(fa != f && f > 0.5){
+	    MRIsetVoxVal(bin,c,r,s,0,2);
+	    hit = 1;
+	    nfedits++;
+	  }
+	}
+	if(!hit && DoBFS255){
+	  double bfsval = MRIgetVoxVal(bfs,c,r,s,0);
+	  if(bfsval == 255){
+	    MRIsetVoxVal(bin,c,r,s,0,3);
+	    hit = 1;
+	    nbfsedits++;
+	  }
+	}
+	if(!hit && DoLV){
+	  int asegid = MRIgetVoxVal(aseg,c,r,s,0);
+	  if(asegid == 4 || asegid == 43 || asegid == 63 || asegid == 31){
+	    MRIsetVoxVal(bin,c,r,s,0,4);
+	    hit = 1;
+	    nlv++;
+	  }
+	}
+	if(!hit && DoWMSA){
+	  int asegid = MRIgetVoxVal(aseg,c,r,s,0);
+	  if(asegid == WM_hypointensities || asegid == Left_WM_hypointensities || asegid == Right_WM_hypointensities){
+	    int m=0;
+	    if(WMSAexclusionMask) {
+	      m = MRIgetVoxVal(WMSAexclusionMask,c,r,s,0);
+	      if(m) nwmsaexcluded++;
+	    }
+	    if(!m){
+	      MRIsetVoxVal(bin,c,r,s,0,5);
+	      hit = 1;
+	      nwmsa++;
+	    }
+	  }
+	}
+	if(!hit) continue;
+	nhits ++;
+      } // slice
+    } // row
+  } // cold
+  printf("SCMstopMask::getmask(): nhits=%d nbfsedits=%d, nfedits=%d, nlv=%d, nwmedits=%d, nwmsa=%d, nwmsaex=%d\n",
+	 nhits,nbfsedits,nfedits,nlv,nwmedits,nwmsa,nwmsaexcluded);
+
+  if(WMSAexclusionMask) MRIfree(&WMSAexclusionMask);
+
+  return(bin);
+}
