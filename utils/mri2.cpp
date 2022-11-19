@@ -6643,10 +6643,14 @@ MRI *SCMstopMask::getmask(void)
       } // slice
     } // row
   } // cold
+  if(WMSAexclusionMask) MRIfree(&WMSAexclusionMask);
   printf("SCMstopMask::getmask(): nhits=%d nbfsedits=%d, nfedits=%d, nlv=%d, nwmedits=%d, nwmsa=%d, nwmsaex=%d\n",
 	 nhits,nbfsedits,nfedits,nlv,nwmedits,nwmsa,nwmsaexcluded);
-
-  if(WMSAexclusionMask) MRIfree(&WMSAexclusionMask);
-
+  nhitslist[0]=nhits;
+  nhitslist[1]=nbfsedits;
+  nhitslist[2]=nfedits;
+  nhitslist[3]=nwmedits;
+  nhitslist[4]=nwmsa;
+  nhitslist[5]=nwmsaexcluded;
   return(bin);
 }
