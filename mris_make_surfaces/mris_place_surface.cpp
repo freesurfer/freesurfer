@@ -271,6 +271,7 @@ double DilLatVentsMM = 0;
 int DilLatVentsTopo=1;
 int DilLatVentsNnbrs=1;
 int FillLatVents(MRI *invol, MRI *aseg, double dilmm, int topo, int nnbrsthresh, double val);
+MRI *stopmask=NULL;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) 
@@ -670,7 +671,7 @@ int main(int argc, char **argv)
 	//   v->marked = 1;         // vertex has good data
 	//   v->targx = v->x + v->nx * v->d; // same for y and z
 	MRIScomputeBorderValues(surf, involCBV, NULL, inside_hi,border_hi,border_low,outside_low,outside_hi,
-				current_sigma, 2*max_cbv_dist, parms.fp, surftype, NULL, 0, parms.flags,seg,-1,-1) ;
+				current_sigma, 2*max_cbv_dist, parms.fp, surftype, stopmask, 0.5, parms.flags,seg,-1,-1) ;
 	// Note: 3rd input (NULL) was "mri_smooth" in mris_make_surfaces, but
 	// this was always a copy of the input (mri_T1 or invol); it is not used in CBV
 	
@@ -978,6 +979,12 @@ static int parse_commandline(int argc, char **argv) {
     else if(!strcasecmp(option, "--invol")){
       if(nargc < 1) CMDargNErr(option,1);
       involpath = pargv[0];
+      nargsused = 1;
+    } 
+    else if(!strcasecmp(option, "--stop")){
+      if(nargc < 1) CMDargNErr(option,1);
+      stopmask = MRIread(pargv[0]);
+      if(!stopmask) exit(1);
       nargsused = 1;
     } 
     else if(!strcasecmp(option, "--mmvol")){
