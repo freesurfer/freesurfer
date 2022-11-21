@@ -96,6 +96,7 @@ namespace kvl
  */  
   
   
+// https://itk.org/Doxygen/html/classitk_1_1ImageConstIteratorWithIndex.html
   
 template< typename TPixel >
 class TetrahedronInteriorConstIterator : private itk::ImageConstIteratorWithIndex< typename itk::Image< TPixel, 3 > >
@@ -200,12 +201,22 @@ public:
 protected: //made protected so other iterators can access
   
   // 
+#ifndef USING_STATIC_ARRAY
   std::vector< double >  m_InterpolatedValues;
   
   // 
   std::vector< double >  m_NextRowAdditions; 
   std::vector< double >  m_NextColumnAdditions; 
   std::vector< double >  m_NextSliceAdditions; 
+#else
+  //
+  int m_NumberOfLoadings;
+  
+  double m_InterpolatedValues[MAX_LOADINGS];
+  double m_NextRowAdditions[MAX_LOADINGS]; 
+  double m_NextColumnAdditions[MAX_LOADINGS]; 
+  double m_NextSliceAdditions[MAX_LOADINGS];
+#endif
   
   // Make the data pointer visible to our subclasses
   using Superclass::m_Position;
@@ -226,8 +237,13 @@ private:
   static bool CheckBorderCase( double a, double b, double c );
 
   // Things to help us backtrack to beginning of column and slice
+#ifndef USING_STATIC_ARRAY
   std::vector< double >  m_ColumnBeginInterpolatedValues;
   std::vector< double >  m_SliceBeginInterpolatedValues;
+#else
+  double m_ColumnBeginInterpolatedValues[MAX_LOADINGS];
+  double m_SliceBeginInterpolatedValues[MAX_LOADINGS];
+#endif
   
   const InternalPixelType*  m_SliceBeginPosition;
   const InternalPixelType*  m_ColumnBeginPosition;

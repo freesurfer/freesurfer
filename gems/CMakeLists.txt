@@ -22,6 +22,7 @@ option(GEMS_BUILD_GUI "Build GUI components (requires FLTK and VTK)" OFF)
 option(GEMS_BUILD_MATLAB "Build Matlab wrappers" OFF)
 option(GEMS_BUILD_CUDA "Build CUDA stuff" OFF)
 option(GEMS_CROSS_THREAD_REPRODUCIBLE "Enable complete reproducibility" OFF)
+option(GEMS_USE_STATIC_ARRAY "Use array in TetrahedronInteriorConstIterator class" ON)
 
 set(GEMS_RUNTIME_PATH ${CMAKE_CURRENT_BINARY_DIR}/bin)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${GEMS_RUNTIME_PATH})
@@ -32,6 +33,11 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_FLAGS "-fPIC -fpermissive -msse2 -mfpmath=sse")
 
 add_compile_options(-Wno-inconsistent-missing-override -Wno-self-assign-field)
+
+if(GEMS_USE_STATIC_ARRAY)
+  message(WARNING "compiling kvlGEMSCommon libraries with options -DUSING_STATIC_ARRAY -DMAX_LOADINGS=100")
+  add_definitions(-DUSING_STATIC_ARRAY -DMAX_LOADINGS=100)
+endif()
 
 # PW 2022/02/25: No longer nessesary since we are now building 2 versions of 
 #                the library:

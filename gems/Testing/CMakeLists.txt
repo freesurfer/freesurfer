@@ -10,8 +10,12 @@ target_link_libraries(kvlAtlasMeshRasterizorTestGPU kvlGEMSCommon)
 
 #
 add_executable(testdeformMeshPython testdeformMeshPython.cxx)
-add_definitions(-DUSE_DYNAMIC_MESH)
-target_link_libraries(testdeformMeshPython kvlGEMSCommon_dynmesh)
+target_link_libraries(testdeformMeshPython kvlGEMSCommon)
+
+#
+add_executable(testdeformMeshPython.dynmesh testdeformMeshPython.cxx)
+target_compile_definitions(testdeformMeshPython.dynmesh PRIVATE -DUSE_DYNAMIC_MESH)
+target_link_libraries(testdeformMeshPython.dynmesh kvlGEMSCommon_dynmesh)
 
 # boost tests
 if(Boost_FOUND)
