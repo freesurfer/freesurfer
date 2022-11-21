@@ -119,4 +119,10 @@ LongTransferBaseBFS:
     action: enable
     descr: Transfer brain.finalsurfs (BFS) edits to long from the base rather than from the cross
     
+UseStopMaskSCM:
+    value: False
+    flags: -stopmask-scm
+    action: enable
+    descr: Use stop mask when creating white.preaparc and white surfaces
+    
 
