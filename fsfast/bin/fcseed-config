@@ -286,6 +286,7 @@ usage_exit:
   echo "  -fsd FSD : rest or bold (required)"
   echo "  -funcstem funcstem : default is fmcpr"
   echo "  -rlf RunListFile"
+  echo "  -b0dc : use B0 distortion correction (must have been done as part of preproc)"
   echo ""
   echo "Functional ROI-based options"
   echo "  -roi fcconfig : as created by funcroi-confg"

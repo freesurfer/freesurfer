@@ -881,6 +881,7 @@ usage_exit:
   echo " --stiffness K : mesh stiffness"
   echo " --lesion : Turn on lesion segmentation"
   echo " --lesion-mask-pattern A B : Needed when using T2 (eg, 0 1)"
+  echo " --bias-field-smoothing-kernel widthMM : width of bias field smoothness"
   echo " --reg reg.{lta,mat} : registration file (LTA or  as output by samseg)"
   echo "    allows using the reg from one run with another run"
   echo " --regmat reg.{lta.mat} same as --reg"

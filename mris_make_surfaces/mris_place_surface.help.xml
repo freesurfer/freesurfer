@@ -137,6 +137,9 @@
       <argument>--target TargetSurf </argument>
       <explanation>Save CBV target surface</explanation>
 
+      <argument>--stop </argument>
+      <explanation>Stop mask to stop search along normal for max gradient</explanation>
+
       <argument>--mm_{min,max}_{inside,outside} </argument>
       <explanation>Intensity limits for placing pial on multimodal input (ie, T2/FLAIR)</explanation>
 
@@ -150,6 +153,9 @@
 
       <argument>--white_border_low_factor f</argument>
       <explanation>white_border_low = f*adgws.gray_mean + (1-f)*adgws.white_mean;</explanation>
+
+      <argument>--fill-lat-vents DillMM Topo Nnbrs</argument>
+      <explanation>Fill lateral ventricles with 110</explanation>
 
     </optional>
     <cost-function>

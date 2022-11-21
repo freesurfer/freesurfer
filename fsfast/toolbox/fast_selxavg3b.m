@@ -7,9 +7,14 @@ function err = fast_selxavg3b(configfile)
 % To compile run
 %   unalias matlab
 %   set path = ( /usr/pubsw/common/matlab/V.V/bin/ $path )
+%   By default the compiler includes startup.m which has 
+%     statments which change the matlab path; this will cause
+%     runtime errors. To get around this, do two things:
+%     1. Move startup.m to something else
+%     2. setenv MATLABPATH "$DEV/fsfast/toolbox:$DEV/matlab"
 %   mcc  -m -v -R -singleCompThread fast_selxavg3b.m
-%   cp fast_selxavg3b $DEV/fsfast/bin/fast_selxavg3b.glnxa64
-%
+%   Can't just copy as below, need to handle git annex
+%     cp fast_selxavg3b $DEV/fsfast/bin/fast_selxavg3b.glnxa64
 
 
 %

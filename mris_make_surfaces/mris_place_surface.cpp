@@ -266,6 +266,12 @@ char *tps_patchfile = NULL;
 char *outvolpath=NULL; // save preprocessed volume
 int Restore255=0;
 int outvolonly = 0;
+int DoFillLatVents = 0;
+double DilLatVentsMM = 0;
+int DilLatVentsTopo=1;
+int DilLatVentsNnbrs=1;
+int FillLatVents(MRI *invol, MRI *aseg, double dilmm, int topo, int nnbrsthresh, double val);
+MRI *stopmask=NULL;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) 
@@ -439,6 +445,13 @@ int main(int argc, char **argv)
   invol = MRIread(involpath);
   if(invol==NULL) exit(1);
 
+  if(segvolpath){
+    printf("Reading in seg volume %s\n",segvolpath);
+    seg = MRIread(segvolpath);
+    if(seg==NULL) exit(1);
+    // Check dims
+  }
+
   if(DoIntensityProc){
     // =========== intensity volume preprocessing ==============
     // It would be nice to do this externally
@@ -503,6 +516,10 @@ int main(int argc, char **argv)
       involPS  = invol;
     }
     MRIfree(&mri_labeled);
+    if(DoFillLatVents){
+      printf("Filling lateral ventricles\n");
+      FillLatVents(invol, seg, DilLatVentsMM, DilLatVentsTopo, DilLatVentsNnbrs, 110);
+    }
     if(outvolpath) {
       err = MRIwrite(invol,outvolpath);
       if(err) exit(err);
@@ -516,13 +533,6 @@ int main(int argc, char **argv)
   else {
     involCBV = invol;
     involPS  = invol;
-  }
-
-  if(segvolpath){
-    printf("Reading in seg volume %s\n",segvolpath);
-    seg = MRIread(segvolpath);
-    if(seg==NULL) exit(1);
-    // Check dims
   }
 
   // Manage ripping of vertices
@@ -661,7 +671,7 @@ int main(int argc, char **argv)
 	//   v->marked = 1;         // vertex has good data
 	//   v->targx = v->x + v->nx * v->d; // same for y and z
 	MRIScomputeBorderValues(surf, involCBV, NULL, inside_hi,border_hi,border_low,outside_low,outside_hi,
-				current_sigma, 2*max_cbv_dist, parms.fp, surftype, NULL, 0, parms.flags,seg,-1,-1) ;
+				current_sigma, 2*max_cbv_dist, parms.fp, surftype, stopmask, 0.5, parms.flags,seg,-1,-1) ;
 	// Note: 3rd input (NULL) was "mri_smooth" in mris_make_surfaces, but
 	// this was always a copy of the input (mri_T1 or invol); it is not used in CBV
 	
@@ -937,6 +947,14 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[2],"%lf",&ripmngr.dstep);
       nargsused = 3;
     }
+    else if(!strcmp(option, "--fill-lat-vents")){
+      if(nargc < 3) CMDargNErr(option,3);
+      DoFillLatVents = 1;
+      sscanf(pargv[0],"%lf",&DilLatVentsMM);
+      sscanf(pargv[1],"%d",&DilLatVentsTopo);
+      sscanf(pargv[2],"%d",&DilLatVentsNnbrs);
+      nargsused = 3;
+    }
     else if(!strcmp(option, "--pin-medial-wall")){
       if(nargc < 1) CMDargNErr(option,1);
       pinlabel = LabelRead("",pargv[0]);
@@ -963,6 +981,12 @@ static int parse_commandline(int argc, char **argv) {
       involpath = pargv[0];
       nargsused = 1;
     } 
+    else if(!strcasecmp(option, "--stop")){
+      if(nargc < 1) CMDargNErr(option,1);
+      stopmask = MRIread(pargv[0]);
+      if(!stopmask) exit(1);
+      nargsused = 1;
+    } 
     else if(!strcasecmp(option, "--mmvol")){
       if(nargc < 2) CMDargNErr(option,2);
       mmvolpath = pargv[0];
@@ -983,39 +1007,33 @@ static int parse_commandline(int argc, char **argv) {
     else if(!strcasecmp(option, "--mm-min-p-grey")){
 	MMRefineMinPGrey=atof(pargv[0]);
 	nargsused=1;
-    }else if(!strcasecmp(option, "--mm-weights")){
-		
+    }
+    else if(!strcasecmp(option, "--mm-weights")){
 	UseMMRefineWeights=1;
-    } else if(!strcasecmp(option, "--mm-refine")){
-	    UseMMRefine = 1;
-	    int numImages  =atoi(pargv[0]);
-	    
-	for(int i=0;i<numImages;i++)
-	    {		
-		if(!stricmp(pargv[i*2+1],"t2"))
-		{
-			std::cout << CONTRAST_T2 << " T2 " << pargv[i*2+2]<< std::endl;	
-		   	mmvols[CONTRAST_T2]=MRIread(pargv[i*2+2]);
-		}
-		else if(!stricmp(pargv[i*2+1],"flair"))
-		{
-			std::cout << CONTRAST_FLAIR << " FLAIR " << pargv[i*2+2]<< std::endl;	
-			 mmvols[ CONTRAST_FLAIR]=MRIread(pargv[i*2+2]);
-		}
-		else if(!stricmp(pargv[i*2+1],"t1"))
-		{
-			std::cout << CONTRAST_T1 << " T1 " << pargv[i*2+2]<< std::endl;	
-			 mmvols[ CONTRAST_T1]=MRIread(pargv[i*2+2]);
-		}
-		else 
-		{
-			printf("ERROR: mmvol must be either t2 or flair weighted\n");
-			exit(1);
-		}
-	    }
+    } 
+    else if(!strcasecmp(option, "--mm-refine")){
+      UseMMRefine = 1;
+      int numImages  =atoi(pargv[0]);
+      for(int i=0;i<numImages;i++){		
+	if(!stricmp(pargv[i*2+1],"t2"))	    {
+	  std::cout << CONTRAST_T2 << " T2 " << pargv[i*2+2]<< std::endl;	
+	  mmvols[CONTRAST_T2]=MRIread(pargv[i*2+2]);
+	}
+	else if(!stricmp(pargv[i*2+1],"flair"))	    {
+	  std::cout << CONTRAST_FLAIR << " FLAIR " << pargv[i*2+2]<< std::endl;	
+	  mmvols[ CONTRAST_FLAIR]=MRIread(pargv[i*2+2]);
+	}
+	else if(!stricmp(pargv[i*2+1],"t1"))	    {
+	  std::cout << CONTRAST_T1 << " T1 " << pargv[i*2+2]<< std::endl;	
+	  mmvols[ CONTRAST_T1]=MRIread(pargv[i*2+2]);
+	}
+	else 	    {
+	  printf("ERROR: mmvol must be either t2 or flair weighted\n");
+	  exit(1);
+	}
+      }
       surftype = GRAY_CSF;
       nargsused = numImages*2+1;
-
     }
     else if(!strcmp(option, "--i")){
       if(nargc < 1) CMDargNErr(option,1);
@@ -1621,6 +1639,12 @@ static void check_options(void) {
     if(!mri_cover_seg) exit(1);
   }
   if(CBVzero) DoIntensityProc=0;
+
+  if(DoFillLatVents && segvolpath == NULL){
+    printf("ERROR: --fill-lat-vents requires a segmentation\n");
+    exit(1);
+  }
+
   return;
 }
 
@@ -1999,6 +2023,67 @@ int MRIsetCRS(MRI *invol, std::vector<std::vector<int>> crslist, int frame, doub
   }
   return(0);
 }
+
+int FillLatVents(MRI *invol, MRI *aseg, double dilmm, int topo, int nnbrsthresh, double val)
+{
+  double voxsize = (invol->xsize+invol->ysize+invol->zsize)/3;
+  int ndil = round(dilmm/voxsize);
+  printf("FillLatVents: dilmm=%g, vosize=%g, ndil=%d, val=%g\n",dilmm,voxsize,ndil,val);
+
+  MRI *bin = MRIalloc(invol->width, invol->height, invol->depth, MRI_UCHAR);
+  MRIcopyHeader(invol, bin);
+  MRIcopyPulseParameters(invol, bin);
+
+  int nvents=0, nwm=0;
+  #ifdef HAVE_OPENMP
+  #pragma omp parallel for reduction(+ : nvents)
+  #endif
+  for(int c=0; c < invol->width; c++){
+    for(int r=0; r < invol->height; r++){
+      for(int s=0; s < invol->depth; s++){
+	int segid = MRIgetVoxVal(aseg,c,r,s,0);
+	if(segid != 4 && segid != 43) continue;
+	MRIsetVoxVal(bin,c,r,s,0,1);
+	MRIsetVoxVal(invol,c,r,s,0,val);
+	nvents++;
+      }
+    }
+  }
+  MRIwrite(bin,"bin0.mgz");
+  if(ndil > 0) {
+    DEMorphBinVol mbv;
+    mbv.morphtype = 1;
+    mbv.nmorph = ndil;
+    mbv.nnbrsthresh = nnbrsthresh;
+    mbv.mm_debug = 1;
+    MRI *mritmp = mbv.morph(bin);
+    if(mritmp==NULL) return(1);
+    MRIfree(&bin);
+    bin = mritmp;
+    MRIwrite(bin,"bin.mgz");
+    #ifdef HAVE_OPENMP
+    #pragma omp parallel for reduction(+ : nvents)
+    #endif
+    for(int c=0; c < invol->width; c++){
+      for(int r=0; r < invol->height; r++){
+        for(int s=0; s < invol->depth; s++){
+    	  int vbin = MRIgetVoxVal(bin,c,r,s,0);
+  	  if(vbin < 0.5) continue;
+  	  int segid = MRIgetVoxVal(aseg,c,r,s,0);
+  	  if(segid != 2 && segid != 41) continue;
+  	  MRIsetVoxVal(invol,c,r,s,0,val);
+	  nwm++;
+        }
+      }
+    }
+  }
+  MRIfree(&bin);
+  printf("   nvents=%d  nwm=%d\n",nvents,nwm);
+
+  return(0);
+}
+
+
 
 
 

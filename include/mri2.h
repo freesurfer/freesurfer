@@ -198,4 +198,107 @@ public:
   int FixSCM(void);
 };
 
+/*!
+  \fn class BinarizeMRI
+  \breif This class is used to help binarize MRIs. This can be done by
+  simple thresholding or by matching values from a list. There are
+  many bells and whistles, eg, inverting, applying to only certain
+  frames, taking abs of the input before thesholding, constraining to
+  a mask, allways zeroing edges.  A Voxel value must be
+  thmin<=val<=thmax to be set; if invert=1, then thmin>val and
+  val>thmax.
+ */
+class BinarizeMRI
+{
+public:
+  int BinType=1; // 1=threshold, 2=match
+  double thmin=0.5, thmax=INFINITY;
+  std::vector<int> matchlist; // list of ints for when BinType=2
+  double maskthmin = 0.5, maskthmax=INFINITY;
+  int ZeroColEdges = 0;
+  int ZeroRowEdges = 0;
+  int ZeroSliceEdges = 0;
+  double OnVal=1, OffVal=0;
+  int fstart=-1, fend=-1;
+  int invert=0;
+  int nhits=0; // total number set to OnVal
+  int mritype=-1; // default will be MRI_FLOAT
+  int DoAbs=0;
+  int m_debug=0;
+  FILE *m_debugfp=stdout;
+  int qualifies(const MRI *invol, const MRI *mask,  int c,  int r,  int s,  int f);
+  MRI *binarize(MRI *invol, const MRI *mask, MRI *outvol);
+  int dump(MRI *invol, const MRI *mask, MRI *outvol);
+  // add: fdr, match-from-{ctab,ctx,gm,wm,subctx}, bincol, frame ops (sum,min,max,and,or)
+};
+
+/*!
+  \fn class DEMorphBinVol
+  \brief Performs dilation (morphtype=1) and erosion (morphtype=2)
+  type morphological operations on binary MRI volumes. Combining topo
+  with min number of neighbors can allow the extent of
+  dilation/erosion to be controlled better. See class BinarizeMRI 
+  for many options for binarizing before calling these methods.
+ */
+class DEMorphBinVol
+{
+public:
+  int morphtype=1; //1=dil, 2=erode
+  int topo=1; // 1=face neighors, 2=face+edges neighbors, 3=face+edge+corner neighbors
+  int nnbrsthresh=0; // min number of tagged neighbors must exceed this number
+  int nmorph=0; //number of iterations, 0=do nothing
+  int frame=0; // use this frame from the input
+  int nchangestot=0; // set to the number of voxels changed during morph
+  int mm_mritype=-1; // -1 = make output same type as input
+  int mm_debug=1;
+  FILE *mm_debugfp=stdout;
+  int check(MRI *invol, MRI *mask, MRI *outvol);
+  int dump(MRI *binvol);
+  MRI *copyFrame(MRI *invol, int frameno);
+  MRI *morph(MRI *binvol); // basic morph of a binary volumes
+  // These two will binarize for you, then run the morph
+  MRI *morph(MRI *invol, std::vector<int> matchlist, MRI *mask, MRI *outvol);
+  MRI *morph(MRI *invol, double thmin, double thmax, MRI *mask, MRI *outvol);
+};
+
+/*!
+  \fn class SCMstopMask
+  \brief This class supplies methods to create a "stop mask" for white
+  surface placement. The stopmask is used when CBV is searching for
+  peaks in the gradient. By stopping the search, problematic voxels
+  are avoided (eg, the occip horn of the LVs) and the surface does not
+  wander out into silly areas. The mask can be created based on
+  several criteria: (1) Lateral ventricles/choroid plexus (needs
+  aseg.presurf), (2) WMSAs (77,78,79, needs aseg.presurf); WMSAs can
+  be tricky because cortex is sometimes mislabled as WMSA; therefore,
+  the ability to exclude WMSA voxels near cortex has been included (it
+  is a bit of a hack). (3) An active edit to the filled (needs
+  filled.auto.mgz and filled.mgz). (4) an active edit to the wm.mgz
+  (5) an active edit to the brain.finalsurfs. Ideally, one would only
+  be editing the filled.mgz; the others are there for backwards
+  compatibility and because the long does not currently propagate the
+  filled. The output is actually a segmentation with colortable; the
+  segid indicates which criterion was used to set the voxel.
+ */
+class SCMstopMask {
+public:
+  MRI *bfs=NULL; // brain.finalsurfs.mgz
+  MRI *aseg=NULL; // aseg.presurf.mgz
+  MRI *wm=NULL; // wm.mgz
+  MRI *filledauto=NULL, *filled=NULL; // filled.auto.mgz and filled.mgz
+  int DoBFS255 = 1; // add voxels in BFS=255 (these have been manually edited)
+  int DoFilled=1; // add filled voxels that are > 0 and have been edited
+  int DoLV=1; // add lateral ventricle and choroid plexus voxels (add ILV too?)
+  int DoWM255=1; // add edited WM voxels=255
+  int DoWMSA=1; // add wm hypointensites (77,78,79)
+  double WMSAErodeMM=1; // erode any WMSAs that are adjacent to cortex by this amount in mm
+  int nWMSAErode; // number of voxels to erode WMSAs, computed later
+  // Add putamen?
+  // Could find places in aseg that have been edited to be part of the SCM and then force
+  // them into the stopmask
+  MRI *getmask(void);
+  int nhitslist[5]; // to keep track of number of voxels hit
+};
+
+
 #endif

@@ -344,7 +344,7 @@ def predict(path_images,
     else:
         print('\nIf you use this tool in a publication, please cite:')
         print('SynthSeg: domain randomisation for segmentation of brain MRI scans of any contrast and resolution')
-        print('B. Billot, D.N. Greeve, O. Puonti, A. Thielscher, K. Van Leemput, B. Fischl, A.V. Dalca, J.E. Iglesias')
+        print('B. Billot, D.N. Greve, O. Puonti, A. Thielscher, K. Van Leemput, B. Fischl, A.V. Dalca, J.E. Iglesias')
 
     if len(list_errors) > 0:
         print('\nERROR: some problems occured for the following inputs (see corresponding errors above):')
