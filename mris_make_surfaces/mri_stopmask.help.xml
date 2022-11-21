@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE help [
+<!ENTITY lt "#38;#60;">
+<!ENTITY gt "&#62;">
+<!ENTITY amp "&#38;#38;">
+<!ELEMENT help (name , synopsis , description , arguments+ , outputs* , example* , bugs* , reporting* , see-also*)*>
+<!ELEMENT name (#PCDATA)>
+<!ELEMENT synopsis (#PCDATA)>
+<!ELEMENT description (#PCDATA)>
+<!ELEMENT arguments (positional* , required* , optional* , cost-function)*>
+<!ELEMENT positional (intro* , argument* , explanation*)*>
+<!ELEMENT required-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT optional-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT intro (#PCDATA)>
+<!ELEMENT argument (#PCDATA)>
+<!ELEMENT explanation (#PCDATA)>
+<!ELEMENT outputs (output* , explanation*)>
+<!ELEMENT output (#PCDATA)>
+<!ELEMENT example (#PCDATA)>
+<!ELEMENT bugs (#PCDATA)>
+<!ELEMENT reporting (#PCDATA)>
+<!ELEMENT see-also (#PCDATA)>
+]>
+
+<help>
+	<name>mri_stopmask</name>
+	<description>This program creates a mask used to stop the search for the maximum gradent in mris_place_surface. This can prevent the surface from wandering into areas it should not.
+        </description>
+  <arguments>
+    <required>
+      <argument>--o output</argument>
+      <explanation>Output stop mask (volume format)</explanation>
+      <argument>--filled filled.auto.mgz filled.mgz</argument>
+      <explanation>Includes voxels edited fill voxels that are set in the filled.mgz</explanation>
+      <argument>--aseg aseg.presurf.mgz</argument>
+      <explanation>Used with --lv and/or --wmsa. Note: must be aseg.presurf.mgz, not aseg.mgz</explanation>
+      <argument>--lv</argument>
+      <explanation>Add lateral ventricles and choroid plexus to the mask (needs --aseg)</explanation>
+      <argument>--wmsa nErodeMM</argument>
+      <explanation>Add WM hypointensities to the mask (needs --aseg). Erode by given distance away from any adjacent cortex</explanation>
+      <argument>--wm wm.mgz</argument>
+      <explanation>Includes voxels that =255</explanation>
+      <argument>--bfs brain.finalsurfs.mgz</argument>
+      <explanation>Includes voxels that =255</explanation>
+      <argument>--no-filled</argument>
+      <explanation>Turns off --filled</explanation>
+      <argument>--no-lv</argument>
+      <explanation>Turns off --lv</explanation>
+      <argument>--no-wmsa</argument>
+      <explanation>Turns off --wmsa</explanation>
+      <argument>--no-wm</argument>
+      <explanation>Turns off --wm</explanation>
+      <argument>--no-bfs</argument>
+      <explanation>Turns off --bfs</explanation>
+    </required>
+
+    <optional>
+    </optional>
+  </arguments>
+  <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>
+</help>
+
+
