@@ -1,0 +1,8 @@
+<RCC>
+    <qresource prefix="/">
+        <file alias="func_fiducials_correction.py">../py_scripts/func_fiducials_correction.py</file>
+        <file alias="vertical.png">../py_scripts/vertical.png</file>
+        <file alias="horizontal.png">../py_scripts/horizontal.png</file>
+        <file alias="registration.py">../py_scripts/registration.py</file>
+    </qresource>
+</RCC>

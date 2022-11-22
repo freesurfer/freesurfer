@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/">
+        <file alias="func_fiducials_calibration.py">../py_scripts/func_fiducials_calibration.py</file>
+    </qresource>
+</RCC>
